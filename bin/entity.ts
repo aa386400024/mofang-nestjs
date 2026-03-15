@@ -1,13 +1,15 @@
-/* eslint-disable no-console, @typescript-eslint/triple-slash-reference */
 /// <reference types="../typings/global" />
-import { config } from 'dotenv';
 import { spawnSync } from 'node:child_process';
 import { readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { loadEnvFile } from 'node:process';
 import prompts from 'prompts';
 import { rimrafSync } from 'rimraf';
 
-config();
+try {
+  loadEnvFile();
+} catch {}
+
 if (!process.env.DB_HOST) {
   throw new Error('Create a .env file');
 }

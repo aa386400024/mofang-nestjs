@@ -1,5 +1,10 @@
 /* eslint-disable import/no-default-export, max-len */
 import type { Config } from 'jest';
+import { loadEnvFile } from 'node:process';
+
+try {
+  loadEnvFile();
+} catch {}
 
 /*
  * For a detailed explanation regarding each configuration property and type check, visit:
@@ -136,7 +141,7 @@ const jestConfig: Config = {
   // runner: "jest-runner",
 
   // The paths to modules that run some code to configure or set up the testing environment before each test
-  setupFiles: ['dotenv/config'],
+  // setupFiles: [],
 
   // A list of paths to modules that run some code to configure or set up the testing framework before each test
   // setupFilesAfterEnv: [],
