@@ -4,6 +4,7 @@ import { APP_FILTER, APP_PIPE, RouterModule } from '@nestjs/core';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
+import path from 'node:path';
 
 import { AuthModule } from './auth';
 import { BaseModule } from './base';
@@ -36,7 +37,7 @@ import { SampleModule } from './sample';
     // https://docs.nestjs.com/recipes/serve-static
     // https://docs.nestjs.com/techniques/mvc
     ServeStaticModule.forRoot({
-      rootPath: `${__dirname}/../public`,
+      rootPath: path.join(__dirname, '..', 'public'),
       renderPath: '/',
     }),
     // Service Modules

@@ -11,7 +11,7 @@ export function middleware(app: INestApplication): INestApplication {
   app.use(
     session({
       // Requires 'store' setup for production
-      secret: 'tEsTeD',
+      secret: process.env.SESSION_SECRET ?? 'tEsTeD',
       resave: false,
       saveUninitialized: true,
       cookie: { secure: isProduction },

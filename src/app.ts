@@ -28,7 +28,7 @@ async function bootstrap(): Promise<string> {
   middleware(app);
 
   app.enableShutdownHooks();
-  await app.listen(process.env.PORT || 3000);
+  await app.listen(process.env.PORT ?? 3000);
 
   return await app.getUrl();
 }

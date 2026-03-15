@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import type { Config, Default, Objectype, Production } from './config.interface';
 
 const util = {
@@ -18,8 +20,8 @@ const util = {
 };
 
 export const configuration = async (): Promise<Config> => {
-  const { config } = <{ config: Default }>await import(`${__dirname}/envs/default`);
-  const { config: environment } = <{ config: Production }>await import(`${__dirname}/envs/${process.env.NODE_ENV || 'development'}`);
+  const { config } = <{ config: Default }>await import(path.join(__dirname, 'envs', 'default'));
+  const { config: environment } = <{ config: Production }>await import(path.join(__dirname, 'envs', process.env.NODE_ENV || 'development'));
 
   // object deep merge
   return util.merge(config, environment);
