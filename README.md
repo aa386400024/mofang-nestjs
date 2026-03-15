@@ -115,7 +115,7 @@ You should choose the right architecture<sup>[[1]](https://romanglushach.medium.
 
 ## Implements
 
-- See [bootstrap](src/app.ts), [app.module](src/app.module.ts)
+- Refer to [bootstrap](src/app.ts), [app.module](src/app.module.ts)
   - Database, Module Router, Static Files, Validation, Pino Logger
 - [Global Exception Filter](src/common/filters/exceptions.filter.ts)
 - [Global Logging Context Middleware](src/common/middleware/logger-context.middleware.ts)
@@ -176,6 +176,10 @@ interface ThirdCustomeUser extends CustomeUser {}
 + import { UtilService } from '../common';
 ```
 
+> [!WARNING]
+> Barrel files may need to be avoided in frontend or serverless environments. \
+> Learn more: [Why avoid barrel files?](https://github.com/webpro-nl/unbarrelify/?tab=readme-ov-file#why-avoid-barrel-files)
+
 #### Circular dependency
 
 <https://docs.nestjs.com/fundamentals/circular-dependency>
@@ -190,7 +194,7 @@ interface ThirdCustomeUser extends CustomeUser {}
 
 ### Variables Naming
 
-> refer to [Naming cheatsheet](https://github.com/kettanaito/naming-cheatsheet)
+> [Naming cheatsheet](https://github.com/kettanaito/naming-cheatsheet)
 
 ### Links
 
