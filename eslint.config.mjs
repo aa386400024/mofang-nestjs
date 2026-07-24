@@ -18,7 +18,7 @@ export default defineConfig(
   tseslint.configs.stylisticTypeChecked,
   ...neostandard({ env: ['node'], ts: true, semi: true, noJsx: true }),
   prettierRecommended,
-  unicorn.configs.recommended,
+  unicorn.configs.unopinionated,
   sonarjs.recommended,
   jest.configs['flat/recommended'],
   {
@@ -124,8 +124,6 @@ export default defineConfig(
       // #endregion
 
       // #region unicorn
-      'unicorn/no-null': 'off',
-      'unicorn/prevent-abbreviations': 'off',
       'unicorn/prefer-module': 'off',
       'unicorn/prefer-ternary': ['error', 'only-single-line'],
       'unicorn/prefer-top-level-await': 'off',

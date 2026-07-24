@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       // https://docs.nestjs.com/cli/scripts#build
       // https://nodejs.org/api/packages.html#imports
@@ -9,7 +8,8 @@
     "target": "es2024",
     "module": "commonjs",
     "moduleResolution": "node",
-    "incremental": true,
+    "types": ["node", "jest"],
+    "ignoreDeprecations": "6.0",
     "declaration": true,
     "newLine": "lf",
     "strict": true,
