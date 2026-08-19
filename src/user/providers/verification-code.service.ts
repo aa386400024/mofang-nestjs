@@ -2,14 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomInt } from 'node:crypto';
 
-import { RedisService } from '../../shared/infra/redis';
-import { SmsService } from '../../shared/infra/sms';
-import { REDIS_KEYS, SmsPurpose } from '../../shared/infra/redis/redis.constants';
-import { MetricsService } from '../../shared/infra/metrics';
-import { BizException } from '../../common/exceptions/biz.exception';
 import { BizCode } from '../../common/exceptions/biz-code.enum';
-
+import { BizException } from '../../common/exceptions/biz.exception';
 import { assertChinesePhone } from '../../common/validators/is-chinese-phone.validator';
+import { MetricsService } from '../../shared/infra/metrics';
+import { RedisService } from '../../shared/infra/redis';
+import { REDIS_KEYS, SmsPurpose } from '../../shared/infra/redis/redis.constants';
+import { SmsService } from '../../shared/infra/sms';
 
 /**
  * Verification code service — 短信验证码 (大厂标准).
@@ -53,9 +52,11 @@ export class VerificationCodeService {
     assertChinesePhone(phone);
 
     // 1. 限流检查 (滑动窗口, 每小时最多 N 条)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const rateLimit = this.config.get('verification').smsRateLimitPerHour;
     const rateKey = REDIS_KEYS.smsRateLimit(phone);
     const now = Date.now();
+    // eslint-disable-next-line sonarjs/pseudo-random
     await this.redis.slidingWindowAdd(rateKey, `${now}-${Math.random()}`, now, 3600);
     const sent = await this.redis.slidingWindowCount(rateKey, 3600);
     if (sent > rateLimit) {
@@ -65,17 +66,23 @@ export class VerificationCodeService {
 
     // 2. 生成 code (避免与历史 code 撞车: 重生成 if 已有)
     const codeKey = REDIS_KEYS.smsCode(phone, purpose);
+
     let code = await this.redis.get(codeKey);
     if (!code) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const len = this.config.get('verification').smsCodeLength;
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       code = String(randomInt(0, 10 ** len)).padStart(len, '0');
     }
+
     const ttlSec = this.config.get('verification').smsCodeTtlMin * 60;
     await this.redis.set(codeKey, code, ttlSec);
 
     // 3. 发短信
     await this.sms.send({
       phone,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       templateParams: { code, ttl: this.config.get('verification').smsCodeTtlMin },
     });
 

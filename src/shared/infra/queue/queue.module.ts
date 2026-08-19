@@ -1,8 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { AuditLog } from '../../../user/entities/audit-log.entity';
 import { AuditLogProcessor } from './audit-log.processor';
+import { AuditLog } from '../../../user/entities/audit-log.entity';
 
 /**
  * Queue module — 异步任务队列 (BullMQ, 大厂标准).

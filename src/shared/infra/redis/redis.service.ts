@@ -1,10 +1,5 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+// eslint-disable-next-line @typescript-eslint/naming-convention
 import Redis, { type RedisOptions } from 'ioredis';
 
 import { ConfigService } from '../../../common';
@@ -53,7 +48,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     const baseOptions: RedisOptions = {
       host: cfg.host,
       port: cfg.port,
-      password: cfg.password || undefined,
+      password: cfg.password ?? undefined,
       db: cfg.db,
       keyPrefix: cfg.keyPrefix,
       lazyConnect: false,
@@ -66,9 +61,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       maxRetriesPerRequest: 3,
     });
 
-    // BullMQ 专用连接: maxRetriesPerRequest=null (官方要求)
+    // BullMQ 专用连接: maxRetriesPerRequest=null + 不要 keyPrefix
+    // (BullMQ 不支持 ioredis prefix, 它会自己用 prefix 选项)
     this.bullClient = new Redis({
-      ...baseOptions,
+      host: cfg.host,
+      port: cfg.port,
+      password: cfg.password ?? undefined,
+      db: cfg.db,
+      // 故意不传 keyPrefix
+      lazyConnect: false,
+      enableReadyCheck: true,
       maxRetriesPerRequest: cfg.bullMaxRetriesPerRequest,
     });
 
@@ -106,11 +108,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   // ----- String -----
 
   async set(key: string, value: string, ttlSec?: number): Promise<void> {
-    if (ttlSec) {
-      await this.client.set(key, value, 'EX', ttlSec);
-    } else {
-      await this.client.set(key, value);
-    }
+    await (ttlSec ? this.client.set(key, value, 'EX', ttlSec) : this.client.set(key, value));
   }
 
   async get(key: string): Promise<string | null> {
@@ -157,12 +155,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * ZADD + EXPIRE (原子操作, 用 multi).
    * 用于滑动窗口限流 (e.g. 短信发送频率).
    */
-  async slidingWindowAdd(
-    key: string,
-    member: string,
-    score: number,
-    windowSec: number,
-  ): Promise<void> {
+  async slidingWindowAdd(key: string, member: string, score: number, windowSec: number): Promise<void> {
     await this.client
       .multi()
       .zadd(key, score, member)

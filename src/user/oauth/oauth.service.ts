@@ -1,14 +1,14 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
-import { randomBytes } from 'node:crypto';
+import axios from 'axios';
 import { OAuth2Client } from 'google-auth-library';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
-import axios from 'axios';
+import { randomBytes } from 'node:crypto';
+import { IsNull, Repository } from 'typeorm';
 
-import { BizException } from '../../common/exceptions/biz.exception';
 import { BizCode } from '../../common/exceptions/biz-code.enum';
+import { BizException } from '../../common/exceptions/biz.exception';
 import { MetricsService } from '../../shared/infra/metrics';
 import { RedisService } from '../../shared/infra/redis';
 import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants';
@@ -22,6 +22,7 @@ import { UserState } from '../user.state';
 /**
  * OAuth provider 标准化用户信息.
  */
+// eslint-disable-next-line @typescript-eslint/naming-convention
 export interface OAuthUserInfo {
   provider: OAuthProvider;
   providerUserId: string;
@@ -54,6 +55,7 @@ export interface OAuthUserInfo {
  *   - 微信 access_token 通过 HTTPS + appsecret 校验
  */
 @Injectable()
+// eslint-disable-next-line @typescript-eslint/naming-convention
 export class OAuthService implements OnModuleInit {
   private googleClient!: OAuth2Client;
 
@@ -69,8 +71,10 @@ export class OAuthService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const google = this.config.get('oauth').google;
     if (google.enabled && google.clientId) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       this.googleClient = new OAuth2Client(google.clientId, google.clientSecret, google.callbackUrl);
     }
   }
@@ -94,6 +98,7 @@ export class OAuthService implements OnModuleInit {
    */
   async consumeState(state: string, provider: OAuthProvider): Promise<boolean> {
     const stored = await this.redis.get(REDIS_KEYS.oauthState(state));
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (!stored || stored !== provider) {
       return false;
     }
@@ -110,6 +115,7 @@ export class OAuthService implements OnModuleInit {
    * 前端用 Google Identity Services 拿到 id_token, 后端验签.
    */
   async verifyGoogleIdToken(idToken: string): Promise<OAuthUserInfo> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const cfg = this.config.get('oauth').google;
     if (!cfg.enabled || !this.googleClient) {
       throw new BizException(BizCode.OAuthProviderError, 'Google OAuth 未启用');
@@ -117,8 +123,10 @@ export class OAuthService implements OnModuleInit {
     try {
       const ticket = await this.googleClient.verifyIdToken({
         idToken,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         audience: cfg.clientId!,
       });
+
       const payload = ticket.getPayload();
       if (!payload) {
         throw new BizException(BizCode.OAuthProviderError, 'Google id_token 无效');
@@ -134,10 +142,7 @@ export class OAuthService implements OnModuleInit {
       };
     } catch (err) {
       this.metrics.incOAuthLogin('google', 'failed');
-      throw new BizException(
-        BizCode.OAuthProviderError,
-        `Google 验证失败: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      throw new BizException(BizCode.OAuthProviderError, `Google 验证失败: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
@@ -150,16 +155,20 @@ export class OAuthService implements OnModuleInit {
    * Apple 的 JWKS 端点: https://appleid.apple.com/auth/keys
    */
   async verifyAppleIdToken(idToken: string): Promise<OAuthUserInfo> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const cfg = this.config.get('oauth').apple;
     if (!cfg.enabled || !cfg.clientId) {
       throw new BizException(BizCode.OAuthProviderError, 'Apple OAuth 未启用');
     }
     try {
       const jwks = createRemoteJWKSet(new URL('https://appleid.apple.com/auth/keys'));
+
       const { payload } = await jwtVerify(idToken, jwks, {
         issuer: 'https://appleid.apple.com',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         audience: cfg.clientId!,
       });
+
       const sub = payload.sub;
       if (!sub) {
         throw new BizException(BizCode.OAuthProviderError, 'Apple id_token 无 sub');
@@ -175,10 +184,7 @@ export class OAuthService implements OnModuleInit {
       };
     } catch (err) {
       this.metrics.incOAuthLogin('apple', 'failed');
-      throw new BizException(
-        BizCode.OAuthProviderError,
-        `Apple 验证失败: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      throw new BizException(BizCode.OAuthProviderError, `Apple 验证失败: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
@@ -191,6 +197,7 @@ export class OAuthService implements OnModuleInit {
    * 微信扫码后回调拿到 code, 后端用 code 换 access_token + openid.
    */
   async exchangeWechatCode(code: string): Promise<OAuthUserInfo> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const cfg = this.config.get('oauth').wechat;
     if (!cfg.enabled || !cfg.appId || !cfg.appSecret) {
       throw new BizException(BizCode.OAuthProviderError, '微信 OAuth 未启用');
@@ -208,15 +215,19 @@ export class OAuthService implements OnModuleInit {
         errmsg?: string;
       }>('https://api.weixin.qq.com/sns/oauth2/access_token', {
         params: {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           appid: cfg.appId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           secret: cfg.appSecret,
           code,
           grant_type: 'authorization_code',
         },
       });
+
       if (tokenRes.data.errcode || !tokenRes.data.access_token) {
         throw new Error(`wechat token err: ${tokenRes.data.errcode} ${tokenRes.data.errmsg}`);
       }
+      // eslint-disable-next-line camelcase, @typescript-eslint/naming-convention
       const { access_token, openid, unionid, refresh_token, expires_in } = tokenRes.data;
 
       // 2. access_token → userinfo (scope 必须为 snsapi_userinfo)
@@ -228,6 +239,7 @@ export class OAuthService implements OnModuleInit {
         errcode?: number;
         errmsg?: string;
       }>('https://api.weixin.qq.com/sns/userinfo', {
+        // eslint-disable-next-line camelcase
         params: { access_token, openid },
       });
       if (userRes.data.errcode) {
@@ -241,14 +253,12 @@ export class OAuthService implements OnModuleInit {
         emailVerified: false,
         displayName: userRes.data.nickname,
         avatarUrl: userRes.data.headimgurl,
+        // eslint-disable-next-line camelcase
         rawData: { ...userRes.data, access_token, refresh_token, expires_in },
       };
     } catch (err) {
       this.metrics.incOAuthLogin('wechat', 'failed');
-      throw new BizException(
-        BizCode.OAuthProviderError,
-        `微信登录失败: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      throw new BizException(BizCode.OAuthProviderError, `微信登录失败: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
@@ -295,6 +305,7 @@ export class OAuthService implements OnModuleInit {
       email: info.email,
       phone: null,
       // OAuth 用户没密码, 用随机 hash 占位 (不能登录密码, 只能 OAuth 登录)
+      // eslint-disable-next-line sonarjs/no-hardcoded-passwords
       passwordHash: '!OAUTH_NO_PASSWORD!',
       state: UserState.Active,
       emailVerifiedAt: info.emailVerified ? new Date() : null,

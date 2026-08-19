@@ -1,6 +1,6 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
-import { tap } from 'rxjs/operators';
 import type { Request, Response } from 'express';
+import { tap } from 'rxjs/operators';
 
 import { MetricsService } from './metrics.service';
 

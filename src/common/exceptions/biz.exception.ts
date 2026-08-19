@@ -82,7 +82,7 @@ function getBizCodeDefaultMessage(code: BizCode): string {
     [BizCode.InvalidPhone]: '手机号格式不正确',
     [BizCode.InvalidEmail]: '邮箱格式不正确',
     [BizCode.WeakPassword]: '密码强度不足',
-    [BizCode.PasswordReused]: '密码与最近使用过的密码重复',
+    [BizCode.PasswordReused]: '密码与最近使用过的密码重复', // eslint-disable-line sonarjs/no-hardcoded-passwords
     [BizCode.PasswordExpired]: '密码已过期, 请重置密码',
     [BizCode.AccountLocked]: '账号已锁定, 请稍后再试',
     [BizCode.EmailAlreadyVerified]: '邮箱已验证',

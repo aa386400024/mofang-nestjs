@@ -22,7 +22,7 @@ export const CurrentUser = createParamDecorator((field: string | undefined, ctx:
   const request = ctx.switchToHttp().getRequest<Request & { user?: Record<string, unknown> }>();
   const user = request.user;
   if (!user) {
-    return undefined;
+    return;
   }
   return field ? user[field] : user;
 });

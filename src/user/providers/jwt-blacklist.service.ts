@@ -32,9 +32,7 @@ export class JwtBlacklistService {
     try {
       await this.redis.set(REDIS_KEYS.jwtBlacklist(jti), '1', ttlSec);
     } catch (err) {
-      this.logger.warn(
-        `jwt blacklist write failed: jti=${jti} (fail-open): ${(<Error>err).message}`,
-      );
+      this.logger.warn(`jwt blacklist write failed: jti=${jti} (fail-open): ${(<Error>err).message}`);
     }
   }
 
@@ -46,9 +44,7 @@ export class JwtBlacklistService {
     try {
       return await this.redis.exists(REDIS_KEYS.jwtBlacklist(jti));
     } catch (err) {
-      this.logger.warn(
-        `jwt blacklist read failed: jti=${jti} (fail-open): ${(<Error>err).message}`,
-      );
+      this.logger.warn(`jwt blacklist read failed: jti=${jti} (fail-open): ${(<Error>err).message}`);
       return false;
     }
   }
@@ -57,7 +53,7 @@ export class JwtBlacklistService {
    * 批量撤销 (改密码场景).
    * 用 pipeline 一次写多个 key, 比循环 revoke() 快 10x.
    */
-  async revokeMany(entries: Array<{ jti: string; expiresAtMs: number }>): Promise<void> {
+  async revokeMany(entries: { jti: string; expiresAtMs: number }[]): Promise<void> {
     if (entries.length === 0) {
       return;
     }

@@ -1,10 +1,9 @@
 import { Controller, Get, Header, Res } from '@nestjs/common';
 import type { Response } from 'express';
 
-import { Public } from '../../../common/decorators/public.decorator';
-import { ConfigService } from '../../../common';
-
 import { MetricsService } from './metrics.service';
+import { ConfigService } from '../../../common';
+import { Public } from '../../../common/decorators/public.decorator';
 
 /**
  * Metrics controller — Prometheus scrape endpoint.

@@ -43,7 +43,7 @@ export class HealthController {
       async (): Promise<HealthIndicatorResult> => {
         // Redis 健康检查 (Ping, <1ms)
         const ok = await this.redis.ping();
-        return { 'redis': { status: ok ? 'up' : 'down' } };
+        return { redis: { status: ok ? 'up' : 'down' } };
       },
     ]);
   }

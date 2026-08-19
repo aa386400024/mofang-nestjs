@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { OAuthService } from './oauth.service';
 import { OAuthController } from './oauth.controller';
+import { OAuthService } from './oauth.service';
 import { OAuthIdentity } from '../entities/oauth-identity.entity';
 import { User } from '../entities/user.entity';
 import { UserModule } from '../user.module';
@@ -23,4 +23,5 @@ import { UserModule } from '../user.module';
   controllers: [OAuthController],
   exports: [OAuthService],
 })
+// eslint-disable-next-line @typescript-eslint/naming-convention
 export class OAuthModule {}

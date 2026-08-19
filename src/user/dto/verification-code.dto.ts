@@ -1,5 +1,5 @@
-import { IsEnum, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEnum, IsString } from 'class-validator';
 
 import { isChinesePhone } from '../../common/validators/is-chinese-phone.validator';
 import { SmsPurpose } from '../../shared/infra/redis/redis.constants';

@@ -1,16 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
+import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository } from 'typeorm';
 import { CronJob } from 'cron';
+import { LessThan, Repository } from 'typeorm';
 
-import { User } from '../entities/user.entity';
-import { Session } from '../entities/session.entity';
-import { PasswordHistory } from '../entities/password-history.entity';
-import { OAuthIdentity } from '../entities/oauth-identity.entity';
-import { AuditLogService } from '../providers/audit-log.service';
 import { AuditEvent } from '../entities/audit-log.entity';
+import { OAuthIdentity } from '../entities/oauth-identity.entity';
+import { PasswordHistory } from '../entities/password-history.entity';
+import { Session } from '../entities/session.entity';
+import { User } from '../entities/user.entity';
+import { AuditLogService } from '../providers/audit-log.service';
 import { SessionService } from '../providers/session.service';
 
 /**
@@ -52,8 +52,10 @@ export class SoftDeleteCron {
     private readonly config: ConfigService,
   ) {
     // 启动时注册动态 cron (主任务: 软删到期真删)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const cronExpr = this.config.get('softDelete').cronSchedule;
     this.logger.log(`Registering cron: soft-delete-purge schedule="${cronExpr}"`);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const job = new CronJob(cronExpr, () => {
       void this.purgeExpiredSoftDeletes();
     });
@@ -64,7 +66,9 @@ export class SoftDeleteCron {
   /**
    * 软删到期真删 (主流程).
    */
+
   public async purgeExpiredSoftDeletes(): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const retentionDays = this.config.get('softDelete').retentionDays;
     const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
 
@@ -87,9 +91,7 @@ export class SoftDeleteCron {
         await this.purgeOne(user.uid);
         successCount++;
       } catch (err) {
-        this.logger.error(
-          `Hard delete failed: uid=${user.uid}, err=${(<Error>err).message}`,
-        );
+        this.logger.error(`Hard delete failed: uid=${user.uid}, err=${(<Error>err).message}`);
       }
     }
 

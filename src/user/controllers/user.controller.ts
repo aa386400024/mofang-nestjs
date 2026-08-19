@@ -1,40 +1,27 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  Param,
-  Post,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-import { RegisterDto } from '../dto/register.dto';
-import { LoginDto } from '../dto/login.dto';
-import { RefreshTokenDto } from '../dto/refresh-token.dto';
+import { AuthMediumRateLimit, AuthStrictRateLimit } from './auth-rate-limit.decorators';
+import { BizCode } from '../../common/exceptions/biz-code.enum';
+import { BizException } from '../../common/exceptions/biz.exception';
+import { CurrentUser } from '../decorators/current-user.decorator';
 import { AuthResponseDto, CurrentUserDto } from '../dto/auth-response.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { ForgotPasswordDto } from '../dto/forgot-password.dto';
+import { LoginDto } from '../dto/login.dto';
+import { RefreshTokenDto } from '../dto/refresh-token.dto';
+import { RegisterDto } from '../dto/register.dto';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
-import { VerifyEmailDto, ResendVerificationDto } from '../dto/verify-email.dto';
 import { SessionDto } from '../dto/session.dto';
-import {
-  AuthMediumRateLimit,
-  AuthStrictRateLimit,
-} from './auth-rate-limit.decorators';
+import { VerifyEmailDto, ResendVerificationDto } from '../dto/verify-email.dto';
 
-import { UserService } from '../providers/user.service';
-import { SessionService } from '../providers/session.service';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { JwtBlacklistService } from '../providers/jwt-blacklist.service';
 import { PasswordResetService } from '../providers/password-reset.service';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { CurrentUser } from '../decorators/current-user.decorator';
+import { SessionService } from '../providers/session.service';
+import { UserService } from '../providers/user.service';
 import { SessionRevokeReason } from '../user.constant';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
 
 /**
  * User controller — 心塑 + 魔方共用账号 endpoints (大厂企业级 V2).
@@ -114,16 +101,11 @@ export class UserController {
   @ApiBearerAuth()
   @HttpCode(204)
   @ApiOperation({ summary: '登出所有其他 session (保留当前)' })
-  public async logoutAll(
-    @CurrentUser('sub') uid: string,
-    @CurrentUser('jti') currentJti: string,
-  ): Promise<void> {
+  public async logoutAll(@CurrentUser('sub') uid: string, @CurrentUser('jti') currentJti: string): Promise<void> {
     // 找当前 session 的 sid
     const current = await this.sessions.findByJti(currentJti);
     const revoked = await this.sessions.revokeAllByUserId(uid, SessionRevokeReason.LogoutAll, current?.sid);
-    await this.blacklist.revokeMany(
-      revoked.map((r) => ({ jti: r.jti, expiresAtMs: r.expiresAtMs })),
-    );
+    await this.blacklist.revokeMany(revoked.map((r) => ({ jti: r.jti, expiresAtMs: r.expiresAtMs })));
   }
 
   // ========================================================================
@@ -151,11 +133,7 @@ export class UserController {
   @ApiBearerAuth()
   @HttpCode(204)
   @ApiOperation({ summary: '改密 (已登录, 知道旧密码, 撤销所有 session)' })
-  public async changePassword(
-    @CurrentUser('sub') uid: string,
-    @Body() dto: ChangePasswordDto,
-    @Req() req: Request,
-  ): Promise<void> {
+  public async changePassword(@CurrentUser('sub') uid: string, @Body() dto: ChangePasswordDto, @Req() req: Request): Promise<void> {
     await this.user.changePassword(uid, dto.oldPassword, dto.newPassword, this.extractContext(req));
   }
 
@@ -230,10 +208,7 @@ export class UserController {
   @ApiBearerAuth()
   @HttpCode(204)
   @ApiOperation({ summary: '下线某个 session (按 sid)' })
-  public async revokeSession(
-    @CurrentUser('sub') uid: string,
-    @Param('sid') sid: string,
-  ): Promise<void> {
+  public async revokeSession(@CurrentUser('sub') uid: string, @Param('sid') sid: string): Promise<void> {
     const session = await this.sessions.findBySid(sid);
     if (!session) {
       throw new BizException(BizCode.ResourceNotFound, 'session 不存在');
@@ -260,11 +235,8 @@ export class UserController {
   } {
     const xff = req.headers['x-forwarded-for'];
     const ipAddress =
-      (typeof xff === 'string' ? xff.split(',')[0]?.trim() : undefined) ??
-      req.ip ??
-      req.socket.remoteAddress ??
-      'unknown';
-    const userAgent = (req.headers['user-agent'] ?? 'unknown') as string;
+      (typeof xff === 'string' ? xff.split(',', 1)[0]?.trim() : undefined) ?? req.ip ?? req.socket.remoteAddress ?? 'unknown';
+    const userAgent = req.headers['user-agent'] ?? 'unknown';
     return {
       ipAddress,
       userAgent,

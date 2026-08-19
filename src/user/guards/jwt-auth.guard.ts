@@ -1,16 +1,12 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 
-import { TokenType } from '../user.constant';
-import { JwtBlacklistService } from '../providers/jwt-blacklist.service';
-import { BizException } from '../../common/exceptions/biz.exception';
 import { BizCode } from '../../common/exceptions/biz-code.enum';
+import { BizException } from '../../common/exceptions/biz.exception';
+import { JwtBlacklistService } from '../providers/jwt-blacklist.service';
+import { TokenType } from '../user.constant';
 
 /**
  * JwtAuthGuard — 企业级 JWT 验证 guard (大厂标准).
@@ -42,7 +38,7 @@ export class JwtAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request & { user?: unknown }>();
     const authHeader = request.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader?.startsWith('Bearer ')) {
       throw new BizException(BizCode.Unauthorized, '缺少 Authorization Bearer token');
     }
 
@@ -60,6 +56,7 @@ export class JwtAuthGuard implements CanActivate {
       throw new BizException(BizCode.TokenExpired, 'token 无效或已过期');
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (payload.type !== TokenType.Access) {
       throw new BizException(BizCode.TokenInvalid, 'token 类型错误, 需要 access token');
     }

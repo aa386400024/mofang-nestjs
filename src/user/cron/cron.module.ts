@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { User } from '../entities/user.entity';
-import { Session } from '../entities/session.entity';
-import { PasswordHistory } from '../entities/password-history.entity';
-import { OAuthIdentity } from '../entities/oauth-identity.entity';
-
 import { SoftDeleteCron } from './soft-delete.cron';
+import { OAuthIdentity } from '../entities/oauth-identity.entity';
+import { PasswordHistory } from '../entities/password-history.entity';
+import { Session } from '../entities/session.entity';
+import { User } from '../entities/user.entity';
 
 import { UserModule } from '../user.module';
 

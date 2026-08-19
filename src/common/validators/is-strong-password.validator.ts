@@ -1,7 +1,7 @@
 import { registerDecorator, type ValidationOptions } from 'class-validator';
 
-import { BizException } from '../exceptions/biz.exception';
 import { BizCode } from '../exceptions/biz-code.enum';
+import { BizException } from '../exceptions/biz.exception';
 
 /**
  * 强密码校验 (大厂安全标准).
@@ -35,7 +35,7 @@ export function isStrongPassword(validationOptions?: ValidationOptions): Propert
             return false;
           }
           // 8+ 位 + 大写 + 小写 + 数字
-          return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{8,}$/.test(value);
+          return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]{8,}$/.test(value);
         },
         defaultMessage(): string {
           return '密码至少 8 位, 包含大小写字母和数字';
@@ -49,7 +49,7 @@ export function isStrongPassword(validationOptions?: ValidationOptions): Propert
  * 业务层手动校验 (抛 BizException).
  */
 export function assertStrongPassword(password: string): void {
-  if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{8,}$/.test(password)) {
+  if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]{8,}$/.test(password)) {
     throw new BizException(BizCode.WeakPassword);
   }
 }

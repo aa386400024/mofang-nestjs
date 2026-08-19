@@ -1,8 +1,8 @@
 import type { INestApplication } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 import compression from 'compression';
-import helmet from 'helmet';
 import session from 'express-session';
+import helmet from 'helmet';
 import passport from 'passport';
 
 /**
@@ -20,7 +20,7 @@ import passport from 'passport';
  *   - Session secret 生产必须改强随机 (V3 加 startup 校验)
  */
 export function middleware(app: INestApplication): INestApplication {
-  const isProduction = process.env['NODE_ENV'] === 'production';
+  const isProduction = process.env.NODE_ENV === 'production';
   const logger = new Logger('Middleware');
 
   // 1. Helmet — 安全 HTTP headers (顺序: 必须第一)
@@ -44,9 +44,7 @@ export function middleware(app: INestApplication): INestApplication {
         : false,
       crossOriginEmbedderPolicy: isProduction ? { policy: 'credentialless' } : false,
       // HSTS 仅 HTTPS 启用
-      strictTransportSecurity: isProduction
-        ? { maxAge: 31_536_000, includeSubDomains: true, preload: true }
-        : false,
+      strictTransportSecurity: isProduction ? { maxAge: 31_536_000, includeSubDomains: true, preload: true } : false,
       // 防 MIME 嗅探
       xContentTypeOptions: true,
       // 防点击劫持
@@ -61,7 +59,7 @@ export function middleware(app: INestApplication): INestApplication {
   );
 
   // 2. CORS — 按环境配置
-  const corsOrigins = (process.env['CORS_ORIGINS'] ?? (isProduction ? '' : '*'))
+  const corsOrigins = (process.env.CORS_ORIGINS ?? (isProduction ? '' : '*'))
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
@@ -71,13 +69,7 @@ export function middleware(app: INestApplication): INestApplication {
   app.enableCors({
     origin: allowAll ? true : corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-Requested-With',
-      'X-Request-Id',
-      'Accept',
-    ],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Request-Id', 'Accept'],
     exposedHeaders: ['X-Request-Id'],
     credentials: corsOrigins.length > 0 && !allowAll,
     maxAge: 86_400, // 24h preflight cache
@@ -90,7 +82,7 @@ export function middleware(app: INestApplication): INestApplication {
   // 4. Passport session — 仅给 /auth/* demo 路由用 (V3 删除 auth/ 时连同清理)
   app.use(
     session({
-      secret: process.env['SESSION_SECRET'] ?? 'tEsTeD',
+      secret: process.env.SESSION_SECRET ?? 'tEsTeD',
       resave: false,
       saveUninitialized: true,
       cookie: { secure: isProduction, sameSite: isProduction ? 'strict' : 'lax' },

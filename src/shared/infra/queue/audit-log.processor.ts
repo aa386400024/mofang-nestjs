@@ -1,11 +1,11 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Worker, type Job, Queue } from 'bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Worker, type Job, Queue } from 'bullmq';
 import { Repository } from 'typeorm';
 
+import { AuditEvent, AuditLog } from '../../../user/entities/audit-log.entity';
 import { RedisService } from '../redis';
 import { QUEUE_NAMES } from '../redis/redis.constants';
-import { AuditEvent, AuditLog } from '../../../user/entities/audit-log.entity';
 
 /**
  * 审计日志 Job 数据结构 (BullMQ payload).
@@ -68,11 +68,11 @@ export class AuditLogProcessor implements OnModuleInit, OnModuleDestroy {
       },
     });
 
-    this.worker = new Worker<AuditLogJobData>(
-      QUEUE_NAMES.auditLog,
-      async (job) => this.processJob(job),
-      { connection, prefix: bullPrefix, concurrency: 5 },
-    );
+    this.worker = new Worker<AuditLogJobData>(QUEUE_NAMES.auditLog, async (job) => this.processJob(job), {
+      connection,
+      prefix: bullPrefix,
+      concurrency: 5,
+    });
 
     this.worker.on('failed', (job, err) => {
       this.logger.error(`audit job failed: id=${job?.id}, err=${err.message}`);
@@ -136,9 +136,7 @@ export class AuditLogProcessor implements OnModuleInit, OnModuleDestroy {
       });
       await this.repo.save(entry);
     } catch (err) {
-      this.logger.error(
-        `audit save failed: event=${data.event}, userId=${data.userId}, err=${(<Error>err).message}`,
-      );
+      this.logger.error(`audit save failed: event=${data.event}, userId=${data.userId}, err=${(<Error>err).message}`);
       throw err; // 让 BullMQ 重试
     }
   }

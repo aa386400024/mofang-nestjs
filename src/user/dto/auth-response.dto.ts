@@ -18,7 +18,7 @@ export class AuthResponseDto {
   @ApiProperty({ description: 'access token 过期时间 (秒)', example: 900 })
   expiresIn!: number;
 
-  @ApiProperty({ description: 'refresh token 过期时间 (秒)', example: 604800 })
+  @ApiProperty({ description: 'refresh token 过期时间 (秒)', example: 604_800 })
   refreshExpiresIn!: number;
 
   @ApiProperty({ description: '当前登录用户信息' })

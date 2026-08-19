@@ -1,15 +1,8 @@
-import {
-  ArgumentsHost,
-  Catch,
-  ExceptionFilter,
-  HttpException,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
-import { BizCode } from '../exceptions/biz-code.enum';
 import { SentryService } from '../../shared/infra/observability';
+import { BizCode } from '../exceptions/biz-code.enum';
 
 /**
  * 全局 BizException filter (大厂统一响应格式).
@@ -59,12 +52,9 @@ export class BizExceptionFilter implements ExceptionFilter {
     }
 
     // 生产环境不该泄漏内部错误, 但 dev 环境给原始信息便于排查
-    const isProduction = process.env['NODE_ENV'] === 'production';
+    const isProduction = process.env.NODE_ENV === 'production';
     if (!isProduction && code === BizCode.UnknownError) {
-      this.logger.error(
-        `[${request.method} ${request.url}] ${message}`,
-        exception instanceof Error ? exception.stack : String(exception),
-      );
+      this.logger.error(`[${request.method} ${request.url}] ${message}`, exception instanceof Error ? exception.stack : String(exception));
     }
 
     response.status(httpStatus).json({
@@ -79,6 +69,7 @@ export class BizExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       const response = exception.getResponse();
       // BizException 的 body 是 { code, message }
+      // eslint-disable-next-line sonarjs/different-types-comparison
       if (typeof response === 'object' && response !== null && 'code' in response) {
         const body = response as { code: BizCode; message: string };
         return {
@@ -90,7 +81,7 @@ export class BizExceptionFilter implements ExceptionFilter {
       // 其他 HttpException (NestJS 内置, 比如 NotFoundException)
       return {
         code: BizCode.UnknownError,
-        message: typeof response === 'string' ? response : (response as { message?: string }).message ?? '请求失败',
+        message: typeof response === 'string' ? response : ((response as { message?: string }).message ?? '请求失败'),
         httpStatus: exception.getStatus(),
       };
     }

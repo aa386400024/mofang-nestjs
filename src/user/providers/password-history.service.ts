@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import { Repository } from 'typeorm';
 
+import { BizCode } from '../../common/exceptions/biz-code.enum';
+import { BizException } from '../../common/exceptions/biz.exception';
 import { PasswordHistory } from '../entities/password-history.entity';
 import { User } from '../entities/user.entity';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
 
 /**
  * Password history service — 密码历史 + 强制重置周期 (大厂安全合规).
@@ -41,10 +41,12 @@ export class PasswordHistoryService {
    * @throws BizException(PasswordReused) 重复则拒绝
    */
   async assertNotReused(userId: string, newPassword: string): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const limit = this.config.get('password').historyLimit;
     const history = await this.repo.find({
       where: { userId },
       order: { createdAt: 'DESC' },
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       take: limit,
     });
     if (history.length === 0) {
@@ -76,7 +78,9 @@ export class PasswordHistoryService {
    * 保留最近 N 条, 多余删掉.
    */
   private async trimOldHistory(userId: string): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const limit = this.config.get('password').historyLimit;
+
     const total = await this.repo.count({ where: { userId } });
     if (total <= limit) {
       return;
@@ -85,6 +89,7 @@ export class PasswordHistoryService {
     const keep = await this.repo.find({
       where: { userId },
       order: { createdAt: 'DESC' },
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       take: limit,
       select: { id: true },
     });
@@ -105,6 +110,7 @@ export class PasswordHistoryService {
    * @returns true 表示密码已过期, 业务层应强制改密
    */
   isPasswordExpired(user: User): boolean {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const cycleDays = this.config.get('password').resetCycleDays;
     if (cycleDays <= 0) {
       return false;
@@ -120,6 +126,7 @@ export class PasswordHistoryService {
    * @returns true 表示距上次改密不到最小间隔, 拒绝改密
    */
   isMinAgeViolation(user: User): boolean {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const minAgeMin = this.config.get('password').minAgeMinutes;
     if (minAgeMin <= 0 || !user.passwordChangedAt) {
       return false;

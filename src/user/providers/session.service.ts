@@ -91,7 +91,7 @@ export class SessionService {
     userId: string,
     reason: SessionRevokeReason = SessionRevokeReason.PasswordChanged,
     excludeSid?: string,
-  ): Promise<Array<{ jti: string; expiresAtMs: number; sid: string }>> {
+  ): Promise<{ jti: string; expiresAtMs: number; sid: string }[]> {
     const sessions = await this.repo.find({ where: { userId, isRevoked: false } });
     if (sessions.length === 0) {
       return [];

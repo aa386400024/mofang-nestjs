@@ -1,13 +1,13 @@
-import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import { randomUUID } from 'node:crypto';
+import { IsNull, Repository } from 'typeorm';
 
-import { BizException } from '../../common/exceptions/biz.exception';
 import { BizCode } from '../../common/exceptions/biz-code.enum';
+import { BizException } from '../../common/exceptions/biz.exception';
 import { MetricsService } from '../../shared/infra/metrics';
 import { RedisService } from '../../shared/infra/redis';
 import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants';
@@ -50,7 +50,7 @@ import { SessionService } from './session.service';
  *   - 软删用户 (deleted_at) 不能登录
  *   - 失败登录写 audit log (风控分析)
  *
- * V3 TODO:
+ * V3 待办:
  *   - OAuth 登录 / 绑定
  *   - 多端 session 强制下线其他设备 (设置里勾选)
  */
@@ -270,6 +270,7 @@ export class UserService {
       throw new BizException(BizCode.TokenExpired, 'refresh token 已过期');
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (payload.type !== TokenType.Refresh) {
       throw new BizException(BizCode.TokenInvalid, 'token 类型错误');
     }
@@ -376,9 +377,7 @@ export class UserService {
 
     // 6. 撤销所有 session + blacklist (强制下线其他设备)
     const revoked = await this.sessionService.revokeAllByUserId(uid);
-    await this.blacklist.revokeMany(
-      revoked.map((r) => ({ jti: r.jti, expiresAtMs: r.expiresAtMs })),
-    );
+    await this.blacklist.revokeMany(revoked.map((r) => ({ jti: r.jti, expiresAtMs: r.expiresAtMs })));
 
     await this.auditLog.log({
       userId: uid,
@@ -447,7 +446,9 @@ export class UserService {
    * 处理失败登录: 增加计数, 超过阈值锁定账号.
    */
   private async handleFailedLogin(user: User): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const maxAttempts = this.config.get('password').maxFailedAttempts;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const lockoutMin = this.config.get('password').lockoutMinutes;
     const newCount = user.failedLoginCount + 1;
     user.failedLoginCount = newCount;
@@ -466,7 +467,7 @@ export class UserService {
   }
 
   private unlockIn(until: Date): string {
-    const diffMin = Math.ceil((until.getTime() - Date.now()) / 60000);
+    const diffMin = Math.ceil((until.getTime() - Date.now()) / 60_000);
     if (diffMin >= 60) {
       return `${Math.ceil(diffMin / 60)} 小时`;
     }
@@ -528,12 +529,13 @@ export class UserService {
  * 与 user.module.ts 同步 (后续 V3 抽到 common/utils).
  */
 function parseExpiresIn(s: string): number {
-  const match = s.match(/^(\d+)(s|m|h|d|w)$/);
+  // eslint-disable-next-line sonarjs/single-character-alternation
+  const match = /^(\d+)(s|m|h|d|w)$/.exec(s);
   if (!match) {
     return 7 * 24 * 60 * 60;
   }
-  const n = parseInt(match[1], 10);
+  const n = Number.parseInt(match[1], 10);
   const unit = match[2];
-  const map: Record<string, number> = { s: 1, m: 60, h: 3600, d: 86400, w: 604800 };
-  return n * (map[unit] ?? 86400);
+  const map: Record<string, number> = { s: 1, m: 60, h: 3600, d: 86_400, w: 604_800 };
+  return n * (map[unit] ?? 86_400);
 }

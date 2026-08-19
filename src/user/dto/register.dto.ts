@@ -1,5 +1,5 @@
-import { IsEmail, IsOptional, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsOptional, IsString } from 'class-validator';
 
 import { isChinesePhone } from '../../common/validators/is-chinese-phone.validator';
 import { isStrongPassword } from '../../common/validators/is-strong-password.validator';
@@ -19,7 +19,7 @@ import { isStrongPassword } from '../../common/validators/is-strong-password.val
  *   - 但当前 V2 大炮要求"暂时邮箱, 手机还不行" — V2 实现里:
  *     - 注册时如果同时提供 phone + email, 可走短信验证 (需 SMS 通道)
  *     - 纯邮箱注册, 必须邮箱验证
- *     - 纯手机号注册, V2 暂不支持 (TODO: V3 加 SMS 验证)
+ // 纯手机号注册, V2 暂不支持 (V3 加 SMS 验证)
  *   - V2 简化: 注册即 Active (兼容老行为), 但强制要求邮箱验证后能登录
  *     - 注册完成后: state=Active, email_verified_at=NULL
  *     - 登录时: 如果 email_verified_at=NULL → 抛 EmailNotVerified, 引导去验证

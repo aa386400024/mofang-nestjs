@@ -5,7 +5,8 @@ import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 
 import { middleware } from './app.middleware';
 import { AppModule } from './app.module';
-import { HttpMetricsInterceptor } from './shared/infra/metrics';
+// V2-debug: HttpMetricsInterceptor 暂时禁用, import 跟着注释, 避免 noUnusedLocals 阻塞编译
+// import { HttpMetricsInterceptor } from './shared/infra/metrics';
 
 /**
  * https://docs.nestjs.com
@@ -15,14 +16,14 @@ import { HttpMetricsInterceptor } from './shared/infra/metrics';
 async function bootstrap(): Promise<string> {
   const isProduction = process.env.NODE_ENV === 'production';
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    bufferLogs: true,
+    bufferLogs: false, // V2: dev/prod 立即输出日志, pm2 能看到启动失败原因
   });
 
   app.useLogger(app.get(Logger));
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
 
-  // V2: HTTP 指标 interceptor (记录 method/route/code/duration 到 Prometheus)
-  app.useGlobalInterceptors(app.get(HttpMetricsInterceptor));
+  // V2-debug: 暂时禁用 metrics interceptor, 看是否是它启动时卡
+  // app.useGlobalInterceptors(app.get(HttpMetricsInterceptor));
 
   if (isProduction) {
     app.enable('trust proxy');

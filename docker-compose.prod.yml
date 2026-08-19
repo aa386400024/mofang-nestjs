@@ -1,0 +1,75 @@
+# docker-compose.prod.yml — 服务器专用 (2 核 2G)
+#
+# 设计原则 (2G 服务器最佳实践):
+#   - 只跑 api, MySQL/Redis 用 host 服务 (ebook-reader 在用, 不能动)
+#   - host 网络模式, 容器内直接访问 127.0.0.1:3306/6379
+#   - 资源硬限制: api 0.5 cpu / 256M memory
+#   - 单一服务, 没有 depends_on / healthcheck 跨服务依赖 (host 服务不在 compose 视野)
+#   - 不含 Prometheus/Grafana (2G 跑不动, 用 /metrics endpoint 即可)
+#
+# 部署:
+#   docker compose -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.prod.yml logs -f api
+#   docker compose -f docker-compose.prod.yml down
+#
+# 回滚:
+#   docker tag mofang-nestjs-api:v1.0.1 mofang-nestjs-api:latest
+
+services:
+  # ============================================================
+  # NestJS API (心塑 + 魔方共用)
+  # ============================================================
+  api:
+    image: mofang-nestjs-api:latest
+    container_name: mofang-nestjs-api
+    restart: unless-stopped
+
+    # host 网络 = 容器内 127.0.0.1 就是 host 127.0.0.1
+    # 优点: MySQL/Redis 在 host, 直接连, 不用管 DNS / network alias
+    # 缺点: 容器端口 3001 直接绑到 host 3001 (不能用 port mapping)
+    network_mode: host
+
+    env_file:
+      - .env
+
+    environment:
+      # NODE_ENV 已在 .env 里, 这里只是保险
+      - NODE_ENV=production
+
+      # 用 host 网络后, 这些环境变量跟 .env 一致 (127.0.0.1)
+      # 但显式声明防止 .env 被改
+      - DB_HOST=127.0.0.1
+      - REDIS_HOST=127.0.0.1
+      - PORT=3001
+
+    # 资源限制 (2 核 2G 严格)
+    # 0.5 cpu = 50% 单核 (容器爆炸时不会拖垮整个服务器)
+    # 256M limit / 96M reserve (MySQL 已经在吃 256M+)
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 96M
+
+    # 日志: json-file driver, 单文件 10M 滚动 3 份 (省磁盘)
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+        labels: 'service,mofang-nestjs'
+
+    # 健康检查 (镜像 HEALTHCHECK 已经定义, 这里用 docker 自带健康检查)
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3001/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+# ============================================================
+# 注意: 没有 networks/volumes 段, 因为 host 模式不需要
+# ============================================================

@@ -1,25 +1,23 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { UserController } from './controllers/user.controller';
-import { UserService } from './providers/user.service';
-import { SessionService } from './providers/session.service';
+import { AuditLog } from './entities/audit-log.entity';
+import { OAuthIdentity } from './entities/oauth-identity.entity';
+import { PasswordHistory } from './entities/password-history.entity';
+import { Session } from './entities/session.entity';
+import { User } from './entities/user.entity';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuditLogService } from './providers/audit-log.service';
+import { EmailVerificationService } from './providers/email-verification.service';
 import { JwtBlacklistService } from './providers/jwt-blacklist.service';
 import { PasswordHistoryService } from './providers/password-history.service';
-import { EmailVerificationService } from './providers/email-verification.service';
 import { PasswordResetService } from './providers/password-reset.service';
+import { SessionService } from './providers/session.service';
+import { UserService } from './providers/user.service';
 import { VerificationCodeService } from './providers/verification-code.service';
-
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-
-import { User } from './entities/user.entity';
-import { Session } from './entities/session.entity';
-import { AuditLog } from './entities/audit-log.entity';
-import { PasswordHistory } from './entities/password-history.entity';
-import { OAuthIdentity } from './entities/oauth-identity.entity';
 
 /**
  * Parse JWT expiresIn string (e.g. '15m', '7d', '1h') into seconds number.
@@ -27,14 +25,15 @@ import { OAuthIdentity } from './entities/oauth-identity.entity';
  * 与 user.service.ts 同步 (后续 V3 抽到 common/utils).
  */
 function parseExpiresIn(s: string): number {
-  const match = s.match(/^(\d+)(s|m|h|d|w)$/);
+  // eslint-disable-next-line sonarjs/single-character-alternation
+  const match = /^(\d+)(s|m|h|d|w)$/.exec(s);
   if (!match) {
     return 7 * 24 * 60 * 60;
   }
-  const n = parseInt(match[1], 10);
+  const n = Number.parseInt(match[1], 10);
   const unit = match[2];
-  const map: Record<string, number> = { s: 1, m: 60, h: 3600, d: 86400, w: 604800 };
-  return n * (map[unit] ?? 86400);
+  const map: Record<string, number> = { s: 1, m: 60, h: 3600, d: 86_400, w: 604_800 };
+  return n * (map[unit] ?? 86_400);
 }
 
 /**

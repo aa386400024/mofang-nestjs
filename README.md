@@ -8,16 +8,16 @@
 
 ## ✨ 核心能力 (V2)
 
-| 模块 | 能力 |
-|---|---|
-| **账号** | 注册 / 登录 / 刷新 / 改密 / 重置 / 邮箱验证 / 失败锁定 / 改密周期 |
-| **Sessions** | 多端登录管理 UI (列设备 / 主动下线 / 撤销原因审计) |
-| **OAuth** | 微信 / Google / Apple 三方登录 + 绑定 / 解绑 |
-| **JWT 安全** | Redis blacklist (跨实例) + Refresh rotation + Fail-open 容错 |
-| **异步审计** | BullMQ 队列 + Worker + 兜底同步 + Prometheus 埋点 |
-| **观测** | Prometheus 指标 + /metrics 端点 + Grafana dashboard + Sentry 异常上报 |
-| **部署** | Dockerfile + docker-compose + CI (GitHub Actions) + Husky pre-commit |
-| **DB** | TypeORM Migration 替代 synchronize (可回滚) + Soft delete cron (GDPR) |
+| 模块         | 能力                                                                  |
+| ------------ | --------------------------------------------------------------------- |
+| **账号**     | 注册 / 登录 / 刷新 / 改密 / 重置 / 邮箱验证 / 失败锁定 / 改密周期     |
+| **Sessions** | 多端登录管理 UI (列设备 / 主动下线 / 撤销原因审计)                    |
+| **OAuth**    | 微信 / Google / Apple 三方登录 + 绑定 / 解绑                          |
+| **JWT 安全** | Redis blacklist (跨实例) + Refresh rotation + Fail-open 容错          |
+| **异步审计** | BullMQ 队列 + Worker + 兜底同步 + Prometheus 埋点                     |
+| **观测**     | Prometheus 指标 + /metrics 端点 + Grafana dashboard + Sentry 异常上报 |
+| **部署**     | Dockerfile + docker-compose + CI (GitHub Actions) + Husky pre-commit  |
+| **DB**       | TypeORM Migration 替代 synchronize (可回滚) + Soft delete cron (GDPR) |
 
 ## 🏗️ 架构
 
@@ -120,70 +120,92 @@ curl http://localhost:3000/health
 curl http://localhost:3000/metrics | head -30
 ```
 
-### 生产部署
+### 生产部署 (服务器)
+
+服务器部署用**单容器 + host 网络**架构 (2 核 2G 优化)。详见 [`docs/architecture/V3_DOCKER_DEPLOY.md`](docs/architecture/V3_DOCKER_DEPLOY.md)。
+
+**快速流程**:
 
 ```bash
-# 1. 配强密码 + 真 secrets
-cp .env.example .env
-# 改 JWT_SECRET, DB_PASSWORD, REDIS_PASSWORD, SENTRY_DSN 等
+# 本地
+cd /mnt/e/Work/Project/backend/mofang-nestjs
+npm run build
 
-# 2. 全栈启动 (含 Prometheus + Grafana)
-docker compose --profile monitoring up -d
+# 传 dist + lockfile 到服务器
+sshpass -p '0126ZHang@@' rsync -avz --delete -e "ssh -p 22" \
+  dist/ root@117.72.30.78:/tmp/mofang-build/dist/
+sshpass -p '0126ZHang@@' scp -P 22 \
+  package.json package-lock.json \
+  root@117.72.30.78:/tmp/mofang-build/
 
-# 3. 跑迁移 (独立)
-docker compose exec api npm run migration:run
+# 服务器 build + up
+ssh root@117.72.30.78 "cd /tmp/mofang-build && \
+  docker build -f Dockerfile.prod -t mofang-nestjs-api:v1.0.1 -t mofang-nestjs-api:latest --build-arg VERSION=v1.0.1 . && \
+  cd /opt/mofang-nestjs && docker compose -f docker-compose.prod.yml up -d"
 
-# 4. 健康检查
-curl http://localhost:3000/health
-# {"status":"ok",...}
-
-# 5. 监控
-# Prometheus: http://localhost:9090
-# Grafana: http://localhost:3001 (admin / <GRAFANA_PASSWORD>)
+# 健康检查
+curl -fsS http://127.72.30.78:3001/health && echo OK
 ```
 
-详见 [`docs/architecture/V2_SETUP.md`](docs/architecture/V2_SETUP.md)
+### 本地开发 (全栈)
+
+```bash
+# 1. 配 dev 密码
+cp .env.example .env
+# 改 JWT_SECRET, DB_PASSWORD, REDIS_PASSWORD 等
+
+# 2. 起 MySQL + Redis (dev 依赖)
+docker compose up -d mysql redis
+
+# 3. 跑迁移
+npm run migration:run
+
+# 4. 起 nest (开发模式, watch)
+npm run start:dev
+```
+
+详见 [`docs/architecture/V2_SETUP.md`](docs/architecture/V2_SETUP.md) (本地开发文档)。
 
 ## 📋 端点清单
 
 ### 账号 (11)
 
-| Method | Path | Auth | Rate Limit | 用途 |
-|---|---|---|---|---|
-| POST | /user/register | - | 5/min | 注册 |
-| POST | /user/login | - | 5/min | 登录 (邮箱必须验证) |
-| POST | /user/refresh | - | 10/min | 刷新 token |
-| POST | /user/logout | ✓ | 30/min | 登出当前 |
-| POST | /user/logout-all | ✓ | 30/min | 登出其他 |
-| GET | /user/me | ✓ | 60/min | 当前用户 |
-| POST | /user/change-password | ✓ | 10/min | 改密 + 撤销所有 session |
-| POST | /user/forgot-password | - | 5/min | 发邮件 (防枚举) |
-| POST | /user/reset-password | - | 5/min | token + 新密码 |
-| POST | /user/verify-email | - | 10/min | 验证 token |
-| POST | /user/resend-verification | - | 5/min | 重发验证邮件 |
+| Method | Path                      | Auth | Rate Limit | 用途                    |
+| ------ | ------------------------- | ---- | ---------- | ----------------------- |
+| POST   | /user/register            | -    | 5/min      | 注册                    |
+| POST   | /user/login               | -    | 5/min      | 登录 (邮箱必须验证)     |
+| POST   | /user/refresh             | -    | 10/min     | 刷新 token              |
+| POST   | /user/logout              | ✓    | 30/min     | 登出当前                |
+| POST   | /user/logout-all          | ✓    | 30/min     | 登出其他                |
+| GET    | /user/me                  | ✓    | 60/min     | 当前用户                |
+| POST   | /user/change-password     | ✓    | 10/min     | 改密 + 撤销所有 session |
+| POST   | /user/forgot-password     | -    | 5/min      | 发邮件 (防枚举)         |
+| POST   | /user/reset-password      | -    | 5/min      | token + 新密码          |
+| POST   | /user/verify-email        | -    | 10/min     | 验证 token              |
+| POST   | /user/resend-verification | -    | 5/min      | 重发验证邮件            |
 
 ### Sessions (2)
 
-| Method | Path | Auth | Rate Limit | 用途 |
-|---|---|---|---|---|
-| GET | /user/sessions | ✓ | 60/min | 列活跃 session |
-| DELETE | /user/sessions/:sid | ✓ | 30/min | 下线某设备 |
+| Method | Path                | Auth | Rate Limit | 用途           |
+| ------ | ------------------- | ---- | ---------- | -------------- |
+| GET    | /user/sessions      | ✓    | 60/min     | 列活跃 session |
+| DELETE | /user/sessions/:sid | ✓    | 30/min     | 下线某设备     |
 
 ### OAuth (4)
 
-| Method | Path | Auth | 用途 |
-|---|---|---|---|
-| GET | /user/oauth/:provider/url | - | 生成授权 URL |
-| POST | /user/oauth/callback | - | 回调 (code 或 id_token) |
-| GET | /user/oauth/linked | ✓ | 列已绑定 |
-| DELETE | /user/oauth/:provider | ✓ | 解绑 |
+| Method | Path                      | Auth | 用途                    |
+| ------ | ------------------------- | ---- | ----------------------- |
+| GET    | /user/oauth/:provider/url | -    | 生成授权 URL            |
+| POST   | /user/oauth/callback      | -    | 回调 (code 或 id_token) |
+| GET    | /user/oauth/linked        | ✓    | 列已绑定                |
+| DELETE | /user/oauth/:provider     | ✓    | 解绑                    |
 
 ### 系统 (2)
 
-| Method | Path | Auth | 用途 |
-|---|---|---|---|
-| GET | /health | - | DB + Redis + HTTP 健康检查 |
-| GET | /metrics | - | Prometheus scrape |
+| Method | Path     | Auth | 用途                       |
+| ------ | -------- | ---- | -------------------------- |
+| GET    | /health  | -    | DB + Redis + HTTP 健康检查 |
+| GET    | /metrics | -    | Prometheus scrape          |
 
 ## 📊 监控指标 (Prometheus)
 
@@ -217,20 +239,20 @@ curl http://localhost:3000/health
 
 ## 🔐 安全要点
 
-| 维度 | 实现 |
-|---|---|
-| 密码 | bcrypt (10 rounds) |
-| 密码历史 | 最近 5 次不复用 |
-| 强制改密 | 90 天周期 |
-| 失败锁定 | 5 次失败锁 30 分钟 |
-| 邮箱验证 | 注册后必须验证才能登录 |
-| JWT | access 15min + refresh 7d + rotation |
-| Blacklist | Redis 跨实例 + TTL 自动清理 + fail-open |
-| Helmet | CSP / HSTS / X-Frame-Options / X-Content-Type-Options |
-| CORS | 白名单 (生产严格, dev 允许 `*`) |
+| 维度       | 实现                                                       |
+| ---------- | ---------------------------------------------------------- |
+| 密码       | bcrypt (10 rounds)                                         |
+| 密码历史   | 最近 5 次不复用                                            |
+| 强制改密   | 90 天周期                                                  |
+| 失败锁定   | 5 次失败锁 30 分钟                                         |
+| 邮箱验证   | 注册后必须验证才能登录                                     |
+| JWT        | access 15min + refresh 7d + rotation                       |
+| Blacklist  | Redis 跨实例 + TTL 自动清理 + fail-open                    |
+| Helmet     | CSP / HSTS / X-Frame-Options / X-Content-Type-Options      |
+| CORS       | 白名单 (生产严格, dev 允许 `*`)                            |
 | Rate Limit | 鉴权路由分级 (login 5/min, register 5/min, refresh 10/min) |
-| Audit Log | 异步队列 + 18 种事件类型 |
-| GDPR | 软删 30 天后真删 (cron) |
+| Audit Log  | 异步队列 + 18 种事件类型                                   |
+| GDPR       | 软删 30 天后真删 (cron)                                    |
 
 ## 🛠️ 常用命令
 
@@ -268,7 +290,8 @@ docker compose exec api npm run migration:run
 ## 📚 文档
 
 - [V2 架构 SPEC](docs/architecture/v2-user-module-architecture.md) — 完整设计
-- [V2 部署指南](docs/architecture/V2_SETUP.md) — 部署 + 故障排查
+- [V2 部署指南](docs/architecture/V2_SETUP.md) — 本地开发环境
+- [V3 Docker 部署](docs/architecture/V3_DOCKER_DEPLOY.md) — **生产服务器部署 (单容器 + host 网络, 2 核 2G 优化)**
 - [ADR-0001 JWT vs Cookie Session](docs/adr/0001-jwt-vs-cookie-session.md)
 - [ADR-0002 异步审计日志](docs/adr/0002-async-audit-log-via-bullmq.md)
 - [ADR-0003 TypeORM Migration](docs/adr/0003-typeorm-migration-replace-synchronize.md)

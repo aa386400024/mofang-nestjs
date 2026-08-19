@@ -22,34 +22,38 @@ export enum BizCode {
   Forbidden = 1006,
 
   // ====== 用户模块 (10xxx) ======
-  UserNotFound = 10001,
-  UserAlreadyExists = 10002,
-  UserBanned = 10003,
-  InvalidPhone = 10004,
-  InvalidEmail = 10005,
-  WeakPassword = 10006,
-  PasswordReused = 10007,
-  PasswordExpired = 10008,
-  AccountLocked = 10009,
-  EmailAlreadyVerified = 10010,
-  PhoneAlreadyVerified = 10011,
-  EmailNotVerified = 10012,
+  UserNotFound = 10_001,
+  UserAlreadyExists = 10_002,
+  UserBanned = 10_003,
+  InvalidPhone = 10_004,
+  InvalidEmail = 10_005,
+  WeakPassword = 10_006,
+  PasswordReused = 10_007,
+  PasswordExpired = 10_008,
+  AccountLocked = 10_009,
+  EmailAlreadyVerified = 10_010,
+  PhoneAlreadyVerified = 10_011,
+  EmailNotVerified = 10_012,
 
   // ====== 鉴权模块 (11xxx) ======
-  Unauthorized = 11001,
-  InvalidCredentials = 11002,
-  TokenExpired = 11003,
-  TokenRevoked = 11004,
-  TokenInvalid = 11005,
+  Unauthorized = 11_001,
+  InvalidCredentials = 11_002,
+  TokenExpired = 11_003,
+  TokenRevoked = 11_004,
+  TokenInvalid = 11_005,
 
   // ====== 验证码 (12xxx) ======
-  VerificationCodeInvalid = 12001,
-  VerificationCodeExpired = 12002,
-  VerificationCodeRateLimited = 12003,
+  VerificationCodeInvalid = 12_001,
+  VerificationCodeExpired = 12_002,
+  VerificationCodeRateLimited = 12_003,
 
   // ====== OAuth (13xxx) ======
-  OAuthProviderError = 13001,
-  OAuthAccountAlreadyLinked = 13002,
-  OAuthAccountNotLinked = 13003,
-  OAuthInvalidState = 13004,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  OAuthProviderError = 13_001,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  OAuthAccountAlreadyLinked = 13_002,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  OAuthAccountNotLinked = 13_003,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  OAuthInvalidState = 13_004,
 }

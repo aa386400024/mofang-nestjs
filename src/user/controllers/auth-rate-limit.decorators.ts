@@ -1,5 +1,5 @@
-import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { SetMetadata, type CustomDecorator } from '@nestjs/common';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 
 /**
  * 鉴权路由分级限流 (大厂防爆破标配).
@@ -23,6 +23,7 @@ import { SetMetadata, type CustomDecorator } from '@nestjs/common';
  *   - 真实用户输错密码平均 1-3 次, 5 次足够
  *   - 防止撞库 + 短信轰炸
  */
+// eslint-disable-next-line @typescript-eslint/naming-convention
 export function AuthStrictRateLimit(): MethodDecorator & ClassDecorator {
   return Throttle({ default: { limit: 5, ttl: 60_000 } });
 }
@@ -30,6 +31,7 @@ export function AuthStrictRateLimit(): MethodDecorator & ClassDecorator {
 /**
  * 中等限流 — 10 req/min (refresh / me / 验证邮箱)
  */
+// eslint-disable-next-line @typescript-eslint/naming-convention
 export function AuthMediumRateLimit(): MethodDecorator & ClassDecorator {
   return Throttle({ default: { limit: 10, ttl: 60_000 } });
 }
@@ -37,6 +39,7 @@ export function AuthMediumRateLimit(): MethodDecorator & ClassDecorator {
 /**
  * 宽松限流 — 30 req/min (登出 / 列 sessions)
  */
+// eslint-disable-next-line @typescript-eslint/naming-convention
 export function AuthLooseRateLimit(): MethodDecorator & ClassDecorator {
   return Throttle({ default: { limit: 30, ttl: 60_000 } });
 }
@@ -47,6 +50,7 @@ export function AuthLooseRateLimit(): MethodDecorator & ClassDecorator {
  * 注意: 大部分 OAuth callback 不应该完全无限制, 建议用 AuthMediumRateLimit
  * 这里是给真正需要无限制的场景 (比如内部服务调用)
  */
+// eslint-disable-next-line @typescript-eslint/naming-convention
 export function NoRateLimit(): MethodDecorator & ClassDecorator {
   return SkipThrottle();
 }

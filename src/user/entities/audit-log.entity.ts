@@ -1,10 +1,4 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 /**
  * Audit event enum — 用户鉴权事件 (大厂合规要求).
@@ -51,9 +45,13 @@ export enum AuditEvent {
   UserAccountUnlocked = 'user_account_unlocked',
 
   // V2 OAuth
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   UserOAuthLinked = 'user_oauth_linked',
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   UserOAuthUnlinked = 'user_oauth_unlinked',
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   UserOAuthLoginSuccess = 'user_oauth_login_success',
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   UserOAuthLoginFailed = 'user_oauth_login_failed',
 
   // V2 软删

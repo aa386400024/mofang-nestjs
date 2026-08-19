@@ -1,21 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
-import { randomBytes } from 'node:crypto';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'node:crypto';
+import { IsNull, Repository } from 'typeorm';
 
-import { RedisService } from '../../shared/infra/redis';
-import { EmailService } from '../../shared/infra/email';
-import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants';
-import { MetricsService } from '../../shared/infra/metrics';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-
-import { User } from '../entities/user.entity';
+import { JwtBlacklistService } from './jwt-blacklist.service';
 import { PasswordHistoryService } from './password-history.service';
 import { SessionService } from './session.service';
-import { JwtBlacklistService } from './jwt-blacklist.service';
+import { BizCode } from '../../common/exceptions/biz-code.enum';
+import { BizException } from '../../common/exceptions/biz.exception';
+import { EmailService } from '../../shared/infra/email';
+import { MetricsService } from '../../shared/infra/metrics';
+import { RedisService } from '../../shared/infra/redis';
+import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants';
+
+import { User } from '../entities/user.entity';
 import { SessionRevokeReason } from '../user.constant';
 
 /**
@@ -124,9 +124,7 @@ export class PasswordResetService {
 
     // 4. 撤销所有 session + 加入 blacklist (强制下线其他设备)
     const revoked = await this.sessions.revokeAllByUserId(uid, SessionRevokeReason.PasswordChanged);
-    await this.blacklist.revokeMany(
-      revoked.map((r) => ({ jti: r.jti, expiresAtMs: r.expiresAtMs })),
-    );
+    await this.blacklist.revokeMany(revoked.map((r) => ({ jti: r.jti, expiresAtMs: r.expiresAtMs })));
 
     // 5. 清理 reset token
     const oldToken = await this.redis.get(REDIS_KEYS.passwordResetByUid(uid));

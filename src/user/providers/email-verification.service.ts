@@ -1,15 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
 import { randomBytes } from 'node:crypto';
+import { IsNull, Repository } from 'typeorm';
 
-import { RedisService } from '../../shared/infra/redis';
-import { EmailService } from '../../shared/infra/email';
-import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants';
-import { MetricsService } from '../../shared/infra/metrics';
-import { BizException } from '../../common/exceptions/biz.exception';
 import { BizCode } from '../../common/exceptions/biz-code.enum';
+import { BizException } from '../../common/exceptions/biz.exception';
+import { EmailService } from '../../shared/infra/email';
+import { MetricsService } from '../../shared/infra/metrics';
+import { RedisService } from '../../shared/infra/redis';
+import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants';
 
 import { User } from '../entities/user.entity';
 

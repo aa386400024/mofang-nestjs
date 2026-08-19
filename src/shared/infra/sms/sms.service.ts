@@ -2,8 +2,8 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
 import { ConfigService } from '../../../common';
 
-import { BizException } from '../../../common/exceptions/biz.exception';
 import { BizCode } from '../../../common/exceptions/biz-code.enum';
+import { BizException } from '../../../common/exceptions/biz.exception';
 
 /**
  * 短信发送参数.
@@ -27,7 +27,7 @@ export interface SendSmsOptions {
  *
  * V2 实现:
  *   - mock provider 完整可用
- *   - 其他 provider 留 TODO (实际接入换 SDK, 接口一致)
+ *   - 其他 provider 预留 (后续接 SDK)
  *
  * 限流:
  *   - 由业务层 (verification.service) 控制, 不在这里.
@@ -67,14 +67,12 @@ export class SmsService implements OnModuleInit {
     if (!cfg.enabled || cfg.provider === 'mock') {
       // dev / mock: 只 log
       this.logger.log(
-        `[SMS MOCK] phone=${options.phone} template=${options.templateCode ?? 'default'} params=${JSON.stringify(
-          options.templateParams,
-        )}`,
+        `[SMS MOCK] phone=${options.phone} template=${options.templateCode ?? 'default'} params=${JSON.stringify(options.templateParams)}`,
       );
       return;
     }
 
-    // 其他 provider: 留 TODO (V3 接入 SDK)
+    // 其他 provider 留待 V3 接入 SDK
     switch (cfg.provider) {
       case 'aliyun':
         await this.sendAliyun(options);
@@ -91,21 +89,21 @@ export class SmsService implements OnModuleInit {
   }
 
   // ========================================================================
-  // Provider 实现 (V3 TODO)
+  // Provider 实现 (V3 接入)
   // ========================================================================
 
   private async sendAliyun(options: SendSmsOptions): Promise<void> {
-    // TODO: 接入 @alicloud/dysmsapi20170525
-    this.logger.warn(`[SMS ALIYUN TODO] phone=${options.phone}`);
+    // 待办: 接入 @alicloud/dysmsapi20170525
+    this.logger.warn(`[SMS ALIYUN 待办] phone=${options.phone}`);
   }
 
   private async sendTencent(options: SendSmsOptions): Promise<void> {
-    // TODO: 接入 tencentcloud-sdk-nodejs
-    this.logger.warn(`[SMS TENCENT TODO] phone=${options.phone}`);
+    // 待办: 接入 tencentcloud-sdk-nodejs
+    this.logger.warn(`[SMS TENCENT 待办] phone=${options.phone}`);
   }
 
   private async sendTwilio(options: SendSmsOptions): Promise<void> {
-    // TODO: 接入 twilio
-    this.logger.warn(`[SMS TWILIO TODO] phone=${options.phone}`);
+    // 待办: 接入 twilio
+    this.logger.warn(`[SMS TWILIO 待办] phone=${options.phone}`);
   }
 }

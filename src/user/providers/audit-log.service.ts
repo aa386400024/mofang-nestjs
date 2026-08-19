@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import { AuditLogProcessor } from '../../shared/infra/queue';
 import { MetricsService } from '../../shared/infra/metrics';
+import { AuditLogProcessor } from '../../shared/infra/queue';
 import { AuditEvent } from '../entities/audit-log.entity';
 
 /**

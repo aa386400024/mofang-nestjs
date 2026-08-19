@@ -1,7 +1,7 @@
 import { registerDecorator, type ValidationOptions } from 'class-validator';
 
-import { BizException } from '../exceptions/biz.exception';
 import { BizCode } from '../exceptions/biz-code.enum';
+import { BizException } from '../exceptions/biz.exception';
 
 /**
  * 中国大陆手机号校验 (大厂安全标准).

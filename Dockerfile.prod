@@ -1,0 +1,76 @@
+# syntax=docker/dockerfile:1.7
+#
+# mofang-nestjs 生产镜像 (单阶段精简版, 2 核 2G 服务器优化)
+#
+# 与 Dockerfile (本地全栈 dev 用) 的区别:
+#   - 单阶段 build (dev 是 3 阶段含 prod 瘦身)
+#   - 镜像只跑 api, MySQL/Redis 走 host 网络
+#   - 加 --omit=dev 显式排除 devDependencies (省 ~80MB)
+#   - 镜像大小目标: ~180MB (Alpine + 只 prod deps)
+#   - 不带 Prometheus/Grafana (服务器 2G 跑不动)
+#
+# 用法:
+#   docker build -f Dockerfile.prod -t mofang-nestjs-api:latest .
+#   docker build -f Dockerfile.prod -t mofang-nestjs-api:v1.0.1 --build-arg VERSION=v1.0.1 .
+
+# ============================================================
+# Stage 1: 单阶段 (本机 build 后产物已经最小, 不需要 3 阶段)
+# 2 核 2G 服务器 build 慢一点没关系, 镜像小最重要
+# ============================================================
+FROM node:24-alpine AS prod
+
+WORKDIR /app
+
+# alpine 缺 python3/make/g++, 某些 native module 需要 (bcrypt / sharp)
+# 但 mofang-nestjs 没 native deps, 省略这行以省镜像层
+# RUN apk add --no-cache python3 make g++ libc6-compat
+
+# 1. 先只 COPY package 文件, 利用 Docker 缓存
+#    (改 src 代码不会触发 npm ci 重跑, 加速 95% rebuild)
+COPY package.json package-lock.json* ./
+
+# 2. 生产依赖, 显式 --omit=dev
+#    --omit=dev = NODE_ENV=production 时跳过 devDependencies
+#    --ignore-scripts = 跳过 native build (没装 g++ 会失败)
+#    用 || true 兜底: lockfile 缺失时 npm ci 报错 (开发场景)
+RUN npm ci --omit=dev --ignore-scripts || npm install --omit=dev --ignore-scripts
+
+# 3. 拷贝 TS build 产物
+#    注意: dist/ 必须在本地 tsc 编译后再 build, 不要让 docker 编译 TS
+#    .dockerignore 已排除 src/, 防止开发代码进镜像
+COPY dist ./dist
+COPY package.json ./
+
+# 4. 安全: 非 root 用户
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nestjs -u 1001 && \
+    chown -R nestjs:nodejs /app
+USER nestjs
+
+# 5. 运行时依赖: curl (healthcheck) + tini (PID 1 信号处理)
+#    用 USER 切到 nestjs 后, 用 root 装包再切回 (alpine 必须这样)
+USER root
+RUN apk add --no-cache curl tini
+USER nestjs
+
+# 6. 健康检查 (每 30s, 启动给 20s 宽限, 失败 3 次 down)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:${PORT:-3001}/health || exit 1
+
+# 7. 端口 (容器内监听, 跟 host 端口映射由 docker-compose 决定)
+EXPOSE 3001
+
+# 8. tini 处理 PID 1 (SIGTERM 干净转发给 node)
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["node", "dist/app.js"]
+
+# ============================================================
+# 元数据 (便于运维查镜像信息)
+# ============================================================
+ARG VERSION=unknown
+LABEL org.opencontainers.image.title="mofang-nestjs-api" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.source="https://github.com/aa386400024/mofang-nestjs" \
+      org.opencontainers.image.maintainer="dapao@shenzhen" \
+      org.opencontainers.image.licenses="UNLICENSED" \
+      org.opencontainers.image.description="Mofang NestJS API - 心塑 + 魔方共用后台服务"

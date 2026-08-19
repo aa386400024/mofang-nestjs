@@ -1,24 +1,15 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { CurrentUser } from '../decorators/current-user.decorator';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { ConfigService } from '../../common';
-
-import { OAuthProvider } from '../entities/oauth-identity.entity';
 import { OAuthService } from './oauth.service';
+import { ConfigService } from '../../common';
+import { BizCode } from '../../common/exceptions/biz-code.enum';
+import { BizException } from '../../common/exceptions/biz.exception';
+import { CurrentUser } from '../decorators/current-user.decorator';
+
 import { AuthResponseDto } from '../dto/auth-response.dto';
+import { OAuthProvider } from '../entities/oauth-identity.entity';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 /**
  * OAuth controller — 第三方登录端点 (大厂企业级).
@@ -31,6 +22,7 @@ import { AuthResponseDto } from '../dto/auth-response.dto';
  */
 @ApiTags('User-OAuth')
 @Controller('user/oauth')
+// eslint-disable-next-line @typescript-eslint/naming-convention
 export class OAuthController {
   constructor(
     private readonly oauth: OAuthService,
@@ -56,9 +48,7 @@ export class OAuthController {
    */
   @Post('callback')
   @ApiOperation({ summary: 'OAuth 回调 (code 或 id_token, 业务方转发)' })
-  public async callback(
-    @Body() body: { provider: string; code?: string; idToken?: string; state?: string },
-  ): Promise<AuthResponseDto> {
+  public async callback(@Body() body: { provider: string; code?: string; idToken?: string; state?: string }): Promise<AuthResponseDto> {
     const p = this.parseProvider(body.provider);
 
     // state 校验 (CSRF)
@@ -112,10 +102,7 @@ export class OAuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '解绑第三方账号' })
-  public async unlink(
-    @Param('provider') provider: string,
-    @CurrentUser('sub') uid: string,
-  ): Promise<{ ok: boolean }> {
+  public async unlink(@Param('provider') provider: string, @CurrentUser('sub') uid: string): Promise<{ ok: boolean }> {
     const p = this.parseProvider(provider);
     await this.oauth.unlinkIdentity(uid, p);
     return { ok: true };

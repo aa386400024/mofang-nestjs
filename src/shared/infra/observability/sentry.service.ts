@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+// eslint-disable-next-line @typescript-eslint/naming-convention
 import * as Sentry from '@sentry/node';
 
 /**
@@ -6,7 +7,9 @@ import * as Sentry from '@sentry/node';
  * Sentry v8 的 Integration 接口在 @sentry/core 的 types-hoist 里,
  * 直接 import 路径不稳健, 这里只取运行时需要的 name 字段.
  */
-type SentryIntegration = { name: string };
+interface SentryIntegration {
+  name: string;
+}
 
 /**
  * Sentry service — 生产环境异常捕获 + 性能追踪 (大厂可观测性标配).
@@ -33,8 +36,8 @@ export class SentryService implements OnModuleInit {
   private initialized = false;
 
   async onModuleInit(): Promise<void> {
-    const dsn = process.env['SENTRY_DSN'];
-    const env = process.env['SENTRY_ENVIRONMENT'] ?? process.env['NODE_ENV'] ?? 'development';
+    const dsn = process.env.SENTRY_DSN;
+    const env = process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV ?? 'development';
     if (!dsn) {
       this.logger.warn('Sentry DSN not set, error reporting disabled');
       return;
@@ -44,8 +47,8 @@ export class SentryService implements OnModuleInit {
       return;
     }
 
-    const tracesSampleRate = Number(process.env['SENTRY_TRACES_SAMPLE_RATE'] ?? '0.1'); // 10%
-    const profilesSampleRate = Number(process.env['SENTRY_PROFILES_SAMPLE_RATE'] ?? '0.05'); // 5%
+    const tracesSampleRate = Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? '0.1'); // 10%
+    const profilesSampleRate = Number(process.env.SENTRY_PROFILES_SAMPLE_RATE ?? '0.05'); // 5%
 
     // Profiler 是 nice-to-have, 不是必需. Node ABI 不匹配时优雅降级.
     let profilingIntegration: SentryIntegration | null = null;
@@ -56,7 +59,7 @@ export class SentryService implements OnModuleInit {
     } catch (err) {
       this.logger.warn(
         `Sentry profiling disabled (native binary mismatch or missing): ${(err as Error).message}. ` +
-        'This is OK — traces + errors still work. To enable profiling, run npm rebuild @sentry/profiling-node.',
+          'This is OK — traces + errors still work. To enable profiling, run npm rebuild @sentry/profiling-node.',
       );
     }
 

@@ -1,11 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import {
-  collectDefaultMetrics,
-  Counter,
-  Histogram,
-  Registry,
-  type HistogramConfiguration,
-} from 'prom-client';
+import { collectDefaultMetrics, Counter, Histogram, Registry, type HistogramConfiguration } from 'prom-client';
 
 import { ConfigService } from '../../../common';
 
@@ -164,6 +158,7 @@ export class MetricsService implements OnModuleInit {
     this.authPasswordResetCounter.inc({ result });
   }
 
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   incOAuthLogin(provider: string, result: 'success' | 'failed' | 'linked'): void {
     if (!this.config.get('metrics').enabled) {
       return;
@@ -171,7 +166,10 @@ export class MetricsService implements OnModuleInit {
     this.oauthLoginCounter.inc({ provider, result });
   }
 
-  incVerificationCodeSent(type: 'email' | 'sms', channel: 'register' | 'login' | 'reset_password' | 'change_password' | 'bind_phone'): void {
+  incVerificationCodeSent(
+    type: 'email' | 'sms',
+    channel: 'register' | 'login' | 'reset_password' | 'change_password' | 'bind_phone',
+  ): void {
     if (!this.config.get('metrics').enabled) {
       return;
     }

@@ -1,5 +1,5 @@
-import { IsEmail } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail } from 'class-validator';
 
 /**
  * 忘记密码 DTO — 只接邮箱 (V2 暂不支持手机号).

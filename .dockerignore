@@ -31,9 +31,12 @@ coverage/
 .github/
 
 # Docker
+# 只排除开发用的 Dockerfile (多阶段全栈) 和 docker-compose.yml (本地全栈)
+# 不要排除 Dockerfile.prod / docker-compose.prod.yml (服务器专用, build 需要)
 Dockerfile
 .dockerignore
-docker-compose*.yml
+docker-compose.yml
+docker-compose.override.yml
 
 # Env files (不要 commit secrets 进镜像)
 .env
