@@ -5,6 +5,7 @@ import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 
 import { middleware } from './app.middleware';
 import { AppModule } from './app.module';
+import { HttpMetricsInterceptor } from './shared/infra/metrics';
 
 /**
  * https://docs.nestjs.com
@@ -19,6 +20,9 @@ async function bootstrap(): Promise<string> {
 
   app.useLogger(app.get(Logger));
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
+
+  // V2: HTTP 指标 interceptor (记录 method/route/code/duration 到 Prometheus)
+  app.useGlobalInterceptors(app.get(HttpMetricsInterceptor));
 
   if (isProduction) {
     app.enable('trust proxy');

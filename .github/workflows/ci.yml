@@ -1,0 +1,174 @@
+name: CI
+
+on:
+  push:
+    branches: [main, integrate, develop]
+  pull_request:
+    branches: [main, integrate]
+
+# 同一个 PR 取消之前的 run (节省 CI quota)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================
+  # 1. Lint + Typecheck (最快, 先跑)
+  # ============================================================
+  lint-and-typecheck:
+    name: Lint + Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit -p tsconfig.json
+
+  # ============================================================
+  # 2. Unit + E2E Test (需 MySQL + Redis service)
+  # ============================================================
+  test:
+    name: Test (Unit + E2E)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: lint-and-typecheck
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: mofang_test
+          MYSQL_USER: mofang
+          MYSQL_PASSWORD: mofangpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -prootpass"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=3s
+          --health-retries=5
+    env:
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: mofang_test
+      DB_USER: mofang
+      DB_PASSWORD: mofangpass
+      DB_TYPE: mysql
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ''
+      REDIS_KEY_PREFIX: mofang:test
+      JWT_SECRET: test-jwt-secret-do-not-use-in-prod
+      JWT_REFRESH_SECRET: test-jwt-refresh-secret-do-not-use-in-prod
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      EMAIL_ENABLED: 'false'
+      SMS_ENABLED: 'false'
+      METRICS_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run migrations (建测试库 schema)
+        run: npm run migration:run
+
+      - name: Unit tests
+        run: npm test
+
+      - name: E2E tests
+        run: npm run test:e2e
+        env:
+          # E2E 需真实 HTTP server
+          PORT: 3000
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ github.run_id }}
+          path: coverage/
+
+  # ============================================================
+  # 3. Build (编译产物, 验证 Dockerfile 能 build)
+  # ============================================================
+  build:
+    name: Build (Docker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: docker build -t mofang-nestjs:${{ github.sha }} .
+
+      - name: Image size check
+        run: |
+          SIZE=$(docker images mofang-nestjs:${{ github.sha }} --format "{{.Size}}")
+          echo "Image size: $SIZE"
+
+  # ============================================================
+  # 4. Security audit (大厂必备)
+  # ============================================================
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: npm audit
+        run: npm audit --audit-level=high --omit=dev
+
+      - name: Run Trivy vulnerability scanner on Dockerfile
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'node:24-alpine'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
