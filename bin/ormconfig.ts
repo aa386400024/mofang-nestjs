@@ -12,6 +12,7 @@ import { AddSessionV2Fields1700000002000 } from '../src/migration/1700000002000-
 import { AddPasswordHistory1700000003000 } from '../src/migration/1700000003000-AddPasswordHistory';
 import { AddOAuthIdentity1700000004000 } from '../src/migration/1700000004000-AddOAuthIdentity';
 import { AddUserEmailIndex1700000005000 } from '../src/migration/1700000005000-AddUserEmailIndex';
+import { AddUserConsent1700000006000 } from '../src/migration/1700000006000-AddUserConsent';
 
 try {
   loadEnvFile();
@@ -31,6 +32,7 @@ const ormconfig = async (): Promise<DataSource> => {
       AddPasswordHistory1700000003000,
       AddOAuthIdentity1700000004000,
       AddUserEmailIndex1700000005000,
+      AddUserConsent1700000006000,
     ],
     // migrationsRun: false (默认) — 手动 npm run migration:run
     // synchronize: false — 已禁, 强制走 migration

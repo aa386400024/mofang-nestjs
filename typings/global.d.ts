@@ -80,6 +80,10 @@ export declare global {
       METRICS_ENABLED?: string;
       METRICS_PATH?: string;
 
+      // V3 合规模块 (心塑 / 魔方共用同意记录)
+      // 服务端升级此版本号 → 强制客户端重弹同意 dialog (后端权威)
+      CONSENT_CURRENT_VERSION?: string;
+
       SENTRY_DSN?: string;
       SENTRY_ENVIRONMENT?: string;
       SENTRY_TRACES_SAMPLE_RATE?: string;
@@ -93,6 +97,6 @@ export declare global {
       // customProps of pino-http
       customProps: object;
     }
-    interface User extends Payload {}
+    type User = Payload;
   }
 }

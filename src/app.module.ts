@@ -11,6 +11,7 @@ import path from 'node:path';
 import { CommonModule } from './common';
 import { BizExceptionFilter } from './common/filters/biz-exception.filter';
 import { configuration, loggerOptions } from './config';
+import { ConsentModule } from './consent';
 import { EmailModule, MetricsModule, ObservabilityModule, QueueModule, RedisModule, SmsModule } from './shared/infra';
 import { SentryService } from './shared/infra/observability';
 import { UserModule } from './user';
@@ -74,6 +75,8 @@ import { OAuthModule } from './user/oauth';
     UserModule,
     OAuthModule,
     UserCronModule,
+    // V3 合规模块 (心塑 + 魔方共用同意记录)
+    ConsentModule,
   ],
   providers: [
     // Global Throttler Guard

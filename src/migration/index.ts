@@ -11,3 +11,4 @@ export * from './1700000002000-AddSessionV2Fields';
 export * from './1700000003000-AddPasswordHistory';
 export * from './1700000004000-AddOAuthIdentity';
 export * from './1700000005000-AddUserEmailIndex';
+export * from './1700000006000-AddUserConsent';

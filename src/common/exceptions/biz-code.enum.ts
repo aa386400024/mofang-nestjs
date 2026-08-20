@@ -56,4 +56,14 @@ export enum BizCode {
   OAuthAccountNotLinked = 13_003,
   // eslint-disable-next-line @typescript-eslint/naming-convention
   OAuthInvalidState = 13_004,
+
+  // ====== 合规模块 / Consent (14xxx) ======
+
+  ConsentVersionInvalid = 14_001, // 协议版本号格式不符 (e.g. 不是 vX.Y)
+
+  ConsentDeviceIdInvalid = 14_002, // 设备指纹格式不符
+
+  ConsentPlatformUnsupported = 14_003, // 平台不在白名单
+
+  ConsentRateLimited = 14_004, // consent 记录接口被限流 (防御性)
 }

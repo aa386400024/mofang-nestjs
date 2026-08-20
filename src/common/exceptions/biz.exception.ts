@@ -103,6 +103,11 @@ function getBizCodeDefaultMessage(code: BizCode): string {
     [BizCode.OAuthAccountAlreadyLinked]: '该第三方账号已绑定其他用户',
     [BizCode.OAuthAccountNotLinked]: '该第三方账号未绑定',
     [BizCode.OAuthInvalidState]: 'OAuth 状态校验失败',
+
+    [BizCode.ConsentVersionInvalid]: '协议版本号格式不正确 (需 vX.Y 格式)',
+    [BizCode.ConsentDeviceIdInvalid]: '设备指纹格式不正确',
+    [BizCode.ConsentPlatformUnsupported]: '平台不在支持列表',
+    [BizCode.ConsentRateLimited]: '同意记录请求过于频繁, 请稍后再试',
   };
   return messages[code] ?? '错误';
 }

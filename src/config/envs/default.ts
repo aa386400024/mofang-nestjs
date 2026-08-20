@@ -105,4 +105,9 @@ export const config = {
     // 默认 HTTP histogram buckets (5ms ~ 10s, 大厂经验值)
     httpDurationBuckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
   },
+  // V3 合规模块 (心塑 / 魔方共用同意记录)
+  // 通过升级此版本号, 服务端强制客户端重弹同意 dialog (后端权威)
+  consent: {
+    currentVersion: process.env.CONSENT_CURRENT_VERSION ?? 'v1.0',
+  },
 };
