@@ -125,6 +125,17 @@ export default defineConfig(
       '@typescript-eslint/prefer-destructuring': 'off',
       '@typescript-eslint/prefer-readonly': 'off',
       '@typescript-eslint/strict-boolean-expressions': 'off',
+      // V2: 允许 `interface X extends Y {}` 空接口扩展 — TS interface
+      // declaration merging 的标准模式 (如 express/passport 类型扩展).
+      // ESLint 默认 `no-empty-object-type` 报 "noEmptyInterfaceWithSuper",
+      // 但 merging 必须保留空接口体才能跟 passport 的同名空 interface 合并,
+      // 让 req.user 正确推断为 Payload (治本修 TS2339).
+      // 用全局 option `allowInterfaces: 'with-single-extends'` 比每处
+      // eslint-disable-next-line 更治本 (未来 merging 都不会再误报).
+      '@typescript-eslint/no-empty-object-type': [
+        'error',
+        { allowInterfaces: 'with-single-extends' },
+      ],
       // #endregion
 
       // #region sonarjs

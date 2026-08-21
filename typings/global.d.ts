@@ -97,6 +97,18 @@ export declare global {
       // customProps of pino-http
       customProps: object;
     }
-    type User = Payload;
+    // V2 治本: 用 `interface User extends Payload {}` 而非 `type User = Payload`.
+    //
+    // 根因: @types/passport 全局声明了一个空的 `interface User {}` (见
+    // node_modules/@types/passport/index.d.ts:7). TypeScript 不允许
+    // `type alias` (type User = Payload) 与同名 `interface` 互相覆盖或合并,
+    // 它们是两个完全独立的类型 — 旧的写法导致 `req.user` 仍是 passport
+    // 那个空 User, 访问 `user.roles` / `user.userId` 触发 TS2339.
+    //
+    // 治本: 改用 interface declaration merging, 让我们声明的 User 跟 passport
+    // 的空 User 在编译期合并, 合并后 User = Payload (userId/username/roles).
+    // 这样 req.user?.roles / req.user?.userId 自动具备正确类型推断,
+    // 调用方无需 as cast, 也无需重复定义字段 (单一真相源 = Payload).
+    interface User extends Payload {}
   }
 }
