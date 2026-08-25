@@ -8,6 +8,8 @@ import { TypeOrmModule, type TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
 import path from 'node:path';
 
+import { AuthModule } from './auth';
+import { BaseModule } from './base/base.module';
 import { CommonModule } from './common';
 import { BizExceptionFilter } from './common/filters/biz-exception.filter';
 import { configuration, loggerOptions } from './config';
@@ -17,6 +19,11 @@ import { SentryService } from './shared/infra/observability';
 import { UserModule } from './user';
 import { UserCronModule } from './user/cron/cron.module';
 import { OAuthModule } from './user/oauth';
+
+// ⚠️ AuthModule + BaseModule 必装: V2-temp 误删后, 心塑前端 /auth/* 路由全 404.
+// - AuthModule: 提供 AuthService / LoginCodeService / JwtModule / Guards
+// - BaseModule: 注册 AuthController (/auth/send-code /auth/verify-code /auth/login ...)
+//               + HealthController (/health)
 
 /**
  * V2 AppModule — 大厂生产级.
@@ -73,6 +80,9 @@ import { OAuthModule } from './user/oauth';
     CommonModule,
     // V2 业务模块
     UserModule,
+    // AuthModule 必须先于 BaseModule, 因为 BaseModule 的 AuthController 依赖 AuthService / LoginCodeService.
+    AuthModule,
+    BaseModule,
     OAuthModule,
     UserCronModule,
     // V3 合规模块 (心塑 + 魔方共用同意记录)

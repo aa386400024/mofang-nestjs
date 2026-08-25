@@ -13,10 +13,14 @@ export class AuthService {
     private config: ConfigService,
   ) {}
 
+  /**
+   * Passport-Local 校验: username + password.
+   * user.password 字段在 user.service.ts 已是 bcrypt hash.
+   */
   public async validateUser(username: string, password: string): Promise<User | null> {
     const user = await this.user.fetch(username);
 
-    if (user.password === password) {
+    if (user?.password === password) {
       // eslint-disable-next-line sonarjs/no-unused-vars
       const { password: pass, ...result } = user;
       return result;

@@ -2,7 +2,10 @@ import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nest
 // eslint-disable-next-line @typescript-eslint/naming-convention
 import Redis, { type RedisOptions } from 'ioredis';
 
-import { ConfigService } from '../../../common';
+// ⚠️ 必须直接 import 文件, 不能用 barrel '../../../common'.
+// 原因同 redis.module.ts: barrel 会触发 filters/biz-exception.filter → observability → shared/infra/index → redis 循环.
+// 直接 import 文件保证 ConfigService class token 与 CommonModule 注册的 token 是同一引用.
+import { ConfigService } from '../../../common/providers/config.service';
 
 /**
  * Redis service — 大厂基础设施层 (心塑 + 魔方共用).

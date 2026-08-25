@@ -1,7 +1,8 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { collectDefaultMetrics, Counter, Histogram, Registry, type HistogramConfiguration } from 'prom-client';
 
-import { ConfigService } from '../../../common';
+// ⚠️ 必须直接 import 文件, 详见 redis.service.ts 治本注释.
+import { ConfigService } from '../../../common/providers/config.service';
 
 /**
  * Metrics service — Prometheus 指标收集 (大厂可观测性标配).

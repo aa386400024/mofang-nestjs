@@ -1,9 +1,10 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
-import { ConfigService } from '../../../common';
+// ⚠️ 必须直接 import 文件, 详见 redis.service.ts 治本注释.
 
 import { BizCode } from '../../../common/exceptions/biz-code.enum';
 import { BizException } from '../../../common/exceptions/biz.exception';
+import { ConfigService } from '../../../common/providers/config.service';
 
 /**
  * 短信发送参数.

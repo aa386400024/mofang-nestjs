@@ -2,7 +2,8 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 
-import { ConfigService } from '../../../common';
+// ⚠️ 必须直接 import 文件, 详见 redis.service.ts 治本注释.
+import { ConfigService } from '../../../common/providers/config.service';
 
 /**
  * 邮件发送参数.
