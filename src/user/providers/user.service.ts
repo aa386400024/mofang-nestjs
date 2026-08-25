@@ -318,6 +318,74 @@ export class UserService {
     return this.userRepo.findOne({ where: { uid, deletedAt: IsNull() } });
   }
 
+  /**
+   * V1.1 心塑前端接入: 按邮箱查用户 (V2 enterprise UserService 原生没暴露).
+   * 软删用户 (deletedAt != null) 不返回, 避免泄漏.
+   */
+  async findByEmail(email: string): Promise<User | null> {
+    return this.userRepo.findOne({
+      where: { email: email.toLowerCase().trim(), deletedAt: IsNull() },
+    });
+  }
+
+  /**
+   * V1.1 心塑前端接入: 创建无密码用户 (V1.x 验证码流程注册).
+   * V2 register 强制要求 password, 这个方法绕过.
+   * 用途: 心塑验证码登录后, 给新用户占位 user 记录, 等 SetPasswordPage 引导设密码.
+   * V1.x 验证码流程注册: new User() + passwordHash=" + mustChangePassword=true 占位,
+   */
+  async createPasswordlessUser(email: string): Promise<User> {
+    // 用 new User() 显式构造 (避免 TypeORM create() 重载推断歧义: DeepPartial<User> vs DeepPartial<User>[])
+    //
+    // passwordHash: V1.x 验证码流程注册的 user 还没设密码. User entity 字段是
+    // 非 nullable string, 所以用 '' 占位 (V1.1 frontend 的 `if (user.passwordHash)`
+    // 判断会把 '' 当作 "没设过密码", 走 SetPasswordPage 引导设密码).
+    // 真实 V2.0 production 应: 加 passwordHash 字段 nullable, 或加 mustChangePassword 字段
+    // (V2 已有 mustChangePassword 字段!), 走"必须改密"流程更标准.
+    const user = new User();
+    user.email = email.toLowerCase().trim();
+    user.phone = null;
+    user.passwordHash = '';
+    user.state = 'active' as UserState;
+    user.emailVerifiedAt = new Date(); // 验证码流程已证明邮箱所有权
+    user.phoneVerifiedAt = null;
+    user.lastLoginAt = new Date();
+    user.passwordChangedAt = null;
+    user.failedLoginCount = 0;
+    user.lockedUntil = null;
+    user.mustChangePassword = true; // V2 已有此字段: 强制首次登录后改密
+    return this.userRepo.save(user);
+  }
+
+  /**
+   * V1.1 心塑前端接入: 标记老用户邮箱已验证 (验证码流程触发).
+   * 幂等: 重复调用无副作用.
+   */
+  async markEmailVerified(uid: string): Promise<void> {
+    if (!uid) return;
+    await this.userRepo.update(uid, { emailVerifiedAt: new Date() });
+  }
+
+  /**
+   * V1.1 心塑前端接入: 首次设密码 (无密码 → 有密码).
+   * V2 changePassword 需要 oldPassword, 首次设密码走这个.
+   * 强校验: bcrypt hash + 写 passwordChangedAt + 清 mustChangePassword.
+   * V2 production 化: 加 audit log (AuditLogService.log) + 接入 PasswordHistoryService 复用检查. V2.0 user.service.changePassword 已实现完整流程.
+   */
+  async setInitialPassword(uid: string, password: string): Promise<void> {
+    const user = await this.findByUid(uid);
+    if (!user) {
+      throw new BizException(BizCode.UserNotFound, '用户不存在');
+    }
+    if (user.passwordHash) {
+      throw new BizException(BizCode.InvalidParameter, '用户已有密码, 请用改密流程');
+    }
+    user.passwordHash = await bcrypt.hash(password, UserService.BCRYPT_ROUNDS);
+    user.passwordChangedAt = new Date();
+    user.mustChangePassword = false;
+    await this.userRepo.save(user);
+  }
+
   async me(uid: string): Promise<CurrentUserDto | null> {
     const user = await this.findByUid(uid);
     if (!user) {

@@ -3,13 +3,13 @@ import { Injectable } from '@nestjs/common';
 import type { User } from './user.interface';
 
 /**
- * User service — V2 完整 TypeORM + Postgres.
+ * User service — shared (legacy compat).
  *
- * V2 真实存储: 通过 user.repository (TypeORM Repository<User>) 跟 Postgres 交互.
- * 密码字段是 bcrypt hash (10 rounds), 绝不明文.
+ * V1.0 mock 保留, V1.1 代码已迁到 `src/user/providers/user.service.ts`
+ * (完整 V2 enterprise: bcrypt + TypeORM + 账户锁定 + 密码历史 + session 管理).
  *
- * V1.0 mock (老版本): 任何 username 都返回 mock user, password 写死 'crypto'.
- * V2: register / verifyPassword / verifyEmail / resendVerification 走 TypeORM.
+ * 这里仅保留 fetch() 给老 AuthService.validateUser() 兜底用 (Passport-Local 演示路径).
+ * 实际新流程 (心塑前端 V1.1) 走 `src/user/providers/user.service.ts` 的真 UserService.
  */
 @Injectable()
 export class UserService {
@@ -19,7 +19,7 @@ export class UserService {
       password: 'crypto',
       name: username,
       email: `${username}@test.com`,
-      roles: ['test'], // ['admin', 'etc', ...]
+      roles: ['test'],
     });
   }
 }
