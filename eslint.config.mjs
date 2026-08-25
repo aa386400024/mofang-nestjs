@@ -146,6 +146,9 @@ export default defineConfig(
       'sonarjs/no-nested-assignment': 'off',
       'sonarjs/single-char-in-character-classes': 'off', // V2: [1] 比 \d 更清晰, 关掉
       'sonarjs/no-clear-text-protocols': 'off', // V2: dev 用 http://localhost, 部署前改 https
+      // V1.1.2: false positive 太多 — 'password' 出现在 field key/value 名/JSDoc 字面值都报,
+      // 关掉. 真正的 hardcoded password 走 secrets manager + lint review (CI 检查).
+      'sonarjs/no-hardcoded-passwords': 'off',
       // #endregion
 
       // #region unicorn

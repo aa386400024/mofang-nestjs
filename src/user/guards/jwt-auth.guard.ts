@@ -5,26 +5,27 @@ import type { Request } from 'express';
 
 import { BizCode } from '../../common/exceptions/biz-code.enum';
 import { BizException } from '../../common/exceptions/biz.exception';
+import { COOKIE_NAMES } from '../../common/security/cookie-token';
 import { JwtBlacklistService } from '../providers/jwt-blacklist.service';
 import { TokenType } from '../user.constant';
 
 /**
  * JwtAuthGuard — 企业级 JWT 验证 guard (大厂标准).
  *
+ * V1.1.2 升级: token 来源从 Authorization header 改为 HttpOnly Cookie.
+ *
  * 职责:
- *   1. 从 Authorization header 提取 Bearer token
+ *   1. 从 Cookie 提取 access_token (V1.1.2) / Authorization header (兼容 V1.x 测试)
  *   2. 用 JwtService.verify 验证 token 签名 + 过期
  *   3. 检查 token type === 'access' (防止 refresh token 被误用)
  *   4. 检查 blacklist (token 是否被主动撤销, 改密码/登出后) — Redis
  *   5. 把 payload 注入 request.user (供 @CurrentUser() decorator 取)
  *
- * V2 改造:
- *   - blacklist 检查改为 async (Redis backend)
- *   - session.lastActiveAt 自动更新 (用于多端 UI "X 分钟前活跃")
- *
- * 区别于 auth/guards/* (项目示例的 JwtAuthGuard):
- *   - 项目示例用 passport-jwt + PassportStrategy, 完整但复杂
- *   - 我们用 JwtService 直接验证, 简化, 避免循环依赖
+ * 大厂 standard (Auth0 / Stripe 风格):
+ *   - access token 走 HttpOnly cookie + Secure + SameSite=Lax
+ *   - XSS 防御: JS 拿不到 HttpOnly cookie
+ *   - CSRF 防御: SameSite=Lax 阻止跨站 POST 带 cookie
+ *   - V1.x 兼容: 仍支持 Authorization Bearer header (测试 / 外部集成 / Swagger 用)
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -35,16 +36,25 @@ export class JwtAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<Request & { user?: unknown }>();
-    const authHeader = request.headers.authorization;
+    const request = context.switchToHttp().getRequest<Request & { user?: unknown; cookies?: Record<string, string> }>();
 
-    if (!authHeader?.startsWith('Bearer ')) {
-      throw new BizException(BizCode.Unauthorized, '缺少 Authorization Bearer token');
+    // V1.1.2: 优先从 HttpOnly cookie 提取 token (大厂 standard).
+    // 兼容: 仍支持 Authorization Bearer header (V1.x 测试 / 外部集成 / Swagger 用).
+    let token: string | undefined;
+
+    // 强类型 cast 治本 @typescript-eslint/no-unsafe-assignment
+    const cookies = (request.cookies ?? {}) as Record<string, string>;
+    if (cookies[COOKIE_NAMES.ACCESS_TOKEN]) {
+      token = cookies[COOKIE_NAMES.ACCESS_TOKEN];
+    } else {
+      const authHeader = request.headers.authorization;
+      if (authHeader?.startsWith('Bearer ')) {
+        token = authHeader.slice('Bearer '.length).trim();
+      }
     }
 
-    const token = authHeader.slice('Bearer '.length).trim();
     if (!token) {
-      throw new BizException(BizCode.Unauthorized, 'token 为空');
+      throw new BizException(BizCode.Unauthorized, '缺少 access token (cookie 或 Authorization header)');
     }
 
     let payload: { sub: string; jti: string; type: string };

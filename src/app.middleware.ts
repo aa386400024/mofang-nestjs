@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import helmet from 'helmet';
 import passport from 'passport';
@@ -78,6 +79,10 @@ export function middleware(app: INestApplication): INestApplication {
 
   // 3. Compression — gzip 响应
   app.use(compression());
+
+  // 3.5 Cookie parser — V1.1.2 解析 HttpOnly JWT cookies (req.cookies.access_token / refresh_token)
+  // 必须在 routes 前, JwtAuthGuard 才拿得到 req.cookies
+  app.use(cookieParser());
 
   // 4. Passport session — 仅给 /auth/* demo 路由用 (V3 删除 auth/ 时连同清理)
   app.use(

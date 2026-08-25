@@ -1,10 +1,11 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Req, Res, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 
 import { AuthMediumRateLimit, AuthStrictRateLimit } from './auth-rate-limit.decorators';
 import { BizCode } from '../../common/exceptions/biz-code.enum';
 import { BizException } from '../../common/exceptions/biz.exception';
+import { clearAuthCookies, JwtCookieInterceptor } from '../../common/security/jwt-cookie.interceptor';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { AuthResponseDto, CurrentUserDto } from '../dto/auth-response.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
@@ -60,25 +61,37 @@ export class UserController {
   // 注册 / 登录 / 刷新
   // ========================================================================
 
+  // V1.1.2: 加 JwtCookieInterceptor — 响应 body 不含 access/refresh token,
+  // 改走 Set-Cookie (HttpOnly + Secure + SameSite=Lax). 防止 JWT 落盘/日志/中间人泄露.
   @Post('register')
   @AuthStrictRateLimit()
-  @ApiOperation({ summary: '注册新用户' })
+  @UseInterceptors(JwtCookieInterceptor)
+  @ApiOperation({ summary: '注册新用户 (返回的 accessToken/refreshToken 走 HttpOnly cookie)' })
   public register(@Body() dto: RegisterDto, @Req() req: Request): Promise<AuthResponseDto> {
     return this.user.register(dto, this.extractContext(req));
   }
 
   @Post('login')
   @AuthStrictRateLimit()
-  @ApiOperation({ summary: '手机号/邮箱 + 密码登录' })
+  @UseInterceptors(JwtCookieInterceptor)
+  @ApiOperation({ summary: '手机号/邮箱 + 密码登录 (返回的 accessToken/refreshToken 走 HttpOnly cookie)' })
   public login(@Body() dto: LoginDto, @Req() req: Request): Promise<AuthResponseDto> {
     return this.user.login(dto, this.extractContext(req));
   }
 
   @Post('refresh')
   @AuthMediumRateLimit()
-  @ApiOperation({ summary: '刷新 token (rotation)' })
-  public refresh(@Body() dto: RefreshTokenDto, @Req() req: Request): Promise<AuthResponseDto> {
-    return this.user.refresh(dto.refreshToken, this.extractContext(req));
+  @UseInterceptors(JwtCookieInterceptor)
+  @ApiOperation({ summary: '刷新 token (rotation), 新 token 走 HttpOnly cookie' })
+  public refresh(@Req() req: Request, @Body() dto?: RefreshTokenDto): Promise<AuthResponseDto> {
+    // V1.1.2: refresh token 优先从 cookie 读, 兼容 body 字段 (V1.x 测试)
+    // 强类型 cast 治本 @typescript-eslint/no-unsafe-assignment + unsafe-argument
+    const cookies = (req.cookies ?? {}) as Record<string, string>;
+    const refreshToken: string = cookies['refresh_token'] ?? dto?.refreshToken ?? '';
+    if (!refreshToken) {
+      throw new BizException(BizCode.InvalidParameter, '缺少 refresh token (cookie 或 body)');
+    }
+    return this.user.refresh(refreshToken, this.extractContext(req));
   }
 
   // ========================================================================
@@ -89,11 +102,12 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(204)
-  @ApiOperation({ summary: '登出当前 session (撤销当前 refresh token)' })
-  public async logout(@CurrentUser() payload: { sub: string; jti: string }): Promise<void> {
+  @ApiOperation({ summary: '登出当前 session (撤销当前 refresh token, 清空 cookie)' })
+  public async logout(@CurrentUser() payload: { sub: string; jti: string }, @Res({ passthrough: true }) res: Response): Promise<void> {
     await this.sessions.revoke(payload.jti, SessionRevokeReason.Logout);
     // blacklist 用 7 天 TTL (refresh 过期时间, 大约)
     await this.blacklist.revoke(payload.jti, Date.now() + 7 * 24 * 60 * 60 * 1000);
+    clearAuthCookies(res); // V1.1.2: 清 HttpOnly cookies
   }
 
   @Post('logout-all')

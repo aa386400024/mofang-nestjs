@@ -1,4 +1,16 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Post, Req, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 
 import {
@@ -13,6 +25,9 @@ import {
   JwtVerifyGuard,
 } from '../../auth';
 import { ReqUser } from '../../common';
+import { EncryptedFieldsInterceptor } from '../../common/security/encrypted-fields.interceptor';
+import { JwtCookieInterceptor } from '../../common/security/jwt-cookie.interceptor';
+import { RsaKeyService } from '../../common/security/rsa-key.service';
 import { UserService } from '../../user/providers/user.service';
 
 /**
@@ -42,6 +57,20 @@ import { UserService } from '../../user/providers/user.service';
  */
 @Controller('auth')
 export class AuthController {
+  // ─── V1.1 enterprise: 公钥端点 (无认证, 客户端启动时拉取) ──────
+  // 大厂 standard: 公钥 endpoint 不需要 auth, 因为 RSA 公钥本就是公开的.
+  // 返回 PEM 格式公钥, Flutter app 用 `encrypt` package 加密敏感字段.
+  // 安全注意: 配合 HSTS (SecurityHeadersMiddleware), 防止 SSL stripping.
+  // 客户端缓存: Flutter app 启动时拉一次, 复用整个 session.
+  @Get('public-key')
+  public getPublicKey(): { publicKey: string; algorithm: string; keySize: number } {
+    return {
+      publicKey: this.rsaKeyService.getPublicKeyPem(),
+      algorithm: 'RSA-OAEP',
+      keySize: 2048,
+    };
+  }
+
   constructor(
     private auth: AuthService,
     private loginCodeService: LoginCodeService,
@@ -52,21 +81,12 @@ export class AuthController {
     //   - changePassword (改密 + 撤销所有 session + 入密码历史)
     //   - forgotPassword/resetPassword (委托 passwordReset service)
     private userService: UserService,
+    // V1.1 enterprise: RSA-OAEP 2048bit keypair, 敏感字段 (password/code) 在
+    // 客户端公钥加密 → 服务端私钥解密. 见 EncryptedFieldsInterceptor.
+    private rsaKeyService: RsaKeyService,
   ) {}
 
-  // ─── V1.1: 邮箱状态查询 ─────────────────────────────────────
-  /**
-   * 检查邮箱注册状态 — 登录页输完邮箱后立即调用, 决定走密码还是验证码.
-   *
-   * 边界: 调用 userService.findByEmail (V2 enterprise) 而非 shared/user mock.
-   * 密码是否存在的判断: V2 UserService 没暴露密码字段, 但 passwordHash 不为 null 即"已设过密码".
-   *
-   * body: { email }
-   * 返回: { userExists, hasPassword }
-   *   - userExists=false: 新邮箱, 走验证码流程创建账号 (无密码)
-   *   - hasPassword=true:  走密码登录 (V2 enterprise login 流程)
-   *   - hasPassword=false: 走验证码登录, 完成后引导设密码
-   */
+  // ─── V1.1: 邮箱状态查询 (无凭证, 不需要 RSA 加密, TLS 足够) ──
   @Post('check-email')
   public async checkEmail(@Body('email') email: string): Promise<{ userExists: boolean; hasPassword: boolean }> {
     if (!email?.includes('@')) {
@@ -101,11 +121,22 @@ export class AuthController {
    *   - 423 账号已锁定
    *   - 412 邮箱未验证
    */
+  @UseInterceptors(EncryptedFieldsInterceptor, JwtCookieInterceptor)
   @Post('login-password')
   public async loginPassword(
     @Body() body: { email?: string; phone?: string; password: string; deviceInfo?: string },
     @Req() req: Request,
-  ): Promise<JwtSign & { userId: string; username: string; roles: string[]; sid?: string }> {
+  ): Promise<{
+    success: boolean;
+    userId: string;
+    username: string;
+    roles: string[];
+    sid?: string;
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: number;
+    refreshExpiresIn: number;
+  }> {
     if (!body.email && !body.phone) {
       throw new HttpException('邮箱不能为空', HttpStatus.BAD_REQUEST);
     }
@@ -113,20 +144,23 @@ export class AuthController {
       throw new HttpException('密码不能为空', HttpStatus.BAD_REQUEST);
     }
 
-    // 委托 V2 UserService.login (含完整风控).
-    // 异常: BizException → BizExceptionFilter 自动转 {code, message}.
-    // 但我们重新包一下, 让前端能拿到 V1.x 兼容的错误码.
     const result = await this.userService.login(
       { email: body.email, phone: body.phone, password: body.password, deviceInfo: body.deviceInfo },
       this.extractContext(req),
     );
 
+    const jwt = this.auth.jwtSign({
+      userId: result.user.uid,
+      username: result.user.email ?? result.user.phone ?? '',
+      roles: ['user'],
+    });
     return {
-      ...this.auth.jwtSign({
-        userId: result.user.uid,
-        username: result.user.email ?? result.user.phone ?? '',
-        roles: ['user'],
-      }),
+      success: true,
+      // accessToken/refreshToken/expiresIn 触发 JwtCookieInterceptor 写 cookie
+      accessToken: jwt.access_token,
+      refreshToken: jwt.refresh_token,
+      expiresIn: jwt.expiresIn,
+      refreshExpiresIn: jwt.refreshExpiresIn,
       userId: result.user.uid,
       username: result.user.email ?? result.user.phone ?? '',
       roles: ['user'],
@@ -135,17 +169,22 @@ export class AuthController {
   }
 
   // ─── V1.0: 发送 6 位邮箱验证码 (保留作为 fallback) ─────────────
+  // send-code 只发邮件, body 字段是 email (非凭证), 不需要 RSA 加密
   @Post('send-code')
-  public async sendCode(@Body('email') email: string): Promise<{ success: boolean; message: string; devCode?: string }> {
+  public async sendCode(@Body('email') email: string): Promise<{ success: boolean; message: string; sentAt: string }> {
     if (!email?.includes('@')) {
       throw new HttpException('邮箱格式错误', HttpStatus.BAD_REQUEST);
     }
     try {
+      // V1.1.1 fix: 移除 devCode 响应字段 (之前 NODE_ENV 检查靠不住, dev 模式
+      // 也泄露验证码 → 任何 dev 环境被 XSS 抓包都能绕过邮件验证).
+      // 大厂 standard: 验证码永远走邮件/SMS, API 响应**永远**不带.
+      // dev 调试: 看 server log ([LoginCode] 验证码已发送) 而不是 HTTP response.
       const result = await this.loginCodeService.generateAndSend(email);
       return {
         success: result.success,
         message: '验证码已发送',
-        devCode: result.devCode,
+        sentAt: new Date().toISOString(),
       };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -171,10 +210,20 @@ export class AuthController {
    *   - 401 验证码错误或已过期
    *   - 500 用户创建失败
    */
+  // V1.1.2: 双 interceptor — EncryptedFieldsInterceptor (请求字段解密) + JwtCookieInterceptor (响应走 cookie)
+  @UseInterceptors(EncryptedFieldsInterceptor, JwtCookieInterceptor)
   @Post('verify-code')
-  public async verifyCode(
-    @Body() body: { email: string; code: string },
-  ): Promise<JwtSign & { userId: string; username: string; roles: string[]; hasPassword: boolean; sid?: string }> {
+  public async verifyCode(@Body() body: { email: string; code: string }): Promise<{
+    success: boolean;
+    userId: string;
+    username: string;
+    roles: string[];
+    hasPassword: boolean;
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: number;
+    refreshExpiresIn: number;
+  }> {
     if (!body.email || !body.code) {
       throw new HttpException('邮箱或验证码不能为空', HttpStatus.BAD_REQUEST);
     }
@@ -188,22 +237,26 @@ export class AuthController {
     // 2. 查用户: 不存在则创建 (V1.x 验证码流程, 无密码状态)
     let user = await this.userService.findByEmail(body.email);
     if (!user) {
-      // V2 UserService.createPasswordlessUser: 创建无密码 user, 已标 email_verified_at
       user = await this.userService.createPasswordlessUser(body.email);
     } else if (!user.emailVerifiedAt) {
-      // 老用户: 标记邮箱已验证 (V2 enterprise 兼容)
       await this.userService.markEmailVerified(user.uid);
       user.emailVerifiedAt = new Date();
     }
 
-    // 3. 生成 JWT
+    // 3. 生成 JWT (走 JwtCookieInterceptor 走 HttpOnly cookie, 不在 body 返回)
     const payload: Payload = {
       userId: user.uid,
       username: user.email ?? body.email,
       roles: ['user'],
     };
+    const jwt = this.auth.jwtSign(payload);
     return {
-      ...this.auth.jwtSign(payload),
+      success: true,
+      // accessToken/refreshToken/expiresIn 字段触发 JwtCookieInterceptor 写 cookie 后从 body 移除
+      accessToken: jwt.access_token,
+      refreshToken: jwt.refresh_token,
+      expiresIn: jwt.expiresIn,
+      refreshExpiresIn: jwt.refreshExpiresIn,
       userId: user.uid,
       username: user.email ?? body.email,
       roles: ['user'],
@@ -228,6 +281,7 @@ export class AuthController {
    *   - 401 邮箱未注册 (BizException 抛 InvalidParameter)
    *   - 403 密码格式不够强 (V2: 强密码策略由 UserService.register 负责, 已用正则预校验)
    */
+  @UseInterceptors(EncryptedFieldsInterceptor)
   @Post('set-password')
   public async setPassword(@Body() body: { email: string; password: string }): Promise<{ success: boolean }> {
     if (!body.email || !body.password) {

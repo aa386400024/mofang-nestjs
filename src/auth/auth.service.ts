@@ -5,6 +5,26 @@ import { JwtService } from '@nestjs/jwt';
 import type { JwtPayload, JwtSign, Payload } from './auth.interface';
 import { User, UserService } from '../shared/user';
 
+/** 把 '15m' / '7d' 字符串转秒数 (跟 user.service.ts 保持一致). */
+function parseExpiresIn(value: string | undefined, fallback: number): number {
+  if (!value) return fallback;
+  const m = /^(\d+)([smhd])$/.exec(value.trim());
+  if (!m) return fallback;
+  const n = Number.parseInt(m[1], 10);
+  const unit = m[2];
+  // sonarjs/no-nested-conditional: switch 替代嵌套三元
+  switch (unit) {
+    case 's':
+      return n;
+    case 'm':
+      return n * 60;
+    case 'h':
+      return n * 3600;
+    default: // 'd'
+      return n * 86_400;
+  }
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -41,9 +61,20 @@ export class AuthService {
   public jwtSign(data: Payload): JwtSign {
     const payload: JwtPayload = { sub: data.userId, username: data.username, roles: data.roles };
 
+    const accessExpiresSec = parseExpiresIn(
+      this.config.get<string>('jwtExpiresIn'),
+      900, // 15min default
+    );
+    const refreshExpiresSec = parseExpiresIn(
+      this.config.get<string>('jwtRefreshExpiresIn'),
+      604_800, // 7d default
+    );
+
     return {
-      access_token: this.jwt.sign(payload),
+      access_token: this.jwt.sign(payload, { expiresIn: accessExpiresSec }),
       refresh_token: this.getRefreshToken(payload.sub),
+      expiresIn: accessExpiresSec,
+      refreshExpiresIn: refreshExpiresSec,
     };
   }
 
