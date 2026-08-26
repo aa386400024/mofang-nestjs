@@ -1,12 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import {
-  HealthCheck,
-  HealthCheckResult,
-  HealthCheckService,
-  HealthIndicatorResult,
-  HttpHealthIndicator,
-  TypeOrmHealthIndicator,
-} from '@nestjs/terminus';
+import { HealthCheck, HealthCheckResult, HealthCheckService, HealthIndicatorResult, TypeOrmHealthIndicator } from '@nestjs/terminus';
 
 import { Public } from '../../common';
 import { RedisService } from '../../shared/infra/redis';
@@ -14,23 +7,25 @@ import { RedisService } from '../../shared/infra/redis';
 /**
  * 健康检查 (大厂标配).
  *
- * V1: 数据库 + HTTP (Terminus)
- * V2: 数据库 + HTTP + Redis (BullMQ 后端)
+ * V3: 数据库 + Redis (生产可达依赖)
  *
- * 注意:
- *   - 这是"深度"健康检查 (实际 ping 服务), 适合就绪探针
- *   - Prometheus scrape 走 /metrics (独立的轻量端点)
- *   - 给 LB / k8s 探针的应该是"浅"检查 (只返回 200), V3 加 /healthz (浅) + /readyz (深)
+ * V2 依赖公网 1.1.1.1 测 DNS, 服务器/VPC 无公网访问时返 503.
+ * V3 治本: 只检测生产真正依赖 (db / redis), 不依赖外网.
+ *
+ * 大厂原则:
+ *   - 健康检查 = "服务能不能正常工作的关键依赖"
+ *   - 不依赖公网 (生产环境可能隔离)
+ *   - 不依赖其他 microservice (别造成雪崩)
+ *   - "浅"检查 vs "深"检查: /healthz 返 200, /readyz 查依赖. V4 拆.
  *
  * https://docs.nestjs.com/recipes/terminus
  */
 @Controller()
 export class HealthController {
   constructor(
-    private health: HealthCheckService,
-    private http: HttpHealthIndicator,
-    private db: TypeOrmHealthIndicator,
-    private redis: RedisService,
+    private readonly health: HealthCheckService,
+    private readonly db: TypeOrmHealthIndicator,
+    private readonly redis: RedisService,
   ) {}
 
   @Public()
@@ -39,7 +34,6 @@ export class HealthController {
   public async check(): Promise<HealthCheckResult> {
     return await this.health.check([
       async (): Promise<HealthIndicatorResult> => this.db.pingCheck('database'),
-      async (): Promise<HealthIndicatorResult> => this.http.pingCheck('dns', 'https://1.1.1.1'),
       async (): Promise<HealthIndicatorResult> => {
         // Redis 健康检查 (Ping, <1ms)
         const ok = await this.redis.ping();

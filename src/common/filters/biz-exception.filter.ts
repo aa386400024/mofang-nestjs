@@ -38,6 +38,13 @@ export class BizExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
+    // 治本: 强制 stdout UTF-8 (Windows GBK 环境默认乱码)
+    // 这是幂等的, 已经设过也不会报错
+    if (process.stdout.setDefaultEncoding) {
+      process.stdout.setDefaultEncoding('utf8');
+      process.stderr.setDefaultEncoding('utf8');
+    }
+
     const { code, message, httpStatus } = this.resolve(exception);
 
     // 5xx + 兜底异常上报 Sentry

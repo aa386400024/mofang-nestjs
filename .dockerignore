@@ -1,5 +1,6 @@
 # Build artifacts
-dist/
+# 注意: dist/ 不要排除 — Dockerfile.prod 需要 COPY dist ./dist
+# (本地 ts 编译产物, 在 docker build 时作为输入)
 build/
 docs/
 *.log

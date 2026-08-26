@@ -5,6 +5,12 @@ import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 
 import { middleware } from './app.middleware';
 import { AppModule } from './app.module';
+import { ensureUtf8Console } from './common/console-utf8';
+
+// 治本: Windows GBK 环境下, Node stdout 默认按系统代码页 (CP936) 输出,
+// 中文会变乱码 (日志里的 "服务内部错误" 会变 "鏈嶅姟鍐呴儴閿欒鍓").
+// 拆到独立模块 (见 ./common/console-utf8.ts) 保证 import 顺序最先执行.
+ensureUtf8Console();
 // V2-debug: HttpMetricsInterceptor 暂时禁用, import 跟着注释, 避免 noUnusedLocals 阻塞编译
 // import { HttpMetricsInterceptor } from './shared/infra/metrics';
 

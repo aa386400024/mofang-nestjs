@@ -92,3 +92,8 @@ jspm_packages/
 
 # DynamoDB Local files
 .dynamodb/
+
+# Deploy scripts
+.smoke-last
+# 临时 docker image tar (deploy 脚本生成)
+*.tar.gz

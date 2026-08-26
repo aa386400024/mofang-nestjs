@@ -14,6 +14,7 @@ import { CommonModule } from './common';
 import { BizExceptionFilter } from './common/filters/biz-exception.filter';
 import { configuration, loggerOptions } from './config';
 import { ConsentModule } from './consent';
+import { AppNamingStrategy } from './database/naming-strategy';
 import { EmailModule, MetricsModule, ObservabilityModule, QueueModule, RedisModule, SmsModule } from './shared/infra';
 import { SentryService } from './shared/infra/observability';
 import { UserModule } from './user';
@@ -50,6 +51,7 @@ import { OAuthModule } from './user/oauth';
     TypeOrmModule.forRootAsync({
       useFactory: (config: ConfigService) => ({
         ...config.get<TypeOrmModuleOptions>('db'),
+        namingStrategy: new AppNamingStrategy(),
       }),
       inject: [ConfigService],
     }),
