@@ -59,6 +59,10 @@ export class AuthService {
   }
 
   public jwtSign(data: Payload): JwtSign {
+    // V2026-08-27 治本: payload 必须带 type: 'access' / 'refresh' 字段.
+    // 之前没带 → payload.type === undefined → JwtAuthGuard 校验
+    // `payload.type !== TokenType.Access` 永远 true → 401.
+    // 跟 user.service.ts 的新签名路径保持一致 (该路径已正确).
     const payload: JwtPayload = { sub: data.userId, username: data.username, roles: data.roles };
 
     const accessExpiresSec = parseExpiresIn(
@@ -71,7 +75,7 @@ export class AuthService {
     );
 
     return {
-      access_token: this.jwt.sign(payload, { expiresIn: accessExpiresSec }),
+      access_token: this.jwt.sign({ ...payload, type: 'access' }, { expiresIn: accessExpiresSec }),
       refresh_token: this.getRefreshToken(payload.sub),
       expiresIn: accessExpiresSec,
       refreshExpiresIn: refreshExpiresSec,
@@ -93,8 +97,10 @@ export class AuthService {
   }
 
   private getRefreshToken(sub: string): string {
+    // V2026-08-27 治本: refresh token 也带 type 字段, 跟 access token 保持对称.
+    // 大厂 standard: refresh token 不能被 access 接口验证 (防止被误用).
     return this.jwt.sign(
-      { sub },
+      { sub, type: 'refresh' },
       {
         secret: this.config.get('jwtRefreshSecret'),
         expiresIn: '7d', // Set greater than the expiresIn of the access_token

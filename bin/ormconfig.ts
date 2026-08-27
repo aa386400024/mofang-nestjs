@@ -14,6 +14,17 @@ import { AddOAuthIdentity1700000004000 } from '../src/migration/1700000004000-Ad
 import { AddUserEmailIndex1700000005000 } from '../src/migration/1700000005000-AddUserEmailIndex';
 import { AddUserConsent1700000006000 } from '../src/migration/1700000006000-AddUserConsent';
 
+// V3 Profile 模块迁移 (心塑「我的」Tab 二级页)
+import { AddUserProfile1700000007000 } from '../src/migration/1700000007000-AddUserProfile';
+import { AddNotificationSettings1700000007001 } from '../src/migration/1700000007001-AddNotificationSettings';
+import { AddMemberships1700000007002 } from '../src/migration/1700000007002-AddMemberships';
+import { AddCertifications1700000007003 } from '../src/migration/1700000007003-AddCertifications';
+import { AddCompanionRecords1700000007004 } from '../src/migration/1700000007004-AddCompanionRecords';
+import { AddCompanionBindings1700000007005 } from '../src/migration/1700000007005-AddCompanionBindings';
+import { AddSelfcareRecords1700000007006 } from '../src/migration/1700000007006-AddSelfcareRecords';
+import { AddBurnoutSettings1700000007007 } from '../src/migration/1700000007007-AddBurnoutSettings';
+import { AddConsentSignatures1700000007008 } from '../src/migration/1700000007008-AddConsentSignatures';
+
 try {
   loadEnvFile();
 } catch {}
@@ -33,6 +44,16 @@ const ormconfig = async (): Promise<DataSource> => {
       AddOAuthIdentity1700000004000,
       AddUserEmailIndex1700000005000,
       AddUserConsent1700000006000,
+      // V3 Profile 模块迁移 (心塑「我的」Tab 二级页)
+      AddUserProfile1700000007000,
+      AddNotificationSettings1700000007001,
+      AddMemberships1700000007002,
+      AddCertifications1700000007003,
+      AddCompanionRecords1700000007004,
+      AddCompanionBindings1700000007005,
+      AddSelfcareRecords1700000007006,
+      AddBurnoutSettings1700000007007,
+      AddConsentSignatures1700000007008,
     ],
     // migrationsRun: false (默认) — 手动 npm run migration:run
     // synchronize: false — 已禁, 强制走 migration

@@ -6,7 +6,11 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule, type TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
-import path from 'node:path';
+// node:fs / node:path 没 default export, unicorn/import-style 误报 — 忽略.
+
+import { existsSync, mkdirSync } from 'node:fs';
+// eslint-disable-next-line unicorn/import-style
+import { resolve } from 'node:path';
 
 import { AuthModule } from './auth';
 import { BaseModule } from './base/base.module';
@@ -15,6 +19,7 @@ import { BizExceptionFilter } from './common/filters/biz-exception.filter';
 import { configuration, loggerOptions } from './config';
 import { ConsentModule } from './consent';
 import { AppNamingStrategy } from './database/naming-strategy';
+import { ProfileModule } from './profile';
 import { EmailModule, MetricsModule, ObservabilityModule, QueueModule, RedisModule, SmsModule } from './shared/infra';
 import { SentryService } from './shared/infra/observability';
 import { UserModule } from './user';
@@ -57,6 +62,52 @@ import { OAuthModule } from './user/oauth';
     }),
     // Schedule (Cron 任务)
     ScheduleModule.forRoot(),
+    // V2026-08-27 治本: 头像本地磁盘存储 serve.
+    //   - serveRoot: '/uploads' — 缩小到子路径, 不拦截 API 路由
+    //     (之前用 SPA renderPath='/' 坑过 /profile/me, 这里走 serveRoot 不踩)
+    //   - 路径从 env UPLOAD_STORAGE_DIR 读, dev 用 ./uploads, prod 用 /var/www/...
+    //   - ServeStaticModule 是 asyncFactory, env 没配置时跳过注册 (而不是 crash)
+    ServeStaticModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const storageDir = (config.get<string>('UPLOAD_STORAGE_DIR') ?? './uploads').replaceAll(/^["']|["']$/g, '').trim();
+        const fullPath = resolve(process.cwd(), storageDir);
+        // 启动时确保 uploads 目录存在 (dev 首次启动).
+        // express.static 容忍目录不存在 (请求时 404), 但提前 mkdir 更友好.
+        if (!existsSync(fullPath)) {
+          try {
+            mkdirSync(fullPath, { recursive: true });
+          } catch {
+            // mkdir 失败不影响 serve-static 注册 (请求时才报错)
+          }
+        }
+        return [
+          {
+            rootPath: fullPath,
+            // 缩小到子路径 '/uploads', 不拦截 API 路由
+            // (之前用 SPA renderPath='/' 坑过 /profile/me, 这里走 serveRoot 不踩)
+            serveRoot: '/uploads',
+            // V2026-08-27: 头像图片跨域 (Flutter Web localhost:9090 → 后端 localhost:3000).
+            //   <img> 默认不受 CORS 限制, 但加上 setHeader 更稳, 防 future-proof 用 canvas
+            //   drawImage / OffscreenCanvas 读取图片像素的场景.
+            //   dev: * 允许任意 origin (本地开发), prod 应限定前端域名.
+            serveStaticOptions: {
+              // V2026-08-27: 头像图片跨域 (Flutter Web localhost:9090 → 后端 localhost:3000).
+              //   <img> 默认不受 CORS 限制, 但加上 setHeader 更稳, 防 future-proof 用 canvas
+              //   drawImage / OffscreenCanvas 读取图片像素的场景.
+              //   dev: * 允许任意 origin (本地开发), prod 应限定前端域名.
+              // setHeaders callback 签名是 (res: any, path, stat) => void, @types/express-serve-static-core
+              // 本身没完整定义 res 类型, 所以 @typescript-eslint/no-unsafe-call 会报.
+              // 治本: 类型注解 res 为 express Response 显式类型, 避开 any 推断.
+              setHeaders: ((res: import('express').Response, _path: string, _stat: import('node:fs').Stats) => {
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+              }) as unknown as (res: unknown, path: string, stat: unknown) => void,
+            },
+          },
+        ];
+      },
+    }),
     // 共享基础设施层 (V2)
     RedisModule,
     QueueModule,
@@ -64,11 +115,6 @@ import { OAuthModule } from './user/oauth';
     SmsModule,
     MetricsModule,
     ObservabilityModule,
-    // Static Folder
-    ServeStaticModule.forRoot({
-      rootPath: path.join(__dirname, '..', 'public'),
-      renderPath: '/',
-    }),
     // Rate Limiting (大厂防爆破标配)
     ThrottlerModule.forRoot({
       throttlers: [
@@ -89,6 +135,8 @@ import { OAuthModule } from './user/oauth';
     UserCronModule,
     // V3 合规模块 (心塑 + 魔方共用同意记录)
     ConsentModule,
+    // V3 — 心塑「我的」Tab 二级页 (Profile 模块, V2.0 全部 13 页对应接口)
+    ProfileModule,
   ],
   providers: [
     // Global Throttler Guard

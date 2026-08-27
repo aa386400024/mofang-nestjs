@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 
+import type { JwtPayload } from '../../auth/auth.interface';
 import { BizCode } from '../../common/exceptions/biz-code.enum';
 import { BizException } from '../../common/exceptions/biz.exception';
 import { COOKIE_NAMES } from '../../common/security/cookie-token';
@@ -57,9 +58,12 @@ export class JwtAuthGuard implements CanActivate {
       throw new BizException(BizCode.Unauthorized, '缺少 access token (cookie 或 Authorization header)');
     }
 
-    let payload: { sub: string; jti: string; type: string };
+    // V2026-08-27 治本: payload 类型用 JwtPayload (含 sub/username/roles/jti/type),
+    // 不用 anonymous { sub, jti, type } — username/roles 字段没声明,后面注入 request.user
+    // 时访问 payload.username 报 TS2339: Property does not exist.
+    let payload: JwtPayload & { jti: string; type: string };
     try {
-      payload = this.jwt.verify<{ sub: string; jti: string; type: string }>(token, {
+      payload = this.jwt.verify<JwtPayload & { jti: string; type: string }>(token, {
         secret: this.config.get<string>('jwtSecret'),
       });
     } catch {
@@ -77,7 +81,21 @@ export class JwtAuthGuard implements CanActivate {
       throw new BizException(BizCode.TokenRevoked, 'token 已被撤销');
     }
 
-    (request as unknown as { user: { sub: string; jti: string; type: string } }).user = payload;
+    // V2026-08-27 治本: 注入 request.user 时用 { userId, username, roles } 形态,
+    // 跟 controller `@CurrentUser() user: { userId: string }` 期望对齐.
+    //
+    // 旧实现注入的是 raw payload { sub, jti, type } — controller 取 user.userId 永远是
+    // undefined → ProfileService.getProfile(uid=undefined)  → TypeORMError:
+    //   "Undefined value encountered in property 'UserProfile.uid' of a where condition"
+    //
+    // 大厂 standard: JwtStrategy.validate() 返回 { userId, username, roles } 映射,
+    // 这里等价于手写 Passport strategy 的 validate 输出, 让业务层拿到的 user
+    // 跟 passport 默认形态一致 (上层不用关心 JWT 原始 payload 结构).
+    (request as unknown as { user: { userId: string; username: string; roles: string[] } }).user = {
+      userId: payload.sub,
+      username: payload.username ?? '',
+      roles: payload.roles ?? [],
+    };
     return true;
   }
 }
