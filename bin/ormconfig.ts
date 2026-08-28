@@ -24,6 +24,11 @@ import { AddCompanionBindings1700000007005 } from '../src/migration/170000000700
 import { AddSelfcareRecords1700000007006 } from '../src/migration/1700000007006-AddSelfcareRecords';
 import { AddBurnoutSettings1700000007007 } from '../src/migration/1700000007007-AddBurnoutSettings';
 import { AddConsentSignatures1700000007008 } from '../src/migration/1700000007008-AddConsentSignatures';
+// V2026-08-28 — 「我的」Tab V2.0 新增 (ai-conversations / dashboard / life-map / embodied)
+import { AddEmbodiedDevices1700000007009 } from '../src/migration/1700000007009-AddEmbodiedDevices';
+import { AddEmbodiedPermissions1700000007010 } from '../src/migration/1700000007010-AddEmbodiedPermissions';
+import { AddAiChatSessions1700000007011 } from '../src/migration/1700000007011-AddAiChatSessions';
+import { AddPrivacyAuthorizations1700000007012 } from '../src/migration/1700000007012-AddPrivacyAuthorizations';
 
 try {
   loadEnvFile();
@@ -54,6 +59,11 @@ const ormconfig = async (): Promise<DataSource> => {
       AddSelfcareRecords1700000007006,
       AddBurnoutSettings1700000007007,
       AddConsentSignatures1700000007008,
+      // V2026-08-28 — 「我的」Tab V2.0 新增表 (ai-conversations / dashboard / life-map / embodied / privacy)
+      AddEmbodiedDevices1700000007009,
+      AddEmbodiedPermissions1700000007010,
+      AddAiChatSessions1700000007011,
+      AddPrivacyAuthorizations1700000007012,
     ],
     // migrationsRun: false (默认) — 手动 npm run migration:run
     // synchronize: false — 已禁, 强制走 migration

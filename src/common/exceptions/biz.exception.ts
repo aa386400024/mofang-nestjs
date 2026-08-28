@@ -82,7 +82,7 @@ function getBizCodeDefaultMessage(code: BizCode): string {
     [BizCode.InvalidPhone]: '手机号格式不正确',
     [BizCode.InvalidEmail]: '邮箱格式不正确',
     [BizCode.WeakPassword]: '密码强度不足',
-    [BizCode.PasswordReused]: '密码与最近使用过的密码重复', // eslint-disable-line sonarjs/no-hardcoded-passwords
+    [BizCode.PasswordReused]: '密码与最近使用过的密码重复',
     [BizCode.PasswordExpired]: '密码已过期, 请重置密码',
     [BizCode.AccountLocked]: '账号已锁定, 请稍后再试',
     [BizCode.EmailAlreadyVerified]: '邮箱已验证',
@@ -108,6 +108,21 @@ function getBizCodeDefaultMessage(code: BizCode): string {
     [BizCode.ConsentDeviceIdInvalid]: '设备指纹格式不正确',
     [BizCode.ConsentPlatformUnsupported]: '平台不在支持列表',
     [BizCode.ConsentRateLimited]: '同意记录请求过于频繁, 请稍后再试',
+
+    // V2026-08-28 —「我的」Tab V2.0 4 个新页面专用
+    [BizCode.ChatSessionNotFound]: '对话不存在或不属于你',
+    [BizCode.ChatSessionArchived]: '已归档的会话不允许修改或删除',
+    [BizCode.DashboardRangeInvalid]: '时间范围不合法',
+    [BizCode.DashboardDataEmpty]: '暂无训练数据',
+    [BizCode.LifeMapStageNotFound]: '人生阶段不存在',
+    [BizCode.LifeMapNotInitialized]: '心理地图未初始化, 请先完成基础梳理',
+    [BizCode.EmbodiedDeviceAlreadyPaired]: '该类型设备已绑定',
+    [BizCode.EmbodiedDeviceNotFound]: '设备不存在或不属于你',
+    [BizCode.EmbodiedSensorPermissionDenied]: '传感器权限已被拒绝',
+    [BizCode.PrivacyExportInProgress]: '数据导出任务进行中, 请稍后查询',
+    [BizCode.PrivacyExportEmpty]: '没有可导出的数据',
+    [BizCode.PrivacyDeleteCooldown]: '账号删除冷却中 (7 天), 请冷静期后重试',
+    [BizCode.PrivacyAuthorizationNotFound]: '授权记录不存在',
   };
   return messages[code] ?? '错误';
 }

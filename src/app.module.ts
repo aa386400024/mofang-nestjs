@@ -12,13 +12,17 @@ import { existsSync, mkdirSync } from 'node:fs';
 // eslint-disable-next-line unicorn/import-style
 import { resolve } from 'node:path';
 
+import { AiConversationsModule } from './ai-companion/ai-conversations.module';
 import { AuthModule } from './auth';
 import { BaseModule } from './base/base.module';
 import { CommonModule } from './common';
 import { BizExceptionFilter } from './common/filters/biz-exception.filter';
 import { configuration, loggerOptions } from './config';
 import { ConsentModule } from './consent';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { AppNamingStrategy } from './database/naming-strategy';
+import { EmbodiedModule } from './embodied/embodied.module';
+import { LifeMapModule } from './life-map/life-map.module';
 import { ProfileModule } from './profile';
 import { EmailModule, MetricsModule, ObservabilityModule, QueueModule, RedisModule, SmsModule } from './shared/infra';
 import { SentryService } from './shared/infra/observability';
@@ -137,6 +141,12 @@ import { OAuthModule } from './user/oauth';
     ConsentModule,
     // V3 — 心塑「我的」Tab 二级页 (Profile 模块, V2.0 全部 13 页对应接口)
     ProfileModule,
+    // V2026-08-28 — 「我的」Tab V2.0 4 个新页面专用模块
+    AiConversationsModule, // /profile/ai-conversations
+    DashboardModule, // /profile/dashboard/*
+    LifeMapModule, // /profile/life-map
+    EmbodiedModule, // /profile/embodied-data/*
+    // V2026-08-28: 隐私授权 + 数据导出走 ProfileModule 内的 controller (保持模块边界)
   ],
   providers: [
     // Global Throttler Guard

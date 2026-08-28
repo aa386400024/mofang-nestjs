@@ -305,7 +305,7 @@ export class OAuthService implements OnModuleInit {
       email: info.email,
       phone: null,
       // OAuth 用户没密码, 用随机 hash 占位 (不能登录密码, 只能 OAuth 登录)
-      // eslint-disable-next-line sonarjs/no-hardcoded-passwords
+
       passwordHash: '!OAUTH_NO_PASSWORD!',
       state: UserState.Active,
       emailVerifiedAt: info.emailVerified ? new Date() : null,
