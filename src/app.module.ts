@@ -22,6 +22,7 @@ import { ConsentModule } from './consent';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AppNamingStrategy } from './database/naming-strategy';
 import { EmbodiedModule } from './embodied/embodied.module';
+import { HomeModule } from './home/home.module';
 import { LifeMapModule } from './life-map/life-map.module';
 import { ProfileModule } from './profile';
 import { EmailModule, MetricsModule, ObservabilityModule, QueueModule, RedisModule, SmsModule } from './shared/infra';
@@ -139,6 +140,8 @@ import { OAuthModule } from './user/oauth';
     UserCronModule,
     // V3 合规模块 (心塑 + 魔方共用同意记录)
     ConsentModule,
+    // V2026-08-31 — 心塑「首页」Tab V2.0 模块 (成长用户 + 陪伴者双端首页)
+    HomeModule,
     // V3 — 心塑「我的」Tab 二级页 (Profile 模块, V2.0 全部 13 页对应接口)
     ProfileModule,
     // V2026-08-28 — 「我的」Tab V2.0 4 个新页面专用模块

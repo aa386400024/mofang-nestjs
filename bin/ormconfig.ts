@@ -30,6 +30,12 @@ import { AddEmbodiedPermissions1700000007010 } from '../src/migration/1700000007
 import { AddAiChatSessions1700000007011 } from '../src/migration/1700000007011-AddAiChatSessions';
 import { AddPrivacyAuthorizations1700000007012 } from '../src/migration/1700000007012-AddPrivacyAuthorizations';
 
+// V2026-08-31 — 「首页」Tab V2.0 模块 (心塑首页 + 陪伴者首页, 4 张表)
+import { AddMoodLogs1700000008000 } from '../src/migration/1700000008000-AddMoodLogs';
+import { AddMicroInterventionConfigs1700000008001 } from '../src/migration/1700000008001-AddMicroInterventionConfigs';
+import { AddMicroInterventionHistory1700000008002 } from '../src/migration/1700000008002-AddMicroInterventionHistory';
+import { AddHomeMessages1700000008003 } from '../src/migration/1700000008003-AddHomeMessages';
+
 try {
   loadEnvFile();
 } catch {}
@@ -64,6 +70,11 @@ const ormconfig = async (): Promise<DataSource> => {
       AddEmbodiedPermissions1700000007010,
       AddAiChatSessions1700000007011,
       AddPrivacyAuthorizations1700000007012,
+      // V2026-08-31 — 首页模块 (心塑 + 陪伴者首页, 4 张表)
+      AddMoodLogs1700000008000,
+      AddMicroInterventionConfigs1700000008001,
+      AddMicroInterventionHistory1700000008002,
+      AddHomeMessages1700000008003,
     ],
     // migrationsRun: false (默认) — 手动 npm run migration:run
     // synchronize: false — 已禁, 强制走 migration

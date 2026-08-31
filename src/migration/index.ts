@@ -23,4 +23,10 @@ export { AddEmbodiedPermissions1700000007010 } from './1700000007010-AddEmbodied
 export { AddAiChatSessions1700000007011 } from './1700000007011-AddAiChatSessions';
 export { AddPrivacyAuthorizations1700000007012 } from './1700000007012-AddPrivacyAuthorizations';
 
+// V2026-08-31 — 「首页」Tab V2.0 模块 (心塑首页 + 陪伴者首页, 4 张表)
+export { AddMoodLogs1700000008000 } from './1700000008000-AddMoodLogs';
+export { AddMicroInterventionConfigs1700000008001 } from './1700000008001-AddMicroInterventionConfigs';
+export { AddMicroInterventionHistory1700000008002 } from './1700000008002-AddMicroInterventionHistory';
+export { AddHomeMessages1700000008003 } from './1700000008003-AddHomeMessages';
+
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).
