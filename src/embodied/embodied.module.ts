@@ -22,6 +22,13 @@ import { EmbodiedService } from './providers/embodied.service';
   imports: [TypeOrmModule.forFeature([EmbodiedDevice, EmbodiedPermissions]), UserModule],
   controllers: [EmbodiedController],
   providers: [EmbodiedService],
-  exports: [EmbodiedService],
+  /**
+   * V2026-09-01 治本 (反双胞胎):
+   *   EmbodiedService 暴露给兄弟模块 (PracticeModule) 复用 — 避免
+   *   PracticeModule 重复实现设备/权限 CRUD, 单源真相 (single source of truth).
+   *   兄弟模块通过 `imports: [EmbodiedModule]` + `constructor(private s: EmbodiedService)`
+   *   注入, 大厂 NestJS DI standard.
+   */
+  exports: [EmbodiedService, TypeOrmModule],
 })
 export class EmbodiedModule {}

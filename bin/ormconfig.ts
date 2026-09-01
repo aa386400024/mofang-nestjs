@@ -36,6 +36,13 @@ import { AddMicroInterventionConfigs1700000008001 } from '../src/migration/17000
 import { AddMicroInterventionHistory1700000008002 } from '../src/migration/1700000008002-AddMicroInterventionHistory';
 import { AddHomeMessages1700000008003 } from '../src/migration/1700000008003-AddHomeMessages';
 
+// V2026-09-01 — 「练习」Tab V2.0 模块 (心塑成长用户端 Tab2, 5 张表)
+import { AddPracticeTables1700000009000 } from '../src/migration/1700000009000-AddPracticeTables';
+
+// V2026-09-01 — 「陪伴」Tab V2.0 模块 (心塑陪伴者端 Tab2, 5 张表 + 扩展 companion_records)
+import { AddCompanionTables1700000010000 } from '../src/migration/1700000010000-AddCompanionTables';
+import { ExtendCompanionRecord1700000010001 } from '../src/migration/1700000010001-ExtendCompanionRecord';
+
 try {
   loadEnvFile();
 } catch {}
@@ -75,6 +82,11 @@ const ormconfig = async (): Promise<DataSource> => {
       AddMicroInterventionConfigs1700000008001,
       AddMicroInterventionHistory1700000008002,
       AddHomeMessages1700000008003,
+      // V2026-09-01 — 练习 Tab 模块 (心塑成长用户端 Tab2, 5 张表)
+      AddPracticeTables1700000009000,
+      // V2026-09-01 — 陪伴 Tab 模块 (心塑陪伴者端 Tab2, 5 张表 + 扩展 companion_records)
+      AddCompanionTables1700000010000,
+      ExtendCompanionRecord1700000010001,
     ],
     // migrationsRun: false (默认) — 手动 npm run migration:run
     // synchronize: false — 已禁, 强制走 migration

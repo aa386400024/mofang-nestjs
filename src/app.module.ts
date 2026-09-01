@@ -17,6 +17,7 @@ import { AuthModule } from './auth';
 import { BaseModule } from './base/base.module';
 import { CommonModule } from './common';
 import { BizExceptionFilter } from './common/filters/biz-exception.filter';
+import { CompanionModule } from './companion/companion.module';
 import { configuration, loggerOptions } from './config';
 import { ConsentModule } from './consent';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -24,6 +25,7 @@ import { AppNamingStrategy } from './database/naming-strategy';
 import { EmbodiedModule } from './embodied/embodied.module';
 import { HomeModule } from './home/home.module';
 import { LifeMapModule } from './life-map/life-map.module';
+import { PracticeModule } from './practice/practice.module';
 import { ProfileModule } from './profile';
 import { EmailModule, MetricsModule, ObservabilityModule, QueueModule, RedisModule, SmsModule } from './shared/infra';
 import { SentryService } from './shared/infra/observability';
@@ -150,6 +152,10 @@ import { OAuthModule } from './user/oauth';
     LifeMapModule, // /profile/life-map
     EmbodiedModule, // /profile/embodied-data/*
     // V2026-08-28: 隐私授权 + 数据导出走 ProfileModule 内的 controller (保持模块边界)
+    // V2026-09-01 — 心塑成长端「练习」Tab (8 大分类 + 心理健身房 + 具身认知)
+    PracticeModule, // /practice/*
+    // V2026-09-01 — 心塑陪伴者端「陪伴」Tab (8 大分区 + 双人协同 + 关系管理)
+    CompanionModule, // /companion/*
   ],
   providers: [
     // Global Throttler Guard
