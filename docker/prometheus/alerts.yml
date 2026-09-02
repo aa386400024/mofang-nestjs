@@ -1,0 +1,128 @@
+# Prometheus alert rules (mofang-nestjs)
+# 大厂标配 — 业务黄金指标告警
+
+groups:
+  # ============================================================
+  # HTTP / 性能
+  # ============================================================
+  - name: http-performance
+    interval: 30s
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{code=~"5.."}[5m])) by (route)
+            / sum(rate(http_requests_total[5m])) by (route)
+            > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "5xx 错误率过高 ({{ $labels.route }})"
+          description: "{{ $labels.route }} 5xx 错误率 {{ $value | humanizePercentage }} (>5%, 持续 5 分钟)"
+
+      - alert: HighP99Latency
+        expr: |
+          histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (route, le))
+            > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "P99 延迟过高 ({{ $labels.route }})"
+          description: "P99 延迟 {{ $value }}s (>1s, 持续 5 分钟)"
+
+      - alert: SlowRequestCount
+        expr: |
+          sum(rate(http_request_duration_seconds_bucket{le="+Inf"}[5m])) by (route) > 0
+            and
+          sum(rate(http_request_duration_seconds_count[5m])) by (route) > 100
+        for: 10m
+        labels:
+          severity: info
+          team: backend
+        annotations:
+          summary: "路由流量监控 ({{ $labels.route }})"
+          description: "持续监控中, 关注突增"
+
+  # ============================================================
+  # Auth / 鉴权
+  # ============================================================
+  - name: auth-security
+    interval: 30s
+    rules:
+      - alert: HighFailedLoginRate
+        expr: |
+          sum(rate(auth_login_attempts_total{result="failed"}[5m]))
+            > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "登录失败率异常"
+          description: "5 分钟内 {{ ${ $value } }} 次登录失败 (可能是撞库攻击)"
+
+      - alert: AccountLockedSpike
+        expr: |
+          sum(rate(auth_login_attempts_total{result="locked"}[5m]))
+            > 1
+        for: 1m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "账号锁定激增"
+          description: "5 分钟内有 {{ ${ $value } }} 个账号被锁定"
+
+  # ============================================================
+  # System / 系统资源
+  # ============================================================
+  - name: system-resources
+    interval: 30s
+    rules:
+      - alert: HighMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))
+            > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "内存使用率过高"
+          description: "内存使用 {{ ${ $value | humanizePercentage } }} (>85%, 持续 5 分钟)"
+
+      - alert: HighCPUUsage
+        expr: |
+          100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+            > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU 使用率过高"
+          description: "CPU 使用 {{ ${ $value }}% (>80%, 持续 5 分钟)"
+
+      - alert: AuditLogProcessingFailure
+        expr: |
+          sum(rate(audit_log_failed_total[5m]))
+            > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "审计日志写入失败"
+          description: "审计日志失败率过高, 异步队列可能有问题"
+
+      - alert: RedisDown
+        expr: |
+          up{job="redis-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Redis 不可用"
+          description: "Redis 连接断开, JWT blacklist / 验证码受影响 (fail-open, 不阻塞登录但撤销可能失效)"

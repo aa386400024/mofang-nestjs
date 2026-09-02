@@ -1,207 +1,325 @@
-# nestjs-project-structure
+# mofang-nestjs — 心塑 + 魔方共用账号系统
 
-Node.js framework NestJS project structure
-> Started from this issue: [nestjs/nest#2249](https://github.com/nestjs/nest/issues/2249#issuecomment-494734673)
+> **生产级 NestJS 后端** — 心塑 (Flutter app) + 魔方 (Electron + Vue3) 共用账号 / 鉴权 / 多端管理 / OAuth
+>
+> **架构师**: 大炮 + AI · **状态**: V2 完成 (2026-08-19)
 
-## Alternatives
+---
 
-This example is based on the modules recommended by the NestJS [official documentation](https://docs.nestjs.com) as default (introduced at the top of the section). \
-If you focus on the performance or features of the module, you can consider:
+## ✨ 核心能力 (V2)
 
-- [Fastify](https://docs.nestjs.com/techniques/performance) instead of `Express`
-- [MikroORM](https://docs.nestjs.com/recipes/mikroorm) instead of `TypeORM`
-  - or [DrizzleORM](https://trilon.io/blog/nestjs-drizzleorm-a-great-match)
-  - or [Sequelize](https://docs.nestjs.com/techniques/database#sequelize-integration)
-  - or [Prisma](https://docs.nestjs.com/recipes/prisma)
-- [SWC](https://docs.nestjs.com/recipes/swc#swc) instead of `TypeScript compiler`
-- [Vitest](https://docs.nestjs.com/recipes/swc#vitest) instead of `Jest`
-- [ESM](https://nodejs.org/api/esm.html) instead of `CommonJS`
+| 模块         | 能力                                                                  |
+| ------------ | --------------------------------------------------------------------- |
+| **账号**     | 注册 / 登录 / 刷新 / 改密 / 重置 / 邮箱验证 / 失败锁定 / 改密周期     |
+| **Sessions** | 多端登录管理 UI (列设备 / 主动下线 / 撤销原因审计)                    |
+| **OAuth**    | 微信 / Google / Apple 三方登录 + 绑定 / 解绑                          |
+| **JWT 安全** | Redis blacklist (跨实例) + Refresh rotation + Fail-open 容错          |
+| **异步审计** | BullMQ 队列 + Worker + 兜底同步 + Prometheus 埋点                     |
+| **观测**     | Prometheus 指标 + /metrics 端点 + Grafana dashboard + Sentry 异常上报 |
+| **部署**     | Dockerfile + docker-compose + CI (GitHub Actions) + Husky pre-commit  |
+| **DB**       | TypeORM Migration 替代 synchronize (可回滚) + Soft delete cron (GDPR) |
 
-Check out the [nestjs-project-performance](https://github.com/CatsMiaow/nestjs-project-performance) repository for examples using this alternative.
+## 🏗️ 架构
 
-## Configuration
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Controllers (HTTP)                            │
+│  /user/*  /user/oauth/*  /metrics  /health  (auth, session, verify) │
+└─────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                       Domain Services                                │
+│  UserService  SessionService  EmailVerification  PasswordReset       │
+│  PasswordHistoryService  VerificationCodeService  OAuthService      │
+│  JwtBlacklistService  AuditLogService                               │
+└─────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│              Shared Infrastructure (基础设施层)                       │
+│  RedisService  BullMQ (audit)  Email (SMTP)  SMS  Prometheus        │
+│  Observability (Sentry)  Metrics  Interceptors                       │
+└─────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                       External Systems                               │
+│     MySQL     Redis     SMTP Provider     SMS Provider     Prometheus│
+└─────────────────────────────────────────────────────────────────────┘
+```
 
-1. Create a `.env` file
-    - Rename the [.env.sample](.env.sample) file to `.env` to fix it.
-2. Edit env config
-    - Edit the file in the [config](src/config)/envs folder.
-    - `default`, `development`, `production`, `test`
+详见 [`docs/architecture/v2-user-module-architecture.md`](docs/architecture/v2-user-module-architecture.md)
 
-## Installation
+## 📁 项目结构
 
-```sh
-# 1. node_modules
+```
+mofang-nestjs/
+├── src/
+│   ├── auth/              # ⚠️ catsmiaow demo (passport + cookie session), 上线后删
+│   ├── user/              # ⭐ V2 真生产 (JWT + Redis + 多端 + OAuth)
+│   │   ├── entities/      # User / Session / AuditLog / PasswordHistory / OAuthIdentity
+│   │   ├── providers/     # UserService / SessionService / JwtBlacklistService / ...
+│   │   ├── controllers/   # 17 个端点 + 路由级限流
+│   │   ├── oauth/         # 微信/Google/Apple 三方登录
+│   │   ├── cron/          # 软删 30 天真删
+│   │   ├── dto/           # 10 个 DTO
+│   │   └── user.module.ts
+│   ├── shared/infra/      # ⭐ V2 基础设施层
+│   │   ├── redis/         # Redis 客户端 + Key 模板
+│   │   ├── queue/         # BullMQ 异步队列
+│   │   ├── email/         # SMTP
+│   │   ├── sms/           # 4 provider 适配
+│   │   ├── metrics/       # Prometheus 指标 + interceptor
+│   │   └── observability/ # Sentry
+│   ├── common/            # 全局公共 (exceptions / filters / decorators / validators)
+│   ├── config/            # 配置层 (envs + ConfigService)
+│   ├── migration/         # ⭐ V2 TypeORM migrations (6 个)
+│   ├── base/              # 健康检查 (重写过)
+│   ├── debug/             # ⚠️ demo (上线后删)
+│   ├── gql/               # ⚠️ GraphQL demo (上线后删)
+│   ├── sample/            # ⚠️ CRUD demo (上线后删)
+│   ├── shared/foobar/     # ⚠️ demo (上线后删)
+│   └── shared/user/       # ⚠️ mock user (上线后删)
+├── docker/                # docker-compose 配置 + Prometheus + Grafana
+├── docs/
+│   ├── architecture/      # 架构 SPEC
+│   └── adr/               # ⭐ Architecture Decision Records
+├── test/e2e/              # Jest E2E 测试
+├── bin/ormconfig.ts       # TypeORM data source
+├── .github/workflows/     # CI
+├── .husky/                # pre-commit hooks
+├── Dockerfile             # 多阶段构建 (alpine + tini + 健康检查)
+├── docker-compose.yml     # 全栈编排
+└── .env.example           # 环境变量模板
+```
+
+## 🚀 快速开始
+
+### 本地开发
+
+```bash
+# 1. 装依赖
 npm ci
-# 2. When synchronize database from existing entities
-npm run entity:sync
-# 2-1. When import entities from an existing database
-npm run entity:load
-```
 
-If you use multiple databases in `entity:load`, [modify them.](bin/entity.ts#L47-L48)
+# 2. 启动依赖服务 (MySQL + Redis)
+docker compose up -d mysql redis
 
-## Development
+# 3. 跑迁移
+npm run migration:run
 
-```sh
+# 4. 配置 .env
+cp .env.example .env
+# 编辑 .env: DB_HOST=mysql / REDIS_HOST=redis / JWT_SECRET=...
+
+# 5. 启动 dev
 npm run start:dev
-# https://docs.nestjs.com/recipes/repl
-npm run start:repl
+
+# 6. 验证
+curl http://localhost:3000/health
+curl http://localhost:3000/metrics | head -30
 ```
 
-Run [http://localhost:3000](http://localhost:3000)
+### 生产部署 (服务器)
 
-## Test
+服务器部署用**单容器 + host 网络**架构 (2 核 2G 优化)。详见 [`docs/architecture/V3_DOCKER_DEPLOY.md`](docs/architecture/V3_DOCKER_DEPLOY.md)。
 
-```sh
-npm test # exclude e2e
-npm run test:e2e
-```
+**快速流程**:
 
-## Production
-
-```sh
-npm run lint
+```bash
+# 本地
+cd /mnt/e/Work/Project/backend/mofang-nestjs
 npm run build
-# define environment variable yourself.
-# NODE_ENV=production PORT=8000 NO_COLOR=true node dist/app
-node dist/app
-# OR
-npm start
+
+# 传 dist + lockfile 到服务器
+sshpass -p '0126ZHang@@' rsync -avz --delete -e "ssh -p 22" \
+  dist/ root@117.72.30.78:/tmp/mofang-build/dist/
+sshpass -p '0126ZHang@@' scp -P 22 \
+  package.json package-lock.json \
+  root@117.72.30.78:/tmp/mofang-build/
+
+# 服务器 build + up
+ssh root@117.72.30.78 "cd /tmp/mofang-build && \
+  docker build -f Dockerfile.prod -t mofang-nestjs-api:v1.0.1 -t mofang-nestjs-api:latest --build-arg VERSION=v1.0.1 . && \
+  cd /opt/mofang-nestjs && docker compose -f docker-compose.prod.yml up -d"
+
+# 健康检查
+curl -fsS http://127.72.30.78:3001/health && echo OK
 ```
 
-## Folders
+### 本地开发 (全栈)
 
-```js
-+-- bin // Custom tasks
-+-- dist // Source build
-+-- public // Static Files
-+-- src
-|   +-- config // Environment Configuration
-|   +-- entity // TypeORM Entities
-|   +-- auth // Authentication
-|   +-- common // Global Nest Module
-|   |   +-- constants // Constant value and Enum
-|   |   +-- controllers // Nest Controllers
-|   |   +-- decorators // Nest Decorators
-|   |   +-- dto // DTO (Data Transfer Object) Schema, Validation
-|   |   +-- filters // Nest Filters
-|   |   +-- guards // Nest Guards
-|   |   +-- interceptors // Nest Interceptors
-|   |   +-- interfaces // TypeScript Interfaces
-|   |   +-- middleware // Nest Middleware
-|   |   +-- pipes // Nest Pipes
-|   |   +-- providers // Nest Providers
-|   |   +-- * // models, repositories, services...
-|   +-- shared // Shared Nest Modules
-|   +-- gql // GraphQL Structure
-|   +-- * // Other Nest Modules, non-global, same as common structure above
-+-- test // Jest testing
-+-- typings // Modules and global type definitions
+```bash
+# 1. 配 dev 密码
+cp .env.example .env
+# 改 JWT_SECRET, DB_PASSWORD, REDIS_PASSWORD 等
 
-// Module structure
-// Add folders according to module scale. If it's small, you don't need to add folders.
-+-- src/greeter
-|   +-- * // folders
-|   +-- greeter.constant.ts
-|   +-- greeter.controller.ts
-|   +-- greeter.service.ts
-|   +-- greeter.module.ts
-|   +-- greeter.*.ts
-|   +-- index.ts
+# 2. 起 MySQL + Redis (dev 依赖)
+docker compose up -d mysql redis
+
+# 3. 跑迁移
+npm run migration:run
+
+# 4. 起 nest (开发模式, watch)
+npm run start:dev
 ```
 
-This is the most basic structure to start a NestJS project. \
-You should choose the right architecture<sup>[[1]](https://romanglushach.medium.com/c0f93b8a1b96)</sup> (Layered, Clean, Onion, Hexagonal ...)<sup>[[2]](https://gist.github.com/EliFuzz/8ab693db36ff33ead1445a43c3f0ef7e)</sup> based on the size of your project.
+详见 [`docs/architecture/V2_SETUP.md`](docs/architecture/V2_SETUP.md) (本地开发文档)。
 
-## Implements
+## 📋 端点清单
 
-- Refer to [bootstrap](src/app.ts), [app.module](src/app.module.ts)
-  - Database, Module Router, Static Files, Validation, Pino Logger
-- [Global Exception Filter](src/common/filters/exceptions.filter.ts)
-- [Global Logging Context Middleware](src/common/middleware/logger-context.middleware.ts)
-- [Custom Logger](src/config/logger.config.ts) with nestjs-pino
-- [Custom Decorators](src/debug) Example at Nest level
-- [Configuration](src/config)
-- [Authentication](src/auth) - JWT and Session login with Passport
-- [Role-based Guard](src/common/guards/roles.guard.ts)
-- Controller Routes
-  - [Auth Login](src/base/controllers/auth.controller.ts)
-  - [Sample](src/sample/controllers/sample.controller.ts) Parameter and [DTO](src/sample/dto/sample.dto.ts)
-  - [CRUD API](src/sample/controllers/crud.controller.ts) Sample
-- [Database Query](src/sample/providers/database.service.ts) Example
-- [Unit Test](src/sample/providers/crud.service.spec.ts)
-- [E2E Test](test/e2e)
-- [Shared Modules](src/shared) Example
-- [GraphQL Structure](src/gql) Example
+### 账号 (11)
 
-## Documentation
+| Method | Path                      | Auth | Rate Limit | 用途                    |
+| ------ | ------------------------- | ---- | ---------- | ----------------------- |
+| POST   | /user/register            | -    | 5/min      | 注册                    |
+| POST   | /user/login               | -    | 5/min      | 登录 (邮箱必须验证)     |
+| POST   | /user/refresh             | -    | 10/min     | 刷新 token              |
+| POST   | /user/logout              | ✓    | 30/min     | 登出当前                |
+| POST   | /user/logout-all          | ✓    | 30/min     | 登出其他                |
+| GET    | /user/me                  | ✓    | 60/min     | 当前用户                |
+| POST   | /user/change-password     | ✓    | 10/min     | 改密 + 撤销所有 session |
+| POST   | /user/forgot-password     | -    | 5/min      | 发邮件 (防枚举)         |
+| POST   | /user/reset-password      | -    | 5/min      | token + 新密码          |
+| POST   | /user/verify-email        | -    | 10/min     | 验证 token              |
+| POST   | /user/resend-verification | -    | 5/min      | 重发验证邮件            |
 
-```sh
-# APP, Compodoc
-npm run doc #> http://localhost:8080
-# API, Swagger - src/swagger.ts
-npm run doc:api #> http://localhost:8000/api
+### Sessions (2)
+
+| Method | Path                | Auth | Rate Limit | 用途           |
+| ------ | ------------------- | ---- | ---------- | -------------- |
+| GET    | /user/sessions      | ✓    | 60/min     | 列活跃 session |
+| DELETE | /user/sessions/:sid | ✓    | 30/min     | 下线某设备     |
+
+### OAuth (4)
+
+| Method | Path                      | Auth | 用途                    |
+| ------ | ------------------------- | ---- | ----------------------- |
+| GET    | /user/oauth/:provider/url | -    | 生成授权 URL            |
+| POST   | /user/oauth/callback      | -    | 回调 (code 或 id_token) |
+| GET    | /user/oauth/linked        | ✓    | 列已绑定                |
+| DELETE | /user/oauth/:provider     | ✓    | 解绑                    |
+
+### 系统 (2)
+
+| Method | Path     | Auth | 用途                       |
+| ------ | -------- | ---- | -------------------------- |
+| GET    | /health  | -    | DB + Redis + HTTP 健康检查 |
+| GET    | /metrics | -    | Prometheus scrape          |
+
+## 📊 监控指标 (Prometheus)
+
+### HTTP
+
+- `http_requests_total{method, route, code}`
+- `http_request_duration_seconds{method, route, code}`
+
+### Auth
+
+- `auth_login_attempts_total{result}` (success / failed / locked / expired_password)
+- `auth_token_refresh_total{result}` (success / failed / revoked)
+- `auth_password_reset_total{result}` (requested / completed / expired / invalid)
+
+### OAuth
+
+- `oauth_login_total{provider, result}` (success / failed / linked)
+
+### Audit
+
+- `audit_log_enqueued_total{event}`
+- `audit_log_failed_total{event, phase}` (enqueue / process)
+
+### Verification
+
+- `verification_code_sent_total{type, channel}`
+
+### Grafana Dashboard
+
+预置 [`docker/grafana/dashboards/mofang-overview.json`](docker/grafana/dashboards/mofang-overview.json)，包含 RPS / P99 延迟 / 错误率 / 登录尝试 / OAuth / 审计日志 / CPU+内存 7 个面板。
+
+## 🔐 安全要点
+
+| 维度       | 实现                                                       |
+| ---------- | ---------------------------------------------------------- |
+| 密码       | bcrypt (10 rounds)                                         |
+| 密码历史   | 最近 5 次不复用                                            |
+| 强制改密   | 90 天周期                                                  |
+| 失败锁定   | 5 次失败锁 30 分钟                                         |
+| 邮箱验证   | 注册后必须验证才能登录                                     |
+| JWT        | access 15min + refresh 7d + rotation                       |
+| Blacklist  | Redis 跨实例 + TTL 自动清理 + fail-open                    |
+| Helmet     | CSP / HSTS / X-Frame-Options / X-Content-Type-Options      |
+| CORS       | 白名单 (生产严格, dev 允许 `*`)                            |
+| Rate Limit | 鉴权路由分级 (login 5/min, register 5/min, refresh 10/min) |
+| Audit Log  | 异步队列 + 18 种事件类型                                   |
+| GDPR       | 软删 30 天后真删 (cron)                                    |
+
+## 🛠️ 常用命令
+
+```bash
+# 开发
+npm run start:dev          # watch 模式启动
+npm run start:debug        # debug 模式 (--inspect)
+npm run start:repl         # REPL 模式
+
+# 测试
+npm test                   # 单元测试
+npm run test:e2e           # E2E (需 mysql + redis)
+
+# 代码质量
+npm run lint               # eslint
+npm run lint:fix           # eslint 自动修
+npm run format             # 格式化
+
+# DB
+npm run migration:generate # 自动生成 migration
+npm run migration:run      # 跑迁移
+npm run migration:revert   # 回滚
+npm run migration:show     # 看状态
+
+# 构建
+npm run build              # nest build
+npm start                  # 运行 dist
+
+# Docker
+docker compose up -d mysql redis           # 仅依赖
+docker compose --profile monitoring up -d  # 全栈
+docker compose exec api npm run migration:run
 ```
 
-### File Naming for Class
+## 📚 文档
 
-```ts
-export class PascalCaseSuffix {} //= pascal-case.suffix.ts
-// Except for suffix, PascalCase to hyphen-case
-class FooBarNaming {} //= foo-bar.naming.ts
-class FooController {} //= foo.controller.ts
-class BarQueryDto {} //= bar-query.dto.ts
-```
+- [V2 架构 SPEC](docs/architecture/v2-user-module-architecture.md) — 完整设计
+- [V2 部署指南](docs/architecture/V2_SETUP.md) — 本地开发环境
+- [V3 Docker 部署](docs/architecture/V3_DOCKER_DEPLOY.md) — **生产服务器部署 (单容器 + host 网络, 2 核 2G 优化)**
+- [ADR-0001 JWT vs Cookie Session](docs/adr/0001-jwt-vs-cookie-session.md)
+- [ADR-0002 异步审计日志](docs/adr/0002-async-audit-log-via-bullmq.md)
+- [ADR-0003 TypeORM Migration](docs/adr/0003-typeorm-migration-replace-synchronize.md)
 
-### Interface Naming
+## 🗺️ 路线图
 
-```ts
-// https://stackoverflow.com/questions/541912
-// https://stackoverflow.com/questions/2814805
-interface User {}
-interface CustomeUser extends User {}
-interface ThirdCustomeUser extends CustomeUser {}
-```
+- [x] V1 (2026-08-18 之前): 基础 register/login/refresh/me
+- [x] V2 (2026-08-19): Redis blacklist / OAuth / 邮箱验证 / 密码历史 / Prometheus / Migration / Sessions
+- [ ] V3: Redis Sentinel / Cron 分布式锁 / ELK 归档 / HIBP 密码检测 / OAuth passport-strategy
+- [ ] V4: 心塑业务模块 (psychology) + 魔方业务模块 (moyin) + 共用计费 (billing)
 
-### Index Exporting
+## ⚠️ 上线清理清单 (V3 必做)
 
-```diff
-# It is recommended to place index.ts in each folder and export.
-# Unless it's a special case, it is import from a folder instead of directly from a file.
-- import { FooController } from './controllers/foo.controller';
-- import { BarController } from './controllers/bar.controller';
-+ import { FooController, BarController } from './controllers';
-# My preferred method is to place only one fileOrFolder name at the end of the path.
-- import { UtilService } from '../common/providers/util.service';
-+ import { UtilService } from '../common';
-```
+上线前删 demo 代码（保留作 V2 历史参考）：
 
-> [!WARNING]
-> Barrel files may need to be avoided in frontend or serverless environments. \
-> Learn more: [Why avoid barrel files?](https://github.com/webpro-nl/unbarrelify/?tab=readme-ov-file#why-avoid-barrel-files)
+- [ ] `src/auth/` (passport + cookie session demo)
+- [ ] `src/base/controllers/auth.controller.ts` (`/login /logout /check /jwt/*`)
+- [ ] `src/sample/` (CRUD demo)
+- [ ] `src/debug/` (debug module)
+- [ ] `src/gql/` (GraphQL demo)
+- [ ] `src/shared/foobar/`, `src/shared/user/`
+- [ ] `src/entity/sampledb1/`, `src/entity/sampledb2/`
+- [ ] `test/e2e/local-auth.spec.ts`, `test/e2e/jwt-auth.spec.ts`
+- [ ] `bin/entity.ts` (entity 同步生成脚本)
+- [ ] package.json: 删 `passport-*` `express-session` `@nestjs/passport` `passport` `typeorm-model-generator`
 
-#### Circular dependency
+删完应该剩 50% 文件，纯净 V2 真生产。
 
-<https://docs.nestjs.com/fundamentals/circular-dependency>
+## 📜 License
 
-```diff
-# Do not use a path that ends with a dot.
-- import { FooService } from '.';
-- import { BarService } from '..';
-+ import { FooService } from './foo.service';
-+ import { BarService } from '../providers';
-```
-
-### Variables Naming
-
-> [Naming cheatsheet](https://github.com/kettanaito/naming-cheatsheet)
-
-### Links
-
-- [Better Nodejs Project](https://github.com/CatsMiaow/better-nodejs-project)
-- [Monorepo with npm Workspaces](https://github.com/CatsMiaow/node-monorepo-workspaces)
-- [Nest Project Performance](https://github.com/CatsMiaow/nestjs-project-performance)
-- [NestJS](https://docs.nestjs.com)
-  - [Nest Sample](https://github.com/nestjs/nest/tree/master/sample)
-  - [Awesome Nest](https://github.com/nestjs/awesome-nestjs)
-- [TypeORM](https://typeorm.io)
+MIT

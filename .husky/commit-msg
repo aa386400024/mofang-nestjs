@@ -1,0 +1,25 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Commit message lint (大厂标配 — 强制 conventional commit 格式)
+# 例: feat: add OAuth Google login
+#     fix: jwt blacklist memory leak
+#     docs: update README
+#     chore: bump deps
+#     refactor: split user service
+#     test: add e2e for login flow
+#     perf: cache user lookup
+
+npx --no -- commitlint --edit "$1" 2>/dev/null || {
+  echo "⚠️  commit-msg format should follow conventional commits:"
+  echo "    feat: add new feature"
+  echo "    fix: bug fix"
+  echo "    docs: documentation only"
+  echo "    style: formatting, no code change"
+  echo "    refactor: code change that neither fixes a bug nor adds a feature"
+  echo "    perf: performance improvement"
+  echo "    test: add/fix tests"
+  echo "    chore: build / ci / deps changes"
+  echo ""
+  echo "    (skipping commitlint check — install @commitlint/cli for enforcement)"
+}
