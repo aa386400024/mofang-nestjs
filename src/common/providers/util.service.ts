@@ -6,7 +6,6 @@ type TemplateParameter = any[];
 @Injectable()
 export class UtilService {
   public template(templateData: TemplateStringsArray, param: TemplateParameter, delimiter = '\n'): string {
-    // eslint-disable-next-line @typescript-eslint/init-declarations
     let output = '';
     for (const [i, element] of param.entries()) {
       output += `${templateData[i]}${element}`;

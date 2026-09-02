@@ -1,0 +1,7 @@
+# Husky v9+ 写法
+
+# 大厂 pre-commit 标准:
+#   - lint-staged 只对暂存文件跑 (避免影响其他代码)
+#   - 单文件超时 30s, 避免 sonarjs 卡死
+#   - lint fail 不阻塞 commit (大厂做法: lint 靠 CI 强制, 本地只做自动修)
+npx lint-staged --diff="HEAD" --quiet
