@@ -23,6 +23,8 @@ import { ConsentModule } from './consent';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AppNamingStrategy } from './database/naming-strategy';
 import { EmbodiedModule } from './embodied/embodied.module';
+import { GenomeReshapeModule } from './genome-reshape/genome-reshape.module';
+import { GuideModule } from './guide/guide.module';
 import { HomeModule } from './home/home.module';
 import { LifeMapModule } from './life-map/life-map.module';
 import { PracticeModule } from './practice/practice.module';
@@ -156,6 +158,10 @@ import { OAuthModule } from './user/oauth';
     PracticeModule, // /practice/*
     // V2026-09-01 — 心塑陪伴者端「陪伴」Tab (8 大分区 + 双人协同 + 关系管理)
     CompanionModule, // /companion/*
+    // V2026-09-01 — 心塑成长端「评估」Tab 完整化 + 心理基因靶向重塑
+    GenomeReshapeModule, // /reshape/*
+    // V2026-09-01 — 心塑陪伴者端「指南」Tab
+    GuideModule, // /guide/*
   ],
   providers: [
     // Global Throttler Guard

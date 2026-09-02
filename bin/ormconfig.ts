@@ -43,6 +43,11 @@ import { AddPracticeTables1700000009000 } from '../src/migration/1700000009000-A
 import { AddCompanionTables1700000010000 } from '../src/migration/1700000010000-AddCompanionTables';
 import { ExtendCompanionRecord1700000010001 } from '../src/migration/1700000010001-ExtendCompanionRecord';
 
+// V2026-09-01 — 「人生地图」Tab V3.0 模块 (心塑成长用户端 Tab3, 3 张表)
+import { AddLifeStageProgress1700000010002 } from '../src/migration/1700000010002-AddLifeStageProgress';
+import { AddKeyEvents1700000010003 } from '../src/migration/1700000010003-AddKeyEvents';
+import { AddGenomeDimensions1700000010004 } from '../src/migration/1700000010004-AddGenomeDimensions';
+
 try {
   loadEnvFile();
 } catch {}
@@ -87,6 +92,10 @@ const ormconfig = async (): Promise<DataSource> => {
       // V2026-09-01 — 陪伴 Tab 模块 (心塑陪伴者端 Tab2, 5 张表 + 扩展 companion_records)
       AddCompanionTables1700000010000,
       ExtendCompanionRecord1700000010001,
+      // V2026-09-01 — 人生地图 Tab 模块 (心塑成长用户端 Tab3, 3 张表)
+      AddLifeStageProgress1700000010002,
+      AddKeyEvents1700000010003,
+      AddGenomeDimensions1700000010004,
     ],
     // migrationsRun: false (默认) — 手动 npm run migration:run
     // synchronize: false — 已禁, 强制走 migration
