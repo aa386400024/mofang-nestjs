@@ -156,7 +156,11 @@ export class PracticeToolService {
       durationMinutes: 3,
       difficulty: 1,
       evidenceLevel: 'mindfulness',
-      routePath: '/practice/tool/emergency.5-4-3-2-1',
+      // V2026-09-03 治本: routePath 改为前端 V4.2 急救专用路由, 避免
+      // 落入 /practice/tool/* 兜底走通用 ToolExecutionPage 导致"闪一下
+      // 老版倒计时模板". 必须与前端 router.dart / practice_tool_navigator.dart
+      // 保持一致.
+      routePath: '/tools/emergency/grounding',
       tags: ['急救', '入门'],
       hasFunMode: true,
       unlockHint: null,
@@ -171,7 +175,8 @@ export class PracticeToolService {
       durationMinutes: 3,
       difficulty: 1,
       evidenceLevel: 'mindfulness',
-      routePath: '/practice/tool/emergency.4-4-8',
+      // V2026-09-03 治本: 同上, 复用 BreathingExerciseRoute 对应的路由.
+      routePath: '/tools/breathing',
       tags: ['急救', '呼吸'],
       hasFunMode: false,
       unlockHint: null,
@@ -186,7 +191,8 @@ export class PracticeToolService {
       durationMinutes: 5,
       difficulty: 2,
       evidenceLevel: 'mindfulness',
-      routePath: '/practice/tool/emergency.safe-place',
+      // V2026-09-03 治本: 改为 §4.2 急救箱专用路由.
+      routePath: '/tools/emergency/safe-place',
       tags: ['急救', '想象'],
       hasFunMode: true,
       unlockHint: null,
@@ -201,7 +207,8 @@ export class PracticeToolService {
       durationMinutes: 5,
       difficulty: 2,
       evidenceLevel: 'dbt',
-      routePath: '/practice/tool/emergency.tipp',
+      // V2026-09-03 治本: 改为 §4.2 急救箱专用路由.
+      routePath: '/tools/emergency/tipp',
       tags: ['DBT', '急救'],
       hasFunMode: false,
       unlockHint: null,
@@ -216,7 +223,8 @@ export class PracticeToolService {
       durationMinutes: 5,
       difficulty: 2,
       evidenceLevel: 'act',
-      routePath: '/practice/tool/emergency.thought-defusion',
+      // V2026-09-03 治本: 改为 §4.2 急救箱专用路由.
+      routePath: '/tools/emergency/thought-defusion',
       tags: ['ACT', '急救'],
       hasFunMode: true,
       unlockHint: null,
