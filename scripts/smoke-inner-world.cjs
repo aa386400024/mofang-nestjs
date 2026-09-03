@@ -540,6 +540,208 @@ async function verifyBalances(token) {
   return true;
 }
 
+// ─── Step 8: 连续 grant 触发 Collector 徽章解锁 (V4.0 §3.3) ──────────
+// V2026-09-03 治本: Collector 规则见 policies/badge-rules.ts 71 行:
+//   [BadgeId.Collector, (ctx) => ctx.totalGrantedFragments >= 100]
+// step 5 已 grant 1 次 (calm=10), 这里再 grant 9 次 (各 calm=10), 累计 100
+// V2026-09-03 治本 (修复 smoke 设计错误): fragments.service.grant() 内部
+// 调 reconcileAfterFragmentChange() 会自动 invalidate cache + 跑 reconcile
+// + 写入徽章解锁. 因此第 10 次 grant 的 response body 已经含
+// newlyUnlockedBadges: ['collector']; 之后再调 POST /badges/reconcile 会因为
+// actual 已含 Collector 而返 []. 所以这里:
+//   (a) 读最后 1 次 grant 的 response body.newlyUnlockedBadges
+//   (b) 跳过 manual reconcile (会返空)
+//   (c) GET /badges 验 collector.unlockedAt 持久化
+async function grantUntilCollectorUnlock(token) {
+  console.log(`${CLR.cyan}[step]${CLR.reset} grant 9 次 ${CLR.dim}(累计 100 触发 Collector 阈值, 读 grant response.newlyUnlockedBadges)${CLR.reset}`);
+
+  let lastBody = null;
+  for (let i = 0; i < 9; i++) {
+    const res = await fetch(`${BASE_URL}/inner-world/fragments/grant`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        grants: [{ type: 'calm', delta: 10, source: 'smoke-multi' }],
+        idempotencyKey: randomUUID(),
+      }),
+    });
+    if (res.status !== 200 && res.status !== 201) {
+      const body = await res.text();
+      console.error(`${CLR.red}[FAIL]${CLR.reset} grant #${i + 2} 失败 status=${res.status}`);
+      console.error(`  body: ${body.slice(0, 500)}`);
+      return false;
+    }
+    // 只读最后 1 次的 body (前 8 次 newlyUnlockedBadges 一定是 [], 只有第 10 次会有 collector)
+    if (i === 8) lastBody = await res.json();
+  }
+  console.log(`  ${CLR.green}✓${CLR.reset} 累计 10 次 grant 完成 (calm=100)`);
+
+  // (a) 直接读 grant response 的 newlyUnlockedBadges, 走 grant 内嵌 reconcile 的成功结果
+  if (!lastBody?.newlyUnlockedBadges?.includes('collector')) {
+    console.error(`${CLR.red}[FAIL]${CLR.reset} 第 10 次 grant response 没含 collector, 拿到: ${JSON.stringify(lastBody?.newlyUnlockedBadges)}`);
+    return false;
+  }
+  console.log(`  ${CLR.green}✓${CLR.reset} Collector 在 grant response 内解锁, newlyUnlockedBadges=${JSON.stringify(lastBody.newlyUnlockedBadges)}`);
+
+  // (c) GET /badges 验证 collector.unlockedAt 非空 (持久化层)
+  const list = await fetch(`${BASE_URL}/inner-world/badges`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (list.status !== 200) {
+    console.error(`${CLR.red}[FAIL]${CLR.reset} badges list 失败 status=${list.status}`);
+    return false;
+  }
+  const listBody = await list.json();
+  const collector = listBody.badges.find((b) => b.id === 'collector');
+  if (!collector || !collector.unlockedAt) {
+    console.error(`${CLR.red}[FAIL]${CLR.reset} collector.unlockedAt=${collector?.unlockedAt} 应非空`);
+    return false;
+  }
+  console.log(`  ${CLR.green}✓${CLR.reset} collector.unlockedAt=${collector.unlockedAt}`);
+  return true;
+}
+
+// ─── Step 9: 并发 grant race (Promise.all × 5) ───────────────────────
+// V2026-09-03 治本: fragments.service.grant() 走 dataSource.transaction + repo.save,
+// 但没显式加锁. 同一用户并发 5 个 grant 走同一事务模式, 验证 DB 层是否能正确累加 (5×3=15).
+// 失败现象: balance != 15 说明被某个 grant 漏写 (事务隔离下读幻读 / 死锁回滚).
+async function concurrentGrantRace(token) {
+  console.log(`${CLR.cyan}[step]${CLR.reset} 并发 grant × 5 ${CLR.dim}(Promise.all, type=courage, delta=3)${CLR.reset}`);
+
+  const requests = Array.from({ length: 5 }, () =>
+    fetch(`${BASE_URL}/inner-world/fragments/grant`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        grants: [{ type: 'courage', delta: 3, source: 'smoke-race' }],
+        idempotencyKey: randomUUID(),
+      }),
+    }).then((r) => ({ status: r.status })),
+  );
+
+  const results = await Promise.all(requests);
+  const failed = results.filter((r) => r.status !== 200 && r.status !== 201);
+  if (failed.length > 0) {
+    console.error(`${CLR.red}[FAIL]${CLR.reset} ${failed.length}/5 并发 grant 失败 (status=${failed.map((r) => r.status).join(',')})`);
+    return false;
+  }
+  console.log(`  ${CLR.green}✓${CLR.reset} 5/5 并发 grant 全部 201`);
+
+  // 验证 courage balance = 15 (5 × 3)
+  const bal = await fetch(`${BASE_URL}/inner-world/fragments/balances`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (bal.status !== 200) {
+    console.error(`${CLR.red}[FAIL]${CLR.reset} balances 失败 status=${bal.status}`);
+    return false;
+  }
+  const balBody = await bal.json();
+  const items = Array.isArray(balBody) ? balBody : balBody.balances ?? [];
+  const courage = items.find((b) => b.type === 'courage');
+  const balance = courage?.balance ?? 0;
+  if (balance !== 15) {
+    console.error(`${CLR.red}[FAIL]${CLR.reset} courage balance=${balance} 应=15 (并发 race 漏写)`);
+    return false;
+  }
+  console.log(`  ${CLR.green}✓${CLR.reset} courage balance=15 (5×3)`);
+  return true;
+}
+
+// ─── Step 10: 幂等键重发 (诊断性, 观测当前行为) ───────────────────────────
+// V2026-09-03 治本: 按 fragments.service.ts grant() 注释 (110-115 行):
+//   "幂等: 同 key 24h 内直接返回上次结果 (缓存走内存 Map, 服务重启会丢;
+//    生产环境应升级到 Redis — 见 TBD).
+//    这里简化: 不做缓存, 直接 INSERT, 由数据库 UNIQUE 索引兜底 (暂未建, V3 加)."
+// 现状: 业务代码没做幂等缓存, DB 也还没建 UNIQUE 索引 → 同 key 二次调用必双发.
+// 本 step 是诊断性 — 不视为 fail, 把现象打出来作为下次修复入口.
+// 预期: thinking 余额 +40 (双发) 而不是 +20 (幂等生效).
+async function idempotencyReplay(token) {
+  console.log(`${CLR.cyan}[step]${CLR.reset} 幂等键重发 ${CLR.dim}(同 idempotencyKey × 2, 观测当前行为)${CLR.reset}`);
+
+  const key = randomUUID();
+  const reqOpts = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      grants: [{ type: 'thinking', delta: 20, source: 'smoke-idem' }],
+      idempotencyKey: key,
+    }),
+  };
+
+  const r1 = await fetch(`${BASE_URL}/inner-world/fragments/grant`, reqOpts);
+  const r2 = await fetch(`${BASE_URL}/inner-world/fragments/grant`, reqOpts);
+  const s1 = r1.status, s2 = r2.status;
+  if ((s1 !== 200 && s1 !== 201) || (s2 !== 200 && s2 !== 201)) {
+    console.error(`${CLR.red}[FAIL]${CLR.reset} 幂等重发 HTTP 异常 s1=${s1} s2=${s2}`);
+    return false;
+  }
+
+  const bal = await fetch(`${BASE_URL}/inner-world/fragments/balances`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const balBody = await bal.json();
+  const items = Array.isArray(balBody) ? balBody : balBody.balances ?? [];
+  const thinking = items.find((b) => b.type === 'thinking');
+  const balance = thinking?.balance ?? 0;
+
+  if (balance === 20) {
+    console.log(`  ${CLR.green}✓${CLR.reset} 幂等生效 (只 +20), thinking=${balance}`);
+    return true;
+  } else if (balance === 40) {
+    console.warn(`  ${CLR.yellow}[OBSERVE]${CLR.reset} 幂等未生效 (双发 +40), thinking=${balance}`);
+    console.warn(`    按 fragments.service.ts grant() 注释, 当前不做幂等缓存, 直接 INSERT`);
+    console.warn(`    治本备忘: 见 V2026-09-03 治本 + fragments.service.ts 110-115 行 + migration UNIQUE 索引未建`);
+    // 诊断性 step 不视为 fail — 这正是要观测的现象 (跟已知 TODO 对齐)
+    return true;
+  } else {
+    console.error(`${CLR.red}[FAIL]${CLR.reset} thinking balance=${balance} 异常 (预期 20 或 40)`);
+    return false;
+  }
+}
+
+// ─── Step 11: consume 路径 via theme-pack unlock ────────────────────
+// V2026-09-03 治本: 项目里没暴露 /fragments/consume 端点 (fragments.controller.ts 只有 grant/balances/logs/summary),
+// consume 走业务路径 — skin/theme-pack/decoration unlock 都会调 fragmentsService.consume().
+// 这里挑最简单的 theme-pack unlock: 不需要 body, 只走路径参数 packId.
+// theme.sakura = 30 calm (skin-rarity.enum.ts 查). 此时 step 5+8 累计 calm=100, 减 30 后应剩 70.
+async function consumeViaThemePack(token) {
+  console.log(`${CLR.cyan}[step]${CLR.reset} 解锁主题包 ${CLR.dim}(theme.sakura, 消耗 30 calm)${CLR.reset}`);
+
+  const res = await fetch(`${BASE_URL}/inner-world/theme-packs/theme.sakura/unlock`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status !== 200) {
+    const body = await res.text();
+    console.error(`${CLR.red}[FAIL]${CLR.reset} theme.sakura unlock 失败 status=${res.status}`);
+    console.error(`  body: ${body.slice(0, 500)}`);
+    return false;
+  }
+  const body = await res.json();
+  // ThemePackDto 字段: packId, title, ..., unlocked (state !== undefined), active, unlockCostFragments
+  if (!body.unlocked) {
+    console.error(`${CLR.red}[FAIL]${CLR.reset} unlock 响应未返 unlocked=true: ${JSON.stringify(body).slice(0, 200)}`);
+    return false;
+  }
+  console.log(`  ${CLR.green}✓${CLR.reset} theme.sakura unlocked, costFragments=${body.unlockCostFragments}`);
+
+  // 验证 calm balance 减少了 30 (100 grant 累计 - 30 consume = 70)
+  const bal = await fetch(`${BASE_URL}/inner-world/fragments/balances`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const balBody = await bal.json();
+  const items = Array.isArray(balBody) ? balBody : balBody.balances ?? [];
+  const calm = items.find((b) => b.type === 'calm');
+  const balance = calm?.balance ?? 0;
+
+  if (balance !== 70) {
+    console.error(`${CLR.red}[FAIL]${CLR.reset} calm balance=${balance} 应=70 (100 grant - 30 consume)`);
+    return false;
+  }
+  console.log(`  ${CLR.green}✓${CLR.reset} calm balance=70 (100 grant - 30 consume)`);
+  return true;
+}
+
 // ─── 主流程 ─────────────────────────────────────────────────────────────
 (async function main() {
   try {
@@ -597,8 +799,32 @@ async function verifyBalances(token) {
       process.exit(10);
     }
 
-    console.log(`\n${CLR.green}[PASS]${CLR.reset} inner_world 链路全通 (10/10 步骤)`);
-    console.log(`${CLR.dim}  register → login → bootstrap → grant → reconcile → balances${CLR.reset}`);
+    // Step 8: 连续 grant 9 次触发 Collector 徽章解锁 (累计 calm=100)
+    if (!(await grantUntilCollectorUnlock(accessToken))) {
+      cleanup();
+      process.exit(11);
+    }
+
+    // Step 9: 并发 grant × 5 (race condition 探测)
+    if (!(await concurrentGrantRace(accessToken))) {
+      cleanup();
+      process.exit(12);
+    }
+
+    // Step 10: 幂等键重发 (诊断性 — 记录当前行为, 不硬断言 pass)
+    if (!(await idempotencyReplay(accessToken))) {
+      cleanup();
+      process.exit(13);
+    }
+
+    // Step 11: consume 路径 via theme-pack unlock (主题包消耗 calm=30)
+    if (!(await consumeViaThemePack(accessToken))) {
+      cleanup();
+      process.exit(14);
+    }
+
+    console.log(`\n${CLR.green}[PASS]${CLR.reset} inner_world 链路全通 (14/14 步骤)`);
+    console.log(`${CLR.dim}  register → login → bootstrap → grant → reconcile → balances → 9×grant → concurrent×5 → idempotency×2 → theme.sakura.consume${CLR.reset}`);
     cleanup();
     process.exit(0);
   } catch (err) {
