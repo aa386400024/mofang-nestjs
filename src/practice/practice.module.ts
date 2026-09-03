@@ -84,6 +84,10 @@ import {
     PracticeGymService,
     TargetedReshapeService,
     PracticeEmbodiedService,
+    // V2026-09-03 治本: 导出 TypeOrmModule 让下游模块 (如 InnerWorldModule 的
+    // ReconciliationService) 可以注入 PracticeSession / PracticeRecord / 等
+    // Repository — NestJS 跨模块共享 Repository 的标准模式 (Shared Modules).
+    TypeOrmModule,
   ],
 })
 export class PracticeModule {}

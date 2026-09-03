@@ -26,6 +26,7 @@
     "start:dev": "nest start --watch",
     "start:win": "node scripts/ensure-utf8.cjs && nest start --watch",
     "test:smoke": "node scripts/smoke-test.cjs && node -e \"require('fs').writeFileSync('.smoke-last', new Date().toISOString())\"",
+    "smoke:iw": "pnpm build && node scripts/smoke-inner-world.cjs && node -e \"require('fs').writeFileSync('.smoke-iw-last', new Date().toISOString())\"",
     "deploy:tested": "node scripts/deploy-tested.cjs",
     "start:debug": "nest start --debug --watch",
     "start:repl": "nest start --entryFile repl",

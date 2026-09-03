@@ -100,6 +100,13 @@ function parseExpiresIn(s: string): number {
     PasswordResetService,
     VerificationCodeService,
     JwtModule,
+    // V2026-09-03 治本: 之前只导出了 JwtModule, 但 JwtAuthGuard 漏在 exports 外面.
+    // InnerWorldModule (以及 ai-companion / companion / home / life-map 等其它业务模块)
+    // 都在 controller 用 @UseGuards(JwtAuthGuard), UserModule 没导出它 → 这些模块的
+    // controller 首次被请求时抛 UnknownDependenciesException, BizExceptionFilter 兜底返 code 1000.
+    // 表现: register / login (走 auth/guards 那套 passport 版) 不挂, 一旦命中 user/guards/jwt-auth.guard
+    // (例如 /inner-world/bootstrap / /practice/* / /home/*) 就 500.
+    JwtAuthGuard,
   ],
 })
 export class UserModule {}

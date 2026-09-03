@@ -32,9 +32,12 @@ import { AddPrivacyAuthorizations1700000007012 } from '../src/migration/17000000
 
 // V2026-08-31 — 「首页」Tab V2.0 模块 (心塑首页 + 陪伴者首页, 4 张表)
 import { AddMoodLogs1700000008000 } from '../src/migration/1700000008000-AddMoodLogs';
+import { InitInnerWorld1700000008000 } from '../src/migration/1700000008000-InitInnerWorld';
 import { AddMicroInterventionConfigs1700000008001 } from '../src/migration/1700000008001-AddMicroInterventionConfigs';
 import { AddMicroInterventionHistory1700000008002 } from '../src/migration/1700000008002-AddMicroInterventionHistory';
 import { AddHomeMessages1700000008003 } from '../src/migration/1700000008003-AddHomeMessages';
+
+// V2026-09-03 — 心塑「内心世界」Tab 模块 (V4.0 §3 游戏化核心层, 6 张表)
 
 // V2026-09-01 — 「练习」Tab V2.0 模块 (心塑成长用户端 Tab2, 5 张表)
 import { AddPracticeTables1700000009000 } from '../src/migration/1700000009000-AddPracticeTables';
@@ -87,6 +90,10 @@ const ormconfig = async (): Promise<DataSource> => {
       AddMicroInterventionConfigs1700000008001,
       AddMicroInterventionHistory1700000008002,
       AddHomeMessages1700000008003,
+      // V2026-09-03 — 内心世界模块 (V4.0 §3 游戏化核心层, 6 张表)
+      // 治本: 之前文件 1700000008000-InitInnerWorld.ts 存在但 ormconfig.ts 没 import 它,
+      // migration:run 看不到这个 migration → 永远 "No migrations are pending" → 表不建 → bootstrap 500.
+      InitInnerWorld1700000008000,
       // V2026-09-01 — 练习 Tab 模块 (心塑成长用户端 Tab2, 5 张表)
       AddPracticeTables1700000009000,
       // V2026-09-01 — 陪伴 Tab 模块 (心塑陪伴者端 Tab2, 5 张表 + 扩展 companion_records)

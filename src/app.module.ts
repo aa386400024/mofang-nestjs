@@ -26,6 +26,7 @@ import { EmbodiedModule } from './embodied/embodied.module';
 import { GenomeReshapeModule } from './genome-reshape/genome-reshape.module';
 import { GuideModule } from './guide/guide.module';
 import { HomeModule } from './home/home.module';
+import { InnerWorldModule } from './inner_world/inner_world.module';
 import { LifeMapModule } from './life-map/life-map.module';
 import { PracticeModule } from './practice/practice.module';
 import { ProfileModule } from './profile';
@@ -156,6 +157,7 @@ import { OAuthModule } from './user/oauth';
     // V2026-08-28: 隐私授权 + 数据导出走 ProfileModule 内的 controller (保持模块边界)
     // V2026-09-01 — 心塑成长端「练习」Tab (8 大分类 + 心理健身房 + 具身认知)
     PracticeModule, // /practice/*
+    InnerWorldModule, // /inner-world/* (V4.0 §3 完整游戏化核心层)
     // V2026-09-01 — 心塑陪伴者端「陪伴」Tab (8 大分区 + 双人协同 + 关系管理)
     CompanionModule, // /companion/*
     // V2026-09-01 — 心塑成长端「评估」Tab 完整化 + 心理基因靶向重塑
