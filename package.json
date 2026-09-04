@@ -33,11 +33,16 @@
     "test": "jest --detectOpenHandles -i",
     "test:e2e": "NODE_OPTIONS=\"--no-experimental-strip-types\" jest --config ./test/jest.e2e.ts -i",
     "doc": "compodoc -p tsconfig.json -s -d docs",
-    "doc:api": "npm run build && node dist/swagger"
+    "doc:api": "npm run build && node dist/swagger",
+    "smoke:ai": "pnpm build && node scripts/smoke-ai-engine.cjs && node -e \"require('fs').writeFileSync('.smoke-ai-last', new Date().toISOString())\""
   },
   "dependencies": {
     "@apollo/server": "^5.5.1",
     "@as-integrations/express5": "^1.1.2",
+    "@langchain/community": "^1.1.29",
+    "@langchain/core": "^1.2.9",
+    "@langchain/openai": "^1.5.11",
+    "@langchain/qdrant": "^1.0.3",
     "@nestjs/apollo": "^13.4.2",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.1.28",

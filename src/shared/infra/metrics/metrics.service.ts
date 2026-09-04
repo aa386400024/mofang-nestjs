@@ -159,7 +159,6 @@ export class MetricsService implements OnModuleInit {
     this.authPasswordResetCounter.inc({ result });
   }
 
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   incOAuthLogin(provider: string, result: 'success' | 'failed' | 'linked'): void {
     if (!this.config.get('metrics').enabled) {
       return;

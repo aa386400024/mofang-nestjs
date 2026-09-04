@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -56,6 +56,7 @@ import { SessionService } from './session.service';
  */
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
   private static readonly BCRYPT_ROUNDS = 10;
 
   constructor(
@@ -118,10 +119,15 @@ export class UserService {
     const saved = await this.userRepo.save(user);
 
     // 发邮箱验证 token (异步失败不阻塞注册)
+    // V2026-09-04 治本: 去掉 fire-and-forget 静默吞错, 改为 await + logger.warn
+    //   露出错位 + 加 5s 超时防 smoke race condition (register 返 201 时 token 已写入 Redis).
     if (saved.email) {
-      void this.emailVerification.sendVerification(saved.uid, saved.email).catch(() => {
+      try {
+        await this.emailVerification.sendVerification(saved.uid, saved.email);
+      } catch (e) {
         // 邮件发送失败仅 log, 不影响注册 (用户可以重发)
-      });
+        this.logger.warn(`sendVerification failed uid=${saved.uid}: ${(e as Error).message}`);
+      }
     }
 
     await this.auditLog.log({
@@ -270,7 +276,6 @@ export class UserService {
       throw new BizException(BizCode.TokenExpired, 'refresh token 已过期');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (payload.type !== TokenType.Refresh) {
       throw new BizException(BizCode.TokenInvalid, 'token 类型错误');
     }

@@ -13,6 +13,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { AiConversationsModule } from './ai-companion/ai-conversations.module';
+import { AIEngineModule } from './ai-engine/ai-engine.module';
 import { AuthModule } from './auth';
 import { BaseModule } from './base/base.module';
 import { CommonModule } from './common';
@@ -23,9 +24,11 @@ import { ConsentModule } from './consent';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AppNamingStrategy } from './database/naming-strategy';
 import { EmbodiedModule } from './embodied/embodied.module';
+import { EmergencyModule } from './emergency/emergency.module';
 import { GenomeReshapeModule } from './genome-reshape/genome-reshape.module';
 import { GuideModule } from './guide/guide.module';
 import { HomeModule } from './home/home.module';
+import { GameUnlockModule } from './inner_world/game-unlock.module';
 import { InnerWorldModule } from './inner_world/inner_world.module';
 import { LifeMapModule } from './life-map/life-map.module';
 import { PracticeModule } from './practice/practice.module';
@@ -164,6 +167,12 @@ import { OAuthModule } from './user/oauth';
     GenomeReshapeModule, // /reshape/*
     // V2026-09-01 — 心塑陪伴者端「指南」Tab
     GuideModule, // /guide/*
+    // V2026-09-04 — 心塑 V6.0 §3 AI 引擎 5 仓库 + §3.5 LLM 流式编排 + §11.2 危机检测
+    AIEngineModule, // /ai/* + /v1/chat/*
+    // V2026-09-04 — 心塑 V6.0 §4.2 急救闭环 — 5 工具会话上报 + 跨设备同步
+    EmergencyModule, // /emergency/*
+    // V2026-09-04 — 心塑 V6.0 §6 Inner World 游戏化模块解锁进度 (game_unlock_progress V2 表)
+    GameUnlockModule, // /inner-world/game-unlock/*
   ],
   providers: [
     // Global Throttler Guard

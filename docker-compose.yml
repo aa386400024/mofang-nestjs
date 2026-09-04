@@ -26,11 +26,11 @@ services:
       redis:
         condition: service_healthy
     ports:
-      - "${PORT:-3000}:3000"
+      - '${PORT:-3000}:3000'
     networks:
       - mofang-net
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/health"]
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3000/health']
       interval: 30s
       timeout: 5s
       retries: 3
@@ -46,8 +46,8 @@ services:
     logging:
       driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
   # ============================================================
   # MySQL 8 (心塑 + 魔方共用账号库)
@@ -68,14 +68,14 @@ services:
       MYSQL_USER: ${DB_USER:-mofang}
       MYSQL_PASSWORD: ${DB_PASSWORD:-mofangpass}
     ports:
-      - "${DB_PORT:-3306}:3306"
+      - '${DB_PORT:-3306}:3306'
     volumes:
       - mysql-data:/var/lib/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
     networks:
       - mofang-net
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpass}"]
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-p${MYSQL_ROOT_PASSWORD:-rootpass}']
       interval: 10s
       timeout: 5s
       retries: 10
@@ -92,23 +92,23 @@ services:
       # AOF 持久化 (异步审计 + JWT blacklist 丢不起)
       - redis-server
       - --appendonly
-      - "yes"
+      - 'yes'
       - --appendfsync
-      - "everysec"
+      - 'everysec'
       - --maxmemory
-      - "256mb"
+      - '256mb'
       - --maxmemory-policy
-      - "allkeys-lru"
+      - 'allkeys-lru'
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - '${REDIS_PORT:-6379}:6379'
     volumes:
       - redis-data:/data
     networks:
       - mofang-net
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 3s
       retries: 5
@@ -120,7 +120,7 @@ services:
     image: prom/prometheus:v2.55.0
     container_name: mofang-prometheus
     restart: unless-stopped
-    profiles: ["monitoring"]
+    profiles: ['monitoring']
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -132,7 +132,7 @@ services:
       - ./docker/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus-data:/prometheus
     ports:
-      - "9090:9090"
+      - '9090:9090'
     networks:
       - mofang-net
 
@@ -143,16 +143,16 @@ services:
     image: grafana/grafana:11.3.0
     container_name: mofang-grafana
     restart: unless-stopped
-    profiles: ["monitoring"]
+    profiles: ['monitoring']
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
-      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_ALLOW_SIGN_UP: 'false'
     volumes:
       - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
     ports:
-      - "3001:3000"
+      - '3001:3000'
     networks:
       - mofang-net
     depends_on:
@@ -167,3 +167,59 @@ volumes:
   redis-data:
   prometheus-data:
   grafana-data:
+  # ============================================================
+  # V6.0 §12 RAG — Qdrant 1.x 向量库
+  # ============================================================
+  #   docker compose --profile rag up -d
+  #   不加 --profile 不会跑, 因为 RAG 是 V3 增强, V2.0 不依赖.
+  #   API: http://localhost:6333 (REST) / 6334 (gRPC)
+  #   持久化: ./docker/qdrant/data → qdrant-data 卷
+  qdrant:
+    image: qdrant/qdrant:v1.12.0
+    container_name: mofang-qdrant
+    restart: unless-stopped
+    profiles: ['rag']
+    command:
+      - --config-ration-filename=/qdrant/config/config.yaml
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:-}
+      QDRANT__TELEMETRY__DISABLED: 'true'
+    ports:
+      - '${QDRANT_PORT:-6333}:6333'
+      - '${QDRANT_GRPC_PORT:-6334}:6334'
+    volumes:
+      - qdrant-data:/qdrant/storage
+      - ./docker/qdrant/config:/qdrant/config:ro
+    networks:
+      - mofang-net
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:6333/healthz']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+  # ============================================================
+  # V6.0 §3.5 — LLM 反向代理 (LiteLLM, 可选)
+  # ============================================================
+  #   单点代理 OpenAI / DeepSeek / 豆包 / 通义, 走同一 URL.
+  #   api 容器环境变量 LLM_BASE_URL=http://litellm:4000 启用.
+  #   dev 阶段用厂商直连, V3 接 LiteLLM 做统一 quota.
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: mofang-litellm
+    restart: unless-stopped
+    profiles: ['litellm']
+    env_file:
+      - ./docker/litellm/.env
+    volumes:
+      - ./docker/litellm/config.yaml:/app/config.yaml:ro
+    ports:
+      - '${LITELLM_PORT:-4000}:4000'
+    networks:
+      - mofang-net
+    depends_on:
+      - qdrant
+
+volumes:
+  qdrant-data:

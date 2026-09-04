@@ -51,6 +51,11 @@ import { AddLifeStageProgress1700000010002 } from '../src/migration/170000001000
 import { AddKeyEvents1700000010003 } from '../src/migration/1700000010003-AddKeyEvents';
 import { AddGenomeDimensions1700000010004 } from '../src/migration/1700000010004-AddGenomeDimensions';
 
+// V2026-09-04 — 心塑 V6.0 §3 AI 引擎 5 张表 + §4.2 急救会话表 + §6 Inner World 游戏化解锁表 (audit P0-1/P0-3)
+import { AddAIEngineTables1714900000000 } from '../src/migration/1714900000000-AddAIEngineTables';
+import { AddEmergencySessions1714900000001 } from '../src/migration/1714900000001-AddEmergencySessions';
+import { AddGameUnlockProgress1714900000002 } from '../src/migration/1714900000002-AddGameUnlockProgress';
+
 try {
   loadEnvFile();
 } catch {}
@@ -103,6 +108,10 @@ const ormconfig = async (): Promise<DataSource> => {
       AddLifeStageProgress1700000010002,
       AddKeyEvents1700000010003,
       AddGenomeDimensions1700000010004,
+      // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)
+      AddAIEngineTables1714900000000,
+      AddEmergencySessions1714900000001,
+      AddGameUnlockProgress1714900000002,
     ],
     // migrationsRun: false (默认) — 手动 npm run migration:run
     // synchronize: false — 已禁, 强制走 migration

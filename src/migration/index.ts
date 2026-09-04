@@ -29,4 +29,9 @@ export { AddMicroInterventionConfigs1700000008001 } from './1700000008001-AddMic
 export { AddMicroInterventionHistory1700000008002 } from './1700000008002-AddMicroInterventionHistory';
 export { AddHomeMessages1700000008003 } from './1700000008003-AddHomeMessages';
 
+// V2026-09-04 — 心塑 V6.0 §3 AI 引擎 5 张表 + §4.2 急救会话表 + §6 Inner World 游戏化解锁表 (audit P0-1/P0-3)
+export { AddAIEngineTables1714900000000 } from './1714900000000-AddAIEngineTables';
+export { AddEmergencySessions1714900000001 } from './1714900000001-AddEmergencySessions';
+export { AddGameUnlockProgress1714900000002 } from './1714900000002-AddGameUnlockProgress';
+
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

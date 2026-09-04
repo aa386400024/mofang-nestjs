@@ -70,7 +70,6 @@ export class JwtAuthGuard implements CanActivate {
       throw new BizException(BizCode.TokenExpired, 'token 无效或已过期');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (payload.type !== TokenType.Access) {
       throw new BizException(BizCode.TokenInvalid, 'token 类型错误, 需要 access token');
     }
