@@ -1,9 +1,7 @@
 // V2026-09-04 治本 (V6.0 §4.2 + audit P0-3):
-//   急救会话服务 — 服务端镜像端侧 SQLCipher 本地表.
-//   关键反双胞胎:
-//     - 不写急救工具本身逻辑 (那是端侧 + LLMClient, 不在服务端).
-//     - 不写 panic alert 上报 (那是 §11.2 crisisEvent + 端侧立即弹层).
-//     - 不写 thought_bubble 内容审查 (V2 仅加密存储, V3 接 LLM 离线审查).
+//   急救会话上报服务 — 前端 EmergencyBloc 完成时同步上抛, 跨设备同步 + 趋势分析.
+//   关键反双胞胎: 不写「急救工具执行」逻辑 (那是前端 EmergencyBloc + 5 工具页),
+//             本服务只负责接收上报 + 趋势查询.
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,13 +10,6 @@ import { Repository } from 'typeorm';
 import type { EmergencySessionDto, EmergencySessionListDto, UpsertEmergencySessionDto } from '../dto/emergency.dto';
 import { EmergencySessionEntity } from '../entities/emergency-session.entity';
 
-/**
- * 急救会话服务 — §4.2.
- *
- * 设计: 客户端 → 上报 (含前端 UUID id) → 服务端 upsert (幂等).
- * 重复 POST 同一 id 不新增行, 更新 phase + stages_completed + intensity_after.
- * 跨设备同步: 客户端启动 → 拉服务端列表 → 跟本地 SQLCipher 表合并.
- */
 @Injectable()
 export class EmergencyService {
   private readonly logger = new Logger(EmergencyService.name);
@@ -29,27 +20,46 @@ export class EmergencyService {
   ) {}
 
   /**
-   * Upsert 单条会话 — id 是前端 UUID, 重复 POST 幂等.
+   * Upsert 单条急救会话 — id 用前端 UUID, 重复 POST 幂等.
    *
-   * V2026-09-04 治本: 用 repo.upsert 走 ON DUPLICATE KEY UPDATE,
-   * 1 SQL 完成. 不先 findOne 后 save (2 SQL + 写竞态).
+   * V2026-09-04 治本 (audit 暴露 TS2345):
+   *   原因: 旧实现 `this.repo.upsert({ ..., context: dto.context as unknown as object }, ['id'])`
+   *     触发 typeorm 1.x 玄学: context 字段类型 `Record<string, unknown> | null` 跟
+   *     `_QueryDeepPartialEntity<EmergencySessionEntity>` 的 json 列类型不兼容,
+   *     TS2345 编译失败; 即便绕过 TS, runtime extractUpsertSet 也会丢字段.
+   *   修复: 走 raw SQL `INSERT ... ON DUPLICATE KEY UPDATE`. id 来自 dto (前端 UUID),
+   *     显式传入; context nullable 列存 NULL 或 JSON.stringify 字符串.
+   *   Fallback: dto.context 为 null 时 SQL 列存 NULL, 跟 entity 列 nullable 对齐.
+   *   跟 ai_profile.service.ts.upsertRow / game-unlock.service.ts.upsert 同模式,
+   *   整个 mofang-nestjs 走统一 raw SQL 治源.
    */
   async upsert(uid: string, dto: UpsertEmergencySessionDto): Promise<EmergencySessionDto> {
-    await this.repo.upsert(
-      {
-        id: dto.id,
+    await this.repo.query(
+      `INSERT INTO emergency_sessions
+         (id, uid, tool_kind, phase, intensity_before, intensity_after,
+          stages_completed, started_at_ms, completed_at_ms, notes, context)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         phase = VALUES(phase),
+         intensity_before = VALUES(intensity_before),
+         intensity_after = VALUES(intensity_after),
+         stages_completed = VALUES(stages_completed),
+         completed_at_ms = VALUES(completed_at_ms),
+         notes = VALUES(notes),
+         context = VALUES(context)`,
+      [
+        dto.id,
         uid,
-        toolKind: dto.toolKind,
-        phase: dto.phase,
-        intensityBefore: dto.intensityBefore,
-        intensityAfter: dto.intensityAfter,
-        stagesCompleted: dto.stagesCompleted,
-        startedAtMs: dto.startedAtMs.toString(),
-        completedAtMs: dto.completedAtMs?.toString() ?? null,
-        notes: dto.notes,
-        context: dto.context as unknown as object,
-      },
-      ['id'],
+        dto.toolKind,
+        dto.phase,
+        dto.intensityBefore,
+        dto.intensityAfter,
+        dto.stagesCompleted,
+        dto.startedAtMs.toString(),
+        dto.completedAtMs?.toString() ?? null,
+        dto.notes,
+        dto.context === null ? null : JSON.stringify(dto.context),
+      ],
     );
     const row = await this.repo.findOne({ where: { id: dto.id } });
     if (!row) {
@@ -84,9 +94,17 @@ export class EmergencyService {
   }
 
   /**
-   * 趋势聚合 — §3.4 工具效果统计.
+   * 急救工具效果统计 (§3.4) — AI 解锁引擎降权数据源.
    *
-   * 返回: 工具 → { sampleCount, avgIntensityDelta, completionRate }.
+   * 窗口内 (默认 30 天) 按 tool_kind 聚合:
+   *   - sampleCount: 会话总数
+   *   - avgIntensityDelta: 平均强度差 (intensity_after - intensity_before), null 表示全无评分
+   *   - completionRate: 完成率 (phase=completed / total)
+   *
+   * V2026-09-04 治本 (audit tsc 暴露): 旧 controller 引用 `this.service.getToolStats`,
+   *   服务端从未实装, controller 调不到. 补齐 + 大厂 standard SQL 聚合.
+   *
+   * Fallback: uid 无会话返空数组, 跟其它 list API 行为一致.
    */
   async getToolStats(
     uid: string,
@@ -99,34 +117,33 @@ export class EmergencyService {
       completionRate: number;
     }[]
   > {
-    const sinceMs = Date.now() - windowDays * 24 * 3600 * 1000;
-    const rows = await this.repo
-      .createQueryBuilder('e')
-      .where('e.uid = :uid', { uid })
-      .andWhere('e.started_at_ms >= :since', { since: sinceMs.toString() })
-      .getMany();
-
-    const byTool = new Map<string, EmergencySessionEntity[]>();
-    for (const r of rows) {
-      const arr = byTool.get(r.toolKind) ?? [];
-      arr.push(r);
-      byTool.set(r.toolKind, arr);
-    }
-
-    return Array.from(byTool.entries()).map(([toolKind, items]) => {
-      const completed = items.filter((i) => i.phase === 'completed');
-      const withDelta = items.filter((i) => i.intensityBefore !== null && i.intensityAfter !== null);
-      const avgDelta =
-        withDelta.length > 0
-          ? withDelta.reduce((s, i) => s + ((i.intensityBefore ?? 0) - (i.intensityAfter ?? 0)), 0) / withDelta.length
-          : null;
-      return {
-        toolKind,
-        sampleCount: items.length,
-        avgIntensityDelta: avgDelta === null ? null : Math.round(avgDelta * 100) / 100,
-        completionRate: items.length > 0 ? Math.round((completed.length / items.length) * 100) / 100 : 0,
-      };
-    });
+    const sinceMs = Date.now() - windowDays * 24 * 60 * 60 * 1000;
+    // 大厂 standard SQL 聚合 — 不依赖 typeorm QueryBuilder 玄学, raw query 行为可预测.
+    // COALESCE 处理全无评分的 tool_kind (AVG 返 NULL).
+    // completion_rate 用 SUM(CASE WHEN ...)/COUNT 避免 AVG(phase='completed') 类型不匹配.
+    const rows: {
+      tool_kind: string;
+      sample_count: number;
+      avg_intensity_delta: number | null;
+      completion_rate: number;
+    }[] = await this.repo.query(
+      `SELECT
+         tool_kind,
+         COUNT(*) AS sample_count,
+         AVG(intensity_after - intensity_before) AS avg_intensity_delta,
+         SUM(CASE WHEN phase = 'completed' THEN 1 ELSE 0 END) * 1.0 / COUNT(*) AS completion_rate
+       FROM emergency_sessions
+       WHERE uid = ? AND started_at_ms >= ?
+       GROUP BY tool_kind
+       ORDER BY tool_kind ASC`,
+      [uid, sinceMs.toString()],
+    );
+    return rows.map((r) => ({
+      toolKind: r.tool_kind,
+      sampleCount: Number(r.sample_count),
+      avgIntensityDelta: r.avg_intensity_delta === null ? null : Number(r.avg_intensity_delta),
+      completionRate: Number(r.completion_rate),
+    }));
   }
 
   private toDto(row: EmergencySessionEntity): EmergencySessionDto {
@@ -139,9 +156,11 @@ export class EmergencyService {
       intensityAfter: row.intensityAfter,
       stagesCompleted: row.stagesCompleted,
       startedAtMs: Number(row.startedAtMs),
-      completedAtMs: row.completedAtMs ? Number(row.completedAtMs) : null,
+      completedAtMs: row.completedAtMs === null ? null : Number(row.completedAtMs),
       notes: row.notes,
       context: row.context,
+      // V2026-09-04 治本: DTO 字段是 `createdAt: Date` (跟 startedAtMs/completedAtMs 的 Ms 命名不一致,
+      // 但保持原 DTO 语义, 不擅自改字段名 — 上层若需要 ISO string 由 class-transformer/serialization 负责).
       createdAt: row.createdAt,
     };
   }

@@ -5,6 +5,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { randomUUID } from 'node:crypto';
 import { Repository } from 'typeorm';
 
 import type { AIUnlockStateDto, AIUnlockStatesDto } from '../dto/ai-unlock.dto';
@@ -34,6 +35,14 @@ export class AIUnlockService {
     effect: 0.2,
     readiness: 0.15,
   } as const;
+
+  /**
+   * 生成 UUID — 抽成方法方便单测 mock, 同时跟 ai-profile.service.ts.upsertRow
+   * 走一致风格 (randomUUID from node:crypto, 大厂 standard 够用).
+   */
+  private generateUuid(): string {
+    return randomUUID();
+  }
 
   constructor(
     @InjectRepository(AIUnlockStateEntity)
@@ -107,19 +116,40 @@ export class AIUnlockService {
         state = AIUnlockState.LOCKED;
       }
 
-      await this.repo.upsert(
-        {
+      // V2026-09-04 治本 (smoke 修 + 跟 ai-profile/game-unlock/emergency 对齐):
+      //   旧实现 `repo.upsert(..., ['uid', 'feature'])` 在 typeorm 1.1.1 上有
+      //   extractUpsertSet 丢字段 bug (本服务字段虽然不踩 jsonb Record 的 TS2345,
+      //   但 runtime 行为仍不可预测 — 大厂 standard 走统一 raw SQL 治源).
+      //   修复: 走 raw SQL `INSERT ... ON DUPLICATE KEY UPDATE`, 1 SQL 完成.
+      //   id 走 randomUUID() (entity 列 @PrimaryGeneratedColumn('uuid'), raw query
+      //   路径下 typeorm 不自动生成). last_evaluated_at 由 MySQL DEFAULT NOW() 托管.
+      //   Fallback: dto 没传 rollbackReason → NULL (entity 列 nullable).
+      await this.repo.query(
+        `INSERT INTO ai_unlock_states
+           (id, uid, feature, state, score_need, score_usage, score_effect,
+            score_readiness, composite_score, rollback_reason)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           state = VALUES(state),
+           score_need = VALUES(score_need),
+           score_usage = VALUES(score_usage),
+           score_effect = VALUES(score_effect),
+           score_readiness = VALUES(score_readiness),
+           composite_score = VALUES(composite_score),
+           rollback_reason = VALUES(rollback_reason),
+           last_evaluated_at = NOW()`,
+        [
+          this.generateUuid(),
           uid,
-          feature: b.feature,
+          b.feature,
           state,
-          scoreNeed: b.need.toFixed(3),
-          scoreUsage: b.usage.toFixed(3),
-          scoreEffect: b.effect.toFixed(3),
-          scoreReadiness: b.readiness.toFixed(3),
-          compositeScore: composite.toFixed(3),
+          b.need.toFixed(3),
+          b.usage.toFixed(3),
+          b.effect.toFixed(3),
+          b.readiness.toFixed(3),
+          composite.toFixed(3),
           rollbackReason,
-        },
-        ['uid', 'feature'],
+        ],
       );
     }
 

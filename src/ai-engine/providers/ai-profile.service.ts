@@ -18,6 +18,7 @@ import { AIProfileSource } from '../enums/ai-profile.enums';
  * 行为:
  *   - getProfile(uid): 一次拉 7 维度 (LEFT JOIN 7 row per uid).
  *   - upsertDimension(uid, dto): 单维度 upsert (on duplicate update payload + source + updated_at).
+ *   - batchUpsert(uid, dtos): 多维度 upsert, 内部循环调 upsertRow (DRY).
  *   - 用于: 端侧启动 → 拉服务端权威画像 → 跟本地画像 diff 同步;
  *           端侧评估完成 → 单维度上报; 用户在偏好面板改 → user_override 写.
  */
@@ -62,18 +63,11 @@ export class AIProfileService {
    *   表现: SQL 只填 `id` + `uid`, dimension / payload / source 全 DEFAULT,
    *     报 `Field 'payload' doesn't have a default value` (ER_NO_DEFAULT_FOR_FIELD 1364).
    *   修复: 走 raw SQL `INSERT ... ON DUPLICATE KEY UPDATE`, 1 SQL 完成, 行为可预测,
-   *     彻底绕开 typeorm 1.x QueryBuilder metadata 玄学.
+   *     彻底绕开 typeorm 1.x QueryBuilder metadata 玄学. 抽出 upsertRow 复用, 单行
+   *     和批量路径走同一治源 (DRY + 行为一致).
    */
   async upsertDimension(uid: string, dto: UpsertAIProfileDimensionDto): Promise<AIProfileDimensionDto> {
-    // V2026-09-04 治本 (smoke 修): raw SQL ON DUPLICATE KEY UPDATE.
-    // JSON.stringify(payload) 是因为 mysql2 driver 不会自动序列化 js 对象.
-    // entity 列类型 `json` 接受 string, driver 端透传 (5.7+ 原生 json 类型).
-    await this.repo.query(
-      `INSERT INTO ai_profile_cache (id, uid, dimension, payload, source)
-       VALUES (?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE payload = VALUES(payload), source = VALUES(source)`,
-      [randomUUID(), uid, dto.dimension, JSON.stringify(dto.payload), dto.source],
-    );
+    await this.upsertRow(uid, dto);
 
     const row = await this.repo.findOne({
       where: { uid, dimension: dto.dimension },
@@ -101,16 +95,21 @@ export class AIProfileService {
    *
    * 反双胞胎: 不写「merge 7 维度」逻辑 — 调用方自己控制覆盖策略
    * (e.g. cloud > local > 旧值). 服务端只负责写库.
+   *
+   * V2026-09-04 治本 (audit 暴露 TS2345):
+   *   原因: 旧实现 `this.repo.upsert(records, ['uid', 'dimension'])` 触发 typeorm 1.x
+   *     玄学, payload 字段类型 `Record<string, unknown>` 跟 `_QueryDeepPartialEntity<AIProfileCache>`
+   *     的 json 类型 `(() => string) | _QueryDeepPartialEntity<...> | undefined` 不兼容,
+   *     TS2345 编译失败; 即便绕过 TS, runtime 也会因 extractUpsertSet 丢字段抛 ER_NO_DEFAULT.
+   *   修复: 循环调私有 upsertRow (raw SQL), 7 维度走 7 次 INSERT (并发安全, 单维度
+   *     (uid, dimension) 唯一约束兜底). 比单条 batch raw SQL 简单可读, N≤7 完全可接受.
+   *   Fallback: dtos 为空时走 getProfile, 行为跟旧实现一致.
    */
   async batchUpsert(uid: string, dtos: UpsertAIProfileDimensionDto[]): Promise<AIProfileDto> {
     if (dtos.length === 0) return this.getProfile(uid);
-    const records = dtos.map((d) => ({
-      uid,
-      dimension: d.dimension,
-      payload: d.payload,
-      source: d.source,
-    }));
-    await this.repo.upsert(records, ['uid', 'dimension']);
+    for (const d of dtos) {
+      await this.upsertRow(uid, d);
+    }
     return this.getProfile(uid);
   }
 
@@ -127,5 +126,26 @@ export class AIProfileService {
       payload,
       source: AIProfileSource.USER_OVERRIDE,
     });
+  }
+
+  /**
+   * 单维度 raw SQL upsert — 私有治源, 单行/批量路径共享.
+   *
+   * 设计要点:
+   *   - 显式 randomUUID() 生成 id (绕开 typeorm @PrimaryGeneratedColumn('uuid')
+   *     在 raw query 路径下不触发的问题).
+   *   - JSON.stringify(payload) 是因为 mysql2 driver 不会自动序列化 js 对象;
+   *     entity 列类型 `json` 接受 string, driver 端透传 (5.7+ 原生 json 类型).
+   *   - ON DUPLICATE KEY UPDATE 只更新 payload + source 两列, 保持跟旧实现语义一致
+   *     (updated_at 由 MySQL ON UPDATE CURRENT_TIMESTAMP 列定义托管).
+   *   - 不引入 connection.transaction: 单维度独立失败不影响其它维度 (前端可单独重试).
+   */
+  private async upsertRow(uid: string, dto: UpsertAIProfileDimensionDto): Promise<void> {
+    await this.repo.query(
+      `INSERT INTO ai_profile_cache (id, uid, dimension, payload, source)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE payload = VALUES(payload), source = VALUES(source)`,
+      [randomUUID(), uid, dto.dimension, JSON.stringify(dto.payload), dto.source],
+    );
   }
 }
