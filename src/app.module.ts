@@ -26,6 +26,7 @@ import { AppNamingStrategy } from './database/naming-strategy';
 import { EmbodiedModule } from './embodied/embodied.module';
 import { EmergencyModule } from './emergency/emergency.module';
 import { GenomeReshapeModule } from './genome-reshape/genome-reshape.module';
+import { GoodStateDiaryModule } from './good_state_diary/good_state_diary.module';
 import { GuideModule } from './guide/guide.module';
 import { HomeModule } from './home/home.module';
 import { GameUnlockModule } from './inner_world/game-unlock.module';
@@ -173,6 +174,8 @@ import { OAuthModule } from './user/oauth';
     EmergencyModule, // /emergency/*
     // V2026-09-04 — 心塑 V6.0 §6 Inner World 游戏化模块解锁进度 (game_unlock_progress V2 表)
     GameUnlockModule, // /inner-world/game-unlock/*
+    // V2026-09-11 — 心塑「好状态日记」模块 (V4.0 §6 觉察日记云端契约, 9 + 1 端点)
+    GoodStateDiaryModule, // /diary/entries/* + /ai/diary-feedback
   ],
   providers: [
     // Global Throttler Guard

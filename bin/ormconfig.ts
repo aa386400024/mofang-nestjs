@@ -56,6 +56,9 @@ import { AddAIEngineTables1714900000000 } from '../src/migration/1714900000000-A
 import { AddEmergencySessions1714900000001 } from '../src/migration/1714900000001-AddEmergencySessions';
 import { AddGameUnlockProgress1714900000002 } from '../src/migration/1714900000002-AddGameUnlockProgress';
 
+// V2026-09-11 — 心塑 V4.0 §6「好状态日记」1 张表 (good_state_diary_entries)
+import { AddGoodStateDiary1714900000003 } from '../src/migration/1714900000003-AddGoodStateDiary';
+
 try {
   loadEnvFile();
 } catch {}
@@ -112,6 +115,8 @@ const ormconfig = async (): Promise<DataSource> => {
       AddAIEngineTables1714900000000,
       AddEmergencySessions1714900000001,
       AddGameUnlockProgress1714900000002,
+      // V2026-09-11 — 好状态日记 (good_state_diary_entries)
+      AddGoodStateDiary1714900000003,
     ],
     // migrationsRun: false (默认) — 手动 npm run migration:run
     // synchronize: false — 已禁, 强制走 migration
