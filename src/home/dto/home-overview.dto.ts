@@ -119,6 +119,74 @@ export class SupportCompanionDto {
 // ════════════════════════════════════════════════════════════════════════════
 
 /**
+ * 微干预场景化元数据 DTO — V2026-09-11 新增.
+ *
+ * 跟后端 micro_intervention_scenarios 表 1:1 对应.
+ * 字段顺序跟前端 entity MicroInterventionScenario 一致, 改字段必须同步两端.
+ *
+ * V2026-09-11 治本 (消除前端硬编双胞胎):
+ *   - 旧实现: 前端 5 个场景硬编在 Dart (MicroInterventionScenarios.defaults),
+ *     跟后端 7 个 trigger 双胞胎.
+ *   - 现在: 后端从 micro_intervention_scenarios 表查, 通过本 DTO 一次性下发,
+ *     前端 3 处 UI (scenarios list / home section / settings) 全部从这里读.
+ */
+export class MicroInterventionScenarioDto {
+  @ApiProperty({ description: 'trigger id (PK, 跟 HOME_MICRO_INTERVENTION_TRIGGERS 一一对应)', example: 'before_meeting' })
+  trigger!: string;
+
+  @ApiProperty({ description: '显示场景名', example: '会议前' })
+  scenario!: string;
+
+  @ApiProperty({ description: 'emoji 图标', example: '📅' })
+  icon!: string;
+
+  @ApiProperty({ description: '微干预类型', enum: ['breathing', 'grounding', 'cognitive_defusion', 'self_talk'] })
+  kind!: 'breathing' | 'grounding' | 'cognitive_defusion' | 'self_talk';
+
+  @ApiProperty({ description: '时长 (秒)', example: 30 })
+  durationSeconds!: number;
+
+  @ApiProperty({ description: '场景分类 (UI 分组用)', enum: ['work', 'social', 'rest', 'emotion'] })
+  category!: 'work' | 'social' | 'rest' | 'emotion';
+
+  @ApiProperty({ description: '触发说明文案 (用户看的副文案)', example: '日程检测到会议前 5 分钟' })
+  triggerDescription!: string;
+
+  @ApiProperty({ description: '强调色 key (UI 端 palette 查色)', example: 'softBlue' })
+  accentKey!: string;
+
+  @ApiProperty({ description: '展示顺序 (越小越靠前)', example: 1 })
+  displayOrder!: number;
+
+  @ApiProperty({ description: '是否启用', example: true })
+  isEnabled!: boolean;
+}
+
+/**
+ * 微干预练习统计 DTO — V2026-09-11 新增 (治本遗留 #3).
+ *
+ * 大厂 standard (跟前端 MicroInterventionStats entity 1:1 对齐):
+ *   - 三指标字段, 全部 non-negative int
+ *   - 完成数 / 触发数 / 连续天数 — 复刻 Headspace/Calm 进度感, 但不带评价
+ *   - 数值全 0 时前端 `hasAny == false` 不渲染 stat 行, 避免首次空数据尴尬
+ *
+ * 计算口径 (跟客户端时区挂钩):
+ *   - completedThisWeek: 本周一 00:00 (客户端 tz) 至今 completed 的次数
+ *   - triggeredToday:    今天 00:00 (客户端 tz) 至今 started 的次数
+ *   - consecutiveDays:   连续 N 天「有过 completed 记录」, 今日没记录则断
+ */
+export class MicroInterventionStatsDto {
+  @ApiProperty({ description: '本周完成数 (周一 00:00 客户端 tz 至今)', example: 7 })
+  completedThisWeek!: number;
+
+  @ApiProperty({ description: '今日触发数 (今日 00:00 客户端 tz 至今)', example: 2 })
+  triggeredToday!: number;
+
+  @ApiProperty({ description: '连续天数 (今日没记录则断, 0 = 今日无记录)', example: 3 })
+  consecutiveDays!: number;
+}
+
+/**
  * 首页综合快照 (父 DTO).
  */
 export class HomeOverviewDto {
@@ -166,6 +234,43 @@ export class HomeOverviewDto {
 
   @ApiProperty({ description: '未读消息数 (顶部消息入口红点)', example: 0 })
   unreadMessageCount!: number;
+
+  /**
+   * V2026-09-11 新增 (治本双胞胎).
+   *   - 后端从 micro_intervention_scenarios 表查, 一次性下发 7 个 trigger 元数据.
+   *   - 前端 3 处 UI (scenarios list / home section / settings) 全部消费本字段.
+   *   - 空数组时前端走「empty state」, 不再硬编 fallback.
+   */
+  @ApiProperty({ description: '微干预场景化元数据 (后端 source of truth, 替代前端硬编)', type: [MicroInterventionScenarioDto] })
+  microInterventionScenarios!: MicroInterventionScenarioDto[];
+
+  /**
+   * V2026-09-11 新增 (治本遗留 #3 — 前端 stat 行无数据源).
+   *   - 后端聚合 micro_intervention_history 表 (SQL, 避免 N+1).
+   *   - 时区按 [clientTimezone] 计算, 客户端没传则 fallback UTC (跟 server time 一致).
+   */
+  @ApiProperty({ description: '微干预练习统计 (本周完成 / 今日触发 / 连续天数)', type: MicroInterventionStatsDto })
+  microInterventionStats!: MicroInterventionStatsDto;
+}
+
+/**
+ * 首页综合快照查询 DTO — GET /home/overview.
+ *
+ * V2026-09-11 新增 [clientTimezone]:
+ *   - stats 聚合按客户端时区计算 (「今日」「本周一」边界跟用户本地一致).
+ *   - 不传 fallback UTC (跟 server time 对齐, 边界偏差可接受).
+ */
+export class HomeOverviewQueryDto {
+  @ApiProperty({ description: '当前情绪档位 (前端从 EmotionBloc 注入)', required: false, enum: HOME_EMOTION_LEVELS })
+  @IsOptional()
+  @IsString()
+  @IsIn(HOME_EMOTION_LEVELS)
+  emotionLevel?: HomeEmotionLevel;
+
+  @ApiProperty({ description: '客户端时区 (e.g. Asia/Shanghai), stats 聚合用', required: false, example: 'Asia/Shanghai' })
+  @IsOptional()
+  @IsString()
+  clientTimezone?: string;
 }
 
 /**

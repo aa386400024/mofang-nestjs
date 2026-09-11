@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
+import { HomeMicroInterventionScenarioService } from './home-micro-intervention-scenario.service';
+import { HomeMicroInterventionStatsService } from './home-micro-intervention-stats.service';
 import { HomeMicroInterventionService } from './home-micro-intervention.service';
 import { HomeMoodLogService } from './home-mood-log.service';
 import { HomeRecommendationEngine } from './home-recommendation.engine';
@@ -39,6 +41,8 @@ export class HomeOverviewService {
     private readonly messageRepo: Repository<HomeMessage>,
     private readonly moodService: HomeMoodLogService,
     private readonly microService: HomeMicroInterventionService,
+    private readonly microStatsService: HomeMicroInterventionStatsService,
+    private readonly microScenarioService: HomeMicroInterventionScenarioService,
     private readonly recommendationEngine: HomeRecommendationEngine,
   ) {}
 
@@ -48,13 +52,24 @@ export class HomeOverviewService {
    * 入参 [emotionLevel] 优先 (来自前端 EmotionBloc, 实时),
    * 兜底从 mood_logs 表读最新一条 (V3 主路径).
    *
+   * V2026-09-11 升级 (治本双胞胎 + 遗留 #3):
+   *   - 加 [clientTimezone] 参数, 给 stats 聚合用 (今日/本周边界按客户端 tz).
+   *   - 加 `microInterventionScenarios` (查 micro_intervention_scenarios 表)
+   *   - 加 `microInterventionStats` (聚合 micro_intervention_history 表)
+   *
    * 大厂做法:
-   *   - 「今日」用本地时间 0 点
+   *   - 「今日」用本地时间 0 点 (Intl.DateTimeFormat + tz)
    *   - 陪伴者上限 3 个 (maxVisible), 超出由前端折叠
    *   - 微干预 active + pending 同时返回
    *   - greeting 用服务端时间 (timezone-safe)
+   *   - 3 个微干预相关 query 并行 (Promise.all), 避免串行延迟叠加
    */
-  async getOverview(uid: string, emotionLevel: HomeEmotionLevel | null, now: Date = new Date()): Promise<HomeOverviewDto> {
+  async getOverview(
+    uid: string,
+    emotionLevel: HomeEmotionLevel | null,
+    clientTimezone?: string,
+    now: Date = new Date(),
+  ): Promise<HomeOverviewDto> {
     // 1. greeting + dateLabel + timeSlot (服务端时区)
     const greet = this.recommendationEngine.greet(now);
 
@@ -76,8 +91,14 @@ export class HomeOverviewService {
           emotionLoggedAt: null,
         };
 
-    // 4. 微干预 active + pending
-    const micro = await this.microService.getActive(uid, effectiveEmotion, now);
+    // 4. 微干预相关三件事并行 (active + scenarios + stats)
+    //    V2026-09-11: 之前只查 active/pending, 现在加 scenarios 查表 + stats 聚合,
+    //    用 Promise.all 避免串行延迟叠加 (3 query 总耗时 ≈ 单 query 最慢).
+    const [micro, scenarios, stats] = await Promise.all([
+      this.microService.getActive(uid, effectiveEmotion, now),
+      this.microScenarioService.listActive(),
+      this.microStatsService.getStats(uid, clientTimezone, now),
+    ]);
 
     // 5. 推荐 (情绪 + 时段联合)
     const recommendation: TodayRecommendationDto = this.recommendationEngine.pick(effectiveEmotion, now);
@@ -106,6 +127,8 @@ export class HomeOverviewService {
       companions,
       companionsTotal: total,
       unreadMessageCount: unreadCount,
+      microInterventionScenarios: scenarios,
+      microInterventionStats: stats,
     };
   }
 

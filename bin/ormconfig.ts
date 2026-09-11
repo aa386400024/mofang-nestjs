@@ -59,6 +59,9 @@ import { AddGameUnlockProgress1714900000002 } from '../src/migration/17149000000
 // V2026-09-11 — 心塑 V4.0 §6「好状态日记」1 张表 (good_state_diary_entries)
 import { AddGoodStateDiary1714900000003 } from '../src/migration/1714900000003-AddGoodStateDiary';
 
+// V2026-09-11 — 心塑首页「微干预场景化元数据」表 (7 trigger 元数据 + V2 完整 stats 实现)
+import { AddMicroInterventionScenarios1714900000004 } from '../src/migration/1714900000004-AddMicroInterventionScenarios';
+
 try {
   loadEnvFile();
 } catch {}
@@ -117,6 +120,8 @@ const ormconfig = async (): Promise<DataSource> => {
       AddGameUnlockProgress1714900000002,
       // V2026-09-11 — 好状态日记 (good_state_diary_entries)
       AddGoodStateDiary1714900000003,
+      // V2026-09-11 — 首页微干预场景化元数据 (7 trigger + 完整 stats 支撑)
+      AddMicroInterventionScenarios1714900000004,
     ],
     // migrationsRun: false (默认) — 手动 npm run migration:run
     // synchronize: false — 已禁, 强制走 migration
