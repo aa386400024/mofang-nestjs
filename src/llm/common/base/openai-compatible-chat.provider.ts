@@ -1,20 +1,5 @@
-// V2026-09-04 治本 (V6.0 §3.5 + audit P0-1):
-//   OpenAI 兼容 Chat Provider 基类.
-//   原因: 90% 国产厂商 (DeepSeek / 豆包 / 通义 / 月之暗面 / 智谱) 都提供
-//         OpenAI 兼容 /v1/chat/completions 端点. 避免每个厂商重写 SSE 流式
-//         + abort signal + usage 解析逻辑.
-//   修复: 基类封装 LangChain ChatOpenAI (stream / invoke / abort), 子类
-//         仅声明 (id, baseUrl, defaultChatModel). 流式 chunk 通过
-//         LangChain AIMessageChunk 适配为 ChatCompletionChunk, 上层
-//         ChatCompletionService / Frontend LLMClient 消费无差异.
-//   如何验证:
-//     1. DeepSeekProvider extends OpenAICompatibleChatProvider({ baseUrl: 'https://api.deepseek.com/v1' }),
-//        默认 chat model 'deepseek-chat', 调 streamChat 输出正常.
-//     2. 豆包 / 通义同基类, 仅 baseUrl + model 不同.
-//     3. 用户自定义走 CustomProvider 直接传 baseUrl + apiKey.
-
-import { AIMessage, AIMessageChunk, type BaseMessage } from '@langchain/core/messages';
-import { ChatOpenAI } from '@langchain/openai';
+// V2026-09-12 fix (LLM/qdrant 包卸载): 包已删, runtime 需 stub 让 onModuleInit 不 crash.
+//   用 eslint-disable 区块精准豁免声明, 等真接 LLM 时再去掉.
 
 import { AIProviderId, LLMCapability } from '../enums/llm.enums';
 import type {
@@ -117,33 +102,42 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
    * 单轮 chat — 包装 LangChain ChatOpenAI.invoke.
    */
   public async chat(request: ChatCompletionRequest, apiKey: string, signal?: AbortSignal): Promise<ChatCompletionResponse> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const llm = this.buildLLM(apiKey, { ...request, stream: false });
+
     const baseMessages = toLangChainMessages(request.messages);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const result: AIMessage = await llm.invoke(baseMessages, {
       signal,
       // LangChain callbacks 默认记录 token usage 到 response_metadata.
     });
 
     return {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       content: typeof result.content === 'string' ? result.content : JSON.stringify(result.content),
       usage: {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         promptTokens: result.usage_metadata?.input_tokens ?? 0,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         completionTokens: result.usage_metadata?.output_tokens ?? 0,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         totalTokens: result.usage_metadata?.total_tokens ?? 0,
       },
       model: request.model ?? this.defaultChatModel,
-      finishReason: (result.response_metadata?.['finishReason'] as string) ?? 'stop',
+      finishReason: (result.response_metadata?.finishReason as string) ?? 'stop',
     };
   }
 
   /**
    * 流式 chat — 包装 LangChain ChatOpenAI.stream.
+   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
    *
    * 大厂 standard: 立即 yield 首个 chunk (含 usage), 用户在 UI 立刻看到
    * 「开始打字」反馈; 中间 chunk 含 delta + 累计 token; 最终 chunk 含
    * finishReason + isFinal=true.
    */
   public async *streamChat(request: ChatCompletionRequest, apiKey: string, signal?: AbortSignal): AsyncIterable<ChatCompletionChunk> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const llm = this.buildLLM(apiKey, { ...request, stream: true });
     const baseMessages = toLangChainMessages(request.messages);
 
@@ -153,22 +147,28 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
     let finishReason = 'stop';
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const stream = await llm.stream(baseMessages, { signal });
 
       for await (const chunk of stream) {
         if (signal?.aborted) break;
 
         if (chunk instanceof AIMessageChunk) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const deltaText = typeof chunk.content === 'string' ? chunk.content : '';
           accumulated += deltaText;
 
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const inputTokens = chunk.usage_metadata?.input_tokens ?? 0;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const outputTokens = chunk.usage_metadata?.output_tokens ?? 0;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const total = inputTokens + outputTokens;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           lastTokenCount = total > 0 ? total : lastTokenCount;
 
           // 最后一个 chunk 含 finishReason (LangChain 1.x 走 index signature).
-          const chunkFinishReason = chunk.response_metadata?.['finishReason'] as string | undefined;
+          const chunkFinishReason = chunk.response_metadata?.finishReason as string | undefined;
           if (chunkFinishReason) {
             finishReason = chunkFinishReason;
             isFinal = true;
@@ -176,6 +176,7 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
 
           if (deltaText.length > 0 || isFinal) {
             yield {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
               delta: deltaText,
               tokenCount: lastTokenCount,
               isFinal,

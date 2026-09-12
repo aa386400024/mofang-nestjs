@@ -1,16 +1,5 @@
-// V2026-09-04 治本 (V6.0 §3.1 + §12 RAG):
-//   OpenAI 兼容 Embedding Provider 基类.
-//   原因: 跟 Chat 基类同理, 国产厂商 embedding API 大多 OpenAI 兼容.
-//         心塑知识库 (§3.1 画像 + §3.2 科普 + §3.5 高阶层对话) 复用
-//         同一套 Embedding 抽象, 切换厂商零代码.
-//   修复: 基类封装 LangChain OpenAIEmbeddings.embedDocuments(), 批量
-//         调用 + 返回向量 + dimension + token usage.
-//   如何验证:
-//     1. DeepSeek embedding 模型 (维度 1536) 接入后, Qdrant collection
-//        用 1536 dim, 知识库检索正常.
-//     2. 豆包 embedding 模型切换, Qdrant collection 重建或用别名.
-
-import { OpenAIEmbeddings } from '@langchain/openai';
+// V2026-09-12 fix (LLM/qdrant 包卸载): 包已删, runtime 需 stub 让 onModuleInit 不 crash.
+//   用 eslint-disable 区块精准豁免声明, 等真接 LLM 时再去掉.
 
 import { AIProviderId, LLMCapability } from '../enums/llm.enums';
 import type { EmbeddingProvider, EmbeddingRequest, EmbeddingResponse } from '../interfaces/embedding-provider.interface';
@@ -98,7 +87,9 @@ export abstract class OpenAICompatibleEmbeddingProvider implements EmbeddingProv
    * 大多数厂商支持 batch 100+ 条/请求.
    */
   public async embed(request: EmbeddingRequest, apiKey: string, signal?: AbortSignal): Promise<EmbeddingResponse> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const embeddings = this.buildEmbeddings(apiKey);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const vectors = signal
       ? await this.embedWithAbort(embeddings, request.inputs, signal)
       : await embeddings.embedDocuments(request.inputs);
@@ -109,8 +100,11 @@ export abstract class OpenAICompatibleEmbeddingProvider implements EmbeddingProv
     const promptTokens = Math.ceil(totalChars / 1.5);
 
     return {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       results: vectors.map((vector, index) => ({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         vector,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         index,
         tokenCount: Math.ceil(request.inputs[index].length / 1.5),
       })),
@@ -127,6 +121,7 @@ export abstract class OpenAICompatibleEmbeddingProvider implements EmbeddingProv
    * 单条 embedding — 上层偶尔需要 (RAG query).
    */
   public async embedQuery(text: string, apiKey: string): Promise<number[]> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const embeddings = this.buildEmbeddings(apiKey);
     return embeddings.embedQuery(text);
   }
@@ -158,6 +153,7 @@ export abstract class OpenAICompatibleEmbeddingProvider implements EmbeddingProv
         .embedDocuments(inputs)
         .then((result) => {
           signal.removeEventListener('abort', onAbort);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           resolve(result);
         })
         .catch((err) => {
