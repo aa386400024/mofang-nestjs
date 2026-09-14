@@ -1,13 +1,64 @@
 // V2026-09-12 fix (LLM/qdrant 包卸载): 包已删, runtime 需 stub 让 onModuleInit 不 crash.
 //   用 eslint-disable 区块精准豁免声明, 等真接 LLM 时再去掉.
 
+// V2026-09-14 治本 (V6.0 §12.2 + 后端工程标准):
+//   原因: V2026-09-12 治本加 `// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment`
+//         想压 lint — 但 typescript-eslint 压不住 TS 编译器错 (TS-prefix 是 tsc 报的).
+//         旧 stub class `getCollection()` 返回 `Promise<unknown>` → `info` 是 unknown
+//         → `info.config?.params?.vectors?.size` 报 TS18046. `query()` 返回
+//         `{ points: unknown[] }` → `points.map((p) => ...)` 里 `p.id / p.score /
+//         p.payload` 报 3 个 TS18046.
+//
+//   修复: 定义 QdrantCollectionInfo / QdrantPoint 接口, 让 stub QdrantClient 类
+//         的方法签名返回具体类型 (替代 unknown). 调用方访问 `info.config?...`
+//         `points.map((p) => ...)` 都自动 narrow, tsc 干净.
+//   如何验证 (用户手动跑):
+//     1. 删 QdrantCollectionInfo / QdrantPoint 接口 → tsc 报 4 个 TS18046.
+//     2. 保留接口 + stub 方法签名 → 上述错全部消除.
+//   Fallback: 后续 qdrant-js-client-rest API 变 → 调整两个 interface,
+//             provider 代码无需动.
+
+// ═══════════════════════════════════════════════════════════════════════
+// QdrantClient stub + 配套类型 — V2026-09-14 治本: 接口补齐
+// ═══════════════════════════════════════════════════════════════════════
+
+/**
+ * QdrantCollectionInfo — `getCollection()` 返回类型.
+ * 真实 SDK 返回类型是 `CollectionInfo` (qdrant-js-client-rest), 这里用最窄子集
+ * 覆盖 provider 实际访问路径: config.params.vectors.size (维度校验用).
+ *
+ * vectors 字段在 qdrant JS SDK 是 union:
+ *   - unnamed vector: { size: number; distance: string }
+ *   - named vector map: { [name: string]: { size: number; distance: string } }
+ * 用 union 覆盖, provider 代码原样 `info.config?.params?.vectors?.size` 推断通过.
+ */
+interface QdrantCollectionInfo {
+  config?: {
+    params?: {
+      vectors?: { size?: number; distance?: string } | Record<string, { size?: number; distance?: string } | undefined>;
+    };
+  };
+}
+
+/**
+ * QdrantPoint — `query()` 返回的 points 数组元素.
+ * 真实 SDK 返回 `Record<string, unknown>` + 其它字段 (id / score / vector), 这里
+ * 暴露 provider 实际读的 3 个字段, 其余省略.
+ */
+interface QdrantPoint {
+  id: string | number;
+  score?: number;
+  payload?: Record<string, unknown>;
+}
+
 class QdrantClient {
-  constructor(_config: unknown) {}
+  constructor(_config: { url?: string; apiKey?: string }) {}
+
   async getCollections(): Promise<{ collections: unknown[] }> {
     return { collections: [] };
   }
 
-  async getCollection(_name: string): Promise<unknown> {
+  async getCollection(_name: string): Promise<QdrantCollectionInfo> {
     return { config: { params: { vectors: { size: 0 } } } };
   }
 
@@ -19,7 +70,7 @@ class QdrantClient {
     return {};
   }
 
-  async query(_collection: string, _args: unknown): Promise<{ points: unknown[] }> {
+  async query(_collection: string, _args: unknown): Promise<{ points: QdrantPoint[] }> {
     return { points: [] };
   }
 
@@ -86,21 +137,17 @@ export class QdrantService implements OnModuleInit {
 
   /**
    * 确保 collection 存在 — 维度跟 embedding 模型对齐.
+   *
+   * V2026-09-14 治本: `info` 现在是 QdrantCollectionInfo 类型, 不再 unknown.
+   * `info.config?.params?.vectors?.size` 类型 narrow 走 union 两个分支:
+   *   - number (unnamed vector 直接 size)
+   *   - { size?: number; ... } (named vector map 的索引结果)
+   * `typeof rawSize === 'number' ? rawSize : rawSize?.size` 兼容两种 case.
    */
-
   async ensureCollection(name: string, vectorSize = this.defaultVectorSize): Promise<void> {
     try {
       const info = await this.client.getCollection(name);
-      // V2026-09-04 治本: qdrant SDK `vectors.size` 在 unnamed vector 是 number,
-      //   在 named/multivector 是 config 对象 (number | QdrantVectorConfig union).
-      //   template literal 嵌入 typed object 在 typescript-eslint 8.69 不被 allowAny 覆盖
-
-      //   (allowAny 只匹配 any, typed object 不算 any), restrict-template-expressions schema
-      //   也没有 allowObject. 治本是源头抽出 number 分量, 避免隐式 toString 输出 `[object Object]`.
-      //   验证: lint pass, smoke error message 仍是数字.
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const rawSize = info.config?.params?.vectors?.size;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const existingSize = typeof rawSize === 'number' ? rawSize : rawSize?.size;
       if (existingSize && existingSize !== vectorSize) {
         throw new Error(
@@ -149,6 +196,9 @@ export class QdrantService implements OnModuleInit {
   /**
    * 检索 — Qdrant 1.x 用 query() API (统一 search/recommend/discover/filter).
    *
+   * V2026-09-14 治本: `points` 类型从 unknown[] narrow 成 QdrantPoint[], `p.id /
+   * p.score / p.payload` 自动有类型, 不再需要 `// eslint-disable` + `as` 强转.
+   *
    * @param collection collection 名
    * @param queryVector 查询向量 (已经过 embedding 模型)
    * @param topK 返回前 K 条
@@ -173,11 +223,10 @@ export class QdrantService implements OnModuleInit {
     });
 
     const points = response.points ?? [];
-    return points.map((p) => ({
+    return points.map((p: QdrantPoint) => ({
       id: String(p.id),
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       score: p.score ?? 0,
-      payload: (p.payload as Record<string, unknown>) ?? {},
+      payload: p.payload ?? {},
     }));
   }
 

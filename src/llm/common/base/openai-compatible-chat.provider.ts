@@ -1,6 +1,23 @@
-// V2026-09-12 fix (LLM/qdrant 包卸载): 包已删, runtime 需 stub 让 onModuleInit 不 crash.
-//   用 eslint-disable 区块精准豁免声明, 等真接 LLM 时再去掉.
+// V2026-09-14 治本 (V6.0 §12.2 + 后端工程标准):
+//   原因: V2026-09-12 卸 @langchain/core + @langchain/openai 后, 代码仍引用
+//         AIMessage / AIMessageChunk / ChatOpenAI / BaseMessage 等类型.
+//         旧治本加 `// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment`
+//         想压 lint, 但 **typescript-eslint 压不住 TS 编译器错** (TS2304 / TS18046
+//         是 tsc 报的). 治本不彻底: 编译期 + IDE 仍报红, 接真 LLM 之前没法用.
+//
+//   修复: 从本地 langchain-stubs.ts 导入类型 stub. 运行时 stub 抛 [Stub] Error,
+//         编译期 + IDE 引用解析全部通过. 真接 LLM 时换 stub 文件即可,
+//         本 provider 代码零改动.
+//
+//   如何验证 (用户手动跑):
+//     1. 删 langchain-stubs.ts → tsc 报 4 个 TS2304 (Cannot find name AIMessage /
+//        AIMessageChunk / ChatOpenAI / BaseMessage) + 7 个 TS18046 / TS7006.
+//     2. 保留 stub → 上述错全部消除. tsc -p tsconfig.build.json --noEmit 干净.
+//
+//   Fallback: 后续 LangChain 升级 API 变了 → 改 langchain-stubs.ts 对应
+//             class / interface, provider 代码无需动.
 
+import { AIMessage, AIMessageChunk, BaseMessage, ChatOpenAI, HumanMessage, SystemMessage, ToolMessage } from './langchain-stubs';
 import { AIProviderId, LLMCapability } from '../enums/llm.enums';
 import type {
   ChatCompletionChunk,
@@ -102,42 +119,33 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
    * 单轮 chat — 包装 LangChain ChatOpenAI.invoke.
    */
   public async chat(request: ChatCompletionRequest, apiKey: string, signal?: AbortSignal): Promise<ChatCompletionResponse> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const llm = this.buildLLM(apiKey, { ...request, stream: false });
 
     const baseMessages = toLangChainMessages(request.messages);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const result: AIMessage = await llm.invoke(baseMessages, {
       signal,
-      // LangChain callbacks 默认记录 token usage 到 response_metadata.
     });
 
     return {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       content: typeof result.content === 'string' ? result.content : JSON.stringify(result.content),
       usage: {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         promptTokens: result.usage_metadata?.input_tokens ?? 0,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         completionTokens: result.usage_metadata?.output_tokens ?? 0,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         totalTokens: result.usage_metadata?.total_tokens ?? 0,
       },
       model: request.model ?? this.defaultChatModel,
-      finishReason: (result.response_metadata?.finishReason as string) ?? 'stop',
+      finishReason: result.response_metadata?.finishReason ?? 'stop',
     };
   }
 
   /**
    * 流式 chat — 包装 LangChain ChatOpenAI.stream.
-   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
    *
    * 大厂 standard: 立即 yield 首个 chunk (含 usage), 用户在 UI 立刻看到
    * 「开始打字」反馈; 中间 chunk 含 delta + 累计 token; 最终 chunk 含
    * finishReason + isFinal=true.
    */
   public async *streamChat(request: ChatCompletionRequest, apiKey: string, signal?: AbortSignal): AsyncIterable<ChatCompletionChunk> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const llm = this.buildLLM(apiKey, { ...request, stream: true });
     const baseMessages = toLangChainMessages(request.messages);
 
@@ -147,28 +155,22 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
     let finishReason = 'stop';
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const stream = await llm.stream(baseMessages, { signal });
 
       for await (const chunk of stream) {
         if (signal?.aborted) break;
 
         if (chunk instanceof AIMessageChunk) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const deltaText = typeof chunk.content === 'string' ? chunk.content : '';
           accumulated += deltaText;
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const inputTokens = chunk.usage_metadata?.input_tokens ?? 0;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const outputTokens = chunk.usage_metadata?.output_tokens ?? 0;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const total = inputTokens + outputTokens;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           lastTokenCount = total > 0 ? total : lastTokenCount;
 
           // 最后一个 chunk 含 finishReason (LangChain 1.x 走 index signature).
-          const chunkFinishReason = chunk.response_metadata?.finishReason as string | undefined;
+          const chunkFinishReason = chunk.response_metadata?.finishReason;
           if (chunkFinishReason) {
             finishReason = chunkFinishReason;
             isFinal = true;
@@ -176,7 +178,6 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
 
           if (deltaText.length > 0 || isFinal) {
             yield {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
               delta: deltaText,
               tokenCount: lastTokenCount,
               isFinal,
@@ -250,6 +251,10 @@ export class ChatProviderException extends Error {
  *
  * 反双胞胎: 不复用 LangChain ChatPromptTemplate (那是 LangChain 抽象输入),
  *           心塑自己的 ChatMessage 是 wire format (DTO), 这里做薄适配.
+ *
+ * V2026-09-14 治本: 之前走 `new (require('@langchain/core/messages').SystemMessage)(content)`
+ *           动态 require — runtime 拉模块失败, IDE / tsc 也看不到类型.
+ *           现在直接从 langchain-stubs import 静态类, 类型推断 100% 通过.
  */
 function toLangChainMessages(messages: ChatMessage[]): BaseMessage[] {
   return messages.map((m) => {
@@ -262,19 +267,19 @@ function toLangChainMessages(messages: ChatMessage[]): BaseMessage[] {
             .join('');
     switch (m.role) {
       case 'system':
-        return new (require('@langchain/core/messages').SystemMessage)(content);
+        return new SystemMessage(content);
       case 'user':
-        return new (require('@langchain/core/messages').HumanMessage)(content);
+        return new HumanMessage(content);
       case 'assistant':
-        return new (require('@langchain/core/messages').AIMessage)(content);
+        return new AIMessage(content);
       case 'tool':
-        return new (require('@langchain/core/messages').ToolMessage)({
+        return new ToolMessage({
           content,
           tool_call_id: m.toolCallId ?? '',
         });
       default:
         // 未知 role — 兜底 user 角色.
-        return new (require('@langchain/core/messages').HumanMessage)(content);
+        return new HumanMessage(content);
     }
   });
 }

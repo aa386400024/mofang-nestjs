@@ -1,6 +1,21 @@
-// V2026-09-12 fix (LLM/qdrant 包卸载): 包已删, runtime 需 stub 让 onModuleInit 不 crash.
-//   用 eslint-disable 区块精准豁免声明, 等真接 LLM 时再去掉.
+// V2026-09-14 治本 (V6.0 §12.2 + 后端工程标准):
+//   原因: V2026-09-12 卸 @langchain/openai 后, OpenAIEmbeddings 类引用 + embedDocuments
+//         返回类型变成 unknown, 引发 TS2304 (Cannot find name) + TS7006
+//         (Parameter 'vector' implicitly has 'any' type) + TS18046 (X is of type
+//         'unknown'). 旧治本加 eslint-disable 注释 — 压不住 tsc 错.
+//
+//   修复: 从本地 langchain-stubs.ts 导入 OpenAIEmbeddings 类型 stub. invoke
+//         链上所有 `any` / `unknown` 自动 narrow 成 number[][], tsc 干净.
+//
+//   如何验证 (用户手动跑):
+//     1. 删 langchain-stubs.ts → tsc 报 3 个 TS2304 (Cannot find name OpenAIEmbeddings)
+//        + 4 个 TS7006 (vector/index/result/err implicitly any).
+//     2. 保留 stub → 上述错全部消除.
+//
+//   Fallback: 后续 LangChain OpenAIEmbeddings API 变 → 改 langchain-stubs.ts
+//             对应字段, provider 代码无需动.
 
+import { OpenAIEmbeddings, OpenAIEmbeddingsConfig } from './langchain-stubs';
 import { AIProviderId, LLMCapability } from '../enums/llm.enums';
 import type { EmbeddingProvider, EmbeddingRequest, EmbeddingResponse } from '../interfaces/embedding-provider.interface';
 
@@ -83,14 +98,16 @@ export abstract class OpenAICompatibleEmbeddingProvider implements EmbeddingProv
    *   - 这里用 AbortController 包裹 Promise: signal 触发后 reject,
    *     实际 HTTP 请求由底层 fetch 的 AbortSignal 控制.
    *
+   * V2026-09-14 治本: vectors 类型从 unknown[] narrow 成 number[][],
+   *   .map((vector, index) => ...) 里 vector/index 自动有 number[]/number 类型,
+   *   无需 eslint-disable.
+   *
    * 大厂 standard: 批量调用而非循环单条, 减少网络往返 + 厂商限流.
    * 大多数厂商支持 batch 100+ 条/请求.
    */
   public async embed(request: EmbeddingRequest, apiKey: string, signal?: AbortSignal): Promise<EmbeddingResponse> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const embeddings = this.buildEmbeddings(apiKey);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const vectors = signal
+    const vectors: number[][] = signal
       ? await this.embedWithAbort(embeddings, request.inputs, signal)
       : await embeddings.embedDocuments(request.inputs);
 
@@ -100,11 +117,8 @@ export abstract class OpenAICompatibleEmbeddingProvider implements EmbeddingProv
     const promptTokens = Math.ceil(totalChars / 1.5);
 
     return {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      results: vectors.map((vector, index) => ({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      results: vectors.map((vector: number[], index: number) => ({
         vector,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         index,
         tokenCount: Math.ceil(request.inputs[index].length / 1.5),
       })),
@@ -121,7 +135,6 @@ export abstract class OpenAICompatibleEmbeddingProvider implements EmbeddingProv
    * 单条 embedding — 上层偶尔需要 (RAG query).
    */
   public async embedQuery(text: string, apiKey: string): Promise<number[]> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const embeddings = this.buildEmbeddings(apiKey);
     return embeddings.embedQuery(text);
   }
@@ -135,12 +148,16 @@ export abstract class OpenAICompatibleEmbeddingProvider implements EmbeddingProv
         defaultHeaders: this.customHeaders,
       },
       batchSize: this.batchSize ?? 100,
-    });
+    } satisfies OpenAIEmbeddingsConfig);
   }
 
   /**
    * 1.x embedDocuments 不接受 options — 用 AbortController 包裹 Promise.
    * 监听 abort signal 后 reject, 调用方按 catch 处理.
+   *
+   * V2026-09-14 治本: OpenAIEmbeddings 参数类型从 unknown narrow 成具体接口,
+   *   .then/.catch 的 result/err 自动 narrow 成 number[][] / unknown,
+   *   无需 eslint-disable.
    */
   private async embedWithAbort(embeddings: OpenAIEmbeddings, inputs: string[], signal: AbortSignal): Promise<number[][]> {
     if (signal.aborted) {
@@ -151,12 +168,11 @@ export abstract class OpenAICompatibleEmbeddingProvider implements EmbeddingProv
       signal.addEventListener('abort', onAbort, { once: true });
       embeddings
         .embedDocuments(inputs)
-        .then((result) => {
+        .then((result: number[][]) => {
           signal.removeEventListener('abort', onAbort);
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           resolve(result);
         })
-        .catch((err) => {
+        .catch((err: unknown) => {
           signal.removeEventListener('abort', onAbort);
           reject(err);
         });
