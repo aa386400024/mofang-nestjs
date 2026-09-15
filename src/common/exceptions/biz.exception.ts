@@ -123,6 +123,16 @@ function getBizCodeDefaultMessage(code: BizCode): string {
     [BizCode.PrivacyExportEmpty]: '没有可导出的数据',
     [BizCode.PrivacyDeleteCooldown]: '账号删除冷却中 (7 天), 请冷静期后重试',
     [BizCode.PrivacyAuthorizationNotFound]: '授权记录不存在',
+
+    // V2026-09-14 长期方案 Stage C: Growth 模块 8 个错误码默认文案
+    [BizCode.GrowthDailyToolsFetchFail]: '今日推荐工具拉取失败',
+    [BizCode.GrowthDailyToolsEmpty]: '今日推荐工具为空 (V1.0 必返 3 条)',
+    [BizCode.GrowthDailyToolsLinkRouteNotWhitelisted]: 'linkRoute 不在白名单',
+    [BizCode.GrowthWeeklyOverviewFetchFail]: '本周成长概览拉取失败',
+    [BizCode.GrowthToolNotFound]: '工具不存在或不在今日推荐列表',
+    [BizCode.GrowthCompleteFail]: '工具完成写入失败',
+    [BizCode.GrowthToolSourceInvalid]: 'tool_completion_source 不在 9 source enum',
+    [BizCode.GrowthToolFragmentsGrantInvalid]: 'fragments_grant key/value 不合规',
   };
   return messages[code] ?? '错误';
 }

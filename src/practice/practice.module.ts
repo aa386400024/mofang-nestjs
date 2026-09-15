@@ -4,6 +4,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { EmbodiedModule } from '../embodied/embodied.module';
 import { UserModule } from '../user/user.module';
 
+import { GrowthDailyToolsController } from './controllers/growth-daily-tools.controller';
+import { GrowthToolCompleteController } from './controllers/growth-tool-complete.controller';
+import { GrowthWeeklyOverviewController } from './controllers/growth-weekly-overview.controller';
 import { PracticeCategoriesController } from './controllers/practice-categories.controller';
 import { PracticeEmbodiedController } from './controllers/practice-embodied.controller';
 import { PracticeGymController } from './controllers/practice-gym.controller';
@@ -17,6 +20,10 @@ import { PracticeSession } from './entities/practice-session.entity';
 import { PracticeTool } from './entities/practice-tool.entity';
 import { TargetedReshape } from './entities/targeted-reshape.entity';
 
+import { GrowthContractInit } from './growth-contract-init';
+import { GrowthDailyToolsService } from './providers/growth-daily-tools.service';
+import { GrowthToolCompleteService } from './providers/growth-tool-complete.service';
+import { GrowthWeeklyOverviewService } from './providers/growth-weekly-overview.service';
 import {
   PracticeCategoryService,
   PracticeToolService,
@@ -66,6 +73,12 @@ import {
     PracticeGymController,
     PracticeRecordsController,
     PracticeEmbodiedController,
+    // V2026-09-14 长期方案 Stage C: Growth 3 个 controller (V6.0 §4.3 「成长」Tab).
+    //   注册顺序: 跟现有 PracticeToolsController 同级, 不复用 prefix
+    //   (避免 /practice/growth/... 双重嵌套). Swagger @ApiTags('growth') 单独分组.
+    GrowthDailyToolsController,
+    GrowthWeeklyOverviewController,
+    GrowthToolCompleteController,
   ],
   providers: [
     PracticeCategoryService,
@@ -75,6 +88,16 @@ import {
     PracticeGymService,
     TargetedReshapeService,
     PracticeEmbodiedService,
+    // V2026-09-14 长期方案 Stage C: Growth 3 个 service (跟 controller 1:1).
+    //   启动期 OnModuleInit 调 assertXxxContract() 跟前端契约 1:1 校验
+    //   (9 source / 5 fragment code / 47 静态 + 8 动态 linkRoute).
+    GrowthDailyToolsService,
+    GrowthWeeklyOverviewService,
+    GrowthToolCompleteService,
+    // V2026-09-14 长期方案 Stage C: 启动期契约校验钩子 (OnModuleInit).
+    //   校验 9 source / 5 fragment code / 47 linkRoute 跟前端契约 1:1, 任何一项失败
+    //   → NestJS 启动失败 → CI fail-fast (跟 BizCode enum 启动期校验风格一致).
+    GrowthContractInit,
   ],
   exports: [
     PracticeCategoryService,

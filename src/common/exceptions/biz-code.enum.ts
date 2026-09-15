@@ -86,4 +86,18 @@ export enum BizCode {
   PrivacyExportEmpty = 30_002, // 导出数据为空
   PrivacyDeleteCooldown = 30_003, // 删除账号冷却中 (7 天)
   PrivacyAuthorizationNotFound = 30_004, // 授权记录不存在
+
+  // ====== Growth 模块 (40xxx) —「成长」Tab V2026-09-14 长期方案专用 ======
+  // V2026-09-14 治本 (Stage C): 跟前端 lib/features/growth/data/repositories/growth_repository_impl.dart
+  //   Failure 1:1 对齐, 跟前端 AppEventBus 联动的字符串 code 字段区分
+  //   (前端 entity 用 snake_case 字符串如 'GROWTH_DAILY_TOOLS_FETCH_FAIL',
+  //   这里用 40xxx BizCode, HttpExceptionFilter 统一转 { code, message, data } JSON).
+  GrowthDailyToolsFetchFail = 40_001, // GET /growth/daily-tools 服务端失败
+  GrowthDailyToolsEmpty = 40_002, // GET /growth/daily-tools 返 0 条 (V1.0 不允许)
+  GrowthDailyToolsLinkRouteNotWhitelisted = 40_003, // linkRoute 不在 §6 白名单
+  GrowthWeeklyOverviewFetchFail = 40_004, // GET /growth/weekly-overview 服务端失败
+  GrowthToolNotFound = 40_005, // POST /growth/tools/:id/complete 工具不存在
+  GrowthCompleteFail = 40_006, // POST /growth/tools/:id/complete 写入失败
+  GrowthToolSourceInvalid = 40_007, // tool_completion_source 不在 9 enum
+  GrowthToolFragmentsGrantInvalid = 40_008, // fragments_grant key 不在 5 code 或 value 越界
 }
