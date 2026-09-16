@@ -70,7 +70,18 @@ export class GrowthDailyToolsService {
         duration: '3 分钟',
         tag: '随时可做',
         stage_index: 0,
-        link_route: '/practice/tool/mindfulness.box-breathing',
+        // V2026-09-15 治本 1st (Bug: 首页 → 今日成长 → 3 分钟呼吸觉察 跳老 URL):
+        //   原因: 后端 default 3 条 hardcode 了 link_route='/practice/tool/mindfulness.box-breathing'
+        //     (auto_route 老路径, 已删除 — 见前端 lib/app/router.dart 的 V2026-09-15 治本 3rd
+        //     清掉的 MindfulnessBoxBreathingLegacyRoute). 前端 GrowthRepositoryImpl 走 remote-first,
+        //     后端返啥就吃啥, in-memory fallback 根本不触发.
+        //   修复: 对齐 auto_route 新路径 /practice/gym/tools/mindfulness-box-breathing
+        //     (前端 MindfulnessBoxBreathingRoute 已注册 — 见 router.dart:586). 后端修后
+        //     需重启 nestjs 让默认推荐带上新 URL.
+        //   反双胞胎: cbt.thought-record / dbt.boundary 同样问题但不在本次范围 — 下次 sweep 统一 dash 化.
+        //   如何验证: nestjs start → chrome hot refresh → 点 3 分钟呼吸觉察 → URL 短横线
+        //     /practice/gym/tools/mindfulness-box-breathing.
+        link_route: '/practice/gym/tools/mindfulness-box-breathing',
         tool_completion_source: 'breathing_practice',
         fragments_grant: { calm: 3 },
         completion_badge_trigger: true,
