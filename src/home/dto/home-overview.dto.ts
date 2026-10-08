@@ -1,6 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
+// V2026-10-08 治本 (V6.1 §1 — home-overview.dto.ts currentRole 类型同步):
+//   profile 模块加了 RoleValues + Role 后, home-overview.service.ts:117 当前
+//   currentRole = profile.currentRole 的类型是 Role (含 counselor_learner),
+//   但 HomeOverviewDto.currentRole 是硬编码 'growth_user' | 'companion',
+//   返回不了 「'counselor_learner'」 → TS2322.
+//   治本: 跟 profile dto 同模式, HomeOverviewDto.currentRole 用 RoleValues
+//   + Role — source 变 sink 同跟 (DRY 单一真理).
+import { Role, RoleValues } from '../../profile/entities/user-profile.entity';
+
 import { HOME_EMOTION_LEVELS, HOME_TIME_SLOTS, type HomeEmotionLevel, type HomeTimeSlot } from '../home.constants';
 
 /**
@@ -196,8 +205,8 @@ export class HomeOverviewDto {
   @ApiProperty({ description: '用户头像 URL (陪者陪伴者头像 + emoji 之外的另一路径)', nullable: true })
   avatarUrl!: string | null;
 
-  @ApiProperty({ description: '当前角色', enum: ['growth_user', 'companion'] })
-  currentRole!: 'growth_user' | 'companion';
+  @ApiProperty({ description: '当前角色', enum: RoleValues })
+  currentRole!: Role;
 
   @ApiProperty({ description: '时段 (dawn/morning/noon/afternoon/evening/night)' })
   timeSlot!: HomeTimeSlot;
