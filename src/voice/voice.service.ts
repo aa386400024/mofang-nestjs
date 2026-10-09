@@ -40,6 +40,8 @@ import { TtsService } from './tts/tts.service';
 import type { TtsOptions, TtsSessionHandle } from './tts/tts.types';
 import type { VoiceClientMessage, VoiceServerMessage, VoiceSessionMeta, VoiceSessionPersona, VoiceSessionState } from './voice.types';
 import type { LlmStream } from '../agent/llm/llm.types';
+import { SupervisorProcessor } from '../agent/supervisor/supervisor.processor';
+import type { RunReportInput } from '../agent/supervisor/supervisor.types';
 import { VisitorService } from '../agent/visitor/visitor.service';
 
 type SendFn = (msg: VoiceServerMessage) => void;
@@ -54,6 +56,7 @@ export class VoiceService {
 
   constructor(
     private readonly visitor: VisitorService,
+    private readonly supervisorProcessor: SupervisorProcessor,
     private readonly tts: TtsService,
     config: ConfigService,
   ) {
@@ -121,10 +124,48 @@ export class VoiceService {
     if (!state) return;
     state.ttsHandle?.cancel();
     state.llmAbort?.abort();
+    // V2026-10-09 治本 (Phase 5): 拿 transcript 副本 (closeSession 之前 — closeSession 会清 memory)
+    const transcript = this.visitor.transcript(sessionId);
     const visitorClose = this.visitor.closeSession(sessionId);
     this.sessions.delete(sessionId);
-    this.logger.log(`[endSession] session=${sessionId} reason=${reason} visitor_turns=${visitorClose.finalTurnCount}`);
+    this.logger.log(
+      `[endSession] session=${sessionId} reason=${reason} ` +
+        `visitor_turns=${visitorClose.finalTurnCount} transcript_msgs=${transcript.length}`,
+    );
+    // V2026-10-09 治本 (Phase 5): 异步督导, session 结束触发 supervisor queue (fire-and-forget)
+    //   - 不阻塞 session_ended 消息
+    //   - enqueue 失败 → processSync 兜底 (LLM 推理 2-5s, 但 session_ended 已经发出)
+    //   - 空 transcript 跳过 (user 没说话就结束, 没督导意义)
+    if (transcript.length > 0 && state.persona) {
+      const input: RunReportInput = {
+        sessionId,
+        tenantId: state.meta.tenantId,
+        userId: state.meta.userId,
+        persona: state.persona,
+        transcript,
+        emotionTimeline: [], // V0.x 留空, V1.x 接 ASR 情绪模型
+        traceId: state.meta.traceId,
+      };
+      void this.triggerSupervisor(input);
+    } else {
+      this.logger.log(
+        `[endSession] skip supervisor: empty_transcript=${transcript.length === 0} persona=${state.persona ? 'set' : 'null'}`,
+      );
+    }
     send?.({ type: 'session_ended', reason });
+  }
+
+  /**
+   * V2026-10-09 治本 (Phase 5): 触发 supervisor 督导报告 (fire-and-forget).
+   *   enqueue 失败 → processSync 同步兜底. 不抛异常, 不阻塞 voice 主流程.
+   *   注: triggerSupervisor 单独拆出避免 endSession cognitive-complexity 涨 (sonarjs 25 阈值).
+   */
+  private async triggerSupervisor(input: RunReportInput): Promise<void> {
+    const enqueued = await this.supervisorProcessor.enqueue(input);
+    if (!enqueued) {
+      this.logger.warn(`[triggerSupervisor] enqueue failed, fallback to processSync session=${input.sessionId}`);
+      await this.supervisorProcessor.processSync(input);
+    }
   }
 
   /** 进程退出时全量清理. */

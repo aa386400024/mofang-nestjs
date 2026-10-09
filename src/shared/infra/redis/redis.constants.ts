@@ -56,4 +56,6 @@ export const QUEUE_NAMES = {
   auditLog: 'audit-log',
   emailOutbox: 'email-outbox',
   smsOutbox: 'sms-outbox',
+  // V2026-10-09 治本 (Phase 5): Supervisor Agent 异步督导, session 结束触发
+  supervisor: 'supervisor',
 } as const;

@@ -39,6 +39,7 @@ import { LlmService } from '../llm/llm.service';
 import type { LlmMessage, LlmStream } from '../llm/llm.types';
 import type { Persona } from '../persona/domain/entities/persona.entity';
 import { PERSONA_REPOSITORY, type PersonaRepository } from '../persona/domain/repositories/persona.repository';
+import type { TranscriptTurn } from '../supervisor/supervisor.types';
 
 /** 单 session 记忆最大消息数 (user+assistant 算 1 对, 2 条). */
 const MAX_HISTORY_MESSAGES = VISITOR_HISTORY_SLICE_TURNS * 2;
@@ -143,6 +144,18 @@ export class VisitorService {
     this.memories.delete(sessionId);
     this.logger.log(`[closeSession] session=${sessionId} turns=${result.finalTurnCount} ` + `msgs=${result.finalMessageCount}`);
     return result;
+  }
+
+  /**
+   * V2026-10-09 治本 (Phase 5): 暴露完整 transcript 给 Supervisor (异步督导).
+   *   不清 memory — closeSession 仍可独立调, 跟 transcript() 顺序无关.
+   *   V1.x: 接 DB 后, transcript 走 session_messages 表, 此方法删.
+   * @returns 完整 messages 副本; session 不存在返 []
+   */
+  transcript(sessionId: string): readonly TranscriptTurn[] {
+    const memory = this.memories.get(sessionId);
+    if (!memory) return [];
+    return memory.messages.map((m): TranscriptTurn => ({ role: m.role, content: m.content, at: m.at }));
   }
 
   /** 当前活跃 session 数 (健康检查 / 测试用). */

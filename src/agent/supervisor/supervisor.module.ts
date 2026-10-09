@@ -17,23 +17,25 @@ import { Module } from '@nestjs/common';
 
 import { SupervisionReportRepositoryMemory } from './data/supervision-report.repository.memory';
 import { SUPERVISION_REPORT_REPOSITORY } from './domain/repositories/supervision-report.repository';
+import { SupervisorProcessor } from './supervisor.processor';
 import { SupervisorService } from './supervisor.service';
 // V2026-10-09 治本 (ESLint import/order 误报): sibling 全在前 + parent 在后, 跟 visitor.module.ts
 //   风格一致. 但 ESLint 在 sibling/parent 混合 + alphabetize asc 场景下 cyclically 报不同 violation
 //   (试过 4 种排序, 每种都报一条 sibling/parent 边界矛盾). 沿用 visitor.module.ts 风格, 单 import
 //   inline disable 抑制. Fallback: ESLint 升级或换 import/resolver 修复后可删 disable 重 lint 验证.
-// eslint-disable-next-line import/order
+
 import { LlmModule } from '../llm/llm.module';
 
 @Module({
   imports: [LlmModule],
   providers: [
     SupervisorService,
+    SupervisorProcessor,
     {
       provide: SUPERVISION_REPORT_REPOSITORY,
       useClass: SupervisionReportRepositoryMemory,
     },
   ],
-  exports: [SupervisorService],
+  exports: [SupervisorService, SupervisorProcessor],
 })
 export class SupervisorModule {}
