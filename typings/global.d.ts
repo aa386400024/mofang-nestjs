@@ -89,6 +89,39 @@ export declare global {
       SENTRY_TRACES_SAMPLE_RATE?: string;
       SENTRY_PROFILES_SAMPLE_RATE?: string;
       CORS_ORIGINS?: string;
+
+      // V2026-10-08 — AI 语音训练系统 (SPEC v0.1).
+      //   治本 (noPropertyAccessFromIndexSignature 22 个 TS4111 错):
+      //     显式声明到 NodeJS.ProcessEnv 后, default.ts 里 process.env.MINIMAX_API_KEY
+      //     等点访问才合法 (否则走 @types/node [key: string] 索引签名, 强制要 bracket
+      //     访问). 跟项目里 JWT/REDIS/EMAIL 模式一致, 治本而非 workaround.
+      //   19 个 var 一次性声明, 后续不再报错.
+      MINIMAX_BASE_URL?: string;
+      MINIMAX_API_KEY?: string;
+      MINIMAX_LLM_MODEL?: string;
+      MINIMAX_LLM_TIMEOUT_MS?: string;
+      MINIMAX_LLM_MAX_RETRIES?: string;
+      MINIMAX_TTS_MODEL?: string;
+      MINIMAX_TTS_DEFAULT_VOICE?: string;
+      MINIMAX_ASR_TOKEN_SECRET?: string;
+      MINIMAX_ASR_TOKEN_TTL_SEC?: string;
+      // V2026-10-08: TTS bidi 客户端 + 连接池 (Phase 1.2)
+      MINIMAX_TTS_TIMEOUT_MS?: string;
+      MINIMAX_TTS_MAX_RETRIES?: string;
+      MINIMAX_TTS_MAX_CONNECTIONS?: string; // 连接池上限, 默认 100
+      MINIMAX_TTS_ACQUIRE_TIMEOUT_MS?: string; // acquire 排队超时, 默认 10s
+      // V2026-10-08: Voice Gateway 空闲超时 (Phase 3)
+      VOICE_SESSION_IDLE_TIMEOUT_MS?: string;
+      EMBEDDING_PROVIDER_DEV?: string;
+      EMBEDDING_PROVIDER_PROD?: string;
+      EMBEDDING_API_KEY?: string;
+      EMBEDDING_API_KEY_MPLAN?: string;
+      EMBEDDING_BGE_URL?: string;
+      EMBEDDING_MODEL?: string;
+      EMBEDDING_DIM?: string;
+      QDRANT_URL?: string;
+      QDRANT_API_KEY?: string;
+      QDRANT_COLLECTION?: string;
     }
   }
 

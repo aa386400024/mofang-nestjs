@@ -110,4 +110,51 @@ export const config = {
   consent: {
     currentVersion: process.env.CONSENT_CURRENT_VERSION ?? 'v1.0',
   },
+  // V2026-10-08 治本 (AI 语音训练系统 — SPEC v0.1, Phase 1.1):
+  //   - 凭证仅放服务端, 客户端用短期 OAuth token 直连 ASR (见 §9.2)
+  //   - baseUrl / model / timeout / maxRetries 都可 env 覆盖 (生产调优)
+  //   - apiKey 必须 env 注入, 不在代码里硬编码, 也不写 default
+  minimax: {
+    baseUrl: process.env.MINIMAX_BASE_URL ?? 'https://api.minimax.chat',
+    apiKey: process.env.MINIMAX_API_KEY,
+    llmModel: process.env.MINIMAX_LLM_MODEL ?? 'MiniMax-M3',
+    llmTimeoutMs: Number(process.env.MINIMAX_LLM_TIMEOUT_MS ?? 30_000),
+    llmMaxRetries: Number(process.env.MINIMAX_LLM_MAX_RETRIES ?? 2),
+    // TTS bidi (Phase 1.2 接入)
+    ttsModel: process.env.MINIMAX_TTS_MODEL ?? 'speech-2.8',
+    ttsDefaultVoice: process.env.MINIMAX_TTS_DEFAULT_VOICE ?? 'mandarin_female_001',
+    // V2026-10-08: TTS bidi 连接池配置 (Phase 1.2)
+    ttsTimeoutMs: Number(process.env.MINIMAX_TTS_TIMEOUT_MS ?? 30_000),
+    ttsMaxRetries: Number(process.env.MINIMAX_TTS_MAX_RETRIES ?? 2),
+    ttsMaxConnections: Number(process.env.MINIMAX_TTS_MAX_CONNECTIONS ?? 100),
+    ttsAcquireTimeoutMs: Number(process.env.MINIMAX_TTS_ACQUIRE_TIMEOUT_MS ?? 10_000),
+    // ASR (Phase 1.3 客户端直连, 这里存服务端 proxy / token 签发用)
+    asrTokenSecret: process.env.MINIMAX_ASR_TOKEN_SECRET,
+    asrTokenTtlSec: Number(process.env.MINIMAX_ASR_TOKEN_TTL_SEC ?? 300), // 5min
+  },
+  // V2026-10-08: Voice Gateway 业务配置 (Phase 3)
+  voice: {
+    sessionIdleTimeoutMs: Number(process.env.VOICE_SESSION_IDLE_TIMEOUT_MS ?? 600_000), // 10min
+  },
+  // V2026-10-08 治本 (Embedding 服务, Phase 6 接入):
+  //   - provider 切换不改 schema (bge / chatanywhere 都是 1024 维)
+  //   - 用户已提供 2 个 chatanywhere key, 通过 EMBEDDING_API_KEY / EMBEDDING_API_KEY_MPLAN env 注入
+  //   - bge 自托管 URL 走容器内网, 生产推荐
+  embedding: {
+    providerDev: process.env.EMBEDDING_PROVIDER_DEV ?? 'chatanywhere',
+    providerProd: process.env.EMBEDDING_PROVIDER_PROD ?? 'bge_large_zh',
+    chatanywhereApiKey: process.env.EMBEDDING_API_KEY,
+    chatanywhereMplanKey: process.env.EMBEDDING_API_KEY_MPLAN,
+    bgeUrl: process.env.EMBEDDING_BGE_URL ?? 'http://bge-embedding.internal:8080',
+    model: process.env.EMBEDDING_MODEL ?? 'text-embedding-3-small',
+    dim: Number(process.env.EMBEDDING_DIM ?? 1024),
+  },
+  // V2026-10-08 治本 (Qdrant 向量库, Phase 6 接入):
+  //   - 跟 NestJS 同京东云 ECS, 内网 http, 0 边际成本
+  //   - apiKey 走 env, 生产建议开
+  qdrant: {
+    url: process.env.QDRANT_URL ?? 'http://qdrant:6333',
+    apiKey: process.env.QDRANT_API_KEY,
+    collection: process.env.QDRANT_COLLECTION ?? 'knowledge_chunks',
+  },
 };

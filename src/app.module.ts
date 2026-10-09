@@ -12,6 +12,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 // eslint-disable-next-line unicorn/import-style
 import { resolve } from 'node:path';
 
+import { AgentModule } from './agent/agent.module';
 import { AiConversationsModule } from './ai-companion/ai-conversations.module';
 import { AIEngineModule } from './ai-engine/ai-engine.module';
 import { AuthModule } from './auth';
@@ -39,6 +40,7 @@ import { SentryService } from './shared/infra/observability';
 import { UserModule } from './user';
 import { UserCronModule } from './user/cron/cron.module';
 import { OAuthModule } from './user/oauth';
+import { VoiceModule } from './voice/voice.module';
 
 // ⚠️ AuthModule + BaseModule 必装: V2-temp 误删后, 心塑前端 /auth/* 路由全 404.
 // - AuthModule: 提供 AuthService / LoginCodeService / JwtModule / Guards
@@ -170,6 +172,10 @@ import { OAuthModule } from './user/oauth';
     GuideModule, // /guide/*
     // V2026-09-04 — 心塑 V6.0 §3 AI 引擎 5 仓库 + §3.5 LLM 流式编排 + §11.2 危机检测
     AIEngineModule, // /ai/* + /v1/chat/*
+    // V2026-10-08 — AI 语音训练系统 (SPEC v0.1, Phase 1.1 LLM streaming)
+    AgentModule, // /agent/llm/stream
+    // V2026-10-08 — AI 语音训练系统 (SPEC v0.1, Phase 1.2 TTS bidi 客户端 + 连接池)
+    VoiceModule, // TtsService + TtsBidiPoolService (无 HTTP 端点, 仅内部 VoiceGateway 使用)
     // V2026-09-04 — 心塑 V6.0 §4.2 急救闭环 — 5 工具会话上报 + 跨设备同步
     EmergencyModule, // /emergency/*
     // V2026-09-04 — 心塑 V6.0 §6 Inner World 游戏化模块解锁进度 (game_unlock_progress V2 表)

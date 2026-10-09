@@ -141,6 +141,11 @@ export default defineConfig(
         { selector: 'objectLiteralMethod', format: ['strictCamelCase', 'camelCase', 'PascalCase'] },
         { selector: 'typeMethod', format: ['strictCamelCase', 'camelCase', 'PascalCase'] },
       ],
+      // V2026-10-09 撤回 (3000+ 误报修复): 不动 'new-cap' 让 neostandard preset 的宽松配置生效.
+      //   之前手加 'new-cap': ['error', { newIsCapExceptionPattern: '^wsWebSocket$' }] 覆盖 preset,
+      //   激活了 ESLint 默认严格模式, 报出项目里 3000+ 个已有 lowercase constructor (decorator / factory / enum 等),
+      //   这些都是 neostandard preset 允许的写法, 不应被严格 new-cap 拦. 撤回后 tts-bidi-client.ts 的
+      //   new wsWebSocket 走 inline disable 处理 (不动 preset, 单一文件局部放行).
       '@typescript-eslint/no-extraneous-class': 'off',
       '@typescript-eslint/no-magic-numbers': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
