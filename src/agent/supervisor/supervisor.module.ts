@@ -17,6 +17,7 @@ import { Module } from '@nestjs/common';
 
 import { SupervisionReportRepositoryMemory } from './data/supervision-report.repository.memory';
 import { SUPERVISION_REPORT_REPOSITORY } from './domain/repositories/supervision-report.repository';
+import { SupervisorController } from './supervisor.controller';
 import { SupervisorProcessor } from './supervisor.processor';
 import { SupervisorService } from './supervisor.service';
 // V2026-10-09 治本 (ESLint import/order 误报): sibling 全在前 + parent 在后, 跟 visitor.module.ts
@@ -28,6 +29,7 @@ import { LlmModule } from '../llm/llm.module';
 
 @Module({
   imports: [LlmModule],
+  controllers: [SupervisorController],
   providers: [
     SupervisorService,
     SupervisorProcessor,

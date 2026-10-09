@@ -98,6 +98,26 @@ export interface TranscriptTurn {
 /** runReport 返回. 跟 supervision_reports 表行一致, 业务消费方 (BullMQ worker) 拿到这个就能写日志. */
 export type RunReportResult = SupervisionReportRow;
 
+/**
+ * V2026-10-09 治本 (Phase 6.1 — REST API V0.5 公开 DTO):
+ *   督导报告对外公开形状. 内部 row 字段 (tenantId / userId / rawResponse) 不暴露
+ *   防止跨租户越权 + LLM 原文泄漏. 字段全部 row 子集, 不可逆.
+ *   V1.x 切 DB 后, createdAt 改 ISO 8601 string (JSON 友好 + i18n 一致).
+ */
+export interface SupervisionReportDto {
+  readonly sessionId: string;
+  readonly status: SupervisorReportStatus;
+  readonly personaId: string;
+  readonly personaName: string;
+  readonly difficulty: string;
+  readonly overallScore: number;
+  readonly dimensions: SupervisionDimensions;
+  readonly annotations: readonly SupervisionAnnotation[];
+  readonly errorPatterns: readonly string[];
+  readonly growthSuggestions: readonly string[];
+  readonly createdAt: number;
+}
+
 /** 内部流包装结果 — VoiceService 不消费, 仅供单元测试. */
 export interface RunReportStream {
   readonly stream: LlmStream;

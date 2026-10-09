@@ -17,8 +17,10 @@ import { Module } from '@nestjs/common';
 
 import { PersonaRepositoryMemory } from './data/persona.repository.memory';
 import { PERSONA_REPOSITORY } from './domain/repositories/persona.repository';
+import { PersonaController } from './persona.controller';
 
 @Module({
+  controllers: [PersonaController],
   providers: [
     {
       provide: PERSONA_REPOSITORY,
