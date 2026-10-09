@@ -12,13 +12,14 @@ import { Module } from '@nestjs/common';
 
 import { LlmModule } from './llm/llm.module';
 import { PersonaModule } from './persona/persona.module';
+import { SupervisorModule } from './supervisor/supervisor.module';
 import { VisitorModule } from './visitor/visitor.module';
 
 @Module({
-  imports: [LlmModule, PersonaModule, VisitorModule],
+  imports: [LlmModule, PersonaModule, VisitorModule, SupervisorModule],
   // re-export 子模块 — 让 VoiceModule 等消费方 import AgentModule 后
-  //   就能拿到 VisitorService / LlmService / PERSONA_REPOSITORY
+  //   就能拿到 VisitorService / SupervisorService / LlmService / PERSONA_REPOSITORY
   //   无需 import 多个子模块, 接口稳定
-  exports: [LlmModule, PersonaModule, VisitorModule],
+  exports: [LlmModule, PersonaModule, VisitorModule, SupervisorModule],
 })
 export class AgentModule {}
