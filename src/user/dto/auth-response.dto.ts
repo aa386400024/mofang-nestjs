@@ -29,6 +29,14 @@ export class AuthResponseDto {
     state: string;
     emailVerified: boolean;
     phoneVerified: boolean;
+    // V2026-10-12 (Phase 8.2 — Admin RBAC, spec §12.4):
+    //   server-side 取 user.adminRole 返. V0.x dev fallback: 永远 'admin' (V0.x
+    //   后端 /auth/me / login 端点都会 fallback, 让 V0.x 内部 dev 能跑完整 RBAC 矩阵).
+    //   V1.x 真值下发后, server 不 fallback, NULL = 非 admin 角色.
+    adminRole: 'editor' | 'reviewer' | 'admin' | null;
+    // V2026-10-12 (Phase 8.2 — 多租户, spec §0 / §3 A9 / §8.3):
+    //   V0.x 默认 = uid (一人一租户), V1.x 接 Tenant entity 改 nullable 走 B 端组织.
+    tenantId: string;
   };
 
   @ApiProperty({
@@ -68,6 +76,22 @@ export class CurrentUserDto {
 
   @ApiProperty({ description: '是否强制要求改密' })
   mustChangePassword!: boolean;
+
+  // V2026-10-12 (Phase 8.2 — Admin RBAC, spec §12.4):
+  //   server-side 取 user.adminRole 返. V0.x dev fallback: 永远 'admin' (V0.x
+  //   后端 /user/me 跟 /user/login 端点都会 fallback, 让 V0.x 内部 dev
+  //   能跑完整 RBAC 矩阵). V1.x 真值下发后, server 不 fallback, NULL = 非 admin.
+  @ApiProperty({
+    description: 'Admin 角色 (V0.x dev fallback: 永远 = admin; V1.x 真值下发后 = null 表示无权限)',
+    enum: ['editor', 'reviewer', 'admin'],
+    nullable: true,
+  })
+  adminRole!: 'editor' | 'reviewer' | 'admin' | null;
+
+  // V2026-10-12 (Phase 8.2 — 多租户, spec §0 / §3 A9 / §8.3):
+  //   V0.x 默认 = uid (一人一租户), V1.x 接 Tenant entity 改 nullable 走 B 端组织.
+  @ApiProperty({ description: '租户 ID (V0.x = uid; V1.x = 真实租户)' })
+  tenantId!: string;
 
   @ApiProperty({ description: '注册时间' })
   createdAt!: Date;

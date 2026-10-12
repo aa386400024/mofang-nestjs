@@ -42,6 +42,11 @@ export enum BizCode {
   TokenRevoked = 11_004,
   TokenInvalid = 11_005,
 
+  // V2026-10-12 (Phase 8.1 — KB 状态机, spec §12.2):
+  //   4 态状态机 (draft / review / published / archived) 非法转换,
+  //   workflow.service.ts 校验, 跟 client 7.3 严格对齐.
+  InvalidStateTransition = 11_006,
+
   // ====== 验证码 (12xxx) ======
   VerificationCodeInvalid = 12_001,
   VerificationCodeExpired = 12_002,

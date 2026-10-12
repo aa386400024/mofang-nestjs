@@ -19,10 +19,21 @@ export interface JwtPayload {
    * 跟 user.service.ts 的新签名逻辑保持一致 (该路径已正确).
    */
   type?: 'access' | 'refresh';
+  // V2026-10-12 (Phase 8.2 — Admin RBAC, spec §12.4):
+  //   server-side 取 user.adminRole (3 角色 editor / reviewer / admin) 透传,
+  //   跟客户端 7.8 PermissionResolver 严格对应. V0.x dev fallback:
+  //   user.service.buildAuthResponse 检测 user.adminRole 为 null 时 fallback 'admin'.
+  adminRole?: 'editor' | 'reviewer' | 'admin';
+  // V2026-10-12 (Phase 8.2 — 多租户, spec §0 / §3 A9 / §8.3):
+  //   V0.x 默认 tenantId = uid (一人一租户), V1.x 接 Tenant entity 改 nullable.
+  tenantId?: string;
 }
 
 export interface Payload {
   userId: string;
   username: string;
   roles: string[];
+  // V2026-10-12 (Phase 8.2): 跟 JwtPayload 同步, 给 @TenantId() / @Roles() decorator 读.
+  adminRole?: 'editor' | 'reviewer' | 'admin';
+  tenantId?: string;
 }

@@ -1,7 +1,9 @@
 import { Global, MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 
+import { TenantContextMiddleware } from './middleware/tenant-context.middleware';
 import * as providers from './providers';
 import { SecurityHeadersMiddleware } from './security/security-headers.middleware';
+// V2026-10-12 (Phase 8.2 — 多租户, spec §8.3): 全局注入 tenantId.
 
 const services = Object.values(providers);
 
@@ -25,5 +27,9 @@ export class CommonModule implements NestModule {
     // SecurityHeadersMiddleware 全局应用, 所有响应都加安全头.
     // .forRoutes('*') 覆盖所有路由.
     consumer.apply(SecurityHeadersMiddleware).forRoutes('*');
+    // V2026-10-12 (Phase 8.2): 全局注入 tenantId, 业务层 @TenantId() 读.
+    // 必须在 SecurityHeadersMiddleware 之后 (中间件按声明顺序执行,
+    // 后续可能加 TenantAuditMiddleware 在 TenantContext 后记录 audit).
+    consumer.apply(TenantContextMiddleware).forRoutes('*');
   }
 }

@@ -29,18 +29,46 @@ import { AddEmbodiedDevices1700000007009 } from '../src/migration/1700000007009-
 import { AddEmbodiedPermissions1700000007010 } from '../src/migration/1700000007010-AddEmbodiedPermissions';
 import { AddAiChatSessions1700000007011 } from '../src/migration/1700000007011-AddAiChatSessions';
 import { AddPrivacyAuthorizations1700000007012 } from '../src/migration/1700000007012-AddPrivacyAuthorizations';
+// V2026-10-12 (Phase 8.2 — Admin RBAC + 多租户, spec §0 / §3 A9 / §12.4):
+//   users 表加 tenant_id (V0.x = uid 一人一租户) + admin_role (NULL = 无权限,
+//   'editor' / 'reviewer' / 'admin' 跟客户端 7.8 PermissionResolver 3 角色严格对齐).
+// V2026-10-12 (Phase 8.1 — KB 模块初始化, spec §12.1):
+//   3 张表 (knowledge_items / knowledge_versions / workflow_events) + 5 复合
+//   index 一次建完, 跟 entity @Index 注解严格对应.
+// V2026-10-12 (Phase 8.3 — Analytics 模块初始化, spec §12.5):
+//   analytics_events 表 + 2 复合 index, 跟 entity @Index 注解严格对应.
+// V2026-10-12 (Phase 8.5 — Dev seed):
+//   3 admin 账户 (editor / reviewer / admin, 密码 "dev") + 5 KB 样例, 跟客户端
+//   7.8 V0.x dev fallback 对齐, dev 跑通 RBAC 矩阵 + 列表 + 5 工作流 action + Analytics 4 KPI 验证.
 
 // V2026-08-31 — 「首页」Tab V2.0 模块 (心塑首页 + 陪伴者首页, 4 张表)
 import { AddMoodLogs1700000008000 } from '../src/migration/1700000008000-AddMoodLogs';
 import { InitInnerWorld1700000008000 } from '../src/migration/1700000008000-InitInnerWorld';
+// V2026-10-12 (Phase 8.2 — Admin RBAC + 多租户, spec §0 / §3 A9 / §12.4):
+//   users 表加 tenant_id (V0.x = uid 一人一租户) + admin_role (NULL = 无权限,
+//   'editor' / 'reviewer' / 'admin' 跟客户端 7.8 PermissionResolver 3 角色严格对齐).
+import { AddUserTenantId1700000008000 } from '../src/migration/1700000008000-AddUserTenantId';
 import { AddMicroInterventionConfigs1700000008001 } from '../src/migration/1700000008001-AddMicroInterventionConfigs';
 import { AddMicroInterventionHistory1700000008002 } from '../src/migration/1700000008002-AddMicroInterventionHistory';
+// V2026-10-12 (Phase 8.2 — Admin RBAC + 多租户, spec §0 / §3 A9 / §12.4): adminRole 枚举加列
+import { AddUserAdminRole1700000008001 } from '../src/migration/1700000008001-AddUserAdminRole';
 import { AddHomeMessages1700000008003 } from '../src/migration/1700000008003-AddHomeMessages';
+// V2026-10-12 (Phase 8.1 — KB 模块初始化, spec §12.1):
+//   3 张表 (knowledge_items / knowledge_versions / workflow_events) + 5 复合
+//   index 一次建完, 跟 entity @Index 注解严格对应.
+import { InitKnowledge1700000008010 } from '../src/migration/1700000008010-InitKnowledge';
+// V2026-10-12 (Phase 8.3 — Analytics 模块初始化, spec §12.5):
+//   analytics_events 表 + 2 复合 index, 跟 entity @Index 注解严格对应.
+import { InitAnalytics1700000008020 } from '../src/migration/1700000008020-InitAnalytics';
 
 // V2026-09-03 — 心塑「内心世界」Tab 模块 (V4.0 §3 游戏化核心层, 6 张表)
 
 // V2026-09-01 — 「练习」Tab V2.0 模块 (心塑成长用户端 Tab2, 5 张表)
 import { AddPracticeTables1700000009000 } from '../src/migration/1700000009000-AddPracticeTables';
+// V2026-10-12 (Phase 8.5 — Dev seed):
+//   3 admin 账户 (editor / reviewer / admin, 密码 "dev") + 5 KB 样例, 跟客户端
+//   7.8 V0.x dev fallback 对齐, dev 跑通 RBAC 矩阵 + 列表 + 5 工作流 action + Analytics 4 KPI 验证.
+import { SeedDevData1700000009000 } from '../src/migration/1700000009000-SeedDevData';
 
 // V2026-09-01 — 「陪伴」Tab V2.0 模块 (心塑陪伴者端 Tab2, 5 张表 + 扩展 companion_records)
 import { AddCompanionTables1700000010000 } from '../src/migration/1700000010000-AddCompanionTables';
@@ -122,6 +150,16 @@ const ormconfig = async (): Promise<DataSource> => {
       AddGoodStateDiary1714900000003,
       // V2026-09-11 — 首页微干预场景化元数据 (7 trigger + 完整 stats 支撑)
       AddMicroInterventionScenarios1714900000004,
+      // V2026-10-12 (Phase 8.x — 5 个新 migration):
+      //   8.2 RBAC + tenantId (2 张表加列 + backfill) / 8.1 KB 模块 3 张表
+      //   / 8.3 Analytics 1 张表 / 8.5 dev seed (3 admin 账户 + 5 KB 样例).
+      //   治本: 显式列入 (跟 1714900000004 同段), 跟 bin/ormconfig.ts 顶部 import
+      //   严格 1:1 对应, 防 migration:run "No migrations are pending" 漏建.
+      AddUserTenantId1700000008000,
+      AddUserAdminRole1700000008001,
+      InitKnowledge1700000008010,
+      InitAnalytics1700000008020,
+      SeedDevData1700000009000,
     ],
     // migrationsRun: false (默认) — 手动 npm run migration:run
     // synchronize: false — 已禁, 强制走 migration

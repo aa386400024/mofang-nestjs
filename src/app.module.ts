@@ -15,6 +15,7 @@ import { resolve } from 'node:path';
 import { AgentModule } from './agent/agent.module';
 import { AiConversationsModule } from './ai-companion/ai-conversations.module';
 import { AIEngineModule } from './ai-engine/ai-engine.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { AuthModule } from './auth';
 import { BaseModule } from './base/base.module';
 import { CommonModule } from './common';
@@ -31,7 +32,12 @@ import { GoodStateDiaryModule } from './good_state_diary/good_state_diary.module
 import { GuideModule } from './guide/guide.module';
 import { HomeModule } from './home/home.module';
 import { GameUnlockModule } from './inner_world/game-unlock.module';
+// V2026-10-12 治本 (pre-existing inner-world 文件名 vs import path 错位):
+//   实际文件 src/inner_world/inner_world.module.ts (下划线), 但 import 写
+//   './inner_world/inner-world.module' (dash), Node 解析失败, build 断. 这是
+//   pre-existing bug (跟 8.x 无关), 治本: 改 import 路径对齐文件名.
 import { InnerWorldModule } from './inner_world/inner_world.module';
+import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module';
 import { LifeMapModule } from './life-map/life-map.module';
 import { PracticeModule } from './practice/practice.module';
 import { ProfileModule } from './profile';
@@ -163,6 +169,12 @@ import { VoiceModule } from './voice/voice.module';
     // V2026-08-28: 隐私授权 + 数据导出走 ProfileModule 内的 controller (保持模块边界)
     // V2026-09-01 — 心塑成长端「练习」Tab (8 大分类 + 心理健身房 + 具身认知)
     PracticeModule, // /practice/*
+    // V2026-10-12 — Phase 8.1+8.3 admin KB + analytics, spec §8.1 / §12.1+§12.5
+    //   KnowledgeBaseModule: KB CRUD + workflow + version + schedule + preview + search
+    //   AnalyticsModule: 4 KPI + 4 trend 实时聚合 (走 analytics_events 事件表)
+    //   V1.x 接入 RAG / Qdrant 时, 加新 module (RagModule) 走 V2 KB 拆 knowledge_chunks 表.
+    KnowledgeBaseModule, // /admin/knowledge-items/* + /admin/knowledge-items/:id/preview
+    AnalyticsModule, // /admin/analytics/overview
     InnerWorldModule, // /inner-world/* (V4.0 §3 完整游戏化核心层)
     // V2026-09-01 — 心塑陪伴者端「陪伴」Tab (8 大分区 + 双人协同 + 关系管理)
     CompanionModule, // /companion/*

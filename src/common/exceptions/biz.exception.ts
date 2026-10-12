@@ -21,9 +21,16 @@ import { BizCode } from './biz-code.enum';
  *   throw new BizException(BizCode.UserNotFound, '用户不存在');
  */
 export class BizException extends HttpException {
+  // V2026-10-12 治本 (Phase 8.1 — KB workflow 校验):
+  //   BizException 加 public readonly code 字段, 让 caller (scheduled-publish.processor.ts
+  //   等) 能用 `e.code === BizCode.X` 判定具体业务错 (不只是 HTTP 4xx). 治本前
+  //   processor 用 instanceof + getStatus() 拿 HTTP, 不能区分 Forbidden vs InvalidState.
+  public readonly code: BizCode;
+
   constructor(code: BizCode, message?: string) {
     const httpStatus = mapBizCodeToHttpStatus(code);
     super({ code, message: message ?? getBizCodeDefaultMessage(code) }, httpStatus);
+    this.code = code;
   }
 }
 
@@ -94,6 +101,11 @@ function getBizCodeDefaultMessage(code: BizCode): string {
     [BizCode.TokenExpired]: 'token 已过期',
     [BizCode.TokenRevoked]: 'token 已被撤销',
     [BizCode.TokenInvalid]: 'token 无效',
+
+    // V2026-10-12 (Phase 8.1 — KB 状态机, spec §12.2):
+    //   跟 8.1 workflow.service.ts assertTransition 抛错场景对齐, 文案跟
+    //   client 7.3 canXxx false 时的 UI 提示一致: "此操作不被当前状态允许".
+    [BizCode.InvalidStateTransition]: '此操作不被当前状态允许',
 
     [BizCode.VerificationCodeInvalid]: '验证码不正确',
     [BizCode.VerificationCodeExpired]: '验证码已过期',
