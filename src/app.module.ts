@@ -18,6 +18,7 @@ import { AIEngineModule } from './ai-engine/ai-engine.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AuthModule } from './auth';
 import { BaseModule } from './base/base.module';
+import { BillingModule } from './billing/billing.module';
 import { CommonModule } from './common';
 import { BizExceptionFilter } from './common/filters/biz-exception.filter';
 import { CompanionModule } from './companion/companion.module';
@@ -27,6 +28,11 @@ import { ConsentModule } from './consent';
 //   心理咨询师学员端「首页」Tab server 端, 跟 xin_su_app counselor_home
 //   1:1 对应. V0.5 简化: 仅 home overview 1 endpoint, 内存 mock.
 //   V1.x 改造: 加 training/exam/growth/profile 4 子 controller, 接数据库.
+// V2026-10-13 治本 (V0.2 — billing.module import 漏修):
+//   上一轮 app.module.ts imports 数组加 `BillingModule, // /billing/*` 成功, 但顶部 import
+//   漏写 `import { BillingModule } from './billing/billing.module';`, pnpm build 报
+//   TS2304 'Cannot find name BillingModule'. 治本: 补 import 跟 counselor 风格一致
+//   (字母序 B < C, 在 CounselorModule 之前).
 import { CounselorModule } from './counselor/counselor.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AppNamingStrategy } from './database/naming-strategy';
@@ -208,6 +214,11 @@ import { VoiceModule } from './voice/voice.module';
     //   V0.5: 1 endpoint, 内存 mock (3 大入口 + 2 渐进解锁 + 漂流瓶 + 时间轴).
     //   V1.x: 接 life_stages + key_events + genome_dimensions 表.
     LifeMapModule, // /life-map/overview
+    // V2026-10-13 — 心塑「商业化」模块 (V0.2 启动 Phase 8, 4 档会员 + 4 SKU 单次)
+    //   V0.5: 4 endpoint (membership/products/orders POST/orders GET), 内存 mock, 微信/支付宝
+    //   真接未申请 → paymentChannel 写死 'reserved', 客户端 UI 显 "支付通道预留中".
+    //   V1.x: TypeORM billing entities + 真接微信 V2 / 支付宝 + 配额 guard cron.
+    BillingModule, // /billing/*
   ],
   providers: [
     // Global Throttler Guard
