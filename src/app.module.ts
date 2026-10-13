@@ -23,6 +23,11 @@ import { BizExceptionFilter } from './common/filters/biz-exception.filter';
 import { CompanionModule } from './companion/companion.module';
 import { configuration, loggerOptions } from './config';
 import { ConsentModule } from './consent';
+// V2026-10-13 治本 (Phase 7.10 — counselor 端 server module 注册):
+//   心理咨询师学员端「首页」Tab server 端, 跟 xin_su_app counselor_home
+//   1:1 对应. V0.5 简化: 仅 home overview 1 endpoint, 内存 mock.
+//   V1.x 改造: 加 training/exam/growth/profile 4 子 controller, 接数据库.
+import { CounselorModule } from './counselor/counselor.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AppNamingStrategy } from './database/naming-strategy';
 import { EmbodiedModule } from './embodied/embodied.module';
@@ -38,7 +43,7 @@ import { GameUnlockModule } from './inner_world/game-unlock.module';
 //   pre-existing bug (跟 8.x 无关), 治本: 改 import 路径对齐文件名.
 import { InnerWorldModule } from './inner_world/inner_world.module';
 import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module';
-import { LifeMapModule } from './life-map/life-map.module';
+import { LifeMapModule } from './life_map/life-map.module';
 import { PracticeModule } from './practice/practice.module';
 import { ProfileModule } from './profile';
 import { EmailModule, MetricsModule, ObservabilityModule, QueueModule, RedisModule, SmsModule } from './shared/infra';
@@ -164,7 +169,9 @@ import { VoiceModule } from './voice/voice.module';
     // V2026-08-28 — 「我的」Tab V2.0 4 个新页面专用模块
     AiConversationsModule, // /profile/ai-conversations
     DashboardModule, // /profile/dashboard/*
-    LifeMapModule, // /profile/life-map
+    // V2026-10-13 治本 (Phase 7.10 P0-6 — 删老占位 LifeMapModule entry):
+    //   老的 L172 `LifeMapModule, // /profile/life-map` 跟新模块 (L208) 同类同名
+    //   重复注册, NestJS 启动会抛 AlreadyRegistered. 删老占位, 留 P0-6 新模块 (心理地图 Tab).
     EmbodiedModule, // /profile/embodied-data/*
     // V2026-08-28: 隐私授权 + 数据导出走 ProfileModule 内的 controller (保持模块边界)
     // V2026-09-01 — 心塑成长端「练习」Tab (8 大分类 + 心理健身房 + 具身认知)
@@ -190,10 +197,17 @@ import { VoiceModule } from './voice/voice.module';
     VoiceModule, // TtsService + TtsBidiPoolService (无 HTTP 端点, 仅内部 VoiceGateway 使用)
     // V2026-09-04 — 心塑 V6.0 §4.2 急救闭环 — 5 工具会话上报 + 跨设备同步
     EmergencyModule, // /emergency/*
+    // V2026-10-13 — 心理咨询师学员端 server module (Phase 7.10 启动 P0-1)
+    //   V0.5: counselor/home/overview 1 endpoint, V1.x 加 training/exam/growth/profile
+    CounselorModule, // /counselor/home/overview
     // V2026-09-04 — 心塑 V6.0 §6 Inner World 游戏化模块解锁进度 (game_unlock_progress V2 表)
     GameUnlockModule, // /inner-world/game-unlock/*
     // V2026-09-11 — 心塑「好状态日记」模块 (V4.0 §6 觉察日记云端契约, 9 + 1 端点)
     GoodStateDiaryModule, // /diary/entries/* + /ai/diary-feedback
+    // V2026-10-13 — 心塑「心理地图」模块 (Phase 7.10 P0-6 补 controller, 17 file 已有)
+    //   V0.5: 1 endpoint, 内存 mock (3 大入口 + 2 渐进解锁 + 漂流瓶 + 时间轴).
+    //   V1.x: 接 life_stages + key_events + genome_dimensions 表.
+    LifeMapModule, // /life-map/overview
   ],
   providers: [
     // Global Throttler Guard

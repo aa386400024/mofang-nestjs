@@ -76,6 +76,23 @@ export class KnowledgeItemDto {
   @ApiProperty({ required: false, nullable: true }) publishedAt?: Date | null;
   @ApiProperty({ required: false, nullable: true, description: 'Phase 7.7 排期发布时间' })
   scheduledPublishAt?: Date | null;
+
+  // V2026-10-13 (Phase 7.10 — 7.6 client WorkflowList 3 tab 端到端 e2e 校准):
+  //   客户端 WorkflowItemModel.fromJson 读 `submittedAt` (WorkflowItem 实体字段),
+  //   server KnowledgeItemDto 之前没这字段 → 3 tab 列表 cell 时间行永远 null. 治本
+  //   (决策 2B): server 按 status 派生, 1 line 派生 logic 在 knowledge.service.ts
+  //   deriveSubmittedAt(), 3 tab 都有意义数据:
+  //     - draft     → createdAt    (草稿创建时间)
+  //     - review    → updatedAt    (最近一次提交/编辑时间)
+  //     - published → publishedAt  (审批通过时间, V0.x 应非 null, fallback updatedAt)
+  //     - archived  → updatedAt    (归档时间)
+  //   不在 client 按 status 派生 (logic 散落易出 bug), server 派生 1 处, 跨 3 tab 一致.
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description: 'V2026-10-13 (Phase 7.10) 按 status 派生 (draft→createdAt, review→updatedAt, published→publishedAt, archived→updatedAt)',
+  })
+  submittedAt?: Date | null;
 }
 
 /**

@@ -446,7 +446,51 @@ export class KnowledgeService {
       reviewerName: null,
       publishedAt: item.publishedAt,
       scheduledPublishAt: item.scheduledPublishAt,
+      // V2026-10-13 (Phase 7.10 — 决策 2B server virtual 派生):
+      //   客户端 7.6 WorkflowItemModel.fromJson 读 `submittedAt`, 跟 server
+      //   KnowledgeItemDto.submittedAt 严格 wire (dto 已加 @ApiProperty). 派生
+      //   logic 在下方 deriveSubmittedAt() helper, 3 tab 一致:
+      //     draft/review/archived/published 全有数据, 不再 list cell 时间行空白.
+      submittedAt: this.deriveSubmittedAt(item),
     };
+  }
+
+  /**
+   * V2026-10-13 (Phase 7.10 — 决策 2B server 派生):
+   *   按 status 派生 submittedAt, 给 7.6 client WorkflowList 3 tab (我的草稿 /
+   *   待我审核 / 已发布) list cell 时间行. 派生规则:
+   *     - draft     → createdAt    (草稿创建时间, V0.x author 视角)
+   *     - review    → updatedAt    (最近一次 submit / 编辑时间, reviewer 视角)
+   *     - published → publishedAt  (审批通过时间, fallback updatedAt 防御)
+   *     - archived  → updatedAt    (归档时间)
+   *
+   *   治本 (决策 2B 选 B 不选 C 的原因):
+   *     - 不在 client 按 status 派生 (logic 散落, 后期加 archived 状态要同步改 4 处)
+   *     - server 派生 1 处, 跨 3 tab 一致, V1.x 加新状态只改 switch
+   *     - client WorkflowItem 实体字段不动, 7.6 + 7.9 零改动
+   *
+   *   历史 (V2026-10-13 定位):
+   *     - 7.6 client `workflow_item_model.dart` L30 读 `json['submittedAt']` (跟 entity
+   *       WorkflowItem.submittedAt 1:1) — 字段名一直对, 不需改.
+   *     - 但 server 之前没返 `submittedAt` 字段 → 永远 null → 3 tab 列表 cell 时间行空白.
+   *     - 跟 server 已有的 `publishedAt` (DTO L102) 不冲突: publishedAt 仅 published
+   *       状态有值, draft/review 状态为 null, 不能直接用.
+   *     - 治本: server KnowledgeItemDto 加 `submittedAt` 字段, 本 helper 按 status 派生.
+   *     - 验证 e2e: GET /admin/workflow/* 响应 JSON 应有 `submittedAt` 字段, 3 tab 都有值.
+   */
+  private deriveSubmittedAt(item: KnowledgeItem): Date | null {
+    switch (item.status) {
+      case KnowledgeStatus.Draft:
+        return item.createdAt;
+      case KnowledgeStatus.Review:
+        return item.updatedAt;
+      case KnowledgeStatus.Published:
+        return item.publishedAt ?? item.updatedAt;
+      case KnowledgeStatus.Archived:
+        return item.updatedAt;
+      default:
+        return item.updatedAt;
+    }
   }
 
   private toDetailDto(item: KnowledgeItem, authorName: string, reviewerName: string | null): KnowledgeDetailDto {
