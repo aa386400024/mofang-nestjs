@@ -89,9 +89,13 @@ export class SearchService {
     const hits = await this.qdrant.search(this.qdrantCollection, queryVector, limit, { tenant_id: tenantId }, 0.5);
     if (hits.length === 0) return [];
 
-    // 3. 根据 Qdrant payload.itemId 查 knowledge_items + knowledge_chunks, 返 DTO
-    const itemIds = Array.from(new Set(hits.map((h) => String(h.payload['item_id'] ?? '')).filter(Boolean)));
+    // 3. V2026-10-14 治本 (VS-3d — Qdrant score 传给 toItemDto):
+    //   改: 加 hits 索引 map (itemId → hit 含 score) 跟 DTO query 字段, 跟 score 一起
+    //     传 toItemDto. 治本: client 搜索结果能显示"哪条最相关".
+    const hitById = new Map(hits.map((h) => [String(h.payload['item_id'] ?? ''), h]));
+    const itemIds = Array.from(hitById.keys()).filter(Boolean);
     if (itemIds.length === 0) return [];
+
     const rows = await this.items
       .createQueryBuilder('i')
       .where('i.tenantId = :tenantId', { tenantId })
@@ -104,7 +108,10 @@ export class SearchService {
     const rowById = new Map(rows.map((r) => [r.id, r]));
     const orderedRows = itemIds.map((id) => rowById.get(id)).filter((r): r is KnowledgeItem => !!r);
     const authorMap = await this.batchGetAuthorNames(orderedRows.map((r) => r.authorId));
-    return orderedRows.map((row) => this.toItemDto(row, authorMap.get(row.authorId) ?? 'Unknown'));
+    return orderedRows.map((row) => {
+      const hit = hitById.get(row.id);
+      return this.toItemDto(row, authorMap.get(row.authorId) ?? 'Unknown', hit?.score ?? null, query);
+    });
   }
 
   /**
@@ -123,7 +130,8 @@ export class SearchService {
       .getMany();
     if (rows.length === 0) return [];
     const authorMap = await this.batchGetAuthorNames(rows.map((r) => r.authorId));
-    return rows.map((row) => this.toItemDto(row, authorMap.get(row.authorId) ?? 'Unknown'));
+    // V2026-10-14 治本 (VS-3d — LIKE 路径不传 score / query, client 显隐):
+    return rows.map((row) => this.toItemDto(row, authorMap.get(row.authorId) ?? 'Unknown', null, null));
   }
 
   private async batchGetAuthorNames(userIds: string[]): Promise<Map<string, string>> {
@@ -141,7 +149,7 @@ export class SearchService {
     return map;
   }
 
-  private toItemDto(item: KnowledgeItem, authorName: string): KnowledgeItemDto {
+  private toItemDto(item: KnowledgeItem, authorName: string, score: number | null, query: string | null): KnowledgeItemDto {
     return {
       id: item.id,
       tenantId: item.tenantId,
@@ -160,6 +168,9 @@ export class SearchService {
       reviewerName: null,
       publishedAt: item.publishedAt,
       scheduledPublishAt: item.scheduledPublishAt,
+      // V2026-10-14 治本 (VS-3d — score / query 字段, 跟 nullable 兼容 LIKE 路径):
+      score,
+      query,
     };
   }
 }

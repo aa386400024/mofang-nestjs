@@ -18,8 +18,19 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { LlmModule } from '../agent/llm/llm.module';
+import { AIEngineModule } from '../ai-engine/ai-engine.module';
 import { AnalyticsModule } from '../analytics/analytics.module';
+// V2026-10-14 治本 (VS-3c — LlmModule 路径修正, 2 个 module 都 import, alias 解决同名冲突):
+//   原因: V0.x import `../agent/llm/llm.module` (链路 2: agent 直连 MiniMax m3, V3 §3.5),
+//     但 SearchService.inject 的是 `../../llm/registry/llm-router.service` (链路 1:
+//     LlmRouterService 走 OpenAI 兼容 4 provider + Qdrant). 2 个 llm.module 是不同 module,
+//     agent/llm/llm.module 不 export LlmRouterService, 启动报 UnknownDependenciesException.
+//   修法: 2 个 module 都 import, 用 import alias `LlmModule` (链路 1) + `AgentLlmModule` (链路 2).
+//     2 个 module 并存, 跟 V3 §3.5 "2 套独立 LLM 链路" 一致, PreviewService 走链路 2 (MiniMax m3),
+//     SearchService 走链路 1 (OpenAI 兼容 4 provider + Qdrant).
+//   反双胞胎: 不用 export 同一个 class name 2 次 (NestJS 不支持, 必须 alias).
+import { LlmModule } from '../llm/llm.module';
+import { LlmModule as AgentLlmModule } from '../agent/llm/llm.module';
 import { KnowledgeController } from './controllers/knowledge.controller';
 import { PreviewController } from './controllers/preview.controller';
 // V2026-10-12 (Phase 8.8 — workflow panel 补建):
@@ -51,7 +62,17 @@ import { User } from '../user/entities/user.entity';
     AnalyticsModule,
     // V2026-10-12 (Phase 8.4 — Preview): LlmModule 注入, PreviewService.streamChat
     //   调 LlmService 走 MiniMax m3 (V0.x dev fallback 返 mock 响应).
+    // V2026-10-14 治本 (VS-3c — alias 后的 LlmModule 改 import 别名 LlmModule + 链路 2 alias AgentLlmModule):
+    //   原因: 上面 import 别名后, 这里 NestJS @Module.imports 用同名会冲突, 必须跟
+    //     import 段别名一致 (链路 1 `LlmModule` = `../llm/llm.module`, 链路 2 `AgentLlmModule`).
     LlmModule,
+    AgentLlmModule,
+    // V2026-10-14 治本 (VS-3c — AIEngineModule 提供 QdrantService + LlmModule 提供 LlmRouterService):
+    //   原因: VS-3c SearchService inject QdrantService (走 RAG 向量召回) + LlmRouterService
+    //     (走 OpenAI 兼容 4 provider embedding). 2 个 module 都需 import 知识库模块.
+    //   修法: imports 加 AIEngineModule (AIEngineModule 已 export QdrantService + RagService,
+    //     跟知识库模块单向下游依赖, 防循环).
+    AIEngineModule,
   ],
   controllers: [KnowledgeController, PreviewController, WorkflowController],
   providers: [

@@ -93,6 +93,13 @@ export class KnowledgeItemDto {
     description: 'V2026-10-13 (Phase 7.10) 按 status 派生 (draft→createdAt, review→updatedAt, published→publishedAt, archived→updatedAt)',
   })
   submittedAt?: Date | null;
+
+  // V2026-10-14 治本 (VS-3d):
+  @ApiProperty({ required: false, nullable: true, description: 'Qdrant vector similarity (0-1)' })
+  score?: number | null;
+
+  @ApiProperty({ required: false, nullable: true, description: '搜索 query 字符串 (高亮用)' })
+  query?: string | null;
 }
 
 /**
