@@ -78,6 +78,12 @@ import { ExtendCompanionRecord1700000010001 } from '../src/migration/17000000100
 import { AddLifeStageProgress1700000010002 } from '../src/migration/1700000010002-AddLifeStageProgress';
 import { AddKeyEvents1700000010003 } from '../src/migration/1700000010003-AddKeyEvents';
 import { AddGenomeDimensions1700000010004 } from '../src/migration/1700000010004-AddGenomeDimensions';
+// V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
+//   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
+//   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
+//   key_events + genome_dimensions) 模式一致, 漏写第 4 张. 即便现在挂上 life-map/
+//   module, 6 endpoint 一调就 TypeORM TableNotFoundError. 治本: 创表 + 3 索引 + down 段.
+import { AddDriftBottles1700000010005 } from '../src/migration/1700000010005-AddDriftBottles';
 
 // V2026-09-04 — 心塑 V6.0 §3 AI 引擎 5 张表 + §4.2 急救会话表 + §6 Inner World 游戏化解锁表 (audit P0-1/P0-3)
 import { AddAIEngineTables1714900000000 } from '../src/migration/1714900000000-AddAIEngineTables';
@@ -142,6 +148,8 @@ const ormconfig = async (): Promise<DataSource> => {
       AddLifeStageProgress1700000010002,
       AddKeyEvents1700000010003,
       AddGenomeDimensions1700000010004,
+      // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
+      AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)
       AddAIEngineTables1714900000000,
       AddEmergencySessions1714900000001,

@@ -49,7 +49,23 @@ import { GameUnlockModule } from './inner_world/game-unlock.module';
 //   pre-existing bug (跟 8.x 无关), 治本: 改 import 路径对齐文件名.
 import { InnerWorldModule } from './inner_world/inner_world.module';
 import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module';
-import { LifeMapModule } from './life_map/life-map.module';
+// V2026-10-14 治本 (VS-life-merge P0-治本 — life_map 0% 真接 + drift migration 缺失):
+//   原因: V0.5 P0-6 治本时只把 app.module.ts import 改路径 (从 life-map/ 改到 life_map/),
+//     但没合并两个目录内容. life_map/ (下划线) 1 endpoint overview 是中间态,
+//     0 client 调用 (grep 0 命中). life-map/ (中划线) V3.0 + V6.0 完整版 12+6 endpoint
+//     全部埋盘未注册, 4 entity 表 ship 到 db 但 service 接不上. snapshot V2 §6.2 表第 18 行
+//     标 "✅ P0-6 done" 是严重误报 (V3 深度扫描 4 subagent 实读 297 file 验证).
+//   修法: 删 src/life_map/ 整目录 4 file + 改 app.module.ts 2 处 (本 import + L216 entry) +
+//     新写 1700000010005-AddDriftBottles.ts migration (life_map_drift_bottles 表缺失) +
+//     bin/ormconfig.ts + src/migration/index.ts 同步注册.
+//   反双胞胎: 不复用 life_map/ underscore 1 endpoint (跟 dash 版 12 endpoint 是子集,
+//     删除不会丢功能). 1 endpoint 是 V0.5 P0-6 过渡态, 18 endpoint 是 V3.0 完整版终态.
+//   验证: 跑 pnpm build 验 TS 编译过 + grep 'life_map/' src/ 0 命中 +
+//     grep 'from .\./life-map' src/app.module.ts 1 命中 (新 import) +
+//     grep '1700000010005' bin/ormconfig.ts 1 命中 (新 entry) +
+//     跑 pnpm migration:run 创 life_map_drift_bottles 表.
+//   时间戳: 2026-10-14 09:45 GMT+8 (V3 深度扫描发现 → 今日 VS-life-merge 治本).
+import { LifeMapModule } from './life-map/life-map.module';
 import { PracticeModule } from './practice/practice.module';
 import { ProfileModule } from './profile';
 import { EmailModule, MetricsModule, ObservabilityModule, QueueModule, RedisModule, SmsModule } from './shared/infra';
@@ -210,10 +226,14 @@ import { VoiceModule } from './voice/voice.module';
     GameUnlockModule, // /inner-world/game-unlock/*
     // V2026-09-11 — 心塑「好状态日记」模块 (V4.0 §6 觉察日记云端契约, 9 + 1 端点)
     GoodStateDiaryModule, // /diary/entries/* + /ai/diary-feedback
-    // V2026-10-13 — 心塑「心理地图」模块 (Phase 7.10 P0-6 补 controller, 17 file 已有)
-    //   V0.5: 1 endpoint, 内存 mock (3 大入口 + 2 渐进解锁 + 漂流瓶 + 时间轴).
-    //   V1.x: 接 life_stages + key_events + genome_dimensions 表.
-    LifeMapModule, // /life-map/overview
+    // V2026-10-14 治本 (VS-life-merge P0-治本 — 改挂 life-map/ dash V3.0 + V6.0 完整版):
+    //   取代 V0.5 P0-6 旧 1 endpoint overview 中间态 (已删 src/life_map/), 现挂
+    //   life-map/ dash 版 18 endpoint 完整 (V3.0 心理地图 12 + V6.0 §6.5 漂流瓶 6),
+    //   4 entity 表 (life_stage_progress + key_events + genome_dimensions + life_map_drift_bottles)
+    //   全部接真. client lib/features/life_map/ 已在用 /profile/life-map/*, server 切换
+    //   后立即真接 V3.0 + V6.0, 0 客户端改动.
+    //   V1.x: 推演 + 报告 unlock 阈值 (阶段全填 + 事件 ≥3 + 维度 5 全填) 走真数据库.
+    LifeMapModule, // /profile/life-map/* (V3.0 12) + /life-map/drift-bottles/* (V6.0 6)
     // V2026-10-13 — 心塑「商业化」模块 (V0.2 启动 Phase 8, 4 档会员 + 4 SKU 单次)
     //   V0.5: 4 endpoint (membership/products/orders POST/orders GET), 内存 mock, 微信/支付宝
     //   真接未申请 → paymentChannel 写死 'reserved', 客户端 UI 显 "支付通道预留中".
