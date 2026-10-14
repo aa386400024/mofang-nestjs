@@ -158,15 +158,6 @@ services:
     depends_on:
       - prometheus
 
-networks:
-  mofang-net:
-    driver: bridge
-
-volumes:
-  mysql-data:
-  redis-data:
-  prometheus-data:
-  grafana-data:
   # ============================================================
   # V6.0 §12 RAG — Qdrant 1.x 向量库
   # ============================================================
@@ -221,5 +212,13 @@ volumes:
     depends_on:
       - qdrant
 
+networks:
+  mofang-net:
+    driver: bridge
+
 volumes:
+  mysql-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:
   qdrant-data:

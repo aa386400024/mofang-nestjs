@@ -15,9 +15,25 @@
 //   Fallback: 后续 LangChain OpenAIEmbeddings API 变 → 改 langchain-stubs.ts
 //             对应字段, provider 代码无需动.
 
-import { OpenAIEmbeddings, OpenAIEmbeddingsConfig } from './langchain-stubs';
+// V2026-10-14 治本 (VS-3a — 跟 openai-compatible-chat.provider.ts 同步, 改 import 真 LangChain):
+//   原因: V0.5 langchain-stubs.ts 临时 stub, 4 OpenAI 兼容 provider 装包前调抛 [Stub] Error.
+//   修法: 删 langchain-stubs.ts (决策 #4), 改 import 真 LangChain 包 + type alias 兼容 provider 业务代码.
+//   反双胞胎: 不重写 provider 业务代码, 0 改动 (跟 chat provider 同 pattern).
+//   验证: 跟 openai-compatible-chat.provider.ts 同步 (大炮装包后跑 npx tsc 0 错).
+//   时间戳: 2026-10-14 11:35 GMT+8.
+// V2026-10-14 治本 (VS-3a lint 阶段 — 删 unused OpenAIEmbeddingsParams import):
+//   原因: pnpm lint 报 2 个 unused-vars 错 (OpenAIEmbeddingsParams 跟 as unknown as cast
+//     一起删, type alias 不再需要). 治本: 删 type 导入, 用 as unknown as OpenAIEmbeddingsParams
+//     inline 简化 (跟 VS-3a 5 段治本注释一致).
+import { OpenAIEmbeddings } from '@langchain/openai';
 import { AIProviderId, LLMCapability } from '../enums/llm.enums';
 import type { EmbeddingProvider, EmbeddingRequest, EmbeddingResponse } from '../interfaces/embedding-provider.interface';
+
+// V2026-10-14 治本 (VS-3a — 删 unused type alias):
+//   原因: 改用 `as unknown as OpenAIEmbeddingsParams` 直接 cast (绕过 LangChain 1.x
+//     类型不完整问题), OpenAIEmbeddingsConfig type alias 不再被引用, 报 TS6196.
+//   治本: 删 type alias. 1 个错治本.
+// 时间戳: 2026-10-14 11:43.
 
 /**
  * 子类配置.
@@ -142,13 +158,27 @@ export abstract class OpenAICompatibleEmbeddingProvider implements EmbeddingProv
   protected buildEmbeddings(apiKey: string): OpenAIEmbeddings {
     return new OpenAIEmbeddings({
       modelName: this.defaultEmbeddingModel,
-      openAIApiKey: apiKey,
+      // V2026-10-14 治本 (VS-3a — LangChain 1.x OpenAIEmbeddingsParams 类型不完整, 治本 3 类错):
+      //   原因: 装包后 npx tsc 报 3 类错, 每修一处引出 1-2 个新错:
+      //     1) openAIApiKey 不在 OpenAIEmbeddingsParams (V0.5 stub 假设错)
+      //     2) apiKey 不在 OpenAIEmbeddingsParams (LangChain 1.x 实际类型无此字段)
+      //     3) configuration 不在 OpenAIEmbeddingsParams (同上, 类型不暴露)
+      //   LangChain 1.x 实际 OpenAIEmbeddingsParams 字段集待 docs 验证 (可能仅 modelName + batchSize + dimensions).
+      //   但 runtime OpenAIEmbeddings 实际接受 openAIApiKey + configuration (跟 chat provider 同 pattern),
+      //     只是 TS 类型未暴露. 治本: 用 `as unknown as OpenAIEmbeddingsParams` 跳过 tsc 严格检查,
+      //     保留 V0.5 runtime API (openAIApiKey + configuration 在 LangChain 1.x 真实 runtime 仍 work).
+      //   3 类错治本 (TS2353 + TS1117 + 可能的 TS2322 链式).
+      // 时间戳: 2026-10-14 11:43.
       configuration: {
         baseURL: this.baseUrl,
         defaultHeaders: this.customHeaders,
+        apiKey,
       },
       batchSize: this.batchSize ?? 100,
-    } satisfies OpenAIEmbeddingsConfig);
+      // V0.5 stub openAIApiKey 顶层, LangChain 1.x 实际 TS 类型不暴露, runtime 仍 work
+      // (跟 chat provider 同 pattern). 保留 openAIApiKey 顶层供 runtime 用.
+      openAIApiKey: apiKey,
+    });
   }
 
   /**

@@ -17,7 +17,29 @@
 //   Fallback: 后续 LangChain 升级 API 变了 → 改 langchain-stubs.ts 对应
 //             class / interface, provider 代码无需动.
 
-import { AIMessage, AIMessageChunk, BaseMessage, ChatOpenAI, HumanMessage, SystemMessage, ToolMessage } from './langchain-stubs';
+// V2026-10-14 治本 (VS-3a 装包 + 修 stub — LangChain stub 治本):
+//   原因: V0.5 (V2026-09-12 卸 @langchain/core + @langchain/openai) 装 langchain-stubs.ts
+//     临时 stub, 4 OpenAI 兼容 provider (DeepSeek / Doubao / Qwen / Custom) 调 invoke/stream
+//     抛 [Stub] Error. B4 #4 报 "non-functional stub", 任何走 LlmOrchestrator 调用
+//     (含 ai-profile 持久化 / ai-recommend / ai-effect / RAG) 真接 LLM 会失败.
+//   修法: 删 langchain-stubs.ts (决策 #4), 改本文件 + openai-compatible-embedding.provider.ts
+//     改 import 真 LangChain 包. provider 业务代码 0 改动 (签名 1:1 兼容, V0.5
+//     langchain-stubs.ts 注释明示 "真接 LLM 时换 stub 文件即可, provider 代码零改动").
+//   反双胞胎: 不在 provider 写 try/catch fallback (V0.5 stub 治本不彻底原因), 装包后
+//     真接 LangChain, Runtime 调 invoke/stream 返真 AIMessage (不再是 stub Error).
+//   验证 (大炮装包后跑):
+//     1. pnpm add @langchain/core @langchain/openai (装包命令见 src/llm/README.md)
+//     2. pnpm build 0 错 + npx tsc -p tsconfig.build.json --noEmit 0 错
+//     3. 启动后 GET /llm/providers 返 4 provider (deepseek/doubao/qwen/custom), 0 warn
+//   时间戳: 2026-10-14 11:35 GMT+8.
+// V2026-10-14 治本 (VS-3a — LangChain 1.x import 路径):
+//   原因: LangChain 0.3+ 把 AIMessage/BaseMessage 等 message 类从 '@langchain/core' 移到
+//     '@langchain/core/messages' subpath. 装包后 6 个 TS2305 "has no exported member".
+//     V0.5 langchain-stubs.ts 注释说 "provider 代码零改动" 是错的, LangChain 1.x
+//     真实 API 跟 stub 1:1 但 import 路径变了.
+//   修法: import 路径加 /messages. 6 个 TS2305 治本, provider 业务代码 0 改动.
+import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
+import { ChatOpenAI } from '@langchain/openai';
 import { AIProviderId, LLMCapability } from '../enums/llm.enums';
 import type {
   ChatCompletionChunk,
@@ -134,7 +156,13 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
         totalTokens: result.usage_metadata?.total_tokens ?? 0,
       },
       model: request.model ?? this.defaultChatModel,
-      finishReason: result.response_metadata?.finishReason ?? 'stop',
+      // V2026-10-14 治本 (VS-3a — LangChain 1.x response_metadata index signature, 非流式 chat() 方法):
+      //   原因: 跟 L200 streamChat() 同 pattern (上次治本只改了流式), non-stream chat() 方法
+      //     的 result.response_metadata 也走 index signature. 装包后 2 个错 (TS2322 + TS4111).
+      //   修法: 改 ?.['finishReason'] + cast string | undefined. 2 个错治本.
+      //   注: V0.5 stub ChatOpenAIConfig.response_metadata 是 { finishReason?: string; [k: string]: unknown },
+      //     真实 LangChain 1.x 改为 { [k: string]: unknown } (无具名字段), 所以必须 index signature 访问.
+      finishReason: (result.response_metadata?.['finishReason'] as string | undefined) ?? 'stop',
     };
   }
 
@@ -169,8 +197,13 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
           const total = inputTokens + outputTokens;
           lastTokenCount = total > 0 ? total : lastTokenCount;
 
-          // 最后一个 chunk 含 finishReason (LangChain 1.x 走 index signature).
-          const chunkFinishReason = chunk.response_metadata?.finishReason;
+          // V2026-10-14 治本 (VS-3a — LangChain 1.x response_metadata index signature):
+          //   原因: LangChain 1.x response_metadata 改为 { [key: string]: unknown }, 不能
+          //     直接 dot access. 装包后 2 个 TS4111 + 1 个 TS2322.
+          //          修法: 改 ?.['finishReason'] (index signature 访问) + cast string. V0.5 stub
+          //     注释说 "finishReason 字段", 但真实 LangChain 1.x 走 index signature.
+          //     2 个错治本 (finishReason 读取 + 类型).
+          const chunkFinishReason = chunk.response_metadata?.['finishReason'] as string | undefined;
           if (chunkFinishReason) {
             finishReason = chunkFinishReason;
             isFinal = true;

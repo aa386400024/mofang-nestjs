@@ -35,5 +35,7 @@ export { AddEmergencySessions1714900000001 } from './1714900000001-AddEmergencyS
 export { AddGameUnlockProgress1714900000002 } from './1714900000002-AddGameUnlockProgress';
 // V2026-10-14 治本 (VS-life-merge) — 跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏建
 export { AddDriftBottles1700000010005 } from './1700000010005-AddDriftBottles';
+// V2026-10-14 治本 (VS-3c) — knowledge_chunks 表注册, 跟 bin/ormconfig.ts 严格 1:1
+export { AddKnowledgeChunks1700000010006 } from './1700000010006-AddKnowledgeChunks';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

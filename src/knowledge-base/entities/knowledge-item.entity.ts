@@ -11,8 +11,9 @@
 //     - 不放 tenantId nullable (V0.x 强制 = uid, migration backfill 兜底).
 //     - status / type 用 enum 列 (MySQL 8.0 enum 性能 OK, 跟 wire 字符串对齐).
 
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
+import { KnowledgeChunk } from './knowledge-chunk.entity';
 import { KnowledgeStatus } from '../enums/knowledge-status.enum';
 import { KnowledgeType } from '../enums/knowledge-type.enum';
 
@@ -77,4 +78,11 @@ export class KnowledgeItem {
   // V0.x 后端未建时, mock 跟 7.7 client 走 failure 路径.
   @Column({ type: 'datetime', name: 'scheduled_publish_at', nullable: true })
   scheduledPublishAt!: Date | null;
+
+  // V2026-10-14 治本 (VS-3c — knowledge_items 1:N knowledge_chunks 关系):
+  //   原因: V0.x content 是 json 字段 (整段), V1.x 拆 chunks 表 per chunk 100-500 字
+  //     向量化进 Qdrant. 治本: 加 @OneToMany 关系, knowledge-chunk.entity.ts 1:N.
+  //   反双胞胎: 不在 chunks 存 vector 字段 (vector 存 Qdrant, chunks 只存元数据 + 内容).
+  @OneToMany(() => KnowledgeChunk, (chunk) => chunk.itemId)
+  chunks?: KnowledgeChunk[];
 }

@@ -27,6 +27,7 @@ import { PreviewController } from './controllers/preview.controller';
 //   vertical slice 漏建, 16:50 大炮反馈 /admin/workflow/* 404. 治本: 补建
 //   WorkflowController, 跟 knowledge.controller / preview.controller 同 pattern.
 import { WorkflowController } from './controllers/workflow.controller';
+import { KnowledgeChunk } from './entities/knowledge-chunk.entity';
 import { KnowledgeItem } from './entities/knowledge-item.entity';
 import { KnowledgeVersion } from './entities/knowledge-version.entity';
 import { WorkflowEvent } from './entities/workflow-event.entity';
@@ -41,7 +42,8 @@ import { User } from '../user/entities/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([KnowledgeItem, KnowledgeVersion, WorkflowEvent, User]),
+    // V2026-10-14 治本 (VS-3c — 注册 KnowledgeChunk entity, search.service.ts 用):
+    TypeOrmModule.forFeature([KnowledgeItem, KnowledgeVersion, KnowledgeChunk, WorkflowEvent, User]),
     // V2026-10-12 (Phase 8.3 — Analytics 跨模块 wire):
     //   KnowledgeService inject AnalyticsEventTrackerService, 5 workflow action
     //   + 2 schedule action 调 record() 写 analytics_events. AnalyticsModule
