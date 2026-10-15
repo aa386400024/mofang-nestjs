@@ -18,6 +18,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { LlmModule as AgentLlmModule } from '../agent/llm/llm.module';
 import { AIEngineModule } from '../ai-engine/ai-engine.module';
 import { AnalyticsModule } from '../analytics/analytics.module';
 // V2026-10-14 治本 (VS-3c — LlmModule 路径修正, 2 个 module 都 import, alias 解决同名冲突):
@@ -30,7 +31,6 @@ import { AnalyticsModule } from '../analytics/analytics.module';
 //     SearchService 走链路 1 (OpenAI 兼容 4 provider + Qdrant).
 //   反双胞胎: 不用 export 同一个 class name 2 次 (NestJS 不支持, 必须 alias).
 import { LlmModule } from '../llm/llm.module';
-import { LlmModule as AgentLlmModule } from '../agent/llm/llm.module';
 import { KnowledgeController } from './controllers/knowledge.controller';
 import { PreviewController } from './controllers/preview.controller';
 // V2026-10-12 (Phase 8.8 — workflow panel 补建):

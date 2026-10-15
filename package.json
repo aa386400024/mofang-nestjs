@@ -31,7 +31,7 @@
     "start:debug": "nest start --debug --watch",
     "start:repl": "nest start --entryFile repl",
     "test": "jest --detectOpenHandles -i",
-    "test:e2e": "NODE_OPTIONS=\"--no-experimental-strip-types\" jest --config ./test/jest.e2e.ts -i",
+    "test:e2e": "cross-env NODE_OPTIONS=--no-experimental-strip-types jest --config ./test/jest.e2e.ts -i",
     "doc": "compodoc -p tsconfig.json -s -d docs",
     "doc:api": "npm run build && node dist/swagger",
     "smoke:ai": "pnpm build && node scripts/smoke-ai-engine.cjs && node -e \"require('fs').writeFileSync('.smoke-ai-last', new Date().toISOString())\""
@@ -109,6 +109,7 @@
     "@types/prompts": "^2.4.9",
     "@types/supertest": "^7.2.1",
     "@types/ws": "^8.5.10",
+    "cross-env": "^10.1.0",
     "esbuild": "^0.28.1",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
