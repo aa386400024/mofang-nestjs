@@ -13,8 +13,21 @@ import { IsIn, IsNotEmpty, IsString } from 'class-validator';
 // 子 DTO: 会员状态
 // ════════════════════════════════════════════════════════════════════════════════
 
+// V2026-10-15 治本 (V0.3 整合 — MembershipDto 5 档+none description):
+//   原因: V0.2 spec §17 写 "4 档 + none" outdated, 实际 V0.5 拍板 5 档+none.
+//         漏写 'lifetime' 档 (B4 #6 MINOR + V3 §8 错位 #9).
+//         业务代码 enum 实际值跟 V0.5 1:1, 5 档都对, DTO description 注释 outdated.
+//   修法: 改 description "4 档 + none" → "5 档 + none (V0.5 拍板, V0.2 spec
+//         §17 漏写 lifetime)", enum 实际值不变.
+//   反双胞胎: 不改 enum 实际值 (跟 V0.5 拍板一致); 不删 'lifetime' 档; 不写 V0.4.
+//   验证: 大炮跑 pnpm build 验 swagger + curl GET /billing/membership 验 5 档 enum.
+//   时间戳: 2026-10-15
+
 export class MembershipDto {
-  @ApiProperty({ description: '会员状态 (4 档 + none)', enum: ['none', 'monthly', 'quarterly', 'yearly', 'lifetime'] })
+  @ApiProperty({
+    description: '会员状态 (5 档 + none, V0.5 拍板, V0.2 spec §17 漏写 lifetime)',
+    enum: ['none', 'monthly', 'quarterly', 'yearly', 'lifetime'],
+  })
   status!: 'none' | 'monthly' | 'quarterly' | 'yearly' | 'lifetime';
 
   @ApiProperty({ description: '到期时间 (V0.5 写死 null, V1.x 接 billing 表)', type: Date, nullable: true })
@@ -77,7 +90,20 @@ export class OrderDto {
   @ApiProperty({ description: '订单金额 (分)', example: 500 })
   amountCents!: number;
 
-  @ApiProperty({ description: '支付通道 (V0.5 写死 reserved, V1.x 真接 wechat/alipay)', enum: ['wechat', 'alipay', 'reserved', 'none'] })
+  // V2026-10-15 治本 (V0.3 整合 — OrderDto paymentChannel description):
+  //   原因: V0.2 spec §17 写 paymentChannel 简化, 实际 V0.5 拍板 4 值
+  //         (wechat/alipay/reserved/none), V0.5 写死 'reserved' 永不 completed.
+  //         大炮红线: 需先申请支付入口, VS-5 启动前置.
+  //   修法: 加 5 段治本注释 + 扩 description 标 "VS-5 P1 启动前置".
+  //         需大炮申请 微信 V2 商户 + 支付宝当面付.
+  //   反双胞胎: 不改 enum 实际值 (跟 V0.5 拍板一致); 不删 'none' 档 (default).
+  //   验证: 大炮跑 pnpm build + curl POST /billing/orders 验 reserved 返 pending.
+  //   时间戳: 2026-10-15
+
+  @ApiProperty({
+    description: '支付通道 (V0.5 写死 reserved, V1.x 真接 wechat/alipay, VS-5 P1 启动前置: 需大炮申请 微信 V2 商户 + 支付宝当面付 入口)',
+    enum: ['wechat', 'alipay', 'reserved', 'none'],
+  })
   paymentChannel!: 'wechat' | 'alipay' | 'reserved' | 'none';
 
   @ApiProperty({ description: '订单状态 (V0.5 写死 pending, V1.x 真接)', enum: ['pending', 'paid', 'failed', 'refunded'] })

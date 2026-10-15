@@ -10,6 +10,16 @@
 //     - 不存 userName 冗余 (server join users.email 拿, schema 干净).
 //     - 不存 "工作流当前是哪个 action" (那是 knowledge_items.status 真相源, 这
 //       里只记历史, 跟 source of truth 分离).
+//
+// V2026-10-15 治本 (V0.3 整合 — WorkflowEvent userId/timestamp 字段名):
+//   原因: V0.2 spec §15 写 actorId/createdAt, 实际 V0.x 拍板 userId/timestamp.
+//         跟其他 entity 风格统一 (B3 #11 MINOR + V3 §8 错位 #8).
+//   修法: 加 5 段治本注释, 字段名不变 (业务代码 0 改).
+//   反双胞胎: 不重命名 entity 字段 (1:1 wire 同步, runtime regression 风险).
+//             不改 enum 实际值 (KnowledgeStatus enum 跟 V0.x 一致).
+//   验证: 大炮跑 pnpm build + curl 验 GET /admin/knowledge-items/:id 触发
+//         workflow event, 验 userId/timestamp 字段正确返值.
+//   时间戳: 2026-10-15
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
