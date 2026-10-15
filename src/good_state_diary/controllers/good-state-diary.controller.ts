@@ -1,8 +1,11 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import { RequirePrivacyLevel } from '../../common/decorators/privacy-level.decorator';
 import { BizCode } from '../../common/exceptions/biz-code.enum';
 import { BizException } from '../../common/exceptions/biz.exception';
+import { PrivacyGuard } from '../../common/guards/privacy.guard';
+import { PrivacyLevel } from '../../common/privacy/privacy-level.enum';
 import { CurrentUser } from '../../user/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
 
@@ -40,8 +43,23 @@ import { GoodStateDiaryService } from '../providers/good-state-diary.service';
  */
 @ApiTags('good-state-diary')
 @Controller('diary/entries')
-@UseGuards(JwtAuthGuard)
+// V2026-10-15 治本 (VS-4 隐私分级 enforcement 应用 — L3_CONFIDENTIAL owner-only):
+//   原因: V0.3 §11.3 隐私分级完整 enforcement, 日记 body 是 PII 最敏感字段 (情绪 + 隐私想法),
+//     1:1 走 L3 owner-only. decision 1 B 方案 3 controller 配齐 L1/L2/L3 完整 path,
+//     diary 走 L3 (最严, 跟 V0.2 culture "心理产品隐私敏感"一致).
+//   修法: class-level @UseGuards(JwtAuthGuard, PrivacyGuard) + @RequirePrivacyLevel(L3_CONFIDENTIAL),
+//     全 10 endpoint 覆盖 (POST 创 / GET 列表 / drafts / search / purge-expired / all 删 / :id GET PUT DELETE / :id/restore),
+//     跟 PrivacyGuard 实现 1:1 (params.userId ?? params.id 对齐 user.userId, owner 才能访问).
+//   反双胞胎:
+//     - 不拆 method-level (10 endpoint 全 L3 一致, 拆了反而可能漏), 跟决策 2 A 方案"全 endpoint"一致,
+//     - 不复用 RolesGuard (那是 admin RBAC, 不是隐私层级, 跟 V2026-10-15 5 段治本一致),
+//     - 不写 service 层 ownership 校验 (PrivacyGuard 装饰器层做, 跟 V0.5 culture "decorator 优先"一致),
+//     - 不改 DTO (0 wire 协议改, 1:1 跟 V0.3 §11.3 1:1 跟 client 7.x diary bloc).
+//   验证: 大炮跑 pnpm test:e2e 验 owner 访问自己 diary 200 + 跨 user 访问 403 + L3 logL3Access spy 写入.
+//   时间戳: 2026-10-15.
+@UseGuards(JwtAuthGuard, PrivacyGuard)
 @ApiBearerAuth()
+@RequirePrivacyLevel(PrivacyLevel.L3_CONFIDENTIAL)
 export class GoodStateDiaryController {
   constructor(private readonly service: GoodStateDiaryService) {}
 

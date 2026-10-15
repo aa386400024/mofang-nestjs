@@ -32,6 +32,9 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 //   (跟 analytics.controller 同治本), 拆 3 个 import.
 import { JwtAuthGuard } from '../../auth';
 import { TenantId } from '../../common';
+import { RequirePrivacyLevel } from '../../common/decorators/privacy-level.decorator';
+import { PrivacyGuard } from '../../common/guards/privacy.guard';
+import { PrivacyLevel } from '../../common/privacy/privacy-level.enum';
 import { CurrentUser } from '../../user/decorators/current-user.decorator';
 import { RejectKnowledgeDto, UpdateKnowledgeDto } from '../dto/knowledge.dto';
 import { CreateKnowledgeDto } from '../dto/knowledge.dto';
@@ -47,7 +50,22 @@ import { ScheduledPublishService } from '../providers/scheduled-publish.service'
 
 @ApiTags('Admin · Knowledge')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+// V2026-10-15 治本 (VS-4 隐私分级 enforcement 应用 — L2_INTERNAL 内部鉴权):
+//   原因: knowledge controller 是 admin 端 (/admin/knowledge-items/*), 全 12 endpoint
+//     都需 JWT 鉴权 (跟 V0.x client AdminRouteGuard V0.x-ONLY 一致, BLoC 内层 gate).
+//     decision 1 B 方案 3 controller 配齐 L1/L2/L3 完整 path, knowledge 走 L2
+//     (admin 内部, 跟 L1 公开 / L3 owner 区分).
+//   修法: class-level @UseGuards(JwtAuthGuard, PrivacyGuard) + @RequirePrivacyLevel(L2_INTERNAL),
+//     全 12 endpoint 覆盖 (list / :id / :id/versions / POST create / PATCH update / 5 workflow action / 2 schedule).
+//   反双胞胎:
+//     - 不在公开 KB 路径 (前端 lib/features/knowledge/) 加 L1 (那是另一 endpoint, V0.5 还没建 public read API, 留 V1.x),
+//     - 不拆 method-level (12 endpoint 全 L2 一致, 拆了反而可能漏),
+//     - 不复用 RolesGuard (那是 admin RBAC, 不同职责, 跟 V2026-10-15 5 段治本一致),
+//     - 0 wire 协议改 (DTO 0 改 / path 0 改 / response 0 改).
+//   验证: 大炮跑 pnpm test:e2e 验 JWT 缺 401 (跟 L2 一致) + L3 不走这里 (走 diary / emergency).
+//   时间戳: 2026-10-15.
+@UseGuards(JwtAuthGuard, PrivacyGuard)
+@RequirePrivacyLevel(PrivacyLevel.L2_INTERNAL)
 @Controller('admin/knowledge-items')
 export class KnowledgeController {
   constructor(
