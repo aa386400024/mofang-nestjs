@@ -34,7 +34,8 @@
     "test:e2e": "cross-env NODE_OPTIONS=--no-experimental-strip-types jest --config ./test/jest.e2e.ts -i",
     "doc": "compodoc -p tsconfig.json -s -d docs",
     "doc:api": "npm run build && node dist/swagger",
-    "smoke:ai": "pnpm build && node scripts/smoke-ai-engine.cjs && node -e \"require('fs').writeFileSync('.smoke-ai-last', new Date().toISOString())\""
+    "smoke:ai": "pnpm build && node scripts/smoke-ai-engine.cjs && node -e \"require('fs').writeFileSync('.smoke-ai-last', new Date().toISOString())\"",
+    "smoke:rag": "pnpm build && node scripts/smoke-rag.cjs && node -e \"require('fs').writeFileSync('.smoke-rag-last', new Date().toISOString())\""
   },
   "dependencies": {
     "@apollo/server": "^5.5.1",

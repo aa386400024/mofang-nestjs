@@ -42,8 +42,36 @@ export class RsaKeyService implements OnModuleInit {
     const envPriv = process.env['RSA_PRIVATE_KEY_PEM'];
 
     if (envPub && envPriv) {
-      this.publicKeyPem = envPub;
-      this.privateKeyPem = envPriv;
+      // V2026-10-15 治本 (VS-4 PKCS#8 PEM multiline 防御性 .env parse — literal \n → 真换行):
+      //   原因: 9P mount cache / Windows CRLF / dotenv multiline 处理行为差异
+      //     导致 process.env.RSA_PUBLIC_KEY_PEM 可能是 literal "\n" (2 字符: backslash + n)
+      //     而不是真换行. Node 24 OpenSSL ERR_OSSL_UNSUPPORTED 拒解析, server 启动失败.
+      //     WSL 端 dotenv 单独 / dotenv-expand / NestJS ConfigModule 3 种 parse 都能解析
+      //     (.env multiline 修复后), 但 Windows 端仍 parse 出 literal "\n" (9P cache stale).
+      //   修法: server 端 .replace(/\\n/g, '\n') 防御, 兼容所有 .env 格式 (literal \n + 真换行).
+      //   反双胞胎:
+      //     - 不依赖 dotenv multiline 处理 (over-engineering, 1 行 replace 治本),
+      //     - 不改 .env 格式 (大炮已经 multiline 修复, 防御性兼容所有 .env),
+      //     - 不引新依赖 (Node.js String.prototype.replace 内置).
+      //   验证: 大炮跑 pnpm smoke:rag 验 6 步全过 (RsaKeyService.onModuleInit 解析 PEM OK + /health 200).
+      //   时间戳: 2026-10-15.
+      this.publicKeyPem = envPub
+        // V2026-10-15 治本 (VS-4 PEM multiline 增强 — 兼容 4 种 .env 格式):
+        //   顺序很重要: literal 优先, 再 actual, 避免 1 轮转 2 次 (e.g. \\r\n → \n 后续 \n 误判).
+        //     1. literal \\r\\n (4 字符: backslash + r + backslash + n) → 真换行 (Windows 编辑器存 literal \r\n 场景)
+        //     2. literal \\n (2 字符: backslash + n) → 真换行 (dotenv 单行解析, WSL 9P cache stale 场景)
+        //     3. actual \r\n (CRLF, 0x0D+0x0A) → 真换行 (Windows 编辑器 multiline 保存, 自动 CRLF 场景)
+        //     4. actual \r (rare, 0x0D) → 真换行 (Mac classic 场景, 保险)
+        //   跟 9P mount cache V2026-10-08 治本 + V0.5 V2026-10-08 治本同 pattern, 治本不压错.
+        .replace(/\\r\\n/g, '\n')
+        .replace(/\\n/g, '\n')
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n');
+      this.privateKeyPem = envPriv
+        .replace(/\\r\\n/g, '\n')
+        .replace(/\\n/g, '\n')
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n');
       this.logger.log('RSA keypair loaded from env (production mode)');
     } else {
       this.logger.warn(
