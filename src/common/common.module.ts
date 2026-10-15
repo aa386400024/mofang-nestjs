@@ -1,11 +1,13 @@
 import { Global, MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 
+import { PrivacyGuard } from './guards/privacy.guard';
 import { TenantContextMiddleware } from './middleware/tenant-context.middleware';
+import { PrivacyLogger } from './privacy/privacy-logger.service';
 import * as providers from './providers';
 import { SecurityHeadersMiddleware } from './security/security-headers.middleware';
 // V2026-10-12 (Phase 8.2 — 多租户, spec §8.3): 全局注入 tenantId.
 
-const services = Object.values(providers);
+const services = [...Object.values(providers), PrivacyLogger, PrivacyGuard];
 
 /**
  * CommonModule — 全局公共 providers (ConfigService + UtilService + V1.1 安全层).
@@ -16,6 +18,11 @@ const services = Object.values(providers);
  *   - SecurityHeadersMiddleware: HSTS + X-Frame-Options + Permissions-Policy 等
  *
  * V2-temp 备注: LoggerContextMiddleware 源码保留, V3 清理 demo 时删除.
+ *
+ * V2026-10-15 治本 (VS-4 隐私分级 — 注册 PrivacyLogger + PrivacyGuard):
+ *   NestJS DI 自动 wire, 0 新依赖. 后续 controller 用
+ *   @UseGuards(JwtAuthGuard, PrivacyGuard) @RequirePrivacyLevel(PrivacyLevel.L3_CONFIDENTIAL)
+ *   即可生效 (应用留 V1.x 后续 VS).
  */
 @Global()
 @Module({

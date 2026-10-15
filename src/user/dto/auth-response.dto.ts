@@ -104,8 +104,7 @@ export class CurrentUserDto {
   //         (V0.x dev fallback) + swagger description 显示 "6 角色 3 admin + 3 业务".
   //   时间戳: 2026-10-15
   @ApiProperty({
-    description:
-      'Admin 角色 (V0.x dev fallback: 永远 = admin; V1.x 真值下发后 = null 表示无权限)',
+    description: 'Admin 角色 (V0.x dev fallback: 永远 = admin; V1.x 真值下发后 = null 表示无权限)',
     enum: ['editor', 'reviewer', 'admin'],
     nullable: true,
   })
