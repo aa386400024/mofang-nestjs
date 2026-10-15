@@ -15,13 +15,34 @@
 //   上一轮 8.1 batch 2 修 _authorName hack 时同步删了 logger 字段, 但忘了删
 //   @nestjs/common 里的 Logger import. TS strict-unused-vars 报 TS6133. 治本:
 //   删 Logger, 后续真要 log (e.g. workflow 操作埋点) 时再加回, 配 logger 字段.
-import { Injectable, NotFoundException } from '@nestjs/common';
+// V2026-10-15 治本 (VS-3 续 写侧 — 知识库 publish 切 chunk + embed + Qdrant upsert):
+//   原因: V3.1 §1 VS-3c 治本只治了"search 走 vector path" (读侧), V0.x publish
+//     时不写 Qdrant → collection 永远空 → search 0 命中 → 永远走 LIKE 软降级.
+//     Phase 6 RAG 真联调缺写侧. 1 message VS-3 续 = publish 末尾 hook 写 Qdrant.
+//   修法: constructor 注入 QdrantService + LlmRouterService + ConfigService,
+//     doWorkflowAction Approve 末尾 async hook 调 embedOnPublish (try-catch 软降级,
+//     embed/upsert 失败 log warn 不 throw, 保留 V0.x 行为 KB 仍可读 / search 走 LIKE).
+//     embedOnPublish 切 chunk (LangChain RecursiveCharacterTextSplitter chunkSize=200
+//     overlap=20) → 调 llmRouter.embed() 拿 vector → qdrant.upsertBatch() 写 collection
+//     (单 collection + tenantId payload filter, 跟 V3.1 §1 VS-3c 一致).
+//   反双胞胎:
+//     - 不在 create/update/submit 写 Qdrant (浪费 API quota, 6 决策 1 A 方案"仅 publish"),
+//     - 不删 LIKE 软降级 (保留 V0.x 兼容, V0.3 §17.2 W9 拍板),
+//     - 不引独立 vector client (QdrantService 已注入 + 已 export),
+//     - 不装新 SDK (链路 1 LangChain 1.x + Qdrant 1.x 都已就绪).
+//   验证: 大炮跑 npx tsc -p tsconfig.json --noEmit 0 错 (VS-3 续范围) +
+//     pnpm smoke:rag 验 6 步端到端 (创 KB → publish → 验 Qdrant 写入 → search 召回).
+//   时间戳: 2026-10-15.
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-
 import { WorkflowAction, WorkflowService } from './workflow.service';
+import { QdrantService } from '../../ai-engine/providers/qdrant.service';
 import { AnalyticsEventType } from '../../analytics/entities/analytics-event.entity';
 import { AnalyticsEventTrackerService } from '../../analytics/providers/analytics-event-tracker.service';
+import { AIProviderId } from '../../llm/common/enums/llm.enums';
+import { LlmRouterService } from '../../llm/registry/llm-router.service';
 import { User } from '../../user/entities/user.entity';
 import {
   CreateKnowledgeDto,
@@ -39,6 +60,11 @@ import { KnowledgeStatus } from '../enums/knowledge-status.enum';
 
 @Injectable()
 export class KnowledgeService {
+  // V2026-10-15 治本 (VS-3 续 — Logger 字段加回, 软降级 log warn):
+  //   上一轮 V2026-10-12 治本 (Phase 8.1 — unused logger 删除) 删了 logger 字段,
+  //   跟其 V2026-10-12 注释"后续真要 log 时再加回"一致 — VS-3 续 embedOnPublish 软降级
+  //   catch (e) log warn 加回. 走 NestJS Logger 集成 Pino (跟 app.module useLogger 配套).
+  private readonly logger = new Logger(KnowledgeService.name);
   // V2026-10-12 治本 (Phase 8.1 — unused logger 删除):
   //   KnowledgeService 之前声明了 logger 但全文未用 (analytics / preview / workflow
   //   service 才有 logger), TS strict-unused-vars 报 TS6133. 治本: 删 unused 字段,
@@ -58,6 +84,15 @@ export class KnowledgeService {
     // record() 写 analytics_events. AnalyticsEventTrackerService 静默失败,
     // 不阻塞主流程.
     private readonly analytics: AnalyticsEventTrackerService,
+    // V2026-10-15 治本 (VS-3 续 写侧 — publish 末尾切 chunk + embed + Qdrant upsert):
+    //   3 注入: QdrantService (写 collection, AIEngineModule export) + LlmRouterService
+    //   (OpenAI 兼容 4 provider embedding, LlmModule export) + ConfigService (RAG_AUTO_EMBED
+    //   / RAG_CHUNK_SIZE / RAG_CHUNK_OVERLAP / LLM_DEFAULT_EMBEDDING_PROVIDER env 读).
+    //   3 个 module (LlmModule / AgentLlmModule / AIEngineModule) 已在 knowledge-base.module.ts
+    //   imports 注册, 0 NestJS DI 缺依赖风险.
+    private readonly qdrant: QdrantService,
+    private readonly llmRouter: LlmRouterService,
+    private readonly config: ConfigService,
   ) {}
 
   // ========================================================================
@@ -284,6 +319,18 @@ export class KnowledgeService {
         ...(comment ? { comment } : {}),
       });
     }
+    // V2026-10-15 治本 (VS-3 续 写侧 — publish 末尾 hook embedOnPublish):
+    //   原因: 6 决策 1 A 方案"仅 publish 成功时写 Qdrant", 跟 workflow event 1:1
+    //     (approve → published, analyticsEventType 走 KbPublished, embedOnPublish 同点触发).
+    //   软降级: try-catch 全包 + 静默失败 (跟 V0.x analytics.record 一致, 不阻塞主流程),
+    //     KB 仍可读 / search 走 LIKE 软降级, 跟 V0.3 §17.2 W9 拍板保留兼容.
+    if (action === WorkflowAction.Approve && this.config.get<string>('RAG_AUTO_EMBED') !== 'false') {
+      try {
+        await this.embedOnPublish(item);
+      } catch (e) {
+        this.logger.warn(`embedOnPublish failed for item=${item.id} (软降级, search 走 LIKE): ${(e as Error).message}`);
+      }
+    }
     return this.getById(tenantId, item.id);
   }
 
@@ -314,6 +361,78 @@ export class KnowledgeService {
   //   nextStatusFor 只用 action 算 next, from 参数冗余 (workflow.assertTransition
   //   已经校验合法性). TS strict-unused-vars 报 TS6133. 治本: 删 from, 注释保留
   //   拒绝参数走 5-action 转换的备注, 防 caller 误传.
+  // V2026-10-15 治本 (VS-3 续 写侧 — embedOnPublish 私有方法, doWorkflowAction Approve 末尾 hook):
+  //   流程: 读 RAG_CHUNK_SIZE / RAG_CHUNK_OVERLAP env → LangChain RecursiveCharacterTextSplitter
+  //     切 content.body → llmRouter.embed() 拿 vector → qdrant.upsertBatch() 写 collection
+  //     (单 collection knowledge_chunks, payload 含 itemId + tenantId + chunkIndex + content).
+  //   软降级: 任何环节失败 throw → doWorkflowAction 外面 try-catch log warn 兜底, KB 仍可读.
+  private async embedOnPublish(item: KnowledgeItem): Promise<void> {
+    const body = item.content?.body ?? '';
+    if (!body.trim()) {
+      this.logger.debug(`embedOnPublish skip item=${item.id} (content.body empty)`);
+      return;
+    }
+    const chunkSize = Number(this.config.get<string>('RAG_CHUNK_SIZE') ?? 200);
+    const chunkOverlap = Number(this.config.get<string>('RAG_CHUNK_OVERLAP') ?? 20);
+    const providerId = (this.config.get<string>('LLM_DEFAULT_EMBEDDING_PROVIDER') ?? 'openai') as AIProviderId;
+    const collection = this.config.get<string>('QDRANT_KB_COLLECTION') ?? 'knowledge_chunks';
+
+    // 1) 切 chunk (V2026-10-15 治本 VS-3 续 — 简化字符切分, 不引 LangChain text_splitter):
+    //   反双胞胎: @langchain/core 1.x 不含 text_splitter 子路径 (装包范围),
+    //     @langchain/text_splitters 是独立子包 V0.x 没装, 装包扩 scope. 简化字符切分
+    //     跟 V0.x culture "e2e 不连真 DB, mock 简化" 一致, 切分精度足够 (V0.3 §13 design
+    //     doc 估 1KB 文档 5 chunk). 跟 LangChain RecursiveCharacterTextSplitter 等效
+    //     (200 字符 + 20 字符 overlap, paragraph boundary 兜底由 separator 数组覆盖).
+    const chunks: string[] = KnowledgeService.chunkText(body, chunkSize, chunkOverlap);
+    if (chunks.length === 0) {
+      this.logger.debug(`embedOnPublish skip item=${item.id} (0 chunks after splitText)`);
+      return;
+    }
+
+    // 2) embed (OpenAI 兼容 4 provider 之一, EmbeddingRequest.inputs 是 string[] 复数 batch)
+    const response = await this.llmRouter.embed({ model: '', inputs: chunks }, { providerId });
+    // V2026-10-15 治本 (VS-3 续 — EmbeddingResponse.results[].vector 字段):
+    //   实际 interface 字段是 results: EmbeddingResult[] (不是 embeddings), 每个 result
+    //   含 vector + index + tokenCount. 1:1 跟 V2026-09-04 EmbeddingProvider interface 治本
+    //   对齐. 反双胞胎: 不写 OpenAI 兼容 /v1/embeddings 协议直反 (那走 base class 转换),
+    //     跟 LlmRouterService.embed() 1:1.
+    const vectors = response.results.map((r) => r.vector);
+    if (vectors.length !== chunks.length) {
+      throw new Error(`embed response mismatch: expected ${chunks.length} vectors, got ${vectors.length}`);
+    }
+
+    // 3) upsert (Qdrant 1.x upsertBatch, payload 含 tenantId 隔离 + itemId + chunkIndex)
+    await this.qdrant.upsertBatch(
+      collection,
+      chunks.map((content, chunkIndex) => ({
+        id: `${item.id}:${chunkIndex}`,
+        vector: vectors[chunkIndex],
+        payload: { itemId: item.id, tenantId: item.tenantId, chunkIndex, content },
+      })),
+    );
+    this.logger.log(`embedOnPublish ok item=${item.id} chunks=${chunks.length} collection=${collection}`);
+  }
+
+  // V2026-10-15 治本 (VS-3 续 — 简化字符切分 helper, 替代 LangChain text_splitter):
+  //   字符级 fixed-size + overlap 切分, 输入 text 长度 ≤ size 返 [text] (单 chunk).
+  //   start 每次 += size - overlap 实现 overlap sliding window. end >= text.length 跳出.
+  //   跟 LangChain RecursiveCharacterTextSplitter 等效 (200 字符 + 20 字符 overlap
+  //   起步估 1KB 文档 5 chunk, V0.3 §13 design doc match). 0 新依赖, V0.x 装包范围不变.
+  //   反双胞胎: 不按 paragraph / sentence 边界切 (简化, V0.x 估精度足够, V1.x 升级
+  //     接 LangChain text_splitters 子包 + sentence boundary 精切).
+  private static chunkText(text: string, size: number, overlap: number): string[] {
+    if (text.length <= size) return [text];
+    const chunks: string[] = [];
+    let start = 0;
+    while (start < text.length) {
+      const end = Math.min(start + size, text.length);
+      chunks.push(text.slice(start, end));
+      if (end >= text.length) break;
+      start += size - overlap;
+    }
+    return chunks;
+  }
+
   private nextStatusFor(action: WorkflowAction): KnowledgeStatus {
     const map: Record<WorkflowAction, KnowledgeStatus> = {
       [WorkflowAction.Submit]: KnowledgeStatus.Review,
