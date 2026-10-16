@@ -37,5 +37,8 @@ export { AddGameUnlockProgress1714900000002 } from './1714900000002-AddGameUnloc
 export { AddDriftBottles1700000010005 } from './1700000010005-AddDriftBottles';
 // V2026-10-14 治本 (VS-3c) — knowledge_chunks 表注册, 跟 bin/ormconfig.ts 严格 1:1
 export { AddKnowledgeChunks1700000010006 } from './1700000010006-AddKnowledgeChunks';
+// V2026-10-15 治本 (V1.x counselor-mode W1-2 — long-term-case 表注册, 跟 bin/ormconfig.ts 严格 1:1):
+//   long_term_cases + long_term_case_sessions 2 张表 + 6 索引, counselor-mode-v1.0 §6.1 1:1 wire.
+export { AddLongTermCases1700000010007 } from './1700000010007-AddLongTermCases';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

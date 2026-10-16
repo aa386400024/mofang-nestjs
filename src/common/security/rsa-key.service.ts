@@ -63,15 +63,15 @@ export class RsaKeyService implements OnModuleInit {
         //     3. actual \r\n (CRLF, 0x0D+0x0A) → 真换行 (Windows 编辑器 multiline 保存, 自动 CRLF 场景)
         //     4. actual \r (rare, 0x0D) → 真换行 (Mac classic 场景, 保险)
         //   跟 9P mount cache V2026-10-08 治本 + V0.5 V2026-10-08 治本同 pattern, 治本不压错.
-        .replace(/\\r\\n/g, '\n')
-        .replace(/\\n/g, '\n')
-        .replace(/\r\n/g, '\n')
-        .replace(/\r/g, '\n');
+        .replaceAll(String.raw`\r\n`, '\n')
+        .replaceAll(String.raw`\n`, '\n')
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n');
       this.privateKeyPem = envPriv
-        .replace(/\\r\\n/g, '\n')
-        .replace(/\\n/g, '\n')
-        .replace(/\r\n/g, '\n')
-        .replace(/\r/g, '\n');
+        .replaceAll(String.raw`\r\n`, '\n')
+        .replaceAll(String.raw`\n`, '\n')
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n');
       this.logger.log('RSA keypair loaded from env (production mode)');
     } else {
       this.logger.warn(

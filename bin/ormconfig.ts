@@ -80,6 +80,9 @@ import { AddKeyEvents1700000010003 } from '../src/migration/1700000010003-AddKey
 import { AddGenomeDimensions1700000010004 } from '../src/migration/1700000010004-AddGenomeDimensions';
 // V2026-10-14 治本 (VS-3c — 注册 knowledge_chunks migration, 跟前序 3 张 V3.0 life-map 表同段):
 import { AddKnowledgeChunks1700000010006 } from '../src/migration/1700000010006-AddKnowledgeChunks';
+// V2026-10-15 治本 (V1.x counselor-mode W1-2 — long-term-case migration, 跟 src/migration/index.ts 1:1):
+//   long_term_cases + long_term_case_sessions 2 张表 + 6 索引, counselor-mode-v1.0 §6.1 1:1 wire.
+import { AddLongTermCases1700000010007 } from '../src/migration/1700000010007-AddLongTermCases';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -152,6 +155,9 @@ const ormconfig = async (): Promise<DataSource> => {
       AddGenomeDimensions1700000010004,
       // V2026-10-14 治本 (VS-3c — 创 knowledge_chunks 表, 跟前序 3 张 V3.0 表同段):
       AddKnowledgeChunks1700000010006,
+      // V2026-10-15 治本 (V1.x counselor-mode W1-2 — 创 long_term_cases + long_term_case_sessions
+      //   2 张表 + 6 索引, 跟前序 knowledge_chunks 表同段, 跟 src/migration/index.ts 严格 1:1):
+      AddLongTermCases1700000010007,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)
