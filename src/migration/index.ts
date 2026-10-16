@@ -40,5 +40,8 @@ export { AddKnowledgeChunks1700000010006 } from './1700000010006-AddKnowledgeChu
 // V2026-10-15 治本 (V1.x counselor-mode W1-2 — long-term-case 表注册, 跟 bin/ormconfig.ts 严格 1:1):
 //   long_term_cases + long_term_case_sessions 2 张表 + 6 索引, counselor-mode-v1.0 §6.1 1:1 wire.
 export { AddLongTermCases1700000010007 } from './1700000010007-AddLongTermCases';
+// V2026-10-15 治本 (V1.x counselor-mode W3-4 — supervision-schools 表注册, 跟 bin/ormconfig.ts 严格 1:1):
+//   supervision_schools + supervision_feedback 2 张表 + 5 索引, counselor-mode-v1.0 §6.2 1:1 wire.
+export { AddSupervisionSchools1714900000006 } from './1714900000006-AddSupervisionSchools';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).
