@@ -28,14 +28,7 @@
 //
 //   时间戳: 2026-10-15
 
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
 

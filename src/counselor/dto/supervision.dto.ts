@@ -27,8 +27,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ArrayMinSize, IsArray, IsEnum, IsString, MaxLength, MinLength } from 'class-validator';
 
-import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
 import { SessionType } from '../enums/session-type.enum';
+import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
 
 // ════════════════════════════════════════════════════════════════════════════
 // 单个流派 list 项 (无 promptTemplate, 减少 list 流量)

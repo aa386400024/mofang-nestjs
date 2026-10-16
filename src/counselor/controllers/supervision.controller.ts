@@ -33,21 +33,12 @@
 //
 //   时间戳: 2026-10-15
 
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../user/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
 
-import { type SessionType } from '../enums/session-type.enum';
-import { type SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
 import {
   type CompareSupervisionFeedbackResponseDto,
   type GenerateSupervisionFeedbackDto,
@@ -55,6 +46,8 @@ import {
   type SupervisionSchoolDetailDto,
   type SupervisionSchoolListItemDto,
 } from '../dto/supervision.dto';
+import { type SessionType } from '../enums/session-type.enum';
+import { type SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
 import { SupervisionService } from '../providers/supervision.service';
 
 /**
@@ -118,7 +111,8 @@ export class CounselorSupervisionController {
   @ApiOperation({ summary: '多流派对比 (高级会员 2-3 流派, V0.5 mock 串行)' })
   async compareFeedback(
     @CurrentUser() user: { userId: string },
-    @Body() input: {
+    @Body()
+    input: {
       sessionId: string;
       sessionType: SessionType;
       schoolCodes: SupervisionSchoolCode[];

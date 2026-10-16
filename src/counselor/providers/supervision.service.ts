@@ -43,8 +43,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
 import { SUPERVISION_SCHOOL_PRESETS } from '../config/supervision-school-presets';
-import { SessionType } from '../enums/session-type.enum';
-import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
 import {
   type CompareSupervisionFeedbackResponseDto,
   type GenerateSupervisionFeedbackDto,
@@ -55,6 +53,8 @@ import {
 } from '../dto/supervision.dto';
 import { SupervisionFeedback, type SupervisionFeedbackPayload } from '../entities/supervision-feedback.entity';
 import { SupervisionSchool } from '../entities/supervision-school.entity';
+import { SessionType } from '../enums/session-type.enum';
+import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
 
 /**
  * V2026-10-15 (V1.x counselor-mode W3-4 — SupervisionService):
@@ -133,7 +133,7 @@ export class SupervisionService {
     const sessionContext = await this.loadSessionContext(input.sessionId, input.sessionType, userId);
 
     // 3. V0.5 mock: 简单规则生成 feedback (V1.x 真接 LLM 时返 LLM 真实输出)
-    const feedback = this.mockGenerateFeedback(school.code, sessionContext);
+    const feedback = this.mockGenerateFeedback(school.code, input.sessionId, sessionContext);
 
     // 4. 落 supervision_feedback 表 (V0.5: 持久化所有生成记录, V1.x 增量)
     await this.feedbackRepo.save(
@@ -167,13 +167,16 @@ export class SupervisionService {
    * @param userId 当前用户 id
    * @returns N 流派 feedback (key=schoolCode enum 值)
    */
-  async compareFeedback(input: CompareSupervisionFeedbackResponseDto['sessionId'] extends string
-    ? {
-        sessionId: string;
-        sessionType: SessionType;
-        schoolCodes: SupervisionSchoolCode[];
-      }
-    : never, userId: string): Promise<CompareSupervisionFeedbackResponseDto> {
+  async compareFeedback(
+    input: CompareSupervisionFeedbackResponseDto['sessionId'] extends string
+      ? {
+          sessionId: string;
+          sessionType: SessionType;
+          schoolCodes: SupervisionSchoolCode[];
+        }
+      : never,
+    userId: string,
+  ): Promise<CompareSupervisionFeedbackResponseDto> {
     if (input.schoolCodes.length < 2) {
       throw new BadRequestException('多流派对比至少 2 流派');
     }
@@ -182,7 +185,10 @@ export class SupervisionService {
     }
 
     // V0.5: 串行生成 N 份 feedback. V1.x 真接 LLM 改 Promise.all 并行.
-    const feedbackBySchool: Record<SupervisionSchoolCode, SupervisionFeedbackDto> = {} as Record<SupervisionSchoolCode, SupervisionFeedbackDto>;
+    const feedbackBySchool: Record<SupervisionSchoolCode, SupervisionFeedbackDto> = {} as Record<
+      SupervisionSchoolCode,
+      SupervisionFeedbackDto
+    >;
     for (const code of input.schoolCodes) {
       feedbackBySchool[code] = await this.generateFeedback(
         { sessionId: input.sessionId, sessionType: input.sessionType, schoolCode: code },
@@ -247,19 +253,45 @@ export class SupervisionService {
   // 私有 helper: V0.5 mock feedback 生成 (V1.x 真接 LLM 时改 provider 注入)
   // ══════════════════════════════════════════════════════════════════════════
 
+  /**
+   * V0.5 deterministic 伪随机 (替 Math.random, 治本 SonarJS pseudo-random 警告).
+   *
+   * 32-bit string hash (djb2 variant) → [0, 1) 归一化 → [min, max] 整数范围.
+   * 同 seed 必返同 score, 跨 call / 跨 server 重启一致. 副作用: supervision_feedback
+   * 表 UNIQUE (session_id, session_type, school_id) 约束在 V0.5 阶段不会被 mock
+   * 重复随机破坏, 1:1 wire 兼容.
+   */
+  private mockRandomScore(seed: string, min: number, max: number): number {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = (hash << 5) - hash + seed.codePointAt(i)!;
+      hash = Math.trunc(hash); // 32-bit
+    }
+    const normalized = (Math.abs(hash) % 10_000) / 10_000; // [0, 1)
+    return Math.floor(min + normalized * (max - min + 1));
+  }
+
   private mockGenerateFeedback(
     schoolCode: SupervisionSchoolCode,
+    sessionId: string,
     context: { transcript: string; persona: string; emotionTimeline: string },
   ): SupervisionFeedbackPayload {
     const preset = SUPERVISION_SCHOOL_PRESETS[schoolCode];
 
-    // mock 评分: overallScore 70-85 随机 + perSentence 简单规则
-    const overallScore = 70 + Math.floor(Math.random() * 16);
+    // V2026-10-15 治本 (V2.4 mock 评分 deterministic — SonarJS pseudo-random 治本):
+    //   原因: V0.5 阶段用 Math.random() 生成 mock overallScore + perSentence.score, SonarJS
+    //     报 pseudo-random 警告 (sonarjs/pseudo-random). 反双胞胎: 不写 eslint-disable 注释
+    //     压错; 不用 seedrandom 类库 (V0.5 不引新依赖); 不用 crypto (import 重).
+    //   修法: 走 deterministic string hash (mockRandomScore) 替 Math.random(), seed =
+    //     schoolCode + sessionId + i (perSentence 序号). 同 seed → 同 score, 跨 call 一致.
+    //   验证: tsc 0 错 + npm run lint 0 错 (大炮跑)
+    //   时间戳: 2026-10-15
+    const overallScore = this.mockRandomScore(`${schoolCode}-${sessionId}`, 70, 85);
 
-    // mock perSentence: 5 句占位, score 65-85 随机
+    // mock perSentence: 5 句占位, score 65-85 deterministic
     const perSentence: SupervisionPerSentenceDto[] = Array.from({ length: 5 }, (_, i) => ({
       sentence: `[V0.5 mock ${schoolCode} 第 ${i + 1} 句 from ${context.transcript.slice(0, 20)}]`,
-      score: 65 + Math.floor(Math.random() * 21),
+      score: this.mockRandomScore(`${schoolCode}-${sessionId}-${i}`, 65, 85),
       comment: `[V0.5 mock comment 流派 ${preset.name}]`,
     }));
 

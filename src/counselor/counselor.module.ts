@@ -70,22 +70,22 @@ import { CounselorHomeController } from './controllers/counselor-home.controller
 // V2026-10-15 治本 (V1.x W1-2 — long-term-case controller):
 //   counselor 端第 6 个 controller (长程个案, 跟 home/training/exam/growth/profile 数据正交,
 //   单独 service + 真接 TypeOrm 库).
+import { CounselorProfileController } from './controllers/counselor-profile.controller';
+import { CounselorTrainingController } from './controllers/counselor-training.controller';
 import { CounselorLongTermCaseController } from './controllers/long-term-case.controller';
 // V2026-10-13 治本 (Phase 7.10 P0-5 — 加 profile controller):
 //   counselor 端 5 Tab 第 5 个 endpoint (我的, 训练偏好 + 会员状态).
-import { CounselorProfileController } from './controllers/counselor-profile.controller';
 // V2026-10-15 治本 (V1.x W3-4 — supervision controller):
 //   counselor 端第 7 个 controller (4 流派督导, 跟 long-term-case 同 sessionId polymorphic 复用).
 import { CounselorSupervisionController } from './controllers/supervision.controller';
-import { CounselorTrainingController } from './controllers/counselor-training.controller';
 // V2026-10-15 治本 (V1.x W1-2 — long-term-case entity 注册, 走 TypeOrmModule.forFeature):
 //   跟 knowledge-base/knowledge-chunk.entity.ts V0.x 风格一致, 1:1 wire.
-import { LongTermCase } from './entities/long-term-case.entity';
 import { LongTermCaseSession } from './entities/long-term-case-session.entity';
+import { LongTermCase } from './entities/long-term-case.entity';
 // V2026-10-15 治本 (V1.x W3-4 — supervision-schools + supervision-feedback entity 注册):
 //   4 流派配置 + polymorphic 反馈记录 2 entity, 跟 W1-2 long-term-case 同 TypeOrmModule.forFeature 段.
-import { SupervisionSchool } from './entities/supervision-school.entity';
 import { SupervisionFeedback } from './entities/supervision-feedback.entity';
+import { SupervisionSchool } from './entities/supervision-school.entity';
 // V2026-10-13 治本 (Phase 7.10 P0-3 — exam service):
 //   跟 home/training 数据正交, 单独 service (4 大分类 + 11 卡片 + 3 KPI).
 import { CounselorExamService } from './providers/counselor-exam.service';
@@ -96,10 +96,10 @@ import { CounselorHomeService } from './providers/counselor-home.service';
 // V2026-10-15 治本 (V1.x W1-2 — long-term-case service):
 //   5 method 业务逻辑 (list / createFromPreset / findDetail / appendSession / listTemplates),
 //   走真 TypeORM Repository, 跟 V0.5 5 service 内存 mock 区分.
+import { CounselorProfileService } from './providers/counselor-profile.service';
 import { LongTermCaseService } from './providers/long-term-case.service';
 // V2026-10-13 治本 (Phase 7.10 P0-5 — profile service):
 //   训练偏好 (3 toggle + defaultDifficulty) + 会员状态 (V0.5 写死 none, V1.x 接 billing).
-import { CounselorProfileService } from './providers/counselor-profile.service';
 // V2026-10-15 治本 (V1.x W3-4 — supervision service):
 //   5 method 业务逻辑 (listSchools / findSchoolByCode / generateFeedback / compareFeedback /
 //   listFeedbackForSession), V0.5 mock 阶段用静态 prompt 模板, V1.x 真接 LLM 改 provider 注入.
@@ -127,12 +127,7 @@ import { SupervisionService } from './providers/supervision.service';
     //   累计 4 entity: LongTermCase + LongTermCaseSession (W1-2) + SupervisionSchool +
     //   SupervisionFeedback (W3-4). 跟 knowledge-base.module.ts V0.x 风格一致,
     //   1:1 wire 注册供对应 service 注入 Repository.
-    TypeOrmModule.forFeature([
-      LongTermCase,
-      LongTermCaseSession,
-      SupervisionSchool,
-      SupervisionFeedback,
-    ]),
+    TypeOrmModule.forFeature([LongTermCase, LongTermCaseSession, SupervisionSchool, SupervisionFeedback]),
   ],
   controllers: [
     CounselorHomeController,

@@ -33,14 +33,7 @@
 //
 //   时间戳: 2026-10-15
 
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 import { SessionType } from '../enums/session-type.enum';
 
@@ -51,7 +44,7 @@ export interface SupervisionFeedbackPayload {
   /** 整体评分 0-100 */
   overallScore: number;
   /** 逐句标注 (sentence + score + comment) */
-  perSentence: Array<{ sentence: string; score: number; comment: string }>;
+  perSentence: { sentence: string; score: number; comment: string }[];
   /** 错误分类汇总 (e.g. ['打断', '给建议', '过早诊断']) */
   errorCategories: string[];
   /** 成长建议 (1-3 短句) */
