@@ -46,5 +46,9 @@ export { AddSupervisionSchools1714900000006 } from './1714900000006-AddSupervisi
 // V2026-10-15 治本 (V1.x counselor-mode W5-6 — ability-dimensions 表注册, 跟 bin/ormconfig.ts 严格 1:1):
 //   ability_dimensions + ability_scores 2 张表 + 5 索引, counselor-mode-v1.0 §6.3 1:1 wire.
 export { AddAbilityDimensions1714900000007 } from './1714900000007-AddAbilityDimensions';
+// V2026-10-15 治本 (V1.x counselor-mode W7-8 — quota_usage 表注册, 跟 bin/ormconfig.ts 严格 1:1):
+//   quota_usage 新表 + user_memberships 加 3 列 (tier_v2 / quota_period / quota_text_fallback),
+//   counselor-mode-v1.0 §6.4 + §7.1 1:1 wire.
+export { AddQuotaUsage1714900000008 } from './1714900000008-AddQuotaUsage';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

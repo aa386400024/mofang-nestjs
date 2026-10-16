@@ -89,6 +89,9 @@ import { AddSupervisionSchools1714900000006 } from '../src/migration/17149000000
 // V2026-10-15 治本 (V1.x counselor-mode W5-6 — ability-dimensions migration, 跟 src/migration/index.ts 1:1):
 //   ability_dimensions + ability_scores 2 张表 + 5 索引, counselor-mode-v1.0 §6.3 1:1 wire.
 import { AddAbilityDimensions1714900000007 } from '../src/migration/1714900000007-AddAbilityDimensions';
+// V2026-10-15 治本 (V1.x counselor-mode W7-8 — quota_usage migration, 跟 src/migration/index.ts 1:1):
+//   quota_usage 新表 + user_memberships 加 3 列, counselor-mode-v1.0 §6.4 + §7.1 1:1 wire.
+import { AddQuotaUsage1714900000008 } from '../src/migration/1714900000008-AddQuotaUsage';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -170,6 +173,9 @@ const ormconfig = async (): Promise<DataSource> => {
       // V2026-10-15 治本 (V1.x counselor-mode W5-6 — 创 ability_dimensions + ability_scores
       //   2 张表 + 5 索引, 跟前序 supervision_schools 表同段, 跟 src/migration/index.ts 严格 1:1):
       AddAbilityDimensions1714900000007,
+      // V2026-10-15 治本 (V1.x counselor-mode W7-8 — 创 quota_usage 新表 + user_memberships 加
+      //   3 列, 跟前序 ability_dimensions 表同段, 跟 src/migration/index.ts 严格 1:1):
+      AddQuotaUsage1714900000008,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

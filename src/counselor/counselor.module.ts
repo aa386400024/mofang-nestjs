@@ -74,6 +74,30 @@
 //     1. tsc 0 错 (6 entity + 8 controller + 7 service 累计, 跟 knowledge-base.module 同 pattern)
 //     2. pnpm migration:run + curl 验 3 endpoint 端到端
 //   时间戳: 2026-10-15
+//
+// V2026-10-15 治本 (V1.x counselor-mode W7-8 — billing 接入 + 5 档会员 + 配额 + 降级):
+//   原因: counselor-mode-v1.0 §6.4 + §7.1 + §7.3 拍板 quota_usage 表 + 5 档会员 + 配额, V0.3
+//     §13 baseline 0 quota_usage 表 (V0.x user_memberships 3 档 free/plus/pro 保留),
+//     1:1 wire 0 破坏. V1.x W7-8 走 user_memberships 加 3 列 (tier_v2 / quota_period /
+//     quota_text_fallback) + 新表 quota_usage 双轨. V0.5 阶段 mock 支付 inline (V1.x
+//     续做抽 PaymentChannelService interface 接 WechatPay + Alipay).
+//   修法:
+//     - imports 加 QuotaUsage entity
+//     - TypeOrmModule.forFeature 累计 7 entity: +QuotaUsage
+//     - controllers +1 (CounselorBillingController, 4 endpoint)
+//     - providers +1 (BillingService, 5 method + 配额扣减 + mock 支付 + text fallback inline)
+//     - exports +1 (BillingService)
+//   反双胞胎:
+//     - 不复用 V0.x user_memberships.tier (3 档 free/plus/pro) 字段改写: 1:1 wire 0 破坏,
+//       V0.x 客户端继续读 tier 字段, V1.x 客户端读 tier_v2 字段
+//     - V0.5 阶段 payment channel mock 走 inline: 避免 V0.5 scope 蔓延, V1.x 续做抽
+//       PaymentChannelService interface (wechat + alipay 真接)
+//     - 不在 quota_usage 表存 polymorphic 配额源: V0.x 风格 enum 强类型, 防 drift
+//     - 不引 vector store: V0.x 阶段不接 RAG, V2.x 升级再切
+//   验证:
+//     1. tsc 0 错 (7 entity + 9 controller + 8 service 累计, 跟 knowledge-base.module 同 pattern)
+//     2. pnpm migration:run + curl 验 4 endpoint 端到端
+//   时间戳: 2026-10-15
 
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -85,6 +109,9 @@ import { UserModule } from '../user';
 //   counselor 端第 8 个 controller (7 维度 28 子指标 + user 聚合, 跟 W1-2 + W3-4 数据正交,
 //   单独 service + 真接 TypeOrm 库).
 import { CounselorAbilityController } from './controllers/ability.controller';
+// V2026-10-15 治本 (V1.x W7-8 — billing controller):
+//   counselor 端第 9 个 controller (5 档会员 + 配额 + 降级, 跟 A + B + C 数据正交, 单独 service).
+import { CounselorBillingController } from './controllers/billing.controller';
 // V2026-10-13 治本 (Phase 7.10 P0-2 — 加 training controller):
 //   counselor 端 5 Tab 第 2 个 endpoint (跟 home 共用 CounselorHomeService 数据).
 // V2026-10-13 治本 (Phase 7.10 P0-3 — 加 exam controller):
@@ -113,6 +140,9 @@ import { AbilityScore } from './entities/ability-score.entity';
 //   跟 knowledge-base/knowledge-chunk.entity.ts V0.x 风格一致, 1:1 wire.
 import { LongTermCaseSession } from './entities/long-term-case-session.entity';
 import { LongTermCase } from './entities/long-term-case.entity';
+// V2026-10-15 治本 (V1.x W7-8 — quota_usage entity 注册):
+//   3 类配额月度聚合 1 entity, 跟 W1-2 + W3-4 + W5-6 同段.
+import { QuotaUsage } from './entities/quota-usage.entity';
 // V2026-10-15 治本 (V1.x W3-4 — supervision-schools + supervision-feedback entity 注册):
 //   4 流派配置 + polymorphic 反馈记录 2 entity, 跟 W1-2 long-term-case 同 TypeOrmModule.forFeature 段.
 import { SupervisionFeedback } from './entities/supervision-feedback.entity';
@@ -121,6 +151,11 @@ import { SupervisionSchool } from './entities/supervision-school.entity';
 //   4 method 业务逻辑 (listDimensions / findDimensionByCode / getUserProfile / upsertScore),
 //   V0.5 阶段手动 upsert, V1.x 续做时 W3-4 service.generateFeedback 完成后回调本 service.
 import { AbilityService } from './providers/ability.service';
+// V2026-10-15 治本 (V1.x W7-8 — billing service):
+//   5 method 业务逻辑 (getMembershipStatus / listSkus / createOrder / consumeQuota /
+//   isVoiceAllowed), V0.5 阶段 mock 支付 inline + 配额表真接, V1.x 续做抽 PaymentChannelService
+//   interface 接 WechatPay + Alipay 真接.
+import { BillingService } from './providers/billing.service';
 // V2026-10-13 治本 (Phase 7.10 P0-3 — exam service):
 //   跟 home/training 数据正交, 单独 service (4 大分类 + 11 卡片 + 3 KPI).
 import { CounselorExamService } from './providers/counselor-exam.service';
@@ -141,7 +176,7 @@ import { LongTermCaseService } from './providers/long-term-case.service';
 import { SupervisionService } from './providers/supervision.service';
 
 /**
- * V2026-10-15 (V1.x counselor-mode W5-6 — CounselorModule):
+ * V2026-10-15 (V1.x counselor-mode W7-8 — CounselorModule):
  *   心理咨询师学员端 server module (跟 client counselor_* 5 Tab 1:1 对应).
  *
  *   跟 main_shell_page.dart V6.1 §2 counselorLearner 5 Tab (home/training/growth/exam/profile) 配套.
@@ -152,18 +187,28 @@ import { SupervisionService } from './providers/supervision.service';
  *   V1.x W1-2: + long-term-case controller (真接 TypeOrm, V0.5 5 controller 内存 mock 仍保留)
  *   V1.x W3-4: + supervision controller (4 流派 + polymorphic feedback)
  *   V1.x W5-6: + ability controller (7 维度 28 子指标 + user 聚合)
- *   V1.x W7-8: + billing controller (待, 跟 VS-5 阻塞项)
+ *   V1.x W7-8: + billing controller (5 档会员 + 配额 + 降级 + mock 支付 inline)
+ *   V1.x W9-10: + 备考 + B 端 controller (待)
+ *   V1.x W11-12: + 调优 + 验收 (待)
  */
 @Module({
   imports: [
     UserModule,
     AuthModule,
     // V0.5: 不接 TypeOrm (内存 mock)
-    // V2026-10-15 治本 (V1.x W1-2 + W3-4 + W5-6 — long-term-case + supervision + ability TypeOrmModule.forFeature):
-    //   累计 6 entity: LongTermCase + LongTermCaseSession (W1-2) + SupervisionSchool +
-    //   SupervisionFeedback (W3-4) + AbilityDimension + AbilityScore (W5-6). 跟
-    //   knowledge-base.module.ts V0.x 风格一致, 1:1 wire 注册供对应 service 注入 Repository.
-    TypeOrmModule.forFeature([LongTermCase, LongTermCaseSession, SupervisionSchool, SupervisionFeedback, AbilityDimension, AbilityScore]),
+    // V2026-10-15 治本 (V1.x W1-2 + W3-4 + W5-6 + W7-8 — long-term-case + supervision + ability + billing TypeOrmModule.forFeature):
+    //   累计 7 entity: LongTermCase + LongTermCaseSession (W1-2) + SupervisionSchool +
+    //   SupervisionFeedback (W3-4) + AbilityDimension + AbilityScore (W5-6) + QuotaUsage (W7-8).
+    //   跟 knowledge-base.module.ts V0.x 风格一致, 1:1 wire 注册供对应 service 注入 Repository.
+    TypeOrmModule.forFeature([
+      LongTermCase,
+      LongTermCaseSession,
+      SupervisionSchool,
+      SupervisionFeedback,
+      AbilityDimension,
+      AbilityScore,
+      QuotaUsage,
+    ]),
   ],
   controllers: [
     CounselorHomeController,
@@ -174,6 +219,7 @@ import { SupervisionService } from './providers/supervision.service';
     CounselorLongTermCaseController, // V2026-10-15 治本: V1.x W1-2 加 long-term-case controller
     CounselorSupervisionController, // V2026-10-15 治本: V1.x W3-4 加 supervision controller
     CounselorAbilityController, // V2026-10-15 治本: V1.x W5-6 加 ability controller
+    CounselorBillingController, // V2026-10-15 治本: V1.x W7-8 加 billing controller
   ],
   providers: [
     CounselorHomeService,
@@ -183,6 +229,7 @@ import { SupervisionService } from './providers/supervision.service';
     LongTermCaseService, // V2026-10-15 治本: V1.x W1-2 long-term-case service
     SupervisionService, // V2026-10-15 治本: V1.x W3-4 supervision service
     AbilityService, // V2026-10-15 治本: V1.x W5-6 ability service
+    BillingService, // V2026-10-15 治本: V1.x W7-8 billing service
   ],
   exports: [
     CounselorHomeService,
@@ -192,6 +239,7 @@ import { SupervisionService } from './providers/supervision.service';
     LongTermCaseService, // V2026-10-15 治本: V1.x W1-2 导出
     SupervisionService, // V2026-10-15 治本: V1.x W3-4 导出
     AbilityService, // V2026-10-15 治本: V1.x W5-6 导出
+    BillingService, // V2026-10-15 治本: V1.x W7-8 导出
   ],
 })
 export class CounselorModule {}
