@@ -43,5 +43,8 @@ export { AddLongTermCases1700000010007 } from './1700000010007-AddLongTermCases'
 // V2026-10-15 治本 (V1.x counselor-mode W3-4 — supervision-schools 表注册, 跟 bin/ormconfig.ts 严格 1:1):
 //   supervision_schools + supervision_feedback 2 张表 + 5 索引, counselor-mode-v1.0 §6.2 1:1 wire.
 export { AddSupervisionSchools1714900000006 } from './1714900000006-AddSupervisionSchools';
+// V2026-10-15 治本 (V1.x counselor-mode W5-6 — ability-dimensions 表注册, 跟 bin/ormconfig.ts 严格 1:1):
+//   ability_dimensions + ability_scores 2 张表 + 5 索引, counselor-mode-v1.0 §6.3 1:1 wire.
+export { AddAbilityDimensions1714900000007 } from './1714900000007-AddAbilityDimensions';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

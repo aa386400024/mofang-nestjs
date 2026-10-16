@@ -51,6 +51,29 @@
 //     1. tsc 0 错 (4 entity + 7 controller + 6 service 累计, 跟 knowledge-base.module 同 pattern)
 //     2. pnpm migration:run + curl 验 4 endpoint 端到端
 //   时间戳: 2026-10-15
+//
+// V2026-10-15 治本 (V1.x counselor-mode W5-6 — ability 接入 + 7 维度 28 子指标):
+//   原因: counselor-mode-v1.0 §6.3 拍板 ability_dimensions (28 子指标配置) +
+//     ability_scores (user × dimension 聚合) 2 张表, V0.3 §13 baseline 0 子指标表
+//     (V0.x AIProfileSnapshot 7 维度是 json 字段), 1:1 wire 0 破坏. W3-4 supervision_feedback
+//     不动, V0.5 阶段 ability_score 走手动 upsert, V1.x 续做时 W3-4 generateFeedback
+//     完成后回调 ability.service.upsertScore (V0.5 不蔓延 scope).
+//   修法:
+//     - imports 加 AbilityDimension / AbilityScore entity
+//     - TypeOrmModule.forFeature 累计 6 entity: LongTermCase + LongTermCaseSession +
+//       SupervisionSchool + SupervisionFeedback + AbilityDimension + AbilityScore
+//     - controllers +1 (CounselorAbilityController, 3 endpoint)
+//     - providers +1 (AbilityService, 4 method)
+//     - exports +1 (AbilityService)
+//   反双胞胎:
+//     - 不复用 V0.x AIProfileSnapshot 7 维度 json 字段: 28 子指标粒度更细, 1:1 wire 增量
+//     - V0.5 阶段不接 W3-4 supervision.service 自动累加: 避免 V0.5 scope 蔓延,
+//       V1.x 续做时 W3-4 service.generateFeedback 完成后回调 ability.service.upsertScore
+//     - 不引 vector store: V0.x 阶段不接 RAG, V2.x 升级再切
+//   验证:
+//     1. tsc 0 错 (6 entity + 8 controller + 7 service 累计, 跟 knowledge-base.module 同 pattern)
+//     2. pnpm migration:run + curl 验 3 endpoint 端到端
+//   时间戳: 2026-10-15
 
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -58,6 +81,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth';
 import { UserModule } from '../user';
 
+// V2026-10-15 治本 (V1.x W5-6 — ability controller):
+//   counselor 端第 8 个 controller (7 维度 28 子指标 + user 聚合, 跟 W1-2 + W3-4 数据正交,
+//   单独 service + 真接 TypeOrm 库).
+import { CounselorAbilityController } from './controllers/ability.controller';
 // V2026-10-13 治本 (Phase 7.10 P0-2 — 加 training controller):
 //   counselor 端 5 Tab 第 2 个 endpoint (跟 home 共用 CounselorHomeService 数据).
 // V2026-10-13 治本 (Phase 7.10 P0-3 — 加 exam controller):
@@ -78,6 +105,10 @@ import { CounselorLongTermCaseController } from './controllers/long-term-case.co
 // V2026-10-15 治本 (V1.x W3-4 — supervision controller):
 //   counselor 端第 7 个 controller (4 流派督导, 跟 long-term-case 同 sessionId polymorphic 复用).
 import { CounselorSupervisionController } from './controllers/supervision.controller';
+// V2026-10-15 治本 (V1.x W5-6 — ability entity 注册, 走 TypeOrmModule.forFeature):
+//   7 维度 28 子指标 + user 聚合 2 entity, 跟 W1-2 long-term-case + W3-4 supervision 同段.
+import { AbilityDimension } from './entities/ability-dimension.entity';
+import { AbilityScore } from './entities/ability-score.entity';
 // V2026-10-15 治本 (V1.x W1-2 — long-term-case entity 注册, 走 TypeOrmModule.forFeature):
 //   跟 knowledge-base/knowledge-chunk.entity.ts V0.x 风格一致, 1:1 wire.
 import { LongTermCaseSession } from './entities/long-term-case-session.entity';
@@ -86,6 +117,10 @@ import { LongTermCase } from './entities/long-term-case.entity';
 //   4 流派配置 + polymorphic 反馈记录 2 entity, 跟 W1-2 long-term-case 同 TypeOrmModule.forFeature 段.
 import { SupervisionFeedback } from './entities/supervision-feedback.entity';
 import { SupervisionSchool } from './entities/supervision-school.entity';
+// V2026-10-15 治本 (V1.x W5-6 — ability service):
+//   4 method 业务逻辑 (listDimensions / findDimensionByCode / getUserProfile / upsertScore),
+//   V0.5 阶段手动 upsert, V1.x 续做时 W3-4 service.generateFeedback 完成后回调本 service.
+import { AbilityService } from './providers/ability.service';
 // V2026-10-13 治本 (Phase 7.10 P0-3 — exam service):
 //   跟 home/training 数据正交, 单独 service (4 大分类 + 11 卡片 + 3 KPI).
 import { CounselorExamService } from './providers/counselor-exam.service';
@@ -106,7 +141,7 @@ import { LongTermCaseService } from './providers/long-term-case.service';
 import { SupervisionService } from './providers/supervision.service';
 
 /**
- * V2026-10-15 (V1.x counselor-mode W3-4 — CounselorModule):
+ * V2026-10-15 (V1.x counselor-mode W5-6 — CounselorModule):
  *   心理咨询师学员端 server module (跟 client counselor_* 5 Tab 1:1 对应).
  *
  *   跟 main_shell_page.dart V6.1 §2 counselorLearner 5 Tab (home/training/growth/exam/profile) 配套.
@@ -116,18 +151,19 @@ import { SupervisionService } from './providers/supervision.service';
  *   V0.5 P0-3/P0-4/P0-5: + exam / growth / profile 3 controller
  *   V1.x W1-2: + long-term-case controller (真接 TypeOrm, V0.5 5 controller 内存 mock 仍保留)
  *   V1.x W3-4: + supervision controller (4 流派 + polymorphic feedback)
- *   V1.x W5-6: + ability-dimension controller (待)
+ *   V1.x W5-6: + ability controller (7 维度 28 子指标 + user 聚合)
+ *   V1.x W7-8: + billing controller (待, 跟 VS-5 阻塞项)
  */
 @Module({
   imports: [
     UserModule,
     AuthModule,
     // V0.5: 不接 TypeOrm (内存 mock)
-    // V2026-10-15 治本 (V1.x W1-2 + W3-4 — long-term-case + supervision TypeOrmModule.forFeature):
-    //   累计 4 entity: LongTermCase + LongTermCaseSession (W1-2) + SupervisionSchool +
-    //   SupervisionFeedback (W3-4). 跟 knowledge-base.module.ts V0.x 风格一致,
-    //   1:1 wire 注册供对应 service 注入 Repository.
-    TypeOrmModule.forFeature([LongTermCase, LongTermCaseSession, SupervisionSchool, SupervisionFeedback]),
+    // V2026-10-15 治本 (V1.x W1-2 + W3-4 + W5-6 — long-term-case + supervision + ability TypeOrmModule.forFeature):
+    //   累计 6 entity: LongTermCase + LongTermCaseSession (W1-2) + SupervisionSchool +
+    //   SupervisionFeedback (W3-4) + AbilityDimension + AbilityScore (W5-6). 跟
+    //   knowledge-base.module.ts V0.x 风格一致, 1:1 wire 注册供对应 service 注入 Repository.
+    TypeOrmModule.forFeature([LongTermCase, LongTermCaseSession, SupervisionSchool, SupervisionFeedback, AbilityDimension, AbilityScore]),
   ],
   controllers: [
     CounselorHomeController,
@@ -137,6 +173,7 @@ import { SupervisionService } from './providers/supervision.service';
     CounselorProfileController, // V2026-10-13 治本: P0-5 加 profile controller
     CounselorLongTermCaseController, // V2026-10-15 治本: V1.x W1-2 加 long-term-case controller
     CounselorSupervisionController, // V2026-10-15 治本: V1.x W3-4 加 supervision controller
+    CounselorAbilityController, // V2026-10-15 治本: V1.x W5-6 加 ability controller
   ],
   providers: [
     CounselorHomeService,
@@ -145,6 +182,7 @@ import { SupervisionService } from './providers/supervision.service';
     CounselorProfileService, // V2026-10-13 治本: P0-5 profile service
     LongTermCaseService, // V2026-10-15 治本: V1.x W1-2 long-term-case service
     SupervisionService, // V2026-10-15 治本: V1.x W3-4 supervision service
+    AbilityService, // V2026-10-15 治本: V1.x W5-6 ability service
   ],
   exports: [
     CounselorHomeService,
@@ -153,6 +191,7 @@ import { SupervisionService } from './providers/supervision.service';
     CounselorProfileService,
     LongTermCaseService, // V2026-10-15 治本: V1.x W1-2 导出
     SupervisionService, // V2026-10-15 治本: V1.x W3-4 导出
+    AbilityService, // V2026-10-15 治本: V1.x W5-6 导出
   ],
 })
 export class CounselorModule {}
