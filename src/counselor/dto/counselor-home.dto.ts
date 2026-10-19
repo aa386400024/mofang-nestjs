@@ -37,7 +37,11 @@ export class CounselorTrainingScenarioDto {
   @ApiProperty({ description: '训练模式', enum: ['text', 'voice', 'text_voice'] })
   mode!: 'text' | 'voice' | 'text_voice';
 
-  @ApiProperty({ description: '难度 (L1 入门 / L2 进阶 / L3 挑战). full_process card 默认 L1, 用户在 VisitorPresetPage 顶部 "难度" 段 1:1 wire 改 L1/L2/L3 (C1 大炮 17:10 拍板)', example: 'L1' })
+  @ApiProperty({
+    description:
+      '难度 (L1 入门 / L2 进阶 / L3 挑战). full_process card 默认 L1, 用户在 VisitorPresetPage 顶部 "难度" 段 1:1 wire 改 L1/L2/L3 (C1 大炮 17:10 拍板)',
+    example: 'L1',
+  })
   difficulty!: 'L1' | 'L2' | 'L3';
 
   @ApiProperty({ description: '训练时长 (分钟)', example: 5 })

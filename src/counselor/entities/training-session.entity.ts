@@ -58,14 +58,7 @@
 //
 //   时间戳: 2026-10-19
 
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 import { ChatRole } from '../enums/chat-role.enum';
 import { DimensionVariance } from '../enums/dimension-variance.enum';

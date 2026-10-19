@@ -150,6 +150,7 @@ import { SupervisionSchool } from './entities/supervision-school.entity';
 // V2026-10-15 治本 (V1.x W5-6 — ability service):
 //   4 method 业务逻辑 (listDimensions / findDimensionByCode / getUserProfile / upsertScore),
 //   V0.5 阶段手动 upsert, V1.x 续做时 W3-4 service.generateFeedback 完成后回调本 service.
+import { TrainingSession } from './entities/training-session.entity';
 import { AbilityService } from './providers/ability.service';
 // V2026-10-15 治本 (V1.x W7-8 — billing service):
 //   5 method 业务逻辑 (getMembershipStatus / listSkus / createOrder / consumeQuota /
@@ -184,7 +185,6 @@ import { BillingService } from './providers/billing.service';
 //     2. pnpm migration:run + SHOW TABLES LIKE 'training_sessions'; 1 张表
 //
 //   时间戳: 2026-10-19
-import { TrainingSession } from './entities/training-session.entity';
 // V2026-10-13 治本 (Phase 7.10 P0-3 — exam service):
 //   跟 home/training 数据正交, 单独 service (4 大分类 + 11 卡片 + 3 KPI).
 import { CounselorExamService } from './providers/counselor-exam.service';
