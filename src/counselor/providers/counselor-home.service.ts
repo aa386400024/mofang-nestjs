@@ -1,7 +1,17 @@
-// V2026-10-13 治本 (Phase 7.10 — counselor-home.service.ts):
+// V2026-10-16 治本续 (V0.5 stage 2 治本续 V2 — A1+B1+C1 service schema):
 //   心理咨询师学员端「首页」Tab 业务逻辑.
 //
-//   V0.5 简化: 全内存 mock 数据 (跟 xin_su_app Batch 1 Stage 1 mock 1:1 对应).
+//   V2026-10-16 治本续 (C1 — 3 个全流程 card 合并 1 个 full_process):
+//     原因: 之前「全流程模拟」分 3 个 card (full_l1 / full_l2 / full_l3), 用户在 tab
+//       入口就要选 L1/L2/L3. 大炮 2026-10-16 17:10 反馈 "感觉合并成一个, 再来访者
+//       设置这里选择难度是不是就够用了啊" 1:1 反馈.
+//     修法: 3 个 card 合并 1 个 full_process, difficulty 字段保留默认 L1, 用户在
+//       xin_su_app VisitorPresetPage 顶部 "难度" 段 1:1 wire 改 L1/L2/L3 (C1 大炮
+//       17:10 拍板).
+//     反双胞胎: 不用 enum fullProcess (over-engineering, 1 个 string id 'full_process'
+//       足够, 跟 client 1:1 wire 1:1 落地).
+//
+//   V0.5 简化: 全内存 mock 数据 (跟 xin_su_app Batch 1 Stage 1 mock 1:1 对应, 7 场景).
 //   V1.x 改造:
 //     - 4 大分类从 `training_scenarios` 表 (新) 拉, 走 Repository 注入
 //     - 6 维能力从 `ai-profile` 跨模块聚合 (ai-engine 模块服务)
@@ -88,9 +98,9 @@ export class CounselorHomeService {
       };
     }
     return {
-      title: '全流程模拟 · 入门 L1',
-      subtitle: '建议从基础 8 个固定脚本开始, 跟 AI 来访者练习完整 50 分钟会话',
-      scenarioId: 'full_l1',
+      title: '完整咨询流程',
+      subtitle: '包含 4 阶段完整咨询, 进入后可调难度 (入门/进阶/挑战) + 来访者人格',
+      scenarioId: 'full_process',
       difficulty: 'L1',
     };
   }
@@ -118,10 +128,12 @@ export class CounselorHomeService {
   }
 
   /**
-   * 4 大训练分类 + 9 场景 (跟 xin_su_app CounselorTrainingRepositoryMock.getOverview 1:1).
+   * 4 大训练分类 + 7 场景 (跟 xin_su_app CounselorTrainingRepositoryMock.getOverview 1:1).
    *
-   * 治本: 9 场景 id 跟 xin_su_app mock 1:1 (skill_listening / skill_questioning / skill_voice /
-   * full_l1 / full_l2 / full_l3 / script_polish / script_reading / case_concept / case_ethics).
+   * 治本: 7 场景 id 跟 xin_su_app mock 1:1 (skill_listening / skill_questioning / skill_voice /
+   * full_process / script_polish / script_reading / case_concept / case_ethics).
+   * 全流程模拟 1 个 card (C1 大炮 17:10 拍板合并 3 个 full_l1/l2/l3 1:1 落地),
+   * 难度用户在 VisitorPresetPage 顶部 "难度" 段选 (1:1 wire client).
    * 全 unlocked (V0.5 简化, V1.x 跟 training_records 聚合判断).
    */
   private buildTrainingCategories(): CounselorTrainingCategoryDto[] {
@@ -164,31 +176,16 @@ export class CounselorHomeService {
         category: 'fullSession',
         emoji: '⏱️',
         title: '全流程模拟',
+        // V2026-10-16 治本续 (C1): 3 个 full_l1/l2/l3 card 合并 1 个 full_process.
+        // 大炮 17:10 拍板 "感觉合并成一个, 再来访者设置这里选择难度是不是就够用了啊" 1:1 落地.
+        // 难度 L1/L2/L3 用户在 xin_su_app VisitorPresetPage 顶部 "难度" 段 1:1 wire 选.
         scenarios: [
           {
-            id: 'full_l1',
-            title: '入门难度 (L1)',
-            subtitle: '8 个固定脚本 · 固定回应训练',
+            id: 'full_process',
+            title: '完整咨询流程',
+            subtitle: '60-90 分钟 · 包含完整 4 阶段 · 进入后可选难度 + 来访者人格',
             mode: 'text_voice',
             difficulty: 'L1',
-            durationMinutes: 50,
-            unlocked: true,
-          },
-          {
-            id: 'full_l2',
-            title: '进阶难度 (L2)',
-            subtitle: '5 个动态脚本 · 来访者灵活回应',
-            mode: 'text_voice',
-            difficulty: 'L2',
-            durationMinutes: 50,
-            unlocked: true,
-          },
-          {
-            id: 'full_l3',
-            title: '挑战难度 (L3)',
-            subtitle: '5 个人格化脚本 · 高复杂度',
-            mode: 'text_voice',
-            difficulty: 'L3',
             durationMinutes: 50,
             unlocked: true,
           },

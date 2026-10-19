@@ -51,4 +51,9 @@ export { AddAbilityDimensions1714900000007 } from './1714900000007-AddAbilityDim
 //   counselor-mode-v1.0 §6.4 + §7.1 1:1 wire.
 export { AddQuotaUsage1714900000008 } from './1714900000008-AddQuotaUsage';
 
+// V2026-10-19 治本 (V1.1 §6.5 — training_sessions 表注册, 跟 bin/ormconfig.ts 严格 1:1):
+//   training_sessions 新表 + 5 索引 (PRIMARY + 4 复合), counselor-mode-v1.1 §6.5 1:1 wire,
+//   跟 xin_su_app V0.5 client TrainingSession entity 1:1 (9 场景单次训练 session 持久化).
+export { AddTrainingSessions1714900000009 } from './1714900000009-AddTrainingSessions';
+
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

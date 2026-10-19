@@ -156,6 +156,35 @@ import { AbilityService } from './providers/ability.service';
 //   isVoiceAllowed), V0.5 阶段 mock 支付 inline + 配额表真接, V1.x 续做抽 PaymentChannelService
 //   interface 接 WechatPay + Alipay 真接.
 import { BillingService } from './providers/billing.service';
+
+// V2026-10-19 治本 (V1.1 §6.5 — training-session 接入 + 9 场景单次 session 持久化):
+//   原因: counselor-mode-v1.1 §6.5 拍板 training_sessions 表 (跟 xin_su_app V0.5 client
+//     TrainingSession entity 1:1 wire, 6 enum + 25 字段), V0.5 client 用
+//     MockTrainingSessionRepository 内存 mock, V1.x server 端落库. 跟 V0.3 §13
+//     baseline 0 破坏 (V0.3 TrainingSession 4 态保留), 跟 W1-2 long_term_case_session
+//     1:1 wire (transcript shape 复用), 跟 V0.5 stage 简化清单 11 项中的 #2/#3/#4/#5/#11
+//     解锁 server 端持久化基础.
+//
+//   修法:
+//     - imports 加 TrainingSession entity (跟 W1-2 long-term-case-session V1.1 同 pattern)
+//     - TypeOrmModule.forFeature 累计 8 entity (W1-2/W3-4/W5-6/W7-8 + V1.1 training_session)
+//     - 0 controller / 0 service (V1.1 阶段仅落 entity + migration, V1.x W7-8 续做
+//       TrainingSessionService + Controller 时再加, V0.5 client 仍走 mock pool,
+//       防 V1.1 scope 蔓延, 跟 V0.5 culture "V0.x 阶段不接数据库" 注释一致)
+//
+//   反双胞胎:
+//     - 不加 controller / service: V0.5 client 仍走 MockTrainingSessionRepository 内存池,
+//       V1.x server 端 API (POST /training/sessions) 等 W7-8 续做时再加
+//     - 不复用 V0.3 §13 TrainingSession entity: V0.3 4 态 baseline 保留, V1.1 新建
+//       training_sessions 表 (V0.5 stage 5 状态机是新概念, 跟 V0.3 baseline 正交)
+//     - 不引 AnalyticsModule / LlmModule: V0.5 stage 简化 (跟 W1-2 long-term-case 风格一致)
+//
+//   验证:
+//     1. tsc 0 错 (新加 entity 走 @nestjs/typeorm 注册, 跟 knowledge-base.module 同 pattern)
+//     2. pnpm migration:run + SHOW TABLES LIKE 'training_sessions'; 1 张表
+//
+//   时间戳: 2026-10-19
+import { TrainingSession } from './entities/training-session.entity';
 // V2026-10-13 治本 (Phase 7.10 P0-3 — exam service):
 //   跟 home/training 数据正交, 单独 service (4 大分类 + 11 卡片 + 3 KPI).
 import { CounselorExamService } from './providers/counselor-exam.service';
@@ -200,6 +229,9 @@ import { SupervisionService } from './providers/supervision.service';
     //   累计 7 entity: LongTermCase + LongTermCaseSession (W1-2) + SupervisionSchool +
     //   SupervisionFeedback (W3-4) + AbilityDimension + AbilityScore (W5-6) + QuotaUsage (W7-8).
     //   跟 knowledge-base.module.ts V0.x 风格一致, 1:1 wire 注册供对应 service 注入 Repository.
+    // V2026-10-19 治本 (V1.1 §6.5 — training_session 接入, 累计 8 entity):
+    //   +TrainingSession (V1.1 §6.5, 9 场景单次训练 session 持久化, 跟 V0.5 client
+    //   TrainingSession 1:1 wire), 跟前序 W7-8 billing 7 entity 同段.
     TypeOrmModule.forFeature([
       LongTermCase,
       LongTermCaseSession,
@@ -208,6 +240,7 @@ import { SupervisionService } from './providers/supervision.service';
       AbilityDimension,
       AbilityScore,
       QuotaUsage,
+      TrainingSession,
     ]),
   ],
   controllers: [
