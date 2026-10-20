@@ -126,18 +126,21 @@ import { CounselorHomeController } from './controllers/counselor-home.controller
 //   单独 service + 真接 TypeOrm 库).
 import { CounselorProfileController } from './controllers/counselor-profile.controller';
 import { CounselorTrainingController } from './controllers/counselor-training.controller';
+import { CounselorUiPreferenceController } from './controllers/counselor-ui-preference.controller';
 import { CounselorLongTermCaseController } from './controllers/long-term-case.controller';
 // V2026-10-13 治本 (Phase 7.10 P0-5 — 加 profile controller):
 //   counselor 端 5 Tab 第 5 个 endpoint (我的, 训练偏好 + 会员状态).
 // V2026-10-15 治本 (V1.x W3-4 — supervision controller):
 //   counselor 端第 7 个 controller (4 流派督导, 跟 long-term-case 同 sessionId polymorphic 复用).
 import { CounselorSupervisionController } from './controllers/supervision.controller';
+import { CounselorTrainingExerciseController } from './controllers/training-exercise.controller';
 // V2026-10-15 治本 (V1.x W5-6 — ability entity 注册, 走 TypeOrmModule.forFeature):
 //   7 维度 28 子指标 + user 聚合 2 entity, 跟 W1-2 long-term-case + W3-4 supervision 同段.
 import { AbilityDimension } from './entities/ability-dimension.entity';
 import { AbilityScore } from './entities/ability-score.entity';
 // V2026-10-15 治本 (V1.x W1-2 — long-term-case entity 注册, 走 TypeOrmModule.forFeature):
 //   跟 knowledge-base/knowledge-chunk.entity.ts V0.x 风格一致, 1:1 wire.
+import { CounselorUiPreference } from './entities/counselor-ui-preference.entity';
 import { LongTermCaseSession } from './entities/long-term-case-session.entity';
 import { LongTermCase } from './entities/long-term-case.entity';
 // V2026-10-15 治本 (V1.x W7-8 — quota_usage entity 注册):
@@ -204,6 +207,7 @@ import { CounselorHomeService } from './providers/counselor-home.service';
 //   5 method 业务逻辑 (list / createFromPreset / findDetail / appendSession / listTemplates),
 //   走真 TypeORM Repository, 跟 V0.5 5 service 内存 mock 区分.
 import { CounselorProfileService } from './providers/counselor-profile.service';
+import { CounselorUiPreferenceService } from './providers/counselor-ui-preference.service';
 import { LongTermCaseService } from './providers/long-term-case.service';
 // V2026-10-13 治本 (Phase 7.10 P0-5 — profile service):
 //   训练偏好 (3 toggle + defaultDifficulty) + 会员状态 (V0.5 写死 none, V1.x 接 billing).
@@ -211,6 +215,7 @@ import { LongTermCaseService } from './providers/long-term-case.service';
 //   5 method 业务逻辑 (listSchools / findSchoolByCode / generateFeedback / compareFeedback /
 //   listFeedbackForSession), V0.5 mock 阶段用静态 prompt 模板, V1.x 真接 LLM 改 provider 注入.
 import { SupervisionService } from './providers/supervision.service';
+import { TrainingExerciseService } from './providers/training-exercise.service';
 
 /**
  * V2026-10-15 (V1.x counselor-mode W7-8 — CounselorModule):
@@ -253,6 +258,7 @@ import { SupervisionService } from './providers/supervision.service';
       //   接入, 累计 10 entity, 跟 §6.5 training_session 1:1 wire 拍板风格):
       TrainingExercise,
       TrainingExerciseAttempt,
+      CounselorUiPreference, // V2026-10-20 治本: 专项技能 Hero 显示偏好
     ]),
   ],
   controllers: [
@@ -265,6 +271,8 @@ import { SupervisionService } from './providers/supervision.service';
     CounselorSupervisionController, // V2026-10-15 治本: V1.x W3-4 加 supervision controller
     CounselorAbilityController, // V2026-10-15 治本: V1.x W5-6 加 ability controller
     CounselorBillingController, // V2026-10-15 治本: V1.x W7-8 加 billing controller
+    CounselorTrainingExerciseController, // V2026-10-20 治本: 专项技能训练题 + 进度聚合
+    CounselorUiPreferenceController, // V2026-10-20 治本: 界面偏好 (Hero 开关)
   ],
   providers: [
     CounselorHomeService,
@@ -275,6 +283,8 @@ import { SupervisionService } from './providers/supervision.service';
     SupervisionService, // V2026-10-15 治本: V1.x W3-4 supervision service
     AbilityService, // V2026-10-15 治本: V1.x W5-6 ability service
     BillingService, // V2026-10-15 治本: V1.x W7-8 billing service
+    TrainingExerciseService, // V2026-10-20 治本: 训练题 seed + 聚合进度 + 确定性评分
+    CounselorUiPreferenceService, // V2026-10-20 治本: 界面偏好读写
   ],
   exports: [
     CounselorHomeService,
@@ -285,6 +295,8 @@ import { SupervisionService } from './providers/supervision.service';
     SupervisionService, // V2026-10-15 治本: V1.x W3-4 导出
     AbilityService, // V2026-10-15 治本: V1.x W5-6 导出
     BillingService, // V2026-10-15 治本: V1.x W7-8 导出
+    TrainingExerciseService, // V2026-10-20 治本: 导出供 progress 聚合复用
+    CounselorUiPreferenceService, // V2026-10-20 治本: 导出
   ],
 })
 export class CounselorModule {}

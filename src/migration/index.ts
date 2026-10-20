@@ -63,5 +63,6 @@ export { AddTrainingExercises1714900000010 } from './1714900000010-AddTrainingEx
 //   training_exercise_attempts 新表 + 4 索引 (PRIMARY + 3 复合), counselor-mode-v1.1 §5.2 1:1 wire,
 //   跟 xin_su_app V0.5 client TrainingExerciseAttempt entity 1:1 (答题记录 + 5 状态机 + 维度分).
 export { AddTrainingExerciseAttempts1714900000011 } from './1714900000011-AddTrainingExerciseAttempts';
+export { AddCounselorUiPreferences1714900000012 } from './1714900000012-AddCounselorUiPreferences';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

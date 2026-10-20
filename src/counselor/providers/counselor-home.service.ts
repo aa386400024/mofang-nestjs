@@ -139,43 +139,32 @@ export class CounselorHomeService {
   private buildTrainingCategories(): CounselorTrainingCategoryDto[] {
     return [
       {
+        // V2026-10-20 治本 (专项技能训练中心改版 — 训 tab 入口收敛):
+        //   原因: 原先平铺 3 个场景卡, 但三者点击后跳同一个页面 (专项技能详情页),
+        //     属「3 个入口 → 1 个目的地」纯冗余. 更严重的是语义冲突: 这 3 张卡描述
+        //     「5 分钟共情练习」, 而新详情页呈现 10 个训练项 (PRD §5.2 1:1),
+        //     用户会困惑于「训 tab 说 3 项, 进去看到 10 项」.
+        //   修复: 收敛为单入口大卡 (collapsed: true), scenarios 清空,
+        //     统一指向专项技能详情页. 训练项语义单一事实源 = 详情页的 10 项.
+        //   反双胞胎:
+        //     - 不保留 3 个场景做「快捷直达某训练项」(V1.x 若需要, 应由详情页内
+        //       progress 驱动推荐, 而不是在训 tab 平铺两套语义)
+        //     - 不删 skill 分类本身 (训 tab 仍需入口, 否则专项技能无法被发现)
+        //   验证: GET /counselor/training/overview → skill.collapsed === true
+        //          且 skill.scenarios.length === 0
         category: 'skill',
         emoji: '🎯',
         title: '专项技能',
-        scenarios: [
-          {
-            id: 'skill_listening',
-            title: '倾听与共情',
-            subtitle: '主动倾听 · 情绪反映 · 共情验证',
-            mode: 'text',
-            difficulty: 'L1',
-            durationMinutes: 5,
-            unlocked: true,
-          },
-          {
-            id: 'skill_questioning',
-            title: '提问技术',
-            subtitle: '开放式提问 · 澄清 · 引导性提问',
-            mode: 'text',
-            difficulty: 'L1',
-            durationMinutes: 5,
-            unlocked: true,
-          },
-          {
-            id: 'skill_voice',
-            title: '语音微训练',
-            subtitle: '语速 / 音调 / 打断节奏',
-            mode: 'voice',
-            difficulty: 'L2',
-            durationMinutes: 10,
-            unlocked: true,
-          },
-        ],
+        collapsed: true,
+        target: 'specializedSkills',
+        progress: { totalItems: 10, completedItems: 0 },
+        scenarios: [],
       },
       {
         category: 'fullSession',
         emoji: '⏱️',
         title: '全流程模拟',
+        collapsed: false,
         // V2026-10-16 治本续 (C1): 3 个 full_l1/l2/l3 card 合并 1 个 full_process.
         // 大炮 17:10 拍板 "感觉合并成一个, 再来访者设置这里选择难度是不是就够用了啊" 1:1 落地.
         // 难度 L1/L2/L3 用户在 xin_su_app VisitorPresetPage 顶部 "难度" 段 1:1 wire 选.
@@ -188,6 +177,8 @@ export class CounselorHomeService {
             difficulty: 'L1',
             durationMinutes: 50,
             unlocked: true,
+            // V2026-10-20 治本: 显式路由目标, 替代客户端字符串匹配 id
+            target: 'visitorPreset',
           },
         ],
       },
@@ -195,6 +186,7 @@ export class CounselorHomeService {
         category: 'script',
         emoji: '🗣️',
         title: '话术工坊',
+        collapsed: false,
         scenarios: [
           {
             id: 'script_polish',
@@ -204,6 +196,9 @@ export class CounselorHomeService {
             difficulty: 'L1',
             durationMinutes: 3,
             unlocked: true,
+            // V2026-10-20 治本: 客户端原用 id === 'script_polish' 硬编码分支跳转,
+            // 改为后端声明, id 改名不再影响路由
+            target: 'scriptWorkshop',
           },
           {
             id: 'script_reading',
@@ -213,6 +208,7 @@ export class CounselorHomeService {
             difficulty: 'L1',
             durationMinutes: 5,
             unlocked: true,
+            target: 'scriptWorkshop',
           },
         ],
       },
@@ -220,6 +216,7 @@ export class CounselorHomeService {
         category: 'caseConcept',
         emoji: '🧠',
         title: '个案训练',
+        collapsed: false,
         scenarios: [
           {
             id: 'case_concept',
@@ -229,6 +226,7 @@ export class CounselorHomeService {
             difficulty: 'L2',
             durationMinutes: 15,
             unlocked: true,
+            target: 'visitorPreset',
           },
           {
             id: 'case_ethics',
@@ -238,6 +236,7 @@ export class CounselorHomeService {
             difficulty: 'L2',
             durationMinutes: 15,
             unlocked: true,
+            target: 'visitorPreset',
           },
         ],
       },

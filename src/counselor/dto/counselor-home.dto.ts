@@ -20,6 +20,19 @@ import { IsIn, IsOptional, IsString } from 'class-validator';
 
 import { HOME_EMOTION_LEVELS, type HomeEmotionLevel } from '../../home/home.constants';
 
+/**
+ * V2026-10-20 治本 (专项技能训练中心改版 — 路由意图显式化):
+ *   原因: 客户端原用 `scenario.id.startsWith('skill_')` / `id === 'script_polish'`
+ *     做字符串前缀匹配来猜该跳哪个页面. 这把「业务路由」藏在字符串字面量里:
+ *     后端新增或改名任何场景 id, 客户端会静默走错分支, 编译器与测试都无法发现.
+ *     这与设计规格 §2.2 审计出的 `specRef: '§6.1.1'` 是同一类反模式.
+ *   修复: 后端在 DTO 上显式声明 `target`, 客户端只做 switch(target) 单一分派.
+ *   反双胞胎:
+ *     - 不让客户端维护 id → 路由的映射表 (映射表会再次与后端 drift)
+ *     - 不用任意字符串 target (用联合类型, 拼错编译期报错)
+ */
+export type CounselorTrainingTarget = 'specializedSkills' | 'visitorPreset' | 'scriptWorkshop' | 'examLibrary';
+
 // ════════════════════════════════════════════════════════════════════════════
 // 子 DTO: 单个训练场景 (Stage 1 mock 数据跟 xin_su_app 一致)
 // ════════════════════════════════════════════════════════════════════════════
@@ -49,6 +62,15 @@ export class CounselorTrainingScenarioDto {
 
   @ApiProperty({ description: '是否已解锁 (默认 true, V0.x 全部 unlocked, V1.x 跟训练记录聚合)', example: true })
   unlocked!: boolean;
+
+  @ApiProperty({
+    description:
+      'V2026-10-20 治本: 该场景点击后应跳转的客户端目的地. 客户端只按此字段分派, ' +
+      '不再用 scenario.id 字符串前缀猜测路由 (消除 id 改名导致静默走错的隐患).',
+    enum: ['specializedSkills', 'visitorPreset', 'scriptWorkshop', 'examLibrary'],
+    example: 'visitorPreset',
+  })
+  target!: CounselorTrainingTarget;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -65,8 +87,37 @@ export class CounselorTrainingCategoryDto {
   @ApiProperty({ description: '分类标题 (跟 xin_su_app TrainingCategoryDisplay.title 1:1)', example: '专项技能' })
   title!: string;
 
-  @ApiProperty({ description: '该分类下所有训练场景', type: [CounselorTrainingScenarioDto] })
+  @ApiProperty({
+    description: '该分类下所有训练场景. collapsed=true 时为空数组, 客户端走分类级 target',
+    type: [CounselorTrainingScenarioDto],
+  })
   scenarios!: CounselorTrainingScenarioDto[];
+
+  @ApiProperty({
+    description:
+      'V2026-10-20 治本: true 表示该分类应收敛为「单入口大卡」而非逐场景 carousel. ' +
+      '专项技能分类因已有独立详情页 (含 10 个训练项) 而置 true, 避免同一页面出现 3 个指向同一目的地的入口.',
+    example: false,
+  })
+  collapsed!: boolean;
+
+  @ApiProperty({
+    description: 'V2026-10-20 治本: collapsed=true 时的分类级跳转目标 (客户端单入口卡使用)',
+    required: false,
+    enum: ['specializedSkills', 'visitorPreset', 'scriptWorkshop', 'examLibrary'],
+  })
+  target?: CounselorTrainingTarget;
+
+  @ApiProperty({
+    description: 'V2026-10-20 治本: 分类级进度摘要, 供单入口卡展示「N 项 · M 已完成」',
+    required: false,
+    // V2026-10-20 修正 (tsc TS2322): 本项目 @nestjs/swagger 版本的 SchemaObject.type
+    //   不接受字符串 'object' (合法值仅 string/number/boolean/array/integer/file/null
+    //   或构造函数/Type). 改用 Object 构造函数, 并移除不被支持的 additionalProperties.
+    type: Object,
+    example: { totalItems: 10, completedItems: 0 },
+  })
+  progress?: { totalItems: number; completedItems: number };
 }
 
 // ════════════════════════════════════════════════════════════════════════════

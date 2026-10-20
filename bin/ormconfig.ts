@@ -104,6 +104,12 @@ import { AddTrainingExercises1714900000010 } from '../src/migration/171490000001
 //   training_exercise_attempts 新表 + 4 索引 (PRIMARY + 3 复合), counselor-mode-v1.1 §5.2 1:1 wire,
 //   跟 xin_su_app V0.5 client TrainingExerciseAttempt entity 1:1 (答题记录 + 5 状态机 + 维度分).
 import { AddTrainingExerciseAttempts1714900000011 } from '../src/migration/1714900000011-AddTrainingExerciseAttempts';
+// V2026-10-20 治本 (专项技能 Hero 显示偏好 — counselor_ui_preferences 新表):
+//   治本: 本文件的 migrations 是**显式数组**(非 glob), 只在 src/migration/index.ts
+//   导出是不够的 —— migration:run 只认这里列出的类. 漏登记的表现极具迷惑性:
+//   命令输出 "No migrations are pending"(看起来像"都跑完了"), 实际是它压根没被看见,
+//   表不建 → 运行时偏好接口 500. 与本文件 V2026-10-12 注释记录的同类问题同源.
+import { AddCounselorUiPreferences1714900000012 } from '../src/migration/1714900000012-AddCounselorUiPreferences';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -197,6 +203,9 @@ const ormconfig = async (): Promise<DataSource> => {
       // V2026-10-19 治本 (V1.1 §5.2 — training_exercise_attempts 新表 + 4 索引, 跟前序
       //   training_exercises 表同段, 跟 src/migration/index.ts 严格 1:1):
       AddTrainingExerciseAttempts1714900000011,
+      // V2026-10-20 治本 (专项技能 Hero 显示偏好 — counselor_ui_preferences 新表 + 1 唯一索引,
+      //   跟前序 training_exercise_attempts 表同段, 跟 src/migration/index.ts 严格 1:1):
+      AddCounselorUiPreferences1714900000012,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)
