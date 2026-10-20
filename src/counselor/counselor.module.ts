@@ -150,6 +150,8 @@ import { SupervisionSchool } from './entities/supervision-school.entity';
 // V2026-10-15 治本 (V1.x W5-6 — ability service):
 //   4 method 业务逻辑 (listDimensions / findDimensionByCode / getUserProfile / upsertScore),
 //   V0.5 阶段手动 upsert, V1.x 续做时 W3-4 service.generateFeedback 完成后回调本 service.
+import { TrainingExerciseAttempt } from './entities/training-exercise-attempt.entity';
+import { TrainingExercise } from './entities/training-exercise.entity';
 import { TrainingSession } from './entities/training-session.entity';
 // V2026-10-19 治本 (V1.1 §5.2 — training_exercises + training_exercise_attempts 接入):
 //   跟 V0.5 training_session §6.5 1:1 wire 拍板风格 (V2026-10-19 治本续 V8.3 落地):
@@ -157,8 +159,6 @@ import { TrainingSession } from './entities/training-session.entity';
 //   TrainingExercise entity 1:1 wire) + TrainingExerciseAttempt (V1.1 §5.2 拍板
 //   答题记录, 5 状态机 1:1 wire). 大炮 16:10 "A, 要企业级的方案, 不要凑活"
 //   1:1 反馈, V0.5 stage 简化 0 占位, V1.x W9-10 续做前先落 entity 层.
-import { TrainingExercise } from './entities/training-exercise.entity';
-import { TrainingExerciseAttempt } from './entities/training-exercise-attempt.entity';
 import { AbilityService } from './providers/ability.service';
 // V2026-10-15 治本 (V1.x W7-8 — billing service):
 //   5 method 业务逻辑 (getMembershipStatus / listSkus / createOrder / consumeQuota /

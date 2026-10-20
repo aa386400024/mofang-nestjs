@@ -48,9 +48,9 @@
 //   时间戳: 2026-10-19
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
+import { TrainingDifficulty } from '../enums/training-difficulty.enum';
 import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
 import { TrainingExerciseType } from '../enums/training-exercise-type.enum';
-import { TrainingDifficulty } from '../enums/training-difficulty.enum';
 
 /**
  * 训练题评分标准 (rubric json 字段 1:1 wire, 跟 xin_su_app TrainingExerciseRubric 1:1 wire).
@@ -59,7 +59,7 @@ import { TrainingDifficulty } from '../enums/training-difficulty.enum';
  */
 export interface TrainingExerciseRubric {
   /** 评分维度 (e.g. [{'name': '情绪反射准确度', 'weight': 0.4}, ...]) */
-  dimensions: Array<{ name: string; weight: number }>;
+  dimensions: { name: string; weight: number }[];
   /** 关键词命中 (e.g. ['共情', '倾听', '情绪反射']) */
   keywords: string[];
   /** 错误模式 (e.g. ['过早给建议', '打断', '价值判断']) */
