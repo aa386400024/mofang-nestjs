@@ -102,6 +102,19 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+// V2026-10-21 治本 (V1.2 VS-A — 引入 AgentModule 拿 LlmService):
+//   原因: 本轮要把 counselor 的督导反馈从 mock 切真接 LLM. 项目里有**两个类名都叫 LlmModule**
+//     的模块 —— src/agent/llm/llm.module.ts (MiniMax 流式, LlmService) 与
+//     src/llm/llm.module.ts (多厂商路由, LlmRouterService). 本轮选前者:
+//       - .env 已有 MINIMAX_API_KEY / MINIMAX_BASE_URL / MINIMAX_LLM_MODEL, 开箱可用
+//       - src/agent/supervisor/supervisor.service.ts 已用它端到端跑通 "收流 → JSON.parse → 校验"
+//       - 栈 B 需要 LLM_<PROVIDER>_API_KEY, .env 里一个都没有, 启动就是 (none)
+//     AgentModule re-export 了 LlmModule (src/agent/agent.module.ts:23), 直接 import AgentModule
+//     即可拿到 LlmService, 且不与 src/agent/ 产生循环依赖 (agent 侧 0 处 import counselor).
+//   反双胞胎: 不直接 import '../agent/llm/llm.module' —— 跟 knowledge-base.module.ts:21 的先例一致,
+//     统一用 AgentModule 这个公共出口, 换 LLM 实现时只改 1 处.
+//   时间戳: 2026-10-21
+import { AgentModule } from '../agent/agent.module';
 import { AuthModule } from '../auth';
 import { UserModule } from '../user';
 
@@ -134,6 +147,10 @@ import { CounselorLongTermCaseController } from './controllers/long-term-case.co
 //   counselor 端第 7 个 controller (4 流派督导, 跟 long-term-case 同 sessionId polymorphic 复用).
 import { CounselorSupervisionController } from './controllers/supervision.controller';
 import { CounselorTrainingExerciseController } from './controllers/training-exercise.controller';
+// V2026-10-21 治本 (V1.2 VS-A — training session controller):
+//   training_sessions 表 (V1.1 §6.5) 落地后一直 0 controller, v1.2 的 M2 知情同意 /
+//   M3 轻提示 / M4 24h 间隔 / §10.1 初访分流 全挂在它身上. 本 controller 定死 6 个 endpoint 契约.
+import { CounselorTrainingSessionController } from './controllers/training-session.controller';
 // V2026-10-15 治本 (V1.x W5-6 — ability entity 注册, 走 TypeOrmModule.forFeature):
 //   7 维度 28 子指标 + user 聚合 2 entity, 跟 W1-2 long-term-case + W3-4 supervision 同段.
 import { AbilityDimension } from './entities/ability-dimension.entity';
@@ -207,15 +224,24 @@ import { CounselorHomeService } from './providers/counselor-home.service';
 //   5 method 业务逻辑 (list / createFromPreset / findDetail / appendSession / listTemplates),
 //   走真 TypeORM Repository, 跟 V0.5 5 service 内存 mock 区分.
 import { CounselorProfileService } from './providers/counselor-profile.service';
+import { CounselorSupervisionProcessor } from './providers/counselor-supervision.processor';
 import { CounselorUiPreferenceService } from './providers/counselor-ui-preference.service';
+import { CounselorLlmJsonClient } from './providers/llm-json.client';
 import { LongTermCaseService } from './providers/long-term-case.service';
 // V2026-10-13 治本 (Phase 7.10 P0-5 — profile service):
 //   训练偏好 (3 toggle + defaultDifficulty) + 会员状态 (V0.5 写死 none, V1.x 接 billing).
 // V2026-10-15 治本 (V1.x W3-4 — supervision service):
 //   5 method 业务逻辑 (listSchools / findSchoolByCode / generateFeedback / compareFeedback /
 //   listFeedbackForSession), V0.5 mock 阶段用静态 prompt 模板, V1.x 真接 LLM 改 provider 注入.
+import { SessionContextBuilder } from './providers/session-context.builder';
 import { SupervisionService } from './providers/supervision.service';
 import { TrainingExerciseService } from './providers/training-exercise.service';
+// V2026-10-21 治本 (V1.2 VS-A — VS-A 新增 4 个 provider):
+//   - CounselorLlmJsonClient: counselor 端唯一的结构化输出出口 (收流 → 剥 think → JSON.parse → 校验)
+//   - SessionContextBuilder: 会话上下文的唯一取数入口 (polymorphic, 统一 transcript 口径)
+//   - CounselorSupervisionProcessor: 督导异步生成 worker (BullMQ, 真接 LLM 后不能同步阻塞 HTTP)
+//   - TrainingSessionService: 会话生命周期 (建 / 查 / 状态机 / 逐字稿 / 结束)
+import { TrainingSessionService } from './providers/training-session.service';
 
 /**
  * V2026-10-15 (V1.x counselor-mode W7-8 — CounselorModule):
@@ -237,6 +263,10 @@ import { TrainingExerciseService } from './providers/training-exercise.service';
   imports: [
     UserModule,
     AuthModule,
+    // V2026-10-21 治本 (V1.2 VS-A — 引入 AgentModule 拿 LlmService):
+    //   督导反馈真接 LLM 需要 LlmService. AgentModule re-export 了 LlmModule
+    //   (src/agent/agent.module.ts:23), 且 agent 侧 0 处 import counselor → 无循环依赖.
+    AgentModule,
     // V0.5: 不接 TypeOrm (内存 mock)
     // V2026-10-15 治本 (V1.x W1-2 + W3-4 + W5-6 + W7-8 — long-term-case + supervision + ability + billing TypeOrmModule.forFeature):
     //   累计 7 entity: LongTermCase + LongTermCaseSession (W1-2) + SupervisionSchool +
@@ -273,6 +303,9 @@ import { TrainingExerciseService } from './providers/training-exercise.service';
     CounselorBillingController, // V2026-10-15 治本: V1.x W7-8 加 billing controller
     CounselorTrainingExerciseController, // V2026-10-20 治本: 专项技能训练题 + 进度聚合
     CounselorUiPreferenceController, // V2026-10-20 治本: 界面偏好 (Hero 开关)
+    // V2026-10-21 治本 (V1.2 VS-A — training session controller):
+    //   6 endpoint: 建会话 / 列表 / 详情 / 状态机 / 逐字稿 / 结束+派发督导.
+    CounselorTrainingSessionController,
   ],
   providers: [
     CounselorHomeService,
@@ -285,6 +318,15 @@ import { TrainingExerciseService } from './providers/training-exercise.service';
     BillingService, // V2026-10-15 治本: V1.x W7-8 billing service
     TrainingExerciseService, // V2026-10-20 治本: 训练题 seed + 聚合进度 + 确定性评分
     CounselorUiPreferenceService, // V2026-10-20 治本: 界面偏好读写
+    // V2026-10-21 治本 (V1.2 VS-A — 4 个新 provider):
+    //   - CounselorLlmJsonClient: 结构化输出唯一出口 (收流 → 剥 think → JSON.parse → 校验)
+    //   - SessionContextBuilder: 会话上下文唯一取数入口 (polymorphic)
+    //   - CounselorSupervisionProcessor: 督导异步 worker (BullMQ, 依赖 RedisModule @Global)
+    //   - TrainingSessionService: 会话生命周期 (状态机守卫走 domain/session-status.guard.ts)
+    CounselorLlmJsonClient,
+    SessionContextBuilder,
+    CounselorSupervisionProcessor,
+    TrainingSessionService,
   ],
   exports: [
     CounselorHomeService,
@@ -297,6 +339,13 @@ import { TrainingExerciseService } from './providers/training-exercise.service';
     BillingService, // V2026-10-15 治本: V1.x W7-8 导出
     TrainingExerciseService, // V2026-10-20 治本: 导出供 progress 聚合复用
     CounselorUiPreferenceService, // V2026-10-20 治本: 导出
+    // V2026-10-21 治本 (V1.2 VS-A — 导出供后续 VS-B/C/D/E 消费):
+    //   VS-B (分层人设) 要用 SessionContextBuilder + CounselorLlmJsonClient;
+    //   VS-C (知情同意/轻提示) 要用 TrainingSessionService + SessionContextBuilder;
+    //   提前导出, 避免下一个切片再改 module 装配 (反复动装配是 DI 漏注册的根源).
+    TrainingSessionService,
+    SessionContextBuilder,
+    CounselorLlmJsonClient,
   ],
 })
 export class CounselorModule {}

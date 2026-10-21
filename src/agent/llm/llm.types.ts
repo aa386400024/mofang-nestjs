@@ -19,11 +19,48 @@ export interface LlmMessage {
   readonly content: string;
 }
 
+/**
+ * V2026-10-21 治本 (V1.2 VS-A — M3.1-Flash 思考深度档位):
+ *   原因: MiniMax 官方文档 (OpenAI 兼容协议) 明确 `reasoning_effort` 仅 MiniMax-M3.1-Flash
+ *     生效, 取值 low/medium/high/xhigh/max, 省略时服务端默认 max. 该字段是 M3.1-Flash
+ *     唯一可控的"思考量"旋钮 (M3.1-Flash 强制 adaptive thinking, 传 thinking.disabled 返 400).
+ *   修法: 新增本类型, 挂到 LlmStreamOptions.reasoningEffort, 由调用方按场景选档.
+ *   反双胞胎:
+ *     - 不加 'none' 档: 官方明确不支持, 传了返 400.
+ *     - 不做模型名硬判断: 判断逻辑放调用方 (counselor client), 本层保持 dumb.
+ *   验证: 1. tsc 0 错  2. 联调时看 LlmService 日志 [stream_done] usage.completion_tokens 随档位变化
+ *   时间戳: 2026-10-21
+ */
+export type LlmReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+
 /** 流式选项. tenantId / userId 必传 (V2026-10-08 多租户治本). */
 export interface LlmStreamOptions {
   readonly temperature?: number;
   readonly maxTokens?: number;
   readonly topP?: number;
+  /**
+   * V2026-10-21 治本 (V1.2 VS-A — per-call 模型覆盖):
+   *   默认走 env MINIMAX_LLM_MODEL. counselor 分析链路显式指定 MiniMax-M3.1-Flash,
+   *   **不改 .env 全局值** (MINIMAX_BASE_URL 同时被 ASR/TTS 共用, 改它会打断已跑通的语音链路).
+   */
+  readonly model?: string;
+  /**
+   * V2026-10-21 治本 (V1.2 VS-A — M3.1-Flash 思考深度):
+   *   仅 M3.1-Flash 生效; 传了会随请求下发 reasoning_effort. 其他模型请勿传.
+   */
+  readonly reasoningEffort?: LlmReasoningEffort;
+  /**
+   * V2026-10-21 治本 (V1.2 VS-A — 新生长度上限字段):
+   *   官方文档: `max_completion_tokens` 是新接入建议字段, 且 **thinking token 也计入本上限**,
+   *   设小会 finish_reason=length 且 content 为空 (结构化 JSON 直接解析失败).
+   *   传了就用 max_completion_tokens, 不传则沿用旧的 max_tokens (向后兼容).
+   */
+  readonly maxCompletionTokens?: number;
+  /**
+   * V2026-10-21 治本 (V1.2 VS-A — per-call 超时覆盖):
+   *   默认 env MINIMAX_LLM_TIMEOUT_MS (30s). 长 transcript 督导分析需要更长窗口.
+   */
+  readonly timeoutMs?: number;
   /** 必传, 强 tenant 隔离. */
   readonly tenantId: string;
   /** 必传, 计费 + 审计. */

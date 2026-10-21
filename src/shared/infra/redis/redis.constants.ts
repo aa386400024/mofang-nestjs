@@ -58,4 +58,8 @@ export const QUEUE_NAMES = {
   smsOutbox: 'sms-outbox',
   // V2026-10-09 治本 (Phase 5): Supervisor Agent 异步督导, session 结束触发
   supervisor: 'supervisor',
+  // V2026-10-21 治本 (V1.2 VS-A): counselor 端督导异步生成 (真接 LLM 后单次 30-120s,
+  //   同步会拖死 HTTP 连接). 独立队列名, 不复用 agent 的 'supervisor' ——
+  //   后者 payload 是 agent RunReportInput 且落 agent 自己的表, 混用会导致 job 被错消费.
+  counselorSupervision: 'counselor-supervision',
 } as const;

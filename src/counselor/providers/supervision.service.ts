@@ -2,34 +2,18 @@
 //   原因: counselor-mode-v1.0 §4.6 + §6.2 拍板 4 流派督导 + polymorphic feedback,
 //     V0.3 §8 baseline 0 督导持久化 service, 1:1 wire 0 破坏. V0.5 阶段 mock:
 //     service.generateFeedback 内部用 SUPERVISION_SCHOOL_PRESETS promptTemplate
-//     拼接 transcript + persona + emotionTimeline, 返 4 字段结构化 feedback; V1.x
-//     真接 LLM 时改 provider 注入 (跟 W1-2 long-term-case-presets 静态 config 风格一致).
+//     拼接 transcript + persona + emotionTimeline, 返 4 字段结构化 feedback.
 //
 //   修法 (跟 knowledge-base/providers/search.service.ts V0.x 风格一致):
 //     - 5 method: listSchools / findSchoolByCode / generateFeedback / compareFeedback / listFeedbackForSession
 //     - listSchools(): 4 流派 list (从 DB 读, isActive=1, 软删过滤)
-//     - findSchoolByCode(code): 单流派详情 (含 promptTemplate, V0.5 mock 用)
-//     - generateFeedback(input, userId): 1 session + 1 流派 → 4 字段结构化 feedback,
-//       V0.5 mock 走 SUPERVISION_SCHOOL_PRESETS promptTemplate 拼接收录 + persona +
-//       emotionTimeline, 返 mock 评分 (V1.x 真接 LLM 时改 provider 注入 + 真实评分)
-//     - compareFeedback(input, userId): 1 session + N 流派 → N 份 feedback 并行
-//       (V0.5 mock 走串行, V1.x 真接 LLM 改 Promise.all 并行调)
-//     - listFeedbackForSession(userId, sessionId, sessionType): 历史 N 流派 feedback
+//     - findSchoolByCode(code): 单流派详情 (含 promptTemplate)
 //
 //   反双胞胎:
-//     - 不接 LLM provider: V0.5 阶段只生成 prompt 字符串 + mock 评分, V1.x 真接 LLM 时改
-//       provider 注入 (跟 W1-2 long-term-case-presets 静态 config 风格一致)
 //     - 不复用 V0.x supervisionReport json 字段: 破坏 1:1 wire
 //     - 不用 hardcode 4 流派: 走 DB 读 supervision_schools, 未来 B 端 / 海外扩展只 INSERT
-//     - 不写 ML 评分: V0.x 简单 mock 评分 (overallScore=70-85 随机 + perSentence 简单规则)
 //     - polymorphic sessionId 走应用层校验 + 对应 Repository 查 transcript, 不写 DB-level
 //       polymorphic FK (跟 knowledge_chunks.itemId V0.x pattern 一致)
-//
-//   5 段治本 (V2.4 mock 评分公式):
-//     - 公式: overallScore = 70 + (focusAreaCount - sentenceCount * 0.5) clamp 0-100
-//     - perSentence: 取 transcript counselor 角色前 5 句, 每句 mock score 65-85
-//     - errorCategories: 随机取 1-2 个 focusAreas 反向 (e.g. CBT 流派可能报 "未追踪自动思维")
-//     - growthSuggestion: 取 school.exampleFeedback 第 1 句作为建议
 //
 //   验证:
 //     1. tsc 0 错 (5 method 字段 type 严格)
@@ -37,17 +21,57 @@
 //     3. integration: 4 流派 list / 生成 1 流派 / 多流派对比
 //
 //   时间戳: 2026-10-15
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// V2026-10-21 治本 (V1.2 VS-A — 督导反馈从 mock 切真接 LLM):
+//   原因: v1.2 的 5 个功能全部依赖 LLM 分析 (知情同意 4 要素判定 / 实时轻提示 /
+//     techStats 技术统计 / 亮点+替代回应+风险点评 / case_profile_entries 抽取),
+//     但本 service 至今仍是 **0 次 LLM 调用** 的纯规则 mock: generateFeedback 走
+//     mockGenerateFeedback, overallScore 是 `70 + (focusAreaCount - sentenceCount * 0.5)`
+//     的伪随机数, perSentence 是 5 条 `[V0.5 mock ...]` 占位串.
+//     后果: 学员拿到的"督导结论"全是假的, 而 v1.2 的 M5 还要在这上面叠加风险点评.
+//     同时 loadSessionContext 也是 placeholder, 根本没查库.
+//   修法 (本轮 4 改):
+//     - generateFeedback: 真接 CounselorLlmJsonClient, prompt 用 DB 里 supervision_schools
+//       的 promptTemplate (4 流派差异化模板, 占位符 {persona}/{transcript}/{emotionTimeline}
+//       由 SessionContext 渲染块填充), schema 用 4 字段契约, 校验失败即报错
+//     - loadSessionContext: 删 placeholder, 改走 SessionContextBuilder (polymorphic,
+//       TRAINING_SESSION / LONG_TERM_CASE_SESSION 各走各的表, 统一成 SessionContext)
+//     - 重复生成改 upsert: supervision_feedback 上有 UNIQUE (session_id, session_type, school_id),
+//       旧代码每次都 insert → 同一 (session, 流派) 第二次生成必撞唯一索引. 改为
+//       "存在则更新 feedback 字段, 不存在则插入", 顺带解决 client 重试 / BullMQ 重试
+//     - compareFeedback 改 Promise.all 并行: 真接 LLM 后单流派 30-120s, 串行 3 流派 = 6 分钟,
+//       HTTP 必超时. 官方文档口径下 2-3 个并发是安全的 (上游限流阈值远高于此)
+//   反双胞胎:
+//     - 不保留 mock 兜底: 假分数会被当成真实督导结论误导学员 (V0.5 阶段 mock 是因为本来就没接
+//       LLM, 现在接了还兜底就是压错). LLM 失败 → ServiceUnavailableException, 客户端重试
+//     - 不把 prompt 模板写死在本 service: 走 supervision_schools.promptTemplate (DB 可运营可改)
+//     - 不用 temperature 控确定性: 官方文档明确 M3.1-Flash 忽略 temperature/top_p (固定 1/0.95),
+//       确定性靠 prompt 约束 + reasoning_effort 分档 (见 config/counselor-llm.config.ts)
+//   验证:
+//     1. tsc 0 错
+//     2. 大炮跑 POST /counselor/supervision/feedback → 返真 LLM 评分 (不再是 70-85 伪随机)
+//     3. 同一 (session, 流派) 连续生成 2 次 → 第二次不报唯一索引冲突 (upsert 生效)
+//     4. 故意把 MINIMAX_COUNSELOR_LLM_MODEL 设成不存在的模型 → 返 503 且不落脏数据
+//   时间戳: 2026-10-21
 
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
-import { SUPERVISION_SCHOOL_PRESETS } from '../config/supervision-school-presets';
+import { CounselorLlmJsonClient } from './llm-json.client';
+import { SessionContextBuilder } from './session-context.builder';
+import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config';
+import {
+  buildSupervisionContextBlock,
+  renderPersonaBlock,
+  renderTranscriptBlock,
+  type SessionContext,
+} from '../domain/session-context/session-context';
 import {
   type CompareSupervisionFeedbackResponseDto,
   type GenerateSupervisionFeedbackDto,
   type SupervisionFeedbackDto,
-  type SupervisionPerSentenceDto,
   type SupervisionSchoolDetailDto,
   type SupervisionSchoolListItemDto,
 } from '../dto/supervision.dto';
@@ -57,11 +81,108 @@ import { SessionType } from '../enums/session-type.enum';
 import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
 
 /**
+ * 4 字段输出契约 (给模型看的 JSON schema 描述).
+ *
+ * 跟 SupervisionFeedbackPayload 1:1, 跟 V0.5 client SupervisionFeedback entity 1:1.
+ */
+const SUPERVISION_SCHEMA_DESCRIPTION = `输出 JSON 结构 (必须严格符合, 字段名不可改):
+{
+  "overallScore": 0-100 的整数,
+  "perSentence": [{ "sentence": "咨询师原句", "score": 0-100 的整数, "comment": "1-2 句点评" }],
+  "errorCategories": ["问题分类 1", "问题分类 2"],
+  "growthSuggestion": "1-3 句成长建议"
+}
+要求: perSentence 最多 8 条, 优先标注最有教学价值的咨询师发言; errorCategories 最多 5 个,
+无明显问题可给空数组; growthSuggestion 必须是可执行的下次具体做法, 不要泛泛而谈.`;
+
+/**
+ * 校验 LLM 输出的 4 字段 payload.
+ *
+ * @param raw JSON.parse 后的未知值
+ * @returns 合法返回规范化后的 payload; 非法返回 null (由 client 转成 schema_validation_failed)
+ */
+// V2026-10-21 治本 (V1.2 VS-A 第 1 轮 tsc 修复 — TS4111 索引签名属性访问):
+//   原因: 本函数把 LLM 返回的 JSON 当 `Record<string, unknown>` 处理, 用点号取字段
+//     (obj.overallScore). 但项目 tsconfig.json 开了 `noPropertyAccessFromIndexSignature: true`
+//     —— 索引签名来源的属性**必须**用方括号访问, 否则 tsc 报 TS4111.
+//     本轮 build 实测 11 处 TS4111 (obj.overallScore / obj.perSentence / turn.sentence /
+//     turn.comment / turn.score / obj.errorCategories / obj.growthSuggestion).
+//     根因是写代码时没预判这个编译开关 (其余 13 个改动文件都过了, 说明只有"对 unknown
+//     做字典取值"这一种写法触发).
+//   修法: 全部改方括号取值 obj['overallScore'] / turn['sentence'] / ...
+//     运行时行为完全不变 (JS 里 obj.x 与 obj['x'] 等价), 只为满足编译期约束.
+//   反双胞胎:
+//     - 不写 `// @ts-expect-error` 或 `// @ts-ignore` 压错: 那是把编译期约束藏起来, 下一个人
+//       复制这段代码会再踩一次; 方括号是本项目的正确写法
+//     - 不把 Record<string, unknown> 改成 any: any 会连带关掉后续所有类型检查
+//     - 不用类型守卫函数包一层 (getString(obj, 'x')): 本函数只 7 处取值, 包一层反而多一层
+//       间接, 且要额外处理"字段缺失"的返回值分支
+//   验证:
+//     1. npx tsc -p tsconfig.build.json --noEmit → 本文件 0 错
+//     2. 大炮跑 curl 生成督导反馈 → 返真 LLM 评分 (校验逻辑行为未变)
+//   时间戳: 2026-10-21 14:40 GMT+8
+export function validateSupervisionPayload(raw: unknown): SupervisionFeedbackPayload | null {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    return null;
+  }
+  const obj = raw as Record<string, unknown>;
+
+  const overallScore = obj['overallScore'];
+  if (typeof overallScore !== 'number' || !Number.isFinite(overallScore)) {
+    return null;
+  }
+
+  const perSentenceRaw = obj['perSentence'];
+  if (!Array.isArray(perSentenceRaw)) {
+    return null;
+  }
+  const perSentence: SupervisionFeedbackPayload['perSentence'] = [];
+  for (const item of perSentenceRaw) {
+    if (typeof item !== 'object' || item === null) {
+      continue;
+    }
+    const turn = item as Record<string, unknown>;
+    const sentence = turn['sentence'];
+    const comment = turn['comment'];
+    if (typeof sentence !== 'string' || typeof comment !== 'string') {
+      continue;
+    }
+    const rawScore = turn['score'];
+    const score = typeof rawScore === 'number' && Number.isFinite(rawScore) ? rawScore : 0;
+    perSentence.push({
+      sentence,
+      score: Math.min(100, Math.max(0, Math.round(score))),
+      comment,
+    });
+  }
+
+  const errorCategoriesRaw = obj['errorCategories'];
+  if (!Array.isArray(errorCategoriesRaw)) {
+    return null;
+  }
+  const errorCategories = errorCategoriesRaw
+    .filter((c): c is string => typeof c === 'string')
+    .map((c) => c.trim())
+    .filter((c) => c.length > 0);
+
+  const growthSuggestion = obj['growthSuggestion'];
+  if (typeof growthSuggestion !== 'string') {
+    return null;
+  }
+
+  return {
+    overallScore: Math.min(100, Math.max(0, Math.round(overallScore))),
+    perSentence,
+    errorCategories,
+    growthSuggestion,
+  };
+}
+
+/**
  * V2026-10-15 (V1.x counselor-mode W3-4 — SupervisionService):
  *   4 流派督导 + polymorphic sessionId feedback 业务逻辑.
  *
- *   跟 xin_su_app SupervisionBloc + SupervisionRepository 端到端 1:1 对应.
- *   V0.5 mock 阶段: 用静态 prompt 模板 + 简单规则, V1.x 真接 LLM 时改 provider 注入.
+ *   V2026-10-21 (V1.2 VS-A): 真接 LLM, 详见文件头治本注释.
  */
 @Injectable()
 export class SupervisionService {
@@ -70,6 +191,8 @@ export class SupervisionService {
     private readonly schoolRepo: Repository<SupervisionSchool>,
     @InjectRepository(SupervisionFeedback)
     private readonly feedbackRepo: Repository<SupervisionFeedback>,
+    private readonly llmJson: CounselorLlmJsonClient,
+    private readonly contextBuilder: SessionContextBuilder,
   ) {}
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -90,7 +213,7 @@ export class SupervisionService {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // 2. findSchoolByCode — 单流派详情 (含 promptTemplate, V0.5 mock 用)
+  // 2. findSchoolByCode — 单流派详情 (含 promptTemplate)
   // ══════════════════════════════════════════════════════════════════════════
 
   /**
@@ -110,7 +233,7 @@ export class SupervisionService {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // 3. generateFeedback — 1 session + 1 流派 → 4 字段结构化 feedback
+  // 3. generateFeedback — 1 session + 1 流派 → 4 字段结构化 feedback (真接 LLM)
   // ══════════════════════════════════════════════════════════════════════════
 
   /**
@@ -118,7 +241,9 @@ export class SupervisionService {
    *
    * @param input { sessionId, sessionType, schoolCode }
    * @param userId 当前用户 id
-   * @returns 4 字段结构化 feedback (V0.5 mock, V1.x 真接 LLM 改 provider 注入)
+   * @returns 4 字段结构化 feedback (真接 LLM)
+   * @throws BadRequestException 会话没有对话记录 / 流派不存在
+   * @throws ServiceUnavailableException LLM 调用失败 (不落脏数据, 客户端可重试)
    */
   async generateFeedback(input: GenerateSupervisionFeedbackDto, userId: string): Promise<SupervisionFeedbackDto> {
     // 1. 查流派 (应用层校验)
@@ -129,23 +254,56 @@ export class SupervisionService {
       throw new NotFoundException(`督导流派 ${input.schoolCode} 不存在`);
     }
 
-    // 2. polymorphic: 查 session (应用层按 sessionType 走对应 Repository)
-    const sessionContext = await this.loadSessionContext(input.sessionId, input.sessionType, userId);
+    // 2. polymorphic: 查 session 上下文 (真实 transcript, 不再是 placeholder)
+    const ctx = await this.contextBuilder.build(userId, input.sessionId, input.sessionType);
+    if (ctx.transcript.length === 0) {
+      throw new BadRequestException(`会话 ${input.sessionId} 没有对话记录, 无法生成督导反馈`);
+    }
 
-    // 3. V0.5 mock: 简单规则生成 feedback (V1.x 真接 LLM 时返 LLM 真实输出)
-    const feedback = this.mockGenerateFeedback(school.code, input.sessionId, sessionContext);
+    // 3. 真接 LLM: 4 流派 prompt 模板 (DB) + 会话上下文块 → 结构化 4 字段
+    const profile = COUNSELOR_LLM_PROFILES.supervision;
+    const result = await this.llmJson.requestJson<SupervisionFeedbackPayload>({
+      systemPrompt: this.buildSchoolSystemPrompt(school.promptTemplate, ctx),
+      userPrompt: buildSupervisionContextBlock(ctx),
+      schemaDescription: SUPERVISION_SCHEMA_DESCRIPTION,
+      validate: validateSupervisionPayload,
+      maxCompletionTokens: profile.maxCompletionTokens,
+      reasoningEffort: profile.reasoningEffort,
+      timeoutMs: profile.timeoutMs,
+      tenantId: ctx.tenantId,
+      userId,
+    });
 
-    // 4. 落 supervision_feedback 表 (V0.5: 持久化所有生成记录, V1.x 增量)
-    await this.feedbackRepo.save(
-      this.feedbackRepo.create({
-        tenantId: userId,
-        userId,
+    if (!result.ok || result.data === null) {
+      // 不落脏数据: 假督导结论比报错更糟 (学员会当成真实反馈去改技术动作)
+      throw new ServiceUnavailableException(`督导反馈生成失败 (${result.errorCode ?? 'unknown'}): ${result.errorMessage ?? 'LLM 不可用'}`);
+    }
+    const feedback = result.data;
+
+    // 4. 落 supervision_feedback 表 (upsert: UNIQUE (session_id, session_type, school_id))
+    const existing = await this.feedbackRepo.findOne({
+      where: {
         sessionId: input.sessionId,
         sessionType: input.sessionType,
         schoolId: school.id,
-        feedback,
-      }),
-    );
+        deletedAt: IsNull(),
+      },
+    });
+    if (existing) {
+      existing.feedback = feedback;
+      await this.feedbackRepo.save(existing);
+    } else {
+      await this.feedbackRepo.save(
+        this.feedbackRepo.create({
+          tenantId: userId,
+          userId,
+          sessionId: input.sessionId,
+          sessionType: input.sessionType,
+          schoolId: school.id,
+          feedback,
+        }),
+      );
+    }
 
     // 5. 返 4 字段结构化 feedback (跟 DTO 1:1)
     return {
@@ -157,7 +315,7 @@ export class SupervisionService {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // 4. compareFeedback — 1 session + N 流派 → N 份 feedback
+  // 4. compareFeedback — 1 session + N 流派 → N 份 feedback (并行)
   // ══════════════════════════════════════════════════════════════════════════
 
   /**
@@ -168,13 +326,11 @@ export class SupervisionService {
    * @returns N 流派 feedback (key=schoolCode enum 值)
    */
   async compareFeedback(
-    input: CompareSupervisionFeedbackResponseDto['sessionId'] extends string
-      ? {
-          sessionId: string;
-          sessionType: SessionType;
-          schoolCodes: SupervisionSchoolCode[];
-        }
-      : never,
+    input: {
+      sessionId: string;
+      sessionType: SessionType;
+      schoolCodes: SupervisionSchoolCode[];
+    },
     userId: string,
   ): Promise<CompareSupervisionFeedbackResponseDto> {
     if (input.schoolCodes.length < 2) {
@@ -184,16 +340,16 @@ export class SupervisionService {
       throw new BadRequestException('多流派对比最多 3 流派 (高级会员)');
     }
 
-    // V0.5: 串行生成 N 份 feedback. V1.x 真接 LLM 改 Promise.all 并行.
-    const feedbackBySchool: Record<SupervisionSchoolCode, SupervisionFeedbackDto> = {} as Record<
-      SupervisionSchoolCode,
-      SupervisionFeedbackDto
-    >;
-    for (const code of input.schoolCodes) {
-      feedbackBySchool[code] = await this.generateFeedback(
-        { sessionId: input.sessionId, sessionType: input.sessionType, schoolCode: code },
-        userId,
-      );
+    // V2026-10-21 治本 (V1.2 VS-A — 真接 LLM 后改并行): 单流派 30-120s, 串行 3 流派 = 6 分钟,
+    //   HTTP 必超时. 2-3 路并发在官方限流阈值内, 直接 Promise.all.
+    const results = await Promise.all(
+      input.schoolCodes.map((code) =>
+        this.generateFeedback({ sessionId: input.sessionId, sessionType: input.sessionType, schoolCode: code }, userId),
+      ),
+    );
+    const feedbackBySchool = {} as Record<SupervisionSchoolCode, SupervisionFeedbackDto>;
+    for (const [idx, code] of input.schoolCodes.entries()) {
+      feedbackBySchool[code] = results[idx];
     }
     return {
       sessionId: input.sessionId,
@@ -203,7 +359,7 @@ export class SupervisionService {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // 5. listFeedbackForSession — 历史 N 流派 feedback (UI 切换流派展示用)
+  // 5. listFeedbackForSession — 历史 N 流派 feedback
   // ══════════════════════════════════════════════════════════════════════════
 
   /**
@@ -228,94 +384,51 @@ export class SupervisionService {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // 私有 helper: polymorphic session context 加载
+  // 私有 helper
   // ══════════════════════════════════════════════════════════════════════════
 
   /**
-   * 应用层按 sessionType 走对应 Repository 查 transcript + persona + emotionTimeline.
-   * V0.5: 长程 session 走 LongTermCaseSession (W1-2 entity), V0.x TrainingSession
-   * 走 V0.3 §13 baseline (V1.x 升级时补). 返 null 表示 V0.5 阶段未接.
-   */
-  private async loadSessionContext(
-    sessionId: string,
-    sessionType: SessionType,
-    _userId: string,
-  ): Promise<{ transcript: string; persona: string; emotionTimeline: string }> {
-    // V0.5 阶段 mock: 不查 DB, 直接返 placeholder context. V1.x 真接 LLM 时改.
-    return {
-      transcript: `[V0.5 mock transcript for ${sessionType} ${sessionId}]`,
-      persona: '[V0.5 mock persona placeholder]',
-      emotionTimeline: '[V0.5 mock emotion timeline placeholder]',
-    };
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // 私有 helper: V0.5 mock feedback 生成 (V1.x 真接 LLM 时改 provider 注入)
-  // ══════════════════════════════════════════════════════════════════════════
-
-  /**
-   * V0.5 deterministic 伪随机 (替 Math.random, 治本 SonarJS pseudo-random 警告).
+   * 用 4 流派 prompt 模板 (DB) + 会话上下文渲染出 system prompt.
    *
-   * 32-bit string hash (djb2 variant) → [0, 1) 归一化 → [min, max] 整数范围.
-   * 同 seed 必返同 score, 跨 call / 跨 server 重启一致. 副作用: supervision_feedback
-   * 表 UNIQUE (session_id, session_type, school_id) 约束在 V0.5 阶段不会被 mock
-   * 重复随机破坏, 1:1 wire 兼容.
+   * 模板占位符 (supervision_schools.promptTemplate):
+   *   {persona}        → 来访者画像块
+   *   {transcript}     → 逐字稿块
+   *   {emotionTimeline} → 当前无独立情绪时间线数据, 明确说明让模型改从逐字稿推断
+   *
+   * 替换一律用**函数形式**的 String.replace: 渲染块内容里可能含 `$&` / `$1` 等
+   * 特殊替换模式, 字符串形式会被当成替换模式吃掉, 导致画像/逐字稿内容被篡改.
+   *
+   * @param template DB 里的 4 流派 prompt 模板
+   * @param ctx 会话上下文
    */
-  private mockRandomScore(seed: string, min: number, max: number): number {
-    let hash = 0;
-    for (let i = 0; i < seed.length; i++) {
-      hash = (hash << 5) - hash + seed.codePointAt(i)!;
-      hash = Math.trunc(hash); // 32-bit
-    }
-    const normalized = (Math.abs(hash) % 10_000) / 10_000; // [0, 1)
-    return Math.floor(min + normalized * (max - min + 1));
+  // V2026-10-21 治本 (V1.2 VS-A 第 1 轮 tsc 修复 — TS2345 nullable 入参):
+  //   原因: SupervisionSchool.promptTemplate 的实体声明是 `string | null` (DB 列可空,
+  //     运营侧还没填模板的流派就是 null). 我把 buildSchoolSystemPrompt 的入参写成了
+  //     `template: string`, 本轮 build 实测 TS2345: 'string | null' 不能赋给 'string'.
+  //   修法: 入参类型改成 `string | null`, 内部用 `template?.trim()` 判空 —
+  //     null / 空串 / 纯空白 统一走内置的通用督导 system prompt 兼底.
+  //   反双胞胎:
+  //     - 不在调用处 `school.promptTemplate ?? ''`: 那样会把 "没有模板" 和 "模板是空串"
+  //       混成同一情况, 丢失 "该流派尚未配置模板" 这个运营信号
+  //     - 不改 entity 声明为非空: DB 里真有 null 行, 改声明会把脏数据变成运行时崩溃
+  //   验证: 1. tsc 0 错  2. 某流派 promptTemplate 为 null 时, 督导仍能用通用 prompt 出报告
+  //   时间戳: 2026-10-21 14:40 GMT+8
+  private buildSchoolSystemPrompt(template: string | null, ctx: SessionContext): string {
+    const base = template && template.trim().length > 0 ? template : '你是一位资深心理咨询督导, 负责给实习咨询师做单节会谈复盘.';
+    return [
+      base
+        .replaceAll('{persona}', () => renderPersonaBlock(ctx.persona))
+        .replaceAll('{transcript}', () => renderTranscriptBlock(ctx.transcript))
+        .replaceAll('{emotionTimeline}', () => '(本次会话未采集独立情绪时间线, 请依据逐字稿中的情绪线索自行推断)'),
+      '',
+      '通用要求: 反馈只针对咨询师的技术动作, 不评判来访者; 不给标准答案话术, 只指方向;',
+      '语气鼓励 + 建设性, 避免挫败式评价; 只依据逐字稿中真实出现的内容, 不编造未发生的对话.',
+    ].join('\n');
   }
 
-  private mockGenerateFeedback(
-    schoolCode: SupervisionSchoolCode,
-    sessionId: string,
-    context: { transcript: string; persona: string; emotionTimeline: string },
-  ): SupervisionFeedbackPayload {
-    const preset = SUPERVISION_SCHOOL_PRESETS[schoolCode];
-
-    // V2026-10-15 治本 (V2.4 mock 评分 deterministic — SonarJS pseudo-random 治本):
-    //   原因: V0.5 阶段用 Math.random() 生成 mock overallScore + perSentence.score, SonarJS
-    //     报 pseudo-random 警告 (sonarjs/pseudo-random). 反双胞胎: 不写 eslint-disable 注释
-    //     压错; 不用 seedrandom 类库 (V0.5 不引新依赖); 不用 crypto (import 重).
-    //   修法: 走 deterministic string hash (mockRandomScore) 替 Math.random(), seed =
-    //     schoolCode + sessionId + i (perSentence 序号). 同 seed → 同 score, 跨 call 一致.
-    //   验证: tsc 0 错 + npm run lint 0 错 (大炮跑)
-    //   时间戳: 2026-10-15
-    const overallScore = this.mockRandomScore(`${schoolCode}-${sessionId}`, 70, 85);
-
-    // mock perSentence: 5 句占位, score 65-85 deterministic
-    const perSentence: SupervisionPerSentenceDto[] = Array.from({ length: 5 }, (_, i) => ({
-      sentence: `[V0.5 mock ${schoolCode} 第 ${i + 1} 句 from ${context.transcript.slice(0, 20)}]`,
-      score: this.mockRandomScore(`${schoolCode}-${sessionId}-${i}`, 65, 85),
-      comment: `[V0.5 mock comment 流派 ${preset.name}]`,
-    }));
-
-    // mock errorCategories: 取 1-2 个 focusAreas 反向
-    const errorCategories: string[] = [];
-    if (preset.focusAreas.length > 0) {
-      errorCategories.push(`未${preset.focusAreas[0]}`);
-    }
-    if (preset.focusAreas.length > 1) {
-      errorCategories.push(`忽视${preset.focusAreas[1]}`);
-    }
-
-    return {
-      overallScore,
-      perSentence,
-      errorCategories,
-      growthSuggestion: preset.exampleFeedback[0] ?? '[V0.5 mock 成长建议]',
-    };
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // 私有 mapper: entity → DTO
-  // ══════════════════════════════════════════════════════════════════════════
-
+  /**
+   * 私有 mapper: entity → DTO
+   */
   private toSchoolListItem(r: SupervisionSchool): SupervisionSchoolListItemDto {
     return {
       id: r.id,

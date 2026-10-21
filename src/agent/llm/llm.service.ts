@@ -25,15 +25,20 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import type { LlmError, LlmMessage, LlmStream, LlmStreamOptions, LlmUsage } from './llm.types';
+import type { LlmError, LlmMessage, LlmReasoningEffort, LlmStream, LlmStreamOptions, LlmUsage } from './llm.types';
 
 interface MiniMaxChatRequest {
   model: string;
   messages: readonly { role: string; content: string }[];
   stream: true;
   temperature: number;
-  max_tokens: number;
   top_p: number;
+  /** 旧版生成长度上限. 与 max_completion_tokens 二选一 (不同时传). */
+  max_tokens?: number;
+  /** 新版生成长度上限 (thinking token 计入本上限). 与 max_tokens 二选一. */
+  max_completion_tokens?: number;
+  /** M3.1-Flash 思考深度. 仅 M3.1-Flash 生效, 其他模型传了可能被上游拒. */
+  reasoning_effort?: LlmReasoningEffort;
 }
 
 interface MiniMaxStreamDelta {
@@ -178,13 +183,31 @@ export class LlmService {
     opts: LlmStreamOptions,
     onToken: (token: string) => void,
   ): Promise<LlmStream> {
+    // V2026-10-21 治本 (V1.2 VS-A — 4 个 per-call 开关, 全部 optional, 老调用方 0 行为变化):
+    //   原因: counselor 分析链路要用 M3.1-Flash + 思考深度 + 新生长度上限字段 + 更长超时,
+    //     但 .env 的 MINIMAX_LLM_MODEL / MINIMAX_BASE_URL 是 ASR/TTS/voice 共用的全局值, 不能改.
+    //     官方文档另确认: M3.1-Flash 的 temperature/top_p 已被忽略 (固定 1 / 0.95),
+    //     且 thinking token 计入生成长度上限 → 结构化 JSON 必须用 max_completion_tokens 且留足余量.
+    //   修法:
+    //     - model: opts.model ?? this.model (per-call 覆盖, 不传则跟老行为一致)
+    //     - max_completion_tokens: 传了就用新的, 不传沿用旧 max_tokens (向后兼容)
+    //     - reasoning_effort: 仅调用方显式指定才下发 (非 M3.1 模型由调用方负责不传)
+    //     - timeoutMs: opts.timeoutMs ?? this.timeoutMs (combineSignals 透传)
+    //   反双胞胎:
+    //     - 不改 .env 全局 MINIMAX_LLM_MODEL: 会波及 voice/visitor/supervisor 既有链路 (红线)
+    //     - 不同时下发 max_tokens 与 max_completion_tokens: 语义歧义, 上游可能按旧字段截断
+    //   验证: 1. tsc 0 错  2. 老 endpoint /agent/llm/stream 请求体与改前一致 (除 model 可选覆盖外)
+    //   时间戳: 2026-10-21
     const request: MiniMaxChatRequest = {
-      model: this.model,
+      model: opts.model ?? this.model,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
       stream: true,
       temperature: opts.temperature ?? 0.7,
-      max_tokens: opts.maxTokens ?? 2048,
       top_p: opts.topP ?? 1,
+      ...(opts.maxCompletionTokens === undefined
+        ? { max_tokens: opts.maxTokens ?? 2048 }
+        : { max_completion_tokens: opts.maxCompletionTokens }),
+      ...(opts.reasoningEffort ? { reasoning_effort: opts.reasoningEffort } : {}),
     };
 
     const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
@@ -197,7 +220,9 @@ export class LlmService {
       body: JSON.stringify(request),
       // V2026-10-09 治本: 修 Phase 3 AbortController 创建但未注入的 bug.
       //   组合 caller signal (barge-in) + 内部 timeout, 任一触发即中断 fetch + 关 reader.
-      signal: this.combineSignals(opts.signal),
+      // V2026-10-21 治本 (V1.2 VS-A — per-call timeout): combineSignals 收 timeoutMs 参数,
+      //   由调用方按场景覆盖 (长 transcript 督导分析 30s 不够). 默认仍走 env MINIMAX_LLM_TIMEOUT_MS.
+      signal: this.combineSignals(opts.signal, opts.timeoutMs ?? this.timeoutMs),
     });
 
     if (!response.ok) {
@@ -309,9 +334,10 @@ export class LlmService {
    * V2026-10-09 治本: 修 Phase 3 AbortController 创建但未注入的 bug.
    *   任一 signal 触发即中断 fetch + 关 reader, 上层 for-await 自然收到 abort.
    *   Node 20+ 原生 AbortSignal.any, 不引第三方库.
+   * V2026-10-21 治本 (V1.2 VS-A): timeoutMs 提为参数, 支持 per-call 覆盖.
    */
-  private combineSignals(callerSignal: AbortSignal | undefined): AbortSignal {
-    const timeoutSignal = AbortSignal.timeout(this.timeoutMs);
+  private combineSignals(callerSignal: AbortSignal | undefined, timeoutMs: number): AbortSignal {
+    const timeoutSignal = AbortSignal.timeout(timeoutMs);
     if (!callerSignal) return timeoutSignal;
     return AbortSignal.any([callerSignal, timeoutSignal]);
   }
