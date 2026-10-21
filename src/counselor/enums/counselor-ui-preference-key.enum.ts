@@ -15,9 +15,25 @@
 export enum CounselorUiPreferenceKey {
   /** 专项技能训练中心首页 Hero 横幅是否显示 (设计规格 §4.1, 140dp, 默认 true) */
   SPECIALIZED_SKILLS_HERO_VISIBLE = 'specializedSkillsHeroVisible',
+  /**
+   * V2026-10-21 治本 (V1.2 VS-B1 — M1「上帝视角」开关):
+   *   原因: v1.2 spec §2.2 原则 2「信息分层」+ §4.2 视图 A 交互:
+   *     「高级开关『完整个案剧本查看』**默认关闭**；开启后返回完整 VisitorFullPersona,
+   *     并在 session 元数据打 godViewEnabled=true 标记, 督导报告单独标注」.
+   *     该开关必须默认关闭 —— 真实咨询里不存在"一键看来访者全部内心戏"这种便利 (§2.2 原则 1),
+   *     默认开启会直接摧毁训练价值.
+   *   落点: 本表是 counselor 端唯一的"用户可控界面偏好"单一事实源 (一人一行 JSONB + key 白名单),
+   *     开关天然跨设备同步, 不必另建表.
+   *   验证: 1. PATCH { godViewEnabled: true } → 200 回显 true
+   *          2. 未设置时 GET → false (默认关闭)
+   *   时间戳: 2026-10-21
+   */
+  GOD_VIEW_ENABLED = 'godViewEnabled',
 }
 
 /** 偏好键 → 默认值. 服务端在键缺失时回落至此, 保证老用户首次访问行为一致. */
 export const COUNSELOR_UI_PREFERENCE_DEFAULTS: Record<CounselorUiPreferenceKey, boolean> = {
   [CounselorUiPreferenceKey.SPECIALIZED_SKILLS_HERO_VISIBLE]: true,
+  // V2026-10-21 治本 (V1.2 VS-B1 — 上帝视角默认关闭, 见 enum 内的治本注释)
+  [CounselorUiPreferenceKey.GOD_VIEW_ENABLED]: false,
 };

@@ -110,6 +110,10 @@ import { AddTrainingExerciseAttempts1714900000011 } from '../src/migration/17149
 //   命令输出 "No migrations are pending"(看起来像"都跑完了"), 实际是它压根没被看见,
 //   表不建 → 运行时偏好接口 500. 与本文件 V2026-10-12 注释记录的同类问题同源.
 import { AddCounselorUiPreferences1714900000012 } from '../src/migration/1714900000012-AddCounselorUiPreferences';
+// V2026-10-21 治本 (V1.2 VS-B1 — M1 分层人设 2 张表, 跟前序 counselor_ui_preferences 同段):
+//   visitor_full_personas (AI 底层全量人设 7 大块 json) + case_profile_entries (动态解锁档案),
+//   跟 src/migration/index.ts 严格 1:1 对应.
+import { AddVisitorFullPersonas1714900000013 } from '../src/migration/1714900000013-AddVisitorFullPersonas';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -206,6 +210,9 @@ const ormconfig = async (): Promise<DataSource> => {
       // V2026-10-20 治本 (专项技能 Hero 显示偏好 — counselor_ui_preferences 新表 + 1 唯一索引,
       //   跟前序 training_exercise_attempts 表同段, 跟 src/migration/index.ts 严格 1:1):
       AddCounselorUiPreferences1714900000012,
+      // V2026-10-21 治本 (V1.2 VS-B1 — M1 分层人设 2 张表 + 6 索引, 跟前序 counselor_ui_preferences
+      //   表同段, 跟 src/migration/index.ts 严格 1:1):
+      AddVisitorFullPersonas1714900000013,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

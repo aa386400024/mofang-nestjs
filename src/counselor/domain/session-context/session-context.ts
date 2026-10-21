@@ -68,6 +68,21 @@ export interface SessionPersonaContext {
 }
 
 /**
+ * 已解锁档案条目 (视图 B, 已被来访披露的部分).
+ *
+ * 只装**用户已经知道**的信息 —— 督导上下文里放未解锁的深层人设, 等于变相泄露
+ * "来访者还没说出口的内心戏", 摧毁信息探索的训练价值 (v1.2 §2.2 原则 1/2).
+ */
+export interface SessionContextEntry {
+  /** 锚点 (对应全量人设的 JSON path) */
+  readonly anchorKey: string;
+  /** 条目正文 (披露原话) */
+  readonly content: string;
+  /** 在第几次会谈中披露 (无关联时为 null) */
+  readonly sessionId: string | null;
+}
+
+/**
  * 一个训练会话的完整上下文 (不可变).
  */
 export interface SessionContext {
@@ -82,6 +97,13 @@ export interface SessionContext {
   readonly transcript: readonly SessionContextTurn[];
   readonly startedAt: Date | null;
   readonly endedAt: Date | null;
+  /**
+   * 咨访信任度 0-1 (信息暴露节奏的驱动值, v1.2 §4.1).
+   * 单次训练没有长程关系 → null; 长程取 visitor_full_personas.trust_level.
+   */
+  readonly trustLevel: number | null;
+  /** 已解锁档案条目 (仅长程有内容). */
+  readonly unlockedEntries: readonly SessionContextEntry[];
 }
 
 /** 角色 → 中文标签 (给模型看, 统一口径). */
@@ -153,17 +175,31 @@ export function renderTranscriptBlock(transcript: readonly SessionContextTurn[],
 }
 
 /**
- * 渲染督导分析用的完整上下文块 (元信息 + 画像 + 逐字稿).
+ * 渲染"已解锁档案"块.
+ *
+ * 没有已解锁条目时返回空串 (不占位) —— spec §4.2「未提及的信息保持空白, 绝不提前显示」.
+ *
+ * @param entries 已解锁条目
+ */
+export function renderUnlockedEntriesBlock(entries: readonly SessionContextEntry[]): string {
+  if (entries.length === 0) {
+    return '';
+  }
+  const lines = entries.map((e, idx) => `[${idx + 1}] (${e.anchorKey}) ${e.content}`);
+  return ['## 已解锁档案 (来访已主动披露的信息)', ...lines].join('\n');
+}
+
+/**
+ * 渲染督导分析用的完整上下文块 (元信息 + 画像 + 逐字稿 + 已解锁档案).
  *
  * @param ctx 会话上下文
  * @param maxTranscriptTurns 逐字稿最多渲染轮数
  */
 export function buildSupervisionContextBlock(ctx: SessionContext, maxTranscriptTurns = 200): string {
-  return [
-    renderSessionMetaBlock(ctx),
-    '',
-    renderPersonaBlock(ctx.persona),
-    '',
-    renderTranscriptBlock(ctx.transcript, maxTranscriptTurns),
-  ].join('\n');
+  const blocks = [renderSessionMetaBlock(ctx), renderPersonaBlock(ctx.persona), renderTranscriptBlock(ctx.transcript, maxTranscriptTurns)];
+  const unlocked = renderUnlockedEntriesBlock(ctx.unlockedEntries);
+  if (unlocked.length > 0) {
+    blocks.push(unlocked);
+  }
+  return blocks.join('\n\n');
 }

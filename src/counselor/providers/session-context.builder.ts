@@ -25,10 +25,17 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
-import type { SessionContext, SessionContextTurn, SessionPersonaContext } from '../domain/session-context/session-context';
+import type {
+  SessionContext,
+  SessionContextEntry,
+  SessionContextTurn,
+  SessionPersonaContext,
+} from '../domain/session-context/session-context';
+import { CaseProfileEntry } from '../entities/case-profile-entry.entity';
 import { LongTermCaseSession, type SessionTranscriptTurn } from '../entities/long-term-case-session.entity';
 import { LongTermCase } from '../entities/long-term-case.entity';
 import { TrainingSession } from '../entities/training-session.entity';
+import { VisitorFullPersona } from '../entities/visitor-full-persona.entity';
 import { ChatRole } from '../enums/chat-role.enum';
 import { SessionType } from '../enums/session-type.enum';
 import { TrainingDifficulty } from '../enums/training-difficulty.enum';
@@ -69,6 +76,9 @@ export function toSessionContext(row: TrainingSession): SessionContext {
     transcript,
     startedAt: row.startedAt,
     endedAt: row.endedAt,
+    // V2026-10-21 治本 (V1.2 VS-B1 — 单次训练无长程关系 → 无信任度 / 无已解锁档案)
+    trustLevel: null,
+    unlockedEntries: [],
   };
 }
 
@@ -80,8 +90,15 @@ export function toSessionContext(row: TrainingSession): SessionContext {
  *
  * @param session long_term_case_sessions 表行
  * @param parent long_term_cases 表行 (人设来源)
+ * @param trustLevel 咨访信任度 (来自 visitor_full_personas, 无则 null)
+ * @param unlockedEntries 已解锁档案条目 (来访已主动披露的部分)
  */
-export function toLongTermSessionContext(session: LongTermCaseSession, parent: LongTermCase): SessionContext {
+export function toLongTermSessionContext(
+  session: LongTermCaseSession,
+  parent: LongTermCase,
+  trustLevel: number | null,
+  unlockedEntries: readonly SessionContextEntry[],
+): SessionContext {
   const persona: SessionPersonaContext = {
     name: parent.visitorPersona?.name ?? '来访者',
     age: parent.visitorPersona?.age ?? 0,
@@ -111,6 +128,8 @@ export function toLongTermSessionContext(session: LongTermCaseSession, parent: L
     transcript,
     startedAt: null,
     endedAt: null,
+    trustLevel,
+    unlockedEntries,
   };
 }
 
@@ -126,6 +145,11 @@ export class SessionContextBuilder {
     private readonly longTermSessionRepo: Repository<LongTermCaseSession>,
     @InjectRepository(LongTermCase)
     private readonly longTermCaseRepo: Repository<LongTermCase>,
+    // V2026-10-21 治本 (V1.2 VS-B1 — M1 分层人设: 装信任度 + 已解锁档案)
+    @InjectRepository(VisitorFullPersona)
+    private readonly personaRepo: Repository<VisitorFullPersona>,
+    @InjectRepository(CaseProfileEntry)
+    private readonly entryRepo: Repository<CaseProfileEntry>,
   ) {}
 
   /**
@@ -161,7 +185,30 @@ export class SessionContextBuilder {
       if (!parent) {
         throw new NotFoundException(`长程个案 ${session.caseId} 不存在或不属于当前用户`);
       }
-      return toLongTermSessionContext(session, parent);
+      // V2026-10-21 治本 (V1.2 VS-B1 — M1 分层人设接入装配器):
+      //   原因: v1.2 §4.1 的"信息暴露节奏"需要信任度, §4.2 的"动态解锁档案"需要已解锁条目,
+      //     两者都只存在于长程关系里 (单次训练没有) → 装在长程分支.
+      //   修法: 并行取 visitor_full_personas.trust_level + case_profile_entries(layer=self_disclosed).
+      //   反双胞胎:
+      //     - **只装 self_disclosed**: therapist_note 是咨询师自己的观察, 不是"来访披露",
+      //       混进"来访已披露"会污染 AI 对来访者的认知模型
+      //     - 不装未解锁的深层人设 (innerWorkingModel 等): 督导报告是给用户看的,
+      //       放进去等于变相泄露来访者没说出口的内心戏, 摧毁信息探索价值 (v1.2 §2.2 原则 1/2)
+      const [persona, entries] = await Promise.all([
+        this.personaRepo.findOne({
+          where: { caseId: session.caseId, userId, deletedAt: IsNull() },
+        }),
+        this.entryRepo.find({
+          where: { caseId: session.caseId, userId, layer: 'self_disclosed', deletedAt: IsNull() },
+          order: { createdAt: 'ASC' },
+        }),
+      ]);
+      const unlockedEntries: SessionContextEntry[] = entries.map((e) => ({
+        anchorKey: e.anchorKey,
+        content: e.content,
+        sessionId: e.sessionId,
+      }));
+      return toLongTermSessionContext(session, parent, persona?.trustLevel ?? null, unlockedEntries);
     }
 
     throw new BadRequestException(`暂不支持的 sessionType: ${sessionType}`);

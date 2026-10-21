@@ -34,6 +34,14 @@ export class CounselorUiPreferenceService {
       [CounselorUiPreferenceKey.SPECIALIZED_SKILLS_HERO_VISIBLE]:
         stored[CounselorUiPreferenceKey.SPECIALIZED_SKILLS_HERO_VISIBLE] ??
         COUNSELOR_UI_PREFERENCE_DEFAULTS[CounselorUiPreferenceKey.SPECIALIZED_SKILLS_HERO_VISIBLE],
+      // V2026-10-21 治本 (V1.2 VS-B1 — 上帝视角 key 接入逐 key 显式映射):
+      //   原因: 本 service 是**逐 key 显式映射**的 (不是 spread), 所以 enum / defaults / DTO 加了
+      //     新 key 之后, 这里不同步就等于该 key 永远读不到 (读出来是 undefined).
+      //   修法: 显式补一行, 缺省 false (上帝视角默认关闭, 见 enum 内治本注释).
+      //   反双胞胎: 不改成 Object.keys(defaults).reduce(...) 一把梭: 那样新增 key 就不会再漏映射,
+      //     但 DTO 是 class (固定字段), 编译期就报缺失 —— 显式映射 + 编译期检查更安全.
+      [CounselorUiPreferenceKey.GOD_VIEW_ENABLED]:
+        stored[CounselorUiPreferenceKey.GOD_VIEW_ENABLED] ?? COUNSELOR_UI_PREFERENCE_DEFAULTS[CounselorUiPreferenceKey.GOD_VIEW_ENABLED],
     };
   }
 
@@ -58,6 +66,8 @@ export class CounselorUiPreferenceService {
 
     return {
       [CounselorUiPreferenceKey.SPECIALIZED_SKILLS_HERO_VISIBLE]: merged[CounselorUiPreferenceKey.SPECIALIZED_SKILLS_HERO_VISIBLE],
+      // V2026-10-21 治本 (V1.2 VS-B1 — 上帝视角 key 同上, 逐 key 显式映射)
+      [CounselorUiPreferenceKey.GOD_VIEW_ENABLED]: merged[CounselorUiPreferenceKey.GOD_VIEW_ENABLED],
     };
   }
 }

@@ -59,11 +59,23 @@ export interface CounselorLlmProfile {
  * supervision (督导反馈): 逐句点评 + 错误分类 + 成长建议, 要读完整 transcript 并做临床推理,
  *   用 high 档 + 8192 输出上限 (thinking + JSON 都要装得下) + 120s 超时.
  */
-export const COUNSELOR_LLM_PROFILES: Readonly<Record<'supervision', CounselorLlmProfile>> = {
+export const COUNSELOR_LLM_PROFILES: Readonly<Record<'supervision' | 'personaGeneration', CounselorLlmProfile>> = {
   supervision: {
     reasoningEffort: 'high',
     maxCompletionTokens: 8192,
     timeoutMs: 120_000,
+  },
+  /**
+   * personaGeneration (生成 AI 底层全量人设):
+   *   v1.2 §4.1 的 7 大块里, developmentalTimeline (5 段) + socialMap (4 类关系) 都是数组,
+   *   每项还带 3-4 个子字段 → 结构化 JSON 本体就 2000-4000 token.
+   *   再叠 M3.1-Flash 的 thinking token (计入生成长度上限) → 给 16384 才不会 finish_reason=length.
+   *   超时给到 180s: 一次生成要写出一整套人生剧本, 比单次督导慢.
+   */
+  personaGeneration: {
+    reasoningEffort: 'high',
+    maxCompletionTokens: 16_384,
+    timeoutMs: 180_000,
   },
 };
 

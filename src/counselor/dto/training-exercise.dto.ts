@@ -205,6 +205,12 @@ export class CounselorUiPreferencesDto {
     example: true,
   })
   specializedSkillsHeroVisible!: boolean;
+
+  @ApiProperty({
+    description: '上帝视角开关: 是否允许查看完整来访者剧本 (v1.2 §4.2, **默认关闭**)',
+    example: false,
+  })
+  godViewEnabled!: boolean;
 }
 
 export class UpdateCounselorUiPreferencesDto {

@@ -64,5 +64,9 @@ export { AddTrainingExercises1714900000010 } from './1714900000010-AddTrainingEx
 //   跟 xin_su_app V0.5 client TrainingExerciseAttempt entity 1:1 (答题记录 + 5 状态机 + 维度分).
 export { AddTrainingExerciseAttempts1714900000011 } from './1714900000011-AddTrainingExerciseAttempts';
 export { AddCounselorUiPreferences1714900000012 } from './1714900000012-AddCounselorUiPreferences';
+// V2026-10-21 治本 (V1.2 VS-B1 — M1 分层人设 2 张表注册, 跟 bin/ormconfig.ts 严格 1:1):
+//   visitor_full_personas (AI 底层全量人设, 7 大块 json + trust_level) +
+//   case_profile_entries (动态解锁档案), 跟 counselor-mode-v1.2 §4 1:1 wire.
+export { AddVisitorFullPersonas1714900000013 } from './1714900000013-AddVisitorFullPersonas';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

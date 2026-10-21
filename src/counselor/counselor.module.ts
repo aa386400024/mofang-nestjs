@@ -129,6 +129,7 @@ import { CounselorBillingController } from './controllers/billing.controller';
 //   counselor 端 5 Tab 第 2 个 endpoint (跟 home 共用 CounselorHomeService 数据).
 // V2026-10-13 治本 (Phase 7.10 P0-3 — 加 exam controller):
 //   counselor 端 5 Tab 第 3 个 endpoint (题库, 跟 home/training 数据正交, 单独 service).
+import { CounselorCaseProfileEntryController } from './controllers/case-profile-entry.controller';
 import { CounselorExamController } from './controllers/counselor-exam.controller';
 // V2026-10-13 治本 (Phase 7.10 P0-4 — 加 growth controller):
 //   counselor 端 5 Tab 第 4 个 endpoint (成长, 4 区块, 复用 home ability + weeklyProgress).
@@ -151,12 +152,17 @@ import { CounselorTrainingExerciseController } from './controllers/training-exer
 //   training_sessions 表 (V1.1 §6.5) 落地后一直 0 controller, v1.2 的 M2 知情同意 /
 //   M3 轻提示 / M4 24h 间隔 / §10.1 初访分流 全挂在它身上. 本 controller 定死 6 个 endpoint 契约.
 import { CounselorTrainingSessionController } from './controllers/training-session.controller';
+// V2026-10-21 治本 (V1.2 VS-B1 — M1 分层人设 2 controller):
+//   visitor-persona: 视图 A 表层配置 + 上帝视角全量 + 绑定长程
+//   case-profile-entry: 视图 B 动态解锁档案
+import { CounselorVisitorPersonaController } from './controllers/visitor-persona.controller';
 // V2026-10-15 治本 (V1.x W5-6 — ability entity 注册, 走 TypeOrmModule.forFeature):
 //   7 维度 28 子指标 + user 聚合 2 entity, 跟 W1-2 long-term-case + W3-4 supervision 同段.
 import { AbilityDimension } from './entities/ability-dimension.entity';
 import { AbilityScore } from './entities/ability-score.entity';
 // V2026-10-15 治本 (V1.x W1-2 — long-term-case entity 注册, 走 TypeOrmModule.forFeature):
 //   跟 knowledge-base/knowledge-chunk.entity.ts V0.x 风格一致, 1:1 wire.
+import { CaseProfileEntry } from './entities/case-profile-entry.entity';
 import { CounselorUiPreference } from './entities/counselor-ui-preference.entity';
 import { LongTermCaseSession } from './entities/long-term-case-session.entity';
 import { LongTermCase } from './entities/long-term-case.entity';
@@ -173,6 +179,11 @@ import { SupervisionSchool } from './entities/supervision-school.entity';
 import { TrainingExerciseAttempt } from './entities/training-exercise-attempt.entity';
 import { TrainingExercise } from './entities/training-exercise.entity';
 import { TrainingSession } from './entities/training-session.entity';
+// V2026-10-21 治本 (V1.2 VS-B1 — M1 分层人设 2 entity 注册, 走 TypeOrmModule.forFeature):
+//   +VisitorFullPersona (AI 底层全量人设, 7 大块 json + trust_level)
+//   +CaseProfileEntry (动态解锁档案, self_disclosed / therapist_note 两层)
+//   跟 V1.1 §5.2 training_exercises 同段.
+import { VisitorFullPersona } from './entities/visitor-full-persona.entity';
 // V2026-10-19 治本 (V1.1 §5.2 — training_exercises + training_exercise_attempts 接入):
 //   跟 V0.5 training_session §6.5 1:1 wire 拍板风格 (V2026-10-19 治本续 V8.3 落地):
 //   +TrainingExercise (V1.1 §5.2 拍板 10 训练项, 跟 xin_su_app V0.5 client
@@ -215,6 +226,7 @@ import { BillingService } from './providers/billing.service';
 //   时间戳: 2026-10-19
 // V2026-10-13 治本 (Phase 7.10 P0-3 — exam service):
 //   跟 home/training 数据正交, 单独 service (4 大分类 + 11 卡片 + 3 KPI).
+import { CaseProfileEntryService } from './providers/case-profile-entry.service';
 import { CounselorExamService } from './providers/counselor-exam.service';
 // V2026-10-13 治本 (Phase 7.10 P0-4 — growth service):
 //   复用 home service ability + weeklyProgress, 加 training records + wrong questions (V0.5 空数组).
@@ -242,6 +254,10 @@ import { TrainingExerciseService } from './providers/training-exercise.service';
 //   - CounselorSupervisionProcessor: 督导异步生成 worker (BullMQ, 真接 LLM 后不能同步阻塞 HTTP)
 //   - TrainingSessionService: 会话生命周期 (建 / 查 / 状态机 / 逐字稿 / 结束)
 import { TrainingSessionService } from './providers/training-session.service';
+// V2026-10-21 治本 (V1.2 VS-B1 — M1 分层人设 2 service):
+//   VisitorPersonaService (视图 A + 上帝视角 + LLM 生成全量剧本) /
+//   CaseProfileEntryService (视图 B 动态解锁档案, 两层分区)
+import { VisitorPersonaService } from './providers/visitor-persona.service';
 
 /**
  * V2026-10-15 (V1.x counselor-mode W7-8 — CounselorModule):
@@ -289,6 +305,10 @@ import { TrainingSessionService } from './providers/training-session.service';
       TrainingExercise,
       TrainingExerciseAttempt,
       CounselorUiPreference, // V2026-10-20 治本: 专项技能 Hero 显示偏好
+      // V2026-10-21 治本 (V1.2 VS-B1 — M1 分层人设 2 entity, 累计 13 entity,
+      //   跟前序 counselor_ui_preferences 同段):
+      VisitorFullPersona,
+      CaseProfileEntry,
     ]),
   ],
   controllers: [
@@ -306,6 +326,11 @@ import { TrainingSessionService } from './providers/training-session.service';
     // V2026-10-21 治本 (V1.2 VS-A — training session controller):
     //   6 endpoint: 建会话 / 列表 / 详情 / 状态机 / 逐字稿 / 结束+派发督导.
     CounselorTrainingSessionController,
+    // V2026-10-21 治本 (V1.2 VS-B1 — M1 分层人设 2 controller):
+    //   visitor-personas: 生成 / 列表 / 表层 / 上帝视角全量 / 改表层 / 绑定长程
+    //   case-profile-entries: 动态解锁档案 (长程卷宗子资源)
+    CounselorVisitorPersonaController,
+    CounselorCaseProfileEntryController,
   ],
   providers: [
     CounselorHomeService,
@@ -327,6 +352,11 @@ import { TrainingSessionService } from './providers/training-session.service';
     SessionContextBuilder,
     CounselorSupervisionProcessor,
     TrainingSessionService,
+    // V2026-10-21 治本 (V1.2 VS-B1 — M1 分层人设 2 service):
+    //   VisitorPersonaService: 视图 A 表层读写 + 上帝视角全量 + LLM 生成全量剧本
+    //   CaseProfileEntryService: 视图 B 动态解锁档案 (两层分区)
+    VisitorPersonaService,
+    CaseProfileEntryService,
   ],
   exports: [
     CounselorHomeService,
@@ -346,6 +376,9 @@ import { TrainingSessionService } from './providers/training-session.service';
     TrainingSessionService,
     SessionContextBuilder,
     CounselorLlmJsonClient,
+    // V2026-10-21 治本 (V1.2 VS-B1 — 导出供 VS-B2 接 visitor prompt 时复用):
+    VisitorPersonaService,
+    CaseProfileEntryService,
   ],
 })
 export class CounselorModule {}
