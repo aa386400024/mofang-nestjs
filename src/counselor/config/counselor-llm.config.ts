@@ -59,7 +59,9 @@ export interface CounselorLlmProfile {
  * supervision (督导反馈): 逐句点评 + 错误分类 + 成长建议, 要读完整 transcript 并做临床推理,
  *   用 high 档 + 8192 输出上限 (thinking + JSON 都要装得下) + 120s 超时.
  */
-export const COUNSELOR_LLM_PROFILES: Readonly<Record<'supervision' | 'personaGeneration', CounselorLlmProfile>> = {
+export const COUNSELOR_LLM_PROFILES: Readonly<
+  Record<'supervision' | 'personaGeneration' | 'liveTurnAnalysis' | 'consentJudgement', CounselorLlmProfile>
+> = {
   supervision: {
     reasoningEffort: 'high',
     maxCompletionTokens: 8192,
@@ -76,6 +78,29 @@ export const COUNSELOR_LLM_PROFILES: Readonly<Record<'supervision' | 'personaGen
     reasoningEffort: 'high',
     maxCompletionTokens: 16_384,
     timeoutMs: 180_000,
+  },
+  /**
+   * liveTurnAnalysis (每轮会谈分析 — 实时轻提示 + 移情/阻抗标记):
+   *   这是**每轮**都要跑一次的调用, 所以延迟比质量更重要 (spec §6.1「不打断对话」).
+   *   - reasoningEffort 用 low: 输出只是一个"方向提示 + 一个标记", 不需要长推理;
+   *     M3.1-Flash 的思考档位是唯一可控的"思考量"旋钮 (temperature/top_p 已被忽略)
+   *   - maxCompletionTokens 1024: 输出体量极小 (一段提示 + 一句备注), 留多了纯浪费额度
+   *   - timeoutMs 30s: 超过这个窗口提示就失去"实时"意义, 不如不推
+   */
+  liveTurnAnalysis: {
+    reasoningEffort: 'low',
+    maxCompletionTokens: 1024,
+    timeoutMs: 30_000,
+  },
+  /**
+   * consentJudgement (知情同意 4 要素判定):
+   *   要读完整同意阶段的对话, 逐要素判"是否讲全" + 来访当时的反应, 属于需要一定推理的任务,
+   *   但输出体量小 (4 个元素), 所以 medium 档 + 4096 足够.
+   */
+  consentJudgement: {
+    reasoningEffort: 'medium',
+    maxCompletionTokens: 4096,
+    timeoutMs: 90_000,
   },
 };
 

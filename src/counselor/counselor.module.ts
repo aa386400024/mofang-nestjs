@@ -141,6 +141,8 @@ import { CounselorHomeController } from './controllers/counselor-home.controller
 import { CounselorProfileController } from './controllers/counselor-profile.controller';
 import { CounselorTrainingController } from './controllers/counselor-training.controller';
 import { CounselorUiPreferenceController } from './controllers/counselor-ui-preference.controller';
+import { CounselorInformedConsentController } from './controllers/informed-consent.controller';
+import { CounselorLiveHintController } from './controllers/live-hint.controller';
 import { CounselorLongTermCaseController } from './controllers/long-term-case.controller';
 // V2026-10-13 治本 (Phase 7.10 P0-5 — 加 profile controller):
 //   counselor 端 5 Tab 第 5 个 endpoint (我的, 训练偏好 + 会员状态).
@@ -155,7 +157,12 @@ import { CounselorTrainingSessionController } from './controllers/training-sessi
 // V2026-10-21 治本 (V1.2 VS-B1 — M1 分层人设 2 controller):
 //   visitor-persona: 视图 A 表层配置 + 上帝视角全量 + 绑定长程
 //   case-profile-entry: 视图 B 动态解锁档案
+import { CounselorTranscriptBookmarkController } from './controllers/transcript-bookmark.controller';
+import { CounselorTransferenceMarkController } from './controllers/transference-mark.controller';
 import { CounselorVisitorPersonaController } from './controllers/visitor-persona.controller';
+// V2026-10-21 治本 (V1.2 VS-C — M2/M3 会谈核心 4 controller):
+//   informed-consent (4 要素判定 + 进度) / live-hint (轻提示 + SSE 流)
+//   transcript-bookmark (逐字稿打点) / transference-mark (双向移情阻抗标记)
 // V2026-10-15 治本 (V1.x W5-6 — ability entity 注册, 走 TypeOrmModule.forFeature):
 //   7 维度 28 子指标 + user 聚合 2 entity, 跟 W1-2 long-term-case + W3-4 supervision 同段.
 import { AbilityDimension } from './entities/ability-dimension.entity';
@@ -164,6 +171,7 @@ import { AbilityScore } from './entities/ability-score.entity';
 //   跟 knowledge-base/knowledge-chunk.entity.ts V0.x 风格一致, 1:1 wire.
 import { CaseProfileEntry } from './entities/case-profile-entry.entity';
 import { CounselorUiPreference } from './entities/counselor-ui-preference.entity';
+import { LiveSupervisionHint } from './entities/live-supervision-hint.entity';
 import { LongTermCaseSession } from './entities/long-term-case-session.entity';
 import { LongTermCase } from './entities/long-term-case.entity';
 // V2026-10-15 治本 (V1.x W7-8 — quota_usage entity 注册):
@@ -183,7 +191,13 @@ import { TrainingSession } from './entities/training-session.entity';
 //   +VisitorFullPersona (AI 底层全量人设, 7 大块 json + trust_level)
 //   +CaseProfileEntry (动态解锁档案, self_disclosed / therapist_note 两层)
 //   跟 V1.1 §5.2 training_exercises 同段.
+import { TranscriptBookmark } from './entities/transcript-bookmark.entity';
+import { TransferenceResistanceMark } from './entities/transference-resistance-mark.entity';
 import { VisitorFullPersona } from './entities/visitor-full-persona.entity';
+// V2026-10-21 治本 (V1.2 VS-C — M2/M3 会谈核心 3 entity 注册, 走 TypeOrmModule.forFeature):
+//   +LiveSupervisionHint (实时督导轻提示) +TranscriptBookmark (逐字稿打点)
+//   +TransferenceResistanceMark (双向移情/阻抗标记)
+//   跟 V1.2 VS-B1 的 2 entity 同段.
 // V2026-10-19 治本 (V1.1 §5.2 — training_exercises + training_exercise_attempts 接入):
 //   跟 V0.5 training_session §6.5 1:1 wire 拍板风格 (V2026-10-19 治本续 V8.3 落地):
 //   +TrainingExercise (V1.1 §5.2 拍板 10 训练项, 跟 xin_su_app V0.5 client
@@ -238,6 +252,9 @@ import { CounselorHomeService } from './providers/counselor-home.service';
 import { CounselorProfileService } from './providers/counselor-profile.service';
 import { CounselorSupervisionProcessor } from './providers/counselor-supervision.processor';
 import { CounselorUiPreferenceService } from './providers/counselor-ui-preference.service';
+import { CounselorVisitorContextContributor } from './providers/counselor-visitor-context.contributor';
+import { InformedConsentService } from './providers/informed-consent.service';
+import { LiveSupervisionHintService } from './providers/live-hint.service';
 import { CounselorLlmJsonClient } from './providers/llm-json.client';
 import { LongTermCaseService } from './providers/long-term-case.service';
 // V2026-10-13 治本 (Phase 7.10 P0-5 — profile service):
@@ -245,19 +262,36 @@ import { LongTermCaseService } from './providers/long-term-case.service';
 // V2026-10-15 治本 (V1.x W3-4 — supervision service):
 //   5 method 业务逻辑 (listSchools / findSchoolByCode / generateFeedback / compareFeedback /
 //   listFeedbackForSession), V0.5 mock 阶段用静态 prompt 模板, V1.x 真接 LLM 改 provider 注入.
+import { ProfileExtractionService } from './providers/profile-extraction.service';
 import { SessionContextBuilder } from './providers/session-context.builder';
-import { SupervisionService } from './providers/supervision.service';
-import { TrainingExerciseService } from './providers/training-exercise.service';
 // V2026-10-21 治本 (V1.2 VS-A — VS-A 新增 4 个 provider):
 //   - CounselorLlmJsonClient: counselor 端唯一的结构化输出出口 (收流 → 剥 think → JSON.parse → 校验)
 //   - SessionContextBuilder: 会话上下文的唯一取数入口 (polymorphic, 统一 transcript 口径)
 //   - CounselorSupervisionProcessor: 督导异步生成 worker (BullMQ, 真接 LLM 后不能同步阻塞 HTTP)
 //   - TrainingSessionService: 会话生命周期 (建 / 查 / 状态机 / 逐字稿 / 结束)
-import { TrainingSessionService } from './providers/training-session.service';
 // V2026-10-21 治本 (V1.2 VS-B1 — M1 分层人设 2 service):
 //   VisitorPersonaService (视图 A + 上帝视角 + LLM 生成全量剧本) /
 //   CaseProfileEntryService (视图 B 动态解锁档案, 两层分区)
+// V2026-10-21 治本 (V1.2 VS-C — M2/M3 会谈核心 7 provider):
+//   SessionCoreEventsService     SSE 事件总线 (counselor 端第一个实时通道)
+//   LiveSupervisionHintService   轻提示 (5 分钟防抖 + SSE 推送)
+//   InformedConsentService        知情同意 4 要素 LLM 判定
+//   TranscriptBookmarkService     逐字稿打点
+//   TransferenceMarkService      双向移情/阻抗标记
+//   TurnAnalysisService          每轮分析器 (一次 LLM → 提示 + 标记)
+//   TurnAnalysisProcessor        每轮分析 BullMQ worker
+import { SessionCoreEventsService } from './providers/session-core-events.service';
+import { SupervisionService } from './providers/supervision.service';
+import { TrainingExerciseService } from './providers/training-exercise.service';
+import { TrainingSessionService } from './providers/training-session.service';
+import { TranscriptBookmarkService } from './providers/transcript-bookmark.service';
+import { TransferenceMarkService } from './providers/transference-mark.service';
+import { TurnAnalysisProcessor } from './providers/turn-analysis.processor';
+import { TurnAnalysisService } from './providers/turn-analysis.service';
 import { VisitorPersonaService } from './providers/visitor-persona.service';
+// V2026-10-21 治本 (V1.2 VS-B2 — 人设接线 2 provider):
+//   CounselorVisitorContextContributor 实现 agent 侧的上下文贡献者插槽 (依赖倒置);
+//   ProfileExtractionService 负责披露落库 + 信任度推进.
 
 /**
  * V2026-10-15 (V1.x counselor-mode W7-8 — CounselorModule):
@@ -309,6 +343,11 @@ import { VisitorPersonaService } from './providers/visitor-persona.service';
       //   跟前序 counselor_ui_preferences 同段):
       VisitorFullPersona,
       CaseProfileEntry,
+      // V2026-10-21 治本 (V1.2 VS-C — M2/M3 会谈核心 3 entity, 累计 16 entity,
+      //   跟前序 visitor_full_personas 同段):
+      LiveSupervisionHint,
+      TranscriptBookmark,
+      TransferenceResistanceMark,
     ]),
   ],
   controllers: [
@@ -331,6 +370,13 @@ import { VisitorPersonaService } from './providers/visitor-persona.service';
     //   case-profile-entries: 动态解锁档案 (长程卷宗子资源)
     CounselorVisitorPersonaController,
     CounselorCaseProfileEntryController,
+    // V2026-10-21 治本 (V1.2 VS-C — M2/M3 会谈核心 4 controller):
+    //   informed-consent (4 要素判定 + 进度) / live-hint (轻提示 + SSE 实时流)
+    //   transcript-bookmark (逐字稿打点) / transference-mark (双向移情阻抗标记)
+    CounselorInformedConsentController,
+    CounselorLiveHintController,
+    CounselorTranscriptBookmarkController,
+    CounselorTransferenceMarkController,
   ],
   providers: [
     CounselorHomeService,
@@ -357,6 +403,28 @@ import { VisitorPersonaService } from './providers/visitor-persona.service';
     //   CaseProfileEntryService: 视图 B 动态解锁档案 (两层分区)
     VisitorPersonaService,
     CaseProfileEntryService,
+    // V2026-10-21 治本 (V1.2 VS-C — M2/M3 会谈核心 7 provider):
+    //   SessionCoreEventsService:    SSE 事件总线 (counselor 端第一个实时通道)
+    //   LiveSupervisionHintService:  轻提示 (5 分钟防抖 + SSE 推送)
+    //   InformedConsentService:       知情同意 4 要素 LLM 判定
+    //   TranscriptBookmarkService:    逐字稿打点
+    //   TransferenceMarkService:      双向移情/阻抗标记
+    //   TurnAnalysisService:          每轮分析器 (一次 LLM → 提示 + 标记)
+    //   TurnAnalysisProcessor:        每轮分析 BullMQ worker (依赖 RedisModule @Global)
+    SessionCoreEventsService,
+    LiveSupervisionHintService,
+    InformedConsentService,
+    TranscriptBookmarkService,
+    TransferenceMarkService,
+    TurnAnalysisService,
+    TurnAnalysisProcessor,
+    // V2026-10-21 治本 (V1.2 VS-B2 — 人设接线 2 provider):
+    //   ProfileExtractionService: 披露落库 + 信任度推进 + profile_entry SSE 推送
+    //   CounselorVisitorContextContributor: 把全量人设/信任度/已解锁档案注入 AI 来访者 prompt
+    //     (实现 agent 侧的 VisitorContextContributor 插槽, 启动时注册进 @Global 注册表;
+    //      agent 侧 0 处 import counselor —— 依赖倒置, 打破循环依赖)
+    ProfileExtractionService,
+    CounselorVisitorContextContributor,
   ],
   exports: [
     CounselorHomeService,
@@ -379,6 +447,17 @@ import { VisitorPersonaService } from './providers/visitor-persona.service';
     // V2026-10-21 治本 (V1.2 VS-B1 — 导出供 VS-B2 接 visitor prompt 时复用):
     VisitorPersonaService,
     CaseProfileEntryService,
+    // V2026-10-21 治本 (V1.2 VS-C — 导出供 VS-D (长程卷宗) / VS-E (督导闭环) 复用):
+    //   SessionContextBuilder 已经装好信任度 + 已解锁档案, VS-D 的长程 Tab 直接用
+    //   LiveSupervisionHintService / TransferenceMarkService: VS-E 的督导报告要锚定
+    //   bookmark + 汇总移情阻抗趋势
+    LiveSupervisionHintService,
+    TranscriptBookmarkService,
+    TransferenceMarkService,
+    InformedConsentService,
+    // V2026-10-21 治本 (V1.2 VS-B2 — 导出供 VS-D 长程卷宗 / VS-E 督导闭环 复用):
+    //   信任度推进 + 档案条目落库都在这, 长程趋势图与督导报告要引用
+    ProfileExtractionService,
   ],
 })
 export class CounselorModule {}

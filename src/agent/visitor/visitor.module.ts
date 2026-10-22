@@ -14,12 +14,15 @@
 
 import { Module } from '@nestjs/common';
 
+import { VisitorContextModule } from './visitor-context.module';
 import { VisitorService } from './visitor.service';
 import { LlmModule } from '../llm/llm.module';
 import { PersonaModule } from '../persona/persona.module';
 
 @Module({
-  imports: [LlmModule, PersonaModule],
+  // V2026-10-21 治本 (V1.2 VS-B2 — 引入 @Global 上下文注册表模块):
+  //   业务模块 (counselor) 靠它把会话级上下文挂进 visitor prompt, 而 agent 侧 0 处 import business.
+  imports: [LlmModule, PersonaModule, VisitorContextModule],
   providers: [VisitorService],
   exports: [VisitorService],
 })

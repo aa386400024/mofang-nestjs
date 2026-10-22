@@ -33,12 +33,13 @@
 //     3. 非法状态迁移返 400 且带 reason
 //   时间戳: 2026-10-21
 
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomInt } from 'node:crypto';
 import { IsNull, Repository } from 'typeorm';
 
 import { CounselorSupervisionProcessor } from './counselor-supervision.processor';
+import { TurnAnalysisProcessor } from './turn-analysis.processor';
 import { checkSessionTransition, isTerminalSessionStatus } from '../domain/session-status.guard';
 import {
   type AppendTranscriptDto,
@@ -51,6 +52,7 @@ import {
   type UpdateTrainingSessionStatusDto,
 } from '../dto/training-session.dto';
 import { TrainingSession, type TrainingTranscriptTurn } from '../entities/training-session.entity';
+import { ChatRole } from '../enums/chat-role.enum';
 import { DimensionVariance } from '../enums/dimension-variance.enum';
 import { SessionType } from '../enums/session-type.enum';
 import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
@@ -74,10 +76,16 @@ const LIST_COMPLAINT_MAX_LEN = 60;
  */
 @Injectable()
 export class TrainingSessionService {
+  private readonly logger = new Logger(TrainingSessionService.name);
+
   constructor(
     @InjectRepository(TrainingSession)
     private readonly sessionRepo: Repository<TrainingSession>,
     private readonly supervisionProcessor: CounselorSupervisionProcessor,
+    // V2026-10-21 治本 (V1.2 VS-C — 每轮分析触发):
+    //   原因: v1.2 §6.1「后端在每轮 counselor 发言后, 异步跑一个轻量 classifier」的触发点
+    //     就在这个端点 (逐字稿是唯一知道"新来了哪一轮"的地方).
+    private readonly turnAnalysisProcessor: TurnAnalysisProcessor,
   ) {}
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -230,7 +238,43 @@ export class TrainingSessionService {
     const current = row.transcript ?? [];
     row.transcript = input.mode === 'replace' ? incoming : [...current, ...incoming];
     const saved = await this.sessionRepo.save(row);
+
+    // V2026-10-21 治本 (V1.2 VS-C — 触发每轮分析):
+    //   原因: §6.1 实时轻提示 + §6.4 移情阻抗标记的触发点是"新来了一轮来访者回应".
+    //     咨询师发言本身不足以判定 (提示要看来访者的反应, 标记也是打在来访者轮次上),
+    //     所以只在**来访者那一轮**落库后触发.
+    //   修法: 入队 BullMQ job (异步, 不阻塞本次写请求); 档位判定在 worker 里做 (关掉提示就不烧 LLM).
+    //   反双胞胎:
+    //     - 不用 fire-and-forget 直调 LLM: 进程重启就丢, 且会拖住写请求
+    //     - 不在咨询师那一轮触发: 没有来访反应就没有可分析的信号, 只会白烧 token
+    //     - 入队失败不抛: 逐字稿已经写成功 (业务已完成), 分析失败只是少一条提示, 不能让整个写请求 500
+    await this.enqueueTurnAnalysis(userId, saved, row.transcript);
     return this.toDetail(saved);
+  }
+
+  /**
+   * 若本轮新写入的是**来访者**的回应 → 入队一次每轮分析.
+   *
+   * @param userId 当前用户 id
+   * @param saved 已保存的会话行
+   * @param transcript 保存后的完整逐字稿
+   */
+  private async enqueueTurnAnalysis(userId: string, saved: TrainingSession, transcript: TrainingTranscriptTurn[]): Promise<void> {
+    if (transcript.length === 0) {
+      return;
+    }
+    const lastTurn = transcript.at(-1);
+    if (!lastTurn || lastTurn.role !== ChatRole.VISITOR) {
+      return;
+    }
+    const enqueued = await this.turnAnalysisProcessor.enqueue({
+      sessionId: saved.id,
+      userId,
+      turnIndex: transcript.length - 1,
+    });
+    if (!enqueued) {
+      this.logger.warn(`[turn_analysis_enqueue_failed] session=${saved.id} turn=${transcript.length - 1}`);
+    }
   }
 
   // ══════════════════════════════════════════════════════════════════════════

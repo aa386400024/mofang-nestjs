@@ -23,6 +23,7 @@
 //     3. 三种 difficulty 渲染出的 behavior 段落不同
 //     4. emotion 段落含 baseline + 动态规则, 不固定一种情绪
 
+import type { VisitorContextBlock } from './visitor-context';
 import type { VisitorSessionMemory } from './visitor.types';
 import type { Persona, PersonaDifficulty, PersonaEmotionBaseline } from '../persona/domain/entities/persona.entity';
 
@@ -109,20 +110,41 @@ const HARD_RULES = `硬规则 (优先级最高):
  * @param persona 已加载的 persona 实体
  * @param memory per-session 记忆 (含 currentEmotion / turnCount)
  */
-export function renderSystemPrompt(persona: Persona, memory: VisitorSessionMemory): string {
+export function renderSystemPrompt(persona: Persona, memory: VisitorSessionMemory, blocks: readonly VisitorContextBlock[] = []): string {
   const baseline = EMOTION_BASELINE_LABEL[persona.emotionBaseline] ?? persona.emotionBaseline;
-  const behavior = DIFFICULTY_BEHAVIOR[persona.difficulty];
-  const tagFreq = DIFFICULTY_TAG_FREQ[persona.difficulty];
 
-  return [
+  // V2026-10-21 治本 (V1.2 VS-B2 — 会话级上下文插槽):
+  //   难度 / 身份 / 人格画像 3 项都以**业务侧配置**优先 (咨询师为本场会话配的来访者),
+  //   agent 内置 persona 只在没有业务配置时兜底. 冲突时以业务侧为准 —— 咨询师明确配了
+  //   "这个来访者 28 岁 / L2 难度", 就不该让模型在两套画像之间摇摆.
+  //   反双胞胎: 不用"两套画像都留着 + 靠优先级提示解决" —— 模型对同一条信息的两个版本
+  //     会出现选择性忽略, 行为不可预期; 要么替换, 要么不出现.
+  const difficulty = blocks.find((b) => b.difficulty)?.difficulty ?? persona.difficulty;
+  const behavior = DIFFICULTY_BEHAVIOR[difficulty];
+  const tagFreq = DIFFICULTY_TAG_FREQ[difficulty];
+  const identity = blocks.find((b) => b.identity)?.identity;
+  const replacesPersona = blocks.some((b) => b.replacesPersona === true);
+
+  const lines: string[] = [
     '# 角色',
-    `你叫 ${persona.name}, ${persona.age} 岁. 你正在接受心理咨询, 对面是"咨询师"`,
-    '(由用户扮演). 下面是你的人格画像:',
-    '',
-    '## 人格画像',
-    `- 主诉: ${persona.complaint}`,
-    `- 性格: ${persona.personality}`,
-    `- 背景: ${persona.background}`,
+    `你叫 ${identity?.name ?? persona.name}, ${identity?.age ?? persona.age} 岁. 你正在接受心理咨询, 对面是"咨询师"`,
+    '(由用户扮演).',
+  ];
+
+  if (replacesPersona) {
+    lines.push('你的具体设定见下方「本次会话的来访者设定」.');
+  } else {
+    lines.push(
+      '下面是你的人格画像:',
+      '',
+      '## 人格画像',
+      `- 主诉: ${persona.complaint}`,
+      `- 性格: ${persona.personality}`,
+      `- 背景: ${persona.background}`,
+    );
+  }
+
+  lines.push(
     '',
     '## ' + behavior,
     '',
@@ -135,12 +157,24 @@ export function renderSystemPrompt(persona: Persona, memory: VisitorSessionMemor
     '## ' + tagFreq,
     '',
     '## ' + HARD_RULES,
+  );
+
+  if (blocks.length > 0) {
+    lines.push('', '## 本次会话的来访者设定', '★ 本节优先级高于上面的人格画像; 两者冲突时**以本节为准**.');
+    for (const block of blocks) {
+      lines.push('', block.content);
+    }
+  }
+
+  lines.push(
     '',
     '## 当前会话',
     `- 轮次: ${memory.turnCount}`,
     `- session: ${memory.sessionId}`,
-    `- persona: ${persona.id} (${persona.difficulty})`,
-  ].join('\n');
+    `- persona: ${persona.id} (${difficulty})`,
+  );
+
+  return lines.join('\n');
 }
 
 /**

@@ -217,7 +217,8 @@ export class VoiceService {
 
     // 2. 启动 LLM 流 (通过 Visitor — persona + history 编排, signal 透传)
     state.llmAbort = new AbortController();
-    const { stream: llmStream } = this.visitor.streamTurn({
+    // V2026-10-21 治本 (V1.2 VS-B2 — streamTurn 因解析会话级上下文而改 async)
+    const { stream: llmStream } = await this.visitor.streamTurn({
       sessionId: state.meta.sessionId,
       tenantId: state.meta.tenantId,
       userId: state.meta.userId,

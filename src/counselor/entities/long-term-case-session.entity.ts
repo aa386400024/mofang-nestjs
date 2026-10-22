@@ -33,6 +33,7 @@
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 import { LongTermCase } from './long-term-case.entity';
+import type { SessionTechStats } from '../domain/session-core/session-core.types';
 
 /**
  * 单次会话的转录 (跟 V0.x TrainingSession.transcript 1:1 风格).
@@ -96,6 +97,21 @@ export class LongTermCaseSession {
   // 本次会话督导总分 0-100, nullable (W3-4 接后填).
   @Column({ type: 'int', name: 'overall_score', nullable: true })
   overallScore!: number | null;
+
+  /**
+   * 会谈技术统计 (json, 可空) — v1.2 VS-C.
+   *
+   * V2026-10-21 治本 (V1.2 VS-C — ALTER 增量列, 1 列):
+   //   原因: spec §6.3「写在 long_term_case_sessions.supervisionFeedback 或 training_sessions
+   //     的新字段上」—— 长程侧落到本列, 跟单次训练侧对称 (同一个 SessionTechStats 契约).
+   //   反双胞胎: 不复用已有的 supervision_feedback json 列: 那个是"督导反馈正文"
+   //     (overallScore/perSentence/errorCategories/growthSuggestion), 技术统计是**量化仪表盘数据**,
+   //     两者消费方不同 (前者督导报告展示, 后者仪表盘渲染), 混在一列会让两个 DTO 互相污染.
+   //   验证: 1. tsc 0 错  2. migration:run 后 SHOW COLUMNS 看到 tech_stats
+   //   时间戳: 2026-10-21
+   */
+  @Column({ type: 'json', name: 'tech_stats', nullable: true })
+  techStats!: SessionTechStats | null;
 
   /**
    * 🆕 V1.2 跨会话 agent memory (nextSessionContext).

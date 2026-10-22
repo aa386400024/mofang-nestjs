@@ -68,5 +68,9 @@ export { AddCounselorUiPreferences1714900000012 } from './1714900000012-AddCouns
 //   visitor_full_personas (AI 底层全量人设, 7 大块 json + trust_level) +
 //   case_profile_entries (动态解锁档案), 跟 counselor-mode-v1.2 §4 1:1 wire.
 export { AddVisitorFullPersonas1714900000013 } from './1714900000013-AddVisitorFullPersonas';
+// V2026-10-21 治本 (V1.2 VS-C — M2 知情同意 + M3 会谈核心 3 张新表 + 5 处 ALTER, 跟 bin/ormconfig.ts 严格 1:1):
+//   live_supervision_hints / transcript_bookmarks / transference_resistance_marks
+//   + training_sessions (知情同意 3 列 + tech_stats) + long_term_case_sessions (tech_stats).
+export { AddCounselorSessionCore1714900000014 } from './1714900000014-AddCounselorSessionCore';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

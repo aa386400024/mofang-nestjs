@@ -55,7 +55,7 @@
 //     4. 故意把 MINIMAX_COUNSELOR_LLM_MODEL 设成不存在的模型 → 返 503 且不落脏数据
 //   时间戳: 2026-10-21
 
-import { BadRequestException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
@@ -68,6 +68,7 @@ import {
   renderTranscriptBlock,
   type SessionContext,
 } from '../domain/session-context/session-context';
+import { validateSessionTechStats, type SessionTechStats } from '../domain/session-core/session-core.types';
 import {
   type CompareSupervisionFeedbackResponseDto,
   type GenerateSupervisionFeedbackDto,
@@ -75,8 +76,10 @@ import {
   type SupervisionSchoolDetailDto,
   type SupervisionSchoolListItemDto,
 } from '../dto/supervision.dto';
+import { LongTermCaseSession } from '../entities/long-term-case-session.entity';
 import { SupervisionFeedback, type SupervisionFeedbackPayload } from '../entities/supervision-feedback.entity';
 import { SupervisionSchool } from '../entities/supervision-school.entity';
+import { TrainingSession } from '../entities/training-session.entity';
 import { SessionType } from '../enums/session-type.enum';
 import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
 
@@ -90,10 +93,23 @@ const SUPERVISION_SCHEMA_DESCRIPTION = `输出 JSON 结构 (必须严格符合, 
   "overallScore": 0-100 的整数,
   "perSentence": [{ "sentence": "咨询师原句", "score": 0-100 的整数, "comment": "1-2 句点评" }],
   "errorCategories": ["问题分类 1", "问题分类 2"],
-  "growthSuggestion": "1-3 句成长建议"
+  "growthSuggestion": "1-3 句成长建议",
+  "techStats": {
+    "questionTypes": { "open": 0, "closed": 0, "semi": 0 },
+    "interventions": { "reflection": 0, "paraphrase": 0, "summary": 0, "confrontation": 0, "interpretation": 0, "advice": 0 },
+    "behavior": { "interruptions": 0, "silenceMs": 0, "topicJumps": 0 },
+    "commentary": "技术统计的一句话点评"
+  }
 }
 要求: perSentence 最多 8 条, 优先标注最有教学价值的咨询师发言; errorCategories 最多 5 个,
-无明显问题可给空数组; growthSuggestion 必须是可执行的下次具体做法, 不要泛泛而谈.`;
+无明显问题可给空数组; growthSuggestion 必须是可执行的下次具体做法, 不要泛泛而谈.
+
+techStats 是会谈技术统计仪表盘的原始数据 (spec §6.3):
+- questionTypes: 开放式 / 封闭式 / 半开放式提问的**次数**
+- interventions: 共情/释义/总结/面质/解释/建议 各自**次数**
+- behavior: 打断来访次数 / 沉默总时长(毫秒) / 议题跳转次数
+- commentary: 一句话点评技术统计里最值得注意的倾向
+只统计逐字稿里**真实出现**的, 不要推测; 没把握就填 0.`;
 
 /**
  * 校验 LLM 输出的 4 字段 payload.
@@ -179,6 +195,44 @@ export function validateSupervisionPayload(raw: unknown): SupervisionFeedbackPay
 }
 
 /**
+ * 督导分析的完整结果 (4 字段反馈 + 技术统计).
+ */
+export interface SupervisionAnalysisResult {
+  /** 督导反馈正文 (落 supervision_feedback.feedback, 契约不变) */
+  readonly feedback: SupervisionFeedbackPayload;
+  /** 技术统计 (落 session 表的 tech_stats 列; 模型没给就 null) */
+  readonly techStats: SessionTechStats | null;
+}
+
+/**
+ * 校验督导分析的完整输出 (4 字段反馈 + techStats).
+ *
+ * V2026-10-21 治本 (V1.2 VS-C — M3.3 技术统计同一次 LLM 调用产出):
+ *   原因: spec §6.3「督导 LLM 在生成 supervision_feedback 时, 额外输出一个 techStats JSON
+ *     (复用同一次 LLM 调用, 不额外花钱)」—— 所以校验要从"4 字段"扩到"4 字段 + techStats".
+ *   修法: 复用已有的 validateSupervisionPayload (4 字段契约**完全不变**, 0 破坏),
+ *     再叠加 validateSessionTechStats.
+ *   反双胞胎:
+ *     - techStats 非法**不**让整份督导失败: 督导反馈是主产物, 技术统计是副产物;
+ *       副产物畸形不该把主产物一起丢掉 → techStats 降级为 null, 报告照常出
+ *     - 不把 techStats 塞进 supervision_feedback.feedback json: 那是"督导反馈正文"契约,
+ *       塞进去会污染 4 字段的 1:1 wire (前端 DTO 读不到但数据在, 以后排查会踩坑);
+ *       spec §6.3 也明确它落在 session 表的**新字段**上
+ *     - 不额外调一次 LLM 专门算 techStats: spec 明确"复用同一次调用, 不额外花钱"
+ *   验证: 1. tsc 0 错  2. 跑一次督导 → session 表 tech_stats 有值, 4 字段反馈不受影响
+ *   时间戳: 2026-10-21
+ */
+export function validateSupervisionAnalysis(raw: unknown): SupervisionAnalysisResult | null {
+  const feedback = validateSupervisionPayload(raw);
+  if (!feedback) {
+    return null;
+  }
+  const rawObj = raw as Record<string, unknown>;
+  const techStats = validateSessionTechStats(rawObj['techStats']);
+  return { feedback, techStats };
+}
+
+/**
  * V2026-10-15 (V1.x counselor-mode W3-4 — SupervisionService):
  *   4 流派督导 + polymorphic sessionId feedback 业务逻辑.
  *
@@ -186,11 +240,21 @@ export function validateSupervisionPayload(raw: unknown): SupervisionFeedbackPay
  */
 @Injectable()
 export class SupervisionService {
+  private readonly logger = new Logger(SupervisionService.name);
+
   constructor(
     @InjectRepository(SupervisionSchool)
     private readonly schoolRepo: Repository<SupervisionSchool>,
     @InjectRepository(SupervisionFeedback)
     private readonly feedbackRepo: Repository<SupervisionFeedback>,
+    // V2026-10-21 治本 (V1.2 VS-C — tech_stats 回写):
+    //   原因: spec §6.3 要求技术统计写在 **session 表**的 tech_stats 列
+    //     (training_sessions / long_term_case_sessions), 而督导反馈写在 supervision_feedback 表,
+    //     两者是不同的表 → 需要能写 session 表的 Repository.
+    @InjectRepository(TrainingSession)
+    private readonly trainingSessionRepo: Repository<TrainingSession>,
+    @InjectRepository(LongTermCaseSession)
+    private readonly longTermSessionRepo: Repository<LongTermCaseSession>,
     private readonly llmJson: CounselorLlmJsonClient,
     private readonly contextBuilder: SessionContextBuilder,
   ) {}
@@ -262,11 +326,11 @@ export class SupervisionService {
 
     // 3. 真接 LLM: 4 流派 prompt 模板 (DB) + 会话上下文块 → 结构化 4 字段
     const profile = COUNSELOR_LLM_PROFILES.supervision;
-    const result = await this.llmJson.requestJson<SupervisionFeedbackPayload>({
+    const result = await this.llmJson.requestJson<SupervisionAnalysisResult>({
       systemPrompt: this.buildSchoolSystemPrompt(school.promptTemplate, ctx),
       userPrompt: buildSupervisionContextBlock(ctx),
       schemaDescription: SUPERVISION_SCHEMA_DESCRIPTION,
-      validate: validateSupervisionPayload,
+      validate: validateSupervisionAnalysis,
       maxCompletionTokens: profile.maxCompletionTokens,
       reasoningEffort: profile.reasoningEffort,
       timeoutMs: profile.timeoutMs,
@@ -278,7 +342,7 @@ export class SupervisionService {
       // 不落脏数据: 假督导结论比报错更糟 (学员会当成真实反馈去改技术动作)
       throw new ServiceUnavailableException(`督导反馈生成失败 (${result.errorCode ?? 'unknown'}): ${result.errorMessage ?? 'LLM 不可用'}`);
     }
-    const feedback = result.data;
+    const { feedback, techStats } = result.data;
 
     // 4. 落 supervision_feedback 表 (upsert: UNIQUE (session_id, session_type, school_id))
     const existing = await this.feedbackRepo.findOne({
@@ -305,7 +369,27 @@ export class SupervisionService {
       );
     }
 
-    // 5. 返 4 字段结构化 feedback (跟 DTO 1:1)
+    // 5. 回写技术统计到 session 表 (spec §6.3「写在 session 的新字段上」)
+    //
+    // V2026-10-21 治本 (V1.2 VS-C — M3.3 tech_stats 落 session 表):
+    //   原因: 技术统计的落点是 **session 表** (training_sessions / long_term_case_sessions
+    //     的 tech_stats 列), 不是 supervision_feedback.feedback (那是督导反馈正文契约).
+    //   反双胞胎:
+    //     - 不把 techStats 塞进 feedback json: 会污染 4 字段的 1:1 wire (前端 DTO 读不到
+    //       但数据在, 以后排查会踩坑)
+    //     - techStats 为 null 时不写: 模型没给统计 → 不覆盖已有值 (宁缺勿错)
+    //     - 写失败不阻断督导反馈: 统计是副产物, 督导报告才是主产物
+    if (techStats) {
+      try {
+        await this.writeTechStats(userId, input.sessionId, input.sessionType, techStats);
+      } catch (err) {
+        this.logger.warn(
+          `[tech_stats_writeback_failed] sessionId=${input.sessionId} ` + `err=${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    // 6. 返 4 字段结构化 feedback (跟 DTO 1:1)
     return {
       overallScore: feedback.overallScore,
       perSentence: feedback.perSentence,
@@ -386,6 +470,37 @@ export class SupervisionService {
   // ══════════════════════════════════════════════════════════════════════════
   // 私有 helper
   // ══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * 把技术统计写回 session 表的 tech_stats 列.
+   *
+   * @param userId 当前用户 id
+   * @param sessionId 会话 id
+   * @param sessionType session 类型 (polymorphic)
+   * @param techStats 技术统计
+   */
+  private async writeTechStats(userId: string, sessionId: string, sessionType: SessionType, techStats: SessionTechStats): Promise<void> {
+    if (sessionType === SessionType.TRAINING_SESSION) {
+      const row = await this.trainingSessionRepo.findOne({
+        where: { id: sessionId, userId, deletedAt: IsNull() },
+      });
+      if (row) {
+        row.techStats = techStats;
+        await this.trainingSessionRepo.save(row);
+      }
+      return;
+    }
+    if (sessionType === SessionType.LONG_TERM_CASE_SESSION) {
+      // long_term_case_sessions 无 user_id 列 (V0.x 一人一租户: tenant_id 即 user_id)
+      const row = await this.longTermSessionRepo.findOne({
+        where: { id: sessionId, tenantId: userId, deletedAt: IsNull() },
+      });
+      if (row) {
+        row.techStats = techStats;
+        await this.longTermSessionRepo.save(row);
+      }
+    }
+  }
 
   /**
    * 用 4 流派 prompt 模板 (DB) + 会话上下文渲染出 system prompt.

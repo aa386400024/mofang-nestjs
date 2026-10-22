@@ -62,4 +62,8 @@ export const QUEUE_NAMES = {
   //   同步会拖死 HTTP 连接). 独立队列名, 不复用 agent 的 'supervisor' ——
   //   后者 payload 是 agent RunReportInput 且落 agent 自己的表, 混用会导致 job 被错消费.
   counselorSupervision: 'counselor-supervision',
+  // V2026-10-21 治本 (V1.2 VS-C): 每轮会谈分析 (实时轻提示 + 移情/阻抗标记).
+  //   每轮都跑一次 LLM, 属高频短任务 → 独立队列 + 并发 2 (跟 counselor-supervision 的
+  //   串行 1 不同: 那边单次调用 30-120s 要压上游, 这边 low 档 3-8s 可以并发).
+  counselorTurnAnalysis: 'counselor-turn-analysis',
 } as const;

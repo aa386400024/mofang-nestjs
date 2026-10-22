@@ -211,6 +211,13 @@ export class CounselorUiPreferencesDto {
     example: false,
   })
   godViewEnabled!: boolean;
+
+  @ApiProperty({
+    description: '实时督导轻提示档位 (v1.2 §6.1): light = 静默浮窗提示 / off = 完全无提示 (**默认关闭**)',
+    enum: ['light', 'off'],
+    example: 'off',
+  })
+  liveSupervisionHintTier!: 'light' | 'off';
 }
 
 export class UpdateCounselorUiPreferencesDto {
@@ -220,7 +227,10 @@ export class UpdateCounselorUiPreferencesDto {
     type: Object,
   })
   @IsOptional()
-  preferences!: Partial<Record<CounselorUiPreferenceKey, boolean>>;
+  // V2026-10-21 治本 (V1.2 VS-C — 值类型放宽为 boolean | string):
+  //   新增的 liveSupervisionHintTier 是 2 值档位 (字符串), 与已有布尔偏好共存.
+  //   值的合法性在 service 里按键校验 (动态键的 Record 无法用 @IsIn 逐键声明).
+  preferences!: Partial<Record<CounselorUiPreferenceKey, boolean | string>>;
 }
 
 export { COUNSELOR_UI_PREFERENCE_DEFAULTS, PREF_KEY_VALUES };

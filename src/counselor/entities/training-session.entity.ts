@@ -60,6 +60,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
+import type { InformedConsentEntry, SessionTechStats } from '../domain/session-core/session-core.types';
 import { ChatRole } from '../enums/chat-role.enum';
 import { DimensionVariance } from '../enums/dimension-variance.enum';
 import { TrainingDifficulty } from '../enums/training-difficulty.enum';
@@ -184,6 +185,53 @@ export class TrainingSession {
   transcript!: TrainingTranscriptTurn[];
 
   // 督导报告关联 (V1.x W3-4 多流派督导接通后填, V0.5 mock 跳固定 3 条限制解除)
+  // ─── v1.2 VS-C (M2 知情同意 + M3 技术统计) ───
+  //
+  // V2026-10-21 治本 (V1.2 VS-C — ALTER 增量列, 4 列):
+  //   原因: v1.2 spec §5.4「在 training_sessions 表加 3 个字段 (ALTER TABLE, 不加新表)」+
+  //     §12.2「training_sessions 加 informed_consent_* + tech_stats (json)」.
+  //   反双胞胎:
+  //     - 不写进 user_consent 表: spec §5.3 明确 src/consent 是**产品合规层**
+  //       (真人用户 ↔ 产品), M2 是**训练业务层** (受训咨询师 ↔ AI 来访), 两者完全正交
+  //     - 知情同意用 tinyint 存 0/1 而不是 boolean: MySQL 无原生 boolean, 跟仓库既有
+  //       supervision_schools.is_active 口径一致 (代码里用 === 1 判断)
+  //     - tech_stats 落 json 而不是拆 15 个数值列: 指标会随 spec §6.3 增补 (如"沉默占比"),
+  //       拆列 = 每加一个指标一次 DDL; json 存整体, 前端按契约取
+  //   验证: 1. tsc 0 错  2. migration:run 后 SHOW COLUMNS FROM training_sessions 看到 4 个新列
+  //   时间戳: 2026-10-21
+
+  /**
+   * 是否需要走知情同意环节 (默认开启, 用户可在高级设置关闭).
+   *
+   * spec §5.1「内置流程（默认开启）」+ §5.4「用户可在高级设置关闭」.
+   */
+  @Column({ type: 'tinyint', name: 'informed_consent_required', default: 1 })
+  informedConsentRequired!: number;
+
+  /**
+   * 4 要素是否已讲全 (AI 判定, 0/1).
+   *
+   * spec §5.2「AI 判断 4 要素是否讲全」. 缺失任意 1 项 → 督导报告记为「知情同意缺失」.
+   */
+  @Column({ type: 'tinyint', name: 'informed_consent_passed', default: 0 })
+  informedConsentPassed!: number;
+
+  /**
+   * 4 要素逐项覆盖明细 (json, 可空).
+   *
+   * 每项含 element / covered / visitorResponse / coveredAtTurn, 供前端"哪几要素已讲"展示.
+   */
+  @Column({ type: 'json', name: 'informed_consent_transcript', nullable: true })
+  informedConsentTranscript!: InformedConsentEntry[] | null;
+
+  /**
+   * 会谈技术统计 (json, 可空).
+   *
+   * spec §6.3: 督导 LLM 在生成 feedback 时**顺带**输出, 复用同一次调用不额外花钱.
+   */
+  @Column({ type: 'json', name: 'tech_stats', nullable: true })
+  techStats!: SessionTechStats | null;
+
   @Column({ type: 'char', length: 36, name: 'supervision_report_id', nullable: true })
   supervisionReportId!: string | null;
 

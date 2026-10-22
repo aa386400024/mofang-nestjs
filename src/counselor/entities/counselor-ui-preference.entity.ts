@@ -23,7 +23,13 @@ export class CounselorUiPreference {
   userId!: string;
 
   @Column({ type: 'json' })
-  prefs!: Record<string, boolean>;
+  // V2026-10-21 治本 (V1.2 VS-C — 值类型放宽为 boolean | string):
+  //   原因: 新增的 liveSupervisionHintTier 是 2 值档位 (字符串 'light' / 'off'),
+  //     与已有的布尔偏好 (Hero 可见 / 上帝视角) 共存于同一列.
+  //   反双胞胎: 不拆成"2 个布尔" (liveSupervisionHintEnabled + liveSupervisionHintLight):
+  //     那样表达不了档位语义, 且将来加第 3 档要再加 1 列; 也不单开一张表 (偏好单一事实源)
+  //   验证: 无需 migration (列本身是 JSON, 值类型只存在于 TS 层)
+  prefs!: Record<string, boolean | string>;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

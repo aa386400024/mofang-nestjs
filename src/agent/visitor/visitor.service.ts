@@ -26,6 +26,7 @@
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
 
+import { VisitorContextRegistry } from './visitor-context';
 import { renderSystemPrompt, VISITOR_HISTORY_SLICE_TURNS } from './visitor.prompts';
 import type {
   VisitorCloseResult,
@@ -53,6 +54,7 @@ export class VisitorService {
   constructor(
     private readonly llm: LlmService,
     @Inject(PERSONA_REPOSITORY) private readonly personas: PersonaRepository,
+    private readonly contextRegistry: VisitorContextRegistry,
   ) {}
 
   /**
@@ -101,10 +103,19 @@ export class VisitorService {
 
   /**
    * 一轮对话 — 拼 messages + LLM 流 + 包装 history capture.
-   * 同步返回 (LlmStream 本身是 async iterable), 无 await.
+   *
+   * V2026-10-21 治本 (V1.2 VS-B2 — 因会话级上下文解析而改 async):
+   *   原因: 每轮要向业务侧解析会话级上下文 (全量人设 / 信任度 / 已解锁档案), 那是**异步**的
+   *     (要查库). 原实现是同步方法 (只拼数组), 现在多了一次 await.
+   *   反双胞胎:
+   *     - 不改成"openSession 时解析一次并缓存": 信任度会随会谈推进而变, 缓存会让
+   *       「用户解锁了档案但来访者下一轮还不知道」—— 信息暴露节奏直接失效
+   *     - 不把 LlmService.streamChat 改成接受 Promise<messages>: 那是为 1 个消费方改共享传输层,
+   *       且会让"消息构建"这个纯逻辑变成隐式异步, 反而更难读
+   *   影响面: 唯一调用方是 VoiceService.onUserText (本身已是 async), 加 await 即可.
    * @throws 当 sessionId 未 openSession 过时抛错 (运行时必现, 是 bug)
    */
-  streamTurn(opts: VisitorTurnOptions): VisitorTurnResult {
+  async streamTurn(opts: VisitorTurnOptions): Promise<VisitorTurnResult> {
     const memory = this.getMemoryOrThrow(opts.sessionId);
     // 1. 追加 user 消息 (先入, finally 失败时回滚)
     const userMessage: VisitorMessage = {
@@ -116,7 +127,7 @@ export class VisitorService {
     memory.lastActiveAt = userMessage.at;
 
     // 2. 拼 LlmMessage[] + 调 LLM
-    const llmMessages = this.buildLlmMessages(memory);
+    const llmMessages = await this.buildLlmMessages(memory, { userId: opts.userId, tenantId: opts.tenantId });
     const inner = this.llm.streamChat(llmMessages, {
       tenantId: opts.tenantId,
       userId: opts.userId,
@@ -185,9 +196,26 @@ export class VisitorService {
    * 拼 LlmMessage[] — system prompt (含 persona + 行为 + 历史摘要) + 滑窗 messages.
    * 系统 prompt 通过 renderSystemPrompt 渲染; 滑窗 messages 保留最近 MAX_HISTORY_MESSAGES 条.
    * 注意: 当前 user 消息已在 streamTurn 里 push, 这里直接 slice 即可.
+   *
+   * V2026-10-21 治本 (V1.2 VS-B2 — 解析会话级上下文插槽):
+   *   原因: 业务侧 (counselor) 的全量人设 / 信任度 / 已解锁档案要进 system prompt,
+   *     而 agent 侧不认识业务 → 走 VisitorContextRegistry 插槽.
+   *   修法: 每轮解析一次 (不是 openSession 时缓存) —— 信任度是**随会谈推进而变**的,
+   *     缓存会导致"用户解锁了档案但来访者下一轮还不知道".
+   *   反双胞胎:
+   *     - 不在 openSession 时解析一次就缓存: 信任度推进是核心机制, 缓存会让它失效
+   *     - 不把解析放进 prompt 渲染函数里 (纯函数原则): 渲染函数保持纯, 解析在 service 层
    */
-  private buildLlmMessages(memory: VisitorSessionMemory): readonly LlmMessage[] {
-    const systemPrompt = renderSystemPrompt(memory.persona, memory);
+  private async buildLlmMessages(
+    memory: VisitorSessionMemory,
+    opts: { readonly userId: string; readonly tenantId: string },
+  ): Promise<readonly LlmMessage[]> {
+    const blocks = await this.contextRegistry.resolve({
+      sessionId: memory.sessionId,
+      userId: opts.userId,
+      tenantId: opts.tenantId,
+    });
+    const systemPrompt = renderSystemPrompt(memory.persona, memory, blocks);
     const recentMessages = memory.messages.slice(-MAX_HISTORY_MESSAGES);
     return [{ role: 'system', content: systemPrompt }, ...recentMessages.map((m): LlmMessage => ({ role: m.role, content: m.content }))];
   }

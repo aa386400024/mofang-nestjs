@@ -104,6 +104,14 @@ export interface SessionContext {
   readonly trustLevel: number | null;
   /** 已解锁档案条目 (仅长程有内容). */
   readonly unlockedEntries: readonly SessionContextEntry[];
+  /**
+   * 归属长程个案 id (单次训练为 null).
+   *
+   * V2026-10-21 治本 (V1.2 VS-B2 — 供上下文贡献者定位全量人设):
+   *   原因: 访客上下文贡献者要按 caseId 去取 visitor_full_personas (7 大块全量人设),
+   *     而 SessionContext 之前没带 caseId → 贡献者拿不到.
+   */
+  readonly caseId: string | null;
 }
 
 /** 角色 → 中文标签 (给模型看, 统一口径). */

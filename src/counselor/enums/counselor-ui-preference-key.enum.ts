@@ -29,11 +29,35 @@ export enum CounselorUiPreferenceKey {
    *   时间戳: 2026-10-21
    */
   GOD_VIEW_ENABLED = 'godViewEnabled',
+  /**
+   * V2026-10-21 治本 (V1.2 VS-C — 实时督导轻提示档位):
+   *   原因: v1.2 spec §6.1 实时督导提示两档 (light 静默浮窗 / off 完全无提示),
+   *     且「默认关闭, 用户主动开启」. 档位是**用户级**偏好 (跨会话一致, 跨设备同步),
+   *     所以落本表而不是会话表.
+   *   值是字符串 ('light' / 'off') 而不是布尔 → 本表的 prefs 值类型需要放宽为
+   *   `boolean | string` (见 entity). 放宽**不需要 migration** (列本身是 JSON).
+   *   验证: 1. PATCH { liveSupervisionHintTier: 'light' } → 200 回显
+   *          2. PATCH { liveSupervisionHintTier: 'garbage' } → 400 (值白名单拦截)
+   *   时间戳: 2026-10-21
+   */
+  LIVE_SUPERVISION_HINT_TIER = 'liveSupervisionHintTier',
 }
 
-/** 偏好键 → 默认值. 服务端在键缺失时回落至此, 保证老用户首次访问行为一致. */
-export const COUNSELOR_UI_PREFERENCE_DEFAULTS: Record<CounselorUiPreferenceKey, boolean> = {
+/**
+ * 偏好键 → 默认值. 服务端在键缺失时回落至此, 保证老用户首次访问行为一致.
+ *
+ * V2026-10-21 治本 (V1.2 VS-C — 值类型放宽为 boolean | string):
+ *   原因: 新增的 liveSupervisionHintTier 是 2 值档位 (字符串), 原有 2 个键是布尔.
+ *     统一收窄成 boolean 会让档位塞不进来, 拆成"2 个布尔"又表达不了档位语义.
+ *   修法: 值类型放宽为 `boolean | string`, **键的白名单机制不变** (未知键仍 400);
+ *     字符串值的合法性由 service 按键逐个校验 (见 counselor-ui-preference.service.ts).
+ *   反双胞胎: 不为档位单开一张表: 那是"用户可控界面偏好"的单一事实源, 拆表会让
+ *     偏好分散在多张表, 跨设备同步的逻辑也要写两遍.
+ */
+export const COUNSELOR_UI_PREFERENCE_DEFAULTS: Record<CounselorUiPreferenceKey, boolean | string> = {
   [CounselorUiPreferenceKey.SPECIALIZED_SKILLS_HERO_VISIBLE]: true,
   // V2026-10-21 治本 (V1.2 VS-B1 — 上帝视角默认关闭, 见 enum 内的治本注释)
   [CounselorUiPreferenceKey.GOD_VIEW_ENABLED]: false,
+  // V2026-10-21 治本 (V1.2 VS-C — 轻提示默认关闭, spec §6.1 + §2.2 原则 3)
+  [CounselorUiPreferenceKey.LIVE_SUPERVISION_HINT_TIER]: 'off',
 };

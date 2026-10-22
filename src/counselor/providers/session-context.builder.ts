@@ -79,6 +79,8 @@ export function toSessionContext(row: TrainingSession): SessionContext {
     // V2026-10-21 治本 (V1.2 VS-B1 — 单次训练无长程关系 → 无信任度 / 无已解锁档案)
     trustLevel: null,
     unlockedEntries: [],
+    // V2026-10-21 治本 (V1.2 VS-B2 — 单次训练不属长程个案)
+    caseId: null,
   };
 }
 
@@ -130,6 +132,8 @@ export function toLongTermSessionContext(
     endedAt: null,
     trustLevel,
     unlockedEntries,
+    // V2026-10-21 治本 (V1.2 VS-B2 — 供上下文贡献者按 caseId 取全量人设)
+    caseId: parent.id,
   };
 }
 
@@ -151,6 +155,32 @@ export class SessionContextBuilder {
     @InjectRepository(CaseProfileEntry)
     private readonly entryRepo: Repository<CaseProfileEntry>,
   ) {}
+
+  /**
+   * 按 sessionId 自动判定类型并装载上下文 (供访客上下文贡献者使用).
+   *
+   * V2026-10-21 治本 (V1.2 VS-B2 — 贡献者不知道 sessionType):
+   *   原因: AI 来访者拿到的是**语音链路的 sessionId** (voice WS 的 path 里的 sid),
+   *     它不知道这个 id 是 training_sessions 还是 long_term_case_sessions;
+   *     咨询师端的访客上下文贡献者拿到的也只有 sessionId.
+   *   修法: 两种类型依次试, 都不是 → 返回 null (表示"这不是咨询师会话, 不产出上下文").
+   *   反双胞胎: 不让贡献者自己查两张表: 取数口径统一在 SessionContextBuilder (单一真值源),
+   *     否则贡献者与督导/档案服务对"这个 session 是什么"的理解会漂移.
+   *
+   * @param userId 当前用户 id
+   * @param sessionId 会话 id
+   * @returns 上下文; 不是咨询师会话 → null
+   */
+  async loadBySessionId(userId: string, sessionId: string): Promise<SessionContext | null> {
+    for (const sessionType of [SessionType.TRAINING_SESSION, SessionType.LONG_TERM_CASE_SESSION]) {
+      try {
+        return await this.build(userId, sessionId, sessionType);
+      } catch {
+        continue;
+      }
+    }
+    return null;
+  }
 
   /**
    * 装载 1 个会话的完整上下文 (polymorphic).
