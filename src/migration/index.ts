@@ -83,5 +83,9 @@ export { AddPracticeScenarios1714900000015 } from './1714900000015-AddPracticeSc
 //   + practice_attempts.scenario_source 列 (seed / custom, 默认 seed)
 //   + quota_usage.period 放宽到 VARCHAR(10) (支持 §7.4 的「每天 5 次」日粒度计数).
 export { AddPracticeCustomScenarios1714900000016 } from './1714900000016-AddPracticeCustomScenarios';
+// V2026-10-22 治本 (首页金句 · 每日一句 — 2 张新表注册, 跟 bin/ormconfig.ts 严格 1:1):
+//   quotes (金句内容库 11 列 + 2 索引) + user_quote_favorites (收藏关系 5 列 + 3 索引).
+//   内容不进 migration (spec §1 内容由独立 seed 脚本灌: bin/seed-quotes.ts).
+export { AddQuotes1714900000017 } from './1714900000017-AddQuotes';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

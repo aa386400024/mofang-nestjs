@@ -115,4 +115,11 @@ export enum BizCode {
   PracticeScenarioNotFound = 45_002, // 场景不存在 / 已停用 / 不属于本人
   PracticeTurnOutOfRange = 45_003, // 提交轮次超出场景设定的往返轮数 (§8.5 B1)
   PracticeCustomScenarioStorageFull = 45_004, // 私有场景条数达上限 (§8.5 B2)
+
+  // ====== 首页金句模块 (46xxx) — 「每日一句」后端接口 ======
+  //   §4 零压红线: 「不下发、不展示全站 likeCount」—— 错误码同理不应带出任何
+  //   「有多少人收藏了这类内容」的信息, 只描述**当前用户自己的操作**是否成立.
+  QuoteLibraryEmpty = 46_001, // 金句内容库为空 (未跑 seed:quotes; 前端回退本地种子)
+  QuoteNotFound = 46_002, // 金句不存在 / 已下架
+  QuoteCursorInvalid = 46_003, // 金句流游标无效或已失效
 }

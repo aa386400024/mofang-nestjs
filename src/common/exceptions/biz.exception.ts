@@ -43,6 +43,8 @@ function mapBizCodeToHttpStatus(code: BizCode): HttpStatus {
     case BizCode.ResourceNotFound:
     case BizCode.UserNotFound:
     case BizCode.PracticeScenarioNotFound:
+    case BizCode.QuoteNotFound:
+    case BizCode.QuoteLibraryEmpty:
       return HttpStatus.NOT_FOUND;
     case BizCode.UserAlreadyExists:
     case BizCode.EmailAlreadyVerified:
@@ -143,6 +145,13 @@ function getBizCodeDefaultMessage(code: BizCode): string {
     [BizCode.PracticeScenarioNotFound]: '练习场景不存在或不可用',
     [BizCode.PracticeTurnOutOfRange]: '提交轮次超出该场景设定的往返轮数',
     [BizCode.PracticeCustomScenarioStorageFull]: '我的真实场景已达条数上限',
+
+    // V2026-10-22 (首页金句 · 每日一句):
+    //   QuoteLibraryEmpty 走 404: 内容库没灌 seed 是"服务端还没准备好",
+    //   前端据此回退本地种子 (spec §4「不得白屏或报错」), 不是用户的错.
+    [BizCode.QuoteLibraryEmpty]: '金句内容库为空',
+    [BizCode.QuoteNotFound]: '金句不存在或已下架',
+    [BizCode.QuoteCursorInvalid]: '分页游标无效或已失效',
 
     // V2026-09-14 长期方案 Stage C: Growth 模块 8 个错误码默认文案
     [BizCode.GrowthDailyToolsFetchFail]: '今日推荐工具拉取失败',

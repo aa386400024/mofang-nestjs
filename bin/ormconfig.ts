@@ -127,6 +127,10 @@ import { AddPracticeScenarios1714900000015 } from '../src/migration/171490000001
 //   practice_custom_scenarios (用户私有场景, 与共享题库物理隔离)
 //   + practice_attempts.scenario_source 列 + quota_usage.period 放宽到 VARCHAR(10).
 import { AddPracticeCustomScenarios1714900000016 } from '../src/migration/1714900000016-AddPracticeCustomScenarios';
+// V2026-10-22 治本 (首页金句 · 每日一句 — 2 张新表, 跟前序 practice_custom_scenarios 同段):
+//   quotes (金句内容库) + user_quote_favorites (收藏关系). 内容走独立 seed 脚本
+//   (bin/seed-quotes.ts), 不进 migration.
+import { AddQuotes1714900000017 } from '../src/migration/1714900000017-AddQuotes';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -236,6 +240,9 @@ const ormconfig = async (): Promise<DataSource> => {
       //   列 + quota_usage.period 放宽, 跟前序 practice_scenarios 同段,
       //   跟 src/migration/index.ts 严格 1:1):
       AddPracticeCustomScenarios1714900000016,
+      // V2026-10-22 治本 (首页金句 · 每日一句 — 2 张新表 + 5 索引,
+      //   跟前序 practice_custom_scenarios 同段, 跟 src/migration/index.ts 严格 1:1):
+      AddQuotes1714900000017,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

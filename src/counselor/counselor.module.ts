@@ -138,6 +138,9 @@ import { CounselorHomeController } from './controllers/counselor-home.controller
 // V2026-10-15 治本 (V1.x W1-2 — long-term-case controller):
 //   counselor 端第 6 个 controller (长程个案, 跟 home/training/exam/growth/profile 数据正交,
 //   单独 service + 真接 TypeOrm 库).
+// V2026-10-22 治本 (首页金句 · 每日一句 — controller):
+//   5 端点: 今日金句 / 金句流 (游标分页) / 我的收藏 / 收藏 / 取消收藏.
+//   跟 practice controller 语义正交 (零压情绪陪伴位 vs 技能训练).
 import { CounselorProfileController } from './controllers/counselor-profile.controller';
 import { CounselorTrainingController } from './controllers/counselor-training.controller';
 import { CounselorUiPreferenceController } from './controllers/counselor-ui-preference.controller';
@@ -148,6 +151,7 @@ import { CounselorLongTermCaseController } from './controllers/long-term-case.co
 //   counselor 端第 19 个 controller (5 端点: 进度聚合 / 取场景 / 提交评判 /
 //   随机抽练 / 真实场景生成), 跟 MCQ 训练题 controller 语义正交 (零压无分).
 import { CounselorPracticeController } from './controllers/practice.controller';
+import { CounselorQuoteController } from './controllers/quote.controller';
 // V2026-10-13 治本 (Phase 7.10 P0-5 — 加 profile controller):
 //   counselor 端 5 Tab 第 5 个 endpoint (我的, 训练偏好 + 会员状态).
 // V2026-10-15 治本 (V1.x W3-4 — supervision controller):
@@ -188,9 +192,13 @@ import { LongTermCase } from './entities/long-term-case.entity';
 import { PracticeAttempt } from './entities/practice-attempt.entity';
 import { PracticeCustomScenario } from './entities/practice-custom-scenario.entity';
 import { PracticeScenario } from './entities/practice-scenario.entity';
+// V2026-10-22 治本 (首页金句 · 每日一句 — 2 entity 注册, 跟前序 practice_custom_scenarios 同段):
+//   +Quote (金句内容库 11 列 + 2 索引) +UserQuoteFavorite (收藏关系 5 列 + 3 索引).
+//   零压红线: 两表都**没有**任何计数字段 (like_count / favorite_count / view_count).
 // V2026-10-15 治本 (V1.x W7-8 — quota_usage entity 注册):
 //   3 类配额月度聚合 1 entity, 跟 W1-2 + W3-4 + W5-6 同段.
 import { QuotaUsage } from './entities/quota-usage.entity';
+import { Quote } from './entities/quote.entity';
 // V2026-10-15 治本 (V1.x W3-4 — supervision-schools + supervision-feedback entity 注册):
 //   4 流派配置 + polymorphic 反馈记录 2 entity, 跟 W1-2 long-term-case 同 TypeOrmModule.forFeature 段.
 import { SupervisionFeedback } from './entities/supervision-feedback.entity';
@@ -207,6 +215,7 @@ import { TrainingSession } from './entities/training-session.entity';
 //   跟 V1.1 §5.2 training_exercises 同段.
 import { TranscriptBookmark } from './entities/transcript-bookmark.entity';
 import { TransferenceResistanceMark } from './entities/transference-resistance-mark.entity';
+import { UserQuoteFavorite } from './entities/user-quote-favorite.entity';
 import { VisitorFullPersona } from './entities/visitor-full-persona.entity';
 // V2026-10-21 治本 (V1.2 VS-C — M2/M3 会谈核心 3 entity 注册, 走 TypeOrmModule.forFeature):
 //   +LiveSupervisionHint (实时督导轻提示) +TranscriptBookmark (逐字稿打点)
@@ -263,6 +272,8 @@ import { CounselorHomeService } from './providers/counselor-home.service';
 // V2026-10-15 治本 (V1.x W1-2 — long-term-case service):
 //   5 method 业务逻辑 (list / createFromPreset / findDetail / appendSession / listTemplates),
 //   走真 TypeORM Repository, 跟 V0.5 5 service 内存 mock 区分.
+// V2026-10-22 治本 (首页金句 · 每日一句 — service):
+//   QuoteService: 今日金句轮换 + 金句流 keyset 游标分页 + 收藏开关 (零压, 无计数).
 import { CounselorProfileService } from './providers/counselor-profile.service';
 import { CounselorSupervisionProcessor } from './providers/counselor-supervision.processor';
 import { CounselorUiPreferenceService } from './providers/counselor-ui-preference.service';
@@ -291,6 +302,7 @@ import { PracticeScenarioService } from './providers/practice-scenario.service';
 //   5 method 业务逻辑 (listSchools / findSchoolByCode / generateFeedback / compareFeedback /
 //   listFeedbackForSession), V0.5 mock 阶段用静态 prompt 模板, V1.x 真接 LLM 改 provider 注入.
 import { ProfileExtractionService } from './providers/profile-extraction.service';
+import { QuoteService } from './providers/quote.service';
 import { SessionContextBuilder } from './providers/session-context.builder';
 // V2026-10-21 治本 (V1.2 VS-A — VS-A 新增 4 个 provider):
 //   - CounselorLlmJsonClient: counselor 端唯一的结构化输出出口 (收流 → 剥 think → JSON.parse → 校验)
@@ -383,6 +395,10 @@ import { VisitorPersonaService } from './providers/visitor-persona.service';
       // V2026-10-22 治本 (V1.3 §7.5 — 用户私有场景表, 累计 19 entity,
       //   跟前序 practice_attempts 同段):
       PracticeCustomScenario,
+      // V2026-10-22 治本 (首页金句 · 每日一句 — 2 entity, 累计 21 entity,
+      //   跟前序 practice_custom_scenarios 同段):
+      Quote,
+      UserQuoteFavorite,
     ]),
   ],
   controllers: [
@@ -415,6 +431,9 @@ import { VisitorPersonaService } from './providers/visitor-persona.service';
     // V2026-10-22 治本 (V1.3 §3 — 微技能自由练习 controller, 5 端点):
     //   progress / scenarios/:id / scenarios/:id/evaluate / random / custom-scenarios
     CounselorPracticeController,
+    // V2026-10-22 治本 (首页金句 · 每日一句 controller, 5 端点):
+    //   today / list (游标分页) / favorites / favorite / unfavorite
+    CounselorQuoteController,
   ],
   providers: [
     CounselorHomeService,
@@ -475,6 +494,9 @@ import { VisitorPersonaService } from './providers/visitor-persona.service';
     PracticeCustomScenarioService,
     PracticeQuotaService,
     PracticeAbilitySyncService,
+    // V2026-10-22 治本 (首页金句 · 每日一句 service):
+    //   QuoteService (今日轮换 / 游标分页 / 收藏)
+    QuoteService,
   ],
   exports: [
     CounselorHomeService,
