@@ -144,6 +144,10 @@ import { CounselorUiPreferenceController } from './controllers/counselor-ui-pref
 import { CounselorInformedConsentController } from './controllers/informed-consent.controller';
 import { CounselorLiveHintController } from './controllers/live-hint.controller';
 import { CounselorLongTermCaseController } from './controllers/long-term-case.controller';
+// V2026-10-22 治本 (V1.3 §3 — 微技能自由练习 controller):
+//   counselor 端第 19 个 controller (5 端点: 进度聚合 / 取场景 / 提交评判 /
+//   随机抽练 / 真实场景生成), 跟 MCQ 训练题 controller 语义正交 (零压无分).
+import { CounselorPracticeController } from './controllers/practice.controller';
 // V2026-10-13 治本 (Phase 7.10 P0-5 — 加 profile controller):
 //   counselor 端 5 Tab 第 5 个 endpoint (我的, 训练偏好 + 会员状态).
 // V2026-10-15 治本 (V1.x W3-4 — supervision controller):
@@ -174,6 +178,16 @@ import { CounselorUiPreference } from './entities/counselor-ui-preference.entity
 import { LiveSupervisionHint } from './entities/live-supervision-hint.entity';
 import { LongTermCaseSession } from './entities/long-term-case-session.entity';
 import { LongTermCase } from './entities/long-term-case.entity';
+// V2026-10-22 治本 (V1.3 §2 — 微技能自由练习引擎 2 entity 注册, 走 TypeOrmModule.forFeature):
+//   +PracticeScenario (场景变体库, 20 列 + 4 索引) +PracticeAttempt (自由作答记录,
+//   12 列 + 3 索引), 跟 §2.1 / §2.2 拍板严格 1:1; 跟 V1.1 §5.2 MCQ 两表完全正交
+//   (0 改动 training_exercises / training_exercise_attempts).
+// V2026-10-22 治本 (V1.3 §7.5 — 用户私有场景表注册, 跟前序 practice_scenarios 同段):
+//   +PracticeCustomScenario (私有场景 14 列 + 3 索引) —— 跟共享内容库物理隔离,
+//   保证「公共题库里每一条都过审」这条不变式 (§7.3.1 脱敏 + §7.5 数据落点).
+import { PracticeAttempt } from './entities/practice-attempt.entity';
+import { PracticeCustomScenario } from './entities/practice-custom-scenario.entity';
+import { PracticeScenario } from './entities/practice-scenario.entity';
 // V2026-10-15 治本 (V1.x W7-8 — quota_usage entity 注册):
 //   3 类配额月度聚合 1 entity, 跟 W1-2 + W3-4 + W5-6 同段.
 import { QuotaUsage } from './entities/quota-usage.entity';
@@ -257,6 +271,20 @@ import { InformedConsentService } from './providers/informed-consent.service';
 import { LiveSupervisionHintService } from './providers/live-hint.service';
 import { CounselorLlmJsonClient } from './providers/llm-json.client';
 import { LongTermCaseService } from './providers/long-term-case.service';
+// V2026-10-22 治本 (V1.3 §3 — 微技能自由练习 3 service):
+//   - PracticeScenarioService: 读侧 (进度聚合 / 取场景 / 随机抽练) + 唯一可见性谓词
+//   - PracticeEvaluatorService: 评判引擎 (LLM 主路径 + 确定性关键词降级 + 零压红线守门)
+//   - PracticeAttemptService: 写侧编排 (落库 / attemptOrdinal / 语速折算 / 私有场景生成)
+// V2026-10-22 治本 (V1.3 §7.2 — 新增 3 service):
+//   - PracticeCustomScenarioService: 用户私有场景的生成与列表 (§7.2 两个端点)
+//   - PracticeQuotaService: 练习域日粒度配额 (复用 quota_usage 表, spec §7.4)
+//   - PracticeAbilitySyncService: 练习信号回写五维画像 (spec §7.6 P3-c)
+import { PracticeAbilitySyncService } from './providers/practice-ability-sync.service';
+import { PracticeAttemptService } from './providers/practice-attempt.service';
+import { PracticeCustomScenarioService } from './providers/practice-custom-scenario.service';
+import { PracticeEvaluatorService } from './providers/practice-evaluator.service';
+import { PracticeQuotaService } from './providers/practice-quota.service';
+import { PracticeScenarioService } from './providers/practice-scenario.service';
 // V2026-10-13 治本 (Phase 7.10 P0-5 — profile service):
 //   训练偏好 (3 toggle + defaultDifficulty) + 会员状态 (V0.5 写死 none, V1.x 接 billing).
 // V2026-10-15 治本 (V1.x W3-4 — supervision service):
@@ -348,6 +376,13 @@ import { VisitorPersonaService } from './providers/visitor-persona.service';
       LiveSupervisionHint,
       TranscriptBookmark,
       TransferenceResistanceMark,
+      // V2026-10-22 治本 (V1.3 §2 — 微技能自由练习引擎 2 entity, 累计 18 entity,
+      //   跟前序 transference_resistance_marks 同段):
+      PracticeScenario,
+      PracticeAttempt,
+      // V2026-10-22 治本 (V1.3 §7.5 — 用户私有场景表, 累计 19 entity,
+      //   跟前序 practice_attempts 同段):
+      PracticeCustomScenario,
     ]),
   ],
   controllers: [
@@ -377,6 +412,9 @@ import { VisitorPersonaService } from './providers/visitor-persona.service';
     CounselorLiveHintController,
     CounselorTranscriptBookmarkController,
     CounselorTransferenceMarkController,
+    // V2026-10-22 治本 (V1.3 §3 — 微技能自由练习 controller, 5 端点):
+    //   progress / scenarios/:id / scenarios/:id/evaluate / random / custom-scenarios
+    CounselorPracticeController,
   ],
   providers: [
     CounselorHomeService,
@@ -425,6 +463,18 @@ import { VisitorPersonaService } from './providers/visitor-persona.service';
     //      agent 侧 0 处 import counselor —— 依赖倒置, 打破循环依赖)
     ProfileExtractionService,
     CounselorVisitorContextContributor,
+    // V2026-10-22 治本 (V1.3 §3 — 微技能自由练习 3 service):
+    //   PracticeScenarioService (读侧 + 可见性) / PracticeEvaluatorService (评判引擎)
+    //   PracticeAttemptService (写侧编排 + 私有场景生成)
+    // V2026-10-22 治本 (V1.3 §7.2 — 新增 3 service):
+    //   PracticeCustomScenarioService (私有场景生成/列表) / PracticeQuotaService (日配额)
+    //   PracticeAbilitySyncService (五维画像回写)
+    PracticeScenarioService,
+    PracticeEvaluatorService,
+    PracticeAttemptService,
+    PracticeCustomScenarioService,
+    PracticeQuotaService,
+    PracticeAbilitySyncService,
   ],
   exports: [
     CounselorHomeService,
@@ -458,6 +508,12 @@ import { VisitorPersonaService } from './providers/visitor-persona.service';
     // V2026-10-21 治本 (V1.2 VS-B2 — 导出供 VS-D 长程卷宗 / VS-E 督导闭环 复用):
     //   信任度推进 + 档案条目落库都在这, 长程趋势图与督导报告要引用
     ProfileExtractionService,
+    // V2026-10-22 治本 (V1.3 §3 — 导出供后续 V2 能力复用):
+    //   练习引擎的可见性谓词在 PracticeScenarioService 里 (唯一一处), 后续做
+    //   "练习记录回灌五维画像"(spec §5 P3) 时要读同一份场景与作答数据, 避免
+    //   另起一套可见性判断.
+    PracticeScenarioService,
+    PracticeAttemptService,
   ],
 })
 export class CounselorModule {}

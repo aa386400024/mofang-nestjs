@@ -60,7 +60,17 @@ export interface CounselorLlmProfile {
  *   用 high 档 + 8192 输出上限 (thinking + JSON 都要装得下) + 120s 超时.
  */
 export const COUNSELOR_LLM_PROFILES: Readonly<
-  Record<'supervision' | 'personaGeneration' | 'liveTurnAnalysis' | 'consentJudgement', CounselorLlmProfile>
+  Record<
+    | 'supervision'
+    | 'personaGeneration'
+    | 'liveTurnAnalysis'
+    | 'consentJudgement'
+    | 'practiceEvaluation'
+    | 'practiceVisitorReaction'
+    | 'practiceScenarioGeneration'
+    | 'practiceCustomScenarioGeneration',
+    CounselorLlmProfile
+  >
 > = {
   supervision: {
     reasoningEffort: 'high',
@@ -101,6 +111,59 @@ export const COUNSELOR_LLM_PROFILES: Readonly<
     reasoningEffort: 'medium',
     maxCompletionTokens: 4096,
     timeoutMs: 90_000,
+  },
+  /**
+   * practiceEvaluation (微技能练习评判 — V1.3 §3.3):
+   *   一次调用产出 3-5 条技术批注 + 参考回应 + 常见偏差, 输入是一段用户回应.
+   *   - reasoningEffort 用 medium: 需要真的读懂"用户这句话做到了哪个技术动作",
+   *     但不需要督导报告那种长推理
+   *   - maxCompletionTokens 2048: 输出体量小 (几条批注 + 一段示范回应), thinking
+   *     token 也计入, 2048 足够 thinking + JSON
+   *   - timeoutMs 60s: 评判在用户提交后同步等待, 超过 60s 用户会以为卡死;
+   *     超时后走确定性关键词降级 (接口形状不变)
+   */
+  practiceEvaluation: {
+    reasoningEffort: 'medium',
+    maxCompletionTokens: 2048,
+    timeoutMs: 60_000,
+  },
+  /**
+   * practiceVisitorReaction (P2 多轮 — AI 来访者对用户回应的情绪反应):
+   *   输出只有 1-2 句话, 但要求人设一致, 需要一点点推理.
+   *   low 档 + 1024 足够; 30s 超时保证"接话演练"的节奏感不被模型拖住.
+   */
+  practiceVisitorReaction: {
+    reasoningEffort: 'low',
+    maxCompletionTokens: 1024,
+    timeoutMs: 30_000,
+  },
+  /**
+   * practiceScenarioGeneration (V1.3 §3.5 — 用户真实场景生成):
+   *   输出是一整个场景 (人设 + 开场白 + 任务 + rubric 3-4 条维度), 结构化 JSON
+   *   本体约 1500-2500 token, 再叠 thinking → 给 8192 才不会 finish_reason=length.
+   */
+  practiceScenarioGeneration: {
+    reasoningEffort: 'high',
+    maxCompletionTokens: 8192,
+    timeoutMs: 120_000,
+  },
+  /**
+   * practiceCustomScenarioGeneration (V1.3 §7.2 — 「我遇到了真实情况」场景生成):
+   *   这是**用户点击后同步等待**的调用, 用户就站在那儿等, 延迟直接等于体验损耗.
+   *   §7.4 原文「生成失败 / 超时 8s → 前端降级为本地模板场景, 不阻塞用户」,
+   *   意味着这条链路的**有效**时限就是 8s —— 超过就白花了 token.
+   *   - reasoningEffort 用 low: 任务本质是"把一段描述结构化 + 脱敏 + 给几条维度",
+   *     不需要 high 档那种长推理; low 档能在 8s 窗口内跑完的概率高得多
+   *   - maxCompletionTokens 4096: 输出 = 人设 + 开场白 + 3-5 条 rubric 维度,
+   *     约 1200-2200 token, 叠 thinking 仍留有余量 (比 8192 省一半)
+   *   - timeoutMs 30_000: 兜底窗口比 8s 宽, 让**服务端**先于客户端拿到失败结论
+   *     (服务端拿到失败才能自己降级成模板场景; 若服务端也 8s 掐断, 就只能靠
+   *     客户端兜底, 丢掉了服务端手里那份用户原三问带来的贴合度)
+   */
+  practiceCustomScenarioGeneration: {
+    reasoningEffort: 'low',
+    maxCompletionTokens: 4096,
+    timeoutMs: 30_000,
   },
 };
 

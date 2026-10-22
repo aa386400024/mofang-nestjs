@@ -19,7 +19,7 @@
 //     3. 同一 exerciseId + 同一 selectedOptionIndex 提交两次 → score 恒等
 //     4. GET progress 返回 items.length === 10 且 summary.totalItems === 10
 //   时间戳: 2026-10-20
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Repository } from 'typeorm';
 
@@ -223,8 +223,14 @@ export class TrainingExerciseService {
     const tenantId = userId; // A9 一人一租户
     const exercise = await this.findOneExercise(exerciseId);
 
+    // V2026-10-22 治本 (§8.5 B4 — 越界从 NotFound 改成 BadRequest):
+    //   原因: 候选项索引越界是**请求参数**问题 (客户端发了不存在的候选项),
+    //     不是"资源不存在" —— 之前抛 NotFoundException 会让客户端把它当成
+    //     "这道题被删了", 从而刷新题库 / 弹错误页, 而正确反应是"你选的那项不存在".
+    //   注: DTO 侧已去掉硬编码的 @Max(10) (见 training-exercise.dto.ts 的注释),
+    //     真正的上限只能由这里判定 —— 只有本层知道 options 的实际长度.
     if (dto.selectedOptionIndex >= exercise.options.length) {
-      throw new NotFoundException(`候选项索引越界: ${dto.selectedOptionIndex} (共 ${exercise.options.length} 项)`);
+      throw new BadRequestException(`候选项索引越界: ${dto.selectedOptionIndex} (共 ${exercise.options.length} 项)`);
     }
 
     const isCorrect = dto.selectedOptionIndex === exercise.correctOptionIndex;

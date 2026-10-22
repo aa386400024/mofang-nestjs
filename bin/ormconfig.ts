@@ -118,6 +118,15 @@ import { AddVisitorFullPersonas1714900000013 } from '../src/migration/1714900000
 //   live_supervision_hints / transcript_bookmarks / transference_resistance_marks
 //   + training_sessions (知情同意 3 列 + tech_stats) + long_term_case_sessions (tech_stats).
 import { AddCounselorSessionCore1714900000014 } from '../src/migration/1714900000014-AddCounselorSessionCore';
+// V2026-10-22 治本 (V1.3 §2 — 微技能自由练习引擎 2 张新表, 跟前序 counselor_session_core 同段):
+//   practice_scenarios (场景变体库) + practice_attempts (自由作答练习记录),
+//   counselor-practice-engine-v1.3-freeform.md §2 拍板. 内容走独立 seed 脚本
+//   (bin/seed-practice-scenarios.ts), 不进 migration (spec §6.3).
+import { AddPracticeScenarios1714900000015 } from '../src/migration/1714900000015-AddPracticeScenarios';
+// V2026-10-22 治本 (V1.3 §7.5 — 用户私有场景表, 跟前序 practice_scenarios 同段):
+//   practice_custom_scenarios (用户私有场景, 与共享题库物理隔离)
+//   + practice_attempts.scenario_source 列 + quota_usage.period 放宽到 VARCHAR(10).
+import { AddPracticeCustomScenarios1714900000016 } from '../src/migration/1714900000016-AddPracticeCustomScenarios';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -220,6 +229,13 @@ const ormconfig = async (): Promise<DataSource> => {
       // V2026-10-21 治本 (V1.2 VS-C — M2 知情同意 + M3 会谈核心 3 张新表 + 5 处 ALTER,
       //   跟前序 visitor_full_personas 同段, 跟 src/migration/index.ts 严格 1:1):
       AddCounselorSessionCore1714900000014,
+      // V2026-10-22 治本 (V1.3 §2 — 微技能自由练习引擎 2 张新表 + 6 索引,
+      //   跟前序 counselor_session_core 表同段, 跟 src/migration/index.ts 严格 1:1):
+      AddPracticeScenarios1714900000015,
+      // V2026-10-22 治本 (V1.3 §7.5 — 用户私有场景表 + practice_attempts.scenario_source
+      //   列 + quota_usage.period 放宽, 跟前序 practice_scenarios 同段,
+      //   跟 src/migration/index.ts 严格 1:1):
+      AddPracticeCustomScenarios1714900000016,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

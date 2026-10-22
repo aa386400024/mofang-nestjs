@@ -10,7 +10,7 @@
 //   验证: tsc 0 错 + 前端 model 与本文件字段名逐一对齐.
 //   时间戳: 2026-10-20
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { IsBoolean, IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
 
 import { COUNSELOR_UI_PREFERENCE_DEFAULTS, CounselorUiPreferenceKey } from '../enums/counselor-ui-preference-key.enum';
@@ -131,11 +131,21 @@ export class SubmitTrainingExerciseAttemptDto {
   @ApiProperty({ description: '选择的候选项索引 (0-based)', example: 0 })
   @IsInt()
   @Min(0)
-  @Max(10)
+  // V2026-10-22 治本 (§8.5 B4 — 去掉硬编码上限):
+  //   原因: 原来的 `@Max(10)` 是个与数据脱钩的魔数 —— 候选项实际有几道由
+  //     `training_exercises.options.length` 决定 (当前 4 个), 而 10 这个上限
+  //     跟它没有任何关系. 它有两个害处:
+  //       (1) 真正越界的索引 (比如 options 只有 4 项时传 7) 会被 DTO 放行,
+  //           只能靠 service 兜底 —— 校验职责被拆成两处, 容易漂移
+  //       (2) 将来某个题库有 12 个选项时, DTO 反而会把它挡掉
+  //   修法: DTO 只管"非负整数"这个格式约束; 真正的业务上限 (options.length)
+  //     由 service 判定 —— 它是唯一知道 options 长度的一方. service 侧已把
+  //     越界从 NotFound 改成 BadRequest (越界是请求参数问题, 不是资源不存在).
   selectedOptionIndex!: number;
 
   @ApiProperty({ description: '答题耗时 (秒)', example: 42 })
   @IsInt()
+  // 0 是合法值: 语义为"提交快到来不及计时" (例如用户秒答秒交), 不代表异常.
   @Min(0)
   @Max(3600)
   attemptDurationSeconds!: number;
@@ -188,8 +198,24 @@ export class TrainingExerciseQueryDto {
   @Type(() => String)
   mode?: TrainingExerciseMode;
 
-  @ApiPropertyOptional({ description: '按难度过滤', required: false, enum: DIFFICULTY_VALUES })
+  @ApiPropertyOptional({
+    description: '按难度过滤 (大小写均接受: l1 / L1 等价; 响应体固定为大写 L1/L2/L3)',
+    required: false,
+    enum: DIFFICULTY_VALUES,
+  })
   @IsOptional()
+  // V2026-10-22 治本 (§8.4#3 — 难度字面量统一):
+  //   原因: 契约两侧对难度的字面量不一致, 且**带难度过滤必然 400**:
+  //     - DB / entity / 响应体: 大写 'L1' / 'L2' / 'L3' (TrainingDifficulty)
+  //     - 客户端列表过滤: 发小写 'l1' / 'l2' / 'l3'
+  //       (客户端的 TrainingDifficulty enum 就是 { l1, l2, l3 }, .name 取出来是小写)
+  //     - DTO 原来用 `@IsIn(['L1','L2','L3'])` 校验 → 小写直接被拦成 400
+  //   修法: **query 兼容大小写** (统一转大写再校验), 响应体**固定大写**.
+  //     为什么响应体不动: 客户端的解析是 `d.name.toUpperCase() == json['difficulty']`
+  //     —— 它自己会把枚举名转成大写再比, 所以**只有大写**的响应能被解析命中;
+  //     改成小写反而会让客户端的 firstWhere 抛异常、整条题目被丢弃.
+  //     也就是说: query 放宽, 响应收紧 —— 两边都在"能用的那个方向"上对齐.
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.toUpperCase() : value))
   @IsIn(DIFFICULTY_VALUES)
   @Type(() => String)
   difficulty?: TrainingDifficulty;

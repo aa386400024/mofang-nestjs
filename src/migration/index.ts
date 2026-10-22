@@ -72,5 +72,16 @@ export { AddVisitorFullPersonas1714900000013 } from './1714900000013-AddVisitorF
 //   live_supervision_hints / transcript_bookmarks / transference_resistance_marks
 //   + training_sessions (知情同意 3 列 + tech_stats) + long_term_case_sessions (tech_stats).
 export { AddCounselorSessionCore1714900000014 } from './1714900000014-AddCounselorSessionCore';
+// V2026-10-22 治本 (V1.3 §2 — 微技能自由练习引擎 2 张新表, 跟 bin/ormconfig.ts 严格 1:1):
+//   practice_scenarios (场景变体库 20 列 + 4 索引) + practice_attempts (自由作答记录
+//   12 列 + 3 索引), counselor-practice-engine-v1.3-freeform.md §2 拍板.
+//   内容不进 migration (spec §6.3): 60 条场景由 bin/seed-practice-scenarios.ts
+//   按 scenario_key 幂等 upsert.
+export { AddPracticeScenarios1714900000015 } from './1714900000015-AddPracticeScenarios';
+// V2026-10-22 治本 (V1.3 §7.5 — 用户私有场景表注册, 跟 bin/ormconfig.ts 严格 1:1):
+//   practice_custom_scenarios (用户私有场景 13 列 + 3 索引)
+//   + practice_attempts.scenario_source 列 (seed / custom, 默认 seed)
+//   + quota_usage.period 放宽到 VARCHAR(10) (支持 §7.4 的「每天 5 次」日粒度计数).
+export { AddPracticeCustomScenarios1714900000016 } from './1714900000016-AddPracticeCustomScenarios';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

@@ -42,6 +42,7 @@ function mapBizCodeToHttpStatus(code: BizCode): HttpStatus {
   switch (code) {
     case BizCode.ResourceNotFound:
     case BizCode.UserNotFound:
+    case BizCode.PracticeScenarioNotFound:
       return HttpStatus.NOT_FOUND;
     case BizCode.UserAlreadyExists:
     case BizCode.EmailAlreadyVerified:
@@ -135,6 +136,13 @@ function getBizCodeDefaultMessage(code: BizCode): string {
     [BizCode.PrivacyExportEmpty]: '没有可导出的数据',
     [BizCode.PrivacyDeleteCooldown]: '账号删除冷却中 (7 天), 请冷静期后重试',
     [BizCode.PrivacyAuthorizationNotFound]: '授权记录不存在',
+
+    // V2026-10-22 (V1.3 §7 / §8 — 微技能自由练习):
+    //   §8.5 E2: 空池与无权访问要能被前端分开处理, 文案也要分开.
+    [BizCode.PracticeScenarioPoolEmpty]: '暂无可练习的场景 (内容库为空或已被全部排除)',
+    [BizCode.PracticeScenarioNotFound]: '练习场景不存在或不可用',
+    [BizCode.PracticeTurnOutOfRange]: '提交轮次超出该场景设定的往返轮数',
+    [BizCode.PracticeCustomScenarioStorageFull]: '我的真实场景已达条数上限',
 
     // V2026-09-14 长期方案 Stage C: Growth 模块 8 个错误码默认文案
     [BizCode.GrowthDailyToolsFetchFail]: '今日推荐工具拉取失败',

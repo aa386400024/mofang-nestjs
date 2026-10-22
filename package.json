@@ -19,6 +19,7 @@
     "migration:create": "typeorm-ts-node-commonjs migration:create",
     "migration:run": "typeorm-ts-node-commonjs -d bin/ormconfig.ts migration:run",
     "seed:training": "ts-node -T -P tsconfig.scripts.json bin/seed-training-exercises.ts",
+    "seed:practice": "ts-node -T -P tsconfig.scripts.json bin/seed-practice-scenarios.ts",
     "migration:revert": "typeorm-ts-node-commonjs -d bin/ormconfig.ts migration:revert",
     "migration:show": "typeorm-ts-node-commonjs -d bin/ormconfig.ts migration:show",
     "build": "tsc -p tsconfig.build.json",

@@ -26,6 +26,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
+import { PracticeQuotaType } from '../enums/practice-quota-type.enum';
 import { QuotaType } from '../enums/quota-type.enum';
 
 /**
@@ -49,12 +50,21 @@ export class QuotaUsage {
   @Column({ type: 'char', length: 36, name: 'user_id' })
   userId!: string;
 
-  // 3 类配额 (voice_session / long_term_case / voice_analysis), V0.x 风格 enum 强类型.
+  // 3 类会员权益配额 (voice_session / long_term_case / voice_analysis), V0.x 风格 enum 强类型.
+  //
+  // V2026-10-22 治本 (V1.3 §7.4 — 练习域配额并入同一张表):
+  //   类型放宽为 `QuotaType | PracticeQuotaType` 的并集, 而不是加进 QuotaType:
+  //     - QuotaType 是**会员权益** (可售卖的价值), 且跟客户端 1:1 wire
+  //     - PracticeQuotaType 是**单接口调用频率** (防滥用 + 控成本), 不是权益
+  //   两类共用 quota_usage 表 (spec §7.4 要求沿用), 但会员链路的
+  //   `getQuotaStatuses` 仍只遍历 QuotaType, 不会多吐一行"余额 0"的权益项.
   @Column({ type: 'varchar', length: 40, name: 'quota_type' })
-  quotaType!: QuotaType;
+  quotaType!: QuotaType | PracticeQuotaType;
 
-  // 月度周期 (YYYY-MM 格式, e.g. "2026-10"). 月底清零, 不累积到下月.
-  @Column({ type: 'varchar', length: 7 })
+  // 周期串: 月度粒度 'YYYY-MM' (会员权益, V0.x 口径) 或日粒度 'YYYY-MM-DD'
+  // (练习域日配额, V1.3 §7.4). 两种粒度靠 UNIQUE (user_id, quota_type, period)
+  // 天然互不冲突; 列宽已由 migration 1714900000016 放宽到 VARCHAR(10).
+  @Column({ type: 'varchar', length: 10 })
   period!: string;
 
   // 本月已用配额.

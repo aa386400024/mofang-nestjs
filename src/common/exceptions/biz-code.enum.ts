@@ -105,4 +105,14 @@ export enum BizCode {
   GrowthCompleteFail = 40_006, // POST /growth/tools/:id/complete 写入失败
   GrowthToolSourceInvalid = 40_007, // tool_completion_source 不在 9 enum
   GrowthToolFragmentsGrantInvalid = 40_008, // fragments_grant key 不在 5 code 或 value 越界
+
+  // ====== 微技能自由练习模块 (45xxx) — V1.3 §7 / §8 专用 ======
+  //   §8.5 E2 治本: 「空库」与「无权访问」必须能被前端区分开.
+  //     之前的实现对两种情况都抛 NotFoundException, 前端只能看到同一个 404,
+  //     于是把"内容库还没灌 seed"显示成"你的场景被删了" —— 两种完全不同的用户沟通.
+  //     现在拆成两个 code: 池空 = 409/400 级的"暂时没有可练的", 场景不存在 = 404.
+  PracticeScenarioPoolEmpty = 45_001, // 可练场景池为空 (内容库未灌 seed / 全部被 exceptMode 排除)
+  PracticeScenarioNotFound = 45_002, // 场景不存在 / 已停用 / 不属于本人
+  PracticeTurnOutOfRange = 45_003, // 提交轮次超出场景设定的往返轮数 (§8.5 B1)
+  PracticeCustomScenarioStorageFull = 45_004, // 私有场景条数达上限 (§8.5 B2)
 }
