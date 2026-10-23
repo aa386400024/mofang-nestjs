@@ -65,21 +65,36 @@ const EMOTION_BASELINE_LABEL: Readonly<Record<PersonaEmotionBaseline, string>> =
   numb_flat: '情感麻木',
 };
 
-/** 难度对应情绪 tag 使用频率. */
+/**
+ * 难度对应情绪 tag 使用频率.
+ *
+ * V2026-10-23 治本 (v2.0 语音对语音 — tag 集对齐官方 TTS 语气词白名单):
+ *   原因: 这些 tag 不是"随便写的括号词", 而是**官方 TTS 的语气词指令**:
+ *     官方《双向流式语音合成》文档列了支持的 tag 白名单 (且仅 speech-2.8-hd / speech-2.8-turbo 支持):
+ *     (laughs) (chuckle) (coughs) (clear-throat) (groans) (breath) (pant) (inhale) (exhale)
+ *     (gasps) (sniffs) (sighs) (snorts) (burps) (lip-smacking) (humming) (hissing) (emm) (sneezes)
+ *     白名单外的 tag 不会被当作语气指令 —— 在"逐句出声"场景下会被**当成普通文字念出来**
+ *     (用户会听到机器念出 "voice trembling" 这类英文), 属于直接影响产品体验的缺陷.
+ *   修法: tag 集收敛到官方白名单内. 旧集合里的 (voice trembling) / (crying) / (laughs softly) /
+ *     (pauses) 均**不在**白名单, 已替换为语义相近的官方 tag.
+ *   反双胞胎:
+ *     - 不保留"看起来更像人"但不被支持的自造 tag: 文本模式下无害, 语音模式下是事故
+ *     - 不在 TTS 层做 tag 清洗: 清洗只能"删", 删了就没有语气了; 正确做法是**源头只生成合法 tag**
+ */
 const DIFFICULTY_TAG_FREQ: Readonly<Record<PersonaDifficulty, string>> = {
   L1: `情绪 inline tag 频率 (L1 入门):
 - 可主动用, 表达真实感受
-- 推荐: (sighs) (breath) (voice trembling) (crying) (laughs softly)
+- 推荐 (只可用官方支持的语气词): (sighs) (breath) (laughs) (sniffs) (humming)
 - 每 2-3 轮至少出现一个 tag, 让 TTS 语气有起伏`,
 
   L2: `情绪 inline tag 频率 (L2 进阶):
 - 偶尔用, 不频繁
-- 推荐: (sighs) (breath) (pauses)
+- 推荐 (只可用官方支持的语气词): (sighs) (breath) (chuckle)
 - 多数回复可不用 tag, 偶尔压抑不住流露一个 (sighs)`,
 
   L3: `情绪 inline tag 频率 (L3 专家):
 - 极少用, 最多 5-8 轮一个
-- 推荐: 偶尔一个 (sighs) 表示压抑, 其它不出现
+- 推荐 (只可用官方支持的语气词): (sighs) (emm)
 - 即便内心有情绪, 也不主动让咨询师察觉`,
 };
 

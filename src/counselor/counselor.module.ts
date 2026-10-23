@@ -290,6 +290,12 @@ import { CounselorProfileService } from './providers/counselor-profile.service';
 import { CounselorSupervisionProcessor } from './providers/counselor-supervision.processor';
 import { CounselorUiPreferenceService } from './providers/counselor-ui-preference.service';
 import { CounselorVisitorContextContributor } from './providers/counselor-visitor-context.contributor';
+// V2026-10-23 治本 (v2.0 语音对语音 — 公共人物模板解析器):
+//   实现 voice 侧的 VoiceTemplateResolver 插槽 (依赖倒置): WS 握手要校验
+//   `templateId` 是否指向已上架公共人物, 但这张表属 counselor 业务域, 而网关在 voice
+//   (agent) 侧 —— 直接 import 会形成 agent → business 反向依赖.
+//   该解析器只对外暴露**表层摘要**, 7 大块剧本永不跨模块 (零压红线的结构性保证).
+import { CounselorVisitorPoolTemplateResolver } from './providers/counselor-visitor-pool-template.resolver';
 import { InformedConsentService } from './providers/informed-consent.service';
 import { LiveSupervisionHintService } from './providers/live-hint.service';
 import { CounselorLlmJsonClient } from './providers/llm-json.client';
@@ -523,6 +529,9 @@ import { VisitorPoolService } from './providers/visitor-pool.service';
     //      agent 侧 0 处 import counselor —— 依赖倒置, 打破循环依赖)
     ProfileExtractionService,
     CounselorVisitorContextContributor,
+    // V2026-10-23 治本 (v2.0 语音对语音 — 公共人物模板解析器):
+    //   注册进 voice 侧的 @Global 模板解析注册表, 供 WS 握手校验 templateId
+    CounselorVisitorPoolTemplateResolver,
     // V2026-10-22 治本 (V1.3 §3 — 微技能自由练习 3 service):
     //   PracticeScenarioService (读侧 + 可见性) / PracticeEvaluatorService (评判引擎)
     //   PracticeAttemptService (写侧编排 + 私有场景生成)

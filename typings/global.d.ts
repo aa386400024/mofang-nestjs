@@ -102,7 +102,6 @@ export declare global {
       MINIMAX_LLM_TIMEOUT_MS?: string;
       MINIMAX_LLM_MAX_RETRIES?: string;
       MINIMAX_TTS_MODEL?: string;
-      MINIMAX_TTS_DEFAULT_VOICE?: string;
       MINIMAX_ASR_TOKEN_SECRET?: string;
       MINIMAX_ASR_TOKEN_TTL_SEC?: string;
       // V2026-10-23 治本 (语音微训练 STT 代理 — 本地可调参数):
@@ -116,9 +115,25 @@ export declare global {
       PRACTICE_ASR_RATE_LIMIT_WINDOW_MS?: string; // 限流窗口
       // V2026-10-08: TTS bidi 客户端 + 连接池 (Phase 1.2)
       MINIMAX_TTS_TIMEOUT_MS?: string;
-      MINIMAX_TTS_MAX_RETRIES?: string;
       MINIMAX_TTS_MAX_CONNECTIONS?: string; // 连接池上限, 默认 100
       MINIMAX_TTS_ACQUIRE_TIMEOUT_MS?: string; // acquire 排队超时, 默认 10s
+      // V2026-10-23 治本 (v2.0 语音对语音 — 官方 T2A V2 协议重写, spec §3.2/§3.3):
+      //   下面是本轮新增的 9 个 env 键. 不声明会直接报 TS4111
+      //   (noPropertyAccessFromIndexSignature: 走 @types/node 的 [key: string] 索引签名时
+      //    点访问不合法, 必须 bracket 访问) —— 与上面 MINIMAX_* 同一治本思路:
+      //   **显式声明到 ProcessEnv**, 不用 bracket 访问绕过.
+      //   MINIMAX_TTS_DEFAULT_VOICE / MINIMAX_TTS_MAX_RETRIES 同步删除:
+      //     前者是未核实的占位音色 (官方枚举外的 mandarin_female_001), 后者从未被实现消费;
+      //     代码侧已无任何引用, 留着声明只会让人以为还能配.
+      MINIMAX_TTS_VOICE_ID?: string; // 系统音色 voice_id (必填, 空 = voice 模式直接报错)
+      MINIMAX_TTS_LANGUAGE_BOOST?: string; // 语言增强, 默认 Chinese
+      MINIMAX_TTS_SPEED?: string; // 语速, 官方值域 [0.5, 2]
+      MINIMAX_TTS_VOLUME?: string; // 音量, 官方值域 (0, 10]
+      MINIMAX_TTS_PITCH?: string; // 音调, 官方值域 [-12, 12]
+      MINIMAX_TTS_SAMPLE_RATE?: string; // 采样率, 官方枚举 8000~44100 (默认 32000)
+      MINIMAX_TTS_BITRATE?: string; // 码率, 官方枚举 32000/64000/128000/256000 (仅 mp3 生效)
+      MINIMAX_TTS_KEEPALIVE_MS?: string; // 客户端保活 ping 间隔 (官方要求客户端主动 ping 防 2201), 0 = 关闭
+      MINIMAX_TTS_MAX_SENTENCE_CHARS?: string; // 单句最大字符数 (超长句强制切, 兼作上游 2204 本地防线)
       // V2026-10-08: Voice Gateway 空闲超时 (Phase 3)
       VOICE_SESSION_IDLE_TIMEOUT_MS?: string;
       EMBEDDING_PROVIDER_DEV?: string;

@@ -120,14 +120,27 @@ export const config = {
     llmModel: process.env.MINIMAX_LLM_MODEL ?? 'MiniMax-M3',
     llmTimeoutMs: Number(process.env.MINIMAX_LLM_TIMEOUT_MS ?? 30_000),
     llmMaxRetries: Number(process.env.MINIMAX_LLM_MAX_RETRIES ?? 2),
-    // TTS bidi (Phase 1.2 接入)
-    ttsModel: process.env.MINIMAX_TTS_MODEL ?? 'speech-2.8',
-    ttsDefaultVoice: process.env.MINIMAX_TTS_DEFAULT_VOICE ?? 'mandarin_female_001',
+    // V2026-10-23 治本 (v2.0 语音对语音 — TTS bidi 按官方 T2A V2 协议重写, spec §3.1/§3.2/§3.3):
+    //   模型: 官方枚举只有 turbo / hd 后缀, 旧的 `speech-2.8` **不存在** (必然 2013).
+    //   音色: 旧的 `mandarin_female_001` 是未核实占位值, **不得当可用值上线** ——
+    //     因此这里不给默认值: 未配置时上层 fail-fast 报错, 不用占位音色顶替.
+    ttsModel: process.env.MINIMAX_TTS_MODEL ?? 'speech-2.8-turbo',
+    ttsVoiceId: process.env.MINIMAX_TTS_VOICE_ID ?? '',
+    ttsLanguageBoost: process.env.MINIMAX_TTS_LANGUAGE_BOOST ?? 'Chinese',
+    ttsSpeed: Number(process.env.MINIMAX_TTS_SPEED ?? 1),
+    ttsVolume: Number(process.env.MINIMAX_TTS_VOLUME ?? 1),
+    ttsPitch: Number(process.env.MINIMAX_TTS_PITCH ?? 0),
+    ttsSampleRate: Number(process.env.MINIMAX_TTS_SAMPLE_RATE ?? 32_000),
+    ttsBitrate: Number(process.env.MINIMAX_TTS_BITRATE ?? 128_000),
     // V2026-10-08: TTS bidi 连接池配置 (Phase 1.2)
     ttsTimeoutMs: Number(process.env.MINIMAX_TTS_TIMEOUT_MS ?? 30_000),
-    ttsMaxRetries: Number(process.env.MINIMAX_TTS_MAX_RETRIES ?? 2),
     ttsMaxConnections: Number(process.env.MINIMAX_TTS_MAX_CONNECTIONS ?? 100),
     ttsAcquireTimeoutMs: Number(process.env.MINIMAX_TTS_ACQUIRE_TIMEOUT_MS ?? 10_000),
+    // V2026-10-23 治本: 保活 ping 间隔 (官方不主动 ping, 120s 空闲会被以 2201 断开);
+    //   0 = 关闭保活 (单轮短对话可不保活)
+    ttsKeepaliveMs: Number(process.env.MINIMAX_TTS_KEEPALIVE_MS ?? 30_000),
+    // V2026-10-23 治本: 单句最大字符数 (超长句强制切, 兼作上游 2204 的本地防线)
+    ttsMaxSentenceChars: Number(process.env.MINIMAX_TTS_MAX_SENTENCE_CHARS ?? 100),
     // ASR (Phase 1.3 客户端直连, 这里存服务端 proxy / token 签发用)
     asrTokenSecret: process.env.MINIMAX_ASR_TOKEN_SECRET,
     asrTokenTtlSec: Number(process.env.MINIMAX_ASR_TOKEN_TTL_SEC ?? 300), // 5min
