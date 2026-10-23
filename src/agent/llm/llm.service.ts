@@ -185,7 +185,8 @@ export class LlmService {
   ): Promise<LlmStream> {
     // V2026-10-21 治本 (V1.2 VS-A — 4 个 per-call 开关, 全部 optional, 老调用方 0 行为变化):
     //   原因: counselor 分析链路要用 M3.1-Flash + 思考深度 + 新生长度上限字段 + 更长超时,
-    //     但 .env 的 MINIMAX_LLM_MODEL / MINIMAX_BASE_URL 是 ASR/TTS/voice 共用的全局值, 不能改.
+    //     但 .env 的 MINIMAX_LLM_MODEL / MINIMAX_BASE_URL 是 ASR/TTS/voice/STT 共用的全局值,
+    //     改它会同时波及所有链路, 所以模型选择只能 per-call 覆盖.
     //     官方文档另确认: M3.1-Flash 的 temperature/top_p 已被忽略 (固定 1 / 0.95),
     //     且 thinking token 计入生成长度上限 → 结构化 JSON 必须用 max_completion_tokens 且留足余量.
     //   修法:

@@ -116,6 +116,19 @@ export enum BizCode {
   PracticeTurnOutOfRange = 45_003, // 提交轮次超出场景设定的往返轮数 (§8.5 B1)
   PracticeCustomScenarioStorageFull = 45_004, // 私有场景条数达上限 (§8.5 B2)
 
+  // ====== 语音微训练 STT 代理 (45_1xx) — V2026-10-23 spec §2.4 ======
+  //   为什么要**独立**一套码, 而不是复用通用 1001/1003/1005:
+  //   §2.4 要求"不同上游失败 → 前端不同文案 + 不同 HTTP 语义", 而通用码
+  //   (InvalidParameter / RateLimited / ThirdPartyError) 只能表达"失败了",
+  //   表达不了"是**音频本身**不合格 (400/413/422) 还是"**上游**不可用" (502/504).
+  //   前端据此分流: 音频不合格 → 引导重录; 上游不可用 → 引导稍后重试.
+  PracticeAsrAudioInvalid = 45_101, // 音频格式/时长不支持 (上游 400 + 本地预检)
+  PracticeAsrAudioTooLarge = 45_102, // 音频超 50MB (上游 413 + 本地预检)
+  PracticeAsrNoSpeechDetected = 45_103, // 未识别到有效语音 (上游 422; 不回显敏感细节)
+  PracticeAsrUpstreamUnavailable = 45_104, // 上游不可用 (上游 401/402/5xx + 网络故障)
+  PracticeAsrUpstreamRateLimited = 45_105, // 上游限流 (上游 429)
+  PracticeAsrTimeout = 45_106, // 上游转写超时 (本地 AbortSignal 超时)
+
   // ====== 首页金句模块 (46xxx) — 「每日一句」后端接口 ======
   //   §4 零压红线: 「不下发、不展示全站 likeCount」—— 错误码同理不应带出任何
   //   「有多少人收藏了这类内容」的信息, 只描述**当前用户自己的操作**是否成立.

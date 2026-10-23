@@ -36,12 +36,48 @@
 //     5. GET  /counselor/practice/scenarios/mine → 命中本端点 (不是 :scenarioId 路由)
 //
 //   时间戳: 2026-10-22
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+//
+// V2026-10-23 治本 (语音微训练 STT 代理 — 新增 POST /counselor/practice/asr):
+//   原因: §3.3 评判链路只收**文本**, 而"文本从哪来"一直缺一段 —— 前端录音按钮是纯
+//     UI 计时器, 停止后提交空 submittedText. spec §2 拍板: 服务端代理 MiniMax HTTP
+//     STT (`asr-1.0`), 音频不落盘, 前端拿到 text/duration 后**仍走现有 §3.3 提交**
+//     (submittedText=text, recordSeconds≈duration) —— 评判链路 0 改动.
+//   修法: 本端点是**纯代理 + 纯转交**: 参数管道阶段收 multipart, service 做预检与
+//     错误归一, client 负责跟上游说话. 端点本身不写任何业务判断.
+//   反双胞胎:
+//     - 不复用 voice/asr-token 的 WS 通道: 那是全真会谈的实时流式协议, 且未与官方
+//       联调验证; 训练题是"录完一次性转写", 用 WS 是过度设计 (spec §2.1 方案 C)
+//     - 不在端点里改 §3.3 的 DTO: 语音练习的评判口径不变, 只是把"空文本"换成"真文本"
+//     - 不下发 MINIMAX_API_KEY: 前端永远拿不到上游凭证 (spec §2.1 方案 A)
+//   验证:
+//     1. tsc 0 错
+//     2. swagger 页面 /counselor/practice/asr 可见 (multipart + language 头)
+//     3. 无 token 访问 → 401
+//     4. 上传一段中文 wav → 200 { text, duration, trace_id }
+//
+//   时间戳: 2026-10-23
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  UploadedFile,
+  UseFilters,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
+import 'multer'; // 加载 namespace, 让 Express.Multer.File 全局可用 (跟 profile.controller 同 pattern)
 
 import { CurrentUser } from '../../user/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
 
+import { PRACTICE_ASR_UPSTREAM_MAX_FILE_BYTES } from '../config/practice-asr.config';
+import type { PracticeAsrResultDto } from '../dto/practice-asr.dto';
 import type {
   CreateCustomPracticeScenarioDto,
   CustomPracticeScenarioListDto,
@@ -55,6 +91,9 @@ import type {
   RandomPracticeScenarioResultDto,
   SubmitPracticeAttemptDto,
 } from '../dto/practice.dto';
+import { PracticeAsrUploadFilter } from '../providers/practice-asr-upload.filter';
+import { PracticeAsrService } from '../providers/practice-asr.service';
+import { PracticeAsrThrottlerGuard } from '../providers/practice-asr.throttler';
 import { PracticeAttemptService } from '../providers/practice-attempt.service';
 import { PracticeCustomScenarioService } from '../providers/practice-custom-scenario.service';
 import { PracticeScenarioService } from '../providers/practice-scenario.service';
@@ -68,6 +107,7 @@ export class CounselorPracticeController {
     private readonly scenarioService: PracticeScenarioService,
     private readonly attemptService: PracticeAttemptService,
     private readonly customScenarioService: PracticeCustomScenarioService,
+    private readonly asrService: PracticeAsrService,
   ) {}
 
   @Get('progress')
@@ -137,5 +177,66 @@ export class CounselorPracticeController {
     @Body() dto: CreateCustomPracticeScenarioDto,
   ): Promise<CustomPracticeScenarioResultDto> {
     return this.attemptService.createCustomScenario(user.userId, dto);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // §2 POST /counselor/practice/asr — 语音微训练 STT 代理
+  // ══════════════════════════════════════════════════════════════════════
+
+  /**
+   * 录音文件一次性转写 (服务端代理 MiniMax HTTP STT).
+   *
+   * 契约见 spec `counselor-practice-asr-stt-and-llm-access-2026-10-23.md` §2.2:
+   *   - 请求: `multipart/form-data`, 字段 `file` (音频), 请求头 `language` (可选 BCP-47)
+   *   - 响应: `{ text, duration, trace_id }`
+   *   - 鉴权: 复用 JwtAuthGuard (用户 JWT)
+   *
+   * 关键约束:
+   *   - **不落盘**: multer 默认 storage 就是 memoryStorage, 音频只在内存里, 处理完即弃
+   *   - **体积硬闸**: multer limits.fileSize = 上游硬限制 (50 MiB), 超限直接中断上传
+   *   - **限流**: 方法级 guard 排在类级 JwtAuthGuard 之后, 才能拿到 request.user 做
+   *     userId 级限流 (见 practice-asr.throttler.ts 的 guard 顺序说明)
+   *   - **错误归一**: 路由级 filter 把 413/400 翻成 ASR 专用业务码 (见 upload filter)
+   */
+  @Post('asr')
+  @ApiConsumes('multipart/form-data')
+  @ApiHeader({
+    name: 'language',
+    required: false,
+    description:
+      'BCP-47 主语言标签 (zh / yue / en / ja / ko / ...). 不传或空 = 混合语言识别. ' + '这是**请求头**, 不是表单字段. 训练题中文传 zh.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description:
+            '录音文件. 支持 wav / aiff / flac / alac(m4a) / mp3 / aac / opus / ogg; ' +
+            '**不支持裸 PCM**. 建议单声道 16kHz 或 mp3/aac/opus 压缩格式.',
+        },
+      },
+    },
+  })
+  @ApiOperation({
+    summary: '语音微训练录音转写 (服务端代理 STT, 音频不落盘)',
+    description:
+      '返回 { text, duration, trace_id }. text 为空串表示未识别到内容 (前端据此走' +
+      '"未识别只出技术提示"分支, **不得伪造文本**). 拿到结果后仍走 ' +
+      'POST /counselor/practice/scenarios/:scenarioId/evaluate 提交 (submittedText=text, ' +
+      'recordSeconds≈duration) —— 评判链路不变.',
+  })
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: PRACTICE_ASR_UPSTREAM_MAX_FILE_BYTES } }))
+  @UseFilters(PracticeAsrUploadFilter)
+  @UseGuards(PracticeAsrThrottlerGuard)
+  transcribe(
+    @CurrentUser() user: { userId: string },
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Headers('language') language?: string,
+  ): Promise<PracticeAsrResultDto> {
+    return this.asrService.transcribe({ userId: user.userId, file, language });
   }
 }

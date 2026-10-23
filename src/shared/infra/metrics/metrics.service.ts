@@ -49,6 +49,13 @@ export class MetricsService implements OnModuleInit {
   private auditLogEnqueuedCounter!: Counter<string>;
   private auditLogFailedCounter!: Counter<string>;
 
+  // V2026-10-23 治本 (语音微训练 STT 代理 — 上游转写用量):
+  //   - 转写次数: 成功 / 失败, 用于成本核算 (上游按音频时长计费)
+  //   - 转写耗时: 用于观察上游 P95 延迟, 异常时能第一时间发现
+  //   不记录音频内容 (spec §2.5: 只记 userId / duration / trace_id / 耗时)
+  private practiceAsrTranscribeCounter!: Counter<string>;
+  private practiceAsrDuration!: Histogram<string>;
+
   constructor(private readonly config: ConfigService) {}
 
   onModuleInit(): void {
@@ -123,6 +130,21 @@ export class MetricsService implements OnModuleInit {
       labelNames: ['event', 'phase'],
       registers: [this.registry],
     });
+
+    // ----- 语音微训练 STT -----
+    this.practiceAsrTranscribeCounter = new Counter({
+      name: 'practice_asr_transcribe_total',
+      help: '语音转写调用次数 (按 result 标签: success / failed)',
+      labelNames: ['result'],
+      registers: [this.registry],
+    });
+    this.practiceAsrDuration = new Histogram({
+      name: 'practice_asr_transcribe_duration_seconds',
+      help: '语音转写端到端耗时 (秒, 含上游调用)',
+      // 转写是"等一段音频跑完"的量级, 桶比默认 HTTP 桶更贴合.
+      buckets: [0.2, 0.5, 1, 2, 3, 5, 8, 10, 15, 20, 30, 45, 60],
+      registers: [this.registry],
+    });
   }
 
   // ========================================================================
@@ -188,6 +210,22 @@ export class MetricsService implements OnModuleInit {
       return;
     }
     this.auditLogFailedCounter.inc({ event, phase });
+  }
+
+  /** 语音转写次数 (成功 / 失败). */
+  incPracticeAsrTranscribe(result: 'success' | 'failed'): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.practiceAsrTranscribeCounter.inc({ result });
+  }
+
+  /** 语音转写端到端耗时 (秒). */
+  observePracticeAsrDuration(durationSec: number): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.practiceAsrDuration.observe(durationSec);
   }
 
   // ========================================================================

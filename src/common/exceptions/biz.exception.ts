@@ -73,11 +73,36 @@ const UNAUTHORIZED_CODES: ReadonlySet<BizCode> = new Set([
   BizCode.TokenInvalid,
 ]);
 
-const RATE_LIMITED_CODES: ReadonlySet<BizCode> = new Set([BizCode.RateLimited, BizCode.VerificationCodeRateLimited]);
+// V2026-10-23 治本 (STT 上游 429 必须真的是 429):
+//   原因: 上游 429 (rate_limit_error) 的语义是"可重试的限流", HTTP 语义必须是 429,
+//     前端据此决定"稍等几秒自动重试"还是"提示用户稍后再来". 漏挂进这个分组的话,
+//     它会落到默认分支 → 400, 前端把限流当成"参数错了", 于是既不重试也不提示, 用户只
+//     看到一句莫名其妙的话.
+//   修法: 把 STT 的上游限流码并进 RATE_LIMITED_CODES (与全局 RateLimited 同一语义).
+const RATE_LIMITED_CODES: ReadonlySet<BizCode> = new Set([
+  BizCode.RateLimited,
+  BizCode.VerificationCodeRateLimited,
+  BizCode.PracticeAsrUpstreamRateLimited,
+]);
 
 const LOCKED_CODES: ReadonlySet<BizCode> = new Set([BizCode.AccountLocked]);
 
 const FORBIDDEN_CODES: ReadonlySet<BizCode> = new Set([BizCode.Forbidden, BizCode.VisitorPoolForbidden]);
+
+// V2026-10-23 治本 (语音微训练 STT 代理 — 上游错误要映射成不同的 HTTP 语义):
+//   原因: spec §2.4 把上游 8 类错误分成两组 —— "音频不合格" (400/413/422, 用户重录
+//     能解决) 与 "上游不可用" (502/504, 用户等一下就行). 这两组若都落到默认 400,
+//     前端就没法分流, 用户会被反复引导去"重录一段" —— 而真因是上游挂了, 重录一万次
+//     也没用. 治本: 显式建 4 个 status 分组, 语义边界写进代码而不是靠调用方记忆.
+//   反双胞胎: 不为这 4 个 status 单独开一个 switch (复杂度会随业务码数量线性增长,
+//     上一次治本刚把 mapBizCodeToHttpStatus 的 switch 拆成 Set 分组, 不走回头路).
+const PAYLOAD_TOO_LARGE_CODES: ReadonlySet<BizCode> = new Set([BizCode.PracticeAsrAudioTooLarge]);
+
+const UNPROCESSABLE_CODES: ReadonlySet<BizCode> = new Set([BizCode.PracticeAsrNoSpeechDetected]);
+
+const BAD_GATEWAY_CODES: ReadonlySet<BizCode> = new Set([BizCode.PracticeAsrUpstreamUnavailable]);
+
+const GATEWAY_TIMEOUT_CODES: ReadonlySet<BizCode> = new Set([BizCode.PracticeAsrTimeout]);
 
 /**
  * BizCode 默认 HTTP status 映射.
@@ -101,6 +126,18 @@ function mapBizCodeToHttpStatus(code: BizCode): HttpStatus {
   }
   if (FORBIDDEN_CODES.has(code)) {
     return HttpStatus.FORBIDDEN;
+  }
+  if (PAYLOAD_TOO_LARGE_CODES.has(code)) {
+    return HttpStatus.PAYLOAD_TOO_LARGE;
+  }
+  if (UNPROCESSABLE_CODES.has(code)) {
+    return HttpStatus.UNPROCESSABLE_ENTITY;
+  }
+  if (BAD_GATEWAY_CODES.has(code)) {
+    return HttpStatus.BAD_GATEWAY;
+  }
+  if (GATEWAY_TIMEOUT_CODES.has(code)) {
+    return HttpStatus.GATEWAY_TIMEOUT;
   }
   if (code === BizCode.ServiceUnavailable) {
     return HttpStatus.SERVICE_UNAVAILABLE;
@@ -182,6 +219,15 @@ function getBizCodeDefaultMessage(code: BizCode): string {
     [BizCode.PracticeScenarioNotFound]: '练习场景不存在或不可用',
     [BizCode.PracticeTurnOutOfRange]: '提交轮次超出该场景设定的往返轮数',
     [BizCode.PracticeCustomScenarioStorageFull]: '我的真实场景已达条数上限',
+
+    // V2026-10-23 (语音微训练 STT 代理 — spec §2.4):
+    //   文案统一给"用户下一步能做什么", 不回显上游原始 message (可能含内部错误码).
+    [BizCode.PracticeAsrAudioInvalid]: '音频格式或时长不支持，请重新录一段',
+    [BizCode.PracticeAsrAudioTooLarge]: '音频过大，请缩短后重试',
+    [BizCode.PracticeAsrNoSpeechDetected]: '未识别到有效语音，请再试一次',
+    [BizCode.PracticeAsrUpstreamUnavailable]: '转写服务暂不可用，稍后再试',
+    [BizCode.PracticeAsrUpstreamRateLimited]: '太频繁了，稍等几秒再试',
+    [BizCode.PracticeAsrTimeout]: '转写超时了，稍后再试',
 
     // V2026-10-22 (首页金句 · 每日一句):
     //   QuoteLibraryEmpty 走 404: 内容库没灌 seed 是"服务端还没准备好",

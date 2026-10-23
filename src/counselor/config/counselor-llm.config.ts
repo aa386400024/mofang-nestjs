@@ -8,8 +8,8 @@
 //   修法:
 //     - COUNSELOR_LLM_DEFAULT_MODEL: 默认 MiniMax-M3.1-Flash (大炮 2026-10-21 拍板).
 //       **不写死进代码**: 可用 env MINIMAX_COUNSELOR_LLM_MODEL 覆盖, 因为
-//       .env 的 MINIMAX_BASE_URL 指向 api.minimax.chat, 若该域名未开 M3.1-Flash,
-//       覆盖成 MiniMax-M3 即可 (M3 同样支持 chat/completions).
+//       若基址所在站点未开通 M3.1-Flash, 覆盖成 MiniMax-M3 即可
+//       (M3 同样支持 chat/completions).
 //     - COUNSELOR_LLM_PROFILES: 每个场景一组参数 (reasoningEffort / maxCompletionTokens / timeoutMs).
 //     - supportsReasoningEffort(): reasoning_effort **仅 M3.1-Flash 生效**, 其他模型传了
 //       上游可能拒 (官方文档: reasoning_effort 仅 MiniMax-M3.1-Flash 生效) → 调用前判断.

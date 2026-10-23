@@ -105,6 +105,15 @@ export declare global {
       MINIMAX_TTS_DEFAULT_VOICE?: string;
       MINIMAX_ASR_TOKEN_SECRET?: string;
       MINIMAX_ASR_TOKEN_TTL_SEC?: string;
+      // V2026-10-23 治本 (语音微训练 STT 代理 — 本地可调参数):
+      //   上游路径 / 模型名是协议事实 (固定在 counselor/config/practice-asr.config.ts),
+      //   这里只声明"本地怎么跑"的可调项.
+      MINIMAX_ASR_TIMEOUT_MS?: string; // 上游转写超时, 与 LLM 超时隔离 (spec §2.5)
+      MINIMAX_ASR_MAX_FILE_BYTES?: string; // 本地体积上限, 默认与上游一致 (50 MiB)
+      MINIMAX_ASR_MAX_DURATION_SEC?: string; // 本地时长上限, 默认与上游一致 (500s)
+      // V2026-10-23 治本 (微技能自由练习 — 端点级限流):
+      PRACTICE_ASR_RATE_LIMIT_PER_MINUTE?: string; // 单用户每分钟转写次数
+      PRACTICE_ASR_RATE_LIMIT_WINDOW_MS?: string; // 限流窗口
       // V2026-10-08: TTS bidi 客户端 + 连接池 (Phase 1.2)
       MINIMAX_TTS_TIMEOUT_MS?: string;
       MINIMAX_TTS_MAX_RETRIES?: string;

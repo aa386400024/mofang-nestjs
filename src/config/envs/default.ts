@@ -115,7 +115,7 @@ export const config = {
   //   - baseUrl / model / timeout / maxRetries 都可 env 覆盖 (生产调优)
   //   - apiKey 必须 env 注入, 不在代码里硬编码, 也不写 default
   minimax: {
-    baseUrl: process.env.MINIMAX_BASE_URL ?? 'https://api.minimax.chat',
+    baseUrl: process.env.MINIMAX_BASE_URL ?? 'https://api.minimax.cn',
     apiKey: process.env.MINIMAX_API_KEY,
     llmModel: process.env.MINIMAX_LLM_MODEL ?? 'MiniMax-M3',
     llmTimeoutMs: Number(process.env.MINIMAX_LLM_TIMEOUT_MS ?? 30_000),
@@ -131,6 +131,20 @@ export const config = {
     // ASR (Phase 1.3 客户端直连, 这里存服务端 proxy / token 签发用)
     asrTokenSecret: process.env.MINIMAX_ASR_TOKEN_SECRET,
     asrTokenTtlSec: Number(process.env.MINIMAX_ASR_TOKEN_TTL_SEC ?? 300), // 5min
+    // V2026-10-23 治本 (语音微训练 STT 代理 — spec §2.3 / §2.5):
+    //   上游路径 / 模型名是**协议事实**, 固定在 counselor/config/practice-asr.config.ts,
+    //   这里只放"本地怎么跑"的可调参数 (超时 / 本地更严的体积与时长上限).
+    //   协议事实做成 env 会导致"换上游站点"变成改配置, 静默走错站 —— 不治本.
+    asrTimeoutMs: Number(process.env.MINIMAX_ASR_TIMEOUT_MS ?? 30_000),
+    asrMaxFileBytes: Number(process.env.MINIMAX_ASR_MAX_FILE_BYTES ?? 52_428_800), // 50 MiB, 与上游硬限制一致
+    asrMaxDurationSec: Number(process.env.MINIMAX_ASR_MAX_DURATION_SEC ?? 500), // 与上游硬限制一致
+  },
+  // V2026-10-23 治本 (微技能自由练习 — 端点级运营参数):
+  //   练习域的限流阈值独立于全站默认限流 (全局是 IP 级 60 次/分钟),
+  //   STT 端点要的是"按 userId 的转写次数" —— 见 practice-asr.throttler.ts.
+  practice: {
+    asrRateLimitPerMinute: Number(process.env.PRACTICE_ASR_RATE_LIMIT_PER_MINUTE ?? 10),
+    asrRateLimitWindowMs: Number(process.env.PRACTICE_ASR_RATE_LIMIT_WINDOW_MS ?? 60_000),
   },
   // V2026-10-08: Voice Gateway 业务配置 (Phase 3)
   voice: {

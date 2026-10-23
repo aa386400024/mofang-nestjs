@@ -303,6 +303,15 @@ import { LongTermCaseService } from './providers/long-term-case.service';
 //   - PracticeQuotaService: 练习域日粒度配额 (复用 quota_usage 表, spec §7.4)
 //   - PracticeAbilitySyncService: 练习信号回写五维画像 (spec §7.6 P3-c)
 import { PracticeAbilitySyncService } from './providers/practice-ability-sync.service';
+// V2026-10-23 治本 (语音微训练 STT 代理 — 4 provider 注册):
+//   PracticeAsrService: 业务编排 (预检 + 错误归一 + 记账)
+//   PracticeAsrClient:  MiniMax STT 上游协议层 (multipart 转发 / 超时 / 错误归一化)
+//   PracticeAsrThrottlerGuard: userId 级限流 (排在 JwtAuthGuard 之后才能拿到 request.user)
+//   PracticeAsrUploadFilter: 路由级异常 filter (413/400 → ASR 专用业务码)
+import { PracticeAsrUploadFilter } from './providers/practice-asr-upload.filter';
+import { PracticeAsrClient } from './providers/practice-asr.client';
+import { PracticeAsrService } from './providers/practice-asr.service';
+import { PracticeAsrThrottlerGuard } from './providers/practice-asr.throttler';
 import { PracticeAttemptService } from './providers/practice-attempt.service';
 import { PracticeCustomScenarioService } from './providers/practice-custom-scenario.service';
 import { PracticeEvaluatorService } from './providers/practice-evaluator.service';
@@ -526,6 +535,14 @@ import { VisitorPoolService } from './providers/visitor-pool.service';
     PracticeCustomScenarioService,
     PracticeQuotaService,
     PracticeAbilitySyncService,
+    // V2026-10-23 治本 (语音微训练 STT 代理 — 4 provider):
+    //   客户端/编排/限流/上传 filter 一起注册, 缺一个都会在启动或运行时报
+    //   UndefinedDependencyException (filter 缺了不会报错, 但异常会走全局 filter,
+    //   业务码退化成 UnknownError —— 这种"静默降级"最难查, 所以 4 个一次注册齐).
+    PracticeAsrClient,
+    PracticeAsrService,
+    PracticeAsrThrottlerGuard,
+    PracticeAsrUploadFilter,
     // V2026-10-22 治本 (首页金句 · 每日一句 service):
     //   QuoteService (今日轮换 / 游标分页 / 收藏)
     QuoteService,
