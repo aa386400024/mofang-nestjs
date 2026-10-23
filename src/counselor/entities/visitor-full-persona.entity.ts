@@ -24,6 +24,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
+import { VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH } from '../config/visitor-pool.config';
 import type {
   VisitorPersonaBasics,
   VisitorPersonaCoping,
@@ -65,6 +66,28 @@ export class VisitorFullPersona {
    */
   @Column({ type: 'char', length: 36, name: 'case_id', nullable: true })
   caseId!: string | null;
+
+  /**
+   * 来源公共模板 id (visitor_pool_templates.id), **可空**.
+   *
+   * V2026-10-23 治本 (AI 模拟来访池 §2.2 — 公共模板 + 克隆实例化):
+   *   原因: 公共人物供给层上线后, 一条全量人设有两种来源:
+   *     ① 用户自建 / 随机生成 (老路径) → 本列为 null
+   *     ② 从公共模板**克隆**的私有副本 (新路径) → 本列 = 模板 id
+   *   没有这一列就分不清副本的出处, 「我到底是从哪个官方人物起步的」无从追溯,
+   *   公共库下架某个模板时也无法定位其衍生副本.
+   *   修法: 加独立可空列 source_template_id; **不加 DB-level FK** (跟仓库既有
+   *     pattern 一致: long_term_case_sessions.caseId 等均为应用层校验, 软删兼容).
+   *   反双胞胎:
+   *     - 不把模板 id 塞进 display_name / basics: 那会让"人设内容"与"人设来源"两个
+   *       正交维度纠缠, 换库时无法追源
+   *     - 不加 UNIQUE: 同一个人应当能多次实例化同一模板 (spec §3.3 幂等语义),
+   *       每次得到独立副本, 所以这里**不能**加唯一约束
+   *   验证: 1. tsc 0 错  2. 实例化后 SELECT source_template_id = 模板 id
+   *   时间戳: 2026-10-23
+   */
+  @Column({ type: 'varchar', length: VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH, name: 'source_template_id', nullable: true })
+  sourceTemplateId!: string | null;
 
   /**
    * 来访者代号 (视图 A 的可编辑字段之一).

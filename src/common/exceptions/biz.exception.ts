@@ -35,40 +35,77 @@ export class BizException extends HttpException {
 }
 
 /**
+ * 业务错误码 → HTTP status 的分组表.
+ *
+ * V2026-10-23 治本 (AI 模拟来访池 — mapBizCodeToHttpStatus 复杂度 23 → 5):
+ *   原因: 映射表用 switch 写, 每加一个业务码就多一个 case. 这次新增来访池的 5 个码
+ *     (含 2 个 404 / 1 个 403) 后, ESLint complexity 报 23 (上限 20) —— 超限 3 个码.
+ *     继续加码只会更糟, 且 switch 的 case 数**没有上限护栏**.
+ *   修法: 改成分组 Set + if 链: 每个 HTTP status 一个 Set, 新增业务码 = 往对应 Set 里
+ *     加一行. 复杂度与业务码数量**解耦** (恒等于 status 分组数), 再加 50 个码也不超限.
+ *   反双胞胎: 不用 eslint-disable 压复杂度 —— 那是把味道藏起来, 下一个新增码又会超;
+ *     也不用「把 switch 拆成几个函数」—— 同样的 case 总数, 只是换了个地方, 复杂度没降.
+ *   验证: 1. lint 0 错  2. 每个 status 分组内的码行为完全不变 (逐码对表)
+ *   时间戳: 2026-10-23
+ */
+const NOT_FOUND_CODES: ReadonlySet<BizCode> = new Set([
+  BizCode.ResourceNotFound,
+  BizCode.UserNotFound,
+  BizCode.PracticeScenarioNotFound,
+  BizCode.QuoteNotFound,
+  BizCode.QuoteLibraryEmpty,
+  BizCode.VisitorPoolTemplateNotFound,
+  BizCode.VisitorPoolLibraryEmpty,
+]);
+
+const CONFLICT_CODES: ReadonlySet<BizCode> = new Set([
+  BizCode.UserAlreadyExists,
+  BizCode.EmailAlreadyVerified,
+  BizCode.PhoneAlreadyVerified,
+  BizCode.OAuthAccountAlreadyLinked,
+]);
+
+const UNAUTHORIZED_CODES: ReadonlySet<BizCode> = new Set([
+  BizCode.Unauthorized,
+  BizCode.InvalidCredentials,
+  BizCode.TokenExpired,
+  BizCode.TokenRevoked,
+  BizCode.TokenInvalid,
+]);
+
+const RATE_LIMITED_CODES: ReadonlySet<BizCode> = new Set([BizCode.RateLimited, BizCode.VerificationCodeRateLimited]);
+
+const LOCKED_CODES: ReadonlySet<BizCode> = new Set([BizCode.AccountLocked]);
+
+const FORBIDDEN_CODES: ReadonlySet<BizCode> = new Set([BizCode.Forbidden, BizCode.VisitorPoolForbidden]);
+
+/**
  * BizCode 默认 HTTP status 映射.
  * 大厂做法: 业务错误码 → HTTP status 是协议层关注点, 集中映射.
  */
 function mapBizCodeToHttpStatus(code: BizCode): HttpStatus {
-  switch (code) {
-    case BizCode.ResourceNotFound:
-    case BizCode.UserNotFound:
-    case BizCode.PracticeScenarioNotFound:
-    case BizCode.QuoteNotFound:
-    case BizCode.QuoteLibraryEmpty:
-      return HttpStatus.NOT_FOUND;
-    case BizCode.UserAlreadyExists:
-    case BizCode.EmailAlreadyVerified:
-    case BizCode.PhoneAlreadyVerified:
-    case BizCode.OAuthAccountAlreadyLinked:
-      return HttpStatus.CONFLICT;
-    case BizCode.Unauthorized:
-    case BizCode.InvalidCredentials:
-    case BizCode.TokenExpired:
-    case BizCode.TokenRevoked:
-    case BizCode.TokenInvalid:
-      return HttpStatus.UNAUTHORIZED;
-    case BizCode.RateLimited:
-    case BizCode.VerificationCodeRateLimited:
-      return HttpStatus.TOO_MANY_REQUESTS;
-    case BizCode.AccountLocked:
-      return HttpStatus.LOCKED;
-    case BizCode.ServiceUnavailable:
-      return HttpStatus.SERVICE_UNAVAILABLE;
-    case BizCode.Forbidden:
-      return HttpStatus.FORBIDDEN;
-    default:
-      return HttpStatus.BAD_REQUEST;
+  if (NOT_FOUND_CODES.has(code)) {
+    return HttpStatus.NOT_FOUND;
   }
+  if (CONFLICT_CODES.has(code)) {
+    return HttpStatus.CONFLICT;
+  }
+  if (UNAUTHORIZED_CODES.has(code)) {
+    return HttpStatus.UNAUTHORIZED;
+  }
+  if (RATE_LIMITED_CODES.has(code)) {
+    return HttpStatus.TOO_MANY_REQUESTS;
+  }
+  if (LOCKED_CODES.has(code)) {
+    return HttpStatus.LOCKED;
+  }
+  if (FORBIDDEN_CODES.has(code)) {
+    return HttpStatus.FORBIDDEN;
+  }
+  if (code === BizCode.ServiceUnavailable) {
+    return HttpStatus.SERVICE_UNAVAILABLE;
+  }
+  return HttpStatus.BAD_REQUEST;
 }
 
 /**
@@ -152,6 +189,15 @@ function getBizCodeDefaultMessage(code: BizCode): string {
     [BizCode.QuoteLibraryEmpty]: '金句内容库为空',
     [BizCode.QuoteNotFound]: '金句不存在或已下架',
     [BizCode.QuoteCursorInvalid]: '分页游标无效或已失效',
+
+    // V2026-10-23 (AI 模拟来访池 — 公共模板 + 克隆实例化):
+    //   404 口径跟金句一致: 模板不存在/已下架是"这个人物暂不可用",
+    //   库为空是"服务端还没准备好", 两者要能被前端分开处理.
+    [BizCode.VisitorPoolTemplateNotFound]: '该来访人物暂不可用',
+    [BizCode.VisitorPoolCursorInvalid]: '分页游标无效或已失效',
+    [BizCode.VisitorPoolGenerationFailed]: '来访人物生成失败',
+    [BizCode.VisitorPoolForbidden]: '无权访问来访池管理能力',
+    [BizCode.VisitorPoolLibraryEmpty]: '来访人物内容库为空',
 
     // V2026-09-14 长期方案 Stage C: Growth 模块 8 个错误码默认文案
     [BizCode.GrowthDailyToolsFetchFail]: '今日推荐工具拉取失败',

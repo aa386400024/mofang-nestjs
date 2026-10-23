@@ -168,6 +168,11 @@ import { CounselorTrainingSessionController } from './controllers/training-sessi
 import { CounselorTranscriptBookmarkController } from './controllers/transcript-bookmark.controller';
 import { CounselorTransferenceMarkController } from './controllers/transference-mark.controller';
 import { CounselorVisitorPersonaController } from './controllers/visitor-persona.controller';
+// V2026-10-23 治本 (AI 模拟来访池 — 2 controller):
+//   visitor-pool: 公共人物图鉴 + 克隆实例化 + 收藏 (普通练习用户可用)
+//   visitor-pool-admin: 公共模板库治理 (AI 生成 / 增删改 / 上下架 / 软删恢复), 内部角色专用
+import { CounselorVisitorPoolAdminController } from './controllers/visitor-pool-admin.controller';
+import { CounselorVisitorPoolController } from './controllers/visitor-pool.controller';
 // V2026-10-21 治本 (V1.2 VS-C — M2/M3 会谈核心 4 controller):
 //   informed-consent (4 要素判定 + 进度) / live-hint (轻提示 + SSE 流)
 //   transcript-bookmark (逐字稿打点) / transference-mark (双向移情阻抗标记)
@@ -217,6 +222,12 @@ import { TranscriptBookmark } from './entities/transcript-bookmark.entity';
 import { TransferenceResistanceMark } from './entities/transference-resistance-mark.entity';
 import { UserQuoteFavorite } from './entities/user-quote-favorite.entity';
 import { VisitorFullPersona } from './entities/visitor-full-persona.entity';
+// V2026-10-23 治本 (AI 模拟来访池 — 2 entity 注册, 走 TypeOrmModule.forFeature):
+//   +VisitorPoolTemplate (公共只读模板: 表层卡片 + 7 大块剧本快照)
+//   +VisitorPoolFavorite (收藏关系, 唯一键 (user_id, template_id))
+//   跟 V2026-10-21 的 visitor_full_personas 同段 (副本表复用, 只多 1 列 source_template_id).
+import { VisitorPoolFavorite } from './entities/visitor-pool-favorite.entity';
+import { VisitorPoolTemplate } from './entities/visitor-pool-template.entity';
 // V2026-10-21 治本 (V1.2 VS-C — M2/M3 会谈核心 3 entity 注册, 走 TypeOrmModule.forFeature):
 //   +LiveSupervisionHint (实时督导轻提示) +TranscriptBookmark (逐字稿打点)
 //   +TransferenceResistanceMark (双向移情/阻抗标记)
@@ -227,6 +238,7 @@ import { VisitorFullPersona } from './entities/visitor-full-persona.entity';
 //   TrainingExercise entity 1:1 wire) + TrainingExerciseAttempt (V1.1 §5.2 拍板
 //   答题记录, 5 状态机 1:1 wire). 大炮 16:10 "A, 要企业级的方案, 不要凑活"
 //   1:1 反馈, V0.5 stage 简化 0 占位, V1.x W9-10 续做前先落 entity 层.
+import { AdminRoleGuard } from './guards/admin-role.guard';
 import { AbilityService } from './providers/ability.service';
 // V2026-10-15 治本 (V1.x W7-8 — billing service):
 //   5 method 业务逻辑 (getMembershipStatus / listSkus / createOrder / consumeQuota /
@@ -329,6 +341,16 @@ import { TransferenceMarkService } from './providers/transference-mark.service';
 import { TurnAnalysisProcessor } from './providers/turn-analysis.processor';
 import { TurnAnalysisService } from './providers/turn-analysis.service';
 import { VisitorPersonaService } from './providers/visitor-persona.service';
+// V2026-10-23 治本 (AI 模拟来访池 — 2 service + 1 guard):
+//   VisitorPoolService: 公共图鉴读 + 克隆实例化 + 收藏
+//   VisitorPoolAdminService: 内部 AI 生成 + 模板治理 (管理面与公共面分文件, 防权限外溢)
+//   AdminRoleGuard: 读 users.admin_role 判定内部角色 (普通用户 → 403)
+import { VisitorPoolAdminService } from './providers/visitor-pool-admin.service';
+import { VisitorPoolService } from './providers/visitor-pool.service';
+// V2026-10-23 治本 (AI 模拟来访池 — 内部角色守卫):
+//   直读 users.admin_role (3 档 editor/reviewer/admin), 不复用 common/guards/roles.guard.ts
+//   (后者依赖 request.user.adminRole / user.roles, 而本仓当前注入 request.user 的
+//    JwtAuthGuard 并不注入 adminRole, 且 users 表没有 roles 列 → 恒不放行).
 // V2026-10-21 治本 (V1.2 VS-B2 — 人设接线 2 provider):
 //   CounselorVisitorContextContributor 实现 agent 侧的上下文贡献者插槽 (依赖倒置);
 //   ProfileExtractionService 负责披露落库 + 信任度推进.
@@ -399,6 +421,11 @@ import { VisitorPersonaService } from './providers/visitor-persona.service';
       //   跟前序 practice_custom_scenarios 同段):
       Quote,
       UserQuoteFavorite,
+      // V2026-10-23 治本 (AI 模拟来访池 — 2 entity, 累计 23 entity,
+      //   跟前序 user_quote_favorites 同段):
+      //   +VisitorPoolTemplate (公共只读模板) +VisitorPoolFavorite (收藏关系)
+      VisitorPoolTemplate,
+      VisitorPoolFavorite,
     ]),
   ],
   controllers: [
@@ -434,6 +461,11 @@ import { VisitorPersonaService } from './providers/visitor-persona.service';
     // V2026-10-22 治本 (首页金句 · 每日一句 controller, 5 端点):
     //   today / list (游标分页) / favorites / favorite / unfavorite
     CounselorQuoteController,
+    // V2026-10-23 治本 (AI 模拟来访池 — 2 controller, 6+6 端点):
+    //   visitor-pool: 公共图鉴 / 模板详情 / 克隆实例化 / 收藏开关 / 我的收藏
+    //   visitor-pool-admin: AI 生成 / 管理列表 / 管理详情 / 编辑 / 软删 / 恢复 (内部角色)
+    CounselorVisitorPoolController,
+    CounselorVisitorPoolAdminController,
   ],
   providers: [
     CounselorHomeService,
@@ -497,6 +529,13 @@ import { VisitorPersonaService } from './providers/visitor-persona.service';
     // V2026-10-22 治本 (首页金句 · 每日一句 service):
     //   QuoteService (今日轮换 / 游标分页 / 收藏)
     QuoteService,
+    // V2026-10-23 治本 (AI 模拟来访池 — 2 service + 1 guard):
+    //   VisitorPoolService (公共图鉴 / 克隆实例化 / 收藏)
+    //   VisitorPoolAdminService (内部 AI 生成 + 模板治理)
+    //   AdminRoleGuard (内部角色判定, 供 visitor-pool-admin controller 使用)
+    VisitorPoolService,
+    VisitorPoolAdminService,
+    AdminRoleGuard,
   ],
   exports: [
     CounselorHomeService,

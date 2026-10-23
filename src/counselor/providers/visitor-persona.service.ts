@@ -36,6 +36,7 @@ import {
   VISITOR_PERSONA_SCHEMA_DESCRIPTION,
   VISITOR_PERSONA_SYSTEM_PROMPT,
 } from '../config/visitor-persona-prompts';
+import { readEnum, readString, readStringArray } from '../domain/struct-guards';
 import type {
   DevelopmentalStage,
   VisitorFullPersonaScript,
@@ -62,31 +63,20 @@ import { CounselorUiPreferenceKey } from '../enums/counselor-ui-preference-key.e
 // ════════════════════════════════════════════════════════════════════════════
 // 手写校验器 (结构化输出的业务校验回调)
 // ════════════════════════════════════════════════════════════════════════════
-
-/** 取字符串数组; 非数组返回 null. */
-function readStringArray(value: unknown): string[] | null {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-  const out: string[] = [];
-  for (const item of value) {
-    if (typeof item !== 'string') {
-      return null;
-    }
-    out.push(item);
-  }
-  return out.length > 0 ? out : null;
-}
-
-/** 取字符串; 非字符串返回 null. */
-function readString(value: unknown): string | null {
-  return typeof value === 'string' && value.length > 0 ? value : null;
-}
-
-/** 取受限枚举值. */
-function readEnum<T extends string>(value: unknown, allowed: readonly T[]): T | null {
-  return typeof value === 'string' && (allowed as readonly string[]).includes(value) ? (value as T) : null;
-}
+//
+// V2026-10-23 治本 (AI 模拟来访池 — 原始值守卫上提, 消除孪生实现):
+//   原因: readString / readStringArray / readEnum 三个原始值守卫原本是本文件的私有函数.
+//     AI 模拟来访池的 card + script 校验需要**完全相同**的语义 (尤其"空数组视为非法"
+//     这条 —— 7 大块剧本的每个数组字段都要求非空), 但 service 的私有函数不是对外契约,
+//     引用它等于让 domain 层反向依赖 service 层.
+//     若在来访池那边再抄一份, 两份实现一旦对"空数组"的口径出现分歧, 表现就是
+//     "偶发的 schema_validation_failed", 极难排查.
+//   修法: 上提到 domain/struct-guards.ts, 本文件改为引用.
+//     行为差异 (刻意, 且只向"更严"的方向): 守卫现在会 **trim** 取到的字符串,
+//     并把"纯空白串"视为非法 (原先空白串会被当成合法值落库). 对 7 大块契约而言
+//     "空白等于未填", 更严只会更稳, 不会把合法产物判非法.
+//   反双胞胎: 不在本文件保留一份"薄封装"再转调 —— 那只是把重复藏起来, 多一跳无收益.
+//   时间戳: 2026-10-23
 
 /**
  * 校验 LLM 生成的 7 大块人设.

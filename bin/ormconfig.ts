@@ -43,15 +43,15 @@ import { AddPrivacyAuthorizations1700000007012 } from '../src/migration/17000000
 
 // V2026-08-31 — 「首页」Tab V2.0 模块 (心塑首页 + 陪伴者首页, 4 张表)
 import { AddMoodLogs1700000008000 } from '../src/migration/1700000008000-AddMoodLogs';
+import { AddUserTenantId1700000008000 } from '../src/migration/1700000008000-AddUserTenantId';
 import { InitInnerWorld1700000008000 } from '../src/migration/1700000008000-InitInnerWorld';
 // V2026-10-12 (Phase 8.2 — Admin RBAC + 多租户, spec §0 / §3 A9 / §12.4):
 //   users 表加 tenant_id (V0.x = uid 一人一租户) + admin_role (NULL = 无权限,
 //   'editor' / 'reviewer' / 'admin' 跟客户端 7.8 PermissionResolver 3 角色严格对齐).
-import { AddUserTenantId1700000008000 } from '../src/migration/1700000008000-AddUserTenantId';
 import { AddMicroInterventionConfigs1700000008001 } from '../src/migration/1700000008001-AddMicroInterventionConfigs';
+import { AddUserAdminRole1700000008001 } from '../src/migration/1700000008001-AddUserAdminRole';
 import { AddMicroInterventionHistory1700000008002 } from '../src/migration/1700000008002-AddMicroInterventionHistory';
 // V2026-10-12 (Phase 8.2 — Admin RBAC + 多租户, spec §0 / §3 A9 / §12.4): adminRole 枚举加列
-import { AddUserAdminRole1700000008001 } from '../src/migration/1700000008001-AddUserAdminRole';
 import { AddHomeMessages1700000008003 } from '../src/migration/1700000008003-AddHomeMessages';
 // V2026-10-12 (Phase 8.1 — KB 模块初始化, spec §12.1):
 //   3 张表 (knowledge_items / knowledge_versions / workflow_events) + 5 复合
@@ -79,12 +79,18 @@ import { AddLifeStageProgress1700000010002 } from '../src/migration/170000001000
 import { AddKeyEvents1700000010003 } from '../src/migration/1700000010003-AddKeyEvents';
 import { AddGenomeDimensions1700000010004 } from '../src/migration/1700000010004-AddGenomeDimensions';
 // V2026-10-14 治本 (VS-3c — 注册 knowledge_chunks migration, 跟前序 3 张 V3.0 life-map 表同段):
+import { AddDriftBottles1700000010005 } from '../src/migration/1700000010005-AddDriftBottles';
 import { AddKnowledgeChunks1700000010006 } from '../src/migration/1700000010006-AddKnowledgeChunks';
 // V2026-10-15 治本 (V1.x counselor-mode W1-2 — long-term-case migration, 跟 src/migration/index.ts 1:1):
 //   long_term_cases + long_term_case_sessions 2 张表 + 6 索引, counselor-mode-v1.0 §6.1 1:1 wire.
 import { AddLongTermCases1700000010007 } from '../src/migration/1700000010007-AddLongTermCases';
 // V2026-10-15 治本 (V1.x counselor-mode W3-4 — supervision-schools migration, 跟 src/migration/index.ts 1:1):
 //   supervision_schools + supervision_feedback 2 张表 + 5 索引, counselor-mode-v1.0 §6.2 1:1 wire.
+import { AddAIEngineTables1714900000000 } from '../src/migration/1714900000000-AddAIEngineTables';
+import { AddEmergencySessions1714900000001 } from '../src/migration/1714900000001-AddEmergencySessions';
+import { AddGameUnlockProgress1714900000002 } from '../src/migration/1714900000002-AddGameUnlockProgress';
+import { AddGoodStateDiary1714900000003 } from '../src/migration/1714900000003-AddGoodStateDiary';
+import { AddMicroInterventionScenarios1714900000004 } from '../src/migration/1714900000004-AddMicroInterventionScenarios';
 import { AddSupervisionSchools1714900000006 } from '../src/migration/1714900000006-AddSupervisionSchools';
 // V2026-10-15 治本 (V1.x counselor-mode W5-6 — ability-dimensions migration, 跟 src/migration/index.ts 1:1):
 //   ability_dimensions + ability_scores 2 张表 + 5 索引, counselor-mode-v1.0 §6.3 1:1 wire.
@@ -131,23 +137,29 @@ import { AddPracticeCustomScenarios1714900000016 } from '../src/migration/171490
 //   quotes (金句内容库) + user_quote_favorites (收藏关系). 内容走独立 seed 脚本
 //   (bin/seed-quotes.ts), 不进 migration.
 import { AddQuotes1714900000017 } from '../src/migration/1714900000017-AddQuotes';
+// V2026-10-23 治本 (AI 模拟来访池 — 2 张新表 + 1 列 ALTER, 跟前序 quotes 同段):
+//   visitor_pool_templates (公共只读模板: 表层卡片 + 7 大块剧本快照)
+//   + visitor_pool_favorites (收藏关系, 唯一键 (user_id, template_id))
+//   + visitor_full_personas.source_template_id (标注私有副本的来源模板).
+//   内容不进 migration (spec §6): 6 个官方人物由 bin/seed-visitor-pool-templates.ts
+//   按稳定 id 幂等 upsert, 运行时增补走 §3.5 内部 AI 生成端点.
+import { AddVisitorPoolTemplates1714900000018 } from '../src/migration/1714900000018-AddVisitorPoolTemplates';
+// V2026-10-23 治本 (AI 模拟来访池 — 3 个 id 列放宽到 VARCHAR(64), 跟前序同段):
+//   模板 id 是内容 slug (最长 37 字符), 而 0018 建表时按 UUID 用了 CHAR(36)
+//   → seed 报 "Data too long for column 'id'". 本迁移把 3 个相关列一起放宽
+//   (与 quotes.id varchar(64) 对齐). 0018 已在 dev 库执行, 不改已执行的迁移.
+import { WidenVisitorPoolIdColumns1714900000019 } from '../src/migration/1714900000019-WidenVisitorPoolIdColumns';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
 //   key_events + genome_dimensions) 模式一致, 漏写第 4 张. 即便现在挂上 life-map/
 //   module, 6 endpoint 一调就 TypeORM TableNotFoundError. 治本: 创表 + 3 索引 + down 段.
-import { AddDriftBottles1700000010005 } from '../src/migration/1700000010005-AddDriftBottles';
 
 // V2026-09-04 — 心塑 V6.0 §3 AI 引擎 5 张表 + §4.2 急救会话表 + §6 Inner World 游戏化解锁表 (audit P0-1/P0-3)
-import { AddAIEngineTables1714900000000 } from '../src/migration/1714900000000-AddAIEngineTables';
-import { AddEmergencySessions1714900000001 } from '../src/migration/1714900000001-AddEmergencySessions';
-import { AddGameUnlockProgress1714900000002 } from '../src/migration/1714900000002-AddGameUnlockProgress';
 
 // V2026-09-11 — 心塑 V4.0 §6「好状态日记」1 张表 (good_state_diary_entries)
-import { AddGoodStateDiary1714900000003 } from '../src/migration/1714900000003-AddGoodStateDiary';
 
 // V2026-09-11 — 心塑首页「微干预场景化元数据」表 (7 trigger 元数据 + V2 完整 stats 实现)
-import { AddMicroInterventionScenarios1714900000004 } from '../src/migration/1714900000004-AddMicroInterventionScenarios';
 
 try {
   loadEnvFile();
@@ -243,6 +255,12 @@ const ormconfig = async (): Promise<DataSource> => {
       // V2026-10-22 治本 (首页金句 · 每日一句 — 2 张新表 + 5 索引,
       //   跟前序 practice_custom_scenarios 同段, 跟 src/migration/index.ts 严格 1:1):
       AddQuotes1714900000017,
+      // V2026-10-23 治本 (AI 模拟来访池 — 2 张新表 + visitor_full_personas.source_template_id,
+      //   跟前序 quotes 同段, 跟 src/migration/index.ts 严格 1:1):
+      AddVisitorPoolTemplates1714900000018,
+      // V2026-10-23 治本 (AI 模拟来访池 — 3 个 id 列放宽到 VARCHAR(64),
+      //   跟前序 visitor_pool_templates 同段, 跟 src/migration/index.ts 严格 1:1):
+      WidenVisitorPoolIdColumns1714900000019,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

@@ -21,6 +21,7 @@
     "seed:training": "ts-node -T -P tsconfig.scripts.json bin/seed-training-exercises.ts",
     "seed:practice": "ts-node -T -P tsconfig.scripts.json bin/seed-practice-scenarios.ts",
     "seed:quotes": "ts-node -T -P tsconfig.scripts.json bin/seed-quotes.ts",
+    "seed:visitor-pool": "ts-node -T -P tsconfig.scripts.json bin/seed-visitor-pool-templates.ts",
     "migration:revert": "typeorm-ts-node-commonjs -d bin/ormconfig.ts migration:revert",
     "migration:show": "typeorm-ts-node-commonjs -d bin/ormconfig.ts migration:show",
     "build": "tsc -p tsconfig.build.json",

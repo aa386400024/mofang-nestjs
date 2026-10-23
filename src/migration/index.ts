@@ -87,5 +87,19 @@ export { AddPracticeCustomScenarios1714900000016 } from './1714900000016-AddPrac
 //   quotes (金句内容库 11 列 + 2 索引) + user_quote_favorites (收藏关系 5 列 + 3 索引).
 //   内容不进 migration (spec §1 内容由独立 seed 脚本灌: bin/seed-quotes.ts).
 export { AddQuotes1714900000017 } from './1714900000017-AddQuotes';
+// V2026-10-23 治本 (AI 模拟来访池 — 2 张新表 + 1 列 ALTER, 跟前序 quotes 同段):
+//   visitor_pool_templates (公共只读模板: 表层卡片 + 7 大块剧本快照)
+//   + visitor_pool_favorites (收藏关系, 唯一键 (user_id, template_id))
+//   + visitor_full_personas.source_template_id (标注私有副本的来源模板).
+//   内容不进 migration (spec §6): 6 个官方人物由 bin/seed-visitor-pool-templates.ts
+//   按稳定 id 幂等 upsert, 运行时增补走 §3.5 内部 AI 生成端点.
+export { AddVisitorPoolTemplates1714900000018 } from './1714900000018-AddVisitorPoolTemplates';
+// V2026-10-23 治本 (AI 模拟来访池 — 3 个 id 列放宽到 VARCHAR(64), 跟前序同段):
+//   模板 id 是内容 slug (最长 37 字符, 未来组合可达 40), 而 0018 建表时按 UUID 用了
+//   CHAR(36) → seed 报 "Data too long for column 'id'". 本迁移把
+//   visitor_pool_templates.id / visitor_pool_favorites.template_id /
+//   visitor_full_personas.source_template_id 一起放宽 (与 quotes.id varchar(64) 对齐).
+//   0018 已在 dev 库执行, **不改已执行的迁移** —— 迁移只增不改.
+export { WidenVisitorPoolIdColumns1714900000019 } from './1714900000019-WidenVisitorPoolIdColumns';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

@@ -122,4 +122,13 @@ export enum BizCode {
   QuoteLibraryEmpty = 46_001, // 金句内容库为空 (未跑 seed:quotes; 前端回退本地种子)
   QuoteNotFound = 46_002, // 金句不存在 / 已下架
   QuoteCursorInvalid = 46_003, // 金句流游标无效或已失效
+
+  // ====== AI 模拟来访池模块 (47xxx) — 公共模板 + 克隆实例化 ======
+  //   §4 零压红线: 「不下发、不统计全站收藏数 / 使用数」—— 错误码同理不应带出
+  //   「有多少人用了这个人设」的信息, 只描述**当前用户自己的操作**是否成立.
+  VisitorPoolTemplateNotFound = 47_001, // 公共模板不存在 / 已下架 / 已软删
+  VisitorPoolCursorInvalid = 47_002, // 图鉴游标无效或已失效
+  VisitorPoolGenerationFailed = 47_003, // 内部 AI 生成失败 (结构校验不过 / LLM 不可用)
+  VisitorPoolForbidden = 47_004, // 无内部管理权限 (普通用户访问生成/管理端点)
+  VisitorPoolLibraryEmpty = 47_005, // 公共模板库为空 (未跑 seed:visitor-pool; 前端回退本地种子)
 }
