@@ -82,12 +82,16 @@ function makeMockRepo() {
       async (opts: { where: Partial<MockEntry>; order?: Record<string, 'ASC' | 'DESC'>; take?: number; withDeleted?: boolean }) => {
         let list = store.slice();
         for (const [k, v] of Object.entries(opts.where)) {
-          list = list.filter((e) => (e as Record<string, unknown>)[k] === v);
+          // V2026-10-24 治本 (TS2352): MockEntry 没有索引签名, 直接断言成
+          //   Record<string, unknown> 不被 TS 认可 → 必须先过 unknown 一道.
+          list = list.filter((e) => (e as unknown as Record<string, unknown>)[k] === v);
         }
         if (!opts.withDeleted) list = list.filter((e) => !e.deletedAt);
-        if (opts.order?.createdAt)
+        // V2026-10-24 治本 (TS4111): order 是 Record<string, 'ASC'|'DESC'>,
+        //   属性来自索引签名 → 必须用 bracket 访问.
+        if (opts.order?.['createdAt'])
           list.sort((a, b) =>
-            opts.order!.createdAt === 'DESC'
+            opts.order!['createdAt'] === 'DESC'
               ? b.createdAt.getTime() - a.createdAt.getTime()
               : a.createdAt.getTime() - b.createdAt.getTime(),
           );

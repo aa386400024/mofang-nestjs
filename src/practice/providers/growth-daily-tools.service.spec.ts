@@ -28,6 +28,22 @@ import { isLinkRouteAllowed } from '../constants/allowed-link-routes';
 import { FragmentsGrantDto } from '../dto/fragments-grant.dto';
 import { DailyGrowthToolDto } from '../dto/growth.dto';
 
+/**
+ * `recommendByLLM` 是 service 内部的**接缝** (V1.0 占位实现, 声明为 private).
+ *
+ * V2026-10-24 治本 (TS2769: spy 一个 private 方法):
+ *   原因: TS 的 `jest.spyOn` 只接受 **public** 键, 对 private 方法直接报
+ *     'Argument of type recommendByLLM is not assignable to parameter of type getDailyTools',
+ *     连带 `mockResolvedValue` 的返回类型退化成 never → 整个套件编译不过.
+ *   修法: 显式声明接缝签名再窄化一次 —— **不放宽生产代码的可见性**.
+ *   反双胞胎:
+ *     - 不把生产方法的 private 改成 public: 那是为了测试放宽生产 API 面
+ *     - 不用 as any: 用精确签名, mockResolvedValue 的参数类型依然受检
+ */
+type DailyToolsSource = {
+  recommendByLLM: (userId: string, date?: string) => Promise<DailyGrowthToolDto[]>;
+};
+
 describe('V2026-09-14 GrowthDailyToolsService — 单测', () => {
   let service: GrowthDailyToolsService;
   const userId = 'test-user-uuid';
@@ -137,16 +153,17 @@ describe('V2026-09-14 GrowthDailyToolsService — 单测', () => {
       const ghost = makeValidTool('ghost-tool');
       ghost.link_route = '/tools/ghost-not-whitelisted';
 
-      const spy = jest.spyOn(service, 'recommendByLLM');
+      const spy = jest.spyOn(service as unknown as DailyToolsSource, 'recommendByLLM');
       spy.mockResolvedValue([ghost]);
 
-      await expect(service.getDailyTools(userId)).rejects.toThrow(BizException);
-      await expect(service.getDailyTools(userId)).rejects.toMatchObject({
-        detail: {
-          code: BizCode.GrowthDailyToolsLinkRouteNotWhitelisted,
-          statusCode: 422,
-        },
-      });
+      // V2026-10-24 治本 (断言口径对齐 BizException 的公开契约):
+      //   BizException **没有 `detail` 字段** —— 它继承 HttpException, 对外暴露的是
+      //   `code` (public readonly) + `getStatus()`. 旧的 toMatchObject({ detail: {...} })
+      //   断言的是一个不存在的形状 → 永远红.
+      const err = await service.getDailyTools(userId).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(BizException);
+      expect((err as BizException).code).toBe(BizCode.GrowthDailyToolsLinkRouteNotWhitelisted);
+      expect((err as BizException).getStatus()).toBe(422);
     });
   });
 
@@ -159,7 +176,7 @@ describe('V2026-09-14 GrowthDailyToolsService — 单测', () => {
       const badFragments = { invalid_key: 1 } as unknown as FragmentsGrantDto;
       const badTool: DailyGrowthToolDto = { ...bad, fragments_grant: badFragments };
 
-      const spy = jest.spyOn(service, 'recommendByLLM');
+      const spy = jest.spyOn(service as unknown as DailyToolsSource, 'recommendByLLM');
       spy.mockResolvedValue([badTool]);
 
       await expect(service.getDailyTools(userId)).rejects.toThrow(BizException);
@@ -170,7 +187,7 @@ describe('V2026-09-14 GrowthDailyToolsService — 单测', () => {
       const badFragments = { calm: 100 } as unknown as FragmentsGrantDto;
       const badTool: DailyGrowthToolDto = { ...bad, fragments_grant: badFragments };
 
-      const spy = jest.spyOn(service, 'recommendByLLM');
+      const spy = jest.spyOn(service as unknown as DailyToolsSource, 'recommendByLLM');
       spy.mockResolvedValue([badTool]);
 
       await expect(service.getDailyTools(userId)).rejects.toThrow(BizException);

@@ -94,13 +94,11 @@ describe('V2026-09-14 GrowthToolCompleteService — 单测', () => {
 
   describe('error path: toolId 不存在', () => {
     it('toolId 不在今日推荐列表 → BizException(40_005, 404)', async () => {
-      await expect(service.complete(userId, 'notexist-tool')).rejects.toThrow(BizException);
-      await expect(service.complete(userId, 'notexist-tool')).rejects.toMatchObject({
-        detail: {
-          code: BizCode.GrowthToolNotFound,
-          statusCode: 404,
-        },
-      });
+      // V2026-10-24 治本 (断言口径对齐 BizException 的公开契约: code + getStatus()).
+      const err = await service.complete(userId, 'notexist-tool').catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(BizException);
+      expect((err as BizException).code).toBe(BizCode.GrowthToolNotFound);
+      expect((err as BizException).getStatus()).toBe(404);
     });
 
     it('toolId 为空字符串 → BizException(40_005)', async () => {
@@ -114,13 +112,10 @@ describe('V2026-09-14 GrowthToolCompleteService — 单测', () => {
       //   防止 raw Error 漏到 controller 导致 5xx without code (前端 Failure.code 拿不到).
       mockDailyTools.getDailyTools.mockRejectedValue(new Error('DB 挂了'));
 
-      await expect(service.complete(userId, 'mindfulness.box-breathing')).rejects.toThrow(BizException);
-      await expect(service.complete(userId, 'mindfulness.box-breathing')).rejects.toMatchObject({
-        detail: {
-          code: BizCode.GrowthCompleteFail,
-          statusCode: 500,
-        },
-      });
+      const err = await service.complete(userId, 'mindfulness.box-breathing').catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(BizException);
+      expect((err as BizException).code).toBe(BizCode.GrowthCompleteFail);
+      expect((err as BizException).getStatus()).toBe(500);
     });
   });
 

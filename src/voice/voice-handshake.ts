@@ -43,10 +43,23 @@ const FALLBACK_PRESET: VoiceSessionPreset = {
 };
 
 /**
+ * 会话 id 长度上限.
+ *
+ * sessionId 完全由客户端提供, 且会被拼进日志 / Map key / DB 查询参数 —— 不设上限等于
+ * 给了客户端一个"往日志里灌任意长字符串"的口子. 64 足够放 uuid + 少量前缀余量.
+ */
+const MAX_SESSION_ID_LENGTH = 64;
+
+/**
  * 握手 query 的解析结果 (原始值, 尚未与模板缺省合并).
  */
 export interface VoiceHandshakeQuery {
-  /** 会话 id (path 里的 sid). */
+  /**
+   * 会话 id.
+   *
+   * 来源优先级: query `?sessionId=` (新约定) > path `/voice/training/<sid>` (旧格式兜底).
+   * 两者都没有 → 'default'.
+   */
   readonly sessionId: string;
   /** 内置 persona id (老参数, 保留兼容). */
   readonly personaId?: string;
@@ -56,8 +69,16 @@ export interface VoiceHandshakeQuery {
   readonly mode: VoiceSessionMode;
   /** 难度覆盖 (非法值已丢弃). */
   readonly difficulty?: VoiceDifficulty;
-  /** 风格覆盖 (非法值已丢弃). */
+  /** 风格覆盖 (合法映射结果; undefined = 未提供). */
   readonly style?: VoiceVisitorStyle;
+  /**
+   * 客户端提供了 style 但**映射不上** (白名单外的字符串).
+   *
+   * 与"未提供"必须分开: spec §2.2 / §5.2 定的是「映射不上统一回退 `mixed`, 不得报错」,
+   * 而"未提供"才轮到模板缺省 (`styleHint`). 两者混为一谈会出现"用户传了个乱值,
+   * 结果被静默换成模板默认人物" —— 用户以为改了风格, 实际没改.
+   */
+  readonly styleUnmapped: boolean;
   /** 情绪基线覆盖 (非法值已丢弃). */
   readonly emotionBaseline?: number;
   /** 防御水平覆盖 (非法值已丢弃). */
@@ -80,12 +101,24 @@ export function parseVoiceHandshake(url: string): VoiceHandshakeQuery {
   const params = parsed.searchParams;
 
   return {
-    sessionId: extractSessionId(parsed.pathname),
+    // V2026-10-24 治本 (WS 握手 sessionId 改从 query 读取):
+    //   原因: `@nestjs/platform-ws` 把 `@WebSocketGateway({ path })` 原样传给 `ws`,
+    //     而 `ws` 的 `shouldHandle` 是**精确比较** (`pathname !== this.options.path` → 直接
+    //     `abortHandshake(socket, 400)`) —— 子路径 `/voice/training/<sid>` 在 **HTTP upgrade
+    //     阶段**就被拒, 根本进不到 `handleConnection`.
+    //     更隐蔽的后果: path 形式失效后 sid 恒为 'default', 会话 Map / 演练登记会
+    //     **全部撞同一个 key** (不同用户的会谈互相串设定).
+    //   修法: sessionId 改从 query 读 (`?sessionId=<uuid>`), path 正则保留作旧格式兜底.
+    //   反双胞胎:
+    //     - 不去做前缀通配 / 不改 gateway 的 path: 前端已按精确路径 + query 对接,
+    //       网关侧再开子路径等于两套契约并存
+    //     - 不删 extractSessionId: 旧 path 格式仍可能有存量客户端, 且现有单测依赖它
+    sessionId: readSessionId(params.get('sessionId')) ?? extractSessionId(parsed.pathname),
     personaId: readOptional(params.get('personaId')),
     templateId: readOptional(params.get('templateId')),
     mode: readMode(params.get('mode')),
     difficulty: readDifficulty(params.get('difficulty')),
-    style: readStyle(params.get('style')),
+    ...readStyle(params.get('style')),
     emotionBaseline: readRatio(params.get('emotionBaseline')),
     defenseLevel: readRatio(params.get('defenseLevel')),
     visitorMode: readVisitorMode(params.get('visitorMode')),
@@ -98,6 +131,11 @@ export function parseVoiceHandshake(url: string): VoiceHandshakeQuery {
  * 优先级: 握手覆盖 > 模板缺省 > 内置兜底.
  * 越界数值在合并时统一裁剪到 [0, 1].
  *
+ * 风格的三态 (spec §2.2 / §5.2):
+ * - 提供了合法值 → 用它
+ * - 提供了但映射不上 → `mixed` (**不是**模板缺省 —— 用户传了值却被静默换成别人的设置)
+ * - 未提供 → 模板缺省 → 兜底 `mixed`
+ *
  * @param query 握手解析结果
  * @param summary 模板表层摘要 (无模板时传 null)
  * @returns 本场生效的临场参数
@@ -105,7 +143,7 @@ export function parseVoiceHandshake(url: string): VoiceHandshakeQuery {
 export function resolveVoicePreset(query: VoiceHandshakeQuery, summary: VoiceTemplateSummary | null): VoiceSessionPreset {
   return {
     difficulty: query.difficulty ?? summary?.difficulty ?? FALLBACK_PRESET.difficulty,
-    style: query.style ?? summary?.styleHint ?? FALLBACK_PRESET.style,
+    style: query.styleUnmapped ? 'mixed' : (query.style ?? summary?.styleHint ?? FALLBACK_PRESET.style),
     emotionBaseline: clampRatio(query.emotionBaseline ?? summary?.emotionBaselineDefault, FALLBACK_PRESET.emotionBaseline),
     defenseLevel: clampRatio(query.defenseLevel ?? summary?.defenseLevelDefault, FALLBACK_PRESET.defenseLevel),
     visitorMode: query.visitorMode,
@@ -115,7 +153,7 @@ export function resolveVoicePreset(query: VoiceHandshakeQuery, summary: VoiceTem
 // ── private ────────────────────────────────────────────────────
 
 /**
- * 从 path 里取会话 id.
+ * 从 path 里取会话 id (旧格式兜底).
  *
  * @param pathname URL path
  * @returns 会话 id (缺省 'default', 与旧实现保持一致)
@@ -123,8 +161,35 @@ export function resolveVoicePreset(query: VoiceHandshakeQuery, summary: VoiceTem
 function extractSessionId(pathname: string): string {
   const matched = /\/voice\/training\/([^/]+)/.exec(pathname);
   if (!matched?.[1]) return 'default';
-  const decoded = decodeURIComponent(matched[1]).trim();
-  return decoded.length > 0 ? decoded : 'default';
+  return sanitizeSessionId(decodeURIComponent(matched[1])) ?? 'default';
+}
+
+/**
+ * 读会话 id (query 形式, 新约定).
+ *
+ * @param raw 原始值
+ * @returns 会话 id; 未提供 → undefined (交由 path 兜底)
+ */
+function readSessionId(raw: string | null): string | undefined {
+  const value = readOptional(raw);
+  return value === undefined ? undefined : sanitizeSessionId(value);
+}
+
+/**
+ * 会话 id 清洗 —— sessionId 完全由客户端控制, 且会被直接拼进日志与 Map key.
+ *
+ * 治两点:
+ * - 去掉控制字符 (含 \n): 否则客户端传 `a\n[onConnect] session=xxx` 就能伪造日志行
+ * - 长度上限: 防止超长 id 撑爆日志 / Map key / DB 查询参数
+ *
+ * @param raw 原始值
+ * @returns 清洗后的会话 id; 清完为空 → undefined
+ */
+function sanitizeSessionId(raw: string): string | undefined {
+  // eslint-disable-next-line no-control-regex
+  const cleaned = raw.replace(/[\u0000-\u001F\u007F]/g, '').trim();
+  if (cleaned.length === 0) return undefined;
+  return cleaned.slice(0, MAX_SESSION_ID_LENGTH);
 }
 
 /**
@@ -164,12 +229,20 @@ function readDifficulty(raw: string | null): VoiceDifficulty | undefined {
 /**
  * 读配合风格.
  *
+ * 区分两种"没有值":
+ * - 未提供 → 交给调用方回退模板缺省
+ * - 提供了但白名单外 → `unmapped: true`, 由调用方回退 `mixed` (spec §2.2 / §5.2)
+ *
  * @param raw 原始值
- * @returns 风格; 非法值 → undefined (用缺省)
+ * @returns 映射结果 + 是否映射不上
  */
-function readStyle(raw: string | null): VoiceVisitorStyle | undefined {
+function readStyle(raw: string | null): { readonly style?: VoiceVisitorStyle; readonly styleUnmapped: boolean } {
   const value = readOptional(raw)?.toLowerCase();
-  return STYLES.find((item) => item === value);
+  if (value === undefined) {
+    return { styleUnmapped: false };
+  }
+  const mapped = STYLES.find((item) => item === value);
+  return mapped ? { style: mapped, styleUnmapped: false } : { styleUnmapped: true };
 }
 
 /**

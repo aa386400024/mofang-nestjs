@@ -20,6 +20,24 @@ import { GrowthWeeklyOverviewService } from './growth-weekly-overview.service';
 import { BizCode } from '../../common/exceptions/biz-code.enum';
 import { BizException } from '../../common/exceptions/biz.exception';
 
+/**
+ * `aggregateKpis` 是 service 内部的**接缝** (声明为 private).
+ *
+ * V2026-10-24 治本 (TS2769: spy 一个 private 方法):
+ *   显式声明接缝签名再窄化一次, 不放宽生产代码可见性, 不用 as any.
+ */
+type WeeklyKpiSource = {
+  aggregateKpis: (
+    userId: string,
+    date?: string,
+  ) => Promise<{
+    toolsCompleted: number;
+    fragmentsEarned: number;
+    islandsUnlocked: number;
+    consecutiveDays: number;
+  }>;
+};
+
 describe('V2026-09-14 GrowthWeeklyOverviewService — 单测', () => {
   let service: GrowthWeeklyOverviewService;
   const userId = 'test-user-uuid';
@@ -97,32 +115,29 @@ describe('V2026-09-14 GrowthWeeklyOverviewService — 单测', () => {
   describe('error path: aggregateKpis 内部抛错 → BizException', () => {
     it('聚合异常 → 转 BizException(40_004, 500)', async () => {
       // V2026-09-14 治本: spyOn mock 内部 aggregateKpis 抛错, 验证 service 兜底.
-      const spy = jest.spyOn(service, 'aggregateKpis');
+      const spy = jest.spyOn(service as unknown as WeeklyKpiSource, 'aggregateKpis');
       spy.mockRejectedValue(new Error('DB 连接失败'));
 
-      await expect(service.getWeeklyOverview(userId)).rejects.toThrow(BizException);
-      await expect(service.getWeeklyOverview(userId)).rejects.toMatchObject({
-        detail: {
-          code: BizCode.GrowthWeeklyOverviewFetchFail,
-          statusCode: 500,
-        },
-      });
+      // V2026-10-24 治本 (断言口径对齐 BizException 的公开契约: code + getStatus()).
+      const err = await service.getWeeklyOverview(userId).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(BizException);
+      expect((err as BizException).code).toBe(BizCode.GrowthWeeklyOverviewFetchFail);
+      expect((err as BizException).getStatus()).toBe(500);
     });
 
     it('BizException 类型直接抛出 → 不被再次包装', async () => {
       // V2026-09-14 治本: catch 块有 if (err instanceof BizException) throw err,
       //   防止内层 BizException 被外层重新包装 (code 错乱).
       const innerErr = new BizException(BizCode.GrowthWeeklyOverviewFetchFail, 'inner');
-      const spy = jest.spyOn(service, 'aggregateKpis');
+      const spy = jest.spyOn(service as unknown as WeeklyKpiSource, 'aggregateKpis');
       spy.mockRejectedValue(innerErr);
 
-      await expect(service.getWeeklyOverview(userId)).rejects.toThrow(BizException);
       // 验证 message 是 inner 的 (未被外层 wrap 改 message).
-      // V2026-09-14 治本 (Lint fix): 用 .rejects.toMatchObject 无条件 expect,
-      //   替代 try/catch + 条件 expect (jest/no-conditional-expect).
-      await expect(service.getWeeklyOverview(userId)).rejects.toMatchObject({
-        detail: { message: 'inner' },
-      });
+      // V2026-10-24 治本: 断言 BizException 的公开 `message` 字段 (HttpException.initMessage
+      //   会把 response.message 提到 this.message), 不再断言不存在的 `detail` 形状.
+      const err = await service.getWeeklyOverview(userId).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(BizException);
+      expect((err as BizException).message).toBe('inner');
     });
   });
 });

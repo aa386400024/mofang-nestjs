@@ -83,7 +83,10 @@ describe('首页金句内容库自检', () => {
       return;
     }
 
-    const broken: QuoteSeed = { ...first, publishedAt: '2026-01-01' };
+    // V2026-10-24 治本: broken 样本沿用原 id → validateQuoteSeeds 的**首个**错误
+    //   是「id 重复」, 断言的「日期前缀」永远轮不到. 给样本一个**唯一但仍合法**的 id:
+    //   格式仍是 q_<YYYYMMDD>_<slug> (前缀不变 → 只保留「日期前缀与 publishedAt 不一致」这一处缺陷).
+    const broken: QuoteSeed = { ...first, id: `${first.id}_probe_prefix`, publishedAt: '2026-01-01' };
     const error = validateQuoteSeeds([...QUOTE_SEEDS, broken]);
 
     expect(error).toContain('日期前缀');
@@ -96,7 +99,8 @@ describe('首页金句内容库自检', () => {
       return;
     }
 
-    const broken: QuoteSeed = { ...first, sourceWork: null };
+    // V2026-10-24 治本: 同上 —— broken 样本必须唯一, 否则「id 重复」先触发.
+    const broken: QuoteSeed = { ...first, id: `${first.id}_probe_source`, sourceWork: null };
     const error = validateQuoteSeeds([...QUOTE_SEEDS, broken]);
 
     expect(error).toContain('出处');
@@ -109,7 +113,8 @@ describe('首页金句内容库自检', () => {
       return;
     }
 
-    const broken: QuoteSeed = { ...first, author: ' '.repeat(3) };
+    // V2026-10-24 治本: 同上 —— broken 样本必须唯一, 否则「id 重复」先触发.
+    const broken: QuoteSeed = { ...first, id: `${first.id}_probe_author`, author: ' '.repeat(3) };
     const error = validateQuoteSeeds([...QUOTE_SEEDS, broken]);
 
     expect(error).toContain('署名');

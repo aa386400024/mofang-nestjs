@@ -56,6 +56,10 @@ const NOT_FOUND_CODES: ReadonlySet<BizCode> = new Set([
   BizCode.QuoteLibraryEmpty,
   BizCode.VisitorPoolTemplateNotFound,
   BizCode.VisitorPoolLibraryEmpty,
+  // V2026-10-24 治本 (growth 业务码归位 HTTP 语义):
+  //   工具不存在 = 资源不存在 → 404 (之前没归组, 落到默认分支 400).
+  //   后果: 前端拿到 400 会提示“参数错了”, 而真实语义是“这个工具 id 不存在” → 用户看不出该换哪个.
+  BizCode.GrowthToolNotFound,
 ]);
 
 const CONFLICT_CODES: ReadonlySet<BizCode> = new Set([
@@ -98,7 +102,29 @@ const FORBIDDEN_CODES: ReadonlySet<BizCode> = new Set([BizCode.Forbidden, BizCod
 //     上一次治本刚把 mapBizCodeToHttpStatus 的 switch 拆成 Set 分组, 不走回头路).
 const PAYLOAD_TOO_LARGE_CODES: ReadonlySet<BizCode> = new Set([BizCode.PracticeAsrAudioTooLarge]);
 
-const UNPROCESSABLE_CODES: ReadonlySet<BizCode> = new Set([BizCode.PracticeAsrNoSpeechDetected]);
+const UNPROCESSABLE_CODES: ReadonlySet<BizCode> = new Set([
+  BizCode.PracticeAsrNoSpeechDetected,
+  // V2026-10-24 治本 (growth 业务码归位 HTTP 语义):
+  //   “今日推荐工具为空 / linkRoute 不在白名单” = 服务端算出来的结果不合规 → 422.
+  //   之前落到默认 400 (“你的请求有问题”), 而请求本身没问题 → 前端会引导用户去改请求, 改不了.
+  BizCode.GrowthDailyToolsEmpty,
+  BizCode.GrowthDailyToolsLinkRouteNotWhitelisted,
+]);
+
+/**
+ * V2026-10-24 治本 (growth 业务码归位 HTTP 语义 — 新增 500 组):
+ *   原因: growth 三个“服务端自己挂了”的码 (取工具失败 / 取周报失败 / 写入完成失败)
+ *     之前不在任何分组里 → 全部落到默认分支 400.
+ *     后果: 前端拿到 400 会当成“参数错了”提示用户重填, 而真实情况是服务端故障 →
+ *     用户反复重试无意义, 监控里 4xx 指标也会被污染 (真正的服务端故障没进 5xx).
+ *   修法: 显式归入 500 组.
+ *   反双胞胎: 不把这三个码当成 4xx 糊弄过去 —— 400 与 500 的前端行为完全不同.
+ */
+const INTERNAL_ERROR_CODES: ReadonlySet<BizCode> = new Set([
+  BizCode.GrowthDailyToolsFetchFail,
+  BizCode.GrowthWeeklyOverviewFetchFail,
+  BizCode.GrowthCompleteFail,
+]);
 
 const BAD_GATEWAY_CODES: ReadonlySet<BizCode> = new Set([BizCode.PracticeAsrUpstreamUnavailable]);
 
@@ -132,6 +158,9 @@ function mapBizCodeToHttpStatus(code: BizCode): HttpStatus {
   }
   if (UNPROCESSABLE_CODES.has(code)) {
     return HttpStatus.UNPROCESSABLE_ENTITY;
+  }
+  if (INTERNAL_ERROR_CODES.has(code)) {
+    return HttpStatus.INTERNAL_SERVER_ERROR;
   }
   if (BAD_GATEWAY_CODES.has(code)) {
     return HttpStatus.BAD_GATEWAY;
