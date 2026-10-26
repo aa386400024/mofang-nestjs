@@ -16,6 +16,8 @@
 import { Global, Module } from '@nestjs/common';
 
 import { VoiceCatalogRegistry } from './voice-catalog-slot';
+import { VoiceFrameRegistry } from './voice-frame-registry';
+import { VoiceSessionBridgeRegistry } from './voice-session-bridge';
 import { VoiceSessionRegistry } from './voice-session-registry';
 import { VoiceTemplateRegistry } from './voice-template-slot';
 
@@ -27,7 +29,16 @@ import { VoiceTemplateRegistry } from './voice-template-slot';
  */
 @Global()
 @Module({
-  providers: [VoiceSessionRegistry, VoiceTemplateRegistry, VoiceCatalogRegistry],
-  exports: [VoiceSessionRegistry, VoiceTemplateRegistry, VoiceCatalogRegistry],
+  providers: [
+    VoiceSessionRegistry,
+    VoiceTemplateRegistry,
+    VoiceCatalogRegistry,
+    // V2026-10-26 治本 (vpt 会话增强 — 2 个新注册表):
+    //   VoiceSessionBridgeRegistry  voice → business 方向 (会话落库插槽)
+    //   VoiceFrameRegistry          business → voice 方向 (WS 帧出口: 轻提示 / 移情标记)
+    VoiceSessionBridgeRegistry,
+    VoiceFrameRegistry,
+  ],
+  exports: [VoiceSessionRegistry, VoiceTemplateRegistry, VoiceCatalogRegistry, VoiceSessionBridgeRegistry, VoiceFrameRegistry],
 })
 export class VoiceSessionModule {}

@@ -31,6 +31,7 @@ import { ProfileExtractionService } from './profile-extraction.service';
 import { SessionContextBuilder } from './session-context.builder';
 import { SessionCoreEventsService } from './session-core-events.service';
 import { TransferenceMarkService } from './transference-mark.service';
+import { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
 import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config';
 import { buildTurnAnalysisUserPrompt, TURN_ANALYZER_SCHEMA_DESCRIPTION, TURN_ANALYZER_SYSTEM_PROMPT } from '../config/session-core-prompts';
 import { type LiveTurnAnalysis, validateLiveTurnAnalysis } from '../domain/session-core/session-core.types';
@@ -63,6 +64,9 @@ export class TurnAnalysisService {
     private readonly markService: TransferenceMarkService,
     private readonly extraction: ProfileExtractionService,
     private readonly events: SessionCoreEventsService,
+    // V2026-10-26 治本 (spec 任务 4 — 移情/阻抗标记经 vpt WS 推):
+    //   标记产在本 worker 里 (BullMQ 异步), 要送到前端得有一条能按会话找到 WS 连接的通道.
+    private readonly voiceFrames: VoiceFrameRegistry,
   ) {}
 
   /**
@@ -143,6 +147,15 @@ export class TurnAnalysisService {
     if (analysis.mark) {
       const created = await this.markService.appendVisitorMark(userId, sessionId, turnIndex, analysis.mark.markType, analysis.mark.note);
       this.events.publish(sessionId, { event: 'transference_mark', data: created });
+      // V2026-10-26 治本 (spec 任务 4 — 标记经 vpt WS 同包下发):
+      //   与轻提示同款 (SSE + WS 两条通道都给), 前端可以在字幕旁高亮标记.
+      this.voiceFrames.publish(sessionId, {
+        type: 'mark',
+        turnIndex: created.turnIndex,
+        direction: created.direction,
+        markType: created.markType,
+        note: created.note ?? '',
+      });
       markCreated = true;
     }
 

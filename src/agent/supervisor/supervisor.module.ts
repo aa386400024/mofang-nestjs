@@ -5,8 +5,18 @@
 //
 //   反双胞胎:
 //     - 不在 Module 里 import VoiceModule — 单向依赖, VoiceService 主动 import AgentModule
-//     - 不引入 TypeOrmModule — V0.x 纯内存, V1.x 才接 supervision_reports 表
-//     - 不 export 仓储 token — 仓储是 SupervisorService 内部依赖, 不让外部跨模块直连
+//     - 不让外部跨模块直连实体: 消费方只拿到**接口** (SupervisionReportRepository)
+//
+// V2026-10-26 治本 (spec 任务 6 — 报告落库):
+//   ① 仓储从**内存**切真库 (`SupervisionReportRepositoryTypeorm`): 复盘报告是"训练完之后
+//      才看"的东西, 放进程内存里 = 进程一重启就没了, 这个功能等于不成立.
+//      内存实现保留 (单测用), 两者实现同一接口, 可互换.
+//   ② **导出仓储 token** (原注释说"不 export 仓储 token — 不让外部跨模块直连"):
+//      复盘报告的查询出口在 counselor 侧 (GET /counselor/supervision/report/:sessionId),
+//      它要读的是**同一份**报告 —— 让 counselor 另写一套查询就是双份实现, 口径必然漂移.
+//      导出的是**接口 token**, 消费方拿不到 entity / Repository, 跨模块边界仍然干净
+//      (counselor → agent 是仓库允许的方向, 反向才成环).
+//   ③ 引入 TypeOrmModule: 表由手写 DDL migration 建 (ADR-0003 禁用 synchronize).
 //
 //   如何验证:
 //     1. pnpm build 无 type error
@@ -14,8 +24,10 @@
 //     3. 单元测试可 override SUPERVISION_REPORT_REPOSITORY provider 注入 mock
 
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { SupervisionReportRepositoryMemory } from './data/supervision-report.repository.memory';
+import { SupervisionReportRepositoryTypeorm } from './data/supervision-report.repository.typeorm';
+import { SupervisionReportEntity } from './domain/entities/supervision-report.entity';
 import { SUPERVISION_REPORT_REPOSITORY } from './domain/repositories/supervision-report.repository';
 import { SupervisorController } from './supervisor.controller';
 import { SupervisorProcessor } from './supervisor.processor';
@@ -28,16 +40,18 @@ import { SupervisorService } from './supervisor.service';
 import { LlmModule } from '../llm/llm.module';
 
 @Module({
-  imports: [LlmModule],
+  // V2026-10-26 治本 (spec 任务 6): 注册督导报告实体 (表由手写 DDL migration 建).
+  imports: [LlmModule, TypeOrmModule.forFeature([SupervisionReportEntity])],
   controllers: [SupervisorController],
   providers: [
     SupervisorService,
     SupervisorProcessor,
     {
+      // V2026-10-26 治本: 内存 → 真库 (报告落库). 内存实现保留在 data/ 目录供单测替换.
       provide: SUPERVISION_REPORT_REPOSITORY,
-      useClass: SupervisionReportRepositoryMemory,
+      useClass: SupervisionReportRepositoryTypeorm,
     },
   ],
-  exports: [SupervisorService, SupervisorProcessor],
+  exports: [SupervisorService, SupervisorProcessor, SUPERVISION_REPORT_REPOSITORY],
 })
 export class SupervisorModule {}

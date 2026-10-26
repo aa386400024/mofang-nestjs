@@ -51,12 +51,35 @@ import type { IncomingMessage } from 'node:http';
 import type { WebSocket as WsWebSocket } from 'ws';
 
 import { VoiceCatalogRegistry } from './voice-catalog-slot';
+import { VoiceFrameRegistry } from './voice-frame-registry';
 import { parseVoiceHandshake, resolveVoicePreset } from './voice-handshake';
+import { VoiceSessionBridgeRegistry, type VoiceSessionOpenResult } from './voice-session-bridge';
 import { VoiceSessionRegistry } from './voice-session-registry';
-import type { VoicePersonaChannel, VoiceSessionPreset, VoiceSkillCode } from './voice-session.types';
+import type { VoicePersonaChannel, VoiceSessionPreset, VoiceSkillCode, VoiceVisitorCard } from './voice-session.types';
 import { VoiceTemplateRegistry } from './voice-template-slot';
+import { buildVoiceVisitorCard } from './voice-visitor-card';
 import { VoiceService } from './voice.service';
 import type { VoiceClientMessage, VoiceServerMessage } from './voice.types';
+
+/**
+ * 兜底通道的中性速查卡 (V2026-10-26, spec 任务 1 / 任务 7).
+ *
+ * 专项兜底 / 自定义人设来源**没有公共人物模板**, 那几个可公开的表层字段 (年龄区间 / 职业 /
+ * 主诉 / 风险标签) 无从谈起 —— 所以速查卡**不下发** (前端按"无卡片"渲染), 但落库桥需要一份
+ * **可落库的**表层字段 (training_sessions 那些列是 NOT NULL), 用中性缺省占位.
+ *
+ * 刻意**不**伪造"28-35 岁 / 办公室职员"这类看起来真实的人设: 库里那几列会进督导 prompt,
+ * 假人设会污染 AI 对来访者的判断 —— 宁可空着.
+ */
+const NEUTRAL_VISITOR_CARD: VoiceVisitorCard = {
+  templateId: '',
+  codename: '来访者',
+  ageRange: '',
+  ageLowerBound: null,
+  occupation: '',
+  presentingComplaint: '',
+  riskTags: [],
+};
 
 interface SocketData {
   sessionId: string;
@@ -80,6 +103,14 @@ interface SocketData {
   voiceId?: string;
   /** 专项训练技巧码; undefined = 全流程 / 个案 (不聚焦单一技巧). */
   skillCode?: VoiceSkillCode;
+  /**
+   * 稳定落库 id (training_sessions.id) — V2026-10-26 (spec 任务 1).
+   *
+   * undefined = 本场未落库 (降级为纯内存会话).
+   */
+  dbSessionId?: string;
+  /** 注销 WS 帧出口的句柄 (连接断开时调). */
+  unregisterFrameSink?: () => void;
 }
 
 @WebSocketGateway({ path: '/voice/training' })
@@ -91,6 +122,8 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
   private readonly templates: VoiceTemplateRegistry;
   private readonly sessions: VoiceSessionRegistry;
   private readonly catalog: VoiceCatalogRegistry;
+  private readonly bridges: VoiceSessionBridgeRegistry;
+  private readonly frames: VoiceFrameRegistry;
 
   /**
    * @param voice 会话编排
@@ -99,6 +132,8 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
    * @param templates 公共人物模板解析插槽
    * @param sessions 演练登记
    * @param catalog 账号可用音色查询插槽 (判定握手传入的 voiceId 能不能用)
+   * @param bridges vpt 会话落库插槽 (voice → business 方向)
+   * @param frames vpt WS 帧出口注册表 (business → voice 方向)
    */
   constructor(
     voice: VoiceService,
@@ -107,6 +142,8 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
     templates: VoiceTemplateRegistry,
     sessions: VoiceSessionRegistry,
     catalog: VoiceCatalogRegistry,
+    bridges: VoiceSessionBridgeRegistry,
+    frames: VoiceFrameRegistry,
   ) {
     this.voice = voice;
     this.jwt = jwt;
@@ -114,6 +151,8 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
     this.templates = templates;
     this.sessions = sessions;
     this.catalog = catalog;
+    this.bridges = bridges;
+    this.frames = frames;
   }
 
   /**
@@ -168,20 +207,12 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
     handshake: ReturnType<typeof parseVoiceHandshake>,
     token: string,
   ): Promise<void> {
-    try {
-      const payload = await this.jwt.verifyAsync<{ sub: string; tenantId?: string }>(token, {
-        secret: this.config.getOrThrow<string>('jwtSecret'),
-      });
-      data.userId = payload.sub;
-      data.tenantId = payload.tenantId ?? 'default';
-    } catch (err) {
-      this.logger.warn('[onConnect] jwt verify failed: ' + (err instanceof Error ? err.message : String(err)));
-      this.sendJson(client, { type: 'error', error: { code: 'unauthorized', message: 'invalid token', retryable: false } });
-      client.close(1008, 'unauthorized');
+    // 1. 校验 JWT (失败已发 error + 断开)
+    if (!(await this.verifyJwt(client, data, token))) {
       return;
     }
 
-    // 4. 角色来源通道解析 (连接期):
+    // 2. 角色来源通道解析 (连接期):
     //    - 有 templateId → 查到已上架模板则注入; 查不到 → `template_not_found` + 断开 (不回退)
     //    - 无 templateId → 走**兜底人设通道** (专项兜底 / 自定义人设来源), **不再**报
     //      template_not_found (spec §任务 1 §1.1)
@@ -193,16 +224,127 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
     const preset = resolveVoicePreset(handshake, channel.kind === 'template' ? channel.summary : null);
     data.preset = preset;
 
-    // 4.1 音色校验 (V2026-10-26, spec §任务 1):
+    // 3. 音色校验 (V2026-10-26, spec §任务 1):
     //   握手带了 voiceId 但不在账号可用系统音色内 → 丢弃它 (回退 env 默认) + warn 日志.
     //   **不致命断连** —— 判不出来 (上游故障) 时也不拦, 交给 TTS 建连阶段归一为 error.
     data.voiceId = await this.resolveVoiceId(handshake.voiceId);
     data.skillCode = handshake.skillCode;
 
+    // 4. 会话落库 + 登记 WS 帧出口
+    const visitorCard = this.resolveVisitorCard(channel);
+    const opened = await this.openSessionStorage(client, data, channel, preset, handshake, visitorCard);
+
     // 5. 注入到 client 供后续 message 路由用
     (client as unknown as { data: SocketData }).data = data;
 
     // 6. 演练登记 (进程内内存, 不落库) — counselor 侧按 sessionId 反查这份登记来注入 vpt 剧本
+    this.registerDrill(data, channel, preset, handshake);
+
+    // 7. 启动 session
+    if (!(await this.startVoiceSession(client, data, preset, visitorCard))) {
+      return;
+    }
+
+    this.logger.log(this.describeConnect(data, channel, handshake));
+
+    // 8. 就绪信号 (spec §2.3 帧规则 0 / §7 场景 8): 前置全部成功后才发 `ready`.
+    //    前端收到之前不得发 `user_text` —— 否则首条消息会撞上 "not initialized".
+    //    前置失败路径已在上面走 error + close, **不发** ready.
+    this.sendJson(client, this.buildReadyFrame(visitorCard, opened, data));
+  }
+
+  /**
+   * 校验 JWT (失败 → 发 error + 断开).
+   *
+   * 单独拆出来是为了让 `verifyAndStart` 的复杂度回到阈值内 (ESLint complexity 上限 20) ——
+   * 拆分的边界按**职责**切 (鉴权 / 落库 / 登记 / 启动 / 发帧), 不是按"凑行数"切.
+   *
+   * @param client socket
+   * @param data socket 上下文 (成功后写入 userId / tenantId)
+   * @param token JWT
+   * @returns true = 校验通过
+   */
+  private async verifyJwt(client: WsWebSocket, data: SocketData, token: string): Promise<boolean> {
+    try {
+      const payload = await this.jwt.verifyAsync<{ sub: string; tenantId?: string }>(token, {
+        secret: this.config.getOrThrow<string>('jwtSecret'),
+      });
+      data.userId = payload.sub;
+      data.tenantId = payload.tenantId ?? 'default';
+      return true;
+    } catch (err) {
+      this.logger.warn('[onConnect] jwt verify failed: ' + (err instanceof Error ? err.message : String(err)));
+      this.sendJson(client, { type: 'error', error: { code: 'unauthorized', message: 'invalid token', retryable: false } });
+      client.close(1008, 'unauthorized');
+      return false;
+    }
+  }
+
+  /**
+   * 会话落库 + 登记 WS 帧出口.
+   *
+   * V2026-10-26 (spec 任务 1 / 任务 2 / 任务 4):
+   *   - 落库: vpt 从"纯内存、结束即清"升级成"落 training_sessions 表" —— 督导报告要有稳定
+   *     落库 id 可挂、每轮分析要有 transcript 可读、4 流派反馈要有 sessionId 可指.
+   *     落库失败**不阻断会话** (降级为纯内存), 但降级状态必须进 `ready` 帧让前端知道.
+   *   - 帧出口: 实时轻提示与移情标记产在 counselor 侧 (BullMQ worker), 要经**本条** WS
+   *     推给前端. 按**稳定落库 id** 登记 —— worker 只知道 training_sessions.id, 不知道
+   *     内存 sessionId.
+   *
+   * @param client socket
+   * @param data socket 上下文
+   * @param channel 角色来源通道
+   * @param preset 本场临场参数
+   * @param handshake 握手解析结果
+   * @param visitorCard 来访者速查卡 (无 → null)
+   * @returns 落库结果
+   */
+  private async openSessionStorage(
+    client: WsWebSocket,
+    data: SocketData,
+    channel: VoicePersonaChannel,
+    preset: VoiceSessionPreset,
+    handshake: ReturnType<typeof parseVoiceHandshake>,
+    visitorCard: VoiceVisitorCard | null,
+  ): Promise<VoiceSessionOpenResult> {
+    const opened = await this.bridges.open({
+      sessionId: data.sessionId,
+      userId: data.userId,
+      tenantId: data.tenantId,
+      templateId: channel.kind === 'template' ? channel.templateId : null,
+      // 落库桥要的是**可落库的**表层字段, 兜底通道 (专项兜底 / 自定义人设) 没有公共人物,
+      // 那几个字段本就无从谈起 → 用中性缺省占位 (training_sessions 那些列是 NOT NULL).
+      visitor: visitorCard ?? NEUTRAL_VISITOR_CARD,
+      preset,
+      skillCode: handshake.skillCode ?? null,
+    });
+    data.dbSessionId = opened.dbSessionId ?? undefined;
+
+    if (data.dbSessionId) {
+      const sessionId = data.dbSessionId;
+      data.unregisterFrameSink = this.frames.register(sessionId, (frame) => {
+        this.sendJson(client, frame);
+      });
+    }
+    return opened;
+  }
+
+  /**
+   * 演练登记 (进程内内存, 不落库).
+   *
+   * counselor 侧按 sessionId 反查这份登记来注入 vpt 剧本.
+   *
+   * @param data socket 上下文
+   * @param channel 角色来源通道
+   * @param preset 本场临场参数
+   * @param handshake 握手解析结果
+   */
+  private registerDrill(
+    data: SocketData,
+    channel: VoicePersonaChannel,
+    preset: VoiceSessionPreset,
+    handshake: ReturnType<typeof parseVoiceHandshake>,
+  ): void {
     this.sessions.register({
       sessionId: data.sessionId,
       userId: data.userId,
@@ -213,8 +355,23 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
       preset,
       createdAt: Date.now(),
     });
+  }
 
-    // 7. 启动 session
+  /**
+   * 启动 voice session (失败 → 发 error + 断开).
+   *
+   * @param client socket
+   * @param data socket 上下文
+   * @param preset 本场临场参数
+   * @param visitorCard 来访者速查卡 (无 → null)
+   * @returns true = 启动成功
+   */
+  private async startVoiceSession(
+    client: WsWebSocket,
+    data: SocketData,
+    preset: VoiceSessionPreset,
+    visitorCard: VoiceVisitorCard | null,
+  ): Promise<boolean> {
     try {
       await this.voice.startSession({
         sessionId: data.sessionId,
@@ -226,32 +383,69 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
         preset,
         voiceId: data.voiceId,
         skillCode: data.skillCode,
+        dbSessionId: data.dbSessionId,
+        // V2026-10-26 治本 (spec 任务 6 — 报告的人格来源):
+        //   vpt 场 AI 扮演的是**公共人物** (晚晴...), 不是 agent 内置 persona ——
+        //   把速查卡带进 session, 报告里的人格快照才对得上号.
+        visitor: visitorCard ?? undefined,
       });
+      return true;
     } catch (err) {
       this.logger.error('[onConnect] start session failed: ' + (err instanceof Error ? err.message : String(err)));
       this.sessions.remove(data.sessionId);
+      data.unregisterFrameSink?.();
       this.sendJson(client, {
         type: 'error',
         error: { code: 'session_start_failed', message: '会话启动失败', retryable: true },
       });
       client.close(1011, 'session_start_failed');
-      return;
+      return false;
     }
-    this.logger.log(
+  }
+
+  /**
+   * 连接成功摘要 (日志).
+   *
+   * @param data socket 上下文
+   * @param channel 角色来源通道
+   * @param handshake 握手解析结果
+   * @returns 日志行
+   */
+  private describeConnect(data: SocketData, channel: VoicePersonaChannel, handshake: ReturnType<typeof parseVoiceHandshake>): string {
+    return (
       `[onConnect] session=${data.sessionId} user=${data.userId} tenant=${data.tenantId} ` +
-        `mode=${data.mode} channel=${channel.kind} template=${channel.kind === 'template' ? channel.templateId : '<none>'} ` +
-        `skill=${handshake.skillCode ?? '<none>'} voice=${data.voiceId ?? '<env-default>'}`,
+      `mode=${data.mode} channel=${channel.kind} template=${channel.kind === 'template' ? channel.templateId : '<none>'} ` +
+      `skill=${handshake.skillCode ?? '<none>'} voice=${data.voiceId ?? '<env-default>'}`
     );
-    // 8. 就绪信号 (spec §2.3 帧规则 0 / §7 场景 8): 前置全部成功后才发 `ready`.
-    //    前端收到之前不得发 `user_text` —— 否则首条消息会撞上 "not initialized".
-    //    前置失败路径已在上面走 error + close, **不发** ready.
-    this.sendJson(client, { type: 'ready' });
+  }
+
+  /**
+   * 构造 `ready` 帧载荷.
+   *
+   * V2026-10-26: 带上速查卡 (任务 7) + 是否落库 (任务 1) + 稳定落库 id (任务 6).
+   * 落库 id 只在落库成功时下发 (降级为纯内存的会话没有报告可取, 别让前端去请求).
+   *
+   * @param visitorCard 来访者速查卡 (无 → 不带该字段)
+   * @param opened 落库结果
+   * @param data socket 上下文
+   * @returns ready 帧
+   */
+  private buildReadyFrame(visitorCard: VoiceVisitorCard | null, opened: VoiceSessionOpenResult, data: SocketData): VoiceServerMessage {
+    return {
+      type: 'ready',
+      ...(visitorCard ? { visitor: visitorCard } : {}),
+      persisted: opened.persisted,
+      ...(data.dbSessionId ? { dbSessionId: data.dbSessionId } : {}),
+    };
   }
 
   /** 断开时清理. */
   handleDisconnect(client: WsWebSocket): void {
     const data = (client as unknown as { data?: SocketData }).data;
     if (data?.sessionId) {
+      // V2026-10-26 治本 (spec 任务 1 / 任务 2):
+      //   先注销 WS 帧出口 (连接没了, 再推帧就是往死连接写), 再结束会话 (落库收尾).
+      data.unregisterFrameSink?.();
       this.voice.endSession(data.sessionId, 'user_finish');
       this.sessions.remove(data.sessionId);
     }
@@ -280,6 +474,7 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
           preset: data.preset,
           voiceId: data.voiceId,
           skillCode: data.skillCode,
+          dbSessionId: data.dbSessionId,
         },
         payload,
         send,
@@ -340,6 +535,23 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
       client.close(1011, 'template_lookup_failed');
       return { ok: false };
     }
+  }
+
+  /**
+   * 构造来访者速查卡 (V2026-10-26, spec 任务 7).
+   *
+   * 只有**公共人物模板**通道有速查卡 —— 兜底通道 (专项兜底 / 自定义人设) 没有公共人物,
+   * 那几个可公开的表层字段 (年龄区间 / 职业 / 主诉 / 风险标签) 无从谈起,
+   * 这时返回 null (前端按"无卡片"渲染, 而不是渲染一张空卡).
+   *
+   * @param channel 角色来源通道
+   * @returns 速查卡; 无 → null
+   */
+  private resolveVisitorCard(channel: VoicePersonaChannel): VoiceVisitorCard | null {
+    if (channel.kind !== 'template' || !channel.summary) {
+      return null;
+    }
+    return buildVoiceVisitorCard(channel.summary);
   }
 
   /**

@@ -365,11 +365,15 @@ import { VisitorPersonaService } from './providers/visitor-persona.service';
 //   AdminRoleGuard: 读 users.admin_role 判定内部角色 (普通用户 → 403)
 import { VisitorPoolAdminService } from './providers/visitor-pool-admin.service';
 import { VisitorPoolService } from './providers/visitor-pool.service';
+// V2026-10-26 治本 (vpt 全真语音会话增强 — 落库桥, spec 任务 1):
+//   VptSessionBridgeService 实现 voice 侧的 VoiceSessionBridge 插槽 (依赖倒置),
+//   启动时注册进 voice 侧全局注册表 —— voice 侧不认识 counselor 的任何类型.
 // V2026-10-26 治本 (官方音色目录代理 — 2 provider, spec §任务 2):
 //   VoicesClient:  MiniMax `get_voice` 上游协议层 (路径 / 请求体 / 响应体 / 状态码)
 //   VoicesService: 缓存 + 并发去重 + 错误归一 + DTO 整形, 并实现 voice 侧音色目录插槽
 import { VoicesClient } from './providers/voices.client';
 import { VoicesService } from './providers/voices.service';
+import { VptSessionBridgeService } from './providers/vpt-session-bridge.service';
 // V2026-10-23 治本 (AI 模拟来访池 — 内部角色守卫):
 //   直读 users.admin_role (3 档 editor/reviewer/admin), 不复用 common/guards/roles.guard.ts
 //   (后者依赖 request.user.adminRole / user.roles, 而本仓当前注入 request.user 的
@@ -579,6 +583,10 @@ import { VoicesService } from './providers/voices.service';
     //   则端点 404 且 WS 网关拿不到音色目录判定.
     VoicesClient,
     VoicesService,
+    // V2026-10-26 治本 (vpt 会话落库桥, spec 任务 1):
+    //   必须在 onModuleInit 里注册进 voice 侧全局注册表 —— 少注册 = vpt 会话不落库,
+    //   降级成纯内存 (功能"看着能用", 但没有复盘报告). 所以跟 VoicesService 一起一次注册齐.
+    VptSessionBridgeService,
   ],
   exports: [
     CounselorHomeService,

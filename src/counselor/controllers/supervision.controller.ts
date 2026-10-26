@@ -42,6 +42,7 @@ import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
 import {
   type CompareSupervisionFeedbackResponseDto,
   type GenerateSupervisionFeedbackDto,
+  type SessionReportDto,
   type SupervisionFeedbackDto,
   type SupervisionSchoolDetailDto,
   type SupervisionSchoolListItemDto,
@@ -135,5 +136,27 @@ export class CounselorSupervisionController {
     @Param('sessionType') sessionType: string,
   ): Promise<SupervisionFeedbackDto[]> {
     return this.service.listFeedbackForSession(user.userId, sessionId, sessionType as SessionType);
+  }
+
+  /**
+   * GET /counselor/supervision/report/:sessionId
+   *
+   * 本场会谈的**复盘报告** (V2026-10-26, spec 任务 6): 亮点 / 改进建议 / 风险线索 +
+   * 技术统计 + 移情阻抗标记 + 4 流派反馈, 整合为一份.
+   *
+   * 报告还在异步生成时 → `status='pending'` + 其余字段空, **不返回编造内容**.
+   */
+  @Get('report/:sessionId')
+  @ApiOperation({
+    summary: '本场会谈复盘报告 (亮点 / 建议 / 技术统计 / 移情标记 / 4 流派反馈)',
+    description:
+      '整合三个已有来源: agent/supervisor 的结构化督导报告 (亮点 / 改进建议 / 风险线索, 锚时间戳) ' +
+      '+ training_sessions.tech_stats (技术统计) + transference_resistance_marks (移情/阻抗标记) ' +
+      '+ supervision_feedback (4 流派反馈, 可切 CBT / 精神动力学 / 人本 / 家庭治疗视角). ' +
+      '报告还在异步生成时 status=pending 且其余字段为空, **不会返回编造内容**. ' +
+      '跨用户访问返 404 (不泄露会话是否存在).',
+  })
+  async getSessionReport(@CurrentUser() user: { userId: string }, @Param('sessionId') sessionId: string): Promise<SessionReportDto> {
+    return this.service.getSessionReport(user.userId, sessionId);
   }
 }

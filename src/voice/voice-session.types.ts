@@ -18,6 +18,33 @@
 import type { VoiceSkillCode } from '../shared/types/voice-skill.types';
 
 /**
+ * 来访者速查卡 (V2026-10-26, spec 任务 7).
+ *
+ * 只含**可公开的表层字段** —— 供前端准备页 / 会话页渲染来访者速查卡.
+ * **不含** 7 大块全量剧本 / 量表得分 / 深层背景: 那些是 AI 独享层, 下发即破防信息分层
+ * (前端规划 §7「不剧透剧本」).
+ *
+ * 风险标签只**标记不展开**: 例「涉及危机需识别转介」告诉咨询师"这一场要盯住风险识别",
+ * 但不展开风险的具体内容 —— 展开即剧透.
+ */
+export interface VoiceVisitorCard {
+  /** 公共人物模板 id (前端可据此拉人物卡; 报告里作为人格标识). */
+  readonly templateId: string;
+  /** 匿名称呼 (例「晚晴」). */
+  readonly codename: string;
+  /** 年龄区间 (例「28-35」). */
+  readonly ageRange: string;
+  /** 年龄区间下限 (由区间解析; 解析不出 → null). */
+  readonly ageLowerBound: number | null;
+  /** 职业 (表层). */
+  readonly occupation: string;
+  /** 初次见面主动呈现的一句话主诉. */
+  readonly presentingComplaint: string;
+  /** 已知风险标签 (仅标记, 不展开). */
+  readonly riskTags: readonly string[];
+}
+
+/**
  * 会话模式.
  *
  * - `text`: 纯文字闭环 (不启动 TTS, 不发任何音频帧)
@@ -123,6 +150,20 @@ export interface VoiceTemplateSummary {
   readonly defenseLevelDefault: number;
   /** 主导防御类型 (模板固定, 握手不可覆盖). */
   readonly defenseType: string;
+  /**
+   * 职业 (表层) — V2026-10-26 (spec 任务 7).
+   *
+   * 来自模板 7 大块剧本的 `basics.occupation` —— 剧本本身**不下发**,
+   * 只有这一个表层字段经 `VoiceVisitorCard` 出口.
+   */
+  readonly occupation: string;
+  /**
+   * 已知风险标签 (仅标记, 不展开) — V2026-10-26 (spec 任务 7).
+   *
+   * 由剧本 `presentingIssue.selfReportedRisk` 映射而来 (counselor 侧负责),
+   * 跨模块只传**已映射好的标签**, 不传风险等级原始值.
+   */
+  readonly riskTags: readonly string[];
 }
 
 /**

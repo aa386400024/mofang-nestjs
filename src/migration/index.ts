@@ -101,5 +101,14 @@ export { AddVisitorPoolTemplates1714900000018 } from './1714900000018-AddVisitor
 //   visitor_full_personas.source_template_id 一起放宽 (与 quotes.id varchar(64) 对齐).
 //   0018 已在 dev 库执行, **不改已执行的迁移** —— 迁移只增不改.
 export { WidenVisitorPoolIdColumns1714900000019 } from './1714900000019-WidenVisitorPoolIdColumns';
+// V2026-10-26 治本 (vpt 全真语音会话增强 — 督导报告落库, spec 任务 6):
+//   supervision_reports 新表 (16 列 + 3 索引, 其中 (tenant_id, session_id) 唯一),
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏建.
+//   表由手写 DDL 建 (ADR-0003 禁用 synchronize) —— 督导报告写完即终态, 不落软删列.
+export { AddSupervisionReports1714900000020 } from './1714900000020-AddSupervisionReports';
+// V2026-10-26 治本 (4 督导流派幂等播种 — supervision_schools):
+//   006 建表但漏播种, 导致流派 job 报「督导流派 cbt 不存在」+ tech_stats 永远为空.
+//   内容直接 import SUPERVISION_SCHOOL_PRESETS, ON DUPLICATE KEY UPDATE 幂等 upsert.
+export { SeedSupervisionSchools1714900000021 } from './1714900000021-SeedSupervisionSchools';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

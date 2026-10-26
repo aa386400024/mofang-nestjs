@@ -54,6 +54,14 @@ export interface SupervisionReport {
 
 /** 督导报告持久化行 (entity shape, V0.x 内存 mock 字段一致). */
 export interface SupervisionReportRow extends SupervisionReport {
+  /**
+   * 行 id (数据库主键).
+   *
+   * V2026-10-26 治本 (spec 任务 6 — 报告落库): 内存实现没有 id (undefined),
+   * 真库实现返回数据库生成的 uuid —— 用来回填 `training_sessions.supervision_report_id`.
+   * 选填而非必填: 内存实现与单测构造的 row 不用带它.
+   */
+  readonly id?: string;
   readonly status: SupervisorReportStatus;
   readonly tenantId: string;
   readonly userId: string;

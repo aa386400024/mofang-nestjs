@@ -25,6 +25,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { type Job, Queue, Worker } from 'bullmq';
 
+import { isPermanentSupervisionFailure } from './supervision-failure';
 import { SupervisionService } from './supervision.service';
 import { QUEUE_NAMES } from '../../shared/infra/redis/redis.constants';
 import { RedisService } from '../../shared/infra/redis/redis.service';
@@ -113,18 +114,33 @@ export class CounselorSupervisionProcessor implements OnModuleInit, OnModuleDest
   /**
    * job handler — 调 SupervisionService 真接 LLM 生成 1 流派反馈.
    *
-   * 失败直接抛给 BullMQ → 触发指数退避重试 (attempts: 3), 重试用尽进 removeOnFail 队列.
+   * V2026-10-26 治本 (任务 C — 永久性失败不重试):
+   *   流派缺种子 / 会话不存在 / 没有对话记录 —— 这三类**重试 3 次也不会变好**,
+   *   只会刷 3 遍错误日志 + 拖 3 次退避 + 队列里堆失败 job. 记一条 warn 后优雅收尾
+   *   (该流派反馈留空, 报告页的 feedbackBySchool 少这一份而已).
+   *   瞬时故障 (LLM 上游不可用 / 网络抖动) 仍然**抛出去** —— 那是重试真正有意义的场景.
    */
   private async processJob(job: Job<CounselorSupervisionJobData>): Promise<void> {
     const data = job.data;
-    await this.supervision.generateFeedback(
-      {
-        sessionId: data.sessionId,
-        sessionType: data.sessionType,
-        schoolCode: data.schoolCode,
-      },
-      data.userId,
-    );
-    this.logger.log(`[counselor_supervision_done] jobId=${job.id} sessionId=${data.sessionId} ` + `school=${data.schoolCode}`);
+    try {
+      await this.supervision.generateFeedback(
+        {
+          sessionId: data.sessionId,
+          sessionType: data.sessionType,
+          schoolCode: data.schoolCode,
+        },
+        data.userId,
+      );
+      this.logger.log(`[counselor_supervision_done] jobId=${job.id} sessionId=${data.sessionId} ` + `school=${data.schoolCode}`);
+    } catch (err) {
+      if (isPermanentSupervisionFailure(err)) {
+        this.logger.warn(
+          `[counselor_supervision_skipped] jobId=${job.id} sessionId=${data.sessionId} ` +
+            `school=${data.schoolCode} reason=${err instanceof Error ? err.message : String(err)}`,
+        );
+        return;
+      }
+      throw err;
+    }
   }
 }

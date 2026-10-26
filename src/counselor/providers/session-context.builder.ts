@@ -192,7 +192,10 @@ export class SessionContextBuilder {
    * @throws BadRequestException sessionType 暂不支持
    */
   async build(userId: string, sessionId: string, sessionType: SessionType): Promise<SessionContext> {
-    if (sessionType === SessionType.TRAINING_SESSION) {
+    if (sessionType === SessionType.TRAINING_SESSION || sessionType === SessionType.VPT_VOICE) {
+      // V2026-10-26 治本 (spec 任务 1 / 任务 6 — vpt 会话也落 training_sessions):
+      //   vpt 与单次训练**同表**, 取数口径完全一致 —— 所以这里共用同一个分支.
+      //   两者的差别在"这条会话怎么来的" (WS 实时链路 vs 单次训练), 不在数据形状.
       const row = await this.sessionRepo.findOne({
         where: { id: sessionId, userId, deletedAt: IsNull() },
       });

@@ -104,20 +104,72 @@ function makeMockRepo() {
 }
 
 /**
- * V2026-09-11 简化版 QueryBuilder mock: 仅支持 service 用到的链式调用,
- * 满足 service.getRecent / service.search 的基本断言 (hasMore / nextCursor).
+ * V2026-10-26 治本 (QueryBuilder mock 补 author / status 过滤 — 之前完全不过滤):
+ *   原因: 旧 mock 的 `getMany` 直接 `return store.slice()` —— 一条过滤都不做,
+ *     于是 service.getRecent 的 SQL 过滤 (`e.author_id = :uid` / `e.status IN (...)`)
+ *     在单测里是**假的**:
+ *       - 「默认只看 finalized」拿到的却是全部条目 → 直接变红
+ *       - purgeAll 的跨用户断言是**侥幸通过**的 —— 它通过, 只是因为 purgeAll 真的把
+ *         本人的行从 store 里删掉了, **不是**因为查询带了 author 过滤
+ *   修法: mock 记录 where/andWhere 传进来的参数, getMany 时按 author + status 过滤.
+ *     这两条是 service 每次都必带的, 也是这个单测真正要验的那两条.
+ *     cursor 条件**故意不实现**: 本文件没有 cursor 用例, 实现了也没人验 (留着占位).
  */
 function setupQueryBuilderMock(repo: ReturnType<typeof makeMockRepo>, store: MockEntry[]) {
-  repo.createQueryBuilder = jest.fn(() => ({
-    where: jest.fn().mockReturnThis(),
-    andWhere: jest.fn().mockReturnThis(),
-    orderBy: jest.fn().mockReturnThis(),
-    addOrderBy: jest.fn().mockReturnThis(),
-    limit: jest.fn().mockReturnThis(),
-    getMany: jest.fn(async () => store.slice()),
-    delete: jest.fn().mockReturnThis(),
-    execute: jest.fn(async () => ({ affected: store.length })),
-  }));
+  // V2026-10-26 治本 (TS7022/TS7024 — 自引用对象必须**显式标注类型**):
+  //   `qb` 的成员要 `return qb` (链式调用), 若让 TS 去**推断** qb 的类型, 就成了
+  //   「qb 的类型依赖 qb 自己的初始化器」的循环 → TS7022 (qb 隐式 any) + TS7024 (返回 any).
+  //   治本: 把形状抽成显式 interface —— 类型是**声明**出来的, 不是推断出来的, 循环自然断开.
+  interface QueryBuilderMock {
+    where: jest.Mock<QueryBuilderMock, [string, Record<string, unknown>?]>;
+    andWhere: jest.Mock<QueryBuilderMock, [string, Record<string, unknown>?]>;
+    orderBy: jest.Mock<QueryBuilderMock, [string, string]>;
+    addOrderBy: jest.Mock<QueryBuilderMock, [string, string]>;
+    limit: jest.Mock<QueryBuilderMock, [number]>;
+    getMany: jest.Mock<Promise<MockEntry[]>>;
+    delete: jest.Mock<QueryBuilderMock>;
+    execute: jest.Mock<Promise<{ affected: number }>>;
+  }
+
+  repo.createQueryBuilder = jest.fn(() => {
+    // V2026-10-26 治本: 过滤条件**每次建 QB 都要新建** ——
+    //   建在工厂外面的话, 上一条查询留下的 status 过滤会漏进下一条 (service.search
+    //   不带 status 过滤, 却被上一次 getRecent 的 status 条件污染).
+    const filters: { authorId?: string; statuses?: string[] } = {};
+    const qb: QueryBuilderMock = {
+      where: jest.fn((clause: string, params?: Record<string, unknown>) => {
+        // V2026-10-26 治本 (TS4111): params 是索引签名 → 必须方括号访问.
+        if (clause.includes('e.author_id') && typeof params?.['uid'] === 'string') {
+          filters.authorId = params['uid'];
+        }
+        return qb;
+      }),
+      andWhere: jest.fn((clause: string, params?: Record<string, unknown>) => {
+        if (clause.includes('e.status IN') && Array.isArray(params?.['statuses'])) {
+          filters.statuses = params['statuses'] as string[];
+        }
+        return qb;
+      }),
+      orderBy: jest.fn((_clause: string, _dir: string): QueryBuilderMock => qb),
+      addOrderBy: jest.fn((_clause: string, _dir: string): QueryBuilderMock => qb),
+      limit: jest.fn((_n: number): QueryBuilderMock => qb),
+      getMany: jest.fn(async () => {
+        let list = store.slice();
+        if (filters.authorId !== undefined) {
+          list = list.filter((e) => e.authorId === filters.authorId);
+        }
+        // 局部 const 收窄 (不在回调里读 filters.statuses, 避免非空断言).
+        const statuses = filters.statuses;
+        if (statuses !== undefined) {
+          list = list.filter((e) => statuses.includes(e.status));
+        }
+        return list;
+      }),
+      delete: jest.fn((): QueryBuilderMock => qb),
+      execute: jest.fn(async () => ({ affected: store.length })),
+    };
+    return qb;
+  });
 }
 
 describe('GoodStateDiaryService', () => {
@@ -212,13 +264,17 @@ describe('GoodStateDiaryService', () => {
     });
 
     it('should throw 404 when updating another user entry', async () => {
-      await expect(service.update(OTHER_UID, entryId, { body: 'hijack' })).rejects.toMatchObject({ bizCode: BizCode.ResourceNotFound });
+      // V2026-10-26 治本: 断言字段名从 `bizCode` 改成 `code` ——
+      //   BizException 的业务码字段就叫 `code` (public readonly code: BizCode),
+      //   `bizCode` 从来不存在, 这条断言**从来没生效过** (toMatchObject 匹配不到就红).
+      //   上一个 commit (af1ccfa) 把仓库其余套件统一改成了 `code`, 漏了这个文件.
+      await expect(service.update(OTHER_UID, entryId, { body: 'hijack' })).rejects.toMatchObject({ code: BizCode.ResourceNotFound });
     });
 
     it('should throw 404 when updating soft-deleted entry', async () => {
       await service.softDelete(TEST_UID, entryId);
       await expect(service.update(TEST_UID, entryId, { body: 'after delete' })).rejects.toMatchObject({
-        bizCode: BizCode.ResourceNotFound,
+        code: BizCode.ResourceNotFound,
       });
     });
   });
@@ -252,7 +308,7 @@ describe('GoodStateDiaryService', () => {
       await service.softDelete(TEST_UID, created.id);
 
       await expect(service.restore(OTHER_UID, created.id)).rejects.toMatchObject({
-        bizCode: BizCode.ResourceNotFound,
+        code: BizCode.ResourceNotFound,
       });
     });
   });
@@ -319,7 +375,7 @@ describe('GoodStateDiaryService', () => {
       //     - jest/no-jasmine-globals: `fail` 是 Jasmine 全局, jest 应当抛异常或 throw new Error
       //     - jest/no-conditional-expect: catch 块里 conditional expect 不可控
       //   改用 `await expect(...).rejects.toMatchObject({...})` 一行写完, 语义不变, lint 双过.
-      await expect(service.update(TEST_UID, 'non-existent', { body: 'x' })).rejects.toMatchObject({ bizCode: BizCode.ResourceNotFound });
+      await expect(service.update(TEST_UID, 'non-existent', { body: 'x' })).rejects.toMatchObject({ code: BizCode.ResourceNotFound });
     });
   });
 });

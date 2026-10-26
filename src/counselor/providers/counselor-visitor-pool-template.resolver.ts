@@ -27,6 +27,7 @@ import { IsNull, type Repository } from 'typeorm';
 
 import type { VoiceDifficulty, VoiceTemplateSummary, VoiceVisitorStyle } from '../../voice/voice-session.types';
 import { VoiceTemplateRegistry } from '../../voice/voice-template-slot';
+import { riskTagsForSelfReportedRisk } from '../config/vpt.config';
 import { VisitorPoolTemplate } from '../entities/visitor-pool-template.entity';
 import { TrainingDifficulty } from '../enums/training-difficulty.enum';
 import { VisitorStyle } from '../enums/visitor-style.enum';
@@ -115,6 +116,12 @@ export class CounselorVisitorPoolTemplateResolver implements OnModuleInit {
       emotionBaselineDefault: row.emotionBaselineDefault,
       defenseLevelDefault: row.defenseLevelDefault,
       defenseType: row.defenseType,
+      // V2026-10-26 治本 (spec 任务 7 — 来访者速查卡):
+      //   职业来自剧本 `basics.occupation` (表层字段, 可公开);
+      //   风险标签由 `presentingIssue.selfReportedRisk` 映射而来 (只标记不展开).
+      //   **7 大块剧本本身绝不进摘要** —— 摘要只多带这两个已映射好的表层字段.
+      occupation: row.script?.basics?.occupation ?? '',
+      riskTags: riskTagsForSelfReportedRisk(row.script?.presentingIssue?.selfReportedRisk),
     };
   }
 }

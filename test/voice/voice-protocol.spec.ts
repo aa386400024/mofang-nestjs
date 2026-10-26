@@ -188,6 +188,9 @@ describe('临场参数合并 · 三态优先级', () => {
     emotionBaselineDefault: 0.35,
     defenseLevelDefault: 0.2,
     defenseType: 'avoidance',
+    // V2026-10-26 治本 (spec 任务 7): 速查卡新增的 2 个表层字段.
+    occupation: '平面设计师',
+    riskTags: [],
   };
 
   it('无模板无覆盖 → 内置兜底', () => {

@@ -21,6 +21,8 @@
 
 import { ApiProperty } from '@nestjs/swagger';
 
+import { BizCode } from '../../common/exceptions/biz-code.enum';
+import { BizException } from '../../common/exceptions/biz.exception';
 import { FRAGMENT_TYPE_CODES, FragmentTypeCode } from '../constants/fragment-type-code';
 
 /**
@@ -60,18 +62,29 @@ export class FragmentsGrantDto {
  * Object.entries 会过滤掉 undefined, 所以校验只需要看 defined 的字段.
  */
 export function assertFragmentsGrantContract(grant: unknown): void {
+  // V2026-10-26 治本 (业务码 40_008 接回):
+  //   原来这里抛的是**裸 Error** —— 而 `GrowthToolFragmentsGrantInvalid = 40_008`
+  //   (注释: "fragments_grant key 不在 5 code 或 value 越界") 早就为这个场景建好了,
+  //   却**从来没有被抛出过** (不可达). 后果: 契约违规从 HTTP 层看是 500 通用错误,
+  //   前端拿不到业务码, 分不清"上游返回了不合约的数据"与"真挂了".
+  //   治本: 抛 BizException(40_008) —— 与**同一个 service 方法**里的兄弟校验
+  //   (linkRoute 白名单 → 40_003) 同一形态 (BizException + 具体信息).
   if (!grant || typeof grant !== 'object') {
-    throw new Error('[contract] fragments_grant must be an object');
+    throw new BizException(BizCode.GrowthToolFragmentsGrantInvalid, '[contract] fragments_grant must be an object');
   }
   // V2026-09-14 治本 (Lint fix): 显式 String() 转换, 避免 restrict-template-expressions 错.
   for (const [key, value] of Object.entries(grant as Record<string, unknown>)) {
     if (!FRAGMENT_TYPE_CODES.includes(key as FragmentTypeCode)) {
-      throw new Error(
+      throw new BizException(
+        BizCode.GrowthToolFragmentsGrantInvalid,
         `[contract] fragments_grant key "${String(key)}" not in 5 enum. ` + `Must be one of: ${FRAGMENT_TYPE_CODES.join(', ')}`,
       );
     }
     if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 10) {
-      throw new Error(`[contract] fragments_grant["${String(key)}"] = ${String(value)} invalid, must be integer in [1, 10]`);
+      throw new BizException(
+        BizCode.GrowthToolFragmentsGrantInvalid,
+        `[contract] fragments_grant["${String(key)}"] = ${String(value)} invalid, must be integer in [1, 10]`,
+      );
     }
   }
 }

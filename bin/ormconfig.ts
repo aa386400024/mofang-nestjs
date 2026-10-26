@@ -149,6 +149,16 @@ import { AddVisitorPoolTemplates1714900000018 } from '../src/migration/171490000
 //   → seed 报 "Data too long for column 'id'". 本迁移把 3 个相关列一起放宽
 //   (与 quotes.id varchar(64) 对齐). 0018 已在 dev 库执行, 不改已执行的迁移.
 import { WidenVisitorPoolIdColumns1714900000019 } from '../src/migration/1714900000019-WidenVisitorPoolIdColumns';
+// V2026-10-26 治本 (vpt 全真语音会话增强 — 督导报告落库, spec 任务 6):
+//   supervision_reports 新表 (16 列 + 3 索引, 其中 (tenant_id, session_id) 唯一),
+//   跟 src/migration/index.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏建.
+//   实体 SupervisionReportEntity 早就按 TypeORM 装饰器写好, 但仓储一直指内存实现
+//   (SupervisionReportRepositoryMemory) —— 报告进程一重启就没了, 复盘功能等于不成立.
+//   表由手写 DDL 建 (ADR-0003 禁用 synchronize).
+import { AddSupervisionReports1714900000020 } from '../src/migration/1714900000020-AddSupervisionReports';
+// V2026-10-26 治本 (4 督导流派幂等播种 — supervision_schools, 跟 src/migration/index.ts 1:1):
+//   006 建表但漏播种; 内容直接 import SUPERVISION_SCHOOL_PRESETS, upsert 幂等.
+import { SeedSupervisionSchools1714900000021 } from '../src/migration/1714900000021-SeedSupervisionSchools';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -261,6 +271,11 @@ const ormconfig = async (): Promise<DataSource> => {
       // V2026-10-23 治本 (AI 模拟来访池 — 3 个 id 列放宽到 VARCHAR(64),
       //   跟前序 visitor_pool_templates 同段, 跟 src/migration/index.ts 严格 1:1):
       WidenVisitorPoolIdColumns1714900000019,
+      // V2026-10-26 治本 (vpt 全真语音会话增强 — 督导报告落库, spec 任务 6):
+      //   supervision_reports 新表, 跟 src/migration/index.ts 严格 1:1):
+      AddSupervisionReports1714900000020,
+      // V2026-10-26 治本 (4 督导流派幂等播种 supervision_schools, 跟 src/migration/index.ts 1:1):
+      SeedSupervisionSchools1714900000021,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

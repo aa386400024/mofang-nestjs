@@ -34,4 +34,16 @@ export enum SessionType {
   TRAINING_SESSION = 'training_session',
   /** V0.x 专项技能 session (复用 training_sessions 表, V0.3 §13 baseline) */
   FULL_SESSION = 'full_session',
+  /**
+   * V2026-10-26 治本 (vpt 全真语音会话 — spec 任务 1):
+   *   vpt (/voice/training WS) 落库后的 session 类型.
+   *
+   *   为什么需要独立一档: vpt 的会话行也落在 `training_sessions` 表 (复用同一张表 =
+   *   复用已有的 transcript / tech_stats / 逐字稿 / 标记体系), 但它的**来源与语义**
+   *   跟单次训练不同 (走 WS 实时链路, 带公共人物模板 + 临场参数, 无 scenario 预设).
+   *   不给它独立一档, 4 流派反馈就分不出"这是 vpt 场的复盘还是单次训练的复盘".
+   *
+   *   **不改旧值**: 新增一档不影响任何已落库的行 (V0.3 §13 baseline 0 破坏).
+   */
+  VPT_VOICE = 'vpt_voice',
 }

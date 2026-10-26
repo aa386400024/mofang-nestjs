@@ -49,7 +49,7 @@ export class TransferenceResistanceMark {
   direction!: TransferenceMarkDirection;
 
   /** 标记类型 (resistance / avoidance / positive_transference / ... / counter_transference). */
-  @Column({ type: 'varchar', length: 30 })
+  @Column({ type: 'varchar', length: 30, name: 'mark_type' })
   markType!: TransferenceMarkType;
 
   /** 备注 (可空). 咨询师侧必填 (手动标记要给一句说明), AI 侧可空. */

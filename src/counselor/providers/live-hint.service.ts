@@ -25,6 +25,7 @@ import { type Observable } from 'rxjs';
 import { IsNull, Repository } from 'typeorm';
 
 import { SessionCoreEventsService } from './session-core-events.service';
+import { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
 import type { LiveTurnHint } from '../domain/session-core/session-core.types';
 import { type LiveSupervisionHintDto } from '../dto/session-core.dto';
 import { LiveSupervisionHint } from '../entities/live-supervision-hint.entity';
@@ -46,6 +47,9 @@ export class LiveSupervisionHintService {
     @InjectRepository(LiveSupervisionHint)
     private readonly hintRepo: Repository<LiveSupervisionHint>,
     private readonly events: SessionCoreEventsService,
+    // V2026-10-26 治本 (spec 任务 2 — 轻提示经 vpt WS 推):
+    //   SSE 通道保留 (counselor 端已有的实时流), vpt 的 WS 连接**额外**收同一包.
+    private readonly voiceFrames: VoiceFrameRegistry,
   ) {}
 
   /**
@@ -85,6 +89,16 @@ export class LiveSupervisionHintService {
     );
     const dto = this.toDto(saved);
     this.events.publish(sessionId, { event: 'live_hint', data: dto });
+    // V2026-10-26 治本 (spec 任务 2 — 轻提示经 vpt WS 推):
+    //   SSE 与 WS **同包**下发 (前端拿哪条通道都能收到, 不用为 vpt 单独接一条流).
+    //   没登记 WS 出口 (非 vpt 会话 / 连接已断) → publish 内部静默丢弃, 不报错.
+    this.voiceFrames.publish(sessionId, {
+      type: 'supervision_hint',
+      turnIndex: dto.turnIndex,
+      category: dto.category,
+      hintText: dto.hintText,
+      tier: dto.tier,
+    });
     return dto;
   }
 

@@ -22,7 +22,11 @@ import type { SupervisionAnnotation, SupervisionDimensions, SupervisorReportStat
 
 /** 实体类型 — V0.x 内存 mock 也用同形状, V1.x 切 TypeORM 字段一一对应. */
 @Entity('supervision_reports')
-@Index('idx_supervision_tenant_session', ['tenantId', 'sessionId'])
+// V2026-10-26 治本 (spec 任务 6 — 报告落库): (tenant_id, session_id) 改成**唯一索引** ——
+//   内存实现是 "Map 一个 session 一份, 覆盖" 的语义; 真库实现靠这个唯一键守住同一条不变量,
+//   否则 BullMQ 重试 (attempts: 3) 会在同一 session 下堆出多份报告, 查询时只能挑最新的那份
+//   (那等于把"覆盖"降级成"排序取一", 语义漂移).
+@Index('idx_supervision_tenant_session', ['tenantId', 'sessionId'], { unique: true })
 @Index('idx_supervision_status_created', ['status', 'createdAt'])
 export class SupervisionReportEntity {
   @PrimaryGeneratedColumn('uuid')

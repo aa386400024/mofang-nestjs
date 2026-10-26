@@ -142,6 +142,10 @@ export declare global {
       MINIMAX_TTS_BITRATE?: string; // 码率, 官方枚举 32000/64000/128000/256000 (仅 mp3 生效)
       MINIMAX_TTS_KEEPALIVE_MS?: string; // 客户端保活 ping 间隔 (官方要求客户端主动 ping 防 2201), 0 = 关闭
       MINIMAX_TTS_MAX_SENTENCE_CHARS?: string; // 单句最大字符数 (超长句强制切, 兼作上游 2204 本地防线)
+      // V2026-10-26 治本 (vpt 复盘报告 — pending 兜底上限, spec 任务 6):
+      //   会话已结束 + 无报告行 + 距结束超过该时长 → 判定报告生成失败 (parse_error),
+      //   避免前端永远停在 pending 一直转圈. 默认 15min (主报告 LLM 正常 30-120s 的 10 倍余量).
+      SUPERVISION_REPORT_PENDING_TIMEOUT_MS?: string;
       // V2026-10-08: Voice Gateway 空闲超时 (Phase 3)
       VOICE_SESSION_IDLE_TIMEOUT_MS?: string;
       EMBEDDING_PROVIDER_DEV?: string;

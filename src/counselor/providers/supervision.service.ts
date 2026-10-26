@@ -55,24 +55,37 @@
 //     4. 故意把 MINIMAX_COUNSELOR_LLM_MODEL 设成不存在的模型 → 返 503 且不落脏数据
 //   时间戳: 2026-10-21
 
-import { BadRequestException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
 import { CounselorLlmJsonClient } from './llm-json.client';
 import { SessionContextBuilder } from './session-context.builder';
+import { TransferenceMarkService } from './transference-mark.service';
+import {
+  SUPERVISION_REPORT_REPOSITORY,
+  type SupervisionReportRepository,
+} from '../../agent/supervisor/domain/repositories/supervision-report.repository';
+import type { SupervisionAnnotation, SupervisionDimensions } from '../../agent/supervisor/supervisor.types';
 import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config';
+import { VPT_SCENARIO_ID } from '../config/vpt.config';
 import {
   buildSupervisionContextBlock,
   renderPersonaBlock,
   renderTranscriptBlock,
   type SessionContext,
 } from '../domain/session-context/session-context';
-import { validateSessionTechStats, type SessionTechStats } from '../domain/session-core/session-core.types';
+import { resolveSessionReportStatus, validateSessionTechStats, type SessionTechStats } from '../domain/session-core/session-core.types';
+import type { SessionTechStatsDto } from '../dto/session-core.dto';
 import {
   type CompareSupervisionFeedbackResponseDto,
   type GenerateSupervisionFeedbackDto,
+  type SessionReportDto,
+  type SessionReportStatus,
   type SupervisionFeedbackDto,
+  type SupervisionReportAnnotationDto,
+  type SupervisionReportDimensionsDto,
   type SupervisionSchoolDetailDto,
   type SupervisionSchoolListItemDto,
 } from '../dto/supervision.dto';
@@ -257,6 +270,15 @@ export class SupervisionService {
     private readonly longTermSessionRepo: Repository<LongTermCaseSession>,
     private readonly llmJson: CounselorLlmJsonClient,
     private readonly contextBuilder: SessionContextBuilder,
+    // V2026-10-26 治本 (spec 任务 6 — 复盘报告查询出口):
+    //   报告本身由 agent/supervisor 写 (它在 agent 侧, 不能让 agent 反向依赖 counselor),
+    //   查询在 counselor 侧 → 通过 agent 侧导出的**接口** token 读同一份数据, 不另写一套查询.
+    @Inject(SUPERVISION_REPORT_REPOSITORY)
+    private readonly reportRepo: SupervisionReportRepository,
+    // 移情 / 阻抗标记 (任务 4): 复用既有 service 的查询 (它已做归属校验 + DTO 映射).
+    private readonly markService: TransferenceMarkService,
+    // 全局配置 (陈旧 pending 判定阈值).
+    private readonly config: ConfigService,
   ) {}
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -468,6 +490,67 @@ export class SupervisionService {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
+  // 6. getSessionReport — 复盘报告查询出口 (V2026-10-26, spec 任务 6)
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * GET /counselor/supervision/report/:sessionId 主入口.
+   *
+   * 整合**三个已有来源**为一份报告 (spec 任务 6), 不新造一套:
+   *   - agent/supervisor 的结构化督导报告 → 亮点 / 改进建议 / 风险线索 (锚 transcript 时间戳)
+   *   - training_sessions.tech_stats        → 技术统计 (任务 3)
+   *   - transference_resistance_marks       → 移情 / 阻抗标记 (任务 4)
+   *   - supervision_feedback                → 4 流派反馈 (可切 CBT / 精神动力学 / 人本 / 家庭治疗)
+   *
+   * 报告还没生成时 (异步队列在跑) → `status='pending'` + 其余字段 null/空数组,
+   * **不返回编造内容** (硬约束: 上游失败不得伪造成功).
+   *
+   * @param userId 当前用户 id
+   * @param sessionId 会话 id (training_sessions.id, 稳定落库 id)
+   * @returns 复盘报告
+   * @throws NotFoundException 会话不存在 / 已软删 / 不属于当前用户
+   */
+  async getSessionReport(userId: string, sessionId: string): Promise<SessionReportDto> {
+    // 1. 归属校验 + 拿会话行 (技术统计在这行上)
+    const row = await this.trainingSessionRepo.findOne({
+      where: { id: sessionId, userId, deletedAt: IsNull() },
+    });
+    if (!row) {
+      throw new NotFoundException(`训练会话 ${sessionId} 不存在或不属于当前用户`);
+    }
+    // 2. sessionType 由场景标识推导 (vpt 走 'vpt_voice', 单次训练走 'training_session')
+    const sessionType = row.scenarioId === VPT_SCENARIO_ID ? SessionType.VPT_VOICE : SessionType.TRAINING_SESSION;
+
+    // 3. 三个来源并行取 (互不依赖, 没必要串行)
+    const [report, marks, feedbackBySchool] = await Promise.all([
+      this.reportRepo.findBySessionId(row.tenantId, sessionId),
+      this.markService.list(userId, sessionId),
+      this.loadFeedbackBySchool(userId, sessionId, sessionType),
+    ]);
+
+    // 4. 回填报告 ↔ 会话的显式链接 (幂等; 失败不阻断读)
+    await this.linkReportToSession(row, report?.id);
+
+    return {
+      sessionId: row.id,
+      sessionType,
+      status: this.resolveReportStatus(report?.status, row),
+      overallScore: report?.overallScore ?? null,
+      dimensions: report ? this.toDimensions(report.dimensions) : null,
+      annotations: report ? report.annotations.map((a) => this.toAnnotation(a)) : [],
+      errorPatterns: report ? [...report.errorPatterns] : [],
+      growthSuggestions: report ? [...report.growthSuggestions] : [],
+      techStats: row.techStats ? this.toTechStatsDto(row.techStats) : null,
+      marks,
+      feedbackBySchool,
+      startedAt: row.startedAt,
+      endedAt: row.endedAt,
+      turnCount: (row.transcript ?? []).length,
+      createdAt: report?.createdAt ?? null,
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
   // 私有 helper
   // ══════════════════════════════════════════════════════════════════════════
 
@@ -480,7 +563,9 @@ export class SupervisionService {
    * @param techStats 技术统计
    */
   private async writeTechStats(userId: string, sessionId: string, sessionType: SessionType, techStats: SessionTechStats): Promise<void> {
-    if (sessionType === SessionType.TRAINING_SESSION) {
+    if (sessionType === SessionType.TRAINING_SESSION || sessionType === SessionType.VPT_VOICE) {
+      // V2026-10-26 治本 (spec 任务 1 / 任务 3): vpt 会话也落 training_sessions 表,
+      //   所以跟单次训练**同表同列** —— 走同一个分支, 避免"vpt 的统计没地方写".
       const row = await this.trainingSessionRepo.findOne({
         where: { id: sessionId, userId, deletedAt: IsNull() },
       });
@@ -499,6 +584,140 @@ export class SupervisionService {
         row.techStats = techStats;
         await this.longTermSessionRepo.save(row);
       }
+    }
+  }
+
+  /**
+   * 报告状态归一 (含「陈旧 pending」兜底).
+   *
+   * 判定逻辑是 domain 层的**纯函数** (`resolveSessionReportStatus`) —— 无 IO, 可单测;
+   * 本方法只负责取参数 + 记一条 warn (纯函数不能打日志).
+   *
+   * 为什么要这个兜底: 主报告是**异步**生成的 (BullMQ + LLM), 失败路径里有几种
+   * "什么行都不留"的情况 (worker 没跑 / job 重试用尽 / 落库失败). 若一律返回 pending,
+   * 前端就会**永远转圈**, 用户分不清"再等等"和"生成不出来".
+   *
+   * @param status agent 侧报告状态 (undefined = 报告行不存在)
+   * @param row 会话行
+   * @returns 对外的三态状态
+   */
+  private resolveReportStatus(status: 'completed' | 'parse_error' | undefined, row: TrainingSession): SessionReportStatus {
+    const timeoutMs = this.config.get<number>('supervision.reportPendingTimeoutMs') ?? 900_000;
+    const resolved = resolveSessionReportStatus(status, row.endedAt?.getTime() ?? null, Date.now(), timeoutMs);
+    if (resolved === 'parse_error' && !status) {
+      this.logger.warn(`[report_stale_pending] sessionId=${row.id} 无报告行且已超时 → 判定为报告生成失败`);
+    }
+    return resolved;
+  }
+
+  /**
+   * 六维评分 → DTO.
+   *
+   * @param dimensions agent 侧六维评分
+   * @returns DTO
+   */
+  private toDimensions(dimensions: SupervisionDimensions): SupervisionReportDimensionsDto {
+    return {
+      empathy: dimensions.empathy,
+      activeListening: dimensions.activeListening,
+      questioning: dimensions.questioning,
+      boundary: dimensions.boundary,
+      response: dimensions.response,
+      professionalism: dimensions.professionalism,
+    };
+  }
+
+  /**
+   * 单条标注 → DTO (suggestion 的 undefined 归一成 null, 与其他出参口径一致).
+   *
+   * @param annotation agent 侧标注
+   * @returns DTO
+   */
+  private toAnnotation(annotation: SupervisionAnnotation): SupervisionReportAnnotationDto {
+    return {
+      timestamp: annotation.timestamp,
+      type: annotation.type,
+      category: annotation.category,
+      message: annotation.message,
+      suggestion: annotation.suggestion ?? null,
+    };
+  }
+
+  /**
+   * 技术统计 → DTO.
+   *
+   * @param techStats 领域类型的技术统计
+   * @returns DTO
+   */
+  private toTechStatsDto(techStats: SessionTechStats): SessionTechStatsDto {
+    return {
+      questionTypes: { ...techStats.questionTypes },
+      interventions: { ...techStats.interventions },
+      behavior: { ...techStats.behavior },
+      commentary: techStats.commentary,
+    };
+  }
+
+  /**
+   * 4 流派反馈 → 按流派码索引的字典.
+   *
+   * 流派码来自 `supervision_schools.code` —— 反馈行存的是 schoolId, 要转成码才能让前端
+   * 按流派切换视角. 流派被删 (软删) 时**跳过**该条: 编一个流派名给前端, 前端就会
+   * 切到一个不存在的视角.
+   *
+   * @param userId 当前用户 id
+   * @param sessionId 会话 id
+   * @param sessionType session 类型
+   * @returns 流派码 → 反馈
+   */
+  private async loadFeedbackBySchool(
+    userId: string,
+    sessionId: string,
+    sessionType: SessionType,
+  ): Promise<Record<string, SupervisionFeedbackDto>> {
+    const rows = await this.feedbackRepo.find({
+      where: { userId, sessionId, sessionType, deletedAt: IsNull() },
+    });
+    if (rows.length === 0) {
+      return {};
+    }
+    const schools = await this.schoolRepo.find({ where: { deletedAt: IsNull() } });
+    const codeBySchoolId = new Map(schools.map((s) => [s.id, s.code]));
+    const result: Record<string, SupervisionFeedbackDto> = {};
+    for (const row of rows) {
+      const code = codeBySchoolId.get(row.schoolId);
+      if (!code) {
+        continue;
+      }
+      result[code] = {
+        overallScore: row.feedback.overallScore,
+        perSentence: row.feedback.perSentence,
+        errorCategories: row.feedback.errorCategories,
+        growthSuggestion: row.feedback.growthSuggestion,
+      };
+    }
+    return result;
+  }
+
+  /**
+   * 回填 `training_sessions.supervision_report_id` (报告 ↔ 会话的显式链接).
+   *
+   * 幂等: 已指向同一份报告时直接返回; 写失败只记日志 (读出口不该因一次写失败而 500).
+   *
+   * @param row 会话行
+   * @param reportId 报告行 id (undefined = 报告还没生成)
+   */
+  private async linkReportToSession(row: TrainingSession, reportId: string | undefined): Promise<void> {
+    if (!reportId || row.supervisionReportId === reportId) {
+      return;
+    }
+    try {
+      row.supervisionReportId = reportId;
+      await this.trainingSessionRepo.save(row);
+    } catch (err) {
+      this.logger.warn(
+        `[link_report_failed] sessionId=${row.id} reportId=${reportId} ` + `err=${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 

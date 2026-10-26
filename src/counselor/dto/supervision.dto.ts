@@ -27,8 +27,20 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ArrayMinSize, IsArray, IsEnum, IsString, MaxLength, MinLength } from 'class-validator';
 
+// V2026-10-26 治本 (spec 任务 6): 报告状态类型与归一函数在 domain 层 (唯一真值源),
+//   本文件只做**转出** —— 保持 `import type { SessionReportStatus } from '../dto/supervision.dto'`
+//   的既有引用全部照旧可用, 且全仓只有一份定义.
+//   注意: 下面那行 `export type { ... }` 需要配套的 `import type` —— 只写 re-export 的话,
+//   本文件内引用该类型会报 "Cannot find name" (本文件里的 DTO 类确实要用它).
+import { SessionTechStatsDto, TransferenceMarkDto } from './session-core.dto';
+import type { SessionReportStatus } from '../domain/session-core/session-core.types';
 import { SessionType } from '../enums/session-type.enum';
 import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
+// V2026-10-26 治本 (spec 任务 6 — 复盘报告 DTO):
+//   **值导入** (不是 `import type`): `@ApiProperty({ type: X })` 里的 X 是**运行时取值**
+//   (swagger 要拿它当 class 反射元数据), type-only 导入会被 TS 擦除 → TS1361
+//   "'X' cannot be used as a value because it was imported using 'import type'".
+//   这跟 DTO 出现在 `@Body()` 里必须值导入是**同一个根因** (见 session-core.dto.ts 的口径).
 
 // ════════════════════════════════════════════════════════════════════════════
 // 单个流派 list 项 (无 promptTemplate, 减少 list 流量)
@@ -147,4 +159,110 @@ export class CompareSupervisionFeedbackResponseDto {
 
   @ApiProperty({ description: 'N 流派反馈 (key=SupervisionSchoolCode enum 值)', type: SupervisionFeedbackDto, isArray: false })
   feedbackBySchool!: Record<SupervisionSchoolCode, SupervisionFeedbackDto>;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 复盘报告 (V2026-10-26, spec 任务 6)
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * 报告状态 (定义在 domain 层, 这里转出).
+ */
+export type { SessionReportStatus };
+
+/** 督导报告里的单条标注 (锚在 transcript 时间戳上). */
+export class SupervisionReportAnnotationDto {
+  @ApiProperty({ description: '锚点 (transcript 里的 ms 时间戳)' })
+  timestamp!: number;
+
+  @ApiProperty({ description: '标注类型', enum: ['good', 'warn', 'error'] })
+  type!: 'good' | 'warn' | 'error';
+
+  @ApiProperty({ description: '问题分类 (如"急于给建议")' })
+  category!: string;
+
+  @ApiProperty({ description: '1-2 句点评' })
+  message!: string;
+
+  @ApiProperty({ description: '可执行改进建议 (可选)', nullable: true })
+  suggestion!: string | null;
+}
+
+/** 督导六维评分. */
+export class SupervisionReportDimensionsDto {
+  @ApiProperty({ description: '共情 0-100' })
+  empathy!: number;
+
+  @ApiProperty({ description: '主动倾听 0-100' })
+  activeListening!: number;
+
+  @ApiProperty({ description: '提问技术 0-100' })
+  questioning!: number;
+
+  @ApiProperty({ description: '边界 0-100' })
+  boundary!: number;
+
+  @ApiProperty({ description: '反应 0-100' })
+  response!: number;
+
+  @ApiProperty({ description: '专业度 0-100' })
+  professionalism!: number;
+}
+
+/**
+ * 复盘报告 (本场会谈的完整复盘出口).
+ *
+ * 内容是**三个已有来源的整合** (spec 任务 6), 不是新造的一套:
+ *   - 亮点 / 改进建议 / 风险线索 ← agent/supervisor 的结构化督导报告 (时间戳锚定)
+ *   - 技术统计              ← training_sessions.tech_stats (任务 3)
+ *   - 移情 / 阻抗标记        ← transference_resistance_marks (任务 4)
+ *   - 4 流派反馈            ← supervision_feedback (可按 CBT / 精神动力学 / 人本 / 家庭治疗切视角)
+ *
+ * 报告没生成时: `status='pending'` + 其余字段为 null / 空数组 —— **不返回编造内容**.
+ */
+export class SessionReportDto {
+  @ApiProperty({ description: '会话 id (training_sessions.id, 稳定落库 id)' })
+  sessionId!: string;
+
+  @ApiProperty({ description: 'session 类型', enum: SessionType })
+  sessionType!: SessionType;
+
+  @ApiProperty({ description: '报告状态', enum: ['completed', 'parse_error', 'pending'] })
+  status!: SessionReportStatus;
+
+  @ApiProperty({ description: '整体评分 0-100 (报告未生成时为 null)', nullable: true })
+  overallScore!: number | null;
+
+  @ApiProperty({ description: '六维评分 (报告未生成时为 null)', type: SupervisionReportDimensionsDto, nullable: true })
+  dimensions!: SupervisionReportDimensionsDto | null;
+
+  @ApiProperty({ description: '逐条标注 (亮点 / 改进建议 / 风险线索, 锚时间戳)', type: [SupervisionReportAnnotationDto] })
+  annotations!: SupervisionReportAnnotationDto[];
+
+  @ApiProperty({ description: '可复用的错误模式 (3-5 条)', type: [String] })
+  errorPatterns!: string[];
+
+  @ApiProperty({ description: '成长方向建议 (3-5 条)', type: [String] })
+  growthSuggestions!: string[];
+
+  @ApiProperty({ description: '技术统计 (任务 3; 未生成时为 null)', type: SessionTechStatsDto, nullable: true })
+  techStats!: SessionTechStatsDto | null;
+
+  @ApiProperty({ description: '移情 / 阻抗标记 (任务 4; 按时间线升序)', type: [TransferenceMarkDto] })
+  marks!: TransferenceMarkDto[];
+
+  @ApiProperty({ description: '4 流派反馈 (key=SupervisionSchoolCode; 未生成的流派不在其中)', type: Object })
+  feedbackBySchool!: Record<string, SupervisionFeedbackDto>;
+
+  @ApiProperty({ description: '会话开始时间', nullable: true })
+  startedAt!: Date | null;
+
+  @ApiProperty({ description: '会话结束时间', nullable: true })
+  endedAt!: Date | null;
+
+  @ApiProperty({ description: '对话轮次 (逐字稿条数; 咨询师与来访者各算一条)' })
+  turnCount!: number;
+
+  @ApiProperty({ description: '报告生成时间 (ms; 未生成时为 null)', nullable: true })
+  createdAt!: number | null;
 }

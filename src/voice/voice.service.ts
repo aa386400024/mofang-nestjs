@@ -50,11 +50,13 @@ import { ConfigService } from '@nestjs/config';
 
 import { TtsService } from './tts/tts.service';
 import type { TtsEvent, TtsOptions, TtsSessionHandle } from './tts/tts.types';
+import { VoiceSessionBridgeRegistry } from './voice-session-bridge';
 import type { VoiceClientMessage, VoiceServerMessage, VoiceSessionMeta, VoiceSessionPersona, VoiceSessionState } from './voice.types';
 import type { LlmStream } from '../agent/llm/llm.types';
 import { SupervisorProcessor } from '../agent/supervisor/supervisor.processor';
 import type { RunReportInput } from '../agent/supervisor/supervisor.types';
 import { VisitorService } from '../agent/visitor/visitor.service';
+import type { VisitorPersonaSnapshot } from '../agent/visitor/visitor.types';
 
 type SendFn = (msg: VoiceServerMessage) => void;
 
@@ -88,6 +90,7 @@ export class VoiceService {
     private readonly visitor: VisitorService,
     private readonly supervisorProcessor: SupervisorProcessor,
     private readonly tts: TtsService,
+    private readonly bridges: VoiceSessionBridgeRegistry,
     config: ConfigService,
   ) {
     this.ttsVoiceId = config.get<string>('minimax.ttsVoiceId') ?? '';
@@ -113,6 +116,14 @@ export class VoiceService {
         return;
       case 'session_finish':
         this.endSession(meta.sessionId, 'user_finish', send);
+        return;
+      // V2026-10-26 治本 (spec 任务 5 — 暂停 / 恢复):
+      //   挂起而非中断 —— 会话不断、逐字稿不清, 只是把"这一轮"停下来.
+      case 'session_pause':
+        this.pauseSession(state, send);
+        return;
+      case 'session_resume':
+        this.resumeSession(state, send);
     }
   }
 
@@ -140,6 +151,11 @@ export class VoiceService {
       currentGeneration: 0,
       ttsHandle: null,
       llmAbort: null,
+      // V2026-10-26 治本 (spec 任务 1 — 结束回写时长 / 轮次):
+      //   墙钟起点在**建连成功**这一刻, 不是第一轮发言 —— 前端准备好到开口之间的那段
+      //   也是会谈的一部分 (用户在看卡片、在想要不要换人物).
+      startedAt: Date.now(),
+      turnCount: 0,
     };
     this.sessions.set(meta.sessionId, state);
     this.logger.log(
@@ -161,20 +177,37 @@ export class VoiceService {
     const transcript = this.visitor.transcript(sessionId);
     const visitorClose = this.visitor.closeSession(sessionId);
     this.sessions.delete(sessionId);
+    const durationMs = Date.now() - state.startedAt;
     this.logger.log(
       `[endSession] session=${sessionId} reason=${reason} ` +
-        `visitor_turns=${visitorClose.finalTurnCount} transcript_msgs=${transcript.length}`,
+        `visitor_turns=${visitorClose.finalTurnCount} transcript_msgs=${transcript.length} ` +
+        `duration_ms=${durationMs} db_session=${state.meta.dbSessionId ?? '<none>'}`,
     );
+    // V2026-10-26 治本 (spec 任务 1 — 会话落库收尾):
+    //   回写结束状态 / 时长 / 轮次. fire-and-forget: 落库是收尾动作, 不能反过来阻塞
+    //   `session_ended` 帧 (前端在等这个帧收页面).
+    void this.bridges.close({
+      sessionId,
+      dbSessionId: state.meta.dbSessionId ?? null,
+      userId: state.meta.userId,
+      tenantId: state.meta.tenantId,
+      reason,
+      turnCount: state.turnCount,
+      durationMs,
+    });
     // V2026-10-09 治本 (Phase 5): 异步督导, session 结束触发 supervisor queue (fire-and-forget)
     //   - 不阻塞 session_ended 消息
     //   - enqueue 失败 → processSync 兜底 (LLM 推理 2-5s, 但 session_ended 已经发出)
     //   - 空 transcript 跳过 (user 没说话就结束, 没督导意义)
     if (transcript.length > 0 && state.persona) {
       const input: RunReportInput = {
-        sessionId,
+        // V2026-10-26 治本 (spec 任务 6 — 报告要挂在**稳定落库 id** 上):
+        //   报告查询出口是 GET /counselor/supervision/report/:sessionId, 用落库 id 查;
+        //   未落库 (纯内存降级) 时才退回内存 sessionId.
+        sessionId: state.meta.dbSessionId ?? sessionId,
         tenantId: state.meta.tenantId,
         userId: state.meta.userId,
-        persona: state.persona,
+        persona: this.resolveReportPersona(state),
         transcript,
         emotionTimeline: [], // V0.x 留空, V1.x 接 ASR 情绪模型
         // V2026-10-26 治本 (spec §任务 1 — skillCode 用于事后专项反馈):
@@ -189,6 +222,32 @@ export class VoiceService {
       );
     }
     send?.({ type: 'session_ended', reason });
+  }
+
+  /**
+   * 解析主报告用的来访者人格快照.
+   *
+   * vpt 场的 AI 扮演的是**公共人物** (晚晴 / 小林...), 剧本由 counselor 侧的上下文贡献者
+   * 注入 (replacesPersona=true); 而 `state.persona` 是 agent 的**内置 persona** (另一个虚构
+   * 人物). 直接用它写报告, 报告里会出现"来访者：小林"—— 而用户屏幕上写的是"晚晴",
+   * 学员看报告根本认不出自己在跟谁做督导, 亮点与建议也跟着对不上号.
+   *
+   * 所以: 有速查卡 → 用速查卡构造快照; 无 (普通 voice session) → 沿用内置 persona.
+   *
+   * @param state 会话状态
+   * @returns 人格快照
+   */
+  private resolveReportPersona(state: VoiceSessionState): VisitorPersonaSnapshot {
+    const visitor = state.meta.visitor;
+    if (!visitor) {
+      return state.persona ?? { id: 'unknown', name: '来访者', voiceId: '', difficulty: 'L1' };
+    }
+    return {
+      id: visitor.templateId || 'vpt_visitor',
+      name: visitor.codename,
+      voiceId: state.meta.voiceId ?? '',
+      difficulty: state.meta.preset.difficulty,
+    };
   }
 
   /**
@@ -226,8 +285,7 @@ export class VoiceService {
    * @param send 帧发送回调
    */
   private async onUserText(state: VoiceSessionState, text: string, send: SendFn): Promise<void> {
-    if (text.trim().length === 0) {
-      this.logger.debug(`[user_text] empty, ignore`);
+    if (this.shouldIgnoreTurn(state, text)) {
       return;
     }
     // 打断上一轮 (如果还在跑)
@@ -240,22 +298,102 @@ export class VoiceService {
     state.status = 'processing';
 
     // 1. 启动 TTS (仅 voice 模式; text 模式完全不碰 TTS —— 不建连接、不占配额)
-    const ttsHandle = state.meta.mode === 'voice' ? await this.startTtsSession(state, send) : null;
-    if (state.meta.mode === 'voice' && !ttsHandle) {
+    const tts = await this.beginTtsTurn(state, send, myGeneration);
+    if (!tts) {
       state.status = 'idle';
       return;
+    }
+    const { ttsHandle, ttsPump } = tts;
+
+    // 2. 跑 LLM 流 (通过 Visitor — persona + history 编排, signal 透传)
+    //    本轮来访者说的话要收集起来, 落库后才有逐字稿可读 (每轮分析 / 技术统计 / 标记
+    //    / 复盘报告全部以它为输入).
+    const visitorChunks: string[] = [];
+    const { outcome, llmAbort } = await this.runLlmTurn(state, text, myGeneration, send, ttsHandle, visitorChunks);
+
+    // 3. 收尾 TTS (正常 done 已 finish; eof 补 finish; 异常已 cancel)
+    await this.closeTtsTurn(state, ttsHandle, ttsPump, outcome, myGeneration);
+
+    this.finishTurn(state, myGeneration, ttsHandle, llmAbort);
+
+    // 4. 逐字稿落库 + 触发该轮分析 (V2026-10-26, spec 任务 1 / 任务 2 / 任务 3 / 任务 4)
+    this.persistTurnIfComplete(state, text, visitorChunks, outcome, myGeneration);
+
+    this.logger.log(`[user_text] done gen=${myGeneration} outcome=${outcome} persona=${state.persona?.id ?? 'unknown'}`);
+  }
+
+  /**
+   * 本轮该不该**忽略** (空输入 / 会话已暂停).
+   *
+   * 单独拆出来是为了让 `onUserText` 的复杂度回到阈值内 (ESLint complexity 上限 20) ——
+   * 拆分的边界按**职责**切 (守卫 / 起 TTS / 跑 LLM / 收 TTS / 落库), 不是按"凑行数"切.
+   *
+   * @param state 会话状态
+   * @param text 用户输入
+   * @returns true = 忽略本轮
+   */
+  private shouldIgnoreTurn(state: VoiceSessionState, text: string): boolean {
+    if (text.trim().length === 0) {
+      this.logger.debug(`[user_text] empty, ignore`);
+      return true;
+    }
+    // V2026-10-26 治本 (spec 任务 5 — 暂停期间不跑 LLM):
+    //   暂停时收到业务帧**直接忽略**, 不并发跑 LLM —— 并发跑会出现两条 LLM 流
+    //   抢同一个 TTS 连接, 音频会串.
+    if (state.status === 'paused') {
+      this.logger.debug(`[user_text] session paused, ignore`);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 起 TTS 连接 + 事件泵 (仅 voice 模式).
+   *
+   * @param state 会话状态
+   * @param send 帧发送回调
+   * @param myGeneration 本轮代号
+   * @returns TTS 句柄 + 事件泵; null = TTS 起不来 (本轮不出声, 调用方直接收尾)
+   */
+  private async beginTtsTurn(
+    state: VoiceSessionState,
+    send: SendFn,
+    myGeneration: number,
+  ): Promise<{ ttsHandle: TtsSessionHandle | null; ttsPump: Promise<void> | null } | null> {
+    const ttsHandle = state.meta.mode === 'voice' ? await this.startTtsSession(state, send) : null;
+    if (state.meta.mode === 'voice' && !ttsHandle) {
+      // TTS 起不来 (音色没配 / 上游握手失败) → 本轮不出声, 直接收尾.
+      return null;
     }
     if (ttsHandle) {
       state.ttsHandle = ttsHandle;
     }
-
-    // 2. 启动 TTS 事件泵 (与 LLM 流并发) —— "边生成边出声"的关键
+    // 事件泵与 LLM 流**并发** —— "边生成边出声"的关键
     const ttsPump = ttsHandle ? this.pumpTtsEvents(ttsHandle, myGeneration, state, send) : null;
+    return { ttsHandle, ttsPump };
+  }
 
-    // 3. 启动 LLM 流 (通过 Visitor — persona + history 编排, signal 透传)
+  /**
+   * 跑一轮 LLM 流 (访客生成).
+   *
+   * @param state 会话状态
+   * @param text 用户输入
+   * @param myGeneration 本轮代号
+   * @param send 帧发送回调
+   * @param ttsHandle 本轮 TTS 句柄 (LLM chunk 要喂给它)
+   * @param visitorChunks 本轮来访者文本累加器 (供逐字稿落库)
+   * @returns 本轮结束方式 + 本轮的 AbortController (供 finishTurn 清理)
+   */
+  private async runLlmTurn(
+    state: VoiceSessionState,
+    text: string,
+    myGeneration: number,
+    send: SendFn,
+    ttsHandle: TtsSessionHandle | null,
+    visitorChunks: string[],
+  ): Promise<{ outcome: LlmTurnOutcome; llmAbort: AbortController }> {
     const llmAbort = new AbortController();
     state.llmAbort = llmAbort;
-    let outcome: LlmTurnOutcome = 'eof';
     try {
       const { stream: llmStream } = await this.visitor.streamTurn({
         sessionId: state.meta.sessionId,
@@ -267,7 +405,8 @@ export class VoiceService {
         signal: llmAbort.signal,
       });
       send({ type: 'llm_start' });
-      outcome = await this.consumeLlmStream(llmStream, myGeneration, state, send, ttsHandle);
+      const outcome = await this.consumeLlmStream(llmStream, myGeneration, state, send, ttsHandle, visitorChunks);
+      return { outcome, llmAbort };
     } catch (err) {
       this.logger.error(`[user_text] LLM stream error: ${err instanceof Error ? err.message : String(err)}`);
       send({
@@ -275,21 +414,70 @@ export class VoiceService {
         error: { code: 'llm_stream_error', message: 'LLM 流错误', retryable: true },
       });
       ttsHandle?.cancel();
-      // 标成 error: 避免下面的收尾分支再发一次 task_finish (cancel 之后不该再收尾)
-      outcome = 'error';
+      // 标成 error: 避免收尾分支再发一次 task_finish (cancel 之后不该再收尾)
+      return { outcome: 'error', llmAbort };
     }
+  }
 
-    // 4. 收尾 TTS: 正常 done 已 finish; eof 补 finish (尾句不丢); 异常已 cancel
-    if (ttsHandle) {
-      if (outcome === 'eof' && state.currentGeneration === myGeneration) {
-        ttsHandle.finish();
-      }
-      await ttsPump;
-      ttsHandle.dispose();
+  /**
+   * 收尾 TTS (finish / 等事件泵 / 释放连接).
+   *
+   * @param state 会话状态
+   * @param ttsHandle 本轮 TTS 句柄
+   * @param ttsPump 本轮事件泵
+   * @param outcome 本轮结束方式
+   * @param myGeneration 本轮代号
+   */
+  private async closeTtsTurn(
+    state: VoiceSessionState,
+    ttsHandle: TtsSessionHandle | null,
+    ttsPump: Promise<void> | null,
+    outcome: LlmTurnOutcome,
+    myGeneration: number,
+  ): Promise<void> {
+    if (!ttsHandle) {
+      return;
     }
+    // 正常 done 已 finish; eof 补 finish (尾句不丢); 异常已 cancel
+    if (outcome === 'eof' && state.currentGeneration === myGeneration) {
+      ttsHandle.finish();
+    }
+    await ttsPump;
+    ttsHandle.dispose();
+  }
 
-    this.finishTurn(state, myGeneration, ttsHandle, llmAbort);
-    this.logger.log(`[user_text] done gen=${myGeneration} outcome=${outcome} persona=${state.persona?.id ?? 'unknown'}`);
+  /**
+   * 逐字稿落库 + 触发该轮分析 (V2026-10-26, spec 任务 1 / 任务 2 / 任务 3 / 任务 4).
+   *
+   * 只记**完整跑完**的轮次: 被抢白 (barge-in) 或出错的轮次, 来访者的话是截断的 ——
+   * 把截断的回应当成完整一轮落库, 每轮分析会在半句话上做判定, 报告也跟着失真.
+   *
+   * @param state 会话状态
+   * @param counselorText 咨询师这一轮说的话
+   * @param visitorChunks 来访者这一轮的话 (累加器)
+   * @param outcome 本轮结束方式
+   * @param myGeneration 本轮代号
+   */
+  private persistTurnIfComplete(
+    state: VoiceSessionState,
+    counselorText: string,
+    visitorChunks: string[],
+    outcome: LlmTurnOutcome,
+    myGeneration: number,
+  ): void {
+    if (outcome === 'error' || state.currentGeneration !== myGeneration) {
+      return;
+    }
+    state.turnCount += 1;
+    void this.bridges.appendTurn({
+      sessionId: state.meta.sessionId,
+      dbSessionId: state.meta.dbSessionId ?? null,
+      userId: state.meta.userId,
+      tenantId: state.meta.tenantId,
+      turnIndex: state.turnCount - 1,
+      counselorText,
+      visitorText: visitorChunks.join(''),
+    });
   }
 
   /**
@@ -448,6 +636,13 @@ export class VoiceService {
    *     - error:   log + 发 error + cancel TTS
    *     - done:    发 llm_done + 通知 TTS 收尾 (finish)
    *   generation mismatch (新 user_text 打断) → 停止本轮.
+   *
+   * @param llmStream LLM 流
+   * @param myGeneration 本轮代号
+   * @param state 会话状态
+   * @param send 帧发送回调
+   * @param ttsHandle 本轮 TTS 句柄
+   * @param collected 本轮来访者文本累加器 (V2026-10-26: 供逐字稿落库)
    * @returns 本轮结束方式 (done / error / eof)
    */
   private async consumeLlmStream(
@@ -456,6 +651,7 @@ export class VoiceService {
     state: VoiceSessionState,
     send: SendFn,
     ttsHandle: TtsSessionHandle | null,
+    collected: string[],
   ): Promise<LlmTurnOutcome> {
     for await (const chunk of llmStream) {
       if (state.currentGeneration !== myGeneration) {
@@ -465,6 +661,7 @@ export class VoiceService {
       }
       switch (chunk.type) {
         case 'content':
+          collected.push(chunk.content);
           send({ type: 'llm_text', text: chunk.content });
           ttsHandle?.sendText(chunk.content);
           break;
@@ -511,5 +708,54 @@ export class VoiceService {
     state.status = 'cancelled';
     send({ type: 'cancelled' });
     this.logger.log(`[bargeIn] session=${state.meta.sessionId} new gen=${state.currentGeneration}`);
+  }
+
+  /**
+   * 暂停会话 (V2026-10-26, spec 任务 5).
+   *
+   * 语义是"**挂起**"不是"中断": 会话不断 (WS 不关)、逐字稿不清、访客记忆不清,
+   * 只是把**当前这一轮**停下来 (停掉 TTS 播放 + 停掉正在生成的 LLM 流).
+   *
+   * 复用 bargeIn 的资源释放 (TTS cancel + LLM abort + generation 递增), 区别在
+   * **不**发 `cancelled` 帧: `cancelled` 的语义是"这一轮被打断", 暂停不是打断,
+   * 混用会让前端把暂停误渲染成"对方突然不说了".
+   *
+   * @param state 会话状态
+   * @param send 帧发送回调
+   */
+  private pauseSession(state: VoiceSessionState, send: SendFn): void {
+    if (state.status === 'paused') {
+      // 重复暂停 → 幂等回确认帧 (不报错, 不重复释放资源)
+      send({ type: 'paused' });
+      return;
+    }
+    if (state.status === 'processing') {
+      this.logger.log(`[pause] session=${state.meta.sessionId} gen=${state.currentGeneration} 挂起当前轮`);
+      this.bargeIn(state, () => {
+        // bargeIn 会发 `cancelled` 帧 —— 暂停场景下**不能**发 (语义不同), 用空回调顶掉.
+      });
+    }
+    state.status = 'paused';
+    this.logger.log(`[pause] session=${state.meta.sessionId} status=paused`);
+    send({ type: 'paused' });
+  }
+
+  /**
+   * 恢复会话 (V2026-10-26, spec 任务 5).
+   *
+   * 状态回待命 (idle); 访客记忆与逐字稿原样保留 → 下一轮从挂起点继续.
+   *
+   * @param state 会话状态
+   * @param send 帧发送回调
+   */
+  private resumeSession(state: VoiceSessionState, send: SendFn): void {
+    if (state.status !== 'paused') {
+      // 未暂停时收到 resume → 幂等回确认帧 (不报错)
+      send({ type: 'resumed' });
+      return;
+    }
+    state.status = 'idle';
+    this.logger.log(`[resume] session=${state.meta.sessionId} status=idle`);
+    send({ type: 'resumed' });
   }
 }

@@ -171,6 +171,17 @@ export const config = {
     asrRateLimitPerMinute: Number(process.env.PRACTICE_ASR_RATE_LIMIT_PER_MINUTE ?? 10),
     asrRateLimitWindowMs: Number(process.env.PRACTICE_ASR_RATE_LIMIT_WINDOW_MS ?? 60_000),
   },
+  // V2026-10-26 治本 (vpt 复盘报告 — pending 兜底上限, spec 任务 6):
+  //   主报告是**异步**生成的 (BullMQ + LLM), 而失败路径有几种"不留下任何行"的情况
+  //   (worker 没跑 / job 重试用尽 / 落库失败) —— 查询侧若永远返回 pending,
+  //   前端就会一直转圈, 用户分不清"再等等"和"生成不出来".
+  //   这里给一个"陈旧 pending"判定阈值: 会话已结束 + 无报告行 + 距结束超过该时长
+  //   → 判定为生成失败 (parse_error).
+  //   默认 15 分钟: 主报告的 LLM 调用正常耗时 30-120s, 15 分钟是它的 10 倍余量,
+  //   不会把"慢"误判成"失败", 但能兜住"永远 pending".
+  supervision: {
+    reportPendingTimeoutMs: Number(process.env.SUPERVISION_REPORT_PENDING_TIMEOUT_MS ?? 900_000),
+  },
   // V2026-10-08: Voice Gateway 业务配置 (Phase 3)
   voice: {
     sessionIdleTimeoutMs: Number(process.env.VOICE_SESSION_IDLE_TIMEOUT_MS ?? 600_000), // 10min

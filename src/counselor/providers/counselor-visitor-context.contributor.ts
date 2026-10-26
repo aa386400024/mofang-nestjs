@@ -44,6 +44,7 @@ import {
 import type { VoiceSkillCode } from '../../shared/types/voice-skill.types';
 import { VoiceSessionRegistry } from '../../voice/voice-session-registry';
 import type { VoiceDifficulty, VoiceVisitorStyle } from '../../voice/voice-session.types';
+import { parseAgeRangeLowerBound } from '../../voice/voice-visitor-card';
 
 import { renderVisitorSkillFocus } from '../config/skill-focus.config';
 import { buildVisitorPersonaBehaviorBlock, toVisitorIdentity } from '../config/visitor-persona-behavior.config';
@@ -106,22 +107,6 @@ function toVisitorStyle(style: VoiceVisitorStyle): VisitorStyle {
     case 'mixed':
       return VisitorStyle.MIXED;
   }
-}
-
-/**
- * 年龄区间 → 年龄下限.
- *
- * 公共人物只对外给区间 (例「28-35」), **不造精确年龄**; 需要数字时取下限,
- * 区间原文另外写进背景段, 让模型知道这是一个范围而不是精确值.
- *
- * @param ageRange 年龄区间字符串
- * @returns 下限; 解析不出返回 null
- */
-function parseAgeRangeLowerBound(ageRange: string): number | null {
-  const matched = /(\d+)/.exec(ageRange);
-  if (!matched?.[1]) return null;
-  const parsed = Number(matched[1]);
-  return Number.isFinite(parsed) ? parsed : null;
 }
 
 /**

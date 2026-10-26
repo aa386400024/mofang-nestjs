@@ -13,13 +13,22 @@
 //     - 不用 Socket.IO: 项目用 NestJS @WebSocketGateway + ws, 不引新依赖
 //     - 不用 MsgPack / Protobuf: 纯 JSON 帧足够, 调试直接看文本
 
-import type { VoiceSessionMode, VoiceSessionPreset, VoiceSkillCode } from './voice-session.types';
+import type { VoiceSessionMode, VoiceSessionPreset, VoiceSkillCode, VoiceVisitorCard } from './voice-session.types';
 
-/** 客户端 → 服务端消息. */
+/**
+ * 客户端 → 服务端消息.
+ *
+ * V2026-10-26 增量 (spec 任务 5): 新增 `session_pause` / `session_resume` 两个**控制帧**.
+ * 语义是"挂起"不是"中断" —— 暂停不清 transcript、不 abort 会话、不断 WS.
+ */
 export type VoiceClientMessage =
   | { readonly type: 'user_text'; readonly text: string; readonly generation?: number }
   | { readonly type: 'user_speaking' }
-  | { readonly type: 'session_finish' };
+  | { readonly type: 'session_finish' }
+  /** 主动暂停: 挂起 LLM / TTS, 保留会话与逐字稿, 不断连. */
+  | { readonly type: 'session_pause' }
+  /** 恢复: 从挂起点继续, 状态回待命. */
+  | { readonly type: 'session_resume' };
 
 /** 服务端 → 客户端消息 (全部 JSON 文本帧). */
 export type VoiceServerMessage =
@@ -29,8 +38,25 @@ export type VoiceServerMessage =
    * 前端收到 `ready` 之前**不得**发 `user_text`: 连接已打开但会话可能尚未就绪,
    * 否则首条消息会撞上 "not initialized" (竞态).
    * 任一前置失败走 `error` + close, **不发** `ready`.
+   *
+   * V2026-10-26 增量 (spec 任务 1 / 任务 7):
+   *   - `visitor`: 来访者速查卡 (可公开的表层字段; **不含** 7 大块剧本).
+   *     字段可选 = 老客户端 (不认识这个键) 直接忽略, 向后兼容.
+   *   - `persisted`: 本场是否已落 training_sessions 表. false = 降级为纯内存会话,
+   *     本场不会有复盘报告 —— 必须让前端知道, 不能让用户以为"存下来了".
+   *   - `dbSessionId`: **稳定落库 id** (training_sessions.id) —— 前端结束后用它调
+   *     `GET /counselor/supervision/report/:sessionId` 取复盘报告.
+   *     只在 `persisted=true` 时下发 (降级成纯内存的会话没有这个 id, 也就没有报告可取);
+   *     字段缺失 = 本场不落库, 前端本地记得别去请求报告.
+   *     为什么放 `ready` 而不是 `session_ended`: 用户主动结束是前端**直接断开**,
+   *     可能根本等不到 `session_ended` 帧; ready 阶段连接稳定, 前端拿到后本地留存即可.
    */
-  | { readonly type: 'ready' }
+  | {
+      readonly type: 'ready';
+      readonly visitor?: VoiceVisitorCard;
+      readonly persisted?: boolean;
+      readonly dbSessionId?: string;
+    }
   /** 本轮回复开始. */
   | { readonly type: 'llm_start' }
   /** LLM 增量字幕 (可多次; 与音频并行到达, 互不阻塞). */
@@ -50,7 +76,36 @@ export type VoiceServerMessage =
   /** 错误. */
   | { readonly type: 'error'; readonly error: VoiceError }
   /** 会话结束. */
-  | { readonly type: 'session_ended'; readonly reason: 'user_finish' | 'timeout' | 'error' };
+  | { readonly type: 'session_ended'; readonly reason: 'user_finish' | 'timeout' | 'error' }
+  /**
+   * 实时督导轻提示 (V2026-10-26, spec 任务 2).
+   *
+   * 只在 `light` 档推; `off` 档不推 (但分析与落库照常, 见硬约束 16).
+   * 正文只给**方向**, 不含可照念的替代话术 (防依赖硬约束 1).
+   */
+  | {
+      readonly type: 'supervision_hint';
+      readonly turnIndex: number;
+      readonly category: string;
+      readonly hintText: string;
+      readonly tier: string;
+    }
+  /**
+   * 移情 / 阻抗标记 (V2026-10-26, spec 任务 4).
+   *
+   * 只描述来访行为现象, 不做临床诊断、不贴病理标签.
+   */
+  | {
+      readonly type: 'mark';
+      readonly turnIndex: number;
+      readonly direction: string;
+      readonly markType: string;
+      readonly note: string;
+    }
+  /** 已确认暂停 (spec 任务 5). */
+  | { readonly type: 'paused' }
+  /** 已确认恢复 (spec 任务 5). */
+  | { readonly type: 'resumed' };
 
 /** 错误信息. */
 export interface VoiceError {
@@ -60,7 +115,7 @@ export interface VoiceError {
 }
 
 /** session 状态. */
-export type VoiceSessionStatus = 'idle' | 'processing' | 'cancelled' | 'ended';
+export type VoiceSessionStatus = 'idle' | 'processing' | 'cancelled' | 'ended' | 'paused';
 
 /** session 元数据. */
 export interface VoiceSessionMeta {
@@ -90,6 +145,22 @@ export interface VoiceSessionMeta {
    * undefined = 全流程 / 个案 (不聚焦单一技巧).
    */
   readonly skillCode?: VoiceSkillCode;
+  /**
+   * 稳定落库 id (training_sessions.id) — V2026-10-26 (spec 任务 1).
+   *
+   * undefined = 本场未落库 (降级为纯内存会话, 不会有复盘报告).
+   * 督导反馈 / 实时提示 / 报告**全部**挂这个 id, 不用内存 sessionId.
+   */
+  readonly dbSessionId?: string;
+  /**
+   * 来访者速查卡 (vpt 公共人物) — V2026-10-26 (spec 任务 6).
+   *
+   * undefined = 非 vpt 公共人物场 (普通 voice session), 报告用 agent 内置 persona.
+   * 有值 = 报告里的人格快照取自**速查卡** —— vpt 场 AI 扮演的是公共人物 (晚晴…),
+   * 而 agent 内置 persona 是另一个虚构人物, 报告里写错名字, 学员看了会认不出
+   * 自己在跟谁做督导.
+   */
+  readonly visitor?: VoiceVisitorCard;
 }
 
 /** 来访者 persona 快照 (VoiceService 缓存, 用于 TTS 音色 + 日志). */
@@ -115,4 +186,13 @@ export interface VoiceSessionState {
   ttsHandle: import('./tts/tts.types').TtsSessionHandle | null;
   /** 当前 LLM 流的可控 AbortController, signal 透传给 LlmService. */
   llmAbort: AbortController | null;
+  /**
+   * 会话开始时刻 (ms 时间戳) — V2026-10-26 (spec 任务 1: 结束回写时长).
+   *
+   * 用**墙钟**而不是累加各轮耗时: 训练场里有大量"人在思考"的沉默, 那正是会谈时长的一部分,
+   * 累加各轮会把沉默漏掉 (报告里的"实际时长"会系统性偏短).
+   */
+  startedAt: number;
+  /** 已完成的咨询师发言轮数 (spec 任务 1: 结束回写轮次). */
+  turnCount: number;
 }

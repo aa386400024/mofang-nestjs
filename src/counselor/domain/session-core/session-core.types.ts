@@ -509,3 +509,55 @@ export interface LiveTurnAnalysisInput {
   /** 触发时的档位 */
   tier: LiveSupervisionHintTier;
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// ⑤ 复盘报告状态归一 (V2026-10-26, spec 任务 6)
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * 复盘报告状态.
+ *
+ * 刻意区分三种 (不是"有/无"两态): 前端要能分清
+ * 「还没生成」(pending) /「生成了」(completed) /「生成失败」(parse_error).
+ * 把后两者都折成"没有报告", 前端就只能一直转圈或直接报错, 用户分不清"再等等"还是"重试".
+ */
+export type SessionReportStatus = 'completed' | 'parse_error' | 'pending';
+
+/**
+ * 报告状态归一 (含「陈旧 pending」兜底).
+ *
+ * 主报告是**异步**生成的 (BullMQ + LLM), 失败路径里有几种"什么行都不留"的情况:
+ * worker 没跑 / job 重试用尽 (attempts: 3) / 落库失败 (表没建 / DB 挂了).
+ * 这些情况下报告行根本不存在 → 若一律返回 pending, 前端就会**永远转圈**,
+ * 用户分不清"再等等"和"生成不出来" (违背「区分'没数据'与'什么都没做'」).
+ *
+ * 判据: 会话已结束 + 无报告行 + 距结束超过阈值 → 判定为生成失败 (parse_error).
+ * 阈值默认 15 分钟 (主报告 LLM 正常 30-120s 的 10 倍余量), 不会把"慢"误判成"失败".
+ *
+ * 反双胞胎:
+ *   - 不用 boolean `hasReport`: 表达不了"还没生成"与"生成失败"的区别
+ *   - 不在 service 里内联这段判断: 它是**纯函数** (无 IO), 内联进去就没法单测 ——
+ *     而"永远 pending"正是本轮要治的 bug, 必须有测试锁住
+ *   - 不用墙钟读当前时间: `nowMs` 由调用方传入, 函数保持纯粹 (可测 / 可重放)
+ *
+ * @param status agent 侧报告状态 (undefined = 报告行不存在)
+ * @param endedAtMs 会话结束时刻 (ms; null = 会话还没结束)
+ * @param nowMs 当前时刻 (ms)
+ * @param timeoutMs 陈旧阈值 (ms)
+ * @returns 对外的三态状态
+ */
+export function resolveSessionReportStatus(
+  status: 'completed' | 'parse_error' | undefined,
+  endedAtMs: number | null,
+  nowMs: number,
+  timeoutMs: number,
+): SessionReportStatus {
+  if (status) {
+    return status === 'parse_error' ? 'parse_error' : 'completed';
+  }
+  if (endedAtMs === null) {
+    // 会话还没结束 → 报告本来就还没开始生成, pending 是对的.
+    return 'pending';
+  }
+  return nowMs - endedAtMs > timeoutMs ? 'parse_error' : 'pending';
+}
