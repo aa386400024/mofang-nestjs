@@ -26,7 +26,7 @@ import { BizException } from '../../common/exceptions/biz.exception';
  * V2026-10-24 治本 (TS2769: spy 一个 private 方法):
  *   显式声明接缝签名再窄化一次, 不放宽生产代码可见性, 不用 as any.
  */
-type WeeklyKpiSource = {
+interface WeeklyKpiSource {
   aggregateKpis: (
     userId: string,
     date?: string,
@@ -36,7 +36,7 @@ type WeeklyKpiSource = {
     islandsUnlocked: number;
     consecutiveDays: number;
   }>;
-};
+}
 
 describe('V2026-09-14 GrowthWeeklyOverviewService — 单测', () => {
   let service: GrowthWeeklyOverviewService;

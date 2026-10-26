@@ -144,4 +144,16 @@ export enum BizCode {
   VisitorPoolGenerationFailed = 47_003, // 内部 AI 生成失败 (结构校验不过 / LLM 不可用)
   VisitorPoolForbidden = 47_004, // 无内部管理权限 (普通用户访问生成/管理端点)
   VisitorPoolLibraryEmpty = 47_005, // 公共模板库为空 (未跑 seed:visitor-pool; 前端回退本地种子)
+
+  // ====== 官方音色目录模块 (48xxx) — V2026-10-26 spec §任务 2 ======
+  //   为什么要**独立**一套码, 而不是复用通用 1001/1003/1005:
+  //     §任务 2 要求「上游 1004 鉴权失败 / 1008 余额不足 → 502 + 可读 message,
+  //     前端隐藏或置灰选择器, **不崩溃**」. 通用码 (ThirdPartyError) 只能表达
+  //     "失败了", 表达不了"是**我们的** key 失效了"与"是**额度**用完了"——
+  //     这两种对运维是完全不同的处置动作 (换 key vs 充值), 前端也要给不同提示.
+  VoiceCatalogUpstreamUnavailable = 48_001, // 上游不可用 (1004 鉴权失败 / 5xx / 网络故障)
+  VoiceCatalogUpstreamRateLimited = 48_002, // 上游限流 (1002 / 429)
+  VoiceCatalogUpstreamTimeout = 48_003, // 上游超时 (本地 AbortSignal 超时)
+  VoiceCatalogEmpty = 48_004, // 上游返回空列表 (目录尚未就绪 / 响应异常)
+  VoiceCatalogUpstreamNoBalance = 48_005, // 上游余额不足 (1008 / 402)
 }

@@ -15,6 +15,8 @@
 //     2. grep -rn "templateId" src/voice → 命中本文件与 gateway
 //   时间戳: 2026-10-23
 
+import type { VoiceSkillCode } from '../shared/types/voice-skill.types';
+
 /**
  * 会话模式.
  *
@@ -35,6 +37,22 @@ export type VoiceVisitorStyle = 'defensive' | 'cooperative' | 'resistant' | 'avo
  * 本期 (spec §5) `fullyReal` **不做随机扰动**, 只记录进日志, 不改行为.
  */
 export type VoiceVisitorMode = 'useMySettings' | 'fullyReal';
+
+/**
+ * 专项训练技巧码 (V2026-10-26, spec §任务 1).
+ *
+ * **定义在 shared** (src/shared/types/voice-skill.types.ts): 该码值要同时被 counselor 侧
+ * (来访者聚焦) 与 agent 侧 (督导事后专项反馈) 消费, 而 agent 侧不得 import counselor.
+ * 放 shared 是唯一能让两侧都只依赖中立层的家. 本文件只做**转出**, 保证 voice 侧
+ * 现有的 `import type { VoiceSkillCode } from './voice-session.types'` 引用全部照旧可用,
+ * 且**全仓只有一份定义**.
+ *
+ * 注意: 上面那行 `import` 是**本文件内部**要用的 (VoicePersonaChannel /
+ * VoiceSessionRegistration 里都引用了 VoiceSkillCode), 下面这行才是对外转出 ——
+ * 两者缺一不可: 只写 `export type { X } from '...'` 的话, X 在本文件里**没有本地绑定**,
+ * 本文件内引用 X 会报 "Cannot find name 'VoiceSkillCode'".
+ */
+export type { VoiceSkillCode };
 
 /**
  * 本场生效的临场参数.
@@ -68,6 +86,13 @@ export interface VoiceSessionRegistration {
   readonly mode: VoiceSessionMode;
   /** 公共人物模板 id; null = 普通 voice session (走内置 persona 兜底). */
   readonly templateId: string | null;
+  /**
+   * 专项训练技巧码 (V2026-10-26, spec §任务 1).
+   *
+   * null = 全流程 / 个案 (不聚焦单一技巧). 登记下来是为了让 counselor 侧的上下文
+   * 贡献者能按技巧给 AI 来访者"聚焦指令", 事后专项反馈也按它分流.
+   */
+  readonly skillCode: VoiceSkillCode | null;
   /** 本场生效的临场参数. */
   readonly preset: VoiceSessionPreset;
   /** 登记时间 (ms). */
@@ -99,3 +124,35 @@ export interface VoiceTemplateSummary {
   /** 主导防御类型 (模板固定, 握手不可覆盖). */
   readonly defenseType: string;
 }
+
+/**
+ * 角色来源通道 (V2026-10-26, spec §任务 1 §1.1).
+ *
+ * 握手解析后, 这场会谈的"来访者从哪来"只有两种可能 —— 用**判别联合**表达, 而不是
+ * 用一堆可空字段 (`templateId?` / `summary?` / `skillCode?` 各自可空) 让下游自己猜.
+ * 可空字段的组合有 2^n 种, 其中大部分是"不可能出现"的状态, 而调用方分不清
+ * "没传" 与 "传了但没查到" —— 这正是老实现把"无 templateId" 误报成
+ * `template_not_found` 的根因.
+ *
+ * - `template`: 客户端指定了公共人物 (`templateId`), 且已上架 → 用该模板的表层摘要
+ * - `fallback`: 客户端**没有**指定公共人物 (专项兜底 / 自定义人设来源) → 走兜底人设
+ *   通道: 本期用 env 默认人物 / 标准陪练; 自定义结构化人涉嫌荷是 P2, 通道在此预留
+ */
+export type VoicePersonaChannel =
+  | {
+      readonly kind: 'template';
+      /** 已上架的公共人物 id (登记用). */
+      readonly templateId: string;
+      /** 表层摘要; null = 模板已解析但摘要缺失 (只影响 prompt 细节, 不影响会话). */
+      readonly summary: VoiceTemplateSummary | null;
+    }
+  | {
+      readonly kind: 'fallback';
+      /**
+       * 专项训练技巧码 (null = 全流程 / 个案).
+       *
+       * 兜底通道靠它决定"标准陪练"要演成什么样 —— P2 的自定义结构化人设会在
+       * 这个通道上再挂一层 `persona` 负载, 届时**不改动**本字段语义.
+       */
+      readonly skillCode: VoiceSkillCode | null;
+    };

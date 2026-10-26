@@ -19,6 +19,7 @@ import type {
   VoiceDifficulty,
   VoiceSessionMode,
   VoiceSessionPreset,
+  VoiceSkillCode,
   VoiceTemplateSummary,
   VoiceVisitorMode,
   VoiceVisitorStyle,
@@ -49,6 +50,23 @@ const FALLBACK_PRESET: VoiceSessionPreset = {
  * 给了客户端一个"往日志里灌任意长字符串"的口子. 64 足够放 uuid + 少量前缀余量.
  */
 const MAX_SESSION_ID_LENGTH = 64;
+
+/**
+ * 音色 voice_id 长度上限 (V2026-10-26, spec §任务 1).
+ *
+ * 官方对**自定义** voice_id 的上限是 256 (见《音色快速复刻》文档), 系统音色 id
+ * 远短于此. 这里取同值作为本地兜底 —— 客户端传超长串只会白跑一趟上游,
+ * 截断后仍会因"不在可用音色内"被回退, 不会造成错配.
+ */
+const MAX_VOICE_ID_LENGTH = 256;
+
+/**
+ * 专项训练技巧码白名单 (V2026-10-26, spec §任务 1).
+ *
+ * 与 `VoiceSkillCode` 1:1. 非法值**直接忽略** (不报错、不断连) ——
+ * 训练场景下宁可少一个聚焦维度, 也不能因为前端传了乱值就把整场会谈搞挂.
+ */
+const SKILL_CODES: readonly VoiceSkillCode[] = ['listening', 'questioning', 'voice'];
 
 /**
  * 握手 query 的解析结果 (原始值, 尚未与模板缺省合并).
@@ -85,6 +103,19 @@ export interface VoiceHandshakeQuery {
   readonly defenseLevel?: number;
   /** 扮演模式 (本期只记录). */
   readonly visitorMode: VoiceVisitorMode;
+  /**
+   * 业务指定的音色 (voice_id).
+   *
+   * **仅"自定义人设"来源传**; 官方模板与专项兜底都不传 (缺省走模板/env 默认).
+   * 传了但不在账号可用系统音色内 → 由网关回退 env 默认 + warn 日志 (不致命断连).
+   */
+  readonly voiceId?: string;
+  /**
+   * 专项训练技巧码.
+   *
+   * 非法值已丢弃 (undefined = 不聚焦单一技巧); 全流程 / 个案不传.
+   */
+  readonly skillCode?: VoiceSkillCode;
 }
 
 /**
@@ -122,6 +153,10 @@ export function parseVoiceHandshake(url: string): VoiceHandshakeQuery {
     emotionBaseline: readRatio(params.get('emotionBaseline')),
     defenseLevel: readRatio(params.get('defenseLevel')),
     visitorMode: readVisitorMode(params.get('visitorMode')),
+    // V2026-10-26 治本 (spec §任务 1 — 握手增量两个可选字段):
+    //   voiceId / skillCode 都是**可选增量**, 不影响任何现有字段的解析口径.
+    voiceId: readVoiceId(params.get('voiceId')),
+    skillCode: readSkillCode(params.get('skillCode')),
   };
 }
 
@@ -187,7 +222,7 @@ function readSessionId(raw: string | null): string | undefined {
  */
 function sanitizeSessionId(raw: string): string | undefined {
   // eslint-disable-next-line no-control-regex
-  const cleaned = raw.replace(/[\u0000-\u001F\u007F]/g, '').trim();
+  const cleaned = raw.replaceAll(/[\u0000-\u001F\u007F]/g, '').trim();
   if (cleaned.length === 0) return undefined;
   return cleaned.slice(0, MAX_SESSION_ID_LENGTH);
 }
@@ -202,6 +237,42 @@ function readOptional(raw: string | null): string | undefined {
   if (raw === null) return undefined;
   const trimmed = raw.trim();
   return trimmed.length > 0 ? trimmed : undefined;
+}
+
+/**
+ * 读音色 voice_id.
+ *
+ * 与 sessionId 同理: 值完全由客户端提供, 且会被拼进日志与上游请求 → 必须清洗.
+ * - 去控制字符: 否则客户端传 `a\n[onConnect] voice=xxx` 就能伪造日志行
+ * - 长度上限: 官方自定义 voice_id 上限 256, 超过的一律截断
+ *
+ * 注意: 这里**不做**"是不是合法音色"的判断 —— 合法与否要看**账号**的可用音色
+ * (那是上游数据, 握手期无法离线判定), 由网关查音色目录后回退 (spec §任务 1).
+ *
+ * @param raw 原始值
+ * @returns 清洗后的 voice_id; 清完为空 → undefined
+ */
+function readVoiceId(raw: string | null): string | undefined {
+  const value = readOptional(raw);
+  if (value === undefined) return undefined;
+  // eslint-disable-next-line no-control-regex
+  const cleaned = value.replaceAll(/[\u0000-\u001F\u007F]/g, '').trim();
+  if (cleaned.length === 0) return undefined;
+  return cleaned.slice(0, MAX_VOICE_ID_LENGTH);
+}
+
+/**
+ * 读专项训练技巧码 (大小写不敏感).
+ *
+ * 非法值**直接忽略** (undefined) —— 不报错、不断连 (spec §任务 1).
+ *
+ * @param raw 原始值
+ * @returns 合法技巧码; 非法 / 未提供 → undefined
+ */
+function readSkillCode(raw: string | null): VoiceSkillCode | undefined {
+  const value = readOptional(raw)?.toLowerCase();
+  if (value === undefined) return undefined;
+  return SKILL_CODES.find((item) => item === value);
 }
 
 /**

@@ -110,6 +110,14 @@ export declare global {
       MINIMAX_ASR_TIMEOUT_MS?: string; // 上游转写超时, 与 LLM 超时隔离 (spec §2.5)
       MINIMAX_ASR_MAX_FILE_BYTES?: string; // 本地体积上限, 默认与上游一致 (50 MiB)
       MINIMAX_ASR_MAX_DURATION_SEC?: string; // 本地时长上限, 默认与上游一致 (500s)
+      // V2026-10-26 治本 (官方音色目录代理 — spec §任务 2):
+      //   下面是本轮新增的 2 个 env 键. 不声明会直接报 TS4111
+      //   (noPropertyAccessFromIndexSignature: 走 @types/node 的 [key: string] 索引签名时
+      //    点访问不合法, 必须 bracket 访问) —— 与上面 MINIMAX_* 同一治本思路:
+      //   **显式声明到 ProcessEnv**, 不用 bracket 访问绕过.
+      MINIMAX_VOICES_TIMEOUT_MS?: string; // 上游音色目录查询超时 (默认 15s)
+      MINIMAX_VOICES_CHECK_TIMEOUT_MS?: string; // 握手里的建议性音色校验超时 (默认 3s)
+      MINIMAX_VOICES_CACHE_TTL_MS?: string; // 音色目录内存缓存 TTL (默认 10min)
       // V2026-10-23 治本 (微技能自由练习 — 端点级限流):
       PRACTICE_ASR_RATE_LIMIT_PER_MINUTE?: string; // 单用户每分钟转写次数
       PRACTICE_ASR_RATE_LIMIT_WINDOW_MS?: string; // 限流窗口

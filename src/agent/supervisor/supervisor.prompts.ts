@@ -23,6 +23,7 @@
 //     4. transcript 渲染含至少 1 个时间戳, 验证 LLM 知道时间对齐方式
 
 import type { RunReportInput, TranscriptTurn } from './supervisor.types';
+import { VOICE_SKILL_FOCUS_DIMENSIONS, VOICE_SKILL_LABELS, type VoiceSkillCode } from '../../shared/types/voice-skill.types';
 
 /**
  * 渲染督导 system prompt.
@@ -37,6 +38,9 @@ export function renderSystemPrompt(input: RunReportInput): string {
   const transcriptBlock = renderTranscriptBlock(input.transcript);
   const personaBlock = renderPersonaBlock(input);
   const emotionBlock = renderEmotionBlock(input.emotionTimeline);
+  // V2026-10-26 治本 (spec §任务 1 — skillCode 用于事后专项反馈):
+  //   无 skillCode (全流程 / 个案) → 空串, **整段不渲染**, prompt 与改前逐字一致.
+  const skillBlock = renderSkillFocusBlock(input.skillCode);
 
   return [
     '# 角色',
@@ -47,6 +51,8 @@ export function renderSystemPrompt(input: RunReportInput): string {
     '',
     '# 来访者画像 (锁定 snapshot, 督导期间不变)',
     personaBlock,
+    // V2026-10-26 治本 (spec §任务 1): 专项训练场才渲染这一段 (全流程 / 个案 = 不渲染).
+    ...(skillBlock ? ['', '# 本场专项训练目标', skillBlock] : []),
     '',
     '# 督导标准 (RAG 检索结果)',
     ragContext || '(V0.x 未接 RAG, 请用通用心理咨询督导知识评估 — V2026-10-09 治本)',
@@ -111,6 +117,29 @@ function renderPersonaBlock(input: RunReportInput): string {
     `- 名字: ${persona.name}`,
     `- 难度: ${persona.difficulty} (L1=入门, L2=进阶, L3=专家防御)`,
     `- persona id: ${persona.id} (V0.x 督导报告锁定 snapshot, 不再变)`,
+  ].join('\n');
+}
+
+/**
+ * 渲染专项聚焦段 (V2026-10-26, spec §任务 1).
+ *
+ * 无 skillCode (全流程 / 个案) → 空串, 调用方**整段不渲染** ——
+ * 这样既有会话的 prompt 与改前逐字一致, 督导报告行为 0 变化.
+ *
+ * @param skillCode 专项训练技巧码
+ * @returns 聚焦段正文; 无技巧码 → 空串
+ */
+function renderSkillFocusBlock(skillCode: VoiceSkillCode | undefined): string {
+  if (!skillCode) {
+    return '';
+  }
+  const label = VOICE_SKILL_LABELS[skillCode];
+  const dimension = VOICE_SKILL_FOCUS_DIMENSIONS[skillCode];
+  return [
+    `- 本场是「${label}」专项训练场 (skillCode=${skillCode}).`,
+    `- 请在评分 / 标注 / 建议中**优先聚焦**「${dimension}」这一维度.`,
+    '- 其余维度仍照常评估, 但专项维度可以给更细的标注 (多条、具体到时间戳).',
+    '- 不要因为是专项场就忽略其他维度 —— 边界与专业度出问题时同样要点出来.',
   ].join('\n');
 }
 

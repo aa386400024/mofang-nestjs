@@ -18,8 +18,11 @@ export interface TtsOptions {
   /**
    * 业务指定的音色 (voice_id).
    *
-   * 本期 (spec §3.3/§5) **统一使用 env `MINIMAX_TTS_VOICE_ID`**, 不按人物切音色;
-   * 内置 persona 里那批 `mandarin_*` 是未核实的占位值, 不得当可用值上线.
+   * V2026-10-26 (spec §任务 3) 优先级链:
+   *   **会话级覆盖 (本字段)** > 模板绑定音色 (若有) > env `MINIMAX_TTS_VOICE_ID`.
+   *
+   * 本字段为空时, 客户端回退到 env `MINIMAX_TTS_VOICE_ID`; 两者都空 → 建连时
+   * fail-fast 报错 (绝不用占位音色顶替, 见 tts-bidi-client.ts).
    */
   readonly voice?: string;
   /** 情绪标签; 不传 = 上游模型自动匹配. */

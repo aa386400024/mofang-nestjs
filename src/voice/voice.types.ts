@@ -13,7 +13,7 @@
 //     - 不用 Socket.IO: 项目用 NestJS @WebSocketGateway + ws, 不引新依赖
 //     - 不用 MsgPack / Protobuf: 纯 JSON 帧足够, 调试直接看文本
 
-import type { VoiceSessionMode, VoiceSessionPreset } from './voice-session.types';
+import type { VoiceSessionMode, VoiceSessionPreset, VoiceSkillCode } from './voice-session.types';
 
 /** 客户端 → 服务端消息. */
 export type VoiceClientMessage =
@@ -77,6 +77,19 @@ export interface VoiceSessionMeta {
   readonly mode: VoiceSessionMode;
   /** 本场生效的临场参数 (供日志与业务侧插槽消费). */
   readonly preset: VoiceSessionPreset;
+  /**
+   * 业务指定的音色 (voice_id).
+   *
+   * 缺省 = 走 env `MINIMAX_TTS_VOICE_ID`; 有值 = 覆盖它 (spec §任务 3 的优先级链:
+   * 握手 voiceId > 模板绑定音色 > env).
+   */
+  readonly voiceId?: string;
+  /**
+   * 专项训练技巧码 (V2026-10-26, spec §任务 1).
+   *
+   * undefined = 全流程 / 个案 (不聚焦单一技巧).
+   */
+  readonly skillCode?: VoiceSkillCode;
 }
 
 /** 来访者 persona 快照 (VoiceService 缓存, 用于 TTS 音色 + 日志). */

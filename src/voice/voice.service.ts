@@ -12,6 +12,13 @@
 //        治本: 每一轮结束 (正常 / 异常 / 打断 / 会话结束) 都走 handle.dispose() (幂等, 按租约 id 释放).
 //     ④ **打断语义**: 打断回 `cancelled` (通用), 且**不再**下发本轮剩余 llm_text / tts_audio.
 //
+//   V2026-10-26 治本 (音色代理 / 握手扩展, spec §任务 1 / §任务 3):
+//     ① 握手新增 `voiceId` (业务指定音色) / `skillCode` (专项训练技巧码), 经 VoiceSessionMeta
+//        透传到本层.
+//     ② TTS 音色优先级从"全局统一 env"放开为 "**可选覆盖, 缺省仍是 env**":
+//        握手 voiceId > 模板绑定音色 (若有) > env `MINIMAX_TTS_VOICE_ID`.
+//        不传 voiceId 时行为与改前**完全一致** (存量客户端零影响).
+//
 //   关键设计:
 //     - 每 session 一个 VoiceSessionState (Map<sessionId, state>)
 //     - 每条 user_text 自增 currentGeneration, 老 pipeline 检查 generation 不匹配
@@ -170,6 +177,9 @@ export class VoiceService {
         persona: state.persona,
         transcript,
         emotionTimeline: [], // V0.x 留空, V1.x 接 ASR 情绪模型
+        // V2026-10-26 治本 (spec §任务 1 — skillCode 用于事后专项反馈):
+        //   专项训练场把技巧码透传给督导, 报告优先聚焦对应维度; 全流程 / 个案为 undefined.
+        skillCode: state.meta.skillCode,
         traceId: state.meta.traceId,
       };
       void this.triggerSupervisor(input);
@@ -316,8 +326,9 @@ export class VoiceService {
   private async startTtsSession(state: VoiceSessionState, send: SendFn): Promise<TtsSessionHandle | null> {
     // 治本: 音色没配就是**配置错误** —— 绝不能拿未核实的占位音色 (mandarin_female_001) 顶替,
     // 那会合成出"能播但不像人"的音频, 排查成本远高于现在就失败.
-    if (this.ttsVoiceId.length === 0) {
-      this.logger.error('[tts] MINIMAX_TTS_VOICE_ID 未配置, 本轮不出声');
+    const voiceId = this.resolveSessionVoice(state.meta);
+    if (voiceId.length === 0) {
+      this.logger.error('[tts] TTS 音色未配置, 本轮不出声');
       send({
         type: 'error',
         error: { code: 'tts_config_invalid', message: 'TTS 音色未配置 (MINIMAX_TTS_VOICE_ID)', retryable: false },
@@ -328,8 +339,10 @@ export class VoiceService {
       tenantId: state.meta.tenantId,
       userId: state.meta.userId,
       sessionId: state.meta.sessionId,
-      // 本期 (spec §3.3/§5) 统一音色, 不按人物切换 —— persona.voiceId 是未核实的占位值
-      voice: this.ttsVoiceId,
+      // V2026-10-26 治本 (spec §任务 3 — 音色优先级放开为"可选覆盖, 缺省仍是 env"):
+      //   握手 voiceId > 模板绑定音色 (若有) > env `MINIMAX_TTS_VOICE_ID`.
+      //   不传 voiceId 时行为与改前**完全一致** (还是那条 env 音色).
+      voice: voiceId,
       model: this.ttsModel,
     };
     try {
@@ -342,6 +355,29 @@ export class VoiceService {
       });
       return null;
     }
+  }
+
+  /**
+   * 解析本场生效的 TTS 音色 (V2026-10-26, spec §任务 3).
+   *
+   * 优先级链: **握手 voiceId** > 模板绑定音色 (若有) > env `MINIMAX_TTS_VOICE_ID`.
+   *
+   * - 握手 voiceId: 由网关校验过 (不在账号可用系统音色内时已被丢弃并回退 env).
+   * - 模板绑定音色: **本期公共人物模板还没绑定音色** (`visitor_pool_templates` 无 voice_id 列),
+   *   所以这一级恒为空 —— 但通道在此预留, 将来模板表加音色列时只需在这里补一行,
+   *   不动 TTS 客户端与连接池.
+   * - env: 老行为, 保持不变 (不传 voiceId 的存量客户端零影响).
+   *
+   * @param meta 会话元数据
+   * @returns 本场音色; 空串 = 未配置 (调用方 fail-fast 报错, 不用占位音色顶替)
+   */
+  private resolveSessionVoice(meta: VoiceSessionMeta): string {
+    const requested = meta.voiceId?.trim();
+    if (requested) {
+      return requested;
+    }
+    // 模板绑定音色: 本期无 (模板表未绑定 voice_id) —— 预留位, 见 JSDoc.
+    return this.ttsVoiceId;
   }
 
   /**

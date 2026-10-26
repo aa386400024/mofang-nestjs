@@ -137,7 +137,18 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
 
     this.baseUrl = config.getOrThrow<string>('minimax.baseUrl');
     this.apiKey = config.getOrThrow<string>('minimax.apiKey');
-    this.voiceId = config.get<string>('minimax.ttsVoiceId') ?? '';
+    // V2026-10-26 治本 (spec §任务 3 — 音色优先级放开为"可选覆盖, 缺省仍是 env"):
+    //   会话级覆盖 (opts.voice, 来自握手 voiceId) > env `MINIMAX_TTS_VOICE_ID`.
+    //   老实现**只读 env**, 把 `opts.voice` 这个字段晾在类型里当摆设 —— 业务层传什么都不生效.
+    //   现在按优先级链取值, 且两者都空时仍然 fail-fast (见 connect()).
+    //
+    //   这里**不用 `||`**: 空串在 `||` 下会回退, 在 `??` 下不会 —— 而我们要的正是
+    //   "空串 = 没配 = 回退到 env". 所以先把两边的空串归一成空串, 再用三元挑优先级
+    //   (@typescript-eslint/prefer-nullish-coalescing 会把 `||` 判成不安全, 但那正是
+    //   本行需要的语义, 不能直接换成 `??`).
+    const sessionVoice = opts.voice?.trim() ?? '';
+    const envVoice = config.get<string>('minimax.ttsVoiceId')?.trim() ?? '';
+    this.voiceId = sessionVoice.length > 0 ? sessionVoice : envVoice;
     this.model = this.resolveModel(opts.model ?? config.get<string>('minimax.ttsModel'));
     this.languageBoost = config.get<string>('minimax.ttsLanguageBoost') ?? 'Chinese';
     this.speed = config.get<number>('minimax.ttsSpeed') ?? 1;
@@ -162,7 +173,7 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
     if (this.voiceId.length === 0) {
       // 治本: 音色没配就是**配置错误**, 绝不能拿占位音色 (mandarin_female_001) 顶替 ——
       // 那会合成出"能播但不像人"的音频, 排查成本远高于现在就失败.
-      throw new Error('TtsBidiClient: 缺少 MINIMAX_TTS_VOICE_ID (未配置的音色不得用占位值顶替)');
+      throw new Error('TtsBidiClient: 未配置 TTS 音色 (env MINIMAX_TTS_VOICE_ID 为空且本次会话未指定音色)');
     }
     this.state = 'connecting';
 

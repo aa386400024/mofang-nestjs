@@ -41,9 +41,11 @@ import {
   type VisitorContextContributor,
   type VisitorContextRequest,
 } from '../../agent/visitor/visitor-context';
+import type { VoiceSkillCode } from '../../shared/types/voice-skill.types';
 import { VoiceSessionRegistry } from '../../voice/voice-session-registry';
 import type { VoiceDifficulty, VoiceVisitorStyle } from '../../voice/voice-session.types';
 
+import { renderVisitorSkillFocus } from '../config/skill-focus.config';
 import { buildVisitorPersonaBehaviorBlock, toVisitorIdentity } from '../config/visitor-persona-behavior.config';
 import type { SessionPersonaContext } from '../domain/session-context/session-context';
 import { VisitorFullPersona } from '../entities/visitor-full-persona.entity';
@@ -168,7 +170,7 @@ export class CounselorVisitorContextContributor implements VisitorContextContrib
   /**
    * 产出该会话的访客上下文块.
    *
-   * 优先级: 演练登记 (公共人物) > 长程反查 > 无上下文.
+   * 优先级: 演练登记 (公共人物) > 长程反查 > 专项聚焦-only > 无上下文.
    *
    * @param request 解析请求
    * @returns 上下文块; 无任何上下文 → null (agent 行为与改前完全一致)
@@ -176,8 +178,11 @@ export class CounselorVisitorContextContributor implements VisitorContextContrib
   async build(request: VisitorContextRequest): Promise<VisitorContextBlock | null> {
     // ① 演练登记优先: 全真会谈选了公共人物, 单次演练不落库, 只能靠握手时登记的设定
     const registration = this.sessions.find(request.sessionId);
+    // V2026-10-26 治本 (spec §任务 1 — skillCode 用于 LLM 聚焦):
+    //   技巧码跟着演练登记走 (登记在 WS 握手时写入, 包含专项训练入口传的 skillCode).
+    const skillCode = registration?.skillCode ?? null;
     if (registration?.templateId) {
-      const block = await this.buildFromTemplate(registration.templateId, registration.preset);
+      const block = await this.buildFromTemplate(registration.templateId, registration.preset, skillCode);
       if (block) {
         return block;
       }
@@ -186,8 +191,12 @@ export class CounselorVisitorContextContributor implements VisitorContextContrib
     // ② 长程反查 (原行为, 完全不变)
     const ctx = await this.contextBuilder.loadBySessionId(request.userId, request.sessionId);
     if (!ctx) {
-      // 不是咨询师会话 (或会话不属于该用户) → 不产出上下文, agent 行为与改前完全一致
-      return null;
+      // ③ 无长程上下文 —— 但**专项兜底通道** (SystemFallback) 正是这种情形:
+      //    专项入口不落库, 既没有公共人物模板也没有长程会话, 只有演练登记.
+      //    若这里直接返回 null, 专项训练就**丢掉了聚焦** (只剩内置 persona) ——
+      //    所以有 skillCode 时仍产出一个"只带聚焦指令"的块.
+      //    没有 skillCode 时返回 null, agent 行为与改前完全一致.
+      return this.buildSkillOnly(skillCode);
     }
 
     // 全量人设: 长程才有 (单次训练只有浅层, spec §4.3 明确单次不强制接全量人设)
@@ -216,7 +225,7 @@ export class CounselorVisitorContextContributor implements VisitorContextContrib
     });
 
     return {
-      content,
+      content: this.withSkillFocus(content, skillCode),
       // 咨询师为本场会话配的难度/身份优先于 agent 内置 persona
       difficulty: toPersonaDifficulty(ctx.difficulty),
       identity: toVisitorIdentity(ctx.persona),
@@ -226,10 +235,46 @@ export class CounselorVisitorContextContributor implements VisitorContextContrib
   }
 
   /**
+   * 专项兜底通道 — 只产出一块「聚焦指令」.
+   *
+   * 适用场景: 专项训练入口 (SystemFallback) 既没有公共人物模板, 也不落长程会话,
+   * 只有 WS 握手时写下的演练登记 (里面带 skillCode). 那一路必须仍有聚焦,
+   * 否则专项训练会退化成"随便聊聊".
+   *
+   * @param skillCode 专项训练技巧码 (null = 无聚焦)
+   * @returns 上下文块; 无技巧码 → null (agent 行为与改前完全一致)
+   */
+  private buildSkillOnly(skillCode: VoiceSkillCode | null): VisitorContextBlock | null {
+    const focus = renderVisitorSkillFocus(skillCode);
+    if (!focus) {
+      return null;
+    }
+    return {
+      content: focus.trim(),
+      // **不替换** agent 的通用人格画像: 这一场没配来访者人设, 用内置 persona 兜底,
+      // 只在它后面追加聚焦指令. 替换掉会把内置 persona 抹平, 反而不像"标准陪练"了.
+      replacesPersona: false,
+    };
+  }
+
+  /**
+   * 给上下文正文追加专项聚焦指令 (无技巧码时原样返回).
+   *
+   * @param content 原正文
+   * @param skillCode 专项训练技巧码
+   * @returns 追加后的正文
+   */
+  private withSkillFocus(content: string, skillCode: VoiceSkillCode | null): string {
+    const focus = renderVisitorSkillFocus(skillCode);
+    return focus ? `${content}\n${focus}` : content;
+  }
+
+  /**
    * 演练登记分支 — 从公共人物模板渲染行为块.
    *
    * @param templateId 公共模板 id
    * @param preset 握手临场参数 (难度 / 风格 / 情绪基线 / 防御水平)
+   * @param skillCode 专项训练技巧码 (null = 不聚焦)
    * @returns 上下文块; 模板查不到 → null (回落长程分支)
    */
   private async buildFromTemplate(
@@ -240,6 +285,7 @@ export class CounselorVisitorContextContributor implements VisitorContextContrib
       readonly emotionBaseline: number;
       readonly defenseLevel: number;
     },
+    skillCode: VoiceSkillCode | null = null,
   ): Promise<VisitorContextBlock | null> {
     const template = await this.templateRepo.findOne({
       where: { id: templateId, enabled: true, deletedAt: IsNull() },
@@ -277,10 +323,12 @@ export class CounselorVisitorContextContributor implements VisitorContextContrib
       unlockedEntries: [],
     });
 
-    this.logger.log(`[template_context] template=${templateId} difficulty=${difficulty} style=${shallow.visitorStyle}`);
+    this.logger.log(
+      `[template_context] template=${templateId} difficulty=${difficulty} style=${shallow.visitorStyle} skill=${skillCode ?? '<none>'}`,
+    );
 
     return {
-      content,
+      content: this.withSkillFocus(content, skillCode),
       difficulty: toPersonaDifficulty(difficulty),
       identity: toVisitorIdentity(shallow),
       // 替换掉 agent 的通用人格画像 —— 公共人物与内置 persona 完全是两个人

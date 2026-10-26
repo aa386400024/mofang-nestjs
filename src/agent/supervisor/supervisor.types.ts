@@ -13,6 +13,7 @@
 //     3. SupervisorReportStatus 枚举值写库时落 supervision_reports.status 字符串
 //     4. parseErrorPlaceholder 工厂函数返回 status=parse_error 的占位报告
 
+import type { VoiceSkillCode } from '../../shared/types/voice-skill.types';
 import type { LlmStream, LlmStreamChunk } from '../llm/llm.types';
 import type { VisitorPersonaSnapshot } from '../visitor/visitor.types';
 
@@ -84,6 +85,16 @@ export interface RunReportInput {
   readonly transcript: readonly TranscriptTurn[];
   /** 情绪时序 — V0.x 永远空数组, V1.x 接 ASR 情绪模型. */
   readonly emotionTimeline: readonly EmotionTimelinePoint[];
+  /**
+   * 专项训练技巧码 (V2026-10-26, spec §任务 1).
+   *
+   * undefined = 全流程 / 个案 (不聚焦单一技巧). 有值时督导报告**优先聚焦**该技巧对应的
+   * 评分维度 (见 supervisor.prompts.ts 的专项聚焦段).
+   *
+   * 类型取自 shared (agent 侧不得 import counselor / voice —— 详见
+   * src/shared/types/voice-skill.types.ts 的文件头).
+   */
+  readonly skillCode?: VoiceSkillCode;
   /** 链路 trace id, 透传给 LlmService. */
   readonly traceId?: string;
 }

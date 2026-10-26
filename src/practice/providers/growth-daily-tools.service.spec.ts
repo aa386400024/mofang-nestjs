@@ -40,9 +40,9 @@ import { DailyGrowthToolDto } from '../dto/growth.dto';
  *     - 不把生产方法的 private 改成 public: 那是为了测试放宽生产 API 面
  *     - 不用 as any: 用精确签名, mockResolvedValue 的参数类型依然受检
  */
-type DailyToolsSource = {
+interface DailyToolsSource {
   recommendByLLM: (userId: string, date?: string) => Promise<DailyGrowthToolDto[]>;
-};
+}
 
 describe('V2026-09-14 GrowthDailyToolsService — 单测', () => {
   let service: GrowthDailyToolsService;

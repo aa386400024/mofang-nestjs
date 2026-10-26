@@ -151,6 +151,18 @@ export const config = {
     asrTimeoutMs: Number(process.env.MINIMAX_ASR_TIMEOUT_MS ?? 30_000),
     asrMaxFileBytes: Number(process.env.MINIMAX_ASR_MAX_FILE_BYTES ?? 52_428_800), // 50 MiB, 与上游硬限制一致
     asrMaxDurationSec: Number(process.env.MINIMAX_ASR_MAX_DURATION_SEC ?? 500), // 与上游硬限制一致
+    // V2026-10-26 治本 (官方音色目录代理 — spec §任务 2):
+    //   上游路径 / 音色类型枚举是**协议事实**, 固定在 counselor/config/voices.config.ts,
+    //   这里只放"本地怎么跑"的可调参数 (超时 / 内存缓存 TTL).
+    //   TTL 默认 10 分钟: 官方系统音色表几乎不变, 低频变动用短 TTL 足够, 又不至于每次
+    //   进准备页都打上游.
+    voicesTimeoutMs: Number(process.env.MINIMAX_VOICES_TIMEOUT_MS ?? 15_000),
+    // V2026-10-26 治本 (spec §任务 1 — 建议性校验不能久等):
+    //   WS 握手里的 "voiceId 在不在可用音色内" 是**建议性**校验 (判不出来就放行),
+    //   它跑在握手关键路径上 —— 上游卡住 = 整场会谈卡在"连接中".
+    //   所以它走一个**更短**的超时, 与 REST 端点的 15s 分开.
+    voicesCheckTimeoutMs: Number(process.env.MINIMAX_VOICES_CHECK_TIMEOUT_MS ?? 3000),
+    voicesCacheTtlMs: Number(process.env.MINIMAX_VOICES_CACHE_TTL_MS ?? 600_000),
   },
   // V2026-10-23 治本 (微技能自由练习 — 端点级运营参数):
   //   练习域的限流阈值独立于全站默认限流 (全局是 IP 级 60 次/分钟),

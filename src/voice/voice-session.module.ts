@@ -15,6 +15,7 @@
 
 import { Global, Module } from '@nestjs/common';
 
+import { VoiceCatalogRegistry } from './voice-catalog-slot';
 import { VoiceSessionRegistry } from './voice-session-registry';
 import { VoiceTemplateRegistry } from './voice-template-slot';
 
@@ -26,7 +27,7 @@ import { VoiceTemplateRegistry } from './voice-template-slot';
  */
 @Global()
 @Module({
-  providers: [VoiceSessionRegistry, VoiceTemplateRegistry],
-  exports: [VoiceSessionRegistry, VoiceTemplateRegistry],
+  providers: [VoiceSessionRegistry, VoiceTemplateRegistry, VoiceCatalogRegistry],
+  exports: [VoiceSessionRegistry, VoiceTemplateRegistry, VoiceCatalogRegistry],
 })
 export class VoiceSessionModule {}

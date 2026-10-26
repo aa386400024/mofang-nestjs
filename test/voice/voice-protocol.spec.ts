@@ -280,3 +280,64 @@ describe('官方 bidi 端点拼装', () => {
     expect(buildTtsBidiUrl('https://api.minimax.cn///')).toBe('wss://api.minimax.cn/ws/v1/t2a_v2_bidi');
   });
 });
+
+describe('WS 握手解析 · 音色 (voiceId) 三态 (V2026-10-26)', () => {
+  it('合法 voiceId 原样解析到位 (官方系统音色 id 含空格 / 括号 / 下划线)', () => {
+    const query = parseVoiceHandshake('/voice/training/s?voiceId=Chinese (Mandarin)_Lyrical_Voice');
+
+    expect(query.voiceId).toBe('Chinese (Mandarin)_Lyrical_Voice');
+  });
+
+  it('不传 / 传空串 → undefined (走 env 默认音色)', () => {
+    expect(parseVoiceHandshake('/voice/training/s').voiceId).toBeUndefined();
+    expect(parseVoiceHandshake('/voice/training/s?voiceId=').voiceId).toBeUndefined();
+    expect(parseVoiceHandshake('/voice/training/s?voiceId=%20%20').voiceId).toBeUndefined();
+  });
+
+  it('控制字符被清洗 (防日志注入) 且超长被截断到 256', () => {
+    const injected = parseVoiceHandshake('/voice/training/s?voiceId=abc%0A%5Bfake%5D').voiceId;
+    const oversized = parseVoiceHandshake(`/voice/training/s?voiceId=${'x'.repeat(400)}`).voiceId;
+
+    expect(injected).toBe('abc[fake]');
+    expect(injected).not.toContain('\n');
+    expect(oversized).toHaveLength(256);
+  });
+
+  it('新增 voiceId 不影响任何现有字段 (向后兼容)', () => {
+    const query = parseVoiceHandshake('/voice/training/sid-001?templateId=vpt_x&mode=voice&difficulty=L2&voiceId=v-1');
+
+    expect(query.sessionId).toBe('sid-001');
+    expect(query.templateId).toBe('vpt_x');
+    expect(query.mode).toBe('voice');
+    expect(query.difficulty).toBe('L2');
+    expect(query.voiceId).toBe('v-1');
+  });
+});
+
+describe('WS 握手解析 · 专项技巧码 (skillCode) 三态 (V2026-10-26)', () => {
+  it.each(['listening', 'questioning', 'voice'] as const)('合法技巧码 %s 解析到位', (skillCode) => {
+    expect(parseVoiceHandshake(`/voice/training/s?skillCode=${skillCode}`).skillCode).toBe(skillCode);
+  });
+
+  it('大小写不敏感 (前端传 LISTENING 也能认)', () => {
+    expect(parseVoiceHandshake('/voice/training/s?skillCode=LISTENING').skillCode).toBe('listening');
+  });
+
+  it('非法值直接忽略 (undefined) —— 不报错、不断连', () => {
+    expect(parseVoiceHandshake('/voice/training/s?skillCode=bogus').skillCode).toBeUndefined();
+    expect(parseVoiceHandshake('/voice/training/s?skillCode=').skillCode).toBeUndefined();
+  });
+
+  it('不传 → undefined (全流程 / 个案)', () => {
+    expect(parseVoiceHandshake('/voice/training/s').skillCode).toBeUndefined();
+  });
+
+  it('新增 skillCode 不影响任何现有字段 (向后兼容)', () => {
+    const query = parseVoiceHandshake('/voice/training/sid-001?templateId=vpt_x&mode=voice&skillCode=listening');
+
+    expect(query.sessionId).toBe('sid-001');
+    expect(query.templateId).toBe('vpt_x');
+    expect(query.mode).toBe('voice');
+    expect(query.skillCode).toBe('listening');
+  });
+});

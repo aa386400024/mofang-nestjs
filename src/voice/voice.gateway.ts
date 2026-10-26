@@ -11,6 +11,16 @@
 //     模板校验放在**连接期**: templateId 非空但查不到已上架模板 → error(template_not_found)
 //     + close(1008), **不回退默认人物** (回退会让用户以为选的人物生效了).
 //
+//   V2026-10-26 治本 (音色代理 / 握手扩展, spec §任务 1 / §任务 2):
+//     握手 query 新增: voiceId (业务指定音色) / skillCode (专项训练技巧码).
+//     - voiceId: 覆盖 env `MINIMAX_TTS_VOICE_ID`; 不在账号可用系统音色内 → 回退 env
+//       默认 + warn 日志, **不致命断连** (真正的 1004/2013 留给 TTS 建连阶段归一).
+//     - skillCode: `listening / questioning / voice`; 非法值**直接忽略** (不断连).
+//     角色来源改为**两条互斥分支**:
+//       - 有 templateId → 查到已上架模板则注入; 查不到 → error(template_not_found) + close(1008)
+//       - 无 templateId → 走**兜底人设通道** (专项兜底 / 自定义人设来源), **不再**报
+//         template_not_found 断连 (老实现把两者混在同一分支, 专项兜底入口被直接断连).
+//
 //   平台适配: 用 @nestjs/platform-ws (基于 ws 包, 项目已装 8.21.3),
 //     不引 socket.io (省 200KB+ 包大小 + 更轻量).
 //
@@ -40,9 +50,10 @@ import {
 import type { IncomingMessage } from 'node:http';
 import type { WebSocket as WsWebSocket } from 'ws';
 
+import { VoiceCatalogRegistry } from './voice-catalog-slot';
 import { parseVoiceHandshake, resolveVoicePreset } from './voice-handshake';
 import { VoiceSessionRegistry } from './voice-session-registry';
-import type { VoiceSessionPreset, VoiceTemplateSummary } from './voice-session.types';
+import type { VoicePersonaChannel, VoiceSessionPreset, VoiceSkillCode } from './voice-session.types';
 import { VoiceTemplateRegistry } from './voice-template-slot';
 import { VoiceService } from './voice.service';
 import type { VoiceClientMessage, VoiceServerMessage } from './voice.types';
@@ -61,6 +72,14 @@ interface SocketData {
   mode: 'text' | 'voice';
   /** 本场生效的临场参数 (握手时解析并与模板缺省合并). */
   preset: VoiceSessionPreset;
+  /**
+   * 业务指定的音色 (voice_id) —— 覆盖 env `MINIMAX_TTS_VOICE_ID`.
+   *
+   * undefined = 走 env 默认 (或模板绑定音色).
+   */
+  voiceId?: string;
+  /** 专项训练技巧码; undefined = 全流程 / 个案 (不聚焦单一技巧). */
+  skillCode?: VoiceSkillCode;
 }
 
 @WebSocketGateway({ path: '/voice/training' })
@@ -71,6 +90,7 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
   private readonly config: ConfigService;
   private readonly templates: VoiceTemplateRegistry;
   private readonly sessions: VoiceSessionRegistry;
+  private readonly catalog: VoiceCatalogRegistry;
 
   /**
    * @param voice 会话编排
@@ -78,6 +98,7 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
    * @param config 全局配置
    * @param templates 公共人物模板解析插槽
    * @param sessions 演练登记
+   * @param catalog 账号可用音色查询插槽 (判定握手传入的 voiceId 能不能用)
    */
   constructor(
     voice: VoiceService,
@@ -85,12 +106,14 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
     config: ConfigService,
     templates: VoiceTemplateRegistry,
     sessions: VoiceSessionRegistry,
+    catalog: VoiceCatalogRegistry,
   ) {
     this.voice = voice;
     this.jwt = jwt;
     this.config = config;
     this.templates = templates;
     this.sessions = sessions;
+    this.catalog = catalog;
   }
 
   /**
@@ -158,13 +181,23 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
       return;
     }
 
-    // 4. 模板校验 (连接期): 查不到已上架模板 → 报错并断开, 不回退默认人物
-    const resolution = await this.resolveTemplate(client, handshake.templateId);
+    // 4. 角色来源通道解析 (连接期):
+    //    - 有 templateId → 查到已上架模板则注入; 查不到 → `template_not_found` + 断开 (不回退)
+    //    - 无 templateId → 走**兜底人设通道** (专项兜底 / 自定义人设来源), **不再**报
+    //      template_not_found (spec §任务 1 §1.1)
+    const resolution = await this.resolvePersonaChannel(client, handshake);
     if (!resolution.ok) {
       return;
     }
-    const preset = resolveVoicePreset(handshake, resolution.summary);
+    const channel = resolution.channel;
+    const preset = resolveVoicePreset(handshake, channel.kind === 'template' ? channel.summary : null);
     data.preset = preset;
+
+    // 4.1 音色校验 (V2026-10-26, spec §任务 1):
+    //   握手带了 voiceId 但不在账号可用系统音色内 → 丢弃它 (回退 env 默认) + warn 日志.
+    //   **不致命断连** —— 判不出来 (上游故障) 时也不拦, 交给 TTS 建连阶段归一为 error.
+    data.voiceId = await this.resolveVoiceId(handshake.voiceId);
+    data.skillCode = handshake.skillCode;
 
     // 5. 注入到 client 供后续 message 路由用
     (client as unknown as { data: SocketData }).data = data;
@@ -175,7 +208,8 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
       userId: data.userId,
       tenantId: data.tenantId,
       mode: data.mode,
-      templateId: handshake.templateId ?? null,
+      templateId: channel.kind === 'template' ? channel.templateId : null,
+      skillCode: handshake.skillCode ?? null,
       preset,
       createdAt: Date.now(),
     });
@@ -190,6 +224,8 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
         personaId: data.personaId,
         mode: data.mode,
         preset,
+        voiceId: data.voiceId,
+        skillCode: data.skillCode,
       });
     } catch (err) {
       this.logger.error('[onConnect] start session failed: ' + (err instanceof Error ? err.message : String(err)));
@@ -203,7 +239,8 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
     }
     this.logger.log(
       `[onConnect] session=${data.sessionId} user=${data.userId} tenant=${data.tenantId} ` +
-        `mode=${data.mode} template=${handshake.templateId ?? '<none>'}`,
+        `mode=${data.mode} channel=${channel.kind} template=${channel.kind === 'template' ? channel.templateId : '<none>'} ` +
+        `skill=${handshake.skillCode ?? '<none>'} voice=${data.voiceId ?? '<env-default>'}`,
     );
     // 8. 就绪信号 (spec §2.3 帧规则 0 / §7 场景 8): 前置全部成功后才发 `ready`.
     //    前端收到之前不得发 `user_text` —— 否则首条消息会撞上 "not initialized".
@@ -241,6 +278,8 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
           traceId: data.traceId,
           mode: data.mode,
           preset: data.preset,
+          voiceId: data.voiceId,
+          skillCode: data.skillCode,
         },
         payload,
         send,
@@ -257,18 +296,28 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
   // ── private ────────────────────────────────────────────────────
 
   /**
-   * 解析公共人物模板.
+   * 解析角色来源通道 (V2026-10-26, spec §任务 1 §1.1).
+   *
+   * 两条分支的语义**完全不同**, 不能合并:
+   * - **有 templateId** → 查到已上架模板就注入; 查不到 → `template_not_found` + 断开,
+   *   **不回退** (回退会让用户以为选的人物生效了, 实际演的是另一个人).
+   * - **无 templateId** → 走兜底人设通道 (专项兜底 / 自定义人设来源), **不再**报
+   *   `template_not_found`. 老实现把两者混在同一个"查不到"分支里, 于是
+   *   "专项兜底"这种合法入口会被直接断连 —— 这就是要治的根因.
    *
    * @param client socket (失败时直接报错并断开)
-   * @param templateId 模板 id (空 → 不校验, 走内置 persona 兜底)
-   * @returns 解析结果: ok=true 带摘要; ok=false 表示已报错并断开
+   * @param handshake 握手解析结果
+   * @returns ok=true 带通道; ok=false 表示已报错并断开
    */
-  private async resolveTemplate(
+  private async resolvePersonaChannel(
     client: WsWebSocket,
-    templateId: string | undefined,
-  ): Promise<{ ok: true; summary: VoiceTemplateSummary | null } | { ok: false }> {
+    handshake: ReturnType<typeof parseVoiceHandshake>,
+  ): Promise<{ ok: true; channel: VoicePersonaChannel } | { ok: false }> {
+    const templateId = handshake.templateId;
     if (!templateId) {
-      return { ok: true, summary: null };
+      // 无 templateId → 兜底人设通道. 本期兜底用 env 默认人物 / 标准陪练;
+      // 自定义结构化人涉嫌荷是 P2, 通道已预留 (挂 persona 负载时**不改动**本分支语义).
+      return { ok: true, channel: { kind: 'fallback', skillCode: handshake.skillCode ?? null } };
     }
     try {
       const summary = await this.templates.resolve(templateId);
@@ -281,7 +330,7 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
         client.close(1008, 'template_not_found');
         return { ok: false };
       }
-      return { ok: true, summary };
+      return { ok: true, channel: { kind: 'template', templateId, summary } };
     } catch (err) {
       this.logger.error('[onConnect] template lookup failed: ' + (err instanceof Error ? err.message : String(err)));
       this.sendJson(client, {
@@ -291,6 +340,38 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
       client.close(1011, 'template_lookup_failed');
       return { ok: false };
     }
+  }
+
+  /**
+   * 判定握手传入的音色能不能用 (V2026-10-26, spec §任务 1).
+   *
+   * 需求原文: 「传入但不在账号可用系统音色内 → 回退 env 默认 + warn 日志, **不致命断连**;
+   * 真正的 1004/2013 留到 TTS 建连阶段归一为 error」.
+   *
+   * 三态处理:
+   * - `available`   → 用它
+   * - `unavailable` → 丢弃 (回退 env 默认) + warn
+   * - `unknown`     → **不拦截**, 继续传下去让 TTS 建连阶段报错 (上游 2013 会归一为 error).
+   *   不能在这里当 "unavailable" 处理 —— 上游挂掉时把合法音色误回退成默认音色,
+   *   用户选了 A 却听到 B, 且**没有任何报错**, 比直接失败更糟.
+   *
+   * @param requested 握手传入的 voice_id (undefined = 未传)
+   * @returns 本场生效的 voice_id; undefined = 走 env 默认
+   */
+  private async resolveVoiceId(requested: string | undefined): Promise<string | undefined> {
+    if (!requested) {
+      return undefined;
+    }
+    const availability = await this.catalog.check(requested);
+    if (availability === 'available') {
+      return requested;
+    }
+    if (availability === 'unavailable') {
+      this.logger.warn(`[onConnect] voice not available, fallback to env default: ${requested.slice(0, 64)}`);
+      return undefined;
+    }
+    this.logger.warn(`[onConnect] voice availability unknown, pass through to TTS: ${requested.slice(0, 64)}`);
+    return requested;
   }
 
   /**

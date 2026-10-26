@@ -173,6 +173,9 @@ import { CounselorVisitorPersonaController } from './controllers/visitor-persona
 //   visitor-pool-admin: 公共模板库治理 (AI 生成 / 增删改 / 上下架 / 软删恢复), 内部角色专用
 import { CounselorVisitorPoolAdminController } from './controllers/visitor-pool-admin.controller';
 import { CounselorVisitorPoolController } from './controllers/visitor-pool.controller';
+// V2026-10-26 治本 (官方音色目录 — 只读代理端点, spec §任务 2):
+//   GET /counselor/voices?type=system — 音色选择器唯一的取数入口 (前端不直连 MiniMax).
+import { CounselorVoicesController } from './controllers/voices.controller';
 // V2026-10-21 治本 (V1.2 VS-C — M2/M3 会谈核心 4 controller):
 //   informed-consent (4 要素判定 + 进度) / live-hint (轻提示 + SSE 流)
 //   transcript-bookmark (逐字稿打点) / transference-mark (双向移情阻抗标记)
@@ -362,6 +365,11 @@ import { VisitorPersonaService } from './providers/visitor-persona.service';
 //   AdminRoleGuard: 读 users.admin_role 判定内部角色 (普通用户 → 403)
 import { VisitorPoolAdminService } from './providers/visitor-pool-admin.service';
 import { VisitorPoolService } from './providers/visitor-pool.service';
+// V2026-10-26 治本 (官方音色目录代理 — 2 provider, spec §任务 2):
+//   VoicesClient:  MiniMax `get_voice` 上游协议层 (路径 / 请求体 / 响应体 / 状态码)
+//   VoicesService: 缓存 + 并发去重 + 错误归一 + DTO 整形, 并实现 voice 侧音色目录插槽
+import { VoicesClient } from './providers/voices.client';
+import { VoicesService } from './providers/voices.service';
 // V2026-10-23 治本 (AI 模拟来访池 — 内部角色守卫):
 //   直读 users.admin_role (3 档 editor/reviewer/admin), 不复用 common/guards/roles.guard.ts
 //   (后者依赖 request.user.adminRole / user.roles, 而本仓当前注入 request.user 的
@@ -481,6 +489,9 @@ import { VisitorPoolService } from './providers/visitor-pool.service';
     //   visitor-pool-admin: AI 生成 / 管理列表 / 管理详情 / 编辑 / 软删 / 恢复 (内部角色)
     CounselorVisitorPoolController,
     CounselorVisitorPoolAdminController,
+    // V2026-10-26 治本 (官方音色目录 — 1 端点):
+    //   GET /counselor/voices?type=system (账号可用的官方系统音色列表)
+    CounselorVoicesController,
   ],
   providers: [
     CounselorHomeService,
@@ -562,6 +573,12 @@ import { VisitorPoolService } from './providers/visitor-pool.service';
     VisitorPoolService,
     VisitorPoolAdminService,
     AdminRoleGuard,
+    // V2026-10-26 治本 (官方音色目录代理 — 2 provider):
+    //   VoicesClient (上游协议层) + VoicesService (缓存 / 去重 / 错误归一 / 插槽实现).
+    //   两个一次注册齐 —— 少了 client 会 UndefinedDependencyException, 少了 service
+    //   则端点 404 且 WS 网关拿不到音色目录判定.
+    VoicesClient,
+    VoicesService,
   ],
   exports: [
     CounselorHomeService,

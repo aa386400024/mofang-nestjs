@@ -56,6 +56,10 @@ const NOT_FOUND_CODES: ReadonlySet<BizCode> = new Set([
   BizCode.QuoteLibraryEmpty,
   BizCode.VisitorPoolTemplateNotFound,
   BizCode.VisitorPoolLibraryEmpty,
+  // V2026-10-26 治本 (官方音色目录 — spec §任务 2):
+  //   「音色目录为空」跟金句 / 来访池的"库为空"同语义: 是**服务端还没准备好**,
+  //   不是用户的错 → 404, 前端据此回退本地默认音色 (而不是提示"你没选对").
+  BizCode.VoiceCatalogEmpty,
   // V2026-10-24 治本 (growth 业务码归位 HTTP 语义):
   //   工具不存在 = 资源不存在 → 404 (之前没归组, 落到默认分支 400).
   //   后果: 前端拿到 400 会提示“参数错了”, 而真实语义是“这个工具 id 不存在” → 用户看不出该换哪个.
@@ -87,6 +91,10 @@ const RATE_LIMITED_CODES: ReadonlySet<BizCode> = new Set([
   BizCode.RateLimited,
   BizCode.VerificationCodeRateLimited,
   BizCode.PracticeAsrUpstreamRateLimited,
+  // V2026-10-26 治本 (官方音色目录 — spec §任务 2):
+  //   上游 1002 限流 = "可重试的限流", HTTP 语义必须是 429, 前端据此决定
+  //   "稍等几秒自动重试"还是"提示用户稍后再来" (落到默认分支 400 会被当成"参数错了").
+  BizCode.VoiceCatalogUpstreamRateLimited,
 ]);
 
 const LOCKED_CODES: ReadonlySet<BizCode> = new Set([BizCode.AccountLocked]);
@@ -126,9 +134,22 @@ const INTERNAL_ERROR_CODES: ReadonlySet<BizCode> = new Set([
   BizCode.GrowthCompleteFail,
 ]);
 
-const BAD_GATEWAY_CODES: ReadonlySet<BizCode> = new Set([BizCode.PracticeAsrUpstreamUnavailable]);
+const BAD_GATEWAY_CODES: ReadonlySet<BizCode> = new Set([
+  BizCode.PracticeAsrUpstreamUnavailable,
+  // V2026-10-26 治本 (官方音色目录 — spec §任务 2):
+  //   上游 1004 鉴权失败 / 1008 余额不足 → **502** (是**我们**的上游不可用, 不是用户请求错).
+  //   余额不足与鉴权失败共用 502 但用**不同业务码**: 运维处置动作完全不同
+  //   (换 key vs 充值), 前端也要给不同提示.
+  BizCode.VoiceCatalogUpstreamUnavailable,
+  BizCode.VoiceCatalogUpstreamNoBalance,
+]);
 
-const GATEWAY_TIMEOUT_CODES: ReadonlySet<BizCode> = new Set([BizCode.PracticeAsrTimeout]);
+const GATEWAY_TIMEOUT_CODES: ReadonlySet<BizCode> = new Set([
+  BizCode.PracticeAsrTimeout,
+  // V2026-10-26 治本 (官方音色目录 — spec §任务 2):
+  //   上游超时 = 504 (前端应"稍后重试", 而不是当成参数错).
+  BizCode.VoiceCatalogUpstreamTimeout,
+]);
 
 /**
  * BizCode 默认 HTTP status 映射.
@@ -273,6 +294,14 @@ function getBizCodeDefaultMessage(code: BizCode): string {
     [BizCode.VisitorPoolGenerationFailed]: '来访人物生成失败',
     [BizCode.VisitorPoolForbidden]: '无权访问来访池管理能力',
     [BizCode.VisitorPoolLibraryEmpty]: '来访人物内容库为空',
+
+    // V2026-10-26 (官方音色目录 — spec §任务 2):
+    //   文案统一给"用户下一步能做什么", 不回显上游原始 message (可能含内部错误码 / 账号信息).
+    [BizCode.VoiceCatalogUpstreamUnavailable]: '音色列表服务暂不可用，请稍后再试',
+    [BizCode.VoiceCatalogUpstreamRateLimited]: '音色服务繁忙，请稍后再试',
+    [BizCode.VoiceCatalogUpstreamTimeout]: '音色列表获取超时，请稍后再试',
+    [BizCode.VoiceCatalogEmpty]: '音色列表为空，请稍后再试',
+    [BizCode.VoiceCatalogUpstreamNoBalance]: '音色服务额度不足，暂时无法获取音色列表',
 
     // V2026-09-14 长期方案 Stage C: Growth 模块 8 个错误码默认文案
     [BizCode.GrowthDailyToolsFetchFail]: '今日推荐工具拉取失败',
