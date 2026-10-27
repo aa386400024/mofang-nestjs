@@ -35,6 +35,7 @@ import { ArrayMinSize, IsArray, IsEnum, IsString, MaxLength, MinLength } from 'c
 import { SessionTechStatsDto, TransferenceMarkDto } from './session-core.dto';
 import type { SessionReportStatus } from '../domain/session-core/session-core.types';
 import { SessionType } from '../enums/session-type.enum';
+import { SUPERVISION_FAILURE_CODE_VALUES, SupervisionFailureCode } from '../enums/supervision-failure-code.enum';
 import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
 // V2026-10-26 治本 (spec 任务 6 — 复盘报告 DTO):
 //   **值导入** (不是 `import type`): `@ApiProperty({ type: X })` 里的 X 是**运行时取值**
@@ -227,11 +228,30 @@ export class SessionReportDto {
   @ApiProperty({ description: 'session 类型', enum: SessionType })
   sessionType!: SessionType;
 
-  @ApiProperty({ description: '报告状态', enum: ['completed', 'parse_error', 'pending'] })
+  @ApiProperty({
+    description:
+      '报告状态: completed = 报告就绪 / pending = 还在生成中 / parse_error = 生成失败 (可重试) / ' +
+      'no_content = 这场没有足够的对话内容, 报告不会生成',
+    enum: ['completed', 'parse_error', 'pending', 'no_content'],
+  })
   status!: SessionReportStatus;
 
   @ApiProperty({ description: '整体评分 0-100 (报告未生成时为 null)', nullable: true })
   overallScore!: number | null;
+
+  @ApiProperty({
+    description:
+      '失败原因码 (仅 status=parse_error 时有值; 其余一律 null). ' +
+      'upstream_unavailable / rate_limited / parse_failed / timeout / empty_material / school_missing',
+    enum: SUPERVISION_FAILURE_CODE_VALUES,
+    nullable: true,
+  })
+  failureCode!: SupervisionFailureCode | null;
+
+  @ApiProperty({
+    description: '是否可手动重试 (仅 status=parse_error 且素材充足时为 true; no_content / 未结束的会话不可重试)',
+  })
+  retryable!: boolean;
 
   @ApiProperty({ description: '六维评分 (报告未生成时为 null)', type: SupervisionReportDimensionsDto, nullable: true })
   dimensions!: SupervisionReportDimensionsDto | null;

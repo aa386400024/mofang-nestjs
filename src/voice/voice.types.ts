@@ -30,6 +30,22 @@ export type VoiceClientMessage =
   /** 恢复: 从挂起点继续, 状态回待命. */
   | { readonly type: 'session_resume' };
 
+/**
+ * 会话结束时的报告状态 (业务侧派生, V2026-10-27 spec 任务 B).
+ *
+ * 为什么要放在 voice 层: `session_ended` 帧要带上它, 而帧类型定义在 voice 层;
+ * 但**判定口径在业务侧** (counselor 的 domain 层) —— voice 层只声明"有这么个字段",
+ * 不复制判定逻辑 (跟 `VoiceSessionBridge` 插槽同一思路: 依赖倒置).
+ *
+ * 取值与 counselor 的 `SessionReportStatus` 对齐 (多一档 'none' = 不会有报告):
+ *   - `no_content`: 这场没有足够的对话内容 → 报告**永远不会**生成 (前端不进轮询页)
+ *   - `pending`    : 正常在生成
+ *   - `completed`  : 已生成
+ *   - `parse_error`: 生成失败 (可重试)
+ *   - `none`       : 这条会话不会有报告 (未结束 / 中断)
+ */
+export type VoiceSessionReportStatus = 'completed' | 'pending' | 'parse_error' | 'no_content' | 'none';
+
 /** 服务端 → 客户端消息 (全部 JSON 文本帧). */
 export type VoiceServerMessage =
   /**
@@ -75,8 +91,20 @@ export type VoiceServerMessage =
   | { readonly type: 'cancelled' }
   /** 错误. */
   | { readonly type: 'error'; readonly error: VoiceError }
-  /** 会话结束. */
-  | { readonly type: 'session_ended'; readonly reason: 'user_finish' | 'timeout' | 'error' }
+  /**
+   * 会话结束.
+   *
+   * `reportStatus` (V2026-10-27, spec 任务 B — **新增可选字段**, 向后兼容):
+   *   本场会话的**报告状态** (业务侧派生). 前端据此决定要不要进"报告生成中"的轮询页:
+   *     · `no_content` = 这场没有足够的对话内容, 报告**永远不会**生成 → 直接展示空态
+   *     · `pending`     = 正常在生成 → 进轮询页
+   *   字段缺失 = 业务侧没给出结论 (降级 / 桥超时) → 前端按 `pending` 处理 (旧行为).
+   */
+  | {
+      readonly type: 'session_ended';
+      readonly reason: 'user_finish' | 'timeout' | 'error';
+      readonly reportStatus?: VoiceSessionReportStatus;
+    }
   /**
    * 实时督导轻提示 (V2026-10-26, spec 任务 2).
    *

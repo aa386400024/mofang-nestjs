@@ -36,6 +36,7 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 import { SessionType } from '../enums/session-type.enum';
+import { SupervisionFailureCode } from '../enums/supervision-failure-code.enum';
 
 /**
  * 单次督导反馈结构 (feedback json 字段 1:1 对应 counselor-mode-v1.0 §6.2).
@@ -49,6 +50,28 @@ export interface SupervisionFeedbackPayload {
   errorCategories: string[];
   /** 成长建议 (1-3 短句) */
   growthSuggestion: string;
+
+  /**
+   * 失败标记 (V2026-10-27, spec 任务 D1 — **可空附加字段**).
+   *
+   * 非空 = 这份流派反馈**生成失败** (BullMQ 重试用尽 / 永久失败).
+   * 存在的意义: 以前重试用尽后"什么都不留", 列表只能靠墙钟猜 → 学员盯着转圈;
+   * 现在失败有据可查, 报告状态立刻翻成 `parse_error` 并带上原因码.
+   *
+   * 为什么落在 `feedback` json 而不是新增一列:
+   *   - 任务单明确"落报告行/反馈记录的附加字段 (可空)" + "不新增列、不写 migration"
+   *   - json 里加可空键对既有 1:1 wire **零破坏** (老数据没这个键 = null)
+   *   - 成功态这条键恒为 null → 读方用 `failureCode != null` 判失败, 不会误伤成功记录
+   */
+  failureCode?: SupervisionFailureCode | null;
+
+  /**
+   * 失败原因详情 (可空, **仅供排查**, 不对外展示).
+   *
+   * 成功态恒为 null. 失败态存一句人类可读的成因 (如 "HTTP 429 限流"),
+   * 便于运营在后台直接看出是上游限流还是模型返回格式不对.
+   */
+  failureMessage?: string | null;
 }
 
 /**

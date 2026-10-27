@@ -25,11 +25,12 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { type Job, Queue, Worker } from 'bullmq';
 
-import { isPermanentSupervisionFailure } from './supervision-failure';
+import { classifySupervisionFailure } from './supervision-failure';
 import { SupervisionService } from './supervision.service';
 import { QUEUE_NAMES } from '../../shared/infra/redis/redis.constants';
 import { RedisService } from '../../shared/infra/redis/redis.service';
 import { SessionType } from '../enums/session-type.enum';
+import { SupervisionFailureCode } from '../enums/supervision-failure-code.enum';
 import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
 
 /**
@@ -119,6 +120,14 @@ export class CounselorSupervisionProcessor implements OnModuleInit, OnModuleDest
    *   只会刷 3 遍错误日志 + 拖 3 次退避 + 队列里堆失败 job. 记一条 warn 后优雅收尾
    *   (该流派反馈留空, 报告页的 feedbackBySchool 少这一份而已).
    *   瞬时故障 (LLM 上游不可用 / 网络抖动) 仍然**抛出去** —— 那是重试真正有意义的场景.
+   *
+   * V2026-10-27 治本 (spec 任务 D2 — 重试用尽必须落终态):
+   *   旧实现: 重试 3 次用尽 → job 失败 → **库里一行不留** → 列表只能靠墙钟
+   *   (陈旧 pending 兜底, 15min) 才翻成"生成失败" —— 学员盯着转圈 15 分钟.
+   *   新实现: 最后一次尝试仍失败 → 落一条带 failureCode 的**失败反馈记录** →
+   *   报告状态立刻翻 `parse_error` + 失败原因码 (前端据此给"重试"入口).
+   *   永久性失败 (素材不足 / 流派缺种子) **不落**该记录: 素材不足归 `no_content`,
+   *   流派缺种子是运营问题 (warn 留空即可).
    */
   private async processJob(job: Job<CounselorSupervisionJobData>): Promise<void> {
     const data = job.data;
@@ -133,14 +142,68 @@ export class CounselorSupervisionProcessor implements OnModuleInit, OnModuleDest
       );
       this.logger.log(`[counselor_supervision_done] jobId=${job.id} sessionId=${data.sessionId} ` + `school=${data.schoolCode}`);
     } catch (err) {
-      if (isPermanentSupervisionFailure(err)) {
+      const failure = classifySupervisionFailure(err);
+      if (failure.permanent) {
         this.logger.warn(
           `[counselor_supervision_skipped] jobId=${job.id} sessionId=${data.sessionId} ` +
-            `school=${data.schoolCode} reason=${err instanceof Error ? err.message : String(err)}`,
+            `school=${data.schoolCode} failureCode=${failure.failureCode} reason=${err instanceof Error ? err.message : String(err)}`,
         );
         return;
       }
+      if (this.isFinalAttempt(job)) {
+        // 最后一次尝试仍失败 → 落终态 (失败记录 + 失败原因码), 不再让列表等墙钟.
+        await this.recordTerminalFailure(data, failure.failureCode, err);
+        return;
+      }
       throw err;
+    }
+  }
+
+  /**
+   * 这次是不是**最后一次**尝试 (重试用尽).
+   *
+   * BullMQ 的 `attempts` 是"总尝试次数"; worker 回调里 `attemptsMade` 是"已经尝试过几次"
+   * (首次执行时为 0). 所以最后一次尝试的判定是 `attemptsMade + 1 >= attempts`.
+   *
+   * @param job 当前 job
+   * @returns true = 最后一次尝试
+   */
+  private isFinalAttempt(job: Job<CounselorSupervisionJobData>): boolean {
+    const maxAttempts = job.opts.attempts ?? 1;
+    return job.attemptsMade + 1 >= maxAttempts;
+  }
+
+  /**
+   * 落失败终态 (失败反馈记录 + 失败原因码).
+   *
+   * 写失败不阻断 worker: 落库失败只记 error (job 已经失败了, 再抛一次没意义).
+   *
+   * @param data job payload
+   * @param failureCode 失败原因码
+   * @param err 原始异常 (取 message 供排查)
+   */
+  private async recordTerminalFailure(data: CounselorSupervisionJobData, failureCode: SupervisionFailureCode, err: unknown): Promise<void> {
+    const message = err instanceof Error ? err.message : String(err);
+    try {
+      await this.supervision.recordSupervisionFailure(
+        {
+          sessionId: data.sessionId,
+          sessionType: data.sessionType,
+          schoolCode: data.schoolCode,
+        },
+        failureCode,
+        message,
+        data.userId,
+      );
+      this.logger.error(
+        `[counselor_supervision_terminal_failure] sessionId=${data.sessionId} school=${data.schoolCode} ` +
+          `failureCode=${failureCode} err=${message}`,
+      );
+    } catch (writeErr) {
+      this.logger.error(
+        `[counselor_supervision_terminal_failure_write_failed] sessionId=${data.sessionId} ` +
+          `err=${writeErr instanceof Error ? writeErr.message : String(writeErr)}`,
+      );
     }
   }
 }

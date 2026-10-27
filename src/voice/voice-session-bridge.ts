@@ -28,6 +28,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 import type { VoiceSessionPreset, VoiceSkillCode, VoiceVisitorCard } from './voice-session.types';
+import type { VoiceSessionReportStatus } from './voice.types';
 
 /**
  * 建连输入 (WS 握手成功、准备落库时).
@@ -96,6 +97,20 @@ export interface VoiceSessionCloseInput {
 }
 
 /**
+ * 结束结果 (业务侧收尾后回给 voice 层).
+ *
+ * V2026-10-27 (spec 任务 B): 业务侧在收尾时就知道"这场会不会有报告" ——
+ *   素材不足 (空局) → `reportStatus='no_content'` (报告永远不会生成, 前端不进轮询页).
+ * voice 层把它原样带进 `session_ended` 帧; 拿不到结论时为 null (前端按旧行为处理).
+ */
+export interface VoiceSessionCloseResult {
+  /** 本场是否已落库 (false = 降级为纯内存会话). */
+  readonly persisted: boolean;
+  /** 报告状态 (null = 未给出结论). */
+  readonly reportStatus: VoiceSessionReportStatus | null;
+}
+
+/**
  * vpt 会话落库桥 (业务侧实现).
  *
  * 实现方只需回答三个问题: "这场会谈要不要落库" / "这一轮聊了什么" / "这场怎么收尾".
@@ -120,8 +135,9 @@ export interface VoiceSessionBridge {
    * 结束会话 (回写状态 / 时长 / 轮次 + 派发督导).
    *
    * @param input 结束输入
+   * @returns 收尾结果 (落库与否 + 报告状态)
    */
-  close(input: VoiceSessionCloseInput): Promise<void>;
+  close(input: VoiceSessionCloseInput): Promise<VoiceSessionCloseResult>;
 }
 
 /**
@@ -198,11 +214,12 @@ export class VoiceSessionBridgeRegistry {
    * 结束会话 (跨桥依次调用; 单个桥失败不影响其他).
    *
    * @param input 结束输入
+   * @returns 第一个桥的收尾结果 (无桥 / 全部失败 → null)
    */
-  async close(input: VoiceSessionCloseInput): Promise<void> {
+  async close(input: VoiceSessionCloseInput): Promise<VoiceSessionCloseResult | null> {
     for (const bridge of this.bridges.values()) {
       try {
-        await bridge.close(input);
+        return await bridge.close(input);
       } catch (error) {
         this.logger.warn(
           `[close_failed] bridge=${bridge.name} session=${input.sessionId} ` +
@@ -210,5 +227,6 @@ export class VoiceSessionBridgeRegistry {
         );
       }
     }
+    return null;
   }
 }

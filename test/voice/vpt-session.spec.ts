@@ -44,7 +44,8 @@ const OK_BRIDGE: VoiceSessionBridge = {
   name: 'ok',
   open: async () => ({ persisted: true, dbSessionId: 'db-session-1' }),
   appendTurn: async () => undefined,
-  close: async () => undefined,
+  // V2026-10-27 (spec 任务 B): close 现在回传收尾结果 (落库与否 + 报告状态).
+  close: async () => ({ persisted: true, reportStatus: null }),
 };
 
 /** 一份总是抛错的桥 (模拟 DB 故障). */
@@ -186,6 +187,8 @@ describe('落库桥注册表 · 降级语义', () => {
       }),
     ).resolves.toBeUndefined();
 
+    // V2026-10-27 (spec 任务 B): close 现在回传收尾结果 —— 桥抛错时注册表返回 null
+    // (不冒泡: 收尾动作不该炸掉会话结束).
     await expect(
       registry.close({
         sessionId: 'ws-1',
@@ -196,7 +199,24 @@ describe('落库桥注册表 · 降级语义', () => {
         turnCount: 1,
         durationMs: 1000,
       }),
-    ).resolves.toBeUndefined();
+    ).resolves.toBeNull();
+  });
+
+  it('close 回传收尾结果 (落库与否 + 报告状态)', async () => {
+    const registry = new VoiceSessionBridgeRegistry();
+    registry.register(OK_BRIDGE);
+
+    const result = await registry.close({
+      sessionId: 'ws-1',
+      dbSessionId: 'db-1',
+      userId: 'u-1',
+      tenantId: 't-1',
+      reason: 'user_finish',
+      turnCount: 1,
+      durationMs: 1000,
+    });
+
+    expect(result).toEqual({ persisted: true, reportStatus: null });
   });
 });
 

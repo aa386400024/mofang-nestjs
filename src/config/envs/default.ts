@@ -1,3 +1,12 @@
+// V2026-10-27 治本 (督导阈值单一真值源):
+//   下面 `supervision` 段的三个阈值来自 counselor 的 config 模块 (业务口径的归属地),
+//   env 只是**覆盖入口** —— 默认值不在这里重复写一份字面量 (两处各写一份必然漂移).
+import {
+  SUPERVISION_MIN_EFFECTIVE_CHARS,
+  SUPERVISION_MIN_EFFECTIVE_TURNS,
+  SUPERVISION_REPORT_PENDING_TIMEOUT_MS,
+} from '../../counselor/config/supervision.config';
+
 export const config = {
   db: {
     // entities: [`${__dirname}/../../entity/**/*.{js,ts}`],
@@ -177,10 +186,19 @@ export const config = {
   //   前端就会一直转圈, 用户分不清"再等等"和"生成不出来".
   //   这里给一个"陈旧 pending"判定阈值: 会话已结束 + 无报告行 + 距结束超过该时长
   //   → 判定为生成失败 (parse_error).
-  //   默认 15 分钟: 主报告的 LLM 调用正常耗时 30-120s, 15 分钟是它的 10 倍余量,
-  //   不会把"慢"误判成"失败", 但能兜住"永远 pending".
+  //
+  // V2026-10-27 治本 (spec 任务 E — 15min → 5min):
+  //   正常失败路径已由"失败终态主动落 parse_error"覆盖 (spec 任务 D2), 墙钟兜底只兜
+  //   "worker 没跑 / 落库失败"这类漏网 → 阈值从 15min 降到 5min: 5 分钟是主报告
+  //   LLM 正常耗时 (30-120s) 的 2.5-10 倍余量, 不会把"慢"误判成"失败",
+  //   也不会让学员盯着转圈 15 分钟.
   supervision: {
-    reportPendingTimeoutMs: Number(process.env.SUPERVISION_REPORT_PENDING_TIMEOUT_MS ?? 900_000),
+    reportPendingTimeoutMs: Number(process.env.SUPERVISION_REPORT_PENDING_TIMEOUT_MS ?? SUPERVISION_REPORT_PENDING_TIMEOUT_MS),
+    // V2026-10-27 治本 (spec 任务 A/D2 — 最小可分析量):
+    //   一场会话的有效对话少于这两个阈值 → 判为空局 (no_content): 不派督导 job,
+    //   报告**永远不会**生成. 阈值可配 (运营能按内容密度调整), 不写死在判定里.
+    minEffectiveTurns: Number(process.env.SUPERVISION_MIN_EFFECTIVE_TURNS ?? SUPERVISION_MIN_EFFECTIVE_TURNS),
+    minEffectiveChars: Number(process.env.SUPERVISION_MIN_EFFECTIVE_CHARS ?? SUPERVISION_MIN_EFFECTIVE_CHARS),
   },
   // V2026-10-08: Voice Gateway 业务配置 (Phase 3)
   voice: {

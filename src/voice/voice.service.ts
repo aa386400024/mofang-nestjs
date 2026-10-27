@@ -50,8 +50,15 @@ import { ConfigService } from '@nestjs/config';
 
 import { TtsService } from './tts/tts.service';
 import type { TtsEvent, TtsOptions, TtsSessionHandle } from './tts/tts.types';
-import { VoiceSessionBridgeRegistry } from './voice-session-bridge';
-import type { VoiceClientMessage, VoiceServerMessage, VoiceSessionMeta, VoiceSessionPersona, VoiceSessionState } from './voice.types';
+import { VoiceSessionBridgeRegistry, type VoiceSessionCloseResult } from './voice-session-bridge';
+import type {
+  VoiceClientMessage,
+  VoiceServerMessage,
+  VoiceSessionMeta,
+  VoiceSessionPersona,
+  VoiceSessionReportStatus,
+  VoiceSessionState,
+} from './voice.types';
 import type { LlmStream } from '../agent/llm/llm.types';
 import { SupervisorProcessor } from '../agent/supervisor/supervisor.processor';
 import type { RunReportInput } from '../agent/supervisor/supervisor.types';
@@ -59,6 +66,15 @@ import { VisitorService } from '../agent/visitor/visitor.service';
 import type { VisitorPersonaSnapshot } from '../agent/visitor/visitor.types';
 
 type SendFn = (msg: VoiceServerMessage) => void;
+
+/**
+ * 等待业务桥收尾结果的最长时间 (ms).
+ *
+ * V2026-10-27 (spec 任务 B): `session_ended` 帧要带报告状态, 而报告状态由业务桥
+ * 收尾时算出 (要落库) —— 但落库是 I/O, DB 抖动时不能把前端卡在"等结束帧"上.
+ * 800ms 足够覆盖一次本地 DB UPDATE + 一次 Redis 入队; 超时就按"结论未知"发帧.
+ */
+const BRIDGE_CLOSE_TIMEOUT_MS = 800;
 
 /**
  * 一轮 LLM 的结束方式.
@@ -186,7 +202,14 @@ export class VoiceService {
     // V2026-10-26 治本 (spec 任务 1 — 会话落库收尾):
     //   回写结束状态 / 时长 / 轮次. fire-and-forget: 落库是收尾动作, 不能反过来阻塞
     //   `session_ended` 帧 (前端在等这个帧收页面).
-    void this.bridges.close({
+    //
+    // V2026-10-27 治本 (spec 任务 B — 收尾回包带报告状态):
+    //   业务侧 (counselor 桥) 在收尾时就知道"这场会不会有报告" (空局 → `no_content`),
+    //   前端据此**不进轮询页** (直接展示"这场没有足够的对话内容").
+    //   为了把这个结论带进 `session_ended` 帧, 这里需要**等**桥收尾完成 —— 但落库是
+    //   I/O, DB 抖动时会把前端卡住. 因此加一层**有界等待** (`BRIDGE_CLOSE_TIMEOUT_MS`):
+    //   超时按"结论未知"发帧 (前端退回旧行为: 进轮询页), 绝不因落库问题吞掉结束帧.
+    const closePromise = this.bridges.close({
       sessionId,
       dbSessionId: state.meta.dbSessionId ?? null,
       userId: state.meta.userId,
@@ -195,6 +218,7 @@ export class VoiceService {
       turnCount: state.turnCount,
       durationMs,
     });
+    void this.sendSessionEnded(send, reason, closePromise);
     // V2026-10-09 治本 (Phase 5): 异步督导, session 结束触发 supervisor queue (fire-and-forget)
     //   - 不阻塞 session_ended 消息
     //   - enqueue 失败 → processSync 兜底 (LLM 推理 2-5s, 但 session_ended 已经发出)
@@ -221,7 +245,55 @@ export class VoiceService {
         `[endSession] skip supervisor: empty_transcript=${transcript.length === 0} persona=${state.persona ? 'set' : 'null'}`,
       );
     }
-    send?.({ type: 'session_ended', reason });
+  }
+
+  /**
+   * 发 `session_ended` 帧 (带报告状态).
+   *
+   * V2026-10-27 (spec 任务 B): 桥收尾有界等待 —— 超时按"结论未知"发帧,
+   * 落库再慢也不会把前端卡在"等待结束帧"上.
+   *
+   * @param send 帧发送函数
+   * @param reason 结束原因
+   * @param closePromise 桥收尾 promise
+   */
+  private async sendSessionEnded(
+    send: SendFn | undefined,
+    reason: 'user_finish' | 'timeout' | 'error',
+    closePromise: Promise<VoiceSessionCloseResult | null>,
+  ): Promise<void> {
+    const reportStatus = await this.awaitCloseResult(closePromise);
+    send?.({
+      type: 'session_ended',
+      reason,
+      ...(reportStatus ? { reportStatus } : {}),
+    });
+  }
+
+  /**
+   * 有界等待桥收尾结果.
+   *
+   * 超时 / 失败 → null (前端按"结论未知"处理: 进轮询页, 旧行为).
+   *
+   * @param closePromise 桥收尾 promise
+   * @returns 报告状态 (null = 未知)
+   */
+  private async awaitCloseResult(closePromise: Promise<VoiceSessionCloseResult | null>): Promise<VoiceSessionReportStatus | null> {
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), BRIDGE_CLOSE_TIMEOUT_MS);
+    });
+    try {
+      const result = await Promise.race([closePromise, timeout]);
+      return result?.reportStatus ?? null;
+    } catch (err) {
+      this.logger.warn(`[await_close_result_failed] err=${err instanceof Error ? err.message : String(err)}`);
+      return null;
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
   }
 
   /**

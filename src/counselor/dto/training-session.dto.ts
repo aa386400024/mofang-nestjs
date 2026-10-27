@@ -53,6 +53,7 @@ import {
 } from '../domain/session-view/session-view.types';
 import { ChatRole } from '../enums/chat-role.enum';
 import { DimensionVariance } from '../enums/dimension-variance.enum';
+import { SUPERVISION_FAILURE_CODE_VALUES, SupervisionFailureCode } from '../enums/supervision-failure-code.enum';
 import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
 import { TrainingDifficulty } from '../enums/training-difficulty.enum';
 import { TrainingSessionStatus } from '../enums/training-session-status.enum';
@@ -325,7 +326,8 @@ export class TrainingSessionListItemDto {
   @ApiProperty({
     description:
       '报告状态 (派生: completed = 报告就绪 / pending = 已结束但报告还没生成 / ' +
-      'parse_error = 报告生成失败 / none = 这条会话不会有报告 (未结束或已中断))',
+      'parse_error = 报告生成失败 (可重试) / no_content = 这场没有足够的对话内容, 报告不会生成 / ' +
+      'none = 这条会话不会有报告 (未结束或已中断))',
     enum: SESSION_LIST_REPORT_STATUS_VALUES,
   })
   reportStatus!: SessionListReportStatus;
@@ -338,6 +340,20 @@ export class TrainingSessionListItemDto {
 
   @ApiProperty({ description: '报告是否就绪 (= reportStatus === completed)' })
   reportReady!: boolean;
+
+  @ApiProperty({
+    description:
+      '失败原因码 (仅 reportStatus=parse_error 时有值; 其余一律 null). ' +
+      'upstream_unavailable / rate_limited / parse_failed / timeout / empty_material / school_missing',
+    enum: SUPERVISION_FAILURE_CODE_VALUES,
+    nullable: true,
+  })
+  failureCode!: SupervisionFailureCode | null;
+
+  @ApiProperty({
+    description: '是否可手动重试 (仅 reportStatus=parse_error 且素材充足时为 true; no_content 不可重试)',
+  })
+  retryable!: boolean;
 
   @ApiProperty({ description: '是否中断 (开过头没收尾, 前端灰态展示)' })
   interrupted!: boolean;
@@ -425,10 +441,13 @@ export class FinishTrainingSessionResultDto {
   endedAt!: Date | null;
 
   @ApiProperty({
-    description: '督导派发状态: queued = 已入 BullMQ 队列; enqueue_failed = 入队失败 (client 需提示重试)',
+    description:
+      '督导派发状态: queued = 已入 BullMQ 队列; enqueue_failed = 入队失败 (client 需提示重试); ' +
+      'no_content = 这场没有足够的对话内容 (有效轮 < 2 或有效字数 < 30), 不派发督导, 也不会有报告',
+    enum: ['queued', 'enqueue_failed', 'no_content'],
   })
   supervision!: {
     schoolCode: SupervisionSchoolCode;
-    status: 'queued' | 'enqueue_failed';
+    status: 'queued' | 'enqueue_failed' | 'no_content';
   };
 }

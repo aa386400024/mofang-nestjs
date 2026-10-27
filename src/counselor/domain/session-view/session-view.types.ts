@@ -27,10 +27,26 @@
 //     1. npx jest test/counselor/session-view.spec.ts 全绿
 //     2. 故意把 'finished + 无报告行 → pending' 改成 '→ none' → 用例变红
 //   时间戳: 2026-10-27 09:20 GMT+8
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// V2026-10-27 治本 (第二轮 — 空会话 / 报告生命周期边界, spec 任务 C):
+//   原因: 上一轮的列表判定只吃「报告行 + 会话状态」两件事, 于是:
+//     · 空局 (没产生有效对话就结束) 被判成 pending → 用户永远看到"生成中"
+//     · 列表与详情各写一份判定 → 改一处忘另一处就出现"列表说 A、详情说 B"
+//   修法: 列表判定**不再自己判**, 全部委托给 domain/session-core 的
+//     `resolveSessionReportState` (列表与详情共用的唯一派生处); 本文件只负责
+//     「列表特有」的那一层: 未结束的会话把 pending 翻成 none.
+//   反双胞胎:
+//     - 不在本文件再写一份状态判定: 那正是上一轮留下的债, 这轮必须还
+//     - 不在列表做墙钟陈旧兜底: 列表是快照, 报告页才是带轮询上限的判定现场
+//   验证: npx jest test/counselor/session-view.spec.ts 全绿
+//   时间戳: 2026-10-27 13:40 GMT+8
 
+import type { EffectiveMaterial, EffectiveMaterialThresholds } from './session-material';
 import { SessionType } from '../../enums/session-type.enum';
+import { SupervisionFailureCode } from '../../enums/supervision-failure-code.enum';
 import { TrainingSessionStatus } from '../../enums/training-session-status.enum';
-import type { SessionReportStatus } from '../session-core/session-core.types';
+import { resolveSessionReportState, type SessionReportStatus, type SessionSchoolFeedbackState } from '../session-core/session-core.types';
 
 /**
  * 列表项的会话类型取值 (2 档).
@@ -52,7 +68,7 @@ export const SESSION_LIST_TYPE_VALUES: SessionListType[] = [SessionType.VPT_VOIC
 /**
  * 列表项的报告状态.
  *
- * = 详情端点的三档 (`SessionReportStatus`) + 'none'.
+ * = 详情端点的四档 (`SessionReportStatus`) + 'none'.
  * 'none' 的含义: 这条会话**不会有**报告 (还没结束 / 中断 / 纯空会话),
  * 与 'pending' (已结束、报告正在异步生成) 是两回事, 前端卡片态也不同.
  */
@@ -61,33 +77,34 @@ export type SessionListReportStatus = SessionReportStatus | 'none';
 /**
  * 列表项报告状态的合法取值 (供 DTO 校验 + Swagger 展示).
  *
- * 前三档直接引用 `SessionReportStatus` 的取值域, 只有 'none' 是列表新增的一档.
+ * 前四档直接引用 `SessionReportStatus` 的取值域, 只有 'none' 是列表新增的一档.
  */
-export const SESSION_LIST_REPORT_STATUS_VALUES: SessionListReportStatus[] = ['completed', 'pending', 'parse_error', 'none'];
+export const SESSION_LIST_REPORT_STATUS_VALUES: SessionListReportStatus[] = ['completed', 'pending', 'parse_error', 'no_content', 'none'];
 
 /**
  * 报告行本身的状态 (落库那 2 档).
  *
- * = `SessionReportStatus` 去掉 'pending' —— 'pending' 是**推导**出来的状态
- * (还没有报告行), 不是报告行能有的状态. 报告行只有"生成成功"与"生成失败"两种.
+ * = `SessionReportStatus` 去掉 'pending' 与 'no_content' —— 这两档都是**推导**出来的状态
+ * (还没有报告行 / 没有可分析素材), 不是报告行能有的状态.
+ * 报告行只有"生成成功"与"生成失败"两种.
  */
-export type SessionListReportRowStatus = Exclude<SessionReportStatus, 'pending'>;
+export type SessionListReportRowStatus = Exclude<SessionReportStatus, 'pending' | 'no_content'>;
 
 /**
  * 列表项的报告聚合结果 (3 个字段同源, 不允许各算各的).
  */
 export interface SessionListReportAggregate {
-  /** 报告状态 (4 档). */
+  /** 报告状态 (5 档). */
   readonly reportStatus: SessionListReportStatus;
   /** 报告总分 0-100; 仅 'completed' 时非 null, 其余一律 null (红线: 绝不补 0). */
   readonly overallScore: number | null;
   /** 报告是否就绪 (= reportStatus === 'completed'). */
   readonly reportReady: boolean;
+  /** 失败原因码 (失败态才有值; 非失败态为 null). */
+  readonly failureCode: SupervisionFailureCode | null;
+  /** 是否可手动重试 (仅 parse_error 且素材充足时为 true). */
+  readonly retryable: boolean;
 }
-
-/** 分数合法区间 (与 agent 侧写库时的校验同口径). */
-const SCORE_MIN = 0;
-const SCORE_MAX = 100;
 
 /**
  * 场景 id → 会话类型 (规则 A).
@@ -112,29 +129,51 @@ export function resolveSessionTypeByScenarioId(scenarioId: string, vptScenarioId
  *   - 无报告行且会话 finished → pending (报告异步生成中), 分数 null
  *   - 无报告行且会话未结束   → none (这条会话不会有报告), 分数 null
  *
- * @param input 报告行 (可为 null = 报告还没落库) + 会话状态
+ * @param input 报告行 (可为 null = 报告还没落库) + 会话状态 + 素材量 + 流派反馈状态
  * @returns 报告聚合结果
  */
 export function resolveSessionListReportAggregate(input: {
   readonly report: { readonly status: SessionListReportRowStatus; readonly overallScore: number } | null;
   readonly sessionStatus: TrainingSessionStatus;
+  /** 有效素材量 (service 层算好传入; null = 未取到). */
+  readonly material: EffectiveMaterial | null;
+  /** 最小可分析量阈值. */
+  readonly thresholds: EffectiveMaterialThresholds;
+  /** 4 流派反馈状态 (counselor 侧); null = 还没有反馈记录. */
+  readonly schoolFeedback: SessionSchoolFeedbackState | null;
+  /**
+   * 这条会话的「报告正身」是不是 agent 主报告链路 (vpt_voice = true).
+   *
+   * V2026-10-27 治本 (vpt 适用范围隔离): vpt 的反馈只是**附加** (技术统计 + 多流派展示),
+   * 不参与整体 reportStatus / overallScore 的判定 —— 判定口径在 domain/session-core
+   * 的 `resolveSessionReportState` 里, 本文件不重复实现.
+   */
+  readonly hasMainReportChannel: boolean;
 }): SessionListReportAggregate {
-  const report = input.report;
-  if (report) {
-    if (report.status === 'completed') {
-      return {
-        reportStatus: 'completed',
-        overallScore: normalizeOverallScore(report.overallScore),
-        reportReady: true,
-      };
-    }
-    // parse_error 行: 报告没解析出来, **不显示 0 分** (行里存的是占位 0, 不是真实评分).
-    return { reportStatus: 'parse_error', overallScore: null, reportReady: false };
-  }
-  if (input.sessionStatus === TrainingSessionStatus.FINISHED) {
-    return { reportStatus: 'pending', overallScore: null, reportReady: false };
-  }
-  return { reportStatus: 'none', overallScore: null, reportReady: false };
+  const state = resolveSessionReportState({
+    sessionStatus: input.sessionStatus,
+    // 列表是**快照**: 不做墙钟陈旧兜底 → 不传结束时刻与当前时刻.
+    endedAtMs: null,
+    nowMs: 0,
+    stalePendingTimeoutMs: 0,
+    applyStaleTimeout: false,
+    mainReport: input.report,
+    schoolFeedback: input.schoolFeedback,
+    material: input.material,
+    thresholds: input.thresholds,
+    hasMainReportChannel: input.hasMainReportChannel,
+  });
+  // 未结束的会话: 没有报告内容 → 'none' (这条会话还不会有什么报告),
+  // 与 'pending' (已结束、报告正在异步生成) 是两回事.
+  const reportStatus: SessionListReportStatus =
+    state.status === 'pending' && input.sessionStatus !== TrainingSessionStatus.FINISHED ? 'none' : state.status;
+  return {
+    reportStatus,
+    overallScore: state.overallScore,
+    reportReady: reportStatus === 'completed',
+    failureCode: state.failureCode,
+    retryable: state.retryable,
+  };
 }
 
 /**
@@ -171,24 +210,4 @@ export function resolveSessionListDurationSeconds(startedAt: Date | null, endedA
   }
   const seconds = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000);
   return Math.max(seconds, 0);
-}
-
-/**
- * 分数归一: 只接受 0-100 的整数, 越界/非有限值一律 null.
- *
- * 为什么不原样透传: 分数是学员直接看到的数字, 一旦库里有脏值就会在卡片上显示
- * 一个"看起来正常但其实是脏数据"的分. 宁可显示"暂无分数" (null) 也不显示错分.
- *
- * @param score 报告里的原始分
- * @returns 合法分数或 null
- */
-function normalizeOverallScore(score: number): number | null {
-  if (!Number.isFinite(score)) {
-    return null;
-  }
-  const rounded = Math.round(score);
-  if (rounded < SCORE_MIN || rounded > SCORE_MAX) {
-    return null;
-  }
-  return rounded;
 }

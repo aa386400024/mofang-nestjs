@@ -29,6 +29,7 @@
 //   时间戳: 2026-10-26
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomInt, randomUUID } from 'node:crypto';
 import { IsNull, type Repository } from 'typeorm';
@@ -39,12 +40,15 @@ import {
   VoiceSessionBridgeRegistry,
   type VoiceSessionBridge,
   type VoiceSessionCloseInput,
+  type VoiceSessionCloseResult,
   type VoiceSessionOpenInput,
   type VoiceSessionOpenResult,
   type VoiceSessionTurnInput,
 } from '../../voice/voice-session-bridge';
 import type { VoiceDifficulty, VoiceVisitorStyle } from '../../voice/voice-session.types';
+import { SUPERVISION_MIN_EFFECTIVE_CHARS, SUPERVISION_MIN_EFFECTIVE_TURNS } from '../config/supervision.config';
 import { VPT_SCENARIO_ID } from '../config/vpt.config';
+import { isInsufficientMaterial, measureEffectiveMaterial } from '../domain/session-view/session-material';
 import { TrainingSession, type TrainingTranscriptTurn } from '../entities/training-session.entity';
 import { ChatRole } from '../enums/chat-role.enum';
 import { DimensionVariance } from '../enums/dimension-variance.enum';
@@ -151,6 +155,8 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
     private readonly turnAnalysisProcessor: TurnAnalysisProcessor,
     private readonly supervisionProcessor: CounselorSupervisionProcessor,
     private readonly registry: VoiceSessionBridgeRegistry,
+    // 全局配置 (最小可分析量阈值) — 空局拦截要用.
+    private readonly config: ConfigService,
   ) {}
 
   /** 启动时注册进 voice 侧全局注册表. */
@@ -216,9 +222,14 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
    * 结束会话 (回写结束状态 / 结束时间 + 派发 4 流派反馈).
    *
    * @param input 结束输入
+   * @returns 收尾结果 (落库与否 + 报告状态; 供 voice 侧 `session_ended` 帧回传)
    */
-  async close(input: VoiceSessionCloseInput): Promise<void> {
-    await this.enqueueOp(() => this.doClose(input));
+  async close(input: VoiceSessionCloseInput): Promise<VoiceSessionCloseResult> {
+    // enqueueOp 在链上抛错时返回 null —— 桥**永远要给结论**, 不能把 null 抛给 voice 层
+    // (voice 侧要的是"这场会不会有报告"的答案): 降级成"未落库 / 结论未知",
+    // 前端按旧行为 (进轮询页) 处理.
+    const result = await this.enqueueOp(() => this.doClose(input));
+    return result ?? { persisted: false, reportStatus: null };
   }
 
   // ── private ────────────────────────────────────────────────────
@@ -230,13 +241,20 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
    * (逐字稿停在最后一轮, 状态永远不是 finished).
    *
    * @param op 操作
+   * @returns op 的返回值 (失败时返回 null)
    */
-  private async enqueueOp(op: () => Promise<void>): Promise<void> {
-    const next = this.chain.then(op).catch((err) => {
-      this.logger.warn(`[chain_op_failed] err=${err instanceof Error ? err.message : String(err)}`);
-    });
+  private async enqueueOp<T>(op: () => Promise<T>): Promise<T | null> {
+    let result: T | null = null;
+    const next = this.chain
+      .then(async () => {
+        result = await op();
+      })
+      .catch((err) => {
+        this.logger.warn(`[chain_op_failed] err=${err instanceof Error ? err.message : String(err)}`);
+      });
     this.chain = next;
-    return next;
+    await next;
+    return result;
   }
 
   /**
@@ -296,27 +314,53 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
   /**
    * 结束会话 (实际执行体).
    *
+   * V2026-10-27 治本 (spec 任务 B — 结束前置拦截):
+   *   旧实现无条件派发 4 流派督导 job → 空素材抛永久失败 → **不落任何报告行** →
+   *   列表把它误判成 pending (永久"生成中") → 学员永远等不到.
+   *   新实现: 写 `finished` **之前**先量素材:
+   *     · 素材不足 (空局) → **不派 job** (不烧永久失败 job / 不刷 warn / 不堆队列),
+   *       会话仍置 finished + 写 endedAt (记录保留, D4), 收尾结果回传 `no_content`
+   *     · 素材充足 → 维持原行为 (派发默认流派 CBT)
+   *   注: `no_content` 是**派生**状态 (finished + 素材不足 + 无报告行), 不新增 DB 列、
+   *   不写 migration —— 收尾回包只是实时把结果告诉前端.
+   *
    * @param input 结束输入
+   * @returns 收尾结果 (未落库 / 降级 → persisted=false)
    */
-  private async doClose(input: VoiceSessionCloseInput): Promise<void> {
+  private async doClose(input: VoiceSessionCloseInput): Promise<VoiceSessionCloseResult> {
     const dbSessionId = input.dbSessionId;
     if (!dbSessionId) {
-      return;
+      return { persisted: false, reportStatus: null };
     }
     const row = await this.sessionRepo.findOne({
       where: { id: dbSessionId, userId: input.userId, deletedAt: IsNull() },
     });
     if (!row) {
       this.logger.warn(`[close_no_row] db_session=${dbSessionId} user=${input.userId}`);
-      return;
+      return { persisted: false, reportStatus: null };
     }
     if (row.status === TrainingSessionStatus.FINISHED) {
-      return;
+      // 重复收尾 (幂等): 状态已是 finished, 不重复派发.
+      return { persisted: true, reportStatus: null };
     }
+
+    // 结束前置拦截: 素材量必须在写 finished **之前**算 (逐字稿在这行上).
+    const material = measureEffectiveMaterial(row.transcript);
+    const insufficient = isInsufficientMaterial(material, this.materialThresholds());
+
     row.status = TrainingSessionStatus.FINISHED;
     row.endedAt = row.endedAt ?? new Date();
     await this.sessionRepo.save(row);
     this.logger.log(`[close] db_session=${dbSessionId} reason=${input.reason} turns=${input.turnCount} duration_ms=${input.durationMs}`);
+
+    // 空局: 不派发 4 流派督导 (记录保留, 报告派生为 `no_content`).
+    if (insufficient) {
+      this.logger.log(
+        `[close] empty_session_no_supervision db_session=${dbSessionId} ` +
+          `effectiveTurns=${material.effectiveTurns} effectiveChars=${material.effectiveChars}`,
+      );
+      return { persisted: true, reportStatus: 'no_content' };
+    }
 
     // V2026-10-26 治本 (spec 任务 6 — 补上「技术统计」的来源):
     //   **技术统计 (techStats) 的唯一来源是 4 流派那一次 LLM 调用** —— 它一次同时产
@@ -338,6 +382,19 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
     if (!enqueued) {
       this.logger.warn(`[supervision_enqueue_failed] db_session=${dbSessionId} school=${SupervisionSchoolCode.CBT}`);
     }
+    return { persisted: true, reportStatus: enqueued ? 'pending' : null };
+  }
+
+  /**
+   * 最小可分析量阈值 (从 config 读; 缺失时用 config 模块的默认值).
+   *
+   * @returns 阈值
+   */
+  private materialThresholds(): { readonly minTurns: number; readonly minChars: number } {
+    return {
+      minTurns: this.config.get<number>('supervision.minEffectiveTurns') ?? SUPERVISION_MIN_EFFECTIVE_TURNS,
+      minChars: this.config.get<number>('supervision.minEffectiveChars') ?? SUPERVISION_MIN_EFFECTIVE_CHARS,
+    };
   }
 
   /**

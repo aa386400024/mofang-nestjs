@@ -34,9 +34,10 @@
 //   时间戳: 2026-10-21
 
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomInt } from 'node:crypto';
-import { IsNull, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 
 import { CounselorSupervisionProcessor } from './counselor-supervision.processor';
 import { TurnAnalysisProcessor } from './turn-analysis.processor';
@@ -45,8 +46,21 @@ import {
   type SupervisionReportRepository,
 } from '../../agent/supervisor/domain/repositories/supervision-report.repository';
 import type { SupervisionReportRow } from '../../agent/supervisor/supervisor.types';
+import { SUPERVISION_MIN_EFFECTIVE_CHARS, SUPERVISION_MIN_EFFECTIVE_TURNS } from '../config/supervision.config';
 import { VPT_SCENARIO_ID } from '../config/vpt.config';
+import {
+  resolveHasMainReportChannel,
+  resolveSchoolFeedbackState,
+  toSupervisionFailureCode,
+  type SchoolFeedbackRow,
+  type SessionSchoolFeedbackState,
+} from '../domain/session-core/session-core.types';
 import { checkSessionTransition, isTerminalSessionStatus } from '../domain/session-status.guard';
+import {
+  isInsufficientMaterial,
+  measureEffectiveMaterial,
+  type EffectiveMaterialThresholds,
+} from '../domain/session-view/session-material';
 import {
   resolveSessionListDurationSeconds,
   resolveSessionListInterrupted,
@@ -63,6 +77,8 @@ import {
   type TrainingSessionListQueryDto,
   type UpdateTrainingSessionStatusDto,
 } from '../dto/training-session.dto';
+import { SupervisionFeedback } from '../entities/supervision-feedback.entity';
+import { SupervisionSchool } from '../entities/supervision-school.entity';
 import { TrainingSession, type TrainingTranscriptTurn } from '../entities/training-session.entity';
 import { ChatRole } from '../enums/chat-role.enum';
 import { DimensionVariance } from '../enums/dimension-variance.enum';
@@ -105,6 +121,17 @@ export class TrainingSessionService {
     //     两处口径不会漂移.
     @Inject(SUPERVISION_REPORT_REPOSITORY)
     private readonly reportRepo: SupervisionReportRepository,
+    // V2026-10-27 治本 (spec 任务 C — 空局 / 失败终态的列表派生):
+    //   列表的"报告状态"不再只看主报告行 —— 单次训练场景**没有**主报告链路
+    //   (主报告由 voice 侧 endSession 产出, 只覆盖 vpt), 它的报告内容就是这份
+    //   4 流派反馈. 不读它, 单次训练永远是 pending → 5 分钟后被误判成"生成失败".
+    @InjectRepository(SupervisionFeedback)
+    private readonly feedbackRepo: Repository<SupervisionFeedback>,
+    // 流派码查表 (反馈行存的是 schoolId, 列表要按流派码归并).
+    @InjectRepository(SupervisionSchool)
+    private readonly schoolRepo: Repository<SupervisionSchool>,
+    // 全局配置 (最小可分析量阈值 / 陈旧 pending 兜底阈值).
+    private readonly config: ConfigService,
   ) {}
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -179,7 +206,10 @@ export class TrainingSessionService {
     const rows = await this.findListRows(userId, query, page, pageSize);
     // 报告行一次批量取回 (按会话自己的 tenant 分组, 口径与 supervision.service.getSessionReport 一致).
     const reports = await this.loadReportsBySessionId(rows);
-    return rows.map((row) => this.toListItem(row, reports.get(row.id) ?? null));
+    // 4 流派反馈也一次批量取回 (单次训练的唯一报告内容来源; 失败终态也在这张表里).
+    const feedbackStates = await this.loadFeedbackStatesBySessionId(userId, rows);
+    const thresholds = this.materialThresholds();
+    return rows.map((row) => this.toListItem(row, reports.get(row.id) ?? null, feedbackStates.get(row.id) ?? null, thresholds));
   }
 
   /**
@@ -259,6 +289,73 @@ export class TrainingSessionService {
       }
     }
     return result;
+  }
+
+  /**
+   * 批量取本页会话的 4 流派反馈状态 (sessionId → 反馈状态).
+   *
+   * V2026-10-27 治本 (spec 任务 C/D — 列表派生补 4 流派反馈):
+   *   原因: 单次训练场景**没有**主报告链路 (主报告由 voice 侧 `endSession` 产出, 只覆盖 vpt),
+   *     它的报告内容就是这份 4 流派反馈; 失败终态 (带 failureCode 的那行) 也在这张表里.
+   *     不读它 → 单次训练永远 pending → 5 分钟后被误判成"生成失败".
+   *   修法: 一次 `sessionId IN (...)` 批量取回 (禁止逐行查 → N+1), 按会话聚合成状态.
+   *   口径与 supervision.service.getSessionReport 一致: 失败优先于成功, 分数取默认流派 (CBT).
+   *
+   * @param userId 当前用户 id
+   * @param rows 本页会话行
+   * @returns sessionId → 反馈状态 (无反馈的会话不在 Map 里)
+   */
+  private async loadFeedbackStatesBySessionId(userId: string, rows: TrainingSession[]): Promise<Map<string, SessionSchoolFeedbackState>> {
+    const result = new Map<string, SessionSchoolFeedbackState>();
+    if (rows.length === 0) {
+      return result;
+    }
+    const sessionIds = rows.map((r) => r.id);
+    const feedbacks = await this.feedbackRepo.find({
+      where: { userId, sessionId: In(sessionIds), deletedAt: IsNull() },
+    });
+    if (feedbacks.length === 0) {
+      return result;
+    }
+    // 流派码: schoolId → code (反馈行存的是 schoolId).
+    const schools = await this.schoolRepo.find({ where: { deletedAt: IsNull() } });
+    const codeBySchoolId = new Map(schools.map((s) => [s.id, s.code]));
+    // 按会话分组 → 每组交给 domain 判定 (`resolveSchoolFeedbackState`):
+    //   口径与详情端**共用一份**, 这里不再写一遍"选默认流派 / 取码序最前" ——
+    //   两份判定必然漂移 (列表说 78 分、详情说 80 分, 学员看到两张打架的卡片).
+    const rowsBySession = new Map<string, SchoolFeedbackRow[]>();
+    for (const fb of feedbacks) {
+      const feedbackRow: SchoolFeedbackRow = {
+        schoolCode: codeBySchoolId.get(fb.schoolId) ?? null,
+        overallScore: fb.feedback.overallScore,
+        failureCode: toSupervisionFailureCode(fb.feedback?.failureCode),
+      };
+      const list = rowsBySession.get(fb.sessionId);
+      if (list) {
+        list.push(feedbackRow);
+      } else {
+        rowsBySession.set(fb.sessionId, [feedbackRow]);
+      }
+    }
+    for (const [sessionId, feedbackRows] of rowsBySession) {
+      const state = resolveSchoolFeedbackState(feedbackRows);
+      if (state) {
+        result.set(sessionId, state);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * 最小可分析量阈值 (从 config 读; 缺失时用 config 模块的默认值).
+   *
+   * @returns 阈值
+   */
+  private materialThresholds(): EffectiveMaterialThresholds {
+    return {
+      minTurns: this.config.get<number>('supervision.minEffectiveTurns') ?? SUPERVISION_MIN_EFFECTIVE_TURNS,
+      minChars: this.config.get<number>('supervision.minEffectiveChars') ?? SUPERVISION_MIN_EFFECTIVE_CHARS,
+    };
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -384,6 +481,16 @@ export class TrainingSessionService {
   /**
    * POST /counselor/training-sessions/:id/finish 主入口.
    *
+   * V2026-10-27 治本 (spec 任务 B — 结束前置拦截):
+   *   旧实现无条件派发督导 job → 空素材抛永久失败 → **不落任何报告行** → 列表把它
+   *   误判成 pending (永久"生成中") → 学员永远等不到.
+   *   新实现: 写 `finished` **之前**先量素材:
+   *     · 素材不足 (空局) → **不派 job** (不烧永久失败、不刷 warn、不堆队列),
+   *       会话仍置 finished + 写 endedAt (记录保留, D4), 响应直接带 `no_content`
+   *     · 素材充足 → 维持原行为 (queued → completed / parse_error)
+   *   注: `no_content` 是**派生**状态 (finished + 素材不足 + 无报告行), 不新增 DB 列、
+   *   不写 migration —— 结束响应只是实时把结果告诉前端, 落库口径仍走派生.
+   *
    * @param userId 当前用户 id
    * @param sessionId 会话 id
    * @param input 可选 schoolCode (缺省 CBT)
@@ -400,11 +507,34 @@ export class TrainingSessionService {
     if (!check.allowed) {
       throw new BadRequestException(check.reason);
     }
+
+    // 结束前置拦截: 素材量必须在写 finished **之前**算 (逐字稿在这行上).
+    const material = measureEffectiveMaterial(row.transcript);
+    const insufficient = isInsufficientMaterial(material, this.materialThresholds());
+
     row.status = TrainingSessionStatus.FINISHED;
     row.endedAt = row.endedAt ?? new Date();
     await this.sessionRepo.save(row);
 
     const schoolCode = input.schoolCode ?? SupervisionSchoolCode.CBT;
+
+    // 空局: 不派 job. 记录保留 (D4), 报告状态派生为 `no_content`.
+    if (insufficient) {
+      this.logger.log(
+        `[finish] empty_session_no_supervision sessionId=${row.id} ` +
+          `effectiveTurns=${material.effectiveTurns} effectiveChars=${material.effectiveChars}`,
+      );
+      return {
+        sessionId: row.id,
+        status: row.status,
+        endedAt: row.endedAt,
+        supervision: {
+          schoolCode,
+          status: 'no_content',
+        },
+      };
+    }
+
     const enqueued = await this.supervisionProcessor.enqueue({
       sessionId: row.id,
       sessionType: SessionType.TRAINING_SESSION,
@@ -527,9 +657,23 @@ export class TrainingSessionService {
    * @param row training_sessions 表行
    * @param report 该会话的报告行 (无报告时为 null)
    */
-  private toListItem(row: TrainingSession, report: SupervisionReportRow | null): TrainingSessionListItemDto {
+  private toListItem(
+    row: TrainingSession,
+    report: SupervisionReportRow | null,
+    schoolFeedback: SessionSchoolFeedbackState | null,
+    thresholds: EffectiveMaterialThresholds,
+  ): TrainingSessionListItemDto {
     const turnCount = (row.transcript ?? []).length;
-    const aggregate = resolveSessionListReportAggregate({ report, sessionStatus: row.status });
+    const sessionType = resolveSessionTypeByScenarioId(row.scenarioId, VPT_SCENARIO_ID);
+    const aggregate = resolveSessionListReportAggregate({
+      report,
+      sessionStatus: row.status,
+      material: measureEffectiveMaterial(row.transcript),
+      thresholds,
+      schoolFeedback,
+      // vpt 有主报告链路 → 4 流派反馈只是附加, 不决定整体状态 (vpt 适用范围隔离).
+      hasMainReportChannel: resolveHasMainReportChannel(sessionType),
+    });
     return {
       id: row.id,
       scenarioId: row.scenarioId,
@@ -544,10 +688,12 @@ export class TrainingSessionService {
       startedAt: row.startedAt,
       endedAt: row.endedAt,
       createdAt: row.createdAt,
-      sessionType: resolveSessionTypeByScenarioId(row.scenarioId, VPT_SCENARIO_ID),
+      sessionType,
       reportStatus: aggregate.reportStatus,
       overallScore: aggregate.overallScore,
       reportReady: aggregate.reportReady,
+      failureCode: aggregate.failureCode,
+      retryable: aggregate.retryable,
       interrupted: resolveSessionListInterrupted({ status: row.status, startedAt: row.startedAt, turnCount }),
       durationSeconds: resolveSessionListDurationSeconds(row.startedAt, row.endedAt),
     };

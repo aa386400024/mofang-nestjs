@@ -55,13 +55,19 @@
 //     4. 故意把 MINIMAX_COUNSELOR_LLM_MODEL 设成不存在的模型 → 返 503 且不落脏数据
 //   时间戳: 2026-10-21
 
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
 import { CounselorLlmJsonClient } from './llm-json.client';
 import { SessionContextBuilder } from './session-context.builder';
+import {
+  SupervisionEmptyMaterialException,
+  SupervisionSchoolMissingException,
+  SupervisionUpstreamException,
+  mapLlmErrorCodeToFailureCode,
+} from './supervision-failure';
 import { TransferenceMarkService } from './transference-mark.service';
 import {
   SUPERVISION_REPORT_REPOSITORY,
@@ -69,6 +75,11 @@ import {
 } from '../../agent/supervisor/domain/repositories/supervision-report.repository';
 import type { SupervisionAnnotation, SupervisionDimensions } from '../../agent/supervisor/supervisor.types';
 import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config';
+import {
+  SUPERVISION_MIN_EFFECTIVE_CHARS,
+  SUPERVISION_MIN_EFFECTIVE_TURNS,
+  SUPERVISION_REPORT_PENDING_TIMEOUT_MS,
+} from '../config/supervision.config';
 import { VPT_SCENARIO_ID } from '../config/vpt.config';
 import {
   buildSupervisionContextBlock,
@@ -76,14 +87,29 @@ import {
   renderTranscriptBlock,
   type SessionContext,
 } from '../domain/session-context/session-context';
-import { resolveSessionReportStatus, validateSessionTechStats, type SessionTechStats } from '../domain/session-core/session-core.types';
+import {
+  resolveHasMainReportChannel,
+  resolveSchoolFeedbackState,
+  resolveSessionReportState,
+  toSupervisionFailureCode,
+  validateSessionTechStats,
+  type SchoolFeedbackRow,
+  type SessionReportState,
+  type SessionSchoolFeedbackState,
+  type SessionTechStats,
+} from '../domain/session-core/session-core.types';
+import {
+  isInsufficientMaterial,
+  measureEffectiveMaterial,
+  type EffectiveMaterial,
+  type EffectiveMaterialThresholds,
+} from '../domain/session-view/session-material';
 import { resolveSessionTypeByScenarioId } from '../domain/session-view/session-view.types';
 import type { SessionTechStatsDto } from '../dto/session-core.dto';
 import {
   type CompareSupervisionFeedbackResponseDto,
   type GenerateSupervisionFeedbackDto,
   type SessionReportDto,
-  type SessionReportStatus,
   type SupervisionFeedbackDto,
   type SupervisionReportAnnotationDto,
   type SupervisionReportDimensionsDto,
@@ -95,7 +121,9 @@ import { SupervisionFeedback, type SupervisionFeedbackPayload } from '../entitie
 import { SupervisionSchool } from '../entities/supervision-school.entity';
 import { TrainingSession } from '../entities/training-session.entity';
 import { SessionType } from '../enums/session-type.enum';
+import { SupervisionFailureCode } from '../enums/supervision-failure-code.enum';
 import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
+import { TrainingSessionStatus } from '../enums/training-session-status.enum';
 
 /**
  * 4 字段输出契约 (给模型看的 JSON schema 描述).
@@ -338,13 +366,30 @@ export class SupervisionService {
       where: { code: input.schoolCode, deletedAt: IsNull() },
     });
     if (!school) {
-      throw new NotFoundException(`督导流派 ${input.schoolCode} 不存在`);
+      throw new SupervisionSchoolMissingException(`督导流派 ${input.schoolCode} 不存在`);
     }
 
     // 2. polymorphic: 查 session 上下文 (真实 transcript, 不再是 placeholder)
     const ctx = await this.contextBuilder.build(userId, input.sessionId, input.sessionType);
-    if (ctx.transcript.length === 0) {
-      throw new BadRequestException(`会话 ${input.sessionId} 没有对话记录, 无法生成督导反馈`);
+    //
+    // V2026-10-27 治本 (spec 任务 D3 — 重试只对"有素材的失败"开放):
+    //   会话**还没结束**时不生成: 中断的会话 (interrupted) 素材还没写完,
+    //   现在生成的督导结论是**半截对话**上的结论 —— 学员会拿着一份错报告去改技术动作.
+    //   报告状态派生里 `interrupted` 同样不提供重试 (前端不该给这个按钮).
+    if (ctx.status !== TrainingSessionStatus.FINISHED) {
+      throw new BadRequestException(`会话 ${input.sessionId} 尚未结束 (状态 ${ctx.status}), 不支持生成督导反馈`);
+    }
+    //
+    // V2026-10-27 治本 (spec 任务 B/D — 素材不足即永久失败):
+    //   旧口径只看 `transcript.length === 0` (完全没说话), 于是"只说了 1 句"这种
+    //   同样没有分析价值的会话照样派 job、照样失败 —— 空素材的坑只堵了最浅一层.
+    //   新口径用**最小可分析量** (有效轮 ≥ 2 且 有效字数 ≥ 30, 阈值进 config):
+    //   不足 → 抛 400 永久失败 (不重试), 会话归 `no_content`.
+    const material = measureEffectiveMaterial(ctx.transcript);
+    if (isInsufficientMaterial(material, this.materialThresholds())) {
+      throw new SupervisionEmptyMaterialException(
+        `会话 ${input.sessionId} 没有足够的对话内容 (有效轮 ${material.effectiveTurns}, 有效字数 ${material.effectiveChars}), 无法生成督导反馈`,
+      );
     }
 
     // 3. 真接 LLM: 4 流派 prompt 模板 (DB) + 会话上下文块 → 结构化 4 字段
@@ -362,8 +407,14 @@ export class SupervisionService {
     });
 
     if (!result.ok || result.data === null) {
-      // 不落脏数据: 假督导结论比报错更糟 (学员会当成真实反馈去改技术动作)
-      throw new ServiceUnavailableException(`督导反馈生成失败 (${result.errorCode ?? 'unknown'}): ${result.errorMessage ?? 'LLM 不可用'}`);
+      // 不落脏数据: 假督导结论比报错更糟 (学员会当成真实反馈去改技术动作).
+      // 失败原因码 (上游不可用 / 限流 / 解析失败 / 超时) 随异常一起带走 →
+      // processor 分类后落进反馈记录, 报告状态立刻翻 parse_error (不等墙钟兜底).
+      const failureCode = mapLlmErrorCodeToFailureCode(result.errorCode);
+      throw new SupervisionUpstreamException(
+        failureCode,
+        `督导反馈生成失败 (${result.errorCode ?? 'unknown'}): ${result.errorMessage ?? 'LLM 不可用'}`,
+      );
     }
     const { feedback, techStats } = result.data;
 
@@ -482,12 +533,18 @@ export class SupervisionService {
       where: { userId, sessionId, sessionType, deletedAt: IsNull() },
       order: { createdAt: 'DESC' },
     });
-    return rows.map((r) => ({
-      overallScore: r.feedback.overallScore,
-      perSentence: r.feedback.perSentence,
-      errorCategories: r.feedback.errorCategories,
-      growthSuggestion: r.feedback.growthSuggestion,
-    }));
+    // V2026-10-27 治本 (spec 任务 D — 失败记录不冒充反馈):
+    //   失败的流派反馈行 (failureCode 非空) 里存的是**占位内容** (0 分 / 空逐句),
+    //   把它当成功反馈返出去 = 让学员看到"生成失败但给了 0 分和一句空评语"的自相矛盾卡片.
+    //   失败的可见性由报告状态 (parse_error + failureCode) 承担, 不在这里混进反馈列表.
+    return rows
+      .filter((r) => toSupervisionFailureCode(r.feedback?.failureCode) === null)
+      .map((r) => ({
+        overallScore: r.feedback.overallScore,
+        perSentence: r.feedback.perSentence,
+        errorCategories: r.feedback.errorCategories,
+        growthSuggestion: r.feedback.growthSuggestion,
+      }));
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -526,7 +583,7 @@ export class SupervisionService {
     const sessionType = resolveSessionTypeByScenarioId(row.scenarioId, VPT_SCENARIO_ID);
 
     // 3. 三个来源并行取 (互不依赖, 没必要串行)
-    const [report, marks, feedbackBySchool] = await Promise.all([
+    const [report, marks, feedback] = await Promise.all([
       this.reportRepo.findBySessionId(row.tenantId, sessionId),
       this.markService.list(userId, sessionId),
       this.loadFeedbackBySchool(userId, sessionId, sessionType),
@@ -535,23 +592,111 @@ export class SupervisionService {
     // 4. 回填报告 ↔ 会话的显式链接 (幂等; 失败不阻断读)
     await this.linkReportToSession(row, report?.id);
 
+    // 5. 报告状态归一 (V2026-10-27, spec 任务 C/D):
+    //    **列表与详情共用** domain/session-core 的 `resolveSessionReportState` ——
+    //    详情侧开启墙钟陈旧兜底 (前端在轮询, 需要"永远转圈"的兜底), 列表侧不开.
+    //    场景位 (vpt 有主报告链路): vpt 的整体状态只由主报告决定, 4 流派反馈是**附加**
+    //    (技术统计 / 多流派展示照常返回, 但不参与状态与分数).
+    const material = measureEffectiveMaterial(row.transcript);
+    const state = this.resolveReportState({
+      mainReport: report ? { status: report.status, overallScore: report.overallScore } : null,
+      schoolFeedback: feedback.state,
+      material,
+      endedAtMs: row.endedAt?.getTime() ?? null,
+      nowMs: Date.now(),
+      sessionStatus: row.status,
+      applyStaleTimeout: true,
+      hasMainReportChannel: resolveHasMainReportChannel(sessionType),
+    });
+
     return {
       sessionId: row.id,
       sessionType,
-      status: this.resolveReportStatus(report?.status, row),
-      overallScore: report?.overallScore ?? null,
+      status: state.status,
+      overallScore: state.overallScore,
+      failureCode: state.failureCode,
+      retryable: state.retryable,
       dimensions: report ? this.toDimensions(report.dimensions) : null,
       annotations: report ? report.annotations.map((a) => this.toAnnotation(a)) : [],
       errorPatterns: report ? [...report.errorPatterns] : [],
       growthSuggestions: report ? [...report.growthSuggestions] : [],
       techStats: row.techStats ? this.toTechStatsDto(row.techStats) : null,
       marks,
-      feedbackBySchool,
+      feedbackBySchool: feedback.feedbackBySchool,
       startedAt: row.startedAt,
       endedAt: row.endedAt,
       turnCount: (row.transcript ?? []).length,
       createdAt: report?.createdAt ?? null,
     };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 7. recordSupervisionFailure — 督导生成失败落终态 (V2026-10-27, spec 任务 D2)
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * 落一条**失败**的流派反馈记录 (失败终态, spec 任务 D2).
+   *
+   * 背景: BullMQ `attempts: 3` 用尽后, 旧实现"什么行都不留" —— 报告行不存在,
+   * 列表只能靠墙钟 (陈旧 pending 兜底) 才能翻成失败, 学员盯着转圈.
+   * 现在失败会落成一条带 `failureCode` 的反馈记录, 报告状态立刻翻 `parse_error`.
+   *
+   * 落库形态: `supervision_feedback` 的**同一行** (UNIQUE(session_id, session_type, school_id))
+   * —— 失败记录与成功记录**互斥** (upsert), 所以手动重试成功时直接覆盖这一行,
+   * 报告状态自然翻回 `completed` (不需要额外的"清理失败态"步骤).
+   *
+   * 失败记录里的 `overallScore` 是**占位 0**: 它**不会**被返给前端 ——
+   * 读方 (listFeedbackForSession / loadFeedbackBySchool) 一律跳过带 failureCode 的行,
+   * 报告出参里非 completed 的分数恒为 null (红线: 绝不补 0).
+   *
+   * @param input 会话 + 流派
+   * @param failureCode 失败原因码
+   * @param failureMessage 失败原因详情 (可空, 仅供排查)
+   * @param userId 当前用户 id
+   */
+  async recordSupervisionFailure(
+    input: { sessionId: string; sessionType: SessionType; schoolCode: SupervisionSchoolCode },
+    failureCode: SupervisionFailureCode,
+    failureMessage: string | null,
+    userId: string,
+  ): Promise<void> {
+    const school = await this.schoolRepo.findOne({ where: { code: input.schoolCode, deletedAt: IsNull() } });
+    if (!school) {
+      // 流派都没播种 → 反馈行挂不上 (没有 schoolId). 这种情况不属于"生成失败",
+      // 由 processor 记 warn 即可 (流派缺种子是运营问题, 不该堆反馈行).
+      return;
+    }
+    const existing = await this.feedbackRepo.findOne({
+      where: {
+        sessionId: input.sessionId,
+        sessionType: input.sessionType,
+        schoolId: school.id,
+        deletedAt: IsNull(),
+      },
+    });
+    const payload: SupervisionFeedbackPayload = {
+      overallScore: 0,
+      perSentence: [],
+      errorCategories: [],
+      growthSuggestion: '',
+      failureCode,
+      failureMessage: failureMessage?.slice(0, 500) ?? null,
+    };
+    if (existing) {
+      existing.feedback = payload;
+      await this.feedbackRepo.save(existing);
+      return;
+    }
+    await this.feedbackRepo.save(
+      this.feedbackRepo.create({
+        tenantId: userId,
+        userId,
+        sessionId: input.sessionId,
+        sessionType: input.sessionType,
+        schoolId: school.id,
+        feedback: payload,
+      }),
+    );
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -594,24 +739,58 @@ export class SupervisionService {
   /**
    * 报告状态归一 (含「陈旧 pending」兜底).
    *
-   * 判定逻辑是 domain 层的**纯函数** (`resolveSessionReportStatus`) —— 无 IO, 可单测;
-   * 本方法只负责取参数 + 记一条 warn (纯函数不能打日志).
+   * 判定逻辑是 domain 层的**纯函数** (`resolveSessionReportState`) —— 无 IO, 可单测;
+   * 本方法只负责取参数 + 记一条 warn (纯函数不能打日志) + 注入 config 阈值.
    *
-   * 为什么要这个兜底: 主报告是**异步**生成的 (BullMQ + LLM), 失败路径里有几种
-   * "什么行都不留"的情况 (worker 没跑 / job 重试用尽 / 落库失败). 若一律返回 pending,
+   * 为什么要这个兜底: 报告是**异步**生成的 (BullMQ + LLM), 失败路径里有几种
+   * "什么行都不留"的情况 (worker 没跑 / 落库失败). 若一律返回 pending,
    * 前端就会**永远转圈**, 用户分不清"再等等"和"生成不出来".
+   * V2026-10-27: 阈值 15min → 5min, 且**只作最后兜底** (正常失败已主动落 parse_error).
    *
-   * @param status agent 侧报告状态 (undefined = 报告行不存在)
-   * @param row 会话行
-   * @returns 对外的三态状态
+   * @param input 派生入参 (主报告行 / 流派反馈 / 素材量 / 时间)
+   * @returns 对外的报告状态 (4 档) + 分数 / 失败码 / 可重试
    */
-  private resolveReportStatus(status: 'completed' | 'parse_error' | undefined, row: TrainingSession): SessionReportStatus {
-    const timeoutMs = this.config.get<number>('supervision.reportPendingTimeoutMs') ?? 900_000;
-    const resolved = resolveSessionReportStatus(status, row.endedAt?.getTime() ?? null, Date.now(), timeoutMs);
-    if (resolved === 'parse_error' && !status) {
-      this.logger.warn(`[report_stale_pending] sessionId=${row.id} 无报告行且已超时 → 判定为报告生成失败`);
+  private resolveReportState(input: {
+    readonly mainReport: { readonly status: 'completed' | 'parse_error'; readonly overallScore: number } | null;
+    readonly schoolFeedback: SessionSchoolFeedbackState | null;
+    readonly material: EffectiveMaterial;
+    readonly endedAtMs: number | null;
+    readonly nowMs: number;
+    readonly sessionStatus: TrainingSessionStatus;
+    readonly applyStaleTimeout: boolean;
+    readonly hasMainReportChannel: boolean;
+  }): SessionReportState {
+    const timeoutMs = this.config.get<number>('supervision.reportPendingTimeoutMs') ?? SUPERVISION_REPORT_PENDING_TIMEOUT_MS;
+    const state = resolveSessionReportState({
+      sessionStatus: input.sessionStatus,
+      endedAtMs: input.endedAtMs,
+      nowMs: input.nowMs,
+      mainReport: input.mainReport,
+      schoolFeedback: input.schoolFeedback,
+      material: input.material,
+      thresholds: this.materialThresholds(),
+      stalePendingTimeoutMs: timeoutMs,
+      applyStaleTimeout: input.applyStaleTimeout,
+      hasMainReportChannel: input.hasMainReportChannel,
+    });
+    if (state.status === 'parse_error' && input.applyStaleTimeout && !input.mainReport && !input.schoolFeedback) {
+      this.logger.warn(`[report_stale_pending] 无报告行且已超时 → 判定为报告生成失败`);
     }
-    return resolved;
+    return state;
+  }
+
+  /**
+   * 最小可分析量阈值 (从 config 读; 缺失时用 domain 默认值).
+   *
+   * 阈值**不在判定里写死** (判定只吃入参) —— 运营可随时调 (环境变量), 不必改代码.
+   *
+   * @returns 阈值
+   */
+  private materialThresholds(): EffectiveMaterialThresholds {
+    return {
+      minTurns: this.config.get<number>('supervision.minEffectiveTurns') ?? SUPERVISION_MIN_EFFECTIVE_TURNS,
+      minChars: this.config.get<number>('supervision.minEffectiveChars') ?? SUPERVISION_MIN_EFFECTIVE_CHARS,
+    };
   }
 
   /**
@@ -663,34 +842,46 @@ export class SupervisionService {
   }
 
   /**
-   * 4 流派反馈 → 按流派码索引的字典.
+   * 4 流派反馈 → 按流派码索引的字典 + 会话级反馈状态.
    *
    * 流派码来自 `supervision_schools.code` —— 反馈行存的是 schoolId, 要转成码才能让前端
    * 按流派切换视角. 流派被删 (软删) 时**跳过**该条: 编一个流派名给前端, 前端就会
    * 切到一个不存在的视角.
    *
+   * V2026-10-27 治本 (spec 任务 D — 失败与成功互斥):
+   *   失败的流派反馈行 (failureCode 非空) **不进**字典 —— 它的内容是占位 (0 分 / 空逐句),
+   *   返给前端就是"生成失败却给了 0 分"的自相矛盾卡片.
+   *   失败信息由 `state` 单独带给状态派生 (报告状态 → parse_error + failureCode).
+   *
    * @param userId 当前用户 id
    * @param sessionId 会话 id
    * @param sessionType session 类型
-   * @returns 流派码 → 反馈
+   * @returns 流派码 → 反馈 (仅成功记录) + 会话级反馈状态
    */
   private async loadFeedbackBySchool(
     userId: string,
     sessionId: string,
     sessionType: SessionType,
-  ): Promise<Record<string, SupervisionFeedbackDto>> {
+  ): Promise<{
+    readonly feedbackBySchool: Record<string, SupervisionFeedbackDto>;
+    readonly state: SessionSchoolFeedbackState | null;
+  }> {
     const rows = await this.feedbackRepo.find({
       where: { userId, sessionId, sessionType, deletedAt: IsNull() },
     });
     if (rows.length === 0) {
-      return {};
+      return { feedbackBySchool: {}, state: null };
     }
     const schools = await this.schoolRepo.find({ where: { deletedAt: IsNull() } });
     const codeBySchoolId = new Map(schools.map((s) => [s.id, s.code]));
     const result: Record<string, SupervisionFeedbackDto> = {};
+    const feedbackRows: SchoolFeedbackRow[] = [];
     for (const row of rows) {
-      const code = codeBySchoolId.get(row.schoolId);
-      if (!code) {
+      const code = codeBySchoolId.get(row.schoolId) ?? null;
+      const failureCode = toSupervisionFailureCode(row.feedback?.failureCode);
+      feedbackRows.push({ schoolCode: code, overallScore: row.feedback.overallScore, failureCode });
+      if (code === null || failureCode !== null) {
+        // 流派被软删 → 读不出视角, 跳过; 失败记录 → 只带失败码, 不返占位内容.
         continue;
       }
       result[code] = {
@@ -700,7 +891,9 @@ export class SupervisionService {
         growthSuggestion: row.feedback.growthSuggestion,
       };
     }
-    return result;
+    // 会话级反馈状态: 判定收在 domain (`resolveSchoolFeedbackState`) —— 列表与详情共用一份,
+    // 不各写一遍"选默认流派 / 取码序最前" (两份判定必然漂移).
+    return { feedbackBySchool: result, state: resolveSchoolFeedbackState(feedbackRows) };
   }
 
   /**

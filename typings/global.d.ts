@@ -146,6 +146,12 @@ export declare global {
       //   会话已结束 + 无报告行 + 距结束超过该时长 → 判定报告生成失败 (parse_error),
       //   避免前端永远停在 pending 一直转圈. 默认 15min (主报告 LLM 正常 30-120s 的 10 倍余量).
       SUPERVISION_REPORT_PENDING_TIMEOUT_MS?: string;
+      // V2026-10-27 治本 (空会话与报告生命周期 — 最小可分析量, spec 任务 A):
+      //   一场会话的有效对话少于这两个阈值 → 判为空局 (no_content): 不派督导 job,
+      //   报告**永远不会**生成. 默认值在 counselor/config/supervision.config.ts (单一真值源),
+      //   这里只声明"本地怎么跑"的可调项.
+      SUPERVISION_MIN_EFFECTIVE_TURNS?: string;
+      SUPERVISION_MIN_EFFECTIVE_CHARS?: string;
       // V2026-10-08: Voice Gateway 空闲超时 (Phase 3)
       VOICE_SESSION_IDLE_TIMEOUT_MS?: string;
       EMBEDDING_PROVIDER_DEV?: string;
