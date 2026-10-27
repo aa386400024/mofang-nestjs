@@ -77,6 +77,7 @@ import {
   type SessionContext,
 } from '../domain/session-context/session-context';
 import { resolveSessionReportStatus, validateSessionTechStats, type SessionTechStats } from '../domain/session-core/session-core.types';
+import { resolveSessionTypeByScenarioId } from '../domain/session-view/session-view.types';
 import type { SessionTechStatsDto } from '../dto/session-core.dto';
 import {
   type CompareSupervisionFeedbackResponseDto,
@@ -519,7 +520,10 @@ export class SupervisionService {
       throw new NotFoundException(`训练会话 ${sessionId} 不存在或不属于当前用户`);
     }
     // 2. sessionType 由场景标识推导 (vpt 走 'vpt_voice', 单次训练走 'training_session')
-    const sessionType = row.scenarioId === VPT_SCENARIO_ID ? SessionType.VPT_VOICE : SessionType.TRAINING_SESSION;
+    //    V2026-10-27 治本 (练习历史列表 — 消双胞胎): 跟练习历史列表项共用
+    //    domain/session-view/session-view.types.ts 的同一个函数 —— 之前这里是内联
+    //    三元表达式, 两处各写一份, 场景判定一改就只改一处 (列表与报告页对不上).
+    const sessionType = resolveSessionTypeByScenarioId(row.scenarioId, VPT_SCENARIO_ID);
 
     // 3. 三个来源并行取 (互不依赖, 没必要串行)
     const [report, marks, feedbackBySchool] = await Promise.all([

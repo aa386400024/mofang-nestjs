@@ -22,7 +22,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 import { SupervisionReportEntity } from '../domain/entities/supervision-report.entity';
 import type { SupervisionReportRepository } from '../domain/repositories/supervision-report.repository';
@@ -96,6 +96,38 @@ export class SupervisionReportRepositoryTypeorm implements SupervisionReportRepo
       order: { createdAt: 'DESC' },
     });
     return row ? this.toRow(row) : null;
+  }
+
+  /**
+   * 按一批 sessionId 批量取每个会话的最新一份报告.
+   *
+   * V2026-10-27 治本 (练习历史列表 — 消灭 N+1):
+   *   原因: 列表要给每行补"报告状态 / 总分", 逐行 findBySessionId = 一页 20 次查询.
+   *   修法: `sessionId IN (...) AND tenantId = ?` 一次查询, 按 createdAt 倒序后
+   *     每个 sessionId 取第一条 (最新一份), 口径跟 findBySessionId 完全一致.
+   *   反双胞胎: 不用 `Promise.all(ids.map(findBySessionId))` —— 那还是 N+1, 只是并发化,
+   *     DB 往返次数没变; 也不去掉 tenantId 条件 (跨租户隔离是这张表的第一约束).
+   *
+   * @param tenantId 租户隔离
+   * @param sessionIds 会话 id 列表
+   * @returns sessionId → 报告行
+   */
+  async findBySessionIds(tenantId: string, sessionIds: string[]): Promise<Map<string, SupervisionReportRow>> {
+    const result = new Map<string, SupervisionReportRow>();
+    if (sessionIds.length === 0) {
+      return result;
+    }
+    const rows = await this.repo.find({
+      where: { tenantId, sessionId: In(sessionIds) },
+      order: { createdAt: 'DESC' },
+    });
+    for (const row of rows) {
+      // 倒序遍历, 首次命中即最新一份 (后续同 sessionId 的旧行跳过).
+      if (!result.has(row.sessionId)) {
+        result.set(row.sessionId, this.toRow(row));
+      }
+    }
+    return result;
   }
 
   /**

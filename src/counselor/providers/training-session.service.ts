@@ -33,14 +33,26 @@
 //     3. 非法状态迁移返 400 且带 reason
 //   时间戳: 2026-10-21
 
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomInt } from 'node:crypto';
 import { IsNull, Repository } from 'typeorm';
 
 import { CounselorSupervisionProcessor } from './counselor-supervision.processor';
 import { TurnAnalysisProcessor } from './turn-analysis.processor';
+import {
+  SUPERVISION_REPORT_REPOSITORY,
+  type SupervisionReportRepository,
+} from '../../agent/supervisor/domain/repositories/supervision-report.repository';
+import type { SupervisionReportRow } from '../../agent/supervisor/supervisor.types';
+import { VPT_SCENARIO_ID } from '../config/vpt.config';
 import { checkSessionTransition, isTerminalSessionStatus } from '../domain/session-status.guard';
+import {
+  resolveSessionListDurationSeconds,
+  resolveSessionListInterrupted,
+  resolveSessionListReportAggregate,
+  resolveSessionTypeByScenarioId,
+} from '../domain/session-view/session-view.types';
 import {
   type AppendTranscriptDto,
   type CreateTrainingSessionDto,
@@ -86,6 +98,13 @@ export class TrainingSessionService {
     //   原因: v1.2 §6.1「后端在每轮 counselor 发言后, 异步跑一个轻量 classifier」的触发点
     //     就在这个端点 (逐字稿是唯一知道"新来了哪一轮"的地方).
     private readonly turnAnalysisProcessor: TurnAnalysisProcessor,
+    // V2026-10-27 治本 (练习历史列表 — 报告聚合):
+    //   原因: 列表项要显示"报告状态 / 总分", 报告行在 agent 侧的 supervision_reports 表,
+    //     仓储出口是 SUPERVISION_REPORT_REPOSITORY (SupervisorModule 导出, AgentModule 转出,
+    //     CounselorModule 已 import AgentModule) —— 跟 supervision.service 读的是同一份数据,
+    //     两处口径不会漂移.
+    @Inject(SUPERVISION_REPORT_REPOSITORY)
+    private readonly reportRepo: SupervisionReportRepository,
   ) {}
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -140,25 +159,106 @@ export class TrainingSessionService {
   /**
    * GET /counselor/training-sessions 主入口.
    *
-   * @param userId 当前用户 id
+   * V2026-10-27 治本 (练习历史列表 — 聚合字段 + 类型过滤):
+   *   原因: 成长 tab「练习历史」二级页要在一张卡上同时显示"会话类型 / 报告状态 / 总分 /
+   *     是否中断", 而这些全是**派生值** (库里没有对应列), 之前列表接口一个都不下发.
+   *   修法: 列表项补 4 个派生字段 (判定集中在 domain/session-view/session-view.types.ts);
+   *     报告状态用**一次批量查询**取回本页会话的报告行 (禁止逐行查 → N+1).
+   *   反双胞胎:
+   *     - 不用 `Promise.all(rows.map(r => findBySessionId(...)))`: 那还是 N+1, 只是并发化,
+   *       DB 往返次数没变; 走仓储的批量出口.
+   *     - 不用 find-options 的 where 对象: 「scenarioId != vpt_voice」与「scenarioId = 场景」
+   *       两个条件落在**同一列**上, 对象写法表达不了 (后者会覆盖前者), 改 QueryBuilder.
+   *   @param userId 当前用户 id
    * @param query 过滤 + 分页
    * @returns 倒序会话列表
    */
   async list(userId: string, query: TrainingSessionListQueryDto): Promise<TrainingSessionListItemDto[]> {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
-    const rows = await this.sessionRepo.find({
-      where: {
-        userId,
-        deletedAt: IsNull(),
-        ...(query.scenarioId ? { scenarioId: query.scenarioId } : {}),
-        ...(query.status ? { status: query.status } : {}),
-      },
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+    const rows = await this.findListRows(userId, query, page, pageSize);
+    // 报告行一次批量取回 (按会话自己的 tenant 分组, 口径与 supervision.service.getSessionReport 一致).
+    const reports = await this.loadReportsBySessionId(rows);
+    return rows.map((row) => this.toListItem(row, reports.get(row.id) ?? null));
+  }
+
+  /**
+   * 查我的会话行 (分页 + 过滤 + 排序 + 排除空会话).
+   *
+   * @param userId 当前用户 id
+   * @param query 过滤 + 分页
+   * @param page 页码 (从 1 开始)
+   * @param pageSize 每页条数
+   * @returns 会话行 (已按 createdAt 倒序)
+   */
+  private async findListRows(
+    userId: string,
+    query: TrainingSessionListQueryDto,
+    page: number,
+    pageSize: number,
+  ): Promise<TrainingSession[]> {
+    const qb = this.sessionRepo.createQueryBuilder('s');
+    // 归属: 只返当前 userId 自己的记录 (跨用户不可见).
+    qb.where('s.userId = :userId', { userId }).andWhere('s.deletedAt IS NULL');
+    if (query.scenarioId) {
+      qb.andWhere('s.scenarioId = :scenarioId', { scenarioId: query.scenarioId });
+    }
+    if (query.status) {
+      qb.andWhere('s.status = :status', { status: query.status });
+    }
+    // sessionType 映射到 scenarioId (表内无独立 type 列):
+    //   vpt_voice → scenarioId = 'vpt_voice'; training_session → scenarioId != 'vpt_voice'.
+    // 与显式的 scenarioId 过滤**叠加** (两个条件都成立才命中), 不会互相覆盖.
+    if (query.sessionType === SessionType.VPT_VOICE) {
+      qb.andWhere('s.scenarioId = :vptScenarioId', { vptScenarioId: VPT_SCENARIO_ID });
+    } else if (query.sessionType === SessionType.TRAINING_SESSION) {
+      qb.andWhere('s.scenarioId != :vptScenarioId', { vptScenarioId: VPT_SCENARIO_ID });
+    }
+    // 排除"建了没开过"的空会话 (status=idle && startedAt IS NULL && 无对话轮次).
+    // 放在 SQL 层而不是内存过滤: 内存过滤会让每页返回行数不足 pageSize, 而前端用
+    // "本页行数 == pageSize" 判断还有没有下一页 → 会出现"翻不到底"的断页.
+    // JSON_LENGTH 是 MySQL 函数 (本项目 DB 固定 MySQL 8.0; 其它方言需换 json_array_length).
+    // COALESCE 兜底: transcript 若是 NULL (老数据/手工插入), JSON_LENGTH 返回 NULL,
+    //   而 `NULL = 0` 是 NULL (非 true) → 会被误判成"有对话"而不被排除. 显式兜底成 0.
+    qb.andWhere('NOT (s.status = :idleStatus AND s.startedAt IS NULL AND COALESCE(JSON_LENGTH(s.transcript), 0) = 0)', {
+      idleStatus: TrainingSessionStatus.IDLE,
     });
-    return rows.map((r) => this.toListItem(r));
+    return qb
+      .orderBy('s.createdAt', 'DESC')
+      .skip((page - 1) * pageSize)
+      .take(pageSize)
+      .getMany();
+  }
+
+  /**
+   * 批量取本页会话的报告行 (sessionId → 报告行).
+   *
+   * 按**会话自己的 tenant** 分组: 同一页里可能同时存在 vpt 会话 (tenant 来自 WS 会话)
+   * 与 REST 建的会话 (tenant = userId), 报告行的 tenant 必须跟会话行一致 —— 跟
+   * supervision.service.getSessionReport 的 `row.tenantId` 口径相同.
+   * 分组数是"页内不同 tenant 数" (实际 ≤ 2), 不是"行数" → 仍然是批量, 不是 N+1.
+   *
+   * @param rows 本页会话行
+   * @returns sessionId → 报告行 (无报告的会话不在 Map 里)
+   */
+  private async loadReportsBySessionId(rows: TrainingSession[]): Promise<Map<string, SupervisionReportRow>> {
+    const result = new Map<string, SupervisionReportRow>();
+    const idsByTenant = new Map<string, string[]>();
+    for (const row of rows) {
+      const ids = idsByTenant.get(row.tenantId);
+      if (ids) {
+        ids.push(row.id);
+      } else {
+        idsByTenant.set(row.tenantId, [row.id]);
+      }
+    }
+    for (const [tenantId, sessionIds] of idsByTenant) {
+      const found = await this.reportRepo.findBySessionIds(tenantId, sessionIds);
+      for (const [sessionId, report] of found) {
+        result.set(sessionId, report);
+      }
+    }
+    return result;
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -417,9 +517,19 @@ export class TrainingSessionService {
   /**
    * entity → 列表项 DTO (不含 transcript, 减少流量).
    *
+   * V2026-10-27 治本 (练习历史列表 — 聚合字段):
+   *   原因: 列表项要显示"报告状态 / 总分 / 是否中断", 这些是派生值, 判定统一放
+   *     domain/session-view/session-view.types.ts (纯函数, 可单测).
+   *   修法: 本方法只做"取数 + 填形状", 不做任何状态判定.
+   *   反双胞胎: 不在这里 inline 写 if 判定 (两处口径必然漂移 —— 列表说 pending、
+   *     报告页说 parse_error, 学员看到的是自相矛盾的卡片).
+   *
    * @param row training_sessions 表行
+   * @param report 该会话的报告行 (无报告时为 null)
    */
-  private toListItem(row: TrainingSession): TrainingSessionListItemDto {
+  private toListItem(row: TrainingSession, report: SupervisionReportRow | null): TrainingSessionListItemDto {
+    const turnCount = (row.transcript ?? []).length;
+    const aggregate = resolveSessionListReportAggregate({ report, sessionStatus: row.status });
     return {
       id: row.id,
       scenarioId: row.scenarioId,
@@ -430,10 +540,16 @@ export class TrainingSessionService {
         row.personaComplaint.length > LIST_COMPLAINT_MAX_LEN
           ? `${row.personaComplaint.slice(0, LIST_COMPLAINT_MAX_LEN)}…`
           : row.personaComplaint,
-      turnCount: (row.transcript ?? []).length,
+      turnCount,
       startedAt: row.startedAt,
       endedAt: row.endedAt,
       createdAt: row.createdAt,
+      sessionType: resolveSessionTypeByScenarioId(row.scenarioId, VPT_SCENARIO_ID),
+      reportStatus: aggregate.reportStatus,
+      overallScore: aggregate.overallScore,
+      reportReady: aggregate.reportReady,
+      interrupted: resolveSessionListInterrupted({ status: row.status, startedAt: row.startedAt, turnCount }),
+      durationSeconds: resolveSessionListDurationSeconds(row.startedAt, row.endedAt),
     };
   }
 }

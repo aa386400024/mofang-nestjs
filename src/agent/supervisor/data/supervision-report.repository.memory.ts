@@ -55,6 +55,34 @@ export class SupervisionReportRepositoryMemory implements SupervisionReportRepos
     return row.tenantId === tenantId ? row : null;
   }
 
+  /**
+   * 按一批 sessionId 批量取每个会话的最新一份报告.
+   *
+   * V2026-10-27 治本 (练习历史列表 — 消灭 N+1):
+   *   修法: 内存实现遍历桶过滤, 语义跟真库实现严格一致 (跨租户直接跳过).
+   *
+   * @param tenantId 租户隔离
+   * @param sessionIds 会话 id 列表
+   * @returns sessionId → 报告行
+   */
+  async findBySessionIds(tenantId: string, sessionIds: string[]): Promise<Map<string, SupervisionReportRow>> {
+    const result = new Map<string, SupervisionReportRow>();
+    const wanted = new Set(sessionIds);
+    for (const row of this.bySession.values()) {
+      if (!wanted.has(row.sessionId)) {
+        continue;
+      }
+      // 跨租户隔离校验 (跟 findBySessionId 同口径).
+      if (row.tenantId !== tenantId) {
+        continue;
+      }
+      if (!result.has(row.sessionId)) {
+        result.set(row.sessionId, row);
+      }
+    }
+    return result;
+  }
+
   async listByTenant(tenantId: string, limit?: number): Promise<readonly SupervisionReportRow[]> {
     const effectiveLimit = Math.min(Math.max(limit ?? DEFAULT_LIST_LIMIT, 1), HARD_LIMIT_CAP);
     const all = Array.from(this.bySession.values())

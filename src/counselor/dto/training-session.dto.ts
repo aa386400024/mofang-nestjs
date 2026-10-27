@@ -45,6 +45,12 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+import {
+  SESSION_LIST_REPORT_STATUS_VALUES,
+  SESSION_LIST_TYPE_VALUES,
+  type SessionListReportStatus,
+  type SessionListType,
+} from '../domain/session-view/session-view.types';
 import { ChatRole } from '../enums/chat-role.enum';
 import { DimensionVariance } from '../enums/dimension-variance.enum';
 import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
@@ -298,6 +304,49 @@ export class TrainingSessionListItemDto {
 
   @ApiProperty({ description: '创建时间' })
   createdAt!: Date;
+
+  // ─── V2026-10-27 治本 (练习历史列表 — 聚合字段) ───
+  //   原因: 成长 tab「练习历史」二级页要在一张卡上同时显示"会话类型 / 报告状态 / 总分 /
+  //     是否中断", 而这些**全部是派生值** (库里没有对应列), 之前列表接口一个都不下发,
+  //     前端只能自己猜 (或者干脆不显示) —— 猜出来的状态会跟报告页对不上.
+  //   修法: 列表项在现有字段之后**追加** 4 个派生字段 (规则 A/B/C 的判定集中在
+  //     domain/session-view/session-view.types.ts, 纯函数, 可单测).
+  //   反双胞胎:
+  //     - 不新建独立的 "列表状态" 枚举: 复用既有的 SessionReportStatus 再加 'none' 一档
+  //       (详见 domain/session-view/session-view.types.ts 的说明)
+  //     - 不在本 DTO 里做判定 (纯装饰器类, 无行为): 判定放 domain, DTO 只声明形状
+
+  @ApiProperty({
+    description: '会话类型 (派生: scenarioId == vpt_voice → vpt_voice, 其余 → training_session)',
+    enum: SESSION_LIST_TYPE_VALUES,
+  })
+  sessionType!: SessionListType;
+
+  @ApiProperty({
+    description:
+      '报告状态 (派生: completed = 报告就绪 / pending = 已结束但报告还没生成 / ' +
+      'parse_error = 报告生成失败 / none = 这条会话不会有报告 (未结束或已中断))',
+    enum: SESSION_LIST_REPORT_STATUS_VALUES,
+  })
+  reportStatus!: SessionListReportStatus;
+
+  @ApiProperty({
+    description: '报告总分 0-100 (仅 reportStatus=completed 时有值, 其余一律 null, 绝不补 0)',
+    nullable: true,
+  })
+  overallScore!: number | null;
+
+  @ApiProperty({ description: '报告是否就绪 (= reportStatus === completed)' })
+  reportReady!: boolean;
+
+  @ApiProperty({ description: '是否中断 (开过头没收尾, 前端灰态展示)' })
+  interrupted!: boolean;
+
+  @ApiProperty({
+    description: '会话时长 (秒) — endedAt - startedAt, 后端算好下发; 未结束或缺起点时为 null',
+    nullable: true,
+  })
+  durationSeconds!: number | null;
 }
 
 export class TrainingSessionListQueryDto {
@@ -307,6 +356,16 @@ export class TrainingSessionListQueryDto {
   @MaxLength(50)
   scenarioId?: string;
 
+  @ApiPropertyOptional({
+    description:
+      '按会话类型过滤 (前端分段切换用): vpt_voice = 全真语音, training_session = 单次训练; ' +
+      '不传 = 全部. 内部映射到 scenarioId (表内无独立 type 列)',
+    enum: SESSION_LIST_TYPE_VALUES,
+  })
+  @IsOptional()
+  @IsIn(SESSION_LIST_TYPE_VALUES)
+  sessionType?: SessionListType;
+
   @ApiPropertyOptional({ description: '按状态过滤', enum: TrainingSessionStatus })
   @IsOptional()
   @IsEnum(TrainingSessionStatus)
@@ -314,12 +373,27 @@ export class TrainingSessionListQueryDto {
 
   @ApiPropertyOptional({ description: '页码 (从 1 开始)', default: 1 })
   @IsOptional()
+  // V2026-10-27 治本 (练习历史列表 — 修 query 数字参数被当字符串拒掉):
+  //   原因: 全局 ValidationPipe 只开了 transform + whitelist, **没开** enableImplicitConversion
+  //     (src/app.module.ts:255) → class-transformer 不会把 query 里的 "1" 转成数字,
+  //     于是 @IsInt() 直接 400 ("page must be an integer number").
+  //     前端练习历史页 (GET /counselor/training-sessions?page=1&pageSize=20) 正是这样传的,
+  //     也就是说这个列表端点**当前对前端是 400 的** —— 页面根本拿不到数据.
+  //   修法: 按仓库既有写法 (dto/quote.dto.ts:102, dto/visitor-pool.dto.ts:160 等) 补
+  //     @Type(() => Number), 让 class-transformer 先转类型再校验.
+  //   反双胞胎:
+  //     - 不去改全局 ValidationPipe 开 enableImplicitConversion: 那是全仓 200+ 个 DTO 的
+  //       行为变更 (字符串字段也可能被误转), 影响面远超本单, 属独立改造.
+  //     - 不用 `@Transform(({ value }) => Number(value))`: 仓库既有约定是 @Type(() => Number),
+  //       不引第二种写法.
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   page?: number;
 
   @ApiPropertyOptional({ description: '每页条数 (1-100)', default: 20 })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(100)

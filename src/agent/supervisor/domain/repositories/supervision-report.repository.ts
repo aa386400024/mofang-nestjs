@@ -22,6 +22,25 @@
 
 import type { SupervisionReportRow } from '../../supervisor.types';
 
+// V2026-10-27 治本 (SupervisionReport 仓储 — 补批量查询出口):
+//   原因: 练习历史列表 (`GET /counselor/training-sessions`) 要给每个列表项补
+//     「报告状态 / 总分」两个派生字段, 报告行在 `supervision_reports` 表.
+//     逐行 `findBySessionId` = 一页 20 条发 20 次查询 (N+1), 列表接口直接被
+//     DB 往返拖垮 —— 而这个列表是成长 tab 的首屏, 每次进来都要跑.
+//   修法: 补 `findBySessionIds(tenantId, sessionIds)` —— 一次 `sessionId IN (...)`
+//     批量取回, 按 sessionId 建 Map 返回; 调用方 (列表 service) 先分页查会话行,
+//     收集本页 id, 再一次批量取报告, 然后按 id 查表填聚合字段.
+//   反双胞胎:
+//     - 不在列表 service 里循环调 `findBySessionId`: 那就是 N+1, 治标不治本
+//     - 不给仓储加 "按 userId 查" 的新方法: 报告行的归属靠 tenant 隔离 +
+//       sessionId 白名单 (本单只查当前用户自己分页出来的那批 id), 不需要第二把钥匙
+//     - 不返回数组让调用方自己转 Map: Map 是"按 id 查表"的天然形状, 转换逻辑
+//       收在仓储里一处, 调用方不重复写
+//   验证:
+//     1. tsc 0 错
+//     2. 单元测试: 内存实现 batch 与逐个查结果一致
+//   时间戳: 2026-10-27 09:20 GMT+8
+
 /** 仓储接口契约. */
 export interface SupervisionReportRepository {
   /**
@@ -40,6 +59,17 @@ export interface SupervisionReportRepository {
    * @returns 找不到返回 null
    */
   findBySessionId(tenantId: string, sessionId: string): Promise<SupervisionReportRow | null>;
+
+  /**
+   * 按一批 sessionId 批量取每个会话的最新一份报告.
+   *
+   * V0.x: 内存实现遍历桶过滤; V1.x: `sessionId IN (...) AND tenantId = ?` 一次查询.
+   *
+   * @param tenantId 租户隔离
+   * @param sessionIds 会话 id 列表 (调用方已保证是当前用户自己的会话)
+   * @returns sessionId → 报告行 的映射 (无报告的会话不出现在 Map 里)
+   */
+  findBySessionIds(tenantId: string, sessionIds: string[]): Promise<Map<string, SupervisionReportRow>>;
 
   /**
    * 列租户最近督导报告, 按 createdAt 倒序.

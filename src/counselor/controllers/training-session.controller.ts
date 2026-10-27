@@ -75,9 +75,22 @@ export class CounselorTrainingSessionController {
 
   /**
    * GET /counselor/training-sessions — 我的会话列表.
+   *
+   * V2026-10-27 治本 (练习历史列表): 列表项补 4 个派生字段 (会话类型 / 报告状态 /
+   * 总分 / 是否中断) + 支持 sessionType 过滤; 报告状态用**一次批量查询**取回
+   * (禁止逐行查 → N+1). 判定口径集中在 domain/session-view/session-view.types.ts.
    */
   @Get()
-  @ApiOperation({ summary: '我的训练会话列表 (分页 + 场景/状态过滤)' })
+  @ApiOperation({
+    summary: '我的训练会话列表 (分页 + 场景/状态/会话类型过滤)',
+    description:
+      '列表项在会话基础信息外, 额外给出**派生**的 4 个字段: ' +
+      'sessionType (vpt_voice / training_session) / reportStatus ' +
+      '(completed / pending / parse_error / none) / overallScore (仅 completed 非空) / ' +
+      'interrupted (开过头没收尾). ' +
+      '报告是 BullMQ 异步生成的, 列表只读不触发生成 —— 已结束但报告还没落库时 ' +
+      'reportStatus=pending (重新拉列表会自然变成 completed).',
+  })
   async list(@CurrentUser() user: { userId: string }, @Query() query: TrainingSessionListQueryDto): Promise<TrainingSessionListItemDto[]> {
     return this.service.list(user.userId, query);
   }
