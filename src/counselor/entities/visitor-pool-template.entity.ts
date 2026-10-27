@@ -36,7 +36,7 @@
 //   时间戳: 2026-10-23
 import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
-import { VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH } from '../config/visitor-pool.config';
+import { VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH, VISITOR_POOL_TEMPLATE_VOICE_ID_MAX_LENGTH } from '../config/visitor-pool.config';
 import type { VisitorFullPersonaScript } from '../domain/visitor-persona/visitor-persona.types';
 import type { TrainingDifficulty } from '../enums/training-difficulty.enum';
 import type { VisitorPoolDefenseType, VisitorPoolIssueDomain, VisitorPoolSource } from '../enums/visitor-pool.enum';
@@ -146,6 +146,26 @@ export class VisitorPoolTemplate {
    */
   @Column({ type: 'json' })
   script!: VisitorFullPersonaScript;
+
+  /**
+   * 绑定的系统音色 id (可空).
+   *
+   * V2026-10-27 治本 (来访池 — 公共人物绑定系统音色):
+   *   原因: 6 位官方人物共用 env 同一个音色 → 听不出人物差别; `resolveVoiceId`
+   *     只认「握手 voiceId」, 模板级恒为空, `voice.service.ts#resolveSessionVoice`
+   *     预留的「模板绑定音色」位一直没接通 (表里没有列可存).
+   *   语义: **可空 = 未绑定** → 回退 env 默认音色 (旧行零影响, 老库不需回填).
+   *     非空时也**不保证**可用 —— 账号的可用音色目录是上游运行时事实,
+   *     由 `VoiceCatalogResolver.check()` 三态判定 (available / unavailable / unknown);
+   *     unavailable → warn + 回退 env (不致命断连), unknown → 透传给 TTS 建连归一.
+   *
+   * 反双胞胎:
+   *   - 不落"音色名"列: 上游音色名会变, 只有 id 是稳定契约 (名字由目录代理实时查)
+   *   - 不加索引: 本列不参与任何查询条件 (只在按 id 取模板时随行读出)
+   *   - 不塞进 `script` json: script 是人物**内容**快照, 音色是**技术配置**, 两件事解耦
+   */
+  @Column({ type: 'varchar', length: VISITOR_POOL_TEMPLATE_VOICE_ID_MAX_LENGTH, name: 'voice_id', nullable: true })
+  voiceId!: string | null;
 
   /** 上下架开关: 1 = 已上架 (公共图鉴可见), 0 = 草稿 (仅管理端可见) */
   @Column({ type: 'tinyint', default: 1 })

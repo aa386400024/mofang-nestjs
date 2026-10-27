@@ -516,3 +516,48 @@ export function validateCodenameBank(): string | null {
 
   return null;
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// ⑤ 历史脏代号订正 (V2026-10-27, spec 任务 D2)
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * 历史脏数据形态: 旧版系统前缀 + 代号 (「来访者·晚晴」/「来访者 · 晚晴」).
+ *
+ * 为什么要单独认它: 命名规则早就禁止"系统视角标签"进代号 (`FORBIDDEN_WORDS` 含「来访者」),
+ * 但**历史数据**里存在这种行 —— 早期版本把"系统前缀 + 人物代号"拼在一起当代号用.
+ * 它不是"随机脏串", 而是**前缀污染**: 主体本身往往是好的, 只要剥掉前缀就合规.
+ *
+ * 形态说明: 旧写法里 `·` 两侧的空格不固定 (有的带, 有的不带), 所以用正则兼容两种.
+ */
+const LEGACY_SYSTEM_PREFIX_PATTERN = /^来访者\s*·\s*/;
+
+/**
+ * 把一个不合规代号修成合规代号 (幂等).
+ *
+ * 修法顺序:
+ *   ① 已合规 → 返回 null (调用方据此跳过 → **合规行不被改写**)
+ *   ② 剥掉旧版系统前缀后, 主体合规且未被占用 → 用它 (最小改动, 保住原有人物身份)
+ *   ③ 否则 → 从词库**确定性**取一个未被占用的合规代号 (`composeCodename`)
+ *
+ * 幂等性: 修完的代号必然合规 → 再跑一次返回 null → 不产生二次写入 ✔.
+ * 确定性: `composeCodename(taken)` 对同一 taken 集合给出同一结果 → 可重放 ✔.
+ *
+ * @param current 当前代号 (可能不合规)
+ * @param taken 已被占用的合规代号集合 (修出来的代号不能撞上它们)
+ * @returns 修正后的代号; null = 当前已合规, 无需修改
+ */
+export function resolveCompliantCodename(current: string, taken: ReadonlySet<string>): string | null {
+  if (isAcceptableCodename(current)) {
+    return null;
+  }
+  // 前缀污染: 剥掉旧版前缀后主体本身合规且没被占用 → 最小改动修正.
+  const stripped = current.replace(LEGACY_SYSTEM_PREFIX_PATTERN, '').trim();
+  if (stripped.length > 0 && isAcceptableCodename(stripped) && !taken.has(stripped)) {
+    return stripped;
+  }
+  // 其余不合规形态 (姓氏首字 / 强性别字 / 性格评价字 / 长度超限 …):
+  //   从词库确定性取一个未占用的合规代号 —— 不硬改原文 (改出来的名字多半还是不像人名).
+  const composed = composeCodename(taken);
+  return composed === current ? null : composed;
+}

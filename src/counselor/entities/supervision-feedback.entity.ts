@@ -39,13 +39,38 @@ import { SessionType } from '../enums/session-type.enum';
 import { SupervisionFailureCode } from '../enums/supervision-failure-code.enum';
 
 /**
+ * 一条替代回应 (V2026-10-27, spec 任务 C).
+ *
+ * `comment` 是**点评** (对这句的技术评价), 不等于"这句当时可以怎么说"——
+ * 后者才是学员真正想学的**可照说**的示范, 所以单列一个结构.
+ */
+export interface SupervisionAlternative {
+  /** 咨询师原句 (回指被改进的那句). */
+  original: string;
+  /** 一句更合适的替代回应 (**可直接说出口**的完整回应, 不是技术名词). */
+  suggested: string;
+  /** 为什么这样更好 (1 句). */
+  why: string;
+}
+
+/**
  * 单次督导反馈结构 (feedback json 字段 1:1 对应 counselor-mode-v1.0 §6.2).
  */
 export interface SupervisionFeedbackPayload {
   /** 整体评分 0-100 */
   overallScore: number;
-  /** 逐句标注 (sentence + score + comment) */
-  perSentence: { sentence: string; score: number; comment: string }[];
+  /**
+   * 逐句标注 (V2026-10-27 治本: 项内新增 alternatives, spec 任务 C).
+   *
+   * `alternatives` 是**可选**字段 (老行没有这个键 = 未提供):
+   * 缺失 / 非法一律容错成空数组 (C2), 不让整条反馈 parse 失败.
+   */
+  perSentence: {
+    sentence: string;
+    score: number;
+    comment: string;
+    alternatives?: SupervisionAlternative[];
+  }[];
   /** 错误分类汇总 (e.g. ['打断', '给建议', '过早诊断']) */
   errorCategories: string[];
   /** 成长建议 (1-3 短句) */

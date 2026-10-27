@@ -224,10 +224,11 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
     const preset = resolveVoicePreset(handshake, channel.kind === 'template' ? channel.summary : null);
     data.preset = preset;
 
-    // 3. 音色校验 (V2026-10-26, spec §任务 1):
-    //   握手带了 voiceId 但不在账号可用系统音色内 → 丢弃它 (回退 env 默认) + warn 日志.
+    // 3. 音色校验 (V2026-10-26, spec §任务 1; V2026-10-27 治本: 补「模板绑定音色」优先级):
+    //   优先级: 握手 voiceId > 模板绑定音色 > env 默认.
+    //   握手带了 voiceId 但不在账号可用系统音色内 → 丢弃它 (回退**下一级**) + warn 日志.
     //   **不致命断连** —— 判不出来 (上游故障) 时也不拦, 交给 TTS 建连阶段归一为 error.
-    data.voiceId = await this.resolveVoiceId(handshake.voiceId);
+    data.voiceId = await this.resolveVoiceId(handshake.voiceId, this.resolveTemplateVoiceId(channel));
     data.skillCode = handshake.skillCode;
 
     // 4. 会话落库 + 登记 WS 帧出口
@@ -555,35 +556,86 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
   }
 
   /**
-   * 判定握手传入的音色能不能用 (V2026-10-26, spec §任务 1).
+   * 判定本场用哪个音色 (V2026-10-27 治本: 补「模板绑定音色」优先级).
    *
-   * 需求原文: 「传入但不在账号可用系统音色内 → 回退 env 默认 + warn 日志, **不致命断连**;
-   * 真正的 1004/2013 留到 TTS 建连阶段归一为 error」.
+   * 优先级链 (任务单 A3):
+   *   1. **握手 voiceId** (用户显式选择) —— 优先级最高, 但仍要过账号可用音色目录校验
+   *   2. **模板绑定音色** (公共人物各配一个音色, 避免 6 个人物共用 env 同一把嗓子)
+   *   3. **env 默认** (`MINIMAX_TTS_VOICE_ID`)
    *
-   * 三态处理:
+   * 三态处理 (与改前一致, 只是多了一个候选):
    * - `available`   → 用它
-   * - `unavailable` → 丢弃 (回退 env 默认) + warn
+   * - `unavailable` → 丢弃 (回退**下一级**) + warn
    * - `unknown`     → **不拦截**, 继续传下去让 TTS 建连阶段报错 (上游 2013 会归一为 error).
    *   不能在这里当 "unavailable" 处理 —— 上游挂掉时把合法音色误回退成默认音色,
    *   用户选了 A 却听到 B, 且**没有任何报错**, 比直接失败更糟.
    *
+   * 反双胞胎:
+   * - 不把「模板音色」当成强约束: 它绑不上 / 不可用时回退 env, **不致命断连**
+   *   (老行 voice_id 为 NULL 时行为与改前完全一致)
+   * - 不用「握手传了就一定用它」: 握手音色同样要过目录校验, 不可用时才有 warn + 回退
+   *
    * @param requested 握手传入的 voice_id (undefined = 未传)
+   * @param templateVoiceId 模板绑定音色 (undefined = 该人物未绑定)
    * @returns 本场生效的 voice_id; undefined = 走 env 默认
    */
-  private async resolveVoiceId(requested: string | undefined): Promise<string | undefined> {
-    if (!requested) {
-      return undefined;
+  private async resolveVoiceId(requested: string | undefined, templateVoiceId: string | undefined): Promise<string | undefined> {
+    // 1. 握手显式传了 → 以用户选择为准 (不可用时才落到模板).
+    if (requested) {
+      const resolved = await this.resolveCandidateVoiceId(requested, 'handshake');
+      if (resolved !== undefined) {
+        return resolved;
+      }
     }
-    const availability = await this.catalog.check(requested);
+    // 2. 模板绑定音色 (公共人物各配一个, 声线不再千篇一律).
+    if (templateVoiceId) {
+      const resolved = await this.resolveCandidateVoiceId(templateVoiceId, 'template');
+      if (resolved !== undefined) {
+        return resolved;
+      }
+    }
+    // 3. env 默认.
+    return undefined;
+  }
+
+  /**
+   * 判定单个候选音色能不能用 (三态, 与改前语义一致).
+   *
+   * @param candidate 候选 voice_id
+   * @param source 候选来源 (日志用: handshake = 用户选的 / template = 人物绑定的)
+   * @returns 该候选可用则返回它; 不可用则 undefined (调用方回退下一级)
+   */
+  private async resolveCandidateVoiceId(candidate: string, source: 'handshake' | 'template'): Promise<string | undefined> {
+    const availability = await this.catalog.check(candidate);
     if (availability === 'available') {
-      return requested;
+      return candidate;
     }
     if (availability === 'unavailable') {
-      this.logger.warn(`[onConnect] voice not available, fallback to env default: ${requested.slice(0, 64)}`);
+      this.logger.warn(`[onConnect] ${source} voice not available, fallback: ${candidate.slice(0, 64)}`);
       return undefined;
     }
-    this.logger.warn(`[onConnect] voice availability unknown, pass through to TTS: ${requested.slice(0, 64)}`);
-    return requested;
+    this.logger.warn(`[onConnect] ${source} voice availability unknown, pass through to TTS: ${candidate.slice(0, 64)}`);
+    return candidate;
+  }
+
+  /**
+   * 从角色来源通道取模板绑定音色 (V2026-10-27 治本).
+   *
+   * 只在 `kind === 'template'` 时有 (兜底通道没有模板); 摘要缺失 / 未绑定 / 空串 → undefined.
+   *
+   * @param channel 角色来源通道
+   * @returns 模板绑定的 voice_id (undefined = 未绑定)
+   */
+  private resolveTemplateVoiceId(channel: VoicePersonaChannel): string | undefined {
+    if (channel.kind !== 'template') {
+      return undefined;
+    }
+    const voiceId = channel.summary?.voiceId;
+    if (typeof voiceId !== 'string') {
+      return undefined;
+    }
+    const trimmed = voiceId.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
   }
 
   /**

@@ -110,5 +110,9 @@ export { AddSupervisionReports1714900000020 } from './1714900000020-AddSupervisi
 //   006 建表但漏播种, 导致流派 job 报「督导流派 cbt 不存在」+ tech_stats 永远为空.
 //   内容直接 import SUPERVISION_SCHOOL_PRESETS, ON DUPLICATE KEY UPDATE 幂等 upsert.
 export { SeedSupervisionSchools1714900000021 } from './1714900000021-SeedSupervisionSchools';
+// V2026-10-27 治本 (来访池 — 公共人物绑定系统音色):
+//   visitor_pool_templates 加 1 个可空列 voice_id (未绑定 = 回退 env 默认, 旧行零影响).
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
+export { AddVisitorPoolTemplateVoiceId1714900000022 } from './1714900000022-AddVisitorPoolTemplateVoiceId';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

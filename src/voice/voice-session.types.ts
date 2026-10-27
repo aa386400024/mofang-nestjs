@@ -164,6 +164,18 @@ export interface VoiceTemplateSummary {
    * 跨模块只传**已映射好的标签**, 不传风险等级原始值.
    */
   readonly riskTags: readonly string[];
+
+  /**
+   * 模板绑定的系统音色 id (可空) — V2026-10-27 (来访池 — 公共人物绑定系统音色).
+   *
+   * 语义: null / 缺省 = 该人物**未绑定**音色 → 网关回退 env 默认音色.
+   * 非空 = 网关在握手没传 voiceId 时用它 (仍要过账号可用音色目录的三态校验:
+   * unavailable → warn + 回退 env; unknown → 透传给 TTS 建连归一).
+   *
+   * **可选**字段 (不是必填): voice 层不认识 counselor 的模板表, 它只声明
+   * "摘要里可能有这么个字段"; 缺省等价于 null (向后兼容, 不破坏既有构造点).
+   */
+  readonly voiceId?: string | null;
 }
 
 /**

@@ -35,7 +35,7 @@
 //
 //   时间戳: 2026-10-23
 import { isAcceptableCodename, isInCodenameBank } from './visitor-pool-codename';
-import { VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH } from './visitor-pool.config';
+import { VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH, VISITOR_POOL_TEMPLATE_VOICE_ID_MAX_LENGTH } from './visitor-pool.config';
 import type { VisitorFullPersonaScript } from '../domain/visitor-persona/visitor-persona.types';
 import { TrainingDifficulty } from '../enums/training-difficulty.enum';
 import { VisitorPoolDefenseType, VisitorPoolIssueDomain } from '../enums/visitor-pool.enum';
@@ -71,6 +71,25 @@ export interface VisitorPoolTemplateSeed {
   readonly defenseLevelDefault: number;
   /** 图鉴排序 (小的在前) */
   readonly sortOrder: number;
+  /**
+   * 绑定的系统音色 id (可空; 缺省 = 未绑定 → 回退 env 默认).
+   *
+   * V2026-10-27 治本 (来访池 — 公共人物绑定系统音色):
+   *   6 位官方人物共用 env 同一个音色 → 学员听不出人物差别. 本字段让每个人物有自己的声线.
+   *
+   * 选音色的口径 (与化名规则同源): **只按性别 + 第一印象不打架**选,
+   * **不按性格/名字寓意配音色** (名字自带寓意, 按寓意配 = 用声音剧透设定).
+   *
+   * id 来源与核对: 取自官方「系统音色列表」的中文音色命名; 账号实际可用列表以
+   *   `GET /counselor/voices?type=system` 为准 —— **上线前请核对一遍**:
+   *   若某个 id 不在账号可用目录内, 网关会 warn + 回退 env 默认音色 (不致命断连),
+   *   日志里的 `[onConnect] template voice not available` 会直接点名是哪个 id,
+   *   按目录里的真实 id 改这里即可 (改完重跑 seed, hasDrift 会触发 UPDATE).
+   *
+   * 留 null = 未绑定 (回退 env, 与改前行为一致) —— 目录里挑不出合适音色时就这么办,
+   * **不硬塞**: 绑一个性别/气质对不上的音色, 比不绑更糟.
+   */
+  readonly voiceId?: string | null;
   /** 7 大块全量剧本 (公共接口不下发) */
   readonly script: VisitorFullPersonaScript;
 }
@@ -93,6 +112,7 @@ export const VISITOR_POOL_TEMPLATE_SEEDS: readonly VisitorPoolTemplateSeed[] = [
     emotionBaselineDefault: 0.35,
     defenseLevelDefault: 0.2,
     sortOrder: 10,
+    voiceId: 'Chinese (Mandarin)_Warm_Girl',
     script: {
       basics: {
         age: 31,
@@ -200,6 +220,7 @@ export const VISITOR_POOL_TEMPLATE_SEEDS: readonly VisitorPoolTemplateSeed[] = [
     emotionBaselineDefault: 0.3,
     defenseLevelDefault: 0.25,
     sortOrder: 20,
+    voiceId: 'Chinese (Mandarin)_Gentleman',
     script: {
       basics: {
         age: 35,
@@ -307,6 +328,7 @@ export const VISITOR_POOL_TEMPLATE_SEEDS: readonly VisitorPoolTemplateSeed[] = [
     emotionBaselineDefault: 0.4,
     defenseLevelDefault: 0.3,
     sortOrder: 30,
+    voiceId: 'Chinese (Mandarin)_Mature_Woman',
     script: {
       basics: {
         age: 41,
@@ -414,6 +436,7 @@ export const VISITOR_POOL_TEMPLATE_SEEDS: readonly VisitorPoolTemplateSeed[] = [
     emotionBaselineDefault: 0.4,
     defenseLevelDefault: 0.25,
     sortOrder: 40,
+    voiceId: 'Chinese (Mandarin)_Sincere_Teacher',
     script: {
       basics: {
         age: 52,
@@ -521,6 +544,7 @@ export const VISITOR_POOL_TEMPLATE_SEEDS: readonly VisitorPoolTemplateSeed[] = [
     emotionBaselineDefault: 0.35,
     defenseLevelDefault: 0.2,
     sortOrder: 50,
+    voiceId: 'Chinese (Mandarin)_Lyrical_Voice',
     script: {
       basics: {
         age: 27,
@@ -628,6 +652,7 @@ export const VISITOR_POOL_TEMPLATE_SEEDS: readonly VisitorPoolTemplateSeed[] = [
     emotionBaselineDefault: 0.45,
     defenseLevelDefault: 0.3,
     sortOrder: 60,
+    voiceId: 'Chinese (Mandarin)_News_Anchor',
     script: {
       basics: {
         age: 22,
@@ -786,7 +811,39 @@ function checkSeed(seed: VisitorPoolTemplateSeed, state: SeedScanState): string 
   if (codenameError !== null) {
     return codenameError;
   }
+  const voiceIdError = checkSeedVoiceId(seed);
+  if (voiceIdError !== null) {
+    return voiceIdError;
+  }
   return checkSeedScript(seed);
+}
+
+/**
+ * 绑定音色的形态 / 列宽校验 (V2026-10-27 治本, 来访池 — 公共人物绑定系统音色).
+ *
+ * 校验什么 (只查**能在本地判**的, 账号可用性是上游运行时事实, 归网关的三态判定):
+ * - 缺省 / null = 未绑定 (合法, 回退 env 默认)
+ * - 非空 → 必须是**非空白字符串** (纯空白 / 前后空白都要挑出来)
+ * - 长度 ≤ 列宽上限 (`voice_id VARCHAR(64)`) —— 超长在灌库时才炸, 提前拦
+ *
+ * @param seed 待检 seed
+ * @returns 合法返回 null; 否则返回原因
+ */
+function checkSeedVoiceId(seed: VisitorPoolTemplateSeed): string | null {
+  const voiceId = seed.voiceId;
+  if (voiceId === undefined || voiceId === null) {
+    return null;
+  }
+  if (typeof voiceId !== 'string' || voiceId.trim().length === 0) {
+    return `模板 ${seed.id} 的 voiceId 非法 (未绑定请写 null, 不要写空串)`;
+  }
+  if (voiceId.length > VISITOR_POOL_TEMPLATE_VOICE_ID_MAX_LENGTH) {
+    return (
+      `模板 ${seed.id} 的 voiceId 超长 (${voiceId.length} 字符, 上限 ${VISITOR_POOL_TEMPLATE_VOICE_ID_MAX_LENGTH}) —— ` +
+      '音色 id 取自官方系统音色列表, 请核对 GET /counselor/voices?type=system 的真实值'
+    );
+  }
+  return null;
 }
 
 /**

@@ -80,6 +80,23 @@ export class SupervisionSchoolDetailDto extends SupervisionSchoolListItemDto {
 // 督导反馈结果 (4 字段结构化, 跟 entity.feedback 1:1)
 // ════════════════════════════════════════════════════════════════════════════
 
+/**
+ * 一条替代回应 (V2026-10-27, spec 任务 C).
+ *
+ * `comment` 是**点评** (对这句的技术评价), 不等于"这句当时可以怎么说" ——
+ * 后者才是学员真正想学的**可照说**的示范.
+ */
+export class SupervisionAlternativeDto {
+  @ApiProperty({ description: '咨询师原句 (回指被改进的那句)' })
+  original!: string;
+
+  @ApiProperty({ description: '一句更合适的替代回应 (可直接说出口的完整回应, 不是技术名词)' })
+  suggested!: string;
+
+  @ApiProperty({ description: '为什么这样更好 (1 句)' })
+  why!: string;
+}
+
 export class SupervisionPerSentenceDto {
   @ApiProperty({ description: '原句文本' })
   sentence!: string;
@@ -89,6 +106,14 @@ export class SupervisionPerSentenceDto {
 
   @ApiProperty({ description: '1-2 句点评' })
   comment!: string;
+
+  @ApiProperty({
+    description:
+      '关键句的替代回应 (恒为数组, 无则空数组; 模型漏给/给非法一律容错成空). ' +
+      '前端本期不渲染, 先落库. (补齐: 模型输出里 alternatives 是可选字段, 缺失不报错)',
+    type: [SupervisionAlternativeDto],
+  })
+  alternatives!: SupervisionAlternativeDto[];
 }
 
 export class SupervisionFeedbackDto {

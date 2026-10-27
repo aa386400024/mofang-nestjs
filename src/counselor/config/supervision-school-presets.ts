@@ -93,8 +93,9 @@ export const SUPERVISION_SCHOOL_PRESETS: Record<SupervisionSchoolCode, Supervisi
 5. 逐句标注关键对话 (sentence + score + comment)
 6. 错误分类: ['打断', '过早诊断', '未追踪自动思维', '作业模糊']
 7. 1-3 句成长建议 (e.g. 下次优先用苏格拉底式提问替代直接建议)
+8. 对值得改进的关键句, 给一条更合适的替代回应并说明理由 (suggested 必须是能直接说出口的完整回应, 不是技术名词)
 
-输出结构: overallScore + perSentence + errorCategories + growthSuggestion`,
+输出结构: overallScore + perSentence (含 alternatives) + errorCategories + growthSuggestion`,
   },
 
   // 家庭治疗督导 — 家庭结构 / 边界 / 三角关系 / 代际模式
@@ -126,8 +127,9 @@ export const SUPERVISION_SCHOOL_PRESETS: Record<SupervisionSchoolCode, Supervisi
 5. 逐句标注家庭互动关键节点 (sentence + score + comment)
 6. 错误分类: ['漏听家庭成员', '偏袒', '未识别三角关系', '边界模糊']
 7. 1-3 句成长建议 (e.g. 下次画家谱图辅助, 邀请缺席成员参与)
+8. 对值得改进的关键句, 给一条更合适的替代回应并说明理由 (suggested 必须是能直接说出口的完整回应, 不是技术名词)
 
-输出结构: overallScore + perSentence + errorCategories + growthSuggestion`,
+输出结构: overallScore + perSentence (含 alternatives) + errorCategories + growthSuggestion`,
   },
 
   // 人本督导 — 共情一致性 / 无条件积极关注 / 真诚
@@ -159,8 +161,9 @@ export const SUPERVISION_SCHOOL_PRESETS: Record<SupervisionSchoolCode, Supervisi
 5. 逐句标注情感确认时刻 (sentence + score + comment)
 6. 错误分类: ['技术化', '过早建议', '情感确认不足', '抢话']
 7. 1-3 句成长建议 (e.g. 下次多用情感反映, 减少开放式提问)
+8. 对值得改进的关键句, 给一条更合适的替代回应并说明理由 (suggested 必须是能直接说出口的完整回应, 不是技术名词)
 
-输出结构: overallScore + perSentence + errorCategories + growthSuggestion`,
+输出结构: overallScore + perSentence (含 alternatives) + errorCategories + growthSuggestion`,
   },
 
   // 精神动力学督导 — 移情 / 反移情 / 防御机制 / 早期关系模式
@@ -193,7 +196,8 @@ export const SUPERVISION_SCHOOL_PRESETS: Record<SupervisionSchoolCode, Supervisi
 6. 逐句标注深层动力 (sentence + score + comment)
 7. 错误分类: ['回避核心冲突', '未识别移情', '未觉察反移情', '过度技术化']
 8. 1-3 句成长建议 (e.g. 下次多倾听沉默, 留意自身情绪反应)
+9. 对值得改进的关键句, 给一条更合适的替代回应并说明理由 (suggested 必须是能直接说出口的完整回应, 不是技术名词)
 
-输出结构: overallScore + perSentence + errorCategories + growthSuggestion`,
+输出结构: overallScore + perSentence (含 alternatives) + errorCategories + growthSuggestion`,
   },
 };

@@ -111,13 +111,14 @@ import {
   type GenerateSupervisionFeedbackDto,
   type SessionReportDto,
   type SupervisionFeedbackDto,
+  type SupervisionPerSentenceDto,
   type SupervisionReportAnnotationDto,
   type SupervisionReportDimensionsDto,
   type SupervisionSchoolDetailDto,
   type SupervisionSchoolListItemDto,
 } from '../dto/supervision.dto';
 import { LongTermCaseSession } from '../entities/long-term-case-session.entity';
-import { SupervisionFeedback, type SupervisionFeedbackPayload } from '../entities/supervision-feedback.entity';
+import { SupervisionFeedback, type SupervisionAlternative, type SupervisionFeedbackPayload } from '../entities/supervision-feedback.entity';
 import { SupervisionSchool } from '../entities/supervision-school.entity';
 import { TrainingSession } from '../entities/training-session.entity';
 import { SessionType } from '../enums/session-type.enum';
@@ -133,7 +134,10 @@ import { TrainingSessionStatus } from '../enums/training-session-status.enum';
 const SUPERVISION_SCHEMA_DESCRIPTION = `输出 JSON 结构 (必须严格符合, 字段名不可改):
 {
   "overallScore": 0-100 的整数,
-  "perSentence": [{ "sentence": "咨询师原句", "score": 0-100 的整数, "comment": "1-2 句点评" }],
+  "perSentence": [{
+    "sentence": "咨询师原句", "score": 0-100 的整数, "comment": "1-2 句点评",
+    "alternatives": [{ "original": "咨询师原句", "suggested": "一句更合适的替代回应", "why": "为什么这样更好(1句)" }]
+  }],
   "errorCategories": ["问题分类 1", "问题分类 2"],
   "growthSuggestion": "1-3 句成长建议",
   "techStats": {
@@ -146,12 +150,88 @@ const SUPERVISION_SCHEMA_DESCRIPTION = `输出 JSON 结构 (必须严格符合, 
 要求: perSentence 最多 8 条, 优先标注最有教学价值的咨询师发言; errorCategories 最多 5 个,
 无明显问题可给空数组; growthSuggestion 必须是可执行的下次具体做法, 不要泛泛而谈.
 
+alternatives (V2026-10-27, spec 任务 C):
+- 只对**值得改进**的句给 (1-2 条); 已经做得好的句给空数组, 不要硬造;
+- suggested 必须是**能直接说出口的完整回应** (学员能照着念), 不是技术名词 (如"建议使用反映技术");
+- why 一句话说明为什么更好, 不要写原理长文;
+- 拿不准就留空数组: 空数组是合法输出, 硬造的替代回应比没有更危险 (学员会照着说).
+
 techStats 是会谈技术统计仪表盘的原始数据 (spec §6.3):
 - questionTypes: 开放式 / 封闭式 / 半开放式提问的**次数**
 - interventions: 共情/释义/总结/面质/解释/建议 各自**次数**
 - behavior: 打断来访次数 / 沉默总时长(毫秒) / 议题跳转次数
 - commentary: 一句话点评技术统计里最值得注意的倾向
 只统计逐字稿里**真实出现**的, 不要推测; 没把握就填 0.`;
+
+/**
+ * 替代回应条数上限 (V2026-10-27, spec 任务 C: "只对值得改进的句给, 1-2 条").
+ */
+const ALTERNATIVES_MAX_COUNT = 2;
+
+/**
+ * `suggested` 长度上限 (字).
+ *
+ * 为什么要限长: 替代回应是**能直接说出口**的完整回应 —— 一句话的量级;
+ * 写成小作文说明"为什么", 就跑偏成 `comment` 了.
+ */
+const ALTERNATIVE_SUGGESTED_MAX_LENGTH = 80;
+
+/**
+ * `why` 长度上限 (字).
+ *
+ * 理由只要 1 句 (为什么不这样更好), 不写原理长文.
+ */
+const ALTERNATIVE_WHY_MAX_LENGTH = 40;
+
+/**
+ * 解析逐句标注里的替代回应 (V2026-10-27, spec 任务 C2).
+ *
+ * 容错口径 (**不得因 alternatives 丢整条反馈**):
+ * - 缺失 / 非法 / 非数组 → 空数组 (不是 null!)
+ * - 逐条: 不是对象 / `suggested` 或 `why` 不是字符串 / trim 后为空 / 超长
+ *   → **丢弃这一条**, 其余保留 (不整条丢弃)
+ *
+ * 为什么这么宽容: 替代回应是"加分项", 它畸形不该把主产物 (逐句点评 + 总分) 一起丢掉 ——
+ * 学员宁可少看一条示范, 也不能看不到这次会谈的点评.
+ *
+ * @param raw 原始值 (可能是 undefined / 非数组 / 任意结构)
+ * @returns 合法替代回应 (永不为 null)
+ */
+export function parseAlternatives(raw: unknown): SupervisionAlternative[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  const result: SupervisionAlternative[] = [];
+  for (const item of raw) {
+    if (typeof item !== 'object' || item === null) {
+      continue;
+    }
+    const obj = item as Record<string, unknown>;
+    const suggested = obj['suggested'];
+    const why = obj['why'];
+    if (typeof suggested !== 'string' || typeof why !== 'string') {
+      continue;
+    }
+    const trimmedSuggested = suggested.trim();
+    const trimmedWhy = why.trim();
+    if (trimmedSuggested.length === 0 || trimmedWhy.length === 0) {
+      continue;
+    }
+    if (trimmedSuggested.length > ALTERNATIVE_SUGGESTED_MAX_LENGTH || trimmedWhy.length > ALTERNATIVE_WHY_MAX_LENGTH) {
+      continue;
+    }
+    const original = obj['original'];
+    result.push({
+      original: typeof original === 'string' ? original.trim() : '',
+      suggested: trimmedSuggested,
+      why: trimmedWhy,
+    });
+    if (result.length >= ALTERNATIVES_MAX_COUNT) {
+      break;
+    }
+  }
+  return result;
+}
 
 /**
  * 校验 LLM 输出的 4 字段 payload.
@@ -211,6 +291,10 @@ export function validateSupervisionPayload(raw: unknown): SupervisionFeedbackPay
       sentence,
       score: Math.min(100, Math.max(0, Math.round(score))),
       comment,
+      // V2026-10-27 治本 (spec 任务 C2 — alternatives 容错):
+      //   缺失 / 非法 / 非数组 一律空数组, **不**让整条反馈 parse 失败 ——
+      //   替代回应是"加分项", 它畸形不该把主产物 (逐句点评) 一起丢掉.
+      alternatives: parseAlternatives(turn['alternatives']),
     });
   }
 
@@ -466,7 +550,9 @@ export class SupervisionService {
     // 6. 返 4 字段结构化 feedback (跟 DTO 1:1)
     return {
       overallScore: feedback.overallScore,
-      perSentence: feedback.perSentence,
+      // V2026-10-27 治本 (spec 任务 C3): 走同一个 mapper —— payload 的 alternatives 是
+      //   可选字段 (可能 undefined), DTO 承诺恒为数组 (老行也补 []).
+      perSentence: this.toPerSentenceDto(feedback.perSentence),
       errorCategories: feedback.errorCategories,
       growthSuggestion: feedback.growthSuggestion,
     };
@@ -541,7 +627,7 @@ export class SupervisionService {
       .filter((r) => toSupervisionFailureCode(r.feedback?.failureCode) === null)
       .map((r) => ({
         overallScore: r.feedback.overallScore,
-        perSentence: r.feedback.perSentence,
+        perSentence: this.toPerSentenceDto(r.feedback.perSentence),
         errorCategories: r.feedback.errorCategories,
         growthSuggestion: r.feedback.growthSuggestion,
       }));
@@ -886,7 +972,7 @@ export class SupervisionService {
       }
       result[code] = {
         overallScore: row.feedback.overallScore,
-        perSentence: row.feedback.perSentence,
+        perSentence: this.toPerSentenceDto(row.feedback.perSentence),
         errorCategories: row.feedback.errorCategories,
         growthSuggestion: row.feedback.growthSuggestion,
       };
@@ -894,6 +980,29 @@ export class SupervisionService {
     // 会话级反馈状态: 判定收在 domain (`resolveSchoolFeedbackState`) —— 列表与详情共用一份,
     // 不各写一遍"选默认流派 / 取码序最前" (两份判定必然漂移).
     return { feedbackBySchool: result, state: resolveSchoolFeedbackState(feedbackRows) };
+  }
+
+  /**
+   * 逐句标注 → DTO (V2026-10-27 治本, spec 任务 C3).
+   *
+   * 为什么显式映射 (不直接透传 payload):
+   *   payload 的 `alternatives` 是**可选**字段 (老行没这个键), 而 DTO 承诺恒为数组 ——
+   *   显式映射时统一补成 [] (老行也返空数组), 前端不用判 undefined / null.
+   *
+   * @param rows payload 里的逐句标注
+   * @returns DTO 列表
+   */
+  private toPerSentenceDto(rows: SupervisionFeedbackPayload['perSentence']): SupervisionPerSentenceDto[] {
+    return rows.map((row) => ({
+      sentence: row.sentence,
+      score: row.score,
+      comment: row.comment,
+      alternatives: (row.alternatives ?? []).map((alternative) => ({
+        original: alternative.original,
+        suggested: alternative.suggested,
+        why: alternative.why,
+      })),
+    }));
   }
 
   /**

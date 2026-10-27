@@ -26,8 +26,9 @@
 //     3. 改某条 presentingComplaint 后重跑 seed → 该行被更新而非新增
 //
 //   时间戳: 2026-10-23
-import type { DataSource } from 'typeorm';
+import { IsNull, type DataSource } from 'typeorm';
 
+import { isAcceptableCodename, resolveCompliantCodename } from '../config/visitor-pool-codename';
 import { VISITOR_POOL_TEMPLATE_SEEDS, type VisitorPoolTemplateSeed } from '../config/visitor-pool-seed';
 import { VisitorPoolTemplate } from '../entities/visitor-pool-template.entity';
 import { VisitorPoolSource } from '../enums/visitor-pool.enum';
@@ -74,6 +75,51 @@ export async function seedVisitorPoolTemplates(dataSource: DataSource): Promise<
 }
 
 /**
+ * 幂等订正历史脏代号 (V2026-10-27, spec 任务 D2).
+ *
+ * 为什么要单独做一遍:
+ *   6 位官方人物的代号由 seed 基线保证合规, 但库里还有**历史 AI 生成行**
+ *   (§3.5 生成端点) —— 它们的代号可能带旧版系统前缀 (「来访者·X」) 或其它违规形态,
+ *   而 seed 的 upsert 只覆盖那 6 条, 碰不到它们.
+ *
+ * 幂等性:
+ *   - 合规行 → `resolveCompliantCodename` 返回 null → **不改写** (跑两次结果一致)
+ *   - 修正过的行 → 变成合规 → 下次跑同样返回 null → 不重复写
+ *
+ * 确定性: 按 id 排序后逐条修正, 且 `composeCodename(taken)` 对同一 taken 集合可重放 ——
+ *   同样的库内容, 两次订正得到同样的结果 (可审计).
+ *
+ * @param dataSource 应用 DataSource
+ * @returns 扫描数 / 修正数
+ */
+export async function correctVisitorPoolCodenames(dataSource: DataSource): Promise<{ scanned: number; corrected: number }> {
+  const repo = dataSource.getRepository(VisitorPoolTemplate);
+  const rows = await repo.find({ where: { deletedAt: IsNull() } });
+  // 已占用的**合规**代号 (脏行本身不算占用 —— 它们马上就要被改掉).
+  const taken = new Set<string>();
+  for (const row of rows) {
+    if (isAcceptableCodename(row.codename)) {
+      taken.add(row.codename);
+    }
+  }
+  let corrected = 0;
+  // 按 id 排序 → 修正顺序确定 (可重放 / 可审计).
+  // 用 toSorted 而不是 sort: sort 会**就地改** rows 的顺序, 而 rows 后面还要用;
+  // toSorted 返回新数组 (ES2023, Node ≥20 / 本仓 engines >=24).
+  const ordered = rows.toSorted((a, b) => a.id.localeCompare(b.id));
+  for (const row of ordered) {
+    const next = resolveCompliantCodename(row.codename, taken);
+    if (next === null) {
+      continue;
+    }
+    taken.add(next);
+    await repo.update(row.id, { codename: next });
+    corrected += 1;
+  }
+  return { scanned: rows.length, corrected };
+}
+
+/**
  * seed → entity payload.
  */
 function toEntityPayload(seed: VisitorPoolTemplateSeed) {
@@ -92,6 +138,9 @@ function toEntityPayload(seed: VisitorPoolTemplateSeed) {
     defenseLevelDefault: seed.defenseLevelDefault,
     script: seed.script,
     sortOrder: seed.sortOrder,
+    // V2026-10-27 治本 (来访池 — 公共人物绑定系统音色):
+    //   null = 未绑定 (回退 env 默认). 这里必须显式带上, 否则改了 seed 的音色不会触发 UPDATE.
+    voiceId: seed.voiceId ?? null,
     deletedAt: null,
   };
 }
@@ -118,6 +167,7 @@ function hasDrift(
     defenseLevelDefault: number;
     script: unknown;
     sortOrder: number;
+    voiceId: string | null;
   },
 ): boolean {
   return (
@@ -133,6 +183,9 @@ function hasDrift(
     row.emotionBaselineDefault !== payload.emotionBaselineDefault ||
     row.defenseLevelDefault !== payload.defenseLevelDefault ||
     row.sortOrder !== payload.sortOrder ||
+    // V2026-10-27 治本 (公共人物绑定系统音色): 音色也参与漂移判定 ——
+    //   否则改了 seed 的音色不会触发 UPDATE, 库里留着旧音色.
+    row.voiceId !== payload.voiceId ||
     JSON.stringify(row.script) !== JSON.stringify(payload.script)
   );
 }

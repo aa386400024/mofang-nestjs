@@ -31,7 +31,7 @@ import { DataSource, type DataSourceOptions } from 'typeorm';
 import { configuration } from '../src/config/configuration';
 import { VISITOR_POOL_TEMPLATE_SEEDS, validateVisitorPoolTemplateSeeds } from '../src/counselor/config/visitor-pool-seed';
 import { VisitorPoolTemplate } from '../src/counselor/entities/visitor-pool-template.entity';
-import { seedVisitorPoolTemplates } from '../src/counselor/seeds/visitor-pool-templates.seed';
+import { seedVisitorPoolTemplates, correctVisitorPoolCodenames } from '../src/counselor/seeds/visitor-pool-templates.seed';
 
 type DbConfig = DataSourceOptions & { autoLoadEntities?: boolean };
 
@@ -87,6 +87,11 @@ async function main(): Promise<void> {
     process.stdout.write(
       '[seed:visitor-pool] 新增 ' + result.inserted + ' / 更新 ' + result.updated + ' / 未变 ' + result.unchanged + '（合计 ' + total + '）\n',
     );
+    // V2026-10-27 治本 (spec 任务 D2 — 历史脏代号幂等订正):
+    //   seed 的 upsert 只覆盖 6 位官方人物, 碰不到历史 AI 生成行的代号;
+    //   这一遍全表扫 + 订正, 合规行不改写 → 连跑两次结果一致.
+    const fixed = await correctVisitorPoolCodenames(dataSource);
+    process.stdout.write('[seed:visitor-pool] 代号订正 扫描 ' + fixed.scanned + ' / 修正 ' + fixed.corrected + '\n');
   } finally {
     await dataSource.destroy();
   }

@@ -144,6 +144,7 @@ import { CounselorHomeController } from './controllers/counselor-home.controller
 import { CounselorProfileController } from './controllers/counselor-profile.controller';
 import { CounselorTrainingController } from './controllers/counselor-training.controller';
 import { CounselorUiPreferenceController } from './controllers/counselor-ui-preference.controller';
+import { CrisisPracticeController } from './controllers/crisis-practice.controller';
 import { CounselorInformedConsentController } from './controllers/informed-consent.controller';
 import { CounselorLiveHintController } from './controllers/live-hint.controller';
 import { CounselorLongTermCaseController } from './controllers/long-term-case.controller';
@@ -176,6 +177,9 @@ import { CounselorVisitorPoolController } from './controllers/visitor-pool.contr
 // V2026-10-26 治本 (官方音色目录 — 只读代理端点, spec §任务 2):
 //   GET /counselor/voices?type=system — 音色选择器唯一的取数入口 (前端不直连 MiniMax).
 import { CounselorVoicesController } from './controllers/voices.controller';
+// V2026-10-27 治本 (危机识别专区 — 只读元数据端点, spec 任务 B2):
+//   GET /counselor/crisis-practice/meta — 前端"隔离壳"渲染用的静态教学元数据.
+//   物理隔离: 危机内容不进 visitor_pool_templates / 不进公共图鉴列表 / 不碰普通池 seed.
 // V2026-10-21 治本 (V1.2 VS-C — M2/M3 会谈核心 4 controller):
 //   informed-consent (4 要素判定 + 进度) / live-hint (轻提示 + SSE 流)
 //   transcript-bookmark (逐字稿打点) / transference-mark (双向移情阻抗标记)
@@ -299,6 +303,7 @@ import { CounselorVisitorContextContributor } from './providers/counselor-visito
 //   (agent) 侧 —— 直接 import 会形成 agent → business 反向依赖.
 //   该解析器只对外暴露**表层摘要**, 7 大块剧本永不跨模块 (零压红线的结构性保证).
 import { CounselorVisitorPoolTemplateResolver } from './providers/counselor-visitor-pool-template.resolver';
+import { CrisisPracticeService } from './providers/crisis-practice.service';
 import { InformedConsentService } from './providers/informed-consent.service';
 import { LiveSupervisionHintService } from './providers/live-hint.service';
 import { CounselorLlmJsonClient } from './providers/llm-json.client';
@@ -373,6 +378,8 @@ import { VisitorPoolService } from './providers/visitor-pool.service';
 //   VoicesService: 缓存 + 并发去重 + 错误归一 + DTO 整形, 并实现 voice 侧音色目录插槽
 import { VoicesClient } from './providers/voices.client';
 import { VoicesService } from './providers/voices.service';
+// V2026-10-27 治本 (危机识别专区 — 只读元数据服务, spec 任务 B2):
+//   纯静态读 (不落库 / 不调上游 / 不计次), 只做"内部配置 → 对外 DTO"的逐字段映射.
 import { VptSessionBridgeService } from './providers/vpt-session-bridge.service';
 // V2026-10-23 治本 (AI 模拟来访池 — 内部角色守卫):
 //   直读 users.admin_role (3 档 editor/reviewer/admin), 不复用 common/guards/roles.guard.ts
@@ -496,6 +503,9 @@ import { VptSessionBridgeService } from './providers/vpt-session-bridge.service'
     // V2026-10-26 治本 (官方音色目录 — 1 端点):
     //   GET /counselor/voices?type=system (账号可用的官方系统音色列表)
     CounselorVoicesController,
+    // V2026-10-27 治本 (危机识别专区 — 1 端点, spec 任务 B2):
+    //   GET /counselor/crisis-practice/meta (隔离壳渲染用的静态教学元数据)
+    CrisisPracticeController,
   ],
   providers: [
     CounselorHomeService,
@@ -583,6 +593,9 @@ import { VptSessionBridgeService } from './providers/vpt-session-bridge.service'
     //   则端点 404 且 WS 网关拿不到音色目录判定.
     VoicesClient,
     VoicesService,
+    // V2026-10-27 治本 (危机识别专区 — 1 provider, spec 任务 B2):
+    //   CrisisPracticeService: 静态教学元数据 → 对外 DTO 的逐字段映射 (无 IO).
+    CrisisPracticeService,
     // V2026-10-26 治本 (vpt 会话落库桥, spec 任务 1):
     //   必须在 onModuleInit 里注册进 voice 侧全局注册表 —— 少注册 = vpt 会话不落库,
     //   降级成纯内存 (功能"看着能用", 但没有复盘报告). 所以跟 VoicesService 一起一次注册齐.

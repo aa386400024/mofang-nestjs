@@ -122,6 +122,10 @@ export class CounselorVisitorPoolTemplateResolver implements OnModuleInit {
       //   **7 大块剧本本身绝不进摘要** —— 摘要只多带这两个已映射好的表层字段.
       occupation: row.script?.basics?.occupation ?? '',
       riskTags: riskTagsForSelfReportedRisk(row.script?.presentingIssue?.selfReportedRisk),
+      // V2026-10-27 治本 (来访池 — 公共人物绑定系统音色):
+      //   模板绑定的系统音色 id 随摘要带出 (可空 = 未绑定 → 网关回退 env 默认).
+      //   **7 大块剧本仍然绝不进摘要** —— 音色是技术配置, 不是人物内容.
+      voiceId: row.voiceId ?? null,
     };
   }
 }

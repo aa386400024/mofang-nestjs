@@ -45,6 +45,17 @@ export const VISITOR_POOL_LIST_MAX_LIMIT = 50;
 export const VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH = 64;
 
 /**
+ * 公共模板绑定音色 id 的列宽上限 (V2026-10-27 治本, 来访池 — 公共人物绑定系统音色).
+ *
+ * 单一真值源: entity 装饰器 (`voice_id VARCHAR(64)`) / 迁移 DDL / seed 基线自检
+ * 三处引用同一个值, 不会再漂 —— 跟 VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH 同款做法.
+ *
+ * 64 够用: 官方系统音色 id 形如 `Chinese (Mandarin)_Lyrical_Voice` (33 字符),
+ * 留一倍余量给后续更长的命名.
+ */
+export const VISITOR_POOL_TEMPLATE_VOICE_ID_MAX_LENGTH = 64;
+
+/**
  * 内部 AI 生成单次条数上限的 env 键 (spec §3.5「生成条数上限由内部 env 控制」).
  */
 export const VISITOR_POOL_GENERATE_MAX_COUNT_ENV_KEY = 'VISITOR_POOL_GENERATE_MAX_COUNT';

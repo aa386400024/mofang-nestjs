@@ -159,6 +159,9 @@ import { AddSupervisionReports1714900000020 } from '../src/migration/17149000000
 // V2026-10-26 治本 (4 督导流派幂等播种 — supervision_schools, 跟 src/migration/index.ts 1:1):
 //   006 建表但漏播种; 内容直接 import SUPERVISION_SCHOOL_PRESETS, upsert 幂等.
 import { SeedSupervisionSchools1714900000021 } from '../src/migration/1714900000021-SeedSupervisionSchools';
+// V2026-10-27 治本 (来访池 — 公共人物绑定系统音色):
+//   visitor_pool_templates 加可空列 voice_id (未绑定回退 env 默认), 跟 src/migration/index.ts 1:1.
+import { AddVisitorPoolTemplateVoiceId1714900000022 } from '../src/migration/1714900000022-AddVisitorPoolTemplateVoiceId';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -276,6 +279,9 @@ const ormconfig = async (): Promise<DataSource> => {
       AddSupervisionReports1714900000020,
       // V2026-10-26 治本 (4 督导流派幂等播种 supervision_schools, 跟 src/migration/index.ts 1:1):
       SeedSupervisionSchools1714900000021,
+      // V2026-10-27 治本 (来访池 — 公共人物绑定系统音色; visitor_pool_templates 加 voice_id 列,
+      //   跟 src/migration/index.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行):
+      AddVisitorPoolTemplateVoiceId1714900000022,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)
