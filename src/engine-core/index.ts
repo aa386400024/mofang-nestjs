@@ -115,5 +115,20 @@ export { evaluateSafety } from './cognition/safety/rule-engine';
 export type { AssessSafetyInput } from './cognition/safety/assess-safety';
 export { assessSafety, DEFAULT_PROBE_TIMEOUT_MS } from './cognition/safety/assess-safety';
 
+// ── 渲染契约层 (WP5 · 纯类型 + 纯策略, 内核不调 LLM) ────────────────
+//   规格只装"要什么", 不装模型名 / 温度 / prompt —— 那些属适配层.
+export type { RenderContextTurn, RenderResult, RenderSpec, RenderTaskKind, RenderTokenBudget } from './domain/rendering/render-types';
+export type { RenderPort } from './domain/ports/render-port';
+export {
+  CHARS_PER_TOKEN,
+  DEFAULT_COMPLETION_TOKENS,
+  estimateTokens,
+  fitContextToBudget,
+  resolveCompletionTokens,
+} from './cognition/rendering/token-budget';
+export type { FailoverCandidate, FailoverState } from './cognition/rendering/failover';
+export { selectFailoverTarget } from './cognition/rendering/failover';
+export { guardVisitorOutput } from './cognition/rendering/output-guard';
+
 // ── 运行时端口 ────────────────────────────────────────────────────
 export type { EngineSessionPort } from './runtime/engine-session.port';

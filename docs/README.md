@@ -49,6 +49,7 @@
 | [engine-core-wp2-layered-memory-backend-2026-10-28.md](progress/engine-core-wp2-layered-memory-backend-2026-10-28.md) | **引擎 Phase1 WP2 · 分层记忆 V1**：三级记忆（工作8轮窗口/短时晋升/长时 Qdrant visitor_long_memory）、重要度衰减、显式主题键冲突消解、跨会话按 visitorId 接续召回；端口向后兼容，Qdrant/embedding 实现放 B 层，本期不调 LLM/不出口语 | ✅ 代码已交付并复跑绿：eslint 0 / tsc 0 / jest 5 套件 95 用例全绿（WP0·WP1 既有 42 零回归） |
 | [engine-core-wp3-trajectory-control-backend-2026-10-28.md](progress/engine-core-wp3-trajectory-control-backend-2026-10-28.md) | **引擎 Phase1 WP3 · 会话轨迹控制引擎**：强覆盖/修正/触发三模式 + 线性多幕游标（单向推进/不跳幕），条件判定 + 游标推进 + 三模式合成纯函数，确定性可复现的标准化考核/伦理盲盒；剧本经 openSession 注入不落库，游标仅进程内存，不调 LLM/不出口语，不搬 counselor/drills | ✅ 代码已交付并复跑绿：eslint 0 / tsc 0 / jest engine-core 5 套件 123 用例全绿（WP0·WP1·WP2 既有 82 零回归）+ engine-adapters 13 绿 |
 | [engine-core-wp4-ethics-safety-backend-2026-10-28.md](progress/engine-core-wp4-ethics-safety-backend-2026-10-28.md) | **引擎 Phase1 WP4 · 伦理安全引擎**：咨询师侧确定性硬规则（承诺治愈/双重关系/违法指导/自杀自残指导/歧视 → block；说教/过早建议 → warn）+ 可选 PsyGUARD 风险探测端口（超时/报错自动降级回规则，绝不阻断对话）+ 会话内累计伦理报告；内核只判定不拦截、不内置模型、不发网络、不落库，不搬 counselor/drills/live-hint | ✅ 代码已交付并复跑绿：eslint 0 / tsc 0 / jest engine-core 6 套件 153 用例全绿（WP0–WP3 既有 123 零回归）+ engine-adapters 13 绿 |
+| [engine-core-wp5-rendering-scheduling-backend-2026-10-28.md](progress/engine-core-wp5-rendering-scheduling-backend-2026-10-28.md) | **引擎 Phase1 WP5 · 多模型渲染调度（契约层）**：渲染规格 `RenderSpec`（意图+情绪阻抗移情+信念+记忆+轨迹参考+最近对话+Token预算）+ `RenderPort` 端口 + 任务分层（stable/chat/advanced）+ Token 预算裁剪（保尾部最近轮）+ 主备容灾「选谁」纯状态机 + 输出侧伦理校验（复用 WP4）；本期零 LLM/零 prompt/零网络/零落库，turn 管线零改动、reply 恒空 | ✅ 代码已交付并复跑绿：eslint 0 / tsc 0 / jest engine-core 7 套件 177 用例全绿（WP0–WP4 既有 153 零回归）+ engine-adapters 13 绿 |
 | [backend-open-gaps-2026-10-22.md](progress/backend-open-gaps-2026-10-22.md) | **当前待办主线**：P0 G1 金句图托管、P1 G2-G4 首页个性化真实聚合、P2 G5-G8 完善项 + 上线验收 | 🔴 进行中 |
 | [quote-static-cdn-backlog-2026-10-22.md](progress/quote-static-cdn-backlog-2026-10-22.md) | 金句背景图 CDN/静态托管未就绪的独立待办（G1 展开） | 🔴 未解决 |
 | [vpt-session-enhancement-backend-2026-10-26.md](progress/vpt-session-enhancement-backend-2026-10-26.md) | **vpt 全真语音会话增强**：会话落库贯通、实时提示/技术统计/移情标记接 WS、暂停恢复、复盘报告查询+4流派反馈、卡片字段 | 🔴 待开工 |
@@ -130,4 +131,4 @@
 
 ---
 
-**最后更新**：2026-10-28（新增引擎终局路线图、PDF 愿景原件 reference、WP0 内核骨架任务单、WP1 BDI 认知引擎、WP2 分层记忆、WP3 轨迹控制任务单）；specs/progress 其余内容未改动。当前阶段 = v1.3 自由练习 + 来访池 + 全真语音闭环，引擎 Phase1 从 WP0 起步，WP3 待开工。
+**最后更新**：2026-10-28（新增引擎终局路线图、PDF 愿景原件 reference、WP0 内核骨架任务单、WP1 BDI 认知引擎、WP2 分层记忆、WP3 轨迹控制、WP4 伦理安全、WP5 渲染调度契约任务单；WP5 交付记录见 [engine-core-wp5-rendering-scheduling-implementation-2026-10-28.md](progress/engine-core-wp5-rendering-scheduling-implementation-2026-10-28.md)）；specs/progress 其余内容未改动。当前阶段 = v1.3 自由练习 + 来访池 + 全真语音闭环，引擎 Phase1 的 WP0–WP5 已全部交付并复跑绿，下一步为渲染装配轮（真实模型调用 / prompt / 主备切换 / 流式）。
