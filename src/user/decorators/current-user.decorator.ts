@@ -2,12 +2,12 @@ import { createParamDecorator, type ExecutionContext } from '@nestjs/common';
 import type { Request } from 'express';
 
 /**
- * @CurrentUser('uid') — 从 JWT payload 取 uid (或其他字段).
+ * @CurrentUser('userId') — 从 JWT payload 取 uid (或其他字段).
  *
  * 用法:
  *   @Get('me')
  *   @UseGuards(JwtAuthGuard)
- *   me(@CurrentUser('uid') uid: string) { ... }
+ *   me(@CurrentUser('userId') uid: string) { ... }
  *
  *   @Get('me')
  *   @UseGuards(JwtAuthGuard)

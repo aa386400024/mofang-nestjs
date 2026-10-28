@@ -19,6 +19,7 @@ import { BizException } from '../../common/exceptions/biz.exception';
 
 import { ProfileDto, UpdateProfileDto, UploadAvatarResponseDto } from '../dto/profile.dto';
 import { UserProfile } from '../entities/user-profile.entity';
+import { Role } from '../entities/user-profile.entity';
 
 /**
  * Profile service — 心塑「我的」Tab 用户画像核心服务 (大厂企业级 V3).
@@ -93,7 +94,7 @@ export class ProfileService {
    *   - 多端推送 (Redis pub/sub)
    *   - 通知 onboarding 服务 (V3 角色升级路径)
    */
-  async switchRole(uid: string, newRole: 'growth_user' | 'companion'): Promise<ProfileDto> {
+  async switchRole(uid: string, newRole: Role): Promise<ProfileDto> {
     const profile = await this.ensureProfile(uid);
     if (profile.currentRole === newRole) {
       // 同一角色无变化, 直接返回 (避免 emit 触发 rebuild)

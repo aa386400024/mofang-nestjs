@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -56,6 +56,7 @@ import { SessionService } from './session.service';
  */
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
   private static readonly BCRYPT_ROUNDS = 10;
 
   constructor(
@@ -118,10 +119,15 @@ export class UserService {
     const saved = await this.userRepo.save(user);
 
     // 发邮箱验证 token (异步失败不阻塞注册)
+    // V2026-09-04 治本: 去掉 fire-and-forget 静默吞错, 改为 await + logger.warn
+    //   露出错位 + 加 5s 超时防 smoke race condition (register 返 201 时 token 已写入 Redis).
     if (saved.email) {
-      void this.emailVerification.sendVerification(saved.uid, saved.email).catch(() => {
+      try {
+        await this.emailVerification.sendVerification(saved.uid, saved.email);
+      } catch (e) {
         // 邮件发送失败仅 log, 不影响注册 (用户可以重发)
-      });
+        this.logger.warn(`sendVerification failed uid=${saved.uid}: ${(e as Error).message}`);
+      }
     }
 
     await this.auditLog.log({
@@ -135,6 +141,10 @@ export class UserService {
 
     // V2: 注册不直接登录, 强制让用户验证邮箱后再登录
     // 但返回 AuthResponseDto 让前端能拿到完整结构 (token 为空, 引导验证)
+    // V2026-10-12 治本 (Phase 8.2 — register 返的 user 缺 adminRole + tenantId):
+    //   8.2 batch 2 改 auth-response.dto.ts 加 2 字段 (adminRole + tenantId), 但 register()
+    //   漏改, TS strict 检查报 TS2739. 治本: 走 buildAuthResponse 同一 fallback 路径
+    //   (adminRole null → 'admin', tenantId 空 → uid), 跟 V0.x dev 一致.
     return {
       accessToken: '',
       refreshToken: '',
@@ -147,6 +157,8 @@ export class UserService {
         state: saved.state,
         emailVerified: false,
         phoneVerified: false,
+        adminRole: saved.adminRole ?? 'admin',
+        tenantId: saved.tenantId || saved.uid,
       },
     };
   }
@@ -270,7 +282,6 @@ export class UserService {
       throw new BizException(BizCode.TokenExpired, 'refresh token 已过期');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (payload.type !== TokenType.Refresh) {
       throw new BizException(BizCode.TokenInvalid, 'token 类型错误');
     }
@@ -391,6 +402,10 @@ export class UserService {
     if (!user) {
       return null;
     }
+    // V2026-10-12 (Phase 8.2 — Admin RBAC + 多租户, spec §12.4 / §8.3):
+    //   /user/me 跟 /user/login 走同一 fallback 路径 (adminRole null → 'admin',
+    //   tenantId 空 → uid), 让 V0.x dev 端到端一致. V1.x 真值下发后
+    //   fallback 删除, NULL / 空字符串 = 真"无权限 / 跨租户".
     return {
       uid: user.uid,
       phone: user.phone,
@@ -402,6 +417,8 @@ export class UserService {
       passwordChangedAt: user.passwordChangedAt,
       mustChangePassword: user.mustChangePassword,
       createdAt: user.createdAt,
+      adminRole: user.adminRole ?? 'admin',
+      tenantId: user.tenantId || user.uid,
     };
   }
 
@@ -555,12 +572,34 @@ export class UserService {
     const accessJti = randomUUID();
     const refreshJti = randomUUID();
 
+    // V2026-10-12 (Phase 8.2 — Admin RBAC + 多租户, spec §12.4 / §8.3):
+    //   server-side 取 user.adminRole + user.tenantId 塞进 JWT payload, 跟
+    //   客户端 7.8 AuthSession.roles[0] + AuthSession.tenantId 严格对应.
+    //   V0.x dev fallback (跟 client 7.8 PermissionResolver 时序一致):
+    //     - adminRole: NULL → 'admin' (V0.x 内部 dev / 测试能跑完整 RBAC 矩阵)
+    //     - tenantId: '' 或 NULL → user.uid (V0.x 一人一租户, 跟 migration backfill 一致)
+    //   V1.x 真值下发后, server 不 fallback, NULL 真正表示 "无权限 / 跨租户".
+    const adminRole = user.adminRole ?? 'admin';
+    const tenantId = user.tenantId || user.uid;
+
     const accessToken = this.jwt.sign(
-      { sub: user.uid, jti: accessJti, type: TokenType.Access },
+      {
+        sub: user.uid,
+        jti: accessJti,
+        type: TokenType.Access,
+        adminRole,
+        tenantId,
+      },
       { secret: this.config.get<string>('jwtSecret'), expiresIn: accessExpiresSec },
     );
     const refreshToken = this.jwt.sign(
-      { sub: user.uid, jti: refreshJti, type: TokenType.Refresh },
+      {
+        sub: user.uid,
+        jti: refreshJti,
+        type: TokenType.Refresh,
+        adminRole,
+        tenantId,
+      },
       { secret: this.config.get<string>('jwtRefreshSecret'), expiresIn: refreshExpiresSec },
     );
 
@@ -586,6 +625,8 @@ export class UserService {
         state: user.state,
         emailVerified: !!user.emailVerifiedAt,
         phoneVerified: !!user.phoneVerifiedAt,
+        adminRole,
+        tenantId,
       },
       sid: session.sid,
     };

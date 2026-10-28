@@ -89,6 +89,81 @@ export declare global {
       SENTRY_TRACES_SAMPLE_RATE?: string;
       SENTRY_PROFILES_SAMPLE_RATE?: string;
       CORS_ORIGINS?: string;
+
+      // V2026-10-08 — AI 语音训练系统 (SPEC v0.1).
+      //   治本 (noPropertyAccessFromIndexSignature 22 个 TS4111 错):
+      //     显式声明到 NodeJS.ProcessEnv 后, default.ts 里 process.env.MINIMAX_API_KEY
+      //     等点访问才合法 (否则走 @types/node [key: string] 索引签名, 强制要 bracket
+      //     访问). 跟项目里 JWT/REDIS/EMAIL 模式一致, 治本而非 workaround.
+      //   19 个 var 一次性声明, 后续不再报错.
+      MINIMAX_BASE_URL?: string;
+      MINIMAX_API_KEY?: string;
+      MINIMAX_LLM_MODEL?: string;
+      MINIMAX_LLM_TIMEOUT_MS?: string;
+      MINIMAX_LLM_MAX_RETRIES?: string;
+      MINIMAX_TTS_MODEL?: string;
+      MINIMAX_ASR_TOKEN_SECRET?: string;
+      MINIMAX_ASR_TOKEN_TTL_SEC?: string;
+      // V2026-10-23 治本 (语音微训练 STT 代理 — 本地可调参数):
+      //   上游路径 / 模型名是协议事实 (固定在 counselor/config/practice-asr.config.ts),
+      //   这里只声明"本地怎么跑"的可调项.
+      MINIMAX_ASR_TIMEOUT_MS?: string; // 上游转写超时, 与 LLM 超时隔离 (spec §2.5)
+      MINIMAX_ASR_MAX_FILE_BYTES?: string; // 本地体积上限, 默认与上游一致 (50 MiB)
+      MINIMAX_ASR_MAX_DURATION_SEC?: string; // 本地时长上限, 默认与上游一致 (500s)
+      // V2026-10-26 治本 (官方音色目录代理 — spec §任务 2):
+      //   下面是本轮新增的 2 个 env 键. 不声明会直接报 TS4111
+      //   (noPropertyAccessFromIndexSignature: 走 @types/node 的 [key: string] 索引签名时
+      //    点访问不合法, 必须 bracket 访问) —— 与上面 MINIMAX_* 同一治本思路:
+      //   **显式声明到 ProcessEnv**, 不用 bracket 访问绕过.
+      MINIMAX_VOICES_TIMEOUT_MS?: string; // 上游音色目录查询超时 (默认 15s)
+      MINIMAX_VOICES_CHECK_TIMEOUT_MS?: string; // 握手里的建议性音色校验超时 (默认 3s)
+      MINIMAX_VOICES_CACHE_TTL_MS?: string; // 音色目录内存缓存 TTL (默认 10min)
+      // V2026-10-23 治本 (微技能自由练习 — 端点级限流):
+      PRACTICE_ASR_RATE_LIMIT_PER_MINUTE?: string; // 单用户每分钟转写次数
+      PRACTICE_ASR_RATE_LIMIT_WINDOW_MS?: string; // 限流窗口
+      // V2026-10-08: TTS bidi 客户端 + 连接池 (Phase 1.2)
+      MINIMAX_TTS_TIMEOUT_MS?: string;
+      MINIMAX_TTS_MAX_CONNECTIONS?: string; // 连接池上限, 默认 100
+      MINIMAX_TTS_ACQUIRE_TIMEOUT_MS?: string; // acquire 排队超时, 默认 10s
+      // V2026-10-23 治本 (v2.0 语音对语音 — 官方 T2A V2 协议重写, spec §3.2/§3.3):
+      //   下面是本轮新增的 9 个 env 键. 不声明会直接报 TS4111
+      //   (noPropertyAccessFromIndexSignature: 走 @types/node 的 [key: string] 索引签名时
+      //    点访问不合法, 必须 bracket 访问) —— 与上面 MINIMAX_* 同一治本思路:
+      //   **显式声明到 ProcessEnv**, 不用 bracket 访问绕过.
+      //   MINIMAX_TTS_DEFAULT_VOICE / MINIMAX_TTS_MAX_RETRIES 同步删除:
+      //     前者是未核实的占位音色 (官方枚举外的 mandarin_female_001), 后者从未被实现消费;
+      //     代码侧已无任何引用, 留着声明只会让人以为还能配.
+      MINIMAX_TTS_VOICE_ID?: string; // 系统音色 voice_id (必填, 空 = voice 模式直接报错)
+      MINIMAX_TTS_LANGUAGE_BOOST?: string; // 语言增强, 默认 Chinese
+      MINIMAX_TTS_SPEED?: string; // 语速, 官方值域 [0.5, 2]
+      MINIMAX_TTS_VOLUME?: string; // 音量, 官方值域 (0, 10]
+      MINIMAX_TTS_PITCH?: string; // 音调, 官方值域 [-12, 12]
+      MINIMAX_TTS_SAMPLE_RATE?: string; // 采样率, 官方枚举 8000~44100 (默认 32000)
+      MINIMAX_TTS_BITRATE?: string; // 码率, 官方枚举 32000/64000/128000/256000 (仅 mp3 生效)
+      MINIMAX_TTS_KEEPALIVE_MS?: string; // 客户端保活 ping 间隔 (官方要求客户端主动 ping 防 2201), 0 = 关闭
+      MINIMAX_TTS_MAX_SENTENCE_CHARS?: string; // 单句最大字符数 (超长句强制切, 兼作上游 2204 本地防线)
+      // V2026-10-26 治本 (vpt 复盘报告 — pending 兜底上限, spec 任务 6):
+      //   会话已结束 + 无报告行 + 距结束超过该时长 → 判定报告生成失败 (parse_error),
+      //   避免前端永远停在 pending 一直转圈. 默认 15min (主报告 LLM 正常 30-120s 的 10 倍余量).
+      SUPERVISION_REPORT_PENDING_TIMEOUT_MS?: string;
+      // V2026-10-27 治本 (空会话与报告生命周期 — 最小可分析量, spec 任务 A):
+      //   一场会话的有效对话少于这两个阈值 → 判为空局 (no_content): 不派督导 job,
+      //   报告**永远不会**生成. 默认值在 counselor/config/supervision.config.ts (单一真值源),
+      //   这里只声明"本地怎么跑"的可调项.
+      SUPERVISION_MIN_EFFECTIVE_TURNS?: string;
+      SUPERVISION_MIN_EFFECTIVE_CHARS?: string;
+      // V2026-10-08: Voice Gateway 空闲超时 (Phase 3)
+      VOICE_SESSION_IDLE_TIMEOUT_MS?: string;
+      EMBEDDING_PROVIDER_DEV?: string;
+      EMBEDDING_PROVIDER_PROD?: string;
+      EMBEDDING_API_KEY?: string;
+      EMBEDDING_API_KEY_MPLAN?: string;
+      EMBEDDING_BGE_URL?: string;
+      EMBEDDING_MODEL?: string;
+      EMBEDDING_DIM?: string;
+      QDRANT_URL?: string;
+      QDRANT_API_KEY?: string;
+      QDRANT_COLLECTION?: string;
     }
   }
 

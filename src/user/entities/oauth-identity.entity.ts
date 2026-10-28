@@ -5,7 +5,7 @@ import { User } from './user.entity';
 /**
  * OAuth provider enum — 第三方登录 provider 枚举.
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
+
 export enum OAuthProvider {
   Wechat = 'wechat',
   Google = 'google',
@@ -34,7 +34,6 @@ export enum OAuthProvider {
 @Entity('user_oauth_identities')
 @Index('idx_provider_user', ['provider', 'providerUserId'], { unique: true })
 @Index('idx_user_provider', ['userId', 'provider'], { unique: true })
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export class OAuthIdentity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

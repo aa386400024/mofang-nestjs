@@ -15,9 +15,12 @@ import { HomeOverviewController } from './controllers/home-overview.controller';
 import { HomeMessage } from './entities/home-message.entity';
 import { MicroInterventionConfig } from './entities/micro-intervention-config.entity';
 import { MicroInterventionHistory } from './entities/micro-intervention-history.entity';
+import { MicroInterventionScenario } from './entities/micro-intervention-scenario.entity';
 import { MoodLog } from './entities/mood-log.entity';
 import { HomeCompanionService } from './providers/home-companion.service';
 import { HomeMessagesService } from './providers/home-messages.service';
+import { HomeMicroInterventionScenarioService } from './providers/home-micro-intervention-scenario.service';
+import { HomeMicroInterventionStatsService } from './providers/home-micro-intervention-stats.service';
 import { HomeMicroInterventionService } from './providers/home-micro-intervention.service';
 import { HomeMoodLogService } from './providers/home-mood-log.service';
 import { HomeOverviewService } from './providers/home-overview.service';
@@ -63,10 +66,11 @@ import { HomeRecommendationEngine } from './providers/home-recommendation.engine
      *   拿 user.phone / user.email 兜底昵称.
      */
     TypeOrmModule.forFeature([
-      // 本模块自有 entity (4 张表)
+      // 本模块自有 entity (5 张表 — V2026-09-11 加 MicroInterventionScenario)
       MoodLog,
       MicroInterventionConfig,
       MicroInterventionHistory,
+      MicroInterventionScenario,
       HomeMessage,
       // 跨模块 entity — 必须显式 forFeature, NestJS DI 不会跨模块传递 repository
       CompanionBinding,
@@ -87,6 +91,8 @@ import { HomeRecommendationEngine } from './providers/home-recommendation.engine
     HomeOverviewService,
     HomeMoodLogService,
     HomeMicroInterventionService,
+    HomeMicroInterventionStatsService,
+    HomeMicroInterventionScenarioService,
     HomeMessagesService,
     HomeCompanionService,
     HomeRecommendationEngine,
@@ -95,6 +101,8 @@ import { HomeRecommendationEngine } from './providers/home-recommendation.engine
     HomeOverviewService,
     HomeMoodLogService,
     HomeMicroInterventionService,
+    HomeMicroInterventionStatsService,
+    HomeMicroInterventionScenarioService,
     HomeMessagesService,
     HomeCompanionService,
     HomeRecommendationEngine,

@@ -17,8 +17,11 @@ import 'multer'; // 加载 namespace, 让 Express.Multer.File 全局可用
 type MulterFile = Express.Multer.File;
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import { RequirePrivacyLevel } from '../../common/decorators/privacy-level.decorator';
 import { BizCode } from '../../common/exceptions/biz-code.enum';
 import { BizException } from '../../common/exceptions/biz.exception';
+import { PrivacyGuard } from '../../common/guards/privacy.guard';
+import { PrivacyLevel } from '../../common/privacy/privacy-level.enum';
 import { CurrentUser } from '../../user/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
 
@@ -57,6 +60,23 @@ import { ProfileService } from '../providers/profile.service';
  * 认证: JwtAuthGuard (cookie auth) — 公开 endpoint 单独跳过.
  */
 @ApiTags('Profile')
+// V2026-10-15 治本 (VS-4 隐私分级 enforcement 应用 — L2_INTERNAL method-level 8 endpoint, 公开 endpoint 保留 L1 隐式):
+//   原因: profile 12 endpoint 混合 (公开 + 鉴权), 不能 class-level 一刀切. 大厂危机热线
+//     (help/faqs + help/hotlines) 必须公开 (无登录也能看), 跟 V0.x 注释"公开: help/faqs,
+//     help/hotlines (无登录也能看, 大厂危机热线必须公开)"一致. /me/* /membership /growth-report
+//     走 L2 内部鉴权. decision 1 B 方案 3 controller 配齐 L1/L2/L3, profile 同时覆盖 L1
+//     (隐式放行, 无 @RequirePrivacyLevel) + L2 (8 method-level 装饰).
+//   修法: 8 method-level @UseGuards(JwtAuthGuard, PrivacyGuard) + @RequirePrivacyLevel(L2_INTERNAL)
+//     加在 /me /me/notifications /membership /growth-report. /help/faqs + /help/hotlines 不动 (L1
+//     隐式放行, 跟 PrivacyGuard `if (!level) return true` 1:1).
+//   反双胞胎:
+//     - 不 class-level 一刀切 (会覆盖公开 endpoint, 危机热线被锁, 跟大厂伦理红线冲突),
+//     - 不用 @Public 装饰器 (V0.x culture "decorator 优先", L1 隐式比显式 @Public 更简单),
+//     - 不拆 method-level 仅 1 endpoint 试水 (决策 2 A 方案"全 endpoint"一致, 8 endpoint 全 L2),
+//     - 0 wire 协议改.
+//   验证: 大炮跑 pnpm test:e2e 验 /help/faqs 无 token 200 (L1 隐式) + /me 无 token 401 (L2) +
+//     /me 有 token 200 (L2 鉴权通过).
+//   时间戳: 2026-10-15.
 @Controller('profile')
 export class ProfileController {
   constructor(
@@ -87,7 +107,8 @@ export class ProfileController {
   // ════════════════════════════════════════════════════════════════
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PrivacyGuard)
+  @RequirePrivacyLevel(PrivacyLevel.L2_INTERNAL)
   @ApiBearerAuth()
   @ApiOperation({ summary: '当前用户画像' })
   public async getMe(@CurrentUser() user: { userId: string }): Promise<ProfileDto> {
@@ -95,7 +116,8 @@ export class ProfileController {
   }
 
   @Put('me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PrivacyGuard)
+  @RequirePrivacyLevel(PrivacyLevel.L2_INTERNAL)
   @ApiBearerAuth()
   @ApiOperation({ summary: '更新用户画像' })
   public async updateMe(@CurrentUser() user: { userId: string }, @Body() dto: UpdateProfileDto): Promise<ProfileDto> {
@@ -103,7 +125,8 @@ export class ProfileController {
   }
 
   @Post('me/avatar')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PrivacyGuard)
+  @RequirePrivacyLevel(PrivacyLevel.L2_INTERNAL)
   @ApiBearerAuth()
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
@@ -129,7 +152,8 @@ export class ProfileController {
   }
 
   @Put('me/current-role')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PrivacyGuard)
+  @RequirePrivacyLevel(PrivacyLevel.L2_INTERNAL)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '切换当前角色 (成长用户 / 陪伴者)' })
@@ -138,7 +162,8 @@ export class ProfileController {
   }
 
   @Get('me/notifications')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PrivacyGuard)
+  @RequirePrivacyLevel(PrivacyLevel.L2_INTERNAL)
   @ApiBearerAuth()
   @ApiOperation({ summary: '通知设置' })
   public async getNotifications(@CurrentUser() user: { userId: string }): Promise<NotificationSettingsDto> {
@@ -146,7 +171,8 @@ export class ProfileController {
   }
 
   @Put('me/notifications')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PrivacyGuard)
+  @RequirePrivacyLevel(PrivacyLevel.L2_INTERNAL)
   @ApiBearerAuth()
   @ApiOperation({ summary: '更新通知设置' })
   public async updateNotifications(
@@ -161,7 +187,8 @@ export class ProfileController {
   // ════════════════════════════════════════════════════════════════
 
   @Get('membership')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PrivacyGuard)
+  @RequirePrivacyLevel(PrivacyLevel.L2_INTERNAL)
   @ApiBearerAuth()
   @ApiOperation({ summary: '会员中心 (成长用户专属)' })
   public async getMembership(@CurrentUser() user: { userId: string }): Promise<MembershipDto> {
@@ -169,7 +196,8 @@ export class ProfileController {
   }
 
   @Get('growth-report')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PrivacyGuard)
+  @RequirePrivacyLevel(PrivacyLevel.L2_INTERNAL)
   @ApiBearerAuth()
   @ApiOperation({ summary: '心理成长报告 (成长用户专属)' })
   public async getGrowthReport(@CurrentUser() user: { userId: string }, @Body() query: GrowthReportQueryDto): Promise<GrowthReportDto> {

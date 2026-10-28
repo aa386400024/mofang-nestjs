@@ -12,7 +12,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  *   - idx_provider_user: (provider, provider_user_id) 唯一 — 第三方用户 ↔ 本地用户
  *   - idx_user_provider: (user_id, provider) 唯一 — 同一用户不能重复绑同 provider
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
+
 export class AddOAuthIdentity1700000004000 implements MigrationInterface {
   name = 'AddOAuthIdentity1700000004000';
 

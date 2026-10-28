@@ -15,3 +15,4 @@
 export { GENOME_DIMENSION_KEYS, GenomeDimensionEntity, type GenomeDimensionKey } from './genome-dimension.entity';
 export { KEY_EVENT_TYPES, KeyEventEntity, type KeyEventType } from './key-event.entity';
 export { LifeStageProgressEntity } from './life-stage-progress.entity';
+export { DriftBottleEntry } from './drift-bottle-entry.entity';

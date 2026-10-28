@@ -1,6 +1,12 @@
 import { Logger as NestLogger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+// V2026-10-09 治本: Phase 3 voice.gateway.ts 用 @nestjs/platform-ws (ws 包, 省 200KB, 不引 socket.io),
+//   必须在 bootstrap 显式 useWebSocketAdapter(new WsAdapter(app)) 告诉 NestJS 用哪个 driver.
+//   不然 @nestjs/websockets PackageLoader 默认找 socket.io (项目没装), 启动期报
+//   "No driver (WebSockets) has been selected. ... install @nestjs/platform-socket.io".
+//   反双胞胎: 不引 socket.io — @nestjs/platform-ws 走原生 ws 包, 协议层一致, 调试简单.
+import { WsAdapter } from '@nestjs/platform-ws';
 import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 
 import { middleware } from './app.middleware';
@@ -37,6 +43,10 @@ async function bootstrap(): Promise<string> {
 
   // Express Middleware
   middleware(app);
+
+  // V2026-10-09 治本: 注册 WsAdapter 走 platform-ws (非 socket.io, 见 import 注释).
+  //   必须在 enableShutdownHooks / listen 之前调, 这样 VoiceGateway 装饰器解析时 driver 已 ready.
+  app.useWebSocketAdapter(new WsAdapter(app));
 
   app.enableShutdownHooks();
   await app.listen(process.env.PORT ?? 3000);

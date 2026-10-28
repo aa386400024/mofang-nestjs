@@ -18,6 +18,10 @@
     "migration:generate": "typeorm-ts-node-commonjs -d bin/ormconfig.ts migration:generate",
     "migration:create": "typeorm-ts-node-commonjs migration:create",
     "migration:run": "typeorm-ts-node-commonjs -d bin/ormconfig.ts migration:run",
+    "seed:training": "ts-node -T -P tsconfig.scripts.json bin/seed-training-exercises.ts",
+    "seed:practice": "ts-node -T -P tsconfig.scripts.json bin/seed-practice-scenarios.ts",
+    "seed:quotes": "ts-node -T -P tsconfig.scripts.json bin/seed-quotes.ts",
+    "seed:visitor-pool": "ts-node -T -P tsconfig.scripts.json bin/seed-visitor-pool-templates.ts",
     "migration:revert": "typeorm-ts-node-commonjs -d bin/ormconfig.ts migration:revert",
     "migration:show": "typeorm-ts-node-commonjs -d bin/ormconfig.ts migration:show",
     "build": "tsc -p tsconfig.build.json",
@@ -26,17 +30,22 @@
     "start:dev": "nest start --watch",
     "start:win": "node scripts/ensure-utf8.cjs && nest start --watch",
     "test:smoke": "node scripts/smoke-test.cjs && node -e \"require('fs').writeFileSync('.smoke-last', new Date().toISOString())\"",
+    "smoke:iw": "pnpm build && node scripts/smoke-inner-world.cjs && node -e \"require('fs').writeFileSync('.smoke-iw-last', new Date().toISOString())\"",
     "deploy:tested": "node scripts/deploy-tested.cjs",
     "start:debug": "nest start --debug --watch",
     "start:repl": "nest start --entryFile repl",
     "test": "jest --detectOpenHandles -i",
-    "test:e2e": "NODE_OPTIONS=\"--no-experimental-strip-types\" jest --config ./test/jest.e2e.ts -i",
+    "test:e2e": "cross-env NODE_OPTIONS=--no-experimental-strip-types jest --config ./test/jest.e2e.ts -i",
     "doc": "compodoc -p tsconfig.json -s -d docs",
-    "doc:api": "npm run build && node dist/swagger"
+    "doc:api": "npm run build && node dist/swagger",
+    "smoke:ai": "pnpm build && node scripts/smoke-ai-engine.cjs && node -e \"require('fs').writeFileSync('.smoke-ai-last', new Date().toISOString())\"",
+    "smoke:rag": "pnpm build && node scripts/smoke-rag.cjs && node -e \"require('fs').writeFileSync('.smoke-rag-last', new Date().toISOString())\""
   },
   "dependencies": {
     "@apollo/server": "^5.5.1",
     "@as-integrations/express5": "^1.1.2",
+    "@langchain/core": "^1.2.17",
+    "@langchain/openai": "^1.6.2",
     "@nestjs/apollo": "^13.4.2",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.1.28",
@@ -47,12 +56,15 @@
     "@nestjs/mapped-types": "^2.1.1",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.1.28",
+    "@nestjs/platform-ws": "^11.0.0",
     "@nestjs/schedule": "^6.0.0",
     "@nestjs/serve-static": "^5.0.5",
     "@nestjs/swagger": "^11.4.6",
     "@nestjs/terminus": "^11.1.1",
     "@nestjs/throttler": "^6.4.0",
     "@nestjs/typeorm": "^11.0.3",
+    "@nestjs/websockets": "^11.0.0",
+    "@qdrant/js-client-rest": "^1.19.0",
     "@sentry/node": "^8.47.0",
     "@sentry/profiling-node": "^8.47.0",
     "@types/cookie-parser": "^1.4.10",
@@ -81,7 +93,8 @@
     "prom-client": "^15.1.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "typeorm": "^1.1.0"
+    "typeorm": "^1.1.0",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "@compodoc/compodoc": "^2.0.0",
@@ -101,6 +114,8 @@
     "@types/passport-local": "^1.0.38",
     "@types/prompts": "^2.4.9",
     "@types/supertest": "^7.2.1",
+    "@types/ws": "^8.5.10",
+    "cross-env": "^10.1.0",
     "esbuild": "^0.28.1",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
@@ -137,7 +152,7 @@
   ],
   "lint-staged": {
     "*.{ts,tsx}": [
-      "eslint --fix",
+      "eslint",
       "prettier --write"
     ],
     "*.{json,md,yml,yaml}": [
