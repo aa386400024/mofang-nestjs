@@ -46,6 +46,8 @@
 |------|------|------|
 | [engine-core-wp0-boundary-skeleton-backend-2026-10-28.md](progress/engine-core-wp0-boundary-skeleton-backend-2026-10-28.md) | **引擎 Phase1 第一张任务单 WP0**：纯 TS `engine-core` 内核边界骨架（零 NestJS/TypeORM 直连、内存仓储、可脱离容器单测），不写算法不接线 | ✅ 代码已交付，待复跑 build/test |
 | [engine-core-wp1-bdi-cognitive-engine-backend-2026-10-28.md](progress/engine-core-wp1-bdi-cognitive-engine-backend-2026-10-28.md) | **引擎 Phase1 WP1 · BDI 认知引擎（规则轨）**：快照五槽位落地为具体类型、事件分类器+状态迁移算子+意图规划器、角色基线注入、可复现快照；不接 LLM/不渲染/不接线 | ✅ 代码已交付，jest 42 绿 / tsc 0 错 / eslint 0 错 |
+| [engine-core-wp2-layered-memory-backend-2026-10-28.md](progress/engine-core-wp2-layered-memory-backend-2026-10-28.md) | **引擎 Phase1 WP2 · 分层记忆 V1**：三级记忆（工作8轮窗口/短时晋升/长时 Qdrant visitor_long_memory）、重要度衰减、显式主题键冲突消解、跨会话按 visitorId 接续召回；端口向后兼容，Qdrant/embedding 实现放 B 层，本期不调 LLM/不出口语 | ✅ 代码已交付并复跑绿：eslint 0 / tsc 0 / jest 5 套件 95 用例全绿（WP0·WP1 既有 42 零回归） |
+| [engine-core-wp3-trajectory-control-backend-2026-10-28.md](progress/engine-core-wp3-trajectory-control-backend-2026-10-28.md) | **引擎 Phase1 WP3 · 会话轨迹控制引擎**：强覆盖/修正/触发三模式 + 线性多幕游标（单向推进/不跳幕），条件判定 + 游标推进 + 三模式合成纯函数，确定性可复现的标准化考核/伦理盲盒；剧本经 openSession 注入不落库，游标仅进程内存，不调 LLM/不出口语，不搬 counselor/drills | 🟡 待开工 |
 | [backend-open-gaps-2026-10-22.md](progress/backend-open-gaps-2026-10-22.md) | **当前待办主线**：P0 G1 金句图托管、P1 G2-G4 首页个性化真实聚合、P2 G5-G8 完善项 + 上线验收 | 🔴 进行中 |
 | [quote-static-cdn-backlog-2026-10-22.md](progress/quote-static-cdn-backlog-2026-10-22.md) | 金句背景图 CDN/静态托管未就绪的独立待办（G1 展开） | 🔴 未解决 |
 | [vpt-session-enhancement-backend-2026-10-26.md](progress/vpt-session-enhancement-backend-2026-10-26.md) | **vpt 全真语音会话增强**：会话落库贯通、实时提示/技术统计/移情标记接 WS、暂停恢复、复盘报告查询+4流派反馈、卡片字段 | 🔴 待开工 |
@@ -127,4 +129,4 @@
 
 ---
 
-**最后更新**：2026-10-28（新增引擎终局路线图、PDF 愿景原件 reference、WP0 内核骨架任务单）；specs/progress 其余内容未改动。当前阶段 = v1.3 自由练习 + 来访池 + 全真语音闭环，引擎 Phase1 从 WP0 起步。
+**最后更新**：2026-10-28（新增引擎终局路线图、PDF 愿景原件 reference、WP0 内核骨架任务单、WP1 BDI 认知引擎、WP2 分层记忆、WP3 轨迹控制任务单）；specs/progress 其余内容未改动。当前阶段 = v1.3 自由练习 + 来访池 + 全真语音闭环，引擎 Phase1 从 WP0 起步，WP3 待开工。

@@ -47,8 +47,28 @@ export type { EngineSessionHandle, EngineTurnInput, EngineTurnOutput, OpenEngine
 
 // ── 仓储端口 ──────────────────────────────────────────────────────
 export type { BdiStateRecord, BdiStateRepository } from './domain/ports/bdi-state.repository';
-export type { MemoryEntry, MemoryHit, MemoryRecallQuery, MemoryStore } from './domain/ports/memory.store';
+export type { MemoryEntry, MemoryHit, MemoryRecallQuery, MemoryRecallScope, MemoryStore } from './domain/ports/memory.store';
 export { MemorySource, MemoryTier } from './domain/ports/memory.store';
+// 契约级共享 helper —— B 层实现 (Qdrant 版) 必须用**同一份**校验与上限口径,
+// 否则两版实现各写一套 = 迟早漂移, 且漂移方向恰好是"某版放过了另一版拦住的脏数据".
+export { assertValidMemoryEntry, assertValidMemoryRecallQuery, resolveMemoryRecallLimit } from './domain/ports/memory.store';
+
+// ── 向量化端口 (WP2) ──────────────────────────────────────────────
+export type { Embedder } from './domain/ports/embedder';
+
+// ── 记忆策略算子 (WP2 · 纯函数) ────────────────────────────────────
+export { trimWorkingWindow, WORKING_MEMORY_WINDOW_TURNS } from './memory/working-window';
+export {
+  decayImportance,
+  effectiveImportance,
+  DEFAULT_DECAY_HALF_LIFE_MS,
+  RECALL_MIN_EFFECTIVE_IMPORTANCE,
+} from './memory/importance-decay';
+export type { ConflictRecord, ConflictResolution } from './memory/conflict-resolution';
+export { applyConflictResolution, markSuperseded, resolveConflict } from './memory/conflict-resolution';
+export { promoteShortTermToLongTerm } from './memory/promotion';
+export type { RecallEvaluation } from './memory/recall-policy';
+export { evaluateRecallCandidate } from './memory/recall-policy';
 
 // ── 运行时端口 ────────────────────────────────────────────────────
 export type { EngineSessionPort } from './runtime/engine-session.port';

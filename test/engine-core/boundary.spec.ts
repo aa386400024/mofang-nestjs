@@ -7,7 +7,9 @@
 //         ④ 外部依赖白名单 = { nanoid } + node:* —— 除此之外一律不允许;
 //         ⑤ 内核子树零 NestJS 装饰器;
 //         ⑥ index.ts 不外露内存实现;
-//         ⑦ 目录结构与任务单 §3.1 一致.
+//         ⑦ 目录结构与任务单 §3.1 一致;
+//         ⑧ 内核根目录无散落文件;
+//         ⑨ B 层实现 (Qdrant / embedding) 落在内核包之外 (WP2).
 //
 //   为什么必须是断言而不是注释:
 //     这条边界是整个 Phase1 的地基 (roadmap 第 0 原则: 引擎未来独立成微服务).
@@ -244,12 +246,33 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'MemoryEntry',
       'MemoryHit',
       'MemoryRecallQuery',
+      'MemoryRecallScope',
       'MemoryTier',
       'MemorySource',
+      'assertValidMemoryEntry',
+      'assertValidMemoryRecallQuery',
+      'resolveMemoryRecallLimit',
       'OpenEngineSessionInput',
       'EngineSessionHandle',
       'EngineTurnInput',
       'EngineTurnOutput',
+      // WP2: 向量化端口
+      'Embedder',
+      // WP2: 记忆策略算子 (纯函数)
+      'trimWorkingWindow',
+      'WORKING_MEMORY_WINDOW_TURNS',
+      'decayImportance',
+      'effectiveImportance',
+      'DEFAULT_DECAY_HALF_LIFE_MS',
+      'RECALL_MIN_EFFECTIVE_IMPORTANCE',
+      'ConflictRecord',
+      'ConflictResolution',
+      'resolveConflict',
+      'markSuperseded',
+      'applyConflictResolution',
+      'promoteShortTermToLongTerm',
+      'RecallEvaluation',
+      'evaluateRecallCandidate',
     ];
     // 少导出
     expect(expectedPublic.filter((name) => !exportedNames.includes(name))).toEqual([]);
@@ -274,9 +297,15 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'domain/events/event-lexicon.ts',
       'domain/ports/bdi-state.repository.ts',
       'domain/ports/memory.store.ts',
+      'domain/ports/embedder.ts',
       'cognition/rule-based-classifier.ts',
       'cognition/state-transition.ts',
       'cognition/intention-planner.ts',
+      'memory/working-window.ts',
+      'memory/importance-decay.ts',
+      'memory/conflict-resolution.ts',
+      'memory/promotion.ts',
+      'memory/recall-policy.ts',
       'runtime/engine-session.port.ts',
       'in-memory/in-memory-bdi-state.repository.ts',
       'in-memory/in-memory-memory.store.ts',
@@ -294,5 +323,25 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       return name !== 'index.ts' && !name.endsWith('.md');
     });
     expect(strays).toEqual([]);
+  });
+
+  it('⑨ B 层实现 (Qdrant / embedding) 落在内核包之外', () => {
+    // 内核整树零框架依赖的第二道防线: 光断言"内核里没有 @nestjs"还不够 ——
+    // 万一有人把 Qdrant 实现塞进内核包, 断言①会绿 (qdrant 不是 @nestjs),
+    // 但内核已经被绑死在向量库上. 所以显式断言"实现必须在 B 层".
+    const adapterRoot = join(__dirname, '../../src/engine-adapters');
+    expect(existsSync(join(adapterRoot, 'persistence/qdrant-memory.store.ts'))).toBe(true);
+    expect(existsSync(join(adapterRoot, 'embedder/openai-compat.embedder.ts'))).toBe(true);
+
+    // 内核包里不得出现向量库 / embedding 实现的痕迹.
+    const forbiddenInKernel: string[] = [];
+    for (const file of kernelFiles) {
+      for (const specifier of extractModuleSpecifiers(file)) {
+        if (specifier.includes('qdrant') || specifier.includes('engine-adapters')) {
+          forbiddenInKernel.push(`${relPath(file)} → ${specifier}`);
+        }
+      }
+    }
+    expect(forbiddenInKernel).toEqual([]);
   });
 });

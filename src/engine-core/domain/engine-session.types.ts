@@ -24,6 +24,7 @@
 import type { BdiSnapshot } from './bdi-snapshot';
 import type { CharacterProfile } from './character-profile';
 import type { Intention } from './intention';
+import type { MemoryHit } from './ports/memory.store';
 
 /**
  * 开场入参.
@@ -111,4 +112,14 @@ export interface EngineTurnOutput {
    * 供 WP5 渲染 / 督导观测. 规则轨每轮产出; 不携带任何口语.
    */
   readonly intention?: Intention;
+  /**
+   * 跨会话开场上下文 (WP2): **仅 resume 会话首论**携带.
+   *
+   * 内容 = 该来访者的高权重长时记忆命中 (scope=visitor / tiers=[LONG_TERM]).
+   * 用途: 供 WP5 组织承接话术、供督导观测"模型知道多少上次的事".
+   *
+   * 边界: 只承载命中条目, **不含口语、不参与 BDI 决策、不改快照数值** ——
+   * 它是"读出来给上层看的", 不是"喂给决策引擎的". 非 resume 或无命中时省略.
+   */
+  readonly openingContext?: readonly MemoryHit[];
 }

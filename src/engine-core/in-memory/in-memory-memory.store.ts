@@ -12,24 +12,34 @@
 //   反双胞胎:
 //     - **不做文本子串过滤** —— 内存版按子串过滤 / Qdrant 版按向量过滤, 是"同一内核
 //       换实现后行为变了"的最难查漂移. 内存版的 query 只用于日志; 排序退化为
-//       重要度 → 发生时间, 并在代码与文档里显式写明"无语义相关度".
+//       有效重要度 → 发生时间, 并在代码与文档里显式写明"无语义相关度".
 //     - 不在 remember 时抛"重复 id" —— 记忆写入天然会重放 (重试 / 跨会话接续),
 //       幂等覆盖 (后写为准) 才是正确语义.
-//     - 不给 recall 加"分页游标" —— WP2 的召回量是 Top5 量级, 分页是过度设计.
-//     - 不做"重要度衰减" —— 衰减 (竞争抑制遗忘) 属 WP2 的算法, 本期只存该字段.
+//     - 不给 recall 加"分页游标" —— 召回量是 Top5 量级, 分页是过度设计.
+//     - **不自己写召回判定** —— 判定统一走 memory/recall-policy.ts 的纯函数
+//       (内存版与 Qdrant 版共用), 杜绝"两套实现两套语义"的漂移.
+//     - 不自己写条目校验 / limit clamp —— 同上, 走 domain/ports/memory.store.ts 的共享 helper.
+//
+//   WP2 行为变化 (scope=visitor):
+//     - scope='session' (默认): 与 WP0 **完全一致** (租户+会话, 原始 important 过滤,
+//       有效重要度 = 原始 important, 排序 = 重要度 → 时间). 零回归.
+//     - scope='visitor': 租户+来访者跨会话, 只返回长时, 叠加重要度衰减与阈值过滤.
 //
 //   如何验证:
 //     1. pnpm build 0 错
-//     2. test/engine-core/engine-core.spec.ts 覆盖: 写入召回 / tier 过滤 / limit clamp / TTL 过期 / importance 校验
+//     2. test/engine-core/engine-core.spec.ts (WP0 既有) 零改动通过
+//     3. test/engine-core/wp2-memory.spec.ts 覆盖: scope=visitor / 衰减 / superseded 过滤
 
-import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors';
-import type { MemoryEntry, MemoryHit, MemoryRecallQuery, MemoryStore } from '../domain/ports/memory.store';
-
-/** 默认召回条数 (对齐 WP2 的 Top5 口径). */
-export const DEFAULT_MEMORY_RECALL_LIMIT = 5;
-
-/** 单次召回条数上限 (防止调用方一次拉爆内存). */
-export const MAX_MEMORY_RECALL_LIMIT = 50;
+import {
+  assertValidMemoryEntry,
+  assertValidMemoryRecallQuery,
+  resolveMemoryRecallLimit,
+  type MemoryEntry,
+  type MemoryHit,
+  type MemoryRecallQuery,
+  type MemoryStore,
+} from '../domain/ports/memory.store';
+import { evaluateRecallCandidate } from '../memory/recall-policy';
 
 /** 记忆内存仓储构造选项. */
 export interface InMemoryMemoryStoreOptions {
@@ -48,6 +58,12 @@ interface StoredMemoryEntry {
   readonly expiresAt: number | null;
 }
 
+/** 召回命中 + 排序用的有效重要度 (内部用, 不进端口契约). */
+interface RankedHit {
+  readonly hit: MemoryHit;
+  readonly effectiveImportance: number;
+}
+
 /** 记忆内存仓储. */
 export class InMemoryMemoryStore implements MemoryStore {
   /** 记忆 id → 条目. */
@@ -63,7 +79,7 @@ export class InMemoryMemoryStore implements MemoryStore {
   }
 
   async remember(entry: MemoryEntry): Promise<void> {
-    this.assertValidEntry(entry);
+    assertValidMemoryEntry(entry);
     const ttlMs = entry.ttlMs === undefined ? this.defaultTtlMs : entry.ttlMs;
     const expiresAt = ttlMs === null ? null : this.now() + ttlMs;
     // 幂等: 同 id 后写为准.
@@ -72,30 +88,23 @@ export class InMemoryMemoryStore implements MemoryStore {
   }
 
   async recall(query: MemoryRecallQuery): Promise<readonly MemoryHit[]> {
-    if (!query.tenantId) {
-      throw new EngineCoreError(EngineErrorCode.INVALID_INPUT, 'InMemoryMemoryStore.recall: tenantId 不能为空');
-    }
-    if (!query.sessionId) {
-      throw new EngineCoreError(EngineErrorCode.INVALID_INPUT, 'InMemoryMemoryStore.recall: sessionId 不能为空');
-    }
-    const limit = this.resolveLimit(query.limit);
+    assertValidMemoryRecallQuery(query);
+    const limit = resolveMemoryRecallLimit(query.limit);
     const now = this.now();
-    const hits: MemoryHit[] = [];
+    const ranked: RankedHit[] = [];
 
     for (const stored of this.entries.values()) {
-      const entry = stored.entry;
-      // 租户 + 会话双条件: 跨租户 / 跨会话都不该被召回.
-      if (entry.tenantId !== query.tenantId) continue;
-      if (entry.sessionId !== query.sessionId) continue;
-      if (stored.expiresAt !== null && stored.expiresAt <= now) continue;
-      if (query.tiers && !query.tiers.includes(entry.tier)) continue;
-      if (query.minImportance !== undefined && entry.importance < query.minImportance) continue;
-      // 无语义相关度: score 恒 0, 排序退化为重要度 → 发生时间.
-      hits.push({ entry: { ...entry }, score: 0 });
+      const evaluation = evaluateRecallCandidate(stored.entry, stored.expiresAt, query, now);
+      if (!evaluation.accepted) continue;
+      // 无语义相关度: score 恒 0, 排序退化为有效重要度 → 发生时间.
+      ranked.push({
+        hit: { entry: { ...stored.entry }, score: 0 },
+        effectiveImportance: evaluation.effectiveImportance,
+      });
     }
 
-    hits.sort((a, b) => b.entry.importance - a.entry.importance || b.entry.occurredAt - a.entry.occurredAt);
-    return hits.slice(0, limit);
+    ranked.sort((a, b) => b.effectiveImportance - a.effectiveImportance || b.hit.entry.occurredAt - a.hit.entry.occurredAt);
+    return ranked.slice(0, limit).map((item) => item.hit);
   }
 
   // ── private ────────────────────────────────────────────────────
@@ -107,40 +116,6 @@ export class InMemoryMemoryStore implements MemoryStore {
       if (stored.expiresAt !== null && stored.expiresAt <= now) {
         this.entries.delete(id);
       }
-    }
-  }
-
-  private resolveLimit(limit: number | undefined): number {
-    if (limit === undefined) return DEFAULT_MEMORY_RECALL_LIMIT;
-    if (!Number.isFinite(limit) || limit < 1) {
-      throw new EngineCoreError(EngineErrorCode.INVALID_INPUT, `InMemoryMemoryStore.recall: limit 必须是 >= 1 的有限数, 收到 ${limit}`);
-    }
-    return Math.min(Math.floor(limit), MAX_MEMORY_RECALL_LIMIT);
-  }
-
-  private assertValidEntry(entry: MemoryEntry): void {
-    if (!entry.tenantId) {
-      throw new EngineCoreError(EngineErrorCode.INVALID_INPUT, 'InMemoryMemoryStore.remember: tenantId 不能为空');
-    }
-    if (!entry.id) {
-      throw new EngineCoreError(EngineErrorCode.INVALID_INPUT, 'InMemoryMemoryStore.remember: id 不能为空');
-    }
-    if (!entry.sessionId) {
-      throw new EngineCoreError(EngineErrorCode.INVALID_INPUT, 'InMemoryMemoryStore.remember: sessionId 不能为空');
-    }
-    if (!Number.isFinite(entry.importance) || entry.importance < 0 || entry.importance > 1) {
-      throw new EngineCoreError(
-        EngineErrorCode.INVALID_INPUT,
-        `InMemoryMemoryStore.remember: importance 必须落在 [0,1], 收到 ${entry.importance}`,
-        { id: entry.id, importance: entry.importance },
-      );
-    }
-    if (entry.ttlMs !== undefined && entry.ttlMs !== null && (!Number.isFinite(entry.ttlMs) || entry.ttlMs < 0)) {
-      throw new EngineCoreError(
-        EngineErrorCode.INVALID_INPUT,
-        `InMemoryMemoryStore.remember: ttlMs 必须是非负有限数或 null, 收到 ${entry.ttlMs}`,
-        { id: entry.id, ttlMs: entry.ttlMs },
-      );
     }
   }
 }

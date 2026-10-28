@@ -38,11 +38,21 @@ import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors';
 import type { EngineSessionHandle, EngineTurnInput, EngineTurnOutput, OpenEngineSessionInput } from '../domain/engine-session.types';
 import type { EventClassifier } from '../domain/events/session-event';
 import type { BdiStateRecord, BdiStateRepository } from '../domain/ports/bdi-state.repository';
-import { MemorySource, MemoryTier, type MemoryStore } from '../domain/ports/memory.store';
+import { MemorySource, MemoryTier, type MemoryHit, type MemoryStore } from '../domain/ports/memory.store';
+import { trimWorkingWindow, WORKING_MEMORY_WINDOW_TURNS } from '../memory/working-window';
 import type { EngineSessionPort } from '../runtime/engine-session.port';
 
 /** 工作记忆条目的默认重要度. WP0 无重要度算法 (属 WP2 遗忘机制), 取中性值. */
 const WORKING_MEMORY_DEFAULT_IMPORTANCE = 0.5;
+
+/**
+ * 跨会话开场上下文的召回参数 (WP2 §5.4).
+ *
+ * 只取**高权重**长时记忆 —— 开场承接宁可少而准: 塞十条低权重旧话题进上下文,
+ * 会把来访者的注意力带偏, 反而干扰本场推进.
+ */
+const OPENING_CONTEXT_MIN_IMPORTANCE = 0.5;
+const OPENING_CONTEXT_LIMIT = 5;
 
 /** 内部运行时会话 (句柄维度). */
 interface EngineSessionRuntime {
@@ -59,6 +69,14 @@ interface EngineSessionRuntime {
   readonly openedAt: number;
   /** 已完成轮次. */
   turnIndex: number;
+  /**
+   * 工作记忆窗口 (WP2): 最近 N 轮文本, **仅运行时**, 不落库.
+   *
+   * 为什么不从记忆仓储里取工作记忆:
+   *   工作记忆是咨询师原话 —— 会话内瞬时数据. 落进长时存储既有隐私面
+   *   (原话变跨会话可检索), 也没必要 (窗口本身就是内存里的 N 条).
+   */
+  workingWindow: readonly string[];
 }
 
 /** 会话内存实现构造选项. */
@@ -124,6 +142,7 @@ export class InMemoryEngineSession implements EngineSessionPort {
       characterProfile: input.characterProfile ?? null,
       openedAt: this.now(),
       turnIndex: 0,
+      workingWindow: [],
     };
 
     this.sessions.set(handleId, runtime);
@@ -165,16 +184,21 @@ export class InMemoryEngineSession implements EngineSessionPort {
     };
     // 3. 落库 (乐观锁: 冲突会冒泡为 STATE_CONFLICT).
     const saved = await this.bdiStates.save(record);
-    // 4. 写工作记忆.
+    // 4. 写工作记忆 + 维护运行时工作窗口 (WP2).
     await this.rememberTurn(runtime, userText);
+    runtime.workingWindow = trimWorkingWindow([...runtime.workingWindow, userText], WORKING_MEMORY_WINDOW_TURNS);
     // 5. 推进轮次.
     runtime.turnIndex += 1;
+    // 6. 跨会话开场上下文 (WP2): 仅 resume 会话的首论携带.
+    //    刻意放在最后 —— 它只挂出参, 不参与上面的 BDI 决策, 也不改快照数值.
+    const openingContext = await this.collectOpeningContext(runtime, userText);
 
     return {
       reply: '',
       snapshot: cloneBdiSnapshot(saved.snapshot),
       turnIndex: runtime.turnIndex,
       intention,
+      ...(openingContext.length > 0 ? { openingContext } : {}),
     };
   }
 
@@ -191,6 +215,16 @@ export class InMemoryEngineSession implements EngineSessionPort {
   /** 当前活跃句柄数 (观测 / 测试用; 不属于端口契约). */
   activeSessionCount(): number {
     return this.sessions.size;
+  }
+
+  /**
+   * 本场工作记忆窗口 (最近 N 轮文本) (观测 / 测试用; 不属于端口契约).
+   *
+   * 窗口是**运行时**状态, 不落库 —— 供 WP5 渲染时取"最近上下文", 也供单测
+   * 验证窗口裁剪. 句柄不存在时返回空数组 (不抛错: 观测接口不该把调用搞崩).
+   */
+  workingContext(handleId: string): readonly string[] {
+    return this.sessions.get(handleId)?.workingWindow ?? [];
   }
 
   // ── private ────────────────────────────────────────────────────
@@ -235,11 +269,14 @@ export class InMemoryEngineSession implements EngineSessionPort {
    *
    * WP0 只记咨询师这一侧文本 (来访侧 reply 恒为空串, 无内容可记).
    * WP5 落地渲染后, 在此处把"问 + 答"成对写入, 否则工作记忆只有半边对话.
+   *
+   * 带 visitorId: 让每条记忆都能追到稳定来访者 (跨会话归属 / 按来访者删除的依据).
    */
   private async rememberTurn(runtime: EngineSessionRuntime, userText: string): Promise<void> {
     await this.memories.remember({
       id: this.idFactory(),
       tenantId: runtime.tenantId,
+      visitorId: runtime.visitorId,
       sessionId: runtime.sessionId,
       tier: MemoryTier.WORKING,
       source: MemorySource.TURN,
@@ -247,6 +284,36 @@ export class InMemoryEngineSession implements EngineSessionPort {
       importance: WORKING_MEMORY_DEFAULT_IMPORTANCE,
       occurredAt: this.now(),
     });
+  }
+
+  /**
+   * 采集跨会话开场上下文 (WP2 §5.4).
+   *
+   * 触发条件: **resume 会话的首论** (turnIndex === 1). 其余轮次不重复召回 ——
+   * 开场上下文只在开场用一次, 每轮都塞一遍既浪费查询又会稀释当前议题.
+   *
+   * 召回口径: scope=visitor + tiers=[LONG_TERM] + minImportance=0.5 + limit=5.
+   *
+   * 失败处理: 吞掉异常返回空数组 —— 开场上下文是**锦上添花**, 取不到不该让整轮
+   * 失败. 真正的存储故障由 B 层适配器自己记 warn (它有 logger), 内核不重复告警.
+   */
+  private async collectOpeningContext(runtime: EngineSessionRuntime, query: string): Promise<readonly MemoryHit[]> {
+    if (!runtime.resumeFromSessionId) return [];
+    if (runtime.turnIndex !== 1) return [];
+    try {
+      return await this.memories.recall({
+        tenantId: runtime.tenantId,
+        sessionId: runtime.sessionId,
+        visitorId: runtime.visitorId,
+        scope: 'visitor',
+        query,
+        tiers: [MemoryTier.LONG_TERM],
+        minImportance: OPENING_CONTEXT_MIN_IMPORTANCE,
+        limit: OPENING_CONTEXT_LIMIT,
+      });
+    } catch {
+      return [];
+    }
   }
 
   private assertOpenInput(input: OpenEngineSessionInput): void {
