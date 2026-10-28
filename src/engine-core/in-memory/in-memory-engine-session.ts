@@ -31,14 +31,19 @@ import { randomInt } from 'node:crypto';
 import { planIntention } from '../cognition/intention-planner';
 import { RuleBasedClassifier } from '../cognition/rule-based-classifier';
 import { transitionState } from '../cognition/state-transition';
-import { cloneBdiSnapshot } from '../domain/bdi-snapshot';
+import { planAct } from '../cognition/trajectory/act-cursor';
+import { applyTrajectory } from '../cognition/trajectory/trajectory-applier';
+import { evaluateTrigger, type MatchContext } from '../cognition/trajectory/trigger-evaluate';
+import { cloneBdiSnapshot, type BdiSnapshot } from '../domain/bdi-snapshot';
 import { buildInitialSnapshot } from '../domain/bootstrap';
 import type { CharacterProfile } from '../domain/character-profile';
 import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors';
 import type { EngineSessionHandle, EngineTurnInput, EngineTurnOutput, OpenEngineSessionInput } from '../domain/engine-session.types';
-import type { EventClassifier } from '../domain/events/session-event';
+import type { EventClassifier, SessionEvent } from '../domain/events/session-event';
+import type { Intention } from '../domain/intention';
 import type { BdiStateRecord, BdiStateRepository } from '../domain/ports/bdi-state.repository';
 import { MemorySource, MemoryTier, type MemoryHit, type MemoryStore } from '../domain/ports/memory.store';
+import { orderedTrajectoryNodes, validateTrajectoryScript, type TrajectoryScript, type TrajectoryTrace } from '../domain/trajectory/script';
 import { trimWorkingWindow, WORKING_MEMORY_WINDOW_TURNS } from '../memory/working-window';
 import type { EngineSessionPort } from '../runtime/engine-session.port';
 
@@ -53,6 +58,28 @@ const WORKING_MEMORY_DEFAULT_IMPORTANCE = 0.5;
  */
 const OPENING_CONTEXT_MIN_IMPORTANCE = 0.5;
 const OPENING_CONTEXT_LIMIT = 5;
+
+/**
+ * 轨迹运行时 (WP3): 剧本 + 游标 + 已激活幕 + 终态.
+ *
+ * 全部**进程内瞬时**, 不落库:
+ *   - 剧本由 adapter 注入, 内核不持久化 (任务单 M8);
+ *   - 游标与终态是"这场对话走到哪"的进度, 属会话运行态;
+ *   - 跨进程持久化 (暂停/恢复/归档) 留装配轮, 本期不做.
+ *
+ * 挂在**句柄**上而不是全局: 剧本与游标随句柄实例持有, 不跨句柄共享, 不串场.
+ */
+interface TrajectoryRuntime {
+  readonly script: TrajectoryScript;
+  /** 游标: 下一个待进入幕的有效 order, 只增不减、不跳幕、不回退. */
+  cursor: number;
+  /** 已进入过 (激活过) 的幕 order 集合, 用于去重. */
+  readonly activatedOrders: Set<number>;
+  /** 已进入过的幕 id 清单 (按进入顺序), 供督导看推进轨迹. */
+  readonly visitedNodeIds: string[];
+  /** 终态: null = 未终结. 终态后不再推进、不再叠加 delta. */
+  outcome: 'completed' | 'aborted' | null;
+}
 
 /** 内部运行时会话 (句柄维度). */
 interface EngineSessionRuntime {
@@ -77,6 +104,8 @@ interface EngineSessionRuntime {
    *   (原话变跨会话可检索), 也没必要 (窗口本身就是内存里的 N 条).
    */
   workingWindow: readonly string[];
+  /** 轨迹运行时 (WP3); null = 本场无剧本约束. */
+  trajectory: TrajectoryRuntime | null;
 }
 
 /** 会话内存实现构造选项. */
@@ -143,6 +172,7 @@ export class InMemoryEngineSession implements EngineSessionPort {
       openedAt: this.now(),
       turnIndex: 0,
       workingWindow: [],
+      trajectory: this.createTrajectoryRuntime(input.trajectory),
     };
 
     this.sessions.set(handleId, runtime);
@@ -175,12 +205,16 @@ export class InMemoryEngineSession implements EngineSessionPort {
     });
     const nextSnapshot = transitionState(base.snapshot, events);
     const intention = planIntention(nextSnapshot, runtime.characterProfile ?? undefined);
+    // 2.5 轨迹步 (WP3): BDI 自由规划**之后**、落库**之前**.
+    //     BDI 永远先发生, 轨迹只做后处理 —— 于是"同一段行为在开/关轨迹两种配置下"
+    //     可以直接对比, 轨迹出问题时也能回退到纯 BDI (任务单 M1).
+    const trajectory = this.applyTrajectoryStep(runtime, events, userText, intention, nextSnapshot);
     const record: BdiStateRecord = {
       tenantId: runtime.tenantId,
       sessionId: runtime.sessionId,
       revision: base.revision + 1,
       updatedAt: this.now(),
-      snapshot: nextSnapshot,
+      snapshot: trajectory.snapshot,
     };
     // 3. 落库 (乐观锁: 冲突会冒泡为 STATE_CONFLICT).
     const saved = await this.bdiStates.save(record);
@@ -197,8 +231,9 @@ export class InMemoryEngineSession implements EngineSessionPort {
       reply: '',
       snapshot: cloneBdiSnapshot(saved.snapshot),
       turnIndex: runtime.turnIndex,
-      intention,
+      intention: trajectory.intention,
       ...(openingContext.length > 0 ? { openingContext } : {}),
+      ...(trajectory.trace ? { trajectoryTrace: trajectory.trace } : {}),
     };
   }
 
@@ -261,6 +296,109 @@ export class InMemoryEngineSession implements EngineSessionPort {
       // 全新会话: 按角色 profile 装配初始基线; 无 profile 回落中性默认.
       // resume 接续分支在上方, 直接搬上一场快照, 不用 profile 覆盖.
       snapshot: buildInitialSnapshot(runtime.characterProfile ?? undefined),
+    };
+  }
+
+  /**
+   * 构造轨迹运行时 (WP3).
+   *
+   * 剧本形状在**开场**就校验: 一条非法剧本不该拖到第 5 轮才炸 —— 开场失败意味着
+   * "这场根本不该开始", 比中途炸更干净. 校验集中在 validateTrajectoryScript.
+   *
+   * @param script 注入的剧本; 省略 = 本场无轨迹约束
+   * @returns 轨迹运行时; 无剧本时 null
+   */
+  private createTrajectoryRuntime(script: TrajectoryScript | undefined): TrajectoryRuntime | null {
+    if (!script) return null;
+    validateTrajectoryScript(script);
+    return {
+      script,
+      cursor: 0,
+      activatedOrders: new Set<number>(),
+      visitedNodeIds: [],
+      outcome: null,
+    };
+  }
+
+  /**
+   * 轨迹步 (WP3 §5.8): 推进游标 → 合成 → 记账 → 判终态.
+   *
+   * 无剧本时**原样返回** (与 WP1/WP2 逐字一致, 零回归硬要求);
+   * 终态后 BDI 自由运行, 游标冻结, 不再推进/叠加, 本轮不再写 outcome ——
+   * outcome 描述的是"本轮发生的终态事件", 不是会话的持久状态.
+   *
+   * @param runtime 运行时会话
+   * @param events 本轮分类出的标准事件
+   * @param userText 咨询师本轮文本
+   * @param intention BDI 自由规划出的意图
+   * @param snapshot 本轮状态迁移后的快照
+   * @returns 最终意图 / 叠加后快照 / 本轮轨迹观测
+   */
+  private applyTrajectoryStep(
+    runtime: EngineSessionRuntime,
+    events: readonly SessionEvent[],
+    userText: string,
+    intention: Intention,
+    snapshot: BdiSnapshot,
+  ): { readonly intention: Intention; readonly snapshot: BdiSnapshot; readonly trace?: TrajectoryTrace } {
+    const trajectory = runtime.trajectory;
+    if (!trajectory) return { intention, snapshot };
+
+    const script = trajectory.script;
+    if (trajectory.outcome !== null) {
+      return {
+        intention,
+        snapshot,
+        trace: {
+          scriptId: script.scriptId,
+          mode: script.mode,
+          activated: false,
+          advanced: false,
+          cursor: trajectory.cursor,
+          visitedNodeIds: [...trajectory.visitedNodeIds],
+        },
+      };
+    }
+
+    // turnIndex 取**本轮轮次号 (从 1 起)**, 与出参 turnIndex 同口径.
+    const ctx: MatchContext = { events, userText, turnIndex: runtime.turnIndex + 1, snapshot };
+    const plan = planAct(script, trajectory.cursor, ctx, trajectory.activatedOrders);
+    const applied = applyTrajectory(script.mode, intention, snapshot, plan);
+
+    // 记账: 游标推进 + 已进入的幕 (等待轮不算"进入", 不记 visited).
+    const advanced = plan.nextCursor !== trajectory.cursor;
+    if (plan.node && plan.enterNewAct) {
+      const entered = orderedTrajectoryNodes(script).find((item) => item.node === plan.node);
+      if (entered) {
+        trajectory.activatedOrders.add(entered.order);
+        trajectory.visitedNodeIds.push(plan.node.nodeId);
+      }
+    }
+    trajectory.cursor = plan.nextCursor;
+
+    // 终态判定: abort 优先于 completion (任务单 M9).
+    let outcome: 'completed' | 'aborted' | undefined;
+    if (plan.aborted) {
+      trajectory.outcome = 'aborted';
+      outcome = 'aborted';
+    } else if (evaluateTrigger(script.completion.when, ctx)) {
+      trajectory.outcome = 'completed';
+      outcome = 'completed';
+    }
+
+    return {
+      intention: applied.intention,
+      snapshot: applied.snapshot,
+      trace: {
+        scriptId: script.scriptId,
+        mode: script.mode,
+        activated: applied.activated,
+        ...(plan.node ? { activeNodeId: plan.node.nodeId } : {}),
+        advanced,
+        cursor: trajectory.cursor,
+        visitedNodeIds: [...trajectory.visitedNodeIds],
+        ...(outcome ? { outcome } : {}),
+      },
     };
   }
 

@@ -70,5 +70,31 @@ export { promoteShortTermToLongTerm } from './memory/promotion';
 export type { RecallEvaluation } from './memory/recall-policy';
 export { evaluateRecallCandidate } from './memory/recall-policy';
 
+// ── 轨迹控制 (WP3 · 纯函数) ─────────────────────────────────────────
+//   剧本是纯对象注入, 游标/终态只在进程内存; 内核不感知剧本存哪.
+export type {
+  OrderedTrajectoryNode,
+  SnapshotDelta,
+  TrajectoryCompletion,
+  TrajectoryMode,
+  TrajectoryNode,
+  TrajectoryNodeTarget,
+  TrajectoryScript,
+  TrajectoryTrace,
+  TrajectoryTrigger,
+} from './domain/trajectory/script';
+export { orderedTrajectoryNodes, validateTrajectoryScript } from './domain/trajectory/script';
+export type { MatchContext } from './cognition/trajectory/trigger-evaluate';
+export { evaluateTrigger } from './cognition/trajectory/trigger-evaluate';
+export type { ActPlan } from './cognition/trajectory/act-cursor';
+export { planAct } from './cognition/trajectory/act-cursor';
+export type { TrajectoryApplication } from './cognition/trajectory/trajectory-applier';
+export {
+  applyTrajectory,
+  DEFAULT_CORRECT_WEIGHT,
+  MIN_CORRECT_WEIGHT,
+  resolveCorrectWeight,
+} from './cognition/trajectory/trajectory-applier';
+
 // ── 运行时端口 ────────────────────────────────────────────────────
 export type { EngineSessionPort } from './runtime/engine-session.port';

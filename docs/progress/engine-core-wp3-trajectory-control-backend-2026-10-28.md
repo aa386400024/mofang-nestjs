@@ -7,7 +7,8 @@
 > 仓库: `E:\Work\Project\backend\mofang-nestjs`
 > 日期: 2026-10-28 ｜ 类型: 引擎内核轨迹策略层（条件判定 + 线性游标推进 + 三模式合成纯函数），无 B 层、无网络、无模型
 > 目标读者: 后端；内核命令同 WP0/WP1/WP2，由大炮在 Windows 复跑 `lint` / `tsc` / `jest`
-> **状态**: 🟡 待开工（本单为施工依据）
+> **状态**: 🟢 **已交付并自跑复跑绿**（eslint 0 / tsc 0 / jest engine-core 5 套件 123 用例全绿、engine-adapters 13 用例全绿；WP0·WP1·WP2 既有 82 用例零回归）
+> **交付记录**: [`engine-core-wp3-trajectory-control-implementation-2026-10-28.md`](./engine-core-wp3-trajectory-control-implementation-2026-10-28.md)
 
 ---
 
@@ -447,16 +448,16 @@ loadState → classify → transitionState → planIntention(bdi)
 
 ## 9. 验收清单（逐条可勾选）
 
-- [ ] `npx tsc -p tsconfig.build.json --noEmit` 0 错。
-- [ ] `npx eslint "src/**/*.ts"` 0 error（新文件遵守既有 complexity / prettier / import-order）。
-- [ ] `npx jest test/engine-core` 全绿；**WP0/WP1/WP2 既有 engine-core 用例零回归**（WP2 的 engine-adapters 用例本期不动，复跑 `npx jest test/engine-adapters` 仍绿即可）。
-- [ ] `boundary.spec.ts` 全绿：内核整树零 `@nestjs`/`typeorm`；本期新增导出已进断言⑥白名单、新文件已进断言⑦目录清单（双向比对不漏不多）。
-- [ ] 同一剧本 + 同一行为序列，重复两轮模拟，游标位置、激活幕、finalIntention、叠加后快照逐轮一致（确定性可复现）。
-- [ ] 游标单向推进、不跳幕、不回退；force 等待轮不重复叠加 delta。
-- [ ] 三模式行为差异可观测：强覆盖替换 / 修正混合 / 触发未命中透传。
-- [ ] abort 优先于 completion；终态写 trace 但不自动 closeSession。
-- [ ] 本期零口语、零 LLM 调用、零 migration/entity/新表、零 `.env` 改动、零新第三方依赖、游标不落库。
-- [ ] 未改动 `src/counselor/drills/` 任何文件。
+- [x] `npx tsc -p tsconfig.build.json --noEmit` 0 错。
+- [x] `npx eslint "src/**/*.ts"` 0 error（新文件遵守既有 complexity / prettier / import-order）。
+- [x] `npx jest test/engine-core` 全绿；**WP0/WP1/WP2 既有 engine-core 用例零回归**（WP2 的 engine-adapters 用例本期不动，复跑 `npx jest test/engine-adapters` 仍绿即可）。
+- [x] `boundary.spec.ts` 全绿：内核整树零 `@nestjs`/`typeorm`；本期新增导出已进断言⑥白名单、新文件已进断言⑦目录清单（双向比对不漏不多）。
+- [x] 同一剧本 + 同一行为序列，重复两轮模拟，游标位置、激活幕、finalIntention、叠加后快照逐轮一致（确定性可复现）。
+- [x] 游标单向推进、不跳幕、不回退；force 等待轮不重复叠加 delta。
+- [x] 三模式行为差异可观测：强覆盖替换 / 修正混合 / 触发未命中透传。
+- [x] abort 优先于 completion；终态写 trace 但不自动 closeSession。
+- [x] 本期零口语、零 LLM 调用、零 migration/entity/新表、零 `.env` 改动、零新第三方依赖、游标不落库。
+- [x] 未改动 `src/counselor/drills/` 任何文件。
 
 ---
 
@@ -510,4 +511,37 @@ npx jest test/engine-core
 
 ## 13. 交付状态
 
-（待后端交付后回写：闸门结果、与本单差异、已知缺口。）
+**代码已交付并自跑复跑绿**，逐条对照见交付记录
+[`engine-core-wp3-trajectory-control-implementation-2026-10-28.md`](./engine-core-wp3-trajectory-control-implementation-2026-10-28.md)。
+
+### 13.1 闸门
+
+| 命令 | 结果 |
+|---|---|
+| `npx eslint "src/**/*.ts"` | exit 0，0 error |
+| `npx tsc -p tsconfig.build.json --noEmit` | exit 0，0 error |
+| `npx jest test/engine-core` | 5 套件 / 123 用例全绿（WP0+WP1+WP2 既有 82 **零回归** + WP3 新增 41） |
+| `npx jest test/engine-adapters` | 1 套件 / 13 用例全绿（WP2 B 层，本期未动） |
+
+`pnpm build` 全量构建与既有业务测试本轮未跑（本期零 entity / migration / module 改动，内核未被 `app.module.ts` 引用）。
+
+### 13.2 与本单的差异（须知会）
+
+| # | 差异 | 理由 |
+|---|---|---|
+| 1 | **新增 `orderedTrajectoryNodes`（幕序有效值唯一算法）** | 幕序缺省取数组下标，而"取下标"必须只有一处实现；校验 / 选幕 / 运行时记账三处各写一遍就会出现"校验说 order 唯一"与"推进时找到的不是同一幕"分裂 |
+| 2 | **游标推进取"下一幕的实际 order"，不写死 `cursor + 1`** | 幕序连续（0,1,2…，即 order 缺省取下标的默认情形）与 §5.2 的 `cursor+1` **完全等价**；但剧本允许显式稀疏 order（0,5,9），写死 +1 会让剧本在第一幕之后永远推进不动 |
+| 3 | **原子三态：满足 / 不满足 / 跳过** | 全空白关键词判为"不满足"会让整幕永远触发不了 = 剧本静默失效；判为"跳过"则其余原子照常决定 |
+| 4 | **`ctx.turnIndex` 取本轮轮次号（从 1 起）** | 与 `EngineTurnOutput.turnIndex` 同口径，剧本作者写 `afterTurns: 3` 即"第三轮开始" |
+| 5 | **权重夹取到 (0,1]（`MIN_CORRECT_WEIGHT = 0.01`）** | §4.5/§6 两处写明 (0,1]。权重 0 会把幕目标彻底抹掉（剧本静默失效），夹到极小正值 = 仍生效但影响微弱 |
+| 6 | **`emotion.label` 显式给则沿用，否则由双轴重算** | §5.4 写"混合后由双轴重算"、§4.1 类型注释写"显式给 label 沿用"，两处口径不同；本实现统一按 §4.1（类型级契约），避免"valence=-0.8 但 label=hopeful"的自相矛盾状态 |
+| 7 | **rationale 追加轨迹来源而非覆盖** | 轨迹强覆盖后策略已变，留着 BDI 旧理由会让督导看到与实际策略不符的解释 |
+| 8 | **终态后不再写 outcome（只写那一轮）** | `TrajectoryTrace` 是**本轮观测块**，`activated`/`advanced` 同为本轮语义；终态判定本身只做一次并冻结 |
+| 9 | **自带 `isTrajectoryNodeArray` 类型守卫** | 内置 `Array.isArray` 的守卫是 `arg is any[]`，用在已声明类型的字段上会把链路静默收窄成 `any`（本轮 eslint 实测报出 5 处 unsafe assignment 才暴露） |
+
+### 13.3 已知缺口（下一轮需决策）
+
+1. **无剧本装配路径**：无 MySQL 表 / CRUD / 样例剧本；剧本由 adapter 解析成纯对象注入，内置 1 条伦理盲盒样例剧本留装配轮。
+2. **游标/终态仅进程内存**：进程重启即丢；跨进程持久化（暂停/恢复/归档）留装配轮。
+3. **分支图 / 回环 / 并行幕 / 跳幕评分未做**（线性游标 V1）：类型上刻意不留跳转字段 —— 留了口子就会出现"剧本写了 goto 但内核不认"的静默失效。
+4. **WP2 遗留两项另起单**：Qdrant 写侧冲突标记（需给 `QdrantService` 补 `setPayload`）、短时记忆自动写入与会话结束编排层接线。均与 WP3 无关，本期未动。

@@ -25,6 +25,7 @@ import type { BdiSnapshot } from './bdi-snapshot';
 import type { CharacterProfile } from './character-profile';
 import type { Intention } from './intention';
 import type { MemoryHit } from './ports/memory.store';
+import type { TrajectoryScript, TrajectoryTrace } from './trajectory/script';
 
 /**
  * 开场入参.
@@ -62,6 +63,11 @@ export interface OpenEngineSessionInput {
    * resume 接续时不覆盖上一场状态. 省略 = 中性默认基线.
    */
   readonly characterProfile?: CharacterProfile;
+  /**
+   * 轨迹剧本 (WP3). adapter 解析成纯对象后注入; 内核不读数据库、不感知剧本存哪.
+   * 省略 = 无轨迹约束, 本场行为与 WP1/WP2 **逐字一致**.
+   */
+  readonly trajectory?: TrajectoryScript;
 }
 
 /**
@@ -122,4 +128,14 @@ export interface EngineTurnOutput {
    * 它是"读出来给上层看的", 不是"喂给决策引擎的". 非 resume 或无命中时省略.
    */
   readonly openingContext?: readonly MemoryHit[];
+  /**
+   * 本轮轨迹观测 (WP3): **仅注入了剧本的会话携带**.
+   *
+   * 内容 = 本轮走了哪一幕 / 游标到哪 / 是否推进 / 是否终结.
+   * 用途: 供督导看"标准化考核走到第几幕"、供 WP5 组织承接.
+   *
+   * 边界: 只承载观测数据, **不含口语、不参与 BDI 决策** ——
+   * 它是"读出来给上层看的", 不是"喂给决策引擎的".
+   */
+  readonly trajectoryTrace?: TrajectoryTrace;
 }
