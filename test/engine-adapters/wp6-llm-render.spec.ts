@@ -256,6 +256,34 @@ describe('WP6 · RenderPort LLM 适配 + 主备执行', () => {
       expect(runtime.health()['primary'].consecutiveFailures).toBe(0);
       expect(runtime.health()['primary'].inCooldown).toBe(false);
     });
+
+    it('成功路径清零失败计数 (经 adapter.render 真实链路, 不是直接调 runtime)', async () => {
+      // 这条锁的是"适配器成功时是否真的清了计数": 之前只清零了 runtime 的单测,
+      // 而适配器**成功路径漏调 markSuccess** —— 于是"失败过一次、后来已恢复"的
+      // 候选会带着旧计数进冷却, 比实际更早被踢出轮换.
+      const caller = new StubChatCaller([
+        { ok: false, error: new Error('boom') },
+        { ok: true, content: SAFE_TEXT },
+        { ok: false, error: new Error('boom') },
+      ]);
+      const adapter = new LlmRenderAdapter({
+        caller,
+        config: buildConfig([{ id: 'primary' }], { failureThreshold: 2 }),
+        guard: async () => ({ level: 'pass' }),
+      });
+
+      await adapter.render(buildSpec('chat'));
+      expect(adapter.health()['primary'].consecutiveFailures).toBe(1);
+      expect(adapter.health()['primary'].inCooldown).toBe(false);
+
+      await adapter.render(buildSpec('chat'));
+      expect(adapter.health()['primary'].consecutiveFailures).toBe(0);
+
+      // 清零生效: 再失败一次只到 1, 达不到阈值 2 → 不进冷却.
+      await adapter.render(buildSpec('chat'));
+      expect(adapter.health()['primary'].consecutiveFailures).toBe(1);
+      expect(adapter.health()['primary'].inCooldown).toBe(false);
+    });
   });
 
   describe('⑤ 全部耗尽最终降级', () => {

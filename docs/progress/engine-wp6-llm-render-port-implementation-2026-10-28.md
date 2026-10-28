@@ -143,3 +143,17 @@ npx jest test/engine-core
 > `npx jest test/engine-core` 在**并行模式**下可能偶发一条「worker 未优雅退出」告警 —— 已定位为**环境并发问题**（默认 7 个 ts-jest worker 把 8 核机器压满导致的退出握手超时），非代码缺陷，退出码与断言结果不受影响。复跑加 `--maxWorkers=2` 可消除且更快（详见 WP5 交付记录 §1.1）。
 
 无新增 env 开关；本期零 `.env` 改动、零 migration/entity/新表、零新第三方依赖、零 LLM 实调（全部 stub）、**内核零改动**、`src/llm` 零改动。
+
+---
+
+## 8. WP7 顺手修复（2026-10-28 追加）
+
+WP7 开工时发现并修掉一个**真实缺陷**（任务单 WP7 §1.3 点名）：
+
+| # | 缺陷 | 根因 | 修复 |
+|---|---|---|---|
+| 1 | **成功路径漏调 `runtime.markSuccess(candidate.id)`** —— 候选的连续失败计数与冷却**只增不减** | `render()` 拿到 success outcome 时直接 return，从未通知运行时"这个候选健康了"。后果：某候选失败过一次、后来已经恢复，仍带着旧计数进冷却，**比实际更早被踢出轮换** —— 退避从"保护"变成了"惩罚" | ① `render()` 的 success 分支补 `this.runtime.markSuccess(outcome.providerHint)`（一处覆盖普通成功与 block 重生成成功两条路径）；② 新增只读 `health()` 暴露候选健康快照；③ 补一条**经 `adapter.render` 真实链路**的清零单测（失败 1 次 → 成功 1 次 → 再失败 1 次**不触发冷却**），把回归钉在真实路径上而不是直接调 runtime |
+
+> 为什么原来没测出来：WP6 当时的清零用例是**直接调 `RenderFailoverRuntime`**，绕开了适配器 —— 断言的是"runtime 能清零"，而不是"适配器会调用它去清零"。两者之间隔着一层调用，正是缺陷藏身之处。`health()` 的存在让这条链路可被单测盯住。
+
+变更文件: `src/engine-adapters/rendering/llm-render.adapter.ts`（+`markSuccess` +`health()`）、`test/engine-adapters/wp6-llm-render.spec.ts`（+1 用例）。**内核与 `src/llm` 仍零改动**，闸门结果见 WP7 交付记录 §1。

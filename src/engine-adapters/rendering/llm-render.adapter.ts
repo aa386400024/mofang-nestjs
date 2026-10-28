@@ -39,7 +39,7 @@ import { Logger } from '@nestjs/common';
 import { clearTimeout, setTimeout } from 'node:timers';
 
 import type { RenderAdapterConfig, RenderCandidate } from './render-adapter.config';
-import { RenderFailoverRuntime } from './render-failover.runtime';
+import { RenderFailoverRuntime, type RenderCandidateHealth } from './render-failover.runtime';
 import {
   guardVisitorOutput,
   resolveCompletionTokens,
@@ -192,6 +192,10 @@ export class LlmRenderAdapter implements RenderPort {
 
       const outcome = await this.attempt(ctx, candidate);
       if (outcome.kind === 'success') {
+        // 成功即清零该候选的失败计数与冷却 (WP7 补): 计数只增不减的话,
+        // 一个"失败过一次、后来已经恢复"的候选会带着旧计数进冷却,
+        // 于是它比实际更早被踢出轮换 —— 退避就变成了惩罚而非保护.
+        this.runtime.markSuccess(outcome.providerHint);
         return {
           text: outcome.text,
           taskKind: spec.taskKind,
@@ -213,6 +217,17 @@ export class LlmRenderAdapter implements RenderPort {
 
     // 理论不可达 (next 返回 null 即退出循环); 保留兜底以满足类型收敛.
     return this.degrade(spec);
+  }
+
+  /**
+   * 候选健康快照 (观测用; 不参与选择判定).
+   *
+   * 为什么适配器要暴露这个: 失败计数 / 冷却是否被正确清零, 是**只能通过真实
+   * 链路**验证的行为 —— 直接调 runtime 的单测绕开了适配器, 曾经因此漏掉
+   * "成功路径未清零"这个缺陷. 暴露只读快照, 让回归测试能盯住真实路径.
+   */
+  health(): Readonly<Record<string, RenderCandidateHealth>> {
+    return this.runtime.health();
   }
 
   /**
