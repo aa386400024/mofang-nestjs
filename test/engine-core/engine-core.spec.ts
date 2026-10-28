@@ -120,8 +120,9 @@ describe('engine-core · WP0 边界骨架', () => {
 
       expect(output.reply).toBe('');
       expect(output.turnIndex).toBe(1);
-      expect(output.snapshot.beliefs).toEqual([]);
-      expect(output.snapshot.resistance).toBeNull();
+      expect(output.snapshot.coreBeliefs).toEqual([]);
+      // WP1: resistance 总有中性默认基线, 不再可空.
+      expect(output.snapshot.resistance).toEqual({ verbal: 0.4, depth: 0.4, style: 0.35 });
 
       session.closeSession(handle.handleId);
       expect(session.activeSessionCount()).toBe(0);
@@ -222,10 +223,10 @@ describe('engine-core · WP0 边界骨架', () => {
 
       const loaded = await bdiStates.load(TENANT, 's-1');
       // 绕过 readonly 直接改数组 (模拟 JS 消费方), 仓储内部不应被污染.
-      (loaded!.snapshot.beliefs as unknown[]).push('tampered');
+      (loaded!.snapshot.coreBeliefs as unknown[]).push('tampered');
 
       const reloaded = await bdiStates.load(TENANT, 's-1');
-      expect(reloaded?.snapshot.beliefs).toEqual([]);
+      expect(reloaded?.snapshot.coreBeliefs).toEqual([]);
     });
 
     it('load 未命中返回 null (不抛错)', async () => {
@@ -352,7 +353,7 @@ describe('engine-core · WP0 边界骨架', () => {
       const handle = session.openSession({ ...OPEN_INPUT, sessionId: 'session-2', resumeFromSessionId: 'session-prev' });
       const output = await session.turn(handle.handleId, { userText: '我们上次聊到哪了' });
 
-      expect(output.snapshot.beliefs).toEqual([]);
+      expect(output.snapshot.coreBeliefs).toEqual([]);
       const stored = await bdiStates.load(TENANT, 'session-2');
       expect(stored?.revision).toBe(1);
     });

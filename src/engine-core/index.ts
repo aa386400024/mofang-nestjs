@@ -1,25 +1,43 @@
-// V2026-10-28 治本 (WP0 · 引擎内核 · 公开出口):
-//   职责: 引擎内核的**唯一公开 barrel** —— 只导出公开端口与领域模型.
+// V2026-10-28 WP1 (引擎内核 · 公开出口):
+//   职责: 引擎内核的**唯一公开 barrel** —— 只导出公开端口、领域模型与算子接口.
 //         消费方 (NestJS adapter / WS 适配器 / 未来的独立微服务) 统一从这里 import.
 //
 //   为什么不导出内存实现 (InMemory*):
-//     任务单验收条目明确要求「index.ts 只导出公开端口与模型, 内存实现不外露」.
-//     道理也直白: 内存实现是**测试替身 / 兜底实现**, 把它放进公开出口等于
-//     宣告"内存版是一等公民", 将来换 Qdrant 版时, 已经有业务代码 import 了内存版,
-//     换不动. 需要内存实现时从 in-memory/ 显式深路径 import —— 意图写在代码里.
+//     内存实现是**测试替身 / 兜底实现**, 放进公开出口等于宣告它是一等公民,
+//     将来换 Qdrant 版时已有业务 import 了内存版, 换不动. 需要时从 in-memory/
+//     显式深路径 import —— 意图写在代码里.
+//
+//   为什么不导出规则实现 (RuleBasedClassifier / 算子纯函数 / 默认常量):
+//     它们是内部实现细节; 对外只暴露 EventClassifier **接口**, 模型轨后期替换,
+//     消费方不绑定规则实现. 默认基线由内核内部装配, 不外露常量避免被旁路改值.
 //
 //   依赖方向 (单向, 不可逆):
-//     adapter  ──▶ engine-core/index.ts ──▶ domain / runtime
+//     adapter  ──▶ engine-core/index.ts ──▶ domain / runtime / cognition 接口
 //     engine-core ✗─▶ adapter
 //     engine-core ✗─▶ @nestjs/* / typeorm / src/agent/visitor / src/voice
-//
-//   如何验证:
-//     1. pnpm build 0 错
-//     2. test/engine-core/boundary.spec.ts 断言: index.ts 不出现 'InMemory' / 'in-memory'
 
 // ── 领域模型 (BDI 状态快照) ───────────────────────────────────────
 export type { BdiResistance, BdiSnapshot } from './domain/bdi-snapshot';
 export { cloneBdiSnapshot, createEmptyBdiSnapshot } from './domain/bdi-snapshot';
+
+// ── 信念层 ────────────────────────────────────────────────────────
+export type { CoreBelief, MemoryBelief, TemporaryBelief } from './domain/beliefs';
+
+// ── 愿望层 ────────────────────────────────────────────────────────
+export type { SituationalDesire, UnderlyingDesire } from './domain/desires';
+
+// ── 情绪 / 移情 ────────────────────────────────────────────────────
+export type { EmotionLabel, EmotionState } from './domain/emotion';
+export type { TransferenceState } from './domain/transference';
+
+// ── 意图层 (本轮派生输出) ──────────────────────────────────────────
+export type { BehaviorStrategy, Intention } from './domain/intention';
+
+// ── 角色内核注入 ───────────────────────────────────────────────────
+export type { AttachmentStyle, CharacterProfile, UnderlyingDesireSeed } from './domain/character-profile';
+
+// ── 标准会话事件 / 分类器接口 (双轨可替换) ────────────────────────
+export type { ClassifyContext, CounselorEventKind, EventClassifier, SessionEvent } from './domain/events/session-event';
 
 // ── 错误契约 ──────────────────────────────────────────────────────
 export { EngineCoreError, EngineErrorCode } from './domain/engine-errors';

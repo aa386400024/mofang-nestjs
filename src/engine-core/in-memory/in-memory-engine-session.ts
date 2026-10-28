@@ -28,9 +28,15 @@
 import { nanoid } from 'nanoid';
 import { randomInt } from 'node:crypto';
 
-import { cloneBdiSnapshot, createEmptyBdiSnapshot } from '../domain/bdi-snapshot';
+import { planIntention } from '../cognition/intention-planner';
+import { RuleBasedClassifier } from '../cognition/rule-based-classifier';
+import { transitionState } from '../cognition/state-transition';
+import { cloneBdiSnapshot } from '../domain/bdi-snapshot';
+import { buildInitialSnapshot } from '../domain/bootstrap';
+import type { CharacterProfile } from '../domain/character-profile';
 import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors';
 import type { EngineSessionHandle, EngineTurnInput, EngineTurnOutput, OpenEngineSessionInput } from '../domain/engine-session.types';
+import type { EventClassifier } from '../domain/events/session-event';
 import type { BdiStateRecord, BdiStateRepository } from '../domain/ports/bdi-state.repository';
 import { MemorySource, MemoryTier, type MemoryStore } from '../domain/ports/memory.store';
 import type { EngineSessionPort } from '../runtime/engine-session.port';
@@ -48,6 +54,8 @@ interface EngineSessionRuntime {
   readonly seed: number;
   /** 跨会话接续来源 (WP2); null = 全新会话. */
   readonly resumeFromSessionId: string | null;
+  /** 角色内核基线 (WP1); 仅用于全新会话开场装配, 接续不覆盖. */
+  readonly characterProfile: CharacterProfile | null;
   readonly openedAt: number;
   /** 已完成轮次. */
   turnIndex: number;
@@ -63,6 +71,8 @@ export interface InMemoryEngineSessionOptions {
   readonly idFactory?: () => string;
   /** 时钟 (测试可注入; 默认 Date.now). */
   readonly now?: () => number;
+  /** 事件分类器 (可注入替换规则轨; 默认 RuleBasedClassifier). */
+  readonly classifier?: EventClassifier;
 }
 
 /** 会话内核的内存实现. */
@@ -79,12 +89,15 @@ export class InMemoryEngineSession implements EngineSessionPort {
   private readonly idFactory: () => string;
   /** 时钟. */
   private readonly now: () => number;
+  /** 事件分类器 (规则轨默认, 可注入替换). */
+  private readonly classifier: EventClassifier;
 
   constructor(options: InMemoryEngineSessionOptions) {
     this.bdiStates = options.bdiStates;
     this.memories = options.memories;
     this.idFactory = options.idFactory ?? nanoid;
     this.now = options.now ?? Date.now;
+    this.classifier = options.classifier ?? new RuleBasedClassifier();
   }
 
   openSession(input: OpenEngineSessionInput): EngineSessionHandle {
@@ -108,6 +121,7 @@ export class InMemoryEngineSession implements EngineSessionPort {
       visitorId: input.visitorId,
       seed: input.seed ?? this.generateSeed(),
       resumeFromSessionId: input.resumeFromSessionId ?? null,
+      characterProfile: input.characterProfile ?? null,
       openedAt: this.now(),
       turnIndex: 0,
     };
@@ -136,15 +150,18 @@ export class InMemoryEngineSession implements EngineSessionPort {
 
     // 1. 载入本场状态 (含跨会话接续).
     const base = await this.loadState(runtime);
-    // 2. WP0: 无决策算子 —— 快照原样透传, 只推进版本号标记"发生过一轮".
-    //    WP1 在此插入事件算子: 输入事件 → 更新信念/愿望/意图 → 产出新快照.
-    const snapshot = cloneBdiSnapshot(base.snapshot);
+    // 2. WP1 认知管线: 事件分类 → 状态迁移 → 本轮意图 (规则轨, 确定性, 无随机).
+    const events = this.classifier.classify(userText, {
+      sensitiveTopics: runtime.characterProfile?.sensitiveTopics,
+    });
+    const nextSnapshot = transitionState(base.snapshot, events);
+    const intention = planIntention(nextSnapshot, runtime.characterProfile ?? undefined);
     const record: BdiStateRecord = {
       tenantId: runtime.tenantId,
       sessionId: runtime.sessionId,
       revision: base.revision + 1,
       updatedAt: this.now(),
-      snapshot,
+      snapshot: nextSnapshot,
     };
     // 3. 落库 (乐观锁: 冲突会冒泡为 STATE_CONFLICT).
     const saved = await this.bdiStates.save(record);
@@ -157,6 +174,7 @@ export class InMemoryEngineSession implements EngineSessionPort {
       reply: '',
       snapshot: cloneBdiSnapshot(saved.snapshot),
       turnIndex: runtime.turnIndex,
+      intention,
     };
   }
 
@@ -206,7 +224,9 @@ export class InMemoryEngineSession implements EngineSessionPort {
       sessionId: runtime.sessionId,
       revision: 0,
       updatedAt: this.now(),
-      snapshot: createEmptyBdiSnapshot(),
+      // 全新会话: 按角色 profile 装配初始基线; 无 profile 回落中性默认.
+      // resume 接续分支在上方, 直接搬上一场快照, 不用 profile 覆盖.
+      snapshot: buildInitialSnapshot(runtime.characterProfile ?? undefined),
     };
   }
 

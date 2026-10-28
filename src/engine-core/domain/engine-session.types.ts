@@ -22,6 +22,8 @@
 //     2. runtime/engine-session.port.ts 只 import 本文件的类型, 无循环依赖
 
 import type { BdiSnapshot } from './bdi-snapshot';
+import type { CharacterProfile } from './character-profile';
+import type { Intention } from './intention';
 
 /**
  * 开场入参.
@@ -53,6 +55,12 @@ export interface OpenEngineSessionInput {
   readonly seed?: number;
   /** 跨会话接续来源会话 id (WP2). 省略 = 全新会话. */
   readonly resumeFromSessionId?: string;
+  /**
+   * 角色内核基线 (WP1). adapter 从 MySQL / persona 解析成纯对象后注入;
+   * 内核不读数据库、不感知 persona 实体. 仅用于全新会话开场装配,
+   * resume 接续时不覆盖上一场状态. 省略 = 中性默认基线.
+   */
+  readonly characterProfile?: CharacterProfile;
 }
 
 /**
@@ -98,4 +106,9 @@ export interface EngineTurnOutput {
   readonly snapshot: BdiSnapshot;
   /** 本会话累计轮次 (从 1 起). 用于日志 / 编排对齐, 不参与内核决策. */
   readonly turnIndex: number;
+  /**
+   * 本轮结构化意图 (WP1): 行为策略 + 情绪 + 阻抗 + 移情 + 禁止行为,
+   * 供 WP5 渲染 / 督导观测. 规则轨每轮产出; 不携带任何口语.
+   */
+  readonly intention?: Intention;
 }
