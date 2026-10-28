@@ -177,6 +177,7 @@ import { CounselorVisitorPoolController } from './controllers/visitor-pool.contr
 // V2026-10-26 治本 (官方音色目录 — 只读代理端点, spec §任务 2):
 //   GET /counselor/voices?type=system — 音色选择器唯一的取数入口 (前端不直连 MiniMax).
 import { CounselorVoicesController } from './controllers/voices.controller';
+import { DrillController } from './drills/controllers/drill.controller';
 // V2026-10-27 治本 (危机识别专区 — 只读元数据端点, spec 任务 B2):
 //   GET /counselor/crisis-practice/meta — 前端"隔离壳"渲染用的静态教学元数据.
 //   物理隔离: 危机内容不进 visitor_pool_templates / 不进公共图鉴列表 / 不碰普通池 seed.
@@ -185,6 +186,8 @@ import { CounselorVoicesController } from './controllers/voices.controller';
 //   transcript-bookmark (逐字稿打点) / transference-mark (双向移情阻抗标记)
 // V2026-10-15 治本 (V1.x W5-6 — ability entity 注册, 走 TypeOrmModule.forFeature):
 //   7 维度 28 子指标 + user 聚合 2 entity, 跟 W1-2 long-term-case + W3-4 supervision 同段.
+import { DrillEvaluatorService } from './drills/providers/drill-evaluator.service';
+import { DrillService } from './drills/providers/drill.service';
 import { AbilityDimension } from './entities/ability-dimension.entity';
 import { AbilityScore } from './entities/ability-score.entity';
 // V2026-10-15 治本 (V1.x W1-2 — long-term-case entity 注册, 走 TypeOrmModule.forFeature):
@@ -506,6 +509,9 @@ import { VptSessionBridgeService } from './providers/vpt-session-bridge.service'
     // V2026-10-27 治本 (危机识别专区 — 1 端点, spec 任务 B2):
     //   GET /counselor/crisis-practice/meta (隔离壳渲染用的静态教学元数据)
     CrisisPracticeController,
+    // V2026-10-27 治本 (情景演练 — 3 端点, spec 任务 A/C):
+    //   list / :drillId 开练 / :drillId/respond 判定 (复用 JwtAuthGuard).
+    DrillController,
   ],
   providers: [
     CounselorHomeService,
@@ -596,6 +602,12 @@ import { VptSessionBridgeService } from './providers/vpt-session-bridge.service'
     // V2026-10-27 治本 (危机识别专区 — 1 provider, spec 任务 B2):
     //   CrisisPracticeService: 静态教学元数据 → 对外 DTO 的逐字段映射 (无 IO).
     CrisisPracticeService,
+    // V2026-10-27 治本 (情景演练 — 2 provider, spec 任务 A/C):
+    //   DrillService: 列表 / 开练详情 / 提交判定的编排 (出参下发边界在此收口).
+    //   DrillEvaluatorService: 纯函数判定 + 可选措辞润色 (档位永远来自纯函数).
+    //   两者都是一次注册齐 —— 少注册 service = 端点 404, 少注册 evaluator = 提交判定直接崩.
+    DrillService,
+    DrillEvaluatorService,
     // V2026-10-26 治本 (vpt 会话落库桥, spec 任务 1):
     //   必须在 onModuleInit 里注册进 voice 侧全局注册表 —— 少注册 = vpt 会话不落库,
     //   降级成纯内存 (功能"看着能用", 但没有复盘报告). 所以跟 VoicesService 一起一次注册齐.

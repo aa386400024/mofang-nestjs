@@ -66,6 +66,7 @@ import {
   type PracticeScenarioView,
   type PracticeTurn,
 } from '../domain/practice/practice.types';
+import { ZERO_PRESSURE_FORBIDDEN_TOKENS } from '../domain/zero-pressure.guard';
 import { PRACTICE_DEFENSE_STYLE_LABELS } from '../enums/practice-defense-style.enum';
 import { PRACTICE_DIFFICULTY_LABELS } from '../enums/practice-difficulty.enum';
 import { PRACTICE_EMOTION_INTENSITY_LABELS } from '../enums/practice-emotion-intensity.enum';
@@ -98,35 +99,6 @@ export interface PracticeEvaluationInput {
   /** 租户 id (强隔离) */
   tenantId: string;
 }
-
-/**
- * 零压红线**禁用词表**.
- *
- * 命中任意一个 → 整份 LLM 产出判废 → 降级到确定性路径.
- * 词表设计原则: 只收"**语义上必然是评级或评价人**"的词, 不收可能出现在正常
- * 技术描述里的词 (如 "正确" —— "正确地命名情绪" 是正常表述, 收进来会误杀).
- */
-const ZERO_PRESSURE_FORBIDDEN_TOKENS: readonly string[] = [
-  '分数',
-  '得分',
-  '评分',
-  '打分',
-  '正确率',
-  '错误率',
-  '及格',
-  '通过率',
-  '评级',
-  '等级',
-  '不合格',
-  '优秀',
-  '太差',
-  '很差',
-  '你不行',
-  '水平不够',
-  '加油',
-  '有进步',
-  '太好了',
-];
 
 /** 批注条数下限 (§1.3 固定 3-5 条). */
 const FEEDBACK_MIN_ITEMS = 3;

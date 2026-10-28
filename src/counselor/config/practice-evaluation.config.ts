@@ -31,6 +31,8 @@
 /** 练习**评判** LLM 开关的 env 键 (覆盖 §3.3 evaluateWithLlm). */
 export const PRACTICE_LLM_EVALUATION_ENV_KEY = 'PRACTICE_LLM_EVALUATION';
 
+import { parseOnOffSwitch } from './env-switch';
+
 /**
  * 练习**生成** LLM 开关的 env 键.
  *
@@ -55,24 +57,6 @@ export const PRACTICE_LLM_GENERATION_DEFAULT = 'on';
  */
 export const SPEECH_RATE_TARGET_LOW = 120;
 export const SPEECH_RATE_TARGET_HIGH = 140;
-
-/**
- * 解析一个 on/off 形态的 env 开关.
- *
- * @param raw env 原始值 (可能为 undefined / 空串)
- * @param defaultValue 缺省值
- * @returns true = 开; false = 关
- */
-function parseOnOffSwitch(raw: string | undefined, defaultValue: 'on' | 'off'): boolean {
-  if (raw === undefined) {
-    return defaultValue === 'on';
-  }
-  const normalized = raw.trim().toLowerCase();
-  if (normalized.length === 0) {
-    return defaultValue === 'on';
-  }
-  return normalized !== 'off' && normalized !== 'false' && normalized !== '0';
-}
 
 /**
  * 解析练习评判 LLM 开关.
