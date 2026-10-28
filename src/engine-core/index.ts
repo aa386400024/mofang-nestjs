@@ -96,5 +96,24 @@ export {
   resolveCorrectWeight,
 } from './cognition/trajectory/trajectory-applier';
 
+// ── 伦理安全 (WP4 · 纯函数 + 可选探测端口) ─────────────────────────
+//   内核只判定不拦截: block 只是给 adapter 的信号, 是否拦下由表现层决定.
+export type {
+  CounselorSafetyCategory,
+  SafetyCategory,
+  SafetyEvent,
+  SafetyLevel,
+  SafetyReport,
+  SafetySide,
+  SafetyVerdict,
+  VisitorRiskCategory,
+} from './domain/safety/safety-types';
+export { isSafetyLevel, maxSafetyLevel, PSYGUARD_LEVEL_MAP } from './domain/safety/safety-types';
+export type { RiskProbePort, RiskProbeResult } from './domain/ports/risk-probe';
+export type { SafetyRule } from './cognition/safety/rule-engine';
+export { evaluateSafety } from './cognition/safety/rule-engine';
+export type { AssessSafetyInput } from './cognition/safety/assess-safety';
+export { assessSafety, DEFAULT_PROBE_TIMEOUT_MS } from './cognition/safety/assess-safety';
+
 // ── 运行时端口 ────────────────────────────────────────────────────
 export type { EngineSessionPort } from './runtime/engine-session.port';

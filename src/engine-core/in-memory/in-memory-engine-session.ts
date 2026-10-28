@@ -30,6 +30,7 @@ import { randomInt } from 'node:crypto';
 
 import { planIntention } from '../cognition/intention-planner';
 import { RuleBasedClassifier } from '../cognition/rule-based-classifier';
+import { assessSafety } from '../cognition/safety/assess-safety';
 import { transitionState } from '../cognition/state-transition';
 import { planAct } from '../cognition/trajectory/act-cursor';
 import { applyTrajectory } from '../cognition/trajectory/trajectory-applier';
@@ -43,6 +44,8 @@ import type { EventClassifier, SessionEvent } from '../domain/events/session-eve
 import type { Intention } from '../domain/intention';
 import type { BdiStateRecord, BdiStateRepository } from '../domain/ports/bdi-state.repository';
 import { MemorySource, MemoryTier, type MemoryHit, type MemoryStore } from '../domain/ports/memory.store';
+import type { RiskProbePort } from '../domain/ports/risk-probe';
+import type { SafetyEvent, SafetyLevel, SafetyReport, SafetyVerdict } from '../domain/safety/safety-types';
 import { orderedTrajectoryNodes, validateTrajectoryScript, type TrajectoryScript, type TrajectoryTrace } from '../domain/trajectory/script';
 import { trimWorkingWindow, WORKING_MEMORY_WINDOW_TURNS } from '../memory/working-window';
 import type { EngineSessionPort } from '../runtime/engine-session.port';
@@ -58,6 +61,14 @@ const WORKING_MEMORY_DEFAULT_IMPORTANCE = 0.5;
  */
 const OPENING_CONTEXT_MIN_IMPORTANCE = 0.5;
 const OPENING_CONTEXT_LIMIT = 5;
+
+/**
+ * 安全事件里保存的命中片段最大长度 (WP4).
+ *
+ * 片段是给督导"回看当时说了什么"用的, 不是识别依据 —— 完整原文已落在
+ * 工作记忆里, 报告里再抄一份全文等于把敏感对话复制进第二个存储面.
+ */
+const SAFETY_SNIPPET_MAX_LENGTH = 120;
 
 /**
  * 轨迹运行时 (WP3): 剧本 + 游标 + 已激活幕 + 终态.
@@ -106,6 +117,13 @@ interface EngineSessionRuntime {
   workingWindow: readonly string[];
   /** 轨迹运行时 (WP3); null = 本场无剧本约束. */
   trajectory: TrajectoryRuntime | null;
+  /**
+   * 本场安全事件 (WP4): **只累计 warn / block**, 进程内存, 不落库.
+   *
+   * 为什么 pass 不累计: 干净对话的每一轮都记一条 pass, 报告就被噪声淹没了 ——
+   * 报告要看的是"哪里出过问题", 不是"哪里没问题".
+   */
+  readonly safetyEvents: SafetyEvent[];
 }
 
 /** 会话内存实现构造选项. */
@@ -120,6 +138,13 @@ export interface InMemoryEngineSessionOptions {
   readonly now?: () => number;
   /** 事件分类器 (可注入替换规则轨; 默认 RuleBasedClassifier). */
   readonly classifier?: EventClassifier;
+  /**
+   * 可选风险探测端口 (WP4; 未来 PsyGUARD 适配).
+   *
+   * 缺省 = 纯规则判定. 注入 = 规则未达 block 时才问探测, 超时/抛错自动回落规则.
+   * 走构造注入而不是开场入参: 探测是**行为依赖**, 开场对象是可序列化的会话参数.
+   */
+  readonly riskProbe?: RiskProbePort;
 }
 
 /** 会话内核的内存实现. */
@@ -138,6 +163,8 @@ export class InMemoryEngineSession implements EngineSessionPort {
   private readonly now: () => number;
   /** 事件分类器 (规则轨默认, 可注入替换). */
   private readonly classifier: EventClassifier;
+  /** 风险探测端口 (WP4; 可选, 缺省纯规则). */
+  private readonly riskProbe: RiskProbePort | undefined;
 
   constructor(options: InMemoryEngineSessionOptions) {
     this.bdiStates = options.bdiStates;
@@ -145,6 +172,7 @@ export class InMemoryEngineSession implements EngineSessionPort {
     this.idFactory = options.idFactory ?? nanoid;
     this.now = options.now ?? Date.now;
     this.classifier = options.classifier ?? new RuleBasedClassifier();
+    this.riskProbe = options.riskProbe;
   }
 
   openSession(input: OpenEngineSessionInput): EngineSessionHandle {
@@ -173,6 +201,7 @@ export class InMemoryEngineSession implements EngineSessionPort {
       turnIndex: 0,
       workingWindow: [],
       trajectory: this.createTrajectoryRuntime(input.trajectory),
+      safetyEvents: [],
     };
 
     this.sessions.set(handleId, runtime);
@@ -199,15 +228,21 @@ export class InMemoryEngineSession implements EngineSessionPort {
 
     // 1. 载入本场状态 (含跨会话接续).
     const base = await this.loadState(runtime);
-    // 2. WP1 认知管线: 事件分类 → 状态迁移 → 本轮意图 (规则轨, 确定性, 无随机).
+    // 2. 只读安全步 (WP4): 在 BDI 之前判定, 但**只读不改** ——
+    //    快照 / Intention / 轨迹游标一概不动, 内核只给 adapter 一个信号;
+    //    是否拦下这一轮提交由表现层决定 (内核只判定不拦截, 任务单 M1/M2).
+    //    探测端口未注入时是纯规则判定, 与 WP1–WP3 逐字一致.
+    const safetyVerdict = await assessSafety({ text: userText, side: 'counselor_input', probe: this.riskProbe });
+    this.recordSafetyEvent(runtime, safetyVerdict, userText);
+    // 3. WP1 认知管线: 事件分类 → 状态迁移 → 本轮意图 (规则轨, 确定性, 无随机).
     const events = this.classifier.classify(userText, {
       sensitiveTopics: runtime.characterProfile?.sensitiveTopics,
     });
     const nextSnapshot = transitionState(base.snapshot, events);
     const intention = planIntention(nextSnapshot, runtime.characterProfile ?? undefined);
-    // 2.5 轨迹步 (WP3): BDI 自由规划**之后**、落库**之前**.
-    //     BDI 永远先发生, 轨迹只做后处理 —— 于是"同一段行为在开/关轨迹两种配置下"
-    //     可以直接对比, 轨迹出问题时也能回退到纯 BDI (任务单 M1).
+    // 4. 轨迹步 (WP3): BDI 自由规划**之后**、落库**之前**.
+    //    BDI 永远先发生, 轨迹只做后处理 —— 于是"同一段行为在开/关轨迹两种配置下"
+    //    可以直接对比, 轨迹出问题时也能回退到纯 BDI (任务单 M1).
     const trajectory = this.applyTrajectoryStep(runtime, events, userText, intention, nextSnapshot);
     const record: BdiStateRecord = {
       tenantId: runtime.tenantId,
@@ -216,14 +251,14 @@ export class InMemoryEngineSession implements EngineSessionPort {
       updatedAt: this.now(),
       snapshot: trajectory.snapshot,
     };
-    // 3. 落库 (乐观锁: 冲突会冒泡为 STATE_CONFLICT).
+    // 5. 落库 (乐观锁: 冲突会冒泡为 STATE_CONFLICT).
     const saved = await this.bdiStates.save(record);
-    // 4. 写工作记忆 + 维护运行时工作窗口 (WP2).
+    // 6. 写工作记忆 + 维护运行时工作窗口 (WP2).
     await this.rememberTurn(runtime, userText);
     runtime.workingWindow = trimWorkingWindow([...runtime.workingWindow, userText], WORKING_MEMORY_WINDOW_TURNS);
-    // 5. 推进轮次.
+    // 7. 推进轮次.
     runtime.turnIndex += 1;
-    // 6. 跨会话开场上下文 (WP2): 仅 resume 会话的首论携带.
+    // 8. 跨会话开场上下文 (WP2): 仅 resume 会话的首论携带.
     //    刻意放在最后 —— 它只挂出参, 不参与上面的 BDI 决策, 也不改快照数值.
     const openingContext = await this.collectOpeningContext(runtime, userText);
 
@@ -234,6 +269,8 @@ export class InMemoryEngineSession implements EngineSessionPort {
       intention: trajectory.intention,
       ...(openingContext.length > 0 ? { openingContext } : {}),
       ...(trajectory.trace ? { trajectoryTrace: trajectory.trace } : {}),
+      // 安全判定只在非 pass 时挂出 (pass 的空块会污染出参, 破坏零回归).
+      ...(safetyVerdict.level === 'pass' ? {} : { safety: safetyVerdict }),
     };
   }
 
@@ -260,6 +297,48 @@ export class InMemoryEngineSession implements EngineSessionPort {
    */
   workingContext(handleId: string): readonly string[] {
     return this.sessions.get(handleId)?.workingWindow ?? [];
+  }
+
+  /**
+   * 本场伦理风险报告 (WP4 · 观测 / 测试用, 不属于端口契约).
+   *
+   * 口径:
+   *   - 只累计 warn / block (pass 不落事件);
+   *   - maxLevel 取已累计事件的最高等级, 无事件 → pass;
+   *   - events 返回**数组副本**: 调用方随便改都不会回写内部状态.
+   *
+   * 句柄不存在 → 返回空报告 (不抛: 观测接口不该把调用搞崩, 同 WP3 口径).
+   *
+   * ⚠️ `closeSession` 只删句柄登记, 事件随之释放 —— 需要报告的调用方必须
+   * **在 closeSession 之前**取走. 报告落库/入档案属装配轮 (本期不落库).
+   *
+   * @param handleId 会话句柄
+   * @returns 会话内累计的伦理风险报告
+   */
+  getSafetyReport(handleId: string): SafetyReport {
+    const runtime = this.sessions.get(handleId);
+    const events = runtime?.safetyEvents ?? [];
+    let maxLevel: SafetyLevel = 'pass';
+    let blockCount = 0;
+    let warnCount = 0;
+    for (const event of events) {
+      if (event.verdict.level === 'block') {
+        blockCount += 1;
+        maxLevel = 'block';
+        continue;
+      }
+      if (event.verdict.level === 'warn') {
+        warnCount += 1;
+        if (maxLevel !== 'block') maxLevel = 'warn';
+      }
+    }
+    return {
+      sessionId: runtime?.sessionId ?? '',
+      maxLevel,
+      blockCount,
+      warnCount,
+      events: [...events],
+    };
   }
 
   // ── private ────────────────────────────────────────────────────
@@ -297,6 +376,26 @@ export class InMemoryEngineSession implements EngineSessionPort {
       // resume 接续分支在上方, 直接搬上一场快照, 不用 profile 覆盖.
       snapshot: buildInitialSnapshot(runtime.characterProfile ?? undefined),
     };
+  }
+
+  /**
+   * 累计一条安全事件 (WP4).
+   *
+   * 只记 warn / block: pass 不记 —— 报告要看的是"哪里出过问题".
+   * 片段截断保存 (全文已在工作记忆里), 报告不必再抄一份敏感原文.
+   *
+   * @param runtime 运行时会话
+   * @param verdict 本轮判定
+   * @param text 咨询师本轮文本
+   */
+  private recordSafetyEvent(runtime: EngineSessionRuntime, verdict: SafetyVerdict, text: string): void {
+    if (verdict.level === 'pass') return;
+    runtime.safetyEvents.push({
+      turnIndex: runtime.turnIndex + 1,
+      at: this.now(),
+      verdict,
+      snippet: text.slice(0, SAFETY_SNIPPET_MAX_LENGTH),
+    });
   }
 
   /**
