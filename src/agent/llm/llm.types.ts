@@ -82,7 +82,19 @@ export interface LlmStreamOptions {
 /** LLM streaming 事件 union. */
 export type LlmStreamChunk =
   | { readonly type: 'content'; readonly content: string }
-  | { readonly type: 'done'; readonly usage: LlmUsage }
+  | {
+      readonly type: 'done';
+      readonly usage: LlmUsage;
+      /**
+       * 上游结束原因 (OpenAI 兼容口径: stop / length / content_filter / tool_calls …).
+       *
+       * V2026-10-29 治本 (WP18): **只增可选字段** (老消费方零破坏), 但它是"输出是不是
+       * 被上游按长度砍断"的唯一现场证据 —— `length` 意味着正文是半截的, 与"模型吐了
+       * 非法 JSON"是两类问题 (前者调预算能修好, 后者要改 prompt 契约).
+       * 缺省 = 上游没给 (老 provider / 非 OpenAI 兼容上游).
+       */
+      readonly finishReason?: string;
+    }
   | { readonly type: 'error'; readonly error: LlmError };
 
 /** Token 用量, 写 billing. */

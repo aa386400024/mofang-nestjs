@@ -25,7 +25,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import type { LlmError, LlmMessage, LlmReasoningEffort, LlmStream, LlmStreamOptions, LlmUsage } from './llm.types';
+import type { LlmError, LlmMessage, LlmReasoningEffort, LlmStream, LlmStreamChunk, LlmStreamOptions, LlmUsage } from './llm.types';
 
 interface MiniMaxChatRequest {
   model: string;
@@ -59,6 +59,40 @@ interface MiniMaxStreamDelta {
      * 缺省时按"没有思考"处理 (字段可选).
      */
     readonly completion_tokens_details?: { readonly reasoning_tokens?: number };
+  };
+}
+
+/**
+ * SSE 单行解析结果 (V2026-10-29 治本 · WP18).
+ *
+ * `kind='done'` = 收到 `[DONE]` 标记 (流正常结束);
+ * `kind='data'` = 一条正常的增量 (可能带 content / usage / finish_reason).
+ */
+interface SseLineEvent {
+  readonly kind: 'done' | 'data';
+  readonly content?: string;
+  readonly usage?: LlmUsage;
+  readonly finishReason?: string;
+}
+
+/** usage 缺省值 (上游没带 usage 时). */
+const ZERO_USAGE: LlmUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+
+/**
+ * 构造 done 事件 (usage + 可选 finishReason).
+ *
+ * V2026-10-29 治本 (WP18): `finishReason` 是**可选**字段 (老消费方零破坏),
+ *   但它是"输出是不是被上游按长度砍断"的唯一现场证据 —— 见 `LlmStreamChunk` 的说明.
+ *
+ * @param usage token 用量
+ * @param finishReason 上游结束原因 (缺省 = 上游没给)
+ * @returns done 事件
+ */
+function buildDoneChunk(usage: LlmUsage, finishReason: string | undefined): LlmStreamChunk {
+  return {
+    type: 'done',
+    usage,
+    ...(finishReason === undefined ? {} : { finishReason }),
   };
 }
 
@@ -261,11 +295,56 @@ export class LlmService {
     return this.parseSseStream(response.body, opts, onToken);
   }
 
+  /**
+   * 解析一行 SSE.
+   *
+   * V2026-10-29 治本 (WP18): 从 `parseSseStream` 里**抽出来** —— 主循环只留"编排",
+   *   每行的"这是什么 / 有没有 usage / 有没有 finish_reason"交给本方法.
+   *   为什么要抽: 加了 finishReason 之后主函数的分支数越过了 ESLint complexity 20
+   *   与 sonarjs cognitive-complexity 25 两条红线 —— 而这两条红线存在的意义就是
+   *   "别让一个函数同时管太多事", 正好借这次抽行把职责切干净.
+   *
+   * @param line 一行原始 SSE 文本
+   * @param opts 流式选项 (日志要 tenantId / userId)
+   * @returns 解析结果; null = 空行 / 非 data 行 / 解析失败 (都跳过)
+   */
+  private parseSseLine(line: string, opts: LlmStreamOptions): SseLineEvent | null {
+    const trimmed = line.trim();
+    if (!trimmed || !trimmed.startsWith('data:')) {
+      return null;
+    }
+
+    const payload = trimmed.slice(5).trim();
+    if (payload === '[DONE]') {
+      return { kind: 'done' };
+    }
+
+    let parsed: MiniMaxStreamDelta;
+    try {
+      parsed = JSON.parse(payload) as MiniMaxStreamDelta;
+    } catch {
+      this.logger.warn(`[sse_parse_error] tenant=${opts.tenantId} user=${opts.userId} ` + `payload=${payload.slice(0, 100)}`);
+      return null;
+    }
+
+    const content = parsed.choices?.[0]?.delta?.content;
+    const finishReason = parsed.choices?.[0]?.finish_reason ?? undefined;
+    return {
+      kind: 'data',
+      ...(content ? { content } : {}),
+      ...(parsed.usage ? { usage: toLlmUsage(parsed.usage) } : {}),
+      ...(finishReason ? { finishReason } : {}),
+    };
+  }
+
   private async *parseSseStream(body: ReadableStream<Uint8Array>, opts: LlmStreamOptions, onToken: (token: string) => void): LlmStream {
     const reader = body.getReader();
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
     let finalUsage: LlmUsage | null = null;
+    // V2026-10-29 治本 (WP18): 上游结束原因 —— `length` 说明正文被按长度砍断了.
+    //   它跟"模型吐了非法 JSON"是两类问题, 上层要能分开报 (见 SupervisorService).
+    let finalFinishReason: string | undefined;
 
     try {
       while (true) {
@@ -277,47 +356,28 @@ export class LlmService {
         buffer = lines.pop() ?? '';
 
         for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith('data:')) {
+          const event = this.parseSseLine(line, opts);
+          if (event === null) {
             continue;
           }
-
-          const payload = trimmed.slice(5).trim();
-          if (payload === '[DONE]') {
-            yield {
-              type: 'done',
-              usage: finalUsage ?? {
-                promptTokens: 0,
-                completionTokens: 0,
-                totalTokens: 0,
-              },
-            };
+          if (event.kind === 'done') {
+            yield buildDoneChunk(finalUsage ?? ZERO_USAGE, finalFinishReason);
             return;
           }
-
-          let parsed: MiniMaxStreamDelta;
-          try {
-            parsed = JSON.parse(payload) as MiniMaxStreamDelta;
-          } catch {
-            this.logger.warn(`[sse_parse_error] tenant=${opts.tenantId} user=${opts.userId} ` + `payload=${payload.slice(0, 100)}`);
-            continue;
+          if (event.usage) {
+            finalUsage = event.usage;
           }
-
-          if (parsed.usage) {
-            finalUsage = toLlmUsage(parsed.usage);
+          if (event.finishReason) {
+            finalFinishReason = event.finishReason;
+            if (event.finishReason === 'length') {
+              this.logger.warn(
+                `[stream_truncated] tenant=${opts.tenantId} user=${opts.userId} ` + 'finish_reason=length — max_tokens 可能不够',
+              );
+            }
           }
-
-          const content = parsed.choices?.[0]?.delta?.content;
-          if (content) {
-            onToken(content);
-            yield { type: 'content', content };
-          }
-
-          const finishReason = parsed.choices?.[0]?.finish_reason;
-          if (finishReason === 'length') {
-            this.logger.warn(
-              `[stream_truncated] tenant=${opts.tenantId} user=${opts.userId} ` + 'finish_reason=length — max_tokens 可能不够',
-            );
+          if (event.content) {
+            onToken(event.content);
+            yield { type: 'content', content: event.content };
           }
         }
       }
@@ -325,7 +385,7 @@ export class LlmService {
       // 流自然结束但没收到 [DONE] 标记
       this.logger.warn(`[sse_unexpected_eof] tenant=${opts.tenantId} user=${opts.userId} — ` + 'stream ended without [DONE] marker');
       if (finalUsage) {
-        yield { type: 'done', usage: finalUsage };
+        yield buildDoneChunk(finalUsage, finalFinishReason);
       }
     } finally {
       reader.releaseLock();

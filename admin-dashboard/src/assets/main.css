@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { @apply bg-bg-base text-gray-200; }
+  body { @apply bg-bg-base text-gray-200 antialiased; }
+}
+
+@layer components {
+  .card { @apply bg-bg-surface border border-bg-border rounded-lg; }
+  .chip { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-mono; }
+}

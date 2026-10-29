@@ -3,7 +3,7 @@
 > 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md)
 > 愿景备查: [`../reference/ai-simulation-blueprint-v1.1.md`](../reference/ai-simulation-blueprint-v1.1.md)（冲突以母版为准；蓝图选 pgvector，本仓 D2 拍板 Qdrant）
 > 设计原则原件（已转写归档，仅作依据，冲突以母版为准）：[`bdi-cognitive-engine-principles-v1.0.md`](../reference/bdi-cognitive-engine-principles-v1.0.md)（BDI 决策/渲染边界）、[`architecture-blindspot-fill-v1.0.md`](../reference/architecture-blindspot-fill-v1.0.md)（14 项盲区补全，经本仓架构裁剪后落地）。
-> 日期: 2026-10-28（进度登记更新于 2026-10-29）｜ 状态: 🟢 **WP0–WP7 纯层与渲染闭环已交付；WP8-A 聚合装配 + MiniMax provider 已交付并真实 E2E 通；WP8-B 流式原生+WS 灰度已交付审核通过；WP9-A 内置种子注入、WP9-B MySQL 角色池（真实 vpt slug 命中闭合）均已交付并审核通过；E2E 联调已打穿鉴权/角色命中/速查卡回填/落库，卡在 MiniMax 额度 429 + token 字段用错，WP9-C 已立待开工；WP10–WP13 待排期**
+> 日期: 2026-10-28（进度登记更新于 2026-10-29）｜ 状态: 🟢 **WP0–WP7 纯层与渲染闭环已交付；WP8-A/B 流式+WS 灰度已交付；WP9-A/B/C 角色注入+DB 角色池+语音渲染 token 预算/截断/危机路由/降级均已交付并 E2E 探针验证通过（晚晴/亦舟/危机场景全绿）；WP18 报告生成链路 E2E 已立待开工；WP10–WP17 待排期**
 > 2026-10-29 增补：按两份设计原则（BDI 原则 / 盲区补全）经本仓架构裁剪，新增 Phase1 小项 WP14 学员风险兜底、WP15 算子幅度声明+回归、WP16 轻量幂等+断流不叠加；Phase2+ 保留推进队列见文末（全量保留，逐步推进，非丢弃）。
 > 仓库: `E:\Work\Project\backend\mofang-nestjs`
 
@@ -227,6 +227,31 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 - **依赖**：WP8-B（已交付）；WP11/WP14 的检测能力就绪后补危机那条断言。
 - **验收**：上述 1–3 各一条绿用例（E2E/WS 录制），任意一条红则灰度不扩量、保持名单；`enginePath` 字段可在日志/报告上区分两场。
 - **不做**：不重写旁路能力本身（那是 WP11/WP14）；不做双路径并行录制对比（Phase2 评估引擎）。
+
+### WP18 · 会话结束→复盘报告生成链路端到端打通
+
+- **为什么有这条（2026-10-29）**：WP9-C 探针只验证了会话内流式路径（ready→llm→tts），但会话结束后的报告闭环从未验证——新引擎路径（ENGINE_VOICE_ENABLED=true）结束会话时，transcript 落库了吗？报告生成 worker 触发了吗？六维评分/annotations/techStats 真有值还是空壳？Flutter 报告页期望的四态（pending/completed/parse_error/no_content）走得通吗？任务单：[`engine-wp18-session-report-generation-e2e-2026-10-29.md`](./engine-wp18-session-report-generation-e2e-2026-10-29.md)。
+- **目标**：跑一场完整会话→结束→报告页能看到真实评分和标注，不是转圈、不是空壳、不是 parse_error。
+- **内容**：①确认新引擎路径 session_finish→transcript 落库→报告 worker 触发链路是否接上；②报告接口字段与前端 `vpt_session_report.dart` 对齐（六维评分/annotations/techStats/marks/四态）；③四态边界（正常 completed/空局 no_content/生成失败 parse_error/刚结束 pending）；④探针加 `--report` 模式，轮询报告接口并断言 completed+六维非空；⑤逐字稿 turnIndex 与 marks 对齐。
+- **依赖**：WP9-C（已交付）；不依赖 WP11 PsyGUARD。
+- **验收**：探针 `--report` 正常会话 status=completed 且六维有值；空局 status=no_content；tsc/eslint 干净；wp8-wiring 护栏绿。
+- **不做**：4 流派 feedbackBySchool（Phase2）；报告重跑端点；Flutter 前端代码改动（模型已写好，对齐后端返回即可）；改 engine-core 纯层。
+
+### WP19 · 后端 AdminDebugModule + 每轮 BDI 快照留痕落库
+
+- **为什么**：引擎跑通后调试是黑盒——角色说了句不对的话，看不到那轮 BDI 快照/prompt/usage。WP19 把每轮调试快照落库 + 暴露只读 API。任务单：[`engine-wp19-admin-debug-module-trace-2026-10-29.md`](./engine-wp19-admin-debug-module-trace-2026-10-29.md)。
+- **内容**：①每轮 turn 结束把 BDI 快照（trust/valence/arousal/resist）、RenderSpec 摘要（prompt 截断 500 字）、LLM usage（tokens/TTFT/finishReason）落库（session 表加 JSONB，不加新表）；②`AdminDebugModule` 只读 API：`/admin/api/sessions`、`/admin/api/sessions/:id`、`/admin/api/characters`、`/admin/api/health`；③prod basic auth middleware。
+- **依赖**：WP18 报告闭环（数据模型顺手对齐）。
+- **验收**：跑一场会话后 DB 有 trace 记录；API 返回每轮 BDI 快照；prod 401 生效；旧链路零变化。
+- **不做**：角色 CRUD；用户管理；完整 system prompt 落库；WebSocket 实时推送。
+
+### WP20 · Vue 3 调试器 SPA（admin-dashboard）
+
+- **为什么**：WP19 有数据没界面。WP20 做一个 Vue 3 + Vite + Tailwind SPA，深色主题，只读展示会话回放 + BDI 快照 + usage。任务单：[`engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md`](./engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md)。
+- **内容**：①`/sessions` 会话列表；②`/sessions/:id` 会话回放（左逐字稿 + 右轮次 BDI 详情）；③`/characters` 角色池只读列表；④NestJS serve `dist/` 静态文件。
+- **依赖**：WP19 API 就绪。
+- **验收**：浏览器访问 `/admin/` 打开 SPA；会话列表/详情从 API 拉数据；深色主题；只读无编辑。
+- **不做**：角色 CRUD；用户管理；实时大盘；告警；做进 Flutter App。
 
 ---
 

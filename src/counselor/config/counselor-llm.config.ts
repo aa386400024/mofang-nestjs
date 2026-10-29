@@ -180,10 +180,12 @@ export function supportsReasoningEffort(model: string): boolean {
 /**
  * 剥掉响应里内联的 <think>...</think> 思考块.
  *
+ * V2026-10-29 治本 (WP18 · 消双胞胎): 实现已上移到 `src/shared/llm/llm-json-payload.ts`
+ *   (agent 侧的主报告链路也要用同一份), 本文件保留 re-export, **既有 import 路径不断**
+ *   (`import { stripThinkingTags } from '../config/counselor-llm.config'` 照旧可用).
+ *
  * 背景: M3.1-Flash 的思考内容走独立 reasoning_content 字段 (content 干净), 但 M3 系列的
  * `<think>` 标签是**内联在 content 里的** (官方文档明确要求完整保留, 因为多轮 function call
  * 要靠它保持思维链). 本函数只用于"一次性结构化 JSON 提取"场景, 剥掉后不影响单轮结论.
  */
-export function stripThinkingTags(raw: string): string {
-  return raw.replaceAll(/<think>[\s\S]*?<\/think>/gi, '').replace(/<think>[\s\S]*$/i, '');
-}
+export { stripThinkingTags } from '../../shared/llm/llm-json-payload';
