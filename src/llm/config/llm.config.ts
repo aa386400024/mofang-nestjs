@@ -17,6 +17,7 @@ import { AIProviderId, LLMCapability } from '../common/enums/llm.enums';
 import type { LLMProviderConfig } from '../common/interfaces/chat-provider.interface';
 import { DeepSeekChatProvider, DeepSeekEmbeddingProvider } from '../providers/deepseek.provider';
 import { DoubaoChatProvider, DoubaoEmbeddingProvider } from '../providers/doubao.provider';
+import { MinimaxChatProvider } from '../providers/minimax.provider';
 import { QwenChatProvider, QwenEmbeddingProvider } from '../providers/qwen.provider';
 import { ProviderRegistryService } from '../registry/provider-registry.service';
 
@@ -53,6 +54,36 @@ export function registerDefaultProviders(registry: ProviderRegistryService, conf
       buildEnvConfig(config, AIProviderId.QWEN, '通义千问 (DashScope)', 'https://dashscope.aliyuncs.com/compatible-mode/v1', 'qwen-plus'),
     );
     registry.registerEmbedding(new QwenEmbeddingProvider());
+  }
+
+  // ─── MiniMax ───
+  // V2026-10-28 治本 (MiniMax chat provider 接入):
+  //   与其它三家"有 key 才注册"同一口径, 但**取键与建模走自己的路径**:
+  //   1. apiKey 读 `MINIMAX_API_KEY` —— 这是该订阅的历史命名 (被 voice TTS/ASR、
+  //      旧 agent 流式、counselor 分析共用), 与 `LLM_<ID>_API_KEY` 规律不同;
+  //      刻意不改名 (改名会断掉已跑通的语音链路, 且同一把 key 两处维护迟早漏).
+  //      运行时解析 (LlmRouterService.authorize) 走同一张映射表, 见 provider-env.ts.
+  //   2. baseUrl / 默认模型从 env 来 (订阅买的是哪个模型就调哪个), 归一口径见
+  //      provider-env.ts; provider 实例本身就是唯一真相, 注册配置直接取它的值.
+  //   3. 只注册 CHAT —— MiniMax 的向量模型与维度口径未核, 不占位注册.
+  const minimaxApiKey = config.get<string>('MINIMAX_API_KEY');
+  if (minimaxApiKey) {
+    const minimax = new MinimaxChatProvider({
+      baseUrl: config.get<string>('MINIMAX_BASE_URL'),
+      defaultChatModel: config.get<string>('MINIMAX_LLM_MODEL'),
+    });
+    registry.registerChat(minimax, {
+      id: AIProviderId.MINIMAX,
+      displayName: 'MiniMax',
+      baseUrl: minimax.baseUrl,
+      apiKey: minimaxApiKey,
+      capabilities: [LLMCapability.CHAT],
+      defaultModels: {
+        [LLMCapability.CHAT]: minimax.defaultChatModel,
+      },
+      defaultChatModel: minimax.defaultChatModel,
+      enabled: true,
+    });
   }
 }
 

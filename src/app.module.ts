@@ -38,6 +38,13 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { AppNamingStrategy } from './database/naming-strategy';
 import { EmbodiedModule } from './embodied/embodied.module';
 import { EmergencyModule } from './emergency/emergency.module';
+// V2026-10-28 治本 (WP8-A — 引擎装配层接入 DI):
+//   把 WP0–WP7 的引擎纯单元 (内核会话 / 渲染适配器 / 装配门面) 装进依赖注入,
+//   并注册聚合调试端点 /engine/debug/{open,turn,close} (JWT 保护, 仅联调).
+//   本期**不接**语音链路 / 不做流式 / 不替换旧 agent/visitor 直出 (归 WP8-B).
+//   反双胞胎: 与既有 AIEngineModule / VoiceModule / CounselorModule **并存**,
+//   新引擎自成一家, 谁也不替换谁 —— 灰度切换是 WP8-B 的事.
+import { EngineWiringModule } from './engine-adapters/wiring/engine.module';
 import { GenomeReshapeModule } from './genome-reshape/genome-reshape.module';
 import { GoodStateDiaryModule } from './good_state_diary/good_state_diary.module';
 import { GuideModule } from './guide/guide.module';
@@ -217,6 +224,9 @@ import { VoiceModule } from './voice/voice.module';
     AgentModule, // /agent/llm/stream
     // V2026-10-08 — AI 语音训练系统 (SPEC v0.1, Phase 1.2 TTS bidi 客户端 + 连接池)
     VoiceModule, // TtsService + TtsBidiPoolService (无 HTTP 端点, 仅内部 VoiceGateway 使用)
+    // V2026-10-28 — WP8-A 引擎装配层: 聚合调试端点 /engine/debug/* (JWT, 仅联调)
+    //   与既有 AIEngineModule / VoiceModule 并存, 本期不替换旧 visitor 直出链路 (归 WP8-B).
+    EngineWiringModule, // /engine/debug/*
     // V2026-09-04 — 心塑 V6.0 §4.2 急救闭环 — 5 工具会话上报 + 跨设备同步
     EmergencyModule, // /emergency/*
     // V2026-10-13 — 心理咨询师学员端 server module (Phase 7.10 启动 P0-1)

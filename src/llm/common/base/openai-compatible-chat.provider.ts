@@ -248,6 +248,17 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
 
     return new ChatOpenAI({
       modelName,
+      // V2026-10-28 治本 (LangChain 1.x 凭据字段名 — 存量缺陷, 一次修好全部 OpenAI 兼容 provider):
+      //   `@langchain/openai` 1.x 的 BaseChatOpenAI 取凭据只有这一条链:
+      //     this.apiKey = fields?.apiKey ?? fields?.configuration?.apiKey ?? env OPENAI_API_KEY
+      //   旧的 `openAIApiKey` 在 **chat 模型上根本不被读取** (只有 embedding / LLM 类还认它),
+      //   所以只传 `openAIApiKey` = 客户端拿不到任何凭据, 调用直接报
+      //   "Missing credentials. Please pass an `apiKey` ... or set the `OPENAI_API_KEY`".
+      //   症状极隐蔽: 注册/构造/配置全对, 只有真正发请求时才炸, 且错误信息指向
+      //   OPENAI_API_KEY (一个本项目根本不用的变量名), 极易误判成"key 没配".
+      //   本机此前没有任何 LLM_*_API_KEY, 这条路径从未被真正跑通, 缺陷一直没暴露.
+      //   两个字段都传: `apiKey` 是 1.x 的真字段 (生效), `openAIApiKey` 留给 0.x 兼容 (被忽略也无害).
+      apiKey,
       openAIApiKey: apiKey,
       temperature: request.temperature ?? 0.7,
       maxTokens: request.maxTokens,
