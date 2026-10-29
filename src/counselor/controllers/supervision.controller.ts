@@ -33,8 +33,9 @@
 //
 //   时间戳: 2026-10-15
 
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, MessageEvent, Param, Post, Sse, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
+import { type Observable } from 'rxjs';
 
 import { CurrentUser } from '../../user/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
@@ -49,6 +50,8 @@ import {
 } from '../dto/supervision.dto';
 import { type SessionType } from '../enums/session-type.enum';
 import { type SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
+import { SupervisionReportGuard } from '../guards/supervision-report.guard';
+import { SupervisionReportStreamService } from '../providers/supervision-report-stream.service';
 import { SupervisionService } from '../providers/supervision.service';
 
 /**
@@ -63,7 +66,10 @@ import { SupervisionService } from '../providers/supervision.service';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class CounselorSupervisionController {
-  constructor(private readonly service: SupervisionService) {}
+  constructor(
+    private readonly service: SupervisionService,
+    private readonly reportStreamService: SupervisionReportStreamService,
+  ) {}
 
   /**
    * GET /counselor/supervision/schools
@@ -158,5 +164,47 @@ export class CounselorSupervisionController {
   })
   async getSessionReport(@CurrentUser() user: { userId: string }, @Param('sessionId') sessionId: string): Promise<SessionReportDto> {
     return this.service.getSessionReport(user.userId, sessionId);
+  }
+
+  /**
+   * GET /counselor/supervision/report/:sessionId/stream
+   *
+   * 复盘报告的 **SSE 推送** (V2026-10-29, WP21): 前端"先 GET 判断、pending 时开 SSE 等推送".
+   *
+   * 与 `GET report/:sessionId` 的关系:
+   *   - 同一个路径前缀, 同一个 `JwtAuthGuard`, 同一个归属口径 (跨用户/不存在 → 404)
+   *   - 推出去的 `data` 就是 GET 会返回的那份报告 JSON (逐字段一致, 同一份装载与拼装)
+   *
+   * 帧格式: `data: {报告 JSON}\n\n` (默认 `message` 事件, 前端统一监听 `data:` 行).
+   *
+   * 为什么是 SSE 而不是 WebSocket: 报告是**单向**推送 (服务端 → 客户端),
+   * SSE 正是这个语义, 且能复用现成的 REST 鉴权 (Bearer header), 前端不必再写一遍握手.
+   *
+   * @param user 当前用户 (由 JwtAuthGuard 注入)
+   * @param sessionId 会话 id
+   * @returns SSE 消息流
+   */
+  @Get('report/:sessionId/stream')
+  @Sse()
+  @ApiOperation({
+    summary: '复盘报告生成完成推送 (SSE, text/event-stream)',
+    description:
+      '报告到达终态 (completed / parse_error / no_content) 时推一条完整报告并关流; ' +
+      '等待超过上限 (默认 120s) 时推一条 {"status":"timeout"} 并关流. ' +
+      '会话不存在 / 不属于当前用户返 404 (与 GET report/:sessionId 同口径). ' +
+      '帧格式 data: {报告 JSON} (空行分隔), 不用自定义 event name (默认 message 事件).',
+  })
+  @ApiProduces('text/event-stream')
+  @UseGuards(SupervisionReportGuard)
+  async streamSessionReport(
+    @CurrentUser() user: { userId: string },
+    @Param('sessionId') sessionId: string,
+  ): Promise<Observable<MessageEvent>> {
+    // ⚠️ 归属校验放在 `SupervisionReportGuard` (guard 在 interceptor / SSE 通道**之前**跑):
+    //   这样"会话不存在 / 跨用户"能在响应被通道接管**之前**抛出 → 异常过滤器写出
+    //   **真正的 HTTP 404**; 若只在 handler 里判, SSE 响应头已提交, 只能降级成
+    //   `200 + event: error` 帧 (客户端拿不到状态码) —— 2026-10-29 真机实测踩过这个坑.
+    //   handler 仍保持 async: 让"装载失败"以 promise 拒绝的形式冒泡, 而不是变成流内错误.
+    return this.reportStreamService.streamSessionReport(user.userId, sessionId);
   }
 }

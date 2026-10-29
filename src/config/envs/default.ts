@@ -5,6 +5,8 @@ import {
   SUPERVISION_MIN_EFFECTIVE_CHARS,
   SUPERVISION_MIN_EFFECTIVE_TURNS,
   SUPERVISION_REPORT_PENDING_TIMEOUT_MS,
+  SUPERVISION_REPORT_STREAM_POLL_INTERVAL_MS,
+  SUPERVISION_REPORT_STREAM_TIMEOUT_MS,
 } from '../../counselor/config/supervision.config';
 
 export const config = {
@@ -199,6 +201,15 @@ export const config = {
     //   报告**永远不会**生成. 阈值可配 (运营能按内容密度调整), 不写死在判定里.
     minEffectiveTurns: Number(process.env.SUPERVISION_MIN_EFFECTIVE_TURNS ?? SUPERVISION_MIN_EFFECTIVE_TURNS),
     minEffectiveChars: Number(process.env.SUPERVISION_MIN_EFFECTIVE_CHARS ?? SUPERVISION_MIN_EFFECTIVE_CHARS),
+    // V2026-10-29 治本 (WP21 — 报告 SSE 推送端点):
+    //   前端改成"先 GET 判断、pending 时开 SSE 等推送", 报告到达的延迟改由**服务端轮询**
+    //   决定: 轮询间隔 2s (用户无感) + 连接最长存活 120s (超时即推 timeout 收口).
+    //   这两个值是**连接侧**参数, 与上面的 reportPendingTimeoutMs (查询侧状态派生兜底)
+    //   不是一回事 —— 后者 5min, 前者必须短 (连接久悬不关 = 服务端资源白占).
+    reportStreamPollIntervalMs: Number(
+      process.env.SUPERVISION_REPORT_STREAM_POLL_INTERVAL_MS ?? SUPERVISION_REPORT_STREAM_POLL_INTERVAL_MS,
+    ),
+    reportStreamTimeoutMs: Number(process.env.SUPERVISION_REPORT_STREAM_TIMEOUT_MS ?? SUPERVISION_REPORT_STREAM_TIMEOUT_MS),
   },
   // V2026-10-08: Voice Gateway 业务配置 (Phase 3)
   voice: {
