@@ -641,6 +641,18 @@ export class VoiceService {
           sessionId: meta.sessionId,
           tenantId: meta.tenantId,
           personaId: meta.personaId,
+          // V2026-10-29 治本 (WP9-A · 角色参数透传):
+          //   只把**握手已经解析好**的东西原样带过去, 不在 voice 层做任何角色语义判断 ——
+          //   voice 层不该知道"回避依恋"意味着多高阻抗, 那是角色解析器的职责.
+          //   templateId 缺省 (普通 voice session 没有公共人物模板) → 后端走中性基线.
+          templateId: meta.visitor?.templateId,
+          skillCode: meta.skillCode,
+          preset: {
+            difficulty: meta.preset.difficulty,
+            style: meta.preset.style,
+            emotionBaseline: meta.preset.emotionBaseline,
+            defenseLevel: meta.preset.defenseLevel,
+          },
         });
         this.backends.set(meta.sessionId, this.engineBackend!);
         return persona;

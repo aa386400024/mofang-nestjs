@@ -31,15 +31,23 @@
 //     - **不在本文件里写构造逻辑**: 构造全在 engine.providers.ts 的纯工厂里,
 //       本文件只声明「token ↔ 工厂」的映射. 理由见 engine.providers.ts 文件头:
 //       写在 useFactory 里的代码单测覆盖不到, 等于"装配正确性"没有护栏.
+//     - V2026-10-29 (WP9-A) 起新增角色解析端口绑定: 角色是**可选增强**,
+//       解析器缺席 = 无角色 = 中性基线, 不影响会话开合.
 //
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. 启动后 curl POST /engine/debug/open → /turn → /close 能跑通一轮
 //     3. test/engine-adapters/wp8-wiring.spec.ts 覆盖装配链与配置面
 
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import {
+  BUILTIN_CHARACTER_SEEDS,
+  BuiltinCharacterProfileResolver,
+  CHARACTER_PROFILE_RESOLVER,
+  type CharacterProfileResolver,
+} from './character';
 import { EngineStreamBackend } from './engine-stream-backend.adapter';
 import { EngineSessionRegistry, EngineTurnService } from './engine-turn.service';
 import { EngineWiringController } from './engine-wiring.controller';
@@ -121,7 +129,41 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
       provide: VOICE_TURN_BACKEND,
       useExisting: EngineStreamBackend,
     },
+    // WP9-A: 角色解析端口 (可替换数据源). 本期只提供**内置种子**实现;
+    // WP9-B 接 MySQL 角色池时**只改这一处绑定** (换实现), 注入点与
+    // EngineStreamBackend 零改动 —— 这正是"先做 A、避免边建表边改装配"的价值.
+    //
+    // 为什么走 useFactory 而不是 useClass: BuiltinCharacterProfileResolver 的构造
+    // 参数带默认值, Nest 直接 new 会把 Object 当成待注入依赖而报错.
+    {
+      provide: CHARACTER_PROFILE_RESOLVER,
+      useFactory: (config: ConfigService): CharacterProfileResolver => {
+        const source = readCharacterSource(config);
+        if (source !== 'builtin') {
+          // 不静默假装 db 生效: 配置了还没实现, 必须让人看见.
+          new Logger(EngineWiringModule.name).warn(
+            `[WP9-A] ENGINE_CHARACTER_SOURCE=${source} 尚未实现 (角色池落库属 WP9-B), 本轮回退内置种子`,
+          );
+        }
+        return new BuiltinCharacterProfileResolver(BUILTIN_CHARACTER_SEEDS);
+      },
+      inject: [ConfigService],
+    },
   ],
-  exports: [EngineTurnService, ENGINE_SESSION_PORT, ENGINE_RENDER_PORT, VOICE_TURN_BACKEND],
+  exports: [EngineTurnService, ENGINE_SESSION_PORT, ENGINE_RENDER_PORT, VOICE_TURN_BACKEND, CHARACTER_PROFILE_RESOLVER],
 })
 export class EngineWiringModule {}
+
+/**
+ * 读角色数据源配置 (WP9-A).
+ *
+ * 缺省 builtin; 其它值本期**只记告警不改行为** (db 分支归 WP9-B).
+ *
+ * @param config 配置服务
+ * @returns 归一化后的数据源标识
+ */
+function readCharacterSource(config: ConfigService): string {
+  const raw = config.get<string>('ENGINE_CHARACTER_SOURCE');
+  const source = (raw ?? 'builtin').trim().toLowerCase();
+  return source.length > 0 ? source : 'builtin';
+}

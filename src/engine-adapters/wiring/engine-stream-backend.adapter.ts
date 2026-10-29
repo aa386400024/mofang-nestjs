@@ -34,13 +34,37 @@
 //       净效果是"这一轮不落逐字稿". 这里只在整轮成功时落, 语义一致.
 //     - 不吞引擎侧的内核错误: 内核错误 (SESSION_NOT_FOUND / ABORTED) 转成 error chunk
 //       交给既有消费器处理, 与旧链路"LLM 流错误 → error 帧"同形.
+//     - V2026-10-29 (WP9-A): 角色解析**失败不抛**, 只 warn + 回退中性基线.
+//       角色是**可选增强**, 不是会话的前置条件 —— 抛错会把"没有角色"升级成
+//       "会话开不起来", 那是一个可选能力不该有的失败半径.
+//
+//   V2026-10-29 治本 (WP9-A · B 层 · 角色解析注入):
+//   职责: 开场时把"角色定义"解析成内核 `CharacterProfile` 并注入内核, 让人格基线
+//         (信念 / 阻抗 / 情绪 / 信任) 在**第一轮之前**就位; 解析不到就走中性基线.
+//   边界: 只做"解析 → 注入 → 快照命名"; 角色语义 (种子/映射口径) 全在
+//         `wiring/character/`, 本文件**不认识**任何具体角色.
+//
+//   为什么解析点收敛在这一个文件:
+//     翻译点只有一处是 WP8-B 立下的纪律 —— 引擎语义 → 语音语义必须收敛.
+//     角色解析同属"引擎语义": 窄接口只透传"角色 key + 临场参数"这**原始事实**,
+//     "这个 key 意味着什么样的阻抗与信念"是引擎侧的事. voice 层若自己去解析角色,
+//     voice 层就得知道角色语义, 灰度一关就全是死代码.
+//
+//   反双胞胎 (WP9-A):
+//     - 不用 @nestjs 的 useClass 装配 resolver: 它的构造参数带默认值, Nest 会把
+//       Object 当成待注入依赖而报错 —— 走 useFactory 显式 new (与仓库既有做法一致).
+//     - 不把"查不到角色"当错误: DB 角色池未接时这是**常态**, warn 即可.
+//     - 不手改内核快照: 初始快照由内核 `buildInitialSnapshot` 装配 (含 label 重算),
+//       适配层只交出纯对象, 不在外部拼快照.
 //
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/voice/wp8b-grayscale.spec.ts 覆盖 delta → content / 结束 → done / 失败 → error
+//     3. test/engine-adapters/wp9a-open-profile.spec.ts 覆盖角色注入 / 中性回退 / 快照一致性
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 
+import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver, type ResolvedCharacter } from './character';
 import type { EngineTurnService } from './engine-turn.service';
 import type { LlmStream, LlmStreamChunk } from '../../agent/llm/llm.types';
 import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types';
@@ -53,12 +77,13 @@ import type {
 import type { VoiceSessionPersona } from '../../voice/voice.types';
 
 /**
- * 中性基线来访者身份 (WP8-B: 角色剧本注入归 WP9).
+ * 中性基线来访者身份 (无角色时的回落形态).
  *
  * 为什么是中性基线而不是"读 persona 实体":
- *   本期只要求"新引擎能跑通一条链路", 角色资产 (5Ps / 难度 / 情绪基线) 的解析
- *   与注入归 WP9. 这里给一个**不越界**的中性身份: 它不承诺任何角色特征,
- *   也不伪造一个看起来很像角色的假身份 (那会让报告里的人名与真实设定对不上).
+ *   角色资产 (5Ps / 难度 / 情绪基线) 的解析由 `CharacterProfileResolver` 负责
+ *   (WP9-A: 内置种子; WP9-B: DB 角色池). 解析不到时给一个**不越界**的中性身份:
+ *   它不承诺任何角色特征, 也不伪造一个看起来很像角色的假身份 (那会让报告里的
+ *   人名与真实设定对不上). 中性基线 = WP8-B 的现状行为, 逐字不变.
  */
 const NEUTRAL_PERSONA: VoiceSessionPersona = {
   id: 'voice_visitor',
@@ -78,10 +103,19 @@ export class EngineStreamBackend implements VoiceTurnBackend {
   /** 语音会话 id → 逐字稿 (一问一答两条). */
   private readonly transcripts = new Map<string, TranscriptTurn[]>();
 
-  constructor(private readonly engine: EngineTurnService) {}
+  constructor(
+    private readonly engine: EngineTurnService,
+    /**
+     * 角色解析器 (WP9-A).
+     *
+     * 为什么 @Optional: 角色是**可选增强**. 装配缺失 (旧装配 / 独立单测) 时必须
+     * 仍然能开会话 —— 等同"无角色 → 中性基线", 而不是 500.
+     */
+    @Optional() @Inject(CHARACTER_PROFILE_RESOLVER) private readonly resolver?: CharacterProfileResolver,
+  ) {}
 
   /**
-   * 开场: 内核开会话 (中性基线, 不塞剧本).
+   * 开场: 内核开会话 (有角色 → 注入角色基线; 无角色 → 中性基线).
    *
    * 重复开会话 → 先关掉旧句柄再开新的 (与旧 visitor "覆盖 memory" 的行为对齐;
    * 不对齐的话, 第二条 `user_text` 之前的一次 startSession 重连就会撞上
@@ -96,15 +130,61 @@ export class EngineStreamBackend implements VoiceTurnBackend {
 
     const trimmed = opts.personaId?.trim() ?? '';
     const visitorId = trimmed.length > 0 ? trimmed : NEUTRAL_PERSONA.id;
+    const character = await this.resolveCharacter(opts);
     const handle = this.engine.open({
       sessionId: opts.sessionId,
       tenantId: opts.tenantId,
       visitorId,
+      // 有角色才带 profile/seed; 无角色时**不传这两个字段** (缺省 = 中性默认基线),
+      // 与 WP8-B 的调用形态逐字一致.
+      ...(character
+        ? {
+            characterProfile: character.characterProfile,
+            ...(character.seed === undefined ? {} : { seed: character.seed }),
+          }
+        : {}),
     });
     this.handles.set(opts.sessionId, handle.handleId);
     this.transcripts.set(opts.sessionId, []);
-    this.logger.log(`[openSession] session=${opts.sessionId} handle=${handle.handleId} visitor=${visitorId}`);
-    return { ...NEUTRAL_PERSONA, id: visitorId };
+    this.logger.log(
+      `[openSession] session=${opts.sessionId} handle=${handle.handleId} visitor=${visitorId} ` +
+        `character=${character?.displayName ?? 'neutral'}`,
+    );
+    return character ? { ...NEUTRAL_PERSONA, id: visitorId, name: character.displayName } : { ...NEUTRAL_PERSONA, id: visitorId };
+  }
+
+  /**
+   * 解析本场角色 (WP9-A).
+   *
+   * 三种"没有角色"的口径统一收敛到 null (走中性基线), 且**都不抛错**:
+   *   1. resolver 未装配 (@Optional 缺省);
+   *   2. 本场没有任何角色参数 (普通 voice session);
+   *   3. 角色 key 查不到 (DB 角色池未接时的常态) / 解析过程抛错.
+   *
+   * @param opts 开场参数
+   * @returns 解析结果; 无角色 → null
+   */
+  private async resolveCharacter(opts: VoiceTurnBackendOpenOptions): Promise<ResolvedCharacter | null> {
+    if (!this.resolver) return null;
+    try {
+      const resolved = await this.resolver.resolve({
+        templateId: opts.templateId,
+        skillCode: opts.skillCode,
+        preset: opts.preset,
+      });
+      if (!resolved) {
+        // 查不到是常态 (角色池未接), 但带了 templateId 仍值得记一笔:
+        // 线上排查"为什么这场没上角色"时, 这是唯一的线索.
+        if (opts.templateId?.trim()) {
+          this.logger.warn(`[openSession] 未解析到角色 templateId=${opts.templateId}, 回退中性基线`);
+        }
+        return null;
+      }
+      return resolved;
+    } catch (error) {
+      this.logger.warn(`[openSession] 角色解析异常, 回退中性基线: ${messageOf(error)}`);
+      return null;
+    }
   }
 
   /**

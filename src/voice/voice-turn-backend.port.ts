@@ -29,6 +29,9 @@
 //       字符串 token 撞车时 Nest 不报错, 而是静默注入错东西).
 //     - 不把"灰度开关"写进接口: 开关是**装配层**的决策 (选哪个实现), 不是后端
 //       自己的属性. 写进接口等于让每个实现都去读 env —— 同一份开关读两遍必然漂移.
+//     - V2026-10-29 (WP9-A): 角色参数**只增可选字段** (templateId / skillCode / preset).
+//       必填字段会让旧实现 (VisitorService) 再也塞不进这个契约, "并存可回退"当场破产;
+//       可选字段的缺省语义是"本场无角色 → 中性基线", 与现状行为完全一致.
 //
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
@@ -88,6 +91,37 @@ export interface VoiceTurnBackendOpenOptions {
   readonly tenantId: string;
   /** 来访者 persona id (可选; 缺省走后端自己的默认). */
   readonly personaId?: string;
+  /**
+   * V2026-10-29 (WP9-A): 公共人物模板 id —— 角色解析的 key.
+   *
+   * 缺省 = 本场无角色 (普通 voice session 没有公共人物模板), 后端走中性基线.
+   */
+  readonly templateId?: string;
+  /** V2026-10-29 (WP9-A): 专项训练技巧码 (仅观测, 不参与基线映射). */
+  readonly skillCode?: string;
+  /** V2026-10-29 (WP9-A): 本场临场参数 (叠加在角色基线之上). */
+  readonly preset?: VoiceTurnBackendCharacterPreset;
+}
+
+/**
+ * 本场临场参数 (窄接口侧的内联形状).
+ *
+ * 为什么在这里**内联**而不 import 角色解析包的类型:
+ *   voice 层不该知道"角色内核"这件事 —— 它只负责把握手带来的现场旋钮**原样透传**,
+ *   角色语义 (回避型意味着多高阻抗) 由角色解析器负责. 内联结构让 voice 层与角色
+ *   解析实现**解耦**: 将来 WP9-B 换数据源、改映射口径, voice 层一行都不用动.
+ *
+ * 为什么全部可选: 临场参数缺省 = "这一场没有临场调整", 走角色种子自己的基线.
+ */
+export interface VoiceTurnBackendCharacterPreset {
+  /** 难度档 (L1 / L2 / L3); 越高阻抗基线越高. */
+  readonly difficulty?: string;
+  /** 配合风格 (cooperative / mixed / resistant / avoidant / defensive). */
+  readonly style?: string;
+  /** 情绪基线 0..1 (内在空洞感起点). */
+  readonly emotionBaseline?: number;
+  /** 防御水平 0..1 (对"被看穿"的警觉度). */
+  readonly defenseLevel?: number;
 }
 
 /** 一轮对话的入参. */
