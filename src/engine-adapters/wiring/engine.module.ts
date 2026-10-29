@@ -52,12 +52,14 @@ import { EngineWiringController } from './engine-wiring.controller';
 import { createEngineMemoryStore, createEngineOrchestrator, createEngineSessionPort, createEngineStreamBackend } from './engine.providers';
 import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from './engine.tokens';
 import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory';
+import { LocalCrisisProbe } from './risk/local-crisis.probe';
 import { RouterChatCaller } from './router-chat-caller';
 import { AIEngineModule } from '../../ai-engine/ai-engine.module';
 import { QdrantService } from '../../ai-engine/providers/qdrant.service';
 import type { EngineSessionPort, MemoryStore } from '../../engine-core';
 import { LlmModule } from '../../llm/llm.module';
 import { LlmRouterService } from '../../llm/registry/llm-router.service';
+import { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
 import { VOICE_TURN_BACKEND } from '../../voice/voice-turn-backend.port';
 import { OpenAICompatEmbedder } from '../embedder/openai-compat.embedder';
 import type { StreamingRenderPort } from '../rendering/streaming-render.port';
@@ -86,6 +88,8 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
     RenderConfigFactory,
     // 归属登记表 (handleId → tenant/visitor/session).
     EngineSessionRegistry,
+    // 本地危机探测器 (内核 WP4 的 RiskProbePort 扩展点; 将来换 PsyGUARD 服务换这一处).
+    LocalCrisisProbe,
     // 向量化适配器 (Qdrant 长时记忆写入需要). 走 useFactory: 它的第 2 个构造参数
     // 带默认值, Nest 直接 new 会把 Object 当成待注入依赖而报错.
     {
@@ -112,10 +116,12 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
       inject: [RouterChatCaller, RenderConfigFactory],
     },
     // 内核会话: BDI 状态用内存仓储 (落库仓储属后续轮), 记忆用上面的同一实例.
+    // V2026-10-29 治本 (WP9-C): 注入本地危机探测器 (内核 WP4 的 RiskProbePort 扩展点) ——
+    //   没有它, 咨询师输入面的危机语言在内核眼里是干净的, 危机轮次路由与督导提示都无从触发.
     {
       provide: ENGINE_SESSION_PORT,
-      useFactory: (memories: MemoryStore) => createEngineSessionPort(memories),
-      inject: [ENGINE_MEMORY_STORE],
+      useFactory: (memories: MemoryStore, probe: LocalCrisisProbe) => createEngineSessionPort(memories, probe),
+      inject: [ENGINE_MEMORY_STORE, LocalCrisisProbe],
     },
     // 装配门面 (WP7): 接上归属解析缝 (多会话, 不传固定 sessionContext).
     {
@@ -139,12 +145,15 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
     //   (这是 WP8-B 起的既有启动炸弹, 不是本轮引入; WP8-A/8-B 只跑 tsc/eslint/jest,
     //    从没真起过服务, 所以一直没暴露.)
     //   走工厂后 Nest 不再读它的 design:paramtypes, 注入点是**显式**给的:
-    //   引擎门面 + 角色解析端口 (后者来自 CharacterPoolModule).
+    //   引擎门面 + 角色解析端口 (后者来自 CharacterPoolModule) + WS 帧出口注册表.
+    //   V2026-10-29 (WP9-C): 危机轮次要同步给督导推 supervision_hint 帧 ——
+    //   帧出口注册表由 voice 侧 @Global 模块提供, 装配缺失时只影响提示帧.
     {
       provide: EngineStreamBackend,
-      useFactory: (engine: EngineTurnService, resolver: CharacterProfileResolver): EngineStreamBackend =>
-        createEngineStreamBackend({ engine, resolver }),
-      inject: [EngineTurnService, CHARACTER_PROFILE_RESOLVER],
+      useFactory: (engine: EngineTurnService, resolver: CharacterProfileResolver, frames: VoiceFrameRegistry): EngineStreamBackend =>
+        createEngineStreamBackend({ engine, resolver, frames }),
+      // 帧出口注册表由 voice 侧的 @Global 模块提供; optional = 缺了只影响督导提示帧.
+      inject: [EngineTurnService, CHARACTER_PROFILE_RESOLVER, { token: VoiceFrameRegistry, optional: true }],
     },
     {
       provide: VOICE_TURN_BACKEND,

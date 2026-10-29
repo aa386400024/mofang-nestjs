@@ -29,6 +29,7 @@ import { ConfigService } from '@nestjs/config';
 
 import type { RenderTaskKind } from '../../engine-core';
 import { AIProviderId, LLMTier } from '../../llm/common/enums/llm.enums';
+import type { ChatReasoningEffort } from '../../llm/common/interfaces/chat-provider.interface';
 import { LlmRouterService } from '../../llm/registry/llm-router.service';
 import {
   LlmRenderAdapter,
@@ -41,7 +42,7 @@ import {
   DEFAULT_RENDER_COOLDOWN_BASE_MS,
   DEFAULT_RENDER_COOLDOWN_MAX_MS,
   DEFAULT_RENDER_FAILURE_THRESHOLD,
-  DEFAULT_RENDER_FALLBACK_UTTERANCE,
+  DEFAULT_RENDER_REASONING_EFFORT,
   DEFAULT_RENDER_TASK_DEFAULTS,
   DEFAULT_RENDER_TIMEOUT_MS,
   createRenderAdapterConfig,
@@ -50,6 +51,11 @@ import {
 } from '../rendering/render-adapter.config';
 import type { StreamingRenderPort } from '../rendering/streaming-render.port';
 import { buildVisitorMessages } from '../rendering/turn-render-orchestrator';
+
+/**
+ * 合法的思考强度档位 (上游协议事实, 查表用).
+ */
+const REASONING_EFFORT_VALUES: ReadonlySet<ChatReasoningEffort> = new Set(['low', 'medium', 'high', 'xhigh', 'max']);
 
 /**
  * 任务分层 → env 键后缀.
@@ -79,20 +85,27 @@ export class RenderConfigFactory {
     const candidates = this.buildCandidates();
     const chatTemperature = this.ratioNumber('ENGINE_RENDER_CHAT_TEMPERATURE', DEFAULT_RENDER_TASK_DEFAULTS.chat.temperature);
     const stableTemperature = this.ratioNumber('ENGINE_RENDER_STABLE_TEMPERATURE', DEFAULT_RENDER_TASK_DEFAULTS.stable.temperature);
-    const maxTokens = this.optionalPositiveNumber('ENGINE_RENDER_MAX_TOKENS');
+    // V2026-10-29 治本 (WP9-C): token 上限走**新字段** `maxCompletionTokens`
+    //   (thinking token 计入上限). 未配置 env → 不下发, 由 spec.tokenBudget 决定
+    //   (默认 1500, 见 turn-render-orchestrator 的 DEFAULT_TURN_TOKEN_BUDGET) ——
+    //   这样"上限"只有一个真相: env 覆盖, 否则用内核预算.
+    const maxCompletionTokens = this.optionalPositiveNumber('ENGINE_RENDER_MAX_TOKENS');
+    // 思考强度: 渲染路径默认 low (内核已把决策做完, LLM 只做翻译);
+    //   风险轮次由适配器按内核判定结果强制抬档 (medium/high), 不受这里影响.
+    const reasoningEffort = this.reasoningEffort('ENGINE_RENDER_REASONING_EFFORT') ?? DEFAULT_RENDER_REASONING_EFFORT;
 
     return createRenderAdapterConfig(candidates, {
       taskDefaults: {
         // advanced 本期回退 chat 口径 (本期没有高阶档位, 别假装有).
-        chat: { temperature: chatTemperature, ...(maxTokens === undefined ? {} : { maxTokens }) },
-        stable: { temperature: stableTemperature, ...(maxTokens === undefined ? {} : { maxTokens }) },
-        advanced: { temperature: chatTemperature, ...(maxTokens === undefined ? {} : { maxTokens }) },
+        chat: { temperature: chatTemperature, maxCompletionTokens, reasoningEffort },
+        stable: { temperature: stableTemperature, maxCompletionTokens, reasoningEffort },
+        advanced: { temperature: chatTemperature, maxCompletionTokens, reasoningEffort },
       },
       timeoutMs: this.positiveNumber('ENGINE_RENDER_TIMEOUT_MS', DEFAULT_RENDER_TIMEOUT_MS),
       failureThreshold: this.positiveNumber('ENGINE_RENDER_FAILURE_THRESHOLD', DEFAULT_RENDER_FAILURE_THRESHOLD),
       cooldownBaseMs: this.positiveNumber('ENGINE_RENDER_COOLDOWN_BASE_MS', DEFAULT_RENDER_COOLDOWN_BASE_MS),
       cooldownMaxMs: this.positiveNumber('ENGINE_RENDER_COOLDOWN_MAX_MS', DEFAULT_RENDER_COOLDOWN_MAX_MS),
-      fallbackUtterance: this.text('ENGINE_RENDER_FALLBACK_UTTERANCE') ?? DEFAULT_RENDER_FALLBACK_UTTERANCE,
+      fallbackUtterances: this.fallbackUtterances(),
     });
   }
 
@@ -151,6 +164,34 @@ export class RenderConfigFactory {
     const parsed = this.parseNumber(key);
     if (parsed === undefined || parsed <= 0) return undefined;
     return parsed;
+  }
+
+  /**
+   * 读思考强度档位 (非法 → undefined, 让下游回落种子).
+   *
+   * 用查表而不是"是不是 low/medium/high": 档位集合是**上游协议事实**
+   * (MiniMax 还支持 xhigh/max), 写死一份 if 链必然漏档.
+   */
+  private reasoningEffort(key: string): ChatReasoningEffort | undefined {
+    const raw = this.text(key)?.toLowerCase();
+    if (!raw) return undefined;
+    return REASONING_EFFORT_VALUES.has(raw as ChatReasoningEffort) ? (raw as ChatReasoningEffort) : undefined;
+  }
+
+  /**
+   * 兜底话术池: env 一行多句 (`|` 分隔) → 数组.
+   *
+   * 为什么用 `|` 而不是逗号: 兜底话术本身常带逗号 ("……我先缓一下, 我们接着说。"),
+   * 用逗号分隔会把一句话切成两半. 未配置 → undefined (回落种子池).
+   */
+  private fallbackUtterances(): readonly string[] | undefined {
+    const raw = this.text('ENGINE_RENDER_FALLBACK_UTTERANCE');
+    if (!raw) return undefined;
+    const pool = raw
+      .split('|')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    return pool.length > 0 ? pool : undefined;
   }
 
   /** 读比率 (温度; 允许 0, 非法 → 回落种子). */

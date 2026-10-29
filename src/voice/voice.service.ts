@@ -653,6 +653,9 @@ export class VoiceService {
             emotionBaseline: meta.preset.emotionBaseline,
             defenseLevel: meta.preset.defenseLevel,
           },
+          // V2026-10-29 治本 (WP9-C): 稳定落库 id —— 危机轮次要同步给督导推
+          //   `supervision_hint` 帧, 而帧出口注册表是按落库 id 登记的.
+          dbSessionId: meta.dbSessionId,
         });
         this.backends.set(meta.sessionId, this.engineBackend!);
         return persona;
@@ -959,7 +962,17 @@ export class VoiceService {
           ttsHandle?.cancel();
           return 'error';
         case 'done':
-          send({ type: 'llm_done' });
+          // V2026-10-29 治本 (WP9-C): 带 usage —— 端上/E2E 验收要看思考 token 与
+          //   输出长度 (老客户端不认识这个可选字段, 直接忽略).
+          send({
+            type: 'llm_done',
+            usage: {
+              promptTokens: chunk.usage.promptTokens,
+              completionTokens: chunk.usage.completionTokens,
+              totalTokens: chunk.usage.totalTokens,
+              ...(chunk.usage.reasoningTokens === undefined ? {} : { reasoningTokens: chunk.usage.reasoningTokens }),
+            },
+          });
           ttsHandle?.finish();
           return 'done';
       }

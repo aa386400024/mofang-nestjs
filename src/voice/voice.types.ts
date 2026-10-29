@@ -77,8 +77,22 @@ export type VoiceServerMessage =
   | { readonly type: 'llm_start' }
   /** LLM 增量字幕 (可多次; 与音频并行到达, 互不阻塞). */
   | { readonly type: 'llm_text'; readonly text: string }
-  /** LLM 文本已全部发完 (**不代表**音频播完, 音频结束看 tts_done). */
-  | { readonly type: 'llm_done' }
+  /**
+   * LLM 文本已全部发完 (**不代表**音频播完, 音频结束看 tts_done).
+   *
+   * V2026-10-29 治本 (WP9-C): 带**可选** usage —— 端上验收需要看
+   * "思考 token 吃了多少 / 输出被截断没有". 字段可选 = 老客户端不认识就忽略, 向后兼容.
+   */
+  | {
+      readonly type: 'llm_done';
+      readonly usage?: {
+        readonly promptTokens?: number;
+        readonly completionTokens?: number;
+        readonly totalTokens?: number;
+        /** 思考 token 数 (推理模型专用). */
+        readonly reasoningTokens?: number;
+      };
+    }
   /** 一句开始 (seq 本轮内从 1 递增). */
   | { readonly type: 'sentence_start'; readonly seq: number; readonly text: string }
   /** 一句完整 mp3 (可独立播放) —— 前端排队播. */

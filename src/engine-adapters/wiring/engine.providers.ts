@@ -28,7 +28,7 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp8-wiring.spec.ts 覆盖仓储分流 / 会话构造 / 门面归属缝
 
-import type { Embedder, EngineSessionPort, MemoryStore } from '../../engine-core';
+import type { Embedder, EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core';
 import { InMemoryBdiStateRepository } from '../../engine-core/in-memory/in-memory-bdi-state.repository';
 import { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-engine-session';
 import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store';
@@ -40,6 +40,7 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
 import type { CharacterProfileResolver } from './character/character-profile.resolver';
 import { EngineStreamBackend } from './engine-stream-backend.adapter';
 import type { EngineTurnService } from './engine-turn.service';
+import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
 
 /**
  * 记忆仓储装配入参.
@@ -80,10 +81,15 @@ export function createEngineMemoryStore(deps: EngineMemoryStoreDeps): MemoryStor
  * 内核写的咨询师半边与门面补的来访半边必须落在同一个仓里, 否则召回只召回得到一半.
  *
  * @param memories 记忆仓储 (与门面共用)
+ * @param riskProbe 可选风险探测端口 (WP4 扩展点; 缺省 = 纯规则判定)
  * @returns 内核会话端口
  */
-export function createEngineSessionPort(memories: MemoryStore): EngineSessionPort {
-  return new InMemoryEngineSession({ bdiStates: new InMemoryBdiStateRepository(), memories });
+export function createEngineSessionPort(memories: MemoryStore, riskProbe?: RiskProbePort): EngineSessionPort {
+  return new InMemoryEngineSession({
+    bdiStates: new InMemoryBdiStateRepository(),
+    memories,
+    ...(riskProbe ? { riskProbe } : {}),
+  });
 }
 
 /**
@@ -127,6 +133,8 @@ export interface EngineStreamBackendDeps {
   readonly engine: EngineTurnService;
   /** 角色解析端口 (缺省 = 无角色 = 中性基线). */
   readonly resolver?: CharacterProfileResolver;
+  /** WS 帧出口注册表 (缺省 = 推不了督导提示帧, 不影响对话). */
+  readonly frames?: VoiceFrameRegistry;
 }
 
 /**
@@ -151,5 +159,5 @@ export interface EngineStreamBackendDeps {
  * @returns 引擎版对话后端
  */
 export function createEngineStreamBackend(deps: EngineStreamBackendDeps): EngineStreamBackend {
-  return new EngineStreamBackend(deps.engine, deps.resolver);
+  return new EngineStreamBackend(deps.engine, deps.resolver, deps.frames);
 }

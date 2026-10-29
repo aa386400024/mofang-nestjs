@@ -92,6 +92,13 @@ export interface StreamRenderOutcome {
   readonly usage: {
     readonly completionTokens: number;
     readonly totalTokens: number;
+    /**
+     * 思考 token 数 (推理模型专用; 缺省 = 上游没报).
+     *
+     * V2026-10-29 治本 (WP9-C): 与 completionTokens 分开上报 —— 后者含思考,
+     * 两者混在一起就看不出"输出被截断"还是"思考吃光了预算".
+     */
+    readonly reasoningTokens?: number;
   };
   /** 是否走过备用路径 (切过备 / 走过降级). */
   readonly fallbackUsed: boolean;

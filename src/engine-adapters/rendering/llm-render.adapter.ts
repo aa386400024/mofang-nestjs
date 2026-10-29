@@ -37,6 +37,14 @@
 //     **首 token 之后不再换人**, 中途出错就承认这一轮不完整 (降级 + 不落记忆),
 //     而不是硬凑一个"看起来成功"的回复.
 //
+//   V2026-10-29 治本 (WP9-C · token 预算 / 思考强度 / 截断 / 风险路由):
+//     ① 生成长度上限改用**新字段** `maxCompletionTokens` (thinking token 计入上限),
+//        不再下发旧字段 `maxTokens` —— 旧字段下 160 的预算被思考吃光, 来访开不了口;
+//     ② 渲染路径默认 `reasoningEffort=low` (内核已把决策做完, LLM 只做"翻译",
+//        不需要深思考); 风险轮次由内核判定结果**强制抬档**到 medium/high;
+//     ③ 截断保护: 上游 `finish_reason=length` 时丢弃未闭合尾句, **半句不出声**;
+//     ④ 降级兜底改为**话术池** (轮换, 不复读), 日志带 `degraded=true` 标记.
+//
 //   反双胞胎:
 //     - 不直接 import LlmRouterService 具体类: 只依赖窄面 ChatCaller, 于是单测
 //       可 mock、未来换调用出口 (直连网关 / 换 SDK) 不用动本文件.
@@ -50,17 +58,22 @@
 //       "流式路径切了个聚合路径不认的候选".
 //     - 不为前置预检另写一套规则词典: 预检复用**内核同一套** `evaluateSafety`
 //       (side='visitor_output'), 与输出侧 guard 同一份词汇表.
+//     - 不自己判断"这轮有没有危机": 判定在内核 (WP4) 与 RiskProbePort, 本文件只做
+//       **路由** (判定结果 → 思考强度 / prompt 护栏), 不复刻词典.
 //
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp6-llm-render.spec.ts 覆盖选主/切备/冷却/恢复/降级/guard 处置
 //     3. test/engine-adapters/wp8b-stream-render.spec.ts 覆盖流式状态机/锁定/降级/两层 guard
+//     4. test/engine-adapters/wp9c-*.spec.ts 覆盖 token 字段/截断/风险路由
 
 import { Logger } from '@nestjs/common';
 import { clearTimeout, setTimeout } from 'node:timers';
 
 import type { RenderAdapterConfig, RenderCandidate } from './render-adapter.config';
 import { RenderFailoverRuntime, type RenderCandidateHealth } from './render-failover.runtime';
+import type { AdaptiveRenderSpec, RenderRiskLevel } from './render-risk';
+import { dropUnclosedTail, splitClosedPrefix } from './render-truncation';
 import {
   splitTextIntoDeltas,
   type RenderGuardVerdict,
@@ -82,6 +95,7 @@ import type {
   ChatCompletionRequest,
   ChatCompletionResponse,
   ChatMessage,
+  ChatReasoningEffort,
 } from '../../llm/common/interfaces/chat-provider.interface';
 
 /**
@@ -145,7 +159,7 @@ export interface LlmRenderAdapterDeps {
    * 只在**流式**路径生效 (首 delta 前). 聚合路径的等价能力是"全文 guard 命中
    * block → 同候选降温重生成", 语义更强, 不需要前置预检.
    */
-  readonly precheck?: (spec: RenderSpec) => RenderPrecheckVerdict;
+  readonly precheck?: (spec: AdaptiveRenderSpec) => RenderPrecheckVerdict;
   /**
    * 可选消息构造缝 (WP7 注入系统 prompt 与完整上下文).
    *
@@ -153,7 +167,7 @@ export interface LlmRenderAdapterDeps {
    * 为什么要留这道缝: **prompt 属适配层**(WP7), 而适配器本期的红线是"不拼 prompt";
    * 若不留缝, WP7 就得改本文件, 那是把"本期的克制"变成"下期的返工".
    */
-  readonly buildMessages?: (spec: RenderSpec) => readonly ChatMessage[];
+  readonly buildMessages?: (spec: AdaptiveRenderSpec) => readonly ChatMessage[];
   /** 可选安全信号回调 (日志/观测用, 不进 RenderResult). */
   readonly onSafetySignal?: (text: string, level: string, categories: readonly string[]) => void;
   /** 可注入时钟 (主备冷却/退避用; 缺省 Date.now). */
@@ -168,7 +182,8 @@ export interface LlmRenderAdapterDeps {
 interface ResolvedRenderParams {
   readonly temperature: number;
   readonly model: string;
-  readonly maxTokens: number;
+  readonly maxCompletionTokens: number;
+  readonly reasoningEffort?: ChatReasoningEffort;
 }
 
 /**
@@ -217,6 +232,8 @@ export class LlmRenderAdapter implements StreamingRenderPort {
   private readonly logger = new Logger(LlmRenderAdapter.name);
   private readonly config: RenderAdapterConfig;
   private readonly runtime: RenderFailoverRuntime;
+  /** 兜底话术轮换游标 (实例内, 确定性). */
+  private fallbackCursor = 0;
 
   constructor(private readonly deps: LlmRenderAdapterDeps) {
     if (deps.config.candidates.length === 0) {
@@ -237,7 +254,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
    * @param spec 渲染规格 (WP7 组装)
    * @returns 渲染结果
    */
-  async render(spec: RenderSpec): Promise<RenderResult> {
+  async render(spec: AdaptiveRenderSpec): Promise<RenderResult> {
     const messages = this.buildMessages(spec);
     if (messages.length === 0) {
       this.logger.warn('[render] 渲染上下文为空 (无可用对话轮次), 直接降级兜底');
@@ -272,7 +289,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     }
 
     this.logger.error(`[render] 渲染失败, 降级兜底: ${outcome.reason}`);
-    return this.degrade(spec);
+    return this.degrade(spec, outcome.reason);
   }
 
   /**
@@ -291,7 +308,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
    * @param handlers 增量回调面
    * @returns 流式收尾结果
    */
-  async streamRender(spec: RenderSpec, handlers: StreamRenderHandlers): Promise<StreamRenderOutcome> {
+  async streamRender(spec: AdaptiveRenderSpec, handlers: StreamRenderHandlers): Promise<StreamRenderOutcome> {
     const messages = this.buildMessages(spec);
     if (messages.length === 0) {
       this.logger.warn('[streamRender] 渲染上下文为空 (无可用对话轮次), 直接降级兜底');
@@ -398,15 +415,44 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       return call.retryable ? { kind: 'retry', reason: call.reason } : { kind: 'degrade', reason: call.reason };
     }
 
-    const text = (call.response.content ?? '').trim();
-    if (!text) {
+    const rawText = (call.response.content ?? '').trim();
+    if (!rawText) {
       // 空内容 = 没有可用输出, 与失败同等处理 (切备), 不把空串当"成功"返回.
       this.runtime.markFailure(candidate.id, this.config);
       this.logger.warn(`[render] 候选 ${candidate.id} 返回空内容, 视为失败并切备`);
       return { kind: 'retry', reason: `候选 ${candidate.id} 返回空内容` };
     }
 
+    // V2026-10-29 治本 (WP9-C · 截断保护): 上游按长度上限截断时, 半截句子不能出声.
+    const guarded = this.applyTruncationGuard(rawText, call.response.finishReason);
+    const text = guarded.text;
+    if (!text) {
+      // 截断后一句完整话都不剩 → 本候选没产出可用内容, 与空内容同口径切备.
+      this.runtime.markFailure(candidate.id, this.config);
+      this.logger.warn(`[render] 候选 ${candidate.id} 内容被上游截断且无完整句, 视为失败并切备`);
+      return { kind: 'retry', reason: `候选 ${candidate.id} 截断后无完整句` };
+    }
+
     return await this.handleText(ctx, candidate, params, text, call.response.usage);
+  }
+
+  /**
+   * 截断保护: 上游 `finish_reason=length` 时丢弃未闭合的尾句.
+   *
+   * 为什么要丢弃而不是补一句收束: 半句进 TTS 队列会合成出半截音频 (字幕也半句),
+   * 而"补一句自然收束"等于替模型编造它没说完的话 —— 在心理训练场景里, 编造的话
+   * 可能正是最不该出现的那句. 宁可不完整, 不出声.
+   *
+   * @param text 上游返回的文本
+   * @param finishReason 上游终止原因
+   * @returns 裁剪后的文本 + 是否发生过裁剪
+   */
+  private applyTruncationGuard(text: string, finishReason: string | undefined): { readonly text: string; readonly truncated: boolean } {
+    if (finishReason !== 'length') return { text, truncated: false };
+    const kept = dropUnclosedTail(text);
+    if (kept === text) return { text, truncated: false };
+    this.logger.warn(`[render] 上游按长度截断 (finish_reason=length), 丢弃未闭合尾句: ${text.slice(kept.length, kept.length + 60)}`);
+    return { text: kept, truncated: true };
   }
 
   /**
@@ -460,10 +506,16 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       return call.retryable ? { kind: 'retry', reason: call.reason } : { kind: 'degrade', reason: call.reason };
     }
 
-    const text = (call.response.content ?? '').trim();
-    if (!text) {
+    const rawText = (call.response.content ?? '').trim();
+    if (!rawText) {
       this.runtime.markFailure(candidate.id, this.config);
       return { kind: 'retry', reason: `候选 ${candidate.id} 重生成返回空内容` };
+    }
+    // 截断保护与首轮同口径 (重生成也可能被长度上限截断).
+    const text = this.applyTruncationGuard(rawText, call.response.finishReason).text;
+    if (!text) {
+      this.runtime.markFailure(candidate.id, this.config);
+      return { kind: 'retry', reason: `候选 ${candidate.id} 重生成内容被截断且无完整句` };
     }
 
     const verdict = await this.evaluate(text);
@@ -482,7 +534,10 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       model: params.model,
       messages: [...messages],
       temperature: params.temperature,
-      maxTokens: params.maxTokens,
+      // V2026-10-29 治本 (WP9-C): 只下发新字段 `maxCompletionTokens` —— 旧字段
+      // `maxTokens` 与它**不同时下发** (语义歧义, 上游可能按旧字段截断).
+      maxCompletionTokens: params.maxCompletionTokens,
+      ...(params.reasoningEffort === undefined ? {} : { reasoningEffort: params.reasoningEffort }),
     };
 
     try {
@@ -508,7 +563,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
    * 主备循环 —— 这就是"单一实现"的落点.
    */
   private async streamAttempt(
-    spec: RenderSpec,
+    spec: AdaptiveRenderSpec,
     candidate: RenderCandidate,
     messages: readonly ChatMessage[],
     handlers: StreamRenderHandlers,
@@ -523,7 +578,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       model: params.model,
       messages: [...messages],
       temperature: params.temperature,
-      maxTokens: params.maxTokens,
+      // V2026-10-29 治本 (WP9-C): 只下发新字段 `maxCompletionTokens`, 不与旧字段并存.
+      maxCompletionTokens: params.maxCompletionTokens,
+      ...(params.reasoningEffort === undefined ? {} : { reasoningEffort: params.reasoningEffort }),
     };
 
     const opened = await this.openStream(candidate, request, handlers);
@@ -534,11 +591,33 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     // 阶段 2: 锁定 —— 首个非空 delta 到达即证明该候选健康.
     // 此后无论中途发生什么, 都不再切备 (已出声无法撤回).
     this.runtime.markSuccess(candidate.id);
-    let text = opened.firstDelta;
-    await handlers.onDelta(opened.firstDelta);
+
+    // V2026-10-29 治本 (WP9-C · 句边界缓冲): 只有**已闭合**的句子才往下游发.
+    //   为什么: 流被上游截断 (`finish_reason=length`) 时, 半截句子一旦发出去, 就已经
+    //   进了 TTS 队列 (音频 + 字幕都成了半句), 事后无法撤回. 所以这里把"还没说完的
+    //   那句"扣在缓冲区里, 等它闭合再发; 若流被截断, 这段尾巴**直接丢弃, 不出声**.
+    //   代价: 未闭合句的字幕会晚到 (闭合才发) —— 但 TTS 本来也是按句合成,
+    //   字幕与语音对齐反而更准.
+    let pending = '';
+    let text = '';
+
+    const emit = async (chunk: string): Promise<void> => {
+      if (chunk.length === 0) return;
+      text += chunk;
+      await handlers.onDelta(chunk);
+    };
+
+    pending += opened.firstDelta;
+    {
+      const split = splitClosedPrefix(pending);
+      pending = split.pending;
+      await emit(split.closed);
+    }
 
     // 阶段 3: 边吐边累计.
     let tokenCount = opened.tokenCount;
+    let finishReason: string | undefined;
+    let reasoningTokens: number | undefined;
     try {
       for (;;) {
         const next = await opened.iterator.next();
@@ -547,15 +626,36 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         if (typeof chunk.tokenCount === 'number' && Number.isFinite(chunk.tokenCount)) {
           tokenCount = chunk.tokenCount;
         }
+        if (typeof chunk.reasoningTokens === 'number' && Number.isFinite(chunk.reasoningTokens)) {
+          reasoningTokens = chunk.reasoningTokens;
+        }
+        if (typeof chunk.finishReason === 'string' && chunk.finishReason.length > 0) {
+          finishReason = chunk.finishReason;
+        }
         const delta = chunk.delta ?? '';
         if (delta.length === 0) continue;
-        text += delta;
-        await handlers.onDelta(delta);
+        pending += delta;
+        const split = splitClosedPrefix(pending);
+        pending = split.pending;
+        await emit(split.closed);
       }
     } catch (error) {
       // 已锁定 → 不切备, 收尾降级 (残句当"这一轮不完整"处理).
       this.logger.warn(`[streamRender] 候选 ${candidate.id} 锁定后中断, 收尾降级: ${errorMessage(error)}`);
       return { kind: 'degrade', reason: `候选 ${candidate.id} 锁定后中断: ${errorMessage(error)}` };
+    }
+
+    // 收尾: 未闭合尾巴的去向.
+    //   · 被上游截断 (length) → **丢弃** (半句不出声, 任务单 §2.2);
+    //   · 正常结束 → 照常发出 (一句"嗯"不该被误判成没说完, 任务单 §4.2).
+    if (pending.length > 0) {
+      if (finishReason === 'length') {
+        this.logger.warn(
+          `[streamRender] 候选 ${candidate.id} 被上游按长度截断 (finish_reason=length), 丢弃未闭合尾句: ${pending.slice(0, 60)}`,
+        );
+      } else {
+        await emit(pending);
+      }
     }
 
     // 阶段 4: 收尾 —— 后置全文 guard 只记信号 (不 regen / 不撤回).
@@ -569,7 +669,11 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         text,
         taskKind: spec.taskKind,
         // 流式只有累计 tokenCount, 无 prompt/completion 拆分 —— 同源取末条, 不编造.
-        usage: { completionTokens: tokenCount, totalTokens: tokenCount },
+        usage: {
+          completionTokens: tokenCount,
+          totalTokens: tokenCount,
+          ...(reasoningTokens === undefined ? {} : { reasoningTokens }),
+        },
         fallbackUsed: false,
         providerHint: candidate.id,
         degraded: false,
@@ -654,16 +758,23 @@ export class LlmRenderAdapter implements StreamingRenderPort {
 
   /**
    * 解析候选的最终参数: 分层默认 ← 候选 overrides 覆盖.
+   *
+   * 思考强度还要再过一道**风险抬档** (任务单 §2.3): 风险轮次不走 low,
+   * 至少 medium, 行动层危机走 high. 抬档只升不降 —— 配置写 high 的候选不会
+   * 因为"这轮没风险"被降回 low (那会让配置形同虚设).
    */
-  private resolveParams(spec: RenderSpec, candidate: RenderCandidate): ResolvedRenderParams {
+  private resolveParams(spec: AdaptiveRenderSpec, candidate: RenderCandidate): ResolvedRenderParams {
     const defaults = this.config.taskDefaults[spec.taskKind];
     const override = candidate.overrides?.[spec.taskKind];
-    const maxTokens = override?.maxTokens ?? defaults.maxTokens ?? resolveCompletionTokens(spec.tokenBudget.maxCompletionTokens);
+    const maxCompletionTokens =
+      override?.maxCompletionTokens ?? defaults.maxCompletionTokens ?? resolveCompletionTokens(spec.tokenBudget.maxCompletionTokens);
+    const configuredEffort = override?.reasoningEffort ?? defaults.reasoningEffort;
     return {
       temperature: override?.temperature ?? defaults.temperature,
       model: override?.model ?? defaults.model ?? '',
-      // maxTokens 必须是正整数: 非整数会被厂商截断/报错, 0 等于"不要输出".
-      maxTokens: Math.max(1, Math.trunc(maxTokens)),
+      // maxCompletionTokens 必须是正整数: 非整数会被厂商截断/报错, 0 等于"不要输出".
+      maxCompletionTokens: Math.max(1, Math.trunc(maxCompletionTokens)),
+      reasoningEffort: escalateReasoningEffort(configuredEffort, spec.riskSignal?.level),
     };
   }
 
@@ -743,9 +854,12 @@ export class LlmRenderAdapter implements StreamingRenderPort {
   /**
    * 最终降级: 返回兜底话术, 永不 reject (M4).
    */
-  private degrade(spec: RenderSpec): RenderResult {
+  private degrade(spec: AdaptiveRenderSpec, reason = '渲染失败'): RenderResult {
+    const utterance = this.pickFallbackUtterance();
+    // degraded=true 是**日志标记**: 兜底句不是来访者真说的话, 不许冒充成真实回复.
+    this.logger.error(`[render] 渲染降级兜底: degraded=true reason=${reason} utterance=${utterance}`);
     return {
-      text: this.config.fallbackUtterance,
+      text: utterance,
       taskKind: spec.taskKind,
       usage: { completionTokens: 0, totalTokens: 0 },
       fallbackUsed: true,
@@ -759,16 +873,33 @@ export class LlmRenderAdapter implements StreamingRenderPort {
    * `degraded=true` 的含义: 这段文本**不是**来访者完整说出来的真话 (兜底句或
    * 残句), 上层据此不把它写进历史与工作记忆.
    */
-  private degradeOutcome(spec: RenderSpec, reason: string): StreamRenderOutcome {
-    this.logger.warn(`[streamRender] 降级兜底: ${reason}`);
+  private degradeOutcome(spec: AdaptiveRenderSpec, reason: string): StreamRenderOutcome {
+    const utterance = this.pickFallbackUtterance();
+    this.logger.warn(`[streamRender] 降级兜底: degraded=true reason=${reason} utterance=${utterance}`);
     return {
-      text: this.config.fallbackUtterance,
+      text: utterance,
       taskKind: spec.taskKind,
       usage: { completionTokens: 0, totalTokens: 0 },
       fallbackUsed: true,
       providerHint: 'degraded',
       degraded: true,
     };
+  }
+
+  /**
+   * 取一句兜底话术 (轮换).
+   *
+   * 为什么轮换而不是永远同一句: 连续两轮降级若都是同一句, 用户会听出"这是复读机"
+   * —— 那等于把兜底暴露成故障. 轮换后听感上更像"来访者停顿了一下".
+   *
+   * 游标是**实例内**的: 适配器是单例, 一个游标就够, 且天然是确定性的 (可测).
+   */
+  private pickFallbackUtterance(): string {
+    const pool = this.config.fallbackUtterances;
+    if (pool.length === 0) return '';
+    const index = this.fallbackCursor % pool.length;
+    this.fallbackCursor += 1;
+    return pool[index];
   }
 }
 
@@ -822,6 +953,56 @@ function collectVisitorRoleText(spec: RenderSpec): string {
   const note = spec.trajectoryNote?.trim();
   if (note) parts.push(note);
   return parts.join('\n');
+}
+
+/**
+ * 思考强度档位序 (用于"只升不降"的抬档比较).
+ */
+const REASONING_EFFORT_RANK: Readonly<Record<ChatReasoningEffort, number>> = {
+  low: 1,
+  medium: 2,
+  high: 3,
+  xhigh: 4,
+  max: 5,
+};
+
+/**
+ * 风险轮次的思考强度抬档 (任务单 §2.3).
+ *
+ * 规则:
+ *   - 风险等级 medium → 至少 medium; high → 至少 high;
+ *   - **只升不降**: 配置写 high 的候选不会因为"这轮没风险"被降回 low;
+ *   - 配置没写 (undefined = 上游默认档) → 不动 (上游默认往往是最高档, 更保守).
+ *
+ * @param configured 配置档位
+ * @param risk 本轮风险等级
+ * @returns 实际下发的思考强度
+ */
+export function escalateReasoningEffort(
+  configured: ChatReasoningEffort | undefined,
+  risk: RenderRiskLevel | undefined,
+): ChatReasoningEffort | undefined {
+  if (!configured) return undefined;
+  const floor = riskReasoningFloor(risk);
+  if (!floor) return configured;
+  return REASONING_EFFORT_RANK[configured] >= REASONING_EFFORT_RANK[floor] ? configured : floor;
+}
+
+/**
+ * 风险等级 → 思考强度下限 (查表, 不写嵌套三元).
+ *
+ * @param risk 本轮风险等级
+ * @returns 思考强度下限; 无风险下限时 undefined
+ */
+function riskReasoningFloor(risk: RenderRiskLevel | undefined): ChatReasoningEffort | undefined {
+  switch (risk) {
+    case 'high':
+      return 'high';
+    case 'medium':
+      return 'medium';
+    default:
+      return undefined;
+  }
 }
 
 /**

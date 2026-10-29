@@ -98,14 +98,19 @@ export class EngineTurnService {
    * 本层不静默复用旧句柄 (静默复用会让调用方以为开了一场新会话, 实际接的是旧状态).
    *
    * @param input 开场参数
+   * @param options 装配层附加信息 (角色代号; 仅供 dev 调试日志核对 prompt 拼装)
    * @returns 会话句柄 id + 业务会话 id
    */
-  open(input: OpenEngineSessionInput): { readonly handleId: string; readonly sessionId: string } {
+  open(
+    input: OpenEngineSessionInput,
+    options?: { readonly characterLabel?: string },
+  ): { readonly handleId: string; readonly sessionId: string } {
     const handle = this.session.openSession(input);
     this.registry.register(handle.handleId, {
       tenantId: input.tenantId,
       sessionId: input.sessionId,
       visitorId: input.visitorId,
+      ...(options?.characterLabel ? { characterLabel: options.characterLabel } : {}),
     });
     this.logger.log(`引擎会话已开启 handle=${handle.handleId} session=${input.sessionId}`);
     return { handleId: handle.handleId, sessionId: handle.sessionId };

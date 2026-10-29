@@ -68,6 +68,7 @@ import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver, type Resolve
 import type { EngineTurnService } from './engine-turn.service';
 import type { LlmStream, LlmStreamChunk } from '../../agent/llm/llm.types';
 import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types';
+import { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
 import type {
   VoiceTurnBackend,
   VoiceTurnBackendCloseResult,
@@ -75,6 +76,8 @@ import type {
   VoiceTurnBackendTurnOptions,
 } from '../../voice/voice-turn-backend.port';
 import type { VoiceSessionPersona } from '../../voice/voice.types';
+import { isCrisisCategory } from '../rendering/render-risk';
+import type { TurnRenderResult } from '../rendering/turn-render-orchestrator';
 
 /**
  * 中性基线来访者身份 (无角色时的回落形态).
@@ -102,6 +105,14 @@ export class EngineStreamBackend implements VoiceTurnBackend {
   private readonly handles = new Map<string, string>();
   /** 语音会话 id → 逐字稿 (一问一答两条). */
   private readonly transcripts = new Map<string, TranscriptTurn[]>();
+  /**
+   * 语音会话 id → 稳定落库 id (training_sessions.id).
+   *
+   * V2026-10-29 治本 (WP9-C): 督导轻提示帧按**稳定落库 id** 路由 (voice 侧的
+   * `VoiceFrameRegistry` 就是按它登记出口的), 而窄接口给的是 WS 会话 id ——
+   * 两者不是一回事, 所以这里显式存一份.
+   */
+  private readonly dbSessionIds = new Map<string, string>();
 
   constructor(
     private readonly engine: EngineTurnService,
@@ -112,6 +123,14 @@ export class EngineStreamBackend implements VoiceTurnBackend {
      * 仍然能开会话 —— 等同"无角色 → 中性基线", 而不是 500.
      */
     @Optional() @Inject(CHARACTER_PROFILE_RESOLVER) private readonly resolver?: CharacterProfileResolver,
+    /**
+     * WS 帧出口注册表 (WP9-C).
+     *
+     * 为什么 @Optional: 它由 voice 侧的 `VoiceSessionModule` (@Global) 提供.
+     * 装配缺失时**只影响危机提示帧**, 不影响会话本身 —— 不能让"没有出口"变成
+     * "开不了会话".
+     */
+    @Optional() private readonly frames?: VoiceFrameRegistry,
   ) {}
 
   /**
@@ -131,21 +150,29 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     const trimmed = opts.personaId?.trim() ?? '';
     const visitorId = trimmed.length > 0 ? trimmed : NEUTRAL_PERSONA.id;
     const character = await this.resolveCharacter(opts);
-    const handle = this.engine.open({
-      sessionId: opts.sessionId,
-      tenantId: opts.tenantId,
-      visitorId,
-      // 有角色才带 profile/seed; 无角色时**不传这两个字段** (缺省 = 中性默认基线),
-      // 与 WP8-B 的调用形态逐字一致.
-      ...(character
-        ? {
-            characterProfile: character.characterProfile,
-            ...(character.seed === undefined ? {} : { seed: character.seed }),
-          }
-        : {}),
-    });
+    const handle = this.engine.open(
+      {
+        sessionId: opts.sessionId,
+        tenantId: opts.tenantId,
+        visitorId,
+        // 有角色才带 profile/seed; 无角色时**不传这两个字段** (缺省 = 中性默认基线),
+        // 与 WP8-B 的调用形态逐字一致.
+        ...(character
+          ? {
+              characterProfile: character.characterProfile,
+              ...(character.seed === undefined ? {} : { seed: character.seed }),
+            }
+          : {}),
+      },
+      // V2026-10-29 治本 (WP9-C): 角色代号交给装配层 → 归属登记表 → prompt dev 日志.
+      { characterLabel: character?.displayName ?? '' },
+    );
     this.handles.set(opts.sessionId, handle.handleId);
     this.transcripts.set(opts.sessionId, []);
+    const dbSessionId = opts.dbSessionId?.trim() ?? '';
+    if (dbSessionId.length > 0) {
+      this.dbSessionIds.set(opts.sessionId, dbSessionId);
+    }
     this.logger.log(
       `[openSession] session=${opts.sessionId} handle=${handle.handleId} visitor=${visitorId} ` +
         `character=${character?.displayName ?? 'neutral'}`,
@@ -210,6 +237,7 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       finalMessageCount: turns.length,
     };
     this.transcripts.delete(sessionId);
+    this.dbSessionIds.delete(sessionId);
     const handleId = this.handles.get(sessionId);
     if (handleId) {
       this.handles.delete(sessionId);
@@ -275,6 +303,11 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       this.appendTurn(opts.sessionId, opts.userText, spoken.join(''));
     }
 
+    // V2026-10-29 治本 (WP9-C · 同步危机提示):
+    //   危机轮次**不等异步 worker** —— 督导提示如果靠队列 worker, 就会错过"这一轮"
+    //   的窗口 (人已经说完下一句了, 提示才到). 所以在**本轮结算的当场**推帧.
+    this.publishCrisisHint(opts.sessionId, settled.result);
+
     const usage = settled.result.render.usage;
     yield {
       type: 'done',
@@ -282,8 +315,47 @@ export class EngineStreamBackend implements VoiceTurnBackend {
         promptTokens: 0,
         completionTokens: usage?.completionTokens ?? 0,
         totalTokens: usage?.totalTokens ?? 0,
+        ...(usage?.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
       },
     };
+  }
+
+  /**
+   * 危机轮次 → 同步推 `supervision_hint` 帧.
+   *
+   * 判定口径与渲染路由**同一份** (isCrisisCategory): 内核判出来的 warn 里,
+   * 只有"危机类别"才推提示 —— 咨询师的专业性提示 (过早给建议 / 价值审判) 属于
+   * 事后复盘项, 不该在对话中途打断督导的注意力.
+   *
+   * 正文只给**方向**, 不含可照念的话术 (仓库硬约束 1): 提示是给督导看的,
+   * 不是给学员念的.
+   *
+   * @param sessionId 语音会话 id
+   * @param result 本轮结算结果
+   */
+  private publishCrisisHint(sessionId: string, result: TurnRenderResult): void {
+    const safety = result.safety;
+    if (!safety || safety.level === 'pass') return;
+    const categories = safety.categories.filter((category) => isCrisisCategory(category));
+    if (categories.length === 0) return;
+
+    const dbSessionId = this.dbSessionIds.get(sessionId);
+    if (!dbSessionId || !this.frames) {
+      this.logger.warn(`[streamTurn] 危机轮次未推督导提示 (session=${sessionId} 无落库 id 或无帧出口)`);
+      return;
+    }
+
+    const published = this.frames.publish(dbSessionId, {
+      type: 'supervision_hint',
+      turnIndex: result.turnIndex,
+      category: categories.join(','),
+      hintText: '检测到明确的危机信号，建议督导在本轮后介入评估安全风险。',
+      tier: 'light',
+    });
+    this.logger.warn(
+      `[streamTurn] 危机轮次已推督导提示 session=${sessionId} turn=${result.turnIndex} ` +
+        `level=${safety.level} categories=${categories.join(',')} published=${published}`,
+    );
   }
 
   /**

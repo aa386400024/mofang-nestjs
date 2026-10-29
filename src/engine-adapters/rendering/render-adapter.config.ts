@@ -24,6 +24,7 @@
 //     2. test/engine-adapters/wp6-llm-render.spec.ts 覆盖参数解析与种子默认值
 
 import type { RenderTaskKind } from '../../engine-core';
+import type { ChatReasoningEffort } from '../../llm/common/interfaces/chat-provider.interface';
 
 /**
  * 任务分层参数覆盖 (按 taskKind 生效).
@@ -35,8 +36,10 @@ export interface RenderTaskParams {
   readonly temperature?: number;
   /** 模型名 (provider 侧模型 id). */
   readonly model?: string;
-  /** 单次完成 token 上限. */
-  readonly maxTokens?: number;
+  /** 单次完成 token 上限 (thinking token 计入本上限). */
+  readonly maxCompletionTokens?: number;
+  /** 思考强度 (推理模型专用). */
+  readonly reasoningEffort?: ChatReasoningEffort;
 }
 
 /**
@@ -58,7 +61,9 @@ export interface RenderTaskDefaults {
   /** 该分层的默认模型 (缺省表示"该层未指定模型", 需由候选 overrides 补齐). */
   readonly model?: string;
   /** 该分层的默认 token 上限 (缺省取 spec.tokenBudget.maxCompletionTokens). */
-  readonly maxTokens?: number;
+  readonly maxCompletionTokens?: number;
+  /** 该分层的默认思考强度 (缺省 = 不下发, 由上游按默认档走). */
+  readonly reasoningEffort?: ChatReasoningEffort;
 }
 
 /**
@@ -79,8 +84,15 @@ export interface RenderAdapterConfig {
   readonly cooldownMaxMs: number;
   /** block 重生成最大次数 (本期语义为 1). */
   readonly maxBlockRegen: number;
-  /** 全部失败 / 仍 block 时的兜底稳定话术 (中性、不越界、不给建议). */
-  readonly fallbackUtterance: string;
+  /**
+   * 全部失败 / 仍 block 时的兜底稳定话术池 (中性、不越界、不给建议).
+   *
+   * 为什么是**池**而不是一句: 一次降级只说一句, 连续两轮降级就会让用户听出
+   * "这是复读机" —— 那等于把兜底暴露成故障. 一池中性句子轮流取, 听感上更像
+   * "来访者停顿了一下". 池子从 config 加载, 未来接 character service 远程拉取时
+   * 只换装配层, 适配器不用动 (任务单 §5).
+   */
+  readonly fallbackUtterances: readonly string[];
 }
 
 /**
@@ -97,6 +109,19 @@ export const DEFAULT_RENDER_TASK_DEFAULTS: Readonly<Record<RenderTaskKind, Rende
   chat: { temperature: 0.85 },
   advanced: { temperature: 0.85 },
 };
+
+/**
+ * 渲染路径的思考强度种子值 (V2026-10-29 治本 · WP9-C).
+ *
+ * 为什么是 low: 引擎内核 (BDI) 已经把这轮的策略 / 情绪 / 阻抗算完了,
+ * LLM 只负责把它"翻译"成自然口语 —— 这活不需要深思考. 而实测 (MiniMax-M3.1-Flash,
+ * 2026-10-29): 默认档的思考 token 约 94, `reasoning_effort=low` 降到 39,
+ * 首字延迟 2.4s → 1.9s. 思考越少, 口语来得越快.
+ *
+ * 反双胞胎: 这个档位**只作用于渲染路径** (本适配器). analysis / supervision /
+ * drill-evaluator 走各自的 config profile, 不经过本适配器, 思考强度不受影响.
+ */
+export const DEFAULT_RENDER_REASONING_EFFORT: ChatReasoningEffort = 'low';
 
 /** 单次调用超时种子值 (ms). */
 export const DEFAULT_RENDER_TIMEOUT_MS = 30_000;
@@ -118,8 +143,16 @@ export const DEFAULT_RENDER_MAX_BLOCK_REGEN = 1;
  *
  * 用途: 主备全挂或输出仍高危时的最后一句 —— 对话**不能因为模型挂了就断流**,
  * 但兜底句本身也绝不能变成"专业建议"(那是越界, 与伦理引擎同一条红线).
+ *
+ * V2026-10-29 治本 (WP9-C): 从单句改成**池** (任务单 §2.4 要求"每个角色 3-5 句"),
+ * 连续降级时轮换, 避免同一句复读暴露成故障.
  */
-export const DEFAULT_RENDER_FALLBACK_UTTERANCE = '……我先缓一下, 我们接着说。';
+export const DEFAULT_RENDER_FALLBACK_UTTERANCES: readonly string[] = [
+  '……我先缓一下，我们接着说。',
+  '嗯……让我想想，该怎么说。',
+  '最近确实有点难说出口……我们慢慢聊吧。',
+  '我不太想现在讲清楚，能先聊点别的吗？',
+];
 
 /**
  * 配置覆盖项 (候选序列与分层默认除外, 其余可覆盖).
@@ -157,8 +190,19 @@ export function createRenderAdapterConfig(
     cooldownBaseMs: overrides.cooldownBaseMs ?? DEFAULT_RENDER_COOLDOWN_BASE_MS,
     cooldownMaxMs: overrides.cooldownMaxMs ?? DEFAULT_RENDER_COOLDOWN_MAX_MS,
     maxBlockRegen: overrides.maxBlockRegen ?? DEFAULT_RENDER_MAX_BLOCK_REGEN,
-    fallbackUtterance: overrides.fallbackUtterance ?? DEFAULT_RENDER_FALLBACK_UTTERANCE,
+    fallbackUtterances: resolveFallbackUtterances(overrides.fallbackUtterances),
   };
+}
+
+/**
+ * 归一兜底话术池: 空池 → 回落种子池 (不能让"没有兜底句"这种配置合法存在).
+ *
+ * @param overrides 配置覆盖的池子
+ * @returns 非空的话术池
+ */
+function resolveFallbackUtterances(overrides: readonly string[] | undefined): readonly string[] {
+  const pool = (overrides ?? DEFAULT_RENDER_FALLBACK_UTTERANCES).map((line) => line.trim()).filter((line) => line.length > 0);
+  return pool.length > 0 ? pool : DEFAULT_RENDER_FALLBACK_UTTERANCES;
 }
 
 /**
@@ -169,6 +213,7 @@ function mergeTaskDefaults(base: RenderTaskDefaults, override: RenderTaskParams 
   return {
     temperature: override.temperature ?? base.temperature,
     ...(override.model === undefined ? {} : { model: override.model }),
-    ...(override.maxTokens === undefined ? {} : { maxTokens: override.maxTokens }),
+    ...(override.maxCompletionTokens === undefined ? {} : { maxCompletionTokens: override.maxCompletionTokens }),
+    ...(override.reasoningEffort === undefined ? {} : { reasoningEffort: override.reasoningEffort }),
   };
 }

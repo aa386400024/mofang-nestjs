@@ -145,7 +145,7 @@ function buildConfig(candidates: readonly RenderCandidate[], overrides: RenderAd
     cooldownBaseMs: 1000,
     cooldownMaxMs: 8000,
     maxBlockRegen: 1,
-    fallbackUtterance: FALLBACK_UTTERANCE,
+    fallbackUtterances: [FALLBACK_UTTERANCE],
     ...overrides,
   });
 }
@@ -469,7 +469,10 @@ describe('WP6 · RenderPort LLM 适配 + 主备执行', () => {
         }),
       );
 
-      expect(caller.calls[0].request.maxTokens).toBe(128);
+      // V2026-10-29 治本 (WP9-C): 走**新字段** maxCompletionTokens (thinking token 计入上限),
+      //   且**不再下发**旧字段 maxTokens —— 两个字段同时下发时上游按哪个截断不可控.
+      expect(caller.calls[0].request.maxCompletionTokens).toBe(128);
+      expect(caller.calls[0].request.maxTokens).toBeUndefined();
       expect(caller.calls[0].request.messages).toEqual([
         { role: 'user', content: '你最近怎么样' },
         { role: 'assistant', content: '还行吧' },

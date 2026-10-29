@@ -101,6 +101,15 @@ export interface VoiceTurnBackendOpenOptions {
   readonly skillCode?: string;
   /** V2026-10-29 (WP9-A): 本场临场参数 (叠加在角色基线之上). */
   readonly preset?: VoiceTurnBackendCharacterPreset;
+  /**
+   * V2026-10-29 治本 (WP9-C): 稳定落库 id (training_sessions.id).
+   *
+   * 用途: 危机轮次要**同步**给督导推 `supervision_hint` 帧, 而 WS 帧出口注册表
+   * 是按落库 id 登记的 —— WS 会话 id (客户端给的内存 id) 与它不是一回事.
+   *
+   * 缺省 = 本场没落库 (纯内存降级) → 推不出提示帧, 不影响对话本身.
+   */
+  readonly dbSessionId?: string;
 }
 
 /**

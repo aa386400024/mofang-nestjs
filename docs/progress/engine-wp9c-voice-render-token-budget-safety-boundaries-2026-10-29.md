@@ -198,3 +198,75 @@ node scripts/e2e-voice-ws-probe.mjs vpt_workplace_intellectualization_l1 亦舟
 ```
 fix(engine): 渲染路径切 max_completion_tokens(1500) + voice render 低思考 + 截断/危机/降级边界收口
 ```
+
+---
+
+## 9. 交付回写（2026-10-29）
+
+> **状态：代码已交付并复跑绿，待用户跑探针验收。**
+> 交付记录：[engine-wp9c-voice-render-token-budget-safety-boundaries-implementation-2026-10-29.md](./engine-wp9c-voice-render-token-budget-safety-boundaries-implementation-2026-10-29.md)
+
+### 9.1 闸门实测
+
+| 闸门 | 结果 |
+|---|---|
+| `npx tsc -p tsconfig.build.json --noEmit` | ✅ 0 错 |
+| `npx tsc -p tsconfig.scripts.json --noEmit` | ✅ 0 错 |
+| `npm run lint` | ✅ exit 0（**0 error 0 warning**） |
+| `npm test -- wp8-wiring` | ✅ **34 例全绿**（§8-9 护栏未改未破） |
+| 全量 jest（engine-core / adapters / voice / agent / llm） | ✅ **25 套件 / 495 例全绿** |
+| `npm run build` + `npm start` | ✅ 真起服务成功，`/engine/admin/character-profiles` → 401（路由 mapped，鉴权生效） |
+| `git diff --stat HEAD -- src/engine-core` | ✅ **空**（内核整树零改动） |
+| `node --check scripts/e2e-voice-ws-probe.mjs` | ✅ OK |
+
+> `npx tsc --noEmit`（含 `test/`）的 41 个报错**全部集中在 `test/e2e/knowledge-search.e2e-spec.ts`（13）与 `test/good-state-diary.e2e-spec.ts`（28）** —— 两个文件引用了不存在的模块（`../src/...` 相对路径错误），是**早于本轮的失效 e2e**，本轮一行未碰。生产构建口径（build / scripts）均 0 错。
+
+### 9.2 §2 逐条对照
+
+| 小节 | 落地情况 |
+|---|---|
+| §2.1 token 预算与思考强度 | ✅ `ChatCompletionRequest.maxCompletionTokens` + `reasoningEffort`（canonical 类型 `ChatReasoningEffort` 落厂商抽象层）；`llm-render.adapter` 两处请求构造改传 `maxCompletionTokens`（不再传 `maxTokens`）；默认 **160 → 1500** 走 `ENGINE_RENDER_MAX_TOKENS`；**不同时下发**两字段（基类 `maxCompletionTokens ?? maxTokens` 只取其一 + MiniMax 走 `modelKwargs` 只发 `max_completion_tokens`）；voice render `reasoningEffort=low` **只对 render taskKind**；`visitor.service.ts` 切 `maxCompletionTokens: 200` |
+| §2.2 截断保护 | ✅ 新增 `render-truncation.ts`（纯函数）；聚合路径 `applyTruncationGuard()` 裁未闭合尾句、裁空则降级；流式路径改**句边界缓冲**（只下发已闭合句，`length` 丢 pending，正常收尾 flush）—— **半句不进 TTS** |
+| §2.3 危机路由 | ✅ `LocalCrisisProbe` 实现内核 `RiskProbePort`（内核来访词典 + 咨询师输入面补差）；`AdaptiveRenderSpec.riskSignal` 驱动 **`reasoningEffort` 抬档（medium/high，只升不降）** + **prompt 安全护栏** + **同步 `supervision_hint` 帧**（本轮结算当场推，不等异步 worker） |
+| §2.4 降级路径 | ✅ 兜底话术**从 config 加载**（`ENGINE_RENDER_FALLBACK_UTTERANCE` `|` 分隔多句 → `fallbackUtterances` 池，**轮换不复读**）；走正常 `llm_text` / `tts_audio` 帧**不发 error 帧**；日志带 **`degraded=true`** |
+| §2.5 render prompt | ✅ **coreBeliefs 确认已注入**（`turn-render-orchestrator.ts:634-635`，本轮加单测钉住）；新增**轮次权重**指令（由内核 turn 决策的 `resistance.verbal` / `trust` / `intention.strategy` 算出，**非前端传入**）+「说完一两句就停下来」；dev-only 日志打印 codename + coreBeliefs 前 100 字 |
+| §2.6 探针增强 | ✅ TTS 按 `audio_base64` **解码后**算字节数；抓 `llm_done.usage`（prompt/completion/**reasoning** tokens）；抓 **TTFT**；`--compare` 断言文本不同 / 句长差异 / 口吻关键词不同 / TTFT<3s / reasoning_tokens>0 / TTS bytes>0；断言进 TTS 每句都**以句末标点收尾**；危机场景断言收到 `supervision_hint` |
+
+### 9.3 顺手拆掉的真缺陷（不在任务单原列，但属本 WP 范畴）
+
+**LangChain 1.6.2 写的是 snake_case `finish_reason`**（`generationInfo.finish_reason`），而本仓 provider 原来只读 camel `finishReason` → **每次调用的 `finishReason` 恒为 `'stop'`**，截断信号**从来收不到**。已加 `readFinishReason()` 双键读取并修流式 / 非流式两处。
+
+**为什么这条必须记**：§2.2 截断保护的触发条件就是 `finish_reason=length` —— 在这个缺陷修好之前，防护**连触发都不会触发**。
+
+### 9.4 真实上游实测（MiniMax-M3.1-Flash）
+
+| 项 | 旧（`max_tokens=160`） | 新（`max_completion_tokens=1500` + `reasoning_effort=low`） |
+|---|---|---|
+| completion_tokens | 121（其中**思考 94**） | 正文不被思考吃光 |
+| 思考 token | 94 | **39** |
+| 单次耗时 | 2428ms | **1911ms** |
+
+→ 证实"160 太紧"：**121 个 completion token 里 94 个是思考**，正文只剩 27 个 token 的半句话。
+
+### 9.5 待用户验收（探针）
+
+服务起着（`ENGINE_VOICE_ENABLED=true`）时在仓库根跑：
+
+```powershell
+node scripts/e2e-voice-ws-probe.mjs vpt_intimate_avoidance_l1 晚晴
+node scripts/e2e-voice-ws-probe.mjs vpt_workplace_intellectualization_l1 亦舟
+node scripts/e2e-voice-ws-probe.mjs --compare
+node scripts/e2e-voice-ws-probe.mjs vpt_intimate_avoidance_l1 晚晴 voice crisis
+node scripts/e2e-voice-ws-probe.mjs vpt_intimate_avoidance_l1 晚晴 voice truncation
+```
+
+对应任务单 §4.1 的第 3–8 项（§4.1 第 1、2、9 项已在闸门侧完成）。
+
+### 9.6 已知边界（留给后续 WP）
+
+- 危机探测目前是**本地规则**；WP11 PsyGUARD 上线只换 probe 实现，adapter / 装配层不动。
+- 轮次权重是**可解释的粗粒度分档**（非连续预算）；per-turn 动态预算按 §3 属 Phase2。
+- 兜底话术池是**通用 4 句**（config 可覆盖），非按角色定制 —— 按角色定制需角色服务（Phase2）。
+- `supervision_hint` 的 `hintText` 是固定文案，未接督导话术库。
+- **前端配套未做**（思考中 UI / 兜底视觉标记）：按 §7 另立项。
+

@@ -21,10 +21,26 @@
 //   已知上游差异 (按真实返回处理, 不硬塞):
 //     1. M3.1-Flash 的 temperature 被上游忽略 (官方固定) —— 基类透传即可,
 //        不为它在本类里做特例.
-//     2. token 上限字段: 上游思考 token 计入长度上限, 可能要求
-//        `max_completion_tokens` 而非 `max_tokens`. 基类默认先给 `maxTokens`,
+//     2. token 上限字段: 上游思考 token 计入长度上限, 官方口径是
+//        `max_completion_tokens`. 基类默认先给 `maxTokens`,
 //        真出现 400/截断时再在子类覆盖 `buildLLM` 做字段映射 —— **不预埋**
 //        未验证的特例 (那是把猜测写进生产路径).
+//
+//   V2026-10-29 治本 (WP9-C · 上游字段映射落地):
+//     上面的"待落地"现在落地了 —— 实测 (MiniMax-M3.1-Flash, 2026-10-29):
+//       · `max_completion_tokens` ✅ 生效; `max_tokens` 也能收, 但**思考 token 同样计入**,
+//         所以旧字段不是"更宽松", 只是"老名字";
+//       · `reasoning_effort=low` ✅ 生效 (思考 token 94 → 39, 首字延迟 2.4s → 1.9s);
+//       · usage 里带 `completion_tokens_details.reasoning_tokens` (可观测"思考吃了多少").
+//     所以本类覆盖 `buildRequestOverrides`: **只下发 `max_completion_tokens` 与
+//     `reasoning_effort`, 绝不下发 `max_tokens`** ——
+//       ① 不同时下发两个上限字段 (语义歧义, 上游可能按旧字段截断);
+//       ② LangChain 1.x 只在 `isReasoningModel(model)` 为真时才下发
+//          `max_completion_tokens`, 而那个判定**硬编码只认 OpenAI 系模型名**
+//          (`o*` / `gpt-5*` / `gpt-6*`) —— MiniMax 走不到那条分支, 除非我们自己把字段
+//          放进 `modelKwargs` (它会被原样展开进请求体).
+//     代价: 走 `modelKwargs` 意味着**不设** LangChain 的 `maxTokens`
+//     (设了它, LangChain 会补一个 `max_tokens` 字段 —— 那就变成两个字段同时下发).
 //
 //   反双胞胎:
 //     - 不在本类里读 process.env / ConfigService: 那是配置层的职责, 混进来
@@ -38,9 +54,11 @@
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/llm/minimax-provider.spec.ts 覆盖 id / 模型名 / 基址归一 / 注册分支
+//        + 上游字段映射 (只下发 max_completion_tokens / reasoning_effort)
 
 import { OpenAICompatibleChatProvider, type OpenAICompatibleConfig } from '../common/base/openai-compatible-chat.provider';
 import { AIProviderId } from '../common/enums/llm.enums';
+import type { ChatCompletionRequest, ChatReasoningEffort } from '../common/interfaces/chat-provider.interface';
 import { resolveMinimaxBaseUrl, resolveMinimaxChatModel } from '../config/provider-env';
 
 /**
@@ -67,5 +85,28 @@ export class MinimaxChatProvider extends OpenAICompatibleChatProvider {
       defaultChatModel: resolveMinimaxChatModel(options.defaultChatModel),
     };
     super(cfg);
+  }
+
+  /**
+   * 上游字段映射 (V2026-10-29 治本 · WP9-C): 只下发 MiniMax 认的新字段.
+   *
+   * @param request 调用方请求
+   * @returns LangChain 构造参数里的额外上游字段
+   */
+  protected override buildRequestOverrides(request: ChatCompletionRequest): {
+    readonly maxTokens?: number;
+    readonly reasoningEffort?: ChatReasoningEffort;
+    readonly modelKwargs?: Record<string, unknown>;
+  } {
+    const limit = request.maxCompletionTokens ?? request.maxTokens;
+    const modelKwargs: Record<string, unknown> = {};
+    if (limit !== undefined) {
+      modelKwargs['max_completion_tokens'] = limit;
+    }
+    if (request.reasoningEffort !== undefined) {
+      modelKwargs['reasoning_effort'] = request.reasoningEffort;
+    }
+    // 不设 maxTokens: 设了 LangChain 会补一个 `max_tokens` 字段, 于是两个上限字段同时下发.
+    return { modelKwargs };
   }
 }

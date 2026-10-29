@@ -256,7 +256,7 @@ function stubRenderConfig(): RenderAdapterConfig {
     cooldownBaseMs: DEFAULT_RENDER_COOLDOWN_BASE_MS,
     cooldownMaxMs: DEFAULT_RENDER_COOLDOWN_MAX_MS,
     maxBlockRegen: 1,
-    fallbackUtterance: '……我先缓一下，我们接着说。',
+    fallbackUtterances: ['……我先缓一下，我们接着说。'],
   };
 }
 
@@ -467,7 +467,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
       expect(config.failureThreshold).toBe(DEFAULT_RENDER_FAILURE_THRESHOLD);
       expect(config.cooldownBaseMs).toBe(DEFAULT_RENDER_COOLDOWN_BASE_MS);
       expect(config.cooldownMaxMs).toBe(DEFAULT_RENDER_COOLDOWN_MAX_MS);
-      expect(config.fallbackUtterance).not.toHaveLength(0);
+      expect(config.fallbackUtterances.length).toBeGreaterThan(0);
     });
 
     it('ENGINE_RENDER_CHAT_TEMPERATURE 覆盖到 config', () => {

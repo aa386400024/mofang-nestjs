@@ -52,6 +52,13 @@ interface MiniMaxStreamDelta {
     readonly prompt_tokens: number;
     readonly completion_tokens: number;
     readonly total_tokens: number;
+    /**
+     * 思考 token 明细 (V2026-10-29 治本 · WP9-C).
+     *
+     * 实测 MiniMax-M3.1-Flash 会回 `completion_tokens_details.reasoning_tokens`;
+     * 缺省时按"没有思考"处理 (字段可选).
+     */
+    readonly completion_tokens_details?: { readonly reasoning_tokens?: number };
   };
 }
 
@@ -297,11 +304,7 @@ export class LlmService {
           }
 
           if (parsed.usage) {
-            finalUsage = {
-              promptTokens: parsed.usage.prompt_tokens,
-              completionTokens: parsed.usage.completion_tokens,
-              totalTokens: parsed.usage.total_tokens,
-            };
+            finalUsage = toLlmUsage(parsed.usage);
           }
 
           const content = parsed.choices?.[0]?.delta?.content;
@@ -349,4 +352,26 @@ export class LlmService {
     if (!callerSignal) return timeoutSignal;
     return AbortSignal.any([callerSignal, timeoutSignal]);
   }
+}
+
+/**
+ * 上游 usage → 内部用量口径 (纯映射).
+ *
+ * V2026-10-29 治本 (WP9-C): 思考 token 单独上报 —— `completion_tokens` **含**思考,
+ * 单看它分不清"输出被上游截断"与"思考吃光了预算"; 拆开才查得动.
+ *
+ * 抽成独立函数而不是内联在 SSE 循环里: 那段循环已经贴着仓库的复杂度红线,
+ * 而"usage 怎么映射"是**纯数据搬运** —— 独立出来既降复杂度, 又只有一个落点.
+ *
+ * @param usage 上游 usage
+ * @returns 内部用量
+ */
+function toLlmUsage(usage: NonNullable<MiniMaxStreamDelta['usage']>): LlmUsage {
+  const reasoningTokens = usage.completion_tokens_details?.reasoning_tokens;
+  return {
+    promptTokens: usage.prompt_tokens,
+    completionTokens: usage.completion_tokens,
+    totalTokens: usage.total_tokens,
+    ...(typeof reasoningTokens === 'number' ? { reasoningTokens } : {}),
+  };
 }

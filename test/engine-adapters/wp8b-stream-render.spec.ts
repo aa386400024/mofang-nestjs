@@ -45,7 +45,7 @@ const FALLBACK_UTTERANCE = '我先缓一下，我们接着说。';
 
 /** 脚本化的一次流式结果. */
 type StreamOutcome =
-  | { readonly kind: 'chunks'; readonly deltas: readonly string[]; readonly tokenStep?: number }
+  | { readonly kind: 'chunks'; readonly deltas: readonly string[]; readonly tokenStep?: number; readonly finishReason?: string }
   | { readonly kind: 'chunksThenError'; readonly deltas: readonly string[]; readonly error: Error }
   | { readonly kind: 'error'; readonly error: Error }
   | { readonly kind: 'empty' };
@@ -98,7 +98,13 @@ async function* iterate(outcome: StreamOutcome): AsyncIterable<ChatCompletionChu
     yield { delta: deltas[i] as string, tokenCount, isFinal: false };
   }
   if (outcome.kind === 'chunksThenError') throw outcome.error;
-  yield { delta: '', tokenCount, isFinal: true };
+  // V2026-10-29 治本 (WP9-C): 终局 chunk 带上游 finish_reason (截断保护要用).
+  yield {
+    delta: '',
+    tokenCount,
+    isFinal: true,
+    ...(outcome.kind === 'chunks' && outcome.finishReason ? { finishReason: outcome.finishReason } : {}),
+  };
 }
 
 /** 收集增量. */
@@ -144,7 +150,7 @@ function buildConfig(candidates: readonly RenderCandidate[]): RenderAdapterConfi
     cooldownBaseMs: 1000,
     cooldownMaxMs: 8000,
     maxBlockRegen: 1,
-    fallbackUtterance: FALLBACK_UTTERANCE,
+    fallbackUtterances: [FALLBACK_UTTERANCE],
   });
 }
 
@@ -164,7 +170,9 @@ describe('WP8-B · 流式渲染状态机 (单一实现)', () => {
       expect(outcome.providerHint).toBe('backup');
       expect(outcome.fallbackUsed).toBe(true);
       expect(outcome.degraded).toBe(false);
-      expect(deltas).toEqual(['我在', '，慢慢说。']);
+      // V2026-10-29 治本 (WP9-C): 增量按**句边界**转发 (只有已闭合的句子才下发),
+      //   所以两个 delta 合成一句 —— 半句绝不能进 TTS 队列.
+      expect(deltas).toEqual(['我在，慢慢说。']);
       // 主候选确实被记了失败 (切备前记账), 备候选被记成功.
       expect(adapter.health()['primary']?.consecutiveFailures).toBe(1);
       expect(adapter.health()['backup']?.consecutiveFailures).toBe(0);
@@ -213,7 +221,7 @@ describe('WP8-B · 流式渲染状态机 (单一实现)', () => {
 
     it('锁定后中途错误 → 不切备, 收尾降级 (已出声无法撤回)', async () => {
       const caller = new StubStreamCaller([
-        { kind: 'chunksThenError', deltas: ['我最近', '有点累'], error: new Error('stream reset') },
+        { kind: 'chunksThenError', deltas: ['我最近有点累。', '后来'], error: new Error('stream reset') },
       ]);
       const adapter = new LlmRenderAdapter({ caller, config: buildConfig([{ id: 'primary' }, { id: 'backup' }]) });
       const { deltas, onDelta } = collector();
@@ -223,22 +231,35 @@ describe('WP8-B · 流式渲染状态机 (单一实现)', () => {
       expect(outcome.degraded).toBe(true);
       expect(outcome.providerHint).toBe('degraded');
       expect(outcome.fallbackUsed).toBe(true);
-      // 已吐出的增量原样保留 (不撤回), 但**没有**切到备候选.
-      expect(deltas).toEqual(['我最近', '有点累']);
+      // 已出声的**完整句**原样保留 (不撤回), 未闭合的尾句随降级一起丢弃 (不进 TTS),
+      // 且**没有**切到备候选.
+      expect(deltas).toEqual(['我最近有点累。']);
       expect(caller.streamCalls).toHaveLength(1);
     });
   });
 
   describe('③ 增量与用量口径', () => {
-    it('delta 原样按序转发, 累计全文正确', async () => {
-      const caller = new StubStreamCaller([{ kind: 'chunks', deltas: ['我', '最近', '有点累'] }]);
+    it('增量按句边界按序转发, 累计全文正确', async () => {
+      const caller = new StubStreamCaller([{ kind: 'chunks', deltas: ['我', '最近有点累。', '还好。'] }]);
       const adapter = new LlmRenderAdapter({ caller, config: buildConfig([{ id: 'primary' }]) });
       const { deltas, onDelta } = collector();
 
       const outcome = await adapter.streamRender(buildSpec(), { onDelta });
 
-      expect(deltas).toEqual(['我', '最近', '有点累']);
-      expect(outcome.text).toBe('我最近有点累');
+      // V2026-10-29 治本 (WP9-C): 只有**已闭合**的句子才下发 (半句不进 TTS 队列).
+      expect(deltas).toEqual(['我最近有点累。', '还好。']);
+      expect(outcome.text).toBe('我最近有点累。还好。');
+    });
+
+    it('未闭合尾句在正常收尾时照常发出 (不误判成半句)', async () => {
+      const caller = new StubStreamCaller([{ kind: 'chunks', deltas: ['嗯'] }]);
+      const adapter = new LlmRenderAdapter({ caller, config: buildConfig([{ id: 'primary' }]) });
+      const { deltas, onDelta } = collector();
+
+      const outcome = await adapter.streamRender(buildSpec(), { onDelta });
+
+      expect(deltas).toEqual(['嗯']);
+      expect(outcome.text).toBe('嗯');
     });
 
     it('usage 从末条 tokenCount 归约, 两个口径同源 (不编造 prompt/completion 拆分)', async () => {

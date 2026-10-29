@@ -25,13 +25,13 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp7-turn-render.spec.ts 覆盖字段映射与历史裁剪
 
+import { resolveRiskLevel, type AdaptiveRenderSpec } from './render-risk';
 import {
   fitContextToBudget,
   type BdiSnapshot,
   type EngineTurnOutput,
   type Intention,
   type RenderContextTurn,
-  type RenderSpec,
   type RenderTaskKind,
   type RenderTokenBudget,
 } from '../../engine-core';
@@ -55,6 +55,12 @@ export interface SpecAssemblyInput {
   readonly tokenBudget: RenderTokenBudget;
   /** 任务分层 (缺省 'chat' —— 来访口语生成). */
   readonly taskKind?: RenderTaskKind;
+  /**
+   * 角色代号 (V2026-10-29 治本 · WP9-C; 仅供 dev 调试日志核对 prompt 拼装).
+   *
+   * 不进 prompt —— 模型不该看见自己的角色名.
+   */
+  readonly characterLabel?: string;
 }
 
 /**
@@ -65,9 +71,13 @@ export interface SpecAssemblyInput {
  * @param input 组装入参
  * @returns 渲染规格
  */
-export function buildRenderSpec(input: SpecAssemblyInput): RenderSpec {
+export function buildRenderSpec(input: SpecAssemblyInput): AdaptiveRenderSpec {
   const intention = input.output.intention ?? neutralIntention(input.output.snapshot);
   const fitted = fitContextToBudget(input.recentTurns, input.tokenBudget.contextTokens);
+  // V2026-10-29 治本 (WP9-C): 风险信号来自**内核本轮判定** (WP4 safety) ——
+  //   内核只判定不路由, "这个判定要怎么影响渲染"是适配层的事, 所以在这里翻译成
+  //   渲染路由档位 (见 render-risk.ts). 无判定 / 纯专业性提示 → none.
+  const riskLevel = resolveRiskLevel(input.output.safety?.level, input.output.safety?.categories);
 
   return {
     taskKind: input.taskKind ?? 'chat',
@@ -83,6 +93,16 @@ export function buildRenderSpec(input: SpecAssemblyInput): RenderSpec {
     ...(input.trajectoryNote ? { trajectoryNote: input.trajectoryNote } : {}),
     recentTurns: fitted.turns,
     tokenBudget: input.tokenBudget,
+    ...(riskLevel === 'none'
+      ? {}
+      : {
+          riskSignal: {
+            level: riskLevel,
+            categories: input.output.safety?.categories ?? [],
+            source: input.output.safety?.source ?? 'rule',
+          },
+        }),
+    ...(input.characterLabel ? { characterLabel: input.characterLabel } : {}),
   };
 }
 

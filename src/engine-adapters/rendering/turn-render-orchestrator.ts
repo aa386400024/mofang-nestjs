@@ -40,6 +40,8 @@
 
 import { nanoid } from 'nanoid';
 
+import { DEFAULT_RENDER_FALLBACK_UTTERANCES } from './render-adapter.config';
+import type { AdaptiveRenderSpec } from './render-risk';
 import { buildRenderSpec, type SpecAssemblyInput } from './spec-assembler';
 import { splitTextIntoDeltas, type StreamRenderHandlers, type StreamingRenderPort } from './streaming-render.port';
 import {
@@ -76,6 +78,14 @@ export interface TurnSessionContext {
   readonly sessionId: string;
   /** 稳定来访者 id. */
   readonly visitorId: string;
+  /**
+   * 角色代号 (如 '晚晴'; 仅供 dev 调试日志核对 prompt 拼装).
+   *
+   * V2026-10-29 治本 (WP9-C): 归属登记表是**装配层**唯一同时知道"业务会话是谁"
+   * 与"这场用的是哪个角色"的地方, 所以代号登记在这里. 它**不进 prompt** ——
+   * 模型不该看见自己的角色名 (那会让它开始扮演"角色"而不是"来访者").
+   */
+  readonly characterLabel?: string;
 }
 
 /**
@@ -97,7 +107,12 @@ export interface TurnRenderResult {
     /** 实际提供服务的候选标识 (降级时为 'degraded'). */
     readonly providerHint?: string;
     /** 用量 (仅供观测, 不作计费依据). */
-    readonly usage?: { readonly completionTokens: number; readonly totalTokens: number };
+    readonly usage?: {
+      readonly completionTokens: number;
+      readonly totalTokens: number;
+      /** 思考 token 数 (推理模型专用; V2026-10-29 WP9-C 增, 供探针核对思考量). */
+      readonly reasoningTokens?: number;
+    };
   };
   /** 本轮轨迹观测 (透传; 仅注入剧本的会话携带). */
   readonly trajectoryTrace?: TrajectoryTrace;
@@ -127,7 +142,7 @@ export interface TurnRenderOrchestratorDeps {
   /** 固定会话归属 (单会话门面用; 与 resolveSession 二选一, 解析函数优先). */
   readonly sessionContext?: TurnSessionContext;
   /** 规格组装器 (缺省用 buildRenderSpec). */
-  readonly assembler?: (input: SpecAssemblyInput) => RenderSpec;
+  readonly assembler?: (input: SpecAssemblyInput) => AdaptiveRenderSpec;
   /** token 预算种子 (缺省 { maxCompletionTokens: 160, contextTokens: 512 }). */
   readonly tokenBudget?: RenderTokenBudget;
   /** 可注入时钟 (记忆条目发生时刻). */
@@ -154,10 +169,17 @@ interface NormalizedRender {
 /**
  * 默认 token 预算 (种子值, 未标定).
  *
- * 与内核 WP5 的 DEFAULT_COMPLETION_TOKENS 对齐 (160); 上下文预算 512 是
+ * 与内核 WP5 的 DEFAULT_COMPLETION_TOKENS 对齐; 上下文预算 512 是
  * "够放最近 8 轮口语" 的工程估计, WP8 接真实模型后按上下文窗口校准.
+ *
+ * V2026-10-29 治本 (WP9-C): 完成上限从 **160 提到 1500** ——
+ *   160 这个数是按"不需要思考"定的, 但生产用的 MiniMax-M3.1-Flash 是**推理模型**:
+ *   思考 token **计入**生成长度上限 (实测: 一次普通回答里思考就吃掉 94 token),
+ *   160 的预算里思考先吃 94, 留给口语的只剩几十个 token —— 来访"开口"都说不完整.
+ *   1500 的分法 (任务单 §2.1): 思考 ~700-1000, 输出 ~500-800 (约 3-6 句中文);
+ *   LLM 不凑满预算, 只为实际输出付费, 所以上限放宽不等于账单变贵.
  */
-export const DEFAULT_TURN_TOKEN_BUDGET: RenderTokenBudget = { maxCompletionTokens: 160, contextTokens: 512 };
+export const DEFAULT_TURN_TOKEN_BUDGET: RenderTokenBudget = { maxCompletionTokens: 1500, contextTokens: 512 };
 
 /**
  * 来访半边工作记忆的重要度 (中性值, 与内核工作记忆口径一致).
@@ -166,8 +188,13 @@ export const VISITOR_MEMORY_IMPORTANCE = 0.5;
 
 /**
  * 兜底话术 (中性、不越界、不给建议、不承诺).
+ *
+ * V2026-10-29 治本 (WP9-C): 兜底句的**唯一真相**在渲染配置层的话术池
+ * (`DEFAULT_RENDER_FALLBACK_UTTERANCES`). 这里取池里第一句作为"门面自己兜底"
+ * (渲染器抛异常 / 返回空) 的默认 —— 门面兜底与渲染降级是两种失败, 但说的是同一类话,
+ * 不该有两份文案 (两份文案一旦漂移, 同一句兜底会出现两种语气).
  */
-export const DEFAULT_TURN_FALLBACK_UTTERANCE = '……我先缓一下，我们接着说。';
+export const DEFAULT_TURN_FALLBACK_UTTERANCE: string = DEFAULT_RENDER_FALLBACK_UTTERANCES[0] ?? '……我先缓一下，我们接着说。';
 
 /**
  * 门面保留的最近对话轮数上限 (一问一答算两轮).
@@ -212,7 +239,7 @@ export class TurnRenderOrchestrator {
 
     // 2. 组装规格: 历史 = 已累积对话 + 本轮咨询师输入 (当前轮必须在场, 否则模型无从回应).
     const history = this.historyOf(handleId);
-    const spec = this.assemble(output, [...history, { role: 'counselor', text: input.userText }]);
+    const spec = this.assemble(output, [...history, { role: 'counselor', text: input.userText }], handleId);
 
     // 3. 渲染 (异常 / 空文本 → 兜底, 永不 reject).
     const rendered = await this.renderSafely(spec);
@@ -260,7 +287,7 @@ export class TurnRenderOrchestrator {
 
     // 2. 组装规格 (历史 + 本轮咨询师输入).
     const history = this.historyOf(handleId);
-    const spec = this.assemble(output, [...history, { role: 'counselor', text: input.userText }]);
+    const spec = this.assemble(output, [...history, { role: 'counselor', text: input.userText }], handleId);
 
     // 3. 流式取文 (增量经 onDelta 转发; 异常 / 空文本 → 兜底, 永不 reject).
     const rendered = await this.streamSafely(spec, handlers);
@@ -299,10 +326,19 @@ export class TurnRenderOrchestrator {
 
   /**
    * 组装渲染规格 (走注入的组装器, 缺省内核口径的 buildRenderSpec).
+   *
+   * 角色代号从**会话归属登记表**取 (装配层唯一同时知道业务会话与角色的位置);
+   * 取不到 → 不带 (等价于中性基线, prompt 与日志都不提角色).
    */
-  private assemble(output: EngineTurnOutput, recentTurns: readonly RenderContextTurn[]): RenderSpec {
+  private assemble(output: EngineTurnOutput, recentTurns: readonly RenderContextTurn[], handleId: string): AdaptiveRenderSpec {
     const assembler = this.deps.assembler ?? buildRenderSpec;
-    return assembler({ output, recentTurns, tokenBudget: this.tokenBudget });
+    const characterLabel = this.resolveContext(handleId)?.characterLabel;
+    return assembler({
+      output,
+      recentTurns,
+      tokenBudget: this.tokenBudget,
+      ...(characterLabel ? { characterLabel } : {}),
+    });
   }
 
   /**
@@ -321,7 +357,10 @@ export class TurnRenderOrchestrator {
         fallbackUsed: result.fallbackUsed,
         degraded: false,
         ...(result.providerHint ? { providerHint: result.providerHint } : {}),
-        usage: { completionTokens: result.usage.completionTokens, totalTokens: result.usage.totalTokens },
+        usage: {
+          completionTokens: result.usage.completionTokens,
+          totalTokens: result.usage.totalTokens,
+        },
       };
     } catch (error) {
       // 理论上 WP6 适配器已不 reject; 这里是防御 —— 换别的 RenderPort 实现时兜住.
@@ -361,7 +400,11 @@ export class TurnRenderOrchestrator {
         fallbackUsed: outcome.fallbackUsed,
         degraded,
         ...(outcome.providerHint ? { providerHint: outcome.providerHint } : {}),
-        usage: { completionTokens: outcome.usage.completionTokens, totalTokens: outcome.usage.totalTokens },
+        usage: {
+          completionTokens: outcome.usage.completionTokens,
+          totalTokens: outcome.usage.totalTokens,
+          ...(outcome.usage.reasoningTokens === undefined ? {} : { reasoningTokens: outcome.usage.reasoningTokens }),
+        },
       };
     } catch (error) {
       // 理论上渲染器的流式出口已不 reject; 这里是防御 —— 换别的渲染实现时兜住.
@@ -497,7 +540,8 @@ const EMOTION_LABEL: Readonly<Record<EmotionLabel, string>> = {
  * @param spec 渲染规格
  * @returns 消息序列
  */
-export function buildVisitorMessages(spec: RenderSpec): ChatMessage[] {
+export function buildVisitorMessages(spec: AdaptiveRenderSpec): ChatMessage[] {
+  logPromptCharacterFragment(spec);
   return [
     { role: 'system', content: buildVisitorSystemPrompt(spec) },
     ...spec.recentTurns.map((turn) => ({
@@ -508,16 +552,73 @@ export function buildVisitorMessages(spec: RenderSpec): ChatMessage[] {
 }
 
 /**
+ * 本轮"话量权重" (短 / 中 / 长).
+ *
+ * 来源: **内核 turn 决策结果** (阻抗 / 信任 / 行为策略) —— 不是前端传的.
+ * 前端没有资格决定"这轮该说几句": 那是 BDI 算完的东西, 前端再传一份就成了
+ * 第二份真相, 且必然与内核漂移.
+ */
+type TurnVerbosity = 'short' | 'medium' | 'long';
+
+/**
+ * 由内核状态解析话量权重.
+ *
+ * 判定口径:
+ *   - 短: 话量阻抗高 / 信任低 / 本轮策略就是回避 —— 这轮该躲着说;
+ *   - 长: 话量阻抗低 + 信任不低 + 策略偏探索/领悟 —— 这轮愿意展开;
+ *   - 中: 其余 (按平时的样子说话).
+ *
+ * @param spec 渲染规格
+ * @returns 话量权重
+ */
+function resolveTurnVerbosity(spec: AdaptiveRenderSpec): TurnVerbosity {
+  const verbal = spec.resistance.verbal;
+  const strategy = spec.intention.strategy;
+  if (verbal >= 0.55 || spec.trust <= 0.3 || strategy === 'resistance') return 'short';
+  if (
+    verbal <= 0.3 &&
+    spec.trust >= 0.55 &&
+    (strategy === 'cognitive_exploration' || strategy === 'affective_exploration' || strategy === 'insight' || strategy === 'recounting')
+  ) {
+    return 'long';
+  }
+  return 'medium';
+}
+
+/**
+ * 话量权重 → prompt 指令 (给模型的是**可执行的描述**, 不是状态标签).
+ */
+const VERBOSITY_INSTRUCTION: Readonly<Record<TurnVerbosity, string>> = {
+  short: '这轮你不太想多说：回答要短、要躲闪，可以用「嗯」「还好吧」「不知道」这类短回应。',
+  medium: '这轮你按平时的样子说话，不刻意多讲，也不刻意收着。',
+  long: '这轮你愿意多说一点：可以多解释几句，把你的想法讲清楚一些。',
+};
+
+/**
+ * 风险轮次的安全护栏 (任务单 §2.3).
+ *
+ * 为什么护栏写在 prompt 而不是只靠输出侧 guard: 输出侧 guard 是**事后**拦截
+ * (说出来才发现不对, 已经出声了); prompt 护栏是**事前**约束 —— 让模型根本
+ * 不去描述危险做法. 两者都要: 护栏降低概率, guard 兜住漏网的.
+ */
+const RISK_GUARDRAIL =
+  '安全提醒：这轮涉及明显的痛苦或危机信号。你只说自己的感受，不描述任何危险做法、不给方法、不劝对方做任何决定，也不要说出那些词。';
+
+/**
  * 构造中文来访风格系统提示词.
  *
  * 约束三条: 口语 (像人说话, 不像客服)、克制 (不越出决策目标)、守界 (不给建议/
  * 不承诺治愈/ 不评判咨询师). 状态信息只用来**约束语气与节奏**, 并明确禁止
  * 把这些状态词说出口 —— 否则模型会把"阻抗""策略"这类词直接念出来.
  *
+ * V2026-10-29 治本 (WP9-C): 补两段 ——
+ *   ① "轮次权重"指令 (该说短还是该说长): 让模型别每轮都平均用力说 3 句;
+ *   ② 风险轮次的安全护栏.
+ *
  * @param spec 渲染规格
  * @returns 系统提示词
  */
-function buildVisitorSystemPrompt(spec: RenderSpec): string {
+function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec): string {
   const lines: string[] = [
     '你正在扮演一位来访者，正在和一位咨询师对话。你不是咨询师，也不是助手。',
     '说话方式：用中文口语，短句，像真实的人聊天；可以只说半句、可以停顿。不要写旁白、动作描写、括号补充或列表，不要解释自己。',
@@ -545,6 +646,17 @@ function buildVisitorSystemPrompt(spec: RenderSpec): string {
 
   lines.push(
     '',
+    '这一轮怎么说：',
+    VERBOSITY_INSTRUCTION[resolveTurnVerbosity(spec)],
+    '说完一两句就停下来，把话头交还给咨询师 —— 真人对话不是独白。',
+  );
+
+  if (spec.riskSignal && spec.riskSignal.level !== 'none') {
+    lines.push(RISK_GUARDRAIL);
+  }
+
+  lines.push(
+    '',
     '硬规则：',
     '1. 只回应咨询师刚说的那一句，别主动换话题，也别追问咨询师自己的经历。',
     '2. 不给建议、不下诊断、不承诺治愈、不评判咨询师。',
@@ -552,6 +664,27 @@ function buildVisitorSystemPrompt(spec: RenderSpec): string {
     '4. 一次最多说一到三句。',
   );
   return lines.join('\n');
+}
+
+/**
+ * dev 调试日志: 打印**真正拼进 render prompt** 的角色片段.
+ *
+ * 为什么要它: WP9-B 起角色基线是从角色池查出来注入内核的, 但"注入成功"与
+ * "真的进了 prompt"是两件事 —— 中间隔着快照 → spec → prompt 三层拼装.
+ * 人工核对时最省事的锚点就是这一行: 代号 + 核心信念片段.
+ *
+ * 只在非生产环境打印 (NODE_ENV !== 'production'); 生产环境不留来访者信念原文.
+ *
+ * @param spec 渲染规格
+ */
+function logPromptCharacterFragment(spec: AdaptiveRenderSpec): void {
+  if (process.env.NODE_ENV === 'production') return;
+  const beliefs = spec.coreBeliefs.map((belief) => belief.statement).join('；');
+  console.log(
+    `[TurnRenderOrchestrator] render prompt 角色片段: codename=${spec.characterLabel ?? '<中性基线>'} ` +
+      `attachment=${spec.attachmentStyle ?? '-'} risk=${spec.riskSignal?.level ?? 'none'} ` +
+      `coreBeliefs(前100字)=${beliefs.slice(0, 100)}`,
+  );
 }
 
 /**
