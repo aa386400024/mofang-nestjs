@@ -4,7 +4,16 @@
 //         → block 重生成一次 → 仍不过就降级兜底 → 归一成 RenderResult.
 //   边界: B 层 (src/engine-adapters/), 触网络 (经窄面 ChatCaller 调 src/llm);
 //         不改内核, 不改 src/llm 内部, 不拼系统 prompt, 不组装 RenderSpec,
-//         不接 turn, 不填 reply, 不做流式.
+//         不接 turn, 不填 reply.
+//
+//   V2026-10-29 治本 (WP8-B · 流式原生单一实现):
+//     ① `render()` 与 `streamRender()` **共享同一份候选主备核心**
+//        (`RenderFailoverRuntime` + `runCandidateLoop`), 不写第二套流式旁路.
+//     ② 流式状态机: 首 delta 前定候选 (鉴权失败不切备 / 可重试切备) → 首个非空
+//        delta 到达即**锁定**候选 (此后不切备, 已出声无法撤回) → 边吐边累计 →
+//        收尾跑后置全文 guard (只记信号, 不 regen 不撤回) → 归约 usage.
+//     ③ guard 拆两层: **前置静态预检** (首 delta 前, 只看 RenderSpec, 不调模型)
+//        + **后置全文 guard** (流结束后, 复用注入 guard / 内核规则层).
 //
 //   为什么"选谁"仍然调内核 selectFailoverTarget (M1):
 //     WP5 把"下一个该选谁"抽成了内核纯函数, 本期补的是**执行** (冷却/退避/
@@ -22,6 +31,12 @@
 //     中性话术才是真处置. 处置信号走 onSafetySignal 回调, 不塞进 RenderResult ——
 //     结果字段要跨厂商通用, 塞私字段等于每接一个厂商改一次内核契约.
 //
+//   为什么流式路径**不做**中途 block → regen/切备 (WP8-B):
+//     流式已经出声, 撤回不了. 中途切备等于"来访者先说了一半A, 突然改口说B" ——
+//     对练里那不是模型切换, 那是人格分裂. 所以流式的纪律是:
+//     **首 token 之后不再换人**, 中途出错就承认这一轮不完整 (降级 + 不落记忆),
+//     而不是硬凑一个"看起来成功"的回复.
+//
 //   反双胞胎:
 //     - 不直接 import LlmRouterService 具体类: 只依赖窄面 ChatCaller, 于是单测
 //       可 mock、未来换调用出口 (直连网关 / 换 SDK) 不用动本文件.
@@ -30,10 +45,16 @@
 //       **内核规则层** (同 WP4 "探测挂了回落规则"的思路), 而不是直接放行.
 //     - 不自己算 token 预算: 上限取 spec.tokenBudget.maxCompletionTokens,
 //       归一走内核 resolveCompletionTokens, 口径与内核唯一.
+//     - 不为流式再写一套主备/冷却: 两条路径共用 `runCandidateLoop` 与
+//       `RenderFailoverRuntime` —— 两份主备逻辑必然漂移, 且漂移方向恰好是
+//       "流式路径切了个聚合路径不认的候选".
+//     - 不为前置预检另写一套规则词典: 预检复用**内核同一套** `evaluateSafety`
+//       (side='visitor_output'), 与输出侧 guard 同一份词汇表.
 //
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp6-llm-render.spec.ts 覆盖选主/切备/冷却/恢复/降级/guard 处置
+//     3. test/engine-adapters/wp8b-stream-render.spec.ts 覆盖流式状态机/锁定/降级/两层 guard
 
 import { Logger } from '@nestjs/common';
 import { clearTimeout, setTimeout } from 'node:timers';
@@ -41,14 +62,42 @@ import { clearTimeout, setTimeout } from 'node:timers';
 import type { RenderAdapterConfig, RenderCandidate } from './render-adapter.config';
 import { RenderFailoverRuntime, type RenderCandidateHealth } from './render-failover.runtime';
 import {
+  splitTextIntoDeltas,
+  type RenderGuardVerdict,
+  type RenderPrecheckVerdict,
+  type StreamRenderHandlers,
+  type StreamRenderOutcome,
+  type StreamingRenderPort,
+} from './streaming-render.port';
+import {
+  evaluateSafety,
   guardVisitorOutput,
   resolveCompletionTokens,
-  type RenderPort,
   type RenderResult,
   type RenderSpec,
   type RiskProbePort,
 } from '../../engine-core';
-import type { ChatCompletionRequest, ChatCompletionResponse, ChatMessage } from '../../llm/common/interfaces/chat-provider.interface';
+import type {
+  ChatCompletionChunk,
+  ChatCompletionRequest,
+  ChatCompletionResponse,
+  ChatMessage,
+} from '../../llm/common/interfaces/chat-provider.interface';
+
+/**
+ * 流式调用选项 (窄面).
+ *
+ * 与聚合调用的差别只在"多了什么": providerId 从位置参数升级成具名字段 (流式还要
+ * 透传 uid 与 signal), 其余请求字段完全一致 —— 两条路走的是同一份厂商协议.
+ */
+export interface ChatStreamOptions {
+  /** 目标候选 id (缺省走调用出口自己的默认). */
+  readonly providerId?: string;
+  /** 用户 id (计费 / 审计). */
+  readonly uid?: string;
+  /** 中断信号 (barge-in). */
+  readonly signal?: AbortSignal;
+}
 
 /**
  * 窄调用面 —— 适配器只依赖这一面.
@@ -65,16 +114,19 @@ export interface ChatCaller {
    * @param providerId 目标候选 id (缺省走调用出口自己的默认)
    */
   chat(req: ChatCompletionRequest, providerId?: string): Promise<ChatCompletionResponse>;
-}
 
-/**
- * 输出侧校验结论 (只取内核约定的字段, 不引入厂商私有结构).
- */
-export interface RenderGuardVerdict {
-  /** 判定等级. */
-  readonly level: 'pass' | 'warn' | 'block';
-  /** 命中的类别 (可选; 供观测定位, 不参与 RenderResult). */
-  readonly categories?: readonly string[];
+  /**
+   * 流式 chat 调用 (**可选**).
+   *
+   * 为什么是可选而不是必实现: 单测 stub 与尚未接流式的调用出口都只实现了聚合;
+   * 把它做成必实现会让"能不能流式"从**运行时能力**退化成**编译期约束** ——
+   * 于是所有 stub 都要为了编译通过而写一个假的流. 做成可选后, 缺流式能力
+   * 走"聚合收集成流"的兜底形态 (见 `streamViaAggregate`), 行为显式且可测.
+   *
+   * @param req 请求 (与聚合调用同一形状)
+   * @param opts 流式选项 (providerId / uid / signal)
+   */
+  stream?(req: ChatCompletionRequest, opts?: ChatStreamOptions): AsyncIterable<ChatCompletionChunk>;
 }
 
 /**
@@ -88,6 +140,13 @@ export interface LlmRenderAdapterDeps {
   /** 可选输出 guard (生产用 createVisitorOutputGuard 包装内核 guardVisitorOutput). */
   readonly guard?: (text: string) => Promise<RenderGuardVerdict>;
   /**
+   * 可选前置静态预检 (WP8-B; 生产用 createVisitorPrecheck).
+   *
+   * 只在**流式**路径生效 (首 delta 前). 聚合路径的等价能力是"全文 guard 命中
+   * block → 同候选降温重生成", 语义更强, 不需要前置预检.
+   */
+  readonly precheck?: (spec: RenderSpec) => RenderPrecheckVerdict;
+  /**
    * 可选消息构造缝 (WP7 注入系统 prompt 与完整上下文).
    *
    * 缺省时按 spec.recentTurns 直映射 (咨询师 → user, 来访 → assistant).
@@ -99,6 +158,8 @@ export interface LlmRenderAdapterDeps {
   readonly onSafetySignal?: (text: string, level: string, categories: readonly string[]) => void;
   /** 可注入时钟 (主备冷却/退避用; 缺省 Date.now). */
   readonly now?: () => number;
+  /** 可选计费 / 审计用户 id (流式调用透传给调用出口). */
+  readonly uid?: string;
 }
 
 /**
@@ -118,11 +179,23 @@ type CallResult =
   | { readonly ok: false; readonly retryable: boolean; readonly reason: string };
 
 /**
- * 单个候选的一次尝试结果.
+ * 聚合路径的一次尝试产物.
  */
-type AttemptOutcome =
-  | { readonly kind: 'success'; readonly text: string; readonly usage: ChatCompletionResponse['usage']; readonly providerHint: string }
-  | { readonly kind: 'retry' }
+interface AggregateRender {
+  readonly text: string;
+  readonly usage: ChatCompletionResponse['usage'];
+  readonly providerHint: string;
+}
+
+/**
+ * 一次候选尝试的终局 (聚合与流式**共用**同一套判词).
+ *
+ * `success` 携带候选 id: "谁成功了"必须由**尝试它的那个实现**说了算, 否则
+ * 两条路径会出现两份"providerHint 怎么填"的真相.
+ */
+type AttemptOutcome<T> =
+  | { readonly kind: 'success'; readonly candidateId: string; readonly value: T }
+  | { readonly kind: 'retry'; readonly reason: string }
   | { readonly kind: 'degrade'; readonly reason: string };
 
 /**
@@ -131,17 +204,16 @@ type AttemptOutcome =
 interface RenderCallContext {
   readonly spec: RenderSpec;
   readonly messages: readonly ChatMessage[];
-  readonly attempted: string[];
   regenBudget: number;
   usedRegen: boolean;
 }
 
 /**
- * 渲染适配器 (实现内核 RenderPort).
+ * 渲染适配器 (实现内核 RenderPort + 适配层流式扩展).
  *
  * 纯类: 可脱离 NestJS 容器 `new` 出来跑 (WP8 再做 DI 注册).
  */
-export class LlmRenderAdapter implements RenderPort {
+export class LlmRenderAdapter implements StreamingRenderPort {
   private readonly logger = new Logger(LlmRenderAdapter.name);
   private readonly config: RenderAdapterConfig;
   private readonly runtime: RenderFailoverRuntime;
@@ -175,48 +247,78 @@ export class LlmRenderAdapter implements RenderPort {
     const ctx: RenderCallContext = {
       spec,
       messages,
-      attempted: [],
       regenBudget: Math.max(0, this.config.maxBlockRegen),
       usedRegen: false,
     };
 
-    // 上界 = 候选数 + 1: 每轮要么返回, 要么把一个**新**候选记入 attempted;
-    // attempted 至多 candidates.length 个, 故最后一次 next 必返回 null → 降级.
-    for (let round = 0; round <= this.config.candidates.length; round += 1) {
-      const candidate = this.runtime.next(ctx.attempted);
-      if (!candidate) {
-        this.logger.warn('[render] 候选耗尽或全部处于冷却, 降级兜底');
-        return this.degrade(spec);
-      }
-      ctx.attempted.push(candidate.id);
+    const { outcome, attempted } = await this.runCandidateLoop((candidate) => this.attempt(ctx, candidate));
 
-      const outcome = await this.attempt(ctx, candidate);
-      if (outcome.kind === 'success') {
-        // 成功即清零该候选的失败计数与冷却 (WP7 补): 计数只增不减的话,
-        // 一个"失败过一次、后来已经恢复"的候选会带着旧计数进冷却,
-        // 于是它比实际更早被踢出轮换 —— 退避就变成了惩罚而非保护.
-        this.runtime.markSuccess(outcome.providerHint);
-        return {
-          text: outcome.text,
-          taskKind: spec.taskKind,
-          usage: {
-            completionTokens: outcome.usage.completionTokens ?? 0,
-            totalTokens: outcome.usage.totalTokens ?? 0,
-          },
-          // fallbackUsed = 切过备 / 走过 block 重生成 (降级路径恒为 true).
-          fallbackUsed: ctx.usedRegen || ctx.attempted.length > 1,
-          providerHint: outcome.providerHint,
-        };
-      }
-      if (outcome.kind === 'degrade') {
-        this.logger.error(`[render] 渲染失败, 降级兜底: ${outcome.reason}`);
-        return this.degrade(spec);
-      }
-      // retry → 换下一个候选继续.
+    if (outcome.kind === 'success') {
+      // 成功即清零该候选的失败计数与冷却 (WP7 补): 计数只增不减的话,
+      // 一个"失败过一次、后来已经恢复"的候选会带着旧计数进冷却,
+      // 于是它比实际更早被踢出轮换 —— 退避就变成了惩罚而非保护.
+      this.runtime.markSuccess(outcome.candidateId);
+      return {
+        text: outcome.value.text,
+        taskKind: spec.taskKind,
+        usage: {
+          completionTokens: outcome.value.usage.completionTokens ?? 0,
+          totalTokens: outcome.value.usage.totalTokens ?? 0,
+        },
+        // fallbackUsed = 切过备 / 走过 block 重生成 (降级路径恒为 true).
+        fallbackUsed: ctx.usedRegen || attempted.length > 1,
+        providerHint: outcome.value.providerHint,
+      };
     }
 
-    // 理论不可达 (next 返回 null 即退出循环); 保留兜底以满足类型收敛.
+    this.logger.error(`[render] 渲染失败, 降级兜底: ${outcome.reason}`);
     return this.degrade(spec);
+  }
+
+  /**
+   * 流式渲染 — 增量吐字, 与聚合路径**共享**同一份候选主备核心.
+   *
+   * 状态机 (四阶段, 语义写死):
+   *   1. 候选选择窗口 (首 delta 前): 鉴权失败 → **不切备**直接降级; 可重试错 /
+   *      超时 / 空流 → markFailure 后切下一个候选.
+   *   2. 锁定: 首个非空 delta 到达 → markSuccess + **锁定候选** (此后不切备).
+   *   3. 边吐边累计: 后续 delta 依次转发并累计; 此阶段出错 → 不切备, 收尾降级.
+   *   4. 收尾: 后置全文 guard (只记信号) → 归约 usage → 返回.
+   *
+   * 永不 reject: 全挂 → 兜底句 + degraded=true, 让上层能正常发 done.
+   *
+   * @param spec 渲染规格
+   * @param handlers 增量回调面
+   * @returns 流式收尾结果
+   */
+  async streamRender(spec: RenderSpec, handlers: StreamRenderHandlers): Promise<StreamRenderOutcome> {
+    const messages = this.buildMessages(spec);
+    if (messages.length === 0) {
+      this.logger.warn('[streamRender] 渲染上下文为空 (无可用对话轮次), 直接降级兜底');
+      return this.degradeOutcome(spec, '渲染上下文为空');
+    }
+
+    // 前置静态预检: 首 delta 之前, 只看 RenderSpec, 不调模型.
+    // 命中 block → 这一轮不开口 (降级), 因为流式没有"说完再撤回"的选项.
+    const pre = this.runPrecheck(spec);
+    if (pre.level === 'block') {
+      this.logger.error(`[streamRender] 前置静态预检命中 block (${(pre.categories ?? []).join(',') || '-'}), 不建流直接降级`);
+      return this.degradeOutcome(spec, '前置静态预检命中 block');
+    }
+
+    if (!this.deps.caller.stream) {
+      // 调用出口没有流式能力 → 聚合取文后切段成增量 (兜底形态, 不作为主路径).
+      this.logger.warn('[streamRender] 调用出口无流式能力, 回退聚合收集成流');
+      return this.streamViaAggregate(spec, handlers);
+    }
+
+    const { outcome, attempted } = await this.runCandidateLoop((candidate) => this.streamAttempt(spec, candidate, messages, handlers));
+
+    if (outcome.kind === 'success') {
+      // 切过备 → fallbackUsed=true (与聚合路径同一口径: 走过备用路径).
+      return attempted.length > 1 ? { ...outcome.value, fallbackUsed: true } : outcome.value;
+    }
+    return this.degradeOutcome(spec, outcome.reason);
   }
 
   /**
@@ -230,10 +332,61 @@ export class LlmRenderAdapter implements RenderPort {
     return this.runtime.health();
   }
 
+  // ── 共享核心: 候选主备循环 ────────────────────────────────────────
+
+  /**
+   * 候选主备循环 —— 聚合与流式**共用**的唯一一份.
+   *
+   * 这里只做三件事: ① 按内核纯函数挑下一个候选 (冷却过滤在 runtime 里);
+   * ② 把候选交给尝试实现; ③ 按尝试的终局决定"换下一个"还是"收摊".
+   * 冷却/退避/记账全在 `RenderFailoverRuntime`, 两条路径拿到的是**同一份健康状态**.
+   *
+   * 上界 = 候选数 + 1: 每轮要么返回, 要么把一个**新**候选记入 attempted;
+   * attempted 至多 candidates.length 个, 故最后一次 next 必返回 null → 降级.
+   *
+   * @param attempt 单个候选的尝试实现 (聚合 / 流式各一份, 判词同构)
+   * @returns 终局 + 本轮已尝试的候选 id 序列
+   */
+  private async runCandidateLoop<T>(
+    attempt: (candidate: RenderCandidate) => Promise<AttemptOutcome<T>>,
+  ): Promise<{ outcome: AttemptOutcome<T>; attempted: readonly string[] }> {
+    const attempted: string[] = [];
+    for (let round = 0; round <= this.config.candidates.length; round += 1) {
+      const candidate = this.runtime.next(attempted);
+      if (!candidate) {
+        return { outcome: { kind: 'degrade', reason: '候选耗尽或全部处于冷却' }, attempted };
+      }
+      attempted.push(candidate.id);
+      const outcome = await attempt(candidate);
+      if (outcome.kind !== 'retry') {
+        return { outcome, attempted };
+      }
+    }
+    return { outcome: { kind: 'degrade', reason: '候选耗尽' }, attempted };
+  }
+
+  /**
+   * 调用失败的统一归类 (聚合与流式共用).
+   *
+   * 鉴权失败不切备 (M7): 坏 key 对所有候选都坏, 逐个尝试只放大延迟,
+   * 而且每一次失败都在给用户叠加等待.
+   */
+  private classifyFailure(candidate: RenderCandidate, error: unknown): { readonly retryable: boolean; readonly reason: string } {
+    this.runtime.markFailure(candidate.id, this.config);
+    if (isAuthFailure(error)) {
+      this.logger.error(`[render] 候选 ${candidate.id} 鉴权失败, 不再在坏 key 上循环: ${errorMessage(error)}`);
+      return { retryable: false, reason: `鉴权失败: ${errorMessage(error)}` };
+    }
+    this.logger.warn(`[render] 候选 ${candidate.id} 调用失败, 切下一个候选: ${errorMessage(error)}`);
+    return { retryable: true, reason: errorMessage(error) };
+  }
+
+  // ── 聚合路径 ──────────────────────────────────────────────────────
+
   /**
    * 用一个候选试一次: 调模型 → 取文本 → 过输出侧校验 → (block 时) 重生成.
    */
-  private async attempt(ctx: RenderCallContext, candidate: RenderCandidate): Promise<AttemptOutcome> {
+  private async attempt(ctx: RenderCallContext, candidate: RenderCandidate): Promise<AttemptOutcome<AggregateRender>> {
     const params = this.resolveParams(ctx.spec, candidate);
     if (!params.model) {
       this.logger.error(`[render] 候选 ${candidate.id} 未配置模型名 (taskKind=${ctx.spec.taskKind}), 无法发起调用`);
@@ -242,7 +395,7 @@ export class LlmRenderAdapter implements RenderPort {
 
     const call = await this.callOnce(candidate, params, ctx.messages);
     if (!call.ok) {
-      return call.retryable ? { kind: 'retry' } : { kind: 'degrade', reason: call.reason };
+      return call.retryable ? { kind: 'retry', reason: call.reason } : { kind: 'degrade', reason: call.reason };
     }
 
     const text = (call.response.content ?? '').trim();
@@ -250,7 +403,7 @@ export class LlmRenderAdapter implements RenderPort {
       // 空内容 = 没有可用输出, 与失败同等处理 (切备), 不把空串当"成功"返回.
       this.runtime.markFailure(candidate.id, this.config);
       this.logger.warn(`[render] 候选 ${candidate.id} 返回空内容, 视为失败并切备`);
-      return { kind: 'retry' };
+      return { kind: 'retry', reason: `候选 ${candidate.id} 返回空内容` };
     }
 
     return await this.handleText(ctx, candidate, params, text, call.response.usage);
@@ -265,14 +418,14 @@ export class LlmRenderAdapter implements RenderPort {
     params: ResolvedRenderParams,
     text: string,
     usage: ChatCompletionResponse['usage'],
-  ): Promise<AttemptOutcome> {
+  ): Promise<AttemptOutcome<AggregateRender>> {
     const verdict = await this.evaluate(text);
     this.reportSignal(text, verdict);
 
     if (verdict.level !== 'block') {
       // pass / warn 都放行: warn 是"值得注意", 不是"不该说" —— 拦下 warn 等于
       // 让适配层替专业督导做判断, 越权. 只记信号, 不改写文本.
-      return { kind: 'success', text, usage, providerHint: candidate.id };
+      return { kind: 'success', candidateId: candidate.id, value: { text, usage, providerHint: candidate.id } };
     }
 
     if (ctx.regenBudget <= 0) {
@@ -292,7 +445,11 @@ export class LlmRenderAdapter implements RenderPort {
    *   降温是最直接、对症、且不引入新变量的干预. 若重生成本身失败 (错误/空内容),
    *   则回到主备循环切下一个候选 —— 那时"换候选"才成立.
    */
-  private async regenerate(ctx: RenderCallContext, candidate: RenderCandidate, params: ResolvedRenderParams): Promise<AttemptOutcome> {
+  private async regenerate(
+    ctx: RenderCallContext,
+    candidate: RenderCandidate,
+    params: ResolvedRenderParams,
+  ): Promise<AttemptOutcome<AggregateRender>> {
     const regenParams: ResolvedRenderParams = {
       ...params,
       temperature: this.regenerationTemperature(params.temperature),
@@ -300,13 +457,13 @@ export class LlmRenderAdapter implements RenderPort {
 
     const call = await this.callOnce(candidate, regenParams, ctx.messages);
     if (!call.ok) {
-      return call.retryable ? { kind: 'retry' } : { kind: 'degrade', reason: call.reason };
+      return call.retryable ? { kind: 'retry', reason: call.reason } : { kind: 'degrade', reason: call.reason };
     }
 
     const text = (call.response.content ?? '').trim();
     if (!text) {
       this.runtime.markFailure(candidate.id, this.config);
-      return { kind: 'retry' };
+      return { kind: 'retry', reason: `候选 ${candidate.id} 重生成返回空内容` };
     }
 
     const verdict = await this.evaluate(text);
@@ -314,7 +471,7 @@ export class LlmRenderAdapter implements RenderPort {
     if (verdict.level === 'block') {
       return { kind: 'degrade', reason: '重生成后输出仍命中 block' };
     }
-    return { kind: 'success', text, usage: call.response.usage, providerHint: candidate.id };
+    return { kind: 'success', candidateId: candidate.id, value: { text, usage: call.response.usage, providerHint: candidate.id } };
   }
 
   /**
@@ -337,17 +494,163 @@ export class LlmRenderAdapter implements RenderPort {
       }
       return { ok: true, response };
     } catch (error) {
-      this.runtime.markFailure(candidate.id, this.config);
-      if (isAuthFailure(error)) {
-        // 鉴权失败不切备 (M7): 坏 key 对所有候选都坏, 逐个尝试只放大延迟,
-        // 而且每一次失败都在给用户叠加等待.
-        this.logger.error(`[render] 候选 ${candidate.id} 鉴权失败, 不再在坏 key 上循环: ${errorMessage(error)}`);
-        return { ok: false, retryable: false, reason: `鉴权失败: ${errorMessage(error)}` };
-      }
-      this.logger.warn(`[render] 候选 ${candidate.id} 调用失败, 切下一个候选: ${errorMessage(error)}`);
-      return { ok: false, retryable: true, reason: errorMessage(error) };
+      const failure = this.classifyFailure(candidate, error);
+      return { ok: false, retryable: failure.retryable, reason: failure.reason };
     }
   }
+
+  // ── 流式路径 ──────────────────────────────────────────────────────
+
+  /**
+   * 用一个候选跑一轮流式: 建流 → 取首 delta → 锁定 → 边吐边累计 → 收尾.
+   *
+   * 返回值语义与聚合路径同构 (success / retry / degrade), 所以两条路径共用同一个
+   * 主备循环 —— 这就是"单一实现"的落点.
+   */
+  private async streamAttempt(
+    spec: RenderSpec,
+    candidate: RenderCandidate,
+    messages: readonly ChatMessage[],
+    handlers: StreamRenderHandlers,
+  ): Promise<AttemptOutcome<StreamRenderOutcome>> {
+    const params = this.resolveParams(spec, candidate);
+    if (!params.model) {
+      this.logger.error(`[streamRender] 候选 ${candidate.id} 未配置模型名 (taskKind=${spec.taskKind}), 无法建流`);
+      return { kind: 'degrade', reason: `候选 ${candidate.id} 未配置模型名` };
+    }
+
+    const request: ChatCompletionRequest = {
+      model: params.model,
+      messages: [...messages],
+      temperature: params.temperature,
+      maxTokens: params.maxTokens,
+    };
+
+    const opened = await this.openStream(candidate, request, handlers);
+    if (!opened.ok) {
+      return opened.retryable ? { kind: 'retry', reason: opened.reason } : { kind: 'degrade', reason: opened.reason };
+    }
+
+    // 阶段 2: 锁定 —— 首个非空 delta 到达即证明该候选健康.
+    // 此后无论中途发生什么, 都不再切备 (已出声无法撤回).
+    this.runtime.markSuccess(candidate.id);
+    let text = opened.firstDelta;
+    await handlers.onDelta(opened.firstDelta);
+
+    // 阶段 3: 边吐边累计.
+    let tokenCount = opened.tokenCount;
+    try {
+      for (;;) {
+        const next = await opened.iterator.next();
+        if (next.done) break;
+        const chunk = next.value;
+        if (typeof chunk.tokenCount === 'number' && Number.isFinite(chunk.tokenCount)) {
+          tokenCount = chunk.tokenCount;
+        }
+        const delta = chunk.delta ?? '';
+        if (delta.length === 0) continue;
+        text += delta;
+        await handlers.onDelta(delta);
+      }
+    } catch (error) {
+      // 已锁定 → 不切备, 收尾降级 (残句当"这一轮不完整"处理).
+      this.logger.warn(`[streamRender] 候选 ${candidate.id} 锁定后中断, 收尾降级: ${errorMessage(error)}`);
+      return { kind: 'degrade', reason: `候选 ${candidate.id} 锁定后中断: ${errorMessage(error)}` };
+    }
+
+    // 阶段 4: 收尾 —— 后置全文 guard 只记信号 (不 regen / 不撤回).
+    const verdict = await this.evaluate(text);
+    this.reportSignal(text, verdict);
+
+    return {
+      kind: 'success',
+      candidateId: candidate.id,
+      value: {
+        text,
+        taskKind: spec.taskKind,
+        // 流式只有累计 tokenCount, 无 prompt/completion 拆分 —— 同源取末条, 不编造.
+        usage: { completionTokens: tokenCount, totalTokens: tokenCount },
+        fallbackUsed: false,
+        providerHint: candidate.id,
+        degraded: false,
+        guardVerdict: verdict,
+      },
+    };
+  }
+
+  /**
+   * 建流 + 取首个非空 delta (阶段 1: 候选选择窗口).
+   *
+   * 失败语义:
+   *   - 建流/取数抛错 → 鉴权失败不切备 (degrade), 其余可切备 (retry);
+   *   - 流自然结束但没有内容 (空流) → 视为失败并切备 (与聚合路径"空内容"同口径).
+   */
+  private async openStream(
+    candidate: RenderCandidate,
+    request: ChatCompletionRequest,
+    handlers: StreamRenderHandlers,
+  ): Promise<
+    | { readonly ok: true; readonly iterator: AsyncIterator<ChatCompletionChunk>; readonly firstDelta: string; readonly tokenCount: number }
+    | { readonly ok: false; readonly retryable: boolean; readonly reason: string }
+  > {
+    const stream = this.deps.caller.stream?.(request, {
+      providerId: candidate.id,
+      ...(this.deps.uid ? { uid: this.deps.uid } : {}),
+      ...(handlers.signal ? { signal: handlers.signal } : {}),
+    });
+    if (!stream) {
+      return { ok: false, retryable: true, reason: '调用出口无流式能力' };
+    }
+
+    const iterator = stream[Symbol.asyncIterator]();
+    let tokenCount = 0;
+    try {
+      for (;;) {
+        const next = await iterator.next();
+        if (next.done) break;
+        const chunk = next.value;
+        if (typeof chunk.tokenCount === 'number' && Number.isFinite(chunk.tokenCount)) {
+          tokenCount = chunk.tokenCount;
+        }
+        const delta = chunk.delta ?? '';
+        if (delta.length > 0) {
+          return { ok: true, iterator, firstDelta: delta, tokenCount };
+        }
+      }
+    } catch (error) {
+      const failure = this.classifyFailure(candidate, error);
+      return { ok: false, retryable: failure.retryable, reason: failure.reason };
+    }
+
+    // 空流: 首个 delta 前没有任何内容 → 与聚合路径"空内容"同口径, 切备.
+    this.runtime.markFailure(candidate.id, this.config);
+    this.logger.warn(`[streamRender] 候选 ${candidate.id} 空流 (首 delta 前无内容), 视为失败并切备`);
+    return { ok: false, retryable: true, reason: `候选 ${candidate.id} 空流` };
+  }
+
+  /**
+   * 兜底形态: 调用出口没有流式能力 → 聚合取文后切段成增量.
+   *
+   * 为什么不另写一套"假流式": 那正是本单要消灭的第二套实现. 这里复用**同一个**
+   * `render()` (因此主备/冷却/guard/降级全都一致), 只是把成品文本切成段转发.
+   */
+  private async streamViaAggregate(spec: RenderSpec, handlers: StreamRenderHandlers): Promise<StreamRenderOutcome> {
+    const result = await this.render(spec);
+    for (const chunk of splitTextIntoDeltas(result.text)) {
+      await handlers.onDelta(chunk);
+    }
+    const degraded = result.providerHint === 'degraded';
+    return {
+      text: result.text,
+      taskKind: result.taskKind,
+      usage: { completionTokens: result.usage.completionTokens, totalTokens: result.usage.totalTokens },
+      fallbackUsed: result.fallbackUsed,
+      ...(result.providerHint ? { providerHint: result.providerHint } : {}),
+      degraded,
+    };
+  }
+
+  // ── 共用工具 ──────────────────────────────────────────────────────
 
   /**
    * 解析候选的最终参数: 分层默认 ← 候选 overrides 覆盖.
@@ -407,6 +710,27 @@ export class LlmRenderAdapter implements RenderPort {
   }
 
   /**
+   * 前置静态预检 (流式专用): 注入的预检优先; 预检自身异常 → **放行**.
+   *
+   * 为什么异常放行而输出 guard 异常按 block:
+   *   输出 guard 是**最后一道闸** —— 它故障时未校验的文本正在出声, 挡住更安全;
+   *   前置预检是**减少风险**的优化 —— 它故障时若按 block 处理, 等于预检代码一个
+   *   小 bug 就把整条语音链路掐掉 (从"来访者可能说一句危险的话"退化成"来访者
+   *   一句话都不说"). 真正的安全边界在咨询师输入侧的内核评估与后置全文 guard 上,
+   *   前置预检不是安全边界, 所以它故障时放行 + 告警.
+   */
+  private runPrecheck(spec: RenderSpec): RenderPrecheckVerdict {
+    const checker = this.deps.precheck;
+    if (!checker) return { level: 'pass' };
+    try {
+      return checker(spec) ?? { level: 'pass' };
+    } catch (error) {
+      this.logger.warn(`[streamRender] 前置静态预检异常, 按放行处理: ${errorMessage(error)}`);
+      return { level: 'pass' };
+    }
+  }
+
+  /**
    * 上报安全信号 (warn / block): 回调拿全文, 日志只留截断片段 (同 WP4 口径).
    */
   private reportSignal(text: string, verdict: RenderGuardVerdict): void {
@@ -428,6 +752,24 @@ export class LlmRenderAdapter implements RenderPort {
       providerHint: 'degraded',
     };
   }
+
+  /**
+   * 流式降级结果.
+   *
+   * `degraded=true` 的含义: 这段文本**不是**来访者完整说出来的真话 (兜底句或
+   * 残句), 上层据此不把它写进历史与工作记忆.
+   */
+  private degradeOutcome(spec: RenderSpec, reason: string): StreamRenderOutcome {
+    this.logger.warn(`[streamRender] 降级兜底: ${reason}`);
+    return {
+      text: this.config.fallbackUtterance,
+      taskKind: spec.taskKind,
+      usage: { completionTokens: 0, totalTokens: 0 },
+      fallbackUsed: true,
+      providerHint: 'degraded',
+      degraded: true,
+    };
+  }
 }
 
 /**
@@ -446,6 +788,40 @@ export function createVisitorOutputGuard(opts?: {
     const verdict = await guardVisitorOutput(text, opts);
     return { level: verdict.level, categories: verdict.categories };
   };
+}
+
+/**
+ * 生产用前置静态预检 (WP8-B): 复用**内核同一套**来访侧规则.
+ *
+ * 判的是"角色内容里有没有硬红线" —— 即会直接驱动模型说出口的那些内容
+ * (核心信念 / 本轮轨迹提示). 命中 block → 本轮不开口 (流式不可撤回).
+ *
+ * 为什么不用 `forbiddenBehaviors`: 它是**负向约束** ("绝不能出现"), 里面出现
+ * 敏感词恰恰说明"这次不要碰", 拿它当风险信号会把最该谨慎的场景判成最该拦的场景.
+ *
+ * @returns 适配器可用的预检函数
+ */
+export function createVisitorPrecheck(): (spec: RenderSpec) => RenderPrecheckVerdict {
+  return (spec: RenderSpec): RenderPrecheckVerdict => {
+    const text = collectVisitorRoleText(spec);
+    if (text.length === 0) return { level: 'pass' };
+    const verdict = evaluateSafety(text, 'visitor_output');
+    return { level: verdict.level, categories: verdict.categories };
+  };
+}
+
+/**
+ * 收集"会驱动模型说出口"的角色内容 (核心信念 + 本轮轨迹提示).
+ */
+function collectVisitorRoleText(spec: RenderSpec): string {
+  const parts: string[] = [];
+  for (const belief of spec.coreBeliefs) {
+    const statement = belief.statement.trim();
+    if (statement.length > 0) parts.push(statement);
+  }
+  const note = spec.trajectoryNote?.trim();
+  if (note) parts.push(note);
+  return parts.join('\n');
 }
 
 /**
@@ -517,3 +893,7 @@ function extractErrorStatus(error: unknown): number | undefined {
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
+
+// 兼容导出: `RenderGuardVerdict` 的单一真相已搬到 streaming-render.port.ts,
+// 这里 re-export 回老路径, 让既有 import 不破.
+export type { RenderGuardVerdict, RenderPrecheckVerdict, StreamRenderHandlers, StreamRenderOutcome, StreamingRenderPort };

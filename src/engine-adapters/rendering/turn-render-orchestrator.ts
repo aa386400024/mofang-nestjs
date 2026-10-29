@@ -18,6 +18,11 @@
 //     - 渲染抛异常 / 文本为空 → **兜底成非空中性话术**, 绝不 reject.
 //       渲染是最后一公里, 它挂了不该让整场对练挂掉 (同 WP6 M4).
 //
+//   V2026-10-29 治本 (WP8-B · 流式出口):
+//     新增 `turnStream(handleId, input, handlers)` —— 与 `turn()` **共用**内核决策 /
+//     规格组装 / 落账 (settleTurn) 的同一套闭环, 只把"取文"换成流式. 历史与记忆
+//     逻辑不复制: 复制一份必然出现"聚合记得、流式忘得"的分裂.
+//
 //   反双胞胎:
 //     - 不重复写咨询师半边记忆: 内核 rememberTurn 已经写了 (source=TURN, tier=WORKING,
 //       content=咨询师文本). 门面只补**来访半边**. 重复写 = 工作记忆里同一条出现两次,
@@ -36,6 +41,7 @@
 import { nanoid } from 'nanoid';
 
 import { buildRenderSpec, type SpecAssemblyInput } from './spec-assembler';
+import { splitTextIntoDeltas, type StreamRenderHandlers, type StreamingRenderPort } from './streaming-render.port';
 import {
   MemorySource,
   MemoryTier,
@@ -50,7 +56,6 @@ import {
   type MemoryHit,
   type MemoryStore,
   type RenderContextTurn,
-  type RenderPort,
   type RenderSpec,
   type RenderTokenBudget,
   type SafetyVerdict,
@@ -108,8 +113,8 @@ export interface TurnRenderResult {
 export interface TurnRenderOrchestratorDeps {
   /** 内核会话端口 (openSession / turn / closeSession). */
   readonly session: EngineSessionPort;
-  /** 渲染端口 (WP6 的 LlmRenderAdapter, 或任意实现). */
-  readonly renderer: RenderPort;
+  /** 渲染端口 (WP6 的 LlmRenderAdapter, 或任意实现; 支持流式扩展). */
+  readonly renderer: StreamingRenderPort;
   /** 记忆仓储端口 (用于补写来访半边工作记忆). */
   readonly memories: MemoryStore;
   /**
@@ -233,6 +238,54 @@ export class TurnRenderOrchestrator {
   }
 
   /**
+   * 执行一轮"决策 → 说话" (**流式**).
+   *
+   * 与 `turn()` **共用**同一套闭环: 内核决策 → 组装规格 → 取文 → 落账 → 组装返回.
+   * 两者只差"取文的方式": 聚合是一次性拿全文, 流式是边生成边把增量交给消费方.
+   * 所以历史 / 记忆 / 落账逻辑**不复制** —— 复制一份必然出现"聚合路径记得、流式
+   * 路径忘得"这种只有单测能发现的分裂.
+   *
+   * 降级语义与聚合路径对齐: 渲染降级 → 只追加咨询师半边, **不写**来访半边记忆
+   * (兜底句不是来访真说的话).
+   *
+   * @param handleId 内核会话句柄
+   * @param input 本轮入参 (咨询师文本)
+   * @param handlers 增量回调面 (onDelta / signal)
+   * @returns 本轮来访口语 + 内核出参透传 + 渲染元信息
+   * @throws 内核会话端口抛出的错误原样冒泡 (ABORTED / INVALID_INPUT / SESSION_NOT_FOUND)
+   */
+  async turnStream(handleId: string, input: EngineTurnInput, handlers: StreamRenderHandlers): Promise<TurnRenderResult> {
+    // 1. 内核决策 (与 turn() 同一入口, 错误同样原样冒泡).
+    const output = await this.deps.session.turn(handleId, input);
+
+    // 2. 组装规格 (历史 + 本轮咨询师输入).
+    const history = this.historyOf(handleId);
+    const spec = this.assemble(output, [...history, { role: 'counselor', text: input.userText }]);
+
+    // 3. 流式取文 (增量经 onDelta 转发; 异常 / 空文本 → 兜底, 永不 reject).
+    const rendered = await this.streamSafely(spec, handlers);
+
+    // 4. 落账 (与 turn() 共用 settleTurn: 历史 + 来访半边工作记忆).
+    await this.settleTurn(handleId, input.userText, rendered);
+
+    // 5. 组装返回 (与 turn() 同构).
+    return {
+      reply: rendered.text,
+      snapshot: output.snapshot,
+      turnIndex: output.turnIndex,
+      ...(output.intention ? { intention: output.intention } : {}),
+      render: {
+        fallbackUsed: rendered.fallbackUsed,
+        ...(rendered.providerHint ? { providerHint: rendered.providerHint } : {}),
+        usage: rendered.usage,
+      },
+      ...(output.trajectoryTrace ? { trajectoryTrace: output.trajectoryTrace } : {}),
+      ...(output.safety ? { safety: output.safety } : {}),
+      ...(output.openingContext ? { openingContext: output.openingContext } : {}),
+    };
+  }
+
+  /**
    * 丢弃某句柄的会话历史 (会话关闭时调用).
    *
    * 门面是长生命周期对象 (一个实例服务多场会话), 历史必须能被显式释放 ——
@@ -273,6 +326,46 @@ export class TurnRenderOrchestrator {
     } catch (error) {
       // 理论上 WP6 适配器已不 reject; 这里是防御 —— 换别的 RenderPort 实现时兜住.
       warn(`[turn] 渲染异常, 降级为中性兜底句: ${errorMessage(error)}`);
+      return this.degradedRender();
+    }
+  }
+
+  /**
+   * 流式渲染并归一: 成功 → 真实文本; 异常 / 空文本 → 兜底句 (永不 reject).
+   *
+   * 渲染器没实现流式 (可选方法缺失) → 退化成"聚合取文 + 切段成增量".
+   * 那只是**兜底形态** (字幕不再是一整段), 主路径永远是渲染器自己的流式.
+   */
+  private async streamSafely(spec: RenderSpec, handlers: StreamRenderHandlers): Promise<NormalizedRender> {
+    const renderer = this.deps.renderer;
+    if (!renderer.streamRender) {
+      warn('[turnStream] 渲染端口未实现流式, 回退聚合取文 + 切段成增量');
+      const aggregated = await this.renderSafely(spec);
+      for (const chunk of splitTextIntoDeltas(aggregated.text)) {
+        await handlers.onDelta(chunk);
+      }
+      return aggregated;
+    }
+    try {
+      const outcome = await renderer.streamRender(spec, handlers);
+      const text = (outcome?.text ?? '').trim();
+      if (!text) {
+        warn('[turnStream] 流式渲染结果为空, 降级为中性兜底句');
+        return this.degradedRender();
+      }
+      // 降级判定: 渲染器自报 degraded, 或兜底 providerHint —— 两者都表示
+      // "这不是来访者完整说出来的真话", 不能写进工作记忆.
+      const degraded = outcome.degraded || outcome.providerHint === 'degraded';
+      return {
+        text,
+        fallbackUsed: outcome.fallbackUsed,
+        degraded,
+        ...(outcome.providerHint ? { providerHint: outcome.providerHint } : {}),
+        usage: { completionTokens: outcome.usage.completionTokens, totalTokens: outcome.usage.totalTokens },
+      };
+    } catch (error) {
+      // 理论上渲染器的流式出口已不 reject; 这里是防御 —— 换别的渲染实现时兜住.
+      warn(`[turnStream] 流式渲染异常, 降级为中性兜底句: ${errorMessage(error)}`);
       return this.degradedRender();
     }
   }

@@ -216,4 +216,47 @@ npx jest test/engine-core test/engine-adapters test/voice --maxWorkers=2
 
 ## 14. 交付状态
 
-待交付。开工后在此登记：闸门结果、实际目录落点、与本单显式差异、灰度验证帧序列、遗留缺口。
+**已交付**（2026-10-29）。交付记录：[`engine-wp8b-streaming-ws-grayscale-backend-implementation-2026-10-29.md`](./engine-wp8b-streaming-ws-grayscale-backend-implementation-2026-10-29.md)。
+
+### 闸门结果（自跑）
+
+| 闸门 | 结果 |
+|---|---|
+| `npx tsc -p tsconfig.build.json --noEmit` | 0 错 |
+| `npx eslint "src/**/*.ts"` | 0 error 0 warning |
+| `npx jest`（本单三个新套件） | 3 套件 / 37 用例全绿 |
+| `npx jest test/engine-core test/engine-adapters test/voice --maxWorkers=2` | 16 套件 / 370 用例全绿（engine-core 177 用例零回归） |
+| `git diff --stat -- src/engine-core` | **空**（内核整树零改动） |
+
+分组：`engine-core` 7/177（零回归）｜`engine-adapters` 6/105（新增 24）｜`voice` 3/88（新增 13）。
+
+### 实际目录落点（与 §7 的差异）
+
+| 本单建议 | 实际 | 原因 |
+|---|---|---|
+| `src/engine-adapters/rendering/engine-stream-backend.adapter.ts` | `src/engine-adapters/wiring/engine-stream-backend.adapter.ts` | 它依赖 wiring 层的 `EngineTurnService`；放 rendering 会造成 rendering → wiring → rendering **目录环**，且"跨子系统形状翻译"本属 wiring 层职责 |
+| （未列） | `src/engine-adapters/rendering/streaming-render.port.ts` | 流式端口（适配层，不进内核） |
+| （未列） | `src/voice/voice-turn-backend.port.ts` | 新旧同构窄接口 + DI token |
+| （未列） | `src/voice/voice.module.ts` 导入 `EngineWiringModule` | Nest DI 模块作用域内取 provider 必须 import；依赖方向仍单向 voice → engine-adapters |
+
+### 与本单显式差异（八处）
+
+1. **前置静态预检的数据来源**：本单写"intention / forbiddenBehaviors / 危机等级"，但 `RenderSpec` **没有**安全/危机字段（内核零改动是红线），且 `forbiddenBehaviors` 是**负向约束**（含敏感词恰恰说明"别碰"）。实际口径 = 用**内核同一套** `evaluateSafety(side='visitor_output')` 规则判"会驱动模型说出口的角色内容"（`coreBeliefs[].statement` + `trajectoryNote`），**零新规则词典**。
+2. **流式降级的 `providerHint`**：本单只规定了"全挂"口径；实际**所有降级统一** `providerHint='degraded'`，候选 id 落日志。
+3. **聚合 vs 流式的降级落账差异**：聚合路径的兜底句**仍会被写进**来访半边记忆（WP7 既有行为，未动、零回归优先）；流式路径按本单要求 degraded → **不写**。两条路径语义不同，单测分别钉死。
+4. **回落的粒度**：细分为"首个增量**前**失败 → **透明**切回旧链路（帧序列与旧链路逐帧一致）"与"已出声之后 → 发 `error` 帧 + 本场后续轮回落"。已出声不可撤回。
+5. **`voice.module.ts` 新增模块依赖**（见上表）。
+6. **兜底切段口径**：`splitTextIntoDeltas`（句末标点 + 24 字硬切），**故意不复用** TTS 切句器 —— 那是**出声协议**口径（切早会让那句永不合成），这里是**字幕**口径。
+7. **`ChatCaller.stream` 的 `uid`**：适配器支持 `deps.uid` 透传，默认不配（`RenderSpec` 无 uid 概念）。
+8. **流式 usage 口径**（与本单一致，此处仅确认）：`completionTokens` 与 `totalTokens` **同源取末条** `tokenCount`，不编造 prompt/completion 拆分。
+
+### 灰度验证
+
+- **开关关**：`voice.service` 根本不会碰引擎后端 → 帧序列与现状**逐帧一致**（`wp8b-grayscale.spec.ts` 用例逐帧断言 `llm_start / llm_text×N / llm_done`）。
+- **开关开**：增量 `llm_text`（真实上游实测 7 段增量，ttft 5824ms / 总 6184ms）、voice 模式增量文本喂 TTS（`ttsHandle.sent` 断言）、barge-in 真断流（`signal.aborted=true` + 迟到 chunk **不**喂 TTS）。
+- **真实上游联调**（一次性脚本，跑完即删）：`RouterChatCaller.stream → router.streamChat → MiniMax SSE → LlmRenderAdapter.streamRender` 全链路通；`check1 增量到达 = PASS` / `check2 barge-in 断流 = PASS`。
+- **失败自动回落**：开场失败 / 建流失败 / 首个增量前失败 → 本场回旧链路，帧序列与旧链路逐帧一致，不 500、不关 WS。
+
+### 遗留缺口（交接 WP9 / 后续轮）
+
+角色剧本与 5Ps 注入（本期中性基线）｜新引擎逐字稿与 counselor 桥字段对齐｜前置实时 `RiskProbePort` 探测｜聚合路径兜底句落账语义统一（会动 WP7 既有行为）｜WS 端到端联调（需 JWT + DB persona + 真 TTS 三件外部依赖）｜默认 provider 的 deepseek 占位需在部署 env 显式改 `minimax`。

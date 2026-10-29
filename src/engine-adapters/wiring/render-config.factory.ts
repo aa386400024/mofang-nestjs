@@ -27,10 +27,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import type { RenderPort, RenderTaskKind } from '../../engine-core';
+import type { RenderTaskKind } from '../../engine-core';
 import { AIProviderId, LLMTier } from '../../llm/common/enums/llm.enums';
 import { LlmRouterService } from '../../llm/registry/llm-router.service';
-import { LlmRenderAdapter, createVisitorOutputGuard, type ChatCaller, type LlmRenderAdapterDeps } from '../rendering/llm-render.adapter';
+import {
+  LlmRenderAdapter,
+  createVisitorOutputGuard,
+  createVisitorPrecheck,
+  type ChatCaller,
+  type LlmRenderAdapterDeps,
+} from '../rendering/llm-render.adapter';
 import {
   DEFAULT_RENDER_COOLDOWN_BASE_MS,
   DEFAULT_RENDER_COOLDOWN_MAX_MS,
@@ -42,6 +48,7 @@ import {
   type RenderAdapterConfig,
   type RenderCandidate,
 } from '../rendering/render-adapter.config';
+import type { StreamingRenderPort } from '../rendering/streaming-render.port';
 import { buildVisitorMessages } from '../rendering/turn-render-orchestrator';
 
 /**
@@ -182,6 +189,9 @@ export function buildEngineRenderDeps(caller: ChatCaller, config: RenderAdapterC
     buildMessages: buildVisitorMessages,
     // 输出侧伦理校验: 复用内核 WP4 的 guardVisitorOutput (两侧口径永远一致).
     guard: createVisitorOutputGuard(),
+    // WP8-B 前置静态预检 (流式专用): 复用内核同一套来访侧规则, 只看 RenderSpec,
+    // 不调模型 —— 流式已出声不可撤回, 所以开口前先判一次.
+    precheck: createVisitorPrecheck(),
     // 安全信号只进日志 (不进 RenderResult): 文本片段由适配器自己截断记录,
     // 这里只记等级与类别, 避免同一段敏感内容被日志记两遍.
     onSafetySignal: (_text, level, categories) => {
@@ -195,8 +205,8 @@ export function buildEngineRenderDeps(caller: ChatCaller, config: RenderAdapterC
  *
  * @param caller 调用出口
  * @param config 渲染配置
- * @returns 渲染端口
+ * @returns 渲染端口 (带流式扩展)
  */
-export function buildEngineRenderPort(caller: ChatCaller, config: RenderAdapterConfig): RenderPort {
+export function buildEngineRenderPort(caller: ChatCaller, config: RenderAdapterConfig): StreamingRenderPort {
   return new LlmRenderAdapter(buildEngineRenderDeps(caller, config));
 }

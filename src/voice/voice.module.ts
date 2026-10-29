@@ -23,6 +23,7 @@ import { TtsModule } from './tts/tts.module';
 import { VoiceSessionModule } from './voice-session.module';
 import { VoiceGateway } from './voice.gateway';
 import { VoiceService } from './voice.service';
+import { EngineWiringModule } from '../engine-adapters/wiring/engine.module';
 
 @Module({
   imports: [
@@ -31,6 +32,10 @@ import { VoiceService } from './voice.service';
     AsrTokenModule, // AsrTokenService (Phase 3)
     // V2026-10-23 治本: 演练登记 + 模板解析插槽 (@Global) — counselor 侧也要用, 放这里统一挂载
     VoiceSessionModule,
+    // V2026-10-29 治本 (WP8-B): 引擎装配层 — 提供新引擎版对话后端 (VOICE_TURN_BACKEND).
+    //   灰度开关关时, voice 侧根本不会用它 (旧链路 100% 原样); 开关开时才有新链路.
+    //   依赖方向单向: voice → engine-adapters (引擎不认识语音协议, 只提供窄面).
+    EngineWiringModule,
     // V2026-10-09 治本: VoiceGateway 注入 JwtService 校验客户端 token (handleConnection).
     //   跟 AsrTokenModule 同款: 本地注册 JwtModule (空配置, secret 在 verifyAsync 时显式传 jwtSecret).
     //   为什么不直接 import AuthModule:

@@ -28,12 +28,13 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp8-wiring.spec.ts 覆盖仓储分流 / 会话构造 / 门面归属缝
 
-import type { Embedder, EngineSessionPort, MemoryStore, RenderPort } from '../../engine-core';
+import type { Embedder, EngineSessionPort, MemoryStore } from '../../engine-core';
 import { InMemoryBdiStateRepository } from '../../engine-core/in-memory/in-memory-bdi-state.repository';
 import { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-engine-session';
 import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store';
 import type { QdrantMemoryClient } from '../persistence/qdrant-memory.store';
 import { QdrantMemoryStore } from '../persistence/qdrant-memory.store';
+import type { StreamingRenderPort } from '../rendering/streaming-render.port';
 import type { TurnSessionContext } from '../rendering/turn-render-orchestrator';
 import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
 
@@ -88,8 +89,8 @@ export function createEngineSessionPort(memories: MemoryStore): EngineSessionPor
 export interface EngineOrchestratorDeps {
   /** 内核会话端口. */
   readonly session: EngineSessionPort;
-  /** 渲染端口. */
-  readonly renderer: RenderPort;
+  /** 渲染端口 (支持流式扩展; 未实现流式时门面走聚合兜底). */
+  readonly renderer: StreamingRenderPort;
   /** 记忆仓储 (与内核同一实例). */
   readonly memories: MemoryStore;
   /** 归属解析源 (装配层维护的登记表). */

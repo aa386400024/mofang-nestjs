@@ -30,6 +30,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 
 import { ENGINE_SESSION_PORT } from './engine.tokens';
 import type { EngineSessionPort, EngineTurnInput, OpenEngineSessionInput } from '../../engine-core';
+import type { StreamRenderHandlers } from '../rendering/streaming-render.port';
 import type { TurnRenderResult, TurnSessionContext } from '../rendering/turn-render-orchestrator';
 import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
 
@@ -122,6 +123,21 @@ export class EngineTurnService {
    */
   async turn(handleId: string, input: EngineTurnInput): Promise<TurnRenderResult> {
     return this.orchestrator.turn(handleId, input);
+  }
+
+  /**
+   * 一轮 (**流式**): 委托编排器的流式出口.
+   *
+   * 与聚合 `turn()` 共用同一套闭环 (内核决策 / 规格组装 / 落账), 只换"取文方式".
+   * 消费方 (voice) 拿到的是与聚合同构的 `TurnRenderResult`, 多一个 delta 回调面.
+   *
+   * @param handleId 内核会话句柄
+   * @param input 本轮入参
+   * @param handlers 增量回调面 (onDelta / signal)
+   * @returns 本轮来访口语 + 内核出参 + 渲染元信息
+   */
+  async turnStream(handleId: string, input: EngineTurnInput, handlers: StreamRenderHandlers): Promise<TurnRenderResult> {
+    return this.orchestrator.turnStream(handleId, input, handlers);
   }
 
   /**

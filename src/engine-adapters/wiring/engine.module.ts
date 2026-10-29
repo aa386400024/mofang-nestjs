@@ -25,7 +25,9 @@
 //     - 不把内核接口当 provider token: interface 编译后没有运行时值, 必须用
 //       engine.tokens.ts 里的 symbol.
 //     - 不在这里放全局单例: 引擎会话 / 归属表都是**模块内单例**, 与引擎实例同生命周期.
-//     - 不做流式: 本期聚合一次性返回, 流式窄面扩展归 WP8-B.
+//     - V2026-10-29 (WP8-B) 起支持流式: 渲染端口产出改为 `StreamingRenderPort`
+//       (聚合 + 流式同一个适配器实例), 并对外提供引擎版对话后端 (VOICE_TURN_BACKEND),
+//       供 voice 侧灰度接入 —— 灰度开关关时 voice 侧根本不会注入它 (旧链路 100% 原样).
 //     - **不在本文件里写构造逻辑**: 构造全在 engine.providers.ts 的纯工厂里,
 //       本文件只声明「token ↔ 工厂」的映射. 理由见 engine.providers.ts 文件头:
 //       写在 useFactory 里的代码单测覆盖不到, 等于"装配正确性"没有护栏.
@@ -38,6 +40,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { EngineStreamBackend } from './engine-stream-backend.adapter';
 import { EngineSessionRegistry, EngineTurnService } from './engine-turn.service';
 import { EngineWiringController } from './engine-wiring.controller';
 import { createEngineMemoryStore, createEngineOrchestrator, createEngineSessionPort } from './engine.providers';
@@ -46,10 +49,12 @@ import { RenderConfigFactory, buildEngineRenderPort } from './render-config.fact
 import { RouterChatCaller } from './router-chat-caller';
 import { AIEngineModule } from '../../ai-engine/ai-engine.module';
 import { QdrantService } from '../../ai-engine/providers/qdrant.service';
-import type { EngineSessionPort, MemoryStore, RenderPort } from '../../engine-core';
+import type { EngineSessionPort, MemoryStore } from '../../engine-core';
 import { LlmModule } from '../../llm/llm.module';
 import { LlmRouterService } from '../../llm/registry/llm-router.service';
+import { VOICE_TURN_BACKEND } from '../../voice/voice-turn-backend.port';
 import { OpenAICompatEmbedder } from '../embedder/openai-compat.embedder';
+import type { StreamingRenderPort } from '../rendering/streaming-render.port';
 import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
 
 /**
@@ -83,10 +88,10 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
         }),
       inject: [ConfigService, QdrantService, OpenAICompatEmbedder],
     },
-    // 渲染端口 (WP6 适配器 + WP7 prompt 缝 + WP6 输出 guard).
+    // 渲染端口 (WP6 适配器 + WP7 prompt 缝 + WP6 输出 guard + WP8-B 前置预检).
     {
       provide: ENGINE_RENDER_PORT,
-      useFactory: (caller: RouterChatCaller, configFactory: RenderConfigFactory): RenderPort =>
+      useFactory: (caller: RouterChatCaller, configFactory: RenderConfigFactory): StreamingRenderPort =>
         buildEngineRenderPort(caller, configFactory.build()),
       inject: [RouterChatCaller, RenderConfigFactory],
     },
@@ -101,7 +106,7 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
       provide: TurnRenderOrchestrator,
       useFactory: (
         session: EngineSessionPort,
-        renderer: RenderPort,
+        renderer: StreamingRenderPort,
         memories: MemoryStore,
         registry: EngineSessionRegistry,
       ): TurnRenderOrchestrator => createEngineOrchestrator({ session, renderer, memories, registry }),
@@ -109,7 +114,14 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
     },
     // 对外门面服务.
     EngineTurnService,
+    // WP8-B: 引擎版对话后端 (实现 voice 侧窄接口) —— 灰度开关打开时, 语音链路
+    // 用它取代旧 visitor 直出; 开关关闭时 voice 侧根本不注入它 (旧链路 100% 原样).
+    EngineStreamBackend,
+    {
+      provide: VOICE_TURN_BACKEND,
+      useExisting: EngineStreamBackend,
+    },
   ],
-  exports: [EngineTurnService, ENGINE_SESSION_PORT, ENGINE_RENDER_PORT],
+  exports: [EngineTurnService, ENGINE_SESSION_PORT, ENGINE_RENDER_PORT, VOICE_TURN_BACKEND],
 })
 export class EngineWiringModule {}

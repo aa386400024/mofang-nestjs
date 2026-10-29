@@ -16,16 +16,25 @@
 //     - 不在这里做主备/冷却/重试: 那是 WP6 适配器按内核纯决策执行的职责;
 //       在这一层做一遍就等于同一策略两个执行点.
 //
+//   V2026-10-29 治本 (WP8-B · 补流式):
+//     窄面补 `stream` (可选方法), 委托 router 已有的 `streamChat` —— 流式与聚合
+//     在 router 内部走同一条解析链 (注册 / 鉴权 / 回落 / 限流), 本层只对齐签名.
+//
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp8-wiring.spec.ts: req 与 providerId 原样透传, 响应原样返回
+//     3. test/engine-adapters/wp8b-stream-render.spec.ts: stream 委托透传
 
 import { Injectable } from '@nestjs/common';
 
 import { AIProviderId } from '../../llm/common/enums/llm.enums';
-import type { ChatCompletionRequest, ChatCompletionResponse } from '../../llm/common/interfaces/chat-provider.interface';
+import type {
+  ChatCompletionChunk,
+  ChatCompletionRequest,
+  ChatCompletionResponse,
+} from '../../llm/common/interfaces/chat-provider.interface';
 import { LlmRouterService } from '../../llm/registry/llm-router.service';
-import type { ChatCaller } from '../rendering/llm-render.adapter';
+import type { ChatCaller, ChatStreamOptions } from '../rendering/llm-render.adapter';
 
 /**
  * 生产 `ChatCaller`: 把窄面接到 `LlmRouterService.chat`.
@@ -46,5 +55,24 @@ export class RouterChatCaller implements ChatCaller {
     // 即便配了一个未注册的 id, router 也会走它既有的"回落默认 provider"路径 ——
     // 不在本层再判一次注册表 (见文件头「反双胞胎」).
     return this.router.chat(req, providerId ? { providerId: providerId as AIProviderId } : {});
+  }
+
+  /**
+   * 流式 chat 调用 — 委托 router 已有的 `streamChat`.
+   *
+   * 不复制 router 的任何能力 (注册 / 鉴权 / 未注册回落 / 限流): 流式与聚合在
+   * router 内部走的是同一条解析链, 本层只做签名对齐.
+   *
+   * @param req 请求 (与聚合调用同一形状)
+   * @param opts 流式选项 (providerId / uid / signal)
+   * @returns 增量 chunk 流
+   */
+  stream(req: ChatCompletionRequest, opts?: ChatStreamOptions): AsyncIterable<ChatCompletionChunk> {
+    const providerId = opts?.providerId as AIProviderId | undefined;
+    return this.router.streamChat(req, {
+      ...(providerId ? { providerId } : {}),
+      ...(opts?.uid ? { uid: opts.uid } : {}),
+      ...(opts?.signal ? { signal: opts.signal } : {}),
+    });
   }
 }
