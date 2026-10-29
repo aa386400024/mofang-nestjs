@@ -168,6 +168,7 @@ import { AddVisitorPoolTemplateVoiceId1714900000022 } from '../src/migration/171
 //   (不加 DB FK, ADR-0003). 内容不进 migration: 首批 4 个角色走独立 seed 脚本
 //   (bin/seed-character-profiles.ts) 按稳定 template_id 幂等 upsert.
 import { AddCharacterProfiles1714900000023 } from '../src/migration/1714900000023-AddCharacterProfiles';
+import { AddTurnDebugTrace1714900000024 } from '../src/migration/1714900000024-AddTurnDebugTrace';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -292,6 +293,7 @@ const ormconfig = async (): Promise<DataSource> => {
       //   character_profiles (21 列 + UNIQUE(template_id) + INDEX(audit_status, enabled)),
       //   表由手写 DDL 建 (ADR-0003 禁用 synchronize); 内容走独立 seed 脚本, 不进 migration.
       AddCharacterProfiles1714900000023,
+      AddTurnDebugTrace1714900000024,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

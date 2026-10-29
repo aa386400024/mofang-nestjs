@@ -131,6 +131,14 @@ export class EngineStreamBackend implements VoiceTurnBackend {
      * "开不了会话".
      */
     @Optional() private readonly frames?: VoiceFrameRegistry,
+    /**
+     * 调试快照记录器 (WP19).
+     *
+     * 为什么 @Optional: 它由 AdminDebugModule 提供. 装配缺失时
+     * 会话照常进行, 只是没有调试 trace 落库 —— 不能让"没有调试器"变成
+     * "开不了会话".
+     */
+    @Optional() private readonly traceRecorder?: import('../../admin-debug/trace-recorder.service').TraceRecorder,
   ) {}
 
   /**
@@ -236,6 +244,14 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       finalTurnCount: turns.filter((turn) => turn.role === 'assistant').length,
       finalMessageCount: turns.length,
     };
+
+    // V2026-10-29 治本 (WP19 · flush 调试快照):
+    //   会话关闭时把内存缓冲的 trace 写回 DB. fire-and-forget, 不阻塞 close.
+    const dbSid = this.dbSessionIds.get(sessionId);
+    if (dbSid && this.traceRecorder) {
+      void this.traceRecorder.flush(dbSid);
+    }
+
     this.transcripts.delete(sessionId);
     this.dbSessionIds.delete(sessionId);
     const handleId = this.handles.get(sessionId);
@@ -309,6 +325,10 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     this.publishCrisisHint(opts.sessionId, settled.result);
 
     const usage = settled.result.render.usage;
+
+    // WP19: 调试快照留痕 (抽成私有方法降复杂度).
+    this.recordTrace(opts.sessionId, settled.result, usage);
+
     yield {
       type: 'done',
       usage: {
@@ -318,6 +338,38 @@ export class EngineStreamBackend implements VoiceTurnBackend {
         ...(usage?.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
       },
     };
+  }
+
+  /**
+   * WP19: 每轮完成时写调试快照到内存缓冲 (会话关闭时 flush).
+   *
+   * 抽成独立方法: ①降 buildStream 圈复杂度; ②调试逻辑不污染主链路阅读.
+   */
+  private recordTrace(sessionId: string, result: TurnRenderResult, usage: TurnRenderResult['render']['usage']): void {
+    if (!this.traceRecorder) return;
+    const dbSid = this.dbSessionIds.get(sessionId);
+    if (!dbSid) return;
+    const snap = result.snapshot;
+    this.traceRecorder.record(dbSid, {
+      turnIndex: result.turnIndex,
+      bdi: {
+        trust: snap.trust,
+        valence: snap.emotion.valence,
+        arousal: snap.emotion.arousal,
+        resistance: snap.resistance.verbal,
+        attachmentType: snap.emotion.label,
+      },
+      usage: {
+        completionTokens: usage?.completionTokens ?? 0,
+        reasoningTokens: usage?.reasoningTokens ?? 0,
+        totalTokens: usage?.totalTokens ?? 0,
+      },
+      crisis: {
+        detected: result.safety !== undefined,
+        category: result.safety?.categories?.[0] ?? null,
+      },
+      ts: new Date().toISOString(),
+    });
   }
 
   /**

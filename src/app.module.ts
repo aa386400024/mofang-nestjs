@@ -12,6 +12,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 // eslint-disable-next-line unicorn/import-style
 import { resolve } from 'node:path';
 
+import { AdminDebugModule } from './admin-debug/admin-debug.module';
 import { AgentModule } from './agent/agent.module';
 import { AiConversationsModule } from './ai-companion/ai-conversations.module';
 import { AIEngineModule } from './ai-engine/ai-engine.module';
@@ -227,6 +228,7 @@ import { VoiceModule } from './voice/voice.module';
     // V2026-10-28 — WP8-A 引擎装配层: 聚合调试端点 /engine/debug/* (JWT, 仅联调)
     //   与既有 AIEngineModule / VoiceModule 并存, 本期不替换旧 visitor 直出链路 (归 WP8-B).
     EngineWiringModule, // /engine/debug/*
+    AdminDebugModule, // /admin/api/* (WP19 调试器 SPA 只读 API)
     // V2026-09-04 — 心塑 V6.0 §4.2 急救闭环 — 5 工具会话上报 + 跨设备同步
     EmergencyModule, // /emergency/*
     // V2026-10-13 — 心理咨询师学员端 server module (Phase 7.10 启动 P0-1)

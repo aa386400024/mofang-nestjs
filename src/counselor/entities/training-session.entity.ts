@@ -232,6 +232,15 @@ export class TrainingSession {
   @Column({ type: 'json', name: 'tech_stats', nullable: true })
   techStats!: SessionTechStats | null;
 
+  /**
+   * 每轮 BDI 调试快照 (json, 可空).
+   *
+   * WP19: 引擎适配器在每轮完成时写入内存缓冲, 会话关闭时 flush 到本列.
+   * 调试器 SPA 通过 /admin/api/sessions/:id 读取.
+   */
+  @Column({ type: 'json', name: 'turn_debug_trace', nullable: true })
+  turnDebugTrace?: unknown;
+
   @Column({ type: 'char', length: 36, name: 'supervision_report_id', nullable: true })
   supervisionReportId!: string | null;
 

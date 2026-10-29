@@ -19,30 +19,31 @@ onMounted(async () => {
     <h1 class="text-lg font-semibold mb-4">角色池</h1>
     <div v-if="loading" class="text-muted text-sm">加载中…</div>
     <div v-else-if="err" class="text-danger text-sm">{{ err }}</div>
+    <div v-else-if="!rows.length" class="text-muted text-sm">暂无角色</div>
     <div v-else class="card overflow-hidden">
       <table class="w-full text-sm">
         <thead class="bg-bg-elevated text-muted text-xs uppercase">
           <tr>
             <th class="text-left px-4 py-2 font-medium">代号</th>
             <th class="text-left px-4 py-2 font-medium">slug</th>
-            <th class="text-left px-4 py-2 font-medium">依恋</th>
-            <th class="text-right px-4 py-2 font-medium">trust</th>
-            <th class="text-right px-4 py-2 font-medium">resist</th>
-            <th class="text-right px-4 py-2 font-medium">valence</th>
-            <th class="text-right px-4 py-2 font-medium">arousal</th>
-            <th class="text-left px-4 py-2 font-medium">状态</th>
+            <th class="text-left px-4 py-2 font-medium">主诉</th>
+            <th class="text-left px-4 py-2 font-medium">防御类型</th>
+            <th class="text-left px-4 py-2 font-medium">议题</th>
+            <th class="text-center px-4 py-2 font-medium">难度</th>
+            <th class="text-right px-4 py-2 font-medium">情绪基线</th>
+            <th class="text-right px-4 py-2 font-medium">防御水平</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="c in rows" :key="c.slug" class="border-t border-bg-border">
             <td class="px-4 py-2.5 font-medium">{{ c.codename }}</td>
             <td class="px-4 py-2.5 font-mono text-xs text-muted">{{ c.slug }}</td>
-            <td class="px-4 py-2.5"><span class="chip bg-bg-elevated text-accent">{{ c.attachmentType }}</span></td>
-            <td class="px-4 py-2.5 text-right font-mono text-xs">{{ c.trust.toFixed(2) }}</td>
-            <td class="px-4 py-2.5 text-right font-mono text-xs">{{ c.resistance.toFixed(2) }}</td>
-            <td class="px-4 py-2.5 text-right font-mono text-xs">{{ c.valence.toFixed(2) }}</td>
-            <td class="px-4 py-2.5 text-right font-mono text-xs">{{ c.arousal.toFixed(2) }}</td>
-            <td class="px-4 py-2.5"><span class="chip bg-bg-elevated text-ok">{{ c.status }}</span></td>
+            <td class="px-4 py-2.5 text-xs text-gray-300 max-w-[200px] truncate">{{ c.presentingComplaint }}</td>
+            <td class="px-4 py-2.5"><span class="chip bg-bg-elevated text-accent">{{ c.defenseType }}</span></td>
+            <td class="px-4 py-2.5 text-xs text-muted">{{ c.issueDomain }}</td>
+            <td class="px-4 py-2.5 text-center font-mono text-xs">{{ c.difficulty }}</td>
+            <td class="px-4 py-2.5 text-right font-mono text-xs">{{ c.emotionBaseline.toFixed(2) }}</td>
+            <td class="px-4 py-2.5 text-right font-mono text-xs">{{ c.defenseLevel.toFixed(2) }}</td>
           </tr>
         </tbody>
       </table>

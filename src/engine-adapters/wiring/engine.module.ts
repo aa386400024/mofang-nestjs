@@ -54,6 +54,7 @@ import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from './
 import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory';
 import { LocalCrisisProbe } from './risk/local-crisis.probe';
 import { RouterChatCaller } from './router-chat-caller';
+import { AdminDebugModule } from '../../admin-debug/admin-debug.module';
 import { AIEngineModule } from '../../ai-engine/ai-engine.module';
 import { QdrantService } from '../../ai-engine/providers/qdrant.service';
 import type { EngineSessionPort, MemoryStore } from '../../engine-core';
@@ -79,6 +80,8 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
     //   拆成模块后: 本文件只 import 模块 (相对路径), 零 SDK 包名; 换数据源只改
     //   CharacterPoolModule 里那一处绑定 (任务单 §5).
     CharacterPoolModule,
+    // WP19: 调试快照记录器 (每轮 BDI trace 落库).
+    AdminDebugModule,
   ],
   controllers: [EngineWiringController],
   providers: [

@@ -1,5 +1,5 @@
 // 与后端 WP19 AdminDebugModule API 契约对齐.
-// 后端未落地前 USE_MOCK=true 走假数据; 落地后改 false.
+// 后端未覆盖的字段标记为可选, 前端渲染层要做空态兜底.
 
 export interface BdiSnapshot {
   trust: number; valence: number; arousal: number
@@ -8,48 +8,45 @@ export interface BdiSnapshot {
 export interface TurnTrace {
   turnIndex: number
   bdi: BdiSnapshot
-  render: {
-    taskKind: string
-    effort: string
-    maxTokens: number
-    system: string
-    context: string
-    instructions: string
+  /** WP19 后端暂未捕获 prompt 分段, 预留空对象. */
+  render?: {
+    taskKind?: string
+    effort?: string
+    maxTokens?: number
+    system?: string
+    context?: string
+    instructions?: string
   }
-  usage: { promptTokens: number; completionTokens: number; reasoningTokens: number; ttftMs: number; finishReason: string }
+  usage: { completionTokens: number; reasoningTokens: number; totalTokens: number }
   crisis: { detected: boolean; category: string | null }
   ts: string
 }
-export interface TranscriptEntry { role: 'counselor' | 'visitor'; text: string; ts: string }
+export interface TranscriptEntry { role: string; text: string }
 export interface SessionSummary {
-  sessionId: string; characterSlug: string; visitorAlias: string
-  startedAt: string; endedAt: string | null; durationSec: number
-  status: string; totalTokens: number
+  sessionId: string
+  visitorAlias: string
+  startedAt: string | null
+  endedAt: string | null
+  durationSec: number
+  status: string
+  totalTokens: number
 }
 export interface SessionDetail extends SessionSummary {
-  turns: TurnTrace[]; transcript: TranscriptEntry[]; report: SessionReport
+  transcript: TranscriptEntry[]
+  traces: TurnTrace[]
+  report: {
+    status: string
+    techStats: Record<string, unknown> | null
+  }
 }
 export interface CharacterBaseline {
-  slug: string; codename: string; attachmentType: string
-  trust: number; resistance: number; valence: number; arousal: number; status: string
-}
-
-export interface ReportDimensions {
-  empathy: number; activeListening: number; questioning: number
-  boundary: number; response: number; professionalism: number
-}
-export interface ReportAnnotation {
-  type: 'good' | 'warn' | 'error'
-  category: string; message: string; suggestion?: string
-}
-export interface ReportTechStats {
-  commentary: string
-}
-export interface SessionReport {
-  status: 'pending' | 'completed' | 'parse_error' | 'no_content'
-  overallScore: number | null
-  dimensions: ReportDimensions | null
-  annotations: ReportAnnotation[]
-  growthSuggestions: string[]
-  techStats: ReportTechStats | null
+  slug: string
+  codename: string
+  ageRange: string
+  presentingComplaint: string
+  defenseType: string
+  issueDomain: string
+  difficulty: string
+  emotionBaseline: number
+  defenseLevel: number
 }

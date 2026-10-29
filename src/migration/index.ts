@@ -121,5 +121,8 @@ export { AddVisitorPoolTemplateVoiceId1714900000022 } from './1714900000022-AddV
 //   (bin/seed-character-profiles.ts) 按稳定 template_id 幂等 upsert.
 //   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏建.
 export { AddCharacterProfiles1714900000023 } from './1714900000023-AddCharacterProfiles';
+// V2026-10-29 治本 (WP19 — training_sessions 加 turn_debug_trace JSON 列):
+//   每轮 BDI 调试快照数组, 会话关闭时 flush. 调试器 SPA 只读.
+export { AddTurnDebugTrace1714900000024 } from './1714900000024-AddTurnDebugTrace';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

@@ -14,7 +14,7 @@ onMounted(async () => {
 })
 
 const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
-const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+const fmtTime = (iso: string | null) => iso ? new Date(iso).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '—'
 const statusColor = computed(() => (s: string) =>
   s === 'completed' ? 'text-ok' : s === 'no_content' ? 'text-muted' : 'text-danger'
 )
