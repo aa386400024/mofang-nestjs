@@ -76,8 +76,15 @@ export class LlmService {
     this.baseUrl = this.configMust(config, 'MINIMAX_BASE_URL');
     this.apiKey = this.configMust(config, 'MINIMAX_API_KEY');
     this.model = this.configMust(config, 'MINIMAX_LLM_MODEL');
-    this.timeoutMs = config.get<number>('MINIMAX_LLM_TIMEOUT_MS') ?? 30_000;
-    this.maxRetries = config.get<number>('MINIMAX_LLM_MAX_RETRIES') ?? 2;
+    // V2026-10-29 治本 (WP9-B 启动验证时挖出): 这两个数值**不能**用 `config.get<number>('MINIMAX_*')`
+    //   读**裸 env 键** —— ConfigService 不做类型转换, 拿到的是**字符串** ('60000'),
+    //   一路传到 `AbortSignal.timeout(timeoutMs)` 就会抛
+    //   `The "delay" argument must be of type number. Received type string ('60000')`
+    //   → **每一次 LLM 调用都炸** (语音/督导/分析全断, 且只在 .env 里配了这两个键时炸).
+    //   改走**已归一化的配置命名空间** (config/envs/default.ts: Number(process.env...) ?? 默认值),
+    //   与 tts-bidi-client 等同款读法 —— 数值只在一处归一, 别处只消费.
+    this.timeoutMs = config.get<number>('minimax.llmTimeoutMs') ?? 30_000;
+    this.maxRetries = config.get<number>('minimax.llmMaxRetries') ?? 2;
   }
 
   /**

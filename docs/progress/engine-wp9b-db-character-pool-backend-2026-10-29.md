@@ -145,3 +145,101 @@
 3. **displayName / 速查卡是展示关切，不是引擎决策输入**：resolver 返回 displayName 仅为 persona 快照与报告显示，内核决策不读它；**不要把 ageRange/riskTags/occupation 等展示字段塞进 CharacterProfile**（那是 BFF/前端的事）。
 4. **schema 带版本号**：`version` 列预留，终局多消费者（前端/督导台/开放 API）按版本协商，不做静默改字段。
 5. **契约不随当前 Flutter UI 冻结**：WS 帧/报告结构是当前前端的产物，后端任务单不按它写死终局；后续前端改版时契约走显式版本协商，不在后端悄悄适配。
+
+---
+
+## 12. 交付回写（2026-10-29）
+
+> 交付记录：[`engine-wp9b-db-character-pool-backend-implementation-2026-10-29.md`](./engine-wp9b-db-character-pool-backend-implementation-2026-10-29.md)
+> 状态：✅ **代码已交付并复跑绿**
+
+### 12.1 实际目录落点（与 §5 建议有 1 处偏离，见 12.3）
+
+```
+src/engine-adapters/wiring/character/
+├── character-profile.entity.ts           【新】character_profiles 实体（21 列映射 + 2 索引）
+├── db-character-profile.resolver.ts      【新】DbCharacterProfileResolver + toCharacterSeed 纯映射（零公式）
+├── character-profile.seed.ts             【新】4 个 slug 内容基线 + 自检 + 幂等 upsert + id 内容派生
+├── character-profile.admin.service.ts    【新】CRUD / 上下架 / 过审 / 软删
+├── character-profile.admin.controller.ts 【新】5 端点（class 级 JwtAuthGuard + AdminRoleGuard）
+├── character-profile.dto.ts              【新】Create / Update / Admin / List / Query DTO
+├── character-pool.module.ts              【新】独立 Nest 模块（forFeature + UserModule + 端口绑定 + 管理端）
+├── character-profile.resolver.ts         （WP9-A 已有，本轮未改）
+├── builtin-character-registry.ts         （WP9-A 已有，本轮未改 —— 唯一一份映射公式住这儿）
+└── index.ts                              【改】barrel 收紧为 ORM-free（只导出端口 + 内置种子）
+
+src/engine-adapters/wiring/engine.module.ts   【改】只 imports: [CharacterPoolModule]；零 SDK 包名；
+                                              exports 转出整个 CharacterPoolModule；EngineStreamBackend 改工厂装配
+src/engine-adapters/wiring/engine.providers.ts 【改】新增纯工厂 createEngineStreamBackend（构造归工厂，@Module 只声明映射）
+src/migration/1714900000023-AddCharacterProfiles.ts 【新】手写 DDL（up 幂等 / down 净回滚）
+src/migration/index.ts                       【改】1:1 导出新 migration
+bin/ormconfig.ts                             【改】显式数组末尾登记新 migration
+bin/seed-character-profiles.ts               【新】最小 DataSource seed 执行入口
+package.json                                 【改】新增 "seed:character-profiles"
+
+test/engine-adapters/wp9b-db-character-resolver.spec.ts 【新】§7 A/B 段 + 口径护栏（25 例）
+test/engine-adapters/wp9b-character-admin.spec.ts      【新】§7 C.10 管理端与联动（13 例）
+test/engine-adapters/wp9b-engine-stream-backend-wiring.spec.ts 【新】工厂装配 + 启动炸弹护栏（4 例）
+```
+
+### 12.2 闸门结果（本机复跑）
+
+| 命令 | 结果 |
+|---|---|
+| `npx tsc -p tsconfig.build.json --noEmit` | **0 错** |
+| `npx tsc -p tsconfig.scripts.json --noEmit` | **0 错** |
+| `npx eslint "src/**/*.ts"` | **0 error / 0 warning** |
+| `npx jest test/engine-adapters/wp9b-*.spec.ts` | **3 套件 / 42 用例全绿** |
+| `npx jest test/engine-core test/engine-adapters test/voice --maxWorkers=2` | **21 套件 / 440 用例全绿**（较 WP9-A 的 18/398 新增 3 套件 42 例；engine-core / WP9-A 既有用例零回归） |
+| **`npm start`（真起服务）** | **启动成功**：`Nest application successfully started`；`/engine/admin/character-profiles` 5 路由全部 mapped；无 token 访问 → **401**；全程无 `ERROR` / `ExceptionHandler` |
+| `npm run migration:run` | `AddCharacterProfiles1714900000023 executed successfully`；复跑 → `No migrations are pending` |
+| `npm run migration:revert` | **成功**（表被删）；再 `migration:run` → 表恢复 |
+| `npm run seed:character-profiles` | 首跑 `新增 4 / 更新 0 / 未变 0`；连跑 `新增 0 / 更新 0 / 未变 4`（**幂等**） |
+| `DESCRIBE character_profiles` | **21 列**，与 §3 逐列一致 |
+| `SHOW INDEX FROM character_profiles` | `PRIMARY` / `uniq_cp_template_id` / `idx_cp_audit_enabled` |
+| `git diff --stat HEAD -- src/engine-core` | **空**（内核整树零改动） |
+| `src/voice/**` · `src/agent/**` · `engine-stream-backend.adapter.ts` | **零改动** |
+
+### 12.3 与任务单的显式差异
+
+1. **§5 装配落点偏离（有理由）**：任务单写"在 `engine.module.ts` 换 `useFactory`"，字面照做会让引擎装配层 import `@nestjs/typeorm` → **破 WP8-A §8-9 护栏**（该单测按包名断言 `wiring/*.ts` 顶层零 SDK 依赖）。"为了护栏变绿去改护栏"是错的，故角色池拆成独立模块 `CharacterPoolModule`，`engine.module.ts` 只 import 它。**"换数据源只改一处"的原意完整保留**（改模块内那一处 `useFactory`）。
+2. **§5 导出面**：Nest **不允许**把 imported module 里的单个 provider 再导出一次（扫描期抛 `UnknownExportException` → 应用起不来），只能导出「本模块自己的 provider」或「整个 imported module 类」。故 `engine.module.ts` 转出的是**整个 `CharacterPoolModule`**，外部取用 `CHARACTER_PROFILE_RESOLVER` 的口子不变。
+3. **§5「`EngineStreamBackend` 零改动」**：adapter **仍为零改动**（一行未动），但装配方式由「裸类 provider」改为**工厂装配**（`createEngineStreamBackend`）。原因见 12.5 —— 这是 WP8-B 遗留的启动炸弹，不改它应用起不来。
+4. **§3 索引命名**：`INDEX(audit_status, enabled)` 落成具名 `idx_cp_audit_enabled`（`CREATE TABLE IF NOT EXISTS` 下的索引守卫按名查，具名才能幂等补齐）。
+5. **§6 `coreBeliefs` 抽取方式**：statement 仍从 `visitor_pool_templates.script.innerWorkingModel.coreBeliefs` 抽，但走**结构化参数注入**（`VisitorTemplateBeliefSource`）而非跨层 import —— 引擎层零 counselor 依赖，依赖方向单向（脚本 → 两边）。
+6. **§6 首批范围**：恰好 4 个 slug（晚晴/小满/亦舟/念安），阿禾/小舟不建行 → 回退中性，与 §6 末条一致。
+7. **§9 闸门命令**：用 `npm run migration:run`（本仓是 npm scripts，非 pnpm）；**额外加了 `npm start` 真起服务**（见 12.5）。
+
+### 12.4 关键结论（可直接引用）
+
+- **WP9-A 的"命中率恒为 0"缺口已闭合**：真实握手带来的 `vpt_*` slug 现在能命中角色。默认数据源由 `builtin` 改为 `db`（`builtin` 保留为回退/测试档，未实现值 warn 后回退 db，不静默假装生效）。
+- **映射公式仍只有一份**：`DbCharacterProfileResolver` 只做「取行 → 转 `BuiltinCharacterSeed` 形状 → 调 `buildCharacterProfile`」。两条护栏钉死：① DB 路径 vs 等价内置种子路径产出**逐字一致**；② §4 系数逐维数值断言。
+- **§4 未命中边界完整落地**：未知 slug / draft / rejected / 已下架 / 已软删 / 无 `templateId` → 一律 `null` → 中性基线，**不抛 500**；DB 抛错 → 上抛给 `EngineStreamBackend.resolveCharacter` 统一 warn + 回退中性（WP9-A 已立的容错边界，本轮不改那一层）。未命中时二次查询**区分原因**（没建档=debug / 过审态或已下架=warn）。
+- **§6 的"同一个公共人物只有一个真相"做到位**：`coreBeliefs.statement` 逐字取自来访池（入库实测 4 条原文一致），5Ps 长文与基线数值分列存放 —— 长文给人读，数值给内核吃。
+
+### 12.5 拆模块时挖出的两颗启动炸弹（本轮都修了）
+
+**这一节值得单独看**：WP9-B 把角色池拆成独立模块后，第一次**真起服务**，连炸两颗。两颗都不是 WP9-B 引入的，是 **WP8-B 就埋下、此前从未被启动验证抓到**的 —— 因为 WP8-A / WP8-B / WP9-A 的闸门只跑 `tsc` / `eslint` / `jest`，**从没真起过服务**。
+
+| # | 现象 | 根因 | 修法 |
+|---|---|---|---|
+| 1 | `UnknownExportException: Nest cannot export a provider/module that is not a part of the currently processed module (EngineWiringModule)` | provider 的声明挪进了 `CharacterPoolModule`，但 `engine.module.ts` 的 `exports` 里还留着那个 symbol。Nest 的 `Module.validateExportedProvider` **只接受**「本模块自己的 provider」或「整个 imported module 类」 | `exports` 改为转出**整个 `CharacterPoolModule`**；外部取用 `CHARACTER_PROFILE_RESOLVER` 的口子不变 |
+| 2 | `UnknownDependenciesException: Nest can't resolve dependencies of the EngineStreamBackend (?, Symbol(CHARACTER_PROFILE_RESOLVER)) ... the argument Function at index [0]` | `engine-stream-backend.adapter.ts` 里 `EngineTurnService` 是 **`import type`**（type-only 导入）。TS 的 `emitDecoratorMetadata` 遇到 type-only 导入的类类型**产不出值引用**，只能降级成 `Function` —— 编译产物实测 `design:paramtypes = [Function, Object]`。Nest 靠它决定注入什么，去容器里找 token `Function` → **不存在** → 启动即炸。**只要把 `EngineStreamBackend` 当类 provider 注册，应用就起不来**（WP8-B 起就是这个写法） | 回到仓库既定原则（构造逻辑归 `engine.providers.ts` 的纯工厂，`@Module` 只声明 token ↔ 工厂的映射）：新增 `createEngineStreamBackend`，模块改 `useFactory` + `inject: [EngineTurnService, CHARACTER_PROFILE_RESOLVER]`。走工厂后 Nest 不再读它的 `design:paramtypes` —— **`engine-stream-backend.adapter.ts` 一行未动**（守住 §5 的注入点零改动） |
+| 3 | 真实 WS 探针第一轮：`llm_start` 之后直接 `error` 帧 —— `fetch_error: The "delay" argument must be of type number. Received type string ('60000')` | `src/agent/llm/llm.service.ts` 用 `config.get<number>('MINIMAX_LLM_TIMEOUT_MS')` 读**裸 env 键** —— ConfigService 不做类型转换，拿到的是**字符串** `'60000'`，一路传到 `AbortSignal.timeout(timeoutMs)` → Node 抛。**只要 `.env` 配了这个键，每一次 LLM 调用都炸**（语音/督导/场景生成全断）；不配反而正常 —— "配了就炸"最阴 | 改读**已归一化的配置命名空间**（`minimax.llmTimeoutMs` / `minimax.llmMaxRetries`，由 `config/envs/default.ts` 用 `Number(...)` 归一）。**数值只在一处归一，别处只消费** |
+
+**护栏**（`test/engine-adapters/wp9b-engine-stream-backend-wiring.spec.ts`，4 例）：断言模块必须用 `useFactory` 注册 `EngineStreamBackend`、裸类 provider 写法不得出现、`inject` 必须显式带上 `CHARACTER_PROFILE_RESOLVER`，以及工厂确实把 resolver 转发出去了。
+
+**给后续轮的一条纪律**：引擎装配链每加一个新 provider，闸门里要带一次 **`npm start` 真起服务**（哪怕只是 `Nest application successfully started` + 路由 mapped）。`tsc` / `eslint` / `jest` 覆盖不到 DI 容器这一层 —— 这两颗雷就是纯靠 jest 全绿漏掉的。
+
+### 12.6 遗留缺口（下一轮的入口）
+
+1. **渲染 prompt 仍不吃角色信念**（§1 已划走）→ 渲染四手法（Phase2）。本轮角色只影响数值基线与 `forbiddenBehaviors` 约束。
+2. **只剩 4 个角色有行**：阿禾 / 小舟未建角色行 → 回退中性（下批扩）。
+3. **两表并存是临时切分**（§11.1）：`visitor_pool_templates` + `character_profiles` 按 `template_id` 逻辑关联，终局收敛为单一角色注册中心，Phase2 立项合并。
+4. **管理端最小面**：无分页、无批量操作、无审核工作流（内部 admin 量级够用；对外 UGC 分流是 Phase2）。
+5. **可观测性缺口**（§10 已列，属 WP13）：留痕里还没有 `characterSource: builtin|db` 与命中的 `templateId` —— 排查"这场为什么是中性"目前只能靠 resolver 日志。本轮**未偷跑**，因为字段设计属 WP13。
+6. **未做端到端真 WS 联调**（§8 明确不要求）：需端到端联调轮验证真实 WS + JWT + 命中 `vpt_*` 的会话。
+7. **`EngineStreamBackend` 的 `import type` 仍在**：本轮用「工厂装配」绕开了它（不动 adapter 是红线），但**根上的写法没变** —— 下次若有人把它当类 provider 注册，会再次起不来。护栏测试已钉住"必须用工厂"，但更彻底的做法是把 adapter 的 `import type` 改成值导入（会动 adapter，需任务单授权）。
+8. **LLM 的 token 预算字段用错，WS 端到端还差"来访开口"这一步**（探针实测）：握手 ✓、速查卡代号 = 晚晴 ✓、`llm_start` → `llm_done` ✓、无 error 帧 ✓，但 `llm_text` **0 条** —— 后端日志 `finish_reason=length`。根因：MiniMax-M3.1-Flash 是推理模型，**thinking token 计入生成长度上限**，而所有调用方传的还是旧字段 `max_tokens`（`visitor.service.ts` 传 `maxTokens: 200`；引擎侧走 `ChatCompletionRequest.maxTokens`）→ 预算被思考吃光 → content 为空。`llm.service.ts` 自己的注释早已写明"调用方要传 `max_completion_tokens`"，**是调用方没按契约传**。本轮**没改**：要定 token 预算（成本/时延口径）且会动 `src/agent/**` 与引擎渲染适配器（WP9-B 红线目录），属**模型口径决策**，该由产品/你拍板。
+9. **WS 帧信封契约与网关注释不符**（探针实测，需前端确认）：Nest `platform-ws` 默认 parser 要求 `{event, data}` 信封，裸帧 `{type,text}` 会被**静默丢弃**（不报错、不留日志）；而 `voice.gateway.ts` 注释写的是裸帧。**需确认 Flutter 实际发的是哪种** —— 若发裸帧，真机的语音对话轮次从来没跑起来过（与上面第 2 条同一类"没被真实验证过"）。本轮只按实现改了探针，**没动契约**（契约归前后端共同口径）。
+10. **引擎灰度开关未开**：`.env` 无 `ENGINE_VOICE_ENABLED` → 缺省关 → WS 走**旧 visitor 链路**（`VisitorService.openSession`），**根本不碰角色解析器**。WP9-B 的角色注入挂在**引擎路径**上，要在 WS 上看到"晚晴"的角色基线生效，需开 `ENGINE_VOICE_ENABLED=1`（WP8-B 灰度口径，缺省关是既定行为）—— **本轮未擅自改 `.env`**。

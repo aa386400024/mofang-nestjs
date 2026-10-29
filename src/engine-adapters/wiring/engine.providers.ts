@@ -37,6 +37,9 @@ import { QdrantMemoryStore } from '../persistence/qdrant-memory.store';
 import type { StreamingRenderPort } from '../rendering/streaming-render.port';
 import type { TurnSessionContext } from '../rendering/turn-render-orchestrator';
 import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
+import type { CharacterProfileResolver } from './character/character-profile.resolver';
+import { EngineStreamBackend } from './engine-stream-backend.adapter';
+import type { EngineTurnService } from './engine-turn.service';
 
 /**
  * 记忆仓储装配入参.
@@ -114,4 +117,39 @@ export function createEngineOrchestrator(deps: EngineOrchestratorDeps): TurnRend
     memories: deps.memories,
     resolveSession: (handleId: string) => deps.registry.resolve(handleId),
   });
+}
+
+/**
+ * 装配引擎版对话后端入参.
+ */
+export interface EngineStreamBackendDeps {
+  /** 引擎门面 (open / turn / close). */
+  readonly engine: EngineTurnService;
+  /** 角色解析端口 (缺省 = 无角色 = 中性基线). */
+  readonly resolver?: CharacterProfileResolver;
+}
+
+/**
+ * 装配引擎版对话后端 (voice 侧窄接口实现).
+ *
+ * **为什么必须走工厂, 不能把它当类 provider 直接注册** (WP8-B 遗留的启动炸弹):
+ *   `engine-stream-backend.adapter.ts` 里 `EngineTurnService` 是 **type-only 导入**
+ *   (`import type { EngineTurnService }`). TypeScript 的 `emitDecoratorMetadata`
+ *   遇到 type-only 导入的类类型时**产不出值引用**, 只能降级成 `Function` ——
+ *   于是编译产物是 `design:paramtypes = [Function, Object]`.
+ *   而 Nest 正是靠 `design:paramtypes` 决定构造参数要注入什么: 它会去容器里找一个
+ *   token 叫 `Function` 的 provider —— **不存在** → 启动直接抛
+ *   `UnknownDependenciesException: Nest can't resolve dependencies of the
+ *   EngineStreamBackend ... the argument Function at index [0]`.
+ *   也就是说: 只要把 EngineStreamBackend 当**类 provider** 注册, 应用就起不来.
+ *   (WP8-B 起就是这个写法, 一直没被抓到 —— WP8-A/8-B 的闸门只跑 tsc/eslint/jest,
+ *   **从没真起过服务**.)
+ *   走工厂后 Nest 完全不读它的 `design:paramtypes` (工厂的 inject 是显式给的),
+ *   这颗雷被拆掉, 而且**不用改 adapter 一行** (注入点保持零改动).
+ *
+ * @param deps 装配入参
+ * @returns 引擎版对话后端
+ */
+export function createEngineStreamBackend(deps: EngineStreamBackendDeps): EngineStreamBackend {
+  return new EngineStreamBackend(deps.engine, deps.resolver);
 }

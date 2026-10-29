@@ -33,25 +33,23 @@
 //       写在 useFactory 里的代码单测覆盖不到, 等于"装配正确性"没有护栏.
 //     - V2026-10-29 (WP9-A) 起新增角色解析端口绑定: 角色是**可选增强**,
 //       解析器缺席 = 无角色 = 中性基线, 不影响会话开合.
+//     - V2026-10-29 (WP9-B) 起绑定切到 db 数据源 (MySQL 角色池), 并注册
+//       `character_profiles` 实体 + 角色资产池管理端点 (内部 admin 鉴权).
 //
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. 启动后 curl POST /engine/debug/open → /turn → /close 能跑通一轮
 //     3. test/engine-adapters/wp8-wiring.spec.ts 覆盖装配链与配置面
 
-import { Logger, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import {
-  BUILTIN_CHARACTER_SEEDS,
-  BuiltinCharacterProfileResolver,
-  CHARACTER_PROFILE_RESOLVER,
-  type CharacterProfileResolver,
-} from './character';
+import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver } from './character';
+import { CharacterPoolModule } from './character/character-pool.module';
 import { EngineStreamBackend } from './engine-stream-backend.adapter';
 import { EngineSessionRegistry, EngineTurnService } from './engine-turn.service';
 import { EngineWiringController } from './engine-wiring.controller';
-import { createEngineMemoryStore, createEngineOrchestrator, createEngineSessionPort } from './engine.providers';
+import { createEngineMemoryStore, createEngineOrchestrator, createEngineSessionPort, createEngineStreamBackend } from './engine.providers';
 import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from './engine.tokens';
 import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory';
 import { RouterChatCaller } from './router-chat-caller';
@@ -69,7 +67,17 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
  * 引擎装配模块 (NestJS).
  */
 @Module({
-  imports: [LlmModule, AIEngineModule],
+  imports: [
+    LlmModule,
+    AIEngineModule,
+    // V2026-10-29 (WP9-B): 角色资产池自成一个模块 (表实体 + 解析端口绑定 + 管理端点).
+    //   为什么要它独立: 引擎装配层有一条硬约束 —— **不得直接依赖 ORM / 向量库 / 厂商
+    //   SDK** (WP8-A §8-9 单测按包名判定). 角色池必须连库, 若把它的 provider 直接写
+    //   在这里, 本文件就得 import '@nestjs/typeorm' —— 护栏会红.
+    //   拆成模块后: 本文件只 import 模块 (相对路径), 零 SDK 包名; 换数据源只改
+    //   CharacterPoolModule 里那一处绑定 (任务单 §5).
+    CharacterPoolModule,
+  ],
   controllers: [EngineWiringController],
   providers: [
     // 调用出口: router → 窄面.
@@ -124,46 +132,46 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
     EngineTurnService,
     // WP8-B: 引擎版对话后端 (实现 voice 侧窄接口) —— 灰度开关打开时, 语音链路
     // 用它取代旧 visitor 直出; 开关关闭时 voice 侧根本不注入它 (旧链路 100% 原样).
-    EngineStreamBackend,
+    // V2026-10-29 (WP9-B) 改为**工厂装配** (不是类 provider):
+    //   adapter 里 EngineTurnService 是 type-only 导入 → 编译产物的
+    //   design:paramtypes[0] 退化成 `Function` → Nest 按 token `Function` 去容器里
+    //   找 provider 找不到 → 启动抛 UnknownDependenciesException.
+    //   (这是 WP8-B 起的既有启动炸弹, 不是本轮引入; WP8-A/8-B 只跑 tsc/eslint/jest,
+    //    从没真起过服务, 所以一直没暴露.)
+    //   走工厂后 Nest 不再读它的 design:paramtypes, 注入点是**显式**给的:
+    //   引擎门面 + 角色解析端口 (后者来自 CharacterPoolModule).
+    {
+      provide: EngineStreamBackend,
+      useFactory: (engine: EngineTurnService, resolver: CharacterProfileResolver): EngineStreamBackend =>
+        createEngineStreamBackend({ engine, resolver }),
+      inject: [EngineTurnService, CHARACTER_PROFILE_RESOLVER],
+    },
     {
       provide: VOICE_TURN_BACKEND,
       useExisting: EngineStreamBackend,
     },
-    // WP9-A: 角色解析端口 (可替换数据源). 本期只提供**内置种子**实现;
-    // WP9-B 接 MySQL 角色池时**只改这一处绑定** (换实现), 注入点与
-    // EngineStreamBackend 零改动 —— 这正是"先做 A、避免边建表边改装配"的价值.
-    //
-    // 为什么走 useFactory 而不是 useClass: BuiltinCharacterProfileResolver 的构造
-    // 参数带默认值, Nest 直接 new 会把 Object 当成待注入依赖而报错.
-    {
-      provide: CHARACTER_PROFILE_RESOLVER,
-      useFactory: (config: ConfigService): CharacterProfileResolver => {
-        const source = readCharacterSource(config);
-        if (source !== 'builtin') {
-          // 不静默假装 db 生效: 配置了还没实现, 必须让人看见.
-          new Logger(EngineWiringModule.name).warn(
-            `[WP9-A] ENGINE_CHARACTER_SOURCE=${source} 尚未实现 (角色池落库属 WP9-B), 本轮回退内置种子`,
-          );
-        }
-        return new BuiltinCharacterProfileResolver(BUILTIN_CHARACTER_SEEDS);
-      },
-      inject: [ConfigService],
-    },
+    // WP9-A: 角色解析端口 (可替换数据源) —— V2026-10-29 (WP9-B) 起绑定移进
+    //   CharacterPoolModule (数据源切换 = 改那一处 useFactory; 注入点零改动).
+    //   本模块只 import 该模块, 不再直接持有角色池 provider —— 引擎装配层因此
+    //   零 ORM / 零 SDK 包名 (WP8-A §8-9 护栏).
   ],
-  exports: [EngineTurnService, ENGINE_SESSION_PORT, ENGINE_RENDER_PORT, VOICE_TURN_BACKEND, CHARACTER_PROFILE_RESOLVER],
+  exports: [
+    EngineTurnService,
+    ENGINE_SESSION_PORT,
+    ENGINE_RENDER_PORT,
+    VOICE_TURN_BACKEND,
+    // V2026-10-29 (WP9-B): 角色解析端口的 provider 声明在 CharacterPoolModule 里,
+    //   本模块**不能**再把那个 symbol 单独导出一遍 —— Nest 的
+    //   `Module.validateExportedProvider` 只接受两种导出:
+    //     ① 本模块自己 providers 里声明的 provider;
+    //     ② 一个**整个 imported module 类** (即 `imports.includes(token)`).
+    //   导出 imported module 里的**单个 provider** 会直接抛
+    //   `UnknownExportException: Nest cannot export a provider/module that is not
+    //   a part of the currently processed module` —— 应用起不来.
+    //   所以这里转出**整个 CharacterPoolModule**: 外部模块照样能从本模块拿到
+    //   CHARACTER_PROFILE_RESOLVER (它由 CharacterPoolModule 的 exports 提供),
+    //   对外取用口子与 WP9-A 保持一致, 而引擎装配层依旧零 ORM / 零 SDK 包名.
+    CharacterPoolModule,
+  ],
 })
 export class EngineWiringModule {}
-
-/**
- * 读角色数据源配置 (WP9-A).
- *
- * 缺省 builtin; 其它值本期**只记告警不改行为** (db 分支归 WP9-B).
- *
- * @param config 配置服务
- * @returns 归一化后的数据源标识
- */
-function readCharacterSource(config: ConfigService): string {
-  const raw = config.get<string>('ENGINE_CHARACTER_SOURCE');
-  const source = (raw ?? 'builtin').trim().toLowerCase();
-  return source.length > 0 ? source : 'builtin';
-}
