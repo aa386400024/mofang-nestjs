@@ -3,7 +3,7 @@
 > 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md)
 > 愿景备查: [`../reference/ai-simulation-blueprint-v1.1.md`](../reference/ai-simulation-blueprint-v1.1.md)（冲突以母版为准；蓝图选 pgvector，本仓 D2 拍板 Qdrant）
 > 设计原则原件（已转写归档，仅作依据，冲突以母版为准）：[`bdi-cognitive-engine-principles-v1.0.md`](../reference/bdi-cognitive-engine-principles-v1.0.md)（BDI 决策/渲染边界）、[`architecture-blindspot-fill-v1.0.md`](../reference/architecture-blindspot-fill-v1.0.md)（14 项盲区补全，经本仓架构裁剪后落地）。
-> 日期: 2026-10-28（进度登记更新于 2026-10-29）｜ 状态: 🟡 **WP0–WP7 纯层与渲染闭环已交付；WP8-A 聚合装配 + MiniMax provider 已交付并真实 E2E 通；WP8-B 流式原生+WS 灰度已交付审核通过；WP9-A 角色注入（内置种子）已交付并审核通过；下一项 WP9-B（MySQL 角色池 + 真实 vpt slug 命中）待拆单**
+> 日期: 2026-10-28（进度登记更新于 2026-10-29）｜ 状态: 🟡 **WP0–WP7 纯层与渲染闭环已交付；WP8-A 聚合装配 + MiniMax provider 已交付并真实 E2E 通；WP8-B 流式原生+WS 灰度已交付审核通过；WP9-A 角色注入（内置种子）已交付并审核通过；WP9-B（MySQL 角色池 + 真实 vpt slug 命中）🟡 进行中，后端已开工**
 > 2026-10-29 增补：按两份设计原则（BDI 原则 / 盲区补全）经本仓架构裁剪，新增 Phase1 小项 WP14 学员风险兜底、WP15 算子幅度声明+回归、WP16 轻量幂等+断流不叠加；Phase2+ 保留推进队列见文末（全量保留，逐步推进，非丢弃）。
 > 仓库: `E:\Work\Project\backend\mofang-nestjs`
 
@@ -52,6 +52,7 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 | MiniMax chat provider | ✅ 已交付 | 任务单 `llm-minimax-chat-provider-backend-2026-10-28.md`；记录 `llm-minimax-chat-provider-implementation-2026-10-28.md` | 真实 E2E reply 通（fallbackUsed=false/providerHint=minimax）；窄面 uid/AbortSignal 归 WP8-B |
 | **WP8-B 流式原生渲染 + WS 灰度切旧** | ✅ 已交付并审核通过（2026-10-29） | 任务单 `engine-wp8b-streaming-ws-grayscale-backend-2026-10-29.md`；记录 `engine-wp8b-streaming-ws-grayscale-backend-implementation-2026-10-29.md` | B 方案流式原生/单一实现；tsc0 错、eslint0、370 用例全绿、engine-core 零改动；角色注入归 WP9 |
 | **WP9-A 角色内核解析注入（内置种子，零 DB）** | ✅ 已交付并审核通过（2026-10-29） | `engine-wp9a-character-profile-seed-injection-backend-2026-10-29.md`；记录 `engine-wp9a-character-profile-seed-injection-implementation-2026-10-29.md` | 2 内置种子+Resolver 端口+openSession 注入；engine-core 零改动；已知命中率 0（`builtin_*`≠握手 `vpt_*`）与"角色语义未进渲染 prompt"如实记录，归 WP9-B/后续 |
+| **WP9-B MySQL 角色资产池（DbResolver）** | 🟡 进行中（2026-10-29 转后端开工） | 任务单 `engine-wp9b-db-character-pool-backend-2026-10-29.md` | `character_profiles` 表+审核上下架+`DbCharacterProfileResolver` 换 builtin；首批 4 个 vpt slug（晚晴/小满/亦舟/念安）；含速查卡回填、resume 重载、终局形态预留条款 |
 
 > WP8 总目标拆为两段：**WP8-A（聚合装配，已交付）** 先在调试端点跑通真实 reply；**WP8-B（流式原生 + 接 voice WS + 灰度，本单）** 才是端到端对练闭环。两者不合并，避免在装配期长出第二套渲染。
 
@@ -121,7 +122,7 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 - **不做**：UGC 提交-审核-分成流（Phase2/§8 不做清单）；流派差异化参数（Phase2）。
 - **切分（2026-10-29）**：本条目拆为两轮，先打通注入链路再接 DB，避免边建表边改装配返工。
   - **WP9-A（本轮，任务单 [`engine-wp9a-character-profile-seed-injection-backend-2026-10-29.md`](./engine-wp9a-character-profile-seed-injection-backend-2026-10-29.md)）**：适配层建 `CharacterProfileResolver` 端口 + 内置 2 个硬编码种子角色（零 DB），确定性映射成 `characterProfile` 并在 openSession 注入；无角色回退中性基线。覆盖原条目第 3 条（注入）与可复现验收。
-  - **WP9-B（下一轮）**：5Ps schema 落 MySQL（手写 migration 禁 synchronize）、审核状态/未审核不可用、`DbCharacterProfileResolver` 实现同一端口替换 builtin、角色 CRUD/上下架。覆盖原条目第 1/2/4 条与 migration 可回滚验收。
+  - **WP9-B（本轮，任务单 [`engine-wp9b-db-character-pool-backend-2026-10-29.md`](./engine-wp9b-db-character-pool-backend-2026-10-29.md)）**：5Ps schema 落 MySQL（手写 migration 禁 synchronize）、审核状态/未审核不可用、`DbCharacterProfileResolver` 实现同一端口替换 builtin、角色 CRUD/上下架。覆盖原条目第 1/2/4 条与 migration 可回滚验收。
     - **闭合 WP9-A 遗留口径（2026-10-29 审核补记）**：WP9-A 单测只用 synthetic `builtin_*` key 命中，真实握手 `vpt_*` slug 在 DB resolver 落地前仍回退中性基线——这是 A 的预期行为，不返工 A。B 验收必须覆盖**一个真实 `vpt_*` slug 经 `visitor_pool_templates` 行解析出 5Ps 基线并注入 openSession**，不能只测 builtin key；同时明确"未知/未上架 slug → 回退中性 + warn"的边界仍由 resolver 端口承担。
     - **速查卡回填（防"角色上了、前端空卡"双胞胎）**：`CharacterProfile`（引擎基线）与 `VisitorCard`（codename/ageRange/occupation/presentingComplaint/riskTags，voice 层拼 ready 帧）是两个数据源描述同一个来访者。WP9-B 的 DB resolver 在返回 `characterProfile` 的同时**必须回填速查卡展示字段**（从同一 `visitor_pool_templates`/5Ps 行带出），不能让引擎是回避型、前端速查卡却是 `voice.gateway.ts` 的默认空卡。验收：新引擎路径 ready 帧的速查卡非空，且与注入角色一致。
     - **resume 重载角色基线**：WP9-A 只在 fresh openSession 传 characterProfile。B 验收必须加一条：用角色 A 开场 → close → resume → 内核 `coreBeliefs`/基线仍是 A 的信念，不是默认中性值。若角色基线不在持久化快照里，resume 后会"来访突然变中性"——这是抽离为独立会话服务时必须保住的不变量。
@@ -240,6 +241,7 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 | 跨会话间隔自然衰减 | resume 前按间隔对情绪/阻抗/信念/同盟差异化半衰期回落，破裂态阻抗反升 | WP2 记忆、resume 接线 | 跨会话接续上线时 | Phase2 |
 | 评估引擎基础版 | 旁路异步消费 BDI 快照/对话/伦理标签，先做基础技术+伦理维度，复用 turn-analysis | WP8-B、WP13 留痕 | 复盘报告需要时 | Phase2 |
 | **旧 visitor prompt 链路退役** | 删除 `src/agent/visitor` 旧直出链路与灰度开关，收敛为单一路径；不删则永久双份维护（改帧契约要改两遍） | WP17 旁路对齐连续绿、M2 通过 | M2 后即排，不长期挂着 | Phase1 收尾 |
+| 角色注册中心（character service） | 把 `visitor_pool_templates`（图鉴/速查卡）与 `character_profiles`（引擎基线）收敛为单一角色服务：5Ps/基线/速查/版本/审核同源，引擎与前端同取；`CharacterProfileResolver` 终局换成对该服务的远程调用 | WP9-B、UGC 审核流 | 角色扩到几十个 / 开放 API 立项时 | Phase2 |
 | 记忆会话级摘要压缩 | 单会结束生成摘要替代原始轮次，近原始远摘要，异步 | WP12 记忆遗留 | 长程会话变长后 | Phase2 |
 | 角色版本 semver | 主版本进行中锁定/次版本平滑/修订实时，迁移重校准 | WP9、UGC 体系 | UGC 上线时 | Phase2 |
 | UGC 角色运行时风控 | 风险画像（拦截频次/举报率/偏离度）+ 低预警/中限曝光/高自动下架 | UGC 审核流 | UGC 上线时 | Phase2 |
