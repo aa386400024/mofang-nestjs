@@ -52,6 +52,15 @@ const FALLBACK_PRESET: VoiceSessionPreset = {
 const MAX_SESSION_ID_LENGTH = 64;
 
 /**
+ * 轨迹剧本 id 长度上限 (V2026-10-30, WP10).
+ *
+ * 与 sessionId / voiceId 同理: 值完全由客户端提供, 且会被拼进日志与下游查询 ——
+ * 不设上限等于给了客户端一个"往日志里灌任意长字符串"的口子.
+ * 64 足够放 "ethical_suicide_crisis" 这类资产 key.
+ */
+const MAX_SCRIPT_ID_LENGTH = 64;
+
+/**
  * 音色 voice_id 长度上限 (V2026-10-26, spec §任务 1).
  *
  * 官方对**自定义** voice_id 的上限是 256 (见《音色快速复刻》文档), 系统音色 id
@@ -116,6 +125,17 @@ export interface VoiceHandshakeQuery {
    * 非法值已丢弃 (undefined = 不聚焦单一技巧); 全流程 / 个案不传.
    */
   readonly skillCode?: VoiceSkillCode;
+  /**
+   * V2026-10-30 治本 (WP10): 轨迹剧本 id (伦理盲盒剧本的 key).
+   *
+   * 缺省 = 本场无剧本约束 (BDI 自由运行); 解析层**不校验**这个 id 存不存在 ——
+   * 查不到是运行时 warn + 回退自由运行, 不是握手期断连.
+   *
+   * 为什么不按白名单校验 (与 skillCode 不同): skillCode 是**枚举**, 拼错了说明
+   * 客户端 bug, 丢弃即可; 剧本 id 是**资产 key**, 集合会随 Phase2 的剧本池增长,
+   * 在握手期钉死白名单 = 每加一个剧本就要改 voice 层 (违反"换数据源不该改注入点").
+   */
+  readonly scriptId?: string;
 }
 
 /**
@@ -157,6 +177,9 @@ export function parseVoiceHandshake(url: string): VoiceHandshakeQuery {
     //   voiceId / skillCode 都是**可选增量**, 不影响任何现有字段的解析口径.
     voiceId: readVoiceId(params.get('voiceId')),
     skillCode: readSkillCode(params.get('skillCode')),
+    // V2026-10-30 治本 (WP10): 轨迹剧本 id —— 同样是**可选增量**, 只做去空白与
+    //   长度封顶, 不做存在性校验 (资产集合会增长, 把白名单钉在 voice 层是错位).
+    scriptId: readScriptId(params.get('scriptId')),
   };
 }
 
@@ -273,6 +296,26 @@ function readSkillCode(raw: string | null): VoiceSkillCode | undefined {
   const value = readOptional(raw)?.toLowerCase();
   if (value === undefined) return undefined;
   return SKILL_CODES.find((item) => item === value);
+}
+
+/**
+ * 读轨迹剧本 id (V2026-10-30, WP10).
+ *
+ * 与 sessionId 同款清洗: 去控制字符 (含 \n, 防伪造日志行) + 长度封顶 + 去空白.
+ *
+ * 不做存在性校验: 剧本是**可选增强**, 查不到由下游 warn + 回退自由运行;
+ * 在握手期就断连会把"客户端想试一个还不存在的剧本"升级成"开不了会".
+ *
+ * @param raw 原始值
+ * @returns 清洗后的剧本 id; 未提供 / 清洗后为空 → undefined
+ */
+function readScriptId(raw: string | null): string | undefined {
+  const value = readOptional(raw);
+  if (value === undefined) return undefined;
+  // eslint-disable-next-line no-control-regex
+  const cleaned = value.replaceAll(/[\u0000-\u001F\u007F]/g, '').trim();
+  if (cleaned.length === 0) return undefined;
+  return cleaned.slice(0, MAX_SCRIPT_ID_LENGTH);
 }
 
 /**

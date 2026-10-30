@@ -57,17 +57,41 @@
 //     - 不手改内核快照: 初始快照由内核 `buildInitialSnapshot` 装配 (含 label 重算),
 //       适配层只交出纯对象, 不在外部拼快照.
 //
+//   V2026-10-30 治本 (WP10 · B 层 · 轨迹剧本注入):
+//   职责: 开场时把"剧本 id"解析成内核 `TrajectoryScript` 并注入内核的 `trajectory`
+//         字段, 让伦理盲盒剧本在**第一轮之前**就位; 解析不到就走 BDI 自由运行.
+//   边界: 只做"解析 → 注入"; 剧本内容 (10 个伦理盲盒) 全在 `wiring/trajectory/`,
+//         本文件**不认识**任何具体剧本, 也不判断"这次会谈该不该有剧本".
+//
+//   为什么解析点与角色解析收敛在同一个文件:
+//     翻译点只有一处是 WP8-B 立下的纪律 —— 引擎语义 → 语音语义必须收敛.
+//     剧本解析同属"引擎语义": 窄接口只透传"剧本 key"这个**原始事实**,
+//     "这个 key 意味着什么样的伦理事件"是引擎侧的事. voice 层若自己去解析剧本,
+//     voice 层就得知道剧本语义, 灰度一关就全是死代码.
+//
+//   反双胞胎 (WP10):
+//     - 不在 voice 层判断"有没有剧本": 它只透传 scriptId 字符串.
+//     - 不在本文件写剧本内容: 只调 resolver, 拿到什么注入什么.
+//     - 不因为"查不到剧本"抛错: 剧本是可选增强 (与角色解析同款语义),
+//       查不到 = warn + 回退自由运行, 会话照常开.
+//     - 不给旧 VisitorService 加剧本支持: 它不接新引擎剧本, 天然 undefined.
+//
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/voice/wp8b-grayscale.spec.ts 覆盖 delta → content / 结束 → done / 失败 → error
 //     3. test/engine-adapters/wp9a-open-profile.spec.ts 覆盖角色注入 / 中性回退 / 快照一致性
+//     4. test/engine-adapters/wp10-trajectory-injection.spec.ts 覆盖剧本注入 / 未命中回退 / 零回归
+//
+//   时间戳: 2026-10-30 GMT+8
 
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 
 import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver, type ResolvedCharacter } from './character';
 import type { EngineTurnService } from './engine-turn.service';
+import { TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory';
 import type { LlmStream, LlmStreamChunk } from '../../agent/llm/llm.types';
 import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types';
+import type { TrajectoryScript } from '../../engine-core';
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
 import type {
   VoiceTurnBackend,
@@ -132,6 +156,17 @@ export class EngineStreamBackend implements VoiceTurnBackend {
      */
     @Optional() private readonly frames?: VoiceFrameRegistry,
     /**
+     * 轨迹剧本解析器 (WP10).
+     *
+     * 为什么 @Optional: 剧本是**可选增强**, 与角色解析同款语义 —— 装配缺失 (旧装配 /
+     * 独立单测) 时必须仍然能开会话, 等同"本场无剧本 → BDI 自由运行", 而不是 500.
+     *
+     * 位置说明: 本参数排在 `traceRecorder` 之前 —— `traceRecorder` 至今没有装配入口
+     * (后端走工厂构造, Nest 不读它的 design:paramtypes), 把它挪到最后一位是为了
+     * 让工厂能用**位置参数**把剧本解析器装进来, 不必在中间插一个 undefined 占位.
+     */
+    @Optional() @Inject(TRAJECTORY_SCRIPT_RESOLVER) private readonly scriptResolver?: TrajectoryScriptResolver,
+    /**
      * 调试快照记录器 (WP19).
      *
      * 为什么 @Optional: 它由 AdminDebugModule 提供. 装配缺失时
@@ -158,6 +193,7 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     const trimmed = opts.personaId?.trim() ?? '';
     const visitorId = trimmed.length > 0 ? trimmed : NEUTRAL_PERSONA.id;
     const character = await this.resolveCharacter(opts);
+    const script = this.resolveTrajectoryScript(opts);
     const handle = this.engine.open(
       {
         sessionId: opts.sessionId,
@@ -171,6 +207,9 @@ export class EngineStreamBackend implements VoiceTurnBackend {
               ...(character.seed === undefined ? {} : { seed: character.seed }),
             }
           : {}),
+        // V2026-10-30 治本 (WP10): 有剧本才带 trajectory; 没解析到 / 没传 scriptId
+        //   时**不传这个字段** (缺省 = 本场无轨迹约束), 与现状逐字一致.
+        ...(script ? { trajectory: script } : {}),
       },
       // V2026-10-29 治本 (WP9-C): 角色代号交给装配层 → 归属登记表 → prompt dev 日志.
       { characterLabel: character?.displayName ?? '' },
@@ -183,7 +222,7 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     }
     this.logger.log(
       `[openSession] session=${opts.sessionId} handle=${handle.handleId} visitor=${visitorId} ` +
-        `character=${character?.displayName ?? 'neutral'}`,
+        `character=${character?.displayName ?? 'neutral'} script=${script?.scriptId ?? 'none'}`,
     );
     return character ? { ...NEUTRAL_PERSONA, id: visitorId, name: character.displayName } : { ...NEUTRAL_PERSONA, id: visitorId };
   }
@@ -219,6 +258,41 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     } catch (error) {
       this.logger.warn(`[openSession] 角色解析异常, 回退中性基线: ${messageOf(error)}`);
       return null;
+    }
+  }
+
+  /**
+   * 解析本场轨迹剧本 (WP10).
+   *
+   * 三种"没有剧本"的口径统一收敛到 undefined (走 BDI 自由运行), 且**都不抛错**:
+   *   1. 本场没带 scriptId (普通 voice session) —— 连 warn 都不打 (常态);
+   *   2. 剧本解析器未装配 (@Optional 缺省);
+   *   3. scriptId 查不到 (资产不存在 / Phase2 数据源未接) / 解析过程抛错.
+   *
+   * 为什么"查不到"必须是 warn 而不是抛错: 剧本是**可选增强**, 抛错会把
+   * "客户端传了个不认识的剧本 id"升级成"会话开不起来" —— 那是一个可选能力
+   * 不该有的失败半径 (与 WP9-A 角色解析同款语义).
+   *
+   * @param opts 开场参数
+   * @returns 剧本; 无剧本 → undefined
+   */
+  private resolveTrajectoryScript(opts: VoiceTurnBackendOpenOptions): TrajectoryScript | undefined {
+    const scriptId = opts.trajectoryScriptId?.trim() ?? '';
+    if (scriptId.length === 0) return undefined;
+    if (!this.scriptResolver) {
+      this.logger.warn(`[openSession] 剧本解析器未装配, scriptId=${scriptId}, 回退自由运行`);
+      return undefined;
+    }
+    try {
+      const script = this.scriptResolver.resolve(scriptId);
+      if (!script) {
+        this.logger.warn(`[openSession] 未解析到剧本 scriptId=${scriptId}, 回退自由运行`);
+        return undefined;
+      }
+      return script;
+    } catch (error) {
+      this.logger.warn(`[openSession] 剧本解析异常, 回退自由运行: ${messageOf(error)}`);
+      return undefined;
     }
   }
 

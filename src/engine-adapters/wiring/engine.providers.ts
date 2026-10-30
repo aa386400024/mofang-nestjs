@@ -40,6 +40,7 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
 import type { CharacterProfileResolver } from './character/character-profile.resolver';
 import { EngineStreamBackend } from './engine-stream-backend.adapter';
 import type { EngineTurnService } from './engine-turn.service';
+import type { TrajectoryScriptResolver } from './trajectory/script-resolver';
 import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
 
 /**
@@ -135,6 +136,12 @@ export interface EngineStreamBackendDeps {
   readonly resolver?: CharacterProfileResolver;
   /** WS 帧出口注册表 (缺省 = 推不了督导提示帧, 不影响对话). */
   readonly frames?: VoiceFrameRegistry;
+  /**
+   * 轨迹剧本解析端口 (WP10; 缺省 = 无剧本 = BDI 自由运行).
+   *
+   * 与角色解析端口**同款语义**: 可选增强, 装配缺席 ≠ 会话开不起来.
+   */
+  readonly scriptResolver?: TrajectoryScriptResolver;
 }
 
 /**
@@ -159,5 +166,5 @@ export interface EngineStreamBackendDeps {
  * @returns 引擎版对话后端
  */
 export function createEngineStreamBackend(deps: EngineStreamBackendDeps): EngineStreamBackend {
-  return new EngineStreamBackend(deps.engine, deps.resolver, deps.frames);
+  return new EngineStreamBackend(deps.engine, deps.resolver, deps.frames, deps.scriptResolver);
 }

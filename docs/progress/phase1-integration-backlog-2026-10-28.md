@@ -41,7 +41,9 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 
 > 每个 WP 独立拆成 `progress/engine-core-wpX-*-backend-*.md` 任务单后再开工；本文件只排依赖序与验收门槛，不替代任务单。
 
-### 0.3 交付进度登记（2026-10-29）
+### 0.3 交付进度登记（2026-10-30 更新）
+
+> **标注说明**：📌 = 补登（之前已交付但进度表漏记）；🆕 = 2026-10-30 新拆任务单。
 
 | 工作包 | 状态 | 任务单 / 交付记录 | 说明 |
 |---|---|---|---|
@@ -53,6 +55,16 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 | **WP8-B 流式原生渲染 + WS 灰度切旧** | ✅ 已交付并审核通过（2026-10-29） | 任务单 `engine-wp8b-streaming-ws-grayscale-backend-2026-10-29.md`；记录 `engine-wp8b-streaming-ws-grayscale-backend-implementation-2026-10-29.md` | B 方案流式原生/单一实现；tsc0 错、eslint0、370 用例全绿、engine-core 零改动；角色注入归 WP9 |
 | **WP9-A 角色内核解析注入（内置种子，零 DB）** | ✅ 已交付并审核通过（2026-10-29） | `engine-wp9a-character-profile-seed-injection-backend-2026-10-29.md`；记录 `engine-wp9a-character-profile-seed-injection-implementation-2026-10-29.md` | 2 内置种子+Resolver 端口+openSession 注入；engine-core 零改动；已知命中率 0（`builtin_*`≠握手 `vpt_*`）与"角色语义未进渲染 prompt"如实记录，归 WP9-B/后续 |
 | **WP9-B MySQL 角色资产池（DbResolver）** | ✅ 已交付并审核通过（2026-10-29） | 任务单 `engine-wp9b-db-character-pool-backend-2026-10-29.md`；记录 `engine-wp9b-db-character-pool-backend-implementation-2026-10-29.md` | `character_profiles` 21 列+审核上下架+独立 `CharacterPoolModule`（装配层零 SDK）；默认 db 数据源，4 个真实 vpt slug 命中闭合；resolver 复用唯一映射；engine-core/voice 零改动。小尾巴：小满 5Ps 人称"他"应为"她"（女），seed 顺手修 |
+| 📌 **WP9-C 语音渲染 token 预算/截断/危机路由/降级** | ✅ 已交付（2026-10-29） | 任务单 `engine-wp9c-voice-render-token-budget-safety-boundaries-2026-10-29.md`；记录 `engine-wp9c-voice-render-token-budget-safety-boundaries-implementation-2026-10-29.md` | max_completion_tokens / voice render 低 reasoningEffort / 截断半句不喂 TTS / 危机轮次同步 supervision_hint / LLM 空 429 降级本地话术 |
+| 📌 **WP18 报告生成链路 E2E** | ✅ 已交付（2026-10-29） | 任务单 `engine-wp18-session-report-generation-e2e-2026-10-29.md`；记录 `engine-wp18-session-report-generation-e2e-implementation-2026-10-29.md` | 会话结束→transcript 落库→报告 worker 触发→四态（completed/parse_error/pending/no_content）→六维评分/annotations/techStats |
+| 📌 **WP19 AdminDebugModule + BDI 快照留痕** | ✅ 已交付（2026-10-29） | 任务单 `engine-wp19-admin-debug-module-trace-2026-10-29.md`；记录 `engine-wp19-admin-debug-module-trace-2026-10-29.md` | 每轮 BDI 快照/RenderSpec 摘要/LLM usage 落库；只读 API /admin/api/sessions/:id |
+| 📌 **WP20 Vue3 调试器 SPA** | ✅ 已交付（2026-10-29） | 任务单 `engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md`；记录 `engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md` | admin-dashboard/ 独立 Vue3+Vite+Tailwind SPA，深色主题，会话回放/BDI 快照/ECharts 轨迹图 |
+| 📌 **WP21 报告 SSE 推送端点** | ✅ 已交付并审核通过（2026-10-29） | 任务单 `engine-wp21-report-sse-stream-2026-10-29.md`；记录 `engine-wp21-report-sse-stream-implementation-2026-10-29.md` | GET report/:sessionId/stream @Sse()，终态推完整报告并关流，超时推 {"status":"timeout"}，真 404 走 guard，RxJS timer 不泄漏 |
+| 🆕 **WP10 10 个伦理盲盒强覆盖剧本** | ✅ 已交付并审核通过（2026-10-30） | 任务单 `engine-wp10-ethical-blindbox-scripts-backend-2026-10-30.md`；记录 `engine-wp10-ethical-blindbox-scripts-backend-implementation-2026-10-30.md` | 10 个 force_override 剧本（静态 TS 不落库）+ TrajectoryScriptResolver 端口（Symbol token, @Optional）+ 握手 scriptId 四段透传；tsc 0 / 31 例测试绿 / engine-core 零改动；三种失败口径各有 warn 不阻断会话。前端待补握手 scriptId 参数 |
+| 🆕 **WP10A character_profiles 表达风格字段预留** | 📋 已拆单，待 WP10 后开工 | 任务单 `engine-wp10a-character-expression-style-fields-backend-2026-10-30.md` | 加 3 列（speech_volume_baseline/narrative_style/expression_tone）+ migration + 默认值，不写消费逻辑，Phase2 P1 再接线渲染层 |
+| 🆕 **WP22 语音对练限流与并发上限** | 📋 已列入，待拆单 | （待写任务单） | 单用户同时 1 场 + 日 token 预算告警，防烧 LLM 额度 |
+| 🆕 **WP23 WS 断连恢复口径明确** | 📋 已列入，待拆单 | （待写任务单） | 断连超 30s = 会话结束，前端明确提示，不静默丢 BDI 状态 |
+| 🆕 **WP24 单场成本日志** | 📋 已列入，待拆单 | （待写任务单） | closeSession 打每场总 token + 预估费用，不做看板 |
 
 > WP8 总目标拆为两段：**WP8-A（聚合装配，已交付）** 先在调试端点跑通真实 reply；**WP8-B（流式原生 + 接 voice WS + 灰度，本单）** 才是端到端对练闭环。两者不合并，避免在装配期长出第二套渲染。
 
@@ -130,6 +142,9 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 
 ## WP10 · 10 个伦理盲盒强覆盖剧本资产
 
+> 任务单：[`engine-wp10-ethical-blindbox-scripts-backend-2026-10-30.md`](./engine-wp10-ethical-blindbox-scripts-backend-2026-10-30.md)（2026-10-30 已拆，待开工）
+> 内容：10 个 force_override 剧本（表白/私加微信/熟人/录音纠纷/诊断证明/自杀危机/送礼/价值观评判/性暗示/开药建议），静态 TS 不落库，建 TrajectoryScriptResolver 端口，握手 query 加 scriptId 透传到 engine.open().trajectory。
+
 - **目标**：蓝图第 2 条——10 个核心伦理/危机盲盒用强覆盖模式落地，触发点可复现。
 - **内容**：
   1. 按 WP3 `TrajectoryScript` schema（元数据/节点序列/触发条件/参考素材/状态偏移/完成与异常分支）把盲盒写成可注入资产（表白、索要私人联系方式、熟人咨询、录音纠纷、诊断证明诉求、自杀危机等，按蓝图 §5.2 收敛到 10 个）；
@@ -151,16 +166,19 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 - **验收**：服务正常时命中 11 类风险给类别信号；服务挂掉/超时自动回落规则且不阻断对话；高风险有审计日志。
 - **不做**：MindGuard 4B/8B 自托管（后期云 API）；本 WP 不在 CPU 承诺大模型实时。
 
-## WP12 · WP2 记忆遗留补齐
+## WP12 · WP2 记忆遗留补齐 + 跨会话接续接线
 
-- **目标**：清掉 WP2 交付时标注的三项缺口，让记忆 V1 真正闭环。
+> 🔴 **2026-10-30 架构审查补记**：内核纯层 100% 支持 `resumeFromSessionId` + Qdrant 按 visitorId 跨会话召回长时记忆，但 `EngineStreamBackend.openSession()` **从来没传过这个字段**——学员关掉 App 第二天再打开同一个角色，引擎完全不记得上次。这不是"记忆技术细节"，是 M3 准入清单第 6 条直接挂的产品级缺口。本 WP 必须把"新引擎路径 resume 接线"当核心目标，不只是补 Qdrant 技术细节。
+
+- **目标**：清掉 WP2 交付时标注的缺口，让记忆 V1 真正闭环；**并把新引擎路径的跨会话接续打通**。
 - **内容**：
   1. 给 `QdrantService` 补 `setPayload`（仅改向量点 payload）与按 filter 的 `scroll` 取点，实现写侧冲突标记（`resolveConflict/applyConflictResolution` 已在内核）；
   2. 短时记忆：每轮/会话结束自动生成摘要写入，会话结束晋升长时（调 `promoteShortTermToLongTerm`），接进编排层；
   3. 标定衰减半衰期（种子 30 天）与召回阈值（种子 0.1），给出初始标定口径与可调配置，不写死。
   4. **新引擎路径逐字稿落库口径**：`EngineStreamBackend.transcripts` 现是进程内 `Map`（"供督导报告用"）。WP12 要明确 close 时由谁把逐字稿快照进报告库/记忆，不能依赖内存 Map 扛进程重启——否则新路径中途重启 = 报告 no_content。单实例 Phase1 可接受，但落库边界要写死，不留模糊。
+  5. **跨会话接续接线（产品核心）**：`EngineStreamBackend.openSession()` 接收 `resumeFromSessionId`（从握手 query 或上次会话 ID 传入），传给 `engine.open()`；resume 时内核搬上一场 BDI 快照 + 召回 Qdrant 长时记忆；开场首论带 `openingContext`。验收：同一角色第二次开场，来访记得上次核心议题，不是陌生人。
 - **依赖**：WP2（已交付）；独立可做。
-- **验收**：会话结束摘要晋升长时并可被下次 resume 召回；冲突点在 payload 标记 supersededBy；参数有配置来源与标定说明。
+- **验收**：会话结束摘要晋升长时并可被下次 resume 召回；冲突点在 payload 标记 supersededBy；参数有配置来源与标定说明；**同一角色第二次开场，来访 BDI 快照承接上次，开场首论带 openingContext**。
 - **不做**：竞争抑制遗忘精细权重（Phase2）；Chinese-MentalBERT 专用向量（Phase2 评估）。
 
 ## WP13 · 基础可观测（贯穿）
@@ -228,6 +246,39 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 - **验收**：上述 1–3 各一条绿用例（E2E/WS 录制），任意一条红则灰度不扩量、保持名单；`enginePath` 字段可在日志/报告上区分两场。
 - **不做**：不重写旁路能力本身（那是 WP11/WP14）；不做双路径并行录制对比（Phase2 评估引擎）。
 
+### WP22 · 语音对练限流与并发上限
+
+- **为什么有这条（2026-10-30 架构审查补记）**：`@Throttle` 只在 consent 控制器上有，WS 对练接口没有任何限流/并发上限。恶意刷或 bug 循环可以直接烧 LLM 额度（MiniMax 按量付费）。
+- **目标**：内测阶段最便宜的防烧钱护栏。
+- **内容**：
+  1. 单用户同时只能开 1 场语音会话（开第二场先关第一场，否则 409）；
+  2. 全局日 token 预算告警阈值（env 可配），超限拒绝新会话并提示；
+  3. 不做复杂限流系统（令牌桶/分布式），单实例 Redis 计数即可。
+- **依赖**：无。
+- **验收**：同用户开第二场被拒；日预算超限有日志+拒绝。
+- **不做**：分布式限流、按角色分级配额（Phase2）。
+
+### WP23 · WS 断连恢复口径明确
+
+- **为什么有这条（2026-10-30 架构审查补记）**：`EngineStreamBackend.handles` 是进程内 Map。WS 断了重连，如果进程没重启，`endSession` 已经清了 Map，重连后要重新 openSession——重新 open 就是全新会话，BDI 状态丢失。用户网不好断一次线，这场训练的情绪/阻抗/信任全部归零重来。
+- **目标**：Phase1 不做无缝续接，但要有明确口径和用户可见的提示，不要静默丢状态。
+- **内容**：
+  1. WS 断开超过 N 秒（env 可配，默认 30s）= 会话结束，不支持无缝重连续接 BDI 状态；
+  2. 前端收到"网络中断，本场已结束"提示，不假装还在练；
+  3. 不做"断线 5s 内重连续接 BDI"（那是 Phase2 多实例/会话持久化的事）。
+- **依赖**：无。
+- **验收**：断网 30s 后重连，前端收到会话结束提示；不出现"重连后 BDI 归零但用户不知道"。
+- **不做**：会话状态持久化到 Redis/DB（Phase2）；断线无缝续接（Phase2）。
+
+### WP24 · 单场成本日志
+
+- **为什么有这条（2026-10-30 架构审查补记）**：WP19 留了每轮 LLM usage，但没有整场汇总。内测阶段先不做看板，日志里打每场总 token + 预估费用即可。
+- **目标**：内测期能看到"这场花了多少钱"，不做看板。
+- **内容**：closeSession 时打一条结构化日志：`sessionId / model / totalPromptTokens / totalCompletionTokens / estimatedCostCny`。
+- **依赖**：WP19（usage 已留痕）。
+- **验收**：日志里能 grep 到每场成本。
+- **不做**：成本看板、告警、按用户汇总（Phase2）。
+
 ### WP18 · 会话结束→复盘报告生成链路端到端打通
 
 - **为什么有这条（2026-10-29）**：WP9-C 探针只验证了会话内流式路径（ready→llm→tts），但会话结束后的报告闭环从未验证——新引擎路径（ENGINE_VOICE_ENABLED=true）结束会话时，transcript 落库了吗？报告生成 worker 触发了吗？六维评分/annotations/techStats 真有值还是空壳？Flutter 报告页期望的四态（pending/completed/parse_error/no_content）走得通吗？任务单：[`engine-wp18-session-report-generation-e2e-2026-10-29.md`](./engine-wp18-session-report-generation-e2e-2026-10-29.md)。
@@ -263,6 +314,10 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 |---|---|---|---|---|
 | P1 人格调节算子 | 依恋/人格特质调节信任增量（安全型快、回避型慢） | WP1、WP9 角色基线 | 角色资产就位后 | Phase2 |
 | 渲染四手法 | 阻抗-表达映射、口语化/非语言、表达层轻量随机、情绪粒度（§4.6），阈值为经验种子待校准 | WP7 规格组装、WP8-B 流式 | 主线闭环后做表达优化 | Phase2 |
+| **表达风格渲染**（终局文档 P1） | WP10A 已预留 `speech_volume_baseline`/`narrative_style`/`expression_tone` 三列，Phase2 把它们接入 spec-assembler：话量基线控句长/轮次字数、叙事风格控 prompt 结构、语态倾向控情绪表达分寸；区分防御性沉默 vs 气质性沉默 | WP10A 字段预留、WP7 spec-assembler | Phase2 P1 | Phase2 |
+| **突发中断事件剧本**（终局文档 P1） | 躯体不适临时离场、外部环境干扰、情绪崩溃停顿——作为 TrajectoryScript 的 trigger 节点，复用现有 pause/resume 机制，不新造状态机 | WP10 剧本资产、WP3 轨迹纯层 | 伦理盲盒之后扩展 | Phase2 P1 |
+| **多人会谈**（终局文档 P2） | 开场多人在场/中途家属入场/沉默旁听角色——`participants[]` 数组 + 多 BDI 实例隔离记忆；初期仅平台官方制作，不开放 UGC | WP10A、WP2 记忆隔离 | Phase2 后期 | Phase2 |
+| **完整语态/沟通策略体系**（终局文档 P2） | 答非所问/重复叙述/高频"不知道"/言语试探等沟通行为策略，用剧本节点 delta 实现（不进角色基线）；地域口语+TTS 口音（口音仅在 TTS 合成，文本标准中文） | WP10 剧本、WP5 渲染 | Phase2 后期 | Phase2 |
 | 咨询同盟三维 | trust/safety/bond 独立建模，建立/破裂/修复算子，调节阻抗下降速率与记忆开放度 | WP1、P1 算子 | 长程接续需要时 | Phase2 |
 | 跨会话间隔自然衰减 | resume 前按间隔对情绪/阻抗/信念/同盟差异化半衰期回落，破裂态阻抗反升 | WP2 记忆、resume 接线 | 跨会话接续上线时 | Phase2 |
 | 评估引擎基础版 | 旁路异步消费 BDI 快照/对话/伦理标签，先做基础技术+伦理维度，复用 turn-analysis | WP8-B、WP13 留痕 | 复盘报告需要时 | Phase2 |

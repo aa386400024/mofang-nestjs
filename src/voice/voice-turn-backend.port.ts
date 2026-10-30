@@ -32,6 +32,9 @@
 //     - V2026-10-29 (WP9-A): 角色参数**只增可选字段** (templateId / skillCode / preset).
 //       必填字段会让旧实现 (VisitorService) 再也塞不进这个契约, "并存可回退"当场破产;
 //       可选字段的缺省语义是"本场无角色 → 中性基线", 与现状行为完全一致.
+//     - V2026-10-30 (WP10): 剧本参数同样**只增可选字段** (trajectoryScriptId).
+//       缺省语义 = "本场无剧本 → BDI 自由运行", 与现状行为完全一致; 旧实现
+//       (VisitorService) 天然是 undefined, 一行都不用改.
 //
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
@@ -110,6 +113,19 @@ export interface VoiceTurnBackendOpenOptions {
    * 缺省 = 本场没落库 (纯内存降级) → 推不出提示帧, 不影响对话本身.
    */
   readonly dbSessionId?: string;
+  /**
+   * V2026-10-30 治本 (WP10): 轨迹剧本 id (伦理盲盒剧本的 key).
+   *
+   * 缺省 = 本场无剧本约束 → 后端走 BDI 自由运行, 行为与现状**逐字一致**.
+   *
+   * 为什么只传字符串: voice 层**不判断**"有没有剧本"、也不认识剧本内容 ——
+   * 它只把握手带来的现场旋钮原样透传. 剧本语义 (这个 id 意味着什么样的伦理
+   * 事件与督导要点) 归引擎侧的剧本解析器负责.
+   *
+   * 查不到剧本 (id 不存在 / 解析器未装配) → 后端 warn + 回退自由运行,
+   * **不抛错** —— 剧本是可选增强, 不是会话的前置条件.
+   */
+  readonly trajectoryScriptId?: string;
 }
 
 /**

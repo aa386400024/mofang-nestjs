@@ -656,6 +656,9 @@ export class VoiceService {
           // V2026-10-29 治本 (WP9-C): 稳定落库 id —— 危机轮次要同步给督导推
           //   `supervision_hint` 帧, 而帧出口注册表是按落库 id 登记的.
           dbSessionId: meta.dbSessionId,
+          // V2026-10-30 治本 (WP10): 轨迹剧本 id —— 原样透传, voice 层不判断剧本存在性.
+          //   缺省 = 本场无剧本约束, 后端走 BDI 自由运行 (与现状逐字一致).
+          trajectoryScriptId: meta.trajectoryScriptId,
         });
         this.backends.set(meta.sessionId, this.engineBackend!);
         return persona;

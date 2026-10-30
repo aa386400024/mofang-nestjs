@@ -203,6 +203,13 @@ export interface VoiceSessionMeta {
    * 自己在跟谁做督导.
    */
   readonly visitor?: VoiceVisitorCard;
+  /**
+   * 轨迹剧本 id (V2026-10-30, WP10) — 伦理盲盒剧本的 key.
+   *
+   * undefined = 本场无剧本约束 (BDI 自由运行, 与现状行为逐字一致).
+   * 有值 = 透传给引擎侧, 由剧本解析器决定它对应哪份剧本; 查不到 → warn + 回退自由运行.
+   */
+  readonly trajectoryScriptId?: string;
 }
 
 /** 来访者 persona 快照 (VoiceService 缓存, 用于 TTS 音色 + 日志). */

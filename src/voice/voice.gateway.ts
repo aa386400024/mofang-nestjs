@@ -109,6 +109,12 @@ interface SocketData {
    * undefined = 本场未落库 (降级为纯内存会话).
    */
   dbSessionId?: string;
+  /**
+   * 轨迹剧本 id (伦理盲盒剧本 key) — V2026-10-30 (WP10).
+   *
+   * undefined = 本场无剧本约束 (BDI 自由运行, 与现状行为逐字一致).
+   */
+  trajectoryScriptId?: string;
   /** 注销 WS 帧出口的句柄 (连接断开时调). */
   unregisterFrameSink?: () => void;
 }
@@ -230,6 +236,9 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
     //   **不致命断连** —— 判不出来 (上游故障) 时也不拦, 交给 TTS 建连阶段归一为 error.
     data.voiceId = await this.resolveVoiceId(handshake.voiceId, this.resolveTemplateVoiceId(channel));
     data.skillCode = handshake.skillCode;
+    // V2026-10-30 治本 (WP10): 轨迹剧本 id 原样透传 —— gateway 不判断剧本是否存在,
+    //   也不认识剧本内容 (那两件事归引擎侧的剧本解析器).
+    data.trajectoryScriptId = handshake.scriptId;
 
     // 4. 会话落库 + 登记 WS 帧出口
     const visitorCard = this.resolveVisitorCard(channel);
@@ -385,6 +394,8 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
         voiceId: data.voiceId,
         skillCode: data.skillCode,
         dbSessionId: data.dbSessionId,
+        // V2026-10-30 治本 (WP10): 轨迹剧本 id 透传给后端 (引擎侧据此决定是否注入剧本).
+        trajectoryScriptId: data.trajectoryScriptId,
         // V2026-10-26 治本 (spec 任务 6 — 报告的人格来源):
         //   vpt 场 AI 扮演的是**公共人物** (晚晴...), 不是 agent 内置 persona ——
         //   把速查卡带进 session, 报告里的人格快照才对得上号.
@@ -416,7 +427,8 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
     return (
       `[onConnect] session=${data.sessionId} user=${data.userId} tenant=${data.tenantId} ` +
       `mode=${data.mode} channel=${channel.kind} template=${channel.kind === 'template' ? channel.templateId : '<none>'} ` +
-      `skill=${handshake.skillCode ?? '<none>'} voice=${data.voiceId ?? '<env-default>'}`
+      `skill=${handshake.skillCode ?? '<none>'} voice=${data.voiceId ?? '<env-default>'} ` +
+      `script=${handshake.scriptId ?? '<none>'}`
     );
   }
 

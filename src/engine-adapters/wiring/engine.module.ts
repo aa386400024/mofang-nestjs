@@ -54,6 +54,7 @@ import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from './
 import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory';
 import { LocalCrisisProbe } from './risk/local-crisis.probe';
 import { RouterChatCaller } from './router-chat-caller';
+import { StaticTrajectoryScriptResolver, TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory';
 import { AdminDebugModule } from '../../admin-debug/admin-debug.module';
 import { AIEngineModule } from '../../ai-engine/ai-engine.module';
 import { QdrantService } from '../../ai-engine/providers/qdrant.service';
@@ -151,12 +152,30 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
     //   引擎门面 + 角色解析端口 (后者来自 CharacterPoolModule) + WS 帧出口注册表.
     //   V2026-10-29 (WP9-C): 危机轮次要同步给督导推 supervision_hint 帧 ——
     //   帧出口注册表由 voice 侧 @Global 模块提供, 装配缺失时只影响提示帧.
+    // WP10: 轨迹剧本解析端口 (内置静态伦理盲盒剧本) —— 剧本是**可选增强**,
+    //   解析器缺席 = 无剧本 = BDI 自由运行, 不影响会话开合.
+    //   走 useFactory 显式 new (与仓库既有做法一致): 静态实现零构造参数,
+    //   但 useClass 会让 Nest 按 design:paramtypes 找依赖, 不如工厂直给.
+    {
+      provide: TRAJECTORY_SCRIPT_RESOLVER,
+      useFactory: (): StaticTrajectoryScriptResolver => new StaticTrajectoryScriptResolver(),
+    },
     {
       provide: EngineStreamBackend,
-      useFactory: (engine: EngineTurnService, resolver: CharacterProfileResolver, frames: VoiceFrameRegistry): EngineStreamBackend =>
-        createEngineStreamBackend({ engine, resolver, frames }),
+      useFactory: (
+        engine: EngineTurnService,
+        resolver: CharacterProfileResolver,
+        frames: VoiceFrameRegistry,
+        scriptResolver: TrajectoryScriptResolver,
+      ): EngineStreamBackend => createEngineStreamBackend({ engine, resolver, frames, scriptResolver }),
       // 帧出口注册表由 voice 侧的 @Global 模块提供; optional = 缺了只影响督导提示帧.
-      inject: [EngineTurnService, CHARACTER_PROFILE_RESOLVER, { token: VoiceFrameRegistry, optional: true }],
+      // 剧本解析端口同理: optional = 缺了只影响伦理盲盒剧本, 不影响会话开合.
+      inject: [
+        EngineTurnService,
+        CHARACTER_PROFILE_RESOLVER,
+        { token: VoiceFrameRegistry, optional: true },
+        { token: TRAJECTORY_SCRIPT_RESOLVER, optional: true },
+      ],
     },
     {
       provide: VOICE_TURN_BACKEND,
