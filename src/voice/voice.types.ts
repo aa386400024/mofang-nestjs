@@ -10,8 +10,8 @@
 //
 //   反双胞胎:
 //     - 不用 GraphQL subscription: 实时语音场景 REST/GraphQL 复杂, WS 一阶消息最简
-//     - 不用 Socket.IO: 项目用 NestJS @WebSocketGateway + ws, 不引新依赖
 //     - 不用 MsgPack / Protobuf: 纯 JSON 帧足够, 调试直接看文本
+//     - V2026-10-30: 从原生 ws 切回 Socket.IO (见 voice.gateway.ts 的注释)
 
 import type { VoiceSessionMode, VoiceSessionPreset, VoiceSkillCode, VoiceVisitorCard } from './voice-session.types';
 

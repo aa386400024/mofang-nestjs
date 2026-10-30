@@ -166,13 +166,14 @@ export function parseVoiceHandshake(url: string): VoiceHandshakeQuery {
 
   return {
     // V2026-10-24 治本 (WS 握手 sessionId 改从 query 读取):
-    //   原因: `@nestjs/platform-ws` 把 `@WebSocketGateway({ path })` 原样传给 `ws`,
-    //     而 `ws` 的 `shouldHandle` 是**精确比较** (`pathname !== this.options.path` → 直接
+    //   原因: 原生 ws 的 `shouldHandle` 是**精确比较** (`pathname !== this.options.path` → 直接
     //     `abortHandshake(socket, 400)`) —— 子路径 `/voice/training/<sid>` 在 **HTTP upgrade
     //     阶段**就被拒, 根本进不到 `handleConnection`.
     //     更隐蔽的后果: path 形式失效后 sid 恒为 'default', 会话 Map / 演练登记会
     //     **全部撞同一个 key** (不同用户的会谈互相串设定).
     //   修法: sessionId 改从 query 读 (`?sessionId=<uuid>`), path 正则保留作旧格式兜底.
+    //   V2026-10-30: 切到 Socket.IO 后, path 处理方式变了 (命名空间概念),
+    //     但 query 读取 sessionId 的逻辑不变 —— 这个修法仍然成立.
     //   反双胞胎:
     //     - 不去做前缀通配 / 不改 gateway 的 path: 前端已按精确路径 + query 对接,
     //       网关侧再开子路径等于两套契约并存

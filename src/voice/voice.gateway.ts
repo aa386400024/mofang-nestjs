@@ -21,19 +21,19 @@
 //       - 无 templateId → 走**兜底人设通道** (专项兜底 / 自定义人设来源), **不再**报
 //         template_not_found 断连 (老实现把两者混在同一分支, 专项兜底入口被直接断连).
 //
-//   平台适配: 用 @nestjs/platform-ws (基于 ws 包, 项目已装 8.21.3),
-//     不引 socket.io (省 200KB+ 包大小 + 更轻量).
+//   平台适配: V2026-10-30 从 @nestjs/platform-ws 切回 @nestjs/platform-socket.io.
+//     原因: 原生 ws 要自己写心跳/重连/断连检测, Socket.IO 开箱即用.
+//     语音对练长连接场景, 移动端网络不稳定, 重连和保活是刚需.
 //
 //   反双胞胎:
-//     - 不用 Socket.IO — @nestjs/platform-ws 更轻
 //     - 不在 gateway 里做业务编排 — gateway 只做 transport, 业务在 VoiceService
 //     - 不缓存 client 连接 — disconnect 时直接 endSession, 资源清理彻底
 //     - 不在 gateway 里查模板表 — 模板数据属 counselor 业务域, 走 VoiceTemplateRegistry 插槽
 //
 //   如何验证 (由大炮在 Windows 环境手动执行):
 //     1. tsc 0 错
-//     2. wscat -c "ws://localhost:3000/voice/training/<sid>?token=***<jwt>&templateId=vpt_intimate_avoidance_l1&mode=voice" — 连接成功
-//     3. 发 {"type":"user_text","text":"你好"} — 收到 llm_start/llm_text/sentence_start/tts_audio/sentence_end/llm_done/tts_done
+//     2. 用 socket.io-client 连接: io('http://localhost:3000/voice/training', { query: { token: '<jwt>', sessionId: '<sid>' } })
+//     3. 发 { type: 'user_text', text: '你好' } — 收到 llm_start/llm_text/sentence_start/tts_audio/sentence_end/llm_done/tts_done
 //     4. 换一个不存在的 templateId — 收到 error(template_not_found) 且连接被关
 
 import { Logger } from '@nestjs/common';
@@ -47,8 +47,7 @@ import {
   SubscribeMessage,
   WebSocketGateway,
 } from '@nestjs/websockets';
-import type { IncomingMessage } from 'node:http';
-import type { WebSocket as WsWebSocket } from 'ws';
+import type { Socket } from 'socket.io';
 
 import { VoiceCatalogRegistry } from './voice-catalog-slot';
 import { VoiceFrameRegistry } from './voice-frame-registry';
@@ -126,7 +125,7 @@ interface SocketData {
 }
 
 @WebSocketGateway({ path: '/voice/training' })
-export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGatewayDisconnect {
+export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisconnect {
   private readonly logger: Logger = new Logger(VoiceGateway.name);
   private readonly voice: VoiceService;
   private readonly jwt: JwtService;
@@ -169,14 +168,12 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
 
   /**
    * 连接时鉴权 + 启动 session.
-   *   - @nestjs/platform-ws 签名: handleConnection(client, ...args)
-   *     - client: ws.WebSocket 实例
-   *     - args[0]: 升级请求 (有 URL / headers / auth)
+   *   - Socket.IO 签名: handleConnection(client)
+   *     - client: Socket 实例, 握手信息在 client.handshake 里
    */
-  handleConnection(client: WsWebSocket, ...args: unknown[]): void {
-    const request = args[0] as IncomingMessage | undefined;
-    // 1. 解析握手 (path sid + query 临场参数)
-    const url = request?.url ?? '';
+  handleConnection(client: Socket): void {
+    // Socket.IO: 握手 URL 和 headers 都在 client.handshake 里
+    const url = client.handshake.url ?? '';
     const handshake = parseVoiceHandshake(url);
     const data: SocketData = {
       sessionId: handshake.sessionId,
@@ -191,14 +188,14 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
       // eslint-disable-next-line sonarjs/pseudo-random
       traceId: 'vt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
     };
-    (client as unknown as { sessionId: string }).sessionId = handshake.sessionId;
+    client.data.sessionId = handshake.sessionId;
 
-    // 2. 提取 JWT
-    const token = this.extractToken(url, request);
+    // 2. 提取 JWT (query 优先, 回退 Authorization 头)
+    const token = this.extractToken(client);
     if (!token) {
       this.logger.warn('[onConnect] no token, session=' + handshake.sessionId);
       this.sendJson(client, { type: 'error', error: { code: 'unauthorized', message: 'missing token', retryable: false } });
-      client.close(1008, 'unauthorized');
+      client.disconnect(true);
       return;
     }
     // 3. 校验 JWT (async, 但 handleConnection 必须 void — 走 fire-and-forget)
@@ -214,7 +211,7 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
    * @param token JWT
    */
   private async verifyAndStart(
-    client: WsWebSocket,
+    client: Socket,
     data: SocketData,
     handshake: ReturnType<typeof parseVoiceHandshake>,
     token: string,
@@ -254,7 +251,7 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
     const opened = await this.openSessionStorage(client, data, channel, preset, handshake, visitorCard);
 
     // 5. 注入到 client 供后续 message 路由用
-    (client as unknown as { data: SocketData }).data = data;
+    client.data = data;
 
     // 6. 演练登记 (进程内内存, 不落库) — counselor 侧按 sessionId 反查这份登记来注入 vpt 剧本
     this.registerDrill(data, channel, preset, handshake);
@@ -283,7 +280,7 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
    * @param token JWT
    * @returns true = 校验通过
    */
-  private async verifyJwt(client: WsWebSocket, data: SocketData, token: string): Promise<boolean> {
+  private async verifyJwt(client: Socket, data: SocketData, token: string): Promise<boolean> {
     try {
       const payload = await this.jwt.verifyAsync<{ sub: string; tenantId?: string }>(token, {
         secret: this.config.getOrThrow<string>('jwtSecret'),
@@ -294,7 +291,7 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
     } catch (err) {
       this.logger.warn('[onConnect] jwt verify failed: ' + (err instanceof Error ? err.message : String(err)));
       this.sendJson(client, { type: 'error', error: { code: 'unauthorized', message: 'invalid token', retryable: false } });
-      client.close(1008, 'unauthorized');
+      client.disconnect(true);
       return false;
     }
   }
@@ -319,7 +316,7 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
    * @returns 落库结果
    */
   private async openSessionStorage(
-    client: WsWebSocket,
+    client: Socket,
     data: SocketData,
     channel: VoicePersonaChannel,
     preset: VoiceSessionPreset,
@@ -386,7 +383,7 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
    * @returns true = 启动成功
    */
   private async startVoiceSession(
-    client: WsWebSocket,
+    client: Socket,
     data: SocketData,
     preset: VoiceSessionPreset,
     visitorCard: VoiceVisitorCard | null,
@@ -421,7 +418,7 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
         type: 'error',
         error: { code: 'session_start_failed', message: '会话启动失败', retryable: true },
       });
-      client.close(1011, 'session_start_failed');
+      client.disconnect(true);
       return false;
     }
   }
@@ -464,8 +461,8 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
   }
 
   /** 断开时清理. */
-  handleDisconnect(client: WsWebSocket): void {
-    const data = (client as unknown as { data?: SocketData }).data;
+  handleDisconnect(client: Socket): void {
+    const data = client.data as SocketData | undefined;
     if (data?.sessionId) {
       // V2026-10-26 治本 (spec 任务 1 / 任务 2):
       //   先注销 WS 帧出口 (连接没了, 再推帧就是往死连接写), 再结束会话 (落库收尾).
@@ -478,8 +475,8 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
 
   /** 客户端消息入口 — 单一入口, 路由到 VoiceService. */
   @SubscribeMessage('message')
-  async onMessage(@ConnectedSocket() client: WsWebSocket, @MessageBody() payload: VoiceClientMessage): Promise<void> {
-    const data = (client as unknown as { data?: SocketData }).data;
+  async onMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: VoiceClientMessage): Promise<void> {
+    const data = client.data as SocketData | undefined;
     if (!data?.userId) {
       this.sendJson(client, { type: 'error', error: { code: 'unauthorized', message: 'not initialized', retryable: false } });
       return;
@@ -529,7 +526,7 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
    * @returns ok=true 带通道; ok=false 表示已报错并断开
    */
   private async resolvePersonaChannel(
-    client: WsWebSocket,
+    client: Socket,
     handshake: ReturnType<typeof parseVoiceHandshake>,
   ): Promise<{ ok: true; channel: VoicePersonaChannel } | { ok: false }> {
     const templateId = handshake.templateId;
@@ -546,7 +543,7 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
           type: 'error',
           error: { code: 'template_not_found', message: '来访人物不存在或已下架', retryable: false },
         });
-        client.close(1008, 'template_not_found');
+        client.disconnect(true);
         return { ok: false };
       }
       return { ok: true, channel: { kind: 'template', templateId, summary } };
@@ -556,7 +553,7 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
         type: 'error',
         error: { code: 'template_lookup_failed', message: '来访人物查询失败', retryable: true },
       });
-      client.close(1011, 'template_lookup_failed');
+      client.disconnect(true);
       return { ok: false };
     }
   }
@@ -667,24 +664,26 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
    * @param client socket
    * @param msg 消息
    */
-  private sendJson(client: WsWebSocket, msg: VoiceServerMessage): void {
-    if (client.readyState !== client.OPEN) return;
-    client.send(JSON.stringify(msg));
+  private sendJson(client: Socket, msg: VoiceServerMessage): void {
+    // Socket.IO: emit 直接传对象, 不需要 JSON.stringify.
+    // 连接断了 emit 自动被忽略, 不需要手动检查 readyState.
+    client.emit('message', msg);
   }
 
   /**
    * 提取 JWT (query 优先, 回退 Authorization 头).
    *
-   * @param url 原始 URL
-   * @param request 升级请求
+   * @param client Socket.IO 客户端实例
    * @returns token; 无则 null
    */
-  private extractToken(url: string, request: IncomingMessage | undefined): string | null {
+  private extractToken(client: Socket): string | null {
     // 优先 query ?token=***
-    const matched = /[?&]token=([^&]+)/.exec(url);
-    if (matched?.[1]) return decodeURIComponent(matched[1]);
+    const queryToken = client.handshake.query['token'];
+    if (typeof queryToken === 'string' && queryToken.length > 0) {
+      return decodeURIComponent(queryToken);
+    }
     // 退到 Authorization: Bearer *** 头
-    const auth = request?.headers.authorization;
+    const auth = client.handshake.headers.authorization;
     if (auth && auth.toLowerCase().startsWith('bearer ')) {
       return auth.slice(7).trim();
     }
