@@ -91,7 +91,7 @@ import type { EngineTurnService } from './engine-turn.service';
 import { TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory';
 import type { LlmStream, LlmStreamChunk } from '../../agent/llm/llm.types';
 import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types';
-import type { TrajectoryScript } from '../../engine-core';
+import type { OpenEngineSessionInput, TrajectoryScript } from '../../engine-core';
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
 import type {
   VoiceTurnBackend,
@@ -100,6 +100,7 @@ import type {
   VoiceTurnBackendTurnOptions,
 } from '../../voice/voice-turn-backend.port';
 import type { VoiceSessionPersona } from '../../voice/voice.types';
+import type { SessionCloseoutService } from '../persistence/session-closeout.service';
 import { isCrisisCategory } from '../rendering/render-risk';
 import type { TurnRenderResult } from '../rendering/turn-render-orchestrator';
 
@@ -137,6 +138,13 @@ export class EngineStreamBackend implements VoiceTurnBackend {
    * 两者不是一回事, 所以这里显式存一份.
    */
   private readonly dbSessionIds = new Map<string, string>();
+  /**
+   * 语音会话 id → 长时记忆的归属上下文 (WP12).
+   *
+   * 为什么单独存: 收尾时要拿**同一个**作用域去写长时记忆, 而内核召回也是按这个
+   * 作用域查的 —— 写与读必须是同一把键, 否则摘要写进去了却永远召不回.
+   */
+  private readonly sessionContexts = new Map<string, SessionContext>();
 
   constructor(
     private readonly engine: EngineTurnService,
@@ -167,6 +175,13 @@ export class EngineStreamBackend implements VoiceTurnBackend {
      */
     @Optional() @Inject(TRAJECTORY_SCRIPT_RESOLVER) private readonly scriptResolver?: TrajectoryScriptResolver,
     /**
+     * 会话收尾服务 (WP12): 逐字稿全量落库 + 会话摘要晋升长时记忆.
+     *
+     * 为什么 @Optional: 收尾是**增强** —— 装配缺席时本场会谈照常结束, 只是
+     * "逐字稿没全量落库" + "没有长时记忆". 不能让"没有收尾服务"变成"开不了会话".
+     */
+    @Optional() private readonly closeout?: SessionCloseoutService,
+    /**
      * 调试快照记录器 (WP19).
      *
      * 为什么 @Optional: 它由 AdminDebugModule 提供. 装配缺失时
@@ -190,41 +205,116 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       this.engine.close(previous);
     }
 
-    const trimmed = opts.personaId?.trim() ?? '';
-    const visitorId = trimmed.length > 0 ? trimmed : NEUTRAL_PERSONA.id;
+    const characterId = resolveCharacterId(opts);
     const character = await this.resolveCharacter(opts);
     const script = this.resolveTrajectoryScript(opts);
-    const handle = this.engine.open(
-      {
-        sessionId: opts.sessionId,
-        tenantId: opts.tenantId,
-        visitorId,
-        // 有角色才带 profile/seed; 无角色时**不传这两个字段** (缺省 = 中性默认基线),
-        // 与 WP8-B 的调用形态逐字一致.
-        ...(character
-          ? {
-              characterProfile: character.characterProfile,
-              ...(character.seed === undefined ? {} : { seed: character.seed }),
-            }
-          : {}),
-        // V2026-10-30 治本 (WP10): 有剧本才带 trajectory; 没解析到 / 没传 scriptId
-        //   时**不传这个字段** (缺省 = 本场无轨迹约束), 与现状逐字一致.
-        ...(script ? { trajectory: script } : {}),
-      },
-      // V2026-10-29 治本 (WP9-C): 角色代号交给装配层 → 归属登记表 → prompt dev 日志.
-      { characterLabel: character?.displayName ?? '' },
-    );
+    // V2026-10-30 治本 (WP12): 长时记忆的归属作用域 = **(学员, 角色)**.
+    //   见 buildMemoryScope 的说明 —— 这一步不做, 学员之间会互相读到对方的咨询内容.
+    const memoryScope = buildMemoryScope(opts.userId, resolveCharacterKey(opts, characterId));
+    // V2026-10-30 治本 (WP12): 跨会话接续来源.
+    const resumeFromSessionId = opts.resumeFromSessionId?.trim() ?? '';
+    const handle = this.openKernelSession(opts, character, script, memoryScope, resumeFromSessionId);
+
     this.handles.set(opts.sessionId, handle.handleId);
     this.transcripts.set(opts.sessionId, []);
+    this.sessionContexts.set(opts.sessionId, {
+      tenantId: opts.tenantId,
+      visitorId: memoryScope,
+      userId: opts.userId?.trim() ?? '',
+      // 有没有学员身份: 没有的话长时记忆**不写** (见 buildMemoryScope 的说明).
+      studentScoped: (opts.userId?.trim() ?? '').length > 0,
+    });
     const dbSessionId = opts.dbSessionId?.trim() ?? '';
     if (dbSessionId.length > 0) {
       this.dbSessionIds.set(opts.sessionId, dbSessionId);
     }
     this.logger.log(
-      `[openSession] session=${opts.sessionId} handle=${handle.handleId} visitor=${visitorId} ` +
-        `character=${character?.displayName ?? 'neutral'} script=${script?.scriptId ?? 'none'}`,
+      `[openSession] session=${opts.sessionId} handle=${handle.handleId} visitor=${memoryScope} ` +
+        `character=${character?.displayName ?? 'neutral'} script=${script?.scriptId ?? 'none'} ` +
+        `resume=${resumeFromSessionId || 'none'}`,
     );
-    return character ? { ...NEUTRAL_PERSONA, id: visitorId, name: character.displayName } : { ...NEUTRAL_PERSONA, id: visitorId };
+    // 对外仍然回 personaId (身份键不因角色而变 —— WP9-A 既有口径).
+    return character ? { ...NEUTRAL_PERSONA, id: characterId, name: character.displayName } : { ...NEUTRAL_PERSONA, id: characterId };
+  }
+
+  /**
+   * 调内核开会话 (带接续兜底).
+   *
+   * 接续失败**不阻断** (任务单 §1.5.5): 上一场不存在 / 已过期 / 状态读失败 →
+   *   记 warn, 按**新会话**开. 不抛错、不断连.
+   *
+   * 抽成独立方法有两个原因:
+   *   ① `openSession` 的圈复杂度已到上限, 再塞分支就超 (仓库 eslint 卡 20);
+   *   ② "接续失败怎么兜"是一条**独立决策**, 单独成方法后可以被一眼读完.
+   *
+   * @param opts 开场参数
+   * @param character 本场角色 (无 = 中性基线)
+   * @param script 本场剧本 (无 = BDI 自由运行)
+   * @param memoryScope 长时记忆归属作用域
+   * @param resumeFromSessionId 接续来源 (空 = 新会话)
+   * @returns 内核句柄
+   */
+  private openKernelSession(
+    opts: VoiceTurnBackendOpenOptions,
+    character: ResolvedCharacter | null,
+    script: TrajectoryScript | undefined,
+    memoryScope: string,
+    resumeFromSessionId: string,
+  ): { readonly handleId: string; readonly sessionId: string } {
+    const openOptions = { characterLabel: character?.displayName ?? '' };
+    try {
+      return this.engine.open(this.buildOpenInput(opts, character, script, memoryScope, resumeFromSessionId, true), openOptions);
+    } catch (error) {
+      if (!resumeFromSessionId) throw error;
+      this.logger.warn(
+        `[openSession] 接续上一场失败, 按新会话开 session=${opts.sessionId} ` + `resumeFrom=${resumeFromSessionId}: ${messageOf(error)}`,
+      );
+      return this.engine.open(this.buildOpenInput(opts, character, script, memoryScope, resumeFromSessionId, false), openOptions);
+    }
+  }
+
+  /**
+   * 构造内核开场入参.
+   *
+   * 三个"有才带"的字段 (characterProfile+seed / trajectory / resumeFromSessionId):
+   *   **不传时键不存在**, 不是"值为 undefined" —— 与现状逐字一致 (WP10 的零回归断言
+   *   断言的就是键集合, 键存在即算形状变了).
+   *
+   * @param opts 开场参数
+   * @param character 本场角色
+   * @param script 本场剧本
+   * @param memoryScope 长时记忆归属作用域
+   * @param resumeFromSessionId 接续来源
+   * @param withResume 本次是否带接续 (兜底重开时传 false)
+   * @returns 内核开场入参
+   */
+  private buildOpenInput(
+    opts: VoiceTurnBackendOpenOptions,
+    character: ResolvedCharacter | null,
+    script: TrajectoryScript | undefined,
+    memoryScope: string,
+    resumeFromSessionId: string,
+    withResume: boolean,
+  ): OpenEngineSessionInput {
+    return {
+      sessionId: opts.sessionId,
+      tenantId: opts.tenantId,
+      visitorId: memoryScope,
+      // 有角色才带 profile/seed; 无角色时**不传这两个字段** (缺省 = 中性默认基线),
+      // 与 WP8-B 的调用形态逐字一致.
+      ...(character
+        ? {
+            characterProfile: character.characterProfile,
+            ...(character.seed === undefined ? {} : { seed: character.seed }),
+          }
+        : {}),
+      // V2026-10-30 治本 (WP10): 有剧本才带 trajectory; 没解析到 / 没传 scriptId
+      //   时**不传这个字段** (缺省 = 本场无轨迹约束), 与现状逐字一致.
+      ...(script ? { trajectory: script } : {}),
+      // V2026-10-30 治本 (WP12): 有 resume 才带; 没传时**不传这个字段**
+      //   (缺省 = 全新会话), 与现状逐字一致.
+      ...(withResume && resumeFromSessionId ? { resumeFromSessionId } : {}),
+    };
   }
 
   /**
@@ -326,14 +416,46 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       void this.traceRecorder.flush(dbSid);
     }
 
+    const context = this.sessionContexts.get(sessionId);
+    const handleId = this.handles.get(sessionId);
+
     this.transcripts.delete(sessionId);
     this.dbSessionIds.delete(sessionId);
-    const handleId = this.handles.get(sessionId);
+    this.sessionContexts.delete(sessionId);
     if (handleId) {
       this.handles.delete(sessionId);
       this.engine.close(handleId);
     }
-    this.logger.log(`[closeSession] session=${sessionId} turns=${result.finalTurnCount} msgs=${result.finalMessageCount}`);
+
+    // V2026-10-30 治本 (WP12 · 会话收尾):
+    //   逐字稿全量落库 + 本场摘要晋升长时记忆. fire-and-forget (与上面的 trace flush 同款):
+    //   收尾是 I/O, 不能反过来阻塞 `session_ended` 帧 (前端在等这个帧收页面).
+    //
+    //   ⚠️ **只在会话真的开着时触发** (按句柄判定):
+    //     voice 侧的关闭路径会把"当前后端"与"引擎后端"**各关一次** —— 引擎链路下
+    //     这两个是同一个对象, 于是 closeSession 会被调两次. 第二次调用时句柄已经被
+    //     清掉了, 若不按句柄判定, 第二次就会拿**空逐字稿**去覆盖写库 ——
+    //     把刚落库的逐字稿抹掉 (而且不留任何痕迹).
+    if (handleId && this.closeout) {
+      void this.closeout
+        .finalize({
+          tenantId: context?.tenantId ?? '',
+          sessionId,
+          // 没有学员身份 → **不晋升**长时记忆 (见 buildMemoryScope 的说明).
+          ...(context?.studentScoped ? { visitorId: context.visitorId } : {}),
+          ...(context?.userId ? { userId: context.userId } : {}),
+          ...(dbSid ? { dbSessionId: dbSid } : {}),
+          transcript: turns,
+        })
+        .catch((error: unknown) => {
+          this.logger.warn(`[closeSession] 会话收尾异常 session=${sessionId}: ${messageOf(error)}`);
+        });
+    }
+
+    this.logger.log(
+      `[closeSession] session=${sessionId} turns=${result.finalTurnCount} msgs=${result.finalMessageCount} ` +
+        `closeout=${handleId && this.closeout ? 'yes' : 'no'}`,
+    );
     return result;
   }
 
@@ -493,6 +615,74 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     turns.push({ role: 'user', content: counselorText, at }, { role: 'assistant', content: visitorText, at });
     this.transcripts.set(sessionId, turns);
   }
+}
+
+/**
+ * 会话归属上下文 (WP12): 收尾时要用的那把"记忆作用域键".
+ */
+interface SessionContext {
+  /** 租户隔离键. */
+  readonly tenantId: string;
+  /** 长时记忆的归属作用域 (= 内核入参的 visitorId). */
+  readonly visitorId: string;
+  /** 归属学员 id (逐字稿写库的归属校验用). */
+  readonly userId: string;
+  /** 是否带学员身份 (没带 → 不写长时记忆). */
+  readonly studentScoped: boolean;
+}
+
+/**
+ * 本场的角色 id (对外身份键): personaId 优先, 缺省 = 中性基线 id.
+ *
+ * @param opts 开场参数
+ * @returns 角色 id
+ */
+function resolveCharacterId(opts: VoiceTurnBackendOpenOptions): string {
+  const trimmed = opts.personaId?.trim() ?? '';
+  return trimmed.length > 0 ? trimmed : NEUTRAL_PERSONA.id;
+}
+
+/**
+ * 本场的**角色 key** (记忆归属作用域用): 公共人物模板 id 优先, 否则 personaId.
+ *
+ * 为什么模板 id 优先: 同一份"角色资产"在 vpt 场里 personaId 常常是空的, 只有
+ * 模板 id 能区分"晚晴"和"小满" —— 用 personaId 当 key 会把所有无 persona 的角色
+ * 归成同一份记忆.
+ *
+ * @param opts 开场参数
+ * @param characterId 角色 id (模板 id 缺省时的回落)
+ * @returns 角色 key
+ */
+function resolveCharacterKey(opts: VoiceTurnBackendOpenOptions, characterId: string): string {
+  const templateId = opts.templateId?.trim() ?? '';
+  return templateId.length > 0 ? templateId : characterId;
+}
+
+/**
+ * 构造长时记忆的归属作用域 (WP12).
+ *
+ * 口径: **`学员 id : 角色 key`**.
+ *
+ * 为什么不能只用角色 key (这是本单最容易踩的坑):
+ *   内核的 `visitorId` 是长时记忆**跨会话归属键** —— 写入用一把键, 召回也用同一把键.
+ *   而这个产品的"来访者"是 **AI 扮演的角色** (晚晴/小满…), 角色 key 对所有学员都相同.
+ *   若直接拿角色 key 当归属键, 学员 A 的咨询摘要会被学员 B 召回去 ——
+ *   那不是"体验更好", 是**把甲学员的私密内容念给乙学员听**.
+ *   归属键必须包含**学员身份**, 才等于"我的这个角色的上次".
+ *
+ * 为什么不用"学员 id"单独做键: 同一学员练不同角色时不该互相污染 (角色基线不同),
+ *   所以键里必须带角色.
+ *
+ * 学员 id 缺失时 (理论上不该发生 —— 语音链路有 JWT 鉴权): 退化为纯角色 key,
+ *   并由调用方据此**不写**长时记忆 (没有归属就没有隔离).
+ *
+ * @param userId 学员 id (可空)
+ * @param characterKey 角色 key (公共人物模板 id 优先, 否则 personaId)
+ * @returns 归属作用域
+ */
+function buildMemoryScope(userId: string | undefined, characterKey: string): string {
+  const user = (userId ?? '').trim();
+  return user.length > 0 ? `${user}:${characterKey}` : characterKey;
 }
 
 /**

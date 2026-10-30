@@ -92,6 +92,15 @@ export interface VoiceTurnBackendOpenOptions {
   readonly sessionId: string;
   /** 租户隔离键. */
   readonly tenantId: string;
+  /**
+   * 学员 id (V2026-10-30, WP12).
+   *
+   * 用途: 长时记忆的归属作用域 = `(学员, 角色)` —— 角色 key 对所有学员都相同,
+   * 只用它当归属键会让**不同学员互相读到对方的咨询内容**.
+   *
+   * 缺省 = 无学员身份 → 后端**不写**长时记忆 (没有归属就没有隔离).
+   */
+  readonly userId?: string;
   /** 来访者 persona id (可选; 缺省走后端自己的默认). */
   readonly personaId?: string;
   /**
@@ -126,6 +135,19 @@ export interface VoiceTurnBackendOpenOptions {
    * **不抛错** —— 剧本是可选增强, 不是会话的前置条件.
    */
   readonly trajectoryScriptId?: string;
+  /**
+   * V2026-10-30 治本 (WP12): 跨会话接续来源会话 id.
+   *
+   * 缺省 = **新会话** (行为与现状**逐字一致**); 有值 = 接续上一场 ——
+   * 后端据此把上一场的 BDI 快照搬过来, 并按 visitorId 召回长时记忆.
+   *
+   * 为什么只增可选字段: 必填字段会让旧实现 (`VisitorService`) 再也塞不进这个契约,
+   * "并存可回退"当场破产 (与 WP9-A 角色参数 / WP10 剧本参数同款理由).
+   *
+   * 接续失败**不阻断**: 上一场不存在 / 已过期 / 记忆召回失败 → 后端记 warn,
+   * 按新会话开, **不抛错、不断连**.
+   */
+  readonly resumeFromSessionId?: string;
 }
 
 /**

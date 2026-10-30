@@ -28,22 +28,26 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp8-wiring.spec.ts 覆盖仓储分流 / 会话构造 / 门面归属缝
 
+import { EngineStreamBackend } from './engine-stream-backend.adapter';
+import type { EngineTurnService } from './engine-turn.service';
 import type { Embedder, EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core';
 import { InMemoryBdiStateRepository } from '../../engine-core/in-memory/in-memory-bdi-state.repository';
 import { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-engine-session';
 import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store';
+import type { MemoryConfig } from '../persistence/memory-config';
 import type { QdrantMemoryClient } from '../persistence/qdrant-memory.store';
 import { QdrantMemoryStore } from '../persistence/qdrant-memory.store';
+import type { SessionSummaryGenerator, SessionTranscriptSink } from '../persistence/session-closeout.service';
+import { SessionCloseoutService } from '../persistence/session-closeout.service';
 import type { StreamingRenderPort } from '../rendering/streaming-render.port';
 import type { TurnSessionContext } from '../rendering/turn-render-orchestrator';
 import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
 import type { CharacterProfileResolver } from './character/character-profile.resolver';
-import { EngineStreamBackend } from './engine-stream-backend.adapter';
-import type { EngineTurnService } from './engine-turn.service';
 import { HttpPsyGuardProbe } from './risk/http-psyguard.probe';
 import { LocalCrisisProbe } from './risk/local-crisis.probe';
 import type { TrajectoryScriptResolver } from './trajectory/script-resolver';
 import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
+import type { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge';
 
 /**
  * 记忆仓储装配入参.
@@ -55,6 +59,12 @@ export interface EngineMemoryStoreDeps {
   readonly qdrant?: QdrantMemoryClient;
   /** 向量化端口 (仅在配了向量库时必需). */
   readonly embedder?: Embedder;
+  /**
+   * 衰减/召回配置 (WP12; 缺省 = 内核同值种子 30 天 / 0.1).
+   *
+   * 只对 Qdrant 版有意义 —— 纯内存版的召回判定在内核里, 走的是内核那一份常量.
+   */
+  readonly config?: MemoryConfig;
 }
 
 /**
@@ -74,7 +84,12 @@ export function createEngineMemoryStore(deps: EngineMemoryStoreDeps): MemoryStor
   if (!deps.qdrant || !deps.embedder) {
     throw new Error('引擎记忆仓储装配非法: 已配置向量库地址, 但缺少向量库客户端或向量化端口');
   }
-  return new QdrantMemoryStore({ qdrant: deps.qdrant, embedder: deps.embedder, fallback });
+  return new QdrantMemoryStore({
+    qdrant: deps.qdrant,
+    embedder: deps.embedder,
+    fallback,
+    ...(deps.config ? { config: deps.config } : {}),
+  });
 }
 
 /**
@@ -144,6 +159,65 @@ export interface EngineStreamBackendDeps {
    * 与角色解析端口**同款语义**: 可选增强, 装配缺席 ≠ 会话开不起来.
    */
   readonly scriptResolver?: TrajectoryScriptResolver;
+  /**
+   * 会话收尾服务 (WP12; 缺省 = 不做逐字稿定稿 + 不晋升长时记忆).
+   *
+   * 与上面两个端口**同款语义**: 收尾是增强, 装配缺席 ≠ 会话开不起来.
+   */
+  readonly closeout?: SessionCloseoutService;
+}
+
+/**
+ * 会话收尾装配入参 (WP12).
+ */
+export interface SessionCloseoutDeps {
+  /** 记忆仓储 (内核端口; 摘要晋升写这里). */
+  readonly memories: MemoryStore;
+  /** 摘要生成器 (缺省 = 不做摘要晋升). */
+  readonly generator?: SessionSummaryGenerator;
+  /** 逐字稿落库口 (缺省 = 不做逐字稿定稿). */
+  readonly sink?: SessionTranscriptSink;
+}
+
+/**
+ * 装配会话收尾服务 (WP12).
+ *
+ * 收尾是**增强**: 装配缺席时, 会话照常结束, 只是"逐字稿没定稿" + "没有长时记忆".
+ * 摘要生成/晋升失败**不阻断**收尾 (任务单 §1.2) —— 失败语义在收尾服务内部.
+ *
+ * @param deps 装配入参
+ * @returns 会话收尾服务
+ */
+export function createSessionCloseout(deps: SessionCloseoutDeps): SessionCloseoutService {
+  return new SessionCloseoutService(deps);
+}
+
+/**
+ * 装配逐字稿落库口 (WP12).
+ *
+ * 走**业务侧的落库桥插槽** (`VoiceSessionBridgeRegistry`) —— 与仓库既有的
+ * "voice → business" 依赖倒置同款: 引擎层只声明"我要把逐字稿存下去",
+ * 真正写 `training_sessions.transcript` 的是 counselor 侧的桥实现.
+ * 这样 engine-adapters 不认识 ORM, 也不认识 counselor 的任何类型.
+ *
+ * @param registry voice 侧落库桥注册表 (@Global)
+ * @returns 逐字稿落库口
+ */
+export function createBridgeTranscriptSink(registry: VoiceSessionBridgeRegistry): SessionTranscriptSink {
+  return {
+    saveTranscript: async (input) => {
+      const written = await registry.replaceTranscript({
+        dbSessionId: input.dbSessionId,
+        ...(input.userId ? { userId: input.userId } : {}),
+        turns: input.turns,
+      });
+      if (!written) {
+        // 没有桥实现覆盖写 (老实现 / 未注册业务侧) → 明确报错.
+        // 任务单 §1.4: "不落库就报错" —— 静默跳过 = 落库边界留模糊.
+        throw new Error(`逐字稿定稿失败: 没有可用的落库桥 db_session=${input.dbSessionId}`);
+      }
+    },
+  };
 }
 
 /**
@@ -261,5 +335,9 @@ export function createVisitorOutputProbe(deps: RiskProbeDeps): RiskProbePort | u
  * @returns 引擎版对话后端
  */
 export function createEngineStreamBackend(deps: EngineStreamBackendDeps): EngineStreamBackend {
-  return new EngineStreamBackend(deps.engine, deps.resolver, deps.frames, deps.scriptResolver);
+  // 位置参数顺序与 adapter 的构造参数一一对应:
+  //   engine / resolver / frames / scriptResolver / closeout
+  // ⚠️ `traceRecorder` 仍恒为 undefined (它至今没有装配入口), 所以**不占位** ——
+  //   插一个 undefined 进去反而把"这个位置没人用"写进了代码.
+  return new EngineStreamBackend(deps.engine, deps.resolver, deps.frames, deps.scriptResolver, deps.closeout);
 }

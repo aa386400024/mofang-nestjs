@@ -115,6 +115,12 @@ interface SocketData {
    * undefined = 本场无剧本约束 (BDI 自由运行, 与现状行为逐字一致).
    */
   trajectoryScriptId?: string;
+  /**
+   * 跨会话接续来源会话 id (V2026-10-30, WP12).
+   *
+   * undefined = 新会话 (与现状逐字一致); 有值 = 接续上一场.
+   */
+  resumeFromSessionId?: string;
   /** 注销 WS 帧出口的句柄 (连接断开时调). */
   unregisterFrameSink?: () => void;
 }
@@ -239,6 +245,9 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
     // V2026-10-30 治本 (WP10): 轨迹剧本 id 原样透传 —— gateway 不判断剧本是否存在,
     //   也不认识剧本内容 (那两件事归引擎侧的剧本解析器).
     data.trajectoryScriptId = handshake.scriptId;
+    // V2026-10-30 治本 (WP12): 跨会话接续来源 id 原样透传 —— gateway 不判断上一场
+    //   在不在 (那是运行时的事, 查不到由引擎侧 warn + 回退新会话).
+    data.resumeFromSessionId = handshake.resumeFromSessionId;
 
     // 4. 会话落库 + 登记 WS 帧出口
     const visitorCard = this.resolveVisitorCard(channel);
@@ -396,6 +405,8 @@ export class VoiceGateway implements OnGatewayConnection<WsWebSocket>, OnGateway
         dbSessionId: data.dbSessionId,
         // V2026-10-30 治本 (WP10): 轨迹剧本 id 透传给后端 (引擎侧据此决定是否注入剧本).
         trajectoryScriptId: data.trajectoryScriptId,
+        // V2026-10-30 治本 (WP12): 跨会话接续来源 id 透传给后端 (引擎侧据此接续上一场).
+        resumeFromSessionId: data.resumeFromSessionId,
         // V2026-10-26 治本 (spec 任务 6 — 报告的人格来源):
         //   vpt 场 AI 扮演的是**公共人物** (晚晴...), 不是 agent 内置 persona ——
         //   把速查卡带进 session, 报告里的人格快照才对得上号.

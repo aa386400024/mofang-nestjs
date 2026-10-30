@@ -54,7 +54,9 @@ import {
   createEngineOrchestrator,
   createEngineSessionPort,
   createEngineStreamBackend,
+  createBridgeTranscriptSink,
   createRiskProbe,
+  createSessionCloseout,
   createVisitorOutputProbe,
 } from './engine.providers';
 import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from './engine.tokens';
@@ -72,8 +74,12 @@ import type { EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine
 import { LlmModule } from '../../llm/llm.module';
 import { LlmRouterService } from '../../llm/registry/llm-router.service';
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
+import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge';
 import { VOICE_TURN_BACKEND } from '../../voice/voice-turn-backend.port';
 import { OpenAICompatEmbedder } from '../embedder/openai-compat.embedder';
+import { resolveMemoryConfig } from '../persistence/memory-config';
+import { SessionCloseoutService } from '../persistence/session-closeout.service';
+import { LlmSessionSummaryGenerator, resolveSummaryModel } from '../persistence/session-summary.generator';
 import type { StreamingRenderPort } from '../rendering/streaming-render.port';
 import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
 
@@ -136,6 +142,11 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
       inject: [LlmRouterService],
     },
     // 记忆仓储: 配了向量库就用向量版 (内置内存回落仓), 否则纯内存.
+    // V2026-10-30 (WP12 · §1.3): 衰减半衰期 / 访客范围召回阈值走 env —
+    //   `MEMORY_DECAY_HALF_LIFE_DAYS` (默认 30 天) 与 `MEMORY_RECALL_THRESHOLD` (默认 0.1).
+    //   非法值一律回退默认值 (不抛错): 填错一个 env 不该让服务起不来.
+    //   ⚠️ 这两个值只对 **Qdrant 版**生效 (纯内存版的判定在内核里, 走内核那份常量);
+    //   内核地板仍在, 阈值只能收紧 —— 详见 persistence/memory-config.ts 顶部说明.
     {
       provide: ENGINE_MEMORY_STORE,
       useFactory: (config: ConfigService, qdrant: QdrantService, embedder: OpenAICompatEmbedder): MemoryStore =>
@@ -143,6 +154,10 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
           qdrantUrl: config.get<string>('QDRANT_URL'),
           qdrant,
           embedder,
+          config: resolveMemoryConfig({
+            decayHalfLifeDays: config.get<string>('MEMORY_DECAY_HALF_LIFE_DAYS'),
+            recallThreshold: config.get<string>('MEMORY_RECALL_THRESHOLD'),
+          }),
         }),
       inject: [ConfigService, QdrantService, OpenAICompatEmbedder],
     },
@@ -192,6 +207,33 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
     },
     // 对外门面服务.
     EngineTurnService,
+    // V2026-10-30 治本 (WP12): 会话收尾服务 —— 逐字稿全量定稿 + 摘要晋升长时记忆.
+    //   走 useFactory 显式 new (与仓库既有做法一致): 收尾服务有 4 个构造参数,
+    //   其中两个可选, useClass 会让 Nest 按 design:paramtypes 找依赖而报错.
+    //   三块依赖:
+    //     · memories  → 与内核同一实例的记忆仓储 (摘要晋升写这里, 内核召回才读得到);
+    //     · generator → LLM 摘要器 (模型名 env 优先, 否则问 router 的 RAG 分层);
+    //     · sink      → 业务侧落库桥 (逐字稿写 training_sessions.transcript).
+    //   逐字稿落库口依赖 voice 侧的 @Global 落库桥注册表; 缺席 = 不装配 sink
+    //   (收尾照常跑, 只是不写逐字稿) —— 引擎装配层因此不认识 ORM / counselor 任何类型.
+    {
+      provide: SessionCloseoutService,
+      useFactory: (
+        memories: MemoryStore,
+        router: LlmRouterService,
+        config: ConfigService,
+        bridges: VoiceSessionBridgeRegistry | undefined,
+      ): SessionCloseoutService =>
+        createSessionCloseout({
+          memories,
+          generator: new LlmSessionSummaryGenerator({
+            router,
+            model: resolveSummaryModel(config.get<string>('MEMORY_SUMMARY_MODEL'), router),
+          }),
+          ...(bridges ? { sink: createBridgeTranscriptSink(bridges) } : {}),
+        }),
+      inject: [ENGINE_MEMORY_STORE, LlmRouterService, ConfigService, { token: VoiceSessionBridgeRegistry, optional: true }],
+    },
     // WP8-B: 引擎版对话后端 (实现 voice 侧窄接口) —— 灰度开关打开时, 语音链路
     // 用它取代旧 visitor 直出; 开关关闭时 voice 侧根本不注入它 (旧链路 100% 原样).
     // V2026-10-29 (WP9-B) 改为**工厂装配** (不是类 provider):
@@ -219,14 +261,17 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
         resolver: CharacterProfileResolver,
         frames: VoiceFrameRegistry,
         scriptResolver: TrajectoryScriptResolver,
-      ): EngineStreamBackend => createEngineStreamBackend({ engine, resolver, frames, scriptResolver }),
+        closeout: SessionCloseoutService,
+      ): EngineStreamBackend => createEngineStreamBackend({ engine, resolver, frames, scriptResolver, closeout }),
       // 帧出口注册表由 voice 侧的 @Global 模块提供; optional = 缺了只影响督导提示帧.
       // 剧本解析端口同理: optional = 缺了只影响伦理盲盒剧本, 不影响会话开合.
+      // 收尾服务同理: optional = 缺了只影响逐字稿定稿 + 长时记忆, 不影响会话开合.
       inject: [
         EngineTurnService,
         CHARACTER_PROFILE_RESOLVER,
         { token: VoiceFrameRegistry, optional: true },
         { token: TRAJECTORY_SCRIPT_RESOLVER, optional: true },
+        { token: SessionCloseoutService, optional: true },
       ],
     },
     {

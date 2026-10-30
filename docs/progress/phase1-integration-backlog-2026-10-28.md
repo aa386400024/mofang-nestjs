@@ -3,8 +3,9 @@
 > 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md)
 > 愿景备查: [`../reference/ai-simulation-blueprint-v1.1.md`](../reference/ai-simulation-blueprint-v1.1.md)（冲突以母版为准；蓝图选 pgvector，本仓 D2 拍板 Qdrant）
 > 设计原则原件（已转写归档，仅作依据，冲突以母版为准）：[`bdi-cognitive-engine-principles-v1.0.md`](../reference/bdi-cognitive-engine-principles-v1.0.md)（BDI 决策/渲染边界）、[`architecture-blindspot-fill-v1.0.md`](../reference/architecture-blindspot-fill-v1.0.md)（14 项盲区补全，经本仓架构裁剪后落地）。
-> 日期: 2026-10-28（进度登记更新于 2026-10-29）｜ 状态: 🟢 **WP0–WP7 纯层与渲染闭环已交付；WP8-A/B 流式+WS 灰度已交付；WP9-A/B/C 角色注入+DB 角色池+语音渲染 token 预算/截断/危机路由/降级均已交付并 E2E 探针验证通过（晚晴/亦舟/危机场景全绿）；WP18 报告生成链路 E2E 已立待开工；WP10–WP17 待排期**
+> 日期: 2026-10-28（进度登记更新于 2026-10-30）｜ 状态: 🟢 **WP0–WP12 核心链路全部交付并审核通过；WP18/WP19/WP20/WP21 调试与报告链路已交付；WP10/WP10A/WP11 伦理盲盒+表达风格+PsyGUARD 已交付；剩余 WP13/WP14/WP15/WP16/WP17/WP22/WP23/WP24 为稳健性与运维护栏，内测前补完**
 > 2026-10-29 增补：按两份设计原则（BDI 原则 / 盲区补全）经本仓架构裁剪，新增 Phase1 小项 WP14 学员风险兜底、WP15 算子幅度声明+回归、WP16 轻量幂等+断流不叠加；Phase2+ 保留推进队列见文末（全量保留，逐步推进，非丢弃）。
+> 2026-10-30 全面回头看：蓝图 Phase1 七条核心能力全部落地，执行无走歪、无过度工程。两个硬底线 WP 需内测前补完：WP17（新引擎路径 turn-analysis 入队对齐）、WP14（学员自身心理风险三级兜底）。详见 §0.4。
 > 仓库: `E:\Work\Project\backend\mofang-nestjs`
 
 ---
@@ -62,11 +63,50 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 | 📌 **WP21 报告 SSE 推送端点** | ✅ 已交付并审核通过（2026-10-29） | 任务单 `engine-wp21-report-sse-stream-2026-10-29.md`；记录 `engine-wp21-report-sse-stream-implementation-2026-10-29.md` | GET report/:sessionId/stream @Sse()，终态推完整报告并关流，超时推 {"status":"timeout"}，真 404 走 guard，RxJS timer 不泄漏 |
 | 🆕 **WP10 10 个伦理盲盒强覆盖剧本** | ✅ 已交付并审核通过（2026-10-30） | 任务单 `engine-wp10-ethical-blindbox-scripts-backend-2026-10-30.md`；记录 `engine-wp10-ethical-blindbox-scripts-backend-implementation-2026-10-30.md` | 10 个 force_override 剧本（静态 TS 不落库）+ TrajectoryScriptResolver 端口（Symbol token, @Optional）+ 握手 scriptId 四段透传；tsc 0 / 31 例测试绿 / engine-core 零改动；三种失败口径各有 warn 不阻断会话。前端 scriptId 透传链路已通（vpt_session_start + roleplay_ws_client），fa 0 错 |
 | 🆕 **WP10A character_profiles 表达风格字段预留** | ✅ 已交付并审核通过（2026-10-30） | 任务单 `engine-wp10a-character-expression-style-fields-backend-2026-10-30.md`；记录 `engine-wp10a-character-expression-style-fields-backend-implementation-2026-10-30.md` | 加 3 列（speech_volume_baseline/narrative_style/expression_tone）+ 手写幂等 migration + entity；seed 键不存在=走 DB DEFAULT（默认值只有 DDL 一处真相）；小满/亦舟 expressionTone=intellectualizing，其余走默认；tsc 0 / 14 例测试绿 / engine-core 零改动 / 不消费不暴露前端 |
+| 🆕 **WP11 PsyGUARD-RoBERTa Python 服务 + HTTP RiskProbePort** | ✅ 已交付并审核通过（2026-10-30） | 任务单 `engine-wp11-psyguard-python-service-backend-2026-10-30.md`；记录 `engine-wp11-psyguard-python-service-backend-implementation-2026-10-30.md` | 独立仓库 `mofang-psyguard/`（FastAPI + ONNX Runtime int8 量化，Docker 部署到 117.72.30.78，只绑 127.0.0.1:8100）；NestJS 侧 `HttpPsyGuardProbe` + `PSYGUARD_BASE_URL` 开关分流 + 启动健康检查 + 跨仓库标签契约比对；counselor_input + visitor_output 双侧探测（输出侧只接 PsyGUARD 不接本地词典，避免角色台词被误 block）；测试阶段临时放宽：256 token 窗口 + 500ms 超时（M3 内测前需回改，6 处清单已写进交付记录）；tsc 0 / 36 例 NestJS 测试 + 37 例 Python 测试绿 / engine-core 仅 1 处常量改动（决策明确） |
 | 🆕 **WP22 语音对练限流与并发上限** | 📋 已列入，待拆单 | （待写任务单） | 单用户同时 1 场 + 日 token 预算告警，防烧 LLM 额度 |
 | 🆕 **WP23 WS 断连恢复口径明确** | 📋 已列入，待拆单 | （待写任务单） | 断连超 30s = 会话结束，前端明确提示，不静默丢 BDI 状态 |
 | 🆕 **WP24 单场成本日志** | 📋 已列入，待拆单 | （待写任务单） | closeSession 打每场总 token + 预估费用，不做看板 |
 
 > WP8 总目标拆为两段：**WP8-A（聚合装配，已交付）** 先在调试端点跑通真实 reply；**WP8-B（流式原生 + 接 voice WS + 灰度，本单）** 才是端到端对练闭环。两者不合并，避免在装配期长出第二套渲染。
+
+### 0.4 全面回头看（2026-10-30）
+
+> WP12 交付后做的一次完整对账：蓝图 Phase1 七条核心能力是否全部落地、执行有没有走歪、有没有过度工程、有没有遗漏的硬底线。
+
+**结论：蓝图七条全部落地，执行无走歪、无过度工程。剩余两项硬底线内测前必须补。**
+
+#### 蓝图七条能力对账
+
+| # | 蓝图 Phase1 目标 | 状态 | 对应 WP |
+|---|---|---|---|
+| 1 | 简化版 BDI + 5Ps 角色注入 | ✅ | WP1 内核 + WP9-A/B 端口+DB |
+| 2 | 轨迹三模式 + 10 个伦理盲盒 | ✅ | WP3 内核 + WP10 十个 force_override 剧本 |
+| 3 | 三级记忆 + 跨会话接续 | ✅ | WP2 内核 + WP12 收尾接线（摘要晋升 + resumeFromSessionId） |
+| 4 | 规则层 + PsyGUARD 双层伦理 | ✅ | WP4 规则双侧判定 + WP11 独立 Python 服务（ONNX int8） |
+| 5 | 主模型对接 + 流式 + 渲染调度 | ✅ | WP5 契约 + WP6/7/8 装配 + WP8-B 流式原生灰度 |
+| 6 | 基础角色资产池 | ✅ | WP9-B `character_profiles` 24 列 + 审核上下架 |
+| 7 | 基础可观测与运维 | 🟡 部分 | WP19 每轮留痕 + WP20 Vue3 调试器 + WP21 报告 SSE；聚合指标看板待补（内测期先用日志看，可接受） |
+
+#### 两个硬底线（内测前必须补）
+
+| WP | 是什么 | 为什么是硬底线 |
+|---|---|---|
+| **WP17** | 新引擎路径（EngineStreamBackend）没接 `vpt-session-bridge` 的每轮分析入队（`turnAnalysisProcessor.enqueue`）。导致新路径下：移情/阻抗 mark 帧、轻提示、披露提取全部不触发。注意：危机类 `supervision_hint` 帧已由 WP9-C 的 `publishCrisisHint()` 补上，**不是全缺，只缺 turn-analysis 那一路** | 灰度切新路径后，督导看不到移情/阻抗标记——对话还在正常流式，但督导视角"瞎了"。这是灰度从名单扩到全量的硬闸门 |
+| **WP14** | 学员自身心理风险三级兜底（低=静默监测 / 中=关怀提示 / 高=阻断+热线+审计）。注意：`counselor_input` 侧 PsyGUARD 越界检测已做（WP11），但那是检测"咨询师专业越界"，不是检测"学员本人代入创伤/流露自伤意念"——这是两个不同的东西 | 法律义务。学员对着 AI 来访说"我不想活了"，平台必须有兜底 |
+
+#### 其他待做项（按优先级）
+
+| 优先级 | WP | 什么时候做 |
+|---|---|---|
+| 高 | 重建服务器镜像（WP8-B 到 WP12 一起上线） | 现在就可以做 |
+| 高 | WP11 临时值改回（超时 150→500、token 28→256 是测试期放宽，M3 内测前改回 6 处） | 内测前 |
+| 中 | WP15 算子幅度声明+边界回归 | 随主线插入 |
+| 中 | WP16 round_id 幂等+断流不叠加 | 随 WP8-B 收尾 |
+| 中 | WP22 语音对练限流（防烧 LLM 额度） | 内测前 |
+| 中 | WP23 WS 断连恢复口径（30s=会话结束） | 内测前 |
+| 中 | WP24 单场成本日志 | 内测前 |
+| 低 | 前端"继续训练"入口（后端链路已通，前端接上即可） | 产品排期 |
 
 ---
 
@@ -201,14 +241,14 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 
 ### WP14 · 学员自身心理风险兜底（合规硬底线）
 
-- **目标**：伦理引擎现有双侧检测覆盖"咨询师专业越界/来访输出"，缺"学员本人代入创伤、流露抑郁/自伤意念"的平台安全义务兜底。
+- **目标**：伦理引擎现有双侧检测覆盖"咨询师专业越界（WP11 counselor_input 侧 PsyGUARD）/来访输出（visitor_output 侧 PsyGUARD+规则）"，缺"学员本人代入创伤、流露抑郁/自伤意念"的平台安全义务兜底。**注意区分**：WP11 的 counselor_input 检测是"你作为咨询师有没有专业越界"（过早给建议/价值审判/诊断证明诉求），WP14 是"你作为一个人有没有心理危机"（我不想活了/我最近很痛苦）——这是两个不同的东西，不能复用 PsyGUARD 的 11 类标签。
 - **内容**：
   1. 在新引擎 turn 的**学员输入侧**加独立风险分支（与咨询师越界、来访输出检测并行，互不清零），复用现有 `crisis-detector` 三级词表（high/medium/low）并补学员倾诉/创伤表达词典；
   2. 三级处置：低=打标签静默监测、会话继续；中=温和关怀提示、提升监测等级；高=**阻断实训会话**，弹危机干预热线与转介资源，记录不可删审计日志，触发人工复核；
   3. 高风险仅暂停实训、不销毁会话，用户确认后可返回但继续重点监测；检测只针对学员输入，**不影响来访仿真逻辑**。
-- **依赖**：WP4 规则纯层（已交付）；可与 WP11 并行。
+- **依赖**：WP4 规则纯层（已交付）；WP11 已做 counselor_input 越界检测，本 WP 不重复做越界检测。
 - **验收**：学员输入命中 high → 阻断+热线+审计落库且不可删；medium → 关怀提示不打断；low → 静默记录；误报不影响正常对练。
-- **不做**：学员侧大模型风险分类（本期规则词表，PsyGUARD 只负责来访/越界）；不做实时情绪追踪模型。
+- **不做**：学员侧大模型风险分类（本期规则词表，PsyGUARD 只负责来访/越界）；不做实时情绪追踪模型；不做咨询师专业越界检测（那是 WP11 已做的）。
 
 ### WP15 · 算子幅度声明 + 边界回归（低成本补全）
 
@@ -234,17 +274,20 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 
 ### WP17 · 新引擎路径旁路帧对齐（灰度扩量闸门）
 
-- **为什么有这条（2026-10-29 代码审核补记）**：`EngineStreamBackend` 是"纯翻译器"——自己只吐 content/done/error 三态 chunk，**不发** `supervision_hint`/`mark` 帧、**不调**危机/伦理检测（`engine-adapters/` 下 grep `crisis|assessSafety|riskProbe` = 0 命中）。这些旁路能力目前挂在 `vpt-session-bridge`/`turn-analysis`/voice 层。WP8-B 注释写"两条链路形状完全一样"，但这只对三态 chunk 成立；旁路帧若只由旧 `VisitorService` 生命周期触发，**灰度切新路径后督导提示/移情阻抗标记/危机拦截会静默消失，对话却还在正常流式**——最难查的坏。
+- **为什么有这条（2026-10-29 代码审核补记；2026-10-30 回头看修正）**：`EngineStreamBackend` 是"纯翻译器"——自己只吐 content/done/error 三态 chunk。**危机类 `supervision_hint` 帧已由 WP9-C 的 `publishCrisisHint()` 补上**（内核判出危机类别时同步推），但 **`vpt-session-bridge` 的每轮分析入队（`turnAnalysisProcessor.enqueue`）在新引擎路径下完全没接**——新路径的 `appendTurn()` 只是把一问一答加到内存 Map，没调 bridge 的分析入队。导致新路径下：移情/阻抗 `mark` 帧、轻提示、披露提取全部不触发。WP8-B 注释写"两条链路形状完全一样"，但这只对三态 chunk 成立；旁路分析若只由旧 `VisitorService` 生命周期触发，**灰度切新路径后督导看不到移情/阻抗标记，对话却还在正常流式**——最难查的坏。
 - **目标**：不假设"应该共享"，用端到端断言锁死新路径与旧路径的旁路行为同形，作为灰度从名单扩到全量的硬闸门。
 - **内容**：
-  1. 新引擎路径下，第 N 轮后前端收到至少一条 `supervision_hint` 帧（与旧路径同口径）；
-  2. 新引擎路径下，移情/阻抗节点触发 `mark` 帧（direction/markType 不丢）；
-  3. 新引擎路径下，学员输入命中危机话术 → 触发危机拦截/热线帧，且不被引擎流式吞掉；
-  4. 确认 `vpt-session-bridge` 的每轮分析入队对新旧两条 backend 都触发（不是只在旧 VisitorService 里调）；
-  5. WP13 留痕加一个 `enginePath: legacy|bdi` 字段，每场可查走的哪条链路，便于事后对比两侧差异。
-- **依赖**：WP8-B（已交付）；WP11/WP14 的检测能力就绪后补危机那条断言。
-- **验收**：上述 1–3 各一条绿用例（E2E/WS 录制），任意一条红则灰度不扩量、保持名单；`enginePath` 字段可在日志/报告上区分两场。
-- **不做**：不重写旁路能力本身（那是 WP11/WP14）；不做双路径并行录制对比（Phase2 评估引擎）。
+  1. ~~新引擎路径下，第 N 轮后前端收到至少一条 `supervision_hint` 帧~~（**已做，WP9-C `publishCrisisHint()` 覆盖**）；
+  2. **新引擎路径下，每轮结束后 `vpt-session-bridge` 的 `turnAnalysisProcessor.enqueue` 被触发**（不是只在旧 VisitorService 里调）——这是核心，`mark` 帧/轻提示/披露提取都挂在这个入队后面；
+  3. 新引擎路径下，移情/阻抗节点触发 `mark` 帧（direction/markType 不丢）——这条是第 2 条的结果断言；
+  4. WP13 留痕加一个 `enginePath: legacy|bdi` 字段，每场可查走的哪条链路，便于事后对比两侧差异。
+- **依赖**：WP8-B（已交付）；WP9-C（已交付，supervision_hint 已覆盖）。
+- **验收**：
+  - 新引擎路径跑一场会话，DB 里 `transference_resistance_marks` 表有记录（至少 1 条）；
+  - 新引擎路径跑一场会话，WS 流里能抓到 `type: 'mark'` 帧；
+  - `enginePath` 字段可在日志/报告上区分两场；
+  - 任意一条红则灰度不扩量、保持名单。
+- **不做**：不重写旁路分析能力本身（那是 turn-analysis 现有的事，只是没接新路径）；不做双路径并行录制对比（Phase2 评估引擎）；学员自身危机拦截归 WP14，不在本 WP 范围。
 
 ### WP22 · 语音对练限流与并发上限
 

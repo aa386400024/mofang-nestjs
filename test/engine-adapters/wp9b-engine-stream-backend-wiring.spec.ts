@@ -100,9 +100,17 @@ describe('WP9-B · 引擎版对话后端的工厂装配 (启动炸弹护栏)', (
   it('工厂的 inject 显式带上角色解析端口 (WP9-B 的 DB resolver 真的接上了)', () => {
     const source = readEngineModuleSource();
     const start = source.indexOf('provide: EngineStreamBackend');
-    const block = source.slice(start, start + 600);
-    const injectStart = block.indexOf('inject:');
-    const injectSegment = injectStart === -1 ? '' : block.slice(injectStart, injectStart + 200);
+    expect(start).toBeGreaterThan(-1);
+    // V2026-10-30 (WP12): inject 列表按**括号匹配**取, 不用固定字符窗口 ——
+    //   provider 块每多接一个依赖就变长 (WP12 加了收尾服务), 固定窗口会在下一次接线时
+    //   悄悄取不全, 护栏变成"看起来在跑、其实没看见".
+    const injectStart = source.indexOf('inject:', start);
+    expect(injectStart).toBeGreaterThan(-1);
+    const open = source.indexOf('[', injectStart);
+    const close = source.indexOf(']', open);
+    expect(open).toBeGreaterThan(-1);
+    expect(close).toBeGreaterThan(open);
+    const injectSegment = source.slice(open, close + 1);
 
     expect(injectSegment).toContain('EngineTurnService');
     expect(injectSegment).toContain('CHARACTER_PROFILE_RESOLVER');

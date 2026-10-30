@@ -1,8 +1,9 @@
 # WP12 · 记忆收尾 + 跨会话 resume 接线
 
-> 日期：2026-10-30 ｜ 状态：待开工 ｜ 前置：WP2（内核记忆纯函数已交付）
+> 日期：2026-10-30 ｜ 状态：**已交付** ｜ 前置：WP2（内核记忆纯函数已交付）
 > 并行：可与 WP11 并行（两者零交集）
 > 🔴 **本 WP 的核心不是补技术细节，是打通"学员第二次打开同一角色，引擎记得上次"这条产品链路**
+> 📄 交付记录：[`engine-wp12-memory-closeout-resume-wiring-backend-2026-10-30-implementation-2026-10-30.md`](./engine-wp12-memory-closeout-resume-wiring-backend-2026-10-30-implementation-2026-10-30.md)
 
 ---
 
@@ -120,3 +121,23 @@
 ```text
 feat(engine): WP12 Qdrant 写侧冲突标记 + 短时摘要晋升长时 + openSession 传 resumeFromSessionId 打通跨会话记忆接续
 ```
+
+---
+
+## 5. 交付摘要（2026-10-30）
+
+📄 **完整交付记录**：[`engine-wp12-memory-closeout-resume-wiring-backend-2026-10-30-implementation-2026-10-30.md`](./engine-wp12-memory-closeout-resume-wiring-backend-2026-10-30-implementation-2026-10-30.md)
+
+**§1 五小节全部落地**：Qdrant 补 `setPayload` + `scroll`（写侧先 scroll 再 upsert，走内核 `applyConflictResolution` 选存活者，旧点标 `supersededBy`，**不物理删除**）；会话结束把逐字稿喂 LLM 产摘要 → 构造 SHORT_TERM → 内核 `promoteShortTermToLongTerm` → 晋升长时记忆（**失败只记 warn，不阻断 closeSession**）；逐字稿 close 时**全量定稿**落库（不只靠进程内 Map 扛重启）；半衰期 / 召回阈值集中到 `memory-config.ts`（env 可读，非法值回退）；**🔴 `resumeFromSessionId` 从握手 query 一路传到 `engine.open()`**。
+
+**三处与任务单字面不同（已在交付记录 §6 显式说明）**：
+
+1. **长时记忆作用域从「角色」改成「学员 + 角色」**（超出字面，**但不改就是隐私事故**）：内核 `visitorId` 是跨会话归属键，而角色 key 对所有学员相同 —— 只用角色 key，学员 A 的咨询摘要会被学员 B 召回。落法 `学员id:角色key`；**无学员身份时干脆不写长时记忆**。对外 `persona.id` 仍为 personaId，渲染与决策零变化。
+2. **§1.3 配置化只到 B 层**：红线禁改内核，内核那道 30 天 / 0.1 的地板**不可绕过** → env 阈值**只能收紧**；默认配置下与现状逐字一致。
+3. **逐字稿原本就已每轮落库**：§1.4 的真实缺口是 **close 时的全量定稿（覆盖语义）**，补上增量写入失败的那些轮次 + 明确落库边界。
+
+**闸门**：`tsc` **0 错** / eslint **0 error 0 warning** / `git diff --stat HEAD -- src/engine-core` **为空**（内核整树零改动）/ WP12 新增套件 **35 例全绿** / engine-adapters+engine-core+voice **28 套件 583 例全绿** / 全量 **57 套件 907 例中 905 例通过**（唯一失败 = `test/counselor/drill-judge.spec.ts` **2 例既有债**，与 WP11 交付记录同两例，非本轮引入）。
+
+**未做（红线）**：不改内核 / 不做竞争抑制遗忘精细权重 / 不做 Chinese-MentalBERT / 不做跨设备同步 / 不做记忆编辑删除 UI / 不做摘要人工审核（工程种子值，已标注待专业复核）/ 不强制前端本期做「继续训练」入口（后端链路已通，前端接上 `resumeFromSessionId` 即可）。
+
+**未自动 commit / push**：改动都在工作区，提交与否由用户决定。

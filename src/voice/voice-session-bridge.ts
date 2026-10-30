@@ -24,11 +24,34 @@
 //     2. 启动日志能看到 "voice session bridge: counselor-vpt" 注册成功
 //     3. counselor 未注册桥时 (单测 / agent 独立部署) → 语音闭环行为与改前完全一致
 //   时间戳: 2026-10-26
+//
+// V2026-10-30 治本 (WP12 · 逐字稿全量覆盖写插槽):
+//   原因: 逐字稿原本只靠**每轮增量**落库 (`appendTurn`), 进程中途崩了就停在最后一轮 ——
+//     而 `EngineStreamBackend.transcripts` 是进程内 Map, 重启即丢, 两边都不够.
+//     任务单 §1.4 要求: "close 时必须落库, 不落库就报错", "落库边界写死, 不留模糊".
+//     做法: 桥接口加一个**可选**方法 `replaceTranscript?` —— 收尾时把本场完整逐字稿
+//     覆盖写回 `training_sessions.transcript` (报告链路的逐字稿表).
+//   为什么是**可选**方法而不是必需:
+//     桥是"插槽", 实现方可能还没接逐字稿覆盖写 (旧实现 / 第三方实现 / 测试桩).
+//     写成必需 → 所有实现方一次性全炸; 写成可选 → 没实现的桥照常跑,
+//     只是"收尾时不做全量覆盖" (逐字稿仍靠每轮增量), 降级可见 (注册表返回 false).
+//   反双胞胎:
+//     - 不新开一张表: 逐字稿归 `training_sessions.transcript` (与 4 流派 / 报告链路同源),
+//       另开一张 = 两套逐字稿格式, 必然漂移.
+//     - 不在 voice 层直接写库: voice 不认识 ORM (同文件头的依赖倒置理由), 写库仍在 counselor 侧.
+//     - 不把"覆盖写"做成"追加写": 覆盖写才是"定稿"语义 (任务单原话"逐字稿快照"),
+//       追加写会让同一段话在库里出现两次.
+//   验证:
+//     1. tsc 0 错
+//     2. test/voice/vpt-session.spec.ts: 未实现 replaceTranscript 的桥 → 注册表返回 false, 不抛
+//     3. test/engine-adapters/wp12-memory-closeout.spec.ts: 覆盖写成功 → 逐字稿落库
+//   时间戳: 2026-10-30
 
 import { Injectable, Logger } from '@nestjs/common';
 
 import type { VoiceSessionPreset, VoiceSkillCode, VoiceVisitorCard } from './voice-session.types';
 import type { VoiceSessionReportStatus } from './voice.types';
+import type { TranscriptTurn } from '../agent/supervisor/supervisor.types';
 
 /**
  * 建连输入 (WS 握手成功、准备落库时).
@@ -111,6 +134,21 @@ export interface VoiceSessionCloseResult {
 }
 
 /**
+ * 逐字稿全量覆盖写输入 (WP12).
+ *
+ * 逐字稿用 `TranscriptTurn` (agent/supervisor 既有类型) —— 与督导报告链路同一口径,
+ * 不在这里另造一套格式.
+ */
+export interface VoiceSessionTranscriptInput {
+  /** 稳定落库 id (training_sessions.id). */
+  readonly dbSessionId: string;
+  /** 归属学员 id (缺省 = 不校验归属). */
+  readonly userId?: string;
+  /** 本场完整逐字稿 (一问一答两条交替). */
+  readonly turns: readonly TranscriptTurn[];
+}
+
+/**
  * vpt 会话落库桥 (业务侧实现).
  *
  * 实现方只需回答三个问题: "这场会谈要不要落库" / "这一轮聊了什么" / "这场怎么收尾".
@@ -138,6 +176,15 @@ export interface VoiceSessionBridge {
    * @returns 收尾结果 (落库与否 + 报告状态)
    */
   close(input: VoiceSessionCloseInput): Promise<VoiceSessionCloseResult>;
+  /**
+   * 全量覆盖写逐字稿 (WP12 · **可选**).
+   *
+   * 收尾时把本场完整逐字稿写回逐字稿表 (覆盖语义 = 定稿).
+   * 未实现 = 该桥不支持收尾全量覆盖 (逐字稿仍靠每轮增量) —— 注册表会如实返回 false.
+   *
+   * @param input 覆盖写输入
+   */
+  replaceTranscript?(input: VoiceSessionTranscriptInput): Promise<void>;
 }
 
 /**
@@ -228,5 +275,44 @@ export class VoiceSessionBridgeRegistry {
       }
     }
     return null;
+  }
+
+  /**
+   * 全量覆盖写逐字稿 (WP12).
+   *
+   * 语义: **覆盖 = 定稿** —— 把内存里的本场完整逐字稿写回逐字稿表,
+   * 补上"每轮增量写入失败的那些轮次", 并把落库边界钉死 (写不成就明确报错, 不留模糊).
+   *
+   * 三种结局 (调用方靠返回值/异常区分):
+   *   - 有桥实现且写成功 → `true`;
+   *   - 没有桥实现该能力 (老实现 / 测试桩) → `false` (**不抛**, 属常态降级);
+   *   - 有桥实现但**全部写失败** → **抛错** (数据没存下来, 必须让人知道).
+   *
+   * @param input 覆盖写输入
+   * @returns 是否写成功
+   * @throws 有桥实现但全部失败时抛错
+   */
+  async replaceTranscript(input: VoiceSessionTranscriptInput): Promise<boolean> {
+    let attempted = false;
+    let written = false;
+    let lastError: unknown;
+    for (const bridge of this.bridges.values()) {
+      if (!bridge.replaceTranscript) continue;
+      attempted = true;
+      try {
+        await bridge.replaceTranscript(input);
+        written = true;
+      } catch (error) {
+        lastError = error;
+        this.logger.warn(
+          `[replace_transcript_failed] bridge=${bridge.name} db_session=${input.dbSessionId} ` +
+            `err=${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+    if (attempted && !written) {
+      throw lastError instanceof Error ? lastError : new Error('逐字稿覆盖写失败: 全部落库桥都失败');
+    }
+    return written;
   }
 }

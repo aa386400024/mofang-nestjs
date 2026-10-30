@@ -136,6 +136,19 @@ export interface VoiceHandshakeQuery {
    * 在握手期钉死白名单 = 每加一个剧本就要改 voice 层 (违反"换数据源不该改注入点").
    */
   readonly scriptId?: string;
+  /**
+   * V2026-10-30 治本 (WP12): 跨会话接续来源会话 id.
+   *
+   * 缺省 = **新会话** (行为与现状逐字一致); 有值 = 要接续上一场, 让引擎
+   * 搬上一场的 BDI 快照并按 visitorId 召回长时记忆.
+   *
+   * 为什么放在握手期而不是开场的 body: 握手是**唯一**带"这场从哪来"的地方 ——
+   * 新会话还是接续, 是**会话身份**的一部分, 不是"这轮说什么".
+   *
+   * 清洗口径与 sessionId **完全同款** (去控制字符 + 长度封顶 + 去空白):
+   * 它同样完全由客户端提供, 且会被拼进日志与下游查询.
+   */
+  readonly resumeFromSessionId?: string;
 }
 
 /**
@@ -180,6 +193,8 @@ export function parseVoiceHandshake(url: string): VoiceHandshakeQuery {
     // V2026-10-30 治本 (WP10): 轨迹剧本 id —— 同样是**可选增量**, 只做去空白与
     //   长度封顶, 不做存在性校验 (资产集合会增长, 把白名单钉在 voice 层是错位).
     scriptId: readScriptId(params.get('scriptId')),
+    // V2026-10-30 治本 (WP12): 跨会话接续来源 —— 同样是**可选增量**, 缺省 = 新会话.
+    resumeFromSessionId: readResumeFromSessionId(params.get('resumeFromSessionId')),
   };
 }
 
@@ -316,6 +331,25 @@ function readScriptId(raw: string | null): string | undefined {
   const cleaned = value.replaceAll(/[\u0000-\u001F\u007F]/g, '').trim();
   if (cleaned.length === 0) return undefined;
   return cleaned.slice(0, MAX_SCRIPT_ID_LENGTH);
+}
+
+/**
+ * 读跨会话接续来源 id (V2026-10-30, WP12).
+ *
+ * 清洗口径**复用** sessionId 的那一份 (`sanitizeSessionId`): 同样是客户端完全可控、
+ * 同样会进日志与下游查询的 id, 就该用同一套清洗 —— 两份清洗迟早漂移
+ * (一个多留了个空格, 另一个多留了个换行, 于是"查不到上一场"只在某些 id 上发生).
+ *
+ * 不做存在性校验: 上一场还在不在是**运行时**的事, 由引擎侧 warn + 回退新会话;
+ * 在握手期就断连会把"客户端传了个过期的 id"升级成"开不了会".
+ *
+ * @param raw 原始值
+ * @returns 清洗后的 id; 未提供 / 清洗后为空 → undefined (新会话)
+ */
+function readResumeFromSessionId(raw: string | null): string | undefined {
+  const value = readOptional(raw);
+  if (value === undefined) return undefined;
+  return sanitizeSessionId(value);
 }
 
 /**

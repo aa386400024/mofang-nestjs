@@ -575,7 +575,14 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
   // ── 附加 A: 装配工厂 ─────────────────────────────────────────────
   describe('附加 A · 装配工厂分流', () => {
     it('配了向量库 → Qdrant 版 (内置内存回落仓)', () => {
-      const qdrant = { upsert: async () => undefined, search: async () => [] };
+      // V2026-10-30 (WP12): 窄面扩到 4 个方法 (加 setPayload / scroll) —— 桩必须跟上,
+      //   否则"配了向量库"这一条会在**类型**上就挂掉 (而不是测装配逻辑).
+      const qdrant = {
+        upsert: async () => undefined,
+        search: async () => [],
+        setPayload: async () => undefined,
+        scroll: async () => [],
+      };
       const embedder = { embed: async () => [] };
 
       const store = createEngineMemoryStore({ qdrantUrl: 'http://qdrant:6333', qdrant, embedder });

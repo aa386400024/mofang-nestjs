@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { api } from '@/api/client'
 import type { SessionSummary } from '@/api/types'
+import InfoTooltip from '@/components/InfoTooltip.vue'
 
+const { t } = useI18n()
 const rows = ref<SessionSummary[]>([])
 const loading = ref(true)
 const err = ref('')
@@ -30,26 +33,38 @@ const stats = computed(() => {
 
 <template>
   <div class="p-6 max-w-5xl mx-auto">
-    <h1 class="text-lg font-semibold mb-4">会话列表</h1>
-    <div v-if="loading" class="text-muted text-sm">加载中…</div>
+    <h1 class="text-lg font-semibold mb-4">{{ t('sessions.title') }}</h1>
+    <div v-if="loading" class="text-muted text-sm">…</div>
     <div v-else-if="err" class="text-danger text-sm">{{ err }}</div>
     <template v-else>
       <!-- 统计条 -->
       <div class="grid grid-cols-4 gap-3 mb-4">
         <div class="card p-3">
-          <div class="text-[10px] uppercase tracking-wider text-muted mb-1">总会话</div>
+          <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">
+            {{ t('sessions.total') }}
+            <InfoTooltip :text="t('sessions.totalTooltip')" />
+          </div>
           <div class="font-mono text-lg text-gray-100">{{ stats.total }}</div>
         </div>
         <div class="card p-3">
-          <div class="text-[10px] uppercase tracking-wider text-muted mb-1">已完成</div>
+          <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">
+            {{ t('sessions.completed') }}
+            <InfoTooltip :text="t('sessions.completedTooltip')" />
+          </div>
           <div class="font-mono text-lg text-ok">{{ stats.done }}</div>
         </div>
         <div class="card p-3">
-          <div class="text-[10px] uppercase tracking-wider text-muted mb-1">总 Token</div>
+          <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">
+            {{ t('sessions.tokens') }}
+            <InfoTooltip :text="t('sessions.tokensTooltip')" />
+          </div>
           <div class="font-mono text-lg text-gray-100">{{ stats.tokens.toLocaleString() }}</div>
         </div>
         <div class="card p-3">
-          <div class="text-[10px] uppercase tracking-wider text-muted mb-1">平均时长</div>
+          <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">
+            {{ t('sessions.avgDuration') }}
+            <InfoTooltip :text="t('sessions.avgDurationTooltip')" />
+          </div>
           <div class="font-mono text-lg text-gray-100">{{ fmtDur(stats.avgDur) }}</div>
         </div>
       </div>
@@ -58,11 +73,11 @@ const stats = computed(() => {
       <table class="w-full text-sm">
         <thead class="bg-bg-elevated text-muted text-xs uppercase">
           <tr>
-            <th class="text-left px-4 py-2 font-medium">时间</th>
-            <th class="text-left px-4 py-2 font-medium">角色</th>
-            <th class="text-left px-4 py-2 font-medium">时长</th>
-            <th class="text-right px-4 py-2 font-medium">Token</th>
-            <th class="text-left px-4 py-2 font-medium">状态</th>
+            <th class="text-left px-4 py-2 font-medium">{{ t('sessions.time') }}</th>
+            <th class="text-left px-4 py-2 font-medium">{{ t('sessions.visitor') }}</th>
+            <th class="text-left px-4 py-2 font-medium">{{ t('sessions.duration') }}</th>
+            <th class="text-right px-4 py-2 font-medium">{{ t('sessions.token') }}</th>
+            <th class="text-left px-4 py-2 font-medium">{{ t('sessions.status') }}</th>
           </tr>
         </thead>
         <tbody>

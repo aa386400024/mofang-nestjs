@@ -20,31 +20,43 @@
 //     - **不新造 QdrantClient** —— 复用现有 QdrantService (M6): 探活 / collection
 //       维度管理 / 批量写 全在那一处, 再造一份 = 双探活 + 双维度管理.
 //     - **依赖窄接口 QdrantMemoryClient, 不依赖整个 QdrantService** —— B 层只用到
-//       upsert + search 两个方法; 声明窄接口让单测能用极小 stub, 也让"以后换向量库"
-//       只需换这一个窄面, 而不是整个 service.
+//       upsert + search + setPayload + scroll 四个方法; 声明窄接口让单测能用极小 stub,
+//       也让"以后换向量库"只需换这一个窄面, 而不是整个 service.
 //     - **不自己写召回判定** —— 判定统一走内核的 evaluateRecallCandidate (内存版同款),
 //       杜绝"内存版按原始重要度过滤 / Qdrant 版按衰减后过滤"这种换实现即漂移.
 //     - **不用文本子串过滤** —— 语义检索由向量负责; 再加一层子串过滤等于把
 //       "同义词也算相关"的语义检索降级成关键词匹配.
 //     - **不物理删除被取代的记忆** (M4) —— 只在 payload 上标 supersededBy.
 //
-//   ⚠️ 本期已知能力缺口 (非设计选择, 是现有 QdrantService 能力所限):
-//     **写侧冲突消解标记** 需要"只改 payload 不改向量"的能力 (Qdrant setPayload),
-//     现有 QdrantService 未暴露该方法; 也没有"仅按 filter 取点"(scroll) 的能力,
-//     靠向量相似度反查冲突分组会漏召回.
-//     因此本期 Qdrant 版的**写侧**不做冲突标记; 冲突消解的纯函数
-//     (resolveConflict / applyConflictResolution) 已在内核提供, 由编排层在
-//     内存态算好后随新条目一起落仓. 该缺口已在交付记录中标注.
+//   V2026-10-30 治本 (WP12 · 补 WP2 写侧缺口):
+//     **写侧冲突消解标记** —— WP2 交付时本文件**没有**做冲突标记, 原因是当时
+//     QdrantService 既没有 "只改 payload 不改向量" (setPayload), 也没有
+//     "仅按 filter 取点" (scroll) 两个能力. WP12 把这两个能力补上后, 缺口关闭:
+//       写新记忆前 → scroll 出同 tenant+visitor+topicKey 的旧点 →
+//       走内核 `applyConflictResolution` 选存活者 →
+//       存活者是新条目: 给旧点 setPayload({supersededBy: 新条目 id});
+//       存活者是旧条目: 新条目**带着** supersededBy 一起落库.
+//     仍然**不物理删除**旧点 (M4): 被取代的记忆是审计线索.
+//
+//   V2026-10-30 治本 (WP12 · §1.3 配置化):
+//     衰减半衰期与访客范围召回阈值改为**可配置** (见 persistence/memory-config.ts).
+//     本文件在 visitor 范围用配置值算"有效重要度"(门槛判定 + 排序都用它),
+//     内核的共享判定仍原样跑 (内核常量本轮不改, 见 memory-config.ts 顶部说明).
+//     默认配置下 (30 天 / 0.1) 与现状**逐字一致**.
 //
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/qdrant-memory-store.spec.ts: payload 映射 / score 映射 / 降级不炸
+//     3. test/engine-adapters/wp12-memory-closeout.spec.ts: 冲突标记 / 配置门槛
 
 import { Logger } from '@nestjs/common';
 
+import { DEFAULT_MEMORY_CONFIG, type MemoryConfig } from './memory-config';
 import {
+  applyConflictResolution,
   assertValidMemoryEntry,
   assertValidMemoryRecallQuery,
+  effectiveImportance,
   evaluateRecallCandidate,
   MemorySource,
   MemoryTier,
@@ -66,7 +78,17 @@ import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memor
 export const VISITOR_LONG_MEMORY_COLLECTION = 'visitor_long_memory';
 
 /**
- * B 层对 Qdrant 的**最小依赖面** (只要 upsert + search).
+ * 冲突扫描的最大取点数 (WP12).
+ *
+ * 为什么封顶: scroll 是**无分页的全量取**, 一个来访者的同一主题理论上可以无限多条.
+ * 不封顶的话, 一个"什么都往同一个 topicKey 里塞"的来访者能把一次写入拖成全表扫描.
+ * 封顶后的失败方向是安全的: 超出部分**不被标记** (旧点仍可召回) —— 也就是
+ * "少标记几条冲突", 而不是"错标 / 误删".
+ */
+export const CONFLICT_SCAN_LIMIT = 200;
+
+/**
+ * B 层对 Qdrant 的**最小依赖面**.
  *
  * 现有 QdrantService 结构上满足本接口; 声明窄接口的意义:
  *   - 单测能用极小 stub, 不必伪造整个 service;
@@ -83,6 +105,18 @@ export interface QdrantMemoryClient {
     filter?: Record<string, unknown>,
     scoreThreshold?: number,
   ): Promise<{ id: string; score: number; payload: Record<string, unknown> }[]>;
+  /**
+   * 只改 payload, 不动向量 (WP12 · 冲突标记).
+   *
+   * 必须存在: 没有它就**无法**做"只标记不删除" —— 重新 upsert 会连向量一起覆盖.
+   */
+  setPayload(collection: string, id: string, payload: Record<string, unknown>): Promise<void>;
+  /**
+   * 按 filter 滚动取点 (WP12 · 冲突扫描).
+   *
+   * 必须存在: 用向量相似度反查冲突分组会**漏召回** (语义相近 ≠ 同主题).
+   */
+  scroll(collection: string, filter: Record<string, unknown>, limit?: number): Promise<{ id: string; payload: Record<string, unknown> }[]>;
 }
 
 /** 适配器构造选项. */
@@ -99,12 +133,22 @@ export interface QdrantMemoryStoreOptions {
   readonly defaultTtlMs?: number | null;
   /** 时钟 (测试可注入; 默认 Date.now). */
   readonly now?: () => number;
+  /** 衰减/召回配置 (WP12; 省略 = 内核同值种子 30 天 / 0.1). */
+  readonly config?: MemoryConfig;
 }
 
 /** payload → 条目的解析结果 (含存储侧才有的过期时刻). */
 interface DecodedEntry {
   readonly entry: MemoryEntry;
   readonly expiresAt: number | null;
+}
+
+/** 冲突消解后待落库的结果 (WP12). */
+interface ConflictResolved {
+  /** 真正要落库的条目 (可能带上了 supersededBy). */
+  readonly entry: MemoryEntry;
+  /** 需要被标 supersededBy 的**旧**点 id (存活者是新条目时才有). */
+  readonly oldLoserIds: readonly string[];
 }
 
 /** 读字符串 (非空). */
@@ -157,6 +201,8 @@ export class QdrantMemoryStore implements MemoryStore {
   private readonly defaultTtlMs: number | null;
   /** 时钟. */
   private readonly now: () => number;
+  /** 衰减/召回配置 (WP12). */
+  private readonly config: MemoryConfig;
 
   constructor(options: QdrantMemoryStoreOptions) {
     this.qdrant = options.qdrant;
@@ -165,6 +211,7 @@ export class QdrantMemoryStore implements MemoryStore {
     this.collection = options.collection ?? VISITOR_LONG_MEMORY_COLLECTION;
     this.defaultTtlMs = options.defaultTtlMs ?? null;
     this.now = options.now ?? Date.now;
+    this.config = options.config ?? DEFAULT_MEMORY_CONFIG;
   }
 
   async remember(entry: MemoryEntry): Promise<void> {
@@ -184,11 +231,27 @@ export class QdrantMemoryStore implements MemoryStore {
       return;
     }
 
+    // WP12: 写新点**之前**先做冲突消解 —— 顺序不能反:
+    //   先写后标记 → 新点已经落库, 旧点还没标记, 那个窗口里召回会同时返回新旧两条;
+    //   先算后写   → 落库那一刻 payload 就是最终态, 没有中间态.
+    const resolved = await this.resolveConflict(entry);
+
     try {
-      await this.qdrant.upsert(this.collection, entry.id, [...vector], this.toPayload(entry));
+      await this.qdrant.upsert(this.collection, resolved.entry.id, [...vector], this.toPayload(resolved.entry));
     } catch (e) {
       this.logger.warn(`[remember] Qdrant 写入失败, 落会话级回落仓 id=${entry.id}: ${(e as Error).message}`);
-      await this.fallback.remember(entry);
+      await this.fallback.remember(resolved.entry);
+      return;
+    }
+
+    // 标记旧点: 失败只 warn —— 标记失败的后果是"旧点没被排除"(可能同时召回新旧两条),
+    // 不是数据损坏. 但**必须留痕**, 否则这种漂移在审计里看不见.
+    for (const loserId of resolved.oldLoserIds) {
+      try {
+        await this.qdrant.setPayload(this.collection, loserId, { supersededBy: resolved.entry.id });
+      } catch (e) {
+        this.logger.warn(`[remember] 冲突标记失败 (旧点未被排除) loser=${loserId} survivor=${resolved.entry.id}: ${(e as Error).message}`);
+      }
     }
   }
 
@@ -223,9 +286,16 @@ export class QdrantMemoryStore implements MemoryStore {
       if (!decoded) continue;
       const evaluation = evaluateRecallCandidate(decoded.entry, decoded.expiresAt, query, now);
       if (!evaluation.accepted) continue;
+
+      // WP12: 配置化的有效重要度 (半衰期来自 env).
+      //   默认配置下 (30 天) 与内核口径**完全一致**, 这里等于不做任何改变;
+      //   env 调过之后, 门槛判定与排序都以配置口径为准 (内核地板仍在, 见 memory-config.ts).
+      const configuredEffective = effectiveImportance(decoded.entry, now, this.config.decayHalfLifeMs);
+      if (configuredEffective < this.config.recallThreshold) continue;
+
       ranked.push({
         hit: { entry: decoded.entry, score: clamp01(point.score) },
-        effectiveImportance: evaluation.effectiveImportance,
+        effectiveImportance: configuredEffective,
       });
     }
 
@@ -235,6 +305,60 @@ export class QdrantMemoryStore implements MemoryStore {
   }
 
   // ── private ────────────────────────────────────────────────────
+
+  /**
+   * 冲突消解: 找出同主题旧点, 走内核纯函数选存活者 (WP12).
+   *
+   * 走内核纯函数而不是自己判"新的赢": 内核 `applyConflictResolution` 的规则是
+   * **时间新 → 重要度高 → id 字典序**, 三级确定性. 自己写一遍"新的赢"= 换一套规则,
+   * 与内存版对不上 (同一份记忆, 换个存储实现结论就变 —— 那是最难查的漂移).
+   *
+   * 失败方向是安全的: 扫描失败 → 不做标记 (旧点仍可召回, 少一条冲突标记);
+   * 绝不因为"标不了"就把新条目也拒掉.
+   *
+   * @param entry 待写入的新条目
+   * @returns 落库条目 + 需要打标的旧点 id
+   */
+  private async resolveConflict(entry: MemoryEntry): Promise<ConflictResolved> {
+    const topicKey = entry.topicKey?.trim() ?? '';
+    // 冲突分组键是"同 tenant + 同 visitor + 同 topicKey"; 缺任一 → 不构成冲突组.
+    if (!topicKey || !entry.visitorId) {
+      return { entry, oldLoserIds: [] };
+    }
+
+    let points: { id: string; payload: Record<string, unknown> }[];
+    try {
+      points = await this.qdrant.scroll(this.collection, this.buildConflictFilter(entry, topicKey), CONFLICT_SCAN_LIMIT);
+    } catch (e) {
+      this.logger.warn(`[remember] 冲突扫描失败, 跳过标记 (不阻断写入) id=${entry.id}: ${(e as Error).message}`);
+      return { entry, oldLoserIds: [] };
+    }
+
+    const group: MemoryEntry[] = [];
+    for (const point of points) {
+      const decoded = this.toEntry(point.id, point.payload);
+      if (!decoded) continue;
+      // 已被取代的点不再参与冲突组 —— 否则会出现"A 取代 B, B 又取代 A"的链式打架.
+      if (decoded.entry.supersededBy) continue;
+      if (decoded.entry.id === entry.id) continue;
+      group.push(decoded.entry);
+    }
+    if (group.length === 0) {
+      return { entry, oldLoserIds: [] };
+    }
+
+    const { survivor, superseded } = applyConflictResolution([...group, entry]);
+    const oldLosers = superseded.filter((item) => item.id !== entry.id).map((item) => item.id);
+
+    if (survivor.id === entry.id) {
+      // 新条目存活 → 旧点全部打标.
+      return { entry, oldLoserIds: oldLosers };
+    }
+    // 旧条目存活 → 新条目自己带上 supersededBy 一起落库 (它一落库就已经是"被取代"态).
+    const newLoser = superseded.find((item) => item.id === entry.id);
+    const supersededBy = newLoser?.supersededBy ?? survivor.id;
+    return { entry: { ...entry, supersededBy }, oldLoserIds: oldLosers };
+  }
 
   /** 条目 → Qdrant payload. */
   private toPayload(entry: MemoryEntry): Record<string, unknown> {
@@ -296,5 +420,20 @@ export class QdrantMemoryStore implements MemoryStore {
       must.push({ key: 'visitorId', match: { value: query.visitorId } });
     }
     return { must };
+  }
+
+  /**
+   * 冲突扫描过滤条件 (WP12): 租户 + 来访者 + 主题键.
+   *
+   * 刻意**不带** sessionId: 冲突要跨会话找 (同一来访者同一主题, 上一场写的也要找出来).
+   */
+  private buildConflictFilter(entry: MemoryEntry, topicKey: string): Record<string, unknown> {
+    return {
+      must: [
+        { key: 'tenantId', match: { value: entry.tenantId } },
+        { key: 'visitorId', match: { value: entry.visitorId } },
+        { key: 'topicKey', match: { value: topicKey } },
+      ],
+    };
   }
 }

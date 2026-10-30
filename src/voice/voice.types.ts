@@ -210,6 +210,13 @@ export interface VoiceSessionMeta {
    * 有值 = 透传给引擎侧, 由剧本解析器决定它对应哪份剧本; 查不到 → warn + 回退自由运行.
    */
   readonly trajectoryScriptId?: string;
+  /**
+   * 跨会话接续来源会话 id (V2026-10-30, WP12).
+   *
+   * undefined = **新会话** (与现状逐字一致); 有值 = 接续上一场 ——
+   * 引擎搬上一场的 BDI 快照, 并按 visitorId 召回长时记忆.
+   */
+  readonly resumeFromSessionId?: string;
 }
 
 /** 来访者 persona 快照 (VoiceService 缓存, 用于 TTS 音色 + 日志). */

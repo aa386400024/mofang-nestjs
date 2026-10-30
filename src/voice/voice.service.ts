@@ -640,6 +640,10 @@ export class VoiceService {
         const persona = await this.engineBackend!.openSession({
           sessionId: meta.sessionId,
           tenantId: meta.tenantId,
+          // V2026-10-30 治本 (WP12): 学员 id —— 后端用它把长时记忆归属到
+          //   "(学员, 角色)" 维度. 角色 key 对所有学员都相同, 只用它会让学员之间
+          //   互相读到对方的咨询内容.
+          userId: meta.userId,
           personaId: meta.personaId,
           // V2026-10-29 治本 (WP9-A · 角色参数透传):
           //   只把**握手已经解析好**的东西原样带过去, 不在 voice 层做任何角色语义判断 ——
@@ -659,6 +663,10 @@ export class VoiceService {
           // V2026-10-30 治本 (WP10): 轨迹剧本 id —— 原样透传, voice 层不判断剧本存在性.
           //   缺省 = 本场无剧本约束, 后端走 BDI 自由运行 (与现状逐字一致).
           trajectoryScriptId: meta.trajectoryScriptId,
+          // V2026-10-30 治本 (WP12): 跨会话接续来源 id —— 原样透传, voice 层不判断
+          //   上一场在不在 (那是引擎侧的事: 查不到 → warn + 按新会话开, 不抛错不断连).
+          //   缺省 = 新会话, 与现状逐字一致.
+          resumeFromSessionId: meta.resumeFromSessionId,
         });
         this.backends.set(meta.sessionId, this.engineBackend!);
         return persona;
