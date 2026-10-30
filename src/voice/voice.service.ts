@@ -19,6 +19,14 @@
 //        握手 voiceId > 模板绑定音色 (若有) > env `MINIMAX_TTS_VOICE_ID`.
 //        不传 voiceId 时行为与改前**完全一致** (存量客户端零影响).
 //
+//   V2026-10-29 治本 (WP8-B · 灰度防腐层 — 新引擎接入 voice WS):
+//     ① 本层只**持有窄接口** `VoiceTurnBackend` (旧 VisitorService 与新引擎适配同构),
+//        按灰度开关 (ENGINE_VOICE_ENABLED + ENGINE_STREAM_GRAYSCALE_SESSIONS) 选实现.
+//     ② **消费器零改动**: consumeLlmStream / bargeIn / generation 防旧流 / TTS 句切 /
+//        persistTurnIfComplete 全部保持原样 —— 两条链路的帧协议与产出物完全一致.
+//     ③ **失败自动回落**: 新引擎开场失败 / 建流失败 / 首个增量前中断 → 本场回旧链路,
+//        帧序列与旧链路逐帧一致, 不 500、不关 WS. 已出声之后不再回落 (不可撤回).
+//
 //   关键设计:
 //     - 每 session 一个 VoiceSessionState (Map<sessionId, state>)
 //     - 每条 user_text 自增 currentGeneration, 老 pipeline 检查 generation 不匹配
@@ -45,12 +53,13 @@
 //     4. 连接池测试: 一轮结束后池内条目数归零
 //     5. persona 切换: ?personaId=l1_zhang vs l3_wang, prompt 行为应不同
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { TtsService } from './tts/tts.service';
 import type { TtsEvent, TtsOptions, TtsSessionHandle } from './tts/tts.types';
 import { VoiceSessionBridgeRegistry, type VoiceSessionCloseResult } from './voice-session-bridge';
+import { VOICE_TURN_BACKEND, type VoiceTurnBackend, type VoiceTurnBackendTurnOptions } from './voice-turn-backend.port';
 import type {
   VoiceClientMessage,
   VoiceServerMessage,
@@ -59,7 +68,7 @@ import type {
   VoiceSessionReportStatus,
   VoiceSessionState,
 } from './voice.types';
-import type { LlmStream } from '../agent/llm/llm.types';
+import type { LlmStream, LlmStreamChunk } from '../agent/llm/llm.types';
 import { SupervisorProcessor } from '../agent/supervisor/supervisor.processor';
 import type { RunReportInput } from '../agent/supervisor/supervisor.types';
 import { VisitorService } from '../agent/visitor/visitor.service';
@@ -93,14 +102,32 @@ export class VoiceService {
   private readonly ttsVoiceId: string;
   /** TTS 模型 (env MINIMAX_TTS_MODEL). */
   private readonly ttsModel: string;
+  /**
+   * V2026-10-29 治本 (WP8-B · 灰度): 新引擎是否接管语音链路 (env ENGINE_VOICE_ENABLED).
+   *
+   * 缺省 false —— 灰度开关默认关, 旧链路 100% 原样, 可一键回退.
+   */
+  private readonly engineEnabled: boolean;
+  /** 灰度会话白名单 (env ENGINE_STREAM_GRAYSCALE_SESSIONS); 空 = 总开关打开即全量. */
+  private readonly grayscaleSessions: ReadonlySet<string>;
+  /**
+   * 会话 id → 本场实际使用的对话后端 (灰度选择结果; 新引擎失败时回落旧链路).
+   *
+   * 放在这里而不是 `VoiceSessionState`: 状态文件是**帧协议**侧的东西, 不该知道
+   * "引擎还是旧链路"; 而本表是**装配决策**的产物, 归装配层管.
+   */
+  private readonly backends = new Map<string, VoiceTurnBackend>();
+  /** 已开过旧链路会话的 sessionId (新引擎场里回落前需要补开). */
+  private readonly legacyOpened = new Set<string>();
 
   private readonly sessions = new Map<string, VoiceSessionState>();
 
   /**
-   * @param visitor 来访者编排 (persona + prompt + 历史)
+   * @param visitor 来访者编排 (persona + prompt + 历史) —— 旧链路, 灰度兜底底座
    * @param supervisorProcessor 督导报告 (异步)
    * @param tts TTS 门面
    * @param config 全局配置
+   * @param engineBackend 新引擎版对话后端 (WP8-B 灰度; 未装配时为 undefined → 走旧链路)
    */
   constructor(
     private readonly visitor: VisitorService,
@@ -108,9 +135,12 @@ export class VoiceService {
     private readonly tts: TtsService,
     private readonly bridges: VoiceSessionBridgeRegistry,
     config: ConfigService,
+    @Optional() @Inject(VOICE_TURN_BACKEND) private readonly engineBackend?: VoiceTurnBackend,
   ) {
     this.ttsVoiceId = config.get<string>('minimax.ttsVoiceId') ?? '';
     this.ttsModel = config.get<string>('minimax.ttsModel') ?? 'speech-2.8-turbo';
+    this.engineEnabled = readBooleanFlag(config.get<string>('ENGINE_VOICE_ENABLED'));
+    this.grayscaleSessions = parseSessionWhitelist(config.get<string>('ENGINE_STREAM_GRAYSCALE_SESSIONS'));
   }
 
   /** 处理一条客户端消息. gateway 在 socket.onMessage 时调. */
@@ -155,11 +185,7 @@ export class VoiceService {
       old.ttsHandle?.dispose();
       old.llmAbort?.abort();
     }
-    const personaSnapshot: VoiceSessionPersona = await this.visitor.openSession({
-      sessionId: meta.sessionId,
-      tenantId: meta.tenantId,
-      personaId: meta.personaId,
-    });
+    const personaSnapshot: VoiceSessionPersona = await this.openBackendSession(meta);
     const state: VoiceSessionState = {
       meta,
       persona: personaSnapshot,
@@ -190,8 +216,19 @@ export class VoiceService {
     state.llmAbort?.abort();
     state.llmAbort = null;
     // V2026-10-09 治本 (Phase 5): 拿 transcript 副本 (closeSession 之前 — closeSession 会清 memory)
-    const transcript = this.visitor.transcript(sessionId);
-    const visitorClose = this.visitor.closeSession(sessionId);
+    const backend = this.backendOf(state);
+    const transcript = backend.transcript(sessionId);
+    const visitorClose = backend.closeSession(sessionId);
+    // V2026-10-29 治本 (WP8-B · 回落后的双份资源):
+    //   本场可能同时存在**两个**会话 (引擎句柄 + 回落时补开的旧链路会话).
+    //   只关"当前那个"会让另一个永远挂着 —— 引擎句柄会留在归属登记表里 (句柄泄漏),
+    //   旧链路会话则留着逐字稿内存. 所以两个都关 (没开过的那方是幂等空操作).
+    this.engineBackend?.closeSession(sessionId);
+    if (backend !== this.visitor) {
+      this.visitor.closeSession(sessionId);
+    }
+    this.backends.delete(sessionId);
+    this.legacyOpened.delete(sessionId);
     this.sessions.delete(sessionId);
     const durationMs = Date.now() - state.startedAt;
     this.logger.log(
@@ -467,17 +504,13 @@ export class VoiceService {
     const llmAbort = new AbortController();
     state.llmAbort = llmAbort;
     try {
-      const { stream: llmStream } = await this.visitor.streamTurn({
-        sessionId: state.meta.sessionId,
-        tenantId: state.meta.tenantId,
-        userId: state.meta.userId,
-        personaId: state.meta.personaId ?? state.persona?.id ?? 'default',
-        userText: text,
-        traceId: state.meta.traceId,
-        signal: llmAbort.signal,
-      });
+      const llmStream = await this.resolveTurnStream(state, text, llmAbort.signal);
       send({ type: 'llm_start' });
       const outcome = await this.consumeLlmStream(llmStream, myGeneration, state, send, ttsHandle, visitorChunks);
+      if (outcome === 'error') {
+        // 新引擎这一轮中断 → 本场后续轮次回旧链路 (WS 不中断, 帧语义与旧链路一致).
+        await this.fallbackToLegacy(state, '新引擎流中断');
+      }
       return { outcome, llmAbort };
     } catch (err) {
       this.logger.error(`[user_text] LLM stream error: ${err instanceof Error ? err.message : String(err)}`);
@@ -489,6 +522,203 @@ export class VoiceService {
       // 标成 error: 避免收尾分支再发一次 task_finish (cancel 之后不该再收尾)
       return { outcome: 'error', llmAbort };
     }
+  }
+
+  /**
+   * 解析本轮要用的 LLM 流 (灰度选择 + 失败自动回落).
+   *
+   * 三条路径, 帧语义完全一致:
+   *   - 旧链路 → 直接用 visitor 的流;
+   *   - 新引擎 → 用引擎的流, 但套一层"首个增量前失败就透明切回旧链路"的守卫;
+   *   - 新引擎建流就失败 → 当场切回旧链路.
+   *
+   * 为什么"首个增量前"才能透明回落: 一旦有 `llm_text` 发出, 用户已经看到了新引擎
+   * 的内容, 这时再换成旧链路等于"来访者说了半句突然改口" —— 与流式不切备同一条
+   * 纪律: 已出声不可撤回.
+   */
+  private async resolveTurnStream(state: VoiceSessionState, text: string, signal: AbortSignal): Promise<LlmStream> {
+    const options = this.buildTurnOptions(state, text, signal);
+    const backend = this.backendOf(state);
+    if (backend !== this.engineBackend) {
+      const { stream } = await this.visitor.streamTurn(options);
+      return stream;
+    }
+    try {
+      const { stream } = await backend.streamTurn(options);
+      return this.guardEngineStream(stream, state, options);
+    } catch (err) {
+      this.logger.error(`[user_text] 新引擎建流失败, 本场回落旧链路: ${err instanceof Error ? err.message : String(err)}`);
+      const switched = await this.fallbackToLegacy(state, '新引擎建流失败');
+      if (!switched) throw err;
+      const { stream } = await this.visitor.streamTurn(options);
+      return stream;
+    }
+  }
+
+  /**
+   * 新引擎流的前置失败守卫: 首个增量之前出错 → 透明切回旧链路.
+   *
+   * 消费器 (`consumeLlmStream`) **零改动** —— 守卫在流的层面完成切换, 于是
+   * 消费器看到的仍是一条"普通的三态流", 帧序列与旧链路逐帧一致.
+   */
+  private async *guardEngineStream(
+    primary: LlmStream,
+    state: VoiceSessionState,
+    options: VoiceTurnBackendTurnOptions,
+  ): AsyncIterable<LlmStreamChunk> {
+    let contentSeen = false;
+    try {
+      for await (const chunk of primary) {
+        if (chunk.type === 'content') {
+          contentSeen = true;
+          yield chunk;
+          continue;
+        }
+        if (chunk.type === 'error' && !contentSeen) {
+          const switched = await this.fallbackToLegacy(state, '新引擎首个增量前失败');
+          if (!switched) {
+            yield chunk;
+            return;
+          }
+          const { stream } = await this.visitor.streamTurn(options);
+          yield* stream;
+          return;
+        }
+        yield chunk;
+      }
+    } catch (err) {
+      if (!contentSeen) {
+        const switched = await this.fallbackToLegacy(state, '新引擎首个增量前异常');
+        if (switched) {
+          const { stream } = await this.visitor.streamTurn(options);
+          yield* stream;
+          return;
+        }
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * 一轮对话的入参 (新旧链路同构).
+   */
+  private buildTurnOptions(state: VoiceSessionState, text: string, signal: AbortSignal): VoiceTurnBackendTurnOptions {
+    return {
+      sessionId: state.meta.sessionId,
+      tenantId: state.meta.tenantId,
+      userId: state.meta.userId,
+      personaId: state.meta.personaId ?? state.persona?.id ?? 'default',
+      userText: text,
+      traceId: state.meta.traceId,
+      signal,
+    };
+  }
+
+  /**
+   * 本场实际使用的对话后端 (灰度选择结果; 未登记 = 旧链路).
+   */
+  private backendOf(state: VoiceSessionState): VoiceTurnBackend {
+    return this.backends.get(state.meta.sessionId) ?? this.visitor;
+  }
+
+  /**
+   * 灰度判定: 引擎未装配 / 总开关关 / 会话不在名单内 → 走旧链路.
+   */
+  private engineSelected(sessionId: string): boolean {
+    if (!this.engineBackend) return false;
+    if (!this.engineEnabled) return false;
+    if (this.grayscaleSessions.size === 0) return true;
+    return this.grayscaleSessions.has(sessionId);
+  }
+
+  /**
+   * 开场: 按灰度选择后端; 新引擎失败 → 当场回落旧链路 (不 500、不关 WS).
+   */
+  private async openBackendSession(meta: VoiceSessionMeta): Promise<VoiceSessionPersona> {
+    if (this.engineSelected(meta.sessionId)) {
+      try {
+        const persona = await this.engineBackend!.openSession({
+          sessionId: meta.sessionId,
+          tenantId: meta.tenantId,
+          // V2026-10-30 治本 (WP12): 学员 id —— 后端用它把长时记忆归属到
+          //   "(学员, 角色)" 维度. 角色 key 对所有学员都相同, 只用它会让学员之间
+          //   互相读到对方的咨询内容.
+          userId: meta.userId,
+          personaId: meta.personaId,
+          // V2026-10-29 治本 (WP9-A · 角色参数透传):
+          //   只把**握手已经解析好**的东西原样带过去, 不在 voice 层做任何角色语义判断 ——
+          //   voice 层不该知道"回避依恋"意味着多高阻抗, 那是角色解析器的职责.
+          //   templateId 缺省 (普通 voice session 没有公共人物模板) → 后端走中性基线.
+          templateId: meta.visitor?.templateId,
+          skillCode: meta.skillCode,
+          preset: {
+            difficulty: meta.preset.difficulty,
+            style: meta.preset.style,
+            emotionBaseline: meta.preset.emotionBaseline,
+            defenseLevel: meta.preset.defenseLevel,
+          },
+          // V2026-10-29 治本 (WP9-C): 稳定落库 id —— 危机轮次要同步给督导推
+          //   `supervision_hint` 帧, 而帧出口注册表是按落库 id 登记的.
+          dbSessionId: meta.dbSessionId,
+          // V2026-10-30 治本 (WP10): 轨迹剧本 id —— 原样透传, voice 层不判断剧本存在性.
+          //   缺省 = 本场无剧本约束, 后端走 BDI 自由运行 (与现状逐字一致).
+          trajectoryScriptId: meta.trajectoryScriptId,
+          // V2026-10-30 治本 (WP12): 跨会话接续来源 id —— 原样透传, voice 层不判断
+          //   上一场在不在 (那是引擎侧的事: 查不到 → warn + 按新会话开, 不抛错不断连).
+          //   缺省 = 新会话, 与现状逐字一致.
+          resumeFromSessionId: meta.resumeFromSessionId,
+        });
+        this.backends.set(meta.sessionId, this.engineBackend!);
+        return persona;
+      } catch (err) {
+        this.logger.error(
+          `[startSession] 新引擎开场失败, 本场回落旧链路 session=${meta.sessionId}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+    const persona = await this.visitor.openSession({
+      sessionId: meta.sessionId,
+      tenantId: meta.tenantId,
+      personaId: meta.personaId,
+    });
+    this.backends.set(meta.sessionId, this.visitor);
+    this.legacyOpened.add(meta.sessionId);
+    return persona;
+  }
+
+  /**
+   * 回落旧链路: 补开旧会话 (新引擎场里旧会话没开过) → 把本场后端切回旧链路.
+   *
+   * @returns true = 已成功回落; false = 回落不了 (旧会话开不起来), 调用方按原错误处理.
+   */
+  private async fallbackToLegacy(state: VoiceSessionState, reason: string): Promise<boolean> {
+    if (this.backendOf(state) === this.visitor) return true;
+    try {
+      await this.ensureLegacySession(state);
+      this.backends.set(state.meta.sessionId, this.visitor);
+      this.logger.warn(`[user_text] ${reason}, 本场回落旧链路 session=${state.meta.sessionId}`);
+      return true;
+    } catch (err) {
+      this.logger.error(`[user_text] ${reason}, 且旧链路补开失败, 维持新链路: ${err instanceof Error ? err.message : String(err)}`);
+      return false;
+    }
+  }
+
+  /**
+   * 补开旧链路会话.
+   *
+   * 为什么必须补开: 新引擎场里 `visitor.openSession` 根本没被调用过, 直接
+   * `visitor.streamTurn` 会因"会话未开启"抛错 —— 那等于回落失败, 反而把
+   * "可回落"变成"不可回落".
+   */
+  private async ensureLegacySession(state: VoiceSessionState): Promise<void> {
+    if (this.legacyOpened.has(state.meta.sessionId)) return;
+    await this.visitor.openSession({
+      sessionId: state.meta.sessionId,
+      tenantId: state.meta.tenantId,
+      personaId: state.meta.personaId,
+    });
+    this.legacyOpened.add(state.meta.sessionId);
   }
 
   /**
@@ -743,7 +973,17 @@ export class VoiceService {
           ttsHandle?.cancel();
           return 'error';
         case 'done':
-          send({ type: 'llm_done' });
+          // V2026-10-29 治本 (WP9-C): 带 usage —— 端上/E2E 验收要看思考 token 与
+          //   输出长度 (老客户端不认识这个可选字段, 直接忽略).
+          send({
+            type: 'llm_done',
+            usage: {
+              promptTokens: chunk.usage.promptTokens,
+              completionTokens: chunk.usage.completionTokens,
+              totalTokens: chunk.usage.totalTokens,
+              ...(chunk.usage.reasoningTokens === undefined ? {} : { reasoningTokens: chunk.usage.reasoningTokens }),
+            },
+          });
           ttsHandle?.finish();
           return 'done';
       }
@@ -830,4 +1070,31 @@ export class VoiceService {
     this.logger.log(`[resume] session=${state.meta.sessionId} status=idle`);
     send({ type: 'resumed' });
   }
+}
+
+/**
+ * 读布尔开关 (env 文本 → 布尔).
+ *
+ * 口径: 只有明确为真 (1 / true / yes / on) 才算真; 其余 (含空 / 0 / false) 都算假.
+ * 为什么不用 `Boolean(raw)`: 字符串 'false' 在 JS 里是 **truthy** —— 那是把"关了"
+ * 读成"开了"的经典事故.
+ */
+function readBooleanFlag(raw: string | undefined): boolean {
+  if (typeof raw !== 'string') return false;
+  const value = raw.trim().toLowerCase();
+  return value === '1' || value === 'true' || value === 'yes' || value === 'on';
+}
+
+/**
+ * 解析灰度会话白名单 (逗号分隔).
+ *
+ * 空串 / 缺省 → 空集合 (= 总开关打开即全量灰度).
+ */
+function parseSessionWhitelist(raw: string | undefined): ReadonlySet<string> {
+  if (typeof raw !== 'string') return new Set<string>();
+  const ids = raw
+    .split(',')
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0);
+  return new Set(ids);
 }

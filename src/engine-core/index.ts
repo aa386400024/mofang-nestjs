@@ -96,5 +96,39 @@ export {
   resolveCorrectWeight,
 } from './cognition/trajectory/trajectory-applier';
 
+// ── 伦理安全 (WP4 · 纯函数 + 可选探测端口) ─────────────────────────
+//   内核只判定不拦截: block 只是给 adapter 的信号, 是否拦下由表现层决定.
+export type {
+  CounselorSafetyCategory,
+  SafetyCategory,
+  SafetyEvent,
+  SafetyLevel,
+  SafetyReport,
+  SafetySide,
+  SafetyVerdict,
+  VisitorRiskCategory,
+} from './domain/safety/safety-types';
+export { isSafetyLevel, maxSafetyLevel, PSYGUARD_LEVEL_MAP } from './domain/safety/safety-types';
+export type { RiskProbePort, RiskProbeResult } from './domain/ports/risk-probe';
+export type { SafetyRule } from './cognition/safety/rule-engine';
+export { evaluateSafety } from './cognition/safety/rule-engine';
+export type { AssessSafetyInput } from './cognition/safety/assess-safety';
+export { assessSafety, DEFAULT_PROBE_TIMEOUT_MS } from './cognition/safety/assess-safety';
+
+// ── 渲染契约层 (WP5 · 纯类型 + 纯策略, 内核不调 LLM) ────────────────
+//   规格只装"要什么", 不装模型名 / 温度 / prompt —— 那些属适配层.
+export type { RenderContextTurn, RenderResult, RenderSpec, RenderTaskKind, RenderTokenBudget } from './domain/rendering/render-types';
+export type { RenderPort } from './domain/ports/render-port';
+export {
+  CHARS_PER_TOKEN,
+  DEFAULT_COMPLETION_TOKENS,
+  estimateTokens,
+  fitContextToBudget,
+  resolveCompletionTokens,
+} from './cognition/rendering/token-budget';
+export type { FailoverCandidate, FailoverState } from './cognition/rendering/failover';
+export { selectFailoverTarget } from './cognition/rendering/failover';
+export { guardVisitorOutput } from './cognition/rendering/output-guard';
+
 // ── 运行时端口 ────────────────────────────────────────────────────
 export type { EngineSessionPort } from './runtime/engine-session.port';

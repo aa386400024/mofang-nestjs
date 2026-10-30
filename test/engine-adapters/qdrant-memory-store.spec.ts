@@ -11,14 +11,14 @@
 //   验证: npx jest test/engine-adapters
 //   时间戳: 2026-10-28 GMT+8
 
-import { MemorySource, MemoryTier, type Embedder, type MemoryEntry } from '../../src/engine-core';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
+import { OpenAICompatEmbedder } from '../../src/engine-adapters/embedder/openai-compat.embedder';
 import {
   QdrantMemoryStore,
   VISITOR_LONG_MEMORY_COLLECTION,
   type QdrantMemoryClient,
 } from '../../src/engine-adapters/persistence/qdrant-memory.store';
-import { OpenAICompatEmbedder } from '../../src/engine-adapters/embedder/openai-compat.embedder';
+import { MemorySource, MemoryTier, type Embedder, type MemoryEntry } from '../../src/engine-core';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
 import type { LlmRouterService } from '../../src/llm/registry/llm-router.service';
 
 const TENANT = 'default';
@@ -38,19 +38,22 @@ const NOW = (): number => CLOCK;
 class StubQdrant implements QdrantMemoryClient {
   readonly upserts: { collection: string; id: string; vector: number[]; payload: Record<string, unknown> }[] = [];
   readonly searches: { collection: string; vector: number[]; topK?: number; filter?: Record<string, unknown> }[] = [];
+  /** V2026-10-30 (WP12): setPayload 调用记录 (冲突标记). */
+  readonly payloadWrites: { collection: string; id: string; payload: Record<string, unknown> }[] = [];
+  /** V2026-10-30 (WP12): scroll 调用记录 (冲突扫描). */
+  readonly scrolls: { collection: string; filter: Record<string, unknown>; limit?: number }[] = [];
   /** 返回给 search 的点集. */
   points: { id: string; score: number; payload: Record<string, unknown> }[] = [];
+  /** 返回给 scroll 的点集 (WP12 冲突扫描). */
+  scrollPoints: { id: string; payload: Record<string, unknown> }[] = [];
   /** 置 true 则 upsert 抛错. */
   failUpsert = false;
   /** 置 true 则 search 抛错. */
   failSearch = false;
+  /** 置 true 则 scroll 抛错 (WP12). */
+  failScroll = false;
 
-  async upsert(
-    collection: string,
-    id: string,
-    vector: number[],
-    payload: Record<string, unknown>,
-  ): Promise<void> {
+  async upsert(collection: string, id: string, vector: number[], payload: Record<string, unknown>): Promise<void> {
     if (this.failUpsert) throw new Error('qdrant unreachable');
     this.upserts.push({ collection, id, vector, payload });
   }
@@ -64,6 +67,20 @@ class StubQdrant implements QdrantMemoryClient {
     if (this.failSearch) throw new Error('qdrant unreachable');
     this.searches.push({ collection, vector: queryVector, topK, filter });
     return this.points;
+  }
+
+  async setPayload(collection: string, id: string, payload: Record<string, unknown>): Promise<void> {
+    this.payloadWrites.push({ collection, id, payload });
+  }
+
+  async scroll(
+    collection: string,
+    filter: Record<string, unknown>,
+    limit?: number,
+  ): Promise<{ id: string; payload: Record<string, unknown> }[]> {
+    if (this.failScroll) throw new Error('qdrant unreachable');
+    this.scrolls.push({ collection, filter, limit });
+    return this.scrollPoints;
   }
 }
 
@@ -106,7 +123,7 @@ describe('WP2 · B 层 Qdrant 记忆仓储', () => {
       await store.remember(longTermEntry({ topicKey: 'insomnia' }));
 
       expect(qdrant.upserts).toHaveLength(1);
-      const upsert = qdrant.upserts[0]!;
+      const upsert = qdrant.upserts[0];
       expect(upsert.collection).toBe(VISITOR_LONG_MEMORY_COLLECTION);
       expect(upsert.id).toBe('lt-1');
       expect(upsert.vector).toEqual([0.1, 0.2]);

@@ -73,7 +73,7 @@ import {
   SUPERVISION_REPORT_REPOSITORY,
   type SupervisionReportRepository,
 } from '../../agent/supervisor/domain/repositories/supervision-report.repository';
-import type { SupervisionAnnotation, SupervisionDimensions } from '../../agent/supervisor/supervisor.types';
+import type { SupervisionAnnotation, SupervisionDimensions, SupervisionReportRow } from '../../agent/supervisor/supervisor.types';
 import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config';
 import {
   SUPERVISION_MIN_EFFECTIVE_CHARS,
@@ -105,7 +105,7 @@ import {
   type EffectiveMaterialThresholds,
 } from '../domain/session-view/session-material';
 import { resolveSessionTypeByScenarioId } from '../domain/session-view/session-view.types';
-import type { SessionTechStatsDto } from '../dto/session-core.dto';
+import type { SessionTechStatsDto, TransferenceMarkDto } from '../dto/session-core.dto';
 import {
   type CompareSupervisionFeedbackResponseDto,
   type GenerateSupervisionFeedbackDto,
@@ -356,6 +356,40 @@ export function validateSupervisionAnalysis(raw: unknown): SupervisionAnalysisRe
   const rawObj = raw as Record<string, unknown>;
   const techStats = validateSessionTechStats(rawObj['techStats']);
   return { feedback, techStats };
+}
+
+/**
+ * 报告事实集 (一次查齐) —— GET 查询与 SSE 推送**共用同一份**.
+ *
+ * V2026-10-29 (WP21 — 报告生成 SSE 推送端点):
+ *   报告由**四个来源**合成 (agent 主报告行 / session 技术统计 / 移情标记 / 4 流派反馈),
+ *   推送端点既要"判断报告来没来"(只看其中一个来源), 又要"把最终报告推出去"(要全部来源)——
+ *   所以把两者拆开: 先装载事实集, 再由事实集拼 DTO.
+ *   装载与拼装都只有**一份实现**, SSE 推出去的报告与 GET 查出来的报告逐字段一致.
+ *
+ * 字段全部是**已取好的事实** (不含 IO), 派生 (状态 / 分数) 走 domain 纯函数.
+ */
+export interface SessionReportContext {
+  /** 会话行 (归属校验已通过; 技术统计 / 逐字稿 / 起止时间都在这行上). */
+  readonly row: TrainingSession;
+  /** 归一后的会话类型 (vpt_voice / training_session / ...). */
+  readonly sessionType: SessionType;
+  /** 主报告行 (agent 侧 `supervision_reports`); null = 还没生成. */
+  readonly report: SupervisionReportRow | null;
+  /** 移情 / 阻抗标记 (按时间线升序). */
+  readonly marks: TransferenceMarkDto[];
+  /** 4 流派反馈 (key = 流派码; 未生成的流派不在其中). */
+  readonly feedbackBySchool: Record<string, SupervisionFeedbackDto>;
+  /** 4 流派反馈的会话级状态; null = 还没有反馈记录. */
+  readonly schoolFeedbackState: SessionSchoolFeedbackState | null;
+  /** 有效素材量 (空局判定用). */
+  readonly material: EffectiveMaterial;
+  /** 会话结束时刻 (ms); null = 还没结束. */
+  readonly endedAtMs: number | null;
+  /** 会话状态 (判定是否 finished). */
+  readonly sessionStatus: TrainingSessionStatus;
+  /** 取事实的时刻 (ms) —— 状态派生的墙钟输入, 固定下来才能可重放. */
+  readonly nowMs: number;
 }
 
 /**
@@ -649,12 +683,64 @@ export class SupervisionService {
    * 报告还没生成时 (异步队列在跑) → `status='pending'` + 其余字段 null/空数组,
    * **不返回编造内容** (硬约束: 上游失败不得伪造成功).
    *
+   * V2026-10-29 (WP21 — 报告 SSE 推送): 本方法拆成
+   * 「loadReportContext (取事实) + buildReportDto (拼 DTO)」两段, 因为 SSE 推送端点
+   * 要**复用同一份装载与派生** —— 两处各写一份必然漂移 (SSE 推的字段少一项 /
+   * 状态判定口径不同, 用户就会看到"页面轮询出来的"和"推送收到的"两份报告).
+   *
    * @param userId 当前用户 id
    * @param sessionId 会话 id (training_sessions.id, 稳定落库 id)
    * @returns 复盘报告
    * @throws NotFoundException 会话不存在 / 已软删 / 不属于当前用户
    */
   async getSessionReport(userId: string, sessionId: string): Promise<SessionReportDto> {
+    const context = await this.loadReportContext(userId, sessionId);
+    return this.buildReportDto(context);
+  }
+
+  /**
+   * 归属校验 (只查"在不在 / 是不是你的") —— SSE 通道的前置守卫用.
+   *
+   * V2026-10-29 (WP21 — 报告 SSE 推送端点):
+   *   SSE 端点需要在**响应被通道接管之前**就把"会话不存在 / 跨用户"判掉, 否则
+   *   客户端只能拿到 `200 + event: error` 帧 (Nest 的 SSE 通道在响应头已提交后
+   *   无法再写状态码) —— 而前端解析器只认 `data:` 里的 JSON, `event: error` 帧会被
+   *   静默忽略, 表现为"流莫名断了、转圈没尽头".
+   *   所以归属校验放在 **guard** (guard 在 interceptor / SSE 通道之前跑).
+   *
+   * 这里用 `exists` (只取一行存在性) 而不是 `findOne` (整行): 守卫只需要"在不在",
+   * 整行由随后的装载再取一次 —— 两次都是主键 / 复合索引命中, 代价可忽略.
+   *
+   * @param userId 当前用户 id
+   * @param sessionId 会话 id
+   * @throws NotFoundException 会话不存在 / 已软删 / 不属于当前用户
+   */
+  async assertSessionOwned(userId: string, sessionId: string): Promise<void> {
+    const owned = await this.trainingSessionRepo.exists({
+      where: { id: sessionId, userId, deletedAt: IsNull() },
+    });
+    if (!owned) {
+      throw new NotFoundException(`训练会话 ${sessionId} 不存在或不属于当前用户`);
+    }
+  }
+
+  /**
+   * 装载报告事实集 (一次查齐) —— GET 查询与 SSE 推送**共用**.
+   *
+   * 为什么要有这一层: 报告是**三个来源**合成的 (agent 主报告 + session 技术统计 +
+   * 移情标记 + 4 流派反馈), 推送端点要判断"报告落库了没"时, 只需要其中**一部分**事实
+   * (见 {@link hasReportLanded}), 但最终推送出去的报告必须与 GET 端点**逐字段一致**.
+   * 把"取事实"与"拼 DTO"分开, 两端共用, 就不存在两份口径.
+   *
+   * 归属校验在这一层 (会话不存在 / 不属于当前用户 → 抛 NotFoundException):
+   *   推送端点也必须过这一关 —— 否则等于开了一个"拿别人的 sessionId 就能看报告"的洞.
+   *
+   * @param userId 当前用户 id
+   * @param sessionId 会话 id
+   * @returns 报告事实集
+   * @throws NotFoundException 会话不存在 / 已软删 / 不属于当前用户
+   */
+  async loadReportContext(userId: string, sessionId: string): Promise<SessionReportContext> {
     // 1. 归属校验 + 拿会话行 (技术统计在这行上)
     const row = await this.trainingSessionRepo.findOne({
       where: { id: sessionId, userId, deletedAt: IsNull() },
@@ -678,41 +764,64 @@ export class SupervisionService {
     // 4. 回填报告 ↔ 会话的显式链接 (幂等; 失败不阻断读)
     await this.linkReportToSession(row, report?.id);
 
-    // 5. 报告状态归一 (V2026-10-27, spec 任务 C/D):
+    return {
+      row,
+      sessionType,
+      report,
+      marks,
+      feedbackBySchool: feedback.feedbackBySchool,
+      schoolFeedbackState: feedback.state,
+      material: measureEffectiveMaterial(row.transcript),
+      endedAtMs: row.endedAt?.getTime() ?? null,
+      sessionStatus: row.status,
+      nowMs: Date.now(),
+    };
+  }
+
+  /**
+   * 派生报告 DTO (状态归一 + 字段映射) —— GET 查询与 SSE 推送**共用**.
+   *
+   * 状态归一收在 domain 的 `resolveSessionReportState` (纯函数), 这里只负责取参数 +
+   * 拼 DTO —— 两端都走这一个方法, 保证"推出去的"与"查出来的"逐字段一致.
+   *
+   * @param context 报告事实集
+   * @returns 复盘报告 DTO
+   */
+  buildReportDto(context: SessionReportContext): SessionReportDto {
+    // 报告状态归一 (V2026-10-27, spec 任务 C/D):
     //    **列表与详情共用** domain/session-core 的 `resolveSessionReportState` ——
     //    详情侧开启墙钟陈旧兜底 (前端在轮询, 需要"永远转圈"的兜底), 列表侧不开.
     //    场景位 (vpt 有主报告链路): vpt 的整体状态只由主报告决定, 4 流派反馈是**附加**
     //    (技术统计 / 多流派展示照常返回, 但不参与状态与分数).
-    const material = measureEffectiveMaterial(row.transcript);
     const state = this.resolveReportState({
-      mainReport: report ? { status: report.status, overallScore: report.overallScore } : null,
-      schoolFeedback: feedback.state,
-      material,
-      endedAtMs: row.endedAt?.getTime() ?? null,
-      nowMs: Date.now(),
-      sessionStatus: row.status,
+      mainReport: context.report ? { status: context.report.status, overallScore: context.report.overallScore } : null,
+      schoolFeedback: context.schoolFeedbackState,
+      material: context.material,
+      endedAtMs: context.endedAtMs,
+      nowMs: context.nowMs,
+      sessionStatus: context.sessionStatus,
       applyStaleTimeout: true,
-      hasMainReportChannel: resolveHasMainReportChannel(sessionType),
+      hasMainReportChannel: resolveHasMainReportChannel(context.sessionType),
     });
 
     return {
-      sessionId: row.id,
-      sessionType,
+      sessionId: context.row.id,
+      sessionType: context.sessionType,
       status: state.status,
       overallScore: state.overallScore,
       failureCode: state.failureCode,
       retryable: state.retryable,
-      dimensions: report ? this.toDimensions(report.dimensions) : null,
-      annotations: report ? report.annotations.map((a) => this.toAnnotation(a)) : [],
-      errorPatterns: report ? [...report.errorPatterns] : [],
-      growthSuggestions: report ? [...report.growthSuggestions] : [],
-      techStats: row.techStats ? this.toTechStatsDto(row.techStats) : null,
-      marks,
-      feedbackBySchool: feedback.feedbackBySchool,
-      startedAt: row.startedAt,
-      endedAt: row.endedAt,
-      turnCount: (row.transcript ?? []).length,
-      createdAt: report?.createdAt ?? null,
+      dimensions: context.report ? this.toDimensions(context.report.dimensions) : null,
+      annotations: context.report ? context.report.annotations.map((a) => this.toAnnotation(a)) : [],
+      errorPatterns: context.report ? [...context.report.errorPatterns] : [],
+      growthSuggestions: context.report ? [...context.report.growthSuggestions] : [],
+      techStats: context.row.techStats ? this.toTechStatsDto(context.row.techStats) : null,
+      marks: context.marks,
+      feedbackBySchool: context.feedbackBySchool,
+      startedAt: context.row.startedAt,
+      endedAt: context.row.endedAt,
+      turnCount: (context.row.transcript ?? []).length,
+      createdAt: context.report?.createdAt ?? null,
     };
   }
 

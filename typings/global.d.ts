@@ -152,6 +152,11 @@ export declare global {
       //   这里只声明"本地怎么跑"的可调项.
       SUPERVISION_MIN_EFFECTIVE_TURNS?: string;
       SUPERVISION_MIN_EFFECTIVE_CHARS?: string;
+      // V2026-10-29 治本 (WP21 — 报告生成 SSE 推送端点):
+      //   轮询间隔 (默认 2s) 与连接最长存活 (默认 120s, 超时推 {"status":"timeout"} 关流).
+      //   默认值在 counselor/config/supervision.config.ts (单一真值源), 这里只声明"本地怎么跑"的可调项.
+      SUPERVISION_REPORT_STREAM_POLL_INTERVAL_MS?: string;
+      SUPERVISION_REPORT_STREAM_TIMEOUT_MS?: string;
       // V2026-10-08: Voice Gateway 空闲超时 (Phase 3)
       VOICE_SESSION_IDLE_TIMEOUT_MS?: string;
       EMBEDDING_PROVIDER_DEV?: string;

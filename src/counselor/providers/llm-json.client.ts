@@ -27,13 +27,9 @@ import { ConfigService } from '@nestjs/config';
 
 import { LlmService } from '../../agent/llm/llm.service';
 import type { LlmMessage, LlmReasoningEffort } from '../../agent/llm/llm.types';
+import { extractJsonPayload } from '../../shared/llm/llm-json-payload';
 
-import {
-  COUNSELOR_LLM_DEFAULT_MODEL,
-  COUNSELOR_LLM_MODEL_ENV_KEY,
-  stripThinkingTags,
-  supportsReasoningEffort,
-} from '../config/counselor-llm.config';
+import { COUNSELOR_LLM_DEFAULT_MODEL, COUNSELOR_LLM_MODEL_ENV_KEY, supportsReasoningEffort } from '../config/counselor-llm.config';
 
 /** 结构化输出请求入参. */
 export interface CounselorLlmJsonRequest<T> {
@@ -80,23 +76,15 @@ export interface CounselorLlmJsonResult<T> {
 /**
  * 从原始响应里抠出 JSON 对象文本.
  *
+ * V2026-10-29 治本 (WP18 · 消双胞胎): 实现已上移到 `src/shared/llm/llm-json-payload.ts`
+ *   (agent 侧的主报告链路也要用同一份), 本文件保留 re-export, **既有 import 路径不断**.
+ *
  * 依次处理 3 种脏数据:
  *   1. ```json ... ``` 围栏 (模型爱加)
  *   2. 前后废话说明 ("以下是督导报告: {...}")
  *   3. M3 系列内联的 <think>...</think> 思考块
  */
-export function extractJsonPayload(raw: string): string | null {
-  const cleaned = stripThinkingTags(raw)
-    .replaceAll(/```json/gi, '')
-    .replaceAll('```', '')
-    .trim();
-  const start = cleaned.indexOf('{');
-  const end = cleaned.lastIndexOf('}');
-  if (start === -1 || end === -1 || end <= start) {
-    return null;
-  }
-  return cleaned.slice(start, end + 1);
-}
+export { extractJsonPayload };
 
 /**
  * counselor 端结构化输出 LLM client.

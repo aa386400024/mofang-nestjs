@@ -25,7 +25,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import type { LlmError, LlmMessage, LlmReasoningEffort, LlmStream, LlmStreamOptions, LlmUsage } from './llm.types';
+import type { LlmError, LlmMessage, LlmReasoningEffort, LlmStream, LlmStreamChunk, LlmStreamOptions, LlmUsage } from './llm.types';
 
 interface MiniMaxChatRequest {
   model: string;
@@ -52,6 +52,47 @@ interface MiniMaxStreamDelta {
     readonly prompt_tokens: number;
     readonly completion_tokens: number;
     readonly total_tokens: number;
+    /**
+     * 思考 token 明细 (V2026-10-29 治本 · WP9-C).
+     *
+     * 实测 MiniMax-M3.1-Flash 会回 `completion_tokens_details.reasoning_tokens`;
+     * 缺省时按"没有思考"处理 (字段可选).
+     */
+    readonly completion_tokens_details?: { readonly reasoning_tokens?: number };
+  };
+}
+
+/**
+ * SSE 单行解析结果 (V2026-10-29 治本 · WP18).
+ *
+ * `kind='done'` = 收到 `[DONE]` 标记 (流正常结束);
+ * `kind='data'` = 一条正常的增量 (可能带 content / usage / finish_reason).
+ */
+interface SseLineEvent {
+  readonly kind: 'done' | 'data';
+  readonly content?: string;
+  readonly usage?: LlmUsage;
+  readonly finishReason?: string;
+}
+
+/** usage 缺省值 (上游没带 usage 时). */
+const ZERO_USAGE: LlmUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+
+/**
+ * 构造 done 事件 (usage + 可选 finishReason).
+ *
+ * V2026-10-29 治本 (WP18): `finishReason` 是**可选**字段 (老消费方零破坏),
+ *   但它是"输出是不是被上游按长度砍断"的唯一现场证据 —— 见 `LlmStreamChunk` 的说明.
+ *
+ * @param usage token 用量
+ * @param finishReason 上游结束原因 (缺省 = 上游没给)
+ * @returns done 事件
+ */
+function buildDoneChunk(usage: LlmUsage, finishReason: string | undefined): LlmStreamChunk {
+  return {
+    type: 'done',
+    usage,
+    ...(finishReason === undefined ? {} : { finishReason }),
   };
 }
 
@@ -76,8 +117,15 @@ export class LlmService {
     this.baseUrl = this.configMust(config, 'MINIMAX_BASE_URL');
     this.apiKey = this.configMust(config, 'MINIMAX_API_KEY');
     this.model = this.configMust(config, 'MINIMAX_LLM_MODEL');
-    this.timeoutMs = config.get<number>('MINIMAX_LLM_TIMEOUT_MS') ?? 30_000;
-    this.maxRetries = config.get<number>('MINIMAX_LLM_MAX_RETRIES') ?? 2;
+    // V2026-10-29 治本 (WP9-B 启动验证时挖出): 这两个数值**不能**用 `config.get<number>('MINIMAX_*')`
+    //   读**裸 env 键** —— ConfigService 不做类型转换, 拿到的是**字符串** ('60000'),
+    //   一路传到 `AbortSignal.timeout(timeoutMs)` 就会抛
+    //   `The "delay" argument must be of type number. Received type string ('60000')`
+    //   → **每一次 LLM 调用都炸** (语音/督导/分析全断, 且只在 .env 里配了这两个键时炸).
+    //   改走**已归一化的配置命名空间** (config/envs/default.ts: Number(process.env...) ?? 默认值),
+    //   与 tts-bidi-client 等同款读法 —— 数值只在一处归一, 别处只消费.
+    this.timeoutMs = config.get<number>('minimax.llmTimeoutMs') ?? 30_000;
+    this.maxRetries = config.get<number>('minimax.llmMaxRetries') ?? 2;
   }
 
   /**
@@ -247,11 +295,56 @@ export class LlmService {
     return this.parseSseStream(response.body, opts, onToken);
   }
 
+  /**
+   * 解析一行 SSE.
+   *
+   * V2026-10-29 治本 (WP18): 从 `parseSseStream` 里**抽出来** —— 主循环只留"编排",
+   *   每行的"这是什么 / 有没有 usage / 有没有 finish_reason"交给本方法.
+   *   为什么要抽: 加了 finishReason 之后主函数的分支数越过了 ESLint complexity 20
+   *   与 sonarjs cognitive-complexity 25 两条红线 —— 而这两条红线存在的意义就是
+   *   "别让一个函数同时管太多事", 正好借这次抽行把职责切干净.
+   *
+   * @param line 一行原始 SSE 文本
+   * @param opts 流式选项 (日志要 tenantId / userId)
+   * @returns 解析结果; null = 空行 / 非 data 行 / 解析失败 (都跳过)
+   */
+  private parseSseLine(line: string, opts: LlmStreamOptions): SseLineEvent | null {
+    const trimmed = line.trim();
+    if (!trimmed || !trimmed.startsWith('data:')) {
+      return null;
+    }
+
+    const payload = trimmed.slice(5).trim();
+    if (payload === '[DONE]') {
+      return { kind: 'done' };
+    }
+
+    let parsed: MiniMaxStreamDelta;
+    try {
+      parsed = JSON.parse(payload) as MiniMaxStreamDelta;
+    } catch {
+      this.logger.warn(`[sse_parse_error] tenant=${opts.tenantId} user=${opts.userId} ` + `payload=${payload.slice(0, 100)}`);
+      return null;
+    }
+
+    const content = parsed.choices?.[0]?.delta?.content;
+    const finishReason = parsed.choices?.[0]?.finish_reason ?? undefined;
+    return {
+      kind: 'data',
+      ...(content ? { content } : {}),
+      ...(parsed.usage ? { usage: toLlmUsage(parsed.usage) } : {}),
+      ...(finishReason ? { finishReason } : {}),
+    };
+  }
+
   private async *parseSseStream(body: ReadableStream<Uint8Array>, opts: LlmStreamOptions, onToken: (token: string) => void): LlmStream {
     const reader = body.getReader();
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
     let finalUsage: LlmUsage | null = null;
+    // V2026-10-29 治本 (WP18): 上游结束原因 —— `length` 说明正文被按长度砍断了.
+    //   它跟"模型吐了非法 JSON"是两类问题, 上层要能分开报 (见 SupervisorService).
+    let finalFinishReason: string | undefined;
 
     try {
       while (true) {
@@ -263,51 +356,28 @@ export class LlmService {
         buffer = lines.pop() ?? '';
 
         for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith('data:')) {
+          const event = this.parseSseLine(line, opts);
+          if (event === null) {
             continue;
           }
-
-          const payload = trimmed.slice(5).trim();
-          if (payload === '[DONE]') {
-            yield {
-              type: 'done',
-              usage: finalUsage ?? {
-                promptTokens: 0,
-                completionTokens: 0,
-                totalTokens: 0,
-              },
-            };
+          if (event.kind === 'done') {
+            yield buildDoneChunk(finalUsage ?? ZERO_USAGE, finalFinishReason);
             return;
           }
-
-          let parsed: MiniMaxStreamDelta;
-          try {
-            parsed = JSON.parse(payload) as MiniMaxStreamDelta;
-          } catch {
-            this.logger.warn(`[sse_parse_error] tenant=${opts.tenantId} user=${opts.userId} ` + `payload=${payload.slice(0, 100)}`);
-            continue;
+          if (event.usage) {
+            finalUsage = event.usage;
           }
-
-          if (parsed.usage) {
-            finalUsage = {
-              promptTokens: parsed.usage.prompt_tokens,
-              completionTokens: parsed.usage.completion_tokens,
-              totalTokens: parsed.usage.total_tokens,
-            };
+          if (event.finishReason) {
+            finalFinishReason = event.finishReason;
+            if (event.finishReason === 'length') {
+              this.logger.warn(
+                `[stream_truncated] tenant=${opts.tenantId} user=${opts.userId} ` + 'finish_reason=length — max_tokens 可能不够',
+              );
+            }
           }
-
-          const content = parsed.choices?.[0]?.delta?.content;
-          if (content) {
-            onToken(content);
-            yield { type: 'content', content };
-          }
-
-          const finishReason = parsed.choices?.[0]?.finish_reason;
-          if (finishReason === 'length') {
-            this.logger.warn(
-              `[stream_truncated] tenant=${opts.tenantId} user=${opts.userId} ` + 'finish_reason=length — max_tokens 可能不够',
-            );
+          if (event.content) {
+            onToken(event.content);
+            yield { type: 'content', content: event.content };
           }
         }
       }
@@ -315,7 +385,7 @@ export class LlmService {
       // 流自然结束但没收到 [DONE] 标记
       this.logger.warn(`[sse_unexpected_eof] tenant=${opts.tenantId} user=${opts.userId} — ` + 'stream ended without [DONE] marker');
       if (finalUsage) {
-        yield { type: 'done', usage: finalUsage };
+        yield buildDoneChunk(finalUsage, finalFinishReason);
       }
     } finally {
       reader.releaseLock();
@@ -342,4 +412,26 @@ export class LlmService {
     if (!callerSignal) return timeoutSignal;
     return AbortSignal.any([callerSignal, timeoutSignal]);
   }
+}
+
+/**
+ * 上游 usage → 内部用量口径 (纯映射).
+ *
+ * V2026-10-29 治本 (WP9-C): 思考 token 单独上报 —— `completion_tokens` **含**思考,
+ * 单看它分不清"输出被上游截断"与"思考吃光了预算"; 拆开才查得动.
+ *
+ * 抽成独立函数而不是内联在 SSE 循环里: 那段循环已经贴着仓库的复杂度红线,
+ * 而"usage 怎么映射"是**纯数据搬运** —— 独立出来既降复杂度, 又只有一个落点.
+ *
+ * @param usage 上游 usage
+ * @returns 内部用量
+ */
+function toLlmUsage(usage: NonNullable<MiniMaxStreamDelta['usage']>): LlmUsage {
+  const reasoningTokens = usage.completion_tokens_details?.reasoning_tokens;
+  return {
+    promptTokens: usage.prompt_tokens,
+    completionTokens: usage.completion_tokens,
+    totalTokens: usage.total_tokens,
+    ...(typeof reasoningTokens === 'number' ? { reasoningTokens } : {}),
+  };
 }

@@ -25,6 +25,7 @@ import type {
   LLMProviderConfig,
 } from '../common/interfaces/chat-provider.interface';
 import type { EmbeddingRequest, EmbeddingResponse } from '../common/interfaces/embedding-provider.interface';
+import { resolveProviderApiKeyEnvKey, resolveProviderChatModelFromEnv } from '../config/provider-env';
 
 /**
  * API key 解析回调 — 默认从 ConfigService (env) 读取,
@@ -33,11 +34,20 @@ import type { EmbeddingRequest, EmbeddingResponse } from '../common/interfaces/e
 export type ResolveApiKeyFn = (providerId: AIProviderId, uid?: string) => Promise<string | null>;
 
 /**
- * 默认 env-based apiKey 解析 — 读 LLM_<PROVIDER>_API_KEY.
+ * 默认 env-based apiKey 解析 — 读该 provider 的 apiKey env 键.
+ *
+ * V2026-10-28 治本 (MiniMax 接入): 键名**不是**一律 `LLM_<ID>_API_KEY` ——
+ *   MiniMax 的订阅 key 是历史命名 `MINIMAX_API_KEY` (与 voice TTS/ASR、旧 agent
+ *   流式共用). 键名映射集中在 `config/provider-env.ts`, 与启动注册读同一张表 ——
+ *   否则会出现"provider 注册成功了, 一调用就报 API key not found"这种
+ *   半注册状态 (排查成本远高于"provider 没注册").
+ *
+ * @param config 配置服务
+ * @returns 解析函数
  */
 export function defaultEnvApiKeyResolver(config: ConfigService): ResolveApiKeyFn {
   return async (providerId, _uid) => {
-    const envKey = `LLM_${providerId.toUpperCase()}_API_KEY`;
+    const envKey = resolveProviderApiKeyEnvKey(providerId);
     return config.get<string>(envKey) ?? null;
   };
 }
@@ -49,12 +59,14 @@ export class LlmRouterService {
   private readonly defaultChatProviderId: AIProviderId;
   private readonly defaultEmbeddingProviderId: AIProviderId;
   private readonly apiKeyResolver: ResolveApiKeyFn;
+  private readonly config: ConfigService;
 
   constructor(
     private readonly registry: ProviderRegistryService,
     config: ConfigService,
     @Optional() @Inject('LLM_API_KEY_RESOLVER') customResolver?: ResolveApiKeyFn,
   ) {
+    this.config = config;
     this.apiKeyResolver = customResolver ?? defaultEnvApiKeyResolver(config);
     this.defaultChatProviderId = (config.get<string>('LLM_DEFAULT_CHAT_PROVIDER') as AIProviderId) ?? AIProviderId.DEEPSEEK;
     this.defaultEmbeddingProviderId = (config.get<string>('LLM_DEFAULT_EMBEDDING_PROVIDER') as AIProviderId) ?? AIProviderId.QWEN;
@@ -205,11 +217,36 @@ export class LlmRouterService {
         [AIProviderId.OPENAI]: 'gpt-4o',
       },
     };
-    return TIER_MODELS[tier][id] ?? this.defaultChatProviderFallback();
+    return TIER_MODELS[tier][id] ?? this.providerModelFallback(id);
   }
 
-  private defaultChatProviderFallback(): string {
-    const resolved = this.registry.resolveChat(this.defaultChatProviderId);
-    return resolved?.provider.defaultChatModel ?? 'gpt-4o-mini';
+  /**
+   * 某 provider 的默认模型 (tier 映射缺项时用).
+   *
+   * V2026-10-28 治本 (MiniMax 接入时暴露的两处回落语义错位):
+   *
+   * 1. **问的是哪个 provider, 就该回哪个 provider 的模型**. 原实现回落取的是
+   *    "默认 chat provider"的模型 —— 问 minimax 拿回 deepseek 的模型名,
+   *    上游必然 400, 整轮对练降级成兜底句.
+   *
+   * 2. **模型名是部署事实, 不是注册状态**. 回落的第一顺位取 env (如
+   *    `MINIMAX_LLM_MODEL`), 而不是查注册表 —— 因为 WP8 的渲染配置在 **DI 实例化期**
+   *    就被冻结, 而 provider 注册发生在 `onModuleInit`: 那一刻注册表还是空的,
+   *    查表只会拿到"默认 provider 的模型"这种更错的值.
+   *    换句话说: 冻结配置里的每一项输入, 都必须是**启动期已知的静态事实** (env / 静态表),
+   *    不能依赖可变运行时状态. env 优先同时保证了"订阅买了哪个模型就调哪个".
+   *
+   * 行为变化 (对已注册的厂商是修复, 不是破坏):
+   * - 被请求的 provider **有 env 模型名** → 用 env 值 (与是否已注册无关).
+   * - 否则 **已注册** → 用它自己的 defaultChatModel.
+   * - 否则 → 仍回落到默认 chat provider 的模型, 再兜底常量 (与原行为一致).
+   */
+  private providerModelFallback(providerId: AIProviderId): string {
+    const fromEnv = resolveProviderChatModelFromEnv(providerId, (envKey) => this.config.get<string>(envKey));
+    if (fromEnv) return fromEnv;
+    const requested = this.registry.resolveChat(providerId);
+    if (requested) return requested.provider.defaultChatModel;
+    const fallback = this.registry.resolveChat(this.defaultChatProviderId);
+    return fallback?.provider.defaultChatModel ?? 'gpt-4o-mini';
   }
 }

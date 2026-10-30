@@ -14,6 +14,8 @@
  * - deepseek: DeepSeek (https://api.deepseek.com/v1)
  * - doubao: 豆包 / 字节跳动 (火山引擎方舟)
  * - qwen: 通义千问 / 阿里云 (DashScope)
+ * - minimax: MiniMax (https://api.minimax.cn/v1) —— 订阅制, 既有 key 是
+ *   `MINIMAX_API_KEY` (历史命名, 与 voice TTS/ASR / 旧 agent 流式共用)
  * - moonshot: 月之暗面 Kimi
  * - zhipu: 智谱 GLM
  * - baichuan: 百川
@@ -29,6 +31,7 @@ export enum AIProviderId {
   DEEPSEEK = 'deepseek',
   DOUBAO = 'doubao',
   QWEN = 'qwen',
+  MINIMAX = 'minimax',
   MOONSHOT = 'moonshot',
   ZHIPU = 'zhipu',
   BAICHUAN = 'baichuan',
@@ -43,6 +46,7 @@ export const ALL_PROVIDER_IDS: readonly AIProviderId[] = [
   AIProviderId.DEEPSEEK,
   AIProviderId.DOUBAO,
   AIProviderId.QWEN,
+  AIProviderId.MINIMAX,
   AIProviderId.MOONSHOT,
   AIProviderId.ZHIPU,
   AIProviderId.BAICHUAN,

@@ -13,12 +13,13 @@
 //     更 idiomatic, for-of 即可消费.
 //   - 不用 LlmResponse 单类型 — 流式天然多事件, union type 强制 type 判别.
 
+import type { ChatReasoningEffort } from '../../llm/common/interfaces/chat-provider.interface';
+
 /** OpenAI 风格 message. */
 export interface LlmMessage {
   readonly role: 'system' | 'user' | 'assistant';
   readonly content: string;
 }
-
 /**
  * V2026-10-21 治本 (V1.2 VS-A — M3.1-Flash 思考深度档位):
  *   原因: MiniMax 官方文档 (OpenAI 兼容协议) 明确 `reasoning_effort` 仅 MiniMax-M3.1-Flash
@@ -28,10 +29,13 @@ export interface LlmMessage {
  *   反双胞胎:
  *     - 不加 'none' 档: 官方明确不支持, 传了返 400.
  *     - 不做模型名硬判断: 判断逻辑放调用方 (counselor client), 本层保持 dumb.
+ *     - V2026-10-29 治本 (WP9-C): 档位集合的**唯一真相**上移到厂商抽象层
+ *       (`src/llm` 的 ChatReasoningEffort) —— 本类型改为别名, 两处各写一份字符串联合
+ *       必然漂移 (加了一档就忘了另一处), 而"上游支持哪些档位"是**协议事实**, 不该有两个答案.
  *   验证: 1. tsc 0 错  2. 联调时看 LlmService 日志 [stream_done] usage.completion_tokens 随档位变化
  *   时间戳: 2026-10-21
  */
-export type LlmReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+export type LlmReasoningEffort = ChatReasoningEffort;
 
 /** 流式选项. tenantId / userId 必传 (V2026-10-08 多租户治本). */
 export interface LlmStreamOptions {
@@ -78,7 +82,19 @@ export interface LlmStreamOptions {
 /** LLM streaming 事件 union. */
 export type LlmStreamChunk =
   | { readonly type: 'content'; readonly content: string }
-  | { readonly type: 'done'; readonly usage: LlmUsage }
+  | {
+      readonly type: 'done';
+      readonly usage: LlmUsage;
+      /**
+       * 上游结束原因 (OpenAI 兼容口径: stop / length / content_filter / tool_calls …).
+       *
+       * V2026-10-29 治本 (WP18): **只增可选字段** (老消费方零破坏), 但它是"输出是不是
+       * 被上游按长度砍断"的唯一现场证据 —— `length` 意味着正文是半截的, 与"模型吐了
+       * 非法 JSON"是两类问题 (前者调预算能修好, 后者要改 prompt 契约).
+       * 缺省 = 上游没给 (老 provider / 非 OpenAI 兼容上游).
+       */
+      readonly finishReason?: string;
+    }
   | { readonly type: 'error'; readonly error: LlmError };
 
 /** Token 用量, 写 billing. */
@@ -86,6 +102,13 @@ export interface LlmUsage {
   readonly promptTokens: number;
   readonly completionTokens: number;
   readonly totalTokens: number;
+  /**
+   * 思考 token 数 (推理模型专用; 非推理模型缺省).
+   *
+   * V2026-10-29 治本 (WP9-C): `completionTokens` 含思考, 单看它分不清
+   * "输出被上游截断" 与 "思考吃光了预算" —— 拆开上报才查得动.
+   */
+  readonly reasoningTokens?: number;
 }
 
 /** 错误信息, 含重试策略. */

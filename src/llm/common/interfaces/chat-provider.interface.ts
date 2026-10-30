@@ -12,6 +12,19 @@
 import type { AIProviderId, LLMCapability, LLMTier } from '../enums/llm.enums';
 
 /**
+ * 思考强度档位 (V2026-10-29 治本 · WP9-C).
+ *
+ * 唯一真相放在**厂商抽象层** (`src/llm`), 因为它是"上游协议语义":
+ * OpenAI 的 `reasoning_effort` 取 low/medium/high, MiniMax 的 M3.1-Flash
+ * 额外支持 xhigh/max (省略时服务端默认 max). agent 层的 `LlmReasoningEffort`
+ * 从这里别名派生, 不再各写一份字符串联合 —— 两份联合迟早漂移 (加了一档就忘了另一处).
+ *
+ * 注意: 推理模型的**思考 token 计入生成长度上限**, 所以 "思考深度" 与
+ * "输出长度上限" 必须一起看: 只压思考不抬上限, 输出照样被挤掉.
+ */
+export type ChatReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+
+/**
  * Chat 完成请求参数 — OpenAI 兼容超集 + 心塑扩展字段.
  *
  * 命名对齐 OpenAI Chat Completions API 字段:
@@ -27,8 +40,33 @@ export interface ChatCompletionRequest {
   /** 温度 0..2 — OpenAI 标准. */
   temperature?: number;
 
-  /** 最大生成 token 数. */
+  /**
+   * 最大生成 token 数 (**旧字段**).
+   *
+   * V2026-10-29 治本 (WP9-C): 新代码一律用 `maxCompletionTokens` ——
+   *   推理模型 (thinking token 计入上限) 用旧字段时, 思考会把长度预算吃光,
+   *   于是 `finish_reason=length` 且 content 为空. 本字段保留只为兼容
+   *   尚未迁移的调用方 (如 OpenAI 兼容 provider 的连通性测试).
+   *
+   * 反双胞胎: `maxTokens` 与 `maxCompletionTokens` **不同时下发** (语义歧义,
+   *   上游可能按旧字段截断) —— provider 层只取其一, 由 `buildRequestOverrides` 决定.
+   */
   maxTokens?: number;
+
+  /**
+   * 最大完成 token 数 (**新字段**; 推理模型的思考 token 计入本上限).
+   *
+   * 对应上游 `max_completion_tokens`. 新增调用一律用它.
+   */
+  maxCompletionTokens?: number;
+
+  /**
+   * 思考强度 (推理模型专用; 非推理模型传了会被上游忽略或拒绝).
+   *
+   * 对应上游 `reasoning_effort`. 用途: 渲染/口语这类"不需要深思考"的场景
+   * 用 low 压掉思考量, 换取更短的首字延迟.
+   */
+  reasoningEffort?: ChatReasoningEffort;
 
   /** Top-P 采样 0..1. */
   topP?: number;
@@ -115,6 +153,15 @@ export interface ChatCompletionChunk {
   /** 模型名 (e.g. 'gpt-4o-2024-08-06'). */
   model?: string;
 
+  /**
+   * 本轮累计的**思考 token** 数 (推理模型专用; 非推理模型缺省).
+   *
+   * V2026-10-29 治本 (WP9-C): 与 `tokenCount` 分开上报, 因为"思考占了多少"是
+   * 排查"回复偏短 / 首字慢"的**第一现场** —— 两者混在一个数里就看不出是
+   * 上游思考吃掉了预算, 还是模型本来就没话说.
+   */
+  reasoningTokens?: number;
+
   /** 危机信号 (§11.2) — LLM 分类器识别. */
   crisisSignal?: {
     level: 'none' | 'low' | 'medium' | 'high';
@@ -131,6 +178,13 @@ export interface ChatCompletionResponse {
     promptTokens: number;
     completionTokens: number;
     totalTokens: number;
+    /**
+     * 思考 token 数 (推理模型专用; 非推理模型缺省).
+     *
+     * V2026-10-29 治本 (WP9-C): `completionTokens` 含思考, 单看它无法判断
+     * "输出被截断"还是"思考吃光预算" —— 拆开上报, 才有得查.
+     */
+    reasoningTokens?: number;
   };
 
   model: string;

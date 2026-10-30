@@ -48,6 +48,7 @@ import type {
   ChatProvider,
   ChatMessage,
   ChatMessageContentPart,
+  ChatReasoningEffort,
 } from '../interfaces/chat-provider.interface';
 
 /**
@@ -154,15 +155,21 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
         promptTokens: result.usage_metadata?.input_tokens ?? 0,
         completionTokens: result.usage_metadata?.output_tokens ?? 0,
         totalTokens: result.usage_metadata?.total_tokens ?? 0,
+        // V2026-10-29 治本 (WP9-C): 思考 token 单独上报 (LangChain 把上游
+        //   completion_tokens_details.reasoning_tokens 归一到 output_token_details.reasoning).
+        ...(typeof result.usage_metadata?.output_token_details?.reasoning === 'number'
+          ? { reasoningTokens: result.usage_metadata.output_token_details.reasoning }
+          : {}),
       },
       model: request.model ?? this.defaultChatModel,
-      // V2026-10-14 治本 (VS-3a — LangChain 1.x response_metadata index signature, 非流式 chat() 方法):
-      //   原因: 跟 L200 streamChat() 同 pattern (上次治本只改了流式), non-stream chat() 方法
-      //     的 result.response_metadata 也走 index signature. 装包后 2 个错 (TS2322 + TS4111).
-      //   修法: 改 ?.['finishReason'] + cast string | undefined. 2 个错治本.
-      //   注: V0.5 stub ChatOpenAIConfig.response_metadata 是 { finishReason?: string; [k: string]: unknown },
-      //     真实 LangChain 1.x 改为 { [k: string]: unknown } (无具名字段), 所以必须 index signature 访问.
-      finishReason: (result.response_metadata?.['finishReason'] as string | undefined) ?? 'stop',
+      // V2026-10-29 治本 (WP9-C — finish_reason 此前**一直读不到**):
+      //   LangChain 1.x 把上游 `finish_reason` 放进 `response_metadata` 时**用的是 snake_case**
+      //   (见 @langchain/openai completions.js: `generationInfo.finish_reason = choice.finish_reason`),
+      //   而这里原来读的是 `['finishReason']` (camel) —— 永远取不到, 于是**每一次非流式调用
+      //   的 finishReason 都恒为 'stop'**. 后果: 上游因长度上限截断 (`finish_reason=length`)
+      //   这件事, 上层**完全看不见** —— 渲染层的截断保护无从触发 (任务单 §2.2).
+      //   现在两个键都读 (snake 为主, camel 兜底), 截断信号才真正到得了上层.
+      finishReason: readFinishReason(result.response_metadata) ?? 'stop',
     };
   }
 
@@ -178,7 +185,7 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
     const baseMessages = toLangChainMessages(request.messages);
 
     let accumulated = '';
-    let lastTokenCount = 0;
+    const usage = createStreamUsageState();
     let isFinal = false;
     let finishReason = 'stop';
 
@@ -192,10 +199,7 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
           const deltaText = typeof chunk.content === 'string' ? chunk.content : '';
           accumulated += deltaText;
 
-          const inputTokens = chunk.usage_metadata?.input_tokens ?? 0;
-          const outputTokens = chunk.usage_metadata?.output_tokens ?? 0;
-          const total = inputTokens + outputTokens;
-          lastTokenCount = total > 0 ? total : lastTokenCount;
+          applyChunkUsage(usage, chunk);
 
           // V2026-10-14 治本 (VS-3a — LangChain 1.x response_metadata index signature):
           //   原因: LangChain 1.x response_metadata 改为 { [key: string]: unknown }, 不能
@@ -203,33 +207,37 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
           //          修法: 改 ?.['finishReason'] (index signature 访问) + cast string. V0.5 stub
           //     注释说 "finishReason 字段", 但真实 LangChain 1.x 走 index signature.
           //     2 个错治本 (finishReason 读取 + 类型).
-          const chunkFinishReason = chunk.response_metadata?.['finishReason'] as string | undefined;
+          // V2026-10-29 治本 (WP9-C): 键名修正 —— LangChain 实际写的是 snake_case
+          //   `finish_reason`, 原来只读 camel 的 `finishReason` → 截断信号永远收不到.
+          const chunkFinishReason = readFinishReason(chunk.response_metadata);
           if (chunkFinishReason) {
             finishReason = chunkFinishReason;
             isFinal = true;
           }
 
           if (deltaText.length > 0 || isFinal) {
-            yield {
+            yield buildStreamChunk({
               delta: deltaText,
-              tokenCount: lastTokenCount,
+              tokenCount: usage.tokenCount,
               isFinal,
               finishReason: isFinal ? finishReason : undefined,
               model: request.model ?? this.defaultChatModel,
-            };
+              reasoningTokens: usage.reasoningTokens,
+            });
           }
         }
       }
 
       // 流正常结束 — 确保最终 chunk isFinal=true.
       if (!isFinal) {
-        yield {
+        yield buildStreamChunk({
           delta: '',
-          tokenCount: lastTokenCount,
+          tokenCount: usage.tokenCount,
           isFinal: true,
           finishReason: 'stop',
           model: request.model ?? this.defaultChatModel,
-        };
+          reasoningTokens: usage.reasoningTokens,
+        });
       }
     } catch (e) {
       // 错误统一抛 — 上层 LLMRouter 捕获 + 转 ChatProviderException.
@@ -245,22 +253,69 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
    */
   protected buildLLM(apiKey: string, request: ChatCompletionRequest): ChatOpenAI {
     const modelName = this.modelAlias(request.model ?? this.defaultChatModel);
+    const overrides = this.buildRequestOverrides(request);
 
     return new ChatOpenAI({
       modelName,
+      // V2026-10-28 治本 (LangChain 1.x 凭据字段名 — 存量缺陷, 一次修好全部 OpenAI 兼容 provider):
+      //   `@langchain/openai` 1.x 的 BaseChatOpenAI 取凭据只有这一条链:
+      //     this.apiKey = fields?.apiKey ?? fields?.configuration?.apiKey ?? env OPENAI_API_KEY
+      //   旧的 `openAIApiKey` 在 **chat 模型上根本不被读取** (只有 embedding / LLM 类还认它),
+      //   所以只传 `openAIApiKey` = 客户端拿不到任何凭据, 调用直接报
+      //   "Missing credentials. Please pass an `apiKey` ... or set the `OPENAI_API_KEY`".
+      //   症状极隐蔽: 注册/构造/配置全对, 只有真正发请求时才炸, 且错误信息指向
+      //   OPENAI_API_KEY (一个本项目根本不用的变量名), 极易误判成"key 没配".
+      //   本机此前没有任何 LLM_*_API_KEY, 这条路径从未被真正跑通, 缺陷一直没暴露.
+      //   两个字段都传: `apiKey` 是 1.x 的真字段 (生效), `openAIApiKey` 留给 0.x 兼容 (被忽略也无害).
+      apiKey,
       openAIApiKey: apiKey,
       temperature: request.temperature ?? 0.7,
-      maxTokens: request.maxTokens,
       topP: request.topP,
       frequencyPenalty: request.frequencyPenalty,
       presencePenalty: request.presencePenalty,
       stopSequences: request.stop,
       streaming: request.stream ?? false,
+      // V2026-10-29 治本 (WP9-C · 生成长度上限 + 思考强度的厂商字段映射):
+      //   上限与思考强度走 `buildRequestOverrides` 钩子, 由**子类**决定下发哪个上游字段 ——
+      //   基类给 OpenAI 兼容通用口径 (LangChain 自己决定 max_tokens / max_completion_tokens),
+      //   MiniMax 子类改成只下发新字段 (thinking token 计入上限, 旧字段会把输出挤没).
+      ...(overrides.maxTokens === undefined ? {} : { maxTokens: overrides.maxTokens }),
+      ...(overrides.reasoningEffort === undefined ? {} : { reasoningEffort: overrides.reasoningEffort }),
+      ...(overrides.modelKwargs === undefined ? {} : { modelKwargs: overrides.modelKwargs }),
       configuration: {
         baseURL: this.baseUrl,
         defaultHeaders: this.customHeaders,
       },
     });
+  }
+
+  /**
+   * 生成长度上限 / 思考强度的**上游字段映射** (可覆盖).
+   *
+   * 为什么做成钩子而不是在基类里写死:
+   *   "生成长度上限用哪个字段" 是**厂商协议差异**, 不是抽象层能替所有人决定的.
+   *   - 国产 OpenAI 兼容厂商 (deepseek / qwen / doubao) 只认 `max_tokens`;
+   *   - MiniMax M3.1-Flash 的思考 token **计入**长度上限, 官方口径是 `max_completion_tokens`;
+   *   - OpenAI 自家的推理模型 (o1 / gpt-5) 也只认 `max_completion_tokens`.
+   *   在基类里写死任何一种, 都是把某一家的协议焊死在所有厂商身上.
+   *
+   * 反双胞胎:
+   *   - `maxTokens` 与 `maxCompletionTokens` **只取其一** (请求里两个都带 = 上游按哪个截断不可控);
+   *   - 思考强度同理: 只在调用方显式给了才下发 (上游不支持的模型传了会 400).
+   *
+   * @param request 调用方请求
+   * @returns LangChain 构造参数里的上限 / 思考强度 / 额外上游字段
+   */
+  protected buildRequestOverrides(request: ChatCompletionRequest): {
+    readonly maxTokens?: number;
+    readonly reasoningEffort?: ChatReasoningEffort;
+    readonly modelKwargs?: Record<string, unknown>;
+  } {
+    const limit = request.maxCompletionTokens ?? request.maxTokens;
+    return {
+      ...(limit === undefined ? {} : { maxTokens: limit }),
+      ...(request.reasoningEffort === undefined ? {} : { reasoningEffort: request.reasoningEffort }),
+    };
   }
 }
 
@@ -278,6 +333,87 @@ export class ChatProviderException extends Error {
 }
 
 // ─── Helpers ────────────────────────────────────────────────
+
+/**
+ * 流式用量状态 (累计 token 总数 + 思考 token).
+ *
+ * 为什么要独立成结构: 流式方法里"读 usage / 判断有无 / 写回"三段如果内联,
+ * 方法复杂度会顶到仓库红线 (complexity 20 / cognitive 25) —— 而这些分支本身
+ * 是**纯数据搬运**, 抽出来既降复杂度, 又让"思考 token 单独上报"这件事只有一个落点.
+ */
+interface StreamUsageState {
+  /** 累计 token 数 (含本次). */
+  tokenCount: number;
+  /** 思考 token 数 (推理模型才有). */
+  reasoningTokens?: number;
+}
+
+/** 新建一份空的流式用量状态. */
+function createStreamUsageState(): StreamUsageState {
+  return { tokenCount: 0 };
+}
+
+/**
+ * 把一个 chunk 的 usage 归到状态里 (累计口径, 与既有 tokenCount 行为一致).
+ *
+ * @param state 用量状态 (原地更新)
+ * @param chunk LangChain chunk
+ */
+function applyChunkUsage(state: StreamUsageState, chunk: AIMessageChunk): void {
+  const inputTokens = chunk.usage_metadata?.input_tokens ?? 0;
+  const outputTokens = chunk.usage_metadata?.output_tokens ?? 0;
+  const total = inputTokens + outputTokens;
+  if (total > 0) {
+    state.tokenCount = total;
+  }
+  const reasoning = chunk.usage_metadata?.output_token_details?.reasoning;
+  if (typeof reasoning === 'number') {
+    state.reasoningTokens = reasoning;
+  }
+}
+
+/**
+ * 构造一条流式 chunk (把"可能没有的字段"收在一处).
+ *
+ * @param params chunk 内容
+ * @returns 流式 chunk
+ */
+function buildStreamChunk(params: {
+  readonly delta: string;
+  readonly tokenCount: number;
+  readonly isFinal: boolean;
+  readonly finishReason?: string;
+  readonly model: string;
+  readonly reasoningTokens?: number;
+}): ChatCompletionChunk {
+  return {
+    delta: params.delta,
+    tokenCount: params.tokenCount,
+    isFinal: params.isFinal,
+    ...(params.finishReason === undefined ? {} : { finishReason: params.finishReason }),
+    model: params.model,
+    ...(params.reasoningTokens === undefined ? {} : { reasoningTokens: params.reasoningTokens }),
+  };
+}
+
+/**
+ * 从 LangChain 的 `response_metadata` 里取上游终止原因 (finish_reason).
+ *
+ * V2026-10-29 治本 (WP9-C): **两个键都读** ——
+ *   - `finish_reason` (snake): LangChain 1.x 实际写入的键
+ *     (@langchain/openai completions.js: `generationInfo.finish_reason = choice.finish_reason`);
+ *   - `finishReason` (camel): 老版本 / stub 用的键, 留作兼容.
+ *
+ * 为什么必须修: 原来只读 camel 键 → 取不到 → `finishReason` 恒为 `'stop'` →
+ * 上游因长度上限截断 (`length`) 这件事上层完全看不见, 渲染层的截断保护无从触发.
+ *
+ * @param metadata LangChain response_metadata (index signature, 不能 dot access)
+ * @returns 终止原因; 没有则 undefined
+ */
+function readFinishReason(metadata: Record<string, unknown> | undefined): string | undefined {
+  const raw = metadata?.['finish_reason'] ?? metadata?.['finishReason'];
+  return typeof raw === 'string' ? raw : undefined;
+}
 
 /**
  * 心塑 ChatMessage → LangChain BaseMessage.

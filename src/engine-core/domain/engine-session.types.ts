@@ -25,6 +25,7 @@ import type { BdiSnapshot } from './bdi-snapshot';
 import type { CharacterProfile } from './character-profile';
 import type { Intention } from './intention';
 import type { MemoryHit } from './ports/memory.store';
+import type { SafetyVerdict } from './safety/safety-types';
 import type { TrajectoryScript, TrajectoryTrace } from './trajectory/script';
 
 /**
@@ -138,4 +139,11 @@ export interface EngineTurnOutput {
    * 它是"读出来给上层看的", 不是"喂给决策引擎的".
    */
   readonly trajectoryTrace?: TrajectoryTrace;
+  /**
+   * 本轮安全判定 (WP4). 仅 counselor_input; 内核不据此阻断, 由 adapter 决策.
+   *
+   * 边界: 只读信号 —— 判定**不改**快照 / Intention / 轨迹游标, BDI 管线照常跑完.
+   * `pass` 且探测无额外结果时省略本字段 (零回归: 干净会话的出参与 WP3 完全一致).
+   */
+  readonly safety?: SafetyVerdict;
 }

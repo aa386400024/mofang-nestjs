@@ -162,6 +162,20 @@ import { SeedSupervisionSchools1714900000021 } from '../src/migration/1714900000
 // V2026-10-27 治本 (来访池 — 公共人物绑定系统音色):
 //   visitor_pool_templates 加可空列 voice_id (未绑定回退 env 默认), 跟 src/migration/index.ts 1:1.
 import { AddVisitorPoolTemplateVoiceId1714900000022 } from '../src/migration/1714900000022-AddVisitorPoolTemplateVoiceId';
+// V2026-10-29 治本 (WP9-B — character_profiles 角色资产池新表, 跟 src/migration/index.ts 1:1):
+//   character_profiles (system 级: 5Ps 专业长文 + 内核基线数值 + 结构化心理要素
+//   + 审核/上下架状态, 21 列 + 2 索引), 逻辑外键 template_id → visitor_pool_templates.id
+//   (不加 DB FK, ADR-0003). 内容不进 migration: 首批 4 个角色走独立 seed 脚本
+//   (bin/seed-character-profiles.ts) 按稳定 template_id 幂等 upsert.
+import { AddCharacterProfiles1714900000023 } from '../src/migration/1714900000023-AddCharacterProfiles';
+import { AddTurnDebugTrace1714900000024 } from '../src/migration/1714900000024-AddTurnDebugTrace';
+// V2026-10-30 治本 (WP10A — character_profiles 加 3 列表达风格基线字段, 跟 src/migration/index.ts 1:1):
+//   speech_volume_baseline (FLOAT 默认 0.5) + narrative_style (VARCHAR(20) 默认 'mixed')
+//   + expression_tone (VARCHAR(20) 默认 'restrained').
+//   纯预留: 不进内核 / 不进 RenderSpec / 不暴露前端; 存量行由 DEFAULT 自动填充, 无需 UPDATE.
+//   部署顺序: **必须先 migration:run 再起服务** —— entity 加了列, resolver 的 SELECT 会带上
+//   这三列, migration 没跑就是 "Unknown column".
+import { AddCharacterProfileExpressionFields1714900000025 } from '../src/migration/1714900000025-AddCharacterProfileExpressionFields';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -282,6 +296,15 @@ const ormconfig = async (): Promise<DataSource> => {
       // V2026-10-27 治本 (来访池 — 公共人物绑定系统音色; visitor_pool_templates 加 voice_id 列,
       //   跟 src/migration/index.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行):
       AddVisitorPoolTemplateVoiceId1714900000022,
+      // V2026-10-29 治本 (WP9-B — character_profiles 角色资产池新表, 跟 src/migration/index.ts 1:1):
+      //   character_profiles (21 列 + UNIQUE(template_id) + INDEX(audit_status, enabled)),
+      //   表由手写 DDL 建 (ADR-0003 禁用 synchronize); 内容走独立 seed 脚本, 不进 migration.
+      AddCharacterProfiles1714900000023,
+      AddTurnDebugTrace1714900000024,
+      // V2026-10-30 治本 (WP10A — character_profiles 加 3 列表达风格基线字段, 跟 src/migration/index.ts 1:1):
+      //   speech_volume_baseline / narrative_style / expression_tone —— 纯预留, 不参与任何决策.
+      //   存量行由 DB DEFAULT 自动填充 (不需要 UPDATE), 加列幂等 (缺才加).
+      AddCharacterProfileExpressionFields1714900000025,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

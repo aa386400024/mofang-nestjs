@@ -134,7 +134,12 @@ export class VisitorService {
       traceId: opts.traceId,
       signal: opts.signal,
       temperature: 0.7,
-      maxTokens: 200,
+      // V2026-10-29 治本 (WP9-C): 旧字段 `maxTokens` → 新字段 `maxCompletionTokens`.
+      //   理由与引擎渲染路径同源: MiniMax-M3.1-Flash 是推理模型, **思考 token 计入
+      //   生成长度上限**, 200 的旧预算里思考先吃一大截, 留给口语的只剩几个字
+      //   (实测 finish_reason=length / content 近乎为空). 新字段的口径才是
+      //   "思考 + 输出" 的总额. 本轮只切字段名, 不改旧链路的其它行为 (任务单 §3).
+      maxCompletionTokens: 200,
     });
 
     // 3. 包装 history capture

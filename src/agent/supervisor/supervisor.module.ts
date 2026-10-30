@@ -24,11 +24,13 @@
 //     3. 单元测试可 override SUPERVISION_REPORT_REPOSITORY provider 注入 mock
 
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { SupervisionReportRepositoryTypeorm } from './data/supervision-report.repository.typeorm';
 import { SupervisionReportEntity } from './domain/entities/supervision-report.entity';
 import { SUPERVISION_REPORT_REPOSITORY } from './domain/repositories/supervision-report.repository';
+import { SUPERVISOR_LLM_PROFILE, readSupervisorLlmProfile } from './supervisor-llm.config';
 import { SupervisorController } from './supervisor.controller';
 import { SupervisorProcessor } from './supervisor.processor';
 import { SupervisorService } from './supervisor.service';
@@ -50,6 +52,14 @@ import { LlmModule } from '../llm/llm.module';
       // V2026-10-26 治本: 内存 → 真库 (报告落库). 内存实现保留在 data/ 目录供单测替换.
       provide: SUPERVISION_REPORT_REPOSITORY,
       useClass: SupervisionReportRepositoryTypeorm,
+    },
+    {
+      // V2026-10-29 治本 (WP18): 主报告专属 LLM 参数档 (思考深度 / 长度上限 / 超时).
+      //   为什么走 useFactory 而不是类 provider: 档位来自 env (运维可调), 且**非法值要回落
+      //   默认而不是让服务起不来** —— 报告生成是收尾环节, 不该成为启动的硬依赖.
+      provide: SUPERVISOR_LLM_PROFILE,
+      useFactory: (config: ConfigService) => readSupervisorLlmProfile(config),
+      inject: [ConfigService],
     },
   ],
   exports: [SupervisorService, SupervisorProcessor, SUPERVISION_REPORT_REPOSITORY],

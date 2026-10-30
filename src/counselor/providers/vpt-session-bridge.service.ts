@@ -27,6 +27,30 @@
 //     3. 会话结束 → 该行 status=finished, ended_at 有值
 //     4. 跨用户查该 sessionId → 404 (归属校验在查询侧, 不靠前端)
 //   时间戳: 2026-10-26
+//
+// V2026-10-30 治本 (WP12 · 逐字稿全量覆盖写):
+//   原因: 逐字稿原本**只靠每轮增量**落库 —— 进程中途崩了就停在最后一轮, 而引擎侧
+//     的内存副本 (`EngineStreamBackend.transcripts`) 重启即丢, 两边都不够.
+//     任务单 §1.4: "close 时必须落库, 不落库就报错; 落库边界写死, 不留模糊".
+//     本桥实现 voice 侧插槽的可选方法 `replaceTranscript`: 收尾时把本场**完整**逐字稿
+//     覆盖写回 `training_sessions.transcript` (报告链路的逐字稿表).
+//   为什么是"覆盖"而不是"追加":
+//     覆盖 = 定稿语义. 追加会让同一段话在库里出现两份, 督导分析看到重复对话.
+//     引擎副本是本场会话的权威快照 —— 它记的是**完整跑完**的轮次; 引擎全挂走兜底句的
+//     降级轮次本就不进逐字稿 (与旧链路"早退不落逐字稿"同口径), 覆盖写会把它从定稿里
+//     去掉, 这是**刻意**的: 兜底句不是来访者的真实表达, 留在逐字稿里只会污染督导分析.
+//     代价 (轮次数变少) 会记 warn, 不静默.
+//   反双胞胎:
+//     - 不用"空快照覆盖": 引擎副本为空时**跳过写入** —— 拿空去覆盖会抹掉已落库的逐字稿.
+//     - 不在 flush 时把状态改成 finished: 状态归 `close` 管, flush 只碰逐字稿
+//       (且只在 IDLE → LISTENING, 绝不把 finished 退回 listening).
+//     - 不绕过内部串行链: flush 与 close 共用一条链 → flush 一定排在 close 之前
+//       (close 要读库里的逐字稿算素材量, 顺序反了会读到截断版).
+//   验证:
+//     1. tsc 0 错
+//     2. 收尾后 training_sessions.transcript == 引擎副本全量
+//     3. 引擎副本为空 → transcript 不变 (不抹)
+//   时间戳: 2026-10-30
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -36,6 +60,7 @@ import { IsNull, type Repository } from 'typeorm';
 
 import { CounselorSupervisionProcessor } from './counselor-supervision.processor';
 import { TurnAnalysisProcessor } from './turn-analysis.processor';
+import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types';
 import {
   VoiceSessionBridgeRegistry,
   type VoiceSessionBridge,
@@ -43,6 +68,7 @@ import {
   type VoiceSessionCloseResult,
   type VoiceSessionOpenInput,
   type VoiceSessionOpenResult,
+  type VoiceSessionTranscriptInput,
   type VoiceSessionTurnInput,
 } from '../../voice/voice-session-bridge';
 import type { VoiceDifficulty, VoiceVisitorStyle } from '../../voice/voice-session.types';
@@ -232,6 +258,22 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
     return result ?? { persisted: false, reportStatus: null };
   }
 
+  /**
+   * 全量覆盖写逐字稿 (WP12).
+   *
+   * 与 `appendTurn` 的区别: 追加 vs **定稿**. 收尾时用引擎侧的权威快照把逐字稿
+   * 一次写全 —— 补上增量写入失败的那些轮次, 并把落库边界钉死.
+   *
+   * 失败**必须冒泡**: 这里抛错 → voice 侧注册表记 warn → 引擎侧收尾记 error.
+   * 逐字稿没存下来是数据缺失, 不能静默 (与 `appendTurn` 的"失败只记 warn"不同:
+   * 那是每轮的增量, 这里是一次性的定稿).
+   *
+   * @param input 覆盖写输入
+   */
+  async replaceTranscript(input: VoiceSessionTranscriptInput): Promise<void> {
+    await this.enqueueOpOrThrow(() => this.doReplaceTranscript(input));
+  }
+
   // ── private ────────────────────────────────────────────────────
 
   /**
@@ -255,6 +297,36 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
     this.chain = next;
     await next;
     return result;
+  }
+
+  /**
+   * 把一个操作挂到内部串行链上, 但**失败要冒泡给调用方**.
+   *
+   * 与 `enqueueOp` 的唯一区别: 错误不再被链吞掉, 而是抛回调用方.
+   * 链本身**不断** (失败后后续 op 照常执行) —— 否则一次写入失败会让这场会话再也收不了尾.
+   *
+   * 为什么逐字稿定稿要用这个而不是 `enqueueOp`: "不落库就报错"是任务单 §1.4 的硬要求,
+   *   静默吞掉 = 落库边界留模糊.
+   *
+   * @param op 操作
+   * @returns op 的返回值
+   * @throws op 抛错时原样抛出
+   */
+  private async enqueueOpOrThrow<T>(op: () => Promise<T>): Promise<T> {
+    let result: T | undefined;
+    let failure: unknown;
+    const next = this.chain.then(async () => {
+      try {
+        result = await op();
+      } catch (error) {
+        failure = error;
+      }
+    });
+    // 链不断: 失败只影响本次 op, 后续 op 照常排队.
+    this.chain = next.then(() => {});
+    await next;
+    if (failure !== undefined) throw failure instanceof Error ? failure : new Error(String(failure));
+    return result as T;
   }
 
   /**
@@ -386,6 +458,47 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
   }
 
   /**
+   * 全量覆盖写逐字稿 (实际执行体).
+   *
+   * V2026-10-30 治本 (WP12 · 逐字稿定稿):
+   *   写的是**引擎侧的权威快照** —— 覆盖语义, 不是追加.
+   *   两条硬边界:
+   *     ① **空快照不写**: 拿空去覆盖会抹掉已经落库的逐字稿 (数据丢失), 所以空 → 跳过 + warn;
+   *     ② **状态只进不退**: IDLE → LISTENING 可以, finished 绝不被改回 listening
+   *        (状态归 `close` 管, flush 只碰逐字稿).
+   *
+   * @param input 覆盖写输入
+   */
+  private async doReplaceTranscript(input: VoiceSessionTranscriptInput): Promise<void> {
+    const dbSessionId = input.dbSessionId;
+    const row = await this.sessionRepo.findOne({
+      where: {
+        id: dbSessionId,
+        ...(input.userId ? { userId: input.userId } : {}),
+        deletedAt: IsNull(),
+      },
+    });
+    if (!row) {
+      // 行不存在 = 落库 id 无效 → 明确报错 (不静默): "不落库就报错".
+      throw new Error(`逐字稿覆盖写失败: 落库会话不存在 db_session=${dbSessionId}`);
+    }
+
+    const incoming = toTrainingTurns(input.turns);
+    if (incoming.length === 0) {
+      this.logger.warn(`[replace_transcript_empty] db_session=${dbSessionId} 引擎副本为空, 保留库里已有逐字稿`);
+      return;
+    }
+
+    const before = (row.transcript ?? []).length;
+    row.transcript = incoming;
+    if (row.status === TrainingSessionStatus.IDLE) {
+      row.status = TrainingSessionStatus.LISTENING;
+    }
+    await this.sessionRepo.save(row);
+    this.logger.log(`[replace_transcript] db_session=${dbSessionId} turns=${before}->${incoming.length}`);
+  }
+
+  /**
    * 最小可分析量阈值 (从 config 读; 缺失时用 config 模块的默认值).
    *
    * @returns 阈值
@@ -414,4 +527,23 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
     // randomInt 的 max 是开区间 → randomInt(0, 100) 产出 0-99 闭区间.
     return `${base}-${String(randomInt(0, 100)).padStart(2, '0')}`;
   }
+}
+
+/**
+ * 引擎逐字稿 → 业务逐字稿表格式 (WP12).
+ *
+ * 角色映射**不能反**: 引擎链路里 role='user' 是**咨询师** (学员扮演), role='assistant'
+ * 是**来访者** (AI 扮演). 报告链路按 counselor/visitor 判定"评估对象是谁", 映射反了
+ * 整份报告就评错人.
+ *
+ * @param turns 引擎逐字稿
+ * @returns 业务表格式逐字稿
+ */
+function toTrainingTurns(turns: readonly TranscriptTurn[]): TrainingTranscriptTurn[] {
+  return turns.map((turn) => ({
+    id: randomUUID(),
+    role: turn.role === 'user' ? ChatRole.COUNSELOR : ChatRole.VISITOR,
+    text: turn.content,
+    timestamp: turn.at,
+  }));
 }

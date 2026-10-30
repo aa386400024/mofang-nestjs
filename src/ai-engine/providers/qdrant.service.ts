@@ -210,6 +210,58 @@ export class QdrantService implements OnModuleInit {
   }
 
   /**
+   * 只改 payload, 不动向量 (V2026-10-30 治本 · WP12 · 补 WP2 写侧缺口).
+   *
+   * 为什么需要它: 长时记忆的**冲突消解**要求"给旧点打一个 `supersededBy` 标记",
+   * 而那条旧点的向量一个字都不能动 —— 重新 upsert 一遍要重新算向量, 既慢又会
+   * 引入"同一条记忆两次向量化"的抖动. setPayload 是 Qdrant 的原语, 正好干这件事.
+   *
+   * 反双胞胎: 不复用 `upsert` 改 payload —— 那会把向量一起覆盖, 且"改 payload"
+   * 与"写新点"在语义上完全不是一回事 (前者是标注, 后者是新增).
+   *
+   * @param collection collection 名
+   * @param id 点 id
+   * @param payload 要合并进该点 payload 的字段
+   */
+  async setPayload(collection: string, id: string, payload: Record<string, unknown>): Promise<void> {
+    await this.client.setPayload(collection, id, payload);
+  }
+
+  /**
+   * 按 filter 滚动取点 (V2026-10-30 治本 · WP12 · 补 WP2 写侧缺口).
+   *
+   * 为什么需要它: 写新记忆前要找出"同 tenant + 同 visitor + 同 topicKey"的旧记忆,
+   * 才能做冲突消解. 用向量相似度反查**会漏召回** —— 语义相近不等于同主题,
+   * 而同主题的两条可能措辞差异极大 (时间更新者优先, 跟措辞没关系). 滚动是
+   * Qdrant 的"按 payload 过滤全量取"原语, 才是这个场景该用的工具.
+   *
+   * 反双胞胎: 不用 `search` 顶替 —— search 要向量, 且 topK 有限, 漏了就静默
+   * 少标记一条冲突 (那种错在审计里最难发现).
+   *
+   * @param collection collection 名
+   * @param filter payload 过滤条件 (Qdrant filter 形状)
+   * @param limit 最多取多少点
+   * @returns 点集 (id + payload)
+   */
+  async scroll(
+    collection: string,
+    filter: Record<string, unknown>,
+    limit = 100,
+  ): Promise<{ id: string; payload: Record<string, unknown> }[]> {
+    const response = await this.client.scroll(collection, {
+      filter,
+      limit,
+      with_payload: true,
+      with_vector: false,
+    });
+    const points = (response as { points?: { id: string | number; payload?: Record<string, unknown> }[] }).points ?? [];
+    return points.map((p: { id: string | number; payload?: Record<string, unknown> }) => ({
+      id: String(p.id),
+      payload: p.payload ?? {},
+    }));
+  }
+
+  /**
    * 删除单条 — 用于文章下架 / GDPR 删除请求.
    */
   async delete(collection: string, id: string): Promise<void> {

@@ -15,6 +15,23 @@
 //     - 不接 errorPatterns 写回 RAG — V0.x 留占位说明, V1.x 任务
 //     - 不做并发控制 — BullMQ worker 串行消费, service 不需锁
 //
+//   V2026-10-29 治本 (WP18 · 督导主报告 · 三个真缺口):
+//     ① **思考吃光预算 → 正文为空** (核心):
+//        改前用 `maxTokens: 2500` (旧字段), 而 M3.1-Flash 的**思考 token 计入生成长度上限**
+//        —— 实测思考吃掉 2499/2500 → `finish_reason=length` → **正文一个字都没吐出来**
+//        → JSON 解析必然失败 → 复盘报告恒为 `parse_error` (六维评分 / annotations 全是空壳).
+//        修法: 改走 `maxCompletionTokens` + `reasoningEffort` + `timeoutMs`, 取值来自
+//        `supervisor-llm.config.ts` 的**主报告专属档位** (与 counselor 侧 4 流派督导同档).
+//     ② **JSON 容错抽取** (双胞胎):
+//        原来用裸 `JSON.parse(rawText)` —— 模型加个 ```json 围栏 / 前面写句"以下是督导报告"
+//        就直接 parse_error. 而同样的容错在 counselor 侧 (`llm-json.client.ts`) 早就有.
+//        修法: 改用 `extractJsonPayload` (实现已上移到 `src/shared/llm/llm-json-payload.ts`,
+//        两边共用同一份).
+//     ③ **失败原因可区分**:
+//        `finish_reason=length` (被上游截断) 与 "模型吐了非法 JSON" 是两回事 —— 前者是
+//        **预算/思考档位没配够**, 后者是 prompt 契约问题. 混成一句 `json_parse_failed`
+//        就没法定位. 现在把 finish_reason 透传到解析处, 截断单独标 `truncated_by_length`.
+//
 //   如何验证:
 //     1. pnpm build 无 type error
 //     2. 正常 transcript → status=completed, 6 维度 0-100, annotations 非空
@@ -22,9 +39,12 @@
 //     4. 缺字段 → status=parse_error, rawResponse 存原文
 //     5. 写库异常 → log error, runReport 仍 resolve 不抛
 //     6. 0 轮对话 → status=completed (空 transcript 也能生成, 维度=0)
+//     7. 模型输出带 ```json 围栏 / 前后废话 → 仍能解析出完整报告 (容错生效)
 
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 
+import { SUPERVISION_REPORT_REPOSITORY, type SupervisionReportRepository } from './domain/repositories/supervision-report.repository';
+import { DEFAULT_SUPERVISOR_LLM_PROFILE, SUPERVISOR_LLM_PROFILE, type SupervisorLlmProfile } from './supervisor-llm.config';
 import { renderSystemPrompt } from './supervisor.prompts';
 import type {
   RunReportInput,
@@ -33,28 +53,47 @@ import type {
   SupervisionDimensions,
   SupervisionReportRow,
 } from './supervisor.types';
+import { extractJsonPayload } from '../../shared/llm/llm-json-payload';
 import { LlmService } from '../llm/llm.service';
 import type { LlmError, LlmMessage } from '../llm/llm.types';
-import { SUPERVISION_REPORT_REPOSITORY, type SupervisionReportRepository } from './domain/repositories/supervision-report.repository';
 
 /** LLM 采样温度 — 督导报告要客观, 比 Visitor 0.7 保守. */
 const SUPERVISOR_TEMPERATURE = 0.3;
-/** LLM 输出上限 — 督导报告结构 + 标注列表, 2500 足够. */
-const SUPERVISOR_MAX_TOKENS = 2500;
 /** rawResponse 字段落库截断上限 — 防异常大响应撑爆内存. */
 const RAW_RESPONSE_TRUNCATE = 10_000;
 /** 六维分数合法区间. */
 const SCORE_MIN = 0;
 const SCORE_MAX = 100;
+/**
+ * 上游截断的 finish_reason (M3.1-Flash / OpenAI 兼容口径).
+ *
+ * 单独标出来是因为它和"模型吐了非法 JSON"是**两类问题**: 前者调预算/思考档位能修好,
+ * 后者要改 prompt 契约. 混成一句 json_parse_failed, 排查就只能靠猜.
+ */
+const FINISH_REASON_LENGTH = 'length';
 
 @Injectable()
 export class SupervisorService {
   private readonly logger = new Logger(SupervisorService.name);
 
+  /**
+   * @param llm LLM 门面 (agent 层直连 MiniMax 的流式通道)
+   * @param repos 报告仓储 (主报告落 `supervision_reports`)
+   * @param profile 主报告专属 LLM 参数档 (思考深度 / 长度上限 / 超时)
+   *
+   * `profile` 走 `@Optional`: 单测直接 `new SupervisorService(llm, repos)` 时用默认档,
+   * 零破坏; 生产装配层从 env 注入 (见 `supervisor.module.ts`).
+   */
   constructor(
     private readonly llm: LlmService,
     @Inject(SUPERVISION_REPORT_REPOSITORY) private readonly repos: SupervisionReportRepository,
+    @Optional() @Inject(SUPERVISOR_LLM_PROFILE) private readonly profile?: SupervisorLlmProfile,
   ) {}
+
+  /** 当前生效的参数档 (未注入时用默认档). */
+  private get llmProfile(): SupervisorLlmProfile {
+    return this.profile ?? DEFAULT_SUPERVISOR_LLM_PROFILE;
+  }
 
   /**
    * 生成督导报告 — 一次输入一次输出.
@@ -69,10 +108,12 @@ export class SupervisorService {
     const messages = this.buildLlmMessages(input);
 
     // 2. 调 LLM, 消费 stream 拼 rawText
-    const { rawText, error: llmError, usage } = await this.collectStream(messages, input);
+    const { rawText, error: llmError, usage, finishReason } = await this.collectStream(messages, input);
 
     // 3. 解析 + 校验
-    const row = llmError ? makeParseErrorRow(input, rawText, `llm_error: ${llmError.code}`) : this.parseAndValidate(input, rawText);
+    const row = llmError
+      ? makeParseErrorRow(input, rawText, `llm_error: ${llmError.code}`)
+      : this.parseAndValidate(input, rawText, finishReason);
 
     // 4. 写库 (异常也吞, log error, 不让 BullMQ 重试死循环)
     let saved: SupervisionReportRow;
@@ -111,8 +152,12 @@ export class SupervisorService {
   }
 
   /**
-   * 消费 LlmService.streamChat, 拼接 rawText + 提取 usage + 错误.
+   * 消费 LlmService.streamChat, 拼接 rawText + 提取 usage + 错误 + 上游结束原因.
+   *
    * 监督报告一次输出, 不分多轮, 直接累加 content chunk.
+   *
+   * V2026-10-29 治本 (WP18): 收 `finishReason` —— 上游把输出**按长度截断**时
+   * (`finish_reason=length`), 正文是半截的, 这跟"模型吐了非法 JSON"必须分开报.
    */
   private async collectStream(
     messages: readonly LlmMessage[],
@@ -121,16 +166,23 @@ export class SupervisorService {
     readonly rawText: string;
     readonly error: LlmError | null;
     readonly usage: { readonly promptTokens: number; readonly completionTokens: number; readonly totalTokens: number } | null;
+    readonly finishReason: string | undefined;
   }> {
     let rawText = '';
     let usage: { readonly promptTokens: number; readonly completionTokens: number; readonly totalTokens: number } | null = null;
+    let finishReason: string | undefined;
 
+    // V2026-10-29 治本 (WP18): 走**主报告专属档位** (max_completion_tokens + 思考深度 + 超时),
+    //   不再用旧的 `maxTokens` —— 旧预算 2500 被思考吃满 → 正文为空 → 报告恒 parse_error.
+    const profile = this.llmProfile;
     for await (const chunk of this.llm.streamChat(messages, {
       tenantId: input.tenantId,
       userId: input.userId,
       traceId: input.traceId,
       temperature: SUPERVISOR_TEMPERATURE,
-      maxTokens: SUPERVISOR_MAX_TOKENS,
+      maxCompletionTokens: profile.maxCompletionTokens,
+      reasoningEffort: profile.reasoningEffort,
+      timeoutMs: profile.timeoutMs,
     })) {
       // V2026-10-09 治本: switch + continue 避免 if/else if 链, error chunk 显式 return 跳出函数
       switch (chunk.type) {
@@ -138,27 +190,38 @@ export class SupervisorService {
           rawText += chunk.content;
           continue;
         case 'error':
-          return { rawText, error: chunk.error, usage };
+          return { rawText, error: chunk.error, usage, finishReason };
         case 'done':
           usage = chunk.usage;
+          finishReason = chunk.finishReason ?? finishReason;
           continue;
       }
     }
-    return { rawText, error: null, usage };
+    return { rawText, error: null, usage, finishReason };
   }
 
   /**
-   * JSON.parse + 字段校验. 失败 → 返回 status=parse_error 占位行.
+   * JSON 提取 + 字段校验. 失败 → 返回 status=parse_error 占位行.
    * 校验范围 (V0.x 强约束):
    *   - overallScore: number, 0-100 整数
    *   - dimensions: 6 维, 每维 number 0-100
    *   - annotations: array, 至少 1 元素, 每元素含 timestamp/number, type/good|warn|error, category/string, message/string
    *   - errorPatterns / growthSuggestions: array of string
+   *
+   * V2026-10-29 治本 (WP18):
+   *   - 改用 `extractJsonPayload` 容错抽取 (```json 围栏 / 前后废话 / 内联 <think> 块),
+   *     与 counselor 侧共用同一份实现 (`src/shared/llm/llm-json-payload.ts`).
+   *   - 上游按长度截断 (`finish_reason=length`) 时单独标 `truncated_by_length` ——
+   *     它是**预算/思考档位**问题, 与"模型吐了非法 JSON" (prompt 契约问题) 分开报.
    */
-  private parseAndValidate(input: RunReportInput, rawText: string): SupervisionReportRow {
+  private parseAndValidate(input: RunReportInput, rawText: string, finishReason: string | undefined): SupervisionReportRow {
+    const payload = extractJsonPayload(rawText);
+    if (payload === null) {
+      return makeParseErrorRow(input, rawText, describeParseFailure(rawText, finishReason));
+    }
     let parsed: unknown;
     try {
-      parsed = JSON.parse(rawText);
+      parsed = JSON.parse(payload);
     } catch (err) {
       const reason = err instanceof Error ? err.message.slice(0, 200) : 'unknown';
       return makeParseErrorRow(input, rawText, `json_parse_failed: ${reason}`);
@@ -173,6 +236,23 @@ export class SupervisorService {
     }
     return makeCompletedRow(input, rawText, candidate);
   }
+}
+
+/**
+ * 描述"抠不出 JSON"的原因 (区分上游截断与其它脏输出).
+ *
+ * @param rawText 原始响应文本
+ * @param finishReason 上游结束原因
+ * @returns 失败原因描述
+ */
+function describeParseFailure(rawText: string, finishReason: string | undefined): string {
+  if (finishReason === FINISH_REASON_LENGTH) {
+    return 'truncated_by_length: 上游按长度上限截断, 思考 token 吃满了预算 (调大 maxCompletionTokens 或降思考档位)';
+  }
+  if (rawText.trim().length === 0) {
+    return 'empty_response: 上游没有返回任何正文 (通常是思考 token 吃满了预算)';
+  }
+  return 'json_not_found: 响应里找不到 JSON 对象';
 }
 
 // ── 工厂 + 校验函数 ─────────────────────────────────────────────

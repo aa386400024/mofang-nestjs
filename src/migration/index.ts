@@ -114,5 +114,21 @@ export { SeedSupervisionSchools1714900000021 } from './1714900000021-SeedSupervi
 //   visitor_pool_templates 加 1 个可空列 voice_id (未绑定 = 回退 env 默认, 旧行零影响).
 //   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
 export { AddVisitorPoolTemplateVoiceId1714900000022 } from './1714900000022-AddVisitorPoolTemplateVoiceId';
+// V2026-10-29 治本 (WP9-B — character_profiles 角色资产池新表):
+//   character_profiles (system 级: 5Ps 专业长文 + 内核基线数值 + 结构化心理要素
+//   + 审核/上下架状态, 21 列 + 2 索引), 逻辑外键 template_id → visitor_pool_templates.id
+//   (不加 DB FK, ADR-0003). 内容不进 migration: 首批 4 个角色走独立 seed 脚本
+//   (bin/seed-character-profiles.ts) 按稳定 template_id 幂等 upsert.
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏建.
+export { AddCharacterProfiles1714900000023 } from './1714900000023-AddCharacterProfiles';
+// V2026-10-29 治本 (WP19 — training_sessions 加 turn_debug_trace JSON 列):
+//   每轮 BDI 调试快照数组, 会话关闭时 flush. 调试器 SPA 只读.
+export { AddTurnDebugTrace1714900000024 } from './1714900000024-AddTurnDebugTrace';
+// V2026-10-30 治本 (WP10A — character_profiles 加 3 列表达风格基线字段):
+//   speech_volume_baseline (FLOAT, 默认 0.5) + narrative_style (VARCHAR(20), 默认 'mixed')
+//   + expression_tone (VARCHAR(20), 默认 'restrained').
+//   纯预留: 不进内核 / 不进 RenderSpec / 不暴露前端; 存量行由 DEFAULT 自动填充, 无需 UPDATE.
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
+export { AddCharacterProfileExpressionFields1714900000025 } from './1714900000025-AddCharacterProfileExpressionFields';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

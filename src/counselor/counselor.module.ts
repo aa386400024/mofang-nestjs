@@ -249,6 +249,8 @@ import { VisitorPoolTemplate } from './entities/visitor-pool-template.entity';
 //   答题记录, 5 状态机 1:1 wire). 大炮 16:10 "A, 要企业级的方案, 不要凑活"
 //   1:1 反馈, V0.5 stage 简化 0 占位, V1.x W9-10 续做前先落 entity 层.
 import { AdminRoleGuard } from './guards/admin-role.guard';
+// V2026-10-29 治本 (WP21 — 报告 SSE 端点的归属守卫)
+import { SupervisionReportGuard } from './guards/supervision-report.guard';
 import { AbilityService } from './providers/ability.service';
 // V2026-10-15 治本 (V1.x W7-8 — billing service):
 //   5 method 业务逻辑 (getMembershipStatus / listSkus / createOrder / consumeQuota /
@@ -359,6 +361,7 @@ import { SessionContextBuilder } from './providers/session-context.builder';
 //   TurnAnalysisService          每轮分析器 (一次 LLM → 提示 + 标记)
 //   TurnAnalysisProcessor        每轮分析 BullMQ worker
 import { SessionCoreEventsService } from './providers/session-core-events.service';
+import { SupervisionReportStreamService } from './providers/supervision-report-stream.service';
 import { SupervisionService } from './providers/supervision.service';
 import { TrainingExerciseService } from './providers/training-exercise.service';
 import { TrainingSessionService } from './providers/training-session.service';
@@ -520,6 +523,12 @@ import { VptSessionBridgeService } from './providers/vpt-session-bridge.service'
     CounselorProfileService, // V2026-10-13 治本: P0-5 profile service
     LongTermCaseService, // V2026-10-15 治本: V1.x W1-2 long-term-case service
     SupervisionService, // V2026-10-15 治本: V1.x W3-4 supervision service
+    // V2026-10-29 治本 (WP21 — 报告 SSE 推送): 等报告 → 推一条 → 关流.
+    //   依赖 SupervisionService (复用它的装载与派生, 不另写一份报告拼装).
+    SupervisionReportStreamService,
+    // V2026-10-29 治本 (WP21 — SSE 归属守卫): 必须在 SSE 通道接管响应**之前**判归属,
+    //   否则客户端只能拿到 `200 + event: error` 帧 (拿不到 404 状态码).
+    SupervisionReportGuard,
     AbilityService, // V2026-10-15 治本: V1.x W5-6 ability service
     BillingService, // V2026-10-15 治本: V1.x W7-8 billing service
     TrainingExerciseService, // V2026-10-20 治本: 训练题 seed + 聚合进度 + 确定性评分

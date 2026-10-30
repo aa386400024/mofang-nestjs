@@ -40,3 +40,29 @@ export const SUPERVISION_MIN_EFFECTIVE_CHARS = 30;
  * 既不会把"慢"误判成"失败", 也不会让学员盯着转圈 15 分钟.
  */
 export const SUPERVISION_REPORT_PENDING_TIMEOUT_MS = 300_000;
+
+/**
+ * 报告 SSE 推送: 轮询间隔 (默认 2 秒).
+ *
+ * V2026-10-29 (WP21 · 报告生成 SSE 推送端点):
+ *   前端改成"先 GET 判断、pending 时开 SSE 等推送"后, 报告到达的延迟由**轮询间隔**
+ *   决定 —— 2s 的口径是"用户感知不到明显等待"与"DB 不被空转打爆"之间的折中:
+ *   主报告正常耗时 30-40s, 2s 粒度下最坏多等 2s, 相对总耗时可忽略;
+ *   而 1s 粒度只会把 DB 往返翻倍, 对"早到 1s"没有任何感知收益.
+ */
+export const SUPERVISION_REPORT_STREAM_POLL_INTERVAL_MS = 2000;
+
+/**
+ * 报告 SSE 推送: 等待超时 (默认 120 秒).
+ *
+ * V2026-10-29 (WP21 · 报告生成 SSE 推送端点):
+ *   SSE 的存在意义是"替代前端固定 3s 轮询"—— 推完即关流, 不长期占用连接.
+ *   120s 的依据: 主报告实测 ~32s, 4 流派反馈 (techStats) 更久但**不进**主报告;
+ *   120s 是主报告正常耗时的 3-4 倍余量, 超了说明队列/上游出了问题,
+ *   此时由服务端推 `{"status":"timeout"}` 收口, 让前端给出"稍后重试"而不是无限转圈.
+ *
+ *   注意: 这与 {@link SUPERVISION_REPORT_PENDING_TIMEOUT_MS} (5min 陈旧兜底) 是**两件事** ——
+ *   后者是 GET 查询侧的状态派生兜底, 前者是 SSE 连接的存活上限, 后者必须更短
+ *   (连接久悬不关 = 服务端资源白占).
+ */
+export const SUPERVISION_REPORT_STREAM_TIMEOUT_MS = 120_000;
