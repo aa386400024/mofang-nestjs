@@ -1,5 +1,4 @@
-/* eslint-disable new-cap, prettier/prettier,
-   max-len, import/order, sonarjs/assertions-in-tests, jest/no-disabled-tests, prefer-const */
+/* eslint-disable prettier/prettier, vitest/no-disabled-tests */
 
 
 
@@ -72,3 +71,4 @@ test.skip('POST: /test/crud', async () => {
 afterAll(async () => {
   await app?.close();
 });
+

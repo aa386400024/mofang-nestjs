@@ -10,6 +10,7 @@
 //   时间戳: 2026-10-27 14:25 GMT+8
 import { BadRequestException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 
+import { SupervisionFailureCode } from '../../src/counselor/enums/supervision-failure-code.enum';
 import {
   classifySupervisionFailure,
   isPermanentSupervisionFailure,
@@ -18,7 +19,6 @@ import {
   SupervisionSchoolMissingException,
   SupervisionUpstreamException,
 } from '../../src/counselor/providers/supervision-failure';
-import { SupervisionFailureCode } from '../../src/counselor/enums/supervision-failure-code.enum';
 
 describe('LLM errorCode → 失败原因码', () => {
   it('429 → rate_limited (退避后重试有意义)', () => {
@@ -43,7 +43,7 @@ describe('LLM errorCode → 失败原因码', () => {
 
   it('空 / 未知错误码 → upstream_unavailable (不猜, 归到最保守的一档)', () => {
     expect(mapLlmErrorCodeToFailureCode(null)).toBe(SupervisionFailureCode.UPSTREAM_UNAVAILABLE);
-    expect(mapLlmErrorCodeToFailureCode(undefined)).toBe(SupervisionFailureCode.UPSTREAM_UNAVAILABLE);
+    expect(mapLlmErrorCodeToFailureCode()).toBe(SupervisionFailureCode.UPSTREAM_UNAVAILABLE);
     expect(mapLlmErrorCodeToFailureCode('  ')).toBe(SupervisionFailureCode.UPSTREAM_UNAVAILABLE);
     expect(mapLlmErrorCodeToFailureCode('http_401')).toBe(SupervisionFailureCode.UPSTREAM_UNAVAILABLE);
   });
@@ -63,9 +63,7 @@ describe('失败分类', () => {
   });
 
   it('上游故障 → 携带的原因码 + 可重试', () => {
-    const classification = classifySupervisionFailure(
-      new SupervisionUpstreamException(SupervisionFailureCode.RATE_LIMITED, 'HTTP 429'),
-    );
+    const classification = classifySupervisionFailure(new SupervisionUpstreamException(SupervisionFailureCode.RATE_LIMITED, 'HTTP 429'));
     expect(classification.failureCode).toBe(SupervisionFailureCode.RATE_LIMITED);
     expect(classification.permanent).toBe(false);
   });
@@ -97,7 +95,7 @@ describe('失败分类', () => {
   it('非异常值 (字符串 / null) 也不炸', () => {
     expect(classifySupervisionFailure('boom').permanent).toBe(false);
     expect(classifySupervisionFailure(null).permanent).toBe(false);
-    expect(classifySupervisionFailure(undefined).permanent).toBe(false);
+    expect(classifySupervisionFailure().permanent).toBe(false);
   });
 });
 
@@ -108,8 +106,6 @@ describe('isPermanentSupervisionFailure (兼容旧口径)', () => {
   });
 
   it('上游故障 → false (BullMQ 退避重试有意义)', () => {
-    expect(
-      isPermanentSupervisionFailure(new SupervisionUpstreamException(SupervisionFailureCode.TIMEOUT, 'x')),
-    ).toBe(false);
+    expect(isPermanentSupervisionFailure(new SupervisionUpstreamException(SupervisionFailureCode.TIMEOUT, 'x'))).toBe(false);
   });
 });

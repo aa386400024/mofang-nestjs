@@ -91,9 +91,7 @@ describe('复盘报告状态归一 · 主报告行', () => {
 
 describe('复盘报告状态归一 · 空局 (no_content)', () => {
   it('已结束 + 素材不足 → no_content (不再走陈旧兜底, 也不转圈)', () => {
-    const state = resolveSessionReportState(
-      buildInput({ material: EMPTY_MATERIAL, endedAtMs: NOW - TIMEOUT_MS - 1000 }),
-    );
+    const state = resolveSessionReportState(buildInput({ material: EMPTY_MATERIAL, endedAtMs: NOW - TIMEOUT_MS - 1000 }));
     expect(state.status).toBe('no_content');
     expect(state.overallScore).toBeNull();
     expect(state.retryable).toBe(false);
@@ -114,9 +112,7 @@ describe('复盘报告状态归一 · 空局 (no_content)', () => {
 
 describe('复盘报告状态归一 · 4 流派反馈 (单次训练的唯一报告来源)', () => {
   it('反馈成功 → completed (分数取反馈分)', () => {
-    const state = resolveSessionReportState(
-      buildInput({ schoolFeedback: { status: 'completed', overallScore: 76, failureCode: null } }),
-    );
+    const state = resolveSessionReportState(buildInput({ schoolFeedback: { status: 'completed', overallScore: 76, failureCode: null } }));
     expect(state.status).toBe('completed');
     expect(state.overallScore).toBe(76);
   });
@@ -230,9 +226,7 @@ describe('复盘报告状态归一 · 陈旧 pending 兜底', () => {
   });
 
   it('列表侧关闭墙钟兜底 (列表是快照) → 同样是"已结束很久"也只判 pending', () => {
-    const state = resolveSessionReportState(
-      buildInput({ endedAtMs: NOW - TIMEOUT_MS - 1000, applyStaleTimeout: false }),
-    );
+    const state = resolveSessionReportState(buildInput({ endedAtMs: NOW - TIMEOUT_MS - 1000, applyStaleTimeout: false }));
     expect(state.status).toBe('pending');
   });
 });

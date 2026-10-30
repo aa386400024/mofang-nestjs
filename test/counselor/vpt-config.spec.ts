@@ -32,7 +32,7 @@ describe('自述风险等级 → 展示标签', () => {
   });
 
   it('风险等级缺失 → 空数组 (不编造标签)', () => {
-    expect(riskTagsForSelfReportedRisk(undefined)).toEqual([]);
+    expect(riskTagsForSelfReportedRisk()).toEqual([]);
   });
 
   it('返回的是**拷贝** (改返回值不影响映射表)', () => {

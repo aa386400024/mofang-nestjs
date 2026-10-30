@@ -22,8 +22,15 @@
 //   时间戳: 2026-10-28 GMT+8
 
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import path from 'node:path';
 
+import { buildRenderSpec } from '../../src/engine-adapters/rendering/spec-assembler';
+import {
+  DEFAULT_TURN_FALLBACK_UTTERANCE,
+  TurnRenderOrchestrator,
+  buildVisitorMessages,
+  type TurnSessionContext,
+} from '../../src/engine-adapters/rendering/turn-render-orchestrator';
 import {
   EngineCoreError,
   EngineErrorCode,
@@ -46,13 +53,6 @@ import {
   type RenderSpec,
   type RenderTokenBudget,
 } from '../../src/engine-core';
-import { buildRenderSpec } from '../../src/engine-adapters/rendering/spec-assembler';
-import {
-  DEFAULT_TURN_FALLBACK_UTTERANCE,
-  TurnRenderOrchestrator,
-  buildVisitorMessages,
-  type TurnSessionContext,
-} from '../../src/engine-adapters/rendering/turn-render-orchestrator';
 
 const HANDLE_ID = 'handle-1';
 const CLOCK = 1_700_000_000_000;
@@ -116,9 +116,7 @@ class StubRenderer implements RenderPort {
   readonly specs: RenderSpec[] = [];
 
   constructor(
-    private readonly behavior:
-      | { ok: true; text: string; fallbackUsed?: boolean; providerHint?: string }
-      | { ok: false; error: Error },
+    private readonly behavior: { ok: true; text: string; fallbackUsed?: boolean; providerHint?: string } | { ok: false; error: Error },
   ) {}
 
   async render(spec: RenderSpec): Promise<RenderResult> {
@@ -229,7 +227,7 @@ describe('WP7 · 决策→说话闭环', () => {
       expect(spec.recentTurns).toEqual(fitContextToBudget(longTurns, 100).turns);
       expect(spec.recentTurns.length).toBeLessThan(longTurns.length);
       // 最新一轮永远保留 (对话新近性最重要).
-      expect(spec.recentTurns[spec.recentTurns.length - 1]?.text).toBe(longTurns[longTurns.length - 1]?.text);
+      expect(spec.recentTurns.at(-1)?.text).toBe(longTurns.at(-1)?.text);
     });
   });
 
@@ -340,7 +338,7 @@ describe('WP7 · 决策→说话闭环', () => {
     });
 
     it('渲染结果为空串 → 同样降级为兜底句', async () => {
-      const renderer = new StubRenderer({ ok: true, text: '   ' });
+      const renderer = new StubRenderer({ ok: true, text: ' '.repeat(3) });
       const { orchestrator } = buildOrchestrator({ renderer });
 
       const result = await orchestrator.turn(HANDLE_ID, { userText: USER_TEXT });
@@ -398,11 +396,11 @@ describe('WP7 · 决策→说话闭环', () => {
 
   describe('⑧ 零回归', () => {
     it('门面/组装器零框架与网络依赖 (import 面扫描)', () => {
-      const root = join(__dirname, '../../src/engine-adapters/rendering');
+      const root = path.join(__dirname, '../../src/engine-adapters/rendering');
       const forbidden = /@nestjs|typeorm|\bfetch\b|axios/;
 
       for (const file of ['turn-render-orchestrator.ts', 'spec-assembler.ts']) {
-        const source = readFileSync(join(root, file), 'utf8');
+        const source = readFileSync(path.join(root, file), 'utf8');
         const specifiers = [...source.matchAll(/(?:from\s+|require\(\s*)['"]([^'"]+)['"]/g)].map((match) => match[1] ?? '');
         expect(specifiers.filter((specifier) => forbidden.test(specifier))).toEqual([]);
       }

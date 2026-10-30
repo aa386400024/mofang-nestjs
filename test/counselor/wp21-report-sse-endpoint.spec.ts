@@ -16,14 +16,14 @@
 import { NotFoundException, type ExecutionContext, type INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
-import type { Server } from 'http';
 import { LoggerErrorInterceptor } from 'nestjs-pino';
+import type { Server } from 'node:http';
 import supertest from 'supertest';
 
 import { CounselorSupervisionController } from '../../src/counselor/controllers/supervision.controller';
+import type { SessionReportDto } from '../../src/counselor/dto/supervision.dto';
 import { SessionType } from '../../src/counselor/enums/session-type.enum';
 import { TrainingSessionStatus } from '../../src/counselor/enums/training-session-status.enum';
-import type { SessionReportDto } from '../../src/counselor/dto/supervision.dto';
 import { SupervisionReportGuard } from '../../src/counselor/guards/supervision-report.guard';
 import { SupervisionReportStreamService } from '../../src/counselor/providers/supervision-report-stream.service';
 import { SupervisionService, type SessionReportContext } from '../../src/counselor/providers/supervision.service';
@@ -76,7 +76,7 @@ function fakeReport(status: 'completed' | 'pending'): SessionReportDto {
     endedAt: null,
     turnCount: 3,
     createdAt: null,
-  } as unknown as SessionReportDto;
+  };
 }
 
 /** SupervisionService 替身 (只实现归属校验 / 报告装载 / 拼 DTO 三件事). */

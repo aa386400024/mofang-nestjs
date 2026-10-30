@@ -1,6 +1,6 @@
-import { vi } from 'vitest';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { vi } from 'vitest';
 
 import { GoodStateDiaryService } from './good-state-diary.service';
 import { BizCode } from '../../common/exceptions/biz-code.enum';
@@ -380,4 +380,3 @@ describe('GoodStateDiaryService', () => {
     });
   });
 });
-

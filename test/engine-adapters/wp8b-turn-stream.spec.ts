@@ -18,6 +18,8 @@
 //   验证: npx jest test/engine-adapters/wp8b-turn-stream.spec.ts
 //   时间戳: 2026-10-29 GMT+8
 
+import type { StreamRenderOutcome, StreamingRenderPort } from '../../src/engine-adapters/rendering/streaming-render.port';
+import { TurnRenderOrchestrator, type TurnSessionContext } from '../../src/engine-adapters/rendering/turn-render-orchestrator';
 import {
   createEmptyBdiSnapshot,
   type EngineSessionHandle,
@@ -32,8 +34,6 @@ import {
   type RenderResult,
   type RenderSpec,
 } from '../../src/engine-core';
-import type { StreamRenderOutcome, StreamingRenderPort } from '../../src/engine-adapters/rendering/streaming-render.port';
-import { TurnRenderOrchestrator, type TurnSessionContext } from '../../src/engine-adapters/rendering/turn-render-orchestrator';
 
 const HANDLE_ID = 'handle-1';
 const TENANT = 'tenant-1';
@@ -170,11 +170,15 @@ describe('WP8-B · 门面流式出口 (turnStream)', () => {
       const { orchestrator, session } = buildOrchestrator({ renderer });
 
       const deltas: string[] = [];
-      const result = await orchestrator.turnStream(HANDLE_ID, { userText: '最近睡得怎么样？' }, {
-        onDelta: (delta) => {
-          deltas.push(delta);
+      const result = await orchestrator.turnStream(
+        HANDLE_ID,
+        { userText: '最近睡得怎么样？' },
+        {
+          onDelta: (delta) => {
+            deltas.push(delta);
+          },
         },
-      });
+      );
 
       expect(session.turnCalls).toHaveLength(1);
       expect(session.turnCalls[0]?.input.userText).toBe('最近睡得怎么样？');
@@ -187,7 +191,7 @@ describe('WP8-B · 门面流式出口 (turnStream)', () => {
       const renderer = new StubStreamingRenderer({ text: '有点累。' });
       const { orchestrator, memories } = buildOrchestrator({ renderer });
 
-      await orchestrator.turnStream(HANDLE_ID, { userText: '最近睡得怎么样？' }, { onDelta: () => undefined });
+      await orchestrator.turnStream(HANDLE_ID, { userText: '最近睡得怎么样？' }, { onDelta: () => {} });
 
       expect(memories.remembered).toHaveLength(1);
       expect(memories.remembered[0]?.content).toBe('有点累。');
@@ -199,7 +203,7 @@ describe('WP8-B · 门面流式出口 (turnStream)', () => {
       const renderer = new StubStreamingRenderer({ text: '我先缓一下。', degraded: true, providerHint: 'degraded' });
       const { orchestrator, memories } = buildOrchestrator({ renderer });
 
-      const result = await orchestrator.turnStream(HANDLE_ID, { userText: '最近睡得怎么样？' }, { onDelta: () => undefined });
+      const result = await orchestrator.turnStream(HANDLE_ID, { userText: '最近睡得怎么样？' }, { onDelta: () => {} });
 
       expect(result.render.fallbackUsed).toBe(true);
       expect(result.render.providerHint).toBe('degraded');
@@ -210,7 +214,7 @@ describe('WP8-B · 门面流式出口 (turnStream)', () => {
       const renderer = new StubStreamingRenderer({ error: new Error('渲染炸了') });
       const { orchestrator, memories } = buildOrchestrator({ renderer });
 
-      const result = await orchestrator.turnStream(HANDLE_ID, { userText: '最近睡得怎么样？' }, { onDelta: () => undefined });
+      const result = await orchestrator.turnStream(HANDLE_ID, { userText: '最近睡得怎么样？' }, { onDelta: () => {} });
 
       expect(result.reply).toBe('……我先缓一下，我们接着说。');
       expect(result.render.fallbackUsed).toBe(true);
@@ -224,7 +228,7 @@ describe('WP8-B · 门面流式出口 (turnStream)', () => {
       const { orchestrator, memories } = buildOrchestrator({ renderer });
 
       await orchestrator.turn(HANDLE_ID, { userText: '问题一' });
-      await orchestrator.turnStream(HANDLE_ID, { userText: '问题二' }, { onDelta: () => undefined });
+      await orchestrator.turnStream(HANDLE_ID, { userText: '问题二' }, { onDelta: () => {} });
 
       // 两轮 → 两条来访半边记忆 (每轮一条), 不重复写.
       expect(memories.remembered).toHaveLength(2);
@@ -243,7 +247,7 @@ describe('WP8-B · 门面流式出口 (turnStream)', () => {
       const renderer = new StubStreamingRenderer({ text: '一|二|三' });
       const { orchestrator, memories } = buildOrchestrator({ renderer });
 
-      await orchestrator.turnStream(HANDLE_ID, { userText: '问题' }, { onDelta: () => undefined });
+      await orchestrator.turnStream(HANDLE_ID, { userText: '问题' }, { onDelta: () => {} });
 
       expect(memories.remembered).toHaveLength(1);
       expect(memories.remembered[0]?.content).toBe('一二三');
@@ -256,11 +260,15 @@ describe('WP8-B · 门面流式出口 (turnStream)', () => {
       const { orchestrator } = buildOrchestrator({ renderer });
 
       const deltas: string[] = [];
-      const result = await orchestrator.turnStream(HANDLE_ID, { userText: '最近睡得怎么样？' }, {
-        onDelta: (delta) => {
-          deltas.push(delta);
+      const result = await orchestrator.turnStream(
+        HANDLE_ID,
+        { userText: '最近睡得怎么样？' },
+        {
+          onDelta: (delta) => {
+            deltas.push(delta);
+          },
         },
-      });
+      );
 
       expect(deltas.length).toBeGreaterThan(0);
       expect(deltas.join('')).toBe(result.reply);

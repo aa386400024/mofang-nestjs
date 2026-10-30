@@ -345,4 +345,3 @@ describe('WP2 · B 层 OpenAI 兼容 embedding 适配器', () => {
     await expect(embedder.embed('失眠')).resolves.toEqual([]);
   });
 });
-

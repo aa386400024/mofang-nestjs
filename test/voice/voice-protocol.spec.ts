@@ -22,9 +22,9 @@
 //     3. 故意把 resolveVoicePreset 的 styleUnmapped 分支删掉 → "映射不上回退 mixed"用例变红
 //
 //   时间戳: 2026-10-23
-import { splitSentences } from '../../src/voice/tts/tts-sentence-splitter';
 import { mapTtsUpstreamError } from '../../src/voice/tts/tts-error.mapper';
 import { buildTtsBidiUrl } from '../../src/voice/tts/tts-protocol.config';
+import { splitSentences } from '../../src/voice/tts/tts-sentence-splitter';
 import { parseVoiceHandshake, resolveVoicePreset } from '../../src/voice/voice-handshake';
 import type { VoiceTemplateSummary } from '../../src/voice/voice-session.types';
 
@@ -68,7 +68,7 @@ describe('TTS 切句 · 官方攒句标点集一致性', () => {
   });
 
   it('纯空白不成句 (官方会静默丢弃, 本端也不必单独成句)', () => {
-    const result = splitSentences('   ', 100);
+    const result = splitSentences(' '.repeat(3), 100);
 
     expect(result.sentences).toEqual([]);
   });

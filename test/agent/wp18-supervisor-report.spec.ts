@@ -12,11 +12,11 @@
 //   验证: npx jest test/agent/wp18-supervisor-report.spec.ts
 //   时间戳: 2026-10-29 GMT+8
 
-import type { LlmStreamChunk, LlmStreamOptions } from '../../src/agent/llm/llm.types';
 import type { LlmService } from '../../src/agent/llm/llm.service';
-import { SupervisorService } from '../../src/agent/supervisor/supervisor.service';
-import type { SupervisorLlmProfile } from '../../src/agent/supervisor/supervisor-llm.config';
+import type { LlmStreamChunk, LlmStreamOptions } from '../../src/agent/llm/llm.types';
 import type { SupervisionReportRepository } from '../../src/agent/supervisor/domain/repositories/supervision-report.repository';
+import type { SupervisorLlmProfile } from '../../src/agent/supervisor/supervisor-llm.config';
+import { SupervisorService } from '../../src/agent/supervisor/supervisor.service';
 import type { RunReportInput, SupervisionReportRow } from '../../src/agent/supervisor/supervisor.types';
 
 /** 一份合法的督导报告 JSON (字段与 `validateReportShape` 的强约束 1:1). */
@@ -91,7 +91,13 @@ describe('WP18 · 督导主报告生成链路', () => {
       const saved: SupervisionReportRow[] = [];
       const profile: SupervisorLlmProfile = { reasoningEffort: 'high', maxCompletionTokens: 8192, timeoutMs: 120_000 };
       const service = new SupervisorService(
-        stubLlm([{ type: 'content', content: JSON.stringify(VALID_REPORT) }, { type: 'done', usage: USAGE }], captured),
+        stubLlm(
+          [
+            { type: 'content', content: JSON.stringify(VALID_REPORT) },
+            { type: 'done', usage: USAGE },
+          ],
+          captured,
+        ),
         stubRepo(saved),
         profile,
       );
@@ -108,7 +114,13 @@ describe('WP18 · 督导主报告生成链路', () => {
       const captured: LlmStreamOptions[] = [];
       const saved: SupervisionReportRow[] = [];
       const service = new SupervisorService(
-        stubLlm([{ type: 'content', content: JSON.stringify(VALID_REPORT) }, { type: 'done', usage: USAGE }], captured),
+        stubLlm(
+          [
+            { type: 'content', content: JSON.stringify(VALID_REPORT) },
+            { type: 'done', usage: USAGE },
+          ],
+          captured,
+        ),
         stubRepo(saved),
       );
 
@@ -121,7 +133,13 @@ describe('WP18 · 督导主报告生成链路', () => {
       const captured: LlmStreamOptions[] = [];
       const saved: SupervisionReportRow[] = [];
       const service = new SupervisorService(
-        stubLlm([{ type: 'content', content: JSON.stringify(VALID_REPORT) }, { type: 'done', usage: USAGE }], captured),
+        stubLlm(
+          [
+            { type: 'content', content: JSON.stringify(VALID_REPORT) },
+            { type: 'done', usage: USAGE },
+          ],
+          captured,
+        ),
         stubRepo(saved),
       );
 
@@ -138,7 +156,10 @@ describe('WP18 · 督导主报告生成链路', () => {
       const saved: SupervisionReportRow[] = [];
       const service = new SupervisorService(
         stubLlm(
-          [{ type: 'content', content: '```json\n' + JSON.stringify(VALID_REPORT) + '\n```' }, { type: 'done', usage: USAGE }],
+          [
+            { type: 'content', content: '```json\n' + JSON.stringify(VALID_REPORT) + '\n```' },
+            { type: 'done', usage: USAGE },
+          ],
           captured,
         ),
         stubRepo(saved),
@@ -157,7 +178,10 @@ describe('WP18 · 督导主报告生成链路', () => {
       const saved: SupervisionReportRow[] = [];
       const service = new SupervisorService(
         stubLlm(
-          [{ type: 'content', content: '以下是督导报告: ' + JSON.stringify(VALID_REPORT) + ' 以上为本次分析.' }, { type: 'done', usage: USAGE }],
+          [
+            { type: 'content', content: '以下是督导报告: ' + JSON.stringify(VALID_REPORT) + ' 以上为本次分析.' },
+            { type: 'done', usage: USAGE },
+          ],
           captured,
         ),
         stubRepo(saved),
@@ -174,7 +198,10 @@ describe('WP18 · 督导主报告生成链路', () => {
       const saved: SupervisionReportRow[] = [];
       const service = new SupervisorService(
         stubLlm(
-          [{ type: 'content', content: '<think>先看看维度…</think>' + JSON.stringify(VALID_REPORT) }, { type: 'done', usage: USAGE }],
+          [
+            { type: 'content', content: '<think>先看看维度…</think>' + JSON.stringify(VALID_REPORT) },
+            { type: 'done', usage: USAGE },
+          ],
           captured,
         ),
         stubRepo(saved),
@@ -190,10 +217,7 @@ describe('WP18 · 督导主报告生成链路', () => {
     it('上游按长度截断 → 失败原因标 truncated_by_length', async () => {
       const captured: LlmStreamOptions[] = [];
       const saved: SupervisionReportRow[] = [];
-      const service = new SupervisorService(
-        stubLlm([{ type: 'done', usage: USAGE, finishReason: 'length' }], captured),
-        stubRepo(saved),
-      );
+      const service = new SupervisorService(stubLlm([{ type: 'done', usage: USAGE, finishReason: 'length' }], captured), stubRepo(saved));
 
       const row = await service.runReport(input());
 
@@ -205,10 +229,7 @@ describe('WP18 · 督导主报告生成链路', () => {
     it('正文为空但无截断信号 → 失败原因标 empty_response (思考吃光预算的典型症状)', async () => {
       const captured: LlmStreamOptions[] = [];
       const saved: SupervisionReportRow[] = [];
-      const service = new SupervisorService(
-        stubLlm([{ type: 'done', usage: USAGE }], captured),
-        stubRepo(saved),
-      );
+      const service = new SupervisorService(stubLlm([{ type: 'done', usage: USAGE }], captured), stubRepo(saved));
 
       const row = await service.runReport(input());
 
@@ -220,7 +241,13 @@ describe('WP18 · 督导主报告生成链路', () => {
       const captured: LlmStreamOptions[] = [];
       const saved: SupervisionReportRow[] = [];
       const service = new SupervisorService(
-        stubLlm([{ type: 'content', content: '抱歉，我无法生成该报告。' }, { type: 'done', usage: USAGE }], captured),
+        stubLlm(
+          [
+            { type: 'content', content: '抱歉，我无法生成该报告。' },
+            { type: 'done', usage: USAGE },
+          ],
+          captured,
+        ),
         stubRepo(saved),
       );
 
@@ -233,10 +260,7 @@ describe('WP18 · 督导主报告生成链路', () => {
     it('失败行不编造评分 (总分 0 / 六维全 0 是占位, 不是"评出来的 0 分")', async () => {
       const captured: LlmStreamOptions[] = [];
       const saved: SupervisionReportRow[] = [];
-      const service = new SupervisorService(
-        stubLlm([{ type: 'done', usage: USAGE, finishReason: 'length' }], captured),
-        stubRepo(saved),
-      );
+      const service = new SupervisorService(stubLlm([{ type: 'done', usage: USAGE, finishReason: 'length' }], captured), stubRepo(saved));
 
       const row = await service.runReport(input());
 
@@ -251,7 +275,13 @@ describe('WP18 · 督导主报告生成链路', () => {
       const captured: LlmStreamOptions[] = [];
       const saved: SupervisionReportRow[] = [];
       const service = new SupervisorService(
-        stubLlm([{ type: 'content', content: '{"overallScore": 70}' }, { type: 'done', usage: USAGE }], captured),
+        stubLlm(
+          [
+            { type: 'content', content: '{"overallScore": 70}' },
+            { type: 'done', usage: USAGE },
+          ],
+          captured,
+        ),
         stubRepo(saved),
       );
 
@@ -265,7 +295,10 @@ describe('WP18 · 督导主报告生成链路', () => {
       const saved: SupervisionReportRow[] = [];
       const service = new SupervisorService(
         stubLlm(
-          [{ type: 'content', content: JSON.stringify({ ...VALID_REPORT, annotations: [] }) }, { type: 'done', usage: USAGE }],
+          [
+            { type: 'content', content: JSON.stringify({ ...VALID_REPORT, annotations: [] }) },
+            { type: 'done', usage: USAGE },
+          ],
           captured,
         ),
         stubRepo(saved),

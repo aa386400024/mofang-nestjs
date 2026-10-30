@@ -1,4 +1,3 @@
-import { vi } from 'vitest';
 // V2026-10-28 治本 (WP8-A · B 层 · 引擎装配层单测):
 //   覆盖任务单 §8 单测清单 1-9:
 //     1. 调用出口透传 → RouterChatCaller 把 req / providerId 原样交给 router.chat, 响应原样返回
@@ -28,11 +27,30 @@ import { vi } from 'vitest';
 //   验证: npx jest test/engine-adapters/wp8-wiring.spec.ts
 //   时间戳: 2026-10-28 GMT+8
 
-import { readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
-
 import { HttpException } from '@nestjs/common';
+import { readFileSync, readdirSync } from 'node:fs';
+import path from 'node:path';
+import { vi } from 'vitest';
 
+import { LlmRenderAdapter, createVisitorOutputGuard, type ChatCaller } from '../../src/engine-adapters/rendering/llm-render.adapter';
+import {
+  DEFAULT_RENDER_COOLDOWN_BASE_MS,
+  DEFAULT_RENDER_COOLDOWN_MAX_MS,
+  DEFAULT_RENDER_FAILURE_THRESHOLD,
+  DEFAULT_RENDER_TIMEOUT_MS,
+  type RenderAdapterConfig,
+} from '../../src/engine-adapters/rendering/render-adapter.config';
+import { buildVisitorMessages, type TurnSessionContext } from '../../src/engine-adapters/rendering/turn-render-orchestrator';
+import { EngineSessionRegistry, EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service';
+import { EngineWiringController } from '../../src/engine-adapters/wiring/engine-wiring.controller';
+import {
+  createEngineMemoryStore,
+  createEngineOrchestrator,
+  createEngineSessionPort,
+} from '../../src/engine-adapters/wiring/engine.providers';
+import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from '../../src/engine-adapters/wiring/engine.tokens';
+import { RenderConfigFactory, buildEngineRenderDeps, buildEngineRenderPort } from '../../src/engine-adapters/wiring/render-config.factory';
+import { RouterChatCaller } from '../../src/engine-adapters/wiring/router-chat-caller';
 import {
   EngineCoreError,
   EngineErrorCode,
@@ -57,26 +75,6 @@ import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-m
 import { AIProviderId, LLMTier } from '../../src/llm/common/enums/llm.enums';
 import type { ChatCompletionRequest, ChatCompletionResponse } from '../../src/llm/common/interfaces/chat-provider.interface';
 import type { LlmRouterService } from '../../src/llm/registry/llm-router.service';
-import { LlmRenderAdapter, createVisitorOutputGuard, type ChatCaller } from '../../src/engine-adapters/rendering/llm-render.adapter';
-import {
-  DEFAULT_RENDER_COOLDOWN_BASE_MS,
-  DEFAULT_RENDER_COOLDOWN_MAX_MS,
-  DEFAULT_RENDER_FAILURE_THRESHOLD,
-  DEFAULT_RENDER_TIMEOUT_MS,
-  type RenderAdapterConfig,
-} from '../../src/engine-adapters/rendering/render-adapter.config';
-import { buildVisitorMessages, type TurnSessionContext } from '../../src/engine-adapters/rendering/turn-render-orchestrator';
-import { createEngineMemoryStore, createEngineOrchestrator, createEngineSessionPort } from '../../src/engine-adapters/wiring/engine.providers';
-import { EngineSessionRegistry, EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service';
-import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from '../../src/engine-adapters/wiring/engine.tokens';
-import {
-  EngineWiringController,
-  type EngineCloseDto,
-  type EngineOpenDto,
-  type EngineTurnDto,
-} from '../../src/engine-adapters/wiring/engine-wiring.controller';
-import { RenderConfigFactory, buildEngineRenderDeps, buildEngineRenderPort } from '../../src/engine-adapters/wiring/render-config.factory';
-import { RouterChatCaller } from '../../src/engine-adapters/wiring/router-chat-caller';
 
 const HANDLE_ID = 'handle-1';
 const TENANT = 'tenant-1';
@@ -196,10 +194,7 @@ class StubRouter {
     private readonly modelForProvider: Readonly<Record<string, string>> = { deepseek: 'deepseek-chat' },
   ) {}
 
-  async chat(
-    req: ChatCompletionRequest,
-    opts: { providerId?: AIProviderId; uid?: string } = {},
-  ): Promise<ChatCompletionResponse> {
+  async chat(req: ChatCompletionRequest, opts: { providerId?: AIProviderId; uid?: string } = {}): Promise<ChatCompletionResponse> {
     this.chatCalls.push({ req, opts });
     return this.response;
   }
@@ -222,11 +217,7 @@ class StubCaller implements ChatCaller {
 }
 
 /** 构造门面服务 (真实 registry + 真实 orchestrator, 只替换端口). */
-function buildService(options: {
-  readonly session?: StubSession;
-  readonly renderer?: StubRenderer;
-  readonly memories?: StubMemoryStore;
-}): {
+function buildService(options: { readonly session?: StubSession; readonly renderer?: StubRenderer; readonly memories?: StubMemoryStore }): {
   readonly service: EngineTurnService;
   readonly registry: EngineSessionRegistry;
   readonly orchestrator: ReturnType<typeof createEngineOrchestrator>;
@@ -422,7 +413,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
       const error = new EngineCoreError(EngineErrorCode.INVALID_INPUT, 'userText 不能为空');
       const { service } = buildService({ session: new StubSession({ error }) });
 
-      await expect(service.turn(HANDLE_ID, { userText: '   ' })).rejects.toBe(error);
+      await expect(service.turn(HANDLE_ID, { userText: ' '.repeat(3) })).rejects.toBe(error);
     });
   });
 
@@ -439,7 +430,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
     });
 
     it('渲染返回空文本: 同样降级为兜底句', async () => {
-      const { service } = buildService({ renderer: new StubRenderer({ text: '   ' }) });
+      const { service } = buildService({ renderer: new StubRenderer({ text: ' '.repeat(3) }) });
 
       const result = await service.turn(HANDLE_ID, { userText: USER_TEXT });
 
@@ -517,9 +508,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
     it('显式配置的模型名优先于 router 默认', () => {
       const router = new StubRouter(RESPONSE, { deepseek: 'deepseek-chat' });
       const factory = new RenderConfigFactory(
-        stubConfig({ ENGINE_RENDER_CHAT_MODEL: 'deepseek-reasoner' }) as unknown as ConstructorParameters<
-          typeof RenderConfigFactory
-        >[0],
+        stubConfig({ ENGINE_RENDER_CHAT_MODEL: 'deepseek-reasoner' }) as unknown as ConstructorParameters<typeof RenderConfigFactory>[0],
         router as unknown as LlmRouterService,
       );
 
@@ -548,20 +537,18 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
   // ── §8-9 零真实依赖 ──────────────────────────────────────────────
   describe('§8-9 不出现真实向量库 / 真实 LLM 连接依赖', () => {
     it('装配层不依赖向量库 SDK / 厂商 SDK / ORM (按包名判定, 相对路径不算)', () => {
-      const dir = join(__dirname, '..', '..', 'src', 'engine-adapters', 'wiring');
+      const dir = path.join(__dirname, '..', '..', 'src', 'engine-adapters', 'wiring');
       const forbiddenPackages = ['@qdrant/js-client-rest', '@nestjs/typeorm', 'typeorm', 'axios', 'node-fetch', 'openai'];
       const files = readdirSync(dir).filter((name) => name.endsWith('.ts'));
 
       expect(files.length).toBeGreaterThan(0);
       for (const file of files) {
-        const source = readFileSync(join(dir, file), 'utf8');
+        const source = readFileSync(path.join(dir, file), 'utf8');
         const specifiers = [...source.matchAll(/from\s+'([^']+)'/g)].map((match) => match[1] ?? '');
         for (const specifier of specifiers) {
           // 相对路径是仓库内模块 (复用既有实现), 不算第三方依赖.
           if (specifier.startsWith('.')) continue;
-          const pkg = specifier.startsWith('@')
-            ? specifier.split('/').slice(0, 2).join('/')
-            : (specifier.split('/')[0] ?? '');
+          const pkg = specifier.startsWith('@') ? specifier.split('/').slice(0, 2).join('/') : (specifier.split('/', 1)[0] ?? '');
           expect(forbiddenPackages).not.toContain(pkg);
         }
       }
@@ -579,9 +566,9 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
       // V2026-10-30 (WP12): 窄面扩到 4 个方法 (加 setPayload / scroll) —— 桩必须跟上,
       //   否则"配了向量库"这一条会在**类型**上就挂掉 (而不是测装配逻辑).
       const qdrant = {
-        upsert: async () => undefined,
+        upsert: async () => {},
         search: async () => [],
-        setPayload: async () => undefined,
+        setPayload: async () => {},
         scroll: async () => [],
       };
       const embedder = { embed: async () => [] };
@@ -640,7 +627,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
         const service = stubService(new EngineCoreError(item.code, '内核错误'));
         const controller = new EngineWiringController(service as unknown as EngineTurnService);
         try {
-          controller.open(TENANT, { sessionId: SESSION, visitorId: VISITOR } as EngineOpenDto);
+          controller.open(TENANT, { sessionId: SESSION, visitorId: VISITOR });
           errors.push(null);
         } catch (error) {
           errors.push(error);
@@ -648,17 +635,17 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
       }
 
       expect(errors).toHaveLength(cases.length);
-      errors.forEach((error, index) => {
+      for (const [index, error] of errors.entries()) {
         expect(error).toBeInstanceOf(HttpException);
         expect((error as HttpException).getStatus()).toBe(cases[index]?.status);
-      });
+      }
     });
 
     it('非内核异常原样上抛 (交给全局异常过滤器兜底)', () => {
       const service = stubService(new Error('未知异常'));
       const controller = new EngineWiringController(service as unknown as EngineTurnService);
 
-      expect(() => controller.open(TENANT, { sessionId: SESSION, visitorId: VISITOR } as EngineOpenDto)).toThrow('未知异常');
+      expect(() => controller.open(TENANT, { sessionId: SESSION, visitorId: VISITOR })).toThrow('未知异常');
     });
 
     it('角色内核形状非法 → 整体丢弃回中性基线 (不让整场会话 500)', () => {
@@ -669,7 +656,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
         sessionId: SESSION,
         visitorId: VISITOR,
         characterProfile: { coreBeliefs: '这不是数组', forbiddenBehaviors: [], sensitiveTopics: [] },
-      } as EngineOpenDto);
+      });
 
       const passed = service.open.mock.calls[0]?.[0] as { characterProfile?: unknown };
       expect(passed.characterProfile).toBeUndefined();
@@ -688,7 +675,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
           sensitiveTopics: ['创伤'],
           attachmentStyle: 'anxious',
         },
-      } as EngineOpenDto);
+      });
 
       const passed = service.open.mock.calls[0]?.[0] as { characterProfile?: { coreBeliefs: unknown[] } };
       expect(passed.characterProfile?.coreBeliefs).toHaveLength(1);
@@ -698,7 +685,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
       const service = stubService();
       const controller = new EngineWiringController(service as unknown as EngineTurnService);
 
-      expect(controller.close({ handleId: HANDLE_ID } as EngineCloseDto)).toEqual({ ok: true });
+      expect(controller.close({ handleId: HANDLE_ID })).toEqual({ ok: true });
       expect(service.close).toHaveBeenCalledWith(HANDLE_ID);
     });
 
@@ -706,7 +693,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
       const service = stubService();
       const controller = new EngineWiringController(service as unknown as EngineTurnService);
 
-      await controller.turn({ handleId: HANDLE_ID, userText: USER_TEXT, traceId: 'trace-1' } as EngineTurnDto);
+      await controller.turn({ handleId: HANDLE_ID, userText: USER_TEXT, traceId: 'trace-1' });
 
       expect(service.turn).toHaveBeenCalledWith(HANDLE_ID, { userText: USER_TEXT, traceId: 'trace-1' });
     });
@@ -721,4 +708,3 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
     });
   });
 });
-

@@ -12,18 +12,15 @@
 //   验证: npx jest test/counselor/wp21-report-stream.spec.ts
 //   时间戳: 2026-10-29 GMT+8
 
-import type { ConfigService } from '@nestjs/config';
 import { NotFoundException, type MessageEvent } from '@nestjs/common';
+import type { ConfigService } from '@nestjs/config';
 import { Observable } from 'rxjs';
 
-import {
-  buildReportStreamTimeoutPayload,
-  decideReportStreamAction,
-} from '../../src/counselor/domain/session-core/report-stream';
+import { buildReportStreamTimeoutPayload, decideReportStreamAction } from '../../src/counselor/domain/session-core/report-stream';
 import type { SessionReportStatus } from '../../src/counselor/domain/session-core/session-core.types';
+import type { SessionReportDto } from '../../src/counselor/dto/supervision.dto';
 import { SessionType } from '../../src/counselor/enums/session-type.enum';
 import { TrainingSessionStatus } from '../../src/counselor/enums/training-session-status.enum';
-import type { SessionReportDto } from '../../src/counselor/dto/supervision.dto';
 import { SupervisionReportStreamService } from '../../src/counselor/providers/supervision-report-stream.service';
 import type { SessionReportContext, SupervisionService } from '../../src/counselor/providers/supervision.service';
 
@@ -74,7 +71,7 @@ function fakeReport(status: SessionReportStatus): SessionReportDto {
     endedAt: null,
     turnCount: 3,
     createdAt: null,
-  } as unknown as SessionReportDto;
+  };
 }
 
 /**
@@ -249,9 +246,7 @@ describe('WP21 · 报告 SSE 推送 service', () => {
     const stub = new StubSupervision();
     stub.statusByBuildCall = ['pending'];
 
-    const result = await collect(
-      await buildService(stub, { intervalMs: 10, timeoutMs: 60 }).streamSessionReport('user-1', 'session-1'),
-    );
+    const result = await collect(await buildService(stub, { intervalMs: 10, timeoutMs: 60 }).streamSessionReport('user-1', 'session-1'));
 
     expect(result.error).toBeNull();
     expect(result.completed).toBe(true);
@@ -292,9 +287,7 @@ describe('WP21 · 报告 SSE 推送 service', () => {
     // 第 2 次装载起失败 (即首次装载成功、进入轮询后开始失败)
     stub.loadFailFromCall = 2;
 
-    const result = await collect(
-      await buildService(stub, { intervalMs: 10, timeoutMs: 60 }).streamSessionReport('user-1', 'session-1'),
-    );
+    const result = await collect(await buildService(stub, { intervalMs: 10, timeoutMs: 60 }).streamSessionReport('user-1', 'session-1'));
 
     // 一直失败 → 一直"继续等" → 到点推 timeout (而不是抛错断流)
     expect(result.error).toBeNull();
@@ -303,4 +296,3 @@ describe('WP21 · 报告 SSE 推送 service', () => {
     expect(result.frames[0]?.data).toEqual({ status: 'timeout' });
   });
 });
-

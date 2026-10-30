@@ -56,10 +56,7 @@ interface ProbeStub {
 }
 
 /** 构造 probe 桩. */
-function probeStub(
-  behavior: 'ok' | 'throw' | 'hang' | 'dirty',
-  overrides: Partial<RiskProbeResult> = {},
-): ProbeStub {
+function probeStub(behavior: 'ok' | 'throw' | 'hang' | 'dirty', overrides: Partial<RiskProbeResult> = {}): ProbeStub {
   const calls: { text: string; side: SafetySide }[] = [];
   const port: RiskProbePort = {
     probe: async (text: string, side: SafetySide): Promise<RiskProbeResult> => {
@@ -160,7 +157,7 @@ describe('WP4 · 伦理安全引擎', () => {
     });
 
     it('全空白文本 → pass, 不抛', () => {
-      expect(evaluateSafety('   ', 'counselor_input').level).toBe('pass');
+      expect(evaluateSafety(' '.repeat(3), 'counselor_input').level).toBe('pass');
     });
 
     it('大小写无关 (统一小写子串匹配)', () => {
@@ -314,12 +311,7 @@ describe('WP4 · 伦理安全引擎', () => {
         'self_harm_behavior',
         'aggression_others',
       ];
-      const warnCategories: VisitorRiskCategory[] = [
-        'passive_ideation',
-        'suicide_exploration',
-        'self_harm_ideation',
-        'aggression_self',
-      ];
+      const warnCategories: VisitorRiskCategory[] = ['passive_ideation', 'suicide_exploration', 'self_harm_ideation', 'aggression_self'];
 
       for (const category of blockCategories) {
         expect(PSYGUARD_LEVEL_MAP[category]).toBe('block');
@@ -361,12 +353,7 @@ describe('WP4 · 伦理安全引擎', () => {
 
   describe('⑩ 事件累计与报告', () => {
     it('多轮 warn/block 累计正确, pass 轮不计数', async () => {
-      const { outputs, harness, handleId } = await runTurns(undefined, [
-        CLEAN_TEXT,
-        '你就是太矫情了',
-        '我保证你能治好',
-        CLEAN_TEXT,
-      ]);
+      const { outputs, harness, handleId } = await runTurns(undefined, [CLEAN_TEXT, '你就是太矫情了', '我保证你能治好', CLEAN_TEXT]);
       void outputs;
 
       const report = harness.session.getSafetyReport(handleId);
@@ -397,7 +384,7 @@ describe('WP4 · 伦理安全引擎', () => {
 
       const first = harness.session.getSafetyReport(handleId);
       const mutable = first.events as unknown as SafetyEvent[];
-      mutable.push({ turnIndex: 99, at: 0, verdict: first.events[0]!.verdict, snippet: 'x' });
+      mutable.push({ turnIndex: 99, at: 0, verdict: first.events[0].verdict, snippet: 'x' });
 
       const second = harness.session.getSafetyReport(handleId);
       expect(second.events).toHaveLength(1);

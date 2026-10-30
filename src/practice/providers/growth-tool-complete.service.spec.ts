@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+
 import { vi } from 'vitest';
 /**
  * V2026-09-14 治本 (Stage C 后端契约): GrowthToolCompleteService 单测.
@@ -68,7 +70,7 @@ describe('V2026-09-14 GrowthToolCompleteService — 单测', () => {
   beforeEach(() => {
     mockDailyTools = {
       getDailyTools: vi.fn().mockResolvedValue(sampleTools),
-    } as unknown as vi.Mocked<GrowthDailyToolsService>;
+    };
 
     service = new GrowthToolCompleteService(mockDailyTools);
   });
@@ -143,4 +145,3 @@ describe('V2026-09-14 GrowthToolCompleteService — 单测', () => {
     });
   });
 });
-

@@ -1,6 +1,4 @@
-import { vi } from 'vitest';
-/* eslint-disable new-cap, prettier/prettier,
-   max-len, import/order, sonarjs/assertions-in-tests, jest/no-disabled-tests, prefer-const */
+/* eslint-disable prettier/prettier */
 
 // V2026-10-15 治本 (VS-4 e2e 收尾 — PrivacyGuard 4 describe + logL3Access spy):
 //   原因: V2026-10-15 5 段治本已建 src/common/privacy/privacy-level.enum.ts (PrivacyLevel
@@ -36,6 +34,7 @@ import { vi } from 'vitest';
 import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
+import { vi } from 'vitest';
 
 import { PrivacyGuard } from '../../src/common/guards/privacy.guard';
 import { PrivacyLevel, PrivacyFailure } from '../../src/common/privacy/privacy-level.enum';
@@ -184,10 +183,11 @@ describe('PrivacyGuard (VS-4 e2e 收尾, V2026-10-15 治本)', () => {
 
   describe('no @RequirePrivacyLevel metadata — 放行 (跟 RolesGuard 同 pattern)', () => {
     it('should return true when no privacy_level metadata set (装饰器未应用)', () => {
-      const { guard } = buildGuard(undefined);
+      const { guard } = buildGuard();
       const ctx = buildMockContext({});
       expect(guard.canActivate(ctx)).toBe(true);
     });
   });
 });
+
 

@@ -23,10 +23,10 @@ import type { ConfigService } from '@nestjs/config';
 
 import type { LlmStream, LlmStreamChunk } from '../../src/agent/llm/llm.types';
 import type { VisitorService } from '../../src/agent/visitor/visitor.service';
-import type { VoiceSessionMeta, VoiceServerMessage } from '../../src/voice/voice.types';
+import type { TtsEventStream, TtsSessionHandle } from '../../src/voice/tts/tts.types';
 import type { VoiceTurnBackend, VoiceTurnBackendTurnOptions } from '../../src/voice/voice-turn-backend.port';
 import { VoiceService } from '../../src/voice/voice.service';
-import type { TtsEventStream, TtsSessionHandle } from '../../src/voice/tts/tts.types';
+import type { VoiceSessionMeta, VoiceServerMessage } from '../../src/voice/voice.types';
 
 /** 会话元数据 (text 模式: 不碰 TTS). */
 const META: VoiceSessionMeta = {
@@ -146,9 +146,7 @@ class FakeTtsHandle implements TtsSessionHandle {
   cancelled = false;
   finished = false;
   disposed = false;
-  readonly events: TtsEventStream = (async function* (): AsyncGenerator<never> {
-    return;
-  })();
+  readonly events: TtsEventStream = (async function* (): AsyncGenerator<never> {})();
 
   sendText = (text: string): void => {
     this.sent.push(text);
@@ -186,8 +184,8 @@ function buildService(options: {
   const visitor = new FakeVisitor();
   const engine = options.engine ?? null;
   const ttsHandle = options.ttsHandle ?? null;
-  const supervisor = { enqueue: async () => true, processSync: async () => undefined };
-  const bridges = { appendTurn: async () => undefined, close: async () => null };
+  const supervisor = { enqueue: async () => true, processSync: async () => {} };
+  const bridges = { appendTurn: async () => {}, close: async () => null };
   const tts = {
     startSession: async () => ttsHandle,
   };
@@ -453,7 +451,7 @@ describe('WP8-B · voice 灰度接入 (开关关 / 开关开 / 失败回落)', (
   describe('B. 窄接口自证 (新旧同构)', () => {
     it('旧 VisitorService 的公开方法形状满足 VoiceTurnBackend', () => {
       // 编译期自证: 这行赋值成立 ⇔ 旧实现可直接当新链路的后端塞进灰度开关.
-      const legacy: VoiceTurnBackend = new FakeVisitor() as unknown as VisitorService;
+      const legacy: VoiceTurnBackend = new FakeVisitor();
       expect(typeof legacy.openSession).toBe('function');
       expect(typeof legacy.streamTurn).toBe('function');
       expect(typeof legacy.closeSession).toBe('function');

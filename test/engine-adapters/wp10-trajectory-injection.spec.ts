@@ -15,27 +15,26 @@
 //   验证: npx jest test/engine-adapters/wp10-trajectory-injection.spec.ts
 //   时间戳: 2026-10-30 GMT+8
 
+import type { ConfigService } from '@nestjs/config';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import type { ConfigService } from '@nestjs/config';
-
-import type { BdiSnapshot, OpenEngineSessionInput, TrajectoryScript } from '../../src/engine-core';
-import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository';
-import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
 import type { VisitorService } from '../../src/agent/visitor/visitor.service';
+import { EngineStreamBackend } from '../../src/engine-adapters/wiring/engine-stream-backend.adapter';
+import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service';
 import {
   ETHICAL_TRAJECTORY_SCRIPT_MAP,
   StaticTrajectoryScriptResolver,
   type TrajectoryScriptResolver,
 } from '../../src/engine-adapters/wiring/trajectory';
-import { EngineStreamBackend } from '../../src/engine-adapters/wiring/engine-stream-backend.adapter';
-import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service';
+import type { BdiSnapshot, OpenEngineSessionInput, TrajectoryScript } from '../../src/engine-core';
+import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository';
+import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
 import { parseVoiceHandshake } from '../../src/voice/voice-handshake';
 import type { VoiceTurnBackend, VoiceTurnBackendOpenOptions } from '../../src/voice/voice-turn-backend.port';
-import type { VoiceSessionMeta } from '../../src/voice/voice.types';
 import { VoiceService } from '../../src/voice/voice.service';
+import type { VoiceSessionMeta } from '../../src/voice/voice.types';
 
 const TENANT = 'tenant-1';
 const VISITOR = 'visitor-1';
@@ -180,9 +179,9 @@ describe('WP10 · 剧本注入链路 (握手 → opts → resolver → engine.op
     const visitor = { openSession: async () => ({ id: 'voice_visitor', name: '来访者', voiceId: '', difficulty: 'L1' }) };
     const service = new VoiceService(
       visitor as unknown as VisitorService,
-      { enqueue: async () => true, processSync: async () => undefined } as never,
+      { enqueue: async () => true, processSync: async () => {} } as never,
       { startSession: async () => null } as never,
-      { appendTurn: async () => undefined, close: async () => null } as never,
+      { appendTurn: async () => {}, close: async () => null } as never,
       stubConfig({ ENGINE_VOICE_ENABLED: 'true' }),
       backend,
     );
@@ -263,7 +262,7 @@ describe('WP10 · 剧本注入链路 (握手 → opts → resolver → engine.op
 
     const input = engine.openCalls[0] ?? {};
     // 现状的入参只有这三个键 —— 不多不少 (没有 trajectory, 也没有角色字段).
-    expect(Object.keys(input).toSorted()).toEqual(['sessionId', 'tenantId', 'visitorId']);
+    expect(Object.keys(input).toSorted((a, b) => a.localeCompare(b))).toEqual(['sessionId', 'tenantId', 'visitorId']);
     expect('trajectory' in input).toBe(false);
     // 没传 scriptId 时连解析器都不该被碰 (不是"查一次再回退").
     expect(resolver.requests).toHaveLength(0);
@@ -312,7 +311,7 @@ describe('WP10 · 剧本注入链路 · 真实内核行为 (轨迹 trace 与可�
       traces.push(output.trajectoryTrace);
       firstSnapshot ??= output.snapshot;
     }
-    return { traces, firstSnapshot: firstSnapshot as BdiSnapshot };
+    return { traces, firstSnapshot: firstSnapshot! };
   }
 
   it('① 每轮出参都带 trajectoryTrace (走到第几幕 / visitedNodeIds / outcome 可见)', async () => {
@@ -322,7 +321,7 @@ describe('WP10 · 剧本注入链路 · 真实内核行为 (轨迹 trace 与可�
     for (const trace of traces) {
       expect(trace).toBeDefined();
     }
-    const last = traces[traces.length - 1] as { visitedNodeIds: readonly string[]; outcome?: string };
+    const last = traces.at(-1) as { visitedNodeIds: readonly string[]; outcome?: string };
     // 四幕全部走过.
     expect(last.visitedNodeIds).toEqual(['confession_free', 'confession_event', 'confession_expand', 'confession_settle']);
     // 咨询师正确应对 (共情 + 边界) → completed.
@@ -354,7 +353,7 @@ describe('WP10 · 剧本注入链路 · 真实内核行为 (轨迹 trace 与可�
     const session = buildKernelSession();
     const handle = session.openSession({ sessionId: 'session-3', tenantId: TENANT, visitorId: VISITOR });
 
-    const output = await session.turn(handle.handleId, { userText: COUNSELOR_SCRIPT[0] as string });
+    const output = await session.turn(handle.handleId, { userText: COUNSELOR_SCRIPT[0] });
 
     expect(output.trajectoryTrace).toBeUndefined();
   });

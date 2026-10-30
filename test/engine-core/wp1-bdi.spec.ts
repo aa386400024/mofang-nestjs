@@ -5,11 +5,7 @@
 //   反依赖污染: 不 import 任何 @nestjs/* / typeorm; 只用内核纯 TS + 内存实现.
 //   验证: npx jest test/engine-core/wp1-bdi.spec.ts
 
-import {
-  createEmptyBdiSnapshot,
-  type CharacterProfile,
-  type EngineTurnOutput,
-} from '../../src/engine-core';
+import { createEmptyBdiSnapshot, type CharacterProfile, type EngineTurnOutput } from '../../src/engine-core';
 import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository';
 import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session';
 import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
@@ -18,7 +14,7 @@ import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-m
 function createHarness() {
   const bdiStates = new InMemoryBdiStateRepository();
   let idSeq = 0;
-  let clock = 1_700_000_000_000;
+  const clock = 1_700_000_000_000;
   const now = (): number => clock;
   const memories = new InMemoryMemoryStore({ now });
   const session = new InMemoryEngineSession({
@@ -36,11 +32,7 @@ function createHarness() {
 const TENANT = 'default';
 
 /** 跑一轮并返回出参 (便捷封装). */
-async function turn(
-  session: InMemoryEngineSession,
-  handleId: string,
-  userText: string,
-): Promise<EngineTurnOutput> {
+async function turn(session: InMemoryEngineSession, handleId: string, userText: string): Promise<EngineTurnOutput> {
   return session.turn(handleId, { userText });
 }
 

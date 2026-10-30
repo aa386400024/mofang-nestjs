@@ -11,8 +11,8 @@
 //   验证: npx jest test/engine-adapters/wp9c-risk-probe.spec.ts
 //   时间戳: 2026-10-29 GMT+8
 
-import { assessSafety } from '../../src/engine-core';
 import { LocalCrisisProbe, detectCrisisCategories } from '../../src/engine-adapters/wiring/risk/local-crisis.probe';
+import { assessSafety } from '../../src/engine-core';
 
 describe('WP9-C · 本地危机探测器 (内核 RiskProbePort 扩展点)', () => {
   const probe = new LocalCrisisProbe();

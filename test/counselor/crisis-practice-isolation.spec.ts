@@ -10,11 +10,8 @@
 //   验证: npx jest test/counselor/crisis-practice-isolation.spec.ts 全绿
 //   时间戳: 2026-10-27
 import { buildCrisisPracticeMeta } from '../../src/counselor/config/crisis-practice.config';
+import { VISITOR_POOL_TEMPLATE_SEEDS, validateVisitorPoolTemplateSeeds } from '../../src/counselor/config/visitor-pool-seed';
 import { VISITOR_POOL_EXCLUDED_CONTENT_KEYWORDS } from '../../src/counselor/config/visitor-pool.config';
-import {
-  VISITOR_POOL_TEMPLATE_SEEDS,
-  validateVisitorPoolTemplateSeeds,
-} from '../../src/counselor/config/visitor-pool-seed';
 
 /** 把危机元数据摊平成一段可检索文本. */
 function flattenMeta(): string {
@@ -31,21 +28,32 @@ describe('危机元数据 · 物理隔离 (任务单 B3)', () => {
 
   it('② 不含任何号码形态 (3 位以上连续数字)', () => {
     const text = flattenMeta();
-    expect(text.match(/\d{3,}/)).toBeNull();
+    expect(/\d{3,}/.exec(text)).toBeNull();
   });
 
   it('③ 不含人物剧本字段 (只出分级/信号类别/话术模板/边界声明)', () => {
     const meta = buildCrisisPracticeMeta();
-    expect(Object.keys(meta).toSorted()).toEqual(['boundaryNotice', 'referralScripts', 'riskLevels', 'signalCategories']);
+    expect(Object.keys(meta).toSorted((a, b) => a.localeCompare(b))).toEqual([
+      'boundaryNotice',
+      'referralScripts',
+      'riskLevels',
+      'signalCategories',
+    ]);
     // 逐项再查一遍: 任何一项里都不该出现"剧本/人物档案"这类内容层字段.
     for (const level of meta.riskLevels) {
-      expect(Object.keys(level).toSorted()).toEqual(['label', 'level', 'signalCategoryIds', 'teachingNote']);
+      expect(Object.keys(level).toSorted((a, b) => a.localeCompare(b))).toEqual(['label', 'level', 'signalCategoryIds', 'teachingNote']);
     }
     for (const category of meta.signalCategories) {
-      expect(Object.keys(category).toSorted()).toEqual(['description', 'examples', 'id', 'label']);
+      expect(Object.keys(category).toSorted((a, b) => a.localeCompare(b))).toEqual(['description', 'examples', 'id', 'label']);
     }
     for (const script of meta.referralScripts) {
-      expect(Object.keys(script).toSorted()).toEqual(['id', 'levels', 'openQuestions', 'resourceGuidance', 'title']);
+      expect(Object.keys(script).toSorted((a, b) => a.localeCompare(b))).toEqual([
+        'id',
+        'levels',
+        'openQuestions',
+        'resourceGuidance',
+        'title',
+      ]);
     }
   });
 
@@ -55,10 +63,7 @@ describe('危机元数据 · 物理隔离 (任务单 B3)', () => {
 
   it('⑤ 普通池 seed 里不含任何危机元数据 (id / 文案都不沾)', () => {
     const meta = buildCrisisPracticeMeta();
-    const crisisIds = new Set<string>([
-      ...meta.signalCategories.map((c) => c.id),
-      ...meta.referralScripts.map((s) => s.id),
-    ]);
+    const crisisIds = new Set<string>([...meta.signalCategories.map((c) => c.id), ...meta.referralScripts.map((s) => s.id)]);
     for (const seed of VISITOR_POOL_TEMPLATE_SEEDS) {
       expect(crisisIds.has(seed.id)).toBe(false);
       const seedText = JSON.stringify(seed);

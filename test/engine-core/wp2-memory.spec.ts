@@ -109,7 +109,7 @@ describe('WP2 · 分层记忆 V1', () => {
       const trimmed = trimWorkingWindow(lines);
       expect(trimmed).toHaveLength(WORKING_MEMORY_WINDOW_TURNS);
       expect(trimmed[0]).toBe('第 4 轮');
-      expect(trimmed[trimmed.length - 1]).toBe('第 11 轮');
+      expect(trimmed.at(-1)).toBe('第 11 轮');
     });
 
     it('不足 8 轮原样返回', () => {
@@ -166,21 +166,26 @@ describe('WP2 · 分层记忆 V1', () => {
     });
 
     it('effectiveImportance 用条目时间算年龄', () => {
-      const entry = longTermEntry({ importance: 0.8, occurredAt: 1_000 });
-      const now = 1_000 + DEFAULT_DECAY_HALF_LIFE_MS;
+      const entry = longTermEntry({ importance: 0.8, occurredAt: 1000 });
+      const now = 1000 + DEFAULT_DECAY_HALF_LIFE_MS;
       expect(effectiveImportance(entry, now)).toBeCloseTo(0.4, 10);
     });
 
     it('衰减到阈值以下的条目判为不召回', () => {
-      const entry = longTermEntry({ importance: 0.5, occurredAt: 1_000 });
-      const now = 1_000 + 10 * DEFAULT_DECAY_HALF_LIFE_MS;
-      const evaluation = evaluateRecallCandidate(entry, null, {
-        tenantId: TENANT,
-        sessionId: 'session-a',
-        query: 'x',
-        scope: 'visitor',
-        visitorId: VISITOR,
-      }, now);
+      const entry = longTermEntry({ importance: 0.5, occurredAt: 1000 });
+      const now = 1000 + 10 * DEFAULT_DECAY_HALF_LIFE_MS;
+      const evaluation = evaluateRecallCandidate(
+        entry,
+        null,
+        {
+          tenantId: TENANT,
+          sessionId: 'session-a',
+          query: 'x',
+          scope: 'visitor',
+          visitorId: VISITOR,
+        },
+        now,
+      );
       expect(evaluation.accepted).toBe(false);
       expect(evaluation.effectiveImportance).toBeLessThan(RECALL_MIN_EFFECTIVE_IMPORTANCE);
     });
@@ -188,8 +193,8 @@ describe('WP2 · 分层记忆 V1', () => {
 
   describe('③ 冲突消解', () => {
     const group = (): MemoryEntry[] => [
-      longTermEntry({ id: 'old', topicKey: 'insomnia', occurredAt: 1_000, importance: 0.9 }),
-      longTermEntry({ id: 'new', topicKey: 'insomnia', occurredAt: 2_000, importance: 0.5 }),
+      longTermEntry({ id: 'old', topicKey: 'insomnia', occurredAt: 1000, importance: 0.9 }),
+      longTermEntry({ id: 'new', topicKey: 'insomnia', occurredAt: 2000, importance: 0.5 }),
     ];
 
     it('时间更新者存活', () => {
@@ -203,20 +208,20 @@ describe('WP2 · 分层记忆 V1', () => {
 
     it('同一时刻取重要度更高者存活', () => {
       const { survivor } = resolveConflict([
-        longTermEntry({ id: 'a', topicKey: 'k', occurredAt: 5_000, importance: 0.3 }),
-        longTermEntry({ id: 'b', topicKey: 'k', occurredAt: 5_000, importance: 0.8 }),
+        longTermEntry({ id: 'a', topicKey: 'k', occurredAt: 5000, importance: 0.3 }),
+        longTermEntry({ id: 'b', topicKey: 'k', occurredAt: 5000, importance: 0.8 }),
       ]);
       expect(survivor.id).toBe('b');
     });
 
     it('完全同刻同重要度时按 id 判定 (确定性)', () => {
       const first = resolveConflict([
-        longTermEntry({ id: 'aaa', topicKey: 'k', occurredAt: 5_000, importance: 0.5 }),
-        longTermEntry({ id: 'bbb', topicKey: 'k', occurredAt: 5_000, importance: 0.5 }),
+        longTermEntry({ id: 'aaa', topicKey: 'k', occurredAt: 5000, importance: 0.5 }),
+        longTermEntry({ id: 'bbb', topicKey: 'k', occurredAt: 5000, importance: 0.5 }),
       ]).survivor.id;
       const second = resolveConflict([
-        longTermEntry({ id: 'bbb', topicKey: 'k', occurredAt: 5_000, importance: 0.5 }),
-        longTermEntry({ id: 'aaa', topicKey: 'k', occurredAt: 5_000, importance: 0.5 }),
+        longTermEntry({ id: 'bbb', topicKey: 'k', occurredAt: 5000, importance: 0.5 }),
+        longTermEntry({ id: 'aaa', topicKey: 'k', occurredAt: 5000, importance: 0.5 }),
       ]).survivor.id;
       expect(first).toBe(second);
       expect(first).toBe('aaa');
@@ -249,7 +254,7 @@ describe('WP2 · 分层记忆 V1', () => {
       expect(conflicts).toHaveLength(1);
 
       // 写回标记 (编排层动作).
-      await harness.memories.remember(superseded[0]!);
+      await harness.memories.remember(superseded[0]);
 
       const hits = await harness.memories.recall({
         tenantId: TENANT,
@@ -282,9 +287,7 @@ describe('WP2 · 分层记忆 V1', () => {
     it('session 范围不叠加衰减 (有效重要度 = 原始 important)', async () => {
       const harness = createHarness();
       // 极老 + 低重要度: visitor 范围会被衰减阈值淘汰, session 范围不衰减.
-      await harness.memories.remember(
-        longTermEntry({ id: 'ancient', sessionId: 'session-a', importance: 0.2, occurredAt: 1 }),
-      );
+      await harness.memories.remember(longTermEntry({ id: 'ancient', sessionId: 'session-a', importance: 0.2, occurredAt: 1 }));
       const hits = await harness.memories.recall({ tenantId: TENANT, sessionId: 'session-a', query: 'x' });
       expect(hits).toHaveLength(1);
     });
@@ -323,9 +326,7 @@ describe('WP2 · 分层记忆 V1', () => {
 
     it('只召回长时 (工作/短时不进跨会话召回)', async () => {
       const harness = createHarness();
-      await harness.memories.remember(
-        longTermEntry({ id: 'w', tier: MemoryTier.WORKING, source: MemorySource.TURN, visitorId: VISITOR }),
-      );
+      await harness.memories.remember(longTermEntry({ id: 'w', tier: MemoryTier.WORKING, source: MemorySource.TURN, visitorId: VISITOR }));
       await harness.memories.remember(
         longTermEntry({ id: 's', tier: MemoryTier.SHORT_TERM, source: MemorySource.SUMMARY, visitorId: VISITOR }),
       );
@@ -351,13 +352,9 @@ describe('WP2 · 分层记忆 V1', () => {
     it('TTL 过期不召回', async () => {
       const harness = createHarness();
       await harness.memories.remember(longTermEntry({ id: 'ttl', ttlMs: 1000 }));
-      expect(
-        await harness.memories.recall({ tenantId: TENANT, sessionId: 'session-a', query: 'x' }),
-      ).toHaveLength(1);
+      expect(await harness.memories.recall({ tenantId: TENANT, sessionId: 'session-a', query: 'x' })).toHaveLength(1);
       harness.advance(1001);
-      expect(
-        await harness.memories.recall({ tenantId: TENANT, sessionId: 'session-a', query: 'x' }),
-      ).toHaveLength(0);
+      expect(await harness.memories.recall({ tenantId: TENANT, sessionId: 'session-a', query: 'x' })).toHaveLength(0);
     });
 
     it('limit clamp: 默认 5, 上限 50', async () => {
@@ -366,9 +363,7 @@ describe('WP2 · 分层记忆 V1', () => {
         await harness.memories.remember(longTermEntry({ id: `m-${i}`, sessionId: 'session-a' }));
       }
       expect(await harness.memories.recall({ tenantId: TENANT, sessionId: 'session-a', query: 'x' })).toHaveLength(5);
-      expect(
-        await harness.memories.recall({ tenantId: TENANT, sessionId: 'session-a', query: 'x', limit: 1000 }),
-      ).toHaveLength(50);
+      expect(await harness.memories.recall({ tenantId: TENANT, sessionId: 'session-a', query: 'x', limit: 1000 })).toHaveLength(50);
     });
 
     it('minImportance 过滤 (visitor 范围按衰减后有效重要度)', async () => {

@@ -1,5 +1,4 @@
-/* eslint-disable new-cap, prettier/prettier,
-   max-len, import/order, sonarjs/assertions-in-tests, jest/no-disabled-tests, prefer-const */
+/* eslint-disable prettier/prettier, import/order */
 
 
 
@@ -88,12 +87,13 @@ class InMemoryUserRepository {
     return {
       select: () => ({
         where: () => ({
-          // eslint-disable-next-line @typescript-eslint/await-thenable
+           
       getMany: async () => Array.from(users.values()),
         }),
       }),
     };
   }
+
   clear(): void {
     this.users.clear();
   }
@@ -206,7 +206,7 @@ class MockLlmRouterService {
 
   async embed(req: EmbeddingRequest): Promise<EmbeddingResponse> {
     if (this.nextResponse === 'throw') {
-      // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+       
     throw new Error('mock LLM error');
     }
     // V2026-10-14 治本: 根据 req.inputs 长度返对应数量 vector (跟真实 OpenAI 兼容 API 行为一致).
@@ -294,7 +294,7 @@ describe('SearchService (e2e — VS-3e RAG 端到端)', () => {
         scheduledPublishAt: null,
       };
       await itemRepo.save(testItem);
-      // eslint-disable-next-line @typescript-eslint/await-thenable
+       
       await qdrant.setPoint(
         'knowledge_chunks',
         `${TEST_ITEM_ID}-chunk-0`,
@@ -400,3 +400,4 @@ describe('SearchService (e2e — VS-3e RAG 端到端)', () => {
     });
   });
 });
+

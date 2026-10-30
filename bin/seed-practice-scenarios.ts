@@ -64,6 +64,7 @@ async function main(): Promise<void> {
   const config = (await configuration()) as { db: DbConfig };
 
   // autoLoadEntities 是 TypeOrmModule 的选项, 不是 TypeORM DataSource 的选项, 剔除以免传入多余键.
+
   const { autoLoadEntities: _ignored, ...dbOptions } = config.db;
 
   const dataSource = new DataSource({

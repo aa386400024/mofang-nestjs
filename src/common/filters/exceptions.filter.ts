@@ -24,7 +24,7 @@ export class ExceptionsFilter extends BaseExceptionFilter implements GqlExceptio
     }
 
     const status = this.getHttpStatus(exception);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+
     if (status === HttpStatus.INTERNAL_SERVER_ERROR) {
       if (exception instanceof Error) {
         this.logger.error({ err: exception, args });

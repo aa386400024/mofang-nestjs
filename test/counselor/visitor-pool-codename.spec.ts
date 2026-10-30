@@ -64,14 +64,14 @@ describe('D3 · 旧前缀 (系统视角标签)', () => {
     const fixed = resolveCompliantCodename('来访者·晚晴', taken);
     expect(fixed).not.toBeNull();
     expect(fixed).not.toBe('晚晴');
-    expect(isAcceptableCodename(fixed as string)).toBe(true);
+    expect(isAcceptableCodename(fixed!)).toBe(true);
   });
 
   it('订正: 前缀剥完仍不合规 (主体本身带姓氏) → 从词库换一个', () => {
     const fixed = resolveCompliantCodename('来访者·李然', EMPTY_TAKEN);
     expect(fixed).not.toBeNull();
     expect(fixed).not.toBe('李然');
-    expect(isAcceptableCodename(fixed as string)).toBe(true);
+    expect(isAcceptableCodename(fixed!)).toBe(true);
   });
 });
 
@@ -84,7 +84,7 @@ describe('D3 · 姓氏首字', () => {
     const fixed = resolveCompliantCodename('李然', EMPTY_TAKEN);
     expect(fixed).not.toBeNull();
     expect(fixed).not.toBe('李然');
-    expect(isAcceptableCodename(fixed as string)).toBe(true);
+    expect(isAcceptableCodename(fixed!)).toBe(true);
   });
 });
 
@@ -100,7 +100,7 @@ describe('D3 · 性格评价字', () => {
   it('订正: 换一个合规代号', () => {
     const fixed = resolveCompliantCodename('小烈', EMPTY_TAKEN);
     expect(fixed).not.toBeNull();
-    expect(isAcceptableCodename(fixed as string)).toBe(true);
+    expect(isAcceptableCodename(fixed!)).toBe(true);
   });
 });
 
@@ -123,7 +123,7 @@ describe('D2 · 订正的幂等性', () => {
     const first = resolveCompliantCodename('来访者·晚晴', EMPTY_TAKEN);
     expect(first).toBe('晚晴');
     const taken = new Set<string>(['晚晴']);
-    expect(resolveCompliantCodename(first as string, taken)).toBeNull();
+    expect(resolveCompliantCodename(first!, taken)).toBeNull();
   });
 
   it('合规行一律不订正', () => {

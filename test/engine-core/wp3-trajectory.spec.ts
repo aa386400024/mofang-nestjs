@@ -188,10 +188,7 @@ describe('WP3 · 轨迹控制引擎', () => {
     });
 
     it('显式给的 emotion.label 沿用 (不重算)', () => {
-      const plan = actPlan(
-        trajectoryNode('n1', { target: { emotion: { label: 'hopeful', valence: -0.6, arousal: 0.7 } } }),
-        true,
-      );
+      const plan = actPlan(trajectoryNode('n1', { target: { emotion: { label: 'hopeful', valence: -0.6, arousal: 0.7 } } }), true);
       const result = applyTrajectory('force_override', bdiIntention(), baseSnapshot(), plan);
       expect(result.intention.emotion.label).toBe('hopeful');
     });
@@ -253,10 +250,7 @@ describe('WP3 · 轨迹控制引擎', () => {
 
     it('混合结果越界被 clamp, NaN 落回边界不写进快照', () => {
       // target 越界 (valence 2 / verbal 1.5) → 混合后越界 → clamp 回契约区间.
-      const overflow = actPlan(
-        trajectoryNode('n1', { target: { emotion: { valence: 2 }, resistance: { verbal: 1.5 } } }),
-        true,
-      );
+      const overflow = actPlan(trajectoryNode('n1', { target: { emotion: { valence: 2 }, resistance: { verbal: 1.5 } } }), true);
       const clamped = applyTrajectory('weighted_correct', bdiIntention(), baseSnapshot(), overflow);
       expect(clamped.intention.emotion.valence).toBe(1);
       expect(clamped.intention.resistance.verbal).toBe(1);
@@ -267,7 +261,7 @@ describe('WP3 · 轨迹控制引擎', () => {
     });
 
     it('correctWeight 越界被夹到 (0,1], 缺省 0.6, NaN 回落默认', () => {
-      expect(resolveCorrectWeight(undefined)).toBe(DEFAULT_CORRECT_WEIGHT);
+      expect(resolveCorrectWeight()).toBe(DEFAULT_CORRECT_WEIGHT);
       expect(resolveCorrectWeight(0.3)).toBe(0.3);
       expect(resolveCorrectWeight(2)).toBe(1);
       expect(resolveCorrectWeight(0)).toBe(MIN_CORRECT_WEIGHT);
@@ -276,10 +270,7 @@ describe('WP3 · 轨迹控制引擎', () => {
     });
 
     it('权重夹取后参与混合 (w=1 → 完全取 target)', () => {
-      const plan = actPlan(
-        trajectoryNode('n1', { correctWeight: 5, target: { resistance: { verbal: 0.9 } } }),
-        true,
-      );
+      const plan = actPlan(trajectoryNode('n1', { correctWeight: 5, target: { resistance: { verbal: 0.9 } } }), true);
       const result = applyTrajectory('weighted_correct', bdiIntention(), baseSnapshot(), plan);
       expect(result.intention.resistance.verbal).toBeCloseTo(0.9, 10);
     });
@@ -334,12 +325,9 @@ describe('WP3 · 轨迹控制引擎', () => {
     it('onEvents: 本轮事件与列表有交集即满足, 无交集不满足', () => {
       expect(evaluateTrigger({ onEvents: ['empathy'] }, matchContext({ events: [event('empathy')] }))).toBe(true);
       expect(evaluateTrigger({ onEvents: ['empathy'] }, matchContext({ events: [event('judgment')] }))).toBe(false);
-      expect(
-        evaluateTrigger(
-          { onEvents: ['empathy', 'judgment'] },
-          matchContext({ events: [event('judgment'), event('neutral')] }),
-        ),
-      ).toBe(true);
+      expect(evaluateTrigger({ onEvents: ['empathy', 'judgment'] }, matchContext({ events: [event('judgment'), event('neutral')] }))).toBe(
+        true,
+      );
     });
 
     it('onKeywords: 小写子串命中, 大小写无关', () => {
@@ -350,7 +338,7 @@ describe('WP3 · 轨迹控制引擎', () => {
 
     it('onKeywords: 全空白关键词跳过该原子 (不视为命中, 也不阻断)', () => {
       // 只有空白关键词 → 该原子跳过 → 无有效约束 → 空真.
-      expect(evaluateTrigger({ onKeywords: ['   ', ''] }, matchContext({ userText: '随便' }))).toBe(true);
+      expect(evaluateTrigger({ onKeywords: [' '.repeat(3), ''] }, matchContext({ userText: '随便' }))).toBe(true);
       // 空白 + 真实关键词 → 真实关键词照常判定.
       expect(evaluateTrigger({ onKeywords: ['  ', '失眠'] }, matchContext({ userText: '头疼' }))).toBe(false);
     });
@@ -389,24 +377,9 @@ describe('WP3 · 轨迹控制引擎', () => {
 
     it('多原子 AND: 缺一不命中', () => {
       const ctx = matchContext({ events: [event('empathy')], userText: '我最近失眠', turnIndex: 2 });
-      expect(
-        evaluateTrigger(
-          { onEvents: ['empathy'], onKeywords: ['失眠'], afterTurns: 2, state: { minTrust: 0.1 } },
-          ctx,
-        ),
-      ).toBe(true);
-      expect(
-        evaluateTrigger(
-          { onEvents: ['empathy'], onKeywords: ['失眠'], afterTurns: 3, state: { minTrust: 0.1 } },
-          ctx,
-        ),
-      ).toBe(false);
-      expect(
-        evaluateTrigger(
-          { onEvents: ['judgment'], onKeywords: ['失眠'], afterTurns: 2, state: { minTrust: 0.1 } },
-          ctx,
-        ),
-      ).toBe(false);
+      expect(evaluateTrigger({ onEvents: ['empathy'], onKeywords: ['失眠'], afterTurns: 2, state: { minTrust: 0.1 } }, ctx)).toBe(true);
+      expect(evaluateTrigger({ onEvents: ['empathy'], onKeywords: ['失眠'], afterTurns: 3, state: { minTrust: 0.1 } }, ctx)).toBe(false);
+      expect(evaluateTrigger({ onEvents: ['judgment'], onKeywords: ['失眠'], afterTurns: 2, state: { minTrust: 0.1 } }, ctx)).toBe(false);
     });
   });
 
@@ -699,24 +672,15 @@ describe('WP3 · 轨迹控制引擎', () => {
       const first = await runTurns(script, texts);
       const second = await runTurns(script, texts);
 
-      expect(second.outputs.map((output) => output.trajectoryTrace)).toEqual(
-        first.outputs.map((output) => output.trajectoryTrace),
-      );
-      expect(second.outputs.map((output) => output.intention)).toEqual(
-        first.outputs.map((output) => output.intention),
-      );
-      expect(second.outputs.map((output) => output.snapshot)).toEqual(
-        first.outputs.map((output) => output.snapshot),
-      );
+      expect(second.outputs.map((output) => output.trajectoryTrace)).toEqual(first.outputs.map((output) => output.trajectoryTrace));
+      expect(second.outputs.map((output) => output.intention)).toEqual(first.outputs.map((output) => output.intention));
+      expect(second.outputs.map((output) => output.snapshot)).toEqual(first.outputs.map((output) => output.snapshot));
     });
 
     it('游标单向推进, trace 记录已访问幕与位置', async () => {
       const script = trajectoryScript({
         mode: 'force_override',
-        nodes: [
-          trajectoryNode('n1', { trigger: { afterTurns: 1 } }),
-          trajectoryNode('n2', { trigger: { afterTurns: 2 } }),
-        ],
+        nodes: [trajectoryNode('n1', { trigger: { afterTurns: 1 } }), trajectoryNode('n2', { trigger: { afterTurns: 2 } })],
       });
       const { outputs } = await runTurns(script, [NEUTRAL_TEXT, NEUTRAL_TEXT]);
 

@@ -59,13 +59,11 @@ async function main(): Promise<void> {
   // 只回显 host/port/database 这类非敏感定位信息, 不打印密码.
   if (!process.env.DB_HOST) {
     throw new Error(
-      '.env 中缺少 DB_HOST, 将无法确定目标数据库位置。' +
-        '请补齐 DB_HOST / DB_PORT / DB_USER / DB_PASSWORD / DB_NAME 后重试。',
+      '.env 中缺少 DB_HOST, 将无法确定目标数据库位置。' + '请补齐 DB_HOST / DB_PORT / DB_USER / DB_PASSWORD / DB_NAME 后重试。',
     );
   }
   process.stdout.write(
-    `[seed:training] 目标库 ${process.env.DB_HOST}:${process.env.DB_PORT ?? 3306}` +
-      ` / schema ${process.env.DB_NAME}\n`,
+    `[seed:training] 目标库 ${process.env.DB_HOST}:${process.env.DB_PORT ?? 3306}` + ` / schema ${process.env.DB_NAME}\n`,
   );
 
   // V2026-10-20 修: Config = Default & Production, 而 default.ts 的 db 是空对象字面量
@@ -75,6 +73,7 @@ async function main(): Promise<void> {
 
   // autoLoadEntities 是 TypeOrmModule 的选项, 不是 TypeORM DataSource 的选项,
   // 剔除以免传入多余键.
+
   const { autoLoadEntities: _ignored, ...dbOptions } = config.db;
 
   const dataSource = new DataSource({
@@ -95,15 +94,7 @@ async function main(): Promise<void> {
     const result = await seedTrainingExercises(dataSource);
     const total = result.inserted + result.updated + result.unchanged;
     process.stdout.write(
-      '[seed:training] 新增 ' +
-        result.inserted +
-        ' / 更新 ' +
-        result.updated +
-        ' / 未变 ' +
-        result.unchanged +
-        '（合计 ' +
-        total +
-        '）\n',
+      '[seed:training] 新增 ' + result.inserted + ' / 更新 ' + result.updated + ' / 未变 ' + result.unchanged + '（合计 ' + total + '）\n',
     );
   } finally {
     await dataSource.destroy();
