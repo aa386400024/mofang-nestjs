@@ -93,6 +93,16 @@ export interface StreamRenderOutcome {
     readonly completionTokens: number;
     readonly totalTokens: number;
     /**
+     * 输入 token (WP24 · 成本日志要用).
+     *
+     * 流式路径上游**只给累计** tokenCount, 没有 prompt/completion 拆分 ——
+     * 所以这里通常**缺省** (即"不可得"), 而不是 0.
+     *
+     * 为什么"通常"而不是"永远": 走"聚合收集成流"兜底形态时 (`streamViaAggregate`)
+     * 上游给的是完整 usage, 那时它是有值的. 口径由**实际走哪条路**决定, 不猜.
+     */
+    readonly promptTokens?: number;
+    /**
      * 思考 token 数 (推理模型专用; 缺省 = 上游没报).
      *
      * V2026-10-29 治本 (WP9-C): 与 completionTokens 分开上报 —— 后者含思考,
@@ -104,6 +114,13 @@ export interface StreamRenderOutcome {
   readonly fallbackUsed: boolean;
   /** 实际提供服务的候选标识 (全挂降级时为 'degraded'). */
   readonly providerHint?: string;
+  /**
+   * 本次实际使用的模型名 (WP24 · 成本日志要按模型归集).
+   *
+   * 放在**适配层**而不是内核: 内核 `RenderPort.render()` 的返回 (内核 `RenderResult`)
+   * 才有 `model`, 流式这条路径不经过内核契约, 所以自带一份.
+   */
+  readonly model?: string;
   /**
    * 是否降级产物 (兜底句 / 中断的残句).
    *

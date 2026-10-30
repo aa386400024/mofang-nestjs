@@ -276,7 +276,10 @@ describe('WP10 · 剧本注入链路 · 装配层绑定', () => {
 
     expect(source).toContain('provide: TRAJECTORY_SCRIPT_RESOLVER');
     const start = source.indexOf('provide: EngineStreamBackend');
-    const block = source.slice(start, start + 900);
+    // 窗口放大 (900 → 1600): V2026-10-30 (WP24) 给 EngineStreamBackend 的 useFactory
+    //   加了成本单价装配 (多几行), 剧本解析端口的 token 落在 inject 数组里 —— 窗口
+    //   太小会把断言的目标挤出切片. 断言的内容没变, 只是看得更远一点.
+    const block = source.slice(start, start + 1600);
     expect(block).toContain('TRAJECTORY_SCRIPT_RESOLVER');
     // 端口是可选增强 —— 装配缺席不该让应用起不来.
     expect(block).toContain('optional: true');

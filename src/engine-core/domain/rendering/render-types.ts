@@ -17,8 +17,12 @@
 //       一旦内核出现 modelName, 就等于内核绑死某个厂商, 换模型要动内核.
 //     - 任务分层用字符串联合而非 enum: 与 WP2 MemoryRecallScope / WP3 TrajectoryMode /
 //       WP4 SafetyLevel 同理 —— 纯控制流判别式, 内核零运行时导出.
-//     - RenderResult 只暴露 usage / fallbackUsed / providerHint: 结果要能跨厂商
+//     - RenderResult 只暴露 usage / fallbackUsed / providerHint / model: 结果要能跨厂商
 //       通用, 厂商私有字段留在适配层内部, 否则每接一个厂商内核就要改一次.
+//       (V2026-10-30 · WP24: 补了 usage.promptTokens 与 model 两个**可选**观测字段 ——
+//        前者是所有 OpenAI 兼容厂商共有的 token 口径, 后者与 providerHint 同性质
+//        ("这次实际用了谁"的透传, 内核不据此决策). 两者都**可选**: 缺省即"上游没报",
+//        不编造.)
 //
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
@@ -107,9 +111,42 @@ export interface RenderResult {
   readonly usage: {
     readonly completionTokens: number;
     readonly totalTokens: number;
+    /**
+     * 输入 token 数 (跨厂商通用口径; 缺省 = 上游没报).
+     *
+     * V2026-10-30 治本 (WP24 · 单场成本日志): 加这个可选字段是为了让**成本**
+     * 能按输入 / 输出两侧分别计价 —— 只有 totalTokens 时, 输入侧开销与输出侧
+     * 混在一个数里, 成本估不出来.
+     *
+     * 为什么它是**可选**而不是必填: 上游流式路径只给**累计** tokenCount,
+     * 没有 prompt/completion 拆分 —— 缺省即"不可得", **不编造** (与本文件
+     * 既有的"厂商私有字段留在适配层"是同一条纪律的延伸).
+     *
+     * 为什么它算"跨厂商通用"而不算"厂商私有字段" (与下面的 providerHint 对照):
+     *   prompt / completion / total 三个口径是所有 OpenAI 兼容厂商都有的
+     *   公共 token 计数, 与"哪个厂商"无关; 真正厂商私有的是**模型名**
+     *   —— 那不进内核契约 (见本文件头「反双胞胎」第一条), 它留在适配层.
+     */
+    readonly promptTokens?: number;
   };
   /** 是否走了备用候选 (适配层置位). */
   readonly fallbackUsed: boolean;
   /** 可选: 实际提供服务的候选标识 (适配层填, 供观测). */
   readonly providerHint?: string;
+  /**
+   * 可选: 本次实际使用的模型名 (适配层填, 供观测).
+   *
+   * V2026-10-30 治本 (WP24 · 单场成本日志): 与 `providerHint` **同性质** ——
+   * 都是"这次实际用了谁"的观测透传, 内核**不据此做任何决策** (选谁仍是
+   * 适配层的运行时策略, 内核只回答"要渲染成什么样").
+   *
+   * 为什么它可以进内核契约 (而模型名进不了 RenderSpec):
+   *   两条纪律的对象不同 ——
+   *   · **规格 (RenderSpec)** 不含模型名: 规格是**内核下达给适配层的指令**,
+   *     内核一旦在里面写死模型名, 就等于内核绑死某个厂商, 换模型要动内核.
+   *   · **结果 (RenderResult)** 带模型名: 结果是**已经发生的事实**的记录,
+   *     观测方 (成本日志 / 留痕) 需要知道"这一场到底是谁在答". 内核不读它.
+   *     `providerHint` 从 WP5 起就在这个位置, 本字段与它同类.
+   */
+  readonly model?: string;
 }

@@ -100,6 +100,14 @@ import type {
   VoiceTurnBackendTurnOptions,
 } from '../../voice/voice-turn-backend.port';
 import type { VoiceSessionPersona } from '../../voice/voice.types';
+import {
+  accumulateSessionUsage,
+  buildSessionCostSummary,
+  DEFAULT_SESSION_COST_PRICING,
+  emptySessionUsageTotals,
+  type SessionCostPricing,
+  type SessionUsageTotals,
+} from '../observability/session-cost';
 import type { SessionCloseoutService } from '../persistence/session-closeout.service';
 import { isCrisisCategory } from '../rendering/render-risk';
 import type { TurnRenderResult } from '../rendering/turn-render-orchestrator';
@@ -145,6 +153,17 @@ export class EngineStreamBackend implements VoiceTurnBackend {
    * 作用域查的 —— 写与读必须是同一把键, 否则摘要写进去了却永远召不回.
    */
   private readonly sessionContexts = new Map<string, SessionContext>();
+  /**
+   * 语音会话 id → 本场累计用量 (WP24 · 单场成本日志).
+   *
+   * 为什么单独存而不是逐轮落库: 本单要的是**整场汇总**, 逐轮散点已经有了
+   * (WP19 的 trace, 那是另一个坑). 内存里累加, closeSession 时一次算清 —
+   * 不给数据库再加一张表, 也不给每轮加一次写.
+   *
+   * 生命周期: `openSession` 重置 (重连不能把上一场的用量算进来) →
+   * 每轮累加 → `closeSession` 读完即删 (不留痕).
+   */
+  private readonly sessionUsage = new Map<string, SessionUsageTotals>();
 
   constructor(
     private readonly engine: EngineTurnService,
@@ -189,6 +208,18 @@ export class EngineStreamBackend implements VoiceTurnBackend {
      * "开不了会话".
      */
     @Optional() private readonly traceRecorder?: import('../../admin-debug/trace-recorder.service').TraceRecorder,
+    /**
+     * 成本单价 (WP24 · 单场成本日志).
+     *
+     * 为什么 @Optional: 成本日志是**观测增强** —— 装配缺席时只是没这条汇总日志,
+     * 会话照常开、照常结束. 不能让"没配单价"变成"开不了会话".
+     *
+     * 位置说明: 本参数排在 `traceRecorder` **之后**. `traceRecorder` 至今没有
+     * 装配入口 (后端走工厂构造, Nest 不读它的 design:paramtypes), 所以工厂那边
+     * 必须给第 6 位**显式占一个 undefined** —— 这与 WP12 之前"不占位"的做法相反,
+     * 原因是本单真的需要第 7 位, 而位置参数不能跳着传.
+     */
+    @Optional() private readonly costPricing?: SessionCostPricing,
   ) {}
 
   /**
@@ -217,6 +248,9 @@ export class EngineStreamBackend implements VoiceTurnBackend {
 
     this.handles.set(opts.sessionId, handle.handleId);
     this.transcripts.set(opts.sessionId, []);
+    // WP24: 重置本场用量累计 —— 重连 (第二条 user_text 之前的一次 startSession)
+    //   走的是同一条 openSession, 若不重置, 上一场的花费会被算进这一场.
+    this.sessionUsage.set(opts.sessionId, emptySessionUsageTotals());
     this.sessionContexts.set(opts.sessionId, {
       tenantId: opts.tenantId,
       visitorId: memoryScope,
@@ -427,6 +461,35 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       this.engine.close(handleId);
     }
 
+    // V2026-10-30 治本 (WP24 · 单场成本日志):
+    //   把本场累计的用量折算成一条结构化日志 —— "这一场花了多少钱".
+    //
+    //   ⚠️ **按句柄判定, 只打一次** (与下面 WP12 收尾同款理由):
+    //     voice 侧的关闭路径会把"当前后端"与"引擎后端"**各关一次** —— 引擎链路下
+    //     这两个是同一个对象, 于是 closeSession 会被调两次. 第二次调用时句柄已被
+    //     清掉, 累加器也已删除 → 不打第二条 (否则同一场会在日志里出现两条汇总,
+    //     一条有数据一条是空的, 看着像算了两场).
+    //
+    //   为什么"累加器不存在"就不打: voice 侧会把**旧链路**的会话也走一遍引擎
+    //   后端的关闭流程, 那时这场根本没走过引擎 (没有一轮渲染) —— 那不是"花了 0 元",
+    //   是"这场不归引擎管", 两者不能混成一条日志.
+    if (handleId) {
+      const totals = this.sessionUsage.get(sessionId);
+      this.sessionUsage.delete(sessionId);
+      if (totals) {
+        const summary = buildSessionCostSummary({
+          sessionId,
+          totals,
+          pricing: this.costPricing ?? DEFAULT_SESSION_COST_PRICING,
+          // 本单只在**新引擎路径**打这条日志, 所以恒为 'bdi'.
+          // (WP17 已降级并入 WP13: enginePath 作为**留痕字段**是 WP13 的活,
+          //  这里只是日志里标一个常量值, 不新增字段到 trace / 报告.)
+          enginePath: 'bdi',
+        });
+        this.logger.log(`[session_cost_summary] ${JSON.stringify(summary)}`);
+      }
+    }
+
     // V2026-10-30 治本 (WP12 · 会话收尾):
     //   逐字稿全量落库 + 本场摘要晋升长时记忆. fire-and-forget (与上面的 trace flush 同款):
     //   收尾是 I/O, 不能反过来阻塞 `session_ended` 帧 (前端在等这个帧收页面).
@@ -525,15 +588,43 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     // WP19: 调试快照留痕 (抽成私有方法降复杂度).
     this.recordTrace(opts.sessionId, settled.result, usage);
 
+    // WP24: 本场用量累加 (单场成本日志的数据源).
+    //   累加的是**渲染结果里真实带回来的**用量, 不另调模型、不重算 ——
+    //   成本必须等于"这一场真的花了多少", 而不是"我们以为花了多少".
+    this.accumulateUsage(opts.sessionId, usage, settled.result.render.model);
+
     yield {
       type: 'done',
       usage: {
-        promptTokens: 0,
+        // WP24: 输入侧 token 此前恒为 0 (硬编码), 而聚合路径的上游其实报了
+        //   promptTokens —— 这里接上, 流式路径仍是 0 (上游没给拆分, 不编造).
+        promptTokens: usage?.promptTokens ?? 0,
         completionTokens: usage?.completionTokens ?? 0,
         totalTokens: usage?.totalTokens ?? 0,
         ...(usage?.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
       },
     };
+  }
+
+  /**
+   * 累加一轮用量到本场累计 (WP24).
+   *
+   * @param sessionId 语音会话 id
+   * @param usage 本轮用量 (可能缺省 = 渲染降级, 那轮没调模型)
+   * @param model 本轮实际用的模型名 (缺省 = 上游没报)
+   */
+  private accumulateUsage(sessionId: string, usage: TurnRenderResult['render']['usage'], model: string | undefined): void {
+    const current = this.sessionUsage.get(sessionId) ?? emptySessionUsageTotals();
+    this.sessionUsage.set(
+      sessionId,
+      accumulateSessionUsage(current, {
+        ...(usage?.promptTokens === undefined ? {} : { promptTokens: usage.promptTokens }),
+        ...(usage?.completionTokens === undefined ? {} : { completionTokens: usage.completionTokens }),
+        ...(usage?.totalTokens === undefined ? {} : { totalTokens: usage.totalTokens }),
+        ...(usage?.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
+        ...(model === undefined ? {} : { model }),
+      }),
+    );
   }
 
   /**

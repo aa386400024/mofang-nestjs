@@ -3,7 +3,7 @@
 > 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md)
 > 愿景备查: [`../reference/ai-simulation-blueprint-v1.1.md`](../reference/ai-simulation-blueprint-v1.1.md)（冲突以母版为准；蓝图选 pgvector，本仓 D2 拍板 Qdrant）
 > 设计原则原件（已转写归档，仅作依据，冲突以母版为准）：[`bdi-cognitive-engine-principles-v1.0.md`](../reference/bdi-cognitive-engine-principles-v1.0.md)（BDI 决策/渲染边界）、[`architecture-blindspot-fill-v1.0.md`](../reference/architecture-blindspot-fill-v1.0.md)（14 项盲区补全，经本仓架构裁剪后落地）。
-> 日期: 2026-10-28（进度登记更新于 2026-10-30）｜ 状态: 🟢 **WP0–WP12 核心链路全部交付并审核通过；WP18/WP19/WP20/WP21 调试与报告链路已交付；WP10/WP10A/WP11 伦理盲盒+表达风格+PsyGUARD 已交付；剩余 WP13/WP14/WP15/WP16/WP17/WP22/WP23/WP24 为稳健性与运维护栏，内测前补完**
+> 日期: 2026-10-28（进度登记更新于 2026-10-30）｜ 状态: 🟢 **WP0–WP12 核心链路全部交付并审核通过；WP18/WP19/WP20/WP21 调试与报告链路已交付；WP10/WP10A/WP11 伦理盲盒+表达风格+PsyGUARD 已交付；WP24 单场成本日志已交付；剩余 WP13/WP14/WP15/WP16/WP17/WP22/WP23 为稳健性与运维护栏，内测前补完**
 > 2026-10-29 增补：按两份设计原则（BDI 原则 / 盲区补全）经本仓架构裁剪，新增 Phase1 小项 WP14 学员风险兜底、WP15 算子幅度声明+回归、WP16 轻量幂等+断流不叠加；Phase2+ 保留推进队列见文末（全量保留，逐步推进，非丢弃）。
 > 2026-10-30 全面回头看：蓝图 Phase1 七条核心能力全部落地，执行无走歪、无过度工程。两个硬底线 WP 需内测前补完：WP17（新引擎路径 turn-analysis 入队对齐）、WP14（学员自身心理风险三级兜底）。详见 §0.4。
 > 仓库: `E:\Work\Project\backend\mofang-nestjs`
@@ -66,7 +66,7 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 | 🆕 **WP11 PsyGUARD-RoBERTa Python 服务 + HTTP RiskProbePort** | ✅ 已交付并审核通过（2026-10-30） | 任务单 `engine-wp11-psyguard-python-service-backend-2026-10-30.md`；记录 `engine-wp11-psyguard-python-service-backend-implementation-2026-10-30.md` | 独立仓库 `mofang-psyguard/`（FastAPI + ONNX Runtime int8 量化，Docker 部署到 117.72.30.78，只绑 127.0.0.1:8100）；NestJS 侧 `HttpPsyGuardProbe` + `PSYGUARD_BASE_URL` 开关分流 + 启动健康检查 + 跨仓库标签契约比对；counselor_input + visitor_output 双侧探测（输出侧只接 PsyGUARD 不接本地词典，避免角色台词被误 block）；测试阶段临时放宽：256 token 窗口 + 500ms 超时（M3 内测前需回改，6 处清单已写进交付记录）；tsc 0 / 36 例 NestJS 测试 + 37 例 Python 测试绿 / engine-core 仅 1 处常量改动（决策明确） |
 | 🆕 **WP22 语音对练限流与并发上限** | 📋 已列入，待拆单 | （待写任务单） | 单用户同时 1 场 + 日 token 预算告警，防烧 LLM 额度 |
 | 🆕 **WP23 WS 断连恢复口径明确** | 📋 已列入，待拆单 | （待写任务单） | 断连超 30s = 会话结束，前端明确提示，不静默丢 BDI 状态 |
-| 🆕 **WP24 单场成本日志** | 📋 已列入，待拆单 | （待写任务单） | closeSession 打每场总 token + 预估费用，不做看板 |
+| 🆕 **WP24 单场成本日志** | ✅ 已交付（2026-10-30） | 任务单 `engine-wp24-session-cost-log-backend-2026-10-30.md`；记录 `engine-wp24-session-cost-log-backend-2026-10-30-implementation-2026-10-30.md` | closeSession 打每场总 token + 预估费用，不做看板；定价走 env 可配；**成本口径 `costBasis` 随输入侧可得性如实切换**（`full` / `output_only`，生产主路径恒 `output_only` —— 上游流式无 prompt/completion 拆分，不拿 0 冒充不可得）；内核契约扩**可选** `usage.promptTokens?` + `model?`（1 个文件，用户拍板）；tsc 0 / eslint 0 / 新套件 18 例绿 / 引擎侧 29 套件 601 例全绿 / 全量 58 套件 925 例中 923 例通过（drill-judge 2 例既有债） |
 
 > WP8 总目标拆为两段：**WP8-A（聚合装配，已交付）** 先在调试端点跑通真实 reply；**WP8-B（流式原生 + 接 voice WS + 灰度，本单）** 才是端到端对练闭环。两者不合并，避免在装配期长出第二套渲染。
 
@@ -109,7 +109,7 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 | 中 | WP16 round_id 幂等+断流不叠加 | 随 WP8-B 收尾 |
 | 中 | WP22 语音对练限流（防烧 LLM 额度） | 内测前 |
 | 中 | WP23 WS 断连恢复口径（30s=会话结束） | 内测前 |
-| 中 | WP24 单场成本日志 | 内测前 |
+| 中 | WP24 单场成本日志 | ✅ 已交付（2026-10-30） |
 | 低 | WP17 enginePath 字段（并入 WP13 可观测） | 随 WP13 |
 | 低 | 前端"继续训练"入口（后端链路已通，前端接上即可） | 产品排期 |
 
@@ -321,12 +321,18 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 
 ### WP24 · 单场成本日志
 
+> ✅ **已交付（2026-10-30）**。任务单：[`engine-wp24-session-cost-log-backend-2026-10-30.md`](./engine-wp24-session-cost-log-backend-2026-10-30.md)｜交付记录：[`engine-wp24-session-cost-log-backend-2026-10-30-implementation-2026-10-30.md`](./engine-wp24-session-cost-log-backend-2026-10-30-implementation-2026-10-30.md)
+
 - **为什么有这条（2026-10-30 架构审查补记）**：WP19 留了每轮 LLM usage，但没有整场汇总。内测阶段先不做看板，日志里打每场总 token + 预估费用即可。
 - **目标**：内测期能看到"这场花了多少钱"，不做看板。
 - **内容**：closeSession 时打一条结构化日志：`sessionId / model / totalPromptTokens / totalCompletionTokens / estimatedCostCny`。
-- **依赖**：WP19（usage 已留痕）。
+- **依赖**：~~WP19（usage 已留痕）~~ → **实测不依赖**：直接取渲染结果里的 usage（`settled.result.render.usage`），不走 `traceRecorder`。
 - **验收**：日志里能 grep 到每场成本。
 - **不做**：成本看板、告警、按用户汇总（Phase2）。
+- **交付时修正（两处前提错误 + 一处新增）**：
+  1. **`totalPromptTokens` / `model` 原表没有数据源** —— 上游**流式**路径只给累计 `tokenCount`（`ChatCompletionChunk` 无 prompt/completion 拆分），而 voice 端到端走的正是流式。落法：内核加**可选** `usage.promptTokens?` + `model?` 透传（用户拍板，**1 个文件**），`model` 流式路径有、`totalPromptTokens` 流式路径**不可得**。
+  2. **新增 `costBasis` 字段**（原表没有）：`full`（输入输出都计）/ `output_only`（**只含输出侧**，是全场成本的下界）。生产主路径恒 `output_only` —— **不拿 0 冒充"输入侧没花钱"**。
+  3. **定价走 env**（`LLM_PRICE_INPUT_PER_1K` / `LLM_PRICE_OUTPUT_PER_1K`，非法值回退不抛错）。
 
 ### WP18 · 会话结束→复盘报告生成链路端到端打通
 

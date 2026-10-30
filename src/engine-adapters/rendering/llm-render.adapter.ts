@@ -200,6 +200,14 @@ interface AggregateRender {
   readonly text: string;
   readonly usage: ChatCompletionResponse['usage'];
   readonly providerHint: string;
+  /**
+   * 本次实际用的模型名 (WP24 · 成本日志要按模型归集).
+   *
+   * 为什么放这里而不放内核 `RenderResult`: 内核契约里的 `model` 只在内核
+   * `RenderPort.render()` 的返回上; 这里带一份是**适配层内部**的传递形态,
+   * 最终由 `render()` 汇总进内核结果.
+   */
+  readonly model: string;
 }
 
 /**
@@ -281,10 +289,17 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         usage: {
           completionTokens: outcome.value.usage.completionTokens ?? 0,
           totalTokens: outcome.value.usage.totalTokens ?? 0,
+          // WP24: 上游聚合响应**有** promptTokens, 此前被丢弃 —— 丢掉它, 成本
+          // 就只能算输出侧, 输入侧开销与输出侧混在一个数里估不出来.
+          // 缺省即"上游没报" (不编造): 上游给了就如实带上去.
+          // (用 typeof 而非 `=== undefined`: 上游类型里它是必填 number, 但运行时
+          //  可能压根没填 —— typeof 判的是"真有这个数", 两种情况都判得对.)
+          ...(typeof outcome.value.usage.promptTokens === 'number' ? { promptTokens: outcome.value.usage.promptTokens } : {}),
         },
         // fallbackUsed = 切过备 / 走过 block 重生成 (降级路径恒为 true).
         fallbackUsed: ctx.usedRegen || attempted.length > 1,
         providerHint: outcome.value.providerHint,
+        model: outcome.value.model,
       };
     }
 
@@ -471,7 +486,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     if (verdict.level !== 'block') {
       // pass / warn 都放行: warn 是"值得注意", 不是"不该说" —— 拦下 warn 等于
       // 让适配层替专业督导做判断, 越权. 只记信号, 不改写文本.
-      return { kind: 'success', candidateId: candidate.id, value: { text, usage, providerHint: candidate.id } };
+      return { kind: 'success', candidateId: candidate.id, value: { text, usage, providerHint: candidate.id, model: params.model } };
     }
 
     if (ctx.regenBudget <= 0) {
@@ -523,7 +538,11 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     if (verdict.level === 'block') {
       return { kind: 'degrade', reason: '重生成后输出仍命中 block' };
     }
-    return { kind: 'success', candidateId: candidate.id, value: { text, usage: call.response.usage, providerHint: candidate.id } };
+    return {
+      kind: 'success',
+      candidateId: candidate.id,
+      value: { text, usage: call.response.usage, providerHint: candidate.id, model: params.model },
+    };
   }
 
   /**
@@ -669,6 +688,8 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         text,
         taskKind: spec.taskKind,
         // 流式只有累计 tokenCount, 无 prompt/completion 拆分 —— 同源取末条, 不编造.
+        // WP24: 因此**流式路径的输入侧用量不可得** (promptTokens 缺省) ——
+        //   成本口径会如实落成 output_only, 而不是拿 0 冒充"输入侧没花钱".
         usage: {
           completionTokens: tokenCount,
           totalTokens: tokenCount,
@@ -676,6 +697,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         },
         fallbackUsed: false,
         providerHint: candidate.id,
+        model: params.model,
         degraded: false,
         guardVerdict: verdict,
       },
@@ -747,9 +769,15 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     return {
       text: result.text,
       taskKind: result.taskKind,
-      usage: { completionTokens: result.usage.completionTokens, totalTokens: result.usage.totalTokens },
+      usage: {
+        completionTokens: result.usage.completionTokens,
+        totalTokens: result.usage.totalTokens,
+        // WP24: 聚合路径有 promptTokens 就带上去 (与流式路径的口径差异如实透出).
+        ...(result.usage.promptTokens === undefined ? {} : { promptTokens: result.usage.promptTokens }),
+      },
       fallbackUsed: result.fallbackUsed,
       ...(result.providerHint ? { providerHint: result.providerHint } : {}),
+      ...(result.model ? { model: result.model } : {}),
       degraded,
     };
   }

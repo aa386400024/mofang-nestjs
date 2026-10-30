@@ -166,7 +166,9 @@ describe('WP6 · RenderPort LLM 适配 + 主备执行', () => {
       expect(result.taskKind).toBe('chat');
       expect(result.fallbackUsed).toBe(false);
       expect(result.providerHint).toBe('primary');
-      expect(result.usage).toEqual({ completionTokens: 33, totalTokens: 77 });
+      // V2026-10-30 (WP24): usage 多带 `promptTokens` —— 上游聚合响应本来就有这个数,
+      //   此前被适配层丢弃 (丢掉它, 成本只能算输出侧). 缺省即"上游没报".
+      expect(result.usage).toEqual({ completionTokens: 33, promptTokens: 10, totalTokens: 77 });
       expect(caller.calls).toHaveLength(1);
       expect(caller.calls[0].providerId).toBe('primary');
     });
@@ -496,8 +498,19 @@ describe('WP6 · RenderPort LLM 适配 + 主备执行', () => {
 
       const result = await adapter.render(buildSpec('chat'));
 
-      expect(Object.keys(result).toSorted()).toEqual(['fallbackUsed', 'providerHint', 'taskKind', 'text', 'usage']);
-      expect(Object.keys(result.usage).toSorted()).toEqual(['completionTokens', 'totalTokens']);
+      // V2026-10-30 (WP24): 字段集合从「5 个顶层 + 2 个 usage」扩到「6 个顶层 + 3 个 usage」——
+      //   新增 `model` (这次实际用的模型名) 与 `usage.promptTokens` (输入侧 token).
+      //
+      //   护栏的**意图**没变, 仍然是"上游 response 的私有字段不许漏进内核结果":
+      //   新增的两个都是**跨厂商通用口径** ——
+      //     · promptTokens: prompt / completion / total 是所有 OpenAI 兼容厂商都有的
+      //       公共 token 计数, 与"哪个厂商"无关 (缺省即"上游没报", 不编造);
+      //     · model: 与既有的 `providerHint` **同性质** —— 都是"这次实际用了谁"的
+      //       观测透传, 内核不据此做任何决策 (选谁仍是适配层的运行时策略).
+      //   真正被这条锁拦住的"厂商私有"是上游 response 里的额外字段 (各家自定义的
+      //   细节 / 安全 verdict 私有字段) —— 那些**仍然一个都没进来**.
+      expect(Object.keys(result).toSorted()).toEqual(['fallbackUsed', 'model', 'providerHint', 'taskKind', 'text', 'usage']);
+      expect(Object.keys(result.usage).toSorted()).toEqual(['completionTokens', 'promptTokens', 'totalTokens']);
     });
   });
 });

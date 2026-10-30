@@ -34,6 +34,7 @@ import type { Embedder, EngineSessionPort, MemoryStore, RiskProbePort } from '..
 import { InMemoryBdiStateRepository } from '../../engine-core/in-memory/in-memory-bdi-state.repository';
 import { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-engine-session';
 import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store';
+import type { SessionCostPricing } from '../observability/session-cost';
 import type { MemoryConfig } from '../persistence/memory-config';
 import type { QdrantMemoryClient } from '../persistence/qdrant-memory.store';
 import { QdrantMemoryStore } from '../persistence/qdrant-memory.store';
@@ -165,6 +166,13 @@ export interface EngineStreamBackendDeps {
    * 与上面两个端口**同款语义**: 收尾是增强, 装配缺席 ≠ 会话开不起来.
    */
   readonly closeout?: SessionCloseoutService;
+  /**
+   * 成本单价 (WP24; 缺省 = 用 `DEFAULT_SESSION_COST_PRICING`).
+   *
+   * 缺省语义与上面几个一致: 单价配错/没配 → 只是成本数字用默认值,
+   * **不能**让"没配单价"变成"开不了会话".
+   */
+  readonly pricing?: SessionCostPricing;
 }
 
 /**
@@ -336,8 +344,9 @@ export function createVisitorOutputProbe(deps: RiskProbeDeps): RiskProbePort | u
  */
 export function createEngineStreamBackend(deps: EngineStreamBackendDeps): EngineStreamBackend {
   // 位置参数顺序与 adapter 的构造参数一一对应:
-  //   engine / resolver / frames / scriptResolver / closeout
-  // ⚠️ `traceRecorder` 仍恒为 undefined (它至今没有装配入口), 所以**不占位** ——
-  //   插一个 undefined 进去反而把"这个位置没人用"写进了代码.
-  return new EngineStreamBackend(deps.engine, deps.resolver, deps.frames, deps.scriptResolver, deps.closeout);
+  //   engine / resolver / frames / scriptResolver / closeout / traceRecorder / costPricing
+  // ⚠️ `traceRecorder` 仍恒为 undefined (它至今没有装配入口), 但**必须占位**:
+  //   位置参数不能跳着传 —— WP24 的成本单价在它后面, 要传就得先给第 6 位一个
+  //   undefined. (此前"不占位"的做法只在这一个参数上成立过.)
+  return new EngineStreamBackend(deps.engine, deps.resolver, deps.frames, deps.scriptResolver, deps.closeout, undefined, deps.pricing);
 }

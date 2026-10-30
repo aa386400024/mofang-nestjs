@@ -110,9 +110,22 @@ export interface TurnRenderResult {
     readonly usage?: {
       readonly completionTokens: number;
       readonly totalTokens: number;
+      /**
+       * 输入 token (WP24 · 成本日志要按输入/输出两侧分别计价).
+       *
+       * 缺省 = 上游没报 —— **流式路径就是这种情况** (上游只给累计 tokenCount).
+       * 缺省不等于 0: 0 是"输入侧确实没花钱", 缺省是"输入侧不可得", 两者意义不同.
+       */
+      readonly promptTokens?: number;
       /** 思考 token 数 (推理模型专用; V2026-10-29 WP9-C 增, 供探针核对思考量). */
       readonly reasoningTokens?: number;
     };
+    /**
+     * 本轮实际使用的模型名 (WP24 · 成本日志要按模型归集).
+     *
+     * 缺省 = 上游没报 / 本轮降级 (降级时没有"实际用的模型"这回事).
+     */
+    readonly model?: string;
   };
   /** 本轮轨迹观测 (透传; 仅注入剧本的会话携带). */
   readonly trajectoryTrace?: TrajectoryTrace;
@@ -163,7 +176,16 @@ interface NormalizedRender {
   /** 文本是否为**系统兜底产物** (不是来访真说的话). */
   readonly degraded: boolean;
   readonly providerHint?: string;
-  readonly usage: { readonly completionTokens: number; readonly totalTokens: number };
+  readonly usage: {
+    readonly completionTokens: number;
+    readonly totalTokens: number;
+    /** 输入 token (缺省 = 上游没报; 流式路径即如此). */
+    readonly promptTokens?: number;
+    /** 思考 token (缺省 = 上游没报). */
+    readonly reasoningTokens?: number;
+  };
+  /** 本轮实际使用的模型名 (缺省 = 上游没报 / 降级). */
+  readonly model?: string;
 }
 
 /**
@@ -257,6 +279,7 @@ export class TurnRenderOrchestrator {
         fallbackUsed: rendered.fallbackUsed,
         ...(rendered.providerHint ? { providerHint: rendered.providerHint } : {}),
         usage: rendered.usage,
+        ...(rendered.model ? { model: rendered.model } : {}),
       },
       ...(output.trajectoryTrace ? { trajectoryTrace: output.trajectoryTrace } : {}),
       ...(output.safety ? { safety: output.safety } : {}),
@@ -305,6 +328,7 @@ export class TurnRenderOrchestrator {
         fallbackUsed: rendered.fallbackUsed,
         ...(rendered.providerHint ? { providerHint: rendered.providerHint } : {}),
         usage: rendered.usage,
+        ...(rendered.model ? { model: rendered.model } : {}),
       },
       ...(output.trajectoryTrace ? { trajectoryTrace: output.trajectoryTrace } : {}),
       ...(output.safety ? { safety: output.safety } : {}),
@@ -360,7 +384,10 @@ export class TurnRenderOrchestrator {
         usage: {
           completionTokens: result.usage.completionTokens,
           totalTokens: result.usage.totalTokens,
+          // WP24: 上游报了输入侧用量就带上去 (流式路径走不到这里, 那时也没有).
+          ...(result.usage.promptTokens === undefined ? {} : { promptTokens: result.usage.promptTokens }),
         },
+        ...(result.model ? { model: result.model } : {}),
       };
     } catch (error) {
       // 理论上 WP6 适配器已不 reject; 这里是防御 —— 换别的 RenderPort 实现时兜住.
@@ -403,8 +430,10 @@ export class TurnRenderOrchestrator {
         usage: {
           completionTokens: outcome.usage.completionTokens,
           totalTokens: outcome.usage.totalTokens,
+          ...(outcome.usage.promptTokens === undefined ? {} : { promptTokens: outcome.usage.promptTokens }),
           ...(outcome.usage.reasoningTokens === undefined ? {} : { reasoningTokens: outcome.usage.reasoningTokens }),
         },
+        ...(outcome.model ? { model: outcome.model } : {}),
       };
     } catch (error) {
       // 理论上渲染器的流式出口已不 reject; 这里是防御 —— 换别的渲染实现时兜住.

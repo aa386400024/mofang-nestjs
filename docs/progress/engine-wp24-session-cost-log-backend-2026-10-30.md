@@ -3,13 +3,14 @@
 > **日期**：2026-10-30
 > **仓库**：`E:\Work\Project\backend\mofang-nestjs`
 > **性质**：低成本护栏，内测期防烧 LLM 额度
-> **前置依赖**：WP19（每轮 LLM usage 已留痕）
+> **状态**：✅ **已交付**（2026-10-30）｜ 交付记录：[engine-wp24-session-cost-log-backend-2026-10-30-implementation-2026-10-30.md](engine-wp24-session-cost-log-backend-2026-10-30-implementation-2026-10-30.md)
+> **前置依赖**：~~WP19（每轮 LLM usage 已留痕）~~ → **实测不依赖**。本单直接取渲染结果里的 usage（`settled.result.render.usage`），**不走 `traceRecorder`** —— WP19 留痕链是否通与本单无关。
 
 ---
 
 ## 0. 为什么有这条
 
-WP19 留了每轮 LLM usage（`traceRecorder`），但那是逐轮的散点数据，没有整场汇总。内测阶段你得知道：**这一场会话花了多少钱？** 不做看板，先在日志里打一条结构化的，能 `grep` 出来就行。
+内测阶段你得知道：**这一场会话花了多少钱？** 不做看板，先在日志里打一条结构化的，能 `grep` 出来就行。
 
 ---
 
@@ -32,13 +33,19 @@ WP19 留了每轮 LLM usage（`traceRecorder`），但那是逐轮的散点数�
 | 字段 | 说明 | 来源 |
 |---|---|---|
 | `sessionId` | 会话 ID | 入参 |
-| `model` | 使用的模型名（如 `abab6.5s-chat`） | 从 RenderPort 的 usage 里取 |
-| `totalPromptTokens` | 整场总 prompt tokens | 累加本场所有轮次的 usage.promptTokens |
+| `model` | 使用的模型名（如 `abab6.5s-chat`） | 从渲染结果里取（见下方「交付时修正」） |
+| `totalPromptTokens` | 整场总 prompt tokens | 累加本场所有轮次的 usage.promptTokens（见下方「交付时修正」） |
 | `totalCompletionTokens` | 整场总 completion tokens | 累加本场所有轮次的 usage.completionTokens |
 | `totalTokens` | 总 tokens（= prompt + completion） | 算出来的 |
 | `estimatedCostCny` | 预估费用（人民币，元） | 按 MiniMax 定价表算（见 §2.3） |
+| `costBasis` | **成本口径**：`full` / `output_only` | 输入侧用量是否可得 |
 | `turnCount` | 本场总轮数 | 累加 |
 | `enginePath` | 走的哪条链路（`bdi` / `legacy`） | 本次新引擎路径固定 `bdi` |
+
+> **交付时修正（本任务单有两处前提错误，交付记录 §1 有完整说明）**：
+>
+> 1. **`totalPromptTokens` 与 `model` 原表没有数据源**。上游**流式**路径只给累计 `tokenCount`，没有 prompt/completion 拆分（`ChatCompletionChunk` 无这两个字段），而 voice 端到端走的正是流式。交付口径：内核加**可选** `promptTokens?` / `model?` 透传（用户拍板），`model` 流式路径有、`totalPromptTokens` 流式路径**不可得** → `costBasis` 落成 `output_only`。
+> 2. **新增 `costBasis` 字段**（原表没有）。输入侧不可得时成本是**全场成本的下界**，口径必须落在数据里 —— 一个系统性偏低的数字等于没有数字。
 
 ### 2.3 成本怎么算
 
@@ -75,10 +82,14 @@ estimatedCostCny = (totalPromptTokens / 1000) * 0.0015 + (totalCompletionTokens 
 
 ## 3. 验收
 
-1. 跑一场完整会话（open → 几轮 turn → close），日志里能 grep 到 `session_cost_summary` 这条
-2. 数字加起来对得上：`totalTokens = totalPromptTokens + totalCompletionTokens`
-3. 定价走 env，改 env 后 `estimatedCostCny` 跟着变
-4. 不影响现有流程：closeSession 该干嘛干嘛，打日志是顺手的事，不阻断、不抛错
+| # | 验收条 | 实际 |
+|---|---|---|
+| 1 | 跑一场完整会话（open → 几轮 turn → close），日志里能 grep 到 `session_cost_summary` 这条 | ✅ 引擎后端闭环用例通过（`openSession` → `streamTurn` → `closeSession`） |
+| 2 | 数字加起来对得上：`totalTokens = totalPromptTokens + totalCompletionTokens` | ✅ 两条路径下都成立（输入侧不可得时它本就是 0，且 `total` 与 `completion` 同源） |
+| 3 | 定价走 env，改 env 后 `estimatedCostCny` 跟着变 | ✅ `resolveSessionCostPricing` + `estimateSessionCost` 用例覆盖（合法值生效 / 缺省走默认 / 非法值回退不抛） |
+| 4 | 不影响现有流程：closeSession 该干嘛干嘛，打日志是顺手的事，不阻断、不抛错 | ✅ 逐字稿定稿 + 摘要晋升照常；成本日志在句柄判定内，打完即删累加器 |
+
+**额外补的护栏**（原验收没写，但本单实际改了既有锁，必须记）：改了 WP6 的「渲染结果字段集合固定」零回归锁（加 `model` / `usage.promptTokens`）、放宽了 WP10 的源码切片窗口（900 → 1600）—— 详见交付记录 §3。
 
 ---
 

@@ -61,6 +61,7 @@ import {
 } from './engine.providers';
 import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from './engine.tokens';
 import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory';
+import { resolveSessionCostPricing } from '../observability/session-cost';
 import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe';
 import { LocalCrisisProbe } from './risk/local-crisis.probe';
 import { PsyGuardHealthChecker } from './risk/psyguard-health.checker';
@@ -262,7 +263,21 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
         frames: VoiceFrameRegistry,
         scriptResolver: TrajectoryScriptResolver,
         closeout: SessionCloseoutService,
-      ): EngineStreamBackend => createEngineStreamBackend({ engine, resolver, frames, scriptResolver, closeout }),
+        config: ConfigService,
+      ): EngineStreamBackend =>
+        createEngineStreamBackend({
+          engine,
+          resolver,
+          frames,
+          scriptResolver,
+          closeout,
+          // WP24: 成本单价走 env (定价表换版只改配置, 不发版).
+          //   解析口径在 `resolveSessionCostPricing` —— 非法值回退默认, 不抛.
+          pricing: resolveSessionCostPricing({
+            inputPer1k: config.get<string>('LLM_PRICE_INPUT_PER_1K'),
+            outputPer1k: config.get<string>('LLM_PRICE_OUTPUT_PER_1K'),
+          }),
+        }),
       // 帧出口注册表由 voice 侧的 @Global 模块提供; optional = 缺了只影响督导提示帧.
       // 剧本解析端口同理: optional = 缺了只影响伦理盲盒剧本, 不影响会话开合.
       // 收尾服务同理: optional = 缺了只影响逐字稿定稿 + 长时记忆, 不影响会话开合.
@@ -272,6 +287,7 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
         { token: VoiceFrameRegistry, optional: true },
         { token: TRAJECTORY_SCRIPT_RESOLVER, optional: true },
         { token: SessionCloseoutService, optional: true },
+        ConfigService,
       ],
     },
     {
