@@ -123,6 +123,11 @@ function buildRow(seed: CharacterProfileSeed, overrides: Partial<CharacterProfil
     underlyingDesires: seed.underlyingDesires.map((desire) => ({ ...desire })),
     forbiddenBehaviors: [...seed.forbiddenBehaviors],
     sensitiveTopics: [...seed.sensitiveTopics],
+    // WP10A: 表达风格三列 (纯预留, resolver 不读它们 —— 这里只补齐"真实行的形状",
+    //   取值与"种子表态了就用种子的值, 没表态就用 DB DEFAULT"一致).
+    speechVolumeBaseline: seed.speechVolumeBaseline ?? 0.5,
+    narrativeStyle: seed.narrativeStyle ?? 'mixed',
+    expressionTone: seed.expressionTone ?? 'restrained',
     auditStatus: 'approved',
     enabled: true,
     version: 1,

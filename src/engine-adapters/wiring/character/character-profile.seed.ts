@@ -32,13 +32,37 @@
 //     2. test/engine-adapters/wp9b-db-character-resolver.spec.ts 覆盖内容基线自检 + 与来访池对齐
 //     3. npm run seed:character-profiles → 4 行; 连跑两次行数不变
 //
+//   V2026-10-30 治本 (WP10A · 表达风格基线字段预留):
+//   职责: 给内容基线加 3 个**可选**表达风格字段 (话量基线 / 叙事风格 / 语态倾向),
+//         并把"种子明确表态的才写"这条口径落到灌库载荷上.
+//   边界: **只写内容, 不写消费** —— 字段不进内核 / 不进 RenderSpec / 不暴露前端.
+//         本轮只有"既有数据自己就写明了该特质"的角色才表态, 其余一律走 DB DEFAULT.
+//
+//   为什么是"可选 + 没表态就不出现" (而不是每个角色都显式写三个值):
+//     ① 默认值只有一处真相 (DDL 的 DEFAULT). seed 再抄一份 0.5/'mixed'/'restrained',
+//        两边迟早漂 (改了 DDL 忘了改 seed, 或反过来).
+//     ② TypeORM 语义天然支持: INSERT 时 undefined → `DEFAULT`; UPDATE 时 undefined →
+//        **整列跳过** (TypeORM UpdateQueryBuilder: "it doesn't make sense to update
+//        undefined properties"). 于是 Phase2 P1 在库里标定好的值, 不会被 seed 冲回默认.
+//     ③ "种子没表态"和"库里没这列"不是一回事 —— 列是 NOT NULL DEFAULT, 永远有值.
+//
+//   判定口径 (什么算"明确表态"):
+//     只认**该角色自己的既有数据** (模板 slug / 5Ps 文本) 是否明文写出了这个特质 ——
+//     不是我们对这些角色的主观印象. 本轮只有 slug 为 `*_intellectualization_*` 的两个角色
+//     (小满 / 亦舟) 填了 `expressionTone: 'intellectualizing'`; 其余留默认.
+//
+//   如何验证:
+//     1. npx tsc -p tsconfig.build.json --noEmit 0 错
+//     2. test/engine-adapters/wp10a-*.spec.ts 覆盖列定义 / migration 幂等 / 种子表态口径
+//     3. npm run seed:character-profiles → 4 行; 连跑两次行数不变
+//
 //   时间戳: 2026-10-29
 
 import { createHash } from 'node:crypto';
 
 import { type DataSource } from 'typeorm';
 
-import type { CharacterFivePs } from './character-profile.entity';
+import type { CharacterExpressionTone, CharacterFivePs, CharacterNarrativeStyle } from './character-profile.entity';
 import { CharacterProfileEntity } from './character-profile.entity';
 import type { AttachmentStyle, UnderlyingDesireSeed } from '../../../engine-core';
 
@@ -101,6 +125,24 @@ export interface CharacterProfileSeedSpec {
   readonly sensitiveTopics: readonly string[];
   /** 5Ps 专业材料 (人读, 不进内核). */
   readonly fivePs: CharacterFivePs;
+  /**
+   * 话量基线 [0,1] (WP10A · 表达风格预留).
+   *
+   * **缺省 = 走 DB DEFAULT 0.5** —— 种子不写自己没把握的值.
+   */
+  readonly speechVolumeBaseline?: number;
+  /**
+   * 叙事逻辑风格 (WP10A · 表达风格预留).
+   *
+   * **缺省 = 走 DB DEFAULT 'mixed'**.
+   */
+  readonly narrativeStyle?: CharacterNarrativeStyle;
+  /**
+   * 语态倾向 (WP10A · 表达风格预留).
+   *
+   * **缺省 = 走 DB DEFAULT 'restrained'**.
+   */
+  readonly expressionTone?: CharacterExpressionTone;
 }
 
 /**
@@ -160,6 +202,11 @@ export const CHARACTER_PROFILE_SEED_SPECS: readonly CharacterProfileSeedSpec[] =
       protective: '强执行力与持续投入的能力, 让他有资源把注意力放在"做得更好"上。',
       vulnerability: '长期靠外界评价确认自己, 一旦停止被肯定就失去支点。',
     },
+    // WP10A: 语态倾向. 判定口径 = **该角色自己的模板 slug 与 5Ps 文本是否明确写出了
+    //   这个特质** —— 本角色 slug 直接是 `..._intellectualization_...`, 5Ps 也写着
+    //   "用'我可以做得更好'压住被否定的感受" (以讲道理压感受). 这不是我们对角色的
+    //   主观印象, 是同一份既有数据的转写; 拿不准的一律留默认 (走 DB DEFAULT).
+    expressionTone: 'intellectualizing',
   },
   {
     templateId: 'vpt_workplace_intellectualization_l1',
@@ -185,6 +232,9 @@ export const CHARACTER_PROFILE_SEED_SPECS: readonly CharacterProfileSeedSpec[] =
       protective: '强执行力与可靠的自我管理, 让他能把局面稳住、继续把事情做好。',
       vulnerability: '长期缺少被肯定的体验, "求助即软弱"的信念让求助通道长期关闭。',
     },
+    // WP10A: 语态倾向. 判定口径同上 (小满): slug 直接是 `..._intellectualization_...`,
+    //   5Ps 写着"用讲道理替代表达情绪、把感受分析成问题清单" —— 理智化是既有数据的明文.
+    expressionTone: 'intellectualizing',
   },
   {
     templateId: 'vpt_grief_avoidance_l1',
@@ -231,6 +281,15 @@ export interface CharacterProfileSeed {
   readonly underlyingDesires: readonly UnderlyingDesireSeed[];
   readonly forbiddenBehaviors: readonly string[];
   readonly sensitiveTopics: readonly string[];
+  /**
+   * 表达风格三列 (WP10A · 纯预留).
+   *
+   * **缺省 = 不表态** (走 DB DEFAULT) —— 种子没说的列, 灌库时整列不出现,
+   * 存量行里的值 (Phase2 P1 标定过的) 也不会被 seed 冲掉.
+   */
+  readonly speechVolumeBaseline?: number;
+  readonly narrativeStyle?: CharacterNarrativeStyle;
+  readonly expressionTone?: CharacterExpressionTone;
 }
 
 /**
@@ -319,6 +378,10 @@ function validateSeedRanges(spec: CharacterProfileSeedSpec): string | null {
   if (Math.abs(spec.emotion.arousal) > 1) {
     return `角色 ${spec.templateId} 的情绪唤醒越界: ${spec.emotion.arousal}`;
   }
+  // WP10A: 话量基线 ∈ [0,1] (只在该角色明确表态时才校验 —— 没表态就没有值可越界).
+  if (spec.speechVolumeBaseline !== undefined && (spec.speechVolumeBaseline < 0 || spec.speechVolumeBaseline > 1)) {
+    return `角色 ${spec.templateId} 的话量基线越界: ${spec.speechVolumeBaseline}`;
+  }
   return null;
 }
 
@@ -360,6 +423,10 @@ export function buildCharacterProfileSeeds(sources: readonly VisitorTemplateBeli
       underlyingDesires: spec.underlyingDesires.map((desire) => ({ ...desire })),
       forbiddenBehaviors: [...spec.forbiddenBehaviors],
       sensitiveTopics: [...spec.sensitiveTopics],
+      // 表达风格三列: 只在基线**明确表态**时才带上 (没表态 = 不出现 = 走 DB DEFAULT).
+      ...(spec.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: spec.speechVolumeBaseline }),
+      ...(spec.narrativeStyle === undefined ? {} : { narrativeStyle: spec.narrativeStyle }),
+      ...(spec.expressionTone === undefined ? {} : { expressionTone: spec.expressionTone }),
     };
   });
 }
@@ -452,6 +519,10 @@ function toEntityPayload(seed: CharacterProfileSeed): {
   readonly underlyingDesires: UnderlyingDesireSeed[];
   readonly forbiddenBehaviors: string[];
   readonly sensitiveTopics: string[];
+  /** 表达风格三列 (WP10A; 缺省 = 不出现 → INSERT 走 DB DEFAULT / UPDATE 整列不碰). */
+  readonly speechVolumeBaseline?: number;
+  readonly narrativeStyle?: CharacterNarrativeStyle;
+  readonly expressionTone?: CharacterExpressionTone;
 } {
   return {
     templateId: seed.templateId,
@@ -468,6 +539,12 @@ function toEntityPayload(seed: CharacterProfileSeed): {
     underlyingDesires: seed.underlyingDesires.map((desire) => ({ ...desire })),
     forbiddenBehaviors: [...seed.forbiddenBehaviors],
     sensitiveTopics: [...seed.sensitiveTopics],
+    // 表达风格三列: **只写种子自己拿得准的** ——
+    //   没给 → 整列不出现 (TypeORM: INSERT 写 DEFAULT / UPDATE 跳过 undefined),
+    //   于是默认值只有 DDL 一处真相, 也不存在"seed 把库里标定好的值冲回默认"的路径.
+    ...(seed.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: seed.speechVolumeBaseline }),
+    ...(seed.narrativeStyle === undefined ? {} : { narrativeStyle: seed.narrativeStyle }),
+    ...(seed.expressionTone === undefined ? {} : { expressionTone: seed.expressionTone }),
   };
 }
 
@@ -495,6 +572,11 @@ function hasDrift(row: CharacterProfileEntity, payload: ReturnType<typeof toEnti
   if (canonicalJson(row.underlyingDesires) !== canonicalJson(payload.underlyingDesires)) return true;
   if (canonicalJson(row.forbiddenBehaviors) !== canonicalJson(payload.forbiddenBehaviors)) return true;
   if (canonicalJson(row.sensitiveTopics) !== canonicalJson(payload.sensitiveTopics)) return true;
+  // 表达风格三列 (WP10A): **只在种子给了值时才算漂移** ——
+  //   种子没表态的行, 库里是什么就是什么 (Phase2 P1 标定过的值不该被 seed 冲回默认).
+  if (payload.speechVolumeBaseline !== undefined && row.speechVolumeBaseline !== payload.speechVolumeBaseline) return true;
+  if (payload.narrativeStyle !== undefined && row.narrativeStyle !== payload.narrativeStyle) return true;
+  if (payload.expressionTone !== undefined && row.expressionTone !== payload.expressionTone) return true;
   return false;
 }
 

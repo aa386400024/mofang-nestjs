@@ -124,5 +124,11 @@ export { AddCharacterProfiles1714900000023 } from './1714900000023-AddCharacterP
 // V2026-10-29 治本 (WP19 — training_sessions 加 turn_debug_trace JSON 列):
 //   每轮 BDI 调试快照数组, 会话关闭时 flush. 调试器 SPA 只读.
 export { AddTurnDebugTrace1714900000024 } from './1714900000024-AddTurnDebugTrace';
+// V2026-10-30 治本 (WP10A — character_profiles 加 3 列表达风格基线字段):
+//   speech_volume_baseline (FLOAT, 默认 0.5) + narrative_style (VARCHAR(20), 默认 'mixed')
+//   + expression_tone (VARCHAR(20), 默认 'restrained').
+//   纯预留: 不进内核 / 不进 RenderSpec / 不暴露前端; 存量行由 DEFAULT 自动填充, 无需 UPDATE.
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
+export { AddCharacterProfileExpressionFields1714900000025 } from './1714900000025-AddCharacterProfileExpressionFields';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).
