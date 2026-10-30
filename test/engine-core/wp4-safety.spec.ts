@@ -260,7 +260,9 @@ describe('WP4 · 伦理安全引擎', () => {
         timeoutMs: 0,
       });
       expect(verdict.level).toBe('pass');
-      expect(DEFAULT_PROBE_TIMEOUT_MS).toBe(150);
+      // ⚠️ 临时值 500 (WP11 审核后决策 #4: 测试阶段放宽预算) —— M3 内测前改回 150.
+      //   改的是内核常量, 断言必须跟着改, 否则这条测试就成了"把临时值钉死"的锁.
+      expect(DEFAULT_PROBE_TIMEOUT_MS).toBe(500);
     });
   });
 

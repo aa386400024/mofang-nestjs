@@ -49,16 +49,26 @@ import { CharacterPoolModule } from './character/character-pool.module';
 import { EngineStreamBackend } from './engine-stream-backend.adapter';
 import { EngineSessionRegistry, EngineTurnService } from './engine-turn.service';
 import { EngineWiringController } from './engine-wiring.controller';
-import { createEngineMemoryStore, createEngineOrchestrator, createEngineSessionPort, createEngineStreamBackend } from './engine.providers';
+import {
+  createEngineMemoryStore,
+  createEngineOrchestrator,
+  createEngineSessionPort,
+  createEngineStreamBackend,
+  createRiskProbe,
+  createVisitorOutputProbe,
+} from './engine.providers';
 import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from './engine.tokens';
 import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory';
+import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe';
 import { LocalCrisisProbe } from './risk/local-crisis.probe';
+import { PsyGuardHealthChecker } from './risk/psyguard-health.checker';
+import { RISK_PROBE } from './risk/risk-probe.token';
 import { RouterChatCaller } from './router-chat-caller';
 import { StaticTrajectoryScriptResolver, TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory';
 import { AdminDebugModule } from '../../admin-debug/admin-debug.module';
 import { AIEngineModule } from '../../ai-engine/ai-engine.module';
 import { QdrantService } from '../../ai-engine/providers/qdrant.service';
-import type { EngineSessionPort, MemoryStore } from '../../engine-core';
+import type { EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core';
 import { LlmModule } from '../../llm/llm.module';
 import { LlmRouterService } from '../../llm/registry/llm-router.service';
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
@@ -94,6 +104,30 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
     EngineSessionRegistry,
     // 本地危机探测器 (内核 WP4 的 RiskProbePort 扩展点; 将来换 PsyGUARD 服务换这一处).
     LocalCrisisProbe,
+    // V2026-10-30 (WP11): 风险探测端口 —— **按 env 分流, 两者不叠加**:
+    //   配了 PSYGUARD_BASE_URL → HttpPsyGuardProbe (打独立仓库的 PsyGUARD Python 服务);
+    //   没配                  → LocalCrisisProbe (现状不变, 行为逐字一致).
+    //   为什么要抽成 token: 探测器是**可替换能力**, 装配层决定装哪个, 内核只认端口.
+    //   ⚠️ 这两个 env 读取必须走 ConfigService (它读的是 process.env 的同一份),
+    //   且数值要自己解析 —— ConfigService.get<number>() 拿到的是字符串 (WP9-B 踩过).
+    {
+      provide: RISK_PROBE,
+      useFactory: (config: ConfigService, local: LocalCrisisProbe): RiskProbePort =>
+        createRiskProbe({
+          baseUrl: config.get<string>('PSYGUARD_BASE_URL') ?? '',
+          timeoutMs: resolvePsyGuardTimeoutMs(config.get<string>('PSYGUARD_TIMEOUT_MS')),
+          fallback: local,
+        }),
+      inject: [ConfigService, LocalCrisisProbe],
+    },
+    // V2026-10-30 (WP11): PsyGUARD 服务启动自检 —— 启动时探一次 /health,
+    //   失败/不可达/模型未加载都**只记 warn, 不阻断启动** (探测器是可选增强).
+    {
+      provide: PsyGuardHealthChecker,
+      useFactory: (config: ConfigService): PsyGuardHealthChecker =>
+        new PsyGuardHealthChecker({ baseUrl: (config.get<string>('PSYGUARD_BASE_URL') ?? '').trim() }),
+      inject: [ConfigService],
+    },
     // 向量化适配器 (Qdrant 长时记忆写入需要). 走 useFactory: 它的第 2 个构造参数
     // 带默认值, Nest 直接 new 会把 Object 当成待注入依赖而报错.
     {
@@ -113,19 +147,37 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
       inject: [ConfigService, QdrantService, OpenAICompatEmbedder],
     },
     // 渲染端口 (WP6 适配器 + WP7 prompt 缝 + WP6 输出 guard + WP8-B 前置预检).
+    // V2026-10-30 (WP11 审核后决策 #3): 输出侧 guard 接入 **PsyGUARD 探测器** ——
+    //   PsyGUARD 正是在"来访者话语"上训练的 (论文语料 = 微博/知乎/壹心理的用户表达),
+    //   而渲染出来的文本就是 AI 扮演的来访者/学员角色的台词 —— 这是模型最该用的地方.
+    //   ⚠️ 输出侧只接 **HTTP 探测器**, 不接 `LocalCrisisProbe`:
+    //   后者的补充词表 (`我想死` / `死了算了` …) 是按咨询师输入面收的, 类别映射到
+    //   high → block, 而 AI 角色**本来就要**说痛苦的话 (那就是训练素材) ——
+    //   接上去等于角色说一句"我想死"就被拦下重生成并降级, 把训练场景换掉.
+    //   没配 `PSYGUARD_BASE_URL` 时输出侧**不接探测**, 维持现状 (只有内核规则层).
     {
       provide: ENGINE_RENDER_PORT,
-      useFactory: (caller: RouterChatCaller, configFactory: RenderConfigFactory): StreamingRenderPort =>
-        buildEngineRenderPort(caller, configFactory.build()),
-      inject: [RouterChatCaller, RenderConfigFactory],
+      useFactory: (caller: RouterChatCaller, configFactory: RenderConfigFactory, config: ConfigService): StreamingRenderPort =>
+        buildEngineRenderPort(
+          caller,
+          configFactory.build(),
+          createVisitorOutputProbe({
+            baseUrl: config.get<string>('PSYGUARD_BASE_URL') ?? '',
+            timeoutMs: resolvePsyGuardTimeoutMs(config.get<string>('PSYGUARD_TIMEOUT_MS')),
+          }),
+        ),
+      inject: [RouterChatCaller, RenderConfigFactory, ConfigService],
     },
     // 内核会话: BDI 状态用内存仓储 (落库仓储属后续轮), 记忆用上面的同一实例.
     // V2026-10-29 治本 (WP9-C): 注入本地危机探测器 (内核 WP4 的 RiskProbePort 扩展点) ——
     //   没有它, 咨询师输入面的危机语言在内核眼里是干净的, 危机轮次路由与督导提示都无从触发.
+    // V2026-10-30 (WP11): 注入点从具体实现 (LocalCrisisProbe) 换成**端口 token**
+    //   (RISK_PROBE) —— 装 HttpPsyGuardProbe 还是 LocalCrisisProbe 由 env 决定,
+    //   注入点零改动 (换探测器 = 改那一处 useFactory).
     {
       provide: ENGINE_SESSION_PORT,
-      useFactory: (memories: MemoryStore, probe: LocalCrisisProbe) => createEngineSessionPort(memories, probe),
-      inject: [ENGINE_MEMORY_STORE, LocalCrisisProbe],
+      useFactory: (memories: MemoryStore, probe: RiskProbePort) => createEngineSessionPort(memories, probe),
+      inject: [ENGINE_MEMORY_STORE, RISK_PROBE],
     },
     // 装配门面 (WP7): 接上归属解析缝 (多会话, 不传固定 sessionContext).
     {

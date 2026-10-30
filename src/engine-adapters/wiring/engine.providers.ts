@@ -40,6 +40,8 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
 import type { CharacterProfileResolver } from './character/character-profile.resolver';
 import { EngineStreamBackend } from './engine-stream-backend.adapter';
 import type { EngineTurnService } from './engine-turn.service';
+import { HttpPsyGuardProbe } from './risk/http-psyguard.probe';
+import { LocalCrisisProbe } from './risk/local-crisis.probe';
 import type { TrajectoryScriptResolver } from './trajectory/script-resolver';
 import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
 
@@ -142,6 +144,99 @@ export interface EngineStreamBackendDeps {
    * 与角色解析端口**同款语义**: 可选增强, 装配缺席 ≠ 会话开不起来.
    */
   readonly scriptResolver?: TrajectoryScriptResolver;
+}
+
+/**
+ * 风险探测装配入参.
+ */
+export interface RiskProbeDeps {
+  /** PsyGUARD 服务地址 (空 / 缺省 = 不用 HTTP 探测, 走本地规则). */
+  readonly baseUrl?: string;
+  /** HTTP 探测超时 (ms; 缺省 = 内核 DEFAULT_PROBE_TIMEOUT_MS). */
+  readonly timeoutMs?: number;
+  /** 本地规则探测器 (回落用; 缺省 = 新建一个 LocalCrisisProbe). */
+  readonly fallback?: RiskProbePort;
+}
+
+/**
+ * 是否启用了 PsyGUARD 服务 (分流依据的**唯一**真相).
+ *
+ * 为什么单独抽出来: 分流这条规则现在被**两个**装配点用到 ——
+ * 咨询师输入侧 (`RISK_PROBE`) 与来访输出侧 (`createVisitorOutputProbe`).
+ * 两处各写一遍 `(baseUrl ?? '').trim()` 判空, 迟早有一处先改、另一处后改,
+ * 于是"配没配服务"在两侧口径不一致 —— 这种不一致只在运行时才炸.
+ *
+ * @param baseUrl env 里的服务地址 (可能 undefined / 空白)
+ * @returns 配了地址则 true
+ */
+export function isPsyGuardConfigured(baseUrl: string | undefined): boolean {
+  return (baseUrl ?? '').trim().length > 0;
+}
+
+/**
+ * 装配风险探测端口 (WP11).
+ *
+ * **分流依据只有一个: 配没配服务地址**:
+ *   配了 → `HttpPsyGuardProbe` (打独立仓库的 PsyGUARD Python 服务);
+ *   没配 → `LocalCrisisProbe` (本地规则, 行为与 WP9-C 逐字一致).
+ *
+ * **两者不叠加**: 一个 session 只用一个探测端口. 叠加意味着同一条文本判两遍,
+ * 等级取高 —— 那会让"服务偶发误报"直接变成"永远按高危走", 且双倍延迟.
+ *
+ * 为什么做成**纯函数**而不是写在 `@Module` 的 useFactory 里:
+ *   同本文件其它工厂的理由 —— useFactory 里的代码单测覆盖不到, "装哪个探测器"
+ *   这件事就只能等启动时炸. 纯函数能直接断言分流口径.
+ *
+ * @param deps 装配入参
+ * @returns 风险探测端口实现
+ */
+export function createRiskProbe(deps: RiskProbeDeps): RiskProbePort {
+  const fallback = deps.fallback ?? new LocalCrisisProbe();
+  const baseUrl = (deps.baseUrl ?? '').trim();
+  if (!baseUrl) return fallback;
+  return new HttpPsyGuardProbe({
+    baseUrl,
+    ...(deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs }),
+  });
+}
+
+/**
+ * 装配**来访输出侧**的探测端口 (WP11 审核后决策 #3).
+ *
+ * 为什么要单列一个工厂, 而不是直接复用 `RISK_PROBE` 那个端口:
+ *   两侧的**误报代价不对称**.
+ *   - 咨询师输入侧 (`counselor_input`): 文本是**咨询师(user)说的话** ——
+ *     危机词在这里是真信号, 本地词典 (`LocalCrisisProbe`) 是对味的.
+ *   - 来访输出侧 (`visitor_output`): 文本是**AI 扮演的来访者/学员角色的台词** ——
+ *     在这个产品里, 角色**本来就要**说痛苦的话 (那就是训练素材).
+ *     而 `LocalCrisisProbe` 的补充词表 (`我想死` / `死了算了` / `我要结束自己` …)
+ *     是按**咨询师输入面**收的, 类别映射到 high → **block**;
+ *     内核来访侧词典恰恰**没收**这些词 (只有 `我要自杀` / `我要去死` 那几条).
+ *     所以把它接到输出侧 = AI 角色说一句"我想死"就被判 block →
+ *     聚合路径重生成 → 仍 block → **降级成通用兜底句** → **训练场景被换掉**.
+ *   而 PsyGUARD 正是**在来访者话语上训练**的 (论文语料: 微博/知乎/壹心理的用户表达),
+ *   它判的是"这句话本身有没有风险", 与"这是不是角色台词"无关 —— 这才是该侧该用的探测器.
+ *
+ * 所以口径是:
+ *   配了 `PSYGUARD_BASE_URL` → 输出侧接 **PsyGUARD 探测器**;
+ *   没配                     → 输出侧**不接探测** (维持现状: 只有内核规则层).
+ *
+ * 没配时维持现状还有一个好处: WP11 承诺过"没配 env → 行为逐字一致",
+ * 这条承诺在输出侧也保住了 (否则本工厂会把"本地词典"偷偷扩散到输出侧).
+ *
+ * 超时: **不显式传** —— 让它继承内核 `DEFAULT_PROBE_TIMEOUT_MS`.
+ * 这样 M3 内测把那个常量改回 150 时, 输出侧**自动跟着回**, 只有一个回改点.
+ *
+ * @param deps 装配入参
+ * @returns 探测器; 没配服务地址 → undefined (该侧不接探测)
+ */
+export function createVisitorOutputProbe(deps: RiskProbeDeps): RiskProbePort | undefined {
+  if (!isPsyGuardConfigured(deps.baseUrl)) return undefined;
+  const baseUrl = (deps.baseUrl ?? '').trim();
+  return new HttpPsyGuardProbe({
+    baseUrl,
+    ...(deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs }),
+  });
 }
 
 /**

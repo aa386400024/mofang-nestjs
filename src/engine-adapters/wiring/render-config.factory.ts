@@ -27,7 +27,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import type { RenderTaskKind } from '../../engine-core';
+import type { RenderTaskKind, RiskProbePort } from '../../engine-core';
 import { AIProviderId, LLMTier } from '../../llm/common/enums/llm.enums';
 import type { ChatReasoningEffort } from '../../llm/common/interfaces/chat-provider.interface';
 import { LlmRouterService } from '../../llm/registry/llm-router.service';
@@ -219,9 +219,10 @@ export class RenderConfigFactory {
  *
  * @param caller 调用出口
  * @param config 渲染配置
+ * @param probe 可选的来访输出侧探测器 (WP11 审核后决策 #3; 缺省 = 该侧不接探测)
  * @returns 渲染适配器依赖
  */
-export function buildEngineRenderDeps(caller: ChatCaller, config: RenderAdapterConfig): LlmRenderAdapterDeps {
+export function buildEngineRenderDeps(caller: ChatCaller, config: RenderAdapterConfig, probe?: RiskProbePort): LlmRenderAdapterDeps {
   const logger = new Logger('EngineRenderPort');
   return {
     caller,
@@ -229,7 +230,9 @@ export function buildEngineRenderDeps(caller: ChatCaller, config: RenderAdapterC
     // WP7 留给本期的 prompt 缝: 来访视角的中文 system 模板 + 角色映射.
     buildMessages: buildVisitorMessages,
     // 输出侧伦理校验: 复用内核 WP4 的 guardVisitorOutput (两侧口径永远一致).
-    guard: createVisitorOutputGuard(),
+    // ⚠️ **不显式传 timeoutMs**: 让它继承内核 DEFAULT_PROBE_TIMEOUT_MS ——
+    //   M3 内测把那个常量改回 150ms 时, 这一侧自动跟着回, 只有一个回改点.
+    guard: createVisitorOutputGuard(probe ? { probe } : undefined),
     // WP8-B 前置静态预检 (流式专用): 复用内核同一套来访侧规则, 只看 RenderSpec,
     // 不调模型 —— 流式已出声不可撤回, 所以开口前先判一次.
     precheck: createVisitorPrecheck(),
@@ -246,8 +249,9 @@ export function buildEngineRenderDeps(caller: ChatCaller, config: RenderAdapterC
  *
  * @param caller 调用出口
  * @param config 渲染配置
+ * @param probe 可选的来访输出侧探测器 (WP11 审核后决策 #3; 缺省 = 该侧不接探测)
  * @returns 渲染端口 (带流式扩展)
  */
-export function buildEngineRenderPort(caller: ChatCaller, config: RenderAdapterConfig): StreamingRenderPort {
-  return new LlmRenderAdapter(buildEngineRenderDeps(caller, config));
+export function buildEngineRenderPort(caller: ChatCaller, config: RenderAdapterConfig, probe?: RiskProbePort): StreamingRenderPort {
+  return new LlmRenderAdapter(buildEngineRenderDeps(caller, config, probe));
 }

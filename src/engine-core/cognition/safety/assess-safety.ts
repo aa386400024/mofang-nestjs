@@ -44,8 +44,35 @@ import {
  * 探测超时 (工程种子值: 本地 / 内网探测的经验上限, 非标定).
  *
  * 后期按真实 Python 服务的 P99 延迟校准, 集中为常量便于调.
+ *
+ * ⚠️⚠️⚠️ **临时值 500ms —— M3 内测前必须改回 150ms** ⚠️⚠️⚠️
+ *
+ * 改动缘由 (2026-10-30 · WP11 审核后的用户决策 #4):
+ *   测试阶段**只有一个人用**, 准确率优先于延迟 → 把服务侧 token 窗口从 28 放宽到 256,
+ *   同时把探测超时放宽, 让长文本也能拿到模型判定.
+ *
+ *   为什么必须"改回":
+ *   1. 500 是**为测试让路的**, 不是标定出来的工程值 —— 真机 BERT-large int8 的
+ *      token 成本 ≈ 9.9ms + 3.34ms/token, 28 token 稳在 ~104ms, 256 token 要 ~650ms
+ *      (2.0 核) —— 也就是说 500ms 只够覆盖到 ~145 token, 真正要"不牺牲准确率"得
+ *      回到**更快的硬件或更小的模型**, 而不是把超时调大 (见 mofang-psyguard 的
+ *      `scripts/exp_window_caps.py` 横评).
+ *   2. 超时是**每轮**的同步等待: 内核这层 `Promise.race` 掐断后, 适配层的 HTTP 连接
+ *      仍在后台跑完 (内核不取消探测). 500ms 意味着**服务不可达时每轮多等 500ms**,
+ *      不是"最多等 500ms".
+ *   3. M3 内测是**多人**场景 —— 延迟预算与并发下的公平性都按 150ms 设计过.
+ *
+ * **回改清单 (M3 内测前, 一次性做完, 跨两个仓库 6 处)**:
+ *   - 本常量: 500 → 150
+ *   - `src/engine-adapters/wiring/risk/http-psyguard.probe.ts` 的 `timeoutMs` 默认值
+ *     是从本常量派生的 → **无需另改** (这是刻意的: 只留一个回改点).
+ *   - `.env.example` 的 `PSYGUARD_TIMEOUT_MS`: 500 → 150
+ *   - `mofang-psyguard/docker-compose.yml` 的 `PSYG_MAX_LENGTH`: 256 → 28
+ *   - `mofang-psyguard/classifier.py` 的 `DEFAULT_MAX_LENGTH`: 256 → 28
+ *   - `mofang-psyguard/tests/test_classifier.py` 里对默认窗口的断言: 256 → 28
+ *   - `test/engine-core/wp4-safety.spec.ts` 里对本常量的断言: 500 → 150
  */
-export const DEFAULT_PROBE_TIMEOUT_MS = 150;
+export const DEFAULT_PROBE_TIMEOUT_MS = 500;
 
 /**
  * 安全编排入参.
