@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 // V2026-10-28 治本 (WP8-A · B 层 · 引擎装配层单测):
 //   覆盖任务单 §8 单测清单 1-9:
 //     1. 调用出口透传 → RouterChatCaller 把 req / providerId 原样交给 router.chat, 响应原样返回
@@ -372,7 +373,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
     it('close 后 forgetSession / closeSession 被调, 归属条目被删', () => {
       const { service, registry, orchestrator, session } = buildService({});
       service.open({ sessionId: SESSION, tenantId: TENANT, visitorId: VISITOR });
-      const forgetSpy = jest.spyOn(orchestrator, 'forgetSession');
+      const forgetSpy = vi.spyOn(orchestrator, 'forgetSession');
 
       service.close(HANDLE_ID);
 
@@ -399,7 +400,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
     it('内核 close 抛错时归属仍被清掉 (finally 保证不残留)', () => {
       const { service, registry, session } = buildService({});
       service.open({ sessionId: SESSION, tenantId: TENANT, visitorId: VISITOR });
-      jest.spyOn(session, 'closeSession').mockImplementation(() => {
+      vi.spyOn(session, 'closeSession').mockImplementation(() => {
         throw new Error('内核关闭失败');
       });
 
@@ -613,14 +614,14 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
   // ── 附加 B: 调试端点 ─────────────────────────────────────────────
   describe('附加 B · 调试端点 (错误映射 + 角色内核净化)', () => {
     /** 造一个只按脚本抛错的门面替身. */
-    function stubService(openError?: Error): { open: jest.Mock; turn: jest.Mock; close: jest.Mock } {
+    function stubService(openError?: Error): { open: vi.Mock; turn: vi.Mock; close: vi.Mock } {
       return {
-        open: jest.fn(() => {
+        open: vi.fn(() => {
           if (openError) throw openError;
           return { handleId: HANDLE_ID, sessionId: SESSION };
         }),
-        turn: jest.fn(),
-        close: jest.fn(),
+        turn: vi.fn(),
+        close: vi.fn(),
       };
     }
 
@@ -720,3 +721,4 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
     });
   });
 });
+

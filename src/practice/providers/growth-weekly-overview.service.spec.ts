@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * V2026-09-14 治本 (Stage C 后端契约): GrowthWeeklyOverviewService 单测.
  *
@@ -9,7 +10,7 @@
  *
  * 设计 (大厂 service 单测):
  *   - 不连 DB (V1.0 走 in-memory 默认), 纯 service 单测
- *   - 失败路径用 jest.spyOn mock aggregateKpis 抛错
+ *   - 失败路径用 vi.spyOn mock aggregateKpis 抛错
  *   - 覆盖 happy path + 错误兜底
  *
  * 反双胞胎:
@@ -115,7 +116,7 @@ describe('V2026-09-14 GrowthWeeklyOverviewService — 单测', () => {
   describe('error path: aggregateKpis 内部抛错 → BizException', () => {
     it('聚合异常 → 转 BizException(40_004, 500)', async () => {
       // V2026-09-14 治本: spyOn mock 内部 aggregateKpis 抛错, 验证 service 兜底.
-      const spy = jest.spyOn(service as unknown as WeeklyKpiSource, 'aggregateKpis');
+      const spy = vi.spyOn(service as unknown as WeeklyKpiSource, 'aggregateKpis');
       spy.mockRejectedValue(new Error('DB 连接失败'));
 
       // V2026-10-24 治本 (断言口径对齐 BizException 的公开契约: code + getStatus()).
@@ -129,7 +130,7 @@ describe('V2026-09-14 GrowthWeeklyOverviewService — 单测', () => {
       // V2026-09-14 治本: catch 块有 if (err instanceof BizException) throw err,
       //   防止内层 BizException 被外层重新包装 (code 错乱).
       const innerErr = new BizException(BizCode.GrowthWeeklyOverviewFetchFail, 'inner');
-      const spy = jest.spyOn(service as unknown as WeeklyKpiSource, 'aggregateKpis');
+      const spy = vi.spyOn(service as unknown as WeeklyKpiSource, 'aggregateKpis');
       spy.mockRejectedValue(innerErr);
 
       // 验证 message 是 inner 的 (未被外层 wrap 改 message).
@@ -141,3 +142,4 @@ describe('V2026-09-14 GrowthWeeklyOverviewService — 单测', () => {
     });
   });
 });
+

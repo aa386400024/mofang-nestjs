@@ -10,18 +10,10 @@ import {
 } from '../../counselor/config/supervision.config';
 
 export const config = {
-  db: {
-    // entities: [`${__dirname}/../../entity/**/*.{js,ts}`],
-    // subscribers: [`${__dirname}/../../subscriber/**/*.{js,ts}`],
-    // migrations: [`${__dirname}/../../migration/**/*.{js,ts}`],
-  },
+  db: {},
   graphql: {
     debug: true,
-    playground: {
-      settings: {
-        'request.credentials': 'include',
-      },
-    },
+    graphiql: true,
     autoSchemaFile: true,
     autoTransformHttpErrors: true,
     // cors: { credentials: true },

@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /* eslint-disable new-cap, prettier/prettier,
    max-len, import/order, sonarjs/assertions-in-tests, jest/no-disabled-tests, prefer-const */
 
@@ -26,7 +27,7 @@
 //     - 不应用 @RequirePrivacyLevel 到现有 controller (V2026-10-15 5 段治本"反双胞胎"
 //       明确"留 V1.x", e2e 验证 guard 基础行为 = VS-4 当前 scope)
 //     - 不写完整 Express Request mock (e2e 阶段不需要, 用 Partial<Request> stub 够)
-//     - 不 mock Logger 内部调用 (jest.spyOn(logger, 'logL3Access') 直接 spy 实际方法,
+//     - 不 mock Logger 内部调用 (vi.spyOn(logger, 'logL3Access') 直接 spy 实际方法,
 //       实际方法仍执行 NestJS Logger.log() 但不影响断言)
 //   验证: 大炮跑 npx tsc -p tsconfig.build.json --noEmit 0 error + pnpm test:e2e
 //     -- privacy-guard 全过 (5 describe + 6 it 全绿).
@@ -55,7 +56,7 @@ import { PrivacyLogger } from '../../src/common/privacy/privacy-logger.service';
 //     到 Record<string, unknown>, 内部 as unknown as Request 强转, 跟 V3.1 §1 VS-3e
 //     e2e mock 简化 culture "mock 精度满足调用链即可" 一致.
 //   反双胞胎: 不补全 User entity 全字段 (mock 越全越脆, e2e 不应依赖 entity 完整 schema),
-//             不用 jest.MockedFunction 包装 (over-engineering, unit-test 风格不必要).
+//             不用 vi.MockedFunction 包装 (over-engineering, unit-test 风格不必要).
 function buildMockContext(req: Record<string, unknown>): ExecutionContext {
   return {
     switchToHttp: () => ({
@@ -76,13 +77,13 @@ function buildMockContext(req: Record<string, unknown>): ExecutionContext {
 // Test helper: new PrivacyGuard with mocked Reflector + spied PrivacyLogger
 function buildGuard(privacyLevel: PrivacyLevel | undefined): {
   guard: PrivacyGuard;
-  logSpy: jest.SpyInstance;
+  logSpy: vi.SpyInstance;
 } {
   const reflector = {
-    getAllAndOverride: jest.fn().mockReturnValue(privacyLevel),
+    getAllAndOverride: vi.fn().mockReturnValue(privacyLevel),
   } as unknown as Reflector;
   const logger = new PrivacyLogger();
-  const logSpy = jest.spyOn(logger, 'logL3Access');
+  const logSpy = vi.spyOn(logger, 'logL3Access');
   const guard = new PrivacyGuard(reflector, logger);
   return { guard, logSpy };
 }
@@ -189,3 +190,4 @@ describe('PrivacyGuard (VS-4 e2e 收尾, V2026-10-15 治本)', () => {
     });
   });
 });
+

@@ -8,8 +8,7 @@
     "target": "es2024",
     "module": "commonjs",
     "moduleResolution": "node",
-    "types": ["node", "jest"],
-    "ignoreDeprecations": "6.0",
+    "types": ["node"],
     "declaration": true,
     "newLine": "lf",
     "strict": true,
@@ -29,7 +28,8 @@
     // https://github.com/Microsoft/TypeScript/issues/2577
     "emitDecoratorMetadata": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "ignoreDeprecations": "6.0"
   },
   "include": ["typings/global.d.ts", "src/**/*", "test/**/*", "bin/**/*"],
   "exclude": ["node_modules"]

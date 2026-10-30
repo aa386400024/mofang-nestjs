@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 // V2026-10-30 治本 (WP12 · 记忆收尾 + 跨会话 resume 接线单测):
 //   覆盖任务单 §3 验收 1-6 与 §3.9 的四种场景:
 //     ① resume 成功        → engine.open 收到 resumeFromSessionId
@@ -446,7 +447,7 @@ describe('WP12 · Qdrant 写侧冲突标记 (supersededBy)', () => {
     ...overrides,
   });
 
-  const embedder = { embed: jest.fn(async () => [0.1, 0.2]) };
+  const embedder = { embed: vi.fn(async () => [0.1, 0.2]) };
 
   it('④ 新条目更晚 → 旧点被标 supersededBy (不物理删除)', async () => {
     const qdrant = new StubQdrant();
@@ -553,7 +554,7 @@ describe('WP12 · 摘要生成 (解析与提示词)', () => {
 
   it('模型名 env 优先, 否则问 router 的 RAG 分层', () => {
     const router = {
-      getDefaultModelForTier: jest.fn(() => 'deepseek-chat'),
+      getDefaultModelForTier: vi.fn(() => 'deepseek-chat'),
     } as unknown as LlmRouterService;
     expect(resolveSummaryModel(' my-model ', router)).toBe('my-model');
     expect(resolveSummaryModel(undefined, router)).toBe('deepseek-chat');
@@ -614,13 +615,13 @@ describe('WP12 · 逐字稿定稿写入 (业务侧桥)', () => {
 
     const saved: { transcript: unknown[] }[] = [];
     const repo = {
-      findOne: jest.fn(async () => ({
+      findOne: vi.fn(async () => ({
         id: 'db-1',
         userId: USER,
         status: 'listening',
         transcript: [{ id: 'old', role: ChatRole.COUNSELOR, text: '旧的一轮', timestamp: 1 }],
       })),
-      save: jest.fn(async (row: { transcript: unknown[] }) => {
+      save: vi.fn(async (row: { transcript: unknown[] }) => {
         saved.push(row);
         return row;
       }),
@@ -649,8 +650,8 @@ describe('WP12 · 逐字稿定稿写入 (业务侧桥)', () => {
     const { VptSessionBridgeService } = await import('../../src/counselor/providers/vpt-session-bridge.service');
 
     const repo = {
-      findOne: jest.fn(async () => ({ id: 'db-1', userId: USER, status: 'finished', transcript: [{ id: 'old' }] })),
-      save: jest.fn(async (row: unknown) => row),
+      findOne: vi.fn(async () => ({ id: 'db-1', userId: USER, status: 'finished', transcript: [{ id: 'old' }] })),
+      save: vi.fn(async (row: unknown) => row),
     };
 
     const service = new VptSessionBridgeService(
@@ -670,8 +671,8 @@ describe('WP12 · 逐字稿定稿写入 (业务侧桥)', () => {
     const { VptSessionBridgeService } = await import('../../src/counselor/providers/vpt-session-bridge.service');
 
     const repo = {
-      findOne: jest.fn(async () => null),
-      save: jest.fn(async (row: unknown) => row),
+      findOne: vi.fn(async () => null),
+      save: vi.fn(async (row: unknown) => row),
     };
 
     const service = new VptSessionBridgeService(
@@ -685,3 +686,4 @@ describe('WP12 · 逐字稿定稿写入 (业务侧桥)', () => {
     await expect(service.replaceTranscript({ dbSessionId: 'db-x', userId: USER, turns: turns() })).rejects.toThrow('落库会话不存在');
   });
 });
+

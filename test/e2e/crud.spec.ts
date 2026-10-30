@@ -7,6 +7,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { Test } from '@nestjs/testing';
 import supertest from 'supertest';
+import { afterAll, beforeAll, expect, test } from 'vitest';
 
 import { AppModule } from '../../src/app.module';
 // V2026-10-14 治本 (VS-3e 关联 — crud e2e 加 WsAdapter 跟 v2-user-flow + gql + jwt-auth + local-auth + src/app.ts 一致):

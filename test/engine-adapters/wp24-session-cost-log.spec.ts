@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 // V2026-10-30 治本 (WP24 · 单场成本日志):
 //   职责: 钉死「每轮用量累加 → closeSession 打一条 session_cost_summary」的闭环,
 //         以及成本口径的诚实性 (输入侧不可得时必须落成 output_only, 不能拿 0 冒充).
@@ -68,7 +69,7 @@ function buildEngineStub(render: TurnRenderResult['render']): EngineTurnService 
  */
 function captureCostSummary(): { readonly summaries: SessionCostSummary[]; readonly logs: string[] } {
   const logs: string[] = [];
-  jest.spyOn(Logger.prototype, 'log').mockImplementation((message: unknown) => {
+  vi.spyOn(Logger.prototype, 'log').mockImplementation((message: unknown) => {
     logs.push(typeof message === 'string' ? message : String(message));
   });
   return {
@@ -86,7 +87,7 @@ function captureCostSummary(): { readonly summaries: SessionCostSummary[]; reado
 
 describe('WP24 · 单场成本日志', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('用量累加 (纯函数)', () => {
@@ -415,3 +416,4 @@ describe('WP24 · 单场成本日志', () => {
     });
   });
 });
+

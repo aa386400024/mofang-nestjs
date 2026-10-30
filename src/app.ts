@@ -29,6 +29,10 @@ async function bootstrap(): Promise<string> {
     bufferLogs: false, // V2: dev/prod 立即输出日志, pm2 能看到启动失败原因
   });
 
+  // https://docs.nestjs.com/security/helmet
+  app.useSecurityHeaders({
+    contentSecurityPolicy: isProduction,
+  });
   app.useLogger(app.get(Logger));
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
 

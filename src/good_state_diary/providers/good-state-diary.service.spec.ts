@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
@@ -14,7 +15,7 @@ import { DiaryTag } from '../enums/diary-tag.enum';
  *   原因: 单测聚焦业务逻辑 (cursor 编解码 / 边界校验 / 软删判定),
  *         比 e2e 快 10x, 改 service 内部实现时回归保护.
  *   修复:
- *     - Repository 用 jest.fn mock, 不连真 DB
+ *     - Repository 用 vi.fn mock, 不连真 DB
  *     - 覆盖所有 public 方法的 happy path + 关键 error path (越权 / 软删 / 入参校验)
  *     - 不测 DTO 校验 (那是 ValidationPipe 的活, 单元测不到)
  *   反双胞胎:
@@ -33,7 +34,7 @@ function makeMockRepo() {
   const store: MockEntry[] = [];
   return {
     store,
-    create: jest.fn((partial: Partial<MockEntry>) => {
+    create: vi.fn((partial: Partial<MockEntry>) => {
       const now = new Date();
       return {
         id: partial.id ?? crypto.randomUUID(),
@@ -42,7 +43,7 @@ function makeMockRepo() {
         updatedAt: partial.updatedAt ?? now,
       } as MockEntry;
     }),
-    save: jest.fn(async (entity: MockEntry) => {
+    save: vi.fn(async (entity: MockEntry) => {
       Object.assign(entity, { updatedAt: new Date() });
       const idx = store.findIndex((e) => e.id === entity.id);
       if (idx === -1) {
@@ -52,33 +53,33 @@ function makeMockRepo() {
       }
       return entity;
     }),
-    findOne: jest.fn(async (opts: { where: { id: string; authorId: string }; withDeleted?: boolean }) => {
+    findOne: vi.fn(async (opts: { where: { id: string; authorId: string }; withDeleted?: boolean }) => {
       const e = store.find((x) => x.id === opts.where.id);
       if (!e) return null;
       if (e.authorId !== opts.where.authorId) return null;
       if (e.deletedAt && !opts.withDeleted) return null;
       return e;
     }),
-    softDelete: jest.fn(async (criteria: { id: string; authorId: string }) => {
+    softDelete: vi.fn(async (criteria: { id: string; authorId: string }) => {
       const e = store.find((x) => x.id === criteria.id);
       if (!e || e.authorId !== criteria.authorId) return { affected: 0 };
       e.deletedAt = new Date();
       return { affected: 1 };
     }),
-    restore: jest.fn(async (criteria: { id: string; authorId: string }) => {
+    restore: vi.fn(async (criteria: { id: string; authorId: string }) => {
       const e = store.find((x) => x.id === criteria.id);
       if (!e || e.authorId !== criteria.authorId) return { affected: 0 };
       e.deletedAt = null;
       return { affected: 1 };
     }),
-    delete: jest.fn(async (criteria: { authorId: string }) => {
+    delete: vi.fn(async (criteria: { authorId: string }) => {
       const before = store.length;
       const filtered = store.filter((e) => e.authorId !== criteria.authorId);
       store.length = 0;
       store.push(...filtered);
       return { affected: before - store.length };
     }),
-    find: jest.fn(
+    find: vi.fn(
       async (opts: { where: Partial<MockEntry>; order?: Record<string, 'ASC' | 'DESC'>; take?: number; withDeleted?: boolean }) => {
         let list = store.slice();
         for (const [k, v] of Object.entries(opts.where)) {
@@ -99,7 +100,7 @@ function makeMockRepo() {
         return list;
       },
     ),
-    createQueryBuilder: jest.fn(),
+    createQueryBuilder: vi.fn(),
   };
 }
 
@@ -121,39 +122,39 @@ function setupQueryBuilderMock(repo: ReturnType<typeof makeMockRepo>, store: Moc
   //   「qb 的类型依赖 qb 自己的初始化器」的循环 → TS7022 (qb 隐式 any) + TS7024 (返回 any).
   //   治本: 把形状抽成显式 interface —— 类型是**声明**出来的, 不是推断出来的, 循环自然断开.
   interface QueryBuilderMock {
-    where: jest.Mock<QueryBuilderMock, [string, Record<string, unknown>?]>;
-    andWhere: jest.Mock<QueryBuilderMock, [string, Record<string, unknown>?]>;
-    orderBy: jest.Mock<QueryBuilderMock, [string, string]>;
-    addOrderBy: jest.Mock<QueryBuilderMock, [string, string]>;
-    limit: jest.Mock<QueryBuilderMock, [number]>;
-    getMany: jest.Mock<Promise<MockEntry[]>>;
-    delete: jest.Mock<QueryBuilderMock>;
-    execute: jest.Mock<Promise<{ affected: number }>>;
+    where: vi.Mock<QueryBuilderMock, [string, Record<string, unknown>?]>;
+    andWhere: vi.Mock<QueryBuilderMock, [string, Record<string, unknown>?]>;
+    orderBy: vi.Mock<QueryBuilderMock, [string, string]>;
+    addOrderBy: vi.Mock<QueryBuilderMock, [string, string]>;
+    limit: vi.Mock<QueryBuilderMock, [number]>;
+    getMany: vi.Mock<Promise<MockEntry[]>>;
+    delete: vi.Mock<QueryBuilderMock>;
+    execute: vi.Mock<Promise<{ affected: number }>>;
   }
 
-  repo.createQueryBuilder = jest.fn(() => {
+  repo.createQueryBuilder = vi.fn(() => {
     // V2026-10-26 治本: 过滤条件**每次建 QB 都要新建** ——
     //   建在工厂外面的话, 上一条查询留下的 status 过滤会漏进下一条 (service.search
     //   不带 status 过滤, 却被上一次 getRecent 的 status 条件污染).
     const filters: { authorId?: string; statuses?: string[] } = {};
     const qb: QueryBuilderMock = {
-      where: jest.fn((clause: string, params?: Record<string, unknown>) => {
+      where: vi.fn((clause: string, params?: Record<string, unknown>) => {
         // V2026-10-26 治本 (TS4111): params 是索引签名 → 必须方括号访问.
         if (clause.includes('e.author_id') && typeof params?.['uid'] === 'string') {
           filters.authorId = params['uid'];
         }
         return qb;
       }),
-      andWhere: jest.fn((clause: string, params?: Record<string, unknown>) => {
+      andWhere: vi.fn((clause: string, params?: Record<string, unknown>) => {
         if (clause.includes('e.status IN') && Array.isArray(params?.['statuses'])) {
           filters.statuses = params['statuses'] as string[];
         }
         return qb;
       }),
-      orderBy: jest.fn((_clause: string, _dir: string): QueryBuilderMock => qb),
-      addOrderBy: jest.fn((_clause: string, _dir: string): QueryBuilderMock => qb),
-      limit: jest.fn((_n: number): QueryBuilderMock => qb),
-      getMany: jest.fn(async () => {
+      orderBy: vi.fn((_clause: string, _dir: string): QueryBuilderMock => qb),
+      addOrderBy: vi.fn((_clause: string, _dir: string): QueryBuilderMock => qb),
+      limit: vi.fn((_n: number): QueryBuilderMock => qb),
+      getMany: vi.fn(async () => {
         let list = store.slice();
         if (filters.authorId !== undefined) {
           list = list.filter((e) => e.authorId === filters.authorId);
@@ -165,8 +166,8 @@ function setupQueryBuilderMock(repo: ReturnType<typeof makeMockRepo>, store: Moc
         }
         return list;
       }),
-      delete: jest.fn((): QueryBuilderMock => qb),
-      execute: jest.fn(async () => ({ affected: store.length })),
+      delete: vi.fn((): QueryBuilderMock => qb),
+      execute: vi.fn(async () => ({ affected: store.length })),
     };
     return qb;
   });
@@ -379,3 +380,4 @@ describe('GoodStateDiaryService', () => {
     });
   });
 });
+
