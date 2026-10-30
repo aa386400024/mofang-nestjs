@@ -58,8 +58,8 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 | **WP9-B MySQL 角色资产池（DbResolver）** | ✅ 已交付并审核通过（2026-10-29） | 任务单 `engine-wp9b-db-character-pool-backend-2026-10-29.md`；记录 `engine-wp9b-db-character-pool-backend-implementation-2026-10-29.md` | `character_profiles` 21 列+审核上下架+独立 `CharacterPoolModule`（装配层零 SDK）；默认 db 数据源，4 个真实 vpt slug 命中闭合；resolver 复用唯一映射；engine-core/voice 零改动。小尾巴：小满 5Ps 人称"他"应为"她"（女），seed 顺手修 |
 | 📌 **WP9-C 语音渲染 token 预算/截断/危机路由/降级** | ✅ 已交付（2026-10-29） | 任务单 `engine-wp9c-voice-render-token-budget-safety-boundaries-2026-10-29.md`；记录 `engine-wp9c-voice-render-token-budget-safety-boundaries-implementation-2026-10-29.md` | max_completion_tokens / voice render 低 reasoningEffort / 截断半句不喂 TTS / 危机轮次同步 supervision_hint / LLM 空 429 降级本地话术 |
 | 📌 **WP18 报告生成链路 E2E** | ✅ 已交付（2026-10-29） | 任务单 `engine-wp18-session-report-generation-e2e-2026-10-29.md`；记录 `engine-wp18-session-report-generation-e2e-implementation-2026-10-29.md` | 会话结束→transcript 落库→报告 worker 触发→四态（completed/parse_error/pending/no_content）→六维评分/annotations/techStats |
-| 📌 **WP19 AdminDebugModule + BDI 快照留痕** | ✅ 已交付（2026-10-29） | 任务单 `engine-wp19-admin-debug-module-trace-2026-10-29.md`；记录 `engine-wp19-admin-debug-module-trace-2026-10-29.md` | 每轮 BDI 快照/RenderSpec 摘要/LLM usage 落库；只读 API /admin/api/sessions/:id |
-| 📌 **WP20 Vue3 调试器 SPA** | ✅ 已交付（2026-10-29） | 任务单 `engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md`；记录 `engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md` | admin-dashboard/ 独立 Vue3+Vite+Tailwind SPA，深色主题，会话回放/BDI 快照/ECharts 轨迹图 |
+| 📌 **WP19 AdminDebugModule + BDI 快照留痕** | ⚠️ 已交付但有缺口（2026-10-30 审计修正） | 任务单 `engine-wp19-admin-debug-module-trace-2026-10-29.md`；记录 `engine-wp19-admin-debug-module-trace-2026-10-29.md` | **留痕链整条未通**：traceRecorder 恒 undefined，从未装配进 engineStreamBackend；recordTrace() 首行 return。/admin/api/* 零鉴权；sessions 列表不按用户过滤。详见审计报告 §4.1-D1/D2/D3 |
+| 📌 **WP20 Vue3 调试器 SPA** | ⚠️ 已交付但有缺口（2026-10-30 审计修正） | 任务单 `engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md`；记录 `engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md` | **SPA 全是 mock 数据**：client.ts 零真 API 调用。后续扩充的 8 页面 + i18n + 双主题都是 mock 之上加的，没切真接口。详见审计报告 §4.1-D4 |
 | 📌 **WP21 报告 SSE 推送端点** | ✅ 已交付并审核通过（2026-10-29） | 任务单 `engine-wp21-report-sse-stream-2026-10-29.md`；记录 `engine-wp21-report-sse-stream-implementation-2026-10-29.md` | GET report/:sessionId/stream @Sse()，终态推完整报告并关流，超时推 {"status":"timeout"}，真 404 走 guard，RxJS timer 不泄漏 |
 | 🆕 **WP10 10 个伦理盲盒强覆盖剧本** | ✅ 已交付并审核通过（2026-10-30） | 任务单 `engine-wp10-ethical-blindbox-scripts-backend-2026-10-30.md`；记录 `engine-wp10-ethical-blindbox-scripts-backend-implementation-2026-10-30.md` | 10 个 force_override 剧本（静态 TS 不落库）+ TrajectoryScriptResolver 端口（Symbol token, @Optional）+ 握手 scriptId 四段透传；tsc 0 / 31 例测试绿 / engine-core 零改动；三种失败口径各有 warn 不阻断会话。前端 scriptId 透传链路已通（vpt_session_start + roleplay_ws_client），fa 0 错 |
 | 🆕 **WP10A character_profiles 表达风格字段预留** | ✅ 已交付并审核通过（2026-10-30） | 任务单 `engine-wp10a-character-expression-style-fields-backend-2026-10-30.md`；记录 `engine-wp10a-character-expression-style-fields-backend-implementation-2026-10-30.md` | 加 3 列（speech_volume_baseline/narrative_style/expression_tone）+ 手写幂等 migration + entity；seed 键不存在=走 DB DEFAULT（默认值只有 DDL 一处真相）；小满/亦舟 expressionTone=intellectualizing，其余走默认；tsc 0 / 14 例测试绿 / engine-core 零改动 / 不消费不暴露前端 |
@@ -73,39 +73,44 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 ### 0.4 全面回头看（2026-10-30）
 
 > WP12 交付后做的一次完整对账：蓝图 Phase1 七条核心能力是否全部落地、执行有没有走歪、有没有过度工程、有没有遗漏的硬底线。
+> 2026-10-30 代码审计修正：后端做了代码级对账（`code-vs-blueprint-audit-2026-10-30.md`），修正了多处文档与代码不一致。以下为修正后口径。
 
-**结论：蓝图七条全部落地，执行无走歪、无过度工程。剩余两项硬底线内测前必须补。**
+**结论：蓝图七条核心链路已通，但不是"全部落地"——可观测与留痕链有明显缺口，两个硬底线的描述需要修正。执行无走歪、无过度工程。**
 
-#### 蓝图七条能力对账
+#### 蓝图七条能力对账（代码审计修正后）
 
-| # | 蓝图 Phase1 目标 | 状态 | 对应 WP |
-|---|---|---|---|
-| 1 | 简化版 BDI + 5Ps 角色注入 | ✅ | WP1 内核 + WP9-A/B 端口+DB |
-| 2 | 轨迹三模式 + 10 个伦理盲盒 | ✅ | WP3 内核 + WP10 十个 force_override 剧本 |
-| 3 | 三级记忆 + 跨会话接续 | ✅ | WP2 内核 + WP12 收尾接线（摘要晋升 + resumeFromSessionId） |
-| 4 | 规则层 + PsyGUARD 双层伦理 | ✅ | WP4 规则双侧判定 + WP11 独立 Python 服务（ONNX int8） |
-| 5 | 主模型对接 + 流式 + 渲染调度 | ✅ | WP5 契约 + WP6/7/8 装配 + WP8-B 流式原生灰度 |
-| 6 | 基础角色资产池 | ✅ | WP9-B `character_profiles` 24 列 + 审核上下架 |
-| 7 | 基础可观测与运维 | 🟡 部分 | WP19 每轮留痕 + WP20 Vue3 调试器 + WP21 报告 SSE；聚合指标看板待补（内测期先用日志看，可接受） |
+| # | 蓝图 Phase1 目标 | 状态 | 对应 WP | 备注 |
+|---|---|---|---|---|
+| 1 | 简化版 BDI + 5Ps 角色注入 | ✅ 基本属实 | WP1 内核 + WP9-A/B 端口+DB | seed 通道命中率恒 0（`builtin_*` ≠ 握手 `vpt_*`），WP9-B DB 通道闭合 4 个 `vpt_*`；文档已诚实标注 |
+| 2 | 轨迹三模式 + 10 个伦理盲盒 | ✅ 属实 | WP3 内核 + WP10 十个 force_override 剧本 | 第二模式真名是 `weighted_correct`（不是 correction） |
+| 3 | 三级记忆 + 跨会话接续 | ⚠️ 部分 | WP2 内核 + WP12 收尾接线 | 跨会话 resume 已通；但"暂停恢复归档"缺口从未被任何 WP 承接；半衰期配置单向生效（配长于 30 天对召回准入无效） |
+| 4 | 规则层 + PsyGUARD 双层伦理 | ⚠️ 部分 | WP4 规则双侧判定 + WP11 独立 Python 服务 | 探测层已双侧同判（能力具备）；**处置层整条缺失**（= WP14）；且 PsyGUARD 挂掉时回落内核规则层而非本地词典，学员危机检测能力归零 |
+| 5 | 主模型对接 + 流式 + 渲染调度 | ⚠️ 部分 | WP5 契约 + WP6/7/8 装配 + WP8-B 流式原生灰度 | 流式下发的是已闭合整句不是 token 级；`done` chunk 缺 `finishReason`；abort 发 `cancelled` 帧不是 error 帧 |
+| 6 | 基础角色资产池 | ✅ 属实 | WP9-B `character_profiles` 24 列 + 审核上下架 | 速查卡仍走 `visitor_pool_templates`，与引擎基线分表——这是设计不是差异 |
+| 7 | 基础可观测与运维 | ❌ 比预期差 | WP19 每轮留痕 + WP20 Vue3 调试器 + WP21 报告 SSE | **留痕链整条未通**：traceRecorder 恒 undefined，从未装配；/admin/api/* 零鉴权；SPA 全 mock 数据。比"部分"更差 |
 
-#### 两个硬底线（内测前必须补）
+#### 两个硬底线（内测前必须补）—— 代码审计修正后
 
 | WP | 是什么 | 为什么是硬底线 |
 |---|---|---|
-| **WP17** | 新引擎路径（EngineStreamBackend）没接 `vpt-session-bridge` 的每轮分析入队（`turnAnalysisProcessor.enqueue`）。导致新路径下：移情/阻抗 mark 帧、轻提示、披露提取全部不触发。注意：危机类 `supervision_hint` 帧已由 WP9-C 的 `publishCrisisHint()` 补上，**不是全缺，只缺 turn-analysis 那一路** | 灰度切新路径后，督导看不到移情/阻抗标记——对话还在正常流式，但督导视角"瞎了"。这是灰度从名单扩到全量的硬闸门 |
-| **WP14** | 学员自身心理风险三级兜底（低=静默监测 / 中=关怀提示 / 高=阻断+热线+审计）。注意：`counselor_input` 侧 PsyGUARD 越界检测已做（WP11），但那是检测"咨询师专业越界"，不是检测"学员本人代入创伤/流露自伤意念"——这是两个不同的东西 | 法律义务。学员对着 AI 来访说"我不想活了"，平台必须有兜底 |
+| **WP14（修正后）** | 学员自身心理风险**处置层**缺失。注意：**检测层已具备**——探测器两侧同判（`_side` 参数被忽略），`counselor_input` 侧走的就是 PsyGUARD 11 类危机标签，正适合检测学员自述的自伤意念。真缺的是：**分档处置（低/中/高三档）+ 学员侧可见 + 热线 + 不可删审计**。另：PsyGUARD 挂掉时回落内核规则层（counselor_input 侧无危机词），学员危机检测能力归零，这条兜底也没兑现 | 法律义务。学员对着 AI 来访说"我不想活了"，平台必须有兜底。检测已经有了，但检测到了之后怎么办？什么都不做——这是最危险的 |
+| **WP19 留痕链接通（新升级）** | `traceRecorder` 恒为 undefined，从来没被装配进 engineStreamBackend。`recordTrace()` 首行 `if (!this.traceRecorder) return` 直接退出。**"每轮 BDI 快照落库"这个交付声明不成立**。admin-dashboard 全是 mock 数据，`client.ts` 零真 API 调用 | 调试工具是内测期的眼睛。留痕链没通 = 出问题看不到，黑盒调试。这是内测前必须补的 |
 
-#### 其他待做项（按优先级）
+> **WP17 降级说明**：原描述"新引擎路径没接 turnAnalysisProcessor.enqueue"**不成立**。新旧链路共用 `persistTurnIfComplete` → `appendTurn` → `enqueue`，移情/阻抗 mark 帧、轻提示、披露提取在新路径下都会触发。WP17 真正缺的只有 `enginePath: legacy|bdi` 字段（属 WP13 可观测范畴），不是"督导视角全瞎"。
+
+#### 其他待做项（按优先级，代码审计修正后）
 
 | 优先级 | WP | 什么时候做 |
 |---|---|---|
 | 高 | 重建服务器镜像（WP8-B 到 WP12 一起上线） | 现在就可以做 |
-| 高 | WP11 临时值改回（超时 150→500、token 28→256 是测试期放宽，M3 内测前改回 6 处） | 内测前 |
+| 高 | WP11 临时值改回（超时 150→500、token 28→256 是测试期放宽，M3 内测前改回） | 内测前。注意：输出侧走独立 env 读取（`PSYGUARD_TIMEOUT_MS`），不是只改内核常量，回改点比之前说的多 |
+| 高 | WP19 留痕链接通（traceRecorder 装配 + admin-dashboard 切真 API） | 内测前 |
 | 中 | WP15 算子幅度声明+边界回归 | 随主线插入 |
 | 中 | WP16 round_id 幂等+断流不叠加 | 随 WP8-B 收尾 |
 | 中 | WP22 语音对练限流（防烧 LLM 额度） | 内测前 |
 | 中 | WP23 WS 断连恢复口径（30s=会话结束） | 内测前 |
 | 中 | WP24 单场成本日志 | 内测前 |
+| 低 | WP17 enginePath 字段（并入 WP13 可观测） | 随 WP13 |
 | 低 | 前端"继续训练"入口（后端链路已通，前端接上即可） | 产品排期 |
 
 ---
@@ -239,16 +244,18 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 
 > 来源：《盲区补全与融入方案》经本仓架构裁剪后的 Phase1 硬底线/低成本项。均落在适配层/编排层，**不改内核纯算子**；Redis 原子提交+PG 异步落库全套事务、语音断点续传等终局形态本期不做。
 
-### WP14 · 学员自身心理风险兜底（合规硬底线）
+### WP14 · 学员自身心理风险**处置层**（合规硬底线）
 
-- **目标**：伦理引擎现有双侧检测覆盖"咨询师专业越界（WP11 counselor_input 侧 PsyGUARD）/来访输出（visitor_output 侧 PsyGUARD+规则）"，缺"学员本人代入创伤、流露抑郁/自伤意念"的平台安全义务兜底。**注意区分**：WP11 的 counselor_input 检测是"你作为咨询师有没有专业越界"（过早给建议/价值审判/诊断证明诉求），WP14 是"你作为一个人有没有心理危机"（我不想活了/我最近很痛苦）——这是两个不同的东西，不能复用 PsyGUARD 的 11 类标签。
+> 2026-10-30 代码审计修正：原描述"PsyGUARD 只能检测咨询师越界、不能复用来检测学员心理风险"**不成立**。探测器两侧同判（`_side` 参数被忽略），`counselor_input` 侧走的就是 PsyGUARD 11 类危机标签本身。真缺的是**处置层**，不是检测层。
+
+- **目标**：检测层已具备（`counselor_input` 侧 PsyGUARD 11 类标签 + 本地危机词典），但检测到学员自伤意念后**什么都不做**——只推督导 `supervision_hint` 帧，学员本人收不到任何东西。本 WP 补的是"检测到了之后怎么办"。
 - **内容**：
-  1. 在新引擎 turn 的**学员输入侧**加独立风险分支（与咨询师越界、来访输出检测并行，互不清零），复用现有 `crisis-detector` 三级词表（high/medium/low）并补学员倾诉/创伤表达词典；
-  2. 三级处置：低=打标签静默监测、会话继续；中=温和关怀提示、提升监测等级；高=**阻断实训会话**，弹危机干预热线与转介资源，记录不可删审计日志，触发人工复核；
-  3. 高风险仅暂停实训、不销毁会话，用户确认后可返回但继续重点监测；检测只针对学员输入，**不影响来访仿真逻辑**。
-- **依赖**：WP4 规则纯层（已交付）；WP11 已做 counselor_input 越界检测，本 WP 不重复做越界检测。
-- **验收**：学员输入命中 high → 阻断+热线+审计落库且不可删；medium → 关怀提示不打断；low → 静默记录；误报不影响正常对练。
-- **不做**：学员侧大模型风险分类（本期规则词表，PsyGUARD 只负责来访/越界）；不做实时情绪追踪模型；不做咨询师专业越界检测（那是 WP11 已做的）。
+  1. **三级处置层**：低=打标签静默监测、会话继续；中=温和关怀提示、提升监测等级；高=**阻断实训会话**，弹危机干预热线与转介资源，记录不可删审计日志，触发人工复核；
+  2. **高风险仅暂停实训、不销毁会话**，用户确认后可返回但继续重点监测；处置只针对学员输入，**不影响来访仿真逻辑**；
+  3. **兜底路径修复**：PsyGUARD 服务挂掉时，`createRiskProbe` 目前直接丢弃 fallback，回落到内核规则层（counselor_input 侧无危机词）→ 学员危机检测能力归零。要修：fallback 链路打通，探测挂了回落本地危机词典，不是内核规则层。
+- **依赖**：WP11 PsyGUARD 服务（已交付，检测层已具备）。
+- **验收**：学员输入命中 high → 阻断+热线+审计落库且不可删；medium → 关怀提示不打断；low → 静默记录；PsyGUARD 挂掉时本地词典兜底生效，不是静默归零。
+- **不做**：学员侧大模型风险分类（本期规则+PsyGUARD 已够）；不做实时情绪追踪模型。
 
 ### WP15 · 算子幅度声明 + 边界回归（低成本补全）
 
@@ -272,22 +279,21 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 - **验收**：同一 round_id 重复请求不叠加状态；断流后重发不出现阻抗/情绪二次跳变；深度降级只留规则标记不产出可信状态。
 - **不做**：Redis 原子提交+PG 异步落库三阶段事务、分布式幂等键、语音断点续传（多实例/终局形态）。
 
-### WP17 · 新引擎路径旁路帧对齐（灰度扩量闸门）
+### WP17 · 新引擎路径旁路帧对齐（已降级，并入 WP13）
 
-- **为什么有这条（2026-10-29 代码审核补记；2026-10-30 回头看修正）**：`EngineStreamBackend` 是"纯翻译器"——自己只吐 content/done/error 三态 chunk。**危机类 `supervision_hint` 帧已由 WP9-C 的 `publishCrisisHint()` 补上**（内核判出危机类别时同步推），但 **`vpt-session-bridge` 的每轮分析入队（`turnAnalysisProcessor.enqueue`）在新引擎路径下完全没接**——新路径的 `appendTurn()` 只是把一问一答加到内存 Map，没调 bridge 的分析入队。导致新路径下：移情/阻抗 `mark` 帧、轻提示、披露提取全部不触发。WP8-B 注释写"两条链路形状完全一样"，但这只对三态 chunk 成立；旁路分析若只由旧 `VisitorService` 生命周期触发，**灰度切新路径后督导看不到移情/阻抗标记，对话却还在正常流式**——最难查的坏。
-- **目标**：不假设"应该共享"，用端到端断言锁死新路径与旧路径的旁路行为同形，作为灰度从名单扩到全量的硬闸门。
-- **内容**：
-  1. ~~新引擎路径下，第 N 轮后前端收到至少一条 `supervision_hint` 帧~~（**已做，WP9-C `publishCrisisHint()` 覆盖**）；
-  2. **新引擎路径下，每轮结束后 `vpt-session-bridge` 的 `turnAnalysisProcessor.enqueue` 被触发**（不是只在旧 VisitorService 里调）——这是核心，`mark` 帧/轻提示/披露提取都挂在这个入队后面；
-  3. 新引擎路径下，移情/阻抗节点触发 `mark` 帧（direction/markType 不丢）——这条是第 2 条的结果断言；
-  4. WP13 留痕加一个 `enginePath: legacy|bdi` 字段，每场可查走的哪条链路，便于事后对比两侧差异。
-- **依赖**：WP8-B（已交付）；WP9-C（已交付，supervision_hint 已覆盖）。
-- **验收**：
-  - 新引擎路径跑一场会话，DB 里 `transference_resistance_marks` 表有记录（至少 1 条）；
-  - 新引擎路径跑一场会话，WS 流里能抓到 `type: 'mark'` 帧；
-  - `enginePath` 字段可在日志/报告上区分两场；
-  - 任意一条红则灰度不扩量、保持名单。
-- **不做**：不重写旁路分析能力本身（那是 turn-analysis 现有的事，只是没接新路径）；不做双路径并行录制对比（Phase2 评估引擎）；学员自身危机拦截归 WP14，不在本 WP 范围。
+> 2026-10-30 代码审计修正：原描述"新引擎路径没接 `turnAnalysisProcessor.enqueue`"**不成立**。
+>
+> **审计结论**：`voice.service.ts` 的 `persistTurnIfComplete` 是新旧链路共用的公共尾部，第 429 行无条件调用，第 774 行调 `bridges.appendTurn` → `vpt-session-bridge.doAppendTurn` → `turnAnalysisProcessor.enqueue`。**移情/阻抗 mark 帧、轻提示、披露提取在新引擎路径下都会触发**，不是"督导视角全瞎"。
+>
+> 原 WP17 的"灰度扩量硬闸门"理由建立在一条不成立的代码声称上，价值量级与原描述相差一个数量级。
+
+- **真正缺的只有一条**：`enginePath: legacy|bdi` 字段——全仓 grep `enginePath|engine_path` 零命中。每场会话不知道走的是旧链路还是新链路，事后对比两侧差异时无法区分。
+- **处置建议**：并入 WP13 可观测，不单独拆 WP。加一个 `enginePath` 字段到 trace 和报告里即可。
+- **已覆盖的**：
+  - ✅ 危机类 `supervision_hint` 帧（WP9-C `publishCrisisHint()`）
+  - ✅ 移情/阻抗 `mark` 帧（共用 `appendTurn` → `enqueue` 链路）
+  - ✅ 轻提示（同上）
+  - ✅ 披露提取（同上）
 
 ### WP22 · 语音对练限流与并发上限
 
