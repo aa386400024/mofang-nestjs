@@ -5,6 +5,7 @@ import type { Request, Response } from 'express';
 import { AuthMediumRateLimit, AuthStrictRateLimit } from './auth-rate-limit.decorators.js';
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 import { BizException } from '../../common/exceptions/biz.exception.js';
+import { EncryptedFieldsInterceptor } from '../../common/security/encrypted-fields.interceptor.js';
 import { clearAuthCookies, JwtCookieInterceptor } from '../../common/security/jwt-cookie.interceptor.js';
 import { CurrentUser } from '../decorators/current-user.decorator.js';
 import { AuthResponseDto, CurrentUserDto } from '../dto/auth-response.dto.js';
@@ -15,6 +16,7 @@ import { RefreshTokenDto } from '../dto/refresh-token.dto.js';
 import { RegisterDto } from '../dto/register.dto.js';
 import { ResetPasswordDto } from '../dto/reset-password.dto.js';
 import { SessionDto } from '../dto/session.dto.js';
+import { SetLoggedInPasswordDto } from '../dto/set-password.dto.js';
 import { VerifyEmailDto, ResendVerificationDto } from '../dto/verify-email.dto.js';
 
 import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
@@ -36,6 +38,7 @@ import { SessionRevokeReason } from '../user.constant.js';
  *   GET  /user/me                                - 当前用户信息
  *
  *   POST /user/change-password                   - 改密 (已登录)
+ *   POST /user/set-password                      - 首次设置密码 (已登录, 不要旧密码)
  *   POST /user/forgot-password                   - 忘记密码 (发邮件)
  *   POST /user/reset-password                    - 重置密码 (token)
  *
@@ -149,6 +152,46 @@ export class UserController {
   @ApiOperation({ summary: '改密 (已登录, 知道旧密码, 撤销所有 session)' })
   public async changePassword(@CurrentUser('sub') uid: string, @Body() dto: ChangePasswordDto, @Req() req: Request): Promise<void> {
     await this.user.changePassword(uid, dto.oldPassword, dto.newPassword, this.extractContext(req));
+  }
+
+  // ========================================================================
+  // 首次设置密码 (已登录, 没有旧密码)
+  // ========================================================================
+
+  /**
+   * 已登录态首次设置密码.
+   *
+   * 与 `change-password` 的分工 (两条链路, 互不污染):
+   *   · 从没设过密码 (`/user/me.passwordChangedAt === null`) → 走这里, **不要旧密码**;
+   *   · 设过密码 → 走 `change-password`, **要旧密码**.
+   *
+   * 为什么单独一个接口而不是在 change-password 里加 `if (!passwordHash)` 分支:
+   *   语义干净 (首次设置 vs 修改), 审计事件独立 (`password.first_set` vs `password.change`),
+   *   错误码独立 ("用户已有密码, 请用改密流程" 不跟 "旧密码错误" 混在一起),
+   *   将来各自演进不耦合 (set 要加 re-auth, change 要加过期策略).
+   *   这是微信 / 飞书 / Google Account 的标准做法.
+   *
+   * 为什么用 `@CurrentUser('userId')` 而不是 `('sub')`:
+   *   `JwtAuthGuard` 注入 request.user 的形状是 `{ userId, username, roles }`
+   *   (见 `src/user/guards/jwt-auth.guard.ts` —— userId = JWT payload.sub),
+   *   所以取 uid 的字段名是 `userId`. 取 `sub` 取不到值 (那是 JWT payload 的字段名,
+   *   不是 request.user 的) —— 这是**本单开工前就存在**的既有问题, 本单不动它.
+   *
+   * 密码字段走 RSA 加密: 客户端发 `newPasswordEnc`, `EncryptedFieldsInterceptor`
+   *   自动解密成 `newPassword` (与 /auth/set-password、/auth/login-password 同款).
+   */
+  @Post('set-password')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(EncryptedFieldsInterceptor)
+  @ApiBearerAuth()
+  @HttpCode(204)
+  @ApiOperation({ summary: '已登录态首次设置密码 (JWT 鉴权, 不要旧密码)' })
+  public async setLoggedInPassword(
+    @CurrentUser('userId') uid: string,
+    @Body() dto: SetLoggedInPasswordDto,
+    @Req() req: Request,
+  ): Promise<void> {
+    await this.user.setLoggedInPassword(uid, dto.newPassword, this.extractContext(req));
   }
 
   // ========================================================================

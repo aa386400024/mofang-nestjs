@@ -30,6 +30,9 @@ export enum AuditEvent {
 
   // V2 密码
   UserPasswordChanged = 'user_password_changed',
+  // V2026-11-02 (已登录态首次设密码): 与"改密"分开记 —— 首次设置 (无密码 → 有密码)
+  //   跟 修改 (有密码 → 新密码) 是两件事, 审计上必须能分开看.
+  UserPasswordFirstSet = 'user_password_first_set',
   UserPasswordResetRequested = 'user_password_reset_requested',
   UserPasswordResetCompleted = 'user_password_reset_completed',
   UserForcedPasswordReset = 'user_forced_password_reset',

@@ -17,7 +17,7 @@ import { LoginDto } from '../dto/login.dto.js';
 import { RegisterDto } from '../dto/register.dto.js';
 import { AuditEvent } from '../entities/audit-log.entity.js';
 import { User } from '../entities/user.entity.js';
-import { TokenType } from '../user.constant.js';
+import { SessionRevokeReason, TokenType } from '../user.constant.js';
 import { UserState, isLoginAllowed } from '../user.state.js';
 
 import { AuditLogService } from './audit-log.service.js';
@@ -394,6 +394,100 @@ export class UserService {
     user.passwordChangedAt = new Date();
     user.mustChangePassword = false;
     await this.userRepo.save(user);
+  }
+
+  /**
+   * 已登录态**首次**设置密码 (V2026-11-02 · 任务单 change-password-first-set-backend).
+   *
+   * 与 `setInitialPassword` 的关系: **委托**, 不是替代 ——
+   *   · `setInitialPassword` = 底层能力 (无密码 → 有密码), 反查逻辑 (已有密码就报错)
+   *     就在它里面. `/auth/set-password` (登录中引导流程) 走的是它 —— **一行都没动**;
+   *   · 本方法 = "已登录态主动设密码" 这条**新链路**: 复用底层能力 + 记自己的审计事件.
+   *
+   * 为什么审计不写进 `setInitialPassword`: 那条方法被登录中引导流程共用 ——
+   *   在里面加审计 = 顺手改了 `/auth/set-password` 的行为 (本单明令不许动).
+   *
+   * 为什么**不撤销 session** (与 `changePassword` 相反): 用户是刚登录进来主动设密码的,
+   *   撤销会把自己踢下线. `changePassword` 是"改密", 别的设备要强制下线, 那是另一回事.
+   *
+   * @param uid 学员 id
+   * @param password 新密码 (强密码, DTO 层已校验)
+   * @param ctx 请求上下文 (IP / UA, 审计用)
+   */
+  async setLoggedInPassword(uid: string, password: string, ctx?: { ipAddress?: string; userAgent?: string }): Promise<void> {
+    await this.setInitialPassword(uid, password);
+    await this.auditLog.log({
+      userId: uid,
+      event: AuditEvent.UserPasswordFirstSet,
+      ipAddress: ctx?.ipAddress,
+      userAgent: ctx?.userAgent,
+      isSuccess: true,
+    });
+  }
+
+  /**
+   * 按邮箱重置密码 (V2026-11-02 · 任务单 auth-reset-password-backend).
+   *
+   * 场景: 忘记密码 → 用户**登不进来**, 所以不能走任何需要 JWT 的改密接口 ——
+   *   凭邮箱验证码直接改, 改完把旧登录态全部作废.
+   *
+   * 与既有几条密码链路的分工:
+   *   · `changePassword` (已登录 + 旧密码) —— 要 JWT, 要旧密码;
+   *   · `setInitialPassword` / `setLoggedInPassword` (首次设密码) —— 要 JWT, 且**不能**给
+   *     已经设过密码的用户用;
+   *   · `PasswordResetService.resetPassword` (邮件 token 流程) —— 凭证是邮件里的 token;
+   *   · **本方法** (邮件 6 位码流程) —— 凭证是邮箱收到的验证码, 不需要 JWT.
+   *
+   * 步骤 (跟 `PasswordResetService.resetPassword` 同款 —— 同一件事, 两种凭证形态):
+   *   1. 查用户 (按邮箱); 查不到 → 返 null (**不抛错**, 防枚举: 调用方回统一文案);
+   *   2. 密码复用检查 + 旧密码入历史;
+   *   3. 更新 passwordHash + passwordChangedAt + 清 mustChangePassword;
+   *   4. 撤销**所有** session + blacklist (忘记密码 → 旧登录态全部失效, 安全起见);
+   *   5. 记审计 + 指标.
+   *
+   * 为什么"改密码"与"撤销 session"必须在**同一个方法**里:
+   *   分成两个方法 = 中间失败会留下"密码已改、旧登录态还在"的窗口 —— 那正是
+   *   忘记密码重置最要防的状态 (拿到旧 token 的人还能继续用).
+   *
+   * @param email 注册邮箱
+   * @param newPassword 新密码 (强密码, DTO 层已校验)
+   * @param ctx 请求上下文 (IP / UA, 审计用)
+   * @returns 重置后的用户; 邮箱不存在 → null
+   */
+  async resetPasswordByEmail(email: string, newPassword: string, ctx?: { ipAddress?: string; userAgent?: string }): Promise<User | null> {
+    const user = await this.findByEmail(email);
+    if (!user) {
+      // 防枚举: 不抛"用户不存在", 返 null 让调用方回**与验证码错误一模一样**的文案.
+      return null;
+    }
+
+    // 1. 检查密码复用 (跟邮件 token 流程同款: 最近 5 次不许复用)
+    await this.passwordHistory.assertNotReused(user.uid, newPassword);
+
+    // 2. 把旧密码写历史
+    await this.passwordHistory.recordOldPassword(user.uid, user.passwordHash);
+
+    // 3. 更新密码 + 时间戳 + mustChangePassword = false (重置即视为已改密)
+    user.passwordHash = await hashPassword(newPassword);
+    user.passwordChangedAt = new Date();
+    user.mustChangePassword = false;
+    await this.userRepo.save(user);
+
+    // 4. 撤销所有 session + blacklist (强制下线所有设备)
+    const revoked = await this.sessionService.revokeAllByUserId(user.uid, SessionRevokeReason.PasswordChanged);
+    await this.blacklist.revokeMany(revoked.map((r) => ({ jti: r.jti, expiresAtMs: r.expiresAtMs })));
+
+    // 5. 审计 + 指标
+    await this.auditLog.log({
+      userId: user.uid,
+      event: AuditEvent.UserPasswordResetCompleted,
+      ipAddress: ctx?.ipAddress,
+      userAgent: ctx?.userAgent,
+      metadata: { revokedSessions: revoked.length, via: 'email_code' },
+      isSuccess: true,
+    });
+    this.metrics.incAuthPasswordReset('completed');
+    return user;
   }
 
   async me(uid: string): Promise<CurrentUserDto | null> {

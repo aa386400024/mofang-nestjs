@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   HttpException,
   HttpStatus,
   Post,
@@ -11,6 +12,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { ApiOperation } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 
 import {
@@ -24,11 +26,15 @@ import {
   JwtSign,
   JwtVerifyGuard,
 } from '../../auth/index.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
 import { ReqUser } from '../../common/index.js';
 import { EncryptedFieldsInterceptor } from '../../common/security/encrypted-fields.interceptor.js';
 import { JwtCookieInterceptor } from '../../common/security/jwt-cookie.interceptor.js';
 import { RsaKeyService } from '../../common/security/rsa-key.service.js';
+import { AuthStrictRateLimit } from '../../user/controllers/auth-rate-limit.decorators.js';
 import { UserService } from '../../user/providers/user.service.js';
+import { ResetPasswordDto } from '../dto/reset-password.dto.js';
 
 /**
  * Auth REST controller — V1.1 重构: 接入 V2 enterprise UserService.
@@ -262,6 +268,51 @@ export class AuthController {
       roles: ['user'],
       hasPassword: !!user.passwordHash,
     };
+  }
+
+  // ─── V1.1: 忘记密码重置 (凭邮箱验证码, 不需要 JWT) ─────────────
+  /**
+   * 忘记密码重置 — 凭邮箱收到的 6 位验证码直接改密码.
+   *
+   * 为什么要有这个接口 (用户登不进来, 任何要 JWT 的改密接口都用不了):
+   *   · `/auth/verify-code` 只登录, 不改密码;
+   *   · `/auth/set-password` 是**首次**设置 (已经设过密码的会报错), 且它本身也要先有 JWT;
+   *   · `/user/change-password` 要 JWT + 旧密码.
+   *   以前前端只能"验证码登录拿 JWT → 跳 SetPasswordPage → 再输一遍新密码" ——
+   *   用户要输两遍密码, 体验不对.
+   *
+   * 流程:
+   *   1. 校验 6 位验证码 (`LoginCodeService.verify`, 一次性使用, 成功即删);
+   *   2. 改密码 + 撤销该用户**所有** session (忘记密码 → 旧登录态全部失效, 安全起见);
+   *   3. 记审计 (password reset completed).
+   *
+   * **不返回新 token**: 重置后让用户自己重新登录 (旧登录态已作废).
+   *
+   * 防枚举 (硬要求): "验证码错" 与 "邮箱不存在" 回**完全一样**的错误码与文案 ——
+   *   攻击者拿这个接口探测"某邮箱是否注册过"是绝对不能成功的.
+   *   所以这两种情况走同一个分支、抛同一个异常, 连业务错误码都一样.
+   *
+   * body: { email, code, newPasswordEnc } (newPasswordEnc 由 EncryptedFieldsInterceptor 解密成 newPassword)
+   * 返回: 204
+   * 错误:
+   *   - 400 验证码错 / 邮箱不存在 (统一文案, 防枚举) / 密码强度不够
+   */
+  @UseInterceptors(EncryptedFieldsInterceptor)
+  @AuthStrictRateLimit()
+  @Post('reset-password')
+  @HttpCode(204)
+  @ApiOperation({ summary: '忘记密码重置 (不需要 JWT, 凭邮箱验证码直接改密码)' })
+  public async resetPassword(@Body() dto: ResetPasswordDto, @Req() req: Request): Promise<void> {
+    // 1. 校验 6 位码 (Redis, TTL 5min, 一次性使用)
+    const codeOk = await this.loginCodeService.verify(dto.email, dto.code);
+
+    // 2. 验证码对了才改密码 (改密码 + 撤销所有 session 一次做完, 见 UserService.resetPasswordByEmail)
+    const user = codeOk ? await this.userService.resetPasswordByEmail(dto.email, dto.newPassword, this.extractContext(req)) : null;
+
+    // 3. 统一失败口径: 验证码错 / 邮箱不存在 → 同一个码 + 同一句文案 (防枚举)
+    if (!codeOk || !user) {
+      throw new BizException(BizCode.VerificationCodeInvalid, '邮箱或验证码不正确');
+    }
   }
 
   // ─── V1.1: 设置密码 (首次设 / 修改) ─────────────────────
