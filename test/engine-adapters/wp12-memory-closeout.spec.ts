@@ -621,9 +621,12 @@ describe('WP12 · 逐字稿定稿写入 (业务侧桥)', () => {
         status: 'listening',
         transcript: [{ id: 'old', role: ChatRole.COUNSELOR, text: '旧的一轮', timestamp: 1 }],
       })),
-      save: vi.fn(async (row: { transcript: unknown[] }) => {
-        saved.push(row);
-        return row;
+      // V2026-10-30 (WP19-R): 业务侧桥改成**定向 update**（只写自己管的列）——
+      //   原来的 `save(整行)` 会把加载时的旧 turn_debug_trace 副本一并写回,
+      //   覆盖掉并发落库的 WP19 每轮留痕（实测 2 轮只剩 1 轮）.
+      update: vi.fn(async (_criteria: unknown, partial: { transcript: unknown[] }) => {
+        saved.push(partial);
+        return { affected: 1 };
       }),
     };
 
@@ -651,7 +654,7 @@ describe('WP12 · 逐字稿定稿写入 (业务侧桥)', () => {
 
     const repo = {
       findOne: vi.fn(async () => ({ id: 'db-1', userId: USER, status: 'finished', transcript: [{ id: 'old' }] })),
-      save: vi.fn(async (row: unknown) => row),
+      update: vi.fn(async () => ({ affected: 0 })),
     };
 
     const service = new VptSessionBridgeService(
@@ -664,7 +667,7 @@ describe('WP12 · 逐字稿定稿写入 (业务侧桥)', () => {
 
     await service.replaceTranscript({ dbSessionId: 'db-1', userId: USER, turns: [] });
 
-    expect(repo.save).not.toHaveBeenCalled();
+    expect(repo.update).not.toHaveBeenCalled();
   });
 
   it('落库会话不存在 → 抛错 (不静默)', async () => {
@@ -672,7 +675,7 @@ describe('WP12 · 逐字稿定稿写入 (业务侧桥)', () => {
 
     const repo = {
       findOne: vi.fn(async () => null),
-      save: vi.fn(async (row: unknown) => row),
+      update: vi.fn(async () => ({ affected: 0 })),
     };
 
     const service = new VptSessionBridgeService(

@@ -89,6 +89,7 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver, type ResolvedCharacter } from './character/index.js';
 import type { EngineTurnService } from './engine-turn.service.js';
 import { TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory/index.js';
+import type { TraceRecorder, TurnTrace } from '../../admin-debug/trace-recorder.service.js';
 import type { LlmStream, LlmStreamChunk } from '../../agent/llm/llm.types.js';
 import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types.js';
 import type { OpenEngineSessionInput, TrajectoryScript } from '../../engine-core/index.js';
@@ -164,6 +165,17 @@ export class EngineStreamBackend implements VoiceTurnBackend {
    * 每轮累加 → `closeSession` 读完即删 (不留痕).
    */
   private readonly sessionUsage = new Map<string, SessionUsageTotals>();
+  /**
+   * 语音会话 id → 本场角色 key (WP19-R · 留痕).
+   *
+   * 为什么要单独存: 留痕快照要记 `characterSlug` (§1.1 契约), 而**角色 key 只在
+   * 开场那一刻确定** —— 轮次结算时拿不到 open 的入参. 开场存一份, 轮次直接读.
+   *
+   * 口径与长时记忆作用域**同款** (`resolveCharacterKey`): 公共模板 id 优先,
+   * 否则 personaId —— 跟引擎实际注入的角色是同一份口径, 不会"调试器看到的角色"
+   * 与"引擎注入的角色"对不上.
+   */
+  private readonly characterSlugs = new Map<string, string>();
 
   constructor(
     private readonly engine: EngineTurnService,
@@ -207,7 +219,7 @@ export class EngineStreamBackend implements VoiceTurnBackend {
      * 会话照常进行, 只是没有调试 trace 落库 —— 不能让"没有调试器"变成
      * "开不了会话".
      */
-    @Optional() private readonly traceRecorder?: import('../../admin-debug/trace-recorder.service.js').TraceRecorder,
+    @Optional() private readonly traceRecorder?: TraceRecorder,
     /**
      * 成本单价 (WP24 · 单场成本日志).
      *
@@ -262,6 +274,8 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     if (dbSessionId.length > 0) {
       this.dbSessionIds.set(opts.sessionId, dbSessionId);
     }
+    // WP19-R: 记下本场角色 key (留痕快照的 characterSlug 用它).
+    this.characterSlugs.set(opts.sessionId, resolveCharacterKey(opts, characterId));
     this.logger.log(
       `[openSession] session=${opts.sessionId} handle=${handle.handleId} visitor=${memoryScope} ` +
         `character=${character?.displayName ?? 'neutral'} script=${script?.scriptId ?? 'none'} ` +
@@ -447,7 +461,11 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     //   会话关闭时把内存缓冲的 trace 写回 DB. fire-and-forget, 不阻塞 close.
     const dbSid = this.dbSessionIds.get(sessionId);
     if (dbSid && this.traceRecorder) {
-      void this.traceRecorder.flush(dbSid);
+      // WP19-R: 每轮已即刻落库, 这里的 flush 只是收尾 (补最后一轮 + 清缓冲).
+      // 失败只打 error 日志 —— 不阻断 closeSession.
+      void this.traceRecorder.flush(dbSid).catch((error: unknown) => {
+        this.logger.error(`[closeSession] 调试快照收尾失败 session=${sessionId}: ${messageOf(error)}`);
+      });
     }
 
     const context = this.sessionContexts.get(sessionId);
@@ -456,6 +474,7 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     this.transcripts.delete(sessionId);
     this.dbSessionIds.delete(sessionId);
     this.sessionContexts.delete(sessionId);
+    this.characterSlugs.delete(sessionId);
     if (handleId) {
       this.handles.delete(sessionId);
       this.engine.close(handleId);
@@ -628,35 +647,52 @@ export class EngineStreamBackend implements VoiceTurnBackend {
   }
 
   /**
-   * WP19: 每轮完成时写调试快照到内存缓冲 (会话关闭时 flush).
+   * WP19: 每轮完成时写调试快照到内存缓冲 (每轮即刻落库).
    *
    * 抽成独立方法: ①降 buildStream 圈复杂度; ②调试逻辑不污染主链路阅读.
+   *
+   * V2026-10-30 治本 (WP19-R · 留痕链接通):
+   *   · 快照形状改成 WP19 原单 §1.1 的**逐字**契约 (bdiSnapshot / renderSpec /
+   *     llmUsage / crisis / ts / turnIndex / characterSlug);
+   *   · 记录失败只打 error 日志 —— 调试器不能反过来把对练搞挂.
    */
   private recordTrace(sessionId: string, result: TurnRenderResult, usage: TurnRenderResult['render']['usage']): void {
-    if (!this.traceRecorder) return;
+    const recorder = this.traceRecorder;
+    if (!recorder) return;
     const dbSid = this.dbSessionIds.get(sessionId);
     if (!dbSid) return;
-    const snap = result.snapshot;
-    this.traceRecorder.record(dbSid, {
+    try {
+      // 不 await: 主链路不等 IO. record() 内部已吞掉写库异常, 这里再兜一层 —
+      // 留痕是观测能力, 任何失败都不许冒泡到对练链路.
+      void recorder.record(dbSid, this.buildTurnTrace(sessionId, result, usage)).catch((error: unknown) => {
+        this.logger.error(`[recordTrace] 调试快照记录失败 session=${sessionId}: ${messageOf(error)}`);
+      });
+    } catch (error) {
+      this.logger.error(`[recordTrace] 调试快照构造失败 session=${sessionId}: ${messageOf(error)}`);
+    }
+  }
+
+  /**
+   * 构造本轮调试快照 (WP19 原单 §1.1 契约, 逐字沿用).
+   *
+   * 抽成独立方法: 让 `recordTrace` 只管"记不记 / 记到哪", 形状转换集中在一处,
+   * 将来契约加字段只改这里.
+   *
+   * @param sessionId 语音会话 id
+   * @param result 本轮结算结果
+   * @param usage 本轮用量
+   * @returns 调试快照
+   */
+  private buildTurnTrace(sessionId: string, result: TurnRenderResult, usage: TurnRenderResult['render']['usage']): TurnTrace {
+    return {
       turnIndex: result.turnIndex,
-      bdi: {
-        trust: snap.trust,
-        valence: snap.emotion.valence,
-        arousal: snap.emotion.arousal,
-        resistance: snap.resistance.verbal,
-        attachmentType: snap.emotion.label,
-      },
-      usage: {
-        completionTokens: usage?.completionTokens ?? 0,
-        reasoningTokens: usage?.reasoningTokens ?? 0,
-        totalTokens: usage?.totalTokens ?? 0,
-      },
-      crisis: {
-        detected: result.safety !== undefined,
-        category: result.safety?.categories?.[0] ?? null,
-      },
+      characterSlug: this.characterSlugs.get(sessionId) ?? '',
+      bdiSnapshot: buildBdiSnapshot(result.snapshot),
+      renderSpec: buildRenderSpecSummary(result.render),
+      llmUsage: buildLlmUsage(result.render, usage),
+      crisis: buildCrisisSummary(result.safety),
       ts: new Date().toISOString(),
-    });
+    };
   }
 
   /**
@@ -720,6 +756,80 @@ interface SessionContext {
   readonly userId: string;
   /** 是否带学员身份 (没带 → 不写长时记忆). */
   readonly studentScoped: boolean;
+}
+
+/**
+ * 内核快照 → 留痕的 `bdiSnapshot` (WP19 原单 §1.1).
+ *
+ * 口径:
+ *   · trust / valence / arousal: 快照原值;
+ *   · resistance: 取**话量阻抗** (`resistance.verbal`) —— 与"这轮说了多少"
+ *     直接相关, 也是调试器最先想看的那个数;
+ *   · anxiousSecure: 情绪标签 (内核按 valence × arousal 象限重算的离散标签).
+ *
+ * @param snapshot 内核本轮快照
+ * @returns 留痕快照
+ */
+function buildBdiSnapshot(snapshot: TurnRenderResult['snapshot']): TurnTrace['bdiSnapshot'] {
+  return {
+    trust: snapshot.trust,
+    valence: snapshot.emotion.valence,
+    arousal: snapshot.emotion.arousal,
+    resistance: snapshot.resistance.verbal,
+    anxiousSecure: snapshot.emotion.label,
+  };
+}
+
+/**
+ * 渲染元信息 → 留痕的 `renderSpec` (WP19 原单 §1.1).
+ *
+ * 缺省口径: 渲染端口没给就记 'unknown' / 0 —— **不编**一个看起来像真的值.
+ *
+ * @param render 本轮渲染元信息
+ * @returns 留痕渲染规格
+ */
+function buildRenderSpecSummary(render: TurnRenderResult['render']): TurnTrace['renderSpec'] {
+  const spec = render.spec;
+  return {
+    taskKind: spec?.taskKind ?? 'unknown',
+    promptPreview: spec?.promptPreview ?? '',
+    maxCompletionTokens: spec?.maxCompletionTokens ?? 0,
+    reasoningEffort: spec?.reasoningEffort ?? 'unknown',
+  };
+}
+
+/**
+ * 渲染元信息 + 用量 → 留痕的 `llmUsage` (WP19 原单 §1.1).
+ *
+ * ⚠️ `promptTokens` 的口径: **流式路径上游只给累计 tokenCount**, 输入侧拆不出来
+ * (WP24 已立同款纪律: "不可得" ≠ 0). 契约字段是数字, 这里落 0 = 本轮输入侧
+ * 用量不可得 (流式路径恒如此), 不拿它冒充"输入侧没花钱".
+ *
+ * @param render 本轮渲染元信息
+ * @param usage 本轮用量
+ * @returns 留痕用量
+ */
+function buildLlmUsage(render: TurnRenderResult['render'], usage: TurnRenderResult['render']['usage']): TurnTrace['llmUsage'] {
+  return {
+    promptTokens: usage?.promptTokens ?? 0,
+    completionTokens: usage?.completionTokens ?? 0,
+    reasoningTokens: usage?.reasoningTokens ?? 0,
+    ttftMs: render.ttftMs ?? 0,
+    finishReason: render.finishReason ?? 'unknown',
+  };
+}
+
+/**
+ * 本轮安全判定 → 留痕的 `crisis` (WP19 原单 §1.1).
+ *
+ * @param safety 本轮安全判定 (缺省 = 内核判定为 pass)
+ * @returns 留痕危机判定
+ */
+function buildCrisisSummary(safety: TurnRenderResult['safety']): TurnTrace['crisis'] {
+  return {
+    detected: safety !== undefined,
+    category: safety?.categories?.[0] ?? null,
+  };
 }
 
 /**

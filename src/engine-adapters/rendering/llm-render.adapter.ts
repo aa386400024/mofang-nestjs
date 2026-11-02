@@ -88,6 +88,7 @@ import {
   resolveCompletionTokens,
   type RenderResult,
   type RenderSpec,
+  type RenderTaskKind,
   type RiskProbePort,
 } from '../../engine-core/index.js';
 import type {
@@ -95,6 +96,7 @@ import type {
   ChatCompletionRequest,
   ChatCompletionResponse,
   ChatMessage,
+  ChatMessageContentPart,
   ChatReasoningEffort,
 } from '../../llm/common/interfaces/chat-provider.interface.js';
 
@@ -602,10 +604,14 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       ...(params.reasoningEffort === undefined ? {} : { reasoningEffort: params.reasoningEffort }),
     };
 
+    // V2026-10-30 治本 (WP19-R · 留痕): TTFT 计时起点 —— 发起调用前.
+    const streamStartedAt = Date.now();
     const opened = await this.openStream(candidate, request, handlers);
     if (!opened.ok) {
       return opened.retryable ? { kind: 'retry', reason: opened.reason } : { kind: 'degrade', reason: opened.reason };
     }
+    // 首个增量已到达 → 本轮 TTFT 定了 (开头的预检/切备耗时算在上游等待里).
+    const ttftMs = Date.now() - streamStartedAt;
 
     // 阶段 2: 锁定 —— 首个非空 delta 到达即证明该候选健康.
     // 此后无论中途发生什么, 都不再切备 (已出声无法撤回).
@@ -684,23 +690,65 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     return {
       kind: 'success',
       candidateId: candidate.id,
-      value: {
+      value: this.buildStreamOutcome({
         text,
         taskKind: spec.taskKind,
-        // 流式只有累计 tokenCount, 无 prompt/completion 拆分 —— 同源取末条, 不编造.
-        // WP24: 因此**流式路径的输入侧用量不可得** (promptTokens 缺省) ——
-        //   成本口径会如实落成 output_only, 而不是拿 0 冒充"输入侧没花钱".
-        usage: {
-          completionTokens: tokenCount,
-          totalTokens: tokenCount,
-          ...(reasoningTokens === undefined ? {} : { reasoningTokens }),
-        },
-        fallbackUsed: false,
-        providerHint: candidate.id,
-        model: params.model,
-        degraded: false,
-        guardVerdict: verdict,
+        tokenCount,
+        reasoningTokens,
+        params,
+        messages,
+        candidateId: candidate.id,
+        finishReason,
+        ttftMs,
+        verdict,
+      }),
+    };
+  }
+
+  /**
+   * 组装流式收尾结果 (把"这一轮真实发生了什么"归一成一个形状).
+   *
+   * 抽成独立方法: 让 `streamAttempt` 只管状态机 (建流 → 锁定 → 边吐边累计 → 收尾),
+   * "结果长什么样"集中在一处 —— 将来留痕字段加在这里, 不动状态机.
+   *
+   * @param input 本轮流式事实
+   * @returns 流式收尾结果
+   */
+  private buildStreamOutcome(input: {
+    readonly text: string;
+    readonly taskKind: RenderTaskKind;
+    readonly tokenCount: number;
+    readonly reasoningTokens: number | undefined;
+    readonly params: ResolvedRenderParams;
+    readonly messages: readonly ChatMessage[];
+    readonly candidateId: string;
+    readonly finishReason: string | undefined;
+    readonly ttftMs: number;
+    readonly verdict: RenderGuardVerdict;
+  }): StreamRenderOutcome {
+    return {
+      text: input.text,
+      taskKind: input.taskKind,
+      // 流式只有累计 tokenCount, 无 prompt/completion 拆分 —— 同源取末条, 不编造.
+      // WP24: 因此**流式路径的输入侧用量不可得** (promptTokens 缺省) ——
+      //   成本口径会如实落成 output_only, 而不是拿 0 冒充"输入侧没花钱".
+      usage: {
+        completionTokens: input.tokenCount,
+        totalTokens: input.tokenCount,
+        ...(input.reasoningTokens === undefined ? {} : { reasoningTokens: input.reasoningTokens }),
       },
+      fallbackUsed: false,
+      providerHint: input.candidateId,
+      model: input.params.model,
+      degraded: false,
+      guardVerdict: input.verdict,
+      // V2026-10-30 治本 (WP19-R · 留痕): 本轮渲染真值 (真值只在适配器里 ——
+      //   分层默认 / 候选 overrides / 风险抬档都会改它们).
+      maxCompletionTokens: input.params.maxCompletionTokens,
+      ...(input.params.reasoningEffort === undefined ? {} : { reasoningEffort: input.params.reasoningEffort }),
+      promptPreview: buildPromptPreview(input.messages),
+      ...(input.finishReason === undefined ? {} : { finishReason: input.finishReason }),
+      ttftMs: input.ttftMs,
     };
   }
 
@@ -779,6 +827,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       ...(result.providerHint ? { providerHint: result.providerHint } : {}),
       ...(result.model ? { model: result.model } : {}),
       degraded,
+      // V2026-10-30 治本 (WP19-R · 留痕): 兜底形态也带 prompt 预览 ——
+      //   留痕要记的是"这一轮问了什么", 与走哪条取文路径无关.
+      promptPreview: buildPromptPreview(this.buildMessages(spec)),
     };
   }
 
@@ -1101,6 +1152,47 @@ function extractErrorStatus(error: unknown): number | undefined {
  */
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * system prompt 预览长度上限 (WP19 原单 §1.1: 截断前 500 字).
+ */
+const PROMPT_PREVIEW_LIMIT = 500;
+
+/**
+ * 构造 system prompt 预览 (留痕用).
+ *
+ * 取**第一条 system 消息**的前 500 字; 没有 system 消息时退回首条消息.
+ *
+ * 为什么不落完整 prompt:
+ *   system 模板是适配层资产 (角色约束 / 护栏 / 输出格式), 全量落库等于把
+ *   "这个角色是怎么被约束的"摊到库里 —— 而调试器只需要"这轮大概问了什么".
+ *
+ * @param messages 本轮实际发出的消息序列
+ * @returns 预览文本 (至多 500 字)
+ */
+export function buildPromptPreview(messages: readonly ChatMessage[]): string {
+  const system = messages.find((message) => message.role === 'system');
+  const content = toPreviewText(system?.content ?? messages[0]?.content);
+  return content.length > PROMPT_PREVIEW_LIMIT ? content.slice(0, PROMPT_PREVIEW_LIMIT) : content;
+}
+
+/**
+ * 消息内容 → 纯文本 (留痕只留文本形态).
+ *
+ * 多模态消息的内容可能是"内容片段数组" —— 那不是文本, 留痕里只取文本片段,
+ * 其它形态 (图片等) 记为空串, 不做序列化 (会把二进制塞进调试表).
+ *
+ * @param content 消息内容
+ * @returns 文本形态的内容
+ */
+function toPreviewText(content: string | ChatMessageContentPart[] | undefined): string {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  return content
+    .filter((part): part is ChatMessageContentPart & { readonly text: string } => part.type === 'text' && typeof part.text === 'string')
+    .map((part) => part.text)
+    .join('\n');
 }
 
 // 兼容导出: `RenderGuardVerdict` 的单一真相已搬到 streaming-render.port.ts,

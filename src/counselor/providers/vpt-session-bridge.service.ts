@@ -365,10 +365,14 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
     ];
     row.transcript = [...(row.transcript ?? []), ...turns];
     // 首次发言即视为进入"会谈中" (跟单次训练的 LISTENING 语义一致).
-    if (row.status === TrainingSessionStatus.IDLE) {
-      row.status = TrainingSessionStatus.LISTENING;
-    }
-    await this.sessionRepo.save(row);
+    const nextStatus = row.status === TrainingSessionStatus.IDLE ? TrainingSessionStatus.LISTENING : row.status;
+    // V2026-10-30 治本 (WP19-R · 只写自己管的列):
+    //   这里**不能**用 `save(row)` —— TypeORM 的 save 会把"加载时的整行快照"写回去,
+    //   而 JSON 列在它的 diff 里是**按引用**比较的 (加载出来的对象 ≠ 新对象) →
+    //   于是 `turn_debug_trace` (WP19 每轮留痕) 会被**逐字稿写手的旧副本覆盖**:
+    //   逐字稿与留痕并发写同一行时, 留痕会丢轮次 (实测: 2 轮只留 1 轮).
+    //   改成**只更新自己管的列** (transcript / status): 别的列谁写谁负责, 互不覆盖.
+    await this.sessionRepo.update({ id: dbSessionId }, { transcript: row.transcript, status: nextStatus });
 
     // 该轮分析: 触发点是"来访者那一轮落库后" (与单次训练同款口径 ——
     // 咨询师发言本身不足以判定, 提示要看来访者的反应).
@@ -422,7 +426,9 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
 
     row.status = TrainingSessionStatus.FINISHED;
     row.endedAt = row.endedAt ?? new Date();
-    await this.sessionRepo.save(row);
+    // V2026-10-30 治本 (WP19-R · 只写自己管的列): 收尾同样不用 `save(row)` ——
+    //   否则会把加载时的旧 `turn_debug_trace` 副本写回去, 覆盖掉最后一轮留痕.
+    await this.sessionRepo.update({ id: dbSessionId }, { status: row.status, endedAt: row.endedAt });
     this.logger.log(`[close] db_session=${dbSessionId} reason=${input.reason} turns=${input.turnCount} duration_ms=${input.durationMs}`);
 
     // 空局: 不派发 4 流派督导 (记录保留, 报告派生为 `no_content`).
@@ -491,10 +497,11 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
 
     const before = (row.transcript ?? []).length;
     row.transcript = incoming;
-    if (row.status === TrainingSessionStatus.IDLE) {
-      row.status = TrainingSessionStatus.LISTENING;
-    }
-    await this.sessionRepo.save(row);
+    const nextStatus = row.status === TrainingSessionStatus.IDLE ? TrainingSessionStatus.LISTENING : row.status;
+    // V2026-10-30 治本 (WP19-R · 只写自己管的列): 同 doAppendTurn ——
+    //   `save(row)` 会把加载时的旧 `turn_debug_trace` 副本一起写回去, 覆盖掉
+    //   这段时间里新落库的留痕. 定向 update 只碰 transcript / status.
+    await this.sessionRepo.update({ id: dbSessionId }, { transcript: row.transcript, status: nextStatus });
     this.logger.log(`[replace_transcript] db_session=${dbSessionId} turns=${before}->${incoming.length}`);
   }
 

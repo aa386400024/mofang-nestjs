@@ -130,6 +130,41 @@ export interface StreamRenderOutcome {
   readonly degraded: boolean;
   /** 后置全文 guard 判定 (观测用; 流式路径只记信号, 不 regen 不撤回). */
   readonly guardVerdict?: RenderGuardVerdict;
+  /**
+   * 本轮实际下发的**生成长度上限** (thinking token 计入本上限).
+   *
+   * V2026-10-30 治本 (WP19-R · 留痕): 留痕快照要记"这一轮模型被要求写多长".
+   *   注意它**不等于** `spec.tokenBudget.maxCompletionTokens` —— 分层默认 /
+   *   候选 overrides 都会改它, 只有适配器解析完才知道真值.
+   */
+  readonly maxCompletionTokens?: number;
+  /**
+   * 本轮实际下发的**思考强度** (缺省 = 没下发, 由上游按默认档走).
+   *
+   * V2026-10-30 治本 (WP19-R · 留痕): 风险轮次会被**抬档**, 所以真值只在适配器里.
+   */
+  readonly reasoningEffort?: string;
+  /**
+   * 本轮 system prompt 预览 (前 500 字; 不含完整 prompt).
+   *
+   * V2026-10-30 治本 (WP19-R · 留痕): 调试器要能核对"这轮到底问了模型什么",
+   *   但**不存完整 system prompt** (模板是适配层资产, 全量落库等于摊开角色约束).
+   */
+  readonly promptPreview?: string;
+  /**
+   * 上游结束原因 (stop / length / content_filter …; 缺省 = 上游没报).
+   *
+   * V2026-10-30 治本 (WP19-R · 留痕): `length` 意味着正文被按长度砍断 ——
+   *   留痕里没有它, 就分不清"模型话说完了"与"模型被截断了".
+   */
+  readonly finishReason?: string;
+  /**
+   * 首 token 延迟 (ms; 从发起调用到第一个增量到达).
+   *
+   * V2026-10-30 治本 (WP19-R · 留痕): 留痕里没有它, 就没法区分
+   *   "模型慢"与"prompt 太长".
+   */
+  readonly ttftMs?: number;
 }
 
 /**

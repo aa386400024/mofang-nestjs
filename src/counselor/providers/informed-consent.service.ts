@@ -123,9 +123,12 @@ export class InformedConsentService {
     const entries = this.ensureAllElements(result.data);
     const passed = entries.every((e) => e.covered);
 
-    session.informedConsentTranscript = entries;
-    session.informedConsentPassed = passed ? 1 : 0;
-    await this.sessionRepo.save(session);
+    // V2026-10-30 治本 (WP19-R · 只写自己管的列):
+    //   不用 `save(session)` —— TypeORM 的 save 会把"加载时的整行快照"写回去, 而 JSON 列
+    //   (turn_debug_trace / informed_consent_transcript) 在它的 diff 里是**按引用**比较的
+    //   (加载出来的对象 ≠ 新对象), 于是本方法会把**加载时**的 `turn_debug_trace` 旧副本一并写回,
+    //   覆盖掉 WP19 每轮落的留痕 (实测: 2 轮只留 1 轮). 定向 update 只碰自己管的两列.
+    await this.sessionRepo.update({ id: session.id }, { informedConsentTranscript: entries, informedConsentPassed: passed ? 1 : 0 });
 
     return {
       sessionId,

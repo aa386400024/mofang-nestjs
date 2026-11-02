@@ -70,6 +70,7 @@ import { RISK_PROBE } from './risk/risk-probe.token.js';
 import { RouterChatCaller } from './router-chat-caller.js';
 import { StaticTrajectoryScriptResolver, TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory/index.js';
 import { AdminDebugModule } from '../../admin-debug/admin-debug.module.js';
+import { TraceRecorder } from '../../admin-debug/trace-recorder.service.js';
 import { QdrantService } from '../../ai-engine/providers/qdrant.service.js';
 import type { EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
 import { LlmModule } from '../../llm/llm.module.js';
@@ -263,6 +264,7 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         frames: VoiceFrameRegistry,
         scriptResolver: TrajectoryScriptResolver,
         closeout: SessionCloseoutService,
+        traceRecorder: TraceRecorder,
         config: ConfigService,
       ): EngineStreamBackend =>
         createEngineStreamBackend({
@@ -271,6 +273,11 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
           frames,
           scriptResolver,
           closeout,
+          // WP19-R: 调试快照记录器 —— 由 AdminDebugModule 提供 (本模块已 import 它).
+          //   此前这里是"恒 undefined 的占位", 于是 recordTrace() 首行守卫直接 return,
+          //   "每轮 BDI 快照落库"一次都没发生过 (turn_debug_trace 恒空).
+          //   缺装配 = 不留痕 (会话照常), 不阻断对练主链路.
+          traceRecorder,
           // WP24: 成本单价走 env (定价表换版只改配置, 不发版).
           //   解析口径在 `resolveSessionCostPricing` —— 非法值回退默认, 不抛.
           pricing: resolveSessionCostPricing({
@@ -287,6 +294,7 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         { token: VoiceFrameRegistry, optional: true },
         { token: TRAJECTORY_SCRIPT_RESOLVER, optional: true },
         { token: SessionCloseoutService, optional: true },
+        TraceRecorder,
         ConfigService,
       ],
     },

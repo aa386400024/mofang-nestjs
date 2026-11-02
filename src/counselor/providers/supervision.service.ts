@@ -918,8 +918,12 @@ export class SupervisionService {
         where: { id: sessionId, userId, deletedAt: IsNull() },
       });
       if (row) {
-        row.techStats = techStats;
-        await this.trainingSessionRepo.save(row);
+        // V2026-10-30 治本 (WP19-R · 只写自己管的列):
+        //   不用 `save(row)` —— TypeORM 的 save 会把"加载时的整行快照"写回去, 而 JSON 列
+        //   (turn_debug_trace / tech_stats) 在它的 diff 里是**按引用**比较的 (加载出来的对象 ≠ 新对象),
+        //   于是本方法会把**加载时**的 `turn_debug_trace` 旧副本一并写回, 覆盖掉 WP19 每轮落的留痕
+        //   (实测: 2 轮只留 1 轮). 改成只更新 tech_stats 一列, 别的列谁写谁负责.
+        await this.trainingSessionRepo.update({ id: row.id }, { techStats });
       }
       return;
     }
@@ -1131,8 +1135,12 @@ export class SupervisionService {
       return;
     }
     try {
-      row.supervisionReportId = reportId;
-      await this.trainingSessionRepo.save(row);
+      // V2026-10-30 治本 (WP19-R · 只写自己管的列):
+      //   不用 `save(row)` —— TypeORM 的 save 会把"加载时的整行快照"写回去, 而 JSON 列
+      //   (turn_debug_trace) 在它的 diff 里是**按引用**比较的 (加载出来的对象 ≠ 新对象),
+      //   于是会把**加载时**的 `turn_debug_trace` 旧副本一并写回, 覆盖掉 WP19 每轮落的留痕.
+      //   定向 update 只碰 supervision_report_id 一列.
+      await this.trainingSessionRepo.update({ id: row.id }, { supervisionReportId: reportId });
     } catch (err) {
       this.logger.warn(
         `[link_report_failed] sessionId=${row.id} reportId=${reportId} ` + `err=${err instanceof Error ? err.message : String(err)}`,

@@ -89,6 +89,25 @@ export interface TurnSessionContext {
 }
 
 /**
+ * 本轮渲染规格摘要 (V2026-10-30 WP19-R · 每轮留痕).
+ *
+ * 为什么是"摘要"而不是整个 RenderSpec:
+ *   内核 RenderSpec 含**全量**角色内容 (核心信念 / 敏感议题 / 禁止行为…) ——
+ *   那是"这一轮模型看到的全部", 落库等于把角色剧本抄进调试表.
+ *   留痕只需要"这轮用哪种任务档 / 多少 token 预算 / 多深思考 / prompt 长什么样".
+ */
+export interface RenderSpecSummary {
+  /** 任务分层 (stable / chat / advanced). */
+  readonly taskKind: string;
+  /** system prompt 预览 (至多 500 字; 缺省 = 渲染端口没给). */
+  readonly promptPreview: string;
+  /** 本轮实际下发的生成长度上限 (thinking token 计入). */
+  readonly maxCompletionTokens: number;
+  /** 本轮实际下发的思考强度 (缺省 = 上游默认档). */
+  readonly reasoningEffort: string;
+}
+
+/**
  * 门面单轮返回.
  */
 export interface TurnRenderResult {
@@ -126,6 +145,24 @@ export interface TurnRenderResult {
      * 缺省 = 上游没报 / 本轮降级 (降级时没有"实际用的模型"这回事).
      */
     readonly model?: string;
+    /**
+     * 本轮渲染规格摘要 (V2026-10-30 WP19-R · 每轮留痕).
+     *
+     * 缺省 = 该渲染端口没给 (内核 RenderPort 契约不含 prompt 与厂商参数).
+     */
+    readonly spec?: RenderSpecSummary;
+    /**
+     * 上游结束原因 (V2026-10-30 WP19-R · 每轮留痕).
+     *
+     * `length` 意味着正文被上游按长度砍断 —— 没有它就分不清"说完了"与"被截断了".
+     */
+    readonly finishReason?: string;
+    /**
+     * 首 token 延迟 (ms; V2026-10-30 WP19-R · 每轮留痕).
+     *
+     * 缺省 = 该渲染端口没给.
+     */
+    readonly ttftMs?: number;
   };
   /** 本轮轨迹观测 (透传; 仅注入剧本的会话携带). */
   readonly trajectoryTrace?: TrajectoryTrace;
@@ -186,6 +223,16 @@ interface NormalizedRender {
   };
   /** 本轮实际使用的模型名 (缺省 = 上游没报 / 降级). */
   readonly model?: string;
+  /**
+   * 本轮渲染规格摘要 (V2026-10-30 WP19-R · 留痕).
+   *
+   * 缺省 = 该渲染端口没给 (内核 RenderPort 契约不含 prompt 与厂商参数).
+   */
+  readonly spec?: RenderSpecSummary;
+  /** 上游结束原因 (V2026-10-30 WP19-R · 留痕; 缺省 = 上游没报). */
+  readonly finishReason?: string;
+  /** 首 token 延迟 (ms; V2026-10-30 WP19-R · 留痕; 缺省 = 渲染端口没给). */
+  readonly ttftMs?: number;
 }
 
 /**
@@ -280,6 +327,9 @@ export class TurnRenderOrchestrator {
         ...(rendered.providerHint ? { providerHint: rendered.providerHint } : {}),
         usage: rendered.usage,
         ...(rendered.model ? { model: rendered.model } : {}),
+        ...(rendered.spec ? { spec: rendered.spec } : {}),
+        ...(rendered.finishReason ? { finishReason: rendered.finishReason } : {}),
+        ...(rendered.ttftMs === undefined ? {} : { ttftMs: rendered.ttftMs }),
       },
       ...(output.trajectoryTrace ? { trajectoryTrace: output.trajectoryTrace } : {}),
       ...(output.safety ? { safety: output.safety } : {}),
@@ -329,6 +379,9 @@ export class TurnRenderOrchestrator {
         ...(rendered.providerHint ? { providerHint: rendered.providerHint } : {}),
         usage: rendered.usage,
         ...(rendered.model ? { model: rendered.model } : {}),
+        ...(rendered.spec ? { spec: rendered.spec } : {}),
+        ...(rendered.finishReason ? { finishReason: rendered.finishReason } : {}),
+        ...(rendered.ttftMs === undefined ? {} : { ttftMs: rendered.ttftMs }),
       },
       ...(output.trajectoryTrace ? { trajectoryTrace: output.trajectoryTrace } : {}),
       ...(output.safety ? { safety: output.safety } : {}),
@@ -388,6 +441,9 @@ export class TurnRenderOrchestrator {
           ...(result.usage.promptTokens === undefined ? {} : { promptTokens: result.usage.promptTokens }),
         },
         ...(result.model ? { model: result.model } : {}),
+        // V2026-10-30 治本 (WP19-R · 留痕): 聚合路径只有内核契约里的那几项 ——
+        //   prompt / 厂商参数 / TTFT 拿不到就不编 (promptPreview 留空串).
+        spec: this.buildSpecSummary(spec, {}),
       };
     } catch (error) {
       // 理论上 WP6 适配器已不 reject; 这里是防御 —— 换别的 RenderPort 实现时兜住.
@@ -434,12 +490,46 @@ export class TurnRenderOrchestrator {
           ...(outcome.usage.reasoningTokens === undefined ? {} : { reasoningTokens: outcome.usage.reasoningTokens }),
         },
         ...(outcome.model ? { model: outcome.model } : {}),
+        // V2026-10-30 治本 (WP19-R · 留痕): 流式路径能拿到真值 (真值只在适配器里).
+        spec: this.buildSpecSummary(spec, {
+          ...(outcome.promptPreview === undefined ? {} : { promptPreview: outcome.promptPreview }),
+          ...(outcome.maxCompletionTokens === undefined ? {} : { maxCompletionTokens: outcome.maxCompletionTokens }),
+          ...(outcome.reasoningEffort === undefined ? {} : { reasoningEffort: outcome.reasoningEffort }),
+        }),
+        ...(outcome.finishReason === undefined ? {} : { finishReason: outcome.finishReason }),
+        ...(outcome.ttftMs === undefined ? {} : { ttftMs: outcome.ttftMs }),
       };
     } catch (error) {
       // 理论上渲染器的流式出口已不 reject; 这里是防御 —— 换别的渲染实现时兜住.
       warn(`[turnStream] 流式渲染异常, 降级为中性兜底句: ${errorMessage(error)}`);
       return this.degradedRender();
     }
+  }
+
+  /**
+   * 构造渲染规格摘要 (WP19-R · 留痕).
+   *
+   * 口径: **有真值用真值, 没真值不编** ——
+   *   · taskKind: 内核规格里有, 直接取;
+   *   · maxCompletionTokens: 渲染端口报了真值就用真值 (分层默认 / 候选覆盖会改它),
+   *     否则回落到内核 token 预算 (那是"至少允许这么多"的种子值);
+   *   · reasoningEffort: 没报就是"上游默认档", 记 'unknown' 而不是编一个 low;
+   *   · promptPreview: 没有就是空串 (内核契约不含 prompt, 拿不到就别造).
+   *
+   * @param spec 本轮内核渲染规格
+   * @param actual 渲染端口报上来的真值 (缺省 = 什么都没报)
+   * @returns 规格摘要
+   */
+  private buildSpecSummary(
+    spec: RenderSpec,
+    actual: { readonly promptPreview?: string; readonly maxCompletionTokens?: number; readonly reasoningEffort?: string },
+  ): RenderSpecSummary {
+    return {
+      taskKind: spec.taskKind,
+      promptPreview: actual.promptPreview ?? '',
+      maxCompletionTokens: actual.maxCompletionTokens ?? spec.tokenBudget.maxCompletionTokens,
+      reasoningEffort: actual.reasoningEffort ?? 'unknown',
+    };
   }
 
   /**

@@ -30,6 +30,7 @@
 
 import { EngineStreamBackend } from './engine-stream-backend.adapter.js';
 import type { EngineTurnService } from './engine-turn.service.js';
+import type { TraceRecorder } from '../../admin-debug/trace-recorder.service.js';
 import { InMemoryBdiStateRepository } from '../../engine-core/in-memory/in-memory-bdi-state.repository.js';
 import { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-engine-session.js';
 import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store.js';
@@ -173,6 +174,18 @@ export interface EngineStreamBackendDeps {
    * **不能**让"没配单价"变成"开不了会话".
    */
   readonly pricing?: SessionCostPricing;
+  /**
+   * 调试快照记录器 (WP19-R; 缺省 = 不留痕).
+   *
+   * 缺省语义与上面几个一致: 没装配记录器 → 只是没有调试快照落库,
+   * **不能**让"没有调试器"变成"开不了会话".
+   *
+   * V2026-10-30 治本 (WP19-R): 本参数**曾经恒为 undefined** —— 工厂第 6 位
+   * 一直占着 undefined, 而 `recordTrace()` 首行守卫直接 return, 于是
+   * "每轮 BDI 快照落库"一次都没发生过 (turn_debug_trace 恒空).
+   * 现在由 `EngineWiringModule` 显式注入 `AdminDebugModule` 导出的实例.
+   */
+  readonly traceRecorder?: TraceRecorder;
 }
 
 /**
@@ -345,8 +358,17 @@ export function createVisitorOutputProbe(deps: RiskProbeDeps): RiskProbePort | u
 export function createEngineStreamBackend(deps: EngineStreamBackendDeps): EngineStreamBackend {
   // 位置参数顺序与 adapter 的构造参数一一对应:
   //   engine / resolver / frames / scriptResolver / closeout / traceRecorder / costPricing
-  // ⚠️ `traceRecorder` 仍恒为 undefined (它至今没有装配入口), 但**必须占位**:
-  //   位置参数不能跳着传 —— WP24 的成本单价在它后面, 要传就得先给第 6 位一个
-  //   undefined. (此前"不占位"的做法只在这一个参数上成立过.)
-  return new EngineStreamBackend(deps.engine, deps.resolver, deps.frames, deps.scriptResolver, deps.closeout, undefined, deps.pricing);
+  //
+  // V2026-10-30 治本 (WP19-R): 第 6 位**不再是恒 undefined 的占位** ——
+  //   traceRecorder 由 EngineWiringModule 注入 (AdminDebugModule 导出),
+  //   装配后每轮 turn 结束真正落库 (见 `EngineStreamBackend.recordTrace`).
+  return new EngineStreamBackend(
+    deps.engine,
+    deps.resolver,
+    deps.frames,
+    deps.scriptResolver,
+    deps.closeout,
+    deps.traceRecorder,
+    deps.pricing,
+  );
 }

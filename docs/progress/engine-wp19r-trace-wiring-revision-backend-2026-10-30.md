@@ -118,3 +118,31 @@ fix(engine): WP19-R 留痕链真正接线——traceRecorder 注入 EngineStream
 ## 5. 一句话给后端
 
 > EngineStreamBackend 的 traceRecorder 从来没被注入，recordTrace 首行就 return，turn_debug_trace 是空表。把 DI 接上让每轮真落库（契约照抄 WP19 原单 §1.1），顺手把 admin/api 的 characters 改查 character_profiles、加 basic auth、sessions 按用户隔离、not_found 改 404。半天的活，真跑两场贴 DB 查询结果当验收，别通读代码就算完。
+
+---
+
+## 6. 交付摘要（2026-10-30 收口）
+
+**状态**：✅ 代码已交付 · 实跑取证通过 · **未 commit**（按任务单要求不自动提交）
+
+**交付记录**：[engine-wp19r-trace-wiring-revision-backend-implementation-2026-10-30.md](engine-wp19r-trace-wiring-revision-backend-implementation-2026-10-30.md)
+
+**6 件事逐条**：
+
+| # | 事项 | 状态 |
+|---|---|---|
+| 1 | `traceRecorder` 真正注入 EngineStreamBackend 的 DI 装配，每轮 turn 结束真落库 | ✅ 工厂第 6 位不再恒 `undefined`；`useFactory` 注入 `TraceRecorder`；每轮**即刻**落库（同场多次写串行化防乱序）；写库失败只 error 日志不炸链 |
+| 2 | `GET /admin/api/characters` 改查 `character_profiles` | ✅ 返回 slug / codename / baseline 四值 / resistance 三项 / 上下架 + 审核态；与引擎注入基线**逐值一致**（实测） |
+| 3 | `/admin/api/*` basic auth middleware | ✅ env `ADMIN_BASIC_AUTH_USER`/`PASS`，**两个都配才生效**，无凭据 401；学员身份复用既有 `JwtAuthGuard`；只配一个按"未开启"处理并 warn |
+| 4 | sessions 列表按请求用户隔离 | ✅ 学员只看自己的；basic auth 管理员不过滤；详情端点同口径（越权返 **404**，不返 403 以免泄露 id 存在性） |
+| 5 | `GET /admin/api/sessions/:id` 不存在 → 404 | ✅ `BizException(BizCode.ResourceNotFound)` → HTTP 404 |
+| 6 | `docs/README.md` 索引补 WP19/WP20 行 | ✅ 补 WP19 / WP19-R / WP20 三行（各带任务单 + 交付记录链接） |
+
+**验收实测**：
+
+- eslint `0 error 0 warning` / tsc `0 错` / 新增套件 **18 例全绿** / 全量 **61 套件 954 例全通过**（零回归）/ `git diff --stat HEAD -- src/engine-core` **为空**
+- **真跑取证**：真实 DI 装配 + 真实 MySQL + 真实上游模型，2 场对练 × 2 轮 → 两场 `turn_debug_trace` **各 2 行（= 轮次数）**；`bdiSnapshot` 四值非空（trust 0.2 / valence -0.55 / arousal 0.18 / resistance 0.62）；`llmUsage.completionTokens` **556 / 588 / 585（> 0）**；`characterSlug = vpt_grief_avoidance_l1`；`promptPreview` 长 500（截断生效）；`maxCompletionTokens=1500` / `reasoningEffort=low`
+
+**顺手治本的真病（超出任务单字面，必要）**：TypeORM `Repository.save(整行)` 对 JSON 列**按引用**比较 → 逐字稿 / tech_stats / 知情同意 / 报告链接的写手会把**加载时的旧 `turn_debug_trace` 副本写回**，覆盖并发落库的留痕（接上 DI 后第一轮实跑仍丢轮次：2 轮只剩 1 轮）→ 6 处写手全改成**只写自己管的列**的定向 `update`。详见交付记录 §2。
+
+**遗留（已在交付记录 §9 登记）**：① 前端 `admin-dashboard/src/api/types.ts` 的旧 `TurnTrace` 类型（`bdi`/`usage`）与 §1.1 新契约（`bdiSnapshot`/`llmUsage`）**失配**，WP20 切真接口时须对齐（本单按红线不动前端）；② `llmUsage.promptTokens` 恒 0 = "输入侧不可得"，**不代表没花钱**（与 WP24 `costBasis: output_only` 同款纪律）；③ 生产部署务必把两个 basic auth env **配齐**，否则 `/admin/api/*` 按 dev 裸奔口径放行（会打 warn）。
