@@ -9,8 +9,11 @@ WORKDIR /app
 # Alpine 缺 python3 / make / g++ 的话, bcrypt / sharp 等 native module 需要
 RUN apk add --no-cache python3 make g++ libc6-compat
 
-COPY package.json package-lock.json* ./
-RUN npm ci --include=dev
+# pnpm via corepack (Node 26 自带)
+RUN corepack enable
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # ============================================================
 # Stage 2: build — 编译 TS → JS
@@ -18,14 +21,15 @@ RUN npm ci --include=dev
 FROM node:26-alpine AS build
 WORKDIR /app
 
+RUN corepack enable
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build (lint + nest build)
-RUN npm run build
+# Build
+RUN pnpm build
 
-# 把生产 deps 单独拷出来 (省体积)
-RUN npm prune --omit=dev
+# 把生产 deps 单独装出来 (省体积)
+RUN pnpm install --prod --frozen-lockfile
 
 # ============================================================
 # Stage 3: prod — 运行时镜像 (最小)

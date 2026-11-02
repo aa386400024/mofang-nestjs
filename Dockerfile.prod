@@ -26,14 +26,12 @@ WORKDIR /app
 # RUN apk add --no-cache python3 make g++ libc6-compat
 
 # 1. 先只 COPY package 文件, 利用 Docker 缓存
-#    (改 src 代码不会触发 npm ci 重跑, 加速 95% rebuild)
-COPY package.json package-lock.json* ./
+#    (改 src 代码不会触发 pnpm install 重跑, 加速 95% rebuild)
+RUN corepack enable
+COPY package.json pnpm-lock.yaml ./
 
-# 2. 生产依赖, 显式 --omit=dev
-#    --omit=dev = NODE_ENV=production 时跳过 devDependencies
-#    --ignore-scripts = 跳过 native build (没装 g++ 会失败)
-#    用 || true 兜底: lockfile 缺失时 npm ci 报错 (开发场景)
-RUN npm ci --omit=dev --ignore-scripts || npm install --omit=dev --ignore-scripts
+# 2. 生产依赖, 显式 --prod 跳过 devDependencies
+RUN pnpm install --prod --frozen-lockfile
 
 # 3. 拷贝 TS build 产物
 #    注意: dist/ 必须在本地 tsc 编译后再 build, 不要让 docker 编译 TS

@@ -11,6 +11,7 @@
   "engines": {
     "node": ">=26"
   },
+  "packageManager": "pnpm@9.15.0",
   "engineStrict": true,
   "scripts": {
     "lint": "eslint --cache \"{src,test,bin}/**/*.ts\"",
@@ -31,7 +32,7 @@
     "migration:revert": "tsx node_modules/typeorm/cli.js -d bin/ormconfig.ts migration:revert",
     "migration:show": "tsx node_modules/typeorm/cli.js -d bin/ormconfig.ts migration:show",
     "build": "tsc -p tsconfig.build.json",
-    "prestart": "node scripts/ensure-utf8.cjs && npm run build",
+    "prestart": "node scripts/ensure-utf8.cjs && pnpm build",
     "start": "node dist/app.js",
     "start:dev": "nest start --watch",
     "start:win": "node scripts/ensure-utf8.cjs && nest start --watch",
@@ -43,7 +44,7 @@
     "test": "vitest run --exclude '**/e2e/**/*.ts'",
     "test:e2e": "vitest run --config ./test/vitest.e2e.mts",
     "doc": "compodoc -p tsconfig.json -s -d docs",
-    "doc:api": "npm run build && node dist/swagger.js",
+    "doc:api": "pnpm build && node dist/swagger.js",
     "smoke:ai": "pnpm build && node scripts/smoke-ai-engine.cjs && node -e \"import('node:fs').then(fs=>fs.writeFileSync('.smoke-ai-last', new Date().toISOString()))\"",
     "smoke:rag": "pnpm build && node scripts/smoke-rag.cjs && node -e \"import('node:fs').then(fs=>fs.writeFileSync('.smoke-rag-last', new Date().toISOString()))\""
   },
