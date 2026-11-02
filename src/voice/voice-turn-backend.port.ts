@@ -295,6 +295,19 @@ export interface VoiceTurnBackendCloseResult {
   readonly finalTurnCount: number;
   /** 本场留下的消息条数 (一问一答算两条). */
   readonly finalMessageCount: number;
+  /**
+   * 本场累计的 completion tokens (V2026-11-02, WP22).
+   *
+   * 用途: 全局日 token 预算要按"这场真的花了多少"累加 —— 复用引擎侧已有的用量
+   * 累加器 (WP24), 不另算一套 (两套口径必然对不上).
+   *
+   * **可选字段** (缺省 = 这场没给出用量):
+   *   · 旧链路 (`VisitorService`) 没有用量累加器 → 缺省;
+   *   · 引擎侧已经收过尾 (同一场被 close 两次) → 第二次拿不到 → 缺省.
+   * 缺省语义是"不可得", **不是 0** —— 两者不能混: 0 会被当成"这场没花钱",
+   * 而"不可得"是"不知道花了多少". 预算宁可少算也不能把 0 当成事实.
+   */
+  readonly totalCompletionTokens?: number;
 }
 
 /**

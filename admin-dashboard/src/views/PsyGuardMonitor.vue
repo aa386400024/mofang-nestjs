@@ -9,6 +9,7 @@ import VChart from 'vue-echarts'
 import { api } from '@/api/client'
 import type { PsyGuardStats, PsyGuardTrendPoint } from '@/api/types'
 import InfoTooltip from '@/components/InfoTooltip.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 const { t } = useI18n()
 use([LineChart, BarChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
@@ -70,7 +71,13 @@ const requestsOption = {
 <template>
   <div class="p-6 max-w-6xl mx-auto">
     <h1 class="text-lg font-semibold mb-4">{{ t('psyguard.title') }}</h1>
-    <div v-if="!stats" class="text-muted text-sm">…</div>
+    <EmptyState
+      v-if="!stats"
+      icon="shield"
+      title="暂无 PsyGuard 数据"
+      description="后端尚未提供 PsyGuard 监控 API。接入后，这里会展示延迟趋势、请求量和风险类别分布。"
+      pendingTag="Pending: PsyGuard 监控 API"
+    />
     <template v-else>
       <!-- 状态卡片 -->
       <div class="grid grid-cols-4 gap-3 mb-4">

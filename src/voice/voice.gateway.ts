@@ -53,6 +53,7 @@ import { VoiceCatalogRegistry } from './voice-catalog-slot.js';
 import { VoiceFrameRegistry } from './voice-frame-registry.js';
 import { parseVoiceHandshake, resolveVoicePreset } from './voice-handshake.js';
 import { VoiceSessionBridgeRegistry, type VoiceSessionOpenResult } from './voice-session-bridge.js';
+import { buildVoiceLimitErrorFrame, VoiceSessionLimitError } from './voice-session-limit.error.js';
 import { VoiceSessionRegistry } from './voice-session-registry.js';
 import type { VoicePersonaChannel, VoiceSessionPreset, VoiceSkillCode, VoiceVisitorCard } from './voice-session.types.js';
 import { VoiceTemplateRegistry } from './voice-template-slot.js';
@@ -414,6 +415,18 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
       });
       return true;
     } catch (err) {
+      // WP22: 会话闸门 (并发上限 / 当日 token 预算) 拦下 ——
+      //   发**专属** error 帧 (带自己的 code 与可读文案), 不走通用
+      //   `session_start_failed` —— 前端要能区分"你已经有了一场"和"额度用完了",
+      //   这两件事给用户的下一步完全不同.
+      if (err instanceof VoiceSessionLimitError) {
+        this.logger.warn(`[onConnect] session rejected by limit: code=${err.code} session=${data.sessionId} user=${data.userId}`);
+        this.sessions.remove(data.sessionId);
+        data.unregisterFrameSink?.();
+        this.sendJson(client, buildVoiceLimitErrorFrame(err));
+        client.disconnect(true);
+        return false;
+      }
       this.logger.error('[onConnect] start session failed: ' + (err instanceof Error ? err.message : String(err)));
       this.sessions.remove(data.sessionId);
       data.unregisterFrameSink?.();

@@ -38,7 +38,7 @@ const typeMeta: Record<MemoryType, { label: string; color: string }> = {
 onMounted(async () => {
   try {
     data.value = await api.session(props.id)
-    if (data.value.traces.length) selectedTurn.value = data.value.traces[0].turnIndex
+    if (data.value.traces.length) selectedTurn.value = data.value.traces[0]?.turnIndex ?? 0
     trajectory.value = await api.trajectory(props.id)
     sessionMemories.value = await api.sessionMemories(props.id)
   } catch (e) { err.value = String(e) }
@@ -116,60 +116,50 @@ const clickMemory = (m: MemoryEntry) => {
             <div class="grid grid-cols-2 gap-3">
               <div class="bg-bg-base/60 rounded p-3">
                 <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">trust<InfoTooltip :text="t('sessionDetail.trustDesc')" /></div>
-                <div class="font-mono text-lg text-gray-100">{{ turn.bdi.trust.toFixed(2) }}</div>
+                <div class="font-mono text-lg text-gray-100">{{ turn.bdiSnapshot.trust.toFixed(2) }}</div>
               </div>
               <div class="bg-bg-base/60 rounded p-3">
                 <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">valence<InfoTooltip :text="t('sessionDetail.valenceDesc')" /></div>
-                <div class="font-mono text-lg text-gray-100">{{ turn.bdi.valence.toFixed(2) }}</div>
+                <div class="font-mono text-lg text-gray-100">{{ turn.bdiSnapshot.valence.toFixed(2) }}</div>
               </div>
               <div class="bg-bg-base/60 rounded p-3">
                 <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">arousal<InfoTooltip :text="t('sessionDetail.arousalDesc')" /></div>
-                <div class="font-mono text-lg text-gray-100">{{ turn.bdi.arousal.toFixed(2) }}</div>
+                <div class="font-mono text-lg text-gray-100">{{ turn.bdiSnapshot.arousal.toFixed(2) }}</div>
               </div>
               <div class="bg-bg-base/60 rounded p-3">
                 <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">resistance<InfoTooltip :text="t('sessionDetail.resistanceDesc')" /></div>
-                <div class="font-mono text-lg text-gray-100">{{ turn.bdi.resistance.toFixed(2) }}</div>
+                <div class="font-mono text-lg text-gray-100">{{ turn.bdiSnapshot.resistance.toFixed(2) }}</div>
               </div>
             </div>
             <div class="mt-3 pt-3 border-t border-bg-border flex items-center justify-between">
               <span class="text-[10px] uppercase tracking-wider text-muted">{{ t('sessionDetail.emotionLabel') }}</span>
-              <span class="chip bg-accent/15 text-accent">{{ turn.bdi.attachmentType }}</span>
+              <span class="chip bg-accent/15 text-accent">{{ turn.bdiSnapshot.anxiousSecure ?? '—' }}</span>
             </div>
           </div>
-          <div v-if="turn" class="card p-4">
+          <div v-if="turn?.llmUsage" class="card p-4">
             <h2 class="text-xs uppercase tracking-wider text-muted mb-3">{{ t('sessionDetail.llmUsage') }}</h2>
             <div class="grid grid-cols-2 gap-3">
               <div class="bg-bg-base/60 rounded p-3">
                 <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">completion<InfoTooltip :text="t('sessionDetail.completionDesc')" /></div>
-                <div class="font-mono text-lg text-gray-100">{{ turn.usage.completionTokens }}</div>
+                <div class="font-mono text-lg text-gray-100">{{ turn.llmUsage.completionTokens }}</div>
               </div>
               <div class="bg-bg-base/60 rounded p-3">
                 <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">reasoning<InfoTooltip :text="t('sessionDetail.reasoningDesc')" /></div>
-                <div class="font-mono text-lg text-warn">{{ turn.usage.reasoningTokens }}</div>
+                <div class="font-mono text-lg text-warn">{{ turn.llmUsage.reasoningTokens }}</div>
               </div>
             </div>
           </div>
           <!-- 安全判定 -->
-          <SafetyVerdictPanel :verdict="turn?.safety ?? null" />
+          <SafetyVerdictPanel :verdict="null" />
           <!-- RenderSpec prompt 预览 -->
-          <div v-if="turn?.render" class="card p-4">
+          <div v-if="turn?.renderSpec?.promptPreview" class="card p-4">
             <h2 class="text-xs uppercase tracking-wider text-muted mb-3 flex items-center">
               {{ t('sessionDetail.renderSpec') }}
               <InfoTooltip :text="t('sessionDetail.renderSpecTooltip')" />
             </h2>
-            <div class="space-y-2.5">
-              <div v-if="turn.render.system" class="bg-bg-base/40 rounded p-2.5">
-                <div class="text-[10px] uppercase tracking-wider text-accent-muted mb-1">{{ t('sessionDetail.system') }}</div>
-                <p class="text-xs text-gray-300 leading-relaxed">{{ turn.render.system }}</p>
-              </div>
-              <div v-if="turn.render.context" class="bg-bg-base/40 rounded p-2.5">
-                <div class="text-[10px] uppercase tracking-wider text-warn mb-1">{{ t('sessionDetail.context') }}</div>
-                <p class="text-xs text-gray-300 leading-relaxed whitespace-pre-line">{{ turn.render.context }}</p>
-              </div>
-              <div v-if="turn.render.instructions" class="bg-bg-base/40 rounded p-2.5">
-                <div class="text-[10px] uppercase tracking-wider text-ok mb-1">{{ t('sessionDetail.instructions') }}</div>
-                <p class="text-xs text-gray-300 leading-relaxed">{{ turn.render.instructions }}</p>
-              </div>
+            <div class="bg-bg-base/40 rounded p-2.5">
+              <div class="text-[10px] uppercase tracking-wider text-accent-muted mb-1">prompt preview</div>
+              <p class="text-xs text-gray-300 leading-relaxed">{{ turn.renderSpec.promptPreview }}</p>
             </div>
           </div>
         </div>
@@ -195,9 +185,9 @@ const clickMemory = (m: MemoryEntry) => {
             <span class="text-[10px] font-mono text-muted w-8">T{{ tr.turnIndex }}</span>
             <div class="flex-1 h-4 bg-bg-elevated rounded overflow-hidden">
               <div class="h-full rounded bg-accent/50"
-                   :style="{ width: `${(tr.usage.completionTokens / Math.max(...data.traces.map(t => t.usage.completionTokens))) * 100}%` }"></div>
+                   :style="{ width: `${((tr.llmUsage?.completionTokens ?? 0) / Math.max(...data.traces.map(t => t.llmUsage?.completionTokens ?? 0), 1)) * 100}%` }"></div>
             </div>
-            <span class="text-[10px] font-mono text-muted w-12 text-right">{{ tr.usage.completionTokens }}</span>
+            <span class="text-[10px] font-mono text-muted w-12 text-right">{{ tr.llmUsage?.completionTokens ?? 0 }}</span>
           </div>
         </div>
       </div>

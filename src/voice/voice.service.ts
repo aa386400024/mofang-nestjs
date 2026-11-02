@@ -60,6 +60,7 @@ import type { StudentRiskAuditChoice } from './student-risk-audit-slot.js';
 import { TtsService } from './tts/tts.service.js';
 import type { TtsEvent, TtsOptions, TtsSessionHandle } from './tts/tts.types.js';
 import { VoiceSessionBridgeRegistry, type VoiceSessionCloseResult } from './voice-session-bridge.js';
+import { VoiceSessionLimitsService } from './voice-session-limits.service.js';
 import {
   VOICE_TURN_BACKEND,
   type VoiceSafetyPreCheckResult,
@@ -134,6 +135,7 @@ export class VoiceService {
    * @param tts TTS 门面
    * @param config 全局配置
    * @param engineBackend 新引擎版对话后端 (WP8-B 灰度; 未装配时为 undefined → 走旧链路)
+   * @param limits 会话限流闸门 (WP22; 未装配时为 undefined → **不限流**)
    */
   constructor(
     private readonly visitor: VisitorService,
@@ -142,11 +144,24 @@ export class VoiceService {
     private readonly bridges: VoiceSessionBridgeRegistry,
     config: ConfigService,
     @Optional() @Inject(VOICE_TURN_BACKEND) private readonly engineBackend?: VoiceTurnBackend,
+    /**
+     * WP22: 会话限流闸门 (单用户并发上限 + 当日全局 token 预算).
+     *
+     * 为什么 @Optional: 与本类其余可选增强同款语义 —— 装配缺席时**会话照常开**,
+     * 只是"没有并发上限 / 没有日预算". 不能让"没装闸门"变成"开不了会话".
+     *
+     * ⚠️ 但这两道闸门是**防烧额度**的, 装配缺席等于护栏失效 ——
+     *   所以缺席时打一条 warn (启动日志里能看见), 而不是静默放过.
+     */
+    @Optional() private readonly limits?: VoiceSessionLimitsService,
   ) {
     this.ttsVoiceId = config.get<string>('minimax.ttsVoiceId') ?? '';
     this.ttsModel = config.get<string>('minimax.ttsModel') ?? 'speech-2.8-turbo';
     this.engineEnabled = readBooleanFlag(config.get<string>('ENGINE_VOICE_ENABLED'));
     this.grayscaleSessions = parseSessionWhitelist(config.get<string>('ENGINE_STREAM_GRAYSCALE_SESSIONS'));
+    if (!this.limits) {
+      this.logger.warn('[voice_limits] 未装配会话限流闸门: 并发上限与当日 token 预算**均不生效** (WP22)');
+    }
   }
 
   /** 处理一条客户端消息. gateway 在 socket.onMessage 时调. */
@@ -214,6 +229,7 @@ export class VoiceService {
    * 启动一个 voice session — resolve persona + 创建 visitor memory + 缓存 state.
    * 异步 (resolve persona 走仓储). gateway 在 verifyAndStart 时 await.
    * @throws 当 visitor.openSession 失败 (无 persona) 时 throw, gateway 关闭 socket
+   * @throws {VoiceSessionLimitError} WP22: 被并发上限 / 当日预算闸门拦下 (网关映射成 error 帧)
    */
   async startSession(meta: VoiceSessionMeta): Promise<void> {
     if (this.sessions.has(meta.sessionId)) {
@@ -222,7 +238,20 @@ export class VoiceService {
       old.ttsHandle?.dispose();
       old.llmAbort?.abort();
     }
-    const personaSnapshot: VoiceSessionPersona = await this.openBackendSession(meta);
+    // WP22: 两道闸门 (单用户并发上限 + 当日全局 token 预算) ——
+    //   拦在**任何**后端会话开起来之前 (新旧链路都拦: 两条链路都烧额度).
+    //   闸门不过 → 抛 VoiceSessionLimitError; 网关据此发专属 error 帧,
+    //   **不**静默回落旧链路 (回落 = 闸门形同虚设).
+    await this.limits?.acquire(meta.userId, meta.sessionId);
+    let personaSnapshot: VoiceSessionPersona;
+    try {
+      personaSnapshot = await this.openBackendSession(meta);
+    } catch (error) {
+      // 开场失败 → 释放并发占位: 否则用户这场没开成, 却占着一个名额,
+      // 下一场自己都开不了 (占位泄漏 = 用户被自己的并发闸门锁死).
+      this.limits?.release(meta.userId, meta.sessionId);
+      throw error;
+    }
     const state: VoiceSessionState = {
       meta,
       persona: personaSnapshot,
@@ -260,9 +289,26 @@ export class VoiceService {
     //   本场可能同时存在**两个**会话 (引擎句柄 + 回落时补开的旧链路会话).
     //   只关"当前那个"会让另一个永远挂着 —— 引擎句柄会留在归属登记表里 (句柄泄漏),
     //   旧链路会话则留着逐字稿内存. 所以两个都关 (没开过的那方是幂等空操作).
-    this.engineBackend?.closeSession(sessionId);
+    //
+    // WP22: 引擎后端的收尾结果也要拿 ——
+    //   回落到旧链路时, "当前后端"是 visitor, 但**引擎那一侧仍持有本场用量**,
+    //   而"这场花了多少"以引擎侧为准 (旧链路没有用量累加器).
+    //   (引擎链路下这两个是同一个对象 → closeSession 会被调两次, 适配器按句柄
+    //    判定只认第一次, 所以不会重复计费 —— 见 engine-stream-backend.adapter.ts.)
+    const engineClose = this.engineBackend?.closeSession(sessionId);
     if (backend !== this.visitor) {
       this.visitor.closeSession(sessionId);
+    }
+    // WP22: 释放并发占位 + 把本场花费累加到当日预算.
+    //   释放必须在**所有**收尾动作之后 —— 提前释放会让"还在收尾的这一场"
+    //   不再占名额, 用户就能立刻开第二场, 两场的 TTS / 句柄会短暂并存.
+    this.limits?.release(state.meta.userId, sessionId);
+    const completionTokens = visitorClose.totalCompletionTokens ?? engineClose?.totalCompletionTokens ?? 0;
+    if (completionTokens > 0) {
+      // fire-and-forget: 记账是 I/O, 不能反过来阻塞 `session_ended` 帧.
+      void this.limits?.recordUsage(completionTokens).catch((error: unknown) => {
+        this.logger.warn(`[endSession] 用量累计失败 session=${sessionId}: ${error instanceof Error ? error.message : String(error)}`);
+      });
     }
     this.backends.delete(sessionId);
     this.legacyOpened.delete(sessionId);

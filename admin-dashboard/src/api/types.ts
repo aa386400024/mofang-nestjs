@@ -1,31 +1,46 @@
-// 与后端 WP19 AdminDebugModule API 契约对齐.
+// 与后端 WP19-R AdminDebugModule API 契约对齐.
 // 后端未覆盖的字段标记为可选, 前端渲染层要做空态兜底.
-// P1/P2 视图的数据先 mock, 后端补 API 后切换.
 
 export interface BdiSnapshot {
-  trust: number; valence: number; arousal: number
-  resistance: number; attachmentType: string
+  trust: number
+  valence: number
+  arousal: number
+  resistance: number
+  /** 内核按 valence×arousal 象限重算的离散标签 */
+  anxiousSecure?: string | null
 }
+
+export interface RenderSpecSummary {
+  taskKind?: string
+  maxCompletionTokens?: number
+  reasoningEffort?: string
+  /** system 消息前 500 字截断预览 */
+  promptPreview?: string
+}
+
+export interface LlmUsage {
+  promptTokens: number
+  completionTokens: number
+  reasoningTokens: number
+  ttftMs?: number
+  finishReason?: string
+}
+
 export interface TurnTrace {
   turnIndex: number
-  bdi: BdiSnapshot
-  render?: {
-    taskKind?: string
-    effort?: string
-    maxTokens?: number
-    system?: string
-    context?: string
-    instructions?: string
-  }
-  usage: { completionTokens: number; reasoningTokens: number; totalTokens: number }
-  crisis: { detected: boolean; category: string | null }
-  /** P0: 安全判定详情（后端补 API 后切换，当前 mock） */
-  safety?: SafetyVerdict
+  characterSlug?: string
+  bdiSnapshot: BdiSnapshot
+  renderSpec?: RenderSpecSummary
+  llmUsage?: LlmUsage
+  crisis: { detected: boolean; category?: string | null }
   ts: string
 }
+
 export interface TranscriptEntry { role: string; text: string }
+
 export interface SessionSummary {
   sessionId: string
+  characterSlug?: string
   visitorAlias: string
   startedAt: string | null
   endedAt: string | null
@@ -33,13 +48,14 @@ export interface SessionSummary {
   status: string
   totalTokens: number
 }
+
 export interface SessionDetail extends SessionSummary {
   transcript: TranscriptEntry[]
   traces: TurnTrace[]
   report: ReportDetail
 }
 
-// ─── P0: 安全判定 ───
+// ─── 安全判定 ───
 export interface SafetyVerdict {
   level: 'pass' | 'warn' | 'block'
   ruleLevel: string
@@ -50,13 +66,14 @@ export interface SafetyVerdict {
   finalCategories: string[]
 }
 
-// ─── P0: 报告详情 ───
+// ─── 报告详情 ───
 export interface ReportAnnotation {
   type: 'good' | 'warn' | 'error'
   category: string
   message: string
   suggestion?: string
 }
+
 export interface ReportDetail {
   status: string
   dimensions: Record<string, number> | null
@@ -64,18 +81,26 @@ export interface ReportDetail {
   techStats: Record<string, unknown> | null
 }
 
-// ─── P1: 角色详情 ───
+// ─── 角色池 ───
 export interface CharacterBaseline {
   slug: string
   codename: string
-  ageRange: string
-  presentingComplaint: string
-  defenseType: string
-  issueDomain: string
-  difficulty: string
-  emotionBaseline: number
-  defenseLevel: number
+  attachmentStyle?: string
+  baseline: {
+    trust: number
+    resist: number
+    valence: number
+    arousal: number
+  }
+  resistance?: {
+    verbal: number
+    depth: number
+    style: number
+  }
+  enabled?: boolean
+  auditStatus?: string
 }
+
 export interface CharacterDetail extends CharacterBaseline {
   fivePs: {
     presenting: string
@@ -92,7 +117,7 @@ export interface CharacterDetail extends CharacterBaseline {
   sessionCount: number
 }
 
-// ─── P1: 记忆浏览器 ───
+// ─── 记忆浏览器 ───
 export type MemoryType = 'fact' | 'emotion' | 'relationship' | 'event' | 'preference'
 export interface MemoryEntry {
   id: string
@@ -106,6 +131,7 @@ export interface MemoryEntry {
   source: 'short_term' | 'long_term'
   supersededBy?: string
 }
+
 export interface MemoryGroup {
   visitorId: string
   total: number
@@ -114,7 +140,7 @@ export interface MemoryGroup {
   entries: MemoryEntry[]
 }
 
-// ─── P2: PsyGUARD 监控 ───
+// ─── PsyGUARD 监控 ───
 export interface PsyGuardStats {
   status: 'ok' | 'degraded' | 'down'
   modelLoaded: boolean
@@ -124,7 +150,7 @@ export interface PsyGuardStats {
   byCategory: Record<string, number>
 }
 
-// ─── P0: 仪表盘 ───
+// ─── 仪表盘 ───
 export interface DashboardStats {
   totalSessions: number
   todaySessions: number
@@ -134,7 +160,7 @@ export interface DashboardStats {
   psyguard: PsyGuardStats
 }
 
-// ─── P1: 轨迹/剧本节点 ───
+// ─── 轨迹/剧本节点 ───
 export interface TrajectoryNode {
   nodeId: string
   label: string
@@ -142,6 +168,7 @@ export interface TrajectoryNode {
   triggeredAt: string | null
   description?: string
 }
+
 export interface TrajectoryState {
   scriptId: string
   scriptName: string
@@ -150,21 +177,14 @@ export interface TrajectoryState {
   triggered: TrajectoryNode[]
 }
 
-// ─── P2: PsyGUARD 监控趋势 ───
-export interface PsyGuardTrendPoint {
-  ts: string
-  p50Ms: number
-  p90Ms: number
-  requests: number
-}
-
-// ─── P2: 成本看板 ───
+// ─── 成本看板 ───
 export interface CostTrendPoint {
   date: string
   tokens: number
   costCny: number
   sessions: number
 }
+
 export interface SessionCost {
   sessionId: string
   visitorAlias: string
@@ -181,4 +201,19 @@ export interface CharacterSession {
   durationSec: number
   status: string
   totalTokens: number
+}
+
+// ─── 引擎健康状态 ───
+export interface HealthStatus {
+  status: string
+  engineVoiceEnabled: boolean
+  uptimeSec: number
+}
+
+// ─── PsyGUARD 趋势 ───
+export interface PsyGuardTrendPoint {
+  ts: string
+  p50Ms: number
+  p90Ms: number
+  requests: number
 }

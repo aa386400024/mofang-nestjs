@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { api } from '@/api/client'
 import type { SessionSummary } from '@/api/types'
 import InfoTooltip from '@/components/InfoTooltip.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 const { t } = useI18n()
 const rows = ref<SessionSummary[]>([])
@@ -34,8 +35,26 @@ const stats = computed(() => {
 <template>
   <div class="p-6 max-w-5xl mx-auto">
     <h1 class="text-lg font-semibold mb-4">{{ t('sessions.title') }}</h1>
-    <div v-if="loading" class="text-muted text-sm">…</div>
-    <div v-else-if="err" class="text-danger text-sm">{{ err }}</div>
+    <EmptyState
+      v-if="loading"
+      icon="list"
+      title="加载中…"
+      description="正在获取会话列表"
+    />
+    <EmptyState
+      v-else-if="err"
+      icon="list"
+      title="加载失败"
+      :description="err"
+      pendingTag="Error: API 请求失败"
+    />
+    <EmptyState
+      v-else-if="!rows.length"
+      icon="list"
+      title="暂无会话记录"
+      description="完成第一场对练后，这里会展示会话列表、Token 消耗和时长统计。"
+      pendingTag="等待第一场对练数据"
+    />
     <template v-else>
       <!-- 统计条 -->
       <div class="grid grid-cols-4 gap-3 mb-4">

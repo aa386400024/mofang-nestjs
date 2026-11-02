@@ -131,6 +131,21 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return this.client.incr(key);
   }
 
+  /**
+   * 原子累加 (计数器 += amount).
+   *
+   * 为什么不用 "get + set" 自己拼: 那是读-改-写, 两个会话**同时**收尾时
+   *  后写的那个会把先写的覆盖掉 —— 计数会**少算**, 而这个计数的用途恰恰是
+   * "防烧额度", 少算等于没算. INCRBY 在 Redis 侧原子完成.
+   *
+   * @param key 逻辑 key
+   * @param amount 增量 (整数)
+   * @returns 累加后的值
+   */
+  async incrby(key: string, amount: number): Promise<number> {
+    return this.client.incrby(key, amount);
+  }
+
   async expire(key: string, ttlSec: number): Promise<void> {
     await this.client.expire(key, ttlSec);
   }

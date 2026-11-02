@@ -9,6 +9,7 @@ import VChart from 'vue-echarts'
 import { api } from '@/api/client'
 import type { DashboardStats } from '@/api/types'
 import InfoTooltip from '@/components/InfoTooltip.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 use([BarChart, GridComponent, TooltipComponent, CanvasRenderer])
 
@@ -33,7 +34,19 @@ const riskDesc = (cat: string) => t(`risk.${cat}.desc`)
 <template>
   <div class="p-6 max-w-6xl mx-auto">
     <h1 class="text-lg font-semibold mb-4">{{ t('dashboard.title') }}</h1>
-    <div v-if="loading" class="text-muted text-sm">…</div>
+    <EmptyState
+      v-if="loading"
+      icon="chart"
+      title="加载中…"
+      description="正在获取引擎运行数据"
+    />
+    <EmptyState
+      v-else-if="!data"
+      icon="chart"
+      title="暂无仪表盘数据"
+      description="后端尚未提供 Dashboard 聚合 API。完成对练后，这里会展示会话统计、风险分布和 PsyGuard 状态。"
+      pendingTag="Pending: Dashboard 聚合 API"
+    />
     <template v-else-if="data">
       <!-- 核心指标卡片 -->
       <div class="grid grid-cols-4 gap-3 mb-4">

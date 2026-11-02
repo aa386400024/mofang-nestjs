@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { setLang } from '@/i18n'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 
 const { t, locale } = useI18n()
+const route = useRoute()
 const toggleLang = () => setLang(locale.value === 'zh-CN' ? 'en' : 'zh-CN')
 
 const isLight = ref(false)
@@ -13,6 +14,9 @@ const toggleTheme = () => {
   document.documentElement.classList.toggle('light', isLight.value)
   localStorage.setItem('theme', isLight.value ? 'light' : 'dark')
 }
+
+// 登录页不显示导航
+const isLoginPage = computed(() => route.path === '/login')
 
 onMounted(() => {
   const saved = localStorage.getItem('theme')
@@ -24,7 +28,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col">
+  <!-- 登录页：只显示内容 -->
+  <RouterView v-if="isLoginPage" />
+
+  <!-- 其他页面：带导航栏 -->
+  <div v-else class="min-h-screen flex flex-col">
     <header class="border-b border-bg-border bg-bg-surface px-6 py-3 flex items-center gap-6">
       <div class="flex items-center gap-2">
         <div class="w-2.5 h-2.5 rounded-full bg-accent"></div>

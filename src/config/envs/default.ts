@@ -206,6 +206,13 @@ export const config = {
   // V2026-10-08: Voice Gateway 业务配置 (Phase 3)
   voice: {
     sessionIdleTimeoutMs: Number(process.env.VOICE_SESSION_IDLE_TIMEOUT_MS ?? 600_000), // 10min
+    // V2026-11-02 治本 (WP22 · 语音对练限流与并发上限):
+    //   - dailyTokenBudget: 全局**当日** completion token 预算 (0 = 不限制).
+    //     内测期防"bug 循环 / 恶意刷"烧 MiniMax 按量付费额度.
+    //   - maxConcurrentPerUser: 单用户并发语音会话上限 (本期恒为 1;
+    //     留这个 env 是为了以后放开时不必改代码结构).
+    dailyTokenBudget: Number(process.env.VOICE_DAILY_TOKEN_BUDGET ?? 500_000),
+    maxConcurrentPerUser: Number(process.env.VOICE_MAX_CONCURRENT_PER_USER ?? 1),
   },
   // V2026-10-08 治本 (Embedding 服务, Phase 6 接入):
   //   - provider 切换不改 schema (bge / chatanywhere 都是 1024 维)

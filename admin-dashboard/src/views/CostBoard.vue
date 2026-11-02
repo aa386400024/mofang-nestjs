@@ -9,6 +9,7 @@ import VChart from 'vue-echarts'
 import { api } from '@/api/client'
 import type { CostTrendPoint, SessionCost } from '@/api/types'
 import InfoTooltip from '@/components/InfoTooltip.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 const { t } = useI18n()
 use([BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
@@ -50,7 +51,16 @@ const tokenChart = {
 <template>
   <div class="p-6 max-w-6xl mx-auto">
     <h1 class="text-lg font-semibold mb-4">{{ t('cost.title') }}</h1>
-    <div v-if="!trend.length" class="text-muted text-sm">…</div>
+
+    <!-- 空状态 -->
+    <EmptyState
+      v-if="!trend.length"
+      icon="cost"
+      title="暂无成本数据"
+      description="后端尚未提供成本聚合 API。完成对练后，这里会展示每日 Token 消耗、成本统计和会话排行。"
+      pendingTag="Pending: WP24 成本聚合 API"
+    />
+
     <template v-else>
       <!-- 汇总卡片 -->
       <div class="grid grid-cols-4 gap-3 mb-4">

@@ -159,6 +159,13 @@ export declare global {
       SUPERVISION_REPORT_STREAM_TIMEOUT_MS?: string;
       // V2026-10-08: Voice Gateway 空闲超时 (Phase 3)
       VOICE_SESSION_IDLE_TIMEOUT_MS?: string;
+      // V2026-11-02 治本 (WP22 · 语音对练限流与并发上限):
+      //   下面是本轮新增的 2 个 env 键. 不声明会直接报 TS4111
+      //   (noPropertyAccessFromIndexSignature: 走 @types/node 的 [key: string] 索引签名时
+      //    点访问不合法, 必须 bracket 访问) —— 与上面 VOICE_SESSION_IDLE_TIMEOUT_MS
+      //    同一治本思路: **显式声明到 ProcessEnv**, 不用 bracket 访问绕过.
+      VOICE_DAILY_TOKEN_BUDGET?: string; // 全局当日 completion token 预算 (0 = 不限制)
+      VOICE_MAX_CONCURRENT_PER_USER?: string; // 单用户并发语音会话上限 (本期恒为 1)
       EMBEDDING_PROVIDER_DEV?: string;
       EMBEDDING_PROVIDER_PROD?: string;
       EMBEDDING_API_KEY?: string;

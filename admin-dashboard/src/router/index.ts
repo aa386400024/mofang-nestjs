@@ -7,10 +7,12 @@ import CharacterDetail from '@/views/CharacterDetail.vue'
 import MemoryBrowser from '@/views/MemoryBrowser.vue'
 import PsyGuardMonitor from '@/views/PsyGuardMonitor.vue'
 import CostBoard from '@/views/CostBoard.vue'
+import Login from '@/views/Login.vue'
 
-export default createRouter({
+const router = createRouter({
   history: createWebHashHistory(),
   routes: [
+    { path: '/login', component: Login, meta: { public: true } },
     { path: '/', redirect: '/dashboard' },
     { path: '/dashboard', component: Dashboard },
     { path: '/sessions', component: SessionsList },
@@ -22,3 +24,18 @@ export default createRouter({
     { path: '/cost', component: CostBoard },
   ],
 })
+
+// 路由守卫：没登录跳登录页
+router.beforeEach((to) => {
+  const isAuthenticated = !!sessionStorage.getItem('admin_basic_auth')
+  const isPublic = to.meta.public === true
+
+  if (!isAuthenticated && !isPublic) {
+    return '/login'
+  }
+  if (isAuthenticated && to.path === '/login') {
+    return '/dashboard'
+  }
+})
+
+export default router

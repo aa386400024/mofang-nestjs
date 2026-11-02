@@ -20,6 +20,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AgentModule } from '../agent/agent.module.js';
 import { AsrTokenModule } from './asr-token/asr-token.module.js';
 import { TtsModule } from './tts/tts.module.js';
+import { VoiceSessionLimitsService } from './voice-session-limits.service.js';
 import { VoiceSessionModule } from './voice-session.module.js';
 import { VoiceGateway } from './voice.gateway.js';
 import { VoiceService } from './voice.service.js';
@@ -46,7 +47,7 @@ import { EngineWiringModule } from '../engine-adapters/wiring/engine.module.js';
     //     所有 module 共享, 删掉本地 register.
     JwtModule.register({}),
   ],
-  providers: [VoiceService, VoiceGateway],
+  providers: [VoiceService, VoiceGateway, VoiceSessionLimitsService],
   exports: [VoiceService],
 })
 export class VoiceModule {}

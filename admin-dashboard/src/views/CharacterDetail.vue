@@ -21,14 +21,6 @@ onMounted(async () => {
   finally { loading.value = false }
 })
 
-const fivePsItems = [
-  { key: 'presenting', label: t('characterDetail.presenting') },
-  { key: 'predisposing', label: t('characterDetail.predisposing') },
-  { key: 'precipitating', label: t('characterDetail.precipitating') },
-  { key: 'perpetuating', label: t('characterDetail.perpetuating') },
-  { key: 'protecting', label: t('characterDetail.protecting') },
-] as const
-
 // 记忆类型配置
 const typeMeta: Record<MemoryType, { color: string; dot: string }> = {
   fact: { color: 'bg-blue-500', dot: 'bg-blue-400' },
@@ -61,62 +53,32 @@ const typeDistribution = () => {
     <template v-else-if="data">
       <div class="flex items-center gap-4 mb-5">
         <span class="text-lg font-semibold">{{ data.codename }}</span>
-        <span class="chip bg-bg-elevated text-muted">{{ data.difficulty }}</span>
-        <span class="chip bg-bg-elevated text-muted">{{ data.defenseType }}</span>
-        <span class="ml-auto text-xs text-muted font-mono">{{ data.sessionCount }} {{ t('characterDetail.historySessions') }}</span>
+        <span class="chip bg-bg-elevated text-muted">{{ data.attachmentStyle ?? '—' }}</span>
+        <span class="chip" :class="data.enabled ? 'bg-ok/15 text-ok' : 'bg-danger/15 text-danger'">
+          {{ data.enabled ? 'enabled' : 'disabled' }}
+        </span>
+        <span class="ml-auto text-xs text-muted font-mono">{{ data.auditStatus ?? '—' }}</span>
       </div>
 
-      <!-- 基本信息 -->
+      <!-- BDI 基线 -->
       <div class="card p-4 mb-4">
-        <h2 class="text-xs uppercase tracking-wider text-muted mb-3">{{ t('characterDetail.basicInfo') }}</h2>
-        <div class="grid grid-cols-2 gap-3 text-sm">
-          <div><span class="text-muted text-xs">{{ t('characterDetail.age') }}：</span>{{ data.ageRange }}</div>
-          <div><span class="text-muted text-xs">{{ t('characterDetail.domain') }}：</span>{{ data.issueDomain }}</div>
-          <div class="col-span-2"><span class="text-muted text-xs">{{ t('characterDetail.complaint') }}：</span>{{ data.presentingComplaint }}</div>
-        </div>
-      </div>
-
-      <!-- 5Ps -->
-      <div class="card p-4 mb-4">
-        <h2 class="text-xs uppercase tracking-wider text-muted mb-3">{{ t('characterDetail.fivePs') }}</h2>
-        <div class="space-y-3">
-          <div v-for="item in fivePsItems" :key="item.key" class="flex gap-3">
-            <span class="text-xs font-mono w-20 text-accent shrink-0 pt-0.5">{{ item.label }}</span>
-            <p class="text-sm text-gray-300 leading-relaxed">{{ data.fivePs[item.key] || '—' }}</p>
+        <h2 class="text-xs uppercase tracking-wider text-muted mb-3">{{ t('characterDetail.bdiBaseline') }}</h2>
+        <div class="grid grid-cols-4 gap-3">
+          <div class="bg-bg-base/60 rounded p-3 text-center">
+            <div class="text-[10px] uppercase tracking-wider text-muted mb-1">trust</div>
+            <div class="font-mono text-lg text-gray-100">{{ data.baseline.trust.toFixed(2) }}</div>
           </div>
-        </div>
-      </div>
-
-      <!-- BDI 基线 + 表达风格 -->
-      <div class="grid grid-cols-2 gap-4">
-        <div class="card p-4">
-          <h2 class="text-xs uppercase tracking-wider text-muted mb-3">{{ t('characterDetail.bdiBaseline') }}</h2>
-          <div class="space-y-2 text-sm">
-            <div class="flex justify-between">
-              <span class="text-muted">{{ t('characterDetail.emotionBaseline') }}</span>
-              <span class="font-mono">{{ data.emotionBaseline.toFixed(2) }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-muted">{{ t('characters.defenseLevel') }}</span>
-              <span class="font-mono">{{ data.defenseLevel.toFixed(2) }}</span>
-            </div>
+          <div class="bg-bg-base/60 rounded p-3 text-center">
+            <div class="text-[10px] uppercase tracking-wider text-muted mb-1">valence</div>
+            <div class="font-mono text-lg text-gray-100">{{ data.baseline.valence.toFixed(2) }}</div>
           </div>
-        </div>
-        <div class="card p-4">
-          <h2 class="text-xs uppercase tracking-wider text-muted mb-3">{{ t('characterDetail.expressionStyle') }}</h2>
-          <div class="space-y-2 text-sm">
-            <div class="flex justify-between">
-              <span class="text-muted">{{ t('characterDetail.speechVolume') }}</span>
-              <span class="font-mono">{{ data.expressionStyle.speechVolumeBaseline.toFixed(2) }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-muted">{{ t('characterDetail.narrativeStyle') }}</span>
-              <span class="chip bg-bg-elevated text-muted">{{ data.expressionStyle.narrativeStyle }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-muted">{{ t('characterDetail.tone') }}</span>
-              <span class="chip bg-accent/15 text-accent">{{ data.expressionStyle.expressionTone }}</span>
-            </div>
+          <div class="bg-bg-base/60 rounded p-3 text-center">
+            <div class="text-[10px] uppercase tracking-wider text-muted mb-1">arousal</div>
+            <div class="font-mono text-lg text-gray-100">{{ data.baseline.arousal.toFixed(2) }}</div>
+          </div>
+          <div class="bg-bg-base/60 rounded p-3 text-center">
+            <div class="text-[10px] uppercase tracking-wider text-muted mb-1">resist</div>
+            <div class="font-mono text-lg text-gray-100">{{ data.baseline.resist.toFixed(2) }}</div>
           </div>
         </div>
       </div>

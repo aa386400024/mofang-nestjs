@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { api } from '@/api/client'
 import type { MemoryEntry, MemoryType } from '@/api/types'
 import InfoTooltip from '@/components/InfoTooltip.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 const { t } = useI18n()
 const rows = ref<MemoryEntry[]>([])
@@ -95,7 +96,19 @@ const impTextColor = (v: number) => v >= 0.9 ? 'text-danger' : v >= 0.8 ? 'text-
 <template>
   <div class="p-6 max-w-5xl mx-auto">
     <h1 class="text-lg font-semibold mb-4">{{ t('memories.title') }}</h1>
-    <div v-if="loading" class="text-muted text-sm">…</div>
+    <EmptyState
+      v-if="loading"
+      icon="memory"
+      title="加载中…"
+      description="正在获取记忆库"
+    />
+    <EmptyState
+      v-else-if="!rows.length"
+      icon="memory"
+      title="暂无记忆数据"
+      description="后端尚未提供记忆查询 API。完成对练后，这里会展示长期记忆、关系记忆和事件记忆。"
+      pendingTag="Pending: 记忆查询 API"
+    />
     <template v-else>
       <!-- 统计卡片 -->
       <div class="grid grid-cols-4 gap-3 mb-4">

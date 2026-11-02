@@ -15,10 +15,10 @@ const option = computed(() => {
   const turns = props.turns
   const indices = turns.map(t => `轮${t.turnIndex}`)
   const series = [
-    { name: 'trust', data: turns.map(t => t.bdi.trust), color: '#7ec9a0' },
-    { name: 'valence', data: turns.map(t => t.bdi.valence), color: '#c890a8' },
-    { name: 'arousal', data: turns.map(t => t.bdi.arousal), color: '#e8c87a' },
-    { name: 'resistance', data: turns.map(t => t.bdi.resistance), color: '#e87a7a' },
+    { name: 'trust', data: turns.map(t => t.bdiSnapshot.trust), color: '#7ec9a0' },
+    { name: 'valence', data: turns.map(t => t.bdiSnapshot.valence), color: '#c890a8' },
+    { name: 'arousal', data: turns.map(t => t.bdiSnapshot.arousal), color: '#e8c87a' },
+    { name: 'resistance', data: turns.map(t => t.bdiSnapshot.resistance), color: '#e87a7a' },
   ]
   return {
     tooltip: { trigger: 'axis', backgroundColor: '#1e222d', borderColor: '#2a2f3d', textStyle: { color: '#e5e7eb', fontSize: 12 } },

@@ -555,6 +555,17 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       finalTurnCount: turns.filter((turn) => turn.role === 'assistant').length,
       finalMessageCount: turns.length,
     };
+    /**
+     * WP22: 本场累计的 completion tokens (交给 voice 层累加到当日全局预算).
+     *
+     * 为什么放在收尾结果里: "这场花了多少"只有这里知道 (用量累加器是适配器的
+     * 私有状态), 而"当日预算是多少"是 voice 层的事 —— 通过窄接口把**事实**传出去,
+     * 两侧各管各的, 不让 voice 层去碰引擎的内部计数器.
+     *
+     * 只在**第一次**收尾时有值 (下面按句柄判定的分支里取) —— 同一场被 close
+     * 两次时, 第二次拿不到累加器 → 缺省, 调用方据此不会重复计费.
+     */
+    let totalCompletionTokens: number | undefined;
 
     // V2026-10-29 治本 (WP19 · flush 调试快照):
     //   会话关闭时把内存缓冲的 trace 写回 DB. fire-and-forget, 不阻塞 close.
@@ -599,6 +610,8 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       const totals = this.sessionUsage.get(sessionId);
       this.sessionUsage.delete(sessionId);
       if (totals) {
+        // WP22: 把本场用量交给 voice 层 (当日全局预算要用).
+        totalCompletionTokens = totals.completionTokens;
         const summary = buildSessionCostSummary({
           sessionId,
           totals,
@@ -641,7 +654,8 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       `[closeSession] session=${sessionId} turns=${result.finalTurnCount} msgs=${result.finalMessageCount} ` +
         `closeout=${handleId && this.closeout ? 'yes' : 'no'}`,
     );
-    return result;
+    // WP22: 带上有值时才有 totalCompletionTokens (缺省 = 不可得, 不是 0).
+    return totalCompletionTokens === undefined ? result : { ...result, totalCompletionTokens };
   }
 
   /**
