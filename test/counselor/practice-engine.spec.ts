@@ -91,7 +91,7 @@ describe('V1.3 场景内容库自检', () => {
 
 describe('V1.3 评判运行开关', () => {
   it('缺省走 LLM 主路径 (失败自动降级)', () => {
-    expect(isPracticeLlmEvaluationEnabled(undefined)).toBe(true);
+    expect(isPracticeLlmEvaluationEnabled()).toBe(true);
     expect(isPracticeLlmEvaluationEnabled('')).toBe(true);
   });
 

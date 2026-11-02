@@ -19,13 +19,7 @@
 //   验证: npx jest test/engine-adapters/wp6-llm-render.spec.ts
 //   时间戳: 2026-10-28 GMT+8
 
-import * as kernel from '../../src/engine-core';
-import type { RenderContextTurn, RenderSpec, RenderTaskKind } from '../../src/engine-core';
-import {
-  LlmRenderAdapter,
-  type ChatCaller,
-  type RenderGuardVerdict,
-} from '../../src/engine-adapters/rendering/llm-render.adapter';
+import { LlmRenderAdapter, type ChatCaller, type RenderGuardVerdict } from '../../src/engine-adapters/rendering/llm-render.adapter';
 import {
   createRenderAdapterConfig,
   type RenderAdapterConfig,
@@ -33,10 +27,9 @@ import {
   type RenderCandidate,
 } from '../../src/engine-adapters/rendering/render-adapter.config';
 import { RenderFailoverRuntime } from '../../src/engine-adapters/rendering/render-failover.runtime';
-import type {
-  ChatCompletionRequest,
-  ChatCompletionResponse,
-} from '../../src/llm/common/interfaces/chat-provider.interface';
+import type { RenderContextTurn, RenderSpec, RenderTaskKind } from '../../src/engine-core';
+import * as kernel from '../../src/engine-core';
+import type { ChatCompletionRequest, ChatCompletionResponse } from '../../src/llm/common/interfaces/chat-provider.interface';
 
 /** 兜底话术 (与测试配置一致). */
 const FALLBACK_UTTERANCE = '我先缓一下，我们接着说。';
@@ -65,7 +58,7 @@ class StubChatCaller implements ChatCaller {
     const outcome = this.script[Math.min(this.index, this.script.length - 1)];
     this.index += 1;
     if (!outcome) throw new Error('stub 脚本为空');
-    if ('hang' in outcome) return new Promise<ChatCompletionResponse>(() => undefined);
+    if ('hang' in outcome) return new Promise<ChatCompletionResponse>(() => {});
     if (!outcome.ok) throw outcome.error;
     return {
       content: outcome.content,
@@ -176,7 +169,10 @@ describe('WP6 · RenderPort LLM 适配 + 主备执行', () => {
 
   describe('② 主失败切备', () => {
     it('主 reject → 备成功 → fallbackUsed=true / providerHint=备id', async () => {
-      const caller = new StubChatCaller([{ ok: false, error: new Error('ECONNRESET') }, { ok: true, content: SAFE_TEXT }]);
+      const caller = new StubChatCaller([
+        { ok: false, error: new Error('ECONNRESET') },
+        { ok: true, content: SAFE_TEXT },
+      ]);
       const adapter = new LlmRenderAdapter({
         caller,
         config: buildConfig([{ id: 'primary' }, { id: 'backup' }]),
@@ -310,7 +306,10 @@ describe('WP6 · RenderPort LLM 适配 + 主备执行', () => {
 
   describe('⑥ block 重生成', () => {
     it('首返 block → 重生成 pass → 返回重生成文本 (且温度下调)', async () => {
-      const caller = new StubChatCaller([{ ok: true, content: UNSAFE_TEXT }, { ok: true, content: SAFE_TEXT }]);
+      const caller = new StubChatCaller([
+        { ok: true, content: UNSAFE_TEXT },
+        { ok: true, content: SAFE_TEXT },
+      ]);
       const guard = new StubGuard([{ level: 'block', categories: ['active_ideation'] }, { level: 'pass' }]);
       const adapter = new LlmRenderAdapter({
         caller,
@@ -332,7 +331,10 @@ describe('WP6 · RenderPort LLM 适配 + 主备执行', () => {
     });
 
     it('两次都 block → 返回兜底, 高危原文不传出', async () => {
-      const caller = new StubChatCaller([{ ok: true, content: UNSAFE_TEXT }, { ok: true, content: UNSAFE_TEXT }]);
+      const caller = new StubChatCaller([
+        { ok: true, content: UNSAFE_TEXT },
+        { ok: true, content: UNSAFE_TEXT },
+      ]);
       const guard = new StubGuard([{ level: 'block', categories: ['active_ideation'] }]);
       const adapter = new LlmRenderAdapter({
         caller,
@@ -372,7 +374,10 @@ describe('WP6 · RenderPort LLM 适配 + 主备执行', () => {
 
   describe('⑧ 空内容切备', () => {
     it('主返回空串 → 视为失败并切备', async () => {
-      const caller = new StubChatCaller([{ ok: true, content: '   ' }, { ok: true, content: SAFE_TEXT }]);
+      const caller = new StubChatCaller([
+        { ok: true, content: ' '.repeat(3) },
+        { ok: true, content: SAFE_TEXT },
+      ]);
       const adapter = new LlmRenderAdapter({
         caller,
         config: buildConfig([{ id: 'primary' }, { id: 'backup' }]),
@@ -509,8 +514,15 @@ describe('WP6 · RenderPort LLM 适配 + 主备执行', () => {
       //       观测透传, 内核不据此做任何决策 (选谁仍是适配层的运行时策略).
       //   真正被这条锁拦住的"厂商私有"是上游 response 里的额外字段 (各家自定义的
       //   细节 / 安全 verdict 私有字段) —— 那些**仍然一个都没进来**.
-      expect(Object.keys(result).toSorted()).toEqual(['fallbackUsed', 'model', 'providerHint', 'taskKind', 'text', 'usage']);
-      expect(Object.keys(result.usage).toSorted()).toEqual(['completionTokens', 'promptTokens', 'totalTokens']);
+      expect(Object.keys(result).toSorted((a, b) => a.localeCompare(b))).toEqual([
+        'fallbackUsed',
+        'model',
+        'providerHint',
+        'taskKind',
+        'text',
+        'usage',
+      ]);
+      expect(Object.keys(result.usage).toSorted((a, b) => a.localeCompare(b))).toEqual(['completionTokens', 'promptTokens', 'totalTokens']);
     });
   });
 });

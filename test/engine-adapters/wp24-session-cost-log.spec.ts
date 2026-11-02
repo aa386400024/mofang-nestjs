@@ -1,3 +1,5 @@
+import { Logger } from '@nestjs/common';
+import { vi } from 'vitest';
 // V2026-10-30 治本 (WP24 · 单场成本日志):
 //   职责: 钉死「每轮用量累加 → closeSession 打一条 session_cost_summary」的闭环,
 //         以及成本口径的诚实性 (输入侧不可得时必须落成 output_only, 不能拿 0 冒充).
@@ -17,8 +19,6 @@
 //
 //   验证: npx jest test/engine-adapters/wp24-session-cost-log.spec.ts
 //   时间戳: 2026-10-30
-
-import { Logger } from '@nestjs/common';
 
 import {
   accumulateSessionUsage,
@@ -68,7 +68,7 @@ function buildEngineStub(render: TurnRenderResult['render']): EngineTurnService 
  */
 function captureCostSummary(): { readonly summaries: SessionCostSummary[]; readonly logs: string[] } {
   const logs: string[] = [];
-  jest.spyOn(Logger.prototype, 'log').mockImplementation((message: unknown) => {
+  vi.spyOn(Logger.prototype, 'log').mockImplementation((message: unknown) => {
     logs.push(typeof message === 'string' ? message : String(message));
   });
   return {
@@ -86,7 +86,7 @@ function captureCostSummary(): { readonly summaries: SessionCostSummary[]; reado
 
 describe('WP24 · 单场成本日志', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('用量累加 (纯函数)', () => {
@@ -280,6 +280,7 @@ describe('WP24 · 单场成本日志', () => {
         personaId: 'p1',
         userText: '我最近有点睡不着。',
       });
+
       for await (const _chunk of stream) {
         // 消费掉整条流 (buildStream 要跑完才会结算 usage)
       }
@@ -326,6 +327,7 @@ describe('WP24 · 单场成本日志', () => {
         personaId: 'p1',
         userText: '在吗',
       });
+
       for await (const _chunk of stream) {
         // 消费整条流
       }
@@ -363,6 +365,7 @@ describe('WP24 · 单场成本日志', () => {
         personaId: 'p1',
         userText: '在吗',
       });
+
       for await (const _chunk of stream) {
         // 消费整条流
       }
@@ -397,6 +400,7 @@ describe('WP24 · 单场成本日志', () => {
         personaId: 'p1',
         userText: '在吗',
       });
+
       for await (const _chunk of stream) {
         // 消费整条流
       }
@@ -407,7 +411,9 @@ describe('WP24 · 单场成本日志', () => {
 
     it('这场没走过引擎 (旧链路会话) → 不打汇总 (不是"花了 0 元", 是"不归引擎管")', () => {
       const captured = captureCostSummary();
-      const backend = createEngineStreamBackend({ engine: buildEngineStub({ fallbackUsed: false, usage: { completionTokens: 0, totalTokens: 0 } }) });
+      const backend = createEngineStreamBackend({
+        engine: buildEngineStub({ fallbackUsed: false, usage: { completionTokens: 0, totalTokens: 0 } }),
+      });
 
       backend.closeSession('never-opened-session');
 

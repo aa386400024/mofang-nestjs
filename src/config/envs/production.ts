@@ -21,7 +21,7 @@ export const config = {
   },
   graphql: {
     debug: false,
-    playground: false,
+    graphiql: false,
   },
   foo: 'pro-bar',
 };

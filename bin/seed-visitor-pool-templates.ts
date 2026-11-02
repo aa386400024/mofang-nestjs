@@ -85,7 +85,15 @@ async function main(): Promise<void> {
     const result = await seedVisitorPoolTemplates(dataSource);
     const total = result.inserted + result.updated + result.unchanged;
     process.stdout.write(
-      '[seed:visitor-pool] 新增 ' + result.inserted + ' / 更新 ' + result.updated + ' / 未变 ' + result.unchanged + '（合计 ' + total + '）\n',
+      '[seed:visitor-pool] 新增 ' +
+        result.inserted +
+        ' / 更新 ' +
+        result.updated +
+        ' / 未变 ' +
+        result.unchanged +
+        '（合计 ' +
+        total +
+        '）\n',
     );
     // V2026-10-27 治本 (spec 任务 D2 — 历史脏代号幂等订正):
     //   seed 的 upsert 只覆盖 6 位官方人物, 碰不到历史 AI 生成行的代号;

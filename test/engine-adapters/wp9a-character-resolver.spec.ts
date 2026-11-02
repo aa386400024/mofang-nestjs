@@ -158,9 +158,7 @@ describe('WP9-A · 角色解析 (内置种子 → 内核 CharacterProfile)', () 
       expect(avoidant?.characterProfile.baseline?.resistance?.depth ?? 0).toBeGreaterThan(
         anxious?.characterProfile.baseline?.resistance?.depth ?? 0,
       );
-      expect(avoidant?.characterProfile.baseline?.trust ?? 1).toBeLessThan(
-        anxious?.characterProfile.baseline?.trust ?? 0,
-      );
+      expect(avoidant?.characterProfile.baseline?.trust ?? 1).toBeLessThan(anxious?.characterProfile.baseline?.trust ?? 0);
     });
 
     it('临场参数能叠加出可区分的差异 (同角色不同难度 → 不同阻抗)', async () => {
@@ -185,7 +183,7 @@ describe('WP9-A · 角色解析 (内置种子 → 内核 CharacterProfile)', () 
     });
 
     it('空白 templateId → null (等价于没传)', async () => {
-      await expect(buildResolver().resolve({ templateId: '   ' })).resolves.toBeNull();
+      await expect(buildResolver().resolve({ templateId: ' '.repeat(3) })).resolves.toBeNull();
     });
 
     it('只给 skillCode 不给 templateId → null (skillCode 不是角色 key)', async () => {
@@ -240,7 +238,7 @@ describe('WP9-A · 角色解析 (内置种子 → 内核 CharacterProfile)', () 
       expect(emotion).toBeDefined();
       expect(emotion?.label).toBeUndefined();
       // 只有两个键 —— 多一个 label 就说明适配层在抢内核的活.
-      expect(Object.keys(emotion ?? {}).sort()).toEqual(['arousal', 'valence']);
+      expect(Object.keys(emotion ?? {}).toSorted((a, b) => a.localeCompare(b))).toEqual(['arousal', 'valence']);
     });
 
     it('valence 由种子给 (临场 emotionBaseline 只动唤醒, 不动效价)', async () => {
@@ -252,12 +250,8 @@ describe('WP9-A · 角色解析 (内置种子 → 内核 CharacterProfile)', () 
       });
       const withoutPreset = await resolver.resolve({ templateId: BUILTIN_AVOIDANT_L1.key });
 
-      expect(withPreset?.characterProfile.baseline?.emotion?.valence).toBe(
-        withoutPreset?.characterProfile.baseline?.emotion?.valence,
-      );
-      expect(withPreset?.characterProfile.baseline?.emotion?.arousal).not.toBe(
-        withoutPreset?.characterProfile.baseline?.emotion?.arousal,
-      );
+      expect(withPreset?.characterProfile.baseline?.emotion?.valence).toBe(withoutPreset?.characterProfile.baseline?.emotion?.valence);
+      expect(withPreset?.characterProfile.baseline?.emotion?.arousal).not.toBe(withoutPreset?.characterProfile.baseline?.emotion?.arousal);
     });
   });
 });

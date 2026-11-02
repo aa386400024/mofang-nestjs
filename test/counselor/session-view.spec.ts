@@ -40,8 +40,8 @@ import {
   SESSION_LIST_REPORT_STATUS_VALUES,
   SESSION_LIST_TYPE_VALUES,
 } from '../../src/counselor/domain/session-view/session-view.types';
-import { SupervisionFailureCode } from '../../src/counselor/enums/supervision-failure-code.enum';
 import { SessionType } from '../../src/counselor/enums/session-type.enum';
+import { SupervisionFailureCode } from '../../src/counselor/enums/supervision-failure-code.enum';
 import { TrainingSessionStatus } from '../../src/counselor/enums/training-session-status.enum';
 
 const VPT_SCENARIO_ID = 'vpt_voice';

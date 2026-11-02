@@ -1,5 +1,4 @@
-/* eslint-disable new-cap, prettier/prettier,
-   max-len, import/order, sonarjs/assertions-in-tests, jest/no-disabled-tests, prefer-const */
+/* eslint-disable new-cap, prettier/prettier, import/order, prefer-const */
 
 
 
@@ -117,7 +116,7 @@ describe('V2 register / login / verify-email', () => {
       password: testPassword,
     });
     expect(res.status).toBe(409);
-    expect(res.body.code).toBe(10002); // UserAlreadyExists
+    expect(res.body.code).toBe(10_002); // UserAlreadyExists
   });
 
   // V2026-10-14 治本 (VS-3e 关联 — V0.5 e2e 假设错位, 跟 V2026-10-13 BizCode 重整同步):
@@ -135,7 +134,7 @@ describe('V2 register / login / verify-email', () => {
       password: testPassword,
     });
     expect(res.status).toBe(400);
-    expect(res.body.code).toBe(10012); // EmailNotVerified
+    expect(res.body.code).toBe(10_012); // EmailNotVerified
   });
 
   // V2026-10-14 治本 (VS-3e 关联 — 错误密码期望错位, 跟 V2026-10-13 BizCode 同步):
@@ -148,7 +147,7 @@ describe('V2 register / login / verify-email', () => {
       password: 'WrongP@ssw0rd',
     });
     expect(res.status).toBe(400);
-    expect(res.body.code).toBe(10012); // EmailNotVerified (新用户未验证邮箱, 优先级 > InvalidCredentials)
+    expect(res.body.code).toBe(10_012); // EmailNotVerified (新用户未验证邮箱, 优先级 > InvalidCredentials)
   });
 
   // V2026-10-14 治本 (VS-3e 关联 — 用户不存在期望错位, 跟 V2026-10-13 治本同步):
@@ -161,7 +160,7 @@ describe('V2 register / login / verify-email', () => {
       password: testPassword,
     });
     expect(res.status).toBe(401);
-    expect(res.body.code).toBe(11002); // InvalidCredentials
+    expect(res.body.code).toBe(11_002); // InvalidCredentials
   });
 });
 

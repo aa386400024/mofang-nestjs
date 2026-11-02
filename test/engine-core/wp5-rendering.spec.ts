@@ -131,17 +131,13 @@ describe('WP5 · 渲染契约层', () => {
     it('超预算 → 尾部最近轮保留, 最旧轮被丢', () => {
       // 每轮 60 字 ≈ 38 token; 三轮共 ≈ 114 token, 预算 60 → 只能留一轮 (最新那轮),
       // 于是从最旧开始整轮丢, 且最后一轮单独放得下 (不该触发截断).
-      const turns = [
-        turn('counselor', '第一轮'.repeat(20)),
-        turn('visitor', '第二轮'.repeat(20)),
-        turn('counselor', '第三轮'.repeat(20)),
-      ];
+      const turns = [turn('counselor', '第一轮'.repeat(20)), turn('visitor', '第二轮'.repeat(20)), turn('counselor', '第三轮'.repeat(20))];
       const result = fitContextToBudget(turns, 60);
 
       expect(result.droppedTurns).toBeGreaterThan(0);
       expect(result.truncatedTurns).toBe(0);
       // 尾部保留: 结果里应含最新一轮.
-      expect(result.turns[result.turns.length - 1]?.text).toBe('第三轮'.repeat(20));
+      expect(result.turns.at(-1)?.text).toBe('第三轮'.repeat(20));
       expect(result.turns.length).toBeLessThan(turns.length);
     });
 
@@ -178,7 +174,7 @@ describe('WP5 · 渲染契约层', () => {
 
   describe('⑤ 预算上限归一', () => {
     it('undefined / 0 / NaN / 负数 → 回落 160', () => {
-      expect(resolveCompletionTokens(undefined)).toBe(160);
+      expect(resolveCompletionTokens()).toBe(160);
       expect(resolveCompletionTokens(0)).toBe(160);
       expect(resolveCompletionTokens(Number.NaN)).toBe(160);
       expect(resolveCompletionTokens(-5)).toBe(160);
@@ -309,7 +305,7 @@ describe('WP5 · 渲染契约层', () => {
       expect(output.intention).toEqual(planIntention(expectedSnapshot));
       expect(output.turnIndex).toBe(1);
       // 出参字段集合与 WP4 完全一致 —— 没有多出任何渲染相关字段.
-      expect(Object.keys(output).sort()).toEqual(['intention', 'reply', 'snapshot', 'turnIndex']);
+      expect(Object.keys(output).toSorted((a, b) => a.localeCompare(b))).toEqual(['intention', 'reply', 'snapshot', 'turnIndex']);
       expect((output as unknown as Record<string, unknown>)['render']).toBeUndefined();
       expect((output as unknown as Record<string, unknown>)['renderResult']).toBeUndefined();
     });

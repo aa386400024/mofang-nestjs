@@ -15,21 +15,14 @@
 //   验证: npx jest test/counselor/drill-isolation.spec.ts 全绿
 //   时间戳: 2026-10-27 22:05 GMT+8
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import path from 'node:path';
 
+import { VISITOR_POOL_TEMPLATE_SEEDS, validateVisitorPoolTemplateSeeds } from '../../src/counselor/config/visitor-pool-seed';
+import { VISITOR_POOL_EXCLUDED_CONTENT_KEYWORDS } from '../../src/counselor/config/visitor-pool.config';
+import { listDrillScripts } from '../../src/counselor/drills/config/drill-registry';
 import { BOUNDARY_DRILL_SCRIPTS } from '../../src/counselor/drills/config/scripts/boundary/boundary-scripts';
 import { CRISIS_DRILL_SCRIPTS } from '../../src/counselor/drills/config/scripts/crisis/crisis-scripts';
-import { listDrillScripts } from '../../src/counselor/drills/config/drill-registry';
-import {
-  DrillDetailDto,
-  DrillListDto,
-  DrillResponseDto,
-} from '../../src/counselor/drills/dto/drill.dto';
-import { VISITOR_POOL_EXCLUDED_CONTENT_KEYWORDS } from '../../src/counselor/config/visitor-pool.config';
-import {
-  VISITOR_POOL_TEMPLATE_SEEDS,
-  validateVisitorPoolTemplateSeeds,
-} from '../../src/counselor/config/visitor-pool-seed';
+import { DrillDetailDto, DrillListDto, DrillResponseDto } from '../../src/counselor/drills/dto/drill.dto';
 
 /**
  * 把 crisis 剧本摊平成一段可检索文本.
@@ -58,7 +51,7 @@ describe('情景演练 · 物理隔离与合规不变量 (任务单 §5 六条)'
   });
 
   it('② crisis 剧本无任何 3 位以上连续数字 (号码形态)', () => {
-    expect(flattenCrisisScripts().match(/\d{3,}/)).toBeNull();
+    expect(/\d{3,}/.exec(flattenCrisisScripts())).toBeNull();
   });
 
   it('③ crisis 剧本不出现在普通池 seed / 图鉴列表里', () => {
@@ -75,9 +68,9 @@ describe('情景演练 · 物理隔离与合规不变量 (任务单 §5 六条)'
   });
 
   it('⑤ boundary 与 crisis 剧本分目录存放, 且列表按 track 过滤互不串场', () => {
-    const scriptsDir = join(__dirname, '../../src/counselor/drills/config/scripts');
-    expect(existsSync(join(scriptsDir, 'boundary'))).toBe(true);
-    expect(existsSync(join(scriptsDir, 'crisis'))).toBe(true);
+    const scriptsDir = path.join(__dirname, '../../src/counselor/drills/config/scripts');
+    expect(existsSync(path.join(scriptsDir, 'boundary'))).toBe(true);
+    expect(existsSync(path.join(scriptsDir, 'crisis'))).toBe(true);
 
     const boundaryIds = listDrillScripts('boundary').map((script) => script.drillId);
     const crisisIds = listDrillScripts('crisis').map((script) => script.drillId);

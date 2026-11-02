@@ -11,10 +11,7 @@
 //     1. npx jest test/counselor/session-material.spec.ts 全绿
 //     2. 故意把"或"改成"且" → "2 轮共 20 字"用例变红
 //   时间戳: 2026-10-27 14:20 GMT+8
-import {
-  isInsufficientMaterial,
-  measureEffectiveMaterial,
-} from '../../src/counselor/domain/session-view/session-material';
+import { isInsufficientMaterial, measureEffectiveMaterial } from '../../src/counselor/domain/session-view/session-material';
 
 /** 默认阈值 (与 config `supervision.minEffectiveTurns` / `minEffectiveChars` 同值). */
 const THRESHOLDS = { minTurns: 2, minChars: 30 };
@@ -26,11 +23,11 @@ describe('量有效素材', () => {
 
   it('null / undefined (老数据的 transcript 列可能是 NULL) → 0 轮 0 字', () => {
     expect(measureEffectiveMaterial(null)).toEqual({ effectiveTurns: 0, effectiveChars: 0 });
-    expect(measureEffectiveMaterial(undefined)).toEqual({ effectiveTurns: 0, effectiveChars: 0 });
+    expect(measureEffectiveMaterial()).toEqual({ effectiveTurns: 0, effectiveChars: 0 });
   });
 
   it('空白串轮不计入 (只有空格的"发言"不是发言)', () => {
-    const material = measureEffectiveMaterial([{ text: '   ' }, { text: '\n\t ' }]);
+    const material = measureEffectiveMaterial([{ text: ' '.repeat(3) }, { text: '\n\t ' }]);
     expect(material).toEqual({ effectiveTurns: 0, effectiveChars: 0 });
   });
 
@@ -40,16 +37,12 @@ describe('量有效素材', () => {
   });
 
   it('多轮求和', () => {
-    const material = measureEffectiveMaterial([{ text: '最近怎么样' }, { text: '   ' }, { text: '有点失眠' }]);
+    const material = measureEffectiveMaterial([{ text: '最近怎么样' }, { text: ' '.repeat(3) }, { text: '有点失眠' }]);
     expect(material).toEqual({ effectiveTurns: 2, effectiveChars: 9 });
   });
 
   it('脏数据 (text 缺失 / 非字符串) 不把整段判定打挂', () => {
-    const material = measureEffectiveMaterial([
-      { text: undefined },
-      { text: null },
-      { text: '有内容' },
-    ]);
+    const material = measureEffectiveMaterial([{ text: undefined }, { text: null }, { text: '有内容' }]);
     expect(material).toEqual({ effectiveTurns: 1, effectiveChars: 3 });
   });
 });

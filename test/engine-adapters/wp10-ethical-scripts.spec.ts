@@ -17,12 +17,12 @@
 //   验证: npx jest test/engine-adapters/wp10-ethical-scripts.spec.ts
 //   时间戳: 2026-10-30 GMT+8
 
-import { validateTrajectoryScript, type TrajectoryScript } from '../../src/engine-core';
 import {
   ETHICAL_TRAJECTORY_SCRIPT_MAP,
   ETHICAL_TRAJECTORY_SCRIPTS,
   StaticTrajectoryScriptResolver,
 } from '../../src/engine-adapters/wiring/trajectory';
+import { validateTrajectoryScript, type TrajectoryScript } from '../../src/engine-core';
 
 /**
  * 任务单 §1.2 的 10 个剧本 scriptId (固定清单).
@@ -155,7 +155,7 @@ describe('WP10 · 伦理盲盒剧本 · 形状验收 (任务单 §3.1)', () => {
 describe('WP10 · 伦理盲盒剧本 · 内容纪律 (任务单 §1.2 越界即返工)', () => {
   it('① 全部剧本无任何 3 位以上连续数字 (号码形态)', () => {
     for (const script of ETHICAL_TRAJECTORY_SCRIPTS) {
-      expect(flatten(script).match(/\d{3,}/)).toBeNull();
+      expect(/\d{3,}/.exec(flatten(script))).toBeNull();
     }
   });
 
@@ -211,9 +211,9 @@ describe('WP10 · 剧本解析端口 (静态实现)', () => {
   it('③ 缺省 / 空白 / 前后空格 → undefined 或归一化后的剧本', () => {
     const resolver = new StaticTrajectoryScriptResolver();
 
-    expect(resolver.resolve(undefined)).toBeUndefined();
+    expect(resolver.resolve()).toBeUndefined();
     expect(resolver.resolve('')).toBeUndefined();
-    expect(resolver.resolve('   ')).toBeUndefined();
+    expect(resolver.resolve(' '.repeat(3))).toBeUndefined();
     // 前后空格归一 (客户端拼串时常见) —— 归一后仍查得到.
     expect(resolver.resolve('  ethical_gift_money  ')?.scriptId).toBe('ethical_gift_money');
   });

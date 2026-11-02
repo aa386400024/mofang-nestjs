@@ -34,10 +34,10 @@ describe('音色类型归一 · 上游 get_voice 的 voice_type', () => {
   });
 
   it('缺省 / 空串 → system (缺省必须有值, 不能是 undefined —— 上游会判 2013)', () => {
-    expect(resolveVoiceCatalogType(undefined)).toBe('system');
+    expect(resolveVoiceCatalogType()).toBe('system');
     expect(resolveVoiceCatalogType(null)).toBe('system');
     expect(resolveVoiceCatalogType('')).toBe('system');
-    expect(resolveVoiceCatalogType('   ')).toBe('system');
+    expect(resolveVoiceCatalogType(' '.repeat(3))).toBe('system');
   });
 
   it('未知值 → system (本期只开放系统音色, 不因前端传错值就 400)', () => {
@@ -61,7 +61,7 @@ describe('专项技巧码 · 合法性与标签', () => {
     expect(toVoiceSkillCode('bogus')).toBeUndefined();
     expect(toVoiceSkillCode('')).toBeUndefined();
     expect(toVoiceSkillCode(null)).toBeUndefined();
-    expect(toVoiceSkillCode(undefined)).toBeUndefined();
+    expect(toVoiceSkillCode()).toBeUndefined();
   });
 
   it('三个码都有中文标签 (来访者聚焦 / 督导聚焦共用这一份)', () => {
@@ -74,7 +74,7 @@ describe('专项技巧码 · 合法性与标签', () => {
 describe('专项聚焦指令 · 来访者侧渲染', () => {
   it('无技巧码 → null (调用方不追加, 全流程 / 个案 prompt 与改前一致)', () => {
     expect(renderVisitorSkillFocus(null)).toBeNull();
-    expect(renderVisitorSkillFocus(undefined)).toBeNull();
+    expect(renderVisitorSkillFocus()).toBeNull();
   });
 
   it('有技巧码 → 渲染出对应标签与聚焦段', () => {

@@ -10,10 +10,7 @@
 //     ⑤ 畸形 alternatives → 整份反馈其余字段照常返回 (不整体 parse 失败)
 //   验证: npx jest test/counselor/supervision-alternatives.spec.ts 全绿
 //   时间戳: 2026-10-27
-import {
-  parseAlternatives,
-  validateSupervisionPayload,
-} from '../../src/counselor/providers/supervision.service';
+import { parseAlternatives, validateSupervisionPayload } from '../../src/counselor/providers/supervision.service';
 
 /** 一份合法的最小 payload (不含 alternatives). */
 function basePayload(): Record<string, unknown> {
@@ -27,16 +24,12 @@ function basePayload(): Record<string, unknown> {
 
 describe('alternatives · 解析容错', () => {
   it('正常 alternatives → 原样解析 (trim 后入库)', () => {
-    const parsed = parseAlternatives([
-      { original: '你应该早点休息', suggested: '  今天感觉怎么样? ', why: ' 先问感受再给建议 ' },
-    ]);
-    expect(parsed).toEqual([
-      { original: '你应该早点休息', suggested: '今天感觉怎么样?', why: '先问感受再给建议' },
-    ]);
+    const parsed = parseAlternatives([{ original: '你应该早点休息', suggested: '  今天感觉怎么样? ', why: ' 先问感受再给建议 ' }]);
+    expect(parsed).toEqual([{ original: '你应该早点休息', suggested: '今天感觉怎么样?', why: '先问感受再给建议' }]);
   });
 
   it('缺失 / 非数组 → 空数组 (不是 null)', () => {
-    expect(parseAlternatives(undefined)).toEqual([]);
+    expect(parseAlternatives()).toEqual([]);
     expect(parseAlternatives(null)).toEqual([]);
     expect(parseAlternatives('not-an-array')).toEqual([]);
     expect(parseAlternatives({})).toEqual([]);
@@ -58,7 +51,7 @@ describe('alternatives · 解析容错', () => {
 
   it('suggested / why 为空或纯空白 → 丢弃该条', () => {
     const parsed = parseAlternatives([
-      { original: 'a', suggested: '   ', why: '理由' },
+      { original: 'a', suggested: ' '.repeat(3), why: '理由' },
       { original: 'b', suggested: '回应', why: '  ' },
     ]);
     expect(parsed).toEqual([]);
@@ -100,9 +93,7 @@ describe('alternatives · 不因它丢掉整份反馈', () => {
 
   it('模型给非法 alternatives → 反馈其余字段照常返回 (**不**整体 parse 失败)', () => {
     const raw = basePayload();
-    raw['perSentence'] = [
-      { sentence: '你应该早点休息', score: 55, comment: '这里给建议了', alternatives: 'garbage' },
-    ];
+    raw['perSentence'] = [{ sentence: '你应该早点休息', score: 55, comment: '这里给建议了', alternatives: 'garbage' }];
     const payload = validateSupervisionPayload(raw);
     expect(payload).not.toBeNull();
     expect(payload?.overallScore).toBe(72);

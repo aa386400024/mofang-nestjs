@@ -14,18 +14,6 @@
 //   验证: npx jest test/engine-adapters/wp11-psyguard-probe.spec.ts
 //   时间戳: 2026-10-30 GMT+8
 
-import { assessSafety, DEFAULT_PROBE_TIMEOUT_MS, PSYGUARD_LEVEL_MAP } from '../../src/engine-core';
-import type { RiskProbePort } from '../../src/engine-core';
-import { createRiskProbe, createVisitorOutputProbe } from '../../src/engine-adapters/wiring/engine.providers';
-import {
-  HttpPsyGuardProbe,
-  normalizePsyGuardResponse,
-  resolvePsyGuardTimeoutMs,
-  type PsyGuardFetch,
-} from '../../src/engine-adapters/wiring/risk/http-psyguard.probe';
-import { LocalCrisisProbe, detectCrisisCategories, normalizeWidth } from '../../src/engine-adapters/wiring/risk/local-crisis.probe';
-import { PsyGuardHealthChecker } from '../../src/engine-adapters/wiring/risk/psyguard-health.checker';
-import { buildEngineRenderDeps } from '../../src/engine-adapters/wiring/render-config.factory';
 import type { ChatCaller } from '../../src/engine-adapters/rendering/llm-render.adapter';
 import {
   DEFAULT_RENDER_COOLDOWN_BASE_MS,
@@ -34,6 +22,18 @@ import {
   DEFAULT_RENDER_TIMEOUT_MS,
   type RenderAdapterConfig,
 } from '../../src/engine-adapters/rendering/render-adapter.config';
+import { createRiskProbe, createVisitorOutputProbe } from '../../src/engine-adapters/wiring/engine.providers';
+import { buildEngineRenderDeps } from '../../src/engine-adapters/wiring/render-config.factory';
+import {
+  HttpPsyGuardProbe,
+  normalizePsyGuardResponse,
+  resolvePsyGuardTimeoutMs,
+  type PsyGuardFetch,
+} from '../../src/engine-adapters/wiring/risk/http-psyguard.probe';
+import { LocalCrisisProbe, detectCrisisCategories, normalizeWidth } from '../../src/engine-adapters/wiring/risk/local-crisis.probe';
+import { PsyGuardHealthChecker } from '../../src/engine-adapters/wiring/risk/psyguard-health.checker';
+import { assessSafety, DEFAULT_PROBE_TIMEOUT_MS, PSYGUARD_LEVEL_MAP } from '../../src/engine-core';
+import type { RiskProbePort } from '../../src/engine-core';
 import { AIProviderId } from '../../src/llm/common/enums/llm.enums';
 
 /** 假响应的构造入参. */
@@ -128,7 +128,7 @@ describe('WP11 · PsyGUARD HTTP 风险探测器 (内核 RiskProbePort 实现)', 
       const { impl, calls } = fakeFetch({ body: { level: 'low', categories: [] } });
       const probe = new HttpPsyGuardProbe({ baseUrl: 'http://127.0.0.1:8100', fetchImpl: impl });
 
-      const result = await probe.probe('   ', 'visitor_output');
+      const result = await probe.probe(' '.repeat(3), 'visitor_output');
 
       expect(result.level).toBe('pass');
       expect(result.categories).toEqual([]);
@@ -158,7 +158,13 @@ describe('WP11 · PsyGUARD HTTP 风险探测器 (内核 RiskProbePort 实现)', 
     });
 
     it('脏形状 (level 缺失/非法) → 抛错', async () => {
-      for (const body of [{ categories: ['suicide_plan'] }, { level: 'critical', categories: [] }, { level: 3, categories: [] }, null, 'ok']) {
+      for (const body of [
+        { categories: ['suicide_plan'] },
+        { level: 'critical', categories: [] },
+        { level: 3, categories: [] },
+        null,
+        'ok',
+      ]) {
         const { impl } = fakeFetch({ body });
         const probe = new HttpPsyGuardProbe({ baseUrl: 'http://127.0.0.1:8100', fetchImpl: impl });
         await expect(probe.probe('我想跳楼', 'visitor_output')).rejects.toThrow();
@@ -212,7 +218,7 @@ describe('WP11 · PsyGUARD HTTP 风险探测器 (内核 RiskProbePort 实现)', 
     });
 
     it('地址是空白 → 仍走本地规则 (空白 ≠ 配了)', () => {
-      const probe = createRiskProbe({ baseUrl: '   ' });
+      const probe = createRiskProbe({ baseUrl: ' '.repeat(3) });
 
       expect(probe).toBeInstanceOf(LocalCrisisProbe);
     });
@@ -227,7 +233,7 @@ describe('WP11 · PsyGUARD HTTP 风险探测器 (内核 RiskProbePort 实现)', 
       expect(resolvePsyGuardTimeoutMs('300')).toBe(300);
       expect(resolvePsyGuardTimeoutMs('abc')).toBe(DEFAULT_PROBE_TIMEOUT_MS);
       expect(resolvePsyGuardTimeoutMs('0')).toBe(DEFAULT_PROBE_TIMEOUT_MS);
-      expect(resolvePsyGuardTimeoutMs(undefined)).toBe(DEFAULT_PROBE_TIMEOUT_MS);
+      expect(resolvePsyGuardTimeoutMs()).toBe(DEFAULT_PROBE_TIMEOUT_MS);
     });
   });
 
@@ -267,7 +273,7 @@ describe('WP11 · PsyGUARD HTTP 风险探测器 (内核 RiskProbePort 实现)', 
     });
 
     it('地址是空白 → 输出侧同样不接探测', () => {
-      expect(createVisitorOutputProbe({ baseUrl: '   ' })).toBeUndefined();
+      expect(createVisitorOutputProbe({ baseUrl: ' '.repeat(3) })).toBeUndefined();
     });
 
     it('配了服务地址 → 输出侧接 HTTP 探测器', () => {

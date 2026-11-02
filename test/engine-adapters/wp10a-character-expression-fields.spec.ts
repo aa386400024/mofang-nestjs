@@ -24,13 +24,12 @@ import path from 'node:path';
 import { getMetadataArgsStorage } from 'typeorm';
 
 import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed';
+import { CharacterProfileEntity } from '../../src/engine-adapters/wiring/character/character-profile.entity';
 import {
   buildCharacterProfileSeeds,
   CHARACTER_PROFILE_SEED_SPECS,
   seedCharacterProfiles,
-  type CharacterProfileSeed,
 } from '../../src/engine-adapters/wiring/character/character-profile.seed';
-import { CharacterProfileEntity } from '../../src/engine-adapters/wiring/character/character-profile.entity';
 import { toCharacterSeed } from '../../src/engine-adapters/wiring/character/db-character-profile.resolver';
 import { AddCharacterProfileExpressionFields1714900000025 } from '../../src/migration/1714900000025-AddCharacterProfileExpressionFields';
 
@@ -262,7 +261,7 @@ describe('WP10A · 表达风格基线字段 · 灌库载荷语义', () => {
 
 describe('WP10A · 表达风格基线字段 · 红线 (不消费 / 不进内核)', () => {
   it('⑬ resolver 映射的输出里不含这三列 (字段没进内核)', () => {
-    const seed = buildCharacterProfileSeeds(VISITOR_POOL_TEMPLATE_SEEDS)[0] as CharacterProfileSeed;
+    const seed = buildCharacterProfileSeeds(VISITOR_POOL_TEMPLATE_SEEDS)[0];
     const row = {
       id: seed.id,
       templateId: seed.templateId,
@@ -299,10 +298,7 @@ describe('WP10A · 表达风格基线字段 · 红线 (不消费 / 不进内核)
 
   it('⑭ 前端 DTO 里不含这三列 (本期不暴露给前端)', () => {
     const root = path.join(__dirname, '..', '..');
-    const dto = readFileSync(
-      path.join(root, 'src', 'engine-adapters', 'wiring', 'character', 'character-profile.dto.ts'),
-      'utf8',
-    );
+    const dto = readFileSync(path.join(root, 'src', 'engine-adapters', 'wiring', 'character', 'character-profile.dto.ts'), 'utf8');
 
     expect(dto).not.toContain('speechVolumeBaseline');
     expect(dto).not.toContain('narrativeStyle');

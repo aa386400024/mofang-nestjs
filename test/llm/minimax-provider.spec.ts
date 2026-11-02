@@ -22,13 +22,13 @@
 //   验证: npx jest test/llm/minimax-provider.spec.ts
 //   时间戳: 2026-10-28 GMT+8
 
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-
 import type { ConfigService } from '@nestjs/config';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 
-import type { ChatCompletionRequest } from '../../src/llm/common/interfaces/chat-provider.interface';
 import { AIProviderId, LLMCapability, LLMTier } from '../../src/llm/common/enums/llm.enums';
+import type { ChatCompletionRequest } from '../../src/llm/common/interfaces/chat-provider.interface';
+import { registerDefaultProviders } from '../../src/llm/config/llm.config';
 import {
   DEFAULT_MINIMAX_BASE_URL,
   DEFAULT_MINIMAX_CHAT_MODEL,
@@ -37,7 +37,6 @@ import {
   resolveMinimaxChatModel,
   resolveProviderApiKeyEnvKey,
 } from '../../src/llm/config/provider-env';
-import { registerDefaultProviders } from '../../src/llm/config/llm.config';
 import { MinimaxChatProvider } from '../../src/llm/providers/minimax.provider';
 import { LlmRouterService, defaultEnvApiKeyResolver } from '../../src/llm/registry/llm-router.service';
 import { ProviderRegistryService } from '../../src/llm/registry/provider-registry.service';
@@ -169,14 +168,14 @@ describe('MiniMax · chat provider 接入', () => {
     });
 
     it('归一函数的边界 (空串 / 尾斜杠 / 完整端点 / 缺模型名)', () => {
-      expect(resolveMinimaxBaseUrl(undefined)).toBe('https://api.minimax.cn/v1');
-      expect(resolveMinimaxBaseUrl('   ')).toBe('https://api.minimax.cn/v1');
+      expect(resolveMinimaxBaseUrl()).toBe('https://api.minimax.cn/v1');
+      expect(resolveMinimaxBaseUrl(' '.repeat(3))).toBe('https://api.minimax.cn/v1');
       expect(resolveMinimaxBaseUrl('https://api.minimax.cn/')).toBe('https://api.minimax.cn/v1');
       expect(resolveMinimaxBaseUrl('https://api.minimax.cn/v1/')).toBe('https://api.minimax.cn/v1');
       expect(resolveMinimaxBaseUrl('https://api.minimax.cn/v1/chat/completions')).toBe('https://api.minimax.cn/v1');
       expect(normalizeOpenAiCompatibleBaseUrl('https://x.example.com')).toBe('https://x.example.com/v1');
 
-      expect(resolveMinimaxChatModel(undefined)).toBe(DEFAULT_MINIMAX_CHAT_MODEL);
+      expect(resolveMinimaxChatModel()).toBe(DEFAULT_MINIMAX_CHAT_MODEL);
       expect(resolveMinimaxChatModel('  ')).toBe(DEFAULT_MINIMAX_CHAT_MODEL);
       expect(resolveMinimaxChatModel('MiniMax-M3.1-Flash')).toBe('MiniMax-M3.1-Flash');
     });
@@ -221,7 +220,7 @@ describe('MiniMax · chat provider 接入', () => {
   // ── §6-5 零真实网络 / 零真实 key ─────────────────────────────────
   describe('§6-5 零真实网络、零真实 key', () => {
     it('provider 源码不引入任何网络客户端 (继承 OpenAI 兼容基类, 由基类统一处理)', () => {
-      const source = readFileSync(join(__dirname, '..', '..', 'src', 'llm', 'providers', 'minimax.provider.ts'), 'utf8');
+      const source = readFileSync(path.join(__dirname, '..', '..', 'src', 'llm', 'providers', 'minimax.provider.ts'), 'utf8');
       const specifiers = [...source.matchAll(/from\s+'([^']+)'/g)].map((match) => match[1] ?? '');
 
       for (const specifier of specifiers) {
@@ -240,7 +239,7 @@ describe('MiniMax · chat provider 接入', () => {
       expect(apiKey).toBe(FAKE_MINIMAX_KEY);
       // 若开发机 .env 里存在真实 key, 注册进来的必须是测试假 key ——
       // 证明本套件没有把真实凭证带进断言输出 (真 key 长度也远大于此).
-      const realKey = process.env['MINIMAX_API_KEY'];
+      const realKey = process.env.MINIMAX_API_KEY;
       if (realKey) {
         expect(apiKey).not.toBe(realKey);
         expect(apiKey.length).toBeLessThan(32);

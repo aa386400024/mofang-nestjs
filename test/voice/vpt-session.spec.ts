@@ -18,10 +18,10 @@
 //     3. 故意让 parseAgeRangeLowerBound 解析不出时返回 0 → "解析不出返回 null"用例变红
 //
 //   时间戳: 2026-10-26
-import { parseAgeRangeLowerBound, buildVoiceVisitorCard } from '../../src/voice/voice-visitor-card';
 import { VoiceFrameRegistry } from '../../src/voice/voice-frame-registry';
 import { VoiceSessionBridgeRegistry, type VoiceSessionBridge } from '../../src/voice/voice-session-bridge';
 import type { VoiceTemplateSummary } from '../../src/voice/voice-session.types';
+import { parseAgeRangeLowerBound, buildVoiceVisitorCard } from '../../src/voice/voice-visitor-card';
 import type { VoiceServerMessage } from '../../src/voice/voice.types';
 
 /** 一份公共人物模板摘要 (字段与 counselor 侧 resolver 产出 1:1). */
@@ -43,7 +43,7 @@ const SUMMARY: VoiceTemplateSummary = {
 const OK_BRIDGE: VoiceSessionBridge = {
   name: 'ok',
   open: async () => ({ persisted: true, dbSessionId: 'db-session-1' }),
-  appendTurn: async () => undefined,
+  appendTurn: async () => {},
   // V2026-10-27 (spec 任务 B): close 现在回传收尾结果 (落库与否 + 报告状态).
   close: async () => ({ persisted: true, reportStatus: null }),
 };
@@ -101,15 +101,7 @@ describe('来访者速查卡构造', () => {
   it('卡片里不含 7 大块剧本字段 (零压红线的结构级保证)', () => {
     const card = buildVoiceVisitorCard(SUMMARY);
     const keys = Object.keys(card);
-    const forbidden = [
-      'script',
-      'basics',
-      'innerWorkingModel',
-      'socialMap',
-      'coping',
-      'therapyExpectation',
-      'developmentalTimeline',
-    ];
+    const forbidden = ['script', 'basics', 'innerWorkingModel', 'socialMap', 'coping', 'therapyExpectation', 'developmentalTimeline'];
 
     for (const key of forbidden) {
       expect(keys).not.toContain(key);

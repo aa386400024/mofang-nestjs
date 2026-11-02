@@ -167,7 +167,7 @@ describe('engine-core · WP0 边界骨架', () => {
     it('turn 的 userText 为空白 → INVALID_INPUT, 且不产生状态变更', async () => {
       const { session, bdiStates } = createHarness();
       const handle = session.openSession(OPEN_INPUT);
-      await expect(session.turn(handle.handleId, { userText: '   ' })).rejects.toMatchObject({
+      await expect(session.turn(handle.handleId, { userText: ' '.repeat(3) })).rejects.toMatchObject({
         code: EngineErrorCode.INVALID_INPUT,
       });
       expect(await bdiStates.load(TENANT, 'session-1')).toBeNull();

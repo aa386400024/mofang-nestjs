@@ -29,12 +29,12 @@
 //   时间戳: 2026-10-28 GMT+8
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import * as path from 'node:path';
 
 import ts from 'typescript';
 
 /** 内核包根目录. */
-const KERNEL_ROOT = join(__dirname, '../../src/engine-core');
+const KERNEL_ROOT = path.join(__dirname, '../../src/engine-core');
 
 /** 允许的外部包 (纯 TS 依赖; 标准库走 node: 前缀). */
 const ALLOWED_EXTERNAL_PACKAGES = new Set(['nanoid']);
@@ -49,7 +49,7 @@ const FORBIDDEN_PACKAGE_NAMES = ['typeorm'];
 function collectTsFiles(dir: string): string[] {
   const files: string[] = [];
   for (const entry of readdirSync(dir)) {
-    const fullPath = join(dir, entry);
+    const fullPath = path.join(dir, entry);
     if (statSync(fullPath).isDirectory()) {
       files.push(...collectTsFiles(fullPath));
       continue;
@@ -61,7 +61,7 @@ function collectTsFiles(dir: string): string[] {
 
 /** 文件相对内核根的路径 (统一用 / 分隔, 便于断言与报错可读). */
 function relPath(file: string): string {
-  return relative(KERNEL_ROOT, file).split('\\').join('/');
+  return path.relative(KERNEL_ROOT, file).replaceAll('\\', '/');
 }
 
 /**
@@ -99,7 +99,7 @@ function extractDecorators(file: string): string[] {
   const decorators: string[] = [];
   const visit = (node: ts.Node): void => {
     if (node.kind === ts.SyntaxKind.Decorator) {
-      decorators.push(node.getText(source).replace(/^@/, '').split('(')[0] ?? '');
+      decorators.push(node.getText(source).replace(/^@/, '').split('(', 1)[0] ?? '');
     }
     ts.forEachChild(node, visit);
   };
@@ -109,8 +109,8 @@ function extractDecorators(file: string): string[] {
 
 /** 目标路径是否位于 root 之内. */
 function isInside(root: string, target: string): boolean {
-  const rel = relative(resolve(root), resolve(target));
-  return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel);
+  const rel = path.relative(path.resolve(root), path.resolve(target));
+  return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
 }
 
 describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)', () => {
@@ -148,7 +148,7 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
     for (const file of kernelFiles) {
       for (const specifier of extractModuleSpecifiers(file)) {
         if (!specifier.startsWith('.')) continue;
-        const resolved = resolve(dirname(file), specifier);
+        const resolved = path.resolve(path.dirname(file), specifier);
         if (!isInside(KERNEL_ROOT, resolved)) {
           violations.push(`${relPath(file)} → ${specifier}`);
         }
@@ -183,7 +183,7 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
     // 用 AST 看**真实导出**, 不用原始文本:
     //   index.ts 的注释里必然要解释"为什么不导出 InMemory*" —— 文本 grep 会把这段说明
     //   自己判成违规. 任务单验收条目的原话也是「注释里提到不算, import 必须为 0」.
-    const indexFile = join(KERNEL_ROOT, 'index.ts');
+    const indexFile = path.join(KERNEL_ROOT, 'index.ts');
     const source = ts.createSourceFile(indexFile, readFileSync(indexFile, 'utf8'), ts.ScriptTarget.Latest, true);
     const exportedNames: string[] = [];
     const exportedSpecifiers: string[] = [];
@@ -381,13 +381,13 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'in-memory/in-memory-engine-session.ts',
       'adapters/README.md',
     ];
-    const missing = expected.filter((expectedPath) => !existsSync(join(KERNEL_ROOT, expectedPath)));
+    const missing = expected.filter((expectedPath) => !existsSync(path.join(KERNEL_ROOT, expectedPath)));
     expect(missing).toEqual([]);
   });
 
   it('⑧ 内核根目录无散落文件 (结构不漂移, 防止随手往内核根扔 service)', () => {
     const strays = readdirSync(KERNEL_ROOT).filter((name) => {
-      const fullPath = join(KERNEL_ROOT, name);
+      const fullPath = path.join(KERNEL_ROOT, name);
       if (statSync(fullPath).isDirectory()) return false;
       return name !== 'index.ts' && !name.endsWith('.md');
     });
@@ -398,9 +398,9 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
     // 内核整树零框架依赖的第二道防线: 光断言"内核里没有 @nestjs"还不够 ——
     // 万一有人把 Qdrant 实现塞进内核包, 断言①会绿 (qdrant 不是 @nestjs),
     // 但内核已经被绑死在向量库上. 所以显式断言"实现必须在 B 层".
-    const adapterRoot = join(__dirname, '../../src/engine-adapters');
-    expect(existsSync(join(adapterRoot, 'persistence/qdrant-memory.store.ts'))).toBe(true);
-    expect(existsSync(join(adapterRoot, 'embedder/openai-compat.embedder.ts'))).toBe(true);
+    const adapterRoot = path.join(__dirname, '../../src/engine-adapters');
+    expect(existsSync(path.join(adapterRoot, 'persistence/qdrant-memory.store.ts'))).toBe(true);
+    expect(existsSync(path.join(adapterRoot, 'embedder/openai-compat.embedder.ts'))).toBe(true);
 
     // 内核包里不得出现向量库 / embedding 实现的痕迹.
     const forbiddenInKernel: string[] = [];

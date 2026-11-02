@@ -1,9 +1,9 @@
 // @ts-check
 /* eslint-disable import/no-default-export */
 import eslint from '@eslint/js';
+import vitest from '@vitest/eslint-plugin';
 import { defineConfig } from 'eslint/config';
 import importPlugin from 'eslint-plugin-import';
-import jest from 'eslint-plugin-jest';
 import prettierRecommended from 'eslint-plugin-prettier/recommended';
 import { configs as sonarjs } from 'eslint-plugin-sonarjs';
 import unicorn from 'eslint-plugin-unicorn';
@@ -20,7 +20,7 @@ export default defineConfig(
   prettierRecommended,
   unicorn.configs.unopinionated,
   sonarjs.recommended,
-  jest.configs['flat/recommended'],
+  vitest.configs.recommended,
   {
     ignores: ['**/node_modules/**', 'dist/**', 'src/entity/**'],
   },
@@ -36,7 +36,7 @@ export default defineConfig(
     plugins: {
       '@typescript-eslint': tseslint.plugin,
       import: importPlugin,
-      jest,
+      vitest,
     },
     // https://github.com/import-js/eslint-plugin-import?tab=readme-ov-file#config---flat-with-config-in-typescript-eslint
     settings: {
@@ -188,6 +188,7 @@ export default defineConfig(
       // #endregion
 
       // #region sonarjs
+      'sonarjs/assertions-in-tests': 'off',
       'sonarjs/cognitive-complexity': ['error', 25],
       // https://community.sonarsource.com/t/eslint-plugin-sonarjs-performance-issues-on-large-codebase/138392
       'sonarjs/no-commented-code': 'off',
@@ -222,7 +223,46 @@ export default defineConfig(
       'unicorn/prefer-array-last-methods': 'off',
       // #endregion
 
-      'jest/expect-expect': ['error', { assertFunctionNames: ['expect', 'request.**.expect'] }],
+      'vitest/expect-expect': ['error', { assertFunctionNames: ['expect', 'request.**.expect'] }],
+    },
+  },
+  {
+    // 测试文件放宽 — 类型不安全/浮点比较/sort 写法等规则在测试里不强制
+    files: ['test/**/*.ts', 'bin/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-declaration-merging': 'off',
+      '@typescript-eslint/no-unsafe-enum-comparison': 'off',
+      '@typescript-eslint/no-this-alias': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/restrict-template-expressions': 'off',
+      '@typescript-eslint/await-thenable': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      'sonarjs/no-floating-point-equality': 'off',
+      'sonarjs/no-alphabetical-sort': 'off',
+      'sonarjs/no-misleading-array-reverse': 'off',
+      'sonarjs/no-conditional-expect': 'off',
+      'sonarjs/no-skipped-tests': 'off',
+      'sonarjs/no-unused-vars': 'off',
+      'sonarjs/unused-import': 'off',
+      'sonarjs/no-nested-conditional': 'off',
+      'sonarjs/concise-regex': 'off',
+      'unicorn/no-array-sort': 'off',
+      'unicorn/import-style': 'off',
+      'unicorn/no-this-assignment': 'off',
+      'unicorn/prefer-for-of': 'off',
+      'max-len': 'off',
+      'no-underscore-dangle': 'off',
+      '@typescript-eslint/naming-convention': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      'jest/no-disabled-tests': 'off',
+      'vitest/no-conditional-expect': 'off',
+      'complexity': 'off',
+      '@typescript-eslint/prefer-for-of': 'off',
     },
   },
 );

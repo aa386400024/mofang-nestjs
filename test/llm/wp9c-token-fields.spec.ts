@@ -12,8 +12,8 @@
 //   验证: npx jest test/llm/wp9c-token-fields.spec.ts
 //   时间戳: 2026-10-29 GMT+8
 
-import { MinimaxChatProvider } from '../../src/llm/providers/minimax.provider';
 import type { ChatCompletionRequest } from '../../src/llm/common/interfaces/chat-provider.interface';
+import { MinimaxChatProvider } from '../../src/llm/providers/minimax.provider';
 
 /** 构造出的 LangChain 客户端上关心的字段 (只取断言用到的). */
 interface BuiltLlm {
@@ -86,7 +86,10 @@ describe('WP9-C · 生成长度上限 / 思考强度的上游字段映射', () =
       const base = Object.getPrototypeOf(MinimaxChatProvider.prototype) as {
         buildRequestOverrides(request: ChatCompletionRequest): { maxTokens?: number; reasoningEffort?: string };
       };
-      const overrides = base.buildRequestOverrides.call(new MinimaxChatProvider(), request({ maxCompletionTokens: 1500, reasoningEffort: 'low' }));
+      const overrides = base.buildRequestOverrides.call(
+        new MinimaxChatProvider(),
+        request({ maxCompletionTokens: 1500, reasoningEffort: 'low' }),
+      );
 
       expect(overrides.maxTokens).toBe(1500);
       expect(overrides.reasoningEffort).toBe('low');

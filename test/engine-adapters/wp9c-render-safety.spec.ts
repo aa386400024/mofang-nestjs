@@ -13,16 +13,16 @@
 //   验证: npx jest test/engine-adapters/wp9c-render-safety.spec.ts
 //   时间戳: 2026-10-29 GMT+8
 
-import {
-  LlmRenderAdapter,
-  escalateReasoningEffort,
-  type ChatCaller,
-} from '../../src/engine-adapters/rendering/llm-render.adapter';
+import { LlmRenderAdapter, escalateReasoningEffort, type ChatCaller } from '../../src/engine-adapters/rendering/llm-render.adapter';
 import { createRenderAdapterConfig, type RenderCandidate } from '../../src/engine-adapters/rendering/render-adapter.config';
-import { dropUnclosedTail, splitClosedPrefix } from '../../src/engine-adapters/rendering/render-truncation';
 import { resolveRiskLevel, type AdaptiveRenderSpec } from '../../src/engine-adapters/rendering/render-risk';
+import { dropUnclosedTail, splitClosedPrefix } from '../../src/engine-adapters/rendering/render-truncation';
 import { buildVisitorMessages } from '../../src/engine-adapters/rendering/turn-render-orchestrator';
-import type { ChatCompletionChunk, ChatCompletionRequest, ChatCompletionResponse } from '../../src/llm/common/interfaces/chat-provider.interface';
+import type {
+  ChatCompletionChunk,
+  ChatCompletionRequest,
+  ChatCompletionResponse,
+} from '../../src/llm/common/interfaces/chat-provider.interface';
 
 /** 兜底话术 (与测试配置一致). */
 const FALLBACK_UTTERANCE = '我先缓一下，我们接着说。';
@@ -174,9 +174,7 @@ describe('WP9-C · 渲染路径 token 字段 / 截断保护 / 风险路由', () 
     });
 
     it('流式路径: 被截断时未闭合尾句不进入下发增量', async () => {
-      const caller = new StubStreamCaller([
-        { deltas: ['我最近有点累。', '晚上老是醒，现在更睡不着了'], finishReason: 'length' },
-      ]);
+      const caller = new StubStreamCaller([{ deltas: ['我最近有点累。', '晚上老是醒，现在更睡不着了'], finishReason: 'length' }]);
       const adapter = new LlmRenderAdapter({ caller, config: buildConfig([{ id: 'primary' }]) });
       const deltas: string[] = [];
 
@@ -225,9 +223,7 @@ describe('WP9-C · 渲染路径 token 字段 / 截断保护 / 风险路由', () 
       const caller = new StubChatCaller([{ content: '……我先缓一下，我们接着说。', finishReason: 'stop' }]);
       const adapter = new LlmRenderAdapter({ caller, config: buildConfig([{ id: 'primary' }]) });
 
-      await adapter.render(
-        buildSpec({ riskSignal: { level: 'medium', categories: ['passive_ideation'], source: 'probe' } }),
-      );
+      await adapter.render(buildSpec({ riskSignal: { level: 'medium', categories: ['passive_ideation'], source: 'probe' } }));
 
       expect(caller.calls[0]?.request.reasoningEffort).toBe('medium');
     });

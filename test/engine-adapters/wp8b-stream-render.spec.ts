@@ -33,7 +33,7 @@ import {
   type RenderAdapterConfig,
   type RenderCandidate,
 } from '../../src/engine-adapters/rendering/render-adapter.config';
-import type { RenderSpec, RenderTaskKind } from '../../src/engine-core';
+import type { RenderSpec } from '../../src/engine-core';
 import type {
   ChatCompletionChunk,
   ChatCompletionRequest,
@@ -60,7 +60,12 @@ class StubStreamCaller implements ChatCaller {
 
   async chat(_request: ChatCompletionRequest, providerId?: string): Promise<ChatCompletionResponse> {
     this.chatCalls.push(providerId ?? '');
-    return { content: '聚合兜底文本', usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 }, model: 'stub', finishReason: 'stop' };
+    return {
+      content: '聚合兜底文本',
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      model: 'stub',
+      finishReason: 'stop',
+    };
   }
 
   stream(request: ChatCompletionRequest, opts?: ChatStreamOptions): AsyncIterable<ChatCompletionChunk> {
@@ -95,7 +100,7 @@ async function* iterate(outcome: StreamOutcome): AsyncIterable<ChatCompletionChu
   let tokenCount = 0;
   for (let i = 0; i < deltas.length; i += 1) {
     tokenCount += step;
-    yield { delta: deltas[i] as string, tokenCount, isFinal: false };
+    yield { delta: deltas[i], tokenCount, isFinal: false };
   }
   if (outcome.kind === 'chunksThenError') throw outcome.error;
   // V2026-10-29 治本 (WP9-C): 终局 chunk 带上游 finish_reason (截断保护要用).
@@ -116,7 +121,7 @@ function collector(): { deltas: string[]; onDelta: (delta: string) => void } {
 /** 构造一份渲染规格. */
 function buildSpec(overrides: Partial<RenderSpec> = {}): RenderSpec {
   return {
-    taskKind: 'chat' as RenderTaskKind,
+    taskKind: 'chat',
     intention: {
       strategy: 'recounting',
       emotion: { label: 'neutral', valence: 0, arousal: 0.3 },
