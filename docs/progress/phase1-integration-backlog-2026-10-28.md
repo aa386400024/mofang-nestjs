@@ -3,7 +3,7 @@
 > 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md)
 > 愿景备查: [`../reference/ai-simulation-blueprint-v1.1.md`](../reference/ai-simulation-blueprint-v1.1.md)（冲突以母版为准；蓝图选 pgvector，本仓 D2 拍板 Qdrant）
 > 设计原则原件（已转写归档，仅作依据，冲突以母版为准）：[`bdi-cognitive-engine-principles-v1.0.md`](../reference/bdi-cognitive-engine-principles-v1.0.md)（BDI 决策/渲染边界）、[`architecture-blindspot-fill-v1.0.md`](../reference/architecture-blindspot-fill-v1.0.md)（14 项盲区补全，经本仓架构裁剪后落地）。
-> 日期: 2026-10-28（进度登记更新于 2026-10-30）｜ 状态: 🟢 **WP0–WP12 核心链路全部交付并审核通过；WP18/WP19/WP20/WP21 调试与报告链路已交付；WP10/WP10A/WP11 伦理盲盒+表达风格+PsyGUARD 已交付；WP24 单场成本日志已交付；剩余 WP13/WP14/WP15/WP16/WP17/WP22/WP23 为稳健性与运维护栏，内测前补完**
+> 日期: 2026-10-28（进度登记更新于 2026-11-02）｜ 状态: 🟢 **WP0–WP12 核心链路全部交付并审核通过；WP18/WP19/WP20/WP21 调试与报告链路已交付；WP10/WP10A/WP11 伦理盲盒+表达风格+PsyGUARD 已交付；WP24 单场成本日志已交付；WP14 学员心理风险处置层已交付（2026-11-02）；WP14 优化项（block 不发 llm_start）已交付（2026-11-02）；剩余 WP13/WP15/WP16/WP17/WP22/WP23 为稳健性与运维护栏，内测前补完**
 > 2026-10-29 增补：按两份设计原则（BDI 原则 / 盲区补全）经本仓架构裁剪，新增 Phase1 小项 WP14 学员风险兜底、WP15 算子幅度声明+回归、WP16 轻量幂等+断流不叠加；Phase2+ 保留推进队列见文末（全量保留，逐步推进，非丢弃）。
 > 2026-10-30 全面回头看：蓝图 Phase1 七条核心能力全部落地，执行无走歪、无过度工程。两个硬底线 WP 需内测前补完：WP17（新引擎路径 turn-analysis 入队对齐）、WP14（学员自身心理风险三级兜底）。详见 §0.4。
 > 仓库: `E:\Work\Project\backend\mofang-nestjs`
@@ -97,6 +97,9 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 | **WP19 留痕链接通（新升级）** | `traceRecorder` 恒为 undefined，从来没被装配进 engineStreamBackend。`recordTrace()` 首行 `if (!this.traceRecorder) return` 直接退出。**"每轮 BDI 快照落库"这个交付声明不成立**。admin-dashboard 全是 mock 数据，`client.ts` 零真 API 调用 | 调试工具是内测期的眼睛。留痕链没通 = 出问题看不到，黑盒调试。这是内测前必须补的 |
 
 > **WP17 降级说明**：原描述"新引擎路径没接 turnAnalysisProcessor.enqueue"**不成立**。新旧链路共用 `persistTurnIfComplete` → `appendTurn` → `enqueue`，移情/阻抗 mark 帧、轻提示、披露提取在新路径下都会触发。WP17 真正缺的只有 `enginePath: legacy|bdi` 字段（属 WP13 可观测范畴），不是"督导视角全瞎"。
+
+> **WP14 交付更正（2026-11-02）**：上表是 **2026-10-30 代码审计快照**，WP14 那一行描述的是**当时**的状态，**现已交付**（分档处置 + 学员侧可见 + 热线 + 不可删审计 + PsyGUARD 挂掉回落本地词典，五项全部落地）。
+> 任务单与交付记录见 §Phase1 增补 · WP14。WP19 留痕链同款说明：`traceRecorder` 已于 WP19-R 装配，admin-dashboard 的真 API 接入仍归 WP20。
 
 #### 其他待做项（按优先级，代码审计修正后）
 
@@ -245,6 +248,15 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 > 来源：《盲区补全与融入方案》经本仓架构裁剪后的 Phase1 硬底线/低成本项。均落在适配层/编排层，**不改内核纯算子**；Redis 原子提交+PG 异步落库全套事务、语音断点续传等终局形态本期不做。
 
 ### WP14 · 学员自身心理风险**处置层**（合规硬底线）
+
+> ✅ **已交付（2026-11-02）**。任务单：[`engine-wp14-student-risk-disposal-backend-2026-11-02.md`](./engine-wp14-student-risk-disposal-backend-2026-11-02.md)｜交付记录：[`engine-wp14-student-risk-disposal-backend-implementation-2026-11-02.md`](./engine-wp14-student-risk-disposal-backend-implementation-2026-11-02.md)
+>
+> 落地摘要：`counselor_input` 侧 warn → 推 `crisis_toast` 不阻断；block → **阻断本轮 AI 回复**（不调 `RenderPort.render`、不发 llm/tts 内容帧）+ 推 `crisis_modal`（12356/120），会话不销毁；`visitor_output` 侧**绝不弹学员、绝不阻断演练**（只推督导 `supervision_hint`）。落 append-only 审计表 `student_risk_events`（无 `updated_at`/`deleted_at`，`snippet` ≤200 字，只 INSERT，唯一 UPDATE 是 `user_choice`）。D12 兜底已修：PsyGUARD 挂掉回落**本地词典**而非无危机词的规则层。补 7 个职业倦怠 warn 级词（不补 block 级词）。内核 `src/engine-core/**` 零改动。闸门：eslint 0 / tsc 0 / 全量 62 文件 978 例全绿。
+>
+> ✅ **优化项已交付（2026-11-02）** —— "阻断轮先弹 modal、不先转 loading 圈"。任务单：[`wp14-block-no-llm-start-optimization-2026-11-02.md`](./wp14-block-no-llm-start-optimization-2026-11-02.md)｜交付记录：[`wp14-block-no-llm-start-optimization-implementation-2026-11-02.md`](./wp14-block-no-llm-start-optimization-implementation-2026-11-02.md)
+>
+> 落地摘要：voice 层在**发 `llm_start` 之前**加一道前置 safety gate（复用内核**同一个** `RISK_PROBE` 实例）：判 `block` 就直接发 `crisis_modal` + 写审计 + 置重点监测，**不调内核 turn / render** —— 全程无 `llm_start` / `llm_done` / `tts` 帧，"开始了但永远不会结束"的孤儿帧消失；`warn` / `pass` 走原流程逐帧不变；探测器异常静默降级放行（内核侧那一层判定仍兜底，双层防御）；`visitor_output` 侧不动。内核 `src/engine-core/**` 零改动。闸门：eslint 0 / tsc 0 / 新增 2 文件 19 例 / 全量 64 文件 997 例全绿。
+> 已知成本（诚实记录）：每轮**多一次** PsyGUARD 调用（两层各探一次，QPS ×2；远端不可达时走本地词典兜底几乎不增延迟）—— 这是"双层防御"的直接代价，合并成一次会削弱兜底，建议独立后续单评估。
 
 > 2026-10-30 代码审计修正：原描述"PsyGUARD 只能检测咨询师越界、不能复用来检测学员心理风险"**不成立**。探测器两侧同判（`_side` 参数被忽略），`counselor_input` 侧走的就是 PsyGUARD 11 类危机标签本身。真缺的是**处置层**，不是检测层。
 

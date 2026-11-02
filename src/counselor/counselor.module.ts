@@ -216,6 +216,7 @@ import { QuotaUsage } from './entities/quota-usage.entity.js';
 import { Quote } from './entities/quote.entity.js';
 // V2026-10-15 治本 (V1.x W3-4 — supervision-schools + supervision-feedback entity 注册):
 //   4 流派配置 + polymorphic 反馈记录 2 entity, 跟 W1-2 long-term-case 同 TypeOrmModule.forFeature 段.
+import { StudentRiskEvent } from './entities/student-risk-event.entity.js';
 import { SupervisionFeedback } from './entities/supervision-feedback.entity.js';
 import { SupervisionSchool } from './entities/supervision-school.entity.js';
 // V2026-10-15 治本 (V1.x W5-6 — ability service):
@@ -238,6 +239,9 @@ import { VisitorFullPersona } from './entities/visitor-full-persona.entity.js';
 //   跟 V2026-10-21 的 visitor_full_personas 同段 (副本表复用, 只多 1 列 source_template_id).
 import { VisitorPoolFavorite } from './entities/visitor-pool-favorite.entity.js';
 import { VisitorPoolTemplate } from './entities/visitor-pool-template.entity.js';
+// V2026-11-02 治本 (WP14 — 学员心理风险处置层 · 审计表):
+//   +StudentRiskEvent (append-only 审计表: 学员心理风险事件; 只增不改, 唯一例外 user_choice).
+//   ⚠️ 这张表**不对学员端 API 暴露** —— 注册它只为 (a) 审计落库 (b) 报告标注读同一份事实.
 // V2026-10-21 治本 (V1.2 VS-C — M2/M3 会谈核心 3 entity 注册, 走 TypeOrmModule.forFeature):
 //   +LiveSupervisionHint (实时督导轻提示) +TranscriptBookmark (逐字稿打点)
 //   +TransferenceResistanceMark (双向移情/阻抗标记)
@@ -361,6 +365,7 @@ import { SessionContextBuilder } from './providers/session-context.builder.js';
 //   TurnAnalysisService          每轮分析器 (一次 LLM → 提示 + 标记)
 //   TurnAnalysisProcessor        每轮分析 BullMQ worker
 import { SessionCoreEventsService } from './providers/session-core-events.service.js';
+import { StudentRiskAuditService } from './providers/student-risk-audit.service.js';
 import { SupervisionReportStreamService } from './providers/supervision-report-stream.service.js';
 import { SupervisionService } from './providers/supervision.service.js';
 import { TrainingExerciseService } from './providers/training-exercise.service.js';
@@ -387,6 +392,9 @@ import { VoicesService } from './providers/voices.service.js';
 // V2026-10-27 治本 (危机识别专区 — 只读元数据服务, spec 任务 B2):
 //   纯静态读 (不落库 / 不调上游 / 不计次), 只做"内部配置 → 对外 DTO"的逐字段映射.
 import { VptSessionBridgeService } from './providers/vpt-session-bridge.service.js';
+// V2026-11-02 治本 (WP14 — 学员心理风险处置层 · 审计落库):
+//   StudentRiskAuditService 实现 voice 侧 StudentRiskAuditSink 插槽 (依赖倒置),
+//   启动时注册进 voice 侧全局注册表 —— voice 侧 / 引擎侧都不认识 counselor 的实体.
 // V2026-10-23 治本 (AI 模拟来访池 — 内部角色守卫):
 //   直读 users.admin_role (3 档 editor/reviewer/admin), 不复用 common/guards/roles.guard.ts
 //   (后者依赖 request.user.adminRole / user.roles, 而本仓当前注入 request.user 的
@@ -466,6 +474,11 @@ import { VptSessionBridgeService } from './providers/vpt-session-bridge.service.
       //   +VisitorPoolTemplate (公共只读模板) +VisitorPoolFavorite (收藏关系)
       VisitorPoolTemplate,
       VisitorPoolFavorite,
+      // V2026-11-02 治本 (WP14 — 学员心理风险处置层 · 审计表, 累计 24 entity):
+      //   +StudentRiskEvent (append-only; 无 updated_at / deleted_at, 唯一例外 user_choice).
+      //   ⚠️ 注册它**不等于**给学员端开查询口 —— 本表只由审计服务写、报告标注读,
+      //      没有任何 controller 暴露它 (学员端 API 查不到这张表, 是任务单 §1.2 的红线).
+      StudentRiskEvent,
     ]),
   ],
   controllers: [
@@ -621,6 +634,12 @@ import { VptSessionBridgeService } from './providers/vpt-session-bridge.service.
     //   必须在 onModuleInit 里注册进 voice 侧全局注册表 —— 少注册 = vpt 会话不落库,
     //   降级成纯内存 (功能"看着能用", 但没有复盘报告). 所以跟 VoicesService 一起一次注册齐.
     VptSessionBridgeService,
+    // V2026-11-02 治本 (WP14 — 学员心理风险处置层 · 审计落库):
+    //   StudentRiskAuditService: 引擎判出学员风险事件后写 `student_risk_events`,
+    //   并在学员点完 modal 后回写 `user_choice` (唯一允许 update 的列).
+    //   必须在 onModuleInit 里注册进 voice 侧 @Global 审计插槽 —— 少注册 = 风险事件不落库
+    //   (弹窗照弹, 但平台的安全保障义务没有证据), 跟 VptSessionBridgeService 同款理由.
+    StudentRiskAuditService,
   ],
   exports: [
     CounselorHomeService,

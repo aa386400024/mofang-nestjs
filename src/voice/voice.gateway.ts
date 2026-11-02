@@ -336,6 +336,9 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
     });
     data.dbSessionId = opened.dbSessionId ?? undefined;
 
+    // 帧出口按**落库 id** 登记 (worker 侧只知道 training_sessions.id).
+    //   ⚠️ 刻意**不**额外登记 WS 会话 id: 那把 id 是**客户端给的**, 客户端可以
+    //   故意填成别人的落库 id, 于是"A 会话的帧被推给 B 会话" —— 那是隐私事故.
     if (data.dbSessionId) {
       const sessionId = data.dbSessionId;
       data.unregisterFrameSink = this.frames.register(sessionId, (frame) => {

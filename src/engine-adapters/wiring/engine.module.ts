@@ -57,6 +57,7 @@ import {
   createBridgeTranscriptSink,
   createRiskProbe,
   createSessionCloseout,
+  createStudentRiskGate,
   createVisitorOutputProbe,
 } from './engine.providers.js';
 import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from './engine.tokens.js';
@@ -67,6 +68,7 @@ import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe.js';
 import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
 import { PsyGuardHealthChecker } from './risk/psyguard-health.checker.js';
 import { RISK_PROBE } from './risk/risk-probe.token.js';
+import { STUDENT_RISK_GATE, StudentRiskGateService } from './risk/student-risk-gate.js';
 import { RouterChatCaller } from './router-chat-caller.js';
 import { StaticTrajectoryScriptResolver, TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory/index.js';
 import { AdminDebugModule } from '../../admin-debug/admin-debug.module.js';
@@ -75,6 +77,7 @@ import { QdrantService } from '../../ai-engine/providers/qdrant.service.js';
 import type { EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
 import { LlmModule } from '../../llm/llm.module.js';
 import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
+import { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
 import { VOICE_TURN_BACKEND } from '../../voice/voice-turn-backend.port.js';
@@ -197,6 +200,8 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
       inject: [ENGINE_MEMORY_STORE, RISK_PROBE],
     },
     // 装配门面 (WP7): 接上归属解析缝 (多会话, 不传固定 sessionContext).
+    // V2026-11-02 (WP14): 注入学员侧处置闸门 —— 门面在**渲染前**问它
+    //   "这一轮要不要处置 / 要不要阻断", 判成 block 就**不调 RenderPort.render**.
     {
       provide: TurnRenderOrchestrator,
       useFactory: (
@@ -204,8 +209,21 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         renderer: StreamingRenderPort,
         memories: MemoryStore,
         registry: EngineSessionRegistry,
-      ): TurnRenderOrchestrator => createEngineOrchestrator({ session, renderer, memories, registry }),
-      inject: [ENGINE_SESSION_PORT, ENGINE_RENDER_PORT, ENGINE_MEMORY_STORE, EngineSessionRegistry],
+        studentRisk: StudentRiskGateService,
+      ): TurnRenderOrchestrator => createEngineOrchestrator({ session, renderer, memories, registry, studentRisk }),
+      inject: [ENGINE_SESSION_PORT, ENGINE_RENDER_PORT, ENGINE_MEMORY_STORE, EngineSessionRegistry, STUDENT_RISK_GATE],
+    },
+    // V2026-11-02 治本 (WP14 §1.6 — 重点监测场次的强制远端探测):
+    //   闸门是**模块内单例** —— 编排门面 (判定) 与对话后端适配器 (置位) 必须拿到同一个实例.
+    //   闸门里的远端探测器是**独立实例**且不带本地词典兜底 (兜底已在主链路上).
+    {
+      provide: STUDENT_RISK_GATE,
+      useFactory: (config: ConfigService): StudentRiskGateService =>
+        createStudentRiskGate({
+          baseUrl: config.get<string>('PSYGUARD_BASE_URL') ?? '',
+          timeoutMs: resolvePsyGuardTimeoutMs(config.get<string>('PSYGUARD_TIMEOUT_MS')),
+        }),
+      inject: [ConfigService],
     },
     // 对外门面服务.
     EngineTurnService,
@@ -266,6 +284,9 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         closeout: SessionCloseoutService,
         traceRecorder: TraceRecorder,
         config: ConfigService,
+        studentRisk: StudentRiskGateService,
+        riskAudit: StudentRiskAuditRegistry,
+        riskProbe: RiskProbePort,
       ): EngineStreamBackend =>
         createEngineStreamBackend({
           engine,
@@ -284,10 +305,18 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
             inputPer1k: config.get<string>('LLM_PRICE_INPUT_PER_1K'),
             outputPer1k: config.get<string>('LLM_PRICE_OUTPUT_PER_1K'),
           }),
+          // WP14: 学员侧处置闸门 (置位重点监测) + 风险审计插槽 (写 student_risk_events).
+          studentRiskGate: studentRisk,
+          riskAudit,
+          // WP14 优化项: 前置 safety gate 用的探测器 —— **与内核注入的是同一个实例**
+          //   (RISK_PROBE): 口径一致, 且 D12 的本地词典兜底挂在这个实例上
+          //   (远端挂了前置 gate 也能拦住 block).
+          riskProbe,
         }),
       // 帧出口注册表由 voice 侧的 @Global 模块提供; optional = 缺了只影响督导提示帧.
       // 剧本解析端口同理: optional = 缺了只影响伦理盲盒剧本, 不影响会话开合.
       // 收尾服务同理: optional = 缺了只影响逐字稿定稿 + 长时记忆, 不影响会话开合.
+      // 风险审计插槽同理: optional = 缺了只影响风险事件留痕, 不影响弹窗与阻断.
       inject: [
         EngineTurnService,
         CHARACTER_PROFILE_RESOLVER,
@@ -296,6 +325,9 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         { token: SessionCloseoutService, optional: true },
         TraceRecorder,
         ConfigService,
+        STUDENT_RISK_GATE,
+        { token: StudentRiskAuditRegistry, optional: true },
+        RISK_PROBE,
       ],
     },
     {

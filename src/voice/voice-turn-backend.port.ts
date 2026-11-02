@@ -41,7 +41,8 @@
 //     2. test/voice/wp8b-grayscale.spec.ts: 旧 VisitorService 结构化满足本接口;
 //        新引擎适配实现同一接口; 灰度开关选实现、失败回落
 
-import type { VoiceSessionPersona } from './voice.types.js';
+import type { StudentRiskAuditChoice } from './student-risk-audit-slot.js';
+import type { VoiceServerMessage, VoiceSessionPersona } from './voice.types.js';
 import type { LlmStream } from '../agent/llm/llm.types.js';
 import type { TranscriptTurn } from '../agent/supervisor/supervisor.types.js';
 
@@ -84,6 +85,92 @@ export interface VoiceTurnBackend {
    * @returns 完整消息副本; 会话不存在返 []
    */
   transcript(sessionId: string): readonly TranscriptTurn[];
+
+  /**
+   * 回写学员在危机弹窗后的选择 (V2026-11-02, WP14 §1.3).
+   *
+   * **可选方法**: 旧链路 (`VisitorService`) 没有危机弹窗, 不实现它**完全正常** ——
+   * 必填会把旧实现挡在契约外, "并存可回退"当场破产 (与角色 / 剧本参数同款理由).
+   *
+   * 语义: 只回写审计表的 `user_choice` (唯一允许 update 的列),
+   * **不**重置 monitored 状态、**不**改会话状态.
+   *
+   * @param sessionId 会话 id
+   * @param choice 学员的选择
+   */
+  markUserChoice?(sessionId: string, choice: StudentRiskAuditChoice): Promise<void>;
+
+  /**
+   * 前置 safety 判定 (V2026-11-02, WP14 优化项 · block 不发 llm_start).
+   *
+   * **可选方法**: 旧链路 (`VisitorService`) 不做危机处置, 不实现它**完全正常** ——
+   * 必填会把旧实现挡在契约外, "并存可回退"当场破产 (与角色 / 剧本参数同款理由).
+   *
+   * 为什么要有它: 内核的 safety 判定发生在**内核 turn 内部** —— 等它判完,
+   * voice 层已经把 `llm_start` 发出去 (前端 loading 圈转起来了), 而 block 之后
+   * 前端既收不到 `llm_done` (后端根本没渲染), 又被全屏 modal 抢屏 ——
+   * 体感是"开始了但永远不会结束". 前置判一次就能把 modal 干干净净地弹出来.
+   *
+   * 语义:
+   *   · `block` → voice 层**不发** `llm_start` / `llm_done` / `tts_done`,
+   *     直接发 `crisis_modal`, **不调**内核 turn / render;
+   *   · `warn` / `pass` → 走既有流程, 一行不动 (warn 仍由内核侧按原时序发 toast).
+   *
+   * 失败语义: **静默失败** —— 调用方按"放行"处理, 不能因为前置判定挂了就把
+   * 整场对练搞挂 (内核侧仍会再判一次, 双层防御).
+   *
+   * @param input 判定入参 (会话 / 文本 / 轮次 / 帧出口)
+   * @returns 判定结果
+   */
+  preCheckSafety?(input: VoiceSafetyPreCheckInput): Promise<VoiceSafetyPreCheckResult>;
+}
+
+/**
+ * 前置 safety 判定入参.
+ *
+ * 为什么用**入参对象**而不是一个 `text` 字符串:
+ *   判定为 block 时, 后端要**当场**做三件事 —— 推 `crisis_modal` 帧、写审计行、
+ *   置位重点监测. 三件事都要"本场"的口径:
+ *     · 推帧要知道推给**哪一场** (WS 会话 id 客户端可控, 不能拿它当注册键);
+ *     · 写审计要知道**落库 id + 学员 id + 轮次**;
+ *     · 置位要知道**内核句柄**.
+ *   只给一个 `text` 的话, 后端**无从判断这些口径** —— 判定得了, 却推不出弹窗、
+ *   留不下痕. 所以这里把"本场上下文"显式传进来.
+ */
+export interface VoiceSafetyPreCheckInput {
+  /** 会话 id (voice 会话 id). */
+  readonly sessionId: string;
+  /** 学员本轮输入 (ASR 定稿). */
+  readonly userText: string;
+  /**
+   * 本场轮次 (从 1 起).
+   *
+   * 为什么必须由 voice 层给: 前置 gate 在**内核 turn 之前**拦截, 内核的轮次计数器
+   * 还没动 —— 只有 voice 层知道"这是本场第几轮". 而审计表的 `turn_index` 口径与
+   * 逐字稿锚点一致 (报告按 `(turnIndex - 1) * 2` 定位那条"问"), 两边必须同源.
+   */
+  readonly turnIndex: number;
+  /**
+   * 推一帧给**本场**的客户端 (危机弹窗).
+   *
+   * 缺省 = 没有出口 (独立调用后端) → 后端只记审计, 不推帧.
+   */
+  readonly publishFrame?: (frame: VoiceServerMessage) => void;
+}
+
+/**
+ * 前置 safety 判定结果.
+ */
+export interface VoiceSafetyPreCheckResult {
+  /**
+   * 等级.
+   *
+   * `pass` = 放行; `warn` = 放行但有风险信号 (由内核侧按原时序处置);
+   * `block` = 阻断 (voice 层不发 `llm_start`, 直接发 `crisis_modal`).
+   */
+  readonly level: 'pass' | 'warn' | 'block';
+  /** 命中的危机类别 (block / warn 时有值). */
+  readonly category?: string;
 }
 
 /** 开场参数. */
@@ -187,6 +274,19 @@ export interface VoiceTurnBackendTurnOptions {
   readonly traceId?: string;
   /** AbortSignal — barge-in 时 abort(), 请求真正中断. */
   readonly signal?: AbortSignal;
+  /**
+   * 推一帧给**本场**的客户端 (V2026-11-02, WP14 · 危机帧).
+   *
+   * 为什么走窄接口而不是让后端去碰帧出口注册表:
+   *   · 帧出口注册表按**落库 id** 索引, 而 WS 会话 id 是**客户端给的** ——
+   *     让后端用客户端可控的 id 去注册出口, 等于开一个"把 A 的帧推给 B"的口子;
+   *   · 落库 id 在"本场没落库"(降级成纯内存)时**没有** ——
+   *     而**危机弹窗不能因为数据库降级就推不出去**;
+   *   · 传一个"推给本场"的回调, 两条问题一起消失: 后端不需要知道任何 id 口径.
+   *
+   * 缺省 = 没有出口 (旧链路 / 独立调用后端) → 后端**不推**危机帧, 只记 warn.
+   */
+  readonly publishFrame?: (frame: VoiceServerMessage) => void;
 }
 
 /** 收尾统计 (旧链路的 hadMemory 字段与语音侧无关, 不进窄接口). */

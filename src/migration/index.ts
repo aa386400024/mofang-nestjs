@@ -130,5 +130,10 @@ export { AddTurnDebugTrace1714900000024 } from './1714900000024-AddTurnDebugTrac
 //   纯预留: 不进内核 / 不进 RenderSpec / 不暴露前端; 存量行由 DEFAULT 自动填充, 无需 UPDATE.
 //   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
 export { AddCharacterProfileExpressionFields1714900000025 } from './1714900000025-AddCharacterProfileExpressionFields.js';
+// V2026-11-02 治本 (WP14 — student_risk_events 学员心理风险事件审计表):
+//   append-only 审计表 (13 列 + 2 索引), **故意没有** updated_at / deleted_at ——
+//   审计表的价值在于不可篡改. 唯一允许 update 的是 user_choice (学员点弹窗后的选择).
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏建.
+export { AddStudentRiskEvents1714900000026 } from './1714900000026-AddStudentRiskEvents.js';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

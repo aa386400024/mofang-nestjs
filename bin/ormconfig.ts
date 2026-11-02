@@ -182,6 +182,11 @@ import { AddTurnDebugTrace1714900000024 } from '../src/migration/1714900000024-A
 //   部署顺序: **必须先 migration:run 再起服务** —— entity 加了列, resolver 的 SELECT 会带上
 //   这三列, migration 没跑就是 "Unknown column".
 import { AddCharacterProfileExpressionFields1714900000025 } from '../src/migration/1714900000025-AddCharacterProfileExpressionFields.js';
+// V2026-11-02 治本 (WP14 — student_risk_events 学员心理风险事件审计表, 跟 src/migration/index.ts 1:1):
+//   append-only 审计表 (13 列 + 2 索引), 故意没有 updated_at / deleted_at.
+//   部署顺序: **必须先 migration:run 再起服务** —— 运行时写入前表得先在.
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏建.
+import { AddStudentRiskEvents1714900000026 } from '../src/migration/1714900000026-AddStudentRiskEvents.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -311,6 +316,9 @@ const ormconfig = async (): Promise<DataSource> => {
       //   speech_volume_baseline / narrative_style / expression_tone —— 纯预留, 不参与任何决策.
       //   存量行由 DB DEFAULT 自动填充 (不需要 UPDATE), 加列幂等 (缺才加).
       AddCharacterProfileExpressionFields1714900000025,
+      // V2026-11-02 治本 (WP14 — student_risk_events 学员心理风险事件审计表, 跟 src/migration/index.ts 1:1):
+      //   append-only 审计表 (13 列 + 2 索引), 故意没有 updated_at / deleted_at.
+      AddStudentRiskEvents1714900000026,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

@@ -275,10 +275,14 @@ describe('WP10 · 剧本注入链路 · 装配层绑定', () => {
 
     expect(source).toContain('provide: TRAJECTORY_SCRIPT_RESOLVER');
     const start = source.indexOf('provide: EngineStreamBackend');
-    // 窗口放大 (900 → 1600): V2026-10-30 (WP24) 给 EngineStreamBackend 的 useFactory
-    //   加了成本单价装配 (多几行), 剧本解析端口的 token 落在 inject 数组里 —— 窗口
-    //   太小会把断言的目标挤出切片. 断言的内容没变, 只是看得更远一点.
-    const block = source.slice(start, start + 1600);
+    // 窗口按 **provider 块的边界**切, 不用固定字符数.
+    //   为什么不用固定数: 装配块每加一个可选端口 (WP24 成本单价 / WP14 处置闸门…)
+    //   就会把它撑长, 固定窗口迟早把断言的目标挤出切片 —— 这个测试已经因为
+    //   WP24 改过一次窗口 (900 → 1600), 再来一次还是会被挤掉.
+    //   按块边界切 = 断言"这一整块 provider 里有没有", 既不受块大小影响,
+    //   又不会串到下一个 provider 去.
+    const end = source.indexOf('provide: VOICE_TURN_BACKEND', start);
+    const block = source.slice(start, end > start ? end : start + 4000);
     expect(block).toContain('TRAJECTORY_SCRIPT_RESOLVER');
     // 端口是可选增强 —— 装配缺席不该让应用起不来.
     expect(block).toContain('optional: true');

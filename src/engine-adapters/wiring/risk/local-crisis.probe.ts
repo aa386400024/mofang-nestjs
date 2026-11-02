@@ -38,6 +38,7 @@ import {
   type SafetySide,
   type VisitorRiskCategory,
 } from '../../../engine-core/index.js';
+import { recordProbeSource } from '../../rendering/probe-source.js';
 import { CRISIS_RISK_CATEGORIES, isCrisisCategory } from '../../rendering/render-risk.js';
 
 /**
@@ -74,6 +75,21 @@ const SUPPLEMENTARY_PATTERNS: readonly { readonly category: VisitorRiskCategory;
       // ⚠️ 本表里**最松**的一条: "不想坚持了"也可能指工作/学业/减肥.
       //    任务单 §1.4 明确要求收录, 故保留; 误报反馈上来时**先删这一条**.
       '不想坚持了',
+      // V2026-11-02 (WP14 §1.5) 补: **职业倦怠 / 耗竭** 表达.
+      //   为什么单独补这一组: 内核来访侧词典收的是"活下去没意义"这类**危机**说法,
+      //   收不到"我好像耗竭了"这种**倦怠**说法 —— 而后者恰恰是实训学员的高频状态
+      //   (带教压力 / 反复代入创伤 / 职业意义感流失).
+      //   等级一律 passive_ideation (warn): **只弹 toast, 不阻断** ——
+      //   倦怠不是危机, 阻断会把"学员有点累"变成"学员不能练习", 那比不提示更糟.
+      //   ⚠️ 词典原则 (任务单 §1.5): **warn 级能兜多少兜多少, block 级宁漏勿误** ——
+      //     误报代价 = 把正常训练判成危机轮 (直接毁掉可用性).
+      '我怀疑自己适不适合干这行',
+      '我怀疑自己不适合做咨询',
+      '做咨询越久越觉得没意义',
+      '我最近总是失眠，提不起劲',
+      '我好像耗竭了',
+      '我好像有点耗竭了',
+      '有时候觉得熬不下去',
     ],
   },
   {
@@ -118,6 +134,22 @@ export function normalizeWidth(text: string): string {
 }
 
 /**
+ * 归一后的补充词表 (**NFKC**).
+ *
+ * 为什么词表也要归一 (V2026-11-02 WP14 修): haystack 走的是 `normalizeWidth` (NFKC),
+ * 而 NFKC 会把**全角标点**折成半角 —— 于是含全角逗号的词条 (如
+ * "我最近总是失眠，提不起劲") 在归一后的 haystack 里**永远匹配不上**.
+ * 这不是词表写错了, 是"只归一文本不归一词条"的漏: 两边必须走同一套归一.
+ *
+ * 模块加载时算一次 (不是每次探测算): 词表是常量, 归一结果也是常量.
+ */
+const NORMALIZED_SUPPLEMENTARY_PATTERNS: readonly { readonly category: VisitorRiskCategory; readonly patterns: readonly string[] }[] =
+  SUPPLEMENTARY_PATTERNS.map((entry) => ({
+    category: entry.category,
+    patterns: entry.patterns.map((pattern) => normalizeWidth(pattern)),
+  }));
+
+/**
  * 本地危机探测器 (实现内核 `RiskProbePort`).
  *
  * 纯类: 可脱离 Nest 容器 `new` 出来跑 (单测友好).
@@ -127,15 +159,17 @@ export class LocalCrisisProbe implements RiskProbePort {
    * 探测一段文本里的危机信号.
    *
    * @param text 待判定文本
-   * @param _side 检测面 (本探测器**两侧同判**: 危机语言不因说话人是谁而改变性质)
+   * @param side 检测面 (本探测器**两侧同判**: 危机语言不因说话人是谁而改变性质)
    * @returns 归一后的等级与危机类别
    */
-  async probe(text: string, _side: SafetySide): Promise<RiskProbeResult> {
+  async probe(text: string, side: SafetySide): Promise<RiskProbeResult> {
     const categories = detectCrisisCategories(text);
     if (categories.length === 0) {
       return { level: 'pass', categories: [] };
     }
     const level = categories.reduce<SafetyLevel>((acc, category) => maxSafetyLevel(acc, PSYGUARD_LEVEL_MAP[category]), 'pass');
+    // WP14: 记下"这条判定是本地词典给的" —— 审计表要能分辨远端识别与本地兜底.
+    recordProbeSource('local_dict', side);
     return { level, categories };
   }
 }
@@ -162,7 +196,8 @@ export function detectCrisisCategories(text: string): VisitorRiskCategory[] {
   }
 
   // ③ 补差: 咨询师输入面的补充词表.
-  for (const entry of SUPPLEMENTARY_PATTERNS) {
+  //    用**归一后**的词表 (与 haystack 同一套 NFKC) —— 见 NORMALIZED_SUPPLEMENTARY_PATTERNS.
+  for (const entry of NORMALIZED_SUPPLEMENTARY_PATTERNS) {
     if (entry.patterns.some((pattern) => haystack.includes(pattern))) {
       hits.add(entry.category);
     }

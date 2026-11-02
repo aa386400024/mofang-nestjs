@@ -17,13 +17,13 @@
 //   验证: npx vitest run test/admin-debug/wp19r-trace-wiring.spec.ts
 //   时间戳: 2026-10-30 GMT+8
 
+import { FindOperator } from 'typeorm';
 import { AdminBasicAuthMiddleware } from '../../src/admin-debug/admin-basic-auth.middleware.js';
 import { AdminDebugController } from '../../src/admin-debug/admin-debug.controller.js';
 import { TraceRecorder, resolveTraceEnabled, type TurnTrace } from '../../src/admin-debug/trace-recorder.service.js';
 import { BizCode } from '../../src/common/exceptions/biz-code.enum.js';
-import { FindOperator } from 'typeorm';
-import { EngineStreamBackend } from '../../src/engine-adapters/wiring/engine-stream-backend.adapter.js';
 import type { TurnRenderResult } from '../../src/engine-adapters/rendering/turn-render-orchestrator.js';
+import { EngineStreamBackend } from '../../src/engine-adapters/wiring/engine-stream-backend.adapter.js';
 
 const SESSION_ID = 'session-1';
 const DB_SESSION_ID = 'db-session-1';
@@ -114,7 +114,7 @@ function stubEngine(result: TurnRenderResult): {
   return {
     open: () => ({ handleId: 'handle-1', sessionId: SESSION_ID }),
     turnStream: async () => result,
-    close: () => undefined,
+    close: () => {},
   };
 }
 
@@ -144,7 +144,7 @@ function buildRenderResult(overrides: Partial<TurnRenderResult> = {}): TurnRende
       ttftMs: 1988,
     },
     ...overrides,
-  } as TurnRenderResult;
+  };
 }
 
 /**
@@ -216,7 +216,14 @@ describe('WP19-R · 留痕链接通 + admin/api 收口', () => {
 
     it('EngineStreamBackend 每轮结算后真的调 record() (接线不再是死路)', async () => {
       const recorder = new StubTraceRecorder();
-      const backend = new EngineStreamBackend(stubEngine(buildRenderResult()) as never, undefined, undefined, undefined, undefined, recorder as never);
+      const backend = new EngineStreamBackend(
+        stubEngine(buildRenderResult()) as never,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        recorder as never,
+      );
 
       await backend.openSession({
         sessionId: SESSION_ID,
@@ -259,7 +266,14 @@ describe('WP19-R · 留痕链接通 + admin/api 收口', () => {
     it('写库抛错 → 对练主链路照常返回 reply (引擎后端不炸)', async () => {
       const recorder = new StubTraceRecorder();
       recorder.failWith = new Error('db down');
-      const backend = new EngineStreamBackend(stubEngine(buildRenderResult()) as never, undefined, undefined, undefined, undefined, recorder as never);
+      const backend = new EngineStreamBackend(
+        stubEngine(buildRenderResult()) as never,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        recorder as never,
+      );
 
       await backend.openSession({
         sessionId: SESSION_ID,
@@ -347,10 +361,7 @@ describe('WP19-R · 留痕链接通 + admin/api 收口', () => {
     });
 
     it('只配了一个 env → 按"未开启鉴权"处理 (不半开半关)', async () => {
-      const middleware = new AdminBasicAuthMiddleware(
-        stubConfig({ ADMIN_BASIC_AUTH_USER: 'ops' }) as never,
-        jwtStub() as never,
-      );
+      const middleware = new AdminBasicAuthMiddleware(stubConfig({ ADMIN_BASIC_AUTH_USER: 'ops' }) as never, jwtStub() as never);
       const { res } = buildResponse();
       let nextCalled = false;
 
@@ -434,7 +445,7 @@ describe('WP19-R · 留痕链接通 + admin/api 收口', () => {
         transcript: [],
         turnDebugTrace: [buildTrace()],
         techStats: { turns: 3 },
-      } as never);
+      });
 
       const detail = await controller.sessionDetail(buildRequest() as never, SESSION_ID);
 
@@ -447,7 +458,7 @@ describe('WP19-R · 留痕链接通 + admin/api 收口', () => {
   describe('⑥ 用户隔离 (学员只看自己的; 管理员不过滤)', () => {
     it('学员请求 → where 带 userId', async () => {
       const { controller, sessionRepo } = buildController();
-      sessionRepo.rows.push({ id: SESSION_ID, personaName: '晚晴', startedAt: null, endedAt: null, status: 'finished' } as never);
+      sessionRepo.rows.push({ id: SESSION_ID, personaName: '晚晴', startedAt: null, endedAt: null, status: 'finished' });
 
       await controller.sessions({ user: { userId: USER_ID } } as never);
 
@@ -472,7 +483,7 @@ describe('WP19-R · 留痕链接通 + admin/api 收口', () => {
 
     it('学员看不到别人的会话 → 详情同样按归属过滤 (查不到即 404)', async () => {
       const { controller, sessionRepo } = buildController();
-      sessionRepo.rows.push({ id: SESSION_ID, userId: 'student-b', personaName: '小满' } as never);
+      sessionRepo.rows.push({ id: SESSION_ID, userId: 'student-b', personaName: '小满' });
 
       await expect(controller.sessionDetail({ user: { userId: USER_ID } } as never, SESSION_ID)).rejects.toMatchObject({
         code: BizCode.ResourceNotFound,

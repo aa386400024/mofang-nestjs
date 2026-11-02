@@ -223,10 +223,14 @@ describe('WP11 · PsyGUARD HTTP 风险探测器 (内核 RiskProbePort 实现)', 
       expect(probe).toBeInstanceOf(LocalCrisisProbe);
     });
 
-    it('两者不叠加: 配了地址也不会同时挂两个探测器', () => {
+    // V2026-11-02 (WP14 §1.4 · D12 治本): "不叠加"的口径**不变**, 只是从"丢弃 fallback"
+    //   改成"**委托** fallback" —— 同一时刻仍然只有一个探测器在判 (远端失败才换本地),
+    //   不是同一段文本判两遍取最高. 所以断言不变, 只是把意图写准.
+    it('两者不叠加: 配了地址也不会同时挂两个探测器 (D12 起 fallback 是"委托"不是"丢弃")', () => {
       const probe = createRiskProbe({ baseUrl: 'http://127.0.0.1:8100', fallback: new LocalCrisisProbe() });
 
       expect(probe).not.toBeInstanceOf(LocalCrisisProbe);
+      expect(probe).toBeInstanceOf(HttpPsyGuardProbe);
     });
 
     it('超时 env 是字符串 → 显式解析; 非法值回退内核默认值', () => {

@@ -35,6 +35,7 @@ import { InMemoryBdiStateRepository } from '../../engine-core/in-memory/in-memor
 import { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-engine-session.js';
 import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store.js';
 import type { Embedder, EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
+import type { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
 import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import type { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
 import type { SessionCostPricing } from '../observability/session-cost.js';
@@ -44,11 +45,13 @@ import { QdrantMemoryStore } from '../persistence/qdrant-memory.store.js';
 import type { SessionSummaryGenerator, SessionTranscriptSink } from '../persistence/session-closeout.service.js';
 import { SessionCloseoutService } from '../persistence/session-closeout.service.js';
 import type { StreamingRenderPort } from '../rendering/streaming-render.port.js';
+import type { StudentRiskGate } from '../rendering/student-risk-disposal.js';
 import type { TurnSessionContext } from '../rendering/turn-render-orchestrator.js';
 import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js';
 import type { CharacterProfileResolver } from './character/character-profile.resolver.js';
 import { HttpPsyGuardProbe } from './risk/http-psyguard.probe.js';
 import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
+import { StudentRiskGateService } from './risk/student-risk-gate.js';
 import type { TrajectoryScriptResolver } from './trajectory/script-resolver.js';
 
 /**
@@ -124,6 +127,13 @@ export interface EngineOrchestratorDeps {
   readonly memories: MemoryStore;
   /** 归属解析源 (装配层维护的登记表). */
   readonly registry: { resolve(handleId: string): TurnSessionContext | undefined };
+  /**
+   * 学员侧处置闸门 (WP14; 缺省 = 不做学员侧处置).
+   *
+   * 缺省语义与上面几个一致: 闸门是**增强** —— 装配缺席时本场照常,
+   * 只是"没有危机处置" (与本单之前逐字一致), 不影响会话开合.
+   */
+  readonly studentRisk?: StudentRiskGate;
 }
 
 /**
@@ -142,7 +152,43 @@ export function createEngineOrchestrator(deps: EngineOrchestratorDeps): TurnRend
     renderer: deps.renderer,
     memories: deps.memories,
     resolveSession: (handleId: string) => deps.registry.resolve(handleId),
+    ...(deps.studentRisk ? { studentRisk: deps.studentRisk } : {}),
   });
+}
+
+/**
+ * 学员侧处置闸门装配入参 (WP14).
+ */
+export interface StudentRiskGateDeps {
+  /** PsyGUARD 服务地址 (空 / 缺省 = 不强制远端探测, 只靠内核判定). */
+  readonly baseUrl?: string;
+  /** HTTP 探测超时 (ms; 缺省 = 内核 DEFAULT_PROBE_TIMEOUT_MS). */
+  readonly timeoutMs?: number;
+}
+
+/**
+ * 装配学员侧处置闸门 (WP14 §1.6).
+ *
+ * 闸门里的远端探测器是**独立实例**且**不带本地词典兜底**:
+ *   · 独立实例 = 不跟内核那次判定共用同一个探测器对象 (免得状态互相污染);
+ *   · 不带兜底 = "强制走 PsyGUARD"问的必须是**远端**; 本地词典兜底已经在主链路上
+ *     (D12 治本), 再挂一遍就是同一段文本判两遍.
+ *
+ * 没配 `PSYGUARD_BASE_URL` → 闸门**不带探测器** → 强制探测直接返回 undefined,
+ * 行为退化成"只靠内核判定" (不报错, 不阻断).
+ *
+ * @param deps 装配入参
+ * @returns 闸门实例
+ */
+export function createStudentRiskGate(deps: StudentRiskGateDeps): StudentRiskGateService {
+  const baseUrl = (deps.baseUrl ?? '').trim();
+  if (!baseUrl) return new StudentRiskGateService();
+  return new StudentRiskGateService(
+    new HttpPsyGuardProbe({
+      baseUrl,
+      ...(deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs }),
+    }),
+  );
 }
 
 /**
@@ -186,6 +232,29 @@ export interface EngineStreamBackendDeps {
    * 现在由 `EngineWiringModule` 显式注入 `AdminDebugModule` 导出的实例.
    */
   readonly traceRecorder?: TraceRecorder;
+  /**
+   * 学员侧处置闸门 (WP14; 缺省 = 不做学员侧处置).
+   *
+   * 缺省语义与上面几个一致: 闸门是**增强** —— 装配缺席时本场照常,
+   * 只是"没有危机处置" (与本单之前逐字一致), 不影响会话开合.
+   */
+  readonly studentRiskGate?: StudentRiskGate;
+  /**
+   * 学员风险审计插槽 (WP14; 缺省 = 风险事件不留痕).
+   *
+   * 缺省语义同上: 审计是**留痕能力**, 不是会话能力 ——
+   * 业务侧没注册实现时, 弹窗照弹, 只是"这次没留痕".
+   */
+  readonly riskAudit?: StudentRiskAuditRegistry;
+  /**
+   * 风险探测器 (WP14 优化项 · 前置 safety gate; 缺省 = 不做前置判定).
+   *
+   * 缺省语义同上: 前置判定是**增强** —— 装配缺席时本场照常,
+   * 只是"阻断轮会先转一下 loading 圈" (与优化项之前逐字一致).
+   *
+   * 必须是**内核注入的那一个实例** (RISK_PROBE): 口径一致 + D12 本地词典兜底生效.
+   */
+  readonly riskProbe?: RiskProbePort;
 }
 
 /**
@@ -278,6 +347,10 @@ export function isPsyGuardConfigured(baseUrl: string | undefined): boolean {
  * **两者不叠加**: 一个 session 只用一个探测端口. 叠加意味着同一条文本判两遍,
  * 等级取高 —— 那会让"服务偶发误报"直接变成"永远按高危走", 且双倍延迟.
  *
+ * V2026-11-02 (WP14 §1.4 · D12 治本): 配了地址时, 本地词典**不再被丢弃** ——
+ * 它被**委托**给 HTTP 探测器当兜底 (远端失败才换它判), 而不是跟远端**叠加**判.
+ * "不叠加"的口径不变: 同一时刻只有一个探测器在判.
+ *
  * 为什么做成**纯函数**而不是写在 `@Module` 的 useFactory 里:
  *   同本文件其它工厂的理由 —— useFactory 里的代码单测覆盖不到, "装哪个探测器"
  *   这件事就只能等启动时炸. 纯函数能直接断言分流口径.
@@ -289,8 +362,19 @@ export function createRiskProbe(deps: RiskProbeDeps): RiskProbePort {
   const fallback = deps.fallback ?? new LocalCrisisProbe();
   const baseUrl = (deps.baseUrl ?? '').trim();
   if (!baseUrl) return fallback;
+  // V2026-11-02 治本 (WP14 §1.4 · D12 治本): **不再丢弃 fallback** ——
+  //   配了服务地址就把本地词典扔掉, 等于"服务一挂 = 学员危机检测归零"
+  //   (内核 catch 后回落的是 `counselor_input` 侧的规则层, 那 7 条全是专业越界词,
+  //    一条危机词都没有). 现在把本地词典**委托**给 HTTP 探测器做兜底:
+  //   服务正常 → 远端判定; 服务异常 → 本地词典判定 (源记 `local_dict`).
+  //
+  //   注意"委托"与"叠加"的区别 (WP11 的既有取舍仍然成立):
+  //     · 委托 = **同一时刻只有一个探测器在判** (远端失败才换本地), 不双判、不双倍延迟;
+  //     · 叠加 = 同一段文本判两遍取最高 —— 那会让"远端偶发误报"变成"永远按高危走".
+  //   本单要的是前者.
   return new HttpPsyGuardProbe({
     baseUrl,
+    fallback,
     ...(deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs }),
   });
 }
@@ -358,10 +442,15 @@ export function createVisitorOutputProbe(deps: RiskProbeDeps): RiskProbePort | u
 export function createEngineStreamBackend(deps: EngineStreamBackendDeps): EngineStreamBackend {
   // 位置参数顺序与 adapter 的构造参数一一对应:
   //   engine / resolver / frames / scriptResolver / closeout / traceRecorder / costPricing
+  //   / studentRiskGate / riskAudit / riskProbe
   //
   // V2026-10-30 治本 (WP19-R): 第 6 位**不再是恒 undefined 的占位** ——
   //   traceRecorder 由 EngineWiringModule 注入 (AdminDebugModule 导出),
   //   装配后每轮 turn 结束真正落库 (见 `EngineStreamBackend.recordTrace`).
+  //
+  // V2026-11-02 治本 (WP14): 第 8/9 位是学员侧处置闸门 + 风险审计插槽.
+  // V2026-11-02 治本 (WP14 优化项): 第 10 位是风险探测器 —— 前置 safety gate
+  //   委托它判一次 (与内核注入的是**同一个**实例, 口径与本地词典兜底都一致).
   return new EngineStreamBackend(
     deps.engine,
     deps.resolver,
@@ -370,5 +459,8 @@ export function createEngineStreamBackend(deps: EngineStreamBackendDeps): Engine
     deps.closeout,
     deps.traceRecorder,
     deps.pricing,
+    deps.studentRiskGate,
+    deps.riskAudit,
+    deps.riskProbe,
   );
 }

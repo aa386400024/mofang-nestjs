@@ -92,15 +92,18 @@ import { TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './tra
 import type { TraceRecorder, TurnTrace } from '../../admin-debug/trace-recorder.service.js';
 import type { LlmStream, LlmStreamChunk } from '../../agent/llm/llm.types.js';
 import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types.js';
-import type { OpenEngineSessionInput, TrajectoryScript } from '../../engine-core/index.js';
+import type { OpenEngineSessionInput, RiskProbePort, TrajectoryScript } from '../../engine-core/index.js';
+import type { StudentRiskAuditChoice, StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import type {
+  VoiceSafetyPreCheckInput,
+  VoiceSafetyPreCheckResult,
   VoiceTurnBackend,
   VoiceTurnBackendCloseResult,
   VoiceTurnBackendOpenOptions,
   VoiceTurnBackendTurnOptions,
 } from '../../voice/voice-turn-backend.port.js';
-import type { VoiceSessionPersona } from '../../voice/voice.types.js';
+import type { VoiceServerMessage, VoiceSessionPersona } from '../../voice/voice.types.js';
 import {
   accumulateSessionUsage,
   buildSessionCostSummary,
@@ -110,7 +113,16 @@ import {
   type SessionUsageTotals,
 } from '../observability/session-cost.js';
 import type { SessionCloseoutService } from '../persistence/session-closeout.service.js';
+import { runWithProbeSource } from '../rendering/probe-source.js';
 import { isCrisisCategory } from '../rendering/render-risk.js';
+import {
+  buildCrisisModalFrame,
+  buildCrisisToastFrame,
+  buildStudentRiskDecisionFromProbe,
+  truncateRiskSnippet,
+  type StudentRiskDecision,
+  type StudentRiskGate,
+} from '../rendering/student-risk-disposal.js';
 import type { TurnRenderResult } from '../rendering/turn-render-orchestrator.js';
 
 /**
@@ -232,6 +244,35 @@ export class EngineStreamBackend implements VoiceTurnBackend {
      * 原因是本单真的需要第 7 位, 而位置参数不能跳着传.
      */
     @Optional() private readonly costPricing?: SessionCostPricing,
+    /**
+     * 学员侧处置闸门 (WP14).
+     *
+     * 为什么 @Optional: 闸门是**可选增强** —— 装配缺席时本场照常,
+     * 只是"没有学员侧危机处置" (与本单之前逐字一致).
+     *
+     * 它是**模块内单例**: 编排门面 (判定) 与本适配器 (置位 / 推帧 / 留痕) 必须拿到
+     * 同一个实例, 否则"这里置位的监测状态"那边看不见.
+     */
+    @Optional() private readonly studentRiskGate?: StudentRiskGate,
+    /**
+     * 学员风险审计插槽 (WP14).
+     *
+     * 为什么 @Optional: 审计是**留痕能力**, 不是会话能力 ——
+     * 业务侧没注册实现时, 弹窗照弹, 只是"这次没留痕".
+     */
+    @Optional() private readonly riskAudit?: StudentRiskAuditRegistry,
+    /**
+     * 风险探测器 (WP14 优化项 · 前置 safety gate).
+     *
+     * 为什么 @Optional: 探测器是**可选增强** —— 装配缺席时前置 gate 直接放行
+     * (内核侧那一层判定照旧在), 不能让"没配探测器"变成"开不了会话".
+     *
+     * 为什么是**同一个**实例 (与内核注入的 RISK_PROBE 同源): 前置 gate 与内核
+     * 判定必须问同一个探测器 —— 口径不一样就会出现"前置说 pass / 内核说 block"
+     * 这种没法解释的分裂; 而且 D12 的本地词典兜底是挂在这个实例上的, 复用它
+     * 才意味着"远端挂了前置 gate 也能拦".
+     */
+    @Optional() private readonly riskProbe?: RiskProbePort,
   ) {}
 
   /**
@@ -435,6 +476,64 @@ export class EngineStreamBackend implements VoiceTurnBackend {
   }
 
   /**
+   * 前置 safety 判定 (V2026-11-02, WP14 优化项 · block 不发 llm_start).
+   *
+   * 为什么在这里 (而不是内核侧): 内核的 safety 判定发生在 `session.turn()` **内部** ——
+   *   等它判完, voice 层已经把 `llm_start` 发出去 (前端 loading 圈转起来了),
+   *   而 block 之后前端既收不到 `llm_done` (后端根本没渲染), 又被全屏 modal 抢屏.
+   *   前置判一次 = modal 干干净净地弹出来, 不先转圈.
+   *
+   * 委托给**已有**的探测器实例 (与内核注入的是同一个), 不新建探测器:
+   *   · 口径必须与内核判定一致 (同一个服务 / 同一份词典兜底);
+   *   · D12 的本地词典兜底挂在这个实例上 —— 复用它, "远端挂了也能拦"才成立;
+   *   · 新建实例 = 多一份配置 / 多一条连接, 迟早与主链路漂移.
+   *
+   * 只拦 **block**: warn 仍由内核侧按原时序发 `crisis_toast` (不打断正常流式回复).
+   * 类别边界 (只有危机类别才处置) 由 `buildStudentRiskDecisionFromProbe` 兜住 ——
+   * 专业越界 (承诺治愈 / 双重关系 …) 是督导的事后复盘项, 不该在对话中途弹窗.
+   *
+   * 失败语义: **静默放行** —— 探测器抛错就按"没事"处理, 走既有流程;
+   * 内核侧那一层判定仍然会再判一次 (双层防御), 不能因为前置 gate 挂了就把对练搞挂.
+   *
+   * @param input 判定入参 (会话 / 文本 / 轮次 / 帧出口)
+   * @returns 判定结果 (block 时危机帧已推、审计已写、重点监测已置位)
+   */
+  async preCheckSafety(input: VoiceSafetyPreCheckInput): Promise<VoiceSafetyPreCheckResult> {
+    const probe = this.riskProbe;
+    if (!probe) return { level: 'pass' };
+    const text = input.userText.trim();
+    if (text.length === 0) return { level: 'pass' };
+
+    let decision: StudentRiskDecision;
+    try {
+      // 探测来源通道: 远端答的记 `psyguard`, 委托本地词典兜底答的记 `local_dict`
+      //   —— 审计表要能分辨"远端识别能力"与"本地兜底占比", 不能一律记成 psyguard.
+      const { value: result, source } = await runWithProbeSource(() => probe.probe(text, 'counselor_input'));
+      decision = buildStudentRiskDecisionFromProbe(result, source ?? 'local_dict');
+    } catch (error) {
+      this.logger.warn(`[preCheckSafety] 前置探测异常, 放行 session=${input.sessionId}: ${messageOf(error)}`);
+      return { level: 'pass' };
+    }
+
+    if (decision.action !== 'block') {
+      // warn / none → 一律放行 (warn 由内核侧按原时序处置, 这里不重复发 toast).
+      if (decision.action === 'toast' && decision.category) return { level: 'warn', category: decision.category };
+      return { level: 'pass' };
+    }
+
+    // block: 推全屏弹窗 + 写审计 + 置位重点监测 (与内核判定同一套动作, 同一份口径).
+    this.publishStudentRiskFrame(input.sessionId, decision, input.publishFrame);
+    this.recordStudentRiskEvent(input.sessionId, input.userText, input.turnIndex, decision);
+    const handleId = this.handles.get(input.sessionId);
+    if (handleId) this.studentRiskGate?.markMonitored(handleId);
+    this.logger.warn(
+      `[preCheckSafety] block 级危机前置拦截 session=${input.sessionId} turn=${input.turnIndex} ` +
+        `category=${decision.category ?? '-'} source=${decision.source}`,
+    );
+    return decision.category ? { level: 'block', category: decision.category } : { level: 'block' };
+  }
+
+  /**
    * 一轮: 把引擎的流式渲染翻译成三态 chunk.
    */
   async streamTurn(opts: VoiceTurnBackendTurnOptions): Promise<{ readonly stream: LlmStream }> {
@@ -476,6 +575,10 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     this.sessionContexts.delete(sessionId);
     this.characterSlugs.delete(sessionId);
     if (handleId) {
+      // V2026-11-02 (WP14): 清重点监测.
+      //   必须清: 句柄是**进程内**标识, 进程不重启就一直复用 —— 不清的话,
+      //   上一场的高危会把**下一场**也拖进重点监测 (串场).
+      this.clearRiskMonitor(handleId);
       this.handles.delete(sessionId);
       this.engine.close(handleId);
     }
@@ -542,6 +645,19 @@ export class EngineStreamBackend implements VoiceTurnBackend {
   }
 
   /**
+   * 清重点监测 (会话关闭时).
+   *
+   * 抽成独立方法有两个原因:
+   *   ① `closeSession` 的圈复杂度已到 20 的上限 (仓库 eslint 卡 20);
+   *   ② "关会话时到底要清什么"是一条**独立决策**, 单独成方法后可以被一眼读完.
+   *
+   * @param handleId 内核会话句柄
+   */
+  private clearRiskMonitor(handleId: string): void {
+    this.studentRiskGate?.clearMonitored(handleId);
+  }
+
+  /**
    * 逐字稿副本 (督导报告用).
    */
   transcript(sessionId: string): readonly TranscriptTurn[] {
@@ -593,9 +709,19 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     }
 
     const degraded = settled.result.render.providerHint === 'degraded';
-    if (!degraded) {
+    const blocked = settled.result.disposal?.action === 'block';
+    // V2026-11-02 (WP14): 阻断轮次**不写逐字稿** —— 本轮来访者一个字都没说,
+    //   写一条空的 assistant 记录会让督导看到"AI 回了但没内容", 反而更费解.
+    //   学员说了什么, 由审计表的 snippet 留痕 (那才是该看的地方).
+    if (!degraded && !blocked) {
       this.appendTurn(opts.sessionId, opts.userText, spoken.join(''));
     }
+
+    // V2026-11-02 治本 (WP14 · 学员侧处置):
+    //   危机轮次**当场**推危机帧 + 写审计 + (high 时) 置位重点监测.
+    //   为什么必须同步推 (不等异步 worker): 弹窗是**这一轮**的现场处置 ——
+    //   学员的话已经说出口了, 提示晚一轮就晚一轮. 与 WP9-C 的督导提示同款纪律.
+    this.handleStudentRisk(opts.sessionId, opts.userText, settled.result, opts.publishFrame);
 
     // V2026-10-29 治本 (WP9-C · 同步危机提示):
     //   危机轮次**不等异步 worker** —— 督导提示如果靠队列 worker, 就会错过"这一轮"
@@ -731,6 +857,146 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       `[streamTurn] 危机轮次已推督导提示 session=${sessionId} turn=${result.turnIndex} ` +
         `level=${safety.level} categories=${categories.join(',')} published=${published}`,
     );
+  }
+
+  /**
+   * 学员侧危机处置 (V2026-11-02 WP14): 推危机帧 + 写审计 + (high 时) 置位重点监测.
+   *
+   * 三件事的顺序**刻意**如此:
+   *   ① 先推帧 —— 学员的现场处置最紧急 (弹窗要立刻出现在屏幕上);
+   *   ② 再写审计 —— 留痕是义务, 但不能挡在学员前面;
+   *   ③ 最后置位监测 —— high 之后本场进入重点监测, 后续每轮强制走远端探测.
+   *
+   * @param sessionId 语音会话 id
+   * @param userText 学员本轮输入 (审计 snippet 的来源)
+   * @param result 本轮结算结果
+   * @param publishFrame 危机帧直推回调 (缺省 = 退回帧出口注册表)
+   */
+  private handleStudentRisk(
+    sessionId: string,
+    userText: string,
+    result: TurnRenderResult,
+    publishFrame?: (frame: VoiceServerMessage) => void,
+  ): void {
+    const disposal = result.disposal;
+    if (!disposal || disposal.action === 'none') return;
+
+    this.publishStudentRiskFrame(sessionId, disposal, publishFrame);
+    this.recordStudentRiskEvent(sessionId, userText, result.turnIndex, disposal);
+
+    if (disposal.action === 'block') {
+      const handleId = this.handles.get(sessionId);
+      if (handleId) this.studentRiskGate?.markMonitored(handleId);
+    }
+  }
+
+  /**
+   * 推危机帧 (toast / modal).
+   *
+   * 出口优先级: **先用入参里的 `publishFrame` 直推**, 没有才退回帧出口注册表.
+   * 为什么优先直推:
+   *   · 直推是"推给**本场**" —— 天然不会串场;
+   *   · 注册表按**落库 id** 索引, 本场没落库 (纯内存降级) 时那个 id **不存在** ——
+   *     而**危机弹窗不能因为数据库降级就推不出去**.
+   *
+   * @param sessionId 语音会话 id
+   * @param disposal 处置决定
+   * @param publishFrame 直推回调 (缺省 = 退回注册表)
+   */
+  private publishStudentRiskFrame(
+    sessionId: string,
+    disposal: StudentRiskDecision,
+    publishFrame?: (frame: VoiceServerMessage) => void,
+  ): void {
+    const frame = disposal.action === 'block' ? buildCrisisModalFrame(disposal) : buildCrisisToastFrame(disposal);
+    if (publishFrame) {
+      try {
+        publishFrame(frame);
+      } catch (error) {
+        this.logger.warn(`[streamTurn] 危机帧直推失败 session=${sessionId}: ${messageOf(error)}`);
+      }
+      this.logger.warn(
+        `[streamTurn] 危机帧已直推 session=${sessionId} action=${disposal.action} ` +
+          `level=${disposal.level ?? '-'} category=${disposal.category ?? '-'}`,
+      );
+      return;
+    }
+
+    // 兜底: 没有直推回调 (独立调用后端 / 旧装配) → 走帧出口注册表 (按落库 id).
+    const frames = this.frames;
+    if (!frames) {
+      this.logger.warn(`[streamTurn] 危机帧未推 (session=${sessionId} 无帧出口)`);
+      return;
+    }
+    const dbSessionId = this.dbSessionIds.get(sessionId);
+    const published = dbSessionId ? frames.publish(dbSessionId, frame) : false;
+    this.logger.warn(
+      `[streamTurn] 危机帧已推 session=${sessionId} action=${disposal.action} ` +
+        `level=${disposal.level ?? '-'} category=${disposal.category ?? '-'} published=${published}`,
+    );
+  }
+
+  /**
+   * 写一条学员风险事件 (append-only).
+   *
+   * fire-and-forget: 写不进去**只打 error 日志**, 不炸对练 (与 `recordTrace` 同款纪律).
+   *
+   * @param sessionId 语音会话 id
+   * @param userText 学员本轮输入
+   * @param turnIndex 触发轮次 (从 1 起)
+   * @param disposal 处置决定
+   */
+  private recordStudentRiskEvent(sessionId: string, userText: string, turnIndex: number, disposal: StudentRiskDecision): void {
+    const sink = this.riskAudit?.get();
+    if (!sink) {
+      this.logger.warn(`[streamTurn] 风险事件未留痕 (session=${sessionId} 无审计实现)`);
+      return;
+    }
+    const dbSessionId = this.dbSessionIds.get(sessionId);
+    const userId = this.sessionContexts.get(sessionId)?.userId ?? '';
+    if (!dbSessionId || !userId) {
+      this.logger.warn(`[streamTurn] 风险事件未留痕 (session=${sessionId} 无落库 id 或无学员身份)`);
+      return;
+    }
+    const blocked = disposal.action === 'block';
+    try {
+      void sink
+        .record({
+          sessionId: dbSessionId,
+          userId,
+          turnIndex,
+          level: blocked ? 'high' : 'medium',
+          category: disposal.category ?? 'passive_ideation',
+          snippet: truncateRiskSnippet(userText),
+          source: disposal.source,
+          actionTaken: blocked ? 'modal' : 'toast',
+          monitoredAfter: blocked,
+        })
+        .catch((error: unknown) => {
+          this.logger.error(`[streamTurn] 风险事件留痕失败 session=${sessionId}: ${messageOf(error)}`);
+        });
+    } catch (error) {
+      this.logger.error(`[streamTurn] 风险事件构造失败 session=${sessionId}: ${messageOf(error)}`);
+    }
+  }
+
+  /**
+   * 回写学员在危机弹窗后的选择 (WP14 §1.3).
+   *
+   * 由 voice 层在收到 `crisis_resume` 帧时调. 这是审计表**唯一**允许 update 的列.
+   *
+   * @param sessionId 语音会话 id
+   * @param choice 学员的选择
+   */
+  async markUserChoice(sessionId: string, choice: StudentRiskAuditChoice): Promise<void> {
+    const sink = this.riskAudit?.get();
+    if (!sink) return;
+    const dbSessionId = this.dbSessionIds.get(sessionId);
+    if (!dbSessionId) {
+      this.logger.warn(`[crisis_resume] 未回写选择 (session=${sessionId} 无落库 id)`);
+      return;
+    }
+    await sink.markUserChoice(dbSessionId, choice);
   }
 
   /**

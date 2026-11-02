@@ -56,10 +56,16 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import type { StudentRiskAuditChoice } from './student-risk-audit-slot.js';
 import { TtsService } from './tts/tts.service.js';
 import type { TtsEvent, TtsOptions, TtsSessionHandle } from './tts/tts.types.js';
 import { VoiceSessionBridgeRegistry, type VoiceSessionCloseResult } from './voice-session-bridge.js';
-import { VOICE_TURN_BACKEND, type VoiceTurnBackend, type VoiceTurnBackendTurnOptions } from './voice-turn-backend.port.js';
+import {
+  VOICE_TURN_BACKEND,
+  type VoiceSafetyPreCheckResult,
+  type VoiceTurnBackend,
+  type VoiceTurnBackendTurnOptions,
+} from './voice-turn-backend.port.js';
 import type {
   VoiceClientMessage,
   VoiceServerMessage,
@@ -170,6 +176,37 @@ export class VoiceService {
         return;
       case 'session_resume':
         this.resumeSession(state, send);
+        return;
+      // V2026-11-02 治本 (WP14 §1.3 — 危机弹窗后的选择回写):
+      //   学员在 `crisis_modal` 上点了哪个按钮 → 回写审计表的 `user_choice`.
+      //   **只**回写这一个字段: 不重置 monitored、不改会话状态、不打断当前轮.
+      case 'crisis_resume':
+        await this.onCrisisResume(state, msg.choice);
+    }
+  }
+
+  /**
+   * 学员在危机弹窗后的选择 → 回写审计表.
+   *
+   * 为什么走"后端窄接口"而不是直接写库: voice 层不认识任何业务实体 (与落库桥同款纪律).
+   * 后端没实现这个可选方法 (旧链路) → 直接忽略: 旧链路没有危机弹窗, 没有可回写的对象.
+   *
+   * @param state 会话状态
+   * @param choice 学员的选择
+   */
+  private async onCrisisResume(state: VoiceSessionState, choice: StudentRiskAuditChoice): Promise<void> {
+    const backend = this.backendOf(state);
+    if (!backend.markUserChoice) {
+      this.logger.debug(`[crisis_resume] 后端不支持回写选择 (session=${state.meta.sessionId})`);
+      return;
+    }
+    try {
+      await backend.markUserChoice(state.meta.sessionId, choice);
+    } catch (error) {
+      // 回写失败**不许**影响对练 —— 它只是一条审计字段.
+      this.logger.warn(
+        `[crisis_resume] 选择回写失败 session=${state.meta.sessionId} err=${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -406,6 +443,13 @@ export class VoiceService {
     const myGeneration = state.currentGeneration;
     state.status = 'processing';
 
+    // 0. 前置 safety gate (V2026-11-02, WP14 优化项): block 级危机**不发 llm_start**.
+    //    必须排在 TTS 之前 —— TTS 一起来, 本轮就会走完收尾并发出 tts 帧,
+    //    "先转 loading 圈再弹 modal" 的瑕疵就还在.
+    if (await this.runPreCheckSafety(state, text, myGeneration, send)) {
+      return;
+    }
+
     // 1. 启动 TTS (仅 voice 模式; text 模式完全不碰 TTS —— 不建连接、不占配额)
     const tts = await this.beginTtsTurn(state, send, myGeneration);
     if (!tts) {
@@ -429,6 +473,62 @@ export class VoiceService {
     this.persistTurnIfComplete(state, text, visitorChunks, outcome, myGeneration);
 
     this.logger.log(`[user_text] done gen=${myGeneration} outcome=${outcome} persona=${state.persona?.id ?? 'unknown'}`);
+  }
+
+  /**
+   * 前置 safety gate (V2026-11-02, WP14 优化项 · block 不发 llm_start).
+   *
+   * 为什么要在**发 llm_start 之前**判:
+   *   内核的 safety 判定发生在 `session.turn()` **内部** —— 等它判完, voice 层
+   *   已经把 `llm_start` 发出去 (前端 loading 圈转起来了), 而 block 之后前端
+   *   既收不到 `llm_done` (后端根本没渲染), 又被全屏 modal 抢屏 ——
+   *   体感是"开始了但永远不会结束". 前置判一次 = modal 干干净净弹出来, 不先转圈.
+   *
+   * 只拦 **block**: warn 仍由内核侧按原时序发 `crisis_toast` (不打断正常流式回复);
+   * pass 一律放行. 前置 gate 只认 block —— 那是"AI 这一轮不该出声"的唯一档位.
+   *
+   * 失败语义: **静默降级** —— 判定抛错就按放行处理, 走既有流程;
+   * 内核侧那一层判定仍然会再判一次 (双层防御), 不能因为前置 gate 挂了就把对练搞挂.
+   *
+   * 旧链路 (`VisitorService`) 没有 `preCheckSafety` → 直接放行, 行为逐字不变.
+   *
+   * @param state 会话状态
+   * @param text 用户输入
+   * @param myGeneration 本轮代号
+   * @param send 帧发送回调
+   * @returns true = 本轮被阻断 (调用方直接收尾: 不起 TTS / 不跑 LLM / 不发 llm 帧)
+   */
+  private async runPreCheckSafety(state: VoiceSessionState, text: string, myGeneration: number, send: SendFn): Promise<boolean> {
+    const backend = this.backendOf(state);
+    if (!backend.preCheckSafety) return false;
+
+    let result: VoiceSafetyPreCheckResult;
+    try {
+      result = await backend.preCheckSafety({
+        sessionId: state.meta.sessionId,
+        userText: text,
+        // 本场轮次 (从 1 起) —— 与逐字稿锚点同源 (报告按 `(turnIndex-1)*2` 定位那条"问").
+        turnIndex: state.turnCount + 1,
+        publishFrame: send,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `[user_text] 前置 safety 判定异常, 按放行处理 session=${state.meta.sessionId}: ` +
+          `${err instanceof Error ? err.message : String(err)}`,
+      );
+      return false;
+    }
+    if (result.level !== 'block') return false;
+
+    // 阻断轮: 只弹窗 + 留痕 —— 不发 llm_start / llm_done / tts_done, 不调内核 turn.
+    //   逐字稿仍然记这一轮 ("问" 有、"答" 空): 轮次编号必须与审计表的 turnIndex 对齐,
+    //   否则报告里的危机标注会锚到别的轮次上.
+    this.finishTurn(state, myGeneration, null, null);
+    this.persistTurnIfComplete(state, text, [], 'done', myGeneration);
+    this.logger.warn(
+      `[user_text] 前置 safety 判定 block, 本轮阻断 (无 llm_start) session=${state.meta.sessionId} ` + `category=${result.category ?? '-'}`,
+    );
+    return true;
   }
 
   /**
@@ -504,7 +604,7 @@ export class VoiceService {
     const llmAbort = new AbortController();
     state.llmAbort = llmAbort;
     try {
-      const llmStream = await this.resolveTurnStream(state, text, llmAbort.signal);
+      const llmStream = await this.resolveTurnStream(state, text, llmAbort.signal, send);
       send({ type: 'llm_start' });
       const outcome = await this.consumeLlmStream(llmStream, myGeneration, state, send, ttsHandle, visitorChunks);
       if (outcome === 'error') {
@@ -536,8 +636,8 @@ export class VoiceService {
    * 的内容, 这时再换成旧链路等于"来访者说了半句突然改口" —— 与流式不切备同一条
    * 纪律: 已出声不可撤回.
    */
-  private async resolveTurnStream(state: VoiceSessionState, text: string, signal: AbortSignal): Promise<LlmStream> {
-    const options = this.buildTurnOptions(state, text, signal);
+  private async resolveTurnStream(state: VoiceSessionState, text: string, signal: AbortSignal, send: SendFn): Promise<LlmStream> {
+    const options = this.buildTurnOptions(state, text, signal, send);
     const backend = this.backendOf(state);
     if (backend !== this.engineBackend) {
       const { stream } = await this.visitor.streamTurn(options);
@@ -601,8 +701,12 @@ export class VoiceService {
 
   /**
    * 一轮对话的入参 (新旧链路同构).
+   *
+   * `publishFrame` (WP14): 把"推一帧给**本场**客户端"的能力交给后端 ——
+   *   危机弹窗必须能推出去, 而它不能依赖帧出口注册表 (那里按落库 id 索引,
+   *   本场没落库时就没有那个 id). 传回调比传 id 安全: 后端不需要知道任何 id 口径.
    */
-  private buildTurnOptions(state: VoiceSessionState, text: string, signal: AbortSignal): VoiceTurnBackendTurnOptions {
+  private buildTurnOptions(state: VoiceSessionState, text: string, signal: AbortSignal, send: SendFn): VoiceTurnBackendTurnOptions {
     return {
       sessionId: state.meta.sessionId,
       tenantId: state.meta.tenantId,
@@ -611,6 +715,7 @@ export class VoiceService {
       userText: text,
       traceId: state.meta.traceId,
       signal,
+      publishFrame: send,
     };
   }
 

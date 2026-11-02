@@ -15,6 +15,7 @@
 
 import { Global, Module } from '@nestjs/common';
 
+import { StudentRiskAuditRegistry } from './student-risk-audit-slot.js';
 import { VoiceCatalogRegistry } from './voice-catalog-slot.js';
 import { VoiceFrameRegistry } from './voice-frame-registry.js';
 import { VoiceSessionBridgeRegistry } from './voice-session-bridge.js';
@@ -38,7 +39,18 @@ import { VoiceTemplateRegistry } from './voice-template-slot.js';
     //   VoiceFrameRegistry          business → voice 方向 (WS 帧出口: 轻提示 / 移情标记)
     VoiceSessionBridgeRegistry,
     VoiceFrameRegistry,
+    // V2026-11-02 治本 (WP14 — 学员风险事件审计插槽):
+    //   引擎装配层判出危机后要落审计, 但 engine → counselor 是反向依赖;
+    //   voice 层是两侧都能依赖的位置 —— 跟 VoiceSessionBridgeRegistry 同款范式.
+    StudentRiskAuditRegistry,
   ],
-  exports: [VoiceSessionRegistry, VoiceTemplateRegistry, VoiceCatalogRegistry, VoiceSessionBridgeRegistry, VoiceFrameRegistry],
+  exports: [
+    VoiceSessionRegistry,
+    VoiceTemplateRegistry,
+    VoiceCatalogRegistry,
+    VoiceSessionBridgeRegistry,
+    VoiceFrameRegistry,
+    StudentRiskAuditRegistry,
+  ],
 })
 export class VoiceSessionModule {}

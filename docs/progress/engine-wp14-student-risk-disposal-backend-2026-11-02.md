@@ -2,7 +2,8 @@
 
 > 日期：2026-11-02 ｜ 仓库：`E:\Work\Project\backend\mofang-nestjs`
 > 性质：Phase1 合规硬底线——检测层已具备，本单补"检测到了之后怎么办"
-> 状态：📋 待开工 ｜ 前置：WP11（PsyGUARD 服务）已交付；WP19-R（留痕链）在途不阻塞本单
+> 状态：✅ **代码已交付并复跑绿**（2026-11-02，**未 commit**，改动全在工作区）｜ 前置：WP11（PsyGUARD 服务）已交付；WP19-R（留痕链）在途不阻塞本单
+> 📄 交付记录：[`engine-wp14-student-risk-disposal-backend-implementation-2026-11-02.md`](./engine-wp14-student-risk-disposal-backend-implementation-2026-11-02.md)
 > 🔴 **本单不改 `src/engine-core/**`**：内核只判定不拦截（边界已在），处置动作全在 adapter/wiring 层加。
 
 ---
@@ -179,3 +180,61 @@ feat(engine): WP14 学员心理风险处置层——counselor_input 侧 warn 推
 ## 5. 一句话给后端
 
 > 学员对着 AI 来访练着练着代入创伤说出"我想死"，现在系统只告诉督导、学员本人啥也收不到。本单补处置：学员输入侧 warn 推 toast 不阻断、block 阻断本轮 AI 回复推 modal 让他打 12356，落一张 append-only 的 student_risk_events 审计表；顺手修 PsyGUARD 挂掉时回落本地词典的 bug（现在是回落无危机词的规则层，检测归零）。内核一行不动，全在 adapter 层加。AI 来访自己说"我不想活了"那是演练自杀剧本，别弹学员，只推督导 hint。
+
+---
+
+## 6. 交付回写（2026-11-02）
+
+> **状态：代码已交付并复跑绿（未 commit，改动全在工作区）。**
+> 交付记录：[engine-wp14-student-risk-disposal-backend-implementation-2026-11-02.md](./engine-wp14-student-risk-disposal-backend-implementation-2026-11-02.md)
+
+### 6.1 闸门实测
+
+| 闸门 | 结果 |
+|---|---|
+| `npx eslint "src/**/*.ts" "test/**/*.ts"` | ✅ **0 error / 0 warning** |
+| `npx tsc -p tsconfig.build.json --noEmit` | ✅ **0 错** |
+| 新增套件 `test/engine-adapters/wp14-student-risk-disposal.spec.ts` | ✅ **24 例全绿** |
+| 全量 `vitest run --exclude '**/e2e/**/*.ts'` | ✅ **62 文件 / 978 例全通过**（含新增 24 例） |
+| `git diff --stat HEAD -- src/engine-core` | ✅ **空**（内核整树零改动） |
+| `pnpm migration:run` | ✅ `AddStudentRiskEvents1714900000026` 执行成功（执行前 `migration:show` 确认**只有本单这一条**待执行） |
+| `SHOW CREATE TABLE student_risk_events` | ✅ 13 列 + 2 索引，**无 `updated_at`、无 `deleted_at`** |
+
+### 6.2 §1 逐条对照
+
+| 小节 | 落地情况 |
+|---|---|
+| §1.1 三档处置层 | ✅ 纯判定模块 `rendering/student-risk-disposal.ts`（side / 等级 / **类别** 三条边界）+ 编排门面**渲染前** gate：`block` → 不调 `RenderPort.render`（聚合与流式两条路都是）、不发 `llm_text`/`tts_audio`、不写来访半边记忆、`reply` 空、`usage` 全 0、会话不销毁；`warn` → 不阻断 + 推 `crisis_toast`；`pass` / `visitor_output` → 学员侧无动作 |
+| §1.2 审计表 | ✅ 手写 DDL 迁移（`CREATE TABLE IF NOT EXISTS` + 索引守卫，幂等）+ 13 列 entity（**无 `updated_at` / `deleted_at`**）+ 落库服务（只 INSERT，唯一 UPDATE 是 `user_choice`）；`snippet` 截 200 字；**未开任何读端点**（学员端 API 查不到） |
+| §1.3 `crisis_resume` 回写 | ✅ 新增上行帧 `crisis_resume`（`phone`/`continue`/`dismissed`）→ voice 层 → 窄接口可选方法 `markUserChoice` → 只更新 `user_choice` 一列（定位"最新 + `user_choice IS NULL`"那一行）；**不重置 monitored**、不改会话状态 |
+| §1.4 D12 兜底 | ✅ `HttpPsyGuardProbe` 持可选 `fallback`，`probe()` catch 后**委托**本地词典二次探测（不再把失败抛给内核去回落无危机词的规则层）；`createRiskProbe` 配了 baseUrl **不再丢 fallback**；审计 `source` 记 `local_dict` |
+| §1.5 词典补词 | ✅ 补 **7** 个职业倦怠/耗竭表达，**全部**进 `passive_ideation`（warn，只弹 toast 不阻断）；**未补任何 block 级词** |
+| §1.6 `monitored` 收紧 | ✅ high 事件后按**内核句柄**置位 monitored，本场后续每轮在渲染前**强制走一次远端探测**（独立实例、只走远端），与内核判定取更严一档；远端失败静默回落内核判定；**不调阈值**；不重复弹帧 |
+| §1.7 报告关联 | ✅ 报告 annotations **read-time 合并**危机条目（`category='crisis_intervention'` / `'crisis_toast'`）；不改落库 report 行、不自动作废成绩 |
+
+### 6.3 与任务单的偏差（10 条，逐条理由见交付记录 §3）
+
+| # | 任务单原文 | 实际落地 | 原因 |
+|---|---|---|---|
+| 1 | `user_id` / `reviewed_by` = bigint | **varchar(36)** | 本仓用户主键是 uuid（`users.uid`），跟仓库走 |
+| 2 | annotations 加 `type:'crisis_intervention'` | `type` 用既有三值，危机语义放 **`category`** | `SupervisionAnnotation.type` 只有 `good\|warn\|error` 且被 agent 侧校验器卡着 |
+| 3 | 报告由 WP18 worker 查审计表 | counselor 侧 read-time 合并 | agent → counselor 是反向依赖；两个队列写时 patch 有竞态 |
+| 4 | 标注带 `level` 字段 | 落在 `type` + `message` | `SupervisionReportAnnotationDto` 无 `level` 列 |
+| 5 | monitored 标志写进 annotations | 每条危机事件各一条标注，high 那条 `suggestion` 明写"已进入重点监测" | 报告侧拿不到运行时内存态，`monitored_after` 才是事实源 |
+| 6 | 阻断时"不发 llm/tts 帧" | **不发内容帧**；`llm_start`/`llm_done`/`tts_done` 三个生命周期帧仍在 | 判定发生在内核 turn 内部，压掉 `llm_start` 要拆核心流式路径，收益只有观感 |
+| 7 | 阻断轮次的逐字稿 | **不写**（来访者一字未说） | 空 assistant 记录会让督导更费解；学员原话由审计 `snippet` 留痕 |
+| 8 | 审计表读端点 | **本单不开** | 任务单红线（归 WP20）；且 `/admin/api/*` 的 basic auth 也放行学员 JWT |
+| 9 | 阻断后"会话恢复" | 阻断**不暂停也不销毁**，学员下一句照常走 | 既然没销毁就无需"恢复"动作 |
+| 10 | 词典补 5–8 个 | 补 **7** 个 | 按任务单原则：block 级宁漏勿误 |
+
+### 6.4 顺手修掉的真缺陷（不在任务单原列，但会让 §1.5 落空）
+
+`detectCrisisCategories` 里 **haystack 走 NFKC**（全角标点折半角），而**词表没归一** —— 任何含全角标点的词条（如 `'我最近总是失眠，提不起劲'`）**永远匹配不上**。这是"只归一文本不归一词表"的漏，两边必须走同一套归一。已修（`NORMALIZED_SUPPLEMENTARY_PATTERNS`），单测里 7 个倦怠词现已全部命中。
+
+### 6.5 已知边界
+
+1. **职业倦怠词在 PsyGUARD 正常时不生效**（只在本服务挂掉 / 未配时兜底）—— WP11 既有"两者不叠加"决策本单不推翻，叠加会让"远端偶发误报"变成"永远按高危走"且双倍延迟。若要远端正常时也生效，需另开一单讨论"探测并联"口径。
+2. **监测状态是进程内内存态**（按内核句柄）：多实例部署时学员下一轮可能落到另一实例，那边不知道本场已置位。
+3. **审计表暂无读端点**（归 WP20）；`reviewed_by` 恒为 null（复核流程属 WP20）。
+4. 阻断轮**不写逐字稿**（学员原话只在审计 `snippet`，≤200 字）。
+

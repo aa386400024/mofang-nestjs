@@ -1,8 +1,21 @@
 // V2026-10-30 治本 (WP11 · B 层 · PsyGUARD HTTP 风险探测器):
 //   职责: 实现内核 WP4 的 `RiskProbePort` —— 把一段文本 POST 给**独立仓库**的
 //         PsyGUARD-RoBERTa Python 服务 (mofang-psyguard), 拿回危机类别与等级.
-//   边界: 只做「发请求 → 归一形状」; 任何失败都**抛错**, 由内核 `assessSafety`
-//         兜住并回落本地规则 (`LocalCrisisProbe`).
+//   边界: 只做「发请求 → 归一形状」; 失败时**委托兜底探测器** (缺省 = 抛错,
+//         由内核 `assessSafety` 回落规则层).
+//
+//   V2026-11-02 治本 (WP14 §1.4 · D12 治本 — "配了 baseUrl 就把 fallback 丢了"):
+//   原因: `createRiskProbe` 配了 `PSYGUARD_BASE_URL` 就把本地词典 fallback **丢弃**,
+//         于是服务一挂, 内核 catch → 静默回落 `counselor_input` 侧的规则层 ——
+//         而那 7 条 COUNSELOR_RULES **全是专业越界词, 一条危机词都没有**:
+//         "服务挂掉" 直接等于 "学员危机检测能力归零".
+//   修法: 本类持有 `fallback: RiskProbePort` (通常是 `LocalCrisisProbe`),
+//         探测失败时**委托它二次探测**, 而不是把失败抛给内核去回落规则层.
+//         效果: 服务停掉 → 学员输入"我想死"仍命中本地词典 block (源记 `local_dict`).
+//   反双胞胎:
+//     - **不**把本地词典接到来访输出侧 (那边角色台词本来就要说痛苦的话,
+//       接本地词典 = 演练场景被误判); 输出侧仍然失败即抛 (WP11 的既有取舍).
+//     - 委托失败 (兜底自己也抛) 时**继续往上抛** —— 不吞错, 让内核兜住.
 //
 //   为什么是"独立仓库 + HTTP"而不是进程内加载模型:
 //     内核是**零依赖纯 TS** (WP0 边界: 不许引 torch / 任何 SDK). 模型推理必须
@@ -50,6 +63,7 @@ import {
   type SafetySide,
   type VisitorRiskCategory,
 } from '../../../engine-core/index.js';
+import { recordProbeSource } from '../../rendering/probe-source.js';
 
 /**
  * Python 服务的 wire 等级 (通用风险刻度).
@@ -137,6 +151,18 @@ export interface HttpPsyGuardProbeOptions {
   readonly timeoutMs?: number;
   /** 注入的 fetch 实现 (单测用; 缺省用全局 fetch). */
   readonly fetchImpl?: PsyGuardFetch;
+  /**
+   * **兜底探测器** (WP14 §1.4 · D12 治本).
+   *
+   * 为什么必须有它: 配了 `PSYGUARD_BASE_URL` 时, 探测端口就是这一个 ——
+   * 服务一挂, 内核 `assessSafety` 的 catch 会**静默回落规则层**, 而
+   * `counselor_input` 侧的规则层 (COUNSELOR_RULES) 7 条全是**专业越界词**,
+   * **一条危机词都没有** → "服务挂掉" = "学员危机检测能力归零".
+   * 委托本地词典二次探测, 才让"远端挂了"降级成"降级"而不是"失效".
+   *
+   * 缺省 = **不委托** (调用方明确不要兜底时; 此时失败照旧抛错, 由内核兜规则层).
+   */
+  readonly fallback?: RiskProbePort;
 }
 
 /**
@@ -152,29 +178,53 @@ export class HttpPsyGuardProbe implements RiskProbePort {
   private readonly timeoutMs: number;
   /** fetch 实现 (缺省全局 fetch). */
   private readonly fetchImpl: PsyGuardFetch;
+  /** 兜底探测器 (缺省 = 失败直接抛, 由内核回落规则层). */
+  private readonly fallback?: RiskProbePort;
 
   constructor(options: HttpPsyGuardProbeOptions) {
     this.baseUrl = stripTrailingSlashes(options.baseUrl.trim());
     this.timeoutMs = options.timeoutMs ?? DEFAULT_PROBE_TIMEOUT_MS;
     this.fetchImpl = options.fetchImpl ?? fetch;
+    if (options.fallback) this.fallback = options.fallback;
   }
 
   /**
    * 探测一段文本的风险信号.
    *
    * @param text 待判定文本
-   * @param _side 检测面 (本探测器**两侧同判**: 危机语言不因说话人是谁而改变性质)
+   * @param side 检测面 (本探测器**两侧同判**: 危机语言不因说话人是谁而改变性质)
    * @returns 归一后的等级与危机类别
-   * @throws Error 连接失败 / 超时 / 非 2xx / 非 JSON / 形状不合法
+   * @throws Error 连接失败 / 超时 / 非 2xx / 非 JSON / 形状不合法 (且**没有**兜底探测器时)
    */
-  async probe(text: string, _side: SafetySide): Promise<RiskProbeResult> {
-    const url = `${this.baseUrl}/v1/classify`;
+  async probe(text: string, side: SafetySide): Promise<RiskProbeResult> {
     const trimmed = text.trim();
     if (!trimmed) {
       // 空文本不进网络: 探空是纯浪费, 且会让"服务挂掉"的日志被空转淹没.
       return { level: 'pass', categories: [] };
     }
 
+    try {
+      const result = await this.probeHttp(trimmed);
+      // WP14: 记下"这条判定是 PsyGUARD 给的" (审计口径).
+      recordProbeSource('psyguard', side);
+      return result;
+    } catch (error) {
+      // WP14 §1.4 (D12 治本): 委托兜底探测器二次探测, **不**让内核 catch 后
+      // 静默回落规则层 (那条路上学员输入侧一条危机词都没有).
+      if (!this.fallback) throw error;
+      this.logger.warn(`[WP11] PsyGUARD 探测失败, 委托本地词典兜底: ${describeError(error)}`);
+      return this.fallback.probe(trimmed, side);
+    }
+  }
+
+  /**
+   * 走一次 HTTP 探测 (失败一律抛错, 由调用方决定要不要兜底).
+   *
+   * @param trimmed 非空文本
+   * @returns 归一后的探测结果
+   */
+  private async probeHttp(trimmed: string): Promise<RiskProbeResult> {
+    const url = `${this.baseUrl}/v1/classify`;
     let response: Awaited<ReturnType<PsyGuardFetch>>;
     try {
       response = await this.fetchImpl(url, {
@@ -184,12 +234,12 @@ export class HttpPsyGuardProbe implements RiskProbePort {
         signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (error) {
-      this.logger.warn(`[WP11] PsyGUARD 探测失败(连接/超时), 回落本地规则: ${describeError(error)}`);
+      this.logger.warn(`[WP11] PsyGUARD 探测失败(连接/超时): ${describeError(error)}`);
       throw error;
     }
 
     if (!response.ok) {
-      this.logger.warn(`[WP11] PsyGUARD 探测返回 HTTP ${response.status}, 回落本地规则`);
+      this.logger.warn(`[WP11] PsyGUARD 探测返回 HTTP ${response.status}`);
       throw new Error(`PsyGUARD 探测返回 HTTP ${response.status}`);
     }
 
@@ -197,13 +247,13 @@ export class HttpPsyGuardProbe implements RiskProbePort {
     try {
       payload = await response.json();
     } catch (error) {
-      this.logger.warn(`[WP11] PsyGUARD 响应不是合法 JSON, 回落本地规则: ${describeError(error)}`);
+      this.logger.warn(`[WP11] PsyGUARD 响应不是合法 JSON: ${describeError(error)}`);
       throw new Error('PsyGUARD 响应不是合法 JSON');
     }
 
     const normalized = normalizePsyGuardResponse(payload);
     if (!normalized) {
-      this.logger.warn('[WP11] PsyGUARD 响应形状不合法, 回落本地规则');
+      this.logger.warn('[WP11] PsyGUARD 响应形状不合法');
       throw new Error('PsyGUARD 响应形状不合法');
     }
     return normalized;

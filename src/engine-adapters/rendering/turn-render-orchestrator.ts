@@ -40,10 +40,17 @@
 
 import { nanoid } from 'nanoid';
 
+import { runWithProbeSource, type ProbeSource } from './probe-source.js';
 import { DEFAULT_RENDER_FALLBACK_UTTERANCES } from './render-adapter.config.js';
 import type { AdaptiveRenderSpec } from './render-risk.js';
 import { buildRenderSpec, type SpecAssemblyInput } from './spec-assembler.js';
 import { splitTextIntoDeltas, type StreamRenderHandlers, type StreamingRenderPort } from './streaming-render.port.js';
+import {
+  buildStudentRiskDecision,
+  mergeStudentRiskDecisions,
+  type StudentRiskDecision,
+  type StudentRiskGate,
+} from './student-risk-disposal.js';
 import {
   MemorySource,
   MemoryTier,
@@ -170,6 +177,16 @@ export interface TurnRenderResult {
   readonly safety?: SafetyVerdict;
   /** 跨会话开场上下文 (透传; 仅 resume 首论携带). */
   readonly openingContext?: readonly MemoryHit[];
+  /**
+   * 本轮学员侧处置决定 (V2026-11-02 WP14).
+   *
+   * 缺省 = **无处置** (action='none') —— 也就是"这轮没有危机信号, 学员侧无感知".
+   * 为了**零回归**, 无处置时**不带这个键**: 既有调用方看到的形状逐字不变.
+   * 有处置时:
+   *   · action='toast' → 不阻断, AI 正常流式回复, 同时推一条 3 秒轻提示;
+   *   · action='block' → **本轮不调 RenderPort.render** (reply 为空), 推全屏弹窗.
+   */
+  readonly disposal?: StudentRiskDecision;
 }
 
 /**
@@ -201,6 +218,16 @@ export interface TurnRenderOrchestratorDeps {
   readonly idFactory?: () => string;
   /** 兜底话术 (缺省 DEFAULT_TURN_FALLBACK_UTTERANCE). */
   readonly fallbackUtterance?: string;
+  /**
+   * 学员侧处置闸门 (V2026-11-02 WP14; 缺省 = 不做处置).
+   *
+   * 缺省语义: **纯放行** —— 没有闸门就只判不拦 (与本单之前逐字一致).
+   * 装配层装上它之后, 门面会在**渲染前**问一次:
+   *   ① 内核本轮判定是不是危机 (side/等级/类别三条边界);
+   *   ② 重点监测中的场次 → 额外强制问一次远端, 与 ① 合并取更严的一档.
+   * 判成 block 时**不调 RenderPort.render** —— 本轮 AI 不出声.
+   */
+  readonly studentRisk?: StudentRiskGate;
 }
 
 /**
@@ -304,7 +331,18 @@ export class TurnRenderOrchestrator {
    */
   async turn(handleId: string, input: EngineTurnInput): Promise<TurnRenderResult> {
     // 1. 内核决策 (错误原样冒泡 —— 门面只兜"渲染这块", 不兜内核).
-    const output = await this.deps.session.turn(handleId, input);
+    //    V2026-11-02 (WP14): 用探测来源通道包住这一段 —— 内核判定在会话端口内部发生,
+    //    调用方拿不到"这一轮是谁判的"; 通道记下来, 审计表才有 source 列可填.
+    const { value: output, source } = await runWithProbeSource(() => this.deps.session.turn(handleId, input));
+
+    // 1.5 学员侧处置判定 (WP14): side/等级/类别三条边界 + 监测场次的强制远端探测.
+    const disposal = await this.resolveDisposal(handleId, input.userText, output.safety, source);
+
+    // 1.6 阻断: block 级危机 → **不调 RenderPort.render** (本轮 AI 不出声), 会话不销毁.
+    if (disposal.action === 'block') {
+      await this.settleBlockedTurn(handleId, input.userText);
+      return this.blockedResult(output, disposal);
+    }
 
     // 2. 组装规格: 历史 = 已累积对话 + 本轮咨询师输入 (当前轮必须在场, 否则模型无从回应).
     const history = this.historyOf(handleId);
@@ -334,6 +372,7 @@ export class TurnRenderOrchestrator {
       ...(output.trajectoryTrace ? { trajectoryTrace: output.trajectoryTrace } : {}),
       ...(output.safety ? { safety: output.safety } : {}),
       ...(output.openingContext ? { openingContext: output.openingContext } : {}),
+      ...(disposal.action === 'none' ? {} : { disposal }),
     };
   }
 
@@ -355,8 +394,17 @@ export class TurnRenderOrchestrator {
    * @throws 内核会话端口抛出的错误原样冒泡 (ABORTED / INVALID_INPUT / SESSION_NOT_FOUND)
    */
   async turnStream(handleId: string, input: EngineTurnInput, handlers: StreamRenderHandlers): Promise<TurnRenderResult> {
-    // 1. 内核决策 (与 turn() 同一入口, 错误同样原样冒泡).
-    const output = await this.deps.session.turn(handleId, input);
+    // 1. 内核决策 (与 turn() 同一入口, 错误同样原样冒泡; 探测来源通道同样包住这一段).
+    const { value: output, source } = await runWithProbeSource(() => this.deps.session.turn(handleId, input));
+
+    // 1.5 学员侧处置判定 (WP14): 与聚合路径**同一份**判定, 不复制一份流式专属逻辑.
+    const disposal = await this.resolveDisposal(handleId, input.userText, output.safety, source);
+
+    // 1.6 阻断: block 级危机 → 不流式取文 (本轮 AI 不出声), 会话不销毁.
+    if (disposal.action === 'block') {
+      await this.settleBlockedTurn(handleId, input.userText);
+      return this.blockedResult(output, disposal);
+    }
 
     // 2. 组装规格 (历史 + 本轮咨询师输入).
     const history = this.historyOf(handleId);
@@ -386,6 +434,7 @@ export class TurnRenderOrchestrator {
       ...(output.trajectoryTrace ? { trajectoryTrace: output.trajectoryTrace } : {}),
       ...(output.safety ? { safety: output.safety } : {}),
       ...(output.openingContext ? { openingContext: output.openingContext } : {}),
+      ...(disposal.action === 'none' ? {} : { disposal }),
     };
   }
 
@@ -564,6 +613,85 @@ export class TurnRenderOrchestrator {
 
     if (rendered.degraded) return;
     await this.writeVisitorMemory(handleId, rendered.text);
+  }
+
+  /**
+   * 学员侧处置判定 (V2026-11-02 WP14).
+   *
+   * 两条证据合并:
+   *   ① 内核本轮判定 (`SafetyVerdict`) —— 规则层 + 探测器, 口径与本单之前逐字一致;
+   *   ② 重点监测场次的**强制远端探测** —— 本场已经出过一次 high, 后续每轮都强制问一次.
+   * 合并口径: **取更严的一档** (宁可多弹一次提示, 不可漏掉一次危机).
+   *
+   * 缺省闸门 → 只用 ①, 行为与本单之前**逐字一致** (零回归).
+   *
+   * @param handleId 内核会话句柄
+   * @param userText 学员本轮输入
+   * @param safety 内核本轮判定
+   * @param source 探测来源 (审计口径)
+   * @returns 处置决定
+   */
+  private async resolveDisposal(
+    handleId: string,
+    userText: string,
+    safety: SafetyVerdict | undefined,
+    source: ProbeSource | undefined,
+  ): Promise<StudentRiskDecision> {
+    const base = buildStudentRiskDecision(safety, source);
+    const gate = this.deps.studentRisk;
+    if (!gate || !gate.isMonitored(handleId)) return base;
+    try {
+      const forced = await gate.forceRemoteProbe(userText, handleId);
+      return mergeStudentRiskDecisions(base, forced);
+    } catch (error) {
+      // 强制探测失败**不许**把整场对练带崩 —— 按内核判定继续.
+      warn(`[turn] 重点监测场次的强制远端探测失败, 按内核判定继续: ${errorMessage(error)}`);
+      return base;
+    }
+  }
+
+  /**
+   * 阻断轮次的结果 (V2026-11-02 WP14).
+   *
+   * 形状与正常轮次**同构** (调用方不用分支): 只是
+   *   · `reply` 为空 —— 本轮 AI 不出声;
+   *   · `render.usage` 全 0 —— 本轮**没有调过** RenderPort.render, 没有用量;
+   *   · `render.fallbackUsed=false` —— 不是渲染降级, 是**主动阻断** (两者语义不同).
+   *
+   * @param output 内核出参 (逐字透传)
+   * @param disposal 处置决定 (action=block)
+   * @returns 本轮结果
+   */
+  private blockedResult(output: EngineTurnOutput, disposal: StudentRiskDecision): TurnRenderResult {
+    return {
+      reply: '',
+      snapshot: output.snapshot,
+      turnIndex: output.turnIndex,
+      ...(output.intention ? { intention: output.intention } : {}),
+      render: {
+        fallbackUsed: false,
+        usage: { completionTokens: 0, totalTokens: 0 },
+      },
+      ...(output.trajectoryTrace ? { trajectoryTrace: output.trajectoryTrace } : {}),
+      ...(output.safety ? { safety: output.safety } : {}),
+      ...(output.openingContext ? { openingContext: output.openingContext } : {}),
+      disposal,
+    };
+  }
+
+  /**
+   * 阻断轮次的落账 (V2026-11-02 WP14).
+   *
+   * 与 `settleTurn` 的差别只有一处: **来访半边没有内容**, 所以
+   *   · 历史只追加"问" (不追加"答") —— 下一轮模型仍能看到学员说了什么;
+   *   · **不写**来访半边工作记忆 —— 本轮来访者一个字都没说, 写进去就是造假.
+   *
+   * @param handleId 内核会话句柄
+   * @param counselorText 学员本轮输入
+   */
+  private async settleBlockedTurn(handleId: string, counselorText: string): Promise<void> {
+    const history = this.historyOf(handleId);
+    this.setHistory(handleId, [...history, { role: 'counselor', text: counselorText }]);
   }
 
   /**

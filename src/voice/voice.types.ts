@@ -13,6 +13,7 @@
 //     - 不用 MsgPack / Protobuf: 纯 JSON 帧足够, 调试直接看文本
 //     - V2026-10-30: 从原生 ws 切回 Socket.IO (见 voice.gateway.ts 的注释)
 
+import type { StudentRiskAuditChoice } from './student-risk-audit-slot.js';
 import type { VoiceSessionMode, VoiceSessionPreset, VoiceSkillCode, VoiceVisitorCard } from './voice-session.types.js';
 
 /**
@@ -28,7 +29,15 @@ export type VoiceClientMessage =
   /** 主动暂停: 挂起 LLM / TTS, 保留会话与逐字稿, 不断连. */
   | { readonly type: 'session_pause' }
   /** 恢复: 从挂起点继续, 状态回待命. */
-  | { readonly type: 'session_resume' };
+  | { readonly type: 'session_resume' }
+  /**
+   * 危机弹窗后的选择回写 (V2026-11-02, WP14 §1.3).
+   *
+   * 学员在 `crisis_modal` 上点了哪个按钮. **只**用来回写审计表的 `user_choice`
+   * (那张表唯一允许 update 的列), 不改变会话状态、不重置任何东西 ——
+   * 学员点"继续"之后这场对练照常往下走.
+   */
+  | { readonly type: 'crisis_resume'; readonly choice: StudentRiskAuditChoice };
 
 /**
  * 会话结束时的报告状态 (业务侧派生, V2026-10-27 spec 任务 B).
@@ -143,6 +152,28 @@ export type VoiceServerMessage =
       readonly direction: string;
       readonly markType: string;
       readonly note: string;
+    }
+  /**
+   * 学员危机轻提示 (V2026-11-02, WP14 · warn 级).
+   *
+   * 只在**学员自己说的话**命中危机类别时推; AI 来访角色的台词**绝不**推 ——
+   * 那是演练素材 (学员在练自杀危机干预剧本, AI 来访本来就要说痛苦的话).
+   * 推它**不阻断**本轮 AI 回复 (AI 照常流式回话), 前端 3 秒自动消失.
+   */
+  | { readonly type: 'crisis_toast'; readonly level: 'medium'; readonly category: string }
+  /**
+   * 学员危机全屏弹窗 (V2026-11-02, WP14 · block 级).
+   *
+   * 学员自己说出危机表达时推: 本轮 AI 回复被**阻断** (不调 RenderPort.render,
+   * 不发 llm/tts 内容帧), 弹窗给心理援助热线 12356 与急救 120.
+   * 会话**不销毁** —— 学员点完仍可继续这场对练.
+   */
+  | {
+      readonly type: 'crisis_modal';
+      readonly level: 'high';
+      readonly category: string;
+      readonly hotline: string;
+      readonly emergency: string;
     }
   /** 已确认暂停 (spec 任务 5). */
   | { readonly type: 'paused' }

@@ -62,6 +62,7 @@ import { IsNull, Repository } from 'typeorm';
 
 import { CounselorLlmJsonClient } from './llm-json.client.js';
 import { SessionContextBuilder } from './session-context.builder.js';
+import { StudentRiskAuditService } from './student-risk-audit.service.js';
 import {
   SupervisionEmptyMaterialException,
   SupervisionSchoolMissingException,
@@ -118,13 +119,15 @@ import {
   type SupervisionSchoolListItemDto,
 } from '../dto/supervision.dto.js';
 import { LongTermCaseSession } from '../entities/long-term-case-session.entity.js';
+import { StudentRiskEvent, type StudentRiskUserChoice } from '../entities/student-risk-event.entity.js';
 import {
   SupervisionFeedback,
   type SupervisionAlternative,
   type SupervisionFeedbackPayload,
 } from '../entities/supervision-feedback.entity.js';
 import { SupervisionSchool } from '../entities/supervision-school.entity.js';
-import { TrainingSession } from '../entities/training-session.entity.js';
+import { TrainingSession, type TrainingTranscriptTurn } from '../entities/training-session.entity.js';
+// V2026-11-02 治本 (WP14 — 报告关联): 学员心理风险事件 (append-only 审计表).
 import { SessionType } from '../enums/session-type.enum.js';
 import { SupervisionFailureCode } from '../enums/supervision-failure-code.enum.js';
 import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum.js';
@@ -373,6 +376,23 @@ export function validateSupervisionAnalysis(raw: unknown): SupervisionAnalysisRe
  *
  * 字段全部是**已取好的事实** (不含 IO), 派生 (状态 / 分数) 走 domain 纯函数.
  */
+/**
+ * 学员在危机弹窗后的选择 → 标注里的一句话后缀 (V2026-11-02 WP14).
+ *
+ * 为什么不直接进 category/message 的枚举: 学员的选择是**用户行为**,
+ * 不是类别; 放在 message 后缀里, 督导一眼能看到"他到底点了哪个按钮",
+ * 而不必去翻审计表.
+ *
+ * @param choice 学员的选择 (null = 还没选 / 没弹窗)
+ * @returns 后缀文案 (没选 → 空串)
+ */
+function describeUserChoice(choice: StudentRiskUserChoice | null): string {
+  if (choice === 'phone') return '学员已选择拨打心理援助热线。';
+  if (choice === 'continue') return '学员选择继续本场对练。';
+  if (choice === 'dismissed') return '学员关闭了提示并继续本场对练。';
+  return '';
+}
+
 export interface SessionReportContext {
   /** 会话行 (归属校验已通过; 技术统计 / 逐字稿 / 起止时间都在这行上). */
   readonly row: TrainingSession;
@@ -394,6 +414,13 @@ export interface SessionReportContext {
   readonly sessionStatus: TrainingSessionStatus;
   /** 取事实的时刻 (ms) —— 状态派生的墙钟输入, 固定下来才能可重放. */
   readonly nowMs: number;
+  /**
+   * 本场的学员心理风险事件 (V2026-11-02 WP14).
+   *
+   * 缺省 = 没有风险事件 (或审计表还没建) —— **可选**是为了不打破既有调用方
+   * (SSE 端点的测试替身直接造 `SessionReportContext`).
+   */
+  readonly riskEvents?: readonly StudentRiskEvent[];
 }
 
 /**
@@ -428,6 +455,10 @@ export class SupervisionService {
     private readonly reportRepo: SupervisionReportRepository,
     // 移情 / 阻抗标记 (任务 4): 复用既有 service 的查询 (它已做归属校验 + DTO 映射).
     private readonly markService: TransferenceMarkService,
+    // V2026-11-02 治本 (WP14 — 报告关联): 学员心理风险事件审计表.
+    //   报告出参要把"这一场发生过几次危机处置"合并进 annotations ——
+    //   审计表是**唯一**的事实来源 (append-only, 不可篡改).
+    private readonly riskAudit: StudentRiskAuditService,
     // 全局配置 (陈旧 pending 判定阈值).
     private readonly config: ConfigService,
   ) {}
@@ -765,6 +796,11 @@ export class SupervisionService {
       this.loadFeedbackBySchool(userId, sessionId, sessionType),
     ]);
 
+    // 3.5 学员心理风险事件 (WP14): 读审计表, 供报告标注合并.
+    //   失败**不阻断**报告读取 —— 审计表是增强, 不是报告的前置条件
+    //   (建表类迁移没跑时, 报告必须照常出).
+    const riskEvents = await this.loadRiskEvents(sessionId);
+
     // 4. 回填报告 ↔ 会话的显式链接 (幂等; 失败不阻断读)
     await this.linkReportToSession(row, report?.id);
 
@@ -779,6 +815,7 @@ export class SupervisionService {
       endedAtMs: row.endedAt?.getTime() ?? null,
       sessionStatus: row.status,
       nowMs: Date.now(),
+      riskEvents,
     };
   }
 
@@ -816,7 +853,7 @@ export class SupervisionService {
       failureCode: state.failureCode,
       retryable: state.retryable,
       dimensions: context.report ? this.toDimensions(context.report.dimensions) : null,
-      annotations: context.report ? context.report.annotations.map((a) => this.toAnnotation(a)) : [],
+      annotations: this.mergeAnnotations(context),
       errorPatterns: context.report ? [...context.report.errorPatterns] : [],
       growthSuggestions: context.report ? [...context.report.growthSuggestions] : [],
       techStats: context.row.techStats ? this.toTechStatsDto(context.row.techStats) : null,
@@ -1011,6 +1048,101 @@ export class SupervisionService {
       response: dimensions.response,
       professionalism: dimensions.professionalism,
     };
+  }
+
+  /**
+   * 读本场的学员心理风险事件 (WP14).
+   *
+   * 失败**不阻断**报告读取: 审计表还没建 (建表类迁移没跑) 时, 报告必须照常出 ——
+   * 报告是学员的学习产物, 审计是平台的安全证据, 两者不能互相绑架.
+   *
+   * @param sessionId 会话 id
+   * @returns 风险事件 (无则空数组)
+   */
+  private async loadRiskEvents(sessionId: string): Promise<readonly StudentRiskEvent[]> {
+    try {
+      return await this.riskAudit.listBySession(sessionId);
+    } catch (error) {
+      this.logger.warn(`[risk_events_load_failed] session=${sessionId} err=${error instanceof Error ? error.message : String(error)}`);
+      return [];
+    }
+  }
+
+  /**
+   * 标注合并: agent 侧报告标注 + WP14 危机处置标注.
+   *
+   * 为什么是 **read-time 合并** 而不是"写报告时 patch 进落库行":
+   *   · 主报告由 agent 侧 `SupervisorService.runReport` 写 —— agent → counselor
+   *     是**反向依赖**, agent 侧查不了 counselor 的审计表;
+   *   · 主报告与 4 流派反馈是两个队列, 写时 patch 有竞态;
+   *   · 审计表是 append-only 的**事实源**, 报告是**派生视图** —— 派生视图晚一步没关系.
+   *
+   * 没有风险事件时**逐字返回既有标注** (零回归: 形状与顺序都不变).
+   *
+   * @param context 报告事实集
+   * @returns 合并后的标注
+   */
+  private mergeAnnotations(context: SessionReportContext): SupervisionReportAnnotationDto[] {
+    const base = context.report ? context.report.annotations.map((a) => this.toAnnotation(a)) : [];
+    const crisis = this.toCrisisAnnotations(context.riskEvents ?? [], context.row.transcript ?? []);
+    if (crisis.length === 0) return base;
+    // 按锚点时间排序 (稳定排序: 同一锚点时既有标注在前).
+    return [...base, ...crisis].toSorted((a, b) => a.timestamp - b.timestamp);
+  }
+
+  /**
+   * 风险事件 → 督导标注 (危机处置条目).
+   *
+   * 类别口径 (V2026-11-02 WP14 拍板, 与既有 `SupervisionAnnotation` 契约对齐):
+   *   · `crisis_intervention` = block 级 (本轮被阻断 + 弹了全屏危机弹窗);
+   *   · `crisis_toast`        = warn 级 (只弹了轻提示, 没阻断).
+   *
+   * 为什么用 `category` 而不是新增 `type` 枚举值: 既有 `SupervisionAnnotation.type`
+   * 只有 `good | warn | error` 三值, 且被 agent 侧的校验器 `checkOneAnnotation` 卡着 ——
+   * 新增枚举值要同时改内核侧契约与前端 DTO, 那是另一个单的事.
+   * 这里把"这是危机处置"表达在 `category` 上, `type` 用既有三值:
+   *   高危阻断 → 'error'; 一般提示 → 'warn'.
+   *
+   * @param events 风险事件
+   * @param transcript 本场逐字稿 (用来定位锚点)
+   * @returns 标注列表
+   */
+  private toCrisisAnnotations(
+    events: readonly StudentRiskEvent[],
+    transcript: readonly TrainingTranscriptTurn[],
+  ): SupervisionReportAnnotationDto[] {
+    return events.map((event) => {
+      const blocked = event.actionTaken === 'modal';
+      const choice = describeUserChoice(event.userChoice);
+      return {
+        timestamp: this.anchorTimestamp(transcript, event.turnIndex),
+        type: blocked ? 'error' : 'warn',
+        category: blocked ? 'crisis_intervention' : 'crisis_toast',
+        message:
+          `第 ${event.turnIndex} 轮学员表达触发危机信号（${event.category}），` +
+          (blocked ? '系统已阻断本轮 AI 回复并弹出危机干预提示。' : '系统已弹出轻提示，本轮回复未阻断。') +
+          choice,
+        suggestion: blocked
+          ? '本场已进入重点监测，建议督导优先复核该轮对话并主动联系学员。'
+          : '建议督导关注该轮表述，确认是否需要后续跟进。',
+      };
+    });
+  }
+
+  /**
+   * 轮次 → 逐字稿锚点 (ms 时间戳).
+   *
+   * 逐字稿是"一问一答两条"的结构, 所以第 N 轮 (从 1 起) 对应的**问**那条在下标 `2N-2`.
+   * 取不到 (逐字稿没落 / 轮次对不上) → 0 (前端按"无锚点"处理, 不崩).
+   *
+   * @param transcript 本场逐字稿
+   * @param turnIndex 轮次 (从 1 起)
+   * @returns 锚点时间戳
+   */
+  private anchorTimestamp(transcript: readonly TrainingTranscriptTurn[], turnIndex: number): number {
+    const turn = transcript[(turnIndex - 1) * 2];
+    if (turn && typeof turn.timestamp === 'number') return turn.timestamp;
+    return 0;
   }
 
   /**
