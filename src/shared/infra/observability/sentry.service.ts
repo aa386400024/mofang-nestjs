@@ -68,7 +68,7 @@ export class SentryService implements OnModuleInit {
       environment: env,
       release: process.env['SENTRY_RELEASE'] ?? undefined,
       tracesSampleRate,
-      profilesSampleRate: profilingIntegration ? profilesSampleRate : 0,
+      profileSessionSampleRate: profilingIntegration ? profilesSampleRate : 0,
       integrations: [
         ...(profilingIntegration ? [profilingIntegration] : []),
         Sentry.httpIntegration(),
