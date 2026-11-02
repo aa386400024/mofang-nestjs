@@ -55,8 +55,8 @@ export class SoftDeleteCron {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const cronExpr = this.config.get('softDelete').cronSchedule;
     this.logger.log(`Registering cron: soft-delete-purge schedule="${cronExpr}"`);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    const job = new CronJob(cronExpr, () => {
+
+    const job = new CronJob(cronExpr as string, () => {
       void this.purgeExpiredSoftDeletes();
     });
     this.schedulerRegistry.addCronJob('soft-delete-purge', job);

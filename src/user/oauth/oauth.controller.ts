@@ -22,7 +22,6 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
  */
 @ApiTags('User-OAuth')
 @Controller('user/oauth')
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export class OAuthController {
   constructor(
     private readonly oauth: OAuthService,

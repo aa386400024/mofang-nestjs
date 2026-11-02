@@ -4,5 +4,11 @@
     "rootDir": "src",
     "outDir": "dist"
   },
+  // bin/**/* 排除是有意为之 (V2026-10-20 显式化):
+  //   bin/ 下是运维脚本 (migration / seed), 它们不在 nest build 产物内.
+  //   这些脚本用 ts-node -T (transpile-only) 执行, 因为本项目 tsconfig.json 开了
+  //   noPropertyAccessFromIndexSignature, 而 src/ 内约 30 处 process.env.X 点访问
+  //   (app.ts / app.middleware.ts / envs/default.ts 等) 是既存写法且应用侧正常.
+  //   若强行让脚本参与严格检查, 需先全项目收敛该写法, 属独立改造, 不由脚本触发.
   "exclude": ["**/*.spec.ts", "test/**/*", "bin/**/*"]
 }

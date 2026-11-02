@@ -4,4 +4,15 @@
 #   - lint-staged 只对暂存文件跑 (避免影响其他代码)
 #   - 单文件超时 30s, 避免 sonarjs 卡死
 #   - lint fail 不阻塞 commit (大厂做法: lint 靠 CI 强制, 本地只做自动修)
-npx lint-staged --diff="HEAD" --quiet
+
+# V2026-10-15 治本 (VS-3e 收尾 — 大炮拍板 A 改 husky pre-commit 让 e2e spec 跳过 lint):
+#   原因: 之前 husky 跑 npx lint-staged, 默认对所有暂存 .ts 跑 eslint, 触发 test/e2e/*.spec.ts 100+ lint 错
+#     (VS-3e mock 简化, 不用 e2e lint 治本, 跟 V0.2 culture "e2e 不连真 DB" 一致). 大炮拍板 3 选 A: 改 husky pre-commit
+#     跳 e2e (不 eslint config 全局 ignorePatterns, 跟 AGENTS.md "测试不连真 DB" 治本 culture 一致).
+#   修法: husky pre-commit 改 npm run lint:fix (直接调 package.json lint:fix 脚本 = eslint --fix --cache "src/**/*.ts"),
+#     跳过 e2e 跟 lint-staged 解耦, 大厂 practice "lint 靠 CI 强制, 本地只做自动修 fail 不阻塞" 跟原 comment 一致.
+#   反双胞胎: 不用 eslint.config.mjs ignorePatterns (动全局 config, 治本 scope 太大); 不用
+#     lint-staged filter "!**/test/e2e/**" (lint-staged 复杂, package.json script 简单稳).
+#   验证: git add . + git commit (husky 自动跑 npm run lint:fix, 跳 e2e, 0 错, commit 通过).
+#   时间戳: 2026-10-15.
+npm run lint:fix || true

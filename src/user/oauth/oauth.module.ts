@@ -23,5 +23,4 @@ import { UserModule } from '../user.module';
   controllers: [OAuthController],
   exports: [OAuthService],
 })
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export class OAuthModule {}

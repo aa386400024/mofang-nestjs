@@ -6,6 +6,8 @@ import { CompanionRecord as ProfileCompanionRecord } from '../profile/entities/c
 import { ProfileModule } from '../profile/profile.module';
 import { UserModule } from '../user/user.module';
 
+import { CompanionTreeModule } from './companion-tree/companion-tree.module';
+
 import { AiGuideController } from './controllers/ai-guide.controller';
 import { CompanionPersonsController } from './controllers/companion-persons.controller';
 import { CompanionRecordsController } from './controllers/companion-records.controller';
@@ -14,6 +16,7 @@ import { RehabController } from './controllers/rehab.controller';
 import { RelationsController } from './controllers/relations.controller';
 import { SoothingController } from './controllers/soothing.controller';
 import { SyncPracticeController } from './controllers/sync-practice.controller';
+import { DualPuzzleModule } from './dual-puzzle/dual-puzzle.module';
 
 import { DualExercise } from './entities/dual-exercise.entity';
 import { DualSession } from './entities/dual-session.entity';
@@ -68,6 +71,9 @@ import {
     ]),
     UserModule,
     ProfileModule,
+    // V6.0 §6.3 共种陪伴树 + §6.4 默契拼图 (新增子模块)
+    CompanionTreeModule,
+    DualPuzzleModule,
   ],
   controllers: [
     CompanionPersonsController,

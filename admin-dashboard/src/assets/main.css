@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Dark theme (default) ─── */
+:root {
+  --bg-base: #0f1115;
+  --bg-surface: #161922;
+  --bg-elevated: #1e222d;
+  --bg-border: #2a2f3d;
+  --accent: #c890a8;
+  --accent-soft: #e8c8d4;
+  --accent-muted: #8a6078;
+  --ok: #7ec9a0;
+  --warn: #e8c87a;
+  --danger: #e87a7a;
+  --text-primary: #e5e7eb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+}
+
+/* ─── Light theme ─── */
+.light {
+  --bg-base: #f5f5f7;
+  --bg-surface: #ffffff;
+  --bg-elevated: #e8e8ed;
+  --bg-border: #d1d1d6;
+  --accent: #a8557a;
+  --accent-soft: #c88aa8;
+  --accent-muted: #9a6a82;
+  --ok: #3d9a6e;
+  --warn: #b88a3a;
+  --danger: #c85a5a;
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
+}
+
+@layer base {
+  html { @apply bg-bg-base; color: var(--text-primary); }
+  body { @apply bg-bg-base antialiased; color: var(--text-primary); }
+}
+
+@layer components {
+  .card { @apply bg-bg-surface border border-bg-border rounded-lg; }
+  .chip { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-mono; }
+}
+
+@layer utilities {
+  .text-muted { color: var(--text-muted); }
+}
+
+/* ─── Light theme text overrides ─── */
+.light .text-gray-100 { color: var(--text-primary) !important; }
+.light .text-gray-200 { color: var(--text-primary) !important; }
+.light .text-gray-300 { color: var(--text-secondary) !important; }
+.light .text-gray-400 { color: var(--text-secondary) !important; }
+.light .text-gray-500 { color: var(--text-muted) !important; }
+.light .text-muted { color: var(--text-muted) !important; }

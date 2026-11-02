@@ -34,6 +34,26 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   uid!: string;
 
+  // V2026-10-12 (Phase 8.2 — 多租户, spec §0 / §3 A9 / §8.3):
+  //   V0.x 默认 tenantId = uid (一人一租户, 等同无多租户),
+  //   V1.x 接 Tenant entity 改成 nullable 走 B 端组织隔离.
+  //   业务层强制 V0.x 设 = uid, server-side 兜底防漏 (AuthService.jwtSign 检测).
+  @Index({ unique: false })
+  @Column({ type: 'char', length: 36, name: 'tenant_id', default: '' })
+  tenantId!: string;
+
+  // V2026-10-12 (Phase 8.2 — Admin RBAC, spec §12.4):
+  //   跟客户端 7.8 PermissionResolver 3 角色 (editor / reviewer / admin) 严格对应.
+  //   NULL = 非 admin 角色, 不允许进 /admin. V0.x dev fallback 走 AuthService 兜底.
+  @Index()
+  @Column({
+    type: 'enum',
+    enum: ['editor', 'reviewer', 'admin'],
+    name: 'admin_role',
+    nullable: true,
+  })
+  adminRole!: 'editor' | 'reviewer' | 'admin' | null;
+
   @Index({ unique: true })
   @Column({ type: 'varchar', length: 20, nullable: true })
   phone!: string | null;

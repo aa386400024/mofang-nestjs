@@ -4,8 +4,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../user/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
 
-import { HomeOverviewDto, RecommendationQueryDto, TodayRecommendationDto } from '../dto/home-overview.dto';
-import type { HomeEmotionLevel } from '../home.constants';
+import { HomeOverviewDto, HomeOverviewQueryDto, RecommendationQueryDto, TodayRecommendationDto } from '../dto/home-overview.dto';
 import { HomeOverviewService } from '../providers/home-overview.service';
 
 /**
@@ -29,12 +28,9 @@ export class HomeOverviewController {
   constructor(private readonly service: HomeOverviewService) {}
 
   @Get('overview')
-  @ApiOperation({ summary: '首页综合快照 (问候 / 情绪 / 微干预 / 推荐 / 陪伴者 / 未读)' })
-  public async getOverview(
-    @CurrentUser() user: { userId: string },
-    @Query() query: { emotionLevel?: HomeEmotionLevel },
-  ): Promise<HomeOverviewDto> {
-    return this.service.getOverview(user.userId, query.emotionLevel ?? null);
+  @ApiOperation({ summary: '首页综合快照 (问候 / 情绪 / 微干预 / 推荐 / 陪伴者 / 未读 / 场景化元数据 / 练习统计)' })
+  public async getOverview(@CurrentUser() user: { userId: string }, @Query() query: HomeOverviewQueryDto): Promise<HomeOverviewDto> {
+    return this.service.getOverview(user.userId, query.emotionLevel ?? null, query.clientTimezone);
   }
 
   @Get('recommendation/today')

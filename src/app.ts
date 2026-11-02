@@ -1,6 +1,10 @@
 import { Logger as NestLogger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+// V2026-10-30: 从 @nestjs/platform-ws 切回 @nestjs/platform-socket.io.
+//   原因: 原生 ws 要自己写心跳/重连/断连检测, Socket.IO 开箱即用.
+//   语音对练长连接场景, 移动端网络不稳定, 重连和保活是刚需.
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 
 import { middleware } from './app.middleware';
@@ -37,6 +41,10 @@ async function bootstrap(): Promise<string> {
 
   // Express Middleware
   middleware(app);
+
+  // V2026-10-30: 注册 IoAdapter 走 Socket.IO (见 import 注释).
+  //   必须在 enableShutdownHooks / listen 之前调, 这样 VoiceGateway 装饰器解析时 driver 已 ready.
+  app.useWebSocketAdapter(new IoAdapter(app));
 
   app.enableShutdownHooks();
   await app.listen(process.env.PORT ?? 3000);

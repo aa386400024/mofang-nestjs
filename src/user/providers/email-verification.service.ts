@@ -59,7 +59,10 @@ export class EmailVerificationService {
     }
 
     const token = randomBytes(32).toString('base64url');
-    const ttlSec = this.config.get('verification').emailTokenTtlMin * 60;
+    // V2026-09-04 治本: ConfigService.get('verification') 在某些启动顺序下返 undefined
+    //   (fire-and-forget promise 注入时序坑), 加可选链 + 默认值兜底.
+    const ttlMin = this.config.get<{ emailTokenTtlMin?: number }>('verification')?.emailTokenTtlMin ?? 30;
+    const ttlSec = ttlMin * 60;
 
     // 存 Redis: token → uid, 同时存 uid → token 反查 (覆盖旧 token)
     await this.redis.set(REDIS_KEYS.emailVerification(token), uid, ttlSec);

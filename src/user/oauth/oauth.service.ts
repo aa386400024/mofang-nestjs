@@ -22,7 +22,7 @@ import { UserState } from '../user.state';
 /**
  * OAuth provider 标准化用户信息.
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
+
 export interface OAuthUserInfo {
   provider: OAuthProvider;
   providerUserId: string;
@@ -55,7 +55,6 @@ export interface OAuthUserInfo {
  *   - 微信 access_token 通过 HTTPS + appsecret 校验
  */
 @Injectable()
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export class OAuthService implements OnModuleInit {
   private googleClient!: OAuth2Client;
 
@@ -98,7 +97,7 @@ export class OAuthService implements OnModuleInit {
    */
   async consumeState(state: string, provider: OAuthProvider): Promise<boolean> {
     const stored = await this.redis.get(REDIS_KEYS.oauthState(state));
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+
     if (!stored || stored !== provider) {
       return false;
     }

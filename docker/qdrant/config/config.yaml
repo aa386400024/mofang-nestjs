@@ -1,0 +1,34 @@
+# V2026-09-04 Qdrant 1.x 服务端配置 — 心塑 V6.0 §12 RAG 知识库.
+#
+# 用法:
+#   docker compose --profile rag up -d qdrant
+#   容器启动时会读这个文件 (跟 docker-compose.yml command --config-ration-filename 配对).
+
+service:
+  # API key 鉴权, 推荐生产开启
+  api_key: '${QDRANT__SERVICE__API_KEY:-}'
+
+  # CORS — 关闭 (只有服务端连)
+  enable_cors: false
+
+  # gRPC 端口 (跟 docker-compose 端口映射 6334 一致)
+  grpc_port: 6334
+
+storage:
+  # 单 collection 向量存储路径 (默认 /qdrant/storage/collections)
+  storage_path: /qdrant/storage
+  # WAL — 写前日志, 防数据丢失
+  wal: true
+  # 快照策略 — 每 1000 段写触发
+  snapshots_path: /qdrant/snapshots
+
+# 优化器 — 默认参数即可, 大规模 (>1M 向量) 调优见 https://qdrant.tech/documentation/guides/configuration/
+optimizers:
+  default_segment_number: 0
+  memmap_threshold_kb: 50000
+
+# Telemetry — 关掉 (隐私合规)
+telemetry_disabled: true
+
+# 日志
+log_level: INFO

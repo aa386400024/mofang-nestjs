@@ -1,7 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsDateString, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { Role } from '../entities/user-profile.entity';
 
-import { GenderValues, OccupationValues } from '../entities/user-profile.entity';
+import { GenderValues, OccupationValues, RoleValues } from '../entities/user-profile.entity';
 
 /**
  * 响应 DTO — GET /profile/me 返回.
@@ -41,9 +42,9 @@ export class ProfileDto {
 
   @ApiProperty({
     description: '当前激活角色',
-    enum: ['growth_user', 'companion'],
+    enum: RoleValues,
   })
-  currentRole!: 'growth_user' | 'companion';
+  currentRole!: Role;
 }
 
 /**
@@ -85,16 +86,20 @@ export class UpdateProfileDto {
  *
  * 单独 endpoint 而不是合并到 UpdateProfileDto, 因为:
  *   - 切角色触发不同副作用 (审计日志 + 多端推送)
- *   - 角色值受约束 (仅 2 个枚举)
+ *   - 角色值受约束 (RoleValues 单一真理源 — entity/entities/user-profile.entity.ts)
+ *
+ * V2026-10-08 治本 (V6.1 §1):
+ *   之前 @IsIn(['growth_user', 'companion']) 硬编码 2 值, 前端切 'counselor_learner'
+ *   被拒绝 400. 治本: 用 RoleValues 单一真理, 加新角色只需改 entity 一处.
  */
 export class SwitchRoleDto {
   @ApiProperty({
     description: '目标角色',
-    enum: ['growth_user', 'companion'],
+    enum: RoleValues,
   })
   @IsString()
-  @IsIn(['growth_user', 'companion'])
-  currentRole!: 'growth_user' | 'companion';
+  @IsIn(RoleValues)
+  currentRole!: Role;
 }
 
 /**
