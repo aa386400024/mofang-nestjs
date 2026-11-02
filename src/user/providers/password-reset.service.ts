@@ -4,7 +4,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomBytes } from 'node:crypto';
 import { IsNull, Repository } from 'typeorm';
 
-import { hashPassword } from '../../shared/infra/security/password-hasher.js';
 import { JwtBlacklistService } from './jwt-blacklist.service.js';
 import { PasswordHistoryService } from './password-history.service.js';
 import { SessionService } from './session.service.js';
@@ -14,6 +13,7 @@ import { EmailService } from '../../shared/infra/email/index.js';
 import { MetricsService } from '../../shared/infra/metrics/index.js';
 import { RedisService } from '../../shared/infra/redis/index.js';
 import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants.js';
+import { hashPassword } from '../../shared/infra/security/password-hasher.js';
 
 import { User } from '../entities/user.entity.js';
 import { SessionRevokeReason } from '../user.constant.js';
