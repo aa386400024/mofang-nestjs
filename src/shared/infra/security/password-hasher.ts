@@ -3,6 +3,7 @@
 //   老 bcryptjs 已彻底移除 (生产环境仅 1 条老数据, 走忘记密码重置).
 
 import { hash as argon2Hash, verify as argon2Verify, Algorithm } from '@node-rs/argon2';
+import { randomUUID } from 'node:crypto';
 
 const ARGON2_OPTIONS = {
   algorithm: Algorithm.Argon2id,
@@ -22,6 +23,5 @@ export async function verifyPassword(plain: string, stored: string): Promise<boo
 
 /** OAuth 用户占位哈希 (不能用于登录). */
 export async function placeholderHash(): Promise<string> {
-  const { randomUUID } = await import('node:crypto');
   return hashPassword(randomUUID());
 }
