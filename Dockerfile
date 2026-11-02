@@ -3,7 +3,7 @@
 # ============================================================
 # Stage 1: deps — 安装依赖 (含 dev, 用于 build)
 # ============================================================
-FROM node:24-alpine AS deps
+FROM node:26-alpine AS deps
 WORKDIR /app
 
 # Alpine 缺 python3 / make / g++ 的话, bcrypt / sharp 等 native module 需要
@@ -15,7 +15,7 @@ RUN npm ci --include=dev
 # ============================================================
 # Stage 2: build — 编译 TS → JS
 # ============================================================
-FROM node:24-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -30,7 +30,7 @@ RUN npm prune --omit=dev
 # ============================================================
 # Stage 3: prod — 运行时镜像 (最小)
 # ============================================================
-FROM node:24-alpine AS prod
+FROM node:26-alpine AS prod
 WORKDIR /app
 
 # 安全: 用非 root 用户

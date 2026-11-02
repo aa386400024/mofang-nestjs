@@ -17,7 +17,7 @@
 # Stage 1: 单阶段 (本机 build 后产物已经最小, 不需要 3 阶段)
 # 2 核 2G 服务器 build 慢一点没关系, 镜像小最重要
 # ============================================================
-FROM node:24-alpine AS prod
+FROM node:26-alpine AS prod
 
 WORKDIR /app
 
