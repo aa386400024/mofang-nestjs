@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
 import { IsNull, Repository } from 'typeorm';
 
@@ -11,6 +10,7 @@ import { BizException } from '../../common/exceptions/biz.exception.js';
 import { MetricsService } from '../../shared/infra/metrics/index.js';
 import { RedisService } from '../../shared/infra/redis/index.js';
 import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants.js';
+import { hashPassword, verifyPassword } from '../../shared/infra/security/password-hasher.js';
 
 import { AuthResponseDto, CurrentUserDto } from '../dto/auth-response.dto.js';
 import { LoginDto } from '../dto/login.dto.js';
@@ -57,7 +57,6 @@ import { SessionService } from './session.service.js';
 @Injectable()
 export class UserService {
   private readonly logger = new Logger(UserService.name);
-  private static readonly BCRYPT_ROUNDS = 10;
 
   constructor(
     @InjectRepository(User)
@@ -102,7 +101,7 @@ export class UserService {
       }
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, UserService.BCRYPT_ROUNDS);
+    const passwordHash = await hashPassword(dto.password);
     const user = this.userRepo.create({
       phone: dto.phone ?? null,
       email: dto.email ?? null,
@@ -223,7 +222,7 @@ export class UserService {
     }
 
     // 4. 密码校验
-    const ok = await bcrypt.compare(dto.password, user.passwordHash);
+    const ok = await verifyPassword(dto.password, user.passwordHash);
     if (!ok) {
       this.metrics.incAuthLoginAttempt('failed');
       // 增加失败计数 + 可能锁定
@@ -391,7 +390,7 @@ export class UserService {
     if (user.passwordHash) {
       throw new BizException(BizCode.InvalidParameter, '用户已有密码, 请用改密流程');
     }
-    user.passwordHash = await bcrypt.hash(password, UserService.BCRYPT_ROUNDS);
+    user.passwordHash = await hashPassword(password);
     user.passwordChangedAt = new Date();
     user.mustChangePassword = false;
     await this.userRepo.save(user);
@@ -438,7 +437,7 @@ export class UserService {
     }
 
     // 1. 校验旧密码
-    const oldOk = await bcrypt.compare(oldPassword, user.passwordHash);
+    const oldOk = await verifyPassword(oldPassword, user.passwordHash);
     if (!oldOk) {
       throw new BizException(BizCode.InvalidCredentials, '旧密码错误');
     }
@@ -455,7 +454,7 @@ export class UserService {
     await this.passwordHistory.recordOldPassword(uid, user.passwordHash);
 
     // 5. 更新密码 + 时间戳 + mustChangePassword = false
-    user.passwordHash = await bcrypt.hash(newPassword, UserService.BCRYPT_ROUNDS);
+    user.passwordHash = await hashPassword(newPassword);
     user.passwordChangedAt = new Date();
     user.mustChangePassword = false;
     await this.userRepo.save(user);

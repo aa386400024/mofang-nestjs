@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
 import { IsNull, Repository } from 'typeorm';
 
+import { hashPassword } from '../../shared/infra/security/password-hasher.js';
 import { JwtBlacklistService } from './jwt-blacklist.service.js';
 import { PasswordHistoryService } from './password-history.service.js';
 import { SessionService } from './session.service.js';
@@ -117,7 +117,7 @@ export class PasswordResetService {
     await this.passwordHistory.recordOldPassword(uid, user.passwordHash);
 
     // 3. 更新密码 + 时间戳 + 撤销 mustChangePassword (重置即视为已改密)
-    user.passwordHash = await bcrypt.hash(newPassword, PasswordResetService.BCRYPT_ROUNDS);
+    user.passwordHash = await hashPassword(newPassword);
     user.passwordChangedAt = new Date();
     user.mustChangePassword = false;
     await this.userRepo.save(user);
@@ -162,6 +162,4 @@ export class PasswordResetService {
     }
     return `${local.slice(0, 2)}***@${domain}`;
   }
-
-  private static readonly BCRYPT_ROUNDS = 10;
 }

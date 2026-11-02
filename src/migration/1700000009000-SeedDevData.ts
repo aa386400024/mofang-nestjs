@@ -16,15 +16,15 @@
 //     - 密码统一 "dev" (跟 V0.x dev 体验对齐, V1.x 上线前必须改成随机密码
 //       + 强制改密流程, 治本注释标 V1.x next-step)
 
-import * as bcrypt from 'bcryptjs';
 import { MigrationInterface, QueryRunner } from 'typeorm';
+import { hashPassword } from '../shared/infra/security/password-hasher.js';
 
 export class SeedDevData1700000009000 implements MigrationInterface {
   name = 'SeedDevData1700000009000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // ─── 1. 3 admin 账户 (V0.x dev 密码统一 "dev", 跟上线后必须改密) ───
-    const passwordHash = await bcrypt.hash('dev', 10);
+    const passwordHash = await hashPassword('dev');
     const users = [
       { uid: '00000000-0000-0000-0000-00000000e001', email: 'editor@dev.local', adminRole: 'editor' },
       { uid: '00000000-0000-0000-0000-00000000e002', email: 'reviewer@dev.local', adminRole: 'reviewer' },

@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
 
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 import { BizException } from '../../common/exceptions/biz.exception.js';
+import { verifyPassword } from '../../shared/infra/security/password-hasher.js';
 import { PasswordHistory } from '../entities/password-history.entity.js';
 import { User } from '../entities/user.entity.js';
 
@@ -53,7 +53,7 @@ export class PasswordHistoryService {
       return;
     }
     for (const entry of history) {
-      const match = await bcrypt.compare(newPassword, entry.passwordHash);
+      const match = await verifyPassword(newPassword, entry.passwordHash);
       if (match) {
         throw new BizException(BizCode.PasswordReused);
       }
