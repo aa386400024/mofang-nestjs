@@ -9,30 +9,30 @@ import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { LlmModule } from '../llm/llm.module';
-import { UserModule } from '../user/user.module';
+import { LlmModule } from '../llm/llm.module.js';
+import { UserModule } from '../user/user.module.js';
 
-import { AIEffectController } from './controllers/ai-effect.controller';
-import { AIProfileController } from './controllers/ai-profile.controller';
-import { AIRecommendController } from './controllers/ai-recommend.controller';
-import { AIUnlockController } from './controllers/ai-unlock.controller';
-import { LlmChatController } from './controllers/llm-chat.controller';
-import { RagController } from './controllers/rag.controller';
-import { AIEffectRecordEntity } from './entities/ai-effect-record.entity';
-import { AIProfileCache } from './entities/ai-profile-cache.entity';
-import { AIUnlockStateEntity } from './entities/ai-unlock-state.entity';
-import { CrisisEventEntity } from './entities/crisis-event.entity';
-import { LLMConversationEntity } from './entities/llm-conversation.entity';
-import { AIEffectService } from './providers/ai-effect.service';
-import { AIProfileService } from './providers/ai-profile.service';
-import { AIRecommendService } from './providers/ai-recommend.service';
-import { AIUnlockService } from './providers/ai-unlock.service';
-import { CrisisCleanupCron } from './providers/crisis-cleanup.cron';
-import { CrisisDetectorService } from './providers/crisis-detector.service';
-import { EffectAggregateCron } from './providers/effect-aggregate.cron';
-import { LlmOrchestratorService } from './providers/llm-orchestrator.service';
-import { QdrantService } from './providers/qdrant.service';
-import { RagService } from './providers/rag.service';
+import { AIEffectController } from './controllers/ai-effect.controller.js';
+import { AIProfileController } from './controllers/ai-profile.controller.js';
+import { AIRecommendController } from './controllers/ai-recommend.controller.js';
+import { AIUnlockController } from './controllers/ai-unlock.controller.js';
+import { LlmChatController } from './controllers/llm-chat.controller.js';
+import { RagController } from './controllers/rag.controller.js';
+import { AIEffectRecordEntity } from './entities/ai-effect-record.entity.js';
+import { AIProfileCache } from './entities/ai-profile-cache.entity.js';
+import { AIUnlockStateEntity } from './entities/ai-unlock-state.entity.js';
+import { CrisisEventEntity } from './entities/crisis-event.entity.js';
+import { LLMConversationEntity } from './entities/llm-conversation.entity.js';
+import { AIEffectService } from './providers/ai-effect.service.js';
+import { AIProfileService } from './providers/ai-profile.service.js';
+import { AIRecommendService } from './providers/ai-recommend.service.js';
+import { AIUnlockService } from './providers/ai-unlock.service.js';
+import { CrisisCleanupCron } from './providers/crisis-cleanup.cron.js';
+import { CrisisDetectorService } from './providers/crisis-detector.service.js';
+import { EffectAggregateCron } from './providers/effect-aggregate.cron.js';
+import { LlmOrchestratorService } from './providers/llm-orchestrator.service.js';
+import { QdrantService } from './providers/qdrant.service.js';
+import { RagService } from './providers/rag.service.js';
 // V2026-10-14 治本 (VS-3b plan B 调整 — 删 BgeEmbeddingService, 复用 OpenAI 兼容 4 provider):
 //   原因: 大炮 14:57 拍板 "B 方案 — 删 bge 自托管 TEI 容器, 改走 OpenAI 兼容 embedding (deepseek/doubao/qwen/custom
 //     4 provider 之一)". daocloud 502 Bad Gateway 拉 TEI 镜像失败, V0.5 阶段自托管 bge 不治本 (多
@@ -46,7 +46,7 @@ import { RagService } from './providers/rag.service';
 //     3. 启动后 RagService.ingest() → ProviderRegistryService.embed() → deepseek/doubao/qwen/custom
 //        之一 (跟 env LLM_DEFAULT_EMBEDDING_PROVIDER 配置), 写 Qdrant collection.
 //   时间戳: 2026-10-14 14:57.
-import { UnlockEvaluateCron } from './providers/unlock-evaluate.cron';
+import { UnlockEvaluateCron } from './providers/unlock-evaluate.cron.js';
 
 /**
  * AI 引擎模块 — V6.0 §3 + §11.2 + §12 RAG.

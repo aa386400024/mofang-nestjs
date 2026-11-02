@@ -1,11 +1,11 @@
 import { Body, Controller, Get, NotFoundException, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { DualExerciseDto, DualSessionDto, StartDualSessionDto, UpdateDualSessionDto } from '../dto/companion.dto';
-import { DualExerciseService } from '../providers/companion.service';
+import { DualExerciseDto, DualSessionDto, StartDualSessionDto, UpdateDualSessionDto } from '../dto/companion.dto.js';
+import { DualExerciseService } from '../providers/companion.service.js';
 
 /**
  * 双人协同成长 controller — V3.0 新增 (V2.0 占位实现).

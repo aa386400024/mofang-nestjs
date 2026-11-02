@@ -1,6 +1,6 @@
-export * from './guards';
-export * from './strategies';
-export type * from './auth.interface';
-export * from './auth.module';
-export * from './auth.service';
-export * from './login-code.service';
+export * from './guards/index.js';
+export * from './strategies/index.js';
+export type * from './auth.interface.js';
+export * from './auth.module.js';
+export * from './auth.service.js';
+export * from './login-code.service.js';

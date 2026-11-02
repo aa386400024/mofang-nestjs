@@ -49,16 +49,16 @@ import {
 } from '@nestjs/websockets';
 import type { Socket } from 'socket.io';
 
-import { VoiceCatalogRegistry } from './voice-catalog-slot';
-import { VoiceFrameRegistry } from './voice-frame-registry';
-import { parseVoiceHandshake, resolveVoicePreset } from './voice-handshake';
-import { VoiceSessionBridgeRegistry, type VoiceSessionOpenResult } from './voice-session-bridge';
-import { VoiceSessionRegistry } from './voice-session-registry';
-import type { VoicePersonaChannel, VoiceSessionPreset, VoiceSkillCode, VoiceVisitorCard } from './voice-session.types';
-import { VoiceTemplateRegistry } from './voice-template-slot';
-import { buildVoiceVisitorCard } from './voice-visitor-card';
-import { VoiceService } from './voice.service';
-import type { VoiceClientMessage, VoiceServerMessage } from './voice.types';
+import { VoiceCatalogRegistry } from './voice-catalog-slot.js';
+import { VoiceFrameRegistry } from './voice-frame-registry.js';
+import { parseVoiceHandshake, resolveVoicePreset } from './voice-handshake.js';
+import { VoiceSessionBridgeRegistry, type VoiceSessionOpenResult } from './voice-session-bridge.js';
+import { VoiceSessionRegistry } from './voice-session-registry.js';
+import type { VoicePersonaChannel, VoiceSessionPreset, VoiceSkillCode, VoiceVisitorCard } from './voice-session.types.js';
+import { VoiceTemplateRegistry } from './voice-template-slot.js';
+import { buildVoiceVisitorCard } from './voice-visitor-card.js';
+import { VoiceService } from './voice.service.js';
+import type { VoiceClientMessage, VoiceServerMessage } from './voice.types.js';
 
 /**
  * 兜底通道的中性速查卡 (V2026-10-26, spec 任务 1 / 任务 7).

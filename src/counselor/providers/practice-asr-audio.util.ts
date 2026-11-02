@@ -18,7 +18,7 @@
 //     2. 传一个 txt → format = unknown, duration = null, 不抛异常
 //     3. 传一个截断的 m4a → duration = null (不猜), 上游兜底
 //   时间戳: 2026-10-23
-import { PRACTICE_ASR_EXTENSION_TO_FORMAT, type PracticeAsrAudioFormat } from '../config/practice-asr.config';
+import { PRACTICE_ASR_EXTENSION_TO_FORMAT, type PracticeAsrAudioFormat } from '../config/practice-asr.config.js';
 
 /**
  * 字节掩码 / 魔数常量.

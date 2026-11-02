@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
-import type { JwtPayload, JwtSign, Payload } from './auth.interface';
-import { User, UserService } from '../shared/user';
+import type { JwtPayload, JwtSign, Payload } from './auth.interface.js';
+import { User, UserService } from '../shared/user/index.js';
 
 /** 把 '15m' / '7d' 字符串转秒数 (跟 user.service.ts 保持一致). */
 function parseExpiresIn(value: string | undefined, fallback: number): number {

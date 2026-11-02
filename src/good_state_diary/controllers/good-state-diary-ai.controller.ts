@@ -1,11 +1,11 @@
 import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { DiaryAiFeedbackDto, RequestDiaryAiFeedbackDto } from '../dto/good-state-diary.dto';
-import { GoodStateDiaryAiService } from '../providers/good-state-diary-ai.service';
+import { DiaryAiFeedbackDto, RequestDiaryAiFeedbackDto } from '../dto/good-state-diary.dto.js';
+import { GoodStateDiaryAiService } from '../providers/good-state-diary-ai.service.js';
 
 /**
  * V2026-09-11 治本 (好状态日记 · AI 反馈 controller):

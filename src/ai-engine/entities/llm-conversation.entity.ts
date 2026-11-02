@@ -17,7 +17,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-import { LLMTier } from '../../llm/common/enums/llm.enums';
+import { LLMTier } from '../../llm/common/enums/llm.enums.js';
 
 /**
  * LLM 对话会话 — V6.0 §3.5 + §11.2.

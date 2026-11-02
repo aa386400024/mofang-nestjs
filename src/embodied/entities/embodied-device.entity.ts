@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import type { EmbodiedDeviceStatus, EmbodiedDeviceType } from '../../shared/types/practice.types';
-import { User } from '../../user/entities/user.entity';
+import type { EmbodiedDeviceStatus, EmbodiedDeviceType } from '../../shared/types/practice.types.js';
+import { User } from '../../user/entities/user.entity.js';
 
 /**
  * 具身设备绑定 entity — V2.0 §Tab4 embodied 已连接设备.

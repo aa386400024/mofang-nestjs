@@ -18,12 +18,12 @@
 //     3. 自检: 60 条 / scenarioKey 唯一 / 每基本功 6 条且 L1L2L3 各 2
 //     4. 改坏任一条的 scenarioKey → seed 脚本在灌库前报错并指出是哪一条
 //   时间戳: 2026-10-22
-import { LISTENING_PRACTICE_SCENARIO_SEEDS } from './practice-scenario-seeds.listening';
-import { QUESTIONING_PRACTICE_SCENARIO_SEEDS } from './practice-scenario-seeds.questioning';
-import { VOICE_PRACTICE_SCENARIO_SEEDS } from './practice-scenario-seeds.voice';
-import type { PracticeScenarioSeed } from '../domain/practice/practice-seed.types';
-import { PracticeDifficulty } from '../enums/practice-difficulty.enum';
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
+import { LISTENING_PRACTICE_SCENARIO_SEEDS } from './practice-scenario-seeds.listening.js';
+import { QUESTIONING_PRACTICE_SCENARIO_SEEDS } from './practice-scenario-seeds.questioning.js';
+import { VOICE_PRACTICE_SCENARIO_SEEDS } from './practice-scenario-seeds.voice.js';
+import type { PracticeScenarioSeed } from '../domain/practice/practice-seed.types.js';
+import { PracticeDifficulty } from '../enums/practice-difficulty.enum.js';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
 
 /**
  * 场景变体内容库全集 (10 基本功 × 6 变体 = 60 条).

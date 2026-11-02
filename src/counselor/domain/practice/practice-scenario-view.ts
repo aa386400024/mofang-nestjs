@@ -21,10 +21,10 @@
 //     2. 投影出的 view 字段集合 = PracticeScenarioView 定义 (不多不少)
 //
 //   时间戳: 2026-10-22
-import type { PracticeScenarioView } from './practice.types';
-import type { PracticeCustomScenario } from '../../entities/practice-custom-scenario.entity';
-import type { PracticeScenario } from '../../entities/practice-scenario.entity';
-import { PracticeScenarioSource } from '../../enums/practice-scenario-source.enum';
+import type { PracticeScenarioView } from './practice.types.js';
+import type { PracticeCustomScenario } from '../../entities/practice-custom-scenario.entity.js';
+import type { PracticeScenario } from '../../entities/practice-scenario.entity.js';
+import { PracticeScenarioSource } from '../../enums/practice-scenario-source.enum.js';
 
 /**
  * 共享内容库场景 → 领域视图.

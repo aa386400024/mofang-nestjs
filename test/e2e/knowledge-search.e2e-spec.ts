@@ -23,16 +23,16 @@
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
-import { EmbeddingRequest, EmbeddingResponse } from '../src/llm/common/interfaces/embedding-provider.interface';
-import { KnowledgeBaseModule } from '../src/knowledge-base/knowledge-base.module';
-import { KnowledgeItem } from '../src/knowledge-base/entities/knowledge-item.entity';
-import { KnowledgeType } from '../src/knowledge-base/enums/knowledge-type.enum';
-import { KnowledgeStatus } from '../src/knowledge-base/enums/knowledge-status.enum';
-import { SearchService } from '../src/knowledge-base/providers/search.service';
-import { LlmRouterService } from '../src/llm/registry/llm-router.service';
-import { QdrantService } from '../src/ai-engine/providers/qdrant.service';
-import { SentryService } from '../src/shared/infra/observability';
-import { User } from '../src/user/entities/user.entity';
+import { EmbeddingRequest, EmbeddingResponse } from '../src/llm/common/interfaces/embedding-provider.interface.js';
+import { KnowledgeBaseModule } from '../src/knowledge-base/knowledge-base.module.js';
+import { KnowledgeItem } from '../src/knowledge-base/entities/knowledge-item.entity.js';
+import { KnowledgeType } from '../src/knowledge-base/enums/knowledge-type.enum.js';
+import { KnowledgeStatus } from '../src/knowledge-base/enums/knowledge-status.enum.js';
+import { SearchService } from '../src/knowledge-base/providers/search.service.js';
+import { LlmRouterService } from '../src/llm/registry/llm-router.service.js';
+import { QdrantService } from '../src/ai-engine/providers/qdrant.service.js';
+import { SentryService } from '../src/shared/infra/observability.js';
+import { User } from '../src/user/entities/user.entity.js';
 
 const TEST_UID = 'test-uid-vs3e';
 const TEST_ITEM_ID = 'test-item-id-vs3e-001';

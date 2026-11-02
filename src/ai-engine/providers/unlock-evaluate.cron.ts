@@ -9,7 +9,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
-import { AIUnlockService } from './ai-unlock.service';
+import { AIUnlockService } from './ai-unlock.service.js';
 
 /**
  * 解锁评估 cron — §3.3 状态机自动更新.

@@ -39,12 +39,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, type Repository } from 'typeorm';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { QUOTE_LIST_DEFAULT_LIMIT, quoteDayIndexOf } from '../config/quote-seeds';
-import type { QuoteDto, QuoteFavoriteResultDto, QuoteListDto, QuoteQueryDto } from '../dto/quote.dto';
-import { Quote } from '../entities/quote.entity';
-import { UserQuoteFavorite } from '../entities/user-quote-favorite.entity';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { QUOTE_LIST_DEFAULT_LIMIT, quoteDayIndexOf } from '../config/quote-seeds.js';
+import type { QuoteDto, QuoteFavoriteResultDto, QuoteListDto, QuoteQueryDto } from '../dto/quote.dto.js';
+import { Quote } from '../entities/quote.entity.js';
+import { UserQuoteFavorite } from '../entities/user-quote-favorite.entity.js';
 
 /**
  * 首页金句 service.

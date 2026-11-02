@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, DeleteDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { DiaryEntryStatus } from '../enums/diary-entry-status.enum';
-import { DiaryMoodLevel } from '../enums/diary-mood-level.enum';
+import { DiaryEntryStatus } from '../enums/diary-entry-status.enum.js';
+import { DiaryMoodLevel } from '../enums/diary-mood-level.enum.js';
 
 /**
  * V2026-09-11 治本 (好状态日记 · 核心 entity).

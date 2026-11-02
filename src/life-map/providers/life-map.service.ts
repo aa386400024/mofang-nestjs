@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
-import { LIFE_STAGES, type LifeStage } from '../../shared/types/practice.types';
+import { LIFE_STAGES, type LifeStage } from '../../shared/types/practice.types.js';
 import type {
   CreateKeyEventDto,
   ForecastDimensionDto,
@@ -23,8 +23,8 @@ import type {
   SaveStageProgressDto,
   StageProgressListDto,
   UpdateKeyEventDto,
-} from '../dto/life-map.dto';
-import { type GenomeDimensionKey, GenomeDimensionEntity, KeyEventEntity, LifeStageProgressEntity } from '../entities';
+} from '../dto/life-map.dto.js';
+import { type GenomeDimensionKey, GenomeDimensionEntity, KeyEventEntity, LifeStageProgressEntity } from '../entities/index.js';
 
 /**
  * 人生地图服务 — V3.0 §3 Tab3 完整业务化.

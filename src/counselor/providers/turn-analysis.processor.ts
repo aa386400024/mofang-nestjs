@@ -27,12 +27,12 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { type Job, Queue, Worker } from 'bullmq';
 
-import { CounselorUiPreferenceService } from './counselor-ui-preference.service';
-import { TurnAnalysisService } from './turn-analysis.service';
-import { QUEUE_NAMES } from '../../shared/infra/redis/redis.constants';
-import { RedisService } from '../../shared/infra/redis/redis.service';
-import { CounselorUiPreferenceKey } from '../enums/counselor-ui-preference-key.enum';
-import { LiveSupervisionHintTier } from '../enums/live-supervision-hint-tier.enum';
+import { CounselorUiPreferenceService } from './counselor-ui-preference.service.js';
+import { TurnAnalysisService } from './turn-analysis.service.js';
+import { QUEUE_NAMES } from '../../shared/infra/redis/redis.constants.js';
+import { RedisService } from '../../shared/infra/redis/redis.service.js';
+import { CounselorUiPreferenceKey } from '../enums/counselor-ui-preference-key.enum.js';
+import { LiveSupervisionHintTier } from '../enums/live-supervision-hint-tier.enum.js';
 
 /**
  * 每轮分析 job payload.

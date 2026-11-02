@@ -16,13 +16,13 @@ import { NotFoundException, type MessageEvent } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import { Observable } from 'rxjs';
 
-import { buildReportStreamTimeoutPayload, decideReportStreamAction } from '../../src/counselor/domain/session-core/report-stream';
-import type { SessionReportStatus } from '../../src/counselor/domain/session-core/session-core.types';
-import type { SessionReportDto } from '../../src/counselor/dto/supervision.dto';
-import { SessionType } from '../../src/counselor/enums/session-type.enum';
-import { TrainingSessionStatus } from '../../src/counselor/enums/training-session-status.enum';
-import { SupervisionReportStreamService } from '../../src/counselor/providers/supervision-report-stream.service';
-import type { SessionReportContext, SupervisionService } from '../../src/counselor/providers/supervision.service';
+import { buildReportStreamTimeoutPayload, decideReportStreamAction } from '../../src/counselor/domain/session-core/report-stream.js';
+import type { SessionReportStatus } from '../../src/counselor/domain/session-core/session-core.types.js';
+import type { SessionReportDto } from '../../src/counselor/dto/supervision.dto.js';
+import { SessionType } from '../../src/counselor/enums/session-type.enum.js';
+import { TrainingSessionStatus } from '../../src/counselor/enums/training-session-status.enum.js';
+import { SupervisionReportStreamService } from '../../src/counselor/providers/supervision-report-stream.service.js';
+import type { SessionReportContext, SupervisionService } from '../../src/counselor/providers/supervision.service.js';
 
 /** 固定"当前时刻", 免得测试随系统时间漂移. */
 const NOW = 1_800_000_000_000;

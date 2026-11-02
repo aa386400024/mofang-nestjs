@@ -24,9 +24,9 @@
 // V2026-10-12 治本 (Phase 8.1 — BizException import path, 跟 user/voice 等其他模块对齐).
 import { Injectable } from '@nestjs/common';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { KnowledgeStatus } from '../enums/knowledge-status.enum';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { KnowledgeStatus } from '../enums/knowledge-status.enum.js';
 
 /**
  * 5 个状态机转换, V0.x 简单枚举.

@@ -2,7 +2,7 @@ import { Logger, NotFoundException } from '@nestjs/common';
 import { ExecutionContextHost } from '@nestjs/core/internal';
 import { afterAll, afterEach, expect, test, vi } from 'vitest';
 
-import { ExceptionsFilter } from './exceptions.filter';
+import { ExceptionsFilter } from './exceptions.filter.js';
 
 // Observe the Nest logger that the filter writes to, and keep the test output clean.
 const logError = vi.spyOn(Logger.prototype, 'error').mockReturnValue();

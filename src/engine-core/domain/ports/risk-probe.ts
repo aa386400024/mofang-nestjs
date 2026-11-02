@@ -24,7 +24,7 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-core/wp4-safety.spec.ts 用 fake probe 覆盖超时 / 抛错 / 脏形状
 
-import type { SafetyLevel, SafetySide, VisitorRiskCategory } from '../safety/safety-types';
+import type { SafetyLevel, SafetySide, VisitorRiskCategory } from '../safety/safety-types.js';
 
 /**
  * 风险探测结果 (由实现方给出, 内核只做归一).

@@ -28,10 +28,10 @@ import { config as loadEnvFile } from 'dotenv';
 
 import { DataSource, type DataSourceOptions } from 'typeorm';
 
-import { configuration } from '../src/config/configuration';
-import { VISITOR_POOL_TEMPLATE_SEEDS, validateVisitorPoolTemplateSeeds } from '../src/counselor/config/visitor-pool-seed';
-import { VisitorPoolTemplate } from '../src/counselor/entities/visitor-pool-template.entity';
-import { seedVisitorPoolTemplates, correctVisitorPoolCodenames } from '../src/counselor/seeds/visitor-pool-templates.seed';
+import { configuration } from '../src/config/configuration.js';
+import { VISITOR_POOL_TEMPLATE_SEEDS, validateVisitorPoolTemplateSeeds } from '../src/counselor/config/visitor-pool-seed.js';
+import { VisitorPoolTemplate } from '../src/counselor/entities/visitor-pool-template.entity.js';
+import { seedVisitorPoolTemplates, correctVisitorPoolCodenames } from '../src/counselor/seeds/visitor-pool-templates.seed.js';
 
 type DbConfig = DataSourceOptions & { autoLoadEntities?: boolean };
 

@@ -1,11 +1,11 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { DashboardMilestonesDto, DashboardModulesDto, DashboardOverviewDto, DashboardWeeklyChartDto } from '../dto/dashboard.dto';
-import { DashboardService } from '../providers/dashboard.service';
+import { DashboardMilestonesDto, DashboardModulesDto, DashboardOverviewDto, DashboardWeeklyChartDto } from '../dto/dashboard.dto.js';
+import { DashboardService } from '../providers/dashboard.service.js';
 
 /**
  * 仪表板 controller — V2.0 §Tab4 「我的数据」心理健身数据.

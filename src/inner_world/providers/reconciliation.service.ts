@@ -2,12 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { BadgesService } from './badges.service';
-import { PracticeSession } from '../../practice/entities/practice-session.entity';
-import { FragmentLog } from '../entities/fragment-log.entity';
-import { IslandElement } from '../entities/island-element.entity';
-import { BadgeId } from '../enums/badge-id.enum';
-import { BadgeRuleContext, judgeAll } from '../policies/badge-rules';
+import { BadgesService } from './badges.service.js';
+import { PracticeSession } from '../../practice/entities/practice-session.entity.js';
+import { FragmentLog } from '../entities/fragment-log.entity.js';
+import { IslandElement } from '../entities/island-element.entity.js';
+import { BadgeId } from '../enums/badge-id.enum.js';
+import { BadgeRuleContext, judgeAll } from '../policies/badge-rules.js';
 
 /**
  * 徽章自动检测服务 — reconciliation.

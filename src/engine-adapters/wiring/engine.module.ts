@@ -44,11 +44,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver } from './character';
-import { CharacterPoolModule } from './character/character-pool.module';
-import { EngineStreamBackend } from './engine-stream-backend.adapter';
-import { EngineSessionRegistry, EngineTurnService } from './engine-turn.service';
-import { EngineWiringController } from './engine-wiring.controller';
+import { CharacterPoolModule } from './character/character-pool.module.js';
+import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver } from './character/index.js';
+import { EngineStreamBackend } from './engine-stream-backend.adapter.js';
+import { EngineSessionRegistry, EngineTurnService } from './engine-turn.service.js';
+import { EngineWiringController } from './engine-wiring.controller.js';
 import {
   createEngineMemoryStore,
   createEngineOrchestrator,
@@ -58,31 +58,31 @@ import {
   createRiskProbe,
   createSessionCloseout,
   createVisitorOutputProbe,
-} from './engine.providers';
-import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from './engine.tokens';
-import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory';
-import { resolveSessionCostPricing } from '../observability/session-cost';
-import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe';
-import { LocalCrisisProbe } from './risk/local-crisis.probe';
-import { PsyGuardHealthChecker } from './risk/psyguard-health.checker';
-import { RISK_PROBE } from './risk/risk-probe.token';
-import { RouterChatCaller } from './router-chat-caller';
-import { StaticTrajectoryScriptResolver, TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory';
-import { AdminDebugModule } from '../../admin-debug/admin-debug.module';
-import { AIEngineModule } from '../../ai-engine/ai-engine.module';
-import { QdrantService } from '../../ai-engine/providers/qdrant.service';
-import type { EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core';
-import { LlmModule } from '../../llm/llm.module';
-import { LlmRouterService } from '../../llm/registry/llm-router.service';
-import { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
-import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge';
-import { VOICE_TURN_BACKEND } from '../../voice/voice-turn-backend.port';
-import { OpenAICompatEmbedder } from '../embedder/openai-compat.embedder';
-import { resolveMemoryConfig } from '../persistence/memory-config';
-import { SessionCloseoutService } from '../persistence/session-closeout.service';
-import { LlmSessionSummaryGenerator, resolveSummaryModel } from '../persistence/session-summary.generator';
-import type { StreamingRenderPort } from '../rendering/streaming-render.port';
-import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
+} from './engine.providers.js';
+import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from './engine.tokens.js';
+import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory.js';
+import { AIEngineModule } from '../../ai-engine/ai-engine.module.js';
+import { resolveSessionCostPricing } from '../observability/session-cost.js';
+import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe.js';
+import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
+import { PsyGuardHealthChecker } from './risk/psyguard-health.checker.js';
+import { RISK_PROBE } from './risk/risk-probe.token.js';
+import { RouterChatCaller } from './router-chat-caller.js';
+import { StaticTrajectoryScriptResolver, TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory/index.js';
+import { AdminDebugModule } from '../../admin-debug/admin-debug.module.js';
+import { QdrantService } from '../../ai-engine/providers/qdrant.service.js';
+import type { EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
+import { LlmModule } from '../../llm/llm.module.js';
+import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
+import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
+import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
+import { VOICE_TURN_BACKEND } from '../../voice/voice-turn-backend.port.js';
+import { OpenAICompatEmbedder } from '../embedder/openai-compat.embedder.js';
+import { resolveMemoryConfig } from '../persistence/memory-config.js';
+import { SessionCloseoutService } from '../persistence/session-closeout.service.js';
+import { LlmSessionSummaryGenerator, resolveSummaryModel } from '../persistence/session-summary.generator.js';
+import type { StreamingRenderPort } from '../rendering/streaming-render.port.js';
+import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js';
 
 /**
  * 引擎装配模块 (NestJS).

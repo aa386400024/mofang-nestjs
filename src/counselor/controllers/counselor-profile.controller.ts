@@ -12,11 +12,11 @@
 import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { type CounselorProfileDto, CounselorProfileUpdatePreferenceDto } from '../dto/counselor-profile.dto';
-import { CounselorProfileService } from '../providers/counselor-profile.service';
+import { type CounselorProfileDto, CounselorProfileUpdatePreferenceDto } from '../dto/counselor-profile.dto.js';
+import { CounselorProfileService } from '../providers/counselor-profile.service.js';
 
 /**
  * V2026-10-13 (Phase 7.10 P0-5 — CounselorProfileController):

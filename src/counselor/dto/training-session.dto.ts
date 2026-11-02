@@ -50,15 +50,15 @@ import {
   SESSION_LIST_TYPE_VALUES,
   type SessionListReportStatus,
   type SessionListType,
-} from '../domain/session-view/session-view.types';
-import { ChatRole } from '../enums/chat-role.enum';
-import { DimensionVariance } from '../enums/dimension-variance.enum';
-import { SUPERVISION_FAILURE_CODE_VALUES, SupervisionFailureCode } from '../enums/supervision-failure-code.enum';
-import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
-import { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import { TrainingSessionStatus } from '../enums/training-session-status.enum';
-import { VisitorMode } from '../enums/visitor-mode.enum';
-import { VisitorStyle } from '../enums/visitor-style.enum';
+} from '../domain/session-view/session-view.types.js';
+import { ChatRole } from '../enums/chat-role.enum.js';
+import { DimensionVariance } from '../enums/dimension-variance.enum.js';
+import { SUPERVISION_FAILURE_CODE_VALUES, SupervisionFailureCode } from '../enums/supervision-failure-code.enum.js';
+import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum.js';
+import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import { TrainingSessionStatus } from '../enums/training-session-status.enum.js';
+import { VisitorMode } from '../enums/visitor-mode.enum.js';
+import { VisitorStyle } from '../enums/visitor-style.enum.js';
 
 // ════════════════════════════════════════════════════════════════════════════
 // 建会话

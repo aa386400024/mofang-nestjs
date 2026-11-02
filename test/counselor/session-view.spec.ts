@@ -39,10 +39,10 @@ import {
   resolveSessionTypeByScenarioId,
   SESSION_LIST_REPORT_STATUS_VALUES,
   SESSION_LIST_TYPE_VALUES,
-} from '../../src/counselor/domain/session-view/session-view.types';
-import { SessionType } from '../../src/counselor/enums/session-type.enum';
-import { SupervisionFailureCode } from '../../src/counselor/enums/supervision-failure-code.enum';
-import { TrainingSessionStatus } from '../../src/counselor/enums/training-session-status.enum';
+} from '../../src/counselor/domain/session-view/session-view.types.js';
+import { SessionType } from '../../src/counselor/enums/session-type.enum.js';
+import { SupervisionFailureCode } from '../../src/counselor/enums/supervision-failure-code.enum.js';
+import { TrainingSessionStatus } from '../../src/counselor/enums/training-session-status.enum.js';
 
 const VPT_SCENARIO_ID = 'vpt_voice';
 const STARTED_AT = new Date('2026-10-27T10:00:00.000Z');

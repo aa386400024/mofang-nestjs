@@ -20,15 +20,15 @@
 //     3. 每轮分析器对同一轮只产生 1 条 hint + 至多 1 条 mark
 //   时间戳: 2026-10-21
 
-import { ChatRole } from '../../enums/chat-role.enum';
-import { InformedConsentElement } from '../../enums/informed-consent-element.enum';
-import { LiveSupervisionHintTier } from '../../enums/live-supervision-hint-tier.enum';
-import { SessionType } from '../../enums/session-type.enum';
-import { SupervisionFailureCode } from '../../enums/supervision-failure-code.enum';
-import { SupervisionSchoolCode } from '../../enums/supervision-school-code.enum';
-import { TrainingSessionStatus } from '../../enums/training-session-status.enum';
-import { TransferenceMarkDirection, TransferenceMarkType } from '../../enums/transference-mark.enum';
-import { isInsufficientMaterial, type EffectiveMaterial, type EffectiveMaterialThresholds } from '../session-view/session-material';
+import { ChatRole } from '../../enums/chat-role.enum.js';
+import { InformedConsentElement } from '../../enums/informed-consent-element.enum.js';
+import { LiveSupervisionHintTier } from '../../enums/live-supervision-hint-tier.enum.js';
+import { SessionType } from '../../enums/session-type.enum.js';
+import { SupervisionFailureCode } from '../../enums/supervision-failure-code.enum.js';
+import { SupervisionSchoolCode } from '../../enums/supervision-school-code.enum.js';
+import { TrainingSessionStatus } from '../../enums/training-session-status.enum.js';
+import { TransferenceMarkDirection, TransferenceMarkType } from '../../enums/transference-mark.enum.js';
+import { isInsufficientMaterial, type EffectiveMaterial, type EffectiveMaterialThresholds } from '../session-view/session-material.js';
 
 // ════════════════════════════════════════════════════════════════════════════
 // ① 知情同意 4 要素覆盖明细 (v1.2 spec §5.4)

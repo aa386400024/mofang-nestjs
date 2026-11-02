@@ -4,8 +4,8 @@ import type { Repository } from 'typeorm';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
 
-import { Sampletable1 } from '#entity/sampledb1';
-import { CrudService } from './crud.service';
+import { Sampletable1 } from '#entity/sampledb1/index.js';
+import { CrudService } from './crud.service.js';
 
 let moduleRef: TestingModule | undefined;
 let repository: DeepMockProxy<Repository<Sampletable1>>;

@@ -35,7 +35,7 @@
 //     2. test/engine-adapters/wp8b-stream-render.spec.ts 覆盖流式状态机与降级
 //     3. test/engine-adapters/wp8b-turn-stream.spec.ts 覆盖门面的流式出口
 
-import type { RenderPort, RenderSpec, RenderTaskKind } from '../../engine-core';
+import type { RenderPort, RenderSpec, RenderTaskKind } from '../../engine-core/index.js';
 
 /**
  * 输出侧校验结论 (只取内核约定的等级与类别, 不引入厂商私有结构).

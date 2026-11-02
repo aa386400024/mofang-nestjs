@@ -25,12 +25,12 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, type Repository } from 'typeorm';
 
-import type { VoiceDifficulty, VoiceTemplateSummary, VoiceVisitorStyle } from '../../voice/voice-session.types';
-import { VoiceTemplateRegistry } from '../../voice/voice-template-slot';
-import { riskTagsForSelfReportedRisk } from '../config/vpt.config';
-import { VisitorPoolTemplate } from '../entities/visitor-pool-template.entity';
-import { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import { VisitorStyle } from '../enums/visitor-style.enum';
+import type { VoiceDifficulty, VoiceTemplateSummary, VoiceVisitorStyle } from '../../voice/voice-session.types.js';
+import { VoiceTemplateRegistry } from '../../voice/voice-template-slot.js';
+import { riskTagsForSelfReportedRisk } from '../config/vpt.config.js';
+import { VisitorPoolTemplate } from '../entities/visitor-pool-template.entity.js';
+import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import { VisitorStyle } from '../enums/visitor-style.enum.js';
 
 /**
  * counselor 难度 → voice 难度 (显式映射, 不 cast).

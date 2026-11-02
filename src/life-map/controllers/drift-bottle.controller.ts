@@ -1,15 +1,15 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, NotFoundException, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { DriftBottleEntryDto } from '../dto/drift-bottle-entry.dto';
-import { DriftBottleStatsDto } from '../dto/drift-bottle-stats.dto';
-import { PostDriftBottleDto } from '../dto/post-drift-bottle.dto';
-import { RespondDriftBottleDto } from '../dto/respond-drift-bottle.dto';
+import { DriftBottleEntryDto } from '../dto/drift-bottle-entry.dto.js';
+import { DriftBottleStatsDto } from '../dto/drift-bottle-stats.dto.js';
+import { PostDriftBottleDto } from '../dto/post-drift-bottle.dto.js';
+import { RespondDriftBottleDto } from '../dto/respond-drift-bottle.dto.js';
 
-import { DriftBottleService } from '../providers/drift-bottle.service';
+import { DriftBottleService } from '../providers/drift-bottle.service.js';
 
 /**
  * 漂流瓶 controller — V2026-09-12 §6.5 心塑 V6.0.

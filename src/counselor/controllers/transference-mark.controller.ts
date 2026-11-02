@@ -21,11 +21,11 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { CreateTransferenceMarkDto, TransferenceMarkDto } from '../dto/session-core.dto';
-import { TransferenceMarkService } from '../providers/transference-mark.service';
+import { CreateTransferenceMarkDto, TransferenceMarkDto } from '../dto/session-core.dto.js';
+import { TransferenceMarkService } from '../providers/transference-mark.service.js';
 
 /**
  * V2026-10-21 (V1.2 VS-C — CounselorTransferenceMarkController):

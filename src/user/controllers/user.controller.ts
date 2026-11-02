@@ -2,27 +2,27 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Post, Req, Res, UseGuar
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 
-import { AuthMediumRateLimit, AuthStrictRateLimit } from './auth-rate-limit.decorators';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { clearAuthCookies, JwtCookieInterceptor } from '../../common/security/jwt-cookie.interceptor';
-import { CurrentUser } from '../decorators/current-user.decorator';
-import { AuthResponseDto, CurrentUserDto } from '../dto/auth-response.dto';
-import { ChangePasswordDto } from '../dto/change-password.dto';
-import { ForgotPasswordDto } from '../dto/forgot-password.dto';
-import { LoginDto } from '../dto/login.dto';
-import { RefreshTokenDto } from '../dto/refresh-token.dto';
-import { RegisterDto } from '../dto/register.dto';
-import { ResetPasswordDto } from '../dto/reset-password.dto';
-import { SessionDto } from '../dto/session.dto';
-import { VerifyEmailDto, ResendVerificationDto } from '../dto/verify-email.dto';
+import { AuthMediumRateLimit, AuthStrictRateLimit } from './auth-rate-limit.decorators.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { clearAuthCookies, JwtCookieInterceptor } from '../../common/security/jwt-cookie.interceptor.js';
+import { CurrentUser } from '../decorators/current-user.decorator.js';
+import { AuthResponseDto, CurrentUserDto } from '../dto/auth-response.dto.js';
+import { ChangePasswordDto } from '../dto/change-password.dto.js';
+import { ForgotPasswordDto } from '../dto/forgot-password.dto.js';
+import { LoginDto } from '../dto/login.dto.js';
+import { RefreshTokenDto } from '../dto/refresh-token.dto.js';
+import { RegisterDto } from '../dto/register.dto.js';
+import { ResetPasswordDto } from '../dto/reset-password.dto.js';
+import { SessionDto } from '../dto/session.dto.js';
+import { VerifyEmailDto, ResendVerificationDto } from '../dto/verify-email.dto.js';
 
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { JwtBlacklistService } from '../providers/jwt-blacklist.service';
-import { PasswordResetService } from '../providers/password-reset.service';
-import { SessionService } from '../providers/session.service';
-import { UserService } from '../providers/user.service';
-import { SessionRevokeReason } from '../user.constant';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
+import { JwtBlacklistService } from '../providers/jwt-blacklist.service.js';
+import { PasswordResetService } from '../providers/password-reset.service.js';
+import { SessionService } from '../providers/session.service.js';
+import { UserService } from '../providers/user.service.js';
+import { SessionRevokeReason } from '../user.constant.js';
 
 /**
  * User controller — 心塑 + 魔方共用账号 endpoints (大厂企业级 V2).

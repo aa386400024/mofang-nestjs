@@ -9,9 +9,9 @@
  *   - metrics: Prometheus 指标 + /metrics 端点
  *   - observability: Sentry 异常上报
  */
-export * from './redis';
-export * from './queue';
-export * from './email';
-export * from './sms';
-export * from './metrics';
-export * from './observability';
+export * from './redis/index.js';
+export * from './queue/index.js';
+export * from './email/index.js';
+export * from './sms/index.js';
+export * from './metrics/index.js';
+export * from './observability/index.js';

@@ -14,27 +14,27 @@
 //   验证: npx jest test/engine-adapters/wp11-psyguard-probe.spec.ts
 //   时间戳: 2026-10-30 GMT+8
 
-import type { ChatCaller } from '../../src/engine-adapters/rendering/llm-render.adapter';
+import type { ChatCaller } from '../../src/engine-adapters/rendering/llm-render.adapter.js';
 import {
   DEFAULT_RENDER_COOLDOWN_BASE_MS,
   DEFAULT_RENDER_COOLDOWN_MAX_MS,
   DEFAULT_RENDER_FAILURE_THRESHOLD,
   DEFAULT_RENDER_TIMEOUT_MS,
   type RenderAdapterConfig,
-} from '../../src/engine-adapters/rendering/render-adapter.config';
-import { createRiskProbe, createVisitorOutputProbe } from '../../src/engine-adapters/wiring/engine.providers';
-import { buildEngineRenderDeps } from '../../src/engine-adapters/wiring/render-config.factory';
+} from '../../src/engine-adapters/rendering/render-adapter.config.js';
+import { createRiskProbe, createVisitorOutputProbe } from '../../src/engine-adapters/wiring/engine.providers.js';
+import { buildEngineRenderDeps } from '../../src/engine-adapters/wiring/render-config.factory.js';
 import {
   HttpPsyGuardProbe,
   normalizePsyGuardResponse,
   resolvePsyGuardTimeoutMs,
   type PsyGuardFetch,
-} from '../../src/engine-adapters/wiring/risk/http-psyguard.probe';
-import { LocalCrisisProbe, detectCrisisCategories, normalizeWidth } from '../../src/engine-adapters/wiring/risk/local-crisis.probe';
-import { PsyGuardHealthChecker } from '../../src/engine-adapters/wiring/risk/psyguard-health.checker';
-import { assessSafety, DEFAULT_PROBE_TIMEOUT_MS, PSYGUARD_LEVEL_MAP } from '../../src/engine-core';
-import type { RiskProbePort } from '../../src/engine-core';
-import { AIProviderId } from '../../src/llm/common/enums/llm.enums';
+} from '../../src/engine-adapters/wiring/risk/http-psyguard.probe.js';
+import { LocalCrisisProbe, detectCrisisCategories, normalizeWidth } from '../../src/engine-adapters/wiring/risk/local-crisis.probe.js';
+import { PsyGuardHealthChecker } from '../../src/engine-adapters/wiring/risk/psyguard-health.checker.js';
+import { assessSafety, DEFAULT_PROBE_TIMEOUT_MS, PSYGUARD_LEVEL_MAP } from '../../src/engine-core/index.js';
+import type { RiskProbePort } from '../../src/engine-core/index.js';
+import { AIProviderId } from '../../src/llm/common/enums/llm.enums.js';
 
 /** 假响应的构造入参. */
 interface FakeResponseInit {

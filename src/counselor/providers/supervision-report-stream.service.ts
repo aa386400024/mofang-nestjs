@@ -39,14 +39,14 @@ import { ConfigService } from '@nestjs/config';
 import { Observable, from, of, timer } from 'rxjs';
 import { concatMap, filter, map, take } from 'rxjs/operators';
 
-import { SupervisionService } from './supervision.service';
-import { SUPERVISION_REPORT_STREAM_POLL_INTERVAL_MS, SUPERVISION_REPORT_STREAM_TIMEOUT_MS } from '../config/supervision.config';
+import { SupervisionService } from './supervision.service.js';
+import { SUPERVISION_REPORT_STREAM_POLL_INTERVAL_MS, SUPERVISION_REPORT_STREAM_TIMEOUT_MS } from '../config/supervision.config.js';
 import {
   buildReportStreamTimeoutPayload,
   decideReportStreamAction,
   type ReportStreamTimeoutPayload,
-} from '../domain/session-core/report-stream';
-import { type SessionReportDto } from '../dto/supervision.dto';
+} from '../domain/session-core/report-stream.js';
+import { type SessionReportDto } from '../dto/supervision.dto.js';
 
 /**
  * 一轮轮询的结果.

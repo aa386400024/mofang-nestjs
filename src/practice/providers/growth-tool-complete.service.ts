@@ -17,10 +17,10 @@
 
 import { Injectable } from '@nestjs/common';
 
-import { GrowthDailyToolsService } from './growth-daily-tools.service';
-import { BizCode, BizException } from '../../common/exceptions';
-import { TOOL_COMPLETION_SOURCES } from '../constants/tool-completion-source';
-import { DailyGrowthToolDto } from '../dto/growth.dto';
+import { GrowthDailyToolsService } from './growth-daily-tools.service.js';
+import { BizCode, BizException } from '../../common/exceptions/index.js';
+import { TOOL_COMPLETION_SOURCES } from '../constants/tool-completion-source.js';
+import { DailyGrowthToolDto } from '../dto/growth.dto.js';
 
 @Injectable()
 export class GrowthToolCompleteService {

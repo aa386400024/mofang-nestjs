@@ -58,9 +58,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomInt, randomUUID } from 'node:crypto';
 import { IsNull, type Repository } from 'typeorm';
 
-import { CounselorSupervisionProcessor } from './counselor-supervision.processor';
-import { TurnAnalysisProcessor } from './turn-analysis.processor';
-import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types';
+import { CounselorSupervisionProcessor } from './counselor-supervision.processor.js';
+import { TurnAnalysisProcessor } from './turn-analysis.processor.js';
+import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types.js';
 import {
   VoiceSessionBridgeRegistry,
   type VoiceSessionBridge,
@@ -70,20 +70,20 @@ import {
   type VoiceSessionOpenResult,
   type VoiceSessionTranscriptInput,
   type VoiceSessionTurnInput,
-} from '../../voice/voice-session-bridge';
-import type { VoiceDifficulty, VoiceVisitorStyle } from '../../voice/voice-session.types';
-import { SUPERVISION_MIN_EFFECTIVE_CHARS, SUPERVISION_MIN_EFFECTIVE_TURNS } from '../config/supervision.config';
-import { VPT_SCENARIO_ID } from '../config/vpt.config';
-import { isInsufficientMaterial, measureEffectiveMaterial } from '../domain/session-view/session-material';
-import { TrainingSession, type TrainingTranscriptTurn } from '../entities/training-session.entity';
-import { ChatRole } from '../enums/chat-role.enum';
-import { DimensionVariance } from '../enums/dimension-variance.enum';
-import { SessionType } from '../enums/session-type.enum';
-import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
-import { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import { TrainingSessionStatus } from '../enums/training-session-status.enum';
-import { VisitorMode } from '../enums/visitor-mode.enum';
-import { VisitorStyle } from '../enums/visitor-style.enum';
+} from '../../voice/voice-session-bridge.js';
+import type { VoiceDifficulty, VoiceVisitorStyle } from '../../voice/voice-session.types.js';
+import { SUPERVISION_MIN_EFFECTIVE_CHARS, SUPERVISION_MIN_EFFECTIVE_TURNS } from '../config/supervision.config.js';
+import { VPT_SCENARIO_ID } from '../config/vpt.config.js';
+import { isInsufficientMaterial, measureEffectiveMaterial } from '../domain/session-view/session-material.js';
+import { TrainingSession, type TrainingTranscriptTurn } from '../entities/training-session.entity.js';
+import { ChatRole } from '../enums/chat-role.enum.js';
+import { DimensionVariance } from '../enums/dimension-variance.enum.js';
+import { SessionType } from '../enums/session-type.enum.js';
+import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum.js';
+import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import { TrainingSessionStatus } from '../enums/training-session-status.enum.js';
+import { VisitorMode } from '../enums/visitor-mode.enum.js';
+import { VisitorStyle } from '../enums/visitor-style.enum.js';
 
 /**
  * vpt 会话在 `training_sessions` 表里的场景标识 → 见 `../config/vpt.config`.

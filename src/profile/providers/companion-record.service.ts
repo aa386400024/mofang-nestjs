@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { CompanionRecordDto, CreateCompanionRecordDto, ListCompanionRecordsResponseDto } from '../dto/companion-record.dto';
-import { CompanionRecord } from '../entities/companion-record.entity';
+import { CompanionRecordDto, CreateCompanionRecordDto, ListCompanionRecordsResponseDto } from '../dto/companion-record.dto.js';
+import { CompanionRecord } from '../entities/companion-record.entity.js';
 
 /**
  * CompanionRecord service — 心塑「我的」Tab 陪伴记录核心服务 (陪伴者专属).

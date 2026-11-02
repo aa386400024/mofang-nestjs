@@ -3,13 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { Repository } from 'typeorm';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
 
-import type { MicroInterventionDto, MicroInterventionActiveResponseDto, MicroInterventionSettingsDto } from '../dto/home-overview.dto';
-import { MicroInterventionConfig } from '../entities/micro-intervention-config.entity';
-import { MicroInterventionHistory } from '../entities/micro-intervention-history.entity';
-import type { HomeEmotionLevel } from '../home.constants';
+import type { MicroInterventionDto, MicroInterventionActiveResponseDto, MicroInterventionSettingsDto } from '../dto/home-overview.dto.js';
+import { MicroInterventionConfig } from '../entities/micro-intervention-config.entity.js';
+import { MicroInterventionHistory } from '../entities/micro-intervention-history.entity.js';
+import type { HomeEmotionLevel } from '../home.constants.js';
 
 /**
  * 心塑「场景化微干预」核心服务 — V2.0 §3 + §6 (DESIGN).

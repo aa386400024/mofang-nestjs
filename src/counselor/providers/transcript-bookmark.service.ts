@@ -20,9 +20,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
-import { type CreateTranscriptBookmarkDto, type TranscriptBookmarkDto } from '../dto/session-core.dto';
-import { TrainingSession } from '../entities/training-session.entity';
-import { TranscriptBookmark } from '../entities/transcript-bookmark.entity';
+import { type CreateTranscriptBookmarkDto, type TranscriptBookmarkDto } from '../dto/session-core.dto.js';
+import { TrainingSession } from '../entities/training-session.entity.js';
+import { TranscriptBookmark } from '../entities/transcript-bookmark.entity.js';
 
 /**
  * 逐字稿打点 service.

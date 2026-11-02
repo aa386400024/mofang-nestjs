@@ -30,9 +30,9 @@
 //     3. grep 'drill' src/counselor/config/visitor-pool-seed.ts → 0 命中 (普通池零污染)
 //   时间戳: 2026-10-27 20:35 GMT+8
 
-import { DRILL_BOUNDARY_ANCHOR_KEYS, DRILL_CRISIS_ANCHOR_KEYS, type DrillScript, type DrillTrack } from '../domain/drill.types';
-import { BOUNDARY_DRILL_SCRIPTS } from './scripts/boundary/boundary-scripts';
-import { CRISIS_DRILL_SCRIPTS } from './scripts/crisis/crisis-scripts';
+import { DRILL_BOUNDARY_ANCHOR_KEYS, DRILL_CRISIS_ANCHOR_KEYS, type DrillScript, type DrillTrack } from '../domain/drill.types.js';
+import { BOUNDARY_DRILL_SCRIPTS } from './scripts/boundary/boundary-scripts.js';
+import { CRISIS_DRILL_SCRIPTS } from './scripts/crisis/crisis-scripts.js';
 
 /**
  * 全部情景剧本 (boundary + crisis).

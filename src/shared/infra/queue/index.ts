@@ -1,2 +1,2 @@
-export * from './queue.module';
-export * from './audit-log.processor';
+export * from './queue.module.js';
+export * from './audit-log.processor.js';

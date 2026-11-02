@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 
-import { GoodStateDiaryService } from './good-state-diary.service';
-import { DiaryAiFeedbackDto } from '../dto/good-state-diary.dto';
-import { RequestDiaryAiFeedbackDto } from '../dto/good-state-diary.dto';
-import { DiaryAiFeedbackSource } from '../enums/diary-ai-feedback-source.enum';
-import { DiaryMoodLevel } from '../enums/diary-mood-level.enum';
+import { GoodStateDiaryService } from './good-state-diary.service.js';
+import { DiaryAiFeedbackDto } from '../dto/good-state-diary.dto.js';
+import { RequestDiaryAiFeedbackDto } from '../dto/good-state-diary.dto.js';
+import { DiaryAiFeedbackSource } from '../enums/diary-ai-feedback-source.enum.js';
+import { DiaryMoodLevel } from '../enums/diary-mood-level.enum.js';
 
 /**
  * V2026-09-11 治本 (好状态日记 · AI 反馈 service):

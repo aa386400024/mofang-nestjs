@@ -19,10 +19,10 @@
 //     3. 信任度推到 0.8 后再问 → 回答应能触及核心信念
 //   时间戳: 2026-10-21
 
-import type { SessionContextEntry, SessionPersonaContext } from '../domain/session-context/session-context';
-import { TRUST_LEVEL_THRESHOLDS, trustExposureLevel } from '../domain/visitor-persona/visitor-persona.types';
-import type { VisitorFullPersonaScript } from '../domain/visitor-persona/visitor-persona.types';
-import type { TrainingDifficulty } from '../enums/training-difficulty.enum';
+import type { SessionContextEntry, SessionPersonaContext } from '../domain/session-context/session-context.js';
+import { TRUST_LEVEL_THRESHOLDS, trustExposureLevel } from '../domain/visitor-persona/visitor-persona.types.js';
+import type { VisitorFullPersonaScript } from '../domain/visitor-persona/visitor-persona.types.js';
+import type { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
 
 /**
  * 行为规则构造入参.

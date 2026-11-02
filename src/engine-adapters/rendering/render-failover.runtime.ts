@@ -25,8 +25,8 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp6-llm-render.spec.ts 覆盖选主/冷却过滤/退避/恢复切回
 
-import type { RenderAdapterConfig, RenderCandidate } from './render-adapter.config';
-import { selectFailoverTarget, type FailoverState } from '../../engine-core';
+import type { RenderAdapterConfig, RenderCandidate } from './render-adapter.config.js';
+import { selectFailoverTarget, type FailoverState } from '../../engine-core/index.js';
 
 /**
  * 候选运行时状态 (适配层持有, 内核不存).

@@ -18,9 +18,9 @@ import { vi } from 'vitest';
 //   验证: npx jest test/engine-adapters/wp12-memory-closeout.spec.ts
 //   时间戳: 2026-10-30 GMT+8
 
-import type { TranscriptTurn } from '../../src/agent/supervisor/supervisor.types';
-import { DEFAULT_MEMORY_CONFIG, MS_PER_DAY, resolveMemoryConfig } from '../../src/engine-adapters/persistence/memory-config';
-import { QdrantMemoryStore, type QdrantMemoryClient } from '../../src/engine-adapters/persistence/qdrant-memory.store';
+import type { TranscriptTurn } from '../../src/agent/supervisor/supervisor.types.js';
+import { DEFAULT_MEMORY_CONFIG, MS_PER_DAY, resolveMemoryConfig } from '../../src/engine-adapters/persistence/memory-config.js';
+import { QdrantMemoryStore, type QdrantMemoryClient } from '../../src/engine-adapters/persistence/qdrant-memory.store.js';
 import {
   DEFAULT_SESSION_SUMMARY_IMPORTANCE,
   SessionCloseoutService,
@@ -28,22 +28,22 @@ import {
   type SessionSummary,
   type SessionSummaryGenerator,
   type SessionTranscriptSaveInput,
-} from '../../src/engine-adapters/persistence/session-closeout.service';
+} from '../../src/engine-adapters/persistence/session-closeout.service.js';
 import {
   formatTranscript,
   parseSummaryResponse,
   resolveSummaryModel,
-} from '../../src/engine-adapters/persistence/session-summary.generator';
-import { EngineStreamBackend } from '../../src/engine-adapters/wiring/engine-stream-backend.adapter';
-import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service';
-import { MemorySource, MemoryTier, type MemoryEntry, type OpenEngineSessionInput } from '../../src/engine-core';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
-import type { LlmRouterService } from '../../src/llm/registry/llm-router.service';
+} from '../../src/engine-adapters/persistence/session-summary.generator.js';
+import { EngineStreamBackend } from '../../src/engine-adapters/wiring/engine-stream-backend.adapter.js';
+import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
+import { MemorySource, MemoryTier, type MemoryEntry, type OpenEngineSessionInput } from '../../src/engine-core/index.js';
+import type { LlmRouterService } from '../../src/llm/registry/llm-router.service.js';
 import {
   VoiceSessionBridgeRegistry,
   type VoiceSessionBridge,
   type VoiceSessionTranscriptInput,
-} from '../../src/voice/voice-session-bridge';
+} from '../../src/voice/voice-session-bridge.js';
 
 const TENANT = 'tenant-1';
 const USER = 'user-1';
@@ -610,8 +610,8 @@ describe('WP12 · 逐字稿落库桥插槽 (VoiceSessionBridgeRegistry)', () => 
 
 describe('WP12 · 逐字稿定稿写入 (业务侧桥)', () => {
   it('覆盖写 → 逐字稿表拿到引擎副本的全量 (咨询师/来访者角色映射正确)', async () => {
-    const { VptSessionBridgeService } = await import('../../src/counselor/providers/vpt-session-bridge.service');
-    const { ChatRole } = await import('../../src/counselor/enums/chat-role.enum');
+    const { VptSessionBridgeService } = await import('../../src/counselor/providers/vpt-session-bridge.service.js');
+    const { ChatRole } = await import('../../src/counselor/enums/chat-role.enum.js');
 
     const saved: { transcript: unknown[] }[] = [];
     const repo = {
@@ -647,7 +647,7 @@ describe('WP12 · 逐字稿定稿写入 (业务侧桥)', () => {
   });
 
   it('引擎副本为空 → 不覆盖 (拿空去覆盖会抹掉已落库的逐字稿)', async () => {
-    const { VptSessionBridgeService } = await import('../../src/counselor/providers/vpt-session-bridge.service');
+    const { VptSessionBridgeService } = await import('../../src/counselor/providers/vpt-session-bridge.service.js');
 
     const repo = {
       findOne: vi.fn(async () => ({ id: 'db-1', userId: USER, status: 'finished', transcript: [{ id: 'old' }] })),
@@ -668,7 +668,7 @@ describe('WP12 · 逐字稿定稿写入 (业务侧桥)', () => {
   });
 
   it('落库会话不存在 → 抛错 (不静默)', async () => {
-    const { VptSessionBridgeService } = await import('../../src/counselor/providers/vpt-session-bridge.service');
+    const { VptSessionBridgeService } = await import('../../src/counselor/providers/vpt-session-bridge.service.js');
 
     const repo = {
       findOne: vi.fn(async () => null),

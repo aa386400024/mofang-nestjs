@@ -1,15 +1,15 @@
 import { BadRequestException, Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { OAuthService } from './oauth.service';
-import { ConfigService } from '../../common';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { CurrentUser } from '../decorators/current-user.decorator';
+import { OAuthService } from './oauth.service.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { ConfigService } from '../../common/index.js';
+import { CurrentUser } from '../decorators/current-user.decorator.js';
 
-import { AuthResponseDto } from '../dto/auth-response.dto';
-import { OAuthProvider } from '../entities/oauth-identity.entity';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { AuthResponseDto } from '../dto/auth-response.dto.js';
+import { OAuthProvider } from '../entities/oauth-identity.entity.js';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
 
 /**
  * OAuth controller — 第三方登录端点 (大厂企业级).

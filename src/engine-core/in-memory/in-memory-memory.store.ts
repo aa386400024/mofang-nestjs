@@ -38,8 +38,8 @@ import {
   type MemoryHit,
   type MemoryRecallQuery,
   type MemoryStore,
-} from '../domain/ports/memory.store';
-import { evaluateRecallCandidate } from '../memory/recall-policy';
+} from '../domain/ports/memory.store.js';
+import { evaluateRecallCandidate } from '../memory/recall-policy.js';
 
 /** 记忆内存仓储构造选项. */
 export interface InMemoryMemoryStoreOptions {

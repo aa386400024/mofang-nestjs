@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
 import {
   EmbodiedAuthStatusDto,
@@ -10,8 +10,8 @@ import {
   EmbodiedToolDto,
   EmbodiedVitalsDto,
   RequestEmbodiedAuthDto,
-} from '../dto/practice.dto';
-import { PracticeEmbodiedService } from '../providers/practice.service';
+} from '../dto/practice.dto.js';
+import { PracticeEmbodiedService } from '../providers/practice.service.js';
 
 /**
  * 具身认知 controller — V2.0 §Tab2 分类8 + 心理健身房高级.

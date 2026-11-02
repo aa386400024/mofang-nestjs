@@ -19,11 +19,11 @@
 //     2. boundary.spec.ts: engine-core 子树零 @nestjs / typeorm import
 //     3. createEmptyBdiSnapshot() 每次返回新对象 (不共享可变引用)
 
-import type { CoreBelief, MemoryBelief, TemporaryBelief } from './beliefs';
-import { buildInitialSnapshot } from './bootstrap';
-import type { SituationalDesire, UnderlyingDesire } from './desires';
-import type { EmotionState } from './emotion';
-import type { TransferenceState } from './transference';
+import type { CoreBelief, MemoryBelief, TemporaryBelief } from './beliefs.js';
+import { buildInitialSnapshot } from './bootstrap.js';
+import type { SituationalDesire, UnderlyingDesire } from './desires.js';
+import type { EmotionState } from './emotion.js';
+import type { TransferenceState } from './transference.js';
 
 /**
  * 三维阻抗量化 (借 PatientHub 三维阻抗模型).

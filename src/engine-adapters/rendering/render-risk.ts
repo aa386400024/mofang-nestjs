@@ -22,7 +22,7 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp9c-render-risk.spec.ts 覆盖等级映射与思考强度升级
 
-import type { RenderSpec, SafetyLevel, VisitorRiskCategory } from '../../engine-core';
+import type { RenderSpec, SafetyLevel, VisitorRiskCategory } from '../../engine-core/index.js';
 
 /**
  * 渲染路由用的风险等级 (适配层口径).

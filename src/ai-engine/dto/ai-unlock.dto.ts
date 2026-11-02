@@ -5,7 +5,7 @@
 
 import { ApiProperty } from '@nestjs/swagger';
 
-import { AIUnlockFeature, AIUnlockState } from '../enums/ai-unlock.enums';
+import { AIUnlockFeature, AIUnlockState } from '../enums/ai-unlock.enums.js';
 
 /**
  * 单功能解锁状态 — 跟前端 AIUnlockState 1:1.

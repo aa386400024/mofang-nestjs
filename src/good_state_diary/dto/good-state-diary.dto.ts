@@ -16,10 +16,10 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-import { DiaryAiFeedbackSource, DIARY_AI_FEEDBACK_SOURCE_VALUES } from '../enums/diary-ai-feedback-source.enum';
-import { DiaryEntryStatus, DIARY_ENTRY_STATUS_VALUES } from '../enums/diary-entry-status.enum';
-import { DiaryMoodLevel, DIARY_MOOD_LEVEL_VALUES } from '../enums/diary-mood-level.enum';
-import { DiaryTag, DIARY_TAG_VALUES } from '../enums/diary-tag.enum';
+import { DiaryAiFeedbackSource, DIARY_AI_FEEDBACK_SOURCE_VALUES } from '../enums/diary-ai-feedback-source.enum.js';
+import { DiaryEntryStatus, DIARY_ENTRY_STATUS_VALUES } from '../enums/diary-entry-status.enum.js';
+import { DiaryMoodLevel, DIARY_MOOD_LEVEL_VALUES } from '../enums/diary-mood-level.enum.js';
+import { DiaryTag, DIARY_TAG_VALUES } from '../enums/diary-tag.enum.js';
 
 /**
  * V2026-09-11 治本 (好状态日记 · DTO 集合):

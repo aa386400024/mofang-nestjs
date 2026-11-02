@@ -60,33 +60,33 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
-import { CounselorLlmJsonClient } from './llm-json.client';
-import { SessionContextBuilder } from './session-context.builder';
+import { CounselorLlmJsonClient } from './llm-json.client.js';
+import { SessionContextBuilder } from './session-context.builder.js';
 import {
   SupervisionEmptyMaterialException,
   SupervisionSchoolMissingException,
   SupervisionUpstreamException,
   mapLlmErrorCodeToFailureCode,
-} from './supervision-failure';
-import { TransferenceMarkService } from './transference-mark.service';
+} from './supervision-failure.js';
+import { TransferenceMarkService } from './transference-mark.service.js';
 import {
   SUPERVISION_REPORT_REPOSITORY,
   type SupervisionReportRepository,
-} from '../../agent/supervisor/domain/repositories/supervision-report.repository';
-import type { SupervisionAnnotation, SupervisionDimensions, SupervisionReportRow } from '../../agent/supervisor/supervisor.types';
-import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config';
+} from '../../agent/supervisor/domain/repositories/supervision-report.repository.js';
+import type { SupervisionAnnotation, SupervisionDimensions, SupervisionReportRow } from '../../agent/supervisor/supervisor.types.js';
+import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config.js';
 import {
   SUPERVISION_MIN_EFFECTIVE_CHARS,
   SUPERVISION_MIN_EFFECTIVE_TURNS,
   SUPERVISION_REPORT_PENDING_TIMEOUT_MS,
-} from '../config/supervision.config';
-import { VPT_SCENARIO_ID } from '../config/vpt.config';
+} from '../config/supervision.config.js';
+import { VPT_SCENARIO_ID } from '../config/vpt.config.js';
 import {
   buildSupervisionContextBlock,
   renderPersonaBlock,
   renderTranscriptBlock,
   type SessionContext,
-} from '../domain/session-context/session-context';
+} from '../domain/session-context/session-context.js';
 import {
   resolveHasMainReportChannel,
   resolveSchoolFeedbackState,
@@ -97,15 +97,15 @@ import {
   type SessionReportState,
   type SessionSchoolFeedbackState,
   type SessionTechStats,
-} from '../domain/session-core/session-core.types';
+} from '../domain/session-core/session-core.types.js';
 import {
   isInsufficientMaterial,
   measureEffectiveMaterial,
   type EffectiveMaterial,
   type EffectiveMaterialThresholds,
-} from '../domain/session-view/session-material';
-import { resolveSessionTypeByScenarioId } from '../domain/session-view/session-view.types';
-import type { SessionTechStatsDto, TransferenceMarkDto } from '../dto/session-core.dto';
+} from '../domain/session-view/session-material.js';
+import { resolveSessionTypeByScenarioId } from '../domain/session-view/session-view.types.js';
+import type { SessionTechStatsDto, TransferenceMarkDto } from '../dto/session-core.dto.js';
 import {
   type CompareSupervisionFeedbackResponseDto,
   type GenerateSupervisionFeedbackDto,
@@ -116,15 +116,19 @@ import {
   type SupervisionReportDimensionsDto,
   type SupervisionSchoolDetailDto,
   type SupervisionSchoolListItemDto,
-} from '../dto/supervision.dto';
-import { LongTermCaseSession } from '../entities/long-term-case-session.entity';
-import { SupervisionFeedback, type SupervisionAlternative, type SupervisionFeedbackPayload } from '../entities/supervision-feedback.entity';
-import { SupervisionSchool } from '../entities/supervision-school.entity';
-import { TrainingSession } from '../entities/training-session.entity';
-import { SessionType } from '../enums/session-type.enum';
-import { SupervisionFailureCode } from '../enums/supervision-failure-code.enum';
-import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
-import { TrainingSessionStatus } from '../enums/training-session-status.enum';
+} from '../dto/supervision.dto.js';
+import { LongTermCaseSession } from '../entities/long-term-case-session.entity.js';
+import {
+  SupervisionFeedback,
+  type SupervisionAlternative,
+  type SupervisionFeedbackPayload,
+} from '../entities/supervision-feedback.entity.js';
+import { SupervisionSchool } from '../entities/supervision-school.entity.js';
+import { TrainingSession } from '../entities/training-session.entity.js';
+import { SessionType } from '../enums/session-type.enum.js';
+import { SupervisionFailureCode } from '../enums/supervision-failure-code.enum.js';
+import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum.js';
+import { TrainingSessionStatus } from '../enums/training-session-status.enum.js';
 
 /**
  * 4 字段输出契约 (给模型看的 JSON schema 描述).

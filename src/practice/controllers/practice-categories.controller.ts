@@ -1,11 +1,11 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { PracticeCategoryDto } from '../dto/practice.dto';
-import { PracticeCategoryService } from '../providers/practice.service';
+import { PracticeCategoryDto } from '../dto/practice.dto.js';
+import { PracticeCategoryService } from '../providers/practice.service.js';
 
 /**
  * 8 大分类 controller — V2.0 §Tab2 顶部横向分类.

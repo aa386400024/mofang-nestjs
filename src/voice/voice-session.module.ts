@@ -15,11 +15,11 @@
 
 import { Global, Module } from '@nestjs/common';
 
-import { VoiceCatalogRegistry } from './voice-catalog-slot';
-import { VoiceFrameRegistry } from './voice-frame-registry';
-import { VoiceSessionBridgeRegistry } from './voice-session-bridge';
-import { VoiceSessionRegistry } from './voice-session-registry';
-import { VoiceTemplateRegistry } from './voice-template-slot';
+import { VoiceCatalogRegistry } from './voice-catalog-slot.js';
+import { VoiceFrameRegistry } from './voice-frame-registry.js';
+import { VoiceSessionBridgeRegistry } from './voice-session-bridge.js';
+import { VoiceSessionRegistry } from './voice-session-registry.js';
+import { VoiceTemplateRegistry } from './voice-template-slot.js';
 
 /**
  * Voice 会话基础设施模块 (@Global).

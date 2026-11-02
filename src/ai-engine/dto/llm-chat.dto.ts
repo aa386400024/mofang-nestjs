@@ -6,7 +6,7 @@
 
 import { ApiProperty } from '@nestjs/swagger';
 
-import { LLMTier } from '../../llm/common/enums/llm.enums';
+import { LLMTier } from '../../llm/common/enums/llm.enums.js';
 
 /**
  * 单条消息 — OpenAI messages schema 兼容.

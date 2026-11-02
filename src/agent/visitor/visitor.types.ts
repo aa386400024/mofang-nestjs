@@ -14,8 +14,8 @@
 //     3. streamTurn 后 messages 增加 user + assistant 两条
 //     4. closeSession 后 Map 清理, 同 sessionId 再 openSession 创建新对象
 
-import type { LlmStream, LlmStreamChunk } from '../llm/llm.types';
-import type { Persona } from '../persona/domain/entities/persona.entity';
+import type { LlmStream, LlmStreamChunk } from '../llm/llm.types.js';
+import type { Persona } from '../persona/domain/entities/persona.entity.js';
 
 /** 单条对话消息. */
 export interface VisitorMessage {

@@ -25,7 +25,7 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/llm/minimax-provider.spec.ts 覆盖键名映射与基址归一
 
-import { AIProviderId } from '../common/enums/llm.enums';
+import { AIProviderId } from '../common/enums/llm.enums.js';
 
 /**
  * provider → apiKey 的 env 键名 (缺省规律: `LLM_<ID大写>_API_KEY`).

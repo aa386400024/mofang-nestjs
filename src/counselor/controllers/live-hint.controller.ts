@@ -27,11 +27,11 @@ import { Controller, Get, MessageEvent, Param, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import { type Observable } from 'rxjs';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { type LiveSupervisionHintDto } from '../dto/session-core.dto';
-import { LiveSupervisionHintService } from '../providers/live-hint.service';
+import { type LiveSupervisionHintDto } from '../dto/session-core.dto.js';
+import { LiveSupervisionHintService } from '../providers/live-hint.service.js';
 
 /**
  * V2026-10-21 (V1.2 VS-C — CounselorLiveHintController):

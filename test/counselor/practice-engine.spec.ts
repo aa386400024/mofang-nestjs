@@ -12,12 +12,12 @@
 //     1. npx jest test/counselor/practice-engine.spec.ts 全绿
 //     2. 故意把某条 scenarioKey 改成重复 → 第 2 组用例变红
 //   时间戳: 2026-10-22
-import { evaluationFocusOf } from '../../src/counselor/config/practice-evaluation-prompts';
-import { isPracticeLlmEvaluationEnabled } from '../../src/counselor/config/practice-evaluation.config';
-import { PRACTICE_SCENARIO_SEEDS, validatePracticeScenarioSeeds } from '../../src/counselor/config/practice-scenario-seeds';
-import type { PracticeScenarioSeed } from '../../src/counselor/domain/practice/practice-seed.types';
-import { PracticeDifficulty } from '../../src/counselor/enums/practice-difficulty.enum';
-import { TrainingExerciseMode } from '../../src/counselor/enums/training-exercise-mode.enum';
+import { evaluationFocusOf } from '../../src/counselor/config/practice-evaluation-prompts.js';
+import { isPracticeLlmEvaluationEnabled } from '../../src/counselor/config/practice-evaluation.config.js';
+import { PRACTICE_SCENARIO_SEEDS, validatePracticeScenarioSeeds } from '../../src/counselor/config/practice-scenario-seeds.js';
+import type { PracticeScenarioSeed } from '../../src/counselor/domain/practice/practice-seed.types.js';
+import { PracticeDifficulty } from '../../src/counselor/enums/practice-difficulty.enum.js';
+import { TrainingExerciseMode } from '../../src/counselor/enums/training-exercise-mode.enum.js';
 
 describe('V1.3 场景内容库自检', () => {
   it('随库内容通过自检 (60 条 / 10 基本功 / 每基本功 L1L2L3 各 2)', () => {

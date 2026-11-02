@@ -10,7 +10,7 @@
 //     ⑤ 畸形 alternatives → 整份反馈其余字段照常返回 (不整体 parse 失败)
 //   验证: npx jest test/counselor/supervision-alternatives.spec.ts 全绿
 //   时间戳: 2026-10-27
-import { parseAlternatives, validateSupervisionPayload } from '../../src/counselor/providers/supervision.service';
+import { parseAlternatives, validateSupervisionPayload } from '../../src/counselor/providers/supervision.service.js';
 
 /** 一份合法的最小 payload (不含 alternatives). */
 function basePayload(): Record<string, unknown> {

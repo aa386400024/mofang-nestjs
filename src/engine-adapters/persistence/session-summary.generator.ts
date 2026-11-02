@@ -22,11 +22,11 @@
 
 import { Injectable } from '@nestjs/common';
 
-import type { SessionSummary, SessionSummaryGenerator } from './session-closeout.service';
-import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types';
-import { LLMTier } from '../../llm/common/enums/llm.enums';
-import type { ChatCompletionRequest } from '../../llm/common/interfaces/chat-provider.interface';
-import { LlmRouterService } from '../../llm/registry/llm-router.service';
+import type { SessionSummary, SessionSummaryGenerator } from './session-closeout.service.js';
+import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types.js';
+import { LLMTier } from '../../llm/common/enums/llm.enums.js';
+import type { ChatCompletionRequest } from '../../llm/common/interfaces/chat-provider.interface.js';
+import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
 
 /**
  * 摘要提示词 (系统段).

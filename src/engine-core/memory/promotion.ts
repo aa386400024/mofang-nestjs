@@ -21,8 +21,8 @@
 //     1. pnpm build 0 错
 //     2. test/engine-core/wp2-memory.spec.ts 覆盖: tier/ttl/字段保留/新 id/不改原条目/越级拒
 
-import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors';
-import { MemoryTier, type MemoryEntry } from '../domain/ports/memory.store';
+import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors.js';
+import { MemoryTier, type MemoryEntry } from '../domain/ports/memory.store.js';
 
 /**
  * 把一条短时条目派生为长时条目 (纯函数, 不写仓储).

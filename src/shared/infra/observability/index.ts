@@ -1,2 +1,2 @@
-export * from './observability.module';
-export * from './sentry.service';
+export * from './observability.module.js';
+export * from './sentry.service.js';

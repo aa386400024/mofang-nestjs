@@ -37,8 +37,8 @@ import {
   type SafetyLevel,
   type SafetySide,
   type VisitorRiskCategory,
-} from '../../../engine-core';
-import { CRISIS_RISK_CATEGORIES, isCrisisCategory } from '../../rendering/render-risk';
+} from '../../../engine-core/index.js';
+import { CRISIS_RISK_CATEGORIES, isCrisisCategory } from '../../rendering/render-risk.js';
 
 /**
  * 咨询师输入面的**补充**危机词表 (内核来访侧词典没收的说法).

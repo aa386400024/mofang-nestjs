@@ -29,7 +29,7 @@ import {
   PRACTICE_ASR_RESPONSE_FORMAT,
   PRACTICE_ASR_UPSTREAM_PATH,
   type PracticeAsrAudioFormat,
-} from '../config/practice-asr.config';
+} from '../config/practice-asr.config.js';
 
 /** 上游错误的归一化分类 —— 业务层据此翻译成 HTTP 语义. */
 export type PracticeAsrUpstreamErrorKind =

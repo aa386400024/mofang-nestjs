@@ -22,10 +22,10 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../../user/guards/jwt-auth.guard';
-import { DrillListQueryDto, DrillDetailDto, DrillListDto, DrillResponseDto, SubmitDrillResponseDto } from '../dto/drill.dto';
-import { DrillService } from '../providers/drill.service';
+import { CurrentUser } from '../../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../../user/guards/jwt-auth.guard.js';
+import { DrillListQueryDto, DrillDetailDto, DrillListDto, DrillResponseDto, SubmitDrillResponseDto } from '../dto/drill.dto.js';
+import { DrillService } from '../providers/drill.service.js';
 
 @ApiTags('counselor-drills')
 @Controller('counselor/drills')

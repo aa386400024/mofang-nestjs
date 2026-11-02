@@ -20,7 +20,7 @@
 //     2. V0.x 启动后 save → findBySessionId 能查到
 //     3. findBySessionId 不存在 → 返回 null, 不 throw (业务层显式判空)
 
-import type { SupervisionReportRow } from '../../supervisor.types';
+import type { SupervisionReportRow } from '../../supervisor.types.js';
 
 // V2026-10-27 治本 (SupervisionReport 仓储 — 补批量查询出口):
 //   原因: 练习历史列表 (`GET /counselor/training-sessions`) 要给每个列表项补

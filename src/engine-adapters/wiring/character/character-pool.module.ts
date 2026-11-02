@@ -35,15 +35,15 @@ import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 
-import { BUILTIN_CHARACTER_SEEDS, BuiltinCharacterProfileResolver } from './builtin-character-registry';
-import { CharacterProfileAdminController } from './character-profile.admin.controller';
+import { BUILTIN_CHARACTER_SEEDS, BuiltinCharacterProfileResolver } from './builtin-character-registry.js';
+import { CharacterProfileAdminController } from './character-profile.admin.controller.js';
 
-import { CharacterProfileAdminService } from './character-profile.admin.service';
-import { CharacterProfileEntity } from './character-profile.entity';
-import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver } from './character-profile.resolver';
-import { DbCharacterProfileResolver } from './db-character-profile.resolver';
-import { AdminRoleGuard } from '../../../counselor/guards/admin-role.guard';
-import { UserModule } from '../../../user';
+import { CharacterProfileAdminService } from './character-profile.admin.service.js';
+import { CharacterProfileEntity } from './character-profile.entity.js';
+import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver } from './character-profile.resolver.js';
+import { DbCharacterProfileResolver } from './db-character-profile.resolver.js';
+import { AdminRoleGuard } from '../../../counselor/guards/admin-role.guard.js';
+import { UserModule } from '../../../user/index.js';
 
 /**
  * 角色资产池模块.

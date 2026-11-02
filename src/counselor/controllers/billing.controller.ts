@@ -34,8 +34,8 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
 import {
   type ConsumeQuotaDto,
@@ -43,8 +43,8 @@ import {
   type MembershipStatusDto,
   type OrderDto,
   type SkuListItemDto,
-} from '../dto/billing.dto';
-import { BillingService } from '../providers/billing.service';
+} from '../dto/billing.dto.js';
+import { BillingService } from '../providers/billing.service.js';
 
 /**
  * V2026-10-15 (V1.x counselor-mode W7-8 — CounselorBillingController):

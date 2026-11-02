@@ -17,9 +17,9 @@ import { vi } from 'vitest';
  *   - 不测 KPI 跨 feature 聚合 (V2.1 实现, V1.0 给默认 0)
  */
 
-import { GrowthWeeklyOverviewService } from './growth-weekly-overview.service';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
+import { GrowthWeeklyOverviewService } from './growth-weekly-overview.service.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
 
 /**
  * `aggregateKpis` 是 service 内部的**接缝** (声明为 private).

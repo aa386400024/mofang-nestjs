@@ -27,14 +27,14 @@
 
 import { Injectable } from '@nestjs/common';
 
-import { AIProviderId } from '../../llm/common/enums/llm.enums';
+import { AIProviderId } from '../../llm/common/enums/llm.enums.js';
 import type {
   ChatCompletionChunk,
   ChatCompletionRequest,
   ChatCompletionResponse,
-} from '../../llm/common/interfaces/chat-provider.interface';
-import { LlmRouterService } from '../../llm/registry/llm-router.service';
-import type { ChatCaller, ChatStreamOptions } from '../rendering/llm-render.adapter';
+} from '../../llm/common/interfaces/chat-provider.interface.js';
+import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
+import type { ChatCaller, ChatStreamOptions } from '../rendering/llm-render.adapter.js';
 
 /**
  * 生产 `ChatCaller`: 把窄面接到 `LlmRouterService.chat`.

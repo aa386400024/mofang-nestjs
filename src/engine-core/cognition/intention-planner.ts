@@ -3,9 +3,9 @@
 //   边界: 纯函数, 无随机. 规则轨只选状态可判定的策略; request / insight /
 //   discussing_plans 等依赖来访侧信号的策略本期留类型不主动选出 (模型轨填充).
 
-import type { BdiSnapshot } from '../domain/bdi-snapshot';
-import type { CharacterProfile } from '../domain/character-profile';
-import type { BehaviorStrategy, Intention } from '../domain/intention';
+import type { BdiSnapshot } from '../domain/bdi-snapshot.js';
+import type { CharacterProfile } from '../domain/character-profile.js';
+import type { BehaviorStrategy, Intention } from '../domain/intention.js';
 
 /** 阻抗聚合阈值: 三维平均达到即视为整体防御. */
 const HIGH_RESISTANCE_AGG = 0.6;

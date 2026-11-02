@@ -15,10 +15,10 @@
 
 import { Controller, Get, Inject, UseGuards } from '@nestjs/common';
 
-import { JwtAuthGuard } from '../../auth/guards';
-import { TenantId } from '../../common/decorators';
-import type { Persona } from './domain/entities/persona.entity';
-import { PERSONA_REPOSITORY, type PersonaRepository } from './domain/repositories/persona.repository';
+import type { Persona } from './domain/entities/persona.entity.js';
+import { PERSONA_REPOSITORY, type PersonaRepository } from './domain/repositories/persona.repository.js';
+import { JwtAuthGuard } from '../../auth/guards/index.js';
+import { TenantId } from '../../common/decorators/index.js';
 
 @Controller('agent/personas')
 @UseGuards(JwtAuthGuard)

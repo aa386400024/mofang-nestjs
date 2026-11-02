@@ -56,10 +56,10 @@
 //     2. test/llm/minimax-provider.spec.ts 覆盖 id / 模型名 / 基址归一 / 注册分支
 //        + 上游字段映射 (只下发 max_completion_tokens / reasoning_effort)
 
-import { OpenAICompatibleChatProvider, type OpenAICompatibleConfig } from '../common/base/openai-compatible-chat.provider';
-import { AIProviderId } from '../common/enums/llm.enums';
-import type { ChatCompletionRequest, ChatReasoningEffort } from '../common/interfaces/chat-provider.interface';
-import { resolveMinimaxBaseUrl, resolveMinimaxChatModel } from '../config/provider-env';
+import { OpenAICompatibleChatProvider, type OpenAICompatibleConfig } from '../common/base/openai-compatible-chat.provider.js';
+import { AIProviderId } from '../common/enums/llm.enums.js';
+import type { ChatCompletionRequest, ChatReasoningEffort } from '../common/interfaces/chat-provider.interface.js';
+import { resolveMinimaxBaseUrl, resolveMinimaxChatModel } from '../config/provider-env.js';
 
 /**
  * MiniMax Chat Provider 构造选项.

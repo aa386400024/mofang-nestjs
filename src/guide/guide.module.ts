@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 
-import { UserModule } from '../user/user.module';
+import { UserModule } from '../user/user.module.js';
 
-import { GuideController } from './controllers/guide.controller';
-import { GuideService } from './providers/guide.service';
+import { GuideController } from './controllers/guide.controller.js';
+import { GuideService } from './providers/guide.service.js';
 
 /**
  * 陪伴者端「指南」Tab 模块 — V3.0 §4 Tab3.

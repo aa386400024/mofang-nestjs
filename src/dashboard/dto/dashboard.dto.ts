@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import type { GymModule } from '../../shared/types/practice.types';
+import type { GymModule } from '../../shared/types/practice.types.js';
 
 /**
  * 仪表板 DTO — V2.0 §Tab4 「我的数据」心理健身数据.

@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { User } from './user.entity';
+import { User } from './user.entity.js';
 
 /**
  * Session entity — 用户登录会话 (大厂多端管理).

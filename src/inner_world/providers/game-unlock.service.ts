@@ -8,8 +8,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { Repository } from 'typeorm';
 
-import type { GameUnlockProgressDto, GameUnlockProgressListDto, UpsertGameUnlockDto } from '../dto/game-unlock.dto';
-import { GameUnlockProgressEntity } from '../entities/game-unlock-progress.entity';
+import type { GameUnlockProgressDto, GameUnlockProgressListDto, UpsertGameUnlockDto } from '../dto/game-unlock.dto.js';
+import { GameUnlockProgressEntity } from '../entities/game-unlock-progress.entity.js';
 
 @Injectable()
 export class GameUnlockService {

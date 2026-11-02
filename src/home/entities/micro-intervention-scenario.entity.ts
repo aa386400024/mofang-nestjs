@@ -1,6 +1,6 @@
 import { Column, Entity, PrimaryColumn } from 'typeorm';
 
-import type { HomeMicroInterventionTrigger } from '../home.constants';
+import type { HomeMicroInterventionTrigger } from '../home.constants.js';
 
 /**
  * 微干预场景化元数据表 — V2026-09-11 治本 (消除「前端 5 个硬编 vs 后端 7 个 trigger」双胞胎).

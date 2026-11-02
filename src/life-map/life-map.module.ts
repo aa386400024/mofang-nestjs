@@ -1,15 +1,15 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { UserModule } from '../user/user.module';
+import { UserModule } from '../user/user.module.js';
 
-import { DriftBottleController } from './controllers/drift-bottle.controller';
-import { LifeMapController } from './controllers/life-map.controller';
-import { DriftBottleEntry, GenomeDimensionEntity, KeyEventEntity, LifeStageProgressEntity } from './entities';
+import { DriftBottleController } from './controllers/drift-bottle.controller.js';
+import { LifeMapController } from './controllers/life-map.controller.js';
+import { DriftBottleEntry, GenomeDimensionEntity, KeyEventEntity, LifeStageProgressEntity } from './entities/index.js';
 
-import { DriftBottleRepository } from './providers/drift-bottle.repository';
-import { DriftBottleService } from './providers/drift-bottle.service';
-import { LifeMapService } from './providers/life-map.service';
+import { DriftBottleRepository } from './providers/drift-bottle.repository.js';
+import { DriftBottleService } from './providers/drift-bottle.service.js';
+import { LifeMapService } from './providers/life-map.service.js';
 
 /**
  * 心理地图 / 人生地图 Module — V3.0 §3 + V6.0 §6 心塑 V6.0.

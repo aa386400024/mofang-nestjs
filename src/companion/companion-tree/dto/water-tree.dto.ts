@@ -1,6 +1,6 @@
 import { IsEnum, IsOptional, IsString, Length } from 'class-validator';
 
-import { WaterAction } from '../enums/water-action.enum';
+import { WaterAction } from '../enums/water-action.enum.js';
 
 /**
  * 浇水 DTO — V2026-09-12 §6.3 共种陪伴树.

@@ -22,6 +22,12 @@
 //   验证: npx jest test/engine-core/wp4-safety.spec.ts
 //   时间戳: 2026-10-28 GMT+8
 
+import { planIntention } from '../../src/engine-core/cognition/intention-planner.js';
+import { RuleBasedClassifier } from '../../src/engine-core/cognition/rule-based-classifier.js';
+import { transitionState } from '../../src/engine-core/cognition/state-transition.js';
+import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository.js';
+import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
 import {
   DEFAULT_PROBE_TIMEOUT_MS,
   PSYGUARD_LEVEL_MAP,
@@ -35,13 +41,7 @@ import {
   type SafetyLevel,
   type SafetySide,
   type VisitorRiskCategory,
-} from '../../src/engine-core';
-import { planIntention } from '../../src/engine-core/cognition/intention-planner';
-import { RuleBasedClassifier } from '../../src/engine-core/cognition/rule-based-classifier';
-import { transitionState } from '../../src/engine-core/cognition/state-transition';
-import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository';
-import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
+} from '../../src/engine-core/index.js';
 
 const TENANT = 'default';
 const VISITOR = 'visitor-1';

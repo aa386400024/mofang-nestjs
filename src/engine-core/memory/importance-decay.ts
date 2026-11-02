@@ -24,8 +24,8 @@
 //     1. pnpm build 0 错
 //     2. test/engine-core/wp2-memory.spec.ts 覆盖: 单调不增 / 半衰期减半 / clamp [0,1]
 
-import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors';
-import type { MemoryEntry } from '../domain/ports/memory.store';
+import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors.js';
+import type { MemoryEntry } from '../domain/ports/memory.store.js';
 
 /**
  * 默认半衰期 (工程种子值, 30 天, 待真实数据校准; 集中为常量便于调).

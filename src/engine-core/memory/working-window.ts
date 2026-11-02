@@ -19,7 +19,7 @@
 //     1. pnpm build 0 错
 //     2. test/engine-core/wp2-memory.spec.ts 覆盖: 超窗丢最旧 / 不足窗原样 / 不改入参
 
-import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors';
+import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors.js';
 
 /**
  * 工作记忆窗口长度 (最近 N 轮).

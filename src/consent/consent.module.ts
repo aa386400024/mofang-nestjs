@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { UserModule } from '../user';
-import { ConsentController } from './controllers/consent.controller';
-import { UserConsent } from './entities/user-consent.entity';
-import { ConsentService } from './providers/consent.service';
+import { UserModule } from '../user/index.js';
+import { ConsentController } from './controllers/consent.controller.js';
+import { UserConsent } from './entities/user-consent.entity.js';
+import { ConsentService } from './providers/consent.service.js';
 
 /**
  * Consent module — 心塑 + 魔方共用合规模块 (大厂企业级 V3).

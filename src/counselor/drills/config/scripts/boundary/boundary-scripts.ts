@@ -33,8 +33,8 @@
 //     3. 每个脚本的锚点 key 集合一致 (validateDrillScripts 自检)
 //   时间戳: 2026-10-27 19:55 GMT+8
 
-import { PracticeDifficulty } from '../../../../enums/practice-difficulty.enum';
-import { DRILL_BOUNDARY_ANCHOR_KEYS, type DrillScript } from '../../../domain/drill.types';
+import { PracticeDifficulty } from '../../../../enums/practice-difficulty.enum.js';
+import { DRILL_BOUNDARY_ANCHOR_KEYS, type DrillScript } from '../../../domain/drill.types.js';
 
 /**
  * boundary 赛道通用边界声明.

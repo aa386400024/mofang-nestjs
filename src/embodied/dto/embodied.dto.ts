@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import type { EmbodiedDeviceStatus, EmbodiedDeviceType } from '../../shared/types/practice.types';
+import type { EmbodiedDeviceStatus, EmbodiedDeviceType } from '../../shared/types/practice.types.js';
 
 /**
  * 具身数据 DTO — V2.0 §Tab4 embodied.

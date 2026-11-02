@@ -16,11 +16,11 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { WeeklyOverviewDto } from '../dto/growth.dto';
-import { GrowthWeeklyOverviewService } from '../providers/growth-weekly-overview.service';
+import { WeeklyOverviewDto } from '../dto/growth.dto.js';
+import { GrowthWeeklyOverviewService } from '../providers/growth-weekly-overview.service.js';
 
 @ApiTags('growth')
 @Controller('growth')

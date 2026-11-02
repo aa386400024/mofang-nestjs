@@ -8,11 +8,11 @@ import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 // V2026-10-12 治本 (Phase 8.4 — import path, 跟 knowledge.controller 同 pattern).
-import { JwtAuthGuard } from '../../auth';
-import { TenantId } from '../../common';
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { PreviewRequestDto, PreviewResponseDto } from '../dto/preview.dto';
-import { PreviewService } from '../providers/preview.service';
+import { JwtAuthGuard } from '../../auth/index.js';
+import { TenantId } from '../../common/index.js';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { PreviewRequestDto, PreviewResponseDto } from '../dto/preview.dto.js';
+import { PreviewService } from '../providers/preview.service.js';
 
 @ApiTags('Admin · Knowledge · Preview')
 @ApiBearerAuth()

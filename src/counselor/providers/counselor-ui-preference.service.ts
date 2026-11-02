@@ -14,10 +14,10 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import type { CounselorUiPreferencesDto, UpdateCounselorUiPreferencesDto } from '../dto/training-exercise.dto';
-import { CounselorUiPreference } from '../entities/counselor-ui-preference.entity';
-import { COUNSELOR_UI_PREFERENCE_DEFAULTS, CounselorUiPreferenceKey } from '../enums/counselor-ui-preference-key.enum';
-import { LIVE_SUPERVISION_HINT_TIER_VALUES, LiveSupervisionHintTier } from '../enums/live-supervision-hint-tier.enum';
+import type { CounselorUiPreferencesDto, UpdateCounselorUiPreferencesDto } from '../dto/training-exercise.dto.js';
+import { CounselorUiPreference } from '../entities/counselor-ui-preference.entity.js';
+import { COUNSELOR_UI_PREFERENCE_DEFAULTS, CounselorUiPreferenceKey } from '../enums/counselor-ui-preference-key.enum.js';
+import { LIVE_SUPERVISION_HINT_TIER_VALUES, LiveSupervisionHintTier } from '../enums/live-supervision-hint-tier.enum.js';
 
 @Injectable()
 export class CounselorUiPreferenceService {

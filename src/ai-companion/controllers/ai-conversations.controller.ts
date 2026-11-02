@@ -1,11 +1,11 @@
 import { Controller, Delete, Get, HttpCode, HttpStatus, Param, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { AiConversationDto, AiConversationsResponseDto } from '../dto/ai-conversations.dto';
-import { AiConversationsService } from '../providers/ai-conversations.service';
+import { AiConversationDto, AiConversationsResponseDto } from '../dto/ai-conversations.dto.js';
+import { AiConversationsService } from '../providers/ai-conversations.service.js';
 
 /**
  * AI 对话记录 controller — V2.0 §Tab4 「我的数据」AI 对话记录.

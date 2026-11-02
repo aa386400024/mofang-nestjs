@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { CompanionBinding } from '../../profile/entities/companion-binding.entity';
-import { UserProfile } from '../../profile/entities/user-profile.entity';
+import { CompanionBinding } from '../../profile/entities/companion-binding.entity.js';
+import { UserProfile } from '../../profile/entities/user-profile.entity.js';
 
 import {
   type CompanionHomeOverviewDto,
@@ -14,7 +14,7 @@ import {
   type SelfCareStatusDto,
   type SwitchAccompaniedPersonResponseDto,
   type ToolboxItemDto,
-} from '../dto/home-companion-overview.dto';
+} from '../dto/home-companion-overview.dto.js';
 
 /**
  * 心塑陪伴者端「首页聚合」核心服务.

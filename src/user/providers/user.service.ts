@@ -6,25 +6,25 @@ import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
 import { IsNull, Repository } from 'typeorm';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { MetricsService } from '../../shared/infra/metrics';
-import { RedisService } from '../../shared/infra/redis';
-import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { MetricsService } from '../../shared/infra/metrics/index.js';
+import { RedisService } from '../../shared/infra/redis/index.js';
+import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants.js';
 
-import { AuthResponseDto, CurrentUserDto } from '../dto/auth-response.dto';
-import { LoginDto } from '../dto/login.dto';
-import { RegisterDto } from '../dto/register.dto';
-import { AuditEvent } from '../entities/audit-log.entity';
-import { User } from '../entities/user.entity';
-import { TokenType } from '../user.constant';
-import { UserState, isLoginAllowed } from '../user.state';
+import { AuthResponseDto, CurrentUserDto } from '../dto/auth-response.dto.js';
+import { LoginDto } from '../dto/login.dto.js';
+import { RegisterDto } from '../dto/register.dto.js';
+import { AuditEvent } from '../entities/audit-log.entity.js';
+import { User } from '../entities/user.entity.js';
+import { TokenType } from '../user.constant.js';
+import { UserState, isLoginAllowed } from '../user.state.js';
 
-import { AuditLogService } from './audit-log.service';
-import { EmailVerificationService } from './email-verification.service';
-import { JwtBlacklistService } from './jwt-blacklist.service';
-import { PasswordHistoryService } from './password-history.service';
-import { SessionService } from './session.service';
+import { AuditLogService } from './audit-log.service.js';
+import { EmailVerificationService } from './email-verification.service.js';
+import { JwtBlacklistService } from './jwt-blacklist.service.js';
+import { PasswordHistoryService } from './password-history.service.js';
+import { SessionService } from './session.service.js';
 
 /**
  * User service — 心塑 + 魔方共用账号服务 (大厂企业级 V2).

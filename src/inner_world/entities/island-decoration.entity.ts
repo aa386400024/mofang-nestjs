@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { IslandArea } from '../enums/island-area.enum';
+import { IslandArea } from '../enums/island-area.enum.js';
 
 /**
  * 用户装饰表 — V4.0 §3.2 (装饰摆件).

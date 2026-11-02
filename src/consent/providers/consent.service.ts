@@ -3,9 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { ConsentStatusResponseDto } from '../dto/consent-status.dto';
-import { RecordConsentDto } from '../dto/record-consent.dto';
-import { UserConsent } from '../entities/user-consent.entity';
+import { ConsentStatusResponseDto } from '../dto/consent-status.dto.js';
+import { RecordConsentDto } from '../dto/record-consent.dto.js';
+import { UserConsent } from '../entities/user-consent.entity.js';
 
 /**
  * Consent context — 审计所需的请求元数据.

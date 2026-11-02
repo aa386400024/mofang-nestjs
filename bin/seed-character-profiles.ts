@@ -29,14 +29,14 @@ import { config as loadEnvFile } from 'dotenv';
 
 import { DataSource, type DataSourceOptions } from 'typeorm';
 
-import { configuration } from '../src/config/configuration';
-import { VISITOR_POOL_TEMPLATE_SEEDS } from '../src/counselor/config/visitor-pool-seed';
-import { CharacterProfileEntity } from '../src/engine-adapters/wiring/character/character-profile.entity';
+import { configuration } from '../src/config/configuration.js';
+import { VISITOR_POOL_TEMPLATE_SEEDS } from '../src/counselor/config/visitor-pool-seed.js';
+import { CharacterProfileEntity } from '../src/engine-adapters/wiring/character/character-profile.entity.js';
 import {
   buildCharacterProfileSeeds,
   seedCharacterProfiles,
   validateCharacterProfileSeedSpecs,
-} from '../src/engine-adapters/wiring/character/character-profile.seed';
+} from '../src/engine-adapters/wiring/character/character-profile.seed.js';
 
 type DbConfig = DataSourceOptions & { autoLoadEntities?: boolean };
 

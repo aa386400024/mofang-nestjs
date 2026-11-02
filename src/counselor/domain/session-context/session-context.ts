@@ -28,10 +28,10 @@
 //     3. 生成督导反馈时日志可见 transcript 轮次数与截断标记
 //   时间戳: 2026-10-21
 
-import { ChatRole } from '../../enums/chat-role.enum';
-import type { TrainingDifficulty } from '../../enums/training-difficulty.enum';
-import type { TrainingSessionStatus } from '../../enums/training-session-status.enum';
-import type { VisitorStyle } from '../../enums/visitor-style.enum';
+import { ChatRole } from '../../enums/chat-role.enum.js';
+import type { TrainingDifficulty } from '../../enums/training-difficulty.enum.js';
+import type { TrainingSessionStatus } from '../../enums/training-session-status.enum.js';
+import type { VisitorStyle } from '../../enums/visitor-style.enum.js';
 
 /**
  * 统一的一轮对话 (counselor 端唯一口径).

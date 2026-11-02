@@ -7,17 +7,17 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { randomBytes } from 'node:crypto';
 import { IsNull, Repository } from 'typeorm';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { MetricsService } from '../../shared/infra/metrics';
-import { RedisService } from '../../shared/infra/redis';
-import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { MetricsService } from '../../shared/infra/metrics/index.js';
+import { RedisService } from '../../shared/infra/redis/index.js';
+import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants.js';
 
-import { AuthResponseDto } from '../dto/auth-response.dto';
-import { OAuthIdentity, OAuthProvider } from '../entities/oauth-identity.entity';
-import { User } from '../entities/user.entity';
-import { UserService } from '../providers/user.service';
-import { UserState } from '../user.state';
+import { AuthResponseDto } from '../dto/auth-response.dto.js';
+import { OAuthIdentity, OAuthProvider } from '../entities/oauth-identity.entity.js';
+import { User } from '../entities/user.entity.js';
+import { UserService } from '../providers/user.service.js';
+import { UserState } from '../user.state.js';
 
 /**
  * OAuth provider 标准化用户信息.

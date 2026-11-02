@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { CertificationDto, SubmitCertificationDto } from '../dto/certification.dto';
-import { Certification } from '../entities/certification.entity';
+import { CertificationDto, SubmitCertificationDto } from '../dto/certification.dto.js';
+import { Certification } from '../entities/certification.entity.js';
 
 /**
  * Certification service — 心塑「我的」Tab 实名认证核心服务 (陪伴者专属).

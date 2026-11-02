@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { UserModule } from '../user/user.module';
+import { UserModule } from '../user/user.module.js';
 
-import { EmbodiedController } from './controllers/embodied.controller';
-import { EmbodiedDevice } from './entities/embodied-device.entity';
-import { EmbodiedPermissions } from './entities/embodied-permission.entity';
-import { EmbodiedService } from './providers/embodied.service';
+import { EmbodiedController } from './controllers/embodied.controller.js';
+import { EmbodiedDevice } from './entities/embodied-device.entity.js';
+import { EmbodiedPermissions } from './entities/embodied-permission.entity.js';
+import { EmbodiedService } from './providers/embodied.service.js';
 
 /**
  * 具身数据模块 — V2.0 §Tab4 embodied.

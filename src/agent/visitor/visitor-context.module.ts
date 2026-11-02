@@ -22,7 +22,7 @@
 
 import { Global, Module } from '@nestjs/common';
 
-import { VisitorContextRegistry } from './visitor-context';
+import { VisitorContextRegistry } from './visitor-context.js';
 
 /**
  * 来访者上下文注册表模块 (@Global).

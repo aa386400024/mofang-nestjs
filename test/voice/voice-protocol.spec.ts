@@ -22,11 +22,11 @@
 //     3. 故意把 resolveVoicePreset 的 styleUnmapped 分支删掉 → "映射不上回退 mixed"用例变红
 //
 //   时间戳: 2026-10-23
-import { mapTtsUpstreamError } from '../../src/voice/tts/tts-error.mapper';
-import { buildTtsBidiUrl } from '../../src/voice/tts/tts-protocol.config';
-import { splitSentences } from '../../src/voice/tts/tts-sentence-splitter';
-import { parseVoiceHandshake, resolveVoicePreset } from '../../src/voice/voice-handshake';
-import type { VoiceTemplateSummary } from '../../src/voice/voice-session.types';
+import { mapTtsUpstreamError } from '../../src/voice/tts/tts-error.mapper.js';
+import { buildTtsBidiUrl } from '../../src/voice/tts/tts-protocol.config.js';
+import { splitSentences } from '../../src/voice/tts/tts-sentence-splitter.js';
+import { parseVoiceHandshake, resolveVoicePreset } from '../../src/voice/voice-handshake.js';
+import type { VoiceTemplateSummary } from '../../src/voice/voice-session.types.js';
 
 /** 官方明确定义的句末标点 (文档原文: `。！？…；!?.` 及换行). */
 const OFFICIAL_SENTENCE_TERMINATORS = ['。', '！', '？', '…', '；', '!', '?', '.'];

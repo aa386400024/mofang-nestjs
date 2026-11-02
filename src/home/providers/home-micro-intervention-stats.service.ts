@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { MicroInterventionStatsDto } from '../dto/home-overview.dto';
-import { MicroInterventionHistory } from '../entities/micro-intervention-history.entity';
+import { MicroInterventionStatsDto } from '../dto/home-overview.dto.js';
+import { MicroInterventionHistory } from '../entities/micro-intervention-history.entity.js';
 
 /**
  * 微干预练习统计服务 — V2026-09-11 新增 (治本遗留 #3).

@@ -28,27 +28,27 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp8-wiring.spec.ts 覆盖仓储分流 / 会话构造 / 门面归属缝
 
-import { EngineStreamBackend } from './engine-stream-backend.adapter';
-import type { EngineTurnService } from './engine-turn.service';
-import type { Embedder, EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core';
-import { InMemoryBdiStateRepository } from '../../engine-core/in-memory/in-memory-bdi-state.repository';
-import { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-engine-session';
-import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store';
-import type { SessionCostPricing } from '../observability/session-cost';
-import type { MemoryConfig } from '../persistence/memory-config';
-import type { QdrantMemoryClient } from '../persistence/qdrant-memory.store';
-import { QdrantMemoryStore } from '../persistence/qdrant-memory.store';
-import type { SessionSummaryGenerator, SessionTranscriptSink } from '../persistence/session-closeout.service';
-import { SessionCloseoutService } from '../persistence/session-closeout.service';
-import type { StreamingRenderPort } from '../rendering/streaming-render.port';
-import type { TurnSessionContext } from '../rendering/turn-render-orchestrator';
-import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
-import type { CharacterProfileResolver } from './character/character-profile.resolver';
-import { HttpPsyGuardProbe } from './risk/http-psyguard.probe';
-import { LocalCrisisProbe } from './risk/local-crisis.probe';
-import type { TrajectoryScriptResolver } from './trajectory/script-resolver';
-import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
-import type { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge';
+import { EngineStreamBackend } from './engine-stream-backend.adapter.js';
+import type { EngineTurnService } from './engine-turn.service.js';
+import { InMemoryBdiStateRepository } from '../../engine-core/in-memory/in-memory-bdi-state.repository.js';
+import { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-engine-session.js';
+import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store.js';
+import type { Embedder, EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
+import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
+import type { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
+import type { SessionCostPricing } from '../observability/session-cost.js';
+import type { MemoryConfig } from '../persistence/memory-config.js';
+import type { QdrantMemoryClient } from '../persistence/qdrant-memory.store.js';
+import { QdrantMemoryStore } from '../persistence/qdrant-memory.store.js';
+import type { SessionSummaryGenerator, SessionTranscriptSink } from '../persistence/session-closeout.service.js';
+import { SessionCloseoutService } from '../persistence/session-closeout.service.js';
+import type { StreamingRenderPort } from '../rendering/streaming-render.port.js';
+import type { TurnSessionContext } from '../rendering/turn-render-orchestrator.js';
+import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js';
+import type { CharacterProfileResolver } from './character/character-profile.resolver.js';
+import { HttpPsyGuardProbe } from './risk/http-psyguard.probe.js';
+import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
+import type { TrajectoryScriptResolver } from './trajectory/script-resolver.js';
 
 /**
  * 记忆仓储装配入参.

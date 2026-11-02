@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsDateString, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
-import { Role } from '../entities/user-profile.entity';
+import { Role } from '../entities/user-profile.entity.js';
 
-import { GenderValues, OccupationValues, RoleValues } from '../entities/user-profile.entity';
+import { GenderValues, OccupationValues, RoleValues } from '../entities/user-profile.entity.js';
 
 /**
  * 响应 DTO — GET /profile/me 返回.

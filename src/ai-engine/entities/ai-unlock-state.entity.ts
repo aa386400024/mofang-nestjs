@@ -13,7 +13,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { AIUnlockFeature, AIUnlockState } from '../enums/ai-unlock.enums';
+import { AIUnlockFeature, AIUnlockState } from '../enums/ai-unlock.enums.js';
 
 /**
  * AI 动态解锁状态 — V6.0 §3.3 表.

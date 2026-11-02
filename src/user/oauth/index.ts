@@ -1,3 +1,3 @@
-export * from './oauth.module';
-export * from './oauth.service';
-export * from './oauth.controller';
+export * from './oauth.module.js';
+export * from './oauth.service.js';
+export * from './oauth.controller.js';

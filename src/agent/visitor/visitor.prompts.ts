@@ -23,9 +23,9 @@
 //     3. 三种 difficulty 渲染出的 behavior 段落不同
 //     4. emotion 段落含 baseline + 动态规则, 不固定一种情绪
 
-import type { VisitorContextBlock } from './visitor-context';
-import type { VisitorSessionMemory } from './visitor.types';
-import type { Persona, PersonaDifficulty, PersonaEmotionBaseline } from '../persona/domain/entities/persona.entity';
+import type { VisitorContextBlock } from './visitor-context.js';
+import type { VisitorSessionMemory } from './visitor.types.js';
+import type { Persona, PersonaDifficulty, PersonaEmotionBaseline } from '../persona/domain/entities/persona.entity.js';
 
 /** 难度对应行为模式 (互斥). */
 const DIFFICULTY_BEHAVIOR: Readonly<Record<PersonaDifficulty, string>> = {

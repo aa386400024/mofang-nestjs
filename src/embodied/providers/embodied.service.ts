@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
 
 import {
   EmbodiedDeviceDto,
@@ -12,9 +12,9 @@ import {
   PairDeviceDto,
   UpdateEmbodiedPermissionsDto,
   VitalSignDto,
-} from '../dto/embodied.dto';
-import { EmbodiedDevice } from '../entities/embodied-device.entity';
-import { EmbodiedPermissions } from '../entities/embodied-permission.entity';
+} from '../dto/embodied.dto.js';
+import { EmbodiedDevice } from '../entities/embodied-device.entity.js';
+import { EmbodiedPermissions } from '../entities/embodied-permission.entity.js';
 
 /**
  * 具身数据服务 — V2.0 §Tab4 embodied.

@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, In, IsNull, Repository } from 'typeorm';
 
-import type { MarkMessagesReadResponseDto, UnreadMessageCountDto } from '../dto/home-overview.dto';
-import { HomeMessage } from '../entities/home-message.entity';
+import type { MarkMessagesReadResponseDto, UnreadMessageCountDto } from '../dto/home-overview.dto.js';
+import { HomeMessage } from '../entities/home-message.entity.js';
 
 /**
  * 心塑首页「消息未读」核心服务.

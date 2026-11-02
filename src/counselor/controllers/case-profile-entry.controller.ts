@@ -21,11 +21,11 @@
 import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { CaseProfileEntriesDto, CaseProfileEntryDto, CreateCaseProfileEntryDto } from '../dto/visitor-persona.dto';
-import { CaseProfileEntryService } from '../providers/case-profile-entry.service';
+import { CaseProfileEntriesDto, CaseProfileEntryDto, CreateCaseProfileEntryDto } from '../dto/visitor-persona.dto.js';
+import { CaseProfileEntryService } from '../providers/case-profile-entry.service.js';
 
 /**
  * V2026-10-21 (V1.2 VS-B1 — CounselorCaseProfileEntryController):

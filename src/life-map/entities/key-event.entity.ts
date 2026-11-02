@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { LIFE_STAGES, type LifeStage } from '../../shared/types/practice.types';
+import { LIFE_STAGES, type LifeStage } from '../../shared/types/practice.types.js';
 
 export const KEY_EVENT_TYPES = ['positive', 'negative', 'turning'] as const;
 export type KeyEventType = (typeof KEY_EVENT_TYPES)[number];

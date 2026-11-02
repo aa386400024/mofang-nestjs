@@ -34,12 +34,12 @@
 //     3. 自检函数 validateVisitorPoolTemplateSeeds() 返回 null (基线自身合法)
 //
 //   时间戳: 2026-10-23
-import { isAcceptableCodename, isInCodenameBank } from './visitor-pool-codename';
-import { VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH, VISITOR_POOL_TEMPLATE_VOICE_ID_MAX_LENGTH } from './visitor-pool.config';
-import type { VisitorFullPersonaScript } from '../domain/visitor-persona/visitor-persona.types';
-import { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import { VisitorPoolDefenseType, VisitorPoolIssueDomain } from '../enums/visitor-pool.enum';
-import { VisitorStyle } from '../enums/visitor-style.enum';
+import { isAcceptableCodename, isInCodenameBank } from './visitor-pool-codename.js';
+import { VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH, VISITOR_POOL_TEMPLATE_VOICE_ID_MAX_LENGTH } from './visitor-pool.config.js';
+import type { VisitorFullPersonaScript } from '../domain/visitor-persona/visitor-persona.types.js';
+import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import { VisitorPoolDefenseType, VisitorPoolIssueDomain } from '../enums/visitor-pool.enum.js';
+import { VisitorStyle } from '../enums/visitor-style.enum.js';
 
 /**
  * 单条公共模板的 seed 结构.

@@ -6,7 +6,7 @@
 
 import { ApiProperty } from '@nestjs/swagger';
 
-import { AIUnlockState } from '../../ai-engine/enums/ai-unlock.enums';
+import { AIUnlockState } from '../../ai-engine/enums/ai-unlock.enums.js';
 
 /**
  * Inner World 模块解锁进度 — 单功能.

@@ -25,7 +25,7 @@
 //
 //   时间戳: 2026-10-15
 
-import { AbilityParentDimension } from '../enums/ability-parent-dimension.enum';
+import { AbilityParentDimension } from '../enums/ability-parent-dimension.enum.js';
 
 /**
  * 单个子指标配置.

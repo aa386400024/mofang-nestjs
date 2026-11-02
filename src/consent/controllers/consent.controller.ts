@@ -3,15 +3,15 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { BindConsentToUserDto } from '../dto/bind-to-user.dto';
-import { ConsentStatusQueryDto, ConsentStatusResponseDto } from '../dto/consent-status.dto';
-import { RecordConsentDto, RecordConsentResponseDto } from '../dto/record-consent.dto';
-import { ConsentContext, ConsentService } from '../providers/consent.service';
+import { BindConsentToUserDto } from '../dto/bind-to-user.dto.js';
+import { ConsentStatusQueryDto, ConsentStatusResponseDto } from '../dto/consent-status.dto.js';
+import { RecordConsentDto, RecordConsentResponseDto } from '../dto/record-consent.dto.js';
+import { ConsentContext, ConsentService } from '../providers/consent.service.js';
 
 /**
  * Consent controller — 心塑 + 魔方共用合规接口 (大厂企业级 V3).

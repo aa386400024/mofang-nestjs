@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { MicroInterventionScenarioDto } from '../dto/home-overview.dto';
-import { MicroInterventionScenario } from '../entities/micro-intervention-scenario.entity';
+import { MicroInterventionScenarioDto } from '../dto/home-overview.dto.js';
+import { MicroInterventionScenario } from '../entities/micro-intervention-scenario.entity.js';
 
 /**
  * 微干预场景化元数据服务 — V2026-09-11 新增 (消除前端硬编双胞胎).

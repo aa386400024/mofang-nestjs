@@ -26,7 +26,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
-import { QUOTE_LIST_DEFAULT_LIMIT, QUOTE_LIST_MAX_LIMIT } from '../config/quote-seeds';
+import { QUOTE_LIST_DEFAULT_LIMIT, QUOTE_LIST_MAX_LIMIT } from '../config/quote-seeds.js';
 
 // ════════════════════════════════════════════════════════════════════════════
 // GET /counselor/quotes/today

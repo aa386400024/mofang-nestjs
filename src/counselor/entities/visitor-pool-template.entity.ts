@@ -36,11 +36,11 @@
 //   时间戳: 2026-10-23
 import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
-import { VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH, VISITOR_POOL_TEMPLATE_VOICE_ID_MAX_LENGTH } from '../config/visitor-pool.config';
-import type { VisitorFullPersonaScript } from '../domain/visitor-persona/visitor-persona.types';
-import type { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import type { VisitorPoolDefenseType, VisitorPoolIssueDomain, VisitorPoolSource } from '../enums/visitor-pool.enum';
-import type { VisitorStyle } from '../enums/visitor-style.enum';
+import { VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH, VISITOR_POOL_TEMPLATE_VOICE_ID_MAX_LENGTH } from '../config/visitor-pool.config.js';
+import type { VisitorFullPersonaScript } from '../domain/visitor-persona/visitor-persona.types.js';
+import type { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import type { VisitorPoolDefenseType, VisitorPoolIssueDomain, VisitorPoolSource } from '../enums/visitor-pool.enum.js';
+import type { VisitorStyle } from '../enums/visitor-style.enum.js';
 
 /**
  * visitor_pool_templates 表 —— 公共来访模板 (全局只读).

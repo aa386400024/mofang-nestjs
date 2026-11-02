@@ -1,8 +1,8 @@
 import { Module, DynamicModule } from '@nestjs/common';
 import { DiscoveryModule } from '@nestjs/core';
 
-import { DebugExplorer } from './debug.explorer';
-import { ConfigurableModuleClass, OPTIONS_TYPE } from './debug.module-definition';
+import { DebugExplorer } from './debug.explorer.js';
+import { ConfigurableModuleClass, OPTIONS_TYPE } from './debug.module-definition.js';
 
 @Module({})
 export class DebugModule extends ConfigurableModuleClass {

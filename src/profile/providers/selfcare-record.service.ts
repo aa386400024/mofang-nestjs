@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { CreateSelfcareRecordDto, ListSelfcareRecordsResponseDto, SelfcareRecordDto } from '../dto/selfcare-record.dto';
-import { SelfcareRecord } from '../entities/selfcare-record.entity';
+import { CreateSelfcareRecordDto, ListSelfcareRecordsResponseDto, SelfcareRecordDto } from '../dto/selfcare-record.dto.js';
+import { SelfcareRecord } from '../entities/selfcare-record.entity.js';
 
 /**
  * SelfcareRecord service — 心塑「我的」Tab 自我关怀记录核心服务 (陪伴者专属).

@@ -2,7 +2,7 @@ import { Logger } from '@nestjs/common';
 import { performance } from 'node:perf_hooks';
 import { types } from 'node:util';
 
-import type { Func } from './debug.interface';
+import type { Func } from './debug.interface.js';
 
 const MethodLog =
   (context?: string): MethodDecorator =>

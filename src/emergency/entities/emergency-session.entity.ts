@@ -19,7 +19,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryColumn } from 'typeorm';
 
-import { EmergencyToolKind, SessionPhase } from '../enums/emergency.enums';
+import { EmergencyToolKind, SessionPhase } from '../enums/emergency.enums.js';
 
 /**
  * 急救会话上报 — V6.0 §4.2 + audit P0-3.

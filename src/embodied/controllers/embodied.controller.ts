@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
 import {
   EmbodiedDevicesDto,
@@ -11,8 +11,8 @@ import {
   PairDeviceDto,
   UpdateEmbodiedPermissionsDto,
   VitalSignDto,
-} from '../dto/embodied.dto';
-import { EmbodiedService } from '../providers/embodied.service';
+} from '../dto/embodied.dto.js';
+import { EmbodiedService } from '../providers/embodied.service.js';
 
 /**
  * 具身数据 controller — V2.0 §Tab4 embodied.

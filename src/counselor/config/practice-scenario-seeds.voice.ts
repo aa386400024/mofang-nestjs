@@ -16,12 +16,12 @@
 //     3. 每条语音场景至少 1 条 CUSTOM_LLM 维度
 //   时间戳: 2026-10-22
 
-import type { PracticeScenarioSeed } from '../domain/practice/practice-seed.types';
-import { PracticeDefenseStyle } from '../enums/practice-defense-style.enum';
-import { PracticeDifficulty } from '../enums/practice-difficulty.enum';
-import { PracticeEmotionIntensity } from '../enums/practice-emotion-intensity.enum';
-import { PracticeRubricCheck } from '../enums/practice-rubric-check.enum';
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
+import type { PracticeScenarioSeed } from '../domain/practice/practice-seed.types.js';
+import { PracticeDefenseStyle } from '../enums/practice-defense-style.enum.js';
+import { PracticeDifficulty } from '../enums/practice-difficulty.enum.js';
+import { PracticeEmotionIntensity } from '../enums/practice-emotion-intensity.enum.js';
+import { PracticeRubricCheck } from '../enums/practice-rubric-check.enum.js';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
 
 /** 语音微训练类场景变体 (3 基本功 × 6 变体 = 18 条). */
 export const VOICE_PRACTICE_SCENARIO_SEEDS: readonly PracticeScenarioSeed[] = [

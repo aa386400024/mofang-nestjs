@@ -17,6 +17,9 @@
 //   验证: npx jest test/engine-core/wp2-memory.spec.ts
 //   时间戳: 2026-10-28 GMT+8
 
+import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository.js';
+import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
 import {
   DEFAULT_DECAY_HALF_LIFE_MS,
   EngineErrorCode,
@@ -34,10 +37,7 @@ import {
   trimWorkingWindow,
   WORKING_MEMORY_WINDOW_TURNS,
   type MemoryEntry,
-} from '../../src/engine-core';
-import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository';
-import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
+} from '../../src/engine-core/index.js';
 
 const TENANT = 'default';
 const VISITOR = 'visitor-1';

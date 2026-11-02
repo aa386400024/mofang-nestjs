@@ -2,10 +2,10 @@ import { Injectable, NotFoundException, UnprocessableEntityException } from '@ne
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { CompanionTreeDto } from '../dto/tree-stage.dto';
-import { CompanionTree, deriveStage, TreeStageMeta } from '../entities/companion-tree.entity';
-import { TreeWaterLog } from '../entities/tree-water-log.entity';
-import { WaterAction, WaterActionMeta } from '../enums/water-action.enum';
+import { CompanionTreeDto } from '../dto/tree-stage.dto.js';
+import { CompanionTree, deriveStage, TreeStageMeta } from '../entities/companion-tree.entity.js';
+import { TreeWaterLog } from '../entities/tree-water-log.entity.js';
+import { WaterAction, WaterActionMeta } from '../enums/water-action.enum.js';
 
 /**
  * 共种陪伴树 Service — V2026-09-12 §6.3 共种陪伴树.

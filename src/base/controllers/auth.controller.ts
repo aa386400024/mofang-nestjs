@@ -23,12 +23,12 @@ import {
   JwtAuthGuard,
   JwtSign,
   JwtVerifyGuard,
-} from '../../auth';
-import { ReqUser } from '../../common';
-import { EncryptedFieldsInterceptor } from '../../common/security/encrypted-fields.interceptor';
-import { JwtCookieInterceptor } from '../../common/security/jwt-cookie.interceptor';
-import { RsaKeyService } from '../../common/security/rsa-key.service';
-import { UserService } from '../../user/providers/user.service';
+} from '../../auth/index.js';
+import { ReqUser } from '../../common/index.js';
+import { EncryptedFieldsInterceptor } from '../../common/security/encrypted-fields.interceptor.js';
+import { JwtCookieInterceptor } from '../../common/security/jwt-cookie.interceptor.js';
+import { RsaKeyService } from '../../common/security/rsa-key.service.js';
+import { UserService } from '../../user/providers/user.service.js';
 
 /**
  * Auth REST controller — V1.1 重构: 接入 V2 enterprise UserService.

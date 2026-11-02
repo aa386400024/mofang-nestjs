@@ -12,15 +12,15 @@ import { vi } from 'vitest';
 //   验证: npx jest test/engine-adapters
 //   时间戳: 2026-10-28 GMT+8
 
-import { OpenAICompatEmbedder } from '../../src/engine-adapters/embedder/openai-compat.embedder';
+import { OpenAICompatEmbedder } from '../../src/engine-adapters/embedder/openai-compat.embedder.js';
 import {
   QdrantMemoryStore,
   VISITOR_LONG_MEMORY_COLLECTION,
   type QdrantMemoryClient,
-} from '../../src/engine-adapters/persistence/qdrant-memory.store';
-import { MemorySource, MemoryTier, type Embedder, type MemoryEntry } from '../../src/engine-core';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
-import type { LlmRouterService } from '../../src/llm/registry/llm-router.service';
+} from '../../src/engine-adapters/persistence/qdrant-memory.store.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
+import { MemorySource, MemoryTier, type Embedder, type MemoryEntry } from '../../src/engine-core/index.js';
+import type { LlmRouterService } from '../../src/llm/registry/llm-router.service.js';
 
 const TENANT = 'default';
 const VISITOR = 'visitor-1';

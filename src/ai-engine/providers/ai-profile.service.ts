@@ -8,9 +8,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { Repository } from 'typeorm';
 
-import type { AIProfileDimensionDto, AIProfileDto, UpsertAIProfileDimensionDto } from '../dto/ai-profile.dto';
-import { AIProfileCache } from '../entities/ai-profile-cache.entity';
-import { AIProfileSource } from '../enums/ai-profile.enums';
+import type { AIProfileDimensionDto, AIProfileDto, UpsertAIProfileDimensionDto } from '../dto/ai-profile.dto.js';
+import { AIProfileCache } from '../entities/ai-profile-cache.entity.js';
+import { AIProfileSource } from '../enums/ai-profile.enums.js';
 
 /**
  * AI 用户画像服务 — §3.1.

@@ -13,16 +13,16 @@
 //   验证: npx jest test/engine-adapters/wp9c-render-safety.spec.ts
 //   时间戳: 2026-10-29 GMT+8
 
-import { LlmRenderAdapter, escalateReasoningEffort, type ChatCaller } from '../../src/engine-adapters/rendering/llm-render.adapter';
-import { createRenderAdapterConfig, type RenderCandidate } from '../../src/engine-adapters/rendering/render-adapter.config';
-import { resolveRiskLevel, type AdaptiveRenderSpec } from '../../src/engine-adapters/rendering/render-risk';
-import { dropUnclosedTail, splitClosedPrefix } from '../../src/engine-adapters/rendering/render-truncation';
-import { buildVisitorMessages } from '../../src/engine-adapters/rendering/turn-render-orchestrator';
+import { LlmRenderAdapter, escalateReasoningEffort, type ChatCaller } from '../../src/engine-adapters/rendering/llm-render.adapter.js';
+import { createRenderAdapterConfig, type RenderCandidate } from '../../src/engine-adapters/rendering/render-adapter.config.js';
+import { resolveRiskLevel, type AdaptiveRenderSpec } from '../../src/engine-adapters/rendering/render-risk.js';
+import { dropUnclosedTail, splitClosedPrefix } from '../../src/engine-adapters/rendering/render-truncation.js';
+import { buildVisitorMessages } from '../../src/engine-adapters/rendering/turn-render-orchestrator.js';
 import type {
   ChatCompletionChunk,
   ChatCompletionRequest,
   ChatCompletionResponse,
-} from '../../src/llm/common/interfaces/chat-provider.interface';
+} from '../../src/llm/common/interfaces/chat-provider.interface.js';
 
 /** 兜底话术 (与测试配置一致). */
 const FALLBACK_UTTERANCE = '我先缓一下，我们接着说。';

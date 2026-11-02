@@ -1,14 +1,14 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../../user/guards/jwt-auth.guard.js';
 
-import { CompanionTreeDto } from '../dto/tree-stage.dto';
-import { WaterTreeDto } from '../dto/water-tree.dto';
-import { TreeWaterLog } from '../entities/tree-water-log.entity';
+import { CompanionTreeDto } from '../dto/tree-stage.dto.js';
+import { WaterTreeDto } from '../dto/water-tree.dto.js';
+import { TreeWaterLog } from '../entities/tree-water-log.entity.js';
 
-import { CompanionTreeService } from '../providers/companion-tree.service';
+import { CompanionTreeService } from '../providers/companion-tree.service.js';
 
 /**
  * 共种陪伴树 controller — V2026-09-12 §6.3 心塑 V6.0.

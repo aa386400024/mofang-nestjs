@@ -8,9 +8,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { Repository } from 'typeorm';
 
-import type { AIUnlockStateDto, AIUnlockStatesDto } from '../dto/ai-unlock.dto';
-import { AIUnlockStateEntity } from '../entities/ai-unlock-state.entity';
-import { AIUnlockFeature, AIUnlockState } from '../enums/ai-unlock.enums';
+import type { AIUnlockStateDto, AIUnlockStatesDto } from '../dto/ai-unlock.dto.js';
+import { AIUnlockStateEntity } from '../entities/ai-unlock-state.entity.js';
+import { AIUnlockFeature, AIUnlockState } from '../enums/ai-unlock.enums.js';
 
 /**
  * AI 动态解锁服务 — §3.3.

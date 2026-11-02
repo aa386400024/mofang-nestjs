@@ -63,24 +63,24 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, type Repository } from 'typeorm';
 
-import { PracticeAbilitySyncService } from './practice-ability-sync.service';
-import { PracticeCustomScenarioService } from './practice-custom-scenario.service';
-import { PracticeEvaluatorService } from './practice-evaluator.service';
-import { PracticeScenarioService } from './practice-scenario.service';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { engineOfMode } from '../config/practice-display-meta';
-import type { PracticeFeedback, PracticeTurn } from '../domain/practice/practice.types';
+import { PracticeAbilitySyncService } from './practice-ability-sync.service.js';
+import { PracticeCustomScenarioService } from './practice-custom-scenario.service.js';
+import { PracticeEvaluatorService } from './practice-evaluator.service.js';
+import { PracticeScenarioService } from './practice-scenario.service.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { engineOfMode } from '../config/practice-display-meta.js';
+import type { PracticeFeedback, PracticeTurn } from '../domain/practice/practice.types.js';
 import type {
   CreateCustomPracticeScenarioDto,
   CustomPracticeScenarioResultDto,
   PracticeEvaluationResultDto,
   PracticeFeedbackDto,
   SubmitPracticeAttemptDto,
-} from '../dto/practice.dto';
-import { PracticeAttempt } from '../entities/practice-attempt.entity';
-import { PracticeEngine } from '../enums/practice-engine.enum';
-import { PRACTICE_FEEDBACK_TONE_ICONS } from '../enums/practice-feedback-tone.enum';
+} from '../dto/practice.dto.js';
+import { PracticeAttempt } from '../entities/practice-attempt.entity.js';
+import { PracticeEngine } from '../enums/practice-engine.enum.js';
+import { PRACTICE_FEEDBACK_TONE_ICONS } from '../enums/practice-feedback-tone.enum.js';
 
 /**
  * 微技能练习 —— 作答写入侧 service.

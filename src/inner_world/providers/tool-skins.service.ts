@@ -2,11 +2,11 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
-import { FragmentsService } from './fragments.service';
-import { ToolSkinDto, ToolSkinsListDto, UnlockSkinDto, UnlockSkinResponseDto } from '../dto/skin-pack.dto';
-import { ToolSkinState } from '../entities/tool-skin-state.entity';
-import { FragmentType } from '../enums/fragment-type.enum';
-import { TOOL_SKIN_DEFS, ToolId, SkinRarity } from '../enums/skin-rarity.enum';
+import { FragmentsService } from './fragments.service.js';
+import { ToolSkinDto, ToolSkinsListDto, UnlockSkinDto, UnlockSkinResponseDto } from '../dto/skin-pack.dto.js';
+import { ToolSkinState } from '../entities/tool-skin-state.entity.js';
+import { FragmentType } from '../enums/fragment-type.enum.js';
+import { TOOL_SKIN_DEFS, ToolId, SkinRarity } from '../enums/skin-rarity.enum.js';
 
 /**
  * 工具皮肤服务 — V4.0 §3.4.

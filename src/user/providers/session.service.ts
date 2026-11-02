@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
 
-import { Session } from '../entities/session.entity';
-import { SessionRevokeReason } from '../user.constant';
+import { Session } from '../entities/session.entity.js';
+import { SessionRevokeReason } from '../user.constant.js';
 
 /**
  * Session service — 用户登录会话管理 (大厂多端登录).

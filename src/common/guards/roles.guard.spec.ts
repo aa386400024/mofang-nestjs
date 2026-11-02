@@ -3,9 +3,9 @@ import { Reflector } from '@nestjs/core';
 import { ExecutionContextHost } from '@nestjs/core/internal';
 import { expect, test } from 'vitest';
 
-import { RolesGuard } from './roles.guard';
-import type { Payload } from '../../auth';
-import { Roles } from '../decorators';
+import { RolesGuard } from './roles.guard.js';
+import type { Payload } from '../../auth/index.js';
+import { Roles } from '../decorators/index.js';
 
 @Roles('admin')
 class AdminController {}

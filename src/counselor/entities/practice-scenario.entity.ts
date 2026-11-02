@@ -43,9 +43,9 @@
 //   时间戳: 2026-10-22
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import type { PracticeScenarioPersona, PracticeScenarioRubric } from '../domain/practice/practice.types';
-import { PracticeDifficulty } from '../enums/practice-difficulty.enum';
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
+import type { PracticeScenarioPersona, PracticeScenarioRubric } from '../domain/practice/practice.types.js';
+import { PracticeDifficulty } from '../enums/practice-difficulty.enum.js';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
 
 /**
  * practice_scenarios 表 —— 微技能自由练习的**场景变体库**.

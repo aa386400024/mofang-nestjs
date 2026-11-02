@@ -37,10 +37,10 @@ import { config as loadEnvFile } from 'dotenv';
 
 import { DataSource, type DataSourceOptions } from 'typeorm';
 
-import { configuration } from '../src/config/configuration';
-import { CounselorUiPreference } from '../src/counselor/entities/counselor-ui-preference.entity';
-import { TrainingExercise } from '../src/counselor/entities/training-exercise.entity';
-import { seedTrainingExercises } from '../src/counselor/seeds/training-exercises.seed';
+import { configuration } from '../src/config/configuration.js';
+import { CounselorUiPreference } from '../src/counselor/entities/counselor-ui-preference.entity.js';
+import { TrainingExercise } from '../src/counselor/entities/training-exercise.entity.js';
+import { seedTrainingExercises } from '../src/counselor/seeds/training-exercises.seed.js';
 
 type DbConfig = DataSourceOptions & { autoLoadEntities?: boolean };
 

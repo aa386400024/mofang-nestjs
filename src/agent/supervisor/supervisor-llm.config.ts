@@ -49,7 +49,7 @@
 
 import type { ConfigService } from '@nestjs/config';
 
-import type { LlmReasoningEffort } from '../llm/llm.types';
+import type { LlmReasoningEffort } from '../llm/llm.types.js';
 
 /**
  * 主报告参数档的 DI token.

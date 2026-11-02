@@ -11,7 +11,7 @@
 //     1. npx jest test/counselor/session-material.spec.ts 全绿
 //     2. 故意把"或"改成"且" → "2 轮共 20 字"用例变红
 //   时间戳: 2026-10-27 14:20 GMT+8
-import { isInsufficientMaterial, measureEffectiveMaterial } from '../../src/counselor/domain/session-view/session-material';
+import { isInsufficientMaterial, measureEffectiveMaterial } from '../../src/counselor/domain/session-view/session-material.js';
 
 /** 默认阈值 (与 config `supervision.minEffectiveTurns` / `minEffectiveChars` 同值). */
 const THRESHOLDS = { minTurns: 2, minChars: 30 };

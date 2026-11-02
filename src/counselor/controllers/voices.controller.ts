@@ -22,9 +22,9 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
-import type { VoicesListDto } from '../dto/voices.dto';
-import { VoicesService } from '../providers/voices.service';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
+import type { VoicesListDto } from '../dto/voices.dto.js';
+import { VoicesService } from '../providers/voices.service.js';
 
 @ApiTags('counselor-voices')
 @Controller('counselor/voices')

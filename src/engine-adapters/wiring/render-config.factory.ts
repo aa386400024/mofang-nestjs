@@ -27,17 +27,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import type { RenderTaskKind, RiskProbePort } from '../../engine-core';
-import { AIProviderId, LLMTier } from '../../llm/common/enums/llm.enums';
-import type { ChatReasoningEffort } from '../../llm/common/interfaces/chat-provider.interface';
-import { LlmRouterService } from '../../llm/registry/llm-router.service';
+import type { RenderTaskKind, RiskProbePort } from '../../engine-core/index.js';
+import { AIProviderId, LLMTier } from '../../llm/common/enums/llm.enums.js';
+import type { ChatReasoningEffort } from '../../llm/common/interfaces/chat-provider.interface.js';
+import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
 import {
   LlmRenderAdapter,
   createVisitorOutputGuard,
   createVisitorPrecheck,
   type ChatCaller,
   type LlmRenderAdapterDeps,
-} from '../rendering/llm-render.adapter';
+} from '../rendering/llm-render.adapter.js';
 import {
   DEFAULT_RENDER_COOLDOWN_BASE_MS,
   DEFAULT_RENDER_COOLDOWN_MAX_MS,
@@ -48,9 +48,9 @@ import {
   createRenderAdapterConfig,
   type RenderAdapterConfig,
   type RenderCandidate,
-} from '../rendering/render-adapter.config';
-import type { StreamingRenderPort } from '../rendering/streaming-render.port';
-import { buildVisitorMessages } from '../rendering/turn-render-orchestrator';
+} from '../rendering/render-adapter.config.js';
+import type { StreamingRenderPort } from '../rendering/streaming-render.port.js';
+import { buildVisitorMessages } from '../rendering/turn-render-orchestrator.js';
 
 /**
  * 合法的思考强度档位 (上游协议事实, 查表用).

@@ -26,8 +26,8 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { PracticeQuotaType } from '../enums/practice-quota-type.enum';
-import { QuotaType } from '../enums/quota-type.enum';
+import { PracticeQuotaType } from '../enums/practice-quota-type.enum.js';
+import { QuotaType } from '../enums/quota-type.enum.js';
 
 /**
  * quota_usage 表.

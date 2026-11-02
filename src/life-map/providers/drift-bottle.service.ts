@@ -1,10 +1,10 @@
 import { Injectable, UnprocessableEntityException, NotFoundException } from '@nestjs/common';
 
-import { DriftBottleRepository } from './drift-bottle.repository';
-import { DriftBottleEntryDto } from '../dto/drift-bottle-entry.dto';
-import { DriftBottleStatsDto } from '../dto/drift-bottle-stats.dto';
-import { DriftBottleEntry } from '../entities/drift-bottle-entry.entity';
-import { DriftBottleStatus } from '../enums/drift-bottle-status.enum';
+import { DriftBottleRepository } from './drift-bottle.repository.js';
+import { DriftBottleEntryDto } from '../dto/drift-bottle-entry.dto.js';
+import { DriftBottleStatsDto } from '../dto/drift-bottle-stats.dto.js';
+import { DriftBottleEntry } from '../entities/drift-bottle-entry.entity.js';
+import { DriftBottleStatus } from '../enums/drift-bottle-status.enum.js';
 
 /**
  * 漂流瓶 Service — V2026-09-12 §6.5 心塑 V6.0.

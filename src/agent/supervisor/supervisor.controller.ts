@@ -20,10 +20,10 @@
 
 import { Controller, Get, Inject, Param, Query, UseGuards } from '@nestjs/common';
 
-import type { SupervisionReportDto, SupervisionReportRow } from './supervisor.types';
-import { JwtAuthGuard } from '../../auth/guards';
-import { TenantId } from '../../common/decorators';
-import { SUPERVISION_REPORT_REPOSITORY, type SupervisionReportRepository } from './domain/repositories/supervision-report.repository';
+import { SUPERVISION_REPORT_REPOSITORY, type SupervisionReportRepository } from './domain/repositories/supervision-report.repository.js';
+import type { SupervisionReportDto, SupervisionReportRow } from './supervisor.types.js';
+import { JwtAuthGuard } from '../../auth/guards/index.js';
+import { TenantId } from '../../common/decorators/index.js';
 
 @Controller('agent/supervision')
 @UseGuards(JwtAuthGuard)

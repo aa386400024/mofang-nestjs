@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsOptional, IsString } from 'class-validator';
 
-import { isChinesePhone } from '../../common/validators/is-chinese-phone.validator';
-import { isStrongPassword } from '../../common/validators/is-strong-password.validator';
+import { isChinesePhone } from '../../common/validators/is-chinese-phone.validator.js';
+import { isStrongPassword } from '../../common/validators/is-strong-password.validator.js';
 
 /**
  * 注册 DTO — 心塑 + 魔方共用注册入口 (大厂企业级).

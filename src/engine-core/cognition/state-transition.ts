@@ -8,9 +8,9 @@
 //
 //   delta 表是工程种子值 (非临床标定), 集中在此便于后期调参 / 换模型轨.
 
-import type { BdiSnapshot } from '../domain/bdi-snapshot';
-import { clamp01, clampValence, resolveEmotionLabel } from '../domain/emotion';
-import type { CounselorEventKind, SessionEvent } from '../domain/events/session-event';
+import type { BdiSnapshot } from '../domain/bdi-snapshot.js';
+import { clamp01, clampValence, resolveEmotionLabel } from '../domain/emotion.js';
+import type { CounselorEventKind, SessionEvent } from '../domain/events/session-event.js';
 
 /** 单事件对各维度的增量. */
 interface DeltaVector {

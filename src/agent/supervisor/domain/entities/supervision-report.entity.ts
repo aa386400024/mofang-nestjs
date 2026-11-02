@@ -18,7 +18,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-import type { SupervisionAnnotation, SupervisionDimensions, SupervisorReportStatus } from '../../supervisor.types';
+import type { SupervisionAnnotation, SupervisionDimensions, SupervisorReportStatus } from '../../supervisor.types.js';
 
 /** 实体类型 — V0.x 内存 mock 也用同形状, V1.x 切 TypeORM 字段一一对应. */
 @Entity('supervision_reports')

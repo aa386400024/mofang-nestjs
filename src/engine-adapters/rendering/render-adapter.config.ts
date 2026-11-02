@@ -23,8 +23,8 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp6-llm-render.spec.ts 覆盖参数解析与种子默认值
 
-import type { RenderTaskKind } from '../../engine-core';
-import type { ChatReasoningEffort } from '../../llm/common/interfaces/chat-provider.interface';
+import type { RenderTaskKind } from '../../engine-core/index.js';
+import type { ChatReasoningEffort } from '../../llm/common/interfaces/chat-provider.interface.js';
 
 /**
  * 任务分层参数覆盖 (按 taskKind 生效).

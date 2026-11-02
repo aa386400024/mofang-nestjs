@@ -114,70 +114,70 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 //   反双胞胎: 不直接 import '../agent/llm/llm.module' —— 跟 knowledge-base.module.ts:21 的先例一致,
 //     统一用 AgentModule 这个公共出口, 换 LLM 实现时只改 1 处.
 //   时间戳: 2026-10-21
-import { AgentModule } from '../agent/agent.module';
-import { AuthModule } from '../auth';
-import { UserModule } from '../user';
+import { AgentModule } from '../agent/agent.module.js';
+import { AuthModule } from '../auth/index.js';
+import { UserModule } from '../user/index.js';
 
 // V2026-10-15 治本 (V1.x W5-6 — ability controller):
 //   counselor 端第 8 个 controller (7 维度 28 子指标 + user 聚合, 跟 W1-2 + W3-4 数据正交,
 //   单独 service + 真接 TypeOrm 库).
-import { CounselorAbilityController } from './controllers/ability.controller';
+import { CounselorAbilityController } from './controllers/ability.controller.js';
 // V2026-10-15 治本 (V1.x W7-8 — billing controller):
 //   counselor 端第 9 个 controller (5 档会员 + 配额 + 降级, 跟 A + B + C 数据正交, 单独 service).
-import { CounselorBillingController } from './controllers/billing.controller';
+import { CounselorBillingController } from './controllers/billing.controller.js';
 // V2026-10-13 治本 (Phase 7.10 P0-2 — 加 training controller):
 //   counselor 端 5 Tab 第 2 个 endpoint (跟 home 共用 CounselorHomeService 数据).
 // V2026-10-13 治本 (Phase 7.10 P0-3 — 加 exam controller):
 //   counselor 端 5 Tab 第 3 个 endpoint (题库, 跟 home/training 数据正交, 单独 service).
-import { CounselorCaseProfileEntryController } from './controllers/case-profile-entry.controller';
-import { CounselorExamController } from './controllers/counselor-exam.controller';
+import { CounselorCaseProfileEntryController } from './controllers/case-profile-entry.controller.js';
+import { CounselorExamController } from './controllers/counselor-exam.controller.js';
 // V2026-10-13 治本 (Phase 7.10 P0-4 — 加 growth controller):
 //   counselor 端 5 Tab 第 4 个 endpoint (成长, 4 区块, 复用 home ability + weeklyProgress).
-import { CounselorGrowthController } from './controllers/counselor-growth.controller';
-import { CounselorHomeController } from './controllers/counselor-home.controller';
+import { CounselorGrowthController } from './controllers/counselor-growth.controller.js';
+import { CounselorHomeController } from './controllers/counselor-home.controller.js';
 // V2026-10-15 治本 (V1.x W1-2 — long-term-case controller):
 //   counselor 端第 6 个 controller (长程个案, 跟 home/training/exam/growth/profile 数据正交,
 //   单独 service + 真接 TypeOrm 库).
 // V2026-10-22 治本 (首页金句 · 每日一句 — controller):
 //   5 端点: 今日金句 / 金句流 (游标分页) / 我的收藏 / 收藏 / 取消收藏.
 //   跟 practice controller 语义正交 (零压情绪陪伴位 vs 技能训练).
-import { CounselorProfileController } from './controllers/counselor-profile.controller';
-import { CounselorTrainingController } from './controllers/counselor-training.controller';
-import { CounselorUiPreferenceController } from './controllers/counselor-ui-preference.controller';
-import { CrisisPracticeController } from './controllers/crisis-practice.controller';
-import { CounselorInformedConsentController } from './controllers/informed-consent.controller';
-import { CounselorLiveHintController } from './controllers/live-hint.controller';
-import { CounselorLongTermCaseController } from './controllers/long-term-case.controller';
+import { CounselorProfileController } from './controllers/counselor-profile.controller.js';
+import { CounselorTrainingController } from './controllers/counselor-training.controller.js';
+import { CounselorUiPreferenceController } from './controllers/counselor-ui-preference.controller.js';
+import { CrisisPracticeController } from './controllers/crisis-practice.controller.js';
+import { CounselorInformedConsentController } from './controllers/informed-consent.controller.js';
+import { CounselorLiveHintController } from './controllers/live-hint.controller.js';
+import { CounselorLongTermCaseController } from './controllers/long-term-case.controller.js';
 // V2026-10-22 治本 (V1.3 §3 — 微技能自由练习 controller):
 //   counselor 端第 19 个 controller (5 端点: 进度聚合 / 取场景 / 提交评判 /
 //   随机抽练 / 真实场景生成), 跟 MCQ 训练题 controller 语义正交 (零压无分).
-import { CounselorPracticeController } from './controllers/practice.controller';
-import { CounselorQuoteController } from './controllers/quote.controller';
+import { CounselorPracticeController } from './controllers/practice.controller.js';
+import { CounselorQuoteController } from './controllers/quote.controller.js';
 // V2026-10-13 治本 (Phase 7.10 P0-5 — 加 profile controller):
 //   counselor 端 5 Tab 第 5 个 endpoint (我的, 训练偏好 + 会员状态).
 // V2026-10-15 治本 (V1.x W3-4 — supervision controller):
 //   counselor 端第 7 个 controller (4 流派督导, 跟 long-term-case 同 sessionId polymorphic 复用).
-import { CounselorSupervisionController } from './controllers/supervision.controller';
-import { CounselorTrainingExerciseController } from './controllers/training-exercise.controller';
+import { CounselorSupervisionController } from './controllers/supervision.controller.js';
+import { CounselorTrainingExerciseController } from './controllers/training-exercise.controller.js';
 // V2026-10-21 治本 (V1.2 VS-A — training session controller):
 //   training_sessions 表 (V1.1 §6.5) 落地后一直 0 controller, v1.2 的 M2 知情同意 /
 //   M3 轻提示 / M4 24h 间隔 / §10.1 初访分流 全挂在它身上. 本 controller 定死 6 个 endpoint 契约.
-import { CounselorTrainingSessionController } from './controllers/training-session.controller';
+import { CounselorTrainingSessionController } from './controllers/training-session.controller.js';
 // V2026-10-21 治本 (V1.2 VS-B1 — M1 分层人设 2 controller):
 //   visitor-persona: 视图 A 表层配置 + 上帝视角全量 + 绑定长程
 //   case-profile-entry: 视图 B 动态解锁档案
-import { CounselorTranscriptBookmarkController } from './controllers/transcript-bookmark.controller';
-import { CounselorTransferenceMarkController } from './controllers/transference-mark.controller';
-import { CounselorVisitorPersonaController } from './controllers/visitor-persona.controller';
+import { CounselorTranscriptBookmarkController } from './controllers/transcript-bookmark.controller.js';
+import { CounselorTransferenceMarkController } from './controllers/transference-mark.controller.js';
+import { CounselorVisitorPersonaController } from './controllers/visitor-persona.controller.js';
 // V2026-10-23 治本 (AI 模拟来访池 — 2 controller):
 //   visitor-pool: 公共人物图鉴 + 克隆实例化 + 收藏 (普通练习用户可用)
 //   visitor-pool-admin: 公共模板库治理 (AI 生成 / 增删改 / 上下架 / 软删恢复), 内部角色专用
-import { CounselorVisitorPoolAdminController } from './controllers/visitor-pool-admin.controller';
-import { CounselorVisitorPoolController } from './controllers/visitor-pool.controller';
+import { CounselorVisitorPoolAdminController } from './controllers/visitor-pool-admin.controller.js';
+import { CounselorVisitorPoolController } from './controllers/visitor-pool.controller.js';
 // V2026-10-26 治本 (官方音色目录 — 只读代理端点, spec §任务 2):
 //   GET /counselor/voices?type=system — 音色选择器唯一的取数入口 (前端不直连 MiniMax).
-import { CounselorVoicesController } from './controllers/voices.controller';
-import { DrillController } from './drills/controllers/drill.controller';
+import { CounselorVoicesController } from './controllers/voices.controller.js';
+import { DrillController } from './drills/controllers/drill.controller.js';
 // V2026-10-27 治本 (危机识别专区 — 只读元数据端点, spec 任务 B2):
 //   GET /counselor/crisis-practice/meta — 前端"隔离壳"渲染用的静态教学元数据.
 //   物理隔离: 危机内容不进 visitor_pool_templates / 不进公共图鉴列表 / 不碰普通池 seed.
@@ -186,17 +186,17 @@ import { DrillController } from './drills/controllers/drill.controller';
 //   transcript-bookmark (逐字稿打点) / transference-mark (双向移情阻抗标记)
 // V2026-10-15 治本 (V1.x W5-6 — ability entity 注册, 走 TypeOrmModule.forFeature):
 //   7 维度 28 子指标 + user 聚合 2 entity, 跟 W1-2 long-term-case + W3-4 supervision 同段.
-import { DrillEvaluatorService } from './drills/providers/drill-evaluator.service';
-import { DrillService } from './drills/providers/drill.service';
-import { AbilityDimension } from './entities/ability-dimension.entity';
-import { AbilityScore } from './entities/ability-score.entity';
+import { DrillEvaluatorService } from './drills/providers/drill-evaluator.service.js';
+import { DrillService } from './drills/providers/drill.service.js';
+import { AbilityDimension } from './entities/ability-dimension.entity.js';
+import { AbilityScore } from './entities/ability-score.entity.js';
 // V2026-10-15 治本 (V1.x W1-2 — long-term-case entity 注册, 走 TypeOrmModule.forFeature):
 //   跟 knowledge-base/knowledge-chunk.entity.ts V0.x 风格一致, 1:1 wire.
-import { CaseProfileEntry } from './entities/case-profile-entry.entity';
-import { CounselorUiPreference } from './entities/counselor-ui-preference.entity';
-import { LiveSupervisionHint } from './entities/live-supervision-hint.entity';
-import { LongTermCaseSession } from './entities/long-term-case-session.entity';
-import { LongTermCase } from './entities/long-term-case.entity';
+import { CaseProfileEntry } from './entities/case-profile-entry.entity.js';
+import { CounselorUiPreference } from './entities/counselor-ui-preference.entity.js';
+import { LiveSupervisionHint } from './entities/live-supervision-hint.entity.js';
+import { LongTermCaseSession } from './entities/long-term-case-session.entity.js';
+import { LongTermCase } from './entities/long-term-case.entity.js';
 // V2026-10-22 治本 (V1.3 §2 — 微技能自由练习引擎 2 entity 注册, 走 TypeOrmModule.forFeature):
 //   +PracticeScenario (场景变体库, 20 列 + 4 索引) +PracticeAttempt (自由作答记录,
 //   12 列 + 3 索引), 跟 §2.1 / §2.2 拍板严格 1:1; 跟 V1.1 §5.2 MCQ 两表完全正交
@@ -204,40 +204,40 @@ import { LongTermCase } from './entities/long-term-case.entity';
 // V2026-10-22 治本 (V1.3 §7.5 — 用户私有场景表注册, 跟前序 practice_scenarios 同段):
 //   +PracticeCustomScenario (私有场景 14 列 + 3 索引) —— 跟共享内容库物理隔离,
 //   保证「公共题库里每一条都过审」这条不变式 (§7.3.1 脱敏 + §7.5 数据落点).
-import { PracticeAttempt } from './entities/practice-attempt.entity';
-import { PracticeCustomScenario } from './entities/practice-custom-scenario.entity';
-import { PracticeScenario } from './entities/practice-scenario.entity';
+import { PracticeAttempt } from './entities/practice-attempt.entity.js';
+import { PracticeCustomScenario } from './entities/practice-custom-scenario.entity.js';
+import { PracticeScenario } from './entities/practice-scenario.entity.js';
 // V2026-10-22 治本 (首页金句 · 每日一句 — 2 entity 注册, 跟前序 practice_custom_scenarios 同段):
 //   +Quote (金句内容库 11 列 + 2 索引) +UserQuoteFavorite (收藏关系 5 列 + 3 索引).
 //   零压红线: 两表都**没有**任何计数字段 (like_count / favorite_count / view_count).
 // V2026-10-15 治本 (V1.x W7-8 — quota_usage entity 注册):
 //   3 类配额月度聚合 1 entity, 跟 W1-2 + W3-4 + W5-6 同段.
-import { QuotaUsage } from './entities/quota-usage.entity';
-import { Quote } from './entities/quote.entity';
+import { QuotaUsage } from './entities/quota-usage.entity.js';
+import { Quote } from './entities/quote.entity.js';
 // V2026-10-15 治本 (V1.x W3-4 — supervision-schools + supervision-feedback entity 注册):
 //   4 流派配置 + polymorphic 反馈记录 2 entity, 跟 W1-2 long-term-case 同 TypeOrmModule.forFeature 段.
-import { SupervisionFeedback } from './entities/supervision-feedback.entity';
-import { SupervisionSchool } from './entities/supervision-school.entity';
+import { SupervisionFeedback } from './entities/supervision-feedback.entity.js';
+import { SupervisionSchool } from './entities/supervision-school.entity.js';
 // V2026-10-15 治本 (V1.x W5-6 — ability service):
 //   4 method 业务逻辑 (listDimensions / findDimensionByCode / getUserProfile / upsertScore),
 //   V0.5 阶段手动 upsert, V1.x 续做时 W3-4 service.generateFeedback 完成后回调本 service.
-import { TrainingExerciseAttempt } from './entities/training-exercise-attempt.entity';
-import { TrainingExercise } from './entities/training-exercise.entity';
-import { TrainingSession } from './entities/training-session.entity';
+import { TrainingExerciseAttempt } from './entities/training-exercise-attempt.entity.js';
+import { TrainingExercise } from './entities/training-exercise.entity.js';
+import { TrainingSession } from './entities/training-session.entity.js';
 // V2026-10-21 治本 (V1.2 VS-B1 — M1 分层人设 2 entity 注册, 走 TypeOrmModule.forFeature):
 //   +VisitorFullPersona (AI 底层全量人设, 7 大块 json + trust_level)
 //   +CaseProfileEntry (动态解锁档案, self_disclosed / therapist_note 两层)
 //   跟 V1.1 §5.2 training_exercises 同段.
-import { TranscriptBookmark } from './entities/transcript-bookmark.entity';
-import { TransferenceResistanceMark } from './entities/transference-resistance-mark.entity';
-import { UserQuoteFavorite } from './entities/user-quote-favorite.entity';
-import { VisitorFullPersona } from './entities/visitor-full-persona.entity';
+import { TranscriptBookmark } from './entities/transcript-bookmark.entity.js';
+import { TransferenceResistanceMark } from './entities/transference-resistance-mark.entity.js';
+import { UserQuoteFavorite } from './entities/user-quote-favorite.entity.js';
+import { VisitorFullPersona } from './entities/visitor-full-persona.entity.js';
 // V2026-10-23 治本 (AI 模拟来访池 — 2 entity 注册, 走 TypeOrmModule.forFeature):
 //   +VisitorPoolTemplate (公共只读模板: 表层卡片 + 7 大块剧本快照)
 //   +VisitorPoolFavorite (收藏关系, 唯一键 (user_id, template_id))
 //   跟 V2026-10-21 的 visitor_full_personas 同段 (副本表复用, 只多 1 列 source_template_id).
-import { VisitorPoolFavorite } from './entities/visitor-pool-favorite.entity';
-import { VisitorPoolTemplate } from './entities/visitor-pool-template.entity';
+import { VisitorPoolFavorite } from './entities/visitor-pool-favorite.entity.js';
+import { VisitorPoolTemplate } from './entities/visitor-pool-template.entity.js';
 // V2026-10-21 治本 (V1.2 VS-C — M2/M3 会谈核心 3 entity 注册, 走 TypeOrmModule.forFeature):
 //   +LiveSupervisionHint (实时督导轻提示) +TranscriptBookmark (逐字稿打点)
 //   +TransferenceResistanceMark (双向移情/阻抗标记)
@@ -248,15 +248,15 @@ import { VisitorPoolTemplate } from './entities/visitor-pool-template.entity';
 //   TrainingExercise entity 1:1 wire) + TrainingExerciseAttempt (V1.1 §5.2 拍板
 //   答题记录, 5 状态机 1:1 wire). 大炮 16:10 "A, 要企业级的方案, 不要凑活"
 //   1:1 反馈, V0.5 stage 简化 0 占位, V1.x W9-10 续做前先落 entity 层.
-import { AdminRoleGuard } from './guards/admin-role.guard';
+import { AdminRoleGuard } from './guards/admin-role.guard.js';
 // V2026-10-29 治本 (WP21 — 报告 SSE 端点的归属守卫)
-import { SupervisionReportGuard } from './guards/supervision-report.guard';
-import { AbilityService } from './providers/ability.service';
+import { SupervisionReportGuard } from './guards/supervision-report.guard.js';
+import { AbilityService } from './providers/ability.service.js';
 // V2026-10-15 治本 (V1.x W7-8 — billing service):
 //   5 method 业务逻辑 (getMembershipStatus / listSkus / createOrder / consumeQuota /
 //   isVoiceAllowed), V0.5 阶段 mock 支付 inline + 配额表真接, V1.x 续做抽 PaymentChannelService
 //   interface 接 WechatPay + Alipay 真接.
-import { BillingService } from './providers/billing.service';
+import { BillingService } from './providers/billing.service.js';
 
 // V2026-10-19 治本 (V1.1 §6.5 — training-session 接入 + 9 场景单次 session 持久化):
 //   原因: counselor-mode-v1.1 §6.5 拍板 training_sessions 表 (跟 xin_su_app V0.5 client
@@ -287,32 +287,32 @@ import { BillingService } from './providers/billing.service';
 //   时间戳: 2026-10-19
 // V2026-10-13 治本 (Phase 7.10 P0-3 — exam service):
 //   跟 home/training 数据正交, 单独 service (4 大分类 + 11 卡片 + 3 KPI).
-import { CaseProfileEntryService } from './providers/case-profile-entry.service';
-import { CounselorExamService } from './providers/counselor-exam.service';
+import { CaseProfileEntryService } from './providers/case-profile-entry.service.js';
+import { CounselorExamService } from './providers/counselor-exam.service.js';
 // V2026-10-13 治本 (Phase 7.10 P0-4 — growth service):
 //   复用 home service ability + weeklyProgress, 加 training records + wrong questions (V0.5 空数组).
-import { CounselorGrowthService } from './providers/counselor-growth.service';
-import { CounselorHomeService } from './providers/counselor-home.service';
+import { CounselorGrowthService } from './providers/counselor-growth.service.js';
+import { CounselorHomeService } from './providers/counselor-home.service.js';
 // V2026-10-15 治本 (V1.x W1-2 — long-term-case service):
 //   5 method 业务逻辑 (list / createFromPreset / findDetail / appendSession / listTemplates),
 //   走真 TypeORM Repository, 跟 V0.5 5 service 内存 mock 区分.
 // V2026-10-22 治本 (首页金句 · 每日一句 — service):
 //   QuoteService: 今日金句轮换 + 金句流 keyset 游标分页 + 收藏开关 (零压, 无计数).
-import { CounselorProfileService } from './providers/counselor-profile.service';
-import { CounselorSupervisionProcessor } from './providers/counselor-supervision.processor';
-import { CounselorUiPreferenceService } from './providers/counselor-ui-preference.service';
-import { CounselorVisitorContextContributor } from './providers/counselor-visitor-context.contributor';
+import { CounselorProfileService } from './providers/counselor-profile.service.js';
+import { CounselorSupervisionProcessor } from './providers/counselor-supervision.processor.js';
+import { CounselorUiPreferenceService } from './providers/counselor-ui-preference.service.js';
+import { CounselorVisitorContextContributor } from './providers/counselor-visitor-context.contributor.js';
 // V2026-10-23 治本 (v2.0 语音对语音 — 公共人物模板解析器):
 //   实现 voice 侧的 VoiceTemplateResolver 插槽 (依赖倒置): WS 握手要校验
 //   `templateId` 是否指向已上架公共人物, 但这张表属 counselor 业务域, 而网关在 voice
 //   (agent) 侧 —— 直接 import 会形成 agent → business 反向依赖.
 //   该解析器只对外暴露**表层摘要**, 7 大块剧本永不跨模块 (零压红线的结构性保证).
-import { CounselorVisitorPoolTemplateResolver } from './providers/counselor-visitor-pool-template.resolver';
-import { CrisisPracticeService } from './providers/crisis-practice.service';
-import { InformedConsentService } from './providers/informed-consent.service';
-import { LiveSupervisionHintService } from './providers/live-hint.service';
-import { CounselorLlmJsonClient } from './providers/llm-json.client';
-import { LongTermCaseService } from './providers/long-term-case.service';
+import { CounselorVisitorPoolTemplateResolver } from './providers/counselor-visitor-pool-template.resolver.js';
+import { CrisisPracticeService } from './providers/crisis-practice.service.js';
+import { InformedConsentService } from './providers/informed-consent.service.js';
+import { LiveSupervisionHintService } from './providers/live-hint.service.js';
+import { CounselorLlmJsonClient } from './providers/llm-json.client.js';
+import { LongTermCaseService } from './providers/long-term-case.service.js';
 // V2026-10-22 治本 (V1.3 §3 — 微技能自由练习 3 service):
 //   - PracticeScenarioService: 读侧 (进度聚合 / 取场景 / 随机抽练) + 唯一可见性谓词
 //   - PracticeEvaluatorService: 评判引擎 (LLM 主路径 + 确定性关键词降级 + 零压红线守门)
@@ -321,29 +321,29 @@ import { LongTermCaseService } from './providers/long-term-case.service';
 //   - PracticeCustomScenarioService: 用户私有场景的生成与列表 (§7.2 两个端点)
 //   - PracticeQuotaService: 练习域日粒度配额 (复用 quota_usage 表, spec §7.4)
 //   - PracticeAbilitySyncService: 练习信号回写五维画像 (spec §7.6 P3-c)
-import { PracticeAbilitySyncService } from './providers/practice-ability-sync.service';
+import { PracticeAbilitySyncService } from './providers/practice-ability-sync.service.js';
 // V2026-10-23 治本 (语音微训练 STT 代理 — 4 provider 注册):
 //   PracticeAsrService: 业务编排 (预检 + 错误归一 + 记账)
 //   PracticeAsrClient:  MiniMax STT 上游协议层 (multipart 转发 / 超时 / 错误归一化)
 //   PracticeAsrThrottlerGuard: userId 级限流 (排在 JwtAuthGuard 之后才能拿到 request.user)
 //   PracticeAsrUploadFilter: 路由级异常 filter (413/400 → ASR 专用业务码)
-import { PracticeAsrUploadFilter } from './providers/practice-asr-upload.filter';
-import { PracticeAsrClient } from './providers/practice-asr.client';
-import { PracticeAsrService } from './providers/practice-asr.service';
-import { PracticeAsrThrottlerGuard } from './providers/practice-asr.throttler';
-import { PracticeAttemptService } from './providers/practice-attempt.service';
-import { PracticeCustomScenarioService } from './providers/practice-custom-scenario.service';
-import { PracticeEvaluatorService } from './providers/practice-evaluator.service';
-import { PracticeQuotaService } from './providers/practice-quota.service';
-import { PracticeScenarioService } from './providers/practice-scenario.service';
+import { PracticeAsrUploadFilter } from './providers/practice-asr-upload.filter.js';
+import { PracticeAsrClient } from './providers/practice-asr.client.js';
+import { PracticeAsrService } from './providers/practice-asr.service.js';
+import { PracticeAsrThrottlerGuard } from './providers/practice-asr.throttler.js';
+import { PracticeAttemptService } from './providers/practice-attempt.service.js';
+import { PracticeCustomScenarioService } from './providers/practice-custom-scenario.service.js';
+import { PracticeEvaluatorService } from './providers/practice-evaluator.service.js';
+import { PracticeQuotaService } from './providers/practice-quota.service.js';
+import { PracticeScenarioService } from './providers/practice-scenario.service.js';
 // V2026-10-13 治本 (Phase 7.10 P0-5 — profile service):
 //   训练偏好 (3 toggle + defaultDifficulty) + 会员状态 (V0.5 写死 none, V1.x 接 billing).
 // V2026-10-15 治本 (V1.x W3-4 — supervision service):
 //   5 method 业务逻辑 (listSchools / findSchoolByCode / generateFeedback / compareFeedback /
 //   listFeedbackForSession), V0.5 mock 阶段用静态 prompt 模板, V1.x 真接 LLM 改 provider 注入.
-import { ProfileExtractionService } from './providers/profile-extraction.service';
-import { QuoteService } from './providers/quote.service';
-import { SessionContextBuilder } from './providers/session-context.builder';
+import { ProfileExtractionService } from './providers/profile-extraction.service.js';
+import { QuoteService } from './providers/quote.service.js';
+import { SessionContextBuilder } from './providers/session-context.builder.js';
 // V2026-10-21 治本 (V1.2 VS-A — VS-A 新增 4 个 provider):
 //   - CounselorLlmJsonClient: counselor 端唯一的结构化输出出口 (收流 → 剥 think → JSON.parse → 校验)
 //   - SessionContextBuilder: 会话上下文的唯一取数入口 (polymorphic, 统一 transcript 口径)
@@ -360,33 +360,33 @@ import { SessionContextBuilder } from './providers/session-context.builder';
 //   TransferenceMarkService      双向移情/阻抗标记
 //   TurnAnalysisService          每轮分析器 (一次 LLM → 提示 + 标记)
 //   TurnAnalysisProcessor        每轮分析 BullMQ worker
-import { SessionCoreEventsService } from './providers/session-core-events.service';
-import { SupervisionReportStreamService } from './providers/supervision-report-stream.service';
-import { SupervisionService } from './providers/supervision.service';
-import { TrainingExerciseService } from './providers/training-exercise.service';
-import { TrainingSessionService } from './providers/training-session.service';
-import { TranscriptBookmarkService } from './providers/transcript-bookmark.service';
-import { TransferenceMarkService } from './providers/transference-mark.service';
-import { TurnAnalysisProcessor } from './providers/turn-analysis.processor';
-import { TurnAnalysisService } from './providers/turn-analysis.service';
-import { VisitorPersonaService } from './providers/visitor-persona.service';
+import { SessionCoreEventsService } from './providers/session-core-events.service.js';
+import { SupervisionReportStreamService } from './providers/supervision-report-stream.service.js';
+import { SupervisionService } from './providers/supervision.service.js';
+import { TrainingExerciseService } from './providers/training-exercise.service.js';
+import { TrainingSessionService } from './providers/training-session.service.js';
+import { TranscriptBookmarkService } from './providers/transcript-bookmark.service.js';
+import { TransferenceMarkService } from './providers/transference-mark.service.js';
+import { TurnAnalysisProcessor } from './providers/turn-analysis.processor.js';
+import { TurnAnalysisService } from './providers/turn-analysis.service.js';
+import { VisitorPersonaService } from './providers/visitor-persona.service.js';
 // V2026-10-23 治本 (AI 模拟来访池 — 2 service + 1 guard):
 //   VisitorPoolService: 公共图鉴读 + 克隆实例化 + 收藏
 //   VisitorPoolAdminService: 内部 AI 生成 + 模板治理 (管理面与公共面分文件, 防权限外溢)
 //   AdminRoleGuard: 读 users.admin_role 判定内部角色 (普通用户 → 403)
-import { VisitorPoolAdminService } from './providers/visitor-pool-admin.service';
-import { VisitorPoolService } from './providers/visitor-pool.service';
+import { VisitorPoolAdminService } from './providers/visitor-pool-admin.service.js';
+import { VisitorPoolService } from './providers/visitor-pool.service.js';
 // V2026-10-26 治本 (vpt 全真语音会话增强 — 落库桥, spec 任务 1):
 //   VptSessionBridgeService 实现 voice 侧的 VoiceSessionBridge 插槽 (依赖倒置),
 //   启动时注册进 voice 侧全局注册表 —— voice 侧不认识 counselor 的任何类型.
 // V2026-10-26 治本 (官方音色目录代理 — 2 provider, spec §任务 2):
 //   VoicesClient:  MiniMax `get_voice` 上游协议层 (路径 / 请求体 / 响应体 / 状态码)
 //   VoicesService: 缓存 + 并发去重 + 错误归一 + DTO 整形, 并实现 voice 侧音色目录插槽
-import { VoicesClient } from './providers/voices.client';
-import { VoicesService } from './providers/voices.service';
+import { VoicesClient } from './providers/voices.client.js';
+import { VoicesService } from './providers/voices.service.js';
 // V2026-10-27 治本 (危机识别专区 — 只读元数据服务, spec 任务 B2):
 //   纯静态读 (不落库 / 不调上游 / 不计次), 只做"内部配置 → 对外 DTO"的逐字段映射.
-import { VptSessionBridgeService } from './providers/vpt-session-bridge.service';
+import { VptSessionBridgeService } from './providers/vpt-session-bridge.service.js';
 // V2026-10-23 治本 (AI 模拟来访池 — 内部角色守卫):
 //   直读 users.admin_role (3 档 editor/reviewer/admin), 不复用 common/guards/roles.guard.ts
 //   (后者依赖 request.user.adminRole / user.roles, 而本仓当前注入 request.user 的

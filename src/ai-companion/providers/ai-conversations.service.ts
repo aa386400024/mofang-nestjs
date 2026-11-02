@@ -2,11 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
 
-import { AiConversationDto, AiConversationsResponseDto } from '../dto/ai-conversations.dto';
-import { ChatSession } from '../entities/chat-session.entity';
+import { AiConversationDto, AiConversationsResponseDto } from '../dto/ai-conversations.dto.js';
+import { ChatSession } from '../entities/chat-session.entity.js';
 
 /**
  * AI 对话历史服务 — V2.0 §Tab4 「我的数据」AI 对话记录.

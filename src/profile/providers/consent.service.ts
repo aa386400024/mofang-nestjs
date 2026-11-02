@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { SignConsentDto, ConsentDocumentDto, ConsentSignatureDto, ConsentSectionDto } from '../dto/consent.dto';
-import { ConsentSignature } from '../entities/consent-signature.entity';
+import { SignConsentDto, ConsentDocumentDto, ConsentSignatureDto, ConsentSectionDto } from '../dto/consent.dto.js';
+import { ConsentSignature } from '../entities/consent-signature.entity.js';
 
 /**
  * Consent service — 心塑「我的」Tab 知情同意书核心服务 (陪伴者专属).

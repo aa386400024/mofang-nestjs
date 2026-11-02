@@ -16,7 +16,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { TrainingSession } from '../counselor/entities/training-session.entity';
+import { TrainingSession } from '../counselor/entities/training-session.entity.js';
 
 /** 单轮调试快照 (与前端 admin-dashboard types.ts TurnTrace 对齐). */
 export interface TurnTrace {

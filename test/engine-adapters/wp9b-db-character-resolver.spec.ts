@@ -26,15 +26,9 @@
 
 import { FindOperator } from 'typeorm';
 
-import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed';
-import {
-  BUILTIN_AVOIDANT_L1,
-  BUILTIN_ANXIOUS_LOW_MOOD_L1,
-  BuiltinCharacterProfileResolver,
-  type BuiltinCharacterSeed,
-} from '../../src/engine-adapters/wiring/character';
-import { CharacterProfileEntity } from '../../src/engine-adapters/wiring/character/character-profile.entity';
-import type { ResolvedCharacter } from '../../src/engine-adapters/wiring/character/character-profile.resolver';
+import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed.js';
+import { CharacterProfileEntity } from '../../src/engine-adapters/wiring/character/character-profile.entity.js';
+import type { ResolvedCharacter } from '../../src/engine-adapters/wiring/character/character-profile.resolver.js';
 import {
   buildCharacterProfileSeeds,
   CHARACTER_PROFILE_SEED_SPECS,
@@ -42,13 +36,19 @@ import {
   validateCharacterProfileSeedSpecs,
   type CharacterProfileSeed,
   type CharacterProfileSeedSpec,
-} from '../../src/engine-adapters/wiring/character/character-profile.seed';
-import { DbCharacterProfileResolver, toCharacterSeed } from '../../src/engine-adapters/wiring/character/db-character-profile.resolver';
-import { EngineStreamBackend } from '../../src/engine-adapters/wiring/engine-stream-backend.adapter';
-import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service';
-import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository';
-import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
+} from '../../src/engine-adapters/wiring/character/character-profile.seed.js';
+import { DbCharacterProfileResolver, toCharacterSeed } from '../../src/engine-adapters/wiring/character/db-character-profile.resolver.js';
+import {
+  BUILTIN_AVOIDANT_L1,
+  BUILTIN_ANXIOUS_LOW_MOOD_L1,
+  BuiltinCharacterProfileResolver,
+  type BuiltinCharacterSeed,
+} from '../../src/engine-adapters/wiring/character/index.js';
+import { EngineStreamBackend } from '../../src/engine-adapters/wiring/engine-stream-backend.adapter.js';
+import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service.js';
+import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository.js';
+import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
 
 const TENANT = 'tenant-1';
 const VISITOR = 'visitor-1';

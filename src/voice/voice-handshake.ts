@@ -23,7 +23,7 @@ import type {
   VoiceTemplateSummary,
   VoiceVisitorMode,
   VoiceVisitorStyle,
-} from './voice-session.types';
+} from './voice-session.types.js';
 
 /** 难度白名单. */
 const DIFFICULTIES: readonly VoiceDifficulty[] = ['L1', 'L2', 'L3'];

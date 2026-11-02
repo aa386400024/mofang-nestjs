@@ -37,13 +37,13 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { WorkflowAction, WorkflowService } from './workflow.service';
-import { QdrantService } from '../../ai-engine/providers/qdrant.service';
-import { AnalyticsEventType } from '../../analytics/entities/analytics-event.entity';
-import { AnalyticsEventTrackerService } from '../../analytics/providers/analytics-event-tracker.service';
-import { AIProviderId } from '../../llm/common/enums/llm.enums';
-import { LlmRouterService } from '../../llm/registry/llm-router.service';
-import { User } from '../../user/entities/user.entity';
+import { WorkflowAction, WorkflowService } from './workflow.service.js';
+import { QdrantService } from '../../ai-engine/providers/qdrant.service.js';
+import { AnalyticsEventType } from '../../analytics/entities/analytics-event.entity.js';
+import { AnalyticsEventTrackerService } from '../../analytics/providers/analytics-event-tracker.service.js';
+import { AIProviderId } from '../../llm/common/enums/llm.enums.js';
+import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
+import { User } from '../../user/entities/user.entity.js';
 import {
   CreateKnowledgeDto,
   KnowledgeDetailDto,
@@ -52,11 +52,11 @@ import {
   ListKnowledgeResponseDto,
   ScheduleKnowledgeDto,
   UpdateKnowledgeDto,
-} from '../dto/knowledge.dto';
-import { KnowledgeItem } from '../entities/knowledge-item.entity';
-import { KnowledgeVersion } from '../entities/knowledge-version.entity';
-import { WorkflowEvent } from '../entities/workflow-event.entity';
-import { KnowledgeStatus } from '../enums/knowledge-status.enum';
+} from '../dto/knowledge.dto.js';
+import { KnowledgeItem } from '../entities/knowledge-item.entity.js';
+import { KnowledgeVersion } from '../entities/knowledge-version.entity.js';
+import { WorkflowEvent } from '../entities/workflow-event.entity.js';
+import { KnowledgeStatus } from '../enums/knowledge-status.enum.js';
 
 @Injectable()
 export class KnowledgeService {

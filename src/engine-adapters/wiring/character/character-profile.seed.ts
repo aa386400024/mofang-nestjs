@@ -62,9 +62,9 @@ import { createHash } from 'node:crypto';
 
 import { type DataSource } from 'typeorm';
 
-import type { CharacterExpressionTone, CharacterFivePs, CharacterNarrativeStyle } from './character-profile.entity';
-import { CharacterProfileEntity } from './character-profile.entity';
-import type { AttachmentStyle, UnderlyingDesireSeed } from '../../../engine-core';
+import type { CharacterExpressionTone, CharacterFivePs, CharacterNarrativeStyle } from './character-profile.entity.js';
+import { CharacterProfileEntity } from './character-profile.entity.js';
+import type { AttachmentStyle, UnderlyingDesireSeed } from '../../../engine-core/index.js';
 
 /**
  * 公共模板的内容来源 (最小结构).

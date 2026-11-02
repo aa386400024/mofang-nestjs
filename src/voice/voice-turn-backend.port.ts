@@ -41,9 +41,9 @@
 //     2. test/voice/wp8b-grayscale.spec.ts: 旧 VisitorService 结构化满足本接口;
 //        新引擎适配实现同一接口; 灰度开关选实现、失败回落
 
-import type { VoiceSessionPersona } from './voice.types';
-import type { LlmStream } from '../agent/llm/llm.types';
-import type { TranscriptTurn } from '../agent/supervisor/supervisor.types';
+import type { VoiceSessionPersona } from './voice.types.js';
+import type { LlmStream } from '../agent/llm/llm.types.js';
+import type { TranscriptTurn } from '../agent/supervisor/supervisor.types.js';
 
 /**
  * 对话后端窄接口 (新旧同构).

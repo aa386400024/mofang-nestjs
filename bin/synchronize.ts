@@ -1,5 +1,5 @@
 /// <reference types="../typings/global" />
-import ormconfig from './ormconfig';
+import ormconfig from './ormconfig.js';
 
 /**
  * Synchronizes the database schema with the entities.

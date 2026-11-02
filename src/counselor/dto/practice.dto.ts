@@ -21,23 +21,23 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min, MinLength } from 'class-validator';
 
-import { PracticeCustomScenarioDegradeReason } from '../config/practice-custom-scenario.config';
-import type { PracticeScenarioPersona } from '../domain/practice/practice.types';
-import { PracticeDefenseStyle } from '../enums/practice-defense-style.enum';
-import { PRACTICE_DIFFICULTY_VALUES, PracticeDifficulty } from '../enums/practice-difficulty.enum';
-import { PracticeEmotionIntensity } from '../enums/practice-emotion-intensity.enum';
-import { PracticeEngine } from '../enums/practice-engine.enum';
-import { PracticeFeedbackSource } from '../enums/practice-feedback-source.enum';
-import { PracticeFeedbackTone } from '../enums/practice-feedback-tone.enum';
-import { PracticeRubricCheck } from '../enums/practice-rubric-check.enum';
+import { PracticeCustomScenarioDegradeReason } from '../config/practice-custom-scenario.config.js';
+import type { PracticeScenarioPersona } from '../domain/practice/practice.types.js';
+import { PracticeDefenseStyle } from '../enums/practice-defense-style.enum.js';
+import { PRACTICE_DIFFICULTY_VALUES, PracticeDifficulty } from '../enums/practice-difficulty.enum.js';
+import { PracticeEmotionIntensity } from '../enums/practice-emotion-intensity.enum.js';
+import { PracticeEngine } from '../enums/practice-engine.enum.js';
+import { PracticeFeedbackSource } from '../enums/practice-feedback-source.enum.js';
+import { PracticeFeedbackTone } from '../enums/practice-feedback-tone.enum.js';
+import { PracticeRubricCheck } from '../enums/practice-rubric-check.enum.js';
 import {
   PRACTICE_SCENARIO_ORIGIN_VALUES,
   PRACTICE_SCENARIO_SOURCE_VALUES,
   PracticeScenarioOrigin,
   PracticeScenarioSource,
-} from '../enums/practice-scenario-source.enum';
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
-import { TrainingExerciseType } from '../enums/training-exercise-type.enum';
+} from '../enums/practice-scenario-source.enum.js';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
+import { TrainingExerciseType } from '../enums/training-exercise-type.enum.js';
 
 const MODE_VALUES = Object.values(TrainingExerciseMode);
 const TYPE_VALUES = Object.values(TrainingExerciseType);

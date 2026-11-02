@@ -56,10 +56,10 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { TtsService } from './tts/tts.service';
-import type { TtsEvent, TtsOptions, TtsSessionHandle } from './tts/tts.types';
-import { VoiceSessionBridgeRegistry, type VoiceSessionCloseResult } from './voice-session-bridge';
-import { VOICE_TURN_BACKEND, type VoiceTurnBackend, type VoiceTurnBackendTurnOptions } from './voice-turn-backend.port';
+import { TtsService } from './tts/tts.service.js';
+import type { TtsEvent, TtsOptions, TtsSessionHandle } from './tts/tts.types.js';
+import { VoiceSessionBridgeRegistry, type VoiceSessionCloseResult } from './voice-session-bridge.js';
+import { VOICE_TURN_BACKEND, type VoiceTurnBackend, type VoiceTurnBackendTurnOptions } from './voice-turn-backend.port.js';
 import type {
   VoiceClientMessage,
   VoiceServerMessage,
@@ -67,12 +67,12 @@ import type {
   VoiceSessionPersona,
   VoiceSessionReportStatus,
   VoiceSessionState,
-} from './voice.types';
-import type { LlmStream, LlmStreamChunk } from '../agent/llm/llm.types';
-import { SupervisorProcessor } from '../agent/supervisor/supervisor.processor';
-import type { RunReportInput } from '../agent/supervisor/supervisor.types';
-import { VisitorService } from '../agent/visitor/visitor.service';
-import type { VisitorPersonaSnapshot } from '../agent/visitor/visitor.types';
+} from './voice.types.js';
+import type { LlmStream, LlmStreamChunk } from '../agent/llm/llm.types.js';
+import { SupervisorProcessor } from '../agent/supervisor/supervisor.processor.js';
+import type { RunReportInput } from '../agent/supervisor/supervisor.types.js';
+import { VisitorService } from '../agent/visitor/visitor.service.js';
+import type { VisitorPersonaSnapshot } from '../agent/visitor/visitor.types.js';
 
 type SendFn = (msg: VoiceServerMessage) => void;
 

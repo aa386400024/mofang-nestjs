@@ -33,7 +33,7 @@ import type {
   SocialRelationType,
   SocialResourceDrain,
   DevelopmentalStage,
-} from '../domain/visitor-persona/visitor-persona.types';
+} from '../domain/visitor-persona/visitor-persona.types.js';
 
 // ════════════════════════════════════════════════════════════════════════════
 // 视图 A: 表层信息 (读)

@@ -28,27 +28,32 @@
 import { nanoid } from 'nanoid';
 import { randomInt } from 'node:crypto';
 
-import { planIntention } from '../cognition/intention-planner';
-import { RuleBasedClassifier } from '../cognition/rule-based-classifier';
-import { assessSafety } from '../cognition/safety/assess-safety';
-import { transitionState } from '../cognition/state-transition';
-import { planAct } from '../cognition/trajectory/act-cursor';
-import { applyTrajectory } from '../cognition/trajectory/trajectory-applier';
-import { evaluateTrigger, type MatchContext } from '../cognition/trajectory/trigger-evaluate';
-import { cloneBdiSnapshot, type BdiSnapshot } from '../domain/bdi-snapshot';
-import { buildInitialSnapshot } from '../domain/bootstrap';
-import type { CharacterProfile } from '../domain/character-profile';
-import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors';
-import type { EngineSessionHandle, EngineTurnInput, EngineTurnOutput, OpenEngineSessionInput } from '../domain/engine-session.types';
-import type { EventClassifier, SessionEvent } from '../domain/events/session-event';
-import type { Intention } from '../domain/intention';
-import type { BdiStateRecord, BdiStateRepository } from '../domain/ports/bdi-state.repository';
-import { MemorySource, MemoryTier, type MemoryHit, type MemoryStore } from '../domain/ports/memory.store';
-import type { RiskProbePort } from '../domain/ports/risk-probe';
-import type { SafetyEvent, SafetyLevel, SafetyReport, SafetyVerdict } from '../domain/safety/safety-types';
-import { orderedTrajectoryNodes, validateTrajectoryScript, type TrajectoryScript, type TrajectoryTrace } from '../domain/trajectory/script';
-import { trimWorkingWindow, WORKING_MEMORY_WINDOW_TURNS } from '../memory/working-window';
-import type { EngineSessionPort } from '../runtime/engine-session.port';
+import { planIntention } from '../cognition/intention-planner.js';
+import { RuleBasedClassifier } from '../cognition/rule-based-classifier.js';
+import { assessSafety } from '../cognition/safety/assess-safety.js';
+import { transitionState } from '../cognition/state-transition.js';
+import { planAct } from '../cognition/trajectory/act-cursor.js';
+import { applyTrajectory } from '../cognition/trajectory/trajectory-applier.js';
+import { evaluateTrigger, type MatchContext } from '../cognition/trajectory/trigger-evaluate.js';
+import { cloneBdiSnapshot, type BdiSnapshot } from '../domain/bdi-snapshot.js';
+import { buildInitialSnapshot } from '../domain/bootstrap.js';
+import type { CharacterProfile } from '../domain/character-profile.js';
+import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors.js';
+import type { EngineSessionHandle, EngineTurnInput, EngineTurnOutput, OpenEngineSessionInput } from '../domain/engine-session.types.js';
+import type { EventClassifier, SessionEvent } from '../domain/events/session-event.js';
+import type { Intention } from '../domain/intention.js';
+import type { BdiStateRecord, BdiStateRepository } from '../domain/ports/bdi-state.repository.js';
+import { MemorySource, MemoryTier, type MemoryHit, type MemoryStore } from '../domain/ports/memory.store.js';
+import type { RiskProbePort } from '../domain/ports/risk-probe.js';
+import type { SafetyEvent, SafetyLevel, SafetyReport, SafetyVerdict } from '../domain/safety/safety-types.js';
+import {
+  orderedTrajectoryNodes,
+  validateTrajectoryScript,
+  type TrajectoryScript,
+  type TrajectoryTrace,
+} from '../domain/trajectory/script.js';
+import { trimWorkingWindow, WORKING_MEMORY_WINDOW_TURNS } from '../memory/working-window.js';
+import type { EngineSessionPort } from '../runtime/engine-session.port.js';
 
 /** 工作记忆条目的默认重要度. WP0 无重要度算法 (属 WP2 遗忘机制), 取中性值. */
 const WORKING_MEMORY_DEFAULT_IMPORTANCE = 0.5;

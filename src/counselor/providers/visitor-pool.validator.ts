@@ -26,15 +26,15 @@
 //     3. 构造一份含"自杀"的假产出 → 闸门拒收, 错误里带"排除词命中"的原因
 //
 //   时间戳: 2026-10-23
-import { validateFullPersona } from './visitor-persona.service';
-import { isAcceptableCodename } from '../config/visitor-pool-codename';
-import { VISITOR_POOL_EXCLUDED_CONTENT_KEYWORDS, VISITOR_POOL_MAX_SELF_REPORTED_RISK } from '../config/visitor-pool.config';
-import { collectStrings, readEnum, readNumber, readString } from '../domain/struct-guards';
-import type { VisitorFullPersonaScript } from '../domain/visitor-persona/visitor-persona.types';
-import type { VisitorPoolGeneratedTemplate } from '../domain/visitor-pool/visitor-pool.types';
-import { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import { VisitorPoolDefenseType, VisitorPoolIssueDomain, VisitorPoolSource } from '../enums/visitor-pool.enum';
-import { VisitorStyle } from '../enums/visitor-style.enum';
+import { validateFullPersona } from './visitor-persona.service.js';
+import { isAcceptableCodename } from '../config/visitor-pool-codename.js';
+import { VISITOR_POOL_EXCLUDED_CONTENT_KEYWORDS, VISITOR_POOL_MAX_SELF_REPORTED_RISK } from '../config/visitor-pool.config.js';
+import { collectStrings, readEnum, readNumber, readString } from '../domain/struct-guards.js';
+import type { VisitorFullPersonaScript } from '../domain/visitor-persona/visitor-persona.types.js';
+import type { VisitorPoolGeneratedTemplate } from '../domain/visitor-pool/visitor-pool.types.js';
+import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import { VisitorPoolDefenseType, VisitorPoolIssueDomain, VisitorPoolSource } from '../enums/visitor-pool.enum.js';
+import { VisitorStyle } from '../enums/visitor-style.enum.js';
 
 /**
  * 校验结果 (判别联合).

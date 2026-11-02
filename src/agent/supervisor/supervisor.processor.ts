@@ -25,10 +25,10 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { type Job, Queue, Worker } from 'bullmq';
 
-import { SupervisorService } from './supervisor.service';
-import type { RunReportInput } from './supervisor.types';
-import { QUEUE_NAMES } from '../../shared/infra/redis/redis.constants';
-import { RedisService } from '../../shared/infra/redis/redis.service';
+import { SupervisorService } from './supervisor.service.js';
+import type { RunReportInput } from './supervisor.types.js';
+import { QUEUE_NAMES } from '../../shared/infra/redis/redis.constants.js';
+import { RedisService } from '../../shared/infra/redis/redis.service.js';
 
 @Injectable()
 export class SupervisorProcessor implements OnModuleInit, OnModuleDestroy {

@@ -36,9 +36,9 @@
 import { type CanActivate, type ExecutionContext, Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { UserService } from '../../user/providers/user.service';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { UserService } from '../../user/providers/user.service.js';
 
 /**
  * 内部管理角色守卫.

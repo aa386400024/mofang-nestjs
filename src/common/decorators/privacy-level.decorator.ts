@@ -11,7 +11,7 @@
 //   时间戳: 2026-10-15
 
 import { SetMetadata, type CustomDecorator } from '@nestjs/common';
-import { type PrivacyLevel } from '../privacy/privacy-level.enum';
+import { type PrivacyLevel } from '../privacy/privacy-level.enum.js';
 
 /**
  * @RequirePrivacyLevel(PrivacyLevel.L3_CONFIDENTIAL) — 装饰 controller method

@@ -60,13 +60,13 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import type { InformedConsentEntry, SessionTechStats } from '../domain/session-core/session-core.types';
-import { ChatRole } from '../enums/chat-role.enum';
-import { DimensionVariance } from '../enums/dimension-variance.enum';
-import { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import { TrainingSessionStatus } from '../enums/training-session-status.enum';
-import { VisitorMode } from '../enums/visitor-mode.enum';
-import { VisitorStyle } from '../enums/visitor-style.enum';
+import type { InformedConsentEntry, SessionTechStats } from '../domain/session-core/session-core.types.js';
+import { ChatRole } from '../enums/chat-role.enum.js';
+import { DimensionVariance } from '../enums/dimension-variance.enum.js';
+import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import { TrainingSessionStatus } from '../enums/training-session-status.enum.js';
+import { VisitorMode } from '../enums/visitor-mode.enum.js';
+import { VisitorStyle } from '../enums/visitor-style.enum.js';
 
 /**
  * 单次对话消息 (transcript json 数组元素, 跟 xin_su_app V0.5 client ChatMessage 1:1 wire).

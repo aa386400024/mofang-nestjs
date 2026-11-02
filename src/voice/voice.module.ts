@@ -17,13 +17,13 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 
-import { AgentModule } from '../agent/agent.module';
-import { AsrTokenModule } from './asr-token/asr-token.module';
-import { TtsModule } from './tts/tts.module';
-import { VoiceSessionModule } from './voice-session.module';
-import { VoiceGateway } from './voice.gateway';
-import { VoiceService } from './voice.service';
-import { EngineWiringModule } from '../engine-adapters/wiring/engine.module';
+import { AgentModule } from '../agent/agent.module.js';
+import { AsrTokenModule } from './asr-token/asr-token.module.js';
+import { TtsModule } from './tts/tts.module.js';
+import { VoiceSessionModule } from './voice-session.module.js';
+import { VoiceGateway } from './voice.gateway.js';
+import { VoiceService } from './voice.service.js';
+import { EngineWiringModule } from '../engine-adapters/wiring/engine.module.js';
 
 @Module({
   imports: [

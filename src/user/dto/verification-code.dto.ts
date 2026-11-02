@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsString } from 'class-validator';
 
-import { isChinesePhone } from '../../common/validators/is-chinese-phone.validator';
-import { SmsPurpose } from '../../shared/infra/redis/redis.constants';
+import { isChinesePhone } from '../../common/validators/is-chinese-phone.validator.js';
+import { SmsPurpose } from '../../shared/infra/redis/redis.constants.js';
 
 /**
  * 发送短信验证码 DTO.

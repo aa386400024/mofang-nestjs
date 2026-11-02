@@ -43,19 +43,19 @@
 
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 
-import { SUPERVISION_REPORT_REPOSITORY, type SupervisionReportRepository } from './domain/repositories/supervision-report.repository';
-import { DEFAULT_SUPERVISOR_LLM_PROFILE, SUPERVISOR_LLM_PROFILE, type SupervisorLlmProfile } from './supervisor-llm.config';
-import { renderSystemPrompt } from './supervisor.prompts';
+import { SUPERVISION_REPORT_REPOSITORY, type SupervisionReportRepository } from './domain/repositories/supervision-report.repository.js';
+import { DEFAULT_SUPERVISOR_LLM_PROFILE, SUPERVISOR_LLM_PROFILE, type SupervisorLlmProfile } from './supervisor-llm.config.js';
+import { renderSystemPrompt } from './supervisor.prompts.js';
 import type {
   RunReportInput,
   RunReportResult,
   SupervisionAnnotation,
   SupervisionDimensions,
   SupervisionReportRow,
-} from './supervisor.types';
-import { extractJsonPayload } from '../../shared/llm/llm-json-payload';
-import { LlmService } from '../llm/llm.service';
-import type { LlmError, LlmMessage } from '../llm/llm.types';
+} from './supervisor.types.js';
+import { extractJsonPayload } from '../../shared/llm/llm-json-payload.js';
+import { LlmService } from '../llm/llm.service.js';
+import type { LlmError, LlmMessage } from '../llm/llm.types.js';
 
 /** LLM 采样温度 — 督导报告要客观, 比 Visitor 0.7 保守. */
 const SUPERVISOR_TEMPERATURE = 0.3;

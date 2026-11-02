@@ -35,25 +35,25 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { type Repository } from 'typeorm';
 
-import { CounselorLlmJsonClient } from './llm-json.client';
-import { toValidateCallback, VISITOR_POOL_FIXED_SOURCE, type VisitorPoolGenerationExpectation } from './visitor-pool.validator';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config';
-import { composeCodename, isAcceptableCodename, withCodenameDedupSuffix } from '../config/visitor-pool-codename';
+import { CounselorLlmJsonClient } from './llm-json.client.js';
+import { toValidateCallback, VISITOR_POOL_FIXED_SOURCE, type VisitorPoolGenerationExpectation } from './visitor-pool.validator.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config.js';
+import { composeCodename, isAcceptableCodename, withCodenameDedupSuffix } from '../config/visitor-pool-codename.js';
 import {
   buildVisitorPoolGenerationUserPrompt,
   VISITOR_POOL_SCHEMA_DESCRIPTION,
   VISITOR_POOL_SYSTEM_PROMPT,
-} from '../config/visitor-pool-prompts';
+} from '../config/visitor-pool-prompts.js';
 import {
   VISITOR_POOL_GENERATE_MAX_ATTEMPTS,
   VISITOR_POOL_GENERATE_MAX_COUNT_DEFAULT,
   VISITOR_POOL_GENERATE_MAX_COUNT_ENV_KEY,
   VISITOR_POOL_GENERATE_MAX_COUNT_LIMIT,
   VISITOR_POOL_LIST_DEFAULT_LIMIT,
-} from '../config/visitor-pool.config';
-import type { VisitorPoolGeneratedTemplate } from '../domain/visitor-pool/visitor-pool.types';
+} from '../config/visitor-pool.config.js';
+import type { VisitorPoolGeneratedTemplate } from '../domain/visitor-pool/visitor-pool.types.js';
 import type {
   GenerateVisitorPoolTemplateDto,
   UpdateVisitorPoolTemplateDto,
@@ -61,9 +61,9 @@ import type {
   VisitorPoolAdminListItemDto,
   VisitorPoolAdminListQueryDto,
   VisitorPoolAdminTemplateDto,
-} from '../dto/visitor-pool.dto';
-import { VisitorPoolTemplate } from '../entities/visitor-pool-template.entity';
-import { VisitorPoolTemplateStatus } from '../enums/visitor-pool.enum';
+} from '../dto/visitor-pool.dto.js';
+import { VisitorPoolTemplate } from '../entities/visitor-pool-template.entity.js';
+import { VisitorPoolTemplateStatus } from '../enums/visitor-pool.enum.js';
 
 /**
  * 内部来访池管理 service.

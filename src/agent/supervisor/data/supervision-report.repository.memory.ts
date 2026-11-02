@@ -25,8 +25,8 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 
-import type { SupervisionReportRepository } from '../domain/repositories/supervision-report.repository';
-import type { SupervisionReportRow } from '../supervisor.types';
+import type { SupervisionReportRepository } from '../domain/repositories/supervision-report.repository.js';
+import type { SupervisionReportRow } from '../supervisor.types.js';
 
 /** 单租户单次查询默认上限. */
 const DEFAULT_LIST_LIMIT = 50;

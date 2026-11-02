@@ -2,11 +2,11 @@ import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 
-import { AuthSerializer } from './auth.serializer';
-import { AuthService } from './auth.service';
-import { LoginCodeService } from './login-code.service';
-import { LocalStrategy, JwtStrategy, JwtVerifyStrategy } from './strategies';
-import { UserModule } from '../shared/user';
+import { AuthSerializer } from './auth.serializer.js';
+import { AuthService } from './auth.service.js';
+import { LoginCodeService } from './login-code.service.js';
+import { LocalStrategy, JwtStrategy, JwtVerifyStrategy } from './strategies/index.js';
+import { UserModule } from '../shared/user/index.js';
 
 @Global()
 @Module({

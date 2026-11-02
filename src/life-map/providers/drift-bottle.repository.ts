@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Not, Repository } from 'typeorm';
 
-import { DriftBottleStatsDto } from '../dto/drift-bottle-stats.dto';
-import { DriftBottleEntry } from '../entities/drift-bottle-entry.entity';
-import { DriftBottleStatus } from '../enums/drift-bottle-status.enum';
+import { DriftBottleStatsDto } from '../dto/drift-bottle-stats.dto.js';
+import { DriftBottleEntry } from '../entities/drift-bottle-entry.entity.js';
+import { DriftBottleStatus } from '../enums/drift-bottle-status.enum.js';
 
 /**
  * 漂流瓶 Repository — V2026-09-12 §6.5 心塑 V6.0.

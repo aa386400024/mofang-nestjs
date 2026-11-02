@@ -86,20 +86,20 @@
 
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 
-import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver, type ResolvedCharacter } from './character';
-import type { EngineTurnService } from './engine-turn.service';
-import { TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory';
-import type { LlmStream, LlmStreamChunk } from '../../agent/llm/llm.types';
-import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types';
-import type { OpenEngineSessionInput, TrajectoryScript } from '../../engine-core';
-import { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
+import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver, type ResolvedCharacter } from './character/index.js';
+import type { EngineTurnService } from './engine-turn.service.js';
+import { TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory/index.js';
+import type { LlmStream, LlmStreamChunk } from '../../agent/llm/llm.types.js';
+import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types.js';
+import type { OpenEngineSessionInput, TrajectoryScript } from '../../engine-core/index.js';
+import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import type {
   VoiceTurnBackend,
   VoiceTurnBackendCloseResult,
   VoiceTurnBackendOpenOptions,
   VoiceTurnBackendTurnOptions,
-} from '../../voice/voice-turn-backend.port';
-import type { VoiceSessionPersona } from '../../voice/voice.types';
+} from '../../voice/voice-turn-backend.port.js';
+import type { VoiceSessionPersona } from '../../voice/voice.types.js';
 import {
   accumulateSessionUsage,
   buildSessionCostSummary,
@@ -107,10 +107,10 @@ import {
   emptySessionUsageTotals,
   type SessionCostPricing,
   type SessionUsageTotals,
-} from '../observability/session-cost';
-import type { SessionCloseoutService } from '../persistence/session-closeout.service';
-import { isCrisisCategory } from '../rendering/render-risk';
-import type { TurnRenderResult } from '../rendering/turn-render-orchestrator';
+} from '../observability/session-cost.js';
+import type { SessionCloseoutService } from '../persistence/session-closeout.service.js';
+import { isCrisisCategory } from '../rendering/render-risk.js';
+import type { TurnRenderResult } from '../rendering/turn-render-orchestrator.js';
 
 /**
  * 中性基线来访者身份 (无角色时的回落形态).
@@ -207,7 +207,7 @@ export class EngineStreamBackend implements VoiceTurnBackend {
      * 会话照常进行, 只是没有调试 trace 落库 —— 不能让"没有调试器"变成
      * "开不了会话".
      */
-    @Optional() private readonly traceRecorder?: import('../../admin-debug/trace-recorder.service').TraceRecorder,
+    @Optional() private readonly traceRecorder?: import('../../admin-debug/trace-recorder.service.js').TraceRecorder,
     /**
      * 成本单价 (WP24 · 单场成本日志).
      *

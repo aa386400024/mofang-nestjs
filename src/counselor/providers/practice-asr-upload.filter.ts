@@ -22,8 +22,8 @@
 import { ArgumentsHost, Catch, HttpException, HttpStatus, Logger, type ExceptionFilter } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { SentryService } from '../../shared/infra/observability';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { SentryService } from '../../shared/infra/observability/index.js';
 
 interface ResolvedError {
   readonly code: BizCode;

@@ -9,7 +9,7 @@
 //             DeepSeek / Doubao / OpenAI provider 走同一个基类, 仅
 //             baseUrl + apiKey + model 不同.
 
-import type { AIProviderId, LLMCapability, LLMTier } from '../enums/llm.enums';
+import type { AIProviderId, LLMCapability, LLMTier } from '../enums/llm.enums.js';
 
 /**
  * 思考强度档位 (V2026-10-29 治本 · WP9-C).

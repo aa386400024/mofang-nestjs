@@ -42,13 +42,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, type Repository } from 'typeorm';
 
-import { abilityDimensionCodeOfMode } from '../config/practice-ability-mapping';
-import type { PracticeFeedback } from '../domain/practice/practice.types';
-import { AbilityDimension } from '../entities/ability-dimension.entity';
-import { AbilityScore } from '../entities/ability-score.entity';
-import { PracticeAttempt } from '../entities/practice-attempt.entity';
-import { PracticeFeedbackTone } from '../enums/practice-feedback-tone.enum';
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
+import { abilityDimensionCodeOfMode } from '../config/practice-ability-mapping.js';
+import type { PracticeFeedback } from '../domain/practice/practice.types.js';
+import { AbilityDimension } from '../entities/ability-dimension.entity.js';
+import { AbilityScore } from '../entities/ability-score.entity.js';
+import { PracticeAttempt } from '../entities/practice-attempt.entity.js';
+import { PracticeFeedbackTone } from '../enums/practice-feedback-tone.enum.js';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
 
 /**
  * 画像回写的结果 (供调用方打日志 / 排查).

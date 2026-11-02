@@ -19,7 +19,7 @@
 //     1. tsc 0 错
 //     2. env DRILL_LLM_EVALUATION=off → 演练不发起任何 LLM 调用, source 恒为 keyword
 //   时间戳: 2026-10-27 21:10 GMT+8
-import { parseOnOffSwitch } from '../../config/env-switch';
+import { parseOnOffSwitch } from '../../config/env-switch.js';
 
 /** 情景演练 LLM 润色开关的 env 键 (覆盖演练润色链路). */
 export const DRILL_LLM_EVALUATION_ENV_KEY = '***';

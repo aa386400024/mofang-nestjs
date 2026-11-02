@@ -19,22 +19,22 @@ import type { ConfigService } from '@nestjs/config';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import type { VisitorService } from '../../src/agent/visitor/visitor.service';
-import { EngineStreamBackend } from '../../src/engine-adapters/wiring/engine-stream-backend.adapter';
-import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service';
+import type { VisitorService } from '../../src/agent/visitor/visitor.service.js';
+import { EngineStreamBackend } from '../../src/engine-adapters/wiring/engine-stream-backend.adapter.js';
+import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service.js';
 import {
   ETHICAL_TRAJECTORY_SCRIPT_MAP,
   StaticTrajectoryScriptResolver,
   type TrajectoryScriptResolver,
-} from '../../src/engine-adapters/wiring/trajectory';
-import type { BdiSnapshot, OpenEngineSessionInput, TrajectoryScript } from '../../src/engine-core';
-import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository';
-import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
-import { parseVoiceHandshake } from '../../src/voice/voice-handshake';
-import type { VoiceTurnBackend, VoiceTurnBackendOpenOptions } from '../../src/voice/voice-turn-backend.port';
-import { VoiceService } from '../../src/voice/voice.service';
-import type { VoiceSessionMeta } from '../../src/voice/voice.types';
+} from '../../src/engine-adapters/wiring/trajectory/index.js';
+import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository.js';
+import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
+import type { BdiSnapshot, OpenEngineSessionInput, TrajectoryScript } from '../../src/engine-core/index.js';
+import { parseVoiceHandshake } from '../../src/voice/voice-handshake.js';
+import type { VoiceTurnBackend, VoiceTurnBackendOpenOptions } from '../../src/voice/voice-turn-backend.port.js';
+import { VoiceService } from '../../src/voice/voice.service.js';
+import type { VoiceSessionMeta } from '../../src/voice/voice.types.js';
 
 const TENANT = 'tenant-1';
 const VISITOR = 'visitor-1';

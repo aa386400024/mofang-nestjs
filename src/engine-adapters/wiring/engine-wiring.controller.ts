@@ -44,11 +44,11 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import { IsInt, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
 
-import { EngineTurnService } from './engine-turn.service';
-import { JwtAuthGuard } from '../../auth/guards';
-import { TenantId } from '../../common/decorators';
-import { EngineCoreError, EngineErrorCode, type AttachmentStyle, type CharacterProfile, type CoreBelief } from '../../engine-core';
-import type { TurnRenderResult } from '../rendering/turn-render-orchestrator';
+import { EngineTurnService } from './engine-turn.service.js';
+import { JwtAuthGuard } from '../../auth/guards/index.js';
+import { TenantId } from '../../common/decorators/index.js';
+import { EngineCoreError, EngineErrorCode, type AttachmentStyle, type CharacterProfile, type CoreBelief } from '../../engine-core/index.js';
+import type { TurnRenderResult } from '../rendering/turn-render-orchestrator.js';
 
 /**
  * 开场入参.

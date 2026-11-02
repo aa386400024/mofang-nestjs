@@ -15,8 +15,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
 
-import { AnalyticsOverviewDto, TimeRange } from '../dto/analytics.dto';
-import { AnalyticsEvent, AnalyticsEventType } from '../entities/analytics-event.entity';
+import { AnalyticsOverviewDto, TimeRange } from '../dto/analytics.dto.js';
+import { AnalyticsEvent, AnalyticsEventType } from '../entities/analytics-event.entity.js';
 
 @Injectable()
 export class AnalyticsService {

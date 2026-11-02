@@ -31,11 +31,11 @@
 //
 //   时间戳: 2026-10-15
 
-import { Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn, type Relation } from 'typeorm';
 
-import { LongTermCaseSession } from './long-term-case-session.entity';
-import { LongTermCaseStatus } from '../enums/long-term-case-status.enum';
-import { LongTermCaseType } from '../enums/long-term-case-type.enum';
+import { LongTermCaseSession } from './long-term-case-session.entity.js';
+import { LongTermCaseStatus } from '../enums/long-term-case-status.enum.js';
+import { LongTermCaseType } from '../enums/long-term-case-type.enum.js';
 
 /**
  * long_term_cases 表.
@@ -140,8 +140,9 @@ export class LongTermCase {
   status!: LongTermCaseStatus;
 
   // 1:N 关系, caseId 应用层校验, 不写 DB-level FK (软删兼容, 跟 knowledge_chunks 同 pattern).
+  // V2026-11-02 ESM: Relation<T> 包装避免循环依赖 TDZ.
   @OneToMany(() => LongTermCaseSession, (session) => session.caseRef)
-  sessions?: LongTermCaseSession[];
+  sessions?: Relation<LongTermCaseSession[]>;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

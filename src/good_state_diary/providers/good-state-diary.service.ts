@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
 
 import {
   CreateDiaryEntryDto,
@@ -14,11 +14,11 @@ import {
   MoodSnapshotDto,
   SearchDiaryEntriesQueryDto,
   UpdateDiaryEntryDto,
-} from '../dto/good-state-diary.dto';
-import { DiaryAiFeedbackDto } from '../dto/good-state-diary.dto';
-import { GoodStateDiaryEntry } from '../entities/good-state-diary-entry.entity';
-import { parseDiaryAiFeedbackSource, DiaryAiFeedbackSource } from '../enums/diary-ai-feedback-source.enum';
-import { DiaryEntryStatus, parseDiaryEntryStatus } from '../enums/diary-entry-status.enum';
+} from '../dto/good-state-diary.dto.js';
+import { DiaryAiFeedbackDto } from '../dto/good-state-diary.dto.js';
+import { GoodStateDiaryEntry } from '../entities/good-state-diary-entry.entity.js';
+import { parseDiaryAiFeedbackSource, DiaryAiFeedbackSource } from '../enums/diary-ai-feedback-source.enum.js';
+import { DiaryEntryStatus, parseDiaryEntryStatus } from '../enums/diary-entry-status.enum.js';
 import {
   DiaryTag,
   decodeDiaryTags,
@@ -26,7 +26,7 @@ import {
   parseDiaryTag,
   parseDiaryTagList,
   stringifyDiaryTagList,
-} from '../enums/diary-tag.enum';
+} from '../enums/diary-tag.enum.js';
 
 // ════════════════════════════════════════════════════════════════
 // Cursor 编解码 (base64url, JSON { createdAt: ISO, id: UUID })

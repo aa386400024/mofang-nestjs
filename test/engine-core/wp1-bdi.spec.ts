@@ -5,10 +5,10 @@
 //   反依赖污染: 不 import 任何 @nestjs/* / typeorm; 只用内核纯 TS + 内存实现.
 //   验证: npx jest test/engine-core/wp1-bdi.spec.ts
 
-import { createEmptyBdiSnapshot, type CharacterProfile, type EngineTurnOutput } from '../../src/engine-core';
-import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository';
-import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
+import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository.js';
+import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
+import { createEmptyBdiSnapshot, type CharacterProfile, type EngineTurnOutput } from '../../src/engine-core/index.js';
 
 /** 测试台: 内存仓储 + 确定性时钟 / id. */
 function createHarness() {

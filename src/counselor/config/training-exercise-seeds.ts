@@ -13,10 +13,10 @@
 //     2. 重复启动不产生重复行 (upsert 幂等)
 //     3. 同一 selectedOptionIndex 连续提交两次, score 完全一致 (确定性)
 //   时间戳: 2026-10-20
-import type { TrainingExerciseRubric } from '../entities/training-exercise.entity';
-import { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
-import { TrainingExerciseType } from '../enums/training-exercise-type.enum';
+import type { TrainingExerciseRubric } from '../entities/training-exercise.entity.js';
+import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
+import { TrainingExerciseType } from '../enums/training-exercise-type.enum.js';
 
 /**
  * 训练题 seed 数据形状.

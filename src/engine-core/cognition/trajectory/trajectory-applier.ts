@@ -25,11 +25,11 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-core/wp3-trajectory.spec.ts 覆盖三模式合成与 delta 一次性
 
-import type { ActPlan } from './act-cursor';
-import type { BdiSnapshot } from '../../domain/bdi-snapshot';
-import { clamp01, clampValence, resolveEmotionLabel, type EmotionState } from '../../domain/emotion';
-import type { Intention } from '../../domain/intention';
-import type { SnapshotDelta, TrajectoryMode, TrajectoryNodeTarget } from '../../domain/trajectory/script';
+import type { ActPlan } from './act-cursor.js';
+import type { BdiSnapshot } from '../../domain/bdi-snapshot.js';
+import { clamp01, clampValence, resolveEmotionLabel, type EmotionState } from '../../domain/emotion.js';
+import type { Intention } from '../../domain/intention.js';
+import type { SnapshotDelta, TrajectoryMode, TrajectoryNodeTarget } from '../../domain/trajectory/script.js';
 
 /**
  * 修正模式默认权重 (工程种子值: 幕目标占六成、BDI 占四成).

@@ -26,11 +26,11 @@
 //
 //   时间戳: 2026-10-22
 
-import { PracticeEngine } from '../enums/practice-engine.enum';
-import { PracticeQuotaType } from '../enums/practice-quota-type.enum';
-import { PracticeRubricCheck } from '../enums/practice-rubric-check.enum';
-import { PracticeScenarioOrigin } from '../enums/practice-scenario-source.enum';
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
+import { PracticeEngine } from '../enums/practice-engine.enum.js';
+import { PracticeQuotaType } from '../enums/practice-quota-type.enum.js';
+import { PracticeRubricCheck } from '../enums/practice-rubric-check.enum.js';
+import { PracticeScenarioOrigin } from '../enums/practice-scenario-source.enum.js';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
 
 /** 每日生成次数上限的 env 键. */
 export const PRACTICE_CUSTOM_SCENARIO_DAILY_LIMIT_ENV_KEY = 'PRACTICE_CUSTOM_SCENARIO_DAILY_LIMIT';

@@ -40,8 +40,8 @@
 //   时间戳: 2026-10-22
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-import type { PracticeFeedback } from '../domain/practice/practice.types';
-import { PracticeScenarioSource } from '../enums/practice-scenario-source.enum';
+import type { PracticeFeedback } from '../domain/practice/practice.types.js';
+import { PracticeScenarioSource } from '../enums/practice-scenario-source.enum.js';
 
 /**
  * practice_attempts 表 —— 自由作答练习记录 (零压无分).

@@ -1,11 +1,11 @@
 import { Body, Controller, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { GrowElementDto, IslandElementDto, IslandElementsDto } from '../dto/island.dto';
-import { IslandsService } from '../providers/islands.service';
+import { GrowElementDto, IslandElementDto, IslandElementsDto } from '../dto/island.dto.js';
+import { IslandsService } from '../providers/islands.service.js';
 
 /**
  * 小岛元素接口 — V4.0 §3.1.

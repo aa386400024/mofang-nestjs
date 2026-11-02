@@ -23,16 +23,16 @@
 
 import { FindOperator } from 'typeorm';
 
-import { BizCode } from '../../src/common/exceptions/biz-code.enum';
-import { BizException } from '../../src/common/exceptions/biz.exception';
-import { CharacterProfileAdminService } from '../../src/engine-adapters/wiring/character/character-profile.admin.service';
+import { BizCode } from '../../src/common/exceptions/biz-code.enum.js';
+import { BizException } from '../../src/common/exceptions/biz.exception.js';
+import { CharacterProfileAdminService } from '../../src/engine-adapters/wiring/character/character-profile.admin.service.js';
 import type {
   CreateCharacterProfileDto,
   UpdateCharacterProfileDto,
-} from '../../src/engine-adapters/wiring/character/character-profile.dto';
-import { CharacterProfileEntity } from '../../src/engine-adapters/wiring/character/character-profile.entity';
-import { deriveCharacterProfileId } from '../../src/engine-adapters/wiring/character/character-profile.seed';
-import { DbCharacterProfileResolver } from '../../src/engine-adapters/wiring/character/db-character-profile.resolver';
+} from '../../src/engine-adapters/wiring/character/character-profile.dto.js';
+import { CharacterProfileEntity } from '../../src/engine-adapters/wiring/character/character-profile.entity.js';
+import { deriveCharacterProfileId } from '../../src/engine-adapters/wiring/character/character-profile.seed.js';
+import { DbCharacterProfileResolver } from '../../src/engine-adapters/wiring/character/db-character-profile.resolver.js';
 
 const TEMPLATE_ID = 'vpt_test_role_l1';
 

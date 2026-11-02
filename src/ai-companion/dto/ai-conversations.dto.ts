@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import type { AiCompanionMode } from '../../shared/types/practice.types';
+import type { AiCompanionMode } from '../../shared/types/practice.types.js';
 
 /**
  * AI 对话列表 DTO — V2.0 §Tab4 AI 对话记录页.

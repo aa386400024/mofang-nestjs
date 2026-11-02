@@ -30,10 +30,20 @@
 //
 //   时间戳: 2026-10-15
 
-import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+  type Relation,
+} from 'typeorm';
 
-import { LongTermCase } from './long-term-case.entity';
-import type { SessionTechStats } from '../domain/session-core/session-core.types';
+import { LongTermCase } from './long-term-case.entity.js';
+import type { SessionTechStats } from '../domain/session-core/session-core.types.js';
 
 /**
  * 单次会话的转录 (跟 V0.x TrainingSession.transcript 1:1 风格).
@@ -128,9 +138,11 @@ export class LongTermCaseSession {
 
   // 1:N 反向引用 (应用层校验, 跟 long_term_cases.sessions 对应).
   // V0.5: 不用 @ManyToOne eager / cascade, 显式 service 层 query, 防 N+1.
+  // V2026-11-02 ESM: 用 Relation<T> 包装避免 emitDecoratorMetadata 在类定义时
+  //   立即引用还在 TDZ 的 LongTermCase (循环依赖导致 ReferenceError).
   @ManyToOne(() => LongTermCase, (longTermCase) => longTermCase.sessions, { createForeignKeyConstraints: false })
   @JoinColumn({ name: 'case_id', referencedColumnName: 'id' })
-  caseRef?: LongTermCase;
+  caseRef?: Relation<LongTermCase>;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

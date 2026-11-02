@@ -18,7 +18,7 @@
 //     3. 全流程 / 个案 (无 skillCode) 的 prompt **不含**聚焦段 (行为与改前一致)
 //   时间戳: 2026-10-26
 
-import { VOICE_SKILL_LABELS, type VoiceSkillCode } from '../../shared/types/voice-skill.types';
+import { VOICE_SKILL_LABELS, type VoiceSkillCode } from '../../shared/types/voice-skill.types.js';
 
 /**
  * 技巧码 → 来访者侧聚焦指令.

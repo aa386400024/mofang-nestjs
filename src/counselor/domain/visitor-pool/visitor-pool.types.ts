@@ -29,11 +29,11 @@
 //
 //   时间戳: 2026-10-23
 
-import type { TrainingDifficulty } from '../../enums/training-difficulty.enum';
-import type { VisitorMode } from '../../enums/visitor-mode.enum';
-import type { VisitorPoolDefenseType, VisitorPoolIssueDomain, VisitorPoolSource } from '../../enums/visitor-pool.enum';
-import type { VisitorStyle } from '../../enums/visitor-style.enum';
-import type { VisitorFullPersonaScript } from '../visitor-persona/visitor-persona.types';
+import type { TrainingDifficulty } from '../../enums/training-difficulty.enum.js';
+import type { VisitorMode } from '../../enums/visitor-mode.enum.js';
+import type { VisitorPoolDefenseType, VisitorPoolIssueDomain, VisitorPoolSource } from '../../enums/visitor-pool.enum.js';
+import type { VisitorStyle } from '../../enums/visitor-style.enum.js';
+import type { VisitorFullPersonaScript } from '../visitor-persona/visitor-persona.types.js';
 
 // ════════════════════════════════════════════════════════════════════════════
 // ① 人物内容层: 表层卡片

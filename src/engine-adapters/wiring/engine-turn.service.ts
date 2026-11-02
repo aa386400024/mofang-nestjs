@@ -28,11 +28,11 @@
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
 
-import { ENGINE_SESSION_PORT } from './engine.tokens';
-import type { EngineSessionPort, EngineTurnInput, OpenEngineSessionInput } from '../../engine-core';
-import type { StreamRenderHandlers } from '../rendering/streaming-render.port';
-import type { TurnRenderResult, TurnSessionContext } from '../rendering/turn-render-orchestrator';
-import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
+import { ENGINE_SESSION_PORT } from './engine.tokens.js';
+import type { EngineSessionPort, EngineTurnInput, OpenEngineSessionInput } from '../../engine-core/index.js';
+import type { StreamRenderHandlers } from '../rendering/streaming-render.port.js';
+import type { TurnRenderResult, TurnSessionContext } from '../rendering/turn-render-orchestrator.js';
+import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js';
 
 /**
  * 会话归属登记表 (handleId → tenant/visitor/session).

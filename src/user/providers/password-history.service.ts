@@ -4,10 +4,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { PasswordHistory } from '../entities/password-history.entity';
-import { User } from '../entities/user.entity';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { PasswordHistory } from '../entities/password-history.entity.js';
+import { User } from '../entities/user.entity.js';
 
 /**
  * Password history service — 密码历史 + 强制重置周期 (大厂安全合规).

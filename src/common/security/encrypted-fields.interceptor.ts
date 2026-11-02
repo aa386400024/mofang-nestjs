@@ -2,7 +2,7 @@ import { BadRequestException, CallHandler, ExecutionContext, Injectable, Logger,
 import type { Request } from 'express';
 import { Observable } from 'rxjs';
 
-import { RsaKeyService } from './rsa-key.service';
+import { RsaKeyService } from './rsa-key.service.js';
 
 /**
  * 敏感字段加密拦截器 — V1.1 enterprise.

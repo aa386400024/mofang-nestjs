@@ -17,12 +17,12 @@
 //     3. 每条 rubric 的关键词数组与 check 类型配套 (CONTAINS_ANY → 只有 positive,
 //        CONTAINS_NONE → 只有 anti, CUSTOM_LLM → 都空)
 //   时间戳: 2026-10-22
-import type { PracticeScenarioSeed } from '../domain/practice/practice-seed.types';
-import { PracticeDefenseStyle } from '../enums/practice-defense-style.enum';
-import { PracticeDifficulty } from '../enums/practice-difficulty.enum';
-import { PracticeEmotionIntensity } from '../enums/practice-emotion-intensity.enum';
-import { PracticeRubricCheck } from '../enums/practice-rubric-check.enum';
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
+import type { PracticeScenarioSeed } from '../domain/practice/practice-seed.types.js';
+import { PracticeDefenseStyle } from '../enums/practice-defense-style.enum.js';
+import { PracticeDifficulty } from '../enums/practice-difficulty.enum.js';
+import { PracticeEmotionIntensity } from '../enums/practice-emotion-intensity.enum.js';
+import { PracticeRubricCheck } from '../enums/practice-rubric-check.enum.js';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
 
 /** 倾听共情类场景变体 (3 基本功 × 6 变体 = 18 条). */
 export const LISTENING_PRACTICE_SCENARIO_SEEDS: readonly PracticeScenarioSeed[] = [

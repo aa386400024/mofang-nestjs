@@ -19,7 +19,7 @@
 //     2. 单测锁住决策表四行 (终态 / 未到点 / 到点 / pending)
 //   时间戳: 2026-10-29
 
-import { type SessionReportStatus } from './session-core.types';
+import { type SessionReportStatus } from './session-core.types.js';
 
 /**
  * 等待超时状态值 (推送通道专用, **不属于报告四态**).

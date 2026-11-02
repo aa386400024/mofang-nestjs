@@ -4,8 +4,8 @@ import { Global, Module } from '@nestjs/common';
 // 原因: common/index.ts 的 barrel 会顺带加载 ./filters/biz-exception.filter → ../../shared/infra/observability,
 // 与 redis.module.ts 共同形成循环依赖图, NestJS DependenciesScanner 把 CommonModule token 当作 undefined.
 // 直接 import common.module.ts 文件, 绕开 barrel 的 side-effect 加载.
-import { RedisService } from './redis.service';
-import { CommonModule } from '../../../common/common.module';
+import { RedisService } from './redis.service.js';
+import { CommonModule } from '../../../common/common.module.js';
 
 /**
  * Redis module — 全局基础设施 (心塑 + 魔方共用).

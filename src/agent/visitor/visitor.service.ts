@@ -26,8 +26,8 @@
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
 
-import { VisitorContextRegistry } from './visitor-context';
-import { renderSystemPrompt, VISITOR_HISTORY_SLICE_TURNS } from './visitor.prompts';
+import { VisitorContextRegistry } from './visitor-context.js';
+import { renderSystemPrompt, VISITOR_HISTORY_SLICE_TURNS } from './visitor.prompts.js';
 import type {
   VisitorCloseResult,
   VisitorMessage,
@@ -35,12 +35,12 @@ import type {
   VisitorSessionMemory,
   VisitorTurnOptions,
   VisitorTurnResult,
-} from './visitor.types';
-import { LlmService } from '../llm/llm.service';
-import type { LlmMessage, LlmStream } from '../llm/llm.types';
-import type { Persona } from '../persona/domain/entities/persona.entity';
-import { PERSONA_REPOSITORY, type PersonaRepository } from '../persona/domain/repositories/persona.repository';
-import type { TranscriptTurn } from '../supervisor/supervisor.types';
+} from './visitor.types.js';
+import { LlmService } from '../llm/llm.service.js';
+import type { LlmMessage, LlmStream } from '../llm/llm.types.js';
+import type { Persona } from '../persona/domain/entities/persona.entity.js';
+import { PERSONA_REPOSITORY, type PersonaRepository } from '../persona/domain/repositories/persona.repository.js';
+import type { TranscriptTurn } from '../supervisor/supervisor.types.js';
 
 /** 单 session 记忆最大消息数 (user+assistant 算 1 对, 2 条). */
 const MAX_HISTORY_MESSAGES = VISITOR_HISTORY_SLICE_TURNS * 2;

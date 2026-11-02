@@ -25,11 +25,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { LlmService } from '../../agent/llm/llm.service';
-import type { LlmMessage, LlmReasoningEffort } from '../../agent/llm/llm.types';
-import { extractJsonPayload } from '../../shared/llm/llm-json-payload';
+import { LlmService } from '../../agent/llm/llm.service.js';
+import type { LlmMessage, LlmReasoningEffort } from '../../agent/llm/llm.types.js';
+import { extractJsonPayload } from '../../shared/llm/llm-json-payload.js';
 
-import { COUNSELOR_LLM_DEFAULT_MODEL, COUNSELOR_LLM_MODEL_ENV_KEY, supportsReasoningEffort } from '../config/counselor-llm.config';
+import { COUNSELOR_LLM_DEFAULT_MODEL, COUNSELOR_LLM_MODEL_ENV_KEY, supportsReasoningEffort } from '../config/counselor-llm.config.js';
 
 /** 结构化输出请求入参. */
 export interface CounselorLlmJsonRequest<T> {

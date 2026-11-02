@@ -12,11 +12,11 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { type CounselorGrowthDto, CounselorGrowthQueryDto } from '../dto/counselor-growth.dto';
-import { CounselorGrowthService } from '../providers/counselor-growth.service';
+import { type CounselorGrowthDto, CounselorGrowthQueryDto } from '../dto/counselor-growth.dto.js';
+import { CounselorGrowthService } from '../providers/counselor-growth.service.js';
 
 /**
  * V2026-10-13 (Phase 7.10 P0-4 — CounselorGrowthController):

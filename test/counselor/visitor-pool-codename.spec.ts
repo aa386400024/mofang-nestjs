@@ -20,8 +20,8 @@ import {
   isInCodenameBank,
   resolveCompliantCodename,
   validateCodenameBank,
-} from '../../src/counselor/config/visitor-pool-codename';
-import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed';
+} from '../../src/counselor/config/visitor-pool-codename.js';
+import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed.js';
 
 /** 空占用集 (新库场景). */
 const EMPTY_TAKEN: ReadonlySet<string> = new Set<string>();

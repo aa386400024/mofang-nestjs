@@ -23,9 +23,9 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
-import { type CaseProfileEntriesDto, type CaseProfileEntryDto, type CreateCaseProfileEntryDto } from '../dto/visitor-persona.dto';
-import { CaseProfileEntry } from '../entities/case-profile-entry.entity';
-import { LongTermCase } from '../entities/long-term-case.entity';
+import { type CaseProfileEntriesDto, type CaseProfileEntryDto, type CreateCaseProfileEntryDto } from '../dto/visitor-persona.dto.js';
+import { CaseProfileEntry } from '../entities/case-profile-entry.entity.js';
+import { LongTermCase } from '../entities/long-term-case.entity.js';
 
 /**
  * 动态解锁档案 service.

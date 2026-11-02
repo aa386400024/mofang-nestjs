@@ -1,8 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 
 // ⚠️ 必须直接 import 文件, 不能用 barrel '../../../common' (循环依赖陷阱, 详见 redis.module.ts).
-import { SmsService } from './sms.service';
-import { CommonModule } from '../../../common/common.module';
+import { SmsService } from './sms.service.js';
+import { CommonModule } from '../../../common/common.module.js';
 
 /**
  * SMS module — 全局短信能力 (心塑 + 魔方共用).

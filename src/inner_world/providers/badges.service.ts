@@ -2,9 +2,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
-import { BadgeStateDto, BadgesListDto, UnlockBadgeResponseDto } from '../dto/badge.dto';
-import { BadgeState } from '../entities/badge-state.entity';
-import { BADGE_ID_VALUES, BADGE_META, BadgeId } from '../enums/badge-id.enum';
+import { BadgeStateDto, BadgesListDto, UnlockBadgeResponseDto } from '../dto/badge.dto.js';
+import { BadgeState } from '../entities/badge-state.entity.js';
+import { BADGE_ID_VALUES, BADGE_META, BadgeId } from '../enums/badge-id.enum.js';
 
 /**
  * 徽章业务服务 — V4.0 §3.3.

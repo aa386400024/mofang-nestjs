@@ -2,11 +2,11 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { FragmentsService } from './fragments.service';
-import { DecorationDto, PlaceDecorationDto, PurchaseDecorationDto, PurchaseDecorationResponseDto } from '../dto/island.dto';
-import { IslandDecoration } from '../entities/island-decoration.entity';
-import { FragmentType } from '../enums/fragment-type.enum';
-import { DECORATION_DEFS } from '../enums/island-area.enum';
+import { FragmentsService } from './fragments.service.js';
+import { DecorationDto, PlaceDecorationDto, PurchaseDecorationDto, PurchaseDecorationResponseDto } from '../dto/island.dto.js';
+import { IslandDecoration } from '../entities/island-decoration.entity.js';
+import { FragmentType } from '../enums/fragment-type.enum.js';
+import { DECORATION_DEFS } from '../enums/island-area.enum.js';
 
 /**
  * 装饰服务 — V4.0 §3.2.

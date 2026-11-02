@@ -25,7 +25,7 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. 本期内核不调用该端口 (turn 管线未改), 装配轮接入
 
-import type { RenderResult, RenderSpec } from '../rendering/render-types';
+import type { RenderResult, RenderSpec } from '../rendering/render-types.js';
 
 /**
  * 渲染抽象 (未来 = 适配层包装现有 src/llm 的主备 / 流式实现).

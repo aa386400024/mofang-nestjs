@@ -1,12 +1,12 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { Roles } from '../../common/decorators/roles.decorator';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { Roles } from '../../common/decorators/roles.decorator.js';
+import { RolesGuard } from '../../common/guards/roles.guard.js';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { BurnoutSettingsDto, UpdateBurnoutSettingsDto } from '../dto/burnout-settings.dto';
+import { BurnoutSettingsDto, UpdateBurnoutSettingsDto } from '../dto/burnout-settings.dto.js';
 import {
   AcceptInviteDto,
   CompanionBindingDto,
@@ -15,15 +15,15 @@ import {
   ListCompanionBindingsResponseDto,
   TerminateBindingDto,
   UpdatePermissionDto,
-} from '../dto/companion-binding.dto';
-import { CompanionRecordDto, CreateCompanionRecordDto, ListCompanionRecordsResponseDto } from '../dto/companion-record.dto';
-import { ConsentDocumentDto, ConsentSignatureDto, SignConsentDto } from '../dto/consent.dto';
-import { CreateSelfcareRecordDto, ListSelfcareRecordsResponseDto, SelfcareRecordDto } from '../dto/selfcare-record.dto';
-import { BurnoutSettingsService } from '../providers/burnout-settings.service';
-import { CompanionBindingService } from '../providers/companion-binding.service';
-import { CompanionRecordService } from '../providers/companion-record.service';
-import { ConsentService } from '../providers/consent.service';
-import { SelfcareRecordService } from '../providers/selfcare-record.service';
+} from '../dto/companion-binding.dto.js';
+import { CompanionRecordDto, CreateCompanionRecordDto, ListCompanionRecordsResponseDto } from '../dto/companion-record.dto.js';
+import { ConsentDocumentDto, ConsentSignatureDto, SignConsentDto } from '../dto/consent.dto.js';
+import { CreateSelfcareRecordDto, ListSelfcareRecordsResponseDto, SelfcareRecordDto } from '../dto/selfcare-record.dto.js';
+import { BurnoutSettingsService } from '../providers/burnout-settings.service.js';
+import { CompanionBindingService } from '../providers/companion-binding.service.js';
+import { CompanionRecordService } from '../providers/companion-record.service.js';
+import { ConsentService } from '../providers/consent.service.js';
+import { SelfcareRecordService } from '../providers/selfcare-record.service.js';
 
 /**
  * Companion controller — 心塑「我的」Tab 陪伴者专属控制器.

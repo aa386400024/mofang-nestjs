@@ -22,8 +22,8 @@
 //     1. pnpm build 0 错
 //     2. test/engine-core/wp2-memory.spec.ts 覆盖: 时间优先 / 同刻取重要度 / supersededIds 输出
 
-import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors';
-import type { MemoryEntry } from '../domain/ports/memory.store';
+import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors.js';
+import type { MemoryEntry } from '../domain/ports/memory.store.js';
 
 /**
  * 一条冲突记录 (供审计, 不删除旧条目).

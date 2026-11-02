@@ -32,25 +32,30 @@ import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { vi } from 'vitest';
 
-import { LlmRenderAdapter, createVisitorOutputGuard, type ChatCaller } from '../../src/engine-adapters/rendering/llm-render.adapter';
+import { LlmRenderAdapter, createVisitorOutputGuard, type ChatCaller } from '../../src/engine-adapters/rendering/llm-render.adapter.js';
 import {
   DEFAULT_RENDER_COOLDOWN_BASE_MS,
   DEFAULT_RENDER_COOLDOWN_MAX_MS,
   DEFAULT_RENDER_FAILURE_THRESHOLD,
   DEFAULT_RENDER_TIMEOUT_MS,
   type RenderAdapterConfig,
-} from '../../src/engine-adapters/rendering/render-adapter.config';
-import { buildVisitorMessages, type TurnSessionContext } from '../../src/engine-adapters/rendering/turn-render-orchestrator';
-import { EngineSessionRegistry, EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service';
-import { EngineWiringController } from '../../src/engine-adapters/wiring/engine-wiring.controller';
+} from '../../src/engine-adapters/rendering/render-adapter.config.js';
+import { buildVisitorMessages, type TurnSessionContext } from '../../src/engine-adapters/rendering/turn-render-orchestrator.js';
+import { EngineSessionRegistry, EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service.js';
+import { EngineWiringController } from '../../src/engine-adapters/wiring/engine-wiring.controller.js';
 import {
   createEngineMemoryStore,
   createEngineOrchestrator,
   createEngineSessionPort,
-} from '../../src/engine-adapters/wiring/engine.providers';
-import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from '../../src/engine-adapters/wiring/engine.tokens';
-import { RenderConfigFactory, buildEngineRenderDeps, buildEngineRenderPort } from '../../src/engine-adapters/wiring/render-config.factory';
-import { RouterChatCaller } from '../../src/engine-adapters/wiring/router-chat-caller';
+} from '../../src/engine-adapters/wiring/engine.providers.js';
+import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from '../../src/engine-adapters/wiring/engine.tokens.js';
+import {
+  RenderConfigFactory,
+  buildEngineRenderDeps,
+  buildEngineRenderPort,
+} from '../../src/engine-adapters/wiring/render-config.factory.js';
+import { RouterChatCaller } from '../../src/engine-adapters/wiring/router-chat-caller.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
 import {
   EngineCoreError,
   EngineErrorCode,
@@ -70,11 +75,10 @@ import {
   type RenderPort,
   type RenderResult,
   type RenderSpec,
-} from '../../src/engine-core';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
-import { AIProviderId, LLMTier } from '../../src/llm/common/enums/llm.enums';
-import type { ChatCompletionRequest, ChatCompletionResponse } from '../../src/llm/common/interfaces/chat-provider.interface';
-import type { LlmRouterService } from '../../src/llm/registry/llm-router.service';
+} from '../../src/engine-core/index.js';
+import { AIProviderId, LLMTier } from '../../src/llm/common/enums/llm.enums.js';
+import type { ChatCompletionRequest, ChatCompletionResponse } from '../../src/llm/common/interfaces/chat-provider.interface.js';
+import type { LlmRouterService } from '../../src/llm/registry/llm-router.service.js';
 
 const HANDLE_ID = 'handle-1';
 const TENANT = 'tenant-1';

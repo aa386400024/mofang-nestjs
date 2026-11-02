@@ -3,11 +3,18 @@
     "paths": {
       // https://docs.nestjs.com/cli/scripts#build
       // https://nodejs.org/api/packages.html#imports
+      // 运行时由 package.json "imports" 映射到 ./dist/entity/* (ESM).
+      // 源码里 #entity/sampledb1/index.js 显式写 index.js, Node ESM 不再做目录解析.
       "#entity/*": ["./src/entity/*"],
     },
     "target": "es2024",
-    "module": "commonjs",
-    "moduleResolution": "node",
+    // V2026-11-02: CommonJS → ESM (NodeNext)
+    //   - module/moduleResolution 切 NodeNext, 强制相对 import 带 .js 扩展名
+    //   - package.json 加 "type": "module"
+    //   - __dirname 用 fileURLToPath(import.meta.url) 替代
+    //   - dynamic import() 路径用 pathToFileURL 包裹
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "types": ["node"],
     "declaration": true,
     "newLine": "lf",

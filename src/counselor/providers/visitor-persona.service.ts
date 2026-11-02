@@ -28,15 +28,15 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException,
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
-import { CounselorUiPreferenceService } from './counselor-ui-preference.service';
-import { CounselorLlmJsonClient } from './llm-json.client';
-import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config';
+import { CounselorUiPreferenceService } from './counselor-ui-preference.service.js';
+import { CounselorLlmJsonClient } from './llm-json.client.js';
+import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config.js';
 import {
   buildPersonaGenerationUserPrompt,
   VISITOR_PERSONA_SCHEMA_DESCRIPTION,
   VISITOR_PERSONA_SYSTEM_PROMPT,
-} from '../config/visitor-persona-prompts';
-import { readEnum, readString, readStringArray } from '../domain/struct-guards';
+} from '../config/visitor-persona-prompts.js';
+import { readEnum, readString, readStringArray } from '../domain/struct-guards.js';
 import type {
   DevelopmentalStage,
   VisitorFullPersonaScript,
@@ -47,7 +47,7 @@ import type {
   VisitorPersonaPresentingIssue,
   VisitorPersonaSocialRelation,
   VisitorPersonaTherapyExpectation,
-} from '../domain/visitor-persona/visitor-persona.types';
+} from '../domain/visitor-persona/visitor-persona.types.js';
 import {
   type GenerateVisitorPersonaDto,
   type UpdateVisitorPersonaBasicsDto,
@@ -56,9 +56,9 @@ import {
   type UpdateVisitorPersonaSurfaceDto,
   type VisitorPersonaFullDto,
   type VisitorPersonaSurfaceDto,
-} from '../dto/visitor-persona.dto';
-import { VisitorFullPersona } from '../entities/visitor-full-persona.entity';
-import { CounselorUiPreferenceKey } from '../enums/counselor-ui-preference-key.enum';
+} from '../dto/visitor-persona.dto.js';
+import { VisitorFullPersona } from '../entities/visitor-full-persona.entity.js';
+import { CounselorUiPreferenceKey } from '../enums/counselor-ui-preference-key.enum.js';
 
 // ════════════════════════════════════════════════════════════════════════════
 // 手写校验器 (结构化输出的业务校验回调)

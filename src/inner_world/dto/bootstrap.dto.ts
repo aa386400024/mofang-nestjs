@@ -1,9 +1,9 @@
 import { IsISO8601, IsOptional } from 'class-validator';
 
-import { BadgeStateDto } from './badge.dto';
-import { FragmentBalanceItemDto } from './fragment.dto';
-import { IslandElementDto } from './island.dto';
-import { ThemePackDto, ToolSkinDto } from './skin-pack.dto';
+import { BadgeStateDto } from './badge.dto.js';
+import { FragmentBalanceItemDto } from './fragment.dto.js';
+import { IslandElementDto } from './island.dto.js';
+import { ThemePackDto, ToolSkinDto } from './skin-pack.dto.js';
 
 /**
  * 冷启动聚合接口 — 前端打开内心世界时, 1 次拉全量.

@@ -3,10 +3,10 @@
 //         不读数据库、不感知 persona 实体结构 (保持内核可整包搬走).
 //   边界: 纯 TS, 零 @nestjs/* / typeorm. 缺省字段回落到中性默认基线 (见 bootstrap).
 
-import type { BdiResistance } from './bdi-snapshot';
-import type { CoreBelief } from './beliefs';
-import type { EmotionState } from './emotion';
-import type { TransferenceState } from './transference';
+import type { BdiResistance } from './bdi-snapshot.js';
+import type { CoreBelief } from './beliefs.js';
+import type { EmotionState } from './emotion.js';
+import type { TransferenceState } from './transference.js';
 
 /** 依恋风格 (压力下的关系模式). */
 export type AttachmentStyle = 'secure' | 'anxious' | 'avoidant' | 'disorganized';

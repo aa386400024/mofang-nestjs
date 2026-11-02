@@ -5,11 +5,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { UserModule } from '../user/user.module';
+import { UserModule } from '../user/user.module.js';
 
-import { EmergencyController } from './controllers/emergency.controller';
-import { EmergencySessionEntity } from './entities/emergency-session.entity';
-import { EmergencyService } from './providers/emergency.service';
+import { EmergencyController } from './controllers/emergency.controller.js';
+import { EmergencySessionEntity } from './entities/emergency-session.entity.js';
+import { EmergencyService } from './providers/emergency.service.js';
 
 @Module({
   imports: [TypeOrmModule.forFeature([EmergencySessionEntity]), UserModule],

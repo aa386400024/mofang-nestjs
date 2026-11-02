@@ -1,10 +1,10 @@
 import { Global, Module } from '@nestjs/common';
 
 // ⚠️ 必须直接 import 文件, 不能用 barrel '../../../common' (循环依赖陷阱, 详见 redis.module.ts).
-import { HttpMetricsInterceptor } from './http-metrics.interceptor';
-import { MetricsController } from './metrics.controller';
-import { MetricsService } from './metrics.service';
-import { CommonModule } from '../../../common/common.module';
+import { HttpMetricsInterceptor } from './http-metrics.interceptor.js';
+import { MetricsController } from './metrics.controller.js';
+import { MetricsService } from './metrics.service.js';
+import { CommonModule } from '../../../common/common.module.js';
 
 /**
  * Metrics module — Prometheus 指标 (大厂可观测性).

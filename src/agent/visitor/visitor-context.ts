@@ -28,7 +28,7 @@
 
 import { Injectable } from '@nestjs/common';
 
-import type { PersonaDifficulty } from '../persona/domain/entities/persona.entity';
+import type { PersonaDifficulty } from '../persona/domain/entities/persona.entity.js';
 
 /**
  * 一次会话级上下文贡献的产出.

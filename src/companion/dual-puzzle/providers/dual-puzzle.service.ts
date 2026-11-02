@@ -2,11 +2,11 @@ import { Injectable, NotFoundException, UnprocessableEntityException, ConflictEx
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
-import { DualPuzzleResultDto, DualPuzzleSetDto } from '../dto/dual-puzzle-dtos';
-import { DualPuzzleAnswer } from '../entities/dual-puzzle-answer.entity';
-import { DualPuzzleQuestion } from '../entities/dual-puzzle-question.entity';
-import { DualPuzzleSet } from '../entities/dual-puzzle-set.entity';
-import { DualPuzzleCategory } from '../enums/dual-puzzle-category.enum';
+import { DualPuzzleResultDto, DualPuzzleSetDto } from '../dto/dual-puzzle-dtos.js';
+import { DualPuzzleAnswer } from '../entities/dual-puzzle-answer.entity.js';
+import { DualPuzzleQuestion } from '../entities/dual-puzzle-question.entity.js';
+import { DualPuzzleSet } from '../entities/dual-puzzle-set.entity.js';
+import { DualPuzzleCategory } from '../enums/dual-puzzle-category.enum.js';
 
 /**
  * 默契拼图 Service — V2026-09-12 §6.4 共种默契拼图.

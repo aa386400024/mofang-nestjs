@@ -2,8 +2,8 @@
 //   职责: EventClassifier 的规则实现 —— 用静态词典把咨询师文本分类成标准事件.
 //   边界: 纯函数, 无 I/O, 无随机, 可复现. 模型微调轨后期实现同接口替换, 本类可退役.
 
-import { EVENT_LEXICON } from '../domain/events/event-lexicon';
-import type { ClassifyContext, EventClassifier, SessionEvent } from '../domain/events/session-event';
+import { EVENT_LEXICON } from '../domain/events/event-lexicon.js';
+import type { ClassifyContext, EventClassifier, SessionEvent } from '../domain/events/session-event.js';
 
 /** 规则轨分类器: 关键词 / 正则兜底, 一条文本可命中多类, 未命中归 neutral. */
 export class RuleBasedClassifier implements EventClassifier {

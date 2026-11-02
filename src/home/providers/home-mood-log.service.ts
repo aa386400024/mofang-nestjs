@@ -2,11 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThanOrEqual, Repository } from 'typeorm';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
 
-import { MoodLog } from '../entities/mood-log.entity';
-import type { HomeEmotionLevel } from '../home.constants';
+import { MoodLog } from '../entities/mood-log.entity.js';
+import type { HomeEmotionLevel } from '../home.constants.js';
 
 /**
  * 心塑首页「情绪打卡」核心服务.

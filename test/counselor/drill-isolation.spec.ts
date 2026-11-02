@@ -17,12 +17,12 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-import { VISITOR_POOL_TEMPLATE_SEEDS, validateVisitorPoolTemplateSeeds } from '../../src/counselor/config/visitor-pool-seed';
-import { VISITOR_POOL_EXCLUDED_CONTENT_KEYWORDS } from '../../src/counselor/config/visitor-pool.config';
-import { listDrillScripts } from '../../src/counselor/drills/config/drill-registry';
-import { BOUNDARY_DRILL_SCRIPTS } from '../../src/counselor/drills/config/scripts/boundary/boundary-scripts';
-import { CRISIS_DRILL_SCRIPTS } from '../../src/counselor/drills/config/scripts/crisis/crisis-scripts';
-import { DrillDetailDto, DrillListDto, DrillResponseDto } from '../../src/counselor/drills/dto/drill.dto';
+import { VISITOR_POOL_TEMPLATE_SEEDS, validateVisitorPoolTemplateSeeds } from '../../src/counselor/config/visitor-pool-seed.js';
+import { VISITOR_POOL_EXCLUDED_CONTENT_KEYWORDS } from '../../src/counselor/config/visitor-pool.config.js';
+import { listDrillScripts } from '../../src/counselor/drills/config/drill-registry.js';
+import { BOUNDARY_DRILL_SCRIPTS } from '../../src/counselor/drills/config/scripts/boundary/boundary-scripts.js';
+import { CRISIS_DRILL_SCRIPTS } from '../../src/counselor/drills/config/scripts/crisis/crisis-scripts.js';
+import { DrillDetailDto, DrillListDto, DrillResponseDto } from '../../src/counselor/drills/dto/drill.dto.js';
 
 /**
  * 把 crisis 剧本摊平成一段可检索文本.

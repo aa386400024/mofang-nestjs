@@ -8,10 +8,10 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
-import type { AIEffectHistoryDto, AIEffectRecordDto, RecordImmediateEffectDto } from '../dto/ai-effect.dto';
-import { AIEffectService } from '../providers/ai-effect.service';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
+import type { AIEffectHistoryDto, AIEffectRecordDto, RecordImmediateEffectDto } from '../dto/ai-effect.dto.js';
+import { AIEffectService } from '../providers/ai-effect.service.js';
 
 @ApiTags('ai-effect')
 @Controller('ai/effect')

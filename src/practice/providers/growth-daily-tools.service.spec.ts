@@ -22,12 +22,12 @@ import { vi } from 'vitest';
  *   篡改" 模式, 拿完整 DailyGrowthToolDto 喂给 spy, 只篡改一个字段破坏.
  */
 
-import { GrowthDailyToolsService } from './growth-daily-tools.service';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { isLinkRouteAllowed } from '../constants/allowed-link-routes';
-import { FragmentsGrantDto } from '../dto/fragments-grant.dto';
-import { DailyGrowthToolDto } from '../dto/growth.dto';
+import { GrowthDailyToolsService } from './growth-daily-tools.service.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { isLinkRouteAllowed } from '../constants/allowed-link-routes.js';
+import { FragmentsGrantDto } from '../dto/fragments-grant.dto.js';
+import { DailyGrowthToolDto } from '../dto/growth.dto.js';
 
 /**
  * `recommendByLLM` 是 service 内部的**接缝** (V1.0 占位实现, 声明为 private).

@@ -25,7 +25,7 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp7-turn-render.spec.ts 覆盖字段映射与历史裁剪
 
-import { resolveRiskLevel, type AdaptiveRenderSpec } from './render-risk';
+import { resolveRiskLevel, type AdaptiveRenderSpec } from './render-risk.js';
 import {
   fitContextToBudget,
   type BdiSnapshot,
@@ -34,8 +34,8 @@ import {
   type RenderContextTurn,
   type RenderTaskKind,
   type RenderTokenBudget,
-} from '../../engine-core';
-import type { AttachmentStyle } from '../../engine-core';
+} from '../../engine-core/index.js';
+import type { AttachmentStyle } from '../../engine-core/index.js';
 
 /**
  * 规格组装入参.

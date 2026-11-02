@@ -1,11 +1,11 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { CompanionPersonsDto, SwitchPersonRequestDto } from '../dto/companion.dto';
-import { CompanionPersonsService } from '../providers/companion.service';
+import { CompanionPersonsDto, SwitchPersonRequestDto } from '../dto/companion.dto.js';
+import { CompanionPersonsService } from '../providers/companion.service.js';
 
 /**
  * 顶部陪伴对象切换 controller — V2.0 §Tab2.

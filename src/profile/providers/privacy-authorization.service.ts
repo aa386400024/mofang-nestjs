@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { PrivacyAuthorizationDto, PrivacyAuthorizationsResponseDto } from '../dto/privacy-authorization.dto';
-import { PrivacyAuthorization } from '../entities/privacy-authorization.entity';
+import { PrivacyAuthorizationDto, PrivacyAuthorizationsResponseDto } from '../dto/privacy-authorization.dto.js';
+import { PrivacyAuthorization } from '../entities/privacy-authorization.entity.js';
 
 /**
  * 隐私授权服务 — V2.0 §Tab4 「授权管理」.

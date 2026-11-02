@@ -1,3 +1,3 @@
-export * from './metrics.module';
-export * from './metrics.service';
-export * from './http-metrics.interceptor';
+export * from './metrics.module.js';
+export * from './metrics.service.js';
+export * from './http-metrics.interceptor.js';

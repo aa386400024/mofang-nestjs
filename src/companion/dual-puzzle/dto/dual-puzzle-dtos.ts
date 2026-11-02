@@ -1,4 +1,4 @@
-import { DualPuzzleCategory } from '../enums/dual-puzzle-category.enum';
+import { DualPuzzleCategory } from '../enums/dual-puzzle-category.enum.js';
 
 /**
  * 单题 DTO — 返回给前端 (跟前端 DualPuzzleQuestion 1:1).

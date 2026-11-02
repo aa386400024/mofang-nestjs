@@ -8,10 +8,10 @@
  *     它们是内部实现, 只 export class + enum 给 service 用.
  *
  * 用法:
- *   import { BizCode, BizException } from '../../common/exceptions';
+ *   import { BizCode, BizException } from '../../common/exceptions/index.js';
  *
  *   throw new BizException(BizCode.GrowthDailyToolsEmpty, '今日推荐工具为空');
  */
 
-export { BizCode } from './biz-code.enum';
-export { BizException } from './biz.exception';
+export { BizCode } from './biz-code.enum.js';
+export { BizException } from './biz.exception.js';

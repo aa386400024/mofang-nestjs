@@ -18,8 +18,8 @@
 //   验证: npx jest test/engine-adapters/wp8b-turn-stream.spec.ts
 //   时间戳: 2026-10-29 GMT+8
 
-import type { StreamRenderOutcome, StreamingRenderPort } from '../../src/engine-adapters/rendering/streaming-render.port';
-import { TurnRenderOrchestrator, type TurnSessionContext } from '../../src/engine-adapters/rendering/turn-render-orchestrator';
+import type { StreamRenderOutcome, StreamingRenderPort } from '../../src/engine-adapters/rendering/streaming-render.port.js';
+import { TurnRenderOrchestrator, type TurnSessionContext } from '../../src/engine-adapters/rendering/turn-render-orchestrator.js';
 import {
   createEmptyBdiSnapshot,
   type EngineSessionHandle,
@@ -33,7 +33,7 @@ import {
   type OpenEngineSessionInput,
   type RenderResult,
   type RenderSpec,
-} from '../../src/engine-core';
+} from '../../src/engine-core/index.js';
 
 const HANDLE_ID = 'handle-1';
 const TENANT = 'tenant-1';

@@ -3,16 +3,16 @@
 
 
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { WsAdapter } from '@nestjs/platform-ws';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { Test } from '@nestjs/testing';
 import supertest from 'supertest';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 
-import { AppModule } from '../../src/app.module';
+import { AppModule } from '../../src/app.module.js';
 // V2026-10-14 治本 (VS-3e 关联 — crud e2e 加 WsAdapter 跟 v2-user-flow + gql + jwt-auth + local-auth + src/app.ts 一致):
 //   原因: 大炮跑 pnpm test:e2e 报 "No driver (WebSockets) has been selected" (crud.spec.ts:18
 //     `await app.init()` 触发, 我之前修 4 个 e2e 漏了 crud). 治本: 1 行 import WsAdapter + 1 行
-//     app.useWebSocketAdapter(new WsAdapter(app)), 跟其他 4 个 e2e 同 pattern.
+//     app.useWebSocketAdapter(new IoAdapter(app)), 跟其他 4 个 e2e 同 pattern.
 //   反双胞胎: 跟 v2-user-flow 一样, 不装 socket.io, 不用 mock (workaround 埋雷).
 //   时间戳: 2026-10-14 17:27.
 
@@ -28,7 +28,7 @@ beforeAll(async () => {
   app = moduleRef.createNestApplication<NestExpressApplication>();
   // V2026-10-14 治本 (VS-3e 关联 — 跟 src/app.ts L49 + v2-user-flow/gql/jwt-auth/local-auth 同 pattern):
   //   修法: 1 行 call, 跑 app.init() 前注册 WsAdapter, 避免 SocketModule 找不到 driver.
-  app.useWebSocketAdapter(new WsAdapter(app));
+  app.useWebSocketAdapter(new IoAdapter(app));
   await app.init();
 
   request = supertest(app.getHttpServer());

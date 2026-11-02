@@ -9,9 +9,9 @@
 //     ④ 普通池 6 位官方人物的 seed 基线 **仍然自检通过** (危机内容没污染普通池)
 //   验证: npx jest test/counselor/crisis-practice-isolation.spec.ts 全绿
 //   时间戳: 2026-10-27
-import { buildCrisisPracticeMeta } from '../../src/counselor/config/crisis-practice.config';
-import { VISITOR_POOL_TEMPLATE_SEEDS, validateVisitorPoolTemplateSeeds } from '../../src/counselor/config/visitor-pool-seed';
-import { VISITOR_POOL_EXCLUDED_CONTENT_KEYWORDS } from '../../src/counselor/config/visitor-pool.config';
+import { buildCrisisPracticeMeta } from '../../src/counselor/config/crisis-practice.config.js';
+import { VISITOR_POOL_TEMPLATE_SEEDS, validateVisitorPoolTemplateSeeds } from '../../src/counselor/config/visitor-pool-seed.js';
+import { VISITOR_POOL_EXCLUDED_CONTENT_KEYWORDS } from '../../src/counselor/config/visitor-pool.config.js';
 
 /** 把危机元数据摊平成一段可检索文本. */
 function flattenMeta(): string {

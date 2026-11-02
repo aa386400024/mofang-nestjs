@@ -34,8 +34,8 @@
 //     2. npx jest test/engine-adapters/wp10-ethical-scripts.spec.ts 覆盖解析/未命中/空白输入
 //     3. npx jest test/engine-adapters/wp10-trajectory-injection.spec.ts 覆盖注入与回退
 
-import { ETHICAL_TRAJECTORY_SCRIPT_MAP } from './ethical-scripts';
-import type { TrajectoryScript } from '../../../engine-core';
+import { ETHICAL_TRAJECTORY_SCRIPT_MAP } from './ethical-scripts.js';
+import type { TrajectoryScript } from '../../../engine-core/index.js';
 
 /**
  * 轨迹剧本解析端口 (可替换数据源).

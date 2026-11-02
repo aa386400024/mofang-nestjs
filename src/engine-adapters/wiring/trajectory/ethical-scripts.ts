@@ -58,7 +58,7 @@
 //
 //   eslint-disable-next-line sonarjs/todo-tag -- 复核标记按任务单固定用中文"专业复核"; 规则只认 ASCII 标签, 故就地放行.
 //   TODO(专业复核): 待心理咨询专业口径校验 —— 全部 10 个剧本的督导要点、阈值与求助路径类别词.
-import type { CounselorEventKind, TrajectoryScript } from '../../../engine-core';
+import type { CounselorEventKind, TrajectoryScript } from '../../../engine-core/index.js';
 
 /**
  * 幕 1 的闸门事件集: "咨询师做出了一个被规则词典识别的专业动作".

@@ -28,9 +28,9 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import type { CharacterProfileResolver } from '../../src/engine-adapters/wiring/character/character-profile.resolver';
-import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service';
-import { createEngineStreamBackend } from '../../src/engine-adapters/wiring/engine.providers';
+import type { CharacterProfileResolver } from '../../src/engine-adapters/wiring/character/character-profile.resolver.js';
+import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service.js';
+import { createEngineStreamBackend } from '../../src/engine-adapters/wiring/engine.providers.js';
 
 /**
  * 引擎门面 stub (只提供 openSession 走到的 open / close).

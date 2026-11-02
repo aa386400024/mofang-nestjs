@@ -21,8 +21,8 @@ import {
   ETHICAL_TRAJECTORY_SCRIPT_MAP,
   ETHICAL_TRAJECTORY_SCRIPTS,
   StaticTrajectoryScriptResolver,
-} from '../../src/engine-adapters/wiring/trajectory';
-import { validateTrajectoryScript, type TrajectoryScript } from '../../src/engine-core';
+} from '../../src/engine-adapters/wiring/trajectory/index.js';
+import { validateTrajectoryScript, type TrajectoryScript } from '../../src/engine-core/index.js';
 
 /**
  * 任务单 §1.2 的 10 个剧本 scriptId (固定清单).

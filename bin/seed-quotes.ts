@@ -33,15 +33,15 @@ import { config as loadEnvFile } from 'dotenv';
 
 import { DataSource, type DataSourceOptions } from 'typeorm';
 
-import { configuration } from '../src/config/configuration';
+import { configuration } from '../src/config/configuration.js';
 import {
   QUOTE_CDN_BASE_URL_DEFAULT,
   QUOTE_CDN_BASE_URL_ENV_KEY,
   QUOTE_SEEDS,
   validateQuoteSeeds,
-} from '../src/counselor/config/quote-seeds';
-import { Quote } from '../src/counselor/entities/quote.entity';
-import { seedQuotes } from '../src/counselor/seeds/quotes.seed';
+} from '../src/counselor/config/quote-seeds.js';
+import { Quote } from '../src/counselor/entities/quote.entity.js';
+import { seedQuotes } from '../src/counselor/seeds/quotes.seed.js';
 
 type DbConfig = DataSourceOptions & { autoLoadEntities?: boolean };
 

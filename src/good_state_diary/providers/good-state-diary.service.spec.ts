@@ -2,13 +2,13 @@ import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { vi } from 'vitest';
 
-import { GoodStateDiaryService } from './good-state-diary.service';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
+import { GoodStateDiaryService } from './good-state-diary.service.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 
-import { GoodStateDiaryEntry } from '../entities/good-state-diary-entry.entity';
-import { DiaryEntryStatus } from '../enums/diary-entry-status.enum';
-import { DiaryMoodLevel } from '../enums/diary-mood-level.enum';
-import { DiaryTag } from '../enums/diary-tag.enum';
+import { GoodStateDiaryEntry } from '../entities/good-state-diary-entry.entity.js';
+import { DiaryEntryStatus } from '../enums/diary-entry-status.enum.js';
+import { DiaryMoodLevel } from '../enums/diary-mood-level.enum.js';
+import { DiaryTag } from '../enums/diary-tag.enum.js';
 
 /**
  * V2026-09-11 治本 (好状态日记 · 服务单测模板):

@@ -31,7 +31,7 @@
 //
 //   时间戳: 2026-10-21
 
-import type { LlmReasoningEffort } from '../../agent/llm/llm.types';
+import type { LlmReasoningEffort } from '../../agent/llm/llm.types.js';
 
 /** counselor 端默认文本模型 (大炮 2026-10-21 拍板: 文本一律 MiniMax-M3.1-Flash). */
 export const COUNSELOR_LLM_DEFAULT_MODEL = 'MiniMax-M3.1-Flash';
@@ -182,10 +182,10 @@ export function supportsReasoningEffort(model: string): boolean {
  *
  * V2026-10-29 治本 (WP18 · 消双胞胎): 实现已上移到 `src/shared/llm/llm-json-payload.ts`
  *   (agent 侧的主报告链路也要用同一份), 本文件保留 re-export, **既有 import 路径不断**
- *   (`import { stripThinkingTags } from '../config/counselor-llm.config'` 照旧可用).
+ *   (`import { stripThinkingTags } from '../config/counselor-llm.config.js'` 照旧可用).
  *
  * 背景: M3.1-Flash 的思考内容走独立 reasoning_content 字段 (content 干净), 但 M3 系列的
  * `<think>` 标签是**内联在 content 里的** (官方文档明确要求完整保留, 因为多轮 function call
  * 要靠它保持思维链). 本函数只用于"一次性结构化 JSON 提取"场景, 剥掉后不影响单轮结论.
  */
-export { stripThinkingTags } from '../../shared/llm/llm-json-payload';
+export { stripThinkingTags } from '../../shared/llm/llm-json-payload.js';

@@ -31,7 +31,7 @@
 /** 练习**评判** LLM 开关的 env 键 (覆盖 §3.3 evaluateWithLlm). */
 export const PRACTICE_LLM_EVALUATION_ENV_KEY = 'PRACTICE_LLM_EVALUATION';
 
-import { parseOnOffSwitch } from './env-switch';
+import { parseOnOffSwitch } from './env-switch.js';
 
 /**
  * 练习**生成** LLM 开关的 env 键.

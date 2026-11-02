@@ -8,4 +8,4 @@
  * 注意: 这里的 user 是项目示例的 mock user, 业务账号见 `src/user/`.
  * 这里只导出基础设施层.
  */
-export * from './infra';
+export * from './infra/index.js';

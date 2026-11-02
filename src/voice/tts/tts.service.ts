@@ -24,8 +24,8 @@
 
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 
-import { TtsBidiPoolService } from './tts-bidi-pool.service';
-import type { TtsOptions, TtsSessionHandle } from './tts.types';
+import { TtsBidiPoolService } from './tts-bidi-pool.service.js';
+import type { TtsOptions, TtsSessionHandle } from './tts.types.js';
 
 @Injectable()
 export class TtsService implements OnModuleDestroy {

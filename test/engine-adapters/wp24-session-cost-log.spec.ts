@@ -29,10 +29,10 @@ import {
   resolveSessionCostPricing,
   type SessionCostSummary,
   type SessionUsageTotals,
-} from '../../src/engine-adapters/observability/session-cost';
-import type { TurnRenderResult } from '../../src/engine-adapters/rendering/turn-render-orchestrator';
-import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service';
-import { createEngineStreamBackend } from '../../src/engine-adapters/wiring/engine.providers';
+} from '../../src/engine-adapters/observability/session-cost.js';
+import type { TurnRenderResult } from '../../src/engine-adapters/rendering/turn-render-orchestrator.js';
+import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service.js';
+import { createEngineStreamBackend } from '../../src/engine-adapters/wiring/engine.providers.js';
 
 /**
  * 引擎门面 stub: open / close / turnStream 三件套.

@@ -15,7 +15,7 @@
 //     2. grep -rn "templateId" src/voice → 命中本文件与 gateway
 //   时间戳: 2026-10-23
 
-import type { VoiceSkillCode } from '../shared/types/voice-skill.types';
+import type { VoiceSkillCode } from '../shared/types/voice-skill.types.js';
 
 /**
  * 来访者速查卡 (V2026-10-26, spec 任务 7).
@@ -71,7 +71,7 @@ export type VoiceVisitorMode = 'useMySettings' | 'fullyReal';
  * **定义在 shared** (src/shared/types/voice-skill.types.ts): 该码值要同时被 counselor 侧
  * (来访者聚焦) 与 agent 侧 (督导事后专项反馈) 消费, 而 agent 侧不得 import counselor.
  * 放 shared 是唯一能让两侧都只依赖中立层的家. 本文件只做**转出**, 保证 voice 侧
- * 现有的 `import type { VoiceSkillCode } from './voice-session.types'` 引用全部照旧可用,
+ * 现有的 `import type { VoiceSkillCode } from './voice-session.types.js'` 引用全部照旧可用,
  * 且**全仓只有一份定义**.
  *
  * 注意: 上面那行 `import` 是**本文件内部**要用的 (VoicePersonaChannel /

@@ -25,7 +25,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import type { LlmError, LlmMessage, LlmReasoningEffort, LlmStream, LlmStreamChunk, LlmStreamOptions, LlmUsage } from './llm.types';
+import type { LlmError, LlmMessage, LlmReasoningEffort, LlmStream, LlmStreamChunk, LlmStreamOptions, LlmUsage } from './llm.types.js';
 
 interface MiniMaxChatRequest {
   model: string;

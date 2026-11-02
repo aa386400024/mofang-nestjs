@@ -25,9 +25,9 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-core/wp5-rendering.spec.ts 覆盖干净/高危/probe 降级
 
-import type { RiskProbePort } from '../../domain/ports/risk-probe';
-import type { SafetyVerdict } from '../../domain/safety/safety-types';
-import { assessSafety } from '../safety/assess-safety';
+import type { RiskProbePort } from '../../domain/ports/risk-probe.js';
+import type { SafetyVerdict } from '../../domain/safety/safety-types.js';
+import { assessSafety } from '../safety/assess-safety.js';
 
 /**
  * 渲染文本输出侧校验: 复用 WP4 assessSafety(side='visitor_output').

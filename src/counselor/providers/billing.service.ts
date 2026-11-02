@@ -43,7 +43,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, type Repository, type FindOptionsWhere } from 'typeorm';
 
-import { MEMBERSHIP_TIER_PRESETS, type MembershipTierPreset } from '../config/membership-tier-presets';
+import { MEMBERSHIP_TIER_PRESETS, type MembershipTierPreset } from '../config/membership-tier-presets.js';
 import {
   type ConsumeQuotaDto,
   type CreateOrderDto,
@@ -51,10 +51,10 @@ import {
   type OrderDto,
   type QuotaStatusDto,
   type SkuListItemDto,
-} from '../dto/billing.dto';
-import { QuotaUsage } from '../entities/quota-usage.entity';
-import { MembershipTier } from '../enums/membership-tier.enum';
-import { QuotaType } from '../enums/quota-type.enum';
+} from '../dto/billing.dto.js';
+import { QuotaUsage } from '../entities/quota-usage.entity.js';
+import { MembershipTier } from '../enums/membership-tier.enum.js';
+import { QuotaType } from '../enums/quota-type.enum.js';
 
 /**
  * V2026-10-15 (V1.x counselor-mode W7-8 — BillingService):

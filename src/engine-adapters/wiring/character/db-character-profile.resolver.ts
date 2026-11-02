@@ -35,9 +35,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, type Repository } from 'typeorm';
 
-import { buildCharacterProfile, stableSeedFromKey, type BuiltinCharacterSeed } from './builtin-character-registry';
-import { CharacterProfileEntity } from './character-profile.entity';
-import type { CharacterProfileResolver, CharacterResolveRequest, ResolvedCharacter } from './character-profile.resolver';
+import { buildCharacterProfile, stableSeedFromKey, type BuiltinCharacterSeed } from './builtin-character-registry.js';
+import { CharacterProfileEntity } from './character-profile.entity.js';
+import type { CharacterProfileResolver, CharacterResolveRequest, ResolvedCharacter } from './character-profile.resolver.js';
 
 /**
  * 角色行 → WP9-A 种子形状 (纯映射).

@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import { MetricsService } from '../../shared/infra/metrics';
-import { AuditLogProcessor } from '../../shared/infra/queue';
-import { AuditEvent } from '../entities/audit-log.entity';
+import { MetricsService } from '../../shared/infra/metrics/index.js';
+import { AuditLogProcessor } from '../../shared/infra/queue/index.js';
+import { AuditEvent } from '../entities/audit-log.entity.js';
 
 /**
  * Audit log service — 用户鉴权事件日志 (大厂合规要求).

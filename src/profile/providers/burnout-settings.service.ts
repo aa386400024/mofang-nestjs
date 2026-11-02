@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { BurnoutSettingsDto, UpdateBurnoutSettingsDto } from '../dto/burnout-settings.dto';
-import { BurnoutSettings } from '../entities/burnout-settings.entity';
+import { BurnoutSettingsDto, UpdateBurnoutSettingsDto } from '../dto/burnout-settings.dto.js';
+import { BurnoutSettings } from '../entities/burnout-settings.entity.js';
 
 /**
  * BurnoutSettings service — 心塑「我的」Tab 耗竭预警设置核心服务 (陪伴者专属).

@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 
-import { UserModule } from '../user/user.module';
+import { UserModule } from '../user/user.module.js';
 
-import { GenomeReshapeController } from './controllers/genome-reshape.controller';
-import { GenomeReshapeService } from './providers/genome-reshape.service';
+import { GenomeReshapeController } from './controllers/genome-reshape.controller.js';
+import { GenomeReshapeService } from './providers/genome-reshape.service.js';
 
 /**
  * 心理基因靶向重塑模块 — V3.0 §3 Tab3 评估子模块 + 心理健身房共用.

@@ -12,7 +12,7 @@
 //     2. 故意把 low 档改成 ['无风险'] → "low 档不产出标签"用例变红
 //
 //   时间戳: 2026-10-26
-import { RISK_TAGS_BY_SELF_REPORTED_RISK, VPT_SCENARIO_ID, riskTagsForSelfReportedRisk } from '../../src/counselor/config/vpt.config';
+import { RISK_TAGS_BY_SELF_REPORTED_RISK, VPT_SCENARIO_ID, riskTagsForSelfReportedRisk } from '../../src/counselor/config/vpt.config.js';
 
 describe('自述风险等级 → 展示标签', () => {
   it('low 档**不产出任何标签** (前端据此不渲染风险区)', () => {

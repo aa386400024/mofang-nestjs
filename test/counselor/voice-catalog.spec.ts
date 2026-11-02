@@ -20,9 +20,9 @@
 //
 //   时间戳: 2026-10-26
 
-import { renderVisitorSkillFocus } from '../../src/counselor/config/skill-focus.config';
-import { resolveVoiceCatalogType } from '../../src/counselor/config/voices.config';
-import { VOICE_SKILL_LABELS, toVoiceSkillCode } from '../../src/shared/types/voice-skill.types';
+import { renderVisitorSkillFocus } from '../../src/counselor/config/skill-focus.config.js';
+import { resolveVoiceCatalogType } from '../../src/counselor/config/voices.config.js';
+import { VOICE_SKILL_LABELS, toVoiceSkillCode } from '../../src/shared/types/voice-skill.types.js';
 
 describe('音色类型归一 · 上游 get_voice 的 voice_type', () => {
   it('显式传 system → system', () => {

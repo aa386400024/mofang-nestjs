@@ -17,7 +17,7 @@
 
 import { Injectable } from '@nestjs/common';
 
-import { type CounselorExamDto } from '../dto/counselor-exam.dto';
+import { type CounselorExamDto } from '../dto/counselor-exam.dto.js';
 
 @Injectable()
 export class CounselorExamService {

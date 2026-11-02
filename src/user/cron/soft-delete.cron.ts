@@ -5,13 +5,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { CronJob } from 'cron';
 import { LessThan, Repository } from 'typeorm';
 
-import { AuditEvent } from '../entities/audit-log.entity';
-import { OAuthIdentity } from '../entities/oauth-identity.entity';
-import { PasswordHistory } from '../entities/password-history.entity';
-import { Session } from '../entities/session.entity';
-import { User } from '../entities/user.entity';
-import { AuditLogService } from '../providers/audit-log.service';
-import { SessionService } from '../providers/session.service';
+import { AuditEvent } from '../entities/audit-log.entity.js';
+import { OAuthIdentity } from '../entities/oauth-identity.entity.js';
+import { PasswordHistory } from '../entities/password-history.entity.js';
+import { Session } from '../entities/session.entity.js';
+import { User } from '../entities/user.entity.js';
+import { AuditLogService } from '../providers/audit-log.service.js';
+import { SessionService } from '../providers/session.service.js';
 
 /**
  * Soft delete cron — 软删到期真删 (大厂 GDPR 合规).

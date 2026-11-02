@@ -10,7 +10,7 @@
 //   时间戳: 2026-10-27 14:25 GMT+8
 import { BadRequestException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 
-import { SupervisionFailureCode } from '../../src/counselor/enums/supervision-failure-code.enum';
+import { SupervisionFailureCode } from '../../src/counselor/enums/supervision-failure-code.enum.js';
 import {
   classifySupervisionFailure,
   isPermanentSupervisionFailure,
@@ -18,7 +18,7 @@ import {
   SupervisionEmptyMaterialException,
   SupervisionSchoolMissingException,
   SupervisionUpstreamException,
-} from '../../src/counselor/providers/supervision-failure';
+} from '../../src/counselor/providers/supervision-failure.js';
 
 describe('LLM errorCode → 失败原因码', () => {
   it('429 → rate_limited (退避后重试有意义)', () => {

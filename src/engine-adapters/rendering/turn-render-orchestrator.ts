@@ -40,10 +40,10 @@
 
 import { nanoid } from 'nanoid';
 
-import { DEFAULT_RENDER_FALLBACK_UTTERANCES } from './render-adapter.config';
-import type { AdaptiveRenderSpec } from './render-risk';
-import { buildRenderSpec, type SpecAssemblyInput } from './spec-assembler';
-import { splitTextIntoDeltas, type StreamRenderHandlers, type StreamingRenderPort } from './streaming-render.port';
+import { DEFAULT_RENDER_FALLBACK_UTTERANCES } from './render-adapter.config.js';
+import type { AdaptiveRenderSpec } from './render-risk.js';
+import { buildRenderSpec, type SpecAssemblyInput } from './spec-assembler.js';
+import { splitTextIntoDeltas, type StreamRenderHandlers, type StreamingRenderPort } from './streaming-render.port.js';
 import {
   MemorySource,
   MemoryTier,
@@ -62,8 +62,8 @@ import {
   type RenderTokenBudget,
   type SafetyVerdict,
   type TrajectoryTrace,
-} from '../../engine-core';
-import type { ChatMessage } from '../../llm/common/interfaces/chat-provider.interface';
+} from '../../engine-core/index.js';
+import type { ChatMessage } from '../../llm/common/interfaces/chat-provider.interface.js';
 
 /**
  * 会话归属 (写工作记忆所需的 tenant / visitor / session 三元组).

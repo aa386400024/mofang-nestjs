@@ -23,12 +23,12 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-core/wp3-trajectory.spec.ts 覆盖校验分支与幕序解析
 
-import type { BdiResistance } from '../bdi-snapshot';
-import type { EmotionLabel, EmotionState } from '../emotion';
-import { EngineCoreError, EngineErrorCode } from '../engine-errors';
-import type { CounselorEventKind } from '../events/session-event';
-import type { BehaviorStrategy } from '../intention';
-import type { TransferenceState } from '../transference';
+import type { BdiResistance } from '../bdi-snapshot.js';
+import type { EmotionLabel, EmotionState } from '../emotion.js';
+import { EngineCoreError, EngineErrorCode } from '../engine-errors.js';
+import type { CounselorEventKind } from '../events/session-event.js';
+import type { BehaviorStrategy } from '../intention.js';
+import type { TransferenceState } from '../transference.js';
 
 /**
  * 轨迹控制模式.

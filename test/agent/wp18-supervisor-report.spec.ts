@@ -12,12 +12,12 @@
 //   验证: npx jest test/agent/wp18-supervisor-report.spec.ts
 //   时间戳: 2026-10-29 GMT+8
 
-import type { LlmService } from '../../src/agent/llm/llm.service';
-import type { LlmStreamChunk, LlmStreamOptions } from '../../src/agent/llm/llm.types';
-import type { SupervisionReportRepository } from '../../src/agent/supervisor/domain/repositories/supervision-report.repository';
-import type { SupervisorLlmProfile } from '../../src/agent/supervisor/supervisor-llm.config';
-import { SupervisorService } from '../../src/agent/supervisor/supervisor.service';
-import type { RunReportInput, SupervisionReportRow } from '../../src/agent/supervisor/supervisor.types';
+import type { LlmService } from '../../src/agent/llm/llm.service.js';
+import type { LlmStreamChunk, LlmStreamOptions } from '../../src/agent/llm/llm.types.js';
+import type { SupervisionReportRepository } from '../../src/agent/supervisor/domain/repositories/supervision-report.repository.js';
+import type { SupervisorLlmProfile } from '../../src/agent/supervisor/supervisor-llm.config.js';
+import { SupervisorService } from '../../src/agent/supervisor/supervisor.service.js';
+import type { RunReportInput, SupervisionReportRow } from '../../src/agent/supervisor/supervisor.types.js';
 
 /** 一份合法的督导报告 JSON (字段与 `validateReportShape` 的强约束 1:1). */
 const VALID_REPORT = {

@@ -18,11 +18,11 @@
 import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { CreateTranscriptBookmarkDto, TranscriptBookmarkDto } from '../dto/session-core.dto';
-import { TranscriptBookmarkService } from '../providers/transcript-bookmark.service';
+import { CreateTranscriptBookmarkDto, TranscriptBookmarkDto } from '../dto/session-core.dto.js';
+import { TranscriptBookmarkService } from '../providers/transcript-bookmark.service.js';
 
 /**
  * V2026-10-21 (V1.2 VS-C — CounselorTranscriptBookmarkController):

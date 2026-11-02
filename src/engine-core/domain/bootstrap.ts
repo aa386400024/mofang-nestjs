@@ -3,12 +3,12 @@
 //         无 profile 时回落到中性默认基线. 跨会话接续不走这里 (直接搬上一场快照).
 //   边界: 纯 TS, 无 I/O, 无随机, 可复现.
 
-import type { BdiResistance, BdiSnapshot } from './bdi-snapshot';
-import type { CoreBelief, MemoryBelief, TemporaryBelief } from './beliefs';
-import type { CharacterProfile, UnderlyingDesireSeed } from './character-profile';
-import { DEFAULT_UNDERLYING_DESIRES, type SituationalDesire, type UnderlyingDesire } from './desires';
-import { clamp01, clampValence, resolveEmotionLabel, type EmotionState } from './emotion';
-import { DEFAULT_TRANSFERENCE, type TransferenceState } from './transference';
+import type { BdiResistance, BdiSnapshot } from './bdi-snapshot.js';
+import type { CoreBelief, MemoryBelief, TemporaryBelief } from './beliefs.js';
+import type { CharacterProfile, UnderlyingDesireSeed } from './character-profile.js';
+import { DEFAULT_UNDERLYING_DESIRES, type SituationalDesire, type UnderlyingDesire } from './desires.js';
+import { clamp01, clampValence, resolveEmotionLabel, type EmotionState } from './emotion.js';
+import { DEFAULT_TRANSFERENCE, type TransferenceState } from './transference.js';
 
 /** 中性默认信任基线 (初识谨慎, 非全然冷漠). */
 export const DEFAULT_TRUST = 0.3;

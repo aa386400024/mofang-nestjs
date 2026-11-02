@@ -33,17 +33,17 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
 import {
   type AbilityDimensionDetailDto,
   type AbilityDimensionListItemDto,
   type AbilityProfileDto,
   type UpsertAbilityScoreDto,
-} from '../dto/ability.dto';
-import { type AbilityParentDimension } from '../enums/ability-parent-dimension.enum';
-import { AbilityService } from '../providers/ability.service';
+} from '../dto/ability.dto.js';
+import { type AbilityParentDimension } from '../enums/ability-parent-dimension.enum.js';
+import { AbilityService } from '../providers/ability.service.js';
 
 /**
  * V2026-10-15 (V1.x counselor-mode W5-6 — CounselorAbilityController):

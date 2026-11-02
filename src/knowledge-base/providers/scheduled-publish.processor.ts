@@ -14,12 +14,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Job, Worker } from 'bullmq';
 import { Repository } from 'typeorm';
 
-import { KnowledgeService } from './knowledge.service';
-import { ScheduledPublishService } from './scheduled-publish.service';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { RedisService } from '../../shared/infra/redis';
-import { KnowledgeItem } from '../entities/knowledge-item.entity';
+import { KnowledgeService } from './knowledge.service.js';
+import { ScheduledPublishService } from './scheduled-publish.service.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { RedisService } from '../../shared/infra/redis/index.js';
+import { KnowledgeItem } from '../entities/knowledge-item.entity.js';
 
 @Injectable()
 export class ScheduledPublishProcessor implements OnModuleInit, OnModuleDestroy {

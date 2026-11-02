@@ -22,13 +22,13 @@ import {
   type CrisisReferralScriptTemplate,
   type CrisisRiskLevelMeta,
   type CrisisSignalCategory,
-} from '../config/crisis-practice.config';
+} from '../config/crisis-practice.config.js';
 import type {
   CrisisPracticeMetaDto,
   CrisisReferralScriptDto,
   CrisisRiskLevelMetaDto,
   CrisisSignalCategoryDto,
-} from '../dto/crisis-practice.dto';
+} from '../dto/crisis-practice.dto.js';
 
 @Injectable()
 export class CrisisPracticeService {

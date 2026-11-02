@@ -24,13 +24,17 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
-import { CounselorLlmJsonClient } from './llm-json.client';
-import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config';
-import { buildConsentJudgeUserPrompt, CONSENT_JUDGE_SCHEMA_DESCRIPTION, CONSENT_JUDGE_SYSTEM_PROMPT } from '../config/session-core-prompts';
-import { type InformedConsentEntry, validateInformedConsentEntries } from '../domain/session-core/session-core.types';
-import { type InformedConsentMarkDto, type InformedConsentMarkResultDto, type InformedConsentStatusDto } from '../dto/session-core.dto';
-import { TrainingSession } from '../entities/training-session.entity';
-import { InformedConsentElement } from '../enums/informed-consent-element.enum';
+import { CounselorLlmJsonClient } from './llm-json.client.js';
+import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config.js';
+import {
+  buildConsentJudgeUserPrompt,
+  CONSENT_JUDGE_SCHEMA_DESCRIPTION,
+  CONSENT_JUDGE_SYSTEM_PROMPT,
+} from '../config/session-core-prompts.js';
+import { type InformedConsentEntry, validateInformedConsentEntries } from '../domain/session-core/session-core.types.js';
+import { type InformedConsentMarkDto, type InformedConsentMarkResultDto, type InformedConsentStatusDto } from '../dto/session-core.dto.js';
+import { TrainingSession } from '../entities/training-session.entity.js';
+import { InformedConsentElement } from '../enums/informed-consent-element.enum.js';
 
 /**
  * 知情同意 service (M2).

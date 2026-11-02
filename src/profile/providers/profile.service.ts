@@ -14,12 +14,12 @@ import { promises as fs } from 'node:fs';
 import { join, extname } from 'node:path';
 import { Repository } from 'typeorm';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
 
-import { ProfileDto, UpdateProfileDto, UploadAvatarResponseDto } from '../dto/profile.dto';
-import { UserProfile } from '../entities/user-profile.entity';
-import { Role } from '../entities/user-profile.entity';
+import { ProfileDto, UpdateProfileDto, UploadAvatarResponseDto } from '../dto/profile.dto.js';
+import { UserProfile } from '../entities/user-profile.entity.js';
+import { Role } from '../entities/user-profile.entity.js';
 
 /**
  * Profile service — 心塑「我的」Tab 用户画像核心服务 (大厂企业级 V3).

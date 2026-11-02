@@ -18,7 +18,7 @@
 //     2. 启动时 seed 3 个 demo persona, listActive 返回长度 3
 //     3. findById 不存在 → 返回 null, 不 throw (业务层显式判空)
 
-import type { Persona } from '../entities/persona.entity';
+import type { Persona } from '../entities/persona.entity.js';
 
 /** 仓储接口契约. */
 export interface PersonaRepository {

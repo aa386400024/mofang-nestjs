@@ -44,27 +44,27 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomInt } from 'node:crypto';
 import { IsNull, type Repository } from 'typeorm';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { PRACTICE_MODE_ENGINE_META, engineOfMode, labelOfMode, typeOfMode } from '../config/practice-display-meta';
-import { TRAINING_EXERCISE_MODES_BY_TYPE } from '../config/training-exercise-display-meta';
-import { toCustomScenarioView, toScenarioView } from '../domain/practice/practice-scenario-view';
-import type { PracticeScenarioView } from '../domain/practice/practice.types';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { PRACTICE_MODE_ENGINE_META, engineOfMode, labelOfMode, typeOfMode } from '../config/practice-display-meta.js';
+import { TRAINING_EXERCISE_MODES_BY_TYPE } from '../config/training-exercise-display-meta.js';
+import { toCustomScenarioView, toScenarioView } from '../domain/practice/practice-scenario-view.js';
+import type { PracticeScenarioView } from '../domain/practice/practice.types.js';
 import type {
   PracticeModeProgressDto,
   PracticeProgressDto,
   PracticeProgressSummaryDto,
   PracticeScenarioDetailDto,
   PracticeScenarioVariantDto,
-} from '../dto/practice.dto';
-import { PracticeAttempt } from '../entities/practice-attempt.entity';
-import { PracticeCustomScenario } from '../entities/practice-custom-scenario.entity';
-import { PracticeScenario } from '../entities/practice-scenario.entity';
-import { PRACTICE_DIFFICULTY_LABELS, PracticeDifficulty } from '../enums/practice-difficulty.enum';
-import { PRACTICE_HIGH_LOAD_NOTICE } from '../enums/practice-emotion-intensity.enum';
-import { PRACTICE_ENGINE_INTROS, PRACTICE_ENGINE_LABELS } from '../enums/practice-engine.enum';
-import { PracticeScenarioOrigin, PracticeScenarioSource } from '../enums/practice-scenario-source.enum';
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
+} from '../dto/practice.dto.js';
+import { PracticeAttempt } from '../entities/practice-attempt.entity.js';
+import { PracticeCustomScenario } from '../entities/practice-custom-scenario.entity.js';
+import { PracticeScenario } from '../entities/practice-scenario.entity.js';
+import { PRACTICE_DIFFICULTY_LABELS, PracticeDifficulty } from '../enums/practice-difficulty.enum.js';
+import { PRACTICE_HIGH_LOAD_NOTICE } from '../enums/practice-emotion-intensity.enum.js';
+import { PRACTICE_ENGINE_INTROS, PRACTICE_ENGINE_LABELS } from '../enums/practice-engine.enum.js';
+import { PracticeScenarioOrigin, PracticeScenarioSource } from '../enums/practice-scenario-source.enum.js';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
 
 /**
  * 单个场景的练习统计 (内存分组产物).

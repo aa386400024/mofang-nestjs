@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, OneToOne, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
-import { User } from '../../user/entities/user.entity';
+import { User } from '../../user/entities/user.entity.js';
 
 /**
  * 陪伴者实名认证 entity — 1:1 关联 users (大厂企业级 V3).

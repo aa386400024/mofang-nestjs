@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomInt } from 'node:crypto';
 import { Repository } from 'typeorm';
 
-import { User } from '../../user/entities/user.entity';
+import { User } from '../../user/entities/user.entity.js';
 import {
   AcceptInviteDto,
   CompanionBindingDto,
@@ -11,8 +11,8 @@ import {
   InviteCodeResponseDto,
   ListCompanionBindingsResponseDto,
   UpdatePermissionDto,
-} from '../dto/companion-binding.dto';
-import { CompanionBinding } from '../entities/companion-binding.entity';
+} from '../dto/companion-binding.dto.js';
+import { CompanionBinding } from '../entities/companion-binding.entity.js';
 
 /**
  * CompanionBinding service — 心塑「我的」Tab 关系绑定核心服务 (双角色共用).

@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 
-import { BizCode } from './biz-code.enum';
+import { BizCode } from './biz-code.enum.js';
 
 /**
  * 业务异常类 (大厂标准).

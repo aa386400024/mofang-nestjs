@@ -38,11 +38,11 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-import { ChatRole } from '../enums/chat-role.enum';
-import { INFORMED_CONSENT_ELEMENT_VALUES } from '../enums/informed-consent-element.enum';
-import { LIVE_SUPERVISION_HINT_TIER_VALUES } from '../enums/live-supervision-hint-tier.enum';
-import { TRANSCRIPT_BOOKMARK_MARK_TYPE_VALUES } from '../enums/transcript-bookmark-mark-type.enum';
-import { TRANSFERENCE_MARK_DIRECTION_VALUES, TRANSFERENCE_MARK_TYPE_VALUES } from '../enums/transference-mark.enum';
+import { ChatRole } from '../enums/chat-role.enum.js';
+import { INFORMED_CONSENT_ELEMENT_VALUES } from '../enums/informed-consent-element.enum.js';
+import { LIVE_SUPERVISION_HINT_TIER_VALUES } from '../enums/live-supervision-hint-tier.enum.js';
+import { TRANSCRIPT_BOOKMARK_MARK_TYPE_VALUES } from '../enums/transcript-bookmark-mark-type.enum.js';
+import { TRANSFERENCE_MARK_DIRECTION_VALUES, TRANSFERENCE_MARK_TYPE_VALUES } from '../enums/transference-mark.enum.js';
 
 // ════════════════════════════════════════════════════════════════════════════
 // M2 知情同意

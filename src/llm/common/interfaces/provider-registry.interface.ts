@@ -8,9 +8,9 @@
 //   如何验证: LLMRouter.resolveChat(providerId, model) 返回具体 provider,
 //             不存在 → 抛 ProviderNotFoundException (BizCode).
 
-import type { ChatProvider, LLMProviderConfig } from './chat-provider.interface';
-import type { EmbeddingProvider } from './embedding-provider.interface';
-import type { AIProviderId, LLMCapability } from '../enums/llm.enums';
+import type { ChatProvider, LLMProviderConfig } from './chat-provider.interface.js';
+import type { EmbeddingProvider } from './embedding-provider.interface.js';
+import type { AIProviderId, LLMCapability } from '../enums/llm.enums.js';
 
 /**
  * Provider Registry — 单例服务接口.

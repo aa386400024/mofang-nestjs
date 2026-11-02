@@ -4,7 +4,7 @@
 
 import { ApiProperty } from '@nestjs/swagger';
 
-import { AIRecommendKind, AIRecommendPhase } from '../enums/ai-recommend.enums';
+import { AIRecommendKind, AIRecommendPhase } from '../enums/ai-recommend.enums.js';
 
 /**
  * 推荐条目 — 单条.

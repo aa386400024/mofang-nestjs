@@ -30,12 +30,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { FindOptionsWhere, Repository } from 'typeorm';
 
-import type { CreateCharacterProfileDto, UpdateCharacterProfileDto } from './character-profile.dto';
-import { CharacterProfileAdminListDto, CharacterProfileAdminDto, CharacterProfileAdminListQueryDto } from './character-profile.dto';
-import { CharacterProfileEntity } from './character-profile.entity';
-import { deriveCharacterProfileId } from './character-profile.seed';
-import { BizCode } from '../../../common/exceptions/biz-code.enum';
-import { BizException } from '../../../common/exceptions/biz.exception';
+import type { CreateCharacterProfileDto, UpdateCharacterProfileDto } from './character-profile.dto.js';
+import { CharacterProfileAdminListDto, CharacterProfileAdminDto, CharacterProfileAdminListQueryDto } from './character-profile.dto.js';
+import { CharacterProfileEntity } from './character-profile.entity.js';
+import { deriveCharacterProfileId } from './character-profile.seed.js';
+import { BizCode } from '../../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../../common/exceptions/biz.exception.js';
 
 /** 管理列表默认条数. */
 const DEFAULT_LIMIT = 50;

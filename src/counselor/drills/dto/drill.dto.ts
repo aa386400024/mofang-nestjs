@@ -35,10 +35,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 
-import { PracticeDifficulty } from '../../enums/practice-difficulty.enum';
-import { PracticeFeedbackSource } from '../../enums/practice-feedback-source.enum';
-import { PracticeFeedbackTone } from '../../enums/practice-feedback-tone.enum';
-import { DRILL_TRACK_VALUES, DRILL_VERDICT_VALUES, type DrillTrack, type DrillVerdict } from '../domain/drill.types';
+import { PracticeDifficulty } from '../../enums/practice-difficulty.enum.js';
+import { PracticeFeedbackSource } from '../../enums/practice-feedback-source.enum.js';
+import { PracticeFeedbackTone } from '../../enums/practice-feedback-tone.enum.js';
+import { DRILL_TRACK_VALUES, DRILL_VERDICT_VALUES, type DrillTrack, type DrillVerdict } from '../domain/drill.types.js';
 
 /**
  * GET /counselor/drills 查询参数.

@@ -13,9 +13,9 @@
 
 import { Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { KnowledgeChunk } from './knowledge-chunk.entity';
-import { KnowledgeStatus } from '../enums/knowledge-status.enum';
-import { KnowledgeType } from '../enums/knowledge-type.enum';
+import { KnowledgeChunk } from './knowledge-chunk.entity.js';
+import { KnowledgeStatus } from '../enums/knowledge-status.enum.js';
+import { KnowledgeType } from '../enums/knowledge-type.enum.js';
 
 /**
  * knowledge_items 主表.

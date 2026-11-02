@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { NotificationSettingsDto, UpdateNotificationSettingsDto } from '../dto/notification-settings.dto';
-import { NotificationSettings } from '../entities/notification-settings.entity';
+import { NotificationSettingsDto, UpdateNotificationSettingsDto } from '../dto/notification-settings.dto.js';
+import { NotificationSettings } from '../entities/notification-settings.entity.js';
 
 /**
  * NotificationSettings service — 心塑「我的」Tab 通知设置核心服务.

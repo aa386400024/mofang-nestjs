@@ -41,7 +41,7 @@
 
 import { BadRequestException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 
-import { SupervisionFailureCode } from '../enums/supervision-failure-code.enum';
+import { SupervisionFailureCode } from '../enums/supervision-failure-code.enum.js';
 
 /**
  * 素材不足 (空局) — 400, **不可重试**.

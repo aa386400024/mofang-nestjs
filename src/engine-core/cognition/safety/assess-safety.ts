@@ -27,8 +27,8 @@
 
 import { clearTimeout, setTimeout } from 'node:timers';
 
-import { evaluateSafety } from './rule-engine';
-import type { RiskProbePort, RiskProbeResult } from '../../domain/ports/risk-probe';
+import { evaluateSafety } from './rule-engine.js';
+import type { RiskProbePort, RiskProbeResult } from '../../domain/ports/risk-probe.js';
 import {
   PSYGUARD_LEVEL_MAP,
   isSafetyLevel,
@@ -38,7 +38,7 @@ import {
   type SafetyLevel,
   type SafetySide,
   type SafetyVerdict,
-} from '../../domain/safety/safety-types';
+} from '../../domain/safety/safety-types.js';
 
 /**
  * 探测超时 (工程种子值: 本地 / 内网探测的经验上限, 非标定).

@@ -20,7 +20,7 @@
 
 import type { ConfigService } from '@nestjs/config';
 
-import type { VisitorService } from '../../src/agent/visitor/visitor.service';
+import type { VisitorService } from '../../src/agent/visitor/visitor.service.js';
 import {
   BUILTIN_ANXIOUS_LOW_MOOD_L1,
   BUILTIN_AVOIDANT_L1,
@@ -28,15 +28,15 @@ import {
   type CharacterProfileResolver,
   type CharacterResolveRequest,
   type ResolvedCharacter,
-} from '../../src/engine-adapters/wiring/character';
-import { EngineStreamBackend } from '../../src/engine-adapters/wiring/engine-stream-backend.adapter';
-import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service';
-import type { BdiSnapshot, OpenEngineSessionInput } from '../../src/engine-core';
-import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository';
-import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
-import { VoiceService } from '../../src/voice/voice.service';
-import type { VoiceSessionMeta } from '../../src/voice/voice.types';
+} from '../../src/engine-adapters/wiring/character/index.js';
+import { EngineStreamBackend } from '../../src/engine-adapters/wiring/engine-stream-backend.adapter.js';
+import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service.js';
+import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository.js';
+import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
+import type { BdiSnapshot, OpenEngineSessionInput } from '../../src/engine-core/index.js';
+import { VoiceService } from '../../src/voice/voice.service.js';
+import type { VoiceSessionMeta } from '../../src/voice/voice.types.js';
 
 const TENANT = 'tenant-1';
 const VISITOR = 'visitor-1';

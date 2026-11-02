@@ -28,16 +28,16 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CharacterProfileAdminService } from './character-profile.admin.service';
+import { CharacterProfileAdminService } from './character-profile.admin.service.js';
 import {
   CharacterProfileAdminDto,
   CharacterProfileAdminListDto,
   CharacterProfileAdminListQueryDto,
   CreateCharacterProfileDto,
   UpdateCharacterProfileDto,
-} from './character-profile.dto';
-import { AdminRoleGuard } from '../../../counselor/guards/admin-role.guard';
-import { JwtAuthGuard } from '../../../user/guards/jwt-auth.guard';
+} from './character-profile.dto.js';
+import { AdminRoleGuard } from '../../../counselor/guards/admin-role.guard.js';
+import { JwtAuthGuard } from '../../../user/guards/jwt-auth.guard.js';
 
 /**
  * 角色资产池内部管理端点.

@@ -13,7 +13,7 @@
 
 import { Injectable } from '@nestjs/common';
 
-import { type CounselorProfileDto, type CounselorProfileUpdatePreferenceDto } from '../dto/counselor-profile.dto';
+import { type CounselorProfileDto, type CounselorProfileUpdatePreferenceDto } from '../dto/counselor-profile.dto.js';
 
 @Injectable()
 export class CounselorProfileService {

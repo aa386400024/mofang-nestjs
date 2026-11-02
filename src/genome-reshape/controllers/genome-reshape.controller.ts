@@ -1,10 +1,10 @@
 import { Body, Controller, Get, HttpCode, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
-import { type LoosenessReportDto, type TargetedReshapeStatusDto, CompleteTaskDto } from '../dto/genome-reshape.dto';
-import { GenomeReshapeService } from '../providers/genome-reshape.service';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
+import { type LoosenessReportDto, type TargetedReshapeStatusDto, CompleteTaskDto } from '../dto/genome-reshape.dto.js';
+import { GenomeReshapeService } from '../providers/genome-reshape.service.js';
 
 /**
  * 心理基因靶向重塑 Controller — V3.0 §3 Tab3 评估子模块.

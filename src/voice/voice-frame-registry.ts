@@ -24,7 +24,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 
-import type { VoiceServerMessage } from './voice.types';
+import type { VoiceServerMessage } from './voice.types.js';
 
 /**
  * 帧出口 (网关把自己的 socket 包装成这个函数登记进来).

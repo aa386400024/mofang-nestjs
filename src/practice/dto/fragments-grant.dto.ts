@@ -21,9 +21,9 @@
 
 import { ApiProperty } from '@nestjs/swagger';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { FRAGMENT_TYPE_CODES, FragmentTypeCode } from '../constants/fragment-type-code';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { FRAGMENT_TYPE_CODES, FragmentTypeCode } from '../constants/fragment-type-code.js';
 
 /**
  * FragmentsGrant DTO — 5 个 FragmentType code 跟数值的扁平结构.

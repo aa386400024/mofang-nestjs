@@ -5,10 +5,10 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { AdminDebugController } from './admin-debug.controller';
-import { TraceRecorder } from './trace-recorder.service';
-import { TrainingSession } from '../counselor/entities/training-session.entity';
-import { VisitorPoolTemplate } from '../counselor/entities/visitor-pool-template.entity';
+import { AdminDebugController } from './admin-debug.controller.js';
+import { TraceRecorder } from './trace-recorder.service.js';
+import { TrainingSession } from '../counselor/entities/training-session.entity.js';
+import { VisitorPoolTemplate } from '../counselor/entities/visitor-pool-template.entity.js';
 
 @Module({
   imports: [TypeOrmModule.forFeature([TrainingSession, VisitorPoolTemplate])],

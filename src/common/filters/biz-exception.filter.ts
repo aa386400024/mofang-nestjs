@@ -1,8 +1,8 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
-import { SentryService } from '../../shared/infra/observability';
-import { BizCode } from '../exceptions/biz-code.enum';
+import { SentryService } from '../../shared/infra/observability/index.js';
+import { BizCode } from '../exceptions/biz-code.enum.js';
 
 /**
  * 全局 BizException filter (大厂统一响应格式).

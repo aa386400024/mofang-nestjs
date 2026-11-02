@@ -23,15 +23,15 @@ import path from 'node:path';
 
 import { getMetadataArgsStorage } from 'typeorm';
 
-import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed';
-import { CharacterProfileEntity } from '../../src/engine-adapters/wiring/character/character-profile.entity';
+import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed.js';
+import { CharacterProfileEntity } from '../../src/engine-adapters/wiring/character/character-profile.entity.js';
 import {
   buildCharacterProfileSeeds,
   CHARACTER_PROFILE_SEED_SPECS,
   seedCharacterProfiles,
-} from '../../src/engine-adapters/wiring/character/character-profile.seed';
-import { toCharacterSeed } from '../../src/engine-adapters/wiring/character/db-character-profile.resolver';
-import { AddCharacterProfileExpressionFields1714900000025 } from '../../src/migration/1714900000025-AddCharacterProfileExpressionFields';
+} from '../../src/engine-adapters/wiring/character/character-profile.seed.js';
+import { toCharacterSeed } from '../../src/engine-adapters/wiring/character/db-character-profile.resolver.js';
+import { AddCharacterProfileExpressionFields1714900000025 } from '../../src/migration/1714900000025-AddCharacterProfileExpressionFields.js';
 
 /** 本轮加的三列 (列名 → DB 默认值). */
 const EXPECTED_COLUMNS: readonly { readonly column: string; readonly default: string | number; readonly type: string }[] = [

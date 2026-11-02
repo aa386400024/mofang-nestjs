@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, OneToOne, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
-import { User } from '../../user/entities/user.entity';
+import { User } from '../../user/entities/user.entity.js';
 
 /**
  * 陪伴者耗竭预警设置 entity — 陪伴者专属 (大厂企业级 V3).

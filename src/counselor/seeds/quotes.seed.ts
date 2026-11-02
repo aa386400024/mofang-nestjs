@@ -25,9 +25,9 @@
 //   时间戳: 2026-10-22
 import type { DataSource } from 'typeorm';
 
-import { PRACTICE_SYSTEM_TENANT_ID } from '../config/practice-display-meta';
-import { QUOTE_SEEDS, type QuoteSeed } from '../config/quote-seeds';
-import { Quote } from '../entities/quote.entity';
+import { PRACTICE_SYSTEM_TENANT_ID } from '../config/practice-display-meta.js';
+import { QUOTE_SEEDS, type QuoteSeed } from '../config/quote-seeds.js';
+import { Quote } from '../entities/quote.entity.js';
 
 /**
  * 幂等灌入金句内容库.

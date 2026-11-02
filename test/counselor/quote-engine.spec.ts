@@ -20,8 +20,8 @@
 //     3. 故意给真实作者去掉出处 → 第 3 组用例变红
 //
 //   时间戳: 2026-10-22
-import { QUOTE_SEEDS, quoteDayIndexOf, validateQuoteSeeds, type QuoteSeed } from '../../src/counselor/config/quote-seeds';
-import { QuoteDto } from '../../src/counselor/dto/quote.dto';
+import { QUOTE_SEEDS, quoteDayIndexOf, validateQuoteSeeds, type QuoteSeed } from '../../src/counselor/config/quote-seeds.js';
+import { QuoteDto } from '../../src/counselor/dto/quote.dto.js';
 
 describe('首页金句内容库自检', () => {
   it('随库内容通过自检 (16 条 / id 唯一 / 署名真实可考)', () => {

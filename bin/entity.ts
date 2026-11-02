@@ -3,8 +3,13 @@ import { spawnSync } from 'node:child_process';
 import { readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { loadEnvFile } from 'node:process';
+import { fileURLToPath } from 'node:url';
 import prompts from 'prompts';
 import { rimrafSync } from 'rimraf';
+
+// V2026-11-02 ESM: __dirname 不可用.
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 try {
   loadEnvFile();
@@ -42,7 +47,9 @@ if (!process.env.DB_HOST) {
     '--ce pascal', // class names
     '--cp none', // property names
     '--strictMode !', // strictPropertyInitialization
-    `--namingStrategy ${path.join(__dirname, 'NamingStrategy.js')}`,
+    // V2026-11-02 ESM: package.json type=module 后 .js 按 ESM 解析,
+    //   typeorm-model-generator 仍是 CJS, 加载会失败. 改名 .cjs 强制 CJS.
+    `--namingStrategy ${path.join(__dirname, 'NamingStrategy.cjs')}`,
     `-h ${process.env.DB_HOST}`,
     `-p ${process.env.DB_PORT}`,
     // https://github.com/Kononnable/typeorm-model-generator/issues/204#issuecomment-533709527
@@ -63,12 +70,13 @@ if (!process.env.DB_HOST) {
 
   const files = [];
   for (const file of readdirSync(MODEL_DIR)) {
-    files.push(`export * from './${file.replace('.ts', '')}';`);
+    // V2026-11-02 ESM: 生成的 index.ts 里 export 必须带 .js 扩展名 (NodeNext 强制).
+    files.push(`export * from './${file.replace(/\.ts$/, '.js')}';`);
   }
   files.push('');
   // export entity db tables
-  // AS-IS import { Tablename } from './entity/dbname/tablename';
-  // TO-BE import { Tablename } from './entity/dbname';
+  // AS-IS import { Tablename } from './entity/dbname/tablename.js';
+  // TO-BE import { Tablename } from './entity/dbname.js';
   writeFileSync(path.join(MODEL_DIR, 'index.ts'), files.join('\n'));
 
   console.log(`> '${db}' database entities has been created: ${MODEL_DIR}`);

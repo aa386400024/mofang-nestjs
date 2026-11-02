@@ -45,10 +45,10 @@ import {
   type AbilityProfileDto,
   type AbilityScoreItemDto,
   type UpsertAbilityScoreDto,
-} from '../dto/ability.dto';
-import { AbilityDimension } from '../entities/ability-dimension.entity';
-import { AbilityScore, type AbilityScoreEvidence } from '../entities/ability-score.entity';
-import { AbilityParentDimension } from '../enums/ability-parent-dimension.enum';
+} from '../dto/ability.dto.js';
+import { AbilityDimension } from '../entities/ability-dimension.entity.js';
+import { AbilityScore, type AbilityScoreEvidence } from '../entities/ability-score.entity.js';
+import { AbilityParentDimension } from '../enums/ability-parent-dimension.enum.js';
 
 /**
  * V2026-10-15 (V1.x counselor-mode W5-6 — AbilityService):

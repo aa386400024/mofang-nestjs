@@ -15,9 +15,9 @@
 import { Module, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
-import { registerDefaultProviders } from './config/llm.config';
-import { LlmRouterService } from './registry/llm-router.service';
-import { ProviderRegistryService } from './registry/provider-registry.service';
+import { registerDefaultProviders } from './config/llm.config.js';
+import { LlmRouterService } from './registry/llm-router.service.js';
+import { ProviderRegistryService } from './registry/provider-registry.service.js';
 
 /**
  * V2026-09-04 模块注册清单 (本回合):

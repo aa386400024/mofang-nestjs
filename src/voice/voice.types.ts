@@ -13,7 +13,7 @@
 //     - 不用 MsgPack / Protobuf: 纯 JSON 帧足够, 调试直接看文本
 //     - V2026-10-30: 从原生 ws 切回 Socket.IO (见 voice.gateway.ts 的注释)
 
-import type { VoiceSessionMode, VoiceSessionPreset, VoiceSkillCode, VoiceVisitorCard } from './voice-session.types';
+import type { VoiceSessionMode, VoiceSessionPreset, VoiceSkillCode, VoiceVisitorCard } from './voice-session.types.js';
 
 /**
  * 客户端 → 服务端消息.
@@ -239,7 +239,7 @@ export interface VoiceSessionState {
   /** 每次新 user_text / user_speaking 递增, 老 pipeline 检查不匹配自己退出. */
   currentGeneration: number;
   /** 当前 TTS session 句柄 (来自 TtsService.startSession). */
-  ttsHandle: import('./tts/tts.types').TtsSessionHandle | null;
+  ttsHandle: import('./tts/tts.types.js').TtsSessionHandle | null;
   /** 当前 LLM 流的可控 AbortController, signal 透传给 LlmService. */
   llmAbort: AbortController | null;
   /**

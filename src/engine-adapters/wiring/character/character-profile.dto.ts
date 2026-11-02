@@ -42,8 +42,8 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-import type { CharacterAuditStatus } from './character-profile.entity';
-import type { AttachmentStyle, CoreBelief, UnderlyingDesireSeed } from '../../../engine-core';
+import type { CharacterAuditStatus } from './character-profile.entity.js';
+import type { AttachmentStyle, CoreBelief, UnderlyingDesireSeed } from '../../../engine-core/index.js';
 
 /** 允许的依恋风格 (与内核 AttachmentStyle 同一取值域). */
 export const CHARACTER_ATTACHMENT_STYLES: readonly AttachmentStyle[] = ['secure', 'avoidant', 'anxious', 'disorganized'];

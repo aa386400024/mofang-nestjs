@@ -26,9 +26,9 @@ import type { ConfigService } from '@nestjs/config';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { AIProviderId, LLMCapability, LLMTier } from '../../src/llm/common/enums/llm.enums';
-import type { ChatCompletionRequest } from '../../src/llm/common/interfaces/chat-provider.interface';
-import { registerDefaultProviders } from '../../src/llm/config/llm.config';
+import { AIProviderId, LLMCapability, LLMTier } from '../../src/llm/common/enums/llm.enums.js';
+import type { ChatCompletionRequest } from '../../src/llm/common/interfaces/chat-provider.interface.js';
+import { registerDefaultProviders } from '../../src/llm/config/llm.config.js';
 import {
   DEFAULT_MINIMAX_BASE_URL,
   DEFAULT_MINIMAX_CHAT_MODEL,
@@ -36,10 +36,10 @@ import {
   resolveMinimaxBaseUrl,
   resolveMinimaxChatModel,
   resolveProviderApiKeyEnvKey,
-} from '../../src/llm/config/provider-env';
-import { MinimaxChatProvider } from '../../src/llm/providers/minimax.provider';
-import { LlmRouterService, defaultEnvApiKeyResolver } from '../../src/llm/registry/llm-router.service';
-import { ProviderRegistryService } from '../../src/llm/registry/provider-registry.service';
+} from '../../src/llm/config/provider-env.js';
+import { MinimaxChatProvider } from '../../src/llm/providers/minimax.provider.js';
+import { LlmRouterService, defaultEnvApiKeyResolver } from '../../src/llm/registry/llm-router.service.js';
+import { ProviderRegistryService } from '../../src/llm/registry/provider-registry.service.js';
 
 /** 假 key (测试专用, 不是真凭证). */
 const FAKE_MINIMAX_KEY = 'sk-test-minimax-key';

@@ -22,8 +22,8 @@
 //     3. JSON_SCHEMA_DESCRIPTION 字段名跟 supervisor.types.ts SupervisionReport interface 一致
 //     4. transcript 渲染含至少 1 个时间戳, 验证 LLM 知道时间对齐方式
 
-import type { RunReportInput, TranscriptTurn } from './supervisor.types';
-import { VOICE_SKILL_FOCUS_DIMENSIONS, VOICE_SKILL_LABELS, type VoiceSkillCode } from '../../shared/types/voice-skill.types';
+import type { RunReportInput, TranscriptTurn } from './supervisor.types.js';
+import { VOICE_SKILL_FOCUS_DIMENSIONS, VOICE_SKILL_LABELS, type VoiceSkillCode } from '../../shared/types/voice-skill.types.js';
 
 /**
  * 渲染督导 system prompt.

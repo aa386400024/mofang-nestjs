@@ -16,9 +16,9 @@
 //     3. 跑知情同意判定 → 4 个 element 齐全 + covered 判定跟对话对得上
 //   时间戳: 2026-10-21
 
-import type { LiveTurnAnalysisInput } from '../domain/session-core/session-core.types';
-import { ChatRole } from '../enums/chat-role.enum';
-import { INFORMED_CONSENT_ELEMENT_LABELS } from '../enums/informed-consent-element.enum';
+import type { LiveTurnAnalysisInput } from '../domain/session-core/session-core.types.js';
+import { ChatRole } from '../enums/chat-role.enum.js';
+import { INFORMED_CONSENT_ELEMENT_LABELS } from '../enums/informed-consent-element.enum.js';
 
 // ════════════════════════════════════════════════════════════════════════════
 // ① 每轮分析器

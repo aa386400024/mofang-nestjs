@@ -18,7 +18,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { LiveSupervisionHintTier } from '../enums/live-supervision-hint-tier.enum';
+import { LiveSupervisionHintTier } from '../enums/live-supervision-hint-tier.enum.js';
 
 /**
  * 实时督导轻提示.

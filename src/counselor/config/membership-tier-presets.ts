@@ -24,8 +24,8 @@
 //
 //   时间戳: 2026-10-15
 
-import { MembershipTier } from '../enums/membership-tier.enum';
-import { QuotaType } from '../enums/quota-type.enum';
+import { MembershipTier } from '../enums/membership-tier.enum.js';
+import { QuotaType } from '../enums/quota-type.enum.js';
 
 /**
  * 单档会员配额配置.

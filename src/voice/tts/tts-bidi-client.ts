@@ -36,8 +36,8 @@ import { ConfigService } from '@nestjs/config';
 // V2026-10-23: 不再自拟二进制帧, 这里只当"官方 JSON 文本帧"的传输通道使用.
 import wsWebSocket from 'ws';
 
-import { AsyncEventQueue } from './async-event-queue';
-import { mapTtsUpstreamError } from './tts-error.mapper';
+import { AsyncEventQueue } from './async-event-queue.js';
+import { mapTtsUpstreamError } from './tts-error.mapper.js';
 import {
   buildTtsBidiUrl,
   isSupportedTtsModel,
@@ -45,10 +45,10 @@ import {
   TTS_STATUS,
   TTS_SUPPORTED_BITRATES,
   TTS_SUPPORTED_SAMPLE_RATES,
-} from './tts-protocol.config';
-import type { TtsBidiClientEvent, TtsBidiServerEvent } from './tts-protocol.types';
-import { splitSentences } from './tts-sentence-splitter';
-import type { TtsEvent, TtsOptions } from './tts.types';
+} from './tts-protocol.config.js';
+import type { TtsBidiClientEvent, TtsBidiServerEvent } from './tts-protocol.types.js';
+import { splitSentences } from './tts-sentence-splitter.js';
+import type { TtsEvent, TtsOptions } from './tts.types.js';
 
 /** 客户端状态机. */
 type TtsClientState = 'idle' | 'connecting' | 'streaming' | 'closing' | 'closed';

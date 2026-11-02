@@ -40,7 +40,7 @@
 //   修法: import 路径加 /messages. 6 个 TS2305 治本, provider 业务代码 0 改动.
 import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
 import { ChatOpenAI } from '@langchain/openai';
-import { AIProviderId, LLMCapability } from '../enums/llm.enums';
+import { AIProviderId, LLMCapability } from '../enums/llm.enums.js';
 import type {
   ChatCompletionChunk,
   ChatCompletionRequest,
@@ -49,7 +49,7 @@ import type {
   ChatMessage,
   ChatMessageContentPart,
   ChatReasoningEffort,
-} from '../interfaces/chat-provider.interface';
+} from '../interfaces/chat-provider.interface.js';
 
 /**
  * 子类配置 — 子 provider 构造函数传入.

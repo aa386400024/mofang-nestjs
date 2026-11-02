@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import { IsArray, IsEnum, IsInt, IsISO8601, IsOptional, IsString, Length, Min } from 'class-validator';
 
-import { FragmentSource, FragmentType } from '../enums/fragment-type.enum';
+import { FragmentSource, FragmentType } from '../enums/fragment-type.enum.js';
 
 /**
  * 余额单项 — 5 类碎片 × 当前余额.

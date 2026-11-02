@@ -9,12 +9,12 @@
 //     1. 配置 DASHSCOPE_API_KEY 后, embedding 测试通过.
 //     2. 切换到 QwenProvider 后, 既有 Qdrant collection 重建为 1024 维.
 
-import { OpenAICompatibleChatProvider, type OpenAICompatibleConfig } from '../common/base/openai-compatible-chat.provider';
+import { OpenAICompatibleChatProvider, type OpenAICompatibleConfig } from '../common/base/openai-compatible-chat.provider.js';
 import {
   OpenAICompatibleEmbeddingProvider,
   type OpenAICompatibleEmbeddingConfig,
-} from '../common/base/openai-compatible-embedding.provider';
-import { AIProviderId } from '../common/enums/llm.enums';
+} from '../common/base/openai-compatible-embedding.provider.js';
+import { AIProviderId } from '../common/enums/llm.enums.js';
 
 /**
  * 通义千问 Chat Provider.

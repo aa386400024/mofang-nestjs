@@ -16,11 +16,11 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { type CounselorHomeOverviewDto, CounselorHomeQueryDto } from '../dto/counselor-home.dto';
-import { CounselorHomeService } from '../providers/counselor-home.service';
+import { type CounselorHomeOverviewDto, CounselorHomeQueryDto } from '../dto/counselor-home.dto.js';
+import { CounselorHomeService } from '../providers/counselor-home.service.js';
 
 /**
  * V2026-10-13 (Phase 7.10 — CounselorHomeController):

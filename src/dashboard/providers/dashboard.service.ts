@@ -6,7 +6,7 @@ import {
   DashboardModulesDto,
   DashboardOverviewDto,
   DashboardWeeklyChartDto,
-} from '../dto/dashboard.dto';
+} from '../dto/dashboard.dto.js';
 
 /**
  * 仪表板服务 — V2.0 §Tab4 「我的数据」心理健身数据.

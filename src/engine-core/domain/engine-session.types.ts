@@ -21,12 +21,12 @@
 //     1. pnpm build 0 错
 //     2. runtime/engine-session.port.ts 只 import 本文件的类型, 无循环依赖
 
-import type { BdiSnapshot } from './bdi-snapshot';
-import type { CharacterProfile } from './character-profile';
-import type { Intention } from './intention';
-import type { MemoryHit } from './ports/memory.store';
-import type { SafetyVerdict } from './safety/safety-types';
-import type { TrajectoryScript, TrajectoryTrace } from './trajectory/script';
+import type { BdiSnapshot } from './bdi-snapshot.js';
+import type { CharacterProfile } from './character-profile.js';
+import type { Intention } from './intention.js';
+import type { MemoryHit } from './ports/memory.store.js';
+import type { SafetyVerdict } from './safety/safety-types.js';
+import type { TrajectoryScript, TrajectoryTrace } from './trajectory/script.js';
 
 /**
  * 开场入参.

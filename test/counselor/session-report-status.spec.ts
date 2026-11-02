@@ -25,10 +25,10 @@ import {
   resolveHasMainReportChannel,
   resolveSessionReportState,
   type SessionReportStateInput,
-} from '../../src/counselor/domain/session-core/session-core.types';
-import { SessionType } from '../../src/counselor/enums/session-type.enum';
-import { SupervisionFailureCode } from '../../src/counselor/enums/supervision-failure-code.enum';
-import { TrainingSessionStatus } from '../../src/counselor/enums/training-session-status.enum';
+} from '../../src/counselor/domain/session-core/session-core.types.js';
+import { SessionType } from '../../src/counselor/enums/session-type.enum.js';
+import { SupervisionFailureCode } from '../../src/counselor/enums/supervision-failure-code.enum.js';
+import { TrainingSessionStatus } from '../../src/counselor/enums/training-session-status.enum.js';
 
 /** 陈旧阈值 (与 env `SUPERVISION_REPORT_PENDING_TIMEOUT_MS` 默认值一致). */
 const TIMEOUT_MS = 300_000;

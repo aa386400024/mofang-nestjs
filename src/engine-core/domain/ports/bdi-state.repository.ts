@@ -25,7 +25,7 @@
 //     2. InMemoryBdiStateRepository 的 revision 冲突路径有单测覆盖
 //     3. 换实现 (Qdrant/Redis) 时本文件零改动
 
-import type { BdiSnapshot } from '../bdi-snapshot';
+import type { BdiSnapshot } from '../bdi-snapshot.js';
 
 /**
  * BDI 状态的持久化记录.

@@ -18,9 +18,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { LlmModule as AgentLlmModule } from '../agent/llm/llm.module';
-import { AIEngineModule } from '../ai-engine/ai-engine.module';
-import { AnalyticsModule } from '../analytics/analytics.module';
+import { LlmModule as AgentLlmModule } from '../agent/llm/llm.module.js';
+import { AIEngineModule } from '../ai-engine/ai-engine.module.js';
+import { AnalyticsModule } from '../analytics/analytics.module.js';
 // V2026-10-14 治本 (VS-3c — LlmModule 路径修正, 2 个 module 都 import, alias 解决同名冲突):
 //   原因: V0.x import `../agent/llm/llm.module` (链路 2: agent 直连 MiniMax m3, V3 §3.5),
 //     但 SearchService.inject 的是 `../../llm/registry/llm-router.service` (链路 1:
@@ -30,26 +30,26 @@ import { AnalyticsModule } from '../analytics/analytics.module';
 //     2 个 module 并存, 跟 V3 §3.5 "2 套独立 LLM 链路" 一致, PreviewService 走链路 2 (MiniMax m3),
 //     SearchService 走链路 1 (OpenAI 兼容 4 provider + Qdrant).
 //   反双胞胎: 不用 export 同一个 class name 2 次 (NestJS 不支持, 必须 alias).
-import { LlmModule } from '../llm/llm.module';
-import { KnowledgeController } from './controllers/knowledge.controller';
-import { PreviewController } from './controllers/preview.controller';
+import { LlmModule } from '../llm/llm.module.js';
+import { KnowledgeController } from './controllers/knowledge.controller.js';
+import { PreviewController } from './controllers/preview.controller.js';
 // V2026-10-12 (Phase 8.8 — workflow panel 补建):
 //   7.6 spec 提的 3 个 list endpoint (my-drafts / pending-review / published) 8.1
 //   vertical slice 漏建, 16:50 大炮反馈 /admin/workflow/* 404. 治本: 补建
 //   WorkflowController, 跟 knowledge.controller / preview.controller 同 pattern.
-import { WorkflowController } from './controllers/workflow.controller';
-import { KnowledgeChunk } from './entities/knowledge-chunk.entity';
-import { KnowledgeItem } from './entities/knowledge-item.entity';
-import { KnowledgeVersion } from './entities/knowledge-version.entity';
-import { WorkflowEvent } from './entities/workflow-event.entity';
-import { KnowledgeService } from './providers/knowledge.service';
-import { PreviewService } from './providers/preview.service';
-import { ScheduledPublishCron } from './providers/scheduled-publish.cron';
-import { ScheduledPublishProcessor } from './providers/scheduled-publish.processor';
-import { ScheduledPublishService } from './providers/scheduled-publish.service';
-import { SearchService } from './providers/search.service';
-import { WorkflowService } from './providers/workflow.service';
-import { User } from '../user/entities/user.entity';
+import { WorkflowController } from './controllers/workflow.controller.js';
+import { KnowledgeChunk } from './entities/knowledge-chunk.entity.js';
+import { KnowledgeItem } from './entities/knowledge-item.entity.js';
+import { KnowledgeVersion } from './entities/knowledge-version.entity.js';
+import { WorkflowEvent } from './entities/workflow-event.entity.js';
+import { KnowledgeService } from './providers/knowledge.service.js';
+import { PreviewService } from './providers/preview.service.js';
+import { ScheduledPublishCron } from './providers/scheduled-publish.cron.js';
+import { ScheduledPublishProcessor } from './providers/scheduled-publish.processor.js';
+import { ScheduledPublishService } from './providers/scheduled-publish.service.js';
+import { SearchService } from './providers/search.service.js';
+import { WorkflowService } from './providers/workflow.service.js';
+import { User } from '../user/entities/user.entity.js';
 
 @Module({
   imports: [

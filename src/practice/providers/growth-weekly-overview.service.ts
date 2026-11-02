@@ -19,8 +19,8 @@
 
 import { Injectable } from '@nestjs/common';
 
-import { BizCode, BizException } from '../../common/exceptions';
-import { WeeklyOverviewDto, WeeklyMetricDto } from '../dto/growth.dto';
+import { BizCode, BizException } from '../../common/exceptions/index.js';
+import { WeeklyOverviewDto, WeeklyMetricDto } from '../dto/growth.dto.js';
 
 @Injectable()
 export class GrowthWeeklyOverviewService {

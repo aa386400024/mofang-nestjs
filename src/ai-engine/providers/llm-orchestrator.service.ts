@@ -11,12 +11,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { Repository } from 'typeorm';
 
-import { CrisisDetectorService } from './crisis-detector.service';
-import { LlmRouterService } from '../../llm/registry/llm-router.service';
-import type { ChatCompletionChunkDto, ChatCompletionDto } from '../dto/llm-chat.dto';
-import { CrisisEventEntity } from '../entities/crisis-event.entity';
-import { LLMConversationEntity } from '../entities/llm-conversation.entity';
-import { CrisisLevel } from '../enums/ai-crisis.enums';
+import { CrisisDetectorService } from './crisis-detector.service.js';
+import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
+import type { ChatCompletionChunkDto, ChatCompletionDto } from '../dto/llm-chat.dto.js';
+import { CrisisEventEntity } from '../entities/crisis-event.entity.js';
+import { LLMConversationEntity } from '../entities/llm-conversation.entity.js';
+import { CrisisLevel } from '../enums/ai-crisis.enums.js';
 
 /**
  * LLM 编排器 — V6.0 §3.5.

@@ -1,12 +1,12 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { ToolSkinDto, ToolSkinsListDto, UnlockSkinDto, UnlockSkinResponseDto } from '../dto/skin-pack.dto';
-import { ToolId } from '../enums/skin-rarity.enum';
-import { ToolSkinsService } from '../providers/tool-skins.service';
+import { ToolSkinDto, ToolSkinsListDto, UnlockSkinDto, UnlockSkinResponseDto } from '../dto/skin-pack.dto.js';
+import { ToolId } from '../enums/skin-rarity.enum.js';
+import { ToolSkinsService } from '../providers/tool-skins.service.js';
 
 /**
  * 工具皮肤接口 — V4.0 §3.4.

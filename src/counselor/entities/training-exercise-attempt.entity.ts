@@ -42,7 +42,7 @@
 //   时间戳: 2026-10-19
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { TrainingAttemptStatus } from '../enums/training-attempt-status.enum';
+import { TrainingAttemptStatus } from '../enums/training-attempt-status.enum.js';
 
 /**
  * training_exercise_attempts 表.

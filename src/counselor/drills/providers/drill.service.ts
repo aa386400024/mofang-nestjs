@@ -25,12 +25,12 @@
 //   时间戳: 2026-10-27 21:35 GMT+8
 import { Injectable } from '@nestjs/common';
 
-import { DrillEvaluatorService } from './drill-evaluator.service';
-import { BizCode } from '../../../common/exceptions/biz-code.enum';
-import { BizException } from '../../../common/exceptions/biz.exception';
-import { findDrillScript, listDrillScripts } from '../config/drill-registry';
-import type { DrillItem, DrillScript } from '../domain/drill.types';
-import type { DrillListDto, DrillDetailDto, DrillResponseDto, SubmitDrillResponseDto } from '../dto/drill.dto';
+import { DrillEvaluatorService } from './drill-evaluator.service.js';
+import { BizCode } from '../../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../../common/exceptions/biz.exception.js';
+import { findDrillScript, listDrillScripts } from '../config/drill-registry.js';
+import type { DrillItem, DrillScript } from '../domain/drill.types.js';
+import type { DrillListDto, DrillDetailDto, DrillResponseDto, SubmitDrillResponseDto } from '../dto/drill.dto.js';
 
 /**
  * 情景演练读侧服务.

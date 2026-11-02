@@ -36,9 +36,9 @@ import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import { vi } from 'vitest';
 
-import { PrivacyGuard } from '../../src/common/guards/privacy.guard';
-import { PrivacyLevel, PrivacyFailure } from '../../src/common/privacy/privacy-level.enum';
-import { PrivacyLogger } from '../../src/common/privacy/privacy-logger.service';
+import { PrivacyGuard } from '../../src/common/guards/privacy.guard.js';
+import { PrivacyLevel, PrivacyFailure } from '../../src/common/privacy/privacy-level.enum.js';
+import { PrivacyLogger } from '../../src/common/privacy/privacy-logger.service.js';
 
 /**
  * 4 mock 覆盖 (V0.5 V2026-10-09 治本 culture "mock 简化, 精度满足调用链即可"):

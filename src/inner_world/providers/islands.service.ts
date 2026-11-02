@@ -2,10 +2,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { ReconciliationService } from './reconciliation.service';
-import { IslandElementDto, IslandElementsDto, GrowElementDto } from '../dto/island.dto';
-import { IslandElement } from '../entities/island-element.entity';
-import { ISLAND_ELEMENT_DEFS, IslandArea } from '../enums/island-area.enum';
+import { ReconciliationService } from './reconciliation.service.js';
+import { IslandElementDto, IslandElementsDto, GrowElementDto } from '../dto/island.dto.js';
+import { IslandElement } from '../entities/island-element.entity.js';
+import { ISLAND_ELEMENT_DEFS, IslandArea } from '../enums/island-area.enum.js';
 
 /**
  * 小岛元素服务 — V4.0 §3.1.

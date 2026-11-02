@@ -28,8 +28,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { TtsBidiClient } from './tts-bidi-client';
-import type { TtsOptions } from './tts.types';
+import { TtsBidiClient } from './tts-bidi-client.js';
+import type { TtsOptions } from './tts.types.js';
 
 interface QueueItem {
   readonly opts: TtsOptions;

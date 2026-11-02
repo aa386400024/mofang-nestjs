@@ -49,9 +49,9 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 
-import type { VoiceSessionPreset, VoiceSkillCode, VoiceVisitorCard } from './voice-session.types';
-import type { VoiceSessionReportStatus } from './voice.types';
-import type { TranscriptTurn } from '../agent/supervisor/supervisor.types';
+import type { VoiceSessionPreset, VoiceSkillCode, VoiceVisitorCard } from './voice-session.types.js';
+import type { VoiceSessionReportStatus } from './voice.types.js';
+import type { TranscriptTurn } from '../agent/supervisor/supervisor.types.js';
 
 /**
  * 建连输入 (WS 握手成功、准备落库时).

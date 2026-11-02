@@ -49,7 +49,7 @@ import {
   type SafetyLevel,
   type SafetySide,
   type VisitorRiskCategory,
-} from '../../../engine-core';
+} from '../../../engine-core/index.js';
 
 /**
  * Python 服务的 wire 等级 (通用风险刻度).

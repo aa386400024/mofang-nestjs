@@ -14,10 +14,10 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 
-import { AIProviderId, LLMCapability } from '../common/enums/llm.enums';
-import type { ChatProvider, LLMProviderConfig } from '../common/interfaces/chat-provider.interface';
-import type { EmbeddingProvider } from '../common/interfaces/embedding-provider.interface';
-import type { ProviderRegistry } from '../common/interfaces/provider-registry.interface';
+import { AIProviderId, LLMCapability } from '../common/enums/llm.enums.js';
+import type { ChatProvider, LLMProviderConfig } from '../common/interfaces/chat-provider.interface.js';
+import type { EmbeddingProvider } from '../common/interfaces/embedding-provider.interface.js';
+import type { ProviderRegistry } from '../common/interfaces/provider-registry.interface.js';
 
 interface RegistryEntry {
   chat?: ChatProvider;

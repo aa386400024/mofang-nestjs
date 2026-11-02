@@ -12,7 +12,7 @@
 //   验证: npx jest test/shared/wp18-llm-json-payload.spec.ts
 //   时间戳: 2026-10-29 GMT+8
 
-import { extractJsonPayload, stripThinkingTags } from '../../src/shared/llm/llm-json-payload';
+import { extractJsonPayload, stripThinkingTags } from '../../src/shared/llm/llm-json-payload.js';
 
 describe('WP18 · JSON 载荷抽取 (shared 唯一真相源)', () => {
   describe('① 纯 JSON', () => {

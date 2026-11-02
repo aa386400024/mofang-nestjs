@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
-import { CompanionTree } from './companion-tree.entity';
-import { WaterAction } from '../enums/water-action.enum';
+import { CompanionTree } from './companion-tree.entity.js';
+import { WaterAction } from '../enums/water-action.enum.js';
 
 /**
  * 浇水 / 施肥 / 修剪 日志 — V2026-09-12 §6.3 共种陪伴树.

@@ -5,15 +5,15 @@ import * as request from 'supertest';
 
 // V2026-09-11 治本: 路径修正 — BizExceptionFilter 实位于 src/common/filters/, 不是 common/exceptions/.
 //   旧路径解析为 undefined, 触发 no-unsafe-argument (useGlobalFilters(new undefined()) 类型为 any).
-import { BizExceptionFilter } from '../src/common/filters/biz-exception.filter';
+import { BizExceptionFilter } from '../src/common/filters/biz-exception.filter.js';
 
-import { GoodStateDiaryEntry } from '../src/good_state_diary/entities/good-state-diary-entry.entity';
-import { DiaryEntryStatus } from '../src/good_state_diary/enums/diary-entry-status.enum';
-import { DiaryMoodLevel } from '../src/good_state_diary/enums/diary-mood-level.enum';
-import { DiaryTag } from '../src/good_state_diary/enums/diary-tag.enum';
-import { GoodStateDiaryModule } from '../src/good_state_diary/good_state_diary.module';
-import { SentryService } from '../src/shared/infra/observability';
-import { JwtAuthGuard } from '../src/user/guards/jwt-auth.guard';
+import { GoodStateDiaryEntry } from '../src/good_state_diary/entities/good-state-diary-entry.entity.js';
+import { DiaryEntryStatus } from '../src/good_state_diary/enums/diary-entry-status.enum.js';
+import { DiaryMoodLevel } from '../src/good_state_diary/enums/diary-mood-level.enum.js';
+import { DiaryTag } from '../src/good_state_diary/enums/diary-tag.enum.js';
+import { GoodStateDiaryModule } from '../src/good_state_diary/good_state_diary.module.js';
+import { SentryService } from '../src/shared/infra/observability/index.js';
+import { JwtAuthGuard } from '../src/user/guards/jwt-auth.guard.js';
 
 // V2026-09-11 治本: supertest.Response 类型别名 — 作为 (await ...) as HttpResponse cast 的目标类型.
 //   验证: 后续 await request(...) 链虽然 error-typed (getHttpServer 返回 any),

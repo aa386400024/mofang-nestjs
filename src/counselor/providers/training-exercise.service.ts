@@ -23,7 +23,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Repository } from 'typeorm';
 
-import { TRAINING_EXERCISE_MODE_META } from '../config/training-exercise-display-meta';
+import { TRAINING_EXERCISE_MODE_META } from '../config/training-exercise-display-meta.js';
 import type {
   SubmitTrainingExerciseAttemptDto,
   TrainingExerciseAttemptResultDto,
@@ -32,10 +32,10 @@ import type {
   TrainingExerciseProgressDto,
   TrainingExerciseProgressItemDto,
   TrainingExerciseQueryDto,
-} from '../dto/training-exercise.dto';
-import { TrainingExerciseAttempt } from '../entities/training-exercise-attempt.entity';
-import { TrainingExercise } from '../entities/training-exercise.entity';
-import { TrainingAttemptStatus } from '../enums/training-attempt-status.enum';
+} from '../dto/training-exercise.dto.js';
+import { TrainingExerciseAttempt } from '../entities/training-exercise-attempt.entity.js';
+import { TrainingExercise } from '../entities/training-exercise.entity.js';
+import { TrainingAttemptStatus } from '../enums/training-attempt-status.enum.js';
 
 /**
  * 训练题服务 —— 内容来自 DB, 本类**不含任何内容灌入逻辑**.

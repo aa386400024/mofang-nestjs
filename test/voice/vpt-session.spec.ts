@@ -18,11 +18,11 @@
 //     3. 故意让 parseAgeRangeLowerBound 解析不出时返回 0 → "解析不出返回 null"用例变红
 //
 //   时间戳: 2026-10-26
-import { VoiceFrameRegistry } from '../../src/voice/voice-frame-registry';
-import { VoiceSessionBridgeRegistry, type VoiceSessionBridge } from '../../src/voice/voice-session-bridge';
-import type { VoiceTemplateSummary } from '../../src/voice/voice-session.types';
-import { parseAgeRangeLowerBound, buildVoiceVisitorCard } from '../../src/voice/voice-visitor-card';
-import type { VoiceServerMessage } from '../../src/voice/voice.types';
+import { VoiceFrameRegistry } from '../../src/voice/voice-frame-registry.js';
+import { VoiceSessionBridgeRegistry, type VoiceSessionBridge } from '../../src/voice/voice-session-bridge.js';
+import type { VoiceTemplateSummary } from '../../src/voice/voice-session.types.js';
+import { parseAgeRangeLowerBound, buildVoiceVisitorCard } from '../../src/voice/voice-visitor-card.js';
+import type { VoiceServerMessage } from '../../src/voice/voice.types.js';
 
 /** 一份公共人物模板摘要 (字段与 counselor 侧 resolver 产出 1:1). */
 const SUMMARY: VoiceTemplateSummary = {

@@ -24,13 +24,13 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { buildRenderSpec } from '../../src/engine-adapters/rendering/spec-assembler';
+import { buildRenderSpec } from '../../src/engine-adapters/rendering/spec-assembler.js';
 import {
   DEFAULT_TURN_FALLBACK_UTTERANCE,
   TurnRenderOrchestrator,
   buildVisitorMessages,
   type TurnSessionContext,
-} from '../../src/engine-adapters/rendering/turn-render-orchestrator';
+} from '../../src/engine-adapters/rendering/turn-render-orchestrator.js';
 import {
   EngineCoreError,
   EngineErrorCode,
@@ -52,7 +52,7 @@ import {
   type RenderResult,
   type RenderSpec,
   type RenderTokenBudget,
-} from '../../src/engine-core';
+} from '../../src/engine-core/index.js';
 
 const HANDLE_ID = 'handle-1';
 const CLOCK = 1_700_000_000_000;

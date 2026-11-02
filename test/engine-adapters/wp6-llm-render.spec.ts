@@ -19,17 +19,17 @@
 //   验证: npx jest test/engine-adapters/wp6-llm-render.spec.ts
 //   时间戳: 2026-10-28 GMT+8
 
-import { LlmRenderAdapter, type ChatCaller, type RenderGuardVerdict } from '../../src/engine-adapters/rendering/llm-render.adapter';
+import { LlmRenderAdapter, type ChatCaller, type RenderGuardVerdict } from '../../src/engine-adapters/rendering/llm-render.adapter.js';
 import {
   createRenderAdapterConfig,
   type RenderAdapterConfig,
   type RenderAdapterConfigOverrides,
   type RenderCandidate,
-} from '../../src/engine-adapters/rendering/render-adapter.config';
-import { RenderFailoverRuntime } from '../../src/engine-adapters/rendering/render-failover.runtime';
-import type { RenderContextTurn, RenderSpec, RenderTaskKind } from '../../src/engine-core';
-import * as kernel from '../../src/engine-core';
-import type { ChatCompletionRequest, ChatCompletionResponse } from '../../src/llm/common/interfaces/chat-provider.interface';
+} from '../../src/engine-adapters/rendering/render-adapter.config.js';
+import { RenderFailoverRuntime } from '../../src/engine-adapters/rendering/render-failover.runtime.js';
+import type { RenderContextTurn, RenderSpec, RenderTaskKind } from '../../src/engine-core/index.js';
+import * as kernel from '../../src/engine-core/index.js';
+import type { ChatCompletionRequest, ChatCompletionResponse } from '../../src/llm/common/interfaces/chat-provider.interface.js';
 
 /** 兜底话术 (与测试配置一致). */
 const FALLBACK_UTTERANCE = '我先缓一下，我们接着说。';

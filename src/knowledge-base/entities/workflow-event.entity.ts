@@ -23,7 +23,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-import { KnowledgeStatus } from '../enums/knowledge-status.enum';
+import { KnowledgeStatus } from '../enums/knowledge-status.enum.js';
 
 /**
  * workflow_events 表 — 状态机迁移日志.

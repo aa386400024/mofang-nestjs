@@ -1,3 +1,3 @@
-export type * from './user.interface';
-export * from './user.module';
-export * from './user.service';
+export type * from './user.interface.js';
+export * from './user.module.js';
+export * from './user.service.js';

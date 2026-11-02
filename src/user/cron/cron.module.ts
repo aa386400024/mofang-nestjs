@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { SoftDeleteCron } from './soft-delete.cron';
-import { OAuthIdentity } from '../entities/oauth-identity.entity';
-import { PasswordHistory } from '../entities/password-history.entity';
-import { Session } from '../entities/session.entity';
-import { User } from '../entities/user.entity';
+import { SoftDeleteCron } from './soft-delete.cron.js';
+import { OAuthIdentity } from '../entities/oauth-identity.entity.js';
+import { PasswordHistory } from '../entities/password-history.entity.js';
+import { Session } from '../entities/session.entity.js';
+import { User } from '../entities/user.entity.js';
 
-import { UserModule } from '../user.module';
+import { UserModule } from '../user.module.js';
 
 /**
  * Cron module — 定时任务 (大厂运维必备).

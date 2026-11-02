@@ -36,7 +36,7 @@
 //     2. InMemoryMemoryStore 的 TTL 过期 / limit clamp / tier 过滤有单测覆盖
 //     3. WP2 换 Qdrant 实现时本文件只需追加, 不改既有字段
 
-import { EngineCoreError, EngineErrorCode } from '../engine-errors';
+import { EngineCoreError, EngineErrorCode } from '../engine-errors.js';
 
 /** 记忆分层 (三级记忆). */
 export enum MemoryTier {

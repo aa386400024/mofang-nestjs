@@ -21,12 +21,12 @@
 
 import type { ConfigService } from '@nestjs/config';
 
-import type { LlmStream, LlmStreamChunk } from '../../src/agent/llm/llm.types';
-import type { VisitorService } from '../../src/agent/visitor/visitor.service';
-import type { TtsEventStream, TtsSessionHandle } from '../../src/voice/tts/tts.types';
-import type { VoiceTurnBackend, VoiceTurnBackendTurnOptions } from '../../src/voice/voice-turn-backend.port';
-import { VoiceService } from '../../src/voice/voice.service';
-import type { VoiceSessionMeta, VoiceServerMessage } from '../../src/voice/voice.types';
+import type { LlmStream, LlmStreamChunk } from '../../src/agent/llm/llm.types.js';
+import type { VisitorService } from '../../src/agent/visitor/visitor.service.js';
+import type { TtsEventStream, TtsSessionHandle } from '../../src/voice/tts/tts.types.js';
+import type { VoiceTurnBackend, VoiceTurnBackendTurnOptions } from '../../src/voice/voice-turn-backend.port.js';
+import { VoiceService } from '../../src/voice/voice.service.js';
+import type { VoiceSessionMeta, VoiceServerMessage } from '../../src/voice/voice.types.js';
 
 /** 会话元数据 (text 模式: 不碰 TTS). */
 const META: VoiceSessionMeta = {

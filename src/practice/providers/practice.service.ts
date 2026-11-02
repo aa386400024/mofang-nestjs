@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { EmbodiedService } from '../../embodied/providers/embodied.service';
+import { EmbodiedService } from '../../embodied/providers/embodied.service.js';
 import {
   EmbodiedAuthStatusDto,
   EmbodiedFeedbackDto,
@@ -20,9 +20,9 @@ import {
   PracticeSessionDto,
   PracticeToolDto,
   TargetedReshapeDto,
-} from '../dto/practice.dto';
-import { PracticeRecord } from '../entities/practice-record.entity';
-import { PracticeSession } from '../entities/practice-session.entity';
+} from '../dto/practice.dto.js';
+import { PracticeRecord } from '../entities/practice-record.entity.js';
+import { PracticeSession } from '../entities/practice-session.entity.js';
 
 // ════════════════════════════════════════════════════════════════
 // 1. PracticeCategoryService — 8 大分类

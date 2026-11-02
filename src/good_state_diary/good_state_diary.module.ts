@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { UserModule } from '../user/user.module';
+import { UserModule } from '../user/user.module.js';
 
-import { GoodStateDiaryAiController } from './controllers/good-state-diary-ai.controller';
-import { GoodStateDiaryController } from './controllers/good-state-diary.controller';
-import { GoodStateDiaryEntry } from './entities/good-state-diary-entry.entity';
-import { GoodStateDiaryAiService } from './providers/good-state-diary-ai.service';
-import { GoodStateDiaryService } from './providers/good-state-diary.service';
+import { GoodStateDiaryAiController } from './controllers/good-state-diary-ai.controller.js';
+import { GoodStateDiaryController } from './controllers/good-state-diary.controller.js';
+import { GoodStateDiaryEntry } from './entities/good-state-diary-entry.entity.js';
+import { GoodStateDiaryAiService } from './providers/good-state-diary-ai.service.js';
+import { GoodStateDiaryService } from './providers/good-state-diary.service.js';
 
 /**
  * V2026-09-11 治本 (好状态日记 · 模块):

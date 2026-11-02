@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { CompanionBinding } from '../../profile/entities/companion-binding.entity';
-import { CompanionRecord as ProfileCompanionRecord } from '../../profile/entities/companion-record.entity';
+import { CompanionBinding } from '../../profile/entities/companion-binding.entity.js';
+import { CompanionRecord as ProfileCompanionRecord } from '../../profile/entities/companion-record.entity.js';
 import {
   AiGuideTipDto,
   CompanionPersonDto,
@@ -16,12 +16,12 @@ import {
   RelationEntryDto,
   SoothingCardDto,
   SyncPracticeDto,
-} from '../dto/companion.dto';
-import { DualExercise } from '../entities/dual-exercise.entity';
-import { DualSession } from '../entities/dual-session.entity';
-import { RehabItem } from '../entities/rehab-item.entity';
-import { SoothingCard } from '../entities/soothing-card.entity';
-import { SyncPractice } from '../entities/sync-practice.entity';
+} from '../dto/companion.dto.js';
+import { DualExercise } from '../entities/dual-exercise.entity.js';
+import { DualSession } from '../entities/dual-session.entity.js';
+import { RehabItem } from '../entities/rehab-item.entity.js';
+import { SoothingCard } from '../entities/soothing-card.entity.js';
+import { SyncPractice } from '../entities/sync-practice.entity.js';
 
 // ════════════════════════════════════════════════════════════════
 // 1. CompanionPersonsService — 顶部陪伴对象切换

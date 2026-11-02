@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { MembershipBenefitDto, MembershipDto } from '../dto/membership.dto';
-import { Membership } from '../entities/membership.entity';
+import { MembershipBenefitDto, MembershipDto } from '../dto/membership.dto.js';
+import { Membership } from '../entities/membership.entity.js';
 
 /**
  * Membership service — 心塑会员中心核心服务.

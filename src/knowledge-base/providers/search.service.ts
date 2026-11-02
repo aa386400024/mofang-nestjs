@@ -17,11 +17,11 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { QdrantService } from '../../ai-engine/providers/qdrant.service';
-import { LlmRouterService } from '../../llm/registry/llm-router.service';
-import { User } from '../../user/entities/user.entity';
-import { KnowledgeItemDto } from '../dto/knowledge.dto';
-import { KnowledgeItem } from '../entities/knowledge-item.entity';
+import { QdrantService } from '../../ai-engine/providers/qdrant.service.js';
+import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
+import { User } from '../../user/entities/user.entity.js';
+import { KnowledgeItemDto } from '../dto/knowledge.dto.js';
+import { KnowledgeItem } from '../entities/knowledge-item.entity.js';
 
 @Injectable()
 export class SearchService {

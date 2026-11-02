@@ -27,18 +27,18 @@ import {
   type ChatCaller,
   type ChatStreamOptions,
   type RenderGuardVerdict,
-} from '../../src/engine-adapters/rendering/llm-render.adapter';
+} from '../../src/engine-adapters/rendering/llm-render.adapter.js';
 import {
   createRenderAdapterConfig,
   type RenderAdapterConfig,
   type RenderCandidate,
-} from '../../src/engine-adapters/rendering/render-adapter.config';
-import type { RenderSpec } from '../../src/engine-core';
+} from '../../src/engine-adapters/rendering/render-adapter.config.js';
+import type { RenderSpec } from '../../src/engine-core/index.js';
 import type {
   ChatCompletionChunk,
   ChatCompletionRequest,
   ChatCompletionResponse,
-} from '../../src/llm/common/interfaces/chat-provider.interface';
+} from '../../src/llm/common/interfaces/chat-provider.interface.js';
 
 /** 兜底话术 (与测试配置一致). */
 const FALLBACK_UTTERANCE = '我先缓一下，我们接着说。';

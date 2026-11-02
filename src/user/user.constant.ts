@@ -1,5 +1,3 @@
-/// <reference types="../../typings/global" />
-
 /**
  * User module constants.
  *

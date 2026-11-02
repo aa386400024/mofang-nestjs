@@ -1,11 +1,11 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { SendSoothingCardDto, SoothingCardDto } from '../dto/companion.dto';
-import { SoothingService } from '../providers/companion.service';
+import { SendSoothingCardDto, SoothingCardDto } from '../dto/companion.dto.js';
+import { SoothingService } from '../providers/companion.service.js';
 
 /**
  * 安抚卡片 controller — V2.0 §Tab2 陪伴者端安抚卡片分区.

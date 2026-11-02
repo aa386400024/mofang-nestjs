@@ -36,7 +36,7 @@ import {
   type SafetyLevel,
   type SafetySide,
   type SafetyVerdict,
-} from '../../domain/safety/safety-types';
+} from '../../domain/safety/safety-types.js';
 
 /**
  * 一条安全规则 (种子词典的元素).

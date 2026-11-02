@@ -27,8 +27,8 @@
 
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 
-import { stripTrailingSlashes, type PsyGuardFetch, type PsyGuardWireLevel } from './http-psyguard.probe';
-import { PSYGUARD_LEVEL_MAP, type SafetyLevel, type VisitorRiskCategory } from '../../../engine-core';
+import { stripTrailingSlashes, type PsyGuardFetch, type PsyGuardWireLevel } from './http-psyguard.probe.js';
+import { PSYGUARD_LEVEL_MAP, type SafetyLevel, type VisitorRiskCategory } from '../../../engine-core/index.js';
 
 /**
  * 内核动作等级 → wire 粗档 (与 `http-psyguard.probe.ts` 的映射互逆).

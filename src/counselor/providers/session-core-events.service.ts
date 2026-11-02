@@ -28,8 +28,8 @@
 import { Injectable, Logger, MessageEvent } from '@nestjs/common';
 import { Observable, Subject } from 'rxjs';
 
-import type { LiveSupervisionHintDto, TransferenceMarkDto } from '../dto/session-core.dto';
-import type { CaseProfileEntryDto } from '../dto/visitor-persona.dto';
+import type { LiveSupervisionHintDto, TransferenceMarkDto } from '../dto/session-core.dto.js';
+import type { CaseProfileEntryDto } from '../dto/visitor-persona.dto.js';
 
 /**
  * 会谈核心实时事件 (SSE event 名 + 载荷).

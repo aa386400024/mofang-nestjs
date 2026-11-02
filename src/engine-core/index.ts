@@ -17,58 +17,58 @@
 //     engine-core ✗─▶ @nestjs/* / typeorm / src/agent/visitor / src/voice
 
 // ── 领域模型 (BDI 状态快照) ───────────────────────────────────────
-export type { BdiResistance, BdiSnapshot } from './domain/bdi-snapshot';
-export { cloneBdiSnapshot, createEmptyBdiSnapshot } from './domain/bdi-snapshot';
+export type { BdiResistance, BdiSnapshot } from './domain/bdi-snapshot.js';
+export { cloneBdiSnapshot, createEmptyBdiSnapshot } from './domain/bdi-snapshot.js';
 
 // ── 信念层 ────────────────────────────────────────────────────────
-export type { CoreBelief, MemoryBelief, TemporaryBelief } from './domain/beliefs';
+export type { CoreBelief, MemoryBelief, TemporaryBelief } from './domain/beliefs.js';
 
 // ── 愿望层 ────────────────────────────────────────────────────────
-export type { SituationalDesire, UnderlyingDesire } from './domain/desires';
+export type { SituationalDesire, UnderlyingDesire } from './domain/desires.js';
 
 // ── 情绪 / 移情 ────────────────────────────────────────────────────
-export type { EmotionLabel, EmotionState } from './domain/emotion';
-export type { TransferenceState } from './domain/transference';
+export type { EmotionLabel, EmotionState } from './domain/emotion.js';
+export type { TransferenceState } from './domain/transference.js';
 
 // ── 意图层 (本轮派生输出) ──────────────────────────────────────────
-export type { BehaviorStrategy, Intention } from './domain/intention';
+export type { BehaviorStrategy, Intention } from './domain/intention.js';
 
 // ── 角色内核注入 ───────────────────────────────────────────────────
-export type { AttachmentStyle, CharacterProfile, UnderlyingDesireSeed } from './domain/character-profile';
+export type { AttachmentStyle, CharacterProfile, UnderlyingDesireSeed } from './domain/character-profile.js';
 
 // ── 标准会话事件 / 分类器接口 (双轨可替换) ────────────────────────
-export type { ClassifyContext, CounselorEventKind, EventClassifier, SessionEvent } from './domain/events/session-event';
+export type { ClassifyContext, CounselorEventKind, EventClassifier, SessionEvent } from './domain/events/session-event.js';
 
 // ── 错误契约 ──────────────────────────────────────────────────────
-export { EngineCoreError, EngineErrorCode } from './domain/engine-errors';
+export { EngineCoreError, EngineErrorCode } from './domain/engine-errors.js';
 
 // ── 会话端口纯 DTO ────────────────────────────────────────────────
-export type { EngineSessionHandle, EngineTurnInput, EngineTurnOutput, OpenEngineSessionInput } from './domain/engine-session.types';
+export type { EngineSessionHandle, EngineTurnInput, EngineTurnOutput, OpenEngineSessionInput } from './domain/engine-session.types.js';
 
 // ── 仓储端口 ──────────────────────────────────────────────────────
-export type { BdiStateRecord, BdiStateRepository } from './domain/ports/bdi-state.repository';
-export type { MemoryEntry, MemoryHit, MemoryRecallQuery, MemoryRecallScope, MemoryStore } from './domain/ports/memory.store';
-export { MemorySource, MemoryTier } from './domain/ports/memory.store';
+export type { BdiStateRecord, BdiStateRepository } from './domain/ports/bdi-state.repository.js';
+export type { MemoryEntry, MemoryHit, MemoryRecallQuery, MemoryRecallScope, MemoryStore } from './domain/ports/memory.store.js';
+export { MemorySource, MemoryTier } from './domain/ports/memory.store.js';
 // 契约级共享 helper —— B 层实现 (Qdrant 版) 必须用**同一份**校验与上限口径,
 // 否则两版实现各写一套 = 迟早漂移, 且漂移方向恰好是"某版放过了另一版拦住的脏数据".
-export { assertValidMemoryEntry, assertValidMemoryRecallQuery, resolveMemoryRecallLimit } from './domain/ports/memory.store';
+export { assertValidMemoryEntry, assertValidMemoryRecallQuery, resolveMemoryRecallLimit } from './domain/ports/memory.store.js';
 
 // ── 向量化端口 (WP2) ──────────────────────────────────────────────
-export type { Embedder } from './domain/ports/embedder';
+export type { Embedder } from './domain/ports/embedder.js';
 
 // ── 记忆策略算子 (WP2 · 纯函数) ────────────────────────────────────
-export { trimWorkingWindow, WORKING_MEMORY_WINDOW_TURNS } from './memory/working-window';
+export { trimWorkingWindow, WORKING_MEMORY_WINDOW_TURNS } from './memory/working-window.js';
 export {
   decayImportance,
   effectiveImportance,
   DEFAULT_DECAY_HALF_LIFE_MS,
   RECALL_MIN_EFFECTIVE_IMPORTANCE,
-} from './memory/importance-decay';
-export type { ConflictRecord, ConflictResolution } from './memory/conflict-resolution';
-export { applyConflictResolution, markSuperseded, resolveConflict } from './memory/conflict-resolution';
-export { promoteShortTermToLongTerm } from './memory/promotion';
-export type { RecallEvaluation } from './memory/recall-policy';
-export { evaluateRecallCandidate } from './memory/recall-policy';
+} from './memory/importance-decay.js';
+export type { ConflictRecord, ConflictResolution } from './memory/conflict-resolution.js';
+export { applyConflictResolution, markSuperseded, resolveConflict } from './memory/conflict-resolution.js';
+export { promoteShortTermToLongTerm } from './memory/promotion.js';
+export type { RecallEvaluation } from './memory/recall-policy.js';
+export { evaluateRecallCandidate } from './memory/recall-policy.js';
 
 // ── 轨迹控制 (WP3 · 纯函数) ─────────────────────────────────────────
 //   剧本是纯对象注入, 游标/终态只在进程内存; 内核不感知剧本存哪.
@@ -82,19 +82,19 @@ export type {
   TrajectoryScript,
   TrajectoryTrace,
   TrajectoryTrigger,
-} from './domain/trajectory/script';
-export { orderedTrajectoryNodes, validateTrajectoryScript } from './domain/trajectory/script';
-export type { MatchContext } from './cognition/trajectory/trigger-evaluate';
-export { evaluateTrigger } from './cognition/trajectory/trigger-evaluate';
-export type { ActPlan } from './cognition/trajectory/act-cursor';
-export { planAct } from './cognition/trajectory/act-cursor';
-export type { TrajectoryApplication } from './cognition/trajectory/trajectory-applier';
+} from './domain/trajectory/script.js';
+export { orderedTrajectoryNodes, validateTrajectoryScript } from './domain/trajectory/script.js';
+export type { MatchContext } from './cognition/trajectory/trigger-evaluate.js';
+export { evaluateTrigger } from './cognition/trajectory/trigger-evaluate.js';
+export type { ActPlan } from './cognition/trajectory/act-cursor.js';
+export { planAct } from './cognition/trajectory/act-cursor.js';
+export type { TrajectoryApplication } from './cognition/trajectory/trajectory-applier.js';
 export {
   applyTrajectory,
   DEFAULT_CORRECT_WEIGHT,
   MIN_CORRECT_WEIGHT,
   resolveCorrectWeight,
-} from './cognition/trajectory/trajectory-applier';
+} from './cognition/trajectory/trajectory-applier.js';
 
 // ── 伦理安全 (WP4 · 纯函数 + 可选探测端口) ─────────────────────────
 //   内核只判定不拦截: block 只是给 adapter 的信号, 是否拦下由表现层决定.
@@ -107,28 +107,28 @@ export type {
   SafetySide,
   SafetyVerdict,
   VisitorRiskCategory,
-} from './domain/safety/safety-types';
-export { isSafetyLevel, maxSafetyLevel, PSYGUARD_LEVEL_MAP } from './domain/safety/safety-types';
-export type { RiskProbePort, RiskProbeResult } from './domain/ports/risk-probe';
-export type { SafetyRule } from './cognition/safety/rule-engine';
-export { evaluateSafety } from './cognition/safety/rule-engine';
-export type { AssessSafetyInput } from './cognition/safety/assess-safety';
-export { assessSafety, DEFAULT_PROBE_TIMEOUT_MS } from './cognition/safety/assess-safety';
+} from './domain/safety/safety-types.js';
+export { isSafetyLevel, maxSafetyLevel, PSYGUARD_LEVEL_MAP } from './domain/safety/safety-types.js';
+export type { RiskProbePort, RiskProbeResult } from './domain/ports/risk-probe.js';
+export type { SafetyRule } from './cognition/safety/rule-engine.js';
+export { evaluateSafety } from './cognition/safety/rule-engine.js';
+export type { AssessSafetyInput } from './cognition/safety/assess-safety.js';
+export { assessSafety, DEFAULT_PROBE_TIMEOUT_MS } from './cognition/safety/assess-safety.js';
 
 // ── 渲染契约层 (WP5 · 纯类型 + 纯策略, 内核不调 LLM) ────────────────
 //   规格只装"要什么", 不装模型名 / 温度 / prompt —— 那些属适配层.
-export type { RenderContextTurn, RenderResult, RenderSpec, RenderTaskKind, RenderTokenBudget } from './domain/rendering/render-types';
-export type { RenderPort } from './domain/ports/render-port';
+export type { RenderContextTurn, RenderResult, RenderSpec, RenderTaskKind, RenderTokenBudget } from './domain/rendering/render-types.js';
+export type { RenderPort } from './domain/ports/render-port.js';
 export {
   CHARS_PER_TOKEN,
   DEFAULT_COMPLETION_TOKENS,
   estimateTokens,
   fitContextToBudget,
   resolveCompletionTokens,
-} from './cognition/rendering/token-budget';
-export type { FailoverCandidate, FailoverState } from './cognition/rendering/failover';
-export { selectFailoverTarget } from './cognition/rendering/failover';
-export { guardVisitorOutput } from './cognition/rendering/output-guard';
+} from './cognition/rendering/token-budget.js';
+export type { FailoverCandidate, FailoverState } from './cognition/rendering/failover.js';
+export { selectFailoverTarget } from './cognition/rendering/failover.js';
+export { guardVisitorOutput } from './cognition/rendering/output-guard.js';
 
 // ── 运行时端口 ────────────────────────────────────────────────────
-export type { EngineSessionPort } from './runtime/engine-session.port';
+export type { EngineSessionPort } from './runtime/engine-session.port.js';

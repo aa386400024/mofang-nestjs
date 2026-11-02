@@ -10,10 +10,10 @@
 
 import { Module } from '@nestjs/common';
 
-import { LlmModule } from './llm/llm.module';
-import { PersonaModule } from './persona/persona.module';
-import { SupervisorModule } from './supervisor/supervisor.module';
-import { VisitorModule } from './visitor/visitor.module';
+import { LlmModule } from './llm/llm.module.js';
+import { PersonaModule } from './persona/persona.module.js';
+import { SupervisorModule } from './supervisor/supervisor.module.js';
+import { VisitorModule } from './visitor/visitor.module.js';
 
 @Module({
   imports: [LlmModule, PersonaModule, VisitorModule, SupervisorModule],

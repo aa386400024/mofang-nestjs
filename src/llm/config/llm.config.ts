@@ -13,13 +13,13 @@
 
 import { ConfigService } from '@nestjs/config';
 
-import { AIProviderId, LLMCapability } from '../common/enums/llm.enums';
-import type { LLMProviderConfig } from '../common/interfaces/chat-provider.interface';
-import { DeepSeekChatProvider, DeepSeekEmbeddingProvider } from '../providers/deepseek.provider';
-import { DoubaoChatProvider, DoubaoEmbeddingProvider } from '../providers/doubao.provider';
-import { MinimaxChatProvider } from '../providers/minimax.provider';
-import { QwenChatProvider, QwenEmbeddingProvider } from '../providers/qwen.provider';
-import { ProviderRegistryService } from '../registry/provider-registry.service';
+import { AIProviderId, LLMCapability } from '../common/enums/llm.enums.js';
+import type { LLMProviderConfig } from '../common/interfaces/chat-provider.interface.js';
+import { DeepSeekChatProvider, DeepSeekEmbeddingProvider } from '../providers/deepseek.provider.js';
+import { DoubaoChatProvider, DoubaoEmbeddingProvider } from '../providers/doubao.provider.js';
+import { MinimaxChatProvider } from '../providers/minimax.provider.js';
+import { QwenChatProvider, QwenEmbeddingProvider } from '../providers/qwen.provider.js';
+import { ProviderRegistryService } from '../registry/provider-registry.service.js';
 
 /**
  * 启动期注册所有预设 provider + 从 env 读取 apiKey.

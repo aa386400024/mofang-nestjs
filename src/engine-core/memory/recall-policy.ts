@@ -30,8 +30,8 @@
 //     1. pnpm build 0 错
 //     2. test/engine-core/wp2-memory.spec.ts 覆盖各条拒绝路径与有效重要度口径
 
-import { effectiveImportance, RECALL_MIN_EFFECTIVE_IMPORTANCE } from './importance-decay';
-import { MemoryTier, type MemoryEntry, type MemoryRecallQuery } from '../domain/ports/memory.store';
+import { effectiveImportance, RECALL_MIN_EFFECTIVE_IMPORTANCE } from './importance-decay.js';
+import { MemoryTier, type MemoryEntry, type MemoryRecallQuery } from '../domain/ports/memory.store.js';
 
 /**
  * 召回候选的判定结果.

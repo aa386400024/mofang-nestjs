@@ -45,10 +45,10 @@
 //   时间戳: 2026-10-22
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import type { PracticeCustomScenarioContent, PracticeCustomScenarioSourcePayload } from '../domain/practice/practice.types';
-import { PracticeDifficulty } from '../enums/practice-difficulty.enum';
-import { PracticeScenarioGenerationMode } from '../enums/practice-scenario-generation-mode.enum';
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
+import type { PracticeCustomScenarioContent, PracticeCustomScenarioSourcePayload } from '../domain/practice/practice.types.js';
+import { PracticeDifficulty } from '../enums/practice-difficulty.enum.js';
+import { PracticeScenarioGenerationMode } from '../enums/practice-scenario-generation-mode.enum.js';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
 
 /**
  * practice_custom_scenarios 表 —— 用户私有练习场景 (「我遇到了真实情况」).

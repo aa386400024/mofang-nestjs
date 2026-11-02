@@ -53,7 +53,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
-import type { AttachmentStyle, CoreBelief, UnderlyingDesireSeed } from '../../../engine-core';
+import type { AttachmentStyle, CoreBelief, UnderlyingDesireSeed } from '../../../engine-core/index.js';
 
 /**
  * 角色审核状态 (字符串联合, 非 enum —— 它是纯数据判别式, 不需要运行时值).

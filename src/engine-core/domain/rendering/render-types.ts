@@ -28,13 +28,13 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-core/wp5-rendering.spec.ts 覆盖规格组装与预算裁剪
 
-import type { BdiResistance } from '../bdi-snapshot';
-import type { CoreBelief } from '../beliefs';
-import type { AttachmentStyle } from '../character-profile';
-import type { EmotionState } from '../emotion';
-import type { Intention } from '../intention';
-import type { MemoryHit } from '../ports/memory.store';
-import type { TransferenceState } from '../transference';
+import type { BdiResistance } from '../bdi-snapshot.js';
+import type { CoreBelief } from '../beliefs.js';
+import type { AttachmentStyle } from '../character-profile.js';
+import type { EmotionState } from '../emotion.js';
+import type { Intention } from '../intention.js';
+import type { MemoryHit } from '../ports/memory.store.js';
+import type { TransferenceState } from '../transference.js';
 
 /**
  * 任务分层: 决定适配层选低温稳定 / 高温口语 / 高阶模型, 内核不选模型.

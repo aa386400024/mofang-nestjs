@@ -7,7 +7,7 @@
 //   patterns 为可选补充正则. sensitive_touch 不在静态词表 —— 它来自角色
 //   profile.sensitiveTopics, 由分类器按上下文命中.
 
-import type { CounselorEventKind } from '../events/session-event';
+import type { CounselorEventKind } from '../events/session-event.js';
 
 /** 一条规则: 事件种类 + 命中词 + 可选正则. */
 export interface EventRule {

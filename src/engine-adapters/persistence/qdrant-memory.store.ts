@@ -51,7 +51,8 @@
 
 import { Logger } from '@nestjs/common';
 
-import { DEFAULT_MEMORY_CONFIG, type MemoryConfig } from './memory-config';
+import { DEFAULT_MEMORY_CONFIG, type MemoryConfig } from './memory-config.js';
+import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store.js';
 import {
   applyConflictResolution,
   assertValidMemoryEntry,
@@ -66,8 +67,7 @@ import {
   type MemoryHit,
   type MemoryRecallQuery,
   type MemoryStore,
-} from '../../engine-core';
-import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store';
+} from '../../engine-core/index.js';
 
 /**
  * 长时记忆 collection 名.

@@ -42,11 +42,15 @@
 //   验证: npx jest test/counselor/session-view.spec.ts 全绿
 //   时间戳: 2026-10-27 13:40 GMT+8
 
-import type { EffectiveMaterial, EffectiveMaterialThresholds } from './session-material';
-import { SessionType } from '../../enums/session-type.enum';
-import { SupervisionFailureCode } from '../../enums/supervision-failure-code.enum';
-import { TrainingSessionStatus } from '../../enums/training-session-status.enum';
-import { resolveSessionReportState, type SessionReportStatus, type SessionSchoolFeedbackState } from '../session-core/session-core.types';
+import type { EffectiveMaterial, EffectiveMaterialThresholds } from './session-material.js';
+import { SessionType } from '../../enums/session-type.enum.js';
+import { SupervisionFailureCode } from '../../enums/supervision-failure-code.enum.js';
+import { TrainingSessionStatus } from '../../enums/training-session-status.enum.js';
+import {
+  resolveSessionReportState,
+  type SessionReportStatus,
+  type SessionSchoolFeedbackState,
+} from '../session-core/session-core.types.js';
 
 /**
  * 列表项的会话类型取值 (2 档).

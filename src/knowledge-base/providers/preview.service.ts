@@ -17,14 +17,14 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { LlmService } from '../../agent/llm/llm.service';
+import { LlmService } from '../../agent/llm/llm.service.js';
 // V2026-10-12 治本 (Phase 8.4 — Preview import path):
 //   LlmMessage 在 llm.types.ts, llm.service.ts 只 import 不 re-export.
 //   治本: 拆 2 个 import, 类型从 types 取 (跟 7.x 客户端 dartz show Either 同 pattern,
 //   显式 import 类型不走 value path).
-import { LlmMessage } from '../../agent/llm/llm.types';
-import { PreviewPersonaDto, PreviewRequestDto, PreviewResponseDto } from '../dto/preview.dto';
-import { KnowledgeItem } from '../entities/knowledge-item.entity';
+import { LlmMessage } from '../../agent/llm/llm.types.js';
+import { PreviewPersonaDto, PreviewRequestDto, PreviewResponseDto } from '../dto/preview.dto.js';
+import { KnowledgeItem } from '../entities/knowledge-item.entity.js';
 
 @Injectable()
 export class PreviewService {

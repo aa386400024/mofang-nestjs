@@ -13,11 +13,11 @@
 //
 //   验证: npx jest test/counselor/drill-judge.spec.ts 全绿
 //   时间戳: 2026-10-27 21:55 GMT+8
-import { listDrillScripts, validateDrillScripts } from '../../src/counselor/drills/config/drill-registry';
-import { BOUNDARY_DRILL_SCRIPTS } from '../../src/counselor/drills/config/scripts/boundary/boundary-scripts';
-import { CRISIS_DRILL_SCRIPTS } from '../../src/counselor/drills/config/scripts/crisis/crisis-scripts';
-import { judgeDrill, matchDrillAnchors } from '../../src/counselor/drills/domain/drill-judge';
-import type { DrillScript } from '../../src/counselor/drills/domain/drill.types';
+import { listDrillScripts, validateDrillScripts } from '../../src/counselor/drills/config/drill-registry.js';
+import { BOUNDARY_DRILL_SCRIPTS } from '../../src/counselor/drills/config/scripts/boundary/boundary-scripts.js';
+import { CRISIS_DRILL_SCRIPTS } from '../../src/counselor/drills/config/scripts/crisis/crisis-scripts.js';
+import { judgeDrill, matchDrillAnchors } from '../../src/counselor/drills/domain/drill-judge.js';
+import type { DrillScript } from '../../src/counselor/drills/domain/drill.types.js';
 
 /**
  * 取一个 boundary 剧本 (按 drillId 精确取, 避免用例依赖数组顺序).
@@ -99,11 +99,13 @@ describe('boundary 三档判定 (§2.2 优先级规则)', () => {
 
   it('否定守卫: 命中词前有否定字时该次命中不计入, 但同词后面的未否定出现仍计入', () => {
     const script = boundaryScript('boundary_wechat_contact');
-    const signals = matchDrillAnchors(script, '我不加微信, 但我加你微信行不行');
+    // V2026-11-02: 第二次必须命中 antiKeywords 里配的词 ('那我加你'), 否则 antiHit 恒 null.
+    //   原输入 "我加你微信" 不在 antiKeywords 表 (表里是 '那我加你'), 测试跟配置不同步.
+    const signals = matchDrillAnchors(script, '我不加微信, 但那我加你微信行不行');
     const hold = signals.find((signal) => signal.pointKey === 'holdsBoundary');
     expect(hold).toBeDefined();
     // 第一次出现被否定, 第二次未被否定 → 以未否定的那次为准.
-    expect(hold?.antiHit).toBe('我加你');
+    expect(hold?.antiHit).toBe('那我加你');
   });
 
   it('覆盖清单与批注自洽: 每个锚点在 covered/missed 里恰好出现一次, 且都有对应批注', () => {
@@ -150,12 +152,15 @@ describe('crisis 判定 (§3.2 只出覆盖清单, 不判档)', () => {
     expect(result.missedPointKeys).toHaveLength(0);
   });
 
-  it('评判式回应 → 不评判锚点未覆盖, 且给"这里可以多问一句"方向提示', () => {
+  it('评判式回应 → 不评判锚点越位 (antiHit 命中), 给"出现了这类措辞"方向提示', () => {
     const script = crisisScript('crisis_no_support_anchor');
     const result = judgeDrill(script, '别想太多了, 别人比你惨多了。多讲讲是什么让你觉得谁都靠不上?');
     expect(result.coveredPointKeys).not.toContain('nonJudgmental');
     expect(result.missedPointKeys).toContain('nonJudgmental');
+    // V2026-11-02: "别想太多" 命中 nonJudgmental 的 antiKeywords, 走越位提示分支
+    //   (buildAnchorItem 第一支), 不是 missedHint 分支. "多问一句" 是 openProbe 的
+    //   missedHint, 跟 nonJudgmental 无关 —— 原测试 pointKey 找错了锚点.
     const item = result.items.find((entry) => entry.pointKey === 'nonJudgmental');
-    expect(item?.text).toContain('多问一句');
+    expect(item?.text).toContain('别想太多');
   });
 });

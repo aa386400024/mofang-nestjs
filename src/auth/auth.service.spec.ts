@@ -4,9 +4,9 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
 
-import type { JwtPayload, Payload } from './auth.interface';
-import { AuthService } from './auth.service';
-import { UserService } from '../shared/user';
+import type { JwtPayload, Payload } from './auth.interface.js';
+import { AuthService } from './auth.service.js';
+import { UserService } from '../shared/user/index.js';
 
 const payload: Payload = { userId: 'test', username: 'foobar', roles: ['test'] };
 

@@ -2,8 +2,8 @@ import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { TerminusModule } from '@nestjs/terminus';
 
-import * as controllers from './controllers';
-import { UserModule } from '../user/user.module';
+import * as controllers from './controllers/index.js';
+import { UserModule } from '../user/user.module.js';
 
 /**
  * Base module — V1.1 升级: 接入真 UserService (V2 enterprise).

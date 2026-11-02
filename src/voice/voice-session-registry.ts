@@ -21,7 +21,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 
-import type { VoiceSessionRegistration } from './voice-session.types';
+import type { VoiceSessionRegistration } from './voice-session.types.js';
 
 /**
  * 演练登记处 (进程内内存).

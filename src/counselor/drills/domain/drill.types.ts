@@ -26,9 +26,9 @@
 //     3. drillId 为稳定 slug: 一旦发布即对外契约, 不改名
 //   时间戳: 2026-10-27 19:35 GMT+8
 
-import { PracticeDifficulty } from '../../enums/practice-difficulty.enum';
-import { PracticeFeedbackSource } from '../../enums/practice-feedback-source.enum';
-import { PracticeFeedbackTone } from '../../enums/practice-feedback-tone.enum';
+import { PracticeDifficulty } from '../../enums/practice-difficulty.enum.js';
+import { PracticeFeedbackSource } from '../../enums/practice-feedback-source.enum.js';
+import { PracticeFeedbackTone } from '../../enums/practice-feedback-tone.enum.js';
 
 /**
  * 情景演练赛道 (应用层字符串, 不落 DB ENUM).

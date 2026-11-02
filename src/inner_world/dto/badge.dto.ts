@@ -1,6 +1,6 @@
 import { IsEnum, IsOptional, IsString, Length } from 'class-validator';
 
-import { BadgeId } from '../enums/badge-id.enum';
+import { BadgeId } from '../enums/badge-id.enum.js';
 
 /**
  * 徽章 DTO 集合.

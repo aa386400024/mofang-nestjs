@@ -29,7 +29,7 @@
 //   时间戳: 2026-10-23
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-import { VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH } from '../config/visitor-pool.config';
+import { VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH } from '../config/visitor-pool.config.js';
 
 /**
  * visitor_pool_favorites 表 —— 用户与公共来访模板的收藏关系.

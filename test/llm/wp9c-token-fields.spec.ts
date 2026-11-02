@@ -12,8 +12,8 @@
 //   验证: npx jest test/llm/wp9c-token-fields.spec.ts
 //   时间戳: 2026-10-29 GMT+8
 
-import type { ChatCompletionRequest } from '../../src/llm/common/interfaces/chat-provider.interface';
-import { MinimaxChatProvider } from '../../src/llm/providers/minimax.provider';
+import type { ChatCompletionRequest } from '../../src/llm/common/interfaces/chat-provider.interface.js';
+import { MinimaxChatProvider } from '../../src/llm/providers/minimax.provider.js';
 
 /** 构造出的 LangChain 客户端上关心的字段 (只取断言用到的). */
 interface BuiltLlm {

@@ -12,10 +12,10 @@
 import { Body, Controller, Post, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 
-import { LlmService } from './llm.service';
-import type { LlmMessage } from './llm.types';
-import { JwtAuthGuard } from '../../auth/guards';
-import { TenantId, UserId } from '../../common/decorators';
+import { LlmService } from './llm.service.js';
+import type { LlmMessage } from './llm.types.js';
+import { JwtAuthGuard } from '../../auth/guards/index.js';
+import { TenantId, UserId } from '../../common/decorators/index.js';
 
 interface StreamChatDto {
   readonly messages: readonly LlmMessage[];

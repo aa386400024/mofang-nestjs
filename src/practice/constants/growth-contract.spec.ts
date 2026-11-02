@@ -14,10 +14,10 @@
  *     - 两层都过才算契约真正对齐
  */
 
-import { GrowthContractInit } from '../growth-contract-init';
-import { assertLinkRouteWhitelistSync } from './allowed-link-routes';
-import { assertFragmentTypeContract } from './fragment-type-code';
-import { assertToolCompletionSourceContract, TOOL_COMPLETION_SOURCES, ToolCompletionSource } from './tool-completion-source';
+import { GrowthContractInit } from '../growth-contract-init.js';
+import { assertLinkRouteWhitelistSync } from './allowed-link-routes.js';
+import { assertFragmentTypeContract } from './fragment-type-code.js';
+import { assertToolCompletionSourceContract, TOOL_COMPLETION_SOURCES, ToolCompletionSource } from './tool-completion-source.js';
 
 describe('V2026-09-14 长期方案 Stage C: Growth 启动期契约', () => {
   describe('assertToolCompletionSourceContract — 9 source enum', () => {

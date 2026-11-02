@@ -32,8 +32,8 @@
 import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
 import {
   InstantiateVisitorPoolDto,
@@ -42,8 +42,8 @@ import {
   VisitorPoolInstantiateResultDto,
   VisitorPoolListDto,
   VisitorPoolQueryDto,
-} from '../dto/visitor-pool.dto';
-import { VisitorPoolService } from '../providers/visitor-pool.service';
+} from '../dto/visitor-pool.dto.js';
+import { VisitorPoolService } from '../providers/visitor-pool.service.js';
 
 /**
  * V2026-10-23 (AI 模拟来访池 — CounselorVisitorPoolController):

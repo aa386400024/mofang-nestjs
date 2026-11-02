@@ -17,10 +17,10 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { AnalyticsController } from './controllers/analytics.controller';
-import { AnalyticsEvent } from './entities/analytics-event.entity';
-import { AnalyticsEventTrackerService } from './providers/analytics-event-tracker.service';
-import { AnalyticsService } from './providers/analytics.service';
+import { AnalyticsController } from './controllers/analytics.controller.js';
+import { AnalyticsEvent } from './entities/analytics-event.entity.js';
+import { AnalyticsEventTrackerService } from './providers/analytics-event-tracker.service.js';
+import { AnalyticsService } from './providers/analytics.service.js';
 
 @Module({
   imports: [TypeOrmModule.forFeature([AnalyticsEvent])],

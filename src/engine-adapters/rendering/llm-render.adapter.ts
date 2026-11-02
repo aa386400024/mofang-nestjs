@@ -70,10 +70,10 @@
 import { Logger } from '@nestjs/common';
 import { clearTimeout, setTimeout } from 'node:timers';
 
-import type { RenderAdapterConfig, RenderCandidate } from './render-adapter.config';
-import { RenderFailoverRuntime, type RenderCandidateHealth } from './render-failover.runtime';
-import type { AdaptiveRenderSpec, RenderRiskLevel } from './render-risk';
-import { dropUnclosedTail, splitClosedPrefix } from './render-truncation';
+import type { RenderAdapterConfig, RenderCandidate } from './render-adapter.config.js';
+import { RenderFailoverRuntime, type RenderCandidateHealth } from './render-failover.runtime.js';
+import type { AdaptiveRenderSpec, RenderRiskLevel } from './render-risk.js';
+import { dropUnclosedTail, splitClosedPrefix } from './render-truncation.js';
 import {
   splitTextIntoDeltas,
   type RenderGuardVerdict,
@@ -81,7 +81,7 @@ import {
   type StreamRenderHandlers,
   type StreamRenderOutcome,
   type StreamingRenderPort,
-} from './streaming-render.port';
+} from './streaming-render.port.js';
 import {
   evaluateSafety,
   guardVisitorOutput,
@@ -89,14 +89,14 @@ import {
   type RenderResult,
   type RenderSpec,
   type RiskProbePort,
-} from '../../engine-core';
+} from '../../engine-core/index.js';
 import type {
   ChatCompletionChunk,
   ChatCompletionRequest,
   ChatCompletionResponse,
   ChatMessage,
   ChatReasoningEffort,
-} from '../../llm/common/interfaces/chat-provider.interface';
+} from '../../llm/common/interfaces/chat-provider.interface.js';
 
 /**
  * 流式调用选项 (窄面).

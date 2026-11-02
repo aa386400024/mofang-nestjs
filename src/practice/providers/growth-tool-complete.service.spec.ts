@@ -19,10 +19,10 @@ import { vi } from 'vitest';
  *   - 不测 controller 层 (单测聚焦 service)
  */
 
-import { GrowthDailyToolsService } from './growth-daily-tools.service';
-import { GrowthToolCompleteService } from './growth-tool-complete.service';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
+import { GrowthDailyToolsService } from './growth-daily-tools.service.js';
+import { GrowthToolCompleteService } from './growth-tool-complete.service.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
 
 describe('V2026-09-14 GrowthToolCompleteService — 单测', () => {
   let service: GrowthToolCompleteService;

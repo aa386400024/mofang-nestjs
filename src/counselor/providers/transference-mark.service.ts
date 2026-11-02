@@ -23,10 +23,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
-import { type CreateTransferenceMarkDto, type TransferenceMarkDto } from '../dto/session-core.dto';
-import { TrainingSession } from '../entities/training-session.entity';
-import { TransferenceResistanceMark } from '../entities/transference-resistance-mark.entity';
-import { TransferenceMarkDirection } from '../enums/transference-mark.enum';
+import { type CreateTransferenceMarkDto, type TransferenceMarkDto } from '../dto/session-core.dto.js';
+import { TrainingSession } from '../entities/training-session.entity.js';
+import { TransferenceResistanceMark } from '../entities/transference-resistance-mark.entity.js';
+import { TransferenceMarkDirection } from '../enums/transference-mark.enum.js';
 
 /**
  * 双向移情/阻抗标记 service.

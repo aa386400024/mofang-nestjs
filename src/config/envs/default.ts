@@ -7,7 +7,7 @@ import {
   SUPERVISION_REPORT_PENDING_TIMEOUT_MS,
   SUPERVISION_REPORT_STREAM_POLL_INTERVAL_MS,
   SUPERVISION_REPORT_STREAM_TIMEOUT_MS,
-} from '../../counselor/config/supervision.config';
+} from '../../counselor/config/supervision.config.js';
 
 export const config = {
   db: {},

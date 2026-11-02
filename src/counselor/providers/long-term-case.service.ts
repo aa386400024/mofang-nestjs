@@ -35,17 +35,17 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
-import { LON_TERM_CASE_PRESETS } from '../config/long-term-case-presets';
+import { LON_TERM_CASE_PRESETS } from '../config/long-term-case-presets.js';
 import {
   type CreateLongTermCaseDto,
   type LongTermCaseDetailDto,
   type LongTermCaseListItemDto,
   type LongTermCaseSessionListItemDto,
   type NextSessionContextDto,
-} from '../dto/long-term-case.dto';
-import { LongTermCaseSession, type NextSessionContext } from '../entities/long-term-case-session.entity';
-import { LongTermCase } from '../entities/long-term-case.entity';
-import { LongTermCaseStatus } from '../enums/long-term-case-status.enum';
+} from '../dto/long-term-case.dto.js';
+import { LongTermCaseSession, type NextSessionContext } from '../entities/long-term-case-session.entity.js';
+import { LongTermCase } from '../entities/long-term-case.entity.js';
+import { LongTermCaseStatus } from '../enums/long-term-case-status.enum.js';
 
 /**
  * V2026-10-15 (V1.x counselor-mode W1-2 — LongTermCaseService):

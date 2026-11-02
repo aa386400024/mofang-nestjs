@@ -14,9 +14,9 @@
 
 import { Controller, Get, UseGuards } from '@nestjs/common';
 
-import { AsrTokenService, type AsrTokenInfo } from './asr-token.service';
-import { JwtAuthGuard } from '../../auth/guards';
-import { TenantId, UserId } from '../../common/decorators';
+import { AsrTokenService, type AsrTokenInfo } from './asr-token.service.js';
+import { JwtAuthGuard } from '../../auth/guards/index.js';
+import { TenantId, UserId } from '../../common/decorators/index.js';
 
 @Controller('voice/asr-token')
 @UseGuards(JwtAuthGuard)

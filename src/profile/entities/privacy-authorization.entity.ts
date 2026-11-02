@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import type { PrivacyAuthorizationStatus, PrivacyAuthorizationType } from '../../shared/types/practice.types';
-import { User } from '../../user/entities/user.entity';
+import type { PrivacyAuthorizationStatus, PrivacyAuthorizationType } from '../../shared/types/practice.types.js';
+import { User } from '../../user/entities/user.entity.js';
 
 /**
  * 隐私授权记录 entity — V2.0 §Tab4 「授权管理」.

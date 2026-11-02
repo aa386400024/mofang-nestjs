@@ -39,8 +39,8 @@ import type {
   CharacterProfileResolver,
   CharacterResolveRequest,
   ResolvedCharacter,
-} from './character-profile.resolver';
-import type { AttachmentStyle, BdiResistance, CharacterProfile, CoreBelief, UnderlyingDesireSeed } from '../../../engine-core';
+} from './character-profile.resolver.js';
+import type { AttachmentStyle, BdiResistance, CharacterProfile, CoreBelief, UnderlyingDesireSeed } from '../../../engine-core/index.js';
 
 /**
  * 内置角色种子 (纯数据).

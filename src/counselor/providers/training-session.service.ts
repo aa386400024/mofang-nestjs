@@ -39,34 +39,34 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomInt } from 'node:crypto';
 import { In, IsNull, Repository } from 'typeorm';
 
-import { CounselorSupervisionProcessor } from './counselor-supervision.processor';
-import { TurnAnalysisProcessor } from './turn-analysis.processor';
+import { CounselorSupervisionProcessor } from './counselor-supervision.processor.js';
+import { TurnAnalysisProcessor } from './turn-analysis.processor.js';
 import {
   SUPERVISION_REPORT_REPOSITORY,
   type SupervisionReportRepository,
-} from '../../agent/supervisor/domain/repositories/supervision-report.repository';
-import type { SupervisionReportRow } from '../../agent/supervisor/supervisor.types';
-import { SUPERVISION_MIN_EFFECTIVE_CHARS, SUPERVISION_MIN_EFFECTIVE_TURNS } from '../config/supervision.config';
-import { VPT_SCENARIO_ID } from '../config/vpt.config';
+} from '../../agent/supervisor/domain/repositories/supervision-report.repository.js';
+import type { SupervisionReportRow } from '../../agent/supervisor/supervisor.types.js';
+import { SUPERVISION_MIN_EFFECTIVE_CHARS, SUPERVISION_MIN_EFFECTIVE_TURNS } from '../config/supervision.config.js';
+import { VPT_SCENARIO_ID } from '../config/vpt.config.js';
 import {
   resolveHasMainReportChannel,
   resolveSchoolFeedbackState,
   toSupervisionFailureCode,
   type SchoolFeedbackRow,
   type SessionSchoolFeedbackState,
-} from '../domain/session-core/session-core.types';
-import { checkSessionTransition, isTerminalSessionStatus } from '../domain/session-status.guard';
+} from '../domain/session-core/session-core.types.js';
+import { checkSessionTransition, isTerminalSessionStatus } from '../domain/session-status.guard.js';
 import {
   isInsufficientMaterial,
   measureEffectiveMaterial,
   type EffectiveMaterialThresholds,
-} from '../domain/session-view/session-material';
+} from '../domain/session-view/session-material.js';
 import {
   resolveSessionListDurationSeconds,
   resolveSessionListInterrupted,
   resolveSessionListReportAggregate,
   resolveSessionTypeByScenarioId,
-} from '../domain/session-view/session-view.types';
+} from '../domain/session-view/session-view.types.js';
 import {
   type AppendTranscriptDto,
   type CreateTrainingSessionDto,
@@ -76,18 +76,18 @@ import {
   type TrainingSessionListItemDto,
   type TrainingSessionListQueryDto,
   type UpdateTrainingSessionStatusDto,
-} from '../dto/training-session.dto';
-import { SupervisionFeedback } from '../entities/supervision-feedback.entity';
-import { SupervisionSchool } from '../entities/supervision-school.entity';
-import { TrainingSession, type TrainingTranscriptTurn } from '../entities/training-session.entity';
-import { ChatRole } from '../enums/chat-role.enum';
-import { DimensionVariance } from '../enums/dimension-variance.enum';
-import { SessionType } from '../enums/session-type.enum';
-import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
-import { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import { TrainingSessionStatus } from '../enums/training-session-status.enum';
-import { VisitorMode } from '../enums/visitor-mode.enum';
-import { VisitorStyle } from '../enums/visitor-style.enum';
+} from '../dto/training-session.dto.js';
+import { SupervisionFeedback } from '../entities/supervision-feedback.entity.js';
+import { SupervisionSchool } from '../entities/supervision-school.entity.js';
+import { TrainingSession, type TrainingTranscriptTurn } from '../entities/training-session.entity.js';
+import { ChatRole } from '../enums/chat-role.enum.js';
+import { DimensionVariance } from '../enums/dimension-variance.enum.js';
+import { SessionType } from '../enums/session-type.enum.js';
+import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum.js';
+import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import { TrainingSessionStatus } from '../enums/training-session-status.enum.js';
+import { VisitorMode } from '../enums/visitor-mode.enum.js';
+import { VisitorStyle } from '../enums/visitor-style.enum.js';
 
 /** 难度 → 计划时长 (分钟), 跟 V0.5 client 1:1 (L1=10 / L2=15 / L3=20). */
 const DURATION_BY_DIFFICULTY: Readonly<Record<TrainingDifficulty, number>> = {

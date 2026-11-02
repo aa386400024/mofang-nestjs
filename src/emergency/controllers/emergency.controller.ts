@@ -9,15 +9,15 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 // V2026-09-04 治本 (smoke 修): 上游使用 UpsertEmergencySessionDto 为 Body 参数,
 //   必须真 import, 不用 `import type`. `import type` 编译时擦除, runtime 拿不到 DTO class,
 //   NestJS design:paramtypes metadata 退化成 `Function`, ValidationPipe 不会调 plainToClass,
 //   dto 永远 {}, service 调 dto.startedAtMs.toString() 必崩. 同类问题 V6.0 §3.1 ai-profile 上轮修复.
 //   EmergencySessionDto / EmergencySessionListDto 是响应型, 用 `import type` 没问题.
-import { EmergencySessionDto, EmergencySessionListDto, UpsertEmergencySessionDto } from '../dto/emergency.dto';
-import { EmergencyService } from '../providers/emergency.service';
+import { EmergencySessionDto, EmergencySessionListDto, UpsertEmergencySessionDto } from '../dto/emergency.dto.js';
+import { EmergencyService } from '../providers/emergency.service.js';
 
 @ApiTags('emergency')
 @Controller('emergency')

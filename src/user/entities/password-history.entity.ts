@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
-import { User } from './user.entity';
+import { User } from './user.entity.js';
 
 /**
  * Password history entity — 密码历史 (大厂安全合规).

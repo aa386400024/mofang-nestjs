@@ -11,12 +11,12 @@
 //        流式 chat 正常.
 //     2. 豆包 embedding 走方舟 embedding endpoint, 维度 1024/2048 可选.
 
-import { OpenAICompatibleChatProvider, type OpenAICompatibleConfig } from '../common/base/openai-compatible-chat.provider';
+import { OpenAICompatibleChatProvider, type OpenAICompatibleConfig } from '../common/base/openai-compatible-chat.provider.js';
 import {
   OpenAICompatibleEmbeddingProvider,
   type OpenAICompatibleEmbeddingConfig,
-} from '../common/base/openai-compatible-embedding.provider';
-import { AIProviderId } from '../common/enums/llm.enums';
+} from '../common/base/openai-compatible-embedding.provider.js';
+import { AIProviderId } from '../common/enums/llm.enums.js';
 
 /**
  * 豆包 Chat Provider — 火山方舟 OpenAI 兼容协议.

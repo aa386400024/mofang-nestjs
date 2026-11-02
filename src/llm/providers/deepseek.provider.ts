@@ -14,12 +14,12 @@
 //     3. POST /v1/embeddings 用 model=deepseek-embedding 向量维度
 //        匹配 Qdrant collection (1536).
 
-import { OpenAICompatibleChatProvider, type OpenAICompatibleConfig } from '../common/base/openai-compatible-chat.provider';
+import { OpenAICompatibleChatProvider, type OpenAICompatibleConfig } from '../common/base/openai-compatible-chat.provider.js';
 import {
   OpenAICompatibleEmbeddingProvider,
   type OpenAICompatibleEmbeddingConfig,
-} from '../common/base/openai-compatible-embedding.provider';
-import { AIProviderId } from '../common/enums/llm.enums';
+} from '../common/base/openai-compatible-embedding.provider.js';
+import { AIProviderId } from '../common/enums/llm.enums.js';
 
 /**
  * DeepSeek Chat Provider.

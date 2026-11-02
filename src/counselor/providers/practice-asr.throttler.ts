@@ -36,9 +36,9 @@ import {
   type ThrottlerStorage,
 } from '@nestjs/throttler';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { PRACTICE_ASR_THROTTLER_NAME } from '../config/practice-asr.config';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { PRACTICE_ASR_THROTTLER_NAME } from '../config/practice-asr.config.js';
 
 /**
  * STT 端点专用限流 guard.

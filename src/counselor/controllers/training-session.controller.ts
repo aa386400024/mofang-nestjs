@@ -23,8 +23,8 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
 // V2026-10-21 治本 (V1.2 VS-A — DTO 必须值导入, 不能用 `import { type X }`):
 //   原因: 全局 ValidationPipe (src/app.module.ts:255) 开了 transform + whitelist, 它靠
@@ -47,8 +47,8 @@ import {
   TrainingSessionListItemDto,
   TrainingSessionListQueryDto,
   UpdateTrainingSessionStatusDto,
-} from '../dto/training-session.dto';
-import { TrainingSessionService } from '../providers/training-session.service';
+} from '../dto/training-session.dto.js';
+import { TrainingSessionService } from '../providers/training-session.service.js';
 
 /**
  * V2026-10-21 (V1.2 VS-A — CounselorTrainingSessionController):

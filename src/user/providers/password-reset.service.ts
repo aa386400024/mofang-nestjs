@@ -5,18 +5,18 @@ import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
 import { IsNull, Repository } from 'typeorm';
 
-import { JwtBlacklistService } from './jwt-blacklist.service';
-import { PasswordHistoryService } from './password-history.service';
-import { SessionService } from './session.service';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { EmailService } from '../../shared/infra/email';
-import { MetricsService } from '../../shared/infra/metrics';
-import { RedisService } from '../../shared/infra/redis';
-import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants';
+import { JwtBlacklistService } from './jwt-blacklist.service.js';
+import { PasswordHistoryService } from './password-history.service.js';
+import { SessionService } from './session.service.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { EmailService } from '../../shared/infra/email/index.js';
+import { MetricsService } from '../../shared/infra/metrics/index.js';
+import { RedisService } from '../../shared/infra/redis/index.js';
+import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants.js';
 
-import { User } from '../entities/user.entity';
-import { SessionRevokeReason } from '../user.constant';
+import { User } from '../entities/user.entity.js';
+import { SessionRevokeReason } from '../user.constant.js';
 
 /**
  * Password reset service — 忘记密码 / 重置密码 (大厂标准).

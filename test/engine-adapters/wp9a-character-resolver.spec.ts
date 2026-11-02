@@ -28,7 +28,7 @@ import {
   BuiltinCharacterProfileResolver,
   stableSeedFromKey,
   type CharacterPresetInput,
-} from '../../src/engine-adapters/wiring/character';
+} from '../../src/engine-adapters/wiring/character/index.js';
 
 const PRESET: CharacterPresetInput = {
   difficulty: 'L2',

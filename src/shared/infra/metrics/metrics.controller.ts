@@ -1,10 +1,10 @@
 import { Controller, Get, Header, Res } from '@nestjs/common';
 import type { Response } from 'express';
 
-import { MetricsService } from './metrics.service';
+import { MetricsService } from './metrics.service.js';
 // ⚠️ 必须直接 import 文件, 详见 redis.service.ts 治本注释.
-import { Public } from '../../../common/decorators/public.decorator';
-import { ConfigService } from '../../../common/providers/config.service';
+import { Public } from '../../../common/decorators/public.decorator.js';
+import { ConfigService } from '../../../common/providers/config.service.js';
 
 /**
  * Metrics controller — Prometheus scrape endpoint.

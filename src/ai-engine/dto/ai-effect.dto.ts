@@ -4,7 +4,7 @@
 
 import { ApiProperty } from '@nestjs/swagger';
 
-import { AIEffectHorizon } from '../enums/ai-effect.enums';
+import { AIEffectHorizon } from '../enums/ai-effect.enums.js';
 
 /**
  * 单次短期效果上报 — POST /ai/effect/immediate.

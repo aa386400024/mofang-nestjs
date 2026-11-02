@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { User } from './user.entity';
+import { User } from './user.entity.js';
 
 /**
  * OAuth provider enum — 第三方登录 provider 枚举.

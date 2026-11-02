@@ -23,7 +23,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 
-import type { VoiceTemplateSummary } from './voice-session.types';
+import type { VoiceTemplateSummary } from './voice-session.types.js';
 
 /**
  * 模板解析器 (业务侧实现).

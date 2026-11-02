@@ -7,8 +7,8 @@
 
 import { ApiProperty } from '@nestjs/swagger';
 
-import { KnowledgeStatus } from '../enums/knowledge-status.enum';
-import { KnowledgeType } from '../enums/knowledge-type.enum';
+import { KnowledgeStatus } from '../enums/knowledge-status.enum.js';
+import { KnowledgeType } from '../enums/knowledge-type.enum.js';
 
 /**
  * 排序字段 — 跟客户端 7.2 KnowledgeSortBy 严格 wire 字符串.

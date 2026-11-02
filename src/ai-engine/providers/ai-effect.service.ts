@@ -9,9 +9,9 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import type { AIEffectHistoryDto, AIEffectRecordDto, RecordImmediateEffectDto } from '../dto/ai-effect.dto';
-import { AIEffectRecordEntity } from '../entities/ai-effect-record.entity';
-import { AIEffectHorizon } from '../enums/ai-effect.enums';
+import type { AIEffectHistoryDto, AIEffectRecordDto, RecordImmediateEffectDto } from '../dto/ai-effect.dto.js';
+import { AIEffectRecordEntity } from '../entities/ai-effect-record.entity.js';
+import { AIEffectHorizon } from '../enums/ai-effect.enums.js';
 
 /**
  * AI 干预效果服务 — §3.4.

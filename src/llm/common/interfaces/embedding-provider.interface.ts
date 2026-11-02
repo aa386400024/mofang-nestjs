@@ -8,7 +8,7 @@
 //   如何验证: EmbeddingProvider.embed([...]) 返回 number[][] (每条
 //             文本一个向量), 维度跟厂商模型一致 (e.g. text-embedding-3-small = 1536).
 
-import type { AIProviderId, LLMCapability } from '../enums/llm.enums';
+import type { AIProviderId, LLMCapability } from '../enums/llm.enums.js';
 
 /**
  * 单条 embedding 请求.

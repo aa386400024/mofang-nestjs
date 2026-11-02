@@ -1,30 +1,30 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { HomeCompanionOverviewController } from './controllers/home-companion-overview.controller';
-import { CompanionBinding } from '../profile/entities/companion-binding.entity';
-import { UserProfile } from '../profile/entities/user-profile.entity';
-import { ProfileModule } from '../profile/profile.module';
-import { User } from '../user/entities/user.entity';
-import { UserModule } from '../user/user.module';
+import { HomeCompanionOverviewController } from './controllers/home-companion-overview.controller.js';
+import { CompanionBinding } from '../profile/entities/companion-binding.entity.js';
+import { UserProfile } from '../profile/entities/user-profile.entity.js';
+import { ProfileModule } from '../profile/profile.module.js';
+import { User } from '../user/entities/user.entity.js';
+import { UserModule } from '../user/user.module.js';
 
-import { HomeCompanionController } from './controllers/home-companion.controller';
-import { HomeMessagesController } from './controllers/home-messages.controller';
-import { HomeMicroInterventionController } from './controllers/home-micro-intervention.controller';
-import { HomeOverviewController } from './controllers/home-overview.controller';
-import { HomeMessage } from './entities/home-message.entity';
-import { MicroInterventionConfig } from './entities/micro-intervention-config.entity';
-import { MicroInterventionHistory } from './entities/micro-intervention-history.entity';
-import { MicroInterventionScenario } from './entities/micro-intervention-scenario.entity';
-import { MoodLog } from './entities/mood-log.entity';
-import { HomeCompanionService } from './providers/home-companion.service';
-import { HomeMessagesService } from './providers/home-messages.service';
-import { HomeMicroInterventionScenarioService } from './providers/home-micro-intervention-scenario.service';
-import { HomeMicroInterventionStatsService } from './providers/home-micro-intervention-stats.service';
-import { HomeMicroInterventionService } from './providers/home-micro-intervention.service';
-import { HomeMoodLogService } from './providers/home-mood-log.service';
-import { HomeOverviewService } from './providers/home-overview.service';
-import { HomeRecommendationEngine } from './providers/home-recommendation.engine';
+import { HomeCompanionController } from './controllers/home-companion.controller.js';
+import { HomeMessagesController } from './controllers/home-messages.controller.js';
+import { HomeMicroInterventionController } from './controllers/home-micro-intervention.controller.js';
+import { HomeOverviewController } from './controllers/home-overview.controller.js';
+import { HomeMessage } from './entities/home-message.entity.js';
+import { MicroInterventionConfig } from './entities/micro-intervention-config.entity.js';
+import { MicroInterventionHistory } from './entities/micro-intervention-history.entity.js';
+import { MicroInterventionScenario } from './entities/micro-intervention-scenario.entity.js';
+import { MoodLog } from './entities/mood-log.entity.js';
+import { HomeCompanionService } from './providers/home-companion.service.js';
+import { HomeMessagesService } from './providers/home-messages.service.js';
+import { HomeMicroInterventionScenarioService } from './providers/home-micro-intervention-scenario.service.js';
+import { HomeMicroInterventionStatsService } from './providers/home-micro-intervention-stats.service.js';
+import { HomeMicroInterventionService } from './providers/home-micro-intervention.service.js';
+import { HomeMoodLogService } from './providers/home-mood-log.service.js';
+import { HomeOverviewService } from './providers/home-overview.service.js';
+import { HomeRecommendationEngine } from './providers/home-recommendation.engine.js';
 
 /**
  * Home module — 心塑「首页」V2.0 模块 (大厂企业级).

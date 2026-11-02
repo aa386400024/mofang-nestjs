@@ -13,7 +13,7 @@
 //     更 idiomatic, for-of 即可消费.
 //   - 不用 LlmResponse 单类型 — 流式天然多事件, union type 强制 type 判别.
 
-import type { ChatReasoningEffort } from '../../llm/common/interfaces/chat-provider.interface';
+import type { ChatReasoningEffort } from '../../llm/common/interfaces/chat-provider.interface.js';
 
 /** OpenAI 风格 message. */
 export interface LlmMessage {
