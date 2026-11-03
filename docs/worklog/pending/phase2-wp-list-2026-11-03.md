@@ -1,4 +1,4 @@
-# Phase2 工作包清单（WP27–WP47）
+# Phase2 工作包清单（WP27–WP48）
 
 > **路径**：`docs/worklog/pending/phase2-wp-list-2026-11-03.md`
 > **配套**：[`phase2-overview-2026-11-03.md`](phase2-overview-2026-11-03.md)（总览文档，含依赖关系与验收标准）
@@ -8,14 +8,14 @@
 
 ## 第一批（并行开工，互不依赖）
 
-| WP | 名称 | 优先级 | 一句话描述 | 预估 |
-|---|---|---|---|---|
-| **WP27** | billing 接真支付 | 🔴 P0 | 微信支付 V2 + 支付宝当面付接入，订单落库，回调验签，替换现有内存 mock | 中 |
-| **WP28** | WP11 回改正式值 | 🔴 P0 | PsyGUARD 超时 500ms→150ms、token 窗口 256→28，内测前改回生产值 | 小 |
-| **WP29** | 数据分级留存与销毁 | 🔴 P0 | 用户删除权（对话+记忆+账号）、导出权、数据分级策略落地 | 中 |
-| **WP30** | Admin Dashboard 切真 API | 🔴 P0 | CharacterDetail + SessionDetail 接 `/admin/api/*` 真数据，去掉 mock 标识 | 中 |
-| **WP31** | 成本看板与告警 | 🔴 P0 | 成本看板展示 token 消耗/用户/会话，超阈值告警规则接入 | 小 |
-| **WP32** | BDI 状态持久化 | 🟡 P1 | 内存态 → Redis/DB，进程重启后可恢复 BDI 快照 | 中 |
+| WP | 名称 | 优先级 | 一句话描述 | 预估 | 状态 |
+|---|---|---|---|---|---|
+| **WP27** | billing 接真支付 | 🔴 P0 | 微信支付 V2 + 支付宝当面付接入，订单落库，回调验签，替换现有内存 mock | 中 | 📋 |
+| **WP28** ✅ | WP11 回改正式值 | 🔴 P0 | PsyGUARD 超时 500ms→150ms、token 窗口 256→28，内测前改回生产值 | 小 | ✅ [交付记录](../completed/phase2/engine-wp28-psyguard-production-values-implementation-2026-11-03.md) |
+| **WP29** | 数据分级留存与销毁 | 🔴 P0 | 用户删除权（对话+记忆+账号）、导出权、数据分级策略落地 | 中 | 📋 |
+| **WP30** | Admin Dashboard 切真 API | 🔴 P0 | CharacterDetail + SessionDetail 接 `/admin/api/*` 真数据，去掉 mock 标识 | 中 | 📋 |
+| **WP31** | 成本看板与告警 | 🔴 P0 | 成本看板展示 token 消耗/用户/会话，超阈值告警规则接入 | 小 | 📋 |
+| **WP32** | BDI 状态持久化 | 🟡 P1 | 内存态 → Redis/DB，进程重启后可恢复 BDI 快照 | 中 | 📋 |
 
 ---
 
@@ -52,6 +52,7 @@
 | **WP45** | P3 技术债 8 条 | 🟢 P2 | Qdrant `client: any`、`TemplateParameter = any[]`、死配置、cancelled 状态只写不读、状态衰减/边际递减/饱和、Prometheus 告警规则、QdrantMemoryStore 默认值耦合 |
 | **WP46** | Sentry 通道脱敏 | 🟢 P2 | 本地日志已脱敏，Sentry 还是原样上报，补一层脱敏中间件 |
 | **WP47** | supervisor 督导报告切真 DB | 🟢 P2 | V0.x 内存 mock → TypeORM 落库 |
+| **WP48** | env 守卫盲区：分不出「读进 config」与「真被消费」 | 🟢 P2 | `wp25-env-example-coverage.spec.ts` 的 AST 只知道「代码里读没读这个键」，**分不出读进 config 命名空间与真被消费** —— 这类键能一路绿灯过断言①。已在 `.env.example` 底部「预留键（读得到但未消费）」区出现两个实例（`QDRANT_COLLECTION` / `VOICE_SESSION_IDLE_TIMEOUT_MS`）。修法：让守卫顺着 `process.env.X` → `config.get('命名空间.x')` 追一层消费点，把「读得到但无人消费」单列成一类（与「未接线」区分），并守住新区语义 |
 
 ---
 
@@ -61,8 +62,18 @@
 |---|---|---|
 | 🔴 P0 商业化根基 | 8 条 | WP27, 28, 29, 30, 31, 33, 39, 40 |
 | 🟡 P1 专业能力 | 10 条 | WP32, 34, 35, 36, 37, 38, 41, 42, 43, 44 |
-| 🟢 P2 技术债 | 3 条 | WP45, 46, 47 |
-| **合计** | **21 条** | **WP27–WP47** |
+| 🟢 P2 技术债 | 4 条 | WP45, 46, 47, 48 |
+| **合计** | **22 条** | **WP27–WP48** |
+
+**进度：1 / 22 完成**（WP28 ✅，2026-11-03）。
+
+### 🚧 上线前必须一起做的真机项（WP28 遗留）
+
+| # | 事项 | 归属 |
+|---|---|---|
+| 1 | 生产机 `/opt/mofang-nestjs/.env` 的 `PSYGUARD_TIMEOUT_MS` —— **删掉该行**（不设 = 继承内核常量 150）。⚠️ 若线上还留着旧的 `500`，它会盖掉内核常量 → 线上实际仍是 500ms | 运维 |
+| 2 | 生产机 `mofang-psyguard` 容器重建/重启（`PSYG_MAX_LENGTH` 是环境变量，**不重启不生效**） | 运维 |
+| 3 | `admin-dashboard` 的 `PsyGuardMonitor.vue` p90 告警阈值 500 → 150 + i18n 文案同步 | 前端 AI |
 
 ---
 
@@ -88,6 +99,7 @@ _每个 WP 开工前单独写任务单（按 `team/conventions.md` 的交付格�
 
 | WP | 改 engine-core 的什么 | 为什么必须改内核 |
 |---|---|---|
+| WP28 WP11 回改正式值 ✅ | `cognition/safety/assess-safety.ts` 的 `DEFAULT_PROBE_TIMEOUT_MS`（500 → 150） | **探测超时的权威值就住在这个常量里**，适配层与 env 都只是覆盖它；不改内核则 150ms 在咨询师输入面（不传 `timeoutMs` 的那条路径）根本不生效。授权来源：WP25 审查 §1.4 的回改 checklist A1 + 常量文件头自带的回改清单 + **用户 2026-11-03 当面拍板** |
 | WP34 人格调节算子 | BDI 算子库（WP1 基础算子扩展） | 算子是决策层逻辑，放适配层破坏纯层 |
 | WP36 跨会话衰减 | 状态转移函数（WP15 cap 扩展） | 衰减是状态迁移规则，必须在纯层 |
 | WP42 咨询同盟三维 | BDI 状态模型（trust → trust/safety/bond） | 状态结构变化，必须在内核 |

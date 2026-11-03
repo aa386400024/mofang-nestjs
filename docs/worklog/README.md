@@ -14,8 +14,10 @@
 
 > **Phase1 已封版（2026-11-03）**：WP0–WP26 全交付，8 个 P1 + 34 个 P2 全修，1252 例测试全绿。Phase1 backlog 已归档到 `completed/phase1/phase1-backlog-archived-2026-11-03.md`。
 >
-> **Phase2 总览已出**：[`pending/phase2-overview-2026-11-03.md`](pending/phase2-overview-2026-11-03.md)（商业化准备，21 条工作包，P0/P1/P2 三层）。
-> **WP 清单**：[`pending/phase2-wp-list-2026-11-03.md`](pending/phase2-wp-list-2026-11-03.md)（WP27–WP47，分三批并行）。具体任务单开工时再单独写。
+> **Phase2 总览已出**：[`pending/phase2-overview-2026-11-03.md`](pending/phase2-overview-2026-11-03.md)（商业化准备，22 条工作包，P0/P1/P2 三层）。
+> **WP 清单**：[`pending/phase2-wp-list-2026-11-03.md`](pending/phase2-wp-list-2026-11-03.md)（WP27–WP48，分三批并行）。具体任务单开工时再单独写。
+>
+> **Phase2 已开工（2026-11-03）**：WP28（PsyGUARD 临时值回改正式值）✅ 已交付 → [`completed/phase2/engine-wp28-psyguard-production-values-implementation-2026-11-03.md`](completed/phase2/engine-wp28-psyguard-production-values-implementation-2026-11-03.md)。进度 1/22。
 
 ---
 
@@ -75,7 +77,7 @@
 ```
 docs/worklog/
 ├── README.md          ← 你现在读的这个文件
-├── pending/          ← 待开工任务单（当前为空）
+├── pending/          ← 待开工任务单（Phase2 的总览与 WP 清单常驻这里）
 ├── completed/         ← 已交付（按阶段分）
 │   ├── phase1/       ← Phase1 全部交付（26 WP + 2 轮审查）
 │   │   ├── wp0-wp5-core/
@@ -84,7 +86,7 @@ docs/worklog/
 │   │   ├── auth-and-password/
 │   │   ├── early-misc/
 │   │   └── phase1-backlog-archived-2026-11-03.md
-│   └── phase2/       ← 空，等 Phase2 开工
+│   └── phase2/       ← Phase2 交付（WP28 ✅：PsyGUARD 临时值回改正式值）
 ├── audits/           ← 审查报告（WP25 等）
 └── archive/          ← 老文档
 ```

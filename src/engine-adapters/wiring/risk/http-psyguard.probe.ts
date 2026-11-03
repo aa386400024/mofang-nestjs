@@ -40,11 +40,11 @@
 //   超时的真相 (别被这个数字骗了):
 //     内核 `assessSafety` 的探测超时是 `DEFAULT_PROBE_TIMEOUT_MS`, 且是
 //     **硬上限** (内核那层自己 race, 适配层改不动 —— engine-core 是红线).
-//     ⚠️ 当前值 = **500ms** —— **测试期放宽**的值 (M3 内测前必须改回 **150ms**;
+//     ✅ 当前值 = **150ms** —— 正式口径 (WP28 已把 WP11 测试期的临时值 500 回改掉;
 //         跨仓库回改清单见 engine-core/cognition/safety/assess-safety.ts 文件头).
 //     本文件的 `timeoutMs` 只是**提前掐断 HTTP 连接**, 让 socket 早点释放;
 //     把它调大**不会**放宽内核的判定上限 (内核照样在那个上限处回落规则).
-//     所以真正的工程约束是: **Python 服务必须在那个上限内答完** (内测回改后是 150ms;
+//     所以真正的工程约束是: **Python 服务必须在那个上限内答完** (150ms;
 //     见 mofang-psyguard 的 README「延迟预算」一节).
 //
 //   不做:
@@ -148,7 +148,7 @@ export interface HttpPsyGuardProbeOptions {
    * 内部 HTTP 超时 (ms).
    *
    * 默认 = 内核 `DEFAULT_PROBE_TIMEOUT_MS` —— **不另造常量**.
-   * ⚠️ 当前内核值 = 500ms (测试期放宽; M3 内测前改回 150ms) —— 见文件头.
+   * ✅ 当前内核值 = 150ms (正式口径; WP28 已回改测试期临时值 500) —— 见文件头.
    * 它只用于提前掐断连接, 放宽它不会放宽内核的判定上限 (见文件头).
    */
   readonly timeoutMs?: number;

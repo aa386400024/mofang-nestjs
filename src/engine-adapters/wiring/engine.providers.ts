@@ -427,8 +427,12 @@ export function createRiskProbe(deps: RiskProbeDeps): RiskProbePort {
  * 没配时维持现状还有一个好处: WP11 承诺过"没配 env → 行为逐字一致",
  * 这条承诺在输出侧也保住了 (否则本工厂会把"本地词典"偷偷扩散到输出侧).
  *
- * 超时: **不显式传** —— 让它继承内核 `DEFAULT_PROBE_TIMEOUT_MS`.
- * 这样 M3 内测把那个常量改回 150 时, 输出侧**自动跟着回**, 只有一个回改点.
+ * 超时: **两条路径, 都要是 150** (WP28 回改时发现旧注释这里写错了):
+ *   装配层 `engine.module.ts` 是**显式传** `resolvePsyGuardTimeoutMs(env)` 的 ——
+ *   env (`PSYGUARD_TIMEOUT_MS`) 没设时才回落内核 `DEFAULT_PROBE_TIMEOUT_MS`.
+ *   也就是说输出侧**不是**"只有一个回改点": 改内核常量**不会**覆盖掉 env 上
+ *   显式配的值 (WP25 审查 D34 的实锤). 两边都是 150 时口径才自洽 ——
+ *   否则会出现"内核等 150ms、HTTP 还在等 500ms"这种自相矛盾.
  *
  * @param deps 装配入参
  * @returns 探测器; 没配服务地址 → undefined (该侧不接探测)

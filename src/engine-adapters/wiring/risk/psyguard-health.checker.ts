@@ -67,7 +67,7 @@ function isVisitorRiskCategoryName(value: string): value is VisitorRiskCategory 
  * 比探测超时宽松得多: 启动自检不在热路径上, 宁可多等一会儿把话说清楚,
  * 也不要因为服务刚起还没热好就误判"不可用".
  *
- * ⚠️ 口径提醒: 探测超时当前 = **500ms** (测试期放宽; M3 内测前改回 150ms).
+ * ✅ 口径提醒: 探测超时 = **150ms** (正式口径; WP28 已回改测试期临时值 500).
  *   本自检不跟着变 —— 它是**启动期**的一次性检查, 不在每轮热路径上.
  */
 export const PSYGUARD_HEALTH_TIMEOUT_MS = 3000;
