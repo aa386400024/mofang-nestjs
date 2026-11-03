@@ -53,6 +53,7 @@ import { HttpPsyGuardProbe } from './risk/http-psyguard.probe.js';
 import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
 import { StudentRiskGateService } from './risk/student-risk-gate.js';
 import type { TrajectoryScriptResolver } from './trajectory/script-resolver.js';
+import { TurnIdempotencyService } from './turn-idempotency.service.js';
 
 /**
  * 记忆仓储装配入参.
@@ -255,6 +256,13 @@ export interface EngineStreamBackendDeps {
    * 必须是**内核注入的那一个实例** (RISK_PROBE): 口径一致 + D12 本地词典兜底生效.
    */
   readonly riskProbe?: RiskProbePort;
+  /**
+   * 轮次幂等表 (WP16; 缺省 = 后端自建一个).
+   *
+   * 缺省语义与上面几个一致: 幂等是**增强** —— 缺席时对练照常,
+   * 只是"重发同一轮不再幂等" (老客户端不带 round_id 时本来就用不上它).
+   */
+  readonly idempotency?: TurnIdempotencyService;
 }
 
 /**
@@ -451,6 +459,8 @@ export function createEngineStreamBackend(deps: EngineStreamBackendDeps): Engine
   // V2026-11-02 治本 (WP14): 第 8/9 位是学员侧处置闸门 + 风险审计插槽.
   // V2026-11-02 治本 (WP14 优化项): 第 10 位是风险探测器 —— 前置 safety gate
   //   委托它判一次 (与内核注入的是**同一个**实例, 口径与本地词典兜底都一致).
+  // V2026-11-02 治本 (WP16): 第 11 位是轮次幂等表 —— 同一会话同一 round_id
+  //   重发不重跑 BDI (断流重发则回 turn_incomplete).
   return new EngineStreamBackend(
     deps.engine,
     deps.resolver,
@@ -462,5 +472,6 @@ export function createEngineStreamBackend(deps: EngineStreamBackendDeps): Engine
     deps.studentRiskGate,
     deps.riskAudit,
     deps.riskProbe,
+    deps.idempotency ?? new TurnIdempotencyService(),
   );
 }

@@ -94,6 +94,17 @@ export type LlmStreamChunk =
        * 缺省 = 上游没给 (老 provider / 非 OpenAI 兼容上游).
        */
       readonly finishReason?: string;
+      /**
+       * 本次内容是**重放**出来的 (V2026-11-02, WP16).
+       *
+       * 语义: 这一轮的正文不是新生成的, 而是后端从幂等缓存里**原样复述**的
+       * (同一会话同一 round_id 的重试). 消费方据此知道"这一轮不该再当成新的一轮记账"
+       * —— 逐字稿不能再落一条、用量不能再累加一次.
+       *
+       * 只增可选字段 (老消费方零破坏): 老链路 (`VisitorService`) 恒不设它,
+       * 缺省 = "这是新的一轮", 与 WP16 之前的行为逐字一致.
+       */
+      readonly replayed?: boolean;
     }
   | { readonly type: 'error'; readonly error: LlmError };
 

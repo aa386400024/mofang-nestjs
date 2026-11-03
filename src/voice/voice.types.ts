@@ -23,7 +23,24 @@ import type { VoiceSessionMode, VoiceSessionPreset, VoiceSkillCode, VoiceVisitor
  * 语义是"挂起"不是"中断" —— 暂停不清 transcript、不 abort 会话、不断 WS.
  */
 export type VoiceClientMessage =
-  | { readonly type: 'user_text'; readonly text: string; readonly generation?: number }
+  | {
+      readonly type: 'user_text';
+      readonly text: string;
+      readonly generation?: number;
+      /**
+       * 轮次号 (V2026-11-02, WP16 · 幂等键).
+       *
+       * 语义: 客户端给这一轮编的号. 后端凭它认出"这是同一轮的重发" ——
+       * 同一会话同一 round_id 重发时, 后端**不重跑 BDI** (阻抗 / 情绪 / 信任不再二次跳变),
+       * 而是复用上一轮的结果.
+       *
+       * 缺省 = 客户端没给号 → 后端不走幂等 (行为与 WP16 之前逐字一致, 老客户端零影响).
+       *
+       * 收到 `turn_incomplete` 错误码时, 客户端应当 **round_id + 1** 重发新一轮:
+       * 那一轮的状态已经提交、但回复没发完, 重发同一号只会再撞一次.
+       */
+      readonly roundId?: number;
+    }
   | { readonly type: 'user_speaking' }
   | { readonly type: 'session_finish' }
   /** 主动暂停: 挂起 LLM / TTS, 保留会话与逐字稿, 不断连. */

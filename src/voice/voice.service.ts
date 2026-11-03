@@ -62,6 +62,7 @@ import type { TtsEvent, TtsOptions, TtsSessionHandle } from './tts/tts.types.js'
 import { VoiceSessionBridgeRegistry, type VoiceSessionCloseResult } from './voice-session-bridge.js';
 import { VoiceSessionLimitsService } from './voice-session-limits.service.js';
 import {
+  TURN_INCOMPLETE_CODE,
   VOICE_TURN_BACKEND,
   type VoiceSafetyPreCheckResult,
   type VoiceTurnBackend,
@@ -99,8 +100,10 @@ const BRIDGE_CLOSE_TIMEOUT_MS = 800;
  * - `done`: 收到 done chunk (已调 finish)
  * - `error`: 收到 error chunk (已调 cancel)
  * - `eof`: 流自然结束但没有 done chunk (需补 finish, 否则尾句卡在上游)
+ * - `turn_incomplete`: WP16 —— 本轮回复没发完 (断流); 已调 cancel, **不回落旧链路**
+ * - `replayed`: WP16 —— 本轮是幂等重放 (不是新的一轮); 已调 finish, **不重复落逐字稿**
  */
-type LlmTurnOutcome = 'done' | 'error' | 'eof';
+type LlmTurnOutcome = 'done' | 'error' | 'eof' | 'turn_incomplete' | 'replayed';
 
 @Injectable()
 export class VoiceService {
@@ -176,7 +179,8 @@ export class VoiceService {
 
     switch (msg.type) {
       case 'user_text':
-        await this.onUserText(state, msg.text, send);
+        // WP16: 轮次号原样透传给后端 (幂等键的另一半) —— 后端凭它认出"同一轮的重发".
+        await this.onUserText(state, msg.text, send, msg.roundId);
         return;
       case 'user_speaking':
         this.onUserSpeaking(state, send);
@@ -475,8 +479,9 @@ export class VoiceService {
    * @param state 会话状态
    * @param text 用户输入 (已由前端 ASR 定稿)
    * @param send 帧发送回调
+   * @param roundId 轮次号 (WP16; 缺省 = 不走幂等)
    */
-  private async onUserText(state: VoiceSessionState, text: string, send: SendFn): Promise<void> {
+  private async onUserText(state: VoiceSessionState, text: string, send: SendFn, roundId?: number): Promise<void> {
     if (this.shouldIgnoreTurn(state, text)) {
       return;
     }
@@ -508,7 +513,7 @@ export class VoiceService {
     //    本轮来访者说的话要收集起来, 落库后才有逐字稿可读 (每轮分析 / 技术统计 / 标记
     //    / 复盘报告全部以它为输入).
     const visitorChunks: string[] = [];
-    const { outcome, llmAbort } = await this.runLlmTurn(state, text, myGeneration, send, ttsHandle, visitorChunks);
+    const { outcome, llmAbort } = await this.runLlmTurn(state, text, myGeneration, send, ttsHandle, visitorChunks, roundId);
 
     // 3. 收尾 TTS (正常 done 已 finish; eof 补 finish; 异常已 cancel)
     await this.closeTtsTurn(state, ttsHandle, ttsPump, outcome, myGeneration);
@@ -637,6 +642,7 @@ export class VoiceService {
    * @param send 帧发送回调
    * @param ttsHandle 本轮 TTS 句柄 (LLM chunk 要喂给它)
    * @param visitorChunks 本轮来访者文本累加器 (供逐字稿落库)
+   * @param roundId 轮次号 (WP16; 原样透传给后端做幂等键)
    * @returns 本轮结束方式 + 本轮的 AbortController (供 finishTurn 清理)
    */
   private async runLlmTurn(
@@ -646,11 +652,12 @@ export class VoiceService {
     send: SendFn,
     ttsHandle: TtsSessionHandle | null,
     visitorChunks: string[],
+    roundId?: number,
   ): Promise<{ outcome: LlmTurnOutcome; llmAbort: AbortController }> {
     const llmAbort = new AbortController();
     state.llmAbort = llmAbort;
     try {
-      const llmStream = await this.resolveTurnStream(state, text, llmAbort.signal, send);
+      const llmStream = await this.resolveTurnStream(state, text, llmAbort.signal, send, roundId);
       send({ type: 'llm_start' });
       const outcome = await this.consumeLlmStream(llmStream, myGeneration, state, send, ttsHandle, visitorChunks);
       if (outcome === 'error') {
@@ -682,8 +689,14 @@ export class VoiceService {
    * 的内容, 这时再换成旧链路等于"来访者说了半句突然改口" —— 与流式不切备同一条
    * 纪律: 已出声不可撤回.
    */
-  private async resolveTurnStream(state: VoiceSessionState, text: string, signal: AbortSignal, send: SendFn): Promise<LlmStream> {
-    const options = this.buildTurnOptions(state, text, signal, send);
+  private async resolveTurnStream(
+    state: VoiceSessionState,
+    text: string,
+    signal: AbortSignal,
+    send: SendFn,
+    roundId?: number,
+  ): Promise<LlmStream> {
+    const options = this.buildTurnOptions(state, text, signal, send, roundId);
     const backend = this.backendOf(state);
     if (backend !== this.engineBackend) {
       const { stream } = await this.visitor.streamTurn(options);
@@ -721,6 +734,13 @@ export class VoiceService {
           continue;
         }
         if (chunk.type === 'error' && !contentSeen) {
+          // WP16: 「本轮不完整」不是引擎故障 —— 放过它, 让前端换轮次号重发.
+          //   回落旧链路在这里是**错的**: 旧链路没有轮次语义, 同一句话会在
+          //   两条链路上各跑一遍 (引擎侧状态被提交, 旧链路侧又跑一次).
+          if (chunk.error.code === TURN_INCOMPLETE_CODE) {
+            yield chunk;
+            return;
+          }
           const switched = await this.fallbackToLegacy(state, '新引擎首个增量前失败');
           if (!switched) {
             yield chunk;
@@ -751,8 +771,17 @@ export class VoiceService {
    * `publishFrame` (WP14): 把"推一帧给**本场**客户端"的能力交给后端 ——
    *   危机弹窗必须能推出去, 而它不能依赖帧出口注册表 (那里按落库 id 索引,
    *   本场没落库时就没有那个 id). 传回调比传 id 安全: 后端不需要知道任何 id 口径.
+   *
+   * `roundId` (WP16): 轮次号原样透传 —— 后端凭它做幂等判定 (同一轮重发不重跑 BDI).
+   * 缺省 = 客户端没给号 → 后端不走幂等, 行为与 WP16 之前逐字一致.
    */
-  private buildTurnOptions(state: VoiceSessionState, text: string, signal: AbortSignal, send: SendFn): VoiceTurnBackendTurnOptions {
+  private buildTurnOptions(
+    state: VoiceSessionState,
+    text: string,
+    signal: AbortSignal,
+    send: SendFn,
+    roundId?: number,
+  ): VoiceTurnBackendTurnOptions {
     return {
       sessionId: state.meta.sessionId,
       tenantId: state.meta.tenantId,
@@ -762,6 +791,7 @@ export class VoiceService {
       traceId: state.meta.traceId,
       signal,
       publishFrame: send,
+      ...(roundId === undefined ? {} : { roundId }),
     };
   }
 
@@ -905,6 +935,10 @@ export class VoiceService {
    * 只记**完整跑完**的轮次: 被抢白 (barge-in) 或出错的轮次, 来访者的话是截断的 ——
    * 把截断的回应当成完整一轮落库, 每轮分析会在半句话上做判定, 报告也跟着失真.
    *
+   * WP16 追加两种**同样不落**的情况:
+   *   · `turn_incomplete` —— 本轮回复没发完 (断流), 落库同样是半句话;
+   *   · `replayed`       —— 本轮是幂等重放, 第一次那一轮已经落过了, 再落就是重复.
+   *
    * @param state 会话状态
    * @param counselorText 咨询师这一轮说的话
    * @param visitorChunks 来访者这一轮的话 (累加器)
@@ -918,7 +952,10 @@ export class VoiceService {
     outcome: LlmTurnOutcome,
     myGeneration: number,
   ): void {
-    if (outcome === 'error' || state.currentGeneration !== myGeneration) {
+    if (outcome === 'error' || outcome === 'turn_incomplete' || outcome === 'replayed') {
+      return;
+    }
+    if (state.currentGeneration !== myGeneration) {
       return;
     }
     state.turnCount += 1;
@@ -1122,7 +1159,10 @@ export class VoiceService {
           this.logger.warn(`[user_text] LLM error: ${chunk.error.code}`);
           send({ type: 'error', error: { code: chunk.error.code, message: chunk.error.message, retryable: chunk.error.retryable } });
           ttsHandle?.cancel();
-          return 'error';
+          // WP16: 「本轮不完整」**不是**引擎故障 —— 不能回落旧链路.
+          //   旧链路没有轮次语义, 回落等于让同一句话在两条链路上各跑一遍 (状态双写).
+          //   它是协议信号: 客户端拿到后应当换一个轮次号走新一轮.
+          return chunk.error.code === TURN_INCOMPLETE_CODE ? 'turn_incomplete' : 'error';
         case 'done':
           // V2026-10-29 治本 (WP9-C): 带 usage —— 端上/E2E 验收要看思考 token 与
           //   输出长度 (老客户端不认识这个可选字段, 直接忽略).
@@ -1136,7 +1176,8 @@ export class VoiceService {
             },
           });
           ttsHandle?.finish();
-          return 'done';
+          // WP16: 重放 (幂等复用) **不是新的一轮** —— 逐字稿不能再落第二条.
+          return chunk.replayed ? 'replayed' : 'done';
       }
     }
     return 'eof';

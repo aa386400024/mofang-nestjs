@@ -89,19 +89,21 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver, type ResolvedCharacter } from './character/index.js';
 import type { EngineTurnService } from './engine-turn.service.js';
 import { TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory/index.js';
+import { TurnIdempotencyService, type TurnResultSnapshot, type TurnSettleHandle } from './turn-idempotency.service.js';
 import type { TraceRecorder, TurnTrace } from '../../admin-debug/trace-recorder.service.js';
 import type { LlmStream, LlmStreamChunk } from '../../agent/llm/llm.types.js';
 import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types.js';
 import type { OpenEngineSessionInput, RiskProbePort, TrajectoryScript } from '../../engine-core/index.js';
 import type { StudentRiskAuditChoice, StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
-import type {
-  VoiceSafetyPreCheckInput,
-  VoiceSafetyPreCheckResult,
-  VoiceTurnBackend,
-  VoiceTurnBackendCloseResult,
-  VoiceTurnBackendOpenOptions,
-  VoiceTurnBackendTurnOptions,
+import {
+  TURN_INCOMPLETE_CODE,
+  type VoiceSafetyPreCheckInput,
+  type VoiceSafetyPreCheckResult,
+  type VoiceTurnBackend,
+  type VoiceTurnBackendCloseResult,
+  type VoiceTurnBackendOpenOptions,
+  type VoiceTurnBackendTurnOptions,
 } from '../../voice/voice-turn-backend.port.js';
 import type { VoiceServerMessage, VoiceSessionPersona } from '../../voice/voice.types.js';
 import {
@@ -273,6 +275,19 @@ export class EngineStreamBackend implements VoiceTurnBackend {
      * 才意味着"远端挂了前置 gate 也能拦".
      */
     @Optional() private readonly riskProbe?: RiskProbePort,
+    /**
+     * 轮次幂等表 (WP16 · 同一会话同一 round_id 不重跑 BDI).
+     *
+     * 为什么放在**最后一位**且带默认值:
+     *   · 位置参数装配 (工厂) 要求新依赖只能追加在尾部 —— 中间插一位就得让
+     *     既有调用点补 undefined 占位, 而既有单测有 20+ 处按位置 new;
+     *   · 默认值让那些调用点**一行不改**也能跑 (幂等是增强, 不是会话的前置条件);
+     *   · 生产装配由 `createEngineStreamBackend` 显式注入, 走的是模块内单例.
+     *
+     * 为什么它**不能缺席**: 缺席 = 幂等闸门形同虚设, "重发同一轮再跑一遍 BDI"
+     * 的漂移会回来. 所以生产路径必须注入, 默认值只兜单测.
+     */
+    private readonly idempotency: TurnIdempotencyService = new TurnIdempotencyService(),
   ) {}
 
   /**
@@ -301,6 +316,9 @@ export class EngineStreamBackend implements VoiceTurnBackend {
 
     this.handles.set(opts.sessionId, handle.handleId);
     this.transcripts.set(opts.sessionId, []);
+    // WP16: 重连 = 新会话 = 新状态 (内核句柄换了, BDI 从头开始) ——
+    //   上一场留下的轮次快照属于**旧状态**, 留着会让新会话的同号重试拿到旧回复.
+    this.idempotency.clearSession(opts.sessionId);
     // WP24: 重置本场用量累计 —— 重连 (第二条 user_text 之前的一次 startSession)
     //   走的是同一条 openSession, 若不重置, 上一场的花费会被算进这一场.
     this.sessionUsage.set(opts.sessionId, emptySessionUsageTotals());
@@ -535,6 +553,14 @@ export class EngineStreamBackend implements VoiceTurnBackend {
 
   /**
    * 一轮: 把引擎的流式渲染翻译成三态 chunk.
+   *
+   * V2026-11-02 治本 (WP16): 入口加**幂等闸门** —— 同一会话同一 round_id
+   * 再来一次, 不重跑 BDI、不重调 LLM, 直接复用上一轮的结果.
+   *
+   * 三条岔路 (顺序即优先级):
+   *   ① 没有 round_id      → 正常跑 (行为与 WP16 之前逐字一致);
+   *   ② 这一轮**已落定**    → 重放已缓存的结果 (complete=true 回正文 / false 回 turn_incomplete);
+   *   ③ 这一轮**还在跑**    → 等它落定后复用 (并发重发不能变成"再跑一遍 BDI").
    */
   async streamTurn(opts: VoiceTurnBackendTurnOptions): Promise<{ readonly stream: LlmStream }> {
     const handleId = this.handles.get(opts.sessionId);
@@ -543,7 +569,59 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       // 以为"这一轮正常结束但没话说", 那是最难排查的一种坏.
       throw new Error(`EngineStreamBackend.streamTurn: sessionId=${opts.sessionId} 未开启`);
     }
-    return { stream: this.buildStream(handleId, opts) };
+    const roundId = normalizeRoundId(opts.roundId);
+    if (roundId === undefined) {
+      // 客户端没给轮次号 → 不走幂等 (老客户端零影响).
+      return { stream: this.buildStream(handleId, opts) };
+    }
+    const entry = this.idempotency.lookup(opts.sessionId, roundId);
+    if (!entry) {
+      // 第一趟: 同步登记"在跑", 再开跑 —— 登记必须同步, 否则并发重发会各跑一遍.
+      const settle = this.idempotency.begin(opts.sessionId, roundId);
+      return { stream: this.buildStream(handleId, opts, settle) };
+    }
+    if (entry.status === 'done') {
+      this.logger.log(`[streamTurn] 幂等复用 session=${opts.sessionId} round=${roundId} complete=${entry.snapshot.complete}`);
+      return { stream: this.replayStream(entry.snapshot) };
+    }
+    // 还在跑 → 等它落定 (客户端超时重发时, 服务端那一轮多半还没结束).
+    const snapshot = await entry.settled;
+    this.logger.log(`[streamTurn] 幂等待后复用 session=${opts.sessionId} round=${roundId} complete=${snapshot.complete}`);
+    return { stream: this.replayStream(snapshot) };
+  }
+
+  /**
+   * 重放一轮已落定的结果 (WP16).
+   *
+   * ⚠️ 这里**只**做"把已产出的东西再吐一遍":
+   *   · 不调引擎 (不跑 BDI) / 不调渲染 (不烧 token);
+   *   · 不写逐字稿 / 不写留痕 / 不累加用量 / 不推危机帧 ——
+   *     那些副作用在第一次那一轮已经做过了, 重做一遍就是"同一轮记两次账".
+   *
+   * `complete=false` 的那一轮**不重放**: 直接回 `turn_incomplete`, 让前端
+   * 换一个轮次号走新一轮 —— 旧轮的状态已经提交了, 重放只会把半句话再送一遍.
+   *
+   * @param snapshot 本轮快照
+   * @returns 三态 chunk 流
+   */
+  private async *replayStream(snapshot: TurnResultSnapshot): AsyncIterable<LlmStreamChunk> {
+    if (!snapshot.complete) {
+      yield {
+        type: 'error',
+        error: {
+          code: TURN_INCOMPLETE_CODE,
+          message: '本轮回复未发完, 请换一个轮次号重发新一轮',
+          // 不可重试: 重发**同一个**轮次号还会撞上这一条 —— 换号才行.
+          retryable: false,
+        },
+      };
+      return;
+    }
+    if (snapshot.reply.length > 0) {
+      yield { type: 'content', content: snapshot.reply };
+    }
+    // `replayed=true`: 消费方据此知道"这一轮不是新的一轮" (逐字稿不再落第二条).
+    yield { type: 'done', usage: snapshot.usage, replayed: true };
   }
 
   /**
@@ -585,6 +663,8 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     this.dbSessionIds.delete(sessionId);
     this.sessionContexts.delete(sessionId);
     this.characterSlugs.delete(sessionId);
+    // WP16: 清掉本场的轮次幂等表 (防内存泄漏) —— 与逐字稿同生命周期.
+    this.idempotency.clearSession(sessionId);
     if (handleId) {
       // V2026-11-02 (WP14): 清重点监测.
       //   必须清: 句柄是**进程内**标识, 进程不重启就一直复用 —— 不清的话,
@@ -680,21 +760,52 @@ export class EngineStreamBackend implements VoiceTurnBackend {
 
   /**
    * 引擎流 → 三态 chunk 的翻译体.
+   *
+   * V2026-11-02 治本 (WP16): 引擎这一轮**落定**时, 把结果快照写进幂等表.
+   *
+   * 为什么落定写在 `pending` 的回调里 (而不是这个生成器的函数体尾部):
+   *   消费方随时可能**放弃**这条流 (barge-in 时 voice 层直接不再拉了) ——
+   *   那样的话生成器尾部**根本不会执行**, 快照就永远写不进去.
+   *   而"这一轮跑过、留下了什么"是**已经发生的事实**, 与消费方还在不在读无关.
+   *   写在 promise 链上, 无论消费方走不走, 快照都落得下来.
+   *
+   * @param handleId 内核会话句柄
+   * @param opts 本轮入参
+   * @param settle 幂等落定句柄 (缺省 = 这一轮没带 round_id, 不进幂等表)
    */
-  private async *buildStream(handleId: string, opts: VoiceTurnBackendTurnOptions): AsyncIterable<LlmStreamChunk> {
+  private async *buildStream(
+    handleId: string,
+    opts: VoiceTurnBackendTurnOptions,
+    settle?: TurnSettleHandle,
+  ): AsyncIterable<LlmStreamChunk> {
     const queue = new DeltaQueue();
+    /**
+     * 本轮引擎**产出**的增量 (不是消费方收到的).
+     *
+     * 为什么单独记一份: 断流判定要回答"引擎到底说出了多少" ——
+     * 消费方可能中途放弃 (那段增量它压根没读), 但引擎产出了多少是客观事实.
+     */
+    const produced: string[] = [];
     const pending = this.engine
       .turnStream(
         handleId,
         { userText: opts.userText, traceId: opts.traceId, ...(opts.signal ? { signal: opts.signal } : {}) },
-        { onDelta: (delta) => queue.push(delta), ...(opts.signal ? { signal: opts.signal } : {}) },
+        {
+          onDelta: (delta) => {
+            produced.push(delta);
+            queue.push(delta);
+          },
+          ...(opts.signal ? { signal: opts.signal } : {}),
+        },
       )
       .then((result) => {
         queue.close();
+        settle?.settle(this.buildSettledSnapshot(opts, result, produced));
         return { ok: true as const, result };
       })
       .catch((error: unknown) => {
         queue.close();
+        settle?.settle(this.buildFailedSnapshot(opts, produced));
         return { ok: false as const, error };
       });
 
@@ -762,6 +873,67 @@ export class EngineStreamBackend implements VoiceTurnBackend {
         totalTokens: usage?.totalTokens ?? 0,
         ...(usage?.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
       },
+    };
+  }
+
+  /**
+   * 构造本轮的幂等快照 (引擎这一轮**成功**落定时).
+   *
+   * "完整"的判定口径 (三条, 缺一不可):
+   *   ① 没被 abort —— 被 barge-in / 客户端取消打断的轮次, 客户端多半没拿到全话;
+   *   ② 没中途降级 —— 渲染器锁定候选后中途崩了会降级成兜底句, 而**已经说出去的
+   *      半句收不回来**: 兜底句替代不了那半句, 这一轮就是"没说完";
+   *   ③ 引擎没抛错 —— 内核错误 (ABORTED / SESSION_NOT_FOUND …) 本轮压根没跑完.
+   *
+   * ⚠️ "降级但一个字都没产出"**不算**不完整: 那种情况下兜底句是**完整**发出去的
+   *   (适配器会把兜底句当 content 吐给前端), 客户端拿到的是一句完整的话.
+   *   把它判成不完整, 客户端就会换号重发 → 同一句话把 BDI 再推一遍 —— 那是漂移.
+   *
+   * @param opts 本轮入参
+   * @param result 本轮结算结果
+   * @param produced 本轮引擎产出的增量
+   * @returns 幂等快照
+   */
+  private buildSettledSnapshot(
+    opts: VoiceTurnBackendTurnOptions,
+    result: TurnRenderResult,
+    produced: readonly string[],
+  ): TurnResultSnapshot {
+    const degraded = result.render.providerHint === 'degraded';
+    const aborted = opts.signal?.aborted === true;
+    const partial = degraded && produced.length > 0;
+    const complete = !aborted && !partial;
+    const usage = result.render.usage;
+    return {
+      complete,
+      // 不完整时存**已发出的部分** (任务单 §2.2.2), 完整时存全量.
+      reply: complete ? result.reply : produced.join(''),
+      userText: opts.userText,
+      usage: {
+        promptTokens: usage?.promptTokens ?? 0,
+        completionTokens: usage?.completionTokens ?? 0,
+        totalTokens: usage?.totalTokens ?? 0,
+        ...(usage?.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
+      },
+    };
+  }
+
+  /**
+   * 构造本轮的幂等快照 (引擎这一轮**抛错**时).
+   *
+   * 抛错 = 这一轮没跑完 (内核错误 / 建流失败), 一律记"不完整":
+   * 客户端重发同一轮号会拿到 `turn_incomplete`, 于是换号走新一轮.
+   *
+   * @param opts 本轮入参
+   * @param produced 本轮引擎产出的增量 (抛错前已经说出去的部分)
+   * @returns 幂等快照
+   */
+  private buildFailedSnapshot(opts: VoiceTurnBackendTurnOptions, produced: readonly string[]): TurnResultSnapshot {
+    return {
+      complete: false,
+      reply: produced.join(''),
+      userText: opts.userText,
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
     };
   }
 
@@ -1214,4 +1386,21 @@ class DeltaQueue {
  */
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * 归一化客户端给的轮次号 (WP16).
+ *
+ * 只认**正整数**: 轮次号是幂等键, 键必须是稳定的 —— 0 / 负数 / 小数 / NaN /
+ * 字符串都不是合法的"轮次号", 一律当**没给** (走不幂等的正常路径).
+ *
+ * 为什么不做"猜" (比如把字符串 '3' 转成 3): 客户端发什么就按什么理解,
+ * 猜出来的键可能与另一轮的键撞上 —— 那比"没幂等"更糟 (会静默复用别人的结果).
+ *
+ * @param roundId 客户端给的轮次号
+ * @returns 合法轮次号; undefined = 没给 / 不合法
+ */
+function normalizeRoundId(roundId: number | undefined): number | undefined {
+  if (typeof roundId !== 'number' || !Number.isInteger(roundId) || roundId < 1) return undefined;
+  return roundId;
 }

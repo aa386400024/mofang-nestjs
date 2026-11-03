@@ -71,6 +71,7 @@ import { RISK_PROBE } from './risk/risk-probe.token.js';
 import { STUDENT_RISK_GATE, StudentRiskGateService } from './risk/student-risk-gate.js';
 import { RouterChatCaller } from './router-chat-caller.js';
 import { StaticTrajectoryScriptResolver, TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory/index.js';
+import { TurnIdempotencyService } from './turn-idempotency.service.js';
 import { AdminDebugModule } from '../../admin-debug/admin-debug.module.js';
 import { TraceRecorder } from '../../admin-debug/trace-recorder.service.js';
 import { QdrantService } from '../../ai-engine/providers/qdrant.service.js';
@@ -227,6 +228,9 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
     },
     // 对外门面服务.
     EngineTurnService,
+    // V2026-11-02 治本 (WP16): 轮次幂等表 —— 同一会话同一 round_id 重发不重跑 BDI.
+    //   模块内单例 (与对话后端同生命周期): 装配层唯一的"这一轮跑过没有"的事实来源.
+    TurnIdempotencyService,
     // V2026-10-30 治本 (WP12): 会话收尾服务 —— 逐字稿全量定稿 + 摘要晋升长时记忆.
     //   走 useFactory 显式 new (与仓库既有做法一致): 收尾服务有 4 个构造参数,
     //   其中两个可选, useClass 会让 Nest 按 design:paramtypes 找依赖而报错.
@@ -287,6 +291,7 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         studentRisk: StudentRiskGateService,
         riskAudit: StudentRiskAuditRegistry,
         riskProbe: RiskProbePort,
+        idempotency: TurnIdempotencyService,
       ): EngineStreamBackend =>
         createEngineStreamBackend({
           engine,
@@ -312,6 +317,9 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
           //   (RISK_PROBE): 口径一致, 且 D12 的本地词典兜底挂在这个实例上
           //   (远端挂了前置 gate 也能拦住 block).
           riskProbe,
+          // WP16: 轮次幂等表 —— 同一会话同一 round_id 重发不重跑 BDI;
+          //   断流 (回复没发完) 的那一轮重发时回 turn_incomplete, 让前端走新一轮.
+          idempotency,
         }),
       // 帧出口注册表由 voice 侧的 @Global 模块提供; optional = 缺了只影响督导提示帧.
       // 剧本解析端口同理: optional = 缺了只影响伦理盲盒剧本, 不影响会话开合.
@@ -328,6 +336,7 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         STUDENT_RISK_GATE,
         { token: StudentRiskAuditRegistry, optional: true },
         RISK_PROBE,
+        TurnIdempotencyService,
       ],
     },
     {

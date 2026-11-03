@@ -270,6 +270,19 @@ export interface VoiceTurnBackendTurnOptions {
   readonly personaId: string;
   /** 用户本轮文本 (ASR final). */
   readonly userText: string;
+  /**
+   * 轮次号 (V2026-11-02, WP16 · 幂等键的另一半).
+   *
+   * 语义: 客户端给这一轮编的号. **同一会话 + 同一 round_id**, 后端认得出
+   * "这是同一轮的重发", 于是**不重跑 BDI** (阻抗 / 情绪 / 信任不再二次跳变).
+   *
+   * 缺省 = 客户端没给号 → 后端**不走幂等**, 行为与 WP16 之前逐字一致.
+   *   为什么缺省是"正常跑"而不是"报错": 老客户端 (以及还没适配的端) 不带这个字段,
+   *   后端不能因此把对练搞挂 —— 幂等是**增强**, 不是会话的前置条件.
+   *
+   * 只增可选字段: 旧实现 (`VisitorService`) 天然是 undefined, 一行都不用改.
+   */
+  readonly roundId?: number;
   /** 链路 trace id (透传给上游). */
   readonly traceId?: string;
   /** AbortSignal — barge-in 时 abort(), 请求真正中断. */
@@ -288,6 +301,21 @@ export interface VoiceTurnBackendTurnOptions {
    */
   readonly publishFrame?: (frame: VoiceServerMessage) => void;
 }
+
+/**
+ * 「本轮不完整」错误码 (V2026-11-02, WP16).
+ *
+ * 语义: 这一轮的**状态已经提交**, 但**回复没发完** (流式断流 / LLM 超时 / 前端 abort).
+ * 客户端拿到它应当**换一个轮次号**重发新一轮, 而不是重发同一轮 ——
+ * 重发同一轮会被后端幂等挡下, 拿到的还是这句"不完整".
+ *
+ * 为什么这个码住在**窄接口**文件里 (而不是引擎侧):
+ *   它是"引擎 → 语音层 → 客户端"三方共用的**协议词汇**. 引擎侧要产出它,
+ *   语音层要**认出它并放过它** (不能把它当引擎故障去回落旧链路 ——
+ *   旧链路没有轮次语义, 回落等于让同一句话在两条链路上各跑一遍).
+ *   放窄接口 = 两侧都从同一处 import, 不会各写一份字符串常量然后慢慢漂移.
+ */
+export const TURN_INCOMPLETE_CODE = 'turn_incomplete';
 
 /** 收尾统计 (旧链路的 hadMemory 字段与语音侧无关, 不进窄接口). */
 export interface VoiceTurnBackendCloseResult {
