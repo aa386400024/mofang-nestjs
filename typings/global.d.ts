@@ -158,7 +158,16 @@ export declare global {
       SUPERVISION_REPORT_STREAM_POLL_INTERVAL_MS?: string;
       SUPERVISION_REPORT_STREAM_TIMEOUT_MS?: string;
       // V2026-10-08: Voice Gateway 空闲超时 (Phase 3)
+      //
+      // ⚠️ 这个键**当前无人消费** (仓库里没有任何地方读 `voice.sessionIdleTimeoutMs`),
+      //   它是 Phase 3 留下的死配置. V2026-11-03 (WP23) 新增的
+      //   `VOICE_SESSION_IDLE_TIMEOUT_MINUTES` 才是真正生效的那个 (单位: 分钟).
+      //   保留声明是为了不破坏任何"按 env 键查文档"的用法, 但**别拿它配超时**.
       VOICE_SESSION_IDLE_TIMEOUT_MS?: string;
+      // V2026-11-03 治本 (WP23 · 断线重连追平):
+      //   下面是本轮新增的 2 个 env 键 (不声明会报 TS4111 —— 同上治理思路).
+      VOICE_SESSION_IDLE_TIMEOUT_MINUTES?: string; // 会话 idle 兜底 (分钟, 默认 120; 非法 → 回退默认)
+      VOICE_CATCHUP_MAX_TURNS?: string; // 重连最多补几轮 (默认 20; 非法 → 回退默认)
       // V2026-11-02 治本 (WP22 · 语音对练限流与并发上限):
       //   下面是本轮新增的 2 个 env 键. 不声明会直接报 TS4111
       //   (noPropertyAccessFromIndexSignature: 走 @types/node 的 [key: string] 索引签名时

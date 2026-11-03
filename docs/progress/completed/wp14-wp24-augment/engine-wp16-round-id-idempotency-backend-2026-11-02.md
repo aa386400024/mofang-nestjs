@@ -1,7 +1,7 @@
 # WP16 · round_id 幂等 + 断流不重复叠加（后端任务单）
 
 > 日期: 2026-11-02
-> 状态: 📋 待开工
+> 状态: ✅ 已交付并复跑绿 → 交付记录: `engine-wp16-round-id-idempotency-backend-implementation-2026-11-02.md`（同目录）
 > 归属: Phase1 稳健性 / 内测前硬需求
 > 仓库: `E:\Work\Project\backend\mofang-nestjs`
 

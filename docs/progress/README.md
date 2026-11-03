@@ -63,11 +63,16 @@ git diff --stat HEAD -- src/engine-core
    - `npx jest` → 全绿
    - `git diff --stat HEAD -- src/engine-core` → 空
 
-### 3.2 移文件
+### 3.2 移文件 + 改任务单顶部状态行
 
 交付后：
 - 任务单 + 交付记录，从 `pending/` 移到 `completed/` 对应子目录
 - 如果是新类别，在 `completed/` 下建子目录
+- **移动前顺手把任务单第 4 行的 `> 状态: 📋 待开工` 改成 ✅**，指向同目录的交付记录文件名。格式参考 WP22：
+  ```
+  > 状态: ✅ 已交付并复跑绿 → 交付记录: `engine-wpXX-...-implementation-YYYY-MM-DD.md`（同目录）
+  ```
+  别让任务单本体还挂着"待开工"——光靠文件路径在 completed/ 里不够直观，点开文件一眼要能看到它已经交付了。
 
 ### 3.3 一句话 commit
 
@@ -75,6 +80,16 @@ git diff --stat HEAD -- src/engine-core
 ```
 feat(wpXX): 一句话说清做了什么
 ```
+
+### 3.4 回写 backlog 母版
+
+交付完顺手把 [`phase1-integration-backlog-2026-10-28.md`](./phase1-integration-backlog-2026-10-28.md) 里本 WP 的状态更新一下，三处都要改：
+
+1. **§0.3 交付进度登记表**：把本 WP 那一行的状态从 `📋 待开工` / `🚧 在途` 改成 `✅ 已交付（日期）`，任务单列填上交付记录文件名。
+2. **正文小节标题**：在本 WP 的 `### WPXX · ...` 标题下方加一段 `> ✅ 已交付（日期）` 横幅，跟 WP14/WP24 那种格式一致，贴交付记录链接 + 一两句话落地摘要。
+3. **§0.4 其他待做项表**（如果本 WP 在那张表里有行）：把行划掉或标 ✅，别让待办清单里还挂着已交付的东西。
+
+改完不需要单独 commit，跟着交付那笔一起提。
 
 ---
 
@@ -101,6 +116,7 @@ WP0 边界骨架 / WP1 BDI认知引擎 / WP2 分层记忆 / WP3 轨迹控制 / W
 - WP24 单场成本日志
 - WP22 语音对练限流与并发上限（单用户并发=1 + 全局日 token 预算，两道闸门拦在开会话入口）
 - WP16 turn 内存态幂等（同 round_id 重发不重跑 BDI；断流重发回 `turn_incomplete`，前端 round_id+1 走新一轮）
+- WP23 WS 断连重连追平（断线**不杀会话**、不挂判死定时器；重连握手带 `lastSeenTurnIndex=N` → 服务端把 N 之后已提交轮次塞进 `session_catchup` 一次性补回；进程重启走 WP12 重建 + 从持久化补漏；断连期间压根不调 TTS provider；2 小时 idle 兜底）
 
 ### 认证密码（completed/auth-and-password/）
 - POST /auth/reset-password（忘记密码重置，不需要 JWT，凭验证码改密+撤销所有 session）

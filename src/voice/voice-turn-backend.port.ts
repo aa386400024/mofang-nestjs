@@ -42,7 +42,7 @@
 //        新引擎适配实现同一接口; 灰度开关选实现、失败回落
 
 import type { StudentRiskAuditChoice } from './student-risk-audit-slot.js';
-import type { VoiceServerMessage, VoiceSessionPersona } from './voice.types.js';
+import type { VoiceCatchUpSessionState, VoiceCatchUpTurn, VoiceServerMessage, VoiceSessionPersona } from './voice.types.js';
 import type { LlmStream } from '../agent/llm/llm.types.js';
 import type { TranscriptTurn } from '../agent/supervisor/supervisor.types.js';
 
@@ -123,6 +123,50 @@ export interface VoiceTurnBackend {
    * @returns 判定结果
    */
   preCheckSafety?(input: VoiceSafetyPreCheckInput): Promise<VoiceSafetyPreCheckResult>;
+
+  /**
+   * 断线重连的补漏数据 (V2026-11-03, WP23) —— **可选方法**.
+   *
+   * 语义: 返回本场**已提交**的轮次里, `turnIndex > lastSeenTurnIndex` 的那些,
+   * 供服务端组装 `session_catchup` 帧推给重连回来的客户端.
+   *
+   * 为什么是**可选方法**: 旧链路 (`VisitorService`) 没有"已提交轮次台账"这个概念,
+   * 不实现它**完全正常** —— 没有补漏数据时, 服务端发轻量的 `session_reattached`
+   * (客户端知道"连上了, 没漏东西"), 对练照常. 必填会把旧实现挡在契约外,
+   * "并存可回退"当场破产 (与角色 / 剧本参数同款理由).
+   *
+   * 为什么数据由**后端**给而不是 voice 层自己攒:
+   *   一轮到底算不算"已提交", 只有后端知道 (BDI 状态有没有落、回复有没有发完);
+   *   voice 层看到的只是"流结束了" —— 那不足以判断这一轮该不该补.
+   *
+   * @param sessionId 会话 id
+   * @param lastSeenTurnIndex 客户端已收到的最后一轮 (从 0 起 = 一轮都没收到)
+   * @returns 已提交轮次里漏掉的部分; undefined = 本场没有台账 (无可补)
+   */
+  catchUp?(sessionId: string, lastSeenTurnIndex: number): VoiceCatchUpResult | undefined;
+}
+
+/**
+ * 补漏结果 (后端 → voice 层).
+ */
+export interface VoiceCatchUpResult {
+  /** 本场已提交的最大轮次号 (从 1 起; 没有则 0). */
+  readonly serverLatestTurnIndex: number;
+  /** 漏掉的轮次 (turnIndex > lastSeenTurnIndex, 按轮次升序). */
+  readonly missedTurns: readonly VoiceCatchUpTurn[];
+  /**
+   * 后端知道的本场状态 (V2026-11-03, WP23).
+   *
+   * **为什么只给"后端知道的那部分"**: 相位 (listening / speaking / paused) 是 voice
+   *   层的会话状态, 只有 voice 层知道; 而"是否重点监测 / 角色代号"是后端 (引擎侧)
+   *   的状态, 只有后端知道. 硬塞进一个类型里就得有一方**编**另一方的值 ——
+   *   编出来的状态比没有状态更糟 (客户端会照着它渲染 UI).
+   *
+   * 所以这里给的是**缺相位**的半个状态, 由 voice 层补上相位再发帧.
+   *
+   * 缺省 = 后端不提供 (旧链路 / 无引擎) → voice 层按"普通场"处理.
+   */
+  readonly sessionState?: Omit<VoiceCatchUpSessionState, 'phase'>;
 }
 
 /**
@@ -283,6 +327,17 @@ export interface VoiceTurnBackendTurnOptions {
    * 只增可选字段: 旧实现 (`VisitorService`) 天然是 undefined, 一行都不用改.
    */
   readonly roundId?: number;
+  /**
+   * 本场第几轮 (从 1 起) (V2026-11-03, WP23).
+   *
+   * 语义: **voice 层是轮次号的唯一真相** —— 它知道"这是本场第几轮",
+   * 后端不知道 (后端只知道自己内部的轮次, 与 voice 的计数在"被阻断 / 出错的轮"
+   * 上会错位). 而断线补漏 (WP23) 要用轮次号与客户端对齐, 客户端的计数来自
+   * `llm_done` 帧里的同一个号 —— 三处必须同源, 所以由 voice 层发号, 后端照抄.
+   *
+   * 缺省 = voice 层没给 (独立调用后端时) → 后端按"轮次未知"处理 (不参与补漏台账的排序).
+   */
+  readonly turnIndex?: number;
   /** 链路 trace id (透传给上游). */
   readonly traceId?: string;
   /** AbortSignal — barge-in 时 abort(), 请求真正中断. */

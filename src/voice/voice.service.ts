@@ -69,8 +69,11 @@ import {
   type VoiceTurnBackendTurnOptions,
 } from './voice-turn-backend.port.js';
 import type {
+  VoiceCatchUpSessionState,
+  VoiceCatchUpTurn,
   VoiceClientMessage,
   VoiceServerMessage,
+  VoiceSessionEndReason,
   VoiceSessionMeta,
   VoiceSessionPersona,
   VoiceSessionReportStatus,
@@ -85,6 +88,39 @@ import type { VisitorPersonaSnapshot } from '../agent/visitor/visitor.types.js';
 type SendFn = (msg: VoiceServerMessage) => void;
 
 /**
+ * 读一个**正数**配置 (V2026-11-03, WP23).
+ *
+ * 为什么同时接受字符串与数字: 配置值有两条来路 ——
+ *   · 正常路径: `config/envs/default.ts` 已经解析成**数字**;
+ *   · 覆写 / 单测: 有人直接塞字符串进来 (`ConfigService.get` 的返回类型是 `any`).
+ * 只认数字会让"env 配了但没生效"变成一个查不出来的问题.
+ *
+ * 非法值 (非数字 / 0 / 负数 / NaN) 一律回退缺省 —— 见 `default.ts` 的同名助手,
+ * 两处口径相同 (一处管 env 解析, 一处管配置读取).
+ *
+ * @param raw 配置原始值
+ * @param fallback 缺省值
+ * @returns 合法正数; 否则返回缺省值
+ */
+function readPositiveConfig(raw: unknown, fallback: number): number {
+  const parsed = toNumber(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return parsed;
+}
+
+/**
+ * 配置原始值 → 数字 (认字符串与数字, 其余一律 NaN).
+ *
+ * @param raw 配置原始值
+ * @returns 数字; 认不出来 → NaN
+ */
+function toNumber(raw: unknown): number {
+  if (typeof raw === 'number') return raw;
+  if (typeof raw === 'string') return Number(raw.trim());
+  return Number.NaN;
+}
+
+/**
  * 等待业务桥收尾结果的最长时间 (ms).
  *
  * V2026-10-27 (spec 任务 B): `session_ended` 帧要带报告状态, 而报告状态由业务桥
@@ -92,6 +128,76 @@ type SendFn = (msg: VoiceServerMessage) => void;
  * 800ms 足够覆盖一次本地 DB UPDATE + 一次 Redis 入队; 超时就按"结论未知"发帧.
  */
 const BRIDGE_CLOSE_TIMEOUT_MS = 800;
+
+/**
+ * 超长 idle 兜底的缺省时长 (分钟) — V2026-11-03 (WP23 §1.7).
+ *
+ * env 缺失 / 非法 → 回退 120 分钟.
+ *
+ * ⚠️ 这个兜底**不是**"断连宽限期": 它按"最后一次收到客户端消息"算, 与断连无关.
+ *   断连不挂任何定时器 (任务单 §1.1 明确禁止 30s grace timer 那种游戏式妥协);
+ *   这个计时器只是内存卫生 —— 一场没人理的对练, 不该在内存里挂两小时.
+ */
+const DEFAULT_IDLE_TIMEOUT_MINUTES = 120;
+
+/**
+ * 补漏轮次上限的缺省值 — V2026-11-03 (WP23 §1.7).
+ *
+ * 漏的轮次超过它就不补 (推 `session_stale`), 让客户端自己从头开始 ——
+ * 一次塞两百条历史既塞不进 UI, 也让"补漏"变成"灌数据".
+ */
+const DEFAULT_CATCHUP_MAX_TURNS = 20;
+
+/**
+ * 补漏帧里的"本场状态"缺省值 — V2026-11-03 (WP23).
+ *
+ * 用在"后端给不出状态"的地方 (旧链路 / 引擎侧没装配): 一场**普通**的会话 ——
+ * 没有重点监测、不是 elevated、角色代号未知 (空串 = 客户端按"未知"处理).
+ *
+ * 刻意**不编**: 客户端会照着这个状态渲染 UI, 编出来的状态比缺省更糟.
+ */
+const DEFAULT_CATCHUP_SESSION_STATE: Omit<VoiceCatchUpSessionState, 'phase'> = {
+  riskLevel: 'normal',
+  monitored: false,
+  characterCode: '',
+};
+
+/**
+ * 重连入参 (V2026-11-03, WP23).
+ */
+export interface VoiceReconnectParams {
+  /** 本场会话 meta (含 sessionId / userId / tenantId 等). */
+  readonly meta: VoiceSessionMeta;
+  /** 客户端上次确认收到的最后一轮 (从 0 起 = 一轮都没收到). */
+  readonly lastSeenTurnIndex: number;
+  /**
+   * 客户端记得的落库 id (进程重启后重建的必需键).
+   *
+   * 缺省 = 客户端没记住 → 服务端无从查起 → 会话不可续 (推 `session_stale`).
+   */
+  readonly dbSessionId?: string;
+}
+
+/**
+ * 重连结果 (V2026-11-03, WP23).
+ */
+export interface VoiceReconnectOutcome {
+  /** true = 会话已就绪 (路径 1 绑回 / 路径 2 重建), 调用方不必再走开场流程. */
+  readonly ready: boolean;
+  /** 复用的落库 id (路径 1 / 路径 2); fresh 时为 undefined. */
+  readonly dbSessionId?: string;
+  /** 补漏帧 (session_catchup / session_reattached / session_stale); 没有则 null. */
+  readonly frame: VoiceServerMessage | null;
+  /**
+   * 走的是哪条路径 (日志用).
+   *
+   * `reattached` = 内存命中, 绑回原会话; `resumed` = 进程重启过, 走 WP12 重建;
+   * `stale` = 会话不可续 (调用方走 fresh 开场流程).
+   */
+  readonly path: 'reattached' | 'resumed' | 'stale';
+  /** 漏掉的轮次数 (日志用: "catchup turns=N"). */
+  readonly missedTurnCount: number;
+}
 
 /**
  * 一轮 LLM 的结束方式.
@@ -130,6 +236,33 @@ export class VoiceService {
   /** 已开过旧链路会话的 sessionId (新引擎场里回落前需要补开). */
   private readonly legacyOpened = new Set<string>();
 
+  /**
+   * 超长 idle 兜底时长 (毫秒) — V2026-11-03 (WP23 §1.7).
+   *
+   * 语义: "从最后一次收到客户端消息算起, 超过这么久没收到任何上行 → 主动 endSession".
+   * 与断连**无关** (断连不挂定时器, 见 §1.1) —— 这是内存卫生兜底.
+   */
+  private readonly idleTimeoutMs: number;
+
+  /**
+   * 补漏轮次上限 — V2026-11-03 (WP23 §1.4).
+   *
+   * 漏的轮次超过它 → 推 `session_stale` (reason=too_far_behind), 不塞历史.
+   */
+  private readonly catchUpMaxTurns: number;
+
+  /**
+   * 会话 id → 该场的 idle 兜底计时器 (V2026-11-03, WP23 §1.1).
+   *
+   * 为什么是**每场一个**而不是一个全局扫描器:
+   *   · 语义精确: "最后一次收到客户端消息"是**每场**自己的时间线, 全局扫描器要
+   *     给每场额外记一个时间戳, 记法一多就容易和真实的消息时间线对不上;
+   *   · 收尾即销: 会话结束 (主动 / idle 兜底) 时立刻 clearTimeout, 不留悬挂句柄.
+   *
+   * 计时器一律 `unref()` —— 它不该让进程活下来 (进程要退出时不该等一场没人的对练).
+   */
+  private readonly idleTimers = new Map<string, NodeJS.Timeout>();
+
   private readonly sessions = new Map<string, VoiceSessionState>();
 
   /**
@@ -162,6 +295,11 @@ export class VoiceService {
     this.ttsModel = config.get<string>('minimax.ttsModel') ?? 'speech-2.8-turbo';
     this.engineEnabled = readBooleanFlag(config.get<string>('ENGINE_VOICE_ENABLED'));
     this.grayscaleSessions = parseSessionWhitelist(config.get<string>('ENGINE_STREAM_GRAYSCALE_SESSIONS'));
+    // V2026-11-03 (WP23): 两个兜底参数 —— env 缺失 / 非法 / 非正数 → 回退缺省值.
+    //   非法值必须回退而不是"照用": 0 或负数会让 idle 兜底**立刻**触发 (会话秒死),
+    //   NaN 会让比较永远为假 (兜底形同虚设) —— 两种都比"没有这个兜底"更糟.
+    this.idleTimeoutMs = readPositiveConfig(config.get('voice.sessionIdleTimeoutMinutes'), DEFAULT_IDLE_TIMEOUT_MINUTES) * 60_000;
+    this.catchUpMaxTurns = Math.floor(readPositiveConfig(config.get('voice.catchUpMaxTurns'), DEFAULT_CATCHUP_MAX_TURNS));
     if (!this.limits) {
       this.logger.warn('[voice_limits] 未装配会话限流闸门: 并发上限与当日 token 预算**均不生效** (WP22)');
     }
@@ -176,6 +314,9 @@ export class VoiceService {
       send({ type: 'session_ended', reason: 'error' });
       return;
     }
+    // V2026-11-03 (WP23 §1.1): idle 兜底的计时基准是"最后一次收到客户端消息" ——
+    //   任何一条上行都重置它 (哪怕这一轮最后被忽略: 用户确实还在).
+    this.refreshIdleTimer(meta.sessionId);
 
     switch (msg.type) {
       case 'user_text':
@@ -268,8 +409,12 @@ export class VoiceService {
       //   也是会谈的一部分 (用户在看卡片、在想要不要换人物).
       startedAt: Date.now(),
       turnCount: 0,
+      // V2026-11-03 (WP23): socket 在线 (断连时 gateway 会调 detachSocket 改回 false).
+      attached: true,
     };
     this.sessions.set(meta.sessionId, state);
+    // V2026-11-03 (WP23 §1.1): 超长 idle 兜底计时器 —— 从**开场**这一刻起算.
+    this.refreshIdleTimer(meta.sessionId);
     this.logger.log(
       `[startSession] session=${meta.sessionId} tenant=${meta.tenantId} user=${meta.userId} ` +
         `persona=${personaSnapshot.id} mode=${meta.mode} template_preset=${JSON.stringify(meta.preset)}`,
@@ -277,9 +422,12 @@ export class VoiceService {
   }
 
   /** 关闭 voice session. gateway 在 handleDisconnect 时调. */
-  endSession(sessionId: string, reason: 'user_finish' | 'timeout' | 'error' = 'user_finish', send?: SendFn): void {
+  endSession(sessionId: string, reason: VoiceSessionEndReason = 'user_finish', send?: SendFn): void {
     const state = this.sessions.get(sessionId);
     if (!state) return;
+    // V2026-11-03 (WP23 §1.1): 销掉 idle 兜底计时器 —— 会话没了, 计时器也没意义
+    //   (留着就是一句"到点把一个不存在的会话收一收").
+    this.clearIdleTimer(sessionId);
     // 治本 (spec §3.6): 释放 TTS 连接 —— 旧实现只 cancel 不 release, 池里条目只增不减
     state.ttsHandle?.dispose();
     state.ttsHandle = null;
@@ -383,7 +531,7 @@ export class VoiceService {
    */
   private async sendSessionEnded(
     send: SendFn | undefined,
-    reason: 'user_finish' | 'timeout' | 'error',
+    reason: VoiceSessionEndReason,
     closePromise: Promise<VoiceSessionCloseResult | null>,
   ): Promise<void> {
     const reportStatus = await this.awaitCloseResult(closePromise);
@@ -466,7 +614,298 @@ export class VoiceService {
     }
   }
 
+  // ── WP23 · 断线重连追平 ────────────────────────────────────────
+  //
+  //   设计要点 (任务单 §1.1 / §1.3):
+  //     · 断线**不杀会话** —— 会话留在内存里, in-flight 的轮次让它自然跑完;
+  //     · 重连有**两条路径**: 内存命中 (绑回) / 进程重启过 (WP12 重建);
+  //     · 补漏数据只给**最终文本**, 不回放流式 chunk / TTS 音频;
+  //     · 会话重建与补漏组装都在这一层 (gateway 只做 transport, 任务单 §2 红线).
+  //
+  //   为什么"绑回"要重新登记帧出口: 帧出口按**落库 id** 登记, 断连时注销了 ——
+  //     不重登记, 督导侧的实时提示 / 移情标记就再也推不进这场会话.
+
+  /**
+   * 这场会话在本进程里还活着吗 (重连路径 1 的判据).
+   *
+   * @param sessionId 会话 id
+   * @returns true = 内存命中 (可以绑回)
+   */
+  hasSession(sessionId: string): boolean {
+    return this.sessions.has(sessionId);
+  }
+
+  /**
+   * 已存在会话的 meta (含落库 id) —— 重连时**复用**落库 id, 不新建行.
+   *
+   * 为什么必须复用: 落库 id 是督导报告 / 4 流派反馈 / 实时帧出口的**唯一挂载点**;
+   * 重连一次就新建一行 = 同一场会谈在库里裂成两场, 报告挂到空的那场.
+   *
+   * @param sessionId 会话 id
+   * @returns 会话 meta; undefined = 内存里没有这场会话
+   */
+  findSession(sessionId: string): VoiceSessionMeta | undefined {
+    return this.sessions.get(sessionId)?.meta;
+  }
+
+  /**
+   * socket 断开 (WP23 §1.1): 会话**继续活**, 只把"帧出口还在不在"记成 false.
+   *
+   * 做什么 / 不做什么:
+   *   · 不 endSession (任务单 §1.1 明确禁止);
+   *   · 不删内存会话;
+   *   · **不挂任何判死定时器** (那是游戏式妥协, 本单明确放弃);
+   *   · 停掉在跑的 TTS 合成 —— 没人听的音频就是白烧钱 (§1.5).
+   *
+   * @param sessionId 会话 id
+   */
+  detachSocket(sessionId: string): void {
+    const state = this.sessions.get(sessionId);
+    if (!state) return;
+    state.attached = false;
+    // 断连后不再合成音频: 协议级 cancel 让上游停止合成 (钱停在这里).
+    //   本轮的收尾 (closeTtsTurn) 仍会 dispose 这条连接 —— 池里的条目不漏.
+    state.ttsHandle?.cancel();
+    state.ttsHandle = null;
+    this.logger.log(`[onDisconnect] session=${sessionId} socket dropped, session kept in memory`);
+  }
+
+  /**
+   * socket 重新连上 (WP23 §1.3 路径 1): 绑回已存在的会话.
+   *
+   * @param sessionId 会话 id
+   * @returns true = 绑回成功; false = 内存里没有这场会话 (该走路径 2)
+   */
+  attachSocket(sessionId: string): boolean {
+    const state = this.sessions.get(sessionId);
+    if (!state) return false;
+    state.attached = true;
+    // 重连算一次"有动静": idle 兜底从这一刻重新起算.
+    this.refreshIdleTimer(sessionId);
+    return true;
+  }
+
+  /**
+   * 重连处理 (WP23 §1.3): 两条路径的统一入口.
+   *
+   * 路径 1 (内存命中): 绑回原会话 → 从**引擎侧补漏台账**取漏掉的轮次.
+   *   不重新 openSession / 不重新初始化角色基线 / 不重跑 BDI —— 会话对象还活着,
+   *   BDI 状态就在内存里.
+   *
+   * 路径 2 (进程重启过): 走 WP12 `resumeFromSessionId` 重建 → 从**持久化**取漏掉的轮次.
+   *   重建不了 (落库会话不存在 / 不属于该学员) → `session_stale`, 客户端走 fresh 开场.
+   *
+   * @param params 重连入参
+   * @returns 重连结果 (就绪与否 + 补漏帧)
+   */
+  async reconnectSession(params: VoiceReconnectParams): Promise<VoiceReconnectOutcome> {
+    const state = this.sessions.get(params.meta.sessionId);
+    if (state) return this.reattachExisting(state, params);
+    return this.resumeAfterRestart(params);
+  }
+
   // ── private ────────────────────────────────────────────────────
+
+  /**
+   * 重连 · 路径 1: 内存命中 —— 绑回原会话 + 从引擎侧补漏台账取漏掉的轮次.
+   *
+   * 为什么补漏数据问**后端**而不是 voice 层自己攒:
+   *   一轮到底算不算"已提交", 只有后端知道 (BDI 有没有落、回复有没有发完);
+   *   voice 层只看到"流结束了" —— 分不清"说完了"与"说到一半被 barge-in 掐了".
+   *
+   * @param state 已存在的会话状态
+   * @param params 重连入参
+   * @returns 重连结果
+   */
+  private reattachExisting(state: VoiceSessionState, params: VoiceReconnectParams): VoiceReconnectOutcome {
+    state.attached = true;
+    this.refreshIdleTimer(state.meta.sessionId);
+    const backend = this.backendOf(state);
+    const result = backend.catchUp?.(state.meta.sessionId, params.lastSeenTurnIndex);
+    const missedTurns = result?.missedTurns ?? [];
+    const serverLatestTurnIndex = result?.serverLatestTurnIndex ?? state.turnCount;
+    const frame = this.buildCatchUpFrame(
+      missedTurns,
+      serverLatestTurnIndex,
+      result?.sessionState ?? DEFAULT_CATCHUP_SESSION_STATE,
+      this.phaseOf(state),
+    );
+    return {
+      ready: true,
+      dbSessionId: state.meta.dbSessionId,
+      frame,
+      path: 'reattached',
+      missedTurnCount: missedTurns.length,
+    };
+  }
+
+  /**
+   * 重连 · 路径 2: 进程重启过 —— 走 WP12 `resumeFromSessionId` 重建 + 从持久化补漏.
+   *
+   * 重建的**边界** (必须诚实):
+   *   · 内核的 BDI 状态仓储目前是**内存态** (`InMemoryBdiStateRepository`), 进程重启后
+   *     取不到上一场的快照 —— 所以 WP12 的 resume 在这条路径上**恢复不了 BDI 快照**,
+   *     只能恢复"长时记忆召回 + 角色基线"这一层 (记忆仓储是持久的, 跨进程有效);
+   *   · 逐轮的 BDI 快照改由 **WP19-R 留痕**还原 (trace 逐轮落库), 但留痕受
+   *     `ENGINE_DEBUG_TRACE_ENABLED` 开关约束 (prod 缺省关) —— 关着就没有快照可还原.
+   *   两件事都写进交付记录, 不在这里假装"重建成功 = BDI 全回来了".
+   *
+   * @param params 重连入参
+   * @returns 重连结果
+   */
+  private async resumeAfterRestart(params: VoiceReconnectParams): Promise<VoiceReconnectOutcome> {
+    const sessionId = params.meta.sessionId;
+    const dbSessionId = params.dbSessionId?.trim() ?? '';
+    if (!dbSessionId) {
+      // 客户端没记住落库 id → 无从查起 (库里没有"内存 sessionId"这一列) → 不可续.
+      this.logger.warn(`[reconnect] session=${sessionId} 无落库 id, 无法重建, sending session_stale`);
+      return {
+        ready: false,
+        frame: { type: 'session_stale', reason: 'unknown_session' },
+        path: 'stale',
+        missedTurnCount: 0,
+      };
+    }
+    const persistent = await this.bridges.readCommittedTurns({
+      dbSessionId,
+      userId: params.meta.userId,
+      tenantId: params.meta.tenantId,
+    });
+    if (!persistent) {
+      this.logger.warn(`[reconnect] session=${sessionId} 落库会话不存在或不属于该学员, sending session_stale`);
+      return {
+        ready: false,
+        frame: { type: 'session_stale', reason: 'unknown_session' },
+        path: 'stale',
+        missedTurnCount: 0,
+      };
+    }
+    // WP12 接续: 用**这场会话原来的 sessionId** 作为 resume 来源 ——
+    //   引擎侧查得到就搬快照, 查不到就 warn + 按新会话开 (不抛错、不断连).
+    const meta: VoiceSessionMeta = {
+      ...params.meta,
+      dbSessionId,
+      resumeFromSessionId: params.meta.resumeFromSessionId ?? sessionId,
+    };
+    await this.startSession(meta);
+    const state = this.sessions.get(sessionId);
+    // 角色代号 / 监测态由**引擎侧**给 (它知道本场注入的是哪个角色、监测有没有置位);
+    //   逐轮内容由**持久化**给 (引擎台账在重启后已经空了).
+    const engineState = state ? this.backendOf(state).catchUp?.(sessionId, params.lastSeenTurnIndex)?.sessionState : undefined;
+    const missedTurns = persistent.turns.filter((turn) => turn.turnIndex > params.lastSeenTurnIndex);
+    const serverLatestTurnIndex = persistent.turns.reduce((max, turn) => Math.max(max, turn.turnIndex), 0);
+    const frame = this.buildCatchUpFrame(
+      missedTurns,
+      serverLatestTurnIndex,
+      engineState ?? DEFAULT_CATCHUP_SESSION_STATE,
+      state ? this.phaseOf(state) : 'listening',
+    );
+    return {
+      ready: true,
+      dbSessionId,
+      frame,
+      path: 'resumed',
+      missedTurnCount: missedTurns.length,
+    };
+  }
+
+  /**
+   * 组装补漏帧 (WP23 §1.4).
+   *
+   * 三种结局 (互斥, 按这个顺序判):
+   *   ① 漏得太多 (> `VOICE_CATCHUP_MAX_TURNS`) → `session_stale` (too_far_behind):
+   *      不塞历史, 让客户端自己决定从头开始;
+   *   ② 一条没漏 → `session_reattached` (轻帧, 不带任何逐轮内容);
+   *   ③ 有漏的 → `session_catchup` (一次性把漏的轮次全给).
+   *
+   * ⚠️ **只补最终文本**: 不带流式 chunk、不带音频帧 (任务单 §2 红线) ——
+   *   TTS 已播出不可撤回, 重新合成是客户端自己的事 (服务端不再烧一次 TTS 配额).
+   *
+   * @param missedTurns 漏掉的轮次
+   * @param serverLatestTurnIndex 服务端已提交的最大轮次号
+   * @param sessionState 本场状态 (缺相位)
+   * @param phase 本场相位
+   * @returns 补漏帧
+   */
+  private buildCatchUpFrame(
+    missedTurns: readonly VoiceCatchUpTurn[],
+    serverLatestTurnIndex: number,
+    sessionState: Omit<VoiceCatchUpSessionState, 'phase'>,
+    phase: VoiceCatchUpSessionState['phase'],
+  ): VoiceServerMessage {
+    if (missedTurns.length > this.catchUpMaxTurns) {
+      // 日志由 gateway 打 (它是连接层, 任务单 §1.8 把这几条日志归在 `[onConnect]` 下) ——
+      //   这里只负责**决定**不补 (漏太多塞进一帧既塞不进 UI, 也让补漏变成灌数据).
+      return { type: 'session_stale', reason: 'too_far_behind', serverLatestTurnIndex };
+    }
+    if (missedTurns.length === 0) {
+      return { type: 'session_reattached', serverLatestTurnIndex };
+    }
+    return {
+      type: 'session_catchup',
+      serverLatestTurnIndex,
+      missedTurns,
+      currentSessionState: { ...sessionState, phase },
+    };
+  }
+
+  /**
+   * 本场相位 (补漏帧用).
+   *
+   * @param state 会话状态
+   * @returns 相位
+   */
+  private phaseOf(state: VoiceSessionState): VoiceCatchUpSessionState['phase'] {
+    if (state.status === 'paused') return 'paused';
+    // processing = 这一轮还在跑 (来访者正在说 / 正在生成).
+    if (state.status === 'processing') return 'speaking';
+    return 'listening';
+  }
+
+  /**
+   * 重置 idle 兜底计时器 (WP23 §1.1).
+   *
+   * 计时基准: "最后一次收到客户端消息" —— 任何一条上行都重置它.
+   * 断连**不**重置也不新建: 断连不是"有动静", 挂着就好 (等它自己超时兜底).
+   *
+   * @param sessionId 会话 id
+   */
+  private refreshIdleTimer(sessionId: string): void {
+    this.clearIdleTimer(sessionId);
+    const timer = setTimeout(() => {
+      this.handleIdleTimeout(sessionId);
+    }, this.idleTimeoutMs);
+    // unref: 这个计时器不该让进程活下来 (进程要退出时不该等一场没人的对练).
+    if (typeof timer.unref === 'function') timer.unref();
+    this.idleTimers.set(sessionId, timer);
+  }
+
+  /**
+   * 销掉 idle 兜底计时器.
+   *
+   * @param sessionId 会话 id
+   */
+  private clearIdleTimer(sessionId: string): void {
+    const timer = this.idleTimers.get(sessionId);
+    if (!timer) return;
+    clearTimeout(timer);
+    this.idleTimers.delete(sessionId);
+  }
+
+  /**
+   * 超长 idle 兜底 (WP23 §1.1): 服务端主动 endSession.
+   *
+   * 语义: **内存卫生**, 不是用户感知的 cliff ——
+   *   用户主动结束走 `session_finish` (另一条路径), 断线也不走这里.
+   *
+   * @param sessionId 会话 id
+   */
+  private handleIdleTimeout(sessionId: string): void {
+    this.idleTimers.delete(sessionId);
+    if (!this.sessions.has(sessionId)) return;
+    this.logger.warn(`[idleTimeout] session=${sessionId} idle >${Math.round(this.idleTimeoutMs / 60_000)}min, ending as idle_timeout`);
+    this.endSession(sessionId, 'idle_timeout');
+  }
 
   /**
    * 处理 user_text — 编排 LLM → TTS 流水线.
@@ -494,10 +933,17 @@ export class VoiceService {
     const myGeneration = state.currentGeneration;
     state.status = 'processing';
 
+    // V2026-11-03 治本 (WP23): 本轮轮次号 —— **算一次, 全程带着走**.
+    //   为什么不在用的时候现算 `state.turnCount + 1`: barge-in 时两轮会短暂并存
+    //   (新一轮已经开始, 上一轮还没收尾), 现算会让两轮拿到**同一个号** ——
+    //   补漏台账里就会出现两条同号的轮次, 客户端按号对不上.
+    //   `turnCount` 只在整轮跑完时递增, 所以"本场第几轮"在开跑那一刻就已经定了.
+    const turnIndex = state.turnCount + 1;
+
     // 0. 前置 safety gate (V2026-11-02, WP14 优化项): block 级危机**不发 llm_start**.
     //    必须排在 TTS 之前 —— TTS 一起来, 本轮就会走完收尾并发出 tts 帧,
     //    "先转 loading 圈再弹 modal" 的瑕疵就还在.
-    if (await this.runPreCheckSafety(state, text, myGeneration, send)) {
+    if (await this.runPreCheckSafety(state, text, turnIndex, myGeneration, send)) {
       return;
     }
 
@@ -513,7 +959,7 @@ export class VoiceService {
     //    本轮来访者说的话要收集起来, 落库后才有逐字稿可读 (每轮分析 / 技术统计 / 标记
     //    / 复盘报告全部以它为输入).
     const visitorChunks: string[] = [];
-    const { outcome, llmAbort } = await this.runLlmTurn(state, text, myGeneration, send, ttsHandle, visitorChunks, roundId);
+    const { outcome, llmAbort } = await this.runLlmTurn(state, text, turnIndex, myGeneration, send, ttsHandle, visitorChunks, roundId);
 
     // 3. 收尾 TTS (正常 done 已 finish; eof 补 finish; 异常已 cancel)
     await this.closeTtsTurn(state, ttsHandle, ttsPump, outcome, myGeneration);
@@ -545,11 +991,18 @@ export class VoiceService {
    *
    * @param state 会话状态
    * @param text 用户输入
+   * @param turnIndex 本场轮次 (从 1 起; 由调用方算一次带下来, 与逐字稿锚点同源)
    * @param myGeneration 本轮代号
    * @param send 帧发送回调
    * @returns true = 本轮被阻断 (调用方直接收尾: 不起 TTS / 不跑 LLM / 不发 llm 帧)
    */
-  private async runPreCheckSafety(state: VoiceSessionState, text: string, myGeneration: number, send: SendFn): Promise<boolean> {
+  private async runPreCheckSafety(
+    state: VoiceSessionState,
+    text: string,
+    turnIndex: number,
+    myGeneration: number,
+    send: SendFn,
+  ): Promise<boolean> {
     const backend = this.backendOf(state);
     if (!backend.preCheckSafety) return false;
 
@@ -559,7 +1012,7 @@ export class VoiceService {
         sessionId: state.meta.sessionId,
         userText: text,
         // 本场轮次 (从 1 起) —— 与逐字稿锚点同源 (报告按 `(turnIndex-1)*2` 定位那条"问").
-        turnIndex: state.turnCount + 1,
+        turnIndex,
         publishFrame: send,
       });
     } catch (err) {
@@ -620,6 +1073,15 @@ export class VoiceService {
     send: SendFn,
     myGeneration: number,
   ): Promise<{ ttsHandle: TtsSessionHandle | null; ttsPump: Promise<void> | null } | null> {
+    // V2026-11-03 治本 (WP23 §1.5): 断连中 → **压根不调 TTS provider**.
+    //   没人听的音频就是白烧 MiniMax 的 TTS 配额. 但这一轮**照跑** LLM ——
+    //   跑完的文本进补漏台账, 客户端重连时由 `session_catchup` 补回来.
+    //   ⚠️ 这里返回的是"没有 TTS 句柄"而不是 null: null 的语义是
+    //     "TTS 起不来 → 本轮不出声 → 直接收尾", 那会把这一轮整个丢掉.
+    if (!state.attached) {
+      this.logger.log(`[user_text] socket 已断开, 本轮跳过 TTS 合成 session=${state.meta.sessionId}`);
+      return { ttsHandle: null, ttsPump: null };
+    }
     const ttsHandle = state.meta.mode === 'voice' ? await this.startTtsSession(state, send) : null;
     if (state.meta.mode === 'voice' && !ttsHandle) {
       // TTS 起不来 (音色没配 / 上游握手失败) → 本轮不出声, 直接收尾.
@@ -638,6 +1100,7 @@ export class VoiceService {
    *
    * @param state 会话状态
    * @param text 用户输入
+   * @param turnIndex 本场轮次 (从 1 起; 传给后端做补漏台账的键)
    * @param myGeneration 本轮代号
    * @param send 帧发送回调
    * @param ttsHandle 本轮 TTS 句柄 (LLM chunk 要喂给它)
@@ -648,6 +1111,7 @@ export class VoiceService {
   private async runLlmTurn(
     state: VoiceSessionState,
     text: string,
+    turnIndex: number,
     myGeneration: number,
     send: SendFn,
     ttsHandle: TtsSessionHandle | null,
@@ -657,9 +1121,9 @@ export class VoiceService {
     const llmAbort = new AbortController();
     state.llmAbort = llmAbort;
     try {
-      const llmStream = await this.resolveTurnStream(state, text, llmAbort.signal, send, roundId);
+      const llmStream = await this.resolveTurnStream(state, text, turnIndex, llmAbort.signal, send, roundId);
       send({ type: 'llm_start' });
-      const outcome = await this.consumeLlmStream(llmStream, myGeneration, state, send, ttsHandle, visitorChunks);
+      const outcome = await this.consumeLlmStream(llmStream, turnIndex, myGeneration, state, send, ttsHandle, visitorChunks);
       if (outcome === 'error') {
         // 新引擎这一轮中断 → 本场后续轮次回旧链路 (WS 不中断, 帧语义与旧链路一致).
         await this.fallbackToLegacy(state, '新引擎流中断');
@@ -692,11 +1156,12 @@ export class VoiceService {
   private async resolveTurnStream(
     state: VoiceSessionState,
     text: string,
+    turnIndex: number,
     signal: AbortSignal,
     send: SendFn,
     roundId?: number,
   ): Promise<LlmStream> {
-    const options = this.buildTurnOptions(state, text, signal, send, roundId);
+    const options = this.buildTurnOptions(state, text, turnIndex, signal, send, roundId);
     const backend = this.backendOf(state);
     if (backend !== this.engineBackend) {
       const { stream } = await this.visitor.streamTurn(options);
@@ -774,10 +1239,19 @@ export class VoiceService {
    *
    * `roundId` (WP16): 轮次号原样透传 —— 后端凭它做幂等判定 (同一轮重发不重跑 BDI).
    * 缺省 = 客户端没给号 → 后端不走幂等, 行为与 WP16 之前逐字一致.
+   *
+   * `turnIndex` (WP23): 本场第几轮 —— **voice 层是轮次号的唯一真相**.
+   *   它同时流向三处, 三处必须同源:
+   *     · 后端补漏台账的键 (断线重连时按它捞"我漏了哪几轮");
+   *     · `llm_done` 帧里的 `turnIndex` (客户端靠它知道自己听到第几轮);
+   *     · 客户端重连时上报的 `lastSeenTurnIndex`.
+   *   后端另有一套自己的累计轮次 (内核的), 但那套在 barge-in / 降级时会与客户端
+   *   看到的对不上 —— 所以补漏一律用 voice 层这个号.
    */
   private buildTurnOptions(
     state: VoiceSessionState,
     text: string,
+    turnIndex: number,
     signal: AbortSignal,
     send: SendFn,
     roundId?: number,
@@ -791,6 +1265,7 @@ export class VoiceService {
       traceId: state.meta.traceId,
       signal,
       publishFrame: send,
+      turnIndex,
       ...(roundId === undefined ? {} : { roundId }),
     };
   }
@@ -1128,6 +1603,7 @@ export class VoiceService {
    *   generation mismatch (新 user_text 打断) → 停止本轮.
    *
    * @param llmStream LLM 流
+   * @param turnIndex 本场轮次 (从 1 起; 带进 `llm_done` 帧, 客户端靠它报 `lastSeenTurnIndex`)
    * @param myGeneration 本轮代号
    * @param state 会话状态
    * @param send 帧发送回调
@@ -1137,6 +1613,7 @@ export class VoiceService {
    */
   private async consumeLlmStream(
     llmStream: LlmStream,
+    turnIndex: number,
     myGeneration: number,
     state: VoiceSessionState,
     send: SendFn,
@@ -1166,6 +1643,9 @@ export class VoiceService {
         case 'done':
           // V2026-10-29 治本 (WP9-C): 带 usage —— 端上/E2E 验收要看思考 token 与
           //   输出长度 (老客户端不认识这个可选字段, 直接忽略).
+          // V2026-11-03 治本 (WP23): 带 `turnIndex` —— 客户端断线重连时要报
+          //   "我上次听到第几轮", 靠的就是这个号. 缺省 = 后端没给轮次号 (旧链路),
+          //   客户端按"不知道听到哪"处理 (握手不带 lastSeenTurnIndex).
           send({
             type: 'llm_done',
             usage: {
@@ -1174,6 +1654,7 @@ export class VoiceService {
               totalTokens: chunk.usage.totalTokens,
               ...(chunk.usage.reasoningTokens === undefined ? {} : { reasoningTokens: chunk.usage.reasoningTokens }),
             },
+            turnIndex,
           });
           ttsHandle?.finish();
           // WP16: 重放 (幂等复用) **不是新的一轮** —— 逐字稿不能再落第二条.

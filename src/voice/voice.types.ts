@@ -72,6 +72,70 @@ export type VoiceClientMessage =
  */
 export type VoiceSessionReportStatus = 'completed' | 'pending' | 'parse_error' | 'no_content' | 'none';
 
+/**
+ * 补漏帧里的一轮 (V2026-11-03, WP23).
+ *
+ * 形状来源: **引擎侧已提交轮次台账** (内存命中时) 或 **持久化逐字稿 + trace**
+ * (进程重启后重建时). 两侧口径必须一致 —— 否则同一场会话在"重连"与"重启后重连"
+ * 两种路径下补出来的内容形状不同, 客户端要写两套解析.
+ */
+export interface VoiceCatchUpTurn {
+  /** 本场第几轮 (从 1 起). */
+  readonly turnIndex: number;
+  /** 咨询师这一轮说的话. */
+  readonly userText: string;
+  /** 来访者这一轮的回应 (最终文本; 没有则空串). */
+  readonly replyText: string;
+  /**
+   * 本轮 BDI 快照.
+   *
+   * 形状**逐字沿用 WP19-R 的调试快照契约** (`turn_debug_trace` 里那份):
+   * `{ trust, valence, arousal, resistance, anxiousSecure }`.
+   *
+   * 为什么不用别的形状: 那份契约已经被调试器 SPA 与报告页依赖, 是**持久化口径**;
+   * 另造第三套 BDI 快照形状必然漂移 (三套形状迟早有两套对不上).
+   *
+   * 缺省 = 这一轮没有快照 (降级轮 / 留痕没开 / 重建时还原不出来).
+   */
+  readonly bdiSnapshot?: VoiceCatchUpBdiSnapshot;
+  /**
+   * 本轮的标记 (移情 / 阻抗).
+   *
+   * 恒为空数组: 标记由 counselor 侧 worker 产出并**实时推帧**, 没有可回读的
+   * "逐轮标记"存储. 补漏只补"说了什么 + 状态", 不补标记 (客户端拿不到就当没有).
+   */
+  readonly marks: readonly unknown[];
+  /** 本轮危机等级 (pass = 无; warn = 有信号未阻断; block = 已阻断). */
+  readonly crisisLevel: 'pass' | 'warn' | 'block';
+}
+
+/**
+ * 补漏帧里的 BDI 快照 (WP19-R 契约的逐字形状).
+ */
+export interface VoiceCatchUpBdiSnapshot {
+  readonly trust: number;
+  readonly valence: number;
+  readonly arousal: number;
+  /** 阻抗 (取话量阻抗 —— 与"这轮说了多少"直接相关). */
+  readonly resistance: number;
+  /** 情绪标签 (内核按 valence × arousal 象限算的离散标签). */
+  readonly anxiousSecure: string;
+}
+
+/**
+ * 补漏帧里的本场当前状态 (V2026-11-03, WP23).
+ */
+export interface VoiceCatchUpSessionState {
+  /** 会话相位 (listening = 在听用户说话; speaking = 来访者正在说). */
+  readonly phase: 'listening' | 'speaking' | 'paused';
+  /** 风险等级 (normal = 无重点监测; elevated = 本场已出过 high). */
+  readonly riskLevel: 'normal' | 'elevated';
+  /** 是否处于重点监测 (危机处置的高危标记). */
+  readonly monitored: boolean;
+  /** 本场角色 key (公共人物 slug; 无角色时是中性基线 id). */
+  readonly characterCode: string;
+}
+
 /** 服务端 → 客户端消息 (全部 JSON 文本帧). */
 export type VoiceServerMessage =
   /**
@@ -108,6 +172,11 @@ export type VoiceServerMessage =
    *
    * V2026-10-29 治本 (WP9-C): 带**可选** usage —— 端上验收需要看
    * "思考 token 吃了多少 / 输出被截断没有". 字段可选 = 老客户端不认识就忽略, 向后兼容.
+   *
+   * V2026-11-03 治本 (WP23): 带**可选** turnIndex —— 本场第几轮 (从 1 起).
+   *   用途: 客户端断线重连时要报 `lastSeenTurnIndex` (我上次听到第几轮), 靠的就是它.
+   *   缺省 = 后端没给轮次号 (旧链路 `VisitorService` 没有轮次概念) → 客户端按
+   *   "不知道听到哪" 处理 (握手不带 lastSeenTurnIndex → 服务端走 fresh 会话).
    */
   | {
       readonly type: 'llm_done';
@@ -118,6 +187,8 @@ export type VoiceServerMessage =
         /** 思考 token 数 (推理模型专用). */
         readonly reasoningTokens?: number;
       };
+      /** 本场第几轮 (从 1 起; 缺省 = 后端没给轮次号). */
+      readonly turnIndex?: number;
     }
   /** 一句开始 (seq 本轮内从 1 递增). */
   | { readonly type: 'sentence_start'; readonly seq: number; readonly text: string }
@@ -142,7 +213,7 @@ export type VoiceServerMessage =
    */
   | {
       readonly type: 'session_ended';
-      readonly reason: 'user_finish' | 'timeout' | 'error';
+      readonly reason: VoiceSessionEndReason;
       readonly reportStatus?: VoiceSessionReportStatus;
     }
   /**
@@ -195,7 +266,49 @@ export type VoiceServerMessage =
   /** 已确认暂停 (spec 任务 5). */
   | { readonly type: 'paused' }
   /** 已确认恢复 (spec 任务 5). */
-  | { readonly type: 'resumed' };
+  | { readonly type: 'resumed' }
+  /**
+   * 断线重连补漏 (V2026-11-03, WP23).
+   *
+   * 语义: 客户端重连时上报 `lastSeenTurnIndex=N` ("我上次听到第 N 轮"),
+   * 服务端把 N 之后**已提交**的轮次一次性补回来.
+   *
+   * ⚠️ **只补最终文本, 不补流式 chunk / 不补音频**: TTS 已播出不可撤回, 且断连期间
+   * 服务端压根不调 TTS (见 §1.5) —— 客户端拿 `replyText` 自己渲染文字气泡即可,
+   * 不重新烧 TTS 配额.
+   *
+   * `missedTurns` 为空时**不发这个帧**, 改发轻量的 `session_reattached`.
+   */
+  | {
+      readonly type: 'session_catchup';
+      /** 服务端本场已提交的最大轮次号 (从 1 起; 没有则 0). */
+      readonly serverLatestTurnIndex: number;
+      /** 漏掉的轮次 (turnIndex > lastSeenTurnIndex, 按轮次升序). */
+      readonly missedTurns: readonly VoiceCatchUpTurn[];
+      /** 本场当前状态快照 (让客户端知道重连后会话处在什么状态). */
+      readonly currentSessionState: VoiceCatchUpSessionState;
+    }
+  /**
+   * 轻量重连确认 (V2026-11-03, WP23).
+   *
+   * 语义: 重连成功, 且客户端**没漏任何东西** (lastSeenTurnIndex 已经是最新的).
+   * 比 `session_catchup` 轻 —— 不带任何逐轮内容.
+   */
+  | { readonly type: 'session_reattached'; readonly serverLatestTurnIndex: number }
+  /**
+   * 会话已不可续 (V2026-11-03, WP23).
+   *
+   * 两种原因:
+   *   · `too_far_behind` —— 落后太多 (漏的轮次超过上限), 不塞历史, 让客户端自己决定从头开始;
+   *   · `unknown_session` —— 这场会话已经不存在了 (正常结束过 / 进程重启后没恢复出来),
+   *     客户端应走 fresh openSession.
+   */
+  | {
+      readonly type: 'session_stale';
+      readonly reason: 'too_far_behind' | 'unknown_session';
+      /** 服务端已提交的最大轮次号 (可得时). */
+      readonly serverLatestTurnIndex?: number;
+    };
 
 /** 错误信息. */
 export interface VoiceError {
@@ -275,6 +388,9 @@ export interface VoiceSessionPersona {
   readonly difficulty: string;
 }
 
+/** 会话结束原因 (帧契约). */
+export type VoiceSessionEndReason = 'user_finish' | 'timeout' | 'error' | 'idle_timeout';
+
 /** session 内部状态. */
 export interface VoiceSessionState {
   readonly meta: VoiceSessionMeta;
@@ -297,6 +413,23 @@ export interface VoiceSessionState {
    * 累加各轮会把沉默漏掉 (报告里的"实际时长"会系统性偏短).
    */
   startedAt: number;
-  /** 已完成的咨询师发言轮数 (spec 任务 1: 结束回写轮次). */
+  /**
+   * 已完成的咨询师发言轮数 (spec 任务 1: 结束回写轮次).
+   *
+   * ⚠️ 这是**轮次号的唯一真相** (V2026-11-03, WP23): 客户端断线重连时报的
+   * `lastSeenTurnIndex`、补漏帧里每一轮的 `turnIndex`、逐字稿的轮次锚点 ——
+   * 三处都从这里出, 谁也不自己数一遍.
+   */
   turnCount: number;
+  /**
+   * 客户端 socket 是否还连着 (V2026-11-03, WP23).
+   *
+   * 为什么要有这个字段: 断线**不杀会话** (会话还在内存里, in-flight 的轮次让它跑完),
+   * 但"socket 还在不在"决定两件事:
+   *   · 要不要调 TTS provider —— 没人听还合成就是白烧钱 (§1.5);
+   *   · 要不要发帧 —— 往死连接写帧没有意义 (帧出口在 gateway 侧, 断连时已注销).
+   *
+   * true = 在线; false = 断连中 (会话仍然活着).
+   */
+  attached: boolean;
 }

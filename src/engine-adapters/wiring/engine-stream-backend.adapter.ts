@@ -98,6 +98,7 @@ import type { StudentRiskAuditChoice, StudentRiskAuditRegistry } from '../../voi
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import {
   TURN_INCOMPLETE_CODE,
+  type VoiceCatchUpResult,
   type VoiceSafetyPreCheckInput,
   type VoiceSafetyPreCheckResult,
   type VoiceTurnBackend,
@@ -105,7 +106,13 @@ import {
   type VoiceTurnBackendOpenOptions,
   type VoiceTurnBackendTurnOptions,
 } from '../../voice/voice-turn-backend.port.js';
-import type { VoiceServerMessage, VoiceSessionPersona } from '../../voice/voice.types.js';
+import type {
+  VoiceCatchUpBdiSnapshot,
+  VoiceCatchUpSessionState,
+  VoiceCatchUpTurn,
+  VoiceServerMessage,
+  VoiceSessionPersona,
+} from '../../voice/voice.types.js';
 import {
   accumulateSessionUsage,
   buildSessionCostSummary,
@@ -190,6 +197,20 @@ export class EngineStreamBackend implements VoiceTurnBackend {
    * 与"引擎注入的角色"对不上.
    */
   private readonly characterSlugs = new Map<string, string>();
+  /**
+   * 语音会话 id → 本场**已提交轮次**台账 (V2026-11-03, WP23 · 断线补漏的数据源).
+   *
+   * 为什么需要这张台账 (而不是从逐字稿反推):
+   *   逐字稿只有"说了什么", 没有**轮次号 / BDI 快照 / 危机等级** ——
+   *   而补漏帧要的就是这三样 (客户端要能把漏掉的轮次按序补回对话流).
+   *   引擎侧是**唯一**在提交那一刻同时握着这三样的地方, 所以台账住在引擎侧.
+   *
+   * 记的是"**已提交**"的轮次 (BDI 已落、回复已发完) —— 半截轮 (断流 / 被 abort)
+   *   不进台账: 那种轮次客户端自己就知道没收到 (它只缺"服务端跑完了没有"这一口).
+   *
+   * 生命周期: openSession 重置 → 每轮提交追加 → closeSession 清空 (与逐字稿同生命周期).
+   */
+  private readonly committedTurns = new Map<string, VoiceCatchUpTurn[]>();
 
   constructor(
     private readonly engine: EngineTurnService,
@@ -316,6 +337,11 @@ export class EngineStreamBackend implements VoiceTurnBackend {
 
     this.handles.set(opts.sessionId, handle.handleId);
     this.transcripts.set(opts.sessionId, []);
+    // V2026-11-03 治本 (WP23): 开一场 = 开一本**空台账** ——
+    //   重连 (第二条 user_text 之前的一次 startSession) 走的是同一条 openSession,
+    //   若不重置, 上一场的已提交轮次会留在台账里, 于是重连后的补漏会把**上一场**的
+    //   轮次也塞给客户端 (两场对话混在一条补漏帧里).
+    this.committedTurns.set(opts.sessionId, []);
     // WP16: 重连 = 新会话 = 新状态 (内核句柄换了, BDI 从头开始) ——
     //   上一场留下的轮次快照属于**旧状态**, 留着会让新会话的同号重试拿到旧回复.
     this.idempotency.clearSession(opts.sessionId);
@@ -625,6 +651,96 @@ export class EngineStreamBackend implements VoiceTurnBackend {
   }
 
   /**
+   * 断线重连的补漏数据 (V2026-11-03, WP23).
+   *
+   * 返回本场**已提交**轮次里 `turnIndex > lastSeenTurnIndex` 的那些 —— 服务端据此
+   * 组装 `session_catchup` 帧一次性推回客户端.
+   *
+   * 为什么"已提交"由**引擎侧**判定:
+   *   一轮到底算不算数, 只有引擎知道 (BDI 有没有落、回复有没有发完). voice 层看到的
+   *   只是"流结束了" —— 那不足以区分"这一轮说完了"与"说到一半被 barge-in 掐了".
+   *   半截轮补回去 = 客户端拿到半句话, 那是**制造**问题而不是补问题.
+   *
+   * @param sessionId 会话 id
+   * @param lastSeenTurnIndex 客户端已收到的最后一轮 (从 0 起 = 一轮都没收到)
+   * @returns 补漏数据; undefined = 本后端不认识这场会话 (无可补)
+   */
+  catchUp(sessionId: string, lastSeenTurnIndex: number): VoiceCatchUpResult | undefined {
+    const turns = this.committedTurns.get(sessionId);
+    // 没有台账 = 这场会话不是本后端开的 (或者已经收尾) → 无从补起.
+    if (!turns) return undefined;
+    const missedTurns = turns.filter((turn) => turn.turnIndex > lastSeenTurnIndex);
+    const serverLatestTurnIndex = turns.reduce((max, turn) => Math.max(max, turn.turnIndex), 0);
+    return {
+      serverLatestTurnIndex,
+      missedTurns,
+      sessionState: this.buildCatchUpSessionState(sessionId),
+    };
+  }
+
+  /**
+   * 把本轮记进补漏台账 (已提交).
+   *
+   * 记的判据 (三条, 与 WP16 的"完整"判据同源但更严):
+   *   ① 会话还在 (台账还在) —— 收尾后不再记;
+   *   ② 这一轮**没被 abort** —— 被 barge-in 掐掉的轮次回复没发完, 客户端自己就知道
+   *      这一轮没收到, 补回去只会让它拿到半句话;
+   *   ③ 轮次号取 voice 层给的 (`opts.turnIndex`) —— voice 层是轮次号的**唯一真相**
+   *      (它的计数只在整轮跑完时递增, 与客户端 `lastSeenTurnIndex` 同源).
+   *
+   * ⚠️ 同号覆盖: voice 层的轮次号在"引擎跑完但 done chunk 没送达"时会**被下一轮复用**
+   *   (那一轮对 voice 层来说没跑完, 计数不递增). 此时台账里同号有两条 —— 覆盖成
+   *   后来的那次 (它才是客户端真正该看到的"这一轮最终长什么样").
+   *
+   * @param opts 本轮入参
+   * @param result 本轮结算结果
+   * @param replyText 本轮发给客户端的正文
+   */
+  private recordCommittedTurn(opts: VoiceTurnBackendTurnOptions, result: TurnRenderResult, replyText: string): void {
+    const turns = this.committedTurns.get(opts.sessionId);
+    if (!turns) return;
+    if (opts.signal?.aborted === true) return;
+    const turnIndex = opts.turnIndex ?? result.turnIndex;
+    // BDI 快照沿用 WP19-R 留痕的形状 (同一份口径, 不另造第三套);
+    //   取不到就**不附** (catch-up 契约里它是可选的) —— 见 safeBdiSnapshot 的说明.
+    const bdiSnapshot = safeBdiSnapshot(result.snapshot);
+    const entry: VoiceCatchUpTurn = {
+      turnIndex,
+      userText: opts.userText,
+      replyText,
+      ...(bdiSnapshot ? { bdiSnapshot } : {}),
+      // 标记恒空: 标记由 counselor 侧 worker 实时推帧, 没有可回读的逐轮标记存储.
+      marks: [],
+      crisisLevel: result.safety?.level ?? 'pass',
+    };
+    const existing = turns.findIndex((turn) => turn.turnIndex === turnIndex);
+    if (existing !== -1) {
+      turns[existing] = entry;
+      return;
+    }
+    turns.push(entry);
+  }
+
+  /**
+   * 本场状态 (补漏帧用) —— 只给**引擎侧知道**的那部分.
+   *
+   * 相位 (listening / speaking / paused) 是 voice 层的会话状态, 由 voice 层补;
+   * 这里给的是"是否重点监测"与"角色代号" —— 两者都是引擎侧的事实.
+   *
+   * @param sessionId 会话 id
+   * @returns 会话状态 (缺相位)
+   */
+  private buildCatchUpSessionState(sessionId: string): Omit<VoiceCatchUpSessionState, 'phase'> {
+    const handleId = this.handles.get(sessionId);
+    const monitored = handleId ? (this.studentRiskGate?.isMonitored(handleId) ?? false) : false;
+    return {
+      riskLevel: monitored ? 'elevated' : 'normal',
+      monitored,
+      characterCode: this.characterSlugs.get(sessionId) ?? '',
+    };
+  }
+
+  /**
    * 收尾: 关内核句柄 + 清逐字稿, 返回本场统计.
    */
   closeSession(sessionId: string): VoiceTurnBackendCloseResult {
@@ -663,6 +779,8 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     this.dbSessionIds.delete(sessionId);
     this.sessionContexts.delete(sessionId);
     this.characterSlugs.delete(sessionId);
+    // V2026-11-03 治本 (WP23): 台账与逐字稿同生命周期 (防内存泄漏).
+    this.committedTurns.delete(sessionId);
     // WP16: 清掉本场的轮次幂等表 (防内存泄漏) —— 与逐字稿同生命周期.
     this.idempotency.clearSession(sessionId);
     if (handleId) {
@@ -862,6 +980,11 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     //   累加的是**渲染结果里真实带回来的**用量, 不另调模型、不重算 ——
     //   成本必须等于"这一场真的花了多少", 而不是"我们以为花了多少".
     this.accumulateUsage(opts.sessionId, usage, settled.result.render.model);
+
+    // V2026-11-03 治本 (WP23): 本轮跑完了 → 记进**补漏台账**.
+    //   放在这里 (而不是 done chunk 之后): 这一轮是"已提交"的判据是
+    //   "引擎跑完 + 没被 abort", 而这两件事在这一行都已经确定.
+    this.recordCommittedTurn(opts, settled.result, spoken.join(''));
 
     yield {
       type: 'done',
@@ -1230,6 +1353,28 @@ function buildBdiSnapshot(snapshot: TurnRenderResult['snapshot']): TurnTrace['bd
     resistance: snapshot.resistance.verbal,
     anxiousSecure: snapshot.emotion.label,
   };
+}
+
+/**
+ * 内核快照 → 补漏帧的 `bdiSnapshot` (**不抛**).
+ *
+ * 为什么必须不抛 (V2026-11-03, WP23):
+ *   补漏快照是**可选增强** —— 那一轮已经跑完、回复已经发到客户端了,
+ *   快照取不到只是"这一轮没有快照"(契约里它本来就是可选字段), 不该反过来
+ *   把整轮搞挂. 挂掉 = 那一轮白跑 (BDI 已提交、回复已发, 却收不到 done chunk).
+ *
+ *   为什么真实内核也会缺字段: 读快照的地方不止内核一处 —— 单测的最小快照、
+ *   降级路径的空快照都可能少字段. 与其赌"形状一定全", 不如取不到就不附.
+ *
+ * @param snapshot 内核本轮快照
+ * @returns 补漏快照; 形状不完整 → undefined (这一轮不附快照)
+ */
+function safeBdiSnapshot(snapshot: TurnRenderResult['snapshot']): VoiceCatchUpBdiSnapshot | undefined {
+  try {
+    return buildBdiSnapshot(snapshot);
+  } catch {
+    return undefined;
+  }
 }
 
 /**

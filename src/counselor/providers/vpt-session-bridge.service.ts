@@ -60,18 +60,22 @@ import { IsNull, type Repository } from 'typeorm';
 
 import { CounselorSupervisionProcessor } from './counselor-supervision.processor.js';
 import { TurnAnalysisProcessor } from './turn-analysis.processor.js';
+import type { TurnTrace } from '../../admin-debug/trace-recorder.service.js';
 import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types.js';
 import {
   VoiceSessionBridgeRegistry,
   type VoiceSessionBridge,
   type VoiceSessionCloseInput,
   type VoiceSessionCloseResult,
+  type VoiceSessionCommittedTurnsInput,
+  type VoiceSessionCommittedTurnsResult,
   type VoiceSessionOpenInput,
   type VoiceSessionOpenResult,
   type VoiceSessionTranscriptInput,
   type VoiceSessionTurnInput,
 } from '../../voice/voice-session-bridge.js';
 import type { VoiceDifficulty, VoiceVisitorStyle } from '../../voice/voice-session.types.js';
+import type { VoiceCatchUpTurn } from '../../voice/voice.types.js';
 import { SUPERVISION_MIN_EFFECTIVE_CHARS, SUPERVISION_MIN_EFFECTIVE_TURNS } from '../config/supervision.config.js';
 import { VPT_SCENARIO_ID } from '../config/vpt.config.js';
 import { isInsufficientMaterial, measureEffectiveMaterial } from '../domain/session-view/session-material.js';
@@ -272,6 +276,54 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
    */
   async replaceTranscript(input: VoiceSessionTranscriptInput): Promise<void> {
     await this.enqueueOpOrThrow(() => this.doReplaceTranscript(input));
+  }
+
+  /**
+   * 读回本场已提交轮次 (V2026-11-03, WP23 · 进程重启后的补漏数据源).
+   *
+   * 数据来源两处, 各管一段:
+   *   · `training_sessions.transcript` (WP18 每轮增量写) → "这一轮说了什么";
+   *   · `training_sessions.turn_debug_trace` (WP19-R 每轮写) → "这一轮的 BDI 快照".
+   *
+   * ⚠️ 归属校验**在这里**做 (按 id + userId 查): `dbSessionId` 是客户端带来的,
+   *   不校验就等于"谁的咨询记录我都能读出来". 查不到 → null → voice 层按不可续处理.
+   *
+   * @param input 读回入参
+   * @returns 已提交轮次; null = 会话不存在 / 不属于该学员
+   */
+  async readCommittedTurns(input: VoiceSessionCommittedTurnsInput): Promise<VoiceSessionCommittedTurnsResult | null> {
+    const row = await this.sessionRepo.findOne({
+      where: { id: input.dbSessionId, userId: input.userId, deletedAt: IsNull() },
+    });
+    if (!row) {
+      this.logger.warn(`[read_committed_turns_no_row] db_session=${input.dbSessionId} user=${input.userId}`);
+      return null;
+    }
+    const rounds = pairTranscriptRounds(row.transcript ?? []);
+    const traces = readTraceArray(row.turnDebugTrace);
+    // 只有当 trace 与轮次**逐号对齐**时才附 BDI 快照 —— 对不上宁可不附:
+    //   trace 的轮次号是内核的累计轮次 (含被 barge-in 掐掉的半截轮), 逐字稿的轮次是
+    //   voice 层的完成轮次. 两者一旦错位, 按序 zip 会把**别的轮次**的快照贴上去 ——
+    //   贴错比不贴更糟 (客户端会照着错的 BDI 继续这段对话).
+    const aligned = traces.length === rounds.length && traces.every((trace, index) => trace.turnIndex === index + 1);
+    const turns: VoiceCatchUpTurn[] = rounds.map((round, index) => {
+      const trace = aligned ? traces[index] : undefined;
+      return {
+        turnIndex: index + 1,
+        userText: round.userText,
+        replyText: round.replyText,
+        ...(trace?.bdiSnapshot ? { bdiSnapshot: trace.bdiSnapshot } : {}),
+        // 标记恒空: 标记由 counselor 侧 worker 实时推帧, 没有可回读的逐轮标记存储.
+        marks: [],
+        // trace 只记了 `detected` / `category`, 没有档位 —— detected 映射成 warn
+        // (三档里最接近的一档); block 档在这一条链路上**还原不出来**.
+        crisisLevel: trace?.crisis?.detected === true ? 'warn' : 'pass',
+      };
+    });
+    this.logger.log(
+      `[read_committed_turns] db_session=${input.dbSessionId} rounds=${rounds.length} ` + `traces=${traces.length} aligned=${aligned}`,
+    );
+    return { turns };
   }
 
   // ── private ────────────────────────────────────────────────────
@@ -553,4 +605,50 @@ function toTrainingTurns(turns: readonly TranscriptTurn[]): TrainingTranscriptTu
     text: turn.content,
     timestamp: turn.at,
   }));
+}
+
+/**
+ * 逐字稿 → 一轮一轮 (咨询师问 + 来访者答) (V2026-11-03, WP23).
+ *
+ * 落库的逐字稿是**扁平数组** (一问一答两条交替追加), 补漏要的是"一轮"为单位 ——
+ * 客户端把一轮补回去, 才是"我问了一句, 它回了一句".
+ *
+ * 两条硬边界:
+ *   · **成对才收**: 落库是两条两条写的, 进程崩在两条之间时会留下**落单**的一条 ——
+ *     落单的那条不算一轮 (它没有对应的回答), 丢掉它比凑成一轮更真实;
+ *   · **角色必须对上**: 形状不对 (不是 counselor/visitor 交替) 就**停**在那 ——
+ *     继续往下猜会把后面的轮次整体错位.
+ *
+ * @param turns 业务表格式逐字稿
+ * @returns 一轮一轮的对话
+ */
+function pairTranscriptRounds(turns: readonly TrainingTranscriptTurn[]): { userText: string; replyText: string }[] {
+  const rounds: { userText: string; replyText: string }[] = [];
+  for (let index = 0; index + 1 < turns.length; index += 2) {
+    const counselor = turns[index];
+    const visitor = turns[index + 1];
+    if (!counselor || !visitor) break;
+    if (counselor.role !== ChatRole.COUNSELOR || visitor.role !== ChatRole.VISITOR) break;
+    rounds.push({ userText: counselor.text, replyText: visitor.text });
+  }
+  return rounds;
+}
+
+/**
+ * 读回调试快照数组 (V2026-11-03, WP23).
+ *
+ * `turn_debug_trace` 是 json 列, 里面的东西**不保证**是我们写进去的那种 ——
+ * 别的分支写过 / 手工改过 / 老版本写的, 形状都可能不同. 所以这里逐条校验,
+ * 形状不对的直接丢 (宁可少一条, 不要一个坏对象把整轮补漏带歪).
+ *
+ * @param raw json 列的原始值
+ * @returns 形状合法的快照数组
+ */
+function readTraceArray(raw: unknown): TurnTrace[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((item): item is TurnTrace => {
+    if (typeof item !== 'object' || item === null) return false;
+    const candidate = item as { turnIndex?: unknown; bdiSnapshot?: unknown };
+    return typeof candidate.turnIndex === 'number' && typeof candidate.bdiSnapshot === 'object' && candidate.bdiSnapshot !== null;
+  });
 }

@@ -149,6 +149,29 @@ export interface VoiceHandshakeQuery {
    * 它同样完全由客户端提供, 且会被拼进日志与下游查询.
    */
   readonly resumeFromSessionId?: string;
+  /**
+   * V2026-11-03 治本 (WP23): 客户端上次确认收到的最后一轮 (从 1 起; 0 = 一轮都没收到).
+   *
+   * 缺省 = 客户端不知道自己听到哪了 (全新会话场景) → 服务端走 fresh openSession;
+   * 有值 = "我上次听到第 N 轮, N 之后的我都漏了, 帮我补" → 服务端组装 `session_catchup`.
+   *
+   * 解析口径: 必须是**非负整数** —— 小数 / 负数 / 非数字一律当"没提供"
+   * (宁可多补一轮, 也不能因为解析出一个怪号就把整场判成"落后太多").
+   */
+  readonly lastSeenTurnIndex?: number;
+  /**
+   * V2026-11-03 治本 (WP23): 客户端记得的落库 id (training_sessions.id).
+   *
+   * 用途: 进程重启后内存里没有这场会话, 要从持久化捞补漏数据 —— 而库里**没有**
+   * "内存 sessionId"这一列, 唯一能定位到这场会话的键就是落库 id.
+   * 客户端从 `ready` 帧拿得到它 (落库成功时下发).
+   *
+   * 清洗口径与 sessionId **完全同款** (客户端完全可控、会进日志与下游查询).
+   *
+   * ⚠️ 归属校验在**业务侧**做 (按 id + userId 查): 这个值是客户端给的,
+   *   不校验就等于"谁的咨询记录我都能读".
+   */
+  readonly dbSessionId?: string;
 }
 
 /**
@@ -196,6 +219,9 @@ export function parseVoiceHandshake(url: string): VoiceHandshakeQuery {
     scriptId: readScriptId(params.get('scriptId')),
     // V2026-10-30 治本 (WP12): 跨会话接续来源 —— 同样是**可选增量**, 缺省 = 新会话.
     resumeFromSessionId: readResumeFromSessionId(params.get('resumeFromSessionId')),
+    // V2026-11-03 治本 (WP23): 重连补漏的两个可选增量 (见 VoiceHandshakeQuery 的说明).
+    lastSeenTurnIndex: readLastSeenTurnIndex(params.get('lastSeenTurnIndex')),
+    dbSessionId: readDbSessionId(params.get('dbSessionId')),
   };
 }
 
@@ -348,6 +374,39 @@ function readScriptId(raw: string | null): string | undefined {
  * @returns 清洗后的 id; 未提供 / 清洗后为空 → undefined (新会话)
  */
 function readResumeFromSessionId(raw: string | null): string | undefined {
+  const value = readOptional(raw);
+  if (value === undefined) return undefined;
+  return sanitizeSessionId(value);
+}
+
+/**
+ * 读客户端上次收到的轮次号 (V2026-11-03, WP23).
+ *
+ * 只接受**非负整数**: 解析不出合法值就当"没提供" (服务端走 fresh 会话),
+ * 而不是猜一个值 —— 猜出来的号会让服务端补一堆客户端其实已经收到的轮次,
+ * 或者把客户端明明没收到的轮次当成"已收到"丢掉.
+ *
+ * @param raw 原始值
+ * @returns 轮次号 (从 0 起); 非法 / 未提供 → undefined
+ */
+function readLastSeenTurnIndex(raw: string | null): number | undefined {
+  const value = readOptional(raw);
+  if (value === undefined) return undefined;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) return undefined;
+  return parsed;
+}
+
+/**
+ * 读落库 id (V2026-11-03, WP23).
+ *
+ * 清洗口径**复用** sessionId 的那一份 (`sanitizeSessionId`): 同样是客户端完全可控、
+ * 同样会进日志与下游查询的 id, 就该用同一套清洗 —— 两份清洗迟早漂移.
+ *
+ * @param raw 原始值
+ * @returns 清洗后的落库 id; 未提供 / 清洗后为空 → undefined
+ */
+function readDbSessionId(raw: string | null): string | undefined {
   const value = readOptional(raw);
   if (value === undefined) return undefined;
   return sanitizeSessionId(value);

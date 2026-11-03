@@ -206,6 +206,17 @@ export const config = {
   // V2026-10-08: Voice Gateway 业务配置 (Phase 3)
   voice: {
     sessionIdleTimeoutMs: Number(process.env.VOICE_SESSION_IDLE_TIMEOUT_MS ?? 600_000), // 10min
+    // V2026-11-03 治本 (WP23 · 断线重连追平):
+    //   · sessionIdleTimeoutMinutes: 超长 idle 兜底 (单位**分钟**, 默认 120).
+    //     语义: "从最后一次收到客户端消息算起, 超过这么久没收到任何上行 → 主动 endSession".
+    //     它是**内存卫生兜底**, 不是断连宽限期 —— 断连不挂任何定时器 (任务单 §1.1).
+    //   · catchUpMaxTurns: 重连时最多补几轮 (默认 20). 漏的轮次超过它就不补,
+    //     推 `session_stale`, 让客户端自己从头开始.
+    //   ⚠️ 两个值都走 `readPositiveNumber`: env 缺失 / 非法 / 非正数 → 回退默认.
+    //     照用非法值比"没有这个兜底"更糟: 0 或负数会让 idle 兜底**立刻**触发
+    //     (会话秒死), NaN 会让比较永远为假 (兜底形同虚设).
+    sessionIdleTimeoutMinutes: readPositiveNumber(process.env.VOICE_SESSION_IDLE_TIMEOUT_MINUTES, 120),
+    catchUpMaxTurns: readPositiveNumber(process.env.VOICE_CATCHUP_MAX_TURNS, 20),
     // V2026-11-02 治本 (WP22 · 语音对练限流与并发上限):
     //   - dailyTokenBudget: 全局**当日** completion token 预算 (0 = 不限制).
     //     内测期防"bug 循环 / 恶意刷"烧 MiniMax 按量付费额度.
@@ -236,3 +247,22 @@ export const config = {
     collection: process.env.QDRANT_COLLECTION ?? 'knowledge_chunks',
   },
 };
+
+/**
+ * 读一个**正数** env (缺失 / 非法 / 非正数 → 回退缺省值).
+ *
+ * 为什么不用 `Number(x ?? fallback)`:
+ *   `Number('abc')` → NaN, `Number('0')` → 0 —— 两者都会**照用**:
+ *   NaN 让所有比较为假 (兜底形同虚设), 0 让兜底**立刻**触发 (会话秒死).
+ *   这类"照用比没有更糟"的参数, 必须在**解析层**就回退.
+ *
+ * @param raw env 原始值
+ * @param fallback 缺省值
+ * @returns 合法正数; 否则返回缺省值
+ */
+function readPositiveNumber(raw: string | undefined, fallback: number): number {
+  if (raw === undefined) return fallback;
+  const parsed = Number(raw.trim());
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return parsed;
+}

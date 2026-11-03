@@ -3,7 +3,7 @@
 > 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md)
 > 愿景备查: [`../reference/ai-simulation-blueprint-v1.1.md`](../reference/ai-simulation-blueprint-v1.1.md)（冲突以母版为准；蓝图选 pgvector，本仓 D2 拍板 Qdrant）
 > 设计原则原件（已转写归档，仅作依据，冲突以母版为准）：[`bdi-cognitive-engine-principles-v1.0.md`](../reference/bdi-cognitive-engine-principles-v1.0.md)（BDI 决策/渲染边界）、[`architecture-blindspot-fill-v1.0.md`](../reference/architecture-blindspot-fill-v1.0.md)（14 项盲区补全，经本仓架构裁剪后落地）。
-> 日期: 2026-10-28（进度登记更新于 2026-11-02）｜ 状态: 🟢 **WP0–WP12 核心链路全部交付并审核通过；WP18/WP19/WP20/WP21 调试与报告链路已交付；WP10/WP10A/WP11 伦理盲盒+表达风格+PsyGUARD 已交付；WP24 单场成本日志已交付；WP14 学员心理风险处置层已交付（2026-11-02）；WP14 优化项（block 不发 llm_start）已交付（2026-11-02）；剩余 WP13/WP15/WP16/WP17/WP22/WP23 为稳健性与运维护栏，内测前补完**
+> 日期: 2026-10-28（进度登记更新于 2026-11-03）｜ 状态: 🟢 **WP0–WP12 核心链路全部交付并审核通过；WP18/WP19/WP20/WP21 调试与报告链路已交付；WP10/WP10A/WP11 伦理盲盒+表达风格+PsyGUARD 已交付；WP24 单场成本日志已交付；WP14 学员心理风险处置层已交付（2026-11-02）；WP14 优化项（block 不发 llm_start）已交付（2026-11-02）；WP22 语音对练限流（2026-11-02）；WP16 round_id 幂等（2026-11-02）；WP23 WS 断连追平已交付（2026-11-03，前端待接）；剩余 WP13/WP15/WP17 为稳健性与运维护栏，内测前补完**
 > 2026-10-29 增补：按两份设计原则（BDI 原则 / 盲区补全）经本仓架构裁剪，新增 Phase1 小项 WP14 学员风险兜底、WP15 算子幅度声明+回归、WP16 轻量幂等+断流不叠加；Phase2+ 保留推进队列见文末（全量保留，逐步推进，非丢弃）。
 > 2026-10-30 全面回头看：蓝图 Phase1 七条核心能力全部落地，执行无走歪、无过度工程。两个硬底线 WP 需内测前补完：WP17（新引擎路径 turn-analysis 入队对齐）、WP14（学员自身心理风险三级兜底）。详见 §0.4。
 > 仓库: `E:\Work\Project\backend\mofang-nestjs`
@@ -58,14 +58,14 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 | **WP9-B MySQL 角色资产池（DbResolver）** | ✅ 已交付并审核通过（2026-10-29） | 任务单 `engine-wp9b-db-character-pool-backend-2026-10-29.md`；记录 `engine-wp9b-db-character-pool-backend-implementation-2026-10-29.md` | `character_profiles` 21 列+审核上下架+独立 `CharacterPoolModule`（装配层零 SDK）；默认 db 数据源，4 个真实 vpt slug 命中闭合；resolver 复用唯一映射；engine-core/voice 零改动。小尾巴：小满 5Ps 人称"他"应为"她"（女），seed 顺手修 |
 | 📌 **WP9-C 语音渲染 token 预算/截断/危机路由/降级** | ✅ 已交付（2026-10-29） | 任务单 `engine-wp9c-voice-render-token-budget-safety-boundaries-2026-10-29.md`；记录 `engine-wp9c-voice-render-token-budget-safety-boundaries-implementation-2026-10-29.md` | max_completion_tokens / voice render 低 reasoningEffort / 截断半句不喂 TTS / 危机轮次同步 supervision_hint / LLM 空 429 降级本地话术 |
 | 📌 **WP18 报告生成链路 E2E** | ✅ 已交付（2026-10-29） | 任务单 `engine-wp18-session-report-generation-e2e-2026-10-29.md`；记录 `engine-wp18-session-report-generation-e2e-implementation-2026-10-29.md` | 会话结束→transcript 落库→报告 worker 触发→四态（completed/parse_error/pending/no_content）→六维评分/annotations/techStats |
-| 📌 **WP19 AdminDebugModule + BDI 快照留痕** | ⚠️ 已交付但有缺口（2026-10-30 审计修正） | 任务单 `engine-wp19-admin-debug-module-trace-2026-10-29.md`；记录 `engine-wp19-admin-debug-module-trace-2026-10-29.md` | **留痕链整条未通**：traceRecorder 恒 undefined，从未装配进 engineStreamBackend；recordTrace() 首行 return。/admin/api/* 零鉴权；sessions 列表不按用户过滤。详见审计报告 §4.1-D1/D2/D3 |
+| 📌 **WP19 AdminDebugModule + BDI 快照留痕** | ✅ 留痕链接通（WP19-R 修复）；admin-dashboard 切真 API 待前端接 | 任务单 `engine-wp19-admin-debug-module-trace-2026-10-29.md`；WP19-R 已将 traceRecorder 真注入 DI、basic auth middleware、用户隔离补齐 | traceRecorder 之前恒 undefined 已修；/admin/api/* 4 个只读端点已上线，前端已切真 4 个页面 |
 | 📌 **WP20 Vue3 调试器 SPA** | ⚠️ 已交付但有缺口（2026-10-30 审计修正） | 任务单 `engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md`；记录 `engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md` | **SPA 全是 mock 数据**：client.ts 零真 API 调用。后续扩充的 8 页面 + i18n + 双主题都是 mock 之上加的，没切真接口。详见审计报告 §4.1-D4 |
 | 📌 **WP21 报告 SSE 推送端点** | ✅ 已交付并审核通过（2026-10-29） | 任务单 `engine-wp21-report-sse-stream-2026-10-29.md`；记录 `engine-wp21-report-sse-stream-implementation-2026-10-29.md` | GET report/:sessionId/stream @Sse()，终态推完整报告并关流，超时推 {"status":"timeout"}，真 404 走 guard，RxJS timer 不泄漏 |
 | 🆕 **WP10 10 个伦理盲盒强覆盖剧本** | ✅ 已交付并审核通过（2026-10-30） | 任务单 `engine-wp10-ethical-blindbox-scripts-backend-2026-10-30.md`；记录 `engine-wp10-ethical-blindbox-scripts-backend-implementation-2026-10-30.md` | 10 个 force_override 剧本（静态 TS 不落库）+ TrajectoryScriptResolver 端口（Symbol token, @Optional）+ 握手 scriptId 四段透传；tsc 0 / 31 例测试绿 / engine-core 零改动；三种失败口径各有 warn 不阻断会话。前端 scriptId 透传链路已通（vpt_session_start + roleplay_ws_client），fa 0 错 |
 | 🆕 **WP10A character_profiles 表达风格字段预留** | ✅ 已交付并审核通过（2026-10-30） | 任务单 `engine-wp10a-character-expression-style-fields-backend-2026-10-30.md`；记录 `engine-wp10a-character-expression-style-fields-backend-implementation-2026-10-30.md` | 加 3 列（speech_volume_baseline/narrative_style/expression_tone）+ 手写幂等 migration + entity；seed 键不存在=走 DB DEFAULT（默认值只有 DDL 一处真相）；小满/亦舟 expressionTone=intellectualizing，其余走默认；tsc 0 / 14 例测试绿 / engine-core 零改动 / 不消费不暴露前端 |
 | 🆕 **WP11 PsyGUARD-RoBERTa Python 服务 + HTTP RiskProbePort** | ✅ 已交付并审核通过（2026-10-30） | 任务单 `engine-wp11-psyguard-python-service-backend-2026-10-30.md`；记录 `engine-wp11-psyguard-python-service-backend-implementation-2026-10-30.md` | 独立仓库 `mofang-psyguard/`（FastAPI + ONNX Runtime int8 量化，Docker 部署到 117.72.30.78，只绑 127.0.0.1:8100）；NestJS 侧 `HttpPsyGuardProbe` + `PSYGUARD_BASE_URL` 开关分流 + 启动健康检查 + 跨仓库标签契约比对；counselor_input + visitor_output 双侧探测（输出侧只接 PsyGUARD 不接本地词典，避免角色台词被误 block）；测试阶段临时放宽：256 token 窗口 + 500ms 超时（M3 内测前需回改，6 处清单已写进交付记录）；tsc 0 / 36 例 NestJS 测试 + 37 例 Python 测试绿 / engine-core 仅 1 处常量改动（决策明确） |
-| 🆕 **WP22 语音对练限流与并发上限** | 📋 已列入，待拆单 | （待写任务单） | 单用户同时 1 场 + 日 token 预算告警，防烧 LLM 额度 |
-| 🆕 **WP23 WS 断连恢复口径明确** | 📋 已列入，待拆单 | （待写任务单） | 断连超 30s = 会话结束，前端明确提示，不静默丢 BDI 状态 |
+| 🆕 **WP22 语音对练限流与并发上限** | ✅ 已交付（2026-11-02） | 任务单 `engine-wp22-voice-concurrency-limit-backend-2026-11-02.md`；记录 `engine-wp22-voice-concurrency-limit-backend-implementation-2026-11-02.md` | 单用户同时 1 场 + 日 token 预算告警，防烧 LLM 额度 |
+| 🆕 **WP23 WS 断连恢复口径明确** | ✅ 已交付（2026-11-03） | 任务单 `engine-wp23-ws-disconnect-grace-backend-2026-11-03.md`；记录 `engine-wp23-ws-disconnect-grace-backend-implementation-2026-11-03.md` | 对话式追平落地：断线不杀会话/不挂判死定时器；重连握手带 `lastSeenTurnIndex=N` → `session_catchup` 一次性补回已提交轮次；进程重启走 WP12 重建 + 持久化补漏；断连不调 TTS provider；2 小时 idle 兜底。**边界**：内核 BDI 仓储是内存态，跨进程恢复不了 BDI 快照（只能恢复长时记忆+角色基线）；prod 留痕默认关时补漏帧不带 BDI 快照 |
 | 🆕 **WP24 单场成本日志** | ✅ 已交付（2026-10-30） | 任务单 `engine-wp24-session-cost-log-backend-2026-10-30.md`；记录 `engine-wp24-session-cost-log-backend-2026-10-30-implementation-2026-10-30.md` | closeSession 打每场总 token + 预估费用，不做看板；定价走 env 可配；**成本口径 `costBasis` 随输入侧可得性如实切换**（`full` / `output_only`，生产主路径恒 `output_only` —— 上游流式无 prompt/completion 拆分，不拿 0 冒充不可得）；内核契约扩**可选** `usage.promptTokens?` + `model?`（1 个文件，用户拍板）；tsc 0 / eslint 0 / 新套件 18 例绿 / 引擎侧 29 套件 601 例全绿 / 全量 58 套件 925 例中 923 例通过（drill-judge 2 例既有债） |
 
 > WP8 总目标拆为两段：**WP8-A（聚合装配，已交付）** 先在调试端点跑通真实 reply；**WP8-B（流式原生 + 接 voice WS + 灰度，本单）** 才是端到端对练闭环。两者不合并，避免在装配期长出第二套渲染。
@@ -107,12 +107,12 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 |---|---|---|
 | 高 | 重建服务器镜像（WP8-B 到 WP12 一起上线） | 现在就可以做 |
 | 高 | WP11 临时值改回（超时 150→500、token 28→256 是测试期放宽，M3 内测前改回） | 内测前。注意：输出侧走独立 env 读取（`PSYGUARD_TIMEOUT_MS`），不是只改内核常量，回改点比之前说的多 |
-| 高 | WP19 留痕链接通（traceRecorder 装配 + admin-dashboard 切真 API） | 内测前 |
+| 高 | WP19 留痕链接通 | ✅ WP19-R 已修复（traceRecorder 真注入 DI）；admin-dashboard 切真 API 仍归 WP20（前端另派） |
 | 中 | WP15 算子幅度声明+边界回归 | 随主线插入 |
-| 中 | WP16 round_id 幂等+断流不叠加 | 随 WP8-B 收尾 |
-| 中 | WP22 语音对练限流（防烧 LLM 额度） | 内测前 |
-| 中 | WP23 WS 断连恢复口径（30s=会话结束） | 内测前 |
-| 中 | WP24 单场成本日志 | ✅ 已交付（2026-10-30） |
+| ~~中~~ | ~~WP16 round_id 幂等+断流不叠加~~ | ✅ **已交付（2026-11-02）**，Flutter 端 roundId 适配已联调 |
+| ~~中~~ | ~~WP22 语音对练限流（防烧 LLM 额度）~~ | ✅ **已交付（2026-11-02）** |
+| ~~中~~ | ~~WP23 WS 断连追平（对话式 backfill，非 30s cliff）~~ | ✅ **已交付（2026-11-03）** |
+| ~~中~~ | ~~WP24 单场成本日志~~ | ✅ **已交付（2026-10-30）** |
 | 低 | WP17 enginePath 字段（并入 WP13 可观测） | 随 WP13 |
 | 低 | 前端"继续训练"入口（后端链路已通，前端接上即可） | 产品排期 |
 
@@ -282,6 +282,10 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 
 ### WP16 · 轻量 round_id 幂等 + 断流不重复叠加
 
+> ✅ **已交付（2026-11-02）**。任务单：[`engine-wp16-round-id-idempotency-backend-2026-11-02.md`](./completed/wp14-wp24-augment/engine-wp16-round-id-idempotency-backend-2026-11-02.md)｜交付记录：[`engine-wp16-round-id-idempotency-backend-implementation-2026-11-02.md`](./completed/wp14-wp24-augment/engine-wp16-round-id-idempotency-backend-implementation-2026-11-02.md)
+>
+> 落地摘要：`TurnIdempotencyService` 内存态幂等表（lookup/begin/settle/clearSession）接进 engineStreamBackend.adapter；同 round_id 重发不重跑 BDI；断流重发回 `turn_incomplete`（retryable:false），前端 round_id+1 走新一轮；voice.types.ts WS user_text 加可选 `roundId?: number`。Flutter 端适配已联调（自动重发同句 1 次、超限回聆听弹中性浮条）。内核零改动。
+
 - **目标**：防"渲染失败/断网重试导致状态重复叠加"的半轮漂移；本期只做内存态轻量版，不上分布式事务。
 - **内容**：
   1. 每轮预计算在内存完成，成功提交后再落账；同一会话同一 `round_id` 重试直接复用已提交结果，不重复执行 BDI、不重复更新状态；
@@ -309,6 +313,10 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 
 ### WP22 · 语音对练限流与并发上限
 
+> ✅ **已交付（2026-11-02）**。任务单：[`engine-wp22-voice-concurrency-limit-backend-2026-11-02.md`](./completed/wp14-wp24-augment/engine-wp22-voice-concurrency-limit-backend-2026-11-02.md)｜交付记录：[`engine-wp22-voice-concurrency-limit-backend-implementation-2026-11-02.md`](./completed/wp14-wp24-augment/engine-wp22-voice-concurrency-limit-backend-implementation-2026-11-02.md)
+>
+> 落地摘要：单用户同时只能开 1 场语音会话（开第二场先关第一场，否则 409）；全局日 token 预算 env 可配，超限拒绝新会话并提示。两道闸门拦在开会话入口。
+
 - **为什么有这条（2026-10-30 架构审查补记）**：`@Throttle` 只在 consent 控制器上有，WS 对练接口没有任何限流/并发上限。恶意刷或 bug 循环可以直接烧 LLM 额度（MiniMax 按量付费）。
 - **目标**：内测阶段最便宜的防烧钱护栏。
 - **内容**：
@@ -319,7 +327,17 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 - **验收**：同用户开第二场被拒；日预算超限有日志+拒绝。
 - **不做**：分布式限流、按角色分级配额（Phase2）。
 
-### WP23 · WS 断连恢复口径明确
+### WP23 · WS 断连追平（对话式 backfill，非 30s cliff）
+
+> ✅ **已交付（2026-11-03）**。任务单：[`../completed/wp14-wp24-augment/engine-wp23-ws-disconnect-grace-backend-2026-11-03.md`](../completed/wp14-wp24-augment/engine-wp23-ws-disconnect-grace-backend-2026-11-03.md)；交付记录：[`../completed/wp14-wp24-augment/engine-wp23-ws-disconnect-grace-backend-implementation-2026-11-03.md`](../completed/wp14-wp24-augment/engine-wp23-ws-disconnect-grace-backend-implementation-2026-11-03.md)
+>
+> 落地摘要：断线**不杀会话**（不 endSession / 不删内存会话 / 不挂判死定时器），in-flight 轮次自然跑完；客户端重连握手带 `lastSeenTurnIndex=N`，服务端把 N 之后**已提交**轮次一次性塞进 `session_catchup` 帧推回（只补最终文本，不回放流式 chunk / TTS 音频）；进程重启过走 WP12 `resumeFromSessionId` 重建，补漏数据改从持久化（逐字稿 + WP19-R 留痕）捞；断连状态下**压根不调 TTS provider**；超长 idle（env 可调，默认 120 分钟）主动收尾。tsc 0 / eslint 0 / 全量 72 套件 1115 例绿 / engine-core 零改动。
+>
+> 口径修正（2026-11-03）：原描述"断连超 30s=会话结束"是游戏式妥协，已放弃。改为对话式追平（对标微信/Slack/Discord）：断线不杀会话、不挂定时器；重连握手带 `lastSeenTurnIndex=N`，服务端把 N 之后所有 committed turn 塞进 `session_catchup` 帧推回；进程重启过走 WP12 resumeFromSessionId 重建 BDI；断连状态下跳过 TTS 合成（不烧音频钱）；2 小时 idle 兜底。
+>
+> ⚠️ **两条已知边界**（交付记录 §5 有详述）：① 内核 BDI 状态仓储是**内存态**，真正的进程重启后恢复不了 BDI 快照（只能恢复长时记忆召回 + 角色基线），治本要内核 `BdiStateRepository` DB 化（Phase2）；② 路径 2 的 BDI 快照靠 WP19-R 留痕还原，而留痕在 prod 默认关（`ENGINE_DEBUG_TRACE_ENABLED`），关着则补漏帧带文本、不带 BDI 快照。
+>
+> **前端仍待接**（另派单）：握手带 `lastSeenTurnIndex` / `dbSessionId`、处理 `session_catchup` / `session_reattached` / `session_stale`、把补漏轮次渲染成文字气泡、"重连中"提示 —— 本单只做后端，一行前端代码没写。
 
 - **为什么有这条（2026-10-30 架构审查补记）**：`EngineStreamBackend.handles` 是进程内 Map。WS 断了重连，如果进程没重启，`endSession` 已经清了 Map，重连后要重新 openSession——重新 open 就是全新会话，BDI 状态丢失。用户网不好断一次线，这场训练的情绪/阻抗/信任全部归零重来。
 - **目标**：Phase1 不做无缝续接，但要有明确口径和用户可见的提示，不要静默丢状态。
@@ -400,6 +418,7 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 | 深度降级批量回溯 | 恢复后纯规则重放降级期间对话补快照，超 5 轮提示偏差可回退 | WP16 规则定义 | 稳定性有要求时 | Phase2 |
 | P2 社会心理算子 | 权威关系/社会评价，按需启用 | P1、准入闸门 | 对应训练包立项 | Phase3 |
 | 沉默/非语言/节奏 | SILENCE/INTERRUPT/TONE_SHIFT 事件、[silence] 留白，语音完善 | 语音链路、评估引擎 | 语音沉浸优化 | Phase2 基础 / Phase3 完善 |
+| **TTS 表现力与会员分层**（商业/体验包，三件一起做） | ① **会员等级→TTS 模型映射**：做成可扩展的 tier→model 配置表（env 或 DB），**不要写死 if/else free vs premium**——未来分 3 级或更多时加一行配置即可；当前假设 free=speech-2.8-turbo（¥2.0/万字符）、premium=speech-2.8-hd（¥3.5/万字符），但具体几级、叫什么、对应哪个模型等会员体系定案后再填。握手/startSession 时查一次 tier 并缓存整场会话，不要每轮 TTS 都查 DB。**LLM 文本模型和 ASR 不分层**（M3.1-Flash 已够便宜，ASR ¥2.5/小时本来就便宜）。② **BDI→emotion 映射**：按本轮 valence/arousal 选 voice_setting.emotion（低 valence→sad、高 arousal→fearful、阻抗冷→calm/whisper、信任高→calm），映射表要真机听感调。③ **RenderSpec 内联语气词标签**：在中文 prompt 里告诉 LLM 必要时插 `(sighs)` `(pant)` `(breath)` `(laughs)` `(gasps)` 等标签（speech-2.8-hd/turbo 原生支持，TTS 会真发声），比离散 emotion 参数更自然——一句内可以变化。 | TTS bidi WS（task_start 参数与 t2a_v2 完全一致，emotion/标签均可用）、会员支付系统、真机听感 A/B | 会员体系定案 + M3 内测有真实用户反馈"来访说话太机械"时 | Phase2 |
 | 记忆周期摘要全量 | 每 5 次会谈周期摘要，高重要度永久原始粒度 | 会话级摘要 | 长程成本上涨时 | Phase3 |
 | 算子边际递减+溢出监控 | 同方向连续调节递减、异常数值监控告警 | WP15 幅度声明 | 算子库扩充后 | Phase3 |
 | 多流派评估标尺 | CBT/精神分析/人本/家庭等可配置流派评分 | 评估引擎基础版 | 专业扩展时 | Phase3 |

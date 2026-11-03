@@ -59,7 +59,7 @@ import type { VoicePersonaChannel, VoiceSessionPreset, VoiceSkillCode, VoiceVisi
 import { VoiceTemplateRegistry } from './voice-template-slot.js';
 import { buildVoiceVisitorCard } from './voice-visitor-card.js';
 import { VoiceService } from './voice.service.js';
-import type { VoiceClientMessage, VoiceServerMessage } from './voice.types.js';
+import type { VoiceClientMessage, VoiceServerMessage, VoiceSessionMeta } from './voice.types.js';
 
 /**
  * 兜底通道的中性速查卡 (V2026-10-26, spec 任务 1 / 任务 7).
@@ -121,9 +121,24 @@ interface SocketData {
    * undefined = 新会话 (与现状逐字一致); 有值 = 接续上一场.
    */
   resumeFromSessionId?: string;
+  /**
+   * V2026-11-03 治本 (WP23): 客户端上次确认收到的最后一轮 (从 1 起; 0 = 一轮都没收到).
+   *
+   * undefined = 不是重连 (全新会话) → 服务端走 fresh openSession.
+   */
+  lastSeenTurnIndex?: number;
+  /**
+   * V2026-11-03 治本 (WP23): 客户端记得的落库 id (进程重启后重建的必需键).
+   */
+  clientDbSessionId?: string;
   /** 注销 WS 帧出口的句柄 (连接断开时调). */
   unregisterFrameSink?: () => void;
 }
+
+/**
+ * 帧出口 (一帧 → 客户端).
+ */
+type FrameSink = (msg: VoiceServerMessage) => void;
 
 @WebSocketGateway({ path: '/voice/training' })
 export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisconnect {
@@ -136,6 +151,19 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
   private readonly catalog: VoiceCatalogRegistry;
   private readonly bridges: VoiceSessionBridgeRegistry;
   private readonly frames: VoiceFrameRegistry;
+  /**
+   * 会话 id → 当前帧出口 (V2026-11-03, WP23).
+   *
+   * 为什么是**会话级**而不是"每 socket 一个闭包":
+   *   断线瞬间还在跑的 in-flight 轮次, 它手里的 send 若绑死在旧 socket 上,
+   *   重连后那一轮的后半段 (llm_text / tts_audio) 就永远送不到客户端 ——
+   *   客户端以为"这轮没跑完", 而服务端明明跑完了 (还会把它记进补漏台账).
+   *   改成"每次发帧时按 sessionId 查当前出口", 重连后那一轮的后半段自然接到新 socket.
+   *
+   * 断连时出口被移除 → 帧**丢弃** (不排队、不回放): 断连期间的帧没有接收方,
+   *   排队等重连再放 = 服务端替客户端缓存历史 —— 那正是补漏帧的活 (只做一次, 只补文本).
+   */
+  private readonly sessionSinks = new Map<string, { readonly socketId: string; readonly sink: FrameSink }>();
 
   /**
    * @param voice 会话编排
@@ -190,6 +218,12 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
       traceId: 'vt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
     };
     client.data.sessionId = handshake.sessionId;
+    // V2026-11-03 治本 (WP23): 会话级帧出口 —— 新 socket 接管这场会话的出口.
+    //   (旧 socket 的出口在它自己断开时被移除 —— 见 handleDisconnect 的 socketId 比对.)
+    this.sessionSinks.set(handshake.sessionId, { socketId: client.id, sink: (msg) => this.sendJson(client, msg) });
+    // V2026-11-03 治本 (WP23): 重连补漏的两个握手参数原样带下去.
+    data.lastSeenTurnIndex = handshake.lastSeenTurnIndex;
+    data.clientDbSessionId = handshake.dbSessionId;
 
     // 2. 提取 JWT (query 优先, 回退 Authorization 头)
     const token = this.extractToken(client);
@@ -247,8 +281,24 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
     //   在不在 (那是运行时的事, 查不到由引擎侧 warn + 回退新会话).
     data.resumeFromSessionId = handshake.resumeFromSessionId;
 
-    // 4. 会话落库 + 登记 WS 帧出口
+    // V2026-11-03 治本 (WP23): 重连分支.
+    //   判据: 握手带了 `lastSeenTurnIndex` → 客户端认为自己在重连.
+    //   两条路径由 voice 层判 (它才知道内存里有没有这场会话):
+    //     · 内存命中 → 绑回原会话, 从引擎侧补漏台账补漏;
+    //     · 内存没命中 → 走 WP12 重建, 从持久化补漏.
+    //   gateway 只负责 transport: 把 socket 接上、把补漏帧推出去.
     const visitorCard = this.resolveVisitorCard(channel);
+    let staleFrame: VoiceServerMessage | null = null;
+    if (handshake.lastSeenTurnIndex !== undefined) {
+      const reconnect = await this.handleReconnect(client, data, handshake, preset, visitorCard, channel);
+      if (reconnect.handled) return;
+      // 会话不可续 → 落到下面的 fresh 开场流程, 收尾时补推 stale 帧.
+      //   帧留在**局部变量**里 (不写实例字段): gateway 单进程多连接, 写实例字段
+      //   会让两个并发连接互相覆盖对方的帧.
+      staleFrame = reconnect.frame;
+    }
+
+    // 4. 会话落库 + 登记 WS 帧出口
     const opened = await this.openSessionStorage(client, data, channel, preset, handshake, visitorCard);
 
     // 5. 注入到 client 供后续 message 路由用
@@ -268,6 +318,9 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
     //    前端收到之前不得发 `user_text` —— 否则首条消息会撞上 "not initialized".
     //    前置失败路径已在上面走 error + close, **不发** ready.
     this.sendJson(client, this.buildReadyFrame(visitorCard, opened, data));
+    // V2026-11-03 (WP23): fresh 开场后补推 stale 帧 —— 让客户端知道"上一场接不上了".
+    //   放在 ready **之后**: 客户端得先知道新会话的 ready (落库 id 等), 才知道自己该重新开始.
+    if (staleFrame) this.sendJson(client, staleFrame);
   }
 
   /**
@@ -340,13 +393,25 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
     // 帧出口按**落库 id** 登记 (worker 侧只知道 training_sessions.id).
     //   ⚠️ 刻意**不**额外登记 WS 会话 id: 那把 id 是**客户端给的**, 客户端可以
     //   故意填成别人的落库 id, 于是"A 会话的帧被推给 B 会话" —— 那是隐私事故.
-    if (data.dbSessionId) {
-      const sessionId = data.dbSessionId;
-      data.unregisterFrameSink = this.frames.register(sessionId, (frame) => {
-        this.sendJson(client, frame);
-      });
-    }
+    this.registerFrameSink(client, data);
     return opened;
+  }
+
+  /**
+   * 登记 WS 帧出口 (按落库 id).
+   *
+   * 抽成独立方法: **重连时也要重新登记** (断连时注销过) —— 两处共用一份口径,
+   * 两份口径迟早漂移 (一处按落库 id, 另一处按会话 id).
+   *
+   * @param client socket
+   * @param data socket 上下文 (需带 dbSessionId)
+   */
+  private registerFrameSink(client: Socket, data: SocketData): void {
+    if (!data.dbSessionId) return;
+    const sessionId = data.dbSessionId;
+    data.unregisterFrameSink = this.frames.register(sessionId, (frame) => {
+      this.sendJson(client, frame);
+    });
   }
 
   /**
@@ -393,26 +458,7 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
     visitorCard: VoiceVisitorCard | null,
   ): Promise<boolean> {
     try {
-      await this.voice.startSession({
-        sessionId: data.sessionId,
-        userId: data.userId,
-        tenantId: data.tenantId,
-        traceId: data.traceId,
-        personaId: data.personaId,
-        mode: data.mode,
-        preset,
-        voiceId: data.voiceId,
-        skillCode: data.skillCode,
-        dbSessionId: data.dbSessionId,
-        // V2026-10-30 治本 (WP10): 轨迹剧本 id 透传给后端 (引擎侧据此决定是否注入剧本).
-        trajectoryScriptId: data.trajectoryScriptId,
-        // V2026-10-30 治本 (WP12): 跨会话接续来源 id 透传给后端 (引擎侧据此接续上一场).
-        resumeFromSessionId: data.resumeFromSessionId,
-        // V2026-10-26 治本 (spec 任务 6 — 报告的人格来源):
-        //   vpt 场 AI 扮演的是**公共人物** (晚晴...), 不是 agent 内置 persona ——
-        //   把速查卡带进 session, 报告里的人格快照才对得上号.
-        visitor: visitorCard ?? undefined,
-      });
+      await this.voice.startSession(this.buildSessionMeta(data, preset, visitorCard));
       return true;
     } catch (err) {
       // WP22: 会话闸门 (并发上限 / 当日 token 预算) 拦下 ——
@@ -476,14 +522,129 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
     };
   }
 
-  /** 断开时清理. */
+  /**
+   * V2026-11-03 治本 (WP23): 重连分支.
+   *
+   * 两条路径 (由 **voice 层**判定并执行 —— 它才知道内存里有没有这场会话):
+   *   · 路径 1 (内存命中): 绑回原会话 → 从引擎侧补漏台账补漏;
+   *   · 路径 2 (进程重启过): 走 WP12 `resumeFromSessionId` 重建 → 从持久化补漏.
+   *
+   * gateway 在这里只做三件 **transport** 的事 (任务单 §2 红线: 不在 gateway 里加业务编排):
+   *   ① 把新 socket 接上这场会话 (帧出口按落库 id 重新登记);
+   *   ② 发 `ready` (客户端要先知道 ready 才能继续发 user_text);
+   *   ③ 把补漏帧推出去 (`session_catchup` / `session_reattached` / `session_stale`).
+   *
+   * 不做什么:
+   *   · **不重新落库** —— 复用原落库 id (新建行 = 同一场会谈在库里裂成两场,
+   *     督导报告 / 4 流派反馈全挂到空的那场);
+   *   · **不重新初始化角色基线 / 不重跑 BDI** (路径 1 的会话对象还活着, 状态就在内存里).
+   *
+   * @param client socket
+   * @param data socket 上下文
+   * @param handshake 握手解析结果
+   * @param preset 本场临场参数
+   * @param visitorCard 来访者速查卡
+   * @param channel 角色来源通道
+   * @returns handled=true → 这条连接已收尾 (ready + 补漏帧都推完了);
+   *          handled=false → 会话不可续 → 调用方走 fresh 开场流程 (并补推 stale 帧)
+   */
+  private async handleReconnect(
+    client: Socket,
+    data: SocketData,
+    handshake: ReturnType<typeof parseVoiceHandshake>,
+    preset: VoiceSessionPreset,
+    visitorCard: VoiceVisitorCard | null,
+    channel: VoicePersonaChannel,
+  ): Promise<{ handled: boolean; frame: VoiceServerMessage | null }> {
+    const outcome = await this.voice.reconnectSession({
+      meta: this.buildSessionMeta(data, preset, visitorCard),
+      lastSeenTurnIndex: handshake.lastSeenTurnIndex ?? 0,
+      ...(handshake.dbSessionId ? { dbSessionId: handshake.dbSessionId } : {}),
+    });
+    if (!outcome.ready) {
+      // 会话不可续 (落库会话不存在 / 不属于该学员) → 交给调用方走 fresh 流程.
+      return { handled: false, frame: outcome.frame };
+    }
+
+    // 复用落库 id (不新建行) + 重新登记帧出口 (断连时注销过).
+    data.dbSessionId = outcome.dbSessionId;
+    this.registerFrameSink(client, data);
+    client.data = data;
+    // 演练登记: 断连时移除过, 这里重建 (counselor 侧按 sessionId 反查它注入 vpt 剧本).
+    this.registerDrill(data, channel, preset, handshake);
+
+    this.logger.log(
+      outcome.path === 'reattached'
+        ? `[onConnect] reattached session=${data.sessionId}, catchup turns=${outcome.missedTurnCount}`
+        : `[onConnect] session=${data.sessionId} not in memory, reconstructing via WP12 resume`,
+    );
+    if (outcome.frame?.type === 'session_stale' && outcome.frame.reason === 'too_far_behind') {
+      this.logger.warn(`[onConnect] session=${data.sessionId} too far behind (missed=${outcome.missedTurnCount}), sending session_stale`);
+    }
+
+    this.sendJson(
+      client,
+      this.buildReadyFrame(visitorCard, { persisted: data.dbSessionId !== undefined, dbSessionId: data.dbSessionId ?? null }, data),
+    );
+    if (outcome.frame) this.sendJson(client, outcome.frame);
+    return { handled: true, frame: null };
+  }
+
+  /**
+   * 构造会话 meta (voice 层入参).
+   *
+   * 抽成独立方法: **重连与开场共用同一份口径** —— 两处各写一份, 迟早有一处漏字段
+   * (漏的正是 `dbSessionId` / `resumeFromSessionId` 这种"少一个就静默降级"的字段).
+   *
+   * @param data socket 上下文
+   * @param preset 本场临场参数
+   * @param visitorCard 来访者速查卡
+   * @returns 会话 meta
+   */
+  private buildSessionMeta(data: SocketData, preset: VoiceSessionPreset, visitorCard: VoiceVisitorCard | null): VoiceSessionMeta {
+    return {
+      sessionId: data.sessionId,
+      userId: data.userId,
+      tenantId: data.tenantId,
+      traceId: data.traceId,
+      personaId: data.personaId,
+      mode: data.mode,
+      preset,
+      voiceId: data.voiceId,
+      skillCode: data.skillCode,
+      dbSessionId: data.dbSessionId,
+      trajectoryScriptId: data.trajectoryScriptId,
+      resumeFromSessionId: data.resumeFromSessionId,
+      // V2026-10-26 治本 (spec 任务 6 — 报告的人格来源):
+      //   vpt 场 AI 扮演的是**公共人物** (晚晴...), 不是 agent 内置 persona ——
+      //   把速查卡带进 session, 报告里的人格快照才对得上号.
+      visitor: visitorCard ?? undefined,
+    };
+  }
+
+  /**
+   * 断开时清理.
+   *
+   * V2026-11-03 治本 (WP23 §1.1): **断线不杀会话** ——
+   *   ❌ 不 endSession (BDI / 情绪 / 阻抗 / 信任全清, 用户网抖一下整场报废);
+   *   ❌ 不删内存会话;
+   *   ❌ 不挂任何判死定时器 (那是游戏式妥协, 本单明确放弃).
+   *   ✅ 会话留在内存里, in-flight 的 LLM 渲染让它自然跑完;
+   *   ✅ 客户端重连时带 `lastSeenTurnIndex` 回来, 服务端把漏的轮次补给它.
+   *
+   * 仍然要做的: 注销帧出口 (往死连接推帧没有意义) + 演练登记 (那是**演练元数据**,
+   *   不是会话状态; 重连时会重建 —— 留着只是泄漏).
+   */
   handleDisconnect(client: Socket): void {
     const data = client.data as SocketData | undefined;
     if (data?.sessionId) {
-      // V2026-10-26 治本 (spec 任务 1 / 任务 2):
-      //   先注销 WS 帧出口 (连接没了, 再推帧就是往死连接写), 再结束会话 (落库收尾).
-      data.unregisterFrameSink?.();
-      this.voice.endSession(data.sessionId, 'user_finish');
+      // 只注销**自己**那份出口: 新 socket 可能已经接管了这场会话 (重连),
+      //   旧 socket 这时断开还去注销, 会把新出口一起注销掉 —— 重连后收不到任何实时帧.
+      if (this.sessionSinks.get(data.sessionId)?.socketId === client.id) {
+        this.sessionSinks.delete(data.sessionId);
+        data.unregisterFrameSink?.();
+      }
+      this.voice.detachSocket(data.sessionId);
       this.sessions.remove(data.sessionId);
     }
     this.logger.log('[onDisconnect]');
@@ -497,9 +658,7 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
       this.sendJson(client, { type: 'error', error: { code: 'unauthorized', message: 'not initialized', retryable: false } });
       return;
     }
-    const send = (msg: VoiceServerMessage): void => {
-      this.sendJson(client, msg);
-    };
+    const send = this.sessionSender(data.sessionId);
     try {
       await this.voice.handleMessage(
         {
@@ -526,6 +685,25 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
   }
 
   // ── private ────────────────────────────────────────────────────
+
+  /**
+   * 会话级帧出口 (V2026-11-03, WP23).
+   *
+   * 每次发帧时按 sessionId 查**当前**出口 —— 于是:
+   *   · 重连后, 断线瞬间还在跑的那一轮的后半段, 自然接到新 socket;
+   *   · 断连期间没有出口 → 帧**丢弃** (不排队、不回放: 排队等重连再放 =
+   *     服务端替客户端缓存历史, 那正是补漏帧的活, 而且只做一次).
+   *
+   * @param sessionId 会话 id
+   * @returns 帧发送函数
+   */
+  private sessionSender(sessionId: string): FrameSink {
+    return (msg: VoiceServerMessage): void => {
+      const entry = this.sessionSinks.get(sessionId);
+      if (!entry) return;
+      entry.sink(msg);
+    };
+  }
 
   /**
    * 解析角色来源通道 (V2026-10-26, spec §任务 1 §1.1).

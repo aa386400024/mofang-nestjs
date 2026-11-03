@@ -50,7 +50,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 import type { VoiceSessionPreset, VoiceSkillCode, VoiceVisitorCard } from './voice-session.types.js';
-import type { VoiceSessionReportStatus } from './voice.types.js';
+import type { VoiceCatchUpTurn, VoiceSessionEndReason, VoiceSessionReportStatus } from './voice.types.js';
 import type { TranscriptTurn } from '../agent/supervisor/supervisor.types.js';
 
 /**
@@ -111,8 +111,12 @@ export interface VoiceSessionCloseInput {
   readonly dbSessionId: string | null;
   readonly userId: string;
   readonly tenantId: string;
-  /** 结束原因. */
-  readonly reason: 'user_finish' | 'timeout' | 'error';
+  /**
+   * 结束原因.
+   *
+   * `idle_timeout` (V2026-11-03, WP23): 超长 idle 兜底 —— 内存卫生, 不是用户感知的 cliff.
+   */
+  readonly reason: VoiceSessionEndReason;
   /** 本场轮次数 (咨询师发言轮). */
   readonly turnCount: number;
   /** 本场实际时长 (毫秒). */
@@ -146,6 +150,30 @@ export interface VoiceSessionTranscriptInput {
   readonly userId?: string;
   /** 本场完整逐字稿 (一问一答两条交替). */
   readonly turns: readonly TranscriptTurn[];
+}
+
+/**
+ * 读回已提交轮次的入参 (V2026-11-03, WP23).
+ *
+ * 为什么必须带 `userId`: `dbSessionId` 是**客户端**带来的 (握手 query), 客户端可传任意值 ——
+ * 不做归属校验就等于"谁的会话我都能读". 归属校验放在**业务侧** (它才有那张表的查询),
+ * voice 层不认任何业务实体 (与落库桥同款纪律).
+ */
+export interface VoiceSessionCommittedTurnsInput {
+  /** 稳定落库 id (training_sessions.id). */
+  readonly dbSessionId: string;
+  /** 学员 id (归属校验用). */
+  readonly userId: string;
+  /** 租户 id. */
+  readonly tenantId: string;
+}
+
+/**
+ * 读回已提交轮次的结果 (V2026-11-03, WP23).
+ */
+export interface VoiceSessionCommittedTurnsResult {
+  /** 已提交轮次 (按轮次升序; 从 1 起). */
+  readonly turns: readonly VoiceCatchUpTurn[];
 }
 
 /**
@@ -185,6 +213,20 @@ export interface VoiceSessionBridge {
    * @param input 覆盖写输入
    */
   replaceTranscript?(input: VoiceSessionTranscriptInput): Promise<void>;
+
+  /**
+   * 读回本场**已提交**的轮次 (V2026-11-03, WP23 · **可选**).
+   *
+   * 用途: 进程重启后内存里没有这场会话, 补漏数据只能从持久化侧捞 ——
+   * 逐字稿拿"说了什么", WP19-R 留痕拿"BDI 快照".
+   *
+   * 未实现 = 该桥不支持读回 (旧实现 / 测试桩) → 注册表返回 null →
+   * voice 层按"会话不可续"处理 (推 `session_stale`, 客户端走 fresh 开场).
+   *
+   * @param input 读回入参 (含归属校验用的学员 id)
+   * @returns 已提交轮次; null = 这场会话不存在 / 不属于该学员 (不可续)
+   */
+  readCommittedTurns?(input: VoiceSessionCommittedTurnsInput): Promise<VoiceSessionCommittedTurnsResult | null>;
 }
 
 /**
@@ -314,5 +356,32 @@ export class VoiceSessionBridgeRegistry {
       throw lastError instanceof Error ? lastError : new Error('逐字稿覆盖写失败: 全部落库桥都失败');
     }
     return written;
+  }
+
+  /**
+   * 读回本场已提交轮次 (V2026-11-03, WP23 · 进程重启后的补漏数据源).
+   *
+   * 跨桥取**第一个**给得出结论的: "不存在"与"没有实现"在这个接口上是同一件事
+   * (对 voice 层而言都是"不可续"), 所以 null 统一表示"读不到".
+   *
+   * 失败语义: **静默降级** —— 桥抛错只记 warn, 返回 null (不炸断连).
+   *
+   * @param input 读回入参
+   * @returns 已提交轮次; null = 读不到 (无桥实现 / 会话不存在 / 全部失败)
+   */
+  async readCommittedTurns(input: VoiceSessionCommittedTurnsInput): Promise<VoiceSessionCommittedTurnsResult | null> {
+    for (const bridge of this.bridges.values()) {
+      if (!bridge.readCommittedTurns) continue;
+      try {
+        const result = await bridge.readCommittedTurns(input);
+        if (result) return result;
+      } catch (error) {
+        this.logger.warn(
+          `[read_committed_turns_failed] bridge=${bridge.name} db_session=${input.dbSessionId} ` +
+            `err=${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+    return null;
   }
 }
