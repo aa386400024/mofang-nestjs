@@ -43,6 +43,7 @@ import type {
   MemoryStore,
   PersonalityModulatorConfig,
   RiskProbePort,
+  SessionDecayConfig,
 } from '../../engine-core/index.js';
 import type { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
 import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
@@ -108,10 +109,10 @@ export function createEngineMemoryStore(deps: EngineMemoryStoreDeps): MemoryStor
 }
 
 /**
- * 内核会话的调参依赖 (WP26 · P2-14 · WP34 · WP42).
+ * 内核会话的调参依赖 (WP26 · P2-14 · WP34 · WP42 · WP36).
  *
- * 单回合 delta cap 的配置与观察者、人格调节系数、同盟三维系数与门槛都是**注入**
- * 进来的 —— 内核不读 env、不持有全局槽.
+ * 单回合 delta cap 的配置与观察者、人格调节系数、同盟三维系数与门槛、跨会话间隔衰减
+ * 半衰期都是**注入**进来的 —— 内核不读 env、不持有全局槽.
  * 缺省 = 内核种子值 + 不观测 (行为与 WP15 之前逐字一致).
  */
 export interface EngineSessionTuningDeps {
@@ -131,6 +132,12 @@ export interface EngineSessionTuningDeps {
    * 与 cap 同款范式: 同盟三维的系数与门槛是**部署形态**的决定, 不是会话参数.
    */
   readonly allianceConfig?: AllianceConfig;
+  /**
+   * 跨会话间隔衰减配置 (WP36; 缺省 = 内核种子值).
+   *
+   * 与 cap 同款范式: 半衰期是**部署形态**的决定 (内测期按真实对练校准), 不是会话参数.
+   */
+  readonly sessionDecayConfig?: SessionDecayConfig;
 }
 
 /**
@@ -157,6 +164,7 @@ export function createEngineSessionPort(
     ...(tuning?.capObserver ? { capObserver: tuning.capObserver } : {}),
     ...(tuning?.personalityModulatorConfig ? { personalityModulatorConfig: tuning.personalityModulatorConfig } : {}),
     ...(tuning?.allianceConfig ? { allianceConfig: tuning.allianceConfig } : {}),
+    ...(tuning?.sessionDecayConfig ? { sessionDecayConfig: tuning.sessionDecayConfig } : {}),
   });
 }
 

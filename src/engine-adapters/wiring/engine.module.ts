@@ -66,6 +66,7 @@ import {
 import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from './engine.tokens.js';
 import { resolvePersonalityModulatorConfig } from './personality-modulator.config.js';
 import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory.js';
+import { resolveSessionDecayConfig } from './session-decay.config.js';
 import { resolveSessionCostPricing } from '../observability/session-cost.js';
 import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe.js';
 import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
@@ -214,6 +215,9 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
           // WP42: 同盟三维 (trust / safety / bond) 的系数与门槛同理 ——
           //   env 读在适配层, 内核只认 AllianceConfig 端口.
           allianceConfig: resolveAllianceConfig(config),
+          // WP36: 跨会话间隔衰减的三个半衰期同理 ——
+          //   env 读在适配层, 内核只认 SessionDecayConfig 端口.
+          sessionDecayConfig: resolveSessionDecayConfig(config),
         }),
       inject: [ENGINE_MEMORY_STORE, RISK_PROBE, ConfigService, DeltaCapLogger],
     },

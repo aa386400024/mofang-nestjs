@@ -47,6 +47,11 @@
 //     内核零 env 读取. 用例③d 守着这件事.
 //     cap 族同步从 18 键扩到 22 键 (新增 SAFETY / BOND 两维, 见用例③b).
 //
+//   V2026-11-03 治本 (WP36 — ENGINE_DECAY_* 族):
+//     跨会话间隔衰减的三个半衰期 (3 个 `ENGINE_DECAY_*` 键) 同一治本: 适配层
+//     (src/engine-adapters/wiring/session-decay.config.ts) 逐个字面量读, 内核零 env 读取.
+//     用例③e 守着这件事.
+//
 //   边界: 只读文件; 不改任何代码 / 不改 .env.example; 不起 Nest 容器.
 //
 //   验证: npx vitest run test/config/wp25-env-example-coverage.spec.ts
@@ -164,6 +169,19 @@ const ALLIANCE_ENV_KEYS: readonly string[] = [
   'ENGINE_ALLIANCE_OPEN_THRESHOLD',
   'ENGINE_ALLIANCE_RESIST_TRUST_THRESHOLD',
   'ENGINE_ALLIANCE_RESIST_SAFETY_THRESHOLD',
+];
+
+/**
+ * 跨会话间隔衰减的 3 个 env 键 (WP36).
+ *
+ * 与 cap 族 / 人格族 / 同盟族同一治本: 适配层**逐个字面量**读 → 已被 AST 抽取覆盖
+ * (漏写一个键, 断言① 立刻变红). 这里留一份清单, 是为了断言"3 个键一个不多一个不少" ——
+ * 少一个 = 那一维的半衰期永远配不上 (静默失效); 多一个 = 模板里躺着一条没人读的键.
+ */
+const SESSION_DECAY_ENV_KEYS: readonly string[] = [
+  'ENGINE_DECAY_EMOTION_HALF_LIFE_MS',
+  'ENGINE_DECAY_RESISTANCE_HALF_LIFE_MS',
+  'ENGINE_DECAY_ALLIANCE_HALF_LIFE_MS',
 ];
 
 /**
@@ -368,6 +386,25 @@ describe('WP25 · .env.example 与代码 env 读取点一一对应', () => {
       }
     }
     expect(kernelAllianceKeys).toEqual([]);
+  });
+
+  it('③e 3 个 ENGINE_DECAY_* 键已改字面量读取, 内核树不再有衰减半衰期键 (WP36)', () => {
+    // 跨会话衰减的三个半衰期与 cap 族同一治本: 适配层逐个字面量读 → AST 抽取看得到.
+    const sessionDecayConfigFile = path.join(SRC_ROOT, 'engine-adapters/wiring/session-decay.config.ts');
+    expect(existsSync(sessionDecayConfigFile)).toBe(true);
+    const literalKeys = extractEnvKeys(sessionDecayConfigFile).filter((key) => key.startsWith('ENGINE_DECAY_'));
+    expect([...literalKeys].sort()).toEqual([...SESSION_DECAY_ENV_KEYS].sort());
+
+    // 内核树里**不许**再出现任何 ENGINE_DECAY_* 字符串 (计算键也算): 内核零 env 读取.
+    const kernelRoot = path.join(SRC_ROOT, 'engine-core');
+    const kernelDecayKeys: string[] = [];
+    for (const file of collectTsFiles(kernelRoot)) {
+      const source = readFileSync(file, 'utf8');
+      if (source.includes('ENGINE_DECAY_')) {
+        kernelDecayKeys.push(path.relative(kernelRoot, file).replaceAll('\\', '/'));
+      }
+    }
+    expect(kernelDecayKeys).toEqual([]);
   });
 
   it('④ NODE_ENV 必须被注释掉 (本地照抄模板不能开 production 模式)', () => {

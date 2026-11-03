@@ -178,3 +178,12 @@ export { DEFAULT_PERSONALITY_MODULATOR_CONFIG, modulateDeltaByPersonality } from
 //   且没有任何断言会红. 收进公开出口, 由断言守住.
 export type { AllianceConfig, AllianceDeltaOverride, AllianceDeltaOverrides, AllianceThresholds } from './cognition/alliance-config.js';
 export { DEFAULT_ALLIANCE_CONFIG } from './cognition/alliance-config.js';
+
+// ── 跨会话间隔自然衰减 (WP36 · 情绪 / 阻抗 / 同盟差异化半衰期) ─────────
+//   同款理由: 新符号若只住在内核内部, adapter 就得深路径 import —— 那条路径不在
+//   boundary 断言⑥ (barrel 双向白名单) 的守卫视野内, 内核改文件名 adapter 直接断
+//   且没有任何断言会红. 收进公开出口, 由断言守住.
+//   端口 (半衰期) 与纯函数 (applySessionDecay) 一起公开: 适配层要装配端口,
+//   内核会话要调纯函数 —— 两者都是跨层契约.
+export type { SessionDecayConfig } from './cognition/session-decay.js';
+export { applySessionDecay, DEFAULT_SESSION_DECAY_CONFIG } from './cognition/session-decay.js';

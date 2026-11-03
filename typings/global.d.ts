@@ -272,6 +272,17 @@ export declare global {
       ENGINE_ALLIANCE_OPEN_THRESHOLD?: string; // 探索门槛 [0,1]: min(信任, 安全感) >= 它才探索 (默认 0.6)
       ENGINE_ALLIANCE_RESIST_TRUST_THRESHOLD?: string; // 抗拒门槛 (信任维) [0,1] (默认 0.4)
       ENGINE_ALLIANCE_RESIST_SAFETY_THRESHOLD?: string; // 抗拒门槛 (安全感维) [0,1] (默认 0.3)
+      // V2026-11-03 WP36 (跨会话间隔自然衰减 · 半衰期):
+      //   下面是 resume 时对情绪 / 阻抗 / 同盟三维做差异化半衰期回落的 3 个 env 键.
+      //   显式声明的理由与上面 ENGINE_CAP_* / ENGINE_MOD_* / ENGINE_ALLIANCE_* 同一治本思路:
+      //   **逐个字面量**读 (src/engine-adapters/wiring/session-decay.config.ts),
+      //   不用计算键 (`ENGINE_DECAY_${group}_HALF_LIFE_MS`) —— 计算键编译器拦不住,
+      //   且 env 覆盖断言 (AST 抽取) 扫不到, 漏写一个键会静默失效.
+      //   装配成内核的 SessionDecayConfig 端口注入 —— 内核零 process.env.
+      //   ⚠️ 半衰期是**工程种子值, 非临床标定** (待真实对练校准).
+      ENGINE_DECAY_EMOTION_HALF_LIFE_MS?: string; // 情绪半衰期 (ms, 默认 7 天)
+      ENGINE_DECAY_RESISTANCE_HALF_LIFE_MS?: string; // 阻抗半衰期 (ms, 默认 14 天)
+      ENGINE_DECAY_ALLIANCE_HALF_LIFE_MS?: string; // 同盟半衰期 (ms, 默认 30 天)
     }
   }
 

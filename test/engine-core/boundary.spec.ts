@@ -402,6 +402,11 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'AllianceDeltaOverrides',
       'AllianceThresholds',
       'DEFAULT_ALLIANCE_CONFIG',
+      // WP36: 跨会话间隔自然衰减 (情绪 / 阻抗 / 同盟差异化半衰期)
+      //   (端口 + 纯函数一起公开: 适配层装配端口, 内核会话调纯函数)
+      'SessionDecayConfig',
+      'DEFAULT_SESSION_DECAY_CONFIG',
+      'applySessionDecay',
     ];
     // 少导出
     expect(expectedPublic.filter((name) => !exportedNames.includes(name))).toEqual([]);
@@ -436,6 +441,7 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'cognition/state-transition.ts',
       'cognition/personality-modulator.ts',
       'cognition/alliance-config.ts',
+      'cognition/session-decay.ts',
       'cognition/intention-planner.ts',
       'cognition/rendering/token-budget.ts',
       'cognition/rendering/failover.ts',

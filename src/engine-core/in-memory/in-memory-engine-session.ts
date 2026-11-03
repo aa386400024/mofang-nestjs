@@ -37,6 +37,7 @@ import {
 } from '../cognition/personality-modulator.js';
 import { RuleBasedClassifier } from '../cognition/rule-based-classifier.js';
 import { assessSafety } from '../cognition/safety/assess-safety.js';
+import { applySessionDecay, type SessionDecayConfig } from '../cognition/session-decay.js';
 import {
   addDeltaVectors,
   aggregateTurnDelta,
@@ -204,6 +205,16 @@ export interface InMemoryEngineSessionOptions {
    * 一场会话内口径恒定, 不会出现"同一场里前后两轮门槛不一样"的漂移.
    */
   readonly allianceConfig?: AllianceConfig;
+  /**
+   * 跨会话间隔衰减配置 (WP36 · 与 cap / 人格 / 同盟同款注入范式).
+   *
+   * 缺省 = 内核种子值 (`DEFAULT_SESSION_DECAY_CONFIG`: 情绪 7 天 / 阻抗 14 天 / 同盟 30 天).
+   * 为什么是**构造注入**而不是每次 turn 传: 半衰期是**部署形态**的决定
+   * (内测期要按真实对练校准), 不是会话参数; 放构造上 = 一场会话内口径恒定.
+   *
+   * ⚠️ 系数是**工程种子值, 非临床标定** —— 待真实对练校准.
+   */
+  readonly sessionDecayConfig?: SessionDecayConfig;
 }
 
 /** 会话内核的内存实现. */
@@ -232,6 +243,8 @@ export class InMemoryEngineSession implements EngineSessionPort {
   private readonly personalityModulatorConfig: PersonalityModulatorConfig | undefined;
   /** 同盟三维配置 (WP42 · 缺省 = 内核种子值). */
   private readonly allianceConfig: AllianceConfig | undefined;
+  /** 跨会话间隔衰减配置 (WP36 · 缺省 = 内核种子值). */
+  private readonly sessionDecayConfig: SessionDecayConfig | undefined;
 
   constructor(options: InMemoryEngineSessionOptions) {
     this.bdiStates = options.bdiStates;
@@ -244,6 +257,7 @@ export class InMemoryEngineSession implements EngineSessionPort {
     this.capObserver = options.capObserver;
     this.personalityModulatorConfig = options.personalityModulatorConfig;
     this.allianceConfig = options.allianceConfig;
+    this.sessionDecayConfig = options.sessionDecayConfig;
   }
 
   openSession(input: OpenEngineSessionInput): EngineSessionHandle {
@@ -453,6 +467,15 @@ export class InMemoryEngineSession implements EngineSessionPort {
    * 优先级: 本场已有状态 > 跨会话接续来源 > 全空快照.
    * 接续时**只搬快照, 不搬版本号** —— 新会话的版本链从 0 起算, 否则会把上一场
    * 的版本号带过来, 让乐观锁的语义变得不可解释 (新会话与旧会话共享一条版本链).
+   *
+   * V2026-11-03 (WP36): 接续时**按间隔做自然衰减** —— 不再把上一场的快照原样搬过来.
+   *   隔了一周再来, 情绪该平复、阻抗该回落, 但关系不该清零 (衰减恒 > 0, 渐近不归零).
+   *   间隔取 `resumed.updatedAt` (上一场最后一次落库时刻) 与当前时刻之差.
+   *
+   *   为什么衰减**只发生一次** (而不是每轮都衰减):
+   *     本方法每轮都调, 但"本场已有状态"分支会先命中 —— 只有本场**第一轮**才会走到
+   *     接续分支. 第一轮算出的衰减值随本轮 delta 一起落库, 之后各轮读的是本场自己的
+   *     状态 (不再衰减). 于是"衰减"是**跨场边界的一次性事件**, 不是持续时间流逝的副作用.
    */
   private async loadState(runtime: EngineSessionRuntime): Promise<BdiStateRecord> {
     const current = await this.bdiStates.load(runtime.tenantId, runtime.sessionId);
@@ -461,12 +484,13 @@ export class InMemoryEngineSession implements EngineSessionPort {
     if (runtime.resumeFromSessionId) {
       const resumed = await this.bdiStates.load(runtime.tenantId, runtime.resumeFromSessionId);
       if (resumed) {
+        const ageMs = this.now() - resumed.updatedAt;
         return {
           tenantId: runtime.tenantId,
           sessionId: runtime.sessionId,
           revision: 0,
           updatedAt: this.now(),
-          snapshot: cloneBdiSnapshot(resumed.snapshot),
+          snapshot: applySessionDecay(resumed.snapshot, ageMs, this.sessionDecayConfig),
         };
       }
     }
