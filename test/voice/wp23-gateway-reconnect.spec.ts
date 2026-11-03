@@ -87,6 +87,19 @@ class FakeVoiceService {
     missedTurnCount: 0,
   };
 
+  /**
+   * V2026-11-03 (WP25): 归属判定桩.
+   *
+   * 默认 false = 没人抢这个 sessionId —— 本单 (WP23) 测的是**断连/重连**语义,
+   * 归属校验由 WP25 的专项用例单独覆盖 (test/voice/wp25-ws-session-ownership.spec.ts).
+   */
+  ownedByOtherUser = false;
+
+  /** V2026-11-03 (WP25): 这个 sessionId 是不是已经属于别人? */
+  isSessionOwnedByOtherUser(): boolean {
+    return this.ownedByOtherUser;
+  }
+
   async startSession(meta: unknown): Promise<void> {
     this.startSessionCalls.push(meta);
   }

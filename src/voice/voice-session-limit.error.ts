@@ -23,8 +23,14 @@ import type { VoiceServerMessage } from './voice.types.js';
  *
  * - `session_already_active`: 同一用户已有一场活跃语音会话 (并发上限).
  * - `daily_budget_exceeded`: 当日全局 token 预算已用完.
+ * - `session_owned_by_other_user`: 请求的 sessionId 已属于**另一个用户** (V2026-11-03 WP25).
+ *
+ *   为什么新增这个码 (WP22 当初写的"新增码必须走前端联调, 所以本单不加"):
+ *   这条不是"正常流程里的闸门", 是**安全拒绝** —— 前端只需要把 message 显示出来
+ *   (不该重试: 换一个 sessionId 才是正解, retryable=false 已经写明).
+ *   合并进 `session_already_active` 反而误导: 那条说的是"你自己已经有一场".
  */
-export type VoiceSessionLimitCode = 'session_already_active' | 'daily_budget_exceeded';
+export type VoiceSessionLimitCode = 'session_already_active' | 'daily_budget_exceeded' | 'session_owned_by_other_user';
 
 /**
  * 会话闸门错误.

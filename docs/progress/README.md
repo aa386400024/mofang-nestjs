@@ -119,6 +119,13 @@ WP0 边界骨架 / WP1 BDI认知引擎 / WP2 分层记忆 / WP3 轨迹控制 / W
 - WP23 WS 断连重连追平（断线**不杀会话**、不挂判死定时器；重连握手带 `lastSeenTurnIndex=N` → 服务端把 N 之后已提交轮次塞进 `session_catchup` 一次性补回；进程重启走 WP12 重建 + 从持久化补漏；断连期间压根不调 TTS provider；2 小时 idle 兜底）
 - WP15 单回合非对称 delta cap（trust/valence 涨最多 +0.20、跌最多 −0.30 损失厌恶；arousal+阻抗三维 ±0.20；移情三维 ±0.15；**砍 delta 不是 clamp 绝对值**；cap 常量 env 可覆写；DELTA_TABLE 每个事件加幅度声明；adapter 侧打 `[WP15] turn delta capped: ...` warning，内核零 logger 依赖）
 
+### 封版审查（根目录）
+- **WP25 Phase1 封版审查**（2026-11-03）—— 扫描报告 [`wp25-phase1-audit-report-2026-11-03.md`](./wp25-phase1-audit-report-2026-11-03.md)｜任务单 `completed/wp14-wp24-augment/engine-wp25-phase1-audit-backend-2026-11-03.md`
+  - **8 个 P1 本单全修**：WS `sessionId` 归属校验（跨用户接管 + 拉走他人逐字稿）、`/admin/api` 生产 basic auth fail-close、生产 CSP 指令值（`'["self"'` → `'self'`）、express-session 公开常量密钥、头像失败文案脱敏、引擎 capObserver 抛错炸穿 turn、`.env.example` 补 130 键 + 47 个死键降级、任务单 §1.4 回改方向写反
+  - **39 条 P2 待用户拍板**（安全 10 / 引擎 8 / 文档 15 / 配置与已知尾巴 6）
+  - **10 条 P3 已进 Phase2 队列**（母版 §Phase2+ 队列）
+  - **3 个新的机器断言套件**：`test/voice/wp25-ws-session-ownership.spec.ts`（WS 归属 10 例）、`test/base/wp25-security-hardening.spec.ts`（CSP / session 密钥 / basic auth / 头像文案 16 例）、`test/config/wp25-env-example-coverage.spec.ts`（`.env.example` ↔ `process.env` 双向一一对应 4 例）
+
 ### 认证密码（completed/auth-and-password/）
 - POST /auth/reset-password（忘记密码重置，不需要 JWT，凭验证码改密+撤销所有 session）
 - POST /user/set-password（已登录首次设置密码，不要旧密码）

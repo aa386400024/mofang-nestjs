@@ -218,9 +218,9 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
       traceId: 'vt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
     };
     client.data.sessionId = handshake.sessionId;
-    // V2026-11-03 治本 (WP23): 会话级帧出口 —— 新 socket 接管这场会话的出口.
-    //   (旧 socket 的出口在它自己断开时被移除 —— 见 handleDisconnect 的 socketId 比对.)
-    this.sessionSinks.set(handshake.sessionId, { socketId: client.id, sink: (msg) => this.sendJson(client, msg) });
+    // V2026-11-03 治本 (WP25 · 封版审查): 会话级帧出口的登记**挪到鉴权之后**
+    //   (见 verifyAndStart). 原来在这里登记 = 匿名连接只要带个 ?sessionId= 就能顶掉
+    //   别人的帧出口, 把人家的实时帧 / 音频改发给自己.
     // V2026-11-03 治本 (WP23): 重连补漏的两个握手参数原样带下去.
     data.lastSeenTurnIndex = handshake.lastSeenTurnIndex;
     data.clientDbSessionId = handshake.dbSessionId;
@@ -234,7 +234,40 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
       return;
     }
     // 3. 校验 JWT (async, 但 handleConnection 必须 void — 走 fire-and-forget)
-    void this.verifyAndStart(client, data, handshake, token);
+    //    ⚠️ 必须挂 .catch(): Node ≥15 对未处理的 promise rejection **直接终止进程** ——
+    //      verifyAndStart 里任何一处抛错 (DB 抖动 / 第三方接口抽风 / 未来的新分支忘了兜)
+    //      都会把整个服务打挂, 而这只是一条**客户端连接**失败, 不该影响别人.
+    void this.verifyAndStart(client, data, handshake, token).catch((err: unknown) => {
+      this.logger.error('[onConnect] verifyAndStart crashed: ' + (err instanceof Error ? (err.stack ?? err.message) : String(err)));
+      this.sendJson(client, {
+        type: 'error',
+        error: { code: 'session_start_failed', message: '会话启动失败', retryable: true },
+      });
+      client.disconnect(true);
+    });
+  }
+
+  /**
+   * V2026-11-03 治本 (WP25 · 封版审查): 这个 sessionId 是不是已经**属于别人**?
+   *
+   * 判据取**两处**注册表的并集 —— 少查一处就留一个洞:
+   *   · voice 层内存会话 (`VoiceService`): 活跃会话带着 `meta.userId`;
+   *   · 演练登记 (`VoiceSessionRegistry`): 进程内登记, 断连时清; 但**会话已结束、登记还在**
+   *     的窗口里, 只查 voice 内存会漏判 (那时候 memory 里已经没有这场会话了).
+   *
+   * 为什么要查:
+   *   `sessionId` 由客户端在握手 query 里自选 (`?sessionId=<uuid>`), 服务端此前**从不核对**
+   *   它属于谁 —— 于是任何登录用户带着别人的 sessionId 连上来就能:
+   *     ① 顶掉那场会话 (TTS dispose + LLM abort) —— 对方的对练当场崩;
+   *     ② 走重连分支拿到 `session_catchup` 帧 —— 里面是**对方整场咨询对话原文**.
+   *
+   * @param data socket 上下文 (鉴权后, userId 必有值)
+   * @returns true = 该 sessionId 已属于另一个用户
+   */
+  private isOwnedByOtherUser(data: SocketData): boolean {
+    if (this.voice.isSessionOwnedByOtherUser(data.userId, data.sessionId)) return true;
+    const drill = this.sessions.find(data.sessionId);
+    return drill !== null && drill.userId !== data.userId;
   }
 
   /**
@@ -255,6 +288,25 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
     if (!(await this.verifyJwt(client, data, token))) {
       return;
     }
+
+    // 1.5 V2026-11-03 治本 (WP25 · 封版审查): 会话归属校验 —— 放在**任何写动作之前**.
+    //   判据: 这个 sessionId 是不是已经属于别人.
+    //   为什么不能等到 startSession 才判: 落库 / 演练登记 / 帧出口接管都发生在那之前 ——
+    //   等到那时才拒, 攻击者已经写了一条落库行、顶掉了别人的帧出口.
+    if (this.isOwnedByOtherUser(data)) {
+      this.logger.warn(`[onConnect] session=${data.sessionId} 已属于他人, 拒绝接管 (user=${data.userId})`);
+      this.sendJson(client, {
+        type: 'error',
+        error: { code: 'session_owned_by_other_user', message: '该会话标识已被他人占用，请换一个', retryable: false },
+      });
+      client.disconnect(true);
+      return;
+    }
+
+    // 1.6 V2026-11-03 治本 (WP23): 会话级帧出口 —— 新 socket 接管这场会话的出口.
+    //   (旧 socket 的出口在它自己断开时被移除 —— 见 handleDisconnect 的 socketId 比对.)
+    //   WP25: 登记放在鉴权**之后** —— 匿名连接不许顶掉别人的出口.
+    this.sessionSinks.set(data.sessionId, { socketId: client.id, sink: (msg) => this.sendJson(client, msg) });
 
     // 2. 角色来源通道解析 (连接期):
     //    - 有 templateId → 查到已上架模板则注入; 查不到 → `template_not_found` + 断开 (不回退)
@@ -644,8 +696,14 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
         this.sessionSinks.delete(data.sessionId);
         data.unregisterFrameSink?.();
       }
-      this.voice.detachSocket(data.sessionId);
-      this.sessions.remove(data.sessionId);
+      // V2026-11-03 治本 (WP25 · 封版审查): **未通过鉴权的连接不许碰别人的会话**.
+      //   client.data.userId 为空 = 这条 socket 从没验过 JWT (它在握手阶段就断了),
+      //   而 client.data.sessionId 是**客户端自选**的 —— 不加这道闸, 匿名连接只要带个
+      //   ?sessionId=<别人的> 连上再断开, 就能把别人的会话从内存里摘掉 (TTS 被 cancel).
+      if (data.userId) {
+        this.voice.detachSocket(data.sessionId);
+        this.sessions.remove(data.sessionId);
+      }
     }
     this.logger.log('[onDisconnect]');
   }

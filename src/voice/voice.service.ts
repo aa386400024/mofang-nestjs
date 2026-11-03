@@ -60,6 +60,7 @@ import type { StudentRiskAuditChoice } from './student-risk-audit-slot.js';
 import { TtsService } from './tts/tts.service.js';
 import type { TtsEvent, TtsOptions, TtsSessionHandle } from './tts/tts.types.js';
 import { VoiceSessionBridgeRegistry, type VoiceSessionCloseResult } from './voice-session-bridge.js';
+import { VoiceSessionLimitError } from './voice-session-limit.error.js';
 import { VoiceSessionLimitsService } from './voice-session-limits.service.js';
 import {
   TURN_INCOMPLETE_CODE,
@@ -371,12 +372,51 @@ export class VoiceService {
   }
 
   /**
+   * 这场会话是不是已经属于**别人**? (true = 属于别人 → 调用方必须拒绝)
+   *
+   * 口径: **只在内存里已经存在这场会话**时才判 —— 不存在就是新会话, 谁开都合法.
+   *
+   * @param userId 本次连接的用户 id (JWT 的 sub)
+   * @param sessionId 本次连接的会话 id
+   * @returns true = 该 sessionId 已属于另一个用户
+   */
+  isSessionOwnedByOtherUser(userId: string, sessionId: string): boolean {
+    const existing = this.sessions.get(sessionId);
+    return existing !== undefined && existing.meta.userId !== userId;
+  }
+
+  /**
+   * 会话归属校验 (V2026-11-03 WP25 · 封版审查): 这个 sessionId 是不是**已经属于别人**?
+   *
+   * 为什么必须有这条:
+   *   `sessionId` 由客户端在握手 query 里自选 (`?sessionId=<uuid>`), 服务端此前**从不核对**
+   *   它属于谁 —— 于是任何登录用户带着别人的 sessionId 连上来就能:
+   *     ① 顶掉那场会话 (TTS dispose + LLM abort) —— 对方的对练当场崩;
+   *     ② 走重连分支拿到 `session_catchup` 帧 —— 里面是**对方整场咨询对话原文**.
+   *   内存里的会话状态本来就带 `meta.userId`, 核对只是把已有的事实用起来.
+   *
+   * @param userId 本次连接的用户 id (JWT 的 sub)
+   * @param sessionId 本次连接的会话 id
+   * @throws {VoiceSessionLimitError} 该 sessionId 已属于另一个用户
+   */
+  assertSessionOwnership(userId: string, sessionId: string): void {
+    if (!this.isSessionOwnedByOtherUser(userId, sessionId)) return;
+    this.logger.warn(`[ownership] session=${sessionId} 已属于他人, 拒绝访问 (user=${userId})`);
+    throw new VoiceSessionLimitError('session_owned_by_other_user', '该会话标识已被他人占用，请换一个', false);
+  }
+
+  /**
    * 启动一个 voice session — resolve persona + 创建 visitor memory + 缓存 state.
    * 异步 (resolve persona 走仓储). gateway 在 verifyAndStart 时 await.
    * @throws 当 visitor.openSession 失败 (无 persona) 时 throw, gateway 关闭 socket
    * @throws {VoiceSessionLimitError} WP22: 被并发上限 / 当日预算闸门拦下 (网关映射成 error 帧)
+   * @throws {VoiceSessionLimitError} WP25: 该 sessionId 已属于另一个用户 (顶替 = 跨用户接管)
    */
   async startSession(meta: VoiceSessionMeta): Promise<void> {
+    // V2026-11-03 (WP25): 先判归属 —— **别人的会话不许顶替**.
+    //   原来这里是"同名就替换" (dispose 旧的 TTS + abort 旧的 LLM), 等于任何登录用户
+    //   都能把别人的对练当场打断, 再借重连把人家的逐字稿拉走.
+    this.assertSessionOwnership(meta.userId, meta.sessionId);
     if (this.sessions.has(meta.sessionId)) {
       this.logger.warn(`[startSession] session=${meta.sessionId} already exists, replacing`);
       const old = this.sessions.get(meta.sessionId)!;
@@ -700,7 +740,22 @@ export class VoiceService {
    */
   async reconnectSession(params: VoiceReconnectParams): Promise<VoiceReconnectOutcome> {
     const state = this.sessions.get(params.meta.sessionId);
-    if (state) return this.reattachExisting(state, params);
+    if (state) {
+      // V2026-11-03 (WP25): 归属不符 → **不给补漏**.
+      //   补漏帧 (`session_catchup`) 里装的是那场会话的逐字稿原文 (userText / replyText),
+      //   拿别人的 sessionId 来重连 = 直接把人家的咨询记录读走.
+      //   回法统一按"接不上" (`session_stale`): 不告诉他这场会话存在, 免得变成存在性探测.
+      if (state.meta.userId !== params.meta.userId) {
+        this.logger.warn(`[reconnect] session=${params.meta.sessionId} 属于他人, 拒绝补漏`);
+        return {
+          ready: false,
+          frame: { type: 'session_stale', reason: 'unknown_session' },
+          path: 'stale',
+          missedTurnCount: 0,
+        };
+      }
+      return this.reattachExisting(state, params);
+    }
     return this.resumeAfterRestart(params);
   }
 

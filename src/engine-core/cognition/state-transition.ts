@@ -360,7 +360,19 @@ export function transitionState(snapshot: BdiSnapshot, events: readonly SessionE
   const raw = aggregate(events);
   const delta = capTurnDelta(raw);
   const report = buildCapReport(raw, delta, events);
-  if (report && capObserver) capObserver(report);
+  if (report && capObserver) {
+    // V2026-11-03 治本 (WP25 · 封版审查): 观察者回调**抛错不许炸穿 turn**.
+    //   内核对一切外部注入的能力都是"永不抛穿"的: assessSafety 的 probe 抛错 → 回落规则;
+    //   collectOpeningContext 吞异常 → 回落空数组. observer 是当时**唯一**没设防的一处.
+    //   它炸穿的后果比别的都重: 此刻状态还没落库 (调用点的 bdiStates.save 在这之后),
+    //   整轮 turn 失败, 而失败原因只是"打日志的那个回调抛了" —— 观测通道不该有这个权力.
+    try {
+      capObserver(report);
+    } catch {
+      // 观测通道失败不影响状态迁移. 静默吞掉是刻意的: 内核不 import logger,
+      // 报告本来就不影响状态 —— 它只是"给 adapter 看的".
+    }
+  }
 
   const valence = clampValence(snapshot.emotion.valence + delta.valence);
   const arousal = clamp01(snapshot.emotion.arousal + delta.arousal);

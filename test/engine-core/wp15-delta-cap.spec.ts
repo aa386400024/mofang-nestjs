@@ -239,5 +239,33 @@ describe('WP15 · 单回合非对称 delta cap', () => {
 
       expect(seen).toHaveLength(0);
     });
+
+    // V2026-11-03 治本 (WP25 · 封版审查): 观察者抛错**不许炸穿 turn**.
+    //   内核对一切外部注入的能力都是"永不抛穿"的 (assessSafety 的 probe 抛错回落规则;
+    //   collectOpeningContext 吞异常回落空数组) —— observer 当时是唯一没设防的一处.
+    //   它炸穿的后果最重: 此刻状态还没落库, 整轮 turn 失败, 而原因只是"打日志的回调抛了".
+    it('观察者回调抛错 → 状态迁移照常完成, 不炸穿 turn', () => {
+      observeDeltaCaps(() => {
+        throw new Error('observer 内部炸了');
+      });
+
+      const out = transitionState(snap({ trust: 0.5 }), [ev('empathy'), ev('empathy'), ev('empathy')]);
+
+      // 状态照常迁移 (cap 生效: +0.30 被砍到 +0.20).
+      expect(out.trust).toBeCloseTo(0.7, 5);
+    });
+
+    it('观察者回调抛错 → 后续轮次仍能正常迁移 (单槽没被污染)', () => {
+      observeDeltaCaps(() => {
+        throw new Error('observer 内部炸了');
+      });
+
+      const first = transitionState(snap({ trust: 0.5 }), [ev('empathy')]);
+      expect(first.trust).toBeCloseTo(0.6, 5);
+
+      observeDeltaCaps(null);
+      const second = transitionState(snap({ trust: 0.6 }), [ev('empathy')]);
+      expect(second.trust).toBeCloseTo(0.7, 5);
+    });
   });
 });

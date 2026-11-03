@@ -4,7 +4,36 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import helmet from 'helmet';
+import { randomBytes } from 'node:crypto';
 import passport from 'passport';
+
+/**
+ * 生产环境的 CSP 指令 (V2026-11-03 治本 · WP25 · 封版审查).
+ *
+ * 为什么要把它提成**导出的常量**:
+ *   CSP 的 source list 写错时, 浏览器会**整条忽略**那条指令 —— 不报错、不告警,
+ *   只是"看起来开了 CSP, 其实没开". 这种错在代码里躺着就没人发现, 所以把它
+ *   提成常量是为了让单测能直接断言它的**语法合法性** (见
+ *   test/base/wp25-security-hardening.spec.ts).
+ *
+ *   ⚠️ 原来的写法是 `'["self"'` —— 方括号是**写错了**的 CSP source list 语法.
+ *   按 CSP 规范, source list 非法的**整条指令会被浏览器忽略** —— 于是
+ *   "生产开了 CSP" 这件事在代码里成立, 在浏览器里不成立
+ *   (default-src / script-src / style-src / connect-src 全废).
+ *   正确写法: 外层单引号包住内层关键字, 且**不带方括号**: `'self'`.
+ */
+export const PRODUCTION_CSP_DIRECTIVES = {
+  defaultSrc: ["'self'"],
+  scriptSrc: ["'self'", "'unsafe-inline'"],
+  styleSrc: ["'self'", "'unsafe-inline'"],
+  imgSrc: ["'self'", 'data:', 'https:'],
+  connectSrc: ["'self'"],
+  fontSrc: ["'self'", 'data:'],
+  objectSrc: ["'none'"],
+  frameAncestors: ["'none'"],
+  baseUri: ["'self'"],
+  formAction: ["'self'"],
+} as const;
 
 /**
  * Express middleware 装配 (生产级配置).
@@ -27,22 +56,7 @@ export function middleware(app: INestApplication): INestApplication {
   // 1. Helmet — 安全 HTTP headers (顺序: 必须第一)
   app.use(
     helmet({
-      contentSecurityPolicy: isProduction
-        ? {
-            directives: {
-              defaultSrc: [`'["self"'`],
-              scriptSrc: [`'["self"'`, `'["unsafe-inline"'`],
-              styleSrc: [`'["self"'`, `'["unsafe-inline"'`],
-              imgSrc: [`'["self"'`, 'data:', 'https:'],
-              connectSrc: [`'["self"'`],
-              fontSrc: [`'["self"'`, 'data:'],
-              objectSrc: [`'["none"'`],
-              frameAncestors: [`'["none"'`],
-              baseUri: [`'["self"'`],
-              formAction: [`'["self"'`],
-            },
-          }
-        : false,
+      contentSecurityPolicy: isProduction ? { directives: PRODUCTION_CSP_DIRECTIVES } : false,
       crossOriginEmbedderPolicy: isProduction ? { policy: 'credentialless' } : false,
       // HSTS 仅 HTTPS 启用
       strictTransportSecurity: isProduction ? { maxAge: 31_536_000, includeSubDomains: true, preload: true } : false,
@@ -122,7 +136,7 @@ export function middleware(app: INestApplication): INestApplication {
   // 4. Passport session — 仅给 /auth/* demo 路由用 (V3 删除 auth/ 时连同清理)
   app.use(
     session({
-      secret: process.env.SESSION_SECRET ?? 'tEsTeD',
+      secret: resolveSessionSecret(logger),
       resave: false,
       saveUninitialized: true,
       cookie: { secure: isProduction, sameSite: isProduction ? 'strict' : 'lax' },
@@ -132,4 +146,30 @@ export function middleware(app: INestApplication): INestApplication {
   app.use(passport.session());
 
   return app;
+}
+
+/**
+ * 取 express-session 的签名密钥.
+ *
+ * V2026-11-03 治本 (WP25 · 封版审查): 原来的兜底是常量 `'tEsTeD'` ——
+ * 一个**公开在源码里**的字符串. 任何拿到源码的人都能用它伪造 session cookie.
+ * 本文件自己的注释早就写着"Session secret 生产必须改强随机 (V3 加 startup 校验)",
+ * 那个校验一直没加 —— 本单补上.
+ *
+ * 为什么生产**不 fail-fast** 而是换成随机密钥:
+ *   直接拒绝启动 = 一次漏配 env 的发版能把线上服务整个打挂; 而这套 session 只服务
+ *   早已弃用的 /auth/* passport demo (鉴权全走 JWT), 它挂了不影响对练主链路.
+ *   随机密钥的代价 = 重启后旧 session 失效 (本来就没人用); 收益 = 线上不会因配置
+ *   缺失而起不来, 且**永远不落回公开常量**.
+ *
+ * @param logger 用于把"没配密钥"这件事打进日志 (error 级, 不能只 warn)
+ * @returns session 签名密钥
+ */
+export function resolveSessionSecret(logger: Logger): string {
+  const configured = process.env.SESSION_SECRET?.trim();
+  if (configured && configured.length > 0) return configured;
+  if (process.env.NODE_ENV !== 'production') return 'tEsTeD'; // dev: 本地无感, 保持旧行为
+  const generated = randomBytes(32).toString('hex');
+  logger.error('SESSION_SECRET 未配置 —— 已改用本次进程的随机密钥 (重启后旧 session 失效). 生产必须配 SESSION_SECRET.');
+  return generated;
 }

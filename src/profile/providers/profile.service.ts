@@ -158,7 +158,10 @@ export class ProfileService {
       await fs.writeFile(fullPath, file.buffer);
     } catch (err) {
       this.logger.error(`uploadAvatar 写文件失败: ${fullPath}`, err instanceof Error ? err.stack : String(err));
-      throw new BizException(BizCode.ServiceUnavailable, `头像文件保存失败: ${err instanceof Error ? err.message : String(err)}`);
+      // V2026-11-03 治本 (WP25 · 封版审查): 不把 err.message 返前端 ——
+      //   fs 报错原文里带**服务器绝对路径** (ENOENT: ... open 'D:\...\uploads\avatar\x.jpg'),
+      //   DB 报错原文里带表名/列名/冲突值. 原文只进日志, 前端拿固定文案.
+      throw new BizException(BizCode.ServiceUnavailable, '头像文件保存失败，请稍后重试');
     }
 
     // 验证 (dev/prod): dev 用 http://localhost:3000, prod 用 https://api.xin-su.com
@@ -181,7 +184,9 @@ export class ProfileService {
       } catch {
         /* ignore */
       }
-      throw new BizException(BizCode.ServiceUnavailable, `头像信息保存失败: ${err instanceof Error ? err.message : String(err)}`);
+      // V2026-11-03 治本 (WP25 · 封版审查): 同上 —— MySQL driver 报错原文
+      //   (ER_DUP_ENTRY: Duplicate entry '...' for key 'users.xxx_unique') 会漏表名/列名/冲突值.
+      throw new BizException(BizCode.ServiceUnavailable, '头像信息保存失败，请稍后重试');
     }
 
     this.logger.log(`uploadAvatar ok: uid=${uid} → ${avatarUrl} (${file.size} bytes)`);

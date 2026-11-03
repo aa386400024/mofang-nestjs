@@ -23,7 +23,10 @@
 //   缺省态 (两个 env 都没配) 的行为:
 //     · dev 口径 (WP19 原单: "dev 裸奔") → 放行, 但**带 token 的请求仍按学员处理**
 //       (有身份就按身份隔离, 不会因为"没开 basic auth"就把学员的隔离也关掉);
-//     · prod 口径 → 同样放行, 但**打 warn**: 这条路由零防护, 必须有人看见.
+//     · prod 口径 (V2026-11-03 WP25 改) → **一律 401** (fail-close).
+//       原来这里是"prod 同样放行, 只打 warn" —— 但 warn 不拦请求: 匿名可达时
+//       controller 的 ownerFilter 不过滤, 等于任何人都能拉走**全部学员**的逐字稿.
+//       日志提醒改不动的门, 必须由代码关上.
 //
 //   反双胞胎:
 //     - 不新造第 4 套鉴权体系: 学员身份直接复用仓库既有 `JwtAuthGuard`
@@ -116,9 +119,19 @@ export class AdminBasicAuthMiddleware implements NestMiddleware {
       // 没带 token → 落到下面的匿名分支 (这里的异常只是"本来就没 token").
     }
 
-    // ③ 匿名请求: basic auth 没开 → 放行 (dev 裸奔口径), 但必须让人看见.
+    // ③ 匿名请求: basic auth 没开 → dev 放行 (裸奔口径); **生产必须拒绝** (fail-close).
     if (configured) {
       unauthorized(res, '缺少访问凭据');
+      return;
+    }
+    // V2026-11-03 治本 (WP25 · 封版审查): 生产 fail-close.
+    //   为什么必须拒: /admin/api/* 匿名可达时, controller 的 ownerFilter 因 req.user 为空
+    //   **不过滤** —— GET /admin/api/sessions 返回**全部学员**的会话列表,
+    //   GET /admin/api/sessions/:id 返回**任意一场**的完整咨询逐字稿.
+    //   原来这里是"prod 同样放行, 只打一条 warn" —— 日志不拦请求, 大门照样敞开.
+    //   dev 保留放行: 本地调试器免登录 (原口径不变).
+    if (process.env.NODE_ENV === 'production') {
+      unauthorized(res, '调试接口未启用访问控制');
       return;
     }
     next();
