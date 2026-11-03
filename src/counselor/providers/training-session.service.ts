@@ -29,7 +29,7 @@
 //     - 不做自动 commit / push: 提交等大炮指令
 //   验证:
 //     1. tsc 0 错
-//     2. 大炮跑 6 个 endpoint 端到端 (见 docs/progress/v1.2-landing-plan-2026-10-21.md §4.4)
+//     2. 大炮跑 6 个 endpoint 端到端 (见 docs/worklog/v1.2-landing-plan-2026-10-21.md §4.4)
 //     3. 非法状态迁移返 400 且带 reason
 //   时间戳: 2026-10-21
 

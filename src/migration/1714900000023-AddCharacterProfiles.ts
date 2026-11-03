@@ -1,5 +1,5 @@
 // V2026-10-29 治本 (WP9-B — character_profiles 角色资产池新表):
-//   原因: 任务单 `docs/progress/engine-wp9b-db-character-pool-backend-2026-10-29.md`
+//   原因: 任务单 `docs/worklog/engine-wp9b-db-character-pool-backend-2026-10-29.md`
 //     §3 拍板一张 system 级角色表: 5Ps 专业长文 + 内核基线数值 + 结构化心理要素
 //     + 审核/上下架状态. WP9-A 把「角色定义从哪来」抽成了可替换端口
 //     (`CharacterProfileResolver`), 本轮把端口的数据源从「内置硬编码种子」换成

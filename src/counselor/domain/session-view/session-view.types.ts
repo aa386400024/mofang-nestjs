@@ -1,5 +1,5 @@
 // V2026-10-27 治本 (会话对外视图 — 派生字段的**唯一**判定处):
-//   原因: docs/progress/history-list-backend-2026-10-26.md 要求列表项补
+//   原因: docs/worklog/history-list-backend-2026-10-26.md 要求列表项补
 //     sessionType / reportStatus / overallScore / reportReady / interrupted.
 //     这几个字段**全部是派生值** (库里没有对应列), 判定一旦散落在 service 的 if 里,
 //     就会出现两处口径打架 (列表说"生成中", 报告页说"生成失败") ——

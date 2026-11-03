@@ -4,7 +4,7 @@
 > **用途**：把《心塑APP AI来访仿真平台 终局版技术实现方案 V1.1》从"愿景"落到**本仓库可每天派发的工程任务**；是引擎方向的母版，spec/progress 任务单从这里拆。
 > **性质**：方向 + 决策 + 工作包（不是接口契约；具体接口另起 spec）。
 > **配套**：上游愿景见前端 `xin_su_app/docs/product/心塑App-产品设计文档-整合版v2.0.md`；现有会话契约见 `specs/counselor-mode-v1.2-full-situ-simulation.md`；落地时间线见 `progress/`。
-> **最近更新**：2026-10-28（基于 PDF V1.1 + 本仓库现状扫描 + 已拍板决策；同日回写 WP0–WP5 内核纯层交付状态，端到端装配集成见 [`../progress/phase1-integration-backlog-2026-10-28.md`](../progress/phase1-integration-backlog-2026-10-28.md)）。
+> **最近更新**：2026-10-28（基于 PDF V1.1 + 本仓库现状扫描 + 已拍板决策；同日回写 WP0–WP5 内核纯层交付状态，端到端装配集成见 [`../worklog/completed/phase1/phase1-backlog-archived-2026-11-03.md`](../worklog/completed/phase1/phase1-backlog-archived-2026-11-03.md)）。
 
 ---
 
@@ -115,7 +115,7 @@
 
 > 依赖序：**WP0 先行 → WP1 地基 → WP2/WP3/WP4 挂 WP1 → WP5 贯穿**。每个 WP 独立可验收，互不阻塞的部分并行。
 >
-> **进度（2026-10-28）**：WP0–WP5 的**内核纯层（纯函数 + 类型契约 + 内存/Qdrant B 层）已全部交付**，单测绿；但"BDI 决策→真实渲染→流式回复"的端到端闭环尚未接通（turn 的 reply 恒空、无真实 LLM 渲染、现有 visitor 直出链路未切内核）。下一阶段为**装配集成轮（WP6+）**，清单见 [`../progress/phase1-integration-backlog-2026-10-28.md`](../progress/phase1-integration-backlog-2026-10-28.md)。
+> **进度（2026-10-28）**：WP0–WP5 的**内核纯层（纯函数 + 类型契约 + 内存/Qdrant B 层）已全部交付**，单测绿；但"BDI 决策→真实渲染→流式回复"的端到端闭环尚未接通（turn 的 reply 恒空、无真实 LLM 渲染、现有 visitor 直出链路未切内核）。下一阶段为**装配集成轮（WP6+）**，清单见 [`../worklog/completed/phase1/phase1-backlog-archived-2026-11-03.md`](../worklog/completed/phase1/phase1-backlog-archived-2026-11-03.md)。
 
 ### WP0 · 内核边界与骨架（最先做，一切的地基）
 
@@ -311,4 +311,4 @@
 
 ---
 
-**接续入口**：WP0–WP5 内核纯层已交付并落 `progress/` 交付记录；下一步从装配集成轮 [`../progress/phase1-integration-backlog-2026-10-28.md`](../progress/phase1-integration-backlog-2026-10-28.md) 的 WP6（RenderPort LLM 适配）起拆任务单，优先打通 WP6→WP7→WP8 最小端到端闭环，再并行补资产/PsyGUARD/记忆遗留/可观测。每个 WP 完成后在 `progress/` 落交付记录并回写本文档状态。
+**接续入口**：WP0–WP5 内核纯层已交付并落 `progress/` 交付记录；下一步从装配集成轮 [`../worklog/completed/phase1/phase1-backlog-archived-2026-11-03.md`](../worklog/completed/phase1/phase1-backlog-archived-2026-11-03.md) 的 WP6（RenderPort LLM 适配）起拆任务单，优先打通 WP6→WP7→WP8 最小端到端闭环，再并行补资产/PsyGUARD/记忆遗留/可观测。每个 WP 完成后在 `progress/` 落交付记录并回写本文档状态。

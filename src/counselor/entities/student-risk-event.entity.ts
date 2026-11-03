@@ -1,5 +1,5 @@
 // V2026-11-02 治本 (WP14 · 学员心理风险事件审计表 entity):
-//   原因: 任务单 `docs/progress/engine-wp14-student-risk-disposal-backend-2026-11-02.md`
+//   原因: 任务单 `docs/worklog/engine-wp14-student-risk-disposal-backend-2026-11-02.md`
 //     §1.2 —— 检测层 (WP4/WP9-C/WP11) 已经能判出"学员这句话命中了危机类别",
 //     但**判出来之后没有任何留痕**: 谁、在哪一场、第几轮、判成什么、怎么处置的,
 //     全都查不到. 平台有安全保障义务, 这张表就是那份义务的证据.

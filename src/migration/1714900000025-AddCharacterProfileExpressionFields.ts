@@ -1,5 +1,5 @@
 // V2026-10-30 治本 (WP10A — character_profiles 加 3 列表达风格基线字段):
-//   原因: 任务单 `docs/progress/engine-wp10a-character-expression-style-fields-backend-2026-10-30.md`
+//   原因: 任务单 `docs/worklog/engine-wp10a-character-expression-style-fields-backend-2026-10-30.md`
 //     §1 拍板三个**角色人格特质**字段 (话量基线 / 叙事风格 / 语态倾向) —— 它们属于角色基线,
 //     不是剧本节点的行为模式. 表刚建 (WP9-B), 现在加列成本最低.
 //

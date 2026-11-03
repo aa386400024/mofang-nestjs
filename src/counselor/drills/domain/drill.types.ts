@@ -1,5 +1,5 @@
 // V2026-10-27 治本 (边界压力 + 危机识别会内突发 — 情景演练领域模型):
-//   原因: 任务单 `docs/progress/boundary-pressure-and-crisis-drill-backend-2026-10-27.md`
+//   原因: 任务单 `docs/worklog/boundary-pressure-and-crisis-drill-backend-2026-10-27.md`
 //     §1 拍板一个与 practice **平行**的轻量模块 (情景演练 drill): 本期只填两个 track
 //     (boundary=设置压力测试 / crisis=危机识别会内突发), 单节点单轮, 确定性判定为主,
 //     零压无分, 不落库.

@@ -17,7 +17,7 @@
 //   验证:
 //     1. tsc 0 错
 //     2. 大炮跑 swagger 确认 6 个 endpoint + DTO 字段
-//     3. 端到端 curl 见 docs/progress/v1.2-vs-b1-*.md
+//     3. 端到端 curl 见 docs/worklog/v1.2-vs-b1-*.md
 //   时间戳: 2026-10-21
 
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
