@@ -14,7 +14,7 @@ WP25 扫描出的 39 条 P2 里，P2-30/31/32 已在 WP25 回写中处理，P2-3
 
 > **条数对账（交付时复核）**：39 = **34**（本单）+ 4（P2-8 / P2-30 / P2-31 / P2-32，WP25 回写时已处理）+ 1（P2-37，真机验证项）。任务单原写的 34 条**口径正确**，无需补正。
 >
-> **交付实况**：34 条全部修复；P2-2 / P2-36 的**后端**部分完成（Flutter 前端另派单，后端两种传法都支持）。
+> **交付实况**：34 条全部修复；P2-2 / P2-36 的**后端**部分完成（Flutter 前端另派单，后端**三条**传法都支持：`Sec-WebSocket-Protocol` 子协议 / `handshake.auth.token` / `?token=` query 兜底）。
 
 **统一原则**：
 - 企业级方案，不是"先这样"。该注入就注入，该加断言就加断言，该修注释就修注释。
@@ -32,12 +32,12 @@ WP25 扫描出的 39 条 P2 里，P2-30/31/32 已在 WP25 回写中处理，P2-3
 - **企业级修法**：复用 `JwtAuthGuard` 的黑名单查询逻辑，握手时校验 `type=access` 且未在黑名单中
 - **验收**：构造一个已登出的 token，WS 握手被拒
 
-### P2-2 JWT 改走 Sec-WebSocket-Protocol（后端准备）
+### P2-2 JWT 改走握手请求之外的通道（后端准备）
 - **位置**：`src/voice/voice.gateway.ts` `extractToken`
 - **问题**：JWT 走 URL query（`?token=`）→ 落进 nginx access log / Referer / 浏览器历史
-- **企业级修法**：后端支持从 `Sec-WebSocket-Protocol` header 提取 token（标准做法：客户端把 token 作为子协议值传入，服务端回 echo 该子协议）。URL query 保留作为兼容兜底（dev/测试用），生产文档标注"新客户端用子协议"
-- **前端配合**：Flutter 端改握手代码（另派单）
-- **验收**：后端同时支持两种传法，子协议路径有测试
+- **企业级修法**：后端支持从**两条握手外通道**提取 token —— ① `Sec-WebSocket-Protocol` header（标准做法：客户端把 token 作为子协议值传入，服务端只回 echo `bearer` 标记，**token 不回显**）；② **`handshake.auth.token`**（Socket.IO 标准握手字段，`setAuth({ token })` —— token 走 **CONNECT 包**，不进 URL，**Socket.IO 客户端走这条**）。URL query 保留作为兼容兜底（dev/测试用），生产文档标注"新客户端用握手外通道"
+- **前端配合**：Flutter 端改握手代码（另派单）—— Socket.IO 端用 `setAuth({ token })`，原生 ws 端用 `Sec-WebSocket-Protocol: bearer, <jwt>`
+- **验收**：后端同时支持三条传法，子协议与 `handshake.auth` 两条新路径都有测试
 
 ### P2-3 /metrics 加鉴权
 - **位置**：`src/shared/infra/metrics/metrics.controller.ts:29-40`
@@ -257,7 +257,7 @@ WP25 扫描出的 39 条 P2 里，P2-30/31/32 已在 WP25 回写中处理，P2-3
 2. ✅ `grep -r "process.env" src/engine-core/` 零命中（P2-14 改造后；由 `boundary.spec.ts` 断言⑩ 机器守住）
 3. ✅ `boundary.spec.ts` **11** 条断言全绿（10 条 + 本单另加的「禁 adapter 深路径 import」第 11 条）
 4. ✅ `.env.example` 与代码 env 读取点一一对应（WP25 已建机器断言；本单把 `ENGINE_CAP_*` 族从「派生登记」改为「字面量断言」）
-5. ✅ WS 会话归属校验 + 黑名单校验有回归测试（`test/voice/wp26-voice-gateway-hardening.spec.ts` 22 例）
-6. ✅ tsc 0 / eslint 0 / 全量测试绿（84 文件 / 1252 例）
+5. ✅ WS 会话归属校验 + 黑名单校验有回归测试（`test/voice/wp26-voice-gateway-hardening.spec.ts` 34 例，含 P2-2 的 `handshake.auth` 通道）
+6. ✅ tsc 0 / eslint 0 / 全量测试绿（84 文件 / 1264 例）
 7. ✅ 文档死链全部修复（114 → 0）
 8. ✅ 交付记录回写 backlog 母版

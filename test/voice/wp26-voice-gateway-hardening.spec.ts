@@ -1,6 +1,8 @@
 // V2026-11-03 治本 (WP26 · §1 安全加固 — 落在 voice 网关的 5 条):
 //   P2-1  WS JWT 查黑名单 + token type —— 已登出的 access token 之前照样能连 WS.
-//   P2-2  JWT 改走 Sec-WebSocket-Protocol 子协议 (?token= 保留兼容兜底).
+//   P2-2  JWT 改走**握手请求之外**的通道 (?token= 保留兼容兜底):
+//         · handshake.auth.token  (Socket.IO 标准握手字段 —— Flutter 端在用)
+//         · Sec-WebSocket-Protocol 子协议 (给原生 ws 客户端用).
 //   P2-5  握手写动作全部推到校验之后 —— 归属校验失败时**零状态写入**.
 //   P2-36 sessionId 改服务端生成 —— 缺省 'default' 让所有客户端共用同一个 key.
 //   P2-38 旧 socket 断开加 socketId 闸门 —— 旧 socket 断开不许摘新 socket 的登记.
@@ -32,7 +34,20 @@ const OTHER_JWT_LIKE = 'xxx.yyy.zzz';
 /** 假 socket: 只需要 gateway 用到的那几个面. */
 interface FakeSocket {
   id: string;
-  handshake: { url: string; query: Record<string, string>; headers: Record<string, string> };
+  /**
+   * 握手上下文: token 的三条通道都在这里 ——
+   *   query (`?token=`) / headers (`Sec-WebSocket-Protocol`) / auth (`setAuth({token})`).
+   *
+   * `auth` 允许是 undefined —— 真实 socket.io 里客户端发 "40"（无 payload）时,
+   * `handshake.auth` 就是 undefined（见 socket.io 的 `buildHandshake`).
+   */
+  handshake: {
+    url: string;
+    query: Record<string, string>;
+    headers: Record<string, string>;
+    /** Socket.IO 标准握手 auth 字段 (CONNECT 包里带过来的). */
+    auth: Record<string, unknown> | undefined;
+  };
   data: Record<string, unknown>;
   /** 已经发出的帧. */
   frames: VoiceServerMessage[];
@@ -42,11 +57,23 @@ interface FakeSocket {
   disconnect(force?: boolean): void;
 }
 
-/** 造一个假 socket (可选带上子协议头). */
-function buildSocket(id: string, url: string, subprotocol?: string): FakeSocket {
+/**
+ * 造一个假 socket.
+ *
+ * @param id socket id
+ * @param url 连接 URL (query 通道从这里读)
+ * @param subprotocol `Sec-WebSocket-Protocol` 头 (原生 ws 客户端通道)
+ * @param auth 握手 auth 对象 (Socket.IO 客户端通道: `setAuth({ token })`)
+ */
+function buildSocket(id: string, url: string, subprotocol?: string, auth?: Record<string, unknown>): FakeSocket {
   const socket: FakeSocket = {
     id,
-    handshake: { url, query: readQuery(url), headers: subprotocol === undefined ? {} : { 'sec-websocket-protocol': subprotocol } },
+    handshake: {
+      url,
+      query: readQuery(url),
+      headers: subprotocol === undefined ? {} : { 'sec-websocket-protocol': subprotocol },
+      auth: auth ?? {},
+    },
     data: {},
     frames: [],
     disconnected: false,
@@ -354,6 +381,143 @@ describe('WP26 · P2-2: JWT 走 Sec-WebSocket-Protocol 子协议', () => {
 });
 
 // ────────────────────────────────────────────────────────────────────
+// P2-2 · JWT 走 handshake.auth (Socket.IO 标准握手字段)
+// ────────────────────────────────────────────────────────────────────
+
+describe('WP26 · P2-2: JWT 走 handshake.auth.token (Socket.IO 客户端通道)', () => {
+  it('auth.token → 握手成功, token 从握手 auth 里取到 (query 里可以完全不带 token)', async () => {
+    const { gateway, verifiedTokens } = buildGateway();
+    const socket = buildSocket('socket-1', `/voice/training?sessionId=${SESSION_ID}`, undefined, { token: JWT_LIKE });
+
+    gateway.handleConnection(socket as unknown as Socket);
+    await flush();
+
+    expect(frameTypes(socket.frames)).toEqual(['ready']);
+    expect(verifiedTokens).toEqual([JWT_LIKE]);
+  });
+
+  it('auth 与 query 同时给 → 取 auth 那个 (新通道优先于旧兜底)', async () => {
+    const { gateway, verifiedTokens } = buildGateway();
+    const socket = buildSocket('socket-1', `/voice/training?sessionId=${SESSION_ID}&token=${OTHER_JWT_LIKE}`, undefined, {
+      token: JWT_LIKE,
+    });
+
+    gateway.handleConnection(socket as unknown as Socket);
+    await flush();
+
+    expect(frameTypes(socket.frames)).toEqual(['ready']);
+    expect(verifiedTokens).toEqual([JWT_LIKE]);
+  });
+
+  it('子协议与 auth 同时给 → 取子协议那个 (三级优先级: 子协议 > auth > query)', async () => {
+    const { gateway, verifiedTokens } = buildGateway();
+    const socket = buildSocket('socket-1', `/voice/training?sessionId=${SESSION_ID}`, `bearer, ${JWT_LIKE}`, {
+      token: OTHER_JWT_LIKE,
+    });
+
+    gateway.handleConnection(socket as unknown as Socket);
+    await flush();
+
+    expect(frameTypes(socket.frames)).toEqual(['ready']);
+    expect(verifiedTokens).toEqual([JWT_LIKE]);
+  });
+
+  it('auth.token 是空串 / 纯空白 → 落到 query 兜底', async () => {
+    const { gateway, verifiedTokens } = buildGateway();
+    const socket = buildSocket('socket-1', `/voice/training?sessionId=${SESSION_ID}&token=${JWT_LIKE}`, undefined, {
+      token: ' '.repeat(3),
+    });
+
+    gateway.handleConnection(socket as unknown as Socket);
+    await flush();
+
+    expect(frameTypes(socket.frames)).toEqual(['ready']);
+    expect(verifiedTokens).toEqual([JWT_LIKE]);
+  });
+
+  it('auth.token 不是字符串 → 落到 query 兜底', async () => {
+    const { gateway, verifiedTokens } = buildGateway();
+    const socket = buildSocket('socket-1', `/voice/training?sessionId=${SESSION_ID}&token=${JWT_LIKE}`, undefined, { token: 42 });
+
+    gateway.handleConnection(socket as unknown as Socket);
+    await flush();
+
+    expect(frameTypes(socket.frames)).toEqual(['ready']);
+    expect(verifiedTokens).toEqual([JWT_LIKE]);
+  });
+
+  it('auth 里键名不是 token (如 accessToken) → 不认, 落到 query 兜底 (只认一个键名, 不留别名后门)', async () => {
+    const { gateway, verifiedTokens } = buildGateway();
+    const socket = buildSocket('socket-1', `/voice/training?sessionId=${SESSION_ID}&token=${JWT_LIKE}`, undefined, {
+      accessToken: JWT_LIKE,
+    });
+
+    gateway.handleConnection(socket as unknown as Socket);
+    await flush();
+
+    expect(frameTypes(socket.frames)).toEqual(['ready']);
+    expect(verifiedTokens).toEqual([JWT_LIKE]);
+  });
+
+  it('auth.token 前后有空白 → trim 后使用', async () => {
+    const { gateway, verifiedTokens } = buildGateway();
+    const socket = buildSocket('socket-1', `/voice/training?sessionId=${SESSION_ID}`, undefined, { token: `  ${JWT_LIKE}  ` });
+
+    gateway.handleConnection(socket as unknown as Socket);
+    await flush();
+
+    expect(frameTypes(socket.frames)).toEqual(['ready']);
+    expect(verifiedTokens).toEqual([JWT_LIKE]);
+  });
+
+  it('auth 通道的 token 也查黑名单 (已撤销 → token_revoked + 断开 + 零状态写入)', async () => {
+    const { gateway, voice, frames, sessions, blacklist, bridgeOpens } = buildGateway({ revoked: true });
+    const socket = buildSocket('socket-1', `/voice/training?sessionId=${SESSION_ID}`, undefined, { token: JWT_LIKE });
+
+    gateway.handleConnection(socket as unknown as Socket);
+    await flush();
+
+    expect(socket.frames).toEqual([
+      { type: 'error', error: { code: 'token_revoked', message: '登录状态已失效，请重新登录', retryable: false } },
+    ]);
+    expect(socket.disconnected).toBe(true);
+    expect(blacklist.checked).toEqual(['jti-1']);
+    expect(bridgeOpens).toHaveLength(0);
+    expect(voice.startSessionCalls).toHaveLength(0);
+    expect(frames.size()).toBe(0);
+    expect(sessions.size()).toBe(0);
+  });
+
+  it('handshake.auth 是 undefined（客户端压根没发 auth）→ 落到 query 兜底, 不崩', async () => {
+    const { gateway, verifiedTokens } = buildGateway();
+    const socket = buildSocket('socket-1', `/voice/training?sessionId=${SESSION_ID}&token=${JWT_LIKE}`);
+    // 真实 socket.io: 客户端发 "40"（CONNECT 包无 payload）时 handshake.auth 就是 undefined.
+    socket.handshake.auth = undefined;
+
+    gateway.handleConnection(socket as unknown as Socket);
+    await flush();
+
+    expect(frameTypes(socket.frames)).toEqual(['ready']);
+    expect(verifiedTokens).toEqual([JWT_LIKE]);
+  });
+
+  it('三条通道都没给 token → error(unauthorized) + 断开, 且零状态写入', async () => {
+    const { gateway, voice, frames, sessions, bridgeOpens } = buildGateway();
+    const socket = buildSocket('socket-1', `/voice/training?sessionId=${SESSION_ID}`);
+
+    gateway.handleConnection(socket as unknown as Socket);
+    await flush();
+
+    expect(frameTypes(socket.frames)).toEqual(['error']);
+    expect(socket.disconnected).toBe(true);
+    expect(bridgeOpens).toHaveLength(0);
+    expect(voice.startSessionCalls).toHaveLength(0);
+    expect(frames.size()).toBe(0);
+    expect(sessions.size()).toBe(0);
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────
 // P2-2 · 真 socket 握手: 响应头只回显 'bearer'
 // ────────────────────────────────────────────────────────────────────
 
@@ -434,6 +598,70 @@ describe('WP26 · P2-2: 握手响应的子协议协商 (真 socket)', () => {
 
     // 这就是"为什么要接管协商"的实证: 默认引擎把 token 又发了一遍.
     expect(result.protocol).toBe(JWT_LIKE);
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────
+// P2-2 · 真 socket: handshake.auth 的**协议层**来源 (CONNECT 包)
+// ────────────────────────────────────────────────────────────────────
+
+/**
+ * 用真实的 socket.io 协议握一次手, 看服务端收到的 `handshake.auth` 是什么.
+ *
+ * 为什么必须真连一次 (只有假 socket 是不够的):
+ *   `handshake.auth` 来自 socket.io 的 **CONNECT 包** (`40{"token":"..."}`) —— 既不是 HTTP 头,
+ *   也不是 URL query. 假 socket 只能证明"服务端读了 auth.token", 证明不了"socket.io 客户端的
+ *   `setAuth({ token })` 真的会被 socket.io 编成 CONNECT 包并落到 handshake.auth 上".
+ *   这里用裸 ws 手工发一个 CONNECT 包, 把**协议层**也钉死 —— 哪天 socket.io 改了编码,
+ *   这个用例会先红.
+ *
+ * @param auth CONNECT 包里带的 auth 对象
+ * @returns 服务端侧看到的 handshake.auth
+ */
+async function readWireHandshakeAuth(auth: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const httpServer = createServer();
+  // 用生产同款 ws 引擎 —— auth 通道不能只在"默认引擎"下成立.
+  const io = new SocketIoServer(httpServer, { path: '/voice/training', wsEngine: VoiceSubprotocolWsServer as never });
+  const captured = new Promise<Record<string, unknown>>((resolve) => {
+    io.on('connection', (socket) => {
+      resolve({ ...socket.handshake.auth });
+    });
+  });
+  await new Promise<void>((resolve) => {
+    httpServer.listen(0, '127.0.0.1', resolve);
+  });
+  const address = httpServer.address();
+  const port = typeof address === 'object' && address !== null ? address.port : 0;
+
+  const client = new WsClient(`ws://127.0.0.1:${port}/voice/training/?EIO=4&transport=websocket`);
+  try {
+    // engine.io 的 OPEN 包 ("0{...}") 之后才允许发 CONNECT 包 ("40{...}").
+    client.on('message', (raw) => {
+      if (String(raw).startsWith('0')) {
+        client.send(`40${JSON.stringify(auth)}`);
+      }
+    });
+    return await captured;
+  } finally {
+    client.close();
+    await io.close();
+  }
+}
+
+describe('WP26 · P2-2: handshake.auth 的真实线上通道 (CONNECT 包)', () => {
+  it('客户端在 CONNECT 包里带 auth → 服务端 handshake.auth 拿到 token (与 setAuth({token}) 同一条路)', async () => {
+    const seen = await readWireHandshakeAuth({ token: JWT_LIKE });
+
+    // socket.io 把 CONNECT 包的 payload 直接当成 auth —— 所以服务端读到的就是 { token }.
+    expect(seen['token']).toBe(JWT_LIKE);
+  });
+
+  it('token 走 CONNECT 包 → **不进 URL** (query 里没有 token, 也就不会落进 access log)', async () => {
+    const seen = await readWireHandshakeAuth({ token: JWT_LIKE });
+
+    // 断言这条通道的意义: token 走的不是 URL, 而是握手后的 CONNECT 包.
+    expect(seen['token']).toBe(JWT_LIKE);
+    expect(Object.keys(seen)).toEqual(['token']);
   });
 });
 

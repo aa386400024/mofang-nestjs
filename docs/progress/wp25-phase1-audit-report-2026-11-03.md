@@ -100,7 +100,7 @@ docs/progress/completed/.../engine-wp25-...md   §1.4 回改方向修正
 | # | 位置 | 问题 | 建议修法 | 工作量 |
 |---|---|---|---|---|
 | P2-1 ✅ | `src/voice/voice.gateway.ts:358-370` `verifyJwt` | WS 握手只验签名，**不查 token type、不查黑名单** —— 已登出的 access token 仍能连 WS | 复用 `JwtAuthGuard` 的黑名单查询；或至少校验 `type` 字段 | 2h |
-| P2-2 ✅ | `src/voice/voice.gateway.ts` `extractToken` | JWT 走 **URL query**（`?token=`）→ token 会落进 nginx access log / Referer / 浏览器历史 | 改用握手头（`Authorization`）或 `Sec-WebSocket-Protocol`；query 只作兼容兜底 | 半天（需前端配合） |
+| P2-2 ✅ | `src/voice/voice.gateway.ts` `extractToken` | JWT 走 **URL query**（`?token=`）→ token 会落进 nginx access log / Referer / 浏览器历史 | 改用握手头（`Authorization`）或 `Sec-WebSocket-Protocol`；query 只作兼容兜底。**（WP26 实做：三级 = `Sec-WebSocket-Protocol` 子协议 → `handshake.auth.token`（Socket.IO 标准握手字段，Flutter 端走这条）→ `?token=` 兜底）** | 半天（需前端配合） |
 | P2-3 ✅ | `src/shared/infra/metrics/metrics.controller.ts:29-40` + `config/envs/default.ts:105-107` | `/metrics` **默认开启且无鉴权** → 暴露内部指标（QPS / 延迟 / 错误率） | 生产默认关闭，或加内网 IP 白名单 / 独立 token | 1h |
 | P2-4 ✅ | `src/admin-debug/` 整个命名空间 | 只有 basic auth / 学员 JWT，**没有角色校验** —— 任何学员凭自己的 token 都能进调试器（虽然只能看自己的会话，但不该有） | 加 `AdminRoleGuard`（查 `users.admin_role`） | 半天 |
 | P2-5 ✅ | `src/voice/voice.gateway.ts` 握手流程 | 握手里有**写状态的动作**早于部分校验 | 把写动作全部推到校验之后（本单已推了归属校验，还有别的写动作待复核） | 1h |

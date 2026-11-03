@@ -28,8 +28,15 @@
 //   V2026-11-03 治本 (WP26 · §1 安全加固 — 落在 voice 网关的 5 条):
 //     P2-1  WS 握手补齐 **token type 校验 + 黑名单查询** (复用 JwtAuthGuard 的口径):
 //            已登出 / 已改密的 access token 之前照样能连 WS.
-//     P2-2  JWT 改走 **Sec-WebSocket-Protocol 子协议** (?token= 保留兼容兜底):
+//     P2-2  JWT 改走**握手请求之外**的通道 (?token= 保留兼容兜底):
 //            query 里的 token 会落进 nginx access log / Referer / 浏览器历史.
+//            现在服务端认两条通道 ——
+//              · `handshake.auth.token` (**Socket.IO 标准握手 auth 字段**):
+//                `socket.setAuth({ token })` 走 Socket.IO CONNECT 包, 不进 URL,
+//                **Socket.IO 客户端走这条** (Flutter 端已在用);
+//              · `Sec-WebSocket-Protocol: bearer, <jwt>` 子协议:
+//                给**原生 ws 客户端**用 (Socket.IO 客户端不发这个头).
+//            ?token= query 保留为老客户端兜底, Flutter 端可以删掉。
 //     P2-5  握手写动作全部推到 **鉴权 + 归属校验之后** (复核, 零漏网):
 //            归属校验失败时必须零状态写入 (内存 map / 落库桥 / TTS / 演练登记).
 //     P2-36 **sessionId 改服务端生成**: 缺省 'default' 让所有不带 ?sessionId= 的
@@ -1232,14 +1239,24 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
    * 提取 JWT (V2026-11-03 治本, WP26 P2-2).
    *
    * 优先级:
-   *   ① `Sec-WebSocket-Protocol` 子协议 (**新, 推荐**) —— token 走请求头, 不落
-   *      nginx access log / Referer / 浏览器历史;
-   *   ② `?token=` query (**兼容兜底**) —— dev / 老客户端 (只有这一条传法);
-   *   ③ `Authorization: Bearer ***` 头.
+   *   ① `Sec-WebSocket-Protocol` 子协议 —— token 走**请求头**, 不落 nginx access log /
+   *      Referer / 浏览器历史. 给**原生 ws 客户端**用 (Socket.IO 客户端不发这个头).
+   *   ② `handshake.auth.token` —— **Socket.IO 标准握手 auth 字段**
+   *      (`io(url, { auth: { token } })` / `socket.setAuth({ token })`).
+   *      token 走 Socket.IO 的 **CONNECT 包**, 不进 URL query → 同样不进 access log /
+   *      Referer / 浏览器历史. **Socket.IO 客户端走这条** (Flutter 端已在用).
+   *   ③ `?token=` query (**兼容兜底**) —— dev / 老客户端 (只有这一条传法);
+   *      Flutter 端删掉 query 里的 token 后, 这条自然只剩"老客户端兜底"一个用途.
+   *   ④ `Authorization: Bearer ***` 头.
    *
-   * 为什么子协议优先而不是"谁有取谁":
-   *   子协议是**新客户端**的推荐通道, query 是兼容通道 —— 同一条连接上两者都带时
-   *   以子协议为准, 免得"query 里那个是旧的、已经撤销的 token"被优先挑中.
+   * 为什么 ①② 优先于 ③:
+   *   ①② 是**新客户端**的通道, ③ 是兼容通道 —— 同一条连接上两者都带时以 ①② 为准,
+   *   免得"query 里那个是旧的、已经撤销的 token"被优先挑中.
+   *
+   * 为什么 ① 在 ② 之前:
+   *   两条通道**互斥** (Socket.IO 客户端不发子协议头, 原生 ws 客户端没有 auth 字段),
+   *   谁先谁后都不影响正常路径; 但万一有客户端同时带了两者, 子协议是本单明确定义的
+   *   "客户端契约"通道 (`bearer, <jwt>`), 让它优先更符合契约语义.
    *
    * @param client Socket.IO 客户端实例
    * @returns token; 无则 null
@@ -1248,17 +1265,46 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
     // ① 子协议 (Sec-WebSocket-Protocol: bearer, <jwt>)
     const subprotocolToken = this.readTokenFromSubprotocol(client.handshake.headers['sec-websocket-protocol']);
     if (subprotocolToken) return subprotocolToken;
-    // ② query ?token=***
+    // ② Socket.IO 标准握手 auth 字段 (io(url, { auth: { token } }) / socket.setAuth({ token }))
+    const authToken = this.readTokenFromAuth(client.handshake.auth);
+    if (authToken) return authToken;
+    // ③ query ?token=***
     const queryToken = client.handshake.query['token'];
     if (typeof queryToken === 'string' && queryToken.length > 0) {
       return decodeURIComponent(queryToken);
     }
-    // ③ Authorization: Bearer *** 头
+    // ④ Authorization: Bearer *** 头
     const auth = client.handshake.headers.authorization;
     if (auth && auth.toLowerCase().startsWith('bearer ')) {
       return auth.slice(7).trim();
     }
     return null;
+  }
+
+  /**
+   * 从 Socket.IO 握手的 `auth` 字段里认 token (V2026-11-03, WP26 P2-2 补).
+   *
+   * **为什么这条通道是 Socket.IO 客户端的正解**:
+   *   `socket.io-client` 的 `setAuth({ token })` / `io(url, { auth: { token } })` 把 auth
+   *   放在 **Socket.IO CONNECT 包**里, 不进 URL —— 于是 token **不会**落进 nginx access log、
+   *   Referer 或浏览器历史, 与 P2-2 "别让 token 走 query" 的目标完全一致.
+   *   (反过来说: `Sec-WebSocket-Protocol` 是**原生 ws** 客户端的通道, Socket.IO 客户端
+   *   压根不发那个头 —— 只认子协议等于把 Socket.IO 客户端挡在门外.)
+   *
+   * 为什么只认 `token` 这一个键:
+   *   仓库既有约定是 `token` (JwtAuthGuard / admin basic auth 都用这个词), 客户端不用
+   *   记第二个键名. 别的键名一律不认 —— 认一堆别名等于给"拼错键名"留后门, 而拼错的后果
+   *   是握手失败 (查得到), 不是静默放行.
+   *
+   * @param auth Socket.IO 握手 auth 对象 (可能是 undefined / 非对象)
+   * @returns token; 无则 null
+   */
+  private readTokenFromAuth(auth: Record<string, unknown> | undefined): string | null {
+    if (!auth) return null;
+    const raw = auth['token'];
+    if (typeof raw !== 'string') return null;
+    const trimmed = raw.trim();
+    return trimmed.length === 0 ? null : trimmed;
   }
 
   /**

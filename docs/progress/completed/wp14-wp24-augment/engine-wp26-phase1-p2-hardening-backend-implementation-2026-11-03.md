@@ -9,7 +9,7 @@
 
 ## 1. 一句话
 
-WP25 扫出的 **34 条 P2 全部修复**：安全 5 条（WS 黑名单 / JWT 走子协议 / metrics 鉴权 / admin 角色 / 握手写动作后置）、引擎 12 条（**内核 `process.env` 改注入** + 轨迹 delta 纳入单回合 cap + 错误码 + barrel + 边界断言）、文档 15 条（**114 条死链归零** + 3 份交付记录事实修正）、配置 6 条（finishReason 透传 / sessionId 服务端生成 / socketId 闸门 / 生产 5xx 本地日志）。
+WP25 扫出的 **34 条 P2 全部修复**：安全 5 条（WS 黑名单 / **JWT 走握手外通道**（子协议 + `handshake.auth`）/ metrics 鉴权 / admin 角色 / 握手写动作后置）、引擎 12 条（**内核 `process.env` 改注入** + 轨迹 delta 纳入单回合 cap + 错误码 + barrel + 边界断言）、文档 15 条（**114 条死链归零** + 3 份交付记录事实修正）、配置 6 条（finishReason 透传 / sessionId 服务端生成 / socketId 闸门 / 生产 5xx 本地日志）。
 
 **内核红线守住了**：改完之后 `src/engine-core/**` 零 `process.env`、零 `globalThis`、零 NestJS、零 IO —— 且这三条现在是**机器断言**（`boundary.spec.ts` 11 条），不是注释里的承诺。
 
@@ -21,7 +21,7 @@ WP25 扫出的 **34 条 P2 全部修复**：安全 5 条（WS 黑名单 / JWT �
 |---|---|
 | `npx tsc -p tsconfig.build.json --noEmit` | **0 错** |
 | `npx eslint "src/**/*.ts" "test/**/*.ts"` | **0 错 0 warning** |
-| `npx vitest run --exclude '**/e2e/**/*.ts'` | **84 文件 / 1252 例全绿**（WP25 基线 77 文件 / 1165 例 → **净增 7 文件 87 例**） |
+| `npx vitest run --exclude '**/e2e/**/*.ts'` | **84 文件 / 1264 例全绿**（WP25 基线 77 文件 / 1165 例 → **净增 7 文件 99 例**） |
 | `grep -r "process.env" src/engine-core/` | **零命中**（P2-14 验收；由 `boundary.spec.ts` 断言⑩ 机器守住） |
 | `boundary.spec.ts` | **11 条断言全绿**（WP15 时期 9 条 → 本单加 ⑩⑪ 两条） |
 
@@ -36,7 +36,7 @@ WP25 扫出的 **34 条 P2 全部修复**：安全 5 条（WS 黑名单 / JWT �
 | # | 做了什么 | 落点 | 回归 |
 |---|---|---|---|
 | **P2-1** | WS 握手加三道闸：验签 → **token type**（`type=access`）→ **黑名单**（`JwtBlacklistService.isRevoked(jti)`，与 `JwtAuthGuard` **同一份 Redis key 口径**）。命中黑名单 → `error(token_revoked)` + 断开；type 不符 → `error(unauthorized)` + 断开；两者都在**任何写动作之前**。黑名单服务走 `@Optional()` 构造注入（装配没接上时降级放行 + 一次性告警，不把安全增强变成全站事故） | `src/voice/voice.gateway.ts`、`src/voice/voice.module.ts`（**主线程补的 `UserModule` 接线**，否则黑名单处于 fail-open） | `test/voice/wp26-voice-gateway-hardening.spec.ts` 5 例 |
-| **P2-2** | JWT 优先走 **`Sec-WebSocket-Protocol`**（`bearer, <jwt>`），`?token=` 保留为兼容兜底，`Authorization` 头为第三级。子协议回显由**服务端接管**（自定义 `ws` 引擎 `handleProtocols`）：报了 `bearer` 只回显 `bearer`（**token 绝不出现在响应头**）；只报了 token 则一个都不回显 | `src/voice/voice.gateway.ts` | 同上 10 例（含**真 socket** 握手：token 放第一位也只回显 `bearer`） |
+| **P2-2** | JWT 走**握手请求之外**的通道，**三级优先级**：① **`Sec-WebSocket-Protocol`**（`bearer, <jwt>`，给**原生 ws** 客户端用）→ ② **`handshake.auth.token`**（**Socket.IO 标准握手字段**，`socket.setAuth({ token })` / `io(url, { auth: { token } })`；token 走 Socket.IO 的 **CONNECT 包**，**不进 URL** → 同样不落 access log / Referer / 浏览器历史；**Socket.IO 客户端走这条**，Flutter 端已在用）→ ③ `?token=` query（**老客户端兜底**，Flutter 端可以删）；`Authorization` 头为第四级。子协议回显由**服务端接管**（自定义 `ws` 引擎 `handleProtocols`）：报了 `bearer` 只回显 `bearer`（**token 绝不出现在响应头**）；只报了 token 则一个都不回显。auth 通道**只认 `token` 这一个键名**（非字符串 / 空串 → 落到下一级），不认别名 | `src/voice/voice.gateway.ts`（`extractToken` + `readTokenFromAuth`） | 同上 **22 例**（含**真 socket** 握手：token 放第一位也只回显 `bearer`；**CONNECT 包实测** `handshake.auth` 真的拿到 token） |
 | **P2-3** | `/metrics` 改「**默认关 + 开了必须带凭据**」：未配 `METRICS_ENABLED` → 生产 404 / 非生产开；开了但没带/带错 token → **401 fail-close**；比对用 sha256 + `timingSafeEqual`（定长、不泄漏长度）。**不做 IP 白名单**：生产开了 `trust proxy`，`req.ip` 取自 `X-Forwarded-For` 可伪造，基于它的白名单形同虚设 | `src/shared/infra/metrics/metrics.controller.ts`、`src/config/envs/default.ts`、`.env.example`、`typings/global.d.ts` | `test/shared/wp26-metrics-auth.spec.ts`、`test/config/wp26-metrics-config.spec.ts` |
 | **P2-4** | 新增 `AdminRoleGuard`（class 级挂 controller，4 端点全覆盖）：basic auth 放行；否则查 **DB 真值** `users.admin_role`，**严格等于 `'admin'`** 才放行，其余（NULL / editor / reviewer / 查不到）→ 403；查询抛错 → **fail-close**。**不写 migration**：`users.admin_role` 列早已存在（`src/user/entities/user.entity.ts:49-55`，enum `editor\|reviewer\|admin`，nullable）。**不能用 token 里的 `adminRole`**：`user.service.ts:675` 是 dev fallback `user.adminRole ?? 'admin'` —— 普通学员的 token 里也是 `'admin'`，照抄 token 等于防护为 0 | `src/admin-debug/guards/admin-role.guard.ts`（新）、`admin-debug.controller.ts`、`admin-debug.module.ts` | `test/admin-debug/wp26-admin-role-guard.spec.ts` 14 例 |
 | **P2-5** | 握手写动作逐个复核后**全部**在「JWT 校验 → 归属校验」之后（落库桥 / 演练登记 / 帧出口 / voice 会话四处）；`client.data.sessionId` 是 socket 自身暂存（断连清理的必要依据），保留并注释说明 | `src/voice/voice.gateway.ts` | 同上 2 例：归属校验失败 → 落库桥 0 / TTS 0 / 帧出口 0 / 演练登记 0 |
@@ -117,6 +117,16 @@ final       = applyDeltaVector(base.snapshot, cappedTotal)
 
 `src/user/providers/user.service.ts:675` 是 `user.adminRole ?? 'admin'` —— **dev fallback**：DB 里 `admin_role` 为 NULL 的普通学员，JWT 里也是 `'admin'`。照抄 token 副本判定 = 防护为 0。加上 token 是签发时快照（角色回收后旧 token 仍可进），所以只能查 DB 真值。
 
+### 4.5 P2-2 为什么 token 通道是**三级**而不是两条
+
+WP26 首版只实现了 `Sec-WebSocket-Protocol` 子协议 —— 那是 **原生 ws** 客户端的通道，**Socket.IO 客户端压根不发那个头**。Flutter 端用的是 Socket.IO `setAuth({ token })`，于是首版实现对 Flutter 端等于"只有 query 能用"，P2-2 的目标（token 不进 URL）根本没达成。
+
+补的 `handshake.auth.token` 是 **Socket.IO 的标准握手字段**（`socket.setAuth({ token })` / `io(url, { auth: { token } })`）：token 走 Socket.IO 的 **CONNECT 包**，不进 URL → 同样不落 nginx access log / Referer / 浏览器历史，**与 P2-2 的目标完全一致**（而且这才是 Socket.IO 客户端的正解，不是变通）。
+
+最终三级优先级：**子协议 > `handshake.auth` > `?token=`**。为什么新通道排在 query 前面：query 是**老客户端兜底**，可能带着一个已撤销的旧 token；新通道是客户端当前明确表达的凭证，先挑它更符合语义。子协议最高是因为它是本单明确定义的"客户端契约"通道（`bearer, <jwt>`）。
+
+auth 通道**只认 `token` 这一个键名**（非字符串 / 空串 → 落到下一级），不认 `accessToken` 之类别名：认一堆别名等于给"拼错键名"留后门，而拼错的后果是握手失败（查得到），不是静默放行。
+
 ---
 
 ## 5. 改动面
@@ -145,7 +155,7 @@ final       = applyDeltaVector(base.snapshot, cappedTotal)
 |---|---|---|
 | `test/engine-core/wp26-delta-cap-injection.spec.ts` **新** | 9 | P2-11 / P2-12 / P2-14 验收 |
 | `test/engine-adapters/wp26-delta-cap-config.spec.ts` **新** | 6 | P2-13 env → 端口装配 |
-| `test/voice/wp26-voice-gateway-hardening.spec.ts` **新** | 22 | P2-1 / P2-2 / P2-5 / P2-36 / P2-38 |
+| `test/voice/wp26-voice-gateway-hardening.spec.ts` **新** | 34 | P2-1 / P2-2 / P2-5 / P2-36 / P2-38 |
 | `test/admin-debug/wp26-admin-role-guard.spec.ts` **新** | 14 | P2-4 |
 | `test/shared/wp26-metrics-auth.spec.ts` + `test/shared/wp26-biz-exception-log.spec.ts` + `test/config/wp26-metrics-config.spec.ts` **新** | 31 | P2-3 / P2-39 |
 | `test/engine-core/boundary.spec.ts` | +2 | 断言⑩（零 env/globalThis）、断言⑪（禁深路径 import） |
@@ -158,8 +168,11 @@ final       = applyDeltaVector(base.snapshot, cappedTotal)
 
 ## 6. 已知尾巴 / 未核实项（如实登记）
 
-1. **P2-2 / P2-36 的前端部分未做**（Flutter 客户端不在本仓，用户另派单）。后端已做**双兼容**：两种传法都支持，子协议优先。
-   - 前端契约：`Sec-WebSocket-Protocol: bearer, <jwt>`（**必须带 `bearer` 标记**，否则严格客户端会在"服务端没选子协议"时中断）；`ready.serverSessionId` 存下来，后续重连用 `?sessionId=<serverSessionId>` 带回来；新增错误码 `token_revoked`。
+1. **P2-2 / P2-36 的前端部分未做**（Flutter 客户端不在本仓，用户另派单）。后端已做**三兼容**：三条传法都认，优先级 **子协议 > `handshake.auth` > query**。
+   - **前端契约 · Socket.IO 客户端（Flutter 端走这条）**：`socket.setAuth({ token })` / `io(url, { auth: { token } })` → 服务端读 `handshake.auth.token`。token 走 Socket.IO 的 **CONNECT 包**，不进 URL → **不会**落进 nginx access log / Referer / 浏览器历史，与 P2-2 的目标完全一致。**Flutter 端可以删掉 query 里的 `?token=`。**
+   - **前端契约 · 原生 ws 客户端**：`Sec-WebSocket-Protocol: bearer, <jwt>`（**必须带 `bearer` 标记**，否则严格客户端会在"服务端没选子协议"时中断）。
+   - **老客户端兜底**：`?token=` query 仍认（第三优先级）。
+   - 其余不变：`ready.serverSessionId` 存下来，后续重连用 `?sessionId=<serverSessionId>` 带回来；新增错误码 `token_revoked`。
 2. **P2-37 未核实**（真机验证项）：Flutter 客户端是否**总带唯一** `?sessionId=`。
 3. **P2-3 的本地 `.env`** 仍有 `METRICS_ENABLED=true`（未纳入版本库）—— 本地要抓 `/metrics` 需自行补 `METRICS_TOKEN`，否则拿到 401（**这是 fail-close 的预期行为**）。
 4. **P2-39 的 Sentry 通道未脱敏**：本单只收紧**本地日志**口径；Sentry 仍原样上报原始异常 + url/ip/ua，属另一次改动。

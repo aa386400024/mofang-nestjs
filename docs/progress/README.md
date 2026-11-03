@@ -129,12 +129,12 @@ WP0 边界骨架 / WP1 BDI认知引擎 / WP2 分层记忆 / WP3 轨迹控制 / W
 
 ### P2 全量修复（根目录）
 - **WP26 Phase1 P2 全量修复**（2026-11-03）—— 交付记录 [`completed/wp14-wp24-augment/engine-wp26-phase1-p2-hardening-backend-implementation-2026-11-03.md`](./completed/wp14-wp24-augment/engine-wp26-phase1-p2-hardening-backend-implementation-2026-11-03.md)｜任务单 `completed/wp14-wp24-augment/engine-wp26-phase1-p2-hardening-backend-2026-11-03.md`
-  - **安全 5 条**：WS 握手查 JWT **黑名单 + token type**、JWT 改走 **`Sec-WebSocket-Protocol`**（`?token=` 保留兜底，前端另派单）、`/metrics` **默认关 + token 鉴权**（fail-close）、`/admin/api/*` 加 **`AdminRoleGuard`**（查 DB 真值 `users.admin_role`）、握手写动作全部推到校验之后
+  - **安全 5 条**：WS 握手查 JWT **黑名单 + token type**、JWT 改走**握手请求之外的通道**（**Socket.IO 客户端走 `setAuth({token})` → 服务端读 `handshake.auth.token`**；原生 ws 走 `Sec-WebSocket-Protocol: bearer, <jwt>`；`?token=` query 保留兜底 —— 前端另派单）、`/metrics` **默认关 + token 鉴权**（fail-close）、`/admin/api/*` 加 **`AdminRoleGuard`**（查 DB 真值 `users.admin_role`）、握手写动作全部推到校验之后
   - **引擎 12 条**：⭐ 内核 `process.env` 改**注入**（`DeltaCapConfig` 端口，observer 一并改注入、删模块级单槽）→ 内核**零 env / 零 globalThis**；⭐ **轨迹 delta 也走 cap**（本轮总 delta = 事件 + 剧本，统一过一次 cap）；cap 报告带 sessionId；补 `STORAGE_FAILURE` 码；WP15 符号补 barrel；`boundary.spec.ts` 加「零 env」+「禁 adapter 深路径 import」两条断言
   - **文档 15 条**：**114 条死链归零** + WP20/WP22/WP11 三份交付记录**事实修正** + backlog 补 WP12/WP16 行
   - **配置 6 条**：`finishReason` **三处透传**、sessionId **服务端生成**（ready 帧下发 `serverSessionId`）、旧 socket 断开加 socketId 闸门、生产 5xx 也打本地日志（脱敏）
-  - **闸门**：tsc 0 / eslint 0 / **全量 84 文件 1252 例全绿**（基线 77/1165）；内核边界断言 **11 条**全绿
-  - **边界**：P2-2 / P2-36 的 **Flutter 前端另派单**（后端双兼容）；P2-37 仍待真机核实；P3 的 10 条进 Phase2 队列
+  - **闸门**：tsc 0 / eslint 0 / **全量 84 文件 1264 例全绿**（基线 77/1165）；内核边界断言 **11 条**全绿
+  - **边界**：P2-2 / P2-36 的 **Flutter 前端另派单**（后端**三兼容**：子协议 / `handshake.auth` / query 三条传法都认）；P2-37 仍待真机核实；P3 的 10 条进 Phase2 队列
 
 ### 认证密码（completed/auth-and-password/）
 - POST /auth/reset-password（忘记密码重置，不需要 JWT，凭验证码改密+撤销所有 session）
