@@ -39,7 +39,7 @@
 | **WP39** | TTS emotion 映射 | 🔴 P0 | BDI valence/arousal → voice_setting.emotion 映射表，真机听感校准 | WP33 |
 | **WP40** | TTS 内联语气词标签 | 🔴 P0 | prompt 注入 `(sighs)` `(pant)` `(breath)` 等标签，TTS 真发声 | WP33 |
 | **WP41** | 表达风格渲染接入 | 🟡 P1 | WP10A 预留 3 列（话量基线/叙事风格/语态倾向）接入 spec-assembler | WP35 |
-| **WP42** | 咨询同盟三维 | 🟡 P1 | trust/safety/bond 独立建模，建立/破裂/修复算子，调节阻抗下降速率 | WP34 |
+| **WP42** ✅ | 咨询同盟三维 | 🟡 P1 | trust/safety/bond 独立建模，建立/破裂/修复算子，调节阻抗下降速率（[交付记录](../completed/phase2/engine-wp42-counseling-alliance-three-dimensions-implementation-2026-11-03.md)） | WP34 |
 | **WP43** | 评估引擎基础版 | 🟡 P1 | 旁路异步消费 BDI 快照/对话/伦理标签，输出基础技术+伦理维度评分 | WP8-B |
 | **WP44** | 成长档案体系 | 🟡 P1 | 全链路数据沉淀 → 档案生成，用户可查看实训成长记录 | WP43 |
 
@@ -66,7 +66,7 @@
 | 🟢 P2 技术债 | 5 条 | WP45, 46, 47, 48, 49 |
 | **合计** | **23 条** | **WP27–WP49** |
 
-**进度：2 / 23 完成**（WP28 ✅、WP34 ✅，2026-11-03）。
+**进度：3 / 23 完成**（WP28 ✅、WP34 ✅、WP42 ✅，2026-11-03）。
 
 ### 🚧 上线前必须一起做的真机项（WP28 遗留）
 
@@ -103,7 +103,7 @@ _每个 WP 开工前单独写任务单（按 `team/conventions.md` 的交付格�
 | WP28 WP11 回改正式值 ✅ | `cognition/safety/assess-safety.ts` 的 `DEFAULT_PROBE_TIMEOUT_MS`（500 → 150） | **探测超时的权威值就住在这个常量里**，适配层与 env 都只是覆盖它；不改内核则 150ms 在咨询师输入面（不传 `timeoutMs` 的那条路径）根本不生效。授权来源：WP25 审查 §1.4 的回改 checklist A1 + 常量文件头自带的回改清单 + **用户 2026-11-03 当面拍板** |
 | WP34 人格调节算子 ✅ | BDI 算子库（WP1 基础算子扩展） | 算子是决策层逻辑，放适配层破坏纯层 |
 | WP36 跨会话衰减 | 状态转移函数（WP15 cap 扩展） | 衰减是状态迁移规则，必须在纯层 |
-| WP42 咨询同盟三维 | BDI 状态模型（trust → trust/safety/bond） | 状态结构变化，必须在内核 |
+| WP42 咨询同盟三维 ✅ | BDI 状态模型（trust → trust/safety/bond） | 状态结构变化，必须在内核 |
 
 > 其他 WP 一律在 `engine-adapters/` 或业务层改，不碰 `src/engine-core/`。
 

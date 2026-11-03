@@ -28,6 +28,7 @@
 import { nanoid } from 'nanoid';
 import { randomInt } from 'node:crypto';
 
+import type { AllianceConfig } from '../cognition/alliance-config.js';
 import { planIntention } from '../cognition/intention-planner.js';
 import {
   modulateDeltaByPersonality,
@@ -194,6 +195,15 @@ export interface InMemoryEngineSessionOptions {
    * 不走这里: 系数是部署级的, 角色是会话级的.
    */
   readonly personalityModulatorConfig?: PersonalityModulatorConfig;
+  /**
+   * 同盟三维配置 (WP42 · 与 cap / 人格同款注入范式).
+   *
+   * 缺省 = 内核种子值 (DELTA_TABLE 的基础系数 + 种子门槛).
+   * 为什么是**构造注入**而不是每次 turn 传: 与 cap 同理 —— 同盟三维的系数与门槛
+   * 是**部署形态**的决定 (内测期按真实对练校准), 不是会话参数; 放构造上 =
+   * 一场会话内口径恒定, 不会出现"同一场里前后两轮门槛不一样"的漂移.
+   */
+  readonly allianceConfig?: AllianceConfig;
 }
 
 /** 会话内核的内存实现. */
@@ -220,6 +230,8 @@ export class InMemoryEngineSession implements EngineSessionPort {
   private readonly capObserver: DeltaCapObserver | undefined;
   /** 人格调节配置 (WP34 · 缺省 = 内核种子值). */
   private readonly personalityModulatorConfig: PersonalityModulatorConfig | undefined;
+  /** 同盟三维配置 (WP42 · 缺省 = 内核种子值). */
+  private readonly allianceConfig: AllianceConfig | undefined;
 
   constructor(options: InMemoryEngineSessionOptions) {
     this.bdiStates = options.bdiStates;
@@ -231,6 +243,7 @@ export class InMemoryEngineSession implements EngineSessionPort {
     this.capConfig = options.capConfig;
     this.capObserver = options.capObserver;
     this.personalityModulatorConfig = options.personalityModulatorConfig;
+    this.allianceConfig = options.allianceConfig;
   }
 
   openSession(input: OpenEngineSessionInput): EngineSessionHandle {
@@ -303,11 +316,17 @@ export class InMemoryEngineSession implements EngineSessionPort {
     //    事件 delta 的**原始**值留一份 —— WP26 P2-12: 本轮总 delta = 事件 + 剧本,
     //    要合并后统一过一次 cap, 所以分子必须是原始量, 不能是"已砍过的量".
     //    WP34: 聚合之后先过**人格调节**, 再进 cap (同一管道, 调节不得绕过 cap).
-    const eventDelta = modulateDeltaByPersonality(aggregateTurnDelta(events), personality);
+    //    WP42: 同盟三维的 safety / bond 走**同一个端口** (构造注入), 口径与
+    //    临时快照 / 落库路径必须一致 —— 否则两处会漂.
+    const eventDelta = modulateDeltaByPersonality(aggregateTurnDelta(events, this.allianceConfig), personality);
     //    临时快照: 只按事件 delta 推进 (供意图规划与轨迹触发判定) ——
     //    它是**中间量**, 不是本轮落库的状态 (落库口径见第 5 步).
-    const provisional = transitionState(base.snapshot, events, { capConfig: this.capConfig, personality });
-    const intention = planIntention(provisional, runtime.characterProfile ?? undefined);
+    const provisional = transitionState(base.snapshot, events, {
+      capConfig: this.capConfig,
+      personality,
+      alliance: this.allianceConfig,
+    });
+    const intention = planIntention(provisional, runtime.characterProfile ?? undefined, this.allianceConfig);
     // 4. 轨迹步 (WP3): BDI 自由规划**之后**、落库**之前**.
     //    BDI 永远先发生, 轨迹只做后处理 —— 于是"同一段行为在开/关轨迹两种配置下"
     //    可以直接对比, 轨迹出问题时也能回退到纯 BDI (任务单 M1).

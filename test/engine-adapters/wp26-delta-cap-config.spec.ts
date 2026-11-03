@@ -72,11 +72,12 @@ describe('WP26 · delta cap 配置装配 (env → DeltaCapConfig)', () => {
     expect(config.arousal.up).toBeCloseTo(DEFAULT_DELTA_CAP_CONFIG.arousal.up, 10);
   });
 
-  it('18 个键一个不多一个不少 (少配一个 = 那个维度的 cap 永远配不上)', () => {
+  it('22 个键一个不多一个不少 (少配一个 = 那个维度的 cap 永远配不上)', () => {
     const config = resolveDeltaCapConfig(configStub({}));
 
     expect(Object.keys(config).sort()).toEqual(Object.keys(DEFAULT_DELTA_CAP_CONFIG).sort());
-    expect(Object.keys(config)).toHaveLength(9);
+    // WP42: 维度从 9 扩到 11 (新增 safety / bond —— 咨询同盟三维).
+    expect(Object.keys(config)).toHaveLength(11);
   });
 
   it('读取的 env 键都是**字面量** (不走计算键 —— 计算键编译器拦不住, 属静默偏离)', () => {
@@ -84,8 +85,8 @@ describe('WP26 · delta cap 配置装配 (env → DeltaCapConfig)', () => {
     resolveDeltaCapConfig({ get } as unknown as ConfigService);
 
     const readKeys = get.mock.calls.map((call) => call[0]).filter((key): key is string => typeof key === 'string');
-    expect(readKeys).toHaveLength(18);
+    expect(readKeys).toHaveLength(22);
     expect(readKeys.every((key) => key.startsWith('ENGINE_CAP_'))).toBe(true);
-    expect(new Set(readKeys).size).toBe(18);
+    expect(new Set(readKeys).size).toBe(22);
   });
 });

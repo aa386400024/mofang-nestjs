@@ -1,6 +1,8 @@
 // V2026-11-03 治本 (WP26 · B 层 · 单回合 delta cap 配置装配):
-//   职责: 把 env 里的 18 个 `ENGINE_CAP_*` 键装配成内核的 `DeltaCapConfig` 端口.
+//   职责: 把 env 里的 `ENGINE_CAP_*` 键装配成内核的 `DeltaCapConfig` 端口.
 //   边界: 只做"读 env → 校验 → 组装"; 不改任何状态, 不起 Nest 容器也能单测.
+//
+//   V2026-11-03 WP42: 维度从 9 扩到 11 (新增 SAFETY / BOND —— 咨询同盟三维).
 //
 //   为什么这一层存在 (P2-14 的落地点):
 //     WP15 把 cap 参数直接写在内核里读 process.env —— 那让内核第一次有了"配置层",
@@ -57,11 +59,14 @@ function resolveBounds(upRaw: string | undefined, downRaw: string | undefined, f
 }
 
 /**
- * 装配单回合 delta cap 配置 (9 维度 × 上下向 = 18 个值).
+ * 装配单回合 delta cap 配置 (11 维度 × 上下向 = 22 个值).
  *
  * 键名口径: `ENGINE_CAP_<维度>_UP` / `ENGINE_CAP_<维度>_DOWN`
- *   (维度大写: TRUST / VALENCE / AROUSAL / VERBAL / DEPTH / STYLE / POSITIVE /
- *    NEGATIVE / DEPENDENCY).
+ *   (维度大写: TRUST / SAFETY / BOND / VALENCE / AROUSAL / VERBAL / DEPTH / STYLE /
+ *    POSITIVE / NEGATIVE / DEPENDENCY).
+ *
+ * WP42: 新增 SAFETY / BOND 两维 —— 同盟三维 (trust / safety / bond) 与信任同档
+ *   (上 +0.20 / 下 -0.30, 损失厌恶口径).
  *
  * @param config 配置服务 (读 env)
  * @returns 内核的 cap 配置端口 (缺省 = 内核种子值)
@@ -72,6 +77,16 @@ export function resolveDeltaCapConfig(config: ConfigService): DeltaCapConfig {
       config.get<string>('ENGINE_CAP_TRUST_UP'),
       config.get<string>('ENGINE_CAP_TRUST_DOWN'),
       DEFAULT_DELTA_CAP_CONFIG.trust,
+    ),
+    safety: resolveBounds(
+      config.get<string>('ENGINE_CAP_SAFETY_UP'),
+      config.get<string>('ENGINE_CAP_SAFETY_DOWN'),
+      DEFAULT_DELTA_CAP_CONFIG.safety,
+    ),
+    bond: resolveBounds(
+      config.get<string>('ENGINE_CAP_BOND_UP'),
+      config.get<string>('ENGINE_CAP_BOND_DOWN'),
+      DEFAULT_DELTA_CAP_CONFIG.bond,
     ),
     valence: resolveBounds(
       config.get<string>('ENGINE_CAP_VALENCE_UP'),

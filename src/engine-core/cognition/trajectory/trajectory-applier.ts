@@ -129,11 +129,17 @@ export function applyTrajectory(mode: TrajectoryMode, bdi: Intention, baseSnapsh
  *
  * 维度口径与 `applyDeltaVector` 一一对应: 信念层 / 愿望层**不参与**偏移
  * (剧本改不了来访的核心信念, 那是认知演进的活).
+ *
+ * WP42: 同盟三维的 safety / bond 固定为 0 —— 剧本契约 (`SnapshotDelta`) 本期
+ *   没有这两项, 任务单也没给剧本的同盟三维口径. 与其发明一个没依据的数,
+ *   不如让它不动 (事件 delta 仍照常推进这两维).
  */
 function toDeltaVector(delta: SnapshotDelta | undefined): DeltaVector | undefined {
   if (!delta) return undefined;
   return {
     trust: delta.trust ?? 0,
+    safety: 0,
+    bond: 0,
     verbal: delta.resistance?.verbal ?? 0,
     depth: delta.resistance?.depth ?? 0,
     style: delta.resistance?.style ?? 0,

@@ -120,6 +120,8 @@ describe('WP15 · 单回合非对称 delta cap', () => {
     it('上向: trust/valence/arousal/阻抗三维 ±0.20, 移情三维 ±0.15', () => {
       const raw: DeltaVector = {
         trust: big,
+        safety: big,
+        bond: big,
         verbal: big,
         depth: big,
         style: big,
@@ -132,6 +134,8 @@ describe('WP15 · 单回合非对称 delta cap', () => {
       const capped = capTurnDelta(raw);
 
       expect(capped.trust).toBeCloseTo(0.2, 5);
+      expect(capped.safety).toBeCloseTo(0.2, 5);
+      expect(capped.bond).toBeCloseTo(0.2, 5);
       expect(capped.valence).toBeCloseTo(0.2, 5);
       expect(capped.arousal).toBeCloseTo(0.2, 5);
       expect(capped.verbal).toBeCloseTo(0.2, 5);
@@ -142,9 +146,11 @@ describe('WP15 · 单回合非对称 delta cap', () => {
       expect(capped.dependency).toBeCloseTo(0.15, 5);
     });
 
-    it('下向: trust/valence -0.30 (损失厌恶), 其余对称', () => {
+    it('下向: trust/valence/safety/bond -0.30 (损失厌恶), 其余对称', () => {
       const raw: DeltaVector = {
         trust: -big,
+        safety: -big,
+        bond: -big,
         verbal: -big,
         depth: -big,
         style: -big,
@@ -157,6 +163,8 @@ describe('WP15 · 单回合非对称 delta cap', () => {
       const capped = capTurnDelta(raw);
 
       expect(capped.trust).toBeCloseTo(-0.3, 5);
+      expect(capped.safety).toBeCloseTo(-0.3, 5);
+      expect(capped.bond).toBeCloseTo(-0.3, 5);
       expect(capped.valence).toBeCloseTo(-0.3, 5);
       expect(capped.arousal).toBeCloseTo(-0.2, 5);
       expect(capped.verbal).toBeCloseTo(-0.2, 5);
@@ -170,6 +178,8 @@ describe('WP15 · 单回合非对称 delta cap', () => {
     it('cap 内的 delta 原样透传 (不误伤)', () => {
       const raw: DeltaVector = {
         trust: 0.1,
+        safety: 0.02,
+        bond: 0.01,
         verbal: -0.08,
         depth: -0.1,
         style: -0.06,

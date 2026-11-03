@@ -35,6 +35,7 @@ import { InMemoryBdiStateRepository } from '../../engine-core/in-memory/in-memor
 import { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-engine-session.js';
 import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store.js';
 import type {
+  AllianceConfig,
   DeltaCapConfig,
   DeltaCapObserver,
   Embedder,
@@ -107,10 +108,10 @@ export function createEngineMemoryStore(deps: EngineMemoryStoreDeps): MemoryStor
 }
 
 /**
- * 内核会话的调参依赖 (WP26 · P2-14 · WP34).
+ * 内核会话的调参依赖 (WP26 · P2-14 · WP34 · WP42).
  *
- * 单回合 delta cap 的配置与观察者、人格调节系数都是**注入**进来的 ——
- * 内核不读 env、不持有全局槽.
+ * 单回合 delta cap 的配置与观察者、人格调节系数、同盟三维系数与门槛都是**注入**
+ * 进来的 —— 内核不读 env、不持有全局槽.
  * 缺省 = 内核种子值 + 不观测 (行为与 WP15 之前逐字一致).
  */
 export interface EngineSessionTuningDeps {
@@ -124,6 +125,12 @@ export interface EngineSessionTuningDeps {
    * 与 cap 同款范式: 系数是**部署形态**的决定 (内测期按真实对练校准), 不是会话参数.
    */
   readonly personalityModulatorConfig?: PersonalityModulatorConfig;
+  /**
+   * 同盟三维配置 (WP42; 缺省 = 内核种子值).
+   *
+   * 与 cap 同款范式: 同盟三维的系数与门槛是**部署形态**的决定, 不是会话参数.
+   */
+  readonly allianceConfig?: AllianceConfig;
 }
 
 /**
@@ -149,6 +156,7 @@ export function createEngineSessionPort(
     ...(tuning?.capConfig ? { capConfig: tuning.capConfig } : {}),
     ...(tuning?.capObserver ? { capObserver: tuning.capObserver } : {}),
     ...(tuning?.personalityModulatorConfig ? { personalityModulatorConfig: tuning.personalityModulatorConfig } : {}),
+    ...(tuning?.allianceConfig ? { allianceConfig: tuning.allianceConfig } : {}),
   });
 }
 

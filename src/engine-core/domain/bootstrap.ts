@@ -13,6 +13,24 @@ import { DEFAULT_TRANSFERENCE, type TransferenceState } from './transference.js'
 /** 中性默认信任基线 (初识谨慎, 非全然冷漠). */
 export const DEFAULT_TRUST = 0.3;
 
+/**
+ * 中性默认安全感基线 (WP42).
+ *
+ * 0.5 的口径: 陌生咨询师面前, 来访**不敢**敞开心扉, 但也不是完全防备 ——
+ *   正是"trust 0.3 但 safety 0.5"这种开局, 让 WP42 的三维决策有意义:
+ *   安全感高于信任, 说明"我还不确定你是不是专业的, 但我愿意先试试".
+ *   安全感的初始值比信任高, 也符合临床上"安全感是关系的即时感受, 信任是累积出来的".
+ */
+export const DEFAULT_SAFETY = 0.5;
+
+/**
+ * 中性默认纽带感基线 (WP42).
+ *
+ * 0 的口径: 纽带感是**情感连接**, 开场时不存在 ——
+ *   它只能靠共情 / 接纳 / 肯定一轮轮长出来, 不能预设.
+ */
+export const DEFAULT_BOND = 0;
+
 /** 中性默认三维阻抗基线. */
 export const DEFAULT_RESISTANCE: BdiResistance = { verbal: 0.4, depth: 0.4, style: 0.35 };
 
@@ -80,5 +98,10 @@ export function buildInitialSnapshot(profile?: CharacterProfile): BdiSnapshot {
     resistance: buildResistance(profile),
     transference: buildTransference(profile),
     trust: clamp01(profile?.baseline?.trust ?? DEFAULT_TRUST),
+    // WP42: 安全感 / 纽带感本期**不接角色种子** (任务单 §3.1 只给了固定初值) ——
+    //   角色种子里没有这两项, 硬造一个"依恋型起始安全感更高"就是发明临床数字.
+    //   需要按角色分化时, 走 AllianceConfig 端口或后续 WP 扩展角色基线.
+    safety: clamp01(DEFAULT_SAFETY),
+    bond: clamp01(DEFAULT_BOND),
   };
 }

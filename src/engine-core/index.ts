@@ -171,3 +171,10 @@ export type {
   PersonalityModulatorConfig,
 } from './cognition/personality-modulator.js';
 export { DEFAULT_PERSONALITY_MODULATOR_CONFIG, modulateDeltaByPersonality } from './cognition/personality-modulator.js';
+
+// ── 咨询同盟三维端口 (WP42 · trust / safety / bond 独立建模) ─────────
+//   同款理由: 新符号若只住在内核内部, adapter 就得深路径 import —— 那条路径不在
+//   boundary 断言⑥ (barrel 双向白名单) 的守卫视野内, 内核改文件名 adapter 直接断
+//   且没有任何断言会红. 收进公开出口, 由断言守住.
+export type { AllianceConfig, AllianceDeltaOverride, AllianceDeltaOverrides, AllianceThresholds } from './cognition/alliance-config.js';
+export { DEFAULT_ALLIANCE_CONFIG } from './cognition/alliance-config.js';

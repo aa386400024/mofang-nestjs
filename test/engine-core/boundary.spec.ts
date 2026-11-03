@@ -395,6 +395,13 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'PersonalityModulatorConfig',
       'DEFAULT_PERSONALITY_MODULATOR_CONFIG',
       'modulateDeltaByPersonality',
+      // WP42: 咨询同盟三维端口 (trust / safety / bond 独立建模)
+      //   (系数与门槛走端口注入, 与 WP26 P2-14 的 cap 参数同一范式)
+      'AllianceConfig',
+      'AllianceDeltaOverride',
+      'AllianceDeltaOverrides',
+      'AllianceThresholds',
+      'DEFAULT_ALLIANCE_CONFIG',
     ];
     // 少导出
     expect(expectedPublic.filter((name) => !exportedNames.includes(name))).toEqual([]);
@@ -428,6 +435,7 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'cognition/rule-based-classifier.ts',
       'cognition/state-transition.ts',
       'cognition/personality-modulator.ts',
+      'cognition/alliance-config.ts',
       'cognition/intention-planner.ts',
       'cognition/rendering/token-budget.ts',
       'cognition/rendering/failover.ts',

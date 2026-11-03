@@ -6,6 +6,13 @@
 //   WP1 把 WP0 的 unknown 占位槽位落地为具体类型, 并新增关系变量 trust.
 //   意图 (Intention) 不落快照 —— 它是每轮派生输出 (见 domain/intention.ts).
 //
+//   V2026-11-03 WP42 (咨询同盟三维):
+//     trust 拆成三个**独立**维度: trust / safety / bond (临床上这是三件事).
+//     它们各走各的 delta (见 cognition/state-transition.ts) 与各走各的决策门槛
+//     (见 cognition/intention-planner.ts), 合成仍然是一个快照、值语义不变.
+//     反双胞胎: 三个维度**不合成一个数**再存 —— 合成就再也分不开"信任高但
+//     不敢说话"和"真的信任"这两种完全不同的状态了.
+//
 //   反双胞胎:
 //     - 不把快照塞进 class (无 getter/setter) —— 快照要能被 JSON 序列化、被仓储
 //       原样存取、被 adapter 原样传输; interface + readonly 是唯一正确形状.
@@ -65,8 +72,22 @@ export interface BdiSnapshot {
   readonly resistance: BdiResistance;
   /** 移情三态强度 (正 / 负 / 依赖). */
   readonly transference: TransferenceState;
-  /** 关系信任 [0,1], 开放度 / 披露深度的总闸门. */
+  /**
+   * 关系信任 [0,1], 开放度 / 披露深度的总闸门.
+   *
+   * WP42: 信任是同盟三维之一, 但**不**再是唯一的闸门 ——
+   *   临床上"信任" / "安全感" / "纽带感"是三件事:
+   *     · trust  —— 来访相信咨询师是专业的、不会评判自己;
+   *     · safety —— 来访在这段关系里感到安全, 可以敞开心扉;
+   *     · bond   —— 来访与咨询师有情感连接, 不是冷冰冰的问诊.
+   *   一个来访可能 trust 高 (相信你专业) 但 safety 低 (不敢说真话) ——
+   *   旧模型一律按 trust 高处理, 于是直接进探索模式, 效果不对.
+   */
   readonly trust: number;
+  /** 安全感 [0,1]: 来访在这段关系里敢不敢敞开心扉 (WP42). */
+  readonly safety: number;
+  /** 纽带感 [0,1]: 来访与咨询师的情感连接强度 (WP42). */
+  readonly bond: number;
 }
 
 /**
@@ -97,5 +118,7 @@ export function cloneBdiSnapshot(snapshot: BdiSnapshot): BdiSnapshot {
     resistance: { ...snapshot.resistance },
     transference: { ...snapshot.transference },
     trust: snapshot.trust,
+    safety: snapshot.safety,
+    bond: snapshot.bond,
   };
 }

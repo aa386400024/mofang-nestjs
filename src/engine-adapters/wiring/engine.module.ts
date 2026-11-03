@@ -44,6 +44,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { resolveAllianceConfig } from './alliance-config.js';
 import { CharacterPoolModule } from './character/character-pool.module.js';
 import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver } from './character/index.js';
 import { resolveDeltaCapConfig } from './delta-cap.config.js';
@@ -210,6 +211,9 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
           capObserver: capLogger.observer,
           // WP34: 人格调节系数同理 —— env 读在适配层, 内核只认 PersonalityModulatorConfig 端口.
           personalityModulatorConfig: resolvePersonalityModulatorConfig(config),
+          // WP42: 同盟三维 (trust / safety / bond) 的系数与门槛同理 ——
+          //   env 读在适配层, 内核只认 AllianceConfig 端口.
+          allianceConfig: resolveAllianceConfig(config),
         }),
       inject: [ENGINE_MEMORY_STORE, RISK_PROBE, ConfigService, DeltaCapLogger],
     },

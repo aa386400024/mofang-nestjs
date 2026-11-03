@@ -41,6 +41,12 @@
 //     (src/engine-adapters/wiring/personality-modulator.config.ts) 逐个字面量读,
 //     内核零 env 读取. 用例③c 守着这件事.
 //
+//   V2026-11-03 治本 (WP42 — ENGINE_ALLIANCE_* 族):
+//     咨询同盟三维 (trust / safety / bond) 的系数与门槛 (25 个 `ENGINE_ALLIANCE_*` 键)
+//     同一治本: 适配层 (src/engine-adapters/wiring/alliance-config.ts) 逐个字面量读,
+//     内核零 env 读取. 用例③d 守着这件事.
+//     cap 族同步从 18 键扩到 22 键 (新增 SAFETY / BOND 两维, 见用例③b).
+//
 //   边界: 只读文件; 不改任何代码 / 不改 .env.example; 不起 Nest 容器.
 //
 //   验证: npx vitest run test/config/wp25-env-example-coverage.spec.ts
@@ -74,15 +80,19 @@ const DERIVED_ENV_KEYS: Readonly<Record<string, readonly string[]>> = {
 };
 
 /**
- * 单回合 delta cap 的 18 个 env 键 (WP26 · P2-13/P2-14).
+ * 单回合 delta cap 的 22 个 env 键 (WP26 · P2-13/P2-14 · WP42 加两维).
  *
  * 这族**不再是派生键**: 内核不再读 env, 适配层逐个字面量读 → 已被 AST 抽取覆盖.
- * 这里留一份清单, 是为了断言"18 个键一个不多一个不少" —— 少一个 = 那个维度的 cap
+ * 这里留一份清单, 是为了断言"22 个键一个不多一个不少" —— 少一个 = 那个维度的 cap
  * 永远配不上 (静默失效); 多一个 = 模板里躺着一条没人读的键 (骗人的配置项).
  */
 const DELTA_CAP_ENV_KEYS: readonly string[] = [
   'ENGINE_CAP_TRUST_UP',
   'ENGINE_CAP_TRUST_DOWN',
+  'ENGINE_CAP_SAFETY_UP',
+  'ENGINE_CAP_SAFETY_DOWN',
+  'ENGINE_CAP_BOND_UP',
+  'ENGINE_CAP_BOND_DOWN',
   'ENGINE_CAP_VALENCE_UP',
   'ENGINE_CAP_VALENCE_DOWN',
   'ENGINE_CAP_AROUSAL_UP',
@@ -119,6 +129,41 @@ const PERSONALITY_MOD_ENV_KEYS: readonly string[] = [
   'ENGINE_MOD_DISORGANIZED_RESIST_SCALE',
   'ENGINE_MOD_AGREEABLENESS_TRUST_SCALE',
   'ENGINE_MOD_AGREEABLENESS_HIGH_THRESHOLD',
+];
+
+/**
+ * 咨询同盟三维的 25 个 env 键 (WP42).
+ *
+ * 与 cap 族 / 人格族同一治本: 适配层**逐个字面量**读 → 已被 AST 抽取覆盖 (漏写一个键,
+ * 断言① 立刻变红). 这里留一份清单, 是为了断言"25 个键一个不多一个不少" ——
+ * 少一个 = 那个系数 / 门槛永远配不上 (静默失效); 多一个 = 模板里躺着一条没人读的键.
+ */
+const ALLIANCE_ENV_KEYS: readonly string[] = [
+  'ENGINE_ALLIANCE_EMPATHY_SAFETY',
+  'ENGINE_ALLIANCE_EMPATHY_BOND',
+  'ENGINE_ALLIANCE_ACCEPTANCE_SAFETY',
+  'ENGINE_ALLIANCE_ACCEPTANCE_BOND',
+  'ENGINE_ALLIANCE_NORMALIZATION_SAFETY',
+  'ENGINE_ALLIANCE_NORMALIZATION_BOND',
+  'ENGINE_ALLIANCE_OPEN_PROBE_SAFETY',
+  'ENGINE_ALLIANCE_OPEN_PROBE_BOND',
+  'ENGINE_ALLIANCE_AFFIRMATION_SAFETY',
+  'ENGINE_ALLIANCE_AFFIRMATION_BOND',
+  'ENGINE_ALLIANCE_JUDGMENT_SAFETY',
+  'ENGINE_ALLIANCE_JUDGMENT_BOND',
+  'ENGINE_ALLIANCE_PREACHING_SAFETY',
+  'ENGINE_ALLIANCE_PREACHING_BOND',
+  'ENGINE_ALLIANCE_MINIMIZING_SAFETY',
+  'ENGINE_ALLIANCE_MINIMIZING_BOND',
+  'ENGINE_ALLIANCE_BOUNDARY_CROSS_SAFETY',
+  'ENGINE_ALLIANCE_BOUNDARY_CROSS_BOND',
+  'ENGINE_ALLIANCE_SENSITIVE_TOUCH_SAFETY',
+  'ENGINE_ALLIANCE_SENSITIVE_TOUCH_BOND',
+  'ENGINE_ALLIANCE_NEUTRAL_SAFETY',
+  'ENGINE_ALLIANCE_NEUTRAL_BOND',
+  'ENGINE_ALLIANCE_OPEN_THRESHOLD',
+  'ENGINE_ALLIANCE_RESIST_TRUST_THRESHOLD',
+  'ENGINE_ALLIANCE_RESIST_SAFETY_THRESHOLD',
 ];
 
 /**
@@ -268,7 +313,7 @@ describe('WP25 · .env.example 与代码 env 读取点一一对应', () => {
     expect(DERIVED_ENV_KEYS['LLM_<PROVIDER>_API_KEY']).toHaveLength(5);
   });
 
-  it('③b 18 个 ENGINE_CAP_* 键已改字面量读取, 内核树不再有 cap 键 (WP26 · P2-13/P2-14)', () => {
+  it('③b 22 个 ENGINE_CAP_* 键已改字面量读取, 内核树不再有 cap 键 (WP26 · P2-13/P2-14 · WP42 加两维)', () => {
     // 适配层逐个字面量读 → AST 抽取看得到 → 少写一个键, 断言① 立刻变红.
     const deltaCapConfigFile = path.join(SRC_ROOT, 'engine-adapters/wiring/delta-cap.config.ts');
     expect(existsSync(deltaCapConfigFile)).toBe(true);
@@ -304,6 +349,25 @@ describe('WP25 · .env.example 与代码 env 读取点一一对应', () => {
       }
     }
     expect(kernelModKeys).toEqual([]);
+  });
+
+  it('③d 25 个 ENGINE_ALLIANCE_* 键已改字面量读取, 内核树不再有同盟系数键 (WP42)', () => {
+    // 同盟三维的系数与门槛与 cap 族同一治本: 适配层逐个字面量读 → AST 抽取看得到.
+    const allianceConfigFile = path.join(SRC_ROOT, 'engine-adapters/wiring/alliance-config.ts');
+    expect(existsSync(allianceConfigFile)).toBe(true);
+    const literalKeys = extractEnvKeys(allianceConfigFile).filter((key) => key.startsWith('ENGINE_ALLIANCE_'));
+    expect([...literalKeys].sort()).toEqual([...ALLIANCE_ENV_KEYS].sort());
+
+    // 内核树里**不许**再出现任何 ENGINE_ALLIANCE_* 字符串 (计算键也算): 内核零 env 读取.
+    const kernelRoot = path.join(SRC_ROOT, 'engine-core');
+    const kernelAllianceKeys: string[] = [];
+    for (const file of collectTsFiles(kernelRoot)) {
+      const source = readFileSync(file, 'utf8');
+      if (source.includes('ENGINE_ALLIANCE_')) {
+        kernelAllianceKeys.push(path.relative(kernelRoot, file).replaceAll('\\', '/'));
+      }
+    }
+    expect(kernelAllianceKeys).toEqual([]);
   });
 
   it('④ NODE_ENV 必须被注释掉 (本地照抄模板不能开 production 模式)', () => {

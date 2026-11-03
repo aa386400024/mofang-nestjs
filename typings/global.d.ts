@@ -200,6 +200,10 @@ export declare global {
       //   装配成内核的 DeltaCapConfig 端口注入 —— 内核零 process.env.
       ENGINE_CAP_TRUST_UP?: string; // 信任单回合上向 cap (默认 0.2)
       ENGINE_CAP_TRUST_DOWN?: string; // 信任单回合下向 cap (默认 -0.3)
+      ENGINE_CAP_SAFETY_UP?: string; // 安全感单回合上向 cap (默认 0.2)
+      ENGINE_CAP_SAFETY_DOWN?: string; // 安全感单回合下向 cap (默认 -0.3)
+      ENGINE_CAP_BOND_UP?: string; // 纽带感单回合上向 cap (默认 0.2)
+      ENGINE_CAP_BOND_DOWN?: string; // 纽带感单回合下向 cap (默认 -0.3)
       ENGINE_CAP_VALENCE_UP?: string; // 情绪效价单回合上向 cap (默认 0.2)
       ENGINE_CAP_VALENCE_DOWN?: string; // 情绪效价单回合下向 cap (默认 -0.3)
       ENGINE_CAP_AROUSAL_UP?: string; // 唤醒度单回合上向 cap (默认 0.2)
@@ -234,6 +238,40 @@ export declare global {
       ENGINE_MOD_DISORGANIZED_RESIST_SCALE?: string; // 混乱型 阻抗倍率 (默认 1.2)
       ENGINE_MOD_AGREEABLENESS_TRUST_SCALE?: string; // 高宜人性的 trust 增益系数 (默认 1.1)
       ENGINE_MOD_AGREEABLENESS_HIGH_THRESHOLD?: string; // 高宜人性阈值 [0,1] (默认 0.7)
+      // V2026-11-03 WP42 (咨询同盟三维 · 系数与门槛):
+      //   下面是同盟三维 (trust / safety / bond) 的 25 个 env 键
+      //   (11 种事件 × 2 维覆写 + 3 个门槛).
+      //   显式声明的理由与上面 ENGINE_CAP_* / ENGINE_MOD_* 同一治本思路:
+      //   **逐个字面量**读 (src/engine-adapters/wiring/alliance-config.ts),
+      //   不用计算键 (`ENGINE_ALLIANCE_${kind}_${dim}`) —— 计算键编译器拦不住,
+      //   且 env 覆盖断言 (AST 抽取) 扫不到, 漏写一个键会静默失效.
+      //   装配成内核的 AllianceConfig 端口注入 —— 内核零 process.env.
+      //   ⚠️ 系数是**工程种子值, 非临床标定** (待真实对练校准).
+      ENGINE_ALLIANCE_EMPATHY_SAFETY?: string; // 共情对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_EMPATHY_BOND?: string; // 共情对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_ACCEPTANCE_SAFETY?: string; // 接纳对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_ACCEPTANCE_BOND?: string; // 接纳对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_NORMALIZATION_SAFETY?: string; // 正常化对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_NORMALIZATION_BOND?: string; // 正常化对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_OPEN_PROBE_SAFETY?: string; // 开放探问对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_OPEN_PROBE_BOND?: string; // 开放探问对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_AFFIRMATION_SAFETY?: string; // 肯定对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_AFFIRMATION_BOND?: string; // 肯定对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_JUDGMENT_SAFETY?: string; // 评判对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_JUDGMENT_BOND?: string; // 评判对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_PREACHING_SAFETY?: string; // 说教对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_PREACHING_BOND?: string; // 说教对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_MINIMIZING_SAFETY?: string; // 淡化对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_MINIMIZING_BOND?: string; // 淡化对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_BOUNDARY_CROSS_SAFETY?: string; // 越界对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_BOUNDARY_CROSS_BOND?: string; // 越界对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_SENSITIVE_TOUCH_SAFETY?: string; // 敏感议题触碰对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_SENSITIVE_TOUCH_BOND?: string; // 敏感议题触碰对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_NEUTRAL_SAFETY?: string; // 中性事件对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_NEUTRAL_BOND?: string; // 中性事件对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_OPEN_THRESHOLD?: string; // 探索门槛 [0,1]: min(信任, 安全感) >= 它才探索 (默认 0.6)
+      ENGINE_ALLIANCE_RESIST_TRUST_THRESHOLD?: string; // 抗拒门槛 (信任维) [0,1] (默认 0.4)
+      ENGINE_ALLIANCE_RESIST_SAFETY_THRESHOLD?: string; // 抗拒门槛 (安全感维) [0,1] (默认 0.3)
     }
   }
 

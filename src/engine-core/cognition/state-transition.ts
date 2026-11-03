@@ -69,19 +69,56 @@
 //
 //   cap 报告的 raw 口径随之变成"人格调节**后**的 delta": 报告只该显示真实被砍掉的量 —
 //     调节带来的变化不该混进"砍幅"里.
+//
+// V2026-11-03 WP42 (引擎内核 · 咨询同盟三维):
+//   信任拆成三个独立维度: **trust / safety / bond**. 这里是它们各自被推动的地方.
+//
+//   为什么三个维度**各走各的 delta**:
+//     旧模型只有一个 trust, 于是"共情"这类修复动作在三个维度上只能给同一个数 ——
+//     但临床上"我信你专业"(trust) / "我敢跟你说话"(safety) / "我跟你有感情了"(bond)
+//     是三种不同的增长: 共情让 trust 和 safety 都涨, 但纽带涨得慢;
+//     边界侵犯把三者一起打下去, 且 safety 掉得最狠 (被侵犯的人最先不敢说话).
+//     把三者按同一个比例缩放, 恰好抹掉了临床信息 —— 所以三维各给各的种子系数.
+//
+//   系数为什么走**端口** (AllianceConfig, 见 cognition/alliance-config.ts):
+//     同盟三维的系数与门槛是部署形态的决定 (内测期按真实对练校准), 不是算子逻辑 ——
+//     与 WP26 P2-14 的 cap 参数、WP34 的人格系数同一范式:
+//       env → (适配层) → AllianceConfig → (内核端口).
+//     内核零 env 读取; 基础系数表仍在本文件 (DELTA_TABLE), 端口只做覆写 ——
+//     单一真相源, 两处各写一份完整表 = 两个会漂移的真相源.
+//
+//   cap 维度同步扩到 11 维: safety / bond 与 trust 同档 (上 +0.20 / 下 -0.30,
+//     损失厌恶口径) —— 同盟破裂与信任破裂一样, 破得快、建得慢.
+//
+//   剧本 (trajectory) 偏移**不覆盖** safety / bond (见 trajectory-applier.ts):
+//     剧本写死的偏移是作者的设计, 任务单本期没有给剧本的同盟三维口径 ——
+//     宁可它不动, 也不发明一个没依据的数.
 
+import { resolveAllianceDelta, type AllianceConfig } from './alliance-config.js';
 import { modulateDeltaByPersonality, type PersonalityModulationInput } from './personality-modulator.js';
 import type { BdiSnapshot } from '../domain/bdi-snapshot.js';
 import { clamp01, clampValence, resolveEmotionLabel } from '../domain/emotion.js';
 import type { CounselorEventKind, SessionEvent } from '../domain/events/session-event.js';
 
 /**
- * delta 向量的 9 个维度 (WP15: cap 维度与 delta 维度一一对应).
+ * delta 向量的 11 个维度 (WP15: cap 维度与 delta 维度一一对应; WP42 加 safety / bond).
  *
  * 单独列一份而不是直接用 DeltaVector 的键: cap 需要**顺序** (报告按维度顺序出),
  * 而接口的键顺序没有语义. 两边多一个少一个, capTurnDelta 的类型检查会当场报错.
  */
-const CAP_DIMS = ['trust', 'valence', 'arousal', 'verbal', 'depth', 'style', 'positive', 'negative', 'dependency'] as const;
+const CAP_DIMS = [
+  'trust',
+  'safety',
+  'bond',
+  'valence',
+  'arousal',
+  'verbal',
+  'depth',
+  'style',
+  'positive',
+  'negative',
+  'dependency',
+] as const;
 
 /** cap 维度名. */
 export type CapDim = (typeof CAP_DIMS)[number];
@@ -89,6 +126,10 @@ export type CapDim = (typeof CAP_DIMS)[number];
 /** 单事件对各维度的增量. */
 export interface DeltaVector {
   readonly trust: number;
+  /** 安全感增量 (WP42). */
+  readonly safety: number;
+  /** 纽带感增量 (WP42). */
+  readonly bond: number;
   readonly verbal: number;
   readonly depth: number;
   readonly style: number;
@@ -101,6 +142,8 @@ export interface DeltaVector {
 
 const ZERO: DeltaVector = {
   trust: 0,
+  safety: 0,
+  bond: 0,
   verbal: 0,
   depth: 0,
   style: 0,
@@ -119,11 +162,27 @@ const ZERO: DeltaVector = {
  *   某维度单事件 |delta| 超过该维度单回合 cap 的 80% → 注释里标 ⚠️ 接近 cap.
  *   (现有 11 个算子里最高比值是 75%: boundary_cross.style / sensitive_touch.arousal,
  *    都还没到 80% 警戒线, 所以没有 ⚠️ 标记.)
+ *
+ * WP42: 加 **safety / bond** 两列 (同盟三维).
+ *   ⚠️ 系数是**工程种子值, 非临床标定** —— 待真实对练校准.
+ *   两列的口径 (任务单 §3.3):
+ *     · 共情 / 接纳: 信任与安全感都涨, 纽带涨得慢 —— 情感连接需要时间;
+ *     · 开放探问: 涨安全感 (敢答), 不涨纽带 (还没到建立连接那一步);
+ *     · 肯定: 涨纽带 (被看见 = 关系推进);
+ *     · 评判 / 说教 / 淡化: 安全感掉得比信任快 —— 先不敢说话, 才是关系真正受损的样子;
+ *     · 边界侵犯: 三维一起掉, safety 掉最狠 (被侵犯的人最先不敢说话);
+ *     · 敏感议题触碰: 安全感略降 (话题本身让人紧绷), 但不是破坏性的, 纽带不动.
+ *   幅度对照单回合 cap (11 维, safety / bond 与 trust 同档 ±0.20 / -0.30):
+ *     safety 最大单事件 |delta| = 0.05 (boundary_cross) = 上向 cap 的 25%;
+ *     bond   最大单事件 |delta| = 0.04 (boundary_cross) = 上向 cap 的 20%;
+ *     都不到 80% 警戒线, 无 ⚠️ 标记.
  */
 const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
   empathy: {
     // 正向修复算子: trust +0.10 (单事件已达上向 cap 的 50%)
     trust: 0.1,
+    safety: 0.02,
+    bond: 0.01,
     verbal: -0.08,
     depth: -0.1,
     style: -0.06,
@@ -136,6 +195,8 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
   acceptance: {
     // 接纳算子: trust +0.08 (单事件达上向 cap 的 40%)
     trust: 0.08,
+    safety: 0.02,
+    bond: 0.01,
     verbal: -0.06,
     depth: -0.08,
     style: -0.05,
@@ -148,6 +209,8 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
   normalization: {
     // 正常化算子: trust +0.07 (单事件达上向 cap 的 35%)
     trust: 0.07,
+    safety: 0.01,
+    bond: 0.01,
     verbal: -0.05,
     depth: -0.07,
     style: -0.04,
@@ -160,6 +223,8 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
   open_probe: {
     // 开放探问算子: trust +0.05 (单事件达上向 cap 的 25%)
     trust: 0.05,
+    safety: 0.01,
+    bond: 0,
     verbal: -0.03,
     depth: -0.06,
     style: -0.03,
@@ -172,6 +237,8 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
   affirmation: {
     // 肯定算子: trust +0.08 (单事件达上向 cap 的 40%)
     trust: 0.08,
+    safety: 0.01,
+    bond: 0.01,
     verbal: -0.04,
     depth: -0.06,
     style: -0.04,
@@ -184,6 +251,8 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
   judgment: {
     // 评判算子: trust -0.12 (单事件达下向 cap 的 40%)
     trust: -0.12,
+    safety: -0.03,
+    bond: -0.02,
     verbal: 0.06,
     depth: 0.08,
     style: 0.12,
@@ -196,6 +265,8 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
   preaching: {
     // 说教算子: trust -0.10 (单事件达下向 cap 的 33%)
     trust: -0.1,
+    safety: -0.02,
+    bond: -0.01,
     verbal: 0.08,
     depth: 0.06,
     style: 0.06,
@@ -208,6 +279,8 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
   minimizing: {
     // 淡化算子: trust -0.10 (单事件达下向 cap 的 33%)
     trust: -0.1,
+    safety: -0.02,
+    bond: -0.02,
     verbal: 0.05,
     depth: 0.1,
     style: 0.05,
@@ -220,6 +293,8 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
   boundary_cross: {
     // 重大损害算子: trust -0.15 (单事件已达下向 cap 的 50%; 最接近的一维是 style +0.15 = 上向 cap 的 75%)
     trust: -0.15,
+    safety: -0.05,
+    bond: -0.04,
     verbal: 0.04,
     depth: 0.05,
     style: 0.15,
@@ -232,6 +307,8 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
   sensitive_touch: {
     // 敏感议题触碰算子: trust 0 (只动唤醒 arousal +0.15 = 上向 cap 的 75%, 不动信任)
     trust: 0,
+    safety: -0.01,
+    bond: 0,
     verbal: 0.05,
     depth: 0.05,
     style: 0.06,
@@ -250,10 +327,18 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
  *
  * WP26 P2-12: 导出为 `aggregateTurnDelta` —— 会话层要拿它把"事件 delta"与
  * "剧本 delta"合成**本轮总 delta**, 再统一过一次 cap.
+ *
+ * WP42: 同盟三维 (safety / bond) 的基础值来自 DELTA_TABLE; 端口给的覆写
+ *   (AllianceConfig.deltas) 优先, 缺项 / 缺维度回基础值 —— 见 alliance-config.ts.
+ *
+ * @param events 本轮事件
+ * @param alliance 同盟三维端口 (缺省 = 用 DELTA_TABLE 的基础系数)
  */
-export function aggregateTurnDelta(events: readonly SessionEvent[]): DeltaVector {
+export function aggregateTurnDelta(events: readonly SessionEvent[], alliance?: AllianceConfig): DeltaVector {
   const sum = {
     trust: 0,
+    safety: 0,
+    bond: 0,
     verbal: 0,
     depth: 0,
     style: 0,
@@ -263,10 +348,14 @@ export function aggregateTurnDelta(events: readonly SessionEvent[]): DeltaVector
     negative: 0,
     dependency: 0,
   };
+  const overrides = alliance?.deltas;
   for (const event of events) {
     const delta = DELTA_TABLE[event.kind] ?? ZERO;
     const strength = clamp01(event.strength);
+    const allianceDelta = resolveAllianceDelta(event.kind, delta, overrides);
     sum.trust += delta.trust * strength;
+    sum.safety += allianceDelta.safety * strength;
+    sum.bond += allianceDelta.bond * strength;
     sum.verbal += delta.verbal * strength;
     sum.depth += delta.depth * strength;
     sum.style += delta.style * strength;
@@ -295,7 +384,7 @@ export interface CapBounds {
 /**
  * 单回合 cap 配置 (内核端口).
  *
- * 9 个维度 × 上下向 = 18 个数值. 由**适配层**读 env 后组装注入 (WP26 P2-14):
+ * 11 个维度 × 上下向 = 22 个数值. 由**适配层**读 env 后组装注入 (WP26 P2-14):
  * 内核不认 env, 只认这个端口 —— 于是"配置从哪来"是装配层的决定, 内核只管怎么砍.
  *
  * 缺省 = `DEFAULT_DELTA_CAP_CONFIG` (内核种子值), env 只做覆写.
@@ -306,12 +395,15 @@ export type DeltaCapConfig = Readonly<Record<CapDim, CapBounds>>;
  * 内核种子值 (工程种子值, 非临床标定).
  *
  * 三档:
- *   - trust / valence: 上 +0.20 / 下 -0.30 —— 损失厌恶 (信任建得慢、破得快);
+ *   - trust / valence / safety / bond: 上 +0.20 / 下 -0.30 —— 损失厌恶
+ *     (信任建得慢、破得快; 同盟三维同理: 安全感与纽带感也是"破得快、建得慢");
  *   - arousal + 阻抗三维: ±0.20 —— 激活度对称, 涨多少就跌多少;
  *   - 移情三维: ±0.15 —— 移情涨得慢, 一回合不该就建立强烈移情.
  */
 export const DEFAULT_DELTA_CAP_CONFIG: DeltaCapConfig = {
   trust: { up: 0.2, down: -0.3 },
+  safety: { up: 0.2, down: -0.3 },
+  bond: { up: 0.2, down: -0.3 },
   valence: { up: 0.2, down: -0.3 },
   arousal: { up: 0.2, down: -0.2 },
   verbal: { up: 0.2, down: -0.2 },
@@ -386,6 +478,8 @@ export function capTurnDelta(raw: DeltaVector, config?: DeltaCapConfig): DeltaVe
 export function addDeltaVectors(a: DeltaVector, b: DeltaVector): DeltaVector {
   return {
     trust: a.trust + b.trust,
+    safety: a.safety + b.safety,
+    bond: a.bond + b.bond,
     verbal: a.verbal + b.verbal,
     depth: a.depth + b.depth,
     style: a.style + b.style,
@@ -399,7 +493,7 @@ export function addDeltaVectors(a: DeltaVector, b: DeltaVector): DeltaVector {
 
 /** 单维度被砍的明细 (WP15). */
 export interface DeltaCapEntry {
-  /** 维度名 (trust / valence / arousal / verbal / depth / style / positive / negative / dependency). */
+  /** 维度名 (trust / safety / bond / valence / arousal / verbal / depth / style / positive / negative / dependency). */
   readonly dimension: string;
   /** 砍之前的原始 delta. */
   readonly raw: number;
@@ -464,6 +558,12 @@ export interface TransitionStateOptions {
    * cap 是"一回合最多动多少"的最后一道尺子, 调节不得绕过它.
    */
   readonly personality?: PersonalityModulationInput;
+  /**
+   * 同盟三维端口 (WP42): safety / bond 的系数覆写 + 决策门槛.
+   *
+   * 缺省 = 用 DELTA_TABLE 的基础系数与内核种子门槛 (逐字不变, 零回归).
+   */
+  readonly alliance?: AllianceConfig;
 }
 
 /**
@@ -558,6 +658,9 @@ export function applyDeltaVector(snapshot: BdiSnapshot, delta: DeltaVector): Bdi
       dependency: clamp01(snapshot.transference.dependency + delta.dependency),
     },
     trust: clamp01(snapshot.trust + delta.trust),
+    // WP42: 同盟三维各自 clamp —— 安全感与纽带感同样是 [0,1] 的关系量.
+    safety: clamp01(snapshot.safety + delta.safety),
+    bond: clamp01(snapshot.bond + delta.bond),
   };
 }
 
@@ -576,10 +679,10 @@ export function applyDeltaVector(snapshot: BdiSnapshot, delta: DeltaVector): Bdi
  *
  * @param snapshot 旧快照
  * @param events 本轮标准事件
- * @param options 注入选项 (cap 配置 / 报告上下文 / 观察者 / 人格调节)
+ * @param options 注入选项 (cap 配置 / 报告上下文 / 观察者 / 人格调节 / 同盟三维端口)
  */
 export function transitionState(snapshot: BdiSnapshot, events: readonly SessionEvent[], options?: TransitionStateOptions): BdiSnapshot {
-  const aggregated = aggregateTurnDelta(events);
+  const aggregated = aggregateTurnDelta(events, options?.alliance);
   const raw = modulateByPersonality(aggregated, events, options?.personality);
   const delta = capTurnDelta(raw, options?.capConfig);
   notifyDeltaCap(options?.observer, buildDeltaCapReport(raw, delta, events, options?.capContext));
@@ -599,7 +702,7 @@ export function transitionStateDetailed(
   events: readonly SessionEvent[],
   options?: TransitionStateOptions,
 ): { readonly snapshot: BdiSnapshot; readonly capped: TurnDeltaCapReport | null } {
-  const aggregated = aggregateTurnDelta(events);
+  const aggregated = aggregateTurnDelta(events, options?.alliance);
   const raw = modulateByPersonality(aggregated, events, options?.personality);
   const delta = capTurnDelta(raw, options?.capConfig);
   const report = buildDeltaCapReport(raw, delta, events, options?.capContext);
