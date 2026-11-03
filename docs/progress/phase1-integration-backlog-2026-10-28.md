@@ -3,7 +3,7 @@
 > 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md)
 > 愿景备查: [`../reference/ai-simulation-blueprint-v1.1.md`](../reference/ai-simulation-blueprint-v1.1.md)（冲突以母版为准；蓝图选 pgvector，本仓 D2 拍板 Qdrant）
 > 设计原则原件（已转写归档，仅作依据，冲突以母版为准）：[`bdi-cognitive-engine-principles-v1.0.md`](../reference/bdi-cognitive-engine-principles-v1.0.md)（BDI 决策/渲染边界）、[`architecture-blindspot-fill-v1.0.md`](../reference/architecture-blindspot-fill-v1.0.md)（14 项盲区补全，经本仓架构裁剪后落地）。
-> 日期: 2026-10-28（进度登记更新于 2026-11-03）｜ 状态: 🟢 **WP0–WP12 核心链路全部交付并审核通过；WP18/WP19/WP20/WP21 调试与报告链路已交付；WP10/WP10A/WP11 伦理盲盒+表达风格+PsyGUARD 已交付；WP24 单场成本日志已交付；WP14 学员心理风险处置层已交付（2026-11-02）；WP14 优化项（block 不发 llm_start）已交付（2026-11-02）；WP22 语音对练限流（2026-11-02）；WP16 round_id 幂等（2026-11-02）；WP23 WS 断连追平已交付（2026-11-03，前端待接）；剩余 WP13/WP15/WP17 为稳健性与运维护栏，内测前补完**
+> 日期: 2026-10-28（进度登记更新于 2026-11-03）｜ 状态: 🟢 **WP0–WP12 核心链路全部交付并审核通过；WP18/WP19/WP20/WP21 调试与报告链路已交付；WP10/WP10A/WP11 伦理盲盒+表达风格+PsyGUARD 已交付；WP24 单场成本日志已交付；WP14 学员心理风险处置层已交付（2026-11-02）；WP14 优化项（block 不发 llm_start）已交付（2026-11-02）；WP22 语音对练限流（2026-11-02）；WP16 round_id 幂等（2026-11-02）；WP23 WS 断连追平已交付（2026-11-03，前端待接）；WP15 单回合非对称 delta cap 已交付（2026-11-03）；剩余 WP13/WP17 为稳健性与运维护栏，内测前补完**
 > 2026-10-29 增补：按两份设计原则（BDI 原则 / 盲区补全）经本仓架构裁剪，新增 Phase1 小项 WP14 学员风险兜底、WP15 算子幅度声明+回归、WP16 轻量幂等+断流不叠加；Phase2+ 保留推进队列见文末（全量保留，逐步推进，非丢弃）。
 > 2026-10-30 全面回头看：蓝图 Phase1 七条核心能力全部落地，执行无走歪、无过度工程。两个硬底线 WP 需内测前补完：WP17（新引擎路径 turn-analysis 入队对齐）、WP14（学员自身心理风险三级兜底）。详见 §0.4。
 > 仓库: `E:\Work\Project\backend\mofang-nestjs`
@@ -67,6 +67,7 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 | 🆕 **WP22 语音对练限流与并发上限** | ✅ 已交付（2026-11-02） | 任务单 `engine-wp22-voice-concurrency-limit-backend-2026-11-02.md`；记录 `engine-wp22-voice-concurrency-limit-backend-implementation-2026-11-02.md` | 单用户同时 1 场 + 日 token 预算告警，防烧 LLM 额度 |
 | 🆕 **WP23 WS 断连恢复口径明确** | ✅ 已交付（2026-11-03） | 任务单 `engine-wp23-ws-disconnect-grace-backend-2026-11-03.md`；记录 `engine-wp23-ws-disconnect-grace-backend-implementation-2026-11-03.md` | 对话式追平落地：断线不杀会话/不挂判死定时器；重连握手带 `lastSeenTurnIndex=N` → `session_catchup` 一次性补回已提交轮次；进程重启走 WP12 重建 + 持久化补漏；断连不调 TTS provider；2 小时 idle 兜底。**边界**：内核 BDI 仓储是内存态，跨进程恢复不了 BDI 快照（只能恢复长时记忆+角色基线）；prod 留痕默认关时补漏帧不带 BDI 快照 |
 | 🆕 **WP24 单场成本日志** | ✅ 已交付（2026-10-30） | 任务单 `engine-wp24-session-cost-log-backend-2026-10-30.md`；记录 `engine-wp24-session-cost-log-backend-2026-10-30-implementation-2026-10-30.md` | closeSession 打每场总 token + 预估费用，不做看板；定价走 env 可配；**成本口径 `costBasis` 随输入侧可得性如实切换**（`full` / `output_only`，生产主路径恒 `output_only` —— 上游流式无 prompt/completion 拆分，不拿 0 冒充不可得）；内核契约扩**可选** `usage.promptTokens?` + `model?`（1 个文件，用户拍板）；tsc 0 / eslint 0 / 新套件 18 例绿 / 引擎侧 29 套件 601 例全绿 / 全量 58 套件 925 例中 923 例通过（drill-judge 2 例既有债） |
+| 🆕 **WP15 单回合非对称 delta cap** | ✅ 已交付（2026-11-03） | 任务单 `engine-wp15-delta-cap-backend-2026-11-03.md`；记录 `engine-wp15-delta-cap-backend-implementation-2026-11-03.md` | BDI 状态迁移加单回合非对称 cap（trust/valence 上 +0.20、下 −0.30 损失厌恶；arousal + 阻抗三维 ±0.20；移情三维 ±0.15），**砍 delta 不是 clamp 绝对值**（clamp 仍是防越界最后防线）；cap 常量 env 可覆写（`ENGINE_CAP_<DIM>_UP/DOWN`，非法值回退种子值）；DELTA_TABLE 11 个事件全加幅度声明注释；adapter 侧逐维度打 `[WP15] turn delta capped: trust raw=+0.30 capped=+0.20 events=[...]` warning（内核零 logger 依赖，报告走观察者回调）。**边界**：内核破例只改 `state-transition.ts` 一个文件（diff 193 行，其中约 120 行是中文注释、既有逻辑只改 2 行）、cap 参数是**工程种子值未标定**（M3 内测后按 env 调）、cap 只管单回合总 delta 不管跨回合累积（衰减/边际递减/饱和/Prometheus 告警留 Phase2）。tsc 0 / eslint 0 warning / 新套件 18 例绿 / 全量 74 套件 1133 例全绿 |
 
 > WP8 总目标拆为两段：**WP8-A（聚合装配，已交付）** 先在调试端点跑通真实 reply；**WP8-B（流式原生 + 接 voice WS + 灰度，本单）** 才是端到端对练闭环。两者不合并，避免在装配期长出第二套渲染。
 
@@ -108,7 +109,7 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 | 高 | 重建服务器镜像（WP8-B 到 WP12 一起上线） | 现在就可以做 |
 | 高 | WP11 临时值改回（超时 150→500、token 28→256 是测试期放宽，M3 内测前改回） | 内测前。注意：输出侧走独立 env 读取（`PSYGUARD_TIMEOUT_MS`），不是只改内核常量，回改点比之前说的多 |
 | 高 | WP19 留痕链接通 | ✅ WP19-R 已修复（traceRecorder 真注入 DI）；admin-dashboard 切真 API 仍归 WP20（前端另派） |
-| 中 | WP15 算子幅度声明+边界回归 | 随主线插入 |
+| ~~中~~ | ~~WP15 算子幅度声明+边界回归~~ | ✅ **已交付（2026-11-03）**，内核破例只改 `state-transition.ts` 一个文件 |
 | ~~中~~ | ~~WP16 round_id 幂等+断流不叠加~~ | ✅ **已交付（2026-11-02）**，Flutter 端 roundId 适配已联调 |
 | ~~中~~ | ~~WP22 语音对练限流（防烧 LLM 额度）~~ | ✅ **已交付（2026-11-02）** |
 | ~~中~~ | ~~WP23 WS 断连追平（对话式 backfill，非 30s cliff）~~ | ✅ **已交付（2026-11-03）** |
@@ -270,6 +271,12 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 - **不做**：学员侧大模型风险分类（本期规则+PsyGUARD 已够）；不做实时情绪追踪模型。
 
 ### WP15 · 算子幅度声明 + 边界回归（低成本补全）
+
+> ✅ **已交付（2026-11-03）**。任务单：[`engine-wp15-delta-cap-backend-2026-11-03.md`](./completed/wp14-wp24-augment/engine-wp15-delta-cap-backend-2026-11-03.md)；交付记录：[`engine-wp15-delta-cap-backend-implementation-2026-11-03.md`](./completed/wp14-wp24-augment/engine-wp15-delta-cap-backend-implementation-2026-11-03.md)
+>
+> 落地摘要：单回合非对称 delta cap（trust 上 +0.20 / 下 −0.30，损失厌恶）+ DELTA_TABLE 幅度声明注释 + 4 条边界回归测试。破例改 `state-transition.ts` 一个文件（用户已松口）。cap 常量 env 可覆写。衰减/边际递减/饱和/告警留 Phase2。
+>
+> **交付后的口径修正**：① cap 报告走**观察者回调**（内核模块级单槽、同步触发、零 logger 依赖）—— "只动一个内核文件"与"adapter 打日志"同时成立的唯一解，代价是内核多一处模块级状态（替代方案要再动 2 个内核文件，交付记录 §4.2）；② 内核 diff 193 行（+191/−2），超验收 #6 的 "< 80 行" —— 约 120 行是中文说明注释、既有逻辑只改 2 行，是否接受需拍板（交付记录 §4.4）；③ 测试文件按仓库惯例放 `test/engine-core/wp15-delta-cap.spec.ts`（交付记录 §4.1）；④ cap 参数是**工程种子值未标定**，M3 内测后按 env 调。
 
 - **目标**：WP1 基线与算子叠加后已统一 `clamp01`（arousal/三维阻抗/三维移情/trust），本期只补"算子注册声明最大影响幅度"与边界回归断言，防算子叠加溢出。
 - **内容**：

@@ -117,6 +117,7 @@ WP0 边界骨架 / WP1 BDI认知引擎 / WP2 分层记忆 / WP3 轨迹控制 / W
 - WP22 语音对练限流与并发上限（单用户并发=1 + 全局日 token 预算，两道闸门拦在开会话入口）
 - WP16 turn 内存态幂等（同 round_id 重发不重跑 BDI；断流重发回 `turn_incomplete`，前端 round_id+1 走新一轮）
 - WP23 WS 断连重连追平（断线**不杀会话**、不挂判死定时器；重连握手带 `lastSeenTurnIndex=N` → 服务端把 N 之后已提交轮次塞进 `session_catchup` 一次性补回；进程重启走 WP12 重建 + 从持久化补漏；断连期间压根不调 TTS provider；2 小时 idle 兜底）
+- WP15 单回合非对称 delta cap（trust/valence 涨最多 +0.20、跌最多 −0.30 损失厌恶；arousal+阻抗三维 ±0.20；移情三维 ±0.15；**砍 delta 不是 clamp 绝对值**；cap 常量 env 可覆写；DELTA_TABLE 每个事件加幅度声明；adapter 侧打 `[WP15] turn delta capped: ...` warning，内核零 logger 依赖）
 
 ### 认证密码（completed/auth-and-password/）
 - POST /auth/reset-password（忘记密码重置，不需要 JWT，凭验证码改密+撤销所有 session）

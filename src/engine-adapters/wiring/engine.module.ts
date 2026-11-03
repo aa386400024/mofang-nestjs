@@ -46,6 +46,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { CharacterPoolModule } from './character/character-pool.module.js';
 import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver } from './character/index.js';
+import { DeltaCapLogger } from './delta-cap.logger.js';
 import { EngineStreamBackend } from './engine-stream-backend.adapter.js';
 import { EngineSessionRegistry, EngineTurnService } from './engine-turn.service.js';
 import { EngineWiringController } from './engine-wiring.controller.js';
@@ -228,6 +229,10 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
     },
     // 对外门面服务.
     EngineTurnService,
+    // V2026-11-03 治本 (WP15): 单回合 delta cap 观测日志 ——
+    //   内核只上报"这一回合 BDI 被砍了多少", 打不打日志由本层决定 (内核零 logger 依赖).
+    //   装配缺席 = 不打日志, 但内核照常砍幅 (观测是增强, 不是会话能力).
+    DeltaCapLogger,
     // V2026-11-02 治本 (WP16): 轮次幂等表 —— 同一会话同一 round_id 重发不重跑 BDI.
     //   模块内单例 (与对话后端同生命周期): 装配层唯一的"这一轮跑过没有"的事实来源.
     TurnIdempotencyService,
