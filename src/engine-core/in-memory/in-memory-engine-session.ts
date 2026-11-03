@@ -31,7 +31,18 @@ import { randomInt } from 'node:crypto';
 import { planIntention } from '../cognition/intention-planner.js';
 import { RuleBasedClassifier } from '../cognition/rule-based-classifier.js';
 import { assessSafety } from '../cognition/safety/assess-safety.js';
-import { transitionState } from '../cognition/state-transition.js';
+import {
+  addDeltaVectors,
+  aggregateTurnDelta,
+  applyDeltaVector,
+  buildDeltaCapReport,
+  capTurnDelta,
+  notifyDeltaCap,
+  transitionState,
+  type DeltaCapConfig,
+  type DeltaCapObserver,
+  type DeltaVector,
+} from '../cognition/state-transition.js';
 import { planAct } from '../cognition/trajectory/act-cursor.js';
 import { applyTrajectory } from '../cognition/trajectory/trajectory-applier.js';
 import { evaluateTrigger, type MatchContext } from '../cognition/trajectory/trigger-evaluate.js';
@@ -150,6 +161,23 @@ export interface InMemoryEngineSessionOptions {
    * 走构造注入而不是开场入参: 探测是**行为依赖**, 开场对象是可序列化的会话参数.
    */
   readonly riskProbe?: RiskProbePort;
+  /**
+   * 单回合 delta cap 配置 (WP26 · P2-14: 内核不再读 env, 由 adapter 读好注入).
+   *
+   * 缺省 = 内核种子值 (`DEFAULT_DELTA_CAP_CONFIG`). 为什么是**构造注入**而不是
+   * 每次 turn 传: cap 是**部署形态**的决定 (内测期要按真实对话调参), 不是会话参数;
+   * 放构造上 = 一场会话内口径恒定, 换配置 = 换实例, 不会出现"同一场里前后两轮
+   * cap 不一样"这种无法复现的漂移.
+   */
+  readonly capConfig?: DeltaCapConfig;
+  /**
+   * cap 报告观察者 (WP26 · P2-11/P2-12/P2-14).
+   *
+   * 缺省 = 不观测 (内核照常砍幅, 只是没人打日志). 观察者拿到的是**本轮总 delta**
+   * 的砍幅 (事件 + 剧本合并后), 且报告自带 sessionId / handleId —— 多人内测时
+   * 运维能直接定位到是哪场会话被砍.
+   */
+  readonly capObserver?: DeltaCapObserver;
 }
 
 /** 会话内核的内存实现. */
@@ -170,6 +198,10 @@ export class InMemoryEngineSession implements EngineSessionPort {
   private readonly classifier: EventClassifier;
   /** 风险探测端口 (WP4; 可选, 缺省纯规则). */
   private readonly riskProbe: RiskProbePort | undefined;
+  /** 单回合 delta cap 配置 (WP26 · P2-14). */
+  private readonly capConfig: DeltaCapConfig | undefined;
+  /** cap 报告观察者 (WP26 · P2-11/P2-12/P2-14). */
+  private readonly capObserver: DeltaCapObserver | undefined;
 
   constructor(options: InMemoryEngineSessionOptions) {
     this.bdiStates = options.bdiStates;
@@ -178,6 +210,8 @@ export class InMemoryEngineSession implements EngineSessionPort {
     this.now = options.now ?? Date.now;
     this.classifier = options.classifier ?? new RuleBasedClassifier();
     this.riskProbe = options.riskProbe;
+    this.capConfig = options.capConfig;
+    this.capObserver = options.capObserver;
   }
 
   openSession(input: OpenEngineSessionInput): EngineSessionHandle {
@@ -243,27 +277,49 @@ export class InMemoryEngineSession implements EngineSessionPort {
     const events = this.classifier.classify(userText, {
       sensitiveTopics: runtime.characterProfile?.sensitiveTopics,
     });
-    const nextSnapshot = transitionState(base.snapshot, events);
-    const intention = planIntention(nextSnapshot, runtime.characterProfile ?? undefined);
+    //    事件 delta 的**原始**值留一份 —— WP26 P2-12: 本轮总 delta = 事件 + 剧本,
+    //    要合并后统一过一次 cap, 所以分子必须是原始量, 不能是"已砍过的量".
+    const eventDelta = aggregateTurnDelta(events);
+    //    临时快照: 只按事件 delta 推进 (供意图规划与轨迹触发判定) ——
+    //    它是**中间量**, 不是本轮落库的状态 (落库口径见第 5 步).
+    const provisional = transitionState(base.snapshot, events, { capConfig: this.capConfig });
+    const intention = planIntention(provisional, runtime.characterProfile ?? undefined);
     // 4. 轨迹步 (WP3): BDI 自由规划**之后**、落库**之前**.
     //    BDI 永远先发生, 轨迹只做后处理 —— 于是"同一段行为在开/关轨迹两种配置下"
     //    可以直接对比, 轨迹出问题时也能回退到纯 BDI (任务单 M1).
-    const trajectory = this.applyTrajectoryStep(runtime, events, userText, intention, nextSnapshot);
+    //    WP26 P2-12: 本步**只取意图合成与本轮原始轨迹偏移**, 不落快照 ——
+    //    快照由第 5 步按"总 delta 过一次 cap"统一落, 避免旧路径那种
+    //    "事件 delta 已 cap + 剧本 delta 未 cap" 的 2 倍 cap 跳变.
+    const trajectory = this.applyTrajectoryStep(runtime, events, userText, intention, provisional);
+    // 5. WP26 P2-12: 本轮**总** delta = 事件 delta + 剧本 delta.
+    //    cap 管的是"一回合最多能动多少", 与 delta 的来源无关 —— 剧本作者写死的
+    //    偏移同样是"这一轮来访内心状态被改动了一次", 必须与事件 delta 一起受同一把尺子.
+    const totalDelta = trajectory.delta ? addDeltaVectors(eventDelta, trajectory.delta) : eventDelta;
+    const cappedTotal = capTurnDelta(totalDelta, this.capConfig);
+    const nextSnapshot = applyDeltaVector(base.snapshot, cappedTotal);
+    //    报告口径 = 总 delta (不是事件 delta): 运维看到的就是"这一轮实际被砍了多少".
+    notifyDeltaCap(
+      this.capObserver,
+      buildDeltaCapReport(totalDelta, cappedTotal, events, {
+        sessionId: runtime.sessionId,
+        handleId: runtime.handleId,
+      }),
+    );
     const record: BdiStateRecord = {
       tenantId: runtime.tenantId,
       sessionId: runtime.sessionId,
       revision: base.revision + 1,
       updatedAt: this.now(),
-      snapshot: trajectory.snapshot,
+      snapshot: nextSnapshot,
     };
-    // 5. 落库 (乐观锁: 冲突会冒泡为 STATE_CONFLICT).
+    // 6. 落库 (乐观锁: 冲突会冒泡为 STATE_CONFLICT).
     const saved = await this.bdiStates.save(record);
-    // 6. 写工作记忆 + 维护运行时工作窗口 (WP2).
+    // 7. 写工作记忆 + 维护运行时工作窗口 (WP2).
     await this.rememberTurn(runtime, userText);
     runtime.workingWindow = trimWorkingWindow([...runtime.workingWindow, userText], WORKING_MEMORY_WINDOW_TURNS);
-    // 7. 推进轮次.
+    // 8. 推进轮次.
     runtime.turnIndex += 1;
-    // 8. 跨会话开场上下文 (WP2): 仅 resume 会话的首论携带.
+    // 9. 跨会话开场上下文 (WP2): 仅 resume 会话的首论携带.
     //    刻意放在最后 —— 它只挂出参, 不参与上面的 BDI 决策, 也不改快照数值.
     const openingContext = await this.collectOpeningContext(runtime, userText);
 
@@ -431,12 +487,16 @@ export class InMemoryEngineSession implements EngineSessionPort {
    * 终态后 BDI 自由运行, 游标冻结, 不再推进/叠加, 本轮不再写 outcome ——
    * outcome 描述的是"本轮发生的终态事件", 不是会话的持久状态.
    *
+   * V2026-11-03 治本 (WP26 · P2-12): 本步**不再返回快照** ——
+   *   快照由调用方按"事件 delta + 剧本 delta = 本轮总 delta, 统一过一次 cap"落.
+   *   本步只负责交出两样东西: 合成后的意图 + 本轮叠加的**原始**剧本偏移.
+   *
    * @param runtime 运行时会话
    * @param events 本轮分类出的标准事件
    * @param userText 咨询师本轮文本
    * @param intention BDI 自由规划出的意图
-   * @param snapshot 本轮状态迁移后的快照
-   * @returns 最终意图 / 叠加后快照 / 本轮轨迹观测
+   * @param snapshot 本轮状态迁移后的临时快照 (供幕触发判定用)
+   * @returns 最终意图 / 本轮原始轨迹偏移 / 本轮轨迹观测
    */
   private applyTrajectoryStep(
     runtime: EngineSessionRuntime,
@@ -444,15 +504,14 @@ export class InMemoryEngineSession implements EngineSessionPort {
     userText: string,
     intention: Intention,
     snapshot: BdiSnapshot,
-  ): { readonly intention: Intention; readonly snapshot: BdiSnapshot; readonly trace?: TrajectoryTrace } {
+  ): { readonly intention: Intention; readonly delta?: DeltaVector; readonly trace?: TrajectoryTrace } {
     const trajectory = runtime.trajectory;
-    if (!trajectory) return { intention, snapshot };
+    if (!trajectory) return { intention };
 
     const script = trajectory.script;
     if (trajectory.outcome !== null) {
       return {
         intention,
-        snapshot,
         trace: {
           scriptId: script.scriptId,
           mode: script.mode,
@@ -492,7 +551,9 @@ export class InMemoryEngineSession implements EngineSessionPort {
 
     return {
       intention: applied.intention,
-      snapshot: applied.snapshot,
+      // WP26 P2-12: 把本轮叠加的**原始**剧本偏移交出去 —— 调用方拿它与事件 delta
+      // 合并后统一过一次 cap (本文件不落快照, 免得绕开 cap).
+      ...(applied.delta ? { delta: applied.delta } : {}),
       trace: {
         scriptId: script.scriptId,
         mode: script.mode,

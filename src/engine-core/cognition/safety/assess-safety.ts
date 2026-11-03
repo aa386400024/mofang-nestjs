@@ -84,7 +84,16 @@ export interface AssessSafetyInput {
   readonly side: SafetySide;
   /** 装配时注入的探测端口; 缺省 = 纯规则. */
   readonly probe?: RiskProbePort;
-  /** 探测超时 (种子值 DEFAULT_PROBE_TIMEOUT_MS=150); 到点回落规则. */
+  /**
+   * 探测超时 (种子值 DEFAULT_PROBE_TIMEOUT_MS).
+   *
+   * ⚠️ 当前值 = **500ms** —— 测试期**放宽**的值, M3 内测前必须改回 **150ms**
+   *   (回改清单见本文件头: 跨两个仓库 6 处, 本常量是其中一处).
+   *   口径统一: 任何地方提到这个超时, 都按"当前 500ms (测试期放宽), 内测前回改 150ms"
+   *   写, 不再有的地方写 150、有的地方写 500 —— 注释自相矛盾时, 排查的人会照着错的那个改.
+   *
+   * 到点回落规则.
+   */
   readonly timeoutMs?: number;
   /**
    * 时钟 (测试可注入).

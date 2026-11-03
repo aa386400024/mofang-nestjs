@@ -72,6 +72,7 @@ export interface BdiStateRepository {
    * @param tenantId 租户隔离键
    * @param sessionId 会话 id
    * @returns 状态记录; 从未存过则返回 null (不抛错)
+   * @throws EngineCoreError code=STORAGE_FAILURE 底层存储不可达 / 查询失败 (WP26 · P2-18)
    */
   load(tenantId: string, sessionId: string): Promise<BdiStateRecord | null>;
 
@@ -82,6 +83,7 @@ export interface BdiStateRepository {
    * @returns 落库后的记录
    * @throws EngineCoreError code=STATE_CONFLICT revision 不单调递增
    * @throws EngineCoreError code=INVALID_INPUT tenantId / sessionId 为空 / revision 非法
+   * @throws EngineCoreError code=STORAGE_FAILURE 底层存储不可达 / 写入失败 (WP26 · P2-18)
    */
   save(record: BdiStateRecord): Promise<BdiStateRecord>;
 }

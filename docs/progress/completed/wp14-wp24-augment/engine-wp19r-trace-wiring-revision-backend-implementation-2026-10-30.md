@@ -370,6 +370,6 @@ curl -i http://localhost:<port>/admin/api/sessions/does-not-exist              #
 
 - 任务单：[engine-wp19r-trace-wiring-revision-backend-2026-10-30.md](engine-wp19r-trace-wiring-revision-backend-2026-10-30.md)
 - 原单（契约来源）：[engine-wp19-admin-debug-module-trace-2026-10-29.md](engine-wp19-admin-debug-module-trace-2026-10-29.md)
-- 代码级对账（缺陷来源）：[code-vs-blueprint-audit-2026-10-30.md](code-vs-blueprint-audit-2026-10-30.md) §4.1 D1/D2/D3/D27/D28/D29
+- 代码级对账（缺陷来源）：[code-vs-blueprint-audit-2026-10-30.md](../../code-vs-blueprint-audit-2026-10-30.md) §4.1 D1/D2/D3/D27/D28/D29
 - 前端后续轮： [engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md](engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md)
-- 文档索引：[../README.md](../README.md)
+- 文档索引：[../README.md](../../../README.md)

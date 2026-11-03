@@ -1701,6 +1701,8 @@ export class VoiceService {
           // V2026-11-03 治本 (WP23): 带 `turnIndex` —— 客户端断线重连时要报
           //   "我上次听到第几轮", 靠的就是这个号. 缺省 = 后端没给轮次号 (旧链路),
           //   客户端按"不知道听到哪"处理 (握手不带 lastSeenTurnIndex).
+          // V2026-11-03 治本 (WP26 · P2-34): 带 `finishReason` —— 上游把正文按长度
+          //   截断时 (`length`), 客户端要能分"说完了"与"被截断了"; 缺省 = 上游没给.
           send({
             type: 'llm_done',
             usage: {
@@ -1710,6 +1712,7 @@ export class VoiceService {
               ...(chunk.usage.reasoningTokens === undefined ? {} : { reasoningTokens: chunk.usage.reasoningTokens }),
             },
             turnIndex,
+            ...(chunk.finishReason === undefined ? {} : { finishReason: chunk.finishReason }),
           });
           ttsHandle?.finish();
           // WP16: 重放 (幂等复用) **不是新的一轮** —— 逐字稿不能再落第二条.

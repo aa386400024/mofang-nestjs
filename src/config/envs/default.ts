@@ -103,8 +103,29 @@ export const config = {
   },
   // Prometheus metrics
   metrics: {
-    enabled: process.env.METRICS_ENABLED !== 'false', // 默认开启
+    // V2026-11-03 治本 (WP26 · P2-3 · /metrics 加鉴权):
+    //   旧口径 `process.env.METRICS_ENABLED !== 'false'` = **缺省即开**, 且端点零鉴权 ——
+    //   等于把 QPS / 延迟分位 / 错误率直接挂在网上 (WP25 报告 P2-3).
+    //   新口径 (fail-close):
+    //     · 显式配了 METRICS_ENABLED → 照配的走, 但**只有 'true' 算开**;
+    //     · 没配 (或只配了空串)      → 生产**关** (NODE_ENV=production), 非生产开 (本地调试方便).
+    //   为什么"生产缺省关"写在**共享的 default.ts** 而不是 production.ts:
+    //     default.ts 是三份 env (development / test / production) 共用的底座, 加载顺序是
+    //     default → ${NODE_ENV}; 生产实际跑的就是 production.ts + default.ts,
+    //     缺省值落在哪一层生效结果一样 —— 写在共享层就不用碰另外两份 env 文件
+    //     (改动面最小, 也不会跟别的任务单的并行改动打架).
+    //   ⚠️ 生产真的要看指标: 显式 METRICS_ENABLED=true **且** 配 METRICS_TOKEN,
+    //     两者缺一不可 (token 没配 = 拒绝一切请求, 见 metrics.controller.ts).
+    enabled: resolveMetricsEnabled(),
     path: process.env.METRICS_PATH ?? '/metrics',
+    // 抓取端点的独立 token (Bearer). 留空 = 没开鉴权 → 端点拒绝一切请求 (fail-close).
+    // 为什么用 token 而不是内网 IP 白名单:
+    //   · 生产开了 `app.enable('trust proxy')` (src/app.ts:43), Express 的 req.ip 取自
+    //     X-Forwarded-For —— 客户端可伪造该头, 基于它的白名单在"应用端口能被直连"时形同虚设;
+    //   · 仓库没有 CIDR 匹配库, 手写 CIDR 判定 = 自己造一遍边界坑;
+    //   · Prometheus 原生支持 bearer token (authorization.credentials / bearer_token_file),
+    //     抓取侧零改造, token 还能随时轮换.
+    token: process.env.METRICS_TOKEN,
     // 默认 HTTP histogram buckets (5ms ~ 10s, 大厂经验值)
     httpDurationBuckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
   },
@@ -265,4 +286,23 @@ function readPositiveNumber(raw: string | undefined, fallback: number): number {
   const parsed = Number(raw.trim());
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
   return parsed;
+}
+
+/**
+ * 解析 /metrics 开关 (WP26 · P2-3 · /metrics 加鉴权).
+ *
+ * 口径 (fail-close —— "配错"必须落在"关", 不能落在"开"):
+ *   · 显式值: **只有 'true'** (忽略大小写与前后空白) 算**开**;
+ *     其余 ('false' / 'yes' / '1' / 拼错) 一律按**关** ——
+ *     这是一个对外端点, "配错变抓不到" (看得见的故障) 远比 "配错就裸奔" (看不见的泄漏) 安全;
+ *   · 缺省 (没配 / 只配了空串): 生产**关**, 非生产**开** (本地调试要随时能看指标).
+ *
+ * @returns /metrics 是否启用
+ */
+function resolveMetricsEnabled(): boolean {
+  const raw = process.env.METRICS_ENABLED?.trim();
+  if (raw === undefined || raw === '') {
+    return process.env.NODE_ENV !== 'production';
+  }
+  return raw.toLowerCase() === 'true';
 }

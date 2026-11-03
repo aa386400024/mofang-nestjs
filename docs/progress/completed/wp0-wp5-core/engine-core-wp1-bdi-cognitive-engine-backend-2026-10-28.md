@@ -1,6 +1,6 @@
 # WP1 · BDI 认知引擎（规则轨 · 先决策后说话）后端任务单
 
-> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md) WP1（114–125 行）
+> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../../../architecture/ai-engine-roadmap-v1.1.md) WP1（114–125 行）
 > 前置: [`engine-core-wp0-boundary-skeleton-backend-2026-10-28.md`](./engine-core-wp0-boundary-skeleton-backend-2026-10-28.md)（内核边界骨架，已交付）
 > 仓库: `E:\Work\Project\backend\mofang-nestjs`
 > 日期: 2026-10-28 ｜ 类型: 引擎内核纯 TS 算法层（不接线、不触框架）

@@ -19,7 +19,7 @@
    真机实测把这条矛盾量化了：BERT-large int8 在这台 2 核 / 1.5 核配额机上 **≈ 9.9ms + 3.34ms/token** → 98 token 的真实咨询长句要 **325ms**，**必然超时作废**。所以服务侧自己管**token 窗口（头尾各半，默认 28）**，把延迟压进预算；代价是长文本准确率 −1.3pp（实测见 §8.3）。
 4. **"跑起来"不等于"能用"**：首轮真机部署后服务起来了，但 `/health` 一直 `model_loaded: false` —— `SessionOptions` 的线程数三元条件**写反**，模型加载直接抛 `TypeError`，服务永远 degraded、`/v1/classify` 恒 503。**这个 bug 单测没抓到**（当时把 `_build` 整个 mock 掉了，出问题的那条分支一次都没跑过）。已修，并把该路径抽成可单测方法 + 6 条用例 + **变异测试**兜底。
 
-**红线全部守住**：`src/engine-core/**` 整树零改动（`git diff --stat HEAD -- src/engine-core` **为空** —— **审核后为 1 个文件**，是用户决策 #4 明确要求改的探测超时常量，见 §12.4，**不是红线破防**）；不替换 `LocalCrisisProbe`（它是降级兜底）；不缓存探测结果；不改 voice WS 协议；8100 只绑回环；模型权重不进 git。
+**红线全部守住**：`src/engine-core/**` **审核前**整树零改动（`git diff --stat HEAD -- src/engine-core` **为空**）—— **审核后为 1 个文件**，是用户决策 #4 明确要求改的探测超时常量，见 §12.4，**不是红线破防**；不替换 `LocalCrisisProbe`（它是降级兜底）；不缓存探测结果；不改 voice WS 协议；8100 只绑回环；模型权重不进 git。
 
 **闸门**：`tsc -p tsconfig.build.json` **0 错** / eslint **0 error 0 warning** / `jest test/engine-adapters test/engine-core test/voice` **27 套件 548 例全绿** / 全量 `npm test` **56 套件 872 例中 870 例通过**（唯一失败仍是 `drill-judge.spec.ts` 2 例既有债）/ Python 侧 **37 例全绿**。（以上为**审核后复跑**口径，见 §12.3）
 
@@ -183,10 +183,13 @@ src/engine-adapters/wiring/risk/
 | `score` | **宽松**：非数字 / 越界 → 省略 | 内核只拿它做展示，不做阈值判定 |
 | `neutral` | **剔除** | 它表示"无关"，不是风险类别 |
 
-### 3.3 超时的真相（别被 150 这个数字骗了）
+### 3.3 超时的真相（150 是**正式口径**，500 是**测试期放宽值**）
 
-- 内核 `assessSafety` 自己 `Promise.race` 一个 **150ms** 的计时器 —— 那是**硬上限**，engine-core 是红线，适配层改不动。
-- 本探针的 `timeoutMs`（默认 `DEFAULT_PROBE_TIMEOUT_MS`，可由 `PSYGUARD_TIMEOUT_MS` 覆盖）**只用于提前掐断 HTTP 连接**（让 socket 早点释放）。**调大它不会放宽内核的判定上限** —— 内核照样 150ms 回落规则。这一点在代码注释、`.env.example`、README 里都写明了，避免运维误配。
+> **口径声明（2026-11-03 统一）**：**当前生效值 = 500ms / 256 token —— 那是测试期放宽值；正式口径 = 150ms / 28 token，M3 内测前按 §12.5 清单改回。**
+> 本节初稿按 150ms 写（150 确实是**正式口径**，但写的是放宽之前的状态），与代码当前值不符 —— 已按当前代码事实改写，避免"读文档的人以为 150 就是现在的值"。
+
+- 内核 `assessSafety` 自己 `Promise.race` 一个计时器 —— 那是**硬上限**，engine-core 是红线，适配层改不动。**该常量的当前值是 500ms**（`DEFAULT_PROBE_TIMEOUT_MS`，用户决策 #4 在测试期临时放宽）；**正式口径是 150ms**，M3 内测前改回（回改清单见 §12.5）。
+- 本探针的 `timeoutMs`（默认 `DEFAULT_PROBE_TIMEOUT_MS`，可由 `PSYGUARD_TIMEOUT_MS` 覆盖）**只用于提前掐断 HTTP 连接**（让 socket 早点释放）。**调大它不会放宽内核的判定上限** —— 内核照样按自己那个上限（当前 500ms / 正式 150ms）回落规则。这一点在代码注释、`.env.example`、README 里都写明了，避免运维误配。
 
 ### 3.4 装配开关：`PSYGUARD_BASE_URL` 存在 → HTTP 探测；不存在 → 本地规则
 
@@ -247,7 +250,7 @@ export function normalizeWidth(text: string): string {
 
 | 任务单 §2 的「不做」 | 本轮核对结果 |
 |---|---|
-| 不改 `src/engine-core/**` | ✅ `git diff --stat HEAD -- src/engine-core` **为空** |
+| 不改 `src/engine-core/**` | ⚠️ **审核后为 1 个文件**（`src/engine-core/cognition/safety/assess-safety.ts` —— 改 `DEFAULT_PROBE_TIMEOUT_MS` 常量 + 回改清单注释；**决策 #4 明确要求改的，不是红线破防**，改动范围与回改清单见 §12.4）；**审核前确实为空** |
 | 不替换 `LocalCrisisProbe` | ✅ 保留为兜底；没配 env 时它**就是**当前实现 |
 | 不做 probe 结果缓存 | ✅ 每次调用独立请求，无去重/缓存 |
 | 不做 GPU / 批量推理 / 异步队列 | ✅ ONNX Runtime CPU、单条同步、batch 恒为 1 |
@@ -266,7 +269,7 @@ export function normalizeWidth(text: string): string {
 | 1 | `PSYGUARD_BASE_URL` 未设 → 行为与现状逐字一致 | ✅ `createRiskProbe({})` → `LocalCrisisProbe`；单测断言 |
 | 2 | 服务正常 + `PSYGUARD_BASE_URL=http://127.0.0.1:8100` → 危机表达时 probe 返回 high + 自杀类类别，最终等级 high | ✅ 单测（成功路径）+ 真机实测（见 §8.3） |
 | 3 | 服务挂掉 → 不报错，回落本地规则，日志有 warn | ✅ 单测（真内核 `assessSafety` 兜住）+ 代码里抛错前先 warn |
-| 4 | 响应 > 150ms → 超时回落，不阻断 | ✅ 内核 `Promise.race(150ms)` 兜住；本探针另有内部超时掐断连接 |
+| 4 | 响应 > 超时上限 → 超时回落，不阻断 | ✅ 内核 `Promise.race(上限)` 兜住（**上限当前 = 500ms，测试期放宽值；正式口径 150ms**，见 §3.3 与 §12.5）；本探针另有内部超时掐断连接 |
 | 5 | `/health` 的 `model_loaded: false` → NestJS 记 warn，不断启动 | ✅ 单测（`reachable=true, modelLoaded=false`）+ 启动自检不 await |
 | 6 | `docker stats` 内存不超过限额 | ✅ 真机实测（§8.3；审核后限额 900M → 实测 680.5/900MiB，余量 ~220MiB） |
 | 7 | `tsc -p tsconfig.build.json --noEmit` 0 错 | ✅ |
@@ -284,12 +287,12 @@ export function normalizeWidth(text: string): string {
 | 3 | §1.1「ONNX Runtime 量化版占 ~500MB」 | int8 权重实测 **327.6MB**（fp32 是 1302.8MB） | 实测值；容器总占用见 §8.3 |
 | 4 | §1.1 出参 `categories: ["suicide","self_harm",...]` | 用**内核 `VisitorRiskCategory` 原名**（`suicide_plan` / `active_ideation` / …） | `"suicide"` 无法映射到内核 11 类中的任何一类（自杀未遂/计划/准备/主动意图是四种不同严重度）→ 照抄任务单就得造一张**有损**翻译表，丢掉"是哪一种自杀"这个最关键的信息。改用内核原名后，两仓库零翻译 |
 | 5 | §1.1「`/health` 出参 `{status, model_loaded, device}`」 | 追加 `labels` / `max_length` / `threshold` / `detail` | 跨仓库的 11 类清单需要一个**漂移探针**；`labels` 让 NestJS 启动时能逐类别比对。字段是**追加**，原三个字段语义不变 |
-| 6 | §1.3「超时：`DEFAULT_PROBE_TIMEOUT_MS = 150ms`（与内核现有常量一致，不另造）」 | 保留该默认值，但**明确它只是"提前掐断连接"**，另加 `PSYGUARD_TIMEOUT_MS` 覆盖 | 内核 150ms 是硬上限；不写清楚会让人以为调大这个值就能放宽判定 —— 那是**假配置** |
+| 6 | §1.3「超时：`DEFAULT_PROBE_TIMEOUT_MS = 150ms`（与内核现有常量一致，不另造）」 | 保留该默认值，但**明确它只是"提前掐断连接"**，另加 `PSYGUARD_TIMEOUT_MS` 覆盖 | 内核那个超时上限是硬上限（**当前 500ms / 正式口径 150ms**，见 §3.3）；不写清楚会让人以为调大这个值就能放宽判定 —— 那是**假配置** |
 | 7 | §1.4「补全规则词典：全半角归一 + 常见变体」 | NFKC 归一（不是手写码位区间）；`活着没意思` **不重复抄**（内核已收） | 内核已有 = 抄第二份就是两份真相 |
 | 8 | §1.5「在 `risk-probe.ts` 同目录加 `mindguard-placeholder.ts`」 | 落在 `src/engine-adapters/wiring/risk/`（`risk-probe.ts` 是**内核**里的端口文件，不在适配层） | 适配层不能往内核目录放文件 |
 | 9 | §1.3「DI 装配」 | 分流逻辑抽成纯工厂 `createRiskProbe`（`engine.providers.ts`） | 仓库既有纪律：构造逻辑不进 `useFactory`（单测覆盖不到） |
 | 10 | §1.1「目录结构」未列 `scripts/` `tests/` | 增加；并新增三个**截断策略实验脚本**（`exp_truncation.py` / `exp_truncation_long.py` / `exp_window_caps.py`） | 导出与校验是**必需的**工具，不是附属品；而"窗口取多大"这种取舍**必须用实测数据定**，不能拍脑袋 |
-| 11 | §1.1「ONNX 单条延迟 100-200ms」 | 实测真机 ≈ **9.9ms + 3.34ms/token**（98 token → 325ms），因此服务侧新增 **token 窗口（头尾各半，默认 28）** | 100–200ms 装不进内核 150ms 的硬预算；不裁窗口则长文本**必然超时作废**。裁窗口的准确率代价已实测（长文本子集 0.9304 → 0.9174） |
+| 11 | §1.1「ONNX 单条延迟 100-200ms」 | 实测真机 ≈ **9.9ms + 3.34ms/token**（98 token → 325ms），因此服务侧新增 **token 窗口（头尾各半，默认 28）** | 100–200ms 装不进内核 **150ms 的正式预算**（测试期已按决策 #4 放宽到 500ms 才勉强装下，见 §12.2）；不裁窗口则长文本**必然超时作废**。裁窗口的准确率代价已实测（长文本子集 0.9304 → 0.9174） |
 | 12 | §1.1「`/health` 出参含 `max_length`」 | `max_length` 语义由"分词器截断长度"改为**"单次推理的 token 窗口上限"**，默认值 256 → **28** | 字段名保留（跨仓库契约不变），但含义必须与实际行为一致 —— 报一个不生效的数字比不报更糟 |
 
 ---
@@ -440,7 +443,7 @@ git diff --stat HEAD -- src/engine-core                                  → 审
 | 成功路径（6 例） | high + 自杀类别 → block / 请求打到 `/v1/classify` 且载荷是 `{text}` / `low\|medium\|high → pass\|warn\|block` / 未知类别被丢弃 / `neutral` 被剔除 / score 越界被省略 / **空文本不发请求** |
 | 失败路径（4 例） | 连接失败或超时 → 抛错 / HTTP 503 → 抛错 / 非 JSON → 抛错 / 脏形状（level 缺失/非法、载荷非对象）→ 抛错 |
 | 内核集成（3 例） | 探针命中 → 内核 block + `source='probe'` / **探针抛错 → 内核静默回落规则且不抛穿** / 探针说 low 但类别是 `suicide_plan` → 内核取 max 判 block（防御纵深） |
-| 装配分流（5 例） | 没配地址 → `LocalCrisisProbe` / 配了地址 → `HttpPsyGuardProbe` / 空白地址 → 仍走本地规则 / 两者不叠加 / 超时 env 字符串显式解析（非法值回退 150） |
+| 装配分流（5 例） | 没配地址 → `LocalCrisisProbe` / 配了地址 → `HttpPsyGuardProbe` / 空白地址 → 仍走本地规则 / 两者不叠加 / 超时 env 字符串显式解析（非法值回退 `DEFAULT_PROBE_TIMEOUT_MS` = **500**，正式口径 150ms） |
 | 健康检查（5 例） | 可达+就绪+口径一致 → 三项真 / 不可达 → `reachable=false` 不抛 / 模型未加载 → `reachable=true, modelLoaded=false` / **标签口径漂移 → `contractOk=false`** / 启动钩子不 await 且不炸 |
 | 词典补全（5 例） | NFKC 归一（`ＡＢＣ１２３`→`ABC123`、全角空格→半角空格、中文标点不受影响）/ 全角英文危机表达命中 / 倾诉变体命中 / 主动意图变体命中 / 普通咨询对话不误报 / `活着没意思` 由内核词典覆盖 |
 

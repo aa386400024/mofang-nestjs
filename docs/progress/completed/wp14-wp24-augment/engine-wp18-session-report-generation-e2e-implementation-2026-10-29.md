@@ -1,7 +1,7 @@
 # WP18 · 会话结束 → 复盘报告生成链路端到端打通 · 后端交付记录
 
 > 任务单: [`engine-wp18-session-report-generation-e2e-2026-10-29.md`](./engine-wp18-session-report-generation-e2e-2026-10-29.md)
-> 前置: WP0–WP7 / [WP8-A](./engine-wp8-di-wiring-aggregated-turn-implementation-2026-10-28.md) / [WP8-B](./engine-wp8b-streaming-ws-grayscale-backend-implementation-2026-10-29.md) / [WP9-A](./engine-wp9a-character-profile-seed-injection-implementation-2026-10-29.md) / [WP9-B](./engine-wp9b-db-character-pool-backend-implementation-2026-10-29.md) / [WP9-C](./engine-wp9c-voice-render-token-budget-safety-boundaries-implementation-2026-10-29.md)
+> 前置: WP0–WP7 / [WP8-A](../wp6-wp12-wiring/engine-wp8-di-wiring-aggregated-turn-implementation-2026-10-28.md) / [WP8-B](../wp6-wp12-wiring/engine-wp8b-streaming-ws-grayscale-backend-implementation-2026-10-29.md) / [WP9-A](../wp6-wp12-wiring/engine-wp9a-character-profile-seed-injection-implementation-2026-10-29.md) / [WP9-B](../wp6-wp12-wiring/engine-wp9b-db-character-pool-backend-implementation-2026-10-29.md) / [WP9-C](../wp6-wp12-wiring/engine-wp9c-voice-render-token-budget-safety-boundaries-implementation-2026-10-29.md)
 > 仓库: `E:\Work\Project\backend\mofang-nestjs` ｜ 日期: 2026-10-29
 
 ---

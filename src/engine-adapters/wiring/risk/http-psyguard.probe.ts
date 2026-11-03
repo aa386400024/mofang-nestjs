@@ -38,17 +38,19 @@
 //     即使某一侧判偏保守, 内核最终等级仍取 max(规则, 探测, 类别映射) —— 宁可偏高.
 //
 //   超时的真相 (别被这个数字骗了):
-//     内核 `assessSafety` 的探测超时是 `DEFAULT_PROBE_TIMEOUT_MS` = **150ms**, 且是
+//     内核 `assessSafety` 的探测超时是 `DEFAULT_PROBE_TIMEOUT_MS`, 且是
 //     **硬上限** (内核那层自己 race, 适配层改不动 —— engine-core 是红线).
+//     ⚠️ 当前值 = **500ms** —— **测试期放宽**的值 (M3 内测前必须改回 **150ms**;
+//         跨仓库回改清单见 engine-core/cognition/safety/assess-safety.ts 文件头).
 //     本文件的 `timeoutMs` 只是**提前掐断 HTTP 连接**, 让 socket 早点释放;
-//     把它调大**不会**放宽内核的判定上限 (内核照样 150ms 回落规则).
-//     所以真正的工程约束是: **Python 服务必须在 150ms 内答完** (见 mofang-psyguard
-//     的 README「延迟预算」一节).
+//     把它调大**不会**放宽内核的判定上限 (内核照样在那个上限处回落规则).
+//     所以真正的工程约束是: **Python 服务必须在那个上限内答完** (内测回改后是 150ms;
+//     见 mofang-psyguard 的 README「延迟预算」一节).
 //
 //   不做:
 //     - 不缓存探测结果 (风险判定要实时; 缓存会漏判) —— 任务单 §2 明确红线;
-//     - 不重试 (重试会让每轮探测的最坏耗时翻倍, 而内核预算只有 150ms);
-//     - 不做熔断 (连接被拒是**瞬时**返回, 不像超时那样等满 150ms; 真需要熔断
+//     - 不重试 (重试会让每轮探测的最坏耗时翻倍, 而内核预算只有一个上限);
+//     - 不做熔断 (连接被拒是**瞬时**返回, 不像超时那样等满上限; 真需要熔断
 //       应该在内核那层统一做, 而不是每加一个探测实现就各写一套).
 
 import { Logger } from '@nestjs/common';
@@ -145,7 +147,8 @@ export interface HttpPsyGuardProbeOptions {
   /**
    * 内部 HTTP 超时 (ms).
    *
-   * 默认 = 内核 `DEFAULT_PROBE_TIMEOUT_MS` (150) —— **不另造常量**.
+   * 默认 = 内核 `DEFAULT_PROBE_TIMEOUT_MS` —— **不另造常量**.
+   * ⚠️ 当前内核值 = 500ms (测试期放宽; M3 内测前改回 150ms) —— 见文件头.
    * 它只用于提前掐断连接, 放宽它不会放宽内核的判定上限 (见文件头).
    */
   readonly timeoutMs?: number;

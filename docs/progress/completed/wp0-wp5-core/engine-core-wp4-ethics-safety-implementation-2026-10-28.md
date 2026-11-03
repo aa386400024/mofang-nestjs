@@ -1,7 +1,7 @@
 # WP4 · 伦理安全引擎（规则层主体 + PsyGUARD 双层降级 + 双侧检测 + 会后伦理报告）后端交付记录
 
 > 任务单: [`engine-core-wp4-ethics-safety-backend-2026-10-28.md`](./engine-core-wp4-ethics-safety-backend-2026-10-28.md)
-> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md) WP4 + §7 伦理分层
+> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../../../architecture/ai-engine-roadmap-v1.1.md) WP4 + §7 伦理分层
 > 前置: [`engine-core-wp0-boundary-skeleton-backend-2026-10-28.md`](./engine-core-wp0-boundary-skeleton-backend-2026-10-28.md)（边界骨架）、
 >       [`engine-core-wp1-bdi-cognitive-engine-backend-2026-10-28.md`](./engine-core-wp1-bdi-cognitive-engine-backend-2026-10-28.md)（BDI 规则轨）、
 >       [`engine-core-wp2-layered-memory-backend-2026-10-28.md`](./engine-core-wp2-layered-memory-backend-2026-10-28.md)（分层记忆 V1）、

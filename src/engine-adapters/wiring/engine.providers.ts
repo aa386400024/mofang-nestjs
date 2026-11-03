@@ -34,7 +34,7 @@ import type { TraceRecorder } from '../../admin-debug/trace-recorder.service.js'
 import { InMemoryBdiStateRepository } from '../../engine-core/in-memory/in-memory-bdi-state.repository.js';
 import { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-engine-session.js';
 import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store.js';
-import type { Embedder, EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
+import type { DeltaCapConfig, DeltaCapObserver, Embedder, EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
 import type { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
 import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import type { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
@@ -99,6 +99,19 @@ export function createEngineMemoryStore(deps: EngineMemoryStoreDeps): MemoryStor
 }
 
 /**
+ * 内核会话的 cap 依赖 (WP26 · P2-14).
+ *
+ * 单回合 delta cap 的配置与观察者都是**注入**进来的 —— 内核不读 env、不持有全局槽.
+ * 缺省 = 内核种子值 + 不观测 (行为与 WP15 之前逐字一致).
+ */
+export interface EngineSessionCapDeps {
+  /** 单回合 delta cap 配置 (缺省 = 内核种子值). */
+  readonly capConfig?: DeltaCapConfig;
+  /** cap 报告观察者 (缺省 = 不观测). */
+  readonly capObserver?: DeltaCapObserver;
+}
+
+/**
  * 装配内核会话端口.
  *
  * BDI 状态本期用内存仓储 (落库仓储属后续轮); 记忆仓储与门面包的是**同一实例** ——
@@ -106,13 +119,16 @@ export function createEngineMemoryStore(deps: EngineMemoryStoreDeps): MemoryStor
  *
  * @param memories 记忆仓储 (与门面共用)
  * @param riskProbe 可选风险探测端口 (WP4 扩展点; 缺省 = 纯规则判定)
+ * @param cap 可选 cap 依赖 (WP26 · P2-14: 配置与观察者注入)
  * @returns 内核会话端口
  */
-export function createEngineSessionPort(memories: MemoryStore, riskProbe?: RiskProbePort): EngineSessionPort {
+export function createEngineSessionPort(memories: MemoryStore, riskProbe?: RiskProbePort, cap?: EngineSessionCapDeps): EngineSessionPort {
   return new InMemoryEngineSession({
     bdiStates: new InMemoryBdiStateRepository(),
     memories,
     ...(riskProbe ? { riskProbe } : {}),
+    ...(cap?.capConfig ? { capConfig: cap.capConfig } : {}),
+    ...(cap?.capObserver ? { capObserver: cap.capObserver } : {}),
   });
 }
 

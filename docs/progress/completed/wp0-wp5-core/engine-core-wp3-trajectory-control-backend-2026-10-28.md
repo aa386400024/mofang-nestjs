@@ -1,6 +1,6 @@
 # WP3 · 会话轨迹控制引擎（强覆盖 / 修正 / 触发三模式 + 线性多幕游标）后端任务单
 
-> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md) WP3（140–149 行：标准化训练场景可复现，伦理盲盒每次触发点一致）
+> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../../../architecture/ai-engine-roadmap-v1.1.md) WP3（140–149 行：标准化训练场景可复现，伦理盲盒每次触发点一致）
 > 前置: [`engine-core-wp0-boundary-skeleton-backend-2026-10-28.md`](./engine-core-wp0-boundary-skeleton-backend-2026-10-28.md)（边界骨架，已交付）、
 >       [`engine-core-wp1-bdi-cognitive-engine-backend-2026-10-28.md`](./engine-core-wp1-bdi-cognitive-engine-backend-2026-10-28.md)（BDI 规则轨认知引擎，已交付）、
 >       [`engine-core-wp2-layered-memory-backend-2026-10-28.md`](./engine-core-wp2-layered-memory-backend-2026-10-28.md)（分层记忆 V1，**已交付并复跑绿：eslint 0 / tsc 0 / jest engine-core 全绿零回归**）

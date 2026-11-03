@@ -1,6 +1,6 @@
 # WP8-A · 引擎 NestJS 装配 + 聚合 turn 生产接线（把 WP6/WP7 纯单元接进 DI，真实调 LLM，先跑通聚合闭环）后端任务单
 
-> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md) ｜ backlog [`./phase1-integration-backlog-2026-10-28.md`](./phase1-integration-backlog-2026-10-28.md) WP8
+> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../../../architecture/ai-engine-roadmap-v1.1.md) ｜ backlog [`./phase1-integration-backlog-2026-10-28.md`](../../phase1-integration-backlog-2026-10-28.md) WP8
 > 前置（均已交付并复跑绿）: WP0 边界骨架 / WP1 BDI / WP2 分层记忆 / WP3 轨迹 / WP4 伦理 / WP5 渲染契约 / WP6 LlmRenderAdapter + 主备执行 / WP7 RenderSpec 组装 + turn 填 reply + 成对记忆
 > 仓库: `E:\Work\Project\backend\mofang-nestjs`
 > 日期: 2026-10-28 ｜ 类型: **NestJS 装配层（`src/engine-adapters/wiring/`，新增）**，首次把纯单元接进依赖注入、首次在生产路径真实调用 LLM

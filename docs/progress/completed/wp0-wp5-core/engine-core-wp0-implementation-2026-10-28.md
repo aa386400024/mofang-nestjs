@@ -1,7 +1,7 @@
 # WP0 · 引擎内核边界骨架（engine-core 纯 TS 隔离）后端交付记录
 
 > 任务单: [`engine-core-wp0-boundary-skeleton-backend-2026-10-28.md`](./engine-core-wp0-boundary-skeleton-backend-2026-10-28.md)
-> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md) 第 0 原则 + WP0
+> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../../../architecture/ai-engine-roadmap-v1.1.md) 第 0 原则 + WP0
 > 仓库: `E:\Work\Project\backend\mofang-nestjs`
 > 日期: 2026-10-28 ｜ 状态: 🟡 **代码已交付；首轮 lint 通过 / test 2 处失败已修，待大炮复跑**（`pnpm build` 未跑）
 

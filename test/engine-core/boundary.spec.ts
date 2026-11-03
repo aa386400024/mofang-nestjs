@@ -10,6 +10,8 @@
 //         ⑦ 目录结构与任务单 §3.1 一致;
 //         ⑧ 内核根目录无散落文件;
 //         ⑨ B 层实现 (Qdrant / embedding) 落在内核包之外 (WP2).
+//         ⑩ 内核树零 process.env / 零 globalThis 访问 (WP26 · P2-17).
+//         ⑪ adapter 不得深路径 import engine-core 的内部模块 (WP26 · P2-16).
 //
 //   为什么必须是断言而不是注释:
 //     这条边界是整个 Phase1 的地基 (roadmap 第 0 原则: 引擎未来独立成微服务).
@@ -93,7 +95,7 @@ function extractModuleSpecifiers(file: string): string[] {
   return specifiers;
 }
 
-/** AST 级抽取: 文件里真实存在的装饰器名. */
+/** AST 级抽取: 装饰器名. */
 function extractDecorators(file: string): string[] {
   const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
   const decorators: string[] = [];
@@ -105,6 +107,42 @@ function extractDecorators(file: string): string[] {
   };
   visit(source);
   return decorators;
+}
+
+/**
+ * AST 级抽取: 对**进程级全局**的访问 (WP26 · P2-17).
+ *
+ * 为什么要单独一条断言:
+ *   前面 9 条断言全部基于"模块说明符"抽取 —— 只覆盖 import.
+ *   而 `process.env` 是**全局对象访问**, 不是 import —— WP15 在核心里引进第一处
+ *   env 读取时, 9 条断言全绿. 也就是说"内核不读 env"这条内核最核心的不变量,
+ *   在机器层面**裸奔**.
+ *
+ * 抓两种形态:
+ *   · process.env            (裸读整个 env 对象)
+ *   · process.env.FOO / process.env['FOO']  (点访问 / bracket 访问)
+ *   —— 三者都含一个 `process.env` 这个 PropertyAccessExpression 节点, 抓它即可全覆盖.
+ *   · globalThis             (内核不该摸全局对象; 同样属于"配置/环境"的旁路)
+ *
+ * 零白名单: P2-14 改注入之后, 内核树本就该零命中.
+ */
+function extractGlobalAccesses(file: string): string[] {
+  const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
+  const hits: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isPropertyAccessExpression(node) && node.expression.getText(source) === 'process' && node.name.text === 'env') {
+      hits.push(`${relPath(file)} → process.env`);
+    }
+    if (ts.isIdentifier(node) && node.text === 'globalThis') {
+      // 排除 `foo.globalThis` 这种把 globalThis 当**属性名**用的情况 (不是全局访问).
+      const parent = node.parent;
+      const isPropertyName = ts.isPropertyAccessExpression(parent) && parent.name === node;
+      if (!isPropertyName) hits.push(`${relPath(file)} → globalThis`);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return hits;
 }
 
 /** 目标路径是否位于 root 之内. */
@@ -329,6 +367,25 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'FailoverState',
       'selectFailoverTarget',
       'guardVisitorOutput',
+      // WP15/WP26: 状态迁移与单回合 delta cap
+      //   (P2-14 改注入后, cap 参数是**端口**不是 env; P2-16 把公开面补进 barrel)
+      'CapBounds',
+      'CapDim',
+      'DeltaCapConfig',
+      'DeltaCapContext',
+      'DeltaCapEntry',
+      'DeltaCapObserver',
+      'DeltaVector',
+      'TransitionStateOptions',
+      'TurnDeltaCapReport',
+      'addDeltaVectors',
+      'aggregateTurnDelta',
+      'applyDeltaVector',
+      'buildDeltaCapReport',
+      'capTurnDelta',
+      'DEFAULT_DELTA_CAP_CONFIG',
+      'transitionState',
+      'transitionStateDetailed',
     ];
     // 少导出
     expect(expectedPublic.filter((name) => !exportedNames.includes(name))).toEqual([]);
@@ -412,5 +469,35 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       }
     }
     expect(forbiddenInKernel).toEqual([]);
+  });
+
+  it('⑩ 内核树零 process.env / 零 globalThis 访问 (WP26 · P2-17)', () => {
+    // 前 9 条断言只覆盖 import —— WP15 引进内核第一处 env 读取时它们全绿.
+    // 这条把"内核不读 env / 不摸全局对象"这条最核心的不变量**机械化**:
+    //   违反即测试变红, 而不是等 review 时靠眼力发现.
+    const violations: string[] = [];
+    for (const file of kernelFiles) {
+      violations.push(...extractGlobalAccesses(file));
+    }
+    expect(violations).toEqual([]);
+  });
+
+  it('⑪ adapter 不得深路径 import engine-core 的内部模块 (只能走 barrel 或 in-memory/)', () => {
+    // WP26 · P2-16: 断言⑥ 的双向白名单是"公开 API 面"的**唯一**机器守卫 ——
+    //   它只看 index.ts. 所以 adapter 若走深路径 import 内核内部模块 (例如
+    //   `../../engine-core/cognition/state-transition.js`), 那批符号就**完全在守卫
+    //   视野之外**: 内核改文件名/目录, adapter 直接断, 没有任何断言会红.
+    // 允许两种: barrel (公开面) 与 in-memory/ (内核 barrel 注释里写明的用法).
+    const adapterRoot = path.join(__dirname, '../../src/engine-adapters');
+    const violations: string[] = [];
+    for (const file of collectTsFiles(adapterRoot)) {
+      for (const specifier of extractModuleSpecifiers(file)) {
+        if (!specifier.includes('engine-core/')) continue;
+        if (specifier.endsWith('engine-core/index.js')) continue;
+        if (specifier.includes('engine-core/in-memory/')) continue;
+        violations.push(`${path.relative(adapterRoot, file).replaceAll('\\', '/')} → ${specifier}`);
+      }
+    }
+    expect(violations).toEqual([]);
   });
 });

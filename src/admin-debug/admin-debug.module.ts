@@ -8,6 +8,16 @@
 //     · 引入 UserModule —— 复用仓库既有 `JwtAuthGuard` 解析学员身份
 //       (不自己解 JWT, 不造第 4 套鉴权).
 //
+//   V2026-11-03 治本 (WP26 §1 P2-4 · admin/api 加角色校验):
+//     · 引入 `AdminRoleGuard` (class 级挂在 controller) —— 判"是不是管理员":
+//       查 DB 真值 `users.admin_role` = 'admin', 非 admin → 403.
+//       为什么 basic 运维凭据不受角色约束: 它不对应 users 表里的任何一行,
+//       是独立身份 (详见 guard 文件头).
+//     · 注册 `User` 实体 (TypeOrmModule.forFeature) —— 守卫要用
+//       `@InjectRepository(User)` 直读 `users.admin_role` 一列.
+//       UserModule 虽然内部注册了 User 实体, 但没导出 TypeOrmModule,
+//       本模块要自己注册一次才能注入 Repository<User>.
+//
 //   反双胞胎:
 //     - 不新造鉴权体系: 管理员 = basic auth (env), 学员 = 既有 JWT;
 //       不引入角色表 / 权限系统.
@@ -20,19 +30,22 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AdminBasicAuthMiddleware } from './admin-basic-auth.middleware.js';
 import { AdminDebugController } from './admin-debug.controller.js';
+import { AdminRoleGuard } from './guards/admin-role.guard.js';
 import { TraceRecorder } from './trace-recorder.service.js';
 import { TrainingSession } from '../counselor/entities/training-session.entity.js';
 import { CharacterProfileEntity } from '../engine-adapters/wiring/character/character-profile.entity.js';
+import { User } from '../user/entities/user.entity.js';
 import { UserModule } from '../user/index.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([TrainingSession, CharacterProfileEntity]),
+    // User 实体注册 (autoLoadEntities 已开) —— 供 AdminRoleGuard 注入 Repository<User>.
+    TypeOrmModule.forFeature([TrainingSession, CharacterProfileEntity, User]),
     // 学员身份解析依赖 (JwtAuthGuard → JwtService / JwtBlacklistService).
     UserModule,
   ],
   controllers: [AdminDebugController],
-  providers: [TraceRecorder, AdminBasicAuthMiddleware],
+  providers: [TraceRecorder, AdminBasicAuthMiddleware, AdminRoleGuard],
   exports: [TraceRecorder],
 })
 export class AdminDebugModule implements NestModule {

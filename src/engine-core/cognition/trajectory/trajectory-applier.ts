@@ -21,6 +21,13 @@
 //       两边都判断一次 = 迟早出现"推进器认为不叠、合成器叠了"的状态漂移.
 //     - 不用 mutate 改快照: 快照是值语义 (可回放), 一律造新对象整体替换.
 //
+//   V2026-11-03 治本 (WP26 · P2-12 — 轨迹 delta 纳入单回合总 delta 的 cap):
+//     改之前本文件把 `node.delta` 直接 clamp 后叠到快照上 —— **只 clamp 不 cap**,
+//     于是"事件 delta (已 cap) + 剧本 delta (未 cap)"能叠出 2 倍 cap 的单回合跳变.
+//     现在: 偏移先转成内核 delta 向量 (`toDeltaVector`, 唯一转换点), 一路带出去
+//     (TrajectoryApplication.delta), 由会话层与事件 delta 合并后**统一过一次 cap**
+//     再落快照. 落快照复用内核的 `applyDeltaVector` —— 不在本文件再写第二份 clamp.
+//
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-core/wp3-trajectory.spec.ts 覆盖三模式合成与 delta 一次性
@@ -30,6 +37,7 @@ import type { BdiSnapshot } from '../../domain/bdi-snapshot.js';
 import { clamp01, clampValence, resolveEmotionLabel, type EmotionState } from '../../domain/emotion.js';
 import type { Intention } from '../../domain/intention.js';
 import type { SnapshotDelta, TrajectoryMode, TrajectoryNodeTarget } from '../../domain/trajectory/script.js';
+import { applyDeltaVector, type DeltaVector } from '../state-transition.js';
 
 /**
  * 修正模式默认权重 (工程种子值: 幕目标占六成、BDI 占四成).
@@ -57,6 +65,17 @@ export interface TrajectoryApplication {
   readonly snapshot: BdiSnapshot;
   /** 本轮是否有幕被激活. */
   readonly activated: boolean;
+  /**
+   * 本轮叠加的**原始**状态偏移 (未过单回合 cap).
+   *
+   * V2026-11-03 治本 (WP26 · P2-12): cap 管的是"**一回合总 delta**", 不管 delta
+   * 来自事件还是剧本 —— 所以剧本这一份必须能被会话层取走, 与事件 delta 合并后
+   * 统一过一次 cap. 缺省 = 本轮没有叠加任何偏移 (等待轮 / 无 delta 的幕).
+   *
+   * 为什么是"原始": 已经过 cap 的值没法再与事件 delta 合并 —— 那等于把同一把
+   * 尺子量两次, 报告里的 raw 也就不是真的 raw 了.
+   */
+  readonly delta?: DeltaVector;
 }
 
 /**
@@ -97,8 +116,33 @@ export function applyTrajectory(mode: TrajectoryMode, bdi: Intention, baseSnapsh
       ? mergeWeighted(bdi, target, resolveCorrectWeight(node.correctWeight), node.nodeId, mode)
       : mergeOverride(bdi, target, node.nodeId, mode);
 
-  const snapshot = plan.enterNewAct ? applyDelta(baseSnapshot, node.delta) : baseSnapshot;
-  return { intention, snapshot, activated: true };
+  // V2026-11-03 治本 (WP26 · P2-12): 偏移**只转换一次** ——
+  //   落快照 (applyDeltaVector) 与外抛的 raw delta 用的是同一个向量, 杜绝
+  //   "报出来的 raw 与真正叠上去的不是同一个数".
+  const delta = plan.enterNewAct ? toDeltaVector(node.delta) : undefined;
+  const snapshot = delta ? applyDeltaVector(baseSnapshot, delta) : baseSnapshot;
+  return { intention, snapshot, activated: true, ...(delta ? { delta } : {}) };
+}
+
+/**
+ * 幕偏移 → 内核 delta 向量 (唯一转换点).
+ *
+ * 维度口径与 `applyDeltaVector` 一一对应: 信念层 / 愿望层**不参与**偏移
+ * (剧本改不了来访的核心信念, 那是认知演进的活).
+ */
+function toDeltaVector(delta: SnapshotDelta | undefined): DeltaVector | undefined {
+  if (!delta) return undefined;
+  return {
+    trust: delta.trust ?? 0,
+    verbal: delta.resistance?.verbal ?? 0,
+    depth: delta.resistance?.depth ?? 0,
+    style: delta.resistance?.style ?? 0,
+    valence: delta.emotion?.valence ?? 0,
+    arousal: delta.emotion?.arousal ?? 0,
+    positive: delta.transference?.positive ?? 0,
+    negative: delta.transference?.negative ?? 0,
+    dependency: delta.transference?.dependency ?? 0,
+  };
 }
 
 /**
@@ -191,30 +235,4 @@ function unionBehaviors(base: readonly string[], extra: readonly string[] | unde
 function mergeRationale(base: string | undefined, mode: TrajectoryMode, nodeId: string): string {
   const note = `轨迹:${mode}/${nodeId}`;
   return base ? `${base} | ${note}` : note;
-}
-
-/**
- * 状态偏移叠加 (仅进入新幕那一轮).
- *
- * 增量叠加 + 统一 clamp; 信念层与愿望层原样透传 (信念演进属后续认知轮).
- */
-function applyDelta(base: BdiSnapshot, delta: SnapshotDelta | undefined): BdiSnapshot {
-  if (!delta) return base;
-  const valence = clampValence(base.emotion.valence + (delta.emotion?.valence ?? 0));
-  const arousal = clamp01(base.emotion.arousal + (delta.emotion?.arousal ?? 0));
-  return {
-    ...base,
-    trust: clamp01(base.trust + (delta.trust ?? 0)),
-    emotion: { label: resolveEmotionLabel(valence, arousal), valence, arousal },
-    resistance: {
-      verbal: clamp01(base.resistance.verbal + (delta.resistance?.verbal ?? 0)),
-      depth: clamp01(base.resistance.depth + (delta.resistance?.depth ?? 0)),
-      style: clamp01(base.resistance.style + (delta.resistance?.style ?? 0)),
-    },
-    transference: {
-      positive: clamp01(base.transference.positive + (delta.transference?.positive ?? 0)),
-      negative: clamp01(base.transference.negative + (delta.transference?.negative ?? 0)),
-      dependency: clamp01(base.transference.dependency + (delta.transference?.dependency ?? 0)),
-    },
-  };
 }

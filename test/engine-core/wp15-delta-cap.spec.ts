@@ -1,7 +1,17 @@
 // V2026-11-03 治本 (WP15 · 引擎内核 · 单回合非对称 delta cap 边界回归):
 //   目的: 把"一回合 BDI 不该跳太多"这条新领域不变量**机械化** ——
 //         ① 多事件叠加不越 [0,1]; ② 上向 cap 真的砍; ③ 下向 cap 非对称;
-//         ④ 常见单事件路径零回归; 另加 9 维 cap 覆盖 / env 覆写 / cap 报告通道.
+//         ④ 常见单事件路径零回归; 另加 9 维 cap 覆盖 / 配置覆写 / cap 报告通道.
+//
+//   V2026-11-03 治本 (WP26 · P2-14): 本文件**不再碰 process.env** ——
+//     cap 参数改由调用方注入 (`capConfig`), 内核零 env 读取.
+//     原"env 覆写"三条用例改成"配置注入"三条: 收紧 / 放宽 / 非法值回退默认.
+//     覆盖口径不变 (收紧了真砍 / 放宽了真放行 / 配错了回退种子值), 只是驱动方式变了.
+//
+//   V2026-11-03 治本 (WP26 · P2-16): 导入走**公开 barrel** ——
+//     这些符号现在是内核的公开面, 走 barrel 顺带证明"barrel 真的导出了它们"
+//     (boundary.spec.ts 断言⑥ 是双向白名单, 这里从消费侧再验一次).
+//
 //   为什么放在 test/ 而不是内核目录里:
 //     本仓所有内核测试都在 test/engine-core/ (内核子树只放领域代码);
 //     内核目录里放测试文件会被 tsc -p tsconfig.build.json 纳入编译范围,
@@ -12,12 +22,13 @@
 
 import {
   capTurnDelta,
-  observeDeltaCaps,
   transitionState,
   transitionStateDetailed,
+  DEFAULT_DELTA_CAP_CONFIG,
+  type DeltaCapConfig,
   type DeltaVector,
   type TurnDeltaCapReport,
-} from '../../src/engine-core/cognition/state-transition.js';
+} from '../../src/engine-core/index.js';
 import { createEmptyBdiSnapshot, type BdiSnapshot, type CounselorEventKind, type SessionEvent } from '../../src/engine-core/index.js';
 
 /** 造一条标准事件 (strength 缺省 1 = 规则轨满强度). */
@@ -33,6 +44,15 @@ function snap(overrides: { trust?: number; valence?: number } = {}): BdiSnapshot
     trust: overrides.trust ?? base.trust,
     emotion: { ...base.emotion, valence: overrides.valence ?? base.emotion.valence },
   };
+}
+
+/** 造一份 cap 配置: 只改指定维度的上下界, 其余走内核种子值. */
+function capConfig(overrides: Partial<Record<keyof DeltaCapConfig, { up: number; down: number }>>): DeltaCapConfig {
+  const merged: Record<string, { up: number; down: number }> = {};
+  for (const [dim, bounds] of Object.entries(DEFAULT_DELTA_CAP_CONFIG)) {
+    merged[dim] = { up: bounds.up, down: bounds.down };
+  }
+  return { ...merged, ...overrides } as DeltaCapConfig;
 }
 
 /** 断言快照所有维度都落在合法值域内 (valence 是 [-1,1], 其余是 [0,1]). */
@@ -164,45 +184,44 @@ describe('WP15 · 单回合非对称 delta cap', () => {
     });
   });
 
-  describe('cap 常量可从 env 覆写 (验收 #2)', () => {
-    afterEach(() => {
-      delete process.env['ENGINE_CAP_TRUST_UP'];
-      delete process.env['ENGINE_CAP_TRUST_DOWN'];
-    });
-
-    it('env 收紧上向 cap → 真的按 env 砍', () => {
-      process.env['ENGINE_CAP_TRUST_UP'] = '0.05';
-
-      const out = transitionState(snap({ trust: 0.5 }), [ev('empathy'), ev('empathy'), ev('empathy')]);
+  describe('cap 常量可由配置覆写 (验收 #2 · WP26 P2-14 改注入)', () => {
+    it('配置收紧上向 cap → 真的按配置砍', () => {
+      const out = transitionState(snap({ trust: 0.5 }), [ev('empathy'), ev('empathy'), ev('empathy')], {
+        capConfig: capConfig({ trust: { up: 0.05, down: -0.3 } }),
+      });
 
       expect(out.trust).toBeCloseTo(0.55, 5);
     });
 
-    it('env 放宽上向 cap → 按 env 放行 (默认 0.20 拦得住的 +0.30 放行)', () => {
-      process.env['ENGINE_CAP_TRUST_UP'] = '0.30';
-
-      const out = transitionState(snap({ trust: 0.5 }), [ev('empathy'), ev('empathy'), ev('empathy')]);
+    it('配置放宽上向 cap → 按配置放行 (默认 0.20 拦得住的 +0.30 放行)', () => {
+      const out = transitionState(snap({ trust: 0.5 }), [ev('empathy'), ev('empathy'), ev('empathy')], {
+        capConfig: capConfig({ trust: { up: 0.3, down: -0.3 } }),
+      });
 
       expect(out.trust).toBeCloseTo(0.8, 5);
     });
 
-    it('非法 env 值回退默认 (非数字 / 符号与方向不符)', () => {
-      process.env['ENGINE_CAP_TRUST_UP'] = 'abc';
-      process.env['ENGINE_CAP_TRUST_DOWN'] = '0.5'; // 下向 cap 不能是正数
+    it('非法配置值回退默认 (非数字 / 符号与方向不符 / 缺项)', () => {
+      const out = transitionState(snap({ trust: 0.5 }), [ev('empathy'), ev('empathy'), ev('empathy')], {
+        capConfig: {
+          ...capConfig({}),
+          trust: { up: Number.NaN, down: 0.5 }, // 上向非数字 / 下向符号反了
+        },
+      });
 
-      const up = transitionState(snap({ trust: 0.5 }), [ev('empathy'), ev('empathy'), ev('empathy')]);
-      expect(up.trust).toBeCloseTo(0.7, 5); // 回退默认上向 0.20
+      expect(out.trust).toBeCloseTo(0.7, 5); // 回退默认上向 0.20
 
-      const down = transitionState(snap({ trust: 0.5 }), [ev('boundary_cross'), ev('boundary_cross'), ev('boundary_cross')]);
+      const down = transitionState(snap({ trust: 0.5 }), [ev('boundary_cross'), ev('boundary_cross'), ev('boundary_cross')], {
+        capConfig: {
+          ...capConfig({}),
+          trust: { up: 0.2, down: 0.5 },
+        },
+      });
       expect(down.trust).toBeCloseTo(0.2, 5); // 回退默认下向 -0.30
     });
   });
 
   describe('cap 报告通道 (验收 #8)', () => {
-    afterEach(() => {
-      observeDeltaCaps(null);
-    });
-
     it('transitionStateDetailed 带出被砍维度与事件清单', () => {
       const { snapshot, capped } = transitionStateDetailed(snap({ trust: 0.5 }), [ev('empathy'), ev('acceptance'), ev('affirmation')]);
 
@@ -222,9 +241,10 @@ describe('WP15 · 单回合非对称 delta cap', () => {
 
     it('观察者回调被触发 —— adapter 层据此打 warning (内核不 import logger)', () => {
       const seen: TurnDeltaCapReport[] = [];
-      observeDeltaCaps((report) => seen.push(report));
 
-      transitionState(snap({ trust: 0.5 }), [ev('empathy'), ev('empathy'), ev('empathy')]);
+      transitionState(snap({ trust: 0.5 }), [ev('empathy'), ev('empathy'), ev('empathy')], {
+        observer: (report) => seen.push(report),
+      });
 
       expect(seen).toHaveLength(1);
       expect(seen[0]?.entries.find((entry) => entry.dimension === 'trust')?.raw).toBeCloseTo(0.3, 5);
@@ -233,9 +253,8 @@ describe('WP15 · 单回合非对称 delta cap', () => {
 
     it('没被砍时不触发观察者 (不打噪声日志)', () => {
       const seen: TurnDeltaCapReport[] = [];
-      observeDeltaCaps((report) => seen.push(report));
 
-      transitionState(snap({ trust: 0.5 }), [ev('empathy')]);
+      transitionState(snap({ trust: 0.5 }), [ev('empathy')], { observer: (report) => seen.push(report) });
 
       expect(seen).toHaveLength(0);
     });
@@ -245,25 +264,25 @@ describe('WP15 · 单回合非对称 delta cap', () => {
     //   collectOpeningContext 吞异常回落空数组) —— observer 当时是唯一没设防的一处.
     //   它炸穿的后果最重: 此刻状态还没落库, 整轮 turn 失败, 而原因只是"打日志的回调抛了".
     it('观察者回调抛错 → 状态迁移照常完成, 不炸穿 turn', () => {
-      observeDeltaCaps(() => {
-        throw new Error('observer 内部炸了');
+      const out = transitionState(snap({ trust: 0.5 }), [ev('empathy'), ev('empathy'), ev('empathy')], {
+        observer: () => {
+          throw new Error('observer 内部炸了');
+        },
       });
-
-      const out = transitionState(snap({ trust: 0.5 }), [ev('empathy'), ev('empathy'), ev('empathy')]);
 
       // 状态照常迁移 (cap 生效: +0.30 被砍到 +0.20).
       expect(out.trust).toBeCloseTo(0.7, 5);
     });
 
-    it('观察者回调抛错 → 后续轮次仍能正常迁移 (单槽没被污染)', () => {
-      observeDeltaCaps(() => {
+    it('观察者回调抛错 → 后续轮次仍能正常迁移 (注入的观察者没被污染)', () => {
+      const exploding = (): never => {
         throw new Error('observer 内部炸了');
-      });
+      };
 
-      const first = transitionState(snap({ trust: 0.5 }), [ev('empathy')]);
+      const first = transitionState(snap({ trust: 0.5 }), [ev('empathy')], { observer: exploding });
       expect(first.trust).toBeCloseTo(0.6, 5);
 
-      observeDeltaCaps(null);
+      // 不带观察者的调用不受上一次的影响 (观察者是**参数**, 不是模块级状态).
       const second = transitionState(snap({ trust: 0.6 }), [ev('empathy')]);
       expect(second.trust).toBeCloseTo(0.7, 5);
     });

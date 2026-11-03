@@ -37,6 +37,7 @@ import {
   ConflictException,
   Controller,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   Post,
   UseGuards,
@@ -180,10 +181,64 @@ export class EngineWiringController {
 }
 
 /**
+ * 控制器侧日志 (模块级).
+ *
+ * 为什么是模块级而不是实例字段: `mapKernelError` 是**模块级函数** (被三个端点的
+ * catch 共用), 拿不到实例的 logger. 造一个模块级 Logger 是最小改动.
+ */
+const kernelLogger = new Logger('EngineWiringController');
+
+/**
+ * 内核 details 里的敏感字段名 (键名**小写**比较).
+ *
+ * 为什么要脱敏: details 会被原样打进服务端日志, 而日志会被转存到日志平台 / 备份 ——
+ * 出了日志等于出了库. 内核目前的 details 只有 sessionId / handleId 之类的标识,
+ * 但**契约是开放的**: 将来任何一个实现都可能往里塞别的东西, 所以这里按**键名**
+ * 兜一层白名单式的排除 (不是靠"目前不会塞"的默契).
+ */
+const SENSITIVE_DETAIL_KEYS: ReadonlySet<string> = new Set([
+  'password',
+  'passwd',
+  'pwd',
+  'token',
+  'secret',
+  'apikey',
+  'api_key',
+  'authorization',
+  'cookie',
+  'usertext',
+  'text',
+  'transcript',
+  'prompt',
+  'content',
+]);
+
+/**
+ * 脱敏内核 details (剔除敏感键).
+ *
+ * @param details 内核错误附带的结构化上下文
+ * @returns 可安全进日志的 details
+ */
+function sanitizeKernelDetails(details: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const safe: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(details)) {
+    if (SENSITIVE_DETAIL_KEYS.has(key.toLowerCase())) continue;
+    safe[key] = value;
+  }
+  return safe;
+}
+
+/**
  * 内核错误 → HTTP 异常.
  *
  * 只映射**可识别**的内核错误; 其它异常原样上抛, 交给全局 BizExceptionFilter 兜底
  * (它会把未识别异常归一成 500 + 统一响应体).
+ *
+ * V2026-11-03 治本 (WP26 · P2-7): default 分支原来把 `error.message` 与
+ *   `error.details` **全丢了** —— 响应只剩一句"引擎内部错误", 服务端日志里也没有
+ *   任何线索, 线上遇到未映射的内核错误只能靠猜. 现在 default 分支:
+ *     · 把 code + message + **脱敏后的** details 打进服务端日志 (客户端看不到);
+ *     · 响应体保持通用文案 (不外泄内部结构) —— 错误码属于内部契约, 不进响应体.
  *
  * @param error 抛出的异常
  * @returns HTTP 异常 (或原异常)
@@ -200,8 +255,11 @@ function mapKernelError(error: unknown): unknown {
     case EngineErrorCode.STATE_CONFLICT:
     case EngineErrorCode.ABORTED:
       return new ConflictException(error.message);
-    default:
+    default: {
+      const details = sanitizeKernelDetails(error.details);
+      kernelLogger.error(`[engine_wiring] 未映射的内核错误 code=${error.code} message=${error.message} details=${JSON.stringify(details)}`);
       return new InternalServerErrorException('引擎内部错误');
+    }
   }
 }
 

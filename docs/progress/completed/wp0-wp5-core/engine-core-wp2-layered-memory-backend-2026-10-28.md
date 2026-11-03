@@ -1,6 +1,6 @@
 # WP2 · 分层记忆引擎 V1（三级记忆 + 长时向量召回 + 跨会话接续）后端任务单
 
-> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md) WP2（127–138 行）
+> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../../../architecture/ai-engine-roadmap-v1.1.md) WP2（127–138 行）
 > 前置: [`engine-core-wp0-boundary-skeleton-backend-2026-10-28.md`](./engine-core-wp0-boundary-skeleton-backend-2026-10-28.md)（边界骨架，已交付）、
 >       [`engine-core-wp1-bdi-cognitive-engine-backend-2026-10-28.md`](./engine-core-wp1-bdi-cognitive-engine-backend-2026-10-28.md)（BDI 规则轨认知引擎，**已由前端侧完成并复跑绿：jest 42 / tsc 0 / eslint 0**）
 > 仓库: `E:\Work\Project\backend\mofang-nestjs`

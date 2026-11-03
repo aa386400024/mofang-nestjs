@@ -46,6 +46,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { CharacterPoolModule } from './character/character-pool.module.js';
 import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver } from './character/index.js';
+import { resolveDeltaCapConfig } from './delta-cap.config.js';
 import { DeltaCapLogger } from './delta-cap.logger.js';
 import { EngineStreamBackend } from './engine-stream-backend.adapter.js';
 import { EngineSessionRegistry, EngineTurnService } from './engine-turn.service.js';
@@ -63,7 +64,6 @@ import {
 } from './engine.providers.js';
 import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from './engine.tokens.js';
 import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory.js';
-import { AIEngineModule } from '../../ai-engine/ai-engine.module.js';
 import { resolveSessionCostPricing } from '../observability/session-cost.js';
 import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe.js';
 import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
@@ -75,6 +75,7 @@ import { StaticTrajectoryScriptResolver, TRAJECTORY_SCRIPT_RESOLVER, type Trajec
 import { TurnIdempotencyService } from './turn-idempotency.service.js';
 import { AdminDebugModule } from '../../admin-debug/admin-debug.module.js';
 import { TraceRecorder } from '../../admin-debug/trace-recorder.service.js';
+import { AIEngineModule } from '../../ai-engine/ai-engine.module.js';
 import { QdrantService } from '../../ai-engine/providers/qdrant.service.js';
 import type { EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
 import { LlmModule } from '../../llm/llm.module.js';
@@ -198,8 +199,16 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
     //   注入点零改动 (换探测器 = 改那一处 useFactory).
     {
       provide: ENGINE_SESSION_PORT,
-      useFactory: (memories: MemoryStore, probe: RiskProbePort) => createEngineSessionPort(memories, probe),
-      inject: [ENGINE_MEMORY_STORE, RISK_PROBE],
+      useFactory: (memories: MemoryStore, probe: RiskProbePort, config: ConfigService, capLogger: DeltaCapLogger): EngineSessionPort =>
+        createEngineSessionPort(memories, probe, {
+          // WP26 · P2-14: env 由**适配层**读, 内核只认 DeltaCapConfig 端口 ——
+          //   内核零 process.env, 同 seed + 同 capConfig 同序列逐字同输出.
+          capConfig: resolveDeltaCapConfig(config),
+          // WP26 · P2-11/P2-12: 观察者随会话实例注入 (不再有模块级单槽),
+          //   报告带 sessionId/handleId, 口径是本轮**总** delta.
+          capObserver: capLogger.observer,
+        }),
+      inject: [ENGINE_MEMORY_STORE, RISK_PROBE, ConfigService, DeltaCapLogger],
     },
     // 装配门面 (WP7): 接上归属解析缝 (多会话, 不传固定 sessionContext).
     // V2026-11-02 (WP14): 注入学员侧处置闸门 —— 门面在**渲染前**问它
@@ -232,6 +241,8 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
     // V2026-11-03 治本 (WP15): 单回合 delta cap 观测日志 ——
     //   内核只上报"这一回合 BDI 被砍了多少", 打不打日志由本层决定 (内核零 logger 依赖).
     //   装配缺席 = 不打日志, 但内核照常砍幅 (观测是增强, 不是会话能力).
+    //   WP26 · P2-11/P2-14: 它的 `observer` 被注入内核会话 (不再有模块级单槽),
+    //   报告自带 sessionId/handleId.
     DeltaCapLogger,
     // V2026-11-02 治本 (WP16): 轮次幂等表 —— 同一会话同一 round_id 重发不重跑 BDI.
     //   模块内单例 (与对话后端同生命周期): 装配层唯一的"这一轮跑过没有"的事实来源.

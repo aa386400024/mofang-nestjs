@@ -20,7 +20,7 @@
 
 ---
 
-## 2. 改动面（6 个源文件 + 1 个测试文件 + 1 处全局类型声明）
+## 2. 改动面（后端 6 个源文件 + 1 个测试文件 + 1 处全局类型声明；**另有前端 16 个文件，见 §2.1**）
 
 | # | 文件 | 改了什么 |
 |---|---|---|
@@ -37,6 +37,33 @@
 | 11 | `test/voice/wp22-voice-concurrency-budget.spec.ts`（新） | **28 例** |
 
 **没动**：`src/engine-core/**`、TTS / ASR / 帧协议、`/auth/*`、`/user/*`、旧链路的 `VisitorService`。
+
+### 2.1 前端（`admin-dashboard/`）改动 16 个文件 —— 初稿漏登记，2026-11-03 补
+
+本单后端闸门落地时，**顺带把 admin-dashboard 从"纯 mock 脚手架"切成了真接口，并补齐了 i18n 与登录页**（WP19-R 已把后端 `/admin/api/*` 收口，前端才有得接）。**初稿交付记录只登记了后端改动面，这 16 个前端文件当时没登记** —— 2026-11-03 按 `git show --stat d18a9ed` / `git show --name-only d18a9ed` 补齐。该提交共 **92 个文件 = 前端 16 + 文档 65 + 后端 11**。
+
+| # | 文件 | 改了什么 |
+|---|---|---|
+| 1 | `admin-dashboard/src/api/client.ts` | 真 API 接入核心：新增 `get<T>()`（带 basic auth 头，401 弹框重输凭据后重试）；`sessions` / `session` / `characters` / `health` **4 个方法改走 `fetch('/admin/api/...')`**，其余 11 个方法仍是 mock |
+| 2 | `admin-dashboard/src/api/types.ts` | 前端类型对齐 WP19 §1.1 新契约：旧字段名 `bdi` / `usage` → `bdiSnapshot` / `llmUsage`（**这是 WP19-R §9 遗留的"前端类型失配"，在本单修掉**） |
+| 3 | `admin-dashboard/src/router/index.ts` | 路由表扩到 **9 个页面**（补 `/login` / `/dashboard` / `/memories` / `/psyguard` / `/cost`）+ 登录守卫（无凭据跳 `/login`） |
+| 4 | `admin-dashboard/src/views/Login.vue` | **新增**：采集 basic auth 凭据 → `sessionStorage` → 探 `/admin/api/health` 验通 |
+| 5 | `admin-dashboard/src/views/SessionsList.vue` | 切真 API：会话列表拉 `/admin/api/sessions` |
+| 6 | `admin-dashboard/src/views/SessionDetail.vue` | 切真 API：会话详情主数据拉 `/admin/api/sessions/:id`（轨迹 / 本场记忆两块仍 mock） |
+| 7 | `admin-dashboard/src/views/CharactersList.vue` | 切真 API：角色池拉 `/admin/api/characters` |
+| 8 | `admin-dashboard/src/views/CharacterDetail.vue` | 仍走 mock：角色详情 / 记忆 / 历史会话三块（`api.character` / `api.memories` / `api.characterSessions`） |
+| 9 | `admin-dashboard/src/views/Dashboard.vue` | **半真**：仪表盘 + 近 7 天趋势，方法签名对齐后端契约但返回值是写死的常量 |
+| 10 | `admin-dashboard/src/views/MemoryBrowser.vue` | 记忆浏览器，仍走 mock（`api.memories()` 恒返空数组） |
+| 11 | `admin-dashboard/src/views/PsyGuardMonitor.vue` | PsyGUARD 监控，仍走 mock（`api.psyguard()` / `api.psyguardTrend()`） |
+| 12 | `admin-dashboard/src/views/CostBoard.vue` | 成本看板，仍走 mock（`api.costTrend()` / `api.sessionCosts()`） |
+| 13 | `admin-dashboard/src/components/BdiTrajectoryChart.vue` | 轨迹图组件：字段 `t.bdi.*` → `t.bdiSnapshot.*`，跟 §2 的类型改名对齐 |
+| 14 | `admin-dashboard/src/components/EmptyState.vue` | **新增**：空态组件（图标 + 标题 + 描述 + 可选 `pendingTag` 徽标）—— 给 mock 页面的空数据一个统一展示位 |
+| 15 | `admin-dashboard/src/App.vue` | 顶栏（导航 / 深浅主题切换 / 中英切换）+ 登录页免导航 |
+| 16 | `admin-dashboard/src/i18n/index.ts` | 中英 i18n 收口：`setLang()` 的 locale 收窄成 `'zh-CN' \| 'en'`（消除 `createI18n` 的宽类型报错） |
+
+> **为什么前端改动没进初稿登记**：本单任务边界写的是"后端闸门"，`admin-dashboard` 当时被当成另一个轮次（WP20）的工作面。但同一个提交里实际改了这 16 个文件 —— **交付记录不登记 = 下一个人做对账时会漏掉一半改动面**。这正是 WP25 代码级对账在 `code-vs-blueprint-audit-2026-10-30.md` D4 / D13 反复吃到的亏（"改动面清单与真实提交对不上"）。
+>
+> **同一提交里还搬了 65 个文档文件**（`docs/progress/**` → `docs/progress/completed/<子目录>/`）。这是 2026-11-03 文档死链（P2-19 / P2-20 / P2-21）的**直接成因** —— 文件挪了目录，相对链接没跟着改，于是全仓出现 114 条死链。
 
 ---
 
@@ -63,7 +90,7 @@ WS 握手 → VoiceGateway.verifyAndStart
 
 ---
 
-## 4. 与任务单的偏差（8 条，都有理由）
+## 4. 与任务单的偏差（9 条，都有理由）
 
 ### 4.1 闸门放在 voice 层（`VoiceService.startSession`），不是 `EngineStreamBackend.openSession`
 
@@ -145,6 +172,19 @@ WS 握手 → VoiceGateway.verifyAndStart
 为什么不强制装配：仓库里 5 处测试直接 `new VoiceService(...)`（`test/voice/*`、
 `test/engine-adapters/*`），强制装配就得改它们；而"服务因为没装闸门而起不来"比"没有闸门"更糟。
 生产装配在 `VoiceModule.providers` 里显式 provide。
+
+### 4.9 任务单 §1 的「先关第一场 / 拒绝 409」两个选项**都没落地**（2026-11-03 补登记）
+
+任务单 §1 写的是「开第二场时，**先关第一场**（**或直接拒绝 409**）」—— 给了两个可选口径。**本单两个都没照做**，实际口径是：
+
+| 维度 | 任务单 §1 原话 | 本单实际落法 | 为什么这么定 |
+|---|---|---|---|
+| 旧会话 | 「先关第一场」 | **不自动关旧会话** | 用户可能误操作（重复点开）。默默把上一场 TTS dispose 掉 = **丢进度**，比"多开一场被拒"更伤。任务单 §5 自己写了「❌ 不做自动关旧会话再开新的」—— **§1 是与 §5 自相矛盾的那一处** |
+| 拒绝方式 | 「拒绝 409」 | **独立错误码 `session_already_active`** + WS `error` 帧 | **WS 没有 HTTP 状态码**，帧里只有 `code` / `message` / `retryable`；套一个 409 是把 HTTP 思维搬过来，对前端零信息量。走独立码才能让前端分支处理（"结束旧会话后可重试" → `retryable: true`） |
+
+**落地链路**：`voice-session-limit.error.ts`（错误码 + 文案 + `retryable` + 帧映射）→ `voice-session-limits.service.ts`（闸门判定与占位）→ `voice.service.ts:430` `startSession` 里 `await this.limits?.acquire(...)` → `voice.gateway.ts` 把闸门错误映射成**专属** `error` 帧（不是通用的 `session_start_failed`）。
+
+> ⚠️ **2026-11-03 回写**：这条偏差初稿没登记 —— 交付记录 §1 与 §4.3 只写了"独立错误码 / 不自动关"，**没说明任务单 §1 原本写的另一套口径是什么**。读的人翻到任务单 §1 看到"先关第一场 / 409"，对不上代码，只能靠猜。已按代码事实补上，并把任务单 §1 一并改正（两边现在口径一致）。
 
 ---
 

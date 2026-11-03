@@ -3,7 +3,7 @@
 > 日期: 2026-11-03 ｜ 任务单: `engine-wp25-phase1-audit-backend-2026-11-03.md`
 > 归属: Phase1 封版 / M3 内测前审查
 > 状态: **代码已交付并复跑绿（未 commit）**
-> **扫描报告**: [`docs/progress/wp25-phase1-audit-report-2026-11-03.md`](../../../wp25-phase1-audit-report-2026-11-03.md)
+> **扫描报告**: [`docs/progress/wp25-phase1-audit-report-2026-11-03.md`](../../wp25-phase1-audit-report-2026-11-03.md)
 > 引擎内核: 只改 `src/engine-core/cognition/state-transition.ts` **1 个文件**（+13/−1）—— 维持 WP15 以来"内核破例只动一个文件"的口径
 
 ---

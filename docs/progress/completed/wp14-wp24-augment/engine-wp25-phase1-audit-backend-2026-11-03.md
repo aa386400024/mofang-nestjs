@@ -2,7 +2,7 @@
 
 > 日期：2026-11-03 ｜ 仓库：`E:\Work\Project\backend\mofang-nestjs`
 > 性质：Phase1 M3 内测前封版——不是写新功能，是系统性扫描所有 Phase1 代码与文档，找出已知/未知问题，产出一份按严重度排序的清单，然后逐个修
-> 状态：✅ **已交付并复跑绿** → 交付记录: `engine-wp25-phase1-audit-backend-implementation-2026-11-03.md`（同目录）｜扫描报告: [`docs/progress/wp25-phase1-audit-report-2026-11-03.md`](../../../wp25-phase1-audit-report-2026-11-03.md)
+> 状态：✅ **已交付并复跑绿** → 交付记录: `engine-wp25-phase1-audit-backend-implementation-2026-11-03.md`（同目录）｜扫描报告: [`docs/progress/wp25-phase1-audit-report-2026-11-03.md`](../../wp25-phase1-audit-report-2026-11-03.md)
 > 🔴 本单允许读 `src/**` 全部代码；修 bug 时按问题归属改对应文件，不限制改动面
 > 🔗 前置：WP0–WP24 全部交付
 

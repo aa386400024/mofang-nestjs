@@ -79,6 +79,11 @@ export declare global {
 
       METRICS_ENABLED?: string;
       METRICS_PATH?: string;
+      // V2026-11-03 治本 (WP26 · P2-3 · /metrics 加鉴权):
+      //   抓取端点的独立 token (Bearer). 不声明会直接报 TS4111
+      //   (noPropertyAccessFromIndexSignature: 走 @types/node 的 [key: string] 索引签名时
+      //    点访问不合法, 必须 bracket 访问) —— 与上面 METRICS_* 同一治本思路.
+      METRICS_TOKEN?: string; // 留空 = 没开鉴权 → /metrics 拒绝一切请求 (fail-close)
 
       // V3 合规模块 (心塑 / 魔方共用同意记录)
       // 服务端升级此版本号 → 强制客户端重弹同意 dialog (后端权威)
@@ -185,6 +190,32 @@ export declare global {
       QDRANT_URL?: string;
       QDRANT_API_KEY?: string;
       QDRANT_COLLECTION?: string;
+      // V2026-11-03 治本 (WP26 · P2-13 — 单回合 delta cap 参数):
+      //   下面是 WP15 引入的 18 个 env 键 (9 维度 × 上下向).
+      //   显式声明的理由与上面 MINIMAX_* / VOICE_* 同一治本思路:
+      //   **显式登记到 ProcessEnv**, 不用 bracket / 计算键访问绕过 ——
+      //   计算键 (`ENGINE_CAP_${dim}_${direction}`) 编译器拦不住 (TS4111 只管点访问),
+      //   属**静默偏离**: 键名散在运行时算出来, 人读代码读不到, env 覆盖断言也扫不到.
+      //   现在由适配层 (src/engine-adapters/wiring/delta-cap.config.ts) **逐个字面量**读,
+      //   装配成内核的 DeltaCapConfig 端口注入 —— 内核零 process.env.
+      ENGINE_CAP_TRUST_UP?: string; // 信任单回合上向 cap (默认 0.2)
+      ENGINE_CAP_TRUST_DOWN?: string; // 信任单回合下向 cap (默认 -0.3)
+      ENGINE_CAP_VALENCE_UP?: string; // 情绪效价单回合上向 cap (默认 0.2)
+      ENGINE_CAP_VALENCE_DOWN?: string; // 情绪效价单回合下向 cap (默认 -0.3)
+      ENGINE_CAP_AROUSAL_UP?: string; // 唤醒度单回合上向 cap (默认 0.2)
+      ENGINE_CAP_AROUSAL_DOWN?: string; // 唤醒度单回合下向 cap (默认 -0.2)
+      ENGINE_CAP_VERBAL_UP?: string; // 言语阻抗单回合上向 cap (默认 0.2)
+      ENGINE_CAP_VERBAL_DOWN?: string; // 言语阻抗单回合下向 cap (默认 -0.2)
+      ENGINE_CAP_DEPTH_UP?: string; // 深度阻抗单回合上向 cap (默认 0.2)
+      ENGINE_CAP_DEPTH_DOWN?: string; // 深度阻抗单回合下向 cap (默认 -0.2)
+      ENGINE_CAP_STYLE_UP?: string; // 风格阻抗单回合上向 cap (默认 0.2)
+      ENGINE_CAP_STYLE_DOWN?: string; // 风格阻抗单回合下向 cap (默认 -0.2)
+      ENGINE_CAP_POSITIVE_UP?: string; // 正向移情单回合上向 cap (默认 0.15)
+      ENGINE_CAP_POSITIVE_DOWN?: string; // 正向移情单回合下向 cap (默认 -0.15)
+      ENGINE_CAP_NEGATIVE_UP?: string; // 负向移情单回合上向 cap (默认 0.15)
+      ENGINE_CAP_NEGATIVE_DOWN?: string; // 负向移情单回合下向 cap (默认 -0.15)
+      ENGINE_CAP_DEPENDENCY_UP?: string; // 依赖单回合上向 cap (默认 0.15)
+      ENGINE_CAP_DEPENDENCY_DOWN?: string; // 依赖单回合下向 cap (默认 -0.15)
     }
   }
 

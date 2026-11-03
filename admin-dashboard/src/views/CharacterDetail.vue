@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api } from '@/api/client'
 import type { CharacterDetail, MemoryEntry, MemoryType, CharacterSession } from '@/api/types'
@@ -19,6 +19,22 @@ onMounted(async () => {
     charSessions.value = await api.characterSessions(props.slug)
   }
   finally { loading.value = false }
+})
+
+// ─── 审核 / 数据状态标注 (WP26 · P2-35) ───
+// 这个页面的数据源仍是 **mock** (admin-dashboard/src/api/client.ts 的 `character()`),
+// 后端 /admin/api/characters/:slug 还没接上 —— mock 里**没有** auditStatus 字段.
+// 之前页面右上角直接渲染 `data.auditStatus ?? '—'`: 一片 "—" 会被读成"没问题 / 没有待办",
+// 而真实含义是"这段数据还没接真实来源" —— 状态标注缺失, 人会误判.
+// 现在: 后端没给审核状态时**显式标 pending** (待接入 / 待审核), 并用 warn 色与
+// 已过审 (ok) / 已驳回 (danger) 区分开 —— 视觉口径跟页面上既有的 chip 一致.
+const auditStatus = computed(() => data.value?.auditStatus ?? 'pending')
+const auditStatusClass = computed(() => {
+  switch (auditStatus.value) {
+    case 'approved': return 'bg-ok/15 text-ok'
+    case 'rejected': return 'bg-danger/15 text-danger'
+    default: return 'bg-warn/15 text-warn'
+  }
 })
 
 // 记忆类型配置
@@ -57,7 +73,11 @@ const typeDistribution = () => {
         <span class="chip" :class="data.enabled ? 'bg-ok/15 text-ok' : 'bg-danger/15 text-danger'">
           {{ data.enabled ? 'enabled' : 'disabled' }}
         </span>
-        <span class="ml-auto text-xs text-muted font-mono">{{ data.auditStatus ?? '—' }}</span>
+        <!-- 数据来源 / 审核状态标注 (WP26 · P2-35):
+             mock 阶段后端还没给 auditStatus → 显式标 pending, 不再显示裸 '—'
+             (一片 '—' 会被读成"没问题", 而真实含义是"这段数据还没接真实来源"). -->
+        <span class="chip" :class="auditStatusClass">{{ auditStatus }}</span>
+        <span class="ml-auto text-xs text-warn" v-if="auditStatus === 'pending'">待接入真实 API (mock 数据)</span>
       </div>
 
       <!-- BDI 基线 -->

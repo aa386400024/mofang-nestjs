@@ -93,6 +93,7 @@ import { TurnIdempotencyService, type TurnResultSnapshot, type TurnSettleHandle 
 import type { TraceRecorder, TurnTrace } from '../../admin-debug/trace-recorder.service.js';
 import type { LlmStream, LlmStreamChunk } from '../../agent/llm/llm.types.js';
 import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types.js';
+import { EngineCoreError, EngineErrorCode } from '../../engine-core/index.js';
 import type { OpenEngineSessionInput, RiskProbePort, TrajectoryScript } from '../../engine-core/index.js';
 import type { StudentRiskAuditChoice, StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
@@ -593,7 +594,14 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     if (!handleId) {
       // 会话没开 → 直接抛 (调用方负责回落旧链路); 静默返回一个空流会让上层
       // 以为"这一轮正常结束但没话说", 那是最难排查的一种坏.
-      throw new Error(`EngineStreamBackend.streamTurn: sessionId=${opts.sessionId} 未开启`);
+      //
+      // V2026-11-03 治本 (WP26 · P2-6): 抛**内核错误码**, 不再抛裸 Error ——
+      //   裸 Error 只能靠 message 字符串匹配才能映射, 上层映射不到就落全局兜底 500;
+      //   而"会话未开启"是**资源不存在**, 正确答案是 404. 用内核错误码, adapter
+      //   才能按 code 分支 (错误契约里明令: 不靠 message 字符串匹配).
+      throw new EngineCoreError(EngineErrorCode.SESSION_NOT_FOUND, `EngineStreamBackend.streamTurn: sessionId=${opts.sessionId} 未开启`, {
+        sessionId: opts.sessionId,
+      });
     }
     const roundId = normalizeRoundId(opts.roundId);
     if (roundId === undefined) {
@@ -647,7 +655,13 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       yield { type: 'content', content: snapshot.reply };
     }
     // `replayed=true`: 消费方据此知道"这一轮不是新的一轮" (逐字稿不再落第二条).
-    yield { type: 'done', usage: snapshot.usage, replayed: true };
+    // WP26 · P2-34: finishReason 也原样回放 —— 同一 round_id 两次结论必须一致.
+    yield {
+      type: 'done',
+      usage: snapshot.usage,
+      replayed: true,
+      ...(snapshot.finishReason === undefined ? {} : { finishReason: snapshot.finishReason }),
+    };
   }
 
   /**
@@ -996,6 +1010,10 @@ export class EngineStreamBackend implements VoiceTurnBackend {
         totalTokens: usage?.totalTokens ?? 0,
         ...(usage?.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
       },
+      // V2026-11-03 治本 (WP26 · P2-34): 透传上游结束原因 ——
+      //   `length` 意味着正文被按长度砍断, 客户端与服务端据此分"说完了"与"被截断了".
+      //   缺省 = 上游没给 (不编造).
+      ...(settled.result.render.finishReason === undefined ? {} : { finishReason: settled.result.render.finishReason }),
     };
   }
 
@@ -1038,6 +1056,8 @@ export class EngineStreamBackend implements VoiceTurnBackend {
         totalTokens: usage?.totalTokens ?? 0,
         ...(usage?.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
       },
+      // WP26 · P2-34: 上游结束原因随快照存 (重放时原样回出).
+      ...(result.render.finishReason === undefined ? {} : { finishReason: result.render.finishReason }),
     };
   }
 

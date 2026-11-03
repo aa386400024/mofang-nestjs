@@ -1,7 +1,7 @@
 # 任务单 · 把现有 MiniMax 订阅接入 chat registry（让 WP8 引擎聚合 turn 产出真实 reply）后端任务单
 
 > 关联: WP8-A [`engine-wp8-di-wiring-aggregated-turn-backend-2026-10-28.md`](./engine-wp8-di-wiring-aggregated-turn-backend-2026-10-28.md)（已交付，装配接线验收通过，但本机无 chat key，turn 只能走降级兜底）
-> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md)
+> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../../../architecture/ai-engine-roadmap-v1.1.md)
 > 仓库: `E:\Work\Project\backend\mofang-nestjs`
 > 日期: 2026-10-28 ｜ 类型: **`src/llm` 增补一个 chat provider**（小型适配，不动引擎内核与装配层）
 > 目标读者: 后端；闸门命令由大炮在 Windows PowerShell 复跑 `tsc` / `eslint` / `jest`

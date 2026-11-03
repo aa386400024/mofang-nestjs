@@ -2,7 +2,7 @@
 
 > **路径**：`mofang-nestjs/docs/progress/engine-core-wp0-boundary-skeleton-backend-2026-10-28.md`
 > **性质**：可直接派给后端的施工任务单（WP0，Phase1 第一张）。
-> **上游母版**：[`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md) 第 0 原则 + WP0；上游愿景原件 [`../reference/ai-simulation-blueprint-v1.1.md`](../reference/ai-simulation-blueprint-v1.1.md)。
+> **上游母版**：[`../architecture/ai-engine-roadmap-v1.1.md`](../../../architecture/ai-engine-roadmap-v1.1.md) 第 0 原则 + WP0；上游愿景原件 [`../reference/ai-simulation-blueprint-v1.1.md`](../../../reference/ai-simulation-blueprint-v1.1.md)。
 > **日期**：2026-10-28 ｜ **状态**：🟡 **已交付，待大炮验收**（首轮 lint 通过；test 2 处失败已修待复跑；`pnpm build` 未跑） ｜ **规模**：小（只立边界，不写算法）。
 > **交付记录**：[`./engine-core-wp0-implementation-2026-10-28.md`](./engine-core-wp0-implementation-2026-10-28.md) ｜ **落地代码**：`src/engine-core/` + `test/engine-core/`
 

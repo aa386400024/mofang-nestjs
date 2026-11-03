@@ -85,24 +85,30 @@ docs/progress/completed/.../engine-wp25-...md   §1.4 回改方向修正
 
 ---
 
-## 2. P2 —— 内测前建议修（**本单只列不改，等用户拍板**）
+## 2. P2 —— 内测前建议修（**已全部处理**）
 
 > 分四组：安全 / 引擎层 / 文档一致性 / 配置与已知尾巴。每条写清位置、问题、建议修法、预估工作量。
+>
+> **V2026-11-03 回写（WP26 交付）**：本节 39 条 P2 的处置状态 —
+> ✅ = **已修复**（38 条：34 条由 WP26 修，含 P2-2 / P2-36 的**后端**部分；P2-8 / P2-30 / P2-31 / P2-32 由 WP25 回写时已处理）；
+> ⏳ = **真机验证项**（1 条：P2-37，Flutter 客户端不在本仓，需内测前在真机确认）。
+>
+> 逐条交付明细见 [WP26 交付记录](./completed/wp14-wp24-augment/engine-wp26-phase1-p2-hardening-backend-implementation-2026-11-03.md)。
 
 ### 2.1 安全侧（10 条）
 
 | # | 位置 | 问题 | 建议修法 | 工作量 |
 |---|---|---|---|---|
-| P2-1 | `src/voice/voice.gateway.ts:358-370` `verifyJwt` | WS 握手只验签名，**不查 token type、不查黑名单** —— 已登出的 access token 仍能连 WS | 复用 `JwtAuthGuard` 的黑名单查询；或至少校验 `type` 字段 | 2h |
-| P2-2 | `src/voice/voice.gateway.ts` `extractToken` | JWT 走 **URL query**（`?token=`）→ token 会落进 nginx access log / Referer / 浏览器历史 | 改用握手头（`Authorization`）或 `Sec-WebSocket-Protocol`；query 只作兼容兜底 | 半天（需前端配合） |
-| P2-3 | `src/shared/infra/metrics/metrics.controller.ts:29-40` + `config/envs/default.ts:105-107` | `/metrics` **默认开启且无鉴权** → 暴露内部指标（QPS / 延迟 / 错误率） | 生产默认关闭，或加内网 IP 白名单 / 独立 token | 1h |
-| P2-4 | `src/admin-debug/` 整个命名空间 | 只有 basic auth / 学员 JWT，**没有角色校验** —— 任何学员凭自己的 token 都能进调试器（虽然只能看自己的会话，但不该有） | 加 `AdminRoleGuard`（查 `users.admin_role`） | 半天 |
-| P2-5 | `src/voice/voice.gateway.ts` 握手流程 | 握手里有**写状态的动作**早于部分校验 | 把写动作全部推到校验之后（本单已推了归属校验，还有别的写动作待复核） | 1h |
-| P2-6 | `src/engine-adapters/wiring/engine-stream-backend.adapter.ts:596` | 「会话未开启」抛**裸 `Error`**，绕过内核 `SESSION_NOT_FOUND` 码 → 落到全局兜底 **500**（语义应是 404） | 改抛 `EngineCoreError(EngineErrorCode.SESSION_NOT_FOUND)` | 5 分钟 |
-| P2-7 | `src/engine-adapters/wiring/engine-wiring.controller.ts:203-204` | `mapKernelError` 的 `default` 分支返回固定串 `'引擎内部错误'`，**丢掉了 `error.message` 与 `error.details`**（details 本来就是给 adapter 判"是否回传/写日志"用的） | default 分支携带 details（剔除敏感字段），或至少打进 logger | 5 分钟 |
-| P2-8 | `.env.example` 预留区 47 个键 | 这些键**代码里查无读取点** —— 配了不生效，且不报错（最费时间的排障陷阱） | 本单已**降级为注释区**（不再冒充契约）；要启用需先在代码接上读取点 | 已做一半 |
-| P2-9 | `src/engine-core/cognition/safety/assess-safety.ts:87` | JSDoc 写「种子值 `DEFAULT_PROBE_TIMEOUT_MS=150`」，而常量 `:75` 是 **500** —— **同一文件内自相矛盾** | 改成「当前 500（测试期放宽），内测前回改 150」 | 5 分钟 |
-| P2-10 | `src/engine-adapters/wiring/risk/http-psyguard.probe.ts:41/45/50/148`、`psyguard-health.checker.ts:67` | 注释里写「内核探测超时 = 150ms」，**当前实际是 500ms** —— 骗人 | 同 P2-9 | 10 分钟 |
+| P2-1 ✅ | `src/voice/voice.gateway.ts:358-370` `verifyJwt` | WS 握手只验签名，**不查 token type、不查黑名单** —— 已登出的 access token 仍能连 WS | 复用 `JwtAuthGuard` 的黑名单查询；或至少校验 `type` 字段 | 2h |
+| P2-2 ✅ | `src/voice/voice.gateway.ts` `extractToken` | JWT 走 **URL query**（`?token=`）→ token 会落进 nginx access log / Referer / 浏览器历史 | 改用握手头（`Authorization`）或 `Sec-WebSocket-Protocol`；query 只作兼容兜底 | 半天（需前端配合） |
+| P2-3 ✅ | `src/shared/infra/metrics/metrics.controller.ts:29-40` + `config/envs/default.ts:105-107` | `/metrics` **默认开启且无鉴权** → 暴露内部指标（QPS / 延迟 / 错误率） | 生产默认关闭，或加内网 IP 白名单 / 独立 token | 1h |
+| P2-4 ✅ | `src/admin-debug/` 整个命名空间 | 只有 basic auth / 学员 JWT，**没有角色校验** —— 任何学员凭自己的 token 都能进调试器（虽然只能看自己的会话，但不该有） | 加 `AdminRoleGuard`（查 `users.admin_role`） | 半天 |
+| P2-5 ✅ | `src/voice/voice.gateway.ts` 握手流程 | 握手里有**写状态的动作**早于部分校验 | 把写动作全部推到校验之后（本单已推了归属校验，还有别的写动作待复核） | 1h |
+| P2-6 ✅ | `src/engine-adapters/wiring/engine-stream-backend.adapter.ts:596` | 「会话未开启」抛**裸 `Error`**，绕过内核 `SESSION_NOT_FOUND` 码 → 落到全局兜底 **500**（语义应是 404） | 改抛 `EngineCoreError(EngineErrorCode.SESSION_NOT_FOUND)` | 5 分钟 |
+| P2-7 ✅ | `src/engine-adapters/wiring/engine-wiring.controller.ts:203-204` | `mapKernelError` 的 `default` 分支返回固定串 `'引擎内部错误'`，**丢掉了 `error.message` 与 `error.details`**（details 本来就是给 adapter 判"是否回传/写日志"用的） | default 分支携带 details（剔除敏感字段），或至少打进 logger | 5 分钟 |
+| P2-8 ✅ | `.env.example` 预留区 47 个键 | 这些键**代码里查无读取点** —— 配了不生效，且不报错（最费时间的排障陷阱） | 本单已**降级为注释区**（不再冒充契约）；要启用需先在代码接上读取点 | 已做一半 |
+| P2-9 ✅ | `src/engine-core/cognition/safety/assess-safety.ts:87` | JSDoc 写「种子值 `DEFAULT_PROBE_TIMEOUT_MS=150`」，而常量 `:75` 是 **500** —— **同一文件内自相矛盾** | 改成「当前 500（测试期放宽），内测前回改 150」 | 5 分钟 |
+| P2-10 ✅ | `src/engine-adapters/wiring/risk/http-psyguard.probe.ts:41/45/50/148`、`psyguard-health.checker.ts:67` | 注释里写「内核探测超时 = 150ms」，**当前实际是 500ms** —— 骗人 | 同 P2-9 | 10 分钟 |
 
 ### 2.2 引擎层（8 条）
 
@@ -110,45 +116,45 @@ docs/progress/completed/.../engine-wp25-...md   §1.4 回改方向修正
 
 | # | 位置 | 问题 | 建议修法 | 工作量 |
 |---|---|---|---|---|
-| P2-11 | `src/engine-core/cognition/state-transition.ts:307-312`、`src/engine-adapters/wiring/delta-cap.logger.ts:55-57` | cap 报告**不带任何会话标识**（sessionId / handleId）→ M3 多人内测时，运维看到 `[WP15] turn delta capped: trust raw=+0.30 ...` **无法定位是哪场会话被砍** | 给 `transitionState` 加可选 `context?: { sessionId; handleId }` 并透传进报告，adapter 日志加 `session=` 前缀 | 半小时 |
-| P2-12 | `src/engine-core/cognition/trajectory/trajectory-applier.ts:201-219` | **轨迹 delta 完全绕过单回合 cap**：turn 顺序是 `transitionState`（已 cap）→ `applyTrajectoryStep` → `applyDelta`，后者把 `node.delta` **再次叠加**且**只 clamp 不 cap**。例：`crisis_signal` 的 `valence=-0.3` 恰等于下向 cap，叠加后单回合 valence 可达约 **-0.6**（2 倍 cap） | **二选一，需拍板**：① 把 `capTurnDelta` 复用到轨迹叠加之后，并让报告覆盖叠加量（半天）；② 明确写下「cap 只管**事件 delta**，轨迹 delta 是剧本作者显式意图，不受 cap 约束」，并让报告口径可读（半小时） | 选①半天 / 选②半小时 |
-| P2-13 | `src/engine-core/cognition/state-transition.ts:258` + `typings/global.d.ts` | 18 个 `ENGINE_CAP_*` 键**未声明到 `NodeJS.ProcessEnv`**，且用**计算键 + bracket 访问**绕过仓库 env 治理约定（`global.d.ts:117/132/175` 三次重申「显式声明，不用 bracket 绕过」）。**计算键 + bracket 访问不会触发 TS4111** —— 编译器也拦不住，属**静默偏离** | 补 18 行显式声明 + 改点访问；或把 18 个键名集中成内核导出的 `CAP_ENV_KEYS` 常量表并登记该派生族 | 半小时 |
-| P2-14 | `src/engine-core/domain/ports/render-port.ts:9`、`src/engine-core/domain/engine-session.types.ts:43` vs `state-transition.ts:19-21` | 内核曾把「**没有配置层**」当作边界优势来论证，WP15 在核心里引入了**第一处 env 读取** —— 与自述直接冲突。更实质的后果是**可复现性**：`seed` 被定义为「可复现性的入口」，而 env 参与决策后，同 seed 同序列在不同 cap 配置下会落到不同状态，**回放/对拍失去意义** | 优先走**注入**（内核已有 `now` / `idFactory` / `classifier` / `riskProbe` 四个注入先例），adapter 读 env 后传入；若坚持读 env，必须同步修订这两处自述 | 改注入=半天 / 改自述=半小时 |
-| P2-15 | `src/engine-core/cognition/state-transition.ts:3` | 文件头第 3 行「边界: 纯函数, 无状态, 无随机, 可复现」现在**三项都不成立**（① `transitionState` 会调外部回调；② `let capObserver` 是模块级可变状态；③ env 参与决策） | 改写成「边界: 确定性状态迁移；**例外**: cap 参数读进程 env、cap 报告走观察者回调」 | 5 分钟 |
-| P2-16 | `src/engine-adapters/wiring/delta-cap.logger.ts:27` + `src/engine-core/index.ts:2-3` | WP15 新增的 6 个对外符号**不进 barrel**，adapter 走深路径 `../../engine-core/cognition/state-transition.js`。后果：`boundary.spec.ts` 断言⑥ 的**双向白名单是唯一守卫公开面的机器断言**，而它只看 `index.ts` → 这批符号**完全在守卫视野之外**（将来内核改文件名/目录，adapter 直接断，**没有任何断言会红**） | 把 WP15 公开面补进 `index.ts` + 同步更新 `boundary.spec.ts` 的 `expectedPublic`；并给 `boundary.spec.ts` 补一条断言：**禁止 `src/engine-adapters/**` 深路径 import `engine-core/` 的非 `in-memory/` 内部模块**（当前全仓仅 1 处越界） | 半小时 |
-| P2-17 | `test/engine-core/boundary.spec.ts:160-170` | 9 条断言全部基于 AST 抽取**模块说明符**，只覆盖 import。`process.env` 是全局对象访问 —— **WP15 引入内核第一处 env 读取时，9 条断言全绿**。也就是说"内核不读 env"这条内核最核心的不变量在机器层面**裸奔** | 加第 10 条断言：内核树**零 `process.env` / 零 `globalThis` 访问**（或白名单化）。若采纳 P2-14 的"改注入"，该断言可零白名单直接成立 | 半小时 |
-| P2-18 | `src/engine-core/domain/engine-errors.ts:27-40` | 6 个错误码里**缺「仓储/依赖失败」一类**；`UNSUPPORTED` 是**死码**（全仓零抛出点）。内核刻意不 catch 仓储异常（"状态冲突必须冒泡给 adapter"），但端口契约里没为它预留错误码 —— `adapters/README.md:79` 已规划 `typeorm-bdi-state.repository.ts`，届时 MySQL 写失败会以裸错误穿透 | 增补 `STORAGE_FAILURE = 'ENGINE_STORAGE_FAILURE'` 一类码，并在端口 `@throws` 里写明；`UNSUPPORTED` 要么删要么注明「Phase2 启用」 | 半小时 |
+| P2-11 ✅ | `src/engine-core/cognition/state-transition.ts:307-312`、`src/engine-adapters/wiring/delta-cap.logger.ts:55-57` | cap 报告**不带任何会话标识**（sessionId / handleId）→ M3 多人内测时，运维看到 `[WP15] turn delta capped: trust raw=+0.30 ...` **无法定位是哪场会话被砍** | 给 `transitionState` 加可选 `context?: { sessionId; handleId }` 并透传进报告，adapter 日志加 `session=` 前缀 | 半小时 |
+| P2-12 ✅ | `src/engine-core/cognition/trajectory/trajectory-applier.ts:201-219` | **轨迹 delta 完全绕过单回合 cap**：turn 顺序是 `transitionState`（已 cap）→ `applyTrajectoryStep` → `applyDelta`，后者把 `node.delta` **再次叠加**且**只 clamp 不 cap**。例：`crisis_signal` 的 `valence=-0.3` 恰等于下向 cap，叠加后单回合 valence 可达约 **-0.6**（2 倍 cap） | **二选一，需拍板**：① 把 `capTurnDelta` 复用到轨迹叠加之后，并让报告覆盖叠加量（半天）；② 明确写下「cap 只管**事件 delta**，轨迹 delta 是剧本作者显式意图，不受 cap 约束」，并让报告口径可读（半小时） | 选①半天 / 选②半小时 |
+| P2-13 ✅ | `src/engine-core/cognition/state-transition.ts:258` + `typings/global.d.ts` | 18 个 `ENGINE_CAP_*` 键**未声明到 `NodeJS.ProcessEnv`**，且用**计算键 + bracket 访问**绕过仓库 env 治理约定（`global.d.ts:117/132/175` 三次重申「显式声明，不用 bracket 绕过」）。**计算键 + bracket 访问不会触发 TS4111** —— 编译器也拦不住，属**静默偏离** | 补 18 行显式声明 + 改点访问；或把 18 个键名集中成内核导出的 `CAP_ENV_KEYS` 常量表并登记该派生族 | 半小时 |
+| P2-14 ✅ | `src/engine-core/domain/ports/render-port.ts:9`、`src/engine-core/domain/engine-session.types.ts:43` vs `state-transition.ts:19-21` | 内核曾把「**没有配置层**」当作边界优势来论证，WP15 在核心里引入了**第一处 env 读取** —— 与自述直接冲突。更实质的后果是**可复现性**：`seed` 被定义为「可复现性的入口」，而 env 参与决策后，同 seed 同序列在不同 cap 配置下会落到不同状态，**回放/对拍失去意义** | 优先走**注入**（内核已有 `now` / `idFactory` / `classifier` / `riskProbe` 四个注入先例），adapter 读 env 后传入；若坚持读 env，必须同步修订这两处自述 | 改注入=半天 / 改自述=半小时 |
+| P2-15 ✅ | `src/engine-core/cognition/state-transition.ts:3` | 文件头第 3 行「边界: 纯函数, 无状态, 无随机, 可复现」现在**三项都不成立**（① `transitionState` 会调外部回调；② `let capObserver` 是模块级可变状态；③ env 参与决策） | 改写成「边界: 确定性状态迁移；**例外**: cap 参数读进程 env、cap 报告走观察者回调」 | 5 分钟 |
+| P2-16 ✅ | `src/engine-adapters/wiring/delta-cap.logger.ts:27` + `src/engine-core/index.ts:2-3` | WP15 新增的 6 个对外符号**不进 barrel**，adapter 走深路径 `../../engine-core/cognition/state-transition.js`。后果：`boundary.spec.ts` 断言⑥ 的**双向白名单是唯一守卫公开面的机器断言**，而它只看 `index.ts` → 这批符号**完全在守卫视野之外**（将来内核改文件名/目录，adapter 直接断，**没有任何断言会红**） | 把 WP15 公开面补进 `index.ts` + 同步更新 `boundary.spec.ts` 的 `expectedPublic`；并给 `boundary.spec.ts` 补一条断言：**禁止 `src/engine-adapters/**` 深路径 import `engine-core/` 的非 `in-memory/` 内部模块**（当前全仓仅 1 处越界） | 半小时 |
+| P2-17 ✅ | `test/engine-core/boundary.spec.ts:160-170` | 9 条断言全部基于 AST 抽取**模块说明符**，只覆盖 import。`process.env` 是全局对象访问 —— **WP15 引入内核第一处 env 读取时，9 条断言全绿**。也就是说"内核不读 env"这条内核最核心的不变量在机器层面**裸奔** | 加第 10 条断言：内核树**零 `process.env` / 零 `globalThis` 访问**（或白名单化）。若采纳 P2-14 的"改注入"，该断言可零白名单直接成立 | 半小时 |
+| P2-18 ✅ | `src/engine-core/domain/engine-errors.ts:27-40` | 6 个错误码里**缺「仓储/依赖失败」一类**；`UNSUPPORTED` 是**死码**（全仓零抛出点）。内核刻意不 catch 仓储异常（"状态冲突必须冒泡给 adapter"），但端口契约里没为它预留错误码 —— `adapters/README.md:79` 已规划 `typeorm-bdi-state.repository.ts`，届时 MySQL 写失败会以裸错误穿透 | 增补 `STORAGE_FAILURE = 'ENGINE_STORAGE_FAILURE'` 一类码，并在端口 `@throws` 里写明；`UNSUPPORTED` 要么删要么注明「Phase2 启用」 | 半小时 |
 
 ### 2.3 文档一致性（15 条）
 
 | # | 位置 | 问题 | 建议修法 | 工作量 |
 |---|---|---|---|---|
-| P2-19 | `docs/progress/phase1-integration-backlog-2026-10-28.md` | **15 条链接失效**（指向已移动 / 未创建的文件） | 逐条核对重指向 | 1h |
-| P2-20 | `docs/README.md` | **52 条链接失效** | 同上 | 2h |
-| P2-21 | `docs/progress/completed/**` | **40+ 条相对链接失效**（文件移进子目录后没跟着改） | 同上 | 2h |
-| P2-22 | WP20 交付记录 | 写「全 mock」，**与代码相反**（实际已切 4 个真 API 页面） | 改写 | 10 分钟 |
-| P2-23 | WP22 交付记录 | 写「409 / 自动关旧场」，**与实现相反**（实际是不自动关 + 独立错误码） | 改写 | 10 分钟 |
-| P2-24 | WP11 交付记录 | 自相矛盾（§5 红线表首行仍写「不改 `src/engine-core/**`，diff 为空」，而实际改了 1 个文件） | 改写 | 10 分钟 |
-| P2-25 | WP22 提交 `git show --stat` | 改了 **16 个前端文件**未在交付记录里登记 | 补登记 | 10 分钟 |
-| P2-26 | WP24 交付记录 | 前提被 WP19-R 推翻（记录里写的「trace 已生效」在 WP19-R 之前不成立） | 补一句时序说明 | 10 分钟 |
-| P2-27 | `docs/progress/code-vs-blueprint-audit-2026-10-30.md` | 缺「这是**快照**，不代表现状」的提示 —— 读的人会当成当前结论 | 加一句抬头提示 | 5 分钟 |
-| P2-28 | `docs/progress/phase1-integration-backlog-2026-10-28.md` §0.3 交付表 | **缺 WP12 / WP16 两行** | 补行 | 10 分钟 |
-| P2-29 | 本单 §1.4 / `assess-safety.ts` / `http-psyguard.probe.ts` | 三处对「150 还是 500」的口径互相矛盾（详见 P2-9 / P2-10 / 本条） | 统一成「当前 500（测试期放宽），内测前回改 150」 | 20 分钟 |
-| P2-30 | `docs/progress/README.md` §4 已交付速查表 | 缺 WP25 条目 | 本单回写（已做） | — |
-| P2-31 | `docs/progress/phase1-integration-backlog-2026-10-28.md` 顶部状态行 | 状态行未反映 WP25 审查结论 | 本单回写（已做） | — |
-| P2-32 | `docs/progress/phase1-integration-backlog-2026-10-28.md` §WP15 小节 | 未记录 P2-12（轨迹绕过 cap）这条**影响 WP15 不变量成立性**的发现 | 本单回写（已做） | — |
-| P2-33 | `docs/architecture/v6.0-ai-engine.md:211-215` | 文档列的 `LLM_TIER_<TIER>_PROVIDER` / `RAG_TOP_K` / `RAG_SCORE_THRESHOLD` 等 env **代码里不读**（本单已把它们降级为 `.env.example` 注释区的预留键） | 文档同步标注「预留，未接线」 | 20 分钟 |
+| P2-19 ✅ | `docs/progress/phase1-integration-backlog-2026-10-28.md` | **15 条链接失效**（指向已移动 / 未创建的文件） | 逐条核对重指向 | 1h |
+| P2-20 ✅ | `docs/README.md` | **52 条链接失效** | 同上 | 2h |
+| P2-21 ✅ | `docs/progress/completed/**` | **40+ 条相对链接失效**（文件移进子目录后没跟着改） | 同上 | 2h |
+| P2-22 ✅ | WP20 交付记录 | 写「全 mock」，**与代码相反**（实际已切 4 个真 API 页面） | 改写 | 10 分钟 |
+| P2-23 ✅ | WP22 交付记录 | 写「409 / 自动关旧场」，**与实现相反**（实际是不自动关 + 独立错误码） | 改写 | 10 分钟 |
+| P2-24 ✅ | WP11 交付记录 | 自相矛盾（§5 红线表首行仍写「不改 `src/engine-core/**`，diff 为空」，而实际改了 1 个文件） | 改写 | 10 分钟 |
+| P2-25 ✅ | WP22 提交 `git show --stat` | 改了 **16 个前端文件**未在交付记录里登记 | 补登记 | 10 分钟 |
+| P2-26 ✅ | WP24 交付记录 | 前提被 WP19-R 推翻（记录里写的「trace 已生效」在 WP19-R 之前不成立） | 补一句时序说明 | 10 分钟 |
+| P2-27 ✅ | `docs/progress/code-vs-blueprint-audit-2026-10-30.md` | 缺「这是**快照**，不代表现状」的提示 —— 读的人会当成当前结论 | 加一句抬头提示 | 5 分钟 |
+| P2-28 ✅ | `docs/progress/phase1-integration-backlog-2026-10-28.md` §0.3 交付表 | **缺 WP12 / WP16 两行** | 补行 | 10 分钟 |
+| P2-29 ✅ | 本单 §1.4 / `assess-safety.ts` / `http-psyguard.probe.ts` | 三处对「150 还是 500」的口径互相矛盾（详见 P2-9 / P2-10 / 本条） | 统一成「当前 500（测试期放宽），内测前回改 150」 | 20 分钟 |
+| P2-30 ✅ | `docs/progress/README.md` §4 已交付速查表 | 缺 WP25 条目 | 本单回写（已做） | — |
+| P2-31 ✅ | `docs/progress/phase1-integration-backlog-2026-10-28.md` 顶部状态行 | 状态行未反映 WP25 审查结论 | 本单回写（已做） | — |
+| P2-32 ✅ | `docs/progress/phase1-integration-backlog-2026-10-28.md` §WP15 小节 | 未记录 P2-12（轨迹绕过 cap）这条**影响 WP15 不变量成立性**的发现 | 本单回写（已做） | — |
+| P2-33 ✅ | `docs/architecture/v6.0-ai-engine.md:211-215` | 文档列的 `LLM_TIER_<TIER>_PROVIDER` / `RAG_TOP_K` / `RAG_SCORE_THRESHOLD` 等 env **代码里不读**（本单已把它们降级为 `.env.example` 注释区的预留键） | 文档同步标注「预留，未接线」 | 20 分钟 |
 
 ### 2.4 配置与已知尾巴（6 条）
 
 | # | 位置 | 问题 | 建议修法 | 工作量 |
 |---|---|---|---|---|
-| P2-34 | `src/engine-adapters/wiring/engine-stream-backend.adapter.ts:989-999`、`src/voice/voice.service.ts:1649-1658` | **finishReason 透传缺失**（见 §1.1） | 3 处透传 | 半小时 |
-| P2-35 | `admin-dashboard` 的 `/characters/:slug` 页面 | mock 数据**缺 pending 状态标注**（其余 7 个 mock 页面内测不走） | 补标注 | 10 分钟 |
-| P2-36 | `src/voice/voice-handshake.ts:204/261-265` | `sessionId` 缺省为 `'default'` → 不带 `?sessionId=` 的客户端**共用同一个 key**（今天表现为"静默互相顶替"）。本单**没改**（改成显式拒绝不构成正确性回归） | 改「服务端生成唯一 id + ready 帧下发」，需前端配合 | 1 天 |
-| P2-37 | `src/voice/voice-handshake.ts` | 客户端是否**总带唯一** `?sessionId=` —— 本单**未核实**（Flutter 客户端不在本仓） | 内测前在真机确认；或服务端强制要求 | — |
-| P2-38 | `src/voice/voice.gateway.ts` `handleDisconnect` | 旧 socket 断开时 `this.voice.detachSocket(sessionId)` + `this.sessions.remove(sessionId)` **没有 socketId 闸门** —— 重连竞态下，旧 socket 断开会把**新 socket 的**演练登记一起摘掉（帧出口有闸门，这两处没有） | 加上与帧出口同样的 socketId 比对 | 20 分钟 |
-| P2-39 | `src/common/filters/biz-exception.filter.ts:62-71` | 生产 5xx **本地日志也不打** —— 线上出问题只能靠 Sentry，无本地兜底 | 生产也打 error 日志（脱敏后） | 10 分钟 |
+| P2-34 ✅ | `src/engine-adapters/wiring/engine-stream-backend.adapter.ts:989-999`、`src/voice/voice.service.ts:1649-1658` | **finishReason 透传缺失**（见 §1.1） | 3 处透传 | 半小时 |
+| P2-35 ✅ | `admin-dashboard` 的 `/characters/:slug` 页面 | mock 数据**缺 pending 状态标注**（其余 7 个 mock 页面内测不走） | 补标注 | 10 分钟 |
+| P2-36 ✅ | `src/voice/voice-handshake.ts:204/261-265` | `sessionId` 缺省为 `'default'` → 不带 `?sessionId=` 的客户端**共用同一个 key**（今天表现为"静默互相顶替"）。本单**没改**（改成显式拒绝不构成正确性回归） | 改「服务端生成唯一 id + ready 帧下发」，需前端配合 | 1 天 |
+| P2-37 ⏳ | `src/voice/voice-handshake.ts` | 客户端是否**总带唯一** `?sessionId=` —— 本单**未核实**（Flutter 客户端不在本仓） | 内测前在真机确认；或服务端强制要求 | — |
+| P2-38 ✅ | `src/voice/voice.gateway.ts` `handleDisconnect` | 旧 socket 断开时 `this.voice.detachSocket(sessionId)` + `this.sessions.remove(sessionId)` **没有 socketId 闸门** —— 重连竞态下，旧 socket 断开会把**新 socket 的**演练登记一起摘掉（帧出口有闸门，这两处没有） | 加上与帧出口同样的 socketId 比对 | 20 分钟 |
+| P2-39 ✅ | `src/common/filters/biz-exception.filter.ts:62-71` | 生产 5xx **本地日志也不打** —— 线上出问题只能靠 Sentry，无本地兜底 | 生产也打 error 日志（脱敏后） | 10 分钟 |
 
 ---
 

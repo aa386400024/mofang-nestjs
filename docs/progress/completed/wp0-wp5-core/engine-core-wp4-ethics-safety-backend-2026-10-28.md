@@ -1,6 +1,6 @@
 # WP4 · 伦理安全引擎（规则层主体 + PsyGUARD 双层降级 + 双侧检测 + 会后伦理报告）后端任务单
 
-> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md) WP4（伦理安全 / 危机升级阈值 / 安全兜底 / 强制转介信号）+ §7 伦理分层（规则层 / PsyGUARD / MindGuard）
+> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../../../architecture/ai-engine-roadmap-v1.1.md) WP4（伦理安全 / 危机升级阈值 / 安全兜底 / 强制转介信号）+ §7 伦理分层（规则层 / PsyGUARD / MindGuard）
 > 前置: [`engine-core-wp0-boundary-skeleton-backend-2026-10-28.md`](./engine-core-wp0-boundary-skeleton-backend-2026-10-28.md)（边界骨架，已交付）、
 >       [`engine-core-wp1-bdi-cognitive-engine-backend-2026-10-28.md`](./engine-core-wp1-bdi-cognitive-engine-backend-2026-10-28.md)（BDI 规则轨，已交付）、
 >       [`engine-core-wp2-layered-memory-backend-2026-10-28.md`](./engine-core-wp2-layered-memory-backend-2026-10-28.md)（分层记忆 V1，已交付）、

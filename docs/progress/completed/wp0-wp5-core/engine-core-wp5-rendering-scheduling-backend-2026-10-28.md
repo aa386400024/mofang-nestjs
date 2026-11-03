@@ -1,6 +1,6 @@
 # WP5 · 多模型渲染调度（渲染契约层：意图→口语的端口 + 任务分层 + Token 预算裁剪 + 主备容灾契约 + 输出侧伦理校验）后端任务单
 
-> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md) WP5（多模型渲染引擎 / 约束注入 / 流式 / 任务分层 / 主备容灾 / Token 预算）+ §3 五引擎「多模型渲染引擎」
+> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../../../architecture/ai-engine-roadmap-v1.1.md) WP5（多模型渲染引擎 / 约束注入 / 流式 / 任务分层 / 主备容灾 / Token 预算）+ §3 五引擎「多模型渲染引擎」
 > 前置: [`engine-core-wp0-boundary-skeleton-backend-2026-10-28.md`](./engine-core-wp0-boundary-skeleton-backend-2026-10-28.md)（边界骨架，已交付）、
 >       [`engine-core-wp1-bdi-cognitive-engine-backend-2026-10-28.md`](./engine-core-wp1-bdi-cognitive-engine-backend-2026-10-28.md)（BDI 规则轨，已交付）、
 >       [`engine-core-wp2-layered-memory-backend-2026-10-28.md`](./engine-core-wp2-layered-memory-backend-2026-10-28.md)（分层记忆 V1，已交付）、

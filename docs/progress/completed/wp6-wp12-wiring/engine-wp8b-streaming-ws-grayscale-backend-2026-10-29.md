@@ -1,6 +1,6 @@
 # WP8-B · 流式原生渲染（单一实现）+ 接入 voice WS/vpt + 灰度切旧 · 后端任务单（B 方案）
 
-> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md)
+> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../../../architecture/ai-engine-roadmap-v1.1.md)
 > 前置（均已交付复跑绿）: WP0–WP7 / WP8-A 聚合装配 [`engine-wp8-di-wiring-aggregated-turn-backend-2026-10-28.md`](./engine-wp8-di-wiring-aggregated-turn-backend-2026-10-28.md) / MiniMax chat provider [`llm-minimax-chat-provider-backend-2026-10-28.md`](./llm-minimax-chat-provider-backend-2026-10-28.md)
 > 仓库: `E:\Work\Project\backend\mofang-nestjs` ｜ 日期: 2026-10-29
 > 决策: **B · 流式原生渲染、单一实现**（已否决"A 适配层另写流式旁路双实现"）

@@ -4,6 +4,9 @@
 > **审计对象**：`E:\Work\Project\backend\mofang-nestjs`，分支 `integrate`，HEAD = `50b924b`
 > **性质**：**只读审计** —— 全程未修改任何代码，本报告只列差异点，**不写解决方案、不写修复建议**。
 > **方法**：一律以 `src/` 实际代码 + `git show <commit>` 回溯「交付当刻」为准，**不以文档自述为准**。
+>
+> ⚠️ **本文件是 2026-10-30 的快照，不代表当前现状。** 报告里的每一条差异结论都只对**当天那个 HEAD（`50b924b`）**成立 —— 此后 WP19-R（留痕链接通 / admin 鉴权）、WP20、WP22（前端切真接口）、WP23、WP24、WP25 等交付都已改动了相关代码。典型例子：§4.1 **D4「SPA 全是 mock」已被 WP22（2026-11-02 前端切真接口）推翻**；**D1 / D2 / D3 / D27 / D28 / D29（WP19 留痕与鉴权）已由 WP19-R 修复**。
+> **当前结论以各 WP 交付记录与最新审计报告为准** —— 最新一份是 [`docs/progress/wp25-phase1-audit-report-2026-11-03.md`](./wp25-phase1-audit-report-2026-11-03.md)（WP25 Phase1 封版扫描，2026-11-03）。
 
 ---
 
@@ -160,7 +163,7 @@ git show --name-only --pretty=format: <commit> # 看某次提交改动的全部�
 | **WP1** | BDI 内核（信念/愿望/意图 + 事件算子 + 状态快照） | 内核实现齐备。**但任务单管线草图写 `transitionState(snapshot, events, profile)`，实现是 2 参**；「acceptance 也累积 dependency」不成立 | ⚠️ 2 处偏差（§4.3-4.13 / 4.14） |
 | **WP2** | 记忆纯函数 + Qdrant B 层 | `MemoryTier` 三级；Qdrant B 层齐备 | ✅ 属实 |
 | **WP3** | 轨迹三模式纯函数 | 三模式齐备（`script.ts:40`） | ✅ 属实（模式真名口径见 §4.3-4.15） |
-| **WP4** | 规则双侧判定 + `RiskProbePort` 占位 | 规则层与端口齐备。**但记录写「150ms 超时」，常量现值 500** | ⚠️ 1 处偏差（§4.3-4.12） |
+| **WP4** | 规则双侧判定 + `RiskProbePort` 占位 | 规则层与端口齐备。**但记录写「150ms 超时」，常量现值 500**（**当前 500ms / 256 token 是测试期放宽值，正式口径是 150ms / 28 token，M3 内测前改回**） | ⚠️ 1 处偏差（§4.3-4.12） |
 | **WP5** | 渲染契约 / 预算 / 主备选择 / 输出校验纯层 | 纯层齐备 | ✅ 属实 |
 | **WP6** | RenderPort LLM 适配 + 主备执行 | 功能在。**但「纯类无框架依赖」不成立**（`import { Logger } from '@nestjs/common'`）；另有多项实现未登记 | ⚠️ 1 处偏差 + 5 处漏记（§4.3-4.1 / §4.2-4.1~4.5） |
 | **WP7** | RenderSpec 组装 + turn 填 reply + **「`rememberTurn` 改为问+答成对写」** | 组装与填 reply 属实。**成对写没做**——内核 `in-memory-engine-session.ts:508-524` 一行未改，仍只写咨询师半边，`:508` TODO 未销；实际是内核写半边 + 适配层 `turn-render-orchestrator.ts:453-474` 另写半边凑成 2 条，**无配对标识** | ⚠️ **核心声称不成立**（§4.3-4.2） |
@@ -203,7 +206,7 @@ git show --name-only --pretty=format: <commit> # 看某次提交改动的全部�
 | **D8** | WP8-B | abort → 走 error 帧 + 切旧链路 | **发的是 `cancelled` 帧不是 error 帧，也不切旧链路** | `src/voice/voice.service.ts:1011-1022`【实锤】 |
 | **D9** | WP8-B | 「用例 B 编译期自证」 | 是**双重 `as` 断言 + stub**，不构成编译期自证 | `test/engine-adapters/wp8-wiring.spec.ts`【实锤】 |
 | **D10** | WP8-A | 「装配完成，端到端可跑」 | 交付时 `EngineStreamBackend` 是**类 provider** → 按其交付代码**起不来（启动炸弹）**；WP8-B 遗留缺口清单**没记这条** | `git show 5d69ea9` 的 `engine.module.ts` + `engine.providers.ts`【静态推演，未在当刻 checkout 实跑】 |
-| **D11** | WP4 | 「150ms 超时」 | 常量现值 **500**（决策 #4 放宽），记录从未回写 | `src/engine-core/cognition/safety/assess-safety.ts:75`【实锤】 |
+| **D11** | WP4 | 「150ms 超时」 | 常量现值 **500**（决策 #4 放宽），记录从未回写。**统一口径**：**当前 500ms / 256 token 是测试期放宽值，正式口径是 150ms / 28 token，M3 内测前改回** | `src/engine-core/cognition/safety/assess-safety.ts:75`【实锤】 |
 | **D12** | WP11 | 「服务挂/超时**静默回落本地规则**」 | **回落内核规则层**，而该层在 `counselor_input` 侧无危机词 → 学员危机检测能力归零。`createRiskProbe` 配了 baseUrl 就 **`fallback` 被丢弃** | `src/engine-adapters/wiring/engine.providers.ts:267-275`、`src/engine-core/cognition/safety/assess-safety.ts:117-119`【实锤】 |
 | **D13** | WP12 | 改动面清单 = 4 新增 + 16 修改 + 2 文档 = **22 个文件** | 提交 `50b924b` 实际 **49 个文件**（+4776/-209）。**差额 27 个未登记**：25 个 `admin-dashboard/**`（属 WP20 范围资产）+ backlog 母版 + 记录自身 | `git show --stat 50b924b`（49 files）、`git show --name-only --pretty=format: 50b924b`；`docs/progress/engine-wp12-...-implementation-2026-10-30.md:207-239`【实锤】 |
 | **D14** | WP20 | §3「不做 i18n」/ §5「不做实时大盘」 | WP12 commit 混入 25 个 `admin-dashboard/**`，含 `src/i18n/{index,locales/en,locales/zh-CN}.ts`、`views/CostBoard.vue`、`views/Dashboard.vue` —— **同时违反「不做 i18n」与「不做实时大盘」两条自定边界** | `git show --name-only --pretty=format: 50b924b -- admin-dashboard`【实锤】 |
@@ -237,10 +240,10 @@ git show --name-only --pretty=format: <commit> # 看某次提交改动的全部�
 | **D32** | WP6 | 「纯类，无框架依赖」 | `import { Logger } from '@nestjs/common'` | `src/engine-adapters/rendering/llm-render.adapter.ts`【实锤】 |
 | **D33** | WP6 | 非鉴权 4xx 属「不可切备」 | 非鉴权 4xx 被当**「可切备」**处理 | 同上【实锤】 |
 | **D34** | WP11 | 「输出侧**不显式传** `timeoutMs`，让它继承内核 `DEFAULT_PROBE_TIMEOUT_MS`；全仓只有**一个**回改点」（记录 `:595` / `:654`，工厂 JSDoc `engine.providers.ts:301-302`） | **装配层显式传了** `timeoutMs: resolvePsyGuardTimeoutMs(config.get<string>('PSYGUARD_TIMEOUT_MS'))` → 输出侧走**独立 env 读取**，**不会**跟着内核常量回。M3 回改时若漏改 env，输出侧仍按 env 走 | `src/engine-adapters/wiring/engine.module.ts:181`【实锤】 |
-| **D35** | WP11 | §5 红线表「不改 `src/engine-core/**` ✅ `git diff --stat HEAD -- src/engine-core` 为空」 | 该行**未随审核结论回写**（同文档验收表 `:273`、闸门 `:308`、§12.4 `:629` 都已标注「审核后为 1 个文件」，唯独 §5 首行仍是「为空」） | `docs/progress/engine-wp11-psyguard-python-service-backend-implementation-2026-10-30.md:250` vs `:273` / `:308` / `:629`【实锤】 |
-| **D36** | WP11 | §3.3「内核 `assessSafety` 自己 `Promise.race` 一个 **150ms** 的计时器 —— 那是硬上限」；验收表 #4「响应 > 150ms → 超时回落 ✅ 内核 `Promise.race(150ms)` 兜住」 | 常量现值 **500**，内核 race 的是 500ms。**该节全部结论按 150ms 推导，已过期** | `src/engine-core/cognition/safety/assess-safety.ts:75`；记录 `:188-189`、`:269`【实锤】 |
+| **D35** | WP11 | §5 红线表「不改 `src/engine-core/**` ✅ `git diff --stat HEAD -- src/engine-core` 为空」 | 该行**未随审核结论回写**（同文档验收表 `:273`、闸门 `:308`、§12.4 `:629` 都已标注「审核后为 1 个文件」，唯独 §5 首行仍是「为空」）→ **✅ 已由 WP26（2026-11-03）改写**：§5 首行现已与另外三处口径一致（「审核后为 1 个文件」+ 决策 #4 说明） | `docs/progress/completed/wp6-wp12-wiring/engine-wp11-psyguard-python-service-backend-implementation-2026-10-30.md:250` vs `:273` / `:308` / `:629`【实锤】 |
+| **D36** | WP11 | §3.3「内核 `assessSafety` 自己 `Promise.race` 一个 **150ms** 的计时器 —— 那是硬上限」；验收表 #4「响应 > 150ms → 超时回落 ✅ 内核 `Promise.race(150ms)` 兜住」 | 常量现值 **500**，内核 race 的是 500ms。**该节全部结论按 150ms 推导，已过期**。**统一口径**：**当前 500ms / 256 token 是测试期放宽值，正式口径是 150ms / 28 token，M3 内测前改回** → **✅ 已由 WP26（2026-11-03）改写**：WP11 交付记录 §3.3 与验收表 #4 现已按当前口径重写 | `src/engine-core/cognition/safety/assess-safety.ts:75`；记录 `:188-189`、`:269`【实锤】 |
 | **D37** | WP11 | 回改清单「跨两个仓库 **6 处**」 | 清单正文列了 **7 个条目**（其中 `http-psyguard.probe.ts` 标注「无需另改」）；叠加 D34 的装配层 env 路径，「全仓只有一个回改点」不成立 | `src/engine-core/cognition/safety/assess-safety.ts:66-74`【实锤】 |
-| **D38** | WP4 / WP11 | 常量 = 150ms | `assess-safety.ts:87` JSDoc 仍写「种子值 `DEFAULT_PROBE_TIMEOUT_MS=150`」，而 `:75` 常量是 **500** —— 同一文件内自相矛盾（回改到 150 后会自洽，但当前状态是错的） | `src/engine-core/cognition/safety/assess-safety.ts:75` vs `:87`【实锤】 |
+| **D38** | WP4 / WP11 | 常量 = 150ms | `assess-safety.ts:87` JSDoc 仍写「种子值 `DEFAULT_PROBE_TIMEOUT_MS=150`」，而 `:75` 常量是 **500** —— 同一文件内自相矛盾（回改到 150 后会自洽，但当前状态是错的）。**统一口径**：**当前 500ms / 256 token 是测试期放宽值，正式口径是 150ms / 28 token，M3 内测前改回** | `src/engine-core/cognition/safety/assess-safety.ts:75` vs `:87`【实锤】 |
 | **D39** | WP1 | 任务单管线草图 `transitionState(snapshot, events, profile)` | 实现是 **2 参** | `src/engine-core/cognition/state-transition.ts`【实锤】 |
 | **D40** | WP1 | 「acceptance 也累积 dependency」 | acceptance 的 dependency 是 **0**；只有 affirmation 是 0.02 | `src/engine-core/cognition/state-transition.ts:65`【实锤】 |
 | **D41** | backlog §0.1 / §0.4 | §0.1 能力 3 写「**二级**记忆」，§0.4 写「**三级**记忆」 | 内核 `MemoryTier` 是 WORKING / SHORT_TERM / LONG_TERM **三级** —— §0.4 对、§0.1 错。**同一文档内部不一致** | `src/engine-core/domain/ports/memory.store.ts:42-49`【实锤】 |

@@ -9,8 +9,13 @@
 //     两侧 (voice / counselor) 都直接注入, 互不 import —— 保持 agent → business 的单向依赖.
 //
 //   反双胞胎:
-//     - 不在 VoiceModule 直接 import 业务模块 — 单向依赖, 业务模块可单独 import VoiceModule
+//     - 不在 VoiceModule 直接 import **counselor 业务模块** — 单向依赖,
+//       业务模块可单独 import VoiceModule
 //     - 不在 VoiceModule 挂 counselor 模块 — 那会让"语音链路"反向依赖"咨询业务"
+//     - V2026-11-03 (WP26 P2-1) 的例外: import `UserModule` 取
+//       `JwtBlacklistService` —— 这是**账号域的通用能力**(与 HTTP 面的
+//       `JwtAuthGuard` 共用同一份黑名单口径), 不是"咨询业务".
+//       依赖方向 voice → user 仍是单向 (user 侧不 import voice), 不构成环.
 //
 //   时间戳: 2026-10-23
 
@@ -25,6 +30,7 @@ import { VoiceSessionModule } from './voice-session.module.js';
 import { VoiceGateway } from './voice.gateway.js';
 import { VoiceService } from './voice.service.js';
 import { EngineWiringModule } from '../engine-adapters/wiring/engine.module.js';
+import { UserModule } from '../user/index.js';
 
 @Module({
   imports: [
@@ -46,6 +52,15 @@ import { EngineWiringModule } from '../engine-adapters/wiring/engine.module.js';
     //   何时切走: V1.x 如果统一 JWT secret 配置, 在 app.module 全局注册 JwtModule 一次,
     //     所有 module 共享, 删掉本地 register.
     JwtModule.register({}),
+    // V2026-11-03 治本 (WP26 §1 P2-1 · WS 握手查 JWT 黑名单):
+    //   引入 UserModule 取 `JwtBlacklistService` —— 登出后的 access token
+    //   还能连 WS, 是"已登出即失效"这条安全承诺在 WS 面的破口.
+    //   为什么复用既有服务而不是自己查 Redis: 黑名单的 **key 口径**必须与
+    //   `JwtAuthGuard` 完全一致, 两边各写一份 Redis key 迟早漂移 —— 漂移的方向
+    //   恰好是"HTTP 面已登出、WS 面仍可用".
+    //   依赖方向: voice → user 是**单向**边 (user 侧不 import voice), 不构成环;
+    //   与 `src/admin-debug/admin-debug.module.ts` 同一接法.
+    UserModule,
   ],
   providers: [VoiceService, VoiceGateway, VoiceSessionLimitsService],
   exports: [VoiceService],

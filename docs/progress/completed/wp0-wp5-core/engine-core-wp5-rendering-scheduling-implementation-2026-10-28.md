@@ -1,7 +1,7 @@
 # WP5 · 多模型渲染调度（渲染契约层）后端交付记录
 
 > 任务单: [`engine-core-wp5-rendering-scheduling-backend-2026-10-28.md`](./engine-core-wp5-rendering-scheduling-backend-2026-10-28.md)
-> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md) WP5 + §3 五引擎「多模型渲染引擎」
+> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../../../architecture/ai-engine-roadmap-v1.1.md) WP5 + §3 五引擎「多模型渲染引擎」
 > 前置: [`engine-core-wp0-boundary-skeleton-backend-2026-10-28.md`](./engine-core-wp0-boundary-skeleton-backend-2026-10-28.md)（边界骨架）、
 >       [`engine-core-wp1-bdi-cognitive-engine-backend-2026-10-28.md`](./engine-core-wp1-bdi-cognitive-engine-backend-2026-10-28.md)（BDI 规则轨）、
 >       [`engine-core-wp2-layered-memory-backend-2026-10-28.md`](./engine-core-wp2-layered-memory-backend-2026-10-28.md)（分层记忆 V1）、

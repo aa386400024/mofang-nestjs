@@ -1,8 +1,8 @@
 # WP7 · RenderSpec 组装 + turn 接线填 reply（决策→说话闭环）后端交付记录
 
 > 任务单: [`engine-wp7-spec-assembly-turn-reply-backend-2026-10-28.md`](./engine-wp7-spec-assembly-turn-reply-backend-2026-10-28.md)
-> 总清单: [`phase1-integration-backlog-2026-10-28.md`](./phase1-integration-backlog-2026-10-28.md) WP7
-> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md)
+> 总清单: [`phase1-integration-backlog-2026-10-28.md`](../../phase1-integration-backlog-2026-10-28.md) WP7
+> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../../../architecture/ai-engine-roadmap-v1.1.md)
 > 前置: WP0–WP5 内核纯层；**WP6 `LlmRenderAdapter`**（RenderPort 真实实现 + 主备 + 输出 guard + 降级非空）
 > 仓库: `E:\Work\Project\backend\mofang-nestjs`
 > 日期: 2026-10-28 ｜ 类型: **适配层（`src/engine-adapters/rendering/`）**；本期把内核决策接成"一句真实来访口语"

@@ -20,13 +20,23 @@
 //
 //   鉴权在**中间件**层 (`AdminBasicAuthMiddleware`): 本 controller 只读
 //   "这次请求是谁" (req.adminBasicAuth / req.user), 不自己解析凭据.
+//
+//   V2026-11-03 治本 (WP26 §1 P2-4 · 加角色校验):
+//     中间件只判**身份** (是运维 basic 还是学员 JWT), 不判**角色** —— 学员凭自己的
+//     token 就能进调试器. 现在 class 级挂 `AdminRoleGuard` 判"是不是管理员"
+//     (查 DB 真值 `users.admin_role` = 'admin'), 非 admin → 403.
+//     为什么 class 级挂: 4 个端点全是内部能力, 逐个 method 挂 guard 漏一个就开天窗;
+//     class 级挂一次, 新增端点自动继承 (与仓库既有 admin controller 同款做法).
+//     为什么不再挂 JwtAuthGuard: 身份已由中间件解析 (basic 或 JWT 都可能),
+//     再挂一次会把 basic 运维入口打成 401.
 
-import { Controller, Get, Param, Query, Req } from '@nestjs/common';
+import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, type Repository } from 'typeorm';
 
 import type { AdminDebugRequest } from './admin-basic-auth.middleware.js';
+import { AdminRoleGuard } from './guards/admin-role.guard.js';
 import type { TurnTrace } from './trace-recorder.service.js';
 import { BizCode } from '../common/exceptions/biz-code.enum.js';
 import { BizException } from '../common/exceptions/biz.exception.js';
@@ -34,6 +44,8 @@ import { TrainingSession } from '../counselor/entities/training-session.entity.j
 import { CharacterProfileEntity } from '../engine-adapters/wiring/character/character-profile.entity.js';
 
 @Controller('admin/api')
+// 角色校验 (WP26 P2-4): 非 admin 角色 → 403 (BizCode.Forbidden).
+@UseGuards(AdminRoleGuard)
 export class AdminDebugController {
   constructor(
     @InjectRepository(TrainingSession)

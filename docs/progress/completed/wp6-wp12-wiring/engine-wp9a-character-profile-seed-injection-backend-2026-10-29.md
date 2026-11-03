@@ -1,7 +1,7 @@
 # WP9-A · 角色内核解析注入管线（内置种子先跑通）· 后端任务单
 
-> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md)
-> backlog 原条目: [`phase1-integration-backlog-2026-10-28.md`](./phase1-integration-backlog-2026-10-28.md) §WP9
+> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../../../architecture/ai-engine-roadmap-v1.1.md)
+> backlog 原条目: [`phase1-integration-backlog-2026-10-28.md`](../../phase1-integration-backlog-2026-10-28.md) §WP9
 > 前置（均已交付复跑绿）: WP0–WP7 / WP8-A 聚合装配 / MiniMax chat provider / [WP8-B 流式+灰度](./engine-wp8b-streaming-ws-grayscale-backend-implementation-2026-10-29.md)
 > 仓库: `E:\Work\Project\backend\mofang-nestjs` ｜ 日期: 2026-10-29
 > 闸门由大炮在 Windows PowerShell 复跑 `tsc` / `eslint` / `jest`，后端勿代跑 flutter/dart。

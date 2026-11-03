@@ -25,6 +25,26 @@
 //     原因: 原生 ws 要自己写心跳/重连/断连检测, Socket.IO 开箱即用.
 //     语音对练长连接场景, 移动端网络不稳定, 重连和保活是刚需.
 //
+//   V2026-11-03 治本 (WP26 · §1 安全加固 — 落在 voice 网关的 5 条):
+//     P2-1  WS 握手补齐 **token type 校验 + 黑名单查询** (复用 JwtAuthGuard 的口径):
+//            已登出 / 已改密的 access token 之前照样能连 WS.
+//     P2-2  JWT 改走 **Sec-WebSocket-Protocol 子协议** (?token= 保留兼容兜底):
+//            query 里的 token 会落进 nginx access log / Referer / 浏览器历史.
+//     P2-5  握手写动作全部推到 **鉴权 + 归属校验之后** (复核, 零漏网):
+//            归属校验失败时必须零状态写入 (内存 map / 落库桥 / TTS / 演练登记).
+//     P2-36 **sessionId 改服务端生成**: 缺省 'default' 让所有不带 ?sessionId= 的
+//            客户端共用同一个 key (落库桥 / 演练登记 / 内存会话全串在一起).
+//     P2-38 旧 socket 断开加 **socketId 闸门**: 重连竞态下旧 socket 断开会把
+//            新 socket 的演练登记一起摘掉.
+//
+//   反双胞胎 (WP26):
+//     - 不自造黑名单存储: 黑名单查询直接用仓库既有的 JwtBlacklistService (与
+//       JwtAuthGuard 同一个 Redis key 口径), 免得两套撤销逻辑漂移.
+//     - 不强制客户端必须带子协议: 老客户端只有 ?token=, 断掉它们等于把语音链路
+//       打死 —— 子协议是**新增**通道, 不是替换通道.
+//     - 不在网关里"顺手"改别的模块: 本单只改 gateway, 装配处 (VoiceModule) 的
+//       接线在交付说明里列给主线程.
+//
 //   反双胞胎:
 //     - 不在 gateway 里做业务编排 — gateway 只做 transport, 业务在 VoiceService
 //     - 不缓存 client 连接 — disconnect 时直接 endSession, 资源清理彻底
@@ -36,7 +56,7 @@
 //     3. 发 { type: 'user_text', text: '你好' } — 收到 llm_start/llm_text/sentence_start/tts_audio/sentence_end/llm_done/tts_done
 //     4. 换一个不存在的 templateId — 收到 error(template_not_found) 且连接被关
 
-import { Logger } from '@nestjs/common';
+import { Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import {
@@ -47,7 +67,10 @@ import {
   SubscribeMessage,
   WebSocketGateway,
 } from '@nestjs/websockets';
+import { nanoid } from 'nanoid';
 import type { Socket } from 'socket.io';
+import { WebSocketServer } from 'ws';
+import type { ServerOptions as WsServerOptions } from 'ws';
 
 import { VoiceCatalogRegistry } from './voice-catalog-slot.js';
 import { VoiceFrameRegistry } from './voice-frame-registry.js';
@@ -60,6 +83,8 @@ import { VoiceTemplateRegistry } from './voice-template-slot.js';
 import { buildVoiceVisitorCard } from './voice-visitor-card.js';
 import { VoiceService } from './voice.service.js';
 import type { VoiceClientMessage, VoiceServerMessage, VoiceSessionMeta } from './voice.types.js';
+import { JwtBlacklistService } from '../user/providers/jwt-blacklist.service.js';
+import { TokenType } from '../user/user.constant.js';
 
 /**
  * 兜底通道的中性速查卡 (V2026-10-26, spec 任务 1 / 任务 7).
@@ -80,6 +105,102 @@ const NEUTRAL_VISITOR_CARD: VoiceVisitorCard = {
   presentingComplaint: '',
   riskTags: [],
 };
+
+/**
+ * WS 鉴权子协议名 (V2026-11-03, WP26 P2-2).
+ *
+ * 客户端约定: `Sec-WebSocket-Protocol: bearer, <jwt>`.
+ *
+ * 为什么单独起一个名字 (而不是直接把 token 当子协议):
+ *   子协议值会被**原样回显**在握手响应头里 —— 回显 token 等于把 token 又发了一遍
+ *   (落进代理 / 网关 / APM 的响应头日志). 带一个 'bearer' 标记, 服务端只回显
+ *   'bearer', token 只在**请求头**里走一趟.
+ */
+export const WS_AUTH_SUBPROTOCOL = 'bearer';
+
+/**
+ * JWT 形状 (三段 base64url, 段内无 '=').
+ *
+ * 用途: 从子协议列表里认出"哪个值才是 token" —— 客户端可能同时报 'bearer' 标记
+ * 和 token, 也可能只报 token. 只认 JWT 形状的值, 别的当噪声忽略.
+ */
+const JWT_SHAPE = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+
+/**
+ * 解析层给的会话 id 缺省值 (见 voice-handshake.ts).
+ *
+ * 它是"没传"的占位, 不是"一个具体的会话" —— 所有不带 ?sessionId= 的客户端都会
+ * 撞上同一个 key (WP26 P2-36 要治的就是这个).
+ */
+const DEFAULT_SESSION_ID = 'default';
+
+/**
+ * 子协议选择 (V2026-11-03, WP26 P2-2): 客户端报了哪些子协议 → 服务端回显哪个.
+ *
+ * 为什么必须自己选 (不能吃 ws 的默认值):
+ *   ws 的默认行为是**回显客户端报的第一个子协议** —— 客户端要是把 token 放第一位,
+ *   响应头 `Sec-WebSocket-Protocol: <jwt>` 就把 token 又发了一遍 (等于没改).
+ *
+ * 规则 (三级):
+ *   ① 报了 'bearer' → 回显 'bearer' (客户端契约: `bearer, <jwt>`) —— token 不回显;
+ *   ② 没报 'bearer', 但报了别的**非 token** 值 → 回显它 (ws 客户端要求"客户端报了
+ *      子协议, 服务端就必须选一个", 不选它会自己断开 —— 见 ws 的
+ *      `Server sent no subprotocol`);
+ *   ③ 只报了 token → **一个都不回显**: 回显 token 等于把 token 又发一遍 (WP26 红线).
+ *      代价: 严格客户端 (ws) 会以 "Server sent no subprotocol" 中断这次握手 ——
+ *      这是"客户端没按契约带 bearer 标记"的明确信号, 比悄悄把 token 回显出去好.
+ *      (宽松客户端 —— 例如不带子协议校验的实现 —— 不受影响.)
+ *
+ * 注意: 客户端**不带**子协议照样能连 (老客户端只有 ?token=) —— 本函数只在客户端
+ * 报了子协议时才参与协商.
+ *
+ * @param protocols 客户端报出的子协议集合
+ * @returns 要回显的子协议; false = 不回显任何子协议
+ */
+export function selectVoiceSubprotocol(protocols: ReadonlySet<string>): string | false {
+  if (protocols.has(WS_AUTH_SUBPROTOCOL)) {
+    return WS_AUTH_SUBPROTOCOL;
+  }
+  for (const protocol of protocols) {
+    if (!JWT_SHAPE.test(protocol)) {
+      return protocol;
+    }
+  }
+  return false;
+}
+
+/**
+ * 只回显 'bearer' 的 ws 引擎 (V2026-11-03, WP26 P2-2).
+ *
+ * engine.io 用 `new this.opts.wsEngine({...})` 建 ws 服务 (见 engine.io 的
+ * `Server.init()`), 所以把 `handleProtocols` 挂在子类上就能接管子协议协商 ——
+ * 不必改 engine.io / socket.io 内部, 也不用改装配处.
+ *
+ * 导出是为了让回归测试能拿它起一个**真 socket** 服务, 断言握手响应头里
+ * 只回显 'bearer' (见 test/voice/wp26-voice-gateway-hardening.spec.ts).
+ */
+export class VoiceSubprotocolWsServer extends WebSocketServer {
+  constructor(options: WsServerOptions) {
+    super({
+      ...options,
+      handleProtocols: (protocols) => selectVoiceSubprotocol(protocols),
+    });
+  }
+}
+
+/**
+ * WS 握手要用的 JWT 载荷 (口径对齐 JwtAuthGuard).
+ *
+ * `type` / `jti` 都可能缺:
+ *   · 2026-08-27 之前签发的存量 access token 不带 `type`;
+ *   · `auth.service.ts` 那条签发路径不带 `jti` (没法查黑名单, 只能跳过).
+ */
+interface VoiceJwtPayload {
+  readonly sub: string;
+  readonly jti?: string;
+  readonly type?: string;
+  readonly tenantId?: string;
+}
 
 interface SocketData {
   sessionId: string;
@@ -140,7 +261,14 @@ interface SocketData {
  */
 type FrameSink = (msg: VoiceServerMessage) => void;
 
-@WebSocketGateway({ path: '/voice/training' })
+@WebSocketGateway({
+  path: '/voice/training',
+  // V2026-11-03 治本 (WP26 P2-2): 自定义 ws 引擎 —— 接管子协议协商, 只回显 'bearer'.
+  //   Nest 的 `GatewayMetadata` 把 wsEngine 声明成 string (类型历史包袱), 运行时
+  //   engine.io 要的其实是 ws 的 WebSocketServer **类** (它会 `new opts.wsEngine({...})`).
+  //   这里的 unknown 桥接只是把那处类型谎言收敛到一行, 不影响运行时行为.
+  wsEngine: VoiceSubprotocolWsServer as unknown as string,
+})
 export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisconnect {
   private readonly logger: Logger = new Logger(VoiceGateway.name);
   private readonly voice: VoiceService;
@@ -152,6 +280,22 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
   private readonly bridges: VoiceSessionBridgeRegistry;
   private readonly frames: VoiceFrameRegistry;
   /**
+   * JWT 黑名单查询 (V2026-11-03, WP26 P2-1).
+   *
+   * 用仓库既有的 `JwtBlacklistService` (与 `JwtAuthGuard` 同一个 Redis key 口径) ——
+   * 自造一套黑名单存储 = 两套撤销逻辑迟早漂移 (一处登出撤了, 另一处没撤).
+   *
+   * undefined = 装配处还没把它接进来 (见构造函数的 @Optional 注释).
+   */
+  private readonly blacklist: JwtBlacklistService | undefined;
+  /**
+   * "黑名单没装配" 只告警一次 (V2026-11-03, WP26 P2-1).
+   *
+   * 每条连接都告警一次 = 日志被刷爆, 反而没人看见 —— 一次性告警 + 明确的
+   * 处置建议才是有效告警.
+   */
+  private blacklistMissingWarned = false;
+  /**
    * 会话 id → 当前帧出口 (V2026-11-03, WP23).
    *
    * 为什么是**会话级**而不是"每 socket 一个闭包":
@@ -162,6 +306,9 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
    *
    * 断连时出口被移除 → 帧**丢弃** (不排队、不回放): 断连期间的帧没有接收方,
    *   排队等重连再放 = 服务端替客户端缓存历史 —— 那正是补漏帧的活 (只做一次, 只补文本).
+   *
+   * V2026-11-03 治本 (WP26 P2-38): 这张表同时充当**会话持有者**名册 ——
+   *   里面的 socketId 就是"当前持有这场会话的那条 socket", 断连时靠它做闸门.
    */
   private readonly sessionSinks = new Map<string, { readonly socketId: string; readonly sink: FrameSink }>();
 
@@ -174,6 +321,7 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
    * @param catalog 账号可用音色查询插槽 (判定握手传入的 voiceId 能不能用)
    * @param bridges vpt 会话落库插槽 (voice → business 方向)
    * @param frames vpt WS 帧出口注册表 (business → voice 方向)
+   * @param blacklist JWT 黑名单 (登出 / 改密后 token 失效) — 见类字段说明
    */
   constructor(
     voice: VoiceService,
@@ -184,6 +332,20 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
     catalog: VoiceCatalogRegistry,
     bridges: VoiceSessionBridgeRegistry,
     frames: VoiceFrameRegistry,
+    /**
+     * V2026-11-03 治本 (WP26 P2-1): 黑名单服务用 `@Optional()` 注入.
+     *
+     * 为什么不是必需依赖:
+     *   黑名单服务住在 `UserModule` 里, 而 `VoiceModule` 的装配不在本单改动范围 ——
+     *   必需依赖 = 装配没接上时整个服务**起不来**, 等于把一个安全增强变成一次
+     *   全站事故. `@Optional()` + 一次性告警 = 装配没接上时降级放行 (可用性优先,
+     *   与 `JwtBlacklistService` 自身"Redis 挂了 fail-open"的取舍一致),
+     *   同时把"必须补的接线"明确写进告警与交付说明.
+     *
+     * 装配处补法 (交给主线程, 见交付说明):
+     *   `src/voice/voice.module.ts` → `imports: [..., UserModule]`.
+     */
+    @Optional() blacklist?: JwtBlacklistService,
   ) {
     this.voice = voice;
     this.jwt = jwt;
@@ -193,6 +355,7 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
     this.catalog = catalog;
     this.bridges = bridges;
     this.frames = frames;
+    this.blacklist = blacklist;
   }
 
   /**
@@ -204,8 +367,15 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
     // Socket.IO: 握手 URL 和 headers 都在 client.handshake 里
     const url = client.handshake.url ?? '';
     const handshake = parseVoiceHandshake(url);
+    // V2026-11-03 治本 (WP26 P2-36): 客户端没给 sessionId (或给了缺省值 'default')
+    //   → **服务端生成**一个唯一 id.
+    //   为什么: 'default' 是解析层的占位, 所有不带 ?sessionId= 的客户端会共用同一个
+    //   key —— 落库桥 / 演练登记 / 内存会话全串成一条, 两场对练互相顶替.
+    //   注意: 生成出来的 id 从这里开始**贯穿整场** (data.sessionId 是下面所有环节的
+    //   唯一来源: 落库桥 / 演练登记 / voice 会话 / 帧出口 / 补漏台账).
+    const sessionId = this.resolveSessionId(handshake.sessionId);
     const data: SocketData = {
-      sessionId: handshake.sessionId,
+      sessionId,
       userId: '',
       tenantId: 'default',
       personaId: handshake.personaId,
@@ -217,7 +387,7 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
       // eslint-disable-next-line sonarjs/pseudo-random
       traceId: 'vt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
     };
-    client.data.sessionId = handshake.sessionId;
+    client.data.sessionId = sessionId;
     // V2026-11-03 治本 (WP25 · 封版审查): 会话级帧出口的登记**挪到鉴权之后**
     //   (见 verifyAndStart). 原来在这里登记 = 匿名连接只要带个 ?sessionId= 就能顶掉
     //   别人的帧出口, 把人家的实时帧 / 音频改发给自己.
@@ -225,10 +395,10 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
     data.lastSeenTurnIndex = handshake.lastSeenTurnIndex;
     data.clientDbSessionId = handshake.dbSessionId;
 
-    // 2. 提取 JWT (query 优先, 回退 Authorization 头)
+    // 2. 提取 JWT (子协议优先, 回退 query / Authorization 头)
     const token = this.extractToken(client);
     if (!token) {
-      this.logger.warn('[onConnect] no token, session=' + handshake.sessionId);
+      this.logger.warn('[onConnect] no token, session=' + sessionId);
       this.sendJson(client, { type: 'error', error: { code: 'unauthorized', message: 'missing token', retryable: false } });
       client.disconnect(true);
       return;
@@ -271,6 +441,37 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
   }
 
   /**
+   * V2026-11-03 治本 (WP26 P2-36): 决定本场会话 id.
+   *
+   * 规则:
+   *   · 客户端给了**合法** id → 原样用 (兼容 WP23 重连: 客户端拿 `ready.serverSessionId`
+   *     回来续同一场, 行为与现在逐字一致);
+   *   · 没给 / 给了缺省值 `'default'` → **服务端生成**一个 (nanoid).
+   *
+   * 为什么 `'default'` 也要重生成:
+   *   那是解析层的占位值 (见 voice-handshake.ts), 不是"一个具体的会话" —— 所有不带
+   *   `?sessionId=` 的客户端都会撞上同一个 key, 于是两场对练共用一条落库行 / 一份
+   *   演练登记 / 一个内存会话, 互相顶替 (P2-36 要治的就是这个).
+   *
+   * 为什么用 nanoid 而不是 `crypto.randomUUID()`:
+   *   · nanoid 是**仓库既有依赖** (内核 in-memory-engine-session / config logger 都在用),
+   *     不新增依赖;
+   *   · 21 字符 URL-safe (A-Za-z0-9_-), 比 UUID 短一半 —— sessionId 会拼进日志 /
+   *     Map key / 下游查询参数, 短 id 在日志里更好读 (UUID 的连字符跟负号混在一起
+   *     容易看串);
+   *   · 熵 128 bit, 与 uuid v4 的 122 bit 同量级, 撞号概率可忽略.
+   *
+   * @param clientSessionId 客户端给的会话 id (可能是缺省值 'default')
+   * @returns 本场生效的会话 id
+   */
+  private resolveSessionId(clientSessionId: string): string {
+    if (clientSessionId.length > 0 && clientSessionId !== DEFAULT_SESSION_ID) {
+      return clientSessionId;
+    }
+    return nanoid();
+  }
+
+  /**
    * 校验 JWT → 解析模板 → 登记 → 启动会话.
    *
    * @param client socket
@@ -306,6 +507,8 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
     // 1.6 V2026-11-03 治本 (WP23): 会话级帧出口 —— 新 socket 接管这场会话的出口.
     //   (旧 socket 的出口在它自己断开时被移除 —— 见 handleDisconnect 的 socketId 比对.)
     //   WP25: 登记放在鉴权**之后** —— 匿名连接不许顶掉别人的出口.
+    //   WP26 P2-5 复核: 这是握手里**第一个**写动作 (内存 map 新增条目), 位置正确 ——
+    //   它在「JWT 校验 (1)」与「归属校验 (1.5)」之后.
     this.sessionSinks.set(data.sessionId, { socketId: client.id, sink: (msg) => this.sendJson(client, msg) });
 
     // 2. 角色来源通道解析 (连接期):
@@ -351,15 +554,22 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
     }
 
     // 4. 会话落库 + 登记 WS 帧出口
+    //   WP26 P2-5 复核: 落库 (bridges.open) 与帧出口登记 (frames.register) 都发生在
+    //   「JWT 校验」与「归属校验」之后 —— 归属校验失败时这两处都不会被触发 (零落库行).
     const opened = await this.openSessionStorage(client, data, channel, preset, handshake, visitorCard);
 
     // 5. 注入到 client 供后续 message 路由用
+    //   WP26 P2-5 复核: `client.data` 在校验全过之后才被整体替换 —— 于是断连清理时
+    //   "client.data.userId 为空" 仍然精确等于"这条 socket 从没通过校验",
+    //   handleDisconnect 的两道闸 (userId + 持有者) 都建立在这一点上.
     client.data = data;
 
     // 6. 演练登记 (进程内内存, 不落库) — counselor 侧按 sessionId 反查这份登记来注入 vpt 剧本
+    //   WP26 P2-5 复核: 演练登记同样在归属校验之后 —— 归属校验失败时演练登记表零新增.
     this.registerDrill(data, channel, preset, handshake);
 
     // 7. 启动 session
+    //   WP26 P2-5 复核: TTS / LLM 会话初始化在最后一步 —— 归属校验失败时 TTS 不会被初始化.
     if (!(await this.startVoiceSession(client, data, preset, visitorCard))) {
       return;
     }
@@ -381,25 +591,102 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
    * 单独拆出来是为了让 `verifyAndStart` 的复杂度回到阈值内 (ESLint complexity 上限 20) ——
    * 拆分的边界按**职责**切 (鉴权 / 落库 / 登记 / 启动 / 发帧), 不是按"凑行数"切.
    *
+   * V2026-11-03 治本 (WP26 P2-1): 这里原来只验签名 —— 已登出 / 已改密的 access token
+   *   照样能连 WS (HTTP 侧有 JwtAuthGuard 兜着, WS 侧是**裸的**).
+   *   现在补齐两道 (口径复用 `JwtAuthGuard`):
+   *     ① token type 必须是 access (refresh token 不许连 WS);
+   *     ② jti 不在黑名单里 (登出 / 改密后 token 失效).
+   *
    * @param client socket
    * @param data socket 上下文 (成功后写入 userId / tenantId)
    * @param token JWT
    * @returns true = 校验通过
    */
   private async verifyJwt(client: Socket, data: SocketData, token: string): Promise<boolean> {
+    let payload: VoiceJwtPayload;
     try {
-      const payload = await this.jwt.verifyAsync<{ sub: string; tenantId?: string }>(token, {
+      payload = await this.jwt.verifyAsync<VoiceJwtPayload>(token, {
         secret: this.config.getOrThrow<string>('jwtSecret'),
       });
-      data.userId = payload.sub;
-      data.tenantId = payload.tenantId ?? 'default';
-      return true;
     } catch (err) {
       this.logger.warn('[onConnect] jwt verify failed: ' + (err instanceof Error ? err.message : String(err)));
       this.sendJson(client, { type: 'error', error: { code: 'unauthorized', message: 'invalid token', retryable: false } });
       client.disconnect(true);
       return false;
     }
+
+    // ① token type (复用 JwtAuthGuard 的口径: 只有 access token 能当身份凭证用).
+    if (!this.isAccessToken(payload)) {
+      this.logger.warn(`[onConnect] token type rejected: type=${payload.type ?? '<none>'}`);
+      this.sendJson(client, {
+        type: 'error',
+        error: { code: 'unauthorized', message: 'token 类型错误，需要 access token', retryable: false },
+      });
+      client.disconnect(true);
+      return false;
+    }
+
+    // ② 黑名单 (登出 / 改密后 token 已被撤销).
+    if (await this.isRevokedToken(payload)) {
+      this.logger.warn(`[onConnect] token revoked: jti=${payload.jti ?? '<none>'}`);
+      this.sendJson(client, {
+        type: 'error',
+        error: { code: 'token_revoked', message: '登录状态已失效，请重新登录', retryable: false },
+      });
+      client.disconnect(true);
+      return false;
+    }
+
+    data.userId = payload.sub;
+    data.tenantId = payload.tenantId ?? 'default';
+    return true;
+  }
+
+  /**
+   * V2026-11-03 治本 (WP26 P2-1): 这个 token 是 access token 吗?
+   *
+   * 口径对齐 `JwtAuthGuard` (`payload.type !== TokenType.Access` → 拒), 但对
+   * **缺 `type`** 的存量 token 放行:
+   *   · 2026-08-27 之前签发的 access token 不带 `type` 字段 (那批早就过期了);
+   *   · 现在两条签发路径 (`user.service.ts` / `auth.service.ts`) 都带 `type`,
+   *     refresh token 一律是 `type='refresh'` —— 那才是真正要挡的.
+   * 全量要求 `type === 'access'` = 把没带 type 的老 token 全部拒掉, 而 refresh
+   * token 本来就用**另一个 secret** 签 (`jwtRefreshSecret`), 签名校验就已经挡了.
+   *
+   * @param payload JWT 载荷
+   * @returns true = 放行
+   */
+  private isAccessToken(payload: VoiceJwtPayload): boolean {
+    if (payload.type === undefined) return true;
+    return payload.type === TokenType.Access;
+  }
+
+  /**
+   * V2026-11-03 治本 (WP26 P2-1): 这个 token 还在黑名单里吗?
+   *
+   * 查的是 `JwtBlacklistService` (与 `JwtAuthGuard` 同一个 Redis key 口径) ——
+   * 自造一套黑名单存储 = 两套撤销逻辑迟早漂移.
+   *
+   * 三种"查不了"的情形都**放行** (fail-open, 与 `JwtBlacklistService` 自身
+   * "Redis 挂了 fail-open" 的取舍一致 —— 可用性优先, 风险是撤销后有一个短暂窗口):
+   *   · token 没有 `jti` (老签发路径不带) → 无从查起;
+   *   · 黑名单服务没装配 (VoiceModule 还没接 UserModule) → 一次性告警 + 放行;
+   *   · Redis 读失败 → `JwtBlacklistService` 内部已经 fail-open.
+   *
+   * @param payload JWT 载荷
+   * @returns true = 已撤销 (不许连)
+   */
+  private async isRevokedToken(payload: VoiceJwtPayload): Promise<boolean> {
+    const jti = payload.jti;
+    if (!jti) return false;
+    if (!this.blacklist) {
+      if (!this.blacklistMissingWarned) {
+        this.blacklistMissingWarned = true;
+        this.logger.warn('[onConnect] JWT 黑名单服务未装配 (VoiceModule 需 import UserModule) —— 已撤销的 token 目前仍可连 WS');
+      }
+      return false;
+    }
+    return this.blacklist.isRevoked(jti);
   }
 
   /**
@@ -560,6 +847,10 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
    * V2026-10-26: 带上速查卡 (任务 7) + 是否落库 (任务 1) + 稳定落库 id (任务 6).
    * 落库 id 只在落库成功时下发 (降级为纯内存的会话没有报告可取, 别让前端去请求).
    *
+   * V2026-11-03 治本 (WP26 P2-36): 带上 `serverSessionId` —— **服务端认的**会话 id.
+   *   客户端后续重连要带它回来 (否则服务端会当成新会话, WP23 的补漏链路整条断掉);
+   *   客户端没传 sessionId 时, 这个值就是服务端新生成的那个.
+   *
    * @param visitorCard 来访者速查卡 (无 → 不带该字段)
    * @param opened 落库结果
    * @param data socket 上下文
@@ -571,6 +862,7 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
       ...(visitorCard ? { visitor: visitorCard } : {}),
       persisted: opened.persisted,
       ...(data.dbSessionId ? { dbSessionId: data.dbSessionId } : {}),
+      serverSessionId: data.sessionId,
     };
   }
 
@@ -686,23 +978,37 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
    *
    * 仍然要做的: 注销帧出口 (往死连接推帧没有意义) + 演练登记 (那是**演练元数据**,
    *   不是会话状态; 重连时会重建 —— 留着只是泄漏).
+   *
+   * V2026-11-03 治本 (WP26 P2-38): 清理前先过**持有者闸门** ——
+   *   重连竞态下, 新 socket 已经接管了这场会话, 旧 socket 这时才断开的话, 照旧
+   *   清理就会把**新 socket 的**演练登记 / 帧出口一起摘掉 (新客户端当场收不到任何帧,
+   *   counselor 侧也反查不到这场演练的模板与临场参数).
    */
   handleDisconnect(client: Socket): void {
     const data = client.data as SocketData | undefined;
     if (data?.sessionId) {
-      // 只注销**自己**那份出口: 新 socket 可能已经接管了这场会话 (重连),
-      //   旧 socket 这时断开还去注销, 会把新出口一起注销掉 —— 重连后收不到任何实时帧.
-      if (this.sessionSinks.get(data.sessionId)?.socketId === client.id) {
-        this.sessionSinks.delete(data.sessionId);
-        data.unregisterFrameSink?.();
-      }
-      // V2026-11-03 治本 (WP25 · 封版审查): **未通过鉴权的连接不许碰别人的会话**.
-      //   client.data.userId 为空 = 这条 socket 从没验过 JWT (它在握手阶段就断了),
-      //   而 client.data.sessionId 是**客户端自选**的 —— 不加这道闸, 匿名连接只要带个
-      //   ?sessionId=<别人的> 连上再断开, 就能把别人的会话从内存里摘掉 (TTS 被 cancel).
-      if (data.userId) {
-        this.voice.detachSocket(data.sessionId);
-        this.sessions.remove(data.sessionId);
+      const sessionId = data.sessionId;
+      // 当前持有者 (最新接管这场会话的 socket) 是谁 —— sessionSinks 里记着 socketId.
+      const ownerSocketId = this.sessionSinks.get(sessionId)?.socketId;
+      // 别人已经接管 → 旧 socket 一律不许碰这场会话的状态.
+      const takenOver = ownerSocketId !== undefined && ownerSocketId !== client.id;
+      if (takenOver) {
+        this.logger.log(`[onDisconnect] session=${sessionId} 已被 socket=${ownerSocketId} 接管, 跳过清理`);
+      } else {
+        // 只注销**自己**那份出口: 新 socket 可能已经接管了这场会话 (重连),
+        //   旧 socket 这时断开还去注销, 会把新出口一起注销掉 —— 重连后收不到任何实时帧.
+        if (ownerSocketId === client.id) {
+          this.sessionSinks.delete(sessionId);
+          data.unregisterFrameSink?.();
+        }
+        // V2026-11-03 治本 (WP25 · 封版审查): **未通过鉴权的连接不许碰别人的会话**.
+        //   client.data.userId 为空 = 这条 socket 从没验过 JWT (它在握手阶段就断了),
+        //   而 client.data.sessionId 是**客户端自选**的 —— 不加这道闸, 匿名连接只要带个
+        //   ?sessionId=<别人的> 连上再断开, 就能把别人的会话从内存里摘掉 (TTS 被 cancel).
+        if (data.userId) {
+          this.voice.detachSocket(sessionId);
+          this.sessions.remove(sessionId);
+        }
       }
     }
     this.logger.log('[onDisconnect]');
@@ -923,21 +1229,59 @@ export class VoiceGateway implements OnGatewayConnection<Socket>, OnGatewayDisco
   }
 
   /**
-   * 提取 JWT (query 优先, 回退 Authorization 头).
+   * 提取 JWT (V2026-11-03 治本, WP26 P2-2).
+   *
+   * 优先级:
+   *   ① `Sec-WebSocket-Protocol` 子协议 (**新, 推荐**) —— token 走请求头, 不落
+   *      nginx access log / Referer / 浏览器历史;
+   *   ② `?token=` query (**兼容兜底**) —— dev / 老客户端 (只有这一条传法);
+   *   ③ `Authorization: Bearer ***` 头.
+   *
+   * 为什么子协议优先而不是"谁有取谁":
+   *   子协议是**新客户端**的推荐通道, query 是兼容通道 —— 同一条连接上两者都带时
+   *   以子协议为准, 免得"query 里那个是旧的、已经撤销的 token"被优先挑中.
    *
    * @param client Socket.IO 客户端实例
    * @returns token; 无则 null
    */
   private extractToken(client: Socket): string | null {
-    // 优先 query ?token=***
+    // ① 子协议 (Sec-WebSocket-Protocol: bearer, <jwt>)
+    const subprotocolToken = this.readTokenFromSubprotocol(client.handshake.headers['sec-websocket-protocol']);
+    if (subprotocolToken) return subprotocolToken;
+    // ② query ?token=***
     const queryToken = client.handshake.query['token'];
     if (typeof queryToken === 'string' && queryToken.length > 0) {
       return decodeURIComponent(queryToken);
     }
-    // 退到 Authorization: Bearer *** 头
+    // ③ Authorization: Bearer *** 头
     const auth = client.handshake.headers.authorization;
     if (auth && auth.toLowerCase().startsWith('bearer ')) {
       return auth.slice(7).trim();
+    }
+    return null;
+  }
+
+  /**
+   * 从 `Sec-WebSocket-Protocol` 头里认 token (V2026-11-03, WP26 P2-2).
+   *
+   * 客户端约定: `Sec-WebSocket-Protocol: bearer, <jwt>` —— 'bearer' 是标记位,
+   * token 是紧随其后的那个值. 只认**JWT 形状**的值 (三段 base64url), 别的当噪声,
+   * 于是"客户端只报了 'bearer' 没报 token"这种半吊子握手会自然落到 query 兜底.
+   *
+   * @param raw 原始请求头 (可能是数组)
+   * @returns token; 无则 null
+   */
+  private readTokenFromSubprotocol(raw: string | string[] | undefined): string | null {
+    if (raw === undefined) return null;
+    const values = Array.isArray(raw) ? raw : [raw];
+    for (const value of values) {
+      for (const part of value.split(',')) {
+        const candidate = part.trim();
+        if (candidate.length === 0) continue;
+        // 'bearer' 是标记位, 不是 token.
+        if (candidate.toLowerCase() === WS_AUTH_SUBPROTOCOL) continue;
+        if (JWT_SHAPE.test(candidate)) return candidate;
+      }
     }
     return null;
   }

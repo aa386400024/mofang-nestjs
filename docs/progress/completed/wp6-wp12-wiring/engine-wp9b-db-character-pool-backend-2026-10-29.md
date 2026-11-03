@@ -1,6 +1,6 @@
 # WP9-B · MySQL 角色资产池（5Ps 落库 + 真实 vpt slug 命中）后端任务单
 
-> 母版: [`ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md) ｜ 进度: [`phase1-integration-backlog-2026-10-28.md`](./phase1-integration-backlog-2026-10-28.md)
+> 母版: [`ai-engine-roadmap-v1.1.md`](../../../architecture/ai-engine-roadmap-v1.1.md) ｜ 进度: [`phase1-integration-backlog-2026-10-28.md`](../../phase1-integration-backlog-2026-10-28.md)
 > 前置: [WP9-A 内置种子注入（已交付审核通过）](./engine-wp9a-character-profile-seed-injection-implementation-2026-10-29.md)
 > 仓库: `E:\Work\Project\backend\mofang-nestjs` ｜ 起草: 2026-10-29
 > 性质: 行为化任务单。成功/失败/边界验收写死；闸门命令由后端在 Windows PowerShell 跑；**不落后端 src 实现细节，只定边界与验收**。

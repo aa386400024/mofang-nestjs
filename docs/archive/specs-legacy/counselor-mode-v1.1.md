@@ -677,9 +677,9 @@ export enum TrainingDifficulty { L1, L2, L3 }
 
 | ADR | 状态 | 跟本 spec 关系 |
 |-----|------|----------------|
-| [0001-jwt-vs-cookie-session.md](../adr/0001-jwt-vs-cookie-session.md) | ✅ Accepted | 鉴权基础, counselor-mode 走相同 JWT |
-| [0002-async-audit-log-via-bullmq.md](../adr/0002-async-audit-log-via-bullmq.md) | ✅ Accepted | 训练会话审计, 长程 session 审计走相同 queue |
-| [0003-typeorm-migration-replace-synchronize.md](../adr/0003-typeorm-migration-replace-synchronize.md) | ✅ Accepted | 新增 5 entity (long_term_case / supervision / ability / quota) 走 migration |
+| [0001-jwt-vs-cookie-session.md](../../adr/0001-jwt-vs-cookie-session.md) | ✅ Accepted | 鉴权基础, counselor-mode 走相同 JWT |
+| [0002-async-audit-log-via-bullmq.md](../../adr/0002-async-audit-log-via-bullmq.md) | ✅ Accepted | 训练会话审计, 长程 session 审计走相同 queue |
+| [0003-typeorm-migration-replace-synchronize.md](../../adr/0003-typeorm-migration-replace-synchronize.md) | ✅ Accepted | 新增 5 entity (long_term_case / supervision / ability / quota) 走 migration |
 | **ADR-0004-multi-school-supervision** (待写) | ⏳ V1.x W3-4 | 4 流派督导架构决策 (prompt 模板 vs fine-tune) |
 | **ADR-0005-long-term-case-memory** (待写) | ⏳ V1.x W1-2 | 长程 agent memory 存储策略 (DB vs vector store) |
 

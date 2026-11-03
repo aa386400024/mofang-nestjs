@@ -23,16 +23,25 @@
 //   派生键 (计算键) 的处理:
 //     有两族 env 键在代码里是**计算出来**的, AST 只能看到模板字符串:
 //       · LLM_<PROVIDER>_API_KEY  (src/llm/config/provider-env.ts:59 的规律)
-//       · ENGINE_CAP_<DIM>_<UP|DOWN> (src/engine-core/cognition/state-transition.ts:258)
+//       · ENGINE_CAP_<DIM>_<UP|DOWN> (WP15 时代在 src/engine-core/cognition/
+//         state-transition.ts 里用计算键读 —— **WP26 P2-14 已改掉**)
 //     它们按"键名规律"存在, 不在源码里逐个写出来 —— 所以在下面显式登记,
 //     **登记项必须与代码里的推导口径一致**, 否则断言就形同虚设.
+//
+//   V2026-11-03 治本 (WP26 · P2-13/P2-14 — ENGINE_CAP_* 族退役):
+//     内核不再读 env (cap 参数改注入), 18 个 `ENGINE_CAP_*` 键改由适配层
+//     (src/engine-adapters/wiring/delta-cap.config.ts) **逐个字面量**读 ——
+//     字面量读取能被本文件的 AST 抽取直接看到, 于是"漏写一个键"这条缺口
+//     由断言① (代码读的键必须有生效行) 反向守住, 不再需要派生族登记.
+//     用例③ 相应拆成: ③ 校验**仍在派生**的 LLM 族; ③b 校验 18 个 cap 键
+//     已是字面量、且内核树里**不再有**任何 ENGINE_CAP_* 字符串.
 //
 //   边界: 只读文件; 不改任何代码 / 不改 .env.example; 不起 Nest 容器.
 //
 //   验证: npx vitest run test/config/wp25-env-example-coverage.spec.ts
 //   时间戳: 2026-11-03 GMT+8
 
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import * as path from 'node:path';
 
 import ts from 'typescript';
@@ -57,29 +66,35 @@ const DERIVED_ENV_KEYS: Readonly<Record<string, readonly string[]>> = {
   // src/llm/config/provider-env.ts:59 —— `LLM_${providerId.toUpperCase()}_API_KEY`
   //   (MiniMax 例外: 它走历史命名 MINIMAX_API_KEY, 不在本族里).
   'LLM_<PROVIDER>_API_KEY': ['LLM_OPENAI_API_KEY', 'LLM_DEEPSEEK_API_KEY', 'LLM_DOUBAO_API_KEY', 'LLM_QWEN_API_KEY', 'LLM_CUSTOM_API_KEY'],
-  // src/engine-core/cognition/state-transition.ts:258 —— `ENGINE_CAP_${dim.toUpperCase()}_${direction}`
-  //   dim 取自 CAP_DIMS (同文件 :41), direction ∈ {UP, DOWN}.
-  'ENGINE_CAP_<DIM>_<DIRECTION>': [
-    'ENGINE_CAP_TRUST_UP',
-    'ENGINE_CAP_TRUST_DOWN',
-    'ENGINE_CAP_VALENCE_UP',
-    'ENGINE_CAP_VALENCE_DOWN',
-    'ENGINE_CAP_AROUSAL_UP',
-    'ENGINE_CAP_AROUSAL_DOWN',
-    'ENGINE_CAP_VERBAL_UP',
-    'ENGINE_CAP_VERBAL_DOWN',
-    'ENGINE_CAP_DEPTH_UP',
-    'ENGINE_CAP_DEPTH_DOWN',
-    'ENGINE_CAP_STYLE_UP',
-    'ENGINE_CAP_STYLE_DOWN',
-    'ENGINE_CAP_POSITIVE_UP',
-    'ENGINE_CAP_POSITIVE_DOWN',
-    'ENGINE_CAP_NEGATIVE_UP',
-    'ENGINE_CAP_NEGATIVE_DOWN',
-    'ENGINE_CAP_DEPENDENCY_UP',
-    'ENGINE_CAP_DEPENDENCY_DOWN',
-  ],
 };
+
+/**
+ * 单回合 delta cap 的 18 个 env 键 (WP26 · P2-13/P2-14).
+ *
+ * 这族**不再是派生键**: 内核不再读 env, 适配层逐个字面量读 → 已被 AST 抽取覆盖.
+ * 这里留一份清单, 是为了断言"18 个键一个不多一个不少" —— 少一个 = 那个维度的 cap
+ * 永远配不上 (静默失效); 多一个 = 模板里躺着一条没人读的键 (骗人的配置项).
+ */
+const DELTA_CAP_ENV_KEYS: readonly string[] = [
+  'ENGINE_CAP_TRUST_UP',
+  'ENGINE_CAP_TRUST_DOWN',
+  'ENGINE_CAP_VALENCE_UP',
+  'ENGINE_CAP_VALENCE_DOWN',
+  'ENGINE_CAP_AROUSAL_UP',
+  'ENGINE_CAP_AROUSAL_DOWN',
+  'ENGINE_CAP_VERBAL_UP',
+  'ENGINE_CAP_VERBAL_DOWN',
+  'ENGINE_CAP_DEPTH_UP',
+  'ENGINE_CAP_DEPTH_DOWN',
+  'ENGINE_CAP_STYLE_UP',
+  'ENGINE_CAP_STYLE_DOWN',
+  'ENGINE_CAP_POSITIVE_UP',
+  'ENGINE_CAP_POSITIVE_DOWN',
+  'ENGINE_CAP_NEGATIVE_UP',
+  'ENGINE_CAP_NEGATIVE_DOWN',
+  'ENGINE_CAP_DEPENDENCY_UP',
+  'ENGINE_CAP_DEPENDENCY_DOWN',
+];
 
 /**
  * 递归收集目录下的 .ts 文件.
@@ -220,15 +235,31 @@ describe('WP25 · .env.example 与代码 env 读取点一一对应', () => {
     expect(orphans, `以下 .env.example 生效行在代码里查无读取点 (配了也不生效):\n${orphans.join('\n')}`).toEqual([]);
   });
 
-  it('③ 派生族登记与代码推导口径一致 (18 个 ENGINE_CAP_* + 5 个 LLM_*_API_KEY)', () => {
+  it('③ 派生族登记与代码推导口径一致 (5 个 LLM_*_API_KEY)', () => {
     // 防"登记表自己漂了": 登记的族名必须与源码里出现的模板字符串对得上.
-    const stateTransition = readFileSync(path.join(SRC_ROOT, 'engine-core/cognition/state-transition.ts'), 'utf8');
-    expect(stateTransition).toContain(`ENGINE_CAP_\${dim.toUpperCase()}_\${direction}`);
     const providerEnv = readFileSync(path.join(SRC_ROOT, 'llm/config/provider-env.ts'), 'utf8');
     expect(providerEnv).toContain(`LLM_\${providerId.toUpperCase()}_API_KEY`);
     // 登记的键数不能比推导口径少 (少一个 = 漏登记 = 断言放行了一个真实缺口).
-    expect(DERIVED_ENV_KEYS['ENGINE_CAP_<DIM>_<DIRECTION>']).toHaveLength(18);
     expect(DERIVED_ENV_KEYS['LLM_<PROVIDER>_API_KEY']).toHaveLength(5);
+  });
+
+  it('③b 18 个 ENGINE_CAP_* 键已改字面量读取, 内核树不再有 cap 键 (WP26 · P2-13/P2-14)', () => {
+    // 适配层逐个字面量读 → AST 抽取看得到 → 少写一个键, 断言① 立刻变红.
+    const deltaCapConfigFile = path.join(SRC_ROOT, 'engine-adapters/wiring/delta-cap.config.ts');
+    expect(existsSync(deltaCapConfigFile)).toBe(true);
+    const literalKeys = extractEnvKeys(deltaCapConfigFile).filter((key) => key.startsWith('ENGINE_CAP_'));
+    expect([...literalKeys].sort()).toEqual([...DELTA_CAP_ENV_KEYS].sort());
+
+    // 内核树里**不许**再出现任何 ENGINE_CAP_* 字符串 (计算键也算): 内核零 env 读取.
+    const kernelRoot = path.join(SRC_ROOT, 'engine-core');
+    const kernelCapKeys: string[] = [];
+    for (const file of collectTsFiles(kernelRoot)) {
+      const source = readFileSync(file, 'utf8');
+      if (source.includes('ENGINE_CAP_')) {
+        kernelCapKeys.push(path.relative(kernelRoot, file).replaceAll('\\', '/'));
+      }
+    }
+    expect(kernelCapKeys).toEqual([]);
   });
 
   it('④ NODE_ENV 必须被注释掉 (本地照抄模板不能开 production 模式)', () => {

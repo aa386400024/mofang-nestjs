@@ -1,8 +1,8 @@
 # WP6 · RenderPort LLM 适配 + 主备执行（适配层）后端交付记录
 
 > 任务单: [`engine-wp6-llm-render-port-backend-2026-10-28.md`](./engine-wp6-llm-render-port-backend-2026-10-28.md)
-> 总清单: [`phase1-integration-backlog-2026-10-28.md`](./phase1-integration-backlog-2026-10-28.md) WP6
-> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md) WP5 渲染契约 + WP6 装配轮
+> 总清单: [`phase1-integration-backlog-2026-10-28.md`](../../phase1-integration-backlog-2026-10-28.md) WP6
+> 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../../../architecture/ai-engine-roadmap-v1.1.md) WP5 渲染契约 + WP6 装配轮
 > 前置: WP0 边界骨架 / WP1 BDI / WP2 分层记忆 / WP3 轨迹 / WP4 伦理安全 / **WP5 渲染契约层**（`RenderPort` / `RenderSpec` / `RenderResult` / `selectFailoverTarget` / `guardVisitorOutput` / token-budget）
 > 仓库: `E:\Work\Project\backend\mofang-nestjs`
 > 日期: 2026-10-28 ｜ 类型: **适配层（`src/engine-adapters/rendering/`）**，本期首次触碰真实 LLM 调用路径

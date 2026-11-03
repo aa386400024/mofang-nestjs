@@ -6,7 +6,13 @@
 //   为什么断言日志文本而不是内部字段:
 //     对外产物就是这条日志 —— 断言日志才是在断言"运维实际能拿到什么".
 //     格式与任务单 §1.4 的示例逐字对齐:
-//       [WP15] turn delta capped: trust raw=+0.30 capped=+0.20 events=[empathy,...]
+//       [WP15] turn delta capped: trust raw=+0.30 capped=+0.20 session=... events=[empathy,...]
+//
+//   V2026-11-03 治本 (WP26 · P2-11/P2-14/P2-16):
+//     · 观察者改**注入**: 不再有模块级单槽, 本类只提供一个 `observer` 函数,
+//       由装配层注入内核会话 —— 测试也不再有"注册/注销"的动作.
+//     · 日志带 session / handle 标识 (P2-11): 多人内测时能定位到是哪场会话被砍.
+//     · 导入走公开 barrel: `TurnDeltaCapReport` 现在是内核公开面 (P2-16).
 //
 //   验证: npx vitest run test/engine-adapters/wp15-delta-cap-log.spec.ts
 
@@ -14,44 +20,36 @@ import { Logger } from '@nestjs/common';
 import { vi } from 'vitest';
 
 import { DeltaCapLogger } from '../../src/engine-adapters/wiring/delta-cap.logger.js';
-import { observeDeltaCaps, transitionState } from '../../src/engine-core/cognition/state-transition.js';
-import { createEmptyBdiSnapshot, type BdiSnapshot, type CounselorEventKind, type SessionEvent } from '../../src/engine-core/index.js';
+import type { TurnDeltaCapReport } from '../../src/engine-core/index.js';
 
-/** 造一条标准事件 (strength 缺省 1 = 规则轨满强度). */
-function ev(kind: CounselorEventKind, strength = 1): SessionEvent {
-  return { kind, matchedTerms: [], strength };
-}
-
-/** 造一份基线快照, 允许覆盖 trust / valence (其余走中性默认基线). */
-function snap(overrides: { trust?: number; valence?: number } = {}): BdiSnapshot {
-  const base = createEmptyBdiSnapshot();
+/** 造一份 cap 报告 (模拟内核上报). */
+function report(overrides: Partial<TurnDeltaCapReport> = {}): TurnDeltaCapReport {
   return {
-    ...base,
-    trust: overrides.trust ?? base.trust,
-    emotion: { ...base.emotion, valence: overrides.valence ?? base.emotion.valence },
+    entries: [{ dimension: 'trust', raw: 0.3, capped: 0.2 }],
+    events: ['empathy'],
+    ...overrides,
   };
 }
 
 describe('WP15 · adapter 侧 cap warning 日志', () => {
   let warnings: string[];
+  let capLogger: DeltaCapLogger;
 
   beforeEach(() => {
     warnings = [];
     vi.spyOn(Logger.prototype, 'warn').mockImplementation((message: unknown) => {
       warnings.push(typeof message === 'string' ? message : String(message));
     });
-    // 装配等价动作: 模块启动时实例化本服务并注册观察者.
-    new DeltaCapLogger().onModuleInit();
+    // 装配等价动作: Nest 启动时实例化本服务, 装配层把它的 observer 注入内核会话.
+    capLogger = new DeltaCapLogger();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    // 观察者是内核里的模块级单槽 —— 测试结束必须注销, 否则会串到后面的用例.
-    observeDeltaCaps(null);
   });
 
   it('被砍时逐维度打一条 warning (格式与任务单 §1.4 一致)', () => {
-    transitionState(snap({ trust: 0.5 }), [ev('empathy'), ev('empathy'), ev('empathy')]);
+    capLogger.observer(report());
 
     const line = warnings.find((item) => item.includes('trust'));
     expect(line).toBeDefined();
@@ -60,22 +58,43 @@ describe('WP15 · adapter 侧 cap warning 日志', () => {
   });
 
   it('下向被砍时方向与幅度都带上 (负号不丢)', () => {
-    transitionState(snap({ trust: 0.5 }), [ev('boundary_cross'), ev('boundary_cross'), ev('boundary_cross')]);
+    capLogger.observer(report({ entries: [{ dimension: 'trust', raw: -0.45, capped: -0.3 }] }));
 
     const line = warnings.find((item) => item.includes('trust'));
     expect(line).toContain('raw=-0.45 capped=-0.30');
   });
 
   it('没被砍时一条都不打 (不打噪声日志)', () => {
-    transitionState(snap({ trust: 0.5 }), [ev('empathy')]);
+    // 观察者只在上游**真的报了**时才被调用; 内核侧"没被砍就不报"已由内核测试覆盖.
+    // 这里验证的是"报告为空块时 logger 自身也不打" —— 防御性: 万一有人手工传空 entries.
+    capLogger.observer(report({ entries: [] }));
 
     expect(warnings).toEqual([]);
   });
 
   it('事件清单带上本轮所有事件类型 (运维要能回看是什么触发的)', () => {
-    transitionState(snap({ trust: 0.5 }), [ev('empathy'), ev('acceptance'), ev('affirmation')]);
+    capLogger.observer(report({ events: ['empathy', 'acceptance', 'affirmation'] }));
 
     const line = warnings.find((item) => item.includes('trust'));
     expect(line).toContain('events=[empathy,acceptance,affirmation]');
+  });
+
+  // V2026-11-03 治本 (WP26 · P2-11): 报告必须自带会话标识 ——
+  //   多人内测时一条没有 session 的 cap warning 无法定位是哪场会话被砍.
+  it('日志带 session / handle 标识 (多人内测可定位)', () => {
+    capLogger.observer(report({ sessionId: 'sess-42', handleId: 'handle-7' }));
+
+    const line = warnings.find((item) => item.includes('trust'));
+    expect(line).toContain('session=sess-42');
+    expect(line).toContain('handle=handle-7');
+  });
+
+  it('上下文缺省时打占位符 (不打印 undefined)', () => {
+    capLogger.observer(report());
+
+    const line = warnings.find((item) => item.includes('trust'));
+    expect(line).toContain('session=-');
+    expect(line).toContain('handle=-');
+    expect(line).not.toContain('undefined');
   });
 });

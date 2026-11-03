@@ -162,6 +162,17 @@ export type VoiceServerMessage =
       readonly visitor?: VoiceVisitorCard;
       readonly persisted?: boolean;
       readonly dbSessionId?: string;
+      /**
+       * V2026-11-03 治本 (WP26 · P2-36): **服务端认的**会话 id.
+       *
+       * 为什么需要它: `sessionId` 由客户端自选, 缺省是 `'default'` —— 不带
+       * `?sessionId=` 的客户端会**共用同一个 key** (今天表现为"静默互相顶替").
+       * 现在缺省时**服务端生成**一个唯一 id, 并在这里下发; 客户端后续重连
+       * 带上这个 id 即可续上同一场 (WP23 的补漏链路依赖它).
+       *
+       * 客户端带了合法 sessionId 时, 本字段 = 客户端带的那个 (行为不变).
+       */
+      readonly serverSessionId?: string;
     }
   /** 本轮回复开始. */
   | { readonly type: 'llm_start' }
@@ -189,6 +200,17 @@ export type VoiceServerMessage =
       };
       /** 本场第几轮 (从 1 起; 缺省 = 后端没给轮次号). */
       readonly turnIndex?: number;
+      /**
+       * V2026-11-03 治本 (WP26 · P2-34): 上游结束原因 (stop / length / content_filter).
+       *
+       * 为什么需要: 内测时遇到"回复突然断了", **分不清**是自然结束、还是被
+       * token 上限截断、还是被内容过滤挡了 —— 只能靠猜. 上游本来就带着这个值
+       * (`LlmStream` 的 done chunk 里就有, 督导链路一直在用), 这里只是把它
+       * **透传到端上**.
+       *
+       * 字段可选 = 老客户端不认识就忽略, 向后兼容.
+       */
+      readonly finishReason?: string;
     }
   /** 一句开始 (seq 本轮内从 1 递增). */
   | { readonly type: 'sentence_start'; readonly seq: number; readonly text: string }

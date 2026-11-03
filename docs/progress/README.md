@@ -117,7 +117,7 @@ WP0 边界骨架 / WP1 BDI认知引擎 / WP2 分层记忆 / WP3 轨迹控制 / W
 - WP22 语音对练限流与并发上限（单用户并发=1 + 全局日 token 预算，两道闸门拦在开会话入口）
 - WP16 turn 内存态幂等（同 round_id 重发不重跑 BDI；断流重发回 `turn_incomplete`，前端 round_id+1 走新一轮）
 - WP23 WS 断连重连追平（断线**不杀会话**、不挂判死定时器；重连握手带 `lastSeenTurnIndex=N` → 服务端把 N 之后已提交轮次塞进 `session_catchup` 一次性补回；进程重启走 WP12 重建 + 从持久化补漏；断连期间压根不调 TTS provider；2 小时 idle 兜底）
-- WP15 单回合非对称 delta cap（trust/valence 涨最多 +0.20、跌最多 −0.30 损失厌恶；arousal+阻抗三维 ±0.20；移情三维 ±0.15；**砍 delta 不是 clamp 绝对值**；cap 常量 env 可覆写；DELTA_TABLE 每个事件加幅度声明；adapter 侧打 `[WP15] turn delta capped: ...` warning，内核零 logger 依赖）
+- WP15 单回合非对称 delta cap（trust/valence 涨最多 +0.20、跌最多 −0.30 损失厌恶；arousal+阻抗三维 ±0.20；移情三维 ±0.15；**砍 delta 不是 clamp 绝对值**；**cap 参数走注入**（WP26 P2-14 改造：adapter 读 `ENGINE_CAP_*` env 组装成 `DeltaCapConfig` 端口注入内核，内核零 env 读取）；DELTA_TABLE 每个事件加幅度声明；adapter 侧打 `[WP15] turn delta capped: ... session=... handle=...` warning，内核零 logger 依赖；**cap 管的是本轮总 delta（事件 + 剧本）**）
 
 ### 封版审查（根目录）
 - **WP25 Phase1 封版审查**（2026-11-03）—— 扫描报告 [`wp25-phase1-audit-report-2026-11-03.md`](./wp25-phase1-audit-report-2026-11-03.md)｜任务单 `completed/wp14-wp24-augment/engine-wp25-phase1-audit-backend-2026-11-03.md`
@@ -125,6 +125,16 @@ WP0 边界骨架 / WP1 BDI认知引擎 / WP2 分层记忆 / WP3 轨迹控制 / W
   - **39 条 P2 待用户拍板**（安全 10 / 引擎 8 / 文档 15 / 配置与已知尾巴 6）
   - **10 条 P3 已进 Phase2 队列**（母版 §Phase2+ 队列）
   - **3 个新的机器断言套件**：`test/voice/wp25-ws-session-ownership.spec.ts`（WS 归属 10 例）、`test/base/wp25-security-hardening.spec.ts`（CSP / session 密钥 / basic auth / 头像文案 16 例）、`test/config/wp25-env-example-coverage.spec.ts`（`.env.example` ↔ `process.env` 双向一一对应 4 例）
+  - **WP26 已把其中 34 条 P2 全修**（见下条）
+
+### P2 全量修复（根目录）
+- **WP26 Phase1 P2 全量修复**（2026-11-03）—— 交付记录 [`completed/wp14-wp24-augment/engine-wp26-phase1-p2-hardening-backend-implementation-2026-11-03.md`](./completed/wp14-wp24-augment/engine-wp26-phase1-p2-hardening-backend-implementation-2026-11-03.md)｜任务单 `completed/wp14-wp24-augment/engine-wp26-phase1-p2-hardening-backend-2026-11-03.md`
+  - **安全 5 条**：WS 握手查 JWT **黑名单 + token type**、JWT 改走 **`Sec-WebSocket-Protocol`**（`?token=` 保留兜底，前端另派单）、`/metrics` **默认关 + token 鉴权**（fail-close）、`/admin/api/*` 加 **`AdminRoleGuard`**（查 DB 真值 `users.admin_role`）、握手写动作全部推到校验之后
+  - **引擎 12 条**：⭐ 内核 `process.env` 改**注入**（`DeltaCapConfig` 端口，observer 一并改注入、删模块级单槽）→ 内核**零 env / 零 globalThis**；⭐ **轨迹 delta 也走 cap**（本轮总 delta = 事件 + 剧本，统一过一次 cap）；cap 报告带 sessionId；补 `STORAGE_FAILURE` 码；WP15 符号补 barrel；`boundary.spec.ts` 加「零 env」+「禁 adapter 深路径 import」两条断言
+  - **文档 15 条**：**114 条死链归零** + WP20/WP22/WP11 三份交付记录**事实修正** + backlog 补 WP12/WP16 行
+  - **配置 6 条**：`finishReason` **三处透传**、sessionId **服务端生成**（ready 帧下发 `serverSessionId`）、旧 socket 断开加 socketId 闸门、生产 5xx 也打本地日志（脱敏）
+  - **闸门**：tsc 0 / eslint 0 / **全量 84 文件 1252 例全绿**（基线 77/1165）；内核边界断言 **11 条**全绿
+  - **边界**：P2-2 / P2-36 的 **Flutter 前端另派单**（后端双兼容）；P2-37 仍待真机核实；P3 的 10 条进 Phase2 队列
 
 ### 认证密码（completed/auth-and-password/）
 - POST /auth/reset-password（忘记密码重置，不需要 JWT，凭验证码改密+撤销所有 session）
@@ -160,6 +170,7 @@ docs/progress/
 | `docs/reference/ai-simulation-blueprint-v1.1.md` | 蓝图原始愿景，roadmap 冲突时以 roadmap 为准 |
 | `docs/reference/bdi-cognitive-engine-principles-v1.0.md` | 改 BDI 算子/记忆/轨迹相关逻辑时，确认设计原则 |
 | `docs/reference/architecture-blindspot-fill-v1.0.md` | 改伦理/安全/兜底相关逻辑时，确认盲区补全口径 |
+| `docs/architecture/microservices-evolution-plan.md` | 写新功能前看一眼 §2 的 5 条边界规则——现在不拆微服务，但代码要保持将来好拆 |
 
 **原则：README + 当前任务单 = 99% 够用。** 上面这些是"字典"，遇到生字才翻。
 

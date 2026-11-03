@@ -4,6 +4,9 @@
 > **仓库**：`E:\Work\Project\backend\mofang-nestjs`
 > **任务单**：[engine-wp24-session-cost-log-backend-2026-10-30.md](engine-wp24-session-cost-log-backend-2026-10-30.md)
 > **性质**：低成本护栏，内测期防烧 LLM 额度
+>
+> ⚠️ **时序说明（2026-11-03 补）**：本记录写于 **2026-10-30**，**早于 WP19-R（2026-11-02）** —— **WP19-R 才是真正把 `traceRecorder` 注入 DI、让每轮留痕落 `turn_debug_trace` 的那一次**。所以本记录里凡是出现「`traceRecorder` 无装配入口 / 恒 `undefined`」的表述，**都是写于 trace 修复之前的当时状态，不代表现状**。
+> 这条时序**不影响本单的任何结论**：成本日志**本来就不依赖留痕链** —— 它直接取渲染结果里的 `usage`（`settled.result.render.usage`），**不走 `traceRecorder`**（见任务单「前置依赖」一节与本记录 §3.4）。WP19-R 前后，成本口径与本单的改动面都不变。
 
 ---
 
@@ -125,6 +128,8 @@ usage: ['completionTokens','totalTokens']                              → 改�
 ### 3.4 改了 `EngineStreamBackend` 的构造参数位次
 
 新增第 7 位 `costPricing`（`@Optional()`）。因为第 6 位 `traceRecorder` 至今无装配入口（恒 `undefined`），工厂那边必须给第 6 位**显式占一个 `undefined`** —— 这与 WP12 之前「traceRecorder 不占位」的做法相反，原因是位置参数不能跳着传。已在工厂与 adapter 的注释里写明。
+
+> ⚠️ **时序（2026-11-03 补）**：上面「`traceRecorder` 恒 `undefined`」是**本记录写作当时（2026-10-30）的状态**。**WP19-R（2026-11-02）已把 `traceRecorder` 真注入 DI** —— 所以现值不再是 `undefined`。但**「第 6 位要显式占一个 `undefined`」这个结论不变**：位置参数不能跳着传，与 traceRecorder 有没有装配无关。
 
 ---
 

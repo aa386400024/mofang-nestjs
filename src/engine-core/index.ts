@@ -132,3 +132,30 @@ export { guardVisitorOutput } from './cognition/rendering/output-guard.js';
 
 // ── 运行时端口 ────────────────────────────────────────────────────
 export type { EngineSessionPort } from './runtime/engine-session.port.js';
+
+// ── 状态迁移与单回合 delta cap (WP1 + WP15 + WP26) ─────────────────
+//   WP15 的 cap 符号原先只在 cognition/state-transition.ts 里, adapter 只能深路径
+//   import —— 那条路径**不在** boundary.spec.ts 断言⑥ (barrel 双向白名单) 的守卫
+//   视野内: 内核改文件名/目录, adapter 直接断, 没有任何断言会红.
+//   WP26 P2-16 把它们收进公开出口, 并由 boundary 断言守住.
+export type {
+  CapBounds,
+  CapDim,
+  DeltaCapConfig,
+  DeltaCapContext,
+  DeltaCapEntry,
+  DeltaCapObserver,
+  DeltaVector,
+  TransitionStateOptions,
+  TurnDeltaCapReport,
+} from './cognition/state-transition.js';
+export {
+  addDeltaVectors,
+  aggregateTurnDelta,
+  applyDeltaVector,
+  buildDeltaCapReport,
+  capTurnDelta,
+  DEFAULT_DELTA_CAP_CONFIG,
+  transitionState,
+  transitionStateDetailed,
+} from './cognition/state-transition.js';

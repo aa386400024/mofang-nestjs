@@ -3,7 +3,7 @@
 > 母版: [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md)
 > 愿景备查: [`../reference/ai-simulation-blueprint-v1.1.md`](../reference/ai-simulation-blueprint-v1.1.md)（冲突以母版为准；蓝图选 pgvector，本仓 D2 拍板 Qdrant）
 > 设计原则原件（已转写归档，仅作依据，冲突以母版为准）：[`bdi-cognitive-engine-principles-v1.0.md`](../reference/bdi-cognitive-engine-principles-v1.0.md)（BDI 决策/渲染边界）、[`architecture-blindspot-fill-v1.0.md`](../reference/architecture-blindspot-fill-v1.0.md)（14 项盲区补全，经本仓架构裁剪后落地）。
-> 日期: 2026-10-28（进度登记更新于 2026-11-03）｜ 状态: 🟢 **WP0–WP12 核心链路全部交付并审核通过；WP18/WP19/WP20/WP21 调试与报告链路已交付；WP10/WP10A/WP11 伦理盲盒+表达风格+PsyGUARD 已交付；WP24 单场成本日志已交付；WP14 学员心理风险处置层已交付（2026-11-02）；WP14 优化项（block 不发 llm_start）已交付（2026-11-02）；WP22 语音对练限流（2026-11-02）；WP16 round_id 幂等（2026-11-02）；WP23 WS 断连追平已交付（2026-11-03，前端待接）；WP15 单回合非对称 delta cap 已交付（2026-11-03）；WP25 Phase1 封版审查已交付（2026-11-03，8 个 P1 全修 + 39 条 P2 待拍板 + 10 条 P3 入 Phase2 队列）；剩余 WP13/WP17 为稳健性与运维护栏，内测前补完**
+> 日期: 2026-10-28（进度登记更新于 2026-11-03）｜ 状态: 🟢 **WP0–WP12 核心链路全部交付并审核通过；WP18/WP19/WP20/WP21 调试与报告链路已交付；WP10/WP10A/WP11 伦理盲盒+表达风格+PsyGUARD 已交付；WP24 单场成本日志已交付；WP14 学员心理风险处置层已交付（2026-11-02）；WP14 优化项（block 不发 llm_start）已交付（2026-11-02）；WP22 语音对练限流（2026-11-02）；WP16 round_id 幂等（2026-11-02）；WP23 WS 断连追平已交付（2026-11-03，前端待接）；WP15 单回合非对称 delta cap 已交付（2026-11-03）；WP25 Phase1 封版审查已交付（2026-11-03，8 个 P1 全修 + 39 条 P2 待拍板 + 10 条 P3 入 Phase2 队列）；**WP26 Phase1 P2 全量修复已交付（2026-11-03，34 条 P2 全修 —— 内核 env 改注入 / 轨迹 delta 纳入 cap / WS 黑名单 / metrics 鉴权 / admin 角色校验 / 114 条死链归零；P2-2 与 P2-36 的 Flutter 前端另派单，P2-37 仍待真机核实）**；剩余 WP13/WP17 为稳健性与运维护栏，内测前补完**
 > 2026-10-29 增补：按两份设计原则（BDI 原则 / 盲区补全）经本仓架构裁剪，新增 Phase1 小项 WP14 学员风险兜底、WP15 算子幅度声明+回归、WP16 轻量幂等+断流不叠加；Phase2+ 保留推进队列见文末（全量保留，逐步推进，非丢弃）。
 > 2026-10-30 全面回头看：蓝图 Phase1 七条核心能力全部落地，执行无走歪、无过度工程。两个硬底线 WP 需内测前补完：WP17（新引擎路径 turn-analysis 入队对齐）、WP14（学员自身心理风险三级兜底）。详见 §0.4。
 > 仓库: `E:\Work\Project\backend\mofang-nestjs`
@@ -59,16 +59,19 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 | 📌 **WP9-C 语音渲染 token 预算/截断/危机路由/降级** | ✅ 已交付（2026-10-29） | 任务单 `engine-wp9c-voice-render-token-budget-safety-boundaries-2026-10-29.md`；记录 `engine-wp9c-voice-render-token-budget-safety-boundaries-implementation-2026-10-29.md` | max_completion_tokens / voice render 低 reasoningEffort / 截断半句不喂 TTS / 危机轮次同步 supervision_hint / LLM 空 429 降级本地话术 |
 | 📌 **WP18 报告生成链路 E2E** | ✅ 已交付（2026-10-29） | 任务单 `engine-wp18-session-report-generation-e2e-2026-10-29.md`；记录 `engine-wp18-session-report-generation-e2e-implementation-2026-10-29.md` | 会话结束→transcript 落库→报告 worker 触发→四态（completed/parse_error/pending/no_content）→六维评分/annotations/techStats |
 | 📌 **WP19 AdminDebugModule + BDI 快照留痕** | ✅ 留痕链接通（WP19-R 修复）；admin-dashboard 切真 API 待前端接 | 任务单 `engine-wp19-admin-debug-module-trace-2026-10-29.md`；WP19-R 已将 traceRecorder 真注入 DI、basic auth middleware、用户隔离补齐 | traceRecorder 之前恒 undefined 已修；/admin/api/* 4 个只读端点已上线，前端已切真 4 个页面 |
-| 📌 **WP20 Vue3 调试器 SPA** | ⚠️ 已交付但有缺口（2026-10-30 审计修正） | 任务单 `engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md`；记录 `engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md` | **SPA 全是 mock 数据**：client.ts 零真 API 调用。后续扩充的 8 页面 + i18n + 双主题都是 mock 之上加的，没切真接口。详见审计报告 §4.1-D4 |
+| 📌 **WP20 Vue3 调试器 SPA** | ⚠️ 已交付但有缺口（2026-10-30 审计修正；**2026-11-03 WP26 P2-22 口径再次修正**） | 任务单 `engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md`；记录 `engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md` | **SPA 已切真接口**：9 个页面 = **4 真 API**（`/login` `/sessions` `/sessions/:id` `/characters`）+ **1 半真**（`/dashboard`）+ **4 全 mock**；`client.ts` 15 个方法里 4 个走真 API。原写「SPA 全是 mock 数据：client.ts 零真 API 调用」**与代码相反**，已按代码事实改写（详见 WP20 交付记录 §2「数据来源现状」表）。**仍有缺口**：4 个 mock 页面的 pending 状态标注已由 WP26 P2-35 补上，但数据本身仍待接真接口 |
 | 📌 **WP21 报告 SSE 推送端点** | ✅ 已交付并审核通过（2026-10-29） | 任务单 `engine-wp21-report-sse-stream-2026-10-29.md`；记录 `engine-wp21-report-sse-stream-implementation-2026-10-29.md` | GET report/:sessionId/stream @Sse()，终态推完整报告并关流，超时推 {"status":"timeout"}，真 404 走 guard，RxJS timer 不泄漏 |
 | 🆕 **WP10 10 个伦理盲盒强覆盖剧本** | ✅ 已交付并审核通过（2026-10-30） | 任务单 `engine-wp10-ethical-blindbox-scripts-backend-2026-10-30.md`；记录 `engine-wp10-ethical-blindbox-scripts-backend-implementation-2026-10-30.md` | 10 个 force_override 剧本（静态 TS 不落库）+ TrajectoryScriptResolver 端口（Symbol token, @Optional）+ 握手 scriptId 四段透传；tsc 0 / 31 例测试绿 / engine-core 零改动；三种失败口径各有 warn 不阻断会话。前端 scriptId 透传链路已通（vpt_session_start + roleplay_ws_client），fa 0 错 |
 | 🆕 **WP10A character_profiles 表达风格字段预留** | ✅ 已交付并审核通过（2026-10-30） | 任务单 `engine-wp10a-character-expression-style-fields-backend-2026-10-30.md`；记录 `engine-wp10a-character-expression-style-fields-backend-implementation-2026-10-30.md` | 加 3 列（speech_volume_baseline/narrative_style/expression_tone）+ 手写幂等 migration + entity；seed 键不存在=走 DB DEFAULT（默认值只有 DDL 一处真相）；小满/亦舟 expressionTone=intellectualizing，其余走默认；tsc 0 / 14 例测试绿 / engine-core 零改动 / 不消费不暴露前端 |
-| 🆕 **WP11 PsyGUARD-RoBERTa Python 服务 + HTTP RiskProbePort** | ✅ 已交付并审核通过（2026-10-30） | 任务单 `engine-wp11-psyguard-python-service-backend-2026-10-30.md`；记录 `engine-wp11-psyguard-python-service-backend-implementation-2026-10-30.md` | 独立仓库 `mofang-psyguard/`（FastAPI + ONNX Runtime int8 量化，Docker 部署到 117.72.30.78，只绑 127.0.0.1:8100）；NestJS 侧 `HttpPsyGuardProbe` + `PSYGUARD_BASE_URL` 开关分流 + 启动健康检查 + 跨仓库标签契约比对；counselor_input + visitor_output 双侧探测（输出侧只接 PsyGUARD 不接本地词典，避免角色台词被误 block）；测试阶段临时放宽：256 token 窗口 + 500ms 超时（M3 内测前需回改，6 处清单已写进交付记录）；tsc 0 / 36 例 NestJS 测试 + 37 例 Python 测试绿 / engine-core 仅 1 处常量改动（决策明确） |
+| 🆕 **WP11 PsyGUARD-RoBERTa Python 服务 + HTTP RiskProbePort** | ✅ 已交付并审核通过（2026-10-30） | 任务单 `engine-wp11-psyguard-python-service-backend-2026-10-30.md`；记录 `engine-wp11-psyguard-python-service-backend-implementation-2026-10-30.md` | 独立仓库 `mofang-psyguard/`（FastAPI + ONNX Runtime int8 量化，Docker 部署到 117.72.30.78，只绑 127.0.0.1:8100）；NestJS 侧 `HttpPsyGuardProbe` + `PSYGUARD_BASE_URL` 开关分流 + 启动健康检查 + 跨仓库标签契约比对；counselor_input + visitor_output 双侧探测（输出侧只接 PsyGUARD 不接本地词典，避免角色台词被误 block）；测试阶段临时放宽：256 token 窗口 + 500ms 超时（**M3 内测前需回改，11 处清单已写进交付记录** —— 2026-11-03 WP26 P2-24 修正：原写「6 处」是漏计，实为本仓 8 处 + 兄弟仓 3 处）；tsc 0 / 36 例 NestJS 测试 + 37 例 Python 测试绿 / engine-core 仅 1 处常量改动（决策明确） |
+| 📌 **WP12 记忆收尾 + 跨会话 resume 接线** | ✅ 已交付（2026-10-30） | 任务单 `engine-wp12-memory-closeout-resume-wiring-backend-2026-10-30.md`；记录 `engine-wp12-memory-closeout-resume-wiring-backend-2026-10-30-implementation-2026-10-30.md` | ① **Qdrant 写侧冲突标记**（补 WP2 缺口）：写新记忆先 `scroll` 再 `upsert`（避开"新点已落库、旧点还没标记"的中间态窗口）→ 走内核纯函数 `applyConflictResolution`（时间新→重要度高→id 字典序）选存活者 → 存活者是新条目则旧点打 `supersededBy`、是旧条目则新条目带 `supersededBy` 一起落库；**不物理删除**旧点（M4）；② **会话结束摘要晋升长时**（逐字稿喂 LLM 产 ≤200 字摘要 → 构造 SHORT_TERM → 内核 `promoteShortTermToLongTerm`），摘要失败只记 warn **不阻断 closeSession**（收尾常在 finally/断连路径上，抛错会把"清理失败"升级成"主流程失败"）；③ **逐字稿 close 时全量定稿落库**；④ 半衰期/召回阈值配置化（`MEMORY_DECAY_HALF_LIFE_DAYS` / `MEMORY_RECALL_THRESHOLD`，非法值回退不抛错）；⑤ 🔴 **resume 接线**（本单核心）—— 握手 query `resumeFromSessionId` → `engine.open()`，学员第二次打开同一角色引擎记得上次。**长时记忆作用域从"角色"改成"学员+角色"**（`学员id:角色key`）—— 角色 key 对所有学员相同，只用它会让甲学员的咨询摘要被乙学员召回，**不改就是隐私事故**；无学员身份则不写长时记忆。内核整树零改动 / tsc 0 / 新增套件 35 例全绿 / 全量 57 套件 907 例中 905 例通过（drill-judge 2 例既有债） |
+| 📌 **WP16 round_id 幂等 + 断流不重复叠加** | ✅ 已交付（2026-11-02） | 任务单 `engine-wp16-round-id-idempotency-backend-2026-11-02.md`；记录 `engine-wp16-round-id-idempotency-backend-implementation-2026-11-02.md` | 两道闸门都拦在 **turn 处理入口**：① **同一会话同一 `round_id` 幂等** —— 内存态幂等表（`Map<sessionId, Map<roundId, TurnEntry>>`，条目分"在跑 / 已落定"两态）复用已提交结果，**不重复跑 BDI / 不重复更新状态 / 不重复调 LLM**（并发重发也不重跑）；② **流式断流不叠加** —— 本轮状态已提交但回复没发完时，重发同一 `round_id` 返回独立错误码 `turn_incomplete`（前端据此 `round_id + 1` 走新一轮，**不重放旧轮**）；`roundId` 缺省/非法 → 正常跑（老客户端零回归）。内核整树零改动 / 新增引擎侧 13 例 + voice 侧 6 例全绿 / Flutter 端 roundId 适配已联调 |
 | 🆕 **WP22 语音对练限流与并发上限** | ✅ 已交付（2026-11-02） | 任务单 `engine-wp22-voice-concurrency-limit-backend-2026-11-02.md`；记录 `engine-wp22-voice-concurrency-limit-backend-implementation-2026-11-02.md` | 单用户同时 1 场 + 日 token 预算告警，防烧 LLM 额度 |
 | 🆕 **WP23 WS 断连恢复口径明确** | ✅ 已交付（2026-11-03） | 任务单 `engine-wp23-ws-disconnect-grace-backend-2026-11-03.md`；记录 `engine-wp23-ws-disconnect-grace-backend-implementation-2026-11-03.md` | 对话式追平落地：断线不杀会话/不挂判死定时器；重连握手带 `lastSeenTurnIndex=N` → `session_catchup` 一次性补回已提交轮次；进程重启走 WP12 重建 + 持久化补漏；断连不调 TTS provider；2 小时 idle 兜底。**边界**：内核 BDI 仓储是内存态，跨进程恢复不了 BDI 快照（只能恢复长时记忆+角色基线）；prod 留痕默认关时补漏帧不带 BDI 快照 |
 | 🆕 **WP24 单场成本日志** | ✅ 已交付（2026-10-30） | 任务单 `engine-wp24-session-cost-log-backend-2026-10-30.md`；记录 `engine-wp24-session-cost-log-backend-2026-10-30-implementation-2026-10-30.md` | closeSession 打每场总 token + 预估费用，不做看板；定价走 env 可配；**成本口径 `costBasis` 随输入侧可得性如实切换**（`full` / `output_only`，生产主路径恒 `output_only` —— 上游流式无 prompt/completion 拆分，不拿 0 冒充不可得）；内核契约扩**可选** `usage.promptTokens?` + `model?`（1 个文件，用户拍板）；tsc 0 / eslint 0 / 新套件 18 例绿 / 引擎侧 29 套件 601 例全绿 / 全量 58 套件 925 例中 923 例通过（drill-judge 2 例既有债） |
 | 🆕 **WP15 单回合非对称 delta cap** | ✅ 已交付（2026-11-03） | 任务单 `engine-wp15-delta-cap-backend-2026-11-03.md`；记录 `engine-wp15-delta-cap-backend-implementation-2026-11-03.md` | BDI 状态迁移加单回合非对称 cap（trust/valence 上 +0.20、下 −0.30 损失厌恶；arousal + 阻抗三维 ±0.20；移情三维 ±0.15），**砍 delta 不是 clamp 绝对值**（clamp 仍是防越界最后防线）；cap 常量 env 可覆写（`ENGINE_CAP_<DIM>_UP/DOWN`，非法值回退种子值）；DELTA_TABLE 11 个事件全加幅度声明注释；adapter 侧逐维度打 `[WP15] turn delta capped: trust raw=+0.30 capped=+0.20 events=[...]` warning（内核零 logger 依赖，报告走观察者回调）。**边界**：内核破例只改 `state-transition.ts` 一个文件（diff 193 行，其中约 120 行是中文注释、既有逻辑只改 2 行）、cap 参数是**工程种子值未标定**（M3 内测后按 env 调）、cap 只管单回合总 delta 不管跨回合累积（衰减/边际递减/饱和/Prometheus 告警留 Phase2）。tsc 0 / eslint 0 warning / 新套件 18 例绿 / 全量 74 套件 1133 例全绿 |
 | 🆕 **WP25 Phase1 封版审查（全量扫描）** | ✅ 已交付（2026-11-03） | 任务单 `engine-wp25-phase1-audit-backend-2026-11-03.md`；**扫描报告** [`wp25-phase1-audit-report-2026-11-03.md`](./wp25-phase1-audit-report-2026-11-03.md) | M3 内测前全量审查（非新功能）：① 已知尾巴 5 条逐条核实（半衰期单向=设计、abort→cancelled=不是 bug、admin mock 盘点、WP11 回改清单、finishReason=真缺口列 P2）；② 全量扫描（文档 vs 代码 / TODO·console.log·any·硬编码密钥 / `/admin/api` 鉴权 / WS sessionId 归属 / 错误泄漏 / `.env.example`↔`process.env` 一一对应 / engine-core 白名单复核）。**8 个 P1 本单全修**：WS `sessionId` 归属校验（跨用户接管 + 拉走他人逐字稿）、`/admin/api` 生产 basic auth fail-close、生产 CSP 指令值（`'["self"'` → `'self'`，原写法让整条 CSP 被浏览器忽略）、express-session 公开常量密钥、头像失败文案脱敏、引擎 capObserver 抛错炸穿 turn、`.env.example` 补 130 键 + 47 个死键降级为注释区、任务单 §1.4 回改方向写反。**39 条 P2 待用户拍板**、**10 条 P3 已入 Phase2 队列**。新增 3 个机器断言套件（30 例）：WS 归属 / 安全加固 / env 一一对应 |
+| 🆕 **WP26 Phase1 P2 全量修复** | ✅ 已交付（2026-11-03） | 任务单 `engine-wp26-phase1-p2-hardening-backend-2026-11-03.md`；记录 `engine-wp26-phase1-p2-hardening-backend-implementation-2026-11-03.md` | WP25 扫出的 **34 条 P2 全修**（企业级标准）。**安全 5 条**：WS 握手查 JWT 黑名单 + token type、JWT 走 `Sec-WebSocket-Protocol`（query 保留兜底）、`/metrics` 默认关 + token 鉴权（fail-close）、`/admin/api/*` 加 `AdminRoleGuard`（查 DB 真值 `users.admin_role`）、握手写动作全部推到校验之后。**引擎 12 条**：⭐ 内核 `process.env` 改**注入**（`DeltaCapConfig` 端口 + observer 一并改注入，删模块级单槽）→ 内核零 env、零 globalThis（机器断言守住）；⭐ **轨迹 delta 也走 cap**（本轮总 delta = 事件 + 剧本，统一过一次 cap）；cap 报告带 sessionId；补 `STORAGE_FAILURE` 码；WP15 符号补 barrel；boundary 加「零 env / 禁深路径 import」两条断言。**文档 15 条**：**114 条死链归零** + 3 份交付记录事实修正（WP20 真 API 口径 / WP22「409 自动关旧场」写反 / WP11 红线表）+ backlog 补 WP12/WP16 行。**配置 6 条**：finishReason 三处透传、sessionId 服务端生成（ready 帧下发 `serverSessionId`）、旧 socket 断开加 socketId 闸门、生产 5xx 也打本地日志（脱敏）。tsc 0 / eslint 0 / **全量 84 文件 1252 例全绿**（基线 77/1165）｜ **边界**：P2-2 / P2-36 的 Flutter 前端部分另派单（后端双兼容）；P2-37 仍是真机验证项；P3 的 10 条进 Phase2 队列 |
 
 > WP8 总目标拆为两段：**WP8-A（聚合装配，已交付）** 先在调试端点跑通真实 reply；**WP8-B（流式原生 + 接 voice WS + 灰度，本单）** 才是端到端对练闭环。两者不合并，避免在装配期长出第二套渲染。
 
@@ -89,7 +92,7 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 | 4 | 规则层 + PsyGUARD 双层伦理 | ⚠️ 部分 | WP4 规则双侧判定 + WP11 独立 Python 服务 | 探测层已双侧同判（能力具备）；**处置层整条缺失**（= WP14）；且 PsyGUARD 挂掉时回落内核规则层而非本地词典，学员危机检测能力归零 |
 | 5 | 主模型对接 + 流式 + 渲染调度 | ⚠️ 部分 | WP5 契约 + WP6/7/8 装配 + WP8-B 流式原生灰度 | 流式下发的是已闭合整句不是 token 级；`done` chunk 缺 `finishReason` ——**✅ WP25 已核实：真缺口**（上游拿得到、`engine-stream-backend.adapter.ts:989-999` 与 `voice.service.ts:1649-1658` 两处丢掉），列 P2-#1 待拍板；abort 发 `cancelled` 帧不是 error 帧 ——**✅ WP25 已核实：不是 bug**（barge-in 是正常交互不是错误），划掉 |
 | 6 | 基础角色资产池 | ✅ 属实 | WP9-B `character_profiles` 24 列 + 审核上下架 | 速查卡仍走 `visitor_pool_templates`，与引擎基线分表——这是设计不是差异 |
-| 7 | 基础可观测与运维 | ❌ 比预期差 | WP19 每轮留痕 + WP20 Vue3 调试器 + WP21 报告 SSE | **留痕链整条未通**：traceRecorder 恒 undefined，从未装配；/admin/api/* 零鉴权；SPA 全 mock 数据。比"部分"更差 |
+| 7 | 基础可观测与运维 | ❌ 比预期差 | WP19 每轮留痕 + WP20 Vue3 调试器 + WP21 报告 SSE | **留痕链整条未通**：traceRecorder 恒 undefined，从未装配；/admin/api/* 零鉴权；SPA 全 mock 数据。比"部分"更差 —— **✅ WP26 已修正（2026-11-03）：本行是 2026-10-30 快照**，此后 ① 留痕链 WP19-R 已装配；② `/admin/api/*` WP25 补了生产 basic auth fail-close、WP26 P2-4 补了 `AdminRoleGuard` 角色校验；③ SPA 已切 **4 个真 API 页**（WP22） |
 
 #### 两个硬底线（内测前必须补）—— 代码审计修正后
 
@@ -101,7 +104,7 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 > **WP17 降级说明**：原描述"新引擎路径没接 turnAnalysisProcessor.enqueue"**不成立**。新旧链路共用 `persistTurnIfComplete` → `appendTurn` → `enqueue`，移情/阻抗 mark 帧、轻提示、披露提取在新路径下都会触发。WP17 真正缺的只有 `enginePath: legacy|bdi` 字段（属 WP13 可观测范畴），不是"督导视角全瞎"。
 
 > **WP14 交付更正（2026-11-02）**：上表是 **2026-10-30 代码审计快照**，WP14 那一行描述的是**当时**的状态，**现已交付**（分档处置 + 学员侧可见 + 热线 + 不可删审计 + PsyGUARD 挂掉回落本地词典，五项全部落地）。
-> 任务单与交付记录见 §Phase1 增补 · WP14。WP19 留痕链同款说明：`traceRecorder` 已于 WP19-R 装配，admin-dashboard 的真 API 接入仍归 WP20。
+> 任务单与交付记录见 §Phase1 增补 · WP14。WP19 留痕链同款说明：`traceRecorder` 已于 WP19-R 装配，admin-dashboard 的真 API 接入仍归 WP20 —— **✅ WP26 P2-22 修正（2026-11-03）**：admin-dashboard **已切 4 个真 API 页**（`/login` `/sessions` `/sessions/:id` `/characters`），其余 4 页仍是 mock（数据源待接）。
 
 #### 其他待做项（按优先级，代码审计修正后）
 
@@ -198,16 +201,16 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 - **验收**：同一角色多次开场基线一致；角色切换后阻抗/情绪基线不同；未审核资产不可用；migration 可回滚。
 - **不做**：UGC 提交-审核-分成流（Phase2/§8 不做清单）；流派差异化参数（Phase2）。
 - **切分（2026-10-29）**：本条目拆为两轮，先打通注入链路再接 DB，避免边建表边改装配返工。
-  - **WP9-A（本轮，任务单 [`engine-wp9a-character-profile-seed-injection-backend-2026-10-29.md`](./engine-wp9a-character-profile-seed-injection-backend-2026-10-29.md)）**：适配层建 `CharacterProfileResolver` 端口 + 内置 2 个硬编码种子角色（零 DB），确定性映射成 `characterProfile` 并在 openSession 注入；无角色回退中性基线。覆盖原条目第 3 条（注入）与可复现验收。
-  - **WP9-B（本轮，任务单 [`engine-wp9b-db-character-pool-backend-2026-10-29.md`](./engine-wp9b-db-character-pool-backend-2026-10-29.md)）**：5Ps schema 落 MySQL（手写 migration 禁 synchronize）、审核状态/未审核不可用、`DbCharacterProfileResolver` 实现同一端口替换 builtin、角色 CRUD/上下架。覆盖原条目第 1/2/4 条与 migration 可回滚验收。
+  - **WP9-A（本轮，任务单 [`engine-wp9a-character-profile-seed-injection-backend-2026-10-29.md`](./completed/wp6-wp12-wiring/engine-wp9a-character-profile-seed-injection-backend-2026-10-29.md)）**：适配层建 `CharacterProfileResolver` 端口 + 内置 2 个硬编码种子角色（零 DB），确定性映射成 `characterProfile` 并在 openSession 注入；无角色回退中性基线。覆盖原条目第 3 条（注入）与可复现验收。
+  - **WP9-B（本轮，任务单 [`engine-wp9b-db-character-pool-backend-2026-10-29.md`](./completed/wp6-wp12-wiring/engine-wp9b-db-character-pool-backend-2026-10-29.md)）**：5Ps schema 落 MySQL（手写 migration 禁 synchronize）、审核状态/未审核不可用、`DbCharacterProfileResolver` 实现同一端口替换 builtin、角色 CRUD/上下架。覆盖原条目第 1/2/4 条与 migration 可回滚验收。
     - **闭合 WP9-A 遗留口径（2026-10-29 审核补记）**：WP9-A 单测只用 synthetic `builtin_*` key 命中，真实握手 `vpt_*` slug 在 DB resolver 落地前仍回退中性基线——这是 A 的预期行为，不返工 A。B 验收必须覆盖**一个真实 `vpt_*` slug 经 `visitor_pool_templates` 行解析出 5Ps 基线并注入 openSession**，不能只测 builtin key；同时明确"未知/未上架 slug → 回退中性 + warn"的边界仍由 resolver 端口承担。
     - **速查卡回填（防"角色上了、前端空卡"双胞胎）**：`CharacterProfile`（引擎基线）与 `VisitorCard`（codename/ageRange/occupation/presentingComplaint/riskTags，voice 层拼 ready 帧）是两个数据源描述同一个来访者。WP9-B 的 DB resolver 在返回 `characterProfile` 的同时**必须回填速查卡展示字段**（从同一 `visitor_pool_templates`/5Ps 行带出），不能让引擎是回避型、前端速查卡却是 `voice.gateway.ts` 的默认空卡。验收：新引擎路径 ready 帧的速查卡非空，且与注入角色一致。
     - **resume 重载角色基线**：WP9-A 只在 fresh openSession 传 characterProfile。B 验收必须加一条：用角色 A 开场 → close → resume → 内核 `coreBeliefs`/基线仍是 A 的信念，不是默认中性值。若角色基线不在持久化快照里，resume 后会"来访突然变中性"——这是抽离为独立会话服务时必须保住的不变量。
-  - **WP9-C（可开工，smoke test 已过，任务单 [`engine-wp9c-voice-render-token-budget-safety-boundaries-2026-10-29.md`](./engine-wp9c-voice-render-token-budget-safety-boundaries-2026-10-29.md)）**：E2E 联调照出的硬化轮。token 字段切 `max_completion_tokens`（默认 1500/env 可调）、voice render 走低 reasoningEffort、截断半句不喂 TTS、危机轮次走高思考+同步 supervision_hint、LLM 空/429 降级到本地兜底话术不发 error 帧、确认 coreBeliefs 真进 render prompt。**smoke test（2026-10-29 13:42 已过）**：`.env` 开 `ENGINE_VOICE_ENABLED=true`，探针晚晴/亦舟回复不同、无 error、TTS 帧在流；回复偏短证实 token 预算需修。按任务单 §0.1 开工话术顺序做最小修复→边界硬化→探针增强。
+  - **WP9-C（可开工，smoke test 已过，任务单 [`engine-wp9c-voice-render-token-budget-safety-boundaries-2026-10-29.md`](./completed/wp6-wp12-wiring/engine-wp9c-voice-render-token-budget-safety-boundaries-2026-10-29.md)）**：E2E 联调照出的硬化轮。token 字段切 `max_completion_tokens`（默认 1500/env 可调）、voice render 走低 reasoningEffort、截断半句不喂 TTS、危机轮次走高思考+同步 supervision_hint、LLM 空/429 降级到本地兜底话术不发 error 帧、确认 coreBeliefs 真进 render prompt。**smoke test（2026-10-29 13:42 已过）**：`.env` 开 `ENGINE_VOICE_ENABLED=true`，探针晚晴/亦舟回复不同、无 error、TTS 帧在流；回复偏短证实 token 预算需修。按任务单 §0.1 开工话术顺序做最小修复→边界硬化→探针增强。
 
 ## WP10 · 10 个伦理盲盒强覆盖剧本资产
 
-> 任务单：[`engine-wp10-ethical-blindbox-scripts-backend-2026-10-30.md`](./engine-wp10-ethical-blindbox-scripts-backend-2026-10-30.md)（2026-10-30 已拆，待开工）
+> 任务单：[`engine-wp10-ethical-blindbox-scripts-backend-2026-10-30.md`](./completed/wp6-wp12-wiring/engine-wp10-ethical-blindbox-scripts-backend-2026-10-30.md)（2026-10-30 已拆，待开工）
 > 内容：10 个 force_override 剧本（表白/私加微信/熟人/录音纠纷/诊断证明/自杀危机/送礼/价值观评判/性暗示/开药建议），静态 TS 不落库，建 TrajectoryScriptResolver 端口，握手 query 加 scriptId 透传到 engine.open().trajectory。
 
 - **目标**：蓝图第 2 条——10 个核心伦理/危机盲盒用强覆盖模式落地，触发点可复现。
@@ -266,11 +269,11 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 
 ### WP14 · 学员自身心理风险**处置层**（合规硬底线）
 
-> ✅ **已交付（2026-11-02）**。任务单：[`engine-wp14-student-risk-disposal-backend-2026-11-02.md`](./engine-wp14-student-risk-disposal-backend-2026-11-02.md)｜交付记录：[`engine-wp14-student-risk-disposal-backend-implementation-2026-11-02.md`](./engine-wp14-student-risk-disposal-backend-implementation-2026-11-02.md)
+> ✅ **已交付（2026-11-02）**。任务单：[`engine-wp14-student-risk-disposal-backend-2026-11-02.md`](./completed/wp14-wp24-augment/engine-wp14-student-risk-disposal-backend-2026-11-02.md)｜交付记录：[`engine-wp14-student-risk-disposal-backend-implementation-2026-11-02.md`](./completed/wp14-wp24-augment/engine-wp14-student-risk-disposal-backend-implementation-2026-11-02.md)
 >
 > 落地摘要：`counselor_input` 侧 warn → 推 `crisis_toast` 不阻断；block → **阻断本轮 AI 回复**（不调 `RenderPort.render`、不发 llm/tts 内容帧）+ 推 `crisis_modal`（12356/120），会话不销毁；`visitor_output` 侧**绝不弹学员、绝不阻断演练**（只推督导 `supervision_hint`）。落 append-only 审计表 `student_risk_events`（无 `updated_at`/`deleted_at`，`snippet` ≤200 字，只 INSERT，唯一 UPDATE 是 `user_choice`）。D12 兜底已修：PsyGUARD 挂掉回落**本地词典**而非无危机词的规则层。补 7 个职业倦怠 warn 级词（不补 block 级词）。内核 `src/engine-core/**` 零改动。闸门：eslint 0 / tsc 0 / 全量 62 文件 978 例全绿。
 >
-> ✅ **优化项已交付（2026-11-02）** —— "阻断轮先弹 modal、不先转 loading 圈"。任务单：[`wp14-block-no-llm-start-optimization-2026-11-02.md`](./wp14-block-no-llm-start-optimization-2026-11-02.md)｜交付记录：[`wp14-block-no-llm-start-optimization-implementation-2026-11-02.md`](./wp14-block-no-llm-start-optimization-implementation-2026-11-02.md)
+> ✅ **优化项已交付（2026-11-02）** —— "阻断轮先弹 modal、不先转 loading 圈"。任务单：[`wp14-block-no-llm-start-optimization-2026-11-02.md`](./completed/wp14-wp24-augment/wp14-block-no-llm-start-optimization-2026-11-02.md)｜交付记录：[`wp14-block-no-llm-start-optimization-implementation-2026-11-02.md`](./completed/wp14-wp24-augment/wp14-block-no-llm-start-optimization-implementation-2026-11-02.md)
 >
 > 落地摘要：voice 层在**发 `llm_start` 之前**加一道前置 safety gate（复用内核**同一个** `RISK_PROBE` 实例）：判 `block` 就直接发 `crisis_modal` + 写审计 + 置重点监测，**不调内核 turn / render** —— 全程无 `llm_start` / `llm_done` / `tts` 帧，"开始了但永远不会结束"的孤儿帧消失；`warn` / `pass` 走原流程逐帧不变；探测器异常静默降级放行（内核侧那一层判定仍兜底，双层防御）；`visitor_output` 侧不动。内核 `src/engine-core/**` 零改动。闸门：eslint 0 / tsc 0 / 新增 2 文件 19 例 / 全量 64 文件 997 例全绿。
 > 已知成本（诚实记录）：每轮**多一次** PsyGUARD 调用（两层各探一次，QPS ×2；远端不可达时走本地词典兜底几乎不增延迟）—— 这是"双层防御"的直接代价，合并成一次会削弱兜底，建议独立后续单评估。
@@ -358,7 +361,7 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 
 ### WP23 · WS 断连追平（对话式 backfill，非 30s cliff）
 
-> ✅ **已交付（2026-11-03）**。任务单：[`../completed/wp14-wp24-augment/engine-wp23-ws-disconnect-grace-backend-2026-11-03.md`](../completed/wp14-wp24-augment/engine-wp23-ws-disconnect-grace-backend-2026-11-03.md)；交付记录：[`../completed/wp14-wp24-augment/engine-wp23-ws-disconnect-grace-backend-implementation-2026-11-03.md`](../completed/wp14-wp24-augment/engine-wp23-ws-disconnect-grace-backend-implementation-2026-11-03.md)
+> ✅ **已交付（2026-11-03）**。任务单：[`./completed/wp14-wp24-augment/engine-wp23-ws-disconnect-grace-backend-2026-11-03.md`](./completed/wp14-wp24-augment/engine-wp23-ws-disconnect-grace-backend-2026-11-03.md)；交付记录：[`./completed/wp14-wp24-augment/engine-wp23-ws-disconnect-grace-backend-implementation-2026-11-03.md`](./completed/wp14-wp24-augment/engine-wp23-ws-disconnect-grace-backend-implementation-2026-11-03.md)
 >
 > 落地摘要：断线**不杀会话**（不 endSession / 不删内存会话 / 不挂判死定时器），in-flight 轮次自然跑完；客户端重连握手带 `lastSeenTurnIndex=N`，服务端把 N 之后**已提交**轮次一次性塞进 `session_catchup` 帧推回（只补最终文本，不回放流式 chunk / TTS 音频）；进程重启过走 WP12 `resumeFromSessionId` 重建，补漏数据改从持久化（逐字稿 + WP19-R 留痕）捞；断连状态下**压根不调 TTS provider**；超长 idle（env 可调，默认 120 分钟）主动收尾。tsc 0 / eslint 0 / 全量 72 套件 1115 例绿 / engine-core 零改动。
 >
@@ -380,7 +383,7 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 
 ### WP24 · 单场成本日志
 
-> ✅ **已交付（2026-10-30）**。任务单：[`engine-wp24-session-cost-log-backend-2026-10-30.md`](./engine-wp24-session-cost-log-backend-2026-10-30.md)｜交付记录：[`engine-wp24-session-cost-log-backend-2026-10-30-implementation-2026-10-30.md`](./engine-wp24-session-cost-log-backend-2026-10-30-implementation-2026-10-30.md)
+> ✅ **已交付（2026-10-30）**。任务单：[`engine-wp24-session-cost-log-backend-2026-10-30.md`](./completed/wp14-wp24-augment/engine-wp24-session-cost-log-backend-2026-10-30.md)｜交付记录：[`engine-wp24-session-cost-log-backend-2026-10-30-implementation-2026-10-30.md`](./completed/wp14-wp24-augment/engine-wp24-session-cost-log-backend-2026-10-30-implementation-2026-10-30.md)
 
 - **为什么有这条（2026-10-30 架构审查补记）**：WP19 留了每轮 LLM usage，但没有整场汇总。内测阶段先不做看板，日志里打每场总 token + 预估费用即可。
 - **目标**：内测期能看到"这场花了多少钱"，不做看板。
@@ -395,7 +398,7 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 
 ### WP18 · 会话结束→复盘报告生成链路端到端打通
 
-- **为什么有这条（2026-10-29）**：WP9-C 探针只验证了会话内流式路径（ready→llm→tts），但会话结束后的报告闭环从未验证——新引擎路径（ENGINE_VOICE_ENABLED=true）结束会话时，transcript 落库了吗？报告生成 worker 触发了吗？六维评分/annotations/techStats 真有值还是空壳？Flutter 报告页期望的四态（pending/completed/parse_error/no_content）走得通吗？任务单：[`engine-wp18-session-report-generation-e2e-2026-10-29.md`](./engine-wp18-session-report-generation-e2e-2026-10-29.md)。
+- **为什么有这条（2026-10-29）**：WP9-C 探针只验证了会话内流式路径（ready→llm→tts），但会话结束后的报告闭环从未验证——新引擎路径（ENGINE_VOICE_ENABLED=true）结束会话时，transcript 落库了吗？报告生成 worker 触发了吗？六维评分/annotations/techStats 真有值还是空壳？Flutter 报告页期望的四态（pending/completed/parse_error/no_content）走得通吗？任务单：[`engine-wp18-session-report-generation-e2e-2026-10-29.md`](./completed/wp14-wp24-augment/engine-wp18-session-report-generation-e2e-2026-10-29.md)。
 - **目标**：跑一场完整会话→结束→报告页能看到真实评分和标注，不是转圈、不是空壳、不是 parse_error。
 - **内容**：①确认新引擎路径 session_finish→transcript 落库→报告 worker 触发链路是否接上；②报告接口字段与前端 `vpt_session_report.dart` 对齐（六维评分/annotations/techStats/marks/四态）；③四态边界（正常 completed/空局 no_content/生成失败 parse_error/刚结束 pending）；④探针加 `--report` 模式，轮询报告接口并断言 completed+六维非空；⑤逐字稿 turnIndex 与 marks 对齐。
 - **依赖**：WP9-C（已交付）；不依赖 WP11 PsyGUARD。
@@ -404,7 +407,7 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 
 ### WP19 · 后端 AdminDebugModule + 每轮 BDI 快照留痕落库
 
-- **为什么**：引擎跑通后调试是黑盒——角色说了句不对的话，看不到那轮 BDI 快照/prompt/usage。WP19 把每轮调试快照落库 + 暴露只读 API。任务单：[`engine-wp19-admin-debug-module-trace-2026-10-29.md`](./engine-wp19-admin-debug-module-trace-2026-10-29.md)。
+- **为什么**：引擎跑通后调试是黑盒——角色说了句不对的话，看不到那轮 BDI 快照/prompt/usage。WP19 把每轮调试快照落库 + 暴露只读 API。任务单：[`engine-wp19-admin-debug-module-trace-2026-10-29.md`](./completed/wp14-wp24-augment/engine-wp19-admin-debug-module-trace-2026-10-29.md)。
 - **内容**：①每轮 turn 结束把 BDI 快照（trust/valence/arousal/resist）、RenderSpec 摘要（prompt 截断 500 字）、LLM usage（tokens/TTFT/finishReason）落库（session 表加 JSONB，不加新表）；②`AdminDebugModule` 只读 API：`/admin/api/sessions`、`/admin/api/sessions/:id`、`/admin/api/characters`、`/admin/api/health`；③prod basic auth middleware。
 - **依赖**：WP18 报告闭环（数据模型顺手对齐）。
 - **验收**：跑一场会话后 DB 有 trace 记录；API 返回每轮 BDI 快照；prod 401 生效；旧链路零变化。
@@ -412,7 +415,7 @@ WP0–WP5 交付的是引擎**内核纯层**：纯函数、类型契约、内存
 
 ### WP20 · Vue 3 调试器 SPA（admin-dashboard）
 
-- **为什么**：WP19 有数据没界面。WP20 做一个 Vue 3 + Vite + Tailwind SPA，深色主题，只读展示会话回放 + BDI 快照 + usage。任务单：[`engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md`](./engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md)。
+- **为什么**：WP19 有数据没界面。WP20 做一个 Vue 3 + Vite + Tailwind SPA，深色主题，只读展示会话回放 + BDI 快照 + usage。任务单：[`engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md`](./completed/wp14-wp24-augment/engine-wp20-admin-dashboard-vue3-spa-2026-10-29.md)。
 - **内容**：①`/sessions` 会话列表；②`/sessions/:id` 会话回放（左逐字稿 + 右轮次 BDI 详情）；③`/characters` 角色池只读列表；④NestJS serve `dist/` 静态文件。
 - **依赖**：WP19 API 就绪。
 - **验收**：浏览器访问 `/admin/` 打开 SPA；会话列表/详情从 API 拉数据；深色主题；只读无编辑。
