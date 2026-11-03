@@ -34,7 +34,7 @@ export type { TransferenceState } from './domain/transference.js';
 export type { BehaviorStrategy, Intention } from './domain/intention.js';
 
 // ── 角色内核注入 ───────────────────────────────────────────────────
-export type { AttachmentStyle, CharacterProfile, UnderlyingDesireSeed } from './domain/character-profile.js';
+export type { AttachmentStyle, CharacterProfile, PersonalityTraits, UnderlyingDesireSeed } from './domain/character-profile.js';
 
 // ── 标准会话事件 / 分类器接口 (双轨可替换) ────────────────────────
 export type { ClassifyContext, CounselorEventKind, EventClassifier, SessionEvent } from './domain/events/session-event.js';
@@ -159,3 +159,15 @@ export {
   transitionState,
   transitionStateDetailed,
 } from './cognition/state-transition.js';
+
+// ── 人格调节算子 (WP34 · P1 依恋调节 + 人格特质调节) ───────────────
+//   WP26 P2-16 的同款理由: 新符号若只住在内核内部, adapter 就得深路径 import ——
+//   那条路径不在 boundary 断言⑥ (barrel 双向白名单) 的守卫视野内, 内核改文件名
+//   adapter 直接断且没有任何断言会红. 收进公开出口, 由断言守住.
+export type {
+  AgreeablenessModulation,
+  AttachmentModulation,
+  PersonalityModulationInput,
+  PersonalityModulatorConfig,
+} from './cognition/personality-modulator.js';
+export { DEFAULT_PERSONALITY_MODULATOR_CONFIG, modulateDeltaByPersonality } from './cognition/personality-modulator.js';

@@ -34,7 +34,15 @@ import type { TraceRecorder } from '../../admin-debug/trace-recorder.service.js'
 import { InMemoryBdiStateRepository } from '../../engine-core/in-memory/in-memory-bdi-state.repository.js';
 import { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-engine-session.js';
 import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store.js';
-import type { DeltaCapConfig, DeltaCapObserver, Embedder, EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
+import type {
+  DeltaCapConfig,
+  DeltaCapObserver,
+  Embedder,
+  EngineSessionPort,
+  MemoryStore,
+  PersonalityModulatorConfig,
+  RiskProbePort,
+} from '../../engine-core/index.js';
 import type { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
 import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import type { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
@@ -99,16 +107,23 @@ export function createEngineMemoryStore(deps: EngineMemoryStoreDeps): MemoryStor
 }
 
 /**
- * 内核会话的 cap 依赖 (WP26 · P2-14).
+ * 内核会话的调参依赖 (WP26 · P2-14 · WP34).
  *
- * 单回合 delta cap 的配置与观察者都是**注入**进来的 —— 内核不读 env、不持有全局槽.
+ * 单回合 delta cap 的配置与观察者、人格调节系数都是**注入**进来的 ——
+ * 内核不读 env、不持有全局槽.
  * 缺省 = 内核种子值 + 不观测 (行为与 WP15 之前逐字一致).
  */
-export interface EngineSessionCapDeps {
+export interface EngineSessionTuningDeps {
   /** 单回合 delta cap 配置 (缺省 = 内核种子值). */
   readonly capConfig?: DeltaCapConfig;
   /** cap 报告观察者 (缺省 = 不观测). */
   readonly capObserver?: DeltaCapObserver;
+  /**
+   * 人格调节配置 (WP34; 缺省 = 内核种子值).
+   *
+   * 与 cap 同款范式: 系数是**部署形态**的决定 (内测期按真实对练校准), 不是会话参数.
+   */
+  readonly personalityModulatorConfig?: PersonalityModulatorConfig;
 }
 
 /**
@@ -119,16 +134,21 @@ export interface EngineSessionCapDeps {
  *
  * @param memories 记忆仓储 (与门面共用)
  * @param riskProbe 可选风险探测端口 (WP4 扩展点; 缺省 = 纯规则判定)
- * @param cap 可选 cap 依赖 (WP26 · P2-14: 配置与观察者注入)
+ * @param tuning 可选调参依赖 (WP26 · P2-14 cap 配置与观察者; WP34 人格调节系数)
  * @returns 内核会话端口
  */
-export function createEngineSessionPort(memories: MemoryStore, riskProbe?: RiskProbePort, cap?: EngineSessionCapDeps): EngineSessionPort {
+export function createEngineSessionPort(
+  memories: MemoryStore,
+  riskProbe?: RiskProbePort,
+  tuning?: EngineSessionTuningDeps,
+): EngineSessionPort {
   return new InMemoryEngineSession({
     bdiStates: new InMemoryBdiStateRepository(),
     memories,
     ...(riskProbe ? { riskProbe } : {}),
-    ...(cap?.capConfig ? { capConfig: cap.capConfig } : {}),
-    ...(cap?.capObserver ? { capObserver: cap.capObserver } : {}),
+    ...(tuning?.capConfig ? { capConfig: tuning.capConfig } : {}),
+    ...(tuning?.capObserver ? { capObserver: tuning.capObserver } : {}),
+    ...(tuning?.personalityModulatorConfig ? { personalityModulatorConfig: tuning.personalityModulatorConfig } : {}),
   });
 }
 

@@ -50,7 +50,27 @@
 //     内核 → adapter 的通道必须窄且显式. 观察者回调让内核**只报告、不 import logger**
 //     —— 打不打日志由 adapter 决定. 回调是**同步调用**, 报告与触发它的那一轮严格对应
 //     (不留存, 不跨轮串台); 内核对它**永不抛穿** (抛了也只是观测失败, 不该炸掉整轮).
+//
+// V2026-11-03 WP34 (引擎内核 · P1 人格调节算子):
+//   管道里多了**人格调节**一环: 聚合 → 人格调节 → cap → 落快照.
+//
+//   为什么调节在 cap 之前:
+//     cap 是"一回合最多动多少"的**最后一道尺子** —— 调节若在 cap 之后, 就能把
+//     被砍掉的量再加回来, cap 的保证当场作废. 顺序固定为: 先按角色调幅度, 再限总量.
+//
+//   为什么只对**事件 delta** 调节, 不对剧本 delta 调节:
+//     剧本 (trajectory) 的 node.delta 是**作者写死**的偏移, 且本就按角色分化 ——
+//     再叠一层人格系数等于把作者的设计乘两遍. 事件 delta 才是"这一轮咨询师说了什么"
+//     带来的增量, 它的幅度该随来访者的关系模式而异.
+//
+//   为什么人格调节是**注入**而不是内核里读配置:
+//     与 WP26 P2-14 的 cap 参数同一治本: 内核不认 env, 只认端口. 依赖方向是
+//     env → (适配层) → PersonalityModulatorConfig → (内核端口).
+//
+//   cap 报告的 raw 口径随之变成"人格调节**后**的 delta": 报告只该显示真实被砍掉的量 —
+//     调节带来的变化不该混进"砍幅"里.
 
+import { modulateDeltaByPersonality, type PersonalityModulationInput } from './personality-modulator.js';
 import type { BdiSnapshot } from '../domain/bdi-snapshot.js';
 import { clamp01, clampValence, resolveEmotionLabel } from '../domain/emotion.js';
 import type { CounselorEventKind, SessionEvent } from '../domain/events/session-event.js';
@@ -437,6 +457,28 @@ export interface TransitionStateOptions {
    * **总 delta** 口径 (WP26 P2-12), 由会话层自己算自己报 —— 两处不会同时生效.
    */
   readonly observer?: DeltaCapObserver;
+  /**
+   * 人格调节输入 (WP34): 角色的依恋类型 / 人格特质 + 调节端口.
+   *
+   * 缺省 = 不做人格调节 (delta 逐字不变). 调节发生在**聚合之后、cap 之前** ——
+   * cap 是"一回合最多动多少"的最后一道尺子, 调节不得绕过它.
+   */
+  readonly personality?: PersonalityModulationInput;
+}
+
+/**
+ * 套上人格调节 (WP34).
+ *
+ * 缺省 (无 personality 选项) → 原样返回 (逐字不变, 零回归).
+ * 本轮事件缺省时由调用方补上 (宜人性规则要判定"共情回应").
+ */
+function modulateByPersonality(
+  raw: DeltaVector,
+  events: readonly SessionEvent[],
+  personality: PersonalityModulationInput | undefined,
+): DeltaVector {
+  if (!personality) return raw;
+  return modulateDeltaByPersonality(raw, { ...personality, events: personality.events ?? events });
 }
 
 /**
@@ -527,12 +569,18 @@ export function applyDeltaVector(snapshot: BdiSnapshot, delta: DeltaVector): Bdi
  * WP15: 本轮总 delta 先过**单回合 cap** 再落快照 (砍 delta, 不是 clamp 绝对值);
  * 被砍了就把报告交给观察者 (adapter 决定打不打日志).
  *
+ * WP34: 管道里多了**人格调节**一环 —— 聚合 → 人格调节 → cap → 落快照.
+ *   调节放在 cap **之前**: cap 是"一回合最多动多少"的最后一道尺子, 调节不得绕过它.
+ *   cap 报告的 raw 口径随之变成"**人格调节后**的 delta" —— 报告只该显示真实被砍掉的量,
+ *   调节带来的变化不该混进"砍幅"里 (否则运维会把调节当成 cap).
+ *
  * @param snapshot 旧快照
  * @param events 本轮标准事件
- * @param options 注入选项 (cap 配置 / 报告上下文 / 观察者)
+ * @param options 注入选项 (cap 配置 / 报告上下文 / 观察者 / 人格调节)
  */
 export function transitionState(snapshot: BdiSnapshot, events: readonly SessionEvent[], options?: TransitionStateOptions): BdiSnapshot {
-  const raw = aggregateTurnDelta(events);
+  const aggregated = aggregateTurnDelta(events);
+  const raw = modulateByPersonality(aggregated, events, options?.personality);
   const delta = capTurnDelta(raw, options?.capConfig);
   notifyDeltaCap(options?.observer, buildDeltaCapReport(raw, delta, events, options?.capContext));
   return applyDeltaVector(snapshot, delta);
@@ -551,7 +599,8 @@ export function transitionStateDetailed(
   events: readonly SessionEvent[],
   options?: TransitionStateOptions,
 ): { readonly snapshot: BdiSnapshot; readonly capped: TurnDeltaCapReport | null } {
-  const raw = aggregateTurnDelta(events);
+  const aggregated = aggregateTurnDelta(events);
+  const raw = modulateByPersonality(aggregated, events, options?.personality);
   const delta = capTurnDelta(raw, options?.capConfig);
   const report = buildDeltaCapReport(raw, delta, events, options?.capContext);
   notifyDeltaCap(options?.observer, report);

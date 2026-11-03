@@ -63,6 +63,7 @@ import {
   createVisitorOutputProbe,
 } from './engine.providers.js';
 import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from './engine.tokens.js';
+import { resolvePersonalityModulatorConfig } from './personality-modulator.config.js';
 import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory.js';
 import { resolveSessionCostPricing } from '../observability/session-cost.js';
 import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe.js';
@@ -207,6 +208,8 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
           // WP26 · P2-11/P2-12: 观察者随会话实例注入 (不再有模块级单槽),
           //   报告带 sessionId/handleId, 口径是本轮**总** delta.
           capObserver: capLogger.observer,
+          // WP34: 人格调节系数同理 —— env 读在适配层, 内核只认 PersonalityModulatorConfig 端口.
+          personalityModulatorConfig: resolvePersonalityModulatorConfig(config),
         }),
       inject: [ENGINE_MEMORY_STORE, RISK_PROBE, ConfigService, DeltaCapLogger],
     },

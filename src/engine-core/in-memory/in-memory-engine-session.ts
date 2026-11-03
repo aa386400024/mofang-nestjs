@@ -29,6 +29,11 @@ import { nanoid } from 'nanoid';
 import { randomInt } from 'node:crypto';
 
 import { planIntention } from '../cognition/intention-planner.js';
+import {
+  modulateDeltaByPersonality,
+  type PersonalityModulationInput,
+  type PersonalityModulatorConfig,
+} from '../cognition/personality-modulator.js';
 import { RuleBasedClassifier } from '../cognition/rule-based-classifier.js';
 import { assessSafety } from '../cognition/safety/assess-safety.js';
 import {
@@ -178,6 +183,17 @@ export interface InMemoryEngineSessionOptions {
    * 运维能直接定位到是哪场会话被砍.
    */
   readonly capObserver?: DeltaCapObserver;
+  /**
+   * 人格调节配置 (WP34 · 与 cap 同款注入范式).
+   *
+   * 缺省 = 内核种子值 (`DEFAULT_PERSONALITY_MODULATOR_CONFIG`).
+   * 为什么是**构造注入**而不是每次 turn 传: 与 cap 同理 —— 人格系数是**部署形态**的
+   * 决定 (内测期要按真实对练校准), 不是会话参数; 放构造上 = 一场会话内口径恒定.
+   *
+   * ⚠️ 角色侧数据 (依恋类型 / 人格特质) 走**开场参数** `characterProfile`,
+   * 不走这里: 系数是部署级的, 角色是会话级的.
+   */
+  readonly personalityModulatorConfig?: PersonalityModulatorConfig;
 }
 
 /** 会话内核的内存实现. */
@@ -202,6 +218,8 @@ export class InMemoryEngineSession implements EngineSessionPort {
   private readonly capConfig: DeltaCapConfig | undefined;
   /** cap 报告观察者 (WP26 · P2-11/P2-12/P2-14). */
   private readonly capObserver: DeltaCapObserver | undefined;
+  /** 人格调节配置 (WP34 · 缺省 = 内核种子值). */
+  private readonly personalityModulatorConfig: PersonalityModulatorConfig | undefined;
 
   constructor(options: InMemoryEngineSessionOptions) {
     this.bdiStates = options.bdiStates;
@@ -212,6 +230,7 @@ export class InMemoryEngineSession implements EngineSessionPort {
     this.riskProbe = options.riskProbe;
     this.capConfig = options.capConfig;
     this.capObserver = options.capObserver;
+    this.personalityModulatorConfig = options.personalityModulatorConfig;
   }
 
   openSession(input: OpenEngineSessionInput): EngineSessionHandle {
@@ -277,12 +296,17 @@ export class InMemoryEngineSession implements EngineSessionPort {
     const events = this.classifier.classify(userText, {
       sensitiveTopics: runtime.characterProfile?.sensitiveTopics,
     });
+    //    人格调节输入 (WP34): 角色的依恋类型 / 人格特质 + 调节端口 + 本轮事件.
+    //    **两处**消费它 (临时快照 / 落库路径) —— 两处口径必须一致, 否则 provisional
+    //    (供意图规划与轨迹触发判定) 与落库快照会漂.
+    const personality = this.personalityInput(runtime, events);
     //    事件 delta 的**原始**值留一份 —— WP26 P2-12: 本轮总 delta = 事件 + 剧本,
     //    要合并后统一过一次 cap, 所以分子必须是原始量, 不能是"已砍过的量".
-    const eventDelta = aggregateTurnDelta(events);
+    //    WP34: 聚合之后先过**人格调节**, 再进 cap (同一管道, 调节不得绕过 cap).
+    const eventDelta = modulateDeltaByPersonality(aggregateTurnDelta(events), personality);
     //    临时快照: 只按事件 delta 推进 (供意图规划与轨迹触发判定) ——
     //    它是**中间量**, 不是本轮落库的状态 (落库口径见第 5 步).
-    const provisional = transitionState(base.snapshot, events, { capConfig: this.capConfig });
+    const provisional = transitionState(base.snapshot, events, { capConfig: this.capConfig, personality });
     const intention = planIntention(provisional, runtime.characterProfile ?? undefined);
     // 4. 轨迹步 (WP3): BDI 自由规划**之后**、落库**之前**.
     //    BDI 永远先发生, 轨迹只做后处理 —— 于是"同一段行为在开/关轨迹两种配置下"
@@ -564,6 +588,30 @@ export class InMemoryEngineSession implements EngineSessionPort {
         visitedNodeIds: [...trajectory.visitedNodeIds],
         ...(outcome ? { outcome } : {}),
       },
+    };
+  }
+
+  /**
+   * 组装本轮的人格调节输入 (WP34).
+   *
+   * 数据来源分层:
+   *   · 角色侧 (依恋类型 / 人格特质) → 开场参数 `characterProfile` (会话级);
+   *   · 系数 (调节端口) → 构造注入 `personalityModulatorConfig` (部署级);
+   *   · 本轮事件 → 用于判定"共情回应" (宜人性规则).
+   *
+   * 缺省处理: 角色没带依恋类型 → 系数全 1.0 (逐字不变); 没带人格特质 → 不做特质调节.
+   *
+   * @param runtime 运行时会话
+   * @param events 本轮分类出的标准事件
+   * @returns 人格调节输入
+   */
+  private personalityInput(runtime: EngineSessionRuntime, events: readonly SessionEvent[]): PersonalityModulationInput {
+    const profile = runtime.characterProfile;
+    return {
+      events,
+      ...(profile?.attachmentStyle ? { attachmentStyle: profile.attachmentStyle } : {}),
+      ...(profile?.personalityTraits ? { traits: profile.personalityTraits } : {}),
+      ...(this.personalityModulatorConfig ? { config: this.personalityModulatorConfig } : {}),
     };
   }
 

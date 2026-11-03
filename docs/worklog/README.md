@@ -14,10 +14,14 @@
 
 > **Phase1 已封版（2026-11-03）**：WP0–WP26 全交付，8 个 P1 + 34 个 P2 全修，1252 例测试全绿。Phase1 backlog 已归档到 `completed/phase1/phase1-backlog-archived-2026-11-03.md`。
 >
-> **Phase2 总览已出**：[`pending/phase2-overview-2026-11-03.md`](pending/phase2-overview-2026-11-03.md)（商业化准备，22 条工作包，P0/P1/P2 三层）。
-> **WP 清单**：[`pending/phase2-wp-list-2026-11-03.md`](pending/phase2-wp-list-2026-11-03.md)（WP27–WP48，分三批并行）。具体任务单开工时再单独写。
+> **Phase2 总览已出**：[`pending/phase2-overview-2026-11-03.md`](pending/phase2-overview-2026-11-03.md)（商业化准备，23 条工作包，P0/P1/P2 三层）。
+> **WP 清单**：[`pending/phase2-wp-list-2026-11-03.md`](pending/phase2-wp-list-2026-11-03.md)（WP27–WP49，分三批并行）。具体任务单开工时再单独写。
 >
-> **Phase2 已开工（2026-11-03）**：WP28（PsyGUARD 临时值回改正式值）✅ 已交付 → [`completed/phase2/engine-wp28-psyguard-production-values-implementation-2026-11-03.md`](completed/phase2/engine-wp28-psyguard-production-values-implementation-2026-11-03.md)。进度 1/22。
+> **Phase2 已开工（2026-11-03）**：
+> - WP28（PsyGUARD 临时值回改正式值）✅ → [`completed/phase2/engine-wp28-psyguard-production-values-implementation-2026-11-03.md`](completed/phase2/engine-wp28-psyguard-production-values-implementation-2026-11-03.md)
+> - WP34（P1 人格调节算子）✅ → [`completed/phase2/engine-wp34-personality-modulator-operators-implementation-2026-11-03.md`](completed/phase2/engine-wp34-personality-modulator-operators-implementation-2026-11-03.md)
+>
+> 进度 2/23。
 
 ---
 
@@ -86,7 +90,7 @@ docs/worklog/
 │   │   ├── auth-and-password/
 │   │   ├── early-misc/
 │   │   └── phase1-backlog-archived-2026-11-03.md
-│   └── phase2/       ← Phase2 交付（WP28 ✅：PsyGUARD 临时值回改正式值）
+│   └── phase2/       ← Phase2 交付（WP28 ✅ PsyGUARD 正式值 / WP34 ✅ P1 人格调节算子）
 ├── audits/           ← 审查报告（WP25 等）
 └── archive/          ← 老文档
 ```

@@ -216,6 +216,24 @@ export declare global {
       ENGINE_CAP_NEGATIVE_DOWN?: string; // 负向移情单回合下向 cap (默认 -0.15)
       ENGINE_CAP_DEPENDENCY_UP?: string; // 依赖单回合上向 cap (默认 0.15)
       ENGINE_CAP_DEPENDENCY_DOWN?: string; // 依赖单回合下向 cap (默认 -0.15)
+      // V2026-11-03 治本 (WP34 — P1 人格调节系数):
+      //   下面是人格调节算子的 10 个 env 键 (4 依恋类型 × 2 系数 + 宜人性 2 项).
+      //   显式声明的理由与上面 ENGINE_CAP_* 同一治本思路:
+      //   **逐个字面量**读 (src/engine-adapters/wiring/personality-modulator.config.ts),
+      //   不用计算键 (`ENGINE_MOD_${style}_${kind}`) —— 计算键编译器拦不住,
+      //   且 env 覆盖断言 (AST 抽取) 扫不到, 漏写一个键会静默失效.
+      //   装配成内核的 PersonalityModulatorConfig 端口注入 —— 内核零 process.env.
+      //   ⚠️ 系数是**工程种子值, 非临床标定** (待真实对练校准).
+      ENGINE_MOD_SECURE_TRUST_SCALE?: string; // 安全型 trust 增益系数 (默认 1.0)
+      ENGINE_MOD_SECURE_RESIST_SCALE?: string; // 安全型 阻抗倍率 (默认 1.0)
+      ENGINE_MOD_AVOIDANT_TRUST_SCALE?: string; // 回避型 trust 增益系数 (默认 0.6)
+      ENGINE_MOD_AVOIDANT_RESIST_SCALE?: string; // 回避型 阻抗倍率 (默认 1.3)
+      ENGINE_MOD_ANXIOUS_TRUST_SCALE?: string; // 焦虑型 trust 增益系数 (默认 1.2)
+      ENGINE_MOD_ANXIOUS_RESIST_SCALE?: string; // 焦虑型 阻抗倍率 (默认 0.8)
+      ENGINE_MOD_DISORGANIZED_TRUST_SCALE?: string; // 混乱型 trust 增益系数 (默认 0.8)
+      ENGINE_MOD_DISORGANIZED_RESIST_SCALE?: string; // 混乱型 阻抗倍率 (默认 1.2)
+      ENGINE_MOD_AGREEABLENESS_TRUST_SCALE?: string; // 高宜人性的 trust 增益系数 (默认 1.1)
+      ENGINE_MOD_AGREEABLENESS_HIGH_THRESHOLD?: string; // 高宜人性阈值 [0,1] (默认 0.7)
     }
   }
 

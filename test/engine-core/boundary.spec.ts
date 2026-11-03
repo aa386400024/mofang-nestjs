@@ -386,6 +386,15 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'DEFAULT_DELTA_CAP_CONFIG',
       'transitionState',
       'transitionStateDetailed',
+      // WP34: P1 人格调节算子 (依恋调节 + 人格特质调节)
+      //   (系数走端口注入, 与 WP26 P2-14 的 cap 参数同一范式)
+      'PersonalityTraits',
+      'AgreeablenessModulation',
+      'AttachmentModulation',
+      'PersonalityModulationInput',
+      'PersonalityModulatorConfig',
+      'DEFAULT_PERSONALITY_MODULATOR_CONFIG',
+      'modulateDeltaByPersonality',
     ];
     // 少导出
     expect(expectedPublic.filter((name) => !exportedNames.includes(name))).toEqual([]);
@@ -418,6 +427,7 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'domain/trajectory/script.ts',
       'cognition/rule-based-classifier.ts',
       'cognition/state-transition.ts',
+      'cognition/personality-modulator.ts',
       'cognition/intention-planner.ts',
       'cognition/rendering/token-budget.ts',
       'cognition/rendering/failover.ts',
