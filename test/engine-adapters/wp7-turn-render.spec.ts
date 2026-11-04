@@ -49,6 +49,21 @@
 //     '  - ' (两空格 + 破折号) 这个前缀**只有召回子项会用**, 其余行都是
 //     '- ' 开头或纯文本, 所以这个滤法不会误伤别的内容 (用例 ③ 顺带钉住"恰好 3 个子项").
 
+// V2026-11-04 WP35 (B 层 · 渲染四手法):
+//   覆盖"这一轮怎么说"从话量三档升级到四手法的口径 ——
+//     ① 语气疏离度三档 (distant / neutral / warm): 阻抗优先, 同盟三维齐全才亲近;
+//     ② 情绪表现方式: 标签 + 唤醒 → 怎么表现 (焦虑 / 愤怒各有高低唤醒两种说法);
+//     ③ 表达层轻量随机: prompt 里有一句"你可以有一点变化";
+//     ④ 口语化 / 非语言: "说话方式"后面补了非语言表达那一行;
+//     ⑤ 零回归: 没有 safety / bond → **不渲染**语气疏离度那一行;
+//     ⑥ 零回归: 情绪是 neutral → 不给额外的情绪表现指令;
+//     ⑦ 话量三档的判定口径 (resolveTurnVerbosity) **一个字没改**.
+//
+//   关于第 ⑤ 条对 WP50 那条零回归断言的影响 (为什么"恰好只多两行"变成三行):
+//     WP50 的断言口径是"同盟三维带来的 prompt 差异 = 恰好那几行". WP35 的语气疏离度
+//     **也由同盟三维驱动** (缺省不渲染) —— 所以同盟维度带来的差异从 2 行变成 3 行.
+//     这是**口径的自然延伸**, 不是把断言放宽: 扣掉那三行后仍要求与缺省版**逐字相同**.
+
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -71,6 +86,7 @@ import {
   type EngineSessionPort,
   type EngineTurnInput,
   type EngineTurnOutput,
+  type EmotionLabel,
   type Intention,
   type MemoryEntry,
   type MemoryHit,
@@ -468,14 +484,17 @@ describe('WP7 · 决策→说话闭环', () => {
       // 缺省 = 不显示 = 这两行整个不出现.
       expect(withoutAlliance).not.toContain('安全感');
       expect(withoutAlliance).not.toContain('联结感');
-      // 新 prompt 减去那两行 = 旧 prompt —— 证明只多了这两行, 别处一个字没动.
+      // WP35 起, 同盟三维还驱动"语气疏离度"那一行 —— 缺省时同样整个不出现.
+      expect(withoutAlliance).not.toContain('语气有点疏离');
+      expect(warmthLine(withoutAlliance)).toBe('');
+      // 新 prompt 减去那几行 = 旧 prompt —— 证明只多了这几行, 别处一个字没动.
       const stripped = withAlliance
         .split('\n')
-        .filter((line) => !line.startsWith('- 安全感：') && !line.startsWith('- 联结感：'))
+        .filter((line) => !line.startsWith('- 安全感：') && !line.startsWith('- 联结感：') && !line.startsWith('语气'))
         .join('\n');
       expect(stripped).toBe(withoutAlliance);
-      // 且恰好只多两行.
-      expect(withAlliance.split('\n').length - withoutAlliance.split('\n').length).toBe(2);
+      // 且恰好只多三行 (WP50 两行 + WP35 的语气疏离度一行).
+      expect(withAlliance.split('\n').length - withoutAlliance.split('\n').length).toBe(3);
     });
 
     it('safety / bond 低**不改变**轮次长短 (本期只加数据, 不调策略)', () => {
@@ -609,6 +628,200 @@ describe('WP7 · 决策→说话闭环', () => {
       expect(messages[1]?.content).toBe(USER_TEXT);
     });
   });
+
+  describe('⑪ WP35 · 渲染四手法 (语气疏离度 / 情绪表现 / 轻量随机 / 非语言)', () => {
+    /**
+     * 造一份**完全可控**的规格 (情绪 / 阻抗 / 同盟三维都显式给, 不吃默认值).
+     *
+     * 为什么不用 buildRenderSpec 那条路径: 它的默认值 (trust 0.3 / safety 0.5 / bond 0 /
+     * 情绪中性) 会让判定口径互相干扰 —— 断言"疏离是因为**风格阻抗**高"时, 就不该
+     * 同时被"信任低"那条命中. 显式给全, 一条用例只验一条信号.
+     */
+    function buildSpecForRender(overrides: Partial<AdaptiveRenderSpec> = {}): AdaptiveRenderSpec {
+      return {
+        taskKind: 'chat',
+        intention: {
+          strategy: 'simple_response',
+          emotion: { label: 'neutral', valence: 0, arousal: 0.3 },
+          resistance: { verbal: 0.4, depth: 0.4, style: 0.35 },
+          transference: { positive: 0, negative: 0, dependency: 0 },
+          forbiddenBehaviors: [],
+        },
+        emotion: { label: 'neutral', valence: 0, arousal: 0.3 },
+        resistance: { verbal: 0.4, depth: 0.4, style: 0.35 },
+        transference: { positive: 0, negative: 0, dependency: 0 },
+        trust: 0.5,
+        safety: 0.5,
+        bond: 0.5,
+        coreBeliefs: [],
+        forbiddenBehaviors: [],
+        recall: [],
+        recentTurns: [],
+        tokenBudget: BUDGET,
+        ...overrides,
+      };
+    }
+
+    /** 造一份情绪可控的规格 (标签 + 唤醒显式给). */
+    function buildSpecWithEmotion(label: EmotionLabel, arousal: number, overrides: Partial<AdaptiveRenderSpec> = {}): AdaptiveRenderSpec {
+      return buildSpecForRender({ emotion: { label, valence: 0, arousal }, ...overrides });
+    }
+
+    it('语气疏离度: 表达风格阻抗高 → 疏离', () => {
+      const systemText = buildVisitorMessages(buildSpecForRender({ resistance: { verbal: 0.4, depth: 0.4, style: 0.7 } }))[0]?.content;
+
+      expect(warmthLine(systemText ?? '')).toBe('语气有点疏离：像在应付、像隔着一层，不太愿意真正投入。');
+    });
+
+    it('语气疏离度: 信任低 → 疏离', () => {
+      const systemText = buildVisitorMessages(buildSpecForRender({ trust: 0.2 }))[0]?.content;
+
+      expect(warmthLine(systemText ?? '')).toContain('语气有点疏离');
+    });
+
+    it('语气疏离度: 安全感低 → 疏离', () => {
+      const systemText = buildVisitorMessages(buildSpecForRender({ safety: 0.2 }))[0]?.content;
+
+      expect(warmthLine(systemText ?? '')).toContain('语气有点疏离');
+    });
+
+    it('语气疏离度: 信任 + 安全感 + 联结感都高 → 亲近', () => {
+      const systemText = buildVisitorMessages(buildSpecForRender({ trust: 0.7, safety: 0.7, bond: 0.5 }))[0]?.content;
+
+      expect(warmthLine(systemText ?? '')).toBe('语气放松一点：没那么防备，愿意流露一点真实感受。');
+    });
+
+    it('语气疏离度: 其余 → 中性', () => {
+      const systemText = buildVisitorMessages(buildSpecForRender())[0]?.content;
+
+      expect(warmthLine(systemText ?? '')).toBe('语气按平时的样子，不刻意亲近也不刻意疏远。');
+    });
+
+    it('语气疏离度: 阻抗优先 (同盟三维都高但风格阻抗高 → 仍是疏离)', () => {
+      const systemText = buildVisitorMessages(
+        buildSpecForRender({ trust: 0.7, safety: 0.7, bond: 0.5, resistance: { verbal: 0.4, depth: 0.4, style: 0.7 } }),
+      )[0]?.content;
+
+      expect(warmthLine(systemText ?? '')).toContain('语气有点疏离');
+    });
+
+    it('情绪表现: 焦虑分高唤醒 / 低唤醒两种说法', () => {
+      const high = buildVisitorMessages(buildSpecWithEmotion('anxious', 0.8))[0]?.content ?? '';
+      const low = buildVisitorMessages(buildSpecWithEmotion('anxious', 0.4))[0]?.content ?? '';
+
+      expect(high).toContain('这轮你有点焦虑：语速偏快、容易犹豫、可能反复确认对方的意思。');
+      expect(high).not.toContain('这轮你有点不安');
+      expect(low).toContain('这轮你有点不安：话里带着不确定，可能会停顿一下再说。');
+      expect(low).not.toContain('这轮你有点焦虑');
+    });
+
+    it('情绪表现: 愤怒分高唤醒 / 低唤醒两种说法', () => {
+      const high = buildVisitorMessages(buildSpecWithEmotion('angry', 0.8))[0]?.content ?? '';
+      const low = buildVisitorMessages(buildSpecWithEmotion('angry', 0.4))[0]?.content ?? '';
+
+      expect(high).toContain('这轮你有点恼火：语气冲一点、有点不耐烦。');
+      expect(high).not.toContain('这轮你有点不爽');
+      expect(low).toContain('这轮你有点不爽：语气有点硬，不太想多解释。');
+      expect(low).not.toContain('这轮你有点恼火');
+    });
+
+    it('情绪表现: 其余七个情绪标签各自有表现方式', () => {
+      const expected: Readonly<Record<string, string>> = {
+        sad: '这轮你情绪低落：语速偏慢、声音轻，可能会叹气或停顿。',
+        hurt: '这轮你有点受伤：话里带着委屈，可能会停顿一下、声音轻一点。',
+        guarded: '这轮你有点戒备：话里带着试探，不太愿意说真话。',
+        relieved: '这轮你松了口气：语气放松、语速正常。',
+        hopeful: '这轮你有点期待：语气放松一点，话里带点盼头。',
+        ashamed: '这轮你有点羞愧：不太想被人细看，话会绕着说。',
+        empty: '这轮你有点空：情绪淡淡的，回答起来有点费劲。',
+      };
+
+      for (const [label, expression] of Object.entries(expected)) {
+        const systemText = buildVisitorMessages(buildSpecWithEmotion(label as EmotionLabel, 0.3))[0]?.content ?? '';
+
+        expect(systemText).toContain(expression);
+      }
+    });
+
+    it('零回归: 没有 safety / bond → 不渲染语气疏离度那一行', () => {
+      const spec = withoutAllianceDimensions(buildSpecForRender());
+
+      const systemText = buildVisitorMessages(spec)[0]?.content ?? '';
+
+      expect(warmthLine(systemText)).toBe('');
+      // 但缺的是**同盟维度**, 不是别的维度 —— 话量那一行照常在.
+      expect(verbosityLine(systemText)).not.toBe('');
+    });
+
+    it('零回归: 情绪是 neutral → 不给额外的情绪表现指令', () => {
+      const systemText = buildVisitorMessages(buildSpecWithEmotion('neutral', 0.3))[0]?.content ?? '';
+
+      // "这一轮怎么说"块里只有话量 + 语气 + 随机提示三行 —— **没有**情绪表现那一行.
+      // (断言整块而不是单行: 单行只能证明"某行在", 证明不了"没有多出情绪那一行".)
+      expect(howToSayLines(systemText)).toEqual([
+        '这轮你按平时的样子说话，不刻意多讲，也不刻意收着。',
+        '语气按平时的样子，不刻意亲近也不刻意疏远。',
+        '你可以有一点变化：不是每轮都用一样的句式，可以有时候停顿一下、有时候用短回应、有时候多说一点。',
+      ]);
+    });
+
+    it('表达层轻量随机: prompt 里有一句"你可以有一点变化"', () => {
+      const systemText = buildVisitorMessages(buildSpecForRender())[0]?.content ?? '';
+
+      expect(systemText).toContain('你可以有一点变化：不是每轮都用一样的句式');
+    });
+
+    it('口语化 / 非语言: "说话方式"后面补了非语言表达那一行', () => {
+      const systemText = buildVisitorMessages(buildSpecForRender())[0]?.content ?? '';
+      const lines = systemText.split('\n');
+      const speechIdx = lines.findIndex((line) => line.startsWith('说话方式：'));
+
+      expect(speechIdx).toBeGreaterThanOrEqual(0);
+      expect(lines[speechIdx + 1]).toBe('可以有一点非语言的表达：比如停顿、叹气、犹豫，但不要写括号里的动作描写。');
+    });
+
+    it('话量三档的判定口径没被改 (resolveTurnVerbosity 一个字没动)', () => {
+      // 短: 话量阻抗高.
+      const short = buildVisitorMessages(buildSpecForRender({ resistance: { verbal: 0.8, depth: 0.6, style: 0.35 } }))[0]?.content;
+      // 长: 话量阻抗低 + 信任高 + 探索策略.
+      const long = buildVisitorMessages(
+        buildSpecForRender({
+          intention: {
+            strategy: 'cognitive_exploration',
+            emotion: { label: 'neutral', valence: 0, arousal: 0.3 },
+            resistance: { verbal: 0.1, depth: 0.2, style: 0.2 },
+            transference: { positive: 0, negative: 0, dependency: 0 },
+            forbiddenBehaviors: [],
+          },
+          emotion: { label: 'neutral', valence: 0, arousal: 0.3 },
+          resistance: { verbal: 0.1, depth: 0.2, style: 0.2 },
+          transference: { positive: 0, negative: 0, dependency: 0 },
+          trust: 0.8,
+        }),
+      )[0]?.content;
+      // 中: 其余.
+      const medium = buildVisitorMessages(buildSpecForRender())[0]?.content;
+
+      expect(verbosityLine(short ?? '')).toContain('这轮你不太想多说');
+      expect(verbosityLine(long ?? '')).toContain('这轮你愿意多说一点');
+      expect(verbosityLine(medium ?? '')).toContain('这轮你按平时的样子说话');
+    });
+
+    it('四个手法都在"这一轮怎么说"块里 (硬规则之前)', () => {
+      const systemText = buildVisitorMessages(buildSpecWithEmotion('anxious', 0.8))[0]?.content ?? '';
+      const block = howToSayLines(systemText);
+
+      expect(block).toHaveLength(4);
+      // 顺序: 话量 → 语气疏离度 → 情绪表现 → 轻量随机.
+      expect(block[0]).toContain('这轮你');
+      expect(block[1]).toContain('语气');
+      expect(block[2]).toContain('这轮你有点焦虑');
+      expect(block[3]).toContain('你可以有一点变化');
+
+      const hardRuleIdx = systemText.indexOf('硬规则：');
+      expect(systemText.indexOf('你可以有一点变化')).toBeLessThan(hardRuleIdx);
+    });
+  });
 });
 
 /**
@@ -627,9 +840,44 @@ function withoutAllianceDimensions(spec: AdaptiveRenderSpec): AdaptiveRenderSpec
  *
  * 为什么单独抽出来: 要断言的是"**轮次长短没被 safety / bond 改变**" ——
  * 直接比整段 prompt 会把状态行的差异也混进来, 断言就变得不精确.
+ *
+ * 为什么按**位置**取 (块头下一行), 而不是按"以'这轮你'开头"找:
+ *   WP35 起, 情绪表现那一行也是"这轮你有点X：…" —— 按前缀找会认错行
+ *   (情绪表现排在话量之后, 找到的第一个虽然仍是话量, 但那是**碰巧**).
+ *   块头下一行是话量那一行, 这是模板的结构不变量.
  */
 function verbosityLine(systemText: string): string {
-  return systemText.split('\n').find((line) => line.startsWith('这轮你')) ?? '';
+  const lines = systemText.split('\n');
+  const headerIdx = lines.indexOf('这一轮怎么说：');
+  return headerIdx === -1 ? '' : (lines[headerIdx + 1] ?? '');
+}
+
+/**
+ * 取 prompt 里"语气疏离度"那一行 (WP35 手法一).
+ *
+ * 为什么用"以'语气'开头"认这一行, 而不是硬编码三段文案:
+ *   这是 prompt 里**唯一**以"语气"开头的行 (其余行要么以"- "开头, 要么以
+ *   "你正在扮演" / "说话方式" / "可以有一点" / "这轮你" / "说完" / "你可以"开头),
+ *   所以这个前缀足以唯一认出它 —— 而且改文案时这个认法不会失效
+ *   (硬编码文案会随措辞调整一起过期).
+ */
+function warmthLine(systemText: string): string {
+  return systemText.split('\n').find((line) => line.startsWith('语气')) ?? '';
+}
+
+/**
+ * 取 prompt 里"这一轮怎么说"块的全部行 (块头与"说完就停"之间).
+ *
+ * 为什么按**块**取而不是按单行: WP35 起这一块有四行 (话量 / 语气 / 情绪 / 随机),
+ * 要断言的是"这一块里**恰好**有哪几行" —— 逐行找只能证明"某行在", 证明不了
+ * "没有多出行" (那才是零回归的关键).
+ */
+function howToSayLines(systemText: string): string[] {
+  const lines = systemText.split('\n');
+  const start = lines.indexOf('这一轮怎么说：');
+  if (start === -1) return [];
+  const end = lines.indexOf('说完一两句就停下来，把话头交还给咨询师 —— 真人对话不是独白。');
+  return lines.slice(start + 1, end === -1 ? lines.length : end);
 }
 
 /** 构造一条记忆条目 (开场上上下文用). */

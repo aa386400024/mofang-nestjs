@@ -36,6 +36,18 @@
 //     条件渲染 (recall.length > 0) + 只取 Top3 → 空召回时 prompt 逐字不变.
 //     ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
 //
+//   V2026-11-04 治本 (WP35 · 渲染四手法):
+//     system prompt 的"这一轮怎么说"块从**话量三档**升级到**四手法** ——
+//       ① 阻抗-表达映射细化: 在话量之外加"语气疏离度" (疏离 / 中性 / 亲近);
+//       ② 情绪粒度细化: 在情绪标签 + 数值之外加"这轮该怎么表现情绪";
+//       ③ 表达层轻量随机: 在 prompt 里告诉模型"可以有一点变化";
+//       ④ 口语化 / 非语言: 补一点停顿 / 叹气 / 犹豫的表现空间.
+//     话量三档的判定口径 (resolveTurnVerbosity) **一个字没改** —— 只加维度, 不调策略.
+//     条件渲染: ① 依赖同盟维度 (safety / bond), 没有就不渲染那一行;
+//               ② 情绪是中性就不给额外指令. 缺省时这两行整个不出现.
+//     ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
+//     本期**不做**"叙事风格" (话量基线 / 叙事风格 / 语态倾向) —— 那是 WP41 的事.
+//
 //   反双胞胎:
 //     - 不重复写咨询师半边记忆: 内核 rememberTurn 已经写了 (source=TURN, tier=WORKING,
 //       content=咨询师文本). 门面只补**来访半边**. 重复写 = 工作记忆里同一条出现两次,
@@ -923,6 +935,153 @@ const VERBOSITY_INSTRUCTION: Readonly<Record<TurnVerbosity, string>> = {
 };
 
 /**
+ * 本轮"语气疏离度" (疏离 / 中性 / 亲近) —— WP35 手法一.
+ *
+ * 为什么**在话量之外**再加一个语气维度:
+ *   话量答的是"这轮说几句", 语气答的是"这轮用什么腔调说".
+ *   阻抗高时只压话量, 腔调还是平的 —— "话说得短"和"说话像隔着层"是**两种不同的
+ *   阻抗表现**, 后者才是临床上更贴近"阻抗"的那一种 (话少不等于不想让你进来).
+ *
+ * 为什么**不改** resolveTurnVerbosity 的判定口径:
+ *   话量与语气是**两个正交维度**, 不是同一件事的两种说法. 本期只加维度, 不动既有
+ *   判定 —— 话量三档的档位边界 (0.55 / 0.3 / 0.6) 一字未改.
+ */
+type TurnWarmth = 'distant' | 'neutral' | 'warm';
+
+/**
+ * 由内核状态解析语气疏离度.
+ *
+ * 判定口径:
+ *   - 疏离: 表达风格阻抗高 / 信任低 / 安全感低 —— 这轮该"隔着点说";
+ *   - 亲近: 信任高 + 安全感高 + 联结感不低 —— 这轮愿意露一点真话;
+ *   - 中性: 其余 (按平时的样子).
+ *
+ * 为什么**疏离先判**:
+ *   阻抗是这一轮最强的信号 —— 信任/安全感/联结感都高、但表达风格阻抗高, 也该是疏离
+ *   (阻抗优先). 亲近则要求三个同盟信号同时成立, 是**更保守**的一档.
+ *
+ * 为什么 safety / bond 的 undefined 走"不拦"分支:
+ *   RenderSpec 的 safety / bond 是**可选**字段 —— 别的生产者可能不带. 缺的那一维
+ *   不该被当成"低" (那会把没带数据的规格判成疏离), 只能当成"不知道".
+ *
+ * ⚠️ 阈值 (0.55 / 0.3 / 0.6) 是**工程种子值, 非临床标定** —— 待真实对练校准.
+ *
+ * @param spec 渲染规格
+ * @returns 语气疏离度
+ */
+function resolveTurnWarmth(spec: AdaptiveRenderSpec): TurnWarmth {
+  if (spec.resistance.style >= 0.55 || spec.trust <= 0.3 || (spec.safety !== undefined && spec.safety <= 0.3)) {
+    return 'distant';
+  }
+  if (spec.trust >= 0.6 && (spec.safety === undefined || spec.safety >= 0.6) && (spec.bond === undefined || spec.bond >= 0.3)) {
+    return 'warm';
+  }
+  return 'neutral';
+}
+
+/**
+ * 语气疏离度 → prompt 指令 (给模型的是**可执行的描述**, 不是状态标签).
+ *
+ * ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
+ */
+const WARMTH_INSTRUCTION: Readonly<Record<TurnWarmth, string>> = {
+  distant: '语气有点疏离：像在应付、像隔着一层，不太愿意真正投入。',
+  neutral: '语气按平时的样子，不刻意亲近也不刻意疏远。',
+  // 为什么"亲近"这一档**不写"愿意多说几句"**:
+  //   话量归话量 (话量那一行已经说了这轮该说几句). 语气这一档若也带话量暗示,
+  //   就会与话量**打架** —— 阻抗高但信任/安全感/联结感都高时, 两行会给出相反指令
+  //   ("回答要短" vs "愿意多说几句"), 模型只能二选一, 另一条就等于白写.
+  warm: '语气放松一点：没那么防备，愿意流露一点真实感受。',
+};
+
+/**
+ * 情绪标签 → 表现方式 (WP35 手法二).
+ *
+ * 为什么在"标签 + 效价 + 唤醒"之外还要"这轮该怎么表现":
+ *   内核给的是"我现在是焦虑" (标签 + 数值), 但模型拿到数字并不知道该**怎么说** ——
+ *   焦虑是该语速快、该犹豫、还是该反复确认对方的意思? 光有标签, 表现是随机的.
+ *   这一层把"状态"翻译成"语气与节奏", 让情绪真正落到话里.
+ *
+ * 为什么用**穷尽 Record** 而不是查表兜底 (与 STRATEGY_LABEL / EMOTION_LABEL 同范式):
+ *   内核新增情绪标签时 TS 直接报错, 逼着补上中文表现 —— 而不是让新标签静默落到
+ *   "中性"分支 (那等于新情绪永远没有表现方式).
+ *
+ * `base` = 该标签的常规表现; `high` = 同一标签在**高唤醒**下的另一种表现 ——
+ *   焦虑与愤怒在" arousal 高"和"arousal 低"时说话方式明显不同 (急 vs 闷).
+ *
+ * `neutral` 的 base 是空串 —— 中性情绪**不给额外指令** (零回归底线).
+ *
+ * ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
+ */
+const EMOTION_EXPRESSION: Readonly<Record<EmotionLabel, { readonly base: string; readonly high?: string }>> = {
+  neutral: { base: '' },
+  sad: { base: '这轮你情绪低落：语速偏慢、声音轻，可能会叹气或停顿。' },
+  anxious: {
+    base: '这轮你有点不安：话里带着不确定，可能会停顿一下再说。',
+    high: '这轮你有点焦虑：语速偏快、容易犹豫、可能反复确认对方的意思。',
+  },
+  angry: {
+    base: '这轮你有点不爽：语气有点硬，不太想多解释。',
+    high: '这轮你有点恼火：语气冲一点、有点不耐烦。',
+  },
+  hurt: { base: '这轮你有点受伤：话里带着委屈，可能会停顿一下、声音轻一点。' },
+  guarded: { base: '这轮你有点戒备：话里带着试探，不太愿意说真话。' },
+  relieved: { base: '这轮你松了口气：语气放松、语速正常。' },
+  hopeful: { base: '这轮你有点期待：语气放松一点，话里带点盼头。' },
+  ashamed: { base: '这轮你有点羞愧：不太想被人细看，话会绕着说。' },
+  empty: { base: '这轮你有点空：情绪淡淡的，回答起来有点费劲。' },
+};
+
+/**
+ * "高唤醒"的分界 (WP35 手法二).
+ *
+ * 为什么是 0.6: 内核 `resolveEmotionLabel` 用 0.65 分愤怒 / 受伤、0.45 分焦虑 / 愤怒 ——
+ *   0.6 落在"明显比平时亢奋"那一侧, 又不至于把轻微的紧张算成高唤醒.
+ *
+ * ⚠️ 工程种子值, 非临床标定.
+ */
+const HIGH_AROUSAL_THRESHOLD = 0.6;
+
+/**
+ * 解析本轮的情绪表现方式 (标签 + 唤醒 → 怎么表现).
+ *
+ * 中性情绪返回空串 (调用方据此**不渲染**这一行) —— 中性不该给额外指令.
+ *
+ * @param spec 渲染规格
+ * @returns 情绪表现指令 (中性时为空串)
+ */
+function resolveEmotionExpression(spec: AdaptiveRenderSpec): string {
+  const { label, arousal } = spec.emotion;
+  const expression = EMOTION_EXPRESSION[label];
+  if (arousal > HIGH_AROUSAL_THRESHOLD && expression.high !== undefined) return expression.high;
+  return expression.base;
+}
+
+/**
+ * 表达层轻量随机提示 (WP35 手法三).
+ *
+ * 为什么**在 prompt 里提示**, 而不是适配层做随机:
+ *   适配层是纯函数 —— 同一份规格每次渲染出来都一样, "随机"做在那一层等于把
+ *   随机写进规格 (要么落库, 要么每次生成新 id), 那是**第二份真相**, 而且不可复现.
+ *   让模型自己换着花样说, 才是真正的"表达层随机" —— 且不引入任何新状态.
+ *
+ * ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
+ */
+const VARIATION_INSTRUCTION = '你可以有一点变化：不是每轮都用一样的句式，可以有时候停顿一下、有时候用短回应、有时候多说一点。';
+
+/**
+ * 口语化 / 非语言表达提示 (WP35 手法四).
+ *
+ * 为什么"非语言"要**明确禁止括号动作描写**:
+ *   模型很容易顺手写「（叹气）」这种 —— 但那是旁白, 不是来访者说的话, 会直接破坏
+ *   语音对练的沉浸感 (TTS 也会把括号念出来). 所以给表现空间的同时把载体钉死:
+ *   用**语气与停顿**表现, 不写动作.
+ *
+ * ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
+ */
+const NON_VERBAL_INSTRUCTION = '可以有一点非语言的表达：比如停顿、叹气、犹豫，但不要写括号里的动作描写。';
+
+/**
  * 渲染进 prompt 的长期记忆条数上限 (WP56).
  *
  * 为什么是 3: 内核召回上限是 5 条 (`OPENING_CONTEXT_LIMIT`), 全塞进来 prompt
@@ -951,6 +1110,13 @@ const RISK_GUARDRAIL =
  *   ① "轮次权重"指令 (该说短还是该说长): 让模型别每轮都平均用力说 3 句;
  *   ② 风险轮次的安全护栏.
  *
+ * V2026-11-04 治本 (WP35): "这一轮怎么说"从**话量三档**扩到**四手法** ——
+ *   ① 语气疏离度 (疏离 / 中性 / 亲近, 依赖同盟维度 → 条件渲染);
+ *   ② 情绪表现方式 (标签 + 唤醒 → 怎么表现, 中性 → 不给指令);
+ *   ③ 表达层轻量随机 (在 prompt 里让模型换花样, 不在适配层做随机);
+ *   ④ 口语化 / 非语言 (补一点停顿 / 叹气 / 犹豫的表现空间).
+ *   话量三档的判定口径 (resolveTurnVerbosity) **一个字没改**.
+ *
  * @param spec 渲染规格
  * @returns 系统提示词
  */
@@ -958,6 +1124,8 @@ function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec): string {
   const lines: string[] = [
     '你正在扮演一位来访者，正在和一位咨询师对话。你不是咨询师，也不是助手。',
     '说话方式：用中文口语，短句，像真实的人聊天；可以只说半句、可以停顿。不要写旁白、动作描写、括号补充或列表，不要解释自己。',
+    // WP35 手法四: 口语化 / 非语言 —— 放在"说话方式"之后 (它是说话方式的一部分).
+    NON_VERBAL_INSTRUCTION,
     '',
     '你此刻的内在状态（只用来约束你的语气与节奏，绝对不要说出口）：',
     `- 行为策略：${STRATEGY_LABEL[spec.intention.strategy]}`,
@@ -1038,10 +1206,36 @@ function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec): string {
     lines.push(`- 你此刻正经历的事：${spec.trajectoryNote}`);
   }
 
+  lines.push('', '这一轮怎么说：', VERBOSITY_INSTRUCTION[resolveTurnVerbosity(spec)]);
+
+  // WP35 手法一: 语气疏离度 (在话量之外再加一个维度).
+  //
+  //   为什么**条件渲染** (没有 safety / bond 就不渲染这一行):
+  //     疏离度由表达风格阻抗 + 信任 + 同盟三维 (safety / bond) 一起判;
+  //     RenderSpec 的 safety / bond 是**可选**字段 —— 别的生产者可能不带.
+  //     不带就不渲染 = 缺省时这一行整个不出现 (零回归底线), 与 WP50 同一范式.
+  //     (生产路径上 BdiSnapshot 三维必填, 所以线上永远有; 条件渲染是给"别的
+  //      生产者"与旧调用方留的门 —— 这道门只在"缺数据"时关, 不在"数据低"时关.)
+  if (spec.safety !== undefined || spec.bond !== undefined) {
+    lines.push(WARMTH_INSTRUCTION[resolveTurnWarmth(spec)]);
+  }
+
+  // WP35 手法二: 情绪表现方式.
+  //
+  //   为什么**中性就不给指令**:
+  //     中性情绪没有"该怎么表现"这一说 —— 硬给一条只会凭空造出表演.
+  //     中性时返回空串, 这一行整个不出现 (零回归底线).
+  const emotionExpression = resolveEmotionExpression(spec);
+  if (emotionExpression.length > 0) {
+    lines.push(emotionExpression);
+  }
+
   lines.push(
-    '',
-    '这一轮怎么说：',
-    VERBOSITY_INSTRUCTION[resolveTurnVerbosity(spec)],
+    // WP35 手法三: 表达层轻量随机.
+    VARIATION_INSTRUCTION,
+    // 为什么把"说完就停"放在这一块**最后**:
+    //   这一块现在有四行 (话量 / 语气 / 情绪 / 变化), 收尾的"交还话头"是**硬行为
+    //   约束** —— 放最后、紧挨着下面的"硬规则", 权重最高, 不会被上面的表现类指令盖掉.
     '说完一两句就停下来，把话头交还给咨询师 —— 真人对话不是独白。',
   );
 
