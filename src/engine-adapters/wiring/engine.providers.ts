@@ -30,6 +30,7 @@
 
 import { EngineStreamBackend } from './engine-stream-backend.adapter.js';
 import type { EngineTurnService } from './engine-turn.service.js';
+import { TurnIdempotencyService } from './turn-idempotency.service.js';
 import type { TraceRecorder } from '../../admin-debug/trace-recorder.service.js';
 import { InMemoryBdiStateRepository } from '../../engine-core/in-memory/in-memory-bdi-state.repository.js';
 import { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-engine-session.js';
@@ -44,6 +45,7 @@ import type {
   PersonalityModulatorConfig,
   RiskProbePort,
   SessionDecayConfig,
+  WorkingWindowOverflowEvent,
 } from '../../engine-core/index.js';
 import type { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
 import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
@@ -52,6 +54,7 @@ import type { SessionCostPricing } from '../observability/session-cost.js';
 import type { MemoryConfig } from '../persistence/memory-config.js';
 import type { QdrantMemoryClient } from '../persistence/qdrant-memory.store.js';
 import { QdrantMemoryStore } from '../persistence/qdrant-memory.store.js';
+import type { RollingSummaryPort } from '../persistence/rolling-session-summary.service.js';
 import type { SessionSummaryGenerator, SessionTranscriptSink } from '../persistence/session-closeout.service.js';
 import { SessionCloseoutService } from '../persistence/session-closeout.service.js';
 import type { StreamingRenderPort } from '../rendering/streaming-render.port.js';
@@ -63,7 +66,6 @@ import { HttpPsyGuardProbe } from './risk/http-psyguard.probe.js';
 import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
 import { StudentRiskGateService } from './risk/student-risk-gate.js';
 import type { TrajectoryScriptResolver } from './trajectory/script-resolver.js';
-import { TurnIdempotencyService } from './turn-idempotency.service.js';
 
 /**
  * 记忆仓储装配入参.
@@ -138,6 +140,12 @@ export interface EngineSessionTuningDeps {
    * 与 cap 同款范式: 半衰期是**部署形态**的决定 (内测期按真实对练校准), 不是会话参数.
    */
   readonly sessionDecayConfig?: SessionDecayConfig;
+  /**
+   * 工作窗口溢出回调 (WP37; 缺省 = 不做滚动摘要).
+   *
+   * 与 cap 同款范式: 这是**内核 → 适配层**的通知口, 缺省 = 内核只裁窗口不通知.
+   */
+  readonly onWorkingWindowOverflow?: (event: WorkingWindowOverflowEvent) => void;
 }
 
 /**
@@ -165,6 +173,7 @@ export function createEngineSessionPort(
     ...(tuning?.personalityModulatorConfig ? { personalityModulatorConfig: tuning.personalityModulatorConfig } : {}),
     ...(tuning?.allianceConfig ? { allianceConfig: tuning.allianceConfig } : {}),
     ...(tuning?.sessionDecayConfig ? { sessionDecayConfig: tuning.sessionDecayConfig } : {}),
+    ...(tuning?.onWorkingWindowOverflow ? { onWorkingWindowOverflow: tuning.onWorkingWindowOverflow } : {}),
   });
 }
 
@@ -187,6 +196,13 @@ export interface EngineOrchestratorDeps {
    * 只是"没有危机处置" (与本单之前逐字一致), 不影响会话开合.
    */
   readonly studentRisk?: StudentRiskGate;
+  /**
+   * 滚动摘要读取口 (WP37; 缺省 = 本场不注入摘要).
+   *
+   * 缺省语义: **纯增强** —— 装配缺席时只是"长对话超过 8 轮后模型不记得前面聊过什么",
+   * 不影响会话开合, 也不影响既有轮次的渲染.
+   */
+  readonly rollingSummary?: RollingSummaryPort;
 }
 
 /**
@@ -206,6 +222,7 @@ export function createEngineOrchestrator(deps: EngineOrchestratorDeps): TurnRend
     memories: deps.memories,
     resolveSession: (handleId: string) => deps.registry.resolve(handleId),
     ...(deps.studentRisk ? { studentRisk: deps.studentRisk } : {}),
+    ...(deps.rollingSummary ? { rollingSummary: deps.rollingSummary } : {}),
   });
 }
 
@@ -327,6 +344,12 @@ export interface SessionCloseoutDeps {
   readonly generator?: SessionSummaryGenerator;
   /** 逐字稿落库口 (缺省 = 不做逐字稿定稿). */
   readonly sink?: SessionTranscriptSink;
+  /**
+   * 最终摘要的重要度 (WP37 · 缺省 = 代码里的种子值 0.9).
+   *
+   * 只做**透传**: 摘要怎么写、怎么晋升是收尾服务的职责, 装配层只负责把配置递过去.
+   */
+  readonly summaryImportance?: number;
 }
 
 /**

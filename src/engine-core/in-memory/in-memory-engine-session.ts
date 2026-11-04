@@ -57,7 +57,13 @@ import { cloneBdiSnapshot, type BdiSnapshot } from '../domain/bdi-snapshot.js';
 import { buildInitialSnapshot } from '../domain/bootstrap.js';
 import type { CharacterProfile } from '../domain/character-profile.js';
 import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors.js';
-import type { EngineSessionHandle, EngineTurnInput, EngineTurnOutput, OpenEngineSessionInput } from '../domain/engine-session.types.js';
+import type {
+  EngineSessionHandle,
+  EngineTurnInput,
+  EngineTurnOutput,
+  OpenEngineSessionInput,
+  WorkingWindowOverflowEvent,
+} from '../domain/engine-session.types.js';
 import type { EventClassifier, SessionEvent } from '../domain/events/session-event.js';
 import type { Intention } from '../domain/intention.js';
 import type { BdiStateRecord, BdiStateRepository } from '../domain/ports/bdi-state.repository.js';
@@ -70,7 +76,7 @@ import {
   type TrajectoryScript,
   type TrajectoryTrace,
 } from '../domain/trajectory/script.js';
-import { trimWorkingWindow, WORKING_MEMORY_WINDOW_TURNS } from '../memory/working-window.js';
+import { overflowedWorkingWindowLines, trimWorkingWindow, WORKING_MEMORY_WINDOW_TURNS } from '../memory/working-window.js';
 import type { EngineSessionPort } from '../runtime/engine-session.port.js';
 
 /** 工作记忆条目的默认重要度. WP0 无重要度算法 (属 WP2 遗忘机制), 取中性值. */
@@ -215,6 +221,23 @@ export interface InMemoryEngineSessionOptions {
    * ⚠️ 系数是**工程种子值, 非临床标定** —— 待真实对练校准.
    */
   readonly sessionDecayConfig?: SessionDecayConfig;
+  /**
+   * 工作窗口溢出回调 (WP37 · 与 cap / 人格 / 同盟 / 衰减同款注入范式).
+   *
+   * 缺省 = 不回调 (工作窗口照旧裁剪, 行为与 WP2 **逐字一致**).
+   * 触发时机: 本轮内容把工作记忆窗口 (最近 8 轮) 挤掉最旧的轮次时, **同步**回调一次,
+   * 把被挤出的轮次交给适配层.
+   *
+   * 为什么内核只交出文本、不自己做摘要:
+   *   摘要要调 LLM —— 内核零网络 / 零 prompt (boundary.spec.ts 断言①②④守着).
+   *   内核负责"**什么时候**该压缩" (窗口裁剪是内核的策略), 适配层负责"**怎么**压缩".
+   *
+   * 为什么回调带归属三件套 (tenantId / sessionId / visitorId):
+   *   适配层要把摘要写成记忆条目 —— MemoryEntry 契约强制要求 tenantId + sessionId;
+   *   且滚动摘要的状态必须按会话隔离 (两个租户撞同一个 sessionId 时不能串).
+   *   只交"被挤出的文本"是写不出合法记忆条目的.
+   */
+  readonly onWorkingWindowOverflow?: (event: WorkingWindowOverflowEvent) => void;
 }
 
 /** 会话内核的内存实现. */
@@ -245,6 +268,8 @@ export class InMemoryEngineSession implements EngineSessionPort {
   private readonly allianceConfig: AllianceConfig | undefined;
   /** 跨会话间隔衰减配置 (WP36 · 缺省 = 内核种子值). */
   private readonly sessionDecayConfig: SessionDecayConfig | undefined;
+  /** 工作窗口溢出回调 (WP37 · 缺省 = 不回调). */
+  private readonly onWorkingWindowOverflow: ((event: WorkingWindowOverflowEvent) => void) | undefined;
 
   constructor(options: InMemoryEngineSessionOptions) {
     this.bdiStates = options.bdiStates;
@@ -258,6 +283,7 @@ export class InMemoryEngineSession implements EngineSessionPort {
     this.personalityModulatorConfig = options.personalityModulatorConfig;
     this.allianceConfig = options.allianceConfig;
     this.sessionDecayConfig = options.sessionDecayConfig;
+    this.onWorkingWindowOverflow = options.onWorkingWindowOverflow;
   }
 
   openSession(input: OpenEngineSessionInput): EngineSessionHandle {
@@ -373,7 +399,13 @@ export class InMemoryEngineSession implements EngineSessionPort {
     const saved = await this.bdiStates.save(record);
     // 7. 写工作记忆 + 维护运行时工作窗口 (WP2).
     await this.rememberTurn(runtime, userText);
+    //    WP37: 被挤出窗口的轮次交给适配层做**滚动摘要** (内核零 LLM / 零网络 / 零 prompt).
+    //    溢出判定走纯函数 overflowedWorkingWindowLines (窗口保尾弃头 → 被挤出的是队首).
+    const overflowed = overflowedWorkingWindowLines(runtime.workingWindow, userText, WORKING_MEMORY_WINDOW_TURNS);
     runtime.workingWindow = trimWorkingWindow([...runtime.workingWindow, userText], WORKING_MEMORY_WINDOW_TURNS);
+    if (overflowed.length > 0) {
+      this.notifyWindowOverflow(runtime, overflowed);
+    }
     // 8. 推进轮次.
     runtime.turnIndex += 1;
     // 9. 跨会话开场上下文 (WP2): 仅 resume 会话的首论携带.
@@ -504,6 +536,30 @@ export class InMemoryEngineSession implements EngineSessionPort {
       // resume 接续分支在上方, 直接搬上一场快照, 不用 profile 覆盖.
       snapshot: buildInitialSnapshot(runtime.characterProfile ?? undefined),
     };
+  }
+
+  /**
+   * 通知适配层: 工作窗口挤出了这些轮次 (WP37).
+   *
+   * 失败处理: **吞掉异常** —— 与 collectOpeningContext 同款理由:
+   *   摘要是**增强** (锦上添花), 摘要服务挂了不该让整轮对练失败;
+   *   内核零 logger 依赖, 适配层自己的日志才是错因现场.
+   *
+   * @param runtime 运行时会话
+   * @param overflowed 被挤出窗口的轮次 (按时间正序)
+   */
+  private notifyWindowOverflow(runtime: EngineSessionRuntime, overflowed: readonly string[]): void {
+    if (!this.onWorkingWindowOverflow) return;
+    try {
+      this.onWorkingWindowOverflow({
+        tenantId: runtime.tenantId,
+        sessionId: runtime.sessionId,
+        visitorId: runtime.visitorId,
+        pushedOut: [...overflowed],
+      });
+    } catch {
+      // 故意不记日志: 内核不持有 logger (零框架依赖), 适配层自己知道自己的失败.
+    }
   }
 
   /**

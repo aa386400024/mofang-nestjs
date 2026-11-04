@@ -71,6 +71,7 @@ import {
   type TrajectoryTrace,
 } from '../../engine-core/index.js';
 import type { ChatMessage } from '../../llm/common/interfaces/chat-provider.interface.js';
+import type { RollingSummaryPort } from '../persistence/rolling-session-summary.service.js';
 
 /**
  * 会话归属 (写工作记忆所需的 tenant / visitor / session 三元组).
@@ -210,6 +211,13 @@ export interface TurnRenderOrchestratorDeps {
   readonly sessionContext?: TurnSessionContext;
   /** 规格组装器 (缺省用 buildRenderSpec). */
   readonly assembler?: (input: SpecAssemblyInput) => AdaptiveRenderSpec;
+  /**
+   * 滚动摘要读取口 (WP37; 缺省 = 本场不注入摘要).
+   *
+   * 缺省语义: **纯增强** —— 没装就只是"对话超过 8 轮之后模型不记得前面聊过什么",
+   * 不影响会话开合, 更不影响既有轮次的渲染 (summary 不存在时 prompt 逐字不变).
+   */
+  readonly rollingSummary?: RollingSummaryPort;
   /** token 预算种子 (缺省 { maxCompletionTokens: 160, contextTokens: 512 }). */
   readonly tokenBudget?: RenderTokenBudget;
   /** 可注入时钟 (记忆条目发生时刻). */
@@ -459,12 +467,38 @@ export class TurnRenderOrchestrator {
   private assemble(output: EngineTurnOutput, recentTurns: readonly RenderContextTurn[], handleId: string): AdaptiveRenderSpec {
     const assembler = this.deps.assembler ?? buildRenderSpec;
     const characterLabel = this.resolveContext(handleId)?.characterLabel;
+    // WP37: 本场滚动摘要 (工作窗口挤出的早期轮次被压缩后的产物).
+    //   没有摘要 → 不带这个键 → 规格与 prompt 逐字不变 (零回归).
+    const sessionSummary = this.resolveSessionSummary(handleId);
     return assembler({
       output,
       recentTurns,
       tokenBudget: this.tokenBudget,
       ...(characterLabel ? { characterLabel } : {}),
+      ...(sessionSummary ? { sessionSummary } : {}),
     });
+  }
+
+  /**
+   * 取本场当前的滚动摘要 (WP37).
+   *
+   * 归属从 `resolveSession` 缝拿 (tenantId + sessionId) —— 滚动摘要按**租户 + 会话**
+   * 隔离, 只拿 handleId 是取不到的.
+   *
+   * @param handleId 内核会话句柄
+   * @returns 摘要正文; 本场还没有摘要 / 没装滚动摘要服务时返回 undefined
+   */
+  private resolveSessionSummary(handleId: string): string | undefined {
+    const port = this.deps.rollingSummary;
+    if (!port) return undefined;
+    const context = this.resolveContext(handleId);
+    if (!context) return undefined;
+    try {
+      return port.latestSummary(context.tenantId, context.sessionId);
+    } catch {
+      // 摘要取不到是增强缺失, 不是渲染失败 (与 collectOpeningContext 同款理由).
+      return undefined;
+    }
   }
 
   /**
@@ -877,6 +911,17 @@ function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec): string {
     `- 移情：正向 ${formatNumber(spec.transference.positive)}／负向 ${formatNumber(spec.transference.negative)}／依赖 ${formatNumber(spec.transference.dependency)}`,
     `- 信任：${formatNumber(spec.trust)}（越低越戒备、越不愿多说）`,
   ];
+
+  // WP37: 本场滚动摘要 (工作窗口挤出的早期轮次被压缩后的产物).
+  //
+  //   为什么放在"内在状态"块**里面**: 块头已经写着"绝对不要说出口" ——
+  //   摘要属于同一类"只用来约束你的语气与节奏、不能说出来"的内容, 放进去就自动受约束.
+  //   为什么**不改硬规则文案**: 硬规则是所有轮次共用的, 改它 = 连"没有摘要"的会话
+  //   prompt 也变了 —— 那就破坏了"无溢出时行为不变"这条零回归底线.
+  //   没有摘要时这一行整个不出现 → prompt 逐字不变.
+  if (spec.sessionSummary) {
+    lines.push(`- 此前我们聊过（背景，不要说出口）：${spec.sessionSummary}`);
+  }
 
   if (spec.coreBeliefs.length > 0) {
     const statements = spec.coreBeliefs.map((belief) => belief.statement).filter((statement) => statement.length > 0);

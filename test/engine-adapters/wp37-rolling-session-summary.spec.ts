@@ -1,0 +1,484 @@
+// V2026-11-03 WP37 (B 层 · 会话级滚动摘要):
+//   目的: 钉死"工作窗口溢出 → 滚动摘要 → 进 prompt"这条完整链路 ——
+//     ① 攒批: 攒够 N 轮才调一次 LLM (没攒够不调);
+//     ② 滚动: 第二版摘要带上第一版 (不丢早期内容);
+//     ③ 落库: 写成 SHORT_TERM / SUMMARY 记忆条目 (契约早就预留好的那两个口子);
+//     ④ 失败降级: LLM 挂了不阻断对话, 本批留待下次;
+//     ⑤ 会话隔离: 两个租户撞同一个 sessionId 不串摘要;
+//     ⑥ 配置装配: 3 个 env 键逐个字面量读, 非法值回退种子值;
+//     ⑦ prompt 接线: 有摘要才进 prompt, 没有摘要时 prompt 逐字不变.
+//
+//   为什么"没有摘要时 prompt 逐字不变"是硬断言:
+//     摘要是**增强** —— 没产生摘要的会话 (绝大多数) 必须与 WP5 逐字一致,
+//     否则这条 WP 就变成了"悄悄改了所有会话的 prompt".
+//
+//   全 mock, 不起 NestJS, 不发网络:
+//     摘要生成器用 stub; 记忆仓储用内核内存实现; 时钟与 id 工厂注入假值.
+//
+//   验证: npx vitest run test/engine-adapters/wp37-rolling-session-summary.spec.ts
+
+import { ConfigService } from '@nestjs/config';
+import { vi } from 'vitest';
+
+import {
+  DEFAULT_ROLLING_SUMMARY_BATCH_SIZE,
+  DEFAULT_ROLLING_SUMMARY_IMPORTANCE,
+  RollingSessionSummaryService,
+} from '../../src/engine-adapters/persistence/rolling-session-summary.service.js';
+import { formatRollingSummaryInput } from '../../src/engine-adapters/persistence/rolling-summary.generator.js';
+import { buildRenderSpec } from '../../src/engine-adapters/rendering/spec-assembler.js';
+import type { StreamingRenderPort } from '../../src/engine-adapters/rendering/streaming-render.port.js';
+import {
+  TurnRenderOrchestrator,
+  buildVisitorMessages,
+  type TurnSessionContext,
+} from '../../src/engine-adapters/rendering/turn-render-orchestrator.js';
+import { resolveSessionSummaryConfig } from '../../src/engine-adapters/wiring/session-summary.config.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
+import {
+  MemorySource,
+  MemoryTier,
+  createEmptyBdiSnapshot,
+  type EngineSessionHandle,
+  type EngineSessionPort,
+  type EngineTurnInput,
+  type EngineTurnOutput,
+  type MemoryStore,
+  type RenderResult,
+  type RenderTokenBudget,
+  type WorkingWindowOverflowEvent,
+} from '../../src/engine-core/index.js';
+
+const TENANT = 'tenant-1';
+const VISITOR = 'visitor-1';
+const SESSION = 'session-1';
+const HANDLE_ID = 'handle-1';
+const CLOCK = 1_700_000_000_000;
+const BUDGET: RenderTokenBudget = { maxCompletionTokens: 160, contextTokens: 512 };
+const CONTEXT: TurnSessionContext = { tenantId: TENANT, visitorId: VISITOR, sessionId: SESSION };
+
+/** 造一个 ConfigService 桩 (只实现 get). */
+function configStub(env: Readonly<Record<string, string>>): ConfigService {
+  return {
+    get: (key: string): string | undefined => env[key],
+  } as unknown as ConfigService;
+}
+
+/** 摘要生成器 stub: 记录入参, 返回固定摘要 (或抛错). */
+function generatorStub(options: { readonly summary?: string; readonly fail?: boolean }): {
+  readonly generate: (input: { previousSummary?: string; newLines: readonly string[] }) => Promise<string>;
+  readonly calls: { previousSummary?: string; newLines: readonly string[] }[];
+} {
+  const calls: { previousSummary?: string; newLines: readonly string[] }[] = [];
+  return {
+    calls,
+    generate: async (input) => {
+      calls.push(input);
+      if (options.fail) throw new Error('llm down');
+      return options.summary ?? '摘要';
+    },
+  };
+}
+
+/** 造一次溢出事件. */
+function overflowEvent(pushedOut: readonly string[], overrides: Partial<WorkingWindowOverflowEvent> = {}): WorkingWindowOverflowEvent {
+  return {
+    tenantId: TENANT,
+    sessionId: SESSION,
+    visitorId: VISITOR,
+    pushedOut,
+    ...overrides,
+  };
+}
+
+describe('WP37 · 会话级滚动摘要 (适配层)', () => {
+  describe('① 攒批: 攒够 N 轮才调 LLM', () => {
+    it('不足阈值 → 不调 LLM, 不产生摘要', async () => {
+      const generator = generatorStub({ summary: '不该出现' });
+      const service = new RollingSessionSummaryService({
+        memories: new InMemoryMemoryStore(),
+        generator,
+      });
+
+      service.recordOverflow(overflowEvent(['第1轮']));
+      service.recordOverflow(overflowEvent(['第2轮']));
+      await Promise.resolve();
+
+      expect(generator.calls).toHaveLength(0);
+      expect(service.latestSummary(TENANT, SESSION)).toBeUndefined();
+    });
+
+    it('达到阈值 → 调一次 LLM, 产出摘要', async () => {
+      const generator = generatorStub({ summary: '聊了失眠与工作压力' });
+      const service = new RollingSessionSummaryService({
+        memories: new InMemoryMemoryStore(),
+        generator,
+      });
+
+      service.recordOverflow(overflowEvent(['第1轮']));
+      service.recordOverflow(overflowEvent(['第2轮']));
+      service.recordOverflow(overflowEvent(['第3轮']));
+
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('聊了失眠与工作压力'));
+      expect(generator.calls).toHaveLength(1);
+      expect(generator.calls[0]?.newLines).toEqual(['第1轮', '第2轮', '第3轮']);
+    });
+
+    it('攒批阈值可配 (batchSize=1 → 第一轮就压)', async () => {
+      const generator = generatorStub({ summary: '立刻压' });
+      const service = new RollingSessionSummaryService({
+        memories: new InMemoryMemoryStore(),
+        generator,
+        batchSize: 1,
+      });
+
+      service.recordOverflow(overflowEvent(['第1轮']));
+
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('立刻压'));
+    });
+  });
+
+  describe('② 滚动: 每一版都覆盖全部已聊内容', () => {
+    it('第二版摘要带上第一版 (previousSummary)', async () => {
+      const generator = generatorStub({ summary: '摘要v2' });
+      const service = new RollingSessionSummaryService({
+        memories: new InMemoryMemoryStore(),
+        generator,
+        batchSize: 1,
+      });
+
+      service.recordOverflow(overflowEvent(['第1轮']));
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('摘要v2'));
+
+      service.recordOverflow(overflowEvent(['第2轮']));
+      await vi.waitFor(() => expect(generator.calls).toHaveLength(2));
+
+      expect(generator.calls[1]?.previousSummary).toBe('摘要v2');
+      expect(generator.calls[1]?.newLines).toEqual(['第2轮']);
+    });
+  });
+
+  describe('③ 落库: SHORT_TERM / SUMMARY 记忆条目', () => {
+    it('摘要写成短时记忆条目 (契约预留的层级 + 来源)', async () => {
+      const memories = new InMemoryMemoryStore();
+      const generator = generatorStub({ summary: '聊了失眠与工作压力' });
+      const service = new RollingSessionSummaryService({
+        memories,
+        generator,
+        batchSize: 1,
+        importance: 0.5,
+        now: () => CLOCK,
+        makeId: () => 'fixed-id',
+      });
+
+      service.recordOverflow(overflowEvent(['第1轮']));
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('聊了失眠与工作压力'));
+
+      const hits = await memories.recall({ tenantId: TENANT, sessionId: SESSION, query: '' });
+      expect(hits).toHaveLength(1);
+      const entry = hits[0]?.entry;
+      expect(entry?.tier).toBe(MemoryTier.SHORT_TERM);
+      expect(entry?.source).toBe(MemorySource.SUMMARY);
+      expect(entry?.content).toBe('聊了失眠与工作压力');
+      expect(entry?.importance).toBe(0.5);
+      expect(entry?.tenantId).toBe(TENANT);
+      expect(entry?.sessionId).toBe(SESSION);
+      expect(entry?.ttlMs).toBeNull();
+    });
+
+    it('不写长时记忆 (那是 WP12 收尾的活, 本服务只管会话中段)', async () => {
+      const memories = new InMemoryMemoryStore();
+      const service = new RollingSessionSummaryService({
+        memories,
+        generator: generatorStub({ summary: '摘要' }),
+        batchSize: 1,
+      });
+
+      service.recordOverflow(overflowEvent(['第1轮']));
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('摘要'));
+
+      const hits = await memories.recall({ tenantId: TENANT, sessionId: SESSION, query: '' });
+      expect(hits.every((hit) => hit.entry.tier === MemoryTier.SHORT_TERM)).toBe(true);
+    });
+  });
+
+  describe('④ 失败降级: 摘要挂了不阻断对话', () => {
+    it('LLM 抛错 → 不产生摘要, 不抛错 (对话继续)', async () => {
+      const generator = generatorStub({ fail: true });
+      const service = new RollingSessionSummaryService({
+        memories: new InMemoryMemoryStore(),
+        generator,
+        batchSize: 1,
+      });
+
+      expect(() => service.recordOverflow(overflowEvent(['第1轮']))).not.toThrow();
+      await vi.waitFor(() => expect(generator.calls).toHaveLength(1));
+
+      expect(service.latestSummary(TENANT, SESSION)).toBeUndefined();
+    });
+
+    it('LLM 抛错 → 本批留待下次 (内容不丢)', async () => {
+      const generator = generatorStub({ fail: true });
+      const service = new RollingSessionSummaryService({
+        memories: new InMemoryMemoryStore(),
+        generator,
+        batchSize: 1,
+      });
+
+      service.recordOverflow(overflowEvent(['第1轮']));
+      await vi.waitFor(() => expect(generator.calls).toHaveLength(1));
+
+      // 再来一轮 → 失败的那批仍在队列里, 一起再压一次.
+      service.recordOverflow(overflowEvent(['第2轮']));
+      await vi.waitFor(() => expect(generator.calls).toHaveLength(2));
+      expect(generator.calls[1]?.newLines).toEqual(['第1轮', '第2轮']);
+    });
+
+    it('没装配生成器 → 只攒不压, 不产生摘要, 不抛错', async () => {
+      const service = new RollingSessionSummaryService({ memories: new InMemoryMemoryStore() });
+
+      expect(() => service.recordOverflow(overflowEvent(['第1轮']))).not.toThrow();
+      await Promise.resolve();
+
+      expect(service.latestSummary(TENANT, SESSION)).toBeUndefined();
+    });
+
+    it('记忆写入失败 → 摘要仍然缓存 (本场对话还能用它保持话题连续)', async () => {
+      const memories = new InMemoryMemoryStore();
+      const failing: MemoryStore = {
+        remember: async () => {
+          throw new Error('store down');
+        },
+        recall: async () => [],
+      };
+      const service = new RollingSessionSummaryService({
+        memories: failing,
+        generator: generatorStub({ summary: '摘要仍然可用' }),
+        batchSize: 1,
+      });
+      void memories;
+
+      service.recordOverflow(overflowEvent(['第1轮']));
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('摘要仍然可用'));
+    });
+  });
+
+  describe('⑤ 会话隔离', () => {
+    it('两个租户撞同一个 sessionId → 不串摘要', async () => {
+      const generator = generatorStub({ summary: '摘要' });
+      const service = new RollingSessionSummaryService({
+        memories: new InMemoryMemoryStore(),
+        generator,
+        batchSize: 1,
+      });
+
+      service.recordOverflow(overflowEvent(['A租户的轮次'], { tenantId: 'tenant-A', sessionId: 'same-id' }));
+      await vi.waitFor(() => expect(service.latestSummary('tenant-A', 'same-id')).toBe('摘要'));
+
+      expect(service.latestSummary('tenant-B', 'same-id')).toBeUndefined();
+    });
+
+    it('forgetSession → 状态清掉 (会话结束不留残)', async () => {
+      const service = new RollingSessionSummaryService({
+        memories: new InMemoryMemoryStore(),
+        generator: generatorStub({ summary: '摘要' }),
+        batchSize: 1,
+      });
+
+      service.recordOverflow(overflowEvent(['第1轮']));
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('摘要'));
+
+      service.forgetSession(TENANT, SESSION);
+      expect(service.latestSummary(TENANT, SESSION)).toBeUndefined();
+      expect(service.trackedSessionCount()).toBe(0);
+    });
+  });
+
+  describe('⑥ 配置装配 (env → 服务构造入参)', () => {
+    it('没配 env → 回退种子值', () => {
+      const config = resolveSessionSummaryConfig(configStub({}));
+
+      expect(config.rollingBatchSize).toBe(DEFAULT_ROLLING_SUMMARY_BATCH_SIZE);
+      expect(config.rollingImportance).toBe(DEFAULT_ROLLING_SUMMARY_IMPORTANCE);
+      expect(config.finalImportance).toBe(0.9);
+    });
+
+    it('配了 → 真的按 env 生效', () => {
+      const config = resolveSessionSummaryConfig(
+        configStub({
+          SESSION_SUMMARY_BATCH_SIZE: '5',
+          SESSION_SUMMARY_ROLLING_IMPORTANCE: '0.6',
+          SESSION_SUMMARY_FINAL_IMPORTANCE: '0.8',
+        }),
+      );
+
+      expect(config.rollingBatchSize).toBe(5);
+      expect(config.rollingImportance).toBe(0.6);
+      expect(config.finalImportance).toBe(0.8);
+    });
+
+    it('非法值 → 回退种子值, 不抛错', () => {
+      const config = resolveSessionSummaryConfig(
+        configStub({
+          SESSION_SUMMARY_BATCH_SIZE: '0',
+          SESSION_SUMMARY_ROLLING_IMPORTANCE: '2',
+          SESSION_SUMMARY_FINAL_IMPORTANCE: '不是数字',
+        }),
+      );
+
+      expect(config.rollingBatchSize).toBe(DEFAULT_ROLLING_SUMMARY_BATCH_SIZE);
+      expect(config.rollingImportance).toBe(DEFAULT_ROLLING_SUMMARY_IMPORTANCE);
+      expect(config.finalImportance).toBe(0.9);
+    });
+  });
+
+  describe('⑦ prompt 接线', () => {
+    it('有滚动摘要 → 进 system prompt', async () => {
+      const generator = generatorStub({ summary: '此前聊了失眠与工作压力' });
+      const service = new RollingSessionSummaryService({
+        memories: new InMemoryMemoryStore(),
+        generator,
+        batchSize: 1,
+      });
+      service.recordOverflow(overflowEvent(['第1轮']));
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('此前聊了失眠与工作压力'));
+
+      const spec = buildRenderSpec({
+        output: buildOutput(),
+        recentTurns: [{ role: 'counselor', text: '你最近睡得怎么样？' }],
+        tokenBudget: BUDGET,
+        sessionSummary: service.latestSummary(TENANT, SESSION),
+      });
+      const messages = buildVisitorMessages(spec);
+      const system = messages[0]?.content ?? '';
+
+      expect(system).toContain('此前聊了失眠与工作压力');
+    });
+
+    it('没有滚动摘要 → prompt 逐字不变 (零回归)', () => {
+      const spec = buildRenderSpec({
+        output: buildOutput(),
+        recentTurns: [{ role: 'counselor', text: '你最近睡得怎么样？' }],
+        tokenBudget: BUDGET,
+      });
+      const baseline = buildRenderSpec({
+        output: buildOutput(),
+        recentTurns: [{ role: 'counselor', text: '你最近睡得怎么样？' }],
+        tokenBudget: BUDGET,
+      });
+
+      expect(spec.sessionSummary).toBeUndefined();
+      expect(buildVisitorMessages(spec)).toEqual(buildVisitorMessages(baseline));
+    });
+
+    it('门面: 装配了滚动摘要口 → 摘要进本轮渲染规格', async () => {
+      const orchestrator = buildOrchestrator({ summary: '此前聊了失眠' });
+
+      const result = await orchestrator.turn(HANDLE_ID, { userText: '你最近睡得怎么样？' });
+
+      expect(result.reply).toBe('来访回复');
+      const spec = orchestrator.lastSpec();
+      expect(spec?.sessionSummary).toBe('此前聊了失眠');
+    });
+
+    it('门面: 没装配滚动摘要口 → 规格里没有这个字段', async () => {
+      const orchestrator = buildOrchestrator({});
+
+      await orchestrator.turn(HANDLE_ID, { userText: '你最近睡得怎么样？' });
+
+      expect(orchestrator.lastSpec()?.sessionSummary).toBeUndefined();
+    });
+  });
+
+  describe('⑧ 摘要提示词输入格式', () => {
+    it('显式标注角色 (咨询师:) + 带上上一版摘要', () => {
+      const text = formatRollingSummaryInput({ previousSummary: '摘要v1', newLines: ['第一句', '第二句'] });
+
+      expect(text).toContain('[上一版摘要]');
+      expect(text).toContain('摘要v1');
+      expect(text).toContain('咨询师: 第一句');
+      expect(text).toContain('咨询师: 第二句');
+    });
+
+    it('没有上一版摘要 → 不带那一段', () => {
+      const text = formatRollingSummaryInput({ newLines: ['第一句'] });
+
+      expect(text).not.toContain('[上一版摘要]');
+      expect(text).toContain('咨询师: 第一句');
+    });
+  });
+});
+
+/** 构造内核一轮出参. */
+function buildOutput(overrides: Partial<EngineTurnOutput> = {}): EngineTurnOutput {
+  return {
+    reply: '',
+    snapshot: createEmptyBdiSnapshot(),
+    turnIndex: 1,
+    ...overrides,
+  };
+}
+
+/** 会话端口 stub: 固定出参. */
+class StubSession implements EngineSessionPort {
+  openSession(input: { sessionId: string }): EngineSessionHandle {
+    return { handleId: HANDLE_ID, sessionId: input.sessionId };
+  }
+
+  async turn(_handleId: string, _input: EngineTurnInput): Promise<EngineTurnOutput> {
+    return buildOutput();
+  }
+
+  closeSession(): void {
+    /* 门面不调它; 占位以满足端口契约. */
+  }
+}
+
+/** 渲染端口 stub: 记录规格, 返回固定文本 (形状与内核 RenderResult 一致). */
+class StubRenderer {
+  readonly specs: { sessionSummary?: string }[] = [];
+
+  async render(spec: { sessionSummary?: string }): Promise<RenderResult> {
+    this.specs.push(spec);
+    return {
+      text: '来访回复',
+      taskKind: 'chat',
+      usage: { completionTokens: 20, totalTokens: 40 },
+      fallbackUsed: false,
+    };
+  }
+}
+
+/** 记忆仓储 stub. */
+class StubMemoryStore implements MemoryStore {
+  async remember(): Promise<void> {
+    /* 占位. */
+  }
+
+  async recall(): Promise<never[]> {
+    return [];
+  }
+}
+
+/**
+ * 构造门面 (全注入, 无全局状态).
+ *
+ * `summary` 缺省 = 不装滚动摘要口 (装配缺席时行为与 WP7 逐字一致).
+ */
+function buildOrchestrator(options: { readonly summary?: string }): TurnRenderOrchestrator & {
+  lastSpec: () => { sessionSummary?: string } | undefined;
+} {
+  const renderer = new StubRenderer();
+  const orchestrator = new TurnRenderOrchestrator({
+    session: new StubSession(),
+    renderer,
+    memories: new StubMemoryStore(),
+    resolveSession: () => CONTEXT,
+    now: () => CLOCK,
+    idFactory: () => 'memory-visitor-1',
+    ...(options.summary === undefined ? {} : { rollingSummary: { latestSummary: () => options.summary } }),
+  });
+  return Object.assign(orchestrator, {
+    lastSpec: () => renderer.specs.at(-1),
+  });
+}

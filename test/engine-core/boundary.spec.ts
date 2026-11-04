@@ -294,10 +294,13 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'EngineSessionHandle',
       'EngineTurnInput',
       'EngineTurnOutput',
+      // WP37: 工作窗口溢出事件 (内核 → 适配层的通知载荷)
+      'WorkingWindowOverflowEvent',
       // WP2: 向量化端口
       'Embedder',
       // WP2: 记忆策略算子 (纯函数)
       'trimWorkingWindow',
+      'overflowedWorkingWindowLines',
       'WORKING_MEMORY_WINDOW_TURNS',
       'decayImportance',
       'effectiveImportance',

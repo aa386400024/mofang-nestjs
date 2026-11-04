@@ -91,6 +91,17 @@ export interface RenderSpec {
   readonly forbiddenBehaviors: readonly string[];
   /** WP2 记忆命中 (本轮相关召回). */
   readonly recall: readonly MemoryHit[];
+  /**
+   * 本场会话的**滚动摘要** (WP37): 工作记忆窗口挤出的早期轮次被压缩成的摘要.
+   *
+   * 为什么走**独立字段**而不是塞进 `recall`:
+   *   `recall` 装的是**长期记忆召回** (WP2 的 openingContext), 本期不渲染进 prompt;
+   *   把滚动摘要混进去, "recall 要不要渲染" 就变成"只渲染其中一部分" ——
+   *   一个后来人踩进去就出不来的陷阱. 独立字段 = 渲染规则一眼看得懂.
+   *
+   * 缺省 = 本场还没产生摘要 (对话还没超过窗口长度) —— 此时渲染行为与 WP5 **逐字一致**.
+   */
+  readonly sessionSummary?: string;
   /** WP3 本轮轨迹参考素材 / 承接提示 (从 trajectoryTrace 提取, 可空). */
   readonly trajectoryNote?: string;
   /** 最近对话 (已按预算裁剪前的原始序列, 由 fitContextToBudget 裁剪). */

@@ -1,4 +1,4 @@
-# Phase2 工作包清单（WP27–WP54）
+# Phase2 工作包清单（WP27–WP56）
 
 > **路径**：`docs/worklog/pending/phase2-wp-list-2026-11-03.md`
 > **配套**：[`phase2-overview-2026-11-03.md`](phase2-overview-2026-11-03.md)（总览文档，含依赖关系与验收标准）
@@ -27,7 +27,7 @@
 | **WP34** ✅ | P1 人格调节算子 | 🟡 P1 | 依恋调节 + 人格特质调节信任增量，安全型快、回避型慢（[交付记录](../completed/phase2/engine-wp34-personality-modulator-operators-implementation-2026-11-03.md)） | WP1 |
 | **WP35** | 渲染四手法 | 🟡 P1 | 阻抗-表达映射、口语化/非语言、表达层轻量随机、情绪粒度细化 | WP7 |
 | **WP36** ✅ | 跨会话间隔自然衰减 | 🟡 P1 | resume 前按间隔对**情绪 / 阻抗 / 同盟**做差异化半衰期回落（信念 / 欲望 / 移情不衰减）；⚠️「破裂态阻抗反升」本期**未做** —— 缺破裂态阈值定义（不发明临床数字），待后续校准轮（[交付记录](../completed/phase2/engine-wp36-cross-session-decay-implementation-2026-11-03.md)） | WP12 |
-| **WP37** | 记忆会话级摘要压缩 | 🟡 P1 | 单会结束生成摘要替代原始轮次，近原始远摘要，异步生成 | WP2 |
+| **WP37** ✅ | 记忆会话级摘要压缩 | 🟡 P1 | 工作窗口（最近 8 轮）挤出旧轮次时**攒批异步压成滚动摘要**，存 SHORT_TERM/SUMMARY 记忆并进渲染上下文；会话结束的最终摘要走 WP12 既有的收尾路径（不重复实现）（[交付记录](../completed/phase2/engine-wp37-rolling-session-summary-implementation-2026-11-03.md)） | WP2 |
 | **WP38** | 角色版本 semver | 🟡 P1 | 主版本进行中锁定 / 次版本平滑 / 修订实时，历史版本可回溯 | WP9 |
 
 ---
@@ -59,6 +59,8 @@
 | **WP52** | 剧本偏移接入同盟三维 | 🟢 P2 | WP42 剧本（trajectory）的 `SnapshotDelta` 不带 safety/bond —— 剧本写"来访敞开心扉谈童年创伤"只涨 trust 不涨 safety/bond，剧本叙事推不动同盟发展。要给 `SnapshotDelta` 补两项并过同一把 cap |
 | **WP53** | 人格调节算子扩展到 safety/bond | 🟢 P2 | WP34 依恋系数只调 trust，**焦虑型涨 bond 不快、回避型涨 safety 不快** —— 人格调节算子只做了一半。内测有反馈后，把依恋系数扩展到 safety/bond 两维 |
 | **WP54** | 破裂态阻抗反升（跨会话衰减补完） | 🟢 P2 | WP36 已交付「情绪 / 阻抗 / 同盟差异化半衰期回落」，但蓝图 §4.5 里的**「破裂态阻抗反升」没做** —— 缺"破裂"的阈值定义（属临床数字，仓库纪律是不发明）。落法建议：复用内核**既有**的抗拒门槛（`trust < 0.4 \|\| safety < 0.3`，见 `AllianceConfig.thresholds`）作破裂态定义，在 `SessionDecayConfig` 上加一个可配的"破裂态阻抗下限"，而不是新造阈值 |
+| **WP55** | 会话摘要补齐来访者侧 | 🟡 P1 | WP37 已交付滚动摘要（工作窗口溢出 → 攒批异步压摘要 → 进渲染上下文），但**内核的溢出回调只有咨询师原话**（内核不渲染，拿不到来访者的话）—— 摘要因此是"咨询侧纪要"，不是逐字稿摘要。落法：适配层把**门面历史缓冲**（`MAX_HISTORY_TURNS = WORKING_MEMORY_WINDOW_TURNS * 2`，两侧都有）里的来访者文本一并交给生成器，提示词口径随之从"只写咨询师谈了什么"改成两侧纪要（仍禁替来访者编造） |
+| **WP56** | 长期记忆召回（`spec.recall`）进渲染上下文 | 🟡 P1 | WP37 盘查时**全 `src/` 树 grep 核实**：`spec.recall` 填的是 WP2 的 `openingContext`（记忆命中），但**渲染层一处都没读**（`buildVisitorSystemPrompt` 不消费它）—— WP2 的记忆命中**从来没进过 prompt**，三级记忆里"长时召回"这一环在语言生成侧是断的。落法：仿 WP37 的 `sessionSummary` **独立字段**做法（别混进 `recall`），先定"召不召回 / 召回 Top-N / 以什么措辞注入 / 过期与冲突怎么过滤"，再接 |
 
 ---
 
@@ -67,11 +69,11 @@
 | 层级 | 数量 | WP 编号 |
 |---|---|---|
 | 🔴 P0 商业化根基 | 8 条 | WP27, 28, 29, 30, 31, 33, 39, 40 |
-| 🟡 P1 专业能力 | 12 条 | WP32, 34, 35, 36, 37, 38, 41, 42, 43, 44, 50, 51 |
+| 🟡 P1 专业能力 | 14 条 | WP32, 34, 35, 36, 37, 38, 41, 42, 43, 44, 50, 51, 55, 56 |
 | 🟢 P2 技术债 | 8 条 | WP45, 46, 47, 48, 49, 52, 53, 54 |
-| **合计** | **28 条** | **WP27–WP54** |
+| **合计** | **30 条** | **WP27–WP56** |
 
-**进度：4 / 28 完成**（WP28 ✅、WP34 ✅、WP36 ✅、WP42 ✅，2026-11-03）。
+**进度：5 / 30 完成**（WP28 ✅、WP34 ✅、WP36 ✅、WP37 ✅、WP42 ✅，2026-11-03）。
 
 ### 🚧 上线前必须一起做的真机项（WP28 遗留）
 
@@ -108,6 +110,7 @@ _每个 WP 开工前单独写任务单（按 `team/conventions.md` 的交付格�
 | WP28 WP11 回改正式值 ✅ | `cognition/safety/assess-safety.ts` 的 `DEFAULT_PROBE_TIMEOUT_MS`（500 → 150） | **探测超时的权威值就住在这个常量里**，适配层与 env 都只是覆盖它；不改内核则 150ms 在咨询师输入面（不传 `timeoutMs` 的那条路径）根本不生效。授权来源：WP25 审查 §1.4 的回改 checklist A1 + 常量文件头自带的回改清单 + **用户 2026-11-03 当面拍板** |
 | WP34 人格调节算子 ✅ | BDI 算子库（WP1 基础算子扩展） | 算子是决策层逻辑，放适配层破坏纯层 |
 | WP36 跨会话衰减 ✅ | 新增 `cognition/session-decay.ts`（衰减纯函数 + 半衰期端口）+ `in-memory/in-memory-engine-session.ts` 的 resume 接线 + `index.ts` barrel | 衰减是**状态迁移规则**，必须落在纯层（适配层放它就破坏"内核零 env / 零状态"的边界） |
+| WP37 滚动摘要 ✅ | `memory/working-window.ts`（溢出纯函数 `overflowedWorkingWindowLines`）+ `domain/engine-session.types.ts`（`WorkingWindowOverflowEvent`）+ `in-memory/in-memory-engine-session.ts`（`onWorkingWindowOverflow` 溢出钩子）+ `domain/rendering/render-types.ts`（`RenderSpec.sessionSummary`）+ `index.ts` barrel | **窗口裁剪是内核策略** —— 内核负责"什么时候该压缩"（"被挤出了哪几轮"是内核窗口的事实），适配层负责"怎么压缩"（调 LLM）。内核只交出文本，**零网络 / 零 prompt / 零 env** 边界不变 |
 | WP42 咨询同盟三维 ✅ | BDI 状态模型（trust → trust/safety/bond） | 状态结构变化，必须在内核 |
 
 > 其他 WP 一律在 `engine-adapters/` 或业务层改，不碰 `src/engine-core/`。

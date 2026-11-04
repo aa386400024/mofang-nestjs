@@ -43,7 +43,13 @@ export type { ClassifyContext, CounselorEventKind, EventClassifier, SessionEvent
 export { EngineCoreError, EngineErrorCode } from './domain/engine-errors.js';
 
 // ── 会话端口纯 DTO ────────────────────────────────────────────────
-export type { EngineSessionHandle, EngineTurnInput, EngineTurnOutput, OpenEngineSessionInput } from './domain/engine-session.types.js';
+export type {
+  EngineSessionHandle,
+  EngineTurnInput,
+  EngineTurnOutput,
+  OpenEngineSessionInput,
+  WorkingWindowOverflowEvent,
+} from './domain/engine-session.types.js';
 
 // ── 仓储端口 ──────────────────────────────────────────────────────
 export type { BdiStateRecord, BdiStateRepository } from './domain/ports/bdi-state.repository.js';
@@ -57,7 +63,7 @@ export { assertValidMemoryEntry, assertValidMemoryRecallQuery, resolveMemoryReca
 export type { Embedder } from './domain/ports/embedder.js';
 
 // ── 记忆策略算子 (WP2 · 纯函数) ────────────────────────────────────
-export { trimWorkingWindow, WORKING_MEMORY_WINDOW_TURNS } from './memory/working-window.js';
+export { trimWorkingWindow, overflowedWorkingWindowLines, WORKING_MEMORY_WINDOW_TURNS } from './memory/working-window.js';
 export {
   decayImportance,
   effectiveImportance,

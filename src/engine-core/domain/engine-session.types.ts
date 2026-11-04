@@ -102,6 +102,32 @@ export interface EngineTurnInput {
 }
 
 /**
+ * 工作窗口溢出事件 (WP37).
+ *
+ * 触发时机: 工作记忆窗口 (最近 8 轮) 被新内容挤掉最旧的轮次时, 由内核**同步**回调一次.
+ *
+ * 字段口径:
+ *   - tenantId / sessionId / visitorId = 归属三件套. 适配层要写记忆条目时**必须**带上
+ *     (MemoryEntry 的契约强制要求 tenantId + sessionId), 且滚动摘要的状态必须按会话隔离
+ *     —— 只给"被挤出的文本"是写不出合法记忆条目的.
+ *   - pushedOut = 被挤出窗口的轮次 (咨询师原话, 按时间正序, 最早的在前).
+ *     只有**咨询师这一侧** —— 内核不渲染, 拿不到来访者的话 (见 in-memory-engine-session.ts
+ *     的 rememberTurn 说明). 适配层据此生成的是"咨询侧发言摘要", 不是完整逐字稿摘要.
+ *
+ * 边界: 内核**只交出文本**, 不调 LLM / 不发网络请求 —— 摘要生成在适配层 (零网络 / 零 prompt).
+ */
+export interface WorkingWindowOverflowEvent {
+  /** 租户隔离键. */
+  readonly tenantId: string;
+  /** 业务会话 id. */
+  readonly sessionId: string;
+  /** 来访者 id. */
+  readonly visitorId: string;
+  /** 被挤出工作窗口的轮次 (按时间正序). */
+  readonly pushedOut: readonly string[];
+}
+
+/**
  * 单轮出参.
  *
  * WP0 阶段 `reply` 恒为空串 (语言渲染属 WP5), `snapshot` 为本轮结束后的状态.

@@ -67,6 +67,7 @@ import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from './
 import { resolvePersonalityModulatorConfig } from './personality-modulator.config.js';
 import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory.js';
 import { resolveSessionDecayConfig } from './session-decay.config.js';
+import { resolveSessionSummaryConfig } from './session-summary.config.js';
 import { resolveSessionCostPricing } from '../observability/session-cost.js';
 import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe.js';
 import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
@@ -89,6 +90,8 @@ import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js'
 import { VOICE_TURN_BACKEND } from '../../voice/voice-turn-backend.port.js';
 import { OpenAICompatEmbedder } from '../embedder/openai-compat.embedder.js';
 import { resolveMemoryConfig } from '../persistence/memory-config.js';
+import { RollingSessionSummaryService } from '../persistence/rolling-session-summary.service.js';
+import { LlmRollingSummaryGenerator, resolveRollingSummaryModel } from '../persistence/rolling-summary.generator.js';
 import { SessionCloseoutService } from '../persistence/session-closeout.service.js';
 import { LlmSessionSummaryGenerator, resolveSummaryModel } from '../persistence/session-summary.generator.js';
 import type { StreamingRenderPort } from '../rendering/streaming-render.port.js';
@@ -194,6 +197,29 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         ),
       inject: [RouterChatCaller, RenderConfigFactory, ConfigService],
     },
+    // V2026-11-03 (WP37): 会话级滚动摘要服务 ——
+    //   工作记忆窗口 (最近 8 轮) 挤掉旧轮次时, 内核回调它 → 攒批 → 异步调 LLM
+    //   压成滚动摘要 → 写成 SHORT_TERM 记忆 → 缓存给渲染层进 prompt.
+    //   **模块内单例**: 内核会话 (写侧) 与渲染门面 (读侧) 必须是同一个实例 ——
+    //   两份实例 = 门面读不到内核刚写的摘要 (摘要永远进不了 prompt).
+    {
+      provide: RollingSessionSummaryService,
+      useFactory: (memories: MemoryStore, router: LlmRouterService, config: ConfigService): RollingSessionSummaryService => {
+        const tuning = resolveSessionSummaryConfig(config);
+        return new RollingSessionSummaryService({
+          memories,
+          generator: new LlmRollingSummaryGenerator({
+            router,
+            // 摘要模型名与 WP12 的最终摘要**同一个键** (MEMORY_SUMMARY_MODEL):
+            //   两者是同一族任务 (从长文本抽要点), 用两个键就会出现"两个真相源".
+            model: resolveRollingSummaryModel(config.get<string>('MEMORY_SUMMARY_MODEL'), router),
+          }),
+          batchSize: tuning.rollingBatchSize,
+          importance: tuning.rollingImportance,
+        });
+      },
+      inject: [ENGINE_MEMORY_STORE, LlmRouterService, ConfigService],
+    },
     // 内核会话: BDI 状态用内存仓储 (落库仓储属后续轮), 记忆用上面的同一实例.
     // V2026-10-29 治本 (WP9-C): 注入本地危机探测器 (内核 WP4 的 RiskProbePort 扩展点) ——
     //   没有它, 咨询师输入面的危机语言在内核眼里是干净的, 危机轮次路由与督导提示都无从触发.
@@ -202,7 +228,13 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
     //   注入点零改动 (换探测器 = 改那一处 useFactory).
     {
       provide: ENGINE_SESSION_PORT,
-      useFactory: (memories: MemoryStore, probe: RiskProbePort, config: ConfigService, capLogger: DeltaCapLogger): EngineSessionPort =>
+      useFactory: (
+        memories: MemoryStore,
+        probe: RiskProbePort,
+        config: ConfigService,
+        capLogger: DeltaCapLogger,
+        rollingSummary: RollingSessionSummaryService,
+      ): EngineSessionPort =>
         createEngineSessionPort(memories, probe, {
           // WP26 · P2-14: env 由**适配层**读, 内核只认 DeltaCapConfig 端口 ——
           //   内核零 process.env, 同 seed + 同 capConfig 同序列逐字同输出.
@@ -218,8 +250,11 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
           // WP36: 跨会话间隔衰减的三个半衰期同理 ——
           //   env 读在适配层, 内核只认 SessionDecayConfig 端口.
           sessionDecayConfig: resolveSessionDecayConfig(config),
+          // WP37: 工作窗口溢出通知 —— 内核只交出"挤掉了哪些轮次",
+          //   摘要生成 (LLM) 与记忆写入全在适配层 (内核零网络 / 零 prompt).
+          onWorkingWindowOverflow: (event) => rollingSummary.recordOverflow(event),
         }),
-      inject: [ENGINE_MEMORY_STORE, RISK_PROBE, ConfigService, DeltaCapLogger],
+      inject: [ENGINE_MEMORY_STORE, RISK_PROBE, ConfigService, DeltaCapLogger, RollingSessionSummaryService],
     },
     // 装配门面 (WP7): 接上归属解析缝 (多会话, 不传固定 sessionContext).
     // V2026-11-02 (WP14): 注入学员侧处置闸门 —— 门面在**渲染前**问它
@@ -232,8 +267,25 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         memories: MemoryStore,
         registry: EngineSessionRegistry,
         studentRisk: StudentRiskGateService,
-      ): TurnRenderOrchestrator => createEngineOrchestrator({ session, renderer, memories, registry, studentRisk }),
-      inject: [ENGINE_SESSION_PORT, ENGINE_RENDER_PORT, ENGINE_MEMORY_STORE, EngineSessionRegistry, STUDENT_RISK_GATE],
+        rollingSummary: RollingSessionSummaryService,
+      ): TurnRenderOrchestrator =>
+        createEngineOrchestrator({
+          session,
+          renderer,
+          memories,
+          registry,
+          studentRisk,
+          // WP37: 渲染侧读同一个滚动摘要服务 (与内核写侧同一实例).
+          rollingSummary,
+        }),
+      inject: [
+        ENGINE_SESSION_PORT,
+        ENGINE_RENDER_PORT,
+        ENGINE_MEMORY_STORE,
+        EngineSessionRegistry,
+        STUDENT_RISK_GATE,
+        RollingSessionSummaryService,
+      ],
     },
     // V2026-11-02 治本 (WP14 §1.6 — 重点监测场次的强制远端探测):
     //   闸门是**模块内单例** —— 编排门面 (判定) 与对话后端适配器 (置位) 必须拿到同一个实例.
@@ -281,6 +333,8 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
             router,
             model: resolveSummaryModel(config.get<string>('MEMORY_SUMMARY_MODEL'), router),
           }),
+          // WP37: 最终摘要的重要度可配 (缺省 = 代码里的种子值, 行为与 WP12 逐字一致).
+          summaryImportance: resolveSessionSummaryConfig(config).finalImportance,
           ...(bridges ? { sink: createBridgeTranscriptSink(bridges) } : {}),
         }),
       inject: [ENGINE_MEMORY_STORE, LlmRouterService, ConfigService, { token: VoiceSessionBridgeRegistry, optional: true }],

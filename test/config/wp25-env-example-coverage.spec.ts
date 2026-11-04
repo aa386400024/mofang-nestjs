@@ -185,6 +185,19 @@ const SESSION_DECAY_ENV_KEYS: readonly string[] = [
 ];
 
 /**
+ * 会话摘要的 3 个 env 键 (WP37).
+ *
+ * 与 cap 族 / 人格族 / 同盟族同一治本: 适配层**逐个字面量**读 → 已被 AST 抽取覆盖
+ * (漏写一个键, 断言① 立刻变红). 这里留一份清单, 是为了断言"3 个键一个不多一个不少" ——
+ * 少一个 = 那一项永远配不上 (静默失效); 多一个 = 模板里躺着一条没人读的键.
+ */
+const SESSION_SUMMARY_ENV_KEYS: readonly string[] = [
+  'SESSION_SUMMARY_BATCH_SIZE',
+  'SESSION_SUMMARY_ROLLING_IMPORTANCE',
+  'SESSION_SUMMARY_FINAL_IMPORTANCE',
+];
+
+/**
  * 递归收集目录下的 .ts 文件.
  */
 function collectTsFiles(dir: string): string[] {
@@ -405,6 +418,25 @@ describe('WP25 · .env.example 与代码 env 读取点一一对应', () => {
       }
     }
     expect(kernelDecayKeys).toEqual([]);
+  });
+
+  it('③f 3 个 SESSION_SUMMARY_* 键已改字面量读取, 内核树不再有摘要参数键 (WP37)', () => {
+    // 会话摘要参数与 cap 族同一治本: 适配层逐个字面量读 → AST 抽取看得到.
+    const summaryConfigFile = path.join(SRC_ROOT, 'engine-adapters/wiring/session-summary.config.ts');
+    expect(existsSync(summaryConfigFile)).toBe(true);
+    const literalKeys = extractEnvKeys(summaryConfigFile).filter((key) => key.startsWith('SESSION_SUMMARY_'));
+    expect([...literalKeys].sort()).toEqual([...SESSION_SUMMARY_ENV_KEYS].sort());
+
+    // 内核树里**不许**再出现任何 SESSION_SUMMARY_* 字符串 (计算键也算): 内核零 env 读取.
+    const kernelRoot = path.join(SRC_ROOT, 'engine-core');
+    const kernelSummaryKeys: string[] = [];
+    for (const file of collectTsFiles(kernelRoot)) {
+      const source = readFileSync(file, 'utf8');
+      if (source.includes('SESSION_SUMMARY_')) {
+        kernelSummaryKeys.push(path.relative(kernelRoot, file).replaceAll('\\', '/'));
+      }
+    }
+    expect(kernelSummaryKeys).toEqual([]);
   });
 
   it('④ NODE_ENV 必须被注释掉 (本地照抄模板不能开 production 模式)', () => {

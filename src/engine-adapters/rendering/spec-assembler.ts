@@ -61,6 +61,12 @@ export interface SpecAssemblyInput {
    * 不进 prompt —— 模型不该看见自己的角色名.
    */
   readonly characterLabel?: string;
+  /**
+   * 本场会话的滚动摘要 (WP37): 工作窗口挤出的早期轮次被压缩成的摘要.
+   *
+   * 缺省 = 本场还没产生摘要 (对话还没超过工作窗口) —— 此时规格与 WP5 **逐字一致**.
+   */
+  readonly sessionSummary?: string;
 }
 
 /**
@@ -103,6 +109,8 @@ export function buildRenderSpec(input: SpecAssemblyInput): AdaptiveRenderSpec {
           },
         }),
     ...(input.characterLabel ? { characterLabel: input.characterLabel } : {}),
+    // WP37: 滚动摘要 (缺省 = 不带这个键 → 规格与 WP5 逐字一致).
+    ...(input.sessionSummary ? { sessionSummary: input.sessionSummary } : {}),
   };
 }
 

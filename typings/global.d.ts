@@ -190,6 +190,15 @@ export declare global {
       QDRANT_URL?: string;
       QDRANT_API_KEY?: string;
       QDRANT_COLLECTION?: string;
+      // V2026-11-03 WP37 (会话摘要参数 · 滚动摘要 + 最终摘要):
+      //   下面是会话摘要一族的 3 个 env 键. 显式声明的理由与上面 ENGINE_* 同一治本思路:
+      //   **逐个字面量**读 (src/engine-adapters/wiring/session-summary.config.ts),
+      //   不用计算键 —— 计算键编译器拦不住, 且 env 覆盖断言 (AST 抽取) 扫不到,
+      //   漏写一个键会静默失效.
+      //   ⚠️ 参数是**工程种子值, 非临床标定** (待真实对练校准).
+      SESSION_SUMMARY_BATCH_SIZE?: string; // 滚动摘要攒批阈值 (默认 3: 攒够 3 轮压一次)
+      SESSION_SUMMARY_ROLLING_IMPORTANCE?: string; // 滚动摘要重要度 [0,1] (默认 0.5)
+      SESSION_SUMMARY_FINAL_IMPORTANCE?: string; // 最终摘要重要度 [0,1] (默认 0.9)
       // V2026-11-03 治本 (WP26 · P2-13 — 单回合 delta cap 参数):
       //   下面是 WP15 引入的 18 个 env 键 (9 维度 × 上下向).
       //   显式声明的理由与上面 MINIMAX_* / VOICE_* 同一治本思路:

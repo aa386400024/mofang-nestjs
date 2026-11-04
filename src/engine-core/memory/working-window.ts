@@ -46,3 +46,34 @@ export function trimWorkingWindow(lines: readonly string[], n: number = WORKING_
   }
   return lines.slice(lines.length - n);
 }
+
+/**
+ * 算出"这一轮被挤出窗口"的轮次 (WP37).
+ *
+ * 为什么要有这个纯函数 (而不是让调用方自己算差值):
+ *   被挤出的**是队首** (窗口保尾弃头), 而"挤出了几条"取决于裁剪前后的长度差 ——
+ *   这两个事实绑在一起, 分开放就会有人算出"被挤出的条数"却取错段 (取尾而不是取头).
+ *   集中成一处纯函数 = 规则只有一份, 且**可直接单测** (不需要起会话).
+ *
+ * 典型形状:
+ *   - 窗口 8 条 + 新增 1 条 → 裁到 8 → 挤出**队首 1 条**;
+ *   - 窗口 9 条 + 新增 1 条 → 裁到 8 → 挤出**队首 2 条** (一次挤两条的情况:
+ *     窗口被外部塞进超额条目时会出现; 逐轮追加时每次只挤 1 条).
+ *
+ * @param previous 裁剪前的窗口内容 (按时间正序, 最早的在前)
+ * @param incoming 本轮新增的内容 (会被追加到窗口尾部)
+ * @param n 保留轮数; 默认 8
+ * @returns 被挤出的轮次 (按时间正序; 没有溢出时为空数组)
+ * @throws EngineCoreError code=INVALID_INPUT n 不是非负有限数
+ */
+export function overflowedWorkingWindowLines(
+  previous: readonly string[],
+  incoming: string,
+  n: number = WORKING_MEMORY_WINDOW_TURNS,
+): readonly string[] {
+  const next = trimWorkingWindow([...previous, incoming], n);
+  const overflowCount = previous.length + 1 - next.length;
+  if (overflowCount <= 0) return [];
+  // 窗口保尾弃头 → 被挤出的必然是**队首**那一段.
+  return previous.slice(0, overflowCount);
+}
