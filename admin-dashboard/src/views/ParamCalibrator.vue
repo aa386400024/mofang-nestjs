@@ -162,6 +162,7 @@ const showThresholds = ref<boolean>(true)
 
 const deltaTableCollapsed = ref(false)
 const capCollapsed = ref(false)
+const heatmapModalVisible = ref(false)
 const personalityCollapsed = ref(false)
 
 // 阈值参数（内核种子值）
@@ -396,7 +397,7 @@ const heatmapOption = computed(() => ({
       return `${row.label} · ${heatmapLabels[dim]}<br/>增量: <b>${params.value[2].toFixed(3)}</b>`
     },
   },
-  grid: { left: 80, right: 20, top: 10, bottom: 30 },
+  grid: { left: 80, right: 20, top: 10, bottom: 90 },
   xAxis: {
     type: 'category',
     data: heatmapDimensions.map(d => heatmapLabels[d]),
@@ -414,7 +415,7 @@ const heatmapOption = computed(() => ({
     calculable: true,
     orient: 'horizontal',
     left: 'center',
-    bottom: 0,
+    bottom: 15,
     inRange: { color: ['#d03050', '#f0f0f0', '#18a058'] },
     textStyle: { fontSize: 10 },
   },
@@ -579,14 +580,19 @@ onMounted(() => {
           <template #header>
             <div class="flex items-center justify-between">
               <span class="text-xs font-medium">事件 Delta</span>
-              <n-button size="tiny" quaternary @click="deltaTableCollapsed = !deltaTableCollapsed">
-                {{ deltaTableCollapsed ? '编辑数值' : '收起' }}
-              </n-button>
+              <div class="flex items-center gap-1">
+                <n-button size="tiny" quaternary @click="heatmapModalVisible = true">
+                  放大
+                </n-button>
+                <n-button size="tiny" quaternary @click="deltaTableCollapsed = !deltaTableCollapsed">
+                  {{ deltaTableCollapsed ? '编辑数值' : '收起' }}
+                </n-button>
+              </div>
             </div>
           </template>
-          <v-chart :option="heatmapOption" class="w-full" style="height: 200px" />
+          <v-chart :option="heatmapOption" class="w-full mb-3" style="height: 240px" />
           <!-- 编辑表，默认折叠 -->
-          <div v-if="!deltaTableCollapsed" class="mt-3 space-y-2 max-h-[280px] overflow-y-auto border-t border-gray-100 pt-2">
+          <div v-if="!deltaTableCollapsed" class="space-y-2.5 max-h-[280px] overflow-y-auto border-t border-gray-100 pt-4">
             <div v-for="row in deltaTable" :key="row.kind" class="border-b border-gray-50 pb-1.5 last:border-0">
               <div class="flex items-center justify-between mb-1">
                 <span class="text-xs font-medium">{{ row.label }}</span>
@@ -809,5 +815,10 @@ onMounted(() => {
         </n-card>
       </div>
     </div>
+
+    <!-- 热力图放大弹窗 -->
+    <n-modal v-model:show="heatmapModalVisible" preset="card" title="事件 Delta 热力图" class="max-w-5xl">
+      <v-chart :option="heatmapOption" class="w-full" style="height: 700px" />
+    </n-modal>
   </div>
 </template>

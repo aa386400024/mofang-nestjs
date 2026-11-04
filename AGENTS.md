@@ -79,12 +79,12 @@ src/
 
 ---
 
-## 4. 当前阶段（2026-11-03）
+## 4. 当前阶段（2026-11-04）
 
 - **Phase1 已封版**：WP0-WP26 全交付，8 个 P1 + 34 个 P2 全修，1252 例测试全绿。backlog 已归档到 `docs/worklog/completed/phase1/phase1-backlog-archived-2026-11-03.md`。
 - **Phase2 已开工**：商业化准备，WP27-WP54 分三批并行。总览见 `docs/worklog/pending/phase2-overview-2026-11-03.md`，WP 清单见 `docs/worklog/pending/phase2-wp-list-2026-11-03.md`。
-- **当前待开工任务单**：`docs/worklog/pending/wp37-memory-session-summary-compression-2026-11-03.md`（记忆会话级摘要压缩，engine-core 预批准例外）。
-- **已交付的 Phase2 WP**：WP28（PsyGUARD 正式值）、WP34（P1 人格调节算子）、WP36（跨会话间隔自然衰减）、WP42（咨询同盟三维 trust/safety/bond）。
+- **当前待开工任务单**：pending/ 里暂无任务单，等大炮派新单。
+- **已交付的 Phase2 WP**：WP28（PsyGUARD 正式值）、WP34（P1 人格调节算子）、WP36（跨会话间隔自然衰减）、WP42（咨询同盟三维 trust/safety/bond）、WP52（轨迹快照 Delta 接同盟三维）、WP53（人格调节算子接同盟）、WP54（破裂态阻抗衰减下限）、WP55（会话摘要两侧纪要）、WP57（BDI 信念层深度扩展）。
 
 **接任务前先 `ls docs/worklog/pending/`**——有任务单就从文件名排第一的开始做，没有就等大炮派新单，不要自己找事做。
 

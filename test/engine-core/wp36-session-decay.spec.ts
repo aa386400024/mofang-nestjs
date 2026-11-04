@@ -14,11 +14,37 @@
 //     不 import 任何 @nestjs/* / typeorm; 只用内核纯 TS + 内存实现.
 //
 //   验证: npx vitest run test/engine-core/wp36-session-decay.spec.ts
+//
+// V2026-11-04 WP54 (引擎内核 · 破裂态阻抗衰减下限):
+//   目的: 钉死"上一场处于破裂态时, 阻抗衰减有一条下限"这条规则 ——
+//     ① 正常态 (trust / safety 都在门槛之上): 行为与 WP36 **逐字一致** (零回归);
+//     ② 破裂态 (trust 或 safety 塌到门槛之下): 阻抗衰减后**不低于 floor**;
+//     ③ floor = 0 / 不传 floor → 不启用下限;
+//     ④ 不传 allianceThresholds → 不启用破裂态判断;
+//     ⑤ 正常衰减值已高于 floor → 按正常值 (不强行抬升);
+//     ⑥ 破裂态判定读**上一场结束时**的值 (衰减前), 不是衰减后的值;
+//     ⑦ 破裂态下情绪 / 同盟**照常衰减** (本期只补阻抗一维);
+//     ⑧ 非法 floor / 非法门槛 → 回退 (floor 退 0 禁用, 门槛退内核种子值).
+//
+//   为什么"不低于 floor"要写成硬断言 (而不是"变小了"):
+//     floor 的含义是"隔多久都至少保留这么多防御" —— 写成"变小了"的话,
+//     floor 配成 0 也能绿, 那这条下限就不可校准.
+//
+//   反依赖污染:
+//     门槛直接取 `DEFAULT_ALLIANCE_CONFIG.thresholds` —— 测试也不另造一份,
+//     免得"内核用的门槛"和"测试用的门槛"漂移 (与内核的单一真相源纪律一致).
 
 import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository.js';
 import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session.js';
 import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
-import { DEFAULT_SESSION_DECAY_CONFIG, applySessionDecay, createEmptyBdiSnapshot, type BdiSnapshot } from '../../src/engine-core/index.js';
+import {
+  DEFAULT_ALLIANCE_CONFIG,
+  DEFAULT_SESSION_DECAY_CONFIG,
+  applySessionDecay,
+  createEmptyBdiSnapshot,
+  type AllianceThresholds,
+  type BdiSnapshot,
+} from '../../src/engine-core/index.js';
 
 /** 一天 (ms). */
 const DAY_MS = 24 * 3600 * 1000;
@@ -202,6 +228,247 @@ describe('WP36 · 跨会话间隔自然衰减 (纯函数)', () => {
       expect(DEFAULT_SESSION_DECAY_CONFIG.emotionHalfLifeMs).toBe(7 * DAY_MS);
       expect(DEFAULT_SESSION_DECAY_CONFIG.resistanceHalfLifeMs).toBe(14 * DAY_MS);
       expect(DEFAULT_SESSION_DECAY_CONFIG.allianceHalfLifeMs).toBe(30 * DAY_MS);
+    });
+  });
+});
+
+/**
+ * 破裂态快照: 上一场结束时信任 / 安全感都塌到抗拒门槛之下, 阻抗还硬着.
+ *
+ * 为什么数值这么选 (工程种子值, 非临床标定):
+ *   · trust 0.2 < resistanceTrust 0.4, safety 0.1 < resistanceSafety 0.3 → 破裂;
+ *   · 阻抗三维取 0.9 / 0.8 / 0.7 —— 隔 7 天 (阻抗半衰期 14 天) 恰好各走半程,
+ *     于是 style 落到 0.7 * 2^(-0.5) ≈ 0.4949 < 0.5, 而 verbal / depth 仍 > 0.5.
+ *     用 floor = 0.5 时**只有 style 会被兜住**, 另两维保持不变 ——
+ *     一组断言就能同时钉死"会被兜"与"不会被强行抬".
+ */
+function makeRupturedSnapshot(): BdiSnapshot {
+  const base = makeSnapshot();
+  return {
+    ...base,
+    resistance: { verbal: 0.9, depth: 0.8, style: 0.7 },
+    trust: 0.2,
+    safety: 0.1,
+    bond: 0.3,
+  };
+}
+
+/**
+ * 同盟门槛: 直接取内核种子配置 —— 测试也不另造一份门槛.
+ *
+ * 为什么: "内核用的门槛"和"测试用的门槛"一旦各写一份, 迟早漂移;
+ * 取同一份, 门槛调了测试自动跟着走 (与内核的单一真相源纪律一致).
+ */
+const THRESHOLDS: AllianceThresholds = DEFAULT_ALLIANCE_CONFIG.thresholds;
+
+describe('WP54 · 破裂态阻抗衰减下限 (纯函数)', () => {
+  describe('① 正常态零回归', () => {
+    it('trust / safety 都在门槛之上 → 阻抗与 WP36 逐字一致', () => {
+      const baseline = applySessionDecay(makeSnapshot(), 7 * DAY_MS);
+      const decayed = applySessionDecay(
+        makeSnapshot(),
+        7 * DAY_MS,
+        { ...DEFAULT_SESSION_DECAY_CONFIG, ruptureResistanceFloor: 0.7 },
+        THRESHOLDS,
+      );
+
+      expect(decayed.resistance).toEqual(baseline.resistance);
+      expect(decayed.trust).toBe(baseline.trust);
+      expect(decayed.safety).toBe(baseline.safety);
+      expect(decayed.bond).toBe(baseline.bond);
+      expect(decayed.emotion).toEqual(baseline.emotion);
+    });
+
+    it('不传 floor → 破裂态也与 WP36 逐字一致 (缺省即禁用)', () => {
+      const baseline = applySessionDecay(makeRupturedSnapshot(), 7 * DAY_MS);
+      const decayed = applySessionDecay(makeRupturedSnapshot(), 7 * DAY_MS, { ...DEFAULT_SESSION_DECAY_CONFIG }, THRESHOLDS);
+
+      expect(decayed.resistance).toEqual(baseline.resistance);
+    });
+  });
+
+  describe('② 破裂态: 阻抗衰减后不低于 floor', () => {
+    it('floor = 0.5 → 只有会跌破 0.5 的那一维被兜住, 另两维保持不变', () => {
+      const decayed = applySessionDecay(
+        makeRupturedSnapshot(),
+        7 * DAY_MS,
+        { ...DEFAULT_SESSION_DECAY_CONFIG, ruptureResistanceFloor: 0.5 },
+        THRESHOLDS,
+      );
+
+      // verbal / depth 本来就高于 0.5 → 保持正常衰减值 (不被强行抬到 floor).
+      expect(decayed.resistance.verbal).toBeCloseTo(0.9 * Math.pow(2, -0.5), 10);
+      expect(decayed.resistance.depth).toBeCloseTo(0.8 * Math.pow(2, -0.5), 10);
+      // style 正常衰减会跌破 0.5 → 被兜在 0.5.
+      expect(decayed.resistance.style).toBeCloseTo(0.5, 10);
+      expect(decayed.resistance.style).toBeGreaterThan(0.7 * Math.pow(2, -0.5));
+    });
+
+    it('floor = 0.7 → 阻抗三维全部不低于 floor', () => {
+      const decayed = applySessionDecay(
+        makeRupturedSnapshot(),
+        7 * DAY_MS,
+        { ...DEFAULT_SESSION_DECAY_CONFIG, ruptureResistanceFloor: 0.7 },
+        THRESHOLDS,
+      );
+
+      expect(decayed.resistance.verbal).toBeCloseTo(0.7, 10);
+      expect(decayed.resistance.depth).toBeCloseTo(0.7, 10);
+      expect(decayed.resistance.style).toBeCloseTo(0.7, 10);
+      expect(decayed.resistance.verbal).toBeGreaterThanOrEqual(0.7);
+      expect(decayed.resistance.depth).toBeGreaterThanOrEqual(0.7);
+      expect(decayed.resistance.style).toBeGreaterThanOrEqual(0.7);
+    });
+
+    it('隔很久 (365 天) 也兜得住 —— 下限不是"只兜一点点"', () => {
+      const decayed = applySessionDecay(
+        makeRupturedSnapshot(),
+        365 * DAY_MS,
+        { ...DEFAULT_SESSION_DECAY_CONFIG, ruptureResistanceFloor: 0.6 },
+        THRESHOLDS,
+      );
+
+      expect(decayed.resistance.verbal).toBeCloseTo(0.6, 10);
+      expect(decayed.resistance.depth).toBeCloseTo(0.6, 10);
+      expect(decayed.resistance.style).toBeCloseTo(0.6, 10);
+    });
+  });
+
+  describe('③ 不启用下限 / 不启用破裂态判断', () => {
+    it('floor = 0 → 破裂态也与 WP36 逐字一致 (不启用下限)', () => {
+      const baseline = applySessionDecay(makeRupturedSnapshot(), 7 * DAY_MS);
+      const decayed = applySessionDecay(
+        makeRupturedSnapshot(),
+        7 * DAY_MS,
+        { ...DEFAULT_SESSION_DECAY_CONFIG, ruptureResistanceFloor: 0 },
+        THRESHOLDS,
+      );
+
+      expect(decayed.resistance).toEqual(baseline.resistance);
+      expect(decayed.resistance.style).toBeCloseTo(0.7 * Math.pow(2, -0.5), 10);
+    });
+
+    it('不传 allianceThresholds → 破裂态也与 WP36 逐字一致 (不启用破裂态判断)', () => {
+      const baseline = applySessionDecay(makeRupturedSnapshot(), 7 * DAY_MS);
+      const decayed = applySessionDecay(makeRupturedSnapshot(), 7 * DAY_MS, {
+        ...DEFAULT_SESSION_DECAY_CONFIG,
+        ruptureResistanceFloor: 0.7,
+      });
+
+      expect(decayed.resistance).toEqual(baseline.resistance);
+      expect(decayed.resistance.style).toBeCloseTo(0.7 * Math.pow(2, -0.5), 10);
+    });
+  });
+
+  describe('④ 不强行抬升 (是衰减下限, 不是"反升")', () => {
+    it('正常衰减值本来就高于 floor → 按正常衰减值, 阻抗不会比上一场更高', () => {
+      const decayed = applySessionDecay(
+        makeRupturedSnapshot(),
+        7 * DAY_MS,
+        { ...DEFAULT_SESSION_DECAY_CONFIG, ruptureResistanceFloor: 0.3 },
+        THRESHOLDS,
+      );
+
+      expect(decayed.resistance.verbal).toBeCloseTo(0.9 * Math.pow(2, -0.5), 10);
+      expect(decayed.resistance.depth).toBeCloseTo(0.8 * Math.pow(2, -0.5), 10);
+      expect(decayed.resistance.style).toBeCloseTo(0.7 * Math.pow(2, -0.5), 10);
+      // 关键: 阻抗只会比上一场结束时**更低**, 不会被抬到 floor 以上.
+      expect(decayed.resistance.verbal).toBeLessThan(0.9);
+      expect(decayed.resistance.depth).toBeLessThan(0.8);
+      expect(decayed.resistance.style).toBeLessThan(0.7);
+    });
+  });
+
+  describe('⑤ 破裂态判定读"上一场结束时"的值 (衰减前)', () => {
+    it('上一场结束时不破裂 (trust 0.45 > 0.4) → 即使衰减后跌破门槛也不兜底', () => {
+      const borderline: BdiSnapshot = { ...makeSnapshot(), trust: 0.45, safety: 0.5 };
+      const decayed = applySessionDecay(
+        borderline,
+        60 * DAY_MS,
+        { ...DEFAULT_SESSION_DECAY_CONFIG, ruptureResistanceFloor: 0.5 },
+        THRESHOLDS,
+      );
+
+      // 衰减后 trust 确实跌破门槛 (0.45 * 2^(-2) = 0.1125 < 0.4) —— 但门槛问的是"上一场".
+      expect(decayed.trust).toBeCloseTo(0.1125, 10);
+      expect(decayed.trust).toBeLessThan(THRESHOLDS.resistanceTrust);
+      // 所以阻抗照常裸衰减, 没有被兜到 0.5.
+      expect(decayed.resistance.verbal).toBeCloseTo(0.7 * Math.pow(2, -60 / 14), 10);
+      expect(decayed.resistance.verbal).toBeLessThan(0.5);
+    });
+  });
+
+  describe('⑥ 破裂态下情绪 / 同盟照常衰减 (本期只补阻抗一维)', () => {
+    it('情绪与同盟不受下限影响 —— 没有下限就是没有下限', () => {
+      const decayed = applySessionDecay(
+        makeRupturedSnapshot(),
+        7 * DAY_MS,
+        { ...DEFAULT_SESSION_DECAY_CONFIG, ruptureResistanceFloor: 0.7 },
+        THRESHOLDS,
+      );
+
+      // 情绪半衰期 7 天 → 恰好减半 (负效价保留符号).
+      expect(decayed.emotion.valence).toBeCloseTo(-0.4, 10);
+      expect(decayed.emotion.arousal).toBeCloseTo(0.4, 10);
+      // 同盟半衰期 30 天 → 7 天只走了 7/30.
+      expect(decayed.trust).toBeCloseTo(0.2 * Math.pow(2, -7 / 30), 10);
+      expect(decayed.safety).toBeCloseTo(0.1 * Math.pow(2, -7 / 30), 10);
+      expect(decayed.bond).toBeCloseTo(0.3 * Math.pow(2, -7 / 30), 10);
+      expect(decayed.trust).toBeLessThan(0.2);
+      expect(decayed.safety).toBeLessThan(0.1);
+    });
+  });
+
+  describe('⑦ 非法值回退', () => {
+    it('非法 floor (1.5 / -0.2 / NaN) → 回退 0 (禁用), 且阻抗不越界', () => {
+      for (const floor of [1.5, -0.2, Number.NaN]) {
+        const decayed = applySessionDecay(
+          makeRupturedSnapshot(),
+          7 * DAY_MS,
+          { ...DEFAULT_SESSION_DECAY_CONFIG, ruptureResistanceFloor: floor },
+          THRESHOLDS,
+        );
+
+        expect(decayed.resistance.verbal).toBeCloseTo(0.9 * Math.pow(2, -0.5), 10);
+        expect(decayed.resistance.style).toBeCloseTo(0.7 * Math.pow(2, -0.5), 10);
+        expect(decayed.resistance.verbal).toBeLessThanOrEqual(1);
+        expect(decayed.resistance.style).toBeLessThanOrEqual(1);
+      }
+    });
+
+    it('非法门槛 → 回退内核种子门槛 (0.4 / 0.3), 不是照着越界值判', () => {
+      // resistanceTrust = -1 越界 → 回退 0.4; snapshot trust 0.35 < 0.4 → 破裂.
+      // (若照着 -1 判, 0.35 < -1 不成立 → 不会破裂 —— 这条断言正好钉住回退.)
+      const badTrust: BdiSnapshot = { ...makeSnapshot(), trust: 0.35, safety: 0.5 };
+      const byTrust = applySessionDecay(
+        badTrust,
+        7 * DAY_MS,
+        { ...DEFAULT_SESSION_DECAY_CONFIG, ruptureResistanceFloor: 0.5 },
+        { open: 0.6, resistanceTrust: -1, resistanceSafety: 0.3 },
+      );
+      expect(byTrust.resistance.style).toBeCloseTo(0.5, 10);
+
+      // resistanceSafety = -1 越界 → 回退 0.3; snapshot safety 0.25 < 0.3 → 破裂.
+      const badSafety: BdiSnapshot = { ...makeSnapshot(), trust: 0.5, safety: 0.25 };
+      const bySafety = applySessionDecay(
+        badSafety,
+        7 * DAY_MS,
+        { ...DEFAULT_SESSION_DECAY_CONFIG, ruptureResistanceFloor: 0.5 },
+        { open: 0.6, resistanceTrust: 0.4, resistanceSafety: -1 },
+      );
+      expect(bySafety.resistance.style).toBeCloseTo(0.5, 10);
+    });
+  });
+
+  describe('⑧ 值语义', () => {
+    it('破裂态下传入的快照也不被就地修改', () => {
+      const snapshot = makeRupturedSnapshot();
+      applySessionDecay(snapshot, 7 * DAY_MS, { ...DEFAULT_SESSION_DECAY_CONFIG, ruptureResistanceFloor: 0.5 }, THRESHOLDS);
+
+      expect(snapshot.resistance).toEqual({ verbal: 0.9, depth: 0.8, style: 0.7 });
+      expect(snapshot.trust).toBe(0.2);
+      expect(snapshot.safety).toBe(0.1);
+      expect(snapshot.bond).toBe(0.3);
     });
   });
 });

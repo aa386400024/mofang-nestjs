@@ -59,7 +59,7 @@
 | **WP51** | 角色种子同盟三维基线 | 🟡 P1 | WP42 所有角色开场都是 safety=0.5 / bond=0，**回避型和安全型开场安全感一样** —— 人格差异没落地。要给角色种子加 safety/bond 基线（回避型 safety 低、安全型 safety 中高），并接适配层注入 |
 | **WP52** ✅ | 剧本偏移接入同盟三维 | 🟢 P2 | WP42 剧本（trajectory）的 `SnapshotDelta` 不带 safety/bond —— 剧本写"来访敞开心扉谈童年创伤"只涨 trust 不涨 safety/bond，剧本叙事推不动同盟发展。要给 `SnapshotDelta` 补两项并过同一把 cap。✅ 实际落地：`SnapshotDelta` 加 `safety?` / `bond?` 两个**可选**字段（缺省 = 0，存量剧本逐字不受影响）；`toDeltaVector` 接上；**cap 位置不用改** —— 管道已是「事件 delta + 剧本 delta → 合并 → 统一过 cap → 落快照」，safety/bond 自动被同一把尺子约束（与 trust / resistance 完全一致）（[交付记录](../completed/phase2/engine-wp52-trajectory-snapshot-delta-alliance-implementation-2026-11-04.md)） | WP42 |
 | **WP53** ✅ | 人格调节算子扩展到 safety/bond | 🟢 P2 | WP34 依恋系数只调 trust，**焦虑型涨 bond 不快、回避型涨 safety 不快** —— 人格调节算子只做了一半。内测有反馈后，把依恋系数扩展到 safety/bond 两维。⚠️ 实际落地：`AttachmentModulation` 从 2 列扩到 4 列（trust / resistance / **safety / bond**），env 键 10 → 18 个；口径与 trustScale **完全同范式**（只调**增益**方向，受损方向不调 = 不发明临床数字）；`AllianceConfig.deltas` 是**事件级**覆写、`safetyScale/bondScale` 是**角色级**调节，顺序固定为「先覆写 → 再调节 → 再 cap」（[交付记录](../completed/phase2/engine-wp53-personality-modulator-alliance-extension-implementation-2026-11-04.md)） | WP34 |
-| **WP54** | 破裂态阻抗反升（跨会话衰减补完） | 🟢 P2 | WP36 已交付「情绪 / 阻抗 / 同盟差异化半衰期回落」，但蓝图 §4.5 里的**「破裂态阻抗反升」没做** —— 缺"破裂"的阈值定义（属临床数字，仓库纪律是不发明）。落法建议：复用内核**既有**的抗拒门槛（`trust < 0.4 \|\| safety < 0.3`，见 `AllianceConfig.thresholds`）作破裂态定义，在 `SessionDecayConfig` 上加一个可配的"破裂态阻抗下限"，而不是新造阈值 |
+| **WP54** ✅ | 破裂态阻抗反升（跨会话衰减补完） | 🟢 P2 | WP36 已交付「情绪 / 阻抗 / 同盟差异化半衰期回落」，但蓝图 §4.5 里的**「破裂态阻抗反升」没做** —— 缺"破裂"的阈值定义（属临床数字，仓库纪律是不发明）。落法建议：复用内核**既有**的抗拒门槛（`trust < 0.4 \|\| safety < 0.3`，见 `AllianceConfig.thresholds`）作破裂态定义，在 `SessionDecayConfig` 上加一个可配的"破裂态阻抗下限"，而不是新造阈值。⚠️ 实际落地：`SessionDecayConfig` 加 `ruptureResistanceFloor?`（**可选**，缺省 0 = 禁用）+ `applySessionDecay` 加第 4 参 `allianceThresholds?`（**不传 = 不启用破裂态判断**）；口径是**衰减下限不是"反升"**（`Math.max`，已高于 floor 的值不抬升）；门槛**复用** `AllianceConfig.thresholds`（校验也走 `resolveAllianceThresholds`，不新造门槛）；`DEFAULT_SESSION_DECAY_CONFIG` **不动**（3 字段，适配层 `toEqual` 断言会红）。⚠️ 本期**不接 env** → 生产上该下限**暂不生效**（[交付记录](../completed/phase2/engine-wp54-rupture-resistance-floor-implementation-2026-11-04.md)） | WP36 |
 | **WP55** ✅ | 会话摘要补齐来访者侧 | 🟡 P1 | WP37 已交付滚动摘要（工作窗口溢出 → 攒批异步压摘要 → 进渲染上下文），但**内核的溢出回调只有咨询师原话**（内核不渲染，拿不到来访者的话）—— 摘要因此是"咨询侧纪要"，不是逐字稿摘要。落法：适配层把**门面历史缓冲**（`MAX_HISTORY_TURNS = WORKING_MEMORY_WINDOW_TURNS * 2`，两侧都有）里的来访者文本一并交给生成器，提示词口径随之从"只写咨询师谈了什么"改成两侧纪要（仍禁替来访者编造）。⚠️ 实际落地走**「轮次记录」单队列**（两侧绑成一个不可拆的对象）而不是双队列 min 配对 —— 后者在"某轮没有来访者发言"时会错位一格、产出**假问答对**（[交付记录](../completed/phase2/engine-wp55-rolling-summary-both-sides-implementation-2026-11-04.md)） | WP37 |
 | **WP56** | 长期记忆召回（`spec.recall`）进渲染上下文 | 🟡 P1 | WP37 盘查时**全 `src/` 树 grep 核实**：`spec.recall` 填的是 WP2 的 `openingContext`（记忆命中），但**渲染层一处都没读**（`buildVisitorSystemPrompt` 不消费它）—— WP2 的记忆命中**从来没进过 prompt**，三级记忆里"长时召回"这一环在语言生成侧是断的。落法：仿 WP37 的 `sessionSummary` **独立字段**做法（别混进 `recall`），先定"召不召回 / 召回 Top-N / 以什么措辞注入 / 过期与冲突怎么过滤"，再接 |
 | **WP61** | 会话摘要层次化（核心议题 / 关键事件 / 情绪转折点） | 🟡 P1 | WP55 已交付**两侧**纪要，但摘要仍是"一段 ≤120 字的流水摘要" —— 终局蓝图 §4「记忆系统层」要的是**三层结构**（核心议题 / 关键事件 / 情绪转折点），不是一坨文字。落法：滚动摘要的输出改成结构化三段（prompt 侧按三段渲染，记忆条目存结构化摘要）；⚠️ WP12 的**最终摘要**那条路径是否同步分层，另行确认（那是另一条写入路径，别两边分叉） | WP55 |
@@ -71,7 +71,7 @@
 | WP | 名称 | 优先级 | 一句话描述 | 依赖 |
 |---|---|---|---|---|
 | **WP57** ✅ | BDI 信念层深度扩展 | 🟡 P1 | 现在信念有三层结构（核心/短期/记忆），但算子主要在阻抗/情绪/关系层，**信念本身还没怎么动**——核心信念没有激活规则、短期信念置信度不衰减、没有"信念被干预后改变"的算子。落法：先补最基础的（短期信念置信度随轮次衰减、核心信念的激活条件），不追求完整 BDI 推理循环（那是 Phase3+）。⚠️ 实际落地加了**核心信念激活强度**（新增 `coreBeliefActivation` 快照字段：咨询师原文命中 `activationTags` → 激活上升，逐轮乘性衰减）；**匹配源用咨询师原文而非事件 `matchedTerms`**（两组词表独立，按事件匹配会让机制永远是死的）；**落库路径单独接一次算子**（落库走 `applyDeltaVector` 不走 `transitionState`，只接后者 = 机制空转）。⚠️ 跨会话时激活强度**不衰减**（本单 §5.2 登记的缺口，后续 WP 补）（[交付记录](../completed/phase2/engine-wp57-belief-layer-deep-expansion-implementation-2026-11-04.md)） | WP1 |
-| **WP58** | 引擎调试面板 / BDI 状态 trace | 🟡 P1 🚧 进行中 | 内测调参刚需：每轮对话展开后，能看到这一轮 BDI 状态变了多少（trust +0.02 / safety -0.05…）、触发了什么事件、prompt 长什么样、delta cap 砍了多少。Admin Dashboard 里加一个"会话调试视图"，数据从现有日志/指标里抽，不新增采集链路 | WP31 |
+| **WP58** | 引擎调试面板 / BDI 状态 trace | 🟡 P1 🚧 进行中 | 内测调参刚需：每轮对话展开后，能看到这一轮 BDI 状态变了多少（trust +0.02 / safety -0.05…）、触发了什么事件、prompt 长什么样、delta cap 砍了多少。Admin Dashboard 里加一个"会话调试视图"，数据从现有日志/指标里抽，不新增采集链路。✅ 已完成参数校准页（ParamCalibrator）热力图布局优化：调整 grid/visualMap 间距避免滑块贴边，加放大弹窗预览 | WP31 |
 | **WP59** | 记忆召回策略优化 | 🟢 P2 | WP56 只是"把 recall 接进 prompt"，但召回本身的策略还很原始——没有 Top-N 截断、没有过期过滤、相似记忆没有冲突消解（两条矛盾的记忆都被召回来 = 模型混乱）。落法：先做最简单的 Top-K + 时间衰减加权，冲突消解放后面 | WP56 |
 | **WP60** | delta 规则表配置化 | 🟢 P2 | 现在事件→delta 映射硬编码在 `state-transition.ts` 里，改一个数字要发版。后期运营/心理咨询师要自定义规则时，抽成配置文件（JSON/YAML），内核还是纯函数读配置，env 还是适配层读。⚠️ **现在不急**——单人开发阶段硬编码反而是最快的，等真的需要自定义规则了再抽 | WP1 |
 
@@ -86,7 +86,7 @@
 | 🟢 P2 技术债 | 10 条 | WP45, 46, 47, 48, 49, 52, 53, 54, 59, 60 |
 | **合计** | **35 条** | **WP27–WP61** |
 
-**进度：9 / 35 完成**（WP28 ✅、WP34 ✅、WP36 ✅、WP37 ✅、WP42 ✅、WP52 ✅、WP53 ✅、WP55 ✅、WP57 ✅，2026-11-04）。
+**进度：10 / 35 完成**（WP28 ✅、WP34 ✅、WP36 ✅、WP37 ✅、WP42 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP57 ✅，2026-11-04）。
 
 ### 🚧 上线前必须一起做的真机项（WP28 遗留）
 
@@ -128,6 +128,7 @@ _每个 WP 开工前单独写任务单（按 `team/conventions.md` 的交付格�
 | WP57 信念层深度扩展 ✅ | `domain/beliefs.ts`（`CoreBeliefActivation` 类型）+ `domain/bdi-snapshot.ts`（快照新增 `coreBeliefActivation` 字段）+ `domain/bootstrap.ts`（初始值）+ `cognition/state-transition.ts`（激活 / 衰减 / 组合三个纯函数 + `BeliefOperatorConfig` 端口 + 管道末端接线）+ `in-memory/in-memory-engine-session.ts`（**落库路径单独接算子**）+ `index.ts` barrel | 信念算子是**决策层逻辑**（状态迁移规则），必须落在纯层 —— 适配层放它就破坏"内核零 env / 零状态"的边界。⚠️ `in-memory-engine-session.ts` 不在任务单 §6.1 的预批准清单里，**已获用户 2026-11-04 当面批准**（落库走 `applyDeltaVector` 不走 `transitionState`，不单独接 = 机制空转） |
 | WP53 人格调节扩展到同盟三维 ✅ | `cognition/personality-modulator.ts`（`AttachmentModulation` 加 safetyScale / bondScale 两列 + 种子值 + 校验 + 算子输出） | 依恋系数是**决策层逻辑**（算子本体），必须落在纯层 —— 适配层放它就破坏"内核零 env / 零状态"的边界。纯函数扩展 → **调用方一行不用改**（`state-transition.ts` / `in-memory-engine-session.ts` 都不动） |
 | WP52 剧本偏移接入同盟三维 ✅ | `domain/trajectory/script.ts`（`SnapshotDelta` 加 `safety?` / `bond?`）+ `cognition/trajectory/trajectory-applier.ts`（`toDeltaVector` 接上） | 剧本契约是**数据形状**（adapter 从 DB 解析后注入的内核侧模型），必须落在纯层；转换点 `toDeltaVector` 是内核里**唯一**的"幕偏移 → delta 向量"转换处，不接上就等于剧本偏移永远是死的。字段**可选** → 存量剧本逐字不受影响，**调用方一行不用改** |
+| WP54 破裂态阻抗衰减下限 ✅ | `cognition/session-decay.ts`（`SessionDecayConfig` 加 `ruptureResistanceFloor?` + `applySessionDecay` 加 `allianceThresholds?` + 破裂态下限分支） | 跨会话衰减是**状态迁移规则**（WP36 已在纯层），补一条破裂态分支**必须**跟它同处一个纯函数 —— 放适配层就等于把"要不要兜底"变成两处判定。门槛复用 `alliance-config.ts` 的既有真相源（不新造），配置走**端口注入**（`SessionDecayConfig` 可选字段，缺省 = 禁用 = 零回归）→ **调用方一行不用改**，适配层 env 接线留待后续 WP |
 
 > 其他 WP 一律在 `engine-adapters/` 或业务层改，不碰 `src/engine-core/`。
 
