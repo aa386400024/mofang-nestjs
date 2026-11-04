@@ -34,6 +34,39 @@ export interface TurnTrace {
   llmUsage?: LlmUsage
   crisis: { detected: boolean; category?: string | null }
   ts: string
+  /** 本轮 delta 明细（后端补，前端先 mock） */
+  deltaDetail?: DeltaDetail
+  /** 本轮 cap 砍幅报告（后端补，前端先 mock） */
+  capReport?: CapReport
+  /** 本轮信念激活状态（WP57 做完后接入，前端先 mock） */
+  beliefActivation?: Record<string, number>
+}
+
+/** 单轮 delta 明细：各维度变化了多少 */
+export interface DeltaDetail {
+  trust: number
+  safety: number
+  bond: number
+  valence: number
+  arousal: number
+  verbal: number
+  depth: number
+  style: number
+  /** 触发的事件类型 */
+  events: string[]
+}
+
+/** 单轮 cap 砍幅报告：哪些维度被砍了、砍了多少 */
+export interface CapReport {
+  /** 被砍的维度列表 */
+  capped: {
+    dimension: string
+    rawDelta: number
+    cappedDelta: number
+    capLimit: number
+  }[]
+  /** 是否有维度被砍 */
+  hasCapped: boolean
 }
 
 export interface TranscriptEntry { role: string; text: string }

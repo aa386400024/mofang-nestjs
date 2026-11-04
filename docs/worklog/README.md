@@ -24,8 +24,9 @@
 > - WP37（记忆会话级摘要压缩 · 滚动摘要）✅ → [`completed/phase2/engine-wp37-rolling-session-summary-implementation-2026-11-03.md`](completed/phase2/engine-wp37-rolling-session-summary-implementation-2026-11-03.md)
 > - WP42（咨询同盟三维 trust/safety/bond）✅ → [`completed/phase2/engine-wp42-counseling-alliance-three-dimensions-implementation-2026-11-03.md`](completed/phase2/engine-wp42-counseling-alliance-three-dimensions-implementation-2026-11-03.md)
 > - WP55（会话摘要补齐来访者侧 · 两侧纪要）✅ → [`completed/phase2/engine-wp55-rolling-summary-both-sides-implementation-2026-11-04.md`](completed/phase2/engine-wp55-rolling-summary-both-sides-implementation-2026-11-04.md)
+> - WP57（BDI 信念层深度扩展 · 核心信念激活 + 短期信念置信度衰减）✅ → [`completed/phase2/engine-wp57-belief-layer-deep-expansion-implementation-2026-11-04.md`](completed/phase2/engine-wp57-belief-layer-deep-expansion-implementation-2026-11-04.md)
 >
-> 进度 6/35（WP 清单与总览口径一致，WP27–WP61）。
+> 进度 7/35（WP 清单与总览口径一致，WP27–WP61）。
 
 ---
 
@@ -94,7 +95,7 @@ docs/worklog/
 │   │   ├── auth-and-password/
 │   │   ├── early-misc/
 │   │   └── phase1-backlog-archived-2026-11-03.md
-│   └── phase2/       ← Phase2 交付（WP28 ✅ PsyGUARD 正式值 / WP34 ✅ P1 人格调节算子 / WP36 ✅ 跨会话间隔自然衰减 / WP37 ✅ 记忆会话级摘要压缩（滚动摘要）/ WP42 ✅ 咨询同盟三维 / WP55 ✅ 会话摘要补齐来访者侧（两侧纪要））
+│   └── phase2/       ← Phase2 交付（WP28 ✅ PsyGUARD 正式值 / WP34 ✅ P1 人格调节算子 / WP36 ✅ 跨会话间隔自然衰减 / WP37 ✅ 记忆会话级摘要压缩（滚动摘要）/ WP42 ✅ 咨询同盟三维 / WP55 ✅ 会话摘要补齐来访者侧（两侧纪要）/ WP57 ✅ BDI 信念层深度扩展（核心信念激活 + 短期信念置信度衰减））
 ├── audits/           ← 审查报告（WP25 等）
 └── archive/          ← 老文档
 ```

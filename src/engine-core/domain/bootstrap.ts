@@ -4,7 +4,7 @@
 //   边界: 纯 TS, 无 I/O, 无随机, 可复现.
 
 import type { BdiResistance, BdiSnapshot } from './bdi-snapshot.js';
-import type { CoreBelief, MemoryBelief, TemporaryBelief } from './beliefs.js';
+import type { CoreBelief, CoreBeliefActivation, MemoryBelief, TemporaryBelief } from './beliefs.js';
 import type { CharacterProfile, UnderlyingDesireSeed } from './character-profile.js';
 import { DEFAULT_UNDERLYING_DESIRES, type SituationalDesire, type UnderlyingDesire } from './desires.js';
 import { clamp01, clampValence, resolveEmotionLabel, type EmotionState } from './emotion.js';
@@ -82,6 +82,10 @@ export function buildInitialSnapshot(profile?: CharacterProfile): BdiSnapshot {
   }));
   const temporaryBeliefs: readonly TemporaryBelief[] = [];
   const memoryBeliefs: readonly MemoryBelief[] = [];
+  // WP57: 核心信念的激活强度初始全为 0 (还没被激活过).
+  //   同一 theme 出现多次时共享同一个键 (角色配置的责任, 引擎不校验) —— 与算子的
+  //   "同 theme 的信念共享一份激活强度"口径一致 (见 state-transition.ts).
+  const coreBeliefActivation: CoreBeliefActivation = Object.fromEntries(coreBeliefs.map((b) => [b.theme, 0]));
   const underlyingDesires: readonly UnderlyingDesire[] =
     profile?.underlyingDesires?.map(seedToDesire) ??
     // 默认种子也要拷贝, 避免多次装配共享同一份常量数组 (值语义, 防污染全局).
@@ -90,6 +94,7 @@ export function buildInitialSnapshot(profile?: CharacterProfile): BdiSnapshot {
 
   return {
     coreBeliefs,
+    coreBeliefActivation,
     temporaryBeliefs,
     memoryBeliefs,
     underlyingDesires,

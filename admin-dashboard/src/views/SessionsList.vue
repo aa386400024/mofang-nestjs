@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, h } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { api } from '@/api/client'
 import type { SessionSummary } from '@/api/types'
@@ -7,6 +8,7 @@ import InfoTooltip from '@/components/InfoTooltip.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
 const { t } = useI18n()
+const router = useRouter()
 const rows = ref<SessionSummary[]>([])
 const loading = ref(true)
 const err = ref('')
@@ -30,6 +32,39 @@ const stats = computed(() => {
   const done = rows.value.filter(r => r.status === 'completed').length
   return { total, tokens, avgDur, done }
 })
+
+// n-data-table 列定义
+const columns = [
+  {
+    title: () => t('sessions.time'),
+    key: 'startedAt',
+    width: 100,
+    render: (row: SessionSummary) => fmtTime(row.startedAt),
+  },
+  {
+    title: () => t('sessions.visitor'),
+    key: 'visitorAlias',
+  },
+  {
+    title: () => t('sessions.duration'),
+    key: 'durationSec',
+    width: 100,
+    render: (row: SessionSummary) => fmtDur(row.durationSec),
+  },
+  {
+    title: () => t('sessions.token'),
+    key: 'totalTokens',
+    width: 120,
+    align: 'right' as const,
+    render: (row: SessionSummary) => row.totalTokens.toLocaleString(),
+  },
+  {
+    title: () => t('sessions.status'),
+    key: 'status',
+    width: 120,
+    render: (row: SessionSummary) => h('span', { class: 'chip ' + statusColor.value(row.status) }, row.status),
+  },
+]
 </script>
 
 <template>
@@ -88,30 +123,16 @@ const stats = computed(() => {
         </div>
       </div>
 
-      <div class="card overflow-hidden">
-      <table class="w-full text-sm">
-        <thead class="bg-bg-elevated text-muted text-xs uppercase">
-          <tr>
-            <th class="text-left px-4 py-2 font-medium">{{ t('sessions.time') }}</th>
-            <th class="text-left px-4 py-2 font-medium">{{ t('sessions.visitor') }}</th>
-            <th class="text-left px-4 py-2 font-medium">{{ t('sessions.duration') }}</th>
-            <th class="text-right px-4 py-2 font-medium">{{ t('sessions.token') }}</th>
-            <th class="text-left px-4 py-2 font-medium">{{ t('sessions.status') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="r in rows" :key="r.sessionId"
-              class="border-t border-bg-border hover:bg-bg-elevated cursor-pointer"
-              @click="$router.push(`/sessions/${r.sessionId}`)">
-            <td class="px-4 py-2.5 font-mono text-xs">{{ fmtTime(r.startedAt) }}</td>
-            <td class="px-4 py-2.5">{{ r.visitorAlias }}</td>
-            <td class="px-4 py-2.5 font-mono text-xs">{{ fmtDur(r.durationSec) }}</td>
-            <td class="px-4 py-2.5 text-right font-mono text-xs">{{ r.totalTokens.toLocaleString() }}</td>
-            <td class="px-4 py-2.5"><span class="chip" :class="statusColor(r.status)">{{ r.status }}</span></td>
-          </tr>
-        </tbody>
-      </table>
-      </div>
+      <n-data-table
+        :columns="columns"
+        :data="rows"
+        :bordered="false"
+        size="small"
+        :row-props="(row: SessionSummary) => ({
+          style: 'cursor: pointer;',
+          onClick: () => router.push(`/sessions/${row.sessionId}`),
+        })"
+      />
     </template>
   </div>
 </template>

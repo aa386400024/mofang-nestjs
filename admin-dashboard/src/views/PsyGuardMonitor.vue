@@ -80,73 +80,72 @@ const requestsOption = {
     />
     <template v-else>
       <!-- 状态卡片 -->
-      <div class="grid grid-cols-4 gap-3 mb-4">
-        <div class="card p-4" :class="stats.status === 'ok' ? '' : 'border-warn/50'">
-          <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">
-            {{ t('psyguard.status') }}
-            <InfoTooltip :text="t('psyguard.statusTooltip')" />
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full" :class="stats.status === 'ok' ? 'bg-ok' : 'bg-warn'"></span>
-            <span class="font-mono text-lg text-gray-100">{{ stats.status === 'ok' ? t('psyguard.running') : t('psyguard.degraded') }}</span>
-          </div>
-        </div>
-        <div class="card p-4">
-          <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">
-            {{ t('psyguard.p50') }}
-            <InfoTooltip :text="t('psyguard.p50Tooltip')" />
-          </div>
-          <div class="font-mono text-lg text-gray-100">{{ stats.p50Ms }}<span class="text-xs text-muted ml-1">ms</span></div>
-        </div>
-        <div class="card p-4">
-          <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">
-            {{ t('psyguard.p90') }}
-            <InfoTooltip :text="t('psyguard.p90Tooltip')" />
-          </div>
-          <div class="font-mono text-lg" :class="stats.p90Ms > 500 ? 'text-warn' : 'text-gray-100'">{{ stats.p90Ms }}<span class="text-xs text-muted ml-1">ms</span></div>
-        </div>
-        <div class="card p-4">
-          <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">
-            {{ t('psyguard.totalRequests') }}
-            <InfoTooltip :text="t('psyguard.totalRequestsTooltip')" />
-          </div>
-          <div class="font-mono text-lg text-gray-100">{{ stats.totalRequests.toLocaleString() }}</div>
-        </div>
-      </div>
+      <n-grid cols="4" responsive="screen" class="mb-4">
+        <n-gi>
+          <n-card size="small">
+            <n-statistic :label="t('psyguard.status')">
+              <template #default>
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full" :class="stats.status === 'ok' ? 'bg-ok' : 'bg-warn'"></span>
+                  <span class="font-mono text-lg">{{ stats.status === 'ok' ? t('psyguard.running') : t('psyguard.degraded') }}</span>
+                </div>
+              </template>
+            </n-statistic>
+          </n-card>
+        </n-gi>
+        <n-gi>
+          <n-card size="small">
+            <n-statistic :label="t('psyguard.p50')" :value="stats.p50Ms">
+              <template #suffix>
+                <span class="text-xs text-muted ml-1">ms</span>
+              </template>
+            </n-statistic>
+          </n-card>
+        </n-gi>
+        <n-gi>
+          <n-card size="small">
+            <n-statistic :label="t('psyguard.p90')" :value="stats.p90Ms">
+              <template #suffix>
+                <span class="text-xs text-muted ml-1">ms</span>
+              </template>
+            </n-statistic>
+          </n-card>
+        </n-gi>
+        <n-gi>
+          <n-card size="small">
+            <n-statistic :label="t('psyguard.totalRequests')" :value="stats.totalRequests.toLocaleString()" />
+          </n-card>
+        </n-gi>
+      </n-grid>
 
       <!-- 延迟趋势 -->
-      <div class="card p-4 mb-4">
-        <h2 class="text-xs uppercase tracking-wider text-muted mb-3">{{ t('psyguard.latencyTrend') }}</h2>
+      <n-card :title="t('psyguard.latencyTrend')" size="small" class="mb-4">
         <VChart :option="latencyOption" :autoresize="true" style="height: 240px" />
-      </div>
+      </n-card>
 
-      <div class="grid grid-cols-2 gap-4">
+      <n-grid cols="2" responsive="screen" class="gap-4">
         <!-- 请求量 -->
-        <div class="card p-4">
-          <h2 class="text-xs uppercase tracking-wider text-muted mb-3">{{ t('psyguard.requestDist') }}</h2>
-          <VChart :option="requestsOption" :autoresize="true" style="height: 200px" />
-        </div>
+        <n-gi>
+          <n-card :title="t('psyguard.requestDist')" size="small">
+            <VChart :option="requestsOption" :autoresize="true" style="height: 200px" />
+          </n-card>
+        </n-gi>
         <!-- 类别分布 -->
-        <div class="card p-4">
-          <h2 class="text-xs uppercase tracking-wider text-muted mb-3 flex items-center">
-            {{ t('psyguard.riskDist') }}
-            <InfoTooltip :text="t('psyguard.riskDistTooltip')" />
-          </h2>
-          <div class="space-y-2.5">
-            <div v-for="(count, cat) in stats.byCategory" :key="cat" class="flex items-center gap-3">
-              <span class="text-xs font-mono w-36 text-gray-300 flex items-center">
-                {{ riskLabel(cat) }}
-                <InfoTooltip :text="riskDesc(cat)" />
-              </span>
-              <div class="flex-1 h-2 bg-bg-elevated rounded overflow-hidden">
-                <div class="h-full rounded" :class="cat === 'neutral' ? 'bg-bg-border' : 'bg-accent/60'"
-                     :style="{ width: `${Math.min(100, count / stats.totalRequests * 100 * 5)}%` }"></div>
+        <n-gi>
+          <n-card :title="t('psyguard.riskDist')" size="small">
+            <div class="space-y-2.5">
+              <div v-for="(count, cat) in stats.byCategory" :key="cat" class="flex items-center gap-3">
+                <span class="text-xs font-mono w-36 text-gray-300 flex items-center">
+                  {{ riskLabel(cat) }}
+                  <InfoTooltip :text="riskDesc(cat)" />
+                </span>
+                <n-progress type="line" :percentage="Math.min(100, count / stats.totalRequests * 100 * 5)" :show-text="false" class="flex-1" />
+                <span class="text-xs font-mono text-muted w-10 text-right">{{ count }}</span>
               </div>
-              <span class="text-xs font-mono text-muted w-10 text-right">{{ count }}</span>
             </div>
-          </div>
-        </div>
-      </div>
+          </n-card>
+        </n-gi>
+      </n-grid>
     </template>
   </div>
 </template>

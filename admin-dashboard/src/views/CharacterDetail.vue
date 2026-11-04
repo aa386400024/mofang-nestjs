@@ -64,69 +64,55 @@ const typeDistribution = () => {
 
 <template>
   <div class="p-6 max-w-4xl mx-auto">
-    <button class="text-sm text-muted hover:text-accent mb-4" @click="$router.push('/characters')">{{ t('characterDetail.back') }}</button>
+    <n-button size="small" quaternary class="mb-4" @click="$router.push('/characters')">{{ t('characterDetail.back') }}</n-button>
     <div v-if="loading" class="text-muted text-sm">…</div>
     <template v-else-if="data">
-      <div class="flex items-center gap-4 mb-5">
+      <div class="flex items-center gap-2 mb-5">
         <span class="text-lg font-semibold">{{ data.codename }}</span>
-        <span class="chip bg-bg-elevated text-muted">{{ data.attachmentStyle ?? '—' }}</span>
-        <span class="chip" :class="data.enabled ? 'bg-ok/15 text-ok' : 'bg-danger/15 text-danger'">
+        <n-tag size="small" :bordered="false">{{ data.attachmentStyle ?? '—' }}</n-tag>
+        <n-tag size="small" :bordered="false" :type="data.enabled ? 'success' : 'error'">
           {{ data.enabled ? 'enabled' : 'disabled' }}
-        </span>
-        <!-- 数据来源 / 审核状态标注 (WP26 · P2-35):
-             mock 阶段后端还没给 auditStatus → 显式标 pending, 不再显示裸 '—'
-             (一片 '—' 会被读成"没问题", 而真实含义是"这段数据还没接真实来源"). -->
-        <span class="chip" :class="auditStatusClass">{{ auditStatus }}</span>
+        </n-tag>
+        <n-tag size="small" :bordered="false" :type="auditStatus === 'approved' ? 'success' : auditStatus === 'rejected' ? 'error' : 'warning'">
+          {{ auditStatus }}
+        </n-tag>
         <span class="ml-auto text-xs text-warn" v-if="auditStatus === 'pending'">待接入真实 API (mock 数据)</span>
       </div>
 
       <!-- BDI 基线 -->
-      <div class="card p-4 mb-4">
-        <h2 class="text-xs uppercase tracking-wider text-muted mb-3">{{ t('characterDetail.bdiBaseline') }}</h2>
-        <div class="grid grid-cols-4 gap-3">
-          <div class="bg-bg-base/60 rounded p-3 text-center">
-            <div class="text-[10px] uppercase tracking-wider text-muted mb-1">trust</div>
-            <div class="font-mono text-lg text-gray-100">{{ data.baseline.trust.toFixed(2) }}</div>
-          </div>
-          <div class="bg-bg-base/60 rounded p-3 text-center">
-            <div class="text-[10px] uppercase tracking-wider text-muted mb-1">valence</div>
-            <div class="font-mono text-lg text-gray-100">{{ data.baseline.valence.toFixed(2) }}</div>
-          </div>
-          <div class="bg-bg-base/60 rounded p-3 text-center">
-            <div class="text-[10px] uppercase tracking-wider text-muted mb-1">arousal</div>
-            <div class="font-mono text-lg text-gray-100">{{ data.baseline.arousal.toFixed(2) }}</div>
-          </div>
-          <div class="bg-bg-base/60 rounded p-3 text-center">
-            <div class="text-[10px] uppercase tracking-wider text-muted mb-1">resist</div>
-            <div class="font-mono text-lg text-gray-100">{{ data.baseline.resist.toFixed(2) }}</div>
-          </div>
-        </div>
-      </div>
+      <n-card :title="t('characterDetail.bdiBaseline')" size="small" class="mb-4">
+        <n-grid cols="4" responsive="screen">
+          <n-gi v-for="(val, key) in data.baseline" :key="key">
+            <div class="text-center py-2">
+              <div class="text-[10px] uppercase tracking-wider text-muted mb-1">{{ key }}</div>
+              <div class="font-mono text-lg">{{ val.toFixed(2) }}</div>
+            </div>
+          </n-gi>
+        </n-grid>
+      </n-card>
 
       <!-- 历史会话 -->
-      <div v-if="charSessions.length" class="card p-4 mt-4">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-xs uppercase tracking-wider text-muted">{{ t('characterDetail.historySessions') }}</h2>
-          <span class="chip bg-bg-elevated text-muted text-[10px]">{{ charSessions.length }}</span>
-        </div>
+      <n-card v-if="charSessions.length" :title="t('characterDetail.historySessions')" size="small" class="mt-4" :header-style="{ paddingBottom: '8px' }">
+        <template #header-extra>
+          <n-tag size="tiny" :bordered="false">{{ charSessions.length }}</n-tag>
+        </template>
         <div class="space-y-1.5">
           <RouterLink v-for="s in charSessions" :key="s.sessionId"
                      :to="`/sessions/${s.sessionId}`"
-                     class="flex items-center gap-3 p-2.5 rounded bg-bg-base/40 hover:bg-bg-elevated transition">
+                     class="flex items-center gap-3 p-2.5 rounded hover:bg-bg-elevated transition">
             <span class="text-xs font-mono text-muted w-24">{{ s.startedAt }}</span>
-            <span class="text-xs text-gray-300 flex-1">{{ s.visitorAlias }}</span>
-            <span class="chip text-[10px]" :class="s.status === 'completed' ? 'bg-ok/10 text-ok' : 'bg-warn/10 text-warn'">{{ s.status }}</span>
+            <span class="text-xs flex-1">{{ s.visitorAlias }}</span>
+            <n-tag size="tiny" :bordered="false" :type="s.status === 'completed' ? 'success' : 'warning'">{{ s.status }}</n-tag>
             <span class="text-xs font-mono text-muted w-16 text-right">{{ s.totalTokens }} tokens</span>
           </RouterLink>
         </div>
-      </div>
+      </n-card>
 
       <!-- 该角色积累的记忆 -->
-      <div v-if="memories.length" class="card p-4 mt-4">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-xs uppercase tracking-wider text-muted">{{ t('characterDetail.memories') }}</h2>
-          <span class="chip bg-bg-elevated text-muted text-[10px]">{{ memories.length }} {{ t('memories.count') }}</span>
-        </div>
+      <n-card v-if="memories.length" :title="t('characterDetail.memories')" size="small" class="mt-4" :header-style="{ paddingBottom: '8px' }">
+        <template #header-extra>
+          <n-tag size="tiny" :bordered="false">{{ memories.length }} {{ t('memories.count') }}</n-tag>
+        </template>
 
         <!-- 类型分布条 -->
         <div class="flex h-1.5 rounded overflow-hidden mb-4 bg-bg-elevated">
@@ -152,14 +138,14 @@ const typeDistribution = () => {
                   :class="typeMeta[m.type].dot"></span>
             <div class="flex items-center gap-2 mb-0.5">
               <span class="text-[10px] font-mono text-muted">{{ new Date(m.createdAt).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) }}</span>
-              <span class="chip text-[9px]" :class="m.source === 'long_term' ? 'bg-accent/15 text-accent' : 'bg-bg-elevated text-muted'">{{ m.source }}</span>
+              <n-tag size="tiny" :bordered="false" :type="m.source === 'long_term' ? 'primary' : 'default'">{{ m.source }}</n-tag>
               <span class="text-[10px] font-mono text-muted/70">imp {{ m.importance.toFixed(1) }}</span>
             </div>
-            <p class="text-sm text-gray-200" :class="m.supersededBy ? 'line-through' : ''">{{ m.content }}</p>
+            <p class="text-sm" :class="m.supersededBy ? 'line-through' : ''">{{ m.content }}</p>
             <p v-if="m.supersededBy" class="text-[10px] text-warn mt-0.5">→ {{ t('memories.supersededBy') }} {{ m.supersededBy }}</p>
           </div>
         </div>
-      </div>
+      </n-card>
     </template>
   </div>
 </template>

@@ -26,7 +26,7 @@
 //     2. boundary.spec.ts: engine-core 子树零 @nestjs / typeorm import
 //     3. createEmptyBdiSnapshot() 每次返回新对象 (不共享可变引用)
 
-import type { CoreBelief, MemoryBelief, TemporaryBelief } from './beliefs.js';
+import type { CoreBelief, CoreBeliefActivation, MemoryBelief, TemporaryBelief } from './beliefs.js';
 import { buildInitialSnapshot } from './bootstrap.js';
 import type { SituationalDesire, UnderlyingDesire } from './desires.js';
 import type { EmotionState } from './emotion.js';
@@ -62,6 +62,19 @@ export interface BdiSnapshot {
   readonly temporaryBeliefs: readonly TemporaryBelief[];
   /** 信念层 · 记忆信念 (长时召回, 带时效; 本期仅类型, 召回属 WP2). */
   readonly memoryBeliefs: readonly MemoryBelief[];
+  /**
+   * 信念层 · 核心信念的**激活强度** (WP57).
+   *
+   * key = `CoreBelief.theme`, value = 激活强度 [0,1] (没被激活 = 0).
+   *
+   * 为什么它是**快照字段**而不是 `CoreBelief` 的属性:
+   *   `CoreBelief` 是角色内核 (永久不可变, 跨场次共享); 激活强度是**会话级动态状态**
+   *   (这一场聊到哪儿了, 跟角色设定无关). 两者混在一起 = 角色种子被运行时状态污染.
+   *
+   * ⚠️ 本期它**不参与**任何决策 (意图规划 / 渲染都不读它) —— 先把机制立起来,
+   *    "激活强度高 → 来访更防御"是后续 WP 的事 (见任务单 §8).
+   */
+  readonly coreBeliefActivation: CoreBeliefActivation;
   /** 愿望层 · 底层愿望 (稳定, 带权重). */
   readonly underlyingDesires: readonly UnderlyingDesire[];
   /** 愿望层 · 情境愿望 (本轮具体诉求, 带优先级). */
@@ -110,6 +123,9 @@ export function createEmptyBdiSnapshot(): BdiSnapshot {
 export function cloneBdiSnapshot(snapshot: BdiSnapshot): BdiSnapshot {
   return {
     coreBeliefs: snapshot.coreBeliefs.map((b) => ({ ...b })),
+    // WP57: 激活强度是浅拷贝一层 (值是数字, 拷引用即可) —— 但必须**带过**:
+    //   漏掉它 = 每次克隆/落库都把激活状态清零, 机制等于没做.
+    coreBeliefActivation: { ...snapshot.coreBeliefActivation },
     temporaryBeliefs: snapshot.temporaryBeliefs.map((b) => ({ ...b })),
     memoryBeliefs: snapshot.memoryBeliefs.map((b) => ({ ...b })),
     underlyingDesires: snapshot.underlyingDesires.map((d) => ({ ...d })),

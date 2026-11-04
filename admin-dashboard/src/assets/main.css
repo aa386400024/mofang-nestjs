@@ -57,3 +57,24 @@
 .light .text-gray-400 { color: var(--text-secondary) !important; }
 .light .text-gray-500 { color: var(--text-muted) !important; }
 .light .text-muted { color: var(--text-muted) !important; }
+
+/* ─── 全局滚动条样式 ─── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-border) transparent;
+}

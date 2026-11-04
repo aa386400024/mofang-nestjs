@@ -145,42 +145,38 @@ const impTextColor = (v: number) => v >= 0.9 ? 'text-danger' : v >= 0.8 ? 'text-
 
       <!-- 工具栏 -->
       <div class="mb-4 flex flex-wrap gap-2 items-center">
-        <input v-model="search" :placeholder="t('memories.searchPlaceholder')"
-               class="bg-bg-elevated border border-bg-border rounded px-3 py-1.5 text-sm text-gray-200 w-56 outline-none focus:border-accent/50" />
+        <n-input v-model:value="search" :placeholder="t('memories.searchPlaceholder')" size="small" class="w-56" />
 
         <!-- 类型筛选 chip -->
-        <button v-for="ty in allTypes" :key="ty"
-                class="chip text-[10px] transition"
-                :class="activeTypes.has(ty) ? typeMeta[ty].color : 'bg-bg-elevated text-muted opacity-50 hover:opacity-80'"
-                @click="toggleType(ty)">
+        <n-tag
+          v-for="ty in allTypes"
+          :key="ty"
+          checkable
+          :checked="activeTypes.has(ty)"
+          size="small"
+          @update:checked="() => toggleType(ty)"
+        >
           {{ typeMeta[ty].label }}
-        </button>
+        </n-tag>
 
-        <span class="w-px h-4 bg-bg-border mx-1"></span>
+        <n-divider vertical />
 
         <!-- 重要度筛选 -->
-        <div class="flex gap-1">
-          <button class="chip text-[10px] transition"
-                  :class="impFilter === 'all' ? 'bg-accent/20 text-accent' : 'bg-bg-elevated text-muted opacity-60'"
-                  @click="impFilter = 'all'">{{ t('memories.impAll') }}</button>
-          <button class="chip text-[10px] transition"
-                  :class="impFilter === 'high' ? 'bg-warn/20 text-warn' : 'bg-bg-elevated text-muted opacity-60'"
-                  @click="impFilter = 'high'">≥0.8</button>
-          <button class="chip text-[10px] transition"
-                  :class="impFilter === 'critical' ? 'bg-danger/20 text-danger' : 'bg-bg-elevated text-muted opacity-60'"
-                  @click="impFilter = 'critical'">≥0.9</button>
-        </div>
+        <n-radio-group v-model:value="impFilter" size="small">
+          <n-radio-button value="all">{{ t('memories.impAll') }}</n-radio-button>
+          <n-radio-button value="high">≥0.8</n-radio-button>
+          <n-radio-button value="critical">≥0.9</n-radio-button>
+        </n-radio-group>
 
-        <label class="flex items-center gap-1.5 text-xs text-muted cursor-pointer ml-2">
-          <input type="checkbox" v-model="showSuperseded" class="accent-accent" />
+        <n-checkbox v-model:checked="showSuperseded" size="small" class="ml-2">
           {{ t('memories.showSuperseded') }}
-        </label>
+        </n-checkbox>
 
         <!-- 视图切换 -->
-        <div class="ml-auto flex gap-1">
-          <button class="chip text-[10px]" :class="viewMode === 'group' ? 'bg-accent/20 text-accent' : 'bg-bg-elevated text-muted'" @click="viewMode = 'group'">{{ t('memories.viewGroup') }}</button>
-          <button class="chip text-[10px]" :class="viewMode === 'timeline' ? 'bg-accent/20 text-accent' : 'bg-bg-elevated text-muted'" @click="viewMode = 'timeline'">{{ t('memories.viewTimeline') }}</button>
-        </div>
+        <n-radio-group v-model:value="viewMode" size="small" class="ml-auto">
+          <n-radio-button value="group">{{ t('memories.viewGroup') }}</n-radio-button>
+          <n-radio-button value="timeline">{{ t('memories.viewTimeline') }}</n-radio-button>
+        </n-radio-group>
       </div>
 
       <!-- 分组视图 -->

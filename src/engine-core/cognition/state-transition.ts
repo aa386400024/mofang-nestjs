@@ -93,6 +93,29 @@
 //   剧本 (trajectory) 偏移**不覆盖** safety / bond (见 trajectory-applier.ts):
 //     剧本写死的偏移是作者的设计, 任务单本期没有给剧本的同盟三维口径 ——
 //     宁可它不动, 也不发明一个没依据的数.
+//
+// V2026-11-04 WP57 (引擎内核 · 信念层动态算子):
+//   信念层此前是**纯静态结构**: `applyDeltaVector` 里三层信念原样透传, 一行不改.
+//   CoreBelief.activationTags 定义了"什么议题会激活这个信念"却**没有任何代码消费它** ——
+//   死数据. TemporaryBelief.confidence 一旦形成就永远不变.
+//
+//   本文件新增两个**纯函数**算子 + 一条管道接线:
+//     · applyBeliefActivationDelta —— 核心信念激活强度: 咨询师文本命中 activationTags
+//       → 强度上升; 每轮结束后所有强度按乘性衰减回落;
+//     · applyTemporaryBeliefDecay  —— 短期信念置信度按来源分别衰减, 低于阈值的移除.
+//
+//   为什么匹配源是**咨询师原文**而不是事件 (事件只有 matchedTerms):
+//     事件里的 matchedTerms 是**词表筛过**的结果 (静态词典 + 角色 sensitiveTopics),
+//     而 activationTags 是**另一组独立词表** (见任务单 §2.3) —— 两组词表不重叠时,
+//     按事件匹配会让这套机制**永远是死的**. 咨询师原文才是"提到了这个议题"的真相源.
+//
+//   为什么放在 cap **之后** (管道末端):
+//     信念演化与事件 delta 无关 (它每轮自动发生), 且**不参与** delta ——
+//     放在最后, 即使信念算子出 bug, 也不会污染 delta 的计算与 cap 报告.
+//
+//   系数走**端口** (BeliefOperatorConfig), 与 cap / 人格 / 同盟同一范式:
+//     env → (适配层) → BeliefOperatorConfig → (内核端口). 内核零 env 读取.
+//     ⚠️ 系数是**工程种子值, 非临床标定** —— 待真实对练校准.
 
 import { resolveAllianceDelta, type AllianceConfig } from './alliance-config.js';
 import { modulateDeltaByPersonality, type PersonalityModulationInput } from './personality-modulator.js';
@@ -564,6 +587,22 @@ export interface TransitionStateOptions {
    * 缺省 = 用 DELTA_TABLE 的基础系数与内核种子门槛 (逐字不变, 零回归).
    */
   readonly alliance?: AllianceConfig;
+  /**
+   * 本轮咨询师原话 (WP57 · 信念激活的匹配源).
+   *
+   * 缺省 = 空串 = 本轮没有任何议题命中 (激活不发生, 但**衰减照常** ——
+   * 衰减是每轮自动发生的, 与本轮说了什么无关).
+   *
+   * 为什么是**原文**而不是事件里的 matchedTerms: 事件词表与 activationTags 是
+   * 两组独立词表 (任务单 §2.3), 用事件匹配会让机制在词表不重叠时**永远是死的**.
+   */
+  readonly counselorText?: string;
+  /**
+   * 信念算子系数端口 (WP57; 缺省 = 内核种子值).
+   *
+   * 缺省时行为 = 内核种子系数 (逐字可复现); 适配层将来要接 env 时, 在这里覆写.
+   */
+  readonly beliefConfig?: BeliefOperatorConfig;
 }
 
 /**
@@ -642,6 +681,9 @@ export function applyDeltaVector(snapshot: BdiSnapshot, delta: DeltaVector): Bdi
 
   return {
     coreBeliefs: snapshot.coreBeliefs,
+    // WP57: 核心信念激活强度**原样带过** —— 它不是 delta 维度, 不受本函数影响.
+    //   但必须显式带: 漏掉它 = 每回合把激活状态清零, 机制等于没做.
+    coreBeliefActivation: snapshot.coreBeliefActivation,
     temporaryBeliefs: snapshot.temporaryBeliefs,
     memoryBeliefs: snapshot.memoryBeliefs,
     underlyingDesires: snapshot.underlyingDesires,
@@ -664,10 +706,187 @@ export function applyDeltaVector(snapshot: BdiSnapshot, delta: DeltaVector): Bdi
   };
 }
 
+// ── 信念层算子 (WP57 · 核心信念激活 + 短期信念置信度衰减) ─────────────
+
+/**
+ * 信念算子的**系数端口** (WP57).
+ *
+ * 与 cap / 人格 / 同盟同一范式: 内核只认端口, 不读 env.
+ * 依赖方向: env → (适配层) → BeliefOperatorConfig → (内核端口).
+ */
+export interface BeliefOperatorConfig {
+  /** 命中 activationTags 时, 激活强度的增量 (每轮). */
+  readonly activationDelta: number;
+  /** 激活强度的逐轮衰减率 (乘性). */
+  readonly activationDecayRate: number;
+  /** introduced 短期信念的逐轮衰减率 (乘性). */
+  readonly introducedDecayRate: number;
+  /** observed 短期信念的逐轮衰减率 (乘性). */
+  readonly observedDecayRate: number;
+  /** 短期信念置信度低于此值即移除 (严格小于). */
+  readonly removeThreshold: number;
+}
+
+/**
+ * 内核种子值 (工程种子值, **非临床标定** —— 待真实对练校准).
+ *
+ * 形状的理由:
+ *   · activationDelta 0.15 —— 一次命中就把激活强度抬到"明显被激活"的程度,
+ *     但不至于一击拉满 (反复命中的渐近上限是 0.6, 见交付记录 §2.3);
+ *   · activationDecayRate 0.8 —— 激活强度回落得比情绪快: 议题不在眼前时,
+ *     这个信念就该淡下去 (否则它会一直挂着, 变成常驻背景音);
+ *   · introduced 0.9 vs observed 0.95 —— 咨询师**给的**解释只是"听见了",
+ *     来访自己悟出来的记得更久 (这是**设计选择**, 不是临床标定).
+ */
+export const DEFAULT_BELIEF_ACTIVATION_DELTA = 0.15;
+export const DEFAULT_BELIEF_DECAY_RATE = 0.8;
+export const DEFAULT_INTRODUCED_BELIEF_DECAY_RATE = 0.9;
+export const DEFAULT_OBSERVED_BELIEF_DECAY_RATE = 0.95;
+export const DEFAULT_TEMPORARY_BELIEF_REMOVE_THRESHOLD = 0.1;
+
+/** 内核默认系数 (缺省 = 种子值). */
+export const DEFAULT_BELIEF_OPERATOR_CONFIG: BeliefOperatorConfig = {
+  activationDelta: DEFAULT_BELIEF_ACTIVATION_DELTA,
+  activationDecayRate: DEFAULT_BELIEF_DECAY_RATE,
+  introducedDecayRate: DEFAULT_INTRODUCED_BELIEF_DECAY_RATE,
+  observedDecayRate: DEFAULT_OBSERVED_BELIEF_DECAY_RATE,
+  removeThreshold: DEFAULT_TEMPORARY_BELIEF_REMOVE_THRESHOLD,
+};
+
+/**
+ * 解析一个 [0,1] 区间的小数 (非法 → 回退种子值).
+ *
+ * 与 `session-decay.ts` 的 `sanitizeHalfLife` 同一纪律: 端口是**公开契约**,
+ * 任何人都能塞一份配置进来. 一个 >1 的衰减率会让置信度**不降反升**,
+ * 一个负数会让它变号 —— 两者都会把整份快照污染成不合法的状态.
+ */
+function sanitizeRatio(value: number | undefined, fallback: number): number {
+  if (value === undefined || !Number.isFinite(value) || value < 0 || value > 1) return fallback;
+  return value;
+}
+
+/** 解析本次生效的信念系数 (逐项回退内核种子值). */
+function resolveBeliefOperatorConfig(config: BeliefOperatorConfig | undefined): BeliefOperatorConfig {
+  const seed = DEFAULT_BELIEF_OPERATOR_CONFIG;
+  if (!config) return seed;
+  return {
+    activationDelta: sanitizeRatio(config.activationDelta, seed.activationDelta),
+    activationDecayRate: sanitizeRatio(config.activationDecayRate, seed.activationDecayRate),
+    introducedDecayRate: sanitizeRatio(config.introducedDecayRate, seed.introducedDecayRate),
+    observedDecayRate: sanitizeRatio(config.observedDecayRate, seed.observedDecayRate),
+    removeThreshold: sanitizeRatio(config.removeThreshold, seed.removeThreshold),
+  };
+}
+
+/**
+ * 标签匹配: 咨询师文本里**包含**这个激活标签就算命中.
+ *
+ * 为什么只做"文本包含标签"这一向 (任务单 §5.1 写的是双向包含):
+ *   双向口径是为"事件 matchedTerms ↔ 激活标签"设计的 (两边都是**短词**).
+ *   换成"长文本 ↔ 标签"后, 反向 (标签包含整段文本) 只会在文本比标签还短时命中 ——
+ *   比如来访只说了"嗯"而标签是"不安全感", 那不是命中, 是噪声.
+ */
+function matchesActivationTag(haystack: string, tag: string): boolean {
+  const needle = tag.trim().toLowerCase();
+  if (needle.length === 0) return false;
+  return haystack.includes(needle);
+}
+
+/**
+ * 核心信念激活 (WP57).
+ *
+ * 规则:
+ *   1. 咨询师本轮文本命中某信念的任一 `activationTags` → 该信念激活强度 += 增量;
+ *   2. **然后**所有信念的激活强度按乘性衰减率回落;
+ *   3. clamp 到 [0,1].
+ *
+ * 顺序为什么是"先加后衰减" (而不是先衰减后加):
+ *   衰减是"回合结束时"的自然回落, 加是"这一轮命中"的抬升 —— 两者发生在同一回合的
+ *   不同时刻. 先加后衰减 = 本轮命中立刻可见, 但同时被回落削一刀 (0.15 → 0.12);
+ *   反复命中的渐近上限 = 0.15 / (1 - 0.8) = 0.6, 即"反复被触及的核心信念会稳定在
+ *   0.6 附近" —— 既不会瞬间拉满, 也不会永远回到 0.
+ *
+ * @param snapshot 当前快照 (不会被修改)
+ * @param counselorText 本轮咨询师原话 (匹配源)
+ * @param config 系数端口 (缺省 = 内核种子值; 非法值逐项回退)
+ * @returns 演化后的**新**快照 (值语义)
+ */
+export function applyBeliefActivationDelta(snapshot: BdiSnapshot, counselorText: string, config?: BeliefOperatorConfig): BdiSnapshot {
+  const cfg = resolveBeliefOperatorConfig(config);
+  const haystack = counselorText.trim().toLowerCase();
+
+  // 按 theme 归并: 同 theme 的多个信念**共享**一份激活强度.
+  //   为什么不是"后者覆盖前者": theme 唯一是**角色配置的责任**, 而引擎不该让
+  //   一个配置笔误变成"行为取决于数组顺序"的不确定性 —— 命中任一即算命中, 与顺序无关.
+  const byTheme = new Map<string, { current: number; tags: string[] }>();
+  for (const belief of snapshot.coreBeliefs) {
+    const entry = byTheme.get(belief.theme);
+    if (entry) {
+      entry.tags.push(...belief.activationTags);
+      continue;
+    }
+    byTheme.set(belief.theme, {
+      current: snapshot.coreBeliefActivation[belief.theme] ?? 0,
+      tags: [...belief.activationTags],
+    });
+  }
+
+  const next: Record<string, number> = {};
+  for (const [theme, entry] of byTheme) {
+    const hit = entry.tags.some((tag) => matchesActivationTag(haystack, tag));
+    const raised = hit ? entry.current + cfg.activationDelta : entry.current;
+    next[theme] = clamp01(raised * cfg.activationDecayRate);
+  }
+
+  return { ...snapshot, coreBeliefActivation: next };
+}
+
+/**
+ * 短期信念置信度衰减 (WP57).
+ *
+ * 规则:
+ *   1. 按来源乘性衰减: introduced ×0.9 / observed ×0.95;
+ *   2. clamp 到 [0,1];
+ *   3. 置信度低于阈值 (0.1) 的**移除** (严格小于).
+ *
+ * 为什么 introduced 衰减更快:
+ *   咨询师给的解释 ("你这是因为害怕被抛弃"), 如果来访没有自己消化, 只是"听见了" ——
+ *   慢慢就淡下去; 来访自己在对话里悟出来的想法, 是自己长出来的, 记得更久.
+ *   ⚠️ 这是**设计选择**, 不是临床标定.
+ *
+ * @param snapshot 当前快照 (不会被修改)
+ * @param config 系数端口 (缺省 = 内核种子值; 非法值逐项回退)
+ * @returns 衰减后的**新**快照 (值语义)
+ */
+export function applyTemporaryBeliefDecay(snapshot: BdiSnapshot, config?: BeliefOperatorConfig): BdiSnapshot {
+  const cfg = resolveBeliefOperatorConfig(config);
+  const decayed = snapshot.temporaryBeliefs.map((belief) => ({
+    ...belief,
+    confidence: clamp01(belief.confidence * (belief.source === 'introduced' ? cfg.introducedDecayRate : cfg.observedDecayRate)),
+  }));
+  return { ...snapshot, temporaryBeliefs: decayed.filter((belief) => belief.confidence >= cfg.removeThreshold) };
+}
+
+/**
+ * 信念层一轮完整演化 (激活 + 短期信念衰减).
+ *
+ * 为什么另导出一个组合函数:
+ *   内核有**两处**消费点 (会话层的临时快照 / 落库快照) —— 两处若各写一遍
+ *   "先激活后衰减"的顺序, 迟早有一处顺序写反. 组合口径只有这一份.
+ *
+ * @param snapshot 当前快照
+ * @param counselorText 本轮咨询师原话 (激活匹配源)
+ * @param config 系数端口 (缺省 = 内核种子值)
+ * @returns 演化后的**新**快照 (值语义)
+ */
+export function applyBeliefEvolution(snapshot: BdiSnapshot, counselorText: string, config?: BeliefOperatorConfig): BdiSnapshot {
+  return applyTemporaryBeliefDecay(applyBeliefActivationDelta(snapshot, counselorText, config), config);
+}
+
 /**
  * 状态迁移: 旧快照 + 事件 → 新快照.
- * 信念层 / 愿望层规则轨不改写 (原样透传, 其演进入模型轨 / 后续);
- * 只推进信任 / 阻抗 / 情绪 / 移情.
+ * 愿望层规则轨不改写 (原样透传, 其演进入模型轨 / 后续);
+ * 只推进信任 / 阻抗 / 情绪 / 移情 + **信念层演化** (WP57).
  *
  * WP15: 本轮总 delta 先过**单回合 cap** 再落快照 (砍 delta, 不是 clamp 绝对值);
  * 被砍了就把报告交给观察者 (adapter 决定打不打日志).
@@ -686,7 +905,9 @@ export function transitionState(snapshot: BdiSnapshot, events: readonly SessionE
   const raw = modulateByPersonality(aggregated, events, options?.personality);
   const delta = capTurnDelta(raw, options?.capConfig);
   notifyDeltaCap(options?.observer, buildDeltaCapReport(raw, delta, events, options?.capContext));
-  return applyDeltaVector(snapshot, delta);
+  // WP57: 信念演化在管道**末端** —— 它与事件 delta 无关 (每轮自动发生),
+  //   且不参与 delta 计算. 放最后 = 信念算子出 bug 也污染不到 delta 与 cap 报告.
+  return applyBeliefEvolution(applyDeltaVector(snapshot, delta), options?.counselorText ?? '', options?.beliefConfig);
 }
 
 /**
@@ -707,5 +928,7 @@ export function transitionStateDetailed(
   const delta = capTurnDelta(raw, options?.capConfig);
   const report = buildDeltaCapReport(raw, delta, events, options?.capContext);
   notifyDeltaCap(options?.observer, report);
-  return { snapshot: applyDeltaVector(snapshot, delta), capped: report };
+  // WP57: 与 `transitionState` 同一口径的信念演化 (两处必须一致 —— 见交付记录 §2.6).
+  const next = applyBeliefEvolution(applyDeltaVector(snapshot, delta), options?.counselorText ?? '', options?.beliefConfig);
+  return { snapshot: next, capped: report };
 }

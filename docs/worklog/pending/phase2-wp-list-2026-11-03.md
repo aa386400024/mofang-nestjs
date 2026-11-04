@@ -70,7 +70,7 @@
 
 | WP | 名称 | 优先级 | 一句话描述 | 依赖 |
 |---|---|---|---|---|
-| **WP57** | BDI 信念层深度扩展 | 🟡 P1 | 现在信念有三层结构（核心/短期/记忆），但算子主要在阻抗/情绪/关系层，**信念本身还没怎么动**——核心信念没有激活规则、短期信念置信度不衰减、没有"信念被干预后改变"的算子。落法：先补最基础的（短期信念置信度随轮次衰减、核心信念的激活条件），不追求完整 BDI 推理循环（那是 Phase3+） | WP1 |
+| **WP57** ✅ | BDI 信念层深度扩展 | 🟡 P1 | 现在信念有三层结构（核心/短期/记忆），但算子主要在阻抗/情绪/关系层，**信念本身还没怎么动**——核心信念没有激活规则、短期信念置信度不衰减、没有"信念被干预后改变"的算子。落法：先补最基础的（短期信念置信度随轮次衰减、核心信念的激活条件），不追求完整 BDI 推理循环（那是 Phase3+）。⚠️ 实际落地加了**核心信念激活强度**（新增 `coreBeliefActivation` 快照字段：咨询师原文命中 `activationTags` → 激活上升，逐轮乘性衰减）；**匹配源用咨询师原文而非事件 `matchedTerms`**（两组词表独立，按事件匹配会让机制永远是死的）；**落库路径单独接一次算子**（落库走 `applyDeltaVector` 不走 `transitionState`，只接后者 = 机制空转）。⚠️ 跨会话时激活强度**不衰减**（本单 §5.2 登记的缺口，后续 WP 补）（[交付记录](../completed/phase2/engine-wp57-belief-layer-deep-expansion-implementation-2026-11-04.md)） | WP1 |
 | **WP58** | 引擎调试面板 / BDI 状态 trace | 🟡 P1 🚧 进行中 | 内测调参刚需：每轮对话展开后，能看到这一轮 BDI 状态变了多少（trust +0.02 / safety -0.05…）、触发了什么事件、prompt 长什么样、delta cap 砍了多少。Admin Dashboard 里加一个"会话调试视图"，数据从现有日志/指标里抽，不新增采集链路 | WP31 |
 | **WP59** | 记忆召回策略优化 | 🟢 P2 | WP56 只是"把 recall 接进 prompt"，但召回本身的策略还很原始——没有 Top-N 截断、没有过期过滤、相似记忆没有冲突消解（两条矛盾的记忆都被召回来 = 模型混乱）。落法：先做最简单的 Top-K + 时间衰减加权，冲突消解放后面 | WP56 |
 | **WP60** | delta 规则表配置化 | 🟢 P2 | 现在事件→delta 映射硬编码在 `state-transition.ts` 里，改一个数字要发版。后期运营/心理咨询师要自定义规则时，抽成配置文件（JSON/YAML），内核还是纯函数读配置，env 还是适配层读。⚠️ **现在不急**——单人开发阶段硬编码反而是最快的，等真的需要自定义规则了再抽 | WP1 |
@@ -86,7 +86,7 @@
 | 🟢 P2 技术债 | 10 条 | WP45, 46, 47, 48, 49, 52, 53, 54, 59, 60 |
 | **合计** | **35 条** | **WP27–WP61** |
 
-**进度：6 / 35 完成**（WP28 ✅、WP34 ✅、WP36 ✅、WP37 ✅、WP42 ✅、WP55 ✅，2026-11-04）。
+**进度：7 / 35 完成**（WP28 ✅、WP34 ✅、WP36 ✅、WP37 ✅、WP42 ✅、WP55 ✅、WP57 ✅，2026-11-04）。
 
 ### 🚧 上线前必须一起做的真机项（WP28 遗留）
 
@@ -125,6 +125,7 @@ _每个 WP 开工前单独写任务单（按 `team/conventions.md` 的交付格�
 | WP36 跨会话衰减 ✅ | 新增 `cognition/session-decay.ts`（衰减纯函数 + 半衰期端口）+ `in-memory/in-memory-engine-session.ts` 的 resume 接线 + `index.ts` barrel | 衰减是**状态迁移规则**，必须落在纯层（适配层放它就破坏"内核零 env / 零状态"的边界） |
 | WP37 滚动摘要 ✅ | `memory/working-window.ts`（溢出纯函数 `overflowedWorkingWindowLines`）+ `domain/engine-session.types.ts`（`WorkingWindowOverflowEvent`）+ `in-memory/in-memory-engine-session.ts`（`onWorkingWindowOverflow` 溢出钩子）+ `domain/rendering/render-types.ts`（`RenderSpec.sessionSummary`）+ `index.ts` barrel | **窗口裁剪是内核策略** —— 内核负责"什么时候该压缩"（"被挤出了哪几轮"是内核窗口的事实），适配层负责"怎么压缩"（调 LLM）。内核只交出文本，**零网络 / 零 prompt / 零 env** 边界不变 |
 | WP42 咨询同盟三维 ✅ | BDI 状态模型（trust → trust/safety/bond） | 状态结构变化，必须在内核 |
+| WP57 信念层深度扩展 ✅ | `domain/beliefs.ts`（`CoreBeliefActivation` 类型）+ `domain/bdi-snapshot.ts`（快照新增 `coreBeliefActivation` 字段）+ `domain/bootstrap.ts`（初始值）+ `cognition/state-transition.ts`（激活 / 衰减 / 组合三个纯函数 + `BeliefOperatorConfig` 端口 + 管道末端接线）+ `in-memory/in-memory-engine-session.ts`（**落库路径单独接算子**）+ `index.ts` barrel | 信念算子是**决策层逻辑**（状态迁移规则），必须落在纯层 —— 适配层放它就破坏"内核零 env / 零状态"的边界。⚠️ `in-memory-engine-session.ts` 不在任务单 §6.1 的预批准清单里，**已获用户 2026-11-04 当面批准**（落库走 `applyDeltaVector` 不走 `transitionState`，不单独接 = 机制空转） |
 
 > 其他 WP 一律在 `engine-adapters/` 或业务层改，不碰 `src/engine-core/`。
 

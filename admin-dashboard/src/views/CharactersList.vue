@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, h } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { api } from '@/api/client'
 import type { CharacterBaseline } from '@/api/types'
 import EmptyState from '@/components/EmptyState.vue'
 
 const { t } = useI18n()
+const router = useRouter()
 const rows = ref<CharacterBaseline[]>([])
 const loading = ref(true)
 const err = ref('')
@@ -15,6 +17,69 @@ onMounted(async () => {
   catch (e) { err.value = String(e) }
   finally { loading.value = false }
 })
+
+// n-data-table 列定义
+const columns = [
+  {
+    title: () => t('characters.codename'),
+    key: 'codename',
+    width: 120,
+  },
+  {
+    title: 'slug',
+    key: 'slug',
+    width: 120,
+  },
+  {
+    title: () => t('characters.attachmentStyle'),
+    key: 'attachmentStyle',
+    width: 120,
+    render: (row: CharacterBaseline) => row.attachmentStyle ?? '—',
+  },
+  {
+    title: 'trust',
+    key: 'baseline.trust',
+    width: 80,
+    align: 'center' as const,
+    render: (row: CharacterBaseline) => row.baseline.trust.toFixed(2),
+  },
+  {
+    title: 'valence',
+    key: 'baseline.valence',
+    width: 80,
+    align: 'center' as const,
+    render: (row: CharacterBaseline) => row.baseline.valence.toFixed(2),
+  },
+  {
+    title: 'arousal',
+    key: 'baseline.arousal',
+    width: 80,
+    align: 'center' as const,
+    render: (row: CharacterBaseline) => row.baseline.arousal.toFixed(2),
+  },
+  {
+    title: 'resist',
+    key: 'baseline.resist',
+    width: 80,
+    align: 'center' as const,
+    render: (row: CharacterBaseline) => row.baseline.resist.toFixed(2),
+  },
+  {
+    title: () => t('characters.enabled'),
+    key: 'enabled',
+    width: 80,
+    align: 'center' as const,
+    render: (row: CharacterBaseline) =>
+      h('span', { class: 'chip ' + (row.enabled ? 'bg-ok/15 text-ok' : 'bg-danger/15 text-danger') }, row.enabled ? '✓' : '✗'),
+  },
+  {
+    title: () => t('characters.auditStatus'),
+    key: 'auditStatus',
+    width: 100,
+    align: 'center' as const,
+    render: (row: CharacterBaseline) => row.auditStatus ?? '—',
+  },
+]
 </script>
 
 <template>
@@ -40,40 +105,16 @@ onMounted(async () => {
       description="角色池为空。在 character_profiles 表中添加角色后，这里会展示 BDI 基线和上下架状态。"
       pendingTag="等待角色数据"
     />
-    <div v-else class="card overflow-hidden">
-      <table class="w-full text-sm">
-        <thead class="bg-bg-elevated text-muted text-xs uppercase">
-          <tr>
-            <th class="text-left px-4 py-2 font-medium">{{ t('characters.codename') }}</th>
-            <th class="text-left px-4 py-2 font-medium">slug</th>
-            <th class="text-left px-4 py-2 font-medium">{{ t('characters.attachmentStyle') }}</th>
-            <th class="text-center px-4 py-2 font-medium">trust</th>
-            <th class="text-center px-4 py-2 font-medium">valence</th>
-            <th class="text-center px-4 py-2 font-medium">arousal</th>
-            <th class="text-center px-4 py-2 font-medium">resist</th>
-            <th class="text-center px-4 py-2 font-medium">{{ t('characters.enabled') }}</th>
-            <th class="text-center px-4 py-2 font-medium">{{ t('characters.auditStatus') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="c in rows" :key="c.slug" class="border-t border-bg-border hover:bg-bg-elevated cursor-pointer"
-              @click="$router.push(`/characters/${c.slug}`)">
-            <td class="px-4 py-2.5 font-medium">{{ c.codename }}</td>
-            <td class="px-4 py-2.5 font-mono text-xs text-muted">{{ c.slug }}</td>
-            <td class="px-4 py-2.5 text-xs text-gray-300">{{ c.attachmentStyle ?? '—' }}</td>
-            <td class="px-4 py-2.5 text-center font-mono text-xs">{{ c.baseline.trust.toFixed(2) }}</td>
-            <td class="px-4 py-2.5 text-center font-mono text-xs">{{ c.baseline.valence.toFixed(2) }}</td>
-            <td class="px-4 py-2.5 text-center font-mono text-xs">{{ c.baseline.arousal.toFixed(2) }}</td>
-            <td class="px-4 py-2.5 text-center font-mono text-xs">{{ c.baseline.resist.toFixed(2) }}</td>
-            <td class="px-4 py-2.5 text-center">
-              <span class="chip" :class="c.enabled ? 'bg-ok/15 text-ok' : 'bg-danger/15 text-danger'">
-                {{ c.enabled ? '✓' : '✗' }}
-              </span>
-            </td>
-            <td class="px-4 py-2.5 text-center text-xs">{{ c.auditStatus ?? '—' }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <n-data-table
+      v-else
+      :columns="columns"
+      :data="rows"
+      :bordered="false"
+      size="small"
+      :row-props="(row: CharacterBaseline) => ({
+        style: 'cursor: pointer;',
+        onClick: () => router.push(`/characters/${row.slug}`),
+      })"
+    />
   </div>
 </template>

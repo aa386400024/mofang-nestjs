@@ -21,7 +21,7 @@ export type { BdiResistance, BdiSnapshot } from './domain/bdi-snapshot.js';
 export { cloneBdiSnapshot, createEmptyBdiSnapshot } from './domain/bdi-snapshot.js';
 
 // ── 信念层 ────────────────────────────────────────────────────────
-export type { CoreBelief, MemoryBelief, TemporaryBelief } from './domain/beliefs.js';
+export type { CoreBelief, CoreBeliefActivation, MemoryBelief, TemporaryBelief } from './domain/beliefs.js';
 
 // ── 愿望层 ────────────────────────────────────────────────────────
 export type { SituationalDesire, UnderlyingDesire } from './domain/desires.js';
@@ -147,6 +147,7 @@ export type { EngineSessionPort } from './runtime/engine-session.port.js';
 export type {
   CapBounds,
   CapDim,
+  BeliefOperatorConfig,
   DeltaCapConfig,
   DeltaCapContext,
   DeltaCapEntry,
@@ -158,10 +159,19 @@ export type {
 export {
   addDeltaVectors,
   aggregateTurnDelta,
+  applyBeliefActivationDelta,
+  applyBeliefEvolution,
   applyDeltaVector,
+  applyTemporaryBeliefDecay,
   buildDeltaCapReport,
   capTurnDelta,
+  DEFAULT_BELIEF_ACTIVATION_DELTA,
+  DEFAULT_BELIEF_DECAY_RATE,
+  DEFAULT_BELIEF_OPERATOR_CONFIG,
   DEFAULT_DELTA_CAP_CONFIG,
+  DEFAULT_INTRODUCED_BELIEF_DECAY_RATE,
+  DEFAULT_OBSERVED_BELIEF_DECAY_RATE,
+  DEFAULT_TEMPORARY_BELIEF_REMOVE_THRESHOLD,
   transitionState,
   transitionStateDetailed,
 } from './cognition/state-transition.js';

@@ -46,6 +46,7 @@ import {
   capTurnDelta,
   notifyDeltaCap,
   transitionState,
+  applyBeliefEvolution,
   type DeltaCapConfig,
   type DeltaCapObserver,
   type DeltaVector,
@@ -365,6 +366,10 @@ export class InMemoryEngineSession implements EngineSessionPort {
       capConfig: this.capConfig,
       personality,
       alliance: this.allianceConfig,
+      // WP57: 信念激活的匹配源 (咨询师原文).
+      //   临时快照与落库快照**两处口径必须一致** —— 两处都从 base.snapshot 出发,
+      //   所以不会重复演化 (各演一次, 结果相同).
+      counselorText: userText,
     });
     const intention = planIntention(provisional, runtime.characterProfile ?? undefined, this.allianceConfig);
     // 4. 轨迹步 (WP3): BDI 自由规划**之后**、落库**之前**.
@@ -379,7 +384,14 @@ export class InMemoryEngineSession implements EngineSessionPort {
     //    偏移同样是"这一轮来访内心状态被改动了一次", 必须与事件 delta 一起受同一把尺子.
     const totalDelta = trajectory.delta ? addDeltaVectors(eventDelta, trajectory.delta) : eventDelta;
     const cappedTotal = capTurnDelta(totalDelta, this.capConfig);
-    const nextSnapshot = applyDeltaVector(base.snapshot, cappedTotal);
+    //    WP57: 信念演化 (核心信念激活 + 短期信念置信度衰减) 落在**本轮落库快照**上.
+    //    为什么落库路径要单独接一次 (而不是只靠 transitionState):
+    //      落库口径是"事件 delta + 剧本 delta 合并后统一过一次 cap" (WP26 P2-12),
+    //      走的是 `applyDeltaVector` 而不是 `transitionState` —— 只在 transitionState
+    //      里接信念算子, 落库快照就**永远不会**带上信念演化 (机制空转).
+    //    两处口径必须一致: 临时快照 (transitionState) 与落库快照都从 base.snapshot 出发,
+    //    各自演一次, 结果相同.
+    const nextSnapshot = applyBeliefEvolution(applyDeltaVector(base.snapshot, cappedTotal), userText);
     //    报告口径 = 总 delta (不是事件 delta): 运维看到的就是"这一轮实际被砍了多少".
     notifyDeltaCap(
       this.capObserver,

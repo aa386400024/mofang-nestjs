@@ -46,6 +46,33 @@ const tokenChart = {
     { name: 'Cost (¥)', type: 'line', yAxisIndex: 1, data: trend.value.map(tr => tr.costCny), smooth: true, lineStyle: { width: 2, color: '#e8c87a' }, itemStyle: { color: '#e8c87a' } },
   ],
 }
+
+// n-data-table 列定义
+const costColumns = [
+  {
+    title: () => t('cost.time'),
+    key: 'startedAt',
+    width: 150,
+  },
+  {
+    title: () => t('cost.visitor'),
+    key: 'visitorAlias',
+  },
+  {
+    title: () => t('cost.token'),
+    key: 'tokens',
+    width: 120,
+    align: 'right' as const,
+    render: (row: SessionCost) => row.tokens.toLocaleString(),
+  },
+  {
+    title: () => t('cost.cost'),
+    key: 'costCny',
+    width: 100,
+    align: 'right' as const,
+    render: (row: SessionCost) => `¥${row.costCny.toFixed(2)}`,
+  },
+]
 </script>
 
 <template>
@@ -101,29 +128,14 @@ const tokenChart = {
       </div>
 
       <!-- 会话成本排行 -->
-      <div class="card overflow-hidden">
-        <div class="px-4 py-3 border-b border-bg-border">
-          <h2 class="text-xs uppercase tracking-wider text-muted">{{ t('cost.recentSessions') }}</h2>
-        </div>
-        <table class="w-full text-sm">
-          <thead class="bg-bg-elevated text-muted text-xs uppercase">
-            <tr>
-              <th class="text-left px-4 py-2 font-medium">{{ t('cost.time') }}</th>
-              <th class="text-left px-4 py-2 font-medium">{{ t('cost.visitor') }}</th>
-              <th class="text-right px-4 py-2 font-medium">{{ t('cost.token') }}</th>
-              <th class="text-right px-4 py-2 font-medium">{{ t('cost.cost') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="s in sessions" :key="s.sessionId" class="border-t border-bg-border hover:bg-bg-elevated">
-              <td class="px-4 py-2.5 font-mono text-xs text-muted">{{ s.startedAt }}</td>
-              <td class="px-4 py-2.5">{{ s.visitorAlias }}</td>
-              <td class="px-4 py-2.5 text-right font-mono text-xs">{{ s.tokens.toLocaleString() }}</td>
-              <td class="px-4 py-2.5 text-right font-mono text-xs text-accent">¥{{ s.costCny.toFixed(2) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <n-card :title="t('cost.recentSessions')" size="small">
+        <n-data-table
+          :columns="costColumns"
+          :data="sessions"
+          :bordered="false"
+          size="small"
+        />
+      </n-card>
     </template>
   </div>
 </template>

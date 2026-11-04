@@ -62,42 +62,30 @@ const handleLogin = async () => {
       </div>
 
       <!-- 登录卡片 -->
-      <div class="card p-6 backdrop-blur-xl bg-bg-surface/80 border border-bg-border">
-        <form @submit.prevent="handleLogin" class="space-y-4">
-          <div>
-            <label class="block text-xs uppercase tracking-wider text-muted mb-1.5">用户名</label>
-            <input
-              v-model="form.username"
-              type="text"
-              placeholder="请输入用户名"
-              class="w-full px-3 py-2.5 rounded-lg bg-bg-elevated border border-bg-border text-sm text-gray-200 placeholder:text-muted/50 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition"
-              autocomplete="username"
-            >
-          </div>
-          <div>
-            <label class="block text-xs uppercase tracking-wider text-muted mb-1.5">密码</label>
-            <input
-              v-model="form.password"
-              type="password"
-              placeholder="请输入密码"
-              class="w-full px-3 py-2.5 rounded-lg bg-bg-elevated border border-bg-border text-sm text-gray-200 placeholder:text-muted/50 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition"
-              autocomplete="current-password"
-            >
-          </div>
+      <n-card class="backdrop-blur-xl" embedded>
+        <n-form @submit.prevent="handleLogin">
+          <n-form-item label="用户名">
+            <n-input v-model:value="form.username" placeholder="请输入用户名" autocomplete="username" />
+          </n-form-item>
+          <n-form-item label="密码">
+            <n-input v-model:value="form.password" type="password" show-password-on="click" placeholder="请输入密码" autocomplete="current-password" />
+          </n-form-item>
 
-          <div v-if="error" class="text-xs text-danger bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
+          <n-alert v-if="error" :show-icon="false" type="error" class="mb-4">
             {{ error }}
-          </div>
+          </n-alert>
 
-          <button
-            type="submit"
-            :disabled="loading || !form.username || !form.password"
-            class="w-full py-2.5 rounded-lg bg-accent text-bg-base text-sm font-medium hover:bg-accent/90 focus:outline-none focus:ring-2 focus:ring-accent/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          <n-button
+            type="primary"
+            block
+            :loading="loading"
+            :disabled="!form.username || !form.password"
+            @click="handleLogin"
           >
             {{ loading ? '登录中…' : '登 录' }}
-          </button>
-        </form>
-      </div>
+          </n-button>
+        </n-form>
+      </n-card>
 
       <p class="text-center text-xs text-muted mt-6">
         心塑 App · 后端调试管理后台
