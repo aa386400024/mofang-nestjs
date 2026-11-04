@@ -3,9 +3,19 @@
 
 export interface BdiSnapshot {
   trust: number
+  /** 关系安全感 [0,1]（WP42） */
+  safety?: number
+  /** 关系联结 [0,1]（WP42） */
+  bond?: number
   valence: number
   arousal: number
   resistance: number
+  /** 阻抗三维：话量（WP1） */
+  resistanceVerbal?: number
+  /** 阻抗三维：深度（WP1） */
+  resistanceDepth?: number
+  /** 阻抗三维：风格（WP1） */
+  resistanceStyle?: number
   /** 内核按 valence×arousal 象限重算的离散标签 */
   anxiousSecure?: string | null
 }

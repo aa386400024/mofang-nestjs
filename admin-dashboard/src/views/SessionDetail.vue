@@ -118,6 +118,99 @@ const beliefActivation = computed<Record<string, number>>(() => {
     '我必须完美': 0.3, // mock
   }
 })
+
+// ─── BDI 快照分组指标（大厂级 UI） ───
+interface MetricItem {
+  key: string
+  label: string
+  value?: number
+  delta?: number
+}
+
+// 从前一轮快照计算 delta
+const prevSnapshot = computed(() => {
+  if (!data.value || !turn.value) return null
+  const idx = turn.value.turnIndex
+  if (idx === 0) return null
+  return data.value.traces.find(t => t.turnIndex === idx - 1)?.bdiSnapshot ?? null
+})
+
+const calcDelta = (curr?: number, prev?: number): number | undefined => {
+  if (curr === undefined || prev === undefined) return undefined
+  return curr - prev
+}
+
+const allianceMetrics = computed<MetricItem[]>(() => {
+  if (!turn.value) return []
+  const s = turn.value.bdiSnapshot
+  const p = prevSnapshot.value
+  return [
+    { key: 'trust', label: '信任', value: s.trust, delta: calcDelta(s.trust, p?.trust) },
+    { key: 'safety', label: '安全感', value: s.safety, delta: calcDelta(s.safety, p?.safety) },
+    { key: 'bond', label: '联结感', value: s.bond, delta: calcDelta(s.bond, p?.bond) },
+  ]
+})
+
+const emotionMetrics = computed<MetricItem[]>(() => {
+  if (!turn.value) return []
+  const s = turn.value.bdiSnapshot
+  const p = prevSnapshot.value
+  return [
+    { key: 'valence', label: '效价', value: s.valence, delta: calcDelta(s.valence, p?.valence) },
+    { key: 'arousal', label: '唤醒', value: s.arousal, delta: calcDelta(s.arousal, p?.arousal) },
+  ]
+})
+
+const resistanceMetrics = computed<MetricItem[]>(() => {
+  if (!turn.value) return []
+  const s = turn.value.bdiSnapshot
+  const p = prevSnapshot.value
+  return [
+    { key: 'resistance', label: '总阻抗', value: s.resistance, delta: calcDelta(s.resistance, p?.resistance) },
+    { key: 'verbal', label: '话量', value: s.resistanceVerbal, delta: calcDelta(s.resistanceVerbal, p?.resistanceVerbal) },
+    { key: 'depth', label: '深度', value: s.resistanceDepth, delta: calcDelta(s.resistanceDepth, p?.resistanceDepth) },
+    { key: 'style', label: '风格', value: s.resistanceStyle, delta: calcDelta(s.resistanceStyle, p?.resistanceStyle) },
+  ]
+})
+
+const deltaArrow = (delta: number): string => {
+  if (delta > 0.001) return `↑${delta.toFixed(2)}`
+  if (delta < -0.001) return `↓${Math.abs(delta).toFixed(2)}`
+  return '—'
+}
+
+const deltaArrowClass = (delta: number): string => {
+  if (delta > 0.001) return 'text-ok'
+  if (delta < -0.001) return 'text-danger'
+  return 'text-muted'
+}
+
+// ─── Delta 明细分组 ───
+const deltaAlliance = computed(() => {
+  if (!deltaDetail.value) return []
+  return [
+    { key: 'trust', label: '信任', value: deltaDetail.value.trust },
+    { key: 'safety', label: '安全感', value: deltaDetail.value.safety },
+    { key: 'bond', label: '联结感', value: deltaDetail.value.bond },
+  ]
+})
+
+const deltaEmotion = computed(() => {
+  if (!deltaDetail.value) return []
+  return [
+    { key: 'valence', label: '效价', value: deltaDetail.value.valence },
+    { key: 'arousal', label: '唤醒', value: deltaDetail.value.arousal },
+  ]
+})
+
+const deltaResistance = computed(() => {
+  if (!deltaDetail.value) return []
+  return [
+    { key: 'verbal', label: '话量', value: deltaDetail.value.verbal },
+    { key: 'depth', label: '深度', value: deltaDetail.value.depth },
+    { key: 'style', label: '风格', value: deltaDetail.value.style },
+  ]
+})
 </script>
 
 <template>
@@ -175,12 +268,51 @@ const beliefActivation = computed<Record<string, number>>(() => {
 
           <!-- BDI 快照 -->
           <n-card v-if="turn" :title="t('sessionDetail.bdiSnapshot')" size="small">
-            <n-grid cols="2" responsive="screen" class="gap-3">
-              <div v-for="(val, key) in turn.bdiSnapshot" :key="key" v-if="typeof val === 'number'" class="bg-bg-base/60 rounded p-3">
-                <div class="text-[10px] uppercase tracking-wider text-muted mb-1">{{ key }}</div>
-                <div class="font-mono text-lg">{{ val.toFixed(2) }}</div>
+            <!-- 关系组 -->
+            <div class="mb-3">
+              <div class="text-[10px] uppercase tracking-wider text-muted mb-2">关系</div>
+              <div class="grid grid-cols-3 gap-2">
+                <div v-for="item in allianceMetrics" :key="item.key" class="bg-bg-base/60 rounded p-2.5">
+                  <div class="text-[10px] text-muted mb-0.5">{{ item.label }}</div>
+                  <div class="flex items-baseline gap-1">
+                    <span class="font-mono text-base">{{ item.value?.toFixed(2) ?? '—' }}</span>
+                    <span v-if="item.delta !== undefined" :class="deltaArrowClass(item.delta)" class="text-[10px] font-mono">
+                      {{ deltaArrow(item.delta) }}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </n-grid>
+            </div>
+            <!-- 情绪组 -->
+            <div class="mb-3">
+              <div class="text-[10px] uppercase tracking-wider text-muted mb-2">情绪</div>
+              <div class="grid grid-cols-2 gap-2">
+                <div v-for="item in emotionMetrics" :key="item.key" class="bg-bg-base/60 rounded p-2.5">
+                  <div class="text-[10px] text-muted mb-0.5">{{ item.label }}</div>
+                  <div class="flex items-baseline gap-1">
+                    <span class="font-mono text-base">{{ item.value?.toFixed(2) ?? '—' }}</span>
+                    <span v-if="item.delta !== undefined" :class="deltaArrowClass(item.delta)" class="text-[10px] font-mono">
+                      {{ deltaArrow(item.delta) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- 阻抗组 -->
+            <div>
+              <div class="text-[10px] uppercase tracking-wider text-muted mb-2">阻抗</div>
+              <div class="grid grid-cols-3 gap-2">
+                <div v-for="item in resistanceMetrics" :key="item.key" class="bg-bg-base/60 rounded p-2.5">
+                  <div class="text-[10px] text-muted mb-0.5">{{ item.label }}</div>
+                  <div class="flex items-baseline gap-1">
+                    <span class="font-mono text-base">{{ item.value?.toFixed(2) ?? '—' }}</span>
+                    <span v-if="item.delta !== undefined" :class="deltaArrowClass(item.delta)" class="text-[10px] font-mono">
+                      {{ deltaArrow(item.delta) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="mt-3 pt-3 border-t border-bg-border flex items-center justify-between">
               <span class="text-[10px] uppercase tracking-wider text-muted">{{ t('sessionDetail.emotionLabel') }}</span>
               <n-tag size="small" :bordered="false" type="primary">{{ turn.bdiSnapshot.anxiousSecure ?? '—' }}</n-tag>
@@ -190,27 +322,59 @@ const beliefActivation = computed<Record<string, number>>(() => {
           <!-- 调试面板：Delta 明细 -->
           <n-card v-if="deltaDetail" size="small" :title="t('calibrator.deltaDetail')">
             <template #header-extra>
-              <n-tag size="tiny" :bordered="false">{{ t('calibrator.mock') }}</n-tag>
+              <n-tag size="tiny" :bordered="false" type="warning">待后端接入</n-tag>
             </template>
-            <div class="space-y-1.5 text-xs font-mono">
-              <div v-for="(val, key) in deltaDetail" :key="key" v-if="typeof val === 'number'"
-                   class="flex items-center justify-between">
-                <span class="text-muted">{{ key }}</span>
-                <span :class="[val > 0 ? 'text-ok' : val < 0 ? 'text-danger' : 'text-muted']">
-                  {{ val > 0 ? '+' : '' }}{{ val.toFixed(3) }}
-                </span>
+            <!-- 关系 delta -->
+            <div class="mb-2.5">
+              <div class="text-[10px] uppercase tracking-wider text-muted mb-1.5">关系</div>
+              <div class="space-y-1">
+                <div v-for="item in deltaAlliance" :key="item.key" class="flex items-center justify-between text-xs font-mono">
+                  <span class="text-muted">{{ item.label }}</span>
+                  <span :class="deltaArrowClass(item.value)">
+                    {{ item.value > 0 ? '+' : '' }}{{ item.value.toFixed(3) }}
+                  </span>
+                </div>
               </div>
             </div>
+            <!-- 情绪 delta -->
+            <div class="mb-2.5">
+              <div class="text-[10px] uppercase tracking-wider text-muted mb-1.5">情绪</div>
+              <div class="space-y-1">
+                <div v-for="item in deltaEmotion" :key="item.key" class="flex items-center justify-between text-xs font-mono">
+                  <span class="text-muted">{{ item.label }}</span>
+                  <span :class="deltaArrowClass(item.value)">
+                    {{ item.value > 0 ? '+' : '' }}{{ item.value.toFixed(3) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <!-- 阻抗 delta -->
+            <div class="mb-2.5">
+              <div class="text-[10px] uppercase tracking-wider text-muted mb-1.5">阻抗</div>
+              <div class="space-y-1">
+                <div v-for="item in deltaResistance" :key="item.key" class="flex items-center justify-between text-xs font-mono">
+                  <span class="text-muted">{{ item.label }}</span>
+                  <span :class="deltaArrowClass(item.value)">
+                    {{ item.value > 0 ? '+' : '' }}{{ item.value.toFixed(3) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <!-- 触发事件 -->
             <div v-if="deltaDetail.events.length" class="mt-2 pt-2 border-t border-bg-border">
-              <span class="text-[10px] text-muted">触发事件：</span>
-              <span class="text-xs font-mono text-accent">{{ deltaDetail.events.join(', ') }}</span>
+              <div class="text-[10px] uppercase tracking-wider text-muted mb-1.5">触发事件</div>
+              <div class="flex flex-wrap gap-1">
+                <n-tag v-for="ev in deltaDetail.events" :key="ev" size="tiny" :bordered="false" type="info">
+                  {{ ev }}
+                </n-tag>
+              </div>
             </div>
           </n-card>
 
           <!-- 调试面板：Cap 砍幅 -->
           <n-card v-if="capReport?.hasCapped" size="small" :title="t('calibrator.capCapped')" :bordered="false" class="border-l-2 border-l-warn">
             <template #header-extra>
-              <n-tag size="tiny" :bordered="false" type="warning">{{ t('calibrator.mock') }}</n-tag>
+              <n-tag size="tiny" :bordered="false" type="warning">待后端接入</n-tag>
             </template>
             <div class="space-y-1 text-xs">
               <div v-for="c in capReport.capped" :key="c.dimension" class="font-mono">
@@ -224,7 +388,7 @@ const beliefActivation = computed<Record<string, number>>(() => {
           <!-- 调试面板：信念激活状态 -->
           <n-card v-if="Object.keys(beliefActivation).length" size="small" :title="t('calibrator.beliefActivation')">
             <template #header-extra>
-              <n-tag size="tiny" :bordered="false">{{ t('calibrator.mock') }}</n-tag>
+              <n-tag size="tiny" :bordered="false" type="warning">待后端接入</n-tag>
             </template>
             <div class="space-y-2">
               <div v-for="(level, theme) in beliefActivation" :key="theme">

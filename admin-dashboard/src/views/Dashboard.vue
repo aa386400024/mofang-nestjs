@@ -16,12 +16,14 @@ use([BarChart, GridComponent, TooltipComponent, CanvasRenderer])
 const { t } = useI18n()
 const data = ref<DashboardStats | null>(null)
 const weekly = ref<{ date: string; count: number }[]>([])
+const recentSessions = ref<Awaited<ReturnType<typeof api.sessions>>>([])
 const loading = ref(true)
 
 onMounted(async () => {
   try {
     data.value = await api.dashboard()
     weekly.value = await api.weeklySessions()
+    recentSessions.value = await api.sessions(5)
   }
   finally { loading.value = false }
 })
@@ -106,7 +108,7 @@ const riskDesc = (cat: string) => t(`risk.${cat}.desc`)
       </n-card>
 
       <!-- 风险类别分布 -->
-      <n-card :title="t('dashboard.riskDist')" size="small">
+      <n-card :title="t('dashboard.riskDist')" size="small" class="mb-4">
         <div class="space-y-2">
           <div v-for="(count, cat) in data.psyguard.byCategory" :key="cat" class="flex items-center gap-3">
             <span class="text-xs font-mono w-40 text-gray-300 flex items-center">
@@ -116,6 +118,30 @@ const riskDesc = (cat: string) => t(`risk.${cat}.desc`)
             <n-progress type="line" :percentage="Math.min(100, count / data.psyguard.totalRequests * 100 * 5)" :show-text="false" class="flex-1" />
             <span class="text-xs font-mono text-muted w-12 text-right">{{ count }}</span>
           </div>
+        </div>
+      </n-card>
+
+      <!-- 最近会话 -->
+      <n-card title="最近会话" size="small" class="mb-4">
+        <div v-if="!recentSessions.length" class="text-muted text-sm">暂无会话记录</div>
+        <div v-else class="space-y-2">
+          <RouterLink
+            v-for="s in recentSessions"
+            :key="s.sessionId"
+            :to="`/sessions/${s.sessionId}`"
+            class="flex items-center gap-3 p-2 rounded hover:bg-bg-elevated transition"
+          >
+            <div class="flex-1 min-w-0">
+              <div class="text-sm text-gray-200 truncate">{{ s.visitorAlias }}</div>
+              <div class="text-xs text-muted mt-0.5 font-mono">
+                {{ s.startedAt ? new Date(s.startedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—' }}
+                · {{ s.durationSec }}s · {{ s.totalTokens }} tokens
+              </div>
+            </div>
+            <n-tag size="tiny" :bordered="false" :type="s.status === 'completed' ? 'success' : 'warning'">
+              {{ s.status }}
+            </n-tag>
+          </RouterLink>
         </div>
       </n-card>
 

@@ -27,6 +27,24 @@
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-core/wp5-rendering.spec.ts 覆盖规格组装与预算裁剪
+//
+// V2026-11-04 WP50 (引擎内核 · 渲染规格接入同盟三维):
+//   WP42 把同盟拆成 trust / safety / bond 三维后, 渲染层**仍只看 trust** ——
+//   safety 低时 (来访在这段关系里不敢说真话), 渲染层却不知道, 于是措辞策略
+//   与"信任高"那一档完全一样. 本文件的扩展: RenderSpec 加 safety / bond 两个
+//   **可选**字段.
+//
+//   为什么它们是**内核契约**而不是适配层路由输入 (与 RenderSpec 里既有的 trust 同性质):
+//     同盟三维是**内核决策的产物** —— 内核算出来的状态, 渲染层据此调整措辞.
+//     放进适配层的 `AdaptiveRenderSpec` 等于让适配层自己去读 snapshot, 破坏
+//     "组装是纯函数"的分层 (见 spec-assembler.ts 的文件头). trust 已经这么做了,
+//     safety / bond 跟它放在一起才是一致口径 —— 不新开第二条路.
+//
+//   为什么是**可选**而不是必填:
+//     缺省 = 不传 = 渲染行为与 WP5 **逐字一致** —— 既有调用方 / 既有单测一行不用改.
+//     与既有的 sessionSummary / trajectoryNote / attachmentStyle 同一范式.
+//
+//   ⚠️ 配套的 prompt 文案 (在适配层) 是**工程种子值, 非临床标定** —— 待真实对练校准.
 
 import type { BdiResistance } from '../bdi-snapshot.js';
 import type { CoreBelief } from '../beliefs.js';
@@ -83,6 +101,20 @@ export interface RenderSpec {
   readonly transference: TransferenceState;
   /** 关系信任 [0,1]. */
   readonly trust: number;
+  /**
+   * 关系安全感 [0,1] (WP42 建模; WP50 接入渲染层).
+   *
+   * 来访在这段关系里感到安全, 可以敞开心扉.
+   * 缺省 = 不提供 (渲染行为与 WP5 逐字一致).
+   */
+  readonly safety?: number;
+  /**
+   * 关系联结 [0,1] (WP42 建模; WP50 接入渲染层).
+   *
+   * 来访与咨询师有情感连接, 不是冷冰冰的问诊.
+   * 缺省 = 不提供 (渲染行为与 WP5 逐字一致).
+   */
+  readonly bond?: number;
   /** 永久核心信念 (不可变锚点). */
   readonly coreBeliefs: readonly CoreBelief[];
   /** 依恋风格 (角色内核; 缺省表示未装配角色基线). */

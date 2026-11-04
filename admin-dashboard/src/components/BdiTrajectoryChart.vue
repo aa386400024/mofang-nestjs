@@ -14,12 +14,17 @@ const props = defineProps<{ turns: TurnTrace[] }>()
 const option = computed(() => {
   const turns = props.turns
   const indices = turns.map(t => `轮${t.turnIndex}`)
-  const series = [
-    { name: 'trust', data: turns.map(t => t.bdiSnapshot.trust), color: '#7ec9a0' },
-    { name: 'valence', data: turns.map(t => t.bdiSnapshot.valence), color: '#c890a8' },
-    { name: 'arousal', data: turns.map(t => t.bdiSnapshot.arousal), color: '#e8c87a' },
-    { name: 'resistance', data: turns.map(t => t.bdiSnapshot.resistance), color: '#e87a7a' },
+  // 只画有数据的曲线（后端补了 safety / bond 后自动出现）
+  const allSeries = [
+    { name: '信任', key: 'trust', data: turns.map(t => t.bdiSnapshot.trust), color: '#7ec9a0' },
+    { name: '安全感', key: 'safety', data: turns.map(t => t.bdiSnapshot.safety), color: '#5ba8e8' },
+    { name: '联结感', key: 'bond', data: turns.map(t => t.bdiSnapshot.bond), color: '#b87ae8' },
+    { name: '效价', key: 'valence', data: turns.map(t => t.bdiSnapshot.valence), color: '#c890a8' },
+    { name: '唤醒', key: 'arousal', data: turns.map(t => t.bdiSnapshot.arousal), color: '#e8c87a' },
+    { name: '阻抗', key: 'resistance', data: turns.map(t => t.bdiSnapshot.resistance), color: '#e87a7a' },
   ]
+  // 过滤掉全是 undefined 的曲线
+  const series = allSeries.filter(s => s.data.some(v => v !== undefined && v !== null))
   return {
     tooltip: { trigger: 'axis', backgroundColor: '#1e222d', borderColor: '#2a2f3d', textStyle: { color: '#e5e7eb', fontSize: 12 } },
     legend: { textStyle: { color: '#9ca3af', fontSize: 11 }, top: 0 },

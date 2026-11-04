@@ -23,6 +23,12 @@
 //     规格组装 / 落账 (settleTurn) 的同一套闭环, 只把"取文"换成流式. 历史与记忆
 //     逻辑不复制: 复制一份必然出现"聚合记得、流式忘得"的分裂.
 //
+//   V2026-11-04 治本 (WP50 · 渲染层接入同盟三维):
+//     system prompt 的"内在状态"块多两行 —— 安全感 / 联结感 (与信任同性质).
+//     只在规格**提供了**这两个字段时才加; 缺省 = 不显示 = prompt 逐字不变.
+//     ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
+//     本期**只加数据, 不调策略** —— 轮次长短 (verbosity) 的判定口径一个字没改.
+//
 //   反双胞胎:
 //     - 不重复写咨询师半边记忆: 内核 rememberTurn 已经写了 (source=TURN, tier=WORKING,
 //       content=咨询师文本). 门面只补**来访半边**. 重复写 = 工作记忆里同一条出现两次,
@@ -945,6 +951,25 @@ function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec): string {
     `- 移情：正向 ${formatNumber(spec.transference.positive)}／负向 ${formatNumber(spec.transference.negative)}／依赖 ${formatNumber(spec.transference.dependency)}`,
     `- 信任：${formatNumber(spec.trust)}（越低越戒备、越不愿多说）`,
   ];
+
+  // WP50: 同盟三维接入渲染层 —— safety / bond 与 trust 同性质.
+  //
+  //   为什么**只在提供时才加这一行** (而不是无条件加):
+  //     RenderSpec 的 safety / bond 是**可选**字段 —— 别的生产者可能不带.
+  //     不带就不渲染 = 缺省时 prompt 逐字不变 (零回归底线), 与下面
+  //     sessionSummary / coreBeliefs / trajectoryNote 的处理完全同一范式.
+  //
+  //   为什么放在"内在状态"块**里面**:
+  //     块头已经写着"绝对不要说出口" —— 安全感/联结感属于同一类"只用来约束
+  //     语气与节奏、不能说出来"的内容, 放进去就自动受约束.
+  //
+  //   ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
+  if (spec.safety !== undefined) {
+    lines.push(`- 安全感：${formatNumber(spec.safety)}（越低越不敢说真话、越试探性）`);
+  }
+  if (spec.bond !== undefined) {
+    lines.push(`- 联结感：${formatNumber(spec.bond)}（越低越疏离、越像问诊）`);
+  }
 
   // WP37: 本场滚动摘要 (工作窗口挤出的早期轮次被压缩后的产物).
   //

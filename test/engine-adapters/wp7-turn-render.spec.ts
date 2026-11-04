@@ -20,10 +20,24 @@
 //
 //   验证: npx jest test/engine-adapters/wp7-turn-render.spec.ts
 //   时间戳: 2026-10-28 GMT+8
+//
+// V2026-11-04 WP50 (B 层 · 渲染层接入同盟三维):
+//   覆盖 RenderSpec 新增的两个可选字段 (safety / bond) 在**适配层**的落地:
+//     ① spec-assembler 把 snapshot.safety / snapshot.bond 传进 RenderSpec;
+//     ② prompt 组装: 提供了就显示对应两行;
+//     ③ prompt 组装: 没提供就**逐字不变** (零回归) —— 且新 prompt 减去那两行
+//        后与旧 prompt **逐字相同** (证明只多了这两行, 别处一个字没动);
+//     ④ safety / bond 低**不改变**轮次长短 (本期只加数据, 不调策略).
+//
+//   关于第 ③ 条的断言口径 (为什么用"减去那两行"而不是直接比对整段 prompt):
+//     "逐字不变"的真正含义是"新 prompt = 旧 prompt + 恰好那两行".
+//     只断言"没有安全感三个字"太弱 —— 万一实现顺手改了别处的措辞, 它照样绿.
+//     所以这里**双向**断言: 缺省时不含这两行, 且有这两行时减去它们等于缺省版.
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import type { AdaptiveRenderSpec } from '../../src/engine-adapters/rendering/render-risk.js';
 import { buildRenderSpec } from '../../src/engine-adapters/rendering/spec-assembler.js';
 import {
   DEFAULT_TURN_FALLBACK_UTTERANCE,
@@ -406,7 +420,109 @@ describe('WP7 · 决策→说话闭环', () => {
       }
     });
   });
+
+  describe('⑨ WP50 · 渲染层接入同盟三维 (safety / bond)', () => {
+    it('spec-assembler 把 snapshot.safety / snapshot.bond 一起传进 RenderSpec', () => {
+      const snapshot = { ...createEmptyBdiSnapshot(), trust: 0.3, safety: 0.2, bond: 0.4 };
+      const spec = buildRenderSpec({ output: buildOutput({ snapshot }), recentTurns: [], tokenBudget: BUDGET });
+
+      expect(spec.trust).toBe(0.3);
+      expect(spec.safety).toBe(0.2);
+      expect(spec.bond).toBe(0.4);
+    });
+
+    it('prompt 组装: 提供了 safety / bond 就显示对应两行', () => {
+      const snapshot = { ...createEmptyBdiSnapshot(), trust: 0.3, safety: 0.2, bond: 0.4 };
+      const spec = buildRenderSpec({ output: buildOutput({ snapshot }), recentTurns: [], tokenBudget: BUDGET });
+
+      const systemText = buildVisitorMessages(spec)[0]?.content ?? '';
+
+      expect(systemText).toContain('- 安全感：0.20（越低越不敢说真话、越试探性）');
+      expect(systemText).toContain('- 联结感：0.40（越低越疏离、越像问诊）');
+      // 三维各自成行, 不合并成一行 (合并了就看不出是哪一维在起作用).
+      expect(systemText).toContain('- 信任：0.30');
+      expect(systemText).toContain('- 安全感：0.20');
+      expect(systemText).toContain('- 联结感：0.40');
+    });
+
+    it('prompt 组装: 不提供 safety / bond 时逐字不变 (零回归)', () => {
+      const spec = buildRenderSpec({ output: buildOutput(), recentTurns: [], tokenBudget: BUDGET });
+      const withAlliance = buildVisitorMessages(spec)[0]?.content ?? '';
+      const withoutAlliance = buildVisitorMessages(withoutAllianceDimensions(spec))[0]?.content ?? '';
+
+      // 缺省 = 不显示 = 这两行整个不出现.
+      expect(withoutAlliance).not.toContain('安全感');
+      expect(withoutAlliance).not.toContain('联结感');
+      // 新 prompt 减去那两行 = 旧 prompt —— 证明只多了这两行, 别处一个字没动.
+      const stripped = withAlliance
+        .split('\n')
+        .filter((line) => !line.startsWith('- 安全感：') && !line.startsWith('- 联结感：'))
+        .join('\n');
+      expect(stripped).toBe(withoutAlliance);
+      // 且恰好只多两行.
+      expect(withAlliance.split('\n').length - withoutAlliance.split('\n').length).toBe(2);
+    });
+
+    it('safety / bond 低**不改变**轮次长短 (本期只加数据, 不调策略)', () => {
+      const baseline = buildRenderSpec({ output: buildOutput(), recentTurns: [], tokenBudget: BUDGET });
+      const lowAlliance = buildRenderSpec({
+        output: buildOutput({ snapshot: { ...createEmptyBdiSnapshot(), safety: 0.05, bond: 0 } }),
+        recentTurns: [],
+        tokenBudget: BUDGET,
+      });
+
+      const baselineText = buildVisitorMessages(baseline)[0]?.content ?? '';
+      const lowText = buildVisitorMessages(lowAlliance)[0]?.content ?? '';
+
+      // "这一轮怎么说"那一段逐字相同 —— safety / bond 低了不会让模型自动变话少.
+      expect(verbosityLine(lowText)).toBe(verbosityLine(baselineText));
+      expect(verbosityLine(baselineText)).not.toBe('');
+      // 但状态本身确实传进去了 (数据接到了, 只是不参与策略).
+      expect(lowText).toContain('- 安全感：0.05');
+    });
+
+    it('不带 safety / bond 的普通 RenderSpec 仍是合法的 AdaptiveRenderSpec (零回归)', () => {
+      // 编译期保证: 别的生产者可以只造内核 RenderSpec, 不必补这两个可选字段.
+      const plain: AdaptiveRenderSpec = {
+        taskKind: 'chat',
+        intention: buildIntention(),
+        emotion: { label: 'neutral', valence: 0, arousal: 0.3 },
+        resistance: { verbal: 0.4, depth: 0.4, style: 0.35 },
+        transference: { positive: 0, negative: 0, dependency: 0 },
+        trust: 0.3,
+        coreBeliefs: [],
+        forbiddenBehaviors: ['judge'],
+        recall: [],
+        recentTurns: [],
+        tokenBudget: BUDGET,
+      };
+
+      expect('safety' in plain).toBe(false);
+      expect('bond' in plain).toBe(false);
+    });
+  });
 });
+
+/**
+ * 去掉规格里的同盟三维两个键 (模拟"别的生产者不带这两个可选字段").
+ *
+ * 为什么用解构省略而不是 delete: 解构后的 rest **类型上就没有**这两个键,
+ * 与"键不存在"这件事一致; delete 依赖运行期行为, 类型上仍是"键存在但值为 undefined".
+ */
+function withoutAllianceDimensions(spec: AdaptiveRenderSpec): AdaptiveRenderSpec {
+  const { safety: _safety, bond: _bond, ...rest } = spec;
+  return rest;
+}
+
+/**
+ * 取 prompt 里"这一轮怎么说"那一段 (话量权重的指令行).
+ *
+ * 为什么单独抽出来: 要断言的是"**轮次长短没被 safety / bond 改变**" ——
+ * 直接比整段 prompt 会把状态行的差异也混进来, 断言就变得不精确.
+ */
+function verbosityLine(systemText: string): string {
+  return systemText.split('\n').find((line) => line.startsWith('这轮你')) ?? '';
+}
 
 /** 构造一条记忆条目 (开场上上下文用). */
 function buildMemoryEntry(): MemoryEntry {

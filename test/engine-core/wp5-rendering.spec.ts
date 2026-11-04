@@ -19,6 +19,16 @@
 //
 //   验证: npx jest test/engine-core/wp5-rendering.spec.ts
 //   时间戳: 2026-10-28 GMT+8
+//
+// V2026-11-04 WP50 (引擎内核 · 渲染规格接入同盟三维):
+//   覆盖 RenderSpec 新增的两个**可选**字段 (safety / bond):
+//     ① 提供时, 规格对象里带这两个字段;
+//     ② 不提供时, 对象里**没有**这两个键 (零回归 —— 既有形状逐字不变).
+//
+//   为什么"没有这个键"要用 `'safety' in spec` 断言 (而不是 `expect(spec.safety).toBeUndefined()`):
+//     后者**分不出**"没传"与"传了 undefined" —— 而这两者对渲染层不是一回事:
+//     "没传" = 渲染层不该显示这一行; "传了 undefined" = 是个 bug (值丢了).
+//     `in` 断言把口径钉在**键是否存在**上, 与适配层的 `!== undefined` 判断对齐.
 
 import { planIntention } from '../../src/engine-core/cognition/intention-planner.js';
 import { RuleBasedClassifier } from '../../src/engine-core/cognition/rule-based-classifier.js';
@@ -347,5 +357,45 @@ describe('WP5 · 渲染契约层', () => {
     it('引擎错误码仍走 EngineCoreError (WP5 未引入新错误面)', () => {
       expect(EngineErrorCode.INVALID_INPUT).toBeDefined();
     });
+  });
+});
+
+describe('WP50 · 渲染规格接入同盟三维 (safety / bond)', () => {
+  it('提供 safety / bond 时, 规格对象里带这两个字段', () => {
+    const spec = buildSpec('chat', { safety: 0.2, bond: 0.4 });
+
+    expect(spec.safety).toBe(0.2);
+    expect(spec.bond).toBe(0.4);
+    expect('safety' in spec).toBe(true);
+    expect('bond' in spec).toBe(true);
+  });
+
+  it('不提供 safety / bond 时, 对象里没有这两个键 (零回归)', () => {
+    const spec = buildSpec('chat');
+
+    expect('safety' in spec).toBe(false);
+    expect('bond' in spec).toBe(false);
+    expect(Object.keys(spec)).not.toContain('safety');
+    expect(Object.keys(spec)).not.toContain('bond');
+  });
+
+  it('既有规格形状逐字不变: 不传这两个字段时, 字段集合与 WP5 一致', () => {
+    const spec = buildSpec('chat');
+
+    // WP5 的字段集合 —— 加两个**可选**字段不该动到任何一个既有键.
+    expect(Object.keys(spec).toSorted((a, b) => a.localeCompare(b))).toEqual([
+      'coreBeliefs',
+      'emotion',
+      'forbiddenBehaviors',
+      'intention',
+      'recall',
+      'recentTurns',
+      'resistance',
+      'taskKind',
+      'tokenBudget',
+      'transference',
+      'trust',
+    ]);
+    expect(spec.trust).toBe(0.3);
   });
 });

@@ -24,6 +24,18 @@
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp7-turn-render.spec.ts 覆盖字段映射与历史裁剪
+//
+// V2026-11-04 WP50 (B 层 · 渲染规格接入同盟三维):
+//   同盟三维 (trust / safety / bond) 是**内核决策的产物**, 渲染层据此调整措辞 ——
+//   所以它们进**内核 RenderSpec** (与 trust 同性质), 不进适配层的 AdaptiveRenderSpec:
+//   放进后者等于让适配层自己去读 snapshot, 破坏"组装是纯函数"的分层 (见文件头).
+//   本文件的扩展: 把 snapshot.safety / snapshot.bond 一起传进规格.
+//
+//   为什么**直接传**而不做条件展开:
+//     BdiSnapshot 的三维都是**必填**, "缺省"在数据源上不可能发生 ——
+//     与 sessionSummary / trajectoryNote 那类"可能真的没有"的字段不同.
+//     真正的可选性在**内核 RenderSpec 那一侧** (别的生产者可以不带), 本层
+//     有就传, 不搞"有条件地装"这种把简单事写复杂的写法.
 
 import { resolveRiskLevel, type AdaptiveRenderSpec } from './render-risk.js';
 import {
@@ -92,6 +104,10 @@ export function buildRenderSpec(input: SpecAssemblyInput): AdaptiveRenderSpec {
     resistance: input.output.snapshot.resistance,
     transference: input.output.snapshot.transference,
     trust: input.output.snapshot.trust,
+    // WP50: 同盟三维接入渲染层 —— safety / bond 与 trust 同性质 (内核决策产物).
+    //   直接传, 不做条件展开 (BdiSnapshot 三维必填, 缺省在数据源上不可能发生).
+    safety: input.output.snapshot.safety,
+    bond: input.output.snapshot.bond,
     coreBeliefs: input.output.snapshot.coreBeliefs,
     ...(input.attachmentStyle ? { attachmentStyle: input.attachmentStyle } : {}),
     forbiddenBehaviors: mergeForbidden(intention.forbiddenBehaviors, input.roleForbiddenBehaviors),

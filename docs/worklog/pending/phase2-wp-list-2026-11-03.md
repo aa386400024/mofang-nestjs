@@ -55,7 +55,7 @@
 | **WP47** | supervisor 督导报告切真 DB | 🟢 P2 | V0.x 内存 mock → TypeORM 落库 |
 | **WP48** | env 守卫盲区：分不出「读进 config」与「真被消费」 | 🟢 P2 | `wp25-env-example-coverage.spec.ts` 的 AST 只知道「代码里读没读这个键」，**分不出读进 config 命名空间与真被消费** —— 这类键能一路绿灯过断言①。已在 `.env.example` 底部「预留键（读得到但未消费）」区出现两个实例（`QDRANT_COLLECTION` / `VOICE_SESSION_IDLE_TIMEOUT_MS`）。修法：让守卫顺着 `process.env.X` → `config.get('命名空间.x')` 追一层消费点，把「读得到但无人消费」单列成一类（与「未接线」区分），并守住新区语义 |
 | **WP49** | 角色大五人格字段落地 | 🟢 P2 | WP34 已交付人格调节算子，但**大五人格没有数据源** —— DB 的 `character_profiles.five_ps` 是临床 5Ps（易感/维持/诱发/保护/持续），与大五人格不是一回事 → 宜人性调节在生产上休眠（契约与端口已就位，规则永不触发）。另一项：依恋类型 → 基线阻抗的缺省映射缺统一规则（角色种子已按档位给基线，但缺通用取值口径）。~~附带的 `.env.example` 18 个 `ENGINE_CAP_*` 数值清理（改留空继承内核种子）已于 2026-11-03 完成~~ |
-| **WP50** | 渲染层接入同盟三维 | 🟡 P1 | WP42 已交付 trust/safety/bond 独立建模，但**渲染层（RenderSpec / prompt 组装）仍只看 trust** —— safety 低时 AI 措辞应该更谨慎、更简短，但现在没接。要把 safety/bond 接入 spec-assembler，让渲染层能根据三维状态调整措辞策略 |
+| **WP50** ✅ | 渲染层接入同盟三维 | 🟡 P1 | WP42 已交付 trust/safety/bond 独立建模，但**渲染层（RenderSpec / prompt 组装）仍只看 trust** —— safety 低时 AI 措辞应该更谨慎、更简短，但现在没接。要把 safety/bond 接入 spec-assembler，让渲染层能根据三维状态调整措辞策略。⚠️ 实际落地：内核 `RenderSpec` 加 `safety?` / `bond?` 两个**可选**字段（缺省 = 不传 = 行为与 WP5 逐字一致）+ 适配层 `spec-assembler` **无条件**传 `snapshot.safety` / `snapshot.bond`（`BdiSnapshot` 三维必填，生产一定带）+ `buildVisitorSystemPrompt` **只在提供时**追加两行；本期**只加数据不调策略**（`resolveTurnVerbosity` 一字未改，用例钉死）。⚠️ 生产 prompt **每轮多两行**（[交付记录](../completed/phase2/engine-wp50-render-spec-alliance-three-dimensions-implementation-2026-11-04.md)） | WP42 |
 | **WP51** | 角色种子同盟三维基线 | 🟡 P1 | WP42 所有角色开场都是 safety=0.5 / bond=0，**回避型和安全型开场安全感一样** —— 人格差异没落地。要给角色种子加 safety/bond 基线（回避型 safety 低、安全型 safety 中高），并接适配层注入 |
 | **WP52** ✅ | 剧本偏移接入同盟三维 | 🟢 P2 | WP42 剧本（trajectory）的 `SnapshotDelta` 不带 safety/bond —— 剧本写"来访敞开心扉谈童年创伤"只涨 trust 不涨 safety/bond，剧本叙事推不动同盟发展。要给 `SnapshotDelta` 补两项并过同一把 cap。✅ 实际落地：`SnapshotDelta` 加 `safety?` / `bond?` 两个**可选**字段（缺省 = 0，存量剧本逐字不受影响）；`toDeltaVector` 接上；**cap 位置不用改** —— 管道已是「事件 delta + 剧本 delta → 合并 → 统一过 cap → 落快照」，safety/bond 自动被同一把尺子约束（与 trust / resistance 完全一致）（[交付记录](../completed/phase2/engine-wp52-trajectory-snapshot-delta-alliance-implementation-2026-11-04.md)） | WP42 |
 | **WP53** ✅ | 人格调节算子扩展到 safety/bond | 🟢 P2 | WP34 依恋系数只调 trust，**焦虑型涨 bond 不快、回避型涨 safety 不快** —— 人格调节算子只做了一半。内测有反馈后，把依恋系数扩展到 safety/bond 两维。⚠️ 实际落地：`AttachmentModulation` 从 2 列扩到 4 列（trust / resistance / **safety / bond**），env 键 10 → 18 个；口径与 trustScale **完全同范式**（只调**增益**方向，受损方向不调 = 不发明临床数字）；`AllianceConfig.deltas` 是**事件级**覆写、`safetyScale/bondScale` 是**角色级**调节，顺序固定为「先覆写 → 再调节 → 再 cap」（[交付记录](../completed/phase2/engine-wp53-personality-modulator-alliance-extension-implementation-2026-11-04.md)） | WP34 |
@@ -86,7 +86,7 @@
 | 🟢 P2 技术债 | 10 条 | WP45, 46, 47, 48, 49, 52, 53, 54, 59, 60 |
 | **合计** | **35 条** | **WP27–WP61** |
 
-**进度：10 / 35 完成**（WP28 ✅、WP34 ✅、WP36 ✅、WP37 ✅、WP42 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP57 ✅，2026-11-04）。
+**进度：11 / 35 完成**（WP28 ✅、WP34 ✅、WP36 ✅、WP37 ✅、WP42 ✅、WP50 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP57 ✅，2026-11-04）。
 
 ### 🚧 上线前必须一起做的真机项（WP28 遗留）
 
@@ -129,6 +129,7 @@ _每个 WP 开工前单独写任务单（按 `team/conventions.md` 的交付格�
 | WP53 人格调节扩展到同盟三维 ✅ | `cognition/personality-modulator.ts`（`AttachmentModulation` 加 safetyScale / bondScale 两列 + 种子值 + 校验 + 算子输出） | 依恋系数是**决策层逻辑**（算子本体），必须落在纯层 —— 适配层放它就破坏"内核零 env / 零状态"的边界。纯函数扩展 → **调用方一行不用改**（`state-transition.ts` / `in-memory-engine-session.ts` 都不动） |
 | WP52 剧本偏移接入同盟三维 ✅ | `domain/trajectory/script.ts`（`SnapshotDelta` 加 `safety?` / `bond?`）+ `cognition/trajectory/trajectory-applier.ts`（`toDeltaVector` 接上） | 剧本契约是**数据形状**（adapter 从 DB 解析后注入的内核侧模型），必须落在纯层；转换点 `toDeltaVector` 是内核里**唯一**的"幕偏移 → delta 向量"转换处，不接上就等于剧本偏移永远是死的。字段**可选** → 存量剧本逐字不受影响，**调用方一行不用改** |
 | WP54 破裂态阻抗衰减下限 ✅ | `cognition/session-decay.ts`（`SessionDecayConfig` 加 `ruptureResistanceFloor?` + `applySessionDecay` 加 `allianceThresholds?` + 破裂态下限分支） | 跨会话衰减是**状态迁移规则**（WP36 已在纯层），补一条破裂态分支**必须**跟它同处一个纯函数 —— 放适配层就等于把"要不要兜底"变成两处判定。门槛复用 `alliance-config.ts` 的既有真相源（不新造），配置走**端口注入**（`SessionDecayConfig` 可选字段，缺省 = 禁用 = 零回归）→ **调用方一行不用改**，适配层 env 接线留待后续 WP |
+| WP50 渲染层接入同盟三维 ✅ | `domain/rendering/render-types.ts`（`RenderSpec` 加 `safety?` / `bond?`） | 同盟三维是**内核决策的产物**（内核算状态、渲染层据此调措辞），与既有的 `trust` 同性质 —— 必须落在**内核契约**里。放进适配层的 `AdaptiveRenderSpec` 等于让适配层自己读 snapshot，破坏"组装是纯函数"的分层（`spec-assembler.ts` 文件头）。字段**可选** → 别的生产者不必补，**调用方一行不用改** |
 
 > 其他 WP 一律在 `engine-adapters/` 或业务层改，不碰 `src/engine-core/`。
 
