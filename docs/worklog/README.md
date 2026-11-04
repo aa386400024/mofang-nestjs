@@ -32,8 +32,9 @@
 > - WP51（角色种子同盟三维基线 · safety / bond）✅ → [`completed/phase2/engine-wp51-character-seed-alliance-baseline-implementation-2026-11-04.md`](completed/phase2/engine-wp51-character-seed-alliance-baseline-implementation-2026-11-04.md)
 > - WP56（长期记忆召回进渲染上下文 · 你还记得这些事）✅ → [`completed/phase2/engine-wp56-recall-into-render-context-implementation-2026-11-04.md`](completed/phase2/engine-wp56-recall-into-render-context-implementation-2026-11-04.md)
 > - WP59（记忆召回策略配置端口统一 · 半衰期/阈值可配置，判定只有一份）✅ → [`completed/phase2/engine-wp59-recall-policy-config-port-implementation-2026-11-04.md`](completed/phase2/engine-wp59-recall-policy-config-port-implementation-2026-11-04.md)
+> - WP61（会话摘要层次化 · 核心议题 / 关键事件 / 情绪转折点）✅ → [`completed/phase2/engine-wp61-session-summary-hierarchical-implementation-2026-11-04.md`](completed/phase2/engine-wp61-session-summary-hierarchical-implementation-2026-11-04.md)
 >
-> 进度 14/35（WP 清单与总览口径一致，WP27–WP61）。
+> 进度 15/36（WP 清单与总览口径一致，WP27–WP62）。
 
 ---
 
@@ -102,7 +103,7 @@ docs/worklog/
 │   │   ├── auth-and-password/
 │   │   ├── early-misc/
 │   │   └── phase1-backlog-archived-2026-11-03.md
-│   └── phase2/       ← Phase2 交付（WP28 ✅ PsyGUARD 正式值 / WP34 ✅ P1 人格调节算子 / WP36 ✅ 跨会话间隔自然衰减 / WP37 ✅ 记忆会话级摘要压缩（滚动摘要）/ WP42 ✅ 咨询同盟三维 / WP50 ✅ 渲染层接入同盟三维（safety/bond）/ WP51 ✅ 角色种子同盟三维基线（safety/bond）/ WP52 ✅ 剧本偏移接入同盟三维（safety/bond）/ WP53 ✅ 人格调节算子扩展到同盟三维（safety/bond）/ WP54 ✅ 破裂态阻抗反升（跨会话衰减补完）/ WP55 ✅ 会话摘要补齐来访者侧（两侧纪要）/ WP56 ✅ 长期记忆召回进渲染上下文 / WP57 ✅ BDI 信念层深度扩展（核心信念激活 + 短期信念置信度衰减）/ WP59 ✅ 记忆召回策略配置端口统一（半衰期/阈值可配置，判定只有一份））
+│   └── phase2/       ← Phase2 交付（WP28 ✅ PsyGUARD 正式值 / WP34 ✅ P1 人格调节算子 / WP36 ✅ 跨会话间隔自然衰减 / WP37 ✅ 记忆会话级摘要压缩（滚动摘要）/ WP42 ✅ 咨询同盟三维 / WP50 ✅ 渲染层接入同盟三维（safety/bond）/ WP51 ✅ 角色种子同盟三维基线（safety/bond）/ WP52 ✅ 剧本偏移接入同盟三维（safety/bond）/ WP53 ✅ 人格调节算子扩展到同盟三维（safety/bond）/ WP54 ✅ 破裂态阻抗反升（跨会话衰减补完）/ WP55 ✅ 会话摘要补齐来访者侧（两侧纪要）/ WP56 ✅ 长期记忆召回进渲染上下文 / WP57 ✅ BDI 信念层深度扩展（核心信念激活 + 短期信念置信度衰减）/ WP59 ✅ 记忆召回策略配置端口统一（半衰期/阈值可配置，判定只有一份）/ WP61 ✅ 会话摘要层次化（核心议题 / 关键事件 / 情绪转折点））
 ├── audits/           ← 审查报告（WP25 等）
 └── archive/          ← 老文档
 ```

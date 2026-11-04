@@ -32,6 +32,15 @@
 //       只是这一版没落库 (下下场接手时看不到).
 //     - 未装配生成器 → 只攒不压 (装配缺席 = 本场没有摘要, 不是会话失败).
 //
+//   V2026-11-04 治本 (WP61 · 滚动纪要层次化):
+//     摘要从"一段 ≤120 字的流水文字"改成**三层结构** (核心议题 / 关键事件 / 情绪转折点).
+//     本服务的改动只有两处:
+//       ① 状态里存**结构化对象** (`RollingSummaryResult`) 而不是字符串 ——
+//          下一版纪要要"逐段并入"上一版, 上一版就必须是逐段的;
+//       ② 对外 (`RollingSummaryPort.latestSummary()`) 仍然吐**一段字符串** ——
+//          渲染成多行文本后给渲染层, 端口签名与渲染层**一字未改**.
+//     记忆条目存的也是渲染后的多行文本 (召回时直接拼进 prompt, 不用再解析 JSON).
+//
 //   反双胞胎:
 //     - 不自己判断"该不该晋升长时" —— 那是 WP12 收尾 (session-closeout.service.ts) 的活;
 //       本服务只写 SHORT_TERM, 不碰 LONG_TERM (会话结束时的最终摘要是**另一条路径**).
@@ -48,7 +57,13 @@
 import { Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 
-import type { RollingSummaryGenerator, RollingSummaryRound } from './rolling-summary.generator.js';
+import {
+  formatRollingSummaryForPrompt,
+  isEmptyRollingSummary,
+  type RollingSummaryGenerator,
+  type RollingSummaryResult,
+  type RollingSummaryRound,
+} from './rolling-summary.generator.js';
 import { MemorySource, MemoryTier, type MemoryEntry, type MemoryStore, type WorkingWindowOverflowEvent } from '../../engine-core/index.js';
 
 /**
@@ -172,8 +187,14 @@ interface SessionRollingState {
   pendingRounds: RollingSummaryRound[];
   /** 已被内核工作窗口淘汰的轮次 (等待攒批压摘要) —— 按轮次顺序. */
   evictedRounds: RollingSummaryRound[];
-  /** 当前滚动摘要 (还没有 → undefined). */
-  summary?: string;
+  /**
+   * 当前滚动纪要 (结构化; 还没有 → undefined).
+   *
+   * 为什么存**结构化对象**而不是字符串 (WP61):
+   *   下一版纪要要"逐段并入"这一版 —— 上一版是三段, 模型才能逐段并;
+   *   上一版是一坨文字, 模型只能把两坨文字搅在一起, 合并质量断崖式下降.
+   */
+  summary?: RollingSummaryResult;
   /** 是否正在压摘要 (防重入: 同一时刻只跑一次 LLM 调用). */
   flushing: boolean;
   /** 压摘要期间又来了新内容 → 压完这一轮要再压一次 (否则最后一批会被漏掉). */
@@ -271,14 +292,17 @@ export class RollingSessionSummaryService implements RollingSummaryPort, Rolling
   }
 
   /**
-   * 取本场当前的滚动摘要.
+   * 取本场当前的滚动纪要 (渲染后的多行文本).
+   *
+   * 对外**仍然是一段字符串** (WP61): 结构化在服务层内部消化, 渲染层与内核零改动.
    *
    * @param tenantId 租户隔离键
    * @param sessionId 业务会话 id
-   * @returns 摘要正文; 还没有摘要时返回 undefined
+   * @returns 纪要正文 (三行); 还没有纪要时返回 undefined
    */
   latestSummary(tenantId: string, sessionId: string): string | undefined {
-    return this.states.get(sessionKey(tenantId, sessionId))?.summary;
+    const summary = this.states.get(sessionKey(tenantId, sessionId))?.summary;
+    return summary ? formatRollingSummaryForPrompt(summary) : undefined;
   }
 
   /**
@@ -379,7 +403,7 @@ export class RollingSessionSummaryService implements RollingSummaryPort, Rolling
     const batch = state.evictedRounds.splice(0);
     if (batch.length === 0) return;
 
-    let summary: string;
+    let summary: RollingSummaryResult;
     try {
       summary = await this.generator.generate({
         ...(state.summary ? { previousSummary: state.summary } : {}),
@@ -392,12 +416,16 @@ export class RollingSessionSummaryService implements RollingSummaryPort, Rolling
       return;
     }
 
-    const content = summary.trim();
-    if (content.length === 0) {
+    // 空纪要 → 本批留待下次 (口径与 WP37 一致: 拿不到可用内容就不覆盖上一版).
+    if (isEmptyRollingSummary(summary)) {
       state.evictedRounds.unshift(...batch);
       this.logger.warn(`[rolling-summary] 摘要为空, 本批留待下次 session=${state.sessionId}`);
       return;
     }
+
+    // 渲染成多行文本: 记忆存**文本** (召回时直接拼进 prompt, 不用再解析 JSON),
+    // 对外也吐同一份文本 (端口签名不变 —— 渲染层与内核零改动).
+    const content = formatRollingSummaryForPrompt(summary);
 
     // 写记忆失败不阻断: 摘要本身仍然有用 (本场对话靠它保持话题连续).
     try {
@@ -418,7 +446,7 @@ export class RollingSessionSummaryService implements RollingSummaryPort, Rolling
       this.logger.warn(`[rolling-summary] 摘要写入记忆仓储失败 session=${state.sessionId}: ${messageOf(error)}`);
     }
 
-    state.summary = content;
+    state.summary = summary;
     this.logger.log(`[rolling-summary] 摘要已更新 session=${state.sessionId} batch=${batch.length}轮 chars=${content.length}`);
   }
 }

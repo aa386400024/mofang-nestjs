@@ -16,6 +16,14 @@
 //     - 不把逐字稿原文塞进记忆: 只落**摘要**, 不落原文 ——
 //       逐字稿归逐字稿表 (业务侧落库), 记忆里只放"提炼过的事实".
 //
+//   V2026-11-04 治本 (WP61 · 共享 JSON 解析导出):
+//     摘要有**两种形状**: WP12 的最终摘要 (单段 `summary` + `topicKey`) 与
+//     WP61 的滚动纪要 (三段 `coreTopics` / `keyEvents` / `emotionalTurningPoints`).
+//     形状不同, 但"怎么从模型输出里取到一个 JSON 对象"只有**一份** ——
+//     两处各写一遍 = 两份解析迟早漂移 (仓库既有纪律: 反双胞胎).
+//     所以本文件把 `parseJsonObject` / `readJsonString` **导出**给滚动纪要复用,
+//     `parseSummaryResponse` 自己也改用它们 —— 行为逐字不变 (WP12 既有用例守着).
+//
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp12-memory-closeout.spec.ts: JSON 解析 / 非 JSON 退化 / 空输出
@@ -164,18 +172,46 @@ export function parseSummaryResponse(raw: string): SessionSummary {
     return { content: '' };
   }
 
-  const unfenced = stripCodeFence(text);
-  const parsed = tryParseJson(unfenced);
+  const parsed = parseJsonObject(text);
   if (parsed) {
-    const content = readString(parsed['summary']);
-    const topicKey = readString(parsed['topicKey']);
+    const content = readJsonString(parsed['summary']);
+    const topicKey = readJsonString(parsed['topicKey']);
     if (content.length > 0) {
       return topicKey.length > 0 ? { content, topicKey } : { content };
     }
   }
 
   // 模型没按 JSON 回 → 整段当摘要. 摘要质量不如结构化输出, 但总比没有强.
-  return { content: unfenced };
+  return { content: stripCodeFence(text) };
+}
+
+/**
+ * 剥围栏 + JSON.parse → 对象 (WP61 · 供滚动纪要解析复用).
+ *
+ * 为什么导出: 摘要有两种形状 (WP12 单段 / WP61 三段), 但"从模型输出里取 JSON 对象"
+ * 只有一份 —— 各写一遍 = 两份解析迟早漂移.
+ *
+ * @param raw 模型原始输出
+ * @returns JSON 对象; 不是 JSON (或原始输出为空) → null
+ */
+export function parseJsonObject(raw: string): Record<string, unknown> | null {
+  const text = raw.trim();
+  if (text.length === 0) return null;
+  return tryParseJson(stripCodeFence(text));
+}
+
+/**
+ * 读 JSON 里的字符串字段 (非字符串 → 空串).
+ *
+ * 与 `counselor/domain/struct-guards.ts` 的 `readString` **语义不同**
+ * (那个取不到返回 null, 这个返回空串) —— 摘要这边要的是"取不到就当空",
+ * 空串在下游一律按"没写"处理.
+ *
+ * @param value 原始值
+ * @returns 字符串 (trim 后); 非字符串 → 空串
+ */
+export function readJsonString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
 }
 
 /**
@@ -210,11 +246,4 @@ function tryParseJson(text: string): Record<string, unknown> | null {
   } catch {
     return null;
   }
-}
-
-/**
- * 读字符串字段 (非字符串 / 空 → 空串).
- */
-function readString(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
 }

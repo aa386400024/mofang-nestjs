@@ -17,6 +17,12 @@
 //   全 mock, 不起 NestJS, 不发网络:
 //     摘要生成器用 stub; 记忆仓储用内核内存实现; 时钟与 id 工厂注入假值.
 //
+//   V2026-11-04 WP61 (B 层 · 纪要层次化):
+//     纪要改成三层结构 (核心议题 / 关键事件 / 情绪转折点), 生成器 stub 的返回类型
+//     随之从字符串变成结构化对象. 新增 describe ⑧ 覆盖: 两侧内容落到三段纪要 /
+//     第二版纪要结构化逐段传.
+//     既有断言从"摘要是一段字符串"改成"摘要 = 渲染后的三行文本" (端口签名未变).
+//
 //   验证: npx vitest run test/engine-adapters/wp55-rolling-summary-both-sides.spec.ts
 
 import { readFileSync } from 'node:fs';
@@ -28,8 +34,10 @@ import {
   RollingSessionSummaryService,
 } from '../../src/engine-adapters/persistence/rolling-session-summary.service.js';
 import {
+  formatRollingSummaryForPrompt,
   formatRollingSummaryInput,
   type RollingSummaryInput,
+  type RollingSummaryResult,
   type RollingSummaryRound,
 } from '../../src/engine-adapters/persistence/rolling-summary.generator.js';
 import { TurnRenderOrchestrator, type TurnSessionContext } from '../../src/engine-adapters/rendering/turn-render-orchestrator.js';
@@ -60,9 +68,19 @@ const HANDLE_ID = 'handle-1';
 const CLOCK = 1_700_000_000_000;
 const CONTEXT: TurnSessionContext = { tenantId: TENANT, visitorId: VISITOR, sessionId: SESSION };
 
-/** 摘要生成器 stub: 记录入参, 返回固定摘要 (或抛错). */
-function generatorStub(options: { readonly summary?: string; readonly fail?: boolean }): {
-  readonly generate: (input: RollingSummaryInput) => Promise<string>;
+/**
+ * 造一个只填核心议题的纪要 (其余两段为空).
+ *
+ * WP61: 纪要改成三层结构, 但这批用例关心的是**两侧内容与配对** ——
+ * 三段各自的内容由 wp37 spec 的 WP61 用例钉.
+ */
+function summaryOf(coreTopics: string): RollingSummaryResult {
+  return { coreTopics, keyEvents: '', emotionalTurningPoints: '' };
+}
+
+/** 摘要生成器 stub: 记录入参, 返回固定纪要 (或抛错). */
+function generatorStub(options: { readonly summary?: RollingSummaryResult; readonly fail?: boolean }): {
+  readonly generate: (input: RollingSummaryInput) => Promise<RollingSummaryResult>;
   readonly calls: RollingSummaryInput[];
 } {
   const calls: RollingSummaryInput[] = [];
@@ -71,7 +89,7 @@ function generatorStub(options: { readonly summary?: string; readonly fail?: boo
     generate: async (input) => {
       calls.push(input);
       if (options.fail) throw new Error('llm down');
-      return options.summary ?? '摘要';
+      return options.summary ?? summaryOf('摘要');
     },
   };
 }
@@ -102,7 +120,7 @@ interface ReportedRound {
 describe('WP55 · 会话摘要补齐来访者侧 (适配层)', () => {
   describe('① 两侧纪要: 生成器同时拿到两侧内容', () => {
     it('摘要输入里咨询师与来访者两侧都有', async () => {
-      const generator = generatorStub({ summary: '聊了失眠' });
+      const generator = generatorStub({ summary: summaryOf('聊了失眠') });
       const service = new RollingSessionSummaryService({
         memories: new InMemoryMemoryStore(),
         generator,
@@ -117,7 +135,7 @@ describe('WP55 · 会话摘要补齐来访者侧 (适配层)', () => {
     });
 
     it('来访者没发言的轮次 → 记 null (不是空串)', async () => {
-      const generator = generatorStub({ summary: '摘要' });
+      const generator = generatorStub({ summary: summaryOf('摘要') });
       const service = new RollingSessionSummaryService({
         memories: new InMemoryMemoryStore(),
         generator,
@@ -156,7 +174,7 @@ describe('WP55 · 会话摘要补齐来访者侧 (适配层)', () => {
 
   describe('② 配对不错位 (核心回归防线)', () => {
     it('中间有一轮被阻断 → 来访者话仍挂在它自己那一轮上', async () => {
-      const generator = generatorStub({ summary: '摘要' });
+      const generator = generatorStub({ summary: summaryOf('摘要') });
       const service = new RollingSessionSummaryService({
         memories: new InMemoryMemoryStore(),
         generator,
@@ -183,7 +201,7 @@ describe('WP55 · 会话摘要补齐来访者侧 (适配层)', () => {
     });
 
     it('阻断之后的轮次不会被错配 (来访者话不会挂到别的轮次上)', async () => {
-      const generator = generatorStub({ summary: '摘要' });
+      const generator = generatorStub({ summary: summaryOf('摘要') });
       const service = new RollingSessionSummaryService({
         memories: new InMemoryMemoryStore(),
         generator,
@@ -210,7 +228,7 @@ describe('WP55 · 会话摘要补齐来访者侧 (适配层)', () => {
 
   describe('③ 淘汰匹配: 压进去的就是被淘汰的那一轮', () => {
     it('内核淘汰哪一轮 → 压哪一轮 (不多不少)', async () => {
-      const generator = generatorStub({ summary: '摘要' });
+      const generator = generatorStub({ summary: summaryOf('摘要') });
       const service = new RollingSessionSummaryService({
         memories: new InMemoryMemoryStore(),
         generator,
@@ -226,7 +244,7 @@ describe('WP55 · 会话摘要补齐来访者侧 (适配层)', () => {
     });
 
     it('还没被淘汰的轮次不压 (还在 prompt 里, 压了就是重复)', async () => {
-      const generator = generatorStub({ summary: '摘要' });
+      const generator = generatorStub({ summary: summaryOf('摘要') });
       const service = new RollingSessionSummaryService({
         memories: new InMemoryMemoryStore(),
         generator,
@@ -242,7 +260,7 @@ describe('WP55 · 会话摘要补齐来访者侧 (适配层)', () => {
     });
 
     it('门面上报缺失的那一轮 → 跳过, 不猜 (不产生错配)', async () => {
-      const generator = generatorStub({ summary: '摘要' });
+      const generator = generatorStub({ summary: summaryOf('摘要') });
       const service = new RollingSessionSummaryService({
         memories: new InMemoryMemoryStore(),
         generator,
@@ -354,13 +372,13 @@ describe('WP55 · 会话摘要补齐来访者侧 (适配层)', () => {
     it('forgetSession → 状态清掉 (会话结束不留残)', async () => {
       const service = new RollingSessionSummaryService({
         memories: new InMemoryMemoryStore(),
-        generator: generatorStub({ summary: '摘要' }),
+        generator: generatorStub({ summary: summaryOf('摘要') }),
         batchSize: 1,
       });
 
       service.recordRound(TENANT, SESSION, VISITOR, 'c1', 'v1');
       service.recordOverflow(overflowEvent(['c1']));
-      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('摘要'));
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe(formatRollingSummaryForPrompt(summaryOf('摘要'))));
       expect(service.trackedSessionCount()).toBe(1);
 
       service.forgetSession(TENANT, SESSION);
@@ -390,7 +408,7 @@ describe('WP55 · 会话摘要补齐来访者侧 (适配层)', () => {
     it('用真服务跑一遍 close → 状态真的被释放 (不是只调了个桩)', () => {
       const summary = new RollingSessionSummaryService({
         memories: new InMemoryMemoryStore(),
-        generator: generatorStub({ summary: '摘要' }),
+        generator: generatorStub({ summary: summaryOf('摘要') }),
         batchSize: 1,
       });
       summary.recordRound(TENANT, SESSION, VISITOR, 'c1', 'v1');
@@ -443,6 +461,53 @@ describe('WP55 · 会话摘要补齐来访者侧 (适配层)', () => {
 
     it('攒批阈值种子值没变 (3)', () => {
       expect(DEFAULT_ROLLING_SUMMARY_BATCH_SIZE).toBe(3);
+    });
+  });
+
+  // WP61 (2026-11-04) · 纪要层次化: 两侧内容落到三段结构里.
+  describe('⑧ WP61 · 两侧内容落到三段纪要', () => {
+    it('两侧内容进同一批轮次 → 纪要三段都有内容', async () => {
+      const generator = generatorStub({
+        summary: { coreTopics: '失眠', keyEvents: '凌晨三点才睡', emotionalTurningPoints: '从回避转向表达' },
+      });
+      const service = new RollingSessionSummaryService({
+        memories: new InMemoryMemoryStore(),
+        generator,
+        batchSize: 1,
+      });
+
+      service.recordRound(TENANT, SESSION, VISITOR, '你最近睡得怎么样？', '我凌晨三点才睡');
+      service.recordOverflow(overflowEvent(['你最近睡得怎么样？']));
+      // 压摘要是**异步**的 (fire-and-forget): 生成器返回 ≠ 纪要已入缓存.
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBeDefined());
+
+      // 两侧仍在同一轮里 (WP55 的核心不变量, WP61 没动它).
+      expect(generator.calls[0]?.rounds).toEqual([{ counselor: '你最近睡得怎么样？', visitor: '我凌晨三点才睡' }]);
+      // 纪要是三段结构, 对外仍是**一段字符串** (渲染后的三行).
+      expect(service.latestSummary(TENANT, SESSION)).toBe('核心议题：失眠\n关键事件：凌晨三点才睡\n情绪转折点：从回避转向表达');
+    });
+
+    it('第二版纪要带上第一版 (结构化逐段传, 早期内容不丢)', async () => {
+      const first: RollingSummaryResult = { coreTopics: '失眠', keyEvents: '凌晨三点才睡', emotionalTurningPoints: '愿意说了' };
+      const generator = generatorStub({ summary: first });
+      const service = new RollingSessionSummaryService({
+        memories: new InMemoryMemoryStore(),
+        generator,
+        batchSize: 1,
+      });
+
+      service.recordRound(TENANT, SESSION, VISITOR, 'c1', 'v1');
+      service.recordOverflow(overflowEvent(['c1']));
+      // 等**纪要入缓存** (不是等生成器被调用): 上一版要进缓存, 第二版才带得上它.
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBeDefined());
+
+      service.recordRound(TENANT, SESSION, VISITOR, 'c2', 'v2');
+      service.recordOverflow(overflowEvent(['c2']));
+      await vi.waitFor(() => expect(generator.calls).toHaveLength(2));
+
+      // 上一版是**结构化对象** —— 模型才能逐段并 (不是把两坨文字搅一起).
+      expect(generator.calls[1]?.previousSummary).toEqual(first);
+      expect(generator.calls[1]?.rounds.map((round) => round.counselor)).toEqual(['c2']);
     });
   });
 });

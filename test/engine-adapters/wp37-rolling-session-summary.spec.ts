@@ -15,9 +15,19 @@
 //   全 mock, 不起 NestJS, 不发网络:
 //     摘要生成器用 stub; 记忆仓储用内核内存实现; 时钟与 id 工厂注入假值.
 //
+//   V2026-11-04 WP61 (B 层 · 纪要层次化):
+//     纪要从"一段流水文字"改成三层结构 (核心议题 / 关键事件 / 情绪转折点).
+//     新增 describe ⑨ 覆盖: 三段解析 / 围栏 / 退化口径 / 旧单段格式接住 /
+//     三段全空留待下次 / 对外仍是一段字符串 / 空段落渲染「（无）」/
+//     记忆存渲染后的文本 / 上一版逐段传 / 提示词里的上一版是三段 / 护栏没丢.
+//     既有断言从"摘要是一段字符串"改成"摘要= 渲染后的三行文本" (端口签名未变).
+//
 //   验证: npx vitest run test/engine-adapters/wp37-rolling-session-summary.spec.ts
 
 import { ConfigService } from '@nestjs/config';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import { vi } from 'vitest';
 
 import {
@@ -25,7 +35,13 @@ import {
   DEFAULT_ROLLING_SUMMARY_IMPORTANCE,
   RollingSessionSummaryService,
 } from '../../src/engine-adapters/persistence/rolling-session-summary.service.js';
-import { formatRollingSummaryInput, type RollingSummaryInput } from '../../src/engine-adapters/persistence/rolling-summary.generator.js';
+import {
+  formatRollingSummaryForPrompt,
+  formatRollingSummaryInput,
+  parseRollingSummaryResponse,
+  type RollingSummaryInput,
+  type RollingSummaryResult,
+} from '../../src/engine-adapters/persistence/rolling-summary.generator.js';
 import { buildRenderSpec } from '../../src/engine-adapters/rendering/spec-assembler.js';
 import type { StreamingRenderPort } from '../../src/engine-adapters/rendering/streaming-render.port.js';
 import {
@@ -64,9 +80,19 @@ function configStub(env: Readonly<Record<string, string>>): ConfigService {
   } as unknown as ConfigService;
 }
 
-/** 摘要生成器 stub: 记录入参, 返回固定摘要 (或抛错). */
-function generatorStub(options: { readonly summary?: string; readonly fail?: boolean }): {
-  readonly generate: (input: RollingSummaryInput) => Promise<string>;
+/**
+ * 造一个只填核心议题的纪要 (其余两段为空).
+ *
+ * 为什么多数用例只填一段: 这批用例关心的是**链路** (攒批 / 滚动 / 落库 / 降级),
+ * 不是三段内容本身 —— 三段各自的渲染与解析由 WP61 的用例单独钉.
+ */
+function summaryOf(coreTopics: string): RollingSummaryResult {
+  return { coreTopics, keyEvents: '', emotionalTurningPoints: '' };
+}
+
+/** 摘要生成器 stub: 记录入参, 返回固定纪要 (或抛错). */
+function generatorStub(options: { readonly summary?: RollingSummaryResult; readonly fail?: boolean }): {
+  readonly generate: (input: RollingSummaryInput) => Promise<RollingSummaryResult>;
   readonly calls: RollingSummaryInput[];
 } {
   const calls: RollingSummaryInput[] = [];
@@ -75,7 +101,7 @@ function generatorStub(options: { readonly summary?: string; readonly fail?: boo
     generate: async (input) => {
       calls.push(input);
       if (options.fail) throw new Error('llm down');
-      return options.summary ?? '摘要';
+      return options.summary ?? summaryOf('摘要');
     },
   };
 }
@@ -116,7 +142,7 @@ function reportAndEvict(
 describe('WP37 · 会话级滚动摘要 (适配层)', () => {
   describe('① 攒批: 攒够 N 轮才调 LLM', () => {
     it('不足阈值 → 不调 LLM, 不产生摘要', async () => {
-      const generator = generatorStub({ summary: '不该出现' });
+      const generator = generatorStub({ summary: summaryOf('不该出现') });
       const service = new RollingSessionSummaryService({
         memories: new InMemoryMemoryStore(),
         generator,
@@ -131,7 +157,7 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
     });
 
     it('达到阈值 → 调一次 LLM, 产出摘要', async () => {
-      const generator = generatorStub({ summary: '聊了失眠与工作压力' });
+      const generator = generatorStub({ summary: summaryOf('聊了失眠与工作压力') });
       const service = new RollingSessionSummaryService({
         memories: new InMemoryMemoryStore(),
         generator,
@@ -141,13 +167,15 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
       reportAndEvict(service, '第2轮');
       reportAndEvict(service, '第3轮');
 
-      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('聊了失眠与工作压力'));
+      await vi.waitFor(() =>
+        expect(service.latestSummary(TENANT, SESSION)).toBe(formatRollingSummaryForPrompt(summaryOf('聊了失眠与工作压力'))),
+      );
       expect(generator.calls).toHaveLength(1);
       expect(generator.calls[0]?.rounds.map((round) => round.counselor)).toEqual(['第1轮', '第2轮', '第3轮']);
     });
 
     it('攒批阈值可配 (batchSize=1 → 第一轮就压)', async () => {
-      const generator = generatorStub({ summary: '立刻压' });
+      const generator = generatorStub({ summary: summaryOf('立刻压') });
       const service = new RollingSessionSummaryService({
         memories: new InMemoryMemoryStore(),
         generator,
@@ -156,13 +184,13 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
 
       reportAndEvict(service, '第1轮');
 
-      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('立刻压'));
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe(formatRollingSummaryForPrompt(summaryOf('立刻压'))));
     });
   });
 
   describe('② 滚动: 每一版都覆盖全部已聊内容', () => {
     it('第二版摘要带上第一版 (previousSummary)', async () => {
-      const generator = generatorStub({ summary: '摘要v2' });
+      const generator = generatorStub({ summary: summaryOf('摘要v2') });
       const service = new RollingSessionSummaryService({
         memories: new InMemoryMemoryStore(),
         generator,
@@ -170,12 +198,12 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
       });
 
       reportAndEvict(service, '第1轮');
-      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('摘要v2'));
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe(formatRollingSummaryForPrompt(summaryOf('摘要v2'))));
 
       reportAndEvict(service, '第2轮');
       await vi.waitFor(() => expect(generator.calls).toHaveLength(2));
 
-      expect(generator.calls[1]?.previousSummary).toBe('摘要v2');
+      expect(generator.calls[1]?.previousSummary).toEqual(summaryOf('摘要v2'));
       expect(generator.calls[1]?.rounds.map((round) => round.counselor)).toEqual(['第2轮']);
     });
   });
@@ -183,7 +211,7 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
   describe('③ 落库: SHORT_TERM / SUMMARY 记忆条目', () => {
     it('摘要写成短时记忆条目 (契约预留的层级 + 来源)', async () => {
       const memories = new InMemoryMemoryStore();
-      const generator = generatorStub({ summary: '聊了失眠与工作压力' });
+      const generator = generatorStub({ summary: summaryOf('聊了失眠与工作压力') });
       const service = new RollingSessionSummaryService({
         memories,
         generator,
@@ -194,14 +222,16 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
       });
 
       reportAndEvict(service, '第1轮');
-      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('聊了失眠与工作压力'));
+      await vi.waitFor(() =>
+        expect(service.latestSummary(TENANT, SESSION)).toBe(formatRollingSummaryForPrompt(summaryOf('聊了失眠与工作压力'))),
+      );
 
       const hits = await memories.recall({ tenantId: TENANT, sessionId: SESSION, query: '' });
       expect(hits).toHaveLength(1);
       const entry = hits[0]?.entry;
       expect(entry?.tier).toBe(MemoryTier.SHORT_TERM);
       expect(entry?.source).toBe(MemorySource.SUMMARY);
-      expect(entry?.content).toBe('聊了失眠与工作压力');
+      expect(entry?.content).toBe(formatRollingSummaryForPrompt(summaryOf('聊了失眠与工作压力')));
       expect(entry?.importance).toBe(0.5);
       expect(entry?.tenantId).toBe(TENANT);
       expect(entry?.sessionId).toBe(SESSION);
@@ -212,12 +242,12 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
       const memories = new InMemoryMemoryStore();
       const service = new RollingSessionSummaryService({
         memories,
-        generator: generatorStub({ summary: '摘要' }),
+        generator: generatorStub({ summary: summaryOf('摘要') }),
         batchSize: 1,
       });
 
       reportAndEvict(service, '第1轮');
-      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('摘要'));
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe(formatRollingSummaryForPrompt(summaryOf('摘要'))));
 
       const hits = await memories.recall({ tenantId: TENANT, sessionId: SESSION, query: '' });
       expect(hits.every((hit) => hit.entry.tier === MemoryTier.SHORT_TERM)).toBe(true);
@@ -275,19 +305,19 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
       };
       const service = new RollingSessionSummaryService({
         memories: failing,
-        generator: generatorStub({ summary: '摘要仍然可用' }),
+        generator: generatorStub({ summary: summaryOf('摘要仍然可用') }),
         batchSize: 1,
       });
       void memories;
 
       reportAndEvict(service, '第1轮');
-      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('摘要仍然可用'));
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe(formatRollingSummaryForPrompt(summaryOf('摘要仍然可用'))));
     });
   });
 
   describe('⑤ 会话隔离', () => {
     it('两个租户撞同一个 sessionId → 不串摘要', async () => {
-      const generator = generatorStub({ summary: '摘要' });
+      const generator = generatorStub({ summary: summaryOf('摘要') });
       const service = new RollingSessionSummaryService({
         memories: new InMemoryMemoryStore(),
         generator,
@@ -295,7 +325,7 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
       });
 
       reportAndEvict(service, 'A租户的轮次', { tenantId: 'tenant-A', sessionId: 'same-id' });
-      await vi.waitFor(() => expect(service.latestSummary('tenant-A', 'same-id')).toBe('摘要'));
+      await vi.waitFor(() => expect(service.latestSummary('tenant-A', 'same-id')).toBe(formatRollingSummaryForPrompt(summaryOf('摘要'))));
 
       expect(service.latestSummary('tenant-B', 'same-id')).toBeUndefined();
     });
@@ -303,12 +333,12 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
     it('forgetSession → 状态清掉 (会话结束不留残)', async () => {
       const service = new RollingSessionSummaryService({
         memories: new InMemoryMemoryStore(),
-        generator: generatorStub({ summary: '摘要' }),
+        generator: generatorStub({ summary: summaryOf('摘要') }),
         batchSize: 1,
       });
 
       reportAndEvict(service, '第1轮');
-      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('摘要'));
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe(formatRollingSummaryForPrompt(summaryOf('摘要'))));
 
       service.forgetSession(TENANT, SESSION);
       expect(service.latestSummary(TENANT, SESSION)).toBeUndefined();
@@ -356,14 +386,16 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
 
   describe('⑦ prompt 接线', () => {
     it('有滚动摘要 → 进 system prompt', async () => {
-      const generator = generatorStub({ summary: '此前聊了失眠与工作压力' });
+      const generator = generatorStub({ summary: summaryOf('此前聊了失眠与工作压力') });
       const service = new RollingSessionSummaryService({
         memories: new InMemoryMemoryStore(),
         generator,
         batchSize: 1,
       });
       reportAndEvict(service, '第1轮');
-      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('此前聊了失眠与工作压力'));
+      await vi.waitFor(() =>
+        expect(service.latestSummary(TENANT, SESSION)).toBe(formatRollingSummaryForPrompt(summaryOf('此前聊了失眠与工作压力'))),
+      );
 
       const spec = buildRenderSpec({
         output: buildOutput(),
@@ -415,7 +447,7 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
   describe('⑧ 摘要提示词输入格式', () => {
     it('显式标注角色 (咨询师: / 来访者:) + 带上上一版摘要', () => {
       const text = formatRollingSummaryInput({
-        previousSummary: '摘要v1',
+        previousSummary: summaryOf('摘要v1'),
         rounds: [
           { counselor: '第一句', visitor: '第一答' },
           { counselor: '第二句', visitor: '第二答' },
@@ -435,6 +467,142 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
 
       expect(text).not.toContain('[上一版摘要]');
       expect(text).toContain('咨询师: 第一句');
+    });
+  });
+
+  // WP61 (2026-11-04) · 纪要层次化 (核心议题 / 关键事件 / 情绪转折点):
+  //   摘要从"一段流水文字"改成三层结构. 覆盖: 三段解析 / 退化口径 / 对外仍是字符串 /
+  //   记忆存渲染后的文本 / 上一版逐段传 / 提示词里的上一版是三段.
+  describe('⑨ WP61 · 纪要层次化 (核心议题 / 关键事件 / 情绪转折点)', () => {
+    const FULL_SUMMARY: RollingSummaryResult = {
+      coreTopics: '失眠与工作压力',
+      keyEvents: '提到凌晨三点才睡',
+      emotionalTurningPoints: '从回避转向表达',
+    };
+
+    it('模型回三段 JSON → 解析成结构化对象 (三段都有)', () => {
+      const parsed = parseRollingSummaryResponse(
+        '{"coreTopics": "失眠与工作压力", "keyEvents": "提到凌晨三点才睡", "emotionalTurningPoints": "从回避转向表达"}',
+      );
+
+      expect(parsed).toEqual(FULL_SUMMARY);
+    });
+
+    it('带代码块围栏 → 照样解析 (模型很爱加围栏)', () => {
+      const parsed = parseRollingSummaryResponse(
+        '```json\n{"coreTopics": "失眠", "keyEvents": "加班", "emotionalTurningPoints": "愿意说了"}\n```',
+      );
+
+      expect(parsed).toEqual({ coreTopics: '失眠', keyEvents: '加班', emotionalTurningPoints: '愿意说了' });
+    });
+
+    it('模型不按 JSON 回 → 整段当核心议题 (退化口径与 WP12 同款)', () => {
+      const parsed = parseRollingSummaryResponse('来访者最近总是凌晨三点才睡');
+
+      expect(parsed).toEqual({ coreTopics: '来访者最近总是凌晨三点才睡', keyEvents: '', emotionalTurningPoints: '' });
+    });
+
+    it('模型回旧单段格式 → 接住那一段 (不是三段全空)', () => {
+      const parsed = parseRollingSummaryResponse('{"summary": "聊了失眠"}');
+
+      expect(parsed).toEqual({ coreTopics: '聊了失眠', keyEvents: '', emotionalTurningPoints: '' });
+    });
+
+    it('三段全空 → 本批留待下次 (不产生空纪要, 不覆盖上一版)', async () => {
+      const generator = generatorStub({ summary: { coreTopics: '', keyEvents: '', emotionalTurningPoints: '' } });
+      const service = new RollingSessionSummaryService({
+        memories: new InMemoryMemoryStore(),
+        generator,
+        batchSize: 1,
+      });
+
+      reportAndEvict(service, '第1轮');
+      await vi.waitFor(() => expect(generator.calls).toHaveLength(1));
+
+      expect(service.latestSummary(TENANT, SESSION)).toBeUndefined();
+      // 本批没丢: 下一批连着一起压.
+      reportAndEvict(service, '第2轮');
+      await vi.waitFor(() => expect(generator.calls).toHaveLength(2));
+      expect(generator.calls[1]?.rounds.map((round) => round.counselor)).toEqual(['第1轮', '第2轮']);
+    });
+
+    it('对外仍是**一段字符串** (端口签名不变) → 渲染成三行', async () => {
+      const generator = generatorStub({ summary: FULL_SUMMARY });
+      const service = new RollingSessionSummaryService({
+        memories: new InMemoryMemoryStore(),
+        generator,
+        batchSize: 1,
+      });
+
+      reportAndEvict(service, '第1轮');
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBeDefined());
+
+      expect(service.latestSummary(TENANT, SESSION)).toBe(
+        '核心议题：失眠与工作压力\n关键事件：提到凌晨三点才睡\n情绪转折点：从回避转向表达',
+      );
+    });
+
+    it('空段落渲染成「（无）」 (不是空白行, 也不是省略)', () => {
+      const text = formatRollingSummaryForPrompt(summaryOf('只有核心议题'));
+
+      expect(text).toBe('核心议题：只有核心议题\n关键事件：（无）\n情绪转折点：（无）');
+    });
+
+    it('记忆条目存的是渲染后的三行文本 (不是 JSON)', async () => {
+      const memories = new InMemoryMemoryStore();
+      const service = new RollingSessionSummaryService({
+        memories,
+        generator: generatorStub({ summary: FULL_SUMMARY }),
+        batchSize: 1,
+        now: () => CLOCK,
+        makeId: () => 'fixed-id',
+      });
+
+      reportAndEvict(service, '第1轮');
+      await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBeDefined());
+
+      const hits = await memories.recall({ tenantId: TENANT, sessionId: SESSION, query: '' });
+      expect(hits[0]?.entry.content).toBe('核心议题：失眠与工作压力\n关键事件：提到凌晨三点才睡\n情绪转折点：从回避转向表达');
+    });
+
+    it('上一版纪要**逐段**传给生成器 (合并是逐段合并)', async () => {
+      const generator = generatorStub({ summary: FULL_SUMMARY });
+      const service = new RollingSessionSummaryService({
+        memories: new InMemoryMemoryStore(),
+        generator,
+        batchSize: 1,
+      });
+
+      reportAndEvict(service, '第1轮');
+      await vi.waitFor(() => expect(generator.calls).toHaveLength(1));
+
+      reportAndEvict(service, '第2轮');
+      await vi.waitFor(() => expect(generator.calls).toHaveLength(2));
+
+      // 结构化对象, 不是一坨文字 —— 模型才能"核心议题并进核心议题".
+      expect(generator.calls[1]?.previousSummary).toEqual(FULL_SUMMARY);
+    });
+
+    it('提示词里的上一版纪要是**三段结构** (模型才能逐段并)', () => {
+      const text = formatRollingSummaryInput({
+        previousSummary: FULL_SUMMARY,
+        rounds: [{ counselor: '第一句', visitor: '第一答' }],
+      });
+
+      expect(text).toContain('[上一版摘要]');
+      expect(text).toContain('核心议题：失眠与工作压力');
+      expect(text).toContain('关键事件：提到凌晨三点才睡');
+      expect(text).toContain('情绪转折点：从回避转向表达');
+    });
+
+    it('提示词要求三段输出 + 保留"不要做临床诊断"护栏', () => {
+      const prompt = readFileSync(path.join(process.cwd(), 'src/engine-adapters/persistence/rolling-summary.generator.ts'), 'utf8');
+
+      expect(prompt).toContain('"coreTopics"');
+      expect(prompt).toContain('"keyEvents"');
+      expect(prompt).toContain('"emotionalTurningPoints"');
+      // 护栏不能因为改成三段就丢掉.
+      expect(prompt).toContain('不要做临床诊断');
     });
   });
 });
