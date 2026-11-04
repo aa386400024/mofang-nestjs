@@ -33,6 +33,21 @@
 //     "逐字不变"的真正含义是"新 prompt = 旧 prompt + 恰好那两行".
 //     只断言"没有安全感三个字"太弱 —— 万一实现顺手改了别处的措辞, 它照样绿.
 //     所以这里**双向**断言: 缺省时不含这两行, 且有这两行时减去它们等于缺省版.
+//
+// V2026-11-04 WP56 (B 层 · 长期记忆召回进渲染上下文):
+//   覆盖召回结果进 prompt 的口径 ——
+//     ① recall 有内容 → 显示"你还记得这些事"那一段与各条记忆;
+//     ② recall 为空数组 → prompt **逐字不变** (零回归, 双向断言);
+//     ③ recall 有 5 条 → 只渲染 Top3 (不全部塞进去);
+//     ④ recall 内容在"内在状态"块里 (硬规则之前);
+//     ⑤ 记忆正文原样渲染 (不被改写 / 不截断);
+//     ⑥ 召回内容只在系统消息里, 不掺进历史消息.
+//
+//   关于第 ② 条的断言口径 (同上, 双向):
+//     "逐字不变" = "新 prompt = 旧 prompt + 恰好这一段".
+//     减去的方式是滤掉 '- 你还记得这些事' 开头行与 '  - ' 开头的子项行 ——
+//     '  - ' (两空格 + 破折号) 这个前缀**只有召回子项会用**, 其余行都是
+//     '- ' 开头或纯文本, 所以这个滤法不会误伤别的内容 (用例 ③ 顺带钉住"恰好 3 个子项").
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -499,6 +514,99 @@ describe('WP7 · 决策→说话闭环', () => {
 
       expect('safety' in plain).toBe(false);
       expect('bond' in plain).toBe(false);
+    });
+  });
+
+  describe('⑩ WP56 · 长期记忆召回进渲染上下文', () => {
+    /** 造 N 条召回命中 (按召回顺序 —— 内核已按相关度/重要度/时间排好序). */
+    function buildRecallHits(count: number): MemoryHit[] {
+      return Array.from({ length: count }, (_, index) => ({
+        entry: { ...buildMemoryEntry(), id: `memory-${index + 1}`, content: `长期记忆第${index + 1}条` },
+        score: 0.9 - index * 0.1,
+      }));
+    }
+
+    /** 造一份带 recall 的规格. */
+    function buildSpecWithRecall(hits: readonly MemoryHit[]): AdaptiveRenderSpec {
+      return buildRenderSpec({
+        output: buildOutput({ openingContext: hits }),
+        recentTurns: [],
+        tokenBudget: BUDGET,
+      });
+    }
+
+    it('recall 有内容 → prompt 显示"你还记得这些事"那一段与各条记忆', () => {
+      const spec = buildSpecWithRecall(buildRecallHits(2));
+
+      const systemText = buildVisitorMessages(spec)[0]?.content ?? '';
+
+      expect(systemText).toContain('- 你还记得这些事（背景，不要说出口）：');
+      expect(systemText).toContain('  - 长期记忆第1条');
+      expect(systemText).toContain('  - 长期记忆第2条');
+    });
+
+    it('recall 为空数组 → prompt 逐字不变 (零回归)', () => {
+      const withRecall = buildVisitorMessages(buildSpecWithRecall(buildRecallHits(3)))[0]?.content ?? '';
+      const withoutRecall = buildVisitorMessages(buildSpecWithRecall([]))[0]?.content ?? '';
+
+      // 空召回 = 这一段整个不出现.
+      expect(withoutRecall).not.toContain('你还记得这些事');
+      expect(withoutRecall).not.toContain('长期记忆第1条');
+      // 有召回的版本减去这一段 == 空召回版本 —— 证明只多了这一段, 别处一个字没动.
+      //   ('  - ' 开头的行只有召回子项会用, 其余行都是 '- ' 或纯文本).
+      const stripped = withRecall
+        .split('\n')
+        .filter((line) => !line.startsWith('- 你还记得这些事') && !line.startsWith('  - '))
+        .join('\n');
+      expect(stripped).toBe(withoutRecall);
+    });
+
+    it('recall 有 5 条 → 只渲染 Top3 (不全部塞进去)', () => {
+      const spec = buildSpecWithRecall(buildRecallHits(5));
+
+      const systemText = buildVisitorMessages(spec)[0]?.content ?? '';
+
+      expect(systemText).toContain('  - 长期记忆第1条');
+      expect(systemText).toContain('  - 长期记忆第2条');
+      expect(systemText).toContain('  - 长期记忆第3条');
+      expect(systemText).not.toContain('长期记忆第4条');
+      expect(systemText).not.toContain('长期记忆第5条');
+      // 恰好 3 个子项.
+      expect(systemText.split('\n').filter((line) => line.startsWith('  - '))).toHaveLength(3);
+    });
+
+    it('recall 内容放在"内在状态"块里 (在硬规则之前)', () => {
+      const systemText = buildVisitorMessages(buildSpecWithRecall(buildRecallHits(1)))[0]?.content ?? '';
+
+      const stateIdx = systemText.indexOf('你此刻的内在状态');
+      const recallIdx = systemText.indexOf('- 你还记得这些事');
+      const hardRuleIdx = systemText.indexOf('硬规则：');
+
+      expect(stateIdx).toBeGreaterThanOrEqual(0);
+      expect(recallIdx).toBeGreaterThan(stateIdx);
+      expect(recallIdx).toBeLessThan(hardRuleIdx);
+    });
+
+    it('记忆正文原样渲染 (不被改写 / 不截断)', () => {
+      const hits: MemoryHit[] = [{ entry: { ...buildMemoryEntry(), content: '我小时候被父母抛弃过。' }, score: 0.9 }];
+
+      const systemText = buildVisitorMessages(buildSpecWithRecall(hits))[0]?.content ?? '';
+
+      expect(systemText).toContain('  - 我小时候被父母抛弃过。');
+    });
+
+    it('recall 出现在系统消息里, 不掺进历史消息', () => {
+      const spec = buildRenderSpec({
+        output: buildOutput({ openingContext: buildRecallHits(1) }),
+        recentTurns: [{ role: 'counselor', text: USER_TEXT }],
+        tokenBudget: BUDGET,
+      });
+
+      const messages = buildVisitorMessages(spec);
+
+      expect(messages[0]?.content).toContain('你还记得这些事');
+      // 历史消息只有原话, 不含召回内容.
+      expect(messages[1]?.content).toBe(USER_TEXT);
     });
   });
 });

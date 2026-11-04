@@ -29,6 +29,13 @@
 //     ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
 //     本期**只加数据, 不调策略** —— 轮次长短 (verbosity) 的判定口径一个字没改.
 //
+//   V2026-11-04 治本 (WP56 · 长期记忆召回进渲染上下文):
+//     system prompt 的"内在状态"块多一段 —— "你还记得这些事" (跨会话长期记忆召回).
+//     召回结果 (内核 WP2 的 openingContext) 以前**从来没进过 prompt** —— 召回了但
+//     模型看不到 = 白召回. 本期把消费端接上, 让三级记忆这一环真正闭合.
+//     条件渲染 (recall.length > 0) + 只取 Top3 → 空召回时 prompt 逐字不变.
+//     ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
+//
 //   反双胞胎:
 //     - 不重复写咨询师半边记忆: 内核 rememberTurn 已经写了 (source=TURN, tier=WORKING,
 //       content=咨询师文本). 门面只补**来访半边**. 重复写 = 工作记忆里同一条出现两次,
@@ -916,6 +923,14 @@ const VERBOSITY_INSTRUCTION: Readonly<Record<TurnVerbosity, string>> = {
 };
 
 /**
+ * 渲染进 prompt 的长期记忆条数上限 (WP56).
+ *
+ * 为什么是 3: 内核召回上限是 5 条 (`OPENING_CONTEXT_LIMIT`), 全塞进来 prompt
+ * 明显变长, 而"来访者是谁、有什么核心议题"3 条就够. 召回策略本身归 WP59.
+ */
+const RECALL_PROMPT_LIMIT = 3;
+
+/**
  * 风险轮次的安全护栏 (任务单 §2.3).
  *
  * 为什么护栏写在 prompt 而不是只靠输出侧 guard: 输出侧 guard 是**事后**拦截
@@ -980,6 +995,34 @@ function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec): string {
   //   没有摘要时这一行整个不出现 → prompt 逐字不变.
   if (spec.sessionSummary) {
     lines.push(`- 此前我们聊过（背景，不要说出口）：${spec.sessionSummary}`);
+  }
+
+  // WP56: 跨会话长期记忆召回 (内核 WP2 的 openingContext).
+  //
+  //   为什么放在"内在状态"块**里面**、紧跟 sessionSummary 之后:
+  //     块头已经写着"绝对不要说出口" —— 召回的记忆属于同一类"只用来约束
+  //     语气与节奏、不能背出来"的内容, 放进去就自动受同一约束.
+  //     而 sessionSummary 与 recall 是一对**背景**: 前者是本场滚动摘要
+  //     ("刚才我们聊了什么"), 后者是跨会话长期召回 ("你是谁、你有什么核心议题") ——
+  //     挨着放, 两块背景连成一段, 模型读起来才是一句完整的"背景".
+  //
+  //   为什么**条件渲染**:
+  //     recall 只在**跨会话接续的首论**有值 (内核 collectOpeningContext 的口径:
+  //     resumeFromSessionId 存在 + turnIndex === 1), 其余轮次恒为空数组.
+  //     空数组还渲染一行"你还记得这些事"是纯废话, 还会让每一次普通会话的
+  //     prompt 都多一行 —— 那就破坏了零回归底线.
+  //
+  //   为什么只取 **Top3**:
+  //     内核召回上限是 5 条 (OPENING_CONTEXT_LIMIT), 全塞进来 prompt 会明显变长,
+  //     而"来访者是谁、有什么核心议题"3 条就够. 召回策略本身归 WP59, 本期只管渲染.
+  //
+  //   ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
+  if (spec.recall.length > 0) {
+    const memories = spec.recall
+      .slice(0, RECALL_PROMPT_LIMIT)
+      .map((hit) => `  - ${hit.entry.content}`)
+      .join('\n');
+    lines.push(`- 你还记得这些事（背景，不要说出口）：\n${memories}`);
   }
 
   if (spec.coreBeliefs.length > 0) {

@@ -61,7 +61,7 @@
 | **WP53** ✅ | 人格调节算子扩展到 safety/bond | 🟢 P2 | WP34 依恋系数只调 trust，**焦虑型涨 bond 不快、回避型涨 safety 不快** —— 人格调节算子只做了一半。内测有反馈后，把依恋系数扩展到 safety/bond 两维。⚠️ 实际落地：`AttachmentModulation` 从 2 列扩到 4 列（trust / resistance / **safety / bond**），env 键 10 → 18 个；口径与 trustScale **完全同范式**（只调**增益**方向，受损方向不调 = 不发明临床数字）；`AllianceConfig.deltas` 是**事件级**覆写、`safetyScale/bondScale` 是**角色级**调节，顺序固定为「先覆写 → 再调节 → 再 cap」（[交付记录](../completed/phase2/engine-wp53-personality-modulator-alliance-extension-implementation-2026-11-04.md)） | WP34 |
 | **WP54** ✅ | 破裂态阻抗反升（跨会话衰减补完） | 🟢 P2 | WP36 已交付「情绪 / 阻抗 / 同盟差异化半衰期回落」，但蓝图 §4.5 里的**「破裂态阻抗反升」没做** —— 缺"破裂"的阈值定义（属临床数字，仓库纪律是不发明）。落法建议：复用内核**既有**的抗拒门槛（`trust < 0.4 \|\| safety < 0.3`，见 `AllianceConfig.thresholds`）作破裂态定义，在 `SessionDecayConfig` 上加一个可配的"破裂态阻抗下限"，而不是新造阈值。⚠️ 实际落地：`SessionDecayConfig` 加 `ruptureResistanceFloor?`（**可选**，缺省 0 = 禁用）+ `applySessionDecay` 加第 4 参 `allianceThresholds?`（**不传 = 不启用破裂态判断**）；口径是**衰减下限不是"反升"**（`Math.max`，已高于 floor 的值不抬升）；门槛**复用** `AllianceConfig.thresholds`（校验也走 `resolveAllianceThresholds`，不新造门槛）；`DEFAULT_SESSION_DECAY_CONFIG` **不动**（3 字段，适配层 `toEqual` 断言会红）。⚠️ 本期**不接 env** → 生产上该下限**暂不生效**（[交付记录](../completed/phase2/engine-wp54-rupture-resistance-floor-implementation-2026-11-04.md)） | WP36 |
 | **WP55** ✅ | 会话摘要补齐来访者侧 | 🟡 P1 | WP37 已交付滚动摘要（工作窗口溢出 → 攒批异步压摘要 → 进渲染上下文），但**内核的溢出回调只有咨询师原话**（内核不渲染，拿不到来访者的话）—— 摘要因此是"咨询侧纪要"，不是逐字稿摘要。落法：适配层把**门面历史缓冲**（`MAX_HISTORY_TURNS = WORKING_MEMORY_WINDOW_TURNS * 2`，两侧都有）里的来访者文本一并交给生成器，提示词口径随之从"只写咨询师谈了什么"改成两侧纪要（仍禁替来访者编造）。⚠️ 实际落地走**「轮次记录」单队列**（两侧绑成一个不可拆的对象）而不是双队列 min 配对 —— 后者在"某轮没有来访者发言"时会错位一格、产出**假问答对**（[交付记录](../completed/phase2/engine-wp55-rolling-summary-both-sides-implementation-2026-11-04.md)） | WP37 |
-| **WP56** | 长期记忆召回（`spec.recall`）进渲染上下文 | 🟡 P1 | WP37 盘查时**全 `src/` 树 grep 核实**：`spec.recall` 填的是 WP2 的 `openingContext`（记忆命中），但**渲染层一处都没读**（`buildVisitorSystemPrompt` 不消费它）—— WP2 的记忆命中**从来没进过 prompt**，三级记忆里"长时召回"这一环在语言生成侧是断的。落法：仿 WP37 的 `sessionSummary` **独立字段**做法（别混进 `recall`），先定"召不召回 / 召回 Top-N / 以什么措辞注入 / 过期与冲突怎么过滤"，再接 |
+| **WP56** ✅ | 长期记忆召回（`spec.recall`）进渲染上下文 | 🟡 P1 | WP37 盘查时**全 `src/` 树 grep 核实**：`spec.recall` 填的是 WP2 的 `openingContext`（记忆命中），但**渲染层一处都没读**（`buildVisitorSystemPrompt` 不消费它）—— WP2 的记忆命中**从来没进过 prompt**，三级记忆里"长时召回"这一环在语言生成侧是断的。落法：仿 WP37 的 `sessionSummary` **独立字段**做法（别混进 `recall`），先定"召不召回 / 召回 Top-N / 以什么措辞注入 / 过期与冲突怎么过滤"，再接。⚠️ 实际落地：**只改适配层 1 个文件**（内核 diff 为空）—— `buildVisitorSystemPrompt` 加 recall 条件渲染（`recall.length > 0` 才显示，空数组 = prompt 逐字不变）+ 只取 **Top3**（内核召回上限实为 5）+ 放在 sessionSummary 之后（两块"背景"连成一段，受"不要说出口"约束，与 WP37 同款语义）；召回策略本身仍归 WP59（[交付记录](../completed/phase2/engine-wp56-recall-into-render-context-implementation-2026-11-04.md)） | WP2 |
 | **WP61** | 会话摘要层次化（核心议题 / 关键事件 / 情绪转折点） | 🟡 P1 | WP55 已交付**两侧**纪要，但摘要仍是"一段 ≤120 字的流水摘要" —— 终局蓝图 §4「记忆系统层」要的是**三层结构**（核心议题 / 关键事件 / 情绪转折点），不是一坨文字。落法：滚动摘要的输出改成结构化三段（prompt 侧按三段渲染，记忆条目存结构化摘要）；⚠️ WP12 的**最终摘要**那条路径是否同步分层，另行确认（那是另一条写入路径，别两边分叉） | WP55 |
 
 ### 📈 架构深度补完（2026-11-04 引擎评审后新增）
@@ -86,7 +86,7 @@
 | 🟢 P2 技术债 | 10 条 | WP45, 46, 47, 48, 49, 52, 53, 54, 59, 60 |
 | **合计** | **35 条** | **WP27–WP61** |
 
-**进度：12 / 35 完成**（WP28 ✅、WP34 ✅、WP36 ✅、WP37 ✅、WP42 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP57 ✅，2026-11-04）。
+**进度：13 / 35 完成**（WP28 ✅、WP34 ✅、WP36 ✅、WP37 ✅、WP42 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP56 ✅、WP57 ✅，2026-11-04）。
 
 ### 🚧 上线前必须一起做的真机项（WP28 遗留）
 
