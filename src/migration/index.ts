@@ -135,5 +135,11 @@ export { AddCharacterProfileExpressionFields1714900000025 } from './171490000002
 //   审计表的价值在于不可篡改. 唯一允许 update 的是 user_choice (学员点弹窗后的选择).
 //   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏建.
 export { AddStudentRiskEvents1714900000026 } from './1714900000026-AddStudentRiskEvents.js';
+// V2026-11-04 治本 (WP51 — character_profiles 加 2 列同盟三维基线):
+//   baseline_safety (FLOAT, 默认 0.5) + baseline_bond (FLOAT, 默认 0).
+//   角色种子按依恋风格给**开场**的安全感 / 联结感; 存量行由 DEFAULT 自动填充,
+//   数值补齐靠幂等 seed 重跑 (内容不进 migration).
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
+export { AddCharacterProfileAllianceBaseline1714900000027 } from './1714900000027-AddCharacterProfileAllianceBaseline.js';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

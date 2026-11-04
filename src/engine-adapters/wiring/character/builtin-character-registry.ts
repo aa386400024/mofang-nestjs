@@ -33,6 +33,27 @@
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp9a-character-resolver.spec.ts 覆盖解析/可复现/可区分/clamp
+//
+// V2026-11-04 治本 (WP51 · 角色种子同盟三维基线):
+//   WP42 把同盟拆成 trust / safety / bond 三维后, safety / bond 的开场值一直是
+//   **硬编码的默认值** (0.5 / 0) —— 所有角色开场一模一样, 回避型与安全型的
+//   安全感一样, 依恋风格的差异只落在 trust 和阻抗上.
+//
+//   本文件的扩展: `BuiltinCharacterSeed.baseline` 加 `safety?` / `bond?`, 并在
+//   `buildCharacterProfile` 里**条件**传给内核. 两个内置种子按依恋风格给值:
+//     · 回避型 (BUILTIN_AVOIDANT_L1):      safety 0.25 / bond 0.05
+//     · 焦虑型 (BUILTIN_ANXIOUS_LOW_MOOD_L1): safety 0.40 / bond 0.50
+//   ⚠️ 数值是**工程种子值, 非临床标定** —— 内测后按真实对练校准.
+//
+//   为什么**条件**传而不是无条件 + 兜默认值:
+//     回退口径住在**内核** bootstrap (`profile?.baseline?.safety ?? DEFAULT_SAFETY`).
+//     本层再兜一份就是两个真相源 (反双胞胎纪律). 条件展开还让"种子没说"与
+//     "种子说了 0"能被区分开 —— 后者是真的 0, 前者才走默认.
+//
+//   为什么**不按依恋风格自动推导** (任务单 §4.4):
+//     自动推导 = 在代码里硬编码一张 "attachmentStyle → safety" 映射表, 而实际上
+//     同样是回避型, 不同角色的 safety 起点可以不一样 ("创伤后回避" vs "天生疏离").
+//     让种子自己填, 更符合"角色是独立个体"的设定.
 
 import type {
   CharacterPresetInput,
@@ -79,6 +100,18 @@ export interface BuiltinCharacterSeed {
       readonly valence: number;
       readonly arousal: number;
     };
+    /**
+     * 关系安全感基线 [0,1] (WP51).
+     *
+     * 缺省 = 不传 = 内核用 DEFAULT_SAFETY (0.5) —— 回退口径住在内核, 本层不兜底.
+     */
+    readonly safety?: number;
+    /**
+     * 关系联结基线 [0,1] (WP51).
+     *
+     * 缺省 = 不传 = 内核用 DEFAULT_BOND (0) —— 回退口径住在内核, 本层不兜底.
+     */
+    readonly bond?: number;
   };
 }
 
@@ -106,6 +139,10 @@ export const BUILTIN_AVOIDANT_L1: BuiltinCharacterSeed = {
     trust: 0.2,
     resistance: { verbal: 0.62, depth: 0.68, style: 0.6 },
     emotion: { valence: -0.55, arousal: 0.18 },
+    // WP51: 回避型的同盟三维基线 —— 对关系很戒备, 安全感低, 联结感几乎没有.
+    //   ⚠️ 工程种子值, 非临床标定.
+    safety: 0.25,
+    bond: 0.05,
   },
 };
 
@@ -132,6 +169,10 @@ export const BUILTIN_ANXIOUS_LOW_MOOD_L1: BuiltinCharacterSeed = {
     trust: 0.28,
     resistance: { verbal: 0.42, depth: 0.5, style: 0.38 },
     emotion: { valence: -0.45, arousal: 0.62 },
+    // WP51: 焦虑型的同盟三维基线 —— 怕被抛弃, 安全感中等偏低, 但**渴望联结** (bond 高).
+    //   ⚠️ 工程种子值, 非临床标定.
+    safety: 0.4,
+    bond: 0.5,
   },
 };
 
@@ -217,6 +258,11 @@ export function buildCharacterProfile(seed: BuiltinCharacterSeed, preset?: Chara
       emotion: buildEmotion(seed, preset),
       // 移情固定全零: 移情随会话演化, 开场不预设正负.
       transference: { positive: 0, negative: 0, dependency: 0 },
+      // WP51: 同盟三维的安全感 / 联结感 —— 种子给了就传, **没给就不出现** (键都不存在).
+      //   不在这里兜默认值: 回退口径住在内核 bootstrap (`?? DEFAULT_SAFETY`), 本层再兜一份
+      //   就是两个真相源. 条件展开 = "种子没说"与"种子说了 0"能被区分开.
+      ...(seed.baseline.safety === undefined ? {} : { safety: clamp01(seed.baseline.safety) }),
+      ...(seed.baseline.bond === undefined ? {} : { bond: clamp01(seed.baseline.bond) }),
     },
     forbiddenBehaviors: [...seed.forbiddenBehaviors],
     sensitiveTopics: [...seed.sensitiveTopics],

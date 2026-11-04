@@ -193,6 +193,26 @@ export class CreateCharacterProfileDto {
   @Max(1)
   baselineEmotionArousal!: number;
 
+  @ApiPropertyOptional({
+    description: '关系安全感基线 [0,1] (缺省 0.5 —— 走 DB DEFAULT, 与内核 DEFAULT_SAFETY 一致)',
+    example: 0.25,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  baselineSafety?: number;
+
+  @ApiPropertyOptional({
+    description: '关系联结基线 [0,1] (缺省 0 —— 走 DB DEFAULT, 与内核 DEFAULT_BOND 一致)',
+    example: 0.05,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  baselineBond?: number;
+
   @ApiProperty({ description: '核心信念', type: [CharacterCoreBeliefDto] })
   @IsArray()
   @ValidateNested({ each: true })
@@ -264,6 +284,12 @@ export class CharacterProfileAdminDto {
 
   @ApiProperty({ description: '情绪唤醒 [0,1]' })
   baselineEmotionArousal!: number;
+
+  @ApiProperty({ description: '关系安全感基线 [0,1] (WP51)' })
+  baselineSafety!: number;
+
+  @ApiProperty({ description: '关系联结基线 [0,1] (WP51)' })
+  baselineBond!: number;
 
   @ApiProperty({ description: '核心信念', type: [CharacterCoreBeliefDto] })
   coreBeliefs!: CoreBelief[];

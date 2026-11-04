@@ -51,50 +51,67 @@ const riskDesc = (cat: string) => t(`risk.${cat}.desc`)
     />
     <template v-else-if="data">
       <!-- 核心指标卡片 -->
-      <n-grid cols="4" responsive="screen" class="mb-4">
-        <n-gi>
-          <n-card size="small">
-            <n-statistic :label="t('dashboard.totalSessions')" :value="data.totalSessions">
-              <template #suffix>
-                <span class="text-xs text-muted ml-2">{{ t('dashboard.todayNew') }} {{ data.todaySessions }}</span>
-              </template>
-            </n-statistic>
-          </n-card>
-        </n-gi>
-        <n-gi>
-          <n-card size="small">
-            <n-statistic :label="t('dashboard.crisisHits')" :value="data.crisisHits">
-              <template #suffix>
-                <span class="text-xs text-muted ml-2">{{ t('dashboard.crisisDesc') }}</span>
-              </template>
-            </n-statistic>
-          </n-card>
-        </n-gi>
-        <n-gi>
-          <n-card size="small">
-            <n-statistic :label="t('dashboard.totalTokens')" :value="data.totalTokens.toLocaleString()">
-              <template #suffix>
-                <span class="text-xs text-muted ml-2">{{ t('dashboard.estCost') }} {{ fmtCost(data.estimatedCostCny) }}</span>
-              </template>
-            </n-statistic>
-          </n-card>
-        </n-gi>
-        <n-gi>
-          <n-card size="small">
-            <n-statistic :label="t('dashboard.psyguard')">
-              <template #default>
-                <div class="flex items-center gap-2">
-                  <span class="w-2 h-2 rounded-full" :class="data.psyguard.status === 'ok' ? 'bg-ok' : 'bg-warn'"></span>
-                  <span class="font-mono text-lg">{{ data.psyguard.status === 'ok' ? t('dashboard.running') : t('dashboard.degraded') }}</span>
-                </div>
-              </template>
-              <template #suffix>
-                <span class="text-xs text-muted ml-2">{{ t('dashboard.p90') }} {{ data.psyguard.p90Ms }}ms · {{ data.psyguard.totalRequests }} {{ t('dashboard.requests') }}</span>
-              </template>
-            </n-statistic>
-          </n-card>
-        </n-gi>
-      </n-grid>
+      <div class="grid grid-cols-4 gap-4 mb-6">
+        <!-- 总会话数 -->
+        <div class="card p-5 hover:bg-bg-elevated transition">
+          <div class="flex items-start justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+              <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <n-tag size="tiny" :bordered="false" type="info">+{{ data.todaySessions }} 今日</n-tag>
+          </div>
+          <div class="text-2xl font-semibold text-gray-100 mb-1">{{ data.totalSessions }}</div>
+          <div class="text-xs text-muted">{{ t('dashboard.totalSessions') }}</div>
+        </div>
+
+        <!-- 危机命中数 -->
+        <div class="card p-5 hover:bg-bg-elevated transition">
+          <div class="flex items-start justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+              <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+          </div>
+          <div class="text-2xl font-semibold text-gray-100 mb-1">{{ data.crisisHits }}</div>
+          <div class="text-xs text-muted">{{ t('dashboard.crisisHits') }}</div>
+        </div>
+
+        <!-- 总 Token 数 -->
+        <div class="card p-5 hover:bg-bg-elevated transition">
+          <div class="flex items-start justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+              <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <n-tag size="tiny" :bordered="false" type="warning">{{ fmtCost(data.estimatedCostCny) }}</n-tag>
+          </div>
+          <div class="text-2xl font-semibold text-gray-100 mb-1">{{ data.totalTokens.toLocaleString() }}</div>
+          <div class="text-xs text-muted">{{ t('dashboard.totalTokens') }}</div>
+        </div>
+
+        <!-- PsyGuard 状态 -->
+        <div class="card p-5 hover:bg-bg-elevated transition">
+          <div class="flex items-start justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+              <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.021 12.021 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <span class="flex items-center gap-1.5 text-xs">
+              <span class="w-1.5 h-1.5 rounded-full" :class="data.psyguard.status === 'ok' ? 'bg-ok' : 'bg-warn'"></span>
+              <span :class="data.psyguard.status === 'ok' ? 'text-ok' : 'text-warn'">
+                {{ data.psyguard.status === 'ok' ? t('dashboard.running') : t('dashboard.degraded') }}
+              </span>
+            </span>
+          </div>
+          <div class="text-2xl font-semibold text-gray-100 mb-1">{{ data.psyguard.p90Ms }}ms</div>
+          <div class="text-xs text-muted">PsyGuard p90 · {{ data.psyguard.totalRequests }} 请求</div>
+        </div>
+      </div>
 
       <!-- 近 7 天会话趋势 -->
       <n-card :title="t('dashboard.weeklyTrend')" size="small" class="mb-4">

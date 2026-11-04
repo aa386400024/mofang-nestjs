@@ -2,6 +2,20 @@
 //   职责: 全新会话开场时, 把可选的角色 profile 装配成一份初始 BdiSnapshot;
 //         无 profile 时回落到中性默认基线. 跨会话接续不走这里 (直接搬上一场快照).
 //   边界: 纯 TS, 无 I/O, 无随机, 可复现.
+//
+// V2026-11-04 WP51 (引擎内核 · 角色种子同盟三维基线):
+//   WP42 把同盟拆成 trust / safety / bond 三维后, safety / bond 的开场值一直是
+//   **硬编码的默认值** (0.5 / 0) —— 所有角色开场一模一样, 依恋风格的差异没落地.
+//   WP42 当时的理由是"角色种子里没有这两项, 硬造一个'依恋型起始安全感更高'就是
+//   发明临床数字" —— 现在角色种子**自己有了**这两个字段 (WP51), 于是开场值改从
+//   `profile.baseline` 读.
+//
+//   为什么回退仍住在**内核这一处**:
+//     适配层只负责"种子说了什么就传什么", 不做二次兜底 ——
+//     内核 `?? DEFAULT_SAFETY` 是唯一的回退口径. 适配层若也兜一份, 就出现
+//     "内核兜 0.5 / 适配层兜 0.5"两个真相源, 改一处漏一处 (反双胞胎纪律).
+//
+//   缺省 = 不传 = 用默认值 = 行为与 WP42 **逐字一致** (零回归).
 
 import type { BdiResistance, BdiSnapshot } from './bdi-snapshot.js';
 import type { CoreBelief, CoreBeliefActivation, MemoryBelief, TemporaryBelief } from './beliefs.js';
@@ -103,10 +117,10 @@ export function buildInitialSnapshot(profile?: CharacterProfile): BdiSnapshot {
     resistance: buildResistance(profile),
     transference: buildTransference(profile),
     trust: clamp01(profile?.baseline?.trust ?? DEFAULT_TRUST),
-    // WP42: 安全感 / 纽带感本期**不接角色种子** (任务单 §3.1 只给了固定初值) ——
-    //   角色种子里没有这两项, 硬造一个"依恋型起始安全感更高"就是发明临床数字.
-    //   需要按角色分化时, 走 AllianceConfig 端口或后续 WP 扩展角色基线.
-    safety: clamp01(DEFAULT_SAFETY),
-    bond: clamp01(DEFAULT_BOND),
+    // WP51: 安全感 / 纽带感从**角色基线**读, 缺省用内核默认值 (零回归).
+    //   角色种子给了就用角色的, 没给就用 DEFAULT_SAFETY / DEFAULT_BOND ——
+    //   回退逻辑住在**内核这一处**, 适配层不做二次兜底 (免得两个真相源漂移).
+    safety: clamp01(profile?.baseline?.safety ?? DEFAULT_SAFETY),
+    bond: clamp01(profile?.baseline?.bond ?? DEFAULT_BOND),
   };
 }

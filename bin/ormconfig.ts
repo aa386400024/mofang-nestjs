@@ -187,6 +187,10 @@ import { AddCharacterProfileExpressionFields1714900000025 } from '../src/migrati
 //   部署顺序: **必须先 migration:run 再起服务** —— 运行时写入前表得先在.
 //   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏建.
 import { AddStudentRiskEvents1714900000026 } from '../src/migration/1714900000026-AddStudentRiskEvents.js';
+// V2026-11-04 治本 (WP51 — character_profiles 加 2 列同盟三维基线, 跟 src/migration/index.ts 1:1):
+//   baseline_safety (FLOAT, 默认 0.5) + baseline_bond (FLOAT, 默认 0) —— 角色种子的
+//   开场安全感 / 联结感. 存量行由 DB DEFAULT 自动填充 (不需要 UPDATE), 加列幂等 (缺才加).
+import { AddCharacterProfileAllianceBaseline1714900000027 } from '../src/migration/1714900000027-AddCharacterProfileAllianceBaseline.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -319,6 +323,10 @@ const ormconfig = async (): Promise<DataSource> => {
       // V2026-11-02 治本 (WP14 — student_risk_events 学员心理风险事件审计表, 跟 src/migration/index.ts 1:1):
       //   append-only 审计表 (13 列 + 2 索引), 故意没有 updated_at / deleted_at.
       AddStudentRiskEvents1714900000026,
+      // V2026-11-04 治本 (WP51 — character_profiles 加 2 列同盟三维基线, 跟 src/migration/index.ts 1:1):
+      //   baseline_safety / baseline_bond —— 角色种子的开场安全感 / 联结感.
+      //   存量行由 DB DEFAULT 自动填充; 数值补齐靠幂等 seed 重跑 (内容不进 migration).
+      AddCharacterProfileAllianceBaseline1714900000027,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

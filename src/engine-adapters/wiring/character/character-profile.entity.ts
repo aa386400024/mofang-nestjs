@@ -29,6 +29,23 @@
 //     2. migration:run 后 DESCRIBE character_profiles 与任务单 §3 一致
 //     3. test/engine-adapters/wp9b-*.spec.ts 覆盖 resolver / seed / admin
 //
+//   V2026-11-04 治本 (WP51 · B 层 · 同盟三维基线两列):
+//   职责: 给 `character_profiles` 加 2 列 —— `baseline_safety` / `baseline_bond`,
+//         让角色种子能按依恋风格给出**开场**的安全感 / 联结感.
+//   边界: 只加列 + 让 resolver 读; 数值口径在 seed 与内置种子两处 (各一份内容,
+//         同一档位), 映射公式仍只有 WP9-A 的 buildCharacterProfile 一份.
+//
+//   为什么这两列不是"纯预留" (与 WP10A 三列相反):
+//     WP10A 那三列是**表达风格** (话量/叙事/语态) —— 本期无消费方, 先占位.
+//     而 safety / bond 是**同盟三维**的基线: 内核 bootstrap 已经从
+//     `profile.baseline` 读 (WP51 同期), 列一到位就**真的生效**.
+//
+//   默认值与内核常量对齐:
+//     `baseline_safety` 默认 0.5 = 内核 `DEFAULT_SAFETY`;
+//     `baseline_bond` 默认 0 = 内核 `DEFAULT_BOND`.
+//     存量行由 MySQL 的 ADD COLUMN ... DEFAULT 自动填充, 不需要 UPDATE ——
+//     老角色加列后的行为与加列前逐字一致 (零回归).
+//
 //   V2026-10-30 治本 (WP10A · B 层 · 表达风格基线字段预留):
 //   职责: 给 `character_profiles` 加 3 列**纯预留**字段 —— 话量基线 / 叙事风格 / 语态倾向,
 //         供 Phase2 P1 的表达风格渲染消费.
@@ -159,6 +176,23 @@ export class CharacterProfileEntity {
   /** 情绪唤醒 [0,1]. */
   @Column({ type: 'float', name: 'baseline_emotion_arousal' })
   baselineEmotionArousal!: number;
+
+  /**
+   * 关系安全感基线 [0,1] (WP51).
+   *
+   * 缺省 0.5 —— 与内核 `DEFAULT_SAFETY` 一致 (存量行加列后自动就是这个值,
+   * 一条 UPDATE 都不用写).
+   */
+  @Column({ type: 'float', name: 'baseline_safety', default: 0.5 })
+  baselineSafety!: number;
+
+  /**
+   * 关系联结基线 [0,1] (WP51).
+   *
+   * 缺省 0 —— 与内核 `DEFAULT_BOND` 一致 (纽带感开场时不存在, 只能长出来).
+   */
+  @Column({ type: 'float', name: 'baseline_bond', default: 0 })
+  baselineBond!: number;
 
   /**
    * 话量基线 [0,1] (V2026-10-30 WP10A · 表达风格预留).

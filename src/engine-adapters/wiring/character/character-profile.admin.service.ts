@@ -113,6 +113,10 @@ export class CharacterProfileAdminService {
       baselineResistanceStyle: input.baselineResistanceStyle,
       baselineEmotionValence: input.baselineEmotionValence,
       baselineEmotionArousal: input.baselineEmotionArousal,
+      // WP51: 同盟三维基线两列 —— **没给就不出现** (走 DB DEFAULT 0.5 / 0),
+      //   与 WP10A 的表达风格三列同一纪律 (默认值只有 DDL 一处真相).
+      ...(input.baselineSafety === undefined ? {} : { baselineSafety: input.baselineSafety }),
+      ...(input.baselineBond === undefined ? {} : { baselineBond: input.baselineBond }),
       coreBeliefs: input.coreBeliefs,
       underlyingDesires: input.underlyingDesires,
       forbiddenBehaviors: input.forbiddenBehaviors,
@@ -148,6 +152,9 @@ export class CharacterProfileAdminService {
     if (input.baselineResistanceStyle !== undefined) row.baselineResistanceStyle = input.baselineResistanceStyle;
     if (input.baselineEmotionValence !== undefined) row.baselineEmotionValence = input.baselineEmotionValence;
     if (input.baselineEmotionArousal !== undefined) row.baselineEmotionArousal = input.baselineEmotionArousal;
+    // WP51: 同盟三维基线两列 —— 缺省 = 不改 (不把已标定好的值冲回默认).
+    if (input.baselineSafety !== undefined) row.baselineSafety = input.baselineSafety;
+    if (input.baselineBond !== undefined) row.baselineBond = input.baselineBond;
     if (input.coreBeliefs !== undefined) row.coreBeliefs = input.coreBeliefs;
     if (input.underlyingDesires !== undefined) row.underlyingDesires = input.underlyingDesires;
     if (input.forbiddenBehaviors !== undefined) row.forbiddenBehaviors = input.forbiddenBehaviors;
@@ -213,6 +220,8 @@ function toAdminDto(row: CharacterProfileEntity): CharacterProfileAdminDto {
     baselineResistanceStyle: row.baselineResistanceStyle,
     baselineEmotionValence: row.baselineEmotionValence,
     baselineEmotionArousal: row.baselineEmotionArousal,
+    baselineSafety: row.baselineSafety,
+    baselineBond: row.baselineBond,
     coreBeliefs: row.coreBeliefs,
     underlyingDesires: row.underlyingDesires,
     forbiddenBehaviors: row.forbiddenBehaviors,

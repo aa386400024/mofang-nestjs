@@ -2,6 +2,26 @@
 //   职责: adapter 从 MySQL / persona 解析后注入的**纯角色基线**, 内核只消费这个对象,
 //         不读数据库、不感知 persona 实体结构 (保持内核可整包搬走).
 //   边界: 纯 TS, 零 @nestjs/* / typeorm. 缺省字段回落到中性默认基线 (见 bootstrap).
+//
+// V2026-11-04 WP51 (引擎内核 · 角色种子同盟三维基线):
+//   WP42 把同盟拆成 trust / safety / bond 三维后, **safety / bond 的开场值一直是
+//   硬编码的默认值** (0.5 / 0) —— 所有角色开场一模一样, 依恋风格的差异没落地.
+//   回避型角色 (对关系很戒备) 与安全型角色开场安全感一样, 人格差异只体现在
+//   trust 和阻抗上.
+//
+//   本文件的扩展: `baseline` 加 `safety?` / `bond?` 两个**可选**字段, 与既有的
+//   `trust` 同性质 —— 都是"这个人开场时是什么状态".
+//
+//   为什么进 `baseline` 而不是 PersonalityModulator (任务单 §4.1):
+//     基线是"这个人开场是什么状态"; 调节算子调的是"这个人对事件的反应幅度"
+//     (delta × 系数). 两者是**不同的事** —— WP53 把调节算子扩到 safety / bond 后,
+//     基线还是平的, 调节再准也差不了多少 (在平地上调坡度, 起点都在同一高度).
+//
+//   为什么是**可选**:
+//     缺省 = 不传 = 用内核默认值 = 行为与 WP42 **逐字一致** (零回归).
+//     与既有的 trust / resistance / emotion / transference 同一范式.
+//
+//   ⚠️ 数值是**工程种子值, 非临床标定** —— 内测后按真实对练校准.
 
 import type { BdiResistance } from './bdi-snapshot.js';
 import type { CoreBelief } from './beliefs.js';
@@ -54,6 +74,20 @@ export interface CharacterProfile {
     readonly resistance?: Partial<BdiResistance>;
     readonly emotion?: Partial<EmotionState>;
     readonly transference?: Partial<TransferenceState>;
+    /**
+     * 关系安全感基线 [0,1] (WP51).
+     *
+     * 来访在这段关系里感到安全, 可以敞开心扉.
+     * 缺省 = 不传 = 用 DEFAULT_SAFETY (0.5) —— 见 bootstrap 的回退口径.
+     */
+    readonly safety?: number;
+    /**
+     * 关系联结基线 [0,1] (WP51).
+     *
+     * 来访与咨询师有情感连接, 不是冷冰冰的问诊.
+     * 缺省 = 不传 = 用 DEFAULT_BOND (0) —— 见 bootstrap 的回退口径.
+     */
+    readonly bond?: number;
   };
   /** 禁止行为 (透传给本轮意图, 供 WP5 回避). */
   readonly forbiddenBehaviors: readonly string[];

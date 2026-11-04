@@ -61,6 +61,11 @@ export function toCharacterSeed(row: CharacterProfileEntity): BuiltinCharacterSe
     sensitiveTopics: [...row.sensitiveTopics],
     baseline: {
       trust: row.baselineTrust,
+      // WP51: 同盟三维基线 —— safety / bond 从 DB 行读 (列有 DEFAULT, 恒有值).
+      //   这里**不做条件展开**: DB 列是 NOT NULL DEFAULT, "没值"在数据源上不可能发生;
+      //   与 trust 一样直接传. 真正的"没有"只存在于内存种子那一侧.
+      safety: row.baselineSafety,
+      bond: row.baselineBond,
       resistance: {
         verbal: row.baselineResistanceVerbal,
         depth: row.baselineResistanceDepth,

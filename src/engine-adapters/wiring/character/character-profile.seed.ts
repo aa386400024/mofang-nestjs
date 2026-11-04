@@ -56,6 +56,25 @@
 //     2. test/engine-adapters/wp10a-*.spec.ts 覆盖列定义 / migration 幂等 / 种子表态口径
 //     3. npm run seed:character-profiles → 4 行; 连跑两次行数不变
 //
+//   V2026-11-04 治本 (WP51 · 同盟三维基线):
+//   职责: 给内容基线加 2 个**可选**字段 (安全感 / 联结感), 并把"种子明确表态的才写"
+//         这条口径落到灌库载荷上.
+//   边界: 只写内容, 不写消费 —— 内核 bootstrap 同期从 `profile.baseline` 读这两项.
+//
+//   为什么 DB 侧的角色**这次要表态** (与 WP10A 的"不表态"相反):
+//     生产默认数据源是 **db** (见 character-pool.module.ts 的 readCharacterSource:
+//     缺省 db, builtin 才是回退/测试档). 若 DB 侧的角色不表态, 库里全是
+//     DEFAULT 0.5 / 0 —— 那么**生产上这个 WP 等于没做**, 内测看到的仍是
+//     "回避型和安全型安全感一样". 所以 DB 侧必须表态.
+//
+//   数值口径: **抄 WP9-A 同风格内置种子的档位** (anxious / avoidant 各一档) ——
+//     与本文件既有的 trust / 阻抗 / 情绪口径完全一致 (不是我们对这些角色的主观印象).
+//     ⚠️ 工程种子值, 非临床标定.
+//
+//   补值路径: **不写一次性回填脚本** —— 靠本文件既有的幂等 upsert 自然完成
+//     (重跑 seed → hasDrift 命中 → UPDATE 两列). 迁移只管 schema, 内容归 seed.
+//     ⚠️ 部署顺序: migration 先跑 (加列), 再跑 seed (补值).
+//
 //   时间戳: 2026-10-29
 
 import { createHash } from 'node:crypto';
@@ -117,6 +136,18 @@ export interface CharacterProfileSeedSpec {
   readonly resistance: { readonly verbal: number; readonly depth: number; readonly style: number };
   /** 情绪基调 (valence [-1,1] / arousal [0,1]). */
   readonly emotion: { readonly valence: number; readonly arousal: number };
+  /**
+   * 关系安全感基线 [0,1] (WP51).
+   *
+   * **缺省 = 走 DB DEFAULT 0.5** (= 内核 DEFAULT_SAFETY) —— 种子不写自己没把握的值.
+   */
+  readonly safety?: number;
+  /**
+   * 关系联结基线 [0,1] (WP51).
+   *
+   * **缺省 = 走 DB DEFAULT 0** (= 内核 DEFAULT_BOND) —— 种子不写自己没把握的值.
+   */
+  readonly bond?: number;
   /** 底层愿望种子. */
   readonly underlyingDesires: readonly UnderlyingDesireSeed[];
   /** 绝不会做的事 (负向约束). */
@@ -164,6 +195,11 @@ export const CHARACTER_PROFILE_SEED_SPECS: readonly CharacterProfileSeedSpec[] =
     trust: 0.28,
     resistance: { verbal: 0.42, depth: 0.5, style: 0.38 },
     emotion: { valence: -0.45, arousal: 0.62 },
+    // WP51: 同盟三维基线 —— 焦虑型 (怕被抛弃, 渴望联结).
+    //   数值**抄 WP9-A 焦虑型内置种子的档位** (同本文件 trust/阻抗/情绪的口径),
+    //   不是我们对这个角色的主观印象. ⚠️ 工程种子值, 非临床标定.
+    safety: 0.4,
+    bond: 0.5,
     underlyingDesires: [
       { key: 'acceptance', label: '被接纳与认可', baselineWeight: 0.72 },
       { key: 'stability', label: '情绪与关系的稳定', baselineWeight: 0.55 },
@@ -189,6 +225,10 @@ export const CHARACTER_PROFILE_SEED_SPECS: readonly CharacterProfileSeedSpec[] =
     trust: 0.28,
     resistance: { verbal: 0.42, depth: 0.5, style: 0.38 },
     emotion: { valence: -0.45, arousal: 0.62 },
+    // WP51: 同盟三维基线 —— 焦虑型 (与晚晴同档: 抄 WP9-A 焦虑型内置种子).
+    //   ⚠️ 工程种子值, 非临床标定.
+    safety: 0.4,
+    bond: 0.5,
     underlyingDesires: [
       { key: 'recognition', label: '被看见与认可', baselineWeight: 0.7 },
       { key: 'self_reliability', label: '对自己的信任', baselineWeight: 0.6 },
@@ -219,6 +259,10 @@ export const CHARACTER_PROFILE_SEED_SPECS: readonly CharacterProfileSeedSpec[] =
     trust: 0.2,
     resistance: { verbal: 0.62, depth: 0.68, style: 0.6 },
     emotion: { valence: -0.55, arousal: 0.18 },
+    // WP51: 同盟三维基线 —— 回避型 (对关系很戒备, 联结感几乎没有).
+    //   数值**抄 WP9-A 回避型内置种子的档位**. ⚠️ 工程种子值, 非临床标定.
+    safety: 0.25,
+    bond: 0.05,
     underlyingDesires: [
       { key: 'competence', label: '能力被认可与掌控感', baselineWeight: 0.7 },
       { key: 'autonomy', label: '自主与不被打扰', baselineWeight: 0.5 },
@@ -247,6 +291,10 @@ export const CHARACTER_PROFILE_SEED_SPECS: readonly CharacterProfileSeedSpec[] =
     trust: 0.2,
     resistance: { verbal: 0.62, depth: 0.68, style: 0.6 },
     emotion: { valence: -0.55, arousal: 0.18 },
+    // WP51: 同盟三维基线 —— 回避型 (与亦舟同档: 抄 WP9-A 回避型内置种子).
+    //   ⚠️ 工程种子值, 非临床标定.
+    safety: 0.25,
+    bond: 0.05,
     underlyingDesires: [
       { key: 'continuity', label: '维持现有的生活秩序', baselineWeight: 0.68 },
       { key: 'safe_grief', label: '有处安放未被哀悼的悲伤', baselineWeight: 0.58 },
@@ -276,6 +324,13 @@ export interface CharacterProfileSeed {
   readonly trust: number;
   readonly resistance: { readonly verbal: number; readonly depth: number; readonly style: number };
   readonly emotion: { readonly valence: number; readonly arousal: number };
+  /**
+   * 同盟三维基线两列 (WP51).
+   *
+   * **缺省 = 不表态** (走 DB DEFAULT) —— 种子没说的列, 灌库时整列不出现.
+   */
+  readonly safety?: number;
+  readonly bond?: number;
   /** 核心信念 (statement 从来访池抽取). */
   readonly coreBeliefs: readonly { readonly theme: string; readonly statement: string; readonly activationTags: readonly string[] }[];
   readonly underlyingDesires: readonly UnderlyingDesireSeed[];
@@ -382,6 +437,13 @@ function validateSeedRanges(spec: CharacterProfileSeedSpec): string | null {
   if (spec.speechVolumeBaseline !== undefined && (spec.speechVolumeBaseline < 0 || spec.speechVolumeBaseline > 1)) {
     return `角色 ${spec.templateId} 的话量基线越界: ${spec.speechVolumeBaseline}`;
   }
+  // WP51: 同盟三维基线 ∈ [0,1] (同样只在该角色明确表态时才校验).
+  if (spec.safety !== undefined && (spec.safety < 0 || spec.safety > 1)) {
+    return `角色 ${spec.templateId} 的安全感基线越界: ${spec.safety}`;
+  }
+  if (spec.bond !== undefined && (spec.bond < 0 || spec.bond > 1)) {
+    return `角色 ${spec.templateId} 的联结感基线越界: ${spec.bond}`;
+  }
   return null;
 }
 
@@ -411,6 +473,9 @@ export function buildCharacterProfileSeeds(sources: readonly VisitorTemplateBeli
       trust: spec.trust,
       resistance: spec.resistance,
       emotion: spec.emotion,
+      // WP51: 同盟三维基线两列 —— 只在基线**明确表态**时才带上 (没表态 = 不出现 = 走 DB DEFAULT).
+      ...(spec.safety === undefined ? {} : { safety: spec.safety }),
+      ...(spec.bond === undefined ? {} : { bond: spec.bond }),
       // statement 从来访池抽取 (按声明顺序一一对应), theme/标签来自基线声明.
       coreBeliefs: statements.map((statement, index) => {
         const meta = spec.beliefMeta[index];
@@ -515,6 +580,9 @@ function toEntityPayload(seed: CharacterProfileSeed): {
   readonly baselineResistanceStyle: number;
   readonly baselineEmotionValence: number;
   readonly baselineEmotionArousal: number;
+  /** 同盟三维基线两列 (WP51; 缺省 = 不出现 → INSERT 走 DB DEFAULT / UPDATE 整列不碰). */
+  readonly baselineSafety?: number;
+  readonly baselineBond?: number;
   readonly coreBeliefs: { theme: string; statement: string; activationTags: string[] }[];
   readonly underlyingDesires: UnderlyingDesireSeed[];
   readonly forbiddenBehaviors: string[];
@@ -535,6 +603,11 @@ function toEntityPayload(seed: CharacterProfileSeed): {
     baselineResistanceStyle: seed.resistance.style,
     baselineEmotionValence: seed.emotion.valence,
     baselineEmotionArousal: seed.emotion.arousal,
+    // WP51: 同盟三维基线两列 —— **只写种子自己拿得准的** (口径同表达风格三列):
+    //   没给 → 整列不出现 (TypeORM: INSERT 写 DEFAULT / UPDATE 跳过 undefined),
+    //   于是默认值只有 DDL 一处真相, 也不存在"seed 把库里标定好的值冲回默认"的路径.
+    ...(seed.safety === undefined ? {} : { baselineSafety: seed.safety }),
+    ...(seed.bond === undefined ? {} : { baselineBond: seed.bond }),
     coreBeliefs: seed.coreBeliefs.map((belief) => ({ ...belief, activationTags: [...belief.activationTags] })),
     underlyingDesires: seed.underlyingDesires.map((desire) => ({ ...desire })),
     forbiddenBehaviors: [...seed.forbiddenBehaviors],
@@ -572,11 +645,32 @@ function hasDrift(row: CharacterProfileEntity, payload: ReturnType<typeof toEnti
   if (canonicalJson(row.underlyingDesires) !== canonicalJson(payload.underlyingDesires)) return true;
   if (canonicalJson(row.forbiddenBehaviors) !== canonicalJson(payload.forbiddenBehaviors)) return true;
   if (canonicalJson(row.sensitiveTopics) !== canonicalJson(payload.sensitiveTopics)) return true;
-  // 表达风格三列 (WP10A): **只在种子给了值时才算漂移** ——
-  //   种子没表态的行, 库里是什么就是什么 (Phase2 P1 标定过的值不该被 seed 冲回默认).
+  // "种子表态过"的可选列 (表达风格三列 + 同盟三维两列) 单独走一条检测.
+  return hasOptionalColumnDrift(row, payload);
+}
+
+/**
+ * **可选列**的漂移检测 (表达风格三列 + 同盟三维两列).
+ *
+ * 为什么单独拆出来: 主体漂移检测有 13 条**必填列**, 再加 5 条"只在表态时才算"的
+ * 可选列, 单个函数的复杂度就顶穿上限了 —— 拆开不只是为指标, 更让"可选列"的
+ * 判定口径 (**只在种子给了值时才算漂移**) 集中在**一处**, 将来加第 6 个可选列
+ * 不用再动主体.
+ *
+ * 口径与 WP10A 表达风格三列完全一致:
+ *   种子没表态的行, 库里是什么就是什么 (运营标定过的值不该被 seed 冲回默认).
+ *
+ * @param row 库里的行
+ * @param payload 期望内容
+ * @returns 有漂移 → true
+ */
+function hasOptionalColumnDrift(row: CharacterProfileEntity, payload: ReturnType<typeof toEntityPayload>): boolean {
   if (payload.speechVolumeBaseline !== undefined && row.speechVolumeBaseline !== payload.speechVolumeBaseline) return true;
   if (payload.narrativeStyle !== undefined && row.narrativeStyle !== payload.narrativeStyle) return true;
   if (payload.expressionTone !== undefined && row.expressionTone !== payload.expressionTone) return true;
+  // WP51: 同盟三维基线两列 —— 同样只在种子给了值时才算漂移.
+  if (payload.baselineSafety !== undefined && row.baselineSafety !== payload.baselineSafety) return true;
+  if (payload.baselineBond !== undefined && row.baselineBond !== payload.baselineBond) return true;
   return false;
 }
 
