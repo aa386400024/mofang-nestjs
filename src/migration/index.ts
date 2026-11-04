@@ -141,5 +141,12 @@ export { AddStudentRiskEvents1714900000026 } from './1714900000026-AddStudentRis
 //   数值补齐靠幂等 seed 重跑 (内容不进 migration).
 //   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
 export { AddCharacterProfileAllianceBaseline1714900000027 } from './1714900000027-AddCharacterProfileAllianceBaseline.js';
+// V2026-11-04 治本 (WP49 — character_profiles 加 1 列大五人格):
+//   personality_traits (JSON, 可空, **无 DEFAULT**).
+//   角色的 OCEAN 五维数值终于有地方存 —— 内核 PersonalityTraits 早就有 (WP34),
+//   但适配层一直没传数据, 宜人性调节算子在生产上是休眠的.
+//   NULL = 没表态 = 内核不做特质调节; 存量行加列后仍是 NULL (零回归).
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
+export { AddCharacterProfilePersonalityTraits1714900000028 } from './1714900000028-AddCharacterProfilePersonalityTraits.js';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

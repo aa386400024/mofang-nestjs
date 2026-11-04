@@ -46,6 +46,26 @@
 //     存量行由 MySQL 的 ADD COLUMN ... DEFAULT 自动填充, 不需要 UPDATE ——
 //     老角色加列后的行为与加列前逐字一致 (零回归).
 //
+//   V2026-11-04 治本 (WP49 · B 层 · 大五人格一列):
+//   职责: 给 `character_profiles` 加 1 列 —— `personality_traits` (JSON),
+//         让角色的**大五人格 (OCEAN) 数值**有地方存, 进内核后由 WP34 的人格
+//         调节算子消费 (本期只有宜人性一条规则真的接上).
+//   边界: 只加列 + 让 resolver 读; 数值口径在种子与内置种子两处 (各一份内容,
+//         同一档位), 映射公式仍只有 WP9-A 的 buildCharacterProfile 一份.
+//
+//   为什么这列是 **JSON NULL** 而不是 NOT NULL DEFAULT (与 WP51 两列不同口径):
+//     大五人格是**可选**的 —— 角色没表态 = 内核不做特质调节 (回退口径住在内核).
+//     若给它一个 DB DEFAULT (比如 0.5), "这个角色没说"与"这个角色正好是 0.5"就在
+//     数据源上被抹平了, 而适配层的条件展开也就失去了意义.
+//     同理, MySQL 的 JSON 列本来也不该挂 DEFAULT —— 默认值写在 DDL 里就是第二份
+//     真相源 (内核已经有一份).
+//
+//   为什么放在 `five_ps` 旁边 (而不是 baseline_* 那一组):
+//     `five_ps` 是**临床 5Ps** (易感 / 维持 / 诱发 / 保护 / 持续因素), 是给人读的
+//     长材料; `personality_traits` 是**大五人格数值**, 是给内核算子吃的.
+//     两者**不是一回事** (内核 `PersonalityTraits` 的注释里专门警告过), 但它们是
+//     "角色画像"里最容易被人混淆的两个东西 —— 并排放, 让"这是两列"一眼可见.
+//
 //   V2026-10-30 治本 (WP10A · B 层 · 表达风格基线字段预留):
 //   职责: 给 `character_profiles` 加 3 列**纯预留**字段 —— 话量基线 / 叙事风格 / 语态倾向,
 //         供 Phase2 P1 的表达风格渲染消费.
@@ -70,7 +90,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
-import type { AttachmentStyle, CoreBelief, UnderlyingDesireSeed } from '../../../engine-core/index.js';
+import type { AttachmentStyle, CoreBelief, PersonalityTraits, UnderlyingDesireSeed } from '../../../engine-core/index.js';
 
 /**
  * 角色审核状态 (字符串联合, 非 enum —— 它是纯数据判别式, 不需要运行时值).
@@ -152,6 +172,19 @@ export class CharacterProfileEntity {
   /** 5Ps 专业长文 (评审/报告用; **不进内核决策**). */
   @Column({ type: 'json', name: 'five_ps' })
   fivePs!: CharacterFivePs;
+
+  /**
+   * 大五人格 (OCEAN) 数值 (WP49).
+   *
+   * NULL = 角色**没表态** = 内核不做特质调节 —— 回退口径住在内核, 本层不兜底.
+   * 与 `baseline_safety` / `baseline_bond` (NOT NULL DEFAULT) **口径相反**:
+   * 那两列是必填基线, 本列是可选人格.
+   *
+   * ⚠️ 与 `five_ps` 不是一回事: 那是临床 5Ps (人读材料), 本列是大五人格数值
+   * (给内核算子吃) —— 两个概念, 不要混用.
+   */
+  @Column({ type: 'json', name: 'personality_traits', nullable: true })
+  personalityTraits!: PersonalityTraits | null;
 
   /** 初始信任 [0,1] (种子给, 临场 preset 不覆盖). */
   @Column({ type: 'float', name: 'baseline_trust', default: 0.3 })

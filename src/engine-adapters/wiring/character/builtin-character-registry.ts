@@ -54,6 +54,34 @@
 //     自动推导 = 在代码里硬编码一张 "attachmentStyle → safety" 映射表, 而实际上
 //     同样是回避型, 不同角色的 safety 起点可以不一样 ("创伤后回避" vs "天生疏离").
 //     让种子自己填, 更符合"角色是独立个体"的设定.
+//
+//   V2026-11-04 治本 (WP49 · 角色大五人格字段落地):
+//     WP34 把宜人性调节算子做出来了, 但内核的 `PersonalityTraits` **从来没有数据源**
+//     —— 适配层一次都没传过, 所以 `resolveAgreeablenessTrustScale()` 里的
+//     `input.traits?.agreeableness` 永远是 undefined, 算子在生产上是**休眠**的.
+//
+//     本文件的扩展: `BuiltinCharacterSeed` 加 `personalityTraits?`, 两个内置种子按
+//     依恋风格给出 OCEAN 五维种子值, `buildCharacterProfile` 条件传给内核:
+//       · 回避型 (BUILTIN_AVOIDANT_L1):        openness 0.4 / conscientiousness 0.6 /
+//                                             extraversion 0.25 / agreeableness 0.45 /
+//                                             neuroticism 0.65
+//       · 焦虑型 (BUILTIN_ANXIOUS_LOW_MOOD_L1): openness 0.5 / conscientiousness 0.55 /
+//                                             extraversion 0.35 / agreeableness 0.6 /
+//                                             neuroticism 0.7
+//     ⚠️ 数值是**工程种子值, 非临床标定** —— 内测后按真实对练校准.
+//
+//   为什么**条件**传而不是无条件 + 兜默认值 (与 WP51 的 safety/bond 同口径):
+//     回退口径住在**内核** (特质缺省 = 不做特质调节). 本层再兜一份 0.5 就是两个
+//     真相源 (反双胞胎纪律). 条件展开还让"种子没说"与"种子说了 0.5"能被区分开 ——
+//     后者是真的 0.5, 前者才走内核的缺省处理.
+//
+//   为什么**逐维归一** (任务单 §3.3 草图之外的一处偏差, 交付记录 §三 有说明):
+//     大五人格的 DB 列是自由 JSON (没有 DB 级取值约束), 运营手写 1.5 / -0.2 都可能.
+//     内核的宜人性规则是 `value < highThreshold → 不放大` —— **不 clamp**, 于是
+//     1.5 会**误判**成"高宜人性"而白拿 ×1.1 的 trust 增益. 本层在建映射时把每个
+//     **已给**的维度夹到 [0,1]; 没给的维度保持"没说" (键不存在), 非有限数 (脏值)
+//     按"没说"处理 —— 与内核 `!Number.isFinite(value) → 不调节` 同一口径:
+//     脏数据不该变成"这个人格维度极端低".
 
 import type {
   CharacterPresetInput,
@@ -61,7 +89,14 @@ import type {
   CharacterResolveRequest,
   ResolvedCharacter,
 } from './character-profile.resolver.js';
-import type { AttachmentStyle, BdiResistance, CharacterProfile, CoreBelief, UnderlyingDesireSeed } from '../../../engine-core/index.js';
+import type {
+  AttachmentStyle,
+  BdiResistance,
+  CharacterProfile,
+  CoreBelief,
+  PersonalityTraits,
+  UnderlyingDesireSeed,
+} from '../../../engine-core/index.js';
 
 /**
  * 内置角色种子 (纯数据).
@@ -77,6 +112,17 @@ export interface BuiltinCharacterSeed {
   readonly displayName: string;
   /** 依恋风格 (内核消费; 不由临场参数推导). */
   readonly attachmentStyle: AttachmentStyle;
+  /**
+   * 大五人格 (OCEAN) —— WP49.
+   *
+   * 缺省 = 不传 = 内核不做特质调节 —— 回退口径住在内核, 本层不兜底.
+   * 与 baseline.safety / baseline.bond 同口径: 条件展开 = "种子没说"与"种子说了 0.5"能被区分开.
+   *
+   * 与内核人格调节算子的关系: 依恋类型 + 大五人格是算子的**两个输入源**
+   * (内核 `InMemoryEngineSession.personalityInput` 两者都读), 二者互不替代 ——
+   * 依恋说的是"关系模式", 大五说的是"人格底色".
+   */
+  readonly personalityTraits?: PersonalityTraits;
   /** 核心信念 (第一人称; 永久不可变). */
   readonly coreBeliefs: readonly CoreBelief[];
   /** 底层愿望种子. */
@@ -125,6 +171,10 @@ export const BUILTIN_AVOIDANT_L1: BuiltinCharacterSeed = {
   key: 'builtin_avoidant_l1',
   displayName: '回避依恋 · L1',
   attachmentStyle: 'avoidant',
+  // WP49: 大五人格 (OCEAN) —— 回避型的底色: 偏封闭 / 偏尽责 / 偏内向 /
+  //   **偏低宜人性** / 偏高神经质.
+  //   ⚠️ 工程种子值, 非临床标定.
+  personalityTraits: { openness: 0.4, conscientiousness: 0.6, extraversion: 0.25, agreeableness: 0.45, neuroticism: 0.65 },
   coreBeliefs: [
     { theme: 'abandonment', statement: '我要是靠得太近, 最后还是会被抛下。', activationTags: ['closeness', 'rejection'] },
     { theme: 'self_sufficiency', statement: '我不需要谁, 我自己能扛下来。', activationTags: ['help', 'dependence'] },
@@ -155,6 +205,10 @@ export const BUILTIN_ANXIOUS_LOW_MOOD_L1: BuiltinCharacterSeed = {
   key: 'builtin_anxious_low_mood_l1',
   displayName: '焦虑低落 · L1',
   attachmentStyle: 'anxious',
+  // WP49: 大五人格 (OCEAN) —— 焦虑型的底色: 开放性中性 / 略尽责 / 偏内向 /
+  //   偏高宜人性 / 高神经质.
+  //   ⚠️ 工程种子值, 非临床标定.
+  personalityTraits: { openness: 0.5, conscientiousness: 0.55, extraversion: 0.35, agreeableness: 0.6, neuroticism: 0.7 },
   coreBeliefs: [
     { theme: 'worthlessness', statement: '我没什么用, 事情也不会变好。', activationTags: ['failure', 'self_worth'] },
     { theme: 'rejection', statement: '我要是表现不好, 大家就不要我了。', activationTags: ['evaluation', 'rejection'] },
@@ -266,6 +320,10 @@ export function buildCharacterProfile(seed: BuiltinCharacterSeed, preset?: Chara
     },
     forbiddenBehaviors: [...seed.forbiddenBehaviors],
     sensitiveTopics: [...seed.sensitiveTopics],
+    // WP49: 大五人格 —— 种子给了就传, **没给就不出现** (键都不存在).
+    //   不在这里兜默认值: 回退口径住在内核 (特质缺省 = 不做特质调节), 本层再兜一份
+    //   就是两个真相源. 条件展开 = "种子没说"与"种子说了 0.5"能被区分开.
+    ...(seed.personalityTraits === undefined ? {} : { personalityTraits: normalizePersonalityTraits(seed.personalityTraits) }),
   };
 }
 
@@ -350,4 +408,52 @@ function clamp01(value: number): number {
 function clampValence(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.min(1, Math.max(-1, value));
+}
+
+/**
+ * 单个大五人格维度归一 (WP49).
+ *
+ * 没说 / 脏值 → undefined (调用方据此**不出现这个键**); 给了 → 夹到 [0,1].
+ *
+ * 为什么非有限数按"没说"处理而不是按 clamp01 变成 0:
+ *   clamp01 的 NaN → 0 是"数值兜底"口径, 而这里的 NaN 来自 DB 脏数据 ——
+ *   把"数据坏了"翻译成"这个维度极端低"是**发明**了一个临床结论.
+ *   内核自己的口径是 `!Number.isFinite(value) → 不调节`, 本层跟它一致.
+ *
+ * @param value 原始维度值 (可缺省)
+ * @returns 归一后的值; undefined = 没说 / 脏值
+ */
+function normalizeTrait(value: number | undefined): number | undefined {
+  if (value === undefined || !Number.isFinite(value)) return undefined;
+  return clamp01(value);
+}
+
+/**
+ * 大五人格逐维归一 (WP49).
+ *
+ * 只归一**已给**的维度 —— 没给的维度保持"没说" (键不存在), 不能顺手补 0.5:
+ * 补了就抹掉了"这个角色没说宜人性"与"这个角色宜人性正好是 0.5"的区别.
+ *
+ * 为什么映射层要归一 (内核的算子不归一):
+ *   内核宜人性规则是 `value < highThreshold → 不放大`, 不夹值 —— 于是 DB 里一个
+ *   手滑写进去的 1.5 会**误判**成"高宜人性", 白拿 ×1.1 的 trust 增益.
+ *   本层在建映射时把每个已给的维度夹回 [0,1], 守住"进内核的数值都在合法域内".
+ *
+ * @param traits 种子侧的大五人格
+ * @returns 归一后的大五人格 (没说 / 脏值的维度键不存在)
+ */
+function normalizePersonalityTraits(traits: PersonalityTraits): PersonalityTraits {
+  const openness = normalizeTrait(traits.openness);
+  const conscientiousness = normalizeTrait(traits.conscientiousness);
+  const extraversion = normalizeTrait(traits.extraversion);
+  const agreeableness = normalizeTrait(traits.agreeableness);
+  const neuroticism = normalizeTrait(traits.neuroticism);
+
+  return {
+    ...(openness === undefined ? {} : { openness }),
+    ...(conscientiousness === undefined ? {} : { conscientiousness }),
+    ...(extraversion === undefined ? {} : { extraversion }),
+    ...(agreeableness === undefined ? {} : { agreeableness }),
+    ...(neuroticism === undefined ? {} : { neuroticism }),
+  };
 }
