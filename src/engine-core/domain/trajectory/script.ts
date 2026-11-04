@@ -19,6 +19,23 @@
 //       一旦类型允许跳转, 就会出现"剧本写了 goto 但内核不认"的静默失效 ——
 //       静默失效比编译期报错危险得多.
 //
+//   V2026-11-04 WP52 (引擎内核 · 剧本偏移接入同盟三维):
+//     WP42 把同盟拆成 trust / safety / bond 三维后, 剧本契约 (`SnapshotDelta`)
+//     只带 trust —— 剧本写"来访敞开心扉谈童年创伤"只涨 trust, 不涨 safety / bond,
+//     于是剧本叙事推不动同盟发展 (信任回来了, 但"敢不敢说真话"在状态上仍是平的).
+//
+//     本文件的扩展: `SnapshotDelta` 加 `safety` / `bond` 两个**可选**字段.
+//
+//   为什么是**可选**而不是必填:
+//     剧本是**数据**, 很多剧本只写 trust —— 必填会要求所有存量剧本逐条补字段
+//     (向后不兼容). 与同接口的 trust / resistance / emotion / transference 一样,
+//     缺省 = 0 (这一维本轮不动), 不写就不推.
+//
+//   为什么剧本偏移**不经过人格调节** (任务单 §4.1):
+//     剧本是**确定性叙事** —— "这一幕来访敞开心扉"不管是什么依恋类型, 叙事目标
+//     都是同一个偏移量. 人格差异体现在**日常对话**的事件 delta 里, 不体现在
+//     剧本的固定偏移里 (与 trust / resistance 的既有口径一致).
+//
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-core/wp3-trajectory.spec.ts 覆盖校验分支与幕序解析
@@ -81,9 +98,25 @@ export interface TrajectoryNodeTarget {
 
 /**
  * 幕状态偏移量: 仅在「进入新幕那一轮」一次性增量叠加 (不是覆盖, 不重复滚).
+ *
+ * WP52: 同盟三维的 safety / bond 已接入 —— 剧本也能推动"敢不敢说真话"与
+ * "有没有连上"这两维, 不再只有 trust 一根独苗.
  */
 export interface SnapshotDelta {
   readonly trust?: number;
+  /**
+   * 安全感增量 (WP52): 剧本推动的安全感变化.
+   *
+   * 缺省 = 0 (这一维本轮不动). 与 trust / resistance 同为**可选** —— 存量剧本
+   * 只写 trust 也不受影响.
+   */
+  readonly safety?: number;
+  /**
+   * 纽带感增量 (WP52): 剧本推动的纽带感变化.
+   *
+   * 缺省 = 0 (这一维本轮不动).
+   */
+  readonly bond?: number;
   readonly resistance?: Partial<BdiResistance>;
   readonly emotion?: { readonly valence?: number; readonly arousal?: number };
   readonly transference?: Partial<TransferenceState>;

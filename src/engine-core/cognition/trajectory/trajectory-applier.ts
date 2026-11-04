@@ -28,6 +28,16 @@
 //     (TrajectoryApplication.delta), 由会话层与事件 delta 合并后**统一过一次 cap**
 //     再落快照. 落快照复用内核的 `applyDeltaVector` —— 不在本文件再写第二份 clamp.
 //
+//   V2026-11-04 WP52 (引擎内核 · 剧本偏移接入同盟三维):
+//     WP42 把同盟拆成 trust / safety / bond 后, 剧本契约 (`SnapshotDelta`) 只带
+//     trust —— 剧本写"来访敞开心扉谈童年创伤"只涨 trust, 不涨 safety / bond,
+//     剧本叙事推不动同盟发展. 现在 `SnapshotDelta` 补了 safety / bond 两项
+//     (**可选**, 缺省 = 0), 本文件的转换点 `toDeltaVector` 把它们接上.
+//
+//     cap 位置**不用改**: 管道是「事件 delta + 剧本 delta → 合并 → 统一过 cap
+//     → 落快照」, safety / bond 是 `DeltaVector` 的维度, 合并后自动被同一把尺子
+//     约束 (与 trust / resistance 完全一致).
+//
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-core/wp3-trajectory.spec.ts 覆盖三模式合成与 delta 一次性
@@ -125,29 +135,51 @@ export function applyTrajectory(mode: TrajectoryMode, bdi: Intention, baseSnapsh
 }
 
 /**
+ * 缺省归零: 剧本 delta 的所有数值字段缺省 = 0 (这一维本轮不动).
+ *
+ * 为什么单独抽一个函数 (而不是在 11 个字段上各写一次 `?? 0`):
+ *   ① **口径只有一处** —— "缺省 = 0" 这条规则只被说一次, 将来要改 (比如改成
+ *      "缺省 = 沿用当前值") 时只改这一行, 不会出现"改了一处漏了另一处";
+ *   ② 转换函数的复杂度回落 —— 11 个 `??` 各自算一个分支, 加上 `?.` 与 `if`
+ *      直接顶破 eslint 的 complexity 上限 (20). 抽出来之后本函数只剩
+ *      "取哪几个字段" 这一件事, 复杂度 21 → 10.
+ *
+ * @param value 幕上声明的数值 (未声明 = undefined)
+ * @returns 有效数值 (缺省 0)
+ */
+function orZero(value: number | undefined): number {
+  return value ?? 0;
+}
+
+/**
  * 幕偏移 → 内核 delta 向量 (唯一转换点).
  *
  * 维度口径与 `applyDeltaVector` 一一对应: 信念层 / 愿望层**不参与**偏移
  * (剧本改不了来访的核心信念, 那是认知演进的活).
  *
- * WP42: 同盟三维的 safety / bond 固定为 0 —— 剧本契约 (`SnapshotDelta`) 本期
- *   没有这两项, 任务单也没给剧本的同盟三维口径. 与其发明一个没依据的数,
- *   不如让它不动 (事件 delta 仍照常推进这两维).
+ * WP52: 同盟三维的 safety / bond **已接入** —— 剧本契约 (`SnapshotDelta`) 补了
+ *   这两项, 缺省 = 0 (与 trust / resistance 同口径). WP42 留下的缺口
+ *   ("剧本只涨 trust, 推不动同盟发展") 到此闭合.
+ *
+ * 为什么剧本偏移**不经过人格调节** (任务单 §4.1):
+ *   剧本是**确定性叙事** —— 这一幕的目标偏移与依恋类型无关; 人格差异体现在
+ *   **日常对话**的事件 delta 里 (见 `personality-modulator.ts`).
  */
 function toDeltaVector(delta: SnapshotDelta | undefined): DeltaVector | undefined {
   if (!delta) return undefined;
   return {
-    trust: delta.trust ?? 0,
-    safety: 0,
-    bond: 0,
-    verbal: delta.resistance?.verbal ?? 0,
-    depth: delta.resistance?.depth ?? 0,
-    style: delta.resistance?.style ?? 0,
-    valence: delta.emotion?.valence ?? 0,
-    arousal: delta.emotion?.arousal ?? 0,
-    positive: delta.transference?.positive ?? 0,
-    negative: delta.transference?.negative ?? 0,
-    dependency: delta.transference?.dependency ?? 0,
+    trust: orZero(delta.trust),
+    // WP52: 同盟三维的两维从契约取值 (缺省 0 = 本轮不动).
+    safety: orZero(delta.safety),
+    bond: orZero(delta.bond),
+    verbal: orZero(delta.resistance?.verbal),
+    depth: orZero(delta.resistance?.depth),
+    style: orZero(delta.resistance?.style),
+    valence: orZero(delta.emotion?.valence),
+    arousal: orZero(delta.emotion?.arousal),
+    positive: orZero(delta.transference?.positive),
+    negative: orZero(delta.transference?.negative),
+    dependency: orZero(delta.transference?.dependency),
   };
 }
 
