@@ -1,6 +1,11 @@
 // V2026-11-03 WP34 (B 层 · 人格调节系数装配):
-//   职责: 把 env 里的 10 个 `ENGINE_MOD_*` 键装配成内核的 `PersonalityModulatorConfig` 端口.
+//   职责: 把 env 里的 `ENGINE_MOD_*` 键装配成内核的 `PersonalityModulatorConfig` 端口.
 //   边界: 只做"读 env → 校验 → 组装"; 不改任何状态, 不起 Nest 容器也能单测.
+//
+//   V2026-11-04 WP53 (人格调节算子扩展到同盟三维):
+//     依恋系数从 2 列扩到 4 列 (trust / resistance / safety / bond), env 键从 10 个
+//     增到 18 个. 新增的 8 个键 (4 依恋 × safety / bond) 同样**逐个字面量**读 ——
+//     与下面 10 个键同一治本: 计算键编译器拦不住, env 覆盖断言的 AST 抽取也扫不到.
 //
 //   为什么这一层存在 (照 WP26 P2-14 的先例):
 //     内核不得有任何进程级外部依赖 —— 人格系数也不例外. 依赖方向是:
@@ -8,7 +13,7 @@
 //     内核只认端口, 不认 env —— 于是"内核零 process.env"这条不变量继续成立
 //     (boundary.spec.ts 断言⑩ 守着).
 //
-//   为什么 10 个键**逐个显式读** (而不是循环读计算键):
+//   为什么这 18 个键**逐个显式读** (而不是循环读计算键):
 //     仓库 env 治理约定 (typings/global.d.ts) 要求"显式声明到 ProcessEnv, 不用
 //     bracket 访问绕过". 计算键 (`ENGINE_MOD_${style}_${kind}`) 编译器拦不住,
 //     属静默偏离; 而 `config.get<string>('字面量')` 能被 env 覆盖断言
@@ -17,7 +22,8 @@
 //
 //   非法值一律回退内核种子值 (不抛错):
 //     填错一个 env 不该让整场对练的 BDI 迁移失真 —— 回退到种子值, 行为仍然确定.
-//     方向也校验: trust 系数不得为负; 阻抗系数是**除数**, 必须 > 0; 阈值必须落在 [0,1].
+//     方向也校验: 增益型系数 (trust / safety / bond) 不得为负; 阻抗系数是**除数**,
+//     必须 > 0; 阈值必须落在 [0,1].
 //
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
@@ -77,23 +83,31 @@ function resolveThreshold(raw: string | undefined, fallback: number): number {
 }
 
 /**
- * 装配单个依恋类型的系数 (两个 env 值 → 一组系数).
+ * 装配单个依恋类型的系数 (四个 env 值 → 一组系数).
+ *
+ * WP53: 从两个系数扩到四个 (trust / resistance / safety / bond).
+ * 校验分两类 —— 增益型 (trust / safety / bond) 走 `resolveNonNegative`,
+ * 阻抗倍率走 `resolvePositive` (它是**除数**, 必须 > 0).
  */
 function resolveAttachment(
   trustRaw: string | undefined,
   resistRaw: string | undefined,
+  safetyRaw: string | undefined,
+  bondRaw: string | undefined,
   fallback: AttachmentModulation,
 ): AttachmentModulation {
   return {
     trustScale: resolveNonNegative(trustRaw, fallback.trustScale),
     resistanceScale: resolvePositive(resistRaw, fallback.resistanceScale),
+    safetyScale: resolveNonNegative(safetyRaw, fallback.safetyScale),
+    bondScale: resolveNonNegative(bondRaw, fallback.bondScale),
   };
 }
 
 /**
- * 装配人格调节配置 (4 依恋 × 2 系数 + 宜人性 2 项 = 10 个 env 键).
+ * 装配人格调节配置 (4 依恋 × 4 系数 + 宜人性 2 项 = 18 个 env 键).
  *
- * 键名口径: `ENGINE_MOD_<依恋类型>_<TRUST|RESIST>_SCALE`
+ * 键名口径: `ENGINE_MOD_<依恋类型>_<TRUST|RESIST|SAFETY|BOND>_SCALE`
  *   (依恋类型大写: SECURE / AVOIDANT / ANXIOUS / DISORGANIZED),
  *   宜人性两项: `ENGINE_MOD_AGREEABLENESS_TRUST_SCALE` /
  *   `ENGINE_MOD_AGREEABLENESS_HIGH_THRESHOLD`.
@@ -110,21 +124,29 @@ export function resolvePersonalityModulatorConfig(config: ConfigService): Person
       secure: resolveAttachment(
         config.get<string>('ENGINE_MOD_SECURE_TRUST_SCALE'),
         config.get<string>('ENGINE_MOD_SECURE_RESIST_SCALE'),
+        config.get<string>('ENGINE_MOD_SECURE_SAFETY_SCALE'),
+        config.get<string>('ENGINE_MOD_SECURE_BOND_SCALE'),
         seed.attachment.secure,
       ),
       avoidant: resolveAttachment(
         config.get<string>('ENGINE_MOD_AVOIDANT_TRUST_SCALE'),
         config.get<string>('ENGINE_MOD_AVOIDANT_RESIST_SCALE'),
+        config.get<string>('ENGINE_MOD_AVOIDANT_SAFETY_SCALE'),
+        config.get<string>('ENGINE_MOD_AVOIDANT_BOND_SCALE'),
         seed.attachment.avoidant,
       ),
       anxious: resolveAttachment(
         config.get<string>('ENGINE_MOD_ANXIOUS_TRUST_SCALE'),
         config.get<string>('ENGINE_MOD_ANXIOUS_RESIST_SCALE'),
+        config.get<string>('ENGINE_MOD_ANXIOUS_SAFETY_SCALE'),
+        config.get<string>('ENGINE_MOD_ANXIOUS_BOND_SCALE'),
         seed.attachment.anxious,
       ),
       disorganized: resolveAttachment(
         config.get<string>('ENGINE_MOD_DISORGANIZED_TRUST_SCALE'),
         config.get<string>('ENGINE_MOD_DISORGANIZED_RESIST_SCALE'),
+        config.get<string>('ENGINE_MOD_DISORGANIZED_SAFETY_SCALE'),
+        config.get<string>('ENGINE_MOD_DISORGANIZED_BOND_SCALE'),
         seed.attachment.disorganized,
       ),
     },

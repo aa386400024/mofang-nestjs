@@ -36,6 +36,35 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-core/wp34-personality-modulator.spec.ts 覆盖差异化 / 回落 / 方向 / 注入
 //     3. test/engine-adapters/wp34-personality-modulator-config.spec.ts 覆盖 env 组装与非法值回退
+//
+// V2026-11-04 WP53 (引擎内核 · 人格调节算子扩展到同盟三维):
+//   WP42 把同盟拆成 trust / safety / bond 三维后, 依恋系数**只作用在 trust 上** ——
+//   safety 和 bond 是平的. 于是"回避型不敢敞开心"这件事在状态上看不出来:
+//   同样一句共情, 回避型与安全型的 safety 涨得一样多, 只是 trust 涨得不一样.
+//
+//   本文件的扩展: `AttachmentModulation` 加 safetyScale / bondScale 两个系数,
+//   让依恋类型也能调节**安全感**与**纽带感**的增益速度. 口径与 trustScale **完全同范式**:
+//     · 只调**增益**方向 (delta.safety > 0 时乘 safetyScale, delta.bond > 0 时乘 bondScale);
+//     · **受损方向不调** (不发明惩罚系数 —— 同 trustScale 的理由);
+//     · 非法值逐项回退内核种子值;
+//     · 缺省 = 全 1.0 (零回归).
+//
+//   为什么不做宜人性扩展 (任务单 §4.1):
+//     宜人性 (agreeableness) 是 WP34 的示例级实现, 本期只把**依恋系数**补完整.
+//
+//   为什么受损方向不调 (任务单 §4.2):
+//     任务单没给"依恋对信任/安全感**受损**的影响系数" —— 不发明临床数字.
+//
+//   与 AllianceConfig 覆写的关系 (任务单 §4.3):
+//     `AllianceConfig.deltas` 是**事件级** safety/bond 增量覆写 (改基础系数);
+//     这里的 safetyScale / bondScale 是**角色级**调节系数 (在基础系数上再乘一刀).
+//     顺序固定: 先聚合 (含 AllianceConfig 覆写) → 再人格调节 → 再 cap.
+//     与 trust 的处理完全一致.
+//
+//   为什么不碰跨会话衰减 (任务单 §4.4):
+//     人格影响的是**建立速度**, 不是**保持时长** —— 同盟三维的半衰期 (30 天) 不需要分化.
+//
+//   ⚠️ 全部系数是**工程种子值, 非临床标定** —— 待真实对练校准.
 
 import type { DeltaVector } from './state-transition.js';
 import type { AttachmentStyle, PersonalityTraits } from '../domain/character-profile.js';
@@ -44,7 +73,11 @@ import type { SessionEvent } from '../domain/events/session-event.js';
 /**
  * 单个依恋类型的调节系数 (内核端口).
  *
- * 两个系数的**极性不同**, 不是笔误 —— 见文件头两条调节方向.
+ * 四个系数的**极性只有两种**, 不是笔误 —— 见文件头两条调节方向:
+ *   · **增益型倍率** (trust / safety / bond): 乘在 delta 的**正**向增量上,
+ *     >1 = 涨得快, <1 = 涨得慢;
+ *   · **水平型倍率** (resistance): 阻抗是**水平**语义, 算子只算变化量,
+ *     于是实现成"下降量 ÷ 该值" (系数越大 = 阻抗越守得住).
  */
 export interface AttachmentModulation {
   /**
@@ -65,6 +98,28 @@ export interface AttachmentModulation {
    * ⚠️ 只作用于**下降**方向 (delta < 0). 上升方向不调.
    */
   readonly resistanceScale: number;
+  /**
+   * safety **增益**系数 (≥ 0) (WP53).
+   *
+   * >1 = 安全感涨得快, <1 = 涨得慢. 任务单 §3.2 种子:
+   *   secure 1.0 / avoidant 0.5 / anxious 0.7 / disorganized 0.6.
+   *
+   * 形状的理由: 回避型**不敢敞开心扉** → 安全感涨得最慢 (0.5);
+   *   焦虑型安全感也涨得慢 (0.7 —— 怕被抛弃, 安全感波动大), 但纽带涨得快 (1.3,
+   *   急于建立连接); 混乱型两者都慢, 但比回避型略好 (0.6 / 0.8).
+   *
+   * ⚠️ 只作用于**增益**方向 (delta.safety > 0). 受损方向不调.
+   */
+  readonly safetyScale: number;
+  /**
+   * bond **增益**系数 (≥ 0) (WP53).
+   *
+   * >1 = 纽带感涨得快, <1 = 涨得慢. 任务单 §3.2 种子:
+   *   secure 1.0 / avoidant 0.5 / anxious 1.3 / disorganized 0.8.
+   *
+   * ⚠️ 只作用于**增益**方向 (delta.bond > 0). 受损方向不调.
+   */
+  readonly bondScale: number;
 }
 
 /**
@@ -93,19 +148,25 @@ export interface PersonalityModulatorConfig {
  * 内核种子值 (工程种子值, **非临床标定** —— 待真实对练校准).
  *
  * 任务单 §3.1 的四种依恋系数, 逐字照搬; 宜人性取任务单 §3.2 的示例值.
+ * WP53 追加 safetyScale / bondScale 两列 (任务单 §3.2 的表, 同样逐字照搬).
  */
 export const DEFAULT_PERSONALITY_MODULATOR_CONFIG: PersonalityModulatorConfig = {
   attachment: {
-    secure: { trustScale: 1, resistanceScale: 1 },
-    avoidant: { trustScale: 0.6, resistanceScale: 1.3 },
-    anxious: { trustScale: 1.2, resistanceScale: 0.8 },
-    disorganized: { trustScale: 0.8, resistanceScale: 1.2 },
+    secure: { trustScale: 1, resistanceScale: 1, safetyScale: 1, bondScale: 1 },
+    avoidant: { trustScale: 0.6, resistanceScale: 1.3, safetyScale: 0.5, bondScale: 0.5 },
+    anxious: { trustScale: 1.2, resistanceScale: 0.8, safetyScale: 0.7, bondScale: 1.3 },
+    disorganized: { trustScale: 0.8, resistanceScale: 1.2, safetyScale: 0.6, bondScale: 0.8 },
   },
   agreeableness: { trustScale: 1.1, highThreshold: 0.7 },
 };
 
-/** 中性调节 (不改变 delta): 依恋类型缺失 / 未知时的回落值. */
-const NEUTRAL_ATTACHMENT: AttachmentModulation = { trustScale: 1, resistanceScale: 1 };
+/**
+ * 中性调节 (不改变 delta): 依恋类型缺失 / 未知时的回落值.
+ *
+ * 四个系数全 1.0 —— WP53 追加的两列同样必须是 1.0, 否则"没有依恋类型的角色"
+ * 会被当成有调节 (零回归的前提是**什么都不改**).
+ */
+const NEUTRAL_ATTACHMENT: AttachmentModulation = { trustScale: 1, resistanceScale: 1, safetyScale: 1, bondScale: 1 };
 
 /**
  * 取某依恋类型的系数 (运行时安全: 表缺项 / 键非法 → undefined).
@@ -122,8 +183,17 @@ function lookupAttachment(
   return found ?? undefined;
 }
 
-/** trust 增益系数校验 (非法 → 回退). */
-function sanitizeTrustScale(value: number | undefined, fallback: number): number {
+/**
+ * 增益型系数校验 (非法 → 回退).
+ *
+ * 适用 trust / safety / bond 三个**乘在正向增量上**的倍率 (≥ 0).
+ * ⚠️ WP53: 这个函数原本叫 `sanitizeTrustScale`, 现在同时管 safety / bond ——
+ * 沿用旧名会让"信任系数的校验"被当成只服务 trust, 名字会骗人, 故改为按**极性**命名.
+ *
+ * 为什么 0 是合法的: 系数 0 = 该维度**完全不涨** (例: 某角色的纽带感这轮一点不动),
+ * 是一个有意义的取值 —— 不是除数, 不需要 > 0.
+ */
+function sanitizeGainScale(value: number | undefined, fallback: number): number {
   if (value === undefined || !Number.isFinite(value) || value < 0) return fallback;
   return value;
 }
@@ -159,8 +229,11 @@ function resolveAttachment(style: AttachmentStyle | undefined, config: Personali
   if (!provided) return seed;
 
   return {
-    trustScale: sanitizeTrustScale(provided.trustScale, seed.trustScale),
+    trustScale: sanitizeGainScale(provided.trustScale, seed.trustScale),
     resistanceScale: sanitizeResistanceScale(provided.resistanceScale, seed.resistanceScale),
+    // WP53: 同盟三维的两个增益系数 —— 逐项校验, 非法值各自回退种子值.
+    safetyScale: sanitizeGainScale(provided.safetyScale, seed.safetyScale),
+    bondScale: sanitizeGainScale(provided.bondScale, seed.bondScale),
   };
 }
 
@@ -185,7 +258,7 @@ function resolveAgreeablenessTrustScale(
   const threshold = sanitizeThreshold(config.agreeableness?.highThreshold, fallback.highThreshold);
   if (value < threshold) return 1;
 
-  const scale = sanitizeTrustScale(config.agreeableness?.trustScale, fallback.trustScale);
+  const scale = sanitizeGainScale(config.agreeableness?.trustScale, fallback.trustScale);
   if (scale === 1) return 1;
 
   if (!events?.some((event) => event.kind === 'empathy')) return 1;
@@ -231,6 +304,9 @@ export function modulateDeltaByPersonality(delta: DeltaVector, input: Personalit
     ...delta,
     // 只调"增益"方向: 信任受损的方向保持基准速率.
     trust: delta.trust > 0 ? delta.trust * trustScale : delta.trust,
+    // WP53: 同盟三维的 safety / bond 同口径 —— 只调"增益"方向, 受损方向不调.
+    safety: delta.safety > 0 ? delta.safety * attachment.safetyScale : delta.safety,
+    bond: delta.bond > 0 ? delta.bond * attachment.bondScale : delta.bond,
     // 只调"下降"方向: 阻抗上升的方向保持基准速率.
     verbal: delta.verbal < 0 ? delta.verbal * resistanceFactor : delta.verbal,
     depth: delta.depth < 0 ? delta.depth * resistanceFactor : delta.depth,

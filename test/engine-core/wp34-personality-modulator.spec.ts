@@ -91,10 +91,26 @@ describe('WP34 · P1 人格调节算子', () => {
     });
 
     it('内核种子值本身是恒等 (secure 1.0 / 1.0, 宜人性阈值之上才生效)', () => {
-      expect(SEED.attachment.secure).toEqual({ trustScale: 1, resistanceScale: 1 });
-      expect(SEED.attachment.avoidant).toEqual({ trustScale: 0.6, resistanceScale: 1.3 });
-      expect(SEED.attachment.anxious).toEqual({ trustScale: 1.2, resistanceScale: 0.8 });
-      expect(SEED.attachment.disorganized).toEqual({ trustScale: 0.8, resistanceScale: 1.2 });
+      // WP53: 依恋系数扩到 4 列 (trust / resistance / safety / bond).
+      expect(SEED.attachment.secure).toEqual({ trustScale: 1, resistanceScale: 1, safetyScale: 1, bondScale: 1 });
+      expect(SEED.attachment.avoidant).toEqual({
+        trustScale: 0.6,
+        resistanceScale: 1.3,
+        safetyScale: 0.5,
+        bondScale: 0.5,
+      });
+      expect(SEED.attachment.anxious).toEqual({
+        trustScale: 1.2,
+        resistanceScale: 0.8,
+        safetyScale: 0.7,
+        bondScale: 1.3,
+      });
+      expect(SEED.attachment.disorganized).toEqual({
+        trustScale: 0.8,
+        resistanceScale: 1.2,
+        safetyScale: 0.6,
+        bondScale: 0.8,
+      });
       expect(SEED.agreeableness).toEqual({ trustScale: 1.1, highThreshold: 0.7 });
     });
   });
@@ -110,10 +126,11 @@ describe('WP34 · P1 人格调节算子', () => {
       const base = aggregateTurnDelta([EMPATHY]);
       const broken: PersonalityModulatorConfig = {
         attachment: {
-          secure: { trustScale: Number.NaN, resistanceScale: -1 },
-          avoidant: { trustScale: Number.POSITIVE_INFINITY, resistanceScale: 0 },
-          anxious: { trustScale: -2, resistanceScale: Number.NaN },
-          disorganized: { trustScale: 1, resistanceScale: 1 },
+          // WP53: 同盟三维的两个增益系数也一并弄坏 —— 验证它们与 trust 一样逐项回退.
+          secure: { trustScale: Number.NaN, resistanceScale: -1, safetyScale: Number.NaN, bondScale: -1 },
+          avoidant: { trustScale: Number.POSITIVE_INFINITY, resistanceScale: 0, safetyScale: -2, bondScale: Number.NaN },
+          anxious: { trustScale: -2, resistanceScale: Number.NaN, safetyScale: 1, bondScale: 1 },
+          disorganized: { trustScale: 1, resistanceScale: 1, safetyScale: 1, bondScale: 1 },
         },
         agreeableness: { trustScale: Number.NaN, highThreshold: 5 },
       };
@@ -224,7 +241,7 @@ describe('WP34 · P1 人格调节算子', () => {
       const custom: PersonalityModulatorConfig = {
         attachment: {
           ...SEED.attachment,
-          avoidant: { trustScale: 0.2, resistanceScale: 2 },
+          avoidant: { trustScale: 0.2, resistanceScale: 2, safetyScale: 0.5, bondScale: 0.5 },
         },
         agreeableness: SEED.agreeableness,
       };
@@ -240,7 +257,7 @@ describe('WP34 · P1 人格调节算子', () => {
       const amplified: PersonalityModulatorConfig = {
         attachment: {
           ...SEED.attachment,
-          secure: { trustScale: 5, resistanceScale: 1 },
+          secure: { trustScale: 5, resistanceScale: 1, safetyScale: 1, bondScale: 1 },
         },
         agreeableness: SEED.agreeableness,
       };
@@ -257,7 +274,7 @@ describe('WP34 · P1 人格调节算子', () => {
       const amplified: PersonalityModulatorConfig = {
         attachment: {
           ...SEED.attachment,
-          secure: { trustScale: 5, resistanceScale: 1 },
+          secure: { trustScale: 5, resistanceScale: 1, safetyScale: 1, bondScale: 1 },
         },
         agreeableness: SEED.agreeableness,
       };

@@ -1,8 +1,12 @@
 // V2026-11-03 WP34 (B 层 · 人格调节系数装配):
 //   职责: 钉死"env → PersonalityModulatorConfig 端口"这条装配链 ——
-//     ① 10 个键逐个读, 缺省/非法一律回退**内核种子值** (不抛错, 行为仍然确定);
+//     ① 18 个键逐个读, 缺省/非法一律回退**内核种子值** (不抛错, 行为仍然确定);
 //     ② 装配结果与内核种子值一致 (没配 env 时行为与种子值逐字相同);
-//     ③ 方向校验: trust 不得为负; 阻抗系数是**除数**, 必须 > 0; 阈值必须落在 [0,1].
+//     ③ 方向校验: 增益型系数不得为负; 阻抗系数是**除数**, 必须 > 0; 阈值必须落在 [0,1].
+//
+//   V2026-11-04 WP53 (人格调节算子扩展到同盟三维):
+//     依恋系数从 2 列扩到 4 列 (trust / resistance / safety / bond), env 键
+//     从 10 个增到 18 个. 新增的 8 个键同样走"字面量读 + 非法回退"这一套.
 //
 //   为什么这层要有单测:
 //     env 解析是**纯配置层**, 但它决定人格系数 —— 配错一个符号, "回避型阻抗倍率"
@@ -37,36 +41,68 @@ describe('WP34 · 人格调节系数装配 (env → PersonalityModulatorConfig)'
     expect(config).toEqual(DEFAULT_PERSONALITY_MODULATOR_CONFIG);
   });
 
-  it('配了 10 个键 → 真的按 env 生效', () => {
+  it('配了 18 个键 → 真的按 env 生效', () => {
     const config = resolvePersonalityModulatorConfig(
       configStub({
         ENGINE_MOD_SECURE_TRUST_SCALE: '1.05',
         ENGINE_MOD_SECURE_RESIST_SCALE: '0.95',
+        ENGINE_MOD_SECURE_SAFETY_SCALE: '1.08',
+        ENGINE_MOD_SECURE_BOND_SCALE: '1.02',
         ENGINE_MOD_AVOIDANT_TRUST_SCALE: '0.5',
         ENGINE_MOD_AVOIDANT_RESIST_SCALE: '1.4',
+        ENGINE_MOD_AVOIDANT_SAFETY_SCALE: '0.45',
+        ENGINE_MOD_AVOIDANT_BOND_SCALE: '0.55',
         ENGINE_MOD_ANXIOUS_TRUST_SCALE: '1.3',
         ENGINE_MOD_ANXIOUS_RESIST_SCALE: '0.75',
+        ENGINE_MOD_ANXIOUS_SAFETY_SCALE: '0.65',
+        ENGINE_MOD_ANXIOUS_BOND_SCALE: '1.35',
         ENGINE_MOD_DISORGANIZED_TRUST_SCALE: '0.85',
         ENGINE_MOD_DISORGANIZED_RESIST_SCALE: '1.15',
+        ENGINE_MOD_DISORGANIZED_SAFETY_SCALE: '0.55',
+        ENGINE_MOD_DISORGANIZED_BOND_SCALE: '0.75',
         ENGINE_MOD_AGREEABLENESS_TRUST_SCALE: '1.2',
         ENGINE_MOD_AGREEABLENESS_HIGH_THRESHOLD: '0.6',
       }),
     );
 
-    expect(config.attachment.secure).toEqual({ trustScale: 1.05, resistanceScale: 0.95 });
-    expect(config.attachment.avoidant).toEqual({ trustScale: 0.5, resistanceScale: 1.4 });
-    expect(config.attachment.anxious).toEqual({ trustScale: 1.3, resistanceScale: 0.75 });
-    expect(config.attachment.disorganized).toEqual({ trustScale: 0.85, resistanceScale: 1.15 });
+    expect(config.attachment.secure).toEqual({
+      trustScale: 1.05,
+      resistanceScale: 0.95,
+      safetyScale: 1.08,
+      bondScale: 1.02,
+    });
+    expect(config.attachment.avoidant).toEqual({
+      trustScale: 0.5,
+      resistanceScale: 1.4,
+      safetyScale: 0.45,
+      bondScale: 0.55,
+    });
+    expect(config.attachment.anxious).toEqual({
+      trustScale: 1.3,
+      resistanceScale: 0.75,
+      safetyScale: 0.65,
+      bondScale: 1.35,
+    });
+    expect(config.attachment.disorganized).toEqual({
+      trustScale: 0.85,
+      resistanceScale: 1.15,
+      safetyScale: 0.55,
+      bondScale: 0.75,
+    });
     expect(config.agreeableness).toEqual({ trustScale: 1.2, highThreshold: 0.6 });
   });
 
-  it('非法值回退种子值: 非数字 / 空串 / trust 为负 / 阻抗为 0 或负 / 阈值越界', () => {
+  it('非法值回退种子值: 非数字 / 空串 / 增益系数为负 / 阻抗为 0 或负 / 阈值越界', () => {
     const config = resolvePersonalityModulatorConfig(
       configStub({
         ENGINE_MOD_SECURE_TRUST_SCALE: 'abc',
         ENGINE_MOD_SECURE_RESIST_SCALE: ' '.repeat(3),
+        ENGINE_MOD_SECURE_SAFETY_SCALE: 'not-a-number',
+        ENGINE_MOD_SECURE_BOND_SCALE: '-0.1',
         ENGINE_MOD_AVOIDANT_TRUST_SCALE: '-0.5',
         ENGINE_MOD_AVOIDANT_RESIST_SCALE: '0', // 除数 = 0 → 非法
+        ENGINE_MOD_AVOIDANT_SAFETY_SCALE: 'Infinity',
+        ENGINE_MOD_AVOIDANT_BOND_SCALE: '-2',
         ENGINE_MOD_ANXIOUS_TRUST_SCALE: 'Infinity',
         ENGINE_MOD_ANXIOUS_RESIST_SCALE: '-1', // 负的阻抗倍率 → 非法
         ENGINE_MOD_AGREEABLENESS_TRUST_SCALE: '-0.2',
@@ -77,6 +113,7 @@ describe('WP34 · 人格调节系数装配 (env → PersonalityModulatorConfig)'
     expect(config.attachment.secure).toEqual(DEFAULT_PERSONALITY_MODULATOR_CONFIG.attachment.secure);
     expect(config.attachment.avoidant).toEqual(DEFAULT_PERSONALITY_MODULATOR_CONFIG.attachment.avoidant);
     expect(config.attachment.anxious).toEqual(DEFAULT_PERSONALITY_MODULATOR_CONFIG.attachment.anxious);
+    expect(config.attachment.disorganized).toEqual(DEFAULT_PERSONALITY_MODULATOR_CONFIG.attachment.disorganized);
     expect(config.agreeableness).toEqual(DEFAULT_PERSONALITY_MODULATOR_CONFIG.agreeableness);
   });
 
@@ -85,8 +122,18 @@ describe('WP34 · 人格调节系数装配 (env → PersonalityModulatorConfig)'
 
     expect(config.attachment.anxious.trustScale).toBeCloseTo(1.25, 10);
     expect(config.attachment.anxious.resistanceScale).toBe(DEFAULT_PERSONALITY_MODULATOR_CONFIG.attachment.anxious.resistanceScale);
+    expect(config.attachment.anxious.safetyScale).toBe(DEFAULT_PERSONALITY_MODULATOR_CONFIG.attachment.anxious.safetyScale);
+    expect(config.attachment.anxious.bondScale).toBe(DEFAULT_PERSONALITY_MODULATOR_CONFIG.attachment.anxious.bondScale);
     expect(config.attachment.secure).toEqual(DEFAULT_PERSONALITY_MODULATOR_CONFIG.attachment.secure);
     expect(config.attachment.avoidant).toEqual(DEFAULT_PERSONALITY_MODULATOR_CONFIG.attachment.avoidant);
     expect(config.attachment.disorganized).toEqual(DEFAULT_PERSONALITY_MODULATOR_CONFIG.attachment.disorganized);
+  });
+
+  it('只配新同盟系数 → 该系数生效, 同组另一个系数回退种子值 (WP53)', () => {
+    const config = resolvePersonalityModulatorConfig(configStub({ ENGINE_MOD_AVOIDANT_SAFETY_SCALE: '0.4' }));
+
+    expect(config.attachment.avoidant.safetyScale).toBeCloseTo(0.4, 10);
+    expect(config.attachment.avoidant.bondScale).toBe(DEFAULT_PERSONALITY_MODULATOR_CONFIG.attachment.avoidant.bondScale);
+    expect(config.attachment.avoidant.trustScale).toBe(DEFAULT_PERSONALITY_MODULATOR_CONFIG.attachment.avoidant.trustScale);
   });
 });

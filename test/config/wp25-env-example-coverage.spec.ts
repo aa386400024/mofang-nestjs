@@ -41,6 +41,12 @@
 //     (src/engine-adapters/wiring/personality-modulator.config.ts) 逐个字面量读,
 //     内核零 env 读取. 用例③c 守着这件事.
 //
+//   V2026-11-04 WP53 (人格调节算子扩展到同盟三维):
+//     依恋系数从 2 列扩到 4 列 (trust / resistance / safety / bond),
+//     ENGINE_MOD_* 键从 10 个增到 18 个 (WP53 追加 4 依恋 × 2 同盟增益系数).
+//     新增的 8 个键同样**逐个字面量**读, 清单同步扩到 18 条 ——
+//     用例③c 的"一个不多一个不少"正是防"模板里躺着一条没人读的键"。
+//
 //   V2026-11-03 治本 (WP42 — ENGINE_ALLIANCE_* 族):
 //     咨询同盟三维 (trust / safety / bond) 的系数与门槛 (25 个 `ENGINE_ALLIANCE_*` 键)
 //     同一治本: 适配层 (src/engine-adapters/wiring/alliance-config.ts) 逐个字面量读,
@@ -117,21 +123,31 @@ const DELTA_CAP_ENV_KEYS: readonly string[] = [
 ];
 
 /**
- * 人格调节系数的 10 个 env 键 (WP34).
+ * 人格调节系数的 18 个 env 键 (WP34 的 10 个 + WP53 的 8 个).
  *
  * 与 cap 族同一治本: 适配层**逐个字面量**读 → 已被 AST 抽取覆盖 (漏写一个键,
- * 断言① 立刻变红). 这里留一份清单, 是为了断言"10 个键一个不多一个不少" ——
+ * 断言① 立刻变红). 这里留一份清单, 是为了断言"18 个键一个不多一个不少" ——
  * 少一个 = 那个系数永远配不上 (静默失效); 多一个 = 模板里躺着一条没人读的键.
+ *
+ * WP53 追加的 8 个 = 4 依恋类型 × 2 个同盟增益系数 (safety / bond).
  */
 const PERSONALITY_MOD_ENV_KEYS: readonly string[] = [
   'ENGINE_MOD_SECURE_TRUST_SCALE',
   'ENGINE_MOD_SECURE_RESIST_SCALE',
+  'ENGINE_MOD_SECURE_SAFETY_SCALE',
+  'ENGINE_MOD_SECURE_BOND_SCALE',
   'ENGINE_MOD_AVOIDANT_TRUST_SCALE',
   'ENGINE_MOD_AVOIDANT_RESIST_SCALE',
+  'ENGINE_MOD_AVOIDANT_SAFETY_SCALE',
+  'ENGINE_MOD_AVOIDANT_BOND_SCALE',
   'ENGINE_MOD_ANXIOUS_TRUST_SCALE',
   'ENGINE_MOD_ANXIOUS_RESIST_SCALE',
+  'ENGINE_MOD_ANXIOUS_SAFETY_SCALE',
+  'ENGINE_MOD_ANXIOUS_BOND_SCALE',
   'ENGINE_MOD_DISORGANIZED_TRUST_SCALE',
   'ENGINE_MOD_DISORGANIZED_RESIST_SCALE',
+  'ENGINE_MOD_DISORGANIZED_SAFETY_SCALE',
+  'ENGINE_MOD_DISORGANIZED_BOND_SCALE',
   'ENGINE_MOD_AGREEABLENESS_TRUST_SCALE',
   'ENGINE_MOD_AGREEABLENESS_HIGH_THRESHOLD',
 ];
@@ -363,7 +379,7 @@ describe('WP25 · .env.example 与代码 env 读取点一一对应', () => {
     expect(kernelCapKeys).toEqual([]);
   });
 
-  it('③c 10 个 ENGINE_MOD_* 键已改字面量读取, 内核树不再有人格系数键 (WP34)', () => {
+  it('③c 18 个 ENGINE_MOD_* 键已改字面量读取, 内核树不再有人格系数键 (WP34 · WP53 加 8 个)', () => {
     // 人格调节系数与 cap 同款治本: 适配层逐个字面量读 → AST 抽取看得到.
     const personalityConfigFile = path.join(SRC_ROOT, 'engine-adapters/wiring/personality-modulator.config.ts');
     expect(existsSync(personalityConfigFile)).toBe(true);
