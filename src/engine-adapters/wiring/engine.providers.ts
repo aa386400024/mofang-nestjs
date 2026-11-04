@@ -51,7 +51,7 @@ import type { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-sl
 import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import type { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
 import type { SessionCostPricing } from '../observability/session-cost.js';
-import type { MemoryConfig } from '../persistence/memory-config.js';
+import { toRecallPolicyOptions, type MemoryConfig } from '../persistence/memory-config.js';
 import type { QdrantMemoryClient } from '../persistence/qdrant-memory.store.js';
 import { QdrantMemoryStore } from '../persistence/qdrant-memory.store.js';
 import type { RollingSummaryPort } from '../persistence/rolling-session-summary.service.js';
@@ -80,7 +80,9 @@ export interface EngineMemoryStoreDeps {
   /**
    * 衰减/召回配置 (WP12; 缺省 = 内核同值种子 30 天 / 0.1).
    *
-   * 只对 Qdrant 版有意义 —— 纯内存版的召回判定在内核里, 走的是内核那一份常量.
+   * V2026-11-04 (WP59): **两版都生效** —— 纯内存版同期拿到了 `recallPolicy` 端口,
+   * 装配层把同一份配置喂进去 → 开发期 (纯内存部署) 与生产 (向量版部署) 的召回结果一致.
+   * 之前这里是"只对 Qdrant 版有意义", 纯内存部署直接忽略 env 配置.
    */
   readonly config?: MemoryConfig;
 }
@@ -97,7 +99,11 @@ export interface EngineMemoryStoreDeps {
  * @throws 配了向量库却缺客户端 / 向量化端口时抛错 (装配非法必须炸在启动期)
  */
 export function createEngineMemoryStore(deps: EngineMemoryStoreDeps): MemoryStore {
-  const fallback = new InMemoryMemoryStore();
+  // WP59: 召回策略配置喂给内存版 (省略 = 内核默认值, 行为与加端口前逐字一致).
+  //   纯内存部署与向量版部署喂的是**同一份**配置 → 换存储实现不换召回结果.
+  const fallback = new InMemoryMemoryStore({
+    ...(deps.config ? { recallPolicy: toRecallPolicyOptions(deps.config) } : {}),
+  });
   if (!deps.qdrantUrl) return fallback;
   if (!deps.qdrant || !deps.embedder) {
     throw new Error('引擎记忆仓储装配非法: 已配置向量库地址, 但缺少向量库客户端或向量化端口');

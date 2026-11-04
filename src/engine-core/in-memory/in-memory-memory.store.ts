@@ -25,6 +25,14 @@
 //       有效重要度 = 原始 important, 排序 = 重要度 → 时间). 零回归.
 //     - scope='visitor': 租户+来访者跨会话, 只返回长时, 叠加重要度衰减与阈值过滤.
 //
+//   V2026-11-04 治本 (WP59 · 召回策略配置端口统一):
+//     本实现原先**没有**任何召回策略配置口 —— 半衰期与阈值只能用内核默认值.
+//     后果: 开发期拿内存版测出来的召回结果, 换生产环境的 Qdrant 版可能对不上
+//     (Qdrant 版读 env 配的半衰期 / 阈值, 内存版读不到).
+//     本期加 `recallPolicy` 端口 (可选), 判定口径仍**只有一份**
+//     (memory/recall-policy.ts 的纯函数) —— 本实现只是把配置**喂**进去, 不自己判.
+//     省略 = 用内核默认值 = 行为与加端口前逐字一致 (零回归).
+//
 //   如何验证:
 //     1. pnpm build 0 错
 //     2. test/engine-core/engine-core.spec.ts (WP0 既有) 零改动通过
@@ -39,7 +47,7 @@ import {
   type MemoryRecallQuery,
   type MemoryStore,
 } from '../domain/ports/memory.store.js';
-import { evaluateRecallCandidate } from '../memory/recall-policy.js';
+import { evaluateRecallCandidate, type RecallPolicyOptions } from '../memory/recall-policy.js';
 
 /** 记忆内存仓储构造选项. */
 export interface InMemoryMemoryStoreOptions {
@@ -50,6 +58,14 @@ export interface InMemoryMemoryStoreOptions {
   readonly defaultTtlMs?: number | null;
   /** 时钟注入 (测试用; 默认 Date.now). */
   readonly now?: () => number;
+  /**
+   * 召回策略配置 (WP59; 可选).
+   * 省略 = 用内核默认值 (30 天半衰期 / 0.1 阈值) = 行为与加端口前逐字一致.
+   *
+   * 为什么内存版也需要这个口: Qdrant 版读 env 配的半衰期 / 阈值, 内存版读不到 →
+   * 开发期测出来的召回结果与生产环境可能对不上. 两版喂同一份配置, 结果才一致.
+   */
+  readonly recallPolicy?: RecallPolicyOptions;
 }
 
 /** 内部存储条目: 输入形状 + 物化后的绝对过期时刻. */
@@ -72,10 +88,13 @@ export class InMemoryMemoryStore implements MemoryStore {
   private readonly defaultTtlMs: number | null;
   /** 时钟. */
   private readonly now: () => number;
+  /** 召回策略配置 (WP59); undefined = 用内核默认值. */
+  private readonly recallPolicy: RecallPolicyOptions | undefined;
 
   constructor(options: InMemoryMemoryStoreOptions = {}) {
     this.defaultTtlMs = options.defaultTtlMs ?? null;
     this.now = options.now ?? Date.now;
+    this.recallPolicy = options.recallPolicy;
   }
 
   async remember(entry: MemoryEntry): Promise<void> {
@@ -94,7 +113,8 @@ export class InMemoryMemoryStore implements MemoryStore {
     const ranked: RankedHit[] = [];
 
     for (const stored of this.entries.values()) {
-      const evaluation = evaluateRecallCandidate(stored.entry, stored.expiresAt, query, now);
+      // WP59: 召回策略配置喂进内核判定 (省略 = 内核默认值, 行为逐字不变).
+      const evaluation = evaluateRecallCandidate(stored.entry, stored.expiresAt, query, now, this.recallPolicy);
       if (!evaluation.accepted) continue;
       // 无语义相关度: score 恒 0, 排序退化为有效重要度 → 发生时间.
       ranked.push({

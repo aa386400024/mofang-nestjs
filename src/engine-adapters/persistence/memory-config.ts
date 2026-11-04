@@ -10,17 +10,22 @@
 //
 //   ⚠️ **与内核常量的关系 (必须如实知道, 不要误以为"内核常量被覆盖了")**:
 //     内核 `src/engine-core/memory/importance-decay.ts` 里的两个常量**本轮不改**
-//     (WP12 红线: 不改 `src/engine-core/**`), 它们仍然是内核**共享判定**里的地板:
+//     (WP12 红线: 不改 `src/engine-core/**`), 它们是内核**共享判定**里的**默认值**:
 //       - `evaluateRecallCandidate` 内部用 `DEFAULT_DECAY_HALF_LIFE_MS` 算有效重要度,
 //         并用 `RECALL_MIN_EFFECTIVE_IMPORTANCE` (0.1) 卡一道;
-//       - 这道地板**不可绕过** —— 所以本文件配出来的阈值**只能收紧** (>= 0.1 才额外生效),
-//         配成 < 0.1 不会让内核放行.
-//     本文件配出来的值在 **B 层口径**上**完全生效**:
-//       - 半衰期 → B 层算"有效重要度"时用它 (门槛判定 + 排序都用它);
-//       - 阈值   → B 层在访客范围**追加**一道门槛 (与内核地板取交集 = 更严).
-//     换句话说: **默认配置下与现状逐字一致** (30 天 / 0.1 == 内核默认值),
-//     改 env 后 B 层口径立刻变; 内核地板仍在, 两者的分歧只出现在"很旧"的条目上.
-//     要让 env 完整接管内核那一次判定, 必须改内核 —— 那是另一个 WP 的事.
+//       - 这两个值是**缺省回退** —— 端口注入时 (WP59) 传进来的配置值会**覆盖**它们:
+//         传了 = 用配置值, 没传 = 用内核默认值.
+//     本文件配出来的值在 **内核判定口径**上**完全生效** (WP59 起):
+//       - 半衰期 → 传给内核 `evaluateRecallCandidate` 的 `RecallPolicyOptions.halfLifeMs`
+//         (门槛判定 + 排序都用它);
+//       - 阈值   → 传给内核 `RecallPolicyOptions.minEffectiveImportance`
+//         (内核用它卡访客范围的门槛 —— 不再是 B 层"追加一道" = 不再取交集).
+//     换句话说: **默认配置下与现状逐字一致** (30 天 / 0.1 == 内核默认值);
+//     改 env 后内核判定口径立刻变, 且**只有一份判定** (Qdrant 版与内存版共用).
+//     ⚠️ **口径变化 (与 WP12 当时的行为不同, 别照旧记忆理解)**:
+//       WP12 时期内核那道 0.1 是"不可绕过的地板", 阈值**只能收紧** (配成 < 0.1 不生效).
+//       WP59 起内核那 0.1 只是**默认值**, 阈值配成 < 0.1 也会**真的放行** ——
+//       这是"配置值直接生效, 不取交集"的必然结果, 也是内核判定**只有一份**的代价.
 //
 //   反双胞胎:
 //     - 不在这里重写内核的衰减公式: 内核 `decayImportance` / `effectiveImportance`
@@ -84,6 +89,35 @@ export function resolveMemoryConfig(env: MemoryConfigEnv = {}): MemoryConfig {
  * 默认记忆配置 (半衰期 30 天 / 阈值 0.1 —— 与内核常量同值).
  */
 export const DEFAULT_MEMORY_CONFIG: MemoryConfig = resolveMemoryConfig();
+
+/**
+ * B 层配置 → 内核召回策略端口 (WP59).
+ *
+ * 为什么要有这层映射: B 层的 `MemoryConfig` 用自己的字段名 (`decayHalfLifeMs` /
+ * `recallThreshold`), 内核端口 `RecallPolicyOptions` 用内核口径的字段名
+ * (`halfLifeMs` / `minEffectiveImportance`). 两者是**同一组数字**, 但字段名不同.
+ *
+ * 映射**只留这一处** —— 各调用点各写一遍 = 两套命名迟早漂移 (仓库既有教训:
+ * 判定逻辑一旦写两份, 就会在某个 WP 里悄悄分叉).
+ *
+ * ⚠️ 返回类型**故意不写成内核的 `RecallPolicyOptions`**: 适配层深路径 import
+ * engine-core 内部模块会被边界断言 ⑪ 拦下, 而内核 barrel 的公开出口面被断言 ⑥
+ * 冻结 (加导出 = 改 barrel + 改断言白名单 = 动第三个内核文件, 超出本单预批准范围).
+ * 这里用**结构化类型**声明 —— TypeScript 结构性兼容保证它就是内核那个端口,
+ * 调用点仍然会被编译期校验 (内核端口字段若改名, 调用点立刻编译报错).
+ *
+ * @param config B 层配置
+ * @returns 内核召回策略端口
+ */
+export function toRecallPolicyOptions(config: MemoryConfig): {
+  readonly halfLifeMs: number;
+  readonly minEffectiveImportance: number;
+} {
+  return {
+    halfLifeMs: config.decayHalfLifeMs,
+    minEffectiveImportance: config.recallThreshold,
+  };
+}
 
 /**
  * 读一个正有限数 (非法 → undefined).

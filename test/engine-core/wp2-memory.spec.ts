@@ -533,6 +533,106 @@ describe('WP2 · 分层记忆 V1', () => {
     });
   });
 
+  // WP59 (2026-11-04) · 召回策略配置端口统一:
+  //   半衰期与阈值两个工程种子值改成**可选端口注入** —— 不传 = 内核默认值 = 行为逐字不变,
+  //   传了 = 配置值直接生效. 覆盖: 零回归 / 半衰期生效 / 阈值生效 / 只覆盖一个 /
+  //   内存版 recallPolicy 端口生效.
+  describe('⑨ WP59 · 召回策略配置端口统一', () => {
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const NOW = 1_700_000_000_000;
+    /** 访客范围召回条件 (跨会话, 只召回长时). */
+    const visitorQuery = {
+      tenantId: TENANT,
+      sessionId: 'session-a',
+      query: 'x',
+      scope: 'visitor',
+      visitorId: VISITOR,
+    } as const;
+
+    /**
+     * 造一条"十天前"的长时记忆 (importance=0.8).
+     *
+     * 期望值是**算出来的**, 不是拍脑袋的:
+     *   - 默认半衰期 30 天 → 0.8 * 2^(-10/30) ≈ 0.6349604;
+     *   - 半衰期 10 天     → 0.8 * 2^(-10/10) = 0.4.
+     * 用例里把这三个数分得很开, 是为了让"参数没生效"和"阈值差一点"都变成**硬失败**,
+     * 而不是靠容差糊过去.
+     */
+    const agedEntry = (): MemoryEntry => longTermEntry({ id: 'aged', importance: 0.8, occurredAt: NOW - 10 * DAY_MS });
+
+    it('① 不传 options = 用内核默认值 (零回归: 与 4 参调用逐字一致)', () => {
+      const entry = agedEntry();
+      const withoutOptions = evaluateRecallCandidate(entry, null, visitorQuery, NOW);
+      const withEmptyOptions = evaluateRecallCandidate(entry, null, visitorQuery, NOW, {});
+
+      expect(withEmptyOptions).toEqual(withoutOptions);
+      expect(withoutOptions.accepted).toBe(true);
+      // 默认口径 = 内核默认半衰期算出来的有效重要度.
+      expect(withoutOptions.effectiveImportance).toBeCloseTo(0.8 * Math.pow(2, -10 / 30), 10);
+      expect(withoutOptions.effectiveImportance).toBeCloseTo(effectiveImportance(entry, NOW), 10);
+    });
+
+    it('② 传 halfLifeMs = 用配置值算有效重要度 (不是内核默认的 30 天)', () => {
+      const entry = agedEntry();
+      const evaluation = evaluateRecallCandidate(entry, null, visitorQuery, NOW, { halfLifeMs: 10 * DAY_MS });
+
+      expect(evaluation.accepted).toBe(true);
+      expect(evaluation.effectiveImportance).toBeCloseTo(0.4, 10);
+      // 与默认口径明显不同 —— 否则这条用例是空转 (参数没生效也照样绿).
+      expect(evaluation.effectiveImportance).not.toBeCloseTo(effectiveImportance(entry, NOW), 6);
+    });
+
+    it('③ 传 minEffectiveImportance = 用配置值卡阈值', () => {
+      const entry = agedEntry();
+      // 默认阈值 0.1 → 放行.
+      expect(evaluateRecallCandidate(entry, null, visitorQuery, NOW).accepted).toBe(true);
+      // 配置阈值 0.7 → 有效重要度 0.635 < 0.7 → 拒绝.
+      expect(evaluateRecallCandidate(entry, null, visitorQuery, NOW, { minEffectiveImportance: 0.7 }).accepted).toBe(false);
+      // 配置阈值 0.5 → 放行.
+      expect(evaluateRecallCandidate(entry, null, visitorQuery, NOW, { minEffectiveImportance: 0.5 }).accepted).toBe(true);
+    });
+
+    it('④ 两个字段可以只覆盖一个 (另一个回落内核默认值)', () => {
+      const entry = agedEntry();
+      // 只给半衰期 → 阈值仍是内核默认 0.1 → 0.4 ≥ 0.1 → 放行.
+      const onlyHalfLife = evaluateRecallCandidate(entry, null, visitorQuery, NOW, { halfLifeMs: 10 * DAY_MS });
+      expect(onlyHalfLife.accepted).toBe(true);
+      expect(onlyHalfLife.effectiveImportance).toBeCloseTo(0.4, 10);
+      // 半衰期与阈值都给 → 0.4 < 0.5 → 拒绝.
+      const both = evaluateRecallCandidate(entry, null, visitorQuery, NOW, {
+        halfLifeMs: 10 * DAY_MS,
+        minEffectiveImportance: 0.5,
+      });
+      expect(both.accepted).toBe(false);
+    });
+
+    it('⑤ 内存版 recallPolicy 端口生效 (与内核判定同口径)', async () => {
+      const entry = agedEntry();
+      // 缺省 → 内核默认阈值 0.1 → 召回.
+      const defaultStore = new InMemoryMemoryStore({ now: () => NOW });
+      await defaultStore.remember(entry);
+      expect(await defaultStore.recall(visitorQuery)).toHaveLength(1);
+
+      // 配更严的阈值 → 与内核判定同口径 → 不召回.
+      const strictStore = new InMemoryMemoryStore({ now: () => NOW, recallPolicy: { minEffectiveImportance: 0.7 } });
+      await strictStore.remember(entry);
+      expect(await strictStore.recall(visitorQuery)).toHaveLength(0);
+
+      // 配更短的半衰期 → 有效重要度掉到 0.4 → 阈值 0.5 拦下.
+      const shortHalfLifeStore = new InMemoryMemoryStore({
+        now: () => NOW,
+        recallPolicy: { halfLifeMs: 10 * DAY_MS, minEffectiveImportance: 0.5 },
+      });
+      await shortHalfLifeStore.remember(entry);
+      expect(await shortHalfLifeStore.recall(visitorQuery)).toHaveLength(0);
+
+      // 只配半衰期 → 阈值仍是内核默认 0.1 → 0.4 ≥ 0.1 → 召回.
+      const halfLifeOnlyStore = new InMemoryMemoryStore({ now: () => NOW, recallPolicy: { halfLifeMs: 10 * DAY_MS } });
+      await halfLifeOnlyStore.remember(entry);
+      expect(await halfLifeOnlyStore.recall(visitorQuery)).toHaveLength(1);
+    });
+  });
+
   describe('边界: 存储行与领域模型的分工保持不变', () => {
     it('createEmptyBdiSnapshot 的记忆信念基线为空 (召回属 WP2, 快照本身不带记忆)', () => {
       expect(createEmptyBdiSnapshot().memoryBeliefs).toEqual([]);

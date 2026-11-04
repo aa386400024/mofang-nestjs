@@ -159,8 +159,10 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
     // V2026-10-30 (WP12 · §1.3): 衰减半衰期 / 访客范围召回阈值走 env —
     //   `MEMORY_DECAY_HALF_LIFE_DAYS` (默认 30 天) 与 `MEMORY_RECALL_THRESHOLD` (默认 0.1).
     //   非法值一律回退默认值 (不抛错): 填错一个 env 不该让服务起不来.
-    //   ⚠️ 这两个值只对 **Qdrant 版**生效 (纯内存版的判定在内核里, 走内核那份常量);
-    //   内核地板仍在, 阈值只能收紧 —— 详见 persistence/memory-config.ts 顶部说明.
+    //   V2026-11-04 (WP59): 这两个值**两版都生效** —— 装配层把同一份配置喂给内存版与向量版,
+    //   召回判定只有内核那一份 → 换存储实现不换召回结果 (开发期与生产期一致).
+    //   ⚠️ 阈值不再"只能收紧": 它直接替换内核默认值 (0.1), 配成 < 0.1 也会真的放行 ——
+    //   详见 persistence/memory-config.ts 顶部说明.
     {
       provide: ENGINE_MEMORY_STORE,
       useFactory: (config: ConfigService, qdrant: QdrantService, embedder: OpenAICompatEmbedder): MemoryStore =>
