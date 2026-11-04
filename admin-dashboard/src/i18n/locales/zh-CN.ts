@@ -10,6 +10,7 @@ export default {
     memories: '记忆',
     psyguard: 'PsyGUARD',
     cost: '成本',
+    architecture: '架构图',
   },
   dashboard: {
     title: '仪表盘',
@@ -180,6 +181,10 @@ export default {
     visitor: '来访者',
     token: 'Token',
     cost: '成本',
+  },
+  arch: {
+    title: '引擎终局形态架构图',
+    subtitle: '七层架构 · 当前进度约 40% · 北极星参考，随开发迭代更新',
   },
   report: {
     dimensions: {

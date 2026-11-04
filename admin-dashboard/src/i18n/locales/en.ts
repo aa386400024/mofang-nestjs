@@ -10,6 +10,7 @@ export default {
     memories: 'Memories',
     psyguard: 'PsyGUARD',
     cost: 'Cost',
+    architecture: 'Architecture',
   },
   dashboard: {
     title: 'Dashboard',
@@ -180,6 +181,10 @@ export default {
     visitor: 'Visitor',
     token: 'Tokens',
     cost: 'Cost',
+  },
+  arch: {
+    title: 'Engine End-State Architecture',
+    subtitle: '7-layer architecture · ~40% complete · North star reference, evolves with development',
   },
   report: {
     dimensions: {

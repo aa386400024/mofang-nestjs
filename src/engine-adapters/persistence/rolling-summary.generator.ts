@@ -8,12 +8,12 @@
 //     滚动摘要 = 每一版都覆盖"到目前为止聊过的全部", 于是越往后越完整, 且始终只有一段
 //     (能塞进 prompt 的长度是固定的, 段落数不能随轮次增长).
 //
-//   为什么输入只有**咨询师一侧**的发言 (而 WP12 的最终摘要是两侧):
-//     内核的溢出回调只交出咨询师原话 —— 内核不渲染, 拿不到来访者的话
-//     (见 in-memory-engine-session.ts 的 rememberTurn 说明).
-//     所以本摘要的口径必须**如实说明**: 它是"咨询师谈了什么"的摘要, 不是逐字稿摘要.
-//     提示词里明确要求模型**不要替来访者编造**没说过的话 —— 否则摘要会变成凭空捏造,
-//     而捏造出来的事实会被后续对话当真 (这是最坏的一种失真).
+//   为什么输入是**完整轮次** (咨询师一侧 + 来访者一侧, 绑成一个不可拆的单位):
+//     WP37 时输入只有咨询师一侧 —— 内核的溢出回调只交出咨询师原话 (内核不渲染,
+//     拿不到来访者的话). WP55 起, 门面的**轮次记录**补上了来访者那一半.
+//     关键: 两侧必须**同一个数据结构**一起传, 不能拆成两个数组再按下标配对 ——
+//     拆开就等于把"配对正确性"变成调用方的责任, 而实际会错配 (阻断/降级轮次
+//     没有来访者发言, 下标就错位了). 详见交付记录 §2.2 的反例.
 //
 //   反双胞胎:
 //     - 不自己写 JSON 解析 —— 复用 session-summary.generator.ts 的 parseSummaryResponse
@@ -24,6 +24,7 @@
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp37-rolling-session-summary.spec.ts 覆盖组装 / 退化 / 服务编排
+//     3. test/engine-adapters/wp55-rolling-summary-both-sides.spec.ts 覆盖两侧输入与配对
 
 import { parseSummaryResponse } from './session-summary.generator.js';
 import { LLMTier } from '../../llm/common/enums/llm.enums.js';
@@ -31,13 +32,35 @@ import type { ChatCompletionRequest } from '../../llm/common/interfaces/chat-pro
 import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
 
 /**
+ * 一轮对话 (WP55 · 两侧纪要).
+ *
+ * 为什么两侧**绑在一个对象里** (而不是两个平行的字符串数组):
+ *   配对必须**结构性正确** —— 摘要里"咨询师问了 X / 来访者答了 Y"必须是同一轮的事实.
+ *   拆成两个数组后, 下标对齐就成了调用方的责任; 而现实中"某一轮没有来访者发言"
+ *   (阻断轮次 / 渲染降级轮次) 会让下标错位, 摘要就会把 A 轮的问题和 B 轮的回答
+ *   配成一对 —— 那是**凭空捏造因果**, 比丢上下文严重得多.
+ *   绑成一个对象 = 配对正确性由类型系统保证, 调用方拆不了.
+ */
+export interface RollingSummaryRound {
+  /** 本轮咨询师 (学员) 说的话. */
+  readonly counselor: string;
+  /**
+   * 本轮来访者的回复.
+   *
+   * `null` = 这一轮来访者**没有发言** (阻断轮次 / 渲染降级轮次).
+   * 用 `null` 而不是空串: "没说话"和"说了空话"是两回事, 空串会被当成一句发言.
+   */
+  readonly visitor: string | null;
+}
+
+/**
  * 滚动摘要生成入参.
  */
 export interface RollingSummaryInput {
   /** 上一版滚动摘要 (首次生成时缺省). */
   readonly previousSummary?: string;
-  /** 本次新增的咨询师发言 (按时间正序). */
-  readonly newLines: readonly string[];
+  /** 本批新增的对话轮次 (按时间正序). */
+  readonly rounds: readonly RollingSummaryRound[];
 }
 
 /**
@@ -60,17 +83,19 @@ export interface RollingSummaryGenerator {
  * 滚动摘要提示词 (系统段).
  *
  * 三条硬约束:
- *   1. 只写**已经出现过的**内容 —— 不替来访者编造经历或情绪 (输入里没有来访者的话,
- *      模型很容易顺着咨询师的话脑补出来访者"其实很焦虑"这种没依据的结论);
+ *   1. 只写**已经出现过的**内容 —— 不编造对话里没有的经历、感受或承诺
+ *      (WP37 时输入只有咨询师一侧, 模型很容易顺着咨询师的话脑补出来访者
+ *      "其实很焦虑"这种没依据的结论; WP55 起两侧都在输入里, 这条约束从
+ *      "别替来访者编造"收紧为"别编造对话之外的东西");
  *   2. 覆盖全部已聊内容 —— 给了上一版摘要时, 输出必须是**并入新内容后的完整版**;
  *   3. 长度上限 —— 摘要要塞进 prompt, 长度失控 = 每轮 prompt 都被撑大.
  */
 const ROLLING_SUMMARY_SYSTEM_PROMPT = [
-  '你是一名咨询训练场景的会话纪要助手。下面给你的是一段**咨询师一侧**的发言记录（来访者的话没有出现在这里）。',
+  '你是一名咨询训练场景的会话纪要助手。下面给你的是一段**咨询师与来访者的对话记录**（问答交替）。',
   '请把它压缩成一段「此前我们聊过什么」的滚动摘要，供来访者角色在后续对话里保持话题连续。',
   '',
   '要求：',
-  '1. 只写已经出现过的内容：谈到的议题、情绪线索、关系进展。不要替来访者编造他没说过的经历、感受或承诺。',
+  '1. 只写已经出现过的内容：谈到的议题、情绪线索、关系进展。不要编造对话里没有提到的经历、感受或承诺。',
   '2. 如果给了上一版摘要，输出必须是把新内容并进去之后的**完整版**摘要，不要只写新增部分。',
   '3. 不超过 120 字。不要写具体话术，不要做临床诊断。',
   '',
@@ -139,17 +164,28 @@ export class LlmRollingSummaryGenerator implements RollingSummaryGenerator {
 /**
  * 滚动摘要生成器构造入参 → 提示词正文.
  *
- * 为什么显式标注"咨询师: "前缀: 输入里只有咨询师一侧的话, 不标角色的话,
- * 模型会以为这是完整对话, 从而把咨询师的话当成来访者的自述 —— 那就正好触发了
- * "不要编造"这条约束要防的事.
+ * 为什么每轮**两行** (咨询师 / 来访者):
+ *   问答交替的形状本身就是信息 —— 模型看到"问"紧跟"答", 才知道那句话是在回应什么.
+ *   标角色也是 WP37 就有的必要防线 (不标的话模型会把咨询师的话当成来访者的自述);
+ *   WP55 起两边都在, 标角色从"防误认"变成"还原对话".
+ *
+ * 为什么来访者没发言时写「（本轮来访者无回复）」而不是留空:
+ *   留空 = 模型看到一段没有回答的提问, 很可能**脑补**一个回答 (然后写进摘要).
+ *   显式写明"没回复" = 事实, 模型不会替它编.
  */
 export function formatRollingSummaryInput(input: RollingSummaryInput): string {
   const parts: string[] = [];
   if (input.previousSummary && input.previousSummary.trim().length > 0) {
     parts.push(`[上一版摘要]\n${input.previousSummary.trim()}`);
   }
-  const lines = input.newLines.map((line) => `咨询师: ${line.trim()}`).join('\n');
-  parts.push(`[新增的咨询师发言]\n${lines}`);
+  const dialogue = input.rounds
+    .map((round) => {
+      const counselor = round.counselor.trim();
+      const visitor = round.visitor !== null && round.visitor.trim().length > 0 ? round.visitor.trim() : '（本轮来访者无回复）';
+      return `咨询师: ${counselor}\n来访者: ${visitor}`;
+    })
+    .join('\n');
+  parts.push(`[新增的对话记录]\n${dialogue}`);
   return parts.join('\n\n');
 }
 

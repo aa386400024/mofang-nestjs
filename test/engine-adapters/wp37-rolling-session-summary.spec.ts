@@ -25,7 +25,7 @@ import {
   DEFAULT_ROLLING_SUMMARY_IMPORTANCE,
   RollingSessionSummaryService,
 } from '../../src/engine-adapters/persistence/rolling-session-summary.service.js';
-import { formatRollingSummaryInput } from '../../src/engine-adapters/persistence/rolling-summary.generator.js';
+import { formatRollingSummaryInput, type RollingSummaryInput } from '../../src/engine-adapters/persistence/rolling-summary.generator.js';
 import { buildRenderSpec } from '../../src/engine-adapters/rendering/spec-assembler.js';
 import type { StreamingRenderPort } from '../../src/engine-adapters/rendering/streaming-render.port.js';
 import {
@@ -66,10 +66,10 @@ function configStub(env: Readonly<Record<string, string>>): ConfigService {
 
 /** 摘要生成器 stub: 记录入参, 返回固定摘要 (或抛错). */
 function generatorStub(options: { readonly summary?: string; readonly fail?: boolean }): {
-  readonly generate: (input: { previousSummary?: string; newLines: readonly string[] }) => Promise<string>;
-  readonly calls: { previousSummary?: string; newLines: readonly string[] }[];
+  readonly generate: (input: RollingSummaryInput) => Promise<string>;
+  readonly calls: RollingSummaryInput[];
 } {
-  const calls: { previousSummary?: string; newLines: readonly string[] }[] = [];
+  const calls: RollingSummaryInput[] = [];
   return {
     calls,
     generate: async (input) => {
@@ -91,6 +91,28 @@ function overflowEvent(pushedOut: readonly string[], overrides: Partial<WorkingW
   };
 }
 
+/**
+ * 走完一轮"门面上报 + 内核淘汰" (WP55 之后的一轮完整时序).
+ *
+ * WP37 时这一步只有内核的溢出事件 (咨询师一侧); WP55 起门面还会上报一次轮次记录.
+ * 这里把两步合在一起, 让用例只关心"哪一轮被淘汰了", 不关心两条流谁先谁后.
+ */
+function reportAndEvict(
+  service: RollingSessionSummaryService,
+  counselor: string,
+  options: {
+    readonly visitor?: string | null;
+    readonly tenantId?: string;
+    readonly sessionId?: string;
+  } = {},
+): void {
+  const tenantId = options.tenantId ?? TENANT;
+  const sessionId = options.sessionId ?? SESSION;
+  const visitor = options.visitor === undefined ? `来访:${counselor}` : options.visitor;
+  service.recordRound(tenantId, sessionId, VISITOR, counselor, visitor);
+  service.recordOverflow(overflowEvent([counselor], { tenantId, sessionId }));
+}
+
 describe('WP37 · 会话级滚动摘要 (适配层)', () => {
   describe('① 攒批: 攒够 N 轮才调 LLM', () => {
     it('不足阈值 → 不调 LLM, 不产生摘要', async () => {
@@ -100,8 +122,8 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
         generator,
       });
 
-      service.recordOverflow(overflowEvent(['第1轮']));
-      service.recordOverflow(overflowEvent(['第2轮']));
+      reportAndEvict(service, '第1轮');
+      reportAndEvict(service, '第2轮');
       await Promise.resolve();
 
       expect(generator.calls).toHaveLength(0);
@@ -115,13 +137,13 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
         generator,
       });
 
-      service.recordOverflow(overflowEvent(['第1轮']));
-      service.recordOverflow(overflowEvent(['第2轮']));
-      service.recordOverflow(overflowEvent(['第3轮']));
+      reportAndEvict(service, '第1轮');
+      reportAndEvict(service, '第2轮');
+      reportAndEvict(service, '第3轮');
 
       await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('聊了失眠与工作压力'));
       expect(generator.calls).toHaveLength(1);
-      expect(generator.calls[0]?.newLines).toEqual(['第1轮', '第2轮', '第3轮']);
+      expect(generator.calls[0]?.rounds.map((round) => round.counselor)).toEqual(['第1轮', '第2轮', '第3轮']);
     });
 
     it('攒批阈值可配 (batchSize=1 → 第一轮就压)', async () => {
@@ -132,7 +154,7 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
         batchSize: 1,
       });
 
-      service.recordOverflow(overflowEvent(['第1轮']));
+      reportAndEvict(service, '第1轮');
 
       await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('立刻压'));
     });
@@ -147,14 +169,14 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
         batchSize: 1,
       });
 
-      service.recordOverflow(overflowEvent(['第1轮']));
+      reportAndEvict(service, '第1轮');
       await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('摘要v2'));
 
-      service.recordOverflow(overflowEvent(['第2轮']));
+      reportAndEvict(service, '第2轮');
       await vi.waitFor(() => expect(generator.calls).toHaveLength(2));
 
       expect(generator.calls[1]?.previousSummary).toBe('摘要v2');
-      expect(generator.calls[1]?.newLines).toEqual(['第2轮']);
+      expect(generator.calls[1]?.rounds.map((round) => round.counselor)).toEqual(['第2轮']);
     });
   });
 
@@ -171,7 +193,7 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
         makeId: () => 'fixed-id',
       });
 
-      service.recordOverflow(overflowEvent(['第1轮']));
+      reportAndEvict(service, '第1轮');
       await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('聊了失眠与工作压力'));
 
       const hits = await memories.recall({ tenantId: TENANT, sessionId: SESSION, query: '' });
@@ -194,7 +216,7 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
         batchSize: 1,
       });
 
-      service.recordOverflow(overflowEvent(['第1轮']));
+      reportAndEvict(service, '第1轮');
       await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('摘要'));
 
       const hits = await memories.recall({ tenantId: TENANT, sessionId: SESSION, query: '' });
@@ -211,7 +233,7 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
         batchSize: 1,
       });
 
-      expect(() => service.recordOverflow(overflowEvent(['第1轮']))).not.toThrow();
+      expect(() => reportAndEvict(service, '第1轮')).not.toThrow();
       await vi.waitFor(() => expect(generator.calls).toHaveLength(1));
 
       expect(service.latestSummary(TENANT, SESSION)).toBeUndefined();
@@ -225,19 +247,19 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
         batchSize: 1,
       });
 
-      service.recordOverflow(overflowEvent(['第1轮']));
+      reportAndEvict(service, '第1轮');
       await vi.waitFor(() => expect(generator.calls).toHaveLength(1));
 
       // 再来一轮 → 失败的那批仍在队列里, 一起再压一次.
-      service.recordOverflow(overflowEvent(['第2轮']));
+      reportAndEvict(service, '第2轮');
       await vi.waitFor(() => expect(generator.calls).toHaveLength(2));
-      expect(generator.calls[1]?.newLines).toEqual(['第1轮', '第2轮']);
+      expect(generator.calls[1]?.rounds.map((round) => round.counselor)).toEqual(['第1轮', '第2轮']);
     });
 
     it('没装配生成器 → 只攒不压, 不产生摘要, 不抛错', async () => {
       const service = new RollingSessionSummaryService({ memories: new InMemoryMemoryStore() });
 
-      expect(() => service.recordOverflow(overflowEvent(['第1轮']))).not.toThrow();
+      expect(() => reportAndEvict(service, '第1轮')).not.toThrow();
       await Promise.resolve();
 
       expect(service.latestSummary(TENANT, SESSION)).toBeUndefined();
@@ -258,7 +280,7 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
       });
       void memories;
 
-      service.recordOverflow(overflowEvent(['第1轮']));
+      reportAndEvict(service, '第1轮');
       await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('摘要仍然可用'));
     });
   });
@@ -272,7 +294,7 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
         batchSize: 1,
       });
 
-      service.recordOverflow(overflowEvent(['A租户的轮次'], { tenantId: 'tenant-A', sessionId: 'same-id' }));
+      reportAndEvict(service, 'A租户的轮次', { tenantId: 'tenant-A', sessionId: 'same-id' });
       await vi.waitFor(() => expect(service.latestSummary('tenant-A', 'same-id')).toBe('摘要'));
 
       expect(service.latestSummary('tenant-B', 'same-id')).toBeUndefined();
@@ -285,7 +307,7 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
         batchSize: 1,
       });
 
-      service.recordOverflow(overflowEvent(['第1轮']));
+      reportAndEvict(service, '第1轮');
       await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('摘要'));
 
       service.forgetSession(TENANT, SESSION);
@@ -340,7 +362,7 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
         generator,
         batchSize: 1,
       });
-      service.recordOverflow(overflowEvent(['第1轮']));
+      reportAndEvict(service, '第1轮');
       await vi.waitFor(() => expect(service.latestSummary(TENANT, SESSION)).toBe('此前聊了失眠与工作压力'));
 
       const spec = buildRenderSpec({
@@ -391,17 +413,25 @@ describe('WP37 · 会话级滚动摘要 (适配层)', () => {
   });
 
   describe('⑧ 摘要提示词输入格式', () => {
-    it('显式标注角色 (咨询师:) + 带上上一版摘要', () => {
-      const text = formatRollingSummaryInput({ previousSummary: '摘要v1', newLines: ['第一句', '第二句'] });
+    it('显式标注角色 (咨询师: / 来访者:) + 带上上一版摘要', () => {
+      const text = formatRollingSummaryInput({
+        previousSummary: '摘要v1',
+        rounds: [
+          { counselor: '第一句', visitor: '第一答' },
+          { counselor: '第二句', visitor: '第二答' },
+        ],
+      });
 
       expect(text).toContain('[上一版摘要]');
       expect(text).toContain('摘要v1');
       expect(text).toContain('咨询师: 第一句');
+      expect(text).toContain('来访者: 第一答');
       expect(text).toContain('咨询师: 第二句');
+      expect(text).toContain('来访者: 第二答');
     });
 
     it('没有上一版摘要 → 不带那一段', () => {
-      const text = formatRollingSummaryInput({ newLines: ['第一句'] });
+      const text = formatRollingSummaryInput({ rounds: [{ counselor: '第一句', visitor: '第一答' }] });
 
       expect(text).not.toContain('[上一版摘要]');
       expect(text).toContain('咨询师: 第一句');
@@ -476,7 +506,16 @@ function buildOrchestrator(options: { readonly summary?: string }): TurnRenderOr
     resolveSession: () => CONTEXT,
     now: () => CLOCK,
     idFactory: () => 'memory-visitor-1',
-    ...(options.summary === undefined ? {} : { rollingSummary: { latestSummary: () => options.summary } }),
+    ...(options.summary === undefined
+      ? {}
+      : {
+          rollingSummary: {
+            latestSummary: () => options.summary,
+            recordRound: () => {
+              /* 桩: 门面只上报, 不关心. */
+            },
+          },
+        }),
   });
   return Object.assign(orchestrator, {
     lastSpec: () => renderer.specs.at(-1),

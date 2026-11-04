@@ -46,6 +46,8 @@ onMounted(() => {
         <span class="w-px h-4 bg-bg-border mx-1 self-center"></span>
         <RouterLink to="/psyguard" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.psyguard') }}</RouterLink>
         <RouterLink to="/cost" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.cost') }}</RouterLink>
+        <span class="w-px h-4 bg-bg-border mx-1 self-center"></span>
+        <RouterLink to="/architecture" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.architecture') }}</RouterLink>
       </nav>
       <div class="ml-auto flex items-center gap-3 text-xs font-mono">
         <button @click="toggleTheme" class="px-2 py-1 rounded border border-bg-border hover:bg-bg-elevated text-muted"

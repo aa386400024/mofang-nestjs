@@ -645,6 +645,10 @@ export class TurnRenderOrchestrator {
     }
     this.setHistory(handleId, next);
 
+    // WP55: 把这一轮**完整**记录 (咨询师话 + 来访者话) 交给滚动摘要服务.
+    //   降级轮次 → 来访者侧记 null (兜底句不是来访者真说的话, 不能当成发言).
+    this.reportRound(handleId, counselorText, rendered.degraded ? null : rendered.text);
+
     if (rendered.degraded) return;
     await this.writeVisitorMemory(handleId, rendered.text);
   }
@@ -726,6 +730,36 @@ export class TurnRenderOrchestrator {
   private async settleBlockedTurn(handleId: string, counselorText: string): Promise<void> {
     const history = this.historyOf(handleId);
     this.setHistory(handleId, [...history, { role: 'counselor', text: counselorText }]);
+    // WP55: 阻断轮次来访者**没有发言** → 记 null.
+    //   记 null 而不是不记: "这一轮来访者没说话"是事实, 摘要里要如实反映;
+    //   不记的话, 这一轮就会在配对时**错位**, 把下一轮的回答挂到这一轮上.
+    this.reportRound(handleId, counselorText, null);
+  }
+
+  /**
+   * 上报一轮完整对话给滚动摘要服务 (WP55).
+   *
+   * 为什么由**门面**上报 (而不是服务自己去找来访者的话):
+   *   内核不渲染 —— 拿不到来访者的话 (内核工作窗口里只有咨询师原话).
+   *   门面是渲染落账方, 手里有两侧, 而且两侧在**同一个轮次**里 → 配对不会错位.
+   *
+   * 失败处理: **吞掉异常** —— 摘要写失败是增强缺失, 不是渲染失败
+   *   (与 `resolveSessionSummary` 同款理由).
+   *
+   * @param handleId 内核会话句柄
+   * @param counselorText 本轮咨询师的话
+   * @param visitorText 本轮来访者的回复; `null` = 来访者没发言
+   */
+  private reportRound(handleId: string, counselorText: string, visitorText: string | null): void {
+    const port = this.deps.rollingSummary;
+    if (!port) return;
+    const context = this.resolveContext(handleId);
+    if (!context) return;
+    try {
+      port.recordRound(context.tenantId, context.sessionId, context.visitorId, counselorText, visitorText);
+    } catch {
+      // 摘要上报失败是增强缺失, 不是渲染失败 (与 resolveSessionSummary 同款理由).
+    }
   }
 
   /**

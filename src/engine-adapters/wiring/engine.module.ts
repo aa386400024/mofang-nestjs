@@ -63,7 +63,7 @@ import {
   createStudentRiskGate,
   createVisitorOutputProbe,
 } from './engine.providers.js';
-import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from './engine.tokens.js';
+import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT, ROLLING_SUMMARY_CLEANUP } from './engine.tokens.js';
 import { resolvePersonalityModulatorConfig } from './personality-modulator.config.js';
 import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory.js';
 import { resolveSessionDecayConfig } from './session-decay.config.js';
@@ -90,7 +90,7 @@ import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js'
 import { VOICE_TURN_BACKEND } from '../../voice/voice-turn-backend.port.js';
 import { OpenAICompatEmbedder } from '../embedder/openai-compat.embedder.js';
 import { resolveMemoryConfig } from '../persistence/memory-config.js';
-import { RollingSessionSummaryService } from '../persistence/rolling-session-summary.service.js';
+import { RollingSessionSummaryService, type RollingSummaryCleanupPort } from '../persistence/rolling-session-summary.service.js';
 import { LlmRollingSummaryGenerator, resolveRollingSummaryModel } from '../persistence/rolling-summary.generator.js';
 import { SessionCloseoutService } from '../persistence/session-closeout.service.js';
 import { LlmSessionSummaryGenerator, resolveSummaryModel } from '../persistence/session-summary.generator.js';
@@ -219,6 +219,16 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         });
       },
       inject: [ENGINE_MEMORY_STORE, LlmRouterService, ConfigService],
+    },
+    // V2026-11-04 (WP55): 滚动摘要的**清理端口** token ——
+    //   会话门面 (EngineTurnService) 只依赖"释放这场会话的滚动摘要状态"这一个动作,
+    //   用窄端口 + 显式 token 注入 (interface 没有运行时值, 靠类型注入会静默拿到
+    //   undefined —— 症状是"会话关了但状态不释放", 详见 engine.tokens.ts).
+    //   **同一个实例**: 与上面那个服务必须是同一个 (否则清的是另一份状态).
+    {
+      provide: ROLLING_SUMMARY_CLEANUP,
+      useFactory: (service: RollingSessionSummaryService): RollingSummaryCleanupPort => service,
+      inject: [RollingSessionSummaryService],
     },
     // 内核会话: BDI 状态用内存仓储 (落库仓储属后续轮), 记忆用上面的同一实例.
     // V2026-10-29 治本 (WP9-C): 注入本地危机探测器 (内核 WP4 的 RiskProbePort 扩展点) ——

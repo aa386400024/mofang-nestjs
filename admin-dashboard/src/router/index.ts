@@ -7,6 +7,7 @@ import CharacterDetail from '@/views/CharacterDetail.vue'
 import MemoryBrowser from '@/views/MemoryBrowser.vue'
 import PsyGuardMonitor from '@/views/PsyGuardMonitor.vue'
 import CostBoard from '@/views/CostBoard.vue'
+import ArchitectureDiagram from '@/views/ArchitectureDiagram.vue'
 import Login from '@/views/Login.vue'
 
 const router = createRouter({
@@ -22,6 +23,7 @@ const router = createRouter({
     { path: '/memories', component: MemoryBrowser },
     { path: '/psyguard', component: PsyGuardMonitor },
     { path: '/cost', component: CostBoard },
+    { path: '/architecture', component: ArchitectureDiagram },
   ],
 })
 

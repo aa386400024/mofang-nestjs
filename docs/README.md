@@ -23,8 +23,9 @@ docs/
 ├── README.md           ← 你现在读的这个文件
 │
 ├── architecture/       ← 长期不变的设计真相
-│   ├── ai-engine-roadmap-v1.1.md   引擎路线图
-│   ├── v6.0-ai-engine.md           V6.0 引擎架构
+│   ├── engine-endstate-blueprint-v1.0.md   引擎终局形态白皮书（北极星）
+│   ├── ai-engine-roadmap-v1.1.md   引擎路线图（分阶段做什么）
+│   ├── v6.0-ai-engine.md           V6.0 旧模块架构（src/ai-engine/，已标注）
 │   ├── v2-user-module-architecture.md
 │   ├── microservices-evolution-plan.md   微服务演进规划
 │   └── adr/                       架构决策记录（3 条）
@@ -58,6 +59,7 @@ docs/
 ## 当前阶段
 
 **Phase1 已封版（2026-11-03）**：WP0–WP26 全交付，8 个 P1 + 34 个 P2 全修，1252 例测试全绿。
-Phase2 总览：[`worklog/pending/phase2-overview-2026-11-03.md`](worklog/pending/phase2-overview-2026-11-03.md)（商业化准备，21 条工作包）。
-Phase2 WP 清单：[`worklog/pending/phase2-wp-list-2026-11-03.md`](worklog/pending/phase2-wp-list-2026-11-03.md)（WP27–WP47，分三批并行）。
+Phase2 总览：[`worklog/pending/phase2-overview-2026-11-03.md`](worklog/pending/phase2-overview-2026-11-03.md)（商业化准备，35 条工作包）。
+Phase2 WP 清单：[`worklog/pending/phase2-wp-list-2026-11-03.md`](worklog/pending/phase2-wp-list-2026-11-03.md)（WP27–WP61，分三批并行）。
+引擎终局形态：[`architecture/engine-endstate-blueprint-v1.0.md`](architecture/engine-endstate-blueprint-v1.0.md)（北极星参考，最终要做成什么样）。
 Phase1 交付索引：[`worklog/completed/phase1/phase1-backlog-archived-2026-11-03.md`](worklog/completed/phase1/phase1-backlog-archived-2026-11-03.md)。

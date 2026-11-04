@@ -26,10 +26,11 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp8-wiring.spec.ts 覆盖登记/解析/清理与错误冒泡
 
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 
-import { ENGINE_SESSION_PORT } from './engine.tokens.js';
+import { ENGINE_SESSION_PORT, ROLLING_SUMMARY_CLEANUP } from './engine.tokens.js';
 import type { EngineSessionPort, EngineTurnInput, OpenEngineSessionInput } from '../../engine-core/index.js';
+import type { RollingSummaryCleanupPort } from '../persistence/rolling-session-summary.service.js';
 import type { StreamRenderHandlers } from '../rendering/streaming-render.port.js';
 import type { TurnRenderResult, TurnSessionContext } from '../rendering/turn-render-orchestrator.js';
 import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js';
@@ -89,6 +90,21 @@ export class EngineTurnService {
     @Inject(ENGINE_SESSION_PORT) private readonly session: EngineSessionPort,
     private readonly orchestrator: TurnRenderOrchestrator,
     private readonly registry: EngineSessionRegistry,
+    /**
+     * 滚动摘要服务 (WP55 · 修 WP37 遗留的会话状态泄漏).
+     *
+     * 门面的 `histories` 与滚动摘要服务的 `states` 都是**按会话**的长生命周期状态:
+     * 会话关掉了, 两者都得释放 —— 否则每场会话的待压队列与摘要都留在内存里.
+     *
+     * 为什么用**显式 token** (`ROLLING_SUMMARY_CLEANUP`) 而不是直接靠类型注入:
+     *   `RollingSummaryCleanupPort` 是 interface, 编译后没有运行时值 ——
+     *   不给显式 token, Nest 只会去找一个叫 `Object` 的 provider, 找不到就静默
+     *   注入 undefined (会话关掉了但状态不释放 = 泄漏还在). 详见 engine.tokens.ts.
+     *
+     * 用 `@Optional()`: 摘要服务是**增强**, 装配缺席时只是"没有滚动摘要",
+     * 不能让整个引擎门面开不起来 (与仓库里 LlmRouterService 的做法同理).
+     */
+    @Optional() @Inject(ROLLING_SUMMARY_CLEANUP) private readonly rollingSummary?: RollingSummaryCleanupPort,
   ) {}
 
   /**
@@ -150,15 +166,43 @@ export class EngineTurnService {
    *
    * 清理放 `finally`: 内核 close 抛错时归属表也不能残留.
    *
+   * WP55: 归属要在清理**之前**取 (清完就查不到了), 用来释放滚动摘要的会话状态.
+   *
    * @param handleId 内核会话句柄
    */
   close(handleId: string): void {
+    // 先取归属: 归属表在 finally 里被清掉, 之后就查不到了.
+    const context = this.registry.resolve(handleId);
     try {
       this.orchestrator.forgetSession(handleId);
       this.session.closeSession(handleId);
       this.logger.log(`引擎会话已关闭 handle=${handleId}`);
     } finally {
+      this.forgetRollingSummary(handleId, context);
       this.registry.remove(handleId);
+    }
+  }
+
+  /**
+   * 释放滚动摘要的会话状态 (WP55 · 修 WP37 遗留的泄漏).
+   *
+   * 为什么要单独一个方法: 清理必须**放在 finally** —— 内核 close 抛错时,
+   * 滚动摘要的队列与摘要对象同样不能留在内存里 (那也是泄漏).
+   *
+   * 未压的队列直接丢弃, **不做最后一次 flush**: 会话结束时 WP12 的收尾服务
+   * 会从逐字稿全量压最终摘要并晋升长时记忆, 那份摘要覆盖了全部内容 ——
+   * 这里再压一次就是重复消耗额度, 而且可能与最终摘要说法不一致.
+   *
+   * @param handleId 内核会话句柄
+   * @param context 会话归属 (取不到就跳过 —— 归属表里没有 = 这场会话没登记过)
+   */
+  private forgetRollingSummary(handleId: string, context: TurnSessionContext | undefined): void {
+    if (!context || !this.rollingSummary) return;
+    try {
+      this.rollingSummary.forgetSession(context.tenantId, context.sessionId);
+    } catch (error) {
+      // 清理失败不该让 close 抛错 (会话已经关了, 残留只是内存占用).
+      this.logger.warn(`引擎会话关闭时释放滚动摘要状态失败 handle=${handleId}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

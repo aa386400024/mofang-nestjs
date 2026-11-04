@@ -38,3 +38,17 @@ export const ENGINE_MEMORY_STORE = Symbol('ENGINE_MEMORY_STORE');
  * 渲染端口 token (实现 = WP6 的 LlmRenderAdapter).
  */
 export const ENGINE_RENDER_PORT = Symbol('ENGINE_RENDER_PORT');
+
+/**
+ * 滚动摘要清理端口 token (实现 = RollingSessionSummaryService).
+ *
+ * V2026-11-04 (WP55): 为什么这个 token 是**必需的**而不是可选:
+ *   `RollingSummaryCleanupPort` 是 **interface** —— TypeScript 的 interface 编译后
+ *   没有运行时值, `emitDecoratorMetadata` 只能把它降级成 `Object`.
+ *   而 Nest 正是靠 `design:paramtypes` 决定注入什么: 不给显式 token 的话,
+ *   它会去容器里找一个叫 `Object` 的 provider —— 找不到, 就**静默注入 undefined**
+ *   (`@Optional()` 还会把这个静默失败变成"看起来正常"的运行结果:
+ *   会话关掉了, 但滚动摘要状态永远不释放 —— 正是 WP55 要修的那个泄漏).
+ *   这与本文件头记的"启动炸弹"是同一类问题: interface 当 token 的坑.
+ */
+export const ROLLING_SUMMARY_CLEANUP = Symbol('ROLLING_SUMMARY_CLEANUP');

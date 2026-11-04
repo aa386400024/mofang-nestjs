@@ -15,7 +15,7 @@
 > **Phase1 已封版（2026-11-03）**：WP0–WP26 全交付，8 个 P1 + 34 个 P2 全修，1252 例测试全绿。Phase1 backlog 已归档到 `completed/phase1/phase1-backlog-archived-2026-11-03.md`。
 >
 > **Phase2 总览已出**：[`pending/phase2-overview-2026-11-03.md`](pending/phase2-overview-2026-11-03.md)（商业化准备，23 条工作包，P0/P1/P2 三层）。
-> **WP 清单**：[`pending/phase2-wp-list-2026-11-03.md`](pending/phase2-wp-list-2026-11-03.md)（WP27–WP56，分三批并行 + 技术债清理）。具体任务单开工时再单独写。
+> **WP 清单**：[`pending/phase2-wp-list-2026-11-03.md`](pending/phase2-wp-list-2026-11-03.md)（WP27–WP61，分三批并行 + 技术债清理）。具体任务单开工时再单独写。
 >
 > **Phase2 已开工（2026-11-03）**：
 > - WP28（PsyGUARD 临时值回改正式值）✅ → [`completed/phase2/engine-wp28-psyguard-production-values-implementation-2026-11-03.md`](completed/phase2/engine-wp28-psyguard-production-values-implementation-2026-11-03.md)
@@ -23,8 +23,9 @@
 > - WP36（跨会话间隔自然衰减）✅ → [`completed/phase2/engine-wp36-cross-session-decay-implementation-2026-11-03.md`](completed/phase2/engine-wp36-cross-session-decay-implementation-2026-11-03.md)
 > - WP37（记忆会话级摘要压缩 · 滚动摘要）✅ → [`completed/phase2/engine-wp37-rolling-session-summary-implementation-2026-11-03.md`](completed/phase2/engine-wp37-rolling-session-summary-implementation-2026-11-03.md)
 > - WP42（咨询同盟三维 trust/safety/bond）✅ → [`completed/phase2/engine-wp42-counseling-alliance-three-dimensions-implementation-2026-11-03.md`](completed/phase2/engine-wp42-counseling-alliance-three-dimensions-implementation-2026-11-03.md)
+> - WP55（会话摘要补齐来访者侧 · 两侧纪要）✅ → [`completed/phase2/engine-wp55-rolling-summary-both-sides-implementation-2026-11-04.md`](completed/phase2/engine-wp55-rolling-summary-both-sides-implementation-2026-11-04.md)
 >
-> 进度 5/30（WP 清单口径；总览文档口径是 23 条 —— 清单另加了 WP50–WP56 七条技术债 / 遗留）。
+> 进度 6/35（WP 清单与总览口径一致，WP27–WP61）。
 
 ---
 
@@ -93,7 +94,7 @@ docs/worklog/
 │   │   ├── auth-and-password/
 │   │   ├── early-misc/
 │   │   └── phase1-backlog-archived-2026-11-03.md
-│   └── phase2/       ← Phase2 交付（WP28 ✅ PsyGUARD 正式值 / WP34 ✅ P1 人格调节算子 / WP36 ✅ 跨会话间隔自然衰减 / WP37 ✅ 记忆会话级摘要压缩（滚动摘要）/ WP42 ✅ 咨询同盟三维）
+│   └── phase2/       ← Phase2 交付（WP28 ✅ PsyGUARD 正式值 / WP34 ✅ P1 人格调节算子 / WP36 ✅ 跨会话间隔自然衰减 / WP37 ✅ 记忆会话级摘要压缩（滚动摘要）/ WP42 ✅ 咨询同盟三维 / WP55 ✅ 会话摘要补齐来访者侧（两侧纪要））
 ├── audits/           ← 审查报告（WP25 等）
 └── archive/          ← 老文档
 ```
@@ -106,6 +107,7 @@ docs/worklog/
 
 | 文档 | 什么时候读 |
 |---|---|
+| `docs/architecture/engine-endstate-blueprint-v1.0.md` | 拿不准方向对不对、想知道最终要做成什么样时——北极星参考，不是任务单 |
 | `docs/architecture/ai-engine-roadmap-v1.1.md` | 任务单里没写清楚"为什么这么做"、或者你拿不准某个设计决策的上游依据时 |
 | `docs/reference/ai-simulation-blueprint-v1.1.md` | 蓝图原始愿景，roadmap 冲突时以 roadmap 为准 |
 | `docs/reference/bdi-cognitive-engine-principles-v1.0.md` | 改 BDI 算子/记忆/轨迹相关逻辑时，确认设计原则 |
