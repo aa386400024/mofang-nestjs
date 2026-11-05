@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api } from '@/api/client'
-import type { SessionDetail, TurnTrace, MemoryEntry, MemoryType, DeltaDetail, CapReport } from '@/api/types'
+import type { SessionDetail, TurnTrace, MemoryEntry, MemorySource, DeltaDetail, CapReport } from '@/api/types'
 import InfoTooltip from '@/components/InfoTooltip.vue'
 import BdiTrajectoryChart from '@/components/BdiTrajectoryChart.vue'
 import SafetyVerdictPanel from '@/components/SafetyVerdictPanel.vue'
@@ -19,13 +19,11 @@ const trajectory = ref<Awaited<ReturnType<typeof api.trajectory>>>(null)
 const sessionMemories = ref<MemoryEntry[]>([])
 const highlightMemory = ref<string | null>(null)
 
-// 记忆类型配置
-const typeMeta: Record<MemoryType, { label: string; color: string }> = {
-  fact: { label: '事实', color: 'bg-blue-500/15 text-blue-400' },
-  emotion: { label: '情感', color: 'bg-accent/15 text-accent' },
-  relationship: { label: '关系', color: 'bg-purple-500/15 text-purple-400' },
-  event: { label: '事件', color: 'bg-warn/15 text-warn' },
-  preference: { label: '偏好', color: 'bg-ok/15 text-ok' },
+// 记忆来源配置 (V2026-11-05: 与内核口径对齐 —— 原来的"事实/情感/关系"是前端自造的假维度)
+const typeMeta: Record<MemorySource, { label: string; color: string }> = {
+  turn: { label: '轮次原文', color: 'bg-blue-500/15 text-blue-400' },
+  summary: { label: '会话摘要', color: 'bg-accent/15 text-accent' },
+  manual: { label: '人工注入', color: 'bg-ok/15 text-ok' },
 }
 
 onMounted(async () => {
@@ -442,7 +440,7 @@ const deltaResistance = computed(() => {
         <template #header-extra>
           <div class="flex gap-2 text-[10px] text-muted">
             <span>{{ sessionMemories.length }} {{ t('memories.count') }}</span>
-            <span class="text-accent">{{ sessionMemories.filter(m => m.source === 'long_term').length }} {{ t('memories.longTerm') }}</span>
+            <span class="text-accent">{{ sessionMemories.filter(m => m.tier === 'long_term').length }} {{ t('memories.longTerm') }}</span>
             <span v-if="sessionMemories.some(m => m.supersededBy)" class="text-warn">{{ sessionMemories.filter(m => m.supersededBy).length }} {{ t('memories.supersededShort') }}</span>
           </div>
         </template>
@@ -453,7 +451,7 @@ const deltaResistance = computed(() => {
                         m.supersededBy ? 'opacity-50' : '']"
                @click="clickMemory(m)">
             <n-tag size="small" :bordered="false" class="shrink-0 mt-0.5">
-              {{ typeMeta[m.type].label }}
+              {{ typeMeta[m.source].label }}
             </n-tag>
             <div class="flex-1 min-w-0">
               <p class="text-sm" :class="m.supersededBy ? 'line-through' : ''">{{ m.content }}</p>

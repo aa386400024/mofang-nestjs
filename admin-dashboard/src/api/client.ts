@@ -1,7 +1,7 @@
 import type {
   SessionSummary, SessionDetail, CharacterBaseline, CharacterDetail,
-  MemoryEntry, PsyGuardStats, DashboardStats,
-  TrajectoryState, PsyGuardTrendPoint, CostTrendPoint, SessionCost,
+  MemoryEntry, MemoryListResponse, PsyGuardStats, DashboardStats,
+  TrajectoryState, PsyGuardTrend, CostTrendPoint, SessionCost,
   CharacterSession, HealthStatus,
 } from './types'
 
@@ -164,19 +164,19 @@ export const api = {
     close: async (sessionId: string): Promise<{ sessionId: string; closed: boolean }> => {
       return del(`/debug/session/${sessionId}`)
     },
-    // 列出所有历史会话
-    list: async (): Promise<Array<{ id: string; title: string; characterSlug: string; createdAt: string; updatedAt: string; turnCount: number }>> => {
+    // 列出所有历史会话 (V2026-11-05 持久化)
+    list: async (): Promise<Array<{ id: string; title: string; characterSlug: string; createdAt: string; updatedAt: string; turnCount: number; status: string }>> => {
       return get('/debug/sessions')
     },
-    // 获取某个会话的完整 trace
-    get: async (sessionId: string): Promise<{ id: string; title: string; characterSlug: string; createdAt: string; updatedAt: string; messages: Array<{ role: string; text: string; trace: unknown }> }> => {
+    // 获取某个会话的完整 trace (messages 里来访者那条自带 trace)
+    get: async (sessionId: string): Promise<{ id: string; title: string; characterSlug: string; createdAt: string; updatedAt: string; turnCount: number; status: string; messages: Array<{ role: string; text: string; turnIndex: number; ts: string; trace: unknown }> }> => {
       return get(`/debug/sessions/${sessionId}`)
     },
     // 更新会话标题
     update: async (sessionId: string, title: string): Promise<{ id: string; title: string }> => {
       return patch(`/debug/sessions/${sessionId}`, { title })
     },
-    // 删除会话
+    // 删除会话 (连文件一起删)
     remove: async (sessionId: string): Promise<{ id: string; deleted: boolean }> => {
       return del(`/debug/sessions/${sessionId}`)
     },
@@ -207,16 +207,33 @@ export const api = {
     return get<MemoryEntry[]>(`/sessions/${sessionId}/memories`)
   },
 
-  // ─── 以下为 mock，后端补 API 后切换 ───
+  // ─── 仪表盘 (真 API · V2026-11-05) ───
+  // 后端: GET /admin/api/dashboard (总览统计; 含 psyguard 子视图)
+  dashboard: async (): Promise<DashboardStats> => {
+    return get<DashboardStats>('/dashboard')
+  },
 
-  // ─── P1: 记忆浏览器（mock · 页面尚未接真 API） ───
-  memories: async (_visitorId?: string): Promise<MemoryEntry[]> => [],
+  // ─── 近 7 天会话趋势 (真 API · V2026-11-05) ───
+  // 后端: GET /admin/api/dashboard/weekly-sessions (行数恒 7, 没有会话的天补 0)
+  weeklySessions: async (): Promise<{ date: string; count: number }[]> => {
+    return get<{ date: string; count: number }[]>('/dashboard/weekly-sessions')
+  },
 
-  // ─── P2: PsyGUARD 监控（mock） ───
-  psyguard: async (): Promise<PsyGuardStats> => ({
-    status: 'ok', modelLoaded: true, p50Ms: 0, p90Ms: 0, totalRequests: 0, byCategory: {},
-  }),
-  psyguardTrend: async (): Promise<PsyGuardTrendPoint[]> => [],
+  // ─── 记忆浏览器 (真 API · V2026-11-05) ───
+  // 后端: GET /admin/api/memories (长时记忆; source='unavailable' = 向量库读不到)
+  memories: async (): Promise<MemoryListResponse> => {
+    return get<MemoryListResponse>('/memories')
+  },
+
+  // ─── PsyGUARD 监控 (真 API · V2026-11-05) ───
+  // 后端: GET /admin/api/psyguard (真实探活; metricsAvailable=false = 指标未采集)
+  psyguard: async (): Promise<PsyGuardStats> => {
+    return get<PsyGuardStats>('/psyguard')
+  },
+  // 后端: GET /admin/api/psyguard/trend (近 7 天调用量趋势)
+  psyguardTrend: async (): Promise<PsyGuardTrend> => {
+    return get<PsyGuardTrend>('/psyguard/trend')
+  },
 
   // ─── 成本看板（真 API · WP31） ───
   // 后端: GET /admin/api/cost/trend?days=N (按天聚合, 行数恒等于 days)
@@ -227,14 +244,4 @@ export const api = {
   sessionCosts: async (limit = 20): Promise<SessionCost[]> => {
     return get<SessionCost[]>(`/cost/sessions?limit=${limit}`)
   },
-
-  // ─── 近 7 天会话趋势（mock） ───
-  weeklySessions: async (): Promise<{ date: string; count: number }[]> => [],
-
-  // ─── 仪表盘（mock） ───
-  dashboard: async (): Promise<DashboardStats> => ({
-    totalSessions: 0, todaySessions: 0, crisisHits: 0, totalTokens: 0,
-    estimatedCostCny: 0,
-    psyguard: { status: 'ok', modelLoaded: true, p50Ms: 0, p90Ms: 0, totalRequests: 0, byCategory: {} },
-  }),
 }

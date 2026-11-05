@@ -21,6 +21,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { AdminBasicAuthMiddleware } from '../../src/admin-debug/admin-basic-auth.middleware.js';
 import { AdminDebugController } from '../../src/admin-debug/admin-debug.controller.js';
 import { AdminDebugModule } from '../../src/admin-debug/admin-debug.module.js';
+import { AdminInsightsController } from '../../src/admin-debug/admin-insights.controller.js';
 import { AdminRoleGuard } from '../../src/admin-debug/guards/admin-role.guard.js';
 import { BizCode } from '../../src/common/exceptions/biz-code.enum.js';
 import { User } from '../../src/user/entities/user.entity.js';
@@ -120,14 +121,20 @@ function jwtStubThatInjects(userId: string): { canActivate(context: ExecutionCon
  *
  * 为什么这么算: Nest 的 class 级 `@UseGuards` 对该类**所有** handler 生效 ——
  * 断言"有效集合"才等于断言"这个端点真的被守住了".
+ *
+ * @param target 控制器 (缺省 = AdminDebugController)
+ * @returns 路由清单
  */
-function collectRoutes(): { readonly path: string; readonly method: number; readonly guards: unknown[] }[] {
-  const prototype = AdminDebugController.prototype;
-  const classGuards = (Reflect.getMetadata(GUARDS_METADATA, AdminDebugController) as unknown[] | undefined) ?? [];
+function collectRoutes(
+  target: unknown = AdminDebugController,
+): { readonly path: string; readonly method: number; readonly guards: unknown[] }[] {
+  const controller = target as { prototype: unknown };
+  const prototype = controller.prototype;
+  const classGuards = (Reflect.getMetadata(GUARDS_METADATA, target) as unknown[] | undefined) ?? [];
   const routes: { path: string; method: number; guards: unknown[] }[] = [];
   for (const name of Object.getOwnPropertyNames(prototype)) {
     if (name === 'constructor') continue;
-    const handler = (prototype as unknown as Record<string, unknown>)[name];
+    const handler = (prototype as Record<string, unknown>)[name];
     if (typeof handler !== 'function') continue;
     const path = Reflect.getMetadata(PATH_METADATA, handler) as string | undefined;
     if (path === undefined) continue;
@@ -321,6 +328,22 @@ describe('WP26 §1 P2-4 · admin-debug 命名空间加角色校验', () => {
         'sessions/:id',
         'sessions/:id/memories',
         'sessions/:id/trajectory',
+      ]);
+      for (const route of routes) {
+        expect(route.method).toBe(RequestMethod.GET);
+        expect(route.guards).toContain(AdminRoleGuard);
+      }
+    });
+
+    it('洞察面 (V2026-11-05) 的 5 个新端点也全部继承 class 级 AdminRoleGuard', () => {
+      const routes = collectRoutes(AdminInsightsController);
+
+      expect(routes.map((route) => route.path).sort()).toEqual([
+        'dashboard',
+        'dashboard/weekly-sessions',
+        'memories',
+        'psyguard',
+        'psyguard/trend',
       ]);
       for (const route of routes) {
         expect(route.method).toBe(RequestMethod.GET);

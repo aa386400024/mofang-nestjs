@@ -76,7 +76,7 @@ import type { EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine
 import { resolveSessionCostPricing } from '../observability/session-cost.js';
 import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe.js';
 import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
-import { PsyGuardHealthChecker } from './risk/psyguard-health.checker.js';
+import { PsyGuardHealthModule } from './risk/psyguard-health.module.js';
 import { RISK_PROBE } from './risk/risk-probe.token.js';
 import { STUDENT_RISK_GATE, StudentRiskGateService } from './risk/student-risk-gate.js';
 import { RouterChatCaller } from './router-chat-caller.js';
@@ -155,12 +155,9 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
     },
     // V2026-10-30 (WP11): PsyGUARD 服务启动自检 —— 启动时探一次 /health,
     //   失败/不可达/模型未加载都**只记 warn, 不阻断启动** (探测器是可选增强).
-    {
-      provide: PsyGuardHealthChecker,
-      useFactory: (config: ConfigService): PsyGuardHealthChecker =>
-        new PsyGuardHealthChecker({ baseUrl: (config.get<string>('PSYGUARD_BASE_URL') ?? '').trim() }),
-      inject: [ConfigService],
-    },
+    //   V2026-11-05: 装配挪进 `PsyGuardHealthModule` —— admin 调试面 (PsyGUARD 监控面板)
+    //   要用**同一个**探针实例拿真实状态; 在这里再注册一份 = 启动探两次 + 两份结论可能不一致.
+    PsyGuardHealthModule,
     // 向量化适配器 (Qdrant 长时记忆写入需要). 走 useFactory: 它的第 2 个构造参数
     // 带默认值, Nest 直接 new 会把 Object 当成待注入依赖而报错.
     {

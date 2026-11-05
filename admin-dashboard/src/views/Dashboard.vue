@@ -47,11 +47,10 @@ const riskDesc = (cat: string) => t(`risk.${cat}.desc`)
       icon="chart"
       :title="t('dashboard.emptyTitle')"
       :description="t('dashboard.emptyDesc')"
-      pendingTag="Pending: Dashboard 聚合 API"
     />
     <template v-else-if="data">
       <!-- 核心指标卡片 -->
-      <div class="grid grid-cols-4 gap-4 mb-6">
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         <!-- 总会话数 -->
         <div class="card p-5 hover:bg-bg-elevated transition">
           <div class="flex items-start justify-between mb-3">
@@ -64,6 +63,19 @@ const riskDesc = (cat: string) => t(`risk.${cat}.desc`)
           </div>
           <div class="text-2xl font-semibold text-gray-100 mb-1">{{ data.totalSessions }}</div>
           <div class="text-xs text-muted">{{ t('dashboard.totalSessions') }}</div>
+        </div>
+
+        <!-- 平均每会话轮次 -->
+        <div class="card p-5 hover:bg-bg-elevated transition">
+          <div class="flex items-start justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+              <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+          </div>
+          <div class="text-2xl font-semibold text-gray-100 mb-1">{{ data.avgTurnsPerSession }}</div>
+          <div class="text-xs text-muted">{{ t('dashboard.avgTurns') }}</div>
         </div>
 
         <!-- 危机命中数 -->
@@ -108,8 +120,15 @@ const riskDesc = (cat: string) => t(`risk.${cat}.desc`)
               </span>
             </span>
           </div>
-          <div class="text-2xl font-semibold text-gray-100 mb-1">{{ data.psyguard.p90Ms }}ms</div>
-          <div class="text-xs text-muted">PsyGuard p90 · {{ data.psyguard.totalRequests }} {{ t('dashboard.requests') }}</div>
+          <!-- ⚠️ 指标未采集 → 不显示 0ms / 0 次 (那是"没数", 不是"没调用过") -->
+          <template v-if="data.psyguard.metricsAvailable">
+            <div class="text-2xl font-semibold text-gray-100 mb-1">{{ data.psyguard.p90Ms }}ms</div>
+            <div class="text-xs text-muted">PsyGuard p90 · {{ data.psyguard.totalRequests }} {{ t('dashboard.requests') }}</div>
+          </template>
+          <template v-else>
+            <div class="text-2xl font-semibold text-gray-100 mb-1">—</div>
+            <div class="text-xs text-muted">{{ t('dashboard.metricsUnavailable') }}</div>
+          </template>
         </div>
       </div>
 
@@ -126,7 +145,11 @@ const riskDesc = (cat: string) => t(`risk.${cat}.desc`)
 
       <!-- 风险类别分布 -->
       <n-card :title="t('dashboard.riskDist')" size="small" class="mb-4">
-        <div class="space-y-2">
+        <!-- ⚠️ 指标未采集 → 空数组是"没数", 不是"没有风险类别" -->
+        <div v-if="!data.psyguard.metricsAvailable" class="text-muted text-sm">
+          {{ t('dashboard.metricsUnavailable') }}
+        </div>
+        <div v-else class="space-y-2">
           <div v-for="(count, cat) in data.psyguard.byCategory" :key="cat" class="flex items-center gap-3">
             <span class="text-xs font-mono w-40 text-gray-300 flex items-center">
               {{ riskLabel(cat) }}

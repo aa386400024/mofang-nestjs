@@ -161,18 +161,51 @@ export interface CharacterDetail extends CharacterBaseline {
 }
 
 // ─── 记忆浏览器 ───
-export type MemoryType = 'fact' | 'emotion' | 'relationship' | 'event' | 'preference'
+// V2026-11-05: 契约与**内核口径**对齐 (原来那套 `type: fact|emotion|...`
+//   是前端自造的"内容分类", 后端没有任何分类器 —— 留着就是假维度, 已删).
+//   现在只有内核**真有的**两个维度: 分层 (tier) 与来源 (source).
+export type MemoryTier = 'working' | 'short_term' | 'long_term'
+export type MemorySource = 'turn' | 'summary' | 'manual'
+
 export interface MemoryEntry {
   id: string
+  /**
+   * 归属作用域 (内核 `visitorId`).
+   *
+   * ⚠️ 形状是 `"{学员id}:{角色key}"` —— 是**归属键**, 不是人类可读的名字.
+   */
   visitorId: string
-  visitorAlias?: string
   content: string
-  type: MemoryType
+  /** 记忆分层 (working / short_term / long_term). */
+  tier: MemoryTier
+  /** 记忆来源 (turn = 轮次原文 / summary = 模型摘要 / manual = 人工注入). */
+  source: MemorySource
   importance: number
-  sourceSessionId?: string
+  /** 来源会话 id (可空). */
+  sessionId?: string
   createdAt: string
-  source: 'short_term' | 'long_term'
+  /** 被谁取代 (冲突消解标记). */
   supersededBy?: string
+}
+
+export interface MemoryListResponse {
+  /** 记忆条目 (可能为空). */
+  entries: MemoryEntry[]
+  /**
+   * 口径: 只含**长时记忆** (工作/短时记忆在进程内的会话级回落仓里,
+   * 内核 `MemoryStore` 端口没有 list-all —— 拿不到).
+   */
+  scope: 'long_term'
+  /**
+   * 数据源状态:
+   * · `qdrant`      = 读到了 (可能是 0 条);
+   * · `unavailable` = **向量库读不到** (没配 / 不可达 / collection 不存在).
+   */
+  source: 'qdrant' | 'unavailable'
+  /** 本次返回的条数. */
+  total: number
+  /** 单次上限 (后端扫描窗口). */
+  limit: number
 }
 
 export interface MemoryGroup {
@@ -186,20 +219,41 @@ export interface MemoryGroup {
 // ─── PsyGUARD 监控 ───
 export interface PsyGuardStats {
   status: 'ok' | 'degraded' | 'down'
+  /** 模型是否已加载 (真值: 探 `/health` 的 `model_loaded`). */
   modelLoaded: boolean
+  /** 11 类标签口径是否与内核一致. */
+  contractOk: boolean
+  /**
+   * 延迟 / 请求量指标**是否已采集**.
+   *
+   * ⚠️ 当前后端**未采集** (恒 false) → 下面的 p50/p90/totalRequests 是 0,
+   *   那意思是"**没数**", 不是"调用了 0 次". 前端据此显示"指标未采集",
+   *   不拿 0 画一条贴着底的假曲线.
+   */
+  metricsAvailable: boolean
   p50Ms: number
   p90Ms: number
   totalRequests: number
   byCategory: Record<string, number>
+  /** 本次探活时刻 (ISO). */
+  checkedAt: string
 }
 
 // ─── 仪表盘 ───
 export interface DashboardStats {
+  /** 总会话数 (会话表全量 count). */
   totalSessions: number
+  /** 今日会话数 (Asia/Shanghai 口径). */
   todaySessions: number
   crisisHits: number
   totalTokens: number
   estimatedCostCny: number
+  /** 平均每会话轮次 (分母 = **有留痕的**会话数). */
+  avgTurnsPerSession: number
+  /** 参与 token / 轮次 / 成本聚合的会话数 (扫描窗口内). */
+  sessionsScanned: number
+  /** 扫描窗口是否被截断 (true = 还有更早的会话没算进来). */
+  truncated: boolean
   psyguard: PsyGuardStats
 }
 
@@ -268,4 +322,11 @@ export interface PsyGuardTrendPoint {
   p50Ms: number
   p90Ms: number
   requests: number
+}
+
+export interface PsyGuardTrend {
+  /** 指标是否已采集 (当前后端未采集 → false, points 全 0). */
+  metricsAvailable: boolean
+  /** 趋势点 (行数恒等于窗口天数). */
+  points: PsyGuardTrendPoint[]
 }

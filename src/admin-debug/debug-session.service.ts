@@ -2,11 +2,25 @@
 //   职责: 给 admin 调试面板提供**真实跑引擎**的能力 —— 开一场调试会话 → 一轮一轮
 //         发对话 → 每轮返回完整内部状态 (BDI 快照 / delta / 意图 / 渲染规格 /
 //         prompt 全文 / 审议 trace).
-//   边界: 只做「编排 + 组装」; 不做决策、不改内核、不落库.
+//   边界: 只做「编排 + 组装」; 不做决策、不改内核; 持久化落**文件**不落库.
+//
+//   V2026-11-05 扩展 (调试会话持久化):
+//     引擎侧会话 (句柄 / BDI 状态) 仍然只在内存 —— 那是内核的运行时, 进程重启即失效.
+//     但**对话过程**落 JSON 文件 (`DebugSessionStore`):
+//       · 建会话时建档 (空会话文件);
+//       · 每轮对话后**追加** (消息 + trace) —— 中途崩溃 / 进程重启不丢数据,
+//         刷新页面就能看到跑了一半的会话;
+//       · 关会话时标 `completed`;
+//       · 第 3 轮后用 LLM 自动起标题 (失败兜底成创建时的「未命名会话 - 时间戳」).
+//     为什么"每轮写"而不是"关会话时一次性写": 后者在崩溃时**全丢** ——
+//     而调试面板最需要保留的恰恰是"崩之前那几轮" (那是复现问题的现场).
+//     ⚠️ 文件含心理内容 (对话原文 + prompt 全文): 目录已在 `.gitignore` 里, 永不进版本库.
 //
 //   三条硬纪律 (任务单 §3 / §5):
-//     ① **调试会话不落库**: 状态只在内存 `Map` 里, 不写 `training_sessions`,
-//        不写 `turn_debug_trace` —— 调试是 admin 临时跑的, 落库会污染学员的正式场次.
+//     ① **调试会话不落库**: 状态**不写** `training_sessions`, **不写**
+//        `turn_debug_trace` —— 调试是 admin 临时跑的, 落正式表会污染学员的场次.
+//        V2026-11-05 扩展: 改落 **JSON 文件** (`data/debug-sessions/{id}.json`),
+//        刷新页面不丢数据 —— 但**仍然不写**那两张正式表 (扩展登记见交付记录 §偏差 B1).
 //     ② **不落库也不等于不记录**: 面板要看的每轮内部状态**只在 HTTP 响应里**,
 //        拿完即弃. (prompt 全文同理 —— 见 `buildPromptFull` 的纪律说明.)
 //     ③ **心理内容不进日志**: 本文件的日志只出定位信息 (会话 id / 轮次 / 耗时),
@@ -53,6 +67,20 @@ import { ConfigService } from '@nestjs/config';
 import { nanoid } from 'nanoid';
 import { setTimeout as sleep } from 'node:timers/promises';
 
+import {
+  DebugSessionStore,
+  type DebugSessionMessage,
+  type DebugSessionRecord,
+  type DebugSessionStatus,
+  type DebugSessionSummary,
+  type DebugSessionTitleSource,
+} from './debug-session-store.js';
+import {
+  buildFallbackTitle,
+  DEBUG_SESSION_TITLE_GENERATOR,
+  type DebugSessionTitleGenerator,
+  type DebugSessionTitleTurn,
+} from './debug-session-title.generator.js';
 import { BizCode } from '../common/exceptions/biz-code.enum.js';
 import { BizException } from '../common/exceptions/biz.exception.js';
 import {
@@ -96,6 +124,15 @@ export const DEBUG_CHAT_SESSION_ID_PREFIX = 'debug_';
  * 读取审议 trace 的轮询间隔 (ms).
  */
 export const DEBUG_CHAT_TRACE_POLL_INTERVAL_MS = 200;
+
+/**
+ * 跑满多少轮之后自动生成会话标题.
+ *
+ * 为什么是 3: 1 轮看不出这场在聊什么 (只有一句开场), 2 轮还太短;
+ * 3 轮足够看出「来访者特征 + 话题」, 又不至于让面板空等太久.
+ * 标题生成是**异步**的 (不阻塞那一轮的响应), 所以这个阈值只影响"什么时候开始生成".
+ */
+export const DEBUG_SESSION_TITLE_TRIGGER_TURN = 3;
 
 /**
  * 等待审议 trace 的默认上限 (ms).
@@ -282,6 +319,8 @@ export class DebugSessionService {
     @Inject(CHARACTER_PROFILE_RESOLVER) private readonly resolver: CharacterProfileResolver,
     private readonly redis: RedisService,
     config: ConfigService,
+    private readonly store: DebugSessionStore,
+    @Inject(DEBUG_SESSION_TITLE_GENERATOR) private readonly titleGenerator: DebugSessionTitleGenerator,
   ) {
     this.enabled = resolveDebugChatEnabled(config);
     this.deliberationWaitMs = resolveDebugChatDeliberationWaitMs(config);
@@ -338,6 +377,11 @@ export class DebugSessionService {
       createdAt,
       turnCount: 0,
     });
+    // 建档 (V2026-11-05 持久化): 空会话文件先落下来 ——
+    // 这样"刚开一场就跑崩了"也能在列表里看到这场会话存在过.
+    // 落盘失败**不阻断**开会话 (引擎句柄已经开出来了, 那是更要紧的);
+    // 只记 warn —— 调试工具不该因为磁盘问题就开不出会话.
+    await this.persistCreate(debugSessionId, slug, resolved.displayName, createdAt);
     // 日志只出定位信息 (隐私红线): 会话 id + 角色代号, 不打角色基线内容.
     this.logger.log(`[debug_chat] 调试会话已开启 session=${debugSessionId} character=${slug}`);
     return {
@@ -381,26 +425,33 @@ export class DebugSessionService {
     // 日志只出定位信息: 会话 id / 轮次 / 耗时. 不打对话原文, 不打快照细节.
     this.logger.log(`[debug_chat] 调试轮次完成 session=${debugSessionId} turn=${result.turnIndex} elapsedMs=${Date.now() - startedAt}`);
 
-    return {
-      reply: result.reply,
-      trace: {
-        turnIndex: result.turnIndex,
-        characterSlug: state.characterSlug,
-        bdiSnapshot: buildBdiSnapshot(result.snapshot),
-        delta,
-        deltaDetail: delta ? buildDeltaDetail(delta) : null,
-        ...(result.intention ? { intention: result.intention } : {}),
-        renderSpec: buildRenderSpec(result),
-        llmUsage: buildLlmUsage(result),
-        crisis: buildCrisisSummary(result.safety),
-        deliberationTrace,
-        ts: new Date().toISOString(),
-      },
+    const trace: DebugTurnTrace = {
+      turnIndex: result.turnIndex,
+      characterSlug: state.characterSlug,
+      bdiSnapshot: buildBdiSnapshot(result.snapshot),
+      delta,
+      deltaDetail: delta ? buildDeltaDetail(delta) : null,
+      ...(result.intention ? { intention: result.intention } : {}),
+      renderSpec: buildRenderSpec(result),
+      llmUsage: buildLlmUsage(result),
+      crisis: buildCrisisSummary(result.safety),
+      deliberationTrace,
+      ts: new Date().toISOString(),
     };
+
+    // 追加落盘 (V2026-11-05 持久化): **每轮都写** —— 中途崩溃也不丢数据.
+    // 落盘失败不阻断本轮 (引擎已经算完了, 响应要照常返回).
+    const persisted = await this.persistTurn(debugSessionId, text, result.reply, trace);
+    // 跑满阈值 → 异步起标题 (不阻塞本轮响应).
+    if (persisted && persisted.turnCount === DEBUG_SESSION_TITLE_TRIGGER_TURN) {
+      void this.generateTitle(debugSessionId);
+    }
+
+    return { reply: result.reply, trace };
   }
 
   /**
-   * 关掉调试会话 (清内存 + 关内核句柄).
+   * 关掉调试会话 (清内存 + 关内核句柄 + 标记文件为已完成).
    *
    * @param debugSessionId 调试会话 id
    * @throws BizException 开关关闭 (403) / 会话不存在 (404)
@@ -419,7 +470,78 @@ export class DebugSessionService {
       // 关句柄失败只记 warn —— 内存已经清了, 不该让调用方以为"没关掉".
       this.logger.warn(`[debug_chat] 调试会话关闭内核句柄失败 session=${debugSessionId}: ${errorName(error)}`);
     }
+    // 标记文件为已完成 (V2026-11-05 持久化).
+    // fire-and-forget: 关会话是同步接口, 不该为了一个文件标记去 await.
+    void this.store.markCompleted(debugSessionId).catch((error: unknown) => {
+      this.logger.warn(`[debug_chat] 调试会话落盘标记失败 session=${debugSessionId}: ${errorName(error)}`);
+    });
     this.logger.log(`[debug_chat] 调试会话已关闭 session=${debugSessionId}`);
+  }
+
+  // ── 持久化会话的 CRUD (V2026-11-05) ──────────────────────────────
+
+  /**
+   * 列历史调试会话 (按创建时间倒序).
+   *
+   * ⚠️ 与内存里的"活会话"是**两回事**: 这里列的是**落过盘**的会话,
+   *   包括进程重启前跑过的那些 —— 那正是"刷新不丢数据"的兑现.
+   *
+   * @returns 会话摘要
+   */
+  async listPersistedSessions(): Promise<DebugSessionSummary[]> {
+    return this.store.list();
+  }
+
+  /**
+   * 读一个历史调试会话的完整记录 (messages + traces).
+   *
+   * @param debugSessionId 调试会话 id
+   * @returns 详情视图; 不存在 → 404
+   * @throws BizException 会话不存在 (404)
+   */
+  async getPersistedSession(debugSessionId: string): Promise<DebugSessionDetail> {
+    const record = await this.store.get(debugSessionId);
+    if (!record) {
+      throw new BizException(BizCode.ResourceNotFound, '调试会话不存在');
+    }
+    return projectDebugSessionDetail(record);
+  }
+
+  /**
+   * 改会话标题 (人工改名).
+   *
+   * ⚠️ 人工改过的标题**不会再被自动命名覆盖** —— 覆盖规则在
+   *   `DebugSessionStore.updateTitle` 里 (source='llm' 只能盖 'fallback').
+   *
+   * @param debugSessionId 调试会话 id
+   * @param title 新标题
+   * @returns 更新后的记录; 会话不存在 → 404
+   * @throws BizException 标题为空 (400) / 会话不存在 (404)
+   */
+  async updatePersistedTitle(debugSessionId: string, title: string): Promise<DebugSessionRecord> {
+    const trimmed = (title ?? '').trim();
+    if (trimmed.length === 0) {
+      throw new BizException(BizCode.InvalidParameter, '会话标题不能为空');
+    }
+    const record = await this.store.updateTitle(debugSessionId, trimmed, 'manual');
+    if (!record) {
+      throw new BizException(BizCode.ResourceNotFound, '调试会话不存在');
+    }
+    return record;
+  }
+
+  /**
+   * 删除一个历史调试会话 (删文件).
+   *
+   * ⚠️ 与"关会话"是**两件事**:
+   *   · 关会话 = `DELETE /debug/session/:id` → 释放引擎句柄 + 标记 completed;
+   *   · 删会话 = `DELETE /debug/sessions/:id` → **删掉文件**, 这条历史彻底没了.
+   *
+   * @param debugSessionId 调试会话 id
+   * @returns 确实删掉了 → true
+   */
+  async deletePersistedSession(debugSessionId: string): Promise<boolean> {
+    return this.store.remove(debugSessionId);
   }
 
   /** 当前调试会话数 (观测用). */
@@ -437,6 +559,96 @@ export class DebugSessionService {
   private assertEnabled(): void {
     if (this.enabled) return;
     throw new BizException(BizCode.Forbidden, '引擎调试面板接口未启用');
+  }
+
+  /**
+   * 建档 (落盘).
+   *
+   * 失败**只记 warn**: 引擎句柄已经开出来了, 那是更要紧的东西 ——
+   * 磁盘写不进去不该让"开会话"整个失败 (顶多是这次会话刷新后看不到).
+   *
+   * @param debugSessionId 调试会话 id
+   * @param characterSlug 角色代号
+   * @param characterLabel 角色展示名
+   * @param createdAt 创建时刻 (ISO)
+   */
+  private async persistCreate(debugSessionId: string, characterSlug: string, characterLabel: string, createdAt: string): Promise<void> {
+    try {
+      await this.store.create({
+        id: debugSessionId,
+        // 兜底标题**建档时就写上** —— 列表里永远有一行能看, 不是空白.
+        // LLM 标题 (第 3 轮后) 再覆盖它 (来源从 fallback 变 llm).
+        title: buildFallbackTitle(createdAt),
+        titleSource: 'fallback',
+        characterSlug,
+        characterLabel,
+        createdAt,
+        updatedAt: createdAt,
+        status: 'active',
+        turnCount: 0,
+        messages: [],
+        traces: [],
+      });
+    } catch (error) {
+      this.logger.warn(`[debug_chat] 调试会话建档失败 session=${debugSessionId}: ${errorName(error)}`);
+    }
+  }
+
+  /**
+   * 追加一轮到落盘记录.
+   *
+   * @param debugSessionId 调试会话 id
+   * @param counselorText 咨询师这一轮说的话
+   * @param visitorText 来访者这一轮的回应
+   * @param trace 本轮调试 trace
+   * @returns 更新后的记录; 落盘失败 / 文件不存在 → null
+   */
+  private async persistTurn(
+    debugSessionId: string,
+    counselorText: string,
+    visitorText: string,
+    trace: DebugTurnTrace,
+  ): Promise<DebugSessionRecord | null> {
+    const ts = trace.ts;
+    try {
+      const counselor: DebugSessionMessage = { role: 'counselor', text: counselorText, turnIndex: trace.turnIndex, ts };
+      const visitor: DebugSessionMessage = { role: 'visitor', text: visitorText, turnIndex: trace.turnIndex, ts };
+      return await this.store.appendTurn(debugSessionId, counselor, visitor, trace);
+    } catch (error) {
+      this.logger.warn(`[debug_chat] 调试轮次落盘失败 session=${debugSessionId} turn=${trace.turnIndex}: ${errorName(error)}`);
+      return null;
+    }
+  }
+
+  /**
+   * 自动生成会话标题 (异步, 失败不抛).
+   *
+   * 为什么要**异步 fire-and-forget**: 标题是锦上添花, 不能让那一轮的 HTTP 响应
+   * 等一次 LLM 调用 (3–8s). 失败就**保留兜底标题** (建档时已经写上了).
+   *
+   * ⚠️ **不覆盖人工改过的标题**: 覆盖规则在 `DebugSessionStore.updateTitle`
+   *   (source='llm' 只能盖 'fallback').
+   *
+   * @param debugSessionId 调试会话 id
+   */
+  private async generateTitle(debugSessionId: string): Promise<void> {
+    try {
+      const record = await this.store.get(debugSessionId);
+      if (!record) return;
+      // 用户已手动改过标题 → 不生成, 更不覆盖.
+      if (record.titleSource === 'manual') return;
+      const turns = buildTitleTurns(record.messages);
+      // 一句话都没说 → 没什么可概括的, 保留兜底标题.
+      if (turns.length === 0) return;
+      const title = (await this.titleGenerator.generate({ characterLabel: record.characterLabel, turns })).trim();
+      // 生成器给不出可用标题 → 保留兜底标题 (不写空标题).
+      if (title.length === 0) return;
+      await this.store.updateTitle(debugSessionId, title, 'llm');
+      this.logger.log(`[debug_chat] 调试会话标题已生成 session=${debugSessionId}`);
+    } catch (error) {
+      // 生成失败 → 兜底标题生效 (建档时已写). 只记 warn, 不打断任何东西.
+      this.logger.warn(`[debug_chat] 调试会话标题生成失败 session=${debugSessionId}: ${errorName(error)}`);
+    }
   }
 
   /**
@@ -625,8 +837,129 @@ function buildCharacterBrief(resolved: ResolvedCharacter): string {
 }
 
 /**
+ * 调试会话详情里的一条消息 (前端面板的形状).
+ */
+export interface DebugSessionDetailMessage {
+  /** 谁说的. */
+  readonly role: 'counselor' | 'visitor';
+  /** 原文. */
+  readonly text: string;
+  /** 属于第几轮. */
+  readonly turnIndex: number;
+  /** 时刻 (ISO). */
+  readonly ts: string;
+  /**
+   * 本轮的调试 trace.
+   *
+   * ⚠️ **只有来访者那条带 trace** —— 与前端"实时对话"里的形状**逐字一致**
+   *   (咨询师发言不带 trace, 来访者回应带). 面板恢复历史时按同一个规则读,
+   *   于是"实时跑"和"加载历史"两条路径渲染出**一样的**面板.
+   *
+   * ⚠️ 类型是 `unknown` (不是 `unknown | null`): `unknown` 已经涵盖 null ——
+   *   写 `unknown | null` 等于把 null 抹平, 读的人就分不出"没有 trace"与"trace 是 null".
+   *   这里的"没有"用 `null` 这个**值**表达 (咨询师那条恒为 null).
+   */
+  readonly trace: unknown;
+}
+
+/**
+ * 调试会话详情视图.
+ */
+export interface DebugSessionDetail {
+  readonly id: string;
+  readonly title: string;
+  readonly titleSource: DebugSessionTitleSource;
+  readonly characterSlug: string;
+  readonly characterLabel: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly status: DebugSessionStatus;
+  readonly turnCount: number;
+  readonly messages: readonly DebugSessionDetailMessage[];
+}
+
+/**
+ * 落盘记录 → 详情视图 (把 trace 挂回对应的来访者消息).
+ *
+ * ⚠️ 为什么要**投影**而不是直接把落盘记录端出去:
+ *   落盘格式把消息与 trace **分两个数组**存 (写侧按轮次追加, 分开存更好写);
+ *   而面板要的是"消息自带 trace" (前端 `DebugChat.vue` 的实时路径就是这个形状).
+ *   两种形状各有一份就会漂 —— 这里做**单向投影**, 面板那侧永远是消息自带 trace.
+ *
+ * @param record 落盘记录
+ * @returns 详情视图
+ */
+export function projectDebugSessionDetail(record: DebugSessionRecord): DebugSessionDetail {
+  // trace 按轮次号归位: 一轮一条 trace, 挂在该轮的**来访者**消息上.
+  const traceByTurn = new Map<number, unknown>();
+  for (const [index, trace] of record.traces.entries()) {
+    const turnIndex = readTurnIndex(trace) ?? index + 1;
+    traceByTurn.set(turnIndex, trace);
+  }
+  return {
+    id: record.id,
+    title: record.title,
+    titleSource: record.titleSource,
+    characterSlug: record.characterSlug,
+    characterLabel: record.characterLabel,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    status: record.status,
+    turnCount: record.turnCount,
+    messages: record.messages.map((message) => ({
+      role: message.role,
+      text: message.text,
+      turnIndex: message.turnIndex,
+      ts: message.ts,
+      trace: message.role === 'visitor' ? (traceByTurn.get(message.turnIndex) ?? null) : null,
+    })),
+  };
+}
+
+/**
+ * 从 trace 上读轮次号 (读不到 → null).
+ */
+function readTurnIndex(trace: unknown): number | null {
+  if (!trace || typeof trace !== 'object') return null;
+  const value = (trace as Record<string, unknown>)['turnIndex'];
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+/**
  * 错误类型名 (不取 message —— 隐私红线: 报错文案可能带内容片段).
  */
 function errorName(error: unknown): string {
   return error instanceof Error ? error.name : 'unknown';
+}
+
+/**
+ * 落盘消息 → 标题生成用的轮次.
+ *
+ * 为什么**按轮次配对**而不是把消息平铺: 一轮是"咨询师问 + 来访者答"**一个不可拆的单位**.
+ * 平铺给模型, 它看到的是一串交替的句子 —— 分不清哪句是问、哪句是答,
+ * 起的标题就会跑偏 ("来访者一直在提问"这种).
+ *
+ * ⚠️ 只取**前 3 轮**: 标题要的是"这场在聊什么", 3 轮足够; 再多只是多烧 token
+ *   (而且对话越长, 模型越容易抓不住重点).
+ *
+ * @param messages 落盘的消息序列 (咨询师 / 来访者交替)
+ * @returns 轮次列表 (最多 3 轮)
+ */
+function buildTitleTurns(messages: readonly DebugSessionMessage[]): DebugSessionTitleTurn[] {
+  const turns: DebugSessionTitleTurn[] = [];
+  let counselor = '';
+  for (const message of messages) {
+    if (message.role === 'counselor') {
+      counselor = message.text;
+      continue;
+    }
+    turns.push({ counselorText: counselor, visitorText: message.text });
+    counselor = '';
+    if (turns.length >= DEBUG_SESSION_TITLE_TRIGGER_TURN) break;
+  }
+  // 有咨询师发言但没等到回应 (会话在这一轮中途断了) → 这一轮也拿去做标题.
+  if (turns.length < DEBUG_SESSION_TITLE_TRIGGER_TURN && counselor.length > 0) {
+    turns.push({ counselorText: counselor, visitorText: '' });
+  }
+  return turns;
 }

@@ -15,7 +15,7 @@
 //
 //   验证: npx vitest run test/admin-debug/wp58-debug-session.spec.ts
 
-import { Logger } from '@nestjs/common';
+import { Logger, RequestMethod } from '@nestjs/common';
 import { GUARDS_METADATA, METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { readFileSync } from 'node:fs';
 import * as path from 'node:path';
@@ -24,6 +24,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AdminBasicAuthMiddleware } from '../../src/admin-debug/admin-basic-auth.middleware.js';
 import { AdminDebugChatModule } from '../../src/admin-debug/admin-debug-chat.module.js';
+import type { DebugSessionMessage, DebugSessionRecord, DebugSessionSummary } from '../../src/admin-debug/debug-session-store.js';
 import { DebugSessionController } from '../../src/admin-debug/debug-session.controller.js';
 import {
   DEBUG_CHAT_TENANT_ID,
@@ -293,6 +294,96 @@ function makeDeliberationRecord(sessionId: string, turnIndex: number): Deliberat
 }
 
 /**
+ * 内存版调试会话存储 (替身).
+ *
+ * 为什么**用替身而不是真文件存储**: WP58 这套单测验的是**引擎侧行为**
+ * (开关 / 角色解析 / delta / 审议 trace / 边界), 落盘是另一件事.
+ * 真存储 (临时目录 + 文件 + 淘汰) 由 `debug-session-persistence.spec.ts` 单独覆盖.
+ */
+class StubDebugSessionStore {
+  readonly records = new Map<string, DebugSessionRecord>();
+
+  directory(): string {
+    return '(stub)';
+  }
+
+  async create(record: DebugSessionRecord): Promise<DebugSessionRecord> {
+    this.records.set(record.id, record);
+    return record;
+  }
+
+  async appendTurn(
+    id: string,
+    message: DebugSessionMessage,
+    reply: DebugSessionMessage,
+    trace: unknown,
+  ): Promise<DebugSessionRecord | null> {
+    const current = this.records.get(id);
+    if (!current) return null;
+    const updated: DebugSessionRecord = {
+      ...current,
+      updatedAt: new Date().toISOString(),
+      turnCount: current.turnCount + 1,
+      messages: [...current.messages, message, reply],
+      traces: [...current.traces, trace],
+    };
+    this.records.set(id, updated);
+    return updated;
+  }
+
+  async updateTitle(id: string, title: string, source: 'llm' | 'manual'): Promise<DebugSessionRecord | null> {
+    const current = this.records.get(id);
+    if (!current) return null;
+    if (source === 'llm' && current.titleSource === 'manual') return current;
+    const updated: DebugSessionRecord = { ...current, title, titleSource: source, updatedAt: new Date().toISOString() };
+    this.records.set(id, updated);
+    return updated;
+  }
+
+  async markCompleted(id: string): Promise<DebugSessionRecord | null> {
+    const current = this.records.get(id);
+    if (!current) return null;
+    const updated: DebugSessionRecord = { ...current, status: 'completed', updatedAt: new Date().toISOString() };
+    this.records.set(id, updated);
+    return updated;
+  }
+
+  async list(): Promise<DebugSessionSummary[]> {
+    return [...this.records.values()]
+      .map((record) => ({
+        id: record.id,
+        title: record.title,
+        characterSlug: record.characterSlug,
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
+        turnCount: record.turnCount,
+        status: record.status,
+      }))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  async get(id: string): Promise<DebugSessionRecord | null> {
+    return this.records.get(id) ?? null;
+  }
+
+  async remove(id: string): Promise<boolean> {
+    return this.records.delete(id);
+  }
+}
+
+/**
+ * 标题生成器替身 (固定标题).
+ */
+class StubTitleGenerator {
+  readonly calls: unknown[] = [];
+
+  async generate(input: unknown): Promise<string> {
+    this.calls.push(input);
+    return '来访者初始访谈';
+  }
+}
+
+/**
  * 造一套调试服务 (替身全注入).
  */
 function buildService(env: Record<string, string> = {}): {
@@ -300,17 +391,23 @@ function buildService(env: Record<string, string> = {}): {
   engine: StubEngineTurnService;
   resolver: StubCharacterResolver;
   redis: StubRedis;
+  store: StubDebugSessionStore;
+  titleGenerator: StubTitleGenerator;
 } {
   const engine = new StubEngineTurnService();
   const resolver = new StubCharacterResolver();
   const redis = new StubRedis();
+  const store = new StubDebugSessionStore();
+  const titleGenerator = new StubTitleGenerator();
   const service = new DebugSessionService(
     engine as unknown as ConstructorParameters<typeof DebugSessionService>[0],
     resolver,
     redis as unknown as ConstructorParameters<typeof DebugSessionService>[2],
     stubConfig(env) as unknown as ConstructorParameters<typeof DebugSessionService>[3],
+    store as unknown as ConstructorParameters<typeof DebugSessionService>[4],
+    titleGenerator,
   );
-  return { service, engine, resolver, redis };
+  return { service, engine, resolver, redis, store, titleGenerator };
 }
 
 describe('WP58 · 引擎调试面板', () => {
@@ -608,6 +705,22 @@ describe('WP58 · 引擎调试面板', () => {
       expect(Reflect.getMetadata(METHOD_METADATA, DebugSessionController.prototype.createSession)).toBeDefined();
       expect(Reflect.getMetadata(METHOD_METADATA, DebugSessionController.prototype.turn)).toBeDefined();
       expect(Reflect.getMetadata(METHOD_METADATA, DebugSessionController.prototype.closeSession)).toBeDefined();
+    });
+
+    it('历史会话四个端点的路径与方法 (V2026-11-05 持久化)', () => {
+      const pathOf = (method: string): string | undefined =>
+        Reflect.getMetadata(PATH_METADATA, DebugSessionController.prototype[method as keyof DebugSessionController]);
+      const methodOf = (method: string): number | undefined =>
+        Reflect.getMetadata(METHOD_METADATA, DebugSessionController.prototype[method as keyof DebugSessionController]);
+
+      expect(pathOf('listSessions')).toBe('sessions');
+      expect(pathOf('getSession')).toBe('sessions/:id');
+      expect(pathOf('updateSessionTitle')).toBe('sessions/:id');
+      expect(pathOf('deleteSession')).toBe('sessions/:id');
+      expect(methodOf('listSessions')).toBe(RequestMethod.GET);
+      expect(methodOf('getSession')).toBe(RequestMethod.GET);
+      expect(methodOf('updateSessionTitle')).toBe(RequestMethod.PATCH);
+      expect(methodOf('deleteSession')).toBe(RequestMethod.DELETE);
     });
 
     it('入参两个名字同义 (counselorText / userText)', async () => {

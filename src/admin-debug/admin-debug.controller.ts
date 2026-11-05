@@ -54,6 +54,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, MoreThanOrEqual, type Repository } from 'typeorm';
 
 import type { AdminDebugRequest } from './admin-basic-auth.middleware.js';
+import { buildOwnerFilter } from './admin-scope.js';
+import { resolveCostPricingFromEnv } from './cost-pricing.js';
 import { aggregateSessionCost, buildCostTrend, shanghaiDayStartUtc } from './cost-view.js';
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
 import type { TurnTrace } from './trace-recorder.service.js';
@@ -61,7 +63,7 @@ import { buildAdminTrajectoryState } from './trajectory-view.js';
 import { BizCode } from '../common/exceptions/biz-code.enum.js';
 import { BizException } from '../common/exceptions/biz.exception.js';
 import { TrainingSession } from '../counselor/entities/training-session.entity.js';
-import { resolveSessionCostPricing, type SessionCostPricing } from '../engine-adapters/observability/session-cost.js';
+import type { SessionCostPricing } from '../engine-adapters/observability/session-cost.js';
 import { CharacterProfileEntity } from '../engine-adapters/wiring/character/character-profile.entity.js';
 
 /**
@@ -472,13 +474,13 @@ export class AdminDebugController {
    * —— 与单场成本日志用的是**同一张定价表**: 看板上的数与日志里的数必须对得上,
    * 两处各配一套 env = 迟早漂. 非法值回退默认, 不抛 (口径在 `resolveSessionCostPricing`).
    *
+   * ⚠️ env 键 → 单价的映射收在 `cost-pricing.ts` —— 仪表盘 (`AdminInsightsController`)
+   *   也读同一份, 两边不允许各写一份键名.
+   *
    * @returns 单价
    */
   private resolveCostPricing(): SessionCostPricing {
-    return resolveSessionCostPricing({
-      inputPer1k: this.config.get<string>('LLM_PRICE_INPUT_PER_1K'),
-      outputPer1k: this.config.get<string>('LLM_PRICE_OUTPUT_PER_1K'),
-    });
+    return resolveCostPricingFromEnv((key) => this.config.get<string>(key));
   }
 
   /** 引擎健康状态. */
@@ -521,18 +523,14 @@ export class AdminDebugController {
   /**
    * 请求归属过滤条件 (学员隔离; 管理员不过滤).
    *
-   * 口径:
-   *   · 带管理员 basic 凭据 → 不加条件 (调试器要看全场);
-   *   · 学员 (有身份) → 只看 `user_id = 自己`;
-   *   · 匿名 (dev 裸奔) → 不加条件.
+   * 口径与 `GET /admin/api/sessions` 同源, 且**只有一份实现** ——
+   * 见 `admin-scope.ts` 的说明: 三处各写一份, 迟早漂成越权.
    *
    * @param req 请求
    * @returns where 片段 (空 = 不过滤)
    */
   private ownerFilter(req: AdminDebugRequest): { readonly userId?: string } {
-    if (req.adminBasicAuth === true) return {};
-    const userId = (req.user?.userId ?? '').trim();
-    return userId.length > 0 ? { userId } : {};
+    return buildOwnerFilter(req);
   }
 }
 

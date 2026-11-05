@@ -104,6 +104,14 @@ export class PsyGuardHealthChecker implements OnApplicationBootstrap {
    * @returns 自检结论 (供单测断言)
    */
   async check(): Promise<{ readonly reachable: boolean; readonly modelLoaded: boolean; readonly contractOk: boolean }> {
+    // V2026-11-05: 没配服务地址 → 直接返"不可达", **不发请求**.
+    //   为什么: 地址是空串时 url 会变成 `/health` —— 那是个相对 URL, `fetch` 必抛
+    //   "Failed to parse URL", 于是每次调用都要走一遍异常 + 一条 warn 日志.
+    //   而"没配服务"是**常态** (PsyGUARD 是可选增强), 不是异常 ——
+    //   admin 面板每刷新一次就刷一条 warn, 是我们自己制造的噪音.
+    if (!this.baseUrl) {
+      return { reachable: false, modelLoaded: false, contractOk: false };
+    }
     const url = `${this.baseUrl}/health`;
     let payload: unknown;
     try {

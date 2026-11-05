@@ -8,6 +8,19 @@
 //     POST   /admin/api/debug/session/:id/turn   —— 发一轮对话 (返回完整调试 trace)
 //     DELETE /admin/api/debug/session/:id        —— 关闭调试会话 (清内存)
 //
+//   V2026-11-05 扩展 (调试会话持久化) —— 四个**历史**端点:
+//     GET    /admin/api/debug/sessions           —— 列出历史会话
+//     GET    /admin/api/debug/sessions/:id       —— 读一个会话的完整 messages + traces
+//     PATCH  /admin/api/debug/sessions/:id       —— 改标题
+//     DELETE /admin/api/debug/sessions/:id       —— 删掉这个会话 (连文件一起删)
+//
+//   ⚠️ **`/debug/session/:id` 与 `/debug/sessions/:id` 是两件事** (只差一个 s):
+//     · `DELETE /debug/session/:id`  = **关会话** —— 释放内核句柄 + 标记文件为已完成,
+//       历史**还在** (列表里能看见);
+//     · `DELETE /debug/sessions/:id` = **删会话** —— 文件删掉, 这条历史彻底没了.
+//     两条路由的字面路径不同 (session vs sessions), 不会互相命中; 但读代码的人
+//     容易看串 —— 所以这里把区别写在文件头与端点注释里.
+//
 //   为什么单独一个 controller (而不是塞进 `AdminDebugController`):
 //     `AdminDebugModule` 被 `EngineWiringModule` import (为了 `TraceRecorder`),
 //     而调试接口要用引擎门面 (`EngineTurnService`) —— 同一个模块里反向 import
@@ -33,9 +46,10 @@
 //
 //   验证: test/admin-debug/wp58-debug-session.spec.ts
 
-import { Body, Controller, Delete, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 
-import { DebugSessionService, type DebugSessionCreated, type DebugTurnTrace } from './debug-session.service.js';
+import type { DebugSessionSummary } from './debug-session-store.js';
+import { DebugSessionService, type DebugSessionCreated, type DebugSessionDetail, type DebugTurnTrace } from './debug-session.service.js';
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
 
 /**
@@ -56,6 +70,14 @@ interface CreateDebugSessionBody {
 interface DebugTurnBody {
   readonly counselorText?: string;
   readonly userText?: string;
+}
+
+/**
+ * 改会话标题的入参.
+ */
+interface UpdateDebugSessionTitleBody {
+  /** 新标题 (空 / 缺省 → 400). */
+  readonly title?: string;
 }
 
 /**
@@ -105,5 +127,65 @@ export class DebugSessionController {
   closeSession(@Param('id') id: string): { readonly sessionId: string; readonly closed: boolean } {
     this.service.closeSession(id);
     return { sessionId: id, closed: true };
+  }
+
+  // ── 历史会话 (V2026-11-05 持久化) ──────────────────────────────────
+
+  /**
+   * 列出历史调试会话 (按创建时间倒序).
+   *
+   * ⚠️ 与 `DELETE /debug/session/:id` (关会话) **不是一回事**:
+   *   这里列的是**落过盘**的会话, 包括进程重启前跑过的那些 ——
+   *   那正是"刷新不丢数据"的兑现.
+   *
+   * @returns 会话摘要列表
+   */
+  @Get('sessions')
+  async listSessions(): Promise<DebugSessionSummary[]> {
+    return this.service.listPersistedSessions();
+  }
+
+  /**
+   * 读一个历史调试会话 (完整 messages + traces).
+   *
+   * @param id 调试会话 id
+   * @returns 详情视图 (messages 里来访者那条自带 trace)
+   * @throws BizException 会话不存在 (404)
+   */
+  @Get('sessions/:id')
+  async getSession(@Param('id') id: string): Promise<DebugSessionDetail> {
+    return this.service.getPersistedSession(id);
+  }
+
+  /**
+   * 改会话标题.
+   *
+   * @param id 调试会话 id
+   * @param body 入参 (新标题)
+   * @returns 更新后的标题
+   * @throws BizException 标题为空 (400) / 会话不存在 (404)
+   */
+  @Patch('sessions/:id')
+  async updateSessionTitle(
+    @Param('id') id: string,
+    @Body() body: UpdateDebugSessionTitleBody,
+  ): Promise<{ readonly id: string; readonly title: string }> {
+    const record = await this.service.updatePersistedTitle(id, body?.title ?? '');
+    return { id: record.id, title: record.title };
+  }
+
+  /**
+   * 删掉一个历史调试会话 (连文件一起删).
+   *
+   * ⚠️ 与 `DELETE /debug/session/:id` (关会话) **不是一回事**:
+   *   这里是**真删** —— 这条历史彻底没了, 删了就找不回来.
+   *
+   * @param id 调试会话 id
+   * @returns 删除确认
+   */
+  @Delete('sessions/:id')
+  async deleteSession(@Param('id') id: string): Promise<{ readonly id: string; readonly deleted: boolean }> {
+    const deleted = await this.service.deletePersistedSession(id);
+    return { id, deleted };
   }
 }

@@ -99,3 +99,7 @@ jspm_packages/
 .smoke-last
 # 临时 docker image tar (deploy 脚本生成)
 *.tar.gz
+
+# V2026-11-05 — 调试会话持久化 (data/debug-sessions/*.json)
+#   ⚠️ 这些文件含**心理内容** (对话原文 + prompt 全文) —— 绝不进版本库.
+data/debug-sessions/

@@ -39,14 +39,24 @@
 //     3. test/admin-debug/wp58-debug-session.spec.ts
 
 import { MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AdminBasicAuthMiddleware } from './admin-basic-auth.middleware.js';
+import { DebugSessionStore } from './debug-session-store.js';
+import {
+  DEBUG_SESSION_TITLE_GENERATOR,
+  LlmDebugSessionTitleGenerator,
+  resolveDebugSessionTitleModel,
+  type DebugSessionTitleGenerator,
+} from './debug-session-title.generator.js';
 import { DebugSessionController } from './debug-session.controller.js';
 import { DebugSessionService } from './debug-session.service.js';
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
 import { CharacterPoolModule } from '../engine-adapters/wiring/character/character-pool.module.js';
 import { EngineWiringModule } from '../engine-adapters/wiring/engine.module.js';
+import { LlmModule } from '../llm/llm.module.js';
+import { LlmRouterService } from '../llm/registry/llm-router.service.js';
 import { User } from '../user/entities/user.entity.js';
 import { UserModule } from '../user/index.js';
 
@@ -61,11 +71,29 @@ import { UserModule } from '../user/index.js';
     EngineWiringModule,
     // 角色池 (CHARACTER_PROFILE_RESOLVER: 把 characterSlug 解析成内核角色基线).
     CharacterPoolModule,
+    // LLM 路由层 (会话标题自动生成要走 `router.chat`; 不新造 LLM 客户端).
+    LlmModule,
   ],
   controllers: [DebugSessionController],
   providers: [
     // 调试会话逻辑 (内存会话表 + 角色解析 + delta + 审议 trace 读取).
     DebugSessionService,
+    // 调试会话的**文件持久化** (V2026-11-05): 建档 / 每轮追加 / 改标题 / 删档.
+    DebugSessionStore,
+    // 会话标题自动生成 (V2026-11-05): 第 3 轮后用 LLM 起标题, 失败兜底.
+    // ⚠️ 走 useFactory: 构造参数是**两个**依赖 (router + 模型名), 且模型名要在
+    //   装配期解析 (厂商相关的模型名只有 router 知道 —— 见 `resolveSummaryModel` 的理由).
+    {
+      provide: DEBUG_SESSION_TITLE_GENERATOR,
+      useFactory: (router: LlmRouterService, config: ConfigService): DebugSessionTitleGenerator =>
+        new LlmDebugSessionTitleGenerator({
+          router,
+          // 与摘要**同一个键** (MEMORY_SUMMARY_MODEL): "从长文本抽要点"是同一族任务,
+          // 用两个键就会出现两个真相源 (同 `engine.module.ts` 里的既有纪律).
+          model: resolveDebugSessionTitleModel(config.get<string>('MEMORY_SUMMARY_MODEL'), router),
+        }),
+      inject: [LlmRouterService, ConfigService],
+    },
     // 内部角色判定 (直读 users.admin_role) —— 仓库既有的内部能力守卫.
     AdminRoleGuard,
   ],
