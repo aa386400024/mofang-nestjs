@@ -125,6 +125,18 @@ export class EngineTurnService {
       readonly speechVolumeBaseline?: number;
       readonly narrativeStyle?: TurnSessionContext['narrativeStyle'];
       readonly expressionTone?: TurnSessionContext['expressionTone'];
+      /**
+       * 学员账号 id (V2026-11-05 WP64).
+       *
+       * 用途: LLM 审议的计费 / 审计归属 —— 归属登记后, 旁路审议才知道该把这次调用记在谁头上.
+       */
+      readonly userId?: string;
+      /**
+       * 角色种子简述 (依恋风格 + 大五人格) (V2026-11-05 WP64).
+       *
+       * 用途: 审议 prompt 的「角色背景」块.
+       */
+      readonly characterBrief?: string;
     },
   ): { readonly handleId: string; readonly sessionId: string } {
     const handle = this.session.openSession(input);
@@ -138,6 +150,9 @@ export class EngineTurnService {
       ...(options?.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: options.speechVolumeBaseline }),
       ...(options?.narrativeStyle === undefined ? {} : { narrativeStyle: options.narrativeStyle }),
       ...(options?.expressionTone === undefined ? {} : { expressionTone: options.expressionTone }),
+      // WP64: 学员账号 + 角色简述 —— 条件展开 (缺省 = 旁路审议跳过这一轮, 不影响会话).
+      ...(options?.userId ? { userId: options.userId } : {}),
+      ...(options?.characterBrief ? { characterBrief: options.characterBrief } : {}),
     });
     this.logger.log(`引擎会话已开启 handle=${handle.handleId} session=${input.sessionId}`);
     return { handleId: handle.handleId, sessionId: handle.sessionId };

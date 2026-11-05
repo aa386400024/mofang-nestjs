@@ -94,7 +94,13 @@ import type { TraceRecorder, TurnTrace } from '../../admin-debug/trace-recorder.
 import type { LlmStream, LlmStreamChunk } from '../../agent/llm/llm.types.js';
 import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types.js';
 import { EngineCoreError, EngineErrorCode } from '../../engine-core/index.js';
-import type { OpenEngineSessionInput, RiskProbePort, TrajectoryScript } from '../../engine-core/index.js';
+import type {
+  AttachmentStyle,
+  CharacterProfile,
+  OpenEngineSessionInput,
+  RiskProbePort,
+  TrajectoryScript,
+} from '../../engine-core/index.js';
 import type { StudentRiskAuditChoice, StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import {
@@ -399,11 +405,17 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     //   buildCharacterProfile 已经在内核契约里了). 没角色 (中性基线) → 不带 →
     //   渲染层不消费 → prompt 与 WP35 逐字一致 (零回归).
     const profile = character?.characterProfile;
+    // WP64: 角色底色简述 —— 只算一次 (下面要用它判"带不带").
+    const characterBrief = buildCharacterBrief(profile);
     const openOptions = {
       characterLabel: character?.displayName ?? '',
       ...(profile?.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: profile.speechVolumeBaseline }),
       ...(profile?.narrativeStyle === undefined ? {} : { narrativeStyle: profile.narrativeStyle }),
       ...(profile?.expressionTone === undefined ? {} : { expressionTone: profile.expressionTone }),
+      // WP64: 旁路审议的计费归属 (学员账号) —— 缺省 = 审议层跳过 (见 engine-turn.service.ts).
+      ...(opts.userId?.trim() ? { userId: opts.userId.trim() } : {}),
+      // WP64: 角色底色简述 (依恋 + 大五) —— 审议 prompt 的「角色背景」块.
+      ...(characterBrief ? { characterBrief } : {}),
     };
     try {
       return this.engine.open(this.buildOpenInput(opts, character, script, memoryScope, resumeFromSessionId, true), openOptions);
@@ -1511,6 +1523,46 @@ function buildMemoryScope(userId: string | undefined, characterKey: string): str
   const user = (userId ?? '').trim();
   return user.length > 0 ? `${user}:${characterKey}` : characterKey;
 }
+
+/**
+ * 角色底色简述 (V2026-11-05 WP64 · 旁路审议的「角色背景」块).
+ *
+ * 为什么要有它: 审议模型要判"这一轮来访者的内心状态该怎么变", 光看本轮对话不够 ——
+ * 同一个"来访者沉默", 在回避型依恋身上是常态, 在安全型身上是退缩信号.
+ * 规则算子本来就有这份底色 (内核 `CharacterProfile`), 审议侧不提供就是**不公平对比**.
+ *
+ * 为什么只带**底色**不带剧本: 剧本 (轨迹) 是这一场的编排, 不是来访者的人格底色;
+ * 把它塞进审议 prompt 会让模型去猜"剧本", 而不是判状态.
+ *
+ * ⚠️ 缺省 = 空串 = 审议 prompt 写「（未提供角色背景）」(WP63 的既有占位口径).
+ *
+ * @param profile 已解析的角色内核 (无角色 = undefined)
+ * @returns 简述正文 (空串 = 没有可写的底色)
+ */
+function buildCharacterBrief(profile: CharacterProfile | undefined): string {
+  if (!profile) return '';
+  const parts: string[] = [];
+  if (profile.attachmentStyle) parts.push(`依恋风格: ${ATTACHMENT_STYLE_LABELS[profile.attachmentStyle]}`);
+  const traits = profile.personalityTraits;
+  if (traits) {
+    const traitParts: string[] = [];
+    if (traits.openness !== undefined) traitParts.push(`开放性 ${traits.openness.toFixed(2)}`);
+    if (traits.conscientiousness !== undefined) traitParts.push(`尽责性 ${traits.conscientiousness.toFixed(2)}`);
+    if (traits.extraversion !== undefined) traitParts.push(`外倾性 ${traits.extraversion.toFixed(2)}`);
+    if (traits.agreeableness !== undefined) traitParts.push(`宜人性 ${traits.agreeableness.toFixed(2)}`);
+    if (traits.neuroticism !== undefined) traitParts.push(`神经质 ${traits.neuroticism.toFixed(2)}`);
+    if (traitParts.length > 0) parts.push(`大五人格: ${traitParts.join(' / ')}`);
+  }
+  return parts.join('；');
+}
+
+/** 依恋风格的中文标签 (给审议模型看的可读名, 不是原始枚举). */
+const ATTACHMENT_STYLE_LABELS: Record<AttachmentStyle, string> = {
+  secure: '安全型',
+  anxious: '焦虑型',
+  avoidant: '回避型',
+  disorganized: '紊乱型',
+};
 
 /**
  * 极简异步队列 —— 把「push 型 onDelta 回调」翻译成「pull 型 AsyncIterable」.

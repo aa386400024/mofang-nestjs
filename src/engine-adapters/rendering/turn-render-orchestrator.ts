@@ -61,6 +61,20 @@
 //     缺省 (没登记表达风格) → 规格与 prompt 与 WP35 **逐字一致** (零回归).
 //     ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
 //
+//   V2026-11-05 治本 (WP64 · LLM 审议层 PoC · 影子模式):
+//     本门面成了**影子审议的唯一旁路调用点** —— 每轮渲染完成后, fire-and-forget
+//     调一次 LLM 审议, 结果**不生效** (只写 Redis trace 表).
+//     为什么接在这里 (而不是内核 turn 里):
+//       · 内核是纯层, 改 turn = 破红线; 影子模式的定义就是"旁路观察";
+//       · **只有本门面同时握有三样东西** —— 咨询师的话、来访的渲染回应、本轮前后的快照.
+//         内核端口拿不到"来访的渲染回应" (那是渲染产物), 审议 prompt 缺了它就答非所问.
+//     代价与取舍:
+//       · 起始快照 (本轮**之前**的状态) 适配层拿不到 → 门面自己记一份"上一轮结束时的快照".
+//         同一场会话内它与内核下一轮载入的状态**逐字相等**; 跨会话接续的第一轮没有 → 跳过.
+//       · 规则算子的 delta 用**快照差**反推 (适配层拿不到内核的 cappedTotal) —— 口径与
+//         "状态实际怎么动了"一致, 见交付记录 §2.3.
+//     缺省 = 不装审议端口 = 行为与本单之前**逐字一致** (零回归).
+//
 //   反双胞胎:
 //     - 不重复写咨询师半边记忆: 内核 rememberTurn 已经写了 (source=TURN, tier=WORKING,
 //       content=咨询师文本). 门面只补**来访半边**. 重复写 = 工作记忆里同一条出现两次,
@@ -109,6 +123,8 @@ import {
   type TrajectoryTrace,
 } from '../../engine-core/index.js';
 import type { ChatMessage } from '../../llm/common/interfaces/chat-provider.interface.js';
+import type { DeliberationMode } from '../deliberation/deliberation-types.js';
+import { computeRuleDelta, type DeliberationShadowPort } from '../deliberation/llm-deliberation.service.js';
 import type { RollingSummaryPort } from '../persistence/rolling-session-summary.service.js';
 
 /**
@@ -132,6 +148,25 @@ export interface TurnSessionContext {
    * 模型不该看见自己的角色名 (那会让它开始扮演"角色"而不是"来访者").
    */
   readonly characterLabel?: string;
+  /**
+   * 学员账号 id (V2026-11-05 WP64).
+   *
+   * 用途: **LLM 审议的计费 / 审计归属** (`CounselorLlmJsonClient` 要求 userId 非空,
+   * `LlmService` 缺 userId 会同步抛). 装配层从 voice 侧的开场参数带进来.
+   *
+   * 缺省 = 空 = 审议层跳过这一轮 (见 `shadowDeliberation`): 与其拿一个假 id 去记账,
+   * 不如不记 —— 归属错账比没账更难查.
+   */
+  readonly userId?: string;
+  /**
+   * 角色种子简述 (依恋风格 + 大五人格) (V2026-11-05 WP64).
+   *
+   * 用途: 审议 prompt 的「角色背景」块 —— 让审议模型知道来访者的**底色**,
+   * 否则它只能从本轮对话猜人设 (而规则算子本来就有这份底色).
+   *
+   * 缺省 = 空 = prompt 写「（未提供角色背景）」(WP63 的既有占位口径).
+   */
+  readonly characterBrief?: string;
   /**
    * 表达风格三字段 (WP41): 角色"天生怎么说话".
    *
@@ -287,6 +322,16 @@ export interface TurnRenderOrchestratorDeps {
    * 判成 block 时**不调 RenderPort.render** —— 本轮 AI 不出声.
    */
   readonly studentRisk?: StudentRiskGate;
+  /**
+   * 影子审议端口 (V2026-11-05 WP64; 缺省 = 不跑影子审议).
+   *
+   * 缺省语义: **纯增强** —— 没装就只是"没有影子审议数据", 会话开合与渲染逐字不变.
+   *
+   * 为什么用**窄端口**而不是直接依赖 `LlmDeliberationService`:
+   *   门面是纯类 (零 @nestjs), 依赖一个 Nest service 会把框架拖进来;
+   *   窄端口让单测能用极小替身覆盖, 也让"装配缺席"退化成"没有审议"而不是"门面起不来".
+   */
+  readonly deliberation?: DeliberationShadowPort;
 }
 
 /**
@@ -361,6 +406,21 @@ export const DEFAULT_TURN_FALLBACK_UTTERANCE: string = DEFAULT_RENDER_FALLBACK_U
 export const MAX_HISTORY_TURNS = WORKING_MEMORY_WINDOW_TURNS * 2;
 
 /**
+ * 影子审议用的会话模式 (V2026-11-05 WP64).
+ *
+ * 为什么固定 `freeform`:
+ *   引擎 turn 管道 today 只服务**语音对练** (自由练习 / 全真执业) —— 两者都是**零压域**
+ *   (AGENTS.md §5.3: 分数只允许出现在 MCQ 备考频道). MCQ 备考频道走的是另一条链路
+ *   (training-exercises), **不经过** `engineSession.turn()`, 所以审议管道此刻**只该**用
+ *   自由练习那套 prompt 措辞.
+ *
+ *   将来 MCQ 频道接进引擎管道时, 这里改成"按会话归属分发"即可 (prompt 模板两种早已备好,
+ *   见 deliberation-prompt.ts) —— 但那之前**不能**猜: 用考核措辞去审自由练习的对话,
+ *   会把"判定标准更严"的偏置带进对比数据, PoC 的差异统计就失真了.
+ */
+const DELIBERATION_SHADOW_MODE: DeliberationMode = 'freeform';
+
+/**
  * 决策→说话装配门面 (纯类, 非 NestJS).
  */
 export class TurnRenderOrchestrator {
@@ -371,6 +431,23 @@ export class TurnRenderOrchestrator {
   private readonly idFactory: () => string;
   /** 每个句柄的最近对话序列 (旧 → 新). */
   private readonly histories = new Map<string, RenderContextTurn[]>();
+  /**
+   * 每个句柄**上一轮结束时的** BDI 快照 (V2026-11-05 WP64 · 影子审议用).
+   *
+   * 为什么门面要自己记一份:
+   *   影子审议要比对"规则算子的 delta"与"LLM 审议的 delta", 而内核 `turn()` 的出口
+   *   **只有本轮结束后的快照** —— 起始快照是它内部的局部变量 (`base.snapshot`),
+   *   拿不到 (内核零改动是本期红线, 不可能加一个出口字段).
+   *   于是适配层自己记一份"上一轮结束时的快照": 下一轮开始时它**就是**本轮的起始快照.
+   *
+   *   为什么这份记忆是**逐字准确**的: 内核在同一场会话内, 下一轮载入的状态就是上一轮
+   *   落库的那份 (`loadState` 的"本场已有状态"分支优先命中, 不再衰减) —— 两者相等.
+   *   ⚠️ 唯一的例外是**跨会话接续的第一轮**: 那时内核会先做一次自然衰减 (WP36),
+   *     而门面没有接续前的快照 → 这一轮**跳过**影子审议 (见 `shadowDeliberation`).
+   *
+   * 生命周期: 与 `histories` 同生命周期 (会话关闭时由 `forgetSession` 一起清).
+   */
+  private readonly lastSnapshots = new Map<string, BdiSnapshot>();
 
   constructor(deps: TurnRenderOrchestratorDeps) {
     this.deps = deps;
@@ -412,6 +489,10 @@ export class TurnRenderOrchestrator {
 
     // 4. 回填前的落账: 历史 + 来访半边工作记忆.
     await this.settleTurn(handleId, input.userText, rendered);
+
+    // 4.5 影子审议 (WP64): 旁路跑一次 LLM 审议, **不生效** (结果只进 Redis trace 表).
+    //     fire-and-forget: 不 await, 主流程响应时间不受审议影响.
+    this.shadowDeliberation(handleId, input, output, rendered.text);
 
     // 5. 组装返回 (内核出参逐字透传, 外面包一层 render 元信息与真实 reply).
     return {
@@ -475,6 +556,9 @@ export class TurnRenderOrchestrator {
     // 4. 落账 (与 turn() 共用 settleTurn: 历史 + 来访半边工作记忆).
     await this.settleTurn(handleId, input.userText, rendered);
 
+    // 4.5 影子审议 (WP64): 与聚合路径**同一处**旁路调用, 不复制一份流式专属逻辑.
+    this.shadowDeliberation(handleId, input, output, rendered.text);
+
     // 5. 组装返回 (与 turn() 同构).
     return {
       reply: rendered.text,
@@ -507,6 +591,64 @@ export class TurnRenderOrchestrator {
    */
   forgetSession(handleId: string): void {
     this.histories.delete(handleId);
+    // WP64: 影子审议的"上一轮快照"与历史同生命周期 —— 一起清, 不留残留.
+    this.lastSnapshots.delete(handleId);
+  }
+
+  /**
+   * 影子审议 (V2026-11-05 WP64): 旁路跑一次 LLM 审议, **结果不生效**.
+   *
+   * 三条硬纪律 (任务单 §1.3 / §4.2):
+   *   ① 不 await —— fire-and-forget, 主流程响应时间不受审议影响;
+   *   ② 不 await 也不 catch 到主流程 —— 异常在审议服务内部吞掉, 这里再兜一层;
+   *   ③ 结果只写 Redis trace 表 —— **绝不**回写 BDI 快照.
+   *
+   * 什么时候**跳过**这一轮 (都是"缺数据", 不是"出错"):
+   *   · 没装审议端口 (装配缺席 = 没有影子审议这个能力);
+   *   · 没有上一轮快照 (会话的**第一轮** —— 起始快照还没被记下来; 跨会话接续的第一轮同理);
+   *   · 拿不到会话归属 (归属登记表里没有这场会话);
+   *   · 归属里没有学员账号 id (LLM 调用要求 userId 非空 —— 与其拿假 id 记账, 不如不记).
+   *
+   * @param handleId 内核会话句柄
+   * @param input 本轮入参 (咨询师文本)
+   * @param output 内核本轮出参 (含本轮结束后的快照)
+   * @param visitorText 本轮来访的渲染文本
+   */
+  private shadowDeliberation(handleId: string, input: EngineTurnInput, output: EngineTurnOutput, visitorText: string): void {
+    const deliberation = this.deps.deliberation;
+    if (!deliberation) return;
+    // 本轮开始时的快照 = 上一轮结束时记下的那份 (首轮没有 → 跳过).
+    const baseSnapshot = this.lastSnapshots.get(handleId);
+    // 记下本轮结束后的快照, 供下一轮当"起始快照"用.
+    this.lastSnapshots.set(handleId, output.snapshot);
+    if (!baseSnapshot) return;
+
+    const context = this.resolveContext(handleId);
+    if (!context) return;
+    const userId = (context.userId ?? '').trim();
+    if (!userId) return;
+
+    try {
+      void deliberation
+        .runShadowMode({
+          sessionId: context.sessionId,
+          tenantId: context.tenantId,
+          userId,
+          turnIndex: output.turnIndex,
+          mode: DELIBERATION_SHADOW_MODE,
+          baseSnapshot,
+          counselorText: input.userText,
+          visitorText,
+          characterBrief: context.characterBrief ?? '',
+          ruleDelta: computeRuleDelta(baseSnapshot, output.snapshot),
+        })
+        .catch((error: unknown) => {
+          // 审议服务承诺不抛 —— 这一层是**防御**: 万一它抛了, 也不能炸主流程.
+          warn(`[shadow] 审议调用异常 (已忽略): ${errorMessage(error)}`);
+        });
+    } catch (error) {
+      warn(`[shadow] 审议调用异常 (已忽略): ${errorMessage(error)}`);
+    }
   }
 
   /**

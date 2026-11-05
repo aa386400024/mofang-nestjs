@@ -394,7 +394,7 @@ const heatmapOption = computed(() => ({
     formatter: (params: any) => {
       const row = deltaTable.value[params.value[1]]
       const dim = heatmapDimensions[params.value[0]]
-      return `${row.label} · ${heatmapLabels[dim]}<br/>增量: <b>${params.value[2].toFixed(3)}</b>`
+      return `${row.label} · ${heatmapLabels[dim]}<br/>${t('calibrator.heatmapDelta')}: <b>${params.value[2].toFixed(3)}</b>`
     },
   },
   grid: { left: 80, right: 20, top: 10, bottom: 90 },
@@ -435,9 +435,9 @@ const tornadoData = computed(() => {
   const params = [
     { name: '共情 · 信任增量', base: 0.10, dim: 'trust' },
     { name: '评判 · 信任增量', base: -0.12, dim: 'trust' },
-    { name: '回避型 · 信任倍率', base: 0.6, dim: 'trustScale' },
-    { name: '回避型 · 安全感倍率', base: 0.5, dim: 'safetyScale' },
-    { name: '安全型 · 信任倍率', base: 1.0, dim: 'trustScale' },
+    { name: `回避型 · ${t('calibrator.trustScale')}`, base: 0.6, dim: 'trustScale' },
+    { name: `回避型 · ${t('calibrator.safetyScale')}`, base: 0.5, dim: 'safetyScale' },
+    { name: `安全型 · ${t('calibrator.trustScale')}`, base: 1.0, dim: 'trustScale' },
     { name: '单回合 cap · 信任上界', base: 0.20, dim: 'capUp' },
   ]
   return params.map(p => ({
@@ -528,7 +528,7 @@ onMounted(() => {
         <!-- 场景选择 -->
         <n-radio-group v-model:value="activeScenario" size="tiny">
           <n-radio-button v-for="s in presetScenarios" :key="s.id" :value="s.id">{{ s.shortName }}</n-radio-button>
-          <n-radio-button value="custom">自定义</n-radio-button>
+          <n-radio-button value="custom">{{ t('calibrator.custom') }}</n-radio-button>
         </n-radio-group>
       </div>
       <div class="flex items-center gap-2">
@@ -547,7 +547,7 @@ onMounted(() => {
           ]"
           class="w-40"
         />
-        <n-checkbox v-model:checked="showThresholds" size="tiny">阈值线</n-checkbox>
+        <n-checkbox v-model:checked="showThresholds" size="tiny">{{ t('calibrator.showThresholds') }}</n-checkbox>
         <n-divider vertical />
         <!-- 更多操作下拉 -->
         <n-dropdown
@@ -560,9 +560,9 @@ onMounted(() => {
           ]"
           @select="(key: string) => { if (key === 'undo') undo(); else if (key === 'redo') redo(); else if (key === 'reset') resetDefaults(); }"
         >
-          <n-button size="tiny">更多 ▾</n-button>
+          <n-button size="tiny">{{ t('calibrator.more') }}</n-button>
         </n-dropdown>
-        <n-button size="tiny" type="primary" @click="exportConfig">导出</n-button>
+        <n-button size="tiny" type="primary" @click="exportConfig">{{ t('calibrator.export') }}</n-button>
       </div>
     </div>
 
@@ -579,7 +579,7 @@ onMounted(() => {
         <n-card size="small" class="!shadow-sm !rounded-lg">
           <template #header>
             <div class="flex items-center justify-between">
-              <span class="text-xs font-medium">事件 Delta</span>
+              <span class="text-xs font-medium">{{ t('calibrator.eventDelta') }}</span>
               <div class="flex items-center gap-1">
                 <n-button size="tiny" quaternary @click="heatmapModalVisible = true">
                   放大
@@ -611,7 +611,7 @@ onMounted(() => {
         <n-card size="small" class="!shadow-sm !rounded-lg">
           <template #header>
             <div class="flex items-center justify-between">
-              <span class="text-xs font-medium">单回合 Cap</span>
+              <span class="text-xs font-medium">{{ t('calibrator.perTurnCap') }}</span>
               <n-button size="tiny" quaternary @click="capCollapsed = !capCollapsed">
                 {{ capCollapsed ? '展开' : '收起' }}
               </n-button>
@@ -635,7 +635,7 @@ onMounted(() => {
         <n-card size="small" class="!shadow-sm !rounded-lg">
           <template #header>
             <div class="flex items-center justify-between">
-              <span class="text-xs font-medium">人格调节系数</span>
+              <span class="text-xs font-medium">{{ t('calibrator.personalityMod') }}</span>
               <n-button size="tiny" quaternary @click="personalityCollapsed = !personalityCollapsed">
                 {{ personalityCollapsed ? '展开' : '收起' }}
               </n-button>
@@ -647,25 +647,25 @@ onMounted(() => {
                 <div class="space-y-2 pt-2">
                   <div>
                     <div class="flex justify-between text-[10px] text-gray-400 mb-0.5">
-                      <span>信任倍率</span><span>{{ personalityConfig.secure.trustScale.toFixed(1) }}×</span>
+                      <span>{{ t('calibrator.trustScale') }}</span><span>{{ personalityConfig.secure.trustScale.toFixed(1) }}×</span>
                     </div>
                     <n-slider v-model:value="personalityConfig.secure.trustScale" :min="0.3" :max="2" :step="0.1" size="small" @change="onParamChange" />
                   </div>
                   <div>
                     <div class="flex justify-between text-[10px] text-gray-400 mb-0.5">
-                      <span>安全感倍率</span><span>{{ personalityConfig.secure.safetyScale.toFixed(1) }}×</span>
+                      <span>{{ t('calibrator.safetyScale') }}</span><span>{{ personalityConfig.secure.safetyScale.toFixed(1) }}×</span>
                     </div>
                     <n-slider v-model:value="personalityConfig.secure.safetyScale" :min="0.3" :max="2" :step="0.1" size="small" @change="onParamChange" />
                   </div>
                   <div>
                     <div class="flex justify-between text-[10px] text-gray-400 mb-0.5">
-                      <span>纽带倍率</span><span>{{ personalityConfig.secure.bondScale.toFixed(1) }}×</span>
+                      <span>{{ t('calibrator.bondScale') }}</span><span>{{ personalityConfig.secure.bondScale.toFixed(1) }}×</span>
                     </div>
                     <n-slider v-model:value="personalityConfig.secure.bondScale" :min="0.3" :max="2" :step="0.1" size="small" @change="onParamChange" />
                   </div>
                   <div>
                     <div class="flex justify-between text-[10px] text-gray-400 mb-0.5">
-                      <span>阻抗倍率</span><span>{{ personalityConfig.secure.resistanceScale.toFixed(1) }}×</span>
+                      <span>{{ t('calibrator.resistanceScale') }}</span><span>{{ personalityConfig.secure.resistanceScale.toFixed(1) }}×</span>
                     </div>
                     <n-slider v-model:value="personalityConfig.secure.resistanceScale" :min="0.5" :max="2" :step="0.1" size="small" @change="onParamChange" />
                   </div>
@@ -675,25 +675,25 @@ onMounted(() => {
                 <div class="space-y-2 pt-2">
                   <div>
                     <div class="flex justify-between text-[10px] text-gray-400 mb-0.5">
-                      <span>信任倍率</span><span>{{ personalityConfig.anxious.trustScale.toFixed(1) }}×</span>
+                      <span>{{ t('calibrator.trustScale') }}</span><span>{{ personalityConfig.anxious.trustScale.toFixed(1) }}×</span>
                     </div>
                     <n-slider v-model:value="personalityConfig.anxious.trustScale" :min="0.3" :max="2" :step="0.1" size="small" @change="onParamChange" />
                   </div>
                   <div>
                     <div class="flex justify-between text-[10px] text-gray-400 mb-0.5">
-                      <span>安全感倍率</span><span>{{ personalityConfig.anxious.safetyScale.toFixed(1) }}×</span>
+                      <span>{{ t('calibrator.safetyScale') }}</span><span>{{ personalityConfig.anxious.safetyScale.toFixed(1) }}×</span>
                     </div>
                     <n-slider v-model:value="personalityConfig.anxious.safetyScale" :min="0.3" :max="2" :step="0.1" size="small" @change="onParamChange" />
                   </div>
                   <div>
                     <div class="flex justify-between text-[10px] text-gray-400 mb-0.5">
-                      <span>纽带倍率</span><span>{{ personalityConfig.anxious.bondScale.toFixed(1) }}×</span>
+                      <span>{{ t('calibrator.bondScale') }}</span><span>{{ personalityConfig.anxious.bondScale.toFixed(1) }}×</span>
                     </div>
                     <n-slider v-model:value="personalityConfig.anxious.bondScale" :min="0.3" :max="2" :step="0.1" size="small" @change="onParamChange" />
                   </div>
                   <div>
                     <div class="flex justify-between text-[10px] text-gray-400 mb-0.5">
-                      <span>阻抗倍率</span><span>{{ personalityConfig.anxious.resistanceScale.toFixed(1) }}×</span>
+                      <span>{{ t('calibrator.resistanceScale') }}</span><span>{{ personalityConfig.anxious.resistanceScale.toFixed(1) }}×</span>
                     </div>
                     <n-slider v-model:value="personalityConfig.anxious.resistanceScale" :min="0.5" :max="2" :step="0.1" size="small" @change="onParamChange" />
                   </div>
@@ -703,25 +703,25 @@ onMounted(() => {
                 <div class="space-y-2 pt-2">
                   <div>
                     <div class="flex justify-between text-[10px] text-gray-400 mb-0.5">
-                      <span>信任倍率</span><span>{{ personalityConfig.avoidant.trustScale.toFixed(1) }}×</span>
+                      <span>{{ t('calibrator.trustScale') }}</span><span>{{ personalityConfig.avoidant.trustScale.toFixed(1) }}×</span>
                     </div>
                     <n-slider v-model:value="personalityConfig.avoidant.trustScale" :min="0.3" :max="2" :step="0.1" size="small" @change="onParamChange" />
                   </div>
                   <div>
                     <div class="flex justify-between text-[10px] text-gray-400 mb-0.5">
-                      <span>安全感倍率</span><span>{{ personalityConfig.avoidant.safetyScale.toFixed(1) }}×</span>
+                      <span>{{ t('calibrator.safetyScale') }}</span><span>{{ personalityConfig.avoidant.safetyScale.toFixed(1) }}×</span>
                     </div>
                     <n-slider v-model:value="personalityConfig.avoidant.safetyScale" :min="0.3" :max="2" :step="0.1" size="small" @change="onParamChange" />
                   </div>
                   <div>
                     <div class="flex justify-between text-[10px] text-gray-400 mb-0.5">
-                      <span>纽带倍率</span><span>{{ personalityConfig.avoidant.bondScale.toFixed(1) }}×</span>
+                      <span>{{ t('calibrator.bondScale') }}</span><span>{{ personalityConfig.avoidant.bondScale.toFixed(1) }}×</span>
                     </div>
                     <n-slider v-model:value="personalityConfig.avoidant.bondScale" :min="0.3" :max="2" :step="0.1" size="small" @change="onParamChange" />
                   </div>
                   <div>
                     <div class="flex justify-between text-[10px] text-gray-400 mb-0.5">
-                      <span>阻抗倍率</span><span>{{ personalityConfig.avoidant.resistanceScale.toFixed(1) }}×</span>
+                      <span>{{ t('calibrator.resistanceScale') }}</span><span>{{ personalityConfig.avoidant.resistanceScale.toFixed(1) }}×</span>
                     </div>
                     <n-slider v-model:value="personalityConfig.avoidant.resistanceScale" :min="0.5" :max="2" :step="0.1" size="small" @change="onParamChange" />
                   </div>
@@ -731,25 +731,25 @@ onMounted(() => {
                 <div class="space-y-2 pt-2">
                   <div>
                     <div class="flex justify-between text-[10px] text-gray-400 mb-0.5">
-                      <span>信任倍率</span><span>{{ personalityConfig.disorganized.trustScale.toFixed(1) }}×</span>
+                      <span>{{ t('calibrator.trustScale') }}</span><span>{{ personalityConfig.disorganized.trustScale.toFixed(1) }}×</span>
                     </div>
                     <n-slider v-model:value="personalityConfig.disorganized.trustScale" :min="0.3" :max="2" :step="0.1" size="small" @change="onParamChange" />
                   </div>
                   <div>
                     <div class="flex justify-between text-[10px] text-gray-400 mb-0.5">
-                      <span>安全感倍率</span><span>{{ personalityConfig.disorganized.safetyScale.toFixed(1) }}×</span>
+                      <span>{{ t('calibrator.safetyScale') }}</span><span>{{ personalityConfig.disorganized.safetyScale.toFixed(1) }}×</span>
                     </div>
                     <n-slider v-model:value="personalityConfig.disorganized.safetyScale" :min="0.3" :max="2" :step="0.1" size="small" @change="onParamChange" />
                   </div>
                   <div>
                     <div class="flex justify-between text-[10px] text-gray-400 mb-0.5">
-                      <span>纽带倍率</span><span>{{ personalityConfig.disorganized.bondScale.toFixed(1) }}×</span>
+                      <span>{{ t('calibrator.bondScale') }}</span><span>{{ personalityConfig.disorganized.bondScale.toFixed(1) }}×</span>
                     </div>
                     <n-slider v-model:value="personalityConfig.disorganized.bondScale" :min="0.3" :max="2" :step="0.1" size="small" @change="onParamChange" />
                   </div>
                   <div>
                     <div class="flex justify-between text-[10px] text-gray-400 mb-0.5">
-                      <span>阻抗倍率</span><span>{{ personalityConfig.disorganized.resistanceScale.toFixed(1) }}×</span>
+                      <span>{{ t('calibrator.resistanceScale') }}</span><span>{{ personalityConfig.disorganized.resistanceScale.toFixed(1) }}×</span>
                     </div>
                     <n-slider v-model:value="personalityConfig.disorganized.resistanceScale" :min="0.5" :max="2" :step="0.1" size="small" @change="onParamChange" />
                   </div>
@@ -766,8 +766,8 @@ onMounted(() => {
         <n-card size="small" class="!shadow-sm !rounded-lg flex-1 flex flex-col">
           <template #header>
             <div class="flex items-center justify-between">
-              <span class="text-xs font-medium">BDI 状态轨迹</span>
-              <span class="text-[10px] text-gray-400">{{ simulations[0]?.turns.length ?? 0 }} 轮对话</span>
+              <span class="text-xs font-medium">{{ t('calibrator.bdiTrajectory') }}</span>
+              <span class="text-[10px] text-gray-400">{{ simulations[0]?.turns.length ?? 0 }} {{ t('calibrator.turns') }}</span>
             </div>
           </template>
           <v-chart :option="chartOption" class="w-full flex-1" style="min-height: 0" />
@@ -793,19 +793,19 @@ onMounted(() => {
               <div class="grid grid-cols-3 gap-4 py-2">
                 <div>
                   <div class="flex justify-between text-[11px] text-gray-500 mb-1">
-                    <span>探索门槛</span><span>{{ thresholds.open.toFixed(2) }}</span>
+                    <span>{{ t('calibrator.explorationThreshold') }}</span><span>{{ thresholds.open.toFixed(2) }}</span>
                   </div>
                   <n-slider v-model:value="thresholds.open" :min="0.3" :max="0.9" :step="0.05" size="small" />
                 </div>
                 <div>
                   <div class="flex justify-between text-[11px] text-gray-500 mb-1">
-                    <span>抗拒门槛(信任)</span><span>{{ thresholds.resistanceTrust.toFixed(2) }}</span>
+                    <span>{{ t('calibrator.resistanceTrust') }}</span><span>{{ thresholds.resistanceTrust.toFixed(2) }}</span>
                   </div>
                   <n-slider v-model:value="thresholds.resistanceTrust" :min="0.1" :max="0.7" :step="0.05" size="small" />
                 </div>
                 <div>
                   <div class="flex justify-between text-[11px] text-gray-500 mb-1">
-                    <span>抗拒门槛(安全感)</span><span>{{ thresholds.resistanceSafety.toFixed(2) }}</span>
+                    <span>{{ t('calibrator.resistanceSafety') }}</span><span>{{ thresholds.resistanceSafety.toFixed(2) }}</span>
                   </div>
                   <n-slider v-model:value="thresholds.resistanceSafety" :min="0.1" :max="0.7" :step="0.05" size="small" />
                 </div>

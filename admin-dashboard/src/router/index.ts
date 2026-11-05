@@ -9,6 +9,7 @@ import PsyGuardMonitor from '@/views/PsyGuardMonitor.vue'
 import CostBoard from '@/views/CostBoard.vue'
 import ArchitectureDiagram from '@/views/ArchitectureDiagram.vue'
 import ParamCalibrator from '@/views/ParamCalibrator.vue'
+import DebugChat from '@/views/DebugChat.vue'
 import Login from '@/views/Login.vue'
 
 const router = createRouter({
@@ -26,6 +27,7 @@ const router = createRouter({
     { path: '/cost', component: CostBoard },
     { path: '/architecture', component: ArchitectureDiagram },
     { path: '/calibrator', component: ParamCalibrator },
+    { path: '/debug-chat', component: DebugChat },
   ],
 })
 

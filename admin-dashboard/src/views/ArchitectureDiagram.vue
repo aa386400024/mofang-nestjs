@@ -279,7 +279,7 @@ const overallProgress = 40
     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
       <div class="bg-bg-surface border border-bg-border rounded-lg p-3 text-center">
         <div class="text-2xl font-bold text-accent">{{ overallProgress }}%</div>
-        <div class="text-xs text-muted mt-1">整体进度</div>
+        <div class="text-xs text-muted mt-1">{{ t('arch.overallProgress') }}</div>
       </div>
       <div v-for="item in layerProgress" :key="item.layer"
            class="bg-bg-surface border border-bg-border rounded-lg p-3">
@@ -302,18 +302,18 @@ const overallProgress = 40
     <!-- 说明 -->
     <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
       <div class="bg-bg-surface border border-bg-border rounded-lg p-4">
-        <h3 class="font-semibold mb-2">🎯 终局目标</h3>
+        <h3 class="font-semibold mb-2">{{ t('arch.endgoal') }}</h3>
         <p class="text-muted text-sm leading-relaxed">
           临床级可信、工程级可控、对标专业心理咨询师执业训练标准的 AI 来访仿真引擎。
           不是"更聪明的聊天机器人"，是"可以拿来训练心理咨询师执业能力的仿真系统"。
         </p>
       </div>
       <div class="bg-bg-surface border border-bg-border rounded-lg p-4">
-        <h3 class="font-semibold mb-2">📐 分层原则</h3>
+        <h3 class="font-semibold mb-2">{{ t('arch.principles') }}</h3>
         <ul class="text-muted text-sm leading-relaxed space-y-1">
-          <li>• 纯层内核：零 NestJS / 零网络 / 零 env，值语义可复现</li>
-          <li>• 决策与渲染分离：BDI 决定"说什么"，渲染层决定"怎么说"</li>
-          <li>• 端口注入：所有外部依赖走端口，内核不读进程环境</li>
+          <li>{{ t('arch.principle1') }}</li>
+          <li>{{ t('arch.principle2') }}</li>
+          <li>{{ t('arch.principle3') }}</li>
         </ul>
       </div>
     </div>

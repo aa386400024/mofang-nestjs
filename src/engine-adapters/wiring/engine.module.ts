@@ -70,6 +70,9 @@ import { resolvePersonalityModulatorConfig } from './personality-modulator.confi
 import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory.js';
 import { resolveSessionDecayConfig } from './session-decay.config.js';
 import { resolveSessionSummaryConfig } from './session-summary.config.js';
+import { LlmModule as AgentLlmModule } from '../../agent/llm/llm.module.js';
+import { CounselorLlmJsonClient } from '../../counselor/providers/llm-json.client.js';
+import type { EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
 import { resolveSessionCostPricing } from '../observability/session-cost.js';
 import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe.js';
 import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
@@ -83,7 +86,6 @@ import { AdminDebugModule } from '../../admin-debug/admin-debug.module.js';
 import { TraceRecorder } from '../../admin-debug/trace-recorder.service.js';
 import { AIEngineModule } from '../../ai-engine/ai-engine.module.js';
 import { QdrantService } from '../../ai-engine/providers/qdrant.service.js';
-import type { EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
 import { LlmModule } from '../../llm/llm.module.js';
 import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
 import { RedisService } from '../../shared/infra/redis/redis.service.js';
@@ -91,6 +93,7 @@ import { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
 import { VOICE_TURN_BACKEND } from '../../voice/voice-turn-backend.port.js';
+import { LlmDeliberationService } from '../deliberation/llm-deliberation.service.js';
 import { OpenAICompatEmbedder } from '../embedder/openai-compat.embedder.js';
 import { resolveMemoryConfig } from '../persistence/memory-config.js';
 import { RollingSessionSummaryService, type RollingSummaryCleanupPort } from '../persistence/rolling-session-summary.service.js';
@@ -116,6 +119,12 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
     CharacterPoolModule,
     // WP19: 调试快照记录器 (每轮 BDI trace 落库).
     AdminDebugModule,
+    // V2026-11-05 (WP64): agent 侧 LlmModule —— 只为拿 `LlmService`
+    //   (结构化输出 client `CounselorLlmJsonClient` 的传输层依赖).
+    //   ⚠️ 与下面的 `LlmModule` (src/llm/llm.module.js, 路由层) 是**两个不同的类**:
+    //     前者是 agent 侧的传输层 (MiniMax 直连), 后者是路由层 (多 provider + 故障转移).
+    //     审议走 counselor 域的**唯一结构化出口** (仓库硬约束 6), 所以要的是前者.
+    AgentLlmModule,
   ],
   controllers: [EngineWiringController],
   providers: [
@@ -304,6 +313,7 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         registry: EngineSessionRegistry,
         studentRisk: StudentRiskGateService,
         rollingSummary: RollingSessionSummaryService,
+        deliberation: LlmDeliberationService,
       ): TurnRenderOrchestrator =>
         createEngineOrchestrator({
           session,
@@ -313,6 +323,9 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
           studentRisk,
           // WP37: 渲染侧读同一个滚动摘要服务 (与内核写侧同一实例).
           rollingSummary,
+          // WP64: 影子审议端口 —— 门面每轮渲染后旁路调一次, 结果只写 Redis trace 表.
+          //   审议服务自己判 env 开关 (`ENGINE_DELIBERATION_ENABLED`), 关着时它**一次 LLM 都不发**.
+          deliberation,
         }),
       inject: [
         ENGINE_SESSION_PORT,
@@ -321,6 +334,7 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         EngineSessionRegistry,
         STUDENT_RISK_GATE,
         RollingSessionSummaryService,
+        LlmDeliberationService,
       ],
     },
     // V2026-11-02 治本 (WP14 §1.6 — 重点监测场次的强制远端探测):
@@ -464,6 +478,15 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
     //   CharacterPoolModule (数据源切换 = 改那一处 useFactory; 注入点零改动).
     //   本模块只 import 该模块, 不再直接持有角色池 provider —— 引擎装配层因此
     //   零 ORM / 零 SDK 包名 (WP8-A §8-9 护栏).
+    // V2026-11-05 治本 (WP64 · LLM 审议层 PoC · 影子模式):
+    //   审议服务 (旁路观察, 结果不生效) + 结构化输出 client.
+    //   ⚠️ `CounselorLlmJsonClient` 在这里**再注册一份** (不 import CounselorModule):
+    //     · 它是无状态 client (依赖只有 LlmService + ConfigService), 注册一份不会产生第二份真相;
+    //     · import CounselorModule 会把 counselor 域的 24 个 TypeORM entity + 控制器整包拖进引擎装配层,
+    //       引擎装配层因此会认识 ORM —— 违反 WP8-A §8-9 的"零 ORM / 零 SDK 包名"护栏.
+    //     · agent 侧 LlmModule 只提供 LlmService (传输层), 不带任何业务实体.
+    CounselorLlmJsonClient,
+    LlmDeliberationService,
   ],
   exports: [
     EngineTurnService,

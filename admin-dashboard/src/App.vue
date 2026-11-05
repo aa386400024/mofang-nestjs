@@ -3,7 +3,7 @@ import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { setLang } from '@/i18n'
 import { ref, onMounted, computed } from 'vue'
-import { darkTheme } from 'naive-ui'
+import { darkTheme, lightTheme } from 'naive-ui'
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -17,7 +17,30 @@ const toggleTheme = () => {
 }
 
 // Naive UI 主题覆盖：匹配现有 CSS 变量配色
-const naiveThemeOverrides = {
+const naiveThemeOverrides = computed(() => isLight.value ? {
+  common: {
+    primaryColor: '#a8557a',
+    primaryColorHover: '#b86688',
+    primaryColorPressed: '#984466',
+    primaryColorSuppl: '#a8557a',
+    successColor: '#3d9a6e',
+    warningColor: '#b88a3a',
+    errorColor: '#c85a5a',
+    borderRadius: '6px',
+    fontFamily: 'inherit',
+  },
+  Card: {
+    color: '#ffffff',
+    colorModal: '#ffffff',
+    borderColor: '#d1d1d6',
+  },
+  Table: {
+    thColor: '#f5f5f7',
+    tdColor: '#ffffff',
+    tdColorHover: '#e8e8ed',
+    borderColor: '#d1d1d6',
+  },
+} : {
   common: {
     primaryColor: '#c890a8',
     primaryColorHover: '#d8a0b8',
@@ -40,7 +63,7 @@ const naiveThemeOverrides = {
     tdColorHover: '#1e222d',
     borderColor: '#2a2f3d',
   },
-}
+})
 
 // 登录页不显示导航
 const isLoginPage = computed(() => route.path === '/login')
@@ -55,8 +78,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <n-config-provider :theme="darkTheme" :theme-overrides="naiveThemeOverrides">
+  <n-config-provider :theme="isLight ? lightTheme : darkTheme" :theme-overrides="naiveThemeOverrides">
     <n-message-provider>
+      <n-dialog-provider>
       <div>
         <!-- 登录页：只显示内容 -->
         <RouterView v-if="isLoginPage" />
@@ -79,6 +103,8 @@ onMounted(() => {
           <span class="w-px h-4 bg-bg-border mx-1 self-center"></span>
           <RouterLink to="/architecture" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.architecture') }}</RouterLink>
           <RouterLink to="/calibrator" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.calibrator') }}</RouterLink>
+          <span class="w-px h-4 bg-bg-border mx-1 self-center"></span>
+          <RouterLink to="/debug-chat" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.debugChat') }}</RouterLink>
         </nav>
         <div class="ml-auto flex items-center gap-3 text-xs font-mono">
           <button @click="toggleTheme" class="px-2 py-1 rounded border border-bg-border hover:bg-bg-elevated text-muted"
@@ -97,6 +123,7 @@ onMounted(() => {
       </main>
     </div>
       </div>
+      </n-dialog-provider>
     </n-message-provider>
   </n-config-provider>
 </template>

@@ -53,6 +53,25 @@ export interface CounselorLlmJsonRequest<T> {
   readonly userId: string;
   /** 外部 trace id, 关联到日志. */
   readonly traceId?: string;
+  /**
+   * V2026-11-05 治本 (WP64): **本次请求**的模型名覆盖.
+   *
+   * 为什么要有 per-request 覆盖 (而不是再加一个全局 env):
+   *   `.env` 的 `MINIMAX_LLM_MODEL` / `MINIMAX_BASE_URL` 是 ASR/TTS/voice 共用的全局值,
+   *   改它会打断已跑通的语音链路 (仓库硬约束 7). 审议层要能**单独**换模型
+   *   (PoC 期间可能要拿便宜的模型跑量), 就只能 per-call 覆盖 ——
+   *   `LlmService.streamChat` 本来就支持 `opts.model` 覆盖.
+   *   省略 = 沿用既有解析链 (env `MINIMAX_COUNSELOR_LLM_MODEL` → 默认模型), 老调用方行为逐字不变.
+   */
+  readonly model?: string;
+  /**
+   * V2026-11-05 治本 (WP64): 本次请求的采样温度.
+   *
+   * 省略 = 不下发 → 上游用默认值 (0.7).
+   * ⚠️ M3.1-Flash **忽略** temperature / top_p (官方固定 1 / 0.95) —— 仓库硬约束 8.
+   *   这个字段只对**换掉的模型**生效, 所以它不改变任何既有调用方的行为.
+   */
+  readonly temperature?: number;
 }
 
 /** token 用量. */
@@ -108,7 +127,7 @@ export class CounselorLlmJsonClient {
    *   **本方法不抛异常** (除调用方传入的 validate 自己抛错外).
    */
   async requestJson<T>(input: CounselorLlmJsonRequest<T>): Promise<CounselorLlmJsonResult<T>> {
-    const model = this.resolveModel();
+    const model = this.resolveModel(input.model);
     const messages: readonly LlmMessage[] = [
       {
         role: 'system',
@@ -129,6 +148,9 @@ export class CounselorLlmJsonClient {
       traceId: input.traceId,
       maxCompletionTokens: input.maxCompletionTokens,
       timeoutMs: input.timeoutMs,
+      // V2026-11-05 治本 (WP64): 温度 per-request 覆盖 —— 省略则**不下发**,
+      //   上游走自己的默认值 (0.7). 老调用方逐字不变.
+      ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
       // reasoning_effort 仅 M3.1-Flash 生效 → 非 M3.1 模型不下发, 避免上游 400.
       ...(supportsReasoningEffort(model) && input.reasoningEffort ? { reasoningEffort: input.reasoningEffort } : {}),
     })) {
@@ -212,9 +234,17 @@ export class CounselorLlmJsonClient {
 
   /**
    * 解析生效模型.
-   * env MINIMAX_COUNSELOR_LLM_MODEL 优先 (未配则用 COUNSELOR_LLM_DEFAULT_MODEL = MiniMax-M3.1-Flash).
+   *
+   * 优先级: **per-request 覆盖** (WP64) > env `MINIMAX_COUNSELOR_LLM_MODEL` > 默认模型.
+   *
+   * 为什么要 per-request 覆盖排第一: 调用方明确指定了模型, 就该听调用方的 ——
+   * env 是"全局默认", per-request 是"这一次". 两者冲突时以更具体的那份为准.
+   *
+   * @param override 本次请求的模型名覆盖 (省略 = 走 env / 默认)
    */
-  private resolveModel(): string {
+  private resolveModel(override?: string): string {
+    const explicit = (override ?? '').trim();
+    if (explicit.length > 0) return explicit;
     return this.config.get<string>(COUNSELOR_LLM_MODEL_ENV_KEY) ?? COUNSELOR_LLM_DEFAULT_MODEL;
   }
 }

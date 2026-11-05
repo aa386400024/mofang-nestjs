@@ -308,6 +308,17 @@ export declare global {
       //   装配成"BDI 状态存哪儿"的部署形态决定 (内核零 env 读取, 状态仓储本身在 B 层).
       ENGINE_BDI_STATE_STORE?: string; // BDI 状态存储形态: memory (缺省) | redis (非法值启动期炸)
       ENGINE_BDI_STATE_REDIS_TTL_SECONDS?: string; // Redis 版 TTL 秒数 (默认 604800 = 7 天)
+      // V2026-11-05 治本 (WP64 — LLM 审议层 PoC · 影子模式):
+      //   下面是影子审议的 4 个 env 键. 显式声明的理由与上面 ENGINE_DECAY_* 同一治本思路:
+      //   **逐个字面量**读 (src/engine-adapters/deliberation/llm-deliberation.service.ts),
+      //   不用计算键 —— env 覆盖断言 (AST 抽取) 扫不到计算键, 漏写一个键会静默失效.
+      //   装配成"审议层的运行参数"注入审议服务 (内核零 env 读取).
+      //   ⚠️ 影子模式**默认关** —— 它每轮会多发一次 LLM 请求 (真花钱).
+      //   ⚠️ 数值键读到的**一定是字符串** (ConfigService 不做类型转换), 必须自己解析 + 回退默认.
+      ENGINE_DELIBERATION_ENABLED?: string; // 影子审议开关: true/1/yes/on 开; 缺省 = 关
+      ENGINE_DELIBERATION_MODEL?: string; // 审议专用模型名 (留空 = 用 counselor 域默认模型)
+      ENGINE_DELIBERATION_TIMEOUT_MS?: string; // 单次审议超时 (毫秒, 默认 3000; 非法值回退默认)
+      ENGINE_DELIBERATION_TEMPERATURE?: string; // 审议采样温度 (默认 0.3; M3.1-Flash 会忽略它)
     }
   }
 

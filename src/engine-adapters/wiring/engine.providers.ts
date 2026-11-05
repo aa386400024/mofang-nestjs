@@ -58,6 +58,7 @@ import type { RedisService } from '../../shared/infra/redis/redis.service.js';
 import type { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
 import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import type { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
+import type { DeliberationShadowPort } from '../deliberation/llm-deliberation.service.js';
 import type { SessionCostPricing } from '../observability/session-cost.js';
 import { toRecallPolicyOptions, type MemoryConfig } from '../persistence/memory-config.js';
 import type { QdrantMemoryClient } from '../persistence/qdrant-memory.store.js';
@@ -264,6 +265,12 @@ export interface EngineOrchestratorDeps {
    * 不影响会话开合, 也不影响既有轮次的渲染.
    */
   readonly rollingSummary?: RollingSummaryPort;
+  /**
+   * 影子审议端口 (V2026-11-05 WP64; 缺省 = 不跑影子审议).
+   *
+   * 缺省语义: **纯增强** —— 没装就只是"没有影子审议数据", 会话与渲染逐字不变.
+   */
+  readonly deliberation?: DeliberationShadowPort;
 }
 
 /**
@@ -284,6 +291,8 @@ export function createEngineOrchestrator(deps: EngineOrchestratorDeps): TurnRend
     resolveSession: (handleId: string) => deps.registry.resolve(handleId),
     ...(deps.studentRisk ? { studentRisk: deps.studentRisk } : {}),
     ...(deps.rollingSummary ? { rollingSummary: deps.rollingSummary } : {}),
+    // WP64: 影子审议端口 —— 装配缺席时门面行为逐字不变 (纯增强).
+    ...(deps.deliberation ? { deliberation: deps.deliberation } : {}),
   });
 }
 

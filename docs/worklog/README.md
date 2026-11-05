@@ -40,8 +40,9 @@
 > - WP41（表达风格渲染接入 · 话量基线 / 叙事风格 / 语态倾向）✅ → [`completed/phase2/engine-wp41-expression-style-rendering-implementation-2026-11-04.md`](completed/phase2/engine-wp41-expression-style-rendering-implementation-2026-11-04.md)
 > - WP32（BDI 状态持久化 · 内存 → Redis，内核零改动）✅ → [`completed/phase2/engine-wp32-bdi-state-persistence-implementation-2026-11-05.md`](completed/phase2/engine-wp32-bdi-state-persistence-implementation-2026-11-05.md)
 > - WP63（审议输出 Schema 与可解释性设计 · 维度/标签枚举 + 输出契约 + 双模式 prompt 模板，内核零改动）✅ → [`completed/phase2/engine-wp63-deliberation-schema-design-implementation-2026-11-05.md`](completed/phase2/engine-wp63-deliberation-schema-design-implementation-2026-11-05.md)
+> - WP64（LLM 审议层 PoC · 影子模式，旁路观察，结果不写状态只写 Redis trace 表，内核零改动）✅ → [`completed/phase2/engine-wp64-llm-deliberation-poc-shadow-implementation-2026-11-05.md`](completed/phase2/engine-wp64-llm-deliberation-poc-shadow-implementation-2026-11-05.md)
 >
-> 进度 20/41（WP 清单与总览口径一致，WP27–WP68；2026-11-05 新增 WP63–WP68 混合式 BDI PoC 组）。
+> 进度 21/41（WP 清单与总览口径一致，WP27–WP68；2026-11-05 新增 WP63–WP68 混合式 BDI PoC 组）。
 
 ---
 
@@ -60,7 +61,7 @@
 
 > 完整规范在 [`../team/conventions.md`](../team/conventions.md)，这里只列最关键的三条：
 
-1. **engine-core 纯层一行不动**（用户例外批准除外）—— `git diff --stat HEAD -- src/engine-core` 交付时必须为空
+1. **engine-core 纯层边界**（分阶段，详见 [`../team/conventions.md`](../team/conventions.md) §1.1）—— PoC 影子期默认 `git diff --stat HEAD -- src/engine-core` 为空；永久红线是"零 NestJS / 零网络 / 零 prompt"，`boundary.spec.ts` 11 条断言永远要过
 2. **不写前端代码**（不碰 admin-dashboard / Flutter）
 3. **不跑前端命令**（flutter / dart / pub 一律不跑）
 
@@ -110,7 +111,7 @@ docs/worklog/
 │   │   ├── auth-and-password/
 │   │   ├── early-misc/
 │   │   └── phase1-backlog-archived-2026-11-03.md
-│   └── phase2/       ← Phase2 交付（WP28 ✅ PsyGUARD 正式值 / WP32 ✅ BDI 状态持久化（内存 → Redis，内核零改动）/ WP34 ✅ P1 人格调节算子 / WP35 ✅ 渲染四手法（语气疏离度 / 情绪表现 / 轻量随机 / 非语言）/ WP36 ✅ 跨会话间隔自然衰减 / WP37 ✅ 记忆会话级摘要压缩（滚动摘要）/ WP41 ✅ 表达风格渲染接入（话量基线 / 叙事风格 / 语态倾向）/ WP42 ✅ 咨询同盟三维 / WP49 ✅ 角色大五人格字段落地（内核零改动，宜人性算子通路打通）/ WP50 ✅ 渲染层接入同盟三维（safety/bond）/ WP51 ✅ 角色种子同盟三维基线（safety/bond）/ WP52 ✅ 剧本偏移接入同盟三维（safety/bond）/ WP53 ✅ 人格调节算子扩展到同盟三维（safety/bond）/ WP54 ✅ 破裂态阻抗反升（跨会话衰减补完）/ WP55 ✅ 会话摘要补齐来访者侧（两侧纪要）/ WP56 ✅ 长期记忆召回进渲染上下文 / WP57 ✅ BDI 信念层深度扩展（核心信念激活 + 短期信念置信度衰减）/ WP59 ✅ 记忆召回策略配置端口统一（半衰期/阈值可配置，判定只有一份）/ WP61 ✅ 会话摘要层次化（核心议题 / 关键事件 / 情绪转折点）/ WP63 ✅ 审议输出 Schema 与可解释性设计（维度/标签枚举 + 输出契约 + 双模式 prompt 模板））
+│   └── phase2/       ← Phase2 交付（WP28 ✅ PsyGUARD 正式值 / WP32 ✅ BDI 状态持久化（内存 → Redis，内核零改动）/ WP34 ✅ P1 人格调节算子 / WP35 ✅ 渲染四手法（语气疏离度 / 情绪表现 / 轻量随机 / 非语言）/ WP36 ✅ 跨会话间隔自然衰减 / WP37 ✅ 记忆会话级摘要压缩（滚动摘要）/ WP41 ✅ 表达风格渲染接入（话量基线 / 叙事风格 / 语态倾向）/ WP42 ✅ 咨询同盟三维 / WP49 ✅ 角色大五人格字段落地（内核零改动，宜人性算子通路打通）/ WP50 ✅ 渲染层接入同盟三维（safety/bond）/ WP51 ✅ 角色种子同盟三维基线（safety/bond）/ WP52 ✅ 剧本偏移接入同盟三维（safety/bond）/ WP53 ✅ 人格调节算子扩展到同盟三维（safety/bond）/ WP54 ✅ 破裂态阻抗反升（跨会话衰减补完）/ WP55 ✅ 会话摘要补齐来访者侧（两侧纪要）/ WP56 ✅ 长期记忆召回进渲染上下文 / WP57 ✅ BDI 信念层深度扩展（核心信念激活 + 短期信念置信度衰减）/ WP59 ✅ 记忆召回策略配置端口统一（半衰期/阈值可配置，判定只有一份）/ WP61 ✅ 会话摘要层次化（核心议题 / 关键事件 / 情绪转折点）/ WP63 ✅ 审议输出 Schema 与可解释性设计（维度/标签枚举 + 输出契约 + 双模式 prompt 模板）/ WP64 ✅ LLM 审议层 PoC（影子模式 · 旁路观察，结果只写 Redis trace 表，不写状态））
 ├── audits/           ← 审查报告（WP25 等）
 └── archive/          ← 老文档
 ```

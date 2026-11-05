@@ -166,7 +166,7 @@ const resistanceMetrics = computed<MetricItem[]>(() => {
   const s = turn.value.bdiSnapshot
   const p = prevSnapshot.value
   return [
-    { key: 'resistance', label: '总阻抗', value: s.resistance, delta: calcDelta(s.resistance, p?.resistance) },
+    { key: 'resistance', label: `总${t('sessionDetail.resistanceLabel')}`, value: s.resistance, delta: calcDelta(s.resistance, p?.resistance) },
     { key: 'verbal', label: '话量', value: s.resistanceVerbal, delta: calcDelta(s.resistanceVerbal, p?.resistanceVerbal) },
     { key: 'depth', label: '深度', value: s.resistanceDepth, delta: calcDelta(s.resistanceDepth, p?.resistanceDepth) },
     { key: 'style', label: '风格', value: s.resistanceStyle, delta: calcDelta(s.resistanceStyle, p?.resistanceStyle) },
@@ -270,7 +270,7 @@ const deltaResistance = computed(() => {
           <n-card v-if="turn" :title="t('sessionDetail.bdiSnapshot')" size="small">
             <!-- 关系组 -->
             <div class="mb-3">
-              <div class="text-[10px] uppercase tracking-wider text-muted mb-2">关系</div>
+              <div class="text-[10px] uppercase tracking-wider text-muted mb-2">{{ t('sessionDetail.relationship') }}</div>
               <div class="grid grid-cols-3 gap-2">
                 <div v-for="item in allianceMetrics" :key="item.key" class="bg-bg-base/60 rounded p-2.5">
                   <div class="text-[10px] text-muted mb-0.5">{{ item.label }}</div>
@@ -283,9 +283,9 @@ const deltaResistance = computed(() => {
                 </div>
               </div>
             </div>
-            <!-- 情绪组 -->
+            <!-- {{ t('sessionDetail.emotion') }}组 -->
             <div class="mb-3">
-              <div class="text-[10px] uppercase tracking-wider text-muted mb-2">情绪</div>
+              <div class="text-[10px] uppercase tracking-wider text-muted mb-2">{{ t('sessionDetail.emotion') }}</div>
               <div class="grid grid-cols-2 gap-2">
                 <div v-for="item in emotionMetrics" :key="item.key" class="bg-bg-base/60 rounded p-2.5">
                   <div class="text-[10px] text-muted mb-0.5">{{ item.label }}</div>
@@ -298,9 +298,9 @@ const deltaResistance = computed(() => {
                 </div>
               </div>
             </div>
-            <!-- 阻抗组 -->
+            <!-- {{ t('sessionDetail.resistanceLabel') }}组 -->
             <div>
-              <div class="text-[10px] uppercase tracking-wider text-muted mb-2">阻抗</div>
+              <div class="text-[10px] uppercase tracking-wider text-muted mb-2">{{ t('sessionDetail.resistanceLabel') }}</div>
               <div class="grid grid-cols-3 gap-2">
                 <div v-for="item in resistanceMetrics" :key="item.key" class="bg-bg-base/60 rounded p-2.5">
                   <div class="text-[10px] text-muted mb-0.5">{{ item.label }}</div>
@@ -322,11 +322,11 @@ const deltaResistance = computed(() => {
           <!-- 调试面板：Delta 明细 -->
           <n-card v-if="deltaDetail" size="small" :title="t('calibrator.deltaDetail')">
             <template #header-extra>
-              <n-tag size="tiny" :bordered="false" type="warning">待后端接入</n-tag>
+              <n-tag size="tiny" :bordered="false" type="warning">{{ t('sessionDetail.pendingBackend') }}</n-tag>
             </template>
             <!-- 关系 delta -->
             <div class="mb-2.5">
-              <div class="text-[10px] uppercase tracking-wider text-muted mb-1.5">关系</div>
+              <div class="text-[10px] uppercase tracking-wider text-muted mb-1.5">{{ t('sessionDetail.relationship') }}</div>
               <div class="space-y-1">
                 <div v-for="item in deltaAlliance" :key="item.key" class="flex items-center justify-between text-xs font-mono">
                   <span class="text-muted">{{ item.label }}</span>
@@ -336,9 +336,9 @@ const deltaResistance = computed(() => {
                 </div>
               </div>
             </div>
-            <!-- 情绪 delta -->
+            <!-- {{ t('sessionDetail.emotion') }} delta -->
             <div class="mb-2.5">
-              <div class="text-[10px] uppercase tracking-wider text-muted mb-1.5">情绪</div>
+              <div class="text-[10px] uppercase tracking-wider text-muted mb-1.5">{{ t('sessionDetail.emotion') }}</div>
               <div class="space-y-1">
                 <div v-for="item in deltaEmotion" :key="item.key" class="flex items-center justify-between text-xs font-mono">
                   <span class="text-muted">{{ item.label }}</span>
@@ -348,9 +348,9 @@ const deltaResistance = computed(() => {
                 </div>
               </div>
             </div>
-            <!-- 阻抗 delta -->
+            <!-- {{ t('sessionDetail.resistanceLabel') }} delta -->
             <div class="mb-2.5">
-              <div class="text-[10px] uppercase tracking-wider text-muted mb-1.5">阻抗</div>
+              <div class="text-[10px] uppercase tracking-wider text-muted mb-1.5">{{ t('sessionDetail.resistanceLabel') }}</div>
               <div class="space-y-1">
                 <div v-for="item in deltaResistance" :key="item.key" class="flex items-center justify-between text-xs font-mono">
                   <span class="text-muted">{{ item.label }}</span>
@@ -362,7 +362,7 @@ const deltaResistance = computed(() => {
             </div>
             <!-- 触发事件 -->
             <div v-if="deltaDetail.events.length" class="mt-2 pt-2 border-t border-bg-border">
-              <div class="text-[10px] uppercase tracking-wider text-muted mb-1.5">触发事件</div>
+              <div class="text-[10px] uppercase tracking-wider text-muted mb-1.5">{{ t('sessionDetail.triggerEvent') }}</div>
               <div class="flex flex-wrap gap-1">
                 <n-tag v-for="ev in deltaDetail.events" :key="ev" size="tiny" :bordered="false" type="info">
                   {{ ev }}
@@ -374,7 +374,7 @@ const deltaResistance = computed(() => {
           <!-- 调试面板：Cap 砍幅 -->
           <n-card v-if="capReport?.hasCapped" size="small" :title="t('calibrator.capCapped')" :bordered="false" class="border-l-2 border-l-warn">
             <template #header-extra>
-              <n-tag size="tiny" :bordered="false" type="warning">待后端接入</n-tag>
+              <n-tag size="tiny" :bordered="false" type="warning">{{ t('sessionDetail.pendingBackend') }}</n-tag>
             </template>
             <div class="space-y-1 text-xs">
               <div v-for="c in capReport.capped" :key="c.dimension" class="font-mono">
@@ -388,7 +388,7 @@ const deltaResistance = computed(() => {
           <!-- 调试面板：信念激活状态 -->
           <n-card v-if="Object.keys(beliefActivation).length" size="small" :title="t('calibrator.beliefActivation')">
             <template #header-extra>
-              <n-tag size="tiny" :bordered="false" type="warning">待后端接入</n-tag>
+              <n-tag size="tiny" :bordered="false" type="warning">{{ t('sessionDetail.pendingBackend') }}</n-tag>
             </template>
             <div class="space-y-2">
               <div v-for="(level, theme) in beliefActivation" :key="theme">

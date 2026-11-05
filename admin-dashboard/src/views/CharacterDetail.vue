@@ -76,7 +76,7 @@ const typeDistribution = () => {
         <n-tag size="small" :bordered="false" :type="auditStatus === 'approved' ? 'success' : auditStatus === 'rejected' ? 'error' : 'warning'">
           {{ auditStatus }}
         </n-tag>
-        <span class="ml-auto text-xs text-warn" v-if="auditStatus === 'pending'">待接入真实 API (mock 数据)</span>
+        <span class="ml-auto text-xs text-warn" v-if="auditStatus === 'pending'">{{ t('characterDetail.pendingRealApi') }}</span>
       </div>
 
       <!-- BDI 基线 -->

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const router = useRouter()
 const loading = ref(false)
 const error = ref('')
@@ -57,18 +59,18 @@ const handleLogin = async () => {
         <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-accent/10 mb-4">
           <div class="w-5 h-5 rounded-md bg-accent"></div>
         </div>
-        <h1 class="text-xl font-semibold text-gray-100">心塑 · Admin</h1>
-        <p class="text-sm text-muted mt-1">心理训练引擎调试控制台</p>
+        <h1 class="text-xl font-semibold text-gray-100">{{ t('app.loginTitle') }}</h1>
+        <p class="text-sm text-muted mt-1">{{ t('app.loginSubtitle') }}</p>
       </div>
 
       <!-- 登录卡片 -->
       <n-card class="backdrop-blur-xl" embedded>
         <n-form @submit.prevent="handleLogin">
-          <n-form-item label="用户名">
-            <n-input v-model:value="form.username" placeholder="请输入用户名" autocomplete="username" />
+          <n-form-item :label="t('app.username')">
+            <n-input v-model:value="form.username" :placeholder="t('app.usernamePlaceholder')" autocomplete="username" />
           </n-form-item>
-          <n-form-item label="密码">
-            <n-input v-model:value="form.password" type="password" show-password-on="click" placeholder="请输入密码" autocomplete="current-password" />
+          <n-form-item :label="t('app.password')">
+            <n-input v-model:value="form.password" type="password" show-password-on="click" :placeholder="t('app.passwordPlaceholder')" autocomplete="current-password" />
           </n-form-item>
 
           <n-alert v-if="error" :show-icon="false" type="error" class="mb-4">
@@ -82,13 +84,13 @@ const handleLogin = async () => {
             :disabled="!form.username || !form.password"
             @click="handleLogin"
           >
-            {{ loading ? '登录中…' : '登 录' }}
+            {{ loading ? t('app.loggingIn') : t('app.login') }}
           </n-button>
         </n-form>
       </n-card>
 
       <p class="text-center text-xs text-muted mt-6">
-        心塑 App · 后端调试管理后台
+        {{ t('app.footer') }}
       </p>
     </div>
   </div>

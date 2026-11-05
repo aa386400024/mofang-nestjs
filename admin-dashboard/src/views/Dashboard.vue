@@ -39,14 +39,14 @@ const riskDesc = (cat: string) => t(`risk.${cat}.desc`)
     <EmptyState
       v-if="loading"
       icon="chart"
-      title="加载中…"
-      description="正在获取引擎运行数据"
+      :title="t('dashboard.loading')"
+      :description="t('dashboard.loadingDesc')"
     />
     <EmptyState
       v-else-if="!data"
       icon="chart"
-      title="暂无仪表盘数据"
-      description="后端尚未提供 Dashboard 聚合 API。完成对练后，这里会展示会话统计、风险分布和 PsyGuard 状态。"
+      :title="t('dashboard.emptyTitle')"
+      :description="t('dashboard.emptyDesc')"
       pendingTag="Pending: Dashboard 聚合 API"
     />
     <template v-else-if="data">
@@ -60,7 +60,7 @@ const riskDesc = (cat: string) => t(`risk.${cat}.desc`)
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
             </div>
-            <n-tag size="tiny" :bordered="false" type="info">+{{ data.todaySessions }} 今日</n-tag>
+            <n-tag size="tiny" :bordered="false" type="info">+{{ data.todaySessions }} {{ t('dashboard.today') }}</n-tag>
           </div>
           <div class="text-2xl font-semibold text-gray-100 mb-1">{{ data.totalSessions }}</div>
           <div class="text-xs text-muted">{{ t('dashboard.totalSessions') }}</div>
@@ -109,7 +109,7 @@ const riskDesc = (cat: string) => t(`risk.${cat}.desc`)
             </span>
           </div>
           <div class="text-2xl font-semibold text-gray-100 mb-1">{{ data.psyguard.p90Ms }}ms</div>
-          <div class="text-xs text-muted">PsyGuard p90 · {{ data.psyguard.totalRequests }} 请求</div>
+          <div class="text-xs text-muted">PsyGuard p90 · {{ data.psyguard.totalRequests }} {{ t('dashboard.requests') }}</div>
         </div>
       </div>
 
@@ -139,8 +139,8 @@ const riskDesc = (cat: string) => t(`risk.${cat}.desc`)
       </n-card>
 
       <!-- 最近会话 -->
-      <n-card title="最近会话" size="small" class="mb-4">
-        <div v-if="!recentSessions.length" class="text-muted text-sm">暂无会话记录</div>
+      <n-card :title="t('dashboard.recentSessions')" size="small" class="mb-4">
+        <div v-if="!recentSessions.length" class="text-muted text-sm">{{ t('dashboard.noRecentSessions') }}</div>
         <div v-else class="space-y-2">
           <RouterLink
             v-for="s in recentSessions"

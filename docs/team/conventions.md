@@ -7,18 +7,31 @@
 
 ## 一、绝对红线
 
-### 1.1 engine-core 纯层一行不动
+### 1.1 engine-core 纯层边界（分阶段）
+
+#### 🚫 永久红线（永远不能破）
+
+- ❌ 不在 `src/engine-core/**` 里加 `@nestjs/`、网络调用、prompt、模型名、`process.env`
+- ❌ 不在 engine-core 里放任何副作用（IO / Redis / HTTP / DB）
+- ✅ 改完必须通过 `boundary.spec.ts` 的 11 条断言（AST 级扫描，机器守着）
+
+#### 🟡 阶段性红线（PoC 影子期默认遵守）
 
 ```bash
 git diff --stat HEAD -- src/engine-core
 ```
-交付时这个命令输出必须为空。
 
-- ❌ 不改 `src/engine-core/**` 下任何文件
-- ❌ 不在 engine-core 里加 @nestjs/、网络调用、prompt、模型名、`process.env`
-- ✅ 所有新逻辑放 `src/engine-adapters/` 或业务层
+PoC 阶段（LLM 审议影子验证期）默认输出为空——因为我们还在验证"LLM 审议到底行不行"，这时候动内核等于把变量搞多了，验证结论不可信。所有新逻辑默认放 `src/engine-adapters/` 或业务层。
 
-> **例外**：用户明确拍板改底层（如 WP15 delta cap、WP26 P2-14 env 注入），需在任务单里写明，改完必须通过 `boundary.spec.ts` 的 11 条断言。
+#### ✅ 什么时候可以动内核
+
+| 情况 | 能不能动 | 动的前提 |
+|---|---|---|
+| 加出口字段（比如 `deltaReport`、`turnCapReport`） | ✅ 可以 | 纯加返回值，不改任何计算逻辑，纯层性质不变 |
+| 改算子逻辑（规则强度、cap 逻辑、加新算子） | ⚠️ 谨慎 | 有充分临床依据、且经过多轮影子模式数据验证后才做 |
+| 改边界断言（动 boundary.spec.ts） | ❌ 禁止 | 那是我们的护栏，不能自己拆 |
+
+> **例外批准流程**：用户明确拍板改底层，需在任务单里写明改哪个文件、改什么、为什么适配层做不到。改完必须通过 `boundary.spec.ts` 的 11 条断言。
 
 ### 1.2 不写前端代码
 
