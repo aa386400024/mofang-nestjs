@@ -150,8 +150,6 @@ export default {
     speechVolume: 'Speech Volume Baseline',
     narrativeStyle: 'Narrative Style',
     tone: 'Expression Tone',
-    memories: 'Accumulated Memories',
-    pendingRealApi: 'Pending real API (mock data)',
   },
   memories: {
     title: 'Memory Browser',

@@ -19,14 +19,7 @@ const trajectory = ref<Awaited<ReturnType<typeof api.trajectory>>>(null)
 const sessionMemories = ref<MemoryEntry[]>([])
 const highlightMemory = ref<string | null>(null)
 
-// mock：记忆 id → 轮次映射（后端补 originTurnIndex 后切换）
-const memoryTurnMap: Record<string, number> = {
-  m001: 1, m002: 2, m003: 1, m004: 2,
-  m005: 1, m006: 2, m007: 1,
-  m010: 0, m011: 1, m012: 2, m013: 1,
-  m014: 1, m015: 2,
-}
-
+// 记忆类型配置
 const typeMeta: Record<MemoryType, { label: string; color: string }> = {
   fact: { label: '事实', color: 'bg-blue-500/15 text-blue-400' },
   emotion: { label: '情感', color: 'bg-accent/15 text-accent' },
@@ -49,14 +42,11 @@ const turn = computed<TurnTrace | null>(() =>
   data.value?.traces.find(t => t.turnIndex === selectedTurn.value) ?? null
 )
 
-// 当前轮次对应的记忆
-const memoriesForTurn = computed(() =>
-  sessionMemories.value.filter(m => memoryTurnMap[m.id] === selectedTurn.value)
-)
-
+// 点记忆 → 高亮它（不再跳轮次）。
+// 之前这里靠一张写死的 id→轮次假表（m001 → 1 …）来跳轮 —— 那是 mock 数据，
+// 真记忆的 id 根本不在表里，跳转会跳到一个**不相关**的轮次。
+// 现在后端记忆契约里没有"来源轮次"字段，就不跳：只高亮，等后端补 originTurnIndex 再接。
 const clickMemory = (m: MemoryEntry) => {
-  const turnIdx = memoryTurnMap[m.id]
-  if (turnIdx !== undefined) selectedTurn.value = turnIdx
   highlightMemory.value = m.id
 }
 
@@ -468,7 +458,7 @@ const deltaResistance = computed(() => {
             <div class="flex-1 min-w-0">
               <p class="text-sm" :class="m.supersededBy ? 'line-through' : ''">{{ m.content }}</p>
               <div class="text-[10px] text-muted mt-0.5 font-mono">
-                T{{ memoryTurnMap[m.id] ?? '?' }} · imp {{ m.importance.toFixed(1) }}
+                {{ new Date(m.createdAt).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) }} · imp {{ m.importance.toFixed(1) }}
                 <span v-if="m.supersededBy" class="text-warn ml-2">→ {{ m.supersededBy }}</span>
               </div>
             </div>

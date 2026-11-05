@@ -109,9 +109,9 @@ import {
   type DeliberationOperatorTag,
   type DeliberationOutput,
 } from './deliberation-types.js';
-import type { CounselorLlmJsonClient } from '../../counselor/providers/llm-json.client.js';
+import { CounselorLlmJsonClient } from '../../counselor/providers/llm-json.client.js';
 import type { BehaviorStrategy, BdiSnapshot, DeltaVector } from '../../engine-core/index.js';
-import type { RedisService } from '../../shared/infra/redis/redis.service.js';
+import { RedisService } from '../../shared/infra/redis/redis.service.js';
 
 /** Redis key 的逻辑前缀 (ioredis 还会自动拼 `REDIS_KEY_PREFIX`, 多环境隔离靠它). */
 export const DELIBERATION_TRACE_KEY_PREFIX = 'deliberation_trace';

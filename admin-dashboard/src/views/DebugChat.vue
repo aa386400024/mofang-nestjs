@@ -85,13 +85,7 @@ async function startSession() {
   if (!selectedCharacterSlug.value) return
   loading.value = true
   try {
-    const res = await fetch('/admin/api/debug/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify({ characterSlug: selectedCharacterSlug.value }),
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = await res.json()
+    const data = await api.debugSession.create(selectedCharacterSlug.value)
     sessionId.value = data.sessionId
     turnIndex.value = 0
     messages.value = []
@@ -116,33 +110,27 @@ async function sendTurn() {
   messages.value.push({ role: 'counselor', text })
 
   try {
-    // TODO: 后端补 POST /admin/api/debug/session/:id/turn 接口
-    // const res = await fetch(`/admin/api/debug/session/${sessionId.value}/turn`, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    //   body: JSON.stringify({ counselorText: text }),
-    // })
-    // const data = await res.json()
+    const data = await api.debugSession.turn(sessionId.value, text)
 
-    // 临时 mock 来访回应
-    await new Promise(r => setTimeout(r, 800))
-    const mockVisitorText = '（来访回应 mock —— 后端接口好了替换）'
-    messages.value.push({ role: 'visitor', text: mockVisitorText })
-    turnIndex.value++
+    // 来访回应
+    messages.value.push({ role: 'visitor', text: data.reply })
+    turnIndex.value = data.turnIndex
 
-    // mock BDI 状态历史数据
-    bdiHistory.value.push({
-      turnIndex: turnIndex.value,
-      trust: 0.3 + Math.random() * 0.2,
-      safety: 0.5 + Math.random() * 0.1,
-      bond: 0.2 + Math.random() * 0.15,
-      valence: 0.4 + Math.random() * 0.2,
-      arousal: 0.5 + Math.random() * 0.1,
-    })
-
-    // TODO: 后端返回 trace 后赋值
-    // currentTrace.value = data.trace
+    // BDI 状态历史
+    const trace = data.trace as TurnTrace
+    if (trace) {
+      currentTrace.value = trace
+      bdiHistory.value.push({
+        turnIndex: trace.turnIndex,
+        trust: trace.bdiSnapshot.trust,
+        safety: trace.bdiSnapshot.safety ?? 0,
+        bond: trace.bdiSnapshot.bond ?? 0,
+        valence: trace.bdiSnapshot.valence,
+        arousal: trace.bdiSnapshot.arousal,
+      })
+    }
   } catch (e) {
+    console.error('发对话失败', e)
     message.error(t('debugChat.send') + ' ❌')
   } finally {
     sending.value = false
@@ -194,13 +182,21 @@ function sendQuickPrompt(text: string) {
   sendTurn()
 }
 
-function resetSession() {
+async function resetSession() {
   dialog.warning({
     title: t('debugChat.resetTitle'),
     content: t('debugChat.resetContent'),
     positiveText: t('debugChat.resetConfirm'),
     negativeText: t('debugChat.resetCancel'),
-    onPositiveClick: () => {
+    onPositiveClick: async () => {
+      // 调后端关会话（清内核句柄 + 内存）
+      if (sessionId.value) {
+        try {
+          await api.debugSession.close(sessionId.value)
+        } catch (e) {
+          console.error('关闭调试会话失败', e)
+        }
+      }
       sessionId.value = null
       selectedCharacterSlug.value = null
       messages.value = []
@@ -225,11 +221,6 @@ function editMessage(text: string) {
     const el = document.querySelector('#debug-chat-main input') as HTMLInputElement
     el?.focus()
   })
-}
-
-function authHeaders(): Record<string, string> {
-  const auth = sessionStorage.getItem('admin_basic_auth')
-  return auth ? { Authorization: auth } : {}
 }
 
 // ========== 生命周期 ==========

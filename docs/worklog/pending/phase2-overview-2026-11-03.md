@@ -57,7 +57,7 @@
 | P0-4 | **TTS 内联语气词标签** | 协议支持 `(sighs)` `(pant)` 等，没注入 | prompt 里告诉 LLM 必要时插入语气词标签，TTS 真发声 | P0-2 |
 | P0-5 | **WP11 回改正式值** | PsyGUARD 超时 500ms→150ms、token 窗口 256→28 | 内测前改回生产值，性能测试通过 | 无 |
 | P0-6 | **数据分级留存与销毁** | 无删除权、导出权、年限分级 | 用户删除权（对话+记忆+账号）、导出权、数据分级策略落地 | 无 |
-| P0-7 | **Admin Dashboard 切真 API** | CharacterDetail.vue + SessionDetail.vue 两处 mock | 全部页面接 `/admin/api/*` 真数据，去掉 mock 标识 | 无 |
+| P0-7 | **Admin Dashboard 切真 API** ✅ WP30（2026-11-05） | CharacterDetail.vue + SessionDetail.vue 两处 mock | 全部页面接 `/admin/api/*` 真数据，去掉 mock 标识 | 无 |
 | P0-8 | **成本看板与告警** | 指标采集有了，告警规则没接 | 成本看板展示 token 消耗/用户/会话，超阈值告警 | 无 |
 
 #### 🟡 P1 专业能力主线（17 条，核心项如下）

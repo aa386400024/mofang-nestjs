@@ -150,8 +150,6 @@ export default {
     speechVolume: '话量基线',
     narrativeStyle: '叙事风格',
     tone: '语态倾向',
-    memories: '积累的记忆',
-    pendingRealApi: '待接入真实 API (mock 数据)',
   },
   memories: {
     title: '记忆浏览器',

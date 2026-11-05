@@ -14,7 +14,7 @@
 | **WP27** | billing 接真支付 | 🔴 P0 | 微信支付 V2 + 支付宝当面付接入，订单落库，回调验签，替换现有内存 mock | 中 | 📋 |
 | **WP28** ✅ | WP11 回改正式值 | 🔴 P0 | PsyGUARD 超时 500ms→150ms、token 窗口 256→28，内测前改回生产值 | 小 | ✅ [交付记录](../completed/phase2/engine-wp28-psyguard-production-values-implementation-2026-11-03.md) |
 | **WP29** | 数据分级留存与销毁 | 🔴 P0 | 用户删除权（对话+记忆+账号）、导出权、数据分级策略落地 | 中 | 📋 |
-| **WP30** | Admin Dashboard 切真 API | 🔴 P0 | CharacterDetail + SessionDetail 接 `/admin/api/*` 真数据，去掉 mock 标识 | 中 | 📋 |
+| **WP30** ✅ | Admin Dashboard 切真 API | 🔴 P0 | CharacterDetail + SessionDetail 接 `/admin/api/*` 真数据，去掉 mock 标识 | 中 | ✅ [交付记录](../completed/phase2/engine-wp30-admin-dashboard-real-api-implementation-2026-11-05.md) |
 | **WP31** | 成本看板与告警 | 🔴 P0 | 成本看板展示 token 消耗/用户/会话，超阈值告警规则接入 | 小 | 📋 |
 | **WP32** ✅ | BDI 状态持久化 | 🟡 P1 | 内存态 → Redis/DB，进程重启后可恢复 BDI 快照 | 中 | ✅ [交付记录](../completed/phase2/engine-wp32-bdi-state-persistence-implementation-2026-11-05.md) |
 
@@ -106,7 +106,11 @@
 | 🟢 P2 技术债 | 13 条 | WP45, 46, 47, 48, 49, 52, 53, 54, 59, 60, 62, 68 |
 | **合计** | **41 条** | **WP27–WP68** |
 
-**进度：26 / 41 完成**（WP28 ✅、WP32 ✅、WP34 ✅、WP35 ✅、WP36 ✅、WP37 ✅、WP41 ✅、WP42 ✅、WP49 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP56 ✅、WP57 ✅、WP58 ✅、WP59 ✅、WP61 ✅、WP63 ✅、WP64 ✅、WP65 ✅、WP66 ✅、WP67 ✅、WP68 ✅，2026-11-05）。
+**进度：27 / 41 完成**（WP28 ✅、WP30 ✅、WP32 ✅、WP34 ✅、WP35 ✅、WP36 ✅、WP37 ✅、WP41 ✅、WP42 ✅、WP49 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP56 ✅、WP57 ✅、WP58 ✅、WP59 ✅、WP61 ✅、WP63 ✅、WP64 ✅、WP65 ✅、WP66 ✅、WP67 ✅、WP68 ✅，2026-11-05）。
+
+> ⚠️ **WP30 只销了「两个页面切真 API」那一半**：`CharacterDetail` + `SessionDetail` 两页已切真（后端补 4 个 `/admin/api/*` 端点 + 前端去 mock），但**其余页面的 mock 仍在**（`MemoryBrowser` / `PsyGuardMonitor` / `CostBoard` / `Dashboard`）；**本场记忆恒空**（`training_sessions` 无 memories 列）；**5Ps 已返回但页面还没渲染**。**别把这一行当成"整个 Dashboard 已切真"。**
+>
+> ⚠️ **WP30 的剧本轨迹端点只对新会话有效**：留痕契约里的 `trajectoryTrace` 字段是本轮才补的，老会话的留痕里没有它 → 轨迹端点返 `null`（要重新开一场对练才看得到）。
 
 > ⚠️ **WP58 只销了「后端三接口」那一半**：前端 `DebugChat.vue` 的接线（2 处 TODO + `resetSession()` 补 DELETE）由前端 AI 做；母版描述里的**"触发了什么事件"**（逐事件明细）与 **delta cap 砍幅报告**也仍未做 —— 那两项内核不对外，需另开单。**别把这一行当成"调试面板已完整可用"。**
 
@@ -171,7 +175,7 @@ _每个 WP 开工前单独写任务单（按 `team/conventions.md` 的交付格�
 
 | WP | 前端要做什么 | 后端要交付什么 |
 |---|---|---|
-| WP30 Admin Dashboard | Vue3 页面切真 API | 后端出 `/admin/api/*` 接口文档（Swagger） |
+| WP30 Admin Dashboard ✅ | Vue3 页面切真 API（**已做**，前端与后端同单交付） | 后端出 `/admin/api/*` 接口文档（Swagger） |
 | WP33 会员分层 TTS | Flutter 客户端展示会员等级 + TTS 质量差异 | 后端出 tier 字段 + TTS 模型映射接口 |
 | WP39 TTS emotion | Flutter 客户端适配新的 TTS 音质 | 后端出 emotion 映射配置表 |
 | WP40 TTS 语气词 | Flutter 客户端适配语气词标签 | 后端出 prompt 模板变更说明 |

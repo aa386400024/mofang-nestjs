@@ -240,7 +240,8 @@ export interface SessionCost {
 export interface CharacterSession {
   sessionId: string
   visitorAlias: string
-  startedAt: string
+  /** 开场时刻；未开场 / 无记录时为 null（后端列可空，前端按空态渲染） */
+  startedAt: string | null
   durationSec: number
   status: string
   totalTokens: number

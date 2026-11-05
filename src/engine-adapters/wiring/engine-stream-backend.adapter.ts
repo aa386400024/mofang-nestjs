@@ -1154,6 +1154,10 @@ export class EngineStreamBackend implements VoiceTurnBackend {
    * 抽成独立方法: 让 `recordTrace` 只管"记不记 / 记到哪", 形状转换集中在一处,
    * 将来契约加字段只改这里.
    *
+   * V2026-11-05 治本 (WP30): 补 `trajectoryTrace` (内核出参透传).
+   *   没有剧本的会话 (BDI 自由运行) 内核不给这一项 → 字段整个不出现 (可选字段),
+   *   与 `renderSpec` / `llmUsage` 的"没有就不带"口径一致.
+   *
    * @param sessionId 语音会话 id
    * @param result 本轮结算结果
    * @param usage 本轮用量
@@ -1167,6 +1171,7 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       renderSpec: buildRenderSpecSummary(result.render),
       llmUsage: buildLlmUsage(result.render, usage),
       crisis: buildCrisisSummary(result.safety),
+      ...(result.trajectoryTrace ? { trajectoryTrace: result.trajectoryTrace } : {}),
       ts: new Date().toISOString(),
     };
   }

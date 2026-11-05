@@ -31,6 +31,13 @@
 //       "ts": "2026-10-29T14:30:00.000Z"
 //     }
 //
+//   V2026-11-05 治本 (WP30 · 快照契约补 trajectoryTrace):
+//     契约**追加**一个可选字段 `trajectoryTrace` (内核 `TrajectoryTrace` 透传).
+//     为什么: 调试器的"剧本轨迹"面板要的是"这场走到第几幕", 而留痕里没有这一项 ——
+//     端点写得再准也只能返回空. 追加而非替换: 老会话读出来没有这一项 = 老数据,
+//     不影响既有字段的读法.
+//     反双胞胎: 不新造一份轨迹 DTO —— 直接透传内核出参, 适配层不改它的形状.
+//
 //   反双胞胎:
 //     - 不加新表 / 不加新列: 沿用 training_sessions.turn_debug_trace (JSON 列, WP19 已建).
 //     - 不存完整 system prompt / 完整逐字稿 / 音频: system 只留前 500 字预览.
@@ -52,6 +59,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { TrainingSession } from '../counselor/entities/training-session.entity.js';
+import type { TrajectoryTrace } from '../engine-core/index.js';
 
 /**
  * 单轮调试快照 (WP19 原单 §1.1 契约, 逐字沿用).
@@ -92,6 +100,20 @@ export interface TurnTrace {
     readonly detected: boolean;
     readonly category: string | null;
   };
+  /**
+   * 本轮轨迹观测 (内核 `TrajectoryTrace` 透传).
+   *
+   * V2026-11-05 治本 (WP30 · 调试器要能看见剧本走到哪):
+   *   为什么是**可选**: 没有注入剧本的会话 (BDI 自由运行) 本轮就没有轨迹观测块,
+   *   字段整个不出现 —— 与既有 `renderSpec` / `llmUsage` 的"没有就不带"口径一致.
+   *   为什么**不改名也不改位**: 快照 JSON 契约 (WP19 原单 §1.1) 是对外契约,
+   *   调试器 SPA 与报告页都按这份形状读; 本字段是**追加**的可选项,
+   *   老会话的留痕是在它加进来之前落的 → 读出来没有这一项 = "这场没剧本 / 老数据".
+   *
+   * 落这一项之前, 调试器的"剧本轨迹"面板**永远空着** —— 留痕里根本没有轨迹数据,
+   *   端点再准也取不到东西 (WP30 §偏差 B1).
+   */
+  readonly trajectoryTrace?: TrajectoryTrace;
   /** 落库时刻 (ISO). */
   readonly ts: string;
 }

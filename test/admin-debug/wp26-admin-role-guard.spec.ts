@@ -304,10 +304,21 @@ describe('WP26 §1 P2-4 · admin-debug 命名空间加角色校验', () => {
       expect(classGuards).toContain(AdminRoleGuard);
     });
 
-    it('4 个端点 (sessions / sessions/:id / characters / health) 的有效 guard 都含 AdminRoleGuard', () => {
+    it('全部端点 (含 WP30 新增 4 个) 的有效 guard 都含 AdminRoleGuard', () => {
       const routes = collectRoutes();
 
-      expect(routes.map((route) => route.path).sort()).toEqual(['characters', 'health', 'sessions', 'sessions/:id']);
+      // V2026-11-05 (WP30): 新增 4 个只读端点 —— class 级 guard 自动继承,
+      // 这里把端点清单一起列出来, 免得将来加端点时"忘了挂 guard"却没人发现.
+      expect(routes.map((route) => route.path).sort()).toEqual([
+        'characters',
+        'characters/:slug',
+        'characters/:slug/sessions',
+        'health',
+        'sessions',
+        'sessions/:id',
+        'sessions/:id/memories',
+        'sessions/:id/trajectory',
+      ]);
       for (const route of routes) {
         expect(route.method).toBe(RequestMethod.GET);
         expect(route.guards).toContain(AdminRoleGuard);

@@ -48,6 +48,60 @@ async function get<T>(path: string): Promise<T> {
   return r.json() as Promise<T>
 }
 
+async function post<T>(path: string, body: unknown): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const auth = getAuthHeader()
+  if (auth) headers.Authorization = auth
+
+  const r = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  })
+
+  if (r.status === 401) {
+    sessionStorage.removeItem(CRED_KEY)
+    const newAuth = promptCredentials()
+    if (!newAuth) throw new Error('需要登录')
+    const retry = await fetch(`${BASE}${path}`, {
+      method: 'POST',
+      headers: { ...headers, Authorization: newAuth },
+      body: JSON.stringify(body),
+    })
+    if (!retry.ok) throw new Error(`${path} → ${retry.status}`)
+    return retry.json() as Promise<T>
+  }
+
+  if (!r.ok) throw new Error(`${path} → ${r.status}`)
+  return r.json() as Promise<T>
+}
+
+async function del<T>(path: string): Promise<T> {
+  const headers: Record<string, string> = {}
+  const auth = getAuthHeader()
+  if (auth) headers.Authorization = auth
+
+  const r = await fetch(`${BASE}${path}`, {
+    method: 'DELETE',
+    headers,
+  })
+
+  if (r.status === 401) {
+    sessionStorage.removeItem(CRED_KEY)
+    const newAuth = promptCredentials()
+    if (!newAuth) throw new Error('需要登录')
+    const retry = await fetch(`${BASE}${path}`, {
+      method: 'DELETE',
+      headers: { Authorization: newAuth },
+    })
+    if (!retry.ok) throw new Error(`${path} → ${retry.status}`)
+    return retry.json() as Promise<T>
+  }
+
+  if (!r.ok) throw new Error(`${path} → ${r.status}`)
+  return r.json() as Promise<T>
+}
+
 // ─── 真实 API 端点 ───
 
 export const api = {
@@ -71,19 +125,47 @@ export const api = {
     return get<HealthStatus>('/health')
   },
 
+  // ─── 调试会话（WP58） ───
+  debugSession: {
+    create: async (characterSlug: string): Promise<{ sessionId: string; debugSessionId: string; characterSlug: string; characterLabel: string; createdAt: string }> => {
+      return post('/debug/session', { characterSlug })
+    },
+    turn: async (sessionId: string, counselorText: string): Promise<{ turnIndex: number; reply: string; trace: unknown }> => {
+      return post(`/debug/session/${sessionId}/turn`, { counselorText })
+    },
+    close: async (sessionId: string): Promise<{ sessionId: string; closed: boolean }> => {
+      return del(`/debug/session/${sessionId}`)
+    },
+  },
+
+  // ─── 角色详情（真 API · WP30） ───
+  // 后端: GET /admin/api/characters/:slug (character_profiles 单行 + 会话数)
+  character: async (slug: string): Promise<CharacterDetail> => {
+    return get<CharacterDetail>(`/characters/${slug}`)
+  },
+
+  // ─── 角色历史会话（真 API · WP30） ───
+  // 后端: GET /admin/api/characters/:slug/sessions (按留痕里的 characterSlug 过滤)
+  characterSessions: async (slug: string): Promise<CharacterSession[]> => {
+    return get<CharacterSession[]>(`/characters/${slug}/sessions`)
+  },
+
+  // ─── 轨迹/剧本节点（真 API · WP30） ───
+  // 后端: GET /admin/api/sessions/:id/trajectory (返 null = 本场无剧本)
+  trajectory: async (sessionId: string): Promise<TrajectoryState | null> => {
+    return get<TrajectoryState | null>(`/sessions/${sessionId}/trajectory`)
+  },
+
+  // ─── 本场记忆（真 API · WP30） ───
+  // 后端: GET /admin/api/sessions/:id/memories
+  // 注: 后端当前恒返空数组 (training_sessions 无 memories 列), 见交付记录 §缺口 G1
+  sessionMemories: async (sessionId: string): Promise<MemoryEntry[]> => {
+    return get<MemoryEntry[]>(`/sessions/${sessionId}/memories`)
+  },
+
   // ─── 以下为 mock，后端补 API 后切换 ───
 
-  // ─── P1: 角色详情（mock，按 slug 查） ───
-  character: async (slug: string): Promise<CharacterDetail> => ({
-    slug,
-    codename: slug,
-    baseline: { trust: 0, resist: 0, valence: 0, arousal: 0 },
-    fivePs: { presenting: '', predisposing: '', precipitating: '', perpetuating: '', protecting: '' },
-    expressionStyle: { speechVolumeBaseline: 0.5, narrativeStyle: 'mixed', expressionTone: 'restrained' },
-    sessionCount: 0,
-  }),
-
-  // ─── P1: 记忆浏览器（mock） ───
+  // ─── P1: 记忆浏览器（mock · 页面尚未接真 API） ───
   memories: async (_visitorId?: string): Promise<MemoryEntry[]> => [],
 
   // ─── P2: PsyGUARD 监控（mock） ───
@@ -92,21 +174,12 @@ export const api = {
   }),
   psyguardTrend: async (): Promise<PsyGuardTrendPoint[]> => [],
 
-  // ─── P1: 轨迹/剧本节点（mock） ───
-  trajectory: async (_sessionId: string): Promise<TrajectoryState | null> => null,
-
   // ─── P2: 成本看板（mock） ───
   costTrend: async (): Promise<CostTrendPoint[]> => [],
   sessionCosts: async (): Promise<SessionCost[]> => [],
 
-  // ─── 角色历史会话（mock） ───
-  characterSessions: async (_slug: string): Promise<CharacterSession[]> => [],
-
   // ─── 近 7 天会话趋势（mock） ───
   weeklySessions: async (): Promise<{ date: string; count: number }[]> => [],
-
-  // ─── 本场记忆（mock） ───
-  sessionMemories: async (_sessionId: string): Promise<MemoryEntry[]> => [],
 
   // ─── 仪表盘（mock） ───
   dashboard: async (): Promise<DashboardStats> => ({
