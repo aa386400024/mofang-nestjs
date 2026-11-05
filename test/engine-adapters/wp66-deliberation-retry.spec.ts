@@ -175,8 +175,16 @@ function buildProcessor(options: { env?: Record<string, string>; executeShadowMo
 } {
   const env = options.env ?? {};
   const config = { get: (key: string): string | undefined => env[key] } as unknown as ConfigService;
-  const redis = { getBullClient: () => ({}) } as unknown as RedisService;
-  const llm = { executeShadowMode: options.executeShadowMode ?? vi.fn() } as unknown as LlmDeliberationService;
+  // ⚠️ WP67 起 processor 还要读写**熔断状态** (Redis get/set/del) —— 这里给极小替身.
+  const redis = {
+    getBullClient: () => ({}),
+    get: vi.fn(async (): Promise<string | null> => null),
+    set: vi.fn(async (): Promise<void> => {}),
+    del: vi.fn(async (): Promise<number> => 0),
+  } as unknown as RedisService;
+  // ⚠️ WP67 起 processor 读 `executeShadowMode` 的**返回值**判断成败 → 替身必须返回结局.
+  const executeShadowMode = options.executeShadowMode ?? vi.fn(async () => ({ kind: 'ok', validated: undefined, usage: null }));
+  const llm = { executeShadowMode } as unknown as LlmDeliberationService;
   return { processor: new DeliberationProcessor(redis, llm, config) };
 }
 
@@ -248,7 +256,7 @@ describe('WP66 · 审议输出格式校验与重试', () => {
         requestJson: vi.fn().mockResolvedValue(failResult('fetch_error')),
       });
 
-      await expect(service.executeShadowMode(buildInput())).resolves.toBeUndefined();
+      await expect(service.executeShadowMode(buildInput())).resolves.toMatchObject({ kind: 'failed' });
 
       expect(writtenRecord(set).errorCode).toBe('fetch_error');
     });
@@ -259,7 +267,7 @@ describe('WP66 · 审议输出格式校验与重试', () => {
         requestJson: vi.fn().mockResolvedValue(failResult('http_401')),
       });
 
-      await expect(service.executeShadowMode(buildInput())).resolves.toBeUndefined();
+      await expect(service.executeShadowMode(buildInput())).resolves.toMatchObject({ kind: 'failed' });
 
       expect(writtenRecord(set).errorCode).toBe('http_401');
     });
@@ -307,7 +315,8 @@ describe('WP66 · 审议输出格式校验与重试', () => {
 
   describe('③ 配置 (3 例)', () => {
     it('③-8 ENGINE_DELIBERATION_MAX_RETRIES 默认 1 (总共跑 2 次)', async () => {
-      const { processor } = buildProcessor({ env: {} });
+      // ⚠️ WP67 起 `enqueue()` 先判开关 (任务单 §4.3) —— 关着就不入队.
+      const { processor } = buildProcessor({ env: { ENGINE_DELIBERATION_ENABLED: 'true' } });
       await processor.onModuleInit();
 
       await processor.enqueue(buildInput());
@@ -318,7 +327,9 @@ describe('WP66 · 审议输出格式校验与重试', () => {
 
     it('③-9 env 配非法值时回退默认 1, 不抛错', async () => {
       for (const value of ['', '  ', 'abc', '-1', 'NaN']) {
-        const { processor } = buildProcessor({ env: { ENGINE_DELIBERATION_MAX_RETRIES: value } });
+        const { processor } = buildProcessor({
+          env: { ENGINE_DELIBERATION_ENABLED: 'true', ENGINE_DELIBERATION_MAX_RETRIES: value },
+        });
         await expect(processor.onModuleInit()).resolves.toBeUndefined();
         await processor.enqueue(buildInput());
         expect(jobOptions().attempts).toBe(2);
@@ -326,7 +337,9 @@ describe('WP66 · 审议输出格式校验与重试', () => {
     });
 
     it('③-10 enqueue 时 job 级 attempts = maxRetries + 1; 全项目 defaultJobOptions 不动', async () => {
-      const { processor } = buildProcessor({ env: { ENGINE_DELIBERATION_MAX_RETRIES: '3' } });
+      const { processor } = buildProcessor({
+        env: { ENGINE_DELIBERATION_ENABLED: 'true', ENGINE_DELIBERATION_MAX_RETRIES: '3' },
+      });
       await processor.onModuleInit();
 
       await processor.enqueue(buildInput());
@@ -343,7 +356,7 @@ describe('WP66 · 审议输出格式校验与重试', () => {
     it('④-11 开关关闭时: 不跑 LLM, 不抛异常, 不触发重试', async () => {
       const { service, requestJson, set } = buildService({ env: { ENGINE_DELIBERATION_ENABLED: 'false' } });
 
-      await expect(service.executeShadowMode(buildInput())).resolves.toBeUndefined();
+      await expect(service.executeShadowMode(buildInput())).resolves.toMatchObject({ kind: 'skipped' });
 
       expect(requestJson).not.toHaveBeenCalled();
       expect(set).not.toHaveBeenCalled();
@@ -418,7 +431,7 @@ describe('WP66 · 审议输出格式校验与重试', () => {
         requestJson: vi.fn().mockRejectedValue(new Error('transport down')),
       });
 
-      await expect(service.executeShadowMode(buildInput())).resolves.toBeUndefined();
+      await expect(service.executeShadowMode(buildInput())).resolves.toMatchObject({ kind: 'exception' });
 
       const record = writtenRecord(set);
       expect(record.ok).toBe(false);

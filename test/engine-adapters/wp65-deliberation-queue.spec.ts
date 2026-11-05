@@ -17,6 +17,12 @@
 //       (任务单写的 `llm_error` 根本不会被 client 产生; 超时的真实落点也是 `fetch_error`).
 //     完整的重试语义见 wp66-deliberation-retry.spec.ts.
 //
+//   ⚠️ V2026-11-05 (WP67 — 审议熔断与降级策略) 的**接口变化**:
+//     · processor 现在读 `executeShadowMode` 的**返回值**判断成败 (熔断记账用),
+//       所以本文件的 service 替身改成返回结局对象;
+//     · processor 还要读写**熔断状态** (Redis get/set/del), 本文件的 Redis 替身补了这三个命令.
+//     熔断本身的语义见 wp67-deliberation-circuit-breaker.spec.ts.
+//
 //   边界: 全 mock, 不起 Nest 容器, 不发网络, 不连 Redis ——
 //     bullmq (Queue / Worker) / RedisService / LLM client / ConfigService 全是极小替身.
 //
@@ -121,8 +127,17 @@ function buildProcessor(options: { env?: Record<string, string>; llm?: Partial<L
 } {
   const env = options.env ?? {};
   const config = { get: (key: string): string | undefined => env[key] } as unknown as ConfigService;
-  const redis = { getBullClient: () => ({}) } as unknown as RedisService;
-  const llm = { executeShadowMode: vi.fn() } as unknown as LlmDeliberationService;
+  // ⚠️ WP67 起 processor 还要读写**熔断状态** (Redis get/set/del) —— 这里给极小替身.
+  const redis = {
+    getBullClient: () => ({}),
+    get: vi.fn(async (): Promise<string | null> => null),
+    set: vi.fn(async (): Promise<void> => {}),
+    del: vi.fn(async (): Promise<number> => 0),
+  } as unknown as RedisService;
+  // ⚠️ WP67 起 processor 读 `executeShadowMode` 的**返回值**判断成败 → 替身必须返回结局.
+  const llm = {
+    executeShadowMode: vi.fn(async () => ({ kind: 'ok', validated: undefined, usage: null })),
+  } as unknown as LlmDeliberationService;
   return { processor: new DeliberationProcessor(redis, { ...llm, ...options.llm } as LlmDeliberationService, config), config };
 }
 
@@ -293,7 +308,7 @@ describe('WP65 · 审议影子模式 BullMQ 队列化', () => {
 
   describe('② 执行路径 (5 例)', () => {
     it('②-5 Worker 回调真跑: executeShadowMode 被调, 参数 = job.data + job.attemptsMade', async () => {
-      const executeShadowMode = vi.fn().mockResolvedValue();
+      const executeShadowMode = vi.fn().mockResolvedValue({ kind: 'ok', validated: undefined, usage: null });
       const { processor } = buildProcessor({
         env: { ENGINE_DELIBERATION_ENABLED: 'true' },
         llm: { executeShadowMode } as unknown as Partial<LlmDeliberationService>,

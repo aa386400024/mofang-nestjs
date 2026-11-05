@@ -24,6 +24,12 @@
 //     其余失败 (网络超时 `fetch_error` / 鉴权 / 代码 bug) 依然**不抛** ——
 //     完整的重试语义见 wp66-deliberation-retry.spec.ts.
 //
+//   ⚠️ V2026-11-05 (WP67 — 审议熔断与降级策略) 的**返回值变化**:
+//     `executeShadowMode()` 现在**返回结局** (`ok` / `failed` / `exception` / `skipped`)
+//     —— 熔断器要靠它判断"这轮审议成没成" (之前非重试类失败被吞掉, 调用方分不清成功与失败,
+//     熔断对最常见的"LLM 挂了"永远不触发). 所以下面几处 `resolves.toBeUndefined()`
+//     改成了 `resolves.toMatchObject({ kind: … })` —— 断言**更强**了, 不是更弱.
+//
 //   边界: 全 mock, 不起 Nest 容器, 不发网络, 不连 Redis ——
 //     LLM client / Redis / ConfigService 全部用极小替身.
 //
@@ -394,7 +400,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockResolvedValue(failResult('fetch_error')),
       });
 
-      await expect(service.executeShadowMode(buildInput())).resolves.toBeUndefined();
+      await expect(service.executeShadowMode(buildInput())).resolves.toMatchObject({ kind: 'failed' });
 
       const record = writtenRecord(set);
       expect(record.ok).toBe(false);
@@ -407,7 +413,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockRejectedValue(new Error('transport down')),
       });
 
-      await expect(service.executeShadowMode(buildInput())).resolves.toBeUndefined();
+      await expect(service.executeShadowMode(buildInput())).resolves.toMatchObject({ kind: 'exception' });
 
       const record = writtenRecord(set);
       expect(record.ok).toBe(false);
@@ -422,7 +428,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         set,
       });
 
-      await expect(service.executeShadowMode(buildInput())).resolves.toBeUndefined();
+      await expect(service.executeShadowMode(buildInput())).resolves.toMatchObject({ kind: 'ok' });
     });
 
     it('失败日志**不含**审议原文 (心理内容不进普通日志)', async () => {

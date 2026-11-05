@@ -3,7 +3,7 @@
 > **路径**：`docs/worklog/pending/phase2-overview-2026-11-03.md`
 > **状态**：待开工（Phase1 已封版 2026-11-03）
 > **目标**：商业化准备 — 补齐专业能力，拉开与竞品差距，支撑 C 端会员付费
-> **上游依据**：[蓝图 V1.1](../../reference/ai-simulation-blueprint-v1.1.md) §Phase2 专业增强期 + [路线图 V1.1](../architecture/ai-engine-roadmap-v1.1.md) §9 四阶段演进
+> **上游依据**：[蓝图 V1.1](../../reference/ai-simulation-blueprint-v1.1.md) §Phase2 专业增强期 + [路线图 V1.1](../../architecture/ai-engine-roadmap-v1.1.md) §9 四阶段演进
 > **配套**：Phase1 交付记录见 [`../completed/phase1/`](../completed/phase1/)
 
 ---
@@ -106,7 +106,7 @@
 | P1-14 | **LLM 审议层 PoC（影子模式）**（WP64 ✅ 2026-11-05） | 🟡 P1 | 影子模式跑 LLM 审议，结果不生效，对比规则算子 delta，积累 100 场对话数据验证质量 —— ⚠️ 旁路调用点接在**编排门面**（不是任务单写的 counselor 域）；`ruleDelta` 用前后快照差反推；每场**第一轮**跳过（起始快照适配层自记）；`maxCompletionTokens` 提到 2048（thinking 计入上限）；`deltaDiff` 全量 11 维 |
 | P0-9 | **会话级串行队列与状态一致性**（WP65 ✅ 2026-11-05 · **仅队列化**） | 🔴 P0 | per-session mutex，防止并发写覆盖导致状态错乱（上线前必须解决的硬约束）。⚠️ 本单交付**队列化**那一半：影子审议改走 **BullMQ 队列**（`DeliberationProcessor` = Queue + Worker + 端口实现；`LlmDeliberationService` 降级为执行器 `executeShadowMode`），解决并发打爆上游 / 进程重启丢任务 / 没有可观测性；Worker 并发默认 3（env 可配），job 持久化在 Redis，**编排门面零改动**。⚠️ **per-session mutex + 快照版本号仍未做** —— 影子模式结果不写状态所以暂无覆盖风险，**切灰度前必须补**（[交付记录](../completed/phase2/engine-wp65-deliberation-shadow-queue-implementation-2026-11-05.md)） |
 | P1-15 | **审议输出格式校验与重试**（WP66 ✅ 2026-11-05） | 🟡 P1 | **智能重试**：按错误类型分流 —— 形状类（JSON 没吐出来 / 形状不符 / SSE 解析失败）+ 上游限流与 5xx → 抛给 BullMQ 自动重试（`ENGINE_DELIBERATION_MAX_RETRIES` 默认 1 次）；鉴权 / 网络超时 / 代码 bug → 不重试；**先写 trace 再抛**（失败记录不丢），trace 加 `retryCount`；⚠️ zod schema 与 `response_format: json_object` 本期未做（改结构化出口影响 6 个调用方，建议单独一单）（[交付记录](../completed/phase2/engine-wp66-deliberation-format-retry-implementation-2026-11-05.md)） |
-| P1-16 | **三级降级策略**（WP67） | 🟡 P1 | 超时跳过 → 连续失败切回规则 → 降级标记不能考核 |
+| P1-16 | **三级降级策略**（WP67 ✅ 2026-11-05 · **仅熔断器**） | 🟡 P1 | **会话级熔断器**：同一个会话连续失败 3 次 → 熔断（影子审议**不入队**，省一次入队 + 省一次 LLM 调用），冷却 10 分钟后半开放**一个**请求进去试；三态（closed/open/half-open）是**算出来的**不是存出来的；熔断写一条 `errorCode='circuit_open'` 的 trace（可观测）；阈值 / 冷却 env 可配（默认 3 次 / 600000ms）。⚠️ 母版三档里「超时跳过」与「切回规则算子」在影子模式下**天然成立**（审议结果从不生效，主流程永远走规则算子）；**`degraded: true` 会话打标仍未做**（[交付记录](../completed/phase2/engine-wp67-deliberation-circuit-breaker-implementation-2026-11-05.md)） |
 | P2-9 | **意图锁定机制（基础版）**（WP68） | 🟢 P2 | 当前意图 N 轮内不随意切换，防止人格漂移 |
 
 ---

@@ -31,6 +31,14 @@
 //     ⚠️ 抛异常的语句**不在 try 块里** —— 否则会被自己的 catch 吞掉, 重试永远不发生
 //       (所以"跑"与"判"拆成了两个方法, 见 `runDeliberation`).
 //
+//   V2026-11-05 治本 (WP67 · 审议熔断与降级策略):
+//     本层**不知道熔断器的存在** —— 熔断状态 (failureCount / openedAt) 全在
+//     `DeliberationProcessor` 里. 本层只多做两件事:
+//       ① `executeShadowMode` **返回结局** —— 熔断器要靠它判断"这轮成没成"
+//         (之前非重试类失败被吞掉, 调用方分不清成功与失败, 熔断会形同虚设);
+//       ② `recordCircuitOpen()` —— 熔断时由 processor 调它写一条 `circuit_open` 的 trace
+//         (trace 的格式与 key 设计仍归本层一家, 队列层不自己写 trace).
+//
 //   反双胞胎:
 //     - **不自己拼 "systemPrompt + schemaDescription"** —— `CounselorLlmJsonClient`
 //       已经把 schemaDescription 拼到 system prompt 尾部 (llm-json.client.ts:115).
@@ -277,11 +285,24 @@ export class DeliberationRetryableError extends Error {
  * (可重试的失败), 另外两种都要在**同一次调用**里被吃掉.
  * 用返回值表达 → **抛异常的语句永远在 try 之外**, 不会被自己写的 catch 吞掉
  * (那是 WP66 最容易踩的坑: 抛在 try 里 → catch 吞掉 → 重试永远不发生).
+ *
+ * ⚠️ V2026-11-05 (WP67): 加了 `skipped` —— "开关关着, 这一轮**没跑**审议".
+ *   它跟 `failed` 是两回事: failed 是"跑了但没成" (烧了钱), skipped 是"根本没跑"
+ *   (没烧钱). 熔断器必须区分: skipped **不动**熔断状态.
  */
 export type DeliberationOutcome =
   | { readonly kind: 'ok'; readonly validated: ValidatedDeliberation; readonly usage: DeliberationTokenUsage | null }
   | { readonly kind: 'failed'; readonly errorCode: string | null; readonly usage: DeliberationTokenUsage | null }
-  | { readonly kind: 'exception' };
+  | { readonly kind: 'exception' }
+  | { readonly kind: 'skipped' };
+
+/**
+ * "熔断中, 这一轮没跑审议"的 trace 错误码 (WP67).
+ *
+ * ⚠️ 用它把"根本没跑"与"跑了但失败"在 PoC 统计里分开:
+ *   `circuit_open` = 熔断器拦下了 (省钱, 有意为之); 其余 `ok=false` = 真跑了没成.
+ */
+export const DELIBERATION_CIRCUIT_OPEN_ERROR_CODE = 'circuit_open';
 
 /** 审议产出的 token 用量. */
 export interface DeliberationTokenUsage {
@@ -556,13 +577,21 @@ export class LlmDeliberationService {
    *   不值得重试的失败 (鉴权 / 网络超时 / 代码 bug) 照旧**吞掉**, 影子模式不炸主流程.
    *   其它异常一律不往上传 —— 队列反复重试同一件没救的事, 只是白烧 LLM.
    *
+   * ⚠️ V2026-11-05 (WP67): **返回结局** —— 熔断器要靠它判断"这轮审议成没成".
+   *   之前非重试类失败 (网络挂 / 鉴权错) 是被本方法**吞掉**的, 调用方只看"有没有抛异常",
+   *   分不清"成功"与"失败但被吞了" —— 熔断器于是永远看不到失败, 熔断形同虚设.
+   *   现在: 成功 / 失败 / 代码异常 / 开关关掉没跑, 四种结局**都**如实返回.
+   *   ⚠️ "值得重试"的失败仍然**抛** (WP66 的不变式"抛 = 值得重试"不动) —— 那条路径
+   *     调用方靠 catch 拿, 不靠返回值.
+   *
    * @param input 本轮审议所需的全部上下文
    * @param retryCount 已经重试过几次 (0 = 第一次跑); 从 BullMQ 的 `job.attemptsMade` 来
+   * @returns 本轮结局 (ok / failed / exception / skipped)
    */
-  async executeShadowMode(input: DeliberationShadowInput, retryCount = 0): Promise<void> {
+  async executeShadowMode(input: DeliberationShadowInput, retryCount = 0): Promise<DeliberationOutcome> {
     // 开关在**执行时**再判一次: 入队到执行之间可能隔了几十秒, 运维这期间把开关
     // 关了 → 队列里的旧 job 直接跳过, 不烧这次 LLM (仓库硬约束 12).
-    if (!this.isEnabled()) return;
+    if (!this.isEnabled()) return { kind: 'skipped' };
     const startedAt = Date.now();
 
     const outcome = await this.runDeliberation(input);
@@ -570,7 +599,7 @@ export class LlmDeliberationService {
     // 代码 bug 路径: **不重试** (重试同一个 bug 还是会挂), 记一条失败 trace 就收工.
     if (outcome.kind === 'exception') {
       await this.writeTrace(this.buildFailureRecord(input, 'shadow_exception', startedAt, null, retryCount));
-      return;
+      return outcome;
     }
 
     if (outcome.kind === 'failed') {
@@ -579,10 +608,29 @@ export class LlmDeliberationService {
       if (isRetryableDeliberationError(outcome.errorCode)) {
         throw new DeliberationRetryableError(outcome.errorCode, `审议失败, 值得重试: ${outcome.errorCode}`);
       }
-      return;
+      return outcome;
     }
 
-    await this.writeTrace(this.buildSuccessRecord(input, outcome.validated, startedAt, outcome.usage, retryCount));
+    // 走到这里只剩"成功" (`runDeliberation` 不会返回 'skipped' —— 那是开关关掉时的早退).
+    if (outcome.kind === 'ok') {
+      await this.writeTrace(this.buildSuccessRecord(input, outcome.validated, startedAt, outcome.usage, retryCount));
+    }
+    return outcome;
+  }
+
+  /**
+   * 记一条"**熔断中, 这一轮没跑审议**"的 trace (WP67).
+   *
+   * ⚠️ 为什么由 service 写 (而不是 processor 直接写 Redis):
+   *   trace 的**格式与 key 设计**归 service 一家 (WP65 的纪律: 队列层不自己写 trace).
+   *   processor 只负责"什么时候该记" —— 熔断状态归它, trace 归 service.
+   *   这也让"熔断"在 PoC 统计里可辨: `errorCode='circuit_open'` = 根本没跑,
+   *   其余 `ok=false` = 跑了但失败.
+   *
+   * @param input 本轮上下文 (用它的 sessionId / turnIndex / ruleDelta 定位 trace)
+   */
+  async recordCircuitOpen(input: DeliberationShadowInput): Promise<void> {
+    await this.writeTrace(this.buildFailureRecord(input, DELIBERATION_CIRCUIT_OPEN_ERROR_CODE, Date.now(), null, 0));
   }
 
   // ── private ────────────────────────────────────────────────────

@@ -40,19 +40,34 @@
 //       WP65 拒绝抛是因为"任何失败都重试 = 白烧三次 LLM";
 //       WP66 把范围收窄到"值得重试的那几种", 抛出去才有意义.
 //
+//   V2026-11-05 治本 (WP67 · 审议熔断与降级策略):
+//     **会话级熔断器** —— 同一个会话连续失败 N 次后, 暂时不再跑影子审议,
+//     等冷却时间过去再放**一个**请求进去试 (半开). 治的是"LLM 挂了还每轮白烧钱".
+//     · 状态只存 `failureCount` + `openedAt`, 三态 (`closed` / `open` / `half-open`)
+//       是**算出来的** (纯函数 `resolveCircuitStatus`), 不是存出来的 ——
+//       存出来的状态容易与算出来的不一致, 算出来的永远是准的;
+//     · 入队前判断: `open` 就不入队 (省一次入队 + 省一次 LLM 调用);
+//     · 执行后记账: 成功清零, 失败累加 (**不管值不值得重试** —— 审议没成功就是在烧钱);
+//     · 熔断时写一条 `circuit_open` 的 trace (由 **service** 写, 队列层不自己写 trace).
+//     ⚠️ 熔断状态归本层, service **完全不知情** (它只多了两个能力:
+//       返回结局 + 写一条 circuit_open 的 trace).
+//
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp65-deliberation-queue.spec.ts 覆盖入队 / 执行 /
 //        Worker 配置 / 队列生命周期 / 隐私边界
 //     3. test/engine-adapters/wp66-deliberation-retry.spec.ts 覆盖重试判定 /
 //        trace retryCount / attempts 配置 / 边界
-//     4. `git diff --stat HEAD -- src/engine-core` 为空 (本单不动内核)
+//     4. test/engine-adapters/wp67-deliberation-circuit-breaker.spec.ts 覆盖熔断三态 /
+//        入队判断 / 状态记账 / 配置 / 边界
+//     5. `git diff --stat HEAD -- src/engine-core` 为空 (本单不动内核)
 
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { type Job, Queue, Worker } from 'bullmq';
 
 import {
+  DeliberationRetryableError,
   LlmDeliberationService,
   resolveDeliberationEnabled,
   type DeliberationShadowInput,
@@ -78,6 +93,90 @@ export const DEFAULT_DELIBERATION_WORKER_CONCURRENCY = 3;
  * env `ENGINE_DELIBERATION_MAX_RETRIES` 可调.
  */
 export const DEFAULT_DELIBERATION_MAX_RETRIES = 1;
+
+/**
+ * 熔断失败阈值的默认值 (WP67) —— 连续失败 3 次就熔断.
+ *
+ * 口径: **连续**失败 (不是累计) —— 成功一次就清零. 累计 3 次太严格:
+ * 某个会话内容特殊, 偶尔失败一次后来又好了, 不该因此被熔断.
+ */
+export const DEFAULT_DELIBERATION_FAILURE_THRESHOLD = 3;
+
+/**
+ * 熔断冷却时间的默认值 (WP67) —— 10 分钟.
+ *
+ * 口径: 熔断打开后, 这个会话的影子审议**完全不入队** (省一次入队 + 省一次 LLM 调用),
+ * 直到冷却时间过去才放**一个**请求进去试 (半开).
+ */
+export const DEFAULT_DELIBERATION_COOLDOWN_MS = 600_000;
+
+/**
+ * 熔断状态的 Redis key 前缀 (WP67).
+ *
+ * ⚠️ 与 trace key **同构**: 都带租户长度前缀 + 会话长度前缀 (防撞键).
+ */
+export const DELIBERATION_CIRCUIT_KEY_PREFIX = 'deliberation_circuit';
+
+/**
+ * 熔断状态 (Redis 里存的东西 —— **只有两个字段**).
+ *
+ * ⚠️ 为什么不存 `state` (closed/open/half-open):
+ *   存出来的状态容易与算出来的不一致 (并发更新时尤其明显) —— 算出来的永远是准的.
+ */
+export interface DeliberationCircuitState {
+  /** 连续失败次数 (成功一次就清零). */
+  readonly failureCount: number;
+  /** 熔断开始时刻 (ms); 未达阈值时为 null. */
+  readonly openedAt: number | null;
+}
+
+/**
+ * 熔断器三态.
+ *
+ * - `closed`   —— 正常跑;
+ * - `open`     —— 熔断中, 不入队;
+ * - `half-open`—— 冷却已过, 放**一个**请求进去试.
+ */
+export type DeliberationCircuitStatus = 'closed' | 'open' | 'half-open';
+
+/**
+ * 构造熔断状态的 Redis key (与 trace key 同构, 带租户 + 会话长度前缀).
+ *
+ * @param tenantId 租户隔离键
+ * @param sessionId 业务会话 id
+ * @returns 熔断状态的 key
+ */
+export function buildDeliberationCircuitKey(tenantId: string, sessionId: string): string {
+  return `${DELIBERATION_CIRCUIT_KEY_PREFIX}:${tenantId.length}:${tenantId}:${sessionId.length}:${sessionId}`;
+}
+
+/**
+ * 算熔断器当前处于哪一态 (纯函数, 可单测).
+ *
+ * 口径 (任务单 §2 D1):
+ *   - 没有状态 / 连续失败数 < 阈值 → `closed`
+ *   - 连续失败数 >= 阈值 且 距 openedAt 还没到冷却 → `open`
+ *   - 连续失败数 >= 阈值 且 冷却已过 → `half-open`
+ *
+ * @param state 熔断状态 (读不到 = null)
+ * @param threshold 失败阈值
+ * @param cooldownMs 冷却时长 (ms)
+ * @param now 当前时刻 (ms), 便于测试注入
+ * @returns 三态之一
+ */
+export function resolveCircuitStatus(
+  state: DeliberationCircuitState | null,
+  threshold: number,
+  cooldownMs: number,
+  now: number = Date.now(),
+): DeliberationCircuitStatus {
+  if (!state || state.failureCount < threshold) return 'closed';
+  // 防御: 到了阈值却没有 openedAt —— 视为闭合 (不该发生, 但不能因此把会话永久熔断).
+  if (state.openedAt === null) return 'closed';
+  const elapsed = now - state.openedAt;
+  if (elapsed < cooldownMs) return 'open';
+  return 'half-open';
+}
 
 /**
  * 审议 job 的名字 (BullMQ 的 job name, 队列面板上按它分组).
@@ -106,6 +205,20 @@ export function buildDeliberationJobId(tenantId: string, sessionId: string, turn
   //       "恰好 3 段" 的历史兼容分支放行, 我们的 jobId 段数不固定 → 一律当非法),
   //       而这两个 id 是外部传入的字符串, 不保证干净.
   return `d-shadow-${tenantId.length}-${encodeJobIdPart(tenantId)}-${sessionId.length}-${encodeJobIdPart(sessionId)}-${turnIndex}`;
+}
+
+/**
+ * 熔断状态的 TTL (秒) = 冷却时长的 2 倍.
+ *
+ * ⚠️ 口径: 每次更新都**刷新** TTL —— 活跃会话的状态永不过期;
+ *   不活跃的会话 (冷却早已过去、也没再来过) 自动被 Redis 清掉, 不留垃圾 key.
+ *   取 2 倍: 冷却期内 (1 倍) + 半开窗口 (1 倍) 都要留得住.
+ *
+ * ⚠️ `RedisService.set(key, value, ttlSec)` 的 TTL 单位是**秒** ('EX'),
+ *   不是毫秒 —— 这里从 ms 换算成秒, 且向上取整 (宁可多留一会儿, 别在冷却期内过期).
+ */
+function circuitStateTtlSeconds(cooldownMs: number): number {
+  return Math.max(1, Math.ceil((cooldownMs * 2) / 1000));
 }
 
 /**
@@ -193,10 +306,39 @@ export class DeliberationProcessor implements DeliberationShadowPort, OnModuleIn
   /**
    * 入队 1 个审议任务.
    *
+   * ⚠️ V2026-11-05 (WP67): 入队前先看**熔断状态** —— 熔断中就**不入队**
+   *   (省一次入队 + 省一次 LLM 调用). 熔断状态归本层, service 完全不知情.
+   *
    * @param input job payload (审议所需的全部上下文)
-   * @returns true = 入队成功 (或已存在同 id 的 job → 幂等跳过); false = 入队失败
+   * @returns true = 入队成功 (或已存在同 id 的 job → 幂等跳过); false = 入队失败 / 熔断中
    */
   async enqueue(input: DeliberationShadowInput): Promise<boolean> {
+    // 开关先判: 关着就**不跑熔断判断** (连 Redis 都不碰) —— 影子模式整体停掉时
+    // 熔断状态毫无意义.
+    if (!this.isEnabled()) return false;
+
+    const threshold = this.resolveFailureThreshold();
+    const cooldownMs = this.resolveCooldownMs();
+    const state = await this.loadCircuitState(input.tenantId, input.sessionId);
+    const status = resolveCircuitStatus(state, threshold, cooldownMs);
+
+    if (status === 'open') {
+      // 熔断中: 不入队. 写一条 `circuit_open` 的 trace —— 督导能看到"这个会话为什么没跑审议",
+      // PoC 统计时也能把"根本没跑"与"跑了但失败"分开 (D6).
+      await this.llmDeliberation.recordCircuitOpen(input);
+      this.logger.warn(
+        `[deliberation_circuit_open] sessionId=${input.sessionId} turn=${input.turnIndex} ` +
+          `failureCount=${state?.failureCount ?? 'n/a'}`,
+      );
+      return false;
+    }
+
+    if (status === 'half-open') {
+      // 半开: 只放**一个**请求进去试 (D4) —— 把 openedAt 刷新成 now, 消费掉这次半开机会.
+      // 下一个请求再来看就是 open (冷却重新开始), 不会一起涌进去烧钱.
+      await this.claimHalfOpenProbe(input.tenantId, input.sessionId, cooldownMs);
+    }
+
     try {
       await this.queue.add(DELIBERATION_JOB_NAME, input, {
         // jobId 幂等: 同一会话同一轮不重复堆 job (跨进程重启也成立).
@@ -222,20 +364,183 @@ export class DeliberationProcessor implements DeliberationShadowPort, OnModuleIn
   // ── private ────────────────────────────────────────────────────
 
   /**
-   * job handler —— 真正跑审议 (LLM + 写 trace).
+   * job handler —— 真正跑审议 (LLM + 写 trace) + **给熔断器记账**.
    *
-   * ⚠️ V2026-11-05 (WP66): 这里**故意不 catch** ——
-   *   `executeShadowMode()` 只抛 `DeliberationRetryableError` (值得重试的失败),
-   *   让它自然抛出去, BullMQ 就会按 job 的 `attempts` 自动退避重试.
-   *   不值得重试的失败 (鉴权 / 超时 / 代码 bug) 在 service 里就已经被吃掉了,
-   *   根本到不了这里 —— 所以"抛 = 该重试"是这一层的**唯一语义**.
+   * ⚠️ V2026-11-05 (WP66): `executeShadowMode()` 只抛 `DeliberationRetryableError`
+   *   (值得重试的失败), 让它自然抛出去, BullMQ 就会按 job 的 `attempts` 自动退避重试.
+   *   不值得重试的失败 (鉴权 / 超时 / 代码 bug) 在 service 里已经被吃掉了,
+   *   只会通过**返回值**告诉我们 —— 所以 WP67 起这里要读返回值.
    *
-   *   ⚠️ 别再加 try/catch: 加了就把重试机制废掉 (WP65 的"永不抛"在 WP66 被**故意**推翻).
+   *   ⚠️ 别再加"吞异常"的 try/catch: 加了就把重试机制废掉
+   *   (WP65 的"永不抛"在 WP66 被**故意**推翻).
+   *
+   * ⚠️ V2026-11-05 (WP67): 熔断记账口径 ——
+   *   · 成功 → 清零 (连续失败才熔断, 不是累计失败);
+   *   · 失败 (值得重试的 / 不值得重试的 / 代码异常) → **一律累加**:
+   *     熔断的目的是"别再烧钱", 只要审议没成功就是在烧钱;
+   *   · 开关被关掉 (`skipped`) → **不动**熔断状态: 这一轮压根没跑, 没烧钱.
    */
   private async processJob(job: Job<DeliberationShadowInput>): Promise<void> {
     // `job.attemptsMade` = 已经尝试过几次 (**首次执行时为 0**) —— 正好就是"已重试次数",
     // 直接当 retryCount 传给 service 写进 trace (仓库既有口径, 见 counselor-supervision.processor.ts).
-    await this.llmDeliberation.executeShadowMode(job.data, job.attemptsMade);
+    const data = job.data;
+    try {
+      const outcome = await this.llmDeliberation.executeShadowMode(data, job.attemptsMade);
+      if (outcome.kind === 'ok') {
+        await this.recordSuccess(data.tenantId, data.sessionId);
+        return;
+      }
+      if (outcome.kind === 'skipped') {
+        // 开关在执行时被关了 —— 这一轮**没跑**审议, 没烧钱, 熔断状态不动.
+        return;
+      }
+      // failed / exception —— 都算失败, 一律累加熔断计数.
+      await this.recordFailure(data.tenantId, data.sessionId);
+    } catch (error) {
+      // 走到这里 = "值得重试"的失败 (`DeliberationRetryableError`) —— 先累加计数,
+      // 再**原样抛出**, 让 BullMQ 按 attempts 退避重试.
+      await this.recordFailure(data.tenantId, data.sessionId);
+      if (error instanceof DeliberationRetryableError) throw error;
+      // 其余异常 (service 里的意外错误): 记账, 但不重试 (重试同一个 bug 还是会挂).
+      this.logger.warn(
+        `[deliberation_shadow_error] sessionId=${data.sessionId} turn=${data.turnIndex} ` +
+          `err=${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /**
+   * 读熔断状态 (读不到 = 没有熔断).
+   *
+   * ⚠️ **读失败按"没有熔断"处理** (放行), 理由:
+   *   · 熔断是**省钱**手段, 不是正确性手段 —— 读不到状态不该让审议全停;
+   *   · Redis 抖动时 trace 也写不进去, 观察面本来就在丢数据;
+   *   · 仓库既有口径: Redis 不可用 → 业务层降级放行 (RedisService 文件头).
+   *   反过来 (读失败就阻断) 的话, 一次 Redis 抖动会把**所有**会话的审议停掉 —— 那是更大的事故.
+   */
+  private async loadCircuitState(tenantId: string, sessionId: string): Promise<DeliberationCircuitState | null> {
+    try {
+      const raw = await this.redis.get(buildDeliberationCircuitKey(tenantId, sessionId));
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as Partial<DeliberationCircuitState>;
+      return {
+        failureCount: typeof parsed.failureCount === 'number' && Number.isFinite(parsed.failureCount) ? parsed.failureCount : 0,
+        openedAt: typeof parsed.openedAt === 'number' && Number.isFinite(parsed.openedAt) ? parsed.openedAt : null,
+      };
+    } catch (error) {
+      this.logger.warn(
+        `[deliberation_circuit_read_failed] sessionId=${sessionId} ` + `err=${error instanceof Error ? error.message : String(error)}`,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * 成功一次 → 连续失败计数**清零** (删掉 key).
+   *
+   * 口径: **连续**失败才熔断, 不是累计失败 (D3) —— 成功一次就当没失败过.
+   */
+  private async recordSuccess(tenantId: string, sessionId: string): Promise<void> {
+    try {
+      await this.redis.del(buildDeliberationCircuitKey(tenantId, sessionId));
+    } catch (error) {
+      this.logger.warn(
+        `[deliberation_circuit_write_failed] sessionId=${sessionId} ` + `err=${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /**
+   * 失败一次 → 连续失败计数 +1, 并按当前状态决定 `openedAt` 怎么更新.
+   *
+   * ⚠️ `openedAt` 的三种走向:
+   *   · 还没到阈值        → `openedAt` 保持 null (还没熔断);
+   *   · 首次熔断 / 半开失败 → `openedAt = now` (**重新开始冷却**);
+   *   · 熔断中再失败      → `openedAt` **保留原来的** (冷却继续走, 不重置).
+   *
+   * ⚠️ 半开失败必须重置冷却时间: 半开放一个请求进去试, 失败说明 LLM 还没恢复 ——
+   *   不能接着等原来的冷却时间, 要重新记 openedAt, 重新等完整的一个冷却周期.
+   */
+  private async recordFailure(tenantId: string, sessionId: string): Promise<void> {
+    const threshold = this.resolveFailureThreshold();
+    const cooldownMs = this.resolveCooldownMs();
+    try {
+      const state = await this.loadCircuitState(tenantId, sessionId);
+      const newCount = (state?.failureCount ?? 0) + 1;
+      const currentStatus = resolveCircuitStatus(state, threshold, cooldownMs);
+
+      let openedAt: number | null;
+      if (newCount < threshold) {
+        openedAt = null;
+      } else if (currentStatus === 'closed' || currentStatus === 'half-open') {
+        openedAt = Date.now();
+      } else {
+        // 熔断中: 保留原来的 openedAt (冷却继续走, 不重置).
+        openedAt = state?.openedAt ?? Date.now();
+      }
+
+      await this.redis.set(
+        buildDeliberationCircuitKey(tenantId, sessionId),
+        JSON.stringify({ failureCount: newCount, openedAt }),
+        circuitStateTtlSeconds(cooldownMs),
+      );
+    } catch (error) {
+      this.logger.warn(
+        `[deliberation_circuit_write_failed] sessionId=${sessionId} ` + `err=${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /**
+   * 半开时**消费**掉这次半开机会 (D4: 只放一个请求进去试).
+   *
+   * 做法: 把 `openedAt` 刷新成 now —— 下一个请求再来看就是 `open` (冷却重新开始),
+   * 于是同一冷却窗口里只有**第一个**请求能进, 不会一起涌进去烧钱.
+   *
+   * ⚠️ 这是读-改-写, **不是原子**的. 风险窗口: 同一会话的两轮**并发**入队.
+   *   引擎侧同会话的轮次是串行的 (一次 turn 一轮), 所以实际不会并发;
+   *   真要并发, 得换成 Lua 脚本做条件更新 (本单不值得为此引入脚本).
+   */
+  private async claimHalfOpenProbe(tenantId: string, sessionId: string, cooldownMs: number): Promise<void> {
+    const state = await this.loadCircuitState(tenantId, sessionId);
+    if (!state) return;
+    try {
+      await this.redis.set(
+        buildDeliberationCircuitKey(tenantId, sessionId),
+        JSON.stringify({ failureCount: state.failureCount, openedAt: Date.now() }),
+        circuitStateTtlSeconds(cooldownMs),
+      );
+    } catch (error) {
+      this.logger.warn(
+        `[deliberation_circuit_write_failed] sessionId=${sessionId} ` + `err=${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /**
+   * 失败阈值 (`ENGINE_DELIBERATION_FAILURE_THRESHOLD`).
+   *
+   * 缺省 = **3** (连续失败 3 次熔断). 非法值 → 回退默认 (**不抛错**).
+   */
+  private resolveFailureThreshold(): number {
+    const raw = (this.config.get<string>('ENGINE_DELIBERATION_FAILURE_THRESHOLD') ?? '').trim();
+    if (raw.length === 0) return DEFAULT_DELIBERATION_FAILURE_THRESHOLD;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_DELIBERATION_FAILURE_THRESHOLD;
+    return Math.floor(parsed);
+  }
+
+  /**
+   * 冷却时长 (`ENGINE_DELIBERATION_COOLDOWN_MS`).
+   *
+   * 缺省 = **600000** (10 分钟). 非法值 → 回退默认 (**不抛错**).
+   */
+  private resolveCooldownMs(): number {
+    const raw = (this.config.get<string>('ENGINE_DELIBERATION_COOLDOWN_MS') ?? '').trim();
+    if (raw.length === 0) return DEFAULT_DELIBERATION_COOLDOWN_MS;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_DELIBERATION_COOLDOWN_MS;
+    return Math.floor(parsed);
   }
 
   /**
