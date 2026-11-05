@@ -1,9 +1,15 @@
 // V2026-11-05 治本 (WP64 · B 层 · LLM 审议层 PoC · 影子模式):
-//   职责: 在**旁路**跑一次 LLM 审议 —— 组装 WP63 的三个 prompt 零件 → 调
+//   职责: 跑一次 LLM 审议 —— 组装 WP63 的三个 prompt 零件 → 调
 //         `CounselorLlmJsonClient.requestJson()` → 算 delta 差异 → 写 Redis trace 表.
 //         结果**不写进状态** (影子模式 = 只观察, 不生效).
 //   边界: B 层 (src/engine-adapters/), 触网络 / 触 Redis —— **不在** src/engine-core/ 内.
 //         内核一行未改: 影子模式**不进内核管道** (任务单 §4.1 —— 进管道 = 改 turn 方法 = 破红线).
+//
+//   V2026-11-05 治本 (WP65 · 影子模式 BullMQ 队列化):
+//     本文件**降级为执行器** —— `runShadowMode()` 改名 `executeShadowMode()`, 语义不变
+//     (跑 LLM + 写 trace), 但**只由 BullMQ Worker 调用**.
+//     编排门面那一侧改由 `DeliberationProcessor` 实现同一个端口 (`runShadowMode` = 入队).
+//     门面完全感知不到内部从"直接调"改成了"入队" —— 端口签名一个字没动.
 //
 //   为什么这一层在适配层:
 //     审议层带 prompt / 模型 / 网络, 内核是纯层 (零 @nestjs / 零网络 / 零 prompt).
@@ -11,7 +17,7 @@
 //
 //   影子模式的**三条硬纪律** (任务单 §1.3 / §4.2):
 //     ① 结果**不生效** —— 审议 delta 只进 trace 表, 绝不回写 BDI 快照;
-//     ② **fire-and-forget** —— 调用方不 await, 主流程响应时间不受审议影响;
+//     ② **旁路** —— 调用方不 await, 主流程响应时间不受审议影响 (WP65 起: 入队即返回);
 //     ③ **永不抛穿** —— 任何异常都在本层 catch 住, 影子模式挂了不能炸主流程.
 //
 //   反双胞胎:
@@ -28,6 +34,8 @@
 //       没有回写 BDI 的通道 (切灰度是 Phase3A 的事).
 //     - **不把审议原文 (reason / summary) 打进日志** —— 心理内容禁止进普通日志
 //       (隐私红线 AGENTS.md §5.4). 日志只出 id / 计数 / 错误码.
+//     - **不自己读 env 开关** —— 开关判定收敛到 `resolveDeliberationEnabled()` 一个纯函数,
+//       入队前 (processor) 与执行时 (本服务) 共用同一份真相, 杜绝两处口径漂移.
 //
 //   ⚠️ 硬安全维度 (自杀倾向 / 自伤风险 / 危机等级) **永远只走规则**, 不跑 LLM 审议:
 //     WP63 的 `DELIBERATION_DIMS` 只列了 11 个软状态维度; 模型若硬塞一个硬安全维度,
@@ -38,7 +46,8 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp64-deliberation-shadow.spec.ts 覆盖开关 / 成功 / 格式非法 /
 //        超时 / 差异计算 / 异常不炸主流程 / 键设计 / TTL
-//     3. `git diff --stat HEAD -- src/engine-core` 为空 (本期不动内核)
+//     3. test/engine-adapters/wp65-deliberation-queue.spec.ts 覆盖入队 / Worker 配置 / 队列生命周期
+//     4. `git diff --stat HEAD -- src/engine-core` 为空 (本期不动内核)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -140,6 +149,12 @@ export interface DeliberationShadowInput {
  *   门面 (`TurnRenderOrchestrator`) 是**纯类** (零 @nestjs), 单测里 new 出来就能跑.
  *   直接依赖 Nest service 会把框架拖进门面, 也让"装配缺席"变成"门面起不来".
  *   窄端口 + 缺省缺席 = 纯增强 (装配缺席时只是没有影子审议, 会话照常).
+ *
+ * ⚠️ V2026-11-05 (WP65): **实现方换了, 签名一个字没动**.
+ *   实现是 `DeliberationProcessor` (同目录) —— 它把审议请求**入队**, 由 BullMQ Worker
+ *   异步跑 LLM. 门面拿到的是"入队就返回"的语义, 与 WP64 的"直接跑"对门面**完全透明**.
+ *   这个接口继续声明在本文件 (而不是 processor 里): 门面只认这一个 import 路径,
+ *   换了实现不该连门面与它的端口定义一起搬走.
  */
 export interface DeliberationShadowPort {
   /**
@@ -149,6 +164,27 @@ export interface DeliberationShadowPort {
    * 内部捕获所有异常, **不抛** —— 影子模式挂了不能炸主流程.
    */
   runShadowMode(input: DeliberationShadowInput): Promise<void>;
+}
+
+/**
+ * 影子审议开关的**唯一判定口径** (`ENGINE_DELIBERATION_ENABLED`).
+ *
+ * ⚠️ 为什么是导出给两处用的纯函数 (WP65):
+ *   开关在**两个时间点**各判一次, 理由不同:
+ *     · 入队前 (processor) —— 关着就**不入队**, 白占队列也不白等上游;
+ *     · 执行时 (service) —— 排队期间运维把开关关了 → 队列里的旧 job 要**跳过**,
+ *       不该在开关已关的情况下照样烧 LLM (仓库硬约束 12: 异步任务的偏好在执行时读).
+ *   两处各写一份判定 = 两份真相, 迟早漂移 (一处认 'on' 一处不认) → 收口到这里.
+ *
+ * 缺省 = **关** (影子模式每轮多烧一次 LLM, 不配就零成本).
+ *
+ * @param raw env 原值 (未 trim / 未归一)
+ * @returns true = 开
+ */
+export function resolveDeliberationEnabled(raw: string | undefined): boolean {
+  const normalized = (raw ?? '').trim().toLowerCase();
+  if (normalized.length === 0) return false;
+  return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
 }
 
 /** 审议产出的 token 用量. */
@@ -386,13 +422,18 @@ function round(value: number): number {
 }
 
 /**
- * LLM 审议服务 (影子模式).
+ * LLM 审议服务 (影子模式的**执行器**).
  *
- * 装配: 引擎装配模块 (EngineWiringModule) 把它列为 provider; 编排门面通过
- * **窄端口** (`DeliberationShadowPort`) 拿到它. 装配缺席 = 没有影子审议, 会话照常.
+ * 装配: 引擎装配模块 (EngineWiringModule) 把它列为 provider; 由
+ * `DeliberationProcessor` (BullMQ Worker) 调用.
+ *
+ * ⚠️ V2026-11-05 (WP65): 它**不再实现** `DeliberationShadowPort` ——
+ *   门面那一侧的端口实现在 `DeliberationProcessor` (入队), 本类只负责"真跑".
+ *   两者拆开的原因: 让门面与"队列"解耦 —— 以后换队列 (Redis Stream / MQ),
+ *   或给 Worker 扩缩容, 都不牵动本类.
  */
 @Injectable()
-export class LlmDeliberationService implements DeliberationShadowPort {
+export class LlmDeliberationService {
   private readonly logger = new Logger(LlmDeliberationService.name);
 
   constructor(
@@ -402,13 +443,16 @@ export class LlmDeliberationService implements DeliberationShadowPort {
   ) {}
 
   /**
-   * 影子模式跑一次审议 (不生效, 只记录对比数据).
+   * 真正跑一次影子审议 (不生效, 只记录对比数据).
    *
-   * **永不抛穿**: 任何异常都在这里 catch 住 —— 影子模式挂了不能炸主流程.
+   * **永不抛穿**: 任何异常都在这里 catch 住 —— 影子模式挂了不能炸主流程,
+   * 更不能把 BullMQ 的 job 打成 failed (那会触发无意义的重试).
    *
    * @param input 本轮审议所需的全部上下文
    */
-  async runShadowMode(input: DeliberationShadowInput): Promise<void> {
+  async executeShadowMode(input: DeliberationShadowInput): Promise<void> {
+    // 开关在**执行时**再判一次: 入队到执行之间可能隔了几十秒, 运维这期间把开关
+    // 关了 → 队列里的旧 job 直接跳过, 不烧这次 LLM (仓库硬约束 12).
     if (!this.isEnabled()) return;
     const startedAt = Date.now();
     try {
@@ -450,13 +494,11 @@ export class LlmDeliberationService implements DeliberationShadowPort {
   /**
    * 影子模式开关 (`ENGINE_DELIBERATION_ENABLED`).
    *
-   * 缺省 = **关** (任务单 §3.4 明确 "默认 false"). 影子模式会**每轮多烧一次 LLM**,
-   * 默认关 = 不配就零成本、零行为变化; 要跑 PoC 时显式打开.
+   * 判定口径在共享纯函数 `resolveDeliberationEnabled()` —— 入队前 (processor) 与
+   * 执行时 (这里) 共用同一份真相, 不各写一份.
    */
   private isEnabled(): boolean {
-    const raw = (this.config.get<string>('ENGINE_DELIBERATION_ENABLED') ?? '').trim().toLowerCase();
-    if (raw.length === 0) return false;
-    return raw === 'true' || raw === '1' || raw === 'yes' || raw === 'on';
+    return resolveDeliberationEnabled(this.config.get<string>('ENGINE_DELIBERATION_ENABLED'));
   }
 
   /**

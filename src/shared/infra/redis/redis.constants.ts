@@ -66,4 +66,12 @@ export const QUEUE_NAMES = {
   //   每轮都跑一次 LLM, 属高频短任务 → 独立队列 + 并发 2 (跟 counselor-supervision 的
   //   串行 1 不同: 那边单次调用 30-120s 要压上游, 这边 low 档 3-8s 可以并发).
   counselorTurnAnalysis: 'counselor-turn-analysis',
+  // V2026-11-05 治本 (WP65): 审议影子模式 (LLM 审议层 PoC) 的异步队列.
+  //   WP64 之前是 fire-and-forget 直接调, 有三个问题: 并发打爆上游 / 进程重启丢任务 /
+  //   没有可观测性 → 改走 BullMQ: 主流程入队就返回, Worker 按并发上限慢慢跑,
+  //   任务持久化在 Redis, 队列长度 / 成功率 / 失败原因都看得见.
+  //   独立队列名, 不复用上面几个 —— payload 与消费逻辑都完全不同, 混用会导致 job 被错消费.
+  //   并发 3 (env `ENGINE_DELIBERATION_WORKER_CONCURRENCY` 可调): 审议单次 3-8s,
+  //   比督导的 30-120s 短, 但比每轮分析的轻档重 (要读完整状态快照做对比).
+  deliberation: 'deliberation-shadow',
 } as const;

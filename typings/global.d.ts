@@ -319,6 +319,11 @@ export declare global {
       ENGINE_DELIBERATION_MODEL?: string; // 审议专用模型名 (留空 = 用 counselor 域默认模型)
       ENGINE_DELIBERATION_TIMEOUT_MS?: string; // 单次审议超时 (毫秒, 默认 3000; 非法值回退默认)
       ENGINE_DELIBERATION_TEMPERATURE?: string; // 审议采样温度 (默认 0.3; M3.1-Flash 会忽略它)
+      // V2026-11-05 治本 (WP65 — 审议影子模式 BullMQ 队列化):
+      //   审议 Worker 的并发数. 同样**逐个字面量**读
+      //   (src/engine-adapters/deliberation/deliberation.processor.ts).
+      //   ⚠️ 数值键读到的**一定是字符串**, 必须自己解析 + 回退默认 (填错一个 env 不该让服务起不来).
+      ENGINE_DELIBERATION_WORKER_CONCURRENCY?: string; // 审议 Worker 并发数 (默认 3; 非法值回退默认)
     }
   }
 

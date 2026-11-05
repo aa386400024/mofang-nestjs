@@ -1,6 +1,6 @@
 // V2026-11-05 治本 (WP64 · B 层 · LLM 审议层 PoC · 影子模式):
 //   覆盖任务单 §6.3 的六条要求 + 若干防漂移用例:
-//     1. env 开关关闭时, runShadowMode 直接 return, 不调 LLM
+//     1. env 开关关闭时, executeShadowMode 直接 return, 不调 LLM
 //     2. env 开关开启时, 正常调 LLM, trace 数据写入 Redis
 //     3. LLM 返回格式不合法时, trace 表记 ok=false + errorCode
 //     4. LLM 超时时, trace 表记 ok=false + errorCode
@@ -8,6 +8,14 @@
 //     6. 所有异常都被 catch, 不抛到调用方
 //   额外覆盖: 键设计的撞键防护 / TTL / trace 字段完整性 /
 //             硬安全维度被拒但**留证据** / 编排门面的旁路接线 (首轮跳过 / 不 await).
+//
+//   ⚠️ V2026-11-05 (WP65 — 影子模式 BullMQ 队列化) 的**唯一改动**:
+//     `LlmDeliberationService.runShadowMode()` 改名 `executeShadowMode()` ——
+//     语义不变 (跑 LLM + 写 trace), 但**只由 BullMQ Worker 调用**;
+//     编排门面那一侧的端口实现搬到了 `DeliberationProcessor` (入队).
+//     本文件里 `DeliberationShadowPort` 的 stub (StubDeliberation) **一个字没动** ——
+//     端口签名不变正是 WP65 的核心约束.
+//     (入队路径 / Worker 配置的用例在 wp65-deliberation-queue.spec.ts)
 //
 //   边界: 全 mock, 不起 Nest 容器, 不发网络, 不连 Redis ——
 //     LLM client / Redis / ConfigService 全部用极小替身.
@@ -204,7 +212,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
     it('ENGINE_DELIBERATION_ENABLED=false 时直接 return: 不调 LLM, 不写 Redis', async () => {
       const { service, requestJson, set } = buildService({ env: { ENGINE_DELIBERATION_ENABLED: 'false' } });
 
-      await service.runShadowMode(buildInput());
+      await service.executeShadowMode(buildInput());
 
       expect(requestJson).not.toHaveBeenCalled();
       expect(set).not.toHaveBeenCalled();
@@ -213,7 +221,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
     it('开关**缺省**时也是关的 (影子模式默认不开 —— 每轮多烧一次 LLM)', async () => {
       const { service, requestJson, set } = buildService({ env: {} });
 
-      await service.runShadowMode(buildInput());
+      await service.executeShadowMode(buildInput());
 
       expect(requestJson).not.toHaveBeenCalled();
       expect(set).not.toHaveBeenCalled();
@@ -226,7 +234,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
           requestJson: vi.fn().mockResolvedValue(okResult()),
         });
 
-        await service.runShadowMode(buildInput());
+        await service.executeShadowMode(buildInput());
 
         expect(requestJson, `开关值 ${value} 应当生效`).toHaveBeenCalledTimes(1);
       }
@@ -240,7 +248,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockResolvedValue(okResult()),
       });
 
-      await service.runShadowMode(buildInput());
+      await service.executeShadowMode(buildInput());
 
       expect(requestJson).toHaveBeenCalledTimes(1);
       expect(set).toHaveBeenCalledTimes(1);
@@ -257,7 +265,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockResolvedValue(okResult()),
       });
 
-      await service.runShadowMode(buildInput({ mode: 'exam' }));
+      await service.executeShadowMode(buildInput({ mode: 'exam' }));
 
       const request = requestJson.mock.calls[0][0] as {
         systemPrompt: string;
@@ -286,7 +294,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockResolvedValue(okResult()),
       });
 
-      await service.runShadowMode(buildInput());
+      await service.executeShadowMode(buildInput());
 
       const request = requestJson.mock.calls[0][0] as { maxCompletionTokens: number };
       expect(request.maxCompletionTokens).toBe(DELIBERATION_MAX_COMPLETION_TOKENS);
@@ -304,7 +312,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockResolvedValue(okResult()),
       });
 
-      await service.runShadowMode(buildInput());
+      await service.executeShadowMode(buildInput());
 
       const request = requestJson.mock.calls[0][0] as { timeoutMs: number; model: string; temperature: number };
       expect(request.timeoutMs).toBe(1500);
@@ -322,7 +330,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockResolvedValue(okResult()),
       });
 
-      await service.runShadowMode(buildInput());
+      await service.executeShadowMode(buildInput());
 
       const request = requestJson.mock.calls[0][0] as { timeoutMs: number; temperature: number };
       expect(request.timeoutMs).toBe(DEFAULT_DELIBERATION_TIMEOUT_MS);
@@ -335,7 +343,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockResolvedValue(okResult()),
       });
 
-      await service.runShadowMode(buildInput());
+      await service.executeShadowMode(buildInput());
 
       const request = requestJson.mock.calls[0][0] as { model?: string };
       expect(request.model).toBeUndefined();
@@ -349,7 +357,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockResolvedValue(failResult('llm_error')),
       });
 
-      await service.runShadowMode(buildInput());
+      await service.executeShadowMode(buildInput());
 
       const record = writtenRecord(set);
       expect(record.ok).toBe(false);
@@ -364,7 +372,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockResolvedValue(failResult('json_parse_failed')),
       });
 
-      await service.runShadowMode(buildInput());
+      await service.executeShadowMode(buildInput());
 
       const record = writtenRecord(set);
       expect(record.ok).toBe(false);
@@ -377,7 +385,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockResolvedValue(failResult('llm_error')),
       });
 
-      await expect(service.runShadowMode(buildInput())).resolves.toBeUndefined();
+      await expect(service.executeShadowMode(buildInput())).resolves.toBeUndefined();
 
       const record = writtenRecord(set);
       expect(record.ok).toBe(false);
@@ -390,7 +398,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockRejectedValue(new Error('transport down')),
       });
 
-      await expect(service.runShadowMode(buildInput())).resolves.toBeUndefined();
+      await expect(service.executeShadowMode(buildInput())).resolves.toBeUndefined();
 
       const record = writtenRecord(set);
       expect(record.ok).toBe(false);
@@ -405,7 +413,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         set,
       });
 
-      await expect(service.runShadowMode(buildInput())).resolves.toBeUndefined();
+      await expect(service.executeShadowMode(buildInput())).resolves.toBeUndefined();
     });
 
     it('失败日志**不含**审议原文 (心理内容不进普通日志)', async () => {
@@ -418,7 +426,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockRejectedValue(new Error('transport down')),
       });
 
-      await service.runShadowMode(buildInput({ counselorText: '我最近很想自杀' }));
+      await service.executeShadowMode(buildInput({ counselorText: '我最近很想自杀' }));
 
       const joined = warnings.join('\n');
       expect(joined).not.toContain('我最近很想自杀');
@@ -439,7 +447,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         ),
       });
 
-      await service.runShadowMode(buildInput());
+      await service.executeShadowMode(buildInput());
 
       const record = writtenRecord(set);
       expect(record.deliberationDelta).toEqual({ trust: 0.08, safety: 0.03, valence: -0.02 });
@@ -483,7 +491,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         ),
       });
 
-      await service.runShadowMode(buildInput());
+      await service.executeShadowMode(buildInput());
 
       const record = writtenRecord(set);
       expect(record.operatorTags).toEqual(['empathy', 'rapport_shift']);
@@ -508,7 +516,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockResolvedValue(okResult()),
       });
 
-      await service.runShadowMode(buildInput());
+      await service.executeShadowMode(buildInput());
 
       const call = set.mock.calls[0] as [string, string, number];
       expect(call[2]).toBe(DEFAULT_DELIBERATION_TRACE_TTL_SECONDS);
@@ -521,7 +529,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockResolvedValue(okResult([{ dimension: 'trust', delta: 0.08, operatorTags: ['empathy'], reason: '理由' }])),
       });
 
-      await service.runShadowMode(buildInput());
+      await service.executeShadowMode(buildInput());
 
       const record = writtenRecord(set);
       expect(typeof record.durationMs).toBe('number');
@@ -541,7 +549,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockResolvedValue(okResult()),
       });
 
-      await service.runShadowMode(buildInput({ counselorText: '来访者原话', visitorText: '来访回应原话' }));
+      await service.executeShadowMode(buildInput({ counselorText: '来访者原话', visitorText: '来访回应原话' }));
 
       const [, value] = set.mock.calls[0] as [string, string];
       expect(value).not.toContain('来访者原话');

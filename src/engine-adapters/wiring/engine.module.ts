@@ -93,6 +93,7 @@ import { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
 import { VOICE_TURN_BACKEND } from '../../voice/voice-turn-backend.port.js';
+import { DeliberationProcessor } from '../deliberation/deliberation.processor.js';
 import { LlmDeliberationService } from '../deliberation/llm-deliberation.service.js';
 import { OpenAICompatEmbedder } from '../embedder/openai-compat.embedder.js';
 import { resolveMemoryConfig } from '../persistence/memory-config.js';
@@ -313,7 +314,7 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         registry: EngineSessionRegistry,
         studentRisk: StudentRiskGateService,
         rollingSummary: RollingSessionSummaryService,
-        deliberation: LlmDeliberationService,
+        deliberation: DeliberationProcessor,
       ): TurnRenderOrchestrator =>
         createEngineOrchestrator({
           session,
@@ -325,6 +326,8 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
           rollingSummary,
           // WP64: 影子审议端口 —— 门面每轮渲染后旁路调一次, 结果只写 Redis trace 表.
           //   审议服务自己判 env 开关 (`ENGINE_DELIBERATION_ENABLED`), 关着时它**一次 LLM 都不发**.
+          // WP65: 注入的实现换成了 `DeliberationProcessor` —— 它把审议请求**入队**,
+          //   真正跑 LLM 由 BullMQ Worker 异步做. 门面对此**完全透明** (端口签名没变).
           deliberation,
         }),
       inject: [
@@ -334,7 +337,7 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         EngineSessionRegistry,
         STUDENT_RISK_GATE,
         RollingSessionSummaryService,
-        LlmDeliberationService,
+        DeliberationProcessor,
       ],
     },
     // V2026-11-02 治本 (WP14 §1.6 — 重点监测场次的强制远端探测):
@@ -487,6 +490,11 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
     //     · agent 侧 LlmModule 只提供 LlmService (传输层), 不带任何业务实体.
     CounselorLlmJsonClient,
     LlmDeliberationService,
+    // V2026-11-05 (WP65): 审议影子模式的 BullMQ worker ——
+    //   它是编排门面的影子审议端口实现 (`runShadowMode` = 入队), Worker 回调里
+    //   调 `LlmDeliberationService.executeShadowMode()` 真跑 LLM + 写 trace.
+    //   ⚠️ 依赖方向是单向的: processor → service (没有任何反向引用), 无循环依赖.
+    DeliberationProcessor,
   ],
   exports: [
     EngineTurnService,
