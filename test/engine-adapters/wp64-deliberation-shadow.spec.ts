@@ -52,6 +52,7 @@ import {
   DEFAULT_DELIBERATION_TIMEOUT_MS,
   DEFAULT_DELIBERATION_TRACE_TTL_SECONDS,
   DELIBERATION_MAX_COMPLETION_TOKENS,
+  DELIBERATION_TRACE_KEY_PREFIX,
   DeliberationRetryableError,
   LlmDeliberationService,
   buildDeliberationTraceKey,
@@ -155,6 +156,8 @@ function buildInput(overrides: Partial<DeliberationShadowInput> = {}): Deliberat
     visitorText: '有点累，夜里老醒。',
     characterBrief: '依恋风格: 回避型',
     ruleDelta: RULE_DELTA,
+    // WP68: 意图锁定需要知道"规则算子本轮选的策略" (门面从内核意图传进来).
+    ruleStrategy: 'recounting',
     ...overrides,
   };
 }
@@ -171,7 +174,7 @@ function okResult(deltas: readonly unknown[] = []): {
   return {
     ok: true,
     data: {
-      output: { deltas: deltas as never[], summary: '来访情绪略有低落', confidence: 0.65 },
+      output: { deltas: deltas as never[], summary: '来访情绪略有低落', confidence: 0.65, intentionShift: null },
       rejectedEntries: [],
     },
     rawText: '{}',
@@ -210,14 +213,22 @@ function buildService(options: { env?: Record<string, string>; requestJson?: Ret
   const requestJson = options.requestJson ?? vi.fn();
   const set = options.set ?? vi.fn();
   const config = { get: (key: string): string | undefined => env[key] } as unknown as ConfigService;
-  const redis = { set } as unknown as RedisService;
+  // ⚠️ WP68 起 service 还要**读**意图锁定状态 (Redis get) → 替身补上.
+  const redis = { set, get: vi.fn(async (): Promise<string | null> => null) } as unknown as RedisService;
   const llm = { requestJson } as unknown as CounselorLlmJsonClient;
   return { service: new LlmDeliberationService(llm, config, redis), requestJson, set };
 }
 
+/**
+ * 只挑出**写 trace** 的调用 (WP68 起一次成功审议还会写一份意图锁定状态).
+ */
+function traceWrites(set: ReturnType<typeof vi.fn>): [string, string][] {
+  return set.mock.calls.filter((call) => (call as [string, string])[0].startsWith(DELIBERATION_TRACE_KEY_PREFIX)) as [string, string][];
+}
+
 /** 从 set 的调用参数里取出写进去的 trace 记录. */
 function writtenRecord(set: ReturnType<typeof vi.fn>): DeliberationTraceRecord {
-  const [, value] = set.mock.calls[0] as [string, string];
+  const [, value] = traceWrites(set)[0];
   return JSON.parse(value) as DeliberationTraceRecord;
 }
 
@@ -265,7 +276,9 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
       await service.executeShadowMode(buildInput());
 
       expect(requestJson).toHaveBeenCalledTimes(1);
-      expect(set).toHaveBeenCalledTimes(1);
+      // ⚠️ WP68 起一次成功审议会写**两个** Redis key (trace + 意图锁定状态) ——
+      //   这里断言的是 **trace** 写了几次 (不是 set 的总调用次数).
+      expect(traceWrites(set)).toHaveLength(1);
       const record = writtenRecord(set);
       expect(record.ok).toBe(true);
       expect(record.sessionId).toBe(SESSION);

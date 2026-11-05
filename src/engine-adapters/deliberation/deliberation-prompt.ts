@@ -30,8 +30,24 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp63-deliberation-schema.spec.ts 覆盖两种模式的措辞差异 /
 //        prompt 组装 / schema 描述里的枚举清单与常量一致
+//
+//   V2026-11-05 治本 (WP68 · B 层 · 意图锁定机制):
+//     prompt 侧加两样东西:
+//       ① **当前行为策略**进 user prompt —— `intentionShift` 是"换到另一个策略",
+//         模型不知道现在用的是哪个, 就无从判断该不该换 (只能瞎猜) ——
+//         那 WP68 想回答的问题（"LLM 会不会乱改意图"）就问不出答案.
+//       ② **schema 描述**里给出 intentionShift 的写法 + 8 种策略的合法取值与含义.
+//
+//     ⚠️ 措辞纪律: intentionShift 是**可选**的 —— prompt 明确写"大多数轮次都该是 null",
+//       否则模型会觉得"不填就是没干活", 硬凑一个切换建议 (那正好污染我们要测的东西).
+//
+//   如何验证 (WP68):
+//     1. npx tsc -p tsconfig.build.json --noEmit 0 错
+//     2. test/engine-adapters/wp68-deliberation-intention-lock.spec.ts 覆盖 intentionShift
+//        的 prompt / schema 描述 / 校验
 
 import {
+  DELIBERATION_BEHAVIOR_STRATEGIES,
   DELIBERATION_DIMS,
   DELIBERATION_LLM_ONLY_TAGS,
   DELIBERATION_MAX_ABS_DELTA,
@@ -40,6 +56,29 @@ import {
   DELIBERATION_SUMMARY_MAX_CHARS,
   type DeliberationMode,
 } from './deliberation-types.js';
+import type { BehaviorStrategy } from '../../engine-core/index.js';
+
+/**
+ * 8 种行为策略的中文说明 (WP68) —— 给审议模型看的.
+ *
+ * ⚠️ 为什么必须给中文:
+ *   `affective_exploration` / `cognitive_exploration` 这类英文名, 模型**猜不出**区别 ——
+ *   猜不出就给出没有意义的切换建议, 而"LLM 会不会乱改意图"这个问题就**答不出来**了
+ *   (WP68 的全部意义就是回答它). 所以给"英文名（中文）"两栏:
+ *   模型既看得懂, 又知道 `targetStrategy` 该**原样输出英文名**.
+ *
+ * ⚠️ 用**穷尽 Record**: 内核加策略而这里没跟 → TS 报错, 逼着补 (与渲染层 `STRATEGY_LABEL` 同范式).
+ */
+const STRATEGY_INFO: Readonly<Record<BehaviorStrategy, { short: string; detail: string }>> = {
+  simple_response: { short: '简单回应', detail: '只接住对方的话，不做深层处理' },
+  request: { short: '提出请求', detail: '向来访索要信息、配合或承诺' },
+  recounting: { short: '复述经历', detail: '把一件事从头讲一遍' },
+  cognitive_exploration: { short: '认知探索', detail: '谈想法、看法、认知层面的内容' },
+  affective_exploration: { short: '情感探索', detail: '谈情绪、感受、体验层面' },
+  insight: { short: '洞察', detail: '触及核心议题与深层模式' },
+  discussing_plans: { short: '讨论计划', detail: '谈接下来怎么做、具体安排' },
+  resistance: { short: '阻抗', detail: '回避、防御、转移话题' },
+};
 
 /**
  * 审议系统 prompt 的**公共段** (两种模式共用).
@@ -74,6 +113,8 @@ const COMMON_SYSTEM_PROMPT_LINES: readonly string[] = [
   '6. reason 里不要复述咨询师的具体话术，也不要做临床诊断。',
   '7. 不要输出分数、评级或对错判断——你的产物只有 delta 建议、标签和理由。',
   '8. 你是给"建议"，不是下"结论"：拿不准的维度就别写，或把整体 confidence 调低。',
+  '9. intentionShift 是可选的：只有当来访者的心理阶段确实该换一个行为策略时才给建议，',
+  '   否则一律填 null——大多数轮次都该是 null。不要为了"看起来有产出"而建议切换意图。',
 ];
 
 /**
@@ -139,6 +180,14 @@ export interface DeliberationUserPromptInput {
   readonly characterBrief: string;
   /** 会话轮次. */
   readonly turnIndex: number;
+  /**
+   * 本轮**规则算子**选中的行为策略 (WP68).
+   *
+   * ⚠️ 为什么必须告诉模型"现在在做什么":
+   *   `intentionShift` 是"**换**到另一个策略" —— 模型不知道当前策略, 就无从判断该不该换,
+   *   只能瞎猜. 缺了这个字段, WP68 想回答的问题（"LLM 会不会乱改意图"）就**问不出答案**.
+   */
+  readonly ruleStrategy: BehaviorStrategy;
 }
 
 /**
@@ -156,12 +205,23 @@ export interface DeliberationUserPromptInput {
 export function buildDeliberationUserPrompt(input: DeliberationUserPromptInput): string {
   const parts: string[] = [
     `【来访者当前状态】\n${orPlaceholder(input.currentSnapshotJson, '（未提供状态快照）')}`,
+    `【当前行为策略】\n${formatStrategy(input.ruleStrategy)}`,
     `【本轮咨询师发言】\n${orPlaceholder(input.counselorText, '（本轮咨询师没有发言）')}`,
     `【本轮来访者反应】\n${orPlaceholder(input.visitorText, '（本轮来访者没有回复）')}`,
     `【角色背景】\n${orPlaceholder(input.characterBrief, '（未提供角色背景）')}`,
     `【会话轮次】\n第 ${input.turnIndex} 轮`,
   ];
   return parts.join('\n\n');
+}
+
+/**
+ * 行为策略的一行展示 (WP68): `英文名（中文）`.
+ *
+ * ⚠️ **英文名在前**: 模型要**原样输出**英文名 (`targetStrategy` 的白名单是英文),
+ *   中文只是帮它理解. 中文在前会让模型倾向于输出中文 → 校验层直接丢掉.
+ */
+function formatStrategy(strategy: BehaviorStrategy): string {
+  return `${strategy}（${STRATEGY_INFO[strategy].short}）`;
 }
 
 /**
@@ -190,7 +250,8 @@ export function buildDeliberationSchemaDescription(): string {
     '    }',
     '  ],',
     `  "summary": "<一句话中文总结>",   // ≤${DELIBERATION_SUMMARY_MAX_CHARS} 字, 描述来访者此刻的状态`,
-    '  "confidence": <0 到 1 的数字>     // 整体置信度; 拿不准就调低',
+    '  "confidence": <0 到 1 的数字>,    // 整体置信度; 拿不准就调低',
+    '  "intentionShift": null           // 可选: 建议切换行为策略时写成对象, 否则一律 null',
     '}',
     '',
     `dimension 的合法取值（${DELIBERATION_DIMS.length} 个，只能原样使用这些字符串）：`,
@@ -201,6 +262,14 @@ export function buildDeliberationSchemaDescription(): string {
     `- 只有你能打的 ${DELIBERATION_LLM_ONLY_TAGS.length} 个：${llmTags}`,
     '',
     'deltas 数组只放"确实发生变化"的维度；这一轮什么都没变就放空数组 []。',
+    '',
+    `intentionShift 的写法（可选字段，不需要切换行为策略时一律写 null）：`,
+    'null  或  { "targetStrategy": "<策略名>", "reason": "<一句话中文理由>" }',
+    `targetStrategy 的合法取值（${DELIBERATION_BEHAVIOR_STRATEGIES.length} 个，只能原样使用这些英文名）：`,
+    ...DELIBERATION_BEHAVIOR_STRATEGIES.map(
+      (strategy) => `- ${strategy}（${STRATEGY_INFO[strategy].short}）：${STRATEGY_INFO[strategy].detail}`,
+    ),
+    '只有当来访者的心理阶段确实该换一个行为策略时才给建议，否则写 null。',
   ].join('\n');
 }
 

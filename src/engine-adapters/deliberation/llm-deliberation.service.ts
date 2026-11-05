@@ -67,6 +67,30 @@
 //        超时 / 差异计算 / 异常不炸主流程 / 键设计 / TTL
 //     3. test/engine-adapters/wp65-deliberation-queue.spec.ts 覆盖入队 / Worker 配置 / 队列生命周期
 //     4. `git diff --stat HEAD -- src/engine-core` 为空 (本期不动内核)
+//
+//   V2026-11-05 治本 (WP68 · 意图锁定机制 · PoC 组最后一单):
+//     **意图锁定** —— "当前核心意图在 N 轮内不随意切换" (蓝图 §2.3).
+//     影子期一直在比"软状态 delta", 但**意图层面**还没比过 ——
+//     "LLM 会不会乱改意图"这个问题, 没有 `intentionShift` 就**答不出来**.
+//     本单做三件事:
+//       ① 审议输出加**可选**的 `intentionShift` (建议切到哪个策略 + 理由);
+//       ② 旁路**模拟**意图锁定: 锁定 N 轮, 期间忽略 LLM 的切换建议;
+//       ③ trace 里记下三方对比 (规则算子选的 / LLM 建议的 / 锁定后实际生效的).
+//
+//     ⚠️ **本层为什么也管锁定** (任务单原本写的是 processor 层):
+//       trace 是**本层**写的 (WP65 起的纪律: 队列层不自己写 trace) ——
+//       锁定判定结果要进 trace, 就必须在写 trace 之前算好.
+//       放 processor 的话, processor 拿到结局时 trace 早已写完, 只能二次改写 Redis
+//       (读-改-写, 有竞态窗口, 每轮多两次往返). 已与大炮确认走本层 (方案 A).
+//
+//     ⚠️ 影子模式下锁定**不改变任何主流程行为**:
+//       审议结果从不写回内核 —— 主流程永远走规则算子选的意图.
+//       `lockedStrategy` 是**推演值** ("如果真用 LLM 审议会用哪个"), 只进 trace 供 PoC 分析.
+//
+//   如何验证 (WP68):
+//     1. npx tsc -p tsconfig.build.json --noEmit 0 错
+//     2. test/engine-adapters/wp68-deliberation-intention-lock.spec.ts 覆盖锁定五情况 /
+//        intentionShift 校验 / 配置 / 边界
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -77,14 +101,16 @@ import {
   DELIBERATION_LLM_ONLY_TAGS,
   DELIBERATION_MAX_ABS_DELTA,
   DELIBERATION_RULE_ALIGNED_TAGS,
+  isBehaviorStrategy,
   type DeliberationDeltaEntry,
   type DeliberationDim,
+  type DeliberationIntentionShift,
   type DeliberationMode,
   type DeliberationOperatorTag,
   type DeliberationOutput,
 } from './deliberation-types.js';
 import type { CounselorLlmJsonClient } from '../../counselor/providers/llm-json.client.js';
-import type { BdiSnapshot, DeltaVector } from '../../engine-core/index.js';
+import type { BehaviorStrategy, BdiSnapshot, DeltaVector } from '../../engine-core/index.js';
 import type { RedisService } from '../../shared/infra/redis/redis.service.js';
 
 /** Redis key 的逻辑前缀 (ioredis 还会自动拼 `REDIS_KEY_PREFIX`, 多环境隔离靠它). */
@@ -159,6 +185,18 @@ export interface DeliberationShadowInput {
   readonly characterBrief: string;
   /** 规则算子算出的最终 delta (用来跟审议 delta 对比). */
   readonly ruleDelta: DeltaVector;
+  /**
+   * 本轮**规则算子**选中的行为策略 (内核意图) (WP68).
+   *
+   * ⚠️ 为什么要多这一个字段:
+   *   意图锁定机制要回答"LLM 会不会乱改意图" —— 而"乱改"是相对**当前意图**说的.
+   *   审议层自己拿不到内核的意图 (意图是每轮派生输出, 不在快照里), 所以由编排门面传进来.
+   *
+   * ⚠️ 取值口径: 门面传的是**本轮渲染实际用的那个策略**
+   *   (`spec.intention.strategy` —— 内核意图缺失时有中性兜底 `simple_response`),
+   *   不是"猜一个" —— 猜出来的策略会让锁定判定建立在假数据上.
+   */
+  readonly ruleStrategy: BehaviorStrategy;
 }
 
 /**
@@ -304,6 +342,184 @@ export type DeliberationOutcome =
  */
 export const DELIBERATION_CIRCUIT_OPEN_ERROR_CODE = 'circuit_open';
 
+// ── WP68 · 意图锁定机制 ─────────────────────────────────────────────
+
+/**
+ * 意图锁定轮数的默认值 (WP68) —— **3 轮**.
+ *
+ * ⚠️ 这是**工程种子值, 不是临床数字** (蓝图 §3.3: "意图锁定粒度 → 做成可配置参数,
+ *   不同角色类型不同; PoC 阶段做基础版, 后期调参"). PoC 跑完按督导反馈校准.
+ *
+ * 口径: 选定一个意图后**锁定 3 轮**, 期间 LLM 的切换建议被忽略;
+ *   第 4 轮开始允许切换, 一旦切换就**重新锁定 3 轮**.
+ */
+export const DEFAULT_DELIBERATION_INTENTION_LOCK_ROUNDS = 3;
+
+/**
+ * 意图锁定状态的 Redis key 前缀 (WP68).
+ *
+ * ⚠️ 与熔断 key **同构** (带租户 + 会话长度前缀), 只是前缀不同 ——
+ *   两个是不同的东西: 熔断是"**要不要跑**"的控制状态, 锁定是"**跑完怎么算**"的观察状态.
+ */
+export const DELIBERATION_INTENTION_LOCK_KEY_PREFIX = 'deliberation_intention_lock';
+
+/**
+ * 意图锁定状态的 TTL (秒) —— 24 小时 (WP68 D6).
+ *
+ * 口径: 锁定按**轮次**算, 但 Redis key 总得有个 TTL —— 不然会话结束了 key 还留着占内存.
+ *   24 小时足够跑完一场会话; 每次更新都**刷新** TTL (活跃会话永不过期, 不活跃的自动清掉).
+ */
+export const DELIBERATION_INTENTION_LOCK_TTL_SECONDS = 86_400;
+
+/**
+ * 意图锁定状态 (Redis 里存的东西).
+ *
+ * ⚠️ 为什么存**两个**策略 (`ruleStrategy` + `effectiveStrategy`):
+ *   · `ruleStrategy` —— **规则算子**选的那个 (内核的真实意图);
+ *   · `effectiveStrategy` —— **锁定后实际生效**的那个 (可能是 LLM 建议的).
+ *   影子模式下内核不会真的采纳 LLM 的建议, 所以这两个值**本来就会分叉** ——
+ *   不分开存, 就分不清"内核换了意图"与"LLM 建议被采纳"这两件事.
+ */
+export interface IntentionLockState {
+  /** 上一轮**规则算子**选的行为策略 (内核意图). */
+  readonly ruleStrategy: BehaviorStrategy;
+  /** 锁定后**实际生效**的行为策略 (影子模式下是"假设 LLM 审议生效"的推演值). */
+  readonly effectiveStrategy: BehaviorStrategy;
+  /** 锁定到第几轮 (**不含**本轮) —— 轮次 >= 它就不再锁定. */
+  readonly lockedUntilRound: number;
+  /** 状态最后一次更新时的轮次 (观测用). */
+  readonly roundIndex: number;
+}
+
+/**
+ * 意图锁定判定的结果.
+ */
+export interface IntentionLockResult {
+  /**
+   * 锁定后**实际生效**的行为策略.
+   *
+   * ⚠️ 影子模式下它是**推演值**: "如果真用 LLM 审议, 这一轮会用哪个策略".
+   *   主流程实际用的仍然是规则算子那个 —— 审议结果从不生效 (WP64 起的纪律).
+   */
+  readonly effectiveStrategy: BehaviorStrategy;
+  /**
+   * LLM 的切换建议有没有被**采纳**.
+   *
+   * 口径: true = 采纳了 (且不在锁定期内); false = 被锁定期拦下, 或者**压根没有建议**.
+   *   PoC 统计"锁定期内被拦住多少"用 `llmIntentionShift !== null && !llmIntentionAccepted`.
+   */
+  readonly llmSuggestionAccepted: boolean;
+  /** 算完之后的锁定状态 (下一轮从它接着算). */
+  readonly newState: IntentionLockState;
+}
+
+/**
+ * 构造意图锁定状态的 Redis key (与熔断 key 同构, 带租户 + 会话长度前缀).
+ *
+ * @param tenantId 租户隔离键
+ * @param sessionId 业务会话 id
+ * @returns 意图锁定状态的 key
+ */
+export function buildDeliberationIntentionLockKey(tenantId: string, sessionId: string): string {
+  return `${DELIBERATION_INTENTION_LOCK_KEY_PREFIX}:${tenantId.length}:${tenantId}:${sessionId.length}:${sessionId}`;
+}
+
+/**
+ * 意图锁定判定 (纯函数, 可单测) —— WP68 的核心.
+ *
+ * 口径 (任务单 §4.3 的五个情况, 但**情况 2 的触发条件改了**, 见下):
+ *   1. 还没锁过 (第一次审议) → 用规则算子的策略, 开始锁定;
+ *   2. **规则算子选的策略变了** → 内核真的换意图了, 重新锁定 (内核的切换优先于 LLM 的建议);
+ *   3. 还在锁定期内 → **忽略** LLM 建议, 有效策略保持不变;
+ *   4. 锁定期过了 + LLM 有建议 → **采纳**, 重新锁定 3 轮;
+ *   5. 锁定期过了 + LLM 没建议 → 继续用当前有效策略 (不重新上锁).
+ *
+ * ⚠️ **情况 2 的触发条件为什么不是任务单写的那样**:
+ *   任务单的代码是 `state.currentStrategy !== currentStrategy`, 而它自己的注释写的是
+ *   "**规则算子**选的策略变了" —— 两者对不上, 因为情况 4 把 `currentStrategy` 写成了
+ *   **LLM 建议的**策略. 照抄的话, 影子模式下会出现一个假象:
+ *   LLM 的建议被采纳一次之后, 下一轮 `state.currentStrategy`(=LLM 建议) 必然
+ *   ≠ `currentStrategy`(=规则策略) → **每轮都走情况 2**, 锁被反复重新上锁、永不过期,
+ *   于是"锁定机制拦住率"被这个假象**撑爆**, PoC 结论直接失真.
+ *   所以这里把状态拆成 `ruleStrategy` / `effectiveStrategy` 两个字段:
+ *   情况 2 只在**内核真的换了意图**时触发.
+ *
+ * ⚠️ 情况 3 / 5 返回的是 `state.effectiveStrategy` 而不是 `currentStrategy`:
+ *   LLM 建议被采纳后, 它要在**锁定期内保持** (不然"锁定"就白锁了).
+ *
+ * @param state 当前锁定状态 (null = 没锁过)
+ * @param currentStrategy 本轮规则算子选的行为策略
+ * @param llmSuggestion LLM 建议的切换 (null = 不建议切换)
+ * @param lockRounds 锁定轮数 (0 = 不锁)
+ * @param roundIndex 当前轮次
+ * @returns 锁定后的结果: 实际生效的策略 + LLM 建议有没有被采纳 + 新的锁定状态
+ */
+export function resolveIntentionLock(
+  state: IntentionLockState | null,
+  currentStrategy: BehaviorStrategy,
+  llmSuggestion: DeliberationIntentionShift | null,
+  lockRounds: number,
+  roundIndex: number,
+): IntentionLockResult {
+  // 情况 1: 还没锁过 —— 用规则算子的策略, 开始锁定 (第一轮不采纳 LLM 的建议).
+  if (!state) {
+    return {
+      effectiveStrategy: currentStrategy,
+      llmSuggestionAccepted: false,
+      newState: {
+        ruleStrategy: currentStrategy,
+        effectiveStrategy: currentStrategy,
+        lockedUntilRound: roundIndex + lockRounds,
+        roundIndex,
+      },
+    };
+  }
+
+  // 情况 2: 规则算子选的策略变了 —— 内核真的换意图了, 重新锁定 (内核优先).
+  if (state.ruleStrategy !== currentStrategy) {
+    return {
+      effectiveStrategy: currentStrategy,
+      llmSuggestionAccepted: false,
+      newState: {
+        ruleStrategy: currentStrategy,
+        effectiveStrategy: currentStrategy,
+        lockedUntilRound: roundIndex + lockRounds,
+        roundIndex,
+      },
+    };
+  }
+
+  // 情况 3: 还在锁定期内 —— 忽略 LLM 建议, 有效策略保持不变.
+  if (roundIndex < state.lockedUntilRound) {
+    return {
+      effectiveStrategy: state.effectiveStrategy,
+      llmSuggestionAccepted: false,
+      newState: { ...state, roundIndex },
+    };
+  }
+
+  // 情况 4: 锁定期过了 + LLM 有建议 —— 采纳, 重新锁定.
+  if (llmSuggestion) {
+    return {
+      effectiveStrategy: llmSuggestion.targetStrategy,
+      llmSuggestionAccepted: true,
+      newState: {
+        ruleStrategy: currentStrategy,
+        effectiveStrategy: llmSuggestion.targetStrategy,
+        lockedUntilRound: roundIndex + lockRounds,
+        roundIndex,
+      },
+    };
+  }
+
+  // 情况 5: 锁定期过了 + LLM 没建议 —— 继续用当前有效策略 (不重新上锁).
+  return {
+    effectiveStrategy: state.effectiveStrategy,
+    llmSuggestionAccepted: false,
+    newState: { ...state, roundIndex },
+  };
+}
+
 /** 审议产出的 token 用量. */
 export interface DeliberationTokenUsage {
   readonly promptTokens: number;
@@ -373,6 +589,32 @@ export interface DeliberationTraceRecord {
   readonly entries: readonly DeliberationTraceEntry[];
   /** 被校验层丢掉的**原始**条目 (非法维度 / 非法标签 / 越界幅度等). */
   readonly rejectedEntries: readonly unknown[];
+  /**
+   * 本轮**规则算子**选中的行为策略 (内核意图) (WP68).
+   *
+   * PoC 用途: 与 `llmIntentionShift` 对比 —— "规则说 A，LLM 说 B".
+   */
+  readonly ruleStrategy: BehaviorStrategy;
+  /**
+   * LLM 建议的意图切换 (WP68) —— null = 不建议切换.
+   *
+   * ⚠️ 建议被**校验层丢掉**时也是 null (原始条目在 `rejectedEntries` 里) ——
+   *   证据不丢, 但不让非法值参与锁定判定.
+   */
+  readonly llmIntentionShift: DeliberationIntentionShift | null;
+  /**
+   * 锁定后**实际生效**的行为策略 (WP68).
+   *
+   * ⚠️ 影子模式下这是**推演值** ("如果真用 LLM 审议会用哪个"), 主流程实际用的
+   *   仍然是 `ruleStrategy` —— 审议结果从不生效.
+   */
+  readonly lockedStrategy: BehaviorStrategy;
+  /**
+   * LLM 的切换建议有没有被**采纳** (WP68).
+   *
+   * 口径: true = 采纳 (且不在锁定期内); false = 被锁定期拦下, 或者压根没有建议.
+   */
+  readonly llmIntentionAccepted: boolean;
 }
 
 /**
@@ -476,7 +718,7 @@ export function computeDeliberationDeltaDiff(
  */
 export function validateDeliberationOutput(raw: unknown): ValidatedDeliberation | null {
   if (typeof raw !== 'object' || raw === null) return null;
-  const candidate = raw as { deltas?: unknown; summary?: unknown; confidence?: unknown };
+  const candidate = raw as { deltas?: unknown; summary?: unknown; confidence?: unknown; intentionShift?: unknown };
   if (!Array.isArray(candidate.deltas)) return null;
   if (typeof candidate.summary !== 'string') return null;
   if (typeof candidate.confidence !== 'number' || !Number.isFinite(candidate.confidence)) return null;
@@ -492,10 +734,38 @@ export function validateDeliberationOutput(raw: unknown): ValidatedDeliberation 
     deltas.push(entry);
   }
 
+  // WP68: `intentionShift` 是**可选**的 —— 缺省 (或明确 null) = 不建议切换.
+  //   给了但非法 (策略名不在内核 8 种里 / 理由为空) → **丢掉它** (当 null),
+  //   原始值留在 `rejectedEntries` 里 (证据不丢, 但不让非法值参与锁定判定).
+  //   ⚠️ 不整份判不合法: 一条非法建议不该让整轮审议白跑 (与单条 delta 的处理同款).
+  const intentionShift = validateIntentionShift(candidate.intentionShift);
+  if (intentionShift === undefined) rejectedEntries.push(candidate.intentionShift);
+
   return {
-    output: { deltas, summary: candidate.summary, confidence: candidate.confidence },
+    output: {
+      deltas,
+      summary: candidate.summary,
+      confidence: candidate.confidence,
+      intentionShift: intentionShift ?? null,
+    },
     rejectedEntries,
   };
+}
+
+/**
+ * 校验 LLM 建议的意图切换 (WP68).
+ *
+ * @param raw 原始 JSON 里的 `intentionShift` 字段
+ * @returns `null` = 不建议切换 (缺省 / 明确 null); 有值 = 合法建议;
+ *          `undefined` = **非法** (调用方丢掉它并留证据)
+ */
+function validateIntentionShift(raw: unknown): DeliberationIntentionShift | null | undefined {
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw !== 'object') return undefined;
+  const candidate = raw as { targetStrategy?: unknown; reason?: unknown };
+  if (!isBehaviorStrategy(candidate.targetStrategy)) return undefined;
+  if (typeof candidate.reason !== 'string' || candidate.reason.trim().length === 0) return undefined;
+  return { targetStrategy: candidate.targetStrategy, reason: candidate.reason.trim() };
 }
 
 /**
@@ -613,7 +883,14 @@ export class LlmDeliberationService {
 
     // 走到这里只剩"成功" (`runDeliberation` 不会返回 'skipped' —— 那是开关关掉时的早退).
     if (outcome.kind === 'ok') {
-      await this.writeTrace(this.buildSuccessRecord(input, outcome.validated, startedAt, outcome.usage, retryCount));
+      // WP68: 意图锁定判定 —— 拿规则算子的策略 + LLM 建议的 intentionShift, 过一遍锁.
+      //   ⚠️ 判定结果**直接进 trace** (lockedStrategy / llmIntentionAccepted),
+      //   所以这一步必须在写 trace **之前**算好.
+      const lock = await this.resolveLock(input, outcome.validated.output.intentionShift);
+      await this.writeTrace(this.buildSuccessRecord(input, outcome.validated, startedAt, outcome.usage, retryCount, lock));
+      // 状态落盘放在 trace 之后: trace 是主产物, 锁状态是辅助.
+      // 写锁状态失败 → 下一轮还是同一个锁定期 (保守方向: 宁可多锁, 不可少锁).
+      await this.saveIntentionLockState(input.tenantId, input.sessionId, lock.newState);
     }
     return outcome;
   }
@@ -657,6 +934,8 @@ export class LlmDeliberationService {
           visitorText: input.visitorText,
           characterBrief: input.characterBrief,
           turnIndex: input.turnIndex,
+          // WP68: 告诉模型"现在用的是哪个策略" —— 否则它无从判断该不该建议切换.
+          ruleStrategy: input.ruleStrategy,
         }),
         schemaDescription: buildDeliberationSchemaDescription(),
         validate: validateDeliberationOutput,
@@ -734,6 +1013,7 @@ export class LlmDeliberationService {
     startedAt: number,
     usage: DeliberationTokenUsage | null,
     retryCount: number,
+    lock: IntentionLockResult,
   ): DeliberationTraceRecord {
     const { output, rejectedEntries } = validated;
     const deliberationDelta: Partial<Record<DeliberationDim, number>> = {};
@@ -771,6 +1051,11 @@ export class LlmDeliberationService {
       summary: output.summary,
       entries,
       rejectedEntries,
+      // WP68: 意图锁定的三方对比 (规则 / LLM 建议 / 锁定后实际生效).
+      ruleStrategy: input.ruleStrategy,
+      llmIntentionShift: output.intentionShift,
+      lockedStrategy: lock.effectiveStrategy,
+      llmIntentionAccepted: lock.llmSuggestionAccepted,
     };
   }
 
@@ -802,7 +1087,79 @@ export class LlmDeliberationService {
       summary: null,
       entries: [],
       rejectedEntries: [],
+      // WP68: 失败轮次**不跑**锁定判定 (压根没有建议可判) —— 三个字段占位,
+      //   让 trace 的形状在成功 / 失败两种情况下**一致** (消费方不用判分支).
+      ruleStrategy: input.ruleStrategy,
+      llmIntentionShift: null,
+      lockedStrategy: input.ruleStrategy,
+      llmIntentionAccepted: false,
     };
+  }
+
+  /**
+   * 意图锁定判定 (读状态 → 纯函数判定).
+   *
+   * ⚠️ **读失败按"没锁过"处理** (fail-open, 与 WP67 的熔断器同款口径):
+   *   锁定机制是**观察工具**, 不是正确性保障 —— Redis 抖动时不该让所有会话的
+   *   意图锁定判定失真. 读不到 = 从第一轮重新算起.
+   *
+   * @param input 本轮上下文
+   * @param llmSuggestion LLM 建议的切换 (null = 不建议)
+   * @returns 锁定判定结果
+   */
+  private async resolveLock(
+    input: DeliberationShadowInput,
+    llmSuggestion: DeliberationIntentionShift | null,
+  ): Promise<IntentionLockResult> {
+    const state = await this.loadIntentionLockState(input.tenantId, input.sessionId);
+    return resolveIntentionLock(state, input.ruleStrategy, llmSuggestion, this.resolveIntentionLockRounds(), input.turnIndex);
+  }
+
+  /** 读意图锁定状态 (读不到 / 读坏 = 没锁过). */
+  private async loadIntentionLockState(tenantId: string, sessionId: string): Promise<IntentionLockState | null> {
+    try {
+      const raw = await this.redis.get(buildDeliberationIntentionLockKey(tenantId, sessionId));
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as Partial<IntentionLockState>;
+      // 状态坏了 (字段缺失 / 策略名非法) → 当没锁过, 不让一个坏 key 永久卡住会话.
+      if (!isBehaviorStrategy(parsed.ruleStrategy) || !isBehaviorStrategy(parsed.effectiveStrategy)) return null;
+      return {
+        ruleStrategy: parsed.ruleStrategy,
+        effectiveStrategy: parsed.effectiveStrategy,
+        lockedUntilRound: readFiniteNumber(parsed.lockedUntilRound),
+        roundIndex: readFiniteNumber(parsed.roundIndex),
+      };
+    } catch (error) {
+      this.logger.warn(`[deliberation_intention_lock] 状态读取失败 (session=${sessionId}): ${messageOf(error)}`);
+      return null;
+    }
+  }
+
+  /** 写意图锁定状态 (TTL 24 小时, 每次写都刷新). */
+  private async saveIntentionLockState(tenantId: string, sessionId: string, state: IntentionLockState): Promise<void> {
+    try {
+      await this.redis.set(
+        buildDeliberationIntentionLockKey(tenantId, sessionId),
+        JSON.stringify(state),
+        DELIBERATION_INTENTION_LOCK_TTL_SECONDS,
+      );
+    } catch (error) {
+      this.logger.warn(`[deliberation_intention_lock] 状态写入失败 (session=${sessionId}): ${messageOf(error)}`);
+    }
+  }
+
+  /**
+   * 意图锁定轮数 (`ENGINE_DELIBERATION_INTENTION_LOCK_ROUNDS`).
+   *
+   * 缺省 = **3** (工程种子值, 非临床数字). 非法值 → 回退默认 (**不抛错**).
+   * ⚠️ **0 是合法值** = 关掉锁定机制 (做对照实验用) —— 与"非法值"区分开.
+   */
+  private resolveIntentionLockRounds(): number {
+    const raw = (this.config.get<string>('ENGINE_DELIBERATION_INTENTION_LOCK_ROUNDS') ?? '').trim();
+    if (raw.length === 0) return DEFAULT_DELIBERATION_INTENTION_LOCK_ROUNDS;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed < 0) return DEFAULT_DELIBERATION_INTENTION_LOCK_ROUNDS;
+    return Math.floor(parsed);
   }
 
   /**
@@ -823,6 +1180,11 @@ export class LlmDeliberationService {
 /** 取错误信息 (跨 unknown 边界的安全取法). */
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/** 读一个有限数字 (读不到 / 不是有限数 → 0). 用于 Redis 里那个可能写坏的锁定状态. */
+function readFiniteNumber(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
 /** 截断到上限 (超长加省略号). */

@@ -91,7 +91,7 @@
 | **WP65** ✅ | 会话级串行队列与状态一致性 | 🔴 P0 | 同一个 sessionId 的审议请求排队执行（per-session mutex）；状态快照版本号机制：审议输入用"最近已提交的快照版本"；防止并发写覆盖导致状态错乱。**上线前必须解决的硬约束**。⚠️ **实际落地**：本单先交付**队列化**这一半 —— 影子审议从 fire-and-forget 直接调改成 **BullMQ 入队异步跑**（新增 `DeliberationProcessor` = Queue + Worker + 端口实现；`LlmDeliberationService` 降级为执行器 `executeShadowMode`），三个问题一次解决：并发打爆上游（Worker 并发闸门，默认 3，env 可配）/ 进程重启丢任务（job 持久化在 Redis）/ 没有可观测性（队列长度 / 成功率 / 失败原因）；编排门面**零改动**（端口签名不变，对"内部改成入队"完全透明）；**jobId 带 turnIndex**（`removeOnComplete` 留 24h，不带会被 BullMQ 静默去重 → 审议只跑第一轮且零报错）；开关**入队前 + 执行时各判一次**（共用一个纯函数）。⚠️ **per-session mutex + 快照版本号仍未做** —— 影子模式下审议结果**不写状态**，并发不会造成状态覆盖，但**切灰度（结果开始生效）之前必须先补**（[交付记录](../completed/phase2/engine-wp65-deliberation-shadow-queue-implementation-2026-11-05.md)） | WP64 |
 | **WP66** ✅ | 审议输出格式校验与重试 | 🟡 P1 | JSON 解析 + zod schema 校验；格式不合法自动重试一次；重试仍失败 → 本轮 delta = 0，打告警日志，不阻断对话；强制 `response_format: json_object`。⚠️ **实际落地**：**智能重试** —— 区分错误类型，值得重试的才抛给 BullMQ（**形状类** `json_not_found` / `json_parse_failed` / `schema_validation_failed` / `parse_error` + **限流与 5xx** `http_429` / `http_5*`），不值得的（鉴权 4xx / 网络超时 `fetch_error` / `no_body` / 代码 bug）照旧吞掉；**先写 trace 再抛**（失败记录不丢）；重试次数 `ENGINE_DELIBERATION_MAX_RETRIES` 默认 **1**（总共跑 2 次，job 级 `attempts` 覆盖，**不动**全项目统一的 `defaultJobOptions`）；trace 加 `retryCount`（= `job.attemptsMade`）；⚠️ **zod schema 与 `response_format: json_object` 本期未做** —— 仓库的结构化输出只有一条链（`CounselorLlmJsonClient`），改它影响 6 个既有调用方，建议单独一单；WP64 的 `validateDeliberationOutput` 校验逻辑**一行未动**（[交付记录](../completed/phase2/engine-wp66-deliberation-format-retry-implementation-2026-11-05.md)） | WP63 |
 | **WP67** ✅ | 三级降级策略 | 🟡 P1 | 降级 1：LLM 审议超时（>3s）→ 跳过审议，状态不变；降级 2：LLM 服务连续失败 → 切回纯规则算子模式；降级状态标记：会话打标 `degraded: true`，不能用于正式考核；降级事件写日志 + 告警。⚠️ **实际落地**：本单只交付**会话级熔断器**那一半 —— 同一个会话**连续**失败 3 次 → 熔断（这个会话的影子审议**不入队**，省一次入队 + 省一次 LLM 调用），冷却 10 分钟后半开放**一个**请求进去试（试成功就恢复，试失败就重新等满一个周期）；状态只存 `failureCount` + `openedAt`，三态（closed/open/half-open）是**算出来的**不是存出来的；熔断时写一条 `errorCode='circuit_open'` 的 trace（可观测）；阈值 / 冷却 env 可配（默认 3 次 / 600000ms，非法值回退默认不抛错）；熔断在 **Processor 层**做，Service 层只多了"返回结局"与"写一条熔断 trace"两个能力。⚠️ **母版三档里另两档天然成立但没做标记**：① 超时跳过 —— 超时是 `fetch_error`，不重试、记失败 trace 就结束（天然成立）；② 切回规则算子 —— 影子模式审议结果**从不生效**，主流程本来就永远走规则算子（天然成立，**无需动作**）；③ **`degraded: true` 会话打标未做** —— 需要会话级打标 + 对外查询入口，涉及会话状态模型，建议单独一单（本单的 `circuit_open` trace 已提供原始数据）（[交付记录](../completed/phase2/engine-wp67-deliberation-circuit-breaker-implementation-2026-11-05.md)） | WP64 |
-| **WP68** | 意图锁定机制（基础版） | 🟢 P2 | 当前意图加 `lockedUntilRound` 字段；锁定期间，审议输出的 intentionShift 被忽略（除非有明确触发事件）；触发事件白名单：咨询师直接提问了这个意图相关的话题；锁定轮数做成可配置参数（默认 3 轮，工程种子值待校准） | 无 |
+| **WP68** ✅ | 意图锁定机制（基础版） | 🟢 P2 | 当前意图加 `lockedUntilRound` 字段；锁定期间，审议输出的 intentionShift 被忽略（除非有明确触发事件）；触发事件白名单：咨询师直接提问了这个意图相关的话题；锁定轮数做成可配置参数（默认 3 轮，工程种子值待校准）。⚠️ **实际落地**：审议输出加**可选**的 `intentionShift`（LLM 建议切到哪个策略 + 理由，不需要就返回 null）；**影子期旁路模拟**锁定：锁定 N 轮内忽略 LLM 的切换建议，trace 里记下三方对比（规则算子选的 / LLM 建议的 / 锁定后实际生效的）；锁定轮数 `ENGINE_DELIBERATION_INTENTION_LOCK_ROUNDS` 默认 3（**工程种子值，非临床数字**），非法值回退默认不抛错，填 0 = 关掉锁定做对照实验。⚠️ **三处与任务单不同**：① 锁定逻辑与锁状态放 **service 层**（trace 是 service 写的，锁定结果要进 trace 就必须先算好；已与大炮确认）；② 锁状态拆成 `ruleStrategy` + `effectiveStrategy` **两个**字段（照抄任务单的单字段写法会在影子模式下让锁反复重上、永远不过期，把"拦住率"撑爆 → PoC 结论失真）；③ prompt 额外告诉模型"**当前行为策略**"（不知道现在用哪个策略就无从判断该不该换，WP68 想回答的问题就答不出来）。⚠️ **触发事件白名单未做**（任务单 D5 已明确 PoC 阶段不做 —— 那是 NLP 级判断）（[交付记录](../completed/phase2/engine-wp68-deliberation-intention-lock-implementation-2026-11-05.md)） | 无 |
 
 > **engine-core 边界**：这组 WP（WP63-WP68）PoC 影子期全部在适配层做，**内核零改动**。LLM 审议在 `src/engine-adapters/deliberation/`，engine-core 仍然是纯函数 + 纯数据结构，boundary.spec.ts 的 11 条断言一条都不用改。等灰度切换期（Phase3A）需要加 `deltaReport` 出口时，再单独写任务单动内核——那时候是"纯加返回字段"，不破纯层性质。
 
@@ -106,11 +106,15 @@
 | 🟢 P2 技术债 | 13 条 | WP45, 46, 47, 48, 49, 52, 53, 54, 59, 60, 62, 68 |
 | **合计** | **41 条** | **WP27–WP68** |
 
-**进度：24 / 41 完成**（WP28 ✅、WP32 ✅、WP34 ✅、WP35 ✅、WP36 ✅、WP37 ✅、WP41 ✅、WP42 ✅、WP49 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP56 ✅、WP57 ✅、WP59 ✅、WP61 ✅、WP63 ✅、WP64 ✅、WP65 ✅、WP66 ✅、WP67 ✅，2026-11-05）。
+**进度：25 / 41 完成**（WP28 ✅、WP32 ✅、WP34 ✅、WP35 ✅、WP36 ✅、WP37 ✅、WP41 ✅、WP42 ✅、WP49 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP56 ✅、WP57 ✅、WP59 ✅、WP61 ✅、WP63 ✅、WP64 ✅、WP65 ✅、WP66 ✅、WP67 ✅、WP68 ✅，2026-11-05）。
 
 > ⚠️ **WP65 只销了「队列化」那一半**：母版描述里的 **per-session mutex + 快照版本号**仍未做 —— 影子模式下审议结果**不写状态**，并发不会造成覆盖；但**切灰度（结果开始生效）之前必须先补**，否则同一会话两轮审议同时回写 BDI 快照会互相覆盖。**别把这一行当成"状态一致性已解决"。**
 
 > ⚠️ **WP67 只销了「熔断器」那一半**：母版描述里的 **超时跳过**与**连续失败切回规则算子**在影子模式下**天然成立**（审议结果从不生效，主流程永远走规则算子）；**`degraded: true` 会话打标仍未做** —— 需会话级打标 + 对外查询入口，涉及会话状态模型，建议单独一单（本单的 `circuit_open` trace 已提供原始数据）。**别把这一行当成"降级标记已解决"。**
+
+> ⚠️ **WP68 只销了「基础版」**：母版描述里的**触发事件白名单**（咨询师直接提问了意图相关话题 → 提前解锁）**未做** —— 那是 NLP 级判断，任务单 §2 D5 已明确 PoC 阶段不做。**别把这一行当成"提前解锁已实现"。**
+
+> ✅ **混合式 BDI PoC 组（WP63–WP68）全部交付** —— 影子期的对比数据齐了：软状态 delta（WP64/66）、意图层（WP68）、熔断与降级（WP67）。**下一站是 Phase3A 切灰度**：审议结果开始生效之前，必须先补 WP65 的 per-session mutex + 快照版本号，且审议输出要过约束校验层（delta cap + 临床合理性）才能落快照。
 
 > 🆕 **2026-11-05 新增 6 条 WP（WP63–WP68）**：混合式 BDI PoC 组，基于 Coze 下线趋势判断的架构方向校准。详见 [`../../architecture/hybrid-bdi-agent-blueprint-v1.0.md`](../../architecture/hybrid-bdi-agent-blueprint-v1.0.md)。
 

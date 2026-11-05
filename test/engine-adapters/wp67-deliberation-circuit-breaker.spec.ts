@@ -112,6 +112,8 @@ function buildInput(overrides: Partial<DeliberationShadowInput> = {}): Deliberat
     visitorText: '有点累，夜里老醒。',
     characterBrief: '依恋风格: 回避型',
     ruleDelta: RULE_DELTA,
+    // WP68: 意图锁定需要知道"规则算子本轮选的策略" (门面从内核意图传进来).
+    ruleStrategy: 'recounting',
     ...overrides,
   };
 }

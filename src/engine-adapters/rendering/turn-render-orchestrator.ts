@@ -75,6 +75,15 @@
 //         "状态实际怎么动了"一致, 见交付记录 §2.3.
 //     缺省 = 不装审议端口 = 行为与本单之前**逐字一致** (零回归).
 //
+//   V2026-11-05 治本 (WP68 · 意图锁定机制):
+//     审议入参多传**一个**字段: `ruleStrategy` (本轮规则算子选的行为策略).
+//     为什么门面要传: 意图是内核的**每轮派生输出**, 不在快照里 —— 审议层自己拿不到,
+//       而意图锁定必须知道"现在用的是哪个策略" (不知道就没法判断该不该换).
+//     ⚠️ 取 `spec.intention.strategy` —— 那是本轮渲染**实际用的**策略
+//       (`buildRenderSpec` 保证它永远有值: 内核意图缺失时兜底 `simple_response`),
+//       不是"猜一个" —— 猜出来的策略会让锁定判定建立在假数据上.
+//     ⚠️ 除多传这一个字段外, 门面的**其它逻辑一个字没动** (不判定、不拦截、不改主流程).
+//
 //   反双胞胎:
 //     - 不重复写咨询师半边记忆: 内核 rememberTurn 已经写了 (source=TURN, tier=WORKING,
 //       content=咨询师文本). 门面只补**来访半边**. 重复写 = 工作记忆里同一条出现两次,
@@ -492,7 +501,7 @@ export class TurnRenderOrchestrator {
 
     // 4.5 影子审议 (WP64): 旁路跑一次 LLM 审议, **不生效** (结果只进 Redis trace 表).
     //     fire-and-forget: 不 await, 主流程响应时间不受审议影响.
-    this.shadowDeliberation(handleId, input, output, rendered.text);
+    this.shadowDeliberation(handleId, input, output, rendered.text, spec.intention.strategy);
 
     // 5. 组装返回 (内核出参逐字透传, 外面包一层 render 元信息与真实 reply).
     return {
@@ -557,7 +566,7 @@ export class TurnRenderOrchestrator {
     await this.settleTurn(handleId, input.userText, rendered);
 
     // 4.5 影子审议 (WP64): 与聚合路径**同一处**旁路调用, 不复制一份流式专属逻辑.
-    this.shadowDeliberation(handleId, input, output, rendered.text);
+    this.shadowDeliberation(handleId, input, output, rendered.text, spec.intention.strategy);
 
     // 5. 组装返回 (与 turn() 同构).
     return {
@@ -614,7 +623,13 @@ export class TurnRenderOrchestrator {
    * @param output 内核本轮出参 (含本轮结束后的快照)
    * @param visitorText 本轮来访的渲染文本
    */
-  private shadowDeliberation(handleId: string, input: EngineTurnInput, output: EngineTurnOutput, visitorText: string): void {
+  private shadowDeliberation(
+    handleId: string,
+    input: EngineTurnInput,
+    output: EngineTurnOutput,
+    visitorText: string,
+    ruleStrategy: BehaviorStrategy,
+  ): void {
     const deliberation = this.deps.deliberation;
     if (!deliberation) return;
     // 本轮开始时的快照 = 上一轮结束时记下的那份 (首轮没有 → 跳过).
@@ -641,6 +656,11 @@ export class TurnRenderOrchestrator {
           visitorText,
           characterBrief: context.characterBrief ?? '',
           ruleDelta: computeRuleDelta(baseSnapshot, output.snapshot),
+          // WP68: 意图锁定需要知道"规则算子本轮选的策略" —— 审议层拿不到内核意图
+          //   (意图是每轮派生输出, 不在快照里), 所以由门面传进去.
+          //   ⚠️ 取 `spec.intention.strategy` (本轮渲染**实际用的**那个策略,
+          //   内核意图缺失时有中性兜底 `simple_response`) —— 不是猜一个.
+          ruleStrategy,
         })
         .catch((error: unknown) => {
           // 审议服务承诺不抛 —— 这一层是**防御**: 万一它抛了, 也不能炸主流程.

@@ -116,6 +116,8 @@ function buildInput(overrides: Partial<DeliberationShadowInput> = {}): Deliberat
     visitorText: '有点累，夜里老醒。',
     characterBrief: '依恋风格: 回避型',
     ruleDelta: RULE_DELTA,
+    // WP68: 意图锁定需要知道"规则算子本轮选的策略" (门面从内核意图传进来).
+    ruleStrategy: 'recounting',
     ...overrides,
   };
 }
@@ -153,7 +155,7 @@ function okResult(deltas: readonly unknown[] = []): {
   return {
     ok: true,
     data: {
-      output: { deltas: deltas as never[], summary: '来访情绪略有低落', confidence: 0.65 },
+      output: { deltas: deltas as never[], summary: '来访情绪略有低落', confidence: 0.65, intentionShift: null },
       rejectedEntries: [],
     },
     rawText: '{}',
@@ -202,7 +204,8 @@ function buildRealService(options: {
   const requestJson = options.requestJson ?? vi.fn();
   const set = options.set ?? vi.fn();
   const config = { get: (key: string): string | undefined => env[key] } as unknown as ConfigService;
-  const redis = { set } as unknown as RedisService;
+  // ⚠️ WP68 起 service 还要**读**意图锁定状态 (Redis get) → 替身补上.
+  const redis = { set, get: vi.fn(async (): Promise<string | null> => null) } as unknown as RedisService;
   const llm = { requestJson } as unknown as CounselorLlmJsonClient;
   return { service: new LlmDeliberationService(llm, config, redis), requestJson, set, config };
 }

@@ -335,6 +335,11 @@ export declare global {
       //   ⚠️ 数值键读到的**一定是字符串**, 必须自己解析 + 回退默认.
       ENGINE_DELIBERATION_FAILURE_THRESHOLD?: string; // 连续失败多少次熔断 (默认 3; 非法值回退默认)
       ENGINE_DELIBERATION_COOLDOWN_MS?: string; // 熔断冷却时长 (毫秒, 默认 600000 = 10 分钟; 非法值回退默认)
+      // V2026-11-05 治本 (WP68 — 意图锁定机制):
+      //   意图锁定轮数. 同样**逐个字面量**读
+      //   (src/engine-adapters/deliberation/llm-deliberation.service.ts).
+      //   ⚠️ 数值键读到的**一定是字符串**, 必须自己解析 + 回退默认.
+      ENGINE_DELIBERATION_INTENTION_LOCK_ROUNDS?: string; // 锁定几轮 (默认 3; 0 = 关掉锁定; 非法值回退默认)
     }
   }
 

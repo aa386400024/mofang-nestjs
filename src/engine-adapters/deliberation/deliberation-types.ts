@@ -29,12 +29,21 @@
 //     - **不输出分数 / 评级** —— 零压红线 (AGENTS.md §5.3): 分数只允许出现在 MCQ 备考频道.
 //       审议输出契约里**没有**分数字段, `exam` 模式也不例外 (见 deliberation-prompt.ts).
 //
+//   V2026-11-05 治本 (WP68 · B 层 · 意图锁定机制):
+//     审议输出加**可选的** `intentionShift` —— LLM 可以建议切换行为策略, 不需要就返回 null.
+//     为什么要有它: 影子期一直在比"软状态 delta", 但**意图层面**还没比过 ——
+//     "LLM 会不会乱改意图"这个问题, 没有 intentionShift 就没法回答.
+//     为什么放在本文件 (契约层) 而不是 service: 它是**输出契约的一部分**
+//     (prompt / 校验 / trace 三处都要认它), 契约一处定义、三处引用, 免得三份真相.
+//
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp63-deliberation-schema.spec.ts 覆盖枚举数量 / 与内核口径的一致性
 //     3. `satisfies` 编译期约束: 维度必须是内核 DeltaVector 的键, 对齐标签必须是内核事件类型
+//     4. test/engine-adapters/wp68-deliberation-intention-lock.spec.ts 覆盖 intentionShift 校验 /
+//        策略枚举与内核的一致性
 
-import type { CounselorEventKind, DeltaVector } from '../../engine-core/index.js';
+import type { BehaviorStrategy, CounselorEventKind, DeltaVector } from '../../engine-core/index.js';
 
 /**
  * 审议维度 (与内核 `DeltaVector` 的 11 个键一一对应).
@@ -146,6 +155,69 @@ export type DeliberationOperatorTag = (typeof DELIBERATION_OPERATOR_TAGS)[number
 export type DeliberationMode = 'exam' | 'freeform';
 
 /**
+ * 内核 8 种行为策略的**运行时清单** (WP68).
+ *
+ * ⚠️ 为什么内核只给类型不给数组:
+ *   内核 `BehaviorStrategy` 是**类型** (union), 编译期有, 运行期没有值 ——
+ *   而审议层需要**运行期**的清单: prompt 要列给模型看合法取值, 校验层要拿它做白名单.
+ *   给内核加一个运行期数组 = **动 engine-core** (破红线), 所以清单落在适配层.
+ *
+ * ⚠️ 为什么用**穷尽 Record** 而不是 `as const` 数组 + `satisfies`:
+ *   `satisfies readonly BehaviorStrategy[]` 只保证"**不多**" (子集), 不保证"**不少**" ——
+ *   内核哪天加了第 9 种策略, 数组少一个, 编译期**不报错**, 模型却永远选不到它.
+ *   `Record<BehaviorStrategy, true>` 反过来: 内核加策略而这里没跟 → **TS 直接报错**,
+ *   逼着补上 (与渲染层 `STRATEGY_LABEL` / `EMOTION_EXPRESSION` 同一范式).
+ *
+ * 顺序 = 提示模型时的展示顺序 (内核 `intention.ts` 的声明顺序).
+ */
+const BEHAVIOR_STRATEGY_SET: Readonly<Record<BehaviorStrategy, true>> = {
+  simple_response: true,
+  request: true,
+  recounting: true,
+  cognitive_exploration: true,
+  affective_exploration: true,
+  insight: true,
+  discussing_plans: true,
+  resistance: true,
+};
+
+/**
+ * 内核 8 种行为策略 (运行期清单).
+ *
+ * 用途: ① prompt 的 schema 描述列合法取值; ② `intentionShift.targetStrategy` 的白名单校验.
+ */
+export const DELIBERATION_BEHAVIOR_STRATEGIES: readonly BehaviorStrategy[] = Object.keys(BEHAVIOR_STRATEGY_SET) as BehaviorStrategy[];
+
+/**
+ * 这个字符串是合法的行为策略吗 (WP68).
+ *
+ * @param value 待校验值
+ * @returns true = 是内核的 8 种策略之一
+ */
+export function isBehaviorStrategy(value: unknown): value is BehaviorStrategy {
+  return typeof value === 'string' && Object.hasOwn(BEHAVIOR_STRATEGY_SET, value);
+}
+
+/**
+ * LLM 建议的**意图切换** (WP68) —— 可选, 不需要切换就返回 null.
+ *
+ * 为什么要它 (这是 PoC 组最后一块拼图):
+ *   影子期一直在比"软状态 delta"(trust / safety / bond …), 但**意图层面**还没比过.
+ *   内核的 `Intention.strategy` 是每轮从状态选出来的行为策略 (8 种) ——
+ *   现在是规则算子选的, 将来切灰度后 LLM 也可以建议切换.
+ *   而"LLM 会不会乱改意图"这个问题, 没有这个字段就**没法回答**.
+ *
+ * ⚠️ 影子模式下它**不生效**: 审议结果从不写回内核 (WP64 起的纪律),
+ *   主流程永远走规则算子选的意图. 本字段只用来**旁路模拟**意图锁定机制.
+ */
+export interface DeliberationIntentionShift {
+  /** 建议切换到的行为策略 (必须是内核 8 种策略之一). */
+  readonly targetStrategy: BehaviorStrategy;
+  /** 切换理由 (一句话自然语言, 供督导观测). */
+  readonly reason: string;
+}
+
+/**
  * 单维度 delta 的**建议**幅度上限 (绝对值).
  *
  * 口径说明 (别把它当成内核 cap 的精确值):
@@ -221,4 +293,18 @@ export interface DeliberationOutput {
    *   到底是 LLM 拿不准, 还是规则算子漏了.
    */
   readonly confidence: number;
+  /**
+   * LLM 建议的**意图切换** (WP68) —— 可选.
+   *
+   * 口径:
+   *   · `null` —— 觉得当前策略就该继续, 不建议切换 (**大多数轮次都是这种**);
+   *   · 有值 —— 建议切到 `targetStrategy`, 附一句 `reason`.
+   *
+   * ⚠️ 字段**永远存在** (值可能是 null), 免得消费方到处判 `undefined`:
+   *   蓝图 §2.2 的输出示例就是 `"intentionShift": null` 这个形状.
+   *
+   * ⚠️ 影子模式下它**不生效** —— 主流程永远走规则算子选的意图.
+   *   真正拦住"乱改意图"的是**意图锁定机制** (在 service 层算, 结果进 trace).
+   */
+  readonly intentionShift: DeliberationIntentionShift | null;
 }

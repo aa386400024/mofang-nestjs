@@ -202,6 +202,8 @@ describe('WP63 · 审议输出 Schema 与可解释性', () => {
       visitorText: '嗯…也谈不上，就是夜里老醒。',
       characterBrief: '回避型依恋 / 高神经质',
       turnIndex: 7,
+      // WP68: 意图锁定要模型知道"现在用的是哪个策略" —— 否则它无从判断该不该建议切换.
+      ruleStrategy: 'recounting' as const,
     };
 
     it('快照 JSON / 咨询师的话 / 来访的反应 / 角色背景 / 轮次 都在里面', () => {
@@ -214,10 +216,12 @@ describe('WP63 · 审议输出 Schema 与可解释性', () => {
       expect(prompt).toContain('第 7 轮');
     });
 
-    it('四个区块的标题固定 (模型每次看到的位置一样)', () => {
+    it('五个区块的标题固定 (模型每次看到的位置一样)', () => {
       const prompt = buildDeliberationUserPrompt(input);
 
       expect(prompt).toContain('【来访者当前状态】');
+      // WP68: 新增"当前行为策略"区块 —— 模型要知道现在在做什么, 才谈得上要不要换.
+      expect(prompt).toContain('【当前行为策略】');
       expect(prompt).toContain('【本轮咨询师发言】');
       expect(prompt).toContain('【本轮来访者反应】');
       expect(prompt).toContain('【角色背景】');
