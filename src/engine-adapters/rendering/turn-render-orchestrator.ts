@@ -48,6 +48,19 @@
 //     ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
 //     本期**不做**"叙事风格" (话量基线 / 叙事风格 / 语态倾向) —— 那是 WP41 的事.
 //
+//   V2026-11-04 治本 (WP41 · 表达风格渲染接入):
+//     WP10A 在 DB 里预留了话量基线 / 叙事风格 / 语态倾向 3 列, 但从 DB 到 prompt 这条
+//     路是**断的** —— 渲染层看不到角色"天生怎么说话": 同样阻抗的两个角色, 一个天生
+//     絮叨、一个天生沉默, 输出的长短与腔调完全一样.
+//     本文件的扩展:
+//       ① `TurnSessionContext` 加 3 个**可选**字段 (装配层登记的角色基线, 整个会话不变);
+//       ② `assemble()` 把它们从会话归属读出来传进规格组装器;
+//       ③ `resolveTurnVerbosity()` 加**话量基线修正** —— 判据一个字没改, 只是把
+//          "话量阻抗"这个量按基线挪一点 (天生话多的人同样阻抗判不到"短");
+//       ④ `buildVisitorSystemPrompt()` 渲染"你说话一贯的样子"那一块 (条件渲染).
+//     缺省 (没登记表达风格) → 规格与 prompt 与 WP35 **逐字一致** (零回归).
+//     ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
+//
 //   反双胞胎:
 //     - 不重复写咨询师半边记忆: 内核 rememberTurn 已经写了 (source=TURN, tier=WORKING,
 //       content=咨询师文本). 门面只补**来访半边**. 重复写 = 工作记忆里同一条出现两次,
@@ -119,6 +132,19 @@ export interface TurnSessionContext {
    * 模型不该看见自己的角色名 (那会让它开始扮演"角色"而不是"来访者").
    */
   readonly characterLabel?: string;
+  /**
+   * 表达风格三字段 (WP41): 角色"天生怎么说话".
+   *
+   * 为什么登记在**会话归属**里 (与 characterLabel 同一处):
+   *   归属登记表是**装配层唯一同时知道"业务会话是谁"与"这场用的是哪个角色"的位置**
+   *   (见 characterLabel 的注释). 表达风格同性质 —— 它是角色的属性, 不是本轮状态,
+   *   整个会话不变, 所以登记一次、每轮读同一份.
+   *
+   * 缺省 = 不带 = 渲染层不消费 = prompt 与 WP35 逐字不变 (零回归).
+   */
+  readonly speechVolumeBaseline?: RenderSpec['speechVolumeBaseline'];
+  readonly narrativeStyle?: RenderSpec['narrativeStyle'];
+  readonly expressionTone?: RenderSpec['expressionTone'];
 }
 
 /**
@@ -491,7 +517,8 @@ export class TurnRenderOrchestrator {
    */
   private assemble(output: EngineTurnOutput, recentTurns: readonly RenderContextTurn[], handleId: string): AdaptiveRenderSpec {
     const assembler = this.deps.assembler ?? buildRenderSpec;
-    const characterLabel = this.resolveContext(handleId)?.characterLabel;
+    const context = this.resolveContext(handleId);
+    const characterLabel = context?.characterLabel;
     // WP37: 本场滚动摘要 (工作窗口挤出的早期轮次被压缩后的产物).
     //   没有摘要 → 不带这个键 → 规格与 prompt 逐字不变 (零回归).
     const sessionSummary = this.resolveSessionSummary(handleId);
@@ -501,6 +528,11 @@ export class TurnRenderOrchestrator {
       tokenBudget: this.tokenBudget,
       ...(characterLabel ? { characterLabel } : {}),
       ...(sessionSummary ? { sessionSummary } : {}),
+      // WP41: 表达风格三字段 —— 从**会话归属**取 (装配层登记的角色基线, 整个会话不变).
+      //   没登记 → 不带这些键 → 规格与 prompt 逐字不变 (零回归).
+      ...(context?.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: context.speechVolumeBaseline }),
+      ...(context?.narrativeStyle === undefined ? {} : { narrativeStyle: context.narrativeStyle }),
+      ...(context?.expressionTone === undefined ? {} : { expressionTone: context.expressionTone }),
     });
   }
 
@@ -908,11 +940,18 @@ type TurnVerbosity = 'short' | 'medium' | 'long';
  *   - 长: 话量阻抗低 + 信任不低 + 策略偏探索/领悟 —— 这轮愿意展开;
  *   - 中: 其余 (按平时的样子说话).
  *
+ * WP41: 判据**一个字没改** (0.55 / 0.3 / 信任 / 策略列表全部原样), 只是多了一个
+ *   **基线修正**: 角色"天生话多话少"会把**话量阻抗这个量本身**挪一点 ——
+ *   天生话多的人同样的阻抗判不到"短", 天生话少的人反之.
+ *   没有话量基线 (undefined) → 修正量为 0 → 判定与 WP35 **逐字一致** (零回归).
+ *
  * @param spec 渲染规格
  * @returns 话量权重
  */
 function resolveTurnVerbosity(spec: AdaptiveRenderSpec): TurnVerbosity {
-  const verbal = spec.resistance.verbal;
+  // WP41: 话量基线修正 —— 修正的是"阻抗这个量", 不是判据本身.
+  //   修正量 = (基线 - 中位 0.5) × 权重; 基线 0.5 = 中位 = 修正量为 0.
+  const verbal = spec.resistance.verbal - resolveSpeechVolumeShift(spec.speechVolumeBaseline);
   const strategy = spec.intention.strategy;
   if (verbal >= 0.55 || spec.trust <= 0.3 || strategy === 'resistance') return 'short';
   if (
@@ -924,6 +963,49 @@ function resolveTurnVerbosity(spec: AdaptiveRenderSpec): TurnVerbosity {
   }
   return 'medium';
 }
+
+/**
+ * 话量基线对"话量阻抗"的修正量 (WP41).
+ *
+ * 口径: 基线 [0,1], 0.5 = 中位 (不修正); 修正量 = (基线 - 0.5) × 权重.
+ *   基线 0.8 (天生话多) → 修正量 +0.15 → 阻抗被"看低" 0.15 → 同样的阻抗判不到"短";
+ *   基线 0.3 (天生话少) → 修正量 -0.15 → 阻抗被"看高" 0.15 → 同样的阻抗就判"短".
+ *
+ * 为什么权重是 0.5 (而不是 1):
+ *   修正量会把**整条档位阶梯平移**: "短"的门槛 0.55 + 修正量, "长"的门槛 0.3 + 修正量.
+ *   权重 0.5 时, 极端基线 (0 或 1) 把阶梯平移 0.25 = 恰好一个档位间距 —— 三档仍然
+ *   都够得着 (短门槛最高 0.80 / 长门槛最低 0.05). 权重 1 时, 天生极话多的角色
+ *   "短"的门槛会涨到 1.05 (**永远够不着** = 直接删掉一档), 天生极话少的角色
+ *   "长"的门槛会掉到 -0.2 (同样够不着) —— 那就不是"修正"而是"改判据"了.
+ *
+ * 为什么**信任与策略不参与修正**:
+ *   话量基线说的是"声音大小" (这个人平时话多话少), 信任低 / 策略是回避说的是
+ *   "这一刻愿不愿意说" —— 后者与音量无关 (一个天生话多的人, 不想说时也不出声).
+ *   把两者混在一起 = 让"话多"抵消"不想说", 那是错的.
+ *
+ * 为什么这里**再夹一次** [0,1] (registry 已经夹过):
+ *   两处夹取不是两份真相: registry 那处是**数据卫生** (脏值不进内核契约),
+ *   这里那处是**本层的口径解释** (基线的取值域与中位点由渲染层定义). 别的生产者
+ *   直接造 RenderSpec 时给个 1.5, 这里不能跟着算.
+ *
+ * ⚠️ 权重与中位点是**工程种子值, 非临床标定** —— 待真实对练校准.
+ *
+ * @param baseline 话量基线 (缺省 = 没表态 = 不修正)
+ * @returns 修正量 (正值 = 阻抗被看低 = 更容易判"长")
+ */
+function resolveSpeechVolumeShift(baseline: number | undefined): number {
+  if (baseline === undefined || !Number.isFinite(baseline)) return 0;
+  const clamped = Math.min(1, Math.max(0, baseline));
+  return (clamped - 0.5) * SPEECH_VOLUME_SHIFT_WEIGHT;
+}
+
+/**
+ * 话量基线的最大修正幅度 (WP41).
+ *
+ * 基线从中位 0.5 挪到端点 (0 或 1) 时, 修正量为 ±0.25 = 一个档位间距 ——
+ * 整条档位阶梯平移, 三档仍然都够得着 (见 resolveSpeechVolumeShift 的注释).
+ */
+const SPEECH_VOLUME_SHIFT_WEIGHT = 0.5;
 
 /**
  * 话量权重 → prompt 指令 (给模型的是**可执行的描述**, 不是状态标签).
@@ -1082,6 +1164,45 @@ const VARIATION_INSTRUCTION = '你可以有一点变化：不是每轮都用一�
 const NON_VERBAL_INSTRUCTION = '可以有一点非语言的表达：比如停顿、叹气、犹豫，但不要写括号里的动作描写。';
 
 /**
+ * 叙事逻辑风格 (WP41) —— 取值取自内核契约.
+ *
+ * 为什么用 `NonNullable<RenderSpec[...]>` 而不是自己写一遍联合类型:
+ *   内核 `RenderSpec` 是这 3 个字段的**规范定义**; 这里派生出来的类型与它永远
+ *   一致 —— 内核加一档而这里没加时, 下面的 Record 立刻编译报错 (而不是运行时
+ *   静默落到"没有对应文案"的坑里).
+ */
+type NarrativeStyle = NonNullable<RenderSpec['narrativeStyle']>;
+
+/** 语态倾向 (WP41) —— 取值取自内核契约 (同 `NarrativeStyle` 的理由). */
+type ExpressionTone = NonNullable<RenderSpec['expressionTone']>;
+
+/**
+ * 叙事逻辑风格 → prompt 指令 (WP41).
+ *
+ * 为什么给的是**可执行的描述**而不是状态标签 (与话量 / 语气同一范式):
+ *   模型要知道的是"怎么讲", 不是"我的叙事风格是 structured".
+ *
+ * ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
+ */
+const NARRATIVE_STYLE_INSTRUCTION: Readonly<Record<NarrativeStyle, string>> = {
+  structured: '说话要有条理：先说清楚发生了什么，再说自己的感受，不用东一句西一句。',
+  disorganized: '说话东一句西一句：想到哪说到哪，不用刻意把话理顺。',
+  mixed: '说话有时有条理、有时会跳开一点：不用刻意保持一致。',
+};
+
+/**
+ * 语态倾向 → prompt 指令 (WP41).
+ *
+ * ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
+ */
+const EXPRESSION_TONE_INSTRUCTION: Readonly<Record<ExpressionTone, string>> = {
+  restrained: '情绪不外露：即使有感受也说得淡淡的，不轻易激动。',
+  emotional: '情绪容易外露：话里情绪重，容易一下子激动起来。',
+  intellectualizing: '习惯用道理代替感受：说到自己的事会讲分析，很少直接说感受。',
+  passive_aggressive: '说话带刺：表面顺着说，实际有点抵触，偶尔阴阳两句。',
+};
+
+/**
  * 渲染进 prompt 的长期记忆条数上限 (WP56).
  *
  * 为什么是 3: 内核召回上限是 5 条 (`OPENING_CONTEXT_LIMIT`), 全塞进来 prompt
@@ -1204,6 +1325,27 @@ function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec): string {
   }
   if (spec.trajectoryNote) {
     lines.push(`- 你此刻正经历的事：${spec.trajectoryNote}`);
+  }
+
+  // WP41: 角色"一贯的样子" (叙事逻辑风格 + 语态倾向).
+  //
+  //   为什么**单独一块**而不是塞进"内在状态"块:
+  //     内在状态块讲的是"**此刻**的状态" (这一轮的阻抗 / 情绪 / 同盟); 表达风格讲的是
+  //     "**一贯**的样子" —— 这个人的说话方式本来就这样, 不因为这一轮怎么了.
+  //     两块混在一起, 模型分不清"我现在不想说"与"我一向话少" —— 前者该随阻抗变,
+  //     后者恒定.
+  //
+  //   为什么**条件渲染**:
+  //     没登记表达风格的角色 (内置种子 / 别的生产者) → 这一块整个不出现 →
+  //     prompt 与 WP35 逐字一致 (零回归).
+  if (spec.narrativeStyle !== undefined || spec.expressionTone !== undefined) {
+    lines.push('', '你说话一贯的样子（这是你平时就有的习惯，不是因为这一轮怎么了；只用来约束你的语气，绝对不要说出口）：');
+    if (spec.narrativeStyle !== undefined) {
+      lines.push(NARRATIVE_STYLE_INSTRUCTION[spec.narrativeStyle]);
+    }
+    if (spec.expressionTone !== undefined) {
+      lines.push(EXPRESSION_TONE_INSTRUCTION[spec.expressionTone]);
+    }
   }
 
   lines.push('', '这一轮怎么说：', VERBOSITY_INSTRUCTION[resolveTurnVerbosity(spec)]);

@@ -114,12 +114,18 @@ export class EngineTurnService {
    * 本层不静默复用旧句柄 (静默复用会让调用方以为开了一场新会话, 实际接的是旧状态).
    *
    * @param input 开场参数
-   * @param options 装配层附加信息 (角色代号; 仅供 dev 调试日志核对 prompt 拼装)
+   * @param options 装配层附加信息 (角色代号; 仅供 dev 调试日志核对 prompt 拼装 /
+   *   表达风格三字段 (WP41): 角色"天生怎么说话" —— 登记进归属, 渲染层每轮从这里读)
    * @returns 会话句柄 id + 业务会话 id
    */
   open(
     input: OpenEngineSessionInput,
-    options?: { readonly characterLabel?: string },
+    options?: {
+      readonly characterLabel?: string;
+      readonly speechVolumeBaseline?: number;
+      readonly narrativeStyle?: TurnSessionContext['narrativeStyle'];
+      readonly expressionTone?: TurnSessionContext['expressionTone'];
+    },
   ): { readonly handleId: string; readonly sessionId: string } {
     const handle = this.session.openSession(input);
     this.registry.register(handle.handleId, {
@@ -127,6 +133,11 @@ export class EngineTurnService {
       sessionId: input.sessionId,
       visitorId: input.visitorId,
       ...(options?.characterLabel ? { characterLabel: options.characterLabel } : {}),
+      // WP41: 表达风格三字段 —— 条件展开: 装配层没给就不登记, 渲染层分得清
+      //   "这个角色没表态"与"这个角色话量基线是空" (零回归: 没登记 = prompt 逐字不变).
+      ...(options?.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: options.speechVolumeBaseline }),
+      ...(options?.narrativeStyle === undefined ? {} : { narrativeStyle: options.narrativeStyle }),
+      ...(options?.expressionTone === undefined ? {} : { expressionTone: options.expressionTone }),
     });
     this.logger.log(`引擎会话已开启 handle=${handle.handleId} session=${input.sessionId}`);
     return { handleId: handle.handleId, sessionId: handle.sessionId };

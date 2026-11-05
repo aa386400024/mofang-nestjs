@@ -45,10 +45,25 @@
 //     与既有的 sessionSummary / trajectoryNote / attachmentStyle 同一范式.
 //
 //   ⚠️ 配套的 prompt 文案 (在适配层) 是**工程种子值, 非临床标定** —— 待真实对练校准.
+//
+// V2026-11-04 WP41 (引擎内核 · 渲染规格接入表达风格):
+//   WP10A 在 DB 里预留了话量基线 / 叙事风格 / 语态倾向 3 列, 但内核契约里没有它们,
+//   渲染层因此**看不到**角色"天生怎么说话" —— 同样阻抗的两个角色, 输出的长短与
+//   腔调完全一样. 本文件的扩展: RenderSpec 加 3 个**可选**字段.
+//
+//   为什么它们是**内核契约**而不是适配层路由输入 (与 RenderSpec 里既有的 trust 同性质):
+//     表达风格是**角色基线**的一部分 (内核 CharacterProfile 顶层同名字段), 渲染层
+//     消费的是 RenderSpec —— 契约里没有它, 渲染层就无从消费. 与 WP50 的同盟三维
+//     同一范式: 不新开第二条路.
+//
+//   为什么是**可选**:
+//     缺省 = 不传 = 渲染行为与 WP35 **逐字一致** —— 既有调用方 / 既有单测一行不用改.
+//
+//   ⚠️ 配套的 prompt 文案 (在适配层) 是**工程种子值, 非临床标定** —— 待真实对练校准.
 
 import type { BdiResistance } from '../bdi-snapshot.js';
 import type { CoreBelief } from '../beliefs.js';
-import type { AttachmentStyle } from '../character-profile.js';
+import type { AttachmentStyle, CharacterExpressionTone, CharacterNarrativeStyle } from '../character-profile.js';
 import type { EmotionState } from '../emotion.js';
 import type { Intention } from '../intention.js';
 import type { MemoryHit } from '../ports/memory.store.js';
@@ -119,6 +134,19 @@ export interface RenderSpec {
   readonly coreBeliefs: readonly CoreBelief[];
   /** 依恋风格 (角色内核; 缺省表示未装配角色基线). */
   readonly attachmentStyle?: AttachmentStyle;
+  /**
+   * 话量基线 [0,1] (WP41 · 表达风格): 角色"天生话多话少".
+   *
+   * 渲染层用它对**话量档位边界**做基线修正 (天生话多的人不容易被判"话少",
+   * 天生话少的人反之) —— 它改的是"这轮说几句"的边界, 不是改判据本身.
+   *
+   * 缺省 = 不提供 = 不做修正 = 话量判定与 WP35 逐字一致.
+   */
+  readonly speechVolumeBaseline?: number;
+  /** 叙事逻辑风格 (WP41 · 表达风格; 缺省 = 不渲染叙事那一行). */
+  readonly narrativeStyle?: CharacterNarrativeStyle;
+  /** 语态倾向 (WP41 · 表达风格; 缺省 = 不渲染语态那一行). */
+  readonly expressionTone?: CharacterExpressionTone;
   /** 禁止行为 (角色 forbiddenBehaviors ∪ 本轮 intention.forbiddenBehaviors, 由适配层合并去重). */
   readonly forbiddenBehaviors: readonly string[];
   /** WP2 记忆命中 (本轮相关召回). */

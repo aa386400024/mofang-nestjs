@@ -38,6 +38,17 @@
 //     NULL 时不传) —— 这正是"条件展开 vs 直接传"的分界线: 能不能直传, 取决于
 //     "没值"在数据源上**是否可能发生**.
 //
+//   V2026-11-04 治本 (WP41 · 表达风格三列接通):
+//     WP10A 预留的三列 (话量基线 / 叙事风格 / 语态倾向) 此前**零消费** —— 列在表里,
+//     种子也写过, 但从没人读过. 本文件的扩展: `toCharacterSeed()` 读这三列, **直接传**
+//     给种子 (不做条件展开).
+//
+//     为什么**直接传** (与 personalityTraits 相反):
+//       "能不能直传"取决于"没值"在数据源上**是否可能发生**.
+//       这三列是 NOT NULL DEFAULT (0.5 / 'mixed' / 'restrained') → 没值不可能发生 →
+//       直传. personality_traits 是可空列 → NULL 就是真的"没说" → 条件展开.
+//       两者是**同一条判据**的两个方向, 不是两套规矩.
+//
 //   时间戳: 2026-10-29
 
 import { Injectable, Logger } from '@nestjs/common';
@@ -68,6 +79,13 @@ export function toCharacterSeed(row: CharacterProfileEntity): BuiltinCharacterSe
     //   不可能发生 (直接传); 本列是可选列, NULL 就是真的"没说" —— 所以要条件展开.
     //   `== null` 同时兜住 null 与 undefined (前者是 DB 的空值, 后者是"字段压根没被选中").
     ...(row.personalityTraits == null ? {} : { personalityTraits: row.personalityTraits }),
+    // WP41: 表达风格三列 —— 与 safety / bond 同口径: **直接传**, 不做条件展开.
+    //   这三列是 NOT NULL DEFAULT (0.5 / 'mixed' / 'restrained'), "没值"在数据源上
+    //   不可能发生 —— 条件展开在这里是多余的分支, 而且会让"DB 默认"与"角色没表态"
+    //   这两件事混成一件 (它们本来就分不开: DB DEFAULT 就是这一列的"没表态"档).
+    speechVolumeBaseline: row.speechVolumeBaseline,
+    narrativeStyle: row.narrativeStyle,
+    expressionTone: row.expressionTone,
     // 拷贝一层: 避免装配结果与仓储实体共享可变引用 (值语义).
     coreBeliefs: row.coreBeliefs.map((belief) => ({ ...belief, activationTags: [...belief.activationTags] })),
     underlyingDesires: row.underlyingDesires.map((desire) => ({ ...desire })),

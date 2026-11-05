@@ -260,7 +260,10 @@ describe('WP10A · 表达风格基线字段 · 灌库载荷语义', () => {
 });
 
 describe('WP10A · 表达风格基线字段 · 红线 (不消费 / 不进内核)', () => {
-  it('⑬ resolver 映射的输出里不含这三列 (字段没进内核)', () => {
+  // V2026-11-04 WP41: 本块的"不进内核"红线**已解除** (WP41 的全部意义就是消费这三列).
+  //   仍成立的部分: ① 前端 DTO 不暴露这三列 (⑭); ② 列的 DDL 与 DEFAULT 一字未改.
+  //   已反转的部分: ⑬ resolver 现在**读**这三列 —— 断言方向随之反转 (见用例内注释).
+  it('⑬ resolver 映射的输出里**有**这三列 (字段已进内核, WP41)', () => {
     const seed = buildCharacterProfileSeeds(VISITOR_POOL_TEMPLATE_SEEDS)[0];
     const row = {
       id: seed.id,
@@ -291,9 +294,14 @@ describe('WP10A · 表达风格基线字段 · 红线 (不消费 / 不进内核)
 
     const mapped = toCharacterSeed(row) as unknown as Record<string, unknown>;
 
-    expect(mapped['speechVolumeBaseline']).toBeUndefined();
-    expect(mapped['narrativeStyle']).toBeUndefined();
-    expect(mapped['expressionTone']).toBeUndefined();
+    // V2026-11-04 WP41: 本用例的断言**方向反转** —— WP10A 当时立的红线是
+    //   "resolver 映射的输出里不含这三列 (纯预留, 字段没进内核)".
+    //   WP41 的全部意义就是**消费**这三列, 所以红线解除, 断言跟着反转:
+    //   DB 列是 NOT NULL DEFAULT → 恒有值 → **直接传**, 不做条件展开
+    //   (与 personality_traits 那列的口径相反: 那是可空列, NULL 才是"没说").
+    expect(mapped['speechVolumeBaseline']).toBe(0.5);
+    expect(mapped['narrativeStyle']).toBe('mixed');
+    expect(mapped['expressionTone']).toBe('restrained');
   });
 
   it('⑭ 前端 DTO 里不含这三列 (本期不暴露给前端)', () => {

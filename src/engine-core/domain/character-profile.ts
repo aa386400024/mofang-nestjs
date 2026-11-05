@@ -22,6 +22,27 @@
 //     与既有的 trust / resistance / emotion / transference 同一范式.
 //
 //   ⚠️ 数值是**工程种子值, 非临床标定** —— 内测后按真实对练校准.
+//
+// V2026-11-04 WP41 (引擎内核 · 表达风格三字段):
+//   WP10A 在 DB `character_profiles` 里预留了 3 列 (话量基线 / 叙事风格 / 语态倾向),
+//   但从 DB 到渲染 prompt 这条路是**断的** —— 内核里没有这 3 个字段, 适配层没读,
+//   渲染层没消费. 本文件的扩展: `CharacterProfile` 顶层加 3 个**可选**字段.
+//
+//   为什么它们是**角色固有属性** (与 attachmentStyle / personalityTraits 同性质):
+//     说话条理与否、语气克制与否, 是"这个人一贯的样子" —— 不随这一轮的阻抗变化.
+//     所以它们住**顶层**, 不进 `baseline` (那是"开场时的数值状态": trust / 阻抗 /
+//     情绪 / 移情 / safety / bond).
+//
+//   为什么话量基线与 verbal 阻抗**正交** (不合成一个维度):
+//     verbal 阻抗是"此刻不信任、不愿暴露"; 话量基线是"气质上的话多话少".
+//     两者可以反向 —— 话多但不愿说 (防御性沉默), 话少但很能说 (气质性沉默).
+//     合成一个维度会把两种人混成同一种 (任务单 §1.1 的原话).
+//
+//   为什么是**可选**:
+//     缺省 = 不传 = 渲染层不做基线修正 / 不渲染风格行 = 行为与 WP35 **逐字一致**
+//     (零回归). 与 trust / attachmentStyle / personalityTraits 同一范式.
+//
+//   ⚠️ 数值与取值档位是**工程种子值, 非临床标定** —— 待真实对练校准.
 
 import type { BdiResistance } from './bdi-snapshot.js';
 import type { CoreBelief } from './beliefs.js';
@@ -30,6 +51,27 @@ import type { TransferenceState } from './transference.js';
 
 /** 依恋风格 (压力下的关系模式). */
 export type AttachmentStyle = 'secure' | 'anxious' | 'avoidant' | 'disorganized';
+
+/**
+ * 叙事逻辑风格 (WP41 · 表达风格).
+ *
+ * - structured   —— 条理清晰 / 时间线明确;
+ * - disorganized —— 话题跳跃 / 想到哪说到哪;
+ * - mixed        —— 兼有 (默认档).
+ *
+ * 为什么用字符串联合而非 enum: 与内核既有的判别式同一范式 (纯控制流, 零运行时导出).
+ */
+export type CharacterNarrativeStyle = 'structured' | 'disorganized' | 'mixed';
+
+/**
+ * 语态倾向 (WP41 · 表达风格).
+ *
+ * - restrained          —— 克制内敛 / 情绪平淡 (默认档);
+ * - emotional           —— 情绪化宣泄 / 语句破碎;
+ * - intellectualizing   —— 理智化隔离 / 讲道理 / 自我分析;
+ * - passive_aggressive  —— 被动攻击 / 言语带刺 / 表面顺从实则抵触.
+ */
+export type CharacterExpressionTone = 'restrained' | 'emotional' | 'intellectualizing' | 'passive_aggressive';
 
 /**
  * 人格特质 (大五), 归一化到 [0,1].
@@ -67,6 +109,21 @@ export interface CharacterProfile {
   readonly attachmentStyle?: AttachmentStyle;
   /** 人格特质 (WP34; 缺省 = 不做特质调节). */
   readonly personalityTraits?: PersonalityTraits;
+  /**
+   * 话量基线 [0,1] (WP41 · 表达风格).
+   *
+   * "这个人天生话多话少": 0 = 极沉默 / 长停顿, 0.5 = 中位, 1 = 絮叨 / 长篇大论.
+   *
+   * 与 `baseline.resistance.verbal` **正交** —— 一个是"此刻不愿暴露", 一个是
+   * "气质上的话多话少"; 两者反向时 (话多但不愿说 / 话少但很能说) 说的是两种人.
+   *
+   * 缺省 = 不传 = 渲染层不做基线修正 = 话量判定与 WP35 逐字一致.
+   */
+  readonly speechVolumeBaseline?: number;
+  /** 叙事逻辑风格 (WP41 · 表达风格; 缺省 = 不渲染叙事那一行). */
+  readonly narrativeStyle?: CharacterNarrativeStyle;
+  /** 语态倾向 (WP41 · 表达风格; 缺省 = 不渲染语态那一行). */
+  readonly expressionTone?: CharacterExpressionTone;
   readonly underlyingDesires?: readonly UnderlyingDesireSeed[];
   /** 初始基线覆盖; 缺省字段用中性默认值. */
   readonly baseline?: {

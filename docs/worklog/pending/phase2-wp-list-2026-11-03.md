@@ -39,7 +39,7 @@
 |---|---|---|---|---|
 | **WP39** | TTS emotion 映射 | 🔴 P0 | BDI valence/arousal → voice_setting.emotion 映射表，真机听感校准 | WP33 |
 | **WP40** | TTS 内联语气词标签 | 🔴 P0 | prompt 注入 `(sighs)` `(pant)` `(breath)` 等标签，TTS 真发声 | WP33 |
-| **WP41** | 表达风格渲染接入 | 🟡 P1 | WP10A 预留 3 列（话量基线/叙事风格/语态倾向）接入 spec-assembler | WP35 |
+| **WP41** ✅ | 表达风格渲染接入 | 🟡 P1 | WP10A 预留 3 列（话量基线/叙事风格/语态倾向）接入 spec-assembler。⚠️ 实际落地：内核 `CharacterProfile` + `RenderSpec` 各加 3 个**可选**字段（**恰好 2 个内核文件**，预批准内；两个联合类型**不进 barrel**，适配层用**派生**避开边界断言 ⑥ 的白名单）+ 适配层 **7 个**文件接上（DB 行 → 种子 → 角色基线 → 会话归属 → 规格 → prompt）+ **话量基线修正**（判据未改，只把"话量阻抗"按基线平移档位阶梯；中位 0.5 = 修正量 0）+ 叙事/语态**单独成块**渲染「你说话一贯的样子」；⚠️ **生产 DB 角色每轮多 2 行**（三列是 NOT NULL DEFAULT，当前跑的是未标定默认档 'mixed'/'restrained' —— 话量基线默认 0.5 无副作用）（[交付记录](../completed/phase2/engine-wp41-expression-style-rendering-implementation-2026-11-04.md)） | WP35 |
 | **WP42** ✅ | 咨询同盟三维 | 🟡 P1 | trust/safety/bond 独立建模，建立/破裂/修复算子，调节阻抗下降速率（[交付记录](../completed/phase2/engine-wp42-counseling-alliance-three-dimensions-implementation-2026-11-03.md)） | WP34 |
 | **WP43** | 评估引擎基础版 | 🟡 P1 | 旁路异步消费 BDI 快照/对话/伦理标签，输出基础技术+伦理维度评分 | WP8-B |
 | **WP44** | 成长档案体系 | 🟡 P1 | 全链路数据沉淀 → 档案生成，用户可查看实训成长记录 | WP43 |
@@ -87,7 +87,7 @@
 | 🟢 P2 技术债 | 11 条 | WP45, 46, 47, 48, 49, 52, 53, 54, 59, 60, 62 |
 | **合计** | **36 条** | **WP27–WP62** |
 
-**进度：17 / 36 完成**（WP28 ✅、WP34 ✅、WP35 ✅、WP36 ✅、WP37 ✅、WP42 ✅、WP49 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP56 ✅、WP57 ✅、WP59 ✅、WP61 ✅，2026-11-04）。
+**进度：18 / 36 完成**（WP28 ✅、WP34 ✅、WP35 ✅、WP36 ✅、WP37 ✅、WP41 ✅、WP42 ✅、WP49 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP56 ✅、WP57 ✅、WP59 ✅、WP61 ✅，2026-11-04）。
 
 ### 🚧 上线前必须一起做的真机项（WP28 遗留）
 

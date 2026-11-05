@@ -86,11 +86,22 @@
 //     2. migration:run 后 DESCRIBE character_profiles 与任务单 §1.1 一致
 //     3. test/engine-adapters/wp10a-*.spec.ts 覆盖列定义 / migration 幂等 / 种子默认值
 //
+//   V2026-11-04 治本 (WP41 · B 层 · 表达风格三列接通):
+//     WP10A 加的这 3 列此前是**纯预留** —— 有列、有种子、**零消费方**. 本期把它们
+//     接上: resolver 读列 → 内核 `CharacterProfile` → `RenderSpec` → 渲染层.
+//     本文件的两处改动:
+//       ① `CharacterNarrativeStyle` / `CharacterExpressionTone` 两个类型改为
+//          **从内核契约派生** (`NonNullable<CharacterProfile['...']>`) —— 内核是规范,
+//          本文件是镜像; 自己再写一份联合类型 = 两个真相源, 内核加一档而这里没加
+//          时 DB 行能装进去、内核却接不住, 而且**没有任何报错**;
+//       ② 三列的注释从"纯预留"改成真实状态 (注释过期 = 给下一个人的假话).
+//     列的定义 / DEFAULT **一字未改** (WP10A 的 DDL 口径不变, 不加 migration).
+//
 //   时间戳: 2026-10-29
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
-import type { AttachmentStyle, CoreBelief, PersonalityTraits, UnderlyingDesireSeed } from '../../../engine-core/index.js';
+import type { AttachmentStyle, CharacterProfile, CoreBelief, PersonalityTraits, UnderlyingDesireSeed } from '../../../engine-core/index.js';
 
 /**
  * 角色审核状态 (字符串联合, 非 enum —— 它是纯数据判别式, 不需要运行时值).
@@ -100,28 +111,35 @@ import type { AttachmentStyle, CoreBelief, PersonalityTraits, UnderlyingDesireSe
 export type CharacterAuditStatus = 'draft' | 'approved' | 'rejected';
 
 /**
- * 叙事逻辑风格 (V2026-10-30 WP10A · 表达风格基线预留).
+ * 叙事逻辑风格 (V2026-10-30 WP10A · 表达风格基线).
  *
  * - structured   —— 条理清晰 / 时间线明确;
  * - disorganized —— 话题跳跃 / 想到哪说到哪;
  * - mixed        —— 兼有 (默认档).
  *
- * 本期**纯预留**: 不进内核 CharacterProfile / 不进 RenderSpec / 不影响会话行为.
- * Phase2 P1 做表达风格渲染时, 由 resolver 映射层消费.
+ * V2026-11-04 WP41: 这三列**不再纯预留** —— 内核 `CharacterProfile` 顶层已有同名字段,
+ * 渲染层据此产出叙事 / 语态两行 (详见 `turn-render-orchestrator.ts`).
+ *
+ * 为什么这里的类型**从内核契约派生**而不是自己再写一遍联合类型:
+ *   内核 `CharacterProfile` 是这 3 个字段的**规范定义**, 本文件是它的**镜像**.
+ *   自己再写一份 = 两个真相源, 内核加一档而这里没加时, DB 行能装进去、
+ *   内核却接不住 (而且**没有任何报错**). 派生写法让两者永远同步.
+ *   (内核类型没进公开 barrel —— 边界断言 ⑥ 是双向精确白名单, 加导出要动第三个
+ *    内核文件; 这里用**派生**而不是重复声明, 是与 WP59 同一套做法.)
  */
-export type CharacterNarrativeStyle = 'structured' | 'disorganized' | 'mixed';
+export type CharacterNarrativeStyle = NonNullable<CharacterProfile['narrativeStyle']>;
 
 /**
- * 语态倾向 (V2026-10-30 WP10A · 表达风格基线预留).
+ * 语态倾向 (V2026-10-30 WP10A · 表达风格基线).
  *
  * - restrained          —— 克制内敛 / 情绪平淡 (默认档);
  * - emotional           —— 情绪化宣泄 / 语句破碎;
  * - intellectualizing   —— 理智化隔离 / 讲道理 / 自我分析;
  * - passive_aggressive  —— 被动攻击 / 言语带刺 / 表面顺从实则抵触.
  *
- * 本期**纯预留**, 语义见 `CharacterNarrativeStyle`.
+ * 取值口径与来源: 见 `CharacterNarrativeStyle` (同一个内核契约派生).
  */
-export type CharacterExpressionTone = 'restrained' | 'emotional' | 'intellectualizing' | 'passive_aggressive';
+export type CharacterExpressionTone = NonNullable<CharacterProfile['expressionTone']>;
 
 /**
  * 5Ps 专业材料 (给人读, 不进内核决策).
@@ -236,7 +254,9 @@ export class CharacterProfileEntity {
    * 话量基线是"天然性格话多话少" —— 两者会同时反向变化 (话多但不愿说, 或话少但很能说),
    * 合成成一个维度会把"防御性沉默"和"气质性沉默"混成同一种人 (任务单 §1.1).
    *
-   * 本期**纯预留**: 不进内核, 不影响会话行为.
+   * V2026-11-04 WP41: 这一列**已接通** —— resolver 读它 → 内核 `CharacterProfile`
+   * → `RenderSpec` → 渲染层拿它对**话量档位边界**做基线修正 (天生话多的人不容易
+   * 被判"话少"). 缺省 0.5 = 中位 = 修正量为 0 = 与没接一样.
    */
   @Column({ type: 'float', name: 'speech_volume_baseline', default: 0.5 })
   speechVolumeBaseline!: number;
@@ -244,7 +264,8 @@ export class CharacterProfileEntity {
   /**
    * 叙事逻辑风格 (V2026-10-30 WP10A · 表达风格预留).
    *
-   * 本期**纯预留**: 不进内核, 不影响会话行为.
+   * V2026-11-04 WP41: 这一列**已接通** —— resolver 读它 → 内核 `CharacterProfile`
+   * → `RenderSpec` → 渲染层渲染"说话一贯的样子"那一行.
    */
   @Column({ type: 'varchar', length: 20, name: 'narrative_style', default: 'mixed' })
   narrativeStyle!: CharacterNarrativeStyle;
@@ -252,7 +273,8 @@ export class CharacterProfileEntity {
   /**
    * 语态倾向 (V2026-10-30 WP10A · 表达风格预留).
    *
-   * 本期**纯预留**: 不进内核, 不影响会话行为.
+   * V2026-11-04 WP41: 这一列**已接通** —— resolver 读它 → 内核 `CharacterProfile`
+   * → `RenderSpec` → 渲染层渲染"说话一贯的样子"那一行.
    */
   @Column({ type: 'varchar', length: 20, name: 'expression_tone', default: 'restrained' })
   expressionTone!: CharacterExpressionTone;

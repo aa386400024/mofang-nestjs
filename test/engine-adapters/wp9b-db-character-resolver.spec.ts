@@ -524,10 +524,16 @@ describe('WP9-B · MySQL 角色解析器 (DB 数据源)', () => {
       const viaDb = await resolver.resolve({ templateId: row.templateId, preset });
 
       // 等价的"内置种子"形态 (同一角色, 只是数据源不同).
+      //   V2026-11-04 WP41: 这里补上表达风格三字段 —— "等价的种子"必须**镜像 DB 行**
+      //   的全部字段, 否则两条数据源产出不一致, 而这条用例守护的正是"同一角色换数据源
+      //   味道不变". (行里多了三列, 等价种子就得跟着多三字段.)
       const equivalentSeed: BuiltinCharacterSeed = {
         key: row.templateId,
         displayName: row.displayName,
         attachmentStyle: row.attachmentStyle,
+        speechVolumeBaseline: row.speechVolumeBaseline,
+        narrativeStyle: row.narrativeStyle,
+        expressionTone: row.expressionTone,
         coreBeliefs: row.coreBeliefs,
         underlyingDesires: row.underlyingDesires,
         forbiddenBehaviors: row.forbiddenBehaviors,

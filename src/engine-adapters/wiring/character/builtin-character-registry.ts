@@ -82,6 +82,23 @@
 //     **已给**的维度夹到 [0,1]; 没给的维度保持"没说" (键不存在), 非有限数 (脏值)
 //     按"没说"处理 —— 与内核 `!Number.isFinite(value) → 不调节` 同一口径:
 //     脏数据不该变成"这个人格维度极端低".
+//
+//   V2026-11-04 治本 (WP41 · 角色表达风格三字段):
+//     WP10A 在 DB 里预留了话量基线 / 叙事风格 / 语态倾向 3 列, 但**内核契约里没有**
+//     —— 适配层读不到, 渲染层也用不上. 本文件的扩展: `BuiltinCharacterSeed` 加这
+//     3 个**可选**字段, `buildCharacterProfile` 条件传给内核 `CharacterProfile`.
+//
+//   为什么**条件**传 (与 safety / bond / personalityTraits 同口径):
+//     回退口径住在内核 (缺省 = 不传 = 不修正 / 不渲染). 本层再兜一份默认值就是两个
+//     真相源. 条件展开还让"种子没说"与"种子说了 0.5"能被区分开 —— 前者才走内核的
+//     缺省处理.
+//
+//   为什么**两个内置种子本期不表态** (话量基线 / 叙事风格 / 语态倾向都不给):
+//     内置种子是**纯内存部署 / 测试**路径. 本期是"数据通路打通", 不改既有角色的
+//     行为 —— 内置角色不表态 = 内置路径 prompt 与 WP35 逐字一致 (零回归).
+//     DB 角色走 DB 列 (NOT NULL DEFAULT → 恒有值), 那条路径本期真正生效.
+//
+//   ⚠️ 数值与取值档位是**工程种子值, 非临床标定** —— 待真实对练校准.
 
 import type {
   CharacterPresetInput,
@@ -123,6 +140,17 @@ export interface BuiltinCharacterSeed {
    * 依恋说的是"关系模式", 大五说的是"人格底色".
    */
   readonly personalityTraits?: PersonalityTraits;
+  /**
+   * 话量基线 [0,1] (WP41 · 表达风格): 角色"天生话多话少".
+   *
+   * 缺省 = 不传 = 渲染层不做基线修正 = 话量判定与 WP35 逐字一致.
+   * 类型**从内核契约派生** (不另立一份联合类型) —— 见 `character-profile.entity.ts`.
+   */
+  readonly speechVolumeBaseline?: CharacterProfile['speechVolumeBaseline'];
+  /** 叙事逻辑风格 (WP41 · 表达风格; 缺省 = 不渲染叙事那一行). */
+  readonly narrativeStyle?: CharacterProfile['narrativeStyle'];
+  /** 语态倾向 (WP41 · 表达风格; 缺省 = 不渲染语态那一行). */
+  readonly expressionTone?: CharacterProfile['expressionTone'];
   /** 核心信念 (第一人称; 永久不可变). */
   readonly coreBeliefs: readonly CoreBelief[];
   /** 底层愿望种子. */
@@ -324,6 +352,13 @@ export function buildCharacterProfile(seed: BuiltinCharacterSeed, preset?: Chara
     //   不在这里兜默认值: 回退口径住在内核 (特质缺省 = 不做特质调节), 本层再兜一份
     //   就是两个真相源. 条件展开 = "种子没说"与"种子说了 0.5"能被区分开.
     ...(seed.personalityTraits === undefined ? {} : { personalityTraits: normalizePersonalityTraits(seed.personalityTraits) }),
+    // WP41: 表达风格三字段 —— 种子给了就传, **没给就不出现** (键都不存在).
+    //   与 safety / bond / personalityTraits 同一范式: 内核契约里它们是**可选**字段,
+    //   缺省 = 不传 = 渲染层不消费 = prompt 与 WP35 逐字一致 (零回归).
+    //   数值口径与别的数值基线一样: 夹到 [0,1] (脏值不进来).
+    ...(seed.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: clamp01(seed.speechVolumeBaseline) }),
+    ...(seed.narrativeStyle === undefined ? {} : { narrativeStyle: seed.narrativeStyle }),
+    ...(seed.expressionTone === undefined ? {} : { expressionTone: seed.expressionTone }),
   };
 }
 

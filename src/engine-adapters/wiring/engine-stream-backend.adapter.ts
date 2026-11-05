@@ -395,7 +395,16 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     memoryScope: string,
     resumeFromSessionId: string,
   ): { readonly handleId: string; readonly sessionId: string } {
-    const openOptions = { characterLabel: character?.displayName ?? '' };
+    // WP41: 表达风格三字段 —— 从**已解析的角色基线**取 (DB 角色的三列经 resolver →
+    //   buildCharacterProfile 已经在内核契约里了). 没角色 (中性基线) → 不带 →
+    //   渲染层不消费 → prompt 与 WP35 逐字一致 (零回归).
+    const profile = character?.characterProfile;
+    const openOptions = {
+      characterLabel: character?.displayName ?? '',
+      ...(profile?.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: profile.speechVolumeBaseline }),
+      ...(profile?.narrativeStyle === undefined ? {} : { narrativeStyle: profile.narrativeStyle }),
+      ...(profile?.expressionTone === undefined ? {} : { expressionTone: profile.expressionTone }),
+    };
     try {
       return this.engine.open(this.buildOpenInput(opts, character, script, memoryScope, resumeFromSessionId, true), openOptions);
     } catch (error) {
