@@ -86,7 +86,7 @@ onMounted(() => {
         <RouterView v-if="isLoginPage" />
 
         <!-- 其他页面：带导航栏 -->
-        <div v-else class="min-h-screen flex flex-col">
+        <div v-else class="h-screen flex flex-col">
           <header class="border-b border-bg-border bg-bg-surface px-6 py-3 flex items-center gap-6">
             <div class="flex items-center gap-2">
               <div class="w-2.5 h-2.5 rounded-full bg-accent"></div>

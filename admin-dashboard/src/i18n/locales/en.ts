@@ -206,6 +206,12 @@ export default {
     visitor: 'Visitor',
     token: 'Tokens',
     cost: 'Cost',
+    basis: 'Basis',
+    basisFull: 'in + out',
+    basisOutputOnly: 'output only',
+    emptyTitle: 'No sessions in the last 7 days',
+    emptyDescription: 'After a practice session, daily token consumption, cost stats and per-session cost details will show up here.',
+    noTokenStats: 'Sessions exist but no token stats: cost data comes from the engine debug trace (ENGINE_DEBUG_TRACE_ENABLED), which is currently off — so tokens and cost show 0. Session counts remain accurate.',
   },
   arch: {
     title: 'Engine End-State Architecture',

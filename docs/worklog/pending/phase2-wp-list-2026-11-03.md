@@ -15,7 +15,7 @@
 | **WP28** ✅ | WP11 回改正式值 | 🔴 P0 | PsyGUARD 超时 500ms→150ms、token 窗口 256→28，内测前改回生产值 | 小 | ✅ [交付记录](../completed/phase2/engine-wp28-psyguard-production-values-implementation-2026-11-03.md) |
 | **WP29** | 数据分级留存与销毁 | 🔴 P0 | 用户删除权（对话+记忆+账号）、导出权、数据分级策略落地 | 中 | 📋 |
 | **WP30** ✅ | Admin Dashboard 切真 API | 🔴 P0 | CharacterDetail + SessionDetail 接 `/admin/api/*` 真数据，去掉 mock 标识 | 中 | ✅ [交付记录](../completed/phase2/engine-wp30-admin-dashboard-real-api-implementation-2026-11-05.md) |
-| **WP31** | 成本看板与告警 | 🔴 P0 | 成本看板展示 token 消耗/用户/会话，超阈值告警规则接入 | 小 | 📋 |
+| **WP31** ✅ | 成本看板与告警 | 🔴 P0 | 成本看板展示 token 消耗/用户/会话，超阈值告警规则接入 | 小 | ✅ [交付记录](../completed/phase2/engine-wp31-cost-board-alert-implementation-2026-11-05.md) |
 | **WP32** ✅ | BDI 状态持久化 | 🟡 P1 | 内存态 → Redis/DB，进程重启后可恢复 BDI 快照 | 中 | ✅ [交付记录](../completed/phase2/engine-wp32-bdi-state-persistence-implementation-2026-11-05.md) |
 
 ---
@@ -106,7 +106,9 @@
 | 🟢 P2 技术债 | 13 条 | WP45, 46, 47, 48, 49, 52, 53, 54, 59, 60, 62, 68 |
 | **合计** | **41 条** | **WP27–WP68** |
 
-**进度：27 / 41 完成**（WP28 ✅、WP30 ✅、WP32 ✅、WP34 ✅、WP35 ✅、WP36 ✅、WP37 ✅、WP41 ✅、WP42 ✅、WP49 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP56 ✅、WP57 ✅、WP58 ✅、WP59 ✅、WP61 ✅、WP63 ✅、WP64 ✅、WP65 ✅、WP66 ✅、WP67 ✅、WP68 ✅，2026-11-05）。
+**进度：28 / 41 完成**（WP28 ✅、WP30 ✅、WP31 ✅、WP32 ✅、WP34 ✅、WP35 ✅、WP36 ✅、WP37 ✅、WP41 ✅、WP42 ✅、WP49 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP56 ✅、WP57 ✅、WP58 ✅、WP59 ✅、WP61 ✅、WP63 ✅、WP64 ✅、WP65 ✅、WP66 ✅、WP67 ✅、WP68 ✅，2026-11-05）。
+
+> ⚠️ **WP31 只销了「看板」那一半**：成本看板已切真（后端补 `/cost/trend` + `/cost/sessions` 两端点，前端去 mock，顺带修掉"汇总卡片永远显示 0"的响应式 bug）；但**超阈值告警规则仍未做**（阈值配置 / 告警通道 / 通知策略）。另：**成本数据来自引擎调试留痕，生产缺省关留痕 → 生产的 token / 成本恒 0**（场次数仍准确），要让生产看板有数得给 `tech_stats` 补 token 统计（缺口 G1）。**别把这一行当成"告警已接入"。**
 
 > ⚠️ **WP30 只销了「两个页面切真 API」那一半**：`CharacterDetail` + `SessionDetail` 两页已切真（后端补 4 个 `/admin/api/*` 端点 + 前端去 mock），但**其余页面的 mock 仍在**（`MemoryBrowser` / `PsyGuardMonitor` / `CostBoard` / `Dashboard`）；**本场记忆恒空**（`training_sessions` 无 memories 列）；**5Ps 已返回但页面还没渲染**。**别把这一行当成"整个 Dashboard 已切真"。**
 >

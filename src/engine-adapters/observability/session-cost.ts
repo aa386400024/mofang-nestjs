@@ -26,6 +26,14 @@
 //       口径必须落成 output_only, 而不是把输入侧悄悄算成 0.
 //     - 不做按用户/按租户汇总: 那是 WP22 / Phase2 的事, 本单只做单场.
 //     - 不做告警与看板: 本单只打一条结构化日志.
+//
+//   V2026-11-05 (WP31 · 成本看板复用本模块的口径):
+//     成本看板 (`GET /admin/api/cost/*`) **复用本模块的定价与折算**, 不另造一套:
+//     · 定价仍走 `LLM_PRICE_INPUT_PER_1K` / `LLM_PRICE_OUTPUT_PER_1K` 两个 env;
+//     · 折算仍走 `estimateSessionCost` —— 于是"输入侧不可得 → 口径落成 output_only"
+//       这条纪律在看板上**自动成立**, 看板不需要自己再判断一次;
+//     · `roundCost` 改为 export (看板按天聚合时相加多场成本, 尾数同样要定点).
+//     看板侧的聚合逻辑在 `src/admin-debug/cost-view.ts` (纯函数), 本模块**只提供口径**.
 
 /**
  * 单价 (元 / 千 token).
@@ -217,8 +225,11 @@ export function buildSessionCostSummary(params: {
  *
  * 为什么不是原样输出: token 数除以 1000 再乘单价的量级在 1e-4 ~ 1e-2 之间,
  * 浮点尾数会让同一次会话两次打出的字符串长得不一样 —— 日志要能被 diff, 就要定点.
+ *
+ * V2026-11-05 (WP31): 改为 **export** —— 成本看板 (按天聚合) 要把多场会话的成本
+ * 相加, 相加后的浮点尾数同样要定点. 取整口径只有这一份, 不在看板侧再抄一个.
  */
-function roundCost(value: number): number {
+export function roundCost(value: number): number {
   return Math.round(value * 1e6) / 1e6;
 }
 

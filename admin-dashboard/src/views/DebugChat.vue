@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { NSelect, NInput, NButton, NSkeleton, NEmpty, NTag, NTabs, NTabPane, NStatistic, NProgress, NSpin, useMessage, useDialog } from 'naive-ui'
 import { api } from '@/api/client'
 import type { CharacterBaseline, TurnTrace } from '@/api/types'
+import SessionList from './debug/SessionList.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -24,6 +25,9 @@ const activeTab = ref('bdi')
 
 // 当前轮次的 trace（右侧调试面板用）
 const currentTrace = ref<TurnTrace | null>(null)
+
+// 会话列表展开/收起
+const showSessionList = ref(true)
 
 // BDI 状态历史（每轮记录一次）
 interface BdiSnapshotPoint {
@@ -113,7 +117,7 @@ async function sendTurn() {
     const data = await api.debugSession.turn(sessionId.value, text)
 
     // 来访回应
-    messages.value.push({ role: 'visitor', text: data.reply })
+    messages.value.push({ role: 'visitor', text: data.reply, trace: data.trace as TurnTrace })
     turnIndex.value = data.turnIndex
 
     // BDI 状态历史
@@ -156,6 +160,8 @@ function exportTrace() {
     characterSlug: selectedCharacterSlug.value,
     turnCount: turnIndex.value,
     messages: messages.value,
+    currentTrace: currentTrace.value, // 完整调试 trace（BDI 快照 / delta / intention / prompt 全文 / 审议 trace）
+    bdiHistory: bdiHistory.value, // BDI 状态历史趋势
     exportedAt: new Date().toISOString(),
   }
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
@@ -223,6 +229,48 @@ function editMessage(text: string) {
   })
 }
 
+function showTrace(trace: TurnTrace) {
+  currentTrace.value = trace
+  message.success(`已切换到第 ${trace.turnIndex} 轮的调试数据`)
+}
+
+// 加载历史会话
+async function loadSession(sessionId: string) {
+  try {
+    const data = await api.debugSession.get(sessionId)
+    sessionId.value = data.id
+    messages.value = data.messages.map((m: any) => ({
+      role: m.role,
+      text: m.text,
+      trace: m.trace as TurnTrace,
+    }))
+    turnIndex.value = data.messages.filter((m: any) => m.role === 'visitor').length
+    // 恢复 BDI 历史
+    bdiHistory.value = []
+    data.messages.forEach((m: any) => {
+      if (m.trace?.bdiSnapshot) {
+        bdiHistory.value.push({
+          turnIndex: m.trace.turnIndex,
+          trust: m.trace.bdiSnapshot.trust,
+          safety: m.trace.bdiSnapshot.safety ?? 0,
+          bond: m.trace.bdiSnapshot.bond ?? 0,
+          valence: m.trace.bdiSnapshot.valence,
+          arousal: m.trace.bdiSnapshot.arousal,
+        })
+      }
+    })
+    // 恢复最新 trace
+    const lastVisitorMsg = [...data.messages].reverse().find((m: any) => m.role === 'visitor')
+    if (lastVisitorMsg?.trace) {
+      currentTrace.value = lastVisitorMsg.trace as TurnTrace
+    }
+    message.success('会话已加载')
+  } catch (e) {
+    message.error('加载会话失败')
+    console.error(e)
+  }
+}
+
 // ========== 生命周期 ==========
 onMounted(() => {
   loadCharacters()
@@ -233,6 +281,14 @@ onMounted(() => {
   <div class="h-full flex flex-col p-4 gap-4">
     <!-- 顶部工具栏 -->
     <div class="flex items-center gap-3 flex-wrap">
+      <button
+        v-if="!showSessionList"
+        class="w-8 h-8 flex items-center justify-center rounded bg-bg-surface border border-bg-border text-muted hover:text-accent"
+        @click="showSessionList = true"
+        title="展开会话列表"
+      >
+        ☰
+      </button>
       <div class="flex items-center gap-2">
         <span class="text-sm text-muted">{{ t('debugChat.character') }}</span>
         <NSelect
@@ -277,12 +333,16 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- 主区域：左右分栏（可拖拽调整宽度） -->
-    <div id="debug-chat-main" class="flex-1 flex min-h-0 gap-0">
-      <!-- 左边：聊天窗口 -->
+    <!-- 主区域：三栏（会话列表 + 聊天窗口 + 调试面板） -->
+    <div id="debug-chat-main" class="flex-1 flex min-h-0 gap-3">
+      <!-- 最左边：会话列表（可收起） -->
+      <div v-if="showSessionList" class="w-64 flex-shrink-0 h-full min-h-0">
+        <SessionList :selected-id="sessionId" @select="loadSession" @collapse="showSessionList = false" />
+      </div>
+
+      <!-- 中间：聊天窗口 -->
       <div
-        class="flex flex-col bg-bg-surface rounded-lg border border-bg-border min-w-0"
-        :style="{ width: chatPaneWidth + '%' }"
+        class="flex flex-col bg-bg-surface rounded-lg border border-bg-border min-w-0 h-full min-h-0 flex-1"
       >
         <!-- 消息列表 -->
         <div id="debug-chat-messages" class="flex-1 overflow-auto p-4 space-y-4">
@@ -299,21 +359,29 @@ onMounted(() => {
               <div class="whitespace-pre-wrap">{{ msg.text }}</div>
 
               <!-- hover 操作按钮 -->
-              <div class="absolute -bottom-6 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 text-xs">
+              <div class="absolute -bottom-7 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 text-xs">
                 <button
-                  class="px-1.5 py-0.5 rounded bg-bg-elevated border border-bg-border hover:bg-bg-border text-muted"
+                  class="w-6 h-6 flex items-center justify-center rounded bg-bg-elevated border border-bg-border hover:bg-bg-border text-muted"
                   @click="copyMessage(msg.text)"
-                  title="Copy"
+                  title="复制"
                 >
-                  {{ t('debugChat.copy') }}
+                  📋
                 </button>
                 <button
                   v-if="msg.role === 'visitor'"
-                  class="px-1.5 py-0.5 rounded bg-bg-elevated border border-bg-border hover:bg-bg-border text-muted"
+                  class="w-6 h-6 flex items-center justify-center rounded bg-bg-elevated border border-bg-border hover:bg-bg-border text-muted"
                   @click="editMessage(msg.text)"
-                  :title="t('debugChat.editQuoteTip')"
+                  title="引用编辑"
                 >
-                  {{ t('debugChat.editQuote') }}
+                  ✏️
+                </button>
+                <button
+                  v-if="msg.role === 'visitor' && msg.trace"
+                  class="w-6 h-6 flex items-center justify-center rounded bg-accent/20 border border-accent/30 hover:bg-accent/30 text-accent"
+                  @click="showTrace(msg.trace!)"
+                  title="查看这轮的调试数据"
+                >
+                  🔍
                 </button>
               </div>
             </div>
@@ -471,8 +539,11 @@ onMounted(() => {
           <!-- Tab 5: 渲染 prompt -->
           <NTabPane name="prompt" :tab="t('debugChat.tabs.prompt')" class="flex-1 overflow-auto">
             <div class="p-3">
-              <div class="text-xs text-muted text-center py-8">
+              <div v-if="!currentTrace?.renderSpec?.promptFull" class="text-xs text-muted text-center py-8">
                 {{ t('debugChat.noData') }}
+              </div>
+              <div v-else :key="currentTrace.turnIndex" style="white-space: pre-wrap !important; word-break: break-word !important; overflow-wrap: break-word !important; font-family: 'Courier New', monospace !important; font-size: 12px !important; line-height: 1.6 !important; background: rgba(255,255,255,0.05) !important; border-radius: 6px !important; padding: 12px !important; border: 1px solid rgba(255,255,255,0.1) !important;">
+                {{ currentTrace.renderSpec.promptFull }}
               </div>
             </div>
           </NTabPane>
@@ -480,8 +551,17 @@ onMounted(() => {
           <!-- Tab 6: LLM 原始输出 -->
           <NTabPane name="raw" :tab="t('debugChat.tabs.raw')" class="flex-1 overflow-auto">
             <div class="p-3">
-              <div class="text-xs text-muted text-center py-8">
+              <div v-if="messages.filter(m => m.role === 'visitor').length === 0" class="text-xs text-muted text-center py-8">
                 {{ t('debugChat.noData') }}
+              </div>
+              <div v-else class="space-y-3">
+                <div v-for="(msg, i) in messages.filter(m => m.role === 'visitor')" :key="i"
+                     class="text-xs">
+                  <div class="text-muted mb-1">第 {{ i + 1 }} 轮来访回应：</div>
+                  <div class="whitespace-pre-wrap bg-bg-elevated rounded p-2 border border-bg-border">
+                    {{ msg.text }}
+                  </div>
+                </div>
               </div>
             </div>
           </NTabPane>

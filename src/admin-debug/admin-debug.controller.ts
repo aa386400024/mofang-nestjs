@@ -16,6 +16,16 @@
 //     GET /admin/api/sessions/:id/trajectory    — 本场剧本轨迹 (幕路径 + 已触发节点)
 //     GET /admin/api/sessions/:id/memories      — 本场记忆 (当前恒空, 见端点注释)
 //
+//   V2026-11-05 治本 (WP31 · 成本看板切真 API):
+//     补 2 个只读端点 (admin-dashboard 的 CostBoard 页原先拿的是前端 mock):
+//     GET /admin/api/cost/trend?days=7    — 成本趋势 (按天聚合: tokens / costCny / sessions)
+//     GET /admin/api/cost/sessions?limit=20 — 会话成本列表 (含成本口径 costBasis)
+//     定价走 WP24 已有的两个 env (LLM_PRICE_INPUT_PER_1K / LLM_PRICE_OUTPUT_PER_1K),
+//     口径复用 `session-cost.ts` 的 `estimateSessionCost` —— 看板与单场成本日志
+//     用**同一张定价表**, 不另造一份.
+//     ⚠️ 成本数据来自**留痕快照**: 留痕关着时 (生产缺省关) 看板的 tokens / costCny
+//     恒 0, 但 sessions 仍来自会话表 → "有场次但 0 token" 正是"留痕关了"的信号.
+//
 //   V2026-10-30 治本 (WP19-R · admin/api 收口):
 //     ① `characters` 改查 **`character_profiles`** (引擎角色池), 不再查
 //        `visitor_pool_templates` (速查卡表) —— 调试器看到的角色基线必须与
@@ -41,15 +51,17 @@
 import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, type Repository } from 'typeorm';
+import { IsNull, MoreThanOrEqual, type Repository } from 'typeorm';
 
 import type { AdminDebugRequest } from './admin-basic-auth.middleware.js';
+import { aggregateSessionCost, buildCostTrend, shanghaiDayStartUtc } from './cost-view.js';
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
 import type { TurnTrace } from './trace-recorder.service.js';
 import { buildAdminTrajectoryState } from './trajectory-view.js';
 import { BizCode } from '../common/exceptions/biz-code.enum.js';
 import { BizException } from '../common/exceptions/biz.exception.js';
 import { TrainingSession } from '../counselor/entities/training-session.entity.js';
+import { resolveSessionCostPricing, type SessionCostPricing } from '../engine-adapters/observability/session-cost.js';
 import { CharacterProfileEntity } from '../engine-adapters/wiring/character/character-profile.entity.js';
 
 /**
@@ -70,6 +82,39 @@ const CHARACTER_SESSION_SCAN_LIMIT = 500;
  * 角色历史会话单次返回的条数 (任务单 §八 Q2: 建议 20, 与会话列表一致).
  */
 const CHARACTER_SESSION_PAGE_SIZE = 20;
+
+/**
+ * 成本趋势的默认窗口天数 (任务单 §八 Q2: 建议 7).
+ */
+const DEFAULT_COST_TREND_DAYS = 7;
+
+/**
+ * 成本趋势的最大窗口天数.
+ *
+ * 为什么有上限: 窗口越长, 要扫的会话越多 (窗口内的每一场都要读留痕 JSON).
+ * 90 天已经覆盖一个季度 —— 再长对"看板"没有意义, 那是数据仓库的事.
+ */
+const MAX_COST_TREND_DAYS = 90;
+
+/**
+ * 成本趋势一次最多扫多少场会话.
+ *
+ * ⚠️ 这是**扫描窗口**, 不是"只看最近 N 场" —— 窗口内超出上限的会话不计入趋势.
+ * 上限存在的原因是: 每场都要读 `turn_debug_trace` (JSON 列, 单场可能几 KB),
+ * 无上限地扫 = 一个看板请求把库拖垮. 超限时按 startedAt 倒序取 (最近的优先),
+ * 并在交付记录里登记这是"扫描窗口内的口径".
+ */
+const COST_TREND_SCAN_LIMIT = 2000;
+
+/**
+ * 会话成本列表默认条数.
+ */
+const DEFAULT_COST_SESSION_LIMIT = 20;
+
+/**
+ * 会话成本列表最大条数 (与既有 `GET /sessions` 的 50 上限同款).
+ */
+const MAX_COST_SESSION_LIMIT = 50;
 
 @Controller('admin/api')
 // 角色校验 (WP26 P2-4): 非 admin 角色 → 403 (BizCode.Forbidden).
@@ -349,6 +394,93 @@ export class AdminDebugController {
     return [];
   }
 
+  /**
+   * 成本趋势 (按天聚合).
+   *
+   * 数据源: **留痕快照** (`turn_debug_trace[].llmUsage`) —— grep 核实过,
+   *   `training_sessions.tech_stats` 里**没有** token 统计 (只有提问类型 /
+   *   干预技术 / 行为指标 / 督导点评), 全仓唯一带 token 的地方就是留痕.
+   *
+   * ⚠️ **留痕关着的时候, 这个看板是空的** —— `ENGINE_DEBUG_TRACE_ENABLED` 在生产
+   *   环境缺省关, 于是 `tokens` / `costCny` 恒 0. 但 `sessions` 仍来自会话表
+   *   (它不受留痕开关影响) → 运营会看到 "有场次但 0 token", 那正是留痕关了的信号.
+   *   要让生产看板有数, 得在 `tech_stats` 里补 token 统计 (缺口 G1).
+   *
+   * @param req 请求 (身份用于学员隔离)
+   * @param days 窗口天数 (含今天; 缺省 7, 上限 90)
+   * @returns 按天聚合的成本趋势 (行数恒等于 days, 缺数据的天补 0)
+   */
+  @Get('cost/trend')
+  async costTrend(@Req() req: AdminDebugRequest, @Query('days') days?: string) {
+    const span = clampInt(Number(days ?? DEFAULT_COST_TREND_DAYS), DEFAULT_COST_TREND_DAYS, 1, MAX_COST_TREND_DAYS);
+    const now = new Date();
+    // 窗口起点 = 上海时区"今天往前推 span-1 天"的 00:00.
+    const cutoff = shanghaiDayStartUtc(now, span - 1);
+    const rows = await this.sessionRepo.find({
+      where: { deletedAt: IsNull(), startedAt: MoreThanOrEqual(cutoff), ...this.ownerFilter(req) },
+      order: { startedAt: 'DESC' },
+      take: COST_TREND_SCAN_LIMIT,
+      select: { id: true, personaName: true, startedAt: true, status: true, turnDebugTrace: true },
+    });
+    return buildCostTrend(
+      rows.map((row) => ({ startedAt: row.startedAt, traces: readTraces(row.turnDebugTrace) })),
+      this.resolveCostPricing(),
+      span,
+      now,
+    );
+  }
+
+  /**
+   * 会话成本列表 (最近 N 场).
+   *
+   * 每行带 `costBasis` (成本口径):
+   *   `full` = 输入输出都计; `output_only` = 上游没报输入侧用量, 成本是**下界**.
+   *   不带这个字段的话, 读表的人会把"只算了输出侧"当成"全场就这么多" —— 与 WP24 的
+   *   纪律同款: 口径要写在数据里, 不能只靠"看文档的人记得".
+   *
+   * @param req 请求 (身份用于学员隔离)
+   * @param limit 条数 (缺省 20, 上限 50)
+   * @returns 会话成本列表
+   */
+  @Get('cost/sessions')
+  async sessionCosts(@Req() req: AdminDebugRequest, @Query('limit') limit?: string) {
+    const n = clampInt(Number(limit ?? DEFAULT_COST_SESSION_LIMIT), DEFAULT_COST_SESSION_LIMIT, 1, MAX_COST_SESSION_LIMIT);
+    const pricing = this.resolveCostPricing();
+    const rows = await this.sessionRepo.find({
+      where: { deletedAt: IsNull(), ...this.ownerFilter(req) },
+      order: { startedAt: 'DESC' },
+      take: n,
+      select: { id: true, personaName: true, startedAt: true, turnDebugTrace: true },
+    });
+    return rows.map((row) => {
+      const aggregate = aggregateSessionCost(readTraces(row.turnDebugTrace), pricing);
+      return {
+        sessionId: row.id,
+        visitorAlias: row.personaName,
+        startedAt: row.startedAt,
+        totalTokens: aggregate.totalTokens,
+        costCny: aggregate.costCny,
+        costBasis: aggregate.costBasis,
+      };
+    });
+  }
+
+  /**
+   * 成本单价 (元 / 千 token).
+   *
+   * 走 **WP24 已有的两个 env** (`LLM_PRICE_INPUT_PER_1K` / `LLM_PRICE_OUTPUT_PER_1K`)
+   * —— 与单场成本日志用的是**同一张定价表**: 看板上的数与日志里的数必须对得上,
+   * 两处各配一套 env = 迟早漂. 非法值回退默认, 不抛 (口径在 `resolveSessionCostPricing`).
+   *
+   * @returns 单价
+   */
+  private resolveCostPricing(): SessionCostPricing {
+    return resolveSessionCostPricing({
+      inputPer1k: this.config.get<string>('LLM_PRICE_INPUT_PER_1K'),
+      outputPer1k: this.config.get<string>('LLM_PRICE_OUTPUT_PER_1K'),
+    });
+  }
+
   /** 引擎健康状态. */
   @Get('health')
   health() {
@@ -402,6 +534,25 @@ export class AdminDebugController {
     const userId = (req.user?.userId ?? '').trim();
     return userId.length > 0 ? { userId } : {};
   }
+}
+
+/**
+ * 把 query 参数夹到合法区间.
+ *
+ * 为什么不用 `Math.min(Number(x), max)` 就完事:
+ *   `Number('abc')` = NaN → `Math.min(NaN, max)` = NaN → `take: NaN` 会让驱动层炸掉,
+ *   `days: NaN` 会让"最近 N 天"变成 NaN 天. 非法参数必须**回退默认值**, 不能把 NaN
+ *   传下去 (与仓库既有 `resolveSessionCostPricing` 的"非法值回退, 不抛"同纪律).
+ *
+ * @param raw 解析后的原始值
+ * @param fallback 非法时的缺省值
+ * @param min 下界
+ * @param max 上界
+ * @returns 夹好的整数
+ */
+function clampInt(raw: number, fallback: number, min: number, max: number): number {
+  if (!Number.isFinite(raw)) return fallback;
+  return Math.min(Math.max(Math.trunc(raw), min), max);
 }
 
 /**

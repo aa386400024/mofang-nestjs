@@ -102,6 +102,34 @@ async function del<T>(path: string): Promise<T> {
   return r.json() as Promise<T>
 }
 
+async function patch<T>(path: string, body: unknown): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const auth = getAuthHeader()
+  if (auth) headers.Authorization = auth
+
+  const r = await fetch(`${BASE}${path}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify(body),
+  })
+
+  if (r.status === 401) {
+    sessionStorage.removeItem(CRED_KEY)
+    const newAuth = promptCredentials()
+    if (!newAuth) throw new Error('需要登录')
+    const retry = await fetch(`${BASE}${path}`, {
+      method: 'PATCH',
+      headers: { ...headers, Authorization: newAuth },
+      body: JSON.stringify(body),
+    })
+    if (!retry.ok) throw new Error(`${path} → ${retry.status}`)
+    return retry.json() as Promise<T>
+  }
+
+  if (!r.ok) throw new Error(`${path} → ${r.status}`)
+  return r.json() as Promise<T>
+}
+
 // ─── 真实 API 端点 ───
 
 export const api = {
@@ -135,6 +163,22 @@ export const api = {
     },
     close: async (sessionId: string): Promise<{ sessionId: string; closed: boolean }> => {
       return del(`/debug/session/${sessionId}`)
+    },
+    // 列出所有历史会话
+    list: async (): Promise<Array<{ id: string; title: string; characterSlug: string; createdAt: string; updatedAt: string; turnCount: number }>> => {
+      return get('/debug/sessions')
+    },
+    // 获取某个会话的完整 trace
+    get: async (sessionId: string): Promise<{ id: string; title: string; characterSlug: string; createdAt: string; updatedAt: string; messages: Array<{ role: string; text: string; trace: unknown }> }> => {
+      return get(`/debug/sessions/${sessionId}`)
+    },
+    // 更新会话标题
+    update: async (sessionId: string, title: string): Promise<{ id: string; title: string }> => {
+      return patch(`/debug/sessions/${sessionId}`, { title })
+    },
+    // 删除会话
+    remove: async (sessionId: string): Promise<{ id: string; deleted: boolean }> => {
+      return del(`/debug/sessions/${sessionId}`)
     },
   },
 
@@ -174,9 +218,15 @@ export const api = {
   }),
   psyguardTrend: async (): Promise<PsyGuardTrendPoint[]> => [],
 
-  // ─── P2: 成本看板（mock） ───
-  costTrend: async (): Promise<CostTrendPoint[]> => [],
-  sessionCosts: async (): Promise<SessionCost[]> => [],
+  // ─── 成本看板（真 API · WP31） ───
+  // 后端: GET /admin/api/cost/trend?days=N (按天聚合, 行数恒等于 days)
+  costTrend: async (days = 7): Promise<CostTrendPoint[]> => {
+    return get<CostTrendPoint[]>(`/cost/trend?days=${days}`)
+  },
+  // 后端: GET /admin/api/cost/sessions?limit=N (含成本口径 costBasis)
+  sessionCosts: async (limit = 20): Promise<SessionCost[]> => {
+    return get<SessionCost[]>(`/cost/sessions?limit=${limit}`)
+  },
 
   // ─── 近 7 天会话趋势（mock） ───
   weeklySessions: async (): Promise<{ date: string; count: number }[]> => [],

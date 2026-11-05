@@ -231,9 +231,17 @@ export interface CostTrendPoint {
 export interface SessionCost {
   sessionId: string
   visitorAlias: string
-  startedAt: string
-  tokens: number
+  /** 开场时刻；未开场 / 无记录时为 null */
+  startedAt: string | null
+  /** 本场 token 总量（输入 + 输出，与 `/admin/api/sessions` 的 totalTokens 同口径） */
+  totalTokens: number
   costCny: number
+  /**
+   * 成本口径：
+   * - `full` —— 输入输出都计，这是全场成本；
+   * - `output_only` —— 上游没报输入侧用量，成本只是**下界**。
+   */
+  costBasis: 'full' | 'output_only'
 }
 
 // ─── 角色历史会话 ───

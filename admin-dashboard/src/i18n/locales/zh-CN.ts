@@ -206,6 +206,12 @@ export default {
     visitor: '来访者',
     token: 'Token',
     cost: '成本',
+    basis: '口径',
+    basisFull: '输入+输出',
+    basisOutputOnly: '仅输出侧',
+    emptyTitle: '近 7 天没有咨询会话',
+    emptyDescription: '完成对练后，这里会展示每日 Token 消耗、成本统计与最近会话的成本明细。',
+    noTokenStats: '有会话但没有 Token 统计：成本数据来自引擎调试留痕（ENGINE_DEBUG_TRACE_ENABLED），当前未开启，所以 Token 与成本显示为 0 —— 会话数仍然准确。',
   },
   arch: {
     title: '引擎终局形态架构图',
