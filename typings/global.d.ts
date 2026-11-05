@@ -301,6 +301,13 @@ export declare global {
       ENGINE_DECAY_EMOTION_HALF_LIFE_MS?: string; // 情绪半衰期 (ms, 默认 7 天)
       ENGINE_DECAY_RESISTANCE_HALF_LIFE_MS?: string; // 阻抗半衰期 (ms, 默认 14 天)
       ENGINE_DECAY_ALLIANCE_HALF_LIFE_MS?: string; // 同盟半衰期 (ms, 默认 30 天)
+      // V2026-11-05 治本 (WP32 — BDI 状态持久化):
+      //   下面是 BDI 状态存储形态的 2 个 env 键. 显式声明的理由与上面 ENGINE_DECAY_* 同一治本思路:
+      //   **逐个字面量**读 (src/engine-adapters/wiring/engine.module.ts), 不用计算键 ——
+      //   env 覆盖断言 (AST 抽取) 扫不到计算键, 漏写一个键会静默失效.
+      //   装配成"BDI 状态存哪儿"的部署形态决定 (内核零 env 读取, 状态仓储本身在 B 层).
+      ENGINE_BDI_STATE_STORE?: string; // BDI 状态存储形态: memory (缺省) | redis (非法值启动期炸)
+      ENGINE_BDI_STATE_REDIS_TTL_SECONDS?: string; // Redis 版 TTL 秒数 (默认 604800 = 7 天)
     }
   }
 

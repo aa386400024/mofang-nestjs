@@ -28,8 +28,14 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp8-wiring.spec.ts 覆盖仓储分流 / 会话构造 / 门面归属缝
 
+import type { BdiStateStoreKind } from './bdi-state-store.config.js';
+import type { CharacterProfileResolver } from './character/character-profile.resolver.js';
 import { EngineStreamBackend } from './engine-stream-backend.adapter.js';
 import type { EngineTurnService } from './engine-turn.service.js';
+import { HttpPsyGuardProbe } from './risk/http-psyguard.probe.js';
+import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
+import { StudentRiskGateService } from './risk/student-risk-gate.js';
+import type { TrajectoryScriptResolver } from './trajectory/script-resolver.js';
 import { TurnIdempotencyService } from './turn-idempotency.service.js';
 import type { TraceRecorder } from '../../admin-debug/trace-recorder.service.js';
 import { InMemoryBdiStateRepository } from '../../engine-core/in-memory/in-memory-bdi-state.repository.js';
@@ -37,6 +43,7 @@ import { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-eng
 import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store.js';
 import type {
   AllianceConfig,
+  BdiStateRepository,
   DeltaCapConfig,
   DeltaCapObserver,
   Embedder,
@@ -47,6 +54,7 @@ import type {
   SessionDecayConfig,
   WorkingWindowOverflowEvent,
 } from '../../engine-core/index.js';
+import type { RedisService } from '../../shared/infra/redis/redis.service.js';
 import type { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
 import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import type { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
@@ -54,6 +62,7 @@ import type { SessionCostPricing } from '../observability/session-cost.js';
 import { toRecallPolicyOptions, type MemoryConfig } from '../persistence/memory-config.js';
 import type { QdrantMemoryClient } from '../persistence/qdrant-memory.store.js';
 import { QdrantMemoryStore } from '../persistence/qdrant-memory.store.js';
+import { RedisBdiStateRepository, RedisServiceBdiStateClient } from '../persistence/redis-bdi-state.repository.js';
 import type { RollingSummaryPort } from '../persistence/rolling-session-summary.service.js';
 import type { SessionSummaryGenerator, SessionTranscriptSink } from '../persistence/session-closeout.service.js';
 import { SessionCloseoutService } from '../persistence/session-closeout.service.js';
@@ -61,11 +70,6 @@ import type { StreamingRenderPort } from '../rendering/streaming-render.port.js'
 import type { StudentRiskGate } from '../rendering/student-risk-disposal.js';
 import type { TurnSessionContext } from '../rendering/turn-render-orchestrator.js';
 import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js';
-import type { CharacterProfileResolver } from './character/character-profile.resolver.js';
-import { HttpPsyGuardProbe } from './risk/http-psyguard.probe.js';
-import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
-import { StudentRiskGateService } from './risk/student-risk-gate.js';
-import type { TrajectoryScriptResolver } from './trajectory/script-resolver.js';
 
 /**
  * 记忆仓储装配入参.
@@ -117,6 +121,51 @@ export function createEngineMemoryStore(deps: EngineMemoryStoreDeps): MemoryStor
 }
 
 /**
+ * BDI 状态仓储的装配入参 (WP32).
+ */
+export interface BdiStateRepositoryDeps {
+  /** 存储形态 (memory / redis). */
+  readonly store: BdiStateStoreKind;
+  /**
+   * Redis 客户端 (仅 `store='redis'` 时必需).
+   *
+   * 类型用**基础设施的窄面**而不是 ioredis —— 装配层不认识 ioredis,
+   * 换 Redis 客户端只影响 `RedisServiceBdiStateClient` 那一个窄面.
+   */
+  readonly redis?: RedisService;
+  /** Redis 版存活时长 (秒; 仅 `store='redis'` 时生效). */
+  readonly ttlSeconds?: number;
+}
+
+/**
+ * 装配 BDI 状态仓储 (WP32).
+ *
+ * 分流依据只有一个: **env 配的存储形态**.
+ *   - `memory` (缺省) → `InMemoryBdiStateRepository` (行为与 WP32 之前**逐字一致**);
+ *   - `redis`        → `RedisBdiStateRepository` (进程重启后可恢复).
+ *
+ * 为什么不静默回落 (与 `createEngineMemoryStore` 同一铁律):
+ *   "配了 redis 却没给客户端"是**装配非法**, 必须炸在启动期 ——
+ *   静默回落成纯内存 = 线上以为在持久化, 实际一条都没存, 而且**不报错**.
+ *
+ * @param deps 装配入参
+ * @returns BDI 状态仓储 (内核端口实现)
+ * @throws 配了 redis 却缺客户端时抛错 (装配非法必须炸在启动期)
+ */
+export function createBdiStateRepository(deps: BdiStateRepositoryDeps): BdiStateRepository {
+  if (deps.store === 'redis') {
+    if (!deps.redis) {
+      throw new Error('引擎 BDI 状态仓储装配非法: 已配置 redis 存储, 但缺少 Redis 客户端');
+    }
+    return new RedisBdiStateRepository({
+      client: new RedisServiceBdiStateClient(deps.redis),
+      ...(deps.ttlSeconds === undefined ? {} : { ttlSeconds: deps.ttlSeconds }),
+    });
+  }
+  return new InMemoryBdiStateRepository();
+}
+
+/**
  * 内核会话的调参依赖 (WP26 · P2-14 · WP34 · WP42 · WP36).
  *
  * 单回合 delta cap 的配置与观察者、人格调节系数、同盟三维系数与门槛、跨会话间隔衰减
@@ -157,21 +206,27 @@ export interface EngineSessionTuningDeps {
 /**
  * 装配内核会话端口.
  *
- * BDI 状态本期用内存仓储 (落库仓储属后续轮); 记忆仓储与门面包的是**同一实例** ——
- * 内核写的咨询师半边与门面补的来访半边必须落在同一个仓里, 否则召回只召回得到一半.
+ * 记忆仓储与门面包的是**同一实例** —— 内核写的咨询师半边与门面补的来访半边必须落在同一个仓里,
+ * 否则召回只召回得到一半.
+ *
+ * V2026-11-05 (WP32): BDI 状态仓储从"写死内存版"改成**可注入**:
+ *   - 省略 `bdiStates` → `InMemoryBdiStateRepository` (行为与 WP32 之前**逐字一致**, 零回归);
+ *   - 传入 Redis 版 → 状态落 Redis, 进程重启后跨会话恢复自动生效.
  *
  * @param memories 记忆仓储 (与门面共用)
  * @param riskProbe 可选风险探测端口 (WP4 扩展点; 缺省 = 纯规则判定)
  * @param tuning 可选调参依赖 (WP26 · P2-14 cap 配置与观察者; WP34 人格调节系数)
+ * @param bdiStates 可选 BDI 状态仓储 (WP32; 缺省 = 内存仓储)
  * @returns 内核会话端口
  */
 export function createEngineSessionPort(
   memories: MemoryStore,
   riskProbe?: RiskProbePort,
   tuning?: EngineSessionTuningDeps,
+  bdiStates?: BdiStateRepository,
 ): EngineSessionPort {
   return new InMemoryEngineSession({
-    bdiStates: new InMemoryBdiStateRepository(),
+    bdiStates: bdiStates ?? new InMemoryBdiStateRepository(),
     memories,
     ...(riskProbe ? { riskProbe } : {}),
     ...(tuning?.capConfig ? { capConfig: tuning.capConfig } : {}),

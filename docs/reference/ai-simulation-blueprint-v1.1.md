@@ -5,6 +5,12 @@
 > [`../architecture/ai-engine-roadmap-v1.1.md`](../architecture/ai-engine-roadmap-v1.1.md) 为准；
 > 两者冲突处以后者为准（例如本原件选 PostgreSQL/pgvector，本仓库决策保留 MySQL + Qdrant）。
 > **转写说明**：表格已按原文校对为 Markdown；链接保留；不删改原文结论。
+>
+> ⚠️ **方向校准标注（2026-11-05）**：本原件的 BDI 引擎设计基于"规则驱动"假设。2026-11-05 基于 Coze/Dify 等静态工作流工具下线的行业趋势，架构方向已校准为**混合式 BDI（LLM 审议 + 状态骨架）**——保留状态结构，决策从人工规则改为 LLM 审议 + 约束校验。最新方向详见：
+> - [`../architecture/hybrid-bdi-agent-blueprint-v1.0.md`](../architecture/hybrid-bdi-agent-blueprint-v1.0.md)（混合式 BDI 架构蓝图）
+> - [`../architecture/engine-endstate-blueprint-v1.0.md`](../architecture/engine-endstate-blueprint-v1.0.md)（终局形态白皮书，已同步更新）
+>
+> 本原件保留存档，不删改；与混合式蓝图冲突处以蓝图为准。
 
 ---
 

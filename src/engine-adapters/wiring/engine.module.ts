@@ -45,6 +45,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { resolveAllianceConfig } from './alliance-config.js';
+import { resolveBdiStateStoreConfig } from './bdi-state-store.config.js';
 import { CharacterPoolModule } from './character/character-pool.module.js';
 import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver } from './character/index.js';
 import { resolveDeltaCapConfig } from './delta-cap.config.js';
@@ -53,6 +54,7 @@ import { EngineStreamBackend } from './engine-stream-backend.adapter.js';
 import { EngineSessionRegistry, EngineTurnService } from './engine-turn.service.js';
 import { EngineWiringController } from './engine-wiring.controller.js';
 import {
+  createBdiStateRepository,
   createEngineMemoryStore,
   createEngineOrchestrator,
   createEngineSessionPort,
@@ -84,6 +86,7 @@ import { QdrantService } from '../../ai-engine/providers/qdrant.service.js';
 import type { EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
 import { LlmModule } from '../../llm/llm.module.js';
 import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
+import { RedisService } from '../../shared/infra/redis/redis.service.js';
 import { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
@@ -232,12 +235,17 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
       useFactory: (service: RollingSessionSummaryService): RollingSummaryCleanupPort => service,
       inject: [RollingSessionSummaryService],
     },
-    // 内核会话: BDI 状态用内存仓储 (落库仓储属后续轮), 记忆用上面的同一实例.
+    // 内核会话: BDI 状态仓储按 env 分流 (WP32), 记忆用上面的同一实例.
     // V2026-10-29 治本 (WP9-C): 注入本地危机探测器 (内核 WP4 的 RiskProbePort 扩展点) ——
     //   没有它, 咨询师输入面的危机语言在内核眼里是干净的, 危机轮次路由与督导提示都无从触发.
     // V2026-10-30 (WP11): 注入点从具体实现 (LocalCrisisProbe) 换成**端口 token**
     //   (RISK_PROBE) —— 装 HttpPsyGuardProbe 还是 LocalCrisisProbe 由 env 决定,
     //   注入点零改动 (换探测器 = 改那一处 useFactory).
+    // V2026-11-05 (WP32): BDI 状态仓储从"写死内存版"改成**按 env 分流** ——
+    //   `ENGINE_BDI_STATE_STORE` 缺省 = memory (行为与本单之前逐字一致, 零回归),
+    //   = redis 时状态落 Redis (进程重启后跨会话恢复自动生效).
+    //   ⚠️ 装配非法 (配了 redis 却拿不到客户端 / 形态值非法) 在**启动期**直接炸,
+    //   不静默回落成内存版 —— 静默回落 = 线上以为在持久化, 实际一条都没存.
     {
       provide: ENGINE_SESSION_PORT,
       useFactory: (
@@ -246,27 +254,43 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         config: ConfigService,
         capLogger: DeltaCapLogger,
         rollingSummary: RollingSessionSummaryService,
-      ): EngineSessionPort =>
-        createEngineSessionPort(memories, probe, {
-          // WP26 · P2-14: env 由**适配层**读, 内核只认 DeltaCapConfig 端口 ——
-          //   内核零 process.env, 同 seed + 同 capConfig 同序列逐字同输出.
-          capConfig: resolveDeltaCapConfig(config),
-          // WP26 · P2-11/P2-12: 观察者随会话实例注入 (不再有模块级单槽),
-          //   报告带 sessionId/handleId, 口径是本轮**总** delta.
-          capObserver: capLogger.observer,
-          // WP34: 人格调节系数同理 —— env 读在适配层, 内核只认 PersonalityModulatorConfig 端口.
-          personalityModulatorConfig: resolvePersonalityModulatorConfig(config),
-          // WP42: 同盟三维 (trust / safety / bond) 的系数与门槛同理 ——
-          //   env 读在适配层, 内核只认 AllianceConfig 端口.
-          allianceConfig: resolveAllianceConfig(config),
-          // WP36: 跨会话间隔衰减的三个半衰期同理 ——
-          //   env 读在适配层, 内核只认 SessionDecayConfig 端口.
-          sessionDecayConfig: resolveSessionDecayConfig(config),
-          // WP37: 工作窗口溢出通知 —— 内核只交出"挤掉了哪些轮次",
-          //   摘要生成 (LLM) 与记忆写入全在适配层 (内核零网络 / 零 prompt).
-          onWorkingWindowOverflow: (event) => rollingSummary.recordOverflow(event),
-        }),
-      inject: [ENGINE_MEMORY_STORE, RISK_PROBE, ConfigService, DeltaCapLogger, RollingSessionSummaryService],
+        redis: RedisService,
+      ): EngineSessionPort => {
+        // env 由**适配层**读 (内核零 process.env); 存储形态与 TTL 归一后交给纯工厂.
+        const bdiStore = resolveBdiStateStoreConfig({
+          store: config.get<string>('ENGINE_BDI_STATE_STORE'),
+          ttlSeconds: config.get<string>('ENGINE_BDI_STATE_REDIS_TTL_SECONDS'),
+        });
+        return createEngineSessionPort(
+          memories,
+          probe,
+          {
+            // WP26 · P2-14: env 由**适配层**读, 内核只认 DeltaCapConfig 端口 ——
+            //   内核零 process.env, 同 seed + 同 capConfig 同序列逐字同输出.
+            capConfig: resolveDeltaCapConfig(config),
+            // WP26 · P2-11/P2-12: 观察者随会话实例注入 (不再有模块级单槽),
+            //   报告带 sessionId/handleId, 口径是本轮**总** delta.
+            capObserver: capLogger.observer,
+            // WP34: 人格调节系数同理 —— env 读在适配层, 内核只认 PersonalityModulatorConfig 端口.
+            personalityModulatorConfig: resolvePersonalityModulatorConfig(config),
+            // WP42: 同盟三维 (trust / safety / bond) 的系数与门槛同理 ——
+            //   env 读在适配层, 内核只认 AllianceConfig 端口.
+            allianceConfig: resolveAllianceConfig(config),
+            // WP36: 跨会话间隔衰减的三个半衰期同理 ——
+            //   env 读在适配层, 内核只认 SessionDecayConfig 端口.
+            sessionDecayConfig: resolveSessionDecayConfig(config),
+            // WP37: 工作窗口溢出通知 —— 内核只交出"挤掉了哪些轮次",
+            //   摘要生成 (LLM) 与记忆写入全在适配层 (内核零网络 / 零 prompt).
+            onWorkingWindowOverflow: (event) => rollingSummary.recordOverflow(event),
+          },
+          createBdiStateRepository({
+            store: bdiStore.store,
+            ttlSeconds: bdiStore.ttlSeconds,
+            ...(bdiStore.store === 'redis' ? { redis } : {}),
+          }),
+        );
+      },
+      inject: [ENGINE_MEMORY_STORE, RISK_PROBE, ConfigService, DeltaCapLogger, RollingSessionSummaryService, RedisService],
     },
     // 装配门面 (WP7): 接上归属解析缝 (多会话, 不传固定 sessionContext).
     // V2026-11-02 (WP14): 注入学员侧处置闸门 —— 门面在**渲染前**问它

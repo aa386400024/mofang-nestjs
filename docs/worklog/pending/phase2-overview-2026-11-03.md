@@ -40,8 +40,10 @@
 | 层级 | 含义 | 数量 |
 |---|---|---|
 | 🔴 P0 商业化根基 | 上线收钱前必须完成，不做不能商业化 | 8 条 |
-| 🟡 P1 专业能力主线 | 蓝图 Phase2 核心引擎能力，拉开差距的关键 | 17 条 |
-| 🟢 P2 技术债清理 | 顺手做，不阻塞商业化但影响可维护性 | 11 条 |
+| 🟡 P1 专业能力主线 | 蓝图 Phase2 核心引擎能力，拉开差距的关键 | 20 条 |
+| 🟢 P2 技术债清理 | 顺手做，不阻塞商业化但影响可维护性 | 13 条 |
+
+> 🆕 **2026-11-05 新增混合式 BDI PoC 组（WP63–WP68，6 条）**：基于 Coze 下线趋势判断的架构方向校准。详见 [`../../architecture/hybrid-bdi-agent-blueprint-v1.0.md`](../../architecture/hybrid-bdi-agent-blueprint-v1.0.md)。
 
 ### 2.2 完整清单
 
@@ -91,6 +93,21 @@
 | P2-6 | 记忆召回策略优化（WP59）：Top-K 截断 + 时间衰减加权，相似记忆冲突消解（先做最简单的，复杂消解放后面） | WP56 后续 |
 | P2-7 | delta 规则表配置化（WP60）：事件→delta 映射从硬编码抽成配置文件，内核读配置不变纯层纪律。⚠️ 现在不急——单人开发阶段硬编码最快，等真需要自定义规则了再抽 | 架构评审 |
 | P2-8 | 内核端口类型 barrel 收口（WP62）：`RecallPolicyOptions` 等端口类型没进 barrel —— 适配层深路径 import 被边界断言 ⑪ 拦下，加导出要动 `index.ts` + 边界断言 ⑥ 的白名单。⚠️ 现在不急——结构化类型够用，等攒到 3-5 个端口类型要补时一起补 | WP59 收尾 |
+
+#### 🧪 混合式 BDI PoC 组（2026-11-05 新增，WP63–WP68）
+
+> 来源：Coze/Dify 等静态工作流工具集体收缩，BDI 引擎从"规则驱动"演进为"LLM 审议 + 状态骨架"。详见 [`../../architecture/hybrid-bdi-agent-blueprint-v1.0.md`](../../architecture/hybrid-bdi-agent-blueprint-v1.0.md)。
+>
+> **这组 WP 是 PoC 验证，不是替换生产。** 影子模式并行跑，用数据证明这条路走得通。engine-core 零改动。
+
+| # | 工作包 | 优先级 | 一句话描述 |
+|---|---|---|---|
+| P1-13 | **审议输出 Schema 与可解释性设计**（WP63） | 🟡 P1 | JSON schema + operatorTags 枚举 + 审议 prompt 模板设计（系统/用户双 prompt + 考核/自由双模式） |
+| P1-14 | **LLM 审议层 PoC（影子模式）**（WP64） | 🟡 P1 | 影子模式跑 LLM 审议，结果不生效，对比规则算子 delta，积累 100 场对话数据验证质量 |
+| P0-9 | **会话级串行队列与状态一致性**（WP65） | 🔴 P0 | per-session mutex，防止并发写覆盖导致状态错乱（上线前必须解决的硬约束） |
+| P1-15 | **审议输出格式校验与重试**（WP66） | 🟡 P1 | zod schema 校验 + 自动重试 + 失败兜底不阻断对话 |
+| P1-16 | **三级降级策略**（WP67） | 🟡 P1 | 超时跳过 → 连续失败切回规则 → 降级标记不能考核 |
+| P2-9 | **意图锁定机制（基础版）**（WP68） | 🟢 P2 | 当前意图 N 轮内不随意切换，防止人格漂移 |
 
 ---
 
@@ -204,6 +221,7 @@ P1-2 渲染四手法
 |---|---|
 | 蓝图 V1.1（上游愿景） | [`docs/reference/ai-simulation-blueprint-v1.1.md`](../../reference/ai-simulation-blueprint-v1.1.md) |
 | 路线图 V1.1（引擎方向母版） | [`docs/architecture/ai-engine-roadmap-v1.1.md`](../../architecture/ai-engine-roadmap-v1.1.md) |
+| 混合式 BDI 架构蓝图（2026-11-05 新增） | [`docs/architecture/hybrid-bdi-agent-blueprint-v1.0.md`](../../architecture/hybrid-bdi-agent-blueprint-v1.0.md) |
 | 微服务演进规划 | [`docs/architecture/microservices-evolution-plan.md`](../../architecture/microservices-evolution-plan.md) |
 | Phase1 交付记录索引 | [`docs/worklog/completed/phase1/phase1-backlog-archived-2026-11-03.md`](../completed/phase1/phase1-backlog-archived-2026-11-03.md) |
 | WP25 封版审查报告 | [`docs/worklog/audits/wp25-phase1-audit-report-2026-11-03.md`](../audits/wp25-phase1-audit-report-2026-11-03.md) |
@@ -211,5 +229,5 @@ P1-2 渲染四手法
 
 ---
 
-_最后更新：2026-11-03_
+_最后更新：2026-11-05（新增混合式 BDI PoC 组 WP63–WP68，基于 Coze 下线趋势判断的架构方向校准）_
 _本文档是 Phase2 的总览入口，具体 WP 任务单开工时再单独写。_

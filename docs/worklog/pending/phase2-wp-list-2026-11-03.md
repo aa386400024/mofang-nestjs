@@ -16,7 +16,7 @@
 | **WP29** | 数据分级留存与销毁 | 🔴 P0 | 用户删除权（对话+记忆+账号）、导出权、数据分级策略落地 | 中 | 📋 |
 | **WP30** | Admin Dashboard 切真 API | 🔴 P0 | CharacterDetail + SessionDetail 接 `/admin/api/*` 真数据，去掉 mock 标识 | 中 | 📋 |
 | **WP31** | 成本看板与告警 | 🔴 P0 | 成本看板展示 token 消耗/用户/会话，超阈值告警规则接入 | 小 | 📋 |
-| **WP32** | BDI 状态持久化 | 🟡 P1 | 内存态 → Redis/DB，进程重启后可恢复 BDI 快照 | 中 | 📋 |
+| **WP32** ✅ | BDI 状态持久化 | 🟡 P1 | 内存态 → Redis/DB，进程重启后可恢复 BDI 快照 | 中 | ✅ [交付记录](../completed/phase2/engine-wp32-bdi-state-persistence-implementation-2026-11-05.md) |
 
 ---
 
@@ -78,16 +78,37 @@
 
 ---
 
+### 🧪 混合式 BDI PoC 组（2026-11-05 新增，Coze 下线趋势校准）
+
+> 来源：2026-11-05 架构评审（Coze/Dify 等静态工作流工具集体收缩）。方向校准：BDI 引擎从"规则驱动"演进为"LLM 审议 + 状态骨架"。详见 [`../../architecture/hybrid-bdi-agent-blueprint-v1.0.md`](../../architecture/hybrid-bdi-agent-blueprint-v1.0.md)。
+>
+> **这组 WP 是 PoC 验证，不是替换生产。** 影子模式并行跑，用数据证明这条路走得通。
+
+| WP | 名称 | 优先级 | 一句话描述 | 依赖 |
+|---|---|---|---|---|
+| **WP63** | 审议输出 Schema 与可解释性设计 | 🟡 P1 | 定义 LLM 审议输出的 JSON schema（deltas + reason + operatorTags + intentionShift）；operatorTags 枚举表初版；理由字段进 trace 日志格式；**审议 prompt 模板设计**（系统 prompt：角色设定+临床约束+输出格式；用户 prompt：状态快照+本轮对话+记忆召回；双模式分离：考核锁温度 vs 自由练习有随机性；prompt 版本号管理）。**可解释性是实训平台命根子，没有 reason + operatorTags 的审议输出不允许上线** | 无 |
+| **WP64** | LLM 审议层 PoC（影子模式） | 🟡 P1 | 新增 `engine-adapters/deliberation/llm-deliberation.service.ts`；影子模式运行：每轮对话后同步跑一次 LLM 审议，结果**不生效**（不写入状态）；对比 LLM 审议 delta vs 规则算子 delta，记录差异；**数据写入 `deliberation_trace` 表**；**影子模式可观测指标**：耗时 P50/P95、token 消耗、失败率、delta 差异分布、差异最大 Top10 场景；**调用时序**：影子阶段与渲染并行，切灰度后改串行；**PoC 验收标准**：成功率>95%、P95<3s、差异均值<0.01、Top10 场景临床合理、高安全零误触发；**env 配置**：`ENGINE_DELIBERATION_ENABLED` / `MODEL` / `TIMEOUT_MS` / `TEMPERATURE`。**高安全维度（自杀倾向/危机等级）不跑 LLM，只走规则** | WP63 |
+| **WP65** | 会话级串行队列与状态一致性 | 🔴 P0 | 同一个 sessionId 的审议请求排队执行（per-session mutex）；状态快照版本号机制：审议输入用"最近已提交的快照版本"；防止并发写覆盖导致状态错乱。**上线前必须解决的硬约束** | WP64 |
+| **WP66** | 审议输出格式校验与重试 | 🟡 P1 | JSON 解析 + zod schema 校验；格式不合法自动重试一次；重试仍失败 → 本轮 delta = 0，打告警日志，不阻断对话；强制 `response_format: json_object` | WP63 |
+| **WP67** | 三级降级策略 | 🟡 P1 | 降级 1：LLM 审议超时（>3s）→ 跳过审议，状态不变；降级 2：LLM 服务连续失败 → 切回纯规则算子模式；降级状态标记：会话打标 `degraded: true`，不能用于正式考核；降级事件写日志 + 告警 | WP64 |
+| **WP68** | 意图锁定机制（基础版） | 🟢 P2 | 当前意图加 `lockedUntilRound` 字段；锁定期间，审议输出的 intentionShift 被忽略（除非有明确触发事件）；触发事件白名单：咨询师直接提问了这个意图相关的话题；锁定轮数做成可配置参数（默认 3 轮，工程种子值待校准） | 无 |
+
+> **engine-core 边界**：这组 WP 全部在适配层做，**内核零改动**。LLM 审议在 `src/engine-adapters/deliberation/`，engine-core 仍然是纯函数 + 纯数据结构，boundary.spec.ts 的 11 条断言一条都不用改。
+
+---
+
 ## 统计
 
 | 层级 | 数量 | WP 编号 |
 |---|---|---|
 | 🔴 P0 商业化根基 | 8 条 | WP27, 28, 29, 30, 31, 33, 39, 40 |
-| 🟡 P1 专业能力 | 17 条 | WP32, 34, 35, 36, 37, 38, 41, 42, 43, 44, 50, 51, 55, 56, 57, 58, 61 |
-| 🟢 P2 技术债 | 11 条 | WP45, 46, 47, 48, 49, 52, 53, 54, 59, 60, 62 |
-| **合计** | **36 条** | **WP27–WP62** |
+| 🟡 P1 专业能力 | 20 条 | WP32, 34, 35, 36, 37, 38, 41, 42, 43, 44, 50, 51, 55, 56, 57, 58, 61, 63, 64, 66, 67 |
+| 🟢 P2 技术债 | 13 条 | WP45, 46, 47, 48, 49, 52, 53, 54, 59, 60, 62, 68 |
+| **合计** | **41 条** | **WP27–WP68** |
 
-**进度：18 / 36 完成**（WP28 ✅、WP34 ✅、WP35 ✅、WP36 ✅、WP37 ✅、WP41 ✅、WP42 ✅、WP49 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP56 ✅、WP57 ✅、WP59 ✅、WP61 ✅，2026-11-04）。
+**进度：19 / 41 完成**（WP28 ✅、WP32 ✅、WP34 ✅、WP35 ✅、WP36 ✅、WP37 ✅、WP41 ✅、WP42 ✅、WP49 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP56 ✅、WP57 ✅、WP59 ✅、WP61 ✅，2026-11-05）。
+
+> 🆕 **2026-11-05 新增 6 条 WP（WP63–WP68）**：混合式 BDI PoC 组，基于 Coze 下线趋势判断的架构方向校准。详见 [`../../architecture/hybrid-bdi-agent-blueprint-v1.0.md`](../../architecture/hybrid-bdi-agent-blueprint-v1.0.md)。
 
 ### 🚧 上线前必须一起做的真机项（WP28 遗留）
 

@@ -24,6 +24,7 @@ docs/
 │
 ├── architecture/       ← 长期不变的设计真相
 │   ├── engine-endstate-blueprint-v1.0.md   引擎终局形态白皮书（北极星）
+│   ├── hybrid-bdi-agent-blueprint-v1.0.md  混合式 BDI 智能体引擎架构蓝图（2026-11-05 新增）
 │   ├── ai-engine-roadmap-v1.1.md   引擎路线图（分阶段做什么）
 │   ├── v6.0-ai-engine.md           V6.0 旧模块架构（src/ai-engine/，已标注）
 │   ├── v2-user-module-architecture.md
@@ -59,7 +60,8 @@ docs/
 ## 当前阶段
 
 **Phase1 已封版（2026-11-03）**：WP0–WP26 全交付，8 个 P1 + 34 个 P2 全修，1252 例测试全绿。
-Phase2 总览：[`worklog/pending/phase2-overview-2026-11-03.md`](worklog/pending/phase2-overview-2026-11-03.md)（商业化准备，35 条工作包）。
-Phase2 WP 清单：[`worklog/pending/phase2-wp-list-2026-11-03.md`](worklog/pending/phase2-wp-list-2026-11-03.md)（WP27–WP61，分三批并行）。
+Phase2 总览：[`worklog/pending/phase2-overview-2026-11-03.md`](worklog/pending/phase2-overview-2026-11-03.md)（商业化准备）。
+Phase2 WP 清单：[`worklog/pending/phase2-wp-list-2026-11-03.md`](worklog/pending/phase2-wp-list-2026-11-03.md)（WP27–WP68，分三批并行 + 技术债清理 + 混合式 BDI PoC 组）。
 引擎终局形态：[`architecture/engine-endstate-blueprint-v1.0.md`](architecture/engine-endstate-blueprint-v1.0.md)（北极星参考，最终要做成什么样）。
+混合式 BDI 架构蓝图：[`architecture/hybrid-bdi-agent-blueprint-v1.0.md`](architecture/hybrid-bdi-agent-blueprint-v1.0.md)（2026-11-05 新增，Coze 下线趋势校准，LLM 审议 + 状态骨架）。
 Phase1 交付索引：[`worklog/completed/phase1/phase1-backlog-archived-2026-11-03.md`](worklog/completed/phase1/phase1-backlog-archived-2026-11-03.md)。

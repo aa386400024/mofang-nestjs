@@ -14,8 +14,10 @@
 
 > **Phase1 已封版（2026-11-03）**：WP0–WP26 全交付，8 个 P1 + 34 个 P2 全修，1252 例测试全绿。Phase1 backlog 已归档到 `completed/phase1/phase1-backlog-archived-2026-11-03.md`。
 >
-> **Phase2 总览已出**：[`pending/phase2-overview-2026-11-03.md`](pending/phase2-overview-2026-11-03.md)（商业化准备，36 条工作包，P0/P1/P2 三层）。
-> **WP 清单**：[`pending/phase2-wp-list-2026-11-03.md`](pending/phase2-wp-list-2026-11-03.md)（WP27–WP62，分三批并行 + 技术债清理）。具体任务单开工时再单独写。
+> **Phase2 总览已出**：[`pending/phase2-overview-2026-11-03.md`](pending/phase2-overview-2026-11-03.md)（商业化准备）。
+> **WP 清单**：[`pending/phase2-wp-list-2026-11-03.md`](pending/phase2-wp-list-2026-11-03.md)（WP27–WP68，分三批并行 + 技术债清理 + 混合式 BDI PoC 组）。具体任务单开工时再单独写。
+>
+> 🆕 **2026-11-05 新增 6 条 WP（WP63–WP68）**：混合式 BDI PoC 组，基于 Coze 下线趋势判断的架构方向校准。详见 [`../architecture/hybrid-bdi-agent-blueprint-v1.0.md`](../architecture/hybrid-bdi-agent-blueprint-v1.0.md)。这组 WP 全部在适配层做，engine-core 零改动。
 >
 > **Phase2 已开工（2026-11-03）**：
 > - WP28（PsyGUARD 临时值回改正式值）✅ → [`completed/phase2/engine-wp28-psyguard-production-values-implementation-2026-11-03.md`](completed/phase2/engine-wp28-psyguard-production-values-implementation-2026-11-03.md)
@@ -36,8 +38,9 @@
 > - WP49（角色大五人格字段落地 · 内核零改动，宜人性算子通路打通）✅ → [`completed/phase2/engine-wp49-character-five-factor-personality-implementation-2026-11-04.md`](completed/phase2/engine-wp49-character-five-factor-personality-implementation-2026-11-04.md)
 > - WP35（渲染四手法 · 语气疏离度 + 情绪表现 + 轻量随机 + 非语言）✅ → [`completed/phase2/engine-wp35-rendering-four-techniques-implementation-2026-11-04.md`](completed/phase2/engine-wp35-rendering-four-techniques-implementation-2026-11-04.md)
 > - WP41（表达风格渲染接入 · 话量基线 / 叙事风格 / 语态倾向）✅ → [`completed/phase2/engine-wp41-expression-style-rendering-implementation-2026-11-04.md`](completed/phase2/engine-wp41-expression-style-rendering-implementation-2026-11-04.md)
+> - WP32（BDI 状态持久化 · 内存 → Redis，内核零改动）✅ → [`completed/phase2/engine-wp32-bdi-state-persistence-implementation-2026-11-05.md`](completed/phase2/engine-wp32-bdi-state-persistence-implementation-2026-11-05.md)
 >
-> 进度 18/36（WP 清单与总览口径一致，WP27–WP62）。
+> 进度 19/41（WP 清单与总览口径一致，WP27–WP68；2026-11-05 新增 WP63–WP68 混合式 BDI PoC 组）。
 
 ---
 
@@ -106,7 +109,7 @@ docs/worklog/
 │   │   ├── auth-and-password/
 │   │   ├── early-misc/
 │   │   └── phase1-backlog-archived-2026-11-03.md
-│   └── phase2/       ← Phase2 交付（WP28 ✅ PsyGUARD 正式值 / WP34 ✅ P1 人格调节算子 / WP35 ✅ 渲染四手法（语气疏离度 / 情绪表现 / 轻量随机 / 非语言）/ WP36 ✅ 跨会话间隔自然衰减 / WP37 ✅ 记忆会话级摘要压缩（滚动摘要）/ WP41 ✅ 表达风格渲染接入（话量基线 / 叙事风格 / 语态倾向）/ WP42 ✅ 咨询同盟三维 / WP49 ✅ 角色大五人格字段落地（内核零改动，宜人性算子通路打通）/ WP50 ✅ 渲染层接入同盟三维（safety/bond）/ WP51 ✅ 角色种子同盟三维基线（safety/bond）/ WP52 ✅ 剧本偏移接入同盟三维（safety/bond）/ WP53 ✅ 人格调节算子扩展到同盟三维（safety/bond）/ WP54 ✅ 破裂态阻抗反升（跨会话衰减补完）/ WP55 ✅ 会话摘要补齐来访者侧（两侧纪要）/ WP56 ✅ 长期记忆召回进渲染上下文 / WP57 ✅ BDI 信念层深度扩展（核心信念激活 + 短期信念置信度衰减）/ WP59 ✅ 记忆召回策略配置端口统一（半衰期/阈值可配置，判定只有一份）/ WP61 ✅ 会话摘要层次化（核心议题 / 关键事件 / 情绪转折点））
+│   └── phase2/       ← Phase2 交付（WP28 ✅ PsyGUARD 正式值 / WP32 ✅ BDI 状态持久化（内存 → Redis，内核零改动）/ WP34 ✅ P1 人格调节算子 / WP35 ✅ 渲染四手法（语气疏离度 / 情绪表现 / 轻量随机 / 非语言）/ WP36 ✅ 跨会话间隔自然衰减 / WP37 ✅ 记忆会话级摘要压缩（滚动摘要）/ WP41 ✅ 表达风格渲染接入（话量基线 / 叙事风格 / 语态倾向）/ WP42 ✅ 咨询同盟三维 / WP49 ✅ 角色大五人格字段落地（内核零改动，宜人性算子通路打通）/ WP50 ✅ 渲染层接入同盟三维（safety/bond）/ WP51 ✅ 角色种子同盟三维基线（safety/bond）/ WP52 ✅ 剧本偏移接入同盟三维（safety/bond）/ WP53 ✅ 人格调节算子扩展到同盟三维（safety/bond）/ WP54 ✅ 破裂态阻抗反升（跨会话衰减补完）/ WP55 ✅ 会话摘要补齐来访者侧（两侧纪要）/ WP56 ✅ 长期记忆召回进渲染上下文 / WP57 ✅ BDI 信念层深度扩展（核心信念激活 + 短期信念置信度衰减）/ WP59 ✅ 记忆召回策略配置端口统一（半衰期/阈值可配置，判定只有一份）/ WP61 ✅ 会话摘要层次化（核心议题 / 关键事件 / 情绪转折点））
 ├── audits/           ← 审查报告（WP25 等）
 └── archive/          ← 老文档
 ```
@@ -120,6 +123,7 @@ docs/worklog/
 | 文档 | 什么时候读 |
 |---|---|
 | `docs/architecture/engine-endstate-blueprint-v1.0.md` | 拿不准方向对不对、想知道最终要做成什么样时——北极星参考，不是任务单 |
+| `docs/architecture/hybrid-bdi-agent-blueprint-v1.0.md` | 做 WP63–WP68 混合式 BDI PoC 前必读——方向校准、12 个边界问题、三层分离架构 |
 | `docs/architecture/ai-engine-roadmap-v1.1.md` | 任务单里没写清楚"为什么这么做"、或者你拿不准某个设计决策的上游依据时 |
 | `docs/reference/ai-simulation-blueprint-v1.1.md` | 蓝图原始愿景，roadmap 冲突时以 roadmap 为准 |
 | `docs/reference/bdi-cognitive-engine-principles-v1.0.md` | 改 BDI 算子/记忆/轨迹相关逻辑时，确认设计原则 |
