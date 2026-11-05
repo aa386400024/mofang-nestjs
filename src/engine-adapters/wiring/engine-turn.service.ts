@@ -181,10 +181,16 @@ export class EngineTurnService {
    * @param handleId 内核会话句柄
    * @param input 本轮入参
    * @param handlers 增量回调面 (onDelta / signal)
+   * @param options 附加选项 (V2026-11-05 WP58: 要 prompt 全文时开 `includePromptFull`)
    * @returns 本轮来访口语 + 内核出参 + 渲染元信息
    */
-  async turnStream(handleId: string, input: EngineTurnInput, handlers: StreamRenderHandlers): Promise<TurnRenderResult> {
-    return this.orchestrator.turnStream(handleId, input, handlers);
+  async turnStream(
+    handleId: string,
+    input: EngineTurnInput,
+    handlers: StreamRenderHandlers,
+    options?: { readonly includePromptFull?: boolean },
+  ): Promise<TurnRenderResult> {
+    return this.orchestrator.turnStream(handleId, input, handlers, options);
   }
 
   /**

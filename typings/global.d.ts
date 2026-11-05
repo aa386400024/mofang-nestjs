@@ -340,6 +340,13 @@ export declare global {
       //   (src/engine-adapters/deliberation/llm-deliberation.service.ts).
       //   ⚠️ 数值键读到的**一定是字符串**, 必须自己解析 + 回退默认.
       ENGINE_DELIBERATION_INTENTION_LOCK_ROUNDS?: string; // 锁定几轮 (默认 3; 0 = 关掉锁定; 非法值回退默认)
+      // V2026-11-05 治本 (WP58 — 引擎调试面板):
+      //   下面是调试面板写接口的 2 个 env 键. 同样**逐个字面量**读
+      //   (src/admin-debug/debug-session.service.ts).
+      //   ⚠️ 数值键读到的**一定是字符串**, 必须自己解析 + 回退默认.
+      // ⚠️ 调试接口**能真跑引擎** (每轮一次 LLM) —— 生产环境缺省必须关.
+      ENGINE_DEBUG_CHAT_ENABLED?: string; // 调试面板写接口开关: true/1/yes/on 开; 缺省 = 非生产开 / 生产关
+      ENGINE_DEBUG_CHAT_DELIBERATION_WAIT_MS?: string; // 等审议 trace 的上限 (毫秒, 默认 5000; 0 = 不等)
     }
   }
 

@@ -152,6 +152,18 @@ export interface StreamRenderOutcome {
    */
   readonly promptPreview?: string;
   /**
+   * 本轮 system prompt **全文** (不截断).
+   *
+   * V2026-11-05 治本 (WP58 · 引擎调试面板): 调试器要能核对"这轮到底问了模型什么" ——
+   *   只有 500 字预览时, 角色约束那一段经常正好被截掉, 调试者看不到真正生效的模板.
+   *
+   * ⚠️ **只走内存, 不落库**: WP19-R 的留痕契约 (`TurnTrace.renderSpec`) 只取
+   *   `promptPreview` 那一列 —— 全文不写进 `training_sessions.turn_debug_trace`,
+   *   否则等于把角色约束摊进调试表 (留痕的既定纪律).
+   *   上层要不要把它带出去, 由**调用方显式要** (见门面的 `includePromptFull`).
+   */
+  readonly promptFull?: string;
+  /**
    * 上游结束原因 (stop / length / content_filter …; 缺省 = 上游没报).
    *
    * V2026-10-30 治本 (WP19-R · 留痕): `length` 意味着正文被按长度砍断 ——

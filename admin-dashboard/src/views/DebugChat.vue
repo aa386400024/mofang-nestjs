@@ -85,23 +85,21 @@ async function startSession() {
   if (!selectedCharacterSlug.value) return
   loading.value = true
   try {
-    // TODO: 后端补 POST /admin/api/debug/session 接口
-    // const res = await fetch('/admin/api/debug/session', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    //   body: JSON.stringify({ characterSlug: selectedCharacterSlug.value }),
-    // })
-    // const data = await res.json()
-    // sessionId.value = data.sessionId
-    // turnIndex.value = 0
-    // messages.value = []
-
-    // 临时 mock：先搭界面，后端接口好了替换
-    sessionId.value = 'debug-session-' + Date.now()
+    const res = await fetch('/admin/api/debug/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ characterSlug: selectedCharacterSlug.value }),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = await res.json()
+    sessionId.value = data.sessionId
     turnIndex.value = 0
     messages.value = []
+    currentTrace.value = null
+    bdiHistory.value = []
     message.success(t('debugChat.startSession') + ' ✅')
   } catch (e) {
+    console.error('创建调试会话失败', e)
     message.error(t('debugChat.startSession') + ' ❌')
   } finally {
     loading.value = false

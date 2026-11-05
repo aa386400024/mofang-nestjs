@@ -747,6 +747,10 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       maxCompletionTokens: input.params.maxCompletionTokens,
       ...(input.params.reasoningEffort === undefined ? {} : { reasoningEffort: input.params.reasoningEffort }),
       promptPreview: buildPromptPreview(input.messages),
+      // V2026-11-05 治本 (WP58 · 引擎调试面板): system prompt 全文 (不截断).
+      //   上层**显式要**才会带出去 —— 调试器要核对"这轮到底问了模型什么",
+      //   而 500 字预览常常正好把角色约束那一段截掉.
+      promptFull: buildPromptFull(input.messages),
       ...(input.finishReason === undefined ? {} : { finishReason: input.finishReason }),
       ttftMs: input.ttftMs,
     };
@@ -814,6 +818,8 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       await handlers.onDelta(chunk);
     }
     const degraded = result.providerHint === 'degraded';
+    // 消息序列只拼一次 (buildMessages 每次都重新拼) —— 预览与全文同源.
+    const messages = this.buildMessages(spec);
     return {
       text: result.text,
       taskKind: result.taskKind,
@@ -829,7 +835,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       degraded,
       // V2026-10-30 治本 (WP19-R · 留痕): 兜底形态也带 prompt 预览 ——
       //   留痕要记的是"这一轮问了什么", 与走哪条取文路径无关.
-      promptPreview: buildPromptPreview(this.buildMessages(spec)),
+      promptPreview: buildPromptPreview(messages),
+      // V2026-11-05 治本 (WP58): 全文同理 (调试器要核对模板).
+      promptFull: buildPromptFull(messages),
     };
   }
 
@@ -1175,6 +1183,25 @@ export function buildPromptPreview(messages: readonly ChatMessage[]): string {
   const system = messages.find((message) => message.role === 'system');
   const content = toPreviewText(system?.content ?? messages[0]?.content);
   return content.length > PROMPT_PREVIEW_LIMIT ? content.slice(0, PROMPT_PREVIEW_LIMIT) : content;
+}
+
+/**
+ * 构造 system prompt **全文** (调试用; V2026-11-05 WP58).
+ *
+ * 与 `buildPromptPreview` **同源** (第一条 system 消息; 没有 system 时退回首条消息),
+ * 唯一区别是**不截断** —— 预览的 500 字上限对"核对模板"这个用途不够用.
+ *
+ * ⚠️ 为什么不落库 (与 `buildPromptPreview` 同一纪律):
+ *   全文含角色约束 / 护栏 / 输出格式, 写进 `training_sessions.turn_debug_trace`
+ *   等于把"这个角色是怎么被约束的"摊到库里. 调试器是**实时**看的, 拿完即弃,
+ *   不需要持久化 —— 所以全文只在内存里随本轮结果走到调试接口.
+ *
+ * @param messages 本轮实际发出的消息序列
+ * @returns 完整 prompt 文本 (没有 system 消息时为首条消息; 都为空则空串)
+ */
+export function buildPromptFull(messages: readonly ChatMessage[]): string {
+  const system = messages.find((message) => message.role === 'system');
+  return toPreviewText(system?.content ?? messages[0]?.content);
 }
 
 /**

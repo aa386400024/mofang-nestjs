@@ -266,6 +266,16 @@ export interface TurnRenderResult {
      * 缺省 = 该渲染端口没给.
      */
     readonly ttftMs?: number;
+    /**
+     * 本轮 system prompt **全文** (V2026-11-05 WP58 · 引擎调试面板).
+     *
+     * 缺省 = 调用方**没要** (`turnStream` 的 `includePromptFull` 没开) 或渲染端口没给.
+     * 聚合路径 (`turn`) 恒不带 —— 内核契约里没有 prompt, 拿不到就别造.
+     *
+     * ⚠️ **不落库**: 留痕契约 (`TurnTrace.renderSpec`) 只取 `promptPreview` 那一列 ——
+     *   全文含角色约束, 写进调试表等于摊开角色剧本 (WP19-R 的既定纪律).
+     */
+    readonly promptFull?: string;
   };
   /** 本轮轨迹观测 (透传; 仅注入剧本的会话携带). */
   readonly trajectoryTrace?: TrajectoryTrace;
@@ -373,6 +383,13 @@ interface NormalizedRender {
   readonly finishReason?: string;
   /** 首 token 延迟 (ms; V2026-10-30 WP19-R · 留痕; 缺省 = 渲染端口没给). */
   readonly ttftMs?: number;
+  /**
+   * 本轮 system prompt **全文** (V2026-11-05 WP58 · 引擎调试面板).
+   *
+   * 缺省 = 调用方**没要** (`turnStream` 的 `includePromptFull` 没开) 或渲染端口没给;
+   * 聚合路径 (`turn`) 恒缺省 (内核契约里没有 prompt).
+   */
+  readonly promptFull?: string;
 }
 
 /**
@@ -539,10 +556,16 @@ export class TurnRenderOrchestrator {
    * @param handleId 内核会话句柄
    * @param input 本轮入参 (咨询师文本)
    * @param handlers 增量回调面 (onDelta / signal)
+   * @param options 附加选项 (V2026-11-05 WP58)
    * @returns 本轮来访口语 + 内核出参透传 + 渲染元信息
    * @throws 内核会话端口抛出的错误原样冒泡 (ABORTED / INVALID_INPUT / SESSION_NOT_FOUND)
    */
-  async turnStream(handleId: string, input: EngineTurnInput, handlers: StreamRenderHandlers): Promise<TurnRenderResult> {
+  async turnStream(
+    handleId: string,
+    input: EngineTurnInput,
+    handlers: StreamRenderHandlers,
+    options?: { readonly includePromptFull?: boolean },
+  ): Promise<TurnRenderResult> {
     // 1. 内核决策 (与 turn() 同一入口, 错误同样原样冒泡; 探测来源通道同样包住这一段).
     const { value: output, source } = await runWithProbeSource(() => this.deps.session.turn(handleId, input));
 
@@ -560,7 +583,9 @@ export class TurnRenderOrchestrator {
     const spec = this.assemble(output, [...history, { role: 'counselor', text: input.userText }], handleId);
 
     // 3. 流式取文 (增量经 onDelta 转发; 异常 / 空文本 → 兜底, 永不 reject).
-    const rendered = await this.streamSafely(spec, handlers);
+    //    ⚠️ prompt 全文**按需取** (WP58): 默认不带 (语音主链路不需要, 也不该把角色约束
+    //    天天带在主链路的返回体里); 只有调试面板显式要才带.
+    const rendered = await this.streamSafely(spec, handlers, options?.includePromptFull === true);
 
     // 4. 落账 (与 turn() 共用 settleTurn: 历史 + 来访半边工作记忆).
     await this.settleTurn(handleId, input.userText, rendered);
@@ -582,6 +607,7 @@ export class TurnRenderOrchestrator {
         ...(rendered.spec ? { spec: rendered.spec } : {}),
         ...(rendered.finishReason ? { finishReason: rendered.finishReason } : {}),
         ...(rendered.ttftMs === undefined ? {} : { ttftMs: rendered.ttftMs }),
+        ...(rendered.promptFull === undefined ? {} : { promptFull: rendered.promptFull }),
       },
       ...(output.trajectoryTrace ? { trajectoryTrace: output.trajectoryTrace } : {}),
       ...(output.safety ? { safety: output.safety } : {}),
@@ -759,8 +785,12 @@ export class TurnRenderOrchestrator {
    *
    * 渲染器没实现流式 (可选方法缺失) → 退化成"聚合取文 + 切段成增量".
    * 那只是**兜底形态** (字幕不再是一整段), 主路径永远是渲染器自己的流式.
+   *
+   * @param spec 本轮渲染规格
+   * @param handlers 增量回调面
+   * @param includePromptFull 是否把 system prompt **全文**带出去 (V2026-11-05 WP58)
    */
-  private async streamSafely(spec: RenderSpec, handlers: StreamRenderHandlers): Promise<NormalizedRender> {
+  private async streamSafely(spec: RenderSpec, handlers: StreamRenderHandlers, includePromptFull = false): Promise<NormalizedRender> {
     const renderer = this.deps.renderer;
     if (!renderer.streamRender) {
       warn('[turnStream] 渲染端口未实现流式, 回退聚合取文 + 切段成增量');
@@ -800,6 +830,9 @@ export class TurnRenderOrchestrator {
         }),
         ...(outcome.finishReason === undefined ? {} : { finishReason: outcome.finishReason }),
         ...(outcome.ttftMs === undefined ? {} : { ttftMs: outcome.ttftMs }),
+        // V2026-11-05 (WP58): prompt 全文**按需带出** —— 默认不带 (语音主链路不需要),
+        //   调试面板显式要 (`includePromptFull`) 时才带.
+        ...(includePromptFull && outcome.promptFull !== undefined ? { promptFull: outcome.promptFull } : {}),
       };
     } catch (error) {
       // 理论上渲染器的流式出口已不 reject; 这里是防御 —— 换别的渲染实现时兜住.
