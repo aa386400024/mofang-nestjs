@@ -105,7 +105,7 @@
 | P1-13 | **审议输出 Schema 与可解释性设计**（WP63 ✅ 2026-11-05） | 🟡 P1 | JSON schema + operatorTags 枚举 + 审议 prompt 模板设计（系统/用户双 prompt + 考核/自由双模式）—— 本期只定契约不接管道（影子模式归 WP64）；`operatorTags` 由 12 个补到 13 个（补回 `sensitive_touch`），输出取数组形态（每条 delta 自带标签 + 理由） |
 | P1-14 | **LLM 审议层 PoC（影子模式）**（WP64 ✅ 2026-11-05） | 🟡 P1 | 影子模式跑 LLM 审议，结果不生效，对比规则算子 delta，积累 100 场对话数据验证质量 —— ⚠️ 旁路调用点接在**编排门面**（不是任务单写的 counselor 域）；`ruleDelta` 用前后快照差反推；每场**第一轮**跳过（起始快照适配层自记）；`maxCompletionTokens` 提到 2048（thinking 计入上限）；`deltaDiff` 全量 11 维 |
 | P0-9 | **会话级串行队列与状态一致性**（WP65 ✅ 2026-11-05 · **仅队列化**） | 🔴 P0 | per-session mutex，防止并发写覆盖导致状态错乱（上线前必须解决的硬约束）。⚠️ 本单交付**队列化**那一半：影子审议改走 **BullMQ 队列**（`DeliberationProcessor` = Queue + Worker + 端口实现；`LlmDeliberationService` 降级为执行器 `executeShadowMode`），解决并发打爆上游 / 进程重启丢任务 / 没有可观测性；Worker 并发默认 3（env 可配），job 持久化在 Redis，**编排门面零改动**。⚠️ **per-session mutex + 快照版本号仍未做** —— 影子模式结果不写状态所以暂无覆盖风险，**切灰度前必须补**（[交付记录](../completed/phase2/engine-wp65-deliberation-shadow-queue-implementation-2026-11-05.md)） |
-| P1-15 | **审议输出格式校验与重试**（WP66） | 🟡 P1 | zod schema 校验 + 自动重试 + 失败兜底不阻断对话 |
+| P1-15 | **审议输出格式校验与重试**（WP66 ✅ 2026-11-05） | 🟡 P1 | **智能重试**：按错误类型分流 —— 形状类（JSON 没吐出来 / 形状不符 / SSE 解析失败）+ 上游限流与 5xx → 抛给 BullMQ 自动重试（`ENGINE_DELIBERATION_MAX_RETRIES` 默认 1 次）；鉴权 / 网络超时 / 代码 bug → 不重试；**先写 trace 再抛**（失败记录不丢），trace 加 `retryCount`；⚠️ zod schema 与 `response_format: json_object` 本期未做（改结构化出口影响 6 个调用方，建议单独一单）（[交付记录](../completed/phase2/engine-wp66-deliberation-format-retry-implementation-2026-11-05.md)） |
 | P1-16 | **三级降级策略**（WP67） | 🟡 P1 | 超时跳过 → 连续失败切回规则 → 降级标记不能考核 |
 | P2-9 | **意图锁定机制（基础版）**（WP68） | 🟢 P2 | 当前意图 N 轮内不随意切换，防止人格漂移 |
 

@@ -17,6 +17,13 @@
 //     端口签名不变正是 WP65 的核心约束.
 //     (入队路径 / Worker 配置的用例在 wp65-deliberation-queue.spec.ts)
 //
+//   ⚠️ V2026-11-05 (WP66 — 输出格式校验与重试) 的**语义变化**:
+//     `executeShadowMode()` 现在**只抛一种异常** —— `DeliberationRetryableError`
+//     (模型输出形状不对 / 上游限流 5xx 这类"值得重试"的失败), 且是**先写 trace 再抛**.
+//     所以下面 ③ 里 `json_parse_failed` 那条从"不抛"改成"抛 (但 trace 已写)".
+//     其余失败 (网络超时 `fetch_error` / 鉴权 / 代码 bug) 依然**不抛** ——
+//     完整的重试语义见 wp66-deliberation-retry.spec.ts.
+//
 //   边界: 全 mock, 不起 Nest 容器, 不发网络, 不连 Redis ——
 //     LLM client / Redis / ConfigService 全部用极小替身.
 //
@@ -39,6 +46,7 @@ import {
   DEFAULT_DELIBERATION_TIMEOUT_MS,
   DEFAULT_DELIBERATION_TRACE_TTL_SECONDS,
   DELIBERATION_MAX_COMPLETION_TOKENS,
+  DeliberationRetryableError,
   LlmDeliberationService,
   buildDeliberationTraceKey,
   computeDeliberationDeltaDiff,
@@ -351,38 +359,39 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
   });
 
   describe('③ 失败路径: 记 ok=false + errorCode, 不炸主流程', () => {
-    it('LLM 报错 → trace 记 ok=false + errorCode', async () => {
+    it('LLM 上游报错 (no_body) → trace 记 ok=false + errorCode, 不抛 (不值得重试)', async () => {
       const { service, set } = buildService({
         env: { ENGINE_DELIBERATION_ENABLED: 'true' },
-        requestJson: vi.fn().mockResolvedValue(failResult('llm_error')),
+        requestJson: vi.fn().mockResolvedValue(failResult('no_body')),
       });
 
       await service.executeShadowMode(buildInput());
 
       const record = writtenRecord(set);
       expect(record.ok).toBe(false);
-      expect(record.errorCode).toBe('llm_error');
+      expect(record.errorCode).toBe('no_body');
       expect(record.deliberationDelta).toEqual({});
       expect(record.entries).toEqual([]);
     });
 
-    it('JSON 解析失败 → trace 记 ok=false + errorCode', async () => {
+    it('JSON 解析失败 → trace 记 ok=false + errorCode; WP66 起**抛** DeliberationRetryableError (值得重试)', async () => {
       const { service, set } = buildService({
         env: { ENGINE_DELIBERATION_ENABLED: 'true' },
         requestJson: vi.fn().mockResolvedValue(failResult('json_parse_failed')),
       });
 
-      await service.executeShadowMode(buildInput());
+      // 形状类错误值得重试 → 抛给 BullMQ; 但**先写 trace 再抛** (失败记录不能丢).
+      await expect(service.executeShadowMode(buildInput())).rejects.toBeInstanceOf(DeliberationRetryableError);
 
       const record = writtenRecord(set);
       expect(record.ok).toBe(false);
       expect(record.errorCode).toBe('json_parse_failed');
     });
 
-    it('超时 (上游报超时错) → trace 记 ok=false + errorCode, 仍不抛', async () => {
+    it('超时 (上游报超时错 → 真实码是 fetch_error) → trace 记 ok=false + errorCode, 仍不抛', async () => {
       const { service, set } = buildService({
         env: { ENGINE_DELIBERATION_ENABLED: 'true' },
-        requestJson: vi.fn().mockResolvedValue(failResult('llm_error')),
+        requestJson: vi.fn().mockResolvedValue(failResult('fetch_error')),
       });
 
       await expect(service.executeShadowMode(buildInput())).resolves.toBeUndefined();

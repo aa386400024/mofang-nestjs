@@ -9,6 +9,14 @@
 //     · 队列配置与仓库统一口径一致 (prefix / attempts / 退避 / removeOn*);
 //     · 编排门面零改动 —— 门面只认端口, 不知道队列存在 (WP65 的核心约束).
 //
+//   ⚠️ V2026-11-05 (WP66 — 输出格式校验与重试) 的**语义变化** (本文件已同步):
+//     · ②-5: `executeShadowMode` 现在多收一个参数 `job.attemptsMade` (重试次数);
+//     · ②-7: `json_parse_failed` 属于"值得重试" → worker handler **不 catch** →
+//       异常自然冒到 BullMQ (本文件原来断言"不抛", 现改为断言"抛 + trace 已写");
+//     · ②-6 / ②-8: 错误码换成**真实词表**里的 `fetch_error`
+//       (任务单写的 `llm_error` 根本不会被 client 产生; 超时的真实落点也是 `fetch_error`).
+//     完整的重试语义见 wp66-deliberation-retry.spec.ts.
+//
 //   边界: 全 mock, 不起 Nest 容器, 不发网络, 不连 Redis ——
 //     bullmq (Queue / Worker) / RedisService / LLM client / ConfigService 全是极小替身.
 //
@@ -30,6 +38,7 @@ import {
 } from '../../src/engine-adapters/deliberation/deliberation.processor.js';
 import {
   LlmDeliberationService,
+  DeliberationRetryableError,
   type DeliberationShadowInput,
   type DeliberationTokenUsage,
   type DeliberationTraceRecord,
@@ -283,7 +292,7 @@ describe('WP65 · 审议影子模式 BullMQ 队列化', () => {
   });
 
   describe('② 执行路径 (5 例)', () => {
-    it('②-5 Worker 回调真跑: executeShadowMode 被调, 参数 = job.data', async () => {
+    it('②-5 Worker 回调真跑: executeShadowMode 被调, 参数 = job.data + job.attemptsMade', async () => {
       const executeShadowMode = vi.fn().mockResolvedValue();
       const { processor } = buildProcessor({
         env: { ENGINE_DELIBERATION_ENABLED: 'true' },
@@ -292,16 +301,16 @@ describe('WP65 · 审议影子模式 BullMQ 队列化', () => {
       await processor.onModuleInit();
 
       const input = buildInput();
-      await workerProcessor()({ data: input });
+      await workerProcessor()({ data: input, attemptsMade: 0 });
 
       expect(executeShadowMode).toHaveBeenCalledTimes(1);
-      expect(executeShadowMode).toHaveBeenCalledWith(input);
+      expect(executeShadowMode).toHaveBeenCalledWith(input, 0);
     });
 
-    it('②-6 LLM 报错: 写失败 trace (ok=false + errorCode), 不抛', async () => {
+    it('②-6 LLM 报错 (真实码 fetch_error): 写失败 trace (ok=false + errorCode), 不抛', async () => {
       const { service, set } = buildRealService({
         env: { ENGINE_DELIBERATION_ENABLED: 'true' },
-        requestJson: vi.fn().mockResolvedValue(failResult('llm_error')),
+        requestJson: vi.fn().mockResolvedValue(failResult('fetch_error')),
       });
       const { processor } = buildProcessor({
         env: { ENGINE_DELIBERATION_ENABLED: 'true' },
@@ -315,10 +324,10 @@ describe('WP65 · 审议影子模式 BullMQ 队列化', () => {
 
       const record = writtenRecord(set);
       expect(record.ok).toBe(false);
-      expect(record.errorCode).toBe('llm_error');
+      expect(record.errorCode).toBe('fetch_error');
     });
 
-    it('②-7 JSON 解析失败: 写失败 trace, 不抛', async () => {
+    it('②-7 JSON 解析失败: 写失败 trace, **并抛** DeliberationRetryableError (WP66: 形状类值得重试)', async () => {
       const { service, set } = buildRealService({
         env: { ENGINE_DELIBERATION_ENABLED: 'true' },
         requestJson: vi.fn().mockResolvedValue(failResult('json_parse_failed')),
@@ -331,17 +340,18 @@ describe('WP65 · 审议影子模式 BullMQ 队列化', () => {
       });
       await processor.onModuleInit();
 
-      await expect(workerProcessor()({ data: buildInput() })).resolves.toBeUndefined();
+      await expect(workerProcessor()({ data: buildInput() })).rejects.toBeInstanceOf(DeliberationRetryableError);
 
+      // 先写 trace 再抛 —— 失败记录不丢.
       const record = writtenRecord(set);
       expect(record.ok).toBe(false);
       expect(record.errorCode).toBe('json_parse_failed');
     });
 
-    it('②-8 超时 (上游报超时错): 写失败 trace, 不抛', async () => {
+    it('②-8 超时 (真实码 fetch_error): 写失败 trace, 不抛 (不值得重试)', async () => {
       const { service, set } = buildRealService({
         env: { ENGINE_DELIBERATION_ENABLED: 'true' },
-        requestJson: vi.fn().mockResolvedValue(failResult('llm_error')),
+        requestJson: vi.fn().mockResolvedValue(failResult('fetch_error')),
       });
       const { processor } = buildProcessor({
         env: { ENGINE_DELIBERATION_ENABLED: 'true' },

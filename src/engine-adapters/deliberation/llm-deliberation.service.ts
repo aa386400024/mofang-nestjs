@@ -18,7 +18,18 @@
 //   影子模式的**三条硬纪律** (任务单 §1.3 / §4.2):
 //     ① 结果**不生效** —— 审议 delta 只进 trace 表, 绝不回写 BDI 快照;
 //     ② **旁路** —— 调用方不 await, 主流程响应时间不受审议影响 (WP65 起: 入队即返回);
-//     ③ **永不抛穿** —— 任何异常都在本层 catch 住, 影子模式挂了不能炸主流程.
+//     ③ **只抛一种异常** —— 值得重试的失败抛 `DeliberationRetryableError` (WP66 起),
+//        其余异常照旧在本层 catch 住, 影子模式挂了不能炸主流程.
+//
+//   V2026-11-05 治本 (WP66 · 审议输出格式校验与重试):
+//     智能重试 —— 区分错误类型, **值得重试的才抛**给 BullMQ:
+//       · 值得重试: 模型输出形状不对 (json_not_found / json_parse_failed /
+//         schema_validation_failed / parse_error) + 上游限流与 5xx (http_429 / http_5xx);
+//       · 不值得重试: 鉴权 4xx / 网络与超时 (fetch_error) / no_body / 代码 bug ——
+//         重试大概率同样失败, 白烧一次 LLM.
+//     ⚠️ **先写 trace, 再抛** —— 失败记录不能丢, PoC 统计要用.
+//     ⚠️ 抛异常的语句**不在 try 块里** —— 否则会被自己的 catch 吞掉, 重试永远不发生
+//       (所以"跑"与"判"拆成了两个方法, 见 `runDeliberation`).
 //
 //   反双胞胎:
 //     - **不自己拼 "systemPrompt + schemaDescription"** —— `CounselorLlmJsonClient`
@@ -187,6 +198,91 @@ export function resolveDeliberationEnabled(raw: string | undefined): boolean {
   return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
 }
 
+/**
+ * 值得重试的错误码 (WP66) —— **模型抽风类 + 瞬时上游类**.
+ *
+ * ⚠️ 这份清单按**真实错误码词表**列, 不是按任务单的示意表:
+ *   `CounselorLlmJsonClient` 实际能吐出的码只有这些:
+ *     · client 自身: `json_not_found` / `json_parse_failed` / `schema_validation_failed`
+ *     · 上游 chunk 透传: `http_401` / `http_429` / `http_500`… / `no_body` / `parse_error` / `fetch_error`
+ *   任务单表里的 `timeout` **根本不存在** (超时落到 catch-all 的 `fetch_error`),
+ *   `llm_error` 也从不作为 errorCode 产生 (client 直接透传 `chunk.error.code`).
+ *
+ * 口径 (与大炮确认):
+ *   · **形状类** —— 模型输出的形状不对, 换一次采样可能就好了 → 重试;
+ *   · **限流 / 5xx** —— 瞬时上游故障, 退避后大概率恢复 → 重试;
+ *   · 其余 (鉴权 4xx / 网络与超时 `fetch_error` / `no_body` / 代码 bug) → **不重试**
+ *     (重试大概率同样失败, 白烧一次 LLM).
+ *
+ * 与仓库既有口径一致: `src/counselor/providers/supervision-failure.ts` 的
+ * `mapLlmErrorCodeToFailureCode` 也是把 429 / 5xx / JSON+schema 归为"可重试",
+ * 把鉴权与素材类归为"永久性".
+ */
+export const DELIBERATION_RETRYABLE_ERROR_CODES: ReadonlySet<string> = new Set([
+  // 形状类 (模型没按契约吐 JSON / 形状不对 / SSE 解析失败)
+  'json_not_found',
+  'json_parse_failed',
+  'schema_validation_failed',
+  'parse_error',
+  // 限流 (上游配额被打满 —— 正是 WP65 的并发闸门要压的那个)
+  'http_429',
+]);
+
+/**
+ * 5xx 上游错误的码前缀 (`http_500` / `http_502` / `http_503` …).
+ *
+ * 为什么用前缀而不是只列 `http_500`: 上游的 5xx 不止一种, 逐个列永远列不全;
+ * 而 4xx (除 429) 是**请求本身有问题**, 重试无意义 —— 所以按"5 开头"一刀切.
+ */
+const DELIBERATION_RETRYABLE_5XX_PREFIX = 'http_5';
+
+/**
+ * 这个错误码值得重试吗 (纯函数, 可单测).
+ *
+ * 做成**类型守卫**: 判定为 true 时, 调用方手里的 `string | null` 会被收窄成 `string`,
+ * 后面构造 `DeliberationRetryableError(errorCode, …)` 不用再补一次空值判断.
+ *
+ * @param errorCode LLM client 的 errorCode (可空)
+ * @returns true = 值得重试 (换一次采样 / 退避后大概率能成)
+ */
+export function isRetryableDeliberationError(errorCode: string | null | undefined): errorCode is string {
+  const code = (errorCode ?? '').trim().toLowerCase();
+  if (code.length === 0) return false;
+  if (DELIBERATION_RETRYABLE_ERROR_CODES.has(code)) return true;
+  return code.startsWith(DELIBERATION_RETRYABLE_5XX_PREFIX);
+}
+
+/**
+ * 值得重试的审议失败 —— 抛这个异常让 BullMQ 自动重试.
+ *
+ * ⚠️ 只在"**写完 trace 之后**"抛 —— 失败记录不能丢, PoC 统计要用.
+ * ⚠️ 只抛这一种异常: 其它异常 (代码 bug / 上游永久失败) 照旧被 service 吃掉 ——
+ *   影子模式挂了不能炸主流程, 更不该让队列反复重试同一件没救的事.
+ */
+export class DeliberationRetryableError extends Error {
+  constructor(
+    /** 触发重试的错误码 (与 trace 里的 errorCode 一致). */
+    public readonly errorCode: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'DeliberationRetryableError';
+  }
+}
+
+/**
+ * 一次审议的结局 (结构化, 不抛).
+ *
+ * 为什么要"结构化"而不是靠抛异常表达: 三种结局里只有一种值得往上传
+ * (可重试的失败), 另外两种都要在**同一次调用**里被吃掉.
+ * 用返回值表达 → **抛异常的语句永远在 try 之外**, 不会被自己写的 catch 吞掉
+ * (那是 WP66 最容易踩的坑: 抛在 try 里 → catch 吞掉 → 重试永远不发生).
+ */
+export type DeliberationOutcome =
+  | { readonly kind: 'ok'; readonly validated: ValidatedDeliberation; readonly usage: DeliberationTokenUsage | null }
+  | { readonly kind: 'failed'; readonly errorCode: string | null; readonly usage: DeliberationTokenUsage | null }
+  | { readonly kind: 'exception' };
+
 /** 审议产出的 token 用量. */
 export interface DeliberationTokenUsage {
   readonly promptTokens: number;
@@ -222,6 +318,16 @@ export interface DeliberationTraceRecord {
   readonly ok: boolean;
   /** 失败原因码 (成功时为 null). */
   readonly errorCode: string | null;
+  /**
+   * 已经重试过几次 (**0 = 第一次跑就结束了**).
+   *
+   * ⚠️ 语义是"**已重试**次数", 不是"尝试次数" —— 从 BullMQ 的 `job.attemptsMade` 来.
+   *   仓库既有口径 (`counselor-supervision.processor.ts` 注释): worker 回调里
+   *   `attemptsMade` 是"已经尝试过几次", **首次执行时为 0** → 正好等于重试次数.
+   *
+   * 用途: 统计"有多少轮是靠重试救回来的" (PoC 指标).
+   */
+  readonly retryCount: number;
   /** 本次审议耗时 (ms). */
   readonly durationMs: number;
   /** 审议模式 (考核 / 自由练习). */
@@ -445,16 +551,54 @@ export class LlmDeliberationService {
   /**
    * 真正跑一次影子审议 (不生效, 只记录对比数据).
    *
-   * **永不抛穿**: 任何异常都在这里 catch 住 —— 影子模式挂了不能炸主流程,
-   * 更不能把 BullMQ 的 job 打成 failed (那会触发无意义的重试).
+   * ⚠️ V2026-11-05 (WP66): 本方法**只抛** `DeliberationRetryableError` ——
+   *   值得重试的失败 (模型输出形状不对 / 上游限流 5xx) 先写 trace 再抛, 交给 BullMQ 重试;
+   *   不值得重试的失败 (鉴权 / 网络超时 / 代码 bug) 照旧**吞掉**, 影子模式不炸主流程.
+   *   其它异常一律不往上传 —— 队列反复重试同一件没救的事, 只是白烧 LLM.
    *
    * @param input 本轮审议所需的全部上下文
+   * @param retryCount 已经重试过几次 (0 = 第一次跑); 从 BullMQ 的 `job.attemptsMade` 来
    */
-  async executeShadowMode(input: DeliberationShadowInput): Promise<void> {
+  async executeShadowMode(input: DeliberationShadowInput, retryCount = 0): Promise<void> {
     // 开关在**执行时**再判一次: 入队到执行之间可能隔了几十秒, 运维这期间把开关
     // 关了 → 队列里的旧 job 直接跳过, 不烧这次 LLM (仓库硬约束 12).
     if (!this.isEnabled()) return;
     const startedAt = Date.now();
+
+    const outcome = await this.runDeliberation(input);
+
+    // 代码 bug 路径: **不重试** (重试同一个 bug 还是会挂), 记一条失败 trace 就收工.
+    if (outcome.kind === 'exception') {
+      await this.writeTrace(this.buildFailureRecord(input, 'shadow_exception', startedAt, null, retryCount));
+      return;
+    }
+
+    if (outcome.kind === 'failed') {
+      // ⚠️ 顺序很重要: **先写 trace, 再抛** —— 失败记录不能丢 (PoC 统计要用).
+      await this.writeTrace(this.buildFailureRecord(input, outcome.errorCode, startedAt, outcome.usage, retryCount));
+      if (isRetryableDeliberationError(outcome.errorCode)) {
+        throw new DeliberationRetryableError(outcome.errorCode, `审议失败, 值得重试: ${outcome.errorCode}`);
+      }
+      return;
+    }
+
+    await this.writeTrace(this.buildSuccessRecord(input, outcome.validated, startedAt, outcome.usage, retryCount));
+  }
+
+  // ── private ────────────────────────────────────────────────────
+
+  /**
+   * 跑一次 LLM 审议, 把结果收敛成**结构化结局** (不抛).
+   *
+   * 为什么要单独抽这一层: `executeShadowMode` 要分三种结局 (成功 / 上游失败 / 代码异常),
+   * 而**抛 `DeliberationRetryableError` 的语句不能待在 try 块里** ——
+   * 会被同一个 catch 吞掉, 重试就永远不发生 (WP66 的核心机制直接废掉).
+   * 把"跑"与"判"分开, 抛异常的语句就永远在 try 之外, 这个坑结构性地踩不到.
+   *
+   * @param input 本轮审议所需的全部上下文
+   * @returns 结局 (成功 / 上游失败 / 代码异常)
+   */
+  private async runDeliberation(input: DeliberationShadowInput): Promise<DeliberationOutcome> {
     try {
       const model = this.resolveModel();
       const result = await this.llmJson.requestJson<ValidatedDeliberation>({
@@ -477,19 +621,16 @@ export class LlmDeliberationService {
       });
 
       if (!result.ok || !result.data) {
-        await this.writeTrace(this.buildFailureRecord(input, result.errorCode, startedAt, result.usage));
-        return;
+        return { kind: 'failed', errorCode: result.errorCode, usage: result.usage };
       }
-      await this.writeTrace(this.buildSuccessRecord(input, result.data, startedAt, result.usage));
+      return { kind: 'ok', validated: result.data, usage: result.usage };
     } catch (error) {
       // 影子模式的**最后一道防线**: 连 client 都抛了 (如 tenantId/userId 缺失导致
       // LlmService 同步抛) —— 记一条失败 trace, 绝不把异常抛回主流程.
       this.logger.warn(`[deliberation_shadow] 审议异常, 已忽略 (session=${input.sessionId} turn=${input.turnIndex}): ${messageOf(error)}`);
-      await this.writeTrace(this.buildFailureRecord(input, 'shadow_exception', startedAt, null));
+      return { kind: 'exception' };
     }
   }
-
-  // ── private ────────────────────────────────────────────────────
 
   /**
    * 影子模式开关 (`ENGINE_DELIBERATION_ENABLED`).
@@ -544,6 +685,7 @@ export class LlmDeliberationService {
     validated: ValidatedDeliberation,
     startedAt: number,
     usage: DeliberationTokenUsage | null,
+    retryCount: number,
   ): DeliberationTraceRecord {
     const { output, rejectedEntries } = validated;
     const deliberationDelta: Partial<Record<DeliberationDim, number>> = {};
@@ -568,6 +710,7 @@ export class LlmDeliberationService {
       timestamp: new Date().toISOString(),
       ok: true,
       errorCode: null,
+      retryCount,
       durationMs: Date.now() - startedAt,
       mode: input.mode,
       tokenUsage: usage ? { ...usage } : null,
@@ -589,6 +732,7 @@ export class LlmDeliberationService {
     errorCode: string | null,
     startedAt: number,
     usage: DeliberationTokenUsage | null,
+    retryCount: number,
   ): DeliberationTraceRecord {
     return {
       tenantId: input.tenantId,
@@ -597,6 +741,7 @@ export class LlmDeliberationService {
       timestamp: new Date().toISOString(),
       ok: false,
       errorCode: errorCode ?? 'unknown_error',
+      retryCount,
       durationMs: Date.now() - startedAt,
       mode: input.mode,
       tokenUsage: usage ? { ...usage } : null,

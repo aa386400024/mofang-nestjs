@@ -31,11 +31,22 @@
 //     - **不在入队时读档位** —— 开关在**执行时**也要再判一次 (硬约束 12), 见
 //       `LlmDeliberationService.executeShadowMode()`.
 //
+//   V2026-11-05 治本 (WP66 · 审议输出格式校验与重试):
+//     本文件负责**重试的编排**, service 负责**判定该不该重试**:
+//       · service 写完 trace 后, 若错误码值得重试 → 抛 `DeliberationRetryableError`;
+//       · 本文件的 job handler **故意不 catch** → 异常自然冒到 BullMQ → 自动退避重试;
+//       · `enqueue()` 用 **job 级** `attempts` 覆盖默认的 3 (全项目 defaultJobOptions 不动).
+//     ⚠️ 这**推翻了 WP65 的"job handler 永不抛"** —— 但推翻得很有理:
+//       WP65 拒绝抛是因为"任何失败都重试 = 白烧三次 LLM";
+//       WP66 把范围收窄到"值得重试的那几种", 抛出去才有意义.
+//
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp65-deliberation-queue.spec.ts 覆盖入队 / 执行 /
 //        Worker 配置 / 队列生命周期 / 隐私边界
-//     3. `git diff --stat HEAD -- src/engine-core` 为空 (本单不动内核)
+//     3. test/engine-adapters/wp66-deliberation-retry.spec.ts 覆盖重试判定 /
+//        trace retryCount / attempts 配置 / 边界
+//     4. `git diff --stat HEAD -- src/engine-core` 为空 (本单不动内核)
 
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -57,6 +68,16 @@ import { RedisService } from '../../shared/infra/redis/redis.service.js';
  * 既压得住上游 (不像 fire-and-forget 那样一轮一个请求地堆), 又不至于把上游打满.
  */
 export const DEFAULT_DELIBERATION_WORKER_CONCURRENCY = 3;
+
+/**
+ * 最大重试次数的默认值 (WP66).
+ *
+ * 口径: **1 次重试** (总共跑 2 次) —— 不是全项目统一的 `attempts: 3`.
+ * 审议一次 LLM 调用是真金白银, 重试 3 次 = 3 倍成本; 而"模型输出形状不对"
+ * 这种失败, 换一次采样大概就好了 (所以重试 1 次足够).
+ * env `ENGINE_DELIBERATION_MAX_RETRIES` 可调.
+ */
+export const DEFAULT_DELIBERATION_MAX_RETRIES = 1;
 
 /**
  * 审议 job 的名字 (BullMQ 的 job name, 队列面板上按它分组).
@@ -180,6 +201,13 @@ export class DeliberationProcessor implements DeliberationShadowPort, OnModuleIn
       await this.queue.add(DELIBERATION_JOB_NAME, input, {
         // jobId 幂等: 同一会话同一轮不重复堆 job (跨进程重启也成立).
         jobId: buildDeliberationJobId(input.tenantId, input.sessionId, input.turnIndex),
+        // ⚠️ job 级覆盖 (WP66): `defaultJobOptions.attempts = 3` 是全项目统一口径,
+        //   但那是给审计日志那种轻任务用的 —— 审议一次 LLM 调用就是真金白银,
+        //   重试 3 次 = 3 倍成本. 这里按 "第一次跑 + N 次重试" 覆盖:
+        //   N = ENGINE_DELIBERATION_MAX_RETRIES (默认 1 → 总共跑 2 次).
+        //   全项目统一的 defaultJobOptions **一个字不动** (只在本 job 上覆盖).
+        attempts: this.resolveMaxRetries() + 1,
+        backoff: { type: 'exponential', delay: 1000 },
       });
       return true;
     } catch (err) {
@@ -196,11 +224,36 @@ export class DeliberationProcessor implements DeliberationShadowPort, OnModuleIn
   /**
    * job handler —— 真正跑审议 (LLM + 写 trace).
    *
-   * ⚠️ 这一步**永不抛**: `executeShadowMode()` 内部把所有异常吃掉了 ——
-   *   审议失败不该把 job 打成 failed (那会触发 BullMQ 的无意义重试, 再烧三次 LLM).
+   * ⚠️ V2026-11-05 (WP66): 这里**故意不 catch** ——
+   *   `executeShadowMode()` 只抛 `DeliberationRetryableError` (值得重试的失败),
+   *   让它自然抛出去, BullMQ 就会按 job 的 `attempts` 自动退避重试.
+   *   不值得重试的失败 (鉴权 / 超时 / 代码 bug) 在 service 里就已经被吃掉了,
+   *   根本到不了这里 —— 所以"抛 = 该重试"是这一层的**唯一语义**.
+   *
+   *   ⚠️ 别再加 try/catch: 加了就把重试机制废掉 (WP65 的"永不抛"在 WP66 被**故意**推翻).
    */
   private async processJob(job: Job<DeliberationShadowInput>): Promise<void> {
-    await this.llmDeliberation.executeShadowMode(job.data);
+    // `job.attemptsMade` = 已经尝试过几次 (**首次执行时为 0**) —— 正好就是"已重试次数",
+    // 直接当 retryCount 传给 service 写进 trace (仓库既有口径, 见 counselor-supervision.processor.ts).
+    await this.llmDeliberation.executeShadowMode(job.data, job.attemptsMade);
+  }
+
+  /**
+   * 最大重试次数 (`ENGINE_DELIBERATION_MAX_RETRIES`).
+   *
+   * 缺省 = **1** (总共跑 2 次): 审议一次几毛钱, 重试 3 次就是 3 倍成本.
+   * 非法值 → 回退默认 1 (**不抛错**): 填错一个 env 不该让服务起不来.
+   *
+   * ⚠️ 这个值只能在**入队时**读 —— `attempts` 是 job 选项, 入队后就固定了,
+   *   改 env 对已经在队列里的 job 无效 (与"偏好在执行时读"那条硬约束的唯一例外:
+   *   开关仍在执行时读, 见 `LlmDeliberationService.executeShadowMode`).
+   */
+  private resolveMaxRetries(): number {
+    const raw = (this.config.get<string>('ENGINE_DELIBERATION_MAX_RETRIES') ?? '').trim();
+    if (raw.length === 0) return DEFAULT_DELIBERATION_MAX_RETRIES;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed < 0) return DEFAULT_DELIBERATION_MAX_RETRIES;
+    return Math.floor(parsed);
   }
 
   /**

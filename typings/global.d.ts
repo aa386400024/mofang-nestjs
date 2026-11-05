@@ -324,6 +324,11 @@ export declare global {
       //   (src/engine-adapters/deliberation/deliberation.processor.ts).
       //   ⚠️ 数值键读到的**一定是字符串**, 必须自己解析 + 回退默认 (填错一个 env 不该让服务起不来).
       ENGINE_DELIBERATION_WORKER_CONCURRENCY?: string; // 审议 Worker 并发数 (默认 3; 非法值回退默认)
+      // V2026-11-05 治本 (WP66 — 审议输出格式校验与重试):
+      //   审议的重试次数. 同样**逐个字面量**读
+      //   (src/engine-adapters/deliberation/deliberation.processor.ts).
+      //   ⚠️ 只在**入队时**读 (attempts 是 job 选项, 入队后固定) —— 开关仍在执行时读.
+      ENGINE_DELIBERATION_MAX_RETRIES?: string; // 审议重试次数 (默认 1 = 总共跑 2 次; 非法值回退默认)
     }
   }
 
