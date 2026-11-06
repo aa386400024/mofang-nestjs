@@ -24,6 +24,7 @@ import type { Request, Response } from 'express';
 
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 import { SentryService } from '../../shared/infra/observability/index.js';
+import { redactIp, redactPath, truncateForLog } from '../../shared/infra/observability/pii-redactor.js';
 
 interface ResolvedError {
   readonly code: BizCode;
@@ -45,11 +46,12 @@ export class PracticeAsrUploadFilter implements ExceptionFilter {
     const { code, message, httpStatus } = this.resolve(exception);
 
     if (httpStatus >= HttpStatus.INTERNAL_SERVER_ERROR && code === BizCode.UnknownError) {
+      // V2026-11-06 治本 (WP46 · Sentry 通道脱敏): 与全局 BizExceptionFilter 同口径 (反双胞胎).
       this.sentry.captureException(exception, {
-        url: request.url,
+        url: redactPath(request.url),
         method: request.method,
-        ip: request.ip,
-        userAgent: request.headers['user-agent'],
+        ip: redactIp(request.ip),
+        userAgent: truncateForLog(request.headers['user-agent'] ?? '', 200),
         code,
       });
     }

@@ -65,7 +65,8 @@ export class PreviewService {
     const responses: string[] = [];
     let isFallback = false;
 
-    for (const userInput of PreviewService.MOCK_USER_INPUTS) {
+    // V2026-11-06 治本 (WP46): 用 entries() 拿**索引**, 日志里只打索引不打 mock 输入原文.
+    for (const [idx, userInput] of PreviewService.MOCK_USER_INPUTS.entries()) {
       try {
         const response = await this.callLlm(item, userInput, persona, tenantId, userId);
         responses.push(response);
@@ -73,7 +74,8 @@ export class PreviewService {
         // V0.x dev fallback (跟 spec §5.3 "可降级" + §12.3 "V0.x 后端未建
         // 失败路径" 一致). LLM 失败不影响主流程, 标 isFallback 让前端 UI
         // 提示 "preview 不可用, 真实训练时再试".
-        this.logger.warn(`preview LLM call failed: itemId=${itemId} userInput=${userInput.slice(0, 30)} err=${(e as Error).message}`);
+        // V2026-11-06 治本 (WP46): 不打 userInput 原文 (心理内容), 只打索引.
+        this.logger.warn(`preview LLM call failed: itemId=${itemId} userInput_idx=${idx} err=${(e as Error).message}`);
         responses.push(this.mockFallbackResponse(userInput));
         isFallback = true;
       }

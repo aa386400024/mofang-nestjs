@@ -28,6 +28,7 @@ const currentTrace = ref<TurnTrace | null>(null)
 
 // 会话列表展开/收起
 const showSessionList = ref(true)
+const sessionListRef = ref<InstanceType<typeof SessionList> | null>(null)
 
 // BDI 状态历史（每轮记录一次）
 interface BdiSnapshotPoint {
@@ -95,10 +96,12 @@ async function startSession() {
     messages.value = []
     currentTrace.value = null
     bdiHistory.value = []
-    message.success(t('debugChat.startSession') + ' ✅')
+    message.success(t('debugChat.startSession'))
+    // 新建会话后刷新左侧列表
+    sessionListRef.value?.loadSessions()
   } catch (e) {
     console.error('创建调试会话失败', e)
-    message.error(t('debugChat.startSession') + ' ❌')
+    message.error(t('debugChat.startSession'))
   } finally {
     loading.value = false
   }
@@ -135,11 +138,22 @@ async function sendTurn() {
     }
   } catch (e) {
     console.error('发对话失败', e)
-    message.error(t('debugChat.send') + ' ❌')
+    message.error(t('debugChat.send'))
   } finally {
     sending.value = false
     await nextTick()
     scrollToBottom()
+    // 发送后自动聚焦回输入框
+    const inputEl = document.querySelector('#debug-chat-main input') as HTMLInputElement
+    inputEl?.focus()
+    // 发送后刷新左侧列表：
+    // - 新建的会话会出现在列表里
+    // - 第 3 轮后后端 LLM 自动命名，延迟 2 秒刷新让名字更新可见
+    if (turnIndex.value >= 3) {
+      setTimeout(() => sessionListRef.value?.loadSessions(), 2000)
+    } else {
+      sessionListRef.value?.loadSessions()
+    }
   }
 }
 
@@ -188,6 +202,16 @@ function sendQuickPrompt(text: string) {
   sendTurn()
 }
 
+// 新建会话：前端清空聊天区，不调后端关闭（原会话保留在历史列表）
+function newSession() {
+  sessionId.value = null
+  messages.value = []
+  turnIndex.value = 0
+  currentTrace.value = null
+  bdiHistory.value = []
+  // 保留 selectedCharacterSlug，方便快速开始同角色新对话
+}
+
 async function resetSession() {
   dialog.warning({
     title: t('debugChat.resetTitle'),
@@ -209,7 +233,8 @@ async function resetSession() {
       turnIndex.value = 0
       currentTrace.value = null
       bdiHistory.value = []
-      message.success(t('debugChat.reset') + ' ✅')
+      message.success(t('debugChat.reset'))
+      sessionListRef.value?.loadSessions()
     },
   })
 }
@@ -235,9 +260,9 @@ function showTrace(trace: TurnTrace) {
 }
 
 // 加载历史会话
-async function loadSession(sessionId: string) {
+async function loadSession(sid: string) {
   try {
-    const data = await api.debugSession.get(sessionId)
+    const data = await api.debugSession.get(sid)
     sessionId.value = data.id
     messages.value = data.messages.map((m: any) => ({
       role: m.role,
@@ -265,6 +290,8 @@ async function loadSession(sessionId: string) {
       currentTrace.value = lastVisitorMsg.trace as TurnTrace
     }
     message.success('会话已加载')
+    await nextTick()
+    scrollToBottom()
   } catch (e) {
     message.error('加载会话失败')
     console.error(e)
@@ -283,11 +310,14 @@ onMounted(() => {
     <div class="flex items-center gap-3 flex-wrap">
       <button
         v-if="!showSessionList"
-        class="w-8 h-8 flex items-center justify-center rounded bg-bg-surface border border-bg-border text-muted hover:text-accent"
+        class="w-8 h-8 flex items-center justify-center rounded-md bg-bg-surface border border-bg-border text-muted hover:text-accent hover:border-accent/40 transition-colors"
         @click="showSessionList = true"
         title="展开会话列表"
       >
-        ☰
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+          <path d="M9 3v18"/>
+        </svg>
       </button>
       <div class="flex items-center gap-2">
         <span class="text-sm text-muted">{{ t('debugChat.character') }}</span>
@@ -303,10 +333,31 @@ onMounted(() => {
           size="small"
           type="primary"
           :loading="loading"
-          :disabled="!selectedCharacterSlug || !!sessionId"
+          :disabled="!selectedCharacterSlug"
           @click="startSession"
         >
+          <template #icon>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"/>
+              <path d="M12 5v14"/>
+            </svg>
+          </template>
           {{ t('debugChat.startSession') }}
+        </NButton>
+        <NButton
+          v-if="sessionId"
+          size="small"
+          quaternary
+          @click="newSession"
+          title="清空当前聊天，开始新会话"
+        >
+          <template #icon>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"/>
+              <path d="M12 5v14"/>
+            </svg>
+          </template>
+          新建
         </NButton>
         <NButton
           v-if="sessionId"
@@ -337,7 +388,7 @@ onMounted(() => {
     <div id="debug-chat-main" class="flex-1 flex min-h-0 gap-3">
       <!-- 最左边：会话列表（可收起） -->
       <div v-if="showSessionList" class="w-64 flex-shrink-0 h-full min-h-0">
-        <SessionList :selected-id="sessionId" @select="loadSession" @collapse="showSessionList = false" />
+        <SessionList ref="sessionListRef" :selected-id="sessionId" @select="loadSession" @collapse="showSessionList = false" />
       </div>
 
       <!-- 中间：聊天窗口 -->
@@ -345,49 +396,80 @@ onMounted(() => {
         class="flex flex-col bg-bg-surface rounded-lg border border-bg-border min-w-0 h-full min-h-0 flex-1"
       >
         <!-- 消息列表 -->
-        <div id="debug-chat-messages" class="flex-1 overflow-auto p-4 space-y-4">
+        <div id="debug-chat-messages" class="flex-1 overflow-auto p-4 space-y-6">
           <NEmpty v-if="messages.length === 0" :description="t('debugChat.emptyState')" />
 
-          <div v-for="(msg, i) in messages" :key="i" class="group flex" :class="msg.role === 'counselor' ? 'justify-end' : 'justify-start'">
+          <div v-for="(msg, i) in messages" :key="i" class="group flex gap-2.5" :class="msg.role === 'counselor' ? 'flex-row-reverse' : 'flex-row'">
+            <!-- 头像色块 -->
             <div
-              class="max-w-[70%] rounded-lg px-3 py-2 text-sm relative"
-              :class="msg.role === 'counselor'
-                ? 'bg-accent/20 text-text-primary rounded-br-none'
-                : 'bg-bg-elevated text-text-secondary rounded-bl-none'"
+              class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0 mt-4"
+              :style="{ background: msg.role === 'counselor' ? '#7c8db5' : '#7ab59e', color: '#fff' }"
             >
-              <div class="text-xs text-muted/70 mb-1">{{ msg.role === 'counselor' ? t('debugChat.counselor') : t('debugChat.visitor') }}</div>
-              <div class="whitespace-pre-wrap">{{ msg.text }}</div>
+              {{ msg.role === 'counselor' ? '咨' : '访' }}
+            </div>
+            <!-- 气泡区 -->
+            <div class="flex flex-col max-w-[70%]" :class="msg.role === 'counselor' ? 'items-end' : 'items-start'">
+              <!-- 角色标签（气泡外上方） -->
+              <div class="text-[11px] text-muted/80 mb-1 px-1">
+                {{ msg.role === 'counselor' ? t('debugChat.counselor') : t('debugChat.visitor') }}
+              </div>
+              <div
+                class="px-3.5 py-2.5 text-sm relative leading-relaxed shadow-sm"
+                :class="msg.role === 'counselor'
+                  ? 'bg-accent/15 text-text-primary rounded-2xl rounded-br-md'
+                  : 'bg-bg-elevated/80 text-text-secondary rounded-2xl rounded-bl-md'"
+              >
+                <div class="whitespace-pre-wrap">{{ msg.text }}</div>
 
-              <!-- hover 操作按钮 -->
-              <div class="absolute -bottom-7 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 text-xs">
-                <button
-                  class="w-6 h-6 flex items-center justify-center rounded bg-bg-elevated border border-bg-border hover:bg-bg-border text-muted"
-                  @click="copyMessage(msg.text)"
-                  title="复制"
-                >
-                  📋
-                </button>
-                <button
-                  v-if="msg.role === 'visitor'"
-                  class="w-6 h-6 flex items-center justify-center rounded bg-bg-elevated border border-bg-border hover:bg-bg-border text-muted"
-                  @click="editMessage(msg.text)"
-                  title="引用编辑"
-                >
-                  ✏️
-                </button>
-                <button
-                  v-if="msg.role === 'visitor' && msg.trace"
-                  class="w-6 h-6 flex items-center justify-center rounded bg-accent/20 border border-accent/30 hover:bg-accent/30 text-accent"
-                  @click="showTrace(msg.trace!)"
-                  title="查看这轮的调试数据"
-                >
-                  🔍
-                </button>
+                <!-- hover 操作按钮 -->
+                <div class="absolute -bottom-6 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                  <button
+                    class="w-6 h-6 flex items-center justify-center rounded-md bg-bg-surface border border-bg-border shadow-sm hover:bg-bg-border text-muted hover:text-text-primary transition-colors"
+                    @click="copyMessage(msg.text)"
+                    title="复制"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                    </svg>
+                  </button>
+                  <button
+                    v-if="msg.role === 'visitor'"
+                    class="w-6 h-6 flex items-center justify-center rounded-md bg-bg-surface border border-bg-border shadow-sm hover:bg-bg-border text-muted hover:text-text-primary transition-colors"
+                    @click="editMessage(msg.text)"
+                    title="引用编辑"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  </button>
+                  <button
+                    v-if="msg.role === 'visitor' && msg.trace"
+                    class="w-6 h-6 flex items-center justify-center rounded-md bg-accent/15 border border-accent/30 shadow-sm hover:bg-accent/25 text-accent transition-colors"
+                    @click="showTrace(msg.trace!)"
+                    title="查看这轮的调试数据"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="11" cy="11" r="8"/>
+                      <path d="m21 21-4.3-4.3"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          <NSpin v-if="sending && messages[messages.length - 1]?.role === 'counselor'" size="small" />
+          <!-- 打字中三点动画 -->
+          <div v-if="sending" class="flex gap-2.5 items-start">
+            <div class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0 mt-4 bg-[#7c8db5] text-white">
+              咨
+            </div>
+            <div class="bg-bg-elevated/80 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm flex items-center gap-1.5">
+              <span class="typing-dot"></span>
+              <span class="typing-dot" style="animation-delay: 0.15s"></span>
+              <span class="typing-dot" style="animation-delay: 0.3s"></span>
+            </div>
+          </div>
         </div>
 
         <!-- 输入框 -->
@@ -593,8 +675,13 @@ onMounted(() => {
                 </div>
                 <div class="mt-4 text-xs text-muted border-t border-bg-border pt-3">
                   <div>{{ t('debugChat.largestDiff') }}：trust (+0.03)</div>
-                  <div class="mt-1">
-                    <span class="text-warn">⚠️ {{ t('debugChat.diffWarning') }}</span>
+                  <div class="mt-1 flex items-center gap-1 text-warn">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                      <path d="M12 9v4"/>
+                      <path d="M12 17h.01"/>
+                    </svg>
+                    <span>{{ t('debugChat.diffWarning') }}</span>
                   </div>
                 </div>
               </template>
@@ -648,5 +735,24 @@ onMounted(() => {
 #debug-chat-messages::-webkit-scrollbar-thumb {
   background: #2a2f3d;
   border-radius: 3px;
+}
+
+/* 打字中三点动画 */
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #8a93a8;
+  animation: typing-bounce 1.4s infinite ease-in-out both;
+}
+@keyframes typing-bounce {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>

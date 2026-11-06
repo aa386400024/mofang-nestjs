@@ -468,7 +468,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     if (finishReason !== 'length') return { text, truncated: false };
     const kept = dropUnclosedTail(text);
     if (kept === text) return { text, truncated: false };
-    this.logger.warn(`[render] 上游按长度截断 (finish_reason=length), 丢弃未闭合尾句: ${text.slice(kept.length, kept.length + 60)}`);
+    // V2026-11-06 治本 (WP46): 原先打**被丢弃的尾句原文** —— 那正是模型说了一半的来访者话术.
+    //   改成只打丢弃**字数**: 够判断截断严重程度, 原文不留.
+    this.logger.warn(`[render] 上游按长度截断 (finish_reason=length), 丢弃未闭合尾句 dropped_chars=${text.length - kept.length}`);
     return { text: kept, truncated: true };
   }
 
@@ -935,7 +937,10 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     if (verdict.level === 'pass') return;
     const categories = verdict.categories ?? [];
     this.deps.onSafetySignal?.(text, verdict.level, categories);
-    this.logger.warn(`[render] 输出侧安全信号 level=${verdict.level} categories=${categories.join(',') || '-'} 片段=${text.slice(0, 120)}`);
+    // V2026-11-06 治本 (WP46): 安全信号判定需要看片段 (dev 排查用), 但**生产不能打心理原文**.
+    //   prod 只打长度, dev 保留片段 —— 只改日志内容, 不改级别 / 触发条件 / 上下游逻辑.
+    const signalFragment = process.env.NODE_ENV === 'production' ? `text_len=${text.length}` : `片段=${text.slice(0, 120)}`;
+    this.logger.warn(`[render] 输出侧安全信号 level=${verdict.level} categories=${categories.join(',') || '-'} ${signalFragment}`);
   }
 
   /**

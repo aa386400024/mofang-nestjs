@@ -323,7 +323,9 @@ export class LlmService {
     try {
       parsed = JSON.parse(payload) as MiniMaxStreamDelta;
     } catch {
-      this.logger.warn(`[sse_parse_error] tenant=${opts.tenantId} user=${opts.userId} ` + `payload=${payload.slice(0, 100)}`);
+      // V2026-11-06 治本 (WP46): 原先打上游返回的**前 100 字符原文** —— 上游返回体里可能直接带
+      //   来访者原话 / prompt 片段. 改成只打**长度**: JSON.parse 失败时长度足够定位问题, 原文没有排查价值.
+      this.logger.warn(`[sse_parse_error] tenant=${opts.tenantId} user=${opts.userId} payload_len=${payload.length}`);
       return null;
     }
 

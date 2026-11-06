@@ -2,6 +2,7 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logge
 import type { Request, Response } from 'express';
 
 import { SentryService } from '../../shared/infra/observability/index.js';
+import { redactIp, redactPath, redactSql, redactStack, truncateForLog } from '../../shared/infra/observability/pii-redactor.js';
 import { BizCode } from '../exceptions/biz-code.enum.js';
 
 /**
@@ -56,11 +57,14 @@ export class BizExceptionFilter implements ExceptionFilter {
 
     // 5xx + 兜底异常上报 Sentry
     if (httpStatus >= HttpStatus.INTERNAL_SERVER_ERROR && code === BizCode.UnknownError) {
+      // V2026-11-06 治本 (WP46 · Sentry 通道脱敏): extra 里的 url / ip / userAgent
+      //   原样上报就是泄漏面 (query 常带 token / 手机号, ip 是个人标识, UA 可被伪造注入).
+      //   口径与本地日志**共用** pii-redactor.ts (反双胞胎: 不在 filter 里重写脱敏逻辑).
       this.sentry.captureException(exception, {
-        url: request.url,
+        url: redactPath(request.url),
         method: request.method,
-        ip: request.ip,
-        userAgent: request.headers['user-agent'],
+        ip: redactIp(request.ip),
+        userAgent: truncateForLog(request.headers['user-agent'] ?? '', 200),
         code,
       });
     }
@@ -169,109 +173,20 @@ export class BizExceptionFilter implements ExceptionFilter {
 // 注意: Sentry 上报走的是**另一条通道** (原始异常 + url/method/ip/userAgent),
 //   本次只收紧**本地日志**口径; Sentry 侧要脱敏属于另一次改动 (本次不做).
 
-/** 单条日志的最大文本长度 (超了截断) —— 一条日志不该无限长. */
-const MAX_LOG_TEXT_LENGTH = 2000;
-
-/**
- * SQL 原文的形状 —— 命中即整句遮蔽.
- *
- * 为什么是"整句遮蔽"而不是"逐个抠字面量":
- *   逐个抠容易漏 (转义 / 嵌套引号 / 数字字面量), 而"整句遮蔽"的口径简单可验证 ——
- *   宁可少一条线索, 也不能让 SQL 原文进日志.
- */
-const SQL_STATEMENT_PATTERNS: readonly RegExp[] = [
-  /\bSELECT\b[\s\S]{0,400}?\bFROM\b/i,
-  /\bINSERT\s+INTO\b/i,
-  /\bUPDATE\b[\s\S]{0,200}?\bSET\s+/i,
-  /\bDELETE\s+FROM\b/i,
-];
-
-/** `Bearer xxx` / `Basic xxx` 形态的凭据. */
-const CREDENTIAL_SCHEME_PATTERN = /\b(bearer|basic)\s+[\w.\-+/=]+/gi;
-
-/** key=value 形态的凭据 (password / token / secret / api key / cookie ...). */
-const SENSITIVE_KEY_VALUE_PATTERN =
-  /\b(password|passwd|pwd|token|secret|api[_-]?key|access[_-]?key|authorization|cookie)\b(\s*[:=]\s*)\S+/gi;
-
-/** 中国大陆手机号. */
-const PHONE_PATTERN = /\b1[3-9]\d{9}\b/g;
-
-/** 身份证号 (18 位). */
-const ID_CARD_PATTERN = /\b\d{17}[\dXx]\b/g;
-
-/** 邮箱. */
-const EMAIL_PATTERN = /\b[\w.+-]+@[\w-]+\.[\w.-]+\b/g;
-
-/**
- * 文本里是不是有 SQL 原文.
- *
- * @param text 文本
- * @returns 是否命中 SQL 形状
- */
-function looksLikeSql(text: string): boolean {
-  return SQL_STATEMENT_PATTERNS.some((pattern) => pattern.test(text));
-}
-
-/**
- * 按脱敏口径处理一段文本 (不含 SQL 整句遮蔽).
- *
- * @param text 原始文本
- * @returns 脱敏 (并截断) 后的文本
- */
-function redactForLog(text: string): string {
-  let result = text;
-  result = result.replaceAll(CREDENTIAL_SCHEME_PATTERN, '$1 ***');
-  result = result.replaceAll(SENSITIVE_KEY_VALUE_PATTERN, '$1$2***');
-  result = result.replaceAll(PHONE_PATTERN, '1**********');
-  result = result.replaceAll(ID_CARD_PATTERN, '*******************');
-  result = result.replaceAll(EMAIL_PATTERN, '***@***');
-  return truncateForLog(result);
-}
-
-/**
- * 脱敏一段错误描述 (含 SQL 整句遮蔽).
- *
- * @param text 原始描述
- * @returns 脱敏后的描述
- */
-function redactSql(text: string): string {
-  return looksLikeSql(text) ? '[SQL 原文已脱敏]' : redactForLog(text);
-}
-
-/**
- * 脱敏一段堆栈 (**逐行**处理).
- *
- * 为什么逐行而不是整段遮蔽: 栈帧 (文件/行号) 是定位问题的第一现场, 整段遮蔽等于把
- * 最有用的部分也丢了; 而 SQL 原文通常落在**第一行**(message 那行), 按行判定足够精准.
- * 跨行 SQL 的其余行仍会过一遍 PII / 凭据规则 (值会被遮, 列名可能残留).
- *
- * @param stack 原始堆栈
- * @returns 脱敏后的堆栈
- */
-function redactStack(stack: string): string {
-  return stack
-    .split('\n')
-    .map((line) => (looksLikeSql(line) ? '[SQL 原文已脱敏]' : redactForLog(line)))
-    .join('\n');
-}
-
-/**
- * 截断过长文本.
- *
- * @param text 文本
- * @returns 截断后的文本
- */
-function truncateForLog(text: string): string {
-  return text.length > MAX_LOG_TEXT_LENGTH ? `${text.slice(0, MAX_LOG_TEXT_LENGTH)}…(已截断)` : text;
-}
-
-/**
- * 只保留路径 (去掉 query string).
- *
- * @param url 原始 url
- * @returns 脱敏后的路径
- */
-function redactPath(url: string): string {
-  const queryIndex = url.indexOf('?');
-  return queryIndex === -1 ? url : `${url.slice(0, queryIndex)}?***`;
-}
+// 注意: Sentry 上报走的是**另一条通道** —— WP46 (2026-11-06) 已把该通道也收紧了:
+//   脱敏口径 (SQL / PII / 凭据 / query string / 请求体) 现在**只有一份实现**,
+//   放在 src/shared/infra/observability/pii-redactor.ts; 本文件与 Sentry 通道共用它.
+//
+// ============================================================================
+// 脱敏实现的位置 (WP46 · 反双胞胎)
+// ============================================================================
+//
+// V2026-11-06: 本文件底部原本有一份**私有副本** (长度上限常量 / SQL 形状正则 / 凭据正则 /
+//   key=value 凭据正则 / 手机号正则 / 身份证正则 / 邮箱正则, 以及 looksLikeSql / redactForLog /
+//   redactSql / redactStack / truncateForLog / redactPath 六个函数). 那份副本只服务本地日志,
+//   Sentry 通道完全没用 —— 两套口径迟早分叉.
+//
+//   现在: 全部搬到 src/shared/infra/observability/pii-redactor.ts (纯函数, 零 @nestjs /
+//   零 @sentry / 零网络), 本文件直接 import. 全仓的正则定义**只剩一处**.
+//
+//   口径本身**没变** —— 只是搬了位置 (WP26 P2-39 的行为一字不改, 见 test/shared/wp26-biz-exception-log.spec.ts).

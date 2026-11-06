@@ -51,7 +51,9 @@
 > - Admin Dashboard 剩余页面切真 API + 调试会话持久化（**Dashboard / MemoryBrowser / PsyGuardMonitor 三页切真** + 调试会话**落 JSON 文件** + 3 轮后 LLM 自动命名，内核零改动）✅ → [`completed/phase2/engine-admin-dashboard-mock-to-real-and-debug-session-persistence-implementation-2026-11-05.md`](completed/phase2/engine-admin-dashboard-mock-to-real-and-debug-session-persistence-implementation-2026-11-05.md)
 > - WP45（P3 技术债 8 条清理 · **挖出一个线上一直在犯的 Qdrant SDK 契约 bug**：WP12 的冲突消解标记从未真正落库 → 同主题矛盾记忆一起被召回；内核零改动）✅ → [`completed/phase2/engine-wp45-p3-tech-debt-8-items-implementation-2026-11-05.md`](completed/phase2/engine-wp45-p3-tech-debt-8-items-implementation-2026-11-05.md)
 >
-> 进度 29/41（WP 清单与总览口径一致，WP27–WP68；2026-11-05 新增 WP63–WP68 混合式 BDI PoC 组 —— **该组 6 条已全部交付**）。
+> - WP46（Sentry 通道脱敏 · **心理数据合规闭环** · **实测发现 `@sentry/node@11.10.0` 已删除 `sendDefaultPii` 且 `dataCollection.httpBodies` 默认采集入站请求体 —— 任务单前提不成立，本单是在堵正在流血的洞**；抽 `pii-redactor.ts` 唯一脱敏实现 + `beforeSend` 事件级递归脱敏 + 两层黑名单 + 两个 filter 对齐 + 修 7 处打原文日志；engine-core 零改动）✅ → [`completed/phase2/engine-wp46-sentry-redaction-implementation-2026-11-06.md`](completed/phase2/engine-wp46-sentry-redaction-implementation-2026-11-06.md)
+>
+> 进度 30/41（WP 清单与总览口径一致，WP27–WP68；2026-11-05 新增 WP63–WP68 混合式 BDI PoC 组 —— **该组 6 条已全部交付**）。
 > **注**：上面那条 Admin Dashboard 四合一任务单**不是编号 WP**，不计入 41 条进度。
 >
 > ⚠️ **WP65 只销了「队列化」那一半**：母版描述里的 **per-session mutex + 快照版本号**仍未做 —— 影子模式下审议结果不写状态，暂无覆盖风险；**切灰度（结果开始生效）前必须补**。

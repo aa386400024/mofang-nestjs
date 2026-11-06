@@ -360,7 +360,9 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
     try {
       parsed = JSON.parse(text) as TtsBidiServerEvent;
     } catch {
-      this.logger.warn(`[parse_error] ${text.slice(0, 120)}`);
+      // V2026-11-06 治本 (WP46): 原先打**原始帧前 120 字符** —— TTS 帧里就是待合成的心理内容原文.
+      //   改成只打帧大小: 知道帧有多大够定位解析问题, 原文不留.
+      this.logger.warn(`[parse_error] frame_len=${text.length}`);
       return;
     }
     this.handleServerEvent(parsed);
@@ -420,6 +422,9 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
    * @param event 上游事件
    */
   private handleStreamEvent(event: TtsBidiServerEvent): void {
+    // V2026-11-06 治本 (WP46): 未知事件的对象里可能夹带上游带回来的文本 ——
+    //   只打**键名**用于定位, 不打内容 (事件 JSON 的值可能是待合成的心理内容).
+    const eventKeys = Object.keys(event).join(',');
     switch (event.event) {
       case 'sentence_start':
         this.handleSentenceStart();
@@ -434,7 +439,7 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
         this.handleTaskFinished(event.extra_info?.usage_characters);
         return;
       default:
-        this.logger.warn(`[unknown_event] ${JSON.stringify(event).slice(0, 120)}`);
+        this.logger.warn(`[unknown_event] keys=${eventKeys}`);
     }
   }
 
@@ -572,7 +577,8 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
    * @param reason 关闭原因
    */
   private handleSocketClose(code: number, reason: string): void {
-    this.logger.log(`[closed] code=${code} reason=${reason.slice(0, 120)}`);
+    // V2026-11-06 治本 (WP46): 关闭原因由上游给, 不打原文 (只打长度).
+    this.logger.log(`[closed] code=${code} reason_len=${reason.length}`);
     this.connected?.reject(new Error(`TTS 连接被关闭 (code=${code})`));
     this.started?.reject(new Error(`TTS 连接被关闭 (code=${code})`));
     if (this.state === 'streaming') {
