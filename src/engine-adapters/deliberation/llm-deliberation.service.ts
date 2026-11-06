@@ -110,7 +110,13 @@ import {
   type DeliberationOutput,
 } from './deliberation-types.js';
 import { CounselorLlmJsonClient } from '../../counselor/providers/llm-json.client.js';
-import type { BehaviorStrategy, BdiSnapshot, DeltaVector } from '../../engine-core/index.js';
+import {
+  DEFAULT_DELTA_CAP_CONFIG,
+  capTurnDelta,
+  type BehaviorStrategy,
+  type BdiSnapshot,
+  type DeltaVector,
+} from '../../engine-core/index.js';
 import { RedisService } from '../../shared/infra/redis/redis.service.js';
 
 /** Redis key 的逻辑前缀 (ioredis 还会自动拼 `REDIS_KEY_PREFIX`, 多环境隔离靠它). */
@@ -601,6 +607,16 @@ export interface DeliberationTraceRecord {
   readonly deliberationDelta: Readonly<Partial<Record<DeliberationDim, number>>>;
   /** 逐维差异 (审议 - 规则; **全量 11 维**, 没提到的维度按 0 算). */
   readonly deltaDiff: Readonly<Record<DeliberationDim, number>>;
+  /**
+   * 约束校验层: 逐维 delta cap 砍幅明细.
+   *
+   * 只记**被砍的**维度 (raw !== capped) —— 没被砍的不出现
+   *   (观测面要的是"哪里出过问题", 不是"哪里没问题"; 与内核 cap 报告同口径).
+   *
+   * ⚠️ `deliberationDelta` 里存的**已经是砍后**的值 ——
+   *   切灰度后, 砍后的 delta 才是实际生效的那个.
+   */
+  readonly capEntries: readonly DeliberationCapEntry[];
   /** 本轮审议打出的操作标签全集 (去重, 按出现顺序). */
   readonly operatorTags: readonly DeliberationOperatorTag[];
   /** 逐条理由的合并文本 (多条用 '；' 连接; 逐条明细在 `entries` 里). */
@@ -720,6 +736,105 @@ export function computeDeliberationDeltaDiff(
     diff[dim] = round((deliberationDelta[dim] ?? 0) - ruleDelta[dim]);
   }
   return diff;
+}
+
+/** 去掉 readonly 的映射类型 (只用于造本地可变副本). */
+type MutableDeltaVector = { -readonly [K in keyof DeltaVector]: number };
+
+/** 全零 delta 向量 (cap 探针用). */
+const ZERO_DELTA_VECTOR: DeltaVector = {
+  trust: 0,
+  safety: 0,
+  bond: 0,
+  verbal: 0,
+  depth: 0,
+  style: 0,
+  valence: 0,
+  arousal: 0,
+  positive: 0,
+  negative: 0,
+  dependency: 0,
+};
+
+/**
+ * 单维被砍的明细 (约束校验层).
+ *
+ * ⚠️ 与内核的 `DeltaCapEntry` 形状相同但**类型更窄** (dimension 收成 `DeliberationDim`):
+ *   内核那份的 dimension 是 `string` —— 审议层收窄后, 消费方拿到的 dimension
+ *   一定是合法审议维度, 不用再判一遍.
+ */
+export interface DeliberationCapEntry {
+  /** 维度名 (trust / safety / ...). */
+  readonly dimension: DeliberationDim;
+  /** 砍之前的原始 delta. */
+  readonly raw: number;
+  /** 砍之后实际生效的 delta. */
+  readonly capped: number;
+}
+
+/**
+ * 审议输出的**逐维 delta cap** 砍幅 (约束校验层 · 切灰度前置安全网).
+ *
+ * 为什么在格式校验**之后**再加一道 (两道各司其职, 不互相替代):
+ *   · 格式校验 (WP66) = **防离谱**: 维度白名单 / 有限数字 / 统一 0.2 粗口径 / 标签合法 / 理由非空.
+ *     它是**底线** —— 超了就是模型胡说, 该丢.
+ *   · 逐维 cap (本函数) = **按标准砍**: 与规则算子同一份边界 (内核 `DEFAULT_DELTA_CAP_CONFIG`),
+ *     移情三维 (positive / negative / dependency) 是 ±0.15, 比格式校验的 0.2 更严.
+ *     它是**标准** —— 超了不是错, 是"这一轮不该动这么多", 砍到边界并记账.
+ *
+ * ⚠️ 影子模式下这只是**观测**: 砍后的 delta 只进 trace, 不写 BDI 快照.
+ *   切灰度后, 砍后的 delta 才是实际生效的那个.
+ *
+ * @param deltas 格式校验通过的 delta 建议列表
+ * @returns 砍后的列表 + 被砍的明细 (没被砍的维度不出现)
+ */
+export function applyDeliberationDeltaCap(deltas: readonly DeliberationDeltaEntry[]): {
+  /** 砍后的稀疏 delta 列表 (维度 + 标签 + 理由不变, 只改 delta 数值). */
+  readonly cappedDeltas: readonly DeliberationDeltaEntry[];
+  /** 被砍的明细 (raw !== capped 才进). */
+  readonly capEntries: readonly DeliberationCapEntry[];
+} {
+  const cappedDeltas: DeliberationDeltaEntry[] = [];
+  const capEntries: DeliberationCapEntry[] = [];
+  for (const entry of deltas) {
+    // 先 round 再砍: trace 里所有数字都是同一个精度, 砍完的边界值 (0.15 / 0.2 / -0.3)
+    //   在该精度下是精确值 —— 于是 `deliberationDelta[dim] === capEntries[].capped` 恒成立,
+    //   消费方不用猜"这两个数是不是同一个口径".
+    const raw = round(entry.delta);
+    const capped = capEntryDelta(entry.dimension, raw);
+    cappedDeltas.push({ ...entry, delta: capped });
+    if (raw !== capped) {
+      capEntries.push({ dimension: entry.dimension, raw, capped });
+    }
+  }
+  return { cappedDeltas, capEntries };
+}
+
+/**
+ * 单条 delta 按**它自己维度**的边界砍幅.
+ *
+ * ⚠️ 为什么用"探针向量 + 内核 `capTurnDelta`"而不是自己写一遍 clamp:
+ *   仓库纪律 —— **判定只有一份** (env 守卫 / 召回策略 / cap 边界都是这条纪律的实例).
+ *   自己写一份 `Math.min(Math.max(...))` 就等于开了第二个真相:
+ *   哪天内核改了 `DEFAULT_DELTA_CAP_CONFIG` 的数值, 或改了 `capAsym` 的边界语义
+ *   (严格大于 vs 大于等于), 这份就静默漂移 —— 而且**不报错**, 只在某个维度上表现不同.
+ *
+ *   探针法成立的前提: `capTurnDelta` 是**逐维独立**处理的 (每维各砍各的, 不看别的维),
+ *   所以造一个"只有目标维度带值、其余维度全 0"的向量喂进去, 读回该维度的值,
+ *   就是这个值按该维度边界砍完的结果.
+ *
+ *   ⚠️ 为什么要**逐条**探针而不是一次性把所有维度的值塞进去:
+ *   模型可能对同一维度给多条建议 (格式校验不拦重复维度). 一次性塞进去只能拿到
+ *   "最后一个值"的砍幅, 前面几条会被算成别的值 —— 逐条探针保证每条建议只改自己的数值.
+ *
+ * @param dim 维度名
+ * @param value 该维度上的 delta (已 round)
+ * @returns 砍完后的 delta
+ */
+function capEntryDelta(dim: DeliberationDim, value: number): number {
+  const probe: MutableDeltaVector = { ...ZERO_DELTA_VECTOR };
+  probe[dim] = value;
+  return capTurnDelta(probe, DEFAULT_DELTA_CAP_CONFIG)[dim];
 }
 
 /**
@@ -1040,10 +1155,14 @@ export class LlmDeliberationService {
     lock: IntentionLockResult,
   ): DeliberationTraceRecord {
     const { output, rejectedEntries } = validated;
+    // 约束校验层: 逐维 delta cap —— **写进 trace 的 delta 一定是砍过的**.
+    //   ⚠️ 放在这里 (而不是调用点) = "进 trace 的东西必然过了约束校验层",
+    //   杜绝"换个调用点忘了砍"这类静默失效 (影子期看不出差别, 切灰度就是状态错乱).
+    const { cappedDeltas, capEntries } = applyDeliberationDeltaCap(output.deltas);
     const deliberationDelta: Partial<Record<DeliberationDim, number>> = {};
     const entries: DeliberationTraceEntry[] = [];
     const tags: DeliberationOperatorTag[] = [];
-    for (const delta of output.deltas) {
+    for (const delta of cappedDeltas) {
       deliberationDelta[delta.dimension] = round(delta.delta);
       entries.push({
         dimension: delta.dimension,
@@ -1070,6 +1189,7 @@ export class LlmDeliberationService {
       ruleDelta: input.ruleDelta,
       deliberationDelta,
       deltaDiff: computeDeliberationDeltaDiff(input.ruleDelta, deliberationDelta),
+      capEntries,
       operatorTags: tags,
       reason: entries.length > 0 ? truncate(entries.map((entry) => entry.reason).join('；')) : null,
       confidence: output.confidence,
@@ -1107,12 +1227,14 @@ export class LlmDeliberationService {
       ruleDelta: input.ruleDelta,
       deliberationDelta: {},
       deltaDiff: computeDeliberationDeltaDiff(input.ruleDelta, {}),
+      // 失败轮次没有建议可砍 —— 空数组, 让 trace 的形状在成功 / 失败两种情况下**一致**.
       operatorTags: [],
       reason: null,
       confidence: null,
       summary: null,
       entries: [],
       rejectedEntries: [],
+      capEntries: [],
       // WP68: 失败轮次**不跑**锁定判定 (压根没有建议可判) —— 三个字段占位,
       //   让 trace 的形状在成功 / 失败两种情况下**一致** (消费方不用判分支).
       ruleStrategy: input.ruleStrategy,

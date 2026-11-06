@@ -43,6 +43,7 @@
 > - WP64（LLM 审议层 PoC · 影子模式，旁路观察，结果不写状态只写 Redis trace 表，内核零改动）✅ → [`completed/phase2/engine-wp64-llm-deliberation-poc-shadow-implementation-2026-11-05.md`](completed/phase2/engine-wp64-llm-deliberation-poc-shadow-implementation-2026-11-05.md)
 > - WP65（审议影子模式 BullMQ 队列化 · 入队异步跑 + Worker 并发闸门，编排门面零改动，内核零改动）✅ → [`completed/phase2/engine-wp65-deliberation-shadow-queue-implementation-2026-11-05.md`](completed/phase2/engine-wp65-deliberation-shadow-queue-implementation-2026-11-05.md)
 > - WP65 后半段（**per-session mutex + 快照版本号传递** · Redis SETNX 锁让同一会话同时只跑一个审议，拿不到锁就不入队；内核 `EngineTurnOutput.revision` 透传成审议入参的 `baseRevision` 记进 trace；**仍只做观察**，审议结果照旧不写 BDI 快照；engine-core **改 2 个文件**（预批准例外，纯加可选只读字段，决策与数值逐字不变））✅ → [`completed/phase2/engine-wp65-deliberation-mutex-revision-implementation-2026-11-06.md`](completed/phase2/engine-wp65-deliberation-mutex-revision-implementation-2026-11-06.md)
+> - 约束校验层 · 审议输出逐维 delta cap（**切灰度前置安全网** · 审议输出在**格式校验通过后**再过一道**逐维 delta cap**，直接复用内核 `capTurnDelta` + `DEFAULT_DELTA_CAP_CONFIG`（**与规则算子同一口径**，不自己写一套）；砍后的 delta 记进 Redis trace，砍幅明细进 `capEntries`（只记被砍的维度）；**影子期仍只观测**，审议结果照旧不写 BDI 快照；engine-core **零改动**）✅ → [`completed/phase2/engine-deliberation-delta-cap-validation-implementation-2026-11-06.md`](completed/phase2/engine-deliberation-delta-cap-validation-implementation-2026-11-06.md)
 > - WP66（审议输出格式校验与重试 · 按错误类型分流，形状类与 429/5xx 走 BullMQ 重试，先写 trace 再抛，内核零改动）✅ → [`completed/phase2/engine-wp66-deliberation-format-retry-implementation-2026-11-05.md`](completed/phase2/engine-wp66-deliberation-format-retry-implementation-2026-11-05.md)
 > - WP67（审议熔断与降级策略 · 会话级熔断器，连续失败 3 次暂停，冷却后半开探一个，内核零改动）✅ → [`completed/phase2/engine-wp67-deliberation-circuit-breaker-implementation-2026-11-05.md`](completed/phase2/engine-wp67-deliberation-circuit-breaker-implementation-2026-11-05.md)
 > - WP68（意图锁定机制 · 基础版 · 审议输出加可选 intentionShift + 影子期旁路模拟锁定 N 轮，内核零改动）✅ → [`completed/phase2/engine-wp68-deliberation-intention-lock-implementation-2026-11-05.md`](completed/phase2/engine-wp68-deliberation-intention-lock-implementation-2026-11-05.md)
@@ -65,7 +66,7 @@
 > 进度 33/42（WP 清单与总览口径一致，WP27–WP69；2026-11-05 新增 WP63–WP68 混合式 BDI PoC 组 —— **该组 6 条已全部交付**）。
 > **注**：上面那条 Admin Dashboard 四合一任务单**不是编号 WP**，不计入 42 条进度。
 >
-> ✅ **WP65 两半都销了**（2026-11-06 补齐后半段）：「队列化」+「per-session mutex + 快照版本号」都已落地 —— 同一会话同时只跑一个审议（Redis SETNX），审议入参带 `baseRevision` 记进 trace。**但审议结果仍不生效**（影子模式不变），切灰度还要补"过期判定与丢弃"+"约束校验层"。
+> ✅ **WP65 两半都销了**（2026-11-06 补齐后半段）：「队列化」+「per-session mutex + 快照版本号」都已落地 —— 同一会话同时只跑一个审议（Redis SETNX），审议入参带 `baseRevision` 记进 trace。**但审议结果仍不生效**（影子模式不变）。约束校验层的 **delta cap 那一半已补齐**（2026-11-06，逐维砍幅 + 砍幅明细进 trace），切灰度还要补"过期判定与丢弃"+"临床合理性校验"。
 >
 > ⚠️ **WP67 只销了「熔断器」那一半**：母版三档里的「超时跳过」与「切回规则算子」在影子模式下**天然成立**（审议结果从不生效）；**`degraded: true` 会话打标仍未做**。
 >

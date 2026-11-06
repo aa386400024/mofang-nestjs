@@ -122,6 +122,7 @@
 > ⚠️ **WP58 只销了「后端三接口」那一半**：母版描述里的**"触发了什么事件"**（逐事件明细）与 **delta cap 砍幅报告**也仍未做 —— 那两项内核不对外，需另开单。**（后半段已补上"触发了什么事件 + 原始 delta"的落库与查询 —— 见下条。）****前端接线已由前端 AI 补上**（`views/DebugChat.vue` + `views/debug/SessionList.vue`，随 WP31 提交 `8b9fa6f` 入库）。**别把这一行当成"调试面板已完整可用"。**
 >
 > ✅ **WP58 后半段（事件 + delta 审计观测）已交付**（2026-11-06）：新表 `turn_delta_audits` + 读端点 `GET /admin/api/debug/sessions/:sessionId/delta-audit`。**"触发了什么事件"这一项销掉了**（每轮事件类型 + 命中词 + 原始 delta 落库，按 sessionId 可查）；**"delta cap 砍幅报告"仍未销**（任务单 §八 明确不存 cap_entries —— 砍幅仍只有日志）；**生产缺省关**（`TURN_DELTA_AUDIT_ENABLED` 不开则一条数据都没有）；**前端面板未做**（另开单）。engine-core **改 1 个文件**（仅 barrel 导出 `RuleBasedClassifier`）。
+> ✅ **约束校验层 · 审议输出逐维 delta cap 已交付**（2026-11-06）：审议输出在**格式校验通过后**，再过一道**逐维 delta cap**（直接复用内核 `capTurnDelta` + `DEFAULT_DELTA_CAP_CONFIG`，**与规则算子同一口径**，不自己写一套）；砍后的 delta 记进 Redis trace，砍幅明细进 `capEntries`（只记被砍的维度）。**"审议输出要过约束校验层"这件事销掉了一半** —— delta cap 这一半做完了；**"临床合理性"那一半仍未做**（蓝图 §2.3 那类规则：单轮幅度上限 / 跨维度一致性 / 阻抗跳变）。**影子期仍然只观测** —— 审议结果照旧不写 BDI 快照。engine-core **零改动**。
 >
 > ⚠️ **WP58 的调试会话已由纯内存改成落 JSON 文件**（**2026-11-05 四合一任务单**）：`data/debug-sessions/{id}.json`，**每轮追加写**（崩溃 / 重启不丢数据）→ 按创建时间保留最近 50 个 → 第 3 轮后 LLM 自动命名（模型复用既有 env `MEMORY_SUMMARY_MODEL`；人工改名永不被覆盖）。⚠️ WP58 原话"纯内存不落库"已扩为**"落文件不落库"** —— **仍不写** `training_sessions` / `turn_debug_trace`，这是纪律的扩展不是推翻（[交付记录](../completed/phase2/engine-admin-dashboard-mock-to-real-and-debug-session-persistence-implementation-2026-11-05.md) 偏差表 B1）。另：`DELETE /debug/session/:id` 是**关会话**（历史还在），`DELETE /debug/sessions/:id` 是**删历史**（文件真删）—— 两者只差一个 s，别看串。
 
@@ -131,7 +132,7 @@
 
 > ⚠️ **WP68 只销了「基础版」**：母版描述里的**触发事件白名单**（咨询师直接提问了意图相关话题 → 提前解锁）**未做** —— 那是 NLP 级判断，任务单 §2 D5 已明确 PoC 阶段不做。**别把这一行当成"提前解锁已实现"。**
 
-> ✅ **混合式 BDI PoC 组（WP63–WP68）全部交付** —— 影子期的对比数据齐了：软状态 delta（WP64/66）、意图层（WP68）、熔断与降级（WP67）。**下一站是 Phase3A 切灰度**：WP65 的 per-session mutex + 快照版本号**已补齐**（2026-11-06），剩下的硬骨头是"**审议输出要过约束校验层**（delta cap + 临床合理性）才能落快照"+"过期判定与丢弃"。
+> ✅ **混合式 BDI PoC 组（WP63–WP68）全部交付** —— 影子期的对比数据齐了：软状态 delta（WP64/66）、意图层（WP68）、熔断与降级（WP67）。**下一站是 Phase3A 切灰度**：WP65 的 per-session mutex + 快照版本号**已补齐**（2026-11-06），约束校验层的 **delta cap 那一半也补齐了**（2026-11-06）—— 剩下的硬骨头是"**临床合理性校验**"+"**过期判定与丢弃**"。
 
 > 🆕 **2026-11-05 新增 6 条 WP（WP63–WP68）**：混合式 BDI PoC 组，基于 Coze 下线趋势判断的架构方向校准。详见 [`../../architecture/hybrid-bdi-agent-blueprint-v1.0.md`](../../architecture/hybrid-bdi-agent-blueprint-v1.0.md)。
 
