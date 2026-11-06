@@ -336,6 +336,280 @@ function collectEffectiveEnvKeys(): Set<string> {
   return keys;
 }
 
+/** config 装配层 (default.ts) —— "@unused-read" 标记的所在处. */
+const DEFAULT_CONFIG_TS = path.join(SRC_ROOT, 'config/envs/default.ts');
+
+/** "@unused-read" 标记 (机器可读的"这个字段读到了但没人消费"声明). */
+const UNUSED_READ_MARKER = '@unused-read';
+
+/** .env.example 里「预留键 (读得到但未消费)」区的**标题**形状. */
+const RESERVED_SECTION_HEADER = /^#\s*预留键.*读得到/;
+
+/** .env.example 里的分隔横幅 (# ====== ...). */
+const SECTION_BANNER = /^#\s*={10,}\s*$/;
+
+/**
+ * 一个 "@unused-read" 标记条目.
+ */
+interface UnusedReadEntry {
+  /** env 键名 (如 QDRANT_COLLECTION). */
+  readonly envKey: string;
+  /** config 路径 (如 qdrant.collection). */
+  readonly configPath: string;
+}
+
+/**
+ * 找 default.ts 里 `export const config = {...}` 的对象字面量.
+ *
+ * @param sourceFile default.ts 的 AST
+ * @returns config 对象字面量; 找不到返 undefined
+ */
+function findConfigObjectLiteral(sourceFile: ts.SourceFile): ts.ObjectLiteralExpression | undefined {
+  for (const statement of sourceFile.statements) {
+    if (!ts.isVariableStatement(statement)) continue;
+    for (const declaration of statement.declarationList.declarations) {
+      if (!ts.isIdentifier(declaration.name) || declaration.name.text !== 'config') continue;
+      const initializer = declaration.initializer;
+      if (initializer && ts.isObjectLiteralExpression(initializer)) return initializer;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * 一个节点子树里读到的 env 键 (只看 process.env.X 两种形态).
+ *
+ * @param node 起始节点
+ * @returns env 键名
+ */
+function extractEnvKeysFromNode(node: ts.Node): string[] {
+  const keys = new Set<string>();
+  const visit = (n: ts.Node): void => {
+    if (ts.isPropertyAccessExpression(n) && isProcessEnv(n.expression)) {
+      keys.add(n.name.text);
+    }
+    if (ts.isElementAccessExpression(n) && isProcessEnv(n.expression) && ts.isStringLiteral(n.argumentExpression)) {
+      keys.add(n.argumentExpression.text);
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(node);
+  return [...keys];
+}
+
+/**
+ * 扫 default.ts, 收集所有带 "@unused-read" 标记的 config 字段.
+ *
+ * 为什么用 AST 而不是正则:
+ *   标记是**注释**, 正则看不到"这个注释属于哪个字段" —— 只能靠"标记行往下找第一个
+ *   代码行"这种脆弱推断. AST 的 `getLeadingCommentRanges` 直接给出"这个属性前面挂了
+ *   哪些注释", 是精确归属.
+ *
+ * @returns 标记条目 (一个字段可能读多个 env 键, 那就多条)
+ */
+function collectUnusedReadEntries(): UnusedReadEntry[] {
+  const source = readFileSync(DEFAULT_CONFIG_TS, 'utf8');
+  const sourceFile = ts.createSourceFile(DEFAULT_CONFIG_TS, source, ts.ScriptTarget.Latest, true);
+  const root = findConfigObjectLiteral(sourceFile);
+  if (!root) return [];
+  const entries: UnusedReadEntry[] = [];
+  const nameOf = (name: ts.PropertyName): string => name.getText(sourceFile).replaceAll(/^['"]|['"]$/g, '');
+  for (const topProp of root.properties) {
+    if (!ts.isPropertyAssignment(topProp)) continue;
+    const namespace = nameOf(topProp.name);
+    const initializer = topProp.initializer;
+    if (!ts.isObjectLiteralExpression(initializer)) continue;
+    for (const innerProp of initializer.properties) {
+      if (!ts.isPropertyAssignment(innerProp)) continue;
+      const comments = ts.getLeadingCommentRanges(source, innerProp.getFullStart()) ?? [];
+      const marked = comments.some((range) => source.slice(range.pos, range.end).includes(UNUSED_READ_MARKER));
+      if (!marked) continue;
+      const field = nameOf(innerProp.name);
+      for (const envKey of extractEnvKeysFromNode(innerProp.initializer)) {
+        entries.push({ envKey, configPath: `${namespace}.${field}` });
+      }
+    }
+  }
+  return entries;
+}
+
+/**
+ * 这个调用是不是 "从 config 里取值" —— `config.get('...')` / `config.getOrThrow('...')`.
+ *
+ * 为什么限定接收者名字里带 config:
+ *   `someMap.get('key')` / `headers.get('x')` 也是 `.get()`, 不限定就会把
+ *   Map / Headers 的取值误判成"消费了 config 字段" —— 那样守卫会**永远绿**, 形同虚设.
+ *
+ * @param node 待判断节点
+ * @returns 是否是 config 取值调用
+ */
+function isConfigGetCall(node: ts.Node): boolean {
+  if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return false;
+  const method = node.expression.name.text;
+  if (method !== 'get' && method !== 'getOrThrow') return false;
+  if (node.arguments.length === 0 || !ts.isStringLiteral(node.arguments[0])) return false;
+  const receiver = node.expression.expression;
+  const name = ts.isIdentifier(receiver) ? receiver.text : ts.isPropertyAccessExpression(receiver) ? receiver.name.text : '';
+  return /config/i.test(name);
+}
+
+/**
+ * 一个文件里 config 的**消费形态索引**.
+ */
+interface ConfigUsageIndex {
+  /** 直接命中的 config 路径 (get('ns.field') / get('ns').field / 解构出来的字段). */
+  readonly paths: Set<string>;
+  /** 命名空间 → 持有它的变量名 (const v = get('ns')). */
+  readonly nsVars: Map<string, Set<string>>;
+  /** 变量字段访问 (v.field). */
+  readonly varFields: Set<string>;
+}
+
+/**
+ * 扫一个文件, 索引它对 config 的所有消费形态.
+ *
+ * 覆盖五种形态 (缺一种 = 守卫会漏判"已经接线了"):
+ *   ① get('ns.field')              嵌套路径直读;
+ *   ② get('ns').field               先取命名空间再点字段 (直接链);
+ *   ③ const v = get('ns'); v.field  先取命名空间存变量再点字段;
+ *   ④ const { field } = get('ns')   解构;
+ *   ⑤ get('field')                  顶层平铺字段 (无命名空间).
+ *
+ * @param file 源文件路径
+ * @returns 消费形态索引
+ */
+function analyzeConfigUsage(file: string): ConfigUsageIndex {
+  const sourceFile = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
+  const paths = new Set<string>();
+  const nsVars = new Map<string, Set<string>>();
+  const varFields = new Set<string>();
+  const visit = (node: ts.Node): void => {
+    if (isConfigGetCall(node)) {
+      collectConfigGetUsage(node, paths, nsVars);
+    }
+    // 变量字段访问 (v.field) —— 配合 nsVars 还原成 'ns.field'
+    if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) {
+      varFields.add(`${node.expression.text}.${node.name.text}`);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return { paths, nsVars, varFields };
+}
+
+/**
+ * 把一次 "从 config 取值" 的调用记进消费形态索引.
+ *
+ * @param node 取值调用节点
+ * @param paths 直接命中的 config 路径 (输出)
+ * @param nsVars 命名空间 → 变量名 (输出)
+ */
+function collectConfigGetUsage(node: ts.Node, paths: Set<string>, nsVars: Map<string, Set<string>>): void {
+  const call = node as ts.CallExpression;
+  const key = (call.arguments[0] as ts.StringLiteral).text;
+  const parent = node.parent;
+  // ① 嵌套路径直读: get('ns.field')
+  if (key.includes('.')) {
+    paths.add(key);
+    return;
+  }
+  // ⑤ 顶层平铺键名: get('jwtSecret') —— key 本身就是完整路径.
+  //   (先记下来: 不带点的键既可能是"平铺字段", 也可能是"命名空间" —— 后面两种形态再往上拼)
+  paths.add(key);
+  // ② 直接链: get('ns').field
+  if (ts.isPropertyAccessExpression(parent)) {
+    paths.add(`${key}.${parent.name.text}`);
+    return;
+  }
+  // ③ / ④ 赋值给变量或解构.
+  //   注: parent 是 VariableDeclaration 时, 它的唯一 CallExpression 子节点**就是** initializer
+  //   (另一个子节点 name 是 Identifier) —— 所以这里不需要再比一次 initializer === node.
+  //   ⚠️ 但 initializer 常被包一层 (const v = config.get('ns') as T / config.get('ns')!),
+  //     那时直接父节点是 AsExpression / NonNullExpression —— 要先剥一层再找 owner.
+  const owner =
+    ts.isAsExpression(parent) || ts.isTypeAssertionExpression(parent) || ts.isNonNullExpression(parent) ? parent.parent : parent;
+  if (!ts.isVariableDeclaration(owner)) return;
+  const name = owner.name;
+  if (ts.isIdentifier(name)) {
+    const vars = nsVars.get(key) ?? new Set<string>();
+    vars.add(name.text);
+    nsVars.set(key, vars);
+    return;
+  }
+  if (ts.isObjectBindingPattern(name)) {
+    for (const element of name.elements) {
+      const bound = element.propertyName ?? element.name;
+      if (ts.isIdentifier(bound)) paths.add(`${key}.${bound.text}`);
+    }
+  }
+}
+
+/**
+ * 找某个 config 字段的**消费点** (有人读它 = 这个键配了就会生效).
+ *
+ * 边界: 检测不到"消费点读错路径"的 bug (如 config.get('consentCurrentVersion')
+ *   想读的是 consent.currentVersion) —— 那是另一个类型的问题, 见 WP48 任务单 §1.2.1.
+ *
+ * @param configPath config 路径 (如 qdrant.collection)
+ * @returns 消费点所在文件 (相对仓库根)
+ */
+function findConfigConsumptions(configPath: string): string[] {
+  const parts = configPath.split('.');
+  const field = parts.at(-1) ?? '';
+  const namespace = parts.length > 1 ? parts.slice(0, -1).join('.') : '';
+  const hits: string[] = [];
+  for (const file of collectTsFiles(SRC_ROOT)) {
+    if (file === DEFAULT_CONFIG_TS) continue;
+    const index = analyzeConfigUsage(file);
+    let found = index.paths.has(configPath);
+    if (!found && namespace !== '') {
+      const vars = index.nsVars.get(namespace);
+      if (vars) {
+        for (const varName of vars) {
+          if (index.varFields.has(`${varName}.${field}`)) {
+            found = true;
+            break;
+          }
+        }
+      }
+    }
+    if (found) hits.push(path.relative(REPO_ROOT, file).replaceAll('\\', '/'));
+  }
+  return hits;
+}
+
+/**
+ * 读 `.env.example` 里「预留键 (读得到但未消费)」区的**生效键**.
+ *
+ * 为什么单独找这一区:
+ *   .env.example 里有两类"预留键" (代码查无读取点 / 读到了但没人消费),
+ *   只有第二类对应 "@unused-read" 标记 —— 断言要对着**对的那一区**打.
+ *
+ * @returns 该区的生效键
+ */
+function collectReservedSectionKeys(): Set<string> {
+  const lines = readFileSync(ENV_EXAMPLE, 'utf8').split(/\r?\n/);
+  const headerIndex = lines.findIndex((raw) => RESERVED_SECTION_HEADER.test(raw.trim()));
+  if (headerIndex === -1) return new Set();
+  let start = headerIndex;
+  while (start > 0 && !SECTION_BANNER.test(lines[start].trim())) start -= 1;
+  let end = lines.length;
+  for (let index = headerIndex + 1; index < lines.length; index += 1) {
+    if (SECTION_BANNER.test(lines[index].trim())) {
+      end = index;
+      break;
+    }
+  }
+  const keys = new Set<string>();
+  for (let index = start; index < end; index += 1) {
+    const line = lines[index].trim();
+    if (line === '' || line.startsWith('#')) continue;
+    const match = /^([A-Za-z_][A-Za-z0-9_]*)\s*=/.exec(line);
+    if (match?.[1]) keys.add(match[1]);
+  }
+  return keys;
+}
+
 describe('WP25 · .env.example 与代码 env 读取点一一对应', () => {
   const codeKeys = collectCodeEnvKeys();
   const exampleKeys = collectEffectiveEnvKeys();
@@ -465,5 +739,63 @@ describe('WP25 · .env.example 与代码 env 读取点一一对应', () => {
     // 但它得**看得见** —— 注释行里必须提到它, 否则运维不知道这个开关存在.
     const mentioned = lines.some((raw) => raw.trim().startsWith('#') && raw.includes('NODE_ENV'));
     expect(mentioned, 'NODE_ENV 必须在 .env.example 的注释里出现 (可发现性)').toBe(true);
+  });
+
+  // V2026-11-06 治本 (WP48 · env 守卫盲区 — 分不出「读进 config」与「真被消费」):
+  //   ①② 两条断言守的是"代码读没读这个 env 键" —— 但**读进 config 命名空间 ≠ 有人消费**.
+  //   读进命名空间却没人消费的那些键 (QDRANT_COLLECTION / VOICE_SESSION_IDLE_TIMEOUT_MS)
+  //   在断言①里一路绿灯 (代码确实读了), 可运维配了等于白配 —— 静默失效, 最费时间的排障陷阱.
+  //   用例⑤ 把这一类**单列**出来守住.
+  it('⑤ @unused-read 标记的键: 确实无人消费, 且在 .env.example 预留区登记', () => {
+    const entries = collectUnusedReadEntries();
+    expect(entries.length, 'default.ts 里至少要有一个 @unused-read 标记的字段 (否则本用例形同虚设)').toBeGreaterThan(0);
+
+    const reservedKeys = collectReservedSectionKeys();
+    const markedEnvKeys = new Set(entries.map((entry) => entry.envKey));
+
+    // 断言 A: 标记过的键必须在 .env.example 的「预留键 (读得到但未消费)」区里登记.
+    //   不登记 = "标记了但没告诉运维" —— 运维照抄生效区还是会把值配上, 照旧踩坑.
+    const notRegistered = entries
+      .map((entry) => entry.envKey)
+      .filter((key) => !reservedKeys.has(key))
+      .sort();
+    expect(
+      notRegistered,
+      `以下键标了 @unused-read, 但没在 .env.example 预留区登记 (运维看不到"配了不生效"):\n${notRegistered.join('\n')}`,
+    ).toEqual([]);
+
+    // 断言 B: 标记过的键**确实**没人消费 —— 有人消费了 = 标记过时 = 该把它接上线了.
+    const consumed: string[] = [];
+    for (const entry of entries) {
+      const hits = findConfigConsumptions(entry.configPath);
+      if (hits.length > 0) {
+        consumed.push(`${entry.envKey} (config.${entry.configPath}) 已被消费: ${hits.join(', ')}`);
+      }
+    }
+    expect(
+      consumed,
+      `以下键标了 @unused-read, 但已经有人消费了 —— 标记过时, 请接线后把它挪回生效区并去掉标记:\n${consumed.join('\n')}`,
+    ).toEqual([]);
+
+    // 断言 B 的**正对照** —— 检测器必须能看见仓库里**确实**有人消费的字段.
+    //   少了这一条, 断言 B 可能因为"检测器坏了"而永远绿 (那比没有守卫更糟).
+    //   这两个字段在仓库里确实有消费点, 检测器必须找到 —— 找到 = 检测器活着.
+    const positiveControls: readonly (readonly [string, string])[] = [
+      ['voice.sessionIdleTimeoutMinutes', 'src/voice/voice.service.ts'],
+      ['jwtSecret', 'src/auth/strategies/jwt.strategy.ts'],
+    ];
+    for (const [configPath, expectedFile] of positiveControls) {
+      const hits = findConfigConsumptions(configPath);
+      expect(hits, `检测器失灵: ${configPath} 在 ${expectedFile} 明明有人消费, 却没检测到`).toContain(expectedFile);
+    }
+
+    // 断言 C: 预留区里的每个生效键都必须有 @unused-read 标记 (两处不许漂移).
+    //   反双胞胎: "哪些键没人消费" 只在 default.ts 注释 + .env.example 预留区两处,
+    //   守卫守住两边一致 —— 少标记一个 = 那个键悄悄脱离守卫.
+    const unmarked = [...reservedKeys].filter((key) => !markedEnvKeys.has(key)).sort();
+    expect(
+      unmarked,
+      `以下键在 .env.example 预留区, 但 default.ts 里没有 @unused-read 标记 (守卫会漏掉它):\n${unmarked.join('\n')}`,
+    ).toEqual([]);
   });
 });

@@ -153,6 +153,7 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'select', id: string): void
   (e: 'collapse'): void
+  (e: 'deleted', id: string): void
 }>()
 
 const message = useMessage()
@@ -213,6 +214,7 @@ function confirmDelete(session: DebugSessionSummary) {
       try {
         await api.debugSession.remove(session.id)
         sessions.value = sessions.value.filter(s => s.id !== session.id)
+        emit('deleted', session.id)
         message.success('会话已删除')
       } catch (e) {
         message.error('删除失败')

@@ -53,7 +53,9 @@
 >
 > - WP46（Sentry 通道脱敏 · **心理数据合规闭环** · **实测发现 `@sentry/node@11.10.0` 已删除 `sendDefaultPii` 且 `dataCollection.httpBodies` 默认采集入站请求体 —— 任务单前提不成立，本单是在堵正在流血的洞**；抽 `pii-redactor.ts` 唯一脱敏实现 + `beforeSend` 事件级递归脱敏 + 两层黑名单 + 两个 filter 对齐 + 修 7 处打原文日志；engine-core 零改动）✅ → [`completed/phase2/engine-wp46-sentry-redaction-implementation-2026-11-06.md`](completed/phase2/engine-wp46-sentry-redaction-implementation-2026-11-06.md)
 >
-> 进度 30/41（WP 清单与总览口径一致，WP27–WP68；2026-11-05 新增 WP63–WP68 混合式 BDI PoC 组 —— **该组 6 条已全部交付**）。
+> - WP48（env 守卫盲区 · **「读进 config」≠「真被消费」** · 全量扫描发现盲区比任务单预估的大 7 倍 —— 实际 **16 个**「配了不生效」的键，其中 **14 个躺在 `.env.example` 的【生效区】**；本单加 `// @unused-read` 标记 + 守卫用例⑤（标记 ↔ 预留区 ↔ 无人消费 三向一致 + **正对照断言**防「守卫永远绿」；engine-core 零改动）✅ → [`completed/phase2/engine-wp48-env-guard-blind-spot-implementation-2026-11-06.md`](completed/phase2/engine-wp48-env-guard-blind-spot-implementation-2026-11-06.md)
+>
+> 进度 31/41（WP 清单与总览口径一致，WP27–WP68；2026-11-05 新增 WP63–WP68 混合式 BDI PoC 组 —— **该组 6 条已全部交付**）。
 > **注**：上面那条 Admin Dashboard 四合一任务单**不是编号 WP**，不计入 41 条进度。
 >
 > ⚠️ **WP65 只销了「队列化」那一半**：母版描述里的 **per-session mutex + 快照版本号**仍未做 —— 影子模式下审议结果不写状态，暂无覆盖风险；**切灰度（结果开始生效）前必须补**。
@@ -71,6 +73,8 @@
 > ⚠️ **2026-11-05 四合一任务单仍有 5 个缺口**（真没做，别当已完成）：G1 **PsyGUARD 真指标未采集**（延迟 / 请求数 / 类别计数 → 面板显示"指标未采集"而非假数）/ G2 **工作与短时记忆列不出**（内核 `MemoryStore` 端口无 list-all，engine-core 红线不可破 → 只列长时）/ G3 **调试会话不含"本场记忆"**（引擎召回结果没进留痕契约）/ G4 **调试会话标题不参与检索**（会话多了只能肉眼找）/ G5 **删除历史无后端审计**。逐条见交付记录 §七。
 >
 > ⚠️ **WP31 只销了「看板」那一半**：成本看板已切真，但**超阈值告警规则仍未做**（阈值配置 / 告警通道 / 通知策略）。**成本数据来自引擎调试留痕，生产缺省关留痕 → 生产的 token / 成本恒 0**（场次数仍准确）；要让生产看板有数，得给 `training_sessions.tech_stats` 补 token 统计（缺口 G1）。
+>
+> ⚠️ **WP48 只销了「守卫」那一半**：全量扫出的 **14 个生效区盲区键**（`SMS_*` 5 个 / `EMBEDDING_*` 7 个 / `METRICS_PATH` / `CONSENT_CURRENT_VERSION`）**本单按任务单 §五.3 没挪进预留区**（挪 = 改部署契约 = 产品决策）→ 运维照抄模板仍会配上，配了不生效。处置方案见交付记录 §八（后续单 A/B/C）—— **后续单 A 做完后，用例⑤ 会自动覆盖这 14 个键，守卫一行都不用改**。另 `CONSENT_CURRENT_VERSION` 是**路径错误型** bug（`consent.service.ts:41` 读的是平铺 `consentCurrentVersion`，正确路径 `consent.currentVersion`），改一行即可，按范围留给后续单。
 
 ---
 

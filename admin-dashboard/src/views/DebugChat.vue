@@ -26,6 +26,11 @@ const activeTab = ref('bdi')
 // 当前轮次的 trace（右侧调试面板用）
 const currentTrace = ref<TurnTrace | null>(null)
 
+// 活跃会话 ID 集合（后端内存里有运行时状态的，可以继续发消息）
+// 历史会话（从文件加载的）不在这个集合里，只能看不能发
+const activeSessionIds = ref<Set<string>>(new Set())
+const isReadOnly = computed(() => !!sessionId.value && !activeSessionIds.value.has(sessionId.value))
+
 // 会话列表展开/收起
 const showSessionList = ref(true)
 const sessionListRef = ref<InstanceType<typeof SessionList> | null>(null)
@@ -73,8 +78,24 @@ function onDragStart(e: MouseEvent) {
 }
 
 // ========== 计算属性 ==========
-const canSend = computed(() => !!sessionId.value && !!inputText.value.trim() && !sending.value)
+const canSend = computed(() => !!sessionId.value && !!inputText.value.trim() && !sending.value && !isReadOnly.value)
 const selectedCharacter = computed(() => characters.value.find(c => c.slug === selectedCharacterSlug.value))
+
+// 事件标签中英映射（占位数据，等后端 trace 接进来后替换）
+const eventTagMap: Record<string, string> = {
+  empathy: '共情回应',
+  open_probe: '开放提问',
+  micro_expression: '微表情分析',
+  emotion_reflection: '情感反映',
+  normalization: '正常化',
+  open_discussion: '开放讨论',
+}
+const eventTagList = computed(() => {
+  // 优先从 trace 里取真实事件标签，没有就用占位
+  const trace = currentTrace.value as any
+  const rawTags: string[] = trace?.operatorTags ?? trace?.eventTags ?? trace?.intention ? [trace.intention] : ['empathy', 'open_probe']
+  return rawTags.map(key => ({ key, label: eventTagMap[key] ?? key }))
+})
 
 // ========== 方法 ==========
 async function loadCharacters() {
@@ -96,6 +117,8 @@ async function startSession() {
     messages.value = []
     currentTrace.value = null
     bdiHistory.value = []
+    // 新建会话是活跃的（后端内存里有运行时状态）
+    activeSessionIds.value.add(data.sessionId)
     message.success(t('debugChat.startSession'))
     // 新建会话后刷新左侧列表
     sessionListRef.value?.loadSessions()
@@ -115,6 +138,9 @@ async function sendTurn() {
 
   // 先把咨询师消息加上
   messages.value.push({ role: 'counselor', text })
+  // 咨询师气泡出现后立刻滚到底部（让用户看到自己刚发的消息）
+  await nextTick()
+  scrollToBottom()
 
   try {
     const data = await api.debugSession.turn(sessionId.value, text)
@@ -226,6 +252,8 @@ async function resetSession() {
         } catch (e) {
           console.error('关闭调试会话失败', e)
         }
+        // 从活跃集合里删掉（后端已清内存状态）
+        activeSessionIds.value.delete(sessionId.value)
       }
       sessionId.value = null
       selectedCharacterSlug.value = null
@@ -295,6 +323,19 @@ async function loadSession(sid: string) {
   } catch (e) {
     message.error('加载会话失败')
     console.error(e)
+  }
+}
+
+// 会话被删除时：如果删的是当前打开的会话，清空右侧聊天区域
+function onSessionDeleted(deletedId: string) {
+  if (sessionId.value === deletedId) {
+    activeSessionIds.value.delete(deletedId)
+    sessionId.value = null
+    selectedCharacterSlug.value = null
+    messages.value = []
+    turnIndex.value = 0
+    currentTrace.value = null
+    bdiHistory.value = []
   }
 }
 
@@ -388,7 +429,7 @@ onMounted(() => {
     <div id="debug-chat-main" class="flex-1 flex min-h-0 gap-3">
       <!-- 最左边：会话列表（可收起） -->
       <div v-if="showSessionList" class="w-64 flex-shrink-0 h-full min-h-0">
-        <SessionList ref="sessionListRef" :selected-id="sessionId" @select="loadSession" @collapse="showSessionList = false" />
+        <SessionList ref="sessionListRef" :selected-id="sessionId" @select="loadSession" @collapse="showSessionList = false" @deleted="onSessionDeleted" />
       </div>
 
       <!-- 中间：聊天窗口 -->
@@ -474,8 +515,15 @@ onMounted(() => {
 
         <!-- 输入框 -->
         <div class="border-t border-bg-border p-3 space-y-2">
+          <!-- 历史会话只读提示 -->
+          <div v-if="isReadOnly" class="text-xs text-muted bg-muted/30 rounded px-2 py-1.5 flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            历史会话仅可查看，新建会话可继续调试
+          </div>
           <!-- 快捷话术 -->
-          <div v-if="sessionId" class="flex flex-wrap gap-1">
+          <div v-if="sessionId && !isReadOnly" class="flex flex-wrap gap-1">
             <span class="text-xs text-muted self-center mr-1">{{ t('debugChat.quickPrompts') }}</span>
             <NButton
               v-for="q in quickPrompts"
@@ -491,16 +539,16 @@ onMounted(() => {
           <div class="flex gap-2">
             <NInput
               v-model:value="inputText"
-              :placeholder="t('debugChat.inputPlaceholder')"
+              :placeholder="isReadOnly ? '历史会话只读' : t('debugChat.inputPlaceholder')"
               size="small"
               @keyup.enter="sendTurn"
-              :disabled="!sessionId || sending"
+              :disabled="!sessionId || sending || isReadOnly"
             />
             <NButton
               type="primary"
               size="small"
               :loading="sending"
-              :disabled="!canSend"
+              :disabled="!canSend || isReadOnly"
               @click="sendTurn"
             >
               {{ t('debugChat.send') }}
@@ -590,8 +638,9 @@ onMounted(() => {
                 {{ t('debugChat.noData') }}
               </div>
               <div v-else class="space-y-2">
-                <NTag size="tiny" v-for="evt in ['empathy', 'open_probe']" :key="evt" type="info">
-                  {{ evt }}
+                <div class="text-xs text-muted mb-1">{{ t('debugChat.eventTags') }}</div>
+                <NTag size="tiny" v-for="evt in eventTagList" :key="evt.key" type="info" round>
+                  {{ evt.label }}
                 </NTag>
               </div>
             </div>

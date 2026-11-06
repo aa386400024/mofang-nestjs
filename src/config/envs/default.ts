@@ -226,6 +226,12 @@ export const config = {
   },
   // V2026-10-08: Voice Gateway 业务配置 (Phase 3)
   voice: {
+    // @unused-read — 读进 config.voice.sessionIdleTimeoutMs 但**无人消费**:
+    //   真正生效的是 sessionIdleTimeoutMinutes (单位**分钟**, 见下方; 消费点
+    //   src/voice/voice.service.ts 读 config.get('voice.sessionIdleTimeoutMinutes')).
+    //   这个毫秒版是 Phase 3 的遗留键, 配了**不生效**;
+    //   ⚠️ 将来若接线, 别与 MINUTES 版**同时**生效 (两个都活着 = 单位打架).
+    //   见 .env.example 底部「预留键 (读得到但未消费)」区.
     sessionIdleTimeoutMs: Number(process.env.VOICE_SESSION_IDLE_TIMEOUT_MS ?? 600_000), // 10min
     // V2026-11-03 治本 (WP23 · 断线重连追平):
     //   · sessionIdleTimeoutMinutes: 超长 idle 兜底 (单位**分钟**, 默认 120).
@@ -265,6 +271,11 @@ export const config = {
   qdrant: {
     url: process.env.QDRANT_URL ?? 'http://qdrant:6333',
     apiKey: process.env.QDRANT_API_KEY,
+    // @unused-read — 读进 config.qdrant.collection 但**无人消费**:
+    //   知识库走 QDRANT_KB_COLLECTION (直键读取, knowledge.service.ts / search.service.ts),
+    //   引擎记忆仓储用**代码常量** visitor_long_memory (qdrant-memory.store.ts,
+    //   与知识库集合刻意隔离: 公共科普内容不能混进来访者私有长时记忆).
+    //   所以配 QDRANT_COLLECTION **不生效** —— 见 .env.example 底部「预留键 (读得到但未消费)」区.
     collection: process.env.QDRANT_COLLECTION ?? 'knowledge_chunks',
   },
 };
