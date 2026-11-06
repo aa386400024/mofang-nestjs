@@ -472,7 +472,7 @@ describe('WP12 · Qdrant 写侧冲突标记 (supersededBy)', () => {
   it('④ 新条目更晚 → 旧点被标 supersededBy (不物理删除)', async () => {
     const qdrant = new StubQdrant();
     qdrant.scrollPoints = [{ id: 'lt-old', payload: entryOf({}) as unknown as Record<string, unknown> }];
-    const store = new QdrantMemoryStore({ qdrant, embedder, now: () => CLOCK });
+    const store = new QdrantMemoryStore({ qdrant, embedder, fallback: new InMemoryMemoryStore(), now: () => CLOCK });
 
     await store.remember(entryOf({ id: 'lt-new', occurredAt: CLOCK + 1000, content: '来访者提到持续失眠' }));
 
@@ -493,7 +493,7 @@ describe('WP12 · Qdrant 写侧冲突标记 (supersededBy)', () => {
   it('旧条目更晚 (旧存活) → 新条目带着 supersededBy 一起落库', async () => {
     const qdrant = new StubQdrant();
     qdrant.scrollPoints = [{ id: 'lt-old', payload: entryOf({ occurredAt: CLOCK + 5000 }) as unknown as Record<string, unknown> }];
-    const store = new QdrantMemoryStore({ qdrant, embedder, now: () => CLOCK });
+    const store = new QdrantMemoryStore({ qdrant, embedder, fallback: new InMemoryMemoryStore(), now: () => CLOCK });
 
     await store.remember(entryOf({ id: 'lt-new', occurredAt: CLOCK }));
 
@@ -505,7 +505,7 @@ describe('WP12 · Qdrant 写侧冲突标记 (supersededBy)', () => {
   it('冲突扫描失败 → 不阻断写入 (失败方向安全: 少标记, 不误标)', async () => {
     const qdrant = new StubQdrant();
     qdrant.failScroll = true;
-    const store = new QdrantMemoryStore({ qdrant, embedder, now: () => CLOCK });
+    const store = new QdrantMemoryStore({ qdrant, embedder, fallback: new InMemoryMemoryStore(), now: () => CLOCK });
 
     await expect(store.remember(entryOf({ id: 'lt-new' }))).resolves.toBeUndefined();
 
@@ -515,7 +515,7 @@ describe('WP12 · Qdrant 写侧冲突标记 (supersededBy)', () => {
 
   it('无 topicKey → 不构成冲突组, 不扫描', async () => {
     const qdrant = new StubQdrant();
-    const store = new QdrantMemoryStore({ qdrant, embedder, now: () => CLOCK });
+    const store = new QdrantMemoryStore({ qdrant, embedder, fallback: new InMemoryMemoryStore(), now: () => CLOCK });
 
     await store.remember(entryOf({ id: 'lt-new', topicKey: undefined }));
 
@@ -594,7 +594,7 @@ describe('WP59 · 召回策略配置端口统一 (Qdrant 版消除双层判定)'
       // 100 天前 → 0.5 * 2^(-100/30) ≈ 0.0496 < 0.1 → 不召回
       { id: 'old', score: 0.9, payload: visitorPayload({ id: 'old', occurredAt: CLOCK - 100 * DAY_MS }) },
     ]);
-    const store = new QdrantMemoryStore({ qdrant, embedder, now: () => CLOCK });
+    const store = new QdrantMemoryStore({ qdrant, embedder, fallback: new InMemoryMemoryStore(), now: () => CLOCK });
 
     const hits = await store.recall(visitorQuery);
 
@@ -608,6 +608,7 @@ describe('WP59 · 召回策略配置端口统一 (Qdrant 版消除双层判定)'
     const store = new QdrantMemoryStore({
       qdrant,
       embedder,
+      fallback: new InMemoryMemoryStore(),
       now: () => CLOCK,
       config: { decayHalfLifeMs: 90 * DAY_MS, recallThreshold: 0.1 },
     });
@@ -623,6 +624,7 @@ describe('WP59 · 召回策略配置端口统一 (Qdrant 版消除双层判定)'
     const strict = new QdrantMemoryStore({
       qdrant,
       embedder,
+      fallback: new InMemoryMemoryStore(),
       now: () => CLOCK,
       config: { decayHalfLifeMs: 7 * DAY_MS, recallThreshold: 0.3 },
     });
@@ -632,6 +634,7 @@ describe('WP59 · 召回策略配置端口统一 (Qdrant 版消除双层判定)'
     const relaxed = new QdrantMemoryStore({
       qdrant,
       embedder,
+      fallback: new InMemoryMemoryStore(),
       now: () => CLOCK,
       config: { decayHalfLifeMs: 7 * DAY_MS, recallThreshold: 0.05 },
     });
@@ -655,7 +658,7 @@ describe('WP59 · 召回策略配置端口统一 (Qdrant 版消除双层判定)'
     };
 
     const qdrant = qdrantWith([{ id: 'lt-1', score: 0.9, payload: visitorPayload({ occurredAt: entry.occurredAt }) }]);
-    const qdrantStore = new QdrantMemoryStore({ qdrant, embedder, now: () => CLOCK, config });
+    const qdrantStore = new QdrantMemoryStore({ qdrant, embedder, fallback: new InMemoryMemoryStore(), now: () => CLOCK, config });
     const memoryStore = new InMemoryMemoryStore({ now: () => CLOCK, recallPolicy: toRecallPolicyOptions(config) });
     await memoryStore.remember(entry);
 

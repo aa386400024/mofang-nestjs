@@ -479,6 +479,20 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
     ];
     const missing = expected.filter((expectedPath) => !existsSync(path.join(KERNEL_ROOT, expectedPath)));
     expect(missing).toEqual([]);
+
+    // ⚠️ **V2026-11-05 治本 (WP45 · P3-9)**: 原来这条断言是**单向**的 ——
+    //   只查"该有的文件在不在", 不查"多出来的文件". 后果: **新增内核文件不会被拦** ——
+    //   往内核里塞一个新模块 (或整个新子系统) 不会有任何红灯, 边界清单形同虚设.
+    //   (WP25 审查 P3-9 登记的这条.)
+    //
+    //   现在补上**反向**检查: 内核树里出现的每个 .ts 都必须在清单里登记过.
+    //   ⚠️ 代价 (说清楚, 免得将来有人觉得"这条太烦"): **新增内核文件必须同步改这里**
+    //   —— 而这正是这条断言想要的: 内核的**形状**变更必须是**显式**的, 不是顺手就长出来的.
+    //   (注意: 断言①–⑤ / ⑩ 扫的是**全部**内核文件, 所以它们不受这条影响 ——
+    //    这条管的是"形状", 不是"纯度".)
+    const actual = kernelFiles.map((file) => relPath(file));
+    const extra = actual.filter((actualPath) => !expected.includes(actualPath)).sort();
+    expect(extra, `内核树里出现了未登记的文件 (新增内核文件必须同步登记到本清单):\n${extra.join('\n')}`).toEqual([]);
   });
 
   it('⑧ 内核根目录无散落文件 (结构不漂移, 防止随手往内核根扔 service)', () => {

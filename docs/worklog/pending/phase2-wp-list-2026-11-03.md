@@ -50,7 +50,7 @@
 
 | WP | 名称 | 优先级 | 一句话描述 |
 |---|---|---|---|
-| **WP45** | P3 技术债 8 条 | 🟢 P2 | Qdrant `client: any`、`TemplateParameter = any[]`、死配置、cancelled 状态只写不读、状态衰减/边际递减/饱和、Prometheus 告警规则、QdrantMemoryStore 默认值耦合 |
+| **WP45** ✅ | P3 技术债 8 条 | 🟢 P2 | Qdrant `client: any`、`TemplateParameter = any[]`、死配置、cancelled 状态只写不读、状态衰减/边际递减/饱和、Prometheus 告警规则、QdrantMemoryStore 默认值耦合。⚠️ **实际落地**：8 条**逐条核实**（不是照单全收）—— ① `client: any` 换真 SDK 类型 + **挖出一个线上一直在犯的 bug**（`setPayload` 按 v0.x 三参形状调，真 SDK v1.19 是两参 → **WP12 的冲突消解标记从未真正落库** → 同主题新旧矛盾记忆一起被召回；已修 + 新增打到 HTTP 层的契约回归测试 4 例）；② `TemplateParameter` 收窄成 `unknown[]`；③ `cancelled` **只写不读属实但"删掉"会坏打断语义**（删了状态停在 `processing` → 下次 `user_speaking` 重复打断）→ **保留 + 补注释**；④ Prometheus **指标早就有**，真问题是规则三类缺陷（3 条引用未部署的 exporter 指标 → 永不触发；4 处模板语法错；3 处 rate/count 口径错）→ 已修；⑤ 死配置**已被 WP28 处理完**，本单全量扫描无新发现；⑥ 衰减/饱和**早已做**（WP36+WP54 / clamp01），**边际递减真没做但属临床建模决策** → 登记建议另开单；⑦ 衰减/召回配置**早已 env 化**，真耦合只有"实现内部选实现" → `fallback` 改必填；⑧ 另修 P3-9（boundary 断言⑦ 补双向）；P3-10 早已修、P3-7 需内核批准 → 登记建议。**engine-core 零改动**（[交付记录](../completed/phase2/engine-wp45-p3-tech-debt-8-items-implementation-2026-11-05.md)） |
 | **WP46** | Sentry 通道脱敏 | 🟢 P2 | 本地日志已脱敏，Sentry 还是原样上报，补一层脱敏中间件 |
 | **WP47** | supervisor 督导报告切真 DB | 🟢 P2 | V0.x 内存 mock → TypeORM 落库 |
 | **WP48** | env 守卫盲区：分不出「读进 config」与「真被消费」 | 🟢 P2 | `wp25-env-example-coverage.spec.ts` 的 AST 只知道「代码里读没读这个键」，**分不出读进 config 命名空间与真被消费** —— 这类键能一路绿灯过断言①。已在 `.env.example` 底部「预留键（读得到但未消费）」区出现两个实例（`QDRANT_COLLECTION` / `VOICE_SESSION_IDLE_TIMEOUT_MS`）。修法：让守卫顺着 `process.env.X` → `config.get('命名空间.x')` 追一层消费点，把「读得到但无人消费」单列成一类（与「未接线」区分），并守住新区语义 |
@@ -106,7 +106,9 @@
 | 🟢 P2 技术债 | 13 条 | WP45, 46, 47, 48, 49, 52, 53, 54, 59, 60, 62, 68 |
 | **合计** | **41 条** | **WP27–WP68** |
 
-**进度：28 / 41 完成**（WP28 ✅、WP30 ✅、WP31 ✅、WP32 ✅、WP34 ✅、WP35 ✅、WP36 ✅、WP37 ✅、WP41 ✅、WP42 ✅、WP49 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP56 ✅、WP57 ✅、WP58 ✅、WP59 ✅、WP61 ✅、WP63 ✅、WP64 ✅、WP65 ✅、WP66 ✅、WP67 ✅、WP68 ✅，2026-11-05）。
+**进度：29 / 41 完成**（WP28 ✅、WP30 ✅、WP31 ✅、WP32 ✅、WP34 ✅、WP35 ✅、WP36 ✅、WP37 ✅、WP41 ✅、WP42 ✅、WP45 ✅、WP49 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP56 ✅、WP57 ✅、WP58 ✅、WP59 ✅、WP61 ✅、WP63 ✅、WP64 ✅、WP65 ✅、WP66 ✅、WP67 ✅、WP68 ✅，2026-11-05）。
+
+> ⚠️ **WP45 挖出来一个线上一直在犯的 bug**（比"清技术债"本身值钱）：`qdrant.service.ts` 的 `private client: any` 掩盖了 `setPayload` 按 **v0.x 三参**形状调（真 SDK v1.19 是**两参** `setPayload(collection, {payload, points})`）→ SDK 把第 2 参的**字符串 id** 解构成全 undefined、第 3 参被忽略 → **WP12 的冲突消解标记（`supersededBy`）从未真正落库** → 内核 `recall-policy` 排除"已被取代的记忆"那道判定永远不生效 → **同主题的新旧两条矛盾记忆会一起被召回**。已修 + 新增打到 HTTP 层的契约回归测试（4 例）。**别把这一行当成"只是清了 8 条样式债"。**
 
 > ℹ️ **2026-11-05 四合一任务单**（**非编号 WP，不计入 41 条**）：Dashboard / MemoryBrowser / PsyGuardMonitor 三页切真 + 调试会话落 JSON 文件 → [交付记录](../completed/phase2/engine-admin-dashboard-mock-to-real-and-debug-session-persistence-implementation-2026-11-05.md)｜[任务单](../completed/phase2/admin-dashboard-mock-to-real-and-debug-session-persistence-2026-11-05.md)
 

@@ -1738,6 +1738,20 @@ export class VoiceService {
    *
    * 语义 (spec §2.6): LLM abort + TTS task_cancel + generation 递增防旧流回灌 →
    * 回 `cancelled`. **已下发给前端的音频不撤回** (官方语义), 由前端本地停播丢弃.
+   *
+   * ⚠️ **V2026-11-05 治本 (WP45 · P3-4 · `state.status = 'cancelled'` 为什么"只写不读")**:
+   *   `state.status` 的四个读点 (phaseOf / shouldIgnoreTurn / onUserSpeaking / resumeSession)
+   *   分支的是 `'paused'` 与 `'processing'`, **没有一处读 `'cancelled'`**.
+   *   这**不是 bug, 是刻意的** (WP25 审查 §1.5 已定论: "abort → cancelled 帧 —— 不是 bug, 划掉"):
+   *     · 打断是**正常交互**, 不是错误 —— 客户端收到 `cancelled` 帧才是对的语义;
+   *     · `'cancelled'` 在读侧与 `'idle'` **同义** (都表示"这一轮不在跑"), 读侧靠
+   *       `!== 'processing'` 判定"没有正在跑的流水线", 不需要再分一档.
+   *   ⚠️ **为什么不能删掉这个赋值** (别把它当冗余写清理掉):
+   *     删掉后 `state.status` 会**停在 `'processing'`** —— 而 `onUserSpeaking` 的
+   *     守卫是 `if (state.status !== 'processing') return;` -> 下一次 user_speaking
+   *     会对一条**已经死掉的**流水线再打断一次 (重复 abort / 重复 dispose).
+   *     所以这行赋值是**状态机的一环**, 不是"写了没人看"的死代码.
+   *   本单只补注释, 说明白它为什么长这样 —— 免得下一个读代码的人把它当 bug 删掉.
    */
   private bargeIn(state: VoiceSessionState, send: SendFn): void {
     state.currentGeneration += 1;

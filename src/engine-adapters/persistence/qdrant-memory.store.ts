@@ -63,7 +63,6 @@
 import { Logger } from '@nestjs/common';
 
 import { DEFAULT_MEMORY_CONFIG, toRecallPolicyOptions, type MemoryConfig } from './memory-config.js';
-import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store.js';
 import {
   applyConflictResolution,
   assertValidMemoryEntry,
@@ -135,8 +134,20 @@ export interface QdrantMemoryStoreOptions {
   readonly qdrant: QdrantMemoryClient;
   /** 向量化端口 (内核 Embedder 接口). */
   readonly embedder: Embedder;
-  /** 会话级回落仓. 省略 = new InMemoryMemoryStore(). */
-  readonly fallback?: MemoryStore;
+  /**
+   * 会话级回落仓 (**必填**).
+   *
+   * ⚠️ **V2026-11-05 治本 (WP45 · P3-8)**: 原来这里是 `fallback?: MemoryStore`,
+   *   实现内部默认 `new InMemoryMemoryStore()` —— 也就是**"选实现"做在了实现里**:
+   *   同一个适配器, 传不传 fallback 会得到**两种不同的回落仓**, 而"该用哪个实现"
+   *   本该由装配层决定 (装配层一直都在显式传).
+   *   隐患: 哪天装配层漏传了, 不会报错, 只会**静默换一个实现** —— 降级路径的召回
+   *   结果于是跟正常路径不一致 (最难查的那种漂移).
+   *   现在**必填**: 装配层 (`engine.providers.ts`) 选实现, 本文件只管用.
+   *   副作用 (好的那种): 本文件不再 import `engine-core/in-memory/` 的具体实现 ——
+   *   适配层不再依赖内核的**实现类**, 只依赖内核的**端口**.
+   */
+  readonly fallback: MemoryStore;
   /** collection 名. 省略 = visitor_long_memory. */
   readonly collection?: string;
   /** 条目未显式指定 ttlMs 时的默认存活时长 (ms). 省略 = 永不过期. */
@@ -223,7 +234,8 @@ export class QdrantMemoryStore implements MemoryStore {
     this.config = options.config ?? DEFAULT_MEMORY_CONFIG;
     // WP59: 内置回落仓喂**同一份**召回策略 —— 降级路径的召回结果必须与正常路径一致,
     //   否则"向量库抖动一下"就会换一套召回结果 (最难查的那种漂移).
-    this.fallback = options.fallback ?? new InMemoryMemoryStore({ recallPolicy: toRecallPolicyOptions(this.config) });
+    // ⚠️ 回落仓本身由**装配层**构造并传入 (WP45 · P3-8): 本实现不选实现.
+    this.fallback = options.fallback;
   }
 
   async remember(entry: MemoryEntry): Promise<void> {

@@ -85,7 +85,7 @@
 
 | # | 工作包 | 来源 |
 |---|---|---|
-| P2-1 | P3 技术债 8 条（Qdrant `client: any`、`TemplateParameter = any[]`、`VOICE_SESSION_IDLE_TIMEOUT_MS` 死配置、`cancelled` 状态只写不读、状态衰减/边际递减/饱和、Prometheus 告警规则、QdrantMemoryStore 默认值耦合） | WP25 审查 |
+| P2-1 | P3 技术债 8 条 ✅ WP45（2026-11-05）| Qdrant `client: any`、`TemplateParameter = any[]`、`VOICE_SESSION_IDLE_TIMEOUT_MS` 死配置、`cancelled` 状态只写不读、状态衰减/边际递减/饱和、Prometheus 告警规则、QdrantMemoryStore 默认值耦合。⚠️ **实际落地**：8 条**逐条核实**（不是照单全收）—— ① `client: any` 换真 SDK 类型 + **挖出一个线上一直在犯的 bug**（`setPayload` 按 v0.x 三参形状调，真 SDK v1.19 是两参 → **WP12 的冲突消解标记从未真正落库** → 同主题新旧矛盾记忆一起被召回）；③ `cancelled` 保留 + 补注释（删掉会坏打断语义）；④ Prometheus 指标早就有，真问题是规则三类缺陷（3 条永不触发 + 4 处模板语法错 + 3 处 rate/count 口径错）；⑤ 死配置 WP28 已处理完；⑥ 衰减/饱和早已做，**边际递减属临床建模决策** → 另开单；⑦ 衰减/召回配置早已 env 化，真耦合只有"实现内部选实现"。**engine-core 零改动**（[交付记录](../completed/phase2/engine-wp45-p3-tech-debt-8-items-implementation-2026-11-05.md)） | WP25 审查 |
 | P2-2 | Sentry 通道脱敏（本地日志已脱敏，Sentry 还是原样上报） | WP26 遗留 |
 | P2-3 | supervisor 督导报告切真 DB（现在是 V0.x 内存 mock） | 代码扫描 |
 | P2-4 | env 守卫盲区（WP48）：`.env.example` 的机器守卫分不出「读进 config」与「真被消费」，读得到但无人消费的键能绿灯通过断言① | WP28 收尾 |
@@ -172,7 +172,7 @@ P1-2 渲染四手法
 | 角色池 | WP9 / WP10A（visitor_pool + character_profiles） | P1-9 加版本 semver |
 | 长时记忆 | WP12（resume 链路通） | P1-5 加间隔衰减 |
 | 可观测 | WP13（Prometheus 指标采集） | P0-8 加告警规则 |
-| delta cap | WP15（单回合非对称 cap） | P2-1 加跨回合衰减/边际递减/饱和 |
+| delta cap | WP15（单回合非对称 cap） | P2-1 加跨回合衰减/边际递减/饱和 —— ⚠️ **WP45 已核**：跨回合衰减（WP36+WP54）与饱和（clamp01）**早已落地**，**边际递减仍未做**（属临床建模决策，另开单） |
 | 断连重连 | WP23（catch-up/stale/reattached 三帧） | P1-10 状态持久化配合 |
 | P2 全修 | WP26（34 条 P2 全修） | P2-1 清 P3 技术债 |
 

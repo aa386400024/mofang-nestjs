@@ -339,7 +339,15 @@ export interface VoiceError {
   readonly retryable: boolean;
 }
 
-/** session 状态. */
+/**
+ * session 状态.
+ *
+ * ⚠️ `'cancelled'` 在**读侧**没有分支点 (WP45 · P3-4): 它与 `'idle'` 同义
+ *   ("这一轮不在跑"), 读侧一律靠 `!== 'processing'` 判定"没有正在跑的流水线".
+ *   它**必须**在写侧存在 —— 打断后若把状态留在 `'processing'`, 下一次
+ *   `user_speaking` 会对一条已经死掉的流水线再打断一次. 详见
+ *   `voice.service.ts` 的 `bargeIn`.
+ */
 export type VoiceSessionStatus = 'idle' | 'processing' | 'cancelled' | 'ended' | 'paused';
 
 /** session 元数据. */
