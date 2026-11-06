@@ -169,6 +169,19 @@ class StubTitleGenerator {
 }
 
 /**
+ * 内核状态回灌器替身 (V2026-11-06 · WP38 补做 · 调试会话恢复).
+ */
+class StubRestorer {
+  async restoreBdiState(): Promise<'restored' | 'kept'> {
+    return 'restored';
+  }
+
+  async restoreMemories(): Promise<number> {
+    return 0;
+  }
+}
+
+/**
  * 装一套调试服务 (真文件存储 + 替身引擎/LLM).
  */
 function buildService(dir: string): {
@@ -186,6 +199,7 @@ function buildService(dir: string): {
     stubConfig({}) as never,
     store,
     titleGenerator,
+    new StubRestorer() as never,
   );
   return { service, engine, titleGenerator };
 }
@@ -218,6 +232,7 @@ function buildRecord(id: string, overrides: Partial<DebugSessionRecord> = {}): D
     turnCount: 0,
     messages: [],
     traces: [],
+    kernelState: null,
     ...overrides,
   };
 }

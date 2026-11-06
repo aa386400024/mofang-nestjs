@@ -118,6 +118,7 @@ import {
   WORKING_MEMORY_WINDOW_TURNS,
   type BehaviorStrategy,
   type BdiSnapshot,
+  type CounselorEventKind,
   type EmotionLabel,
   type EngineSessionPort,
   type EngineTurnInput,
@@ -222,6 +223,15 @@ export interface TurnRenderResult {
   readonly turnIndex: number;
   /** 本轮意图 (透传; 内核未产出时省略). */
   readonly intention?: Intention;
+  /**
+   * 本轮咨询师事件分类 (WP38 · 透传内核出参, **只读观测**).
+   *
+   * 内核已经算好了 (EngineTurnOutput.events), 门面只**原样透传** ——
+   * 不重算、不预判、不加工 (适配层预判 = 与内核真值漂移的双胞胎).
+   *
+   * 缺省 = 内核本轮没产出事件 (分类器返回空) —— 与本字段引入前行为逐字一致.
+   */
+  readonly events?: readonly CounselorEventKind[];
   /** 渲染元信息 (供观测, 不进内核). */
   readonly render: {
     /** 是否走过备用路径 (切过备 / 走过 block 重生成 / 走过降级). */
@@ -526,6 +536,8 @@ export class TurnRenderOrchestrator {
       snapshot: output.snapshot,
       turnIndex: output.turnIndex,
       ...(output.intention ? { intention: output.intention } : {}),
+      // WP38: 事件分类 —— 内核出参原样透传 (适配层不预判).
+      ...(output.events ? { events: output.events } : {}),
       render: {
         fallbackUsed: rendered.fallbackUsed,
         ...(rendered.providerHint ? { providerHint: rendered.providerHint } : {}),
@@ -599,6 +611,8 @@ export class TurnRenderOrchestrator {
       snapshot: output.snapshot,
       turnIndex: output.turnIndex,
       ...(output.intention ? { intention: output.intention } : {}),
+      // WP38: 事件分类 —— 内核出参原样透传 (适配层不预判).
+      ...(output.events ? { events: output.events } : {}),
       render: {
         fallbackUsed: rendered.fallbackUsed,
         ...(rendered.providerHint ? { providerHint: rendered.providerHint } : {}),
@@ -628,6 +642,25 @@ export class TurnRenderOrchestrator {
     this.histories.delete(handleId);
     // WP64: 影子审议的"上一轮快照"与历史同生命周期 —— 一起清, 不留残留.
     this.lastSnapshots.delete(handleId);
+  }
+
+  /**
+   * 预置某句柄的渲染上下文 (会话恢复用).
+   *
+   * V2026-11-06 治本 (WP38 补做 · 调试会话恢复):
+   *   `histories` 是**运行时**状态 (进程重启即失效) —— 后端重启后, 恢复出来的
+   *   调试会话若不带上下文, 第一轮发给模型的就是"只有这一句话"的空上下文:
+   *   来访者会像第一次见面那样反应, 与"从最后一轮继续"的承诺不符.
+   *
+   * 口径与 `settleTurn` 落账**同源**: 调用方给什么就存什么, 超上限丢最旧
+   *   (裁剪在 `setHistory` 内部) —— 这里不做任何再加工, 也不猜"哪几条该进上下文"
+   *   (那是调用方的判断: 降级轮的兜底句不该被当成来访者真说的话).
+   *
+   * @param handleId 内核会话句柄
+   * @param turns 要预置的最近对话序列 (旧 → 新)
+   */
+  restoreHistory(handleId: string, turns: readonly RenderContextTurn[]): void {
+    this.setHistory(handleId, turns);
   }
 
   /**
@@ -958,6 +991,8 @@ export class TurnRenderOrchestrator {
       snapshot: output.snapshot,
       turnIndex: output.turnIndex,
       ...(output.intention ? { intention: output.intention } : {}),
+      // WP38: 事件分类 —— 阻断轮次同样透传 (本轮确实发生了事件, 只是 AI 没出声).
+      ...(output.events ? { events: output.events } : {}),
       render: {
         fallbackUsed: false,
         usage: { completionTokens: 0, totalTokens: 0 },

@@ -36,14 +36,17 @@ import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 
 import { BUILTIN_CHARACTER_SEEDS, BuiltinCharacterProfileResolver } from './builtin-character-registry.js';
+import { CharacterProfileVersionEntity } from './character-profile-version.entity.js';
 import { CharacterProfileAdminController } from './character-profile.admin.controller.js';
 
 import { CharacterProfileAdminService } from './character-profile.admin.service.js';
 import { CharacterProfileEntity } from './character-profile.entity.js';
 import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver } from './character-profile.resolver.js';
+import { CharacterVersionService } from './character-version.service.js';
 import { DbCharacterProfileResolver } from './db-character-profile.resolver.js';
 import { AdminRoleGuard } from '../../../counselor/guards/admin-role.guard.js';
 import { UserModule } from '../../../user/index.js';
+import { VoiceSessionModule } from '../../../voice/voice-session.module.js';
 
 /**
  * 角色资产池模块.
@@ -52,7 +55,12 @@ import { UserModule } from '../../../user/index.js';
   imports: [
     // character_profiles 实体注册 (autoLoadEntities 已开; ADR-0003: 不开 synchronize,
     // schema 只走 migration).
-    TypeOrmModule.forFeature([CharacterProfileEntity]),
+    // WP38: 历史版本快照表 (character_profile_versions) 与主表同批注册.
+    TypeOrmModule.forFeature([CharacterProfileEntity, CharacterProfileVersionEntity]),
+    // V2026-11-06 治本 (WP38 — 角色版本插槽):
+    //   角色版本号要从本模块的数据里读, 但**消费方** (counselor 落库桥) 在业务域 ——
+    //   显式 import 这个 @Global 模块, 拿到 CharacterVersionRegistry (注册表本身零依赖).
+    VoiceSessionModule,
     // 管理端鉴权依赖 (JwtAuthGuard → JwtService/JwtBlacklistService; AdminRoleGuard → UserService).
     UserModule,
   ],
@@ -76,6 +84,8 @@ import { UserModule } from '../../../user/index.js';
     },
     // 角色资产池管理面 (内部 admin 端点).
     CharacterProfileAdminService,
+    // WP38: 角色版本查询实现 (把本表的数据经 voice 层插槽交给业务域消费方).
+    CharacterVersionService,
     // 内部角色判定 (直读 users.admin_role) —— 仓库既有的内部能力守卫, 不新造第 4 套.
     AdminRoleGuard,
   ],

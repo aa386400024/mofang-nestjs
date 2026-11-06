@@ -24,6 +24,18 @@
 //   如何验证:
 //     1. pnpm build 0 错
 //     2. test/engine-core/engine-core.spec.ts: 直接 new 本类跑通 open → turn → close, 不启动 NestJS 容器
+//
+//   V2026-11-06 治本 (WP38 · 事件分类只读出口):
+//   职责: turn() 的出参挂上本轮事件分类 (events), 让调试面板能显示"这一轮咨询师
+//         说了什么 techniques" (共情 / 开放提问 / 评判…).
+//   边界: **纯加观测字段** —— 决策路径与数值**逐字不变**:
+//     · 事件是分类器**已经算出来**的 (第 3 步的局部变量), 这里只是把 kind 抄进出参;
+//     · 不参与状态迁移 / delta 聚合 / 意图规划 (那三处仍吃同一个 events 数组);
+//     · 不带命中词明细 (内核内部产物, 不对外).
+//   为什么由内核填 (而不是适配层预判):
+//     事件分类是内核的**唯一真相**; 适配层另算一套就会与内核漂移, 而调试面板的
+//     职责恰恰是"看内核到底怎么判" —— 预判出来的标签会骗人.
+//   零回归: 事件为空时**不挂**该字段 (同 openingContext / trajectoryTrace 的口径).
 
 import { nanoid } from 'nanoid';
 import { randomInt } from 'node:crypto';
@@ -433,6 +445,8 @@ export class InMemoryEngineSession implements EngineSessionPort {
       ...(trajectory.trace ? { trajectoryTrace: trajectory.trace } : {}),
       // 安全判定只在非 pass 时挂出 (pass 的空块会污染出参, 破坏零回归).
       ...(safetyVerdict.level === 'pass' ? {} : { safety: safetyVerdict }),
+      // WP38: 事件分类 (只读观测) —— 内核自己填, 适配层只透传; 空则不挂 (零回归).
+      ...(events.length > 0 ? { events: events.map((event) => event.kind) } : {}),
     };
   }
 

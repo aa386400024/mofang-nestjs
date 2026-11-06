@@ -23,6 +23,7 @@
 
 import type { BdiSnapshot } from './bdi-snapshot.js';
 import type { CharacterProfile } from './character-profile.js';
+import type { CounselorEventKind } from './events/session-event.js';
 import type { Intention } from './intention.js';
 import type { MemoryHit } from './ports/memory.store.js';
 import type { SafetyVerdict } from './safety/safety-types.js';
@@ -172,4 +173,20 @@ export interface EngineTurnOutput {
    * `pass` 且探测无额外结果时省略本字段 (零回归: 干净会话的出参与 WP3 完全一致).
    */
   readonly safety?: SafetyVerdict;
+  /**
+   * 本轮咨询师事件分类 (WP38 · **只读观测**, 不参与任何决策).
+   *
+   * 内容 = 内核分类器本轮算出的事件种类 (共情 / 接纳 / 评判 / 越界…), 已去重保序.
+   *
+   * 为什么由内核自己填 (而不是让适配层预判):
+   *   事件分类是内核的**唯一真相** —— 状态迁移 / delta 聚合 / 意图规划全都吃它.
+   *   适配层若另起一套预判, 就会与内核真值**漂移** (同一句话两套标签),
+   *   而调试面板恰恰是用来"看内核到底怎么判"的 —— 预判出来的标签会骗人.
+   *
+   * 边界:
+   *   - **不含口语**, 不带命中词明细 (那是内核内部产物);
+   *   - **不改**快照 / Intention / 轨迹游标 —— 纯挂出参的观测字段;
+   *   - 可选 = 向后兼容: 不传 = 行为与本字段引入前**逐字一致** (零回归).
+   */
+  readonly events?: readonly CounselorEventKind[];
 }

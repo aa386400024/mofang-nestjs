@@ -25,6 +25,7 @@ import { FindOperator } from 'typeorm';
 
 import { BizCode } from '../../src/common/exceptions/biz-code.enum.js';
 import { BizException } from '../../src/common/exceptions/biz.exception.js';
+import { CharacterProfileVersionEntity } from '../../src/engine-adapters/wiring/character/character-profile-version.entity.js';
 import { CharacterProfileAdminService } from '../../src/engine-adapters/wiring/character/character-profile.admin.service.js';
 import type {
   CreateCharacterProfileDto,
@@ -57,6 +58,38 @@ class FakeCharacterProfileRepo {
   }
 
   async save(entity: CharacterProfileEntity): Promise<CharacterProfileEntity> {
+    const index = this.rows.findIndex((row) => row.id === entity.id);
+    if (index === -1) {
+      this.rows.push(entity);
+    } else {
+      this.rows[index] = entity;
+    }
+    return entity;
+  }
+}
+
+/**
+ * 内存仓储 stub: 历史版本快照表 (WP38).
+ *
+ * 为什么这个文件要加它: WP38 给管理服务加了第二个依赖 (版本快照仓储) ——
+ * 管理服务每次改版都会往那张表写一份快照, 脚手架不给它就直接 TypeError.
+ */
+class FakeCharacterProfileVersionRepo {
+  readonly rows: CharacterProfileVersionEntity[] = [];
+
+  async findOne(options: { where: Record<string, unknown> }): Promise<CharacterProfileVersionEntity | null> {
+    return this.rows.find((row) => matchesWhere(row, options.where)) ?? null;
+  }
+
+  async find(options: { where: Record<string, unknown> }): Promise<CharacterProfileVersionEntity[]> {
+    return this.rows.filter((row) => matchesWhere(row, options.where));
+  }
+
+  create(entity: Partial<CharacterProfileVersionEntity>): CharacterProfileVersionEntity {
+    return { ...entity } as CharacterProfileVersionEntity;
+  }
+
+  async save(entity: CharacterProfileVersionEntity): Promise<CharacterProfileVersionEntity> {
     const index = this.rows.findIndex((row) => row.id === entity.id);
     if (index === -1) {
       this.rows.push(entity);
@@ -138,7 +171,9 @@ function buildHarness(): {
   readonly repo: FakeCharacterProfileRepo;
 } {
   const repo = new FakeCharacterProfileRepo();
-  const service = new CharacterProfileAdminService(repo as never);
+  // WP38: 管理服务多了一个依赖 —— 历史版本快照仓储 (每次改版写一份快照).
+  const versionRepo = new FakeCharacterProfileVersionRepo();
+  const service = new CharacterProfileAdminService(repo as never, versionRepo as never);
   const resolver = new DbCharacterProfileResolver(repo as never);
   return { service, resolver, repo };
 }

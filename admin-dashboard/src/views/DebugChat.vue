@@ -33,6 +33,11 @@ const currentTrace = ref<TurnTrace | null>(null)
 const activeSessionIds = ref<Set<string>>(new Set())
 const isReadOnly = computed(() => !!sessionId.value && !activeSessionIds.value.has(sessionId.value))
 
+// 列表加载完成：用后端返回的 active 字段初始化只读模式判断
+function onSessionsLoaded(activeIds: string[]) {
+  activeSessionIds.value = new Set(activeIds)
+}
+
 // 会话列表展开/收起
 const showSessionList = ref(true)
 const sessionListRef = ref<InstanceType<typeof SessionList> | null>(null)
@@ -522,7 +527,7 @@ onMounted(() => {
     <div id="debug-chat-main" class="flex-1 flex min-h-0 gap-3">
       <!-- 最左边：会话列表（可收起） -->
       <div v-if="showSessionList" class="w-64 flex-shrink-0 h-full min-h-0">
-        <SessionList ref="sessionListRef" :selected-id="sessionId" @select="loadSession" @collapse="showSessionList = false" @deleted="onSessionDeleted" />
+        <SessionList ref="sessionListRef" :selected-id="sessionId" @select="loadSession" @collapse="showSessionList = false" @deleted="onSessionDeleted" @loaded="onSessionsLoaded" />
       </div>
 
       <!-- 中间：聊天窗口 -->

@@ -52,3 +52,15 @@ export const ENGINE_RENDER_PORT = Symbol('ENGINE_RENDER_PORT');
  *   这与本文件头记的"启动炸弹"是同一类问题: interface 当 token 的坑.
  */
 export const ROLLING_SUMMARY_CLEANUP = Symbol('ROLLING_SUMMARY_CLEANUP');
+
+/**
+ * BDI 状态仓储端口 token (实现 = InMemoryBdiStateRepository 或 RedisBdiStateRepository).
+ *
+ * V2026-11-06 (WP38 补做 · 调试会话恢复): 为什么这个 token 是**必需**的:
+ *   调试会话恢复要把"持久化文件里的内核状态快照"**回灌**进内核 —— 而内核
+ *   每轮都从 BDI 状态仓储读/写. 恢复器与内核必须指向**同一个实例**:
+ *   两个实例 = 两个真相 (恢复器写进去的快照, 内核那一侧读不到),
+ *   恢复功能会**静默失效** —— 接口返回成功, 但恢复出来的 BDI 状态对不上.
+ *   把仓储提成独立 provider 并导出, 是让"同一份真相"成立的唯一办法.
+ */
+export const ENGINE_BDI_STATE_REPOSITORY = Symbol('ENGINE_BDI_STATE_REPOSITORY');

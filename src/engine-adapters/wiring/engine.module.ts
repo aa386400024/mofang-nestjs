@@ -65,14 +65,20 @@ import {
   createStudentRiskGate,
   createVisitorOutputProbe,
 } from './engine.providers.js';
-import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT, ROLLING_SUMMARY_CLEANUP } from './engine.tokens.js';
+import {
+  ENGINE_BDI_STATE_REPOSITORY,
+  ENGINE_MEMORY_STORE,
+  ENGINE_RENDER_PORT,
+  ENGINE_SESSION_PORT,
+  ROLLING_SUMMARY_CLEANUP,
+} from './engine.tokens.js';
 import { resolvePersonalityModulatorConfig } from './personality-modulator.config.js';
 import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory.js';
 import { resolveSessionDecayConfig } from './session-decay.config.js';
 import { resolveSessionSummaryConfig } from './session-summary.config.js';
 import { LlmModule as AgentLlmModule } from '../../agent/llm/llm.module.js';
 import { CounselorLlmJsonClient } from '../../counselor/providers/llm-json.client.js';
-import type { EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
+import type { BdiStateRepository, EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
 import { resolveSessionCostPricing } from '../observability/session-cost.js';
 import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe.js';
 import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
@@ -253,6 +259,29 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
     //   = redis 时状态落 Redis (进程重启后跨会话恢复自动生效).
     //   ⚠️ 装配非法 (配了 redis 却拿不到客户端 / 形态值非法) 在**启动期**直接炸,
     //   不静默回落成内存版 —— 静默回落 = 线上以为在持久化, 实际一条都没存.
+    // V2026-11-06 治本 (WP38 补做 · 调试会话恢复): BDI 状态仓储**单例化**并对外暴露.
+    //   为什么必须单例: 内核会话与调试恢复器要读写**同一个**仓储实例 ——
+    //   两个实例 = 两个真相 (恢复器写进去的快照, 内核那一侧读不到),
+    //   恢复功能会**静默失效** (不报错, 只是恢复出来的状态对不上).
+    //   为什么拆成独立 provider: 只有拆出来, 外部模块 (admin-debug) 才注入得到它.
+    //   ⚠️ 装配非法 (配了 redis 却拿不到客户端 / 形态值非法) 仍然在**启动期**直接炸,
+    //   行为与拆出之前逐字一致 (不静默回落成内存版).
+    {
+      provide: ENGINE_BDI_STATE_REPOSITORY,
+      useFactory: (config: ConfigService, redis: RedisService): BdiStateRepository => {
+        // env 由**适配层**读 (内核零 process.env); 存储形态与 TTL 归一后交给纯工厂.
+        const bdiStore = resolveBdiStateStoreConfig({
+          store: config.get<string>('ENGINE_BDI_STATE_STORE'),
+          ttlSeconds: config.get<string>('ENGINE_BDI_STATE_REDIS_TTL_SECONDS'),
+        });
+        return createBdiStateRepository({
+          store: bdiStore.store,
+          ttlSeconds: bdiStore.ttlSeconds,
+          ...(bdiStore.store === 'redis' ? { redis } : {}),
+        });
+      },
+      inject: [ConfigService, RedisService],
+    },
     {
       provide: ENGINE_SESSION_PORT,
       useFactory: (
@@ -261,13 +290,8 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         config: ConfigService,
         capLogger: DeltaCapLogger,
         rollingSummary: RollingSessionSummaryService,
-        redis: RedisService,
+        bdiStates: BdiStateRepository,
       ): EngineSessionPort => {
-        // env 由**适配层**读 (内核零 process.env); 存储形态与 TTL 归一后交给纯工厂.
-        const bdiStore = resolveBdiStateStoreConfig({
-          store: config.get<string>('ENGINE_BDI_STATE_STORE'),
-          ttlSeconds: config.get<string>('ENGINE_BDI_STATE_REDIS_TTL_SECONDS'),
-        });
         return createEngineSessionPort(
           memories,
           probe,
@@ -290,14 +314,11 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
             //   摘要生成 (LLM) 与记忆写入全在适配层 (内核零网络 / 零 prompt).
             onWorkingWindowOverflow: (event) => rollingSummary.recordOverflow(event),
           },
-          createBdiStateRepository({
-            store: bdiStore.store,
-            ttlSeconds: bdiStore.ttlSeconds,
-            ...(bdiStore.store === 'redis' ? { redis } : {}),
-          }),
+          // 状态仓储**单例**注入 (与上面那个 provider 是同一个实例).
+          bdiStates,
         );
       },
-      inject: [ENGINE_MEMORY_STORE, RISK_PROBE, ConfigService, DeltaCapLogger, RollingSessionSummaryService, RedisService],
+      inject: [ENGINE_MEMORY_STORE, RISK_PROBE, ConfigService, DeltaCapLogger, RollingSessionSummaryService, ENGINE_BDI_STATE_REPOSITORY],
     },
     // 装配门面 (WP7): 接上归属解析缝 (多会话, 不传固定 sessionContext).
     // V2026-11-02 (WP14): 注入学员侧处置闸门 —— 门面在**渲染前**问它
@@ -498,6 +519,12 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
     ENGINE_SESSION_PORT,
     ENGINE_RENDER_PORT,
     VOICE_TURN_BACKEND,
+    // V2026-11-06 (WP38 补做 · 调试会话恢复): 记忆仓储与 BDI 状态仓储对外暴露 ——
+    //   调试恢复器要**回灌**内核状态 (BDI 快照 → 状态仓储; 记忆条目 → 记忆仓储).
+    //   ⚠️ 这两个都是**本模块自己 providers 里声明的** provider (不是从别的模块转出),
+    //   所以导出合法 (见下面关于 CharacterPoolModule 的说明).
+    ENGINE_MEMORY_STORE,
+    ENGINE_BDI_STATE_REPOSITORY,
     // V2026-10-29 (WP9-B): 角色解析端口的 provider 声明在 CharacterPoolModule 里,
     //   本模块**不能**再把那个 symbol 单独导出一遍 —— Nest 的
     //   `Module.validateExportedProvider` 只接受两种导出:

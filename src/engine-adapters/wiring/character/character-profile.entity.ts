@@ -303,9 +303,45 @@ export class CharacterProfileEntity {
   @Column({ type: 'tinyint', default: 1 })
   enabled!: boolean;
 
-  /** 版本号 (预留; 版本迁移本身归 Phase2). */
+  /**
+   * 内容修改计数 (int 自增).
+   *
+   * V2026-11-06 治本 (WP38): 本列**不再是版本的真相源** —— 真相源是下面三列 semver.
+   * 本列保留为"改过几次"的粗粒度计数 (既有对外契约 + 既有单测依赖它), 但它
+   * **表达不出**"这次改动是主版本还是次版本" —— 那正是 semver 要回答的问题.
+   * (两个真相源并存的风险: 有人改本列不改 semver → 版本号对不上. 所以本列的
+   *  注释写明它是"计数", 版本判定一律读三列.)
+   */
   @Column({ type: 'int', default: 1 })
   version!: number;
+
+  /**
+   * 主版本号 (semver major) — WP38.
+   *
+   * 语义: 角色定位大改 (依恋风格变了 / 核心信念变了).
+   * **进行中锁定**: 有活跃会话在用这个角色时不允许改主版本 (要改先等会话结束).
+   *
+   * 缺省 1 —— 与"初始版本 1.0.0"一致; 存量行加列后自动就是这个值 (零回归).
+   */
+  @Column({ type: 'int', name: 'version_major', default: 1 })
+  versionMajor!: number;
+
+  /**
+   * 次版本号 (semver minor) — WP38.
+   *
+   * 语义: 参数调整 (信任基线微调 / 阻抗档位调整) —— 平滑生效: 新会话用新版本,
+   * 已在跑的会话不受影响.
+   */
+  @Column({ type: 'int', name: 'version_minor', default: 0 })
+  versionMinor!: number;
+
+  /**
+   * 修订号 (semver patch) — WP38.
+   *
+   * 语义: 文案错别字 / 小参数微调 —— 实时生效档.
+   */
+  @Column({ type: 'int', name: 'version_patch', default: 0 })
+  versionPatch!: number;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

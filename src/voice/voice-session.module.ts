@@ -15,6 +15,8 @@
 
 import { Global, Module } from '@nestjs/common';
 
+import { CharacterUsageRegistry } from './character-usage-slot.js';
+import { CharacterVersionRegistry } from './character-version-slot.js';
 import { StudentRiskAuditRegistry } from './student-risk-audit-slot.js';
 import { VoiceCatalogRegistry } from './voice-catalog-slot.js';
 import { VoiceFrameRegistry } from './voice-frame-registry.js';
@@ -43,6 +45,14 @@ import { VoiceTemplateRegistry } from './voice-template-slot.js';
     //   引擎装配层判出危机后要落审计, 但 engine → counselor 是反向依赖;
     //   voice 层是两侧都能依赖的位置 —— 跟 VoiceSessionBridgeRegistry 同款范式.
     StudentRiskAuditRegistry,
+    // V2026-11-06 治本 (WP38 — 角色版本 / 角色占用 2 个新注册表):
+    //   CharacterVersionRegistry  engine-adapters → business 方向 (角色当前版本号:
+    //     数据在 character_profiles, 消费方是 counselor 侧落库桥);
+    //   CharacterUsageRegistry   business → engine-adapters 方向 (活跃会话数:
+    //     数据在 training_sessions, 消费方是角色管理服务的主版本锁定判定).
+    //   两侧都走 voice 层当中站, 跟 VoiceSessionBridgeRegistry / StudentRiskAuditRegistry 同款范式.
+    CharacterVersionRegistry,
+    CharacterUsageRegistry,
   ],
   exports: [
     VoiceSessionRegistry,
@@ -51,6 +61,8 @@ import { VoiceTemplateRegistry } from './voice-template-slot.js';
     VoiceSessionBridgeRegistry,
     VoiceFrameRegistry,
     StudentRiskAuditRegistry,
+    CharacterVersionRegistry,
+    CharacterUsageRegistry,
   ],
 })
 export class VoiceSessionModule {}

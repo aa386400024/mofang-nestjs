@@ -244,6 +244,30 @@ export class TrainingSession {
   @Column({ type: 'char', length: 36, name: 'supervision_report_id', nullable: true })
   supervisionReportId!: string | null;
 
+  // ─── V2026-11-06 治本 (WP38 — 角色版本绑定) ───
+  //
+  //   为什么这两列要加 (任务单 §2.1 第 4 条):
+  //     会话要能回答"这场训练用的是哪一版角色" —— 否则督导复盘时看到的行为差异
+  //     无从归因 (是角色变了, 还是学员变了?). 绑版本 = 把"角色配置"也变成可追溯量.
+  //
+  //   口径:
+  //     · character_template_id —— 建会话那一刻的公共人物模板 id (逻辑外键, 不加 DB FK);
+  //       落桥手上只有 templateId, 没有它就查不到"谁在用这个角色" (主版本锁定要查).
+  //     · character_version —— 建会话那一刻的 semver 版本号 (例 "1.2.0").
+  //
+  //   ⚠️ 两列都可空:
+  //     · 迁移前建的会话没有这两列的值 (零回归, 不回填 —— 回填等于伪造"当时用的是哪版");
+  //     · 兜底人设通道 (无公共人物) 本来就没有角色.
+  //
+  //   时间戳: 2026-11-06
+  /** 角色模板 id (vpt_* slug; 可空 = 兜底人设通道 / 迁移前的老会话). */
+  @Column({ type: 'varchar', length: 64, name: 'character_template_id', nullable: true })
+  characterTemplateId!: string | null;
+
+  /** 角色版本号 (semver 字符串, 例 "1.2.0"; 可空 = 同上). */
+  @Column({ type: 'varchar', length: 32, name: 'character_version', nullable: true })
+  characterVersion!: string | null;
+
   // V0.5 stage 2 Timer.periodic 1s tick 计时 (V1.x server 端)
   @Column({ type: 'datetime', name: 'started_at', nullable: true })
   startedAt!: Date | null;

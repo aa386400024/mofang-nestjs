@@ -144,6 +144,8 @@ interface DebugSessionSummary {
   createdAt: string
   updatedAt: string
   turnCount: number
+  /** 当前进程内存里是否还有内核句柄（active=true 可继续聊，false 是只读历史） */
+  active: boolean
 }
 
 defineProps<{
@@ -154,6 +156,8 @@ const emit = defineEmits<{
   (e: 'select', id: string): void
   (e: 'collapse'): void
   (e: 'deleted', id: string): void
+  /** 列表加载完成，带出当前 active 的会话 id 列表（供父组件初始化只读模式） */
+  (e: 'loaded', activeIds: string[]): void
 }>()
 
 const message = useMessage()
@@ -172,6 +176,8 @@ async function loadSessions() {
   try {
     const data = await api.debugSession.list()
     sessions.value = data
+    // 通知父组件：当前 active 的会话 id 列表（用于初始化只读模式）
+    emit('loaded', sessions.value.filter(s => s.active).map(s => s.id))
   } catch (e) {
     message.error('加载会话列表失败')
     console.error(e)

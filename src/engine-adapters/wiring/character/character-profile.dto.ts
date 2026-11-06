@@ -42,7 +42,9 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+import type { CharacterProfileSnapshot } from './character-profile-version.entity.js';
 import type { CharacterAuditStatus } from './character-profile.entity.js';
+import type { CharacterVersionBump, CharacterVersionChangeType } from './character-version.js';
 import type { AttachmentStyle, CoreBelief, UnderlyingDesireSeed } from '../../../engine-core/index.js';
 
 /** 允许的依恋风格 (与内核 AttachmentStyle 同一取值域). */
@@ -50,6 +52,15 @@ export const CHARACTER_ATTACHMENT_STYLES: readonly AttachmentStyle[] = ['secure'
 
 /** 允许的审核状态. */
 export const CHARACTER_AUDIT_STATUSES: readonly CharacterAuditStatus[] = ['draft', 'approved', 'rejected'];
+
+/**
+ * 允许的版本递增档位 (WP38).
+ *
+ * - major —— 角色定位大改: 进行中锁定 (有活跃会话时拒绝);
+ * - minor —— 参数调整: 平滑生效;
+ * - patch —— 文案 / 小参数微调: 实时生效 (缺省档).
+ */
+export const CHARACTER_VERSION_BUMPS: readonly CharacterVersionBump[] = ['major', 'minor', 'patch'];
 
 /**
  * 核心信念入参.
@@ -249,7 +260,18 @@ export class CreateCharacterProfileDto {
 /**
  * 编辑角色入参 (全字段可选; 未提供的字段原样保留).
  */
-export class UpdateCharacterProfileDto extends PartialType(CreateCharacterProfileDto) {}
+export class UpdateCharacterProfileDto extends PartialType(CreateCharacterProfileDto) {
+  /**
+   * 版本递增档位 (WP38 · 缺省 patch).
+   *
+   * 每次更新都会按此档位递增 semver 版本号, 并把**变更后**的完整内容存一份历史快照.
+   * major 档在有活跃会话用着这个角色时会被拒绝 (409).
+   */
+  @ApiPropertyOptional({ description: '版本递增档位 (缺省 patch)', enum: CHARACTER_VERSION_BUMPS })
+  @IsOptional()
+  @IsIn(CHARACTER_VERSION_BUMPS)
+  versionBump?: CharacterVersionBump;
+}
 
 /**
  * 管理列表出参 (单条).
@@ -312,11 +334,71 @@ export class CharacterProfileAdminDto {
   @ApiProperty({ description: '内容版本号 (内容变更即递增)' })
   version!: number;
 
+  @ApiProperty({ description: '主版本号 (semver major; 角色定位大改档)' })
+  versionMajor!: number;
+
+  @ApiProperty({ description: '次版本号 (semver minor; 参数调整档)' })
+  versionMinor!: number;
+
+  @ApiProperty({ description: '修订号 (semver patch; 文案 / 小参数微调档)' })
+  versionPatch!: number;
+
+  @ApiProperty({ description: '版本号字符串 (例 "1.2.0")' })
+  versionLabel!: string;
+
   @ApiProperty({ description: '创建时间' })
   createdAt!: Date;
 
   @ApiProperty({ description: '更新时间' })
   updatedAt!: Date;
+}
+
+/**
+ * 历史版本摘要 (一行 = 角色的一版).
+ */
+export class CharacterProfileVersionSummaryDto {
+  @ApiProperty({ description: '公共模板 id' })
+  templateId!: string;
+
+  @ApiProperty({ description: '主版本号' })
+  versionMajor!: number;
+
+  @ApiProperty({ description: '次版本号' })
+  versionMinor!: number;
+
+  @ApiProperty({ description: '修订号' })
+  versionPatch!: number;
+
+  @ApiProperty({ description: '版本号字符串 (例 "1.2.0")' })
+  versionLabel!: string;
+
+  @ApiProperty({ description: '变更类型: create (首版) / major / minor / patch', enum: ['create', 'major', 'minor', 'patch'] })
+  changeType!: CharacterVersionChangeType;
+
+  @ApiProperty({ description: '变更人 id (未知时 null)' })
+  changedBy!: string | null;
+
+  @ApiProperty({ description: '留痕时间' })
+  createdAt!: Date;
+}
+
+/**
+ * 历史版本详情 (摘要 + 该版的内容快照).
+ */
+export class CharacterProfileVersionDetailDto extends CharacterProfileVersionSummaryDto {
+  @ApiProperty({ description: '该版本的内容快照 (完整行)' })
+  snapshot!: CharacterProfileSnapshot;
+}
+
+/**
+ * 历史版本列表出参.
+ */
+export class CharacterProfileVersionListDto {
+  @ApiProperty({ description: '历史版本列表', type: [CharacterProfileVersionSummaryDto] })
+  items!: CharacterProfileVersionSummaryDto[];
+
+  @ApiProperty({ description: '总条数' })
+  total!: number;
 }
 
 /**

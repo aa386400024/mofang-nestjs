@@ -40,6 +40,8 @@ import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promise
 // eslint-disable-next-line unicorn/import-style
 import { isAbsolute, join, resolve } from 'node:path';
 
+import { parseDebugKernelState, type DebugKernelState } from './debug-kernel-state.js';
+
 /**
  * 调试会话的标题来源.
  *
@@ -95,6 +97,17 @@ export interface DebugSessionRecord {
   readonly messages: readonly DebugSessionMessage[];
   /** 逐轮调试 trace (完整内部状态, 含 prompt 全文). */
   readonly traces: readonly unknown[];
+  /**
+   * 内核状态快照 (恢复用; 每轮覆盖一次).
+   *
+   * V2026-11-06 (WP38 补做 · 调试会话恢复): 这是"后端重启后还能继续调试"的**唯一真相** ——
+   *   内核句柄 (BDI 状态 / 记忆 / 轨迹) 都在内存里, 进程一重启就全丢;
+   *   这份快照每轮落盘, 恢复接口按它重建内核句柄.
+   *
+   * 缺省 = null (老文件 / 还没跑过一轮) —— 恢复接口据此明确报"没有可恢复的快照",
+   *   而不是拿一个中性状态糊弄过去 (那等于"看着恢复了, 其实从头开始").
+   */
+  readonly kernelState: DebugKernelState | null;
 }
 
 /**
@@ -108,6 +121,15 @@ export interface DebugSessionSummary {
   readonly updatedAt: string;
   readonly turnCount: number;
   readonly status: DebugSessionStatus;
+  /**
+   * 能不能恢复 (V2026-11-06 · WP38 补做 · 调试会话恢复).
+   *
+   * true  = 有内核状态快照 → 调 resume 能接着聊 (从最后一轮继续);
+   * false = 从没跑过一轮 (没有快照) → 恢复不了, 点了只会报错.
+   *
+   * 前端据此决定「继续调试」按钮**给不给**: `active=false && resumable` 才给.
+   */
+  readonly resumable: boolean;
 }
 
 /**
@@ -195,6 +217,7 @@ export class DebugSessionStore {
     message: DebugSessionMessage,
     reply: DebugSessionMessage,
     trace: unknown,
+    kernelState: DebugKernelState | null = null,
   ): Promise<DebugSessionRecord | null> {
     return this.enqueue(id, async () => {
       const current = await this.readRecord(id);
@@ -205,6 +228,9 @@ export class DebugSessionStore {
         turnCount: current.turnCount + 1,
         messages: [...current.messages, message, reply],
         traces: [...current.traces, trace],
+        // 内核快照: 每轮**覆盖**一次 (它是"当前状态", 不是历史流水).
+        // 缺省 (调用方没给) → 保留上一轮那份 —— 老调用方不会把快照写没.
+        kernelState: kernelState ?? current.kernelState,
       };
       await this.writeRecord(updated);
       return updated;
@@ -257,6 +283,22 @@ export class DebugSessionStore {
   }
 
   /**
+   * 标记会话为进行中 (恢复后调: 关过的会话恢复回来就是活的).
+   *
+   * @param id 会话 id
+   * @returns 更新后的记录; 会话不存在 → null
+   */
+  async markActive(id: string): Promise<DebugSessionRecord | null> {
+    return this.enqueue(id, async () => {
+      const current = await this.readRecord(id);
+      if (!current) return null;
+      const updated: DebugSessionRecord = { ...current, status: 'active', updatedAt: new Date().toISOString() };
+      await this.writeRecord(updated);
+      return updated;
+    });
+  }
+
+  /**
    * 列出会话 (按创建时间倒序).
    *
    * ⚠️ **坏文件跳过, 不炸整页**: 某个文件被手工改坏 / 写到一半被强杀 → 跳过它,
@@ -278,6 +320,8 @@ export class DebugSessionStore {
         updatedAt: record.updatedAt,
         turnCount: record.turnCount,
         status: record.status,
+        // 能不能恢复 = 有没有内核状态快照 (老文件 / 没跑过一轮 → false).
+        resumable: record.kernelState !== null,
       });
     }
     return summaries.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -470,6 +514,8 @@ function parseRecord(raw: string): DebugSessionRecord | null {
     turnCount: readNumber(record['turnCount']) ?? 0,
     messages: Array.isArray(record['messages']) ? (record['messages'] as DebugSessionMessage[]) : [],
     traces: Array.isArray(record['traces']) ? (record['traces'] as unknown[]) : [],
+    // 内核快照: 老文件没这个键 → null (恢复接口会明确报"没有可恢复的快照").
+    kernelState: parseDebugKernelState(record['kernelState']),
   };
 }
 

@@ -43,6 +43,7 @@ import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AdminBasicAuthMiddleware } from './admin-basic-auth.middleware.js';
+import { DebugKernelStateRestorer } from './debug-kernel-state.js';
 import { DebugSessionStore } from './debug-session-store.js';
 import {
   DEBUG_SESSION_TITLE_GENERATOR,
@@ -80,6 +81,11 @@ import { UserModule } from '../user/index.js';
     DebugSessionService,
     // 调试会话的**文件持久化** (V2026-11-05): 建档 / 每轮追加 / 改标题 / 删档.
     DebugSessionStore,
+    // 内核状态回灌器 (V2026-11-06 · WP38 补做 · 调试会话恢复):
+    //   把持久化文件里的内核状态快照写回内核看得见的地方 (BDI 状态仓储 / 记忆仓储).
+    //   它注入的两个端口 (ENGINE_BDI_STATE_REPOSITORY / ENGINE_MEMORY_STORE) 由
+    //   **EngineWiringModule** 提供 —— 与内核会话**同一个实例** (单例, 见 token 注释).
+    DebugKernelStateRestorer,
     // 会话标题自动生成 (V2026-11-05): 第 3 轮后用 LLM 起标题, 失败兜底.
     // ⚠️ 走 useFactory: 构造参数是**两个**依赖 (router + 模型名), 且模型名要在
     //   装配期解析 (厂商相关的模型名只有 router 知道 —— 见 `resolveSummaryModel` 的理由).

@@ -53,6 +53,7 @@ function makeSummary(id: string, status: DebugSessionSummary['status'] = 'active
     updatedAt: '2026-11-06T00:00:00.000Z',
     turnCount: 1,
     status,
+    resumable: true,
   };
 }
 
@@ -97,6 +98,10 @@ function buildService(summaries: DebugSessionSummary[]): DebugSessionService {
     stubConfig({ ENGINE_DEBUG_CHAT_ENABLED: 'true' }) as unknown as ConstructorParameters<typeof DebugSessionService>[3],
     store as unknown as ConstructorParameters<typeof DebugSessionService>[4],
     titleGenerator,
+    {
+      restoreBdiState: async () => 'restored' as const,
+      restoreMemories: async () => 0,
+    } as unknown as ConstructorParameters<typeof DebugSessionService>[6],
   );
 }
 

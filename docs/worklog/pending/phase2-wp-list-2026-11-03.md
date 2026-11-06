@@ -29,7 +29,7 @@
 | **WP35** ✅ | 渲染四手法 | 🟡 P1 | 阻抗-表达映射、口语化/非语言、表达层轻量随机、情绪粒度细化；话量三档判定口径未改，语气疏离度依赖同盟维度（缺省不渲染）（[交付记录](../completed/phase2/engine-wp35-rendering-four-techniques-implementation-2026-11-04.md)） | WP7 |
 | **WP36** ✅ | 跨会话间隔自然衰减 | 🟡 P1 | resume 前按间隔对**情绪 / 阻抗 / 同盟**做差异化半衰期回落（信念 / 欲望 / 移情不衰减）；⚠️「破裂态阻抗反升」本期**未做** —— 缺破裂态阈值定义（不发明临床数字），待后续校准轮（[交付记录](../completed/phase2/engine-wp36-cross-session-decay-implementation-2026-11-03.md)） | WP12 |
 | **WP37** ✅ | 记忆会话级摘要压缩 | 🟡 P1 | 工作窗口（最近 8 轮）挤出旧轮次时**攒批异步压成滚动摘要**，存 SHORT_TERM/SUMMARY 记忆并进渲染上下文；会话结束的最终摘要走 WP12 既有的收尾路径（不重复实现）（[交付记录](../completed/phase2/engine-wp37-rolling-session-summary-implementation-2026-11-03.md)） | WP2 |
-| **WP38** | 角色版本 semver | 🟡 P1 | 主版本进行中锁定 / 次版本平滑 / 修订实时，历史版本可回溯 | WP9 |
+| **WP38** ✅ | 角色版本 semver | 🟡 P1 | 主版本进行中锁定 / 次版本平滑 / 修订实时，历史版本可回溯。⚠️ 实际落地：`character_profiles` 加 `version_major/minor/patch` 三列（默认 1/0/0）+ **新表 `character_profile_versions`**（每次改版留一份完整快照，可回溯）+ `training_sessions` 加 `character_template_id` / `character_version` 两列（会话创建时绑定当时的版本）；管理端 `PATCH` 新增 `versionBump`（major/minor/patch，缺省 patch），**有活跃会话时改 major 返回 409**（新增 `BizCode.CharacterVersionLocked`，仓库原本没有 Conflict 码）；历史回溯 2 个端点（列表 + 单版快照）；跨层走 **voice 层 @Global 插槽**（engine ↔ counselor 反向依赖禁令，同 `StudentRiskAuditRegistry` 范式）。⚠️ 任务单 §3.1 假设的 `training_sessions.character_template_id` **当时并不存在** —— 本单补齐（否则锁定无从判定）；⚠️ §1.1 的「旧会话突然变味」在现架构下**不成立**（resolver 只在 openSession 解析一次）→ 锁定属**防御性**；⚠️ 回溯只做**读取**，未做「一键回滚写回」；**审核后补做：调试会话恢复能力**（内核状态快照每轮落进会话文件 + `POST /admin/api/debug/session/:id/resume`，后端重启后从最后一轮继续；engine-core 零改动，见交付记录 §九）（[交付记录](../completed/phase2/engine-wp38-character-semver-and-debug-event-tags-implementation-2026-11-06.md)） | WP9 |
 
 ---
 
@@ -107,7 +107,7 @@
 | 🟢 P2 技术债 | 13 条 | WP45, 46, 47, 48, 49, 52, 53, 54, 59, 60, 62, 68, **69** |
 | **合计** | **42 条** | **WP27–WP69** |
 
-**进度：32 / 42 完成**（WP28 ✅、WP30 ✅、WP31 ✅、WP32 ✅、WP34 ✅、WP35 ✅、WP36 ✅、WP37 ✅、WP41 ✅、WP42 ✅、WP45 ✅、WP46 ✅、WP48 ✅、WP49 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP56 ✅、WP57 ✅、WP58 ✅、WP59 ✅、WP61 ✅、WP63 ✅、WP64 ✅、WP65 ✅、WP66 ✅、WP67 ✅、WP68 ✅、WP69 ✅，2026-11-06）。
+**进度：33 / 42 完成**（WP28 ✅、WP30 ✅、WP31 ✅、WP32 ✅、WP34 ✅、WP35 ✅、WP36 ✅、WP37 ✅、WP38 ✅、WP41 ✅、WP42 ✅、WP45 ✅、WP46 ✅、WP48 ✅、WP49 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP56 ✅、WP57 ✅、WP58 ✅、WP59 ✅、WP61 ✅、WP63 ✅、WP64 ✅、WP65 ✅、WP66 ✅、WP67 ✅、WP68 ✅、WP69 ✅，2026-11-06）。
 
 > ⚠️ **WP45 挖出来一个线上一直在犯的 bug**（比"清技术债"本身值钱）：`qdrant.service.ts` 的 `private client: any` 掩盖了 `setPayload` 按 **v0.x 三参**形状调（真 SDK v1.19 是**两参** `setPayload(collection, {payload, points})`）→ SDK 把第 2 参的**字符串 id** 解构成全 undefined、第 3 参被忽略 → **WP12 的冲突消解标记（`supersededBy`）从未真正落库** → 内核 `recall-policy` 排除"已被取代的记忆"那道判定永远不生效 → **同主题的新旧两条矛盾记忆会一起被召回**。已修 + 新增打到 HTTP 层的契约回归测试（4 例）。**别把这一行当成"只是清了 8 条样式债"。**
 

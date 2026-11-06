@@ -29,7 +29,7 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 
 import { ENGINE_SESSION_PORT, ROLLING_SUMMARY_CLEANUP } from './engine.tokens.js';
-import type { EngineSessionPort, EngineTurnInput, OpenEngineSessionInput } from '../../engine-core/index.js';
+import type { EngineSessionPort, EngineTurnInput, OpenEngineSessionInput, RenderContextTurn } from '../../engine-core/index.js';
 import type { RollingSummaryCleanupPort } from '../persistence/rolling-session-summary.service.js';
 import type { StreamRenderHandlers } from '../rendering/streaming-render.port.js';
 import type { TurnRenderResult, TurnSessionContext } from '../rendering/turn-render-orchestrator.js';
@@ -191,6 +191,19 @@ export class EngineTurnService {
     options?: { readonly includePromptFull?: boolean },
   ): Promise<TurnRenderResult> {
     return this.orchestrator.turnStream(handleId, input, handlers, options);
+  }
+
+  /**
+   * 预置句柄的渲染上下文 (恢复调试会话用).
+   *
+   * V2026-11-06 (WP38 补做 · 调试会话恢复): 进程重启后, 内核句柄要重新开,
+   *   而"上一轮说过什么"在内存里 —— 不预置的话, 恢复出来的会话第一轮就是空上下文.
+   *
+   * @param handleId 内核会话句柄
+   * @param turns 要预置的最近对话序列 (旧 → 新)
+   */
+  restoreRenderContext(handleId: string, turns: readonly RenderContextTurn[]): void {
+    this.orchestrator.restoreHistory(handleId, turns);
   }
 
   /**

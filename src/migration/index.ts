@@ -148,5 +148,9 @@ export { AddCharacterProfileAllianceBaseline1714900000027 } from './171490000002
 //   NULL = 没表态 = 内核不做特质调节; 存量行加列后仍是 NULL (零回归).
 //   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
 export { AddCharacterProfilePersonalityTraits1714900000028 } from './1714900000028-AddCharacterProfilePersonalityTraits.js';
+// V2026-11-06 治本 (WP38 — 角色版本 semver + 会话绑定版本, 跟 bin/ormconfig.ts 严格 1:1):
+//   character_profiles 加 3 列 (version_major/minor/patch) + character_profile_versions 新表
+//   + training_sessions 加 2 列 (character_template_id / character_version).
+export { AddCharacterVersionSemver1714900000029 } from './1714900000029-AddCharacterVersionSemver.js';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

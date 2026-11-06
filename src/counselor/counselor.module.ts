@@ -292,6 +292,7 @@ import { BillingService } from './providers/billing.service.js';
 // V2026-10-13 治本 (Phase 7.10 P0-3 — exam service):
 //   跟 home/training 数据正交, 单独 service (4 大分类 + 11 卡片 + 3 KPI).
 import { CaseProfileEntryService } from './providers/case-profile-entry.service.js';
+import { CharacterUsageService } from './providers/character-usage.service.js';
 import { CounselorExamService } from './providers/counselor-exam.service.js';
 // V2026-10-13 治本 (Phase 7.10 P0-4 — growth service):
 //   复用 home service ability + weeklyProgress, 加 training records + wrong questions (V0.5 空数组).
@@ -392,6 +393,9 @@ import { VoicesService } from './providers/voices.service.js';
 // V2026-10-27 治本 (危机识别专区 — 只读元数据服务, spec 任务 B2):
 //   纯静态读 (不落库 / 不调上游 / 不计次), 只做"内部配置 → 对外 DTO"的逐字段映射.
 import { VptSessionBridgeService } from './providers/vpt-session-bridge.service.js';
+// V2026-11-06 治本 (WP38 — 角色占用查询插槽实现):
+//   数"这个角色现在还有几场会话在用" (训练会话表归本域) —— 供引擎侧角色管理服务
+//   判"主版本能不能改". 走 voice 层 @Global 插槽, 引擎侧不反向依赖本域.
 // V2026-11-02 治本 (WP14 — 学员心理风险处置层 · 审计落库):
 //   StudentRiskAuditService 实现 voice 侧 StudentRiskAuditSink 插槽 (依赖倒置),
 //   启动时注册进 voice 侧全局注册表 —— voice 侧 / 引擎侧都不认识 counselor 的实体.
@@ -640,6 +644,10 @@ import { VptSessionBridgeService } from './providers/vpt-session-bridge.service.
     //   必须在 onModuleInit 里注册进 voice 侧 @Global 审计插槽 —— 少注册 = 风险事件不落库
     //   (弹窗照弹, 但平台的安全保障义务没有证据), 跟 VptSessionBridgeService 同款理由.
     StudentRiskAuditService,
+    // V2026-11-06 治本 (WP38 — 角色占用查询):
+    //   必须在 onModuleInit 里注册进 voice 侧 @Global 插槽 —— 少注册 = 引擎侧判不出
+    //   "还有没有会话在用这个角色" (主版本锁定会静默放行), 跟 VptSessionBridgeService 同款理由.
+    CharacterUsageService,
   ],
   exports: [
     CounselorHomeService,

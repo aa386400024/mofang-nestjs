@@ -358,6 +358,7 @@ class StubDebugSessionStore {
         updatedAt: record.updatedAt,
         turnCount: record.turnCount,
         status: record.status,
+        resumable: record.kernelState !== null,
       }))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
@@ -406,6 +407,10 @@ function buildService(env: Record<string, string> = {}): {
     stubConfig(env) as unknown as ConstructorParameters<typeof DebugSessionService>[3],
     store as unknown as ConstructorParameters<typeof DebugSessionService>[4],
     titleGenerator,
+    {
+      restoreBdiState: async () => 'restored' as const,
+      restoreMemories: async () => 0,
+    } as unknown as ConstructorParameters<typeof DebugSessionService>[6],
   );
   return { service, engine, resolver, redis, store, titleGenerator };
 }

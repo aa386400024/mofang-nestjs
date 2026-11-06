@@ -62,6 +62,7 @@ import { CounselorSupervisionProcessor } from './counselor-supervision.processor
 import { TurnAnalysisProcessor } from './turn-analysis.processor.js';
 import type { TurnTrace } from '../../admin-debug/trace-recorder.service.js';
 import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types.js';
+import { CharacterVersionRegistry } from '../../voice/character-version-slot.js';
 import {
   VoiceSessionBridgeRegistry,
   type VoiceSessionBridge,
@@ -185,6 +186,8 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
     private readonly turnAnalysisProcessor: TurnAnalysisProcessor,
     private readonly supervisionProcessor: CounselorSupervisionProcessor,
     private readonly registry: VoiceSessionBridgeRegistry,
+    /** 角色版本插槽 (WP38): 取建会话那一刻的实时角色版本号. */
+    private readonly characterVersions: CharacterVersionRegistry,
     // 全局配置 (最小可分析量阈值) — 空局拦截要用.
     private readonly config: ConfigService,
   ) {}
@@ -202,6 +205,9 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
    */
   async open(input: VoiceSessionOpenInput): Promise<VoiceSessionOpenResult> {
     const difficulty = toTrainingDifficulty(input.preset.difficulty);
+    // WP38: 角色版本 —— 建会话这一刻的**实时**版本号 (角色刚被改过, 这里读到的就是新值).
+    //   读不到 (无角色 / 兜底通道) → null, 不阻断建会话 (角色是可选增强).
+    const characterVersion = input.templateId ? await this.characterVersions.resolve(input.templateId) : null;
     const entity = this.sessionRepo.create({
       // V0.x: tenantId = userId (一人一租户, A9). V1.x 多租户上线后 backfill.
       tenantId: input.tenantId,
@@ -227,6 +233,9 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
       defenseVariance: DimensionVariance.MEDIUM,
       transcript: [],
       supervisionReportId: null,
+      // WP38: 绑定本场用的角色与版本 (可空 = 兜底人设通道 / 无角色).
+      characterTemplateId: input.templateId,
+      characterVersion,
       // 建连成功即计时起点 (与语音侧的墙钟起点一致).
       startedAt: new Date(),
       endedAt: null,

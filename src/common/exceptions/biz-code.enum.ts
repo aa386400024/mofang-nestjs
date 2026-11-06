@@ -156,4 +156,10 @@ export enum BizCode {
   VoiceCatalogUpstreamTimeout = 48_003, // 上游超时 (本地 AbortSignal 超时)
   VoiceCatalogEmpty = 48_004, // 上游返回空列表 (目录尚未就绪 / 响应异常)
   VoiceCatalogUpstreamNoBalance = 48_005, // 上游余额不足 (1008 / 402)
+
+  // ====== 角色资产池模块 (49xxx) — V2026-11-06 WP38 · 角色版本 semver ======
+  //   为什么要**独立**一套码 (而不是复用通用 1001 InvalidParameter):
+  //     通用码只能表达"参数错了", 而主版本被锁的真实语义是"**现在不能改**, 等一下就行" ——
+  //     前端要能据此给出"等会话结束再改"的提示, 而不是让运营以为自己填错了.
+  CharacterVersionLocked = 49_001, // 角色主版本被锁 (还有活跃会话在用这个角色)
 }

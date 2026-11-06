@@ -288,7 +288,7 @@ describe('WP5 · 渲染契约层', () => {
   });
 
   describe('⑫ 零回归', () => {
-    it('不传任何渲染依赖 → turn 出参与 WP4 逐字一致, reply 恒空, 无新增字段', async () => {
+    it('不传任何渲染依赖 → turn 出参与 WP4 逐字一致, reply 恒空, 无渲染相关字段', async () => {
       const text = '听起来你最近挺辛苦的';
       const bdiStates = new InMemoryBdiStateRepository();
       let idSeq = 0;
@@ -314,8 +314,10 @@ describe('WP5 · 渲染契约层', () => {
       expect(output.snapshot).toEqual(expectedSnapshot);
       expect(output.intention).toEqual(planIntention(expectedSnapshot));
       expect(output.turnIndex).toBe(1);
-      // 出参字段集合与 WP4 完全一致 —— 没有多出任何渲染相关字段.
-      expect(Object.keys(output).toSorted((a, b) => a.localeCompare(b))).toEqual(['intention', 'reply', 'snapshot', 'turnIndex']);
+      // 出参字段集合 —— WP5 关心的仍是"没有多出任何**渲染相关**字段" (下面两行继续盯着).
+      //   V2026-11-06 治本 (WP38 · 预批准例外): 内核给 EngineTurnOutput 加了**只读观测字段**
+      //   events (事件分类) —— 纯加字段, 不改任何决策与数值; 字段清单随之 +1.
+      expect(Object.keys(output).toSorted((a, b) => a.localeCompare(b))).toEqual(['events', 'intention', 'reply', 'snapshot', 'turnIndex']);
       expect((output as unknown as Record<string, unknown>)['render']).toBeUndefined();
       expect((output as unknown as Record<string, unknown>)['renderResult']).toBeUndefined();
     });

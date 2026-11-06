@@ -56,8 +56,9 @@
 > - WP48（env 守卫盲区 · **「读进 config」≠「真被消费」** · 全量扫描发现盲区比任务单预估的大 7 倍 —— 实际 **16 个**「配了不生效」的键，其中 **14 个躺在 `.env.example` 的【生效区】**；本单加 `// @unused-read` 标记 + 守卫用例⑤（标记 ↔ 预留区 ↔ 无人消费 三向一致 + **正对照断言**防「守卫永远绿」；engine-core 零改动）✅ → [`completed/phase2/engine-wp48-env-guard-blind-spot-implementation-2026-11-06.md`](completed/phase2/engine-wp48-env-guard-blind-spot-implementation-2026-11-06.md)
 >
 > - WP69（env 盲区扩面 + consent 路径修复 + 调试面板小改进 · **WP48 挖出的 14 个生效区盲区键清完**：6 个挪进预留区 + 7 个 `EMBEDDING_*` 死遗产删除 + `CONSENT_CURRENT_VERSION` **修路径治本**（配了真生效）；顺手修掉一个**线上静默失效**的 config 路径 bug；调试面板会话列表加 `active` 字段；**§2.5 trace eventTags 本单不做**（取真值须动内核 = 破红线，已登记后续单）；engine-core 零改动）✅ → [`completed/phase2/engine-wp69-env-blindspot-expansion-and-debug-panel-fixes-implementation-2026-11-06.md`](completed/phase2/engine-wp69-env-blindspot-expansion-and-debug-panel-fixes-implementation-2026-11-06.md)
+> - WP38（角色版本 semver · **主版本进行中锁定** + 历史版本可回溯 + 会话绑定版本；**并入 WP69 登记的后续单 D**（调试 trace 接引擎事件标签 —— 内核加只读出口 `EngineTurnOutput.events`，适配层透传，调试面板拿 `eventTags` + 后端权威中文标签，覆盖内核全部 11 类）｜engine-core **改 2 个文件**（预批准例外，纯加只读观测字段，决策与数值逐字不变）；**审核后补做：调试会话恢复能力** —— 内核状态快照（BDI + 记忆 + 轨迹）每轮落进会话文件，新增 `POST /admin/api/debug/session/:id/resume`，后端重启后可从最后一轮继续聊（本单内核 **0 行**改动））✅ → [`completed/phase2/engine-wp38-character-semver-and-debug-event-tags-implementation-2026-11-06.md`](completed/phase2/engine-wp38-character-semver-and-debug-event-tags-implementation-2026-11-06.md)
 >
-> 进度 32/42（WP 清单与总览口径一致，WP27–WP69；2026-11-05 新增 WP63–WP68 混合式 BDI PoC 组 —— **该组 6 条已全部交付**）。
+> 进度 33/42（WP 清单与总览口径一致，WP27–WP69；2026-11-05 新增 WP63–WP68 混合式 BDI PoC 组 —— **该组 6 条已全部交付**）。
 > **注**：上面那条 Admin Dashboard 四合一任务单**不是编号 WP**，不计入 42 条进度。
 >
 > ⚠️ **WP65 只销了「队列化」那一半**：母版描述里的 **per-session mutex + 快照版本号**仍未做 —— 影子模式下审议结果不写状态，暂无覆盖风险；**切灰度（结果开始生效）前必须补**。

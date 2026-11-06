@@ -71,6 +71,10 @@ const CONFLICT_CODES: ReadonlySet<BizCode> = new Set([
   BizCode.EmailAlreadyVerified,
   BizCode.PhoneAlreadyVerified,
   BizCode.OAuthAccountAlreadyLinked,
+  // V2026-11-06 治本 (WP38 — 角色主版本锁定):
+  //   "还有活跃会话在用这个角色, 改不了主版本" 是**状态冲突**, 不是参数错误 ——
+  //   落默认分支会变成 400 ("你的请求有问题"), 运营会以为自己参数填错了, 而真相是"等一下".
+  BizCode.CharacterVersionLocked,
 ]);
 
 const UNAUTHORIZED_CODES: ReadonlySet<BizCode> = new Set([
@@ -312,6 +316,10 @@ function getBizCodeDefaultMessage(code: BizCode): string {
     [BizCode.GrowthCompleteFail]: '工具完成写入失败',
     [BizCode.GrowthToolSourceInvalid]: 'tool_completion_source 不在 9 source enum',
     [BizCode.GrowthToolFragmentsGrantInvalid]: 'fragments_grant key/value 不合规',
+
+    // V2026-11-06 (WP38 — 角色版本 semver):
+    //   文案给"下一步能做什么", 不回显内部表名 / 会话 id.
+    [BizCode.CharacterVersionLocked]: '还有会话正在使用这个角色, 暂时不能改主版本 (可改次版本, 或等会话结束后再改)',
   };
   return messages[code] ?? '错误';
 }

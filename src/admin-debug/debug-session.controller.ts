@@ -53,6 +53,7 @@ import {
   type DebugSessionCreated,
   type DebugSessionDetail,
   type DebugSessionListItem,
+  type DebugSessionResumed,
   type DebugTurnTrace,
 } from './debug-session.service.js';
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
@@ -120,6 +121,26 @@ export class DebugSessionController {
     const counselorText = body?.counselorText ?? body?.userText ?? '';
     const result = await this.service.runTurn(id, counselorText);
     return { turnIndex: result.trace.turnIndex, reply: result.reply, trace: result.trace };
+  }
+
+  /**
+   * 恢复调试会话 (后端重启后继续调试).
+   *
+   * V2026-11-06 (WP38 补做 · 调试会话恢复): 从持久化的内核状态快照重建内核句柄 ——
+   *   恢复后可以接着聊, 而且**从最后一轮的状态继续** (不是从头开始).
+   *
+   * 前端对接 (归前端 AI):
+   *   `active=false` 的会话显示「继续调试」按钮 → 调这个接口 →
+   *   成功后该会话在 `GET /admin/api/debug/sessions` 里变成 `active=true`,
+   *   就能继续发消息了 (不必刷新页面).
+   *
+   * @param id 调试会话 id
+   * @returns 恢复结果 (含"恢复了什么")
+   * @throws BizException 会话不存在 (404) / 没有可恢复的快照 (400)
+   */
+  @Post('session/:id/resume')
+  async resumeSession(@Param('id') id: string): Promise<DebugSessionResumed> {
+    return this.service.resumeSession(id);
   }
 
   /**

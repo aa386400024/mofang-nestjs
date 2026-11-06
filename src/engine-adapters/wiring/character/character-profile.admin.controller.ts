@@ -33,10 +33,15 @@ import {
   CharacterProfileAdminDto,
   CharacterProfileAdminListDto,
   CharacterProfileAdminListQueryDto,
+  CharacterProfileVersionDetailDto,
+  CharacterProfileVersionListDto,
   CreateCharacterProfileDto,
   UpdateCharacterProfileDto,
 } from './character-profile.dto.js';
+import { BizCode } from '../../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../../common/exceptions/biz.exception.js';
 import { AdminRoleGuard } from '../../../counselor/guards/admin-role.guard.js';
+import { CurrentUser } from '../../../user/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../../../user/guards/jwt-auth.guard.js';
 
 /**
@@ -82,9 +87,37 @@ export class CharacterProfileAdminController {
    * PATCH /engine/admin/character-profiles/:templateId — 编辑 / 上下架 / 过审.
    */
   @Patch(':templateId')
-  @ApiOperation({ summary: '编辑角色基线 (内容字段 / 上下架 / 审核状态)' })
-  async update(@Param('templateId') templateId: string, @Body() input: UpdateCharacterProfileDto): Promise<CharacterProfileAdminDto> {
-    return this.service.update(templateId, input);
+  @ApiOperation({ summary: '编辑角色基线 (内容字段 / 上下架 / 审核状态 / 版本递增档位)' })
+  async update(
+    @Param('templateId') templateId: string,
+    @Body() input: UpdateCharacterProfileDto,
+    @CurrentUser('userId') userId?: string,
+  ): Promise<CharacterProfileAdminDto> {
+    // WP38: 变更人 id 记进历史版本快照 (谁改的 —— 回溯时要看得见).
+    return this.service.update(templateId, input, userId ?? null);
+  }
+
+  /**
+   * GET /engine/admin/character-profiles/:templateId/versions — 历史版本列表 (WP38).
+   */
+  @Get(':templateId/versions')
+  @ApiOperation({ summary: '角色历史版本列表 (按版本号从新到旧)' })
+  async listVersions(@Param('templateId') templateId: string): Promise<CharacterProfileVersionListDto> {
+    return this.service.listVersions(templateId);
+  }
+
+  /**
+   * GET /engine/admin/character-profiles/:templateId/versions/:major/:minor/:patch — 某一版快照 (WP38).
+   */
+  @Get(':templateId/versions/:major/:minor/:patch')
+  @ApiOperation({ summary: '角色某版历史快照 (含完整内容, 可回溯当时怎么配的)' })
+  async getVersion(
+    @Param('templateId') templateId: string,
+    @Param('major') major: string,
+    @Param('minor') minor: string,
+    @Param('patch') patch: string,
+  ): Promise<CharacterProfileVersionDetailDto> {
+    return this.service.getVersion(templateId, parseVersionPart(major), parseVersionPart(minor), parseVersionPart(patch));
   }
 
   /**
@@ -96,4 +129,22 @@ export class CharacterProfileAdminController {
   async remove(@Param('templateId') templateId: string): Promise<{ templateId: string; deleted: boolean }> {
     return this.service.remove(templateId);
   }
+}
+
+/**
+ * 版本号分段 → 非负整数 (WP38).
+ *
+ * 路径参数是字符串: "1" 转 1, "abc" / "-1" / "1.5" 一律拒 ——
+ * 宁可 400 也不把 NaN 带进 where 条件 (那会静默查不到, 让人以为"这版不存在").
+ *
+ * @param raw 路径参数原文
+ * @returns 非负整数
+ * @throws BizException(InvalidParameter) 不是合法版本号分段
+ */
+function parseVersionPart(raw: string): number {
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 0) {
+    throw new BizException(BizCode.InvalidParameter, `版本号分段不合法: ${raw}`);
+  }
+  return value;
 }
