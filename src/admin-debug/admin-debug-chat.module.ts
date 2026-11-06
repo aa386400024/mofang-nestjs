@@ -56,6 +56,7 @@ import { DebugSessionService } from './debug-session.service.js';
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
 import { CharacterPoolModule } from '../engine-adapters/wiring/character/character-pool.module.js';
 import { EngineWiringModule } from '../engine-adapters/wiring/engine.module.js';
+import { TurnDeltaAuditModule } from '../engine-adapters/wiring/turn-delta-audit/turn-delta-audit.module.js';
 import { LlmModule } from '../llm/llm.module.js';
 import { LlmRouterService } from '../llm/registry/llm-router.service.js';
 import { User } from '../user/entities/user.entity.js';
@@ -72,6 +73,9 @@ import { UserModule } from '../user/index.js';
     EngineWiringModule,
     // 角色池 (CHARACTER_PROFILE_RESOLVER: 把 characterSlug 解析成内核角色基线).
     CharacterPoolModule,
+    // 事件 + delta 审计观测 (WP58): 调试面板要按会话查"每一轮触发了什么事件、
+    // 原始 delta 是多少" —— 读侧与写侧共用同一个模块 (同一个实体注册, 零第二份真相).
+    TurnDeltaAuditModule,
     // LLM 路由层 (会话标题自动生成要走 `router.chat`; 不新造 LLM 客户端).
     LlmModule,
   ],

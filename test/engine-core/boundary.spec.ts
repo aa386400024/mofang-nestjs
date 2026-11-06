@@ -286,6 +286,8 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'CounselorEventKind',
       'EventClassifier',
       'SessionEvent',
+      // WP58: 规则分类器实现 (公开面临时扩展 — 观测通道要 matchedTerms; 模型轨替换后可退役)
+      'RuleBasedClassifier',
       // 错误 / DTO / 仓储 / 端口
       'EngineCoreError',
       'EngineErrorCode',

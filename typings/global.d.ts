@@ -347,6 +347,11 @@ export declare global {
       // ⚠️ 调试接口**能真跑引擎** (每轮一次 LLM) —— 生产环境缺省必须关.
       ENGINE_DEBUG_CHAT_ENABLED?: string; // 调试面板写接口开关: true/1/yes/on 开; 缺省 = 非生产开 / 生产关
       ENGINE_DEBUG_CHAT_DELIBERATION_WAIT_MS?: string; // 等审议 trace 的上限 (毫秒, 默认 5000; 0 = 不等)
+      // V2026-11-06 治本 (WP58 — 事件 + delta 审计观测):
+      //   下面是观测通道的开关. 同样**逐个字面量**读
+      //   (src/engine-adapters/wiring/turn-delta-audit/turn-delta-audit.config.ts).
+      //   ⚠️ 缺省 = 关 —— 关着时连分类器都不跑 (零开销).
+      TURN_DELTA_AUDIT_ENABLED?: string; // 事件 + delta 审计观测开关: true/1/yes/on 开; 缺省 = 关
     }
   }
 

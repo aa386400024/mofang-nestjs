@@ -29,6 +29,7 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 
 import { ENGINE_SESSION_PORT, ROLLING_SUMMARY_CLEANUP } from './engine.tokens.js';
+import { TURN_DELTA_AUDIT, type TurnDeltaAuditPort } from './turn-delta-audit/turn-delta-audit.port.js';
 import type { EngineSessionPort, EngineTurnInput, OpenEngineSessionInput, RenderContextTurn } from '../../engine-core/index.js';
 import type { RollingSummaryCleanupPort } from '../persistence/rolling-session-summary.service.js';
 import type { StreamRenderHandlers } from '../rendering/streaming-render.port.js';
@@ -105,6 +106,13 @@ export class EngineTurnService {
      * 不能让整个引擎门面开不起来 (与仓库里 LlmRouterService 的做法同理).
      */
     @Optional() @Inject(ROLLING_SUMMARY_CLEANUP) private readonly rollingSummary?: RollingSummaryCleanupPort,
+    /**
+     * 事件 + delta 审计观测端口 (WP58).
+     *
+     * 用 `@Optional()`: 观测是**增强**, 装配缺席时只是"不记审计", 不能让整个引擎
+     * 门面开不起来 (与仓库里 LlmRouterService 的做法同理).
+     */
+    @Optional() @Inject(TURN_DELTA_AUDIT) private readonly audit?: TurnDeltaAuditPort,
   ) {}
 
   /**
@@ -169,7 +177,9 @@ export class EngineTurnService {
    * @returns 本轮来访口语 + 内核出参 + 渲染元信息
    */
   async turn(handleId: string, input: EngineTurnInput): Promise<TurnRenderResult> {
-    return this.orchestrator.turn(handleId, input);
+    const result = await this.orchestrator.turn(handleId, input);
+    this.auditTurn(handleId, input, result);
+    return result;
   }
 
   /**
@@ -190,7 +200,9 @@ export class EngineTurnService {
     handlers: StreamRenderHandlers,
     options?: { readonly includePromptFull?: boolean },
   ): Promise<TurnRenderResult> {
-    return this.orchestrator.turnStream(handleId, input, handlers, options);
+    const result = await this.orchestrator.turnStream(handleId, input, handlers, options);
+    this.auditTurn(handleId, input, result);
+    return result;
   }
 
   /**
@@ -225,6 +237,46 @@ export class EngineTurnService {
     } finally {
       this.forgetRollingSummary(handleId, context);
       this.registry.remove(handleId);
+    }
+  }
+
+  /**
+   * 记录本轮的事件 + delta 审计 (WP58 · fire-and-forget).
+   *
+   * 为什么挂在门面而不是编排器:
+   *     门面是所有调用必经之处, 归属登记表 (EngineSessionRegistry) 就在它旁边 ——
+   *     归属 (tenantId / sessionId) 与轮次号不必跨模块拿.
+   *
+   * 为什么失败不抛:
+   *     观测是增强, 不是主链路依赖 —— 审计写库失败不该让整轮 turn 失败
+   *     (与 notifyDeltaCap 同一纪律). 这里再兜一层 try/catch: 观测端口的实现
+   *     承诺不抛, 但门面不该把"观测出问题"变成"对话出问题".
+   *
+   * @param handleId 内核会话句柄
+   * @param input 本轮入参
+   * @param result 本轮出参
+   */
+  private auditTurn(handleId: string, input: EngineTurnInput, result: TurnRenderResult): void {
+    if (!this.audit) return;
+    const context = this.registry.resolve(handleId);
+    if (!context) return;
+    try {
+      this.audit.record({
+        tenantId: context.tenantId,
+        sessionId: context.sessionId,
+        turnIndex: result.turnIndex,
+        userText: input.userText,
+        kernelEventKinds: result.events ?? [],
+      });
+    } catch (error) {
+      this.logger.debug(
+        '引擎会话事件审计记录失败 handle=' +
+          handleId +
+          ' turn=' +
+          result.turnIndex +
+          ': ' +
+          (error instanceof Error ? error.message : String(error)),
+      );
     }
   }
 

@@ -76,6 +76,7 @@ import { resolvePersonalityModulatorConfig } from './personality-modulator.confi
 import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory.js';
 import { resolveSessionDecayConfig } from './session-decay.config.js';
 import { resolveSessionSummaryConfig } from './session-summary.config.js';
+import { TurnDeltaAuditModule } from './turn-delta-audit/turn-delta-audit.module.js';
 import { LlmModule as AgentLlmModule } from '../../agent/llm/llm.module.js';
 import { CounselorLlmJsonClient } from '../../counselor/providers/llm-json.client.js';
 import type { BdiStateRepository, EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
@@ -125,6 +126,11 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
     //   拆成模块后: 本文件只 import 模块 (相对路径), 零 SDK 包名; 换数据源只改
     //   CharacterPoolModule 里那一处绑定 (任务单 §5).
     CharacterPoolModule,
+    // V2026-11-06 (WP58): 事件 + delta 审计观测 (每轮事件类型 + 命中词 + 原始 delta 落库).
+    //   **同样为护栏而拆** —— 审计表必须连库, 若把 TypeOrmModule.forFeature 直接写
+    //   在本文件, 装配层就得 import '@nestjs/typeorm' —— WP8-A §8-9 护栏立刻红.
+    //   拆成模块后: 本文件只 import 模块 (相对路径), 零 SDK 包名 (同 CharacterPoolModule).
+    TurnDeltaAuditModule,
     // WP19: 调试快照记录器 (每轮 BDI trace 落库).
     AdminDebugModule,
     // V2026-11-05 (WP64): agent 侧 LlmModule —— 只为拿 `LlmService`

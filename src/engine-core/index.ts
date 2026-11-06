@@ -7,9 +7,15 @@
 //     将来换 Qdrant 版时已有业务 import 了内存版, 换不动. 需要时从 in-memory/
 //     显式深路径 import —— 意图写在代码里.
 //
-//   为什么不导出规则实现 (RuleBasedClassifier / 算子纯函数 / 默认常量):
-//     它们是内部实现细节; 对外只暴露 EventClassifier **接口**, 模型轨后期替换,
-//     消费方不绑定规则实现. 默认基线由内核内部装配, 不外露常量避免被旁路改值.
+//   为什么不导出算子纯函数 / 默认常量:
+//     它们是内部实现细节; 默认基线由内核内部装配, 不外露常量避免被旁路改值.
+//
+//   V2026-11-06 (WP58) 例外: **导出 RuleBasedClassifier** ——
+//     事件 + delta 审计观测 (adapter 层自观测) 需要 matchedTerms (命中词明细),
+//     而内核出参 EngineTurnOutput.events 只有事件种类、不带命中词. 分类器是纯函数
+//     (词典匹配), 观测侧另写一套 = 与内核真值漂移 (记下来的 delta 对不上实际),
+//     所以这里导出内核那一份.
+//     ⚠️ 这是公开面的**临时扩展**: 模型轨替换分类器后, 本导出可退役 (观测改读模型输出).
 //
 //   依赖方向 (单向, 不可逆):
 //     adapter  ──▶ engine-core/index.ts ──▶ domain / runtime / cognition 接口
@@ -38,6 +44,9 @@ export type { AttachmentStyle, CharacterProfile, PersonalityTraits, UnderlyingDe
 
 // ── 标准会话事件 / 分类器接口 (双轨可替换) ────────────────────────
 export type { ClassifyContext, CounselorEventKind, EventClassifier, SessionEvent } from './domain/events/session-event.js';
+// V2026-11-06 (WP58): 规则分类器**实现** —— 只给观测通道用 (要 matchedTerms).
+//   公开面的临时扩展, 模型轨替换后可退役; 详见文件头.
+export { RuleBasedClassifier } from './cognition/rule-based-classifier.js';
 
 // ── 错误契约 ──────────────────────────────────────────────────────
 export { EngineCoreError, EngineErrorCode } from './domain/engine-errors.js';

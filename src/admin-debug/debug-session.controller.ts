@@ -57,6 +57,8 @@ import {
   type DebugTurnTrace,
 } from './debug-session.service.js';
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
+import type { TurnDeltaAuditTurnView } from '../engine-adapters/wiring/turn-delta-audit/turn-delta-audit.port.js';
+import { TurnDeltaAuditService } from '../engine-adapters/wiring/turn-delta-audit/turn-delta-audit.service.js';
 
 /**
  * 创建调试会话的入参.
@@ -87,13 +89,34 @@ interface UpdateDebugSessionTitleBody {
 }
 
 /**
+ * delta 审计读端点的返回体.
+ *
+ * ⚠️ 为什么**只有这一个**端点带 { code, data } 外壳, 而同控制器的其它端点直接返回业务对象:
+ *   仓库的成功响应没有统一外壳 (全局只统一了错误体 { code, message, data: null }).
+ *   但本端点的契约由任务单 §5.1 钉死成 { code: 0, data: {...} } —— code=0 正是
+ *   BizCode.Success 的口径, 与错误体同族. 前端对接时**只有这一个**端点要取 .data,
+ *   别把这层外壳套到别的端点上 (admin-dashboard/src/api/client.ts 是直接透传 json 的).
+ */
+interface TurnDeltaAuditResponse {
+  readonly code: number;
+  readonly data: {
+    readonly sessionId: string;
+    readonly turns: readonly TurnDeltaAuditTurnView[];
+  };
+}
+
+/**
  * 引擎调试会话接口 (admin 内部能力).
  */
 @Controller('admin/api/debug')
 // 角色校验 (WP26 同款): 非 admin 角色 → 403 (BizCode.Forbidden).
 @UseGuards(AdminRoleGuard)
 export class DebugSessionController {
-  constructor(private readonly service: DebugSessionService) {}
+  constructor(
+    private readonly service: DebugSessionService,
+    /** 事件 + delta 审计观测服务 (WP58 · 按会话查每一轮的事件与原始 delta). */
+    private readonly audit: TurnDeltaAuditService,
+  ) {}
 
   /**
    * 创建调试会话.
@@ -201,6 +224,22 @@ export class DebugSessionController {
   ): Promise<{ readonly id: string; readonly title: string }> {
     const record = await this.service.updatePersistedTitle(id, body?.title ?? '');
     return { id: record.id, title: record.title };
+  }
+
+  /**
+   * 本场会话每一轮的事件 + delta 审计 (WP58).
+   *
+   * 用途: 正式训练会话出了问题, 按 sessionId 查"这一轮触发了什么事件 / 原始 delta
+   * 是多少" —— 以前只有 cap 砍幅的 warning 日志 (只在**被砍**时才有, 没被砍的
+   * 轮次完全无痕) 与调试会话的内存 trace (只对调试会话有效), 两处都查不了.
+   *
+   * @param sessionId 业务会话 id
+   * @returns 审计视图 (按轮次升序; 无数据 = 空数组, 不报错)
+   */
+  @Get('sessions/:sessionId/delta-audit')
+  async sessionDeltaAudit(@Param('sessionId') sessionId: string): Promise<TurnDeltaAuditResponse> {
+    const turns = await this.audit.listTurns(sessionId);
+    return { code: 0, data: { sessionId, turns } };
   }
 
   /**

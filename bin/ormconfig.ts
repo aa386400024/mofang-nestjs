@@ -203,6 +203,10 @@ import { AddCharacterVersionSemver1714900000029 } from '../src/migration/1714900
 //   规则引擎快评的落库表 (9 列 + 3 索引, 其中 session_id 唯一) —— 一场会话一份评估,
 //   重算覆盖不堆行. 表由手写 DDL 建 (ADR-0003 禁用 synchronize).
 import { CreateSessionEvaluations1714900000030 } from '../src/migration/1714900000030-CreateSessionEvaluations.js';
+// V2026-11-06 治本 (WP58 — turn_delta_audits 事件 + delta 审计观测表, 跟 src/migration/index.ts 严格 1:1):
+//   turn_delta_audits 新表 (8 列 + 3 索引, 其中 (tenant_id, session_id, turn_index) 唯一)
+//   —— 每轮事件类型 + 命中词 + 原始 delta 的落库表. 表由手写 DDL 建 (ADR-0003 禁用 synchronize).
+import { AddTurnDeltaAudits1714900000031 } from '../src/migration/1714900000031-AddTurnDeltaAudits.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -349,6 +353,10 @@ const ormconfig = async (): Promise<DataSource> => {
       // V2026-11-06 治本 (WP43 — session_evaluations 单场规则快评表, 跟 src/migration/index.ts 1:1):
       //   9 列 + 3 索引 (session_id 唯一 —— 重算覆盖, 不堆行).
       CreateSessionEvaluations1714900000030,
+      // V2026-11-06 治本 (WP58 — turn_delta_audits 事件 + delta 审计观测表, 跟 src/migration/index.ts 严格 1:1):
+      //   8 列 + 3 索引 (其中 (tenant_id, session_id, turn_index) 唯一 —— 重试覆盖, 不堆行).
+      //   部署顺序: **必须先 migration:run 再起服务** —— 运行时写入前表得先在.
+      AddTurnDeltaAudits1714900000031,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

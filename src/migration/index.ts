@@ -156,5 +156,9 @@ export { AddCharacterVersionSemver1714900000029 } from './1714900000029-AddChara
 //   session_evaluations 新表 (9 列 + 3 索引, 其中 session_id 唯一) —— 规则引擎快评的落库表.
 //   一场会话一份评估 (重算覆盖, 不堆行); 不加 DB FK / 不做软删 (ADR-0003).
 export { CreateSessionEvaluations1714900000030 } from './1714900000030-CreateSessionEvaluations.js';
+// V2026-11-06 治本 (WP58 — turn_delta_audits 事件 + delta 审计观测表, 跟 bin/ormconfig.ts 严格 1:1):
+//   turn_delta_audits 新表 (8 列 + 3 索引, 其中 (tenant_id, session_id, turn_index) 唯一)
+//   —— 每轮事件类型 + 命中词 + 原始 delta 的落库表. 表由手写 DDL 建 (ADR-0003 禁用 synchronize).
+export { AddTurnDeltaAudits1714900000031 } from './1714900000031-AddTurnDeltaAudits.js';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).
