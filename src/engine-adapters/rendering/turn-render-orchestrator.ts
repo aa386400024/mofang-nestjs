@@ -709,6 +709,10 @@ export class TurnRenderOrchestrator {
           tenantId: context.tenantId,
           userId,
           turnIndex: output.turnIndex,
+          // WP65: 本轮落库后的快照版本号 (output.revision) —— 切灰度时判断审议结果有没有过期.
+          //   `?? 0` 兜底: 内核没填 (老版本 / 测试 mock) 时记 0 —— 真实版本都 >= 1,
+          //   0 会被判定为过期 (安全的失败方向, 而不是"看起来有效").
+          baseRevision: output.revision ?? 0,
           mode: DELIBERATION_SHADOW_MODE,
           baseSnapshot,
           counselorText: input.userText,

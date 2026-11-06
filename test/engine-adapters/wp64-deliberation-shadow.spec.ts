@@ -158,6 +158,8 @@ function buildInput(overrides: Partial<DeliberationShadowInput> = {}): Deliberat
     ruleDelta: RULE_DELTA,
     // WP68: 意图锁定需要知道"规则算子本轮选的策略" (门面从内核意图传进来).
     ruleStrategy: 'recounting',
+    // WP65: 本轮审议对应的快照版本号 (切灰度时判断审议结果有没有过期).
+    baseRevision: 1,
     ...overrides,
   };
 }

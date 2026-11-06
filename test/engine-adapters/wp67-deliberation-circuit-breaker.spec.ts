@@ -114,6 +114,8 @@ function buildInput(overrides: Partial<DeliberationShadowInput> = {}): Deliberat
     ruleDelta: RULE_DELTA,
     // WP68: 意图锁定需要知道"规则算子本轮选的策略" (门面从内核意图传进来).
     ruleStrategy: 'recounting',
+    // WP65: 本轮审议对应的快照版本号 (切灰度时判断审议结果有没有过期).
+    baseRevision: 1,
     ...overrides,
   };
 }
@@ -169,6 +171,8 @@ function buildProcessor(options: { env?: Record<string, string>; outcome?: Delib
     get: redis.get,
     set: redis.set,
     del: redis.del,
+    // ⚠️ WP65 后半段: per-session mutex (SETNX) —— 默认总是拿到锁.
+    setnx: vi.fn(async (): Promise<boolean> => true),
   } as unknown as RedisService;
   const executeShadowMode = vi.fn(async (): Promise<DeliberationOutcome> => {
     if (options.throwError) throw options.throwError;

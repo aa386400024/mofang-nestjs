@@ -317,7 +317,16 @@ describe('WP5 · 渲染契约层', () => {
       // 出参字段集合 —— WP5 关心的仍是"没有多出任何**渲染相关**字段" (下面两行继续盯着).
       //   V2026-11-06 治本 (WP38 · 预批准例外): 内核给 EngineTurnOutput 加了**只读观测字段**
       //   events (事件分类) —— 纯加字段, 不改任何决策与数值; 字段清单随之 +1.
-      expect(Object.keys(output).toSorted((a, b) => a.localeCompare(b))).toEqual(['events', 'intention', 'reply', 'snapshot', 'turnIndex']);
+      //   V2026-11-06 治本 (WP65 · 预批准例外): 再加一个**只读观测字段** revision
+      //   (本轮落库后的快照版本号) —— 同样是纯加字段, 不参与任何决策; 字段清单再 +1.
+      expect(Object.keys(output).toSorted((a, b) => a.localeCompare(b))).toEqual([
+        'events',
+        'intention',
+        'reply',
+        'revision',
+        'snapshot',
+        'turnIndex',
+      ]);
       expect((output as unknown as Record<string, unknown>)['render']).toBeUndefined();
       expect((output as unknown as Record<string, unknown>)['renderResult']).toBeUndefined();
     });

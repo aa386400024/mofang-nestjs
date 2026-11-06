@@ -123,6 +123,28 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return this.client.del(key);
   }
 
+  /**
+   * 原子"仅当不存在时"写 (SET NX [+ EX]).
+   *
+   * 为什么需要它 (WP65 · per-session mutex):
+   *     mutex 的语义就是"同一时刻只有一个持有者" —— 用 "先 get 再 set" 拼出来的是
+   *     **读-改-写**: 两个并发调用会同时看到"不存在" → 同时写 → 两个持有者 →
+   *     mutex 静默失效 (而且不报错, 最难查的那一类).
+   *     SET ... NX 由 Redis 侧原子完成, 才是真的互斥.
+   *
+   * ⚠️ 返回 false = **没拿到** (key 已存在), 不是失败 —— 调用方要分清
+   *     "被占用"与"Redis 挂了"两种情况 (后者的处置口径不同).
+   *
+   * @param key 逻辑 key
+   * @param value 值 (调用方自定, 例如持有者标识)
+   * @param ttlSec TTL (秒); 不给 = 不过期
+   * @returns true = 写入成功 (拿到); false = key 已存在 (没拿到)
+   */
+  async setnx(key: string, value: string, ttlSec?: number): Promise<boolean> {
+    const result = ttlSec === undefined ? await this.client.set(key, value, 'NX') : await this.client.set(key, value, 'EX', ttlSec, 'NX');
+    return result === 'OK';
+  }
+
   async exists(key: string): Promise<boolean> {
     return (await this.client.exists(key)) === 1;
   }

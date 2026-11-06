@@ -246,6 +246,8 @@ function makeDeliberationRecord(sessionId: string, turnIndex: number): Deliberat
     tenantId: DEBUG_CHAT_TENANT_ID,
     sessionId,
     turnIndex,
+    // WP65: 本次审议对应的快照版本号 (切灰度时判断有没有过期).
+    baseRevision: 7,
     timestamp: '2026-11-05T10:00:00.000Z',
     ok: true,
     errorCode: null,

@@ -169,6 +169,23 @@ export interface DeliberationShadowInput {
   readonly userId: string;
   /** 本轮序号 (内核累计轮次, 从 1 起). */
   readonly turnIndex: number;
+  /**
+   * 本轮审议对应的 BDI 快照版本号 (WP65) —— 即**本轮落库后**的版本 (R1).
+   *
+   * 为什么必填 (不设可选):
+   *     这是切灰度时做"过期判定"的唯一依据 —— 忘传 = 那个键恒为 undefined,
+   *     判定恒走"过期"分支 → 审议结果全被丢弃 → 机制静默失效.
+   *     必填 = 编译器逼着每个构造点想一遍 (仓库纪律: 契约要显式).
+   *
+   * 口径 (⚠️ 与"本轮开始时"差一版, 别搞混):
+   *     R1 = 本轮**落库后**的版本; 本轮开始时的那份 (baseSnapshot) 是 R0 = R1 - 1.
+   *     锚 R1 是因为过期判定是"回来时的当前版本 == 本字段": 审议在本轮落库**之后**
+   *     才入队, 回来时当前版本必然 >= R1 —— 锚 R0 会让判定永远为"过期".
+   *
+   * 兜底: 内核没填 revision 时 (老版本 / 测试 mock) 门面传 0 —— 真实版本都 >= 1,
+   *     0 会被判定为过期 (安全的失败方向).
+   */
+  readonly baseRevision: number;
   /** 当前会话模式 (考核 / 自由练习) —— 决定用哪套 prompt 模板. */
   readonly mode: DeliberationMode;
   /** 本轮**开始时**的 BDI 状态快照 (旧状态, 不是变化后的). */
@@ -549,6 +566,13 @@ export interface DeliberationTraceRecord {
   readonly tenantId: string;
   readonly sessionId: string;
   readonly turnIndex: number;
+  /**
+   * 本次审议对应的 BDI 快照版本号 (WP65) —— 从入参原样带下来.
+   *
+   * 用途: 切灰度时拿它跟"回来时的当前版本"比, 判断这份审议有没有过期.
+   * 现在只是**记下来** (本期不做过期判定 —— 结果还不生效, 判了也没地方用).
+   */
+  readonly baseRevision: number;
   /** 写入时刻 (ISO). */
   readonly timestamp: string;
   /** 审议是否成功 (格式合法 + API 不报错). */
@@ -1035,6 +1059,7 @@ export class LlmDeliberationService {
       tenantId: input.tenantId,
       sessionId: input.sessionId,
       turnIndex: input.turnIndex,
+      baseRevision: input.baseRevision,
       timestamp: new Date().toISOString(),
       ok: true,
       errorCode: null,
@@ -1071,6 +1096,7 @@ export class LlmDeliberationService {
       tenantId: input.tenantId,
       sessionId: input.sessionId,
       turnIndex: input.turnIndex,
+      baseRevision: input.baseRevision,
       timestamp: new Date().toISOString(),
       ok: false,
       errorCode: errorCode ?? 'unknown_error',

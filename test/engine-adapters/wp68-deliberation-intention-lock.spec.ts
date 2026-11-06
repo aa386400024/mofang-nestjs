@@ -89,6 +89,8 @@ function buildInput(overrides: Partial<DeliberationShadowInput> = {}): Deliberat
     characterBrief: '依恋风格: 回避型',
     ruleDelta: RULE_DELTA,
     ruleStrategy: 'recounting',
+    // WP65: 本轮审议对应的快照版本号 (切灰度时判断审议结果有没有过期).
+    baseRevision: 1,
     ...overrides,
   };
 }
