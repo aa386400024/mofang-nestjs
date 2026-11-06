@@ -51,10 +51,20 @@ export const config = {
   sms: {
     enabled: process.env.SMS_ENABLED === 'true',
     provider: process.env.SMS_PROVIDER ?? 'mock', // 'mock' | 'aliyun' | 'tencent' | 'twilio'
+    // @unused-read — 读进 config.sms.accessKey 但**无人消费**:
+    //   短信服务 (shared/infra/sms/sms.service.ts) 只读 enabled / provider;
+    //   真正接入阿里云 / 腾讯云 SDK 时才会用到凭据, 那时它才"有人消费".
+    //   现在配了**不生效** —— 见 .env.example 底部「预留键 (读得到但未消费)」区.
     accessKey: process.env.SMS_ACCESS_KEY,
+    // @unused-read — 读进 config.sms.accessSecret 但**无人消费** (同 accessKey).
     accessSecret: process.env.SMS_ACCESS_SECRET,
+    // @unused-read — 读进 config.sms.signName 但**无人消费** (同 accessKey).
     signName: process.env.SMS_SIGN_NAME ?? 'Mofang',
+    // @unused-read — 读进 config.sms.templateCode 但**无人消费**:
+    //   ⚠️ sms.service.ts 里那个 templateCode 是 send() 的**入参**, 不是这个配置字段 ——
+    //   名字撞了而已, 别当成消费点.
     templateCode: process.env.SMS_TEMPLATE_CODE,
+    // @unused-read — 读进 config.sms.region 但**无人消费** (同 accessKey).
     region: process.env.SMS_REGION,
   },
   // OAuth 第三方登录
@@ -117,6 +127,10 @@ export const config = {
     //   ⚠️ 生产真的要看指标: 显式 METRICS_ENABLED=true **且** 配 METRICS_TOKEN,
     //     两者缺一不可 (token 没配 = 拒绝一切请求, 见 metrics.controller.ts).
     enabled: resolveMetricsEnabled(),
+    // @unused-read — 读进 config.metrics.path 但**无人消费**:
+    //   /metrics 端点的路由是**硬编码**的 (shared/infra/metrics/metrics.controller.ts
+    //   上 @Controller() + @Get('metrics')), 配 METRICS_PATH **不生效**.
+    //   真要改端点路径, 得改路由装饰器, 不是改 env —— 见 .env.example 底部「预留键」区.
     path: process.env.METRICS_PATH ?? '/metrics',
     // 抓取端点的独立 token (Bearer). 留空 = 没开鉴权 → 端点拒绝一切请求 (fail-close).
     // 为什么用 token 而不是内网 IP 白名单:
@@ -252,19 +266,12 @@ export const config = {
     dailyTokenBudget: Number(process.env.VOICE_DAILY_TOKEN_BUDGET ?? 500_000),
     maxConcurrentPerUser: Number(process.env.VOICE_MAX_CONCURRENT_PER_USER ?? 1),
   },
-  // V2026-10-08 治本 (Embedding 服务, Phase 6 接入):
-  //   - provider 切换不改 schema (bge / chatanywhere 都是 1024 维)
-  //   - 用户已提供 2 个 chatanywhere key, 通过 EMBEDDING_API_KEY / EMBEDDING_API_KEY_MPLAN env 注入
-  //   - bge 自托管 URL 走容器内网, 生产推荐
-  embedding: {
-    providerDev: process.env.EMBEDDING_PROVIDER_DEV ?? 'chatanywhere',
-    providerProd: process.env.EMBEDDING_PROVIDER_PROD ?? 'bge_large_zh',
-    chatanywhereApiKey: process.env.EMBEDDING_API_KEY,
-    chatanywhereMplanKey: process.env.EMBEDDING_API_KEY_MPLAN,
-    bgeUrl: process.env.EMBEDDING_BGE_URL ?? 'http://bge-embedding.internal:8080',
-    model: process.env.EMBEDDING_MODEL ?? 'text-embedding-3-small',
-    dim: Number(process.env.EMBEDDING_DIM ?? 1024),
-  },
+  // V2026-11-06 删 (WP69 · env 盲区扩面): 原来的 `embedding` 命名空间已整段删除.
+  //   死因: 它服务的是 **bge 自托管 / chatanywhere** 那套方案, 而 2026-10-14 大炮已拍板
+  //   "B 方案 — 删 bge 自托管 TEI 容器, 改走 OpenAI 兼容 embedding (4 provider 之一)"
+  //   (见 src/ai-engine/ai-engine.module.ts 文件头), RAG 已改走 LLM provider pool.
+  //   于是这 7 个 env 键**读进来但没人消费** —— 配了不生效, 还会让运维以为要自建 bge.
+  //   现在向量化的口径只有一个: LLM_DEFAULT_EMBEDDING_PROVIDER + LLM_<PROVIDER>_API_KEY.
   // V2026-10-08 治本 (Qdrant 向量库, Phase 6 接入):
   //   - 跟 NestJS 同京东云 ECS, 内网 http, 0 边际成本
   //   - apiKey 走 env, 生产建议开

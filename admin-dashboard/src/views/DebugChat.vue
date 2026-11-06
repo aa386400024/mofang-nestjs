@@ -22,6 +22,8 @@ const sending = ref(false)
 const inputText = ref('')
 const messages = ref<Array<{ role: 'counselor' | 'visitor'; text: string; trace?: TurnTrace }>>([])
 const activeTab = ref('bdi')
+const showFullPrompt = ref(false)
+const showBasicInfo = ref(false) // 角色设定/说话方式默认折叠
 
 // 当前轮次的 trace（右侧调试面板用）
 const currentTrace = ref<TurnTrace | null>(null)
@@ -89,12 +91,103 @@ const eventTagMap: Record<string, string> = {
   emotion_reflection: '情感反映',
   normalization: '正常化',
   open_discussion: '开放讨论',
+  resistance: '抵抗',
+  empty: '空情绪',
 }
+
+// 策略对象中英映射
+const strategyMap: Record<string, string> = {
+  resistance: '抵抗',
+  empathy: '共情回应',
+  open_probe: '开放提问',
+  emotion_reflection: '情感反映',
+}
+
+// 从 trace 里提取事件标签（兼容数组和对象两种格式）
 const eventTagList = computed(() => {
-  // 优先从 trace 里取真实事件标签，没有就用占位
   const trace = currentTrace.value as any
-  const rawTags: string[] = trace?.operatorTags ?? trace?.eventTags ?? trace?.intention ? [trace.intention] : ['empathy', 'open_probe']
-  return rawTags.map(key => ({ key, label: eventTagMap[key] ?? key }))
+  const raw = trace?.eventTags ?? trace?.operatorTags ?? trace?.intention
+
+  // 如果是数组，直接映射
+  if (Array.isArray(raw)) {
+    return raw.map(key => ({ key, label: eventTagMap[key] ?? key }))
+  }
+
+  // 如果是对象（BDI 策略对象），提取关键标签
+  if (raw && typeof raw === 'object') {
+    const tags: { key: string; label: string }[] = []
+    if (raw.strategy) tags.push({ key: 'strategy', label: strategyMap[raw.strategy] ?? raw.strategy })
+    if (raw.emotion?.label) tags.push({ key: 'emotion', label: eventTagMap[raw.emotion.label] ?? raw.emotion.label })
+    return tags
+  }
+
+  // 占位数据
+  return [
+    { key: 'empathy', label: '共情回应' },
+    { key: 'open_probe', label: '开放提问' },
+  ]
+})
+
+// 把 prompt 按空行拆成段落，并自动识别段落类型
+const promptParagraphs = computed(() => {
+  const text = currentTrace.value?.renderSpec?.promptFull
+  if (!text) return []
+  const paras = text.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0)
+
+  return paras.map(para => {
+    // 自动识别段落类型
+    let type = 'default'
+    let title = ''
+    if (para.includes('你正在扮演') && para.includes('来访者')) {
+      type = 'role'
+      title = '角色设定'
+    } else if (para.includes('说话方式')) {
+      type = 'speech'
+      title = '说话方式'
+    } else if (para.includes('内在状态')) {
+      type = 'inner'
+      title = '内在状态'
+    } else if (para.includes('这一轮怎么说')) {
+      type = 'turn'
+      title = '本轮策略'
+    }
+    return { para, type, title }
+  })
+})
+
+// 内在状态结构化数据（从 eventTags + bdiSnapshot 提取）
+const innerStateCards = computed(() => {
+  const trace = currentTrace.value as any
+  if (!trace) return []
+
+  const cards: { label: string; value: number | null; display: string }[] = []
+
+  // 信任度
+  if (trace.bdiSnapshot?.trust != null) {
+    cards.push({ label: '信任度', value: trace.bdiSnapshot.trust, display: trace.bdiSnapshot.trust.toFixed(2) })
+  }
+  // 安全感
+  if (trace.bdiSnapshot?.safety != null) {
+    cards.push({ label: '安全感', value: trace.bdiSnapshot.safety, display: trace.bdiSnapshot.safety.toFixed(2) })
+  }
+  // 联结感
+  if (trace.bdiSnapshot?.bond != null) {
+    cards.push({ label: '联结感', value: trace.bdiSnapshot.bond, display: trace.bdiSnapshot.bond.toFixed(2) })
+  }
+  // 效价
+  if (trace.bdiSnapshot?.valence != null) {
+    cards.push({ label: '效价', value: (trace.bdiSnapshot.valence + 1) / 2, display: trace.bdiSnapshot.valence.toFixed(2) })
+  }
+  // 唤醒度
+  if (trace.bdiSnapshot?.arousal != null) {
+    cards.push({ label: '唤醒度', value: trace.bdiSnapshot.arousal, display: trace.bdiSnapshot.arousal.toFixed(2) })
+  }
+  // 阻抗-话量
+  if (trace.eventTags?.resistance?.verbal != null) {
+    cards.push({ label: '阻抗·话量', value: trace.eventTags.resistance.verbal, display: trace.eventTags.resistance.verbal.toFixed(2) })
+  }
+
+  return cards
 })
 
 // ========== 方法 ==========
@@ -637,11 +730,25 @@ onMounted(() => {
               <div v-if="!currentTrace" class="text-xs text-muted text-center py-8">
                 {{ t('debugChat.noData') }}
               </div>
-              <div v-else class="space-y-2">
-                <div class="text-xs text-muted mb-1">{{ t('debugChat.eventTags') }}</div>
-                <NTag size="tiny" v-for="evt in eventTagList" :key="evt.key" type="info" round>
-                  {{ evt.label }}
-                </NTag>
+              <div v-else class="space-y-3">
+                <!-- 标签行 -->
+                <div class="flex flex-wrap gap-1.5">
+                  <NTag size="tiny" v-for="evt in eventTagList" :key="evt.key" type="info" round>
+                    {{ evt.label }}
+                  </NTag>
+                </div>
+                <!-- 策略详情（如果是对象） -->
+                <div v-if="(currentTrace as any).eventTags && typeof (currentTrace as any).eventTags === 'object'"
+                     class="text-xs space-y-2 bg-bg-elevated rounded p-2.5 border border-bg-border">
+                  <div v-if="(currentTrace as any).eventTags.rationale" class="text-muted leading-relaxed">
+                    {{ (currentTrace as any).eventTags.rationale }}
+                  </div>
+                  <div v-if="(currentTrace as any).eventTags.forbiddenBehaviors?.length" class="space-y-1">
+                    <div class="text-muted text-[10px]">禁止行为：</div>
+                    <div v-for="fb in (currentTrace as any).eventTags.forbiddenBehaviors" :key="fb"
+                         class="text-danger text-[11px]">• {{ fb }}</div>
+                  </div>
+                </div>
               </div>
             </div>
           </NTabPane>
@@ -650,10 +757,15 @@ onMounted(() => {
           <NTabPane name="safety" :tab="t('debugChat.tabs.safety')" class="flex-1 overflow-auto">
             <div class="p-3">
               <div v-if="!currentTrace" class="text-xs text-muted text-center py-8">
-                {{ t('debugChat.noData') }}
+                发送一轮后，这里会显示本轮安全判定结果
               </div>
-              <div v-else>
-                <NTag size="tiny" type="success">{{ t('debugChat.noData') }}</NTag>
+              <div v-else class="text-center py-4">
+                <NTag v-if="currentTrace.crisis?.detected" size="small" type="error">
+                  检测到风险：{{ currentTrace.crisis.category ?? '未知类别' }}
+                </NTag>
+                <NTag v-else size="small" type="success">
+                  本轮未检测到风险
+                </NTag>
               </div>
             </div>
           </NTabPane>
@@ -669,12 +781,89 @@ onMounted(() => {
 
           <!-- Tab 5: 渲染 prompt -->
           <NTabPane name="prompt" :tab="t('debugChat.tabs.prompt')" class="flex-1 overflow-auto">
-            <div class="p-3">
+            <div class="p-3 space-y-3">
               <div v-if="!currentTrace?.renderSpec?.promptFull" class="text-xs text-muted text-center py-8">
                 {{ t('debugChat.noData') }}
               </div>
-              <div v-else :key="currentTrace.turnIndex" style="white-space: pre-wrap !important; word-break: break-word !important; overflow-wrap: break-word !important; font-family: 'Courier New', monospace !important; font-size: 12px !important; line-height: 1.6 !important; background: rgba(255,255,255,0.05) !important; border-radius: 6px !important; padding: 12px !important; border: 1px solid rgba(255,255,255,0.1) !important;">
-                {{ currentTrace.renderSpec.promptFull }}
+              <div v-else :key="currentTrace.turnIndex">
+                <!-- 策略标签 -->
+                <div class="flex flex-wrap gap-1.5 mb-3">
+                  <NTag size="tiny" v-for="evt in eventTagList" :key="evt.key" type="info" round>
+                    {{ evt.label }}
+                  </NTag>
+                </div>
+
+                <!-- 内在状态：结构化小 card -->
+                <div v-if="innerStateCards.length" class="mb-3">
+                  <div class="text-[10px] text-muted font-medium mb-1.5">内在状态</div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div v-for="card in innerStateCards" :key="card.label"
+                         class="bg-bg-elevated rounded-lg p-2 border border-bg-border">
+                      <div class="text-[10px] text-muted mb-1">{{ card.label }}</div>
+                      <div class="text-xs font-mono font-medium mb-1">{{ card.display }}</div>
+                      <div class="h-1 bg-bg-border rounded-full overflow-hidden">
+                        <div class="h-full bg-accent rounded-full transition-all"
+                             :style="{ width: `${(card.value ?? 0) * 100}%` }"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- 禁止行为 -->
+                  <div v-if="(currentTrace as any).eventTags?.forbiddenBehaviors?.length" class="mt-2">
+                    <div class="text-[10px] text-muted mb-1">禁止行为</div>
+                    <div v-for="fb in (currentTrace as any).eventTags.forbiddenBehaviors" :key="fb"
+                         class="text-danger text-[11px]">• {{ fb }}</div>
+                  </div>
+                </div>
+
+                <!-- 角色设定 / 说话方式（默认折叠） -->
+                <div class="mb-3">
+                  <button class="text-xs text-accent hover:underline flex items-center gap-1 mb-1.5"
+                          @click="showBasicInfo = !showBasicInfo">
+                    {{ showBasicInfo ? '▾' : '▸' }} {{ showBasicInfo ? '收起基础设定' : '展开基础设定（角色 / 说话方式）' }}
+                  </button>
+                  <div v-if="showBasicInfo" class="space-y-2">
+                    <div v-for="(item, i) in promptParagraphs.filter(p => p.type === 'role' || p.type === 'speech')" :key="i"
+                         class="text-xs leading-relaxed bg-bg-elevated rounded-lg p-2.5 border border-bg-border border-l-2"
+                         :class="{
+                           'border-l-blue-400': item.type === 'role',
+                           'border-l-cyan-400': item.type === 'speech',
+                         }">
+                      <div v-if="item.title" class="text-[10px] text-muted font-medium mb-1.5">{{ item.title }}</div>
+                      <div class="space-y-1.5">
+                        <div v-for="(line, j) in item.para.split('\n').filter(l => l.trim())" :key="j"
+                             class="flex gap-1.5">
+                          <span class="text-muted mt-0.5">•</span>
+                          <span class="flex-1">{{ line.trim() }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 本轮策略 -->
+                <div v-for="(item, i) in promptParagraphs.filter(p => p.type === 'turn')" :key="'turn-' + i"
+                     class="text-xs leading-relaxed bg-bg-elevated rounded-lg p-2.5 border border-bg-border border-l-green-400 mb-3">
+                  <div class="text-[10px] text-muted font-medium mb-1.5">{{ item.title }}</div>
+                  <div class="space-y-1.5">
+                    <div v-for="(line, j) in item.para.split('\n').filter(l => l.trim())" :key="j"
+                         class="flex gap-1.5">
+                      <span class="text-accent mt-0.5">•</span>
+                      <span class="flex-1">{{ line.trim() }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 完整 Prompt（默认收起） -->
+                <div>
+                  <button class="text-xs text-accent hover:underline flex items-center gap-1"
+                          @click="showFullPrompt = !showFullPrompt">
+                    {{ showFullPrompt ? '▾' : '▸' }} {{ showFullPrompt ? '收起完整 Prompt' : '展开完整 Prompt（原始字符串）' }}
+                  </button>
+                  <div v-if="showFullPrompt"
+                       class="whitespace-pre-wrap break-word font-mono text-xs leading-relaxed bg-bg-elevated rounded-lg p-3 border border-bg-border mt-2">
+                    {{ currentTrace.renderSpec.promptFull }}
+                  </div>
+                </div>
               </div>
             </div>
           </NTabPane>

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -14,7 +15,7 @@ import { ConsentSignature } from '../entities/consent-signature.entity.js';
  *   - 防跳过阅读: 校验 scrolledToBottom=true 才接受签字
  *
  * V3 升级:
- *   - 文档版本管理 (config.consentCurrentVersion 升级时, 老签字标记 superseded)
+ *   - 文档版本管理 (config.consent.currentVersion 升级时, 老签字标记 superseded)
  *   - BullMQ event bus: 签字后通知 onboarding 服务刷新陪伴者状态
  *   - 审计: 写 audit log (事件名 ConsentSigned)
  *
@@ -25,13 +26,23 @@ import { ConsentSignature } from '../entities/consent-signature.entity.js';
  */
 @Injectable()
 export class ConsentService {
-  /** 文档当前版本 — V2.0 硬编码, V3 走 config.consentCurrentVersion. */
-  private readonly currentVersion = 'v1.0';
+  /**
+   * 文档当前版本 — 走 config.consent.currentVersion.
+   *
+   * V2026-11-06 治本 (WP69): 原先是**硬编码 'v1.0'** (注释写着"V3 走 config"), 于是
+   *   心塑/魔方共用的同意版本号升级时, 陪伴者这一侧**不会跟着升** ——
+   *   两边版本号漂了, 老签字永远不被判过期.
+   *   现在读同一份 config (与 src/consent/providers/consent.service.ts 同一路径口径).
+   */
+  private readonly currentVersion: string;
 
   constructor(
     @InjectRepository(ConsentSignature)
     private readonly repo: Repository<ConsentSignature>,
-  ) {}
+    private readonly config: ConfigService,
+  ) {
+    this.currentVersion = this.config.get<{ currentVersion?: string }>('consent')?.currentVersion ?? 'v1.0';
+  }
 
   /**
    * 拉取知情同意书文档.

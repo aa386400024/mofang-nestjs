@@ -165,6 +165,20 @@ export interface DebugSessionState {
 }
 
 /**
+ * 会话列表的一行 = 落盘摘要 + **运行时活跃标记** (WP69).
+ *
+ * ⚠️ `active` 与落盘字段 `status` **不是一回事**, 别混:
+ *   · `status` = 落盘时这场会话**被显式关过没有** ('active' | 'completed');
+ *   · `active` = **当前进程**的内存里还有没有它的运行时状态 (内核句柄).
+ *   进程重启后: 文件里的 status 仍可能是 'active', 但内存里已经没有它了 ——
+ *   那时 `active` 才是"还能不能继续聊"的唯一真值.
+ */
+export interface DebugSessionListItem extends DebugSessionSummary {
+  /** 这场会话在本进程内存里还有运行时状态 → 可继续发消息 (否则只能看历史). */
+  readonly active: boolean;
+}
+
+/**
  * 单轮 delta 的**前端投影** (admin-dashboard 的 `DeltaDetail` 契约).
  *
  * ⚠️ 它是 `DeltaVector` 的**投影**, 不是另一份真相:
@@ -481,15 +495,21 @@ export class DebugSessionService {
   // ── 持久化会话的 CRUD (V2026-11-05) ──────────────────────────────
 
   /**
-   * 列历史调试会话 (按创建时间倒序).
+   * 列历史调试会话 (按创建时间倒序) + 运行时活跃标记.
    *
    * ⚠️ 与内存里的"活会话"是**两回事**: 这里列的是**落过盘**的会话,
    *   包括进程重启前跑过的那些 —— 那正是"刷新不丢数据"的兑现.
    *
-   * @returns 会话摘要
+   * V2026-11-06 (WP69 · 调试面板改进 1): 每行多带一个 `active` ——
+   *   **这场会话在当前进程的内存里还有运行时状态** (内核句柄活着) → 可以继续发消息.
+   *   没有它, 前端刷新页面后只能靠"这次是我新建的"来猜, 刷新即丢 ——
+   *   一场**还活着**的会话会被误判成只读历史 (发消息按钮灰掉).
+   *
+   * @returns 会话摘要 + 活跃标记
    */
-  async listPersistedSessions(): Promise<DebugSessionSummary[]> {
-    return this.store.list();
+  async listPersistedSessions(): Promise<DebugSessionListItem[]> {
+    const summaries = await this.store.list();
+    return summaries.map((summary) => ({ ...summary, active: this.sessions.has(summary.id) }));
   }
 
   /**

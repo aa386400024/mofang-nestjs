@@ -48,8 +48,13 @@
 
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 
-import type { DebugSessionSummary } from './debug-session-store.js';
-import { DebugSessionService, type DebugSessionCreated, type DebugSessionDetail, type DebugTurnTrace } from './debug-session.service.js';
+import {
+  DebugSessionService,
+  type DebugSessionCreated,
+  type DebugSessionDetail,
+  type DebugSessionListItem,
+  type DebugTurnTrace,
+} from './debug-session.service.js';
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
 
 /**
@@ -138,10 +143,13 @@ export class DebugSessionController {
    *   这里列的是**落过盘**的会话, 包括进程重启前跑过的那些 ——
    *   那正是"刷新不丢数据"的兑现.
    *
+   * V2026-11-06 (WP69): 每行带 `active` = 本进程内存里还有运行时状态
+   *   (前端据此区分"可继续聊"与"只读历史").
+   *
    * @returns 会话摘要列表
    */
   @Get('sessions')
-  async listSessions(): Promise<DebugSessionSummary[]> {
+  async listSessions(): Promise<DebugSessionListItem[]> {
     return this.service.listPersistedSessions();
   }
 

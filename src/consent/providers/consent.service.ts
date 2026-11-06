@@ -20,7 +20,7 @@ export interface ConsentContext {
  *
  * 设计要点:
  *   - 幂等写入: UNIQUE(deviceId, version, type) 约束保护, 重复 POST 仅刷新审计字段
- *   - 版本权威: 服务端通过 config.consentCurrentVersion 决定需要重新弹 dialog 的客户端
+ *   - 版本权威: 服务端通过 config.consent.currentVersion 决定需要重新弹 dialog 的客户端
  *   - 游客 → 用户迁移: bindToUser 把 device 上的所有 NULL user_id consent 关联到 user
  *   - 失败容忍: 不抛异常 (record 是 fire-and-forget 语义), 调用方无需 try/catch
  *
@@ -38,7 +38,12 @@ export class ConsentService {
     private readonly repo: Repository<UserConsent>,
     private readonly config: ConfigService,
   ) {
-    this.currentVersion = this.config.get<string>('consentCurrentVersion') ?? 'v1.0';
+    // V2026-11-06 治本 (WP69 · 路径错误型 env 盲区):
+    //   旧写法读的是**平铺键** 'consentCurrentVersion' —— 但 default.ts 里没有这个平铺字段
+    //   (它在 config.consent 命名空间下), 所以读出来恒为 undefined → 永远回落 'v1.0',
+    //   配 CONSENT_CURRENT_VERSION **不生效** (服务端不强制重弹同意 dialog).
+    //   现在读**正确的路径** —— 配了 v2.0 就真的会要求客户端重新同意.
+    this.currentVersion = this.config.get<{ currentVersion?: string }>('consent')?.currentVersion ?? 'v1.0';
   }
 
   /**

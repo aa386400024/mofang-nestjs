@@ -25,6 +25,14 @@ const statusColor = computed(() => (s: string) =>
   s === 'completed' ? 'text-ok' : s === 'no_content' ? 'text-muted' : 'text-danger'
 )
 
+// ─── 中英双语映射（中文为主，括号里英文浅灰辅助）───
+const sessionStatusLabels: Record<string, { zh: string; en: string }> = {
+  completed: { zh: '已完成', en: 'completed' },
+  active: { zh: '进行中', en: 'active' },
+  no_content: { zh: '空局', en: 'no_content' },
+  parse_error: { zh: '解析错误', en: 'parse_error' },
+}
+
 const stats = computed(() => {
   const total = rows.value.length
   const tokens = rows.value.reduce((a, r) => a + r.totalTokens, 0)
@@ -61,8 +69,17 @@ const columns = [
   {
     title: () => t('sessions.status'),
     key: 'status',
-    width: 120,
-    render: (row: SessionSummary) => h('span', { class: 'chip ' + statusColor.value(row.status) }, row.status),
+    width: 140,
+    render: (row: SessionSummary) => {
+      const label = sessionStatusLabels[row.status]
+      if (label) {
+        return h('span', { class: 'chip ' + statusColor.value(row.status) }, [
+          label.zh,
+          h('span', { class: 'text-muted ml-1' }, `(${label.en})`),
+        ])
+      }
+      return h('span', { class: 'chip ' + statusColor.value(row.status) }, row.status)
+    },
   },
 ]
 </script>

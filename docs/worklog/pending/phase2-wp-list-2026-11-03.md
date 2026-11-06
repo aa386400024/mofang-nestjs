@@ -63,6 +63,7 @@
 | **WP55** ✅ | 会话摘要补齐来访者侧 | 🟡 P1 | WP37 已交付滚动摘要（工作窗口溢出 → 攒批异步压摘要 → 进渲染上下文），但**内核的溢出回调只有咨询师原话**（内核不渲染，拿不到来访者的话）—— 摘要因此是"咨询侧纪要"，不是逐字稿摘要。落法：适配层把**门面历史缓冲**（`MAX_HISTORY_TURNS = WORKING_MEMORY_WINDOW_TURNS * 2`，两侧都有）里的来访者文本一并交给生成器，提示词口径随之从"只写咨询师谈了什么"改成两侧纪要（仍禁替来访者编造）。⚠️ 实际落地走**「轮次记录」单队列**（两侧绑成一个不可拆的对象）而不是双队列 min 配对 —— 后者在"某轮没有来访者发言"时会错位一格、产出**假问答对**（[交付记录](../completed/phase2/engine-wp55-rolling-summary-both-sides-implementation-2026-11-04.md)） | WP37 |
 | **WP56** ✅ | 长期记忆召回（`spec.recall`）进渲染上下文 | 🟡 P1 | WP37 盘查时**全 `src/` 树 grep 核实**：`spec.recall` 填的是 WP2 的 `openingContext`（记忆命中），但**渲染层一处都没读**（`buildVisitorSystemPrompt` 不消费它）—— WP2 的记忆命中**从来没进过 prompt**，三级记忆里"长时召回"这一环在语言生成侧是断的。落法：仿 WP37 的 `sessionSummary` **独立字段**做法（别混进 `recall`），先定"召不召回 / 召回 Top-N / 以什么措辞注入 / 过期与冲突怎么过滤"，再接。⚠️ 实际落地：**只改适配层 1 个文件**（内核 diff 为空）—— `buildVisitorSystemPrompt` 加 recall 条件渲染（`recall.length > 0` 才显示，空数组 = prompt 逐字不变）+ 只取 **Top3**（内核召回上限实为 5）+ 放在 sessionSummary 之后（两块"背景"连成一段，受"不要说出口"约束，与 WP37 同款语义）；召回策略本身仍归 WP59（[交付记录](../completed/phase2/engine-wp56-recall-into-render-context-implementation-2026-11-04.md)） | WP2 |
 | **WP61** ✅ | 会话摘要层次化（核心议题 / 关键事件 / 情绪转折点） | 🟡 P1 | WP55 已交付**两侧**纪要，但摘要仍是"一段 ≤120 字的流水摘要" —— 终局蓝图 §4「记忆系统层」要的是**三层结构**（核心议题 / 关键事件 / 情绪转折点），不是一坨文字。落法：滚动摘要的输出改成结构化三段（prompt 侧按三段渲染，记忆条目存结构化摘要）；⚠️ WP12 的**最终摘要**那条路径是否同步分层，另行确认（那是另一条写入路径，别两边分叉）。⚠️ 实际落地：**内核零改动**（`RenderSpec.sessionSummary` 仍是 string，渲染层与内核一字未改）—— 结构化在**服务层内部消化**，对外仍吐一段字符串（渲染后的三行文本）；生成器返回类型 `string` → `RollingSummaryResult`（三段必填），`previousSummary` **同步**结构化（合并是**逐段合并**，不是把两坨文字搅一起）；⚠️ 多改了 1 个源文件（WP12 的 `session-summary.generator.ts`，**纯增**导出共享 JSON 解析原语 —— 三段 JSON 用现有 `parseSummaryResponse` 取不到，另写一份就是仓库明令禁止的**双胞胎解析器**）；提示词**保留**了 WP37 的"不要做临床诊断"护栏（任务单草图漏了）并新增"某段没内容就给空串、不要编内容填满"；段长上限（60 字 / 180 字）是**工程种子值非临床标定**（[交付记录](../completed/phase2/engine-wp61-session-summary-hierarchical-implementation-2026-11-04.md)） | WP55 |
+| **WP69** ✅ | env 盲区扩面 + consent 路径修复 + 调试面板小改进 | 🟡 P1 | WP48 挖出 16 个「配了不生效」的 env 键（**14 个躺在生效区**）—— 本单清掉 **14 个**：① **6 个挪进 `.env.example` 预留区**（`SMS_*` 5 + `METRICS_PATH`，加 `@unused-read` 标记，**WP48 用例⑤ 自动覆盖**，守卫零改动）；② **7 个 `EMBEDDING_*` 死遗产直接删**（bge 自托管 / chatanywhere 老方案，2026-10-14 大炮拍板 B 方案已废）；③ `CONSENT_CURRENT_VERSION` **修路径治本**（原读平铺键 `consentCurrentVersion`，实际在 `config.consent` 命名空间下 → 恒 undefined → **配了不生效**；修好后配 `v2.0` 真会强制客户端重弹同意 dialog —— ⚠️ 故它**不再**被挪进预留区：修好后它真的有人消费了）。另修一个**线上静默失效**的 config 路径 bug（`profile/providers/consent.service.ts` 原硬编码 `'v1.0'`，注释写着「V3 走 config」但从没走过）+ 调试面板会话列表加 `active: boolean`（本进程内存里还有内核句柄 → 可继续聊；⚠️ 与落盘 `status` **不是一回事**，进程重启后 status 仍是 active 但 active 已是 false）。⚠️ **§2.5 trace 加 `eventTags` 本单不做** —— 引擎把事件分类锁在 `turn()` 内部，取真值须动内核（破「engine-core 零改动」红线）→ 登记后续单（交付记录 §九）；**engine-core 零改动**（[交付记录](../completed/phase2/engine-wp69-env-blindspot-expansion-and-debug-panel-fixes-implementation-2026-11-06.md)） |
 
 ### 📈 架构深度补完（2026-11-04 引擎评审后新增）
 
@@ -102,15 +103,15 @@
 | 层级 | 数量 | WP 编号 |
 |---|---|---|
 | 🔴 P0 商业化根基 | 8 条 | WP27, 28, 29, 30, 31, 33, 39, 40 |
-| 🟡 P1 专业能力 | 20 条 | WP32, 34, 35, 36, 37, 38, 41, 42, 43, 44, 50, 51, 55, 56, 57, 58, 61, 63, 64, 66, 67 |
-| 🟢 P2 技术债 | 13 条 | WP45, 46, 47, 48, 49, 52, 53, 54, 59, 60, 62, 68 |
-| **合计** | **41 条** | **WP27–WP68** |
+| 🟡 P1 专业能力 | 21 条 | WP32, 34, 35, 36, 37, 38, 41, 42, 43, 44, 50, 51, 55, 56, 57, 58, 61, 63, 64, 66, 67 |
+| 🟢 P2 技术债 | 13 条 | WP45, 46, 47, 48, 49, 52, 53, 54, 59, 60, 62, 68, **69** |
+| **合计** | **42 条** | **WP27–WP69** |
 
-**进度：31 / 41 完成**（WP28 ✅、WP30 ✅、WP31 ✅、WP32 ✅、WP34 ✅、WP35 ✅、WP36 ✅、WP37 ✅、WP41 ✅、WP42 ✅、WP45 ✅、WP46 ✅、WP48 ✅、WP49 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP56 ✅、WP57 ✅、WP58 ✅、WP59 ✅、WP61 ✅、WP63 ✅、WP64 ✅、WP65 ✅、WP66 ✅、WP67 ✅、WP68 ✅，2026-11-06）。
+**进度：32 / 42 完成**（WP28 ✅、WP30 ✅、WP31 ✅、WP32 ✅、WP34 ✅、WP35 ✅、WP36 ✅、WP37 ✅、WP41 ✅、WP42 ✅、WP45 ✅、WP46 ✅、WP48 ✅、WP49 ✅、WP50 ✅、WP51 ✅、WP52 ✅、WP53 ✅、WP54 ✅、WP55 ✅、WP56 ✅、WP57 ✅、WP58 ✅、WP59 ✅、WP61 ✅、WP63 ✅、WP64 ✅、WP65 ✅、WP66 ✅、WP67 ✅、WP68 ✅、WP69 ✅，2026-11-06）。
 
 > ⚠️ **WP45 挖出来一个线上一直在犯的 bug**（比"清技术债"本身值钱）：`qdrant.service.ts` 的 `private client: any` 掩盖了 `setPayload` 按 **v0.x 三参**形状调（真 SDK v1.19 是**两参** `setPayload(collection, {payload, points})`）→ SDK 把第 2 参的**字符串 id** 解构成全 undefined、第 3 参被忽略 → **WP12 的冲突消解标记（`supersededBy`）从未真正落库** → 内核 `recall-policy` 排除"已被取代的记忆"那道判定永远不生效 → **同主题的新旧两条矛盾记忆会一起被召回**。已修 + 新增打到 HTTP 层的契约回归测试（4 例）。**别把这一行当成"只是清了 8 条样式债"。**
 
-> ℹ️ **2026-11-05 四合一任务单**（**非编号 WP，不计入 41 条**）：Dashboard / MemoryBrowser / PsyGuardMonitor 三页切真 + 调试会话落 JSON 文件 → [交付记录](../completed/phase2/engine-admin-dashboard-mock-to-real-and-debug-session-persistence-implementation-2026-11-05.md)｜[任务单](../completed/phase2/admin-dashboard-mock-to-real-and-debug-session-persistence-2026-11-05.md)
+> ℹ️ **2026-11-05 四合一任务单**（**非编号 WP，不计入 42 条**）：Dashboard / MemoryBrowser / PsyGuardMonitor 三页切真 + 调试会话落 JSON 文件 → [交付记录](../completed/phase2/engine-admin-dashboard-mock-to-real-and-debug-session-persistence-implementation-2026-11-05.md)｜[任务单](../completed/phase2/admin-dashboard-mock-to-real-and-debug-session-persistence-2026-11-05.md)
 
 > ⚠️ **WP31 只销了「看板」那一半**：成本看板已切真（后端补 `/cost/trend` + `/cost/sessions` 两端点，前端去 mock，顺带修掉"汇总卡片永远显示 0"的响应式 bug）；但**超阈值告警规则仍未做**（阈值配置 / 告警通道 / 通知策略）。另：**成本数据来自引擎调试留痕，生产缺省关留痕 → 生产的 token / 成本恒 0**（场次数仍准确），要让生产看板有数得给 `tech_stats` 补 token 统计（缺口 G1）。**别把这一行当成"告警已接入"。**
 

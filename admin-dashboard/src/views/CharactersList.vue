@@ -12,6 +12,13 @@ const rows = ref<CharacterBaseline[]>([])
 const loading = ref(true)
 const err = ref('')
 
+// ─── 中英双语映射（中文为主，括号里英文浅灰辅助）───
+const auditLabels: Record<string, { zh: string; en: string }> = {
+  draft: { zh: '草稿', en: 'draft' },
+  approved: { zh: '已通过', en: 'approved' },
+  rejected: { zh: '已拒绝', en: 'rejected' },
+}
+
 onMounted(async () => {
   try { rows.value = await api.characters() }
   catch (e) { err.value = String(e) }
@@ -75,9 +82,18 @@ const columns = [
   {
     title: () => t('characters.auditStatus'),
     key: 'auditStatus',
-    width: 100,
+    width: 120,
     align: 'center' as const,
-    render: (row: CharacterBaseline) => row.auditStatus ?? '—',
+    render: (row: CharacterBaseline) => {
+      const status = row.auditStatus ?? '—'
+      if (auditLabels[status]) {
+        return h('span', {}, [
+          auditLabels[status].zh,
+          h('span', { class: 'text-muted ml-1' }, `(${auditLabels[status].en})`),
+        ])
+      }
+      return status
+    },
   },
 ]
 </script>

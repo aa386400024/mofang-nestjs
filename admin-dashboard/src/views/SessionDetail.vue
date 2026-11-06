@@ -26,6 +26,22 @@ const typeMeta: Record<MemorySource, { label: string; color: string }> = {
   manual: { label: '人工注入', color: 'bg-ok/15 text-ok' },
 }
 
+// ─── 中英双语映射（中文为主，括号里英文浅灰辅助）───
+// 会话状态
+const sessionStatusLabels: Record<string, { zh: string; en: string }> = {
+  completed: { zh: '已完成', en: 'completed' },
+  active: { zh: '进行中', en: 'active' },
+  no_content: { zh: '空局', en: 'no_content' },
+  parse_error: { zh: '解析错误', en: 'parse_error' },
+}
+// BDI 情绪标签
+const emotionLabels: Record<string, { zh: string; en: string }> = {
+  anxiousSecure: { zh: '焦虑安全', en: 'anxiousSecure' },
+  secure: { zh: '安全型', en: 'secure' },
+  anxious: { zh: '焦虑型', en: 'anxious' },
+  avoidant: { zh: '回避型', en: 'avoidant' },
+}
+
 onMounted(async () => {
   try {
     data.value = await api.session(props.id)
@@ -209,7 +225,13 @@ const deltaResistance = computed(() => {
     <template v-else-if="data">
       <div class="flex items-center gap-3 mb-5 text-sm">
         <span class="font-semibold text-base">{{ data.visitorAlias }}</span>
-        <n-tag size="small" :bordered="false">{{ data.status }}</n-tag>
+        <n-tag size="small" :bordered="false">
+          <template v-if="sessionStatusLabels[data.status]">
+            {{ sessionStatusLabels[data.status].zh }}
+            <span class="text-muted ml-1">({{ sessionStatusLabels[data.status].en }})</span>
+          </template>
+          <template v-else>{{ data.status }}</template>
+        </n-tag>
         <RouterLink to="/memories" class="text-xs text-accent hover:underline underline-offset-2">
           {{ t('sessionDetail.viewMemories') }} →
         </RouterLink>
@@ -303,7 +325,13 @@ const deltaResistance = computed(() => {
             </div>
             <div class="mt-3 pt-3 border-t border-bg-border flex items-center justify-between">
               <span class="text-[10px] uppercase tracking-wider text-muted">{{ t('sessionDetail.emotionLabel') }}</span>
-              <n-tag size="small" :bordered="false" type="primary">{{ turn.bdiSnapshot.anxiousSecure ?? '—' }}</n-tag>
+              <n-tag size="small" :bordered="false" type="primary">
+                <template v-if="turn.bdiSnapshot.anxiousSecure && emotionLabels[turn.bdiSnapshot.anxiousSecure]">
+                  {{ emotionLabels[turn.bdiSnapshot.anxiousSecure].zh }}
+                  <span class="text-muted ml-1">({{ emotionLabels[turn.bdiSnapshot.anxiousSecure].en }})</span>
+                </template>
+                <template v-else>{{ turn.bdiSnapshot.anxiousSecure ?? '—' }}</template>
+              </n-tag>
             </div>
           </n-card>
 

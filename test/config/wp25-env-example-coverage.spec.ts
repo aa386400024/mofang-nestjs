@@ -466,6 +466,18 @@ interface ConfigUsageIndex {
 }
 
 /**
+ * 文件 → 消费形态索引 的**缓存** (V2026-11-06 · WP69 扩面后加).
+ *
+ * 为什么需要: `findConfigConsumptions` 是"每个待查字段扫一遍全 src/"的形状 ——
+ *   标记的字段越多, 重复解析次数线性增长. WP48 时只有 2 个标记 (扫 2 遍) 约 21s 还能过;
+ *   WP69 把标记扩到 8 个 (扫 8 遍) → 约 36s > vitest 默认 30s 超时, 守卫直接变红.
+ *   缓存后每个文件只解析一次 —— 8 个标记与 2 个标记耗时相同.
+ *
+ * ⚠️ 缓存生命周期 = 一次测试进程; 测试里不改源码, 不会读到过期结果.
+ */
+const USAGE_INDEX_CACHE = new Map<string, ConfigUsageIndex>();
+
+/**
  * 扫一个文件, 索引它对 config 的所有消费形态.
  *
  * 覆盖五种形态 (缺一种 = 守卫会漏判"已经接线了"):
@@ -479,6 +491,8 @@ interface ConfigUsageIndex {
  * @returns 消费形态索引
  */
 function analyzeConfigUsage(file: string): ConfigUsageIndex {
+  const cached = USAGE_INDEX_CACHE.get(file);
+  if (cached) return cached;
   const sourceFile = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
   const paths = new Set<string>();
   const nsVars = new Map<string, Set<string>>();
@@ -494,7 +508,9 @@ function analyzeConfigUsage(file: string): ConfigUsageIndex {
     ts.forEachChild(node, visit);
   };
   visit(sourceFile);
-  return { paths, nsVars, varFields };
+  const index: ConfigUsageIndex = { paths, nsVars, varFields };
+  USAGE_INDEX_CACHE.set(file, index);
+  return index;
 }
 
 /**
