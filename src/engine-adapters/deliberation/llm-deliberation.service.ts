@@ -91,8 +91,42 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp68-deliberation-intention-lock.spec.ts 覆盖锁定五情况 /
 //        intentionShift 校验 / 配置 / 边界
+//
+//   V2026-11-07 治本 (过期判定与丢弃 · 切灰度前置安全网):
+//     **审议跑完后, load 一次当前快照的 revision, 对比 baseRevision** ——
+//     不一致 = 快照变了 = 这份审议结果过期了 (它是在旧快照上算出来的).
+//
+//     为什么要现在做 (切灰度前置):
+//         审议是**异步**的 (BullMQ 队列跑), 等它跑完的时候, 快照可能已经被
+//         规则算子更新过好几轮了. 这时候把旧快照的 delta apply 到新快照上 ——
+//         状态就错乱了. 所以切灰度前必须先有"过期判定"这个安全网.
+//
+//     ⚠️ **锚 R1, 不是 R0** (口径别搞混):
+//         R1 = 本轮**落库后**的版本 (= 内核 `EngineTurnOutput.revision`, 门面透传成
+//         入参 `baseRevision`); 本轮**开始时**的那份 (baseSnapshot) 是 R0 = R1 - 1.
+//         锚 R1 是因为判定问的是"**回来时的当前版本 == 本字段吗**": 审议在本轮落库
+//         **之后**才入队, 回来时当前版本必然 >= R1 —— 锚 R0 会让判定**永远**为"过期".
+//
+//     ⚠️ **保守兜底** (宁可误判没过期, 不误杀):
+//         load 失败 (Redis 挂) / 会话不存在 → `currentRevision: null` + `stale: false`.
+//         为什么保守: 影子期只是观测 —— 误判过期会让你以为"很多审议都过期了",
+//         把切灰度决策带偏; 误判没过期只是少记几条, 不影响大局.
+//
+//     ⚠️ **DI 用 token, 不用接口当 token** (本单实测踩到的坑):
+//         `BdiStateRepository` 是**接口** —— 编译后没有运行时值, 当不了 Nest 的
+//         provider token. 直接写 `private readonly bdiStates: BdiStateRepository`
+//         会让 Nest 按 `design:paramtypes` 去找名为 `Object` 的 provider ——
+//         找不到, 就**静默注入 undefined** (症状: 判定永远走兜底分支, 过期率恒为 0,
+//         且**不报错**). 必须 `@Inject(ENGINE_BDI_STATE_REPOSITORY)` ——
+//         同一个 token, 同一个**单例**仓储实例 (与内核读写的是同一份真相).
+//
+//   如何验证:
+//     1. npx tsc -p tsconfig.build.json --noEmit 0 错
+//     2. test/engine-adapters/wp-deliberation-stale-check.spec.ts 覆盖判定口径 /
+//        保守兜底 / trace 形状 / 跨轮次过期
+//     3. `git diff --stat HEAD -- src/engine-core` 为空 (本单不动内核)
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { buildDeliberationSchemaDescription, buildDeliberationSystemPrompt, buildDeliberationUserPrompt } from './deliberation-prompt.js';
@@ -115,9 +149,11 @@ import {
   capTurnDelta,
   type BehaviorStrategy,
   type BdiSnapshot,
+  type BdiStateRepository,
   type DeltaVector,
 } from '../../engine-core/index.js';
 import { RedisService } from '../../shared/infra/redis/redis.service.js';
+import { ENGINE_BDI_STATE_REPOSITORY } from '../wiring/engine.tokens.js';
 
 /** Redis key 的逻辑前缀 (ioredis 还会自动拼 `REDIS_KEY_PREFIX`, 多环境隔离靠它). */
 export const DELIBERATION_TRACE_KEY_PREFIX = 'deliberation_trace';
@@ -559,6 +595,24 @@ export interface DeliberationTraceEntry {
 }
 
 /**
+ * 过期判定的结果 (V2026-11-07 · 切灰度前置安全网).
+ *
+ * 口径: 审议**跑完后** load 一次当前快照的 revision, 对比入参里的 baseRevision.
+ *   · currentRevision === baseRevision → 没过期 (中间没跑别的轮次);
+ *   · currentRevision >  baseRevision → 过期了 (中间又跑了几轮, 审议基于旧快照);
+ *   · currentRevision <  baseRevision → **不可能** (防御性当作没过期).
+ *
+ * ⚠️ **保守兜底**: load 失败 / 会话不存在 → `{ stale: false, currentRevision: null }`.
+ *   宁可误判没过期 (少记几条), 也不误判过期 (把切灰度决策带偏).
+ */
+export interface DeliberationStaleCheck {
+  /** 审议结果是不是已经过期 (基于旧快照算出来的). */
+  readonly stale: boolean;
+  /** 审议回来时读到的当前快照 revision; null = 没读到 (兜底). */
+  readonly currentRevision: number | null;
+}
+
+/**
  * 一条审议 trace (Redis value 的形状).
  *
  * ⚠️ 这份记录**含心理内容** (LLM 写的 reason / summary) —— 它是**数据**, 不是日志:
@@ -575,10 +629,26 @@ export interface DeliberationTraceRecord {
   /**
    * 本次审议对应的 BDI 快照版本号 (WP65) —— 从入参原样带下来.
    *
-   * 用途: 切灰度时拿它跟"回来时的当前版本"比, 判断这份审议有没有过期.
-   * 现在只是**记下来** (本期不做过期判定 —— 结果还不生效, 判了也没地方用).
+   * 口径 (⚠️ 是 **R1 = 本轮落库后**的版本, 不是 R0):
+   *     R1 = 本轮**落库后**的版本 (= 内核 `EngineTurnOutput.revision`);
+   *     本轮**开始时**的那份 (baseSnapshot) 是 R0 = R1 - 1.
+   *     锚 R1 是因为过期判定问的是"**回来时的当前版本 == 本字段吗**":
+   *     审议在本轮落库**之后**才入队, 回来时当前版本必然 >= R1 —— 锚 R0 会让判定**永远**为"过期".
    */
   readonly baseRevision: number;
+  /**
+   * 过期判定: 审议回来时, 快照是不是还在 baseRevision 那个版本.
+   *
+   * true = 中间又跑了几轮, 这份审议是在**旧快照**上算出来的 —— 切灰度后应该丢弃.
+   * false = 没过期, **或者判定没做成** (保守兜底, 见 `currentRevision`).
+   */
+  readonly stale: boolean;
+  /**
+   * 审议回来时读到的当前快照 revision.
+   *
+   * null = load 失败 / 会话不存在 (保守兜底: 同时意味着 stale 恒为 false).
+   */
+  readonly currentRevision: number | null;
   /** 写入时刻 (ISO). */
   readonly timestamp: string;
   /** 审议是否成功 (格式合法 + API 不报错). */
@@ -976,6 +1046,16 @@ export class LlmDeliberationService {
     private readonly llmJson: CounselorLlmJsonClient,
     private readonly config: ConfigService,
     private readonly redis: RedisService,
+    /**
+     * BDI 状态仓储 (过期判定要读当前快照的 revision).
+     *
+     * ⚠️ **必须用 token 注入, 不能靠接口类型**:
+     *   `BdiStateRepository` 是**接口** —— 编译后没有运行时值, 当不了 Nest 的 provider
+     *   token. 裸写类型会让 Nest 按 `design:paramtypes` 去找名为 `Object` 的 provider ——
+     *   找不到就**静默注入 undefined** (不报错!), 症状是判定永远走兜底分支、过期率恒为 0.
+     *   同理, 这个 token 绑定的必须与内核写侧**同一个单例** (否则读的不是同一份真相).
+     */
+    @Inject(ENGINE_BDI_STATE_REPOSITORY) private readonly bdiStates: BdiStateRepository,
   ) {}
 
   /**
@@ -1026,7 +1106,11 @@ export class LlmDeliberationService {
       //   ⚠️ 判定结果**直接进 trace** (lockedStrategy / llmIntentionAccepted),
       //   所以这一步必须在写 trace **之前**算好.
       const lock = await this.resolveLock(input, outcome.validated.output.intentionShift);
-      await this.writeTrace(this.buildSuccessRecord(input, outcome.validated, startedAt, outcome.usage, retryCount, lock));
+      // V2026-11-07 (过期判定): 审议跑完后 load 一次当前快照的 revision, 对比 baseRevision.
+      //   ⚠️ 判定结果**直接进 trace** (stale / currentRevision), 所以必须在写 trace **之前**算好.
+      //   放在 resolveLock 之后: 读 revision 离写 trace 越近, "中间有没有跑别的轮次" 越准.
+      const staleCheck = await this.checkStale(input.tenantId, input.sessionId, input.baseRevision);
+      await this.writeTrace(this.buildSuccessRecord(input, outcome.validated, startedAt, outcome.usage, retryCount, lock, staleCheck));
       // 状态落盘放在 trace 之后: trace 是主产物, 锁状态是辅助.
       // 写锁状态失败 → 下一轮还是同一个锁定期 (保守方向: 宁可多锁, 不可少锁).
       await this.saveIntentionLockState(input.tenantId, input.sessionId, lock.newState);
@@ -1153,6 +1237,7 @@ export class LlmDeliberationService {
     usage: DeliberationTokenUsage | null,
     retryCount: number,
     lock: IntentionLockResult,
+    staleCheck: DeliberationStaleCheck,
   ): DeliberationTraceRecord {
     const { output, rejectedEntries } = validated;
     // 约束校验层: 逐维 delta cap —— **写进 trace 的 delta 一定是砍过的**.
@@ -1179,6 +1264,8 @@ export class LlmDeliberationService {
       sessionId: input.sessionId,
       turnIndex: input.turnIndex,
       baseRevision: input.baseRevision,
+      stale: staleCheck.stale,
+      currentRevision: staleCheck.currentRevision,
       timestamp: new Date().toISOString(),
       ok: true,
       errorCode: null,
@@ -1217,6 +1304,10 @@ export class LlmDeliberationService {
       sessionId: input.sessionId,
       turnIndex: input.turnIndex,
       baseRevision: input.baseRevision,
+      // V2026-11-07: 失败轮次**不跑**过期判定 (没有结果可丢弃) —— 两个字段占位,
+      //   让 trace 的形状在成功 / 失败两种情况下**一致** (消费方不用判分支).
+      stale: false,
+      currentRevision: null,
       timestamp: new Date().toISOString(),
       ok: false,
       errorCode: errorCode ?? 'unknown_error',
@@ -1242,6 +1333,45 @@ export class LlmDeliberationService {
       lockedStrategy: input.ruleStrategy,
       llmIntentionAccepted: false,
     };
+  }
+
+  /**
+   * 过期判定: 审议回来时, 快照是不是还在 baseRevision 那个版本.
+   *
+   * 切灰度前置安全网 —— 审议是**异步**的 (BullMQ 队列跑), 等它跑完的时候,
+   * 快照可能已经被规则算子更新过好几轮了. 这时候把旧快照算出来的 delta
+   * apply 到新快照上, 状态就错乱了.
+   *
+   * ⚠️ **锚 R1 而不是 R0** (口径别搞混):
+   *   R1 = 本轮**落库后**的版本 (= 内核 `EngineTurnOutput.revision`, 门面透传成
+   *   入参 `baseRevision`); 本轮**开始时**的那份是 R0 = R1 - 1.
+   *   锚 R1 是因为判定问的是"**回来时的当前版本 == 本字段吗**": 审议在本轮落库
+   *   **之后**才入队, 回来时当前版本必然 >= R1 —— 锚 R0 会让判定**永远**为"过期".
+   *
+   * ⚠️ **保守兜底** (宁可误判没过期, 不误杀):
+   *   load 失败 (Redis 挂) / 会话不存在 → `{ stale: false, currentRevision: null }`.
+   *   影子期只是观测 —— 误判过期会让你以为"很多审议都过期了", 把切灰度决策带偏;
+   *   误判没过期只是少记几条, 不影响大局.
+   *
+   * @param tenantId 租户隔离键 (与内核写快照时用的同一个)
+   * @param sessionId 业务会话 id
+   * @param baseRevision 本轮审议对应的快照版本 (R1)
+   * @returns 过期判定结果
+   */
+  private async checkStale(tenantId: string, sessionId: string, baseRevision: number): Promise<DeliberationStaleCheck> {
+    try {
+      const record = await this.bdiStates.load(tenantId, sessionId);
+      // 会话不存在 (还没落库 / 已被清理) → 兜底: 判没过期.
+      if (!record) return { stale: false, currentRevision: null };
+      // currentRevision > baseRevision → 中间又跑了几轮 → 过期.
+      // (相等 = 没过期; 小于 = 不可能, 防御性地当作没过期.)
+      return { stale: record.revision > baseRevision, currentRevision: record.revision };
+    } catch (error) {
+      // load 失败 → 兜底: 判没过期 (保守方向).
+      // 日志只出定位信息 —— 不打对话原文 (隐私红线 AGENTS.md §5.4).
+      this.logger.warn(`[deliberation_stale] 快照读取失败, 按未过期处理 (session=${sessionId}): ${messageOf(error)}`);
+      return { stale: false, currentRevision: null };
+    }
   }
 
   /**

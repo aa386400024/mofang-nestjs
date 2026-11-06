@@ -52,7 +52,7 @@ import {
   type DeliberationTraceRecord,
   type IntentionLockState,
 } from '../../src/engine-adapters/deliberation/llm-deliberation.service.js';
-import { createEmptyBdiSnapshot, type BehaviorStrategy, type DeltaVector } from '../../src/engine-core/index.js';
+import { createEmptyBdiSnapshot, type BehaviorStrategy, type BdiStateRepository, type DeltaVector } from '../../src/engine-core/index.js';
 import type { RedisService } from '../../src/shared/infra/redis/redis.service.js';
 
 const TENANT = 'tenant-1';
@@ -156,8 +156,11 @@ function buildService(options: { env?: Record<string, string>; requestJson?: Ret
   const redis = options.redis ?? new FakeRedis();
   const config = { get: (key: string): string | undefined => env[key] } as unknown as ConfigService;
   const llm = { requestJson } as unknown as CounselorLlmJsonClient;
+  // ⚠️ V2026-11-07 起 service 还要**读** BDI 状态仓储 (过期判定) → 替身补上.
+  //   读不到 = 保守兜底 (判没过期) —— 与"会话还没落库"同款分支.
+  const bdiStates = { load: vi.fn(async () => null) } as unknown as BdiStateRepository;
   return {
-    service: new LlmDeliberationService(llm, config, redis as unknown as RedisService),
+    service: new LlmDeliberationService(llm, config, redis as unknown as RedisService, bdiStates),
     requestJson,
     redis,
   };

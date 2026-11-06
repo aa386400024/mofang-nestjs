@@ -78,6 +78,7 @@ import {
   type MemoryHit,
   type MemoryStore,
   type OpenEngineSessionInput,
+  type BdiStateRepository,
   type RenderPort,
   type RenderResult,
   type RenderSpec,
@@ -218,7 +219,10 @@ function buildService(options: { env?: Record<string, string>; requestJson?: Ret
   // ⚠️ WP68 起 service 还要**读**意图锁定状态 (Redis get) → 替身补上.
   const redis = { set, get: vi.fn(async (): Promise<string | null> => null) } as unknown as RedisService;
   const llm = { requestJson } as unknown as CounselorLlmJsonClient;
-  return { service: new LlmDeliberationService(llm, config, redis), requestJson, set };
+  // ⚠️ V2026-11-07 起 service 还要**读** BDI 状态仓储 (过期判定) → 替身补上.
+  //   读不到 = 保守兜底 (判没过期) —— 与"会话还没落库"同款分支.
+  const bdiStates = { load: vi.fn(async () => null) } as unknown as BdiStateRepository;
+  return { service: new LlmDeliberationService(llm, config, redis, bdiStates), requestJson, set };
 }
 
 /**

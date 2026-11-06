@@ -58,6 +58,7 @@ import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-m
 import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
 import {
   createEmptyBdiSnapshot,
+  type BdiStateRepository,
   type DeltaVector,
   type EngineSessionHandle,
   type EngineSessionPort,
@@ -269,7 +270,10 @@ function buildRealService(options: { requestJson?: ReturnType<typeof vi.fn>; set
   // ⚠️ WP68 起 service 还要**读**意图锁定状态 (Redis get) → 替身补上.
   const redis = { set, get: vi.fn(async (): Promise<string | null> => null) } as unknown as RedisService;
   const llm = { requestJson } as unknown as CounselorLlmJsonClient;
-  return { service: new LlmDeliberationService(llm, config, redis), set };
+  // ⚠️ V2026-11-07 起 service 还要**读** BDI 状态仓储 (过期判定) → 替身补上.
+  //   这里用**真的**内存仓储 (本文件已经 import 了) —— 空仓储 = 读不到 = 保守兜底.
+  const bdiStates = new InMemoryBdiStateRepository() as BdiStateRepository;
+  return { service: new LlmDeliberationService(llm, config, redis, bdiStates), set };
 }
 
 /** 从 set 的调用参数里取出写进去的 trace 记录 (trace 是第一个 set —— 锁状态排在它后面). */
