@@ -41,7 +41,7 @@
 | **WP40** | TTS 内联语气词标签 | 🔴 P0 | prompt 注入 `(sighs)` `(pant)` `(breath)` 等标签，TTS 真发声 | WP33 |
 | **WP41** ✅ | 表达风格渲染接入 | 🟡 P1 | WP10A 预留 3 列（话量基线/叙事风格/语态倾向）接入 spec-assembler。⚠️ 实际落地：内核 `CharacterProfile` + `RenderSpec` 各加 3 个**可选**字段（**恰好 2 个内核文件**，预批准内；两个联合类型**不进 barrel**，适配层用**派生**避开边界断言 ⑥ 的白名单）+ 适配层 **7 个**文件接上（DB 行 → 种子 → 角色基线 → 会话归属 → 规格 → prompt）+ **话量基线修正**（判据未改，只把"话量阻抗"按基线平移档位阶梯；中位 0.5 = 修正量 0）+ 叙事/语态**单独成块**渲染「你说话一贯的样子」；⚠️ **生产 DB 角色每轮多 2 行**（三列是 NOT NULL DEFAULT，当前跑的是未标定默认档 'mixed'/'restrained' —— 话量基线默认 0.5 无副作用）（[交付记录](../completed/phase2/engine-wp41-expression-style-rendering-implementation-2026-11-04.md)） | WP35 |
 | **WP42** ✅ | 咨询同盟三维 | 🟡 P1 | trust/safety/bond 独立建模，建立/破裂/修复算子，调节阻抗下降速率（[交付记录](../completed/phase2/engine-wp42-counseling-alliance-three-dimensions-implementation-2026-11-03.md)） | WP34 |
-| **WP43** | 评估引擎基础版 | 🟡 P1 | 旁路异步消费 BDI 快照/对话/伦理标签，输出基础技术+伦理维度评分 | WP8-B |
+| **WP43** ✅ | 评估引擎基础版 | 🟡 P1 | 规则引擎快速评分（毫秒级、零 LLM）：技术维度 9 项 eventTags 计数 + BDI 变化 4 维首末差值 + 伦理维度（crisis 次数 / safe·warning·danger 评级），总分 技术 60% + BDI 20% + 伦理 20%；落新表 `session_evaluations`（一场会话一份，重算覆盖）；**跨层走 voice 层 @Global 插槽**（engine ↔ counselor 不反向依赖）；数据源=**内核出参**（不依赖留痕开关）；⚠️ 最终路径 `GET /counselor/training-sessions/:id/evaluation` + `GET /counselor/evaluations`（任务单写的两条路径本仓无范式）；**engine-core 零改动**（[交付记录](../completed/phase2/engine-wp43-evaluation-engine-basic-implementation-2026-11-06.md)） | WP8-B |
 | **WP44** | 成长档案体系 | 🟡 P1 | 全链路数据沉淀 → 档案生成，用户可查看实训成长记录 | WP43 |
 
 ---

@@ -157,27 +157,17 @@ import { CounselorQuoteController } from './controllers/quote.controller.js';
 //   counselor 端 5 Tab 第 5 个 endpoint (我的, 训练偏好 + 会员状态).
 // V2026-10-15 治本 (V1.x W3-4 — supervision controller):
 //   counselor 端第 7 个 controller (4 流派督导, 跟 long-term-case 同 sessionId polymorphic 复用).
-import { CounselorSupervisionController } from './controllers/supervision.controller.js';
-import { CounselorTrainingExerciseController } from './controllers/training-exercise.controller.js';
 // V2026-10-21 治本 (V1.2 VS-A — training session controller):
 //   training_sessions 表 (V1.1 §6.5) 落地后一直 0 controller, v1.2 的 M2 知情同意 /
 //   M3 轻提示 / M4 24h 间隔 / §10.1 初访分流 全挂在它身上. 本 controller 定死 6 个 endpoint 契约.
-import { CounselorTrainingSessionController } from './controllers/training-session.controller.js';
 // V2026-10-21 治本 (V1.2 VS-B1 — M1 分层人设 2 controller):
 //   visitor-persona: 视图 A 表层配置 + 上帝视角全量 + 绑定长程
 //   case-profile-entry: 视图 B 动态解锁档案
-import { CounselorTranscriptBookmarkController } from './controllers/transcript-bookmark.controller.js';
-import { CounselorTransferenceMarkController } from './controllers/transference-mark.controller.js';
-import { CounselorVisitorPersonaController } from './controllers/visitor-persona.controller.js';
 // V2026-10-23 治本 (AI 模拟来访池 — 2 controller):
 //   visitor-pool: 公共人物图鉴 + 克隆实例化 + 收藏 (普通练习用户可用)
 //   visitor-pool-admin: 公共模板库治理 (AI 生成 / 增删改 / 上下架 / 软删恢复), 内部角色专用
-import { CounselorVisitorPoolAdminController } from './controllers/visitor-pool-admin.controller.js';
-import { CounselorVisitorPoolController } from './controllers/visitor-pool.controller.js';
 // V2026-10-26 治本 (官方音色目录 — 只读代理端点, spec §任务 2):
 //   GET /counselor/voices?type=system — 音色选择器唯一的取数入口 (前端不直连 MiniMax).
-import { CounselorVoicesController } from './controllers/voices.controller.js';
-import { DrillController } from './drills/controllers/drill.controller.js';
 // V2026-10-27 治本 (危机识别专区 — 只读元数据端点, spec 任务 B2):
 //   GET /counselor/crisis-practice/meta — 前端"隔离壳"渲染用的静态教学元数据.
 //   物理隔离: 危机内容不进 visitor_pool_templates / 不进公共图鉴列表 / 不碰普通池 seed.
@@ -188,6 +178,17 @@ import { DrillController } from './drills/controllers/drill.controller.js';
 //   7 维度 28 子指标 + user 聚合 2 entity, 跟 W1-2 long-term-case + W3-4 supervision 同段.
 import { DrillEvaluatorService } from './drills/providers/drill-evaluator.service.js';
 import { DrillService } from './drills/providers/drill.service.js';
+import { SessionEvaluationController } from './controllers/session-evaluation.controller.js';
+import { CounselorSupervisionController } from './controllers/supervision.controller.js';
+import { CounselorTrainingExerciseController } from './controllers/training-exercise.controller.js';
+import { CounselorTrainingSessionController } from './controllers/training-session.controller.js';
+import { CounselorTranscriptBookmarkController } from './controllers/transcript-bookmark.controller.js';
+import { CounselorTransferenceMarkController } from './controllers/transference-mark.controller.js';
+import { CounselorVisitorPersonaController } from './controllers/visitor-persona.controller.js';
+import { CounselorVisitorPoolAdminController } from './controllers/visitor-pool-admin.controller.js';
+import { CounselorVisitorPoolController } from './controllers/visitor-pool.controller.js';
+import { CounselorVoicesController } from './controllers/voices.controller.js';
+import { DrillController } from './drills/controllers/drill.controller.js';
 import { AbilityDimension } from './entities/ability-dimension.entity.js';
 import { AbilityScore } from './entities/ability-score.entity.js';
 // V2026-10-15 治本 (V1.x W1-2 — long-term-case entity 注册, 走 TypeOrmModule.forFeature):
@@ -216,12 +217,15 @@ import { QuotaUsage } from './entities/quota-usage.entity.js';
 import { Quote } from './entities/quote.entity.js';
 // V2026-10-15 治本 (V1.x W3-4 — supervision-schools + supervision-feedback entity 注册):
 //   4 流派配置 + polymorphic 反馈记录 2 entity, 跟 W1-2 long-term-case 同 TypeOrmModule.forFeature 段.
-import { StudentRiskEvent } from './entities/student-risk-event.entity.js';
-import { SupervisionFeedback } from './entities/supervision-feedback.entity.js';
-import { SupervisionSchool } from './entities/supervision-school.entity.js';
 // V2026-10-15 治本 (V1.x W5-6 — ability service):
 //   4 method 业务逻辑 (listDimensions / findDimensionByCode / getUserProfile / upsertScore),
 //   V0.5 阶段手动 upsert, V1.x 续做时 W3-4 service.generateFeedback 完成后回调本 service.
+// V2026-11-06 治本 (WP43 — 评估引擎基础版 · 评估结果表, 累计 25 entity):
+//   +SessionEvaluation (单场规则快评; 一场会话一份, session_id 唯一).
+import { SessionEvaluation } from './entities/session-evaluation.entity.js';
+import { StudentRiskEvent } from './entities/student-risk-event.entity.js';
+import { SupervisionFeedback } from './entities/supervision-feedback.entity.js';
+import { SupervisionSchool } from './entities/supervision-school.entity.js';
 import { TrainingExerciseAttempt } from './entities/training-exercise-attempt.entity.js';
 import { TrainingExercise } from './entities/training-exercise.entity.js';
 import { TrainingSession } from './entities/training-session.entity.js';
@@ -239,6 +243,9 @@ import { VisitorFullPersona } from './entities/visitor-full-persona.entity.js';
 //   跟 V2026-10-21 的 visitor_full_personas 同段 (副本表复用, 只多 1 列 source_template_id).
 import { VisitorPoolFavorite } from './entities/visitor-pool-favorite.entity.js';
 import { VisitorPoolTemplate } from './entities/visitor-pool-template.entity.js';
+// V2026-11-06 治本 (WP43 — 评估引擎基础版):
+//   评估服务 (算分落库 + 查询) —— 规则引擎快评的业务侧实现.
+import { SessionEvaluationService } from './evaluation/session-evaluation.service.js';
 // V2026-11-02 治本 (WP14 — 学员心理风险处置层 · 审计表):
 //   +StudentRiskEvent (append-only 审计表: 学员心理风险事件; 只增不改, 唯一例外 user_choice).
 //   ⚠️ 这张表**不对学员端 API 暴露** —— 注册它只为 (a) 审计落库 (b) 报告标注读同一份事实.
@@ -483,6 +490,9 @@ import { VptSessionBridgeService } from './providers/vpt-session-bridge.service.
       //   ⚠️ 注册它**不等于**给学员端开查询口 —— 本表只由审计服务写、报告标注读,
       //      没有任何 controller 暴露它 (学员端 API 查不到这张表, 是任务单 §1.2 的红线).
       StudentRiskEvent,
+      // V2026-11-06 治本 (WP43 — 评估引擎基础版 · 评估结果表, 累计 25 entity):
+      //   +SessionEvaluation (单场规则快评; 一场会话一份, session_id 唯一).
+      SessionEvaluation,
     ]),
   ],
   controllers: [
@@ -532,8 +542,14 @@ import { VptSessionBridgeService } from './providers/vpt-session-bridge.service.
     // V2026-10-27 治本 (情景演练 — 3 端点, spec 任务 A/C):
     //   list / :drillId 开练 / :drillId/respond 判定 (复用 JwtAuthGuard).
     DrillController,
+    // V2026-11-06 治本 (WP43 — 评估引擎基础版 — 1 端点):
+    //   GET /counselor/evaluations (我的快速评估列表; 单场评估挂在 training-sessions 下).
+    SessionEvaluationController,
   ],
   providers: [
+    // V2026-11-06 治本 (WP43 — 评估引擎基础版): 评估落库方 + 查询方.
+    //   它在 onModuleInit 里注册进 voice 层插槽 (引擎侧收尾时把本场内核出参交过来).
+    SessionEvaluationService,
     CounselorHomeService,
     CounselorExamService, // V2026-10-13 治本: P0-3 exam service
     CounselorGrowthService, // V2026-10-13 治本: P0-4 growth service

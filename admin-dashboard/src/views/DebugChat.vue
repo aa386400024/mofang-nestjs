@@ -272,9 +272,14 @@ async function sendTurn() {
     inputEl?.focus()
     // 发送后刷新左侧列表：
     // - 新建的会话会出现在列表里
-    // - 第 3 轮后后端 LLM 自动命名，延迟 2 秒刷新让名字更新可见
+    // - 第 3 轮后后端 LLM 自动命名，轮询刷新 5 次（每 1 秒一次），等标题生成完
     if (turnIndex.value >= 3) {
-      setTimeout(() => sessionListRef.value?.loadSessions(), 2000)
+      let pollCount = 0
+      const pollTimer = setInterval(() => {
+        pollCount += 1
+        sessionListRef.value?.loadSessions()
+        if (pollCount >= 5) clearInterval(pollTimer)
+      }, 1000)
     } else {
       sessionListRef.value?.loadSessions()
     }

@@ -152,5 +152,9 @@ export { AddCharacterProfilePersonalityTraits1714900000028 } from './17149000000
 //   character_profiles 加 3 列 (version_major/minor/patch) + character_profile_versions 新表
 //   + training_sessions 加 2 列 (character_template_id / character_version).
 export { AddCharacterVersionSemver1714900000029 } from './1714900000029-AddCharacterVersionSemver.js';
+// V2026-11-06 治本 (WP43 — session_evaluations 单场规则快评表, 跟 bin/ormconfig.ts 严格 1:1):
+//   session_evaluations 新表 (9 列 + 3 索引, 其中 session_id 唯一) —— 规则引擎快评的落库表.
+//   一场会话一份评估 (重算覆盖, 不堆行); 不加 DB FK / 不做软删 (ADR-0003).
+export { CreateSessionEvaluations1714900000030 } from './1714900000030-CreateSessionEvaluations.js';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

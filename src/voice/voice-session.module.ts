@@ -17,6 +17,7 @@ import { Global, Module } from '@nestjs/common';
 
 import { CharacterUsageRegistry } from './character-usage-slot.js';
 import { CharacterVersionRegistry } from './character-version-slot.js';
+import { SessionEvaluationRegistry } from './session-evaluation-slot.js';
 import { StudentRiskAuditRegistry } from './student-risk-audit-slot.js';
 import { VoiceCatalogRegistry } from './voice-catalog-slot.js';
 import { VoiceFrameRegistry } from './voice-frame-registry.js';
@@ -53,6 +54,11 @@ import { VoiceTemplateRegistry } from './voice-template-slot.js';
     //   两侧都走 voice 层当中站, 跟 VoiceSessionBridgeRegistry / StudentRiskAuditRegistry 同款范式.
     CharacterVersionRegistry,
     CharacterUsageRegistry,
+    // V2026-11-06 治本 (WP43 — 评估引擎插槽):
+    //   SessionEvaluationRegistry  engine-adapters → business 方向 (会话结束后
+    //     把本场内核出参交给业务侧算分: 算分规则与落库都在 counselor 侧,
+    //     引擎侧只认插槽接口, 不认识评估服务的任何类型).
+    SessionEvaluationRegistry,
   ],
   exports: [
     VoiceSessionRegistry,
@@ -63,6 +69,7 @@ import { VoiceTemplateRegistry } from './voice-template-slot.js';
     StudentRiskAuditRegistry,
     CharacterVersionRegistry,
     CharacterUsageRegistry,
+    SessionEvaluationRegistry,
   ],
 })
 export class VoiceSessionModule {}

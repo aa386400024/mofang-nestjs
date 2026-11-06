@@ -55,6 +55,7 @@ import type {
   WorkingWindowOverflowEvent,
 } from '../../engine-core/index.js';
 import type { RedisService } from '../../shared/infra/redis/redis.service.js';
+import type { SessionEvaluationRegistry } from '../../voice/session-evaluation-slot.js';
 import type { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
 import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import type { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
@@ -402,6 +403,13 @@ export interface EngineStreamBackendDeps {
    * 只是"重发同一轮不再幂等" (老客户端不带 round_id 时本来就用不上它).
    */
   readonly idempotency?: TurnIdempotencyService;
+  /**
+   * 评估插槽注册表 (V2026-11-06, WP43; 缺省 = 不做规则快评).
+   *
+   * 缺省语义与上面几个一致: 评估是**增强** —— 缺席时对练照常收尾,
+   * 只是"这场没有快速评分" (业务侧没装 counselor 模块时就是这个状态).
+   */
+  readonly evaluation?: SessionEvaluationRegistry;
 }
 
 /**
@@ -610,6 +618,8 @@ export function createEngineStreamBackend(deps: EngineStreamBackendDeps): Engine
   //   委托它判一次 (与内核注入的是**同一个**实例, 口径与本地词典兜底都一致).
   // V2026-11-02 治本 (WP16): 第 11 位是轮次幂等表 —— 同一会话同一 round_id
   //   重发不重跑 BDI (断流重发则回 turn_incomplete).
+  // V2026-11-06 治本 (WP43): 第 12 位是评估插槽 —— 会话收尾时把本场内核出参
+  //   交给业务侧算分 (规则快评); 引擎侧只认插槽接口, 不认识评估服务.
   return new EngineStreamBackend(
     deps.engine,
     deps.resolver,
@@ -622,5 +632,6 @@ export function createEngineStreamBackend(deps: EngineStreamBackendDeps): Engine
     deps.riskAudit,
     deps.riskProbe,
     deps.idempotency ?? new TurnIdempotencyService(),
+    deps.evaluation,
   );
 }

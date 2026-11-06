@@ -92,7 +92,7 @@ export interface LlmDebugSessionTitleGeneratorOptions {
  * 40 token 足够写一个 20 字的中文标题 —— 上限**故意压得小**:
  * 标题生成是"锦上添花", 不该因为它一次吃掉几百 token.
  */
-export const DEFAULT_DEBUG_SESSION_TITLE_MAX_COMPLETION_TOKENS = 64;
+export const DEFAULT_DEBUG_SESSION_TITLE_MAX_COMPLETION_TOKENS = 256;
 
 /**
  * 标题的**字数**上限 (硬口径, 超出就截断).

@@ -95,6 +95,7 @@ import { QdrantService } from '../../ai-engine/providers/qdrant.service.js';
 import { LlmModule } from '../../llm/llm.module.js';
 import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
 import { RedisService } from '../../shared/infra/redis/redis.service.js';
+import { SessionEvaluationRegistry } from '../../voice/session-evaluation-slot.js';
 import { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
@@ -444,6 +445,7 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         riskAudit: StudentRiskAuditRegistry,
         riskProbe: RiskProbePort,
         idempotency: TurnIdempotencyService,
+        evaluation: SessionEvaluationRegistry,
       ): EngineStreamBackend =>
         createEngineStreamBackend({
           engine,
@@ -472,6 +474,9 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
           // WP16: 轮次幂等表 —— 同一会话同一 round_id 重发不重跑 BDI;
           //   断流 (回复没发完) 的那一轮重发时回 turn_incomplete, 让前端走新一轮.
           idempotency,
+          // V2026-11-06 (WP43): 评估插槽 —— 会话收尾时把本场内核出参交给业务侧算分.
+          //   引擎侧只认插槽接口 (voice 层 @Global), 不认识评估服务的任何类型.
+          evaluation,
         }),
       // 帧出口注册表由 voice 侧的 @Global 模块提供; optional = 缺了只影响督导提示帧.
       // 剧本解析端口同理: optional = 缺了只影响伦理盲盒剧本, 不影响会话开合.
@@ -489,6 +494,8 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
         { token: StudentRiskAuditRegistry, optional: true },
         RISK_PROBE,
         TurnIdempotencyService,
+        // 评估插槽: optional = 缺了只影响"这场没有快速评分", 不影响会话开合.
+        { token: SessionEvaluationRegistry, optional: true },
       ],
     },
     {

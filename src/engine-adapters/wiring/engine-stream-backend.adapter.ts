@@ -101,6 +101,7 @@ import type {
   RiskProbePort,
   TrajectoryScript,
 } from '../../engine-core/index.js';
+import type { SessionEvaluationRegistry, SessionEvaluationTurnInput } from '../../voice/session-evaluation-slot.js';
 import type { StudentRiskAuditChoice, StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import {
@@ -218,6 +219,16 @@ export class EngineStreamBackend implements VoiceTurnBackend {
    * 生命周期: openSession 重置 → 每轮提交追加 → closeSession 清空 (与逐字稿同生命周期).
    */
   private readonly committedTurns = new Map<string, VoiceCatchUpTurn[]>();
+  /**
+   * 语音会话 id → 本场逐轮内核出参投影 (V2026-11-06, WP43 · 快速评分的数据源).
+   *
+   * 为什么在引擎侧累计而不是每轮落库: 评估是**整场汇总** (逐轮散点已经有了 ——
+   * 逐字稿 / 调试 trace); 内存里累加, 会话收尾时一次交给业务侧算分 ——
+   * 不给数据库再加一张"逐轮评估"表.
+   *
+   * 生命周期: openSession 重置 (重连 = 新一场) → 每轮追加 → closeSession 读完即删.
+   */
+  private readonly sessionEvaluationTurns = new Map<string, SessionEvaluationTurnInput[]>();
 
   constructor(
     private readonly engine: EngineTurnService,
@@ -316,6 +327,17 @@ export class EngineStreamBackend implements VoiceTurnBackend {
      * 的漂移会回来. 所以生产路径必须注入, 默认值只兜单测.
      */
     private readonly idempotency: TurnIdempotencyService = new TurnIdempotencyService(),
+    /**
+     * 评估插槽注册表 (V2026-11-06, WP43 · 会话结束后的规则快评).
+     *
+     * 为什么 @Optional: 评估是**增强** —— 业务侧没装 (或没注册实现) 时,
+     * 会话照常开、照常结束, 只是"这场没有快速评分".
+     *
+     * 为什么走 voice 层插槽而不是直接注入评估服务:
+     *   engine-adapters → counselor 是仓库明令禁止的反向依赖 (同 student-risk-audit-slot).
+     *   引擎侧只认插槽接口, 业务侧在自己的 onModuleInit 注册实现 —— 两侧互不认识对方的类型.
+     */
+    @Optional() private readonly evaluationRegistry?: SessionEvaluationRegistry,
   ) {}
 
   /**
@@ -355,6 +377,10 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     // WP24: 重置本场用量累计 —— 重连 (第二条 user_text 之前的一次 startSession)
     //   走的是同一条 openSession, 若不重置, 上一场的花费会被算进这一场.
     this.sessionUsage.set(opts.sessionId, emptySessionUsageTotals());
+    // V2026-11-06 治本 (WP43): 开一场 = 开一本**空的评估台账** ——
+    //   重连走的是同一条 openSession, 若不重置, 上一场的逐轮出参会留在台账里,
+    //   于是重连后的评估会把**上一场**的轮次也算进去 (两场混成一份分数).
+    this.sessionEvaluationTurns.set(opts.sessionId, []);
     this.sessionContexts.set(opts.sessionId, {
       tenantId: opts.tenantId,
       visitorId: memoryScope,
@@ -757,6 +783,46 @@ export class EngineStreamBackend implements VoiceTurnBackend {
   }
 
   /**
+   * 把本轮内核出参投影成评估输入 (V2026-11-06, WP43 · 快速评分的数据源).
+   *
+   * 为什么在**引擎侧**投影而不是把整个内核出参丢给业务侧:
+   *   业务侧不该认识内核的快照类型 —— 跨层契约越窄, 内核改一个字段就不会带崩业务.
+   *   这里只取"评估要算的三类事实": 事件计数 / BDI 首末差值 / 安全判定.
+   *
+   * 为什么用内核的累计轮次而不是 voice 层的轮次号:
+   *   评估要的是"这场实际跑了几轮引擎" —— 内核计数才是引擎事实;
+   *   voice 的轮次号是**客户端对齐**用的 (断流重发时会复用同一个号).
+   *
+   * @param opts 本轮入参
+   * @param result 本轮结算结果 (内核出参)
+   */
+  private recordEvaluationTurn(opts: VoiceTurnBackendTurnOptions, result: TurnRenderResult): void {
+    const turns = this.sessionEvaluationTurns.get(opts.sessionId);
+    if (!turns) return;
+    // 快照按"可能缺字段"来读 (旧快照 / 精简 stub) —— 评估是增强, 不能因此搞挂主链路.
+    const snapshot = result.snapshot as unknown as {
+      trust?: number;
+      safety?: number;
+      bond?: number;
+      resistance?: { verbal?: number };
+      emotion?: { valence?: number; arousal?: number };
+    };
+    turns.push({
+      turnIndex: result.turnIndex,
+      trust: numberOr(snapshot.trust, 0),
+      safety: numberOr(snapshot.safety, 0),
+      bond: numberOr(snapshot.bond, 0),
+      // 阻抗取**话量**维: 三层阻抗里唯一直接对应"来访愿不愿多讲"的一维.
+      resistance: numberOr(snapshot.resistance?.verbal, 0),
+      valence: numberOr(snapshot.emotion?.valence, 0),
+      arousal: numberOr(snapshot.emotion?.arousal, 0),
+      events: result.events ?? [],
+      safetyLevel: result.safety?.level ?? null,
+      safetyCategories: result.safety?.categories ?? [],
+    });
+  }
+
+  /**
    * 本场状态 (补漏帧用) —— 只给**引擎侧知道**的那部分.
    *
    * 相位 (listening / speaking / paused) 是 voice 层的会话状态, 由 voice 层补;
@@ -784,18 +850,6 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       finalTurnCount: turns.filter((turn) => turn.role === 'assistant').length,
       finalMessageCount: turns.length,
     };
-    /**
-     * WP22: 本场累计的 completion tokens (交给 voice 层累加到当日全局预算).
-     *
-     * 为什么放在收尾结果里: "这场花了多少"只有这里知道 (用量累加器是适配器的
-     * 私有状态), 而"当日预算是多少"是 voice 层的事 —— 通过窄接口把**事实**传出去,
-     * 两侧各管各的, 不让 voice 层去碰引擎的内部计数器.
-     *
-     * 只在**第一次**收尾时有值 (下面按句柄判定的分支里取) —— 同一场被 close
-     * 两次时, 第二次拿不到累加器 → 缺省, 调用方据此不会重复计费.
-     */
-    let totalCompletionTokens: number | undefined;
-
     // V2026-10-29 治本 (WP19 · flush 调试快照):
     //   会话关闭时把内存缓冲的 trace 写回 DB. fire-and-forget, 不阻塞 close.
     const dbSid = this.dbSessionIds.get(sessionId);
@@ -818,6 +872,8 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     this.committedTurns.delete(sessionId);
     // WP16: 清掉本场的轮次幂等表 (防内存泄漏) —— 与逐字稿同生命周期.
     this.idempotency.clearSession(sessionId);
+    // V2026-11-06 治本 (WP43): 评估台账 → 交办规则快评 (读 + 删 + 交办一步做完).
+    this.finalizeSessionEvaluation(sessionId, dbSid, context, handleId);
     if (handleId) {
       // V2026-11-02 (WP14): 清重点监测.
       //   必须清: 句柄是**进程内**标识, 进程不重启就一直复用 —— 不清的话,
@@ -839,24 +895,24 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     //   为什么"累加器不存在"就不打: voice 侧会把**旧链路**的会话也走一遍引擎
     //   后端的关闭流程, 那时这场根本没走过引擎 (没有一轮渲染) —— 那不是"花了 0 元",
     //   是"这场不归引擎管", 两者不能混成一条日志.
-    if (handleId) {
-      const totals = this.sessionUsage.get(sessionId);
-      this.sessionUsage.delete(sessionId);
-      if (totals) {
-        // WP22: 把本场用量交给 voice 层 (当日全局预算要用).
-        totalCompletionTokens = totals.completionTokens;
-        const summary = buildSessionCostSummary({
-          sessionId,
-          totals,
-          pricing: this.costPricing ?? DEFAULT_SESSION_COST_PRICING,
-          // 本单只在**新引擎路径**打这条日志, 所以恒为 'bdi'.
-          // (WP17 已降级并入 WP13: enginePath 作为**留痕字段**是 WP13 的活,
-          //  这里只是日志里标一个常量值, 不新增字段到 trace / 报告.)
-          enginePath: 'bdi',
-        });
-        this.logger.log(`[session_cost_summary] ${JSON.stringify(summary)}`);
-      }
-    }
+    // V2026-10-30 治本 (WP24 · 单场成本日志):
+    //   把本场累计的用量折算成一条结构化日志 —— "这一场花了多少钱".
+    //   ⚠️ **按句柄判定, 只打一次** (与下面 WP12 收尾同款理由):
+    //     voice 侧的关闭路径会把"当前后端"与"引擎后端"**各关一次** —— 引擎链路下
+    //     这两个是同一个对象, 于是 closeSession 会被调两次. 第二次调用时句柄已被
+    //     清掉, 累加器也已删除 → 不打第二条 (否则同一场会在日志里出现两条汇总,
+    //     一条有数据一条是空的, 看着像算了两场).
+    //
+    //   为什么"累加器不存在"就不打: voice 侧会把**旧链路**的会话也走一遍引擎
+    //   后端的关闭流程, 那时这场根本没走过引擎 (没有一轮渲染) —— 那不是"花了 0 元",
+    //   是"这场不归引擎管", 两者不能混成一条日志.
+    // WP22: 本场累计的 completion tokens (交给 voice 层累加到当日全局预算).
+    //   为什么放在收尾结果里: "这场花了多少"只有这里知道 (用量累加器是适配器的
+    //   私有状态), 而"当日预算是多少"是 voice 层的事 —— 通过窄接口把**事实**传出去,
+    //   两侧各管各的, 不让 voice 层去碰引擎的内部计数器.
+    //   只在**第一次**收尾时有值 (按句柄判定) —— 同一场被 close 两次时,
+    //   第二次拿不到累加器 → 缺省, 调用方据此不会重复计费.
+    const totalCompletionTokens = this.reportSessionCost(sessionId, handleId);
 
     // V2026-10-30 治本 (WP12 · 会话收尾):
     //   逐字稿全量落库 + 本场摘要晋升长时记忆. fire-and-forget (与上面的 trace flush 同款):
@@ -889,6 +945,85 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     );
     // WP22: 带上有值时才有 totalCompletionTokens (缺省 = 不可得, 不是 0).
     return totalCompletionTokens === undefined ? result : { ...result, totalCompletionTokens };
+  }
+
+  /**
+   * 单场成本汇总 (V2026-10-30, WP24) —— 折算成一条结构化日志 + 交出本场 completion tokens.
+   *
+   * 抽成独立方法有两个原因:
+   *   ① `closeSession` 的圈复杂度已到仓库上限 (eslint 卡 20);
+   *   ② "这场花了多少钱"是一条**独立决策**, 单独成方法后可以被一眼读完.
+   *
+   * @param sessionId 会话 id
+   * @param handleId 内核句柄 (无 = 这场没走过引擎 → 不归引擎管)
+   * @returns 本场 completion tokens (不可得 = undefined, 不是 0)
+   */
+  private reportSessionCost(sessionId: string, handleId: string | undefined): number | undefined {
+    if (!handleId) return undefined;
+    const totals = this.sessionUsage.get(sessionId);
+    this.sessionUsage.delete(sessionId);
+    if (!totals) return undefined;
+    const summary = buildSessionCostSummary({
+      sessionId,
+      totals,
+      pricing: this.costPricing ?? DEFAULT_SESSION_COST_PRICING,
+      // 本单只在**新引擎路径**打这条日志, 所以恒为 'bdi'.
+      // (WP17 已降级并入 WP13: enginePath 作为**留痕字段**是 WP13 的活,
+      //  这里只是日志里标一个常量值, 不新增字段到 trace / 报告.)
+      enginePath: 'bdi',
+    });
+    this.logger.log(`[session_cost_summary] ${JSON.stringify(summary)}`);
+    return totals.completionTokens;
+  }
+
+  /**
+   * 会话收尾 → 交办规则快评 (V2026-11-06, WP43).
+   *
+   * 抽成独立方法有两个原因:
+   *   ① `closeSession` 的圈复杂度已到仓库上限 (eslint 卡 20);
+   *   ② "这场要不要评估"是一条**独立决策**, 单独成方法后可以被一眼读完.
+   *
+   * 口径 (三种情况都**不是错误**, 是"这场不评估"):
+   *   · 一轮都没跑 → 没有事实 → 不写一条 0 分 (那会让人以为"这场表现极差");
+   *   · 没有业务会话 id → 挂不上 training_sessions;
+   *   · 没有学员身份 → 归属不明.
+   *
+   * ⚠️ fire-and-forget (与 trace flush / WP12 收尾同款): 评估是 I/O,
+   *   不能反过来阻塞 session_ended 帧 (前端在等这个帧收页面).
+   *
+   * ⚠️ **按句柄判定, 只算一次**: voice 侧的关闭路径会把"当前后端"与"引擎后端"
+   *   各关一次 —— 引擎链路下这两个是同一个对象. 台账读完即删 → 第二次调用时
+   *   台账已不存在 → 不会重复算分 (否则同一场会被算两遍).
+   *
+   * @param sessionId 会话 id
+   * @param dbSid 业务会话 id (无 = 挂不上 training_sessions)
+   * @param context 会话归属上下文
+   * @param handleId 内核句柄 (无 = 这场没开着)
+   */
+  private finalizeSessionEvaluation(
+    sessionId: string,
+    dbSid: string | undefined,
+    context: SessionContext | undefined,
+    handleId: string | undefined,
+  ): void {
+    const turns = this.sessionEvaluationTurns.get(sessionId);
+    // 台账与逐字稿同生命周期: 读完即删 (防内存泄漏).
+    this.sessionEvaluationTurns.delete(sessionId);
+    if (!turns || turns.length === 0) return;
+    if (!handleId || !this.evaluationRegistry) return;
+    const userId = context?.userId ?? '';
+    if (!dbSid || userId.length === 0) return;
+    void this.evaluationRegistry
+      .finalize({
+        sessionId,
+        dbSessionId: dbSid,
+        userId,
+        tenantId: context?.tenantId ?? '',
+        turns,
+      })
+      .catch((error: unknown) => {
+        this.logger.warn(`[closeSession] 快速评估交办失败 session=${sessionId}: ${messageOf(error)}`);
+      });
   }
 
   /**
@@ -1020,6 +1155,12 @@ export class EngineStreamBackend implements VoiceTurnBackend {
     //   放在这里 (而不是 done chunk 之后): 这一轮是"已提交"的判据是
     //   "引擎跑完 + 没被 abort", 而这两件事在这一行都已经确定.
     this.recordCommittedTurn(opts, settled.result, spoken.join(''));
+
+    // V2026-11-06 治本 (WP43): 本轮内核出参投影进评估台账 ——
+    //   评估数据源是**内核出参** (snapshot / events / safety), 不是留痕快照,
+    //   所以与 ENGINE_DEBUG_TRACE_ENABLED 无关 (留痕是调试能力, prod 缺省关;
+    //   评估是业务能力, prod 必须开).
+    this.recordEvaluationTurn(opts, settled.result);
 
     yield {
       type: 'done',
@@ -1617,6 +1758,24 @@ class DeltaQueue {
  */
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * 取一个可能缺失的数值 (兜底用).
+ *
+ * 为什么需要它: 评估投影要读快照里的 trust / safety / bond / resistance / emotion,
+ *   而快照**可能缺字段** ——
+ *     · WP42 之前持久化到 Redis 的旧快照没有 safety / bond (接续旧会话时会读到);
+ *     · 单元测试的精简 stub 只给部分字段.
+ *   直接解引用会让**整个对练回合抛错** —— 而评估只是**增强**能力,
+ *   绝不能因为"想打个分"把主链路搞挂 (同 riskAudit / traceRecorder 的口径).
+ *
+ * @param value 候选值
+ * @param fallback 缺失 / 非法时的兜底
+ * @returns 有限数值
+ */
+function numberOr(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
 /**

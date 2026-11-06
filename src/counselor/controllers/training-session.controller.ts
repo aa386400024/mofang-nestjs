@@ -48,7 +48,12 @@ import {
   TrainingSessionListQueryDto,
   UpdateTrainingSessionStatusDto,
 } from '../dto/training-session.dto.js';
+import type { SessionEvaluationDetailDto } from '../evaluation/session-evaluation.dto.js';
+import { SessionEvaluationService } from '../evaluation/session-evaluation.service.js';
 import { TrainingSessionService } from '../providers/training-session.service.js';
+// V2026-11-06 治本 (WP43 · 评估引擎基础版 — 单场快速评估):
+//   评估是**会话自己的**一份数据 (跟知情同意 / 轻提示 / 打点 / 移情标记同款),
+//   所以端点挂在会话下面, 而不是另起一条路径.
 
 /**
  * V2026-10-21 (V1.2 VS-A — CounselorTrainingSessionController):
@@ -62,7 +67,10 @@ import { TrainingSessionService } from '../providers/training-session.service.js
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class CounselorTrainingSessionController {
-  constructor(private readonly service: TrainingSessionService) {}
+  constructor(
+    private readonly service: TrainingSessionService,
+    private readonly evaluations: SessionEvaluationService,
+  ) {}
 
   /**
    * POST /counselor/training-sessions — 建会话.
@@ -102,6 +110,29 @@ export class CounselorTrainingSessionController {
   @ApiOperation({ summary: '训练会话详情 (含逐字稿)' })
   async findDetail(@CurrentUser() user: { userId: string }, @Param('id') id: string): Promise<TrainingSessionDetailDto> {
     return this.service.findDetail(user.userId, id);
+  }
+
+  /**
+   * GET /counselor/training-sessions/:id/evaluation — 单场快速评估 (规则引擎, 毫秒级).
+   *
+   * V2026-11-06 治本 (WP43): 与督导报告**互补** —— 督导报告是 LLM 深度版 (30-120s),
+   *   本端点是规则快评 (技术手法计数 / BDI 首末变化 / 伦理安全评级), 会话结束后立刻可查.
+   *
+   * @param user 当前学员 (CurrentUser 装饰器注入)
+   * @param id 训练会话 id
+   * @returns 评估详情
+   * @throws BizException 评估不存在 (404)
+   */
+  @Get(':id/evaluation')
+  @ApiOperation({
+    summary: '单场训练会话的快速评估 (规则引擎, 毫秒级)',
+    description:
+      '技术维度 (共情/开放提问/评判/说教/淡化/越界/正常化/接纳/肯定 计数) + ' +
+      'BDI 变化维度 (信任/安全感/阻抗/情绪的首末差值) + 伦理维度 (crisis 次数 + 安全评级). ' +
+      '与 LLM 督导报告互补, 不是替代.',
+  })
+  async findEvaluation(@CurrentUser() user: { userId: string }, @Param('id') id: string): Promise<SessionEvaluationDetailDto> {
+    return this.evaluations.findBySession(user.userId, id);
   }
 
   /**

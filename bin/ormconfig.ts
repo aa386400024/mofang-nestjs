@@ -199,6 +199,10 @@ import { AddCharacterProfilePersonalityTraits1714900000028 } from '../src/migrat
 //   character_profiles 加 3 列 (version_major/minor/patch) + character_profile_versions 新表
 //   + training_sessions 加 2 列 (character_template_id / character_version).
 import { AddCharacterVersionSemver1714900000029 } from '../src/migration/1714900000029-AddCharacterVersionSemver.js';
+// V2026-11-06 治本 (WP43 — session_evaluations 单场规则快评表, 跟 src/migration/index.ts 严格 1:1):
+//   规则引擎快评的落库表 (9 列 + 3 索引, 其中 session_id 唯一) —— 一场会话一份评估,
+//   重算覆盖不堆行. 表由手写 DDL 建 (ADR-0003 禁用 synchronize).
+import { CreateSessionEvaluations1714900000030 } from '../src/migration/1714900000030-CreateSessionEvaluations.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -342,6 +346,9 @@ const ormconfig = async (): Promise<DataSource> => {
       // V2026-11-06 治本 (WP38 — 角色版本 semver + 会话绑定版本, 跟 src/migration/index.ts 严格 1:1):
       //   character_profiles 加 3 列 + character_profile_versions 新表 + training_sessions 加 2 列.
       AddCharacterVersionSemver1714900000029,
+      // V2026-11-06 治本 (WP43 — session_evaluations 单场规则快评表, 跟 src/migration/index.ts 1:1):
+      //   9 列 + 3 索引 (session_id 唯一 —— 重算覆盖, 不堆行).
+      CreateSessionEvaluations1714900000030,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)
