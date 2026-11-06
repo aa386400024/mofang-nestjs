@@ -176,8 +176,6 @@ import { CounselorQuoteController } from './controllers/quote.controller.js';
 //   transcript-bookmark (逐字稿打点) / transference-mark (双向移情阻抗标记)
 // V2026-10-15 治本 (V1.x W5-6 — ability entity 注册, 走 TypeOrmModule.forFeature):
 //   7 维度 28 子指标 + user 聚合 2 entity, 跟 W1-2 long-term-case + W3-4 supervision 同段.
-import { DrillEvaluatorService } from './drills/providers/drill-evaluator.service.js';
-import { DrillService } from './drills/providers/drill.service.js';
 import { SessionEvaluationController } from './controllers/session-evaluation.controller.js';
 import { CounselorSupervisionController } from './controllers/supervision.controller.js';
 import { CounselorTrainingExerciseController } from './controllers/training-exercise.controller.js';
@@ -189,6 +187,8 @@ import { CounselorVisitorPoolAdminController } from './controllers/visitor-pool-
 import { CounselorVisitorPoolController } from './controllers/visitor-pool.controller.js';
 import { CounselorVoicesController } from './controllers/voices.controller.js';
 import { DrillController } from './drills/controllers/drill.controller.js';
+import { DrillEvaluatorService } from './drills/providers/drill-evaluator.service.js';
+import { DrillService } from './drills/providers/drill.service.js';
 import { AbilityDimension } from './entities/ability-dimension.entity.js';
 import { AbilityScore } from './entities/ability-score.entity.js';
 // V2026-10-15 治本 (V1.x W1-2 — long-term-case entity 注册, 走 TypeOrmModule.forFeature):
@@ -246,6 +246,10 @@ import { VisitorPoolTemplate } from './entities/visitor-pool-template.entity.js'
 // V2026-11-06 治本 (WP43 — 评估引擎基础版):
 //   评估服务 (算分落库 + 查询) —— 规则引擎快评的业务侧实现.
 import { SessionEvaluationService } from './evaluation/session-evaluation.service.js';
+// V2026-11-06 治本 (WP44 — 成长档案体系):
+//   AbilityAggregateService  能力信号统一聚合器 (刷题 + 快评 + 督导 三来源合并口径).
+//   SessionAbilitySyncService 对练数据回写入口 (5 个子指标).
+//   GrowthArchiveService      成长档案读取侧 (总览卡片 + 趋势曲线).
 // V2026-11-02 治本 (WP14 — 学员心理风险处置层 · 审计表):
 //   +StudentRiskEvent (append-only 审计表: 学员心理风险事件; 只增不改, 唯一例外 user_choice).
 //   ⚠️ 这张表**不对学员端 API 暴露** —— 注册它只为 (a) 审计落库 (b) 报告标注读同一份事实.
@@ -262,6 +266,7 @@ import { SessionEvaluationService } from './evaluation/session-evaluation.servic
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
 // V2026-10-29 治本 (WP21 — 报告 SSE 端点的归属守卫)
 import { SupervisionReportGuard } from './guards/supervision-report.guard.js';
+import { AbilityAggregateService } from './providers/ability-aggregate.service.js';
 import { AbilityService } from './providers/ability.service.js';
 // V2026-10-15 治本 (V1.x W7-8 — billing service):
 //   5 method 业务逻辑 (getMembershipStatus / listSkus / createOrder / consumeQuota /
@@ -321,6 +326,7 @@ import { CounselorVisitorContextContributor } from './providers/counselor-visito
 //   该解析器只对外暴露**表层摘要**, 7 大块剧本永不跨模块 (零压红线的结构性保证).
 import { CounselorVisitorPoolTemplateResolver } from './providers/counselor-visitor-pool-template.resolver.js';
 import { CrisisPracticeService } from './providers/crisis-practice.service.js';
+import { GrowthArchiveService } from './providers/growth-archive.service.js';
 import { InformedConsentService } from './providers/informed-consent.service.js';
 import { LiveSupervisionHintService } from './providers/live-hint.service.js';
 import { CounselorLlmJsonClient } from './providers/llm-json.client.js';
@@ -355,6 +361,7 @@ import { PracticeScenarioService } from './providers/practice-scenario.service.j
 //   listFeedbackForSession), V0.5 mock 阶段用静态 prompt 模板, V1.x 真接 LLM 改 provider 注入.
 import { ProfileExtractionService } from './providers/profile-extraction.service.js';
 import { QuoteService } from './providers/quote.service.js';
+import { SessionAbilitySyncService } from './providers/session-ability-sync.service.js';
 import { SessionContextBuilder } from './providers/session-context.builder.js';
 // V2026-10-21 治本 (V1.2 VS-A — VS-A 新增 4 个 provider):
 //   - CounselorLlmJsonClient: counselor 端唯一的结构化输出出口 (收流 → 剥 think → JSON.parse → 校验)
@@ -550,6 +557,10 @@ import { VptSessionBridgeService } from './providers/vpt-session-bridge.service.
     // V2026-11-06 治本 (WP43 — 评估引擎基础版): 评估落库方 + 查询方.
     //   它在 onModuleInit 里注册进 voice 层插槽 (引擎侧收尾时把本场内核出参交过来).
     SessionEvaluationService,
+    // V2026-11-06 治本 (WP44 — 成长档案体系): 能力雷达的统一聚合 + 对练回写 + 档案读取.
+    AbilityAggregateService,
+    SessionAbilitySyncService,
+    GrowthArchiveService,
     CounselorHomeService,
     CounselorExamService, // V2026-10-13 治本: P0-3 exam service
     CounselorGrowthService, // V2026-10-13 治本: P0-4 growth service

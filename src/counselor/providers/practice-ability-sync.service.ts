@@ -40,12 +40,11 @@
 //   时间戳: 2026-10-22
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, type Repository } from 'typeorm';
+import { type Repository } from 'typeorm';
 
+import { AbilityAggregateService } from './ability-aggregate.service.js';
 import { abilityDimensionCodeOfMode } from '../config/practice-ability-mapping.js';
 import type { PracticeFeedback } from '../domain/practice/practice.types.js';
-import { AbilityDimension } from '../entities/ability-dimension.entity.js';
-import { AbilityScore } from '../entities/ability-score.entity.js';
 import { PracticeAttempt } from '../entities/practice-attempt.entity.js';
 import { PracticeFeedbackTone } from '../enums/practice-feedback-tone.enum.js';
 import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
@@ -70,12 +69,11 @@ export class PracticeAbilitySyncService {
   private readonly logger = new Logger(PracticeAbilitySyncService.name);
 
   constructor(
-    @InjectRepository(AbilityDimension)
-    private readonly dimensionRepo: Repository<AbilityDimension>,
-    @InjectRepository(AbilityScore)
-    private readonly scoreRepo: Repository<AbilityScore>,
     @InjectRepository(PracticeAttempt)
     private readonly attemptRepo: Repository<PracticeAttempt>,
+    // V2026-11-06 治本 (WP44): 能力信号**统一聚合器** ——
+    //   刷题与对练写的是同一行 (UNIQUE user × dimension), 口径必须一致.
+    private readonly aggregate: AbilityAggregateService,
   ) {}
 
   /**
@@ -97,14 +95,6 @@ export class PracticeAbilitySyncService {
   ): Promise<PracticeAbilitySyncResult> {
     try {
       const dimensionCode = abilityDimensionCodeOfMode(mode);
-      const dimension = await this.dimensionRepo.findOne({
-        where: { subIndicatorCode: dimensionCode, isActive: 1, deletedAt: IsNull() },
-      });
-      if (!dimension) {
-        this.logger.warn(`[practice_ability_sync_skipped] reason=dimension_not_found code=${dimensionCode}`);
-        return { synced: false, dimensionCode, score: null };
-      }
-
       const signal = this.computeSignal(feedback);
       if (signal === null) {
         // 本次没有可计入的信号 (全是非判定型批注) —— 不写入, 避免用 0 分污染画像.
@@ -115,13 +105,15 @@ export class PracticeAbilitySyncService {
       // 把本次信号落进 attempt 行 (记账), 供后续聚合查询 (零 N+1 的索引路径).
       await this.attemptRepo.update({ id: attemptId, userId }, { abilityDimensionCode: dimensionCode, abilitySignal: signal });
 
-      const aggregated = await this.aggregateSignal(userId, dimensionCode);
-      if (aggregated === null) {
+      // V2026-11-06 治本 (WP44): 走**统一聚合器** ——
+      //   刷题与对练写的是同一行 (UNIQUE user × dimension), 两路各算各的均值再覆盖写 →
+      //   最终值取决于"谁最后写" → 雷达分会漂 (用户刷新一次就可能变一次分).
+      //   统一聚合器把 刷题 + 快评 + 督导 三来源合并取均值 → 两路算出来是**同一个数**.
+      const outcome = await this.aggregate.syncDimension(userId, dimensionCode);
+      if (!outcome.synced || outcome.score === null) {
         return { synced: false, dimensionCode, score: null };
       }
-
-      await this.upsertScore(userId, dimension.id, aggregated, attemptId);
-      return { synced: true, dimensionCode, score: aggregated };
+      return { synced: true, dimensionCode, score: outcome.score };
     } catch (error) {
       // 画像回写失败**不能**打断练习主链路.
       this.logger.error(
@@ -158,61 +150,8 @@ export class PracticeAbilitySyncService {
     return Math.round((positive / total) * 100);
   }
 
-  /**
-   * 跨次聚合: 该用户在该子指标上的全部信号均值.
-   *
-   * @param userId 用户 id
-   * @param dimensionCode 子指标 code
-   * @returns 均值 (0-100); 无可聚合数据时返回 null
-   */
-  private async aggregateSignal(userId: string, dimensionCode: string): Promise<number | null> {
-    const attempts = await this.attemptRepo.find({
-      where: { userId, abilityDimensionCode: dimensionCode, deletedAt: IsNull() },
-      select: { id: true, abilitySignal: true },
-    });
-    const signals = attempts.map((attempt) => attempt.abilitySignal).filter((value): value is number => value !== null);
-    if (signals.length === 0) {
-      return null;
-    }
-    const sum = signals.reduce((acc, value) => acc + value, 0);
-    return Math.round(sum / signals.length);
-  }
-
-  /**
-   * 写回 ability_scores (UNIQUE (user_id, dimension_id) 覆盖写).
-   *
-   * @param userId 用户 id
-   * @param dimensionId 能力维度 id
-   * @param score 分数 0-100
-   * @param attemptId 本次作答记录 id (写进 evidence)
-   */
-  private async upsertScore(userId: string, dimensionId: string, score: number, attemptId: string): Promise<void> {
-    const existing = await this.scoreRepo.findOne({
-      where: { userId, dimensionId, deletedAt: IsNull() },
-    });
-
-    const evidence = {
-      // 只保留最近 20 条证据 id: 避免 evidence JSON 无限膨胀 (它是 json 列, 没有上限).
-      sessionIds: [...(existing?.evidence?.sessionIds ?? []), attemptId].slice(-20),
-      lastUpdatedAt: new Date().toISOString(),
-    };
-
-    if (existing) {
-      existing.score = score;
-      existing.evidence = evidence;
-      await this.scoreRepo.save(existing);
-      return;
-    }
-
-    await this.scoreRepo.save(
-      this.scoreRepo.create({
-        tenantId: userId, // A9 一人一租户
-        userId,
-        dimensionId,
-        score,
-        source: 'cloud',
-        evidence,
-      }),
-    );
-  }
+  // V2026-11-06 治本 (WP44): 跨次聚合与写回**已迁到统一聚合器**
+  //   (ability-aggregate.service.ts) —— 刷题与对练必须走同一口径,
+  //   否则两路覆盖同一行 → 谁后写谁赢 → 雷达分会漂.
+  //   本服务保留的只有"练习 → 单次信号"这一步 (零压批注 → 0-100 信号).
 }
