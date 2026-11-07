@@ -34,6 +34,10 @@ export type { SituationalDesire, UnderlyingDesire } from './domain/desires.js';
 
 // ── 情绪 / 移情 ────────────────────────────────────────────────────
 export type { EmotionLabel, EmotionState } from './domain/emotion.js';
+// V2026-11-08 (WP62): 数值夹取纯函数 —— 适配层此前各自自带一份 (角色种子映射 /
+//   Qdrant 分数夹取), 副本之间在 ±Infinity / NaN 口径上已经分叉. 收进公开出口
+//   = 全仓只有一份口径, 由边界断言 ⑥ 双向白名单守住.
+export { clamp01, clampValence } from './domain/emotion.js';
 export type { TransferenceState } from './domain/transference.js';
 
 // ── 意图层 (本轮派生输出) ──────────────────────────────────────────
@@ -82,7 +86,9 @@ export {
 export type { ConflictRecord, ConflictResolution } from './memory/conflict-resolution.js';
 export { applyConflictResolution, markSuperseded, resolveConflict } from './memory/conflict-resolution.js';
 export { promoteShortTermToLongTerm } from './memory/promotion.js';
-export type { RecallEvaluation } from './memory/recall-policy.js';
+// V2026-11-08 (WP62): RecallPolicyOptions (召回策略端口) 一起公开 ——
+//   适配层装配端口时需要引用内核那个类型, 否则只能写结构化类型 (两份签名迟早漂移).
+export type { RecallEvaluation, RecallPolicyOptions } from './memory/recall-policy.js';
 export { evaluateRecallCandidate } from './memory/recall-policy.js';
 
 // ── 轨迹控制 (WP3 · 纯函数) ─────────────────────────────────────────

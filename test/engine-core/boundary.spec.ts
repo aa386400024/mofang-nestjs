@@ -274,6 +274,9 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'EmotionLabel',
       'EmotionState',
       'TransferenceState',
+      // WP62: 数值夹取纯函数 (适配层此前各自自带一份, 口径已分叉)
+      'clamp01',
+      'clampValence',
       // 意图层
       'BehaviorStrategy',
       'Intention',
@@ -327,6 +330,8 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'applyConflictResolution',
       'promoteShortTermToLongTerm',
       'RecallEvaluation',
+      // WP62: 召回策略端口 (适配层装配端口时要引用内核那个类型)
+      'RecallPolicyOptions',
       'evaluateRecallCandidate',
       // WP3: 轨迹控制 (剧本契约 + 纯策略算子)
       'OrderedTrajectoryNode',

@@ -38,6 +38,8 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp12-memory-closeout.spec.ts: 默认值 / env 覆盖 / 非法值回退
 
+import type { RecallPolicyOptions } from '../../engine-core/index.js';
+
 /** 一天的毫秒数. */
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -100,19 +102,18 @@ export const DEFAULT_MEMORY_CONFIG: MemoryConfig = resolveMemoryConfig();
  * 映射**只留这一处** —— 各调用点各写一遍 = 两套命名迟早漂移 (仓库既有教训:
  * 判定逻辑一旦写两份, 就会在某个 WP 里悄悄分叉).
  *
- * ⚠️ 返回类型**故意不写成内核的 `RecallPolicyOptions`**: 适配层深路径 import
- * engine-core 内部模块会被边界断言 ⑪ 拦下, 而内核 barrel 的公开出口面被断言 ⑥
- * 冻结 (加导出 = 改 barrel + 改断言白名单 = 动第三个内核文件, 超出本单预批准范围).
- * 这里用**结构化类型**声明 —— TypeScript 结构性兼容保证它就是内核那个端口,
- * 调用点仍然会被编译期校验 (内核端口字段若改名, 调用点立刻编译报错).
+ * V2026-11-08 (WP62): 返回类型改成**直接引用内核的 `RecallPolicyOptions`**.
+ *   原来这里写的是**内联结构化类型** —— 当时的理由是"内核 barrel 公开出口面被断言 ⑥
+ *   冻结, 加导出要动 barrel + 断言白名单 = 超出预批准范围". WP62 把该类型补进公开出口后,
+ *   这层"结构化类型替身"就没有存在理由了, 而且它是个**会漂的替身**:
+ *   内核端口改了字段名, 结构化替身不会跟着改, 编译期照绿, 运行时才炸.
+ *   现在直接 import 内核端口 —— 端口改名/改字段, 本文件**立刻编译报错**.
+ *   (仓库既有教训: 判定逻辑写两份迟早分叉; 类型替身同理.)
  *
  * @param config B 层配置
  * @returns 内核召回策略端口
  */
-export function toRecallPolicyOptions(config: MemoryConfig): {
-  readonly halfLifeMs: number;
-  readonly minEffectiveImportance: number;
-} {
+export function toRecallPolicyOptions(config: MemoryConfig): RecallPolicyOptions {
   return {
     halfLifeMs: config.decayHalfLifeMs,
     minEffectiveImportance: config.recallThreshold,

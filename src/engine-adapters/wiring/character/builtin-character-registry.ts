@@ -22,10 +22,11 @@
 //     · 移情固定全零 (移情随会话演化, 不在开场预设正负)
 //
 //   反双胞胎:
-//     - 不自己写第二份 clamp01: 内核 `clamp01` 没有从公开 barrel 导出, 而本期
-//       engine-core **整树零改动** —— 深路径 import 一个"没导出"的内部函数会把
-//       内核的公开出口变成可有可无. 所以本层自带一个三行 clamp, 语义与内核一致
-//       (NaN → 0, 越界夹取), 并在此注明.
+//     - 不自己写第二份 clamp01 / clampValence (WP62): 本文件原先自带一份三行 clamp,
+//       当时的理由是"内核 `clamp01` 没从公开 barrel 导出, 深路径 import 会让内核的
+//       公开出口形同虚设". WP62 把这两个函数补进公开出口后, 自带副本只剩坏处:
+//       两份实现迟早在边界值上分叉 (本副本 ±Infinity → 0, 内核那份 → ±1).
+//       现在直接 import 内核那一份 —— 全仓只有一份夹取口径.
 //     - 不手填离散情绪标签: 手填 label 会让内核的 resolveEmotionLabel 与适配层
 //       各说各话 (同一份双轴数值解出两个标签), 标签的**唯一真相**必须在内核.
 //     - 不用随机数派生 seed: 种子是"同一角色可复现"的入口, 随机种子等于没有种子.
@@ -106,6 +107,7 @@ import type {
   CharacterResolveRequest,
   ResolvedCharacter,
 } from './character-profile.resolver.js';
+import { clamp01, clampValence } from '../../../engine-core/index.js';
 import type {
   AttachmentStyle,
   BdiResistance,
@@ -423,26 +425,6 @@ export function stableSeedFromKey(key: string): number {
     hash = Math.imul(hash, FNV_PRIME) >>> 0;
   }
   return hash % 2_147_483_647;
-}
-
-/**
- * 把数值 clamp 到 [0,1] (NaN → 0).
- *
- * 与内核 `clamp01` 语义一致; 本层自带一份是因为内核那个函数没有从公开 barrel
- * 导出, 而本期 engine-core 整树零改动 —— 深路径 import 一个"未导出"的内部函数
- * 会让内核的公开出口形同虚设.
- */
-function clamp01(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  return Math.min(1, Math.max(0, value));
-}
-
-/**
- * 把效价 clamp 到 [-1,1] (NaN → 0).
- */
-function clampValence(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  return Math.min(1, Math.max(-1, value));
 }
 
 /**

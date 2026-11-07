@@ -24,6 +24,9 @@
 //       也让"以后换向量库"只需换这一个窄面, 而不是整个 service.
 //     - **不自己写召回判定** —— 判定统一走内核的 evaluateRecallCandidate (内存版同款),
 //       杜绝"内存版按原始重要度过滤 / Qdrant 版按衰减后过滤"这种换实现即漂移.
+//     - **不自己写分数夹取 (WP62)** —— 本文件原先自带一个 clamp01, 语义是"NaN 透传",
+//       与内核那份"NaN → 0"不同: 一条 NaN score 会让下面的 ranked.sort 比较恒为 false,
+//       静默把该条留在原位 (排序结果不可预期). 现在直接 import 内核那份.
 //     - **不用文本子串过滤** —— 语义检索由向量负责; 再加一层子串过滤等于把
 //       "同义词也算相关"的语义检索降级成关键词匹配.
 //     - **不物理删除被取代的记忆** (M4) —— 只在 payload 上标 supersededBy.
@@ -67,6 +70,7 @@ import {
   applyConflictResolution,
   assertValidMemoryEntry,
   assertValidMemoryRecallQuery,
+  clamp01,
   evaluateRecallCandidate,
   MemorySource,
   MemoryTier,
@@ -196,13 +200,6 @@ function readSource(value: unknown): MemorySource | null {
   if (value === MemorySource.SUMMARY) return MemorySource.SUMMARY;
   if (value === MemorySource.MANUAL) return MemorySource.MANUAL;
   return null;
-}
-
-/** 夹到 [0,1]. */
-function clamp01(value: number): number {
-  if (value < 0) return 0;
-  if (value > 1) return 1;
-  return value;
 }
 
 /**
