@@ -15,6 +15,21 @@
 //       而不是靠衰减函数记住"它以前被提过" (那是另一套机制, 本期不做).
 //     - 不把半衰期硬编在调用点 —— 集中为常量, 校准时只改一处.
 //
+//   V2026-11-08 治本 (内核内部 clamp01 统一):
+//     本文件原先**自带**一份 clamp01 (NaN 透传), 与内核公开那份
+//     (`domain/emotion.ts`, NaN → 0) **同名不同语义** —— 内核里就有两份
+//     clamp01, 名字一样 = 最容易踩: 将来有人 import 到哪份, 行为不一样.
+//     现在直接复用 `domain/emotion.ts` 那份 (内核内部复用, 不是深路径 import ——
+//     两者都在 engine-core 内, 允许相对路径).
+//     ⚠️ **行为差异 (NaN 口径)**: 本地那份 NaN **透传**, 内核那份 NaN → 0.
+//       差异只在病态输入上: importance 来自种子常量 / DB 数值列 / JSON 请求体,
+//       JSON 无法表达 NaN, 而 `assertValidMemoryEntry` 还会先卡一道非有限数 ——
+//       所以**所有可达输入逐字不变**.
+//       且新口径是**严格改善**: 旧的 NaN 会一路传到 `effectiveImportance`,
+//       让召回排序的比较恒为 false (NaN 参与比较永远 false) —— 排序结果不可预期;
+//       新的 NaN → 0 让结果永远落在 [0,1].
+//     两份 clamp01 至此合并为**一份** (内核公开出口那份).
+//
 //   ⚠️ 参数标定说明 (工程种子值, 非标定):
 //     DEFAULT_DECAY_HALF_LIFE_MS = 30 天, RECALL_MIN_EFFECTIVE_IMPORTANCE = 0.1.
 //     这两个数字是**工程种子**, 后期靠真实训练数据校准, 不是临床结论.
@@ -24,6 +39,7 @@
 //     1. pnpm build 0 错
 //     2. test/engine-core/wp2-memory.spec.ts 覆盖: 单调不增 / 半衰期减半 / clamp [0,1]
 
+import { clamp01 } from '../domain/emotion.js';
 import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors.js';
 import type { MemoryEntry } from '../domain/ports/memory.store.js';
 
@@ -39,13 +55,6 @@ export const DEFAULT_DECAY_HALF_LIFE_MS = 30 * 24 * 3600 * 1000;
  * importance=0.5 的记忆约 2.3 个半衰期 (约 69 天) 后不再进入召回.
  */
 export const RECALL_MIN_EFFECTIVE_IMPORTANCE = 0.1;
-
-/** 夹到 [0,1]. */
-function clamp01(value: number): number {
-  if (value < 0) return 0;
-  if (value > 1) return 1;
-  return value;
-}
 
 /**
  * 重要度时间衰减: importance * 2^(-ageMs/halfLifeMs).

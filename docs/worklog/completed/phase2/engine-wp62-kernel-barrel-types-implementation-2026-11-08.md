@@ -116,6 +116,7 @@ src/engine-adapters/persistence/qdrant-memory.store.ts:202             function 
 - 内核**自己内部**还有一份 `clamp01`（`memory/importance-decay.ts:44`, 语义是 NaN 透传）, 与 `domain/emotion.ts` 那份**同名不同语义**。
 - 它**没有导出**、内核内部也**没有复用** `domain/emotion.ts` 那份 → 是内核内部的重复, 但**改它要动内核算子逻辑**, 超出本单 §5.2 授权。
 - → **零改动, 登记为残留风险 R1**（另开单可收）。
+- ✅ **R1 已于 2026-11-08 销号** —— 见独立单 [内核内部 clamp01 统一](engine-kernel-internal-clamp-unify-implementation-2026-11-08.md): 本地副本已删, 内核 clamp01 只剩一份。
 
 ### 3.5 D5: `resolveEmotionLabel` **不补导出**（§5.3「不要凑数」）
 
@@ -156,7 +157,7 @@ src/engine-adapters/persistence/qdrant-memory.store.ts:202             function 
 
 | # | 风险 | 影响 | 处置 |
 |---|---|---|---|
-| R1 | 内核内部还有第三份 `clamp01`（`memory/importance-decay.ts:44`, NaN 透传）与本单公开的那份**同名不同语义** | 将来有人从内核内部 import 它, 拿到的是**另一套口径**; 名字一样 = 最容易踩 | 本单**不动**（改它要动内核逻辑, 超出 §5.2 授权）。**另开单**收口: 建议内核内部统一复用 `domain/emotion.ts` 那份, 或改名区分语义 |
+| R1 | ~~内核内部还有第三份 `clamp01`（`memory/importance-decay.ts:44`, NaN 透传）与本单公开的那份**同名不同语义**~~ | 将来有人从内核内部 import 它, 拿到的是**另一套口径**; 名字一样 = 最容易踩 | ✅ **已销号**（2026-11-08 · 独立单「内核内部 clamp01 统一」: 本地副本删除, 复用 `domain/emotion.ts` 那份 → **内核 clamp01 只剩一份**; 顺带发现旧口径下 **NaN 能绕过召回门槛**, 新口径正确拒绝; 新增机器守卫防再长回来） |
 | R2 | `±Infinity` 的口径从"非有限数一律当 0"变成"夹到边界" | 只影响病态输入; 已核实**所有可达输入逐字不变**（种子常量 / DB 数值列 / JSON 请求体 —— JSON 无法表达 Infinity） | 若要保持旧口径, 应改**内核**（口径归属地）, 而不是让适配层留副本（见 D2） |
 | R3 | `qdrant-memory.store.ts` 的 `point.score` 现在 NaN → 0（旧版透传） | 这是**严格改善**（NaN 会让 `ranked.sort` 比较恒 false, 排序不可预期） | 已在本单收敛, 无需额外处置 |
 | R4 | 公开出口又多了 3 个符号 | 公开面是要长期维护的契约, 加了就得一直维护 | 断言⑥ 双向白名单守着 —— 少导出 / 多导出都会红; 且**只有适配层真在用的**才补（§5.3, 见 D5） |
