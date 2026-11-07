@@ -151,6 +151,33 @@
 //        "不传 config 与种子值逐字一致" / "env 覆写后审议侧跟着变"
 //     3. `git diff --stat HEAD -- src/engine-core` 为空 (本单不动内核)
 
+//
+//   V2026-11-07 治本 (临床合理性校验 · 观测版 · 切灰度前置):
+//     三条规则把"可疑"的轮次**标记**出来记进 trace —— **不拦截、不砍幅**.
+//
+//     为什么现在做 (切灰度前置):
+//         蓝图 §2.3 的"临床合理性校验"是切灰度前最后一块. 但那是一类**需要临床数字**
+//         的规则 —— 我们没有临床顾问, 不能自己发明. 所以本期只做**观测版**:
+//         阈值是**工程种子值** (明确标注"非临床标定"), 影子期把可疑轮次挑出来,
+//         供督导复盘校准; 等数据跑够了, 再把确认的规则从"观测"切换到"拦截".
+//
+//     ⚠️ **两道各司其职, 不互相替代**:
+//         · delta cap = **硬边界** (超了就是这一轮不该动这么多, 砍到边界并记账);
+//         · 临床校验 = **软观测** (标记可疑, 但**不改变**审议结果).
+//         所以临床校验放在 cap **之后** —— 它审计的是"进 trace 的那个数"(砍后的值),
+//         与 deliberationDelta / deltaDiff 同口径.
+//
+//     ⚠️ **阈值是工程种子值, 不是临床数字** (仓库纪律: 不发明临床数字):
+//         三条阈值都在 CLINICAL_SANITY_THRESHOLDS 里, 注释写明了"非临床标定".
+//
+//     ⚠️ **开关缺省关** (ENGINE_CLINICAL_SANITY_ENABLED):
+//         影子期默认不跑 (零开销); 要跑观测数据时运维显式打开.
+//
+//   如何验证:
+//     1. npx tsc -p tsconfig.build.json --noEmit 0 错
+//     2. test/engine-adapters/wp-deliberation-clinical-sanity.spec.ts 覆盖三条规则 /
+//        边界 / 开关 / trace 形状 / "不拦截"
+//     3. `git diff --stat HEAD -- src/engine-core` 为空 (本单不动内核)
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
@@ -325,6 +352,22 @@ export interface DeliberationShadowPort {
  * @returns true = 开
  */
 export function resolveDeliberationEnabled(raw: string | undefined): boolean {
+  return parseBooleanEnv(raw);
+}
+
+/**
+ * 布尔型 env 的**唯一**解析口径 (缺省 = 关).
+ *
+ * ⚠️ **为什么抽成独立函数** (V2026-11-07 · 临床合理性校验):
+ *   影子模式总开关 (`ENGINE_DELIBERATION_ENABLED`) 与临床合理性观测开关
+ *   (`ENGINE_CLINICAL_SANITY_ENABLED`) 是**两个不同的键**, 但接受的字面量
+ *   必须**同一套** (true / 1 / yes / on) —— 两处各写一份解析, 迟早漂移 (一处认 `on`
+ *   一处不认). 仓库纪律: **判定只有一份**.
+ *
+ * @param raw env 原值 (未 trim / 未归一)
+ * @returns true = 开
+ */
+export function parseBooleanEnv(raw: string | undefined): boolean {
   const normalized = (raw ?? '').trim().toLowerCase();
   if (normalized.length === 0) return false;
   return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
@@ -714,6 +757,15 @@ export interface DeliberationTraceRecord {
    *   切灰度后, 砍后的 delta 才是实际生效的那个.
    */
   readonly capEntries: readonly DeliberationCapEntry[];
+  /**
+   * 临床合理性标记 (观测版 —— **不拦截、不砍幅**).
+   *
+   * 空数组 = 没发现可疑 (或观测开关关着).
+   *
+   * ⚠️ 影子模式下这只是**观测**: 标记不改变审议结果, 也不写 BDI 快照.
+   *   切灰度后再决定要不要把确认的规则从观测切换到拦截.
+   */
+  readonly clinicalFlags: readonly ClinicalFlag[];
   /** 本轮审议打出的操作标签全集 (去重, 按出现顺序). */
   readonly operatorTags: readonly DeliberationOperatorTag[];
   /** 逐条理由的合并文本 (多条用 '；' 连接; 逐条明细在 `entries` 里). */
@@ -939,6 +991,155 @@ function capEntryDelta(dim: DeliberationDim, value: number, config?: DeltaCapCon
   const probe: MutableDeltaVector = { ...ZERO_DELTA_VECTOR };
   probe[dim] = value;
   return capTurnDelta(probe, config ?? DEFAULT_DELTA_CAP_CONFIG)[dim];
+}
+
+/**
+ * ── 临床合理性校验 (观测版 · 切灰度前置) ─────────────────────────────────────
+ *
+ * 三条规则的阈值都是**工程种子值**, 不是临床标定 (仓库纪律: 不发明临床数字).
+ * 影子期只**标记**可疑轮次, 供督导复盘校准; 等数据跑够了再把确认的规则
+ * 从"观测"切换到"拦截".
+ *
+ * ⚠️ **为什么在 delta cap 之后**: 临床校验审计的必须是**进 trace 的那个数**
+ *   (砍后的值) —— 与 `deliberationDelta` / `deltaDiff` 同口径,
+ *   消费方不用猜"这个标记说的是模型原话还是砍完的话".
+ */
+
+/**
+ * 临床合理性规则名 —— trace 里 `clinicalFlags[].rule` 就是它.
+ *
+ * ⚠️ 这是**稳定的统计口径**: 督导复盘按规则名聚合. 改名 = 历史数据对不上,
+ *   所以改之前先想清楚 (要改就新加一个规则名, 别改老的).
+ */
+export type ClinicalSanityRule = 'alliance_positive_spike' | 'alliance_negative_spike' | 'resistance_triple_jump';
+
+/**
+ * 单条临床合理性标记 (观测版 —— **不拦截、不砍幅**).
+ *
+ * ⚠️ 这里只有**数字 + 规则名 + 维度名** —— 不是心理内容 (隐私红线 AGENTS.md §5.4).
+ */
+export interface ClinicalFlag {
+  /** 命中的规则名. */
+  readonly rule: ClinicalSanityRule;
+  /** 维度名 (收窄成审议维度 —— 消费方不用再判一次合法性). */
+  readonly dimension: DeliberationDim;
+  /** 实际值 (砍后的 delta). */
+  readonly value: number;
+  /** 该规则的阈值 (记下来 = 事后知道当时按什么标准判的). */
+  readonly threshold: number;
+  /** 严重程度: info = 稍微可疑; warn = 很可疑. */
+  readonly severity: 'info' | 'warn';
+}
+
+/**
+ * 三条规则的阈值 (**工程种子值, 非临床标定**).
+ *
+ * ⚠️ **这些数字没有临床依据** —— 它们的用途是"把可疑的轮次挑出来给督导看",
+ *   不是"判定临床对错". 校准流程: 影子期跑数据 → 督导复盘 flagged 轮次 →
+ *   确认哪些规则真的有信号 → 再定阈值 (或者把规则改成拦截).
+ */
+export const CLINICAL_SANITY_THRESHOLDS = {
+  /** 同盟三维 (trust / safety / bond) 正向跳变 —— 信任建立得太快. */
+  alliancePositive: 0.15,
+  /**
+   * 同盟三维负向跳变 —— 信任破裂得太快.
+   *
+   * ⚠️ **这条规则在完整管道里目前不可达**: 格式校验的粗口径
+   *   (`DELIBERATION_MAX_ABS_DELTA = 0.2`) 比这条阈值 (-0.25) **更严** ——
+   *   能过格式校验的负向 delta 最小是 -0.2, 永远够不到 "< -0.25".
+   *   → 观测数据里规则 2 恒为 0 条. **这不是 bug**, 是上游那道更严的底线先拦住了.
+   *   → 切灰度时若要让这条规则有信号, 得先决定: 放宽格式校验到 per-dim cap 边界,
+   *     还是把阈值收到 -0.2 以内. (直接调 `applyClinicalSanityCheck` 时它照常命中.)
+   */
+  allianceNegative: -0.25,
+  /** 阻抗三维 (verbal / depth / style) 集体上升. */
+  resistanceTriple: 0.1,
+} as const;
+
+/** 同盟三维 (咨询同盟: trust / safety / bond). */
+const CLINICAL_ALLIANCE_DIMS = ['trust', 'safety', 'bond'] as const satisfies readonly DeliberationDim[];
+
+/** 阻抗三维 (话量 / 内容深度 / 表达风格 —— 内核口径: 越高阻抗越强). */
+const CLINICAL_RESISTANCE_DIMS = ['verbal', 'depth', 'style'] as const satisfies readonly DeliberationDim[];
+
+/**
+ * 临床合理性校验 (观测版) —— 对**砍后**的 delta 跑三条规则, 标记可疑的.
+ *
+ * ⚠️ **只标记, 不改 delta**: `checkedDeltas` 与入参**逐字相同** ——
+ *   这是观测版的全部意义 (切灰度前, 这层只提供信号, 绝不改变审议结果).
+ *
+ * ⚠️ **同一维度多条建议时按"最后一条"取值** (与 trace 口径一致):
+ *   `buildSuccessRecord` 拼 `deliberationDelta` 时也是**后写覆盖前写**,
+ *   所以临床校验必须取**同一个数** —— 否则标记说的值和 trace 记的值对不上.
+ *
+ * @param deltas 砍幅后的 delta 建议列表
+ * @param enabled 观测开关 (关着 → 直接返回空数组, 零开销)
+ * @returns 原样返回的 delta 列表 + 临床合理性标记
+ */
+export function applyClinicalSanityCheck(
+  deltas: readonly DeliberationDeltaEntry[],
+  enabled: boolean,
+): {
+  /** 原始 delta 列表 (**不改** —— 观测版只标记). */
+  readonly checkedDeltas: readonly DeliberationDeltaEntry[];
+  /** 临床合理性标记 (没发现可疑 = 空数组). */
+  readonly clinicalFlags: readonly ClinicalFlag[];
+} {
+  if (!enabled) return { checkedDeltas: deltas, clinicalFlags: [] };
+
+  // 逐维取值 (同一维度多条 → 最后一条, 与 trace 的 deliberationDelta 同口径).
+  const values = new Map<DeliberationDim, number>();
+  for (const entry of deltas) values.set(entry.dimension, entry.delta);
+
+  const clinicalFlags: ClinicalFlag[] = [];
+
+  // 规则 1 / 2: 同盟三维的正向 / 负向跳变 (信任建立得太快 / 破裂得太快).
+  for (const dim of CLINICAL_ALLIANCE_DIMS) {
+    const value = values.get(dim);
+    if (value === undefined) continue;
+    if (value > CLINICAL_SANITY_THRESHOLDS.alliancePositive) {
+      clinicalFlags.push({
+        rule: 'alliance_positive_spike',
+        dimension: dim,
+        value,
+        threshold: CLINICAL_SANITY_THRESHOLDS.alliancePositive,
+        severity: 'warn',
+      });
+    }
+    if (value < CLINICAL_SANITY_THRESHOLDS.allianceNegative) {
+      clinicalFlags.push({
+        rule: 'alliance_negative_spike',
+        dimension: dim,
+        value,
+        threshold: CLINICAL_SANITY_THRESHOLDS.allianceNegative,
+        severity: 'warn',
+      });
+    }
+  }
+
+  // 规则 3: 阻抗三维**同时**正向跳变 (阻抗集体上升).
+  //   ⚠️ 三维**都**超阈值才算命中 (少一维就不算"集体") —— 缺的维度按"没超"处理.
+  const resistanceHits: { dim: DeliberationDim; value: number }[] = [];
+  for (const dim of CLINICAL_RESISTANCE_DIMS) {
+    const value = values.get(dim);
+    if (value !== undefined) resistanceHits.push({ dim, value });
+  }
+  if (
+    resistanceHits.length === CLINICAL_RESISTANCE_DIMS.length &&
+    resistanceHits.every((item) => item.value > CLINICAL_SANITY_THRESHOLDS.resistanceTriple)
+  ) {
+    for (const { dim, value } of resistanceHits) {
+      clinicalFlags.push({
+        rule: 'resistance_triple_jump',
+        dimension: dim,
+        value,
+        threshold: CLINICAL_SANITY_THRESHOLDS.resistanceTriple,
+        severity: 'info',
+      });
+    }
+  }
+
+  return { checkedDeltas: deltas, clinicalFlags };
 }
 
 /**
@@ -1245,6 +1446,18 @@ export class LlmDeliberationService {
   }
 
   /**
+   * 临床合理性观测开关 (`ENGINE_CLINICAL_SANITY_ENABLED`).
+   *
+   * 缺省 = **关** (影子期默认不跑; 要跑观测数据时运维显式打开).
+   *
+   * ⚠️ 解析口径复用 `parseBooleanEnv()` —— 与影子模式总开关**同一套字面量**,
+   *   不另写一份 (仓库纪律: 判定只有一份).
+   */
+  private isClinicalSanityEnabled(): boolean {
+    return parseBooleanEnv(this.config.get<string>('ENGINE_CLINICAL_SANITY_ENABLED'));
+  }
+
+  /**
    * 审议专用模型 (`ENGINE_DELIBERATION_MODEL`).
    *
    * 缺省 = 空 = **沿用 counselor 域的默认模型** (client 内部按
@@ -1296,6 +1509,10 @@ export class LlmDeliberationService {
     //   ⚠️ 放在这里 (而不是调用点) = "进 trace 的东西必然过了约束校验层",
     //   杜绝"换个调用点忘了砍"这类静默失效 (影子期看不出差别, 切灰度就是状态错乱).
     const { cappedDeltas, capEntries } = applyDeliberationDeltaCap(output.deltas, this.capConfig);
+    // 临床合理性校验 (观测版): **只标记, 不砍不丢**.
+    //   ⚠️ 放在 cap **之后** = 审计的是"进 trace 的那个数" (砍后的值),
+    //   与 deliberationDelta / deltaDiff 同口径.
+    const { clinicalFlags } = applyClinicalSanityCheck(cappedDeltas, this.isClinicalSanityEnabled());
     const deliberationDelta: Partial<Record<DeliberationDim, number>> = {};
     const entries: DeliberationTraceEntry[] = [];
     const tags: DeliberationOperatorTag[] = [];
@@ -1329,6 +1546,7 @@ export class LlmDeliberationService {
       deliberationDelta,
       deltaDiff: computeDeliberationDeltaDiff(input.ruleDelta, deliberationDelta),
       capEntries,
+      clinicalFlags,
       operatorTags: tags,
       reason: entries.length > 0 ? truncate(entries.map((entry) => entry.reason).join('；')) : null,
       confidence: output.confidence,
@@ -1378,6 +1596,8 @@ export class LlmDeliberationService {
       entries: [],
       rejectedEntries: [],
       capEntries: [],
+      // 失败轮次没有建议可判 —— 空数组, 让 trace 的形状在成功 / 失败两种情况下**一致**.
+      clinicalFlags: [],
       // WP68: 失败轮次**不跑**锁定判定 (压根没有建议可判) —— 三个字段占位,
       //   让 trace 的形状在成功 / 失败两种情况下**一致** (消费方不用判分支).
       ruleStrategy: input.ruleStrategy,

@@ -340,6 +340,11 @@ export declare global {
       //   (src/engine-adapters/deliberation/llm-deliberation.service.ts).
       //   ⚠️ 数值键读到的**一定是字符串**, 必须自己解析 + 回退默认.
       ENGINE_DELIBERATION_INTENTION_LOCK_ROUNDS?: string; // 锁定几轮 (默认 3; 0 = 关掉锁定; 非法值回退默认)
+      // V2026-11-07 治本 (临床合理性校验 · 观测版):
+      //   审议输出的临床合理性**观测**开关. 同样**逐个字面量**读
+      //   (src/engine-adapters/deliberation/llm-deliberation.service.ts).
+      //   ⚠️ 缺省 = **关** (影子期默认不跑); 打开后只**标记**可疑轮次, 不拦截不砍幅.
+      ENGINE_CLINICAL_SANITY_ENABLED?: string; // 临床合理性观测开关 (缺省 = 关 false; true/1/yes/on 开)
       // V2026-11-05 治本 (WP58 — 引擎调试面板):
       //   下面是调试面板写接口的 2 个 env 键. 同样**逐个字面量**读
       //   (src/admin-debug/debug-session.service.ts).

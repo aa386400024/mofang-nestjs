@@ -253,6 +253,8 @@ function makeDeliberationRecord(sessionId: string, turnIndex: number): Deliberat
     currentRevision: 7,
     // 约束校验层: 逐维 delta cap 砍幅明细 (没被砍 = 空).
     capEntries: [],
+    // V2026-11-07: 临床合理性标记 (观测版) —— 必填字段, 这里没有可疑轮次.
+    clinicalFlags: [],
     timestamp: '2026-11-05T10:00:00.000Z',
     ok: true,
     errorCode: null,
