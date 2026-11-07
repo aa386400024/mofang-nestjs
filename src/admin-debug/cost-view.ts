@@ -40,6 +40,7 @@ import {
   type SessionCostPricing,
   type SessionUsageTotals,
 } from '../engine-adapters/observability/session-cost.js';
+import { shanghaiDateKey, shanghaiDayStartUtc } from '../shared/time/shanghai-date.js';
 
 /**
  * 一场会话的用量与成本聚合结果.
@@ -95,47 +96,13 @@ export interface CostTrendSession {
   readonly traces: readonly TurnTrace[];
 }
 
-/** Asia/Shanghai 的 UTC 偏移 (毫秒); 该时区无 DST, 固定偏移成立. */
-const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000;
-
-/** 一天的毫秒数. */
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 /**
- * 日期格式化器 (Asia/Shanghai → `YYYY-MM-DD`).
- *
- * 为什么用 `en-CA`: 这个 locale 的短日期格式**就是** `YYYY-MM-DD` (ISO 序),
- * 不用自己拼 `getFullYear()` + 补零 —— 那样在别的 locale 下就散了.
- * 用 `Intl` 而不是引 luxon: 仓库既有做法 (`home-micro-intervention-stats.service.ts`).
+ * ⚠️ **按天分桶的日期口径已搬到 `shared/time/shanghai-date.ts`** (V2026-11-08).
+ *   审议统计的**写侧**在 engine-adapters (比本层更靠下), 要用**同一套**上海日界;
+ *   让适配层反向 import admin-debug 会成环, 两边各写一份 = 两张会漂的日历.
+ *   本模块仍按原样导出这两个函数 —— 调用方 (dashboard / 成本看板 / 仪表盘) 不用改 import.
  */
-const SHANGHAI_DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Asia/Shanghai',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-});
-
-/**
- * 取某时刻在 Asia/Shanghai 的日期键 (`YYYY-MM-DD`).
- *
- * @param date 时刻
- * @returns 日期键
- */
-export function shanghaiDateKey(date: Date): string {
-  return SHANGHAI_DATE_FORMATTER.format(date);
-}
-
-/**
- * 取 Asia/Shanghai 某天的 00:00 对应的 **UTC 时刻**.
- *
- * @param now 参考时刻 (取它的上海日期)
- * @param daysBack 往前推几天 (0 = 今天)
- * @returns UTC 时刻
- */
-export function shanghaiDayStartUtc(now: Date, daysBack: number): Date {
-  const [year, month, day] = shanghaiDateKey(now).split('-').map(Number);
-  return new Date(Date.UTC(year, month - 1, day) - SHANGHAI_OFFSET_MS - daysBack * DAY_MS);
-}
+export { shanghaiDateKey, shanghaiDayStartUtc } from '../shared/time/shanghai-date.js';
 
 /**
  * 聚合一**场**会话的用量与成本.

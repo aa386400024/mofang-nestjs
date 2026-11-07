@@ -46,10 +46,10 @@ docs/
 │
 ├── worklog/            ← 工作记录（动态）
 │   ├── README.md       后端 AI 入口
-│   ├── pending/        待开工任务单（当前为空）
+│   ├── pending/        待开工任务单（当前只有 Phase2 总览与 WP 清单，**无待办任务单**）
 │   ├── completed/       已交付（按阶段分）
 │   │   ├── phase1/    Phase1 全部交付（26 WP + 2 轮审查）
-│   │   └── phase2/    空，等 Phase2 开工
+│   │   └── phase2/    Phase2 交付中（42 条 WP + 切灰度前置观测面独立单）
 │   └── audits/         审查报告（WP25 等）
 │
 └── archive/            ← 历史留档（基本不翻）

@@ -44,7 +44,6 @@ import { IsNull, MoreThanOrEqual, type Repository } from 'typeorm';
 import type { AdminDebugRequest } from './admin-basic-auth.middleware.js';
 import { buildOwnerFilter } from './admin-scope.js';
 import { resolveCostPricingFromEnv } from './cost-pricing.js';
-import { shanghaiDayStartUtc } from './cost-view.js';
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
 import {
   buildDashboardAggregate,
@@ -64,6 +63,7 @@ import { TrainingSession } from '../counselor/entities/training-session.entity.j
 import type { SessionCostPricing } from '../engine-adapters/observability/session-cost.js';
 import { VISITOR_LONG_MEMORY_COLLECTION } from '../engine-adapters/persistence/qdrant-memory.store.js';
 import { PsyGuardHealthChecker } from '../engine-adapters/wiring/risk/psyguard-health.checker.js';
+import { shanghaiDayStartUtc } from '../shared/time/shanghai-date.js';
 
 @Controller('admin/api')
 // 角色校验 (WP26 同款): 非 admin 角色 → 403 (BizCode.Forbidden).

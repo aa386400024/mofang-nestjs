@@ -56,6 +56,13 @@
 //     ⚠️ 只出**聚合数字** —— 不含任何心理内容 (隐私红线 AGENTS.md §5.4).
 //     ⚠️ Redis 读失败**不兜底成 0** —— 直接抛错. 兜底成 0 会让看板显示
 //     "零失败零耗时", 那是**误导**; 看板宁可报错, 也不能装作一切正常.
+//
+//   V2026-11-08 治本 (影子模式统计面板 · 时间窗口扩展):
+//     GET /admin/api/deliberation/stats[?days=7 | ?from=YYYY-MM-DD&to=YYYY-MM-DD]
+//     切灰度前要看**最近 N 天**的趋势, 累计值看不出趋势.
+//     · 不传窗口参数 → **全局累计值** (与改造前行为完全一致, 现有前端不受影响);
+//     · 带窗口参数 → 读 N 个日 key 聚合成窗口值 (pipeline 批量读, 一次往返).
+//     日 key: `deliberation_stats:global:YYYY-MM-DD` (Asia/Shanghai, TTL 90 天).
 
 import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -73,9 +80,17 @@ import { BizCode } from '../common/exceptions/biz-code.enum.js';
 import { BizException } from '../common/exceptions/biz.exception.js';
 import { TrainingSession } from '../counselor/entities/training-session.entity.js';
 import {
+  aggregateDeliberationStatsHashes,
+  buildDeliberationStatsDateKeys,
+  buildDeliberationStatsDateKeysBetween,
+  buildDeliberationStatsDayKeys,
   buildDeliberationStatsKey,
   buildDeliberationStatsResponse,
+  parseDeliberationStatsWindow,
   type DeliberationStatsResponse,
+  type DeliberationStatsWindow,
+  type DeliberationStatsWindowQuery,
+  type DeliberationStatsWindowRequest,
 } from '../engine-adapters/deliberation/deliberation-stats.js';
 import type { SessionCostPricing } from '../engine-adapters/observability/session-cost.js';
 import { CharacterProfileEntity } from '../engine-adapters/wiring/character/character-profile.entity.js';
@@ -496,12 +511,83 @@ export class AdminDebugController {
    *   理由: 兜底成 0 会让看板显示"零失败零耗时", 那是**误导**;
    *   看板宁可报错, 也不能装出一份看起来正常、其实是空的数据.
    *
+   * ⚠️ **时间窗口** (V2026-11-08): 切灰度前要看的是**最近 N 天**的趋势, 不是累计值.
+   *   · `?days=7`     → 最近 7 天 (含今天) 的聚合;
+   *   · `?from=&to=`  → 自定义日期区间 (闭区间, Asia/Shanghai);
+   *   · **不传**        → **全局累计值** (兼容现有前端, 行为不变).
+   *   窗口值与累计值语义完全不同, 所以响应里带 `window` 说明这批数是哪段时间的
+   *   (含 `daysCovered` —— 日 key 从 2026-11-08 才有, 头几天的窗口天然不满窗).
+   *
+   * @param days 窗口天数 (含今天; 上限 90 天 = 日 key 保留期)
+   * @param from 自定义区间起始日 (`YYYY-MM-DD`, 含)
+   * @param to 自定义区间结束日 (`YYYY-MM-DD`, 含)
    * @returns 统计指标 (字段口径见 `DeliberationStatsResponse`)
    */
   @Get('deliberation/stats')
-  async deliberationStats(): Promise<DeliberationStatsResponse> {
-    const hash = await this.redis.hgetall(buildDeliberationStatsKey());
-    return buildDeliberationStatsResponse(hash);
+  async deliberationStats(
+    @Query('days') days?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ): Promise<DeliberationStatsResponse> {
+    const request = this.parseStatsWindow({ days, from, to });
+
+    // 不带窗口参数 → 全局累计 (O(1) 读一个 key, 与改造前完全一致).
+    if (request.kind === 'all') {
+      const hash = await this.redis.hgetall(buildDeliberationStatsKey());
+      return buildDeliberationStatsResponse(hash);
+    }
+
+    const now = new Date();
+    const dateKeys =
+      request.kind === 'days'
+        ? buildDeliberationStatsDateKeys(request.days, now)
+        : buildDeliberationStatsDateKeysBetween(request.from, request.to);
+    const dayKeys = buildDeliberationStatsDayKeys(dateKeys);
+
+    // ⚠️ **pipeline 批量读** —— 30 个日 key 就是 30 次往返, 批量读只 1 次.
+    const hashes = await this.readDeliberationStatsHashes(dayKeys);
+    const merged = aggregateDeliberationStatsHashes(hashes);
+    const window: DeliberationStatsWindow = {
+      mode: request.kind === 'days' ? 'days' : 'range',
+      days: request.kind === 'days' ? request.days : null,
+      from: dateKeys.at(0) ?? null,
+      to: dateKeys.at(-1) ?? null,
+      // 窗口内**有日 key 的天数** —— 日 key 从 2026-11-08 才有, 头几天不满窗.
+      daysCovered: hashes.filter((hash) => Object.keys(hash).length > 0).length,
+    };
+    return buildDeliberationStatsResponse(merged, window);
+  }
+
+  /**
+   * 解析统计窗口参数 (非法参数 → 400).
+   *
+   * ⚠️ **非法参数不静默兜底**: `days=abc` 静默退回"全局累计"的话, 看板会把
+   *   累计值当"最近 7 天"显示 —— 那比报错危险得多 (看板宁可报错, 也不能装作正常).
+   */
+  private parseStatsWindow(query: DeliberationStatsWindowQuery): DeliberationStatsWindowRequest {
+    try {
+      return parseDeliberationStatsWindow(query);
+    } catch (error) {
+      throw new BizException(BizCode.InvalidParameter, error instanceof Error ? error.message : '统计窗口参数不合法');
+    }
+  }
+
+  /**
+   * 批量读多个日 key (**一次 pipeline 往返**).
+   *
+   * ⚠️ **读失败直接抛** —— 跟全局累计那条路径同款纪律: 不兜底成 0.
+   */
+  private async readDeliberationStatsHashes(dayKeys: readonly string[]): Promise<Record<string, string>[]> {
+    if (dayKeys.length === 0) return [];
+    const pipeline = this.redis.getClient().pipeline();
+    for (const key of dayKeys) pipeline.hgetall(key);
+    const results = await pipeline.exec();
+    // ⚠️ ioredis 的 exec() 在 pipeline 被中断时返回 **null** —— 那不是"没有数据", 是"没读成".
+    if (!results) throw new Error('统计日 key 批量读取失败 (pipeline 返回空)');
+    return results.map(([error, value]) => {
+      if (error) throw error;
+      return (value ?? {}) as Record<string, string>;
+    });
   }
 
   /**

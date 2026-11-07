@@ -25,9 +25,10 @@
 //   验证: npx vitest run test/admin-debug/admin-insights.spec.ts
 //   时间戳: 2026-11-05 GMT+8
 
-import { aggregateSessionCost, shanghaiDateKey, shanghaiDayStartUtc } from './cost-view.js';
+import { aggregateSessionCost } from './cost-view.js';
 import type { TurnTrace } from './trace-recorder.service.js';
 import { roundCost, type SessionCostPricing } from '../engine-adapters/observability/session-cost.js';
+import { shanghaiDateKey, shanghaiDayStartUtc } from '../shared/time/shanghai-date.js';
 
 /**
  * 仪表盘一次最多扫多少场会话.

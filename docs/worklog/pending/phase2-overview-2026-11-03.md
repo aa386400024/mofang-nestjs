@@ -79,6 +79,22 @@
 | P1-11 | **BDI 信念层深度扩展** | 蓝图 BDI 完整模型 | 核心信念激活规则、短期信念置信度衰减、信念干预算子（不追求完整 BDI 推理循环，那是 Phase3+） | P1-1 |
 | P1-12 | **引擎调试面板 / BDI 状态 trace** 🚧 后端已交付 | 内测调参刚需 | 每轮 BDI delta trace、事件触发链、prompt 快照、delta cap 砍幅，Admin Dashboard 会话调试视图。⚠️ **WP58（2026-11-05）只交付后端三接口**（`/admin/api/debug/session` 三个端点，调试会话**落 JSON 文件**（`data/debug-sessions/`，每轮追加写，**仍不写** `training_sessions` / `turn_debug_trace`），每轮返回 BDI 快照 / delta / 意图 / 渲染规格 / **prompt 全文** / 审议 trace）；**"事件触发链 / cap 砍幅"仍未做**（内核不对外逐轮明细，另开单） | P0-7 |
 
+#### 📈 切灰度决策观测面（2026-11-06 → 2026-11-08 · 独立单，**非编号 WP**，不计入 42 条进度）
+
+> 这一组是**切灰度前置**的观测面与安全网（蓝图 §2.3），全部**独立单**交付，**engine-core 零改动**。母版正文原本没记这一组 → 2026-11-08 补记（此前只写在 `docs/worklog/README.md`）。
+
+| 单 | 交付内容 | 状态 |
+|---|---|---|
+| 约束校验层 · delta cap | 审议输出**格式校验通过后**再过一道逐维 delta cap（复用内核 `capTurnDelta`，与规则算子同一口径）；砍幅明细进 trace | ✅ 2026-11-06（[交付记录](../completed/phase2/engine-deliberation-delta-cap-validation-implementation-2026-11-06.md)） |
+| 过期判定与丢弃 | 审议跑完 load 当前快照 revision 对比 `baseRevision`（锚 R1 = 本轮落库后）；不一致 = 过期；**保守兜底**（load 失败 → `stale:false`） | ✅ 2026-11-07（[交付记录](../completed/phase2/engine-deliberation-stale-check-implementation-2026-11-07.md)） |
+| cap 配置统一 | 审议侧逐维 cap 改用与规则算子**同一份** `resolveDeltaCapConfig(config)`（env `ENGINE_CAP_*`），两侧启动期求值 → 口径真正恒等 | ✅ 2026-11-07（[交付记录](../completed/phase2/engine-deliberation-cap-config-unification-implementation-2026-11-07.md)） |
+| 临床合理性校验（**观测版**） | 同盟三维正向/负向跳变 + 阻抗三维集体上升 → **只标记**进 trace（`clinicalFlags`），不拦截不砍幅；阈值是**工程种子值、非临床标定** | ✅ 2026-11-07（[交付记录](../completed/phase2/engine-deliberation-clinical-sanity-implementation-2026-11-07.md)） |
+| degraded 会话打标 | 会话结束时一次性判定：失败率 > 30% 或连续失败 ≥ 3 轮 → `training_sessions.degraded = 1`；考核/统计三处过滤 | ✅ 2026-11-07（[交付记录](../completed/phase2/engine-session-degraded-flag-implementation-2026-11-07.md)） |
+| 影子模式数据统计面板（后端接口） | Redis hash 计数器（每轮审议**同步累加**）→ `GET /admin/api/deliberation/stats` 18 字段（成功率 / 失败原因 / P95 / 过期率 / 砍幅 / 临床 flagged…）；**不扫全量 trace** | ✅ 2026-11-07（[交付记录](../completed/phase2/engine-deliberation-stats-panel-implementation-2026-11-07.md)） |
+| **影子模式统计面板 · 时间窗口扩展** | **按天分 key**（写侧一次 Lua 同时写全局 key + 当日日 key，TTL 90 天）；读侧加 `?days=N` / `?from=&to=`（pipeline 一次往返聚合）；**不传参数 = 全局累计值**（兼容现有前端）；响应带 `window` 口径对象（含 `daysCovered` —— 日 key 从 2026-11-08 才有，头几天窗口天然不满窗）；**真 Redis 已验**（dev 7.0.15 / db 15 / 4 例全过） | ✅ 2026-11-08（[交付记录](../completed/phase2/engine-deliberation-stats-time-window-implementation-2026-11-08.md)） |
+
+> ⚠️ 这一组**全部只做观测**：审议结果照旧**不写** BDI 快照，影子模式不变。切灰度决策看的是这一组的数据。
+
 #### 🟢 P2 技术债清理（11 条，主要项如下）
 
 > 完整 WP 清单见 [`phase2-wp-list-2026-11-03.md`](phase2-wp-list-2026-11-03.md)。
