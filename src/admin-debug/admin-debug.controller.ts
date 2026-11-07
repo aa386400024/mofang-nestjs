@@ -47,6 +47,15 @@
 //     class 级挂一次, 新增端点自动继承 (与仓库既有 admin controller 同款做法).
 //     为什么不再挂 JwtAuthGuard: 身份已由中间件解析 (basic 或 JWT 都可能),
 //     再挂一次会把 basic 运维入口打成 401.
+//
+//   V2026-11-07 治本 (影子模式数据统计面板 · 后端接口):
+//     GET /admin/api/deliberation/stats — 审议统计 (切灰度决策要看的那些数)
+//     数据源是**一个 Redis hash 计数器** (`deliberation_stats:global`) —— 每轮审议
+//     写 trace 时**同步累加**, 所以这里是 **O(1) 读**; **不扫全量 trace**
+//     (扫 = N 次 Redis 读 + 一份聚合逻辑, KEYS 在生产还是阻塞命令).
+//     ⚠️ 只出**聚合数字** —— 不含任何心理内容 (隐私红线 AGENTS.md §5.4).
+//     ⚠️ Redis 读失败**不兜底成 0** —— 直接抛错. 兜底成 0 会让看板显示
+//     "零失败零耗时", 那是**误导**; 看板宁可报错, 也不能装作一切正常.
 
 import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -63,8 +72,14 @@ import { buildAdminTrajectoryState } from './trajectory-view.js';
 import { BizCode } from '../common/exceptions/biz-code.enum.js';
 import { BizException } from '../common/exceptions/biz.exception.js';
 import { TrainingSession } from '../counselor/entities/training-session.entity.js';
+import {
+  buildDeliberationStatsKey,
+  buildDeliberationStatsResponse,
+  type DeliberationStatsResponse,
+} from '../engine-adapters/deliberation/deliberation-stats.js';
 import type { SessionCostPricing } from '../engine-adapters/observability/session-cost.js';
 import { CharacterProfileEntity } from '../engine-adapters/wiring/character/character-profile.entity.js';
+import { RedisService } from '../shared/infra/redis/redis.service.js';
 
 /**
  * 角色会话的**扫描窗口** (内存过滤的上限).
@@ -128,6 +143,7 @@ export class AdminDebugController {
     @InjectRepository(CharacterProfileEntity)
     private readonly characterRepo: Repository<CharacterProfileEntity>,
     private readonly config: ConfigService,
+    private readonly redis: RedisService,
   ) {}
 
   /** 最近会话列表. */
@@ -465,6 +481,27 @@ export class AdminDebugController {
         costBasis: aggregate.costBasis,
       };
     });
+  }
+
+  /**
+   * 审议统计 (影子模式指标看板的数据源).
+   *
+   * ⚠️ **O(1) 读** —— 数据来自**一个** Redis hash 计数器, 每轮审议写 trace 时同步累加
+   *   (写入侧在 `LlmDeliberationService.writeTrace` 内); **不扫全量 trace**.
+   *
+   * ⚠️ **只出聚合数字** —— 计数器里只有计数 / 耗时 / token 数 / 维度名 / 规则名,
+   *   没有一句原话 (隐私红线 AGENTS.md §5.4).
+   *
+   * ⚠️ **Redis 读失败不兜底成 0** —— 直接抛错 (全局过滤器 → 500).
+   *   理由: 兜底成 0 会让看板显示"零失败零耗时", 那是**误导**;
+   *   看板宁可报错, 也不能装出一份看起来正常、其实是空的数据.
+   *
+   * @returns 统计指标 (字段口径见 `DeliberationStatsResponse`)
+   */
+  @Get('deliberation/stats')
+  async deliberationStats(): Promise<DeliberationStatsResponse> {
+    const hash = await this.redis.hgetall(buildDeliberationStatsKey());
+    return buildDeliberationStatsResponse(hash);
   }
 
   /**

@@ -317,12 +317,14 @@ describe('WP26 §1 P2-4 · admin-debug 命名空间加角色校验', () => {
       // V2026-11-05 (WP30): 新增 4 个只读端点 —— class 级 guard 自动继承,
       // 这里把端点清单一起列出来, 免得将来加端点时"忘了挂 guard"却没人发现.
       // V2026-11-05 (WP31): 再加 2 个成本看板端点.
+      // V2026-11-07 (影子模式数据统计面板): 再加 1 个审议统计端点.
       expect(routes.map((route) => route.path).sort()).toEqual([
         'characters',
         'characters/:slug',
         'characters/:slug/sessions',
         'cost/sessions',
         'cost/trend',
+        'deliberation/stats',
         'health',
         'sessions',
         'sessions/:id',

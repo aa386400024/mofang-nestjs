@@ -105,6 +105,9 @@ class FakeRedis {
 
   readonly del = vi.fn(async (key: string): Promise<number> => (this.store.delete(key) ? 1 : 0));
 
+  /** V2026-11-07: service 写 trace 时同步累加统计计数器 (走 getClient().eval). */
+  readonly getClient = () => ({ eval: vi.fn(async (): Promise<number> => 1) });
+
   /** 塞一份锁定状态. */
   seed(state: IntentionLockState, key = buildDeliberationIntentionLockKey(TENANT, SESSION)): void {
     this.store.set(key, JSON.stringify(state));

@@ -124,7 +124,12 @@ function buildService(
   const fullEnv: Record<string, string> = { ENGINE_DELIBERATION_ENABLED: 'true', ...env };
   const config = configStub(fullEnv);
   // ⚠️ WP68 起 service 还要**读**意图锁定状态 (Redis get) → 替身补上.
-  const redis = { set, get: vi.fn(async (): Promise<string | null> => null) } as unknown as RedisService;
+  // ⚠️ V2026-11-07 起 service 写 trace 时**同步累加统计计数器** (getClient().eval) → 替身补上.
+  const redis = {
+    set,
+    get: vi.fn(async (): Promise<string | null> => null),
+    getClient: () => ({ eval: vi.fn(async (): Promise<number> => 1) }),
+  } as unknown as RedisService;
   const requestJson = vi.fn(async () => {
     const data = validateDeliberationOutput(raw);
     if (data === null) {

@@ -41,6 +41,21 @@ function stubConfig(env: Record<string, string>): { get<T>(key: string): T | und
 }
 
 /**
+ * 假 Redis (只有统计端点用得到; 既有端点不碰 Redis).
+ *
+ * ⚠️ 为什么给**必填**的第 4 个构造参数而不是"可选依赖 + 运行时兜底":
+ *   可选依赖在 DI 里会**静默注入 undefined** —— 端点一调就炸, 而且报错现场
+ *   离根因很远 (上一单 B1 认定的最危险模式). 必填 = 编译器逼着每个构造点补上.
+ */
+function stubRedis(hash: Record<string, string> = {}): { hgetall(): Promise<Record<string, string>> } {
+  return {
+    async hgetall(): Promise<Record<string, string>> {
+      return { ...hash };
+    },
+  };
+}
+
+/**
  * 假会话仓储 (记录 update 调用; update 可配置为抛错).
  */
 class FakeSessionRepo {
@@ -562,6 +577,6 @@ function buildController(): {
 } {
   const sessionRepo = new FakeSessionReadRepo();
   const characterRepo = new FakeCharacterRepo();
-  const controller = new AdminDebugController(sessionRepo as never, characterRepo as never, stubConfig({}) as never);
+  const controller = new AdminDebugController(sessionRepo as never, characterRepo as never, stubConfig({}) as never, stubRedis() as never);
   return { controller, sessionRepo, characterRepo };
 }

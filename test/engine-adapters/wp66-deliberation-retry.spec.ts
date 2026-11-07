@@ -170,7 +170,12 @@ function buildService(options: { env?: Record<string, string>; requestJson?: Ret
   const set = options.set ?? vi.fn();
   const config = { get: (key: string): string | undefined => env[key] } as unknown as ConfigService;
   // ⚠️ WP68 起 service 还要**读**意图锁定状态 (Redis get) → 替身补上.
-  const redis = { set, get: vi.fn(async (): Promise<string | null> => null) } as unknown as RedisService;
+  // ⚠️ V2026-11-07 起 service 写 trace 时**同步累加统计计数器** (getClient().eval) → 替身补上.
+  const redis = {
+    set,
+    get: vi.fn(async (): Promise<string | null> => null),
+    getClient: () => ({ eval: vi.fn(async (): Promise<number> => 1) }),
+  } as unknown as RedisService;
   const llm = { requestJson } as unknown as CounselorLlmJsonClient;
   // ⚠️ V2026-11-07 起 service 还要**读** BDI 状态仓储 (过期判定) → 替身补上.
   //   读不到 = 保守兜底 (判没过期) —— 与"会话还没落库"同款分支.

@@ -268,7 +268,12 @@ function buildRealService(options: { requestJson?: ReturnType<typeof vi.fn>; set
   const env: Record<string, string> = { ENGINE_DELIBERATION_ENABLED: 'true' };
   const config = { get: (key: string): string | undefined => env[key] } as unknown as ConfigService;
   // ⚠️ WP68 起 service 还要**读**意图锁定状态 (Redis get) → 替身补上.
-  const redis = { set, get: vi.fn(async (): Promise<string | null> => null) } as unknown as RedisService;
+  // ⚠️ V2026-11-07 起 service 写 trace 时**同步累加统计计数器** (getClient().eval) → 替身补上.
+  const redis = {
+    set,
+    get: vi.fn(async (): Promise<string | null> => null),
+    getClient: () => ({ eval: vi.fn(async (): Promise<number> => 1) }),
+  } as unknown as RedisService;
   const llm = { requestJson } as unknown as CounselorLlmJsonClient;
   // ⚠️ V2026-11-07 起 service 还要**读** BDI 状态仓储 (过期判定) → 替身补上.
   //   这里用**真的**内存仓储 (本文件已经 import 了) —— 空仓储 = 读不到 = 保守兜底.

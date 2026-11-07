@@ -182,6 +182,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { buildDeliberationSchemaDescription, buildDeliberationSystemPrompt, buildDeliberationUserPrompt } from './deliberation-prompt.js';
+import { applyDeliberationStats } from './deliberation-stats.js';
 import {
   DELIBERATION_DIMS,
   DELIBERATION_LLM_ONLY_TAGS,
@@ -1713,9 +1714,12 @@ export class LlmDeliberationService {
   }
 
   /**
-   * 写 trace 表 (Redis).
+   * 写 trace 表 (Redis) + 同步累加统计计数器 (Redis hash).
    *
    * 写失败**只打日志**, 不抛 —— 观察面写不进去不是会话失败 (与仓库既有降级口径一致).
+   *
+   * ⚠️ **这里是统计计数器的唯一写入点** —— 所有轮次 (成功 / 失败 / 熔断跳过)
+   *   都走 writeTrace, 所以这里就是"每轮审议同步累加"的那一处 (任务单 §4.2).
    */
   private async writeTrace(record: DeliberationTraceRecord): Promise<void> {
     try {
@@ -1723,6 +1727,18 @@ export class LlmDeliberationService {
       await this.redis.set(key, JSON.stringify(record), DEFAULT_DELIBERATION_TRACE_TTL_SECONDS);
     } catch (error) {
       this.logger.warn(`[deliberation_shadow] trace 写入失败 (session=${record.sessionId} turn=${record.turnIndex}): ${messageOf(error)}`);
+    }
+
+    // ⚠️ **统计计数器独立 try/catch** —— 不能与 trace 写入共用一个 try:
+    //   共用的话, 统计写失败会被 catch 成"trace 写失败" (误导排查);
+    //   更糟的情况是统计异常把 trace 也带崩 (trace 是主产物, 统计只是辅助).
+    //   影子模式的纪律: 观察面挂了就挂了, **不能炸主流程** (与 trace 写入同款口径).
+    try {
+      await applyDeliberationStats(this.redis, record);
+    } catch (error) {
+      this.logger.warn(
+        `[deliberation_shadow] 统计计数写入失败 (session=${record.sessionId} turn=${record.turnIndex}): ${messageOf(error)}`,
+      );
     }
   }
 }
