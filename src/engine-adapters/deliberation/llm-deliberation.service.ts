@@ -125,6 +125,31 @@
 //     2. test/engine-adapters/wp-deliberation-stale-check.spec.ts 覆盖判定口径 /
 //        保守兜底 / trace 形状 / 跨轮次过期
 //     3. `git diff --stat HEAD -- src/engine-core` 为空 (本单不动内核)
+//
+//   V2026-11-07 治本 (cap 配置统一 · 审议侧与规则算子同口径 · 切灰度前置):
+//     审议侧的逐维 delta cap 从**硬编码**内核种子值, 改成与规则算子**同一份**
+//     `resolveDeltaCapConfig(config)` 的结果.
+//
+//     为什么现在做 (切灰度前置):
+//         规则算子的 cap 边界可以从 env (`ENGINE_CAP_*`) 覆写, 审议侧却一直用种子值 ——
+//         两边口径不一致. 影子期无害 (砍幅只进 trace, 不写状态), 但切灰度后审议结果与
+//         规则结果会用**不同的 cap 标准**, deltaDiff 的口径就歪了.
+//
+//     ⚠️ **config 参数是可选的** (缺省 = 内核种子值):
+//         现有单测大量直接调 `applyDeliberationDeltaCap(deltas)` —— 保持可选, 它们零改动,
+//         行为逐字不变. 且内核 `resolveBounds` 对缺项 / 非法值**逐项**回退种子值,
+//         所以传一份 config 进去是安全的 (配错一个维度不会连累别的维度).
+//
+//     ⚠️ **两侧都在启动期求值** (不做热更新, 任务单 §八 5):
+//         规则侧在 `ENGINE_SESSION_PORT` 的 useFactory 里求值一次, 审议侧在本构造函数里
+//         求值一次 (本服务是单例) —— 运维中途改 env, **两侧都不变**, 口径始终一致.
+//         真要热更新是切灰度时的事, 那时再单独做.
+//
+//   如何验证:
+//     1. npx tsc -p tsconfig.build.json --noEmit 0 错
+//     2. test/engine-adapters/wp-deliberation-cap-config.spec.ts 覆盖"传 config 按 config 砍" /
+//        "不传 config 与种子值逐字一致" / "env 覆写后审议侧跟着变"
+//     3. `git diff --stat HEAD -- src/engine-core` 为空 (本单不动内核)
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -150,9 +175,11 @@ import {
   type BehaviorStrategy,
   type BdiSnapshot,
   type BdiStateRepository,
+  type DeltaCapConfig,
   type DeltaVector,
 } from '../../engine-core/index.js';
 import { RedisService } from '../../shared/infra/redis/redis.service.js';
+import { resolveDeltaCapConfig } from '../wiring/delta-cap.config.js';
 import { ENGINE_BDI_STATE_REPOSITORY } from '../wiring/engine.tokens.js';
 
 /** Redis key 的逻辑前缀 (ioredis 还会自动拼 `REDIS_KEY_PREFIX`, 多环境隔离靠它). */
@@ -848,7 +875,8 @@ export interface DeliberationCapEntry {
  * 为什么在格式校验**之后**再加一道 (两道各司其职, 不互相替代):
  *   · 格式校验 (WP66) = **防离谱**: 维度白名单 / 有限数字 / 统一 0.2 粗口径 / 标签合法 / 理由非空.
  *     它是**底线** —— 超了就是模型胡说, 该丢.
- *   · 逐维 cap (本函数) = **按标准砍**: 与规则算子同一份边界 (内核 `DEFAULT_DELTA_CAP_CONFIG`),
+ *   · 逐维 cap (本函数) = **按标准砍**: 与规则算子**同一份边界**
+ *     (`resolveDeltaCapConfig(config)`, 缺省 = 内核种子值 `DEFAULT_DELTA_CAP_CONFIG`),
  *     移情三维 (positive / negative / dependency) 是 ±0.15, 比格式校验的 0.2 更严.
  *     它是**标准** —— 超了不是错, 是"这一轮不该动这么多", 砍到边界并记账.
  *
@@ -856,9 +884,14 @@ export interface DeliberationCapEntry {
  *   切灰度后, 砍后的 delta 才是实际生效的那个.
  *
  * @param deltas 格式校验通过的 delta 建议列表
+ * @param config cap 边界 (可选) —— 与规则算子同一份 `resolveDeltaCapConfig(config)`;
+ *   缺省 = 内核种子值, 行为与本单之前逐字一致
  * @returns 砍后的列表 + 被砍的明细 (没被砍的维度不出现)
  */
-export function applyDeliberationDeltaCap(deltas: readonly DeliberationDeltaEntry[]): {
+export function applyDeliberationDeltaCap(
+  deltas: readonly DeliberationDeltaEntry[],
+  config?: DeltaCapConfig,
+): {
   /** 砍后的稀疏 delta 列表 (维度 + 标签 + 理由不变, 只改 delta 数值). */
   readonly cappedDeltas: readonly DeliberationDeltaEntry[];
   /** 被砍的明细 (raw !== capped 才进). */
@@ -871,7 +904,7 @@ export function applyDeliberationDeltaCap(deltas: readonly DeliberationDeltaEntr
     //   在该精度下是精确值 —— 于是 `deliberationDelta[dim] === capEntries[].capped` 恒成立,
     //   消费方不用猜"这两个数是不是同一个口径".
     const raw = round(entry.delta);
-    const capped = capEntryDelta(entry.dimension, raw);
+    const capped = capEntryDelta(entry.dimension, raw, config);
     cappedDeltas.push({ ...entry, delta: capped });
     if (raw !== capped) {
       capEntries.push({ dimension: entry.dimension, raw, capped });
@@ -899,12 +932,13 @@ export function applyDeliberationDeltaCap(deltas: readonly DeliberationDeltaEntr
  *
  * @param dim 维度名
  * @param value 该维度上的 delta (已 round)
+ * @param config cap 边界 (可选) —— 缺省 = 内核种子值
  * @returns 砍完后的 delta
  */
-function capEntryDelta(dim: DeliberationDim, value: number): number {
+function capEntryDelta(dim: DeliberationDim, value: number, config?: DeltaCapConfig): number {
   const probe: MutableDeltaVector = { ...ZERO_DELTA_VECTOR };
   probe[dim] = value;
-  return capTurnDelta(probe, DEFAULT_DELTA_CAP_CONFIG)[dim];
+  return capTurnDelta(probe, config ?? DEFAULT_DELTA_CAP_CONFIG)[dim];
 }
 
 /**
@@ -1042,6 +1076,21 @@ function round(value: number): number {
 export class LlmDeliberationService {
   private readonly logger = new Logger(LlmDeliberationService.name);
 
+  /**
+   * 审议侧的逐维 delta cap 边界 —— 与规则算子**同一份** (`resolveDeltaCapConfig(config)`).
+   *
+   * ⚠️ **为什么在构造函数体里赋值** (而不是字段初始化器):
+   *   `tsconfig` 的 `useDefineForClassFields` 是 true (target es2024 的默认) —— 字段初始化器
+   *   在**类字段定义阶段**就跑, 那时构造参数 `config` 还没赋值 (参数属性的赋值发生在
+   *   构造函数体内), 初始化器会拿到 `undefined` → `resolveDeltaCapConfig(undefined)` 直接抛.
+   *   所以字段只**声明**, 赋值放构造函数体.
+   *
+   * ⚠️ **启动期求值, 不做热更新** (任务单 §八 5):
+   *   规则侧在 `ENGINE_SESSION_PORT` 的 useFactory 里求值一次, 本服务是单例也只求值一次 ——
+   *   运维中途改 env, **两侧都不变**, 口径始终一致 (不会出现"规则侧新、审议侧旧"的分歧).
+   */
+  private readonly capConfig: DeltaCapConfig;
+
   constructor(
     private readonly llmJson: CounselorLlmJsonClient,
     private readonly config: ConfigService,
@@ -1056,7 +1105,10 @@ export class LlmDeliberationService {
      *   同理, 这个 token 绑定的必须与内核写侧**同一个单例** (否则读的不是同一份真相).
      */
     @Inject(ENGINE_BDI_STATE_REPOSITORY) private readonly bdiStates: BdiStateRepository,
-  ) {}
+  ) {
+    // 与规则算子**同一份** cap 配置 (env `ENGINE_CAP_*` → `DeltaCapConfig`) —— 两边口径逐字一致.
+    this.capConfig = resolveDeltaCapConfig(config);
+  }
 
   /**
    * 真正跑一次影子审议 (不生效, 只记录对比数据).
@@ -1243,7 +1295,7 @@ export class LlmDeliberationService {
     // 约束校验层: 逐维 delta cap —— **写进 trace 的 delta 一定是砍过的**.
     //   ⚠️ 放在这里 (而不是调用点) = "进 trace 的东西必然过了约束校验层",
     //   杜绝"换个调用点忘了砍"这类静默失效 (影子期看不出差别, 切灰度就是状态错乱).
-    const { cappedDeltas, capEntries } = applyDeliberationDeltaCap(output.deltas);
+    const { cappedDeltas, capEntries } = applyDeliberationDeltaCap(output.deltas, this.capConfig);
     const deliberationDelta: Partial<Record<DeliberationDim, number>> = {};
     const entries: DeliberationTraceEntry[] = [];
     const tags: DeliberationOperatorTag[] = [];
