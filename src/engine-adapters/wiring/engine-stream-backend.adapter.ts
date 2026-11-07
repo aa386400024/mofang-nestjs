@@ -819,6 +819,10 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       events: result.events ?? [],
       safetyLevel: result.safety?.level ?? null,
       safetyCategories: result.safety?.categories ?? [],
+      // V2026-11-07 治本 (degraded 会话打标): 本轮是否**渲染降级** ——
+      //   出的是系统兜底句, 不是来访者真话. 会话结束时的 degraded 判定靠它统计失败轮次.
+      //   ⚠️ 判定源与"降级轮次不写逐字稿"是**同一个** providerHint (同源, 不会两处漂).
+      degraded: result.render.providerHint === 'degraded',
     });
   }
 

@@ -7,6 +7,7 @@ import CharacterDetail from '@/views/CharacterDetail.vue'
 import MemoryBrowser from '@/views/MemoryBrowser.vue'
 import PsyGuardMonitor from '@/views/PsyGuardMonitor.vue'
 import CostBoard from '@/views/CostBoard.vue'
+import DeliberationStats from '@/views/DeliberationStats.vue'
 import ArchitectureDiagram from '@/views/ArchitectureDiagram.vue'
 import ParamCalibrator from '@/views/ParamCalibrator.vue'
 import DebugChat from '@/views/DebugChat.vue'
@@ -25,6 +26,7 @@ const router = createRouter({
     { path: '/memories', component: MemoryBrowser },
     { path: '/psyguard', component: PsyGuardMonitor },
     { path: '/cost', component: CostBoard },
+    { path: '/deliberation-stats', component: DeliberationStats },
     { path: '/architecture', component: ArchitectureDiagram },
     { path: '/calibrator', component: ParamCalibrator },
     { path: '/debug-chat', component: DebugChat },

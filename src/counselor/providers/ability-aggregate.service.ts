@@ -158,9 +158,21 @@ export class AbilityAggregateService {
   async loadSignals(userId: string): Promise<AbilitySignalBundle> {
     const byDimension = new Map<string, number[]>();
     const sourceIds = new Map<string, string[]>();
+    // V2026-11-07 治本 (degraded 会话打标): 会话清单**一次**装载 ——
+    //   degraded 会话要**整体排除** (它的快评与督导报告都建立在残缺的逐字稿上),
+    //   计入雷达 = 污染画像. 顺带算出 degraded 集合喂给快评装载 (少一次查询).
+    const sessions = await this.sessionRepo.find({
+      where: { userId, deletedAt: IsNull() },
+      select: { id: true, tenantId: true, degraded: true },
+    });
+    const degradedSessionIds = new Set(sessions.filter((row) => row.degraded === 1).map((row) => row.id));
     await this.loadPracticeSignals(userId, byDimension, sourceIds);
-    await this.loadEvaluationSignals(userId, byDimension, sourceIds);
-    await this.loadReportSignals(userId, byDimension, sourceIds);
+    await this.loadEvaluationSignals(userId, byDimension, sourceIds, degradedSessionIds);
+    await this.loadReportSignals(
+      sessions.filter((row) => row.degraded !== 1),
+      byDimension,
+      sourceIds,
+    );
     return { byDimension, sourceIdsByDimension: sourceIds };
   }
 
@@ -232,12 +244,19 @@ export class AbilityAggregateService {
    * @param byDimension 子指标 → 值集合
    * @param sourceIds 子指标 → 来源 id 集合
    */
-  private async loadEvaluationSignals(userId: string, byDimension: Map<string, number[]>, sourceIds: Map<string, string[]>): Promise<void> {
+  private async loadEvaluationSignals(
+    userId: string,
+    byDimension: Map<string, number[]>,
+    sourceIds: Map<string, string[]>,
+    degradedSessionIds: ReadonlySet<string>,
+  ): Promise<void> {
     const evaluations = await this.evaluationRepo.find({
       where: { userId },
       select: { sessionId: true, technicalScores: true, ethicsScores: true },
     });
     for (const evaluation of evaluations) {
+      // degraded 会话不取信号 (它的快评建立在残缺逐字稿上).
+      if (degradedSessionIds.has(evaluation.sessionId)) continue;
       for (const rule of SESSION_ABILITY_MAPPING) {
         const signal = rule.fromEvaluation({
           technical: evaluation.technicalScores,
@@ -252,15 +271,15 @@ export class AbilityAggregateService {
   /**
    * 装载督导信号 (LLM 六维评分).
    *
-   * @param userId 用户 id
+   * @param sessions 该用户的**非 degraded** 会话 (degraded 的报告建立在残缺逐字稿上, 不可信)
    * @param byDimension 子指标 → 值集合
    * @param sourceIds 子指标 → 来源 id 集合
    */
-  private async loadReportSignals(userId: string, byDimension: Map<string, number[]>, sourceIds: Map<string, string[]>): Promise<void> {
-    const sessions = await this.sessionRepo.find({
-      where: { userId, deletedAt: IsNull() },
-      select: { id: true, tenantId: true },
-    });
+  private async loadReportSignals(
+    sessions: readonly TrainingSession[],
+    byDimension: Map<string, number[]>,
+    sourceIds: Map<string, string[]>,
+  ): Promise<void> {
     if (sessions.length === 0) return;
     const idsByTenant = new Map<string, string[]>();
     for (const session of sessions) {

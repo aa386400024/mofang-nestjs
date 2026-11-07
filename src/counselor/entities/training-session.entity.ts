@@ -268,6 +268,34 @@ export class TrainingSession {
   @Column({ type: 'varchar', length: 32, name: 'character_version', nullable: true })
   characterVersion!: string | null;
 
+  // ─── V2026-11-07 治本 (degraded 会话打标) ───
+  //
+  //   为什么加这两列: 切灰度前要确保"坏会话不污染考核数据" —— 连续失败的会话
+  //   照样参与考核统计. 要过滤它们, 就得先有一个"这场是坏的"的**持久标记**,
+  //   否则每次统计都要重新回放一遍会话去数失败轮次 (拿不到失败轮次的事实, 也太贵).
+  //
+  //   口径:
+  //     · degraded —— 是否降级 (0/1). 用 tinyint 而不是 boolean (MySQL 无原生 boolean),
+  //       跟 ~informed_consent_required~ 同款; 代码里用 === 1 判断.
+  //       默认 0 = 迁移前的存量会话**全部**是"好会话" (零回归, 不回填).
+  //     · degraded_reason —— 打标原因 ('high_failure_rate' / 'consecutive_failures';
+  //       可空 = 没打标). 是**元数据**, 不含任何心理内容 (隐私红线).
+  //
+  //   ⚠️ 是**终态**: 会话结束后不再变 (任务单 §七 "不自动恢复", "不删除会话").
+  //
+  //   时间戳: 2026-11-07
+  /**
+   * 是否为 degraded 会话 (0 = 正常; 1 = 会话结束时判定为坏会话).
+   */
+  @Column({ type: 'tinyint', name: 'degraded', default: 0 })
+  degraded!: number;
+
+  /**
+   * degraded 打标原因 (可空 = 没打标).
+   */
+  @Column({ type: 'varchar', length: 50, name: 'degraded_reason', nullable: true })
+  degradedReason!: string | null;
+
   // V0.5 stage 2 Timer.periodic 1s tick 计时 (V1.x server 端)
   @Column({ type: 'datetime', name: 'started_at', nullable: true })
   startedAt!: Date | null;

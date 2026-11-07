@@ -380,6 +380,7 @@ import { SessionContextBuilder } from './providers/session-context.builder.js';
 //   TurnAnalysisService          每轮分析器 (一次 LLM → 提示 + 标记)
 //   TurnAnalysisProcessor        每轮分析 BullMQ worker
 import { SessionCoreEventsService } from './providers/session-core-events.service.js';
+import { SessionDegradedService } from './providers/session-degraded.service.js';
 import { StudentRiskAuditService } from './providers/student-risk-audit.service.js';
 import { SupervisionReportStreamService } from './providers/supervision-report-stream.service.js';
 import { SupervisionService } from './providers/supervision.service.js';
@@ -557,6 +558,9 @@ import { VptSessionBridgeService } from './providers/vpt-session-bridge.service.
     // V2026-11-06 治本 (WP43 — 评估引擎基础版): 评估落库方 + 查询方.
     //   它在 onModuleInit 里注册进 voice 层插槽 (引擎侧收尾时把本场内核出参交过来).
     SessionEvaluationService,
+    // V2026-11-07 治本 (degraded 会话打标): 会话结束时一次性判定 → 打标 degraded.
+    //   它在 onModuleInit 里注册进 voice 层插槽 (与评估落库方共用同一个注册表).
+    SessionDegradedService,
     // V2026-11-06 治本 (WP44 — 成长档案体系): 能力雷达的统一聚合 + 对练回写 + 档案读取.
     AbilityAggregateService,
     SessionAbilitySyncService,

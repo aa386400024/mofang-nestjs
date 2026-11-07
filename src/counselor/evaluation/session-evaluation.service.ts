@@ -26,7 +26,7 @@
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { type Repository } from 'typeorm';
+import { type FindOptionsWhere, type Repository } from 'typeorm';
 
 import { computeSessionEvaluation } from './evaluation-engine.js';
 import type {
@@ -43,6 +43,8 @@ import {
   type SessionEvaluationSink,
 } from '../../voice/session-evaluation-slot.js';
 import { SessionEvaluation } from '../entities/session-evaluation.entity.js';
+import { TrainingSession } from '../entities/training-session.entity.js';
+import { loadDegradedSessionExclusion } from '../providers/session-degraded.service.js';
 
 /**
  * 评估服务 (算分结果的落库方 + 查询方).
@@ -57,6 +59,7 @@ export class SessionEvaluationService implements SessionEvaluationSink, OnModule
   constructor(
     @InjectRepository(SessionEvaluation) private readonly repo: Repository<SessionEvaluation>,
     private readonly registry: SessionEvaluationRegistry,
+    @InjectRepository(TrainingSession) private readonly sessionRepo: Repository<TrainingSession>,
   ) {}
 
   /**
@@ -135,8 +138,14 @@ export class SessionEvaluationService implements SessionEvaluationSink, OnModule
   async listMine(userId: string, query: SessionEvaluationListQueryDto): Promise<SessionEvaluationListResultDto> {
     const page = Math.max(1, query.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 20));
+    // V2026-11-07 治本 (degraded 会话打标): degraded 会话**不参与考核** ——
+    //   这场会话的快评建立在不完整的逐字稿上 (失败轮次根本不进逐字稿), 留着会污染考核数据.
+    //   ⚠️ 会话**详情 / 单场评估**不过滤 (任务单 §5.3: 督导能看, 只是不计入考核).
+    const where: FindOptionsWhere<SessionEvaluation> = { userId };
+    const exclusion = await loadDegradedSessionExclusion(this.sessionRepo, userId);
+    if (exclusion) where.sessionId = exclusion;
     const [rows, total] = await this.repo.findAndCount({
-      where: { userId },
+      where,
       order: { createdAt: 'DESC' },
       skip: (page - 1) * pageSize,
       take: pageSize,

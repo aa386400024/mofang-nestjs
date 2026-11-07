@@ -207,6 +207,10 @@ import { CreateSessionEvaluations1714900000030 } from '../src/migration/17149000
 //   turn_delta_audits 新表 (8 列 + 3 索引, 其中 (tenant_id, session_id, turn_index) 唯一)
 //   —— 每轮事件类型 + 命中词 + 原始 delta 的落库表. 表由手写 DDL 建 (ADR-0003 禁用 synchronize).
 import { AddTurnDeltaAudits1714900000031 } from '../src/migration/1714900000031-AddTurnDeltaAudits.js';
+// V2026-11-07 治本 (degraded 会话打标 — training_sessions 加 2 列, 跟 src/migration/index.ts 严格 1:1):
+//   degraded (TINYINT NOT NULL DEFAULT 0) + degraded_reason (VARCHAR(50) NULL).
+//   存量行自动是 0 / NULL (= 没降级), 老会话照旧参与考核, 零回归.
+import { AddSessionDegradedFlag1714900000032 } from '../src/migration/1714900000032-AddSessionDegradedFlag.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -357,6 +361,7 @@ const ormconfig = async (): Promise<DataSource> => {
       //   8 列 + 3 索引 (其中 (tenant_id, session_id, turn_index) 唯一 —— 重试覆盖, 不堆行).
       //   部署顺序: **必须先 migration:run 再起服务** —— 运行时写入前表得先在.
       AddTurnDeltaAudits1714900000031,
+      AddSessionDegradedFlag1714900000032,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

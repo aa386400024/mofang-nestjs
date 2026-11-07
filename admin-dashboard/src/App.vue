@@ -100,6 +100,7 @@ onMounted(() => {
           <span class="w-px h-4 bg-bg-border mx-1 self-center"></span>
           <RouterLink to="/psyguard" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.psyguard') }}</RouterLink>
           <RouterLink to="/cost" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.cost') }}</RouterLink>
+          <RouterLink to="/deliberation-stats" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.deliberationStats') }}</RouterLink>
           <span class="w-px h-4 bg-bg-border mx-1 self-center"></span>
           <RouterLink to="/architecture" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.architecture') }}</RouterLink>
           <RouterLink to="/calibrator" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.calibrator') }}</RouterLink>

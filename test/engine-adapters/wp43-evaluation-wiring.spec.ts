@@ -35,6 +35,9 @@ class StubEngine {
   /** 本轮快照 (可替换, 用来模拟旧快照缺字段). */
   snapshotOverride: TurnRenderResult['snapshot'] | undefined;
 
+  /** 本轮渲染元信息 (可替换, 用来模拟渲染降级). */
+  renderOverride: TurnRenderResult['render'] | undefined;
+
   open(input: { sessionId: string }): { handleId: string; sessionId: string } {
     return { handleId: HANDLE_ID, sessionId: input.sessionId };
   }
@@ -49,7 +52,8 @@ class StubEngine {
     handlers: { onDelta: (delta: string) => void | Promise<void> },
   ): Promise<TurnRenderResult> {
     await handlers.onDelta('我……不太想聊这个。');
-    const result = buildRenderResult();
+    const base = buildRenderResult();
+    const result = this.renderOverride ? { ...base, render: this.renderOverride } : base;
     return this.snapshotOverride ? { ...result, snapshot: this.snapshotOverride } : result;
   }
 }
@@ -83,12 +87,13 @@ function buildRenderResult(): TurnRenderResult {
  *
  * @returns 后端 + 插槽 + 交办记录
  */
-function buildBackend(): {
+function buildBackend(options: { readonly renderOverride?: TurnRenderResult['render'] } = {}): {
   readonly backend: EngineStreamBackend;
   readonly registry: SessionEvaluationRegistry;
   readonly handed: SessionEvaluationSessionInput[];
 } {
   const engine = new StubEngine();
+  engine.renderOverride = options.renderOverride;
   const registry = new SessionEvaluationRegistry();
   const handed: SessionEvaluationSessionInput[] = [];
   const sink: SessionEvaluationSink = {
@@ -161,9 +166,26 @@ describe('WP43 · 引擎侧接线 (内核出参 → 评估插槽)', () => {
       events: ['empathy', 'open_probe'],
       safetyLevel: 'warn',
       safetyCategories: ['passive_ideation'],
+      // V2026-11-07 治本 (degraded 打标): 本轮没降级 → 标记为 false.
+      degraded: false,
     });
     expect(handed[0]?.dbSessionId).toBe(DB_SESSION_ID);
     expect(handed[0]?.userId).toBe(USER_ID);
+  });
+
+  it('⑥ 渲染降级轮次 → 投影带 degraded 标记 (degraded 打标唯一的数据源)', async () => {
+    const { backend, handed } = buildBackend({
+      renderOverride: { fallbackUsed: true, providerHint: 'degraded', usage: { completionTokens: 0, totalTokens: 0 } },
+    });
+    await backend.openSession({ sessionId: SESSION_ID, tenantId: TENANT_ID, userId: USER_ID, dbSessionId: DB_SESSION_ID });
+    await collect(
+      backend.streamTurn({ sessionId: SESSION_ID, tenantId: TENANT_ID, userId: USER_ID, personaId: 'v', userText: '最近睡得怎么样？' }),
+    );
+    backend.closeSession(SESSION_ID);
+    await flushMicrotasks();
+
+    expect(handed).toHaveLength(1);
+    expect(handed[0]?.turns[0]?.degraded).toBe(true);
   });
 
   it('② 会话收尾才交办 (还没 close → 不交办)', async () => {

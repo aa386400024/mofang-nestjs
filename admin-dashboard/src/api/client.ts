@@ -2,7 +2,7 @@ import type {
   SessionSummary, SessionDetail, CharacterBaseline, CharacterDetail,
   MemoryEntry, MemoryListResponse, PsyGuardStats, DashboardStats,
   TrajectoryState, PsyGuardTrend, CostTrendPoint, SessionCost,
-  CharacterSession, HealthStatus,
+  CharacterSession, HealthStatus, DeliberationStats,
 } from './types'
 
 const BASE = '/admin/api'
@@ -243,5 +243,11 @@ export const api = {
   // 后端: GET /admin/api/cost/sessions?limit=N (含成本口径 costBasis)
   sessionCosts: async (limit = 20): Promise<SessionCost[]> => {
     return get<SessionCost[]>(`/cost/sessions?limit=${limit}`)
+  },
+
+  // ─── 影子模式审议统计 (切灰度决策用) ───
+  // 后端: GET /admin/api/deliberation/stats (Redis hash 计数器, O(1))
+  deliberationStats: async (): Promise<DeliberationStats> => {
+    return get<DeliberationStats>('/deliberation/stats')
   },
 }

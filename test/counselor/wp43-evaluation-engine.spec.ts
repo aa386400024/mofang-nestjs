@@ -20,6 +20,7 @@ import { BizException } from '../../src/common/exceptions/biz.exception.js';
 import { SessionEvaluationController } from '../../src/counselor/controllers/session-evaluation.controller.js';
 import { CounselorTrainingSessionController } from '../../src/counselor/controllers/training-session.controller.js';
 import { SessionEvaluation } from '../../src/counselor/entities/session-evaluation.entity.js';
+import { TrainingSession } from '../../src/counselor/entities/training-session.entity.js';
 import { computeSessionEvaluation } from '../../src/counselor/evaluation/evaluation-engine.js';
 import { SessionEvaluationService } from '../../src/counselor/evaluation/session-evaluation.service.js';
 import {
@@ -87,6 +88,20 @@ function makeRepo(overrides: Record<string, unknown> = {}): Repository<SessionEv
     ...overrides,
   };
   return repo as unknown as Repository<SessionEvaluation>;
+}
+
+/**
+ * 造一个假的训练会话仓储 (只实现 degraded 过滤用到的方法).
+ *
+ * @param overrides 差异项
+ * @returns 假仓储
+ */
+function makeSessionRepo(overrides: Record<string, unknown> = {}): Repository<TrainingSession> {
+  const repo = {
+    find: async (): Promise<TrainingSession[]> => [],
+    ...overrides,
+  };
+  return repo as unknown as Repository<TrainingSession>;
 }
 
 describe('WP43 · 评估算分规则 (纯函数)', () => {
@@ -273,7 +288,7 @@ describe('WP43 · 评估落库口径', () => {
         inserted.push(row);
       },
     });
-    const service = new SessionEvaluationService(repo, new SessionEvaluationRegistry());
+    const service = new SessionEvaluationService(repo, new SessionEvaluationRegistry(), makeSessionRepo());
     await service.finalize(makeSession([makeTurn({ events: ['empathy'] })]));
     expect(inserted).toHaveLength(1);
     expect(inserted[0]).toMatchObject({ sessionId: 'sess-1', userId: 'user-1' });
@@ -290,7 +305,7 @@ describe('WP43 · 评估落库口径', () => {
         throw new Error('不该走到 insert');
       },
     });
-    const service = new SessionEvaluationService(repo, new SessionEvaluationRegistry());
+    const service = new SessionEvaluationService(repo, new SessionEvaluationRegistry(), makeSessionRepo());
     await service.finalize(makeSession([makeTurn({ events: ['empathy'] })]));
     expect(updated).toHaveLength(1);
   });
@@ -302,7 +317,7 @@ describe('WP43 · 评估落库口径', () => {
         inserted.push(row);
       },
     });
-    const service = new SessionEvaluationService(repo, new SessionEvaluationRegistry());
+    const service = new SessionEvaluationService(repo, new SessionEvaluationRegistry(), makeSessionRepo());
     await service.finalize(makeSession([]));
     expect(inserted).toHaveLength(0);
   });
@@ -314,7 +329,7 @@ describe('WP43 · 评估落库口径', () => {
         inserted.push(row);
       },
     });
-    const service = new SessionEvaluationService(repo, new SessionEvaluationRegistry());
+    const service = new SessionEvaluationService(repo, new SessionEvaluationRegistry(), makeSessionRepo());
     await service.finalize(makeSession([makeTurn()], { dbSessionId: '' }));
     await service.finalize(makeSession([makeTurn()], { userId: '' }));
     expect(inserted).toHaveLength(0);
@@ -330,14 +345,14 @@ describe('WP43 · 评估查询口径', () => {
         return null;
       },
     });
-    const service = new SessionEvaluationService(repo, new SessionEvaluationRegistry());
+    const service = new SessionEvaluationService(repo, new SessionEvaluationRegistry(), makeSessionRepo());
     await expect(service.findBySession('user-1', 'sess-1')).rejects.toBeInstanceOf(BizException);
     expect(where[0]).toEqual({ sessionId: 'sess-1', userId: 'user-1' });
   });
 
   it('列表分页参数被钳制 (pageSize 上限 100)', async () => {
     const repo = makeRepo();
-    const service = new SessionEvaluationService(repo, new SessionEvaluationRegistry());
+    const service = new SessionEvaluationService(repo, new SessionEvaluationRegistry(), makeSessionRepo());
     const result = await service.listMine('user-1', { page: 0, pageSize: 9999 });
     expect(result.page).toBe(1);
     expect(result.pageSize).toBe(100);

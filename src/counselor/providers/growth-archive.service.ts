@@ -29,9 +29,10 @@
 //   时间戳: 2026-11-06
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, MoreThanOrEqual, type Repository } from 'typeorm';
+import { IsNull, MoreThanOrEqual, type FindOptionsWhere, type Repository } from 'typeorm';
 
 import { SessionAbilitySyncService } from './session-ability-sync.service.js';
+import { loadDegradedSessionExclusion } from './session-degraded.service.js';
 import {
   type GrowthArchiveCategoryAverages,
   type GrowthArchiveOverviewDto,
@@ -67,8 +68,14 @@ export class GrowthArchiveService {
    */
   async overview(userId: string): Promise<GrowthArchiveOverviewDto> {
     await this.syncAbility(userId);
-    const evaluations = await this.evaluationRepo.find({ where: { userId }, order: { createdAt: 'DESC' } });
-    const totalSessions = await this.sessionRepo.count({ where: { userId, deletedAt: IsNull() } });
+    const evaluations = await this.evaluationRepo.find({
+      where: await this.evaluationFilter(userId),
+      order: { createdAt: 'DESC' },
+    });
+    // V2026-11-07 治本 (degraded 会话打标): degraded 会话**整体排除** ——
+    //   它的快评与督导报告都建立在不完整的逐字稿上, 计入统计 = 污染成长档案.
+    //   场次也一起排除, 让卡片里的每个数字都出自**同一批**会话 (口径自洽).
+    const totalSessions = await this.sessionRepo.count({ where: { userId, degraded: 0, deletedAt: IsNull() } });
     const overallScores = evaluations.map((row) => row.overallScore);
     return {
       totalSessions,
@@ -93,10 +100,23 @@ export class GrowthArchiveService {
     const window = Math.min(365, Math.max(1, days));
     const since = new Date(Date.now() - window * DAY_MS);
     const evaluations = await this.evaluationRepo.find({
-      where: { userId, createdAt: MoreThanOrEqual(since) },
+      where: { ...(await this.evaluationFilter(userId)), createdAt: MoreThanOrEqual(since) },
       order: { createdAt: 'ASC' },
     });
     return { points: this.groupByDay(evaluations) };
+  }
+
+  /**
+   * 评估查询的过滤条件 (排除 degraded 会话).
+   *
+   * @param userId 当前学员 id
+   * @returns where 条件
+   */
+  private async evaluationFilter(userId: string): Promise<FindOptionsWhere<SessionEvaluation>> {
+    const where: FindOptionsWhere<SessionEvaluation> = { userId };
+    const exclusion = await loadDegradedSessionExclusion(this.sessionRepo, userId);
+    if (exclusion) where.sessionId = exclusion;
+    return where;
   }
 
   /**

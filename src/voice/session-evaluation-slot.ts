@@ -56,6 +56,16 @@ export interface SessionEvaluationTurnInput {
   readonly safetyLevel: string | null;
   /** 本轮安全判定命中的类别. */
   readonly safetyCategories: readonly string[];
+  /**
+   * 本轮是否**渲染降级** (出的是系统兜底句, 不是来访者真话).
+   *
+   * V2026-11-07 治本 (degraded 会话打标): 会话结束时的 degraded 判定
+   *   (失败率 > 30% / 连续失败 >= 3 轮) 靠这个标记统计失败轮次.
+   *
+   * 为什么是**可选**字段: 可选 = **向后兼容** —— 既有实现与既有测试构造的轮次输入
+   *   不带它, 语义就是"本轮未降级", 零处改动即可继续工作.
+   */
+  readonly degraded?: boolean;
 }
 
 /**

@@ -330,3 +330,44 @@ export interface PsyGuardTrend {
   /** 趋势点 (行数恒等于窗口天数). */
   points: PsyGuardTrendPoint[]
 }
+
+// ─── 影子模式审议统计 (切灰度决策用) ───
+
+export interface DeliberationStats {
+  /** 总轮次 (成功 + 失败) */
+  totalTurns: number
+  /** 成功轮次 */
+  successTurns: number
+  /** 失败轮次 (含熔断跳过) */
+  failureTurns: number
+  /** 成功率 0-1 */
+  successRate: number
+  /** 失败原因分布 (错误码 → 次数) */
+  failureByErrorCode: Record<string, number>
+  /** 平均耗时 ms (含失败轮次) */
+  avgDurationMs: number
+  /** 最大耗时 ms (精确值) */
+  maxDurationMs: number
+  /** P50 耗时 ms (桶上界估计) */
+  p50DurationMs: number
+  /** P95 耗时 ms (桶上界估计) */
+  p95DurationMs: number
+  /** 平均重试次数 */
+  avgRetryCount: number
+  /** 平均 prompt tokens */
+  avgPromptTokens: number
+  /** 平均 completion tokens */
+  avgCompletionTokens: number
+  /** deltaDiff 平均绝对值 (分母=成功轮次) */
+  avgDeltaDiffAbs: number
+  /** deltaDiff 最大绝对值 (精确值) */
+  maxDeltaDiffAbs: number
+  /** 过期率 0-1 (分母=成功轮次) */
+  staleRate: number
+  /** 被砍维度分布 (维度 → 次数) */
+  capByDimension: Record<string, number>
+  /** 临床 flagged 分布 (规则 → 次数) */
+  clinicalByRule: Record<string, number>
+  /** 临床 flagged 轮次占比 0-1 */
+  flaggedTurnRate: number
+}
