@@ -117,31 +117,25 @@
 //     env → (适配层) → BeliefOperatorConfig → (内核端口). 内核零 env 读取.
 //     ⚠️ 系数是**工程种子值, 非临床标定** —— 待真实对练校准.
 
-import { resolveAllianceDelta, type AllianceConfig } from './alliance-config.js';
+import type { AllianceConfig } from './alliance-config.js';
+import { DELTA_DIMENSIONS, resolveDeltaVector, type DeltaTableConfig } from './delta-table-config.js';
 import { modulateDeltaByPersonality, type PersonalityModulationInput } from './personality-modulator.js';
 import type { BdiSnapshot } from '../domain/bdi-snapshot.js';
 import { clamp01, clampValence, resolveEmotionLabel } from '../domain/emotion.js';
 import type { CounselorEventKind, SessionEvent } from '../domain/events/session-event.js';
 
 /**
- * delta 向量的 11 个维度 (WP15: cap 维度与 delta 维度一一对应; WP42 加 safety / bond).
+ * cap 维度 (顺序 = 报告里维度出现的顺序).
  *
- * 单独列一份而不是直接用 DeltaVector 的键: cap 需要**顺序** (报告按维度顺序出),
- * 而接口的键顺序没有语义. 两边多一个少一个, capTurnDelta 的类型检查会当场报错.
+ * WP60: 维度名单**不再在这里另列一份** —— 改用 `delta-table-config.ts` 的
+ *   `DELTA_DIMENSIONS` (同一份名单, 覆写表与适配层 env 校验也用它).
+ *   原来这里是唯一一份; WP60 加了第二处用途 (逐维度覆写 + env 键校验) 后,
+ *   两份名单就是两张会漂的清单 —— 少一维 = 那个维度永远配不上 (静默失效).
+ *
+ * 为什么仍要单独定这个顺序: cap 报告按维度顺序出, 而接口的键顺序没有语义.
+ * 两边多一个少一个, capTurnDelta 的类型检查会当场报错.
  */
-const CAP_DIMS = [
-  'trust',
-  'safety',
-  'bond',
-  'valence',
-  'arousal',
-  'verbal',
-  'depth',
-  'style',
-  'positive',
-  'negative',
-  'dependency',
-] as const;
+const CAP_DIMS = DELTA_DIMENSIONS;
 
 /** cap 维度名. */
 export type CapDim = (typeof CAP_DIMS)[number];
@@ -354,10 +348,16 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
  * WP42: 同盟三维 (safety / bond) 的基础值来自 DELTA_TABLE; 端口给的覆写
  *   (AllianceConfig.deltas) 优先, 缺项 / 缺维度回基础值 —— 见 alliance-config.ts.
  *
+ * WP60: 事件 → delta 的**系数表**也抽成端口 (DeltaTableConfig):
+ *   逐维度优先级 = DeltaTableConfig 覆写 > AllianceConfig 覆写 > DELTA_TABLE 基础值.
+ *   优先级只在 `resolveDeltaVector` 一处裁决 —— 两个端口各管各的维度, 不互相打架.
+ *   不传 deltaTable → 逐字等同改造前 (零回归).
+ *
  * @param events 本轮事件
  * @param alliance 同盟三维端口 (缺省 = 用 DELTA_TABLE 的基础系数)
+ * @param deltaTable delta 规则表端口 (缺省 = 用 DELTA_TABLE 的基础系数)
  */
-export function aggregateTurnDelta(events: readonly SessionEvent[], alliance?: AllianceConfig): DeltaVector {
+export function aggregateTurnDelta(events: readonly SessionEvent[], alliance?: AllianceConfig, deltaTable?: DeltaTableConfig): DeltaVector {
   const sum = {
     trust: 0,
     safety: 0,
@@ -371,14 +371,14 @@ export function aggregateTurnDelta(events: readonly SessionEvent[], alliance?: A
     negative: 0,
     dependency: 0,
   };
-  const overrides = alliance?.deltas;
   for (const event of events) {
-    const delta = DELTA_TABLE[event.kind] ?? ZERO;
+    const base = DELTA_TABLE[event.kind] ?? ZERO;
+    // WP60: 逐维度解析 (deltaTable 覆写 > alliance 覆写 > 基础值) —— 优先级只在一处裁决.
+    const delta = resolveDeltaVector(event.kind, base, deltaTable, alliance);
     const strength = clamp01(event.strength);
-    const allianceDelta = resolveAllianceDelta(event.kind, delta, overrides);
     sum.trust += delta.trust * strength;
-    sum.safety += allianceDelta.safety * strength;
-    sum.bond += allianceDelta.bond * strength;
+    sum.safety += delta.safety * strength;
+    sum.bond += delta.bond * strength;
     sum.verbal += delta.verbal * strength;
     sum.depth += delta.depth * strength;
     sum.style += delta.style * strength;
@@ -587,6 +587,13 @@ export interface TransitionStateOptions {
    * 缺省 = 用 DELTA_TABLE 的基础系数与内核种子门槛 (逐字不变, 零回归).
    */
   readonly alliance?: AllianceConfig;
+  /**
+   * delta 规则表端口 (WP60): 事件 → 增量的**逐维度**覆写.
+   *
+   * 缺省 = 用 DELTA_TABLE 的基础系数 (逐字不变, 零回归).
+   * 优先级 (逐维度): 本端口 > 同盟三维端口 > 基础表 —— 裁决只在 resolveDeltaVector 一处.
+   */
+  readonly deltaTable?: DeltaTableConfig;
   /**
    * 本轮咨询师原话 (WP57 · 信念激活的匹配源).
    *
@@ -901,7 +908,7 @@ export function applyBeliefEvolution(snapshot: BdiSnapshot, counselorText: strin
  * @param options 注入选项 (cap 配置 / 报告上下文 / 观察者 / 人格调节 / 同盟三维端口)
  */
 export function transitionState(snapshot: BdiSnapshot, events: readonly SessionEvent[], options?: TransitionStateOptions): BdiSnapshot {
-  const aggregated = aggregateTurnDelta(events, options?.alliance);
+  const aggregated = aggregateTurnDelta(events, options?.alliance, options?.deltaTable);
   const raw = modulateByPersonality(aggregated, events, options?.personality);
   const delta = capTurnDelta(raw, options?.capConfig);
   notifyDeltaCap(options?.observer, buildDeltaCapReport(raw, delta, events, options?.capContext));
@@ -923,7 +930,7 @@ export function transitionStateDetailed(
   events: readonly SessionEvent[],
   options?: TransitionStateOptions,
 ): { readonly snapshot: BdiSnapshot; readonly capped: TurnDeltaCapReport | null } {
-  const aggregated = aggregateTurnDelta(events, options?.alliance);
+  const aggregated = aggregateTurnDelta(events, options?.alliance, options?.deltaTable);
   const raw = modulateByPersonality(aggregated, events, options?.personality);
   const delta = capTurnDelta(raw, options?.capConfig);
   const report = buildDeltaCapReport(raw, delta, events, options?.capContext);

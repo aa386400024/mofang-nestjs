@@ -37,9 +37,11 @@ import {
   aggregateTurnDelta,
   type AllianceConfig,
   type CounselorEventKind,
+  type DeltaTableConfig,
   type SessionEvent,
 } from '../../../engine-core/index.js';
 import { resolveAllianceConfig } from '../alliance-config.js';
+import { resolveDeltaTableConfig } from '../delta-table.config.js';
 
 /**
  * 把错误压成一行可读文本 (日志用).
@@ -87,6 +89,13 @@ export class TurnDeltaAuditService implements TurnDeltaAuditPort {
   private readonly enabled: boolean;
   /** 同盟三维系数 (与内核会话同一份 env 口径 —— 聚合口径要和内核一致). */
   private readonly alliance: AllianceConfig;
+  /**
+   * delta 规则表系数 (WP60 · 与内核会话同一份 env 口径).
+   *
+   * ⚠️ 必须注入: 观测记的 raw_delta 若与内核实际施加的**对不上**, 那记的就是骗人的数
+   *   (WP58 交付记录 D3 的同款纪律 —— 覆写改的是系数, 不是聚合逻辑).
+   */
+  private readonly deltaTable: DeltaTableConfig;
 
   /**
    * @param repo 审计表仓储
@@ -99,6 +108,7 @@ export class TurnDeltaAuditService implements TurnDeltaAuditPort {
   ) {
     this.enabled = resolveTurnDeltaAuditConfig(config).enabled;
     this.alliance = resolveAllianceConfig(config);
+    this.deltaTable = resolveDeltaTableConfig(config);
   }
 
   /**
@@ -151,7 +161,7 @@ export class TurnDeltaAuditService implements TurnDeltaAuditPort {
   private async persist(input: TurnDeltaAuditInput): Promise<void> {
     const events = this.classifier.classify(input.userText);
     const merged = mergeKernelOnlyEvents(events, input.kernelEventKinds);
-    const rawDelta = aggregateTurnDelta(merged, this.alliance);
+    const rawDelta = aggregateTurnDelta(merged, this.alliance, this.deltaTable);
     const existing = await this.repo.findOne({
       where: { tenantId: input.tenantId, sessionId: input.sessionId, turnIndex: input.turnIndex },
     });

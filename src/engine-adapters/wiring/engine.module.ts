@@ -41,7 +41,7 @@
 //     2. 启动后 curl POST /engine/debug/open → /turn → /close 能跑通一轮
 //     3. test/engine-adapters/wp8-wiring.spec.ts 覆盖装配链与配置面
 
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { resolveAllianceConfig } from './alliance-config.js';
@@ -50,6 +50,7 @@ import { CharacterPoolModule } from './character/character-pool.module.js';
 import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver } from './character/index.js';
 import { resolveDeltaCapConfig } from './delta-cap.config.js';
 import { DeltaCapLogger } from './delta-cap.logger.js';
+import { resolveDeltaTableConfig } from './delta-table.config.js';
 import { EngineStreamBackend } from './engine-stream-backend.adapter.js';
 import { EngineSessionRegistry, EngineTurnService } from './engine-turn.service.js';
 import { EngineWiringController } from './engine-wiring.controller.js';
@@ -74,7 +75,6 @@ import {
 } from './engine.tokens.js';
 import { resolvePersonalityModulatorConfig } from './personality-modulator.config.js';
 import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory.js';
-import { resolveSessionDecayConfig } from './session-decay.config.js';
 import { resolveSessionSummaryConfig } from './session-summary.config.js';
 import { TurnDeltaAuditModule } from './turn-delta-audit/turn-delta-audit.module.js';
 import { LlmModule as AgentLlmModule } from '../../agent/llm/llm.module.js';
@@ -87,6 +87,7 @@ import { PsyGuardHealthModule } from './risk/psyguard-health.module.js';
 import { RISK_PROBE } from './risk/risk-probe.token.js';
 import { STUDENT_RISK_GATE, StudentRiskGateService } from './risk/student-risk-gate.js';
 import { RouterChatCaller } from './router-chat-caller.js';
+import { resolveSessionDecayConfig } from './session-decay.config.js';
 import { StaticTrajectoryScriptResolver, TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory/index.js';
 import { TurnIdempotencyService } from './turn-idempotency.service.js';
 import { AdminDebugModule } from '../../admin-debug/admin-debug.module.js';
@@ -115,6 +116,15 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
 /**
  * 引擎装配模块 (NestJS).
  */
+/**
+ * 装配期告警用的 logger (WP60).
+ *
+ * 为什么要有: delta 规则表的 env 配错时 (JSON 语法错 / 维度名不认识 / 值不是有限数),
+ *   装配层**喊一声**而不是静默忽略 —— 静默失效是本仓最费时间的排障陷阱.
+ *   模块级单例 (不每次告警都 new 一个 Logger).
+ */
+const wiringLogger = new Logger('EngineWiring');
+
 @Module({
   imports: [
     LlmModule,
@@ -314,6 +324,10 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
             // WP42: 同盟三维 (trust / safety / bond) 的系数与门槛同理 ——
             //   env 读在适配层, 内核只认 AllianceConfig 端口.
             allianceConfig: resolveAllianceConfig(config),
+            // WP60: delta 规则表 (事件 → 增量逐维度覆写) 同理 ——
+            //   env 读在适配层, 内核只认 DeltaTableConfig 端口.
+            //   配错的键**喊出来** (而不是静默忽略): 静默失效是本仓最费时间的排障陷阱.
+            deltaTableConfig: resolveDeltaTableConfig(config, (message) => wiringLogger.warn(message)),
             // WP36: 跨会话间隔衰减的三个半衰期同理 ——
             //   env 读在适配层, 内核只认 SessionDecayConfig 端口.
             sessionDecayConfig: resolveSessionDecayConfig(config),

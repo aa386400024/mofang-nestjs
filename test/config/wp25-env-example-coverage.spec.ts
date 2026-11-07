@@ -214,6 +214,30 @@ const SESSION_SUMMARY_ENV_KEYS: readonly string[] = [
 ];
 
 /**
+ * delta 规则表的 11 个 env 键 (WP60).
+ *
+ * 与 cap 族 / 人格族 / 同盟族 / 衰减族同一治本: 适配层**逐个字面量**读 →
+ * 已被 AST 抽取覆盖 (漏写一个键, 断言① 立刻变红). 这里留一份清单, 是为了断言
+ * "11 个键一个不多一个不少" —— 少一个 = 那个事件永远配不上 (静默失效);
+ * 多一个 = 模板里躺着一条没人读的键 (骗人的配置项).
+ *
+ * ⚠️ 键名是**事件**级 (每事件一个 JSON 键), 不是维度级 —— 维度级要 121 个键.
+ */
+const DELTA_TABLE_ENV_KEYS: readonly string[] = [
+  'ENGINE_DELTA_EMPATHY',
+  'ENGINE_DELTA_ACCEPTANCE',
+  'ENGINE_DELTA_NORMALIZATION',
+  'ENGINE_DELTA_OPEN_PROBE',
+  'ENGINE_DELTA_AFFIRMATION',
+  'ENGINE_DELTA_JUDGMENT',
+  'ENGINE_DELTA_PREACHING',
+  'ENGINE_DELTA_MINIMIZING',
+  'ENGINE_DELTA_BOUNDARY_CROSS',
+  'ENGINE_DELTA_SENSITIVE_TOUCH',
+  'ENGINE_DELTA_NEUTRAL',
+];
+
+/**
  * 递归收集目录下的 .ts 文件.
  */
 function collectTsFiles(dir: string): string[] {
@@ -743,6 +767,25 @@ describe('WP25 · .env.example 与代码 env 读取点一一对应', () => {
       }
     }
     expect(kernelSummaryKeys).toEqual([]);
+  });
+
+  it('③g 11 个 ENGINE_DELTA_* 键已改字面量读取, 内核树不再有 delta 表键 (WP60)', () => {
+    // delta 规则表系数与 cap 族同一治本: 适配层逐个字面量读 → AST 抽取看得到.
+    const deltaTableConfigFile = path.join(SRC_ROOT, 'engine-adapters/wiring/delta-table.config.ts');
+    expect(existsSync(deltaTableConfigFile)).toBe(true);
+    const literalKeys = extractEnvKeys(deltaTableConfigFile).filter((key) => key.startsWith('ENGINE_DELTA_'));
+    expect([...literalKeys].sort()).toEqual([...DELTA_TABLE_ENV_KEYS].sort());
+
+    // 内核树里**不许**再出现任何 ENGINE_DELTA_* 字符串 (计算键也算): 内核零 env 读取.
+    const kernelRoot = path.join(SRC_ROOT, 'engine-core');
+    const kernelDeltaTableKeys: string[] = [];
+    for (const file of collectTsFiles(kernelRoot)) {
+      const source = readFileSync(file, 'utf8');
+      if (source.includes('ENGINE_DELTA_')) {
+        kernelDeltaTableKeys.push(path.relative(kernelRoot, file).replaceAll('\\', '/'));
+      }
+    }
+    expect(kernelDeltaTableKeys).toEqual([]);
   });
 
   it('④ NODE_ENV 必须被注释掉 (本地照抄模板不能开 production 模式)', () => {

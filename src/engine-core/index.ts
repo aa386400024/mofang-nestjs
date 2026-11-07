@@ -204,6 +204,14 @@ export { DEFAULT_PERSONALITY_MODULATOR_CONFIG, modulateDeltaByPersonality } from
 export type { AllianceConfig, AllianceDeltaOverride, AllianceDeltaOverrides, AllianceThresholds } from './cognition/alliance-config.js';
 export { DEFAULT_ALLIANCE_CONFIG } from './cognition/alliance-config.js';
 
+// ── delta 规则表端口 (WP60 · 事件 → 增量逐维度覆写) ─────────────────
+//   同款理由: 新符号若只住在内核内部, adapter 就得深路径 import —— 那条路径不在
+//   boundary 断言⑥ (barrel 双向白名单) 的守卫视野内. 收进公开出口, 由断言守住.
+//   维度名单 (DELTA_DIMENSIONS) 也一起公开: 适配层要按它校验 env 里的 JSON 键,
+//   两处各写一份名单 = 两张会漂的清单.
+export type { DeltaDimension, DeltaDimensionOverride, DeltaTableConfig, DeltaTableOverrides } from './cognition/delta-table-config.js';
+export { DELTA_DIMENSIONS, DEFAULT_DELTA_TABLE_CONFIG, resolveDeltaVector } from './cognition/delta-table-config.js';
+
 // ── 跨会话间隔自然衰减 (WP36 · 情绪 / 阻抗 / 同盟差异化半衰期) ─────────
 //   同款理由: 新符号若只住在内核内部, adapter 就得深路径 import —— 那条路径不在
 //   boundary 断言⑥ (barrel 双向白名单) 的守卫视野内, 内核改文件名 adapter 直接断

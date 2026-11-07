@@ -333,6 +333,20 @@ export interface PsyGuardTrend {
 
 // ─── 影子模式审议统计 (切灰度决策用) ───
 
+/** 统计窗口口径 */
+export interface DeliberationStatsWindow {
+  /** 模式: all = 累计, days = 最近 N 天, range = 自定义区间 */
+  mode: 'all' | 'days' | 'range'
+  /** 最近 N 天 (mode=days 时有效) */
+  days?: number
+  /** 起始日期 (mode=range 时有效, YYYY-MM-DD) */
+  from?: string
+  /** 结束日期 (mode=range 时有效, YYYY-MM-DD) */
+  to?: string
+  /** 窗口内有数据的天数 (日 key 从某天才有 → 头几天不满窗) */
+  daysCovered: number
+}
+
 export interface DeliberationStats {
   /** 总轮次 (成功 + 失败) */
   totalTurns: number
@@ -370,4 +384,6 @@ export interface DeliberationStats {
   clinicalByRule: Record<string, number>
   /** 临床 flagged 轮次占比 0-1 */
   flaggedTurnRate: number
+  /** 窗口口径 (这批数是哪段时间的) */
+  window: DeliberationStatsWindow
 }

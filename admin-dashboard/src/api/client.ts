@@ -246,8 +246,10 @@ export const api = {
   },
 
   // ─── 影子模式审议统计 (切灰度决策用) ───
-  // 后端: GET /admin/api/deliberation/stats (Redis hash 计数器, O(1))
-  deliberationStats: async (): Promise<DeliberationStats> => {
-    return get<DeliberationStats>('/deliberation/stats')
+  // 后端: GET /admin/api/deliberation/stats?days=N (Redis hash 计数器, O(1))
+  // days 不传 = 累计值; days=7 = 最近 7 天
+  deliberationStats: async (days?: number): Promise<DeliberationStats> => {
+    const query = days ? `?days=${days}` : ''
+    return get<DeliberationStats>(`/deliberation/stats${query}`)
   },
 }

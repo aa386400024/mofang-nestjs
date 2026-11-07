@@ -419,6 +419,16 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'AllianceDeltaOverrides',
       'AllianceThresholds',
       'DEFAULT_ALLIANCE_CONFIG',
+      // WP60: delta 规则表端口 (事件 → 增量逐维度覆写)
+      //   (系数走端口注入, 与 WP26 P2-14 的 cap 参数同一范式;
+      //    维度名单也公开 —— 适配层要按它校验 env 里的 JSON 键)
+      'DeltaDimension',
+      'DeltaDimensionOverride',
+      'DeltaTableConfig',
+      'DeltaTableOverrides',
+      'DELTA_DIMENSIONS',
+      'DEFAULT_DELTA_TABLE_CONFIG',
+      'resolveDeltaVector',
       // WP36: 跨会话间隔自然衰减 (情绪 / 阻抗 / 同盟差异化半衰期)
       //   (端口 + 纯函数一起公开: 适配层装配端口, 内核会话调纯函数)
       'SessionDecayConfig',
@@ -458,6 +468,7 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'cognition/state-transition.ts',
       'cognition/personality-modulator.ts',
       'cognition/alliance-config.ts',
+      'cognition/delta-table-config.ts',
       'cognition/session-decay.ts',
       'cognition/intention-planner.ts',
       'cognition/rendering/token-budget.ts',

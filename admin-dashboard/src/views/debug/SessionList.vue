@@ -65,8 +65,15 @@
           <!-- 内容区 -->
           <div class="flex-1 min-w-0">
             <!-- 标题行 -->
-            <div class="text-sm text-text-primary truncate font-medium leading-6">
-              {{ session.title || '未命名会话' }}
+            <div class="text-sm text-text-primary truncate font-medium leading-6 flex items-center gap-1.5">
+              <span class="truncate">{{ session.title || '未命名会话' }}</span>
+              <span
+                v-if="session.degraded"
+                class="text-[10px] px-1.5 py-0.5 rounded bg-warning/15 text-warning flex-shrink-0 font-medium"
+                title="连续失败打标，考核时会过滤掉"
+              >
+                降级
+              </span>
             </div>
             <!-- 元信息行：只放轮次 + 时间，slug 由头像颜色区分，hover title 提示 -->
             <div class="text-xs text-muted mt-0.5 flex items-center gap-1.5">
@@ -146,6 +153,8 @@ interface DebugSessionSummary {
   turnCount: number
   /** 当前进程内存里是否还有内核句柄（active=true 可继续聊，false 是只读历史） */
   active: boolean
+  /** 是否降级会话（连续失败打标，考核时过滤） */
+  degraded?: boolean
 }
 
 defineProps<{

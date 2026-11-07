@@ -41,6 +41,7 @@ import { nanoid } from 'nanoid';
 import { randomInt } from 'node:crypto';
 
 import type { AllianceConfig } from '../cognition/alliance-config.js';
+import type { DeltaTableConfig } from '../cognition/delta-table-config.js';
 import { planIntention } from '../cognition/intention-planner.js';
 import {
   modulateDeltaByPersonality,
@@ -225,6 +226,15 @@ export interface InMemoryEngineSessionOptions {
    */
   readonly allianceConfig?: AllianceConfig;
   /**
+   * delta 规则表配置 (WP60 · 与 cap / 人格 / 同盟 / 衰减同款注入范式).
+   *
+   * 缺省 = 内核种子值 (DELTA_TABLE 的基础系数).
+   * 为什么是**构造注入**而不是每次 turn 传: 系数是**部署形态**的决定
+   * (内测期按真实对练校准), 不是会话参数; 放构造上 = 一场会话内口径恒定,
+   * 不会出现"同一场里前后两轮系数不一样"的漂移.
+   */
+  readonly deltaTableConfig?: DeltaTableConfig;
+  /**
    * 跨会话间隔衰减配置 (WP36 · 与 cap / 人格 / 同盟同款注入范式).
    *
    * 缺省 = 内核种子值 (`DEFAULT_SESSION_DECAY_CONFIG`: 情绪 7 天 / 阻抗 14 天 / 同盟 30 天).
@@ -279,6 +289,8 @@ export class InMemoryEngineSession implements EngineSessionPort {
   private readonly personalityModulatorConfig: PersonalityModulatorConfig | undefined;
   /** 同盟三维配置 (WP42 · 缺省 = 内核种子值). */
   private readonly allianceConfig: AllianceConfig | undefined;
+  /** delta 规则表配置 (WP60 · 缺省 = DELTA_TABLE 的基础系数). */
+  private readonly deltaTableConfig: DeltaTableConfig | undefined;
   /** 跨会话间隔衰减配置 (WP36 · 缺省 = 内核种子值). */
   private readonly sessionDecayConfig: SessionDecayConfig | undefined;
   /** 工作窗口溢出回调 (WP37 · 缺省 = 不回调). */
@@ -295,6 +307,7 @@ export class InMemoryEngineSession implements EngineSessionPort {
     this.capObserver = options.capObserver;
     this.personalityModulatorConfig = options.personalityModulatorConfig;
     this.allianceConfig = options.allianceConfig;
+    this.deltaTableConfig = options.deltaTableConfig;
     this.sessionDecayConfig = options.sessionDecayConfig;
     this.onWorkingWindowOverflow = options.onWorkingWindowOverflow;
   }
@@ -371,13 +384,16 @@ export class InMemoryEngineSession implements EngineSessionPort {
     //    WP34: 聚合之后先过**人格调节**, 再进 cap (同一管道, 调节不得绕过 cap).
     //    WP42: 同盟三维的 safety / bond 走**同一个端口** (构造注入), 口径与
     //    临时快照 / 落库路径必须一致 —— 否则两处会漂.
-    const eventDelta = modulateDeltaByPersonality(aggregateTurnDelta(events, this.allianceConfig), personality);
+    const eventDelta = modulateDeltaByPersonality(aggregateTurnDelta(events, this.allianceConfig, this.deltaTableConfig), personality);
     //    临时快照: 只按事件 delta 推进 (供意图规划与轨迹触发判定) ——
     //    它是**中间量**, 不是本轮落库的状态 (落库口径见第 5 步).
     const provisional = transitionState(base.snapshot, events, {
       capConfig: this.capConfig,
       personality,
       alliance: this.allianceConfig,
+      // WP60: delta 规则表端口 (逐维度覆写) —— 与落库路径**同一份**配置,
+      //   否则临时快照与落库快照会漂 (WP42 的同款纪律).
+      deltaTable: this.deltaTableConfig,
       // WP57: 信念激活的匹配源 (咨询师原文).
       //   临时快照与落库快照**两处口径必须一致** —— 两处都从 base.snapshot 出发,
       //   所以不会重复演化 (各演一次, 结果相同).

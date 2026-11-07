@@ -46,6 +46,7 @@ import type {
   BdiStateRepository,
   DeltaCapConfig,
   DeltaCapObserver,
+  DeltaTableConfig,
   Embedder,
   EngineSessionPort,
   MemoryStore,
@@ -192,6 +193,12 @@ export interface EngineSessionTuningDeps {
    */
   readonly allianceConfig?: AllianceConfig;
   /**
+   * delta 规则表配置 (WP60; 缺省 = 内核基础系数 DELTA_TABLE).
+   *
+   * 与 cap / 人格 / 同盟 / 衰减同款范式: 系数是**部署形态**的决定, 不是会话参数.
+   */
+  readonly deltaTableConfig?: DeltaTableConfig;
+  /**
    * 跨会话间隔衰减配置 (WP36; 缺省 = 内核种子值).
    *
    * 与 cap 同款范式: 半衰期是**部署形态**的决定 (内测期按真实对练校准), 不是会话参数.
@@ -235,6 +242,7 @@ export function createEngineSessionPort(
     ...(tuning?.capObserver ? { capObserver: tuning.capObserver } : {}),
     ...(tuning?.personalityModulatorConfig ? { personalityModulatorConfig: tuning.personalityModulatorConfig } : {}),
     ...(tuning?.allianceConfig ? { allianceConfig: tuning.allianceConfig } : {}),
+    ...(tuning?.deltaTableConfig ? { deltaTableConfig: tuning.deltaTableConfig } : {}),
     ...(tuning?.sessionDecayConfig ? { sessionDecayConfig: tuning.sessionDecayConfig } : {}),
     ...(tuning?.onWorkingWindowOverflow ? { onWorkingWindowOverflow: tuning.onWorkingWindowOverflow } : {}),
   });

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { use } from 'echarts/core'
 import { PieChart, BarChart } from 'echarts/charts'
@@ -17,15 +17,23 @@ const stats = ref<DeliberationStats | null>(null)
 const loading = ref(true)
 const err = ref('')
 
-onMounted(async () => {
+// 时间范围: 7 = 最近 7 天, 30 = 最近 30 天, 0 = 累计
+const days = ref<number>(7)
+
+async function loadStats() {
+  loading.value = true
+  err.value = ''
   try {
-    stats.value = await api.deliberationStats()
+    stats.value = await api.deliberationStats(days.value === 0 ? undefined : days.value)
   } catch (e) {
     err.value = String(e)
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(loadStats)
+watch(days, loadStats)
 
 // ─── 百分比格式化 ───
 const pct = (v: number) => (v * 100).toFixed(1) + '%'
@@ -85,11 +93,24 @@ const clinicalEntries = computed(() => {
 
 <template>
   <div class="p-6 max-w-6xl mx-auto space-y-6">
-    <!-- 标题 -->
-    <div>
-      <h1 class="text-lg font-semibold">{{ t('deliberation.title') }}</h1>
-      <p class="text-sm text-muted mt-1">{{ t('deliberation.subtitle') }}</p>
+    <!-- 标题 + 时间选择器 -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-lg font-semibold">{{ t('deliberation.title') }}</h1>
+        <p class="text-sm text-muted mt-1">{{ t('deliberation.subtitle') }}</p>
+      </div>
+      <n-radio-group v-model:value="days" size="small">
+        <n-radio :value="7">最近 7 天</n-radio>
+        <n-radio :value="30">最近 30 天</n-radio>
+        <n-radio :value="0">累计</n-radio>
+      </n-radio-group>
     </div>
+
+    <!-- 窗口口径提示 -->
+    <n-alert v-if="stats && stats.window.mode !== 'all'" type="info" :show-icon="true" class="text-xs">
+      当前显示最近 {{ stats.window.days }} 天的数据，其中 {{ stats.window.daysCovered }} 天有数据
+      （日 key 从 2026-11-08 才开始记录，之前的历史数据只有累计值）
+    </n-alert>
 
     <!-- 加载 / 错误 / 空态 -->
     <div v-if="loading" class="text-center py-20 text-muted text-sm">
