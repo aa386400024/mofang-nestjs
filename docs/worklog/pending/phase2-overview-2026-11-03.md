@@ -132,7 +132,7 @@
 
 ### 2.3 独立单清单（非编号 WP，不计入 43 条进度）
 
-> Phase2 期内除 43 条编号 WP 外，另有 **9 个独立单**（**无 WP 编号**，各自一份任务单 + 一份交付记录）。它们原先散落在正文各处（§2.2「切灰度决策观测面」7 条 + P2-8 行 1 条 + 四合一任务单 1 条）—— **本节是统一索引**，一次查全。
+> Phase2 期内除 43 条编号 WP 外，另有 **10 个独立单**（**无 WP 编号**，各自一份任务单 + 一份交付记录）。它们原先散落在正文各处（§2.2「切灰度决策观测面」7 条 + P2-8 行 1 条 + 四合一任务单 1 条）—— **本节是统一索引**，一次查全。
 >
 > ⚠️ **登记纪律（2026-11-08 起生效）**：以后每新增一个独立单，**必须**在本表登记一行（名称 / 日期 / 交付记录 / 说明）。母版出现过「做了但查不到」的根因就是没有这张表（见[审计报告 N6](../audits/phase2-code-vs-blueprint-audit-2026-11-08.md)）。
 
@@ -147,6 +147,7 @@
 | 7 | **degraded 会话打标（后端）** | 2026-11-07 | [交付记录](../completed/phase2/engine-session-degraded-flag-implementation-2026-11-07.md) | 失败率 > 30% 或连续失败 ≥ 3 轮 → `training_sessions.degraded = 1`；考核 / 统计三处过滤；⚠️「失败轮次」= **渲染降级轮次**，**不含**审议层失败（影子期审议结果从不生效 → 计入 = 扔掉好会话）；engine-core 零改动 |
 | 8 | **影子模式统计面板 · 时间窗口扩展** | 2026-11-08 | [交付记录](../completed/phase2/engine-deliberation-stats-time-window-implementation-2026-11-08.md) | 按天分 key（TTL 90 天，UTC+8 固定口径）+ `?days=N` / `?from=&to=` 窗口查询；响应带 `window` 口径对象（含 `daysCovered` —— 日 key 从 2026-11-08 才有）；**真 Redis 已验**；engine-core 零改动 |
 | 9 | **内核内部 clamp01 统一** | 2026-11-08 | [交付记录](../completed/phase2/engine-kernel-internal-clamp-unify-implementation-2026-11-08.md) | 删除内核树里**第三份** `clamp01`（`memory/importance-decay.ts`），复用 `domain/emotion.ts` 那份 → 内核 clamp01 只剩一份；⚠️ 差异面只有 NaN（旧口径 NaN 能**绕过召回门槛** → 新口径正确拒绝）；新增机器守卫（再长出第二份就红）；engine-core 只改 1 个文件 |
+| 10 | **R9 灰度切换开关**（Phase2 收尾） | 2026-11-08 | [交付记录](../completed/phase2/phase2-r9-grayscale-switch-implementation-2026-11-08.md)｜[任务单](../completed/phase2/phase2-r9-grayscale-switch-closeout-2026-11-08.md) | 审议从「旁路观察」升级为「**可配置生效**」：内核加**纯类型**审议钩子端口（同步 / 稀疏补丁 / 失败回退），适配层三态开关（`shadow` / `rule_only` / `llm_active`）+ **会话**白名单；⚠️ 缺省 = **纯规则**（与改造前逐字一致）；⚠️ 建议**滞后一轮**（两拍分离：适配层异步产出 → 缓存 → 内核下一轮同步读）；⚠️ 四层兜底（LLM 失败 / 格式非法 / 版本号过期 / 临床可疑维度）一律回退规则 delta；**engine-core 例外改动**（用户批准：端口文件 + turn() 第 5.5 步 + barrel 导出） |
 
 > ℹ️ **三个「同一 WP 的后半段 / 审核后补做」不算独立单**（它们是编号 WP 的追加部分，已含在 43 条进度里）：**WP58 后半段**（事件 + delta 审计观测，2026-11-06）· **WP65 后半段**（per-session mutex + 快照版本号，2026-11-06）· **WP38 审核后补做**（调试会话恢复能力，2026-11-06）。
 

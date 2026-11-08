@@ -496,7 +496,7 @@ describe('WP65 · 审议影子模式 BullMQ 队列化', () => {
       vi.restoreAllMocks();
     });
 
-    it('④-15 内核树里零审议代码 (审议层完全在适配层 —— 内核零改动)', () => {
+    it('④-15 内核树里零审议**实现** (R9: 内核只留一个**纯类型端口**, 实现全在适配层)', () => {
       const kernelRoot = path.join(__dirname, '../../src/engine-core');
       const hits: string[] = [];
       const walk = (dir: string): void => {
@@ -514,7 +514,27 @@ describe('WP65 · 审议影子模式 BullMQ 队列化', () => {
       };
       walk(kernelRoot);
 
-      expect(hits).toEqual([]);
+      // ⚠️ V2026-11-08 (R9) 治本: 这条断言从「整棵内核树不含 deliberat」**收紧**为
+      //   「只含下面这三处, 且这三处是**纯类型**的」.
+      //   为什么改: R9 要让审议建议**真的生效**, 就必须在内核留一道「落库前改 delta」的口子 ——
+      //   适配层拿到的是落库**之后**的快照, 事后改快照会破坏「一轮一次落库」的
+      //   不变量 (版本号跳两跳, 乐观锁语义变味). 所以内核新增一个**纯类型端口**.
+      //   ⚠️ 这不是放宽: 白名单**显式且最小** (多一处即红), 且下面追加了三条**更严**的断言
+      //     (端口零实现 / 端口零外部引用 / 白名单恰好三处).
+      const allowed = new Set([
+        'runtime/deliberation-hook.port.ts', // 纯类型端口 (零实现)
+        'in-memory/in-memory-engine-session.ts', // 调用端口的那一行
+        'index.ts', // 端口类型的 barrel 再导出
+      ]);
+      expect(hits.filter((file) => !allowed.has(file))).toEqual([]);
+
+      // 端口必须是**纯类型契约**: 零 class / 零 function / 零 const (只有形状, 没有实现).
+      const portSource = readFileSync(path.join(kernelRoot, 'runtime/deliberation-hook.port.ts'), 'utf8');
+      expect(/export\s+(class|function|const)\b/.test(portSource)).toBe(false);
+      // 端口**不得**引用适配层 / 框架 (审议的实现必须留在适配层).
+      expect(portSource).not.toMatch(/from\s+['"][^'"]*(engine-adapters|@nestjs|typeorm)/);
+      // 白名单里的三处必须**都**在 (少一处 = 内核里还留着别处的审议痕迹, 或端口被删了).
+      expect([...allowed].filter((file) => hits.includes(file)).sort()).toEqual([...allowed].sort());
     });
   });
 

@@ -338,6 +338,65 @@ export interface DeliberationShadowPort {
 }
 
 /**
+ * 生效路径的审议入参 (R9).
+ *
+ * ⚠️ **与影子入参同形状** (直接别名, 不复制第二份契约):
+ *   两条路径需要的上下文**逐字相同** —— 归属 / 轮次 / 版本号 / 快照 / 三段文本 /
+ *   规则 delta / 行为策略. 复制一份类型 = 两份真相 (改了一份忘了另一份 = 生效路径
+ *   少传一个字段, 而且**不报错**, 只是审议质量变差).
+ *
+ * ⚠️ **口径差异只在"快照是哪一份"**:
+ *   · 影子路径: `baseSnapshot` = 本轮**开始时**的快照 (R0), `baseRevision` = 本轮
+ *     **落库后**的版本 (R1) —— 过期判定锚 R1 (见 `checkStale` 的说明).
+ *   · 生效路径: `baseSnapshot` = 本轮**落库后**的快照 (= 下一轮开始时的状态, R1),
+ *     `baseRevision` = 同一个 R1 —— 两边自洽 (审议算的就是"下一轮会看到的那个状态").
+ */
+export type DeliberationEffectiveInput = DeliberationShadowInput;
+
+/**
+ * 剔掉**临床可疑**的维度 (R9 · 生效路径专用).
+ *
+ * ⚠️ **为什么影子期不做这件事**:
+ *   影子期的临床校验是**观察** —— 只标记, 不改 delta (那期要的是数据, 不是拦截).
+ *   生效期不一样: 一条被判定为"可疑"的改动**落进状态**就撤不回来了 (状态轨迹不可回滚),
+ *   所以保守方向是**不落** —— 该维度这一轮保持规则算子的值.
+ *
+ * ⚠️ **只剔 `warn` 级别的维度**: `info` 级 (阻抗集体上升) 是"值得看一眼"而不是
+ *   "可疑到不能落" —— 一并剔掉会让生效路径几乎什么都不做.
+ *
+ * ⚠️ **整维度剔, 不是整份建议剔**: 一条建议里通常有几维, 只把可疑的那几维剔掉,
+ *   其余维度照常生效 (全剔 = 一条可疑建议把整轮审议废掉, 灰度就白灰了).
+ *
+ * @param deltas 砍幅后的 delta 列表
+ * @param clinicalFlags 临床合理性标记
+ * @returns 剔掉可疑维度后的列表 (没有可疑维度时**原样返回**)
+ */
+export function dropClinicalFlaggedDimensions(
+  deltas: readonly DeliberationDeltaEntry[],
+  clinicalFlags: readonly ClinicalFlag[],
+): readonly DeliberationDeltaEntry[] {
+  const flagged = new Set(clinicalFlags.filter((flag) => flag.severity === 'warn').map((flag) => flag.dimension));
+  if (flagged.size === 0) return deltas;
+  return deltas.filter((delta) => !flagged.has(delta.dimension));
+}
+
+/**
+ * 生效路径的结局 (R9).
+ *
+ * ⚠️ **不抛** —— 三种结局都如实返回, 由调用方决定"回退规则 delta".
+ *   与 `DeliberationOutcome` 的区别: 这里只给**生效用的 delta 列表`,
+ *   不回传 `validated` / `usage` —— 观察面 (trace) 已经写过了, 生效面只要能落状态的数.
+ */
+export type DeliberationEffectiveOutcome =
+  | {
+      readonly kind: 'ok';
+      /** 生效用的 delta 列表 (已过 cap, 临床可疑维度已剔除). */
+      readonly deltas: readonly DeliberationDeltaEntry[];
+    }
+  | { readonly kind: 'failed'; readonly errorCode: string | null }
+  | { readonly kind: 'exception' };
+
+/**
  * 影子审议开关的**唯一判定口径** (`ENGINE_DELIBERATION_ENABLED`).
  *
  * ⚠️ 为什么是导出给两处用的纯函数 (WP65):
@@ -1370,6 +1429,65 @@ export class LlmDeliberationService {
       await this.saveIntentionLockState(input.tenantId, input.sessionId, lock.newState);
     }
     return outcome;
+  }
+
+  /**
+   * 跑一次**生效**审议 (R9 · 灰度切换) —— 结果会真的改 delta.
+   *
+   * ⚠️ **与影子路径的关系**: 二者**同源不同命** ——
+   *   · 同一份 prompt 装配 (`buildDeliberationSystemPrompt` / `buildDeliberationUserPrompt`);
+   *   · 同一个结构化输出链 (`CounselorLlmJsonClient` + `validateDeliberationOutput`);
+   *   · 同一份 delta cap (`applyDeliberationDeltaCap` + 同一份 `capConfig`);
+   *   · 同一套临床合理性规则 (`applyClinicalSanityCheck`);
+   *   · 同一份 trace 记录 (`buildSuccessRecord` / `buildFailureRecord`) —— 灰度期
+   *     看板看的还是那套字段 (`deltaDiff` / `capEntries` / `clinicalFlags` …).
+   *   差别只有两处:
+   *   · **不走 BullMQ 队列** —— 生效路径要的是"下一轮就能用", 队列的延迟与重试语义
+   *     对不上 (队列是"观察面"的载体, 生效面要的是"即时可用");
+   *   · **多一道"临床可疑维度剔除"** —— 影子期临床校验只标记, 生效期标记的维度
+   *     **不落状态** (保守方向: 可疑的改动宁可不生效).
+   *
+   * ⚠️ **失败一律折成结局, 绝不抛** —— 主流程不能因为审议失败而炸 (与影子路径同款纪律).
+   *
+   * @param input 本轮审议所需的全部上下文
+   * @returns 本轮结局 (ok / failed / exception)
+   */
+  async runEffectiveDeliberation(input: DeliberationEffectiveInput): Promise<DeliberationEffectiveOutcome> {
+    const startedAt = Date.now();
+    const outcome = await this.runDeliberation(input);
+
+    // 代码 bug 路径: 不重试 (重试同一个 bug 还是会挂), 记一条失败 trace 收工.
+    if (outcome.kind === 'exception') {
+      await this.writeTrace(this.buildFailureRecord(input, 'shadow_exception', startedAt, null, 0));
+      return { kind: 'exception' };
+    }
+
+    // "跳过" (开关关着) 在生效路径不该出现 (模式配置已判过) —— 出现就当"没有建议".
+    if (outcome.kind === 'skipped') {
+      return { kind: 'failed', errorCode: 'skipped' };
+    }
+
+    if (outcome.kind === 'failed') {
+      await this.writeTrace(this.buildFailureRecord(input, outcome.errorCode, startedAt, outcome.usage, 0));
+      return { kind: 'failed', errorCode: outcome.errorCode };
+    }
+
+    // 走到这里只剩"成功". 下面的三步与影子路径**逐字同款** (锁 → 过期判定 → trace).
+    const lock = await this.resolveLock(input, outcome.validated.output.intentionShift);
+    const staleCheck = await this.checkStale(input.tenantId, input.sessionId, input.baseRevision);
+    await this.writeTrace(this.buildSuccessRecord(input, outcome.validated, startedAt, outcome.usage, 0, lock, staleCheck));
+    await this.saveIntentionLockState(input.tenantId, input.sessionId, lock.newState);
+
+    // 生效用的 delta: 砍幅后 + **剔除临床可疑维度**.
+    //   ⚠️ 砍幅与 trace 里用的是同一份 `applyDeliberationDeltaCap` (纯函数, 结果逐字相同) ——
+    //     生效值与 trace 记的值必须一致, 否则看板会骗人.
+    const { cappedDeltas } = applyDeliberationDeltaCap(outcome.validated.output.deltas, this.capConfig);
+    //   ⚠️ 临床校验在生效路径**强制打开** (不受 `ENGINE_CLINICAL_SANITY_ENABLED` 控制):
+    //     那个开关是**观察面**的开关 (影子期默认关, 省开销); 生效期它是**安全网** ——
+    //     观察面可以关, 安全网不能关.
+    const { clinicalFlags } = applyClinicalSanityCheck(cappedDeltas, true);
+    const deltas = dropClinicalFlaggedDimensions(cappedDeltas, clinicalFlags);
+    return { kind: 'ok', deltas };
   }
 
   /**

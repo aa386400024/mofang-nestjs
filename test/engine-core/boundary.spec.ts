@@ -439,6 +439,11 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'SessionDecayConfig',
       'DEFAULT_SESSION_DECAY_CONFIG',
       'applySessionDecay',
+      // R9: 审议钩子端口 (内核只认这个**纯类型**接口: 同步 / 稀疏补丁 / 失败回退)
+      //   (公开面是契约 —— 适配层要引用这三个类型名, 变更必须被看见)
+      'DeliberationDeltaPatch',
+      'DeliberationHookContext',
+      'DeliberationHookPort',
     ];
     // 少导出
     expect(expectedPublic.filter((name) => !exportedNames.includes(name))).toEqual([]);
@@ -490,6 +495,7 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'memory/promotion.ts',
       'memory/recall-policy.ts',
       'runtime/engine-session.port.ts',
+      'runtime/deliberation-hook.port.ts',
       'in-memory/in-memory-bdi-state.repository.ts',
       'in-memory/in-memory-memory.store.ts',
       'in-memory/in-memory-engine-session.ts',

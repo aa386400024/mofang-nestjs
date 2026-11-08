@@ -91,6 +91,7 @@ import {
   type TrajectoryTrace,
 } from '../domain/trajectory/script.js';
 import { overflowedWorkingWindowLines, trimWorkingWindow, WORKING_MEMORY_WINDOW_TURNS } from '../memory/working-window.js';
+import type { DeliberationHookPort } from '../runtime/deliberation-hook.port.js';
 import type { EngineSessionPort } from '../runtime/engine-session.port.js';
 
 /** 工作记忆条目的默认重要度. WP0 无重要度算法 (属 WP2 遗忘机制), 取中性值. */
@@ -261,6 +262,16 @@ export interface InMemoryEngineSessionOptions {
    *   只交"被挤出的文本"是写不出合法记忆条目的.
    */
   readonly onWorkingWindowOverflow?: (event: WorkingWindowOverflowEvent) => void;
+  /**
+   * 审议钩子 (R9 · 可选注入).
+   *
+   * 缺省 = **不注入** = 决策链与改造前**逐字一致** (零回归硬要求).
+   * 注入 = 本轮落库前多一道"审议修正 delta"的口子 (见 `applyDeliberationHook`).
+   *
+   * 为什么是**构造注入**而不是每次 turn 传: 与 cap / 人格 / 同盟同款 ——
+   * 审议能力是**部署形态**的决定 (灰度到哪批会话), 不是会话参数.
+   */
+  readonly deliberationHook?: DeliberationHookPort;
 }
 
 /** 会话内核的内存实现. */
@@ -295,6 +306,8 @@ export class InMemoryEngineSession implements EngineSessionPort {
   private readonly sessionDecayConfig: SessionDecayConfig | undefined;
   /** 工作窗口溢出回调 (WP37 · 缺省 = 不回调). */
   private readonly onWorkingWindowOverflow: ((event: WorkingWindowOverflowEvent) => void) | undefined;
+  /** 审议钩子 (R9; 缺省 = 不注入 = 零回归). */
+  private readonly deliberationHook: DeliberationHookPort | undefined;
 
   constructor(options: InMemoryEngineSessionOptions) {
     this.bdiStates = options.bdiStates;
@@ -310,6 +323,7 @@ export class InMemoryEngineSession implements EngineSessionPort {
     this.deltaTableConfig = options.deltaTableConfig;
     this.sessionDecayConfig = options.sessionDecayConfig;
     this.onWorkingWindowOverflow = options.onWorkingWindowOverflow;
+    this.deliberationHook = options.deliberationHook;
   }
 
   openSession(input: OpenEngineSessionInput): EngineSessionHandle {
@@ -419,7 +433,12 @@ export class InMemoryEngineSession implements EngineSessionPort {
     //      里接信念算子, 落库快照就**永远不会**带上信念演化 (机制空转).
     //    两处口径必须一致: 临时快照 (transitionState) 与落库快照都从 base.snapshot 出发,
     //    各自演一次, 结果相同.
-    const nextSnapshot = applyBeliefEvolution(applyDeltaVector(base.snapshot, cappedTotal), userText);
+    // 5.5 (R9): 审议钩子 (可选注入) —— 本轮落库**前**的最后一道修正口.
+    //    不注入 = 整段跳过 = 决策链与改造前**逐字一致** (零回归硬要求).
+    //    注入时: 钩子给建议就用建议, 给 null / 抛错就回退规则 delta —— 主流程永远不炸.
+    //    ⚠️ 建议**再过一次 cap**: 审议结果不得绕过 delta cap (与规则侧同一把尺子).
+    const finalDelta = this.applyDeliberationHook(runtime, base.snapshot, base.revision, cappedTotal, userText);
+    const nextSnapshot = applyBeliefEvolution(applyDeltaVector(base.snapshot, finalDelta), userText);
     //    报告口径 = 总 delta (不是事件 delta): 运维看到的就是"这一轮实际被砍了多少".
     notifyDeltaCap(
       this.capObserver,
@@ -581,6 +600,63 @@ export class InMemoryEngineSession implements EngineSessionPort {
       // resume 接续分支在上方, 直接搬上一场快照, 不用 profile 覆盖.
       snapshot: buildInitialSnapshot(runtime.characterProfile ?? undefined),
     };
+  }
+
+  /**
+   * 问审议钩子要本轮建议 (R9).
+   *
+   * **失败语义 (本方法的核心职责)**: 任何异常 / 无建议 → **回退规则 delta**.
+   *   审议是**增强**, 不是必需 —— 它挂了不该让整轮对练失败 (与 `notifyWindowOverflow`
+   *   / `collectOpeningContext` 同款纪律).
+   *
+   * **合并语义**: 建议是**稀疏补丁** —— 只覆盖它提到的维度, 其余维度保留规则值.
+   *   (审议模型通常只提 2-3 维; 若整体替换, 规则算子算出的其余维度会被清零.)
+   *
+   * **再过一次 cap**: 审议建议**不得绕过** delta cap —— 覆盖完再过同一把尺子.
+   *   尺子用的是**与规则侧同一份** `capConfig` (构造注入), 两端口径恒等.
+   *
+   * ⚠️ **不注入端口 = 整段早退** → 返回值与入参逐字相同 → 决策链零回归.
+   *
+   * @param runtime 运行时会话
+   * @param snapshot 本轮开始时的快照 (审议基于它给建议)
+   * @param currentRevision 本轮开始时载入的状态记录版本号 (状态记录带版本, 快照不带 ——
+   *   见 `BdiStateRecord` / `BdiSnapshot` 的分工说明)
+   * @param ruleDelta 规则算子算出的本轮 delta (已过 cap)
+   * @param counselorText 本轮咨询师文本
+   * @returns 本轮实际生效的 delta
+   */
+  private applyDeliberationHook(
+    runtime: EngineSessionRuntime,
+    snapshot: BdiSnapshot,
+    currentRevision: number,
+    ruleDelta: DeltaVector,
+    counselorText: string,
+  ): DeltaVector {
+    const hook = this.deliberationHook;
+    if (!hook) return ruleDelta;
+    try {
+      const patch = hook.applyDeliberation({
+        snapshot,
+        ruleDelta,
+        counselorText,
+        tenantId: runtime.tenantId,
+        sessionId: runtime.sessionId,
+        turnIndex: runtime.turnIndex + 1,
+        // 本轮依据的状态记录版本号 —— 适配层靠它判"这份建议还作数吗" (见端口的说明).
+        //   取的是**载入时**那份状态记录的版本 (= 上一轮落库后的版本 R1), 不是本地算的 +1:
+        //   落库那一步会返回仓储归一化后的权威版本, 适配层记的基准版本要与它对齐.
+        currentRevision,
+      });
+      // 空补丁 = 没有实质建议 → 直接用规则 delta (不必再过一次 cap, 逐字相同).
+      if (!patch) return ruleDelta;
+      const merged: DeltaVector = { ...ruleDelta, ...patch };
+      // 再过一次 cap: 审议结果不得绕过 delta cap (同一把尺子, 构造注入的同一份配置).
+      return capTurnDelta(merged, this.capConfig);
+    } catch {
+      // 故意不记日志: 内核不持有 logger (零框架依赖), 适配层自己知道自己的失败.
+      //   与 `notifyWindowOverflow` / `collectOpeningContext` 同款理由.
+      return ruleDelta;
+    }
   }
 
   /**

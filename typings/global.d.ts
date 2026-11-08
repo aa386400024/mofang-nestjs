@@ -361,6 +361,12 @@ export declare global {
       //   (src/engine-adapters/deliberation/llm-deliberation.service.ts).
       //   ⚠️ 数值键读到的**一定是字符串**, 必须自己解析 + 回退默认.
       ENGINE_DELIBERATION_INTENTION_LOCK_ROUNDS?: string; // 锁定几轮 (默认 3; 0 = 关掉锁定; 非法值回退默认)
+      // V2026-11-08 治本 (R9 — 灰度切换开关):
+      //   下面是"审议从只观察升级为可生效"的两个键. 同样**逐个字面量**读
+      //   (src/engine-adapters/deliberation/deliberation-mode.config.ts).
+      //   ⚠️ 缺省组合 = **纯规则** —— 与改造前逐字一致 (零回归).
+      ENGINE_DELIBERATION_EFFECTIVE_MODE?: string; // 生效模式: shadow(缺省) / rule_only / llm_active; 非法值回退 shadow
+      ENGINE_DELIBERATION_GRAYSCALE_SESSIONS?: string; // 生效路径的会话白名单 (逗号分隔 sessionId; 缺省 = 全量)
       // V2026-11-07 治本 (临床合理性校验 · 观测版):
       //   审议输出的临床合理性**观测**开关. 同样**逐个字面量**读
       //   (src/engine-adapters/deliberation/llm-deliberation.service.ts).

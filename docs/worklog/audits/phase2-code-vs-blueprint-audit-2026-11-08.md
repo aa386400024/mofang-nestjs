@@ -275,6 +275,9 @@ Phase1 报告用 `D1…D45` 一条流水号贯穿全文。本次**改为分域�
 | **R10** | 100+ 场真实对话数据 | §6 Phase 2.5 出口条件 | 数据管道齐备，**数据未积累** | 【静态推演】 |
 | **R11** | 降级时自然衰减幅度 50% | §3.1 边界 4 | `session-decay` 无降级态分支，半衰期不随降级状态调整 | 【静态推演】 |
 
+> ✅ **2026-11-08 状态补注（不改动本审计结论）**：**R9 已交付** —— 审议从「旁路观察」升级为「可配置生效」（内核加**纯类型**审议钩子端口 + 三态模式开关 + 会话白名单；缺省仍 = 纯规则，零回归）。交付记录：[`../completed/phase2/phase2-r9-grayscale-switch-implementation-2026-11-08.md`](../completed/phase2/phase2-r9-grayscale-switch-implementation-2026-11-08.md)｜任务单：[`../completed/phase2/phase2-r9-grayscale-switch-closeout-2026-11-08.md`](../completed/phase2/phase2-r9-grayscale-switch-closeout-2026-11-08.md)。
+> ⚠️ 本审计 §2 / §3 表格里「R9 ❌ 阻塞」「6 项阻塞未解」是**审计当天的快照**，不改写历史；R9 的当前状态以[母版 §2.3 第 10 行](../pending/phase2-overview-2026-11-03.md) + 上述交付记录为准。**剩余 5 项阻塞（R4 / R6 / R7 / R8 / R12）仍未解。**
+
 ---
 
 ## 7. 无法证实 / 超出静态审计边界的项

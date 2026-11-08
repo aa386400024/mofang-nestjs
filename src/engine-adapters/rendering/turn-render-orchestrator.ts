@@ -119,6 +119,7 @@ import {
   type BehaviorStrategy,
   type BdiSnapshot,
   type CounselorEventKind,
+  type DeliberationHookContext,
   type EmotionLabel,
   type EngineSessionPort,
   type EngineTurnInput,
@@ -134,6 +135,7 @@ import {
 } from '../../engine-core/index.js';
 import type { ChatMessage } from '../../llm/common/interfaces/chat-provider.interface.js';
 import type { DeliberationMode } from '../deliberation/deliberation-types.js';
+import type { DeliberationEffectPort } from '../deliberation/llm-deliberation-hook.js';
 import { computeRuleDelta, type DeliberationShadowPort } from '../deliberation/llm-deliberation.service.js';
 import type { RollingSummaryPort } from '../persistence/rolling-session-summary.service.js';
 
@@ -361,6 +363,21 @@ export interface TurnRenderOrchestratorDeps {
    *   窄端口让单测能用极小替身覆盖, 也让"装配缺席"退化成"没有审议"而不是"门面起不来".
    */
   readonly deliberation?: DeliberationShadowPort;
+  /**
+   * 生效审议钩子 (V2026-11-08 R9; 缺省 = 不跑生效审议).
+   *
+   * 缺省语义: **纯增强** —— 没装就只是"没有生效审议", 会话与渲染逐字不变.
+   *
+   * ⚠️ 为什么与影子审议**分成两个端口**:
+   *   · 影子端口 = "旁路观察" (BullMQ 队列, 结果只进 trace);
+   *   · 生效端口 = "下一轮真的改 delta" (进程内直跑, 结果进内核).
+   *   两者时机、代价、失败语义都不同, 合成一个端口 = 一个开关管两件事, 迟早误用.
+   *
+   * ⚠️ 为什么门面是**唯一**能驱动生效拍的地方:
+   *   审议 prompt 需要"来访者本轮的渲染回应" —— 那是渲染产物, 内核拿不到
+   *   (内核 turn 跑在渲染之前). 门面是唯一同时握有渲染产物与归属登记的位置.
+   */
+  readonly deliberationHook?: DeliberationEffectPort;
 }
 
 /**
@@ -526,9 +543,10 @@ export class TurnRenderOrchestrator {
     // 4. 回填前的落账: 历史 + 来访半边工作记忆.
     await this.settleTurn(handleId, input.userText, rendered);
 
-    // 4.5 影子审议 (WP64): 旁路跑一次 LLM 审议, **不生效** (结果只进 Redis trace 表).
+    // 4.5 审议旁路 (WP64 影子 + R9 生效): 旁路跑一次 LLM 审议.
     //     fire-and-forget: 不 await, 主流程响应时间不受审议影响.
-    this.shadowDeliberation(handleId, input, output, rendered.text, spec.intention.strategy);
+    //     影子结果不生效 (只进 Redis trace 表); 生效结果交钩子缓存, 下一轮由内核合并.
+    this.deliberationRound(handleId, input, output, rendered.text, spec.intention.strategy);
 
     // 5. 组装返回 (内核出参逐字透传, 外面包一层 render 元信息与真实 reply).
     return {
@@ -602,8 +620,8 @@ export class TurnRenderOrchestrator {
     // 4. 落账 (与 turn() 共用 settleTurn: 历史 + 来访半边工作记忆).
     await this.settleTurn(handleId, input.userText, rendered);
 
-    // 4.5 影子审议 (WP64): 与聚合路径**同一处**旁路调用, 不复制一份流式专属逻辑.
-    this.shadowDeliberation(handleId, input, output, rendered.text, spec.intention.strategy);
+    // 4.5 审议旁路 (WP64 影子 + R9 生效): 与聚合路径**同一处**旁路调用, 不复制一份流式专属逻辑.
+    this.deliberationRound(handleId, input, output, rendered.text, spec.intention.strategy);
 
     // 5. 组装返回 (与 turn() 同构).
     return {
@@ -664,33 +682,42 @@ export class TurnRenderOrchestrator {
   }
 
   /**
-   * 影子审议 (V2026-11-05 WP64): 旁路跑一次 LLM 审议, **结果不生效**.
+   * 审议旁路 (WP64 影子 + R9 生效): 每轮渲染后跑一次审议.
    *
-   * 三条硬纪律 (任务单 §1.3 / §4.2):
+   * 三条硬纪律 (影子路径的纪律, 生效路径**逐字沿用**):
    *   ① 不 await —— fire-and-forget, 主流程响应时间不受审议影响;
    *   ② 不 await 也不 catch 到主流程 —— 异常在审议服务内部吞掉, 这里再兜一层;
-   *   ③ 结果只写 Redis trace 表 —— **绝不**回写 BDI 快照.
+   *   ③ 门面**不直接改状态** —— 生效路径也改不了: 状态落库的唯一入口是内核,
+   *      门面只把"建议"交给钩子, 由内核在**下一轮落库前**合并 (见 `DeliberationHookPort`).
    *
    * 什么时候**跳过**这一轮 (都是"缺数据", 不是"出错"):
-   *   · 没装审议端口 (装配缺席 = 没有影子审议这个能力);
+   *   · 两种审议端口都没装 (装配缺席 = 没有审议这个能力);
    *   · 没有上一轮快照 (会话的**第一轮** —— 起始快照还没被记下来; 跨会话接续的第一轮同理);
    *   · 拿不到会话归属 (归属登记表里没有这场会话);
    *   · 归属里没有学员账号 id (LLM 调用要求 userId 非空 —— 与其拿假 id 记账, 不如不记).
+   *
+   * ⚠️ **为什么两种审议共用一个调用点**:
+   *   两者要的上下文**完全一样** (归属 / 起始快照 / 三段文本 / 规则 delta / 策略),
+   *   拆成两个调用点 = 两份取数逻辑, 迟早一边改了另一边没改 (影子算的 delta 与
+   *   生效算的 delta 口径漂移, 灰度期的对比数据就废了).
    *
    * @param handleId 内核会话句柄
    * @param input 本轮入参 (咨询师文本)
    * @param output 内核本轮出参 (含本轮结束后的快照)
    * @param visitorText 本轮来访的渲染文本
+   * @param ruleStrategy 本轮规则算子选中的行为策略
    */
-  private shadowDeliberation(
+  private deliberationRound(
     handleId: string,
     input: EngineTurnInput,
     output: EngineTurnOutput,
     visitorText: string,
     ruleStrategy: BehaviorStrategy,
   ): void {
-    const deliberation = this.deps.deliberation;
-    if (!deliberation) return;
+    const shadow = this.deps.deliberation;
+    const effect = this.deps.deliberationHook;
+    // 两种审议都没装 → 什么都不做 (连"上一轮快照"都不记, 与装审议之前**逐字一致**).
+    if (!shadow && !effect) return;
     // 本轮开始时的快照 = 上一轮结束时记下的那份 (首轮没有 → 跳过).
     const baseSnapshot = this.lastSnapshots.get(handleId);
     // 记下本轮结束后的快照, 供下一轮当"起始快照"用.
@@ -702,35 +729,74 @@ export class TurnRenderOrchestrator {
     const userId = (context.userId ?? '').trim();
     if (!userId) return;
 
-    try {
-      void deliberation
-        .runShadowMode({
-          sessionId: context.sessionId,
-          tenantId: context.tenantId,
-          userId,
-          turnIndex: output.turnIndex,
-          // WP65: 本轮落库后的快照版本号 (output.revision) —— 切灰度时判断审议结果有没有过期.
-          //   `?? 0` 兜底: 内核没填 (老版本 / 测试 mock) 时记 0 —— 真实版本都 >= 1,
-          //   0 会被判定为过期 (安全的失败方向, 而不是"看起来有效").
-          baseRevision: output.revision ?? 0,
-          mode: DELIBERATION_SHADOW_MODE,
-          baseSnapshot,
-          counselorText: input.userText,
-          visitorText,
-          characterBrief: context.characterBrief ?? '',
-          ruleDelta: computeRuleDelta(baseSnapshot, output.snapshot),
-          // WP68: 意图锁定需要知道"规则算子本轮选的策略" —— 审议层拿不到内核意图
-          //   (意图是每轮派生输出, 不在快照里), 所以由门面传进去.
-          //   ⚠️ 取 `spec.intention.strategy` (本轮渲染**实际用的**那个策略,
-          //   内核意图缺失时有中性兜底 `simple_response`) —— 不是猜一个.
-          ruleStrategy,
+    // ① 影子旁路 (V2026-11-05 WP64): 结果**不生效**, 只写 Redis trace 表.
+    if (shadow) {
+      try {
+        void shadow
+          .runShadowMode({
+            sessionId: context.sessionId,
+            tenantId: context.tenantId,
+            userId,
+            turnIndex: output.turnIndex,
+            // WP65: 本轮落库后的快照版本号 (output.revision) —— 切灰度时判断审议结果有没有过期.
+            //   `?? 0` 兜底: 内核没填 (老版本 / 测试 mock) 时记 0 —— 真实版本都 >= 1,
+            //   0 会被判定为过期 (安全的失败方向, 而不是"看起来有效").
+            baseRevision: output.revision ?? 0,
+            mode: DELIBERATION_SHADOW_MODE,
+            baseSnapshot,
+            counselorText: input.userText,
+            visitorText,
+            characterBrief: context.characterBrief ?? '',
+            ruleDelta: computeRuleDelta(baseSnapshot, output.snapshot),
+            // WP68: 意图锁定需要知道"规则算子本轮选的策略" —— 审议层拿不到内核意图
+            //   (意图是每轮派生输出, 不在快照里), 所以由门面传进去.
+            //   ⚠️ 取 `spec.intention.strategy` (本轮渲染**实际用的**那个策略,
+            //   内核意图缺失时有中性兜底 `simple_response`) —— 不是猜一个.
+            ruleStrategy,
+          })
+          .catch((error: unknown) => {
+            // 审议服务承诺不抛 —— 这一层是**防御**: 万一它抛了, 也不能炸主流程.
+            warn(`[shadow] 审议调用异常 (已忽略): ${errorMessage(error)}`);
+          });
+      } catch (error) {
+        warn(`[shadow] 审议调用异常 (已忽略): ${errorMessage(error)}`);
+      }
+    }
+
+    // ② 生效拍 (V2026-11-08 R9): 产出一份建议, 供**下一轮**内核取用.
+    //   ⚠️ 这里的快照是**本轮落库后**的那份 (= 下一轮开始时内核会载入的状态),
+    //     版本号同理 (R1) —— 产出拍与下一轮的消费拍因此天然对齐,
+    //     只有状态被外力改过 (会话恢复 / 别的进程改了状态) 才会判成过期.
+    if (effect) {
+      const produceContext: DeliberationHookContext = {
+        snapshot: output.snapshot,
+        ruleDelta: computeRuleDelta(baseSnapshot, output.snapshot),
+        counselorText: input.userText,
+        tenantId: context.tenantId,
+        sessionId: context.sessionId,
+        turnIndex: output.turnIndex,
+        // `?? 0` 兜底: 内核没填 (老版本 / 测试 mock) 时记 0 —— 真实版本都 >= 1.
+        //   0 与下一轮内核报上来的版本对不上 → 建议判成过期 → 回退规则 delta
+        //   (安全的失败方向, 而不是"看起来有效").
+        currentRevision: output.revision ?? 0,
+      };
+      // ⚠️ 这里**不加** try/catch: `.catch()` 已经兜住了 rejection, 而 `produce` 是
+      //   **async 方法** —— 它不可能同步抛 (同步抛只可能来自调用方自己的代码,
+      //   而这里做的是纯参数组装). 多套一层 try 只会让"到底谁兜的"变模糊.
+      void effect
+        .produce({
+          context: produceContext,
+          extras: {
+            visitorText,
+            characterBrief: context.characterBrief ?? '',
+            userId,
+            ruleStrategy,
+          },
         })
         .catch((error: unknown) => {
           // 审议服务承诺不抛 —— 这一层是**防御**: 万一它抛了, 也不能炸主流程.
-          warn(`[shadow] 审议调用异常 (已忽略): ${errorMessage(error)}`);
+          warn(`[r9] 生效审议调用异常 (已忽略): ${errorMessage(error)}`);
         });
-    } catch (error) {
-      warn(`[shadow] 审议调用异常 (已忽略): ${errorMessage(error)}`);
     }
   }
 

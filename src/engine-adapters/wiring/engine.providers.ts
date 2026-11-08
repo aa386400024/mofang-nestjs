@@ -44,6 +44,7 @@ import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memor
 import type {
   AllianceConfig,
   BdiStateRepository,
+  DeliberationHookPort,
   DeltaCapConfig,
   DeltaCapObserver,
   DeltaTableConfig,
@@ -60,6 +61,7 @@ import type { SessionEvaluationRegistry } from '../../voice/session-evaluation-s
 import type { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
 import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import type { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
+import type { DeliberationEffectPort } from '../deliberation/llm-deliberation-hook.js';
 import type { DeliberationShadowPort } from '../deliberation/llm-deliberation.service.js';
 import type { SessionCostPricing } from '../observability/session-cost.js';
 import { toRecallPolicyOptions, type MemoryConfig } from '../persistence/memory-config.js';
@@ -210,6 +212,16 @@ export interface EngineSessionTuningDeps {
    * 与 cap 同款范式: 这是**内核 → 适配层**的通知口, 缺省 = 内核只裁窗口不通知.
    */
   readonly onWorkingWindowOverflow?: (event: WorkingWindowOverflowEvent) => void;
+  /**
+   * 审议钩子 (R9; 缺省 = 内核**完全不问**审议).
+   *
+   * 缺省语义: **逐字零回归** —— 不注入 = 内核决策链里没有审议这一步,
+   * 落库的 delta 与改造前**逐字相同** (不是"结果一样", 是"根本没走那条路").
+   *
+   * 为什么是**构造注入**而不是每次 turn 传: 与 cap / 人格 / 同盟同款 ——
+   * 审议能力是**部署形态**的决定 (灰度到哪批会话), 不是会话参数.
+   */
+  readonly deliberationHook?: DeliberationHookPort;
 }
 
 /**
@@ -245,6 +257,7 @@ export function createEngineSessionPort(
     ...(tuning?.deltaTableConfig ? { deltaTableConfig: tuning.deltaTableConfig } : {}),
     ...(tuning?.sessionDecayConfig ? { sessionDecayConfig: tuning.sessionDecayConfig } : {}),
     ...(tuning?.onWorkingWindowOverflow ? { onWorkingWindowOverflow: tuning.onWorkingWindowOverflow } : {}),
+    ...(tuning?.deliberationHook ? { deliberationHook: tuning.deliberationHook } : {}),
   });
 }
 
@@ -280,6 +293,12 @@ export interface EngineOrchestratorDeps {
    * 缺省语义: **纯增强** —— 没装就只是"没有影子审议数据", 会话与渲染逐字不变.
    */
   readonly deliberation?: DeliberationShadowPort;
+  /**
+   * 生效审议钩子 (R9; 缺省 = 不跑生效审议).
+   *
+   * 缺省语义: **纯增强** —— 没装就只是"没有生效审议", 会话与渲染逐字不变.
+   */
+  readonly deliberationHook?: DeliberationEffectPort;
 }
 
 /**
@@ -302,6 +321,8 @@ export function createEngineOrchestrator(deps: EngineOrchestratorDeps): TurnRend
     ...(deps.rollingSummary ? { rollingSummary: deps.rollingSummary } : {}),
     // WP64: 影子审议端口 —— 装配缺席时门面行为逐字不变 (纯增强).
     ...(deps.deliberation ? { deliberation: deps.deliberation } : {}),
+    // R9: 生效审议钩子 —— 装配缺席时门面行为逐字不变 (纯增强).
+    ...(deps.deliberationHook ? { deliberationHook: deps.deliberationHook } : {}),
   });
 }
 

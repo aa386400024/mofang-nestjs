@@ -64,3 +64,22 @@ export const ROLLING_SUMMARY_CLEANUP = Symbol('ROLLING_SUMMARY_CLEANUP');
  *   把仓储提成独立 provider 并导出, 是让"同一份真相"成立的唯一办法.
  */
 export const ENGINE_BDI_STATE_REPOSITORY = Symbol('ENGINE_BDI_STATE_REPOSITORY');
+
+/**
+ * 审议灰度模式配置 token (V2026-11-08 R9 · 实现 = `DeliberationModeConfig`).
+ *
+ * ⚠️ 为什么单独一个 token (而不是各工厂自己读 env):
+ *   模式判定要喂**三个**决策 (内核要不要挂钩子 / 门面要不要跑生效拍 / 影子旁路挂不挂),
+ *   三处必须**读到同一份**. 各读各的 = 三处 env 快照万一不一致 (比如中途改 env),
+ *   就会出现"内核在问审议、门面不产出"这种半接上的状态 —— 症状是建议永远不生效,
+ *   而日志上什么都看不出来.
+ */
+export const ENGINE_DELIBERATION_MODE_CONFIG = Symbol('ENGINE_DELIBERATION_MODE_CONFIG');
+
+/**
+ * 审议生效钩子 token (V2026-11-08 R9 · 实现 = `LlmDeliberationHook`).
+ *
+ * ⚠️ 必须是**单例**: 内核会话端口与编排门面必须拿到**同一个**钩子实例 ——
+ *   钩子持有"每场会话最近一条建议"的进程内缓存, 两个实例 = 两份缓存 = 建议永远对不上.
+ */
+export const ENGINE_DELIBERATION_HOOK = Symbol('ENGINE_DELIBERATION_HOOK');

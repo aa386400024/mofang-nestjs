@@ -153,6 +153,7 @@ export { guardVisitorOutput } from './cognition/rendering/output-guard.js';
 
 // ── 运行时端口 ────────────────────────────────────────────────────
 export type { EngineSessionPort } from './runtime/engine-session.port.js';
+export type { DeliberationDeltaPatch, DeliberationHookContext, DeliberationHookPort } from './runtime/deliberation-hook.port.js';
 
 // ── 状态迁移与单回合 delta cap (WP1 + WP15 + WP26) ─────────────────
 //   WP15 的 cap 符号原先只在 cognition/state-transition.ts 里, adapter 只能深路径

@@ -68,6 +68,8 @@ import {
 } from './engine.providers.js';
 import {
   ENGINE_BDI_STATE_REPOSITORY,
+  ENGINE_DELIBERATION_HOOK,
+  ENGINE_DELIBERATION_MODE_CONFIG,
   ENGINE_MEMORY_STORE,
   ENGINE_RENDER_PORT,
   ENGINE_SESSION_PORT,
@@ -102,7 +104,10 @@ import { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
 import { VOICE_TURN_BACKEND } from '../../voice/voice-turn-backend.port.js';
+import { resolveDeliberationModeConfig, type DeliberationModeConfig } from '../deliberation/deliberation-mode.config.js';
 import { DeliberationProcessor } from '../deliberation/deliberation.processor.js';
+import { LlmDeliberationEffectiveRunner } from '../deliberation/llm-deliberation-effective.js';
+import { LlmDeliberationHook } from '../deliberation/llm-deliberation-hook.js';
 import { LlmDeliberationService } from '../deliberation/llm-deliberation.service.js';
 import { OpenAICompatEmbedder } from '../embedder/openai-compat.embedder.js';
 import { resolveMemoryConfig } from '../persistence/memory-config.js';
@@ -299,6 +304,31 @@ const wiringLogger = new Logger('EngineWiring');
       },
       inject: [ConfigService, RedisService],
     },
+    // V2026-11-08 治本 (R9 · 灰度切换装配):
+    //   ① 模式配置 —— 启动期求值一次 (与 cap / 人格 / 同盟同款: 不做热更新, 两端口径恒等).
+    //   ② 生效钩子 —— 单例 (内核会话端口与门面必须拿到**同一个**实例, 否则建议缓存会散).
+    {
+      provide: ENGINE_DELIBERATION_MODE_CONFIG,
+      useFactory: (config: ConfigService): DeliberationModeConfig => {
+        const modeConfig = resolveDeliberationModeConfig(config);
+        // 启动期**喊一声**解析后的模式 —— 灰度期最贵的坑就是"以为在灰度, 其实没生效".
+        //   只出模式名与名单规模 (不含任何会话/心理内容 —— 隐私红线 AGENTS.md §5.4).
+        wiringLogger.log(
+          `[r9] 审议生效模式=${modeConfig.effectiveMode} 灰度名单=${
+            modeConfig.grayscaleSessions.size > 0 ? `${modeConfig.grayscaleSessions.size} 场` : '全量'
+          }`,
+        );
+        return modeConfig;
+      },
+      inject: [ConfigService],
+    },
+    {
+      provide: ENGINE_DELIBERATION_HOOK,
+      useFactory: (modeConfig: DeliberationModeConfig, deliberation: LlmDeliberationService): LlmDeliberationHook =>
+        // 执行器复用审议服务 (超时 / 校验 / cap / 临床规则 / trace 全在里面, 不重写一遍).
+        new LlmDeliberationHook(modeConfig, new LlmDeliberationEffectiveRunner(deliberation)),
+      inject: [ENGINE_DELIBERATION_MODE_CONFIG, LlmDeliberationService],
+    },
     {
       provide: ENGINE_SESSION_PORT,
       useFactory: (
@@ -308,6 +338,8 @@ const wiringLogger = new Logger('EngineWiring');
         capLogger: DeltaCapLogger,
         rollingSummary: RollingSessionSummaryService,
         bdiStates: BdiStateRepository,
+        modeConfig: DeliberationModeConfig,
+        deliberationHook: LlmDeliberationHook,
       ): EngineSessionPort => {
         return createEngineSessionPort(
           memories,
@@ -334,12 +366,25 @@ const wiringLogger = new Logger('EngineWiring');
             // WP37: 工作窗口溢出通知 —— 内核只交出"挤掉了哪些轮次",
             //   摘要生成 (LLM) 与记忆写入全在适配层 (内核零网络 / 零 prompt).
             onWorkingWindowOverflow: (event) => rollingSummary.recordOverflow(event),
+            // R9: 审议钩子 —— **只在生效模式打开时注入内核**.
+            //   不注入 = 内核决策链里根本没有审议这一步 (逐字零回归, 不是"结果一样").
+            //   ⚠️ 会话白名单的逐场判定在钩子**内部**做 —— 装配期拿不到"当前是哪场会话".
+            ...(modeConfig.effectiveMode === 'llm_active' ? { deliberationHook } : {}),
           },
           // 状态仓储**单例**注入 (与上面那个 provider 是同一个实例).
           bdiStates,
         );
       },
-      inject: [ENGINE_MEMORY_STORE, RISK_PROBE, ConfigService, DeltaCapLogger, RollingSessionSummaryService, ENGINE_BDI_STATE_REPOSITORY],
+      inject: [
+        ENGINE_MEMORY_STORE,
+        RISK_PROBE,
+        ConfigService,
+        DeltaCapLogger,
+        RollingSessionSummaryService,
+        ENGINE_BDI_STATE_REPOSITORY,
+        ENGINE_DELIBERATION_MODE_CONFIG,
+        ENGINE_DELIBERATION_HOOK,
+      ],
     },
     // 装配门面 (WP7): 接上归属解析缝 (多会话, 不传固定 sessionContext).
     // V2026-11-02 (WP14): 注入学员侧处置闸门 —— 门面在**渲染前**问它
@@ -354,6 +399,8 @@ const wiringLogger = new Logger('EngineWiring');
         studentRisk: StudentRiskGateService,
         rollingSummary: RollingSessionSummaryService,
         deliberation: DeliberationProcessor,
+        modeConfig: DeliberationModeConfig,
+        deliberationHook: LlmDeliberationHook,
       ): TurnRenderOrchestrator =>
         createEngineOrchestrator({
           session,
@@ -367,7 +414,14 @@ const wiringLogger = new Logger('EngineWiring');
           //   审议服务自己判 env 开关 (`ENGINE_DELIBERATION_ENABLED`), 关着时它**一次 LLM 都不发**.
           // WP65: 注入的实现换成了 `DeliberationProcessor` —— 它把审议请求**入队**,
           //   真正跑 LLM 由 BullMQ Worker 异步做. 门面对此**完全透明** (端口签名没变).
-          deliberation,
+          // ⚠️ R9: **只在影子模式挂** —— 生效模式下影子旁路被摘掉, 理由有两条:
+          //   ① 同一轮跑两次 LLM = 双份成本 (影子跑一遍、生效再跑一遍);
+          //   ② 两条路径写**同一个 trace key** (tenant+session+turn) → 互相覆盖,
+          //     灰度期的对比数据会丢一半.
+          //   生效路径自己写同一份 trace (字段形状逐字相同), 看板不受影响.
+          ...(modeConfig.effectiveMode === 'shadow' ? { deliberation } : {}),
+          // R9: 生效审议钩子 —— 只在生效模式挂 (会话白名单的逐场判定在钩子内部做).
+          ...(modeConfig.effectiveMode === 'llm_active' ? { deliberationHook } : {}),
         }),
       inject: [
         ENGINE_SESSION_PORT,
@@ -377,6 +431,8 @@ const wiringLogger = new Logger('EngineWiring');
         STUDENT_RISK_GATE,
         RollingSessionSummaryService,
         DeliberationProcessor,
+        ENGINE_DELIBERATION_MODE_CONFIG,
+        ENGINE_DELIBERATION_HOOK,
       ],
     },
     // V2026-11-02 治本 (WP14 §1.6 — 重点监测场次的强制远端探测):
