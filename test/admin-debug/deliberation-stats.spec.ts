@@ -218,7 +218,11 @@ function buildRecord(overrides: Partial<DeliberationTraceRecord> = {}): Delibera
     baseRevision: 7,
     stale: false,
     currentRevision: 7,
-    timestamp: '2026-11-07T00:00:00.000Z',
+    // ⚠️ **不写死任何日期** (V2026-11-08 治本): 原来写死 '2026-11-07T00:00:00.000Z',
+    //   断言却按 `todayKey()` (墙上时钟) 取"今天" —— 交付当天恰好是 11-07 所以绿,
+    //   跨过零点后**永久红** (夹具吃绝对日期, 不是环境问题).
+    //   现在时间戳跟"当下"走, 断言一律从 `record.timestamp` 推导 (见下方用例) → 与时钟无关.
+    timestamp: new Date().toISOString(),
     ok: true,
     errorCode: null,
     retryCount: 0,
@@ -474,10 +478,14 @@ describe('影子模式数据统计面板 · 后端接口', () => {
     it('全局 key 与当日日 key **同时**累加 (一次脚本, 两个 key)', async () => {
       const redis = new FakeRedis();
 
-      await applyDeliberationStats(redis as unknown as RedisService, buildRecord({ durationMs: 300 }));
+      const record = buildRecord({ durationMs: 300 });
+
+      await applyDeliberationStats(redis as unknown as RedisService, record);
 
       const globalHash = redis.ensureHash(buildDeliberationStatsKey());
-      const dailyKey = `${buildDeliberationStatsKey()}:${todayKey()}`;
+      // ⚠️ 日 key 从**这条记录自己的 timestamp** 推导 —— 断言不跟墙上时钟走
+      //   (写入侧与断言侧必须同源, 否则跨零点就分家)
+      const dailyKey = `${buildDeliberationStatsKey()}:${resolveDeliberationStatsDay(record.timestamp)}`;
       const dailyHash = redis.ensureHash(dailyKey);
       expect(dailyHash.total_turns).toBe('1');
       expect(dailyHash.success_turns).toBe('1');
@@ -489,9 +497,12 @@ describe('影子模式数据统计面板 · 后端接口', () => {
     it('日 key 的 TTL = 90 天 (保留期)', async () => {
       const redis = new FakeRedis();
 
-      await applyDeliberationStats(redis as unknown as RedisService, buildRecord());
+      const record = buildRecord();
 
-      const dailyKey = `${buildDeliberationStatsKey()}:${todayKey()}`;
+      await applyDeliberationStats(redis as unknown as RedisService, record);
+
+      // ⚠️ 同上: 日 key 从记录自己的 timestamp 推导 (不取墙上时钟)
+      const dailyKey = `${buildDeliberationStatsKey()}:${resolveDeliberationStatsDay(record.timestamp)}`;
       expect(redis.ttls.get(dailyKey)).toBe(DELIBERATION_STATS_DAILY_TTL_SECONDS);
       expect(DELIBERATION_STATS_DAILY_TTL_SECONDS).toBe(90 * 24 * 60 * 60);
       // 全局 key **不设 TTL** —— 累计值要一直留着
@@ -786,8 +797,16 @@ describe('影子模式数据统计面板 · 后端接口', () => {
       const redis = new FakeRedis();
       const controller = buildController(redis);
       // 往"今天"与"昨天"的日 key 各写一次 (全局 key 也被写, 但窗口查询**不看**它)
-      await applyDeliberationStats(redis as unknown as RedisService, buildRecord({ durationMs: 100 }));
-      const yesterday = buildDeliberationStatsDateKeys(2, new Date())[0];
+      // ⚠️ 记录时刻显式取 now; "昨天"按**这条记录自己的日期**往前推一天 ——
+      //   两天必然是不同 key (原来"昨天"取墙上时钟, 撞上夹具那一天就会互相覆盖:
+      //   夹具写进去的 1 被覆盖成 5 → 期望 6 实得 5)
+      const now = new Date();
+      const record = buildRecord({ durationMs: 100, timestamp: now.toISOString() });
+      await applyDeliberationStats(redis as unknown as RedisService, record);
+      const recordDay = resolveDeliberationStatsDay(record.timestamp);
+      const yesterday = buildDeliberationStatsDateKeys(2, now)[0];
+      // 断言前提: 两天不是同一天 (否则上面那个覆盖问题会复活)
+      expect(yesterday).not.toBe(recordDay);
       redis.ensureHash(`deliberation_stats:global:${yesterday}`).total_turns = '5';
 
       const response = await controller.deliberationStats('7');

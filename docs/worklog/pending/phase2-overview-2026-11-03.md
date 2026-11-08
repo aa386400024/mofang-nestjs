@@ -39,15 +39,20 @@
 
 | 层级 | 含义 | 数量 |
 |---|---|---|
-| 🔴 P0 商业化根基 | 上线收钱前必须完成，不做不能商业化 | 8 条 |
-| 🟡 P1 专业能力主线 | 蓝图 Phase2 核心引擎能力，拉开差距的关键 | 20 条 |
+| 🔴 P0 商业化根基 | 上线收钱前必须完成，不做不能商业化 | 9 条 |
+| 🟡 P1 专业能力主线 | 蓝图 Phase2 核心引擎能力，拉开差距的关键 | 21 条 |
 | 🟢 P2 技术债清理 | 顺手做，不阻塞商业化但影响可维护性 | 13 条 |
+| **合计** | **登记表口径：WP27–WP69** | **43 条** |
 
-> 🆕 **2026-11-05 新增混合式 BDI PoC 组（WP63–WP68，6 条）**：基于 Coze 下线趋势判断的架构方向校准。详见 [`../../architecture/hybrid-bdi-agent-blueprint-v1.0.md`](../../architecture/hybrid-bdi-agent-blueprint-v1.0.md)。
+> **进度：38 / 43 完成**（2026-11-08 逐行核对）。未完成 5 条：**WP27 / WP29 / WP33 / WP39 / WP40** —— 均属商业化 / 合规（支付 / 数据留存 / 会员分层 / TTS 音色），已移 **Phase4**，**不阻塞 Phase3 灰度切换**。另有 **9 个独立单**全部交付（不计入 43 条，见 §2.3）。
+
+> 🆕 **2026-11-05 新增混合式 BDI PoC 组（WP63–WP68，6 条）**：基于 Coze 下线趋势判断的架构方向校准。**这 6 条已按优先级计入上表**（P0 1 条 = WP65；P1 4 条 = WP63 / WP64 / WP66 / WP67；P2 1 条 = WP68），**不另计**。详见 [`../../architecture/hybrid-bdi-agent-blueprint-v1.0.md`](../../architecture/hybrid-bdi-agent-blueprint-v1.0.md)。
+
+> ℹ️ **计数口径**：上表三档与 [`phase2-wp-list-2026-11-03.md`](phase2-wp-list-2026-11-03.md) §统计 **同一口径** —— 登记表逐行数 = **43 条 WP**（WP27–WP69 无缺号 / 无重复 / 无幽灵条目）。⚠️ 2026-11-08 文档收尾更正：原表写 P0 8 条 / P1 20 条 / P2 13 条（合计 41）—— **P0 漏了 WP65**、**P1 少一条**，现已与登记表对齐。
 
 ### 2.2 完整清单
 
-#### 🔴 P0 商业化根基（8 条）
+#### 🔴 P0 商业化根基（9 条：P0-1 – P0-9；P0-9 = WP65，见下方 PoC 组小节）
 
 | # | 工作包 | 现状 | 验收标准 | 依赖 |
 |---|---|---|---|---|
@@ -60,7 +65,7 @@
 | P0-7 | **Admin Dashboard 切真 API** ✅ 全部页面已切真（WP30 + 四合一任务单 2026-11-05） | — | 全部页面接 `/admin/api/*` 真数据，去掉 mock 标识 | 无 |
 | P0-8 | **成本看板与告警** 🚧 看板已交付（WP31 ✅ 2026-11-05），告警未做 | 指标采集有了，告警规则没接 | 成本看板展示 token 消耗/用户/会话，超阈值告警 | 无 |
 
-#### 🟡 P1 专业能力主线（17 条，核心项如下）
+#### 🟡 P1 专业能力主线（16 条，核心项如下：P1-1 – P1-16）
 
 > 完整 WP 清单见 [`phase2-wp-list-2026-11-03.md`](phase2-wp-list-2026-11-03.md)。
 
@@ -79,7 +84,7 @@
 | P1-11 | **BDI 信念层深度扩展** | 蓝图 BDI 完整模型 | 核心信念激活规则、短期信念置信度衰减、信念干预算子（不追求完整 BDI 推理循环，那是 Phase3+） | P1-1 |
 | P1-12 | **引擎调试面板 / BDI 状态 trace** 🚧 后端已交付 | 内测调参刚需 | 每轮 BDI delta trace、事件触发链、prompt 快照、delta cap 砍幅，Admin Dashboard 会话调试视图。⚠️ **WP58（2026-11-05）只交付后端三接口**（`/admin/api/debug/session` 三个端点，调试会话**落 JSON 文件**（`data/debug-sessions/`，每轮追加写，**仍不写** `training_sessions` / `turn_debug_trace`），每轮返回 BDI 快照 / delta / 意图 / 渲染规格 / **prompt 全文** / 审议 trace）；**"事件触发链 / cap 砍幅"仍未做**（内核不对外逐轮明细，另开单） | P0-7 |
 
-#### 📈 切灰度决策观测面（2026-11-06 → 2026-11-08 · 独立单，**非编号 WP**，不计入 42 条进度）
+#### 📈 切灰度决策观测面（2026-11-06 → 2026-11-08 · 独立单，**非编号 WP**，不计入 43 条进度；本节 7 条 · **全清单见 §2.3**）
 
 > 这一组是**切灰度前置**的观测面与安全网（蓝图 §2.3），全部**独立单**交付，**engine-core 零改动**。母版正文原本没记这一组 → 2026-11-08 补记（此前只写在 `docs/worklog/README.md`）。
 
@@ -95,7 +100,7 @@
 
 > ⚠️ 这一组**全部只做观测**：审议结果照旧**不写** BDI 快照，影子模式不变。切灰度决策看的是这一组的数据。
 
-#### 🟢 P2 技术债清理（11 条，主要项如下）
+#### 🟢 P2 技术债清理（9 条，主要项如下：P2-1 – P2-9）
 
 > 完整 WP 清单见 [`phase2-wp-list-2026-11-03.md`](phase2-wp-list-2026-11-03.md)。
 
@@ -124,6 +129,26 @@
 | P1-15 | **审议输出格式校验与重试**（WP66 ✅ 2026-11-05） | 🟡 P1 | **智能重试**：按错误类型分流 —— 形状类（JSON 没吐出来 / 形状不符 / SSE 解析失败）+ 上游限流与 5xx → 抛给 BullMQ 自动重试（`ENGINE_DELIBERATION_MAX_RETRIES` 默认 1 次）；鉴权 / 网络超时 / 代码 bug → 不重试；**先写 trace 再抛**（失败记录不丢），trace 加 `retryCount`；⚠️ zod schema 与 `response_format: json_object` 本期未做（改结构化出口影响 6 个调用方，建议单独一单）（[交付记录](../completed/phase2/engine-wp66-deliberation-format-retry-implementation-2026-11-05.md)） |
 | P1-16 | **三级降级策略**（WP67 ✅ 2026-11-05 · **仅熔断器**） | 🟡 P1 | **会话级熔断器**：同一个会话连续失败 3 次 → 熔断（影子审议**不入队**，省一次入队 + 省一次 LLM 调用），冷却 10 分钟后半开放**一个**请求进去试；三态（closed/open/half-open）是**算出来的**不是存出来的；熔断写一条 `errorCode='circuit_open'` 的 trace（可观测）；阈值 / 冷却 env 可配（默认 3 次 / 600000ms）。⚠️ 母版三档里「超时跳过」与「切回规则算子」在影子模式下**天然成立**（审议结果从不生效，主流程永远走规则算子）；**`degraded: true` 会话打标已由 2026-11-07 独立单销掉**（[交付记录](../completed/phase2/engine-session-degraded-flag-implementation-2026-11-07.md)，口径见该记录 §2.3）（[交付记录](../completed/phase2/engine-wp67-deliberation-circuit-breaker-implementation-2026-11-05.md)） |
 | P2-9 | **意图锁定机制（基础版）**（WP68 ✅ 2026-11-05） | 🟢 P2 | 审议输出加**可选**的 `intentionShift`（LLM 建议切到哪个策略 + 理由，不需要就返回 null）；**影子期旁路模拟**锁定：锁定 N 轮内忽略 LLM 的切换建议，trace 里记下三方对比（规则算子选的 / LLM 建议的 / 锁定后实际生效的）；锁定轮数 `ENGINE_DELIBERATION_INTENTION_LOCK_ROUNDS` 默认 3（**工程种子值，非临床数字**，填 0 = 关掉锁定做对照实验）。⚠️ 母版里的**触发事件白名单未做**（PoC 阶段不做 —— NLP 级判断）；⚠️ 锁定逻辑放 **service 层**（trace 是 service 写的，锁定结果要进 trace 就必须先算好）；⚠️ 锁状态拆 `ruleStrategy` + `effectiveStrategy` 两字段（单字段写法在影子模式下会让锁永远不过期，把"拦住率"撑爆）（[交付记录](../completed/phase2/engine-wp68-deliberation-intention-lock-implementation-2026-11-05.md)） |
+
+### 2.3 独立单清单（非编号 WP，不计入 43 条进度）
+
+> Phase2 期内除 43 条编号 WP 外，另有 **9 个独立单**（**无 WP 编号**，各自一份任务单 + 一份交付记录）。它们原先散落在正文各处（§2.2「切灰度决策观测面」7 条 + P2-8 行 1 条 + 四合一任务单 1 条）—— **本节是统一索引**，一次查全。
+>
+> ⚠️ **登记纪律（2026-11-08 起生效）**：以后每新增一个独立单，**必须**在本表登记一行（名称 / 日期 / 交付记录 / 说明）。母版出现过「做了但查不到」的根因就是没有这张表（见[审计报告 N6](../audits/phase2-code-vs-blueprint-audit-2026-11-08.md)）。
+
+| # | 独立单 | 日期 | 交付记录 | 说明 |
+|---|---|---|---|---|
+| 1 | **Admin Dashboard 剩余页面切真 API + 调试会话持久化**（四合一任务单） | 2026-11-05 | [交付记录](../completed/phase2/engine-admin-dashboard-mock-to-real-and-debug-session-persistence-implementation-2026-11-05.md)｜[任务单](../completed/phase2/admin-dashboard-mock-to-real-and-debug-session-persistence-2026-11-05.md) | Dashboard / MemoryBrowser / PsyGuardMonitor 三页切真 + 调试会话**落 JSON 文件**（3 轮后 LLM 自动命名）；内核零改动。⚠️ WP58 原话「纯内存不落库」已扩为「**落文件不落库**」（仍不写 `training_sessions` / `turn_debug_trace`） |
+| 2 | **约束校验层 · 审议输出逐维 delta cap** | 2026-11-06 | [交付记录](../completed/phase2/engine-deliberation-delta-cap-validation-implementation-2026-11-06.md) | 审议输出在**格式校验通过后**再过一道逐维 delta cap（复用内核 `capTurnDelta`），砍幅明细进 trace；**只观测，不拦截**；engine-core 零改动 |
+| 3 | **过期判定与丢弃** | 2026-11-07 | [交付记录](../completed/phase2/engine-deliberation-stale-check-implementation-2026-11-07.md) | 审议跑完对比 `baseRevision` 与当前快照 revision，不一致 = 审议结果**过期**；⚠️ 保守兜底：load 失败 → 判定「没做过」而非「没过期」（不误杀）；engine-core 零改动 |
+| 4 | **cap 配置统一** | 2026-11-07 | [交付记录](../completed/phase2/engine-deliberation-cap-config-unification-implementation-2026-11-07.md) | 审议侧逐维 cap 从硬编码种子值改用与规则算子**同一份** `resolveDeltaCapConfig(config)`（env `ENGINE_CAP_*` 22 键），两侧启动期求值 → 口径真正恒等；engine-core 零改动 |
+| 5 | **临床合理性校验（观测版）** | 2026-11-07 | [交付记录](../completed/phase2/engine-deliberation-clinical-sanity-implementation-2026-11-07.md) | 三条规则（同盟三维正向跳变 / 负向跳变 / 阻抗三维集体上升）→ **只标记**进 trace 的 `clinicalFlags`，**不拦截不砍幅**；⚠️ 阈值是**工程种子值、非临床标定**，待督导校准；⚠️ 开关 `ENGINE_CLINICAL_SANITY_ENABLED` 缺省关；**拦截版仍未做** |
+| 6 | **影子模式数据统计面板（后端接口）** | 2026-11-07 | [交付记录](../completed/phase2/engine-deliberation-stats-panel-implementation-2026-11-07.md) | Redis hash 计数器（每轮审议同步累加）→ `GET /admin/api/deliberation/stats`（18 字段）；**O(1) 读**，不扫全量 trace；engine-core 零改动 |
+| 7 | **degraded 会话打标（后端）** | 2026-11-07 | [交付记录](../completed/phase2/engine-session-degraded-flag-implementation-2026-11-07.md) | 失败率 > 30% 或连续失败 ≥ 3 轮 → `training_sessions.degraded = 1`；考核 / 统计三处过滤；⚠️「失败轮次」= **渲染降级轮次**，**不含**审议层失败（影子期审议结果从不生效 → 计入 = 扔掉好会话）；engine-core 零改动 |
+| 8 | **影子模式统计面板 · 时间窗口扩展** | 2026-11-08 | [交付记录](../completed/phase2/engine-deliberation-stats-time-window-implementation-2026-11-08.md) | 按天分 key（TTL 90 天，UTC+8 固定口径）+ `?days=N` / `?from=&to=` 窗口查询；响应带 `window` 口径对象（含 `daysCovered` —— 日 key 从 2026-11-08 才有）；**真 Redis 已验**；engine-core 零改动 |
+| 9 | **内核内部 clamp01 统一** | 2026-11-08 | [交付记录](../completed/phase2/engine-kernel-internal-clamp-unify-implementation-2026-11-08.md) | 删除内核树里**第三份** `clamp01`（`memory/importance-decay.ts`），复用 `domain/emotion.ts` 那份 → 内核 clamp01 只剩一份；⚠️ 差异面只有 NaN（旧口径 NaN 能**绕过召回门槛** → 新口径正确拒绝）；新增机器守卫（再长出第二份就红）；engine-core 只改 1 个文件 |
+
+> ℹ️ **三个「同一 WP 的后半段 / 审核后补做」不算独立单**（它们是编号 WP 的追加部分，已含在 43 条进度里）：**WP58 后半段**（事件 + delta 审计观测，2026-11-06）· **WP65 后半段**（per-session mutex + 快照版本号，2026-11-06）· **WP38 审核后补做**（调试会话恢复能力，2026-11-06）。
 
 ---
 
@@ -245,5 +270,6 @@ P1-2 渲染四手法
 
 ---
 
-_最后更新：2026-11-05（新增混合式 BDI PoC 组 WP63–WP68，基于 Coze 下线趋势判断的架构方向校准）_
+_最后更新：2026-11-08（文档收尾：新增 §2.3 独立单清单（9 条）+ 进度回写 38/43 + 分层计数与登记表对齐）_
+_历史：2026-11-05 新增混合式 BDI PoC 组 WP63–WP68，基于 Coze 下线趋势判断的架构方向校准_
 _本文档是 Phase2 的总览入口，具体 WP 任务单开工时再单独写。_

@@ -15,7 +15,7 @@
 > **Phase1 已封版（2026-11-03）**：WP0–WP26 全交付，8 个 P1 + 34 个 P2 全修，1252 例测试全绿。Phase1 backlog 已归档到 `completed/phase1/phase1-backlog-archived-2026-11-03.md`。
 >
 > **Phase2 总览已出**：[`pending/phase2-overview-2026-11-03.md`](pending/phase2-overview-2026-11-03.md)（商业化准备）。
-> **WP 清单**：[`pending/phase2-wp-list-2026-11-03.md`](pending/phase2-wp-list-2026-11-03.md)（WP27–WP68，分三批并行 + 技术债清理 + 混合式 BDI PoC 组）。具体任务单开工时再单独写。
+> **WP 清单**：[`pending/phase2-wp-list-2026-11-03.md`](pending/phase2-wp-list-2026-11-03.md)（**WP27–WP69 共 43 条**，分三批并行 + 技术债清理 + 混合式 BDI PoC 组）。具体任务单开工时再单独写。
 >
 > 🆕 **2026-11-05 新增 6 条 WP（WP63–WP68）**：混合式 BDI PoC 组，基于 Coze 下线趋势判断的架构方向校准。详见 [`../architecture/hybrid-bdi-agent-blueprint-v1.0.md`](../architecture/hybrid-bdi-agent-blueprint-v1.0.md)。这组 WP 全部在适配层做，engine-core 零改动。
 >
@@ -37,6 +37,7 @@
 > - WP60（delta 规则表配置化 · **改系数不用发版** · 事件→delta 的 11×11 系数表抽成**配置端口** `DeltaTableConfig`（内核纯类型 + 纯函数，**任务单 §5.3 授权改内核**：只加端口类型与函数参数，**基础系数表 DELTA_TABLE 一行未动**）；适配层从 env 读（每事件一个 JSON 键 `ENGINE_DELTA_EMPATHY={"trust":0.15}`，11 个键**逐个字面量**读）；**逐维度优先级** = DeltaTableConfig > AllianceConfig（只管 safety / bond）> 内核基础值，裁决只在 `resolveDeltaVector` 一处；不传端口 = 逐字等同改造前（零回归）；⚠️ 非法值回退基础值**且逐条 warn**（静默失效是本仓最贵的坑）；⚠️ 审计观测面**同步注入**（否则 raw_delta 与内核实际施加的对不上）；engine-core 3 文件 +57/-26）✅ → [`completed/phase2/engine-wp60-delta-table-config-implementation-2026-11-08.md`](completed/phase2/engine-wp60-delta-table-config-implementation-2026-11-08.md)
 > - WP61（会话摘要层次化 · 核心议题 / 关键事件 / 情绪转折点）✅ → [`completed/phase2/engine-wp61-session-summary-hierarchical-implementation-2026-11-04.md`](completed/phase2/engine-wp61-session-summary-hierarchical-implementation-2026-11-04.md)
 > - WP62（内核端口类型 barrel 收口 · **适配层不再自带内核符号的副本**）✅ → [`completed/phase2/engine-wp62-kernel-barrel-types-implementation-2026-11-08.md`](completed/phase2/engine-wp62-kernel-barrel-types-implementation-2026-11-08.md)
+> - **Phase2 代码级对账审计**（**只读审计** · 蓝图 v1.1 + 混合式 BDI 蓝图 v1.0 ⇄ 代码实际 · 为 **Phase3 灰度切换**做基础盘点）✅ → [`audits/phase2-code-vs-blueprint-audit-2026-11-08.md`](audits/phase2-code-vs-blueprint-audit-2026-11-08.md) —— **44 条差异**（B3 / P4 / D8 / G3 / R12 / N14）；✅ Phase1 遗留 D1/D2/D4/D12 **4/4 全已修复**；🔴 **6 项 Phase3 阻塞**（R4 可复现控制零实现 / R6 心理原文随审议 prompt 出境第三方 / R7 考核公平性版本未锁未记录 / R8 每轮全量+每轮都审议 / R9 **灰度切换开关零实现** / R12 抽检流未建）；⚠️ 母版 `phase2-wp-list.md` **表格与进度行自相矛盾**（WP60/WP62 漏标 ✅）、`roadmap §9` 的「18/36」严重过期 —— **这两处已于 2026-11-08 文档收尾修复**（→ `38/43`，见[交付记录](completed/phase2/phase2-docs-tidy-up-implementation-2026-11-08.md)）；✅ Phase2 期内 14 个内核提交**全部有授权**，无越权改动；engine-core **零改动**（全程只读）
 > - 内核内部 clamp01 统一（**销 WP62 残留风险 R1** · 内核树里第三份 `clamp01`（`memory/importance-decay.ts`，NaN 透传）删除，改复用 `domain/emotion.ts` 那份 → **内核 clamp01 只剩一份**；⚠️ 差异面**只有 NaN**（±Infinity 两版完全一致）；⚠️ 旧口径的病态行为比预想更糟 —— **NaN 能绕过召回门槛**（`NaN < 0.1` 恒 false → importance 为 NaN 的记忆直接被召回），新口径 NaN → 0 → 被正确拒绝；新增**机器守卫**（内核树里再长出第二份 `function clamp01(` 就红）；engine-core **只改 `memory/importance-decay.ts`**（+16/-7，算子逻辑零改动））✅ → [`completed/phase2/engine-kernel-internal-clamp-unify-implementation-2026-11-08.md`](completed/phase2/engine-kernel-internal-clamp-unify-implementation-2026-11-08.md)
 > - WP49（角色大五人格字段落地 · 内核零改动，宜人性算子通路打通）✅ → [`completed/phase2/engine-wp49-character-five-factor-personality-implementation-2026-11-04.md`](completed/phase2/engine-wp49-character-five-factor-personality-implementation-2026-11-04.md)
 > - WP35（渲染四手法 · 语气疏离度 + 情绪表现 + 轻量随机 + 非语言）✅ → [`completed/phase2/engine-wp35-rendering-four-techniques-implementation-2026-11-04.md`](completed/phase2/engine-wp35-rendering-four-techniques-implementation-2026-11-04.md)
@@ -72,8 +73,9 @@
 > - WP43（评估引擎基础版 · 规则引擎快速评分 · **会话结束立刻出分**（毫秒级、零 LLM 成本）· 技术维度 9 项 eventTags 计数 + BDI 变化 4 维首末差值 + 伦理维度（crisis 次数 / 安全评级）· 总分 技术 60% + BDI 20% + 伦理 20% · 落新表 `session_evaluations`（一场会话一份，重算覆盖）· **跨层走 voice 层 @Global 插槽**（engine ↔ counselor 不反向依赖）· 数据源是**内核出参**（不依赖留痕开关，prod 必须能跑）· **engine-core 零改动**；⚠️ 接口最终路径 `GET /counselor/training-sessions/:id/evaluation` + `GET /counselor/evaluations`（任务单写的 `/counselor/sessions/*` 与 `/counselor/users/me/*` 在本仓无范式，已按仓库惯例落地））✅ → [`completed/phase2/engine-wp43-evaluation-engine-basic-implementation-2026-11-06.md`](completed/phase2/engine-wp43-evaluation-engine-basic-implementation-2026-11-06.md)
 > - WP38（角色版本 semver · **主版本进行中锁定** + 历史版本可回溯 + 会话绑定版本；**并入 WP69 登记的后续单 D**（调试 trace 接引擎事件标签 —— 内核加只读出口 `EngineTurnOutput.events`，适配层透传，调试面板拿 `eventTags` + 后端权威中文标签，覆盖内核全部 11 类）｜engine-core **改 2 个文件**（预批准例外，纯加只读观测字段，决策与数值逐字不变）；**审核后补做：调试会话恢复能力** —— 内核状态快照（BDI + 记忆 + 轨迹）每轮落进会话文件，新增 `POST /admin/api/debug/session/:id/resume`，后端重启后可从最后一轮继续聊（本单内核 **0 行**改动））✅ → [`completed/phase2/engine-wp38-character-semver-and-debug-event-tags-implementation-2026-11-06.md`](completed/phase2/engine-wp38-character-semver-and-debug-event-tags-implementation-2026-11-06.md)
 >
-> 进度 33/42（WP 清单与总览口径一致，WP27–WP69；2026-11-05 新增 WP63–WP68 混合式 BDI PoC 组 —— **该组 6 条已全部交付**）。
-> **注**：上面那条 Admin Dashboard 四合一任务单**不是编号 WP**，不计入 42 条进度。
+> 进度 **38/43**（WP27–WP69；2026-11-05 新增 WP63–WP68 混合式 BDI PoC 组 —— **该组 6 条已全部交付**）。
+> ⚠️ **2026-11-08 文档收尾更正**（[交付记录](completed/phase2/phase2-docs-tidy-up-implementation-2026-11-08.md)）：本行原写「36/42」，`phase2-wp-list.md` 的进度行原写「38/42」—— **两个数都不对**，现统一为 **38/43**。① **分子**：登记表里 **WP60 / WP62 两行漏标 ✅**（两单实际都已交付，commit `a49a9e4` / `cb45025`），已补标 → ✅ 数 = 38；② **分母**：应是 **43 不是 42** —— `phase2-wp-list.md` 统计表的三档枚举**漏了 WP65**（🔴 P0），而登记表逐行数是 **43 条 WP**（WP27–WP69 无缺号 / 无重复）。未完成 5 条：**WP27 / WP29 / WP33 / WP39 / WP40**（商业化 / 合规，已移 Phase4）。审计报告 §5.4 N10–N12 的「36/42」口径同上，以本行为准。
+> **注**：上面那条 Admin Dashboard 四合一任务单**不是编号 WP**，不计入 43 条进度（**独立单全清单 9 条见** [`pending/phase2-overview-2026-11-03.md`](pending/phase2-overview-2026-11-03.md) §2.3）。
 >
 > ✅ **WP65 两半都销了**（2026-11-06 补齐后半段）：「队列化」+「per-session mutex + 快照版本号」都已落地 —— 同一会话同时只跑一个审议（Redis SETNX），审议入参带 `baseRevision` 记进 trace。**但审议结果仍不生效**（影子模式不变）。约束校验层的 **delta cap 那一半已补齐**（2026-11-06，逐维砍幅 + 砍幅明细进 trace），切灰度还要补"过期判定与丢弃"+"临床合理性校验"。
 >
@@ -92,6 +94,8 @@
 > ⚠️ **WP31 只销了「看板」那一半**：成本看板已切真，但**超阈值告警规则仍未做**（阈值配置 / 告警通道 / 通知策略）。**成本数据来自引擎调试留痕，生产缺省关留痕 → 生产的 token / 成本恒 0**（场次数仍准确）；要让生产看板有数，得给 `training_sessions.tech_stats` 补 token 统计（缺口 G1）。
 >
 > ⚠️ **WP48 只销了「守卫」那一半** —— 但 **WP69 已把 WP48 挖出的 14 个生效区盲区键清完了**：6 个挪进预留区（`SMS_*` 5 + `METRICS_PATH`）+ 7 个 `EMBEDDING_*` 死遗产直接删 + `CONSENT_CURRENT_VERSION` **修路径治本**（它不再被挪进预留区 —— 修好后**真的有人消费**了）。另 `CONSENT_CURRENT_VERSION` 那个**路径错误型** bug（`consent.service.ts:41` 读平铺 `consentCurrentVersion`，正确路径 `consent.currentVersion`）**已在 WP69 修好** —— 配 `v2.0` 现在真会强制客户端重弹同意 dialog。
+>
+> - **Phase2 封版（2026-11-08）** ✅ → [`completed/phase2/phase2-freeze-2026-11-08.md`](completed/phase2/phase2-freeze-2026-11-08.md) —— 封版口径 **38 / 43**（WP27–WP69；剩下 5 条 **WP27 / WP29 / WP33 / WP39 / WP40** 全属商业化 / 合规，**整体移交 Phase4**，承接清单见 [`pending/phase4-backlog-2026-11-08.md`](pending/phase4-backlog-2026-11-08.md)）；闸门全绿（tsc **0 error** / 全量 **142 文件 · 2338 例 · 0 failed · 19 skip**（**连续 2 次**）/ eslint **0** / `boundary.spec.ts` **12 个用例全绿** / `git diff --stat HEAD -- src/engine-core` **空**）；封版收口交付记录 → [`completed/phase2/phase2-freeze-closeout-implementation-2026-11-08.md`](completed/phase2/phase2-freeze-closeout-implementation-2026-11-08.md)
 
 ---
 
@@ -102,6 +106,12 @@
 - 有文件 = 每个文件就是一个完整任务，从文件名排第一的开始做
 - 没有文件 = 没有新活，不要自己找事做，等用户派新任务单
 
+> ℹ️ **Phase2 封版后 `pending/` 里的文件都不是 Phase2/3 的活**（2026-11-08 起）：
+> - `phase2-overview-2026-11-03.md` / `phase2-wp-list-2026-11-03.md` —— **常驻母版**（总览 + 登记表），只读不改；
+> - `phase4-backlog-2026-11-08.md` —— **Phase4 承接清单**（Phase2 移交的 5 条），Phase4 开工时才动。
+>
+> **Phase2 已封版** → 新活一律等大炮派新任务单。
+
 每个任务单文件里写了完整的：目标、改动点、验收标准、不做什么。**读全文再开工。**
 
 ---
@@ -110,7 +120,7 @@
 
 > 完整规范在 [`../team/conventions.md`](../team/conventions.md)，这里只列最关键的三条：
 
-1. **engine-core 纯层边界**（分阶段，详见 [`../team/conventions.md`](../team/conventions.md) §1.1）—— PoC 影子期默认 `git diff --stat HEAD -- src/engine-core` 为空；永久红线是"零 NestJS / 零网络 / 零 prompt"，`boundary.spec.ts` 11 条断言永远要过
+1. **engine-core 纯层边界**（分阶段，详见 [`../team/conventions.md`](../team/conventions.md) §1.1）—— PoC 影子期默认 `git diff --stat HEAD -- src/engine-core` 为空；永久红线是"零 NestJS / 零网络 / 零 prompt"，`boundary.spec.ts` 的边界断言永远要过（**2026-11-08 实测：12 个用例** = 11 条不变量 ①–⑪ + 1 条"扫描自检"，共 18 个 `expect`；README 原写「11 条」是陈旧口径，审计报告写「13 条」也不准 —— 一律以实测为准）
 2. **不写前端代码**（不碰 admin-dashboard / Flutter）
 3. **不跑前端命令**（flutter / dart / pub 一律不跑）
 
@@ -161,7 +171,7 @@ docs/worklog/
 │   │   ├── early-misc/
 │   │   └── phase1-backlog-archived-2026-11-03.md
 │   └── phase2/       ← Phase2 交付（WP28 ✅ PsyGUARD 正式值 / WP32 ✅ BDI 状态持久化（内存 → Redis，内核零改动）/ WP34 ✅ P1 人格调节算子 / WP35 ✅ 渲染四手法（语气疏离度 / 情绪表现 / 轻量随机 / 非语言）/ WP36 ✅ 跨会话间隔自然衰减 / WP37 ✅ 记忆会话级摘要压缩（滚动摘要）/ WP41 ✅ 表达风格渲染接入（话量基线 / 叙事风格 / 语态倾向）/ WP42 ✅ 咨询同盟三维 / WP49 ✅ 角色大五人格字段落地（内核零改动，宜人性算子通路打通）/ WP50 ✅ 渲染层接入同盟三维（safety/bond）/ WP51 ✅ 角色种子同盟三维基线（safety/bond）/ WP52 ✅ 剧本偏移接入同盟三维（safety/bond）/ WP53 ✅ 人格调节算子扩展到同盟三维（safety/bond）/ WP54 ✅ 破裂态阻抗反升（跨会话衰减补完）/ WP55 ✅ 会话摘要补齐来访者侧（两侧纪要）/ WP56 ✅ 长期记忆召回进渲染上下文 / WP57 ✅ BDI 信念层深度扩展（核心信念激活 + 短期信念置信度衰减）/ WP58 ✅ 引擎调试面板（/debug-chat 后端三接口：调试会话**落 JSON 文件**（仍不写正式表），每轮返回 BDI 快照 / delta / 意图 / 渲染规格 / prompt 全文 / 审议 trace）/ WP59 ✅ 记忆召回策略配置端口统一（半衰期/阈值可配置，判定只有一份）/ WP61 ✅ 会话摘要层次化（核心议题 / 关键事件 / 情绪转折点）/ WP30 ✅ Admin Dashboard 切真 API（角色详情 / 角色会话 / 剧本轨迹 / 本场记忆四端点 + 前端两页去 mock）/ WP31 ✅ 成本看板切真 API（成本趋势 / 会话成本两端点 + 前端去 mock；**仅看板那一半**，超阈值告警仍待补）/ WP63 ✅ 审议输出 Schema 与可解释性设计（维度/标签枚举 + 输出契约 + 双模式 prompt 模板）/ WP64 ✅ LLM 审议层 PoC（影子模式 · 旁路观察，结果只写 Redis trace 表，不写状态）/ WP65 ✅ 审议影子模式 BullMQ 队列化（入队异步跑 + Worker 并发闸门）+ 后半段 ✅ per-session mutex（Redis SETNX 锁）与快照版本号传递（`EngineTurnOutput.revision` → 审议入参 `baseRevision` → trace；**两半都销了**，审议结果仍不生效）/ WP66 ✅ 审议输出格式校验与重试（按错误类型分流 + 先写 trace 再抛）/ WP67 ✅ 审议熔断与降级策略（会话级熔断器：连续失败 3 次暂停，冷却后半开探一个；**熔断器那一半**；**`degraded` 会话打标那一半 ✅ 已由 2026-11-07 独立单销掉** —— 口径见该交付记录）/ WP68 ✅ 意图锁定机制（基础版：审议输出加可选 `intentionShift` + 影子期旁路模拟锁定 N 轮；**仅基础版**，触发事件白名单仍待补）/ 2026-11-05 四合一任务单 ✅ Admin Dashboard 剩余页面切真 API + 调试会话持久化（Dashboard / MemoryBrowser / PsyGuardMonitor 三页切真 + 调试会话落 JSON 文件 + 3 轮后 LLM 自动命名，内核零改动）/ WP45 ✅ P3 技术债 8 条清理（**挖出一个线上一直在犯的 Qdrant SDK 契约 bug**：WP12 的冲突消解标记从未真正落库 → 同主题矛盾记忆一起被召回；内核零改动）/ 影子模式统计面板 ✅（2026-11-07 · 18 字段指标 + O(1) 读计数器）/ 影子模式统计面板 · **时间窗口扩展** ✅（2026-11-08 · 按天分 key + 最近 N 天窗口查询，日 key TTL 90 天，`window` 口径对象带 `daysCovered`，真 Redis 已验，内核零改动））
-├── audits/           ← 审查报告（WP25 等）
+├── audits/           ← 审查报告（WP25 Phase1 封版扫描 / Phase2 代码级对账审计 等）
 └── archive/          ← 老文档
 ```
 

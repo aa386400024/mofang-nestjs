@@ -15,13 +15,14 @@
 //   验证: npx vitest run test/admin-debug/wp38-debug-session-resume.spec.ts
 //   时间戳: 2026-11-06 GMT+8
 
-import { RequestMethod } from '@nestjs/common';
+import { Logger, RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
+import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildDebugKernelState, DebugKernelStateRestorer } from '../../src/admin-debug/debug-kernel-state.js';
 import { DebugSessionStore } from '../../src/admin-debug/debug-session-store.js';
@@ -296,20 +297,59 @@ describe('WP38 补做 · 调试会话恢复', () => {
       expect(resumed.restored.contextTurns).toBe(4);
 
       // 恢复后能继续发消息, 且轮次**接着往下数** (不是从头开始).
-      second.engine.queue.push(makeTurnResult(makeSnapshot({ trust: 0.9 }), 1));
-      const turn = await second.service.runTurn(created.sessionId, '第三轮');
+      //
+      // ⚠️ V2026-11-08 (并行 flake 诊断): 标题生成在 service 里是 `void` fire-and-forget,
+      //   失败**只 warn 不抛** —— "写失败"与"还没写完"在测试侧**长得一模一样**.
+      //   这里先装上告警捕获 (必须在触发标题生成**之前**装), 超时时把现场带出来.
+      //   **只带字段名 / 状态值 / 错误名, 绝不打印对话正文或 prompt** (心理内容红线).
+      const warnSpy = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+      try {
+        second.engine.queue.push(makeTurnResult(makeSnapshot({ trust: 0.9 }), 1));
+        const turn = await second.service.runTurn(created.sessionId, '第三轮');
 
-      expect(turn.reply).toBe('（回应）');
-      expect(turn.trace.turnIndex).toBe(3);
-      // 渲染上下文还原了 (上一轮说过的话还在).
-      expect(second.engine.restored[0]?.turns).toHaveLength(4);
-      expect(second.engine.restored[0]?.turns[0]?.text).toBe('第一轮');
+        expect(turn.reply).toBe('（回应）');
+        expect(turn.trace.turnIndex).toBe(3);
+        // 渲染上下文还原了 (上一轮说过的话还在).
+        expect(second.engine.restored[0]?.turns).toHaveLength(4);
+        expect(second.engine.restored[0]?.turns[0]?.text).toBe('第一轮');
 
-      // 这一轮把轮次推到 3 → 触发**异步**标题生成; 等它落定 (否则清理临时目录会撞上后台写文件).
-      await waitFor(async () => {
-        const raw = JSON.parse(await readFile(join(dir, `${created.sessionId}.json`), 'utf8')) as { readonly title?: string };
-        return raw.title === '兜底标题';
-      });
+        // 这一轮把轮次推到 3 → 触发**异步**标题生成; 等它落定 (否则清理临时目录会撞上后台写文件).
+        //
+        // ⚠️ 等待上限 **30s** (只改这一处, `waitFor` 的默认值留给其它调用点):
+        //   这里等的是**异步副作用落盘**, 不是业务逻辑 —— 142 个 worker 并行时
+        //   文件写 + rename 会被拖慢, 10s 偶发不够 (单跑该文件必绿, 并行才偶发红).
+        await waitFor(async () => {
+          const raw = JSON.parse(await readFile(join(dir, `${created.sessionId}.json`), 'utf8')) as { readonly title?: string };
+          return raw.title === '兜底标题';
+        }, 30_000);
+      } catch (error) {
+        // 只给"等待超时"补现场; 断言失败原样抛 (别把真失败盖成诊断信息).
+        const isTimeout = error instanceof Error && error.message.includes('waitFor 超时');
+        if (!isTimeout) throw error;
+        const file = join(dir, `${created.sessionId}.json`);
+        const fileExists = existsSync(file);
+        let title: string | undefined;
+        let titleSource: string | undefined;
+        if (fileExists) {
+          const raw = JSON.parse(await readFile(file, 'utf8')) as { readonly title?: string; readonly titleSource?: string };
+          title = raw.title;
+          titleSource = raw.titleSource;
+        }
+        const warnTexts = warnSpy.mock.calls.map((call) => String(call[0]));
+        throw new Error(
+          [
+            'waitFor 超时: 异步标题未落定',
+            `session=${created.sessionId}`,
+            `fileExists=${String(fileExists)}`,
+            `title=${title ?? '(无)'}`,
+            `titleSource=${titleSource ?? '(无)'}`,
+            `warns=${warnTexts.length > 0 ? warnTexts.join(' | ') : '(无)'}`,
+            `cause=${error instanceof Error ? error.message : String(error)}`,
+          ].join(' '),
+        );
+      } finally {
+        warnSpy.mockRestore();
+      }
     });
 
     it('恢复后该会话在列表里变成 active=true 且 resumable=true', async () => {
