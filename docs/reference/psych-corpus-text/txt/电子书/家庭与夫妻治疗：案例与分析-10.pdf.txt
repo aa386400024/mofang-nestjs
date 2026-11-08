@@ -1,0 +1,142 @@
+# 源文件: 电子书/家庭与夫妻治疗：案例与分析-10.pdf
+# 状态: ok_ocr_sample（原 PDF 272 页，为大文件，仅 OCR 前 8 页做内容识别）
+# 原始字符数: 2760
+
+<!-- page 1 -->
+PEARSON
+社会工作名著译丛（二）
+书主编
+丛书副生
+Assessing Families and Couples:
+From Symptom to System
+家庭与夫妻治疗
+案例与分析
+（美）SalvadorMinuchin
+MichaelP.Nichols
+Wai-YungLee（李维榕）/著
+样书卢建平陈珏/译胡赤怡
+华东理工大学出版社
+
+<!-- page 2 -->
+Assessing Families and Couples:
+From Symptom to System
+家庭与夫妻治疗：
+案例与分析
+（美）SalvadorMinuchin
+Michael P.Nichols
+Wai-YungLee（李维榕）/著
+胡赤怡卢建平陈珏／译
+华东理工大学出版社
+
+<!-- page 3 -->
+图书在版编目（CIP）数据
+家庭与夫妻治疗：案例与分析/SalvadorMinuchin等著；胡
+赤怡，卢建平，陈译，一上海：华东理工大学出版社，2007.11
+（社会工作名著译丛（二）/徐永祥主编）
+ISBN978-7-.56282201-1
+I.家...I.① Salvador...②胡...?卢...@陈..
+Ⅲ．家庭社会学-研究IV.C913.11
+中国版本图书馆CIP数据核字（2007)第146310号
+Authorized translation from the English language edition, entitled ASSESSING
+FAMILIES AND COUPLES:FROM SYMPTOM TO SYSTEM,1" Edition,
+0205470122byMINUCHIN,SALVADOR;NICHOLS,MICHAELP.;LEE,WAI
+YUNG, published by Pearson Education, Inc. publishing as Allyn &. Bacon, Copyright
+@ 2007.
+All rights reserved. No part of this book may be reproduced or transmitted in any form
+or by any means, electronic or mechanical, including photocopying, recording or by any
+information storage retrieval system, without permission from Pearson Education Inc.
+CHINESE SIMPLIFIED language edition published by PEARSON EDUCATION ASIA
+LTD.andEASTCHINAUNIVERSITYOFSCIENCE&TECHNOLOGYPRESS
+Copyright @ 2007.
+中文简体字版权由华东理工大学出版社独家拥有。
+著作权合同登记号：“图字：09-2007-745号”
+丛书名社会工作名著译丛(二)
+上海市重点图书
+徐永样丛书主编
+何雪松丛书副主编
+家庭与夫妻治疗：案例与分析
+AssessingFamilies and Couples:From Symptom to System
+Salvador Minuchin, Michael P.Nichols, Wai-Yung Lee著
+胡赤怡卢建平陈译
+华东理工大学出版社
+上海市梅陇路130号
+200237电话(021)64250306
+上海展强印刷有限公司
+787mm×960mm1/16
+17
+247千字
+2007年11月第1版
+2007年11月第1次
+ISBN978-7-5628-22011/C·120
+39.00元
+本书封面贴有PearsonEducation(培生教育出版集团）激光防伪标签。无标签者不得销售。
+
+<!-- page 4 -->
+Salvador Minuchin
+医学博士，结构式家庭治疗创始人
+Michael P.Nichols
+哲学博士，美国威廉一玛丽学院心理学教授
+Wai-YungLee(李维榕）
+哲学博士，香港大学家庭研究院总监
+胡赤怡
+香港大学哲学博士候选人，深圳市康宁医院
+精神科主任医师
+卢建平
+医学硕土，深圳市康宁医院儿童心理科副主
+任医师
+陈珏
+医学博土，上海交通大学附属精神卫生中心
+副主任医师
+
+<!-- page 5 -->
+社会工作好书推荐
+临床社会工作实务
+种整合的方法游戏治疗
+临床社会工作实务临床社会工作
+游戏治疗一种整合的方法
+定价：45.00元定价：28.00元
+Children and Adolescents儿童青少年社会工作青少年
+儿童青少年社会工作青少年团体治疗
+认知行为互动取向
+定价：50.00元定价：28.00元
+精神家庭治疗
+理论与方法会工作卖践
+家庭治疗精神健康
+理论与方法临床社会工作实践
+定价：50.00元定价：45.00元
+邮购热线：021-64250306×19
+
+<!-- page 6 -->
+社会工作名著译丛（二）
+上海市重点图书
+从书主编徐水祥
+从书副主编/何雪松
+
+<!-- page 7 -->
+献给Paf
+她是我人生旅途的同伴
+献给Colleen
+她总是带着满口袋的问号去探索未来
+
+<!-- page 8 -->
+社会工作名著译丛学术顾问委员会
+（按姓氏笔画为序）
+James Midgley美国加州大学伯克利分校社会福利学院院长，讲座教授
+Jim Barber加拿大多伦多大学社会工作学院院长
+美国南加州大学社会工作学院院长，美国卫生部顾问MarilynFlynn
+美国维蒙特大学（UniversityofVermont）社会工作系教Stanley Witkin
+授，美国《社会工作》杂志原主编
+王思斌北京大学社会学系教授，中国社会工作教育协会会长
+邓伟志全国政协常委，中国社会学会副会长
+香港大学老年研究中心主任，世界卫生组织顾问齐铱
+阮曾媛琪香港理工大学应用社会科学系主任，教授
+吴铎上海浦东新区社会工作者协会会长，中国社会学会副会长
+宋林飞江苏省社会科学院院长，南京大学社会学系教授
+陈丽云香港大学行为健康研究中心主任，社会工作及社会行政学
+系教授
+杨罗观翠香港特别行政区妇女委员，中山大学社会学与社会工作系
+讲座教授
+郑杭生中国人民大学社会学系教授，中国社会学会会长
+莫邦豪香港中文大学社会工作学系教授
+梁祖彬香港大学社会工作及社会行政学系主任，教授
+童星南京大学公共管理学院院长，教授

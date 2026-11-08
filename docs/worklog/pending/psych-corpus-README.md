@@ -1,10 +1,11 @@
 # 心理学资料库资产化 · 工作入口
 
 > **路径**：`docs/worklog/pending/psych-corpus-README.md`
-> **状态**：🚧 进行中（盘点完成，案例卡深转未开始）
-> **创建日期**：2026-11-08
+> **状态**：🚧 全量提取与分类已完成；已转成数据集 **11 个案例（484 轮 / 332 条 SFT）**——双面镜 3 个 + 精分教材 1 个 + 逐字稿方向 7 个。**其中 6 案可进训练，5 案仅作评测**（合规 / 技术淘汰 / 高风险，共 104 轮）
+> **更新日期**：2026-11-08
 > **总入口**：[§worklog/README.md](../README.md)
-> **inventory**：[§psych-cases/inventory.md](../../reference/psych-cases/inventory.md)
+> **语料库**：[§psych-corpus-text](../../reference/psych-corpus-text/)
+> **案例卡**：[§psych-cases](../../reference/psych-cases/)
 
 ---
 
@@ -15,114 +16,210 @@
 | 阶段 | 干什么 | 类比 |
 |---|---|---|
 | Phase2.5 WP-D | 训练模拟咨询师 AI + 自动对练 | 需要「教材」 |
-| **本阶段** | **把磁盘上 468 份心理学资料盘点、筛选、转成案例卡——给模拟咨询师 AI 编教材** | **编教材** |
+| **本阶段** | **把 468 份心理学资料提取成文字、分类、转成案例卡** | **编教材** |
 | Phase2.5 WP-E | 用督导解析当 ground truth 自动评测 | 需要「标准答案」 |
 
-**一句话：本阶段的目标不是写代码，是把散落在 PDF/Word 里的督导智慧，变成工程能直接吃的结构化数据。**
+**一句话：把散落在 PDF/Word 里的督导智慧，变成工程能直接吃的结构化数据。**
 
 ---
 
-## 1. 出口条件（做完的标志）
+## 1. 出口条件
 
-| # | 出口条件 | 可判定标准 |
-|---|---|---|
-| ① **清单齐备** | 468 份资料全部进 inventory.md，每份有评级和可用 WP 标注 | inventory.md 行数 = 实际文件数 ✅（已达成） |
-| ② **核心资产深转** | 双面镜 ⭐⭐⭐⭐⭐ + 逐字稿 ⭐⭐⭐⭐⭐ + 话术包 ≈ 60 份转成标准化案例卡 | `docs/reference/psych-cases/` 下有 60 份案例卡（除 inventory.md 外） |
-| ③ **ground truth 可喂** | 每份案例卡有 `gold_turns` / `bad_turns` / `expected_deliberation_deltas`，格式对齐 engine-core 契约 | WP-E 评测脚本能直接读 JSON |
-| ④ **合规过线** | 所有案例卡 `<pii_redacted: true>`；未成年人案例打 `<minor: true>` 不进训练集；对话原文片段不进审议 prompt | 抽查 5 份案例卡无真实姓名/单位 |
-| ⑤ **筛选可用** | 按流派 / 议题 / 人群 / 风险等级能筛出素材子集 | WP-D 训练时能说「给我 10 份 CBT 社恐案例」 |
-
----
-
-## 2. 资料清单与进度
-
-| 大类 | 份数 | 评级 | 状态 | 用途 |
-|---|---|---|---|---|
-| 双面镜大咖督导 | 34 | ⭐⭐⭐⭐⭐ | 📋 待深转 | WP-D 训练 + WP-E ground truth（含刘丹/李松蔚/曾奇峰/王建平/林芳/申荷永/丛中/张沛超/杨发辉/付丽娟督导） |
-| 逐字稿 | 38 | ⭐⭐⭐⭐⭐ | 📋 待深转 | WP-D 训练（含罗杰斯 10 经典个案 + 95 份督导合集） |
-| 督导案例及话术 | 3 | ⭐⭐⭐⭐⭐ | 📋 待深转 | WP-D 话术库（常用话术 Word 版） |
-| 电子书 | 21 | ⭐⭐⭐ | ✅ 只列清单 | 理论参考（罗杰斯/循环提问/经典案例第七版等） |
-| 文档版案例 | 195 | ⭐⭐ | ✅ 只列清单 | 人工研读（中小学/大学生为主，未成年人不进训练集） |
-| 案例期刊 | 177 | ⭐ | ✅ 只列清单 | 不深转（学校心理辅导为主，价值密度低） |
-
-**依赖关系：**
-```
-inventory.md 全量盘点 ✅（2026-11-08）
-  ↓
-双面镜 15 份 ⭐⭐⭐⭐⭐ 深转（逐句解析 + 案例研讨，优先级最高）
-  ↓
-逐字稿 20 份 ⭐⭐⭐⭐⭐ 深转（罗杰斯 10 个案 + 95 份督导合集精选）
-  ↓
-话术包 1 份深转（WP-D 模拟咨询师风格参考）
-```
+| # | 出口条件 | 可判定标准 | 现状 |
+|---|---|---|---|
+| ① **全量提取** | 468 份每一份都有可用正文 | `manifest.jsonl` 里 `needs_ocr` = 0 | ✅ 已达成 |
+| ② **类型可分** | 每份按正文判出是什么（不看文件名） | `corpus-index.json` 里 `unknown` ≤ 2% | ✅ 2 / 468 |
+| ③ **对话可切轮** | 每份对话逐字稿切成结构化轮次 | `turns/*.turns.json` 覆盖全部 `dialogue` | ✅ 35/35 |
+| ④ **案例卡成卡** | 双面镜 10 案 + 逐字稿精选做成逐轮标注卡 | `psych-cases/*.md`（非 `_skeleton/`）份数 | ✅ **11 份完成**（双面镜一 / 三 / 四 + 精分一 + 逐字稿方向 7 份）；`_skeleton/` 实为 **8 份**（原记 33 份是错的），已无可用池 |
+| ⑤ **ground truth 可喂** | 每份卡有 gold_turns / bad_turns / delta | WP-E 脚本能直接读 | ✅ 11 案已具备（gold 151 / borderline 59 / bad 9） |
+| ⑥ **合规过线** | 无真实姓名单位；未成年人打标 | 抽查无 PII | ✅ 见 §6 |
 
 ---
 
-## 3. 当前有什么活
+## 2. 数据现状（2026-08-08 全量跑完）
 
-**第一步：看上面的清单，找「📋 待深转」且评级最高的那个大类。**
+**源资料**：`E:\BaiduNetdiskDownload\心理学资料`（468 份）
 
-现在下一个活是：**双面镜 15 份 ⭐⭐⭐⭐⭐ 案例卡深转**。
+| 提取状态 | 份数 | 说明 |
+|---|---:|---|
+| `ok` | 362 | 原生有文字层，直接提取 |
+| `ok_doc` | 66 | 旧 `.doc`，Word COM 转会 `.docx` 后提取 |
+| `ok_ocr` | 14 | 扫描版 PDF，全页 OCR |
+| `ok_ocr_sample` | 23 | 大页数扫描件（电子书/习题集），只 OCR 前 8 页做内容识别 |
+| `skipped` | 3 | `.caj` / `.mp4` / `.ppt`，无法提取 |
+| **合计** | **468** | **`needs_ocr` = 0** |
 
-按 `psych-corpus-to-worklog` 技能的 case-card-template.md 逐份转，一次 1~3 份，转完回写 inventory.md 状态。
+**总字数**：3,906,046 字。
 
----
+### 按类型分（`corpus-index.json`）
 
-## 4. 红线
+| 类型 | 份数 | 对 WP-D/WP-E 的价值 |
+|---|---:|---|
+| `dialogue` 对话逐字稿 | 35 | ★★★★★ 训练素材本体 |
+| `supervision` 督导逐句点评 | 9 | ★★★★★ ground truth 来源 |
+| `profile` 案例背景画像 | 24 | ★★★★ 来访画像 / 场景设定 |
+| `handout` 话术工具 | 2 | ★★★★ 标签校准 |
+| `case_report` 案例报告/期刊 | 361 | ★★★ 补充案例，**无逐轮对话** |
+| `personal_growth` 个人成长报告 | 9 | ★ 认证材料，不进训练 |
+| `concept` 概念讲义 | 22 | ★★ 理论背景 |
+| `exam` 习题 | 1 | ☆ 不用 |
+| `skipped` 无法提取 | 3 | `.caj` / `.mp4` / `.ppt` |
+| `unknown` | 2 | 人工判断 |
 
-### 4.1 合规红线
-- ❌ 案例卡里永远不写真实姓名 / 单位 / 可识别细节
-- ❌ 未成年人案例（中小学 / 学生）不进训练集，只做人工研读
-- ❌ 案例卡的对话原文片段不进 LLM 审议 prompt——审议侧只看结构化标签和 delta
-
-### 4.2 工程红线
-- ❌ 不自己发明 eventTags——严格用 `src/engine-core/domain/events/event-lexicon.ts` 的 9 类（empathy / acceptance / normalization / open_probe / affirmation / judgment / preaching / minimizing / boundary_cross）
-- ❌ 不改 engine-core 任何代码——本阶段只产文档
-- ❌ delta 只标方向（+0.0X / -0.0X），不编精确值
-
-### 4.3 质量红线
-- ❌ 不扭曲督导点评原意——摘要可以，篡改不行
-- ❌ 不把期刊 177 篇和文档版 195 份硬转——价值密度低，只列清单
-
----
-
-## 5. 交付格式
-
-### 5.1 交付物放哪里
-
-| 产物 | 路径 | 状态 |
-|---|---|---|
-| 本入口文档 | `docs/worklog/pending/psych-corpus-README.md` | ✅ 已创建 |
-| 全量 inventory | `docs/reference/psych-cases/inventory.md` | ✅ 已生成（468 份） |
-| 单份案例卡 | `docs/reference/psych-cases/<case-id>.md` | 📋 待深转 |
-
-### 5.2 案例卡写什么
-
-按 `psych-corpus-to-worklog/references/case-card-template.md` 的字段：
-1. 元信息（case_id / source / supervisor / school / minor / risk_level）
-2. 来访画像（脱敏后）
-3. 逐轮技术标注（eventTags + 期待 delta + 督导点评）
-4. Ground Truth（gold_turns / bad_turns / expected_delta / risk_turns）
-5. 合规标记
-
-### 5.3 深转节奏
-
-- 一次只转 1~3 份，转完回写 inventory.md 状态
-- 不要试图一次转完 60 份——context 会爆
-- 遇到拿不准的 eventTags，宁可标 `open_probe` 兜底，不要硬编
+**为什么 `case_report` 这么多**：468 份里 195 份文档版 + 177 份期刊，绝大多数是中小学/大学生心理辅导的**叙事体案例文章**（有作者、有案例经过、有反思），不是对话逐字稿。它们可以做"案例背景 + 干预思路"参考，但**喂不了逐轮训练和评测**。
 
 ---
 
-## 6. 文档导航
+## 3. 产物清单
 
-| 文档 | 内容 |
+### 语料库 `docs/reference/psych-corpus-text/`
+
+| 文件/目录 | 内容 |
 |---|---|
-| 本文件（心理学资料入口） | 定位 / 出口条件 / 资料清单 / 红线 / 交付格式 |
-| [§inventory.md](../../reference/psych-cases/inventory.md) | 468 份资料的完整清单（评级 + 状态 + 可用 WP） |
-| [§案例卡目录](../../reference/psych-cases/) | 已深转的标准化案例卡（当前为空，待深转） |
-| [§worklog/README.md](../README.md) | 整个项目的工作入口 |
-| [§Phase2.5 README](phase2.5-README.md) | Phase2.5 灰度验证期主入口（本阶段服务于 WP-D / WP-E） |
+| `manifest.jsonl` | 468 条记录：源路径 / 类型 / 状态 / 字数 / txt 路径 |
+| `extract-summary.json` | 首次全量提取汇总 |
+| `txt/` | **465 个**纯文本，镜像源目录结构；文件头 4 行标注源文件、状态、字数 |
+| `turns/` | **33 份** `*.turns.json`，每份含 `turns[] = {index, counselor, visitor, supervisor, supervisor_names}` |
+| `corpus-index.md` | 概览：类型分布、议题分布、案例分组、错位证据 |
+| `corpus-index-full.md` | 逐条明细（468 行） |
+| `corpus-index.json` | 机器可读，含 `real_title / head / kind / kind_confidence / title_mismatch / case_group / topics` |
+| `_doc2docx/` | 66 份由 `.doc` 转出的 `.docx`（中间产物，可删） |
+| `_ocr.log` / `_classify.log` | 运行日志 |
+
+### 案例卡 `docs/reference/psych-cases/`
+
+| 文件 | 轮次 | gold / border / bad | 进 SFT |
+|---|---|---|---|
+| `psychoanalysis-01-double-life.md` | 121 | 11 / 13 / 2 | ✅ |
+| `shuangmianjing-04-insecure-man.md` | 55 | 20 / 6 / 0 | ✅ |
+| `shuangmianjing-03-marriage-wife.md` | 52 | 12 / 4 / 3 | ✅ |
+| `cbt-02-social-anxiety-teen.md` | 45 | 10 / 5 / 0 | ❌ 在校生性议题 |
+| `shuangmianjing-01-mother-daughter.md` | 39 | 9 / 3 / 0 | ✅ |
+| `intake-01-entrance-exam-failure.md` | 22 | 5 / 3 / 0 | ✅ |
+| `cbt-03-exam-anxiety-senior.md` | 16 | 7 / 2 / 0 | ❌ 高三在读 |
+| `crisis-01-colorless-world.md` | 16 | 11 / 4 / 0 | ❌ risk=high |
+| `behavior-01-alcohol-dependence.md` | 15 | 7 / 2 / 3 | ❌ 技术已淘汰 |
+| `brief-01-friendship-betrayal.md` | 13 | 8 / 2 / 0 | ✅ |
+| `behavior-02-fetish-theft.md` | 12 | 6 / 2 / 3 | ❌ 技术已淘汰＋敏感 |
+| `_skeleton/*.md` | — | — | 8 份：3 组已用于双面镜一 / 三 / 四重做，2 份是合规排除的案例二（15 岁），1 份来访发言为 0，**无可填池** |
+| `inventory.md` | — | — | 468 份原始清单，文首有「成卡状态」总表 |
+
+### 结构化数据集 `docs/reference/psych-dataset/`
+
+**机器消费入口，大模型/评测脚本读这里，不要读 md。**
+
+| 文件 | 内容 |
+|---|---|
+| `cases/*.json` | **唯一真源**：一案例一文件，含逐轮 events / descriptive_tags / delta / ground_truth |
+| `dataset/turns.jsonl` | 标注视图：一轮一条，供评测与分析 |
+| `dataset/sft.jsonl` | 训练视图：OpenAI `messages` 格式，可直接喂微调框架 |
+| `dataset/cases.jsonl` | 案例视图：案例元信息 + 评测锚点 |
+| `dataset/visitors.jsonl` | **角色卡视图**：一案一行，AI 来访者人设 + 语言特征实算（WP-D 用） |
+| `dataset/rubric.json` | **评测断言**：must_do / must_not_do / traps（WP-E 用） |
+| `dataset/stats.json` | 统计：事件分布 / delta 均值 / 风险流派分布 |
+| `schema/case.schema.json` | JSON Schema，字段与枚举约束 |
+| `DATASET-CARD.md` | 数据集说明：字段语义、规模、偏差、扩容方式 |
+| `DATASET-VISITORS.md` | 角色卡与断言的人读版（由上面两个 JSON 渲染） |
+
+当前规模：**11 个案例 / 484 轮 / 332 条 SFT 样本**。可进训练的 4 案是双面镜一 / 三 / 四 + 精分一；另有 `brief-01`（13 轮）与 `intake-01`（22 轮）两份无督导材料，属可训练但材料性质较薄。5 案标 `trainable=false`（在校生性议题 / 高三在读 / risk=high / 技术已淘汰 / 高敏感，共 104 轮），只进 `turns.jsonl` 评测视图。详见 DATASET-CARD 的"覆盖与局限"。
+
+**三份产物各管一件事，别混**：`trainable` 只控 `sft.jsonl`（不教模型模仿有争议的操作）；`visitors.jsonl` 管「能不能演这个来访者」，**11 案全收**；`rubric.json` 管「有没有拦住、该做的做了没」，**11 案全收**、51 条 must_do + 40 条 must_not_do。危机与成瘾案不进训练但必须进评测——真实咨询师就是会遇到这些来访者。
+新增案例：改 `cases/*.json` → `python build_dataset.py --root docs/reference/psych-dataset`，校验不通过会直接退出。
 
 ---
 
-_本阶段是给模拟咨询师 AI 编教材：不是写代码，是把督导智慧变成工程能吃的结构化数据。_
+## 4. 怎么消费这些产物
+
+### WP-D（模拟咨询师训练）
+
+1. 从 `corpus-index.json` 筛 `kind == "dialogue"` → 35 份候选
+2. 按 `topics` 筛议题（抑郁/焦虑/亲子/婚姻/学业/职场…）
+3. 按 `case_group` 聚合同一案例的多份材料
+4. **首选 `dataset/visitors.jsonl`**：一案一行的完整人设（说话方式 / 口头语 / 回避方式 / 情绪基线 / 阻抗触发 / 风险触发 / 边界 / 代表台词），比从 `turns.json` 现拼角色卡稳定
+5. 需要更多台词种子时再回 `turns.json` 取 `visitor` 文本，`counselor` 文本作为"专家示范"
+
+### WP-E（自动评测 ground truth）
+
+1. **先用 `dataset/rubric.json` 判拦截**：`gating_level=critical` 的案子（危机 / 未成年 / 有害技术）必须能测出系统有没有进安全流程；`must_not_do` 里 `severity=red` 的条目触发即判失败
+2. 再用案例卡里的 **gold_turns**（黄金轮次）作为"高分应答"参照
+3. 用 **bad_turns / 边界样本**作为负例
+4. `expected_deltas` 直接写进评测断言（`trust / safety / bond / resistance / emotionValence`）
+5. 督导点评原文（`supervisor` 字段）作为**评分理由**的自然语言依据
+
+### 不要这样用
+
+- ❌ 拿 `case_report` 当逐轮训练数据 —— 它没有对话
+- ❌ 拿 `ok_ocr_sample` 当全文 —— 只有前 8 页
+- ❌ 按文件名找材料 —— 实测有跨案例错位（`title_mismatch` 122 份）
+
+---
+
+## 5. 质量校验（已做过的检查）
+
+| 检查 | 方法 | 结果 |
+|---|---|---|
+| 中文提取质量 | 抽 12 份验证，比对原 PDF 页数 | 断行自然、无乱码 |
+| OCR 准确度 | 单份测试 `01 案例一基础知识点.pdf` | 3,615 字，识别准确 |
+| 文件名可信度 | 正文标题 vs 文件名比对 | 122 份不一致，**不能信文件名** |
+| 轮次切分粒度 | 案例一：脚本 56 轮 vs 人工整合 39 轮 | **定论：用 56 轮**。人工合并版把咨询师的连续发言并成一轮，丢了「他说一句、她接一句」的节奏，也无法逐轮挂 GT |
+| 同名副本 | 内容比对 | `事件频发的一周(1).pdf` 与原件同为 12,659 字，重复 |
+
+---
+
+## 6. 合规红线
+
+1. **心理数据不出境** —— 全部在本地/内网处理
+2. **进训练集前脱敏** —— 真实姓名、单位、地名替换为占位符
+3. **未成年人案例不进训练集** —— `topics` 含"儿童青少年"的需二次确认；文档版 195 份大量是中小学案例
+4. **对话原文不进审议 prompt** —— 只进 `snapshot` 的结构化摘要（见 `deliberation-hook.port.ts`）
+
+---
+
+## 7. 下一步
+
+| 优先级 | 事项 | 量 |
+|---|---|---|
+| **P0** | **`rubric.json` 的 11 案断言等真人临床复核**（尤以危机案的「风险评估 + 安全计划」条目、未成年两案的边界颗粒度） | 11 案 / 89 条 |
+| P1 | 双面镜带逐轮对话的 4 个案例已全部处理完（1/3/4 已成卡，案例二因来访者 15 岁按合规排除）；**扩容已转向其他逐字稿，本轮完成 7 份** | — |
+| P1 | 从 `turns/` 其余逐字稿里挑新的完整案例成卡。**本轮已完成 7 份**（见下表），`turns/` 里剩下的有效候选基本用尽 | 已交付 |
+| P2 | ~~03 逐句解析（男性案例）成卡~~ 已完成，即案例四 `shuangmianjing-04-insecure-man`（55 轮 / gold 20 / borderline 6） | 1 份 ✅ |
+| P3 | ~~补读 04 案例研讨~~ 已完成；同时核对出 `05 案例研讨（丛中）` 不属于本案例（讲的是另一位女性来访者），已在卡里剔除 | 1 份 ✅ |
+| P4 | 23 份 `ok_ocr_sample` 若需全文，单独补跑全页 OCR | 23 份 |
+
+**本轮已处理（7 份，全部有对应案例卡）**：
+
+| 材料 | 轮次 | 落成 | 判断依据 |
+|---|---|---|---|
+| `逐字稿/心理电子书/不敢见人的男生` | 45 | `cbt-02-social-anxiety-teen` | 18 岁但在校高二 + 性议题 → `trainable=false` |
+| `文档版-186/心理治疗案例分析` | 16 | `cbt-03-exam-anxiety-senior` | 高三在读 → `minor=true` + `trainable=false` |
+| `文档版-186/我的世界没有色彩：抑郁症自杀干预` | 16 | `crisis-01-colorless-world` | 自杀意念 + 既往行动 → `risk=high` + `trainable=false` |
+| `文档版-186/酒，我的命根子` | 15 | `behavior-01-alcohol-dependence` | 戒酒硫＋诱导饮酒致呕吐，技术已淘汰 |
+| `文档版-186/偷窃而来的快乐` | 12 | `behavior-02-fetish-theft` | 电刺激厌恶疗法 + 恋物细节，技术淘汰且敏感 |
+| `逐字稿/个案咨询对话` | 13 | `brief-01-friendship-betrayal` | 女大学生友情议题，可进训练 |
+| `逐字稿/心理咨询案例对话(1)` | 22 | `intake-01-entrance-exam-failure` | 高考落榜生初访流程示范，可进训练 |
+
+**已排除**：`03 逐句解析：CBT与格式塔的碰撞`（108 轮，属双面镜案例二，来访者 15 岁，合规排除）；`05 案例研讨：去看见，是一种勇敢`（133 轮，无来访者发言，是张沛超对双面镜四的督导研讨，已补进该卡 §4.5）；`意向对话技术应用案例分析`（22 轮，15 岁初三，整案排除）；`看看心理咨询里的精彩对话` / `高三心理咨询对话`（27 轮同源，高三在读）；`首次心理咨询谈话`（21 轮，与 `心理咨询案例对话(1)` 同源，只计一次）；另 5 份切出轮次但来访者发言为 0（`别让生命太沉重` 38 / `一例聚焦夫妻情绪家庭治疗` 40 / `一例情感与婚姻危机` 22 / `一例男大学生同性恋者` 18 / `大学生心理咨询案例-自卑` 13）。
+
+**填骨架的方法**：读 `turns/*.turns.json` → 逐轮打 eventTags（9 类）→ 给 delta 方向 → 挂督导点评 → 补画像 → 写 ground truth。详见技能 `references/extraction-playbook.md`。
+
+---
+
+## 8. 工具（可复跑）
+
+技能目录：`C:\Users\41391\AppData\Local\Doubao\User Data\Profile 5\.doubao\agent_mode\workspace\.user_skills\psych-corpus-to-worklog`
+
+| 脚本 | 作用 |
+|---|---|
+| `extract_text.py` | 批量提取 PDF/DOCX/TXT/MD |
+| `ocr_pdf.py` | 扫描版补 OCR（续跑 + 大文件抽样） |
+| `convert_doc.ps1` | `.doc` → `.docx`（Word COM） |
+| `merge_docx.py` | 转出的 docx 提取成 txt 并回写 manifest |
+| `classify_texts.py` | 按正文分类，生成三份索引 |
+| `build_case_skeleton.py` | 切轮次，生成骨架卡 |
+| `clean_dialogue.py` | **切完轮次必跑**：剥离技术注释、动作描写、一段两角色归位、尾部附录与段末小结截断 |
+| `case_md_to_json.py` | 案例卡 md → `cases/*.json`（GT 按 `### 3.x` 标题关键词分桶） |
+| `build_dataset.py` | 汇总校验 → 生成 `dataset/*.jsonl` + `stats.json` |
+| `build_visitors.py` + `spec_visitors.py` | 生成 `dataset/visitors.jsonl`：统计字段从干净数据实算，判断字段来自 SPECS 字典 |
+| `build_rubric.py` | 生成 `dataset/rubric.json`：must_do / must_not_do / traps（**待临床复核**） |
+
+**增量更新**：新增资料后重跑 `extract_text.py`（自动跳过已有 txt）→ `classify_texts.py` → `build_case_skeleton.py`。

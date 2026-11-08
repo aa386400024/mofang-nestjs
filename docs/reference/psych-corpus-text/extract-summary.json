@@ -1,0 +1,10 @@
+{
+  "root": "E:\\BaiduNetdiskDownload\\心理学资料",
+  "out": "E:\\Work\\Project\\backend\\mofang-nestjs\\docs\\reference\\psych-corpus-text",
+  "total": 468,
+  "ok": 362,
+  "needs_ocr": 37,
+  "empty": 0,
+  "failed": 0,
+  "skipped": 69
+}

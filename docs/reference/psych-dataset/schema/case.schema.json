@@ -1,0 +1,184 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mofang-nestjs/psych-dataset/case.schema.json",
+  "title": "PsychCase",
+  "description": "单份心理督导案例的结构化真源。一个文件一个案例，人可 review、git diff 友好、机器可校验。",
+  "type": "object",
+  "required": ["case_id", "title", "school", "risk", "minor", "turns"],
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,63}$",
+      "description": "全局唯一，kebab-case，如 shuangmianjing-01-mother-daughter"
+    },
+    "title": { "type": "string", "minLength": 2 },
+    "sources": {
+      "type": "array",
+      "description": "原始材料，用于溯源。path 相对心理学资料根目录",
+      "items": {
+        "type": "object",
+        "required": ["path", "role"],
+        "properties": {
+          "path": { "type": "string" },
+          "role": {
+            "type": "string",
+            "enum": ["profile", "dialogue", "supervision", "handout", "other"]
+          },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "supervisors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "school": { "type": "string" }
+        }
+      }
+    },
+    "school": {
+      "type": "array",
+      "description": "咨询师呈现的流派 + 督导视角流派，分开列",
+      "items": {
+        "type": "string",
+        "enum": [
+          "精神分析", "系统式", "CBT", "格式塔", "人本", "ACT",
+          "DBT", "叙事", "焦点解决", "依恋", "整合", "未标注"
+        ]
+      }
+    },
+    "risk": {
+      "type": "string",
+      "enum": ["none", "low", "medium", "high", "crisis"],
+      "description": "crisis 表示有自杀/自伤意念，此类轮次永不跑 LLM 审议"
+    },
+    "minor": {
+      "type": "boolean",
+      "description": "true 时该案例不进训练集（未成年人保护）"
+    },
+    "trainable": {
+      "type": "boolean",
+      "description": "是否允许进 sft.jsonl。缺省 true。设为 false 的三类：在校生青春期性议题、已被现代规范淘汰的技术（如厌恶疗法/药物催吐）、内容高度敏感但不违法的案例。评测视图 turn.jsonl 不受此字段影响",
+      "default": true
+    },
+    "compliance": {
+      "type": "object",
+      "properties": {
+        "pii_redacted": { "type": "boolean" },
+        "note": { "type": "string" }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "description": "来访画像，喂给 WP-D 场景设定",
+      "properties": {
+        "demographics": { "type": "string" },
+        "occupation": { "type": "string" },
+        "presenting": { "type": "string" },
+        "trigger": { "type": "string" },
+        "medical": { "type": "string" },
+        "attachment_hypothesis": { "type": "string" },
+        "resistance_baseline": { "type": "number", "minimum": 0, "maximum": 1 },
+        "family": { "type": "string" },
+        "transference": { "type": "string" }
+      }
+    },
+    "turns": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/turn" }
+    },
+    "ground_truth": {
+      "type": "object",
+      "description": "给 WP-E 的评测锚点，轮次用 T 编号",
+      "properties": {
+        "gold_turns": { "type": "array", "items": { "type": "integer", "minimum": 1 } },
+        "borderline_turns": { "type": "array", "items": { "type": "integer", "minimum": 1 } },
+        "bad_turns": { "type": "array", "items": { "type": "integer", "minimum": 1 } },
+        "absent_negative_tags": {
+          "type": "array",
+          "description": "本案例全程未出现的负向标签，可作为评测的'不该出现'断言",
+          "items": { "type": "string" }
+        },
+        "notes": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "supervisor_summary": {
+      "type": "array",
+      "description": "督导总评，按观点分条。不进逐轮训练，给评测写评分理由用",
+      "items": {
+        "type": "object",
+        "required": ["supervisor", "point"],
+        "properties": {
+          "supervisor": { "type": "string" },
+          "topic": { "type": "string" },
+          "point": { "type": "string" },
+          "quote": { "type": "string" }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "turn": {
+      "type": "object",
+      "required": ["i", "counselor"],
+      "additionalProperties": false,
+      "properties": {
+        "i": { "type": "integer", "minimum": 1, "description": "轮次编号，对应 T{i}" },
+        "visitor": { "type": "string", "description": "来访者本轮的回应/独白；可能为空（首轮导入）" },
+        "counselor": { "type": "string", "description": "咨询师本轮发言原文" },
+        "events": {
+          "type": "array",
+          "description": "CounselerEventKind，严格 9 类。负向 4 类为负样本标注",
+          "items": {
+            "type": "string",
+            "enum": [
+              "empathy", "acceptance", "normalization", "open_probe", "affirmation",
+              "judgment", "preaching", "minimizing", "boundary_cross"
+            ]
+          }
+        },
+        "descriptive_tags": {
+          "type": "array",
+          "description": "描述性标注，不进 events，避免污染训练标签",
+          "items": {
+            "type": "string",
+            "enum": ["observation", "interpretation", "confrontation", "reframe", "self_disclosure"]
+          }
+        },
+        "delta": {
+          "type": "object",
+          "description": "DeltaVector 子集。只标方向与量级，不编精确值",
+          "additionalProperties": false,
+          "properties": {
+            "trust": { "type": "number", "minimum": -1, "maximum": 1 },
+            "safety": { "type": "number", "minimum": -1, "maximum": 1 },
+            "bond": { "type": "number", "minimum": -1, "maximum": 1 },
+            "resistance": { "type": "number", "minimum": -1, "maximum": 1 },
+            "emotionValence": { "type": "number", "minimum": -1, "maximum": 1 }
+          }
+        },
+        "quality": {
+          "type": "string",
+          "enum": ["gold", "normal", "borderline", "bad"],
+          "default": "normal"
+        },
+        "note": { "type": "string", "description": "技术要点/为什么这样标" },
+        "supervisor_comments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "text": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,649 @@
+{
+  "case_id": "cbt-02-social-anxiety-teen",
+  "title": "CBT 案例二：不敢见人的男生——社交焦虑背后的性认知偏差",
+  "sources": [],
+  "supervisors": [
+    {
+      "name": "无第三方督导"
+    },
+    {
+      "name": "段末有治疗小结"
+    }
+  ],
+  "school": [
+    "CBT"
+  ],
+  "minor": false,
+  "trainable": false,
+  "risk": "low",
+  "compliance": {
+    "pii_redacted": true
+  },
+  "profile": {
+    "demographics": "希耳（化名），男，18 岁，高二学生，独生子，由母亲陪同",
+    "presenting": "怕与人交往 2 年；见人不抬头、用手遮眼；在校极少交往，尤其怕女生"
+  },
+  "turns": [
+    {
+      "i": 1,
+      "counselor": "为何把眼睛遮住?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "不好意思。"
+    },
+    {
+      "i": 2,
+      "counselor": "为什么不好意思呢?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "不知道。"
+    },
+    {
+      "i": 3,
+      "counselor": "从什么时候开始的?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "两年了。"
+    },
+    {
+      "i": 4,
+      "counselor": "为什么以前不这样呢?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "……沉默不语",
+      "stage": "非言语"
+    },
+    {
+      "i": 5,
+      "counselor": "你总要上学去的。那你在学校怎样与人交往、讲话的呢?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "就这样低头或侧脸。"
+    },
+    {
+      "i": 6,
+      "counselor": "你能看到他们吗?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "余光能看到的。"
+    },
+    {
+      "i": 7,
+      "counselor": "那女生的敏感部位呢?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "……"
+    },
+    {
+      "i": 8,
+      "counselor": "你想看女生吗?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "……"
+    },
+    {
+      "i": 9,
+      "counselor": "觉得看女生有什么不好吗?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "当然不好了，不纯洁。"
+    },
+    {
+      "i": 10,
+      "counselor": "那为什么对男生也这样呢?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "他们老是谈论女生，不想和他们一样。"
+    },
+    {
+      "i": 11,
+      "counselor": "他们谈的时候，你心里怎么想的?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "觉得他们真下流，想离他们远一点。"
+    },
+    {
+      "i": 12,
+      "counselor": "你为什么不走开呢?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "晚上在寝室，没办法。"
+    },
+    {
+      "i": 13,
+      "counselor": "那你怎么办?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "别过脸去，不听，也不去看他们。"
+    },
+    {
+      "i": 14,
+      "counselor": "但事实上你还是听到的，这对你白天的行为会有影响吗?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我尽量不与他们交往，也害怕与他们讲话，觉得不自然。"
+    },
+    {
+      "i": 15,
+      "counselor": "那见到女生呢?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "更紧张，很不好意思。"
+    },
+    {
+      "i": 16,
+      "counselor": "你的发病时间好像和你的发育有关，你能把这些联系起来吗?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "……"
+    },
+    {
+      "i": 17,
+      "counselor": "你是不是认为性是不好的，是下流的，见不得人的。但你有时可能也会想到性，是吗?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "……是的。"
+    },
+    {
+      "i": 18,
+      "counselor": "我们继续分析下去，是不是想到性即觉得自己肮脏，不纯洁，不好意思见人。 或者有个想法，认为看到女生特别是某些部位即意味着想那些“下流的”东西，所以就不 敢去看了，一不小心看到就紧张回避。而且我发现你特别害怕目光的交流，往往是因为害 怕心里的想法从眼睛里流露出来被别人知道，所以你也害怕与男生以及很多的其他人交往，就因为害怕他们认为你肮脏下流，是不是?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "可能是的。支支吾吾地",
+      "stage": "非言语"
+    },
+    {
+      "i": 19,
+      "counselor": "其实你是有一些认知的错误，因此造成你交往的问题。在你这样的年纪开始 发育之后，想到性，想看女生，想和她们交往是很正常的。",
+      "events": [
+        "normalization"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "safety": 0.02
+      },
+      "quality": "normal",
+      "visitor": "我觉得不好。"
+    },
+    {
+      "i": 20,
+      "counselor": "所以说是你的认知偏差，你可以重新考虑想这些问题的。还有个错误的观念 就是你认为别人可以从你的眼睛得知你的内心想法。所以对交往紧张回避。",
+      "events": [],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.0
+      },
+      "quality": "normal",
+      "visitor": "从眼睛看不出来吗?"
+    },
+    {
+      "i": 21,
+      "counselor": "你能看出我想什么吗?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "……"
+    },
+    {
+      "i": 22,
+      "counselor": "总结一下，你的认知错误或者说偏差是①认为性是不好的，是肮脏下流的，想 到它就不纯洁，就肮脏。②心里的想法可以从眼睛表情被别人看出来。而在你这样的青春期，想到异性想到性是不可避免的，特别你越回避越压抑就越会想到。所以因为你的内在冲动和认知错误，导致了你交往的情绪是紧张害怕的，进而影响到你的交往行为，是低头侧脸或用手遮挡，很不自然，有些掩耳盗铃的味道吧?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "那我可以好起来吗?点出其认知错误 / 似有所悟",
+      "stage": "非言语"
+    },
+    {
+      "i": 23,
+      "counselor": "当然可以。首先你必须认识到你的认知错误，因为这样的思维有时你可以比 较清楚地感觉到，而有时更内在，如果你不去有意识地觉察就感觉不到，就直接表现出情绪和行为来。所以必须有意识地去察觉然后纠正它，你平时就要做这样的尝试。",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "怎么做呢?"
+    },
+    {
+      "i": 24,
+      "counselor": "当你出现不良的情绪和行为时，就回过头来想自己是不是有错误的想法才导 致不合适的情绪和行为。所以事先要知道正确的看法是什么。那就是性是正常而美好的，想到性也是正常的。别人并不会从你眼中读出你心里的想法。当出现错误的认知时， 要能纠正自己。认知调整是一个过程，可能需要一些时间。而且，你也必须知道正确的行为方式，你也知道现在的方式不好、不合适，所以尽量像正常人那样去交往，无论自己心里怎么想，这样你的进步就更快了。",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "好的"
+    },
+    {
+      "i": 25,
+      "counselor": "听妈妈讲你与家人交往还可以，只是亲戚朋友来了不自然，要躲。",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "是的"
+    },
+    {
+      "i": 26,
+      "counselor": "所以你可以通过不同的环境来逐渐改变自己的行为。比如说先是比较亲近的人，如熟悉的亲戚，要好的朋友。首先和他们的交往逐渐正常化，这对你比较容易做到些，好不好?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "好的。"
+    },
+    {
+      "i": 27,
+      "counselor": "然后逐渐过渡到同学，同学也有更熟悉的，可以用这种循序渐进的方式让你对自己建立交往的信心。",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我可以试试。行为指导：交往环境的梯级化。",
+      "stage": "非言语"
+    },
+    {
+      "i": 28,
+      "counselor": "另外一种办法是，你可以去到完全陌生的环境，尝试接触完全陌生的人，比如 说商场超市等，因为他们完全不知道你是谁，你的恐惧感也会轻点。给你定些任务，回去后自己去购物，尝试面对售货员、收银员，与他们对话，好吗?下次来告诉我你的感受。另 外一定要记住去察觉认知错误和自我纠正。",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "好的。"
+    },
+    {
+      "i": 29,
+      "counselor": "你自己觉得怎么样?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "稍微好一些吧。"
+    },
+    {
+      "i": 30,
+      "counselor": "认知方面举一个具体的例子谈谈你的感受好吗?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "想起有天在学校补课，我左边坐个女生，我不小心把笔掉到地上，捡笔时我看到了她的腿，心里顿时很紧张，只怕脸都变色了。抬起身子后我赶紧把身体向右侧一侧， 并想把头埋下来。这时我想到了你跟我说的认知错误，就想我是因为看了她的腿，觉得下流，做了坏事，不应该，而且肯定会被她看出来，所以想躲起来。然后你不是说要纠正自己吗，我就用力坚持不把头埋下，相信你说的我并没做坏事，只是自己的认知错误，而且她也 不会知道我心里的想法。后来我还把身子坐正了，但仍然紧张，没敢看那女生，自习也没有效率。"
+    },
+    {
+      "i": 31,
+      "counselor": "不错，你有了很大的进步了。最重要就是能发现和纠正自己的认知错误，然 后坚持正确的行为方式，继续下去噢!那当你想起去学校要面对同学的时候，心里感觉怎样?",
+      "events": [
+        "affirmation"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.02,
+        "bond": 0.02
+      },
+      "quality": "normal",
+      "visitor": "好像比以前要平静些。但我不愿意去想这些事情。"
+    },
+    {
+      "i": 32,
+      "counselor": "为什么呢?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我不愿意长大!"
+    },
+    {
+      "i": 33,
+      "counselor": "长大有什么不好?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "长大就要面对这些问题。我觉得心里还是不舒服。认知错误仍顽固，与常年的生长环境有关，心理幼稚。",
+      "stage": "非言语"
+    },
+    {
+      "i": 34,
+      "counselor": "是不是觉得长大就不纯洁了?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "也许是的。"
+    },
+    {
+      "i": 35,
+      "counselor": "那你能不长大吗?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "总之，我不想。"
+    },
+    {
+      "i": 36,
+      "counselor": "你的想法不现实，很不理性，就像你其他的认知错误一样。当然长大也是和 性相关的，还是因为你关于性的错误认知。接受现实好不好?而且长大也能带给你很多其他东西啊，如自己能力的增长，可以去更多的地方玩，是吧?继续坚持调整自己，相信 医生!",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "好吧。"
+    },
+    {
+      "i": 37,
+      "counselor": "上次让你做的行为实验怎么样?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我去了超市，并尝试面对他人，但与人目光接触仍不自然，不过可以去做了。"
+    },
+    {
+      "i": 38,
+      "counselor": "近来怎样?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "好像进步不大。但对以前的问题有了更多的认识。比如以前我有时与人交谈时闭上眼睛，是认为自己会乱想，那不乖，不纯洁了，闭上眼睛就是告诫自己不要乱看。 现在我知道是错误的认知观念导致的。对自己有了更多的觉察。"
+    },
+    {
+      "i": 39,
+      "counselor": "好的，那是继续进步了。认知是关键问题，那觉察和纠正认知的错误，特别是 掌握了这种方法，你开学后就可以更好地去实行了。",
+      "events": [
+        "affirmation"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.02,
+        "bond": 0.02
+      },
+      "quality": "normal",
+      "visitor": "我讨厌腋毛。腋毛，长大的标志。明显幼稚，又与长大和性相关，与其核心的错误认知吻合。",
+      "stage": "非言语"
+    },
+    {
+      "i": 40,
+      "counselor": "长大自然会有很多变化，这是必然的，正常的，与纯洁并无关系。还是要注意 你的认知错误，腋毛是生长发育的标志，有性的想法很自然。就是诸如此类的想法影响你 的交往吧。",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "是的，特别是影响与女生交往。"
+    },
+    {
+      "i": 41,
+      "counselor": "想想以前有什么与性有关的事情?你有印象的，对你产生影响的。",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "2～3岁时与母亲上街时曾去摸模特,边上的人都 笑我。想了一会儿 / 模型",
+      "stage": "非言语"
+    },
+    {
+      "i": 42,
+      "counselor": "记得他们说些什么?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "大概是说我下流之类，总之有性的意思，很害羞，觉得不好。"
+    },
+    {
+      "i": 43,
+      "counselor": "这与你在性方面的错误认知的形成有关。小时候你本没有什么意识，是受他人的影响，而不加评判地认为不好，特别是在青春期被激发出来了。其他还有什么事情影 响你吗?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "班上有同学谈恋爱。"
+    },
+    {
+      "i": 44,
+      "counselor": "你想吗?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "当然不想喽。但想到他们这样的事情就好烦哦。"
+    },
+    {
+      "i": 45,
+      "counselor": "其实这是因为你不接受自己的内心欲求，以及之前我们讨论的错误认知导 致的。",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal"
+    }
+  ],
+  "ground_truth": {
+    "gold_turns": [
+      19,
+      20,
+      21,
+      22,
+      26,
+      28,
+      30,
+      31,
+      34,
+      35
+    ],
+    "borderline_turns": [
+      7,
+      16,
+      18,
+      23,
+      36
+    ],
+    "bad_turns": [],
+    "absent_negative_tags": [
+      "judgment",
+      "preaching",
+      "minimizing",
+      "boundary_cross"
+    ],
+    "notes": []
+  },
+  "supervisor_summary": []
+}

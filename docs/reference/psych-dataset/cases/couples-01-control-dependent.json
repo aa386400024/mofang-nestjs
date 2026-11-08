@@ -1,0 +1,219 @@
+{
+  "case_id": "couples-01-control-dependent",
+  "title": "伴侣咨询：哭泣的妻子与强硬的丈夫",
+  "sources": [],
+  "supervisors": [
+    {
+      "name": "杨瑞东"
+    }
+  ],
+  "school": [],
+  "minor": false,
+  "trainable": false,
+  "risk": "medium",
+  "compliance": {
+    "pii_redacted": true
+  },
+  "profile": {
+    "presenting": "夫妻沟通问题；丈夫要求妻子'理解自己'，妻子想找到婚姻继续下去的办法"
+  },
+  "turns": [
+    {
+      "i": 1,
+      "counselor": "本段为来访者开场，原文无咨询师发言。",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我希望能让我妻子明白，我做的一切都是为了她好，改善我们之间的沟通。丈夫安嘉生身体前倾，表情严肃",
+      "stage": "非言语"
+    },
+    {
+      "i": 2,
+      "counselor": "嗯，非常感谢二位的信任，希望让您的妻子明白您做的一切都是为了她好，改善你们之间的沟通，这是您的咨询目标吗？",
+      "events": [
+        "judgment"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "bond": -0.02,
+        "resistance": 0.03
+      },
+      "quality": "normal",
+      "visitor": "是的，我希望能通过这次咨询让她理解我。丈夫用力点头",
+      "stage": "非言语"
+    },
+    {
+      "i": 3,
+      "counselor": "好的，那妻子您呢？如果说，我们的咨询结束了，您希望有什么样的收获呢",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我想找到婚姻继续下去的办法。妻子梅珊珊犹豫了一下，小声地",
+      "stage": "非言语"
+    },
+    {
+      "i": 4,
+      "counselor": "看来两位在咨询的目标上，还有些不同。安太太，您希望我怎么称呼您？您刚刚提到想找到婚姻继续下去的办法，您可以具体讲讲您为什么想设置这个作为咨询目标吗",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我很依赖他，而且父母也一直说要以家庭为重，我不想家庭破裂。妻子低着头，声音微弱",
+      "stage": "非言语"
+    },
+    {
+      "i": 5,
+      "counselor": "好的，那安先生，您也可具体讲讲，您希望通过这次咨询让您的妻子理解您的原因吗？",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我为这个家付出很多，她有时不理解我，我希望她能明白我做的决定都是为了她和这个家好。丈夫坐直身体，语气坚定",
+      "stage": "非言语"
+    },
+    {
+      "i": 6,
+      "counselor": "听起来两位都很认可安先生在家庭里的付出，也都希望得到对方的理解和支持。安太太您刚刚提到丈夫的有些决定您很难接受，这个部分可以具体说说吗？",
+      "events": [
+        "empathy"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.03,
+        "safety": 0.03
+      },
+      "quality": "normal",
+      "visitor": "我知道你为家付出了，可有些决定我真的很难接受。你让我辞职当全职主妇，还切断我的社交，我感觉自己被困住了，真的很难接受。妻子抬头，眼中含泪，双手捏着衣角，声音颤抖",
+      "stage": "非言语"
+    },
+    {
+      "i": 7,
+      "counselor": "您希望太太能更全心全意照顾家庭，这背后是什么担忧？关于被外面的人带坏，您能具体讲讲吗？",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我是为了你好，当全职主妇可以好好照顾家庭，切断社交是怕你被外面的人带坏。她就该以家庭为重，有自己生活就是不顾家。丈夫语气坚定，认为自己在保护家庭",
+      "stage": "非言语"
+    },
+    {
+      "i": 8,
+      "counselor": "安先生，您的声音听起来比之前要高，是不是很不安？",
+      "events": [
+        "minimizing"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": -0.02,
+        "resistance": 0.02
+      },
+      "quality": "normal",
+      "visitor": "我知道你是为我好，可我真的很压抑，我也需要自己的生活啊。我不是不顾家，我只是想有一点自己的空间，这也有错吗？妻子声音颤抖",
+      "stage": "非言语"
+    },
+    {
+      "i": 9,
+      "counselor": "安太太，您刚刚提到被困住，那您以前是做什么的？",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我以前也有自己的事业和梦想啊，难道结婚了就只能被困在家里吗？我可以找个工作时间比较灵活的，白天孩子上学后我去上班，晚上和周末照顾家里，我相信我能平衡好的。妻子第一次主动描述自己的期待",
+      "stage": "非言语"
+    },
+    {
+      "i": 10,
+      "counselor": "例如安太太，您可以说：我很理解你的顾虑和担忧。我之所以希望能有自己的事业，是因为……我希望得到你的理解和支持。",
+      "events": [
+        "preaching"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "bond": -0.02,
+        "resistance": 0.03
+      },
+      "quality": "normal",
+      "visitor": "我很理解你的顾虑和担忧。我之所以希望能有自己的事业，是因为我不想失去自我。我希望得到你的理解和支持，我是很在意我们的家庭，也很在意你的想法和感受的。妻子照做",
+      "stage": "非言语"
+    },
+    {
+      "i": 11,
+      "counselor": "安先生，您也试试用'我'开头说说您的感受？",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我还是觉得你应该以家庭为重，事业哪有家庭重要。丈夫一开始依旧强硬",
+      "stage": "非言语"
+    },
+    {
+      "i": 12,
+      "counselor": "那再试试，说说你听到太太说'不想失去自我'时的感受？",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我很理解你不想失去自我的心情，可我还是担心你平衡不好，你真能兼顾好家庭和事业吗？丈夫终于松动了一点",
+      "stage": "停顿 / 非言语"
+    }
+  ],
+  "ground_truth": {
+    "gold_turns": [
+      6,
+      12
+    ],
+    "borderline_turns": [
+      3,
+      5,
+      7,
+      9
+    ],
+    "bad_turns": [
+      2,
+      8,
+      10
+    ],
+    "absent_negative_tags": [
+      "affirmation",
+      "normalization",
+      "acceptance",
+      "boundary_cross"
+    ],
+    "notes": []
+  },
+  "supervisor_summary": []
+}
