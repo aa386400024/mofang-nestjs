@@ -18,6 +18,7 @@
 //
 //   验证: npx vitest run test/engine-adapters/r9-deliberation-hook.spec.ts
 
+import { buildTestStructuredInput } from './deliberation-fixtures.js';
 import type { DeliberationModeConfig } from '../../src/engine-adapters/deliberation/deliberation-mode.config.js';
 import {
   LlmDeliberationHook,
@@ -78,10 +79,14 @@ function makeProduceInput(context: Partial<DeliberationHookContext> = {}): Delib
   return {
     context: makeContext(context),
     extras: {
-      visitorText: '嗯……',
-      characterBrief: '依恋型, 低外向',
+      // WP-A: 结构化输入 (零对话原文) —— 走真实的装配函数.
+      structured: buildTestStructuredInput({
+        counselorText: '嗯，我明白了。',
+        visitorText: '嗯……',
+        characterBrief: '依恋型, 低外向',
+        ruleStrategy: 'simple_response',
+      }),
       userId: 'user-r9',
-      ruleStrategy: 'simple_response',
     },
   };
 }

@@ -58,9 +58,10 @@ import {
   type DeliberationShadowInput,
   type DeliberationTraceRecord,
 } from '../../src/engine-adapters/deliberation/llm-deliberation.service.js';
-import { createEmptyBdiSnapshot, type BdiStateRepository } from '../../src/engine-core/index.js';
+import type { BdiStateRepository } from '../../src/engine-core/index.js';
 import type { RedisService } from '../../src/shared/infra/redis/redis.service.js';
 import { shanghaiDateKey } from '../../src/shared/time/shanghai-date.js';
+import { buildTestStructuredInput } from '../engine-adapters/deliberation-fixtures.js';
 
 /** 11 维全零的 delta (内核 DeltaVector 的形状). */
 const ZERO_DELTA = {
@@ -257,12 +258,14 @@ function buildInput(overrides: Partial<DeliberationShadowInput> = {}): Deliberat
     turnIndex: 3,
     baseRevision: 7,
     mode: 'freeform',
-    baseSnapshot: createEmptyBdiSnapshot(),
-    counselorText: '你最近睡得怎么样?',
-    visitorText: '有点累, 夜里老醒.',
-    characterBrief: '依恋风格: 回避型',
+    // WP-A: 结构化输入 (零对话原文) —— 走真实的装配函数.
+    structured: buildTestStructuredInput({
+      counselorText: '你最近睡得怎么样?',
+      visitorText: '有点累, 夜里老醒.',
+      characterBrief: '依恋风格: 回避型',
+      ruleStrategy: 'simple_response',
+    }),
     ruleDelta: ZERO_DELTA,
-    ruleStrategy: 'simple_response',
     ...overrides,
   };
 }
@@ -555,6 +558,8 @@ describe('影子模式数据统计面板 · 后端接口', () => {
         'maxDurationMs',
         'p50DurationMs',
         'p95DurationMs',
+        // WP-A: 被合规闸门拦下的轮次 (高风险轮次压根没跑 LLM 审议) —— 看板要能减掉它.
+        'riskSkippedTurns',
         'staleRate',
         'successRate',
         'successTurns',

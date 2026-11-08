@@ -72,14 +72,11 @@ export class LlmDeliberationEffectiveRunner implements DeliberationRunner {
       //   过期判定问的是"我回来时当前版本还是不是这个", 锚 R0 会让判定永远为"过期".
       baseRevision: context.currentRevision,
       mode: DELIBERATION_EFFECTIVE_MODE,
-      // 快照 = 本轮落库后的那份 (= 下一轮开始时内核会载入的状态) ——
-      //   审议算的就是"下一轮该怎么看这个状态".
-      baseSnapshot: context.snapshot,
-      counselorText: context.counselorText,
-      visitorText: extras.visitorText,
-      characterBrief: extras.characterBrief,
+      // WP-A: 结构化输入 (零对话原文) —— 状态对比 / 事件分类 / 角色基线 / 风险等级.
+      //   ⚠️ 门面组装的 `stateComparison` 表达的是"本轮前 → 本轮后",
+      //     与影子路径**逐字相同** —— 两条路径的对比数据因此可比.
+      structured: extras.structured,
       ruleDelta: context.ruleDelta,
-      ruleStrategy: extras.ruleStrategy,
     });
     if (outcome.kind !== 'ok') return null;
     // 空列表 = 模型没提任何维度 → 没有实质建议 → 折成 null (上层不必再判一次空).

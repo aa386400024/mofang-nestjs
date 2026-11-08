@@ -35,6 +35,7 @@ import * as path from 'node:path';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { buildTestStructuredInput } from './deliberation-fixtures.js';
 import type { CounselorLlmJsonClient } from '../../src/counselor/providers/llm-json.client.js';
 import {
   DEFAULT_DELIBERATION_WORKER_CONCURRENCY,
@@ -111,13 +112,15 @@ function buildInput(overrides: Partial<DeliberationShadowInput> = {}): Deliberat
     userId: USER,
     turnIndex: 3,
     mode: 'freeform',
-    baseSnapshot: createEmptyBdiSnapshot(),
-    counselorText: '你最近睡得怎么样？',
-    visitorText: '有点累，夜里老醒。',
-    characterBrief: '依恋风格: 回避型',
+    // WP-A: 结构化输入 (零对话原文) —— 走真实的装配函数.
+    structured: buildTestStructuredInput({
+      counselorText: '你最近睡得怎么样？',
+      visitorText: '有点累，夜里老醒。',
+      characterBrief: '依恋风格: 回避型',
+      // WP68: 意图锁定需要知道"规则算子本轮选的策略" (门面从内核意图传进来).
+      ruleStrategy: 'recounting',
+    }),
     ruleDelta: RULE_DELTA,
-    // WP68: 意图锁定需要知道"规则算子本轮选的策略" (门面从内核意图传进来).
-    ruleStrategy: 'recounting',
     // WP65: 本轮审议对应的快照版本号 (切灰度时判断审议结果有没有过期).
     baseRevision: 1,
     ...overrides,
@@ -462,7 +465,11 @@ describe('WP65 · 审议影子模式 BullMQ 队列化', () => {
       });
       await processor.onModuleInit();
 
-      await workerProcessor()({ data: buildInput({ counselorText: '来访者原话', visitorText: '来访回应原话' }) });
+      await workerProcessor()({
+        data: buildInput({
+          structured: buildTestStructuredInput({ counselorText: '来访者原话', visitorText: '来访回应原话' }),
+        }),
+      });
 
       const [, value] = set.mock.calls[0] as [string, string];
       expect(value).not.toContain('来访者原话');
@@ -483,10 +490,13 @@ describe('WP65 · 审议影子模式 BullMQ 队列化', () => {
 
       // ① 入队失败 → warn
       bull.add.mockRejectedValueOnce(new Error('redis down'));
-      await processor.runShadowMode(buildInput({ counselorText: '我最近很想自杀' }));
+      await processor.runShadowMode(buildInput({ structured: buildTestStructuredInput({ counselorText: '我最近很想自杀' }) }));
 
       // ② job 失败 → error
-      workerFailedHandler()({ id: 'job-1', data: buildInput({ visitorText: '我也想死' }) }, new Error('boom'));
+      workerFailedHandler()(
+        { id: 'job-1', data: buildInput({ structured: buildTestStructuredInput({ visitorText: '我也想死' }) }) },
+        new Error('boom'),
+      );
 
       const joined = logs.join('\n');
       expect(joined).not.toContain('我最近很想自杀');

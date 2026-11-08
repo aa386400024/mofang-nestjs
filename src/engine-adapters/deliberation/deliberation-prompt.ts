@@ -1,51 +1,45 @@
-// V2026-11-05 治本 (WP63 · B 层 · 审议 prompt 模板):
+// V2026-11-08 治本 (Phase2.5 WP-A · 审议输入最小化 · prompt 模板重写):
 //   职责: 组装「LLM 审议层」的三个 prompt 零件 —— 系统 prompt / 用户 prompt /
-//         schema 自然语言描述. 让 WP64 只管"发一次请求", 不用重写 prompt.
+//         schema 自然语言描述. 让审议层只靠**结构化数据**提问.
 //   边界: 纯函数, 零 IO / 零 LLM 调用 / 零 @nestjs. **不写 prompt 进内核** (内核零 prompt,
 //         boundary 断言④守着).
 //
-//   为什么 prompt 写在**适配层**而不是内核:
-//     北极星 (hybrid-bdi-agent-blueprint-v1.0.md §2.2) 明确: 审议服务在
-//     `src/engine-adapters/deliberation/`, 不在 engine-core. 内核是纯层, 零 prompt.
+//   ⚠️ **本文件产出的文本不再含任何对话原文** (Phase2.5 WP-A 硬红线):
+//     改造前用户 prompt 里有两个区块 —— 「本轮咨询师发言」「本轮来访者反应」——
+//     里面是**逐字原文**, 原样发给第三方模型 (合规问题 R6) 且每轮都在烧 token (成本问题 R8).
+//     现在用户 prompt 里只有: 事件分类 / 状态变化对比 / 角色基线 / 行为策略 /
+//     风险等级 / 轮次 —— **没有一句话是来访者或咨询师说过的**.
+//
+//   为什么 prompt 模板要跟着重写 (而不只是"少传两个字段"):
+//     系统 prompt 原文写着"根据……本轮咨询师的发言和来访者的反应, 判断……".
+//     任务描述与实际输入**对不上** = 模型会去找它以为存在的东西 = 脑补.
+//     任务单 §6.2 说"不改 LLM 输出什么", 但那指的是**输出契约**; 输入换了,
+//     提问方式必须跟着换 —— 否则模型要么忽略数据、要么自己编.
 //
 //   反双胞胎:
 //     - **不自己拼"完整系统 prompt"** —— `CounselorLlmJsonClient` 已经把
 //       `schemaDescription` 拼到 system prompt 尾部 (见 llm-json.client.ts:115).
-//       再造一个"合并版" = 两种拼法, WP64 一不留神就把 schema 拼两遍.
+//       再造一个"合并版" = 两种拼法, 一不留神就把 schema 拼两遍.
 //       本文件只出零件, 拼装**由 client 独家负责**.
 //     - **枚举清单不手写** —— 维度名与标签名从 `deliberation-types.ts` 的常量**生成**.
-//       手写一份 = 两份真相, 内核加了维度而 prompt 没跟上, 模型就会输出非法维度.
 //     - **不在这里做格式校验 / 重试** —— 那是 WP66 的事 (本文件只负责"问得清楚").
-//     - **不问模型要分数 / 评级** —— 零压红线 (AGENTS.md §5.3): 分数只允许出现在
-//       MCQ 备考频道, 且由那一侧的评分链路产出. 审议层在两种模式下都**只**产出
-//       delta 建议 + 理由, 产物形状完全相同.
-//     - **空发言不写空串** —— 写「（本轮没有发言）」. 留空 = 模型看到一段没有回答的
-//       提问, 很可能**脑补**一个回答 (与 `formatRollingSummaryInput` 同款治本).
+//     - **不问模型要分数 / 评级** —— 零压红线 (AGENTS.md §5.3).
+//     - **空值写明"没有"而不是留空** —— 留空 = 模型看到一段没有回答的提问, 很可能**脑补**.
+//     - **不替模型编证据** —— prompt 明说"你没有对话原文", 免得它去臆测话术.
 //
 //   ⚠️ 隐私红线 (AGENTS.md §5.4):
-//     本文件产出的文本**含心理内容** (咨询师发言 / 来访反应 / 心理状态快照).
-//     它只应作为 LLM 请求体流出去, **禁止进普通日志 / crash report / 网络日志**.
+//     本文件产出的文本现在**不含心理内容** (只有标签 / 数字 / 角色种子元数据),
+//     但它仍属"会发给第三方模型的数据" —— 角色简述来自种子设定 (合成数据),
+//     状态数字是来访者的心理状态**指标** (不含内容). 依然不进普通日志 / crash report.
 //
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp63-deliberation-schema.spec.ts 覆盖两种模式的措辞差异 /
 //        prompt 组装 / schema 描述里的枚举清单与常量一致
-//
-//   V2026-11-05 治本 (WP68 · B 层 · 意图锁定机制):
-//     prompt 侧加两样东西:
-//       ① **当前行为策略**进 user prompt —— `intentionShift` 是"换到另一个策略",
-//         模型不知道现在用的是哪个, 就无从判断该不该换 (只能瞎猜) ——
-//         那 WP68 想回答的问题（"LLM 会不会乱改意图"）就问不出答案.
-//       ② **schema 描述**里给出 intentionShift 的写法 + 8 种策略的合法取值与含义.
-//
-//     ⚠️ 措辞纪律: intentionShift 是**可选**的 —— prompt 明确写"大多数轮次都该是 null",
-//       否则模型会觉得"不填就是没干活", 硬凑一个切换建议 (那正好污染我们要测的东西).
-//
-//   如何验证 (WP68):
-//     1. npx tsc -p tsconfig.build.json --noEmit 0 错
-//     2. test/engine-adapters/wp68-deliberation-intention-lock.spec.ts 覆盖 intentionShift
-//        的 prompt / schema 描述 / 校验
+//     3. test/engine-adapters/phase25-wp-a-deliberation-input-minimization.spec.ts
+//        覆盖"prompt 里没有原文"与 token 量下降 ≥40%
 
+import { DELIBERATION_RISK_LEVEL_LABELS } from './deliberation-input.js';
 import {
   DELIBERATION_BEHAVIOR_STRATEGIES,
   DELIBERATION_DIMS,
@@ -54,6 +48,7 @@ import {
   DELIBERATION_REASON_MAX_CHARS,
   DELIBERATION_RULE_ALIGNED_TAGS,
   DELIBERATION_SUMMARY_MAX_CHARS,
+  type DeliberationInput,
   type DeliberationMode,
 } from './deliberation-types.js';
 import type { BehaviorStrategy } from '../../engine-core/index.js';
@@ -89,15 +84,26 @@ const STRATEGY_INFO: Readonly<Record<BehaviorStrategy, { short: string; detail: 
  *   3. delta 幅度上限 —— 与内核单回合 cap 对齐 (精确逐维 cap 由下游约束校验层施加);
  *   4. 没变化就不写 —— 审议输出是**增量**列表, 写一堆 delta=0 的条目纯浪费 token;
  *   5. 每条 delta 必须带标签 + 理由 —— 可解释性是这个层的**存在理由**, 不是加分项;
- *   6. 理由不许写话术、不许下临床诊断 —— 与仓库既有纪要 prompt 的护栏同款;
- *   7. 不要输出分数 / 评级 / 对错 —— 零压红线, 两种模式都适用.
+ *   6. 不臆测话术 —— 模型**没有原文**, 复述或编造话术都是幻觉;
+ *   7. 不输出分数 / 评级 / 对错 —— 零压红线, 两种模式都适用.
  */
 const COMMON_SYSTEM_PROMPT_LINES: readonly string[] = [
   '你是一名心理咨询督导，正在旁听一场咨询师与 AI 扮演的来访者之间的对练。',
   '',
   '【任务】',
-  '根据来访者当前的心理状态、本轮咨询师的发言和来访者的反应，判断这一轮之后来访者的内心状态应该发生哪些变化，',
+  '下面是本轮对练的**结构化数据**（不含任何对话原文）：',
+  '  · 本轮咨询师行为的事件分类（内核规则分类器的产物）',
+  '  · BDI 状态逐维的前后对比（前值 → 后值 + 变化量）',
+  '  · 角色基线（依恋风格 / 大五人格 / 阻抗基线）',
+  '  · 风险等级',
+  '请据此判断：这一轮之后来访者的内心状态**应该**发生哪些变化，',
   '并以结构化的增量建议（delta）给出每一条变化及其理由。',
+  '',
+  '【你没有对话原文】',
+  '你看不到咨询师和来访者说过的话 —— 这是刻意的（心理内容不外传）。因此：',
+  '  · 只依据下面给出的结构化数据判断，不要臆测、也不要编造他们说过什么；',
+  '  · 事件分类标签就是「这一轮咨询师做了什么行为」的全部证据；',
+  '  · 状态对比就是「这一轮状态怎么动了」的全部证据。',
   '',
   '【输出契约】',
   '严格输出一个 JSON 对象，字段结构见本 prompt 末尾的 schema 描述。',
@@ -110,7 +116,8 @@ const COMMON_SYSTEM_PROMPT_LINES: readonly string[] = [
   '4. 没有变化的维度不要出现在 deltas 里——真的没变就写 0 条，不要写成 delta=0 的条目。',
   `5. 每一条 delta 都必须带 operatorTags（至少 1 个）和 reason（一句话中文，≤${DELIBERATION_REASON_MAX_CHARS} 字），`,
   '   reason 必须说清"为什么"，不要写"因为来访者情绪变化"这类没有指向的空话。',
-  '6. reason 里不要复述咨询师的具体话术，也不要做临床诊断。',
+  '6. reason 只写状态层面的判断，不要复述或臆测咨询师的具体话术——你没有拿到原文，',
+  '   任何具体话术都只能是你编的。',
   '7. 不要输出分数、评级或对错判断——你的产物只有 delta 建议、标签和理由。',
   '8. 你是给"建议"，不是下"结论"：拿不准的维度就别写，或把整体 confidence 调低。',
   '9. intentionShift 是可选的：只有当来访者的心理阶段确实该换一个行为策略时才给建议，',
@@ -127,10 +134,10 @@ const EXAM_MODE_LINES: readonly string[] = [
   '',
   '【当前模式：考核（判定标准更严格）】',
   '这一场的咨询师回应会被用于考核评分，所以你的判定标准要比平时更严：',
-  '- 负向标签必须打准：本轮里出现评判 / 说教 / 淡化 / 越界 / 触碰敏感议题的迹象，就标出来，',
-  '  不要为了"温和"而放过；',
+  '- 负向标签必须打准：本轮事件分类里出现 judgment / preaching / minimizing / boundary_cross / sensitive_touch 时，',
+  '  就把它们标出来，不要为了"温和"而放过；',
   '- delta 幅度取保守值：宁可小于真实影响，也不要夸大——夸大的幅度会让考核结论失真；',
-  '- 只依据本轮明确出现的内容判断，不要从角色设定反推来访者"一定是"什么感受；',
+  '- 只依据给出的结构化数据判断，不要从角色基线反推来访者"一定是"什么感受；',
   '- 不确定时把 delta 写小、把 confidence 写低，不要编造证据来填补空白。',
 ];
 
@@ -156,7 +163,7 @@ const FREEFORM_MODE_LINES: readonly string[] = [
  *
  * ⚠️ 返回的是**不含 schema 描述**的部分: `CounselorLlmJsonClient` 会把
  * `schemaDescription` 拼到 system prompt 尾部 (llm-json.client.ts:115).
- * 本文件**不提供**"合并版"函数 —— 两种拼法并存, WP64 一不留神就把 schema 拼两遍.
+ * 本文件**不提供**"合并版"函数 —— 两种拼法并存, 一不留神就把 schema 拼两遍.
  *
  * @param mode 审议模式 (考核 / 自由练习)
  * @returns 系统 prompt 正文
@@ -168,34 +175,26 @@ export function buildDeliberationSystemPrompt(mode: DeliberationMode): string {
 
 /**
  * 审议用户 prompt 的组装入参.
+ *
+ * ⚠️ **没有任何原文字段** —— 这是本单最硬的一条约束 (WP-A §6.3).
  */
 export interface DeliberationUserPromptInput {
-  /** 当前 BDI 状态快照 (JSON 字符串, LLM 能读). */
-  readonly currentSnapshotJson: string;
-  /** 本轮咨询师说的话. */
-  readonly counselorText: string;
-  /** 本轮来访的反应 (渲染出来的文本). */
-  readonly visitorText: string;
-  /** 角色种子信息 (依恋类型 / 大五人格 简述). */
-  readonly characterBrief: string;
   /** 会话轮次. */
   readonly turnIndex: number;
-  /**
-   * 本轮**规则算子**选中的行为策略 (WP68).
-   *
-   * ⚠️ 为什么必须告诉模型"现在在做什么":
-   *   `intentionShift` 是"**换**到另一个策略" —— 模型不知道当前策略, 就无从判断该不该换,
-   *   只能瞎猜. 缺了这个字段, WP68 想回答的问题（"LLM 会不会乱改意图"）就**问不出答案**.
-   */
-  readonly ruleStrategy: BehaviorStrategy;
+  /** 结构化输入 (事件分类 / 状态对比 / 角色基线 / 风险等级). */
+  readonly structured: DeliberationInput;
 }
 
 /**
  * 组装审议用户 prompt.
  *
- * 四个区块各管一件事, 顺序固定 (先状态 → 再发言 → 再背景 → 最后轮次):
- *   模型判 delta 需要的是"**状态 + 触发它的事件**" → 状态在前, 本轮发言紧随,
- *   角色背景垫底 (背景是**解释性**信息, 不是本轮证据), 轮次最后 (用于"这是第几轮"的量感).
+ * 六个区块各管一件事, 顺序固定 (先证据 → 再基准 → 最后轮次):
+ *   ① 本轮事件分类 —— "这一轮咨询师做了什么" (证据);
+ *   ② 状态变化对比 —— "状态怎么动了" (要判的对象);
+ *   ③ 角色基线 —— "这个来访者本来是什么样" (判断基准);
+ *   ④ 当前行为策略 —— "现在在做什么" (WP68 意图锁定要它);
+ *   ⑤ 风险等级 —— "这一轮的风险上下文";
+ *   ⑥ 会话轮次 —— "这是第几轮" (量感).
  *
  * 空值一律写明"没有"而不是留空 (见文件头"反双胞胎"第 5 条).
  *
@@ -203,15 +202,72 @@ export interface DeliberationUserPromptInput {
  * @returns 用户 prompt 正文
  */
 export function buildDeliberationUserPrompt(input: DeliberationUserPromptInput): string {
+  const { structured } = input;
   const parts: string[] = [
-    `【来访者当前状态】\n${orPlaceholder(input.currentSnapshotJson, '（未提供状态快照）')}`,
-    `【当前行为策略】\n${formatStrategy(input.ruleStrategy)}`,
-    `【本轮咨询师发言】\n${orPlaceholder(input.counselorText, '（本轮咨询师没有发言）')}`,
-    `【本轮来访者反应】\n${orPlaceholder(input.visitorText, '（本轮来访者没有回复）')}`,
-    `【角色背景】\n${orPlaceholder(input.characterBrief, '（未提供角色背景）')}`,
+    `【本轮事件分类】\n${formatEvents(structured.events)}`,
+    `【状态变化对比】\n${formatStateComparison(structured)}`,
+    `【角色基线】\n${formatCharacterBaseline(structured)}`,
+    `【当前行为策略】\n${formatStrategy(structured.ruleStrategy)}`,
+    `【风险等级】\n${formatRisk(structured)}`,
     `【会话轮次】\n第 ${input.turnIndex} 轮`,
   ];
   return parts.join('\n\n');
+}
+
+/**
+ * 事件分类区块 (一行, 逗号分隔).
+ *
+ * ⚠️ 空数组写明"没有" —— 留空会让模型以为数据缺失, 进而脑补"可能是共情吧".
+ *
+ * @param events 本轮事件分类标签
+ * @returns 区块正文
+ */
+function formatEvents(events: readonly string[]): string {
+  if (events.length === 0) return '（本轮未命中任何行为分类）';
+  return events.join(', ');
+}
+
+/**
+ * 状态变化对比区块 (逐维: 前值 → 后值 (变化量)).
+ *
+ * ⚠️ **固定 3 位小数**: 数字位数越少 token 越省, 但 3 位足够看出"变了多少"
+ *   (内核 delta 的典型量级是 0.01-0.20). 少于 3 位会把 +0.015 显示成 +0.02 —— 失真.
+ *
+ * @param structured 结构化输入
+ * @returns 区块正文
+ */
+function formatStateComparison(structured: DeliberationInput): string {
+  const lines = structured.stateComparison.map(
+    (entry) => `${entry.dimension}: ${formatFixed(entry.before)} → ${formatFixed(entry.after)} (${formatSigned(entry.delta)})`,
+  );
+  if (lines.length === 0) return '（未提供状态对比）';
+  return ['（本轮前 → 本轮后，括号内为变化量）', ...lines].join('\n');
+}
+
+/**
+ * 角色基线区块 (角色种子元数据 + 阻抗基线).
+ *
+ * @param structured 结构化输入
+ * @returns 区块正文
+ */
+function formatCharacterBaseline(structured: DeliberationInput): string {
+  const baseline = structured.resistanceBaseline;
+  const resistance = `阻抗基线（话量 / 内容深度 / 表达风格）: ${formatFixed(baseline.verbal)} / ${formatFixed(baseline.depth)} / ${formatFixed(baseline.style)}`;
+  const brief = structured.characterBrief.trim();
+  if (brief.length === 0) return resistance;
+  return `${brief}\n${resistance}`;
+}
+
+/**
+ * 风险等级区块 (等级 + 命中的类别).
+ *
+ * @param structured 结构化输入
+ * @returns 区块正文
+ */
+function formatRisk(structured: DeliberationInput): string {
+  const label = DELIBERATION_RISK_LEVEL_LABELS[structured.riskLevel];
+  if (structured.riskCategories.length === 0) return label;
+  return `${label}（命中类别: ${structured.riskCategories.join(', ')}）`;
 }
 
 /**
@@ -222,6 +278,30 @@ export function buildDeliberationUserPrompt(input: DeliberationUserPromptInput):
  */
 function formatStrategy(strategy: BehaviorStrategy): string {
   return `${strategy}（${STRATEGY_INFO[strategy].short}）`;
+}
+
+/**
+ * 固定小数位 (不带符号).
+ *
+ * @param value 数值
+ * @returns 3 位小数的字符串
+ */
+function formatFixed(value: number): string {
+  return value.toFixed(3);
+}
+
+/**
+ * 带符号的固定小数位 (变化量).
+ *
+ * ⚠️ 零不带正负号 (`0.000` 而不是 `+0.000`) —— 免得"没动"看起来像"动了"。
+ *
+ * @param value 数值
+ * @returns 3 位小数的字符串 (带 + / -)
+ */
+function formatSigned(value: number): string {
+  const rounded = Number(value.toFixed(3));
+  if (rounded === 0) return (0).toFixed(3);
+  return `${rounded > 0 ? '+' : ''}${rounded.toFixed(3)}`;
 }
 
 /**
@@ -271,14 +351,4 @@ export function buildDeliberationSchemaDescription(): string {
     ),
     '只有当来访者的心理阶段确实该换一个行为策略时才给建议，否则写 null。',
   ].join('\n');
-}
-
-/**
- * 空值 → 占位说明 (而不是留空).
- *
- * 留空会让模型把"没说话"读成"内容缺失", 进而脑补; 显式写明是事实, 模型不会替它编.
- */
-function orPlaceholder(raw: string, placeholder: string): string {
-  const trimmed = raw.trim();
-  return trimmed.length > 0 ? trimmed : placeholder;
 }

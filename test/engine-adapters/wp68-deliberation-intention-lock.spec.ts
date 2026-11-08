@@ -29,6 +29,7 @@ import * as path from 'node:path';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { buildTestStructuredInput } from './deliberation-fixtures.js';
 import type { CounselorLlmJsonClient } from '../../src/counselor/providers/llm-json.client.js';
 import {
   buildDeliberationSchemaDescription,
@@ -83,12 +84,14 @@ function buildInput(overrides: Partial<DeliberationShadowInput> = {}): Deliberat
     userId: USER,
     turnIndex: 3,
     mode: 'freeform',
-    baseSnapshot: createEmptyBdiSnapshot(),
-    counselorText: '你最近睡得怎么样？',
-    visitorText: '有点累，夜里老醒。',
-    characterBrief: '依恋风格: 回避型',
+    // WP-A: 结构化输入 (零对话原文) —— 走真实的装配函数.
+    structured: buildTestStructuredInput({
+      counselorText: '你最近睡得怎么样？',
+      visitorText: '有点累，夜里老醒。',
+      characterBrief: '依恋风格: 回避型',
+      ruleStrategy: 'recounting',
+    }),
     ruleDelta: RULE_DELTA,
-    ruleStrategy: 'recounting',
     // WP65: 本轮审议对应的快照版本号 (切灰度时判断审议结果有没有过期).
     baseRevision: 1,
     ...overrides,
@@ -495,7 +498,7 @@ describe('WP68 · 意图锁定机制 (基础版)', () => {
 
       await service.executeShadowMode(buildInput({ turnIndex: 2 }));
       // 第 3 轮: 规则算子换成了 'resistance' → 重新锁定, LLM 的建议不算数.
-      await service.executeShadowMode(buildInput({ turnIndex: 3, ruleStrategy: 'resistance' }));
+      await service.executeShadowMode(buildInput({ turnIndex: 3, structured: buildTestStructuredInput({ ruleStrategy: 'resistance' }) }));
 
       const trace = redis.readTrace(3);
       expect(trace?.ruleStrategy).toBe('resistance');
@@ -587,12 +590,14 @@ describe('WP68 · 意图锁定机制 (基础版)', () => {
 
     it('⑥-24 prompt 里有"当前行为策略" —— 模型不知道现在用啥就建议不准', () => {
       const prompt = buildDeliberationUserPrompt({
-        currentSnapshotJson: '{}',
-        counselorText: '你在想什么？',
-        visitorText: '说不上来。',
-        characterBrief: '回避型',
         turnIndex: 7,
-        ruleStrategy: 'affective_exploration',
+        // WP-A: 结构化输入 (零对话原文).
+        structured: buildTestStructuredInput({
+          counselorText: '你在想什么？',
+          visitorText: '说不上来。',
+          characterBrief: '回避型',
+          ruleStrategy: 'affective_exploration',
+        }),
       });
 
       expect(prompt).toContain('【当前行为策略】');

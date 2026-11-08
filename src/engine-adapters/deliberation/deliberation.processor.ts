@@ -78,6 +78,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { type Job, Queue, Worker } from 'bullmq';
 
+import { isDeliberationRiskAcceptable } from './deliberation-input.js';
 import {
   DeliberationRetryableError,
   LlmDeliberationService,
@@ -333,7 +334,8 @@ export class DeliberationProcessor implements DeliberationShadowPort, OnModuleIn
     });
 
     this.worker.on('failed', (job, err) => {
-      // ⚠️ 日志只出定位信息 —— job payload 里含对话原文, 绝不打出来 (隐私红线 AGENTS.md §5.4).
+      // ⚠️ 日志只出定位信息 —— job payload 里是结构化数据 (不含对话原文), 但依然不打出来
+      //   (隐私红线 AGENTS.md §5.4: 宁可少打, 也不把审议入参打进日志).
       this.logger.error(
         `[deliberation_shadow_failed] jobId=${job?.id ?? 'n/a'} sessionId=${job?.data?.sessionId ?? 'n/a'} ` +
           `turn=${job?.data?.turnIndex ?? 'n/a'} err=${err.message}`,
@@ -376,6 +378,17 @@ export class DeliberationProcessor implements DeliberationShadowPort, OnModuleIn
     // 开关先判: 关着就**不跑熔断判断** (连 Redis 都不碰) —— 影子模式整体停掉时
     // 熔断状态毫无意义.
     if (!this.isEnabled()) return false;
+
+    // WP-A 合规红线: 高风险轮次**永远不跑** LLM 审议 —— 状态变化完全由规则算子决定.
+    //   ⚠️ 这是**最省的一道闸**: 纯判断, 连 Redis 都不碰 (不入队 = 不占队列 + 不等上游).
+    //   ⚠️ **双重保险**: service 侧执行时还会再判一次 (任何一层被绕过, 另一层还在).
+    if (!isDeliberationRiskAcceptable(input.structured.riskLevel)) {
+      await this.llmDeliberation.recordRiskSkipped(input);
+      this.logger.warn(
+        `[deliberation_risk_skipped] sessionId=${input.sessionId} turn=${input.turnIndex} ` + `risk=${input.structured.riskLevel}`,
+      );
+      return false;
+    }
 
     const threshold = this.resolveFailureThreshold();
     const cooldownMs = this.resolveCooldownMs();

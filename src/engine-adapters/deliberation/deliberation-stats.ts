@@ -44,6 +44,7 @@
 //     3. test/admin-debug/deliberation-stats-redis.integration.spec.ts (真 Redis, 需 TEST_REDIS_URL)
 //     4. git diff --stat HEAD -- src/engine-core 为空 (本单不动内核)
 
+import { DELIBERATION_RISK_SKIP_ERROR_CODE } from './deliberation-types.js';
 import type { DeliberationTraceRecord } from './llm-deliberation.service.js';
 import type { RedisService } from '../../shared/infra/redis/redis.service.js';
 import {
@@ -111,6 +112,13 @@ const FIELD_TOTAL_COMPLETION_TOKENS = 'total_completion_tokens';
 const FIELD_SUM_DELTA_DIFF_ABS = 'sum_delta_diff_abs';
 const FIELD_MAX_DELTA_DIFF_ABS = 'max_delta_diff_abs';
 const FIELD_FLAGGED_TURNS = 'flagged_turns';
+/**
+ * 被**合规闸门**拦下 (高风险轮次) 的轮次数 (WP-A).
+ *
+ * ⚠️ **为什么单列**: 它不是"审议失败" (LLM 压根没跑, 没烧钱), 但它也不是成功.
+ *   混进失败率会把"失败率"这条切灰度决策指标**污染** —— 看板必须能把它减掉.
+ */
+const FIELD_RISK_SKIPPED_TURNS = 'risk_skipped_turns';
 
 /**
  * **取大**字段名 (聚合时取最大值, 不是求和).
@@ -231,6 +239,12 @@ export function buildDeliberationStatsDeltas(record: DeliberationTraceRecord): D
   if (!record.ok) {
     // 失败轮次: 记错误码分布 (答"失败的主要原因是什么").
     if (record.errorCode) addCounter(counters, `${FIELD_ERROR_PREFIX}${record.errorCode}`, 1);
+    // WP-A: 合规闸门拦下的轮次**单列** —— "压根没跑" 与 "跑了没成" 是两回事.
+    //   ⚠️ 它**仍然计入 failureTurns** (与 circuit_open 同款口径: 有一条 trace 就是一轮),
+    //     看板用 riskSkippedTurns 减掉它, 得到"真实失败数".
+    if (record.errorCode === DELIBERATION_RISK_SKIP_ERROR_CODE) {
+      addCounter(counters, FIELD_RISK_SKIPPED_TURNS, 1);
+    }
     return { counters, maxima };
   }
 
@@ -374,6 +388,13 @@ export interface DeliberationStatsResponse {
   readonly successTurns: number;
   /** 失败轮次. */
   readonly failureTurns: number;
+  /**
+   * 被**合规闸门**拦下的轮次 (高风险轮次, 压根没跑 LLM 审议) (WP-A).
+   *
+   * ⚠️ 它**含在** `failureTurns` 里 (一条 trace = 一轮) —— 真实失败数 =
+   *   `failureTurns - riskSkippedTurns`. 单列出来是为了让看板能减.
+   */
+  readonly riskSkippedTurns: number;
   /** 成功率 (0-1) = successTurns / totalTurns. */
   readonly successRate: number;
   /** 失败原因分布 (错误码 → 次数) —— 答"失败的主要原因是什么". */
@@ -469,6 +490,7 @@ export function buildDeliberationStatsResponse(
     totalTurns,
     successTurns,
     failureTurns,
+    riskSkippedTurns: readCounter(hash, FIELD_RISK_SKIPPED_TURNS),
     successRate: ratio(successTurns, totalTurns),
     failureByErrorCode: readPrefixedCounters(hash, FIELD_ERROR_PREFIX),
     avgDurationMs: ratio(totalDurationMs, totalTurns),

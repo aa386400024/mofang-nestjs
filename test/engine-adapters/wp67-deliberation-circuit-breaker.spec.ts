@@ -30,6 +30,7 @@ import * as path from 'node:path';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { buildTestStructuredInput } from './deliberation-fixtures.js';
 import {
   DEFAULT_DELIBERATION_COOLDOWN_MS,
   DEFAULT_DELIBERATION_FAILURE_THRESHOLD,
@@ -107,13 +108,15 @@ function buildInput(overrides: Partial<DeliberationShadowInput> = {}): Deliberat
     userId: USER,
     turnIndex: 3,
     mode: 'freeform',
-    baseSnapshot: createEmptyBdiSnapshot(),
-    counselorText: '你最近睡得怎么样？',
-    visitorText: '有点累，夜里老醒。',
-    characterBrief: '依恋风格: 回避型',
+    // WP-A: 结构化输入 (零对话原文) —— 走真实的装配函数.
+    structured: buildTestStructuredInput({
+      counselorText: '你最近睡得怎么样？',
+      visitorText: '有点累，夜里老醒。',
+      characterBrief: '依恋风格: 回避型',
+      // WP68: 意图锁定需要知道"规则算子本轮选的策略" (门面从内核意图传进来).
+      ruleStrategy: 'recounting',
+    }),
     ruleDelta: RULE_DELTA,
-    // WP68: 意图锁定需要知道"规则算子本轮选的策略" (门面从内核意图传进来).
-    ruleStrategy: 'recounting',
     // WP65: 本轮审议对应的快照版本号 (切灰度时判断审议结果有没有过期).
     baseRevision: 1,
     ...overrides,
@@ -538,7 +541,7 @@ describe('WP67 · 审议熔断与降级策略', () => {
       const { processor } = buildProcessor({ env: { ENGINE_DELIBERATION_ENABLED: 'true' }, redis });
       await processor.onModuleInit();
 
-      await processor.enqueue(buildInput({ counselorText: '我最近很想自杀' }));
+      await processor.enqueue(buildInput({ structured: buildTestStructuredInput({ counselorText: '我最近很想自杀' }) }));
 
       const joined = logs.join('\n');
       expect(joined).not.toContain('我最近很想自杀');

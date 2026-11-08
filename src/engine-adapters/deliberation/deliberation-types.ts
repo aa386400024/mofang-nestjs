@@ -308,3 +308,132 @@ export interface DeliberationOutput {
    */
   readonly intentionShift: DeliberationIntentionShift | null;
 }
+
+// ── V2026-11-08 治本 (Phase2.5 WP-A · 审议输入最小化 · 合规 + 成本双解决) ─────────────
+//
+//   本节新增的是审议的**输入契约** —— 与上面那套输出契约对称.
+//
+//   为什么要换掉输入 (Phase2 代码级对账审计 R6 / R8):
+//     改造前的审议 prompt 传的是**完整对话原文** (咨询师说的话 + AI 来访者说的话),
+//     原样拼进 prompt 发给第三方模型. 两个问题同时炸:
+//       · **合规** —— 心理内容随 prompt 出境第三方 (数据出境);
+//       · **成本** —— 每轮都带全量上下文, 30 轮就破 10k token.
+//
+//   新契约的核心主张 (Phase2.5 总览 §5.1):
+//     审议的本质是"评估**这一轮的状态变化**合不合理", 不是"理解对话说了什么".
+//     所以**结构化数据就够了** —— 不传原文, 只传:
+//       · 本轮咨询师行为的事件分类 (内核已有的事件词典);
+//       · BDI 状态的前后对比 (前值 → 后值 + 变化量);
+//       · 角色基线 (依恋风格 / 大五人格 / 阻抗基线);
+//       · 风险等级 (低 / 中 / 高).
+//
+//   ⚠️ **零对话原文是硬红线** (WP-A §6.3):
+//     `DeliberationInput` 里**没有任何一个字段装对话原文** —— 不是"约定不要填",
+//     是**类型层面装不下**. 这样一来, 审议层即使被误改, 也**没有东西可泄漏**.
+//     连带的好处: BullMQ 的 job payload 里也不再躺着心理对话原文 (它要随 job 冻结到 Redis).
+//
+//   ⚠️ **边界**: 本节只是**类型**. 组装 (从快照 / 事件 / 判定里抽结构化数据) 与
+//     格式化 (拼成 prompt 文本) 分别落在 deliberation-input.ts 与 deliberation-prompt.ts.
+
+/**
+ * 审议用的风险等级 (适配层口径 · WP-A).
+ *
+ * 口径 (为什么不是直接用内核的 pass / warn / block):
+ *   内核三级表达的是"**要不要拦**"; 审议这一层要回答的是"**这一轮能不能送出境**".
+ *   两者语义不同 —— 咨询师说了句"你这就是想不开"是 warn (专业性问题),
+ *   但它**不含任何心理内容**, 让 LLM 审一轮完全没问题; 而"我不想活了"是 warn (意念层),
+ *   它必须**永远走本地规则**. 同一个 warn 覆盖两种完全不同的处置, 所以另立一套口径.
+ *
+ * - `low`    —— 无危机信号 (纯 pass) —— 唯一允许跑 LLM 审议的档;
+ * - `medium` —— 危机意念 / 探索层 (被动自杀意图 / 自伤意念 / 自杀探索 …) —— 不跑;
+ * - `high`   —— 危机行动层 (自杀未遂 / 计划 / 准备 / 主动意图 / 自伤行为 / 伤人)
+ *               或任何 block 级硬红线 —— 不跑.
+ *
+ * ⚠️ **保守方向**: 拿不准往高了判 —— 少跑一轮审议只是少一条观察数据,
+ *   让危机轮次出境是不可逆的合规事故.
+ */
+export type DeliberationRiskLevel = 'low' | 'medium' | 'high';
+
+/**
+ * "**高风险轮次, 压根没跑审议**" 的 trace 错误码 (WP-A 合规闸门).
+ *
+ * ⚠️ 为什么放在**契约文件**而不是 service 里:
+ *   这个码要被**三方**引用 —— service (写 trace) / 统计面板 (认这一类轮次) /
+ *   队列层 (日志口径). 放在任何一处都会引出"另一处要 import service" 的环.
+ *   契约文件零依赖, 是三方共同的落点.
+ *
+ * ⚠️ 它与 `DELIBERATION_CIRCUIT_OPEN_ERROR_CODE` (`circuit_open`) 是**同类不同因**:
+ *   · `circuit_open`      —— 熔断器拦下了 (LLM 之前就挂了, 省钱);
+ *   · `skipped_high_risk` —— 合规闸门拦下了 (风险轮次永远不送出境).
+ *   两者都表示"根本没跑 LLM", 但**原因不同**, 看板要能分开看.
+ */
+export const DELIBERATION_RISK_SKIP_ERROR_CODE = 'skipped_high_risk';
+
+/**
+ * 状态对比的一维 (WP-A) —— "这一轮前后, 这一维动了多少".
+ *
+ * 为什么**逐维**而不是只给一个总变化量:
+ *   审议要判的是"trust 涨 0.02 合理吗" —— 这需要知道 trust 的**绝对水位**
+ *   (从 0.05 涨到 0.07 与从 0.85 涨到 0.87 完全不是一回事), 也需要知道**别的维**
+ *   有没有同时动 (阻抗三维集体上升 = 典型的隐性阻抗信号).
+ */
+export interface DeliberationStateComparisonEntry {
+  /** 维度名 (与内核 `DeltaVector` 的键逐字一致). */
+  readonly dimension: DeliberationDim;
+  /** 本轮开始时的值. */
+  readonly before: number;
+  /** 本轮结束后的值. */
+  readonly after: number;
+  /** 变化量 (= after - before). */
+  readonly delta: number;
+}
+
+/**
+ * 阻抗基线 (三维) —— 角色"天生有多难靠近".
+ *
+ * 为什么单独拎出来 (WP-A 交付物 #4「角色简述格式化器」):
+ *   同一个"来访者沉默", 在高阻抗角色身上是常态, 在低阻抗角色身上是退缩信号.
+ *   审议模型不看基线就判不了"阻抗涨了 0.015 算不算异常" —— 所以基线必须进 prompt.
+ */
+export interface DeliberationResistanceBaseline {
+  /** 话量阻抗 [0,1]. */
+  readonly verbal: number;
+  /** 内容深度阻抗 [0,1]. */
+  readonly depth: number;
+  /** 表达风格阻抗 [0,1]. */
+  readonly style: number;
+}
+
+/**
+ * 审议的**结构化输入** (WP-A) —— 审议 prompt 的唯一数据源.
+ *
+ * ⚠️ **零对话原文** (硬红线): 这里没有任何字段装咨询师/来访者说过的话.
+ *   事件分类是**标签**, 状态对比是**数字**, 角色基线是**角色种子的元数据**
+ *   (依恋风格 / 大五人格 —— 合成数据, 不是来访者的心理内容).
+ *
+ * ⚠️ **为什么角色简述可以带**: 它来自角色的**种子设定** (装配层 `buildCharacterBrief`),
+ *   描述的是"AI 扮演的来访者是谁", 不是"来访者说了什么" —— 它是**合成数据**, 不出境敏感内容.
+ *   反过来, **核心信念 / 情境愿望 / 记忆召回** 这些**不进来** —— 前两者可能带剧本化敏感内容,
+ *   后者是**来访者的心理内容** (敏感度比对话原文更高), 一律不出境.
+ */
+export interface DeliberationInput {
+  /**
+   * 本轮咨询师行为的**事件分类** (内核口径).
+   *
+   * 来源是内核分类器的产物 (`EngineTurnOutput.events`) —— **内核的单一真相**.
+   * 适配层不另起一套预判 (同一句话两套标签 = 影子期对比数据全废).
+   */
+  readonly events: readonly DeliberationOperatorTag[];
+  /** BDI 状态逐维前后对比 (11 维全量). */
+  readonly stateComparison: readonly DeliberationStateComparisonEntry[];
+  /** 角色简述 (角色种子元数据: 依恋风格 + 大五人格; 不含对话原文). */
+  readonly characterBrief: string;
+  /** 阻抗基线 (话量 / 内容深度 / 表达风格). */
+  readonly resistanceBaseline: DeliberationResistanceBaseline;
+  /** 本轮风险等级 (低 / 中 / 高). */
+  readonly riskLevel: DeliberationRiskLevel;
+  /** 命中的风险类别 (内核 SafetyCategory 口径; 低风险轮次通常为空). */
+  readonly riskCategories: readonly string[];
+  /** 本轮规则算子选中的行为策略 (内核意图) —— 意图锁定判定要用. */
+  readonly ruleStrategy: BehaviorStrategy;
+}

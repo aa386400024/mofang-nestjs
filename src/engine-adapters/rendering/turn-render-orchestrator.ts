@@ -134,6 +134,7 @@ import {
   type TrajectoryTrace,
 } from '../../engine-core/index.js';
 import type { ChatMessage } from '../../llm/common/interfaces/chat-provider.interface.js';
+import { buildDeliberationInput } from '../deliberation/deliberation-input.js';
 import type { DeliberationMode } from '../deliberation/deliberation-types.js';
 import type { DeliberationEffectPort } from '../deliberation/llm-deliberation-hook.js';
 import { computeRuleDelta, type DeliberationShadowPort } from '../deliberation/llm-deliberation.service.js';
@@ -729,6 +730,23 @@ export class TurnRenderOrchestrator {
     const userId = (context.userId ?? '').trim();
     if (!userId) return;
 
+    // WP-A (Phase2.5 · 审议输入最小化): 组装**结构化输入** —— 审议层拿不到任何对话原文.
+    //   ⚠️ **两种审议共用这一份** —— 与本方法开头"共用一个调用点"同款纪律:
+    //     影子与生效拿到的输入必须**逐字相同**, 否则灰度期的对比数据不可比.
+    //   ⚠️ 这里是对话原文**唯一**还会碰到的地方 (门面本来就握着它):
+    //     事件分类走内核真值 (output.events), 原文只用于分类兜底与来访侧规则判定;
+    //     派生完的**结构化数据**才是往审议层流的东西.
+    const structured = buildDeliberationInput({
+      kernelEvents: output.events,
+      counselorText: input.userText,
+      stateBefore: baseSnapshot,
+      stateAfter: output.snapshot,
+      characterBrief: context.characterBrief ?? '',
+      counselorVerdict: output.safety,
+      visitorText,
+      ruleStrategy,
+    });
+
     // ① 影子旁路 (V2026-11-05 WP64): 结果**不生效**, 只写 Redis trace 表.
     if (shadow) {
       try {
@@ -743,16 +761,12 @@ export class TurnRenderOrchestrator {
             //   0 会被判定为过期 (安全的失败方向, 而不是"看起来有效").
             baseRevision: output.revision ?? 0,
             mode: DELIBERATION_SHADOW_MODE,
-            baseSnapshot,
-            counselorText: input.userText,
-            visitorText,
-            characterBrief: context.characterBrief ?? '',
+            // WP-A: 结构化输入 (零对话原文) —— 事件分类 / 状态前后对比 / 角色基线 / 风险等级.
+            //   ⚠️ `ruleStrategy` (WP68 意图锁定要的那个) 也在这份里 ——
+            //     它取 `spec.intention.strategy` (本轮渲染**实际用的**那个策略,
+            //     内核意图缺失时有中性兜底 `simple_response`) —— 不是猜一个.
+            structured,
             ruleDelta: computeRuleDelta(baseSnapshot, output.snapshot),
-            // WP68: 意图锁定需要知道"规则算子本轮选的策略" —— 审议层拿不到内核意图
-            //   (意图是每轮派生输出, 不在快照里), 所以由门面传进去.
-            //   ⚠️ 取 `spec.intention.strategy` (本轮渲染**实际用的**那个策略,
-            //   内核意图缺失时有中性兜底 `simple_response`) —— 不是猜一个.
-            ruleStrategy,
           })
           .catch((error: unknown) => {
             // 审议服务承诺不抛 —— 这一层是**防御**: 万一它抛了, 也不能炸主流程.
@@ -771,6 +785,9 @@ export class TurnRenderOrchestrator {
       const produceContext: DeliberationHookContext = {
         snapshot: output.snapshot,
         ruleDelta: computeRuleDelta(baseSnapshot, output.snapshot),
+        // ⚠️ 内核端口的 `counselorText` 是**内核契约里的必填字段** (engine-core 红线, 改不得).
+        //   WP-A 之后**适配层不再消费它** —— 审议输入全部走 `extras.structured` (零原文).
+        //   它还留在这儿只是因为内核的类型要求必填; 残余风险已登记 (见 WP-A 交付记录).
         counselorText: input.userText,
         tenantId: context.tenantId,
         sessionId: context.sessionId,
@@ -787,10 +804,9 @@ export class TurnRenderOrchestrator {
         .produce({
           context: produceContext,
           extras: {
-            visitorText,
-            characterBrief: context.characterBrief ?? '',
+            // WP-A: 与影子路径**同一份**结构化输入 (两条路径的对比数据必须可比).
+            structured,
             userId,
-            ruleStrategy,
           },
         })
         .catch((error: unknown) => {

@@ -50,10 +50,12 @@
 
 import { Logger } from '@nestjs/common';
 
+import { isDeliberationRiskAcceptable } from './deliberation-input.js';
 import type { DeliberationModeConfig } from './deliberation-mode.config.js';
 import { isLlmDeliberationActiveForSession } from './deliberation-mode.config.js';
 import { DELIBERATION_DIMS } from './deliberation-types.js';
-import type { BehaviorStrategy, DeliberationDeltaPatch, DeliberationHookContext, DeliberationHookPort } from '../../engine-core/index.js';
+import type { DeliberationInput } from './deliberation-types.js';
+import type { DeliberationDeltaPatch, DeliberationHookContext, DeliberationHookPort } from '../../engine-core/index.js';
 
 /**
  * 产出拍需要的**适配层专属**上下文 (内核拿不到的那几样).
@@ -67,14 +69,19 @@ import type { BehaviorStrategy, DeliberationDeltaPatch, DeliberationHookContext,
  *     所以内核端口保持纯, 适配层自己定义产出拍的入参.
  */
 export interface DeliberationProduceExtras {
-  /** 本轮来访者的渲染回应 (审议 prompt 的主要输入之一). */
-  readonly visitorText: string;
-  /** 角色种子简述 (依恋风格 + 大五人格). */
-  readonly characterBrief: string;
   /** 学员账号 id (LLM 调用要求非空). */
   readonly userId: string;
-  /** 本轮规则算子选中的行为策略 (意图锁定判定需要). */
-  readonly ruleStrategy: BehaviorStrategy;
+  /**
+   * 本轮审议的**结构化输入** (Phase2.5 WP-A) —— 审议 prompt 的唯一数据源.
+   *
+   * ⚠️ **零对话原文** (合规红线): 事件分类 / 状态前后对比 / 角色基线 / 风险等级 /
+   *   行为策略 —— **没有一句是咨询师或来访者说过的**.
+   *
+   * ⚠️ 为什么由**门面**组装而不是本层自己算:
+   *   门面是唯一同时握有"本轮前后快照"与"内核事件分类"的位置 (见 turn-render-orchestrator.ts);
+   *   在这里重算 = 两份真相 (适配层预判的标签与内核真值漂移).
+   */
+  readonly structured: DeliberationInput;
 }
 
 /**
@@ -217,6 +224,15 @@ export class LlmDeliberationHook implements DeliberationHookPort, DeliberationEf
     const { context } = input;
     try {
       if (!isLlmDeliberationActiveForSession(this.modeConfig, context.sessionId)) return;
+      // WP-A 合规红线: 高风险轮次**永远不跑** LLM 审议 —— 不产建议, 下一轮回退规则 delta.
+      //   ⚠️ **双重保险**: service 侧执行时还会再判一次 (任何一层被绕过, 另一层还在).
+      if (!isDeliberationRiskAcceptable(input.extras.structured.riskLevel)) {
+        this.logger.warn(
+          `[r9] 高风险轮次, 不产生审议建议 (session=${context.sessionId} turn=${context.turnIndex} ` +
+            `risk=${input.extras.structured.riskLevel})`,
+        );
+        return;
+      }
       const patch = await this.runner.run(input);
       // 空补丁 = 没有实质建议 → 不占缓存位 (下一轮直接当"没有建议").
       if (!patch || Object.keys(patch).length === 0) return;

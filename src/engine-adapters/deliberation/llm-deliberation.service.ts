@@ -181,16 +181,19 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { isDeliberationRiskAcceptable } from './deliberation-input.js';
 import { buildDeliberationSchemaDescription, buildDeliberationSystemPrompt, buildDeliberationUserPrompt } from './deliberation-prompt.js';
 import { applyDeliberationStats } from './deliberation-stats.js';
 import {
   DELIBERATION_DIMS,
   DELIBERATION_LLM_ONLY_TAGS,
   DELIBERATION_MAX_ABS_DELTA,
+  DELIBERATION_RISK_SKIP_ERROR_CODE,
   DELIBERATION_RULE_ALIGNED_TAGS,
   isBehaviorStrategy,
   type DeliberationDeltaEntry,
   type DeliberationDim,
+  type DeliberationInput,
   type DeliberationIntentionShift,
   type DeliberationMode,
   type DeliberationOperatorTag,
@@ -254,8 +257,16 @@ const DELIBERATION_FLAT_REASON_MAX_CHARS = 500;
  * 影子审议的入参.
  *
  * 为什么是"输入"而不是"服务自己去取": 审议服务在适配层, 但**只有编排门面**
- * 同时握有三样东西 —— 本轮咨询师的话、本轮来访的渲染回应、本轮前后的 BDI 快照.
- * 让门面把这三样组装好传进来, 审议服务就保持"纯消费 + 纯产出", 不必自己去翻会话.
+ * 同时握有本轮的前后状态与内核判定 —— 让门面把这些**结构化**好传进来,
+ * 审议服务就保持"纯消费 + 纯产出", 不必自己去翻会话.
+ *
+ * ⚠️ **V2026-11-08 治本 (Phase2.5 WP-A · 审议输入最小化)**: 入参**不再装对话原文**.
+ *   改造前这里有 counselorText / visitorText / characterBrief / baseSnapshot 四个字段,
+ *   前两个是**逐字原文** —— 它们被原样拼进 prompt 发给第三方模型 (合规问题 R6),
+ *   而且 BullMQ 的 job payload 里也躺着它们 (job 要随队列冻结到 Redis).
+ *   现在只剩 `structured` (结构化输入) + `ruleDelta` (对比基准):
+ *     · **零原文** —— 审议层物理上拿不到对话, 也就没有东西可泄漏;
+ *     · **零快照副本** —— 状态以"前后对比"的形式进 prompt, 不再整份塞进去.
  */
 export interface DeliberationShadowInput {
   /** 业务会话 id (租户内唯一). */
@@ -285,32 +296,19 @@ export interface DeliberationShadowInput {
   readonly baseRevision: number;
   /** 当前会话模式 (考核 / 自由练习) —— 决定用哪套 prompt 模板. */
   readonly mode: DeliberationMode;
-  /** 本轮**开始时**的 BDI 状态快照 (旧状态, 不是变化后的). */
-  readonly baseSnapshot: BdiSnapshot;
-  /** 本轮咨询师说的话. */
-  readonly counselorText: string;
   /**
-   * 本轮来访的反应 (**LLM 渲染输出的文本**, 不是真实用户语音转文字).
+   * 本轮审议的**结构化输入** (Phase2.5 WP-A) —— 审议 prompt 的**唯一**数据源.
    *
-   * ⚠️ 看 trace 数据的人不要搞混: 这是 AI 扮演的来访者说的话.
+   * 内容: 本轮事件分类 / BDI 状态逐维前后对比 / 角色基线 / 风险等级 / 规则策略.
+   * ⚠️ **零对话原文** —— 事件是标签、状态是数字、角色基线是角色种子的元数据.
+   *
+   * ⚠️ `ruleStrategy` (本轮规则算子选中的行为策略) 也在这里 ——
+   *   它是 prompt 的一个区块 (WP68 意图锁定要模型知道"现在在做什么"),
+   *   放顶层会出现"两份真相"的风险 (改一处忘了另一处).
    */
-  readonly visitorText: string;
-  /** 角色种子信息 (依恋类型 / 大五人格 简述). */
-  readonly characterBrief: string;
+  readonly structured: DeliberationInput;
   /** 规则算子算出的最终 delta (用来跟审议 delta 对比). */
   readonly ruleDelta: DeltaVector;
-  /**
-   * 本轮**规则算子**选中的行为策略 (内核意图) (WP68).
-   *
-   * ⚠️ 为什么要多这一个字段:
-   *   意图锁定机制要回答"LLM 会不会乱改意图" —— 而"乱改"是相对**当前意图**说的.
-   *   审议层自己拿不到内核的意图 (意图是每轮派生输出, 不在快照里), 所以由编排门面传进来.
-   *
-   * ⚠️ 取值口径: 门面传的是**本轮渲染实际用的那个策略**
-   *   (`spec.intention.strategy` —— 内核意图缺失时有中性兜底 `simple_response`),
-   *   不是"猜一个" —— 猜出来的策略会让锁定判定建立在假数据上.
-   */
-  readonly ruleStrategy: BehaviorStrategy;
 }
 
 /**
@@ -341,15 +339,16 @@ export interface DeliberationShadowPort {
  * 生效路径的审议入参 (R9).
  *
  * ⚠️ **与影子入参同形状** (直接别名, 不复制第二份契约):
- *   两条路径需要的上下文**逐字相同** —— 归属 / 轮次 / 版本号 / 快照 / 三段文本 /
- *   规则 delta / 行为策略. 复制一份类型 = 两份真相 (改了一份忘了另一份 = 生效路径
- *   少传一个字段, 而且**不报错**, 只是审议质量变差).
+ *   两条路径需要的上下文**逐字相同** —— 归属 / 轮次 / 版本号 / 结构化输入 / 规则 delta.
+ *   复制一份类型 = 两份真相 (改了一份忘了另一份 = 生效路径少传一个字段,
+ *   而且**不报错**, 只是审议质量变差).
  *
- * ⚠️ **口径差异只在"快照是哪一份"**:
- *   · 影子路径: `baseSnapshot` = 本轮**开始时**的快照 (R0), `baseRevision` = 本轮
- *     **落库后**的版本 (R1) —— 过期判定锚 R1 (见 `checkStale` 的说明).
- *   · 生效路径: `baseSnapshot` = 本轮**落库后**的快照 (= 下一轮开始时的状态, R1),
- *     `baseRevision` = 同一个 R1 —— 两边自洽 (审议算的就是"下一轮会看到的那个状态").
+ * ⚠️ **WP-A 之后"快照是哪一份"不再是入参歧义**:
+ *   改造前两条路径传的快照不同 (影子传 R0 = 本轮开始时; 生效传 R1 = 本轮落库后),
+ *   注释要花整段提醒"别搞混". 现在统一由 `structured.stateComparison` 表达
+ *   **本轮前 → 本轮后**, 两条路径逐字相同 —— 歧义从契约里消失了.
+ *
+ *   过期判定仍然锚 `baseRevision` (= R1, 本轮落库后的版本), 见 `checkStale` 的说明.
  */
 export type DeliberationEffectiveInput = DeliberationShadowInput;
 
@@ -1395,6 +1394,13 @@ export class LlmDeliberationService {
     // 关了 → 队列里的旧 job 直接跳过, 不烧这次 LLM (仓库硬约束 12).
     if (!this.isEnabled()) return { kind: 'skipped' };
     const startedAt = Date.now();
+    // WP-A 合规红线: 高风险轮次**永远不跑** LLM 审议 (状态变化完全由规则算子决定).
+    //   ⚠️ **双重保险**: 队列层 (processor) 入队前已拦过一次, 这里再拦一次 ——
+    //   闸门不能只靠一层: 任何一层被绕过 (配置改错 / 代码路径漏接), 这一层还在.
+    if (!isDeliberationRiskAcceptable(input.structured.riskLevel)) {
+      await this.writeTrace(this.buildFailureRecord(input, DELIBERATION_RISK_SKIP_ERROR_CODE, startedAt, null, retryCount));
+      return { kind: 'skipped' };
+    }
 
     const outcome = await this.runDeliberation(input);
 
@@ -1454,6 +1460,11 @@ export class LlmDeliberationService {
    */
   async runEffectiveDeliberation(input: DeliberationEffectiveInput): Promise<DeliberationEffectiveOutcome> {
     const startedAt = Date.now();
+    // WP-A 合规红线: 高风险轮次永远不跑 LLM 审议 —— 返回失败 = 上层拿不到补丁 = 回退规则 delta.
+    if (!isDeliberationRiskAcceptable(input.structured.riskLevel)) {
+      await this.writeTrace(this.buildFailureRecord(input, DELIBERATION_RISK_SKIP_ERROR_CODE, startedAt, null, 0));
+      return { kind: 'failed', errorCode: DELIBERATION_RISK_SKIP_ERROR_CODE };
+    }
     const outcome = await this.runDeliberation(input);
 
     // 代码 bug 路径: 不重试 (重试同一个 bug 还是会挂), 记一条失败 trace 收工.
@@ -1505,6 +1516,24 @@ export class LlmDeliberationService {
     await this.writeTrace(this.buildFailureRecord(input, DELIBERATION_CIRCUIT_OPEN_ERROR_CODE, Date.now(), null, 0));
   }
 
+  /**
+   * 记一条"**高风险轮次, 压根没跑审议**"的 trace (WP-A 合规闸门).
+   *
+   * ⚠️ **为什么由 service 写** (而不是队列层自己写):
+   *   trace 的**格式与 key 设计**归 service 一家 (WP65 起的纪律: 队列层不自己写 trace).
+   *   队列层只负责"什么时候该记" —— 闸门判定在它那里, trace 的写法在这里.
+   *
+   * ⚠️ **为什么值得记一条**:
+   *   这是**合规证据** —— "高风险轮次一次都没出境"这句话, 要能拿数字证明.
+   *   错误码 `skipped_high_risk` 与熔断的 `circuit_open` 分开, 看板能区分
+   *   "被合规闸门拦下" 与 "被熔断器拦下".
+   *
+   * @param input 本轮上下文 (只取定位信息与规则 delta)
+   */
+  async recordRiskSkipped(input: DeliberationShadowInput): Promise<void> {
+    await this.writeTrace(this.buildFailureRecord(input, DELIBERATION_RISK_SKIP_ERROR_CODE, Date.now(), null, 0));
+  }
+
   // ── private ────────────────────────────────────────────────────
 
   /**
@@ -1523,14 +1552,11 @@ export class LlmDeliberationService {
       const model = this.resolveModel();
       const result = await this.llmJson.requestJson<ValidatedDeliberation>({
         systemPrompt: buildDeliberationSystemPrompt(input.mode),
+        // WP-A: 用户 prompt **零原文** —— 只有结构化数据
+        //   (事件分类 / 状态前后对比 / 角色基线 / 行为策略 / 风险等级).
         userPrompt: buildDeliberationUserPrompt({
-          currentSnapshotJson: JSON.stringify(input.baseSnapshot),
-          counselorText: input.counselorText,
-          visitorText: input.visitorText,
-          characterBrief: input.characterBrief,
           turnIndex: input.turnIndex,
-          // WP68: 告诉模型"现在用的是哪个策略" —— 否则它无从判断该不该建议切换.
-          ruleStrategy: input.ruleStrategy,
+          structured: input.structured,
         }),
         schemaDescription: buildDeliberationSchemaDescription(),
         validate: validateDeliberationOutput,
@@ -1673,7 +1699,7 @@ export class LlmDeliberationService {
       entries,
       rejectedEntries,
       // WP68: 意图锁定的三方对比 (规则 / LLM 建议 / 锁定后实际生效).
-      ruleStrategy: input.ruleStrategy,
+      ruleStrategy: input.structured.ruleStrategy,
       llmIntentionShift: output.intentionShift,
       lockedStrategy: lock.effectiveStrategy,
       llmIntentionAccepted: lock.llmSuggestionAccepted,
@@ -1719,9 +1745,9 @@ export class LlmDeliberationService {
       clinicalFlags: [],
       // WP68: 失败轮次**不跑**锁定判定 (压根没有建议可判) —— 三个字段占位,
       //   让 trace 的形状在成功 / 失败两种情况下**一致** (消费方不用判分支).
-      ruleStrategy: input.ruleStrategy,
+      ruleStrategy: input.structured.ruleStrategy,
       llmIntentionShift: null,
-      lockedStrategy: input.ruleStrategy,
+      lockedStrategy: input.structured.ruleStrategy,
       llmIntentionAccepted: false,
     };
   }
@@ -1781,7 +1807,7 @@ export class LlmDeliberationService {
     llmSuggestion: DeliberationIntentionShift | null,
   ): Promise<IntentionLockResult> {
     const state = await this.loadIntentionLockState(input.tenantId, input.sessionId);
-    return resolveIntentionLock(state, input.ruleStrategy, llmSuggestion, this.resolveIntentionLockRounds(), input.turnIndex);
+    return resolveIntentionLock(state, input.structured.ruleStrategy, llmSuggestion, this.resolveIntentionLockRounds(), input.turnIndex);
   }
 
   /** 读意图锁定状态 (读不到 / 读坏 = 没锁过). */

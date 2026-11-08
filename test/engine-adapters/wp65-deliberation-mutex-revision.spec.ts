@@ -36,6 +36,7 @@ import type { ConfigService } from '@nestjs/config';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { buildTestStructuredInput } from './deliberation-fixtures.js';
 import type { CounselorLlmJsonClient } from '../../src/counselor/providers/llm-json.client.js';
 import {
   DELIBERATION_MUTEX_KEY_PREFIX,
@@ -177,12 +178,14 @@ function buildInput(overrides: Partial<DeliberationShadowInput> = {}): Deliberat
     //   免得"没传 / 传成 0"的兜底路径把真正的传递链路蒙混过去.
     baseRevision: 7,
     mode: 'freeform',
-    baseSnapshot: createEmptyBdiSnapshot(),
-    counselorText: '你最近睡得怎么样？',
-    visitorText: '有点累，夜里老醒。',
-    characterBrief: '依恋风格: 回避型',
+    // WP-A: 结构化输入 (零对话原文) —— 走真实的装配函数.
+    structured: buildTestStructuredInput({
+      counselorText: '你最近睡得怎么样？',
+      visitorText: '有点累，夜里老醒。',
+      characterBrief: '依恋风格: 回避型',
+      ruleStrategy: 'recounting',
+    }),
     ruleDelta: RULE_DELTA,
-    ruleStrategy: 'recounting',
     ...overrides,
   };
 }

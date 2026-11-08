@@ -46,6 +46,7 @@ import { Logger } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import { describe, expect, it, vi } from 'vitest';
 
+import { buildTestStructuredInput } from './deliberation-fixtures.js';
 import type { CounselorLlmJsonClient } from '../../src/counselor/providers/llm-json.client.js';
 import {
   DEFAULT_DELIBERATION_TEMPERATURE,
@@ -152,13 +153,16 @@ function buildInput(overrides: Partial<DeliberationShadowInput> = {}): Deliberat
     userId: USER,
     turnIndex: 3,
     mode: 'freeform',
-    baseSnapshot: snapshot(),
-    counselorText: '你最近睡得怎么样？',
-    visitorText: '有点累，夜里老醒。',
-    characterBrief: '依恋风格: 回避型',
+    // WP-A: 结构化输入 (零对话原文) —— 走真实的装配函数.
+    structured: buildTestStructuredInput({
+      counselorText: '你最近睡得怎么样？',
+      visitorText: '有点累，夜里老醒。',
+      characterBrief: '依恋风格: 回避型',
+      stateBefore: snapshot(),
+      // WP68: 意图锁定需要知道"规则算子本轮选的策略" (门面从内核意图传进来).
+      ruleStrategy: 'recounting',
+    }),
     ruleDelta: RULE_DELTA,
-    // WP68: 意图锁定需要知道"规则算子本轮选的策略" (门面从内核意图传进来).
-    ruleStrategy: 'recounting',
     // WP65: 本轮审议对应的快照版本号 (切灰度时判断审议结果有没有过期).
     baseRevision: 1,
     ...overrides,
@@ -317,9 +321,13 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
       };
       // 考核模式的措辞 (自由练习模式是另一段) —— 证明 mode 真的选到了模板.
       expect(request.systemPrompt).toContain('【当前模式：考核（判定标准更严格）】');
-      expect(request.userPrompt).toContain('你最近睡得怎么样？');
-      expect(request.userPrompt).toContain('有点累，夜里老醒。');
+      // WP-A: 用户 prompt 里是**结构化数据**, 不是对话原文.
+      expect(request.userPrompt).toContain('【本轮事件分类】');
+      expect(request.userPrompt).toContain('【状态变化对比】');
+      expect(request.userPrompt).toContain('依恋风格: 回避型');
       expect(request.userPrompt).toContain('第 3 轮');
+      expect(request.userPrompt).not.toContain('你最近睡得怎么样？');
+      expect(request.userPrompt).not.toContain('有点累，夜里老醒。');
       expect(request.schemaDescription).toContain('【输出 JSON 结构】');
       expect(typeof request.validate).toBe('function');
       expect(request.tenantId).toBe(TENANT);
@@ -465,7 +473,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockRejectedValue(new Error('transport down')),
       });
 
-      await service.executeShadowMode(buildInput({ counselorText: '我最近很想自杀' }));
+      await service.executeShadowMode(buildInput({ structured: buildTestStructuredInput({ counselorText: '我最近很想自杀' }) }));
 
       const joined = warnings.join('\n');
       expect(joined).not.toContain('我最近很想自杀');
@@ -588,7 +596,11 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
         requestJson: vi.fn().mockResolvedValue(okResult()),
       });
 
-      await service.executeShadowMode(buildInput({ counselorText: '来访者原话', visitorText: '来访回应原话' }));
+      await service.executeShadowMode(
+        buildInput({
+          structured: buildTestStructuredInput({ counselorText: '来访者原话', visitorText: '来访回应原话' }),
+        }),
+      );
 
       const [, value] = set.mock.calls[0] as [string, string];
       expect(value).not.toContain('来访者原话');
@@ -740,9 +752,11 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
       await orchestrator.turn('handle-1', { userText: '第二句' });
       expect(deliberation.calls).toHaveLength(1);
       expect(deliberation.calls[0]?.turnIndex).toBe(2);
-      expect(deliberation.calls[0]?.counselorText).toBe('第二句');
-      expect(deliberation.calls[0]?.visitorText).toBe('来访回了一句');
       expect(deliberation.calls[0]?.mode).toBe('freeform');
+      // WP-A: 审议入参里**没有**对话原文 —— 门面只传结构化数据.
+      expect(deliberation.calls[0]?.structured).toBeDefined();
+      expect(Object.keys(deliberation.calls[0] ?? {})).not.toContain('counselorText');
+      expect(Object.keys(deliberation.calls[0] ?? {})).not.toContain('visitorText');
     });
 
     it('旁路调用**不 await** (主流程不因审议而变慢)', async () => {
@@ -803,14 +817,17 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
       expect(result.reply).toBe('来访回了一句');
     });
 
-    it('审议入参里的 baseSnapshot 是**上一轮结束时的**快照', async () => {
+    it('审议入参里的状态对比是"本轮前 → 本轮后" (前值 = 上一轮结束时的快照)', async () => {
       const { orchestrator, deliberation } = buildOrchestrator({});
 
       await orchestrator.turn('handle-1', { userText: '第一句' });
       await orchestrator.turn('handle-1', { userText: '第二句' });
 
-      // 第一轮结束后的 trust = 0.51 → 第二轮的起始快照必须是它.
-      expect(deliberation.calls[0]?.baseSnapshot.trust).toBeCloseTo(0.51, 6);
+      const comparison = deliberation.calls[0]?.structured.stateComparison.find((entry) => entry.dimension === 'trust');
+      // 第一轮结束后的 trust = 0.51 → 第二轮的"本轮前"必须是它, "本轮后"是 0.52.
+      expect(comparison?.before).toBeCloseTo(0.51, 6);
+      expect(comparison?.after).toBeCloseTo(0.52, 6);
+      expect(comparison?.delta).toBeCloseTo(0.01, 6);
       // 规则 delta = 本轮前后快照差 = 0.52 - 0.51 = 0.01 (stub 每轮固定 +0.01).
       expect(deliberation.calls[0]?.ruleDelta.trust).toBeCloseTo(0.01, 6);
     });

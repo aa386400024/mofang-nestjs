@@ -28,6 +28,7 @@ import type { ConfigService } from '@nestjs/config';
 
 import { describe, expect, it, vi } from 'vitest';
 
+import { buildTestStructuredInput } from './deliberation-fixtures.js';
 import type { CounselorLlmJsonClient } from '../../src/counselor/providers/llm-json.client.js';
 import {
   CLINICAL_SANITY_THRESHOLDS,
@@ -39,7 +40,7 @@ import {
   type DeliberationShadowInput,
   type DeliberationTraceRecord,
 } from '../../src/engine-adapters/deliberation/llm-deliberation.service.js';
-import { createEmptyBdiSnapshot, type BdiStateRepository, type DeltaVector } from '../../src/engine-core/index.js';
+import type { BdiStateRepository, DeltaVector } from '../../src/engine-core/index.js';
 import type { RedisService } from '../../src/shared/infra/redis/redis.service.js';
 
 const TENANT = 'tenant-1';
@@ -77,12 +78,14 @@ function buildInput(overrides: Partial<DeliberationShadowInput> = {}): Deliberat
     turnIndex: 3,
     baseRevision: 7,
     mode: 'freeform',
-    baseSnapshot: createEmptyBdiSnapshot(),
-    counselorText: '你最近睡得怎么样？',
-    visitorText: '有点累，夜里老醒。',
-    characterBrief: '依恋风格: 回避型',
+    // WP-A: 结构化输入 (零对话原文) —— 走真实的装配函数.
+    structured: buildTestStructuredInput({
+      counselorText: '你最近睡得怎么样？',
+      visitorText: '有点累，夜里老醒。',
+      characterBrief: '依恋风格: 回避型',
+      ruleStrategy: 'recounting',
+    }),
     ruleDelta: RULE_DELTA,
-    ruleStrategy: 'recounting',
     ...overrides,
   };
 }

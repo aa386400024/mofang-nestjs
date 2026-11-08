@@ -12,6 +12,7 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { buildTestStructuredInput } from './deliberation-fixtures.js';
 import {
   buildDeliberationSchemaDescription,
   buildDeliberationSystemPrompt,
@@ -195,59 +196,64 @@ describe('WP63 · 审议输出 Schema 与可解释性', () => {
     });
   });
 
-  describe('④ user prompt 组装', () => {
+  describe('④ user prompt 组装 (WP-A · 结构化输入, 零原文)', () => {
     const input = {
-      currentSnapshotJson: '{"trust":0.42,"safety":0.31,"bond":0.2}',
-      counselorText: '听起来你这段时间压力挺大的。',
-      visitorText: '嗯…也谈不上，就是夜里老醒。',
-      characterBrief: '回避型依恋 / 高神经质',
       turnIndex: 7,
-      // WP68: 意图锁定要模型知道"现在用的是哪个策略" —— 否则它无从判断该不该建议切换.
-      ruleStrategy: 'recounting' as const,
+      structured: buildTestStructuredInput({
+        counselorText: '听起来你这段时间压力挺大的。',
+        visitorText: '嗯…也谈不上，就是夜里老醒。',
+        characterBrief: '回避型依恋 / 高神经质',
+        ruleStrategy: 'recounting' as const,
+      }),
     };
 
-    it('快照 JSON / 咨询师的话 / 来访的反应 / 角色背景 / 轮次 都在里面', () => {
+    it('事件分类 / 状态对比 / 角色基线 / 轮次 都在里面', () => {
       const prompt = buildDeliberationUserPrompt(input);
 
-      expect(prompt).toContain(input.currentSnapshotJson);
-      expect(prompt).toContain(input.counselorText);
-      expect(prompt).toContain(input.visitorText);
-      expect(prompt).toContain(input.characterBrief);
+      // 内核事件词典里 "听起来你" 命中 empathy —— 走**真实的**分类器.
+      expect(prompt).toContain('empathy');
+      expect(prompt).toContain('回避型依恋 / 高神经质');
       expect(prompt).toContain('第 7 轮');
     });
 
-    it('五个区块的标题固定 (模型每次看到的位置一样)', () => {
+    it('六个区块的标题固定 (模型每次看到的位置一样)', () => {
       const prompt = buildDeliberationUserPrompt(input);
 
-      expect(prompt).toContain('【来访者当前状态】');
-      // WP68: 新增"当前行为策略"区块 —— 模型要知道现在在做什么, 才谈得上要不要换.
+      expect(prompt).toContain('【本轮事件分类】');
+      expect(prompt).toContain('【状态变化对比】');
+      expect(prompt).toContain('【角色基线】');
+      // WP68: "当前行为策略"区块 —— 模型要知道现在在做什么, 才谈得上要不要换.
       expect(prompt).toContain('【当前行为策略】');
-      expect(prompt).toContain('【本轮咨询师发言】');
-      expect(prompt).toContain('【本轮来访者反应】');
-      expect(prompt).toContain('【角色背景】');
+      expect(prompt).toContain('【风险等级】');
       expect(prompt).toContain('【会话轮次】');
     });
 
-    it('空发言写明"没有"而不是留空 (留空 = 模型会脑补)', () => {
-      const prompt = buildDeliberationUserPrompt({
-        ...input,
-        counselorText: ' '.repeat(3),
-        visitorText: '',
-        characterBrief: '',
-        currentSnapshotJson: '',
-      });
+    it('⚠️ 零对话原文: 咨询师与来访者说过的话都不在 prompt 里 (WP-A 硬红线)', () => {
+      const prompt = buildDeliberationUserPrompt(input);
 
-      expect(prompt).toContain('（本轮咨询师没有发言）');
-      expect(prompt).toContain('（本轮来访者没有回复）');
-      expect(prompt).toContain('（未提供角色背景）');
-      expect(prompt).toContain('（未提供状态快照）');
+      expect(prompt).not.toContain('听起来你这段时间压力挺大的。');
+      expect(prompt).not.toContain('嗯…也谈不上，就是夜里老醒。');
+      // 旧版 prompt 的两个原文区块**必须整个消失** (改一半 = 还在漏).
+      expect(prompt).not.toContain('【本轮咨询师发言】');
+      expect(prompt).not.toContain('【本轮来访者反应】');
     });
 
-    it('正文 trim 后再进 prompt (首尾空白不留白)', () => {
-      const prompt = buildDeliberationUserPrompt({ ...input, counselorText: '  你最近还好吗？  ' });
+    it('状态对比逐维给出"前值 → 后值 (变化量)" (11 维全给)', () => {
+      const prompt = buildDeliberationUserPrompt(input);
 
-      expect(prompt).toContain('你最近还好吗？');
-      expect(prompt).not.toContain('  你最近还好吗？');
+      for (const dim of DELIBERATION_DIMS) {
+        expect(prompt).toContain(dim);
+      }
+      expect(prompt).toMatch(/trust: -?\d+\.\d{3} → -?\d+\.\d{3} \(-?\d+\.\d{3}\)/);
+    });
+
+    it('角色简述为空时仍然给阻抗基线 (留空 = 模型会脑补)', () => {
+      const prompt = buildDeliberationUserPrompt({
+        turnIndex: 1,
+        structured: buildTestStructuredInput({ characterBrief: '' }),
+      });
+
+      expect(prompt).toContain('阻抗基线');
     });
   });
 
