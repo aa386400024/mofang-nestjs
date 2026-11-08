@@ -20,6 +20,8 @@ import { AiConversationsModule } from './ai-companion/ai-conversations.module.js
 import { AIEngineModule } from './ai-engine/ai-engine.module.js';
 import { AnalyticsModule } from './analytics/analytics.module.js';
 import { AuthModule } from './auth/index.js';
+// V2026-11-08 — Phase2.5 WP-D: AI 咨询师 + AI 来访者双向自动对练 (批量跑 30+ 场验证引擎).
+import { AutoPracticeModule } from './auto-practice/auto-practice.module.js';
 import { BaseModule } from './base/base.module.js';
 import { BillingModule } from './billing/billing.module.js';
 import { BizExceptionFilter } from './common/filters/biz-exception.filter.js';
@@ -189,6 +191,8 @@ import { VoiceModule } from './voice/voice.module.js';
     UserModule,
     // AuthModule 必须先于 BaseModule, 因为 BaseModule 的 AuthController 依赖 AuthService / LoginCodeService.
     AuthModule,
+    // V2026-11-08 — Phase2.5 WP-D: AI 自动对练 (咨询师 LLM × 来访者引擎, 批量验证).
+    AutoPracticeModule,
     BaseModule,
     OAuthModule,
     UserCronModule,

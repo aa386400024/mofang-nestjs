@@ -164,5 +164,8 @@ export { AddTurnDeltaAudits1714900000031 } from './1714900000031-AddTurnDeltaAud
 //   degraded (TINYINT NOT NULL DEFAULT 0) + degraded_reason (VARCHAR(50) NULL).
 //   会话结束时一次性判定打标; 考核 / 统计接口按它过滤. 存量行 = 0 (零回归).
 export { AddSessionDegradedFlag1714900000032 } from './1714900000032-AddSessionDegradedFlag.js';
+// V2026-11-08 治本 (Phase2.5 WP-D — 自动对练 2 张表, 跟 bin/ormconfig.ts 严格 1:1):
+//   ap_counselor_modes (咨询师人设 system prompt) + ap_practice_sessions (批量场次元数据).
+export { AddAutoPracticeTables1714900000033 } from './1714900000033-AddAutoPracticeTables.js';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

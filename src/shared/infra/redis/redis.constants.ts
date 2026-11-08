@@ -74,4 +74,10 @@ export const QUEUE_NAMES = {
   //   并发 3 (env `ENGINE_DELIBERATION_WORKER_CONCURRENCY` 可调): 审议单次 3-8s,
   //   比督导的 30-120s 短, 但比每轮分析的轻档重 (要读完整状态快照做对比).
   deliberation: 'deliberation-shadow',
+  // V2026-11-08 治本 (Phase2.5 WP-D · 自动对练): AI 咨询师 + AI 来访者双向自动跑.
+  //   单场实时走 HTTP 同步返回 (前端 WS 推每轮); 批量跑走这个 BullMQ 队列.
+  //   并发 3 (env `AUTO_PRACTICE_WORKER_CONCURRENCY` 可调): 一场对练 ~15 轮 × (咨询师 LLM
+  //   1 次 + 来访渲染 LLM 1 次) ≈ 30 次 LLM 调用, 单场 2-5 分钟; 并发 3 = 同时跑 3 场,
+  //   既压得住上游配额, 又能在一小时内跑满 30+ 场的批量目标.
+  autoPractice: 'auto-practice',
 } as const;

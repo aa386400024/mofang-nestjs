@@ -11,6 +11,7 @@ import DeliberationStats from '@/views/DeliberationStats.vue'
 import ArchitectureDiagram from '@/views/ArchitectureDiagram.vue'
 import ParamCalibrator from '@/views/ParamCalibrator.vue'
 import DebugChat from '@/views/DebugChat.vue'
+import AutoPractice from '@/views/AutoPractice.vue'
 import Login from '@/views/Login.vue'
 
 const router = createRouter({
@@ -30,6 +31,7 @@ const router = createRouter({
     { path: '/architecture', component: ArchitectureDiagram },
     { path: '/calibrator', component: ParamCalibrator },
     { path: '/debug-chat', component: DebugChat },
+    { path: '/auto-practice', component: AutoPractice },
   ],
 })
 

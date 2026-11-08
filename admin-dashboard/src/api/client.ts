@@ -3,6 +3,7 @@ import type {
   MemoryEntry, MemoryListResponse, PsyGuardStats, DashboardStats,
   TrajectoryState, PsyGuardTrend, CostTrendPoint, SessionCost,
   CharacterSession, HealthStatus, DeliberationStats,
+  CounselorMode, PracticeSession, BatchProgress,
 } from './types'
 
 const BASE = '/admin/api'
@@ -119,6 +120,34 @@ async function patch<T>(path: string, body: unknown): Promise<T> {
     if (!newAuth) throw new Error('需要登录')
     const retry = await fetch(`${BASE}${path}`, {
       method: 'PATCH',
+      headers: { ...headers, Authorization: newAuth },
+      body: JSON.stringify(body),
+    })
+    if (!retry.ok) throw new Error(`${path} → ${retry.status}`)
+    return retry.json() as Promise<T>
+  }
+
+  if (!r.ok) throw new Error(`${path} → ${r.status}`)
+  return r.json() as Promise<T>
+}
+
+async function put<T>(path: string, body: unknown): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const auth = getAuthHeader()
+  if (auth) headers.Authorization = auth
+
+  const r = await fetch(`${BASE}${path}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(body),
+  })
+
+  if (r.status === 401) {
+    sessionStorage.removeItem(CRED_KEY)
+    const newAuth = promptCredentials()
+    if (!newAuth) throw new Error('需要登录')
+    const retry = await fetch(`${BASE}${path}`, {
+      method: 'PUT',
       headers: { ...headers, Authorization: newAuth },
       body: JSON.stringify(body),
     })
@@ -251,5 +280,46 @@ export const api = {
   deliberationStats: async (days?: number): Promise<DeliberationStats> => {
     const query = days ? `?days=${days}` : ''
     return get<DeliberationStats>(`/deliberation/stats${query}`)
+  },
+
+  // ─── 自动对练 (Phase2.5 WP-D) ───
+  autoPractice: {
+    /** 启动一场实时对练 (立即返回 practiceSessionId, 后台跑循环) */
+    startSession: async (body: { characterSlug: string; counselorModeId: string; maxTurns?: number }): Promise<{ practiceSessionId: string; characterSlug: string; counselorModeId: string }> => {
+      return post('/auto-practice/sessions', body)
+    },
+    /** 批量入队, 返回 batchId */
+    enqueueBatch: async (body: { characterSlugs: string[]; counselorModeIds: string[]; maxTurns?: number; repeats?: number }): Promise<{ batchId: string; enqueued: number }> => {
+      return post('/auto-practice/batch', body)
+    },
+    /** 列场次 */
+    listSessions: async (params?: { batchId?: string; status?: string }): Promise<PracticeSession[]> => {
+      const q = new URLSearchParams(params as Record<string, string>).toString()
+      return get<PracticeSession[]>(`/auto-practice/sessions${q ? `?${q}` : ''}`)
+    },
+    /** 查单场 */
+    getSession: async (id: string): Promise<PracticeSession> => {
+      return get<PracticeSession>(`/auto-practice/sessions/${id}`)
+    },
+    /** 批量进度汇总 */
+    batchProgress: async (batchId: string): Promise<BatchProgress> => {
+      return get<BatchProgress>(`/auto-practice/batches/${batchId}`)
+    },
+    /** 列咨询师模式 */
+    listModes: async (): Promise<CounselorMode[]> => {
+      return get<CounselorMode[]>('/auto-practice/modes')
+    },
+    /** 新建咨询师模式 */
+    createMode: async (body: { name: string; systemPrompt?: string; description?: string; enabled?: boolean; sortOrder?: number }): Promise<CounselorMode> => {
+      return post('/auto-practice/modes', body)
+    },
+    /** 改咨询师模式 */
+    updateMode: async (id: string, body: Partial<{ name: string; systemPrompt: string; description: string; enabled: boolean; sortOrder: number }>): Promise<CounselorMode> => {
+      return put<CounselorMode>(`/auto-practice/modes/${id}`, body)
+    },
+    /** 删咨询师模式 */
+    deleteMode: async (id: string): Promise<{ deleted: boolean }> => {
+      return del<{ deleted: boolean }>(`/auto-practice/modes/${id}`)
+    },
   },
 }

@@ -387,3 +387,82 @@ export interface DeliberationStats {
   /** 窗口口径 (这批数是哪段时间的) */
   window: DeliberationStatsWindow
 }
+
+// ─── 自动对练 (Phase2.5 WP-D) ───
+
+/** 咨询师模式 (ap_counselor_modes 表) */
+export interface CounselorMode {
+  id: string
+  name: string
+  systemPrompt: string
+  description: string
+  enabled: number
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+/** 对练场次 (ap_practice_sessions 表) */
+export interface PracticeSession {
+  id: string
+  debugSessionId: string
+  characterSlug: string
+  counselorModeId: string
+  status: 'running' | 'completed' | 'failed'
+  maxTurns: number
+  turnCount: number
+  crisisEnded: number
+  exitReason: string | null
+  batchId: string | null
+  modelVersion: string | null
+  seedValue: string | null
+  totalCost: number | null
+  errorMessage: string | null
+  startedAt: string
+  finishedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+/** 批量进度汇总 */
+export interface BatchProgress {
+  batchId: string
+  total: number
+  byStatus: Record<string, number>
+  sessions: Array<{
+    id: string
+    characterSlug: string
+    counselorModeId: string
+    status: string
+    turnCount: number
+    exitReason: string | null
+  }>
+}
+
+/** WS: 一场开始 */
+export interface ApSessionStart {
+  practiceSessionId: string
+  debugSessionId: string
+  characterSlug: string
+  counselorModeId: string
+  maxTurns: number
+}
+
+/** WS: 一轮对话 */
+export interface ApTurn {
+  practiceSessionId: string
+  turnIndex: number
+  counselorText: string
+  visitorText: string
+  crisisDetected: boolean
+  trace: TurnTrace | null
+}
+
+/** WS: 一场结束 */
+export interface ApSessionEnd {
+  practiceSessionId: string
+  status: string
+  exitReason: string
+  turnCount: number
+  crisisEnded: boolean
+}

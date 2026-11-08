@@ -29,6 +29,8 @@
     "seed:quotes": "tsx bin/seed-quotes.ts",
     "seed:visitor-pool": "tsx bin/seed-visitor-pool-templates.ts",
     "seed:character-profiles": "tsx bin/seed-character-profiles.ts",
+    "seed:counselor-modes": "tsx bin/seed-counselor-modes.ts",
+    "seed:visitors-jsonl": "tsx bin/seed-visitors-jsonl.ts",
     "migration:revert": "tsx node_modules/typeorm/cli.js -d bin/ormconfig.ts migration:revert",
     "migration:show": "tsx node_modules/typeorm/cli.js -d bin/ormconfig.ts migration:show",
     "build": "tsc -p tsconfig.build.json",

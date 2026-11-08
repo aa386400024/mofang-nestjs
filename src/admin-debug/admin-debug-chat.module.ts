@@ -107,6 +107,7 @@ import { UserModule } from '../user/index.js';
     // 内部角色判定 (直读 users.admin_role) —— 仓库既有的内部能力守卫.
     AdminRoleGuard,
   ],
+  exports: [DebugSessionService],
 })
 export class AdminDebugChatModule implements NestModule {
   /**

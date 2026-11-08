@@ -23,6 +23,7 @@ export default {
     architecture: 'Architecture',
     calibrator: 'Calibrator',
     debugChat: 'Debug Chat',
+    autoPractice: 'Auto Practice',
   },
   dashboard: {
     title: 'Dashboard',

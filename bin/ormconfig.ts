@@ -211,6 +211,10 @@ import { AddTurnDeltaAudits1714900000031 } from '../src/migration/1714900000031-
 //   degraded (TINYINT NOT NULL DEFAULT 0) + degraded_reason (VARCHAR(50) NULL).
 //   存量行自动是 0 / NULL (= 没降级), 老会话照旧参与考核, 零回归.
 import { AddSessionDegradedFlag1714900000032 } from '../src/migration/1714900000032-AddSessionDegradedFlag.js';
+// V2026-11-08 治本 (Phase2.5 WP-D — 自动对练 2 张表, 跟前序同段):
+//   ap_counselor_modes (7 种咨询师人设 system prompt) + ap_practice_sessions (批量场次元数据).
+//   表由手写 DDL 建 (ADR-0003); 7 种模式内容走独立 seed (bin/seed-counselor-modes.ts).
+import { AddAutoPracticeTables1714900000033 } from '../src/migration/1714900000033-AddAutoPracticeTables.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -362,6 +366,8 @@ const ormconfig = async (): Promise<DataSource> => {
       //   部署顺序: **必须先 migration:run 再起服务** —— 运行时写入前表得先在.
       AddTurnDeltaAudits1714900000031,
       AddSessionDegradedFlag1714900000032,
+      // V2026-11-08 治本 (Phase2.5 WP-D — 自动对练 2 张表, 跟前序同段):
+      AddAutoPracticeTables1714900000033,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

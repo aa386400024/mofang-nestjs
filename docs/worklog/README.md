@@ -100,7 +100,7 @@
 >
 > - **R9 灰度切换开关（2026-11-08）** ✅ → [`completed/phase2/phase2-r9-grayscale-switch-implementation-2026-11-08.md`](completed/phase2/phase2-r9-grayscale-switch-implementation-2026-11-08.md) —— 审议从「旁路观察」升级为「可配置生效」：内核加纯类型审议钩子端口（同步 / 稀疏补丁 / 失败回退）+ 三态生效模式（shadow / rule_only / llm_active）+ 会话白名单灰度；两拍分离设计（异步产出 → 缓存 → 下一轮同步消费，建议滞后一轮，不阻塞热路径）；缺省仍纯规则（零回归）；闸门全绿（tsc **0 error** / 全量 **145 文件 · 2375 例 · 0 failed · 19 skip** / eslint **0** / boundary **12 用例全绿**）
 >
-> - **Phase2.5 灰度验证期（2026-11-08 开工）** 🚧 → [`pending/phase2.5-README.md`](pending/phase2.5-README.md) —— **验证阶段，不是功能开发**：把 LLM 审议从 PoC 推到真实验证，用自动化数据跑几千场对话，验证质量达标后再全量切。**5 个 WP**（WP-A ✅ 审议输入最小化 / WP-B 可复现控制 + 版本锁定 / WP-C 触发式闸门 / WP-D 模拟咨询师自动对练 / WP-E 自动评测调优）；详细进度与红线见 Phase2.5 README
+> - **Phase2.5 灰度验证期（2026-11-08 开工）** 🚧 → [`pending/phase2.5-README.md`](pending/phase2.5-README.md) —— **验证阶段，不是功能开发**：把 LLM 审议从 PoC 推到真实验证，用自动化数据跑几千场对话，验证质量达标后再全量切。**5 个 WP**（WP-A ✅ 审议输入最小化 / WP-B 可复现控制 + 版本锁定 / WP-C 触发式闸门 / WP-D ✅ 模拟咨询师自动对练 / WP-E 自动评测调优）；详细进度与红线见 Phase2.5 README
 
 ---
 
@@ -117,7 +117,7 @@
 > - `phase2.5-wp-list-2026-11-08.md` —— **Phase2.5 WP 登记表**，**每个 WP 交付后更新那一行**（状态 ✅ + 交付记录链接，§六 导航里就是这么定义的）；
 > - `phase4-backlog-2026-11-08.md` —— **Phase4 承接清单**（Phase2 移交的 5 条），Phase4 开工时才动。
 >
-> **Phase2.5 进行中** → WP-A 已交付（见上方条目）→ 下一个活是 **WP-B（可复现控制 + 版本锁定）**：考核场景永远纯规则 + 模型/prompt 版本号记进 trace（登记表见 [`pending/phase2.5-wp-list-2026-11-08.md`](pending/phase2.5-wp-list-2026-11-08.md)）。
+> **Phase2.5 进行中** → WP-A ✅ + WP-D ✅（见上方条目）→ 下一个活是 **WP-B（可复现控制 + 版本锁定）**：考核场景永远纯规则 + 模型/prompt 版本号记进 trace（登记表见 [`pending/phase2.5-wp-list-2026-11-08.md`](pending/phase2.5-wp-list-2026-11-08.md)）。
 
 每个任务单文件里写了完整的：目标、改动点、验收标准、不做什么。**读全文再开工。**
 
@@ -178,7 +178,7 @@ docs/worklog/
 │   │   ├── early-misc/
 │   │   └── phase1-backlog-archived-2026-11-03.md
 │   ├── phase2/       ← Phase2 交付（WP28 ✅ PsyGUARD 正式值 / WP32 ✅ BDI 状态持久化（内存 → Redis，内核零改动）/ WP34 ✅ P1 人格调节算子 / WP35 ✅ 渲染四手法（语气疏离度 / 情绪表现 / 轻量随机 / 非语言）/ WP36 ✅ 跨会话间隔自然衰减 / WP37 ✅ 记忆会话级摘要压缩（滚动摘要）/ WP41 ✅ 表达风格渲染接入（话量基线 / 叙事风格 / 语态倾向）/ WP42 ✅ 咨询同盟三维 / WP49 ✅ 角色大五人格字段落地（内核零改动，宜人性算子通路打通）/ WP50 ✅ 渲染层接入同盟三维（safety/bond）/ WP51 ✅ 角色种子同盟三维基线（safety/bond）/ WP52 ✅ 剧本偏移接入同盟三维（safety/bond）/ WP53 ✅ 人格调节算子扩展到同盟三维（safety/bond）/ WP54 ✅ 破裂态阻抗反升（跨会话衰减补完）/ WP55 ✅ 会话摘要补齐来访者侧（两侧纪要）/ WP56 ✅ 长期记忆召回进渲染上下文 / WP57 ✅ BDI 信念层深度扩展（核心信念激活 + 短期信念置信度衰减）/ WP58 ✅ 引擎调试面板（/debug-chat 后端三接口：调试会话**落 JSON 文件**（仍不写正式表），每轮返回 BDI 快照 / delta / 意图 / 渲染规格 / prompt 全文 / 审议 trace）/ WP59 ✅ 记忆召回策略配置端口统一（半衰期/阈值可配置，判定只有一份）/ WP61 ✅ 会话摘要层次化（核心议题 / 关键事件 / 情绪转折点）/ WP30 ✅ Admin Dashboard 切真 API（角色详情 / 角色会话 / 剧本轨迹 / 本场记忆四端点 + 前端两页去 mock）/ WP31 ✅ 成本看板切真 API（成本趋势 / 会话成本两端点 + 前端去 mock；**仅看板那一半**，超阈值告警仍待补）/ WP63 ✅ 审议输出 Schema 与可解释性设计（维度/标签枚举 + 输出契约 + 双模式 prompt 模板）/ WP64 ✅ LLM 审议层 PoC（影子模式 · 旁路观察，结果只写 Redis trace 表，不写状态）/ WP65 ✅ 审议影子模式 BullMQ 队列化（入队异步跑 + Worker 并发闸门）+ 后半段 ✅ per-session mutex（Redis SETNX 锁）与快照版本号传递（`EngineTurnOutput.revision` → 审议入参 `baseRevision` → trace；**两半都销了**，审议结果仍不生效）/ WP66 ✅ 审议输出格式校验与重试（按错误类型分流 + 先写 trace 再抛）/ WP67 ✅ 审议熔断与降级策略（会话级熔断器：连续失败 3 次暂停，冷却后半开探一个；**熔断器那一半**；**`degraded` 会话打标那一半 ✅ 已由 2026-11-07 独立单销掉** —— 口径见该交付记录）/ WP68 ✅ 意图锁定机制（基础版：审议输出加可选 `intentionShift` + 影子期旁路模拟锁定 N 轮；**仅基础版**，触发事件白名单仍待补）/ 2026-11-05 四合一任务单 ✅ Admin Dashboard 剩余页面切真 API + 调试会话持久化（Dashboard / MemoryBrowser / PsyGuardMonitor 三页切真 + 调试会话落 JSON 文件 + 3 轮后 LLM 自动命名，内核零改动）/ WP45 ✅ P3 技术债 8 条清理（**挖出一个线上一直在犯的 Qdrant SDK 契约 bug**：WP12 的冲突消解标记从未真正落库 → 同主题矛盾记忆一起被召回；内核零改动）/ 影子模式统计面板 ✅（2026-11-07 · 18 字段指标 + O(1) 读计数器）/ 影子模式统计面板 · **时间窗口扩展** ✅（2026-11-08 · 按天分 key + 最近 N 天窗口查询，日 key TTL 90 天，`window` 口径对象带 `daysCovered`，真 Redis 已验，内核零改动））
-│   └── phase2.5/     ← Phase2.5 交付（WP-A ✅ 审议输入最小化 · 审议不传对话原文 + 高风险轮次永远不跑 LLM 审议）
+│   └── phase2.5/     ← Phase2.5 交付（WP-A ✅ 审议输入最小化 · 审议不传对话原文 + 高风险轮次永远不跑 LLM 审议 / WP-D ✅ 模拟咨询师自动对练 · AI 咨询师 + BullMQ 批量跑 + WebSocket 实时推 + 7 种人设 seed）
 ├── audits/           ← 审查报告（WP25 Phase1 封版扫描 / Phase2 代码级对账审计 等）
 └── archive/          ← 老文档
 ```

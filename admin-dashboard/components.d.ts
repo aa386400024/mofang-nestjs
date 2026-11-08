@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     BdiTrajectoryChart: typeof import('./src/components/BdiTrajectoryChart.vue')['default']
+    DebugTracePanel: typeof import('./src/components/DebugTracePanel.vue')['default']
     DimensionsRadar: typeof import('./src/components/DimensionsRadar.vue')['default']
     EmptyState: typeof import('./src/components/EmptyState.vue')['default']
     InfoTooltip: typeof import('./src/components/InfoTooltip.vue')['default']

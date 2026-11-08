@@ -1,11 +1,12 @@
 # WP-D 模拟咨询师 AI + 自动对练
 
-> **路径**：`docs/worklog/pending/phase2.5-wp-d-auto-practice-2026-11-08.md`
-> **状态**：📋 待开工
+> **路径**：`docs/worklog/completed/phase2.5/phase2.5-wp-d-auto-practice-2026-11-08.md`
+> **状态**：✅ 已交付（[交付记录](phase2.5-wp-d-auto-practice-2026-11-08-implementation.md)）
 > **优先级**：🟡 P1
 > **创建日期**：2026-11-08
-> **总览**：[§Phase2.5 总览](phase2.5-overview-2026-11-08.md)
-> **登记表**：[§WP 登记表](phase2.5-wp-list-2026-11-08.md)
+> **交付日期**：2026-11-08
+> **总览**：[§Phase2.5 总览](../pending/phase2.5-overview-2026-11-08.md)
+> **登记表**：[§WP 登记表](../pending/phase2.5-wp-list-2026-11-08.md)
 > **依赖**：WP-A ✅（审议输入最小化）；WP-C（触发式闸门）可并行，不阻塞本单
 
 ---
