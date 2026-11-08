@@ -20,14 +20,14 @@
 import { MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { AutoPracticeController } from './auto-practice.controller.js';
+import { AutoPracticeGateway } from './auto-practice.gateway.js';
 import { AdminBasicAuthMiddleware } from '../admin-debug/admin-basic-auth.middleware.js';
 import { AdminDebugChatModule } from '../admin-debug/admin-debug-chat.module.js';
 import { AdminRoleGuard } from '../admin-debug/guards/admin-role.guard.js';
 import { LlmModule } from '../llm/llm.module.js';
 import { User } from '../user/entities/user.entity.js';
 import { UserModule } from '../user/index.js';
-import { AutoPracticeController } from './auto-practice.controller.js';
-import { AutoPracticeGateway } from './auto-practice.gateway.js';
 import { DebugTurnEngineAdapter } from './adapters/debug-turn-engine.adapter.js';
 import { CounselorAgentService } from './counselor-agent.service.js';
 import { CounselorMode } from './entities/counselor-mode.entity.js';

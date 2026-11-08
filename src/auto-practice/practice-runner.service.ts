@@ -27,13 +27,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { nanoid } from 'nanoid';
 import { Repository } from 'typeorm';
 
-import { AutoPracticeGateway } from './auto-practice.gateway.js';
 import {
   AUTO_PRACTICE_EVENTS,
   type AutoPracticeSessionEndPayload,
   type AutoPracticeSessionStartPayload,
   type AutoPracticeTurnPayload,
 } from './auto-practice.events.js';
+import { AutoPracticeGateway } from './auto-practice.gateway.js';
 import { CounselorAgentService, type CounselorHistoryTurn } from './counselor-agent.service.js';
 import { CounselorMode } from './entities/counselor-mode.entity.js';
 import { PracticeSession, type PracticeSessionStatus } from './entities/practice-session.entity.js';

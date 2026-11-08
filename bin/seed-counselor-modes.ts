@@ -10,9 +10,9 @@ import 'reflect-metadata';
 import { config as loadEnvFile } from 'dotenv';
 import { DataSource, type DataSourceOptions } from 'typeorm';
 
-import { configuration } from '../src/config/configuration.js';
 import { CounselorMode } from '../src/auto-practice/entities/counselor-mode.entity.js';
 import { seedCounselorModes } from '../src/auto-practice/seeds/counselor-modes.seed-runner.js';
+import { configuration } from '../src/config/configuration.js';
 
 type DbConfig = DataSourceOptions & { autoLoadEntities?: boolean };
 
@@ -41,9 +41,7 @@ async function main(): Promise<void> {
 
   try {
     const result = await seedCounselorModes(dataSource);
-    process.stdout.write(
-      `[seed:counselor-modes] 新增 ${result.inserted} / 更新 ${result.updated} / 未变 ${result.unchanged}\n`,
-    );
+    process.stdout.write(`[seed:counselor-modes] 新增 ${result.inserted} / 更新 ${result.updated} / 未变 ${result.unchanged}\n`);
   } finally {
     await dataSource.destroy();
   }

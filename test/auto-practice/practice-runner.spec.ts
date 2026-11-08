@@ -11,8 +11,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CounselorMode } from '../../src/auto-practice/entities/counselor-mode.entity.js';
-import { PracticeRunnerService, DEFAULT_MAX_TURNS } from '../../src/auto-practice/practice-runner.service.js';
 import type { EngineTurnResult, TurnEnginePort } from '../../src/auto-practice/ports/turn-engine.port.js';
+import { PracticeRunnerService, DEFAULT_MAX_TURNS } from '../../src/auto-practice/practice-runner.service.js';
 
 /** 造一个 CounselorMode 替身. */
 function makeMode(): CounselorMode {
@@ -132,10 +132,11 @@ describe('PracticeRunnerService', () => {
       .mockResolvedValueOnce({ text: '方向', model: 'm', degraded: false, closeRequested: false })
       .mockResolvedValueOnce({ text: '再确认', model: 'm', degraded: false, closeRequested: false })
       .mockResolvedValueOnce({ text: '收尾总结，约定下次', model: 'm', degraded: false, closeRequested: true });
-    engine.turn.mockImplementation(async (_s: string, _t: string) => {
-      const n = engine.turn.mock.calls.length;
-      return makeTurn(n, `来访第${n}句内容`);
-    });
+    // 来访者按调用序号返回 (用 Once 序列, 避开 mockImplementation 返回 Promise 引发的
+    // @typescript-eslint/no-misused-promises).
+    for (let i = 1; i <= 6; i += 1) {
+      engine.turn.mockResolvedValueOnce(makeTurn(i, `来访第${i}句内容`));
+    }
 
     const result = await runner.run({
       characterSlug: 'vpt_test',
@@ -151,10 +152,9 @@ describe('PracticeRunnerService', () => {
 
   it('收尾标记出现太早 (未到最小轮数) 不生效', async () => {
     counselor.generate.mockResolvedValue({ text: '想说收尾', model: 'm', degraded: false, closeRequested: true });
-    engine.turn.mockImplementation(async (_s: string, _t: string) => {
-      const n = engine.turn.mock.calls.length;
-      return makeTurn(n, `来访第${n}句内容`);
-    });
+    for (let i = 1; i <= 4; i += 1) {
+      engine.turn.mockResolvedValueOnce(makeTurn(i, `来访第${i}句内容`));
+    }
 
     const result = await runner.run({
       characterSlug: 'vpt_test',

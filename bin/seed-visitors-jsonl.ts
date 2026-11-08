@@ -25,12 +25,8 @@ import { DataSource, type DataSourceOptions } from 'typeorm';
 
 import { configuration } from '../src/config/configuration.js';
 import { VisitorPoolTemplate } from '../src/counselor/entities/visitor-pool-template.entity.js';
-import {
-  VisitorPoolDefenseType,
-  VisitorPoolIssueDomain,
-  VisitorPoolSource,
-} from '../src/counselor/enums/visitor-pool.enum.js';
 import { TrainingDifficulty } from '../src/counselor/enums/training-difficulty.enum.js';
+import { VisitorPoolDefenseType, VisitorPoolIssueDomain, VisitorPoolSource } from '../src/counselor/enums/visitor-pool.enum.js';
 import { VisitorStyle } from '../src/counselor/enums/visitor-style.enum.js';
 
 type DbConfig = DataSourceOptions & { autoLoadEntities?: boolean };
@@ -65,7 +61,7 @@ function mapDifficulty(risk: string): TrainingDifficulty {
 
 /** 从 demographics 粗提年龄区间 (提不出就给空串). */
 function mapAgeRange(demographics: string): string {
-  const m = demographics.match(/(\d{2})\s*岁/);
+  const m = /(\d{2})\s*岁/.exec(demographics);
   if (m) {
     const age = Number(m[1]);
     return `${age - 2}-${age + 3}`;
@@ -78,7 +74,9 @@ async function main(): Promise<void> {
   if (envResult.error) throw new Error(`加载 .env 失败: ${envResult.error.message}`);
 
   const jsonlPath = join(process.cwd(), 'docs', 'reference', 'psych-dataset', 'dataset', 'visitors.jsonl');
-  const lines = readFileSync(jsonlPath, 'utf-8').split('\n').filter((l) => l.trim().length > 0);
+  const lines = readFileSync(jsonlPath, 'utf8')
+    .split('\n')
+    .filter((l) => l.trim().length > 0);
   process.stdout.write(`[seed:visitors-jsonl] 读到 ${lines.length} 行\n`);
 
   const config = (await configuration()) as { db: DbConfig };
@@ -96,7 +94,7 @@ async function main(): Promise<void> {
 
   let inserted = 0;
   let updated = 0;
-  let unchanged = 0;
+  const unchanged = 0;
   try {
     const repo = dataSource.getRepository(VisitorPoolTemplate);
     for (const line of lines) {
@@ -127,10 +125,7 @@ async function main(): Promise<void> {
         sortOrder: 100,
       };
       const existing = await repo.findOne({ where: { id } });
-      if (!existing) {
-        await repo.save(repo.create(fields));
-        inserted += 1;
-      } else {
+      if (existing) {
         // 只更新内容字段, 不碰 enabled (admin 可能手动下架).
         await repo.update(id, {
           codename: fields.codename,
@@ -138,6 +133,9 @@ async function main(): Promise<void> {
           script: fields.script,
         });
         updated += 1;
+      } else {
+        await repo.save(repo.create(fields));
+        inserted += 1;
       }
     }
     process.stdout.write(`[seed:visitors-jsonl] 新增 ${inserted} / 更新 ${updated} / 未变 ${unchanged}\n`);

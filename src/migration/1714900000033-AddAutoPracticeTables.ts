@@ -28,10 +28,9 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 /** 查表是否已存在. */
 async function tableExists(qr: QueryRunner, table: string): Promise<boolean> {
-  const rows = (await qr.query(
-    'SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?',
-    [table],
-  )) as Record<string, unknown>[];
+  const rows = (await qr.query('SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [
+    table,
+  ])) as Record<string, unknown>[];
   return rows.length > 0;
 }
 
@@ -49,7 +48,7 @@ export class AddAutoPracticeTables1714900000033 implements MigrationInterface {
           'id VARCHAR(64) NOT NULL,' +
           'name VARCHAR(128) NOT NULL,' +
           'system_prompt TEXT NOT NULL,' +
-          'description VARCHAR(512) NOT NULL DEFAULT \'\',' +
+          "description VARCHAR(512) NOT NULL DEFAULT ''," +
           'enabled TINYINT NOT NULL DEFAULT 1,' +
           'sort_order INT NOT NULL DEFAULT 0,' +
           'created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,' +
@@ -68,7 +67,7 @@ export class AddAutoPracticeTables1714900000033 implements MigrationInterface {
           'debug_session_id VARCHAR(128) NOT NULL,' +
           'character_slug VARCHAR(128) NOT NULL,' +
           'counselor_mode_id VARCHAR(64) NOT NULL,' +
-          'status VARCHAR(32) NOT NULL DEFAULT \'running\',' +
+          "status VARCHAR(32) NOT NULL DEFAULT 'running'," +
           'max_turns INT NOT NULL DEFAULT 15,' +
           'turn_count INT NOT NULL DEFAULT 0,' +
           'crisis_ended TINYINT NOT NULL DEFAULT 0,' +

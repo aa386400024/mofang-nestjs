@@ -24,10 +24,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import type { CounselorMode } from '../auto-practice/entities/counselor-mode.entity.js';
 import { LLMTier } from '../llm/common/enums/llm.enums.js';
 import type { ChatMessage } from '../llm/common/interfaces/chat-provider.interface.js';
 import { LlmRouterService } from '../llm/registry/llm-router.service.js';
-import type { CounselorMode } from '../auto-practice/entities/counselor-mode.entity.js';
 
 /**
  * 一段对话历史 (一侧发言).
@@ -134,7 +134,8 @@ export class CounselorAgentService {
         return { text: FALLBACK_REPLY, model: this.model, degraded: true, closeRequested: false };
       }
       return { text, model: this.model, degraded: false, closeRequested };
-    } catch (error) {      // 不打原文 (隐私红线): 只记错误类型.
+    } catch (error) {
+      // 不打原文 (隐私红线): 只记错误类型.
       this.logger.warn(`[counselor_agent] LLM 生成失败, 走兜底 (${errorName(error)})`);
       return { text: FALLBACK_REPLY, model: this.model, degraded: true, closeRequested: false };
     }

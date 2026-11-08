@@ -4,8 +4,8 @@
 
 import type { DataSource, Repository } from 'typeorm';
 
-import { CounselorMode } from '../entities/counselor-mode.entity.js';
 import { COUNSELOR_MODE_SEEDS } from './counselor-modes.seed.js';
+import { CounselorMode } from '../entities/counselor-mode.entity.js';
 
 /** 播种结果. */
 export interface SeedResult {

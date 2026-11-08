@@ -32,8 +32,8 @@ import type { Server, Socket } from 'socket.io';
   path: '/ws/auto-practice',
   cors: { origin: '*' },
   // 心跳: 每 25s ping 一次, 60s 没 pong 判定断线
-  pingInterval: 25000,
-  pingTimeout: 60000,
+  pingInterval: 25_000,
+  pingTimeout: 60_000,
 })
 export class AutoPracticeGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger('AutoPracticeGateway');

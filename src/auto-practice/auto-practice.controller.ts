@@ -19,11 +19,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { nanoid } from 'nanoid';
 import { Repository } from 'typeorm';
 
-import { AdminRoleGuard } from '../admin-debug/guards/admin-role.guard.js';
 import { CounselorMode } from './entities/counselor-mode.entity.js';
 import { PracticeSession } from './entities/practice-session.entity.js';
 import { PracticeQueueService } from './practice-queue.service.js';
 import { PracticeRunnerService } from './practice-runner.service.js';
+import { AdminRoleGuard } from '../admin-debug/guards/admin-role.guard.js';
 
 /** 启动单场对练的入参. */
 interface StartSessionBody {
