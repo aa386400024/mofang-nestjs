@@ -135,17 +135,30 @@ export class AutoPracticeController {
     return { batchId, enqueued };
   }
 
-  /** 列场次 (按 batchId / status 筛). */
+  /** 列场次 (按 batchId / status 筛, 分页). */
   @Get('sessions')
-  async listSessions(@Query('batchId') batchId?: string, @Query('status') status?: string) {
+  async listSessions(
+    @Query('batchId') batchId?: string,
+    @Query('status') status?: string,
+    @Query('page') pageRaw?: string,
+    @Query('pageSize') pageSizeRaw?: string,
+  ) {
     const where: Record<string, unknown> = {};
     if (batchId) where['batchId'] = batchId;
     if (status) where['status'] = status;
-    return this.sessionRepo.find({
+
+    const page = Math.max(1, Number(pageRaw ?? '1') || 1);
+    const pageSize = Math.min(100, Math.max(1, Number(pageSizeRaw ?? '20') || 20));
+    const skip = (page - 1) * pageSize;
+
+    const [items, total] = await this.sessionRepo.findAndCount({
       where,
       order: { createdAt: 'DESC' },
-      take: 100,
+      take: pageSize,
+      skip,
     });
+
+    return { items, total, page, pageSize };
   }
 
   /** 查单场. */

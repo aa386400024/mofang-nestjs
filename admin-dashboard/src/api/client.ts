@@ -318,10 +318,15 @@ export const api = {
     enqueueBatch: async (body: { characterSlugs: string[]; counselorModeIds: string[]; maxTurns?: number; repeats?: number }): Promise<{ batchId: string; enqueued: number }> => {
       return post('/auto-practice/batch', body)
     },
-    /** 列场次 */
-    listSessions: async (params?: { batchId?: string; status?: string }): Promise<PracticeSession[]> => {
-      const q = new URLSearchParams(params as Record<string, string>).toString()
-      return get<PracticeSession[]>(`/auto-practice/sessions${q ? `?${q}` : ''}`)
+    /** 列场次 (分页) */
+    listSessions: async (params?: { batchId?: string; status?: string; page?: number; pageSize?: number }): Promise<{ items: PracticeSession[]; total: number; page: number; pageSize: number }> => {
+      const q = new URLSearchParams()
+      if (params?.batchId) q.set('batchId', params.batchId)
+      if (params?.status) q.set('status', params.status)
+      if (params?.page) q.set('page', String(params.page))
+      if (params?.pageSize) q.set('pageSize', String(params.pageSize))
+      const qs = q.toString()
+      return get<{ items: PracticeSession[]; total: number; page: number; pageSize: number }>(`/auto-practice/sessions${qs ? `?${qs}` : ''}`)
     },
     /** 查单场 */
     getSession: async (id: string): Promise<PracticeSession> => {

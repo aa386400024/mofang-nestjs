@@ -133,8 +133,13 @@ let lastWsEventTime = 0
 // 轮询定时器（兜底用）
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
-// 历史场次列表
+// 历史场次列表 (无限滚动加载)
 const recentSessions = ref<PracticeSession[]>([])
+const sessionPage = ref(1)
+const sessionPageSize = ref(20)
+const sessionTotal = ref(0)
+const sessionLoadingMore = ref(false)
+const sessionListRef = ref<HTMLElement | null>(null)
 // 刚点「跑一场」但后端还没落库时的占位行（保证左栏立刻有条目，不闪）
 const pendingRow = ref<PracticeSession | null>(null)
 
@@ -238,6 +243,45 @@ async function hydrateFromRest() {
 /** 刷新场次列表（手动点刷新按钮） */
 async function refreshSessions() {
   await syncSessions()
+}
+
+/** 翻页 */
+async function onSessionPageChange(page: number) {
+  sessionPage.value = page
+  await syncSessions()
+}
+
+/** 切换每页条数 */
+async function onSessionPageSizeChange(size: number) {
+  sessionPageSize.value = size
+  sessionPage.value = 1 // 切条数后回到第一页
+  await syncSessions()
+}
+
+/** 滚动到底部加载更多 */
+async function loadMoreSessions() {
+  if (sessionLoadingMore.value) return
+  if (recentSessions.value.length >= sessionTotal.value) return // 全部加载完了
+  sessionLoadingMore.value = true
+  try {
+    sessionPage.value += 1
+    const res = await api.autoPractice.listSessions({ page: sessionPage.value, pageSize: sessionPageSize.value })
+    recentSessions.value = [...recentSessions.value, ...res.items]
+    sessionTotal.value = res.total
+  } catch (e) {
+    console.warn('[auto-practice] 加载更多失败', e)
+  } finally {
+    sessionLoadingMore.value = false
+  }
+}
+
+/** 滚动监听：接近底部时加载更多 */
+function onSessionListScroll(e: Event) {
+  const el = e.target as HTMLElement
+  const bottom = el.scrollHeight - el.scrollTop - el.clientHeight
+  if (bottom < 80) {
+    loadMoreSessions()
+  }
 }
 
 // ─── 编辑标题弹窗 ───
@@ -435,8 +479,9 @@ async function confirmManualDelete() {
 
 /** 拉一次场次列表，保留本地占位行，并同步当前场次的元信息. */
 async function syncSessions() {  try {
-    const list = await api.autoPractice.listSessions()
-    const arr = list.slice(0, 20)
+    const res = await api.autoPractice.listSessions({ page: sessionPage.value, pageSize: sessionPageSize.value })
+    const arr = res.items
+    sessionTotal.value = res.total
     if (pendingRow.value) {
       if (arr.some(s => s.id === pendingRow.value!.id)) pendingRow.value = null
       else arr.unshift(pendingRow.value)
@@ -471,16 +516,17 @@ function applySessionEnd(status: string, reason: string, crisis: boolean, turnCo
 
 async function loadInitial() {
   try {
-    const [chars, modeList, sessions] = await Promise.all([
+    const [chars, modeList, sessionRes] = await Promise.all([
       api.characters(),
       api.autoPractice.listModes(),
-      api.autoPractice.listSessions(),
+      api.autoPractice.listSessions({ page: sessionPage.value, pageSize: sessionPageSize.value }),
     ])
     characters.value = chars
     modes.value = modeList
-    recentSessions.value = sessions.slice(0, 20)
+    recentSessions.value = sessionRes.items
+    sessionTotal.value = sessionRes.total
     // 自动恢复运行中的场次（页面刷新后）
-    const runningSession = sessions.find(s => s.status === 'running')
+    const runningSession = sessionRes.items.find(s => s.status === 'running')
     if (runningSession) {
       runningSessionId.value = runningSession.id
       running.value = true
@@ -946,7 +992,7 @@ onUnmounted(() => {
           </div>
 
           <!-- 列表 -->
-          <div class="flex-1 overflow-auto p-2 space-y-1">
+          <div ref="sessionListRef" class="flex-1 overflow-auto p-2 space-y-1" @scroll="onSessionListScroll">
             <div v-if="mode === 'auto' && recentSessions.length === 0" class="text-xs text-muted text-center py-12">
               <div class="flex flex-col items-center gap-2 opacity-60">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1086,6 +1132,13 @@ onUnmounted(() => {
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- 无限滚动加载提示 -->
+          <div v-if="mode === 'auto' && sessionTotal > 0" class="flex-shrink-0 px-2 py-1.5 border-t border-bg-border text-center">
+            <span v-if="sessionLoadingMore" class="text-xs text-muted">加载中...</span>
+            <span v-else-if="recentSessions.length >= sessionTotal" class="text-xs text-muted opacity-60">— 已加载全部 {{ sessionTotal }} 场 —</span>
+            <span v-else class="text-xs text-muted opacity-60">下滑加载更多 ({{ recentSessions.length }}/{{ sessionTotal }})</span>
           </div>
         </div>
       </div>
