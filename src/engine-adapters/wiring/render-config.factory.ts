@@ -42,6 +42,7 @@ import {
   DEFAULT_RENDER_COOLDOWN_BASE_MS,
   DEFAULT_RENDER_COOLDOWN_MAX_MS,
   DEFAULT_RENDER_FAILURE_THRESHOLD,
+  DEFAULT_RENDER_HALF_OPEN_AFTER_MS,
   DEFAULT_RENDER_REASONING_EFFORT,
   DEFAULT_RENDER_TASK_DEFAULTS,
   DEFAULT_RENDER_TIMEOUT_MS,
@@ -67,10 +68,27 @@ const KIND_ENV_SUFFIX: Readonly<Record<RenderTaskKind, string>> = {
 };
 
 /**
+ * 渲染主备 / 熔断相关的 env 键名 (导出成常量).
+ *
+ * 为什么导出成常量而不是写字面量: WP25 的 env 双向守卫
+ * (test/config/wp25-env-example-coverage.spec.ts) 用 **AST** 抽取代码里的 env
+ * 读取点, 只有两种形态看得见 ——
+ *   ① config.get('字面量'); ② config.get(常量标识符) (靠 export const 的字面量反查).
+ * 走 this.text(key) 这种"传参"形态, 守卫**看不见** → 模板里的生效行会被判成
+ * "孤儿键" (配了也不生效) 而让守卫变红.
+ * 所以凡是**要登记进 .env.example** 的键, 一律走常量标识符形态.
+ */
+export const ENGINE_RENDER_FALLBACK_PROVIDERS_ENV_KEY = 'ENGINE_RENDER_FALLBACK_PROVIDERS';
+export const ENGINE_RENDER_REQUIRE_FAILOVER_ENV_KEY = 'ENGINE_RENDER_REQUIRE_FAILOVER';
+export const ENGINE_RENDER_HALF_OPEN_AFTER_MS_ENV_KEY = 'ENGINE_RENDER_HALF_OPEN_AFTER_MS';
+
+/**
  * 渲染配置工厂: env → `RenderAdapterConfig`.
  */
 @Injectable()
 export class RenderConfigFactory {
+  private readonly logger = new Logger(RenderConfigFactory.name);
+
   constructor(
     private readonly config: ConfigService,
     private readonly router: LlmRouterService,
@@ -83,6 +101,9 @@ export class RenderConfigFactory {
    */
   build(): RenderAdapterConfig {
     const candidates = this.buildCandidates();
+    // V2026-11-09 治本 (Phase2.5 WP-H · 改动 1): 候选数校验放在**装配期**.
+    //   跑批时才发现"没有备份"就晚了 —— 那时几千场数据已经全是兜底句.
+    this.assertFailoverCapacity(candidates);
     const chatTemperature = this.ratioNumber('ENGINE_RENDER_CHAT_TEMPERATURE', DEFAULT_RENDER_TASK_DEFAULTS.chat.temperature);
     const stableTemperature = this.ratioNumber('ENGINE_RENDER_STABLE_TEMPERATURE', DEFAULT_RENDER_TASK_DEFAULTS.stable.temperature);
     // V2026-10-29 治本 (WP9-C): token 上限走**新字段** `maxCompletionTokens`
@@ -105,6 +126,11 @@ export class RenderConfigFactory {
       failureThreshold: this.positiveNumber('ENGINE_RENDER_FAILURE_THRESHOLD', DEFAULT_RENDER_FAILURE_THRESHOLD),
       cooldownBaseMs: this.positiveNumber('ENGINE_RENDER_COOLDOWN_BASE_MS', DEFAULT_RENDER_COOLDOWN_BASE_MS),
       cooldownMaxMs: this.positiveNumber('ENGINE_RENDER_COOLDOWN_MAX_MS', DEFAULT_RENDER_COOLDOWN_MAX_MS),
+      // V2026-11-09 治本 (WP-H · 改动 2): 半开探测等待时长 (冷却期内多久放一次探测).
+      halfOpenAfterMs: this.positiveNumberFromRaw(
+        this.config.get<string>(ENGINE_RENDER_HALF_OPEN_AFTER_MS_ENV_KEY),
+        DEFAULT_RENDER_HALF_OPEN_AFTER_MS,
+      ),
       fallbackUtterances: this.fallbackUtterances(),
     });
   }
@@ -114,7 +140,8 @@ export class RenderConfigFactory {
    */
   private buildCandidates(): RenderCandidate[] {
     const primary = this.text('ENGINE_RENDER_PRIMARY_PROVIDER') ?? this.text('LLM_DEFAULT_CHAT_PROVIDER') ?? AIProviderId.DEEPSEEK;
-    const fallbacks = (this.text('ENGINE_RENDER_FALLBACK_PROVIDERS') ?? '')
+    const fallbackRaw = this.normalizeEnvText(this.config.get<string>(ENGINE_RENDER_FALLBACK_PROVIDERS_ENV_KEY));
+    const fallbacks = (fallbackRaw ?? '')
       .split(',')
       .map((id) => id.trim())
       .filter((id) => id.length > 0);
@@ -128,6 +155,40 @@ export class RenderConfigFactory {
         advanced: { model: this.modelFor('advanced', id) },
       },
     }));
+  }
+
+  /**
+   * 候选序列长度校验 (启动期).
+   *
+   * 为什么必须在**装配期**判: 熔断一开就是全损 —— 单候选时没有备份,
+   * 上游一限流, 整场对练都在吐兜底池 (归档 500 份逐字稿里 91.8% 的来访者
+   * 发言是兜底句, 根因就在这里). 跑到一半才发现就晚了.
+   *
+   * 默认只**告警** (零回归: 当前部署就是单候选, 不该让服务起不来);
+   * env `ENGINE_RENDER_REQUIRE_FAILOVER=true` 时改成硬失败 ——
+   * 给"跑批前必须配好备份"这件事留一个开关, 由部署方自己决定要不要上.
+   *
+   * @param candidates 候选序列
+   */
+  private assertFailoverCapacity(candidates: readonly RenderCandidate[]): void {
+    if (candidates.length >= 2) return;
+    const message = `单候选模式: 候选数=${candidates.length}, 熔断将导致全部请求降级, 批量跑批前请配置 ENGINE_RENDER_FALLBACK_PROVIDERS`;
+    if (this.requireFailover()) {
+      throw new Error(`渲染候选序列校验失败: ${message}`);
+    }
+    this.logger.warn(`[render] ${message}`);
+  }
+
+  /**
+   * env `ENGINE_RENDER_REQUIRE_FAILOVER` (缺省 false).
+   *
+   * 只有 true / 1 / yes / on 算真; 其它一律当假 (缺省是"不拦启动", 别被一个
+   * 手滑的 "True " 之类的值拦在门外).
+   */
+  private requireFailover(): boolean {
+    const raw = this.normalizeEnvText(this.config.get<string>(ENGINE_RENDER_REQUIRE_FAILOVER_ENV_KEY));
+    if (raw === undefined) return false;
+    return ['1', 'true', 'yes', 'on'].includes(raw.toLowerCase());
   }
 
   /**
@@ -146,10 +207,38 @@ export class RenderConfigFactory {
 
   /** 读字符串 (缺省/空白 → undefined). */
   private text(key: string): string | undefined {
-    const raw = this.config.get<string>(key);
+    return this.normalizeEnvText(this.config.get<string>(key));
+  }
+
+  /**
+   * 归一字符串 env 值 (缺省/空白 → undefined).
+   *
+   * @param raw env 原始值
+   * @returns 归一后的值
+   */
+  private normalizeEnvText(raw: string | undefined): string | undefined {
     if (typeof raw !== 'string') return undefined;
     const trimmed = raw.trim();
     return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  /**
+   * 读正数 (直接给原始 env 值; 非法/缺省 → 回落种子).
+   *
+   * 与 positiveNumber 的区别: 那个走 this.text(key) (守卫看不见读取点),
+   * 这个接受**已经在调用点取好的原始值** —— 调用点用常量标识符形态,
+   * WP25 的 env 双向守卫才认得出这是真的读取.
+   *
+   * @param raw env 原始值
+   * @param fallback 缺省值
+   * @returns 数值
+   */
+  private positiveNumberFromRaw(raw: string | undefined, fallback: number): number {
+    const text = this.normalizeEnvText(raw);
+    if (text === undefined) return fallback;
+    const parsed = Number(text);
+    if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+    return parsed;
   }
 
   /** 读正数 (非法 → 回落种子). */

@@ -11,7 +11,11 @@
 //        流式 chat 正常.
 //     2. 豆包 embedding 走方舟 embedding endpoint, 维度 1024/2048 可选.
 
-import { OpenAICompatibleChatProvider, type OpenAICompatibleConfig } from '../common/base/openai-compatible-chat.provider.js';
+import {
+  OpenAICompatibleChatProvider,
+  type OpenAICompatibleChatOptions,
+  type OpenAICompatibleConfig,
+} from '../common/base/openai-compatible-chat.provider.js';
 import {
   OpenAICompatibleEmbeddingProvider,
   type OpenAICompatibleEmbeddingConfig,
@@ -27,7 +31,7 @@ import { AIProviderId } from '../common/enums/llm.enums.js';
  *   映射通过 LLMRouter 注入 modelAliasMap 实现 (不是基类职责).
  */
 export class DoubaoChatProvider extends OpenAICompatibleChatProvider {
-  constructor() {
+  constructor(options: OpenAICompatibleChatOptions = {}) {
     const cfg: OpenAICompatibleConfig = {
       id: AIProviderId.DOUBAO,
       name: '豆包 (火山方舟)',
@@ -38,6 +42,8 @@ export class DoubaoChatProvider extends OpenAICompatibleChatProvider {
         'X-Client-Platform': 'xin-su-app',
         'X-Client-Version': '6.0',
       },
+      ...(options.requestTimeoutMs === undefined ? {} : { requestTimeoutMs: options.requestTimeoutMs }),
+      ...(options.maxRetries === undefined ? {} : { maxRetries: options.maxRetries }),
     };
     super(cfg);
   }

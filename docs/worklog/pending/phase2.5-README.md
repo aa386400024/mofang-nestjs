@@ -44,7 +44,7 @@
 | **WP-E** | 自动评测 + 参数调优 | 🟡 P1 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-tuning.md) / [交付记录](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-implementation-2026-11-09.md) |
 | **WP-F** | 成本看板多源合并 | 🟢 P2 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-f-cost-board-merge-sources.md) / [交付记录](../completed/phase2.5/phase2.5-wp-f-cost-board-merge-sources-implementation-2026-11-09.md) |
 | **WP-G** | 对话质量修复（来访话术 / 咨询师兜底 / 停滞检测 / 危机应对） | 🔴 P0 | ✅ 已交付（**验收推迟，见下**） | [任务单](../completed/phase2.5/wp-g-dialogue-quality-fix-task.md) / [交付记录](../completed/phase2.5/phase2.5-wp-g-dialogue-quality-fix-implementation-2026-11-09.md) |
-| **WP-H** | 渲染可用性与指标可信度修复 | 🔴 **P0** | 🚧 **待开工（当前唯一在办任务单）** | [任务单](wp-h-render-availability-fix-task.md) |
+| **WP-H** | 渲染可用性与指标可信度修复 | 🔴 **P0** | 🚧 **第一波已交付**（改动 1~4；第二/三波待开工） | [任务单](wp-h-render-availability-fix-task.md) / [第一波交付记录](../completed/phase2.5/phase2.5-wp-h-wave1-render-availability-implementation-2026-11-09.md) |
 
 **依赖关系：**
 ```
@@ -95,10 +95,12 @@ WP-B 可复现控制 + 版本锁定
 
 ### 3.3 下一步（严格按顺序）
 
-1. **WP-H 第一波**（让 LLM 真的被调用）：候选序列 ≥2 + 冷却上限降到 60s + 半开探测 + 真退避 + 并发可配置
-2. **跑金丝雀验证门禁**：20~30 场，并发 1~2，要求 `total_tokens>0` 场次 ≥90%、兜底句占比 <5%、`degraded_turns ≤ turn_count`
-3. 门禁过了才允许跑大批；否则跑出来的数还是无效
-4. `engine-core` 全程不动
+1. ~~**WP-H 第一波**（让 LLM 真的被调用）~~ ✅ **已交付（2026-11-09）**：半开探测（冷却 60s / 半开 30s）+ 显式退避重试层（关掉 LangChain 隐式 6 次）+ 超时即中止（修"幽灵重试"）+ 并发缺省 3→2 + 单候选启动告警。**运维还差一步：`.env` 里配第二家 chat provider 的 key**（deepseek / doubao / qwen 的 provider 代码已注册，只差 key）
+2. **WP-H 第二波**（指标可信度）：`degraded_turns` 拆双计数器 + `render_fallback_*` 三列 + `prompt_tokens` 归约链（改动 5~7，含两笔迁移）
+3. **WP-H 第三波**（版本追溯 + 批次门禁）：`engine_version` 走 `git describe --dirty` + 批次有效性门禁（改动 8~9）
+4. **跑金丝雀验证门禁**：20~30 场，并发 1~2，要求 `total_tokens>0` 场次 ≥90%、兜底句占比 <5%、`degraded_turns ≤ turn_count`
+5. 门禁过了才允许跑大批；否则跑出来的数还是无效
+6. `engine-core` 全程不动
 
 ---
 

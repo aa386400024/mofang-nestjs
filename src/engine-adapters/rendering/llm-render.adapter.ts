@@ -128,8 +128,9 @@ export interface ChatCaller {
    *
    * @param req 请求 (模型 / 消息 / 温度 / token 上限)
    * @param providerId 目标候选 id (缺省走调用出口自己的默认)
+   * @param signal 中断信号 (可选; 供调用方在超时/放弃时**中止**上游请求与退避重试)
    */
-  chat(req: ChatCompletionRequest, providerId?: string): Promise<ChatCompletionResponse>;
+  chat(req: ChatCompletionRequest, providerId?: string, signal?: AbortSignal): Promise<ChatCompletionResponse>;
 
   /**
    * 流式 chat 调用 (**可选**).
@@ -305,7 +306,11 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       };
     }
 
-    this.logger.error(`[render] 渲染失败, 降级兜底: ${outcome.reason}`);
+    // 冷却计数只打数字 (可观测; 不含任何对话内容).
+    const stats = this.runtime.stats();
+    this.logger.error(
+      `[render] 渲染失败, 降级兜底: ${outcome.reason} cooldown_served=${stats.cooldownServed} probe_attempts=${stats.probeAttempts}`,
+    );
     return this.degrade(spec, outcome.reason);
   }
 
@@ -563,8 +568,16 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       ...(params.reasoningEffort === undefined ? {} : { reasoningEffort: params.reasoningEffort }),
     };
 
+    // V2026-11-09 治本 (Phase2.5 WP-H · 改动 3): 自带 AbortController ——
+    //   超时/放弃时**中止**上游请求, 否则退避重试会在我们放弃之后继续打上游
+    //   (「幽灵重试」): 上游越限流, 幽灵重试越多, 限流越严重 —— 那是第二个放大回路.
+    const controller = new AbortController();
     try {
-      const response = await withTimeout(this.deps.caller.chat(request, candidate.id), this.config.timeoutMs);
+      const response = await withTimeout(
+        this.deps.caller.chat(request, candidate.id, controller.signal),
+        this.config.timeoutMs,
+        controller,
+      );
       if (!response || typeof response.content !== 'string') {
         this.runtime.markFailure(candidate.id, this.config);
         this.logger.warn(`[render] 候选 ${candidate.id} 返回非法响应形状, 视为失败并切备`);
@@ -1104,12 +1117,26 @@ function riskReasoningFloor(risk: RenderRiskLevel | undefined): ChatReasoningEff
  * 吊住 (线上表现为服务停不下来). unref 只影响"是否吊住事件循环", 不影响计时器
  * 正常触发. 正常路径另有 clearTimeout, 不会留下悬挂句柄.
  *
- * 说明: 超时后**不取消**底层请求 —— 窄面 ChatCaller 不承诺支持取消 (与 WP4 的
- * "不强行 abort 探测实现"同思路); 迟到的响应被丢弃即可.
+ * V2026-11-09 治本 (Phase2.5 WP-H · 改动 3): 超时后**中止**底层请求.
+ *
+ * 原口径是"超时后不取消 —— 窄面 ChatCaller 不承诺支持取消"; 那条在只调一次时成立,
+ * 但接上退避重试后就成了放大器: 上游 429 → 重试退避 1s/1.5s/4s → 我们 30s 超时放弃 →
+ * **重试链还在后台继续打上游**. 于是"上游限流"变成"我们自己在加压".
+ * 现在窄面多了可选 signal (缺省不传 = 旧行为), 适配器传了就真能中止.
+ *
+ * @param promise 底层调用
+ * @param timeoutMs 超时 ms
+ * @param controller 可选中止器 (超时时 abort)
  */
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, controller?: AbortController): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('渲染调用超时')), Math.max(1, timeoutMs));
+    const timer = setTimeout(
+      () => {
+        controller?.abort();
+        reject(new Error('渲染调用超时'));
+      },
+      Math.max(1, timeoutMs),
+    );
     timer.unref();
     promise.then(
       (value) => {

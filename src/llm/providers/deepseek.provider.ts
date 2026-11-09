@@ -14,7 +14,11 @@
 //     3. POST /v1/embeddings 用 model=deepseek-embedding 向量维度
 //        匹配 Qdrant collection (1536).
 
-import { OpenAICompatibleChatProvider, type OpenAICompatibleConfig } from '../common/base/openai-compatible-chat.provider.js';
+import {
+  OpenAICompatibleChatProvider,
+  type OpenAICompatibleChatOptions,
+  type OpenAICompatibleConfig,
+} from '../common/base/openai-compatible-chat.provider.js';
 import {
   OpenAICompatibleEmbeddingProvider,
   type OpenAICompatibleEmbeddingConfig,
@@ -28,12 +32,14 @@ import { AIProviderId } from '../common/enums/llm.enums.js';
  * 备选: deepseek-reasoner (R1, 推理增强, 慢一些).
  */
 export class DeepSeekChatProvider extends OpenAICompatibleChatProvider {
-  constructor() {
+  constructor(options: OpenAICompatibleChatOptions = {}) {
     const cfg: OpenAICompatibleConfig = {
       id: AIProviderId.DEEPSEEK,
       name: 'DeepSeek',
       baseUrl: 'https://api.deepseek.com/v1',
       defaultChatModel: 'deepseek-chat',
+      ...(options.requestTimeoutMs === undefined ? {} : { requestTimeoutMs: options.requestTimeoutMs }),
+      ...(options.maxRetries === undefined ? {} : { maxRetries: options.maxRetries }),
     };
     super(cfg);
   }

@@ -2,7 +2,7 @@
 
 > **路径**：`docs/worklog/pending/phase2.5-wp-list-2026-11-08.md`
 > **总览**：[§Phase2.5 总览](phase2.5-overview-2026-11-08.md)
-> **状态**：✅ Phase2.5 WP-F / WP-G 已交付（2026-11-09）· WP 清单（7 条）见下表 · 另交付独立单 1 条（闸门 trace 查询接口）
+> **状态**：✅ Phase2.5 WP-F / WP-G 已交付（2026-11-09）· 🚧 WP-H 第一波已交付（2026-11-09）· WP 清单（8 条）见下表 · 另交付独立单 1 条（闸门 trace 查询接口）
 > **创建日期**：2026-11-08
 
 ---
@@ -18,7 +18,7 @@
 | **WP-E** | 自动评测 + 参数调优 | 🟡 P1 | 用督导解析当 ground truth，自动评测审议建议准确率；调到 ≥80% 达标 | ✅ 已交付 → [`交付记录`](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-implementation-2026-11-09.md)；[任务单](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-tuning.md) |
 | **WP-F** | 成本看板合并数据源（正式训练 + 自动对练） | 🟡 P1 | 自动对练的 token / 成本落库（人民币元，同一张定价表）；成本看板合并两张表，按来源区分 | ✅ 已交付 → [`交付记录`](../completed/phase2.5/phase2.5-wp-f-cost-board-merge-sources-implementation-2026-11-09.md)；[任务单](../completed/phase2.5/phase2.5-wp-f-cost-board-merge-sources.md) |
 | **WP-G** | 自动对练对话质量修复 | 🟡 P1 | 咨询师兜底话术池（去单句复读）+ 咨询师复读检测 + 语义近重复判定（调低停滞漏判）+ 危机应对协议 + 渲染层 prompt 硬约束（禁止重复句式 / 细化 resistance 标签） | ✅ 已交付 → [`交付记录`](../completed/phase2.5/phase2.5-wp-g-dialogue-quality-fix-implementation-2026-11-09.md)；[任务单](../completed/phase2.5/wp-g-dialogue-quality-fix-task.md) |
-
+| **WP-H** | 渲染可用性与指标可信度修复 | 🔴 P0 | **第一波（改动 1~4）**：候选序列 ≥2 校验 + 冷却 300s→60s + 半开探测 + 显式退避重试层（关掉 LangChain 隐式 6 次）+ 超时即中止 + 批量并发 3→2；**第二波（改动 5~7）**：`degraded_turns` 拆双计数器 + `render_fallback_*` 降级率指标 + `prompt_tokens` 归约；**第三波（改动 8~9）**：`engine_version` 走 `git describe --dirty` + 批次有效性门禁 | 🚧 第一波已交付（改动 1~4）→ [`交付记录`](../completed/phase2.5/phase2.5-wp-h-wave1-render-availability-implementation-2026-11-09.md)；[任务单](wp-h-render-availability-fix-task.md) |
 ---
 
 ## 二、依赖关系

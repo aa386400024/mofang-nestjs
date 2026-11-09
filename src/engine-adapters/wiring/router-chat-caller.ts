@@ -50,11 +50,17 @@ export class RouterChatCaller implements ChatCaller {
    * @param providerId 目标候选 id (缺省走 router 自己的默认 provider)
    * @returns 厂商响应 (原样返回, 不做字段加工)
    */
-  chat(req: ChatCompletionRequest, providerId?: string): Promise<ChatCompletionResponse> {
+  chat(req: ChatCompletionRequest, providerId?: string, signal?: AbortSignal): Promise<ChatCompletionResponse> {
     // providerId 来自**配置里的候选 id**, 语义上就是已注册的 AIProviderId;
     // 即便配了一个未注册的 id, router 也会走它既有的"回落默认 provider"路径 ——
     // 不在本层再判一次注册表 (见文件头「反双胞胎」).
-    return this.router.chat(req, providerId ? { providerId: providerId as AIProviderId } : {});
+    //
+    // signal 透传 (WP-H 改动 3): 适配器超时/放弃时靠它**中止**上游请求,
+    // 否则退避重试会在我们放弃之后继续打上游 (「幽灵重试」).
+    return this.router.chat(req, {
+      ...(providerId ? { providerId: providerId as AIProviderId } : {}),
+      ...(signal ? { signal } : {}),
+    });
   }
 
   /**

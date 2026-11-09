@@ -79,14 +79,15 @@ export class LlmRouterService {
    */
   public async chat(
     request: ChatCompletionRequest,
-    opts: { providerId?: AIProviderId; uid?: string } = {},
+    opts: { providerId?: AIProviderId; uid?: string; signal?: AbortSignal } = {},
   ): Promise<ChatCompletionResponse> {
     const { provider, apiKey } = await this.resolveAndAuthorize(
       opts.providerId ?? this.defaultChatProviderId,
       LLMCapability.CHAT,
       opts.uid,
     );
-    return provider.chat(request, apiKey);
+    // signal 透传: 调用方放弃时**中止**上游请求与它的退避重试链 (WP-H 改动 3).
+    return provider.chat(request, apiKey, opts.signal);
   }
 
   /**

@@ -9,7 +9,11 @@
 //     1. 配置 DASHSCOPE_API_KEY 后, embedding 测试通过.
 //     2. 切换到 QwenProvider 后, 既有 Qdrant collection 重建为 1024 维.
 
-import { OpenAICompatibleChatProvider, type OpenAICompatibleConfig } from '../common/base/openai-compatible-chat.provider.js';
+import {
+  OpenAICompatibleChatProvider,
+  type OpenAICompatibleChatOptions,
+  type OpenAICompatibleConfig,
+} from '../common/base/openai-compatible-chat.provider.js';
 import {
   OpenAICompatibleEmbeddingProvider,
   type OpenAICompatibleEmbeddingConfig,
@@ -20,7 +24,7 @@ import { AIProviderId } from '../common/enums/llm.enums.js';
  * 通义千问 Chat Provider.
  */
 export class QwenChatProvider extends OpenAICompatibleChatProvider {
-  constructor() {
+  constructor(options: OpenAICompatibleChatOptions = {}) {
     const cfg: OpenAICompatibleConfig = {
       id: AIProviderId.QWEN,
       name: '通义千问 (DashScope)',
@@ -29,6 +33,8 @@ export class QwenChatProvider extends OpenAICompatibleChatProvider {
       customHeaders: {
         'X-DashScope-Client': 'xin-su-app/6.0',
       },
+      ...(options.requestTimeoutMs === undefined ? {} : { requestTimeoutMs: options.requestTimeoutMs }),
+      ...(options.maxRetries === undefined ? {} : { maxRetries: options.maxRetries }),
     };
     super(cfg);
   }

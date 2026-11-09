@@ -36,6 +36,7 @@ import { LlmRenderAdapter, createVisitorOutputGuard, type ChatCaller } from '../
 import {
   DEFAULT_RENDER_COOLDOWN_BASE_MS,
   DEFAULT_RENDER_COOLDOWN_MAX_MS,
+  DEFAULT_RENDER_HALF_OPEN_AFTER_MS,
   DEFAULT_RENDER_FAILURE_THRESHOLD,
   DEFAULT_RENDER_TIMEOUT_MS,
   type RenderAdapterConfig,
@@ -251,6 +252,7 @@ function stubRenderConfig(): RenderAdapterConfig {
     failureThreshold: DEFAULT_RENDER_FAILURE_THRESHOLD,
     cooldownBaseMs: DEFAULT_RENDER_COOLDOWN_BASE_MS,
     cooldownMaxMs: DEFAULT_RENDER_COOLDOWN_MAX_MS,
+    halfOpenAfterMs: DEFAULT_RENDER_HALF_OPEN_AFTER_MS,
     maxBlockRegen: 1,
     fallbackUtterances: ['……我先缓一下，我们接着说。'],
   };

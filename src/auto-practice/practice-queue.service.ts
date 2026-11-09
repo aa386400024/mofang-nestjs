@@ -42,8 +42,65 @@ export interface AutoPracticeJobData {
   readonly batchId: string;
 }
 
-/** Worker 并发数默认值. */
-const DEFAULT_CONCURRENCY = 3;
+/**
+ * Worker 并发数默认值.
+ *
+ * V2026-11-09 治本 (Phase2.5 WP-H · 改动 4): 3 → 2.
+ *
+ * 为什么降: 一场对练 ~15~35 轮 × 两侧各 1 次 LLM ≈ 30~70 次调用;
+ * 并发 3 = 同时 3 场 ≈ 100+ 次在途调用, 足以把上游打到限流 ——
+ * 而上游一限流, 渲染链就进冷却, 整场对练改吐兜底句 (见 WP-H 任务单 §二).
+ * 并发是**唯一**一个"少花钱少出错"的旋钮, 优先降它.
+ */
+const DEFAULT_CONCURRENCY = 2;
+
+/** 并发下限 (1 = 串行跑批; 金丝雀验证用这个档). */
+const MIN_CONCURRENCY = 1;
+
+/** 并发上限 (防止误配把上游打满 —— 上限越界比不配更糟). */
+const MAX_CONCURRENCY = 5;
+
+/**
+ * 解析自动对练 Worker 并发数 (纯函数; 便于单测).
+ *
+ * 口径:
+ *   · 未配置 / 空 / 非数字 / ≤0 → 回落缺省 (2);
+ *   · 小于下限 → 夹到下限 (1);
+ *   · 大于上限 → 夹到上限 (5);
+ *   · 其余 → 取整后采用.
+ *
+ * 为什么不照用 env 原值: 并发直接决定打上游的力度, 填成 99 比填 2 危险得多;
+ * 但也不能静默改 —— 越界时由调用方告警 (让人知道自己填的值没生效).
+ *
+ * @param raw env 原值
+ * @returns 实际生效的并发数
+ */
+export function resolveAutoPracticeConcurrency(raw: string | undefined): number {
+  if (raw === undefined) return DEFAULT_CONCURRENCY;
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return DEFAULT_CONCURRENCY;
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_CONCURRENCY;
+  const floored = Math.floor(parsed);
+  if (floored < MIN_CONCURRENCY) return MIN_CONCURRENCY;
+  return Math.min(floored, MAX_CONCURRENCY);
+}
+
+/**
+ * 这个 env 值是否被**夹**过 (夹过 = 填的值没生效, 该告警).
+ *
+ * @param raw env 原值
+ * @param resolved 实际生效值
+ * @returns 是否被夹
+ */
+export function isAutoPracticeConcurrencyClamped(raw: string | undefined, resolved: number): boolean {
+  if (raw === undefined) return false;
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return false;
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed)) return false;
+  return Math.floor(parsed) !== resolved;
+}
 
 @Injectable()
 export class PracticeQueueService implements OnModuleInit, OnModuleDestroy {
@@ -57,8 +114,11 @@ export class PracticeQueueService implements OnModuleInit, OnModuleDestroy {
     private readonly runner: PracticeRunnerService,
     @InjectRepository(CounselorMode) private readonly modeRepo: Repository<CounselorMode>,
   ) {
-    const raw = Number(process.env.AUTO_PRACTICE_WORKER_CONCURRENCY);
-    this.concurrency = Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : DEFAULT_CONCURRENCY;
+    const raw = process.env.AUTO_PRACTICE_WORKER_CONCURRENCY;
+    this.concurrency = resolveAutoPracticeConcurrency(raw);
+    if (isAutoPracticeConcurrencyClamped(raw, this.concurrency)) {
+      this.logger.warn(`[auto_practice] 并发数不在 1~5 范围内, 已夹到 ${this.concurrency}: requested=${(raw ?? '').trim()}`);
+    }
   }
 
   /** @inheritdoc */

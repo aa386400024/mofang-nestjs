@@ -82,6 +82,13 @@ export interface RenderAdapterConfig {
   readonly cooldownBaseMs: number;
   /** 冷却时长上限 ms (指数退避封顶). */
   readonly cooldownMaxMs: number;
+  /**
+   * 半开探测等待时长 ms.
+   *
+   * 冷却期内距冷却开始满这么久之后, 允许放**一次**探测请求打这个候选
+   * (放行判定与状态机都在 `RenderFailoverRuntime`, 不在本层).
+   */
+  readonly halfOpenAfterMs: number;
   /** block 重生成最大次数 (本期语义为 1). */
   readonly maxBlockRegen: number;
   /**
@@ -132,8 +139,30 @@ export const DEFAULT_RENDER_FAILURE_THRESHOLD = 3;
 /** 冷却时长基数种子值 (ms). */
 export const DEFAULT_RENDER_COOLDOWN_BASE_MS = 30_000;
 
-/** 冷却时长上限种子值 (ms). */
-export const DEFAULT_RENDER_COOLDOWN_MAX_MS = 300_000;
+/**
+ * 冷却时长上限种子值 (ms).
+ *
+ * V2026-11-09 治本 (Phase2.5 WP-H · 改动 2): 300_000 → 60_000.
+ *
+ * 为什么压到 60s: 旧值 5 分钟配 `failureThreshold=3` 等于"三次抖动 → 五分钟静默".
+ * 批量跑批时上游一限流, 单例熔断器一打开, **整场对练**都在吐兜底池 ——
+ * 归档 500 份逐字稿里 91.8% 的来访者发言是兜底句, 根因就在这里.
+ * 60s 是"上游抖动一次, 最多静默一分钟"的上限; 真正的恢复靠**半开探测**
+ * (见 `halfOpenAfterMs`), 不靠把静默期拉长.
+ */
+export const DEFAULT_RENDER_COOLDOWN_MAX_MS = 60_000;
+
+/**
+ * 半开探测等待时长种子值 (ms) — 冷却期内多久之后允许放**一次**探测请求.
+ *
+ * 为什么要有半开: 纯冷却模型里, 冷却期内所有请求一律兜底 —— 上游其实可能
+ * 已经恢复, 但没人去试, 于是"一次限流"被放大成"整整一个冷却窗的兜底".
+ * 半开探测让冷却期不再是全损: 到点放一个请求去探, 成功即完全恢复,
+ * 失败才继续冷却 (且半开间隔翻倍, 见 RenderFailoverRuntime).
+ *
+ * 缺省 = 冷却基数 (30s): 冷却窗 60s 的一半 —— 上游恢复得早, 就能早半分钟回到正常.
+ */
+export const DEFAULT_RENDER_HALF_OPEN_AFTER_MS = 30_000;
 
 /** block 重生成预算种子值 (本期语义: 最多重生成一次). */
 export const DEFAULT_RENDER_MAX_BLOCK_REGEN = 1;
@@ -189,6 +218,7 @@ export function createRenderAdapterConfig(
     failureThreshold: overrides.failureThreshold ?? DEFAULT_RENDER_FAILURE_THRESHOLD,
     cooldownBaseMs: overrides.cooldownBaseMs ?? DEFAULT_RENDER_COOLDOWN_BASE_MS,
     cooldownMaxMs: overrides.cooldownMaxMs ?? DEFAULT_RENDER_COOLDOWN_MAX_MS,
+    halfOpenAfterMs: overrides.halfOpenAfterMs ?? DEFAULT_RENDER_HALF_OPEN_AFTER_MS,
     maxBlockRegen: overrides.maxBlockRegen ?? DEFAULT_RENDER_MAX_BLOCK_REGEN,
     fallbackUtterances: resolveFallbackUtterances(overrides.fallbackUtterances),
   };

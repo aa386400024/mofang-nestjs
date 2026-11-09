@@ -13,6 +13,7 @@
 
 import { ConfigService } from '@nestjs/config';
 
+import type { OpenAICompatibleChatOptions } from '../common/base/openai-compatible-chat.provider.js';
 import { AIProviderId, LLMCapability } from '../common/enums/llm.enums.js';
 import type { LLMProviderConfig } from '../common/interfaces/chat-provider.interface.js';
 import { DeepSeekChatProvider, DeepSeekEmbeddingProvider } from '../providers/deepseek.provider.js';
@@ -29,10 +30,14 @@ import { ProviderRegistryService } from '../registry/provider-registry.service.j
  * loader 里, 模块只声明 dependency.
  */
 export function registerDefaultProviders(registry: ProviderRegistryService, config: ConfigService): void {
+  // V2026-11-09 治本 (Phase2.5 WP-H · 改动 3): 客户端超时与显式重试次数是
+  //   **部署事实**, 四家厂商共用同一套 env 口径 —— 各家 provider 各写一遍就是两份真相.
+  const runtime = readRuntimeOptions(config);
+
   // ─── DeepSeek ───
   if (config.get<string>('LLM_DEEPSEEK_API_KEY')) {
     registry.registerChat(
-      new DeepSeekChatProvider(),
+      new DeepSeekChatProvider(runtime),
       buildEnvConfig(config, AIProviderId.DEEPSEEK, 'DeepSeek', 'https://api.deepseek.com/v1', 'deepseek-chat'),
     );
     registry.registerEmbedding(new DeepSeekEmbeddingProvider());
@@ -41,7 +46,7 @@ export function registerDefaultProviders(registry: ProviderRegistryService, conf
   // ─── 豆包 (火山方舟) ───
   if (config.get<string>('LLM_DOUBAO_API_KEY')) {
     registry.registerChat(
-      new DoubaoChatProvider(),
+      new DoubaoChatProvider(runtime),
       buildEnvConfig(config, AIProviderId.DOUBAO, '豆包 (火山方舟)', 'https://ark.cn-beijing.volces.com/api/v3', 'doubao-pro-32k'),
     );
     registry.registerEmbedding(new DoubaoEmbeddingProvider());
@@ -50,7 +55,7 @@ export function registerDefaultProviders(registry: ProviderRegistryService, conf
   // ─── 通义千问 (DashScope) ───
   if (config.get<string>('LLM_QWEN_API_KEY')) {
     registry.registerChat(
-      new QwenChatProvider(),
+      new QwenChatProvider(runtime),
       buildEnvConfig(config, AIProviderId.QWEN, '通义千问 (DashScope)', 'https://dashscope.aliyuncs.com/compatible-mode/v1', 'qwen-plus'),
     );
     registry.registerEmbedding(new QwenEmbeddingProvider());
@@ -71,6 +76,7 @@ export function registerDefaultProviders(registry: ProviderRegistryService, conf
     const minimax = new MinimaxChatProvider({
       baseUrl: config.get<string>('MINIMAX_BASE_URL'),
       defaultChatModel: config.get<string>('MINIMAX_LLM_MODEL'),
+      ...runtime,
     });
     registry.registerChat(minimax, {
       id: AIProviderId.MINIMAX,
@@ -85,6 +91,28 @@ export function registerDefaultProviders(registry: ProviderRegistryService, conf
       enabled: true,
     });
   }
+}
+
+/**
+ * 读 OpenAI 兼容 chat provider 的运行时选项 (客户端超时 / 显式重试次数).
+ *
+ * 为什么放在**启动配置层**而不是各 provider 里: 这两个值是部署事实 (env),
+ * 不是厂商事实; 四家共用同一套口径, 少一家就少一份真相.
+ *
+ * 非法值 → 回落缺省 (不抛错): 填错一个 env 不该让服务起不来.
+ *
+ * @param config 配置服务
+ * @returns 运行时选项 (未配置的项不出现, 由基类取缺省)
+ */
+function readRuntimeOptions(config: ConfigService): OpenAICompatibleChatOptions {
+  const timeoutRaw = config.get<string>('LLM_REQUEST_TIMEOUT_MS');
+  const timeoutMs = Number(timeoutRaw);
+  const retriesRaw = config.get<string>('LLM_MAX_RETRIES');
+  const retries = Number(retriesRaw);
+  return {
+    ...(timeoutRaw && Number.isFinite(timeoutMs) && timeoutMs > 0 ? { requestTimeoutMs: Math.floor(timeoutMs) } : {}),
+    ...(retriesRaw && Number.isFinite(retries) && retries >= 0 ? { maxRetries: Math.floor(retries) } : {}),
+  };
 }
 
 /**

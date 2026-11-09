@@ -18,6 +18,7 @@ import type { ChatCaller } from '../../src/engine-adapters/rendering/llm-render.
 import {
   DEFAULT_RENDER_COOLDOWN_BASE_MS,
   DEFAULT_RENDER_COOLDOWN_MAX_MS,
+  DEFAULT_RENDER_HALF_OPEN_AFTER_MS,
   DEFAULT_RENDER_FAILURE_THRESHOLD,
   DEFAULT_RENDER_TIMEOUT_MS,
   type RenderAdapterConfig,
@@ -246,7 +247,7 @@ describe('WP11 · PsyGUARD HTTP 风险探测器 (内核 RiskProbePort 实现)', 
      * 最小渲染配置 (只给一个候选) —— 形状与 wp8-wiring.spec.ts 的 stubRenderConfig 一致.
      *
      * 为什么在这里造一份: `buildEngineRenderDeps` 要一个 `RenderAdapterConfig`,
-     * 而这个配置有 8 个必填字段. 复用别处的 stub 会把两个套件耦合起来, 那边一改这里就红.
+     * 而这个配置有 9 个必填字段. 复用别处的 stub 会把两个套件耦合起来, 那边一改这里就红.
      */
     function stubRenderConfig(): RenderAdapterConfig {
       return {
@@ -260,6 +261,7 @@ describe('WP11 · PsyGUARD HTTP 风险探测器 (内核 RiskProbePort 实现)', 
         failureThreshold: DEFAULT_RENDER_FAILURE_THRESHOLD,
         cooldownBaseMs: DEFAULT_RENDER_COOLDOWN_BASE_MS,
         cooldownMaxMs: DEFAULT_RENDER_COOLDOWN_MAX_MS,
+        halfOpenAfterMs: DEFAULT_RENDER_HALF_OPEN_AFTER_MS,
         maxBlockRegen: 1,
         fallbackUtterances: ['……我先缓一下，我们接着说。'],
       };

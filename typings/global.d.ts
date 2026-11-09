@@ -388,7 +388,7 @@ export declare global {
       //   这 3 个键代码里早就在读 (src/auto-practice/), 但 .env.example 一直没登记 ——
       //   WP25 的 env 双向守卫断言①一直是红的. 这里补上 (不改任何行为).
       AUTO_PRACTICE_COUNSELOR_MODEL?: string; // 自动对练的咨询师模型名 (留空 = 用 router 默认)
-      AUTO_PRACTICE_WORKER_CONCURRENCY?: string; // 自动对练 Worker 并发数 (默认 3; 非法值回退默认)
+      AUTO_PRACTICE_WORKER_CONCURRENCY?: string; // 自动对练 Worker 并发数 (默认 2, 范围 1~5; 非法值回退默认)
       ENGINE_VERSION?: string; // 推理环境指纹里的引擎版本号 (默认 dev; 非法值回退默认)
       // V2026-11-07 治本 (临床合理性校验 · 观测版):
       //   审议输出的临床合理性**观测**开关. 同样**逐个字面量**读

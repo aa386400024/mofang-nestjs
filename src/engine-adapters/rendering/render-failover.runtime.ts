@@ -36,6 +36,14 @@ interface CandidateRuntime {
   consecutiveFailures: number;
   /** 冷却到期时刻 (0 = 不在冷却); 到点后候选重新可被选中. */
   cooldownUntil: number;
+  /** 本次冷却的开始时刻 (半开探测的计时起点). */
+  cooldownStartedAt: number;
+  /** 本次冷却的时长 ms (半开探测失败时翻倍). */
+  cooldownDurationMs: number;
+  /** 当前生效的半开等待 ms (半开探测失败时翻倍, 上限 = cooldownMaxMs). */
+  halfOpenAfterMs: number;
+  /** 是否已有一个探测请求在途 (防并发下多个请求同时去探). */
+  probeInFlight: boolean;
 }
 
 /**
@@ -46,6 +54,26 @@ export interface RenderCandidateHealth {
   readonly cooldownUntil: number;
   /** 是否当前处于冷却中. */
   readonly inCooldown: boolean;
+  /** 当前冷却时长 ms (半开探测失败时翻倍). */
+  readonly cooldownDurationMs: number;
+  /** 当前半开等待 ms (半开探测失败时翻倍). */
+  readonly halfOpenAfterMs: number;
+  /** 是否有半开探测在途. */
+  readonly probeInFlight: boolean;
+}
+
+/**
+ * 主备运行时统计 (可观测; 不参与选择判定).
+ *
+ * 为什么要有它: "冷却期内全损兜底"这件事此前**没有任何计数** ——
+ * 只有逐字稿里那 91.8% 的兜底句能反推. 有了计数, 跑批时能直接看到
+ * "这一批有多少轮是被熔断挡掉的", 而不是事后翻归档猜.
+ */
+export interface RenderFailoverStats {
+  /** 冷却期内"无任何候选可用"的次数 (全损兜底次数). */
+  readonly cooldownServed: number;
+  /** 半开探测放行次数. */
+  readonly probeAttempts: number;
 }
 
 /**
@@ -59,6 +87,10 @@ export class RenderFailoverRuntime {
   private readonly candidates: readonly RenderCandidate[];
   private readonly now: () => number;
   private readonly states = new Map<string, CandidateRuntime>();
+  /** 冷却期内全损兜底计数 (可观测). */
+  private cooldownServedCount = 0;
+  /** 半开探测放行计数 (可观测). */
+  private probeAttemptCount = 0;
 
   /**
    * @param candidates 候选序列 (顺序即优先级, 第 0 位为主)
@@ -76,8 +108,14 @@ export class RenderFailoverRuntime {
    * @returns 下一个候选; 全部冷却 / 全部尝试过 → null (调用方走最终降级)
    */
   next(attempted: readonly string[]): RenderCandidate | null {
-    const available = this.candidates.filter((candidate) => !this.inCooldown(candidate.id));
-    if (available.length === 0) return null;
+    // 可选集合 = 不在冷却的 + 冷却中但**已到半开时点**的 (探测).
+    // 半开候选必须进这个集合, 否则冷却期就是全损 —— 那正是 WP-H 要修的病根.
+    const available = this.candidates.filter((candidate) => !this.inCooldown(candidate.id) || this.isProbeReady(candidate.id));
+    if (available.length === 0) {
+      // 全员冷却且都没到半开时点 → 本轮无候选可用 (可观测: 记一次全损兜底).
+      this.cooldownServedCount += 1;
+      return null;
+    }
 
     const state: FailoverState = {
       candidates: available.map((candidate) => ({ id: candidate.id })),
@@ -88,7 +126,31 @@ export class RenderFailoverRuntime {
     if (!target) return null;
 
     // 内核按 id 返回, 这里按 id 映射回完整候选 (含 overrides).
-    return available.find((candidate) => candidate.id === target.id) ?? null;
+    const picked = available.find((candidate) => candidate.id === target.id) ?? null;
+    if (!picked) return null;
+
+    // 冷却中的候选被选中 = 这是**一次半开探测**: 认领它, 让并发请求不会同时去探
+    // (探测失败要翻倍冷却, 同时探 N 次等于没退避).
+    if (this.inCooldown(picked.id)) {
+      this.claimProbe(picked.id);
+      this.probeAttemptCount += 1;
+    }
+    return picked;
+  }
+
+  /**
+   * 该候选此刻是否处于"可放一次探测"的半开状态.
+   *
+   * 三个条件缺一不可:
+   *   ① 仍在冷却中 (否则它本来就能被选中, 不算探测);
+   *   ② 距冷却开始已满 `halfOpenAfterMs` (冷却得太早去探 = 白白再失败一次);
+   *   ③ 当前没有探测在途 (并发下只放一个).
+   *
+   * @param id 候选 id
+   * @returns 是否可以放一次探测
+   */
+  shouldProbe(id: string): boolean {
+    return this.isProbeReady(id);
   }
 
   /**
@@ -100,6 +162,11 @@ export class RenderFailoverRuntime {
     const state = this.stateOf(id);
     state.consecutiveFailures = 0;
     state.cooldownUntil = 0;
+    state.cooldownStartedAt = 0;
+    state.cooldownDurationMs = 0;
+    // 半开等待回到**配置值**: 真的恢复了才恢复额度 (与失败计数的口径一致).
+    state.halfOpenAfterMs = 0;
+    state.probeInFlight = false;
   }
 
   /**
@@ -110,9 +177,21 @@ export class RenderFailoverRuntime {
    */
   markFailure(id: string, config: RenderAdapterConfig): void {
     const state = this.stateOf(id);
+    // 认领过的探测失败 = 半开探测失败 → 冷却与半开间隔都翻倍.
+    const wasProbe = state.probeInFlight;
+    state.probeInFlight = false;
     state.consecutiveFailures += 1;
-    if (state.consecutiveFailures < config.failureThreshold) return;
-    state.cooldownUntil = this.now() + cooldownDuration(config, state.consecutiveFailures);
+    if (!wasProbe && state.consecutiveFailures < config.failureThreshold) return;
+
+    const duration = wasProbe
+      ? Math.min(state.cooldownDurationMs * 2, config.cooldownMaxMs)
+      : cooldownDuration(config, state.consecutiveFailures);
+    const halfOpen = wasProbe ? Math.min(state.halfOpenAfterMs * 2, config.cooldownMaxMs) : config.halfOpenAfterMs;
+
+    state.cooldownUntil = this.now() + duration;
+    state.cooldownStartedAt = this.now();
+    state.cooldownDurationMs = duration;
+    state.halfOpenAfterMs = halfOpen;
   }
 
   /**
@@ -126,9 +205,22 @@ export class RenderFailoverRuntime {
         consecutiveFailures: state?.consecutiveFailures ?? 0,
         cooldownUntil: state?.cooldownUntil ?? 0,
         inCooldown: this.inCooldown(candidate.id),
+        cooldownDurationMs: state?.cooldownDurationMs ?? 0,
+        halfOpenAfterMs: state?.halfOpenAfterMs ?? 0,
+        probeInFlight: state?.probeInFlight ?? false,
       };
     }
     return snapshot;
+  }
+
+  /**
+   * 主备运行时统计 (可观测; 不参与选择判定).
+   */
+  stats(): RenderFailoverStats {
+    return {
+      cooldownServed: this.cooldownServedCount,
+      probeAttempts: this.probeAttemptCount,
+    };
   }
 
   /** 该候选是否处于冷却中 (到期即失效, 候选重新回到序列). */
@@ -138,11 +230,38 @@ export class RenderFailoverRuntime {
     return state.cooldownUntil > this.now();
   }
 
+  /**
+   * 该候选此刻是否处于"可放一次探测"的半开状态.
+   *
+   * @param id 候选 id
+   * @returns 是否可探测
+   */
+  private isProbeReady(id: string): boolean {
+    const state = this.states.get(id);
+    if (!state) return false;
+    if (!this.inCooldown(id)) return false;
+    if (state.probeInFlight) return false;
+    return this.now() - state.cooldownStartedAt >= state.halfOpenAfterMs;
+  }
+
+  /** 认领一次半开探测 (并发下只放一个). */
+  private claimProbe(id: string): void {
+    const state = this.stateOf(id);
+    state.probeInFlight = true;
+  }
+
   /** 取 (或建) 候选运行时状态. */
   private stateOf(id: string): CandidateRuntime {
     const existing = this.states.get(id);
     if (existing) return existing;
-    const created: CandidateRuntime = { consecutiveFailures: 0, cooldownUntil: 0 };
+    const created: CandidateRuntime = {
+      consecutiveFailures: 0,
+      cooldownUntil: 0,
+      cooldownStartedAt: 0,
+      cooldownDurationMs: 0,
+      halfOpenAfterMs: 0,
+      probeInFlight: false,
+    };
     this.states.set(id, created);
     return created;
   }

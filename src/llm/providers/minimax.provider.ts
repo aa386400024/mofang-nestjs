@@ -56,7 +56,11 @@
 //     2. test/llm/minimax-provider.spec.ts 覆盖 id / 模型名 / 基址归一 / 注册分支
 //        + 上游字段映射 (只下发 max_completion_tokens / reasoning_effort)
 
-import { OpenAICompatibleChatProvider, type OpenAICompatibleConfig } from '../common/base/openai-compatible-chat.provider.js';
+import {
+  OpenAICompatibleChatProvider,
+  type OpenAICompatibleChatOptions,
+  type OpenAICompatibleConfig,
+} from '../common/base/openai-compatible-chat.provider.js';
 import { AIProviderId } from '../common/enums/llm.enums.js';
 import type { ChatCompletionRequest, ChatReasoningEffort } from '../common/interfaces/chat-provider.interface.js';
 import { resolveMinimaxBaseUrl, resolveMinimaxChatModel } from '../config/provider-env.js';
@@ -64,7 +68,7 @@ import { resolveMinimaxBaseUrl, resolveMinimaxChatModel } from '../config/provid
 /**
  * MiniMax Chat Provider 构造选项.
  */
-export interface MinimaxChatProviderOptions {
+export interface MinimaxChatProviderOptions extends OpenAICompatibleChatOptions {
   /** OpenAI 兼容基址 (缺省 / 空白 = 国内站默认). 内部会归一到 `/v1`. */
   readonly baseUrl?: string;
   /** 默认 chat 模型 (缺省 / 空白 = `MiniMax-M3`). */
@@ -83,6 +87,8 @@ export class MinimaxChatProvider extends OpenAICompatibleChatProvider {
       name: 'MiniMax',
       baseUrl: resolveMinimaxBaseUrl(options.baseUrl),
       defaultChatModel: resolveMinimaxChatModel(options.defaultChatModel),
+      ...(options.requestTimeoutMs === undefined ? {} : { requestTimeoutMs: options.requestTimeoutMs }),
+      ...(options.maxRetries === undefined ? {} : { maxRetries: options.maxRetries }),
     };
     super(cfg);
   }
