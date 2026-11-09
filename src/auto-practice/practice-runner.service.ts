@@ -27,17 +27,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { nanoid } from 'nanoid';
 import { Repository } from 'typeorm';
 
-import {
-  AUTO_PRACTICE_EVENTS,
-  type AutoPracticeSessionEndPayload,
-  type AutoPracticeSessionStartPayload,
-  type AutoPracticeTurnPayload,
-} from './auto-practice.events.js';
+import { AUTO_PRACTICE_EVENTS, type AutoPracticeSessionEndPayload, type AutoPracticeSessionStartPayload } from './auto-practice.events.js';
 import { AutoPracticeGateway } from './auto-practice.gateway.js';
 import { CounselorAgentService, type CounselorHistoryTurn } from './counselor-agent.service.js';
 import { CounselorMode } from './entities/counselor-mode.entity.js';
 import { PracticeSession, type PracticeSessionStatus } from './entities/practice-session.entity.js';
-import { InferenceFingerprintService, type ScenarioType } from './inference-fingerprint.service.js';
+import { InferenceFingerprintService, type InferenceFingerprint, type ScenarioType } from './inference-fingerprint.service.js';
 import { TURN_ENGINE_PORT, type TurnEnginePort } from './ports/turn-engine.port.js';
 
 /** 默认最大轮数 (一场对练聊多少轮). */
@@ -133,71 +128,20 @@ export class PracticeRunnerService implements OnModuleInit {
     let exitReason = 'max_turns';
     let crisisEnded = 0;
     let turnCount = 0;
+    let degradedTurns = 0;
     let errorMessage: string | null = null;
 
     // ① 开引擎会话 (失败就建 failed 行, 然后 return —— 不 throw).
-    // V2026-11-09 P0-1 修复: 原来这里落库后 throw, controller 是 fire-and-forget
-    // (void this.runner.run(...)), unhandled rejection 直接打崩整个 Node 进程.
-    // 失败信息已经落库 (status=failed/errorMessage), 调用方不需要再靠 throw 感知.
-    try {
-      const opened = await this.engine.open(input.characterSlug, scenarioType);
-      debugSessionId = opened.debugSessionId;
-    } catch (error) {
-      status = 'failed';
-      exitReason = 'error';
-      errorMessage = errorName(error);
-      this.logger.error(`[auto_practice] 开引擎会话失败 session=${practiceSessionId}: ${errorMessage}`);
-      await this.persistSession(practiceSessionId, {
-        debugSessionId: '',
-        characterSlug: input.characterSlug,
-        counselorModeId: input.counselorMode.id,
-        status,
-        maxTurns,
-        turnCount: 0,
-        crisisEnded: 0,
-        exitReason,
-        batchId: input.batchId ?? null,
-        errorMessage,
-      });
-      return {
-        practiceSessionId,
-        debugSessionId: '',
-        status,
-        exitReason,
-        turnCount: 0,
-        crisisEnded: false,
-      };
+    const openResult = await this.openSessionOrFail(input, practiceSessionId, scenarioType, maxTurns);
+    if (openResult.failed) {
+      return openResult.result;
     }
+    debugSessionId = openResult.debugSessionId;
 
-    // ② 生成推理环境指纹 (WP-B): 模型/角色版本/审议模式/场景类型.
-    const fingerprint = await this.fingerprintService.build(
-      input.characterSlug,
-      input.counselorMode.id,
-      scenarioType,
-      input.batchId ?? null,
-      practiceSessionId,
-    );
+    // ② 生成推理环境指纹 (WP-B) + 落库 running 行.
+    const fingerprint = await this.buildFingerprintAndPersist(input, practiceSessionId, debugSessionId, scenarioType, maxTurns);
 
-    // ③ 落库 running 行 (带版本指纹).
-    await this.persistSession(practiceSessionId, {
-      debugSessionId,
-      characterSlug: input.characterSlug,
-      counselorModeId: input.counselorMode.id,
-      status,
-      maxTurns,
-      turnCount: 0,
-      crisisEnded: 0,
-      exitReason,
-      batchId: input.batchId ?? null,
-      errorMessage: null,
-      modelVersion: fingerprint.model,
-      seedValue: fingerprint.sessionSeed,
-      characterVersion: fingerprint.characterVersion,
-      deliberationMode: fingerprint.deliberationMode,
-      engineVersion: fingerprint.engineVersion,
-    });
-
-    // ④ 推 session_start (带指纹).
+    // ③ 推 session_start (带指纹).
     const startPayload: AutoPracticeSessionStartPayload = {
       practiceSessionId,
       debugSessionId,
@@ -209,100 +153,39 @@ export class PracticeRunnerService implements OnModuleInit {
     this.gateway?.publishToSession(practiceSessionId, AUTO_PRACTICE_EVENTS.sessionStart, startPayload);
 
     const history: CounselorHistoryTurn[] = [];
-    let repeatStreak = 0;
-    let lastVisitorText = '';
-    // V2026-11-09 P1-3: 累计咨询师侧降级轮数 (上游 429/超时/空回复时 counselor-agent 回 FALLBACK_REPLY).
-    let degradedTurns = 0;
 
+    let loopResult: {
+      status: PracticeSessionStatus;
+      exitReason: string;
+      crisisEnded: number;
+      turnCount: number;
+      degradedTurns: number;
+    };
     try {
-      // ④ 主循环.
-      for (let i = 1; i <= maxTurns; i += 1) {
-        // ④a AI 咨询师生成台词.
-        const counselorReply = await this.counselorAgent.generate(input.counselorMode, history);
-        if (counselorReply.degraded) {
-          degradedTurns += 1;
-        }
-        history.push({ role: 'counselor', text: counselorReply.text });
-
-        // ④b 引擎跑一轮 (来访回复).
-        const result = await this.engine.turn(debugSessionId, counselorReply.text);
-        turnCount = result.turnIndex;
-        // V2026-11-09 P1-3b: 来访者侧降级——trace.degraded=true 说明这轮来访者是兜底句.
-        if (result.trace.degraded) {
-          degradedTurns += 1;
-        }
-        history.push({ role: 'visitor', text: result.reply });
-
-        // ④c 推 turn 事件.
-        const turnPayload: AutoPracticeTurnPayload = {
-          practiceSessionId,
-          turnIndex: result.turnIndex,
-          counselorText: counselorReply.text,
-          visitorText: result.reply,
-          crisisDetected: result.crisisDetected,
-          trace: result.trace,
-        };
-        this.gateway?.publishToSession(practiceSessionId, AUTO_PRACTICE_EVENTS.turn, turnPayload);
-
-        // ④c' 每轮落一次 turn_count —— 左栏场次列表要实时看到轮次增长 (不然跑到一半一直显示 0 轮).
-        await this.sessionRepo.update(practiceSessionId, { turnCount }).catch((error: unknown) => {
-          this.logger.warn(`[auto_practice] 更新轮次失败 session=${practiceSessionId}: ${errorName(error)}`);
-        });
-
-        // ④d 结束条件: 危机.
-        if (result.crisisDetected) {
-          status = 'crisis_ended';
-          exitReason = 'crisis';
-          crisisEnded = 1;
-          break;
-        }
-
-        // ④e 结束条件: 咨询师判断已自然收尾 (给足最小轮数, 避免一两轮就草率结束).
-        if (counselorReply.closeRequested && result.turnIndex >= MIN_TURNS_BEFORE_CLOSE) {
-          status = 'completed';
-          exitReason = 'natural_close';
-          break;
-        }
-
-        // ④e 结束条件: 来访复读 (停滞).
-        if (isNearDuplicate(result.reply, lastVisitorText)) {
-          repeatStreak += 1;
-          if (repeatStreak >= STAGNANT_REPEAT_LIMIT) {
-            status = 'stagnant';
-            exitReason = 'stagnant';
-            break;
-          }
-        } else {
-          repeatStreak = 0;
-        }
-        lastVisitorText = result.reply;
-      }
-
-      // 跑满 maxTurns 时 status 保持 'completed' (默认值).
-      if (status === 'running') {
-        status = 'completed';
-        exitReason = 'max_turns';
-      }
-
-      // V2026-11-09 P1-3: 降级比 ≥ 50% 时, exitReason 加重度降级后缀,
-      // 评测/统计一眼能筛出"这场一半以上是兜底句"的场次. 不改 status (它确实跑完了),
-      // 只在 exitReason 上做标记 —— 跟 training_sessions.degraded 同款思路.
-      if (degradedTurns > 0 && turnCount > 0 && degradedTurns / turnCount >= 0.5) {
-        exitReason = `${exitReason}_heavy_degraded`;
-      }
+      loopResult = await this.runConversationLoop(input, practiceSessionId, debugSessionId, maxTurns, history);
     } catch (error) {
-      status = 'failed';
-      exitReason = 'error';
+      loopResult = {
+        status: 'failed',
+        exitReason: 'error',
+        crisisEnded: 0,
+        turnCount: 0,
+        degradedTurns: 0,
+      };
       errorMessage = errorName(error);
       this.logger.error(`[auto_practice] 对练循环异常 session=${practiceSessionId}: ${errorMessage}`);
     } finally {
-      // ⑤ 关引擎会话 (失败只记 warn, 不阻断).
       try {
         this.engine.close(debugSessionId);
       } catch (error) {
         this.logger.warn(`[auto_practice] 关引擎会话失败 session=${practiceSessionId}: ${errorName(error)}`);
       }
     }
+
+    status = loopResult.status;
+    exitReason = loopResult.exitReason;
+    crisisEnded = loopResult.crisisEnded;
+    turnCount = loopResult.turnCount;
+    degradedTurns = loopResult.degradedTurns;
 
     // ⑥ 更新终态.
     await this.updateSessionResult(practiceSessionId, {
@@ -333,6 +216,178 @@ export class PracticeRunnerService implements OnModuleInit {
       turnCount,
       crisisEnded: crisisEnded === 1,
     };
+  }
+
+  /**
+   * 跑对话主循环 (抽出来降低 run() 圈复杂度).
+   *
+   * @returns 终态: status / exitReason / crisisEnded / turnCount / degradedTurns
+   */
+  private async runConversationLoop(
+    input: RunPracticeInput,
+    practiceSessionId: string,
+    debugSessionId: string,
+    maxTurns: number,
+    history: CounselorHistoryTurn[],
+  ): Promise<{ status: PracticeSessionStatus; exitReason: string; crisisEnded: number; turnCount: number; degradedTurns: number }> {
+    let status: PracticeSessionStatus = 'running';
+    let exitReason = 'max_turns';
+    let crisisEnded = 0;
+    let turnCount = 0;
+    let repeatStreak = 0;
+    let lastVisitorText = '';
+    let degradedTurns = 0;
+
+    for (let i = 1; i <= maxTurns; i += 1) {
+      // AI 咨询师生成台词.
+      const counselorReply = await this.counselorAgent.generate(input.counselorMode, history);
+      if (counselorReply.degraded) degradedTurns += 1;
+      history.push({ role: 'counselor', text: counselorReply.text });
+
+      // 引擎跑一轮.
+      const result = await this.engine.turn(debugSessionId, counselorReply.text);
+      turnCount = result.turnIndex;
+      if (result.trace.degraded) degradedTurns += 1;
+      history.push({ role: 'visitor', text: result.reply });
+
+      // 推 turn 事件.
+      this.gateway?.publishToSession(practiceSessionId, AUTO_PRACTICE_EVENTS.turn, {
+        practiceSessionId,
+        turnIndex: result.turnIndex,
+        counselorText: counselorReply.text,
+        visitorText: result.reply,
+        crisisDetected: result.crisisDetected,
+        trace: result.trace,
+      });
+
+      // 实时更新轮次.
+      await this.sessionRepo.update(practiceSessionId, { turnCount }).catch((error: unknown) => {
+        this.logger.warn(`[auto_practice] 更新轮次失败 session=${practiceSessionId}: ${errorName(error)}`);
+      });
+
+      // 结束条件: 危机.
+      if (result.crisisDetected) {
+        status = 'crisis_ended';
+        exitReason = 'crisis';
+        crisisEnded = 1;
+        break;
+      }
+
+      // 结束条件: 自然收尾.
+      if (counselorReply.closeRequested && result.turnIndex >= MIN_TURNS_BEFORE_CLOSE) {
+        status = 'completed';
+        exitReason = 'natural_close';
+        break;
+      }
+
+      // 结束条件: 来访复读 (停滞).
+      if (isNearDuplicate(result.reply, lastVisitorText)) {
+        repeatStreak += 1;
+        if (repeatStreak >= STAGNANT_REPEAT_LIMIT) {
+          status = 'stagnant';
+          exitReason = 'stagnant';
+          break;
+        }
+      } else {
+        repeatStreak = 0;
+      }
+      lastVisitorText = result.reply;
+    }
+
+    // 跑满 maxTurns.
+    if (status === 'running') {
+      status = 'completed';
+      exitReason = 'max_turns';
+    }
+
+    // 降级比 ≥ 50% 加重度降级后缀.
+    if (degradedTurns > 0 && turnCount > 0 && degradedTurns / turnCount >= 0.5) {
+      exitReason = `${exitReason}_heavy_degraded`;
+    }
+
+    return { status, exitReason, crisisEnded, turnCount, degradedTurns };
+  }
+
+  /**
+   * 开引擎会话, 失败时落库 failed 行并返回结果.
+   *
+   * 抽出来是为了降低 run() 的圈复杂度 (eslint complexity ≤ 20).
+   */
+  private async openSessionOrFail(
+    input: RunPracticeInput,
+    practiceSessionId: string,
+    scenarioType: ScenarioType,
+    maxTurns: number,
+  ): Promise<{ failed: false; debugSessionId: string } | { failed: true; result: RunPracticeResult }> {
+    try {
+      const opened = await this.engine.open(input.characterSlug, scenarioType);
+      return { failed: false, debugSessionId: opened.debugSessionId };
+    } catch (error) {
+      const errorMessage = errorName(error);
+      this.logger.error(`[auto_practice] 开引擎会话失败 session=${practiceSessionId}: ${errorMessage}`);
+      await this.persistSession(practiceSessionId, {
+        debugSessionId: '',
+        characterSlug: input.characterSlug,
+        counselorModeId: input.counselorMode.id,
+        status: 'failed',
+        maxTurns,
+        turnCount: 0,
+        crisisEnded: 0,
+        exitReason: 'error',
+        batchId: input.batchId ?? null,
+        errorMessage,
+      });
+      return {
+        failed: true,
+        result: {
+          practiceSessionId,
+          debugSessionId: '',
+          status: 'failed',
+          exitReason: 'error',
+          turnCount: 0,
+          crisisEnded: false,
+        },
+      };
+    }
+  }
+
+  /**
+   * 生成推理环境指纹 (WP-B) 并落库 running 行.
+   *
+   * 抽出来是为了降低 run() 的圈复杂度 (eslint complexity ≤ 20).
+   */
+  private async buildFingerprintAndPersist(
+    input: RunPracticeInput,
+    practiceSessionId: string,
+    debugSessionId: string,
+    scenarioType: ScenarioType,
+    maxTurns: number,
+  ): Promise<InferenceFingerprint> {
+    const fingerprint = await this.fingerprintService.build(
+      input.characterSlug,
+      input.counselorMode.id,
+      scenarioType,
+      input.batchId ?? null,
+      practiceSessionId,
+    );
+    await this.persistSession(practiceSessionId, {
+      debugSessionId,
+      characterSlug: input.characterSlug,
+      counselorModeId: input.counselorMode.id,
+      status: 'running',
+      maxTurns,
+      turnCount: 0,
+      crisisEnded: 0,
+      exitReason: 'max_turns',
+      batchId: input.batchId ?? null,
+      errorMessage: null,
+      modelVersion: fingerprint.model,
+      seedValue: fingerprint.sessionSeed,
+      characterVersion: fingerprint.characterVersion,
+      deliberationMode: fingerprint.deliberationMode,
+      engineVersion: fingerprint.engineVersion,
+    });
+    return fingerprint;
   }
 
   /** 建/更新一行场次记录. */

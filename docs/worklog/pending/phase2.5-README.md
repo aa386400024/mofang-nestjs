@@ -1,7 +1,7 @@
 # Phase2.5 灰度验证期 · 工作入口
 
 > **路径**：`docs/worklog/pending/phase2.5-README.md`
-> **状态**：🚧 进行中（WP-A + WP-D 已完成，WP-B 待开工）
+> **状态**：🚧 进行中（WP-A + WP-B + WP-D 已完成，WP-C 待开工）
 > **创建日期**：2026-11-08
 > **总入口**：[§worklog/README.md](../README.md)
 
@@ -38,7 +38,7 @@
 | WP | 名称 | 优先级 | 状态 | 任务单 / 交付记录 |
 |---|---|---|---|---|
 | **WP-A** | 审议输入最小化（合规 + 成本双解决） | 🔴 P0 | ✅ 已完成 | [任务单](phase2.5-wp-a-deliberation-input-minimization-2026-11-08.md) / [交付记录](../completed/phase2.5/phase2.5-wp-a-deliberation-input-minimization-implementation-2026-11-08.md) |
-| **WP-B** | 可复现控制 + 版本锁定 | 🔴 P0 | 📋 待开工 | ——（WP-A 做完了，接下来写） |
+| **WP-B** | 可复现控制 + 版本锁定 | 🔴 P0 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-b-reproducibility-version-locking.md) |
 | **WP-C** | 触发式审议闸门 | 🟡 P1 | 📋 待开工 | —— |
 | **WP-D** | 模拟咨询师 AI + 自动对练 | 🟡 P1 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-d-auto-practice-2026-11-08.md) / [交付记录](../completed/phase2.5/phase2.5-wp-d-auto-practice-2026-11-08-implementation.md) |
 | **WP-E** | 自动评测 + 参数调优 | 🟡 P1 | 📋 待开工 | —— |
@@ -63,7 +63,7 @@ WP-B 可复现控制 + 版本锁定
 
 **第一步：看上面的 WP 清单，找状态是「📋 待开工」且优先级最高的那个。**
 
-现在下一个活是：**WP-B 可复现控制 + 版本锁定**。
+现在下一个活是：**WP-C 触发式审议闸门**。
 
 （任务单待写——先讨论方案，再写任务单。）
 
