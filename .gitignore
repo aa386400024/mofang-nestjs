@@ -110,3 +110,9 @@ data/debug-sessions/
 data/eval-datasets/*
 !data/eval-datasets/synthetic-*/
 data/eval-reports/
+
+# V2026-11-09 — 历史批次逐字稿归档 (baseline / 对比数据)
+#   ⚠️ 同 debug-sessions: 含完整对话原文 + prompt 全文 (心理内容), 绝不进版本库.
+#   每次开新一批批量实验前, 把当时的 data/debug-sessions/ 搬到这里归档,
+#   防止 MAX_DEBUG_SESSIONS=500 的自动淘汰把 baseline 逐字稿顶掉.
+data/archives/

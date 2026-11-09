@@ -42,6 +42,9 @@
 | **WP-C** | 触发式审议闸门 | 🟡 P1 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-c-triggered-deliberation-gate.md) / [交付记录](../completed/phase2.5/phase2.5-wp-c-triggered-deliberation-gate-implementation-2026-11-09.md) |
 | **WP-D** | 模拟咨询师 AI + 自动对练 | 🟡 P1 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-d-auto-practice-2026-11-08.md) / [交付记录](../completed/phase2.5/phase2.5-wp-d-auto-practice-2026-11-08-implementation.md) |
 | **WP-E** | 自动评测 + 参数调优 | 🟡 P1 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-tuning.md) / [交付记录](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-implementation-2026-11-09.md) |
+| **WP-F** | 成本看板多源合并 | 🟢 P2 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-f-cost-board-merge-sources.md) / [交付记录](../completed/phase2.5/phase2.5-wp-f-cost-board-merge-sources-implementation-2026-11-09.md) |
+| **WP-G** | 对话质量修复（来访话术 / 咨询师兜底 / 停滞检测 / 危机应对） | 🔴 P0 | ✅ 已交付（**验收推迟，见下**） | [任务单](../completed/phase2.5/wp-g-dialogue-quality-fix-task.md) / [交付记录](../completed/phase2.5/phase2.5-wp-g-dialogue-quality-fix-implementation-2026-11-09.md) |
+| **WP-H** | 渲染可用性与指标可信度修复 | 🔴 **P0** | 🚧 **待开工（当前唯一在办任务单）** | [任务单](wp-h-render-availability-fix-task.md) |
 
 **依赖关系：**
 ```
@@ -61,22 +64,41 @@ WP-B 可复现控制 + 版本锁定
 
 ## 3. 当前有什么活
 
-**Phase2.5 的五个 WP 已全部交付 —— 没有待开工的任务单了。**
+**唯一在办任务单：WP-H「渲染可用性与指标可信度修复」** → [wp-h-render-availability-fix-task.md](wp-h-render-availability-fix-task.md)
 
-出口条件当前状态：
+### 3.1 必须先知道的转折（2026-11-09 晚）
+
+三批自动对练（合计 1034 场）跑完后，对归档逐字稿做全量复算，发现一个**推翻既有结论**的事实：
+
+- 报告里来访者「TOP4 话术」逐字等于 `render-adapter.config.ts:150` 的 `DEFAULT_RENDER_FALLBACK_UTTERANCES`（4 句兜底池）
+- 归档 500 份逐字稿中，来访者消息 17,585 条，兜底池 4 句命中 **16,143 条 = 91.8%**，四句各自 4031/4033/4039/4040（确定性轮转特征）
+- 1,031 个有轮次场次中 **926 场（89.8%）整场 `total_tokens = 0`**；`prompt_tokens` 全库最大值 0
+
+**结论：这三批数据不是「质量差的对练」，是「LLM 基本没被调用」。** 根因是渲染候选序列只有 1 个 provider（`ENGINE_RENDER_FALLBACK_PROVIDERS` 未配置）+ `failureThreshold=3` + `cooldownMaxMs=300s` 的单例熔断 —— 批量并发下上游限流即导致长时间全损降级。
+
+**因此：**
+- **不能拿这三批数据调参**。95.9% 重复率、停滞率、cold/nonsense 模式对比等结论全部建立在这批无效数据上，作废
+- **WP-G 的 3 项渲染层 prompt 改动保留代码，验收推迟** —— LLM 不说话时，角色 prompt 里写多少句都无意义
+- 第④②出口条件的「质量达标」判定，必须等 WP-H 过了门禁重跑才算数
+
+完整证据链见：[数据链路体检记录](phase2.5-data-pipeline-audit-2026-11-09.md)
+
+### 3.2 出口条件当前状态
 
 | 出口条件 | 状态 |
 |---|---|
 | ① 合规过线 | ✅ WP-A 交付（入参零原文 + 三道风险闸门） |
 | ② 考核公平 | ✅ WP-B 交付（考核场景永远纯规则 + 版本锁定） |
-| ③ 成本可控 | 🚧 WP-C 闸门已上线，**种子值待真实评测校准** |
-| ④ 质量达标 | 🚧 **WP-E 评测流水线已就绪**（一条命令出报告），待**真实督导语料**跑最终验收（准确率 ≥ 80%） |
-| ⑤ 数据积累 | 🚧 WP-D 自动对练已交付，批量场次待扩 |
+| ③ 成本可控 | 🚧 WP-C 闸门已上线，**种子值待真实评测校准**；且 `prompt_tokens` 恒为 0 导致成本只算输出侧，修完 WP-H 改动 7 才可信 |
+| ④ 质量达标 | 🔴 **不可判定** —— 现有数据 LLM 未真正调用，需 WP-H 修完重跑金丝雀才能重新评估 |
+| ⑤ 数据积累 | 🚧 WP-D 自动对练已交付；**但 534/1034 场（51.6%）逐字稿已被 `MAX_DEBUG_SESSIONS=500` 淘汰**，幸存 500 场已归档到 `data/archives/debug-sessions-baseline-20261109/` |
 
-**下一步不是写代码，是喂数据**：把外部督导案例（逐字稿 + 督导解析）喂给
-`parseSupervisorCases()` 造 B 方案验收集 → 跑一轮评测 → 看哪个维度差 → 手改 WP-C 的 env 阈值 → 再跑一轮。
+### 3.3 下一步（严格按顺序）
 
-（红线：调参阶段**不许看验收集**，调完了才跑一次最终验收。）
+1. **WP-H 第一波**（让 LLM 真的被调用）：候选序列 ≥2 + 冷却上限降到 60s + 半开探测 + 真退避 + 并发可配置
+2. **跑金丝雀验证门禁**：20~30 场，并发 1~2，要求 `total_tokens>0` 场次 ≥90%、兜底句占比 <5%、`degraded_turns ≤ turn_count`
+3. 门禁过了才允许跑大批；否则跑出来的数还是无效
+4. `engine-core` 全程不动
 
 ---
 
@@ -135,8 +157,19 @@ docs/worklog/completed/phase2.5/
 | 本文件（Phase2.5 README） | 工作入口：定位 / 出口条件 / WP 进度 / 红线 / 交付格式 |
 | [§Phase2.5 总览](phase2.5-overview-2026-11-08.md) | 详细的定位 / 目标 / 范围 / 关键设计决策 |
 | [§WP 登记表](phase2.5-wp-list-2026-11-08.md) | 逐 WP 一行的登记表（依赖关系 / 出口条件对照） |
+| [§数据链路体检记录](phase2.5-data-pipeline-audit-2026-11-09.md) | **必读**：6 项待修发现，含「91.8% 发言是兜底句」的完整证据链与代码行号 |
+| [§WP-H 任务单](wp-h-render-availability-fix-task.md) | **当前在办**：渲染可用性 + 指标可信度 + 批次门禁，9 项改动 + 验收门禁 |
 | [§worklog/README.md](../README.md) | 整个项目的工作入口（Phase2 封版 / R9 / Phase2.5 状态） |
 
 ---
 
-_Phase2.5 是验证期：不是做新功能，是验证引擎质量达标。_
+## 7. 术语澄清（2026-11-09 补）
+
+| 术语 | 容易误解成 | 实际含义 |
+|---|---|---|
+| 「话术重复率」 | Prompt 写得不够多样 | 本次三批数据里，它的真实含义是**渲染降级兜底率** |
+| 「渲染降级 / degraded」 | 内容质量不高 | **LLM 没被调用**，返回的是 `render-adapter.config.ts` 里的常量兜底句 |
+| 「heavy_degraded」 | 一半以上轮次质量差 | 计数口径错：两侧各 +1，可 2×turn_count；阈值却按轮数算 |
+| 「engine_version」 | 代码版本可追溯 | 实际全为 `"dev"`（`.env` 未配 `ENGINE_VERSION`），零区分度 |
+
+这三批数据的**唯一**正确用法：拿来定位管道缺陷。**不能**拿来调 prompt、不能拿来比较模式优劣、不能拿来给出口条件④打分。
