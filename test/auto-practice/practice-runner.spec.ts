@@ -73,7 +73,7 @@ describe('PracticeRunnerService', () => {
         scenarioType: 'full_simulation',
         engineVersion: 'test',
         sessionSeed: 'single/test',
-      } as InferenceFingerprint)),
+      })),
     };
     runner = new PracticeRunnerService(
       engine as unknown as TurnEnginePort,

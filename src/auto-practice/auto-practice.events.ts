@@ -5,8 +5,8 @@
 //     - 事件名用字符串常量, 不散落 (改一个事件名只动这一处).
 //     - payload 不含对话原文以外的内部结构 (trace 是透传, 前端原样渲染).
 
-import type { DebugTurnTrace } from '../admin-debug/debug-session.service.js';
 import type { InferenceFingerprint } from './inference-fingerprint.service.js';
+import type { DebugTurnTrace } from '../admin-debug/debug-session.service.js';
 
 /** WS 事件名 (前端 socket.on 用). */
 export const AUTO_PRACTICE_EVENTS = {

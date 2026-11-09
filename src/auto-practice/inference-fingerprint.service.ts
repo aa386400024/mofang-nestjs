@@ -71,9 +71,7 @@ export class InferenceFingerprintService {
     const characterVersion = await this.characterVersionRegistry.resolve(characterSlug);
 
     // 审议模式: 考核场景硬隔离 rule_only, 其他场景读全局配置 (缺省 rule_only).
-    const deliberationMode: DeliberationMode = scenarioType === 'exam'
-      ? 'rule_only'
-      : this.resolveGlobalDeliberationMode();
+    const deliberationMode: DeliberationMode = scenarioType === 'exam' ? 'rule_only' : this.resolveGlobalDeliberationMode();
 
     // 逻辑种子: batchId + sessionId 的确定性 hash (不是真随机, 是可复现标识).
     const sessionSeed = this.buildSessionSeed(batchId, sessionId);
