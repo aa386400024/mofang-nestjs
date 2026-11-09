@@ -6,6 +6,7 @@
 //     - payload 不含对话原文以外的内部结构 (trace 是透传, 前端原样渲染).
 
 import type { DebugTurnTrace } from '../admin-debug/debug-session.service.js';
+import type { InferenceFingerprint } from './inference-fingerprint.service.js';
 
 /** WS 事件名 (前端 socket.on 用). */
 export const AUTO_PRACTICE_EVENTS = {
@@ -26,6 +27,8 @@ export interface AutoPracticeSessionStartPayload {
   readonly characterSlug: string;
   readonly counselorModeId: string;
   readonly maxTurns: number;
+  /** 推理环境指纹 (WP-B): 模型/版本/审议模式/场景类型. */
+  readonly fingerprint: InferenceFingerprint;
 }
 
 /** 一轮对话的 payload. */

@@ -37,6 +37,7 @@ import { AutoPracticeGateway } from './auto-practice.gateway.js';
 import { CounselorAgentService, type CounselorHistoryTurn } from './counselor-agent.service.js';
 import { CounselorMode } from './entities/counselor-mode.entity.js';
 import { PracticeSession, type PracticeSessionStatus } from './entities/practice-session.entity.js';
+import { InferenceFingerprintService, type ScenarioType } from './inference-fingerprint.service.js';
 import { TURN_ENGINE_PORT, type TurnEnginePort } from './ports/turn-engine.port.js';
 
 /** 默认最大轮数 (一场对练聊多少轮). */
@@ -62,6 +63,8 @@ export interface RunPracticeInput {
   readonly batchId?: string | null;
   /** 预生成的场次 id (controller 立即返回给前端用; 不传则 runner 自己生成). */
   readonly practiceSessionId?: string;
+  /** 场景类型 (WP-B: 考核场景硬隔离 rule_only; 缺省 full_simulation). */
+  readonly scenarioType?: ScenarioType;
 }
 
 /**
@@ -83,6 +86,7 @@ export class PracticeRunnerService implements OnModuleInit {
   constructor(
     @Inject(TURN_ENGINE_PORT) private readonly engine: TurnEnginePort,
     private readonly counselorAgent: CounselorAgentService,
+    private readonly fingerprintService: InferenceFingerprintService,
     @InjectRepository(PracticeSession) private readonly sessionRepo: Repository<PracticeSession>,
     // gateway 在单测里没有 (optional), 生产环境存在就推事件.
     // 注意: 参数类型写成 `AutoPracticeGateway | undefined` 时, TS 会把 design:paramtypes
@@ -123,6 +127,7 @@ export class PracticeRunnerService implements OnModuleInit {
   async run(input: RunPracticeInput): Promise<RunPracticeResult> {
     const maxTurns = input.maxTurns ?? DEFAULT_MAX_TURNS;
     const practiceSessionId = input.practiceSessionId ?? nanoid();
+    const scenarioType = input.scenarioType ?? 'full_simulation';
     let debugSessionId = '';
     let status: PracticeSessionStatus = 'running';
     let exitReason = 'max_turns';
@@ -135,7 +140,7 @@ export class PracticeRunnerService implements OnModuleInit {
     // (void this.runner.run(...)), unhandled rejection 直接打崩整个 Node 进程.
     // 失败信息已经落库 (status=failed/errorMessage), 调用方不需要再靠 throw 感知.
     try {
-      const opened = await this.engine.open(input.characterSlug);
+      const opened = await this.engine.open(input.characterSlug, scenarioType);
       debugSessionId = opened.debugSessionId;
     } catch (error) {
       status = 'failed';
@@ -164,7 +169,16 @@ export class PracticeRunnerService implements OnModuleInit {
       };
     }
 
-    // ② 落库 running 行.
+    // ② 生成推理环境指纹 (WP-B): 模型/角色版本/审议模式/场景类型.
+    const fingerprint = await this.fingerprintService.build(
+      input.characterSlug,
+      input.counselorMode.id,
+      scenarioType,
+      input.batchId ?? null,
+      practiceSessionId,
+    );
+
+    // ③ 落库 running 行 (带版本指纹).
     await this.persistSession(practiceSessionId, {
       debugSessionId,
       characterSlug: input.characterSlug,
@@ -176,15 +190,21 @@ export class PracticeRunnerService implements OnModuleInit {
       exitReason,
       batchId: input.batchId ?? null,
       errorMessage: null,
+      modelVersion: fingerprint.model,
+      seedValue: fingerprint.sessionSeed,
+      characterVersion: fingerprint.characterVersion,
+      deliberationMode: fingerprint.deliberationMode,
+      engineVersion: fingerprint.engineVersion,
     });
 
-    // ③ 推 session_start.
+    // ④ 推 session_start (带指纹).
     const startPayload: AutoPracticeSessionStartPayload = {
       practiceSessionId,
       debugSessionId,
       characterSlug: input.characterSlug,
       counselorModeId: input.counselorMode.id,
       maxTurns,
+      fingerprint,
     };
     this.gateway?.publishToSession(practiceSessionId, AUTO_PRACTICE_EVENTS.sessionStart, startPayload);
 

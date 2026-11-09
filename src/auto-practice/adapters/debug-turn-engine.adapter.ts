@@ -11,9 +11,10 @@
 //       本类零业务逻辑, 只做字段映射.
 //     - **不改 DebugSessionService**: 它服务于手动调试面板, 自动对练只是新消费者.
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import { DebugSessionService } from '../../admin-debug/debug-session.service.js';
+import type { ScenarioType } from '../inference-fingerprint.service.js';
 import type { EngineTurnResult, TurnEnginePort } from '../ports/turn-engine.port.js';
 
 /**
@@ -23,11 +24,18 @@ import type { EngineTurnResult, TurnEnginePort } from '../ports/turn-engine.port
  */
 @Injectable()
 export class DebugTurnEngineAdapter implements TurnEnginePort {
+  private readonly logger = new Logger(DebugTurnEngineAdapter.name);
+
   constructor(private readonly debugSession: DebugSessionService) {}
 
   /** @inheritdoc */
-  async open(characterSlug: string): Promise<{ readonly debugSessionId: string }> {
+  async open(characterSlug: string, scenarioType: ScenarioType = 'full_simulation'): Promise<{ readonly debugSessionId: string }> {
     const created = await this.debugSession.createSession(characterSlug);
+    // 考核场景硬隔离: 日志标记, 实际 rule_only 强制由 InferenceFingerprintService +
+    // 审议层 scenario route 共同保证. 这里只是记录"本场声明了什么场景".
+    if (scenarioType === 'exam') {
+      this.logger.log(`[debug_engine] 考核场景会话 session=${created.sessionId} — 强制 rule_only`);
+    }
     return { debugSessionId: created.sessionId };
   }
 

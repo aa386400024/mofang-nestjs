@@ -218,6 +218,9 @@ import { AddAutoPracticeTables1714900000033 } from '../src/migration/17149000000
 // V2026-11-09 治本 (P1-3 — ap_practice_sessions 加 degraded_turns 列):
 //   上游 429/超时导致咨询师回兜底句时累计计数, 退出时按比例打 exitReason 后缀.
 import { AddPracticeSessionDegradedTurns1714900000034 } from '../src/migration/1714900000034-AddPracticeSessionDegradedTurns.js';
+// V2026-11-09 治本 (Phase2.5 WP-B — ap_practice_sessions 加版本列):
+//   character_version / deliberation_mode / engine_version 三列, 推理环境可追溯.
+import { AddPracticeSessionVersionColumns1714900000035 } from '../src/migration/1714900000035-AddPracticeSessionVersionColumns.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -373,6 +376,8 @@ const ormconfig = async (): Promise<DataSource> => {
       AddAutoPracticeTables1714900000033,
       // V2026-11-09 治本 (P1-3 — ap_practice_sessions 加 degraded_turns 列):
       AddPracticeSessionDegradedTurns1714900000034,
+      // V2026-11-09 治本 (Phase2.5 WP-B — ap_practice_sessions 加版本列):
+      AddPracticeSessionVersionColumns1714900000035,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

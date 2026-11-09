@@ -15,6 +15,7 @@
 //     - 端口只说"给我一轮输入, 我给你来访口语 + 危机标记", 不说"怎么落盘 / 怎么存内存".
 
 import type { DebugTurnTrace } from '../../admin-debug/debug-session.service.js';
+import type { ScenarioType } from '../inference-fingerprint.service.js';
 
 /**
  * 一轮对话的结果 (端口出口).
@@ -46,9 +47,10 @@ export interface TurnEnginePort {
    * 开一场会话.
    *
    * @param characterSlug 来访者角色 slug
+   * @param scenarioType 场景类型 (考核场景硬隔离 rule_only; 缺省 full_simulation)
    * @returns 调试会话 id (后续 turn/close 用它)
    */
-  open(characterSlug: string): Promise<{ readonly debugSessionId: string }>;
+  open(characterSlug: string, scenarioType?: ScenarioType): Promise<{ readonly debugSessionId: string }>;
 
   /**
    * 跑一轮 (咨询师说一句话 → 来访者回一句话).

@@ -32,6 +32,7 @@ import { DebugTurnEngineAdapter } from './adapters/debug-turn-engine.adapter.js'
 import { CounselorAgentService } from './counselor-agent.service.js';
 import { CounselorMode } from './entities/counselor-mode.entity.js';
 import { PracticeSession } from './entities/practice-session.entity.js';
+import { InferenceFingerprintService } from './inference-fingerprint.service.js';
 import { TURN_ENGINE_PORT } from './ports/turn-engine.port.js';
 import { PracticeQueueService } from './practice-queue.service.js';
 import { PracticeRunnerService } from './practice-runner.service.js';
@@ -55,6 +56,7 @@ import { PracticeRunnerService } from './practice-runner.service.js';
       useClass: DebugTurnEngineAdapter,
     },
     CounselorAgentService,
+    InferenceFingerprintService,
     PracticeRunnerService,
     PracticeQueueService,
     AutoPracticeGateway,

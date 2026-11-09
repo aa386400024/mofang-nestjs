@@ -11,6 +11,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CounselorMode } from '../../src/auto-practice/entities/counselor-mode.entity.js';
+import type { InferenceFingerprint } from '../../src/auto-practice/inference-fingerprint.service.js';
 import type { EngineTurnResult, TurnEnginePort } from '../../src/auto-practice/ports/turn-engine.port.js';
 import { PracticeRunnerService, DEFAULT_MAX_TURNS } from '../../src/auto-practice/practice-runner.service.js';
 
@@ -62,9 +63,22 @@ describe('PracticeRunnerService', () => {
     engine = { open: vi.fn(), turn: vi.fn(), close: vi.fn() };
     counselor = { generate: vi.fn() };
     repo = stubRepo();
+    const fingerprint = {
+      build: vi.fn(async () => ({
+        model: 'MiniMax-M3.1-Flash',
+        characterSlug: 'vpt_test',
+        characterVersion: '1.0.0',
+        counselorModeId: 'expert',
+        deliberationMode: 'rule_only',
+        scenarioType: 'full_simulation',
+        engineVersion: 'test',
+        sessionSeed: 'single/test',
+      } as InferenceFingerprint)),
+    };
     runner = new PracticeRunnerService(
       engine as unknown as TurnEnginePort,
       counselor as never,
+      fingerprint as never,
       repo as never,
       undefined, // gateway optional, 单测不给
     );

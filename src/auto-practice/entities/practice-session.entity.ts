@@ -122,6 +122,30 @@ export class PracticeSession {
   @Column({ type: 'varchar', length: 128, nullable: true, name: 'seed_value' })
   seedValue!: string | null;
 
+  /**
+   * WP-B: 角色 semver 版本号 (如 "1.0.0").
+   *
+   * 会话创建时从 CharacterVersionRegistry 读实时值, 不缓存 —— 版本号记错 = 溯源失效.
+   */
+  @Column({ type: 'varchar', length: 32, nullable: true, name: 'character_version' })
+  characterVersion!: string | null;
+
+  /**
+   * WP-B: 本场审议模式 (rule_only / shadow / llm_active).
+   *
+   * 考核场景恒为 rule_only (硬隔离), 与全局开关无关.
+   */
+  @Column({ type: 'varchar', length: 16, nullable: true, name: 'deliberation_mode' })
+  deliberationMode!: string | null;
+
+  /**
+   * WP-B: 后端代码版本 (git sha 或 build id).
+   *
+   * 用于定位"哪版代码跑出来的数据", 出问题时能快速回溯.
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true, name: 'engine_version' })
+  engineVersion!: string | null;
+
   /** 本场 LLM 总成本 (美元, 粗略估算; WP-E 做成本分析用). */
   @Column({ type: 'decimal', precision: 10, scale: 4, nullable: true, name: 'total_cost' })
   totalCost!: number | null;
