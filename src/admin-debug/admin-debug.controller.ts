@@ -64,7 +64,8 @@
 //     · 带窗口参数 → 读 N 个日 key 聚合成窗口值 (pipeline 批量读, 一次往返).
 //     日 key: `deliberation_stats:global:YYYY-MM-DD` (Asia/Shanghai, TTL 90 天).
 
-import { Controller, Get, Logger, Optional, Param, Query, Req, UseGuards } from '@nestjs/common';
+import { createHash } from 'node:crypto';
+import { Controller, Get, Logger, Optional, Param, Post, Body, Query, Req, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, MoreThanOrEqual, type FindOptionsWhere, type Repository } from 'typeorm';
@@ -291,6 +292,53 @@ export class AdminDebugController {
       enabled: r.enabled,
       auditStatus: r.auditStatus,
     }));
+  }
+
+  /**
+   * 新建角色基线 (Basic Auth admin 可用).
+   *
+   * 用途: Phase2.5 数据积累期快速扩充角色池, 跑更多组合的自动对练.
+   * 初始 auditStatus = 'approved', enabled = true (人工撰写 = 已过审).
+   */
+  @Post('characters')
+  async createCharacter(@Body() body: Record<string, unknown>) {
+    const templateId = String(body['templateId'] ?? '').trim();
+    const displayName = String(body['displayName'] ?? '').trim();
+    const attachmentStyle = String(body['attachmentStyle'] ?? '').trim();
+    if (!templateId || !displayName || !attachmentStyle) {
+      return { error: 'templateId / displayName / attachmentStyle 必填' };
+    }
+    const exists = await this.characterRepo.findOne({ where: { templateId } });
+    if (exists) {
+      return { error: `角色已存在: ${templateId}` };
+    }
+    // 内容派生主键 (与 seed 脚本同算法)
+    const hex = createHash('sha1').update(`character_profile:${templateId}`).digest('hex');
+    const id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+
+    const row = this.characterRepo.create({
+      id,
+      templateId,
+      displayName,
+      attachmentStyle: attachmentStyle as 'secure' | 'avoidant' | 'anxious' | 'disorganized',
+      fivePs: (body['fivePs'] ?? {}) as CharacterProfileEntity['fivePs'],
+      baselineTrust: Number(body['baselineTrust'] ?? 0.3),
+      baselineResistanceVerbal: Number(body['baselineResistanceVerbal'] ?? 0.5),
+      baselineResistanceDepth: Number(body['baselineResistanceDepth'] ?? 0.5),
+      baselineResistanceStyle: Number(body['baselineResistanceStyle'] ?? 0.5),
+      baselineEmotionValence: Number(body['baselineEmotionValence'] ?? -0.3),
+      baselineEmotionArousal: Number(body['baselineEmotionArousal'] ?? 0.4),
+      baselineSafety: Number(body['baselineSafety'] ?? 0.5),
+      baselineBond: Number(body['baselineBond'] ?? 0.1),
+      coreBeliefs: (body['coreBeliefs'] ?? []) as CharacterProfileEntity['coreBeliefs'],
+      underlyingDesires: (body['underlyingDesires'] ?? []) as CharacterProfileEntity['underlyingDesires'],
+      forbiddenBehaviors: (body['forbiddenBehaviors'] ?? []) as string[],
+      sensitiveTopics: (body['sensitiveTopics'] ?? []) as string[],
+      auditStatus: 'approved',
+      enabled: true,
+    });
+    await this.characterRepo.save(row);
+    return { ok: true, templateId, displayName };
   }
 
   /**
