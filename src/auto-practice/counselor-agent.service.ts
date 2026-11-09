@@ -23,6 +23,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { randomInt } from 'node:crypto';
 
 import type { CounselorMode } from '../auto-practice/entities/counselor-mode.entity.js';
 import { LLMTier } from '../llm/common/enums/llm.enums.js';
@@ -59,12 +60,60 @@ const HISTORY_WINDOW_TURNS = 10;
 /** 首轮用户提示 (让模型知道这是开场). */
 const OPENING_HINT = '（咨询室场景，来访者刚坐下。请说你的开场第一句。）';
 
-/** LLM 失败时的兜底咨询师台词 (中性过渡, 不让对话冷场). */
-const FALLBACK_REPLY = '嗯，我在听。你可以接着说。';
+/**
+ * LLM 失败时的兜底咨询师台词池 (中性过渡, 不让对话冷场).
+ *
+ * V2026-11-09 治本 (Phase2.5 WP-G · 改动 1):
+ *   原来只有**一句** —— 396 场批量跑里这句出现 5018 次 (占咨询师消息 65.3%),
+ *   "咨询师复读"直接爆表, 而且模型很容易把它当成安全牌一直复读.
+ *   现在备 5 句中性过渡语, 每次失败取一句.
+ *
+ * 为什么"随机取"还不够:
+ *   纯随机相邻两次仍然可能撞同一句 —— 那就等于没改. 所以取用时**主动避开上一句**
+ *   (见 pickFallbackReply), 保证相邻两次兜底一定不同.
+ *
+ * ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
+ */
+const FALLBACK_REPLIES: readonly string[] = [
+  '嗯，我在听。你可以接着说。',
+  '我在这儿听着，你慢慢说。',
+  '好，这部分我听到了。你想接着说哪儿都行。',
+  '嗯……你慢慢讲，我不打断你。',
+  '收到。你说，我听着。',
+];
 
 /** 收尾标记: 模型每轮必须在末尾选一个状态 ("结束" / "还要继续"). */
 const CLOSE_TAG = '[[STATE:END]]';
 const CONTINUE_TAG = '[[STATE:MORE]]';
+
+/**
+ * 危机应对协议 (V2026-11-09 治本 · Phase2.5 WP-G · 改动 5).
+ *
+ * 为什么要有:
+ *   396 场里有 9 场触发了危机探测, 但咨询师的应对**因模式而异** —— 有的绕开话题,
+ *   有的直接收尾, 有的把危机当普通焦虑处理. 危机应对是有临床共识的四步,
+ *   不应该让"咨询师今天状态如何"来决定.
+ *
+ * 放在**收尾纪律之后** (指最终 prompt 里的位置):
+ *   收尾纪律先定义 "[[STATE:END]] / [[STATE:MORE]]" 这套标记, 危机协议后引用
+ *   [[STATE:MORE]] 才不会让模型看到"没定义过的标记".
+ *
+ * 为什么危机轮要显式说"输出 MORE":
+ *   收尾纪律要求每轮表态, 但危机情境下**收尾是不对的** —— 危机还在处理中,
+ *   这时候结束咨询等于把来访者一个人留在危机里. 显式钉死比让模型自己判断可靠.
+ *
+ * ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
+ */
+const CRISIS_PROTOCOL = [
+  '',
+  '## 危机应对',
+  '如果来访者提到自伤、自杀念头、伤害他人的想法或严重的心理危机，你必须按标准危机干预流程回应：',
+  '① 表达关心和重视 —— 让来访者感到你听到了、你在意他的安全，而不是在处理一件普通的事；',
+  '② 评估安全性 —— 直接、平静地询问他此刻有没有伤害自己的打算、有没有具体计划、身边有没有人；',
+  '③ 建议寻求专业帮助 —— 明确建议联系心理援助热线、寻求专业医疗帮助，或请可信赖的人陪着他；',
+  '④ 不要轻视或回避 —— 不评判、不说"想开点""别想太多"，也不因为对方提到危机就草草结束这次咨询。',
+  '出现危机时，这一轮输出 ' + CONTINUE_TAG + '（不要收尾）—— 你还要继续跟来访者在一起。',
+].join('\n');
 
 /**
  * 收尾纪律 (拼在 system 末尾).
@@ -93,6 +142,8 @@ const CLOSE_DISCIPLINE = [
 export class CounselorAgentService {
   private readonly logger = new Logger('CounselorAgentService');
   private readonly model: string;
+  /** 上一句兜底台词的下标 (避免相邻两次兜底撞同一句). */
+  private lastFallbackIndex = -1;
 
   constructor(
     private readonly router: LlmRouterService,
@@ -128,7 +179,7 @@ export class CounselorAgentService {
       });
       const raw = response.content.trim();
       if (raw.length === 0) {
-        return { text: FALLBACK_REPLY, model: this.model, degraded: true, closeRequested: false };
+        return { text: this.pickFallbackReply(), model: this.model, degraded: true, closeRequested: false };
       }
       // 剔除状态标记: 标记只作控制信号, 绝不进对话文本.
       let closeRequested = raw.includes(CLOSE_TAG);
@@ -141,14 +192,36 @@ export class CounselorAgentService {
       this.logger.debug(`[counselor_agent] close=${closeRequested} raw_len=${raw.length} finish=${response.finishReason}`);
       const text = raw.split(CLOSE_TAG).join('').split(CONTINUE_TAG).join('').trim();
       if (text.length === 0) {
-        return { text: FALLBACK_REPLY, model: this.model, degraded: true, closeRequested: false };
+        return { text: this.pickFallbackReply(), model: this.model, degraded: true, closeRequested: false };
       }
       return { text, model: this.model, degraded: false, closeRequested };
     } catch (error) {
       // 不打原文 (隐私红线): 只记错误类型.
       this.logger.warn(`[counselor_agent] LLM 生成失败, 走兜底 (${errorName(error)})`);
-      return { text: FALLBACK_REPLY, model: this.model, degraded: true, closeRequested: false };
+      return { text: this.pickFallbackReply(), model: this.model, degraded: true, closeRequested: false };
     }
+  }
+
+  /**
+   * 取一句兜底台词.
+   *
+   * 为什么"随机 + 避开上一句":
+   *   纯随机在相邻两次兜底时仍可能取到同一句 —— 那就等于没改 (复读照旧).
+   *   避开上一句后, 相邻两次兜底**保证不同**, 于是"连续 N 次失败全是同一句"
+   *   这种退化形态在结构上就不可能再出现.
+   *
+   * @returns 兜底台词
+   */
+  private pickFallbackReply(): string {
+    const size = FALLBACK_REPLIES.length;
+    // 用 node:crypto 的 randomInt 而不是 Math.random: 后者是非密码学安全的伪随机源
+    // (sonarjs/pseudo-random), 与仓库既有口径一致 (practice-scenario / login-code 等).
+    let index = randomInt(size);
+    if (index === this.lastFallbackIndex) {
+      index = (index + 1) % size;
+    }
+    this.lastFallbackIndex = index;
+    return FALLBACK_REPLIES[index];
   }
 
   /**
@@ -164,7 +237,7 @@ export class CounselorAgentService {
    * @returns chat messages
    */
   private buildMessages(mode: CounselorMode, history: readonly CounselorHistoryTurn[]): ChatMessage[] {
-    const systemContent = `${mode.systemPrompt}\n\n输出纪律：你只输出咨询师本人说的话，不要写旁白、括号注释、动作描写、心理活动或任何解释；也不要使用 markdown 符号（**、#、>、- 列表等），这是当面说话，不是写文档。${CLOSE_DISCIPLINE}`;
+    const systemContent = `${mode.systemPrompt}\n\n输出纪律：你只输出咨询师本人说的话，不要写旁白、括号注释、动作描写、心理活动或任何解释；也不要使用 markdown 符号（**、#、>、- 列表等），这是当面说话，不是写文档。${CLOSE_DISCIPLINE}${CRISIS_PROTOCOL}`;
     const messages: ChatMessage[] = [{ role: 'system', content: systemContent }];
 
     // 截断到最近 N 轮.

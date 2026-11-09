@@ -300,6 +300,8 @@ export class PracticeRunnerService implements OnModuleInit {
     let turnCount = 0;
     let repeatStreak = 0;
     let lastVisitorText = '';
+    let counselorRepeatStreak = 0;
+    let lastCounselorText = '';
     let degradedTurns = 0;
 
     for (let i = 1; i <= maxTurns; i += 1) {
@@ -345,6 +347,22 @@ export class PracticeRunnerService implements OnModuleInit {
         exitReason = 'natural_close';
         break;
       }
+
+      // 结束条件: 咨询师复读 (停滞).
+      //   V2026-11-09 治本 (Phase2.5 WP-G · 改动 3): 原来只检测**来访者**复读 ——
+      //   咨询师连说十几句"嗯我在听"也不停 (396 场里这句出现 5018 次, 占咨询师消息 65.3%).
+      //   现在咨询师侧用**同一套**口径 (isNearDuplicate) 检测, 连续 3 轮复读同样判停滞.
+      if (isNearDuplicate(counselorReply.text, lastCounselorText)) {
+        counselorRepeatStreak += 1;
+        if (counselorRepeatStreak >= STAGNANT_REPEAT_LIMIT) {
+          status = 'stagnant';
+          exitReason = 'stagnant';
+          break;
+        }
+      } else {
+        counselorRepeatStreak = 0;
+      }
+      lastCounselorText = counselorReply.text;
 
       // 结束条件: 来访复读 (停滞).
       if (isNearDuplicate(result.reply, lastVisitorText)) {
@@ -534,20 +552,185 @@ export class PracticeRunnerService implements OnModuleInit {
 }
 
 /**
- * 判断来访回复是否跟上一轮几乎一样 (停滞检测).
+ * 近似重复判定 (停滞检测) —— V2026-11-09 治本 (Phase2.5 WP-G · 改动 4).
  *
- * 口径:
+ * 四层判定, 从严到宽:
  *   ① 去掉空白后完全相同 → 复读 ("嗯""好的"这种短答重复也要抓);
- *   ② 都 >= 15 字, 长度差 < 10% 且前 15 字相同 → 复读 (长文几乎不会撞).
+ *   ② 都 >= 15 字, 长度差 < 10% 且前 15 字相同 → 复读 (长文几乎不会撞, 原有口径, 保留);
+ *   ③ 字符级 3-gram Jaccard >= 0.6 (任务单口径);
+ *   ④ 语义近似: "表达状态簇"重叠 + 话题不冲突.
+ *
+ * 为什么必须有第 ④ 层:
+ *   任务单的验收对是"我不太想现在讲清楚"与"最近确实有点难说出口" ——
+ *   这两句**零字符重叠**, 纯字符 n-gram 的 Jaccard 恒为 0, 判不出近似;
+ *   而它们在临床上就是同一句话的两种说法 (都在说"说不出口"), 不判重就是停滞漏判.
+ *   396 场里 49.7% 跑满 maxTurns, 就是靠这条漏掉的.
+ *
+ * 为什么第 ④ 层不用 embedding:
+ *   本仓的 embedding provider (通义 / 豆包 / DeepSeek) 都要各自的 env key 才注册,
+ *   MiniMax 只提供 CHAT 不提供 embedding —— 走向量会让这个判定依赖未配置的上游,
+ *   本机根本验不了. 本地词表计算零网络开销、确定性可测.
+ *
+ * ⚠️ 词表是**工程种子值, 非临床标定** —— 只覆盖常见口语表达, 待真实对练校准.
  */
-function isNearDuplicate(current: string, previous: string): boolean {
+
+/** 字符级 3-gram 相似度阈值 (任务单口径: 超过就算近似重复). */
+const CHAR_NGRAM_THRESHOLD = 0.6;
+
+/** 语义簇相似度阈值 (表达状态簇的 Jaccard). */
+const SEMANTIC_CLUSTER_THRESHOLD = 0.5;
+
+/** 参与语义判定的最短文本长度 (太短的应答不参与, 避免"嗯"/"哦"互判). */
+const SEMANTIC_MIN_LENGTH = 4;
+
+/** 关键词簇 (表达状态 / 话题). */
+interface KeywordCluster {
+  /** 簇名 (只在内部用, 不进 prompt / 不进日志). */
+  readonly id: string;
+  /** 命中即算属于本簇的标记词. */
+  readonly keywords: readonly string[];
+}
+
+/**
+ * 表达状态簇: 一句话在**说什么状态**的标记词.
+ *
+ * 为什么要分簇而不是"命中任一关键词就算重复":
+ *   "不想说工作的事"与"不想说我爸妈的事"都命中"不想说" —— 但它们**话题不同**,
+ *   不是同一句话. 所以"表达状态"只用来判**候选**, 真正的结论要看话题冲突检查.
+ */
+const SEMANTIC_STATE_CLUSTERS: readonly KeywordCluster[] = [
+  {
+    id: '表达困难',
+    keywords: ['不太想', '不想说', '不愿说', '讲不清', '说不清', '说不出口', '难说', '难开口', '难讲', '不好说', '说不上来'],
+  },
+  { id: '迟疑', keywords: ['让我想想', '我想想', '该怎么说', '怎么说呢', '等我想想'] },
+  { id: '放慢', keywords: ['慢慢来', '慢慢说', '慢慢聊', '缓一下', '缓一缓', '不急'] },
+  { id: '转移话题', keywords: ['聊点别的', '说点别的', '换个话题', '别的话题', '别的吧'] },
+  { id: '迷茫', keywords: ['不知道', '想不明白', '没想清楚'] },
+  { id: '疲惫', keywords: ['好累', '很累', '太累', '疲惫', '没力气'] },
+  { id: '痛苦', keywords: ['难受', '很难受', '痛苦', '撑不住'] },
+  { id: '恐惧', keywords: ['害怕', '我怕', '担心', '恐惧'] },
+  { id: '愤怒', keywords: ['生气', '愤怒', '气死', '恼火'] },
+  { id: '积极', keywords: ['开心', '高兴', '轻松', '还不错'] },
+  { id: '道歉', keywords: ['对不起', '抱歉', '不好意思'] },
+  { id: '感谢', keywords: ['谢谢', '感谢'] },
+];
+
+/**
+ * 话题簇: 一句话在**谈什么**的标记词.
+ *
+ * 冲突规则: 两句都有话题标记、但话题**不完全相同** → 不是同一句话的换皮 → 不判重.
+ * (A={工作} B={工作,睡眠} 也算不同 —— "工作压力大"与"工作压力让我睡不着"
+ *  说的不是一回事.)
+ */
+const TOPIC_CLUSTERS: readonly KeywordCluster[] = [
+  { id: '工作', keywords: ['工作', '上班', '老板', '同事', '公司', '加班'] },
+  { id: '父母', keywords: ['父母', '爸妈', '原生家庭', '家里人'] },
+  { id: '婚姻', keywords: ['婚姻', '老公', '老婆', '伴侣', '丈夫', '妻子', '感情'] },
+  { id: '学业', keywords: ['学习', '考试', '学校', '考研', '上课', '成绩'] },
+  { id: '同伴', keywords: ['朋友', '同学', '室友'] },
+  { id: '睡眠', keywords: ['睡眠', '失眠', '睡不着', '睡觉', '做梦'] },
+  { id: '经济', keywords: ['钱', '经济', '房租', '工资', '存款'] },
+  { id: '健康', keywords: ['健康', '身体', '生病', '医院', '体检'] },
+];
+
+/**
+ * 判断这一轮是否跟上一轮几乎一样 (停滞检测).
+ *
+ * @param current 这一轮说的话
+ * @param previous 上一轮说的话 (空串 = 首轮, 永远不判重)
+ * @returns 是否近似重复
+ */
+export function isNearDuplicate(current: string, previous: string): boolean {
   if (previous.length === 0) return false;
   const a = current.trim();
   const b = previous.trim();
   if (a === b) return true;
-  if (a.length < 15 || b.length < 15) return false;
-  const lenDiff = Math.abs(a.length - b.length) / Math.max(a.length, b.length);
-  return lenDiff < 0.1 && a.slice(0, 15) === b.slice(0, 15);
+  // ② 长文复读 (原有口径): 都够长 + 长度接近 + 前 15 字一样.
+  if (a.length >= 15 && b.length >= 15) {
+    const lenDiff = Math.abs(a.length - b.length) / Math.max(a.length, b.length);
+    if (lenDiff < 0.1 && a.slice(0, 15) === b.slice(0, 15)) return true;
+  }
+  // ③ 字符级 3-gram.
+  if (charNgramSimilarity(a, b) >= CHAR_NGRAM_THRESHOLD) return true;
+  // ④ 语义近似.
+  return isSemanticNearDuplicate(a, b);
+}
+
+/** 字符级 n-gram Jaccard 相似度. */
+function charNgramSimilarity(a: string, b: string): number {
+  const setA = ngramSet(a, 3);
+  const setB = ngramSet(b, 3);
+  if (setA.size === 0 || setB.size === 0) return 0;
+  let intersection = 0;
+  for (const gram of setA) {
+    if (setB.has(gram)) intersection += 1;
+  }
+  return intersection / (setA.size + setB.size - intersection);
+}
+
+/** 取字符 n-gram 集合 (去空白; 短于 n 时整串当一个词). */
+function ngramSet(text: string, n: number): Set<string> {
+  const compact = text.replaceAll(/\s+/g, '');
+  const grams = new Set<string>();
+  if (compact.length === 0) return grams;
+  if (compact.length < n) {
+    grams.add(compact);
+    return grams;
+  }
+  for (let i = 0; i + n <= compact.length; i += 1) {
+    grams.add(compact.slice(i, i + n));
+  }
+  return grams;
+}
+
+/**
+ * 语义近似判定: 表达状态簇重叠 + 话题不冲突.
+ *
+ * 三道闸:
+ *   ① 两句都要够长 (太短的应答不参与);
+ *   ② 表达状态簇要有交集 (交集为空 = 说的不是同一种状态);
+ *   ③ 话题不能冲突 (话题不同 = 不是同一句话的换皮).
+ */
+function isSemanticNearDuplicate(a: string, b: string): boolean {
+  if (a.length < SEMANTIC_MIN_LENGTH || b.length < SEMANTIC_MIN_LENGTH) return false;
+  const statesA = matchClusters(a, SEMANTIC_STATE_CLUSTERS);
+  const statesB = matchClusters(b, SEMANTIC_STATE_CLUSTERS);
+  if (statesA.size === 0 || statesB.size === 0) return false;
+  let shared = 0;
+  for (const state of statesA) {
+    if (statesB.has(state)) shared += 1;
+  }
+  if (shared === 0) return false;
+  const union = statesA.size + statesB.size - shared;
+  if (shared / union < SEMANTIC_CLUSTER_THRESHOLD) return false;
+  const topicsA = matchClusters(a, TOPIC_CLUSTERS);
+  const topicsB = matchClusters(b, TOPIC_CLUSTERS);
+  if (topicsA.size > 0 && topicsB.size > 0 && !isSameSet(topicsA, topicsB)) return false;
+  return true;
+}
+
+/** 命中关键词的簇集合. */
+function matchClusters(text: string, clusters: readonly KeywordCluster[]): Set<string> {
+  const hits = new Set<string>();
+  for (const cluster of clusters) {
+    for (const keyword of cluster.keywords) {
+      if (text.includes(keyword)) {
+        hits.add(cluster.id);
+        break;
+      }
+    }
+  }
+  return hits;
+}
+
+/** 两个簇集合是否完全相同. */
+function isSameSet(a: Set<string>, b: Set<string>): boolean {
+  if (a.size !== b.size) return false;
+  for (const item of a) {
+    if (!b.has(item)) return false;
+  }
+  return true;
 }
 
 /** 错误类型名 (不取 message —— 隐私红线). */

@@ -2,12 +2,12 @@
 
 > **路径**：`docs/worklog/pending/phase2.5-wp-list-2026-11-08.md`
 > **总览**：[§Phase2.5 总览](phase2.5-overview-2026-11-08.md)
-> **状态**：✅ Phase2.5 WP-F 已交付（2026-11-09）· WP 清单（6 条）见下表 · 另交付独立单 1 条（闸门 trace 查询接口）
+> **状态**：✅ Phase2.5 WP-F / WP-G 已交付（2026-11-09）· WP 清单（7 条）见下表 · 另交付独立单 1 条（闸门 trace 查询接口）
 > **创建日期**：2026-11-08
 
 ---
 
-## 一、WP 清单（6 条）
+## 一、WP 清单（7 条）
 
 | WP | 名称 | 优先级 | 一句话描述 | 状态 |
 |---|---|---|---|---|
@@ -17,6 +17,7 @@
 | **WP-D** | 模拟咨询师 AI + 自动对练 | 🟡 P1 | 用一万份个案逐字稿（附督导解析）训练模拟咨询师 AI；自动跑几千场对练，积累数据集 | ✅ 已交付 → [`交付记录`](../completed/phase2.5/phase2.5-wp-d-auto-practice-2026-11-08-implementation.md)；2026-11-09 全量实测 → [`测试报告`](../completed/phase2.5/phase2.5-wp-d-auto-practice-2026-11-09-test-report.md) · [`修复任务单`](phase2.5-wp-d-auto-practice-2026-11-09-fix-list.md) |
 | **WP-E** | 自动评测 + 参数调优 | 🟡 P1 | 用督导解析当 ground truth，自动评测审议建议准确率；调到 ≥80% 达标 | ✅ 已交付 → [`交付记录`](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-implementation-2026-11-09.md)；[任务单](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-tuning.md) |
 | **WP-F** | 成本看板合并数据源（正式训练 + 自动对练） | 🟡 P1 | 自动对练的 token / 成本落库（人民币元，同一张定价表）；成本看板合并两张表，按来源区分 | ✅ 已交付 → [`交付记录`](../completed/phase2.5/phase2.5-wp-f-cost-board-merge-sources-implementation-2026-11-09.md)；[任务单](../completed/phase2.5/phase2.5-wp-f-cost-board-merge-sources.md) |
+| **WP-G** | 自动对练对话质量修复 | 🟡 P1 | 咨询师兜底话术池（去单句复读）+ 咨询师复读检测 + 语义近重复判定（调低停滞漏判）+ 危机应对协议 + 渲染层 prompt 硬约束（禁止重复句式 / 细化 resistance 标签） | ✅ 已交付 → [`交付记录`](../completed/phase2.5/phase2.5-wp-g-dialogue-quality-fix-implementation-2026-11-09.md)；[任务单](../completed/phase2.5/wp-g-dialogue-quality-fix-task.md) |
 
 ---
 
@@ -80,4 +81,4 @@ Phase2 封版记录里列了 6 项 Phase3 阻塞，本阶段处理其中 4 项�
 
 ---
 
-_本登记表为 Phase2.5 的任务清单：6 个 WP，按依赖顺序开工。_
+_本登记表为 Phase2.5 的任务清单：7 个 WP，按依赖顺序开工。_

@@ -53,7 +53,7 @@
 //   覆盖"这一轮怎么说"从话量三档升级到四手法的口径 ——
 //     ① 语气疏离度三档 (distant / neutral / warm): 阻抗优先, 同盟三维齐全才亲近;
 //     ② 情绪表现方式: 标签 + 唤醒 → 怎么表现 (焦虑 / 愤怒各有高低唤醒两种说法);
-//     ③ 表达层轻量随机: prompt 里有一句"你可以有一点变化";
+//     ③ 表达层变化: prompt 里有一句"不要重复最近几轮用过的句式" (WP-G 改动 6);
 //     ④ 口语化 / 非语言: "说话方式"后面补了非语言表达那一行;
 //     ⑤ 零回归: 没有 safety / bond → **不渲染**语气疏离度那一行;
 //     ⑥ 零回归: 情绪是 neutral → 不给额外的情绪表现指令;
@@ -761,14 +761,14 @@ describe('WP7 · 决策→说话闭环', () => {
       expect(howToSayLines(systemText)).toEqual([
         '这轮你按平时的样子说话，不刻意多讲，也不刻意收着。',
         '语气按平时的样子，不刻意亲近也不刻意疏远。',
-        '你可以有一点变化：不是每轮都用一样的句式，可以有时候停顿一下、有时候用短回应、有时候多说一点。',
+        '不要重复最近几轮用过的句式：换个角度、换个措辞表达同一个意思，可以有时候停顿一下、有时候用短回应、有时候多说一点。',
       ]);
     });
 
-    it('表达层轻量随机: prompt 里有一句"你可以有一点变化"', () => {
+    it('表达层变化: prompt 里有一句"不要重复最近几轮用过的句式" (WP-G 改动 6)', () => {
       const systemText = buildVisitorMessages(buildSpecForRender())[0]?.content ?? '';
 
-      expect(systemText).toContain('你可以有一点变化：不是每轮都用一样的句式');
+      expect(systemText).toContain('不要重复最近几轮用过的句式：换个角度、换个措辞表达同一个意思');
     });
 
     it('口语化 / 非语言: "说话方式"后面补了非语言表达那一行', () => {
@@ -816,10 +816,10 @@ describe('WP7 · 决策→说话闭环', () => {
       expect(block[0]).toContain('这轮你');
       expect(block[1]).toContain('语气');
       expect(block[2]).toContain('这轮你有点焦虑');
-      expect(block[3]).toContain('你可以有一点变化');
+      expect(block[3]).toContain('不要重复最近几轮用过的句式');
 
       const hardRuleIdx = systemText.indexOf('硬规则：');
-      expect(systemText.indexOf('你可以有一点变化')).toBeLessThan(hardRuleIdx);
+      expect(systemText.indexOf('不要重复最近几轮用过的句式')).toBeLessThan(hardRuleIdx);
     });
   });
 });

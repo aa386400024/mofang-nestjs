@@ -53,13 +53,18 @@ function stubRepo() {
   };
 }
 
+/** 咨询师逐轮轮换的话 (彼此不近似, 避免误触发复读检测). */
+const COUNSELOR_LINES = ['我先把这句接住。', '你愿意再多说一点吗？', '刚才那点我们停一下。', '我听到的是工作那部分。', '这里我们慢慢来。'];
+
 describe('PracticeRunnerService', () => {
+  let counselorTurn = 0;
   let engine: { open: ReturnType<typeof vi.fn>; turn: ReturnType<typeof vi.fn>; close: ReturnType<typeof vi.fn> };
   let counselor: { generate: ReturnType<typeof vi.fn> };
   let repo: ReturnType<typeof stubRepo>;
   let runner: PracticeRunnerService;
 
   beforeEach(() => {
+    counselorTurn = 0;
     engine = { open: vi.fn(), turn: vi.fn(), close: vi.fn() };
     counselor = { generate: vi.fn() };
     repo = stubRepo();
@@ -83,7 +88,13 @@ describe('PracticeRunnerService', () => {
       undefined, // gateway optional, 单测不给
     );
     engine.open.mockResolvedValue({ debugSessionId: 'ds_test' });
-    counselor.generate.mockResolvedValue({ text: '咨询师话', model: 'test-model', degraded: false });
+    // 咨询师**逐轮换话** —— 原来每轮都是同一句"咨询师话".
+    // WP-G 加了咨询师复读检测之后, 那样会让每一场都在第 3 轮被判停滞
+    // (那是新逻辑的**正确**行为, 但不是这些用例想测的东西).
+    counselor.generate.mockImplementation(() => {
+      counselorTurn += 1;
+      return Promise.resolve({ text: COUNSELOR_LINES[counselorTurn % COUNSELOR_LINES.length], model: 'test-model', degraded: false });
+    });
   });
 
   it('跑满 maxTurns → completed', async () => {
@@ -137,6 +148,25 @@ describe('PracticeRunnerService', () => {
     expect(result.exitReason).toBe('stagnant');
   });
 
+  it('咨询师连续复读 → stagnant 提前停 (WP-G 改动 3)', async () => {
+    // 咨询师每轮说同一句, 来访者每轮都在换话 —— 只有咨询师这一侧卡死.
+    counselor.generate.mockResolvedValue({ text: '嗯，我在听。你可以接着说。', model: 'm', degraded: false });
+    for (let i = 1; i <= 5; i += 1) {
+      engine.turn.mockResolvedValueOnce(makeTurn(i, `来访第${i}句不同内容`));
+    }
+
+    const result = await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: makeMode(),
+      maxTurns: 10,
+    });
+
+    expect(result.status).toBe('stagnant');
+    expect(result.exitReason).toBe('stagnant');
+    // 连续 3 轮复读 → 第 3 轮就停.
+    expect(engine.turn).toHaveBeenCalledTimes(3);
+  });
+
   it('咨询师判断可收尾 → natural_close 提前停 (且不超过最小轮数保护)', async () => {
     // 咨询师第 6 轮给出收尾标记.
     counselor.generate
@@ -165,7 +195,12 @@ describe('PracticeRunnerService', () => {
   });
 
   it('收尾标记出现太早 (未到最小轮数) 不生效', async () => {
-    counselor.generate.mockResolvedValue({ text: '想说收尾', model: 'm', degraded: false, closeRequested: true });
+    // 每轮换一句 (同一句会被新增的咨询师复读检测判成停滞).
+    let closeTurn = 0;
+    counselor.generate.mockImplementation(() => {
+      closeTurn += 1;
+      return Promise.resolve({ text: `想说收尾第${closeTurn}轮`, model: 'm', degraded: false, closeRequested: true });
+    });
     for (let i = 1; i <= 4; i += 1) {
       engine.turn.mockResolvedValueOnce(makeTurn(i, `来访第${i}句内容`));
     }
