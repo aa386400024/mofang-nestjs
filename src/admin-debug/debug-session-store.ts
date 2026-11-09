@@ -138,7 +138,7 @@ export interface DebugSessionSummary {
  * 为什么是 50: 调试面板的会话列表是"最近跑过的那几场" —— 50 场足够回溯,
  * 再多就只是垃圾堆积 (每个文件都含完整对话 + prompt 全文, 体积不小).
  */
-export const MAX_DEBUG_SESSIONS = 50;
+export const MAX_DEBUG_SESSIONS = 500;
 
 /**
  * 存储目录的 env 键 (可覆盖, 便于测试与部署时挂到独立卷).

@@ -70,8 +70,8 @@ export class PracticeQueueService implements OnModuleInit, OnModuleDestroy {
       defaultJobOptions: {
         attempts: 2,
         backoff: { type: 'exponential', delay: 2000 },
-        removeOnComplete: { count: 500, age: 24 * 3600 },
-        removeOnFail: { count: 2000 },
+        removeOnComplete: { count: 5000, age: 7 * 24 * 3600 },
+        removeOnFail: { count: 10_000 },
       },
     });
     this.worker = new Worker<AutoPracticeJobData>(QUEUE_NAMES.autoPractice, async (job) => this.processJob(job), {
