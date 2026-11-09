@@ -207,6 +207,10 @@ export class PracticeRunnerService implements OnModuleInit {
         // ④b 引擎跑一轮 (来访回复).
         const result = await this.engine.turn(debugSessionId, counselorReply.text);
         turnCount = result.turnIndex;
+        // V2026-11-09 P1-3b: 来访者侧降级——trace.degraded=true 说明这轮来访者是兜底句.
+        if (result.trace.degraded) {
+          degradedTurns += 1;
+        }
         history.push({ role: 'visitor', text: result.reply });
 
         // ④c 推 turn 事件.

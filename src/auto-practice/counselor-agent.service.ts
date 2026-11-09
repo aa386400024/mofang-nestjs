@@ -138,9 +138,7 @@ export class CounselorAgentService {
         closeRequested = false;
       }
       // 只记"选了什么 + 长度", 不记内容 (隐私红线); 标记丢了能一眼看出是没输出还是被截断.
-      this.logger.debug(
-        `[counselor_agent] close=${closeRequested} raw_len=${raw.length} finish=${response.finishReason}`,
-      );
+      this.logger.debug(`[counselor_agent] close=${closeRequested} raw_len=${raw.length} finish=${response.finishReason}`);
       const text = raw.split(CLOSE_TAG).join('').split(CONTINUE_TAG).join('').trim();
       if (text.length === 0) {
         return { text: FALLBACK_REPLY, model: this.model, degraded: true, closeRequested: false };

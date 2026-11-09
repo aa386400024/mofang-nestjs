@@ -99,7 +99,9 @@ export class AutoPracticeController {
         practiceSessionId,
       })
       .catch((error: unknown) => {
-        this.logger.error(`[auto_practice] 后台对练未捕获异常 session=${practiceSessionId}: ${error instanceof Error ? error.message : 'unknown'}`);
+        this.logger.error(
+          `[auto_practice] 后台对练未捕获异常 session=${practiceSessionId}: ${error instanceof Error ? error.message : 'unknown'}`,
+        );
       });
     return { practiceSessionId, characterSlug, counselorModeId };
   }

@@ -299,6 +299,8 @@ export interface DebugTurnTrace {
     readonly detected: boolean;
     readonly category: string | null;
   };
+  /** 本轮来访者侧是否走了渲染降级 (LLM 失败/超时回兜底句). */
+  readonly degraded: boolean;
   /** 本轮审议 trace (从 Redis 读; 拿不到为 null). */
   readonly deliberationTrace: DeliberationTraceRecord | null;
   /** 本轮时刻 (ISO). */
@@ -557,6 +559,7 @@ export class DebugSessionService {
       renderSpec: buildRenderSpec(result),
       llmUsage: buildLlmUsage(result),
       crisis: buildCrisisSummary(result.safety),
+      degraded: result.render.providerHint === 'degraded',
       deliberationTrace,
       ts: new Date().toISOString(),
     };

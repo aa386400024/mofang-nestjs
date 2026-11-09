@@ -28,9 +28,7 @@ export class AddPracticeSessionDegradedTurns1714900000034 implements MigrationIn
   public async up(qr: QueryRunner): Promise<void> {
     const present = await existingColumns(qr);
     if (!present.has('degraded_turns')) {
-      await qr.query(
-        `ALTER TABLE ap_practice_sessions ADD COLUMN degraded_turns INT NOT NULL DEFAULT 0 AFTER total_cost;`,
-      );
+      await qr.query(`ALTER TABLE ap_practice_sessions ADD COLUMN degraded_turns INT NOT NULL DEFAULT 0 AFTER total_cost;`);
     }
   }
 
