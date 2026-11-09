@@ -130,7 +130,10 @@ export class PracticeRunnerService implements OnModuleInit {
     let turnCount = 0;
     let errorMessage: string | null = null;
 
-    // ① 开引擎会话 (失败就建 failed 行再抛).
+    // ① 开引擎会话 (失败就建 failed 行, 然后 return —— 不 throw).
+    // V2026-11-09 P0-1 修复: 原来这里落库后 throw, controller 是 fire-and-forget
+    // (void this.runner.run(...)), unhandled rejection 直接打崩整个 Node 进程.
+    // 失败信息已经落库 (status=failed/errorMessage), 调用方不需要再靠 throw 感知.
     try {
       const opened = await this.engine.open(input.characterSlug);
       debugSessionId = opened.debugSessionId;
@@ -151,7 +154,14 @@ export class PracticeRunnerService implements OnModuleInit {
         batchId: input.batchId ?? null,
         errorMessage,
       });
-      throw error;
+      return {
+        practiceSessionId,
+        debugSessionId: '',
+        status,
+        exitReason,
+        turnCount: 0,
+        crisisEnded: false,
+      };
     }
 
     // ② 落库 running 行.
@@ -181,12 +191,17 @@ export class PracticeRunnerService implements OnModuleInit {
     const history: CounselorHistoryTurn[] = [];
     let repeatStreak = 0;
     let lastVisitorText = '';
+    // V2026-11-09 P1-3: 累计咨询师侧降级轮数 (上游 429/超时/空回复时 counselor-agent 回 FALLBACK_REPLY).
+    let degradedTurns = 0;
 
     try {
       // ④ 主循环.
       for (let i = 1; i <= maxTurns; i += 1) {
         // ④a AI 咨询师生成台词.
         const counselorReply = await this.counselorAgent.generate(input.counselorMode, history);
+        if (counselorReply.degraded) {
+          degradedTurns += 1;
+        }
         history.push({ role: 'counselor', text: counselorReply.text });
 
         // ④b 引擎跑一轮 (来访回复).
@@ -244,6 +259,13 @@ export class PracticeRunnerService implements OnModuleInit {
         status = 'completed';
         exitReason = 'max_turns';
       }
+
+      // V2026-11-09 P1-3: 降级比 ≥ 50% 时, exitReason 加重度降级后缀,
+      // 评测/统计一眼能筛出"这场一半以上是兜底句"的场次. 不改 status (它确实跑完了),
+      // 只在 exitReason 上做标记 —— 跟 training_sessions.degraded 同款思路.
+      if (degradedTurns > 0 && turnCount > 0 && degradedTurns / turnCount >= 0.5) {
+        exitReason = `${exitReason}_heavy_degraded`;
+      }
     } catch (error) {
       status = 'failed';
       exitReason = 'error';
@@ -265,6 +287,7 @@ export class PracticeRunnerService implements OnModuleInit {
       turnCount,
       crisisEnded,
       errorMessage,
+      degradedTurns,
     });
 
     // ⑦ 推 session_end.
@@ -304,7 +327,14 @@ export class PracticeRunnerService implements OnModuleInit {
   /** 更新终态 (status / turnCount / finishedAt). */
   private async updateSessionResult(
     id: string,
-    fields: { status: PracticeSessionStatus; exitReason: string; turnCount: number; crisisEnded: number; errorMessage: string | null },
+    fields: {
+      status: PracticeSessionStatus;
+      exitReason: string;
+      turnCount: number;
+      crisisEnded: number;
+      errorMessage: string | null;
+      degradedTurns: number;
+    },
   ): Promise<void> {
     await this.sessionRepo
       .update(id, {

@@ -120,15 +120,27 @@ export class CounselorAgentService {
         // 500 而不是 300: 收尾标记在回复最后一行, 上限太小时长回复会被截断, 标记被一起截掉,
         // 上层永远拿不到"该结束了"的信号 (实测 30 轮一场就是这笔账).
         maxCompletionTokens: 500,
+        // V2026-11-09 P2-2 根因修复: 不传 reasoningEffort 时 MiniMax M3.1-Flash 默认 max 思考档,
+        // 思考 token 计入生成长度上限, 500 token 预算被思考吃光 → 正文被硬截断
+        // (28 场里 5 条 preachy 全断在 [[STATE:M). 显式 low: 思考 token 94→39 (2026-10-29 实测),
+        // 首字更快, 成本更低, 正文预算不再被思考挤掉.
+        reasoningEffort: 'low',
       });
       const raw = response.content.trim();
       if (raw.length === 0) {
         return { text: FALLBACK_REPLY, model: this.model, degraded: true, closeRequested: false };
       }
       // 剔除状态标记: 标记只作控制信号, 绝不进对话文本.
-      const closeRequested = raw.includes(CLOSE_TAG);
+      let closeRequested = raw.includes(CLOSE_TAG);
+      // V2026-11-09 P2-2 防御: finishReason==='length' 时回复是被硬截断的, 不可能是完整收尾;
+      // 即使模型碰巧吐了 [[STATE:END]] 也不能信 (它没说完). 按"继续"处理, 避免截断轮误判 natural_close.
+      if (response.finishReason === 'length') {
+        closeRequested = false;
+      }
       // 只记"选了什么 + 长度", 不记内容 (隐私红线); 标记丢了能一眼看出是没输出还是被截断.
-      this.logger.debug(`[counselor_agent] close=${closeRequested} raw_len=${raw.length}`);
+      this.logger.debug(
+        `[counselor_agent] close=${closeRequested} raw_len=${raw.length} finish=${response.finishReason}`,
+      );
       const text = raw.split(CLOSE_TAG).join('').split(CONTINUE_TAG).join('').trim();
       if (text.length === 0) {
         return { text: FALLBACK_REPLY, model: this.model, degraded: true, closeRequested: false };

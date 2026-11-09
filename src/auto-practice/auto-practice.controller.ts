@@ -14,7 +14,7 @@
 //
 //   鉴权: 与 debug-session.controller 同款 —— AdminRoleGuard (class 级).
 
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { nanoid } from 'nanoid';
 import { Repository } from 'typeorm';
@@ -59,6 +59,8 @@ interface UpsertModeBody {
 @Controller('admin/api/auto-practice')
 @UseGuards(AdminRoleGuard)
 export class AutoPracticeController {
+  private readonly logger = new Logger('AutoPracticeController');
+
   constructor(
     private readonly runner: PracticeRunnerService,
     private readonly queue: PracticeQueueService,
@@ -85,13 +87,20 @@ export class AutoPracticeController {
     }
     // 预生成 ID, 立即返回给前端连 WS; 循环在后台跑.
     const practiceSessionId = nanoid();
-    void this.runner.run({
-      characterSlug,
-      counselorMode: mode,
-      maxTurns: body?.maxTurns,
-      batchId: null,
-      practiceSessionId,
-    });
+    // V2026-11-09 P0-1 修复: fire-and-forget 必须有 .catch(), 否则 runner 内部任何
+    // 未预期的 throw 都会变成 unhandled rejection 打崩整个 Node 进程.
+    // runner 自己已经把失败落库 (status=failed), 这里只兜底记日志.
+    void this.runner
+      .run({
+        characterSlug,
+        counselorMode: mode,
+        maxTurns: body?.maxTurns,
+        batchId: null,
+        practiceSessionId,
+      })
+      .catch((error: unknown) => {
+        this.logger.error(`[auto_practice] 后台对练未捕获异常 session=${practiceSessionId}: ${error instanceof Error ? error.message : 'unknown'}`);
+      });
     return { practiceSessionId, characterSlug, counselorModeId };
   }
 
@@ -100,8 +109,8 @@ export class AutoPracticeController {
    */
   @Post('batch')
   async enqueueBatch(@Body() body: BatchBody) {
-    const characterSlugs = (body?.characterSlugs ?? []).map((s) => s.trim()).filter((s) => s.length > 0);
-    const counselorModeIds = (body?.counselorModeIds ?? []).map((s) => s.trim()).filter((s) => s.length > 0);
+    const characterSlugs = (body?.characterSlugs ?? []).map((s) => String(s).trim()).filter((s) => s.length > 0);
+    const counselorModeIds = (body?.counselorModeIds ?? []).map((s) => String(s).trim()).filter((s) => s.length > 0);
     const repeats = Math.max(1, body?.repeats ?? 1);
     if (characterSlugs.length === 0 || counselorModeIds.length === 0) {
       return { error: 'characterSlugs 与 counselorModeIds 不能为空' };

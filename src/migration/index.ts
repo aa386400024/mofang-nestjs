@@ -167,5 +167,8 @@ export { AddSessionDegradedFlag1714900000032 } from './1714900000032-AddSessionD
 // V2026-11-08 治本 (Phase2.5 WP-D — 自动对练 2 张表, 跟 bin/ormconfig.ts 严格 1:1):
 //   ap_counselor_modes (咨询师人设 system prompt) + ap_practice_sessions (批量场次元数据).
 export { AddAutoPracticeTables1714900000033 } from './1714900000033-AddAutoPracticeTables.js';
+// V2026-11-09 治本 (P1-3 — ap_practice_sessions 加 degraded_turns 列):
+//   上游 429/超时导致咨询师回兜底句时累计计数, 退出时按比例打 exitReason 后缀.
+export { AddPracticeSessionDegradedTurns1714900000034 } from './1714900000034-AddPracticeSessionDegradedTurns.js';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

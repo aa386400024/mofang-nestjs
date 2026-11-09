@@ -96,8 +96,11 @@ export class PracticeQueueService implements OnModuleInit, OnModuleDestroy {
    * @param data job 数据
    */
   async enqueue(data: AutoPracticeJobData): Promise<void> {
+    // V2026-11-09 P1-1 修复: BullMQ jobId 不允许含冒号 (Redis key 分隔符),
+    // 原来拼 `${batchId}:${slug}:${mode}:${nanoid(8)}` 直接 500.
+    // jobId 只需唯一, 业务字段已在 data 里, 直接用 nanoid.
     await this.queue.add('run-practice', data, {
-      jobId: `${data.batchId}:${data.characterSlug}:${data.counselorModeId}:${nanoid(8)}`,
+      jobId: nanoid(),
     });
   }
 

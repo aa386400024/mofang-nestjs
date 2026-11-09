@@ -126,6 +126,16 @@ export class PracticeSession {
   @Column({ type: 'decimal', precision: 10, scale: 4, nullable: true, name: 'total_cost' })
   totalCost!: number | null;
 
+  /**
+   * 咨询师侧降级轮数 (V2026-11-09 P1-3).
+   *
+   * 上游 429 / 超时 / 空回复时, counselor-agent 回 FALLBACK_REPLY ("嗯，我在听").
+   * 这种轮次不是真咨询师说的话, 之前场次仍标 completed, 评测时混在真数据里.
+   * 这里累计降级轮数; 退出时若降级比 ≥ 50%, exitReason 加 _heavy_degraded 后缀.
+   */
+  @Column({ type: 'int', default: 0, name: 'degraded_turns' })
+  degradedTurns!: number;
+
   /** 失败时的错误信息 (status=failed 时有值). */
   @Column({ type: 'text', nullable: true, name: 'error_message' })
   errorMessage!: string | null;
