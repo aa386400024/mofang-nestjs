@@ -57,7 +57,7 @@ export class PracticeQueueService implements OnModuleInit, OnModuleDestroy {
     private readonly runner: PracticeRunnerService,
     @InjectRepository(CounselorMode) private readonly modeRepo: Repository<CounselorMode>,
   ) {
-    const raw = Number(process.env['AUTO_PRACTICE_WORKER_CONCURRENCY']);
+    const raw = Number(process.env.AUTO_PRACTICE_WORKER_CONCURRENCY);
     this.concurrency = Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : DEFAULT_CONCURRENCY;
   }
 

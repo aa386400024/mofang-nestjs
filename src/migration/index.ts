@@ -173,5 +173,8 @@ export { AddPracticeSessionDegradedTurns1714900000034 } from './1714900000034-Ad
 // V2026-11-09 治本 (Phase2.5 WP-B — ap_practice_sessions 加版本列):
 //   character_version / deliberation_mode / engine_version 三列, 推理环境可追溯.
 export { AddPracticeSessionVersionColumns1714900000035 } from './1714900000035-AddPracticeSessionVersionColumns.js';
+// V2026-11-09 治本 (Phase2.5 WP-E — eval_reports 新表, 跟 bin/ormconfig.ts 严格 1:1):
+//   评测报告落库表 (指标 / 数据质量 / 配置快照 / 整份报告 JSON), 历史可查、跨版本可对比.
+export { CreateEvalReports1714900000036 } from './1714900000036-CreateEvalReports.js';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

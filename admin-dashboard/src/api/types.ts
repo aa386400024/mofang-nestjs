@@ -286,13 +286,24 @@ export interface CostTrendPoint {
   tokens: number
   costCny: number
   sessions: number
+  // WP-F: 分来源统计（后端补，前端先做兼容）
+  sessionsFormal?: number
+  sessionsAutoPractice?: number
+  costFormal?: number
+  costAutoPractice?: number
 }
 
 export interface SessionCost {
   sessionId: string
+  /** WP-F: 数据来源 —— formal=正式训练, auto_practice=自动对练 */
+  source?: 'formal' | 'auto_practice'
   visitorAlias: string
   /** 开场时刻；未开场 / 无记录时为 null */
   startedAt: string | null
+  /** 自动对练特有：来访者角色 slug（source=auto_practice 时有值） */
+  characterSlug?: string
+  /** 自动对练特有：批次 id（source=auto_practice 时有值） */
+  batchId?: string | null
   /** 本场 token 总量（输入 + 输出，与 `/admin/api/sessions` 的 totalTokens 同口径） */
   totalTokens: number
   costCny: number

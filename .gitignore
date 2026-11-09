@@ -103,3 +103,10 @@ jspm_packages/
 # V2026-11-05 — 调试会话持久化 (data/debug-sessions/*.json)
 #   ⚠️ 这些文件含**心理内容** (对话原文 + prompt 全文) —— 绝不进版本库.
 data/debug-sessions/
+
+# V2026-11-09 — Phase2.5 WP-E 自动评测: 数据集与报告
+#   ⚠️ 真实数据集含 BDI 状态 / 事件标签 / delta (心理画像), 报告含指标与样本 id —— 都不进版本库.
+#   只放行**合成**种子集 (synthetic-*): 无对话原文, 只用来验链路.
+data/eval-datasets/*
+!data/eval-datasets/synthetic-*/
+data/eval-reports/

@@ -2,7 +2,7 @@
 
 > **路径**：`docs/worklog/pending/phase2.5-wp-list-2026-11-08.md`
 > **总览**：[§Phase2.5 总览](phase2.5-overview-2026-11-08.md)
-> **状态**：🚧 进行中（WP-A + WP-C + WP-D 已交付）
+> **状态**：✅ Phase2.5 五个 WP 全部交付（WP-A + WP-B + WP-C + WP-D + WP-E）
 > **创建日期**：2026-11-08
 
 ---
@@ -15,7 +15,7 @@
 | **WP-B** | 可复现控制 + 版本锁定 | 🔴 P0 | 考核场景永远走纯规则模式；模型版本 / prompt 版本记录到 trace 里，为效果对比和问题追溯服务 | 📋 待开工 |
 | **WP-C** | 触发式审议闸门 | 🟡 P1 | 状态变化幅度大才跑审议，平静时不跑；高风险永远不跑；预期成本降 90% | ✅ 已交付 → [`交付记录`](../completed/phase2.5/phase2.5-wp-c-triggered-deliberation-gate-implementation-2026-11-09.md)；[任务单](../completed/phase2.5/phase2.5-wp-c-triggered-deliberation-gate.md) |
 | **WP-D** | 模拟咨询师 AI + 自动对练 | 🟡 P1 | 用一万份个案逐字稿（附督导解析）训练模拟咨询师 AI；自动跑几千场对练，积累数据集 | ✅ 已交付 → [`交付记录`](../completed/phase2.5/phase2.5-wp-d-auto-practice-2026-11-08-implementation.md)；2026-11-09 全量实测 → [`测试报告`](../completed/phase2.5/phase2.5-wp-d-auto-practice-2026-11-09-test-report.md) · [`修复任务单`](phase2.5-wp-d-auto-practice-2026-11-09-fix-list.md) |
-| **WP-E** | 自动评测 + 参数调优 | 🟡 P1 | 用督导解析当 ground truth，自动评测审议建议准确率；调到 ≥80% 达标 | 📋 待开工 |
+| **WP-E** | 自动评测 + 参数调优 | 🟡 P1 | 用督导解析当 ground truth，自动评测审议建议准确率；调到 ≥80% 达标 | ✅ 已交付 → [`交付记录`](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-implementation-2026-11-09.md)；[任务单](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-tuning.md) |
 
 ---
 
@@ -49,7 +49,7 @@ WP-B 可复现控制 + 版本锁定
 | ① 合规过线 | WP-A | 审议不传心理原文；高风险轮次永远走本地规则 —— ✅ **已达标**（WP-A 交付：入参类型层面零原文 + 三道风险闸门；`riskSkippedTurns` 可查合规证据） |
 | ② 考核公平 | WP-B | 考核场景永远纯规则；同一场考核两次跑结果一致 |
 | ③ 成本可控 | WP-C | 单场（50 分钟）审议成本 ≤ 1 元 —— 🚧 **闸门已交付**（冷却/配额/熔断 + 不确定性触发全走 env，种子值待 WP-E 实测校准） |
-| ④ 质量达标 | WP-E | 审议建议准确率 ≥ 80% |
+| ④ 质量达标 | WP-E | 审议建议准确率 ≥ 80% —— 🚧 **评测流水线已交付**（触发 P/R/F1 + 六维方向 macro F1 + 幅度 MAE + 纯规则基线对比 + 清洗门槛 + 跨版本对比；一条命令出报告），待**真实督导语料**接入后跑最终验收 |
 | ⑤ 数据积累 | WP-D | 1000+ 场自动对练数据 |
 
 ---

@@ -194,7 +194,8 @@ export const api = {
       return del(`/debug/session/${sessionId}`)
     },
     // 列出所有历史会话 (V2026-11-05 持久化)
-    list: async (): Promise<Array<{ id: string; title: string; characterSlug: string; createdAt: string; updatedAt: string; turnCount: number; status: string }>> => {
+    // V2026-11-06 WP69: 每行带 active = 本进程内存里还有运行时状态
+    list: async (): Promise<Array<{ id: string; title: string; characterSlug: string; createdAt: string; updatedAt: string; turnCount: number; status: string; active: boolean }>> => {
       return get('/debug/sessions')
     },
     // 获取某个会话的完整 trace (messages 里来访者那条自带 trace)
@@ -208,6 +209,30 @@ export const api = {
     // 删除会话 (连文件一起删)
     remove: async (sessionId: string): Promise<{ id: string; deleted: boolean }> => {
       return del(`/debug/sessions/${sessionId}`)
+    },
+    // 恢复调试会话 (后端重启后从快照重建内核句柄, V2026-11-06 WP38)
+    resume: async (sessionId: string): Promise<{ sessionId: string; resumed: boolean; turnCount: number }> => {
+      return post(`/debug/session/${sessionId}/resume`, {})
+    },
+    // 本轮事件 + delta 审计 (WP58: 正式训练会话出问题时按 sessionId 查每轮触发了什么事件/原始 delta)
+    // 注意: 返回体是 { code: 0, data: {...} } 外壳, 跟其他 admin 端点不一样
+    deltaAudit: async (sessionId: string): Promise<{ sessionId: string; turns: Array<{
+      turnIndex: number
+      events: string[]
+      rawDeltas: Record<string, number>
+      cappedDeltas: Record<string, number>
+      capApplied: boolean
+      crisisDetected: boolean
+    }> }> => {
+      const res = await get<{ code: number; data: { sessionId: string; turns: Array<{
+        turnIndex: number
+        events: string[]
+        rawDeltas: Record<string, number>
+        cappedDeltas: Record<string, number>
+        capApplied: boolean
+        crisisDetected: boolean
+      }> } }>(`/debug/sessions/${sessionId}/delta-audit`)
+      return res.data
     },
   },
 

@@ -30,7 +30,22 @@ const manualInput = ref('')
 const manualDebugSessionId = ref<string | null>(null)
 
 // 手动调试模式的会话列表
-const debugSessions = ref<Array<{ id: string; title: string; characterSlug: string; updatedAt: string; turnCount: number; status: string }>>([])
+// V2026-11-06 WP69: 每行带 active = 本进程内存里还有运行时状态
+const debugSessions = ref<Array<{ id: string; title: string; characterSlug: string; updatedAt: string; turnCount: number; status: string; active: boolean }>>([])
+
+// 恢复调试会话 loading
+const resumingSessionId = ref<string | null>(null)
+
+// 手动模式：重命名弹窗
+const manualEditDialogVisible = ref(false)
+const manualEditTitleValue = ref('')
+const manualEditingSessionId = ref<string | null>(null)
+const manualEditLoading = ref(false)
+
+// 手动模式：删除确认
+const manualDeleteConfirmVisible = ref(false)
+const manualDeletingSessionId = ref<string | null>(null)
+const manualDeleteLoading = ref(false)
 
 // 切换模式时加载对应的会话列表
 watch(mode, async (newMode) => {
@@ -302,6 +317,76 @@ async function loadDebugSession(s: { id: string; title: string }) {
     message.success(`已加载会话: ${s.title || s.id}`)
   } catch (e) {
     message.error('加载会话失败')
+  }
+}
+
+// ─── 手动模式：恢复调试会话 (后端重启后继续聊) ───
+async function resumeDebugSession(s: { id: string; title: string }) {
+  if (resumingSessionId.value) return
+  resumingSessionId.value = s.id
+  try {
+    await api.debugSession.resume(s.id)
+    message.success(`会话已恢复: ${s.title || s.id}`)
+    // 刷新列表, active 应该变成 true 了
+    debugSessions.value = await api.debugSession.list()
+    // 加载会话内容
+    await loadDebugSession(s)
+  } catch (e) {
+    message.error('恢复会话失败, 可能没有可恢复的快照')
+  } finally {
+    resumingSessionId.value = null
+  }
+}
+
+// ─── 手动模式：重命名调试会话 ───
+function openManualEditDialog(s: { id: string; title: string }) {
+  manualEditingSessionId.value = s.id
+  manualEditTitleValue.value = s.title || ''
+  manualEditDialogVisible.value = true
+}
+
+async function submitManualEditTitle() {
+  const id = manualEditingSessionId.value
+  const title = manualEditTitleValue.value.trim()
+  if (!id || !title || manualEditLoading.value) return
+  manualEditLoading.value = true
+  try {
+    await api.debugSession.update(id, title)
+    message.success('标题已更新')
+    manualEditDialogVisible.value = false
+    debugSessions.value = await api.debugSession.list()
+  } catch (e) {
+    message.error('更新标题失败')
+  } finally {
+    manualEditLoading.value = false
+  }
+}
+
+// ─── 手动模式：删除调试会话 ───
+function openManualDeleteConfirm(s: { id: string }) {
+  manualDeletingSessionId.value = s.id
+  manualDeleteConfirmVisible.value = true
+}
+
+async function confirmManualDelete() {
+  const id = manualDeletingSessionId.value
+  if (!id || manualDeleteLoading.value) return
+  manualDeleteLoading.value = true
+  try {
+    await api.debugSession.remove(id)
+    message.success('会话已删除')
+    manualDeleteConfirmVisible.value = false
+    manualDeletingSessionId.value = null
+    debugSessions.value = await api.debugSession.list()
+    // 如果删的是当前正在看的会话，清空消息区
+    if (manualDebugSessionId.value === id) {
+      manualDebugSessionId.value = null
+      messages.value = []
+    }
+  } catch (e) {
+    message.error('删除会话失败')
+  } finally {
+    manualDeleteLoading.value = false
   }
 }
 
@@ -891,11 +976,21 @@ onUnmounted(() => {
                   {{ avatarInitial(s.characterSlug) }}
                 </div>
                 <div class="flex-1 min-w-0">
-                  <div class="text-sm truncate font-medium leading-6">
+                  <div class="text-sm truncate font-medium leading-6 flex items-center gap-1.5">
                     <span class="truncate">{{ s.title || '未命名会话' }}</span>
+                    <NTag v-if="!s.active" size="tiny" :bordered="false" type="warning">已离线</NTag>
                   </div>
                   <div class="text-xs text-muted mt-0.5 flex items-center gap-1.5">
                     <span>{{ s.turnCount }} 轮</span>
+                    <!-- 离线会话的"继续调试"按钮 (常驻, 不 hover 才显示) -->
+                    <button
+                      v-if="!s.active"
+                      class="text-[10px] text-accent hover:underline cursor-pointer"
+                      :disabled="resumingSessionId === s.id"
+                      @click.stop="resumeDebugSession(s)"
+                    >
+                      {{ resumingSessionId === s.id ? '恢复中…' : '继续调试' }}
+                    </button>
                   </div>
                 </div>
 
@@ -904,6 +999,7 @@ onUnmounted(() => {
                   <button
                     class="w-6 h-6 flex items-center justify-center rounded text-muted hover:text-accent hover:bg-bg-surface transition-colors"
                     title="重命名"
+                    @click.stop="openManualEditDialog(s)"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
@@ -912,6 +1008,7 @@ onUnmounted(() => {
                   <button
                     class="w-6 h-6 flex items-center justify-center rounded text-muted hover:text-danger hover:bg-bg-surface transition-colors"
                     title="删除"
+                    @click.stop="openManualDeleteConfirm(s)"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M3 6h18"/>
@@ -1077,7 +1174,7 @@ onUnmounted(() => {
       </div>
     </NModal>
 
-    <!-- 编辑场次标题弹窗 -->
+    <!-- 编辑场次标题弹窗（自动对练，后端接口待补） -->
     <NModal
       v-model:show="editDialogVisible"
       preset="card"
@@ -1095,6 +1192,48 @@ onUnmounted(() => {
         <div class="flex justify-end gap-2">
           <NButton size="small" @click="editDialogVisible = false">取消</NButton>
           <NButton size="small" type="primary" @click="submitEditTitle">保存</NButton>
+        </div>
+      </template>
+    </NModal>
+
+    <!-- 手动模式：重命名调试会话弹窗 -->
+    <NModal
+      v-model:show="manualEditDialogVisible"
+      preset="card"
+      title="重命名调试会话"
+      style="width: 400px"
+      :bordered="false"
+    >
+      <NInput
+        v-model:value="manualEditTitleValue"
+        placeholder="输入会话标题"
+        @keyup.enter="submitManualEditTitle"
+        autofocus
+        :disabled="manualEditLoading"
+      />
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <NButton size="small" :disabled="manualEditLoading" @click="manualEditDialogVisible = false">取消</NButton>
+          <NButton size="small" type="primary" :loading="manualEditLoading" :disabled="!manualEditTitleValue.trim()" @click="submitManualEditTitle">保存</NButton>
+        </div>
+      </template>
+    </NModal>
+
+    <!-- 手动模式：删除调试会话确认弹窗 -->
+    <NModal
+      v-model:show="manualDeleteConfirmVisible"
+      preset="card"
+      title="删除调试会话"
+      style="width: 400px"
+      :bordered="false"
+    >
+      <p class="text-sm text-text-secondary leading-relaxed">
+        确定要删除这个调试会话吗？删除后对话记录将无法恢复。
+      </p>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <NButton size="small" :disabled="manualDeleteLoading" @click="manualDeleteConfirmVisible = false">取消</NButton>
+          <NButton size="small" type="error" :loading="manualDeleteLoading" @click="confirmManualDelete">确认删除</NButton>
         </div>
       </template>
     </NModal>

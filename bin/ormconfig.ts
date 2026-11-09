@@ -221,6 +221,11 @@ import { AddPracticeSessionDegradedTurns1714900000034 } from '../src/migration/1
 // V2026-11-09 治本 (Phase2.5 WP-B — ap_practice_sessions 加版本列):
 //   character_version / deliberation_mode / engine_version 三列, 推理环境可追溯.
 import { AddPracticeSessionVersionColumns1714900000035 } from '../src/migration/1714900000035-AddPracticeSessionVersionColumns.js';
+// V2026-11-09 治本 (Phase2.5 WP-E — eval_reports 新表, 跟 src/migration/index.ts 严格 1:1):
+//   每次评测跑完落一份报告 (指标 / 数据质量 / 阈值快照 / 告警), 历史可查、跨版本可对比.
+//   漏登记的表现极具迷惑性: migration:run 输出 "No migrations are pending"(看起来像都跑完了),
+//   实际是它压根没被看见 → 表不建 → 评测报告落库直接报错.
+import { CreateEvalReports1714900000036 } from '../src/migration/1714900000036-CreateEvalReports.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -378,6 +383,9 @@ const ormconfig = async (): Promise<DataSource> => {
       AddPracticeSessionDegradedTurns1714900000034,
       // V2026-11-09 治本 (Phase2.5 WP-B — ap_practice_sessions 加版本列):
       AddPracticeSessionVersionColumns1714900000035,
+      // V2026-11-09 治本 (Phase2.5 WP-E — eval_reports 新表, 跟 src/migration/index.ts 严格 1:1):
+      //   部署顺序: **必须先于 migration:run 再起服务** —— 运行时写评测报告前表得先在.
+      CreateEvalReports1714900000036,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

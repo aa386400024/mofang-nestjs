@@ -19,6 +19,11 @@ const trajectory = ref<Awaited<ReturnType<typeof api.trajectory>>>(null)
 const sessionMemories = ref<MemoryEntry[]>([])
 const highlightMemory = ref<string | null>(null)
 
+// delta 审计 (WP58: 每轮事件 + 原始 delta + cap 砍幅明细)
+const deltaAudit = ref<Awaited<ReturnType<typeof api.debugSession.deltaAudit>> | null>(null)
+const deltaAuditLoading = ref(false)
+const showDeltaAudit = ref(false)
+
 // 记忆来源配置 (V2026-11-05: 与内核口径对齐 —— 原来的"事实/情感/关系"是前端自造的假维度)
 const typeMeta: Record<MemorySource, { label: string; color: string }> = {
   turn: { label: '轮次原文', color: 'bg-blue-500/15 text-blue-400' },
@@ -48,9 +53,24 @@ onMounted(async () => {
     if (data.value.traces.length) selectedTurn.value = data.value.traces[0]?.turnIndex ?? 0
     trajectory.value = await api.trajectory(props.id)
     sessionMemories.value = await api.sessionMemories(props.id)
+    // delta 审计: 懒加载, 用户点开才拉 (不是每场都有数据, 避免空请求)
   } catch (e) { err.value = String(e) }
   finally { loading.value = false }
 })
+
+// 懒加载 delta 审计 (用户点"展开"才请求)
+async function loadDeltaAudit() {
+  if (deltaAudit.value || deltaAuditLoading.value) return
+  deltaAuditLoading.value = true
+  try {
+    deltaAudit.value = await api.debugSession.deltaAudit(props.id)
+  } catch (e) {
+    // 审计接口可能 404 (老会话没有审计数据), 静默失败
+    console.warn('delta audit 加载失败', e)
+  } finally {
+    deltaAuditLoading.value = false
+  }
+}
 
 const turn = computed<TurnTrace | null>(() =>
   data.value?.traces.find(t => t.turnIndex === selectedTurn.value) ?? null
@@ -495,6 +515,84 @@ const deltaResistance = computed(() => {
             <span class="text-[10px] font-mono text-muted w-8">T{{ tr.turnIndex }}</span>
             <n-progress type="line" :percentage="((tr.llmUsage?.completionTokens ?? 0) / Math.max(...data.traces.map(t => t.llmUsage?.completionTokens ?? 0), 1)) * 100" :show-text="false" class="flex-1" />
             <span class="text-[10px] font-mono text-muted w-12 text-right">{{ tr.llmUsage?.completionTokens ?? 0 }}</span>
+          </div>
+        </div>
+      </n-card>
+
+      <!-- Delta 审计 (WP58: 每轮事件 + 原始 delta + cap 砍幅明细) -->
+      <n-card size="small" class="mt-4">
+        <template #header>
+          <span class="text-sm font-medium">Delta 审计</span>
+          <n-tag size="tiny" :bordered="false" type="info" class="ml-2">调试</n-tag>
+        </template>
+        <template #header-extra>
+          <n-button
+            size="tiny"
+            quaternary
+            :loading="deltaAuditLoading"
+            @click="showDeltaAudit = !showDeltaAudit; loadDeltaAudit()"
+          >
+            {{ showDeltaAudit ? '收起' : '展开' }}
+          </n-button>
+        </template>
+
+        <!-- 收起状态: 提示 -->
+        <div v-if="!showDeltaAudit" class="text-xs text-muted">
+          查看每一轮触发了什么事件、原始 delta 是多少、哪些维度被 cap 砍了。
+        </div>
+
+        <!-- 展开状态 -->
+        <div v-else class="space-y-3">
+          <div v-if="deltaAuditLoading" class="text-xs text-muted py-4 text-center">加载中…</div>
+          <div v-else-if="!deltaAudit || !deltaAudit.turns.length" class="text-xs text-muted py-4 text-center">
+            本场没有 delta 审计数据 (老会话或未开启审计)
+          </div>
+          <div v-else class="space-y-2">
+            <div v-for="turn in deltaAudit.turns" :key="turn.turnIndex"
+                 class="bg-bg-base/40 rounded p-3 border border-bg-border">
+              <!-- 轮次标题行 -->
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-xs font-mono font-medium">T{{ turn.turnIndex }}</span>
+                <n-tag v-if="turn.crisisDetected" size="tiny" :bordered="false" type="error">⚠ 危机</n-tag>
+                <n-tag v-if="turn.capApplied" size="tiny" :bordered="false" type="warning">⚠ 有砍幅</n-tag>
+              </div>
+
+              <!-- 触发事件 -->
+              <div v-if="turn.events.length" class="mb-2">
+                <div class="text-[10px] uppercase tracking-wider text-muted mb-1">触发事件</div>
+                <div class="flex flex-wrap gap-1">
+                  <n-tag v-for="ev in turn.events" :key="ev" size="tiny" :bordered="false" type="info">
+                    {{ ev }}
+                  </n-tag>
+                </div>
+              </div>
+
+              <!-- delta 对比表 -->
+              <div class="grid grid-cols-3 gap-2 text-xs">
+                <div v-for="(val, dim) in turn.rawDeltas" :key="dim"
+                     class="flex items-center justify-between font-mono">
+                  <span class="text-muted">{{ dim }}</span>
+                  <span :class="val > 0.001 ? 'text-ok' : val < -0.001 ? 'text-danger' : 'text-muted'">
+                    {{ val > 0 ? '+' : '' }}{{ val.toFixed(3) }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- cap 砍幅明细 (如果有) -->
+              <div v-if="turn.capApplied" class="mt-2 pt-2 border-t border-bg-border">
+                <div class="text-[10px] uppercase tracking-wider text-muted mb-1.5">砍幅明细</div>
+                <div class="space-y-1">
+                  <div v-for="(cappedVal, dim) in turn.cappedDeltas" :key="dim"
+                       class="flex items-center justify-between text-xs font-mono">
+                    <span class="text-muted">{{ dim }}</span>
+                    <span>
+                      <span class="line-through text-danger mr-2">{{ turn.rawDeltas[dim]?.toFixed(3) }}</span>
+                      <span class="text-warn">→ {{ cappedVal.toFixed(3) }}</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </n-card>

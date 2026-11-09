@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { use } from 'echarts/core'
 import { BarChart, LineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import VChart from 'vue-echarts'
+import { NTag } from 'naive-ui'
 import { api } from '@/api/client'
 import type { CostTrendPoint, SessionCost } from '@/api/types'
 import InfoTooltip from '@/components/InfoTooltip.vue'
@@ -65,6 +66,19 @@ const costColumns = [
     title: () => t('cost.time'),
     key: 'startedAt',
     width: 150,
+  },
+  // WP-F: 来源标签列
+  {
+    title: '来源',
+    key: 'source',
+    width: 100,
+    render: (row: SessionCost) => {
+      const source = row.source ?? 'formal'
+      if (source === 'auto_practice') {
+        return h(NTag, { size: 'small', bordered: false, type: 'info' }, () => '自动对练')
+      }
+      return h(NTag, { size: 'small', bordered: false, type: 'success' }, () => '正式训练')
+    },
   },
   {
     title: () => t('cost.visitor'),

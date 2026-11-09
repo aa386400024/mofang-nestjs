@@ -1,7 +1,7 @@
 # Phase2.5 灰度验证期 · 工作入口
 
 > **路径**：`docs/worklog/pending/phase2.5-README.md`
-> **状态**：🚧 进行中（WP-A + WP-B + WP-C + WP-D 已完成，WP-E 待开工）
+> **状态**：✅ Phase2.5 五个 WP 全部交付（WP-A + WP-B + WP-C + WP-D + WP-E）
 > **创建日期**：2026-11-08
 > **总入口**：[§worklog/README.md](../README.md)
 
@@ -41,7 +41,7 @@
 | **WP-B** | 可复现控制 + 版本锁定 | 🔴 P0 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-b-reproducibility-version-locking.md) |
 | **WP-C** | 触发式审议闸门 | 🟡 P1 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-c-triggered-deliberation-gate.md) / [交付记录](../completed/phase2.5/phase2.5-wp-c-triggered-deliberation-gate-implementation-2026-11-09.md) |
 | **WP-D** | 模拟咨询师 AI + 自动对练 | 🟡 P1 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-d-auto-practice-2026-11-08.md) / [交付记录](../completed/phase2.5/phase2.5-wp-d-auto-practice-2026-11-08-implementation.md) |
-| **WP-E** | 自动评测 + 参数调优 | 🟡 P1 | 📋 待开工 | —— |
+| **WP-E** | 自动评测 + 参数调优 | 🟡 P1 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-tuning.md) / [交付记录](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-implementation-2026-11-09.md) |
 
 **依赖关系：**
 ```
@@ -61,11 +61,22 @@ WP-B 可复现控制 + 版本锁定
 
 ## 3. 当前有什么活
 
-**第一步：看上面的 WP 清单，找状态是「📋 待开工」且优先级最高的那个。**
+**Phase2.5 的五个 WP 已全部交付 —— 没有待开工的任务单了。**
 
-现在下一个活是：**WP-E 自动评测 + 参数调优**。
+出口条件当前状态：
 
-（WP-C 的闸门已上线：阈值/配额全部走 env，先用工程种子值跑，WP-E 拿自动评测结果回来校准。）
+| 出口条件 | 状态 |
+|---|---|
+| ① 合规过线 | ✅ WP-A 交付（入参零原文 + 三道风险闸门） |
+| ② 考核公平 | ✅ WP-B 交付（考核场景永远纯规则 + 版本锁定） |
+| ③ 成本可控 | 🚧 WP-C 闸门已上线，**种子值待真实评测校准** |
+| ④ 质量达标 | 🚧 **WP-E 评测流水线已就绪**（一条命令出报告），待**真实督导语料**跑最终验收（准确率 ≥ 80%） |
+| ⑤ 数据积累 | 🚧 WP-D 自动对练已交付，批量场次待扩 |
+
+**下一步不是写代码，是喂数据**：把外部督导案例（逐字稿 + 督导解析）喂给
+`parseSupervisorCases()` 造 B 方案验收集 → 跑一轮评测 → 看哪个维度差 → 手改 WP-C 的 env 阈值 → 再跑一轮。
+
+（红线：调参阶段**不许看验收集**，调完了才跑一次最终验收。）
 
 ---
 
