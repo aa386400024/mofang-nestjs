@@ -20,10 +20,7 @@ import { User } from '../user/entities/user.entity.js';
 import { UserModule } from '../user/index.js';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([EvalReportEntity, User]),
-    UserModule,
-  ],
+  imports: [TypeOrmModule.forFeature([EvalReportEntity, User]), UserModule],
   controllers: [EvalReportController],
   providers: [AdminRoleGuard, AdminBasicAuthMiddleware],
 })

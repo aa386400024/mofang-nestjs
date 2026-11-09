@@ -145,15 +145,17 @@ export function resolveGateStatsDay(recordedAt: number | undefined, fallback: Da
  */
 export async function applyGateStats(redis: RedisService, record: GateStatsInput): Promise<void> {
   const day = resolveGateStatsDay(record.recordedAt);
-  await redis.getClient().eval(
-    GATE_STATS_LUA_SCRIPT,
-    1,
-    buildGateStatsDailyKey(day),
-    GATE_STATS_DAILY_TTL_SECONDS,
-    `${FIELD_DECISION_PREFIX}${record.decision}`,
-    `${FIELD_REASON_PREFIX}${record.reason}`,
-    `${FIELD_MODE_PREFIX}${record.mode}`,
-  );
+  await redis
+    .getClient()
+    .eval(
+      GATE_STATS_LUA_SCRIPT,
+      1,
+      buildGateStatsDailyKey(day),
+      GATE_STATS_DAILY_TTL_SECONDS,
+      `${FIELD_DECISION_PREFIX}${record.decision}`,
+      `${FIELD_REASON_PREFIX}${record.reason}`,
+      `${FIELD_MODE_PREFIX}${record.mode}`,
+    );
 }
 
 /**

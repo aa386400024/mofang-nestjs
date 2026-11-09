@@ -58,9 +58,7 @@ export class GateDecisionStore {
         recordedDay: shanghaiDateKey(occurredAt),
       });
     } catch (error) {
-      this.logger.warn(
-        `[gate_decision_persist_failed] sessionId=${record.sessionId} turn=${record.turnIndex}: ${messageOf(error)}`,
-      );
+      this.logger.warn(`[gate_decision_persist_failed] sessionId=${record.sessionId} turn=${record.turnIndex}: ${messageOf(error)}`);
     }
   }
 }

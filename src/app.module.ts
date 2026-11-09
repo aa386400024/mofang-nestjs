@@ -16,8 +16,8 @@ import { AdminDebugChatModule } from './admin-debug/admin-debug-chat.module.js';
 import { AdminDebugModule } from './admin-debug/admin-debug.module.js';
 import { AdminInsightsModule } from './admin-debug/admin-insights.module.js';
 // V2026-11-09 — Phase2.5 闸门 trace 查询接口: 闸门决策列表 / 详情 / 按天统计.
-import { GateTraceModule } from './admin-debug/gate-trace.module.js';
 import { EvalReportAdminModule } from './admin-debug/eval-report.module.js';
+import { GateTraceModule } from './admin-debug/gate-trace.module.js';
 import { AgentModule } from './agent/agent.module.js';
 import { AiConversationsModule } from './ai-companion/ai-conversations.module.js';
 import { AIEngineModule } from './ai-engine/ai-engine.module.js';

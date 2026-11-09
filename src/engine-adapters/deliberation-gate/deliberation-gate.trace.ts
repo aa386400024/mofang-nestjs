@@ -32,9 +32,9 @@
 
 import { Logger } from '@nestjs/common';
 
-import type { RedisService } from '../../shared/infra/redis/redis.service.js';
 import type { GateDecision, GateMode, GateReason, GateThresholds } from './deliberation-gate.types.js';
 import { applyGateStats } from './gate-decision/gate-decision-stats.js';
+import type { RedisService } from '../../shared/infra/redis/redis.service.js';
 
 /**
  * 闸门决策 trace 的 Redis key 前缀.

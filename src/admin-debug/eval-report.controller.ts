@@ -76,12 +76,11 @@ function toListItem(row: EvalReportEntity): EvalReportListItem {
     createdAt: row.createdAt.toISOString(),
     datasetVersion: row.datasetVersion,
     mode: row.mode,
-    triggerF1: typeof readMetric(metrics, 'triggerQuality.f1') === 'number'
-      ? (readMetric(metrics, 'triggerQuality.f1') as number)
-      : null,
-    directionAccuracy: typeof readMetric(metrics, 'suggestionQuality.macroAverage') === 'number'
-      ? (readMetric(metrics, 'suggestionQuality.macroAverage') as number)
-      : null,
+    triggerF1: typeof readMetric(metrics, 'triggerQuality.f1') === 'number' ? (readMetric(metrics, 'triggerQuality.f1') as number) : null,
+    directionAccuracy:
+      typeof readMetric(metrics, 'suggestionQuality.macroAverage') === 'number'
+        ? (readMetric(metrics, 'suggestionQuality.macroAverage') as number)
+        : null,
     status: (readMetric(metrics, 'status') as string) ?? 'unknown',
     warningCount: warnings.length,
     costCny,
@@ -95,9 +94,7 @@ function toListItem(row: EvalReportEntity): EvalReportListItem {
 @UseGuards(AdminRoleGuard)
 @Injectable()
 export class EvalReportController {
-  constructor(
-    @InjectRepository(EvalReportEntity) private readonly repo: Repository<EvalReportEntity>,
-  ) {}
+  constructor(@InjectRepository(EvalReportEntity) private readonly repo: Repository<EvalReportEntity>) {}
 
   /**
    * 报告列表 (分页 + 状态筛选).
@@ -112,8 +109,8 @@ export class EvalReportController {
     @Query('pageSize') pageSize?: string,
     @Query('status') status?: string,
   ): Promise<EvalReportListResponse> {
-    const p = Math.max(1, parseInt(page ?? '1', 10) || 1);
-    const ps = Math.min(100, Math.max(1, parseInt(pageSize ?? '20', 10) || 20));
+    const p = Math.max(1, Number.parseInt(page ?? '1', 10) || 1);
+    const ps = Math.min(100, Math.max(1, Number.parseInt(pageSize ?? '20', 10) || 20));
 
     const qb = this.repo.createQueryBuilder('r').orderBy('r.createdAt', 'DESC');
 
@@ -123,7 +120,10 @@ export class EvalReportController {
     }
 
     const total = await qb.getCount();
-    const rows = await qb.skip((p - 1) * ps).take(ps).getMany();
+    const rows = await qb
+      .skip((p - 1) * ps)
+      .take(ps)
+      .getMany();
 
     return {
       total,

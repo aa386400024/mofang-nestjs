@@ -48,7 +48,6 @@ import { buildOwnerFilter } from './admin-scope.js';
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
 import { BizCode } from '../common/exceptions/biz-code.enum.js';
 import { BizException } from '../common/exceptions/biz.exception.js';
-import { GateDecisionEntity } from '../engine-adapters/deliberation-gate/gate-decision/gate-decision.entity.js';
 import {
   buildGateStatsDateKeys,
   buildGateStatsDailyKey,
@@ -63,6 +62,7 @@ import {
   type GateTraceQueryParams,
   type GateTraceRecordView,
 } from '../engine-adapters/deliberation-gate/gate-decision/gate-decision-view.js';
+import { GateDecisionEntity } from '../engine-adapters/deliberation-gate/gate-decision/gate-decision.entity.js';
 import { RedisService } from '../shared/infra/redis/redis.service.js';
 
 /**

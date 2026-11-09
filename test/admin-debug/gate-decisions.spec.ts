@@ -16,6 +16,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { GateTraceController } from '../../src/admin-debug/gate-trace.controller.js';
 import { DeliberationGateTrace } from '../../src/engine-adapters/deliberation-gate/deliberation-gate.trace.js';
+import { GATE_REASON_VALUES } from '../../src/engine-adapters/deliberation-gate/deliberation-gate.types.js';
 import {
   buildGateStatsDateKeys,
   buildGateStatsDailyKey,
@@ -28,7 +29,6 @@ import {
   toShanghaiIsoString,
   type GateTraceRow,
 } from '../../src/engine-adapters/deliberation-gate/gate-decision/gate-decision-view.js';
-import { GATE_REASON_VALUES } from '../../src/engine-adapters/deliberation-gate/deliberation-gate.types.js';
 import type { RedisService } from '../../src/shared/infra/redis/redis.service.js';
 import { shanghaiDateKey } from '../../src/shared/time/shanghai-date.js';
 
