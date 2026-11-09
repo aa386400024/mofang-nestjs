@@ -21,6 +21,41 @@ const maxTurns = ref(15)
 const runningSessionId = ref<string | null>(null)
 const running = ref(false)
 
+// 会话列表展开/收起
+const showSessionList = ref(true)
+
+// 模式切换：手动调试 / 自动对练
+const mode = ref<'manual' | 'auto'>('auto')
+const manualInput = ref('')
+const manualDebugSessionId = ref<string | null>(null)
+
+// 手动调试模式的会话列表
+const debugSessions = ref<Array<{ id: string; title: string; characterSlug: string; updatedAt: string; turnCount: number; status: string }>>([])
+
+// 切换模式时加载对应的会话列表
+watch(mode, async (newMode) => {
+  if (newMode === 'manual') {
+    try {
+      debugSessions.value = await api.debugSession.list()
+    } catch (e) {
+      // 静默失败
+    }
+  } else {
+    await syncSessions()
+  }
+})
+
+// 角色头像颜色映射
+const avatarColors = ['#7c8db5', '#7ab59e', '#b59e7c', '#9e7cb5', '#7cb5b5', '#b57c8d']
+function avatarColor(slug: string): string {
+  let hash = 0
+  for (let i = 0; i < slug.length; i++) hash = (hash * 31 + slug.charCodeAt(i)) & 0xffff
+  return avatarColors[hash % avatarColors.length]
+}
+function avatarInitial(slug: string): string {
+  return slug.slice(0, 1).toUpperCase()
+}
+
 // 一轮对练的完整记录
 interface TurnRecord {
   turnIndex: number
@@ -160,9 +195,118 @@ async function hydrateFromRest() {
   }
 }
 
-/** 拉一次场次列表，保留本地占位行，并同步当前场次的元信息. */
-async function syncSessions() {
+/** 刷新场次列表（手动点刷新按钮） */
+async function refreshSessions() {
+  await syncSessions()
+}
+
+// ─── 编辑标题弹窗 ───
+const editDialogVisible = ref(false)
+const editTitleValue = ref('')
+const editingSession = ref<PracticeSession | null>(null)
+
+function openEditSessionDialog(s: PracticeSession) {
+  editingSession.value = s
+  editTitleValue.value = (s as any).title || ''
+  editDialogVisible.value = true
+}
+
+async function submitEditTitle() {
+  if (!editingSession.value) return
+  // TODO: 后端补 PATCH /admin/api/auto-practice/sessions/:id 接口
+  message.success('标题已保存（后端接口待补）')
+  editDialogVisible.value = false
+}
+
+// ─── 删除场次 ───
+function confirmDeleteSession(s: PracticeSession) {
+  // TODO: 后端补 DELETE /admin/api/auto-practice/sessions/:id 接口
+  message.info('删除功能待后端接口（后端补 DELETE /auto-practice/sessions/:id）')
+}
+
+// ─── AI 重命名 ───
+function renameByLlm(s: PracticeSession) {
+  // TODO: 后端补 POST /admin/api/auto-practice/sessions/:id/rename-ai 接口
+  message.info('AI 重命名待后端接口（后端补 POST /auto-practice/sessions/:id/rename-ai）')
+}
+
+// ─── 气泡小工具 ───
+function copyMessage(text: string) {
+  navigator.clipboard.writeText(text)
+  message.success('已复制')
+}
+
+function showTrace(trace: TurnTrace) {
+  currentTrace.value = trace
+}
+
+// ─── 手动调试模式：发送一轮 ───
+async function sendManualTurn() {
+  if (!manualInput.value.trim() || !manualDebugSessionId.value) return
+  const text = manualInput.value.trim()
+  manualInput.value = ''
+
+  // 先把咨询师消息加到列表
+  messages.value.push({ role: 'counselor', text })
+
   try {
+    const res = await api.debugSession.turn(manualDebugSessionId.value, text)
+    // 来访者回复加到列表
+    messages.value.push({
+      role: 'visitor',
+      text: res.reply,
+      trace: res.trace as TurnTrace,
+    })
+  } catch (e) {
+    message.error('发送失败')
+  }
+}
+
+// ─── 手动调试模式：开启调试会话 ───
+async function startManualSession() {
+  if (!selectedCharacterSlug.value) return
+  try {
+    const res = await api.debugSession.create(selectedCharacterSlug.value)
+    manualDebugSessionId.value = res.debugSessionId
+    messages.value = []
+    message.success(`调试会话已开启: ${res.debugSessionId}`)
+  } catch (e) {
+    message.error('开启调试会话失败')
+  }
+}
+
+// ─── 手动调试模式：结束会话 ───
+async function endManualSession() {
+  if (!manualDebugSessionId.value) return
+  try {
+    await api.debugSession.close(manualDebugSessionId.value)
+    manualDebugSessionId.value = null
+    messages.value = []
+    message.success('会话已结束')
+  } catch (e) {
+    message.error('结束会话失败')
+  }
+}
+
+// ─── 手动调试模式：加载历史调试会话 ───
+async function loadDebugSession(s: { id: string; title: string }) {
+  manualDebugSessionId.value = s.id
+  messages.value = []
+  try {
+    const data = await api.debugSession.get(s.id)
+    messages.value = data.messages.map((m: any) => ({
+      role: m.role,
+      text: m.text,
+      trace: m.trace,
+    }))
+    message.success(`已加载会话: ${s.title || s.id}`)
+  } catch (e) {
+    message.error('加载会话失败')
+  }
+}
+
+/** 拉一次场次列表，保留本地占位行，并同步当前场次的元信息. */
+async function syncSessions() {  try {
     const list = await api.autoPractice.listSessions()
     const arr = list.slice(0, 20)
     if (pendingRow.value) {
@@ -525,7 +669,38 @@ onUnmounted(() => {
   <div class="h-full flex flex-col p-4 gap-4">
     <!-- 顶部工具栏 -->
     <div class="flex items-center gap-3 flex-wrap bg-bg-surface rounded-lg border border-bg-border p-3">
-      <div class="flex items-center gap-2">
+      <!-- 收起后：展开按钮 -->
+      <button
+        v-if="!showSessionList"
+        class="w-8 h-8 flex items-center justify-center rounded-md text-muted hover:text-accent hover:bg-bg-elevated transition-colors"
+        @click="showSessionList = true"
+        title="展开会话列表"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+          <path d="M15 3v18"/>
+        </svg>
+      </button>
+
+      <!-- 模式切换 -->
+      <div class="flex items-center gap-1 bg-bg-elevated rounded-lg p-0.5">
+        <button
+          class="px-3 py-1 text-xs rounded-md transition-colors"
+          :class="mode === 'auto' ? 'bg-accent text-white' : 'text-muted hover:text-text-primary'"
+          @click="mode = 'auto'"
+        >
+          自动对练
+        </button>
+        <button
+          class="px-3 py-1 text-xs rounded-md transition-colors"
+          :class="mode === 'manual' ? 'bg-accent text-white' : 'text-muted hover:text-text-primary'"
+          @click="mode = 'manual'"
+        >
+          手动调试
+        </button>
+      </div>
+
+      <div v-if="mode === 'auto'" class="flex items-center gap-2">
         <span class="text-sm text-muted">来访者</span>
         <NSelect
           v-model:value="selectedCharacterSlug"
@@ -536,7 +711,25 @@ onUnmounted(() => {
           :disabled="running"
         />
       </div>
-      <div class="flex items-center gap-2">
+
+      <!-- 手动调试模式：角色选择 + 开启会话 -->
+      <div v-if="mode === 'manual'" class="flex items-center gap-2">
+        <span class="text-sm text-muted">角色</span>
+        <NSelect
+          v-model:value="selectedCharacterSlug"
+          :options="characters.map(c => ({ label: c.codename || c.slug, value: c.slug }))"
+          placeholder="选择角色"
+          style="width: 180px"
+          size="small"
+        />
+        <NButton size="small" type="primary" :disabled="!selectedCharacterSlug" @click="startManualSession">
+          + 开启调试会话
+        </NButton>
+        <NButton v-if="manualDebugSessionId" size="small" quaternary @click="endManualSession">
+          结束会话
+        </NButton>
+      </div>
+      <div v-if="mode === 'auto'" class="flex items-center gap-2">
         <span class="text-sm text-muted">咨询师</span>
         <NSelect
           v-model:value="selectedModeId"
@@ -547,14 +740,14 @@ onUnmounted(() => {
           :disabled="running"
         />
       </div>
-      <div class="flex items-center gap-2">
+      <div v-if="mode === 'auto'" class="flex items-center gap-2">
         <span class="text-sm text-muted">轮数</span>
         <NInputNumber v-model:value="maxTurns" :min="3" :max="50" size="small" style="width: 80px" :disabled="running" />
       </div>
-      <NButton type="primary" size="small" :loading="running" :disabled="!canStart" @click="startPractice">
+      <NButton v-if="mode === 'auto'" type="primary" size="small" :loading="running" :disabled="!canStart" @click="startPractice">
         ▶ 跑一场
       </NButton>
-      <NButton size="small" quaternary @click="showBatchModal = true">
+      <NButton v-if="mode === 'auto'" size="small" quaternary @click="showBatchModal = true">
         ⚡ 批量跑
       </NButton>
       <div v-if="running" class="ml-auto flex items-center gap-3 text-xs text-muted font-mono">
@@ -573,7 +766,7 @@ onUnmounted(() => {
     <!-- 主区域: 三栏 -->
     <div class="flex-1 flex min-h-0 gap-3">
       <!-- 左栏: 历史场次 + 批量进度 -->
-      <div class="w-64 flex-shrink-0 flex flex-col gap-3 min-h-0">
+      <div v-if="showSessionList" class="w-64 flex-shrink-0 flex flex-col gap-3 min-h-0">
         <!-- 批量进度 -->
         <div v-if="batchProgress" class="bg-bg-surface rounded-lg border border-bg-border p-3">
           <div class="text-xs font-medium mb-2 flex items-center justify-between">
@@ -594,35 +787,150 @@ onUnmounted(() => {
         </div>
 
         <!-- 历史场次 -->
-        <div class="flex-1 bg-bg-surface rounded-lg border border-bg-border p-3 min-h-0 overflow-auto">
-          <div class="text-xs font-medium mb-2">最近场次</div>
-          <div v-if="recentSessions.length === 0" class="text-xs text-muted text-center py-4">暂无</div>
-          <div
-            v-for="s in recentSessions"
-            :key="s.id"
-            class="text-xs p-2 rounded cursor-pointer hover:bg-bg-elevated mb-1 border border-transparent hover:border-bg-border transition-colors"
-            :class="{ 'border-accent/40 bg-accent/5': s.id === runningSessionId }"
-            @click="loadSession(s)"
-          >
-            <div class="flex items-center justify-between">
-              <span class="font-mono">{{ (s.characterSlug || '—').slice(0, 12) }}</span>
-              <NTag size="tiny" :type="s.status === 'completed' ? 'success' : s.status === 'failed' ? 'error' : 'info'">{{ s.status }}</NTag>
+        <div class="flex-1 bg-bg-surface rounded-lg border border-bg-border min-h-0 flex flex-col">
+          <!-- 头部 -->
+          <div class="flex items-center justify-between px-3 py-2.5 border-b border-bg-border">
+            <div class="flex items-center gap-2">
+              <button
+                class="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-accent hover:bg-bg-elevated transition-colors"
+                @click="showSessionList = false"
+                title="收起会话列表"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                  <line x1="9" x2="9" y1="3" y2="21"/>
+                </svg>
+              </button>
+              <span class="text-sm font-medium">{{ mode === 'auto' ? '场次历史' : '调试会话' }}</span>
             </div>
-            <div class="text-muted mt-1 flex items-center gap-1.5">
-              <span>{{ s.id === runningSessionId && turns.size ? turns.size : s.turnCount }} 轮</span>
-              <span>·</span>
-              <span>{{ s.counselorModeId }}</span>
-              <span v-if="s.status === 'running'" class="inline-block w-1.5 h-1.5 rounded-full bg-warn animate-pulse ml-auto"></span>
+            <button
+              class="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-accent hover:bg-bg-elevated transition-colors"
+              @click="refreshSessions"
+              title="刷新"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                <path d="M8 16H3v5"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- 列表 -->
+          <div class="flex-1 overflow-auto p-2 space-y-1">
+            <div v-if="mode === 'auto' && recentSessions.length === 0" class="text-xs text-muted text-center py-12">
+              <div class="flex flex-col items-center gap-2 opacity-60">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span>暂无场次</span>
+              </div>
+            </div>
+            <div v-if="mode === 'manual' && debugSessions.length === 0" class="text-xs text-muted text-center py-12">
+              <div class="flex flex-col items-center gap-2 opacity-60">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span>暂无调试会话</span>
+              </div>
+            </div>
+
+            <!-- 自动对练：practice sessions -->
+            <div
+              v-for="s in recentSessions"
+              v-if="mode === 'auto'"
+              :key="s.id"
+              class="group rounded-lg border transition-all cursor-pointer"
+              :class="[
+                s.id === runningSessionId
+                  ? 'border-accent/40 bg-accent/5'
+                  : 'border-transparent hover:border-bg-border hover:bg-bg-elevated'
+              ]"
+              @click="loadSession(s)"
+            >
+              <div class="px-3 py-2.5 flex items-start gap-2.5">
+                <div
+                  class="w-7 h-7 rounded-md flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5"
+                  :style="{ background: avatarColor(s.characterSlug), color: '#fff' }"
+                >
+                  {{ avatarInitial(s.characterSlug) }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm truncate font-medium leading-6 flex items-center gap-1.5">
+                    <span class="truncate">{{ (s as any).title || (s.characterSlug || '未命名').slice(0, 12) }}</span>
+                    <NTag size="tiny" :type="s.status === 'completed' ? 'success' : s.status === 'failed' ? 'error' : 'info'">{{ s.status }}</NTag>
+                  </div>
+                  <div class="text-xs text-muted mt-0.5 flex items-center gap-1.5">
+                    <span>{{ s.id === runningSessionId && turns.size ? turns.size : s.turnCount }} 轮</span>
+                    <span>·</span>
+                    <span>{{ s.counselorModeId }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 手动调试：debug sessions -->
+            <div
+              v-for="s in debugSessions"
+              v-if="mode === 'manual'"
+              :key="s.id"
+              class="group rounded-lg border transition-all cursor-pointer"
+              :class="[
+                s.id === manualDebugSessionId
+                  ? 'border-accent/40 bg-accent/5'
+                  : 'border-transparent hover:border-bg-border hover:bg-bg-elevated'
+              ]"
+              @click="loadDebugSession(s)"
+            >
+              <div class="px-3 py-2.5 flex items-start gap-2.5">
+                <div
+                  class="w-7 h-7 rounded-md flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5"
+                  :style="{ background: avatarColor(s.characterSlug), color: '#fff' }"
+                >
+                  {{ avatarInitial(s.characterSlug) }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm truncate font-medium leading-6">
+                    <span class="truncate">{{ s.title || '未命名会话' }}</span>
+                  </div>
+                  <div class="text-xs text-muted mt-0.5 flex items-center gap-1.5">
+                    <span>{{ s.turnCount }} 轮</span>
+                  </div>
+                </div>
+
+                <!-- hover 操作按钮 -->
+                <div class="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 pt-0.5">
+                  <button
+                    class="w-6 h-6 flex items-center justify-center rounded text-muted hover:text-accent hover:bg-bg-surface transition-colors"
+                    title="重命名"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                    </svg>
+                  </button>
+                  <button
+                    class="w-6 h-6 flex items-center justify-center rounded text-muted hover:text-danger hover:bg-bg-surface transition-colors"
+                    title="删除"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 6h18"/>
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <!-- 中栏: 对话流 -->
-      <div class="flex-1 flex flex-col bg-bg-surface rounded-lg border border-bg-border min-w-0 h-full min-h-0">
+      <div class="w-[42%] flex-shrink-0 flex flex-col bg-bg-surface rounded-lg border border-bg-border min-w-0 h-full min-h-0">
         <div id="ap-messages" class="flex-1 overflow-auto p-4 space-y-4">
           <!-- 未开始：只有空态提示 -->
-          <NEmpty v-if="messages.length === 0 && !running" description="选择角色和咨询师模式，点「跑一场」开始自动对练" />
+          <NEmpty v-if="messages.length === 0 && !running" :description="mode === 'auto' ? '选择角色和咨询师模式，点「跑一场」开始自动对练' : '选择角色，点「开启调试会话」开始手动调试'" />
 
           <!-- 刚启动、第一轮还没回来：单独的启动状态，不和空态文案叠在一起 -->
           <div v-if="messages.length === 0 && running" class="flex flex-col items-center justify-center h-full gap-3 text-muted">
@@ -634,7 +942,7 @@ onUnmounted(() => {
             <span class="text-xs">对练已启动，正在生成第一轮对话…</span>
           </div>
 
-          <div v-for="(msg, i) in messages" :key="i" class="flex gap-2.5" :class="msg.role === 'counselor' ? 'flex-row-reverse' : 'flex-row'">
+          <div v-for="(msg, i) in messages" :key="i" class="group flex gap-2.5" :class="msg.role === 'counselor' ? 'flex-row-reverse' : 'flex-row'">
             <div
               class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0 mt-4"
               :style="{ background: msg.role === 'counselor' ? '#7c8db5' : '#7ab59e', color: '#fff' }"
@@ -654,11 +962,35 @@ onUnmounted(() => {
               >
                 <div class="whitespace-pre-wrap">{{ msg.text }}</div>
               </div>
+
+              <!-- 气泡下方小工具（hover 才显示） -->
+              <div class="flex gap-1 mt-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  class="w-6 h-6 flex items-center justify-center rounded-md text-muted hover:text-accent hover:bg-bg-surface transition-colors"
+                  @click="copyMessage(msg.text)"
+                  title="复制文本"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                </button>
+                <button
+                  v-if="msg.role === 'visitor' && msg.trace"
+                  class="w-6 h-6 flex items-center justify-center rounded-md bg-accent/15 border border-accent/30 shadow-sm hover:bg-accent/25 text-accent transition-colors"
+                  @click="showTrace(msg.trace!)"
+                  title="查看这轮的调试数据"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.3-4.3"/>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
 
-          <!-- 运行中指示器：只在已有对话时作为"下一轮生成中"出现 -->
-          <div v-if="running && messages.length > 0" class="flex gap-2.5 items-start">
+          <!-- 运行中指示器：只在自动模式显示 -->
+          <div v-if="mode === 'auto' && running && messages.length > 0" class="flex gap-2.5 items-start">
             <div class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0 mt-4 bg-[#7c8db5] text-white">咨</div>
             <div class="bg-bg-elevated/80 rounded-2xl rounded-br-md px-4 py-3 shadow-sm flex items-center gap-1.5" title="咨询师正在生成下一句">
               <span class="typing-dot"></span>
@@ -666,17 +998,30 @@ onUnmounted(() => {
               <span class="typing-dot" style="animation-delay: 0.3s"></span>
             </div>
           </div>
-          <!-- 结束提示：把结束原因说清楚（自然收尾 / 轮数上限 / 危机 / 停滞） -->
-          <div v-if="!running && messages.length > 0" class="flex justify-center pt-1 pb-2">
+          <!-- 结束提示：只在自动对练模式显示 -->
+          <div v-if="mode === 'auto' && !running && messages.length > 0" class="flex justify-center pt-1 pb-2">
             <span class="text-[11px] text-muted">
               本场已结束 · {{ endReasonLabel }} · 共 {{ finalTurnCount || turns.size }} 轮
             </span>
           </div>
         </div>
+
+        <!-- 手动调试模式：底部输入框 -->
+        <div v-if="mode === 'manual'" class="border-t border-bg-border p-3 flex gap-2">
+          <NInput
+            v-model:value="manualInput"
+            placeholder="输入咨询师的话，回车发送…"
+            size="medium"
+            type="textarea"
+            :autosize="{ minRows: 1, maxRows: 3 }"
+            @keyup.enter="sendManualTurn"
+          />
+          <NButton size="medium" type="primary" :disabled="!manualInput.trim()" @click="sendManualTurn">发送</NButton>
+        </div>
       </div>
 
       <!-- 右栏: BDI 调试面板 -->
-      <div class="w-80 flex-shrink-0 bg-bg-surface rounded-lg border border-bg-border flex flex-col min-h-0">
+      <div class="flex-1 flex flex-col bg-bg-surface rounded-lg border border-bg-border min-h-0">
         <div class="px-3 py-2 border-b border-bg-border flex items-center justify-between">
           <span class="text-xs font-medium">调试面板</span>
           <NButton size="tiny" quaternary :disabled="messages.length === 0" @click="exportJSON">导出 JSON</NButton>
@@ -730,6 +1075,28 @@ onUnmounted(() => {
         </div>
         <NButton type="primary" block @click="startBatch">开始批量跑</NButton>
       </div>
+    </NModal>
+
+    <!-- 编辑场次标题弹窗 -->
+    <NModal
+      v-model:show="editDialogVisible"
+      preset="card"
+      title="编辑场次标题"
+      style="width: 400px"
+      :bordered="false"
+    >
+      <NInput
+        v-model:value="editTitleValue"
+        placeholder="输入场次标题"
+        @keyup.enter="submitEditTitle"
+        autofocus
+      />
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <NButton size="small" @click="editDialogVisible = false">取消</NButton>
+          <NButton size="small" type="primary" @click="submitEditTitle">保存</NButton>
+        </div>
+      </template>
     </NModal>
   </div>
 </template>

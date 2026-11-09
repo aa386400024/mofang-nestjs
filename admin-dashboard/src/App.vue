@@ -101,11 +101,11 @@ onMounted(() => {
           <RouterLink to="/psyguard" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.psyguard') }}</RouterLink>
           <RouterLink to="/cost" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.cost') }}</RouterLink>
           <RouterLink to="/deliberation-stats" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.deliberationStats') }}</RouterLink>
+          <RouterLink to="/gate-decisions" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">闸门决策</RouterLink>
           <span class="w-px h-4 bg-bg-border mx-1 self-center"></span>
           <RouterLink to="/architecture" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.architecture') }}</RouterLink>
           <RouterLink to="/calibrator" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.calibrator') }}</RouterLink>
           <span class="w-px h-4 bg-bg-border mx-1 self-center"></span>
-          <RouterLink to="/debug-chat" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.debugChat') }}</RouterLink>
           <RouterLink to="/auto-practice" class="px-3 py-1.5 rounded hover:bg-bg-elevated" active-class="bg-bg-elevated text-accent">{{ t('nav.autoPractice') }}</RouterLink>
         </nav>
         <div class="ml-auto flex items-center gap-3 text-xs font-mono">

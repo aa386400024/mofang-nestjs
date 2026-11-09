@@ -147,6 +147,13 @@ const clinicalEntries = computed(() => {
         </n-card>
       </div>
 
+      <!-- 闸门决策入口（WP-C） -->
+      <div class="mt-4 mb-2">
+        <RouterLink to="/gate-decisions" class="inline-flex items-center gap-2 text-sm text-accent hover:underline">
+          查看闸门决策详情 →
+        </RouterLink>
+      </div>
+
       <!-- 第二行：耗时 + 过期率 -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <n-card size="small">

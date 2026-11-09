@@ -16,6 +16,7 @@ declare module 'vue' {
     DimensionsRadar: typeof import('./src/components/DimensionsRadar.vue')['default']
     EmptyState: typeof import('./src/components/EmptyState.vue')['default']
     InfoTooltip: typeof import('./src/components/InfoTooltip.vue')['default']
+    MessageBubble: typeof import('./src/components/MessageBubble.vue')['default']
     NAlert: typeof import('naive-ui')['NAlert']
     NButton: typeof import('naive-ui')['NButton']
     NCard: typeof import('naive-ui')['NCard']

@@ -63,6 +63,7 @@ import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import type { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
 import type { DeliberationEffectPort } from '../deliberation/llm-deliberation-hook.js';
 import type { DeliberationShadowPort } from '../deliberation/llm-deliberation.service.js';
+import type { DeliberationGatePort } from '../deliberation-gate/deliberation-gate.types.js';
 import type { SessionCostPricing } from '../observability/session-cost.js';
 import { toRecallPolicyOptions, type MemoryConfig } from '../persistence/memory-config.js';
 import type { QdrantMemoryClient } from '../persistence/qdrant-memory.store.js';
@@ -299,6 +300,16 @@ export interface EngineOrchestratorDeps {
    * 缺省语义: **纯增强** —— 没装就只是"没有生效审议", 会话与渲染逐字不变.
    */
   readonly deliberationHook?: DeliberationEffectPort;
+  /**
+   * 触发式审议闸门 (Phase2.5 WP-C; 缺省 = 不设闸门).
+   *
+   * 缺省语义: **纯增强** —— 没装就还是"每轮都跑审议" (与本单之前逐字不变).
+   *
+   * ⚠️ 用**窄端口**注入 (与影子 / 生效两个端口同款纪律):
+   *   门面是纯类 (零 @nestjs), 塞一个 Nest service 进去会把框架拖进门面,
+   *   让"装配缺席"从"没有闸门"退化成"门面起不来".
+   */
+  readonly gate?: DeliberationGatePort;
 }
 
 /**
@@ -323,6 +334,8 @@ export function createEngineOrchestrator(deps: EngineOrchestratorDeps): TurnRend
     ...(deps.deliberation ? { deliberation: deps.deliberation } : {}),
     // R9: 生效审议钩子 —— 装配缺席时门面行为逐字不变 (纯增强).
     ...(deps.deliberationHook ? { deliberationHook: deps.deliberationHook } : {}),
+    // WP-C: 触发式审议闸门 —— 装配缺席时门面行为逐字不变 (纯增强).
+    ...(deps.gate ? { gate: deps.gate } : {}),
   });
 }
 

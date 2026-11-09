@@ -367,6 +367,29 @@ export declare global {
       //   ⚠️ 缺省组合 = **纯规则** —— 与改造前逐字一致 (零回归).
       ENGINE_DELIBERATION_EFFECTIVE_MODE?: string; // 生效模式: shadow(缺省) / rule_only / llm_active; 非法值回退 shadow
       ENGINE_DELIBERATION_GRAYSCALE_SESSIONS?: string; // 生效路径的会话白名单 (逗号分隔 sessionId; 缺省 = 全量)
+      // V2026-11-09 治本 (Phase2.5 WP-C — 触发式审议闸门):
+      //   下面是闸门的 12 个 env 键. 同样**逐个字面量**读
+      //   (src/engine-adapters/deliberation-gate/deliberation-gate.config.ts).
+      //   ⚠️ 影子与生效各一套参数 (SHADOW / EFFECT 后缀) —— 两套冷却/计数互不干扰.
+      //   ⚠️ 数值键读到的**一定是字符串**, 必须自己解析 + 回退默认 (填错一个 env 不该让服务起不来).
+      ENGINE_DELIBERATION_GATE_ALLIANCE_THRESHOLD_EFFECT?: string; // 同盟三维触发阈值 (生效, 默认 0.05; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_ALLIANCE_THRESHOLD_SHADOW?: string; // 同盟三维触发阈值 (影子, 默认 0.03; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_RESISTANCE_THRESHOLD_EFFECT?: string; // 阻抗三维触发阈值 (生效, 默认 0.08; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_RESISTANCE_THRESHOLD_SHADOW?: string; // 阻抗三维触发阈值 (影子, 默认 0.05; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_CALM_THRESHOLD_EFFECT?: string; // 全平静阈值 (生效, 默认 0.03; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_CALM_THRESHOLD_SHADOW?: string; // 全平静阈值 (影子, 默认 0.03; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_COOLDOWN_EFFECT?: string; // 冷却轮数 (生效, 默认 4; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_COOLDOWN_SHADOW?: string; // 冷却轮数 (影子, 默认 1; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_MAX_PER_SESSION_EFFECT?: string; // 每会话最大生效次数 (默认 6; 影子不限)
+      ENGINE_DELIBERATION_GATE_GLOBAL_RPM?: string; // 全局每分钟配额 (默认 20; 影子不限)
+      ENGINE_DELIBERATION_GATE_CIRCUIT_FAIL_COUNT?: string; // 连续失败多少次熔断 (默认 5; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_CIRCUIT_COOLDOWN_MS?: string; // 熔断持续时长 (毫秒, 默认 600000; 非法值回退默认)
+      // V2026-11-09 治本 (WP-C 顺手补齐 · Phase2.5 WP-D 自动对练的登记缺口):
+      //   这 3 个键代码里早就在读 (src/auto-practice/), 但 .env.example 一直没登记 ——
+      //   WP25 的 env 双向守卫断言①一直是红的. 这里补上 (不改任何行为).
+      AUTO_PRACTICE_COUNSELOR_MODEL?: string; // 自动对练的咨询师模型名 (留空 = 用 router 默认)
+      AUTO_PRACTICE_WORKER_CONCURRENCY?: string; // 自动对练 Worker 并发数 (默认 3; 非法值回退默认)
+      ENGINE_VERSION?: string; // 推理环境指纹里的引擎版本号 (默认 dev; 非法值回退默认)
       // V2026-11-07 治本 (临床合理性校验 · 观测版):
       //   审议输出的临床合理性**观测**开关. 同样**逐个字面量**读
       //   (src/engine-adapters/deliberation/llm-deliberation.service.ts).

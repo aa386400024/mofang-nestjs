@@ -64,6 +64,24 @@ const clickMemory = (m: MemoryEntry) => {
   highlightMemory.value = m.id
 }
 
+// 审议闸门原因中文映射（WP-C）
+const gateReasonLabels: Record<string, string> = {
+  crisis_skip: '危机跳过（合规红线）',
+  first_turn_baseline: '首轮基线',
+  key_event: '关键事件硬触发',
+  cooldown: '冷却期',
+  quota_exceeded: '配额超限',
+  circuit_open: '熔断中',
+  unknown_event_type: '未知事件类型',
+  alliance_delta_high: '同盟维度变化大',
+  resistance_delta_high: '阻抗维度变化大',
+  calm_turn: '平静对话',
+  rule_confident: '规则置信',
+}
+function gateReasonLabel(reason: string): string {
+  return gateReasonLabels[reason] || reason
+}
+
 // ─── 调试面板：delta 明细（mock，后端补真实数据后替换） ───
 // 从前后两轮快照差值推算 delta，作为前端 UI 的 mock 数据
 const deltaDetail = computed<DeltaDetail | null>(() => {
@@ -433,6 +451,24 @@ const deltaResistance = computed(() => {
 
           <!-- 安全判定 -->
           <SafetyVerdictPanel :verdict="null" />
+
+          <!-- 审议闸门决策（WP-C） -->
+          <n-card v-if="turn?.gateDecision" title="审议闸门" size="small">
+            <div class="flex items-center gap-2">
+              <span
+                class="px-2 py-0.5 rounded text-xs font-medium border"
+                :class="turn.gateDecision.decision === 'run'
+                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                  : 'bg-gray-500/15 text-gray-400 border-gray-500/30'"
+              >
+                {{ turn.gateDecision.decision === 'run' ? '跑审议' : '跳过' }}
+              </span>
+              <span class="text-xs text-muted">{{ gateReasonLabel(turn.gateDecision.reason) }}</span>
+            </div>
+            <div class="text-[10px] text-muted mt-2">
+              阈值 {{ turn.gateDecision.thresholdUsed.toFixed(3) }}
+            </div>
+          </n-card>
 
           <!-- RenderSpec prompt 预览 -->
           <n-card v-if="turn?.renderSpec?.promptPreview" :title="t('sessionDetail.renderSpec')" size="small">

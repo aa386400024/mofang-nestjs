@@ -109,6 +109,8 @@ import { DeliberationProcessor } from '../deliberation/deliberation.processor.js
 import { LlmDeliberationEffectiveRunner } from '../deliberation/llm-deliberation-effective.js';
 import { LlmDeliberationHook } from '../deliberation/llm-deliberation-hook.js';
 import { LlmDeliberationService } from '../deliberation/llm-deliberation.service.js';
+import { DeliberationGateModule } from '../deliberation-gate/deliberation-gate.module.js';
+import { DeliberationGateService } from '../deliberation-gate/deliberation-gate.service.js';
 import { OpenAICompatEmbedder } from '../embedder/openai-compat.embedder.js';
 import { resolveMemoryConfig } from '../persistence/memory-config.js';
 import { RollingSessionSummaryService, type RollingSummaryCleanupPort } from '../persistence/rolling-session-summary.service.js';
@@ -148,6 +150,10 @@ const wiringLogger = new Logger('EngineWiring');
     TurnDeltaAuditModule,
     // WP19: 调试快照记录器 (每轮 BDI trace 落库).
     AdminDebugModule,
+    // Phase2.5 WP-C: 触发式审议闸门 —— 决定"这一轮要不要跑 LLM 审议".
+    //   独立模块 (与 CharacterPoolModule / TurnDeltaAuditModule 同款理由):
+    //   闸门只依赖 ConfigService + RedisService 两个窄面, 零 ORM / 零厂商 SDK.
+    DeliberationGateModule,
     // V2026-11-05 (WP64): agent 侧 LlmModule —— 只为拿 `LlmService`
     //   (结构化输出 client `CounselorLlmJsonClient` 的传输层依赖).
     //   ⚠️ 与下面的 `LlmModule` (src/llm/llm.module.js, 路由层) 是**两个不同的类**:
@@ -401,6 +407,7 @@ const wiringLogger = new Logger('EngineWiring');
         deliberation: DeliberationProcessor,
         modeConfig: DeliberationModeConfig,
         deliberationHook: LlmDeliberationHook,
+        gate: DeliberationGateService,
       ): TurnRenderOrchestrator =>
         createEngineOrchestrator({
           session,
@@ -422,6 +429,11 @@ const wiringLogger = new Logger('EngineWiring');
           ...(modeConfig.effectiveMode === 'shadow' ? { deliberation } : {}),
           // R9: 生效审议钩子 —— 只在生效模式挂 (会话白名单的逐场判定在钩子内部做).
           ...(modeConfig.effectiveMode === 'llm_active' ? { deliberationHook } : {}),
+          // WP-C: 触发式审议闸门 —— 门面每轮先问它"要不要跑审议".
+          //   ⚠️ 闸门**始终挂上**, 但它只在影子/生效路径实际挂上时才被问到
+          //     (纯规则模式 = 压根没有审议路径 = 闸门一次都不会被调用).
+          //   ⚠️ 门面只认窄端口 (DeliberationGatePort) —— 这里传的是实现, 门面不知道实现细节.
+          gate,
         }),
       inject: [
         ENGINE_SESSION_PORT,
@@ -433,6 +445,7 @@ const wiringLogger = new Logger('EngineWiring');
         DeliberationProcessor,
         ENGINE_DELIBERATION_MODE_CONFIG,
         ENGINE_DELIBERATION_HOOK,
+        DeliberationGateService,
       ],
     },
     // V2026-11-02 治本 (WP14 §1.6 — 重点监测场次的强制远端探测):

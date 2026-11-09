@@ -135,9 +135,10 @@ import {
 } from '../../engine-core/index.js';
 import type { ChatMessage } from '../../llm/common/interfaces/chat-provider.interface.js';
 import { buildDeliberationInput } from '../deliberation/deliberation-input.js';
-import type { DeliberationMode } from '../deliberation/deliberation-types.js';
+import type { DeliberationInput, DeliberationMode } from '../deliberation/deliberation-types.js';
 import type { DeliberationEffectPort } from '../deliberation/llm-deliberation-hook.js';
 import { computeRuleDelta, type DeliberationShadowPort } from '../deliberation/llm-deliberation.service.js';
+import type { DeliberationGatePort, GateDecision, GateMode } from '../deliberation-gate/deliberation-gate.types.js';
 import type { RollingSummaryPort } from '../persistence/rolling-session-summary.service.js';
 
 /**
@@ -379,6 +380,17 @@ export interface TurnRenderOrchestratorDeps {
    *   (内核 turn 跑在渲染之前). 门面是唯一同时握有渲染产物与归属登记的位置.
    */
   readonly deliberationHook?: DeliberationEffectPort;
+  /**
+   * 触发式审议闸门 (V2026-11-09 Phase2.5 WP-C; 缺省 = 不设闸门).
+   *
+   * 缺省语义: **纯增强** —— 没装闸门就还是"每轮都跑审议" (与本单之前逐字一致),
+   * 门面的行为一个字不变.
+   *
+   * ⚠️ 为什么用**窄端口**而不是直接依赖 `DeliberationGateService`:
+   *   门面是纯类 (零 @nestjs), 依赖一个 Nest service 会把框架拖进来;
+   *   窄端口让单测能用极小替身覆盖, 也让"装配缺席"退化成"没有闸门"而不是"门面起不来".
+   */
+  readonly gate?: DeliberationGatePort;
 }
 
 /**
@@ -473,6 +485,29 @@ export const MAX_HISTORY_TURNS = WORKING_MEMORY_WINDOW_TURNS * 2;
  *   会把"判定标准更严"的偏置带进对比数据, PoC 的差异统计就失真了.
  */
 const DELIBERATION_SHADOW_MODE: DeliberationMode = 'freeform';
+
+/**
+ * 一轮审议旁路的入参 (影子与生效共用同一份).
+ *
+ * ⚠️ 为什么要抽成参数对象: WP-C 之后, 审议旁路被拆成"闸门判定 + 发起审议"两段,
+ *   两段都要用同一批数据 (归属 / 用户 / 结构化输入 / 前后快照 / 内核出参).
+ *   拆成参数对象 = 两段之间只传一份, 不会出现"影子拿的是 A 快照、生效拿的是 B 快照"
+ *   这种只有对比数据才看得出的分裂.
+ */
+interface DeliberationRoundParams {
+  /** 会话归属 (租户 / 会话 / 学员账号). */
+  readonly context: TurnSessionContext;
+  /** 学员账号 id (LLM 调用要求非空). */
+  readonly userId: string;
+  /** 审议结构化输入 (WP-A: 零对话原文) —— 影子与生效**同一份**. */
+  readonly structured: DeliberationInput;
+  /** 本轮开始时的快照 (R0). */
+  readonly baseSnapshot: BdiSnapshot;
+  /** 内核本轮出参. */
+  readonly output: EngineTurnOutput;
+  /** 本轮入参 (咨询师文本). */
+  readonly input: EngineTurnInput;
+}
 
 /**
  * 决策→说话装配门面 (纯类, 非 NestJS).
@@ -747,73 +782,177 @@ export class TurnRenderOrchestrator {
       ruleStrategy,
     });
 
-    // ① 影子旁路 (V2026-11-05 WP64): 结果**不生效**, 只写 Redis trace 表.
-    if (shadow) {
-      try {
-        void shadow
-          .runShadowMode({
-            sessionId: context.sessionId,
-            tenantId: context.tenantId,
-            userId,
-            turnIndex: output.turnIndex,
-            // WP65: 本轮落库后的快照版本号 (output.revision) —— 切灰度时判断审议结果有没有过期.
-            //   `?? 0` 兜底: 内核没填 (老版本 / 测试 mock) 时记 0 —— 真实版本都 >= 1,
-            //   0 会被判定为过期 (安全的失败方向, 而不是"看起来有效").
-            baseRevision: output.revision ?? 0,
-            mode: DELIBERATION_SHADOW_MODE,
-            // WP-A: 结构化输入 (零对话原文) —— 事件分类 / 状态前后对比 / 角色基线 / 风险等级.
-            //   ⚠️ `ruleStrategy` (WP68 意图锁定要的那个) 也在这份里 ——
-            //     它取 `spec.intention.strategy` (本轮渲染**实际用的**那个策略,
-            //     内核意图缺失时有中性兜底 `simple_response`) —— 不是猜一个.
-            structured,
-            ruleDelta: computeRuleDelta(baseSnapshot, output.snapshot),
-          })
-          .catch((error: unknown) => {
-            // 审议服务承诺不抛 —— 这一层是**防御**: 万一它抛了, 也不能炸主流程.
-            warn(`[shadow] 审议调用异常 (已忽略): ${errorMessage(error)}`);
-          });
-      } catch (error) {
-        warn(`[shadow] 审议调用异常 (已忽略): ${errorMessage(error)}`);
-      }
-    }
+    const round: DeliberationRoundParams = { context, userId, structured, baseSnapshot, output, input };
 
-    // ② 生效拍 (V2026-11-08 R9): 产出一份建议, 供**下一轮**内核取用.
-    //   ⚠️ 这里的快照是**本轮落库后**的那份 (= 下一轮开始时内核会载入的状态),
-    //     版本号同理 (R1) —— 产出拍与下一轮的消费拍因此天然对齐,
-    //     只有状态被外力改过 (会话恢复 / 别的进程改了状态) 才会判成过期.
+    // WP-C (Phase2.5 · 触发式审议闸门): 先问"这一轮要不要跑", 判成 skip 就不发起审议.
+    //   ⚠️ **没装闸门时走同步老路** (与本单之前逐字一致):
+    //     闸门判定是异步的, 一旦 await 就会把影子/生效的发起时机往后推一个微任务,
+    //     既有单测断言"turn() 返回时影子调用已经发生"就会飘.
+    //   ⚠️ **闸门挂了 = 放行** (退化成每轮都跑): 闸门是省钱手段, 不是正确性手段.
+    const gate = this.deps.gate;
+    if (!gate) {
+      this.fireShadowDeliberation(round);
+      this.fireEffectDeliberation(round);
+      return;
+    }
+    void this.runGatedDeliberation(round).catch((error: unknown) => {
+      warn(`[gate] 审议闸门旁路异常 (已忽略): ${errorMessage(error)}`);
+    });
+  }
+
+  /**
+   * 走闸门后再发起审议 (WP-C · 触发式审议闸门).
+   *
+   * ⚠️ **每条路径各问一次自己的闸门** (影子问 shadow 口径, 生效问 effect 口径):
+   *   两套阈值 / 两套配额 / 两套冷却**互不干扰** (Redis key 带 mode 段),
+   *   同一场会话可以先影子后切生效, 计数不会互相污染.
+   * ⚠️ **只问实际挂上去的那条路径**: 没装影子端口就不问影子闸门 ——
+   *   问一次会白白消耗影子侧的计数 (而且那份决策没人消费).
+   *
+   * @param round 本轮审议入参
+   */
+  private async runGatedDeliberation(round: DeliberationRoundParams): Promise<void> {
+    const shadow = this.deps.deliberation;
+    const effect = this.deps.deliberationHook;
+    if (shadow) {
+      const decision = await this.evaluateGate('shadow', round);
+      if (decision === 'run') this.fireShadowDeliberation(round);
+    }
     if (effect) {
-      const produceContext: DeliberationHookContext = {
-        snapshot: output.snapshot,
-        ruleDelta: computeRuleDelta(baseSnapshot, output.snapshot),
-        // ⚠️ 内核端口的 `counselorText` 是**内核契约里的必填字段** (engine-core 红线, 改不得).
-        //   WP-A 之后**适配层不再消费它** —— 审议输入全部走 `extras.structured` (零原文).
-        //   它还留在这儿只是因为内核的类型要求必填; 残余风险已登记 (见 WP-A 交付记录).
-        counselorText: input.userText,
-        tenantId: context.tenantId,
-        sessionId: context.sessionId,
-        turnIndex: output.turnIndex,
-        // `?? 0` 兜底: 内核没填 (老版本 / 测试 mock) 时记 0 —— 真实版本都 >= 1.
-        //   0 与下一轮内核报上来的版本对不上 → 建议判成过期 → 回退规则 delta
-        //   (安全的失败方向, 而不是"看起来有效").
-        currentRevision: output.revision ?? 0,
-      };
-      // ⚠️ 这里**不加** try/catch: `.catch()` 已经兜住了 rejection, 而 `produce` 是
-      //   **async 方法** —— 它不可能同步抛 (同步抛只可能来自调用方自己的代码,
-      //   而这里做的是纯参数组装). 多套一层 try 只会让"到底谁兜的"变模糊.
-      void effect
-        .produce({
-          context: produceContext,
-          extras: {
-            // WP-A: 与影子路径**同一份**结构化输入 (两条路径的对比数据必须可比).
-            structured,
-            userId,
-          },
+      const decision = await this.evaluateGate('effect', round);
+      if (decision === 'run') this.fireEffectDeliberation(round);
+    }
+  }
+
+  /**
+   * 问一次闸门 (WP-C).
+   *
+   * ⚠️ **闸门异常 = 放行** (退化成每轮都跑审议):
+   *   闸门是省钱手段, 不是正确性手段 —— 闸门自身故障不该让审议整体停摆.
+   * ⚠️ 闸门看到的**只有结构化数据** (前后快照 / 事件标签 / 风险等级), 零对话原文.
+   *
+   * @param mode 走哪条路径 (影子 / 生效)
+   * @param round 本轮审议入参
+   * @returns 跑 / 不跑
+   */
+  private async evaluateGate(mode: GateMode, round: DeliberationRoundParams): Promise<GateDecision> {
+    const gate = this.deps.gate;
+    if (!gate) return 'run';
+    try {
+      const output = await gate.evaluate({
+        sessionId: round.context.sessionId,
+        turnIndex: round.output.turnIndex,
+        stateBefore: round.baseSnapshot,
+        stateAfter: round.output.snapshot,
+        // 内核真值 (不做预判) —— 适配层另起一套标签 = 影子期对比数据全废.
+        events: round.output.events ?? [],
+        // ⚠️ 风险等级**复用审议层的口径** (WP-A): 闸门与审议层必须是同一个判断,
+        //   否则会出现"闸门放行但审议层拒绝"的白跑一轮.
+        safety: { riskLevel: round.structured.riskLevel },
+        mode,
+      });
+      return output.decision;
+    } catch (error) {
+      warn(`[gate] 闸门判定异常, 放行 (退化为每轮都跑): ${errorMessage(error)}`);
+      return 'run';
+    }
+  }
+
+  /**
+   * 发起影子审议 (V2026-11-05 WP64): 结果**不生效**, 只写 Redis trace 表.
+   *
+   * ⚠️ 抽取成独立方法 (WP-C) 是为了与"闸门判定"那段**共用同一份入参** ——
+   *   拆成两处各自取数, 迟早一边改了另一边没改.
+   *
+   * @param round 本轮审议入参
+   */
+  private fireShadowDeliberation(round: DeliberationRoundParams): void {
+    const shadow = this.deps.deliberation;
+    if (!shadow) return;
+    const { context, userId, structured, baseSnapshot, output } = round;
+    try {
+      void shadow
+        .runShadowMode({
+          sessionId: context.sessionId,
+          tenantId: context.tenantId,
+          userId,
+          turnIndex: output.turnIndex,
+          // WP65: 本轮落库后的快照版本号 (output.revision) —— 切灰度时判断审议结果有没有过期.
+          //   `?? 0` 兜底: 内核没填 (老版本 / 测试 mock) 时记 0 —— 真实版本都 >= 1,
+          //   0 会被判定为过期 (安全的失败方向, 而不是"看起来有效").
+          baseRevision: output.revision ?? 0,
+          mode: DELIBERATION_SHADOW_MODE,
+          // WP-A: 结构化输入 (零对话原文) —— 事件分类 / 状态前后对比 / 角色基线 / 风险等级.
+          //   ⚠️ `ruleStrategy` (WP68 意图锁定要的那个) 也在这份里 ——
+          //     它取 `spec.intention.strategy` (本轮渲染**实际用的**那个策略,
+          //     内核意图缺失时有中性兜底 `simple_response`) —— 不是猜一个.
+          structured,
+          ruleDelta: computeRuleDelta(baseSnapshot, output.snapshot),
+        })
+        .then(() => {
+          // WP-C: 回报执行结局 (给熔断器喂数据). 入队成功 = 链路通.
+          this.deps.gate?.reportOutcome?.('shadow', 'success');
         })
         .catch((error: unknown) => {
           // 审议服务承诺不抛 —— 这一层是**防御**: 万一它抛了, 也不能炸主流程.
-          warn(`[r9] 生效审议调用异常 (已忽略): ${errorMessage(error)}`);
+          this.deps.gate?.reportOutcome?.('shadow', 'failure');
+          warn(`[shadow] 审议调用异常 (已忽略): ${errorMessage(error)}`);
         });
+    } catch (error) {
+      warn(`[shadow] 审议调用异常 (已忽略): ${errorMessage(error)}`);
     }
+  }
+
+  /**
+   * 发起生效审议 (V2026-11-08 R9): 产出一份建议, 供**下一轮**内核取用.
+   *
+   * ⚠️ 这里的快照是**本轮落库后**的那份 (= 下一轮开始时内核会载入的状态),
+   *   版本号同理 (R1) —— 产出拍与下一轮的消费拍因此天然对齐,
+   *   只有状态被外力改过 (会话恢复 / 别的进程改了状态) 才会判成过期.
+   *
+   * @param round 本轮审议入参
+   */
+  private fireEffectDeliberation(round: DeliberationRoundParams): void {
+    const effect = this.deps.deliberationHook;
+    if (!effect) return;
+    const { context, userId, structured, baseSnapshot, output, input } = round;
+    const produceContext: DeliberationHookContext = {
+      snapshot: output.snapshot,
+      ruleDelta: computeRuleDelta(baseSnapshot, output.snapshot),
+      // ⚠️ 内核端口的 `counselorText` 是**内核契约里的必填字段** (engine-core 红线, 改不得).
+      //   WP-A 之后**适配层不再消费它** —— 审议输入全部走 `extras.structured` (零原文).
+      //   它还留在这儿只是因为内核的类型要求必填; 残余风险已登记 (见 WP-A 交付记录).
+      counselorText: input.userText,
+      tenantId: context.tenantId,
+      sessionId: context.sessionId,
+      turnIndex: output.turnIndex,
+      // `?? 0` 兜底: 内核没填 (老版本 / 测试 mock) 时记 0 —— 真实版本都 >= 1.
+      //   0 与下一轮内核报上来的版本对不上 → 建议判成过期 → 回退规则 delta
+      //   (安全的失败方向, 而不是"看起来有效").
+      currentRevision: output.revision ?? 0,
+    };
+    // ⚠️ 这里**不加** try/catch: `.catch()` 已经兜住了 rejection, 而 `produce` 是
+    //   **async 方法** —— 它不可能同步抛 (同步抛只可能来自调用方自己的代码,
+    //   而这里做的是纯参数组装). 多套一层 try 只会让"到底谁兜的"变模糊.
+    void effect
+      .produce({
+        context: produceContext,
+        extras: {
+          // WP-A: 与影子路径**同一份**结构化输入 (两条路径的对比数据必须可比).
+          structured,
+          userId,
+        },
+      })
+      .then(() => {
+        // WP-C: 生效路径跑成功 = LLM 通了 → 连续失败计数清零 (熔断恢复).
+        this.deps.gate?.reportOutcome?.('effect', 'success');
+      })
+      .catch((error: unknown) => {
+        // 审议服务承诺不抛 —— 这一层是**防御**: 万一它抛了, 也不能炸主流程.
+        // WP-C: 失败要喂熔断器 —— 连续失败到阈值就熔断 (别再往一个挂掉的上游送请求).
+        this.deps.gate?.reportOutcome?.('effect', 'failure');
+        warn(`[r9] 生效审议调用异常 (已忽略): ${errorMessage(error)}`);
+      });
   }
 
   /**

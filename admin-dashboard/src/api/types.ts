@@ -50,6 +50,12 @@ export interface TurnTrace {
   capReport?: CapReport
   /** 本轮信念激活状态（WP57 做完后接入，前端先 mock） */
   beliefActivation?: Record<string, number>
+  /** 本轮审议闸门决策（WP-C 做完后接入） */
+  gateDecision?: {
+    decision: 'run' | 'skip'
+    reason: string
+    thresholdUsed: number
+  }
 }
 
 /** 单轮 delta 明细：各维度变化了多少 */

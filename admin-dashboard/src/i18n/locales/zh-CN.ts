@@ -23,7 +23,7 @@ export default {
     architecture: '架构图',
     calibrator: '参数校准',
     debugChat: '调试聊天',
-    autoPractice: '自动对练',
+    autoPractice: '对练调试',
   },
   dashboard: {
     title: '仪表盘',
