@@ -442,6 +442,10 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       ...(opts.userId?.trim() ? { userId: opts.userId.trim() } : {}),
       // WP64: 角色底色简述 (依恋 + 大五) —— 审议 prompt 的「角色背景」块.
       ...(characterBrief ? { characterBrief } : {}),
+      // V2026-11-09 (闸门 trace 查询接口): 落库会话 id → 登记进归属 → 闸门决策落 MySQL 时
+      //   带得上 dbSessionId (admin 后台按落库 id 筛的那一半口径).
+      //   ⚠️ 与 `dbSessionIds` 映射表**同源同口径**: 有值才登记, 没有就都不登记.
+      ...(opts.dbSessionId?.trim() ? { dbSessionId: opts.dbSessionId.trim() } : {}),
     };
     try {
       return this.engine.open(this.buildOpenInput(opts, character, script, memoryScope, resumeFromSessionId, true), openOptions);

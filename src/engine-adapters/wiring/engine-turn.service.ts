@@ -145,6 +145,15 @@ export class EngineTurnService {
        * 用途: 审议 prompt 的「角色背景」块.
        */
       readonly characterBrief?: string;
+      /**
+       * 稳定落库会话 id (`training_sessions.id`) (V2026-11-09 闸门 trace 查询接口).
+       *
+       * 用途: 登记进归属 → 闸门决策落库时带上**落库口径**的会话 id,
+       *   让 admin 后台能按 dbSessionId 筛 (sessionId 双口径的另一半).
+       *
+       * ⚠️ 缺省 = 没有落库会话 (自动对练) → 闸门记录里写 NULL.
+       */
+      readonly dbSessionId?: string;
     },
   ): { readonly handleId: string; readonly sessionId: string } {
     const handle = this.session.openSession(input);
@@ -161,6 +170,8 @@ export class EngineTurnService {
       // WP64: 学员账号 + 角色简述 —— 条件展开 (缺省 = 旁路审议跳过这一轮, 不影响会话).
       ...(options?.userId ? { userId: options.userId } : {}),
       ...(options?.characterBrief ? { characterBrief: options.characterBrief } : {}),
+      // V2026-11-09: 落库会话 id (闸门决策落 MySQL 真相源用) —— 条件展开 (缺省 = 不带).
+      ...(options?.dbSessionId ? { dbSessionId: options.dbSessionId } : {}),
     });
     this.logger.log(`引擎会话已开启 handle=${handle.handleId} session=${input.sessionId}`);
     return { handleId: handle.handleId, sessionId: handle.sessionId };

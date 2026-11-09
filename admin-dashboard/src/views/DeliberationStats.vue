@@ -9,6 +9,7 @@ import VChart from 'vue-echarts'
 import { api } from '@/api/client'
 import type { DeliberationStats } from '@/api/types'
 import EmptyState from '@/components/EmptyState.vue'
+import { NRadioGroup, NRadio, NAlert } from 'naive-ui'
 
 const { t } = useI18n()
 use([PieChart, BarChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
@@ -92,112 +93,122 @@ const clinicalEntries = computed(() => {
 </script>
 
 <template>
-  <div class="p-6 max-w-6xl mx-auto space-y-6">
+  <div class="p-6 max-w-6xl mx-auto">
     <!-- 标题 + 时间选择器 -->
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-lg font-semibold">{{ t('deliberation.title') }}</h1>
-        <p class="text-sm text-muted mt-1">{{ t('deliberation.subtitle') }}</p>
+        <h1 class="text-xl font-semibold">审议统计</h1>
+        <p class="text-sm text-muted mt-1">审议引擎运行状态、成功率和耗时分布</p>
       </div>
-      <n-radio-group v-model:value="days" size="small">
-        <n-radio :value="7">最近 7 天</n-radio>
-        <n-radio :value="30">最近 30 天</n-radio>
-        <n-radio :value="0">累计</n-radio>
-      </n-radio-group>
+      <NRadioGroup v-model:value="days" size="small">
+        <NRadio :value="7">最近 7 天</NRadio>
+        <NRadio :value="30">最近 30 天</NRadio>
+        <NRadio :value="0">累计</NRadio>
+      </NRadioGroup>
     </div>
 
-    <!-- 窗口口径提示 -->
-    <n-alert v-if="stats && stats.window.mode !== 'all'" type="info" :show-icon="true" class="text-xs">
-      当前显示最近 {{ stats.window.days }} 天的数据，其中 {{ stats.window.daysCovered }} 天有数据
-      （日 key 从 2026-11-08 才开始记录，之前的历史数据只有累计值）
-    </n-alert>
+    <!-- 三态 -->
+    <EmptyState v-if="loading" icon="chart" title="加载中…" description="正在获取审议统计数据" />
+    <EmptyState
+      v-else-if="err"
+      icon="warning"
+      title="加载失败"
+      :description="err"
+      retry-text="重试"
+      @retry="loadStats"
+    />
+    <EmptyState
+      v-else-if="!stats || stats.totalTurns === 0"
+      icon="chart"
+      title="暂无审议数据"
+      description="完成几场对练后，这里会展示审议统计和质量指标"
+    />
 
-    <!-- 加载 / 错误 / 空态 -->
-    <div v-if="loading" class="text-center py-20 text-muted text-sm">
-      {{ t('deliberation.loading') }}
-    </div>
-    <div v-else-if="err" class="text-center py-20 text-error text-sm">
-      {{ t('deliberation.error') }}: {{ err }}
-    </div>
-    <EmptyState v-else-if="!stats || stats.totalTurns === 0"
-      :title="t('deliberation.emptyTitle')"
-      :desc="t('deliberation.emptyDesc')" />
-
-    <!-- 数据面板 -->
     <template v-else>
-      <!-- 汇总卡片 -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <n-card size="small">
-          <div class="text-xs text-muted">{{ t('deliberation.totalTurns') }}</div>
-          <div class="text-2xl font-semibold mt-1 font-mono">{{ stats.totalTurns }}</div>
-        </n-card>
-        <n-card size="small">
-          <div class="text-xs text-muted">{{ t('deliberation.successRate') }}</div>
-          <div class="text-2xl font-semibold mt-1 font-mono" :class="stats.successRate > 0.9 ? 'text-ok' : stats.successRate > 0.7 ? 'text-warning' : 'text-error'">
+      <!-- 窗口口径提示 -->
+      <NAlert v-if="stats.window.mode !== 'all'" type="info" :show-icon="true" class="text-xs mb-4">
+        当前显示最近 {{ stats.window.days }} 天的数据，其中 {{ stats.window.daysCovered }} 天有数据
+      </NAlert>
+
+      <!-- 第一行：核心指标 -->
+      <div class="grid grid-cols-4 gap-4 mb-4">
+        <div class="card p-4">
+          <div class="text-xs text-muted mb-1">总审议轮次</div>
+          <div class="text-2xl font-mono font-semibold">{{ stats.totalTurns }}</div>
+        </div>
+        <div class="card p-4">
+          <div class="text-xs text-muted mb-1">成功率</div>
+          <div
+            class="text-2xl font-mono font-semibold"
+            :class="stats.successRate > 0.9 ? 'text-ok' : stats.successRate > 0.7 ? 'text-warn' : 'text-error'"
+          >
             {{ pct(stats.successRate) }}
           </div>
-        </n-card>
-        <n-card size="small">
-          <div class="text-xs text-muted">{{ t('deliberation.avgDuration') }}</div>
-          <div class="text-2xl font-semibold mt-1 font-mono">{{ Math.round(stats.avgDurationMs) }} ms</div>
-        </n-card>
-        <n-card size="small">
-          <div class="text-xs text-muted">{{ t('deliberation.p95Duration') }}</div>
-          <div class="text-2xl font-semibold mt-1 font-mono">{{ Math.round(stats.p95DurationMs) }} ms</div>
-        </n-card>
+        </div>
+        <div class="card p-4">
+          <div class="text-xs text-muted mb-1">平均耗时</div>
+          <div class="text-2xl font-mono font-semibold">{{ Math.round(stats.avgDurationMs) }} ms</div>
+        </div>
+        <div class="card p-4">
+          <div class="text-xs text-muted mb-1">P95 耗时</div>
+          <div class="text-2xl font-mono font-semibold">{{ Math.round(stats.p95DurationMs) }} ms</div>
+        </div>
       </div>
 
-      <!-- 闸门决策入口（WP-C） -->
-      <div class="mt-4 mb-2">
+      <!-- 第二行：质量指标 -->
+      <div class="grid grid-cols-4 gap-4 mb-6">
+        <div class="card p-4">
+          <div class="text-xs text-muted mb-1">最大耗时</div>
+          <div class="text-xl font-mono font-semibold">{{ Math.round(stats.maxDurationMs) }} ms</div>
+        </div>
+        <div class="card p-4">
+          <div class="text-xs text-muted mb-1">过期率</div>
+          <div
+            class="text-xl font-mono font-semibold"
+            :class="stats.staleRate > 0.1 ? 'text-warn' : ''"
+          >
+            {{ pct(stats.staleRate) }}
+          </div>
+        </div>
+        <div class="card p-4">
+          <div class="text-xs text-muted mb-1">平均 Delta 偏差</div>
+          <div class="text-xl font-mono font-semibold">{{ stats.avgDeltaDiffAbs.toFixed(3) }}</div>
+        </div>
+        <div class="card p-4">
+          <div class="text-xs text-muted mb-1">Flagged 率</div>
+          <div class="text-xl font-mono font-semibold">{{ pct(stats.flaggedTurnRate) }}</div>
+        </div>
+      </div>
+
+      <!-- 闸门决策入口 -->
+      <div class="mb-4">
         <RouterLink to="/gate-decisions" class="inline-flex items-center gap-2 text-sm text-accent hover:underline">
           查看闸门决策详情 →
         </RouterLink>
       </div>
 
-      <!-- 第二行：耗时 + 过期率 -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <n-card size="small">
-          <div class="text-xs text-muted">{{ t('deliberation.maxDuration') }}</div>
-          <div class="text-xl font-semibold mt-1 font-mono">{{ Math.round(stats.maxDurationMs) }} ms</div>
-        </n-card>
-        <n-card size="small">
-          <div class="text-xs text-muted">{{ t('deliberation.staleRate') }}</div>
-          <div class="text-xl font-semibold mt-1 font-mono" :class="stats.staleRate > 0.1 ? 'text-warning' : ''">
-            {{ pct(stats.staleRate) }}
+      <!-- 第三行：图表 -->
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="card p-4">
+          <h3 class="text-sm font-medium mb-3">失败原因分布</h3>
+          <VChart v-if="failurePie" :option="failurePie" :autoresize="true" class="h-64" />
+          <div v-else class="h-64 flex items-center justify-center text-muted text-sm">
+            暂无失败记录
           </div>
-        </n-card>
-        <n-card size="small">
-          <div class="text-xs text-muted">{{ t('deliberation.avgDeltaDiff') }}</div>
-          <div class="text-xl font-semibold mt-1 font-mono">{{ stats.avgDeltaDiffAbs.toFixed(3) }}</div>
-        </n-card>
-        <n-card size="small">
-          <div class="text-xs text-muted">{{ t('deliberation.flaggedRate') }}</div>
-          <div class="text-xl font-semibold mt-1 font-mono">{{ pct(stats.flaggedTurnRate) }}</div>
-        </n-card>
+        </div>
+        <div class="card p-4">
+          <h3 class="text-sm font-medium mb-3">被砍维度分布</h3>
+          <VChart v-if="capBar" :option="capBar" :autoresize="true" class="h-64" />
+          <div v-else class="h-64 flex items-center justify-center text-muted text-sm">
+            暂无被砍记录
+          </div>
+        </div>
       </div>
 
-      <!-- 第三行：失败原因 + 被砍维度 -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <n-card size="small">
-          <template #header>{{ t('deliberation.failureByReason') }}</template>
-          <v-chart v-if="failurePie" :option="failurePie" class="h-64" />
-          <div v-else class="h-64 flex items-center justify-center text-muted text-sm">
-            {{ t('deliberation.noFailures') }}
-          </div>
-        </n-card>
-        <n-card size="small">
-          <template #header>{{ t('deliberation.capByDimension') }}</template>
-          <v-chart v-if="capBar" :option="capBar" class="h-64" />
-          <div v-else class="h-64 flex items-center justify-center text-muted text-sm">
-            {{ t('deliberation.noCapped') }}
-          </div>
-        </n-card>
-      </div>
-
-      <!-- 第四行：临床 flagged + token 消耗 -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <n-card size="small">
-          <template #header>{{ t('deliberation.clinicalByRule') }}</template>
+      <!-- 第四行：明细 -->
+      <div class="grid grid-cols-2 gap-4">
+        <div class="card p-4">
+          <h3 class="text-sm font-medium mb-3">临床 Flagged 规则</h3>
           <div v-if="clinicalEntries.length > 0" class="space-y-2 py-2">
             <div v-for="[rule, count] in clinicalEntries" :key="rule" class="flex items-center justify-between text-sm">
               <span class="text-muted font-mono text-xs">{{ rule }}</span>
@@ -205,32 +216,27 @@ const clinicalEntries = computed(() => {
             </div>
           </div>
           <div v-else class="py-8 text-center text-muted text-sm">
-            {{ t('deliberation.noClinicalFlags') }}
+            暂无临床 flagged
           </div>
-        </n-card>
-        <n-card size="small">
-          <template #header>{{ t('deliberation.tokenUsage') }}</template>
+        </div>
+        <div class="card p-4">
+          <h3 class="text-sm font-medium mb-3">Token 消耗</h3>
           <div class="space-y-3 py-2">
             <div class="flex items-center justify-between text-sm">
-              <span class="text-muted">{{ t('deliberation.avgPromptTokens') }}</span>
+              <span class="text-muted">平均 Prompt Tokens</span>
               <span class="font-mono font-semibold">{{ Math.round(stats.avgPromptTokens) }}</span>
             </div>
             <div class="flex items-center justify-between text-sm">
-              <span class="text-muted">{{ t('deliberation.avgCompletionTokens') }}</span>
+              <span class="text-muted">平均 Completion Tokens</span>
               <span class="font-mono font-semibold">{{ Math.round(stats.avgCompletionTokens) }}</span>
             </div>
             <div class="flex items-center justify-between text-sm">
-              <span class="text-muted">{{ t('deliberation.avgRetryCount') }}</span>
+              <span class="text-muted">平均重试次数</span>
               <span class="font-mono font-semibold">{{ stats.avgRetryCount.toFixed(2) }}</span>
             </div>
           </div>
-        </n-card>
+        </div>
       </div>
-
-      <!-- 底部说明 -->
-      <n-alert type="info" :show-icon="true" class="text-xs">
-        {{ t('deliberation.note') }}
-      </n-alert>
     </template>
   </div>
 </template>

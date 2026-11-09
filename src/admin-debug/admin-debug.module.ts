@@ -18,6 +18,12 @@
 //       UserModule 虽然内部注册了 User 实体, 但没导出 TypeOrmModule,
 //       本模块要自己注册一次才能注入 Repository<User>.
 //
+//   V2026-11-09 治本 (Phase2.5 WP-F · 成本看板合并两个数据源):
+//     · 注册两个来源适配器 (`FormalCostSource` / `AutoPracticeCostSource`) ——
+//       看板只做"取两个源的行 → 交给纯函数合并 → 返回", 口径换算不在 controller 里.
+//     · 注册 `PracticeSession` 实体 (自动对练场次表) —— 只注册实体, 不 import
+//       `AutoPracticeModule` (会与 EngineWiringModule 形成循环依赖).
+//
 //   反双胞胎:
 //     - 不新造鉴权体系: 管理员 = basic auth (env), 学员 = 既有 JWT;
 //       不引入角色表 / 权限系统.
@@ -30,8 +36,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AdminBasicAuthMiddleware } from './admin-basic-auth.middleware.js';
 import { AdminDebugController } from './admin-debug.controller.js';
+import { AutoPracticeCostSource } from './cost-source.auto-practice.js';
+import { FormalCostSource } from './cost-source.formal.js';
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
 import { TraceRecorder } from './trace-recorder.service.js';
+import { PracticeSession } from '../auto-practice/entities/practice-session.entity.js';
 import { TrainingSession } from '../counselor/entities/training-session.entity.js';
 import { CharacterProfileEntity } from '../engine-adapters/wiring/character/character-profile.entity.js';
 import { User } from '../user/entities/user.entity.js';
@@ -40,12 +49,17 @@ import { UserModule } from '../user/index.js';
 @Module({
   imports: [
     // User 实体注册 (autoLoadEntities 已开) —— 供 AdminRoleGuard 注入 Repository<User>.
-    TypeOrmModule.forFeature([TrainingSession, CharacterProfileEntity, User]),
+    // PracticeSession (自动对练场次表) —— WP-F 成本看板的第二个数据源.
+    // ⚠️ **只注册实体, 不 import AutoPracticeModule**: AutoPracticeModule →
+    //   AdminDebugChatModule → ... → AdminDebugModule, import 回去会成循环依赖.
+    //   看板只需要"读这张表", forFeature 就够 (实体注册不是模块依赖).
+    TypeOrmModule.forFeature([TrainingSession, CharacterProfileEntity, User, PracticeSession]),
     // 学员身份解析依赖 (JwtAuthGuard → JwtService / JwtBlacklistService).
     UserModule,
   ],
   controllers: [AdminDebugController],
-  providers: [TraceRecorder, AdminBasicAuthMiddleware, AdminRoleGuard],
+  // WP-F: 两个来源适配器 (普通 provider, 构造函数注入 —— 不用 @Global 注册表).
+  providers: [TraceRecorder, AdminBasicAuthMiddleware, AdminRoleGuard, FormalCostSource, AutoPracticeCostSource],
   exports: [TraceRecorder],
 })
 export class AdminDebugModule implements NestModule {

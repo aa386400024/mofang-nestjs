@@ -176,5 +176,14 @@ export { AddPracticeSessionVersionColumns1714900000035 } from './1714900000035-A
 // V2026-11-09 治本 (Phase2.5 WP-E — eval_reports 新表, 跟 bin/ormconfig.ts 严格 1:1):
 //   评测报告落库表 (指标 / 数据质量 / 配置快照 / 整份报告 JSON), 历史可查、跨版本可对比.
 export { CreateEvalReports1714900000036 } from './1714900000036-CreateEvalReports.js';
+// V2026-11-09 治本 (Phase2.5 WP-F — ap_practice_sessions 补 token / 成本列, 跟 bin/ormconfig.ts 严格 1:1):
+//   prompt_tokens / completion_tokens / reasoning_tokens / total_tokens +
+//   total_cost_cny (人民币元) + cost_basis (full | output_only).
+//   成本看板要合并"正式训练 + 自动对练", 而自动对练没有留痕 JSON 列 ——
+//   token / 成本不落库, 看板这边恒 0. 旧列 total_cost (声明"美元") 注释改为"已废弃".
+export { AddPracticeSessionCostColumns1714900000037 } from './1714900000037-AddPracticeSessionCostColumns.js';
+// V2026-11-09 治本 (Phase2.5 闸门 trace 查询接口 — gate_decisions 新表, 跟 bin/ormconfig.ts 严格 1:1):
+//   闸门决策的 MySQL 真相源 (每轮一行; 只存枚举 / 数值 / 阈值 / 耗时 / id, 零对话原文).
+export { CreateGateDecisions1714900000038 } from './1714900000038-CreateGateDecisions.js';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

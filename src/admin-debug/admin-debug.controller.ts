@@ -64,15 +64,17 @@
 //     · 带窗口参数 → 读 N 个日 key 聚合成窗口值 (pipeline 批量读, 一次往返).
 //     日 key: `deliberation_stats:global:YYYY-MM-DD` (Asia/Shanghai, TTL 90 天).
 
-import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Logger, Optional, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, MoreThanOrEqual, type Repository } from 'typeorm';
+import { IsNull, MoreThanOrEqual, type FindOptionsWhere, type Repository } from 'typeorm';
 
 import type { AdminDebugRequest } from './admin-basic-auth.middleware.js';
 import { buildOwnerFilter } from './admin-scope.js';
 import { resolveCostPricingFromEnv } from './cost-pricing.js';
-import { aggregateSessionCost, buildCostTrend, shanghaiDayStartUtc } from './cost-view.js';
+import { AutoPracticeCostSource } from './cost-source.auto-practice.js';
+import { FormalCostSource } from './cost-source.formal.js';
+import { buildMergedCostTrend, buildMergedSessionList, readTraces, shanghaiDayStartUtc, type CostSourceSession } from './cost-view.js';
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
 import type { TurnTrace } from './trace-recorder.service.js';
 import { buildAdminTrajectoryState } from './trajectory-view.js';
@@ -159,7 +161,21 @@ export class AdminDebugController {
     private readonly characterRepo: Repository<CharacterProfileEntity>,
     private readonly config: ConfigService,
     private readonly redis: RedisService,
+    // WP-F: 两个来源适配器 (普通 provider, 构造函数注入 —— 不用 @Global 注册表).
+    // ⚠️ 为什么是 @Optional(): 受保护回归 `wp31-cost-board.spec.ts` 直接
+    //   `new AdminDebugController(4 个参数)` —— 必填参数会让那份 spec 编译不过.
+    //   兜底见 `formalSource()` / `autoPracticeRows()`: 用的是**同一份实现**, 不是复制一份逻辑.
+    @Optional() private readonly formalCostSource?: FormalCostSource,
+    @Optional() private readonly autoPracticeCostSource?: AutoPracticeCostSource,
   ) {}
+
+  private readonly logger = new Logger('AdminDebugController');
+
+  /** WP-F: 正式训练来源的本地兜底实例 (见 `formalSource()`). */
+  private formalFallback?: FormalCostSource;
+
+  /** WP-F: 自动对练来源缺失时只告警一次 (不刷屏, 但也不静默). */
+  private autoPracticeSourceWarned = false;
 
   /** 最近会话列表. */
   @Get('sessions')
@@ -439,7 +455,12 @@ export class AdminDebugController {
    *   (它不受留痕开关影响) → 运营会看到 "有场次但 0 token", 那正是留痕关了的信号.
    *   要让生产看板有数, 得在 `tech_stats` 里补 token 统计 (缺口 G1).
    *
-   * @param req 请求 (身份用于学员隔离)
+   *   V2026-11-09 (Phase2.5 WP-F): **合并两个数据源** —— 正式训练 (`training_sessions`,
+   *   成本从留痕现算) + 自动对练 (`ap_practice_sessions`, 成本读 Step 0 落库的列).
+   *   两源合起来还有**分来源字段** (`sessionsFormal` / `costAutoPractice` / ...),
+   *   前端既能看总量, 也能画分组图.
+   *
+   * @param req 请求 (身份用于学员隔离 + 自动对练源可见性)
    * @param days 窗口天数 (含今天; 缺省 7, 上限 90)
    * @returns 按天聚合的成本趋势 (行数恒等于 days, 缺数据的天补 0)
    */
@@ -449,18 +470,13 @@ export class AdminDebugController {
     const now = new Date();
     // 窗口起点 = 上海时区"今天往前推 span-1 天"的 00:00.
     const cutoff = shanghaiDayStartUtc(now, span - 1);
-    const rows = await this.sessionRepo.find({
-      where: { deletedAt: IsNull(), startedAt: MoreThanOrEqual(cutoff), ...this.ownerFilter(req) },
-      order: { startedAt: 'DESC' },
+    // WP-F: 两个来源各取一份行, 合并交给纯函数 —— controller 不做任何口径换算.
+    const rows = await this.collectCostRows(req, {
       take: COST_TREND_SCAN_LIMIT,
-      select: { id: true, personaName: true, startedAt: true, status: true, turnDebugTrace: true },
+      where: { deletedAt: IsNull(), startedAt: MoreThanOrEqual(cutoff), ...this.ownerFilter(req) },
+      cutoff,
     });
-    return buildCostTrend(
-      rows.map((row) => ({ startedAt: row.startedAt, traces: readTraces(row.turnDebugTrace) })),
-      this.resolveCostPricing(),
-      span,
-      now,
-    );
+    return buildMergedCostTrend(rows, span, now);
   }
 
   /**
@@ -471,31 +487,27 @@ export class AdminDebugController {
    *   不带这个字段的话, 读表的人会把"只算了输出侧"当成"全场就这么多" —— 与 WP24 的
    *   纪律同款: 口径要写在数据里, 不能只靠"看文档的人记得".
    *
-   * @param req 请求 (身份用于学员隔离)
-   * @param limit 条数 (缺省 20, 上限 50)
-   * @returns 会话成本列表
+   *   V2026-11-09 (Phase2.5 WP-F): **合并两个数据源**, 每行带 `source`
+   *   (`formal` / `auto_practice`), 自动对练的行另带 `characterSlug` / `counselorModeId` /
+   *   `batchId` / `status`.
+   *   ⚠️ **limit 语义**: 每源先各取 N 条, 合并后最多 2N 行 (不在合并后二次截断) ——
+   *   否则一次跑 30 场自动对练, limit=20 的列表全是自动对练, 正式训练那一栏永远空着.
+   *   ⚠️ 学员请求**完全不含**自动对练源 (自动对练没有 userId 归属, 合并进来会越权).
+   *
+   * @param req 请求 (身份用于学员隔离 + 自动对练源可见性)
+   * @param limit 条数 (缺省 20, 上限 50; 每源各取这么多)
+   * @returns 会话成本列表 (两源合并, 按 startedAt 倒序)
    */
   @Get('cost/sessions')
   async sessionCosts(@Req() req: AdminDebugRequest, @Query('limit') limit?: string) {
     const n = clampInt(Number(limit ?? DEFAULT_COST_SESSION_LIMIT), DEFAULT_COST_SESSION_LIMIT, 1, MAX_COST_SESSION_LIMIT);
-    const pricing = this.resolveCostPricing();
-    const rows = await this.sessionRepo.find({
-      where: { deletedAt: IsNull(), ...this.ownerFilter(req) },
-      order: { startedAt: 'DESC' },
+    // WP-F: 每源先各取 N 条 (上限各一次), 合并后最多 2N 行 ——
+    //   一次跑 30 场自动对练时, 合并后再截到 N, 列表会被单一来源占满.
+    const rows = await this.collectCostRows(req, {
       take: n,
-      select: { id: true, personaName: true, startedAt: true, turnDebugTrace: true },
+      where: { deletedAt: IsNull(), ...this.ownerFilter(req) },
     });
-    return rows.map((row) => {
-      const aggregate = aggregateSessionCost(readTraces(row.turnDebugTrace), pricing);
-      return {
-        sessionId: row.id,
-        visitorAlias: row.personaName,
-        startedAt: row.startedAt,
-        totalTokens: aggregate.totalTokens,
-        costCny: aggregate.costCny,
-        costBasis: aggregate.costBasis,
-      };
-    });
+    return buildMergedSessionList(rows);
   }
 
   /**
@@ -655,6 +667,84 @@ export class AdminDebugController {
   private ownerFilter(req: AdminDebugRequest): { readonly userId?: string } {
     return buildOwnerFilter(req);
   }
+
+  /**
+   * 收集两个来源的成本行 (WP-F).
+   *
+   * controller 在这一层**只做编排**: 取两个源的行 → 交给纯函数合并 → 返回.
+   *   口径换算 (成本怎么算 / sessions 怎么计) 全在 `cost-view.ts` 与两个来源适配器里,
+   *   这里一行口径逻辑都没有 —— 口径散在 controller 就没法单测.
+   *
+   * ⚠️ **学员请求完全不含自动对练源**: 自动对练没有 userId 归属, 合并进去等于
+   *   把别人的场次摊到学员的看板上 (越权). 只有管理员 basic 凭据能看到这一源.
+   *
+   * @param req 请求 (身份决定能不能看自动对练)
+   * @param options 取数参数
+   * @returns 归一后的行 (两源混合)
+   */
+  private async collectCostRows(
+    req: AdminDebugRequest,
+    options: {
+      readonly take: number;
+      readonly where: FindOptionsWhere<TrainingSession>;
+      readonly cutoff?: Date | undefined;
+    },
+  ): Promise<CostSourceSession[]> {
+    const formalRows = await this.formalSource().fetchSessions({
+      where: options.where,
+      take: options.take,
+      pricing: this.resolveCostPricing(),
+    });
+    if (!this.canSeeAutoPractice(req)) return formalRows;
+    const autoRows = await this.autoPracticeRows(options.take, options.cutoff);
+    return [...formalRows, ...autoRows];
+  }
+
+  /**
+   * 正式训练来源 (DI 优先).
+   *
+   * ⚠️ 为什么有兜底: 受保护回归 `wp31-cost-board.spec.ts` 直接 `new AdminDebugController(...)`
+   *   (4 个参数, 不注入来源 provider) —— 兜底让那份 spec 继续跑得起来.
+   *   兜底用的是**同一个 `FormalCostSource` 类**, 不是复制一份查询逻辑.
+   *
+   * @returns 正式训练来源
+   */
+  private formalSource(): FormalCostSource {
+    this.formalFallback ??= new FormalCostSource(this.sessionRepo);
+    return this.formalCostSource ?? this.formalFallback;
+  }
+
+  /**
+   * 自动对练来源的行 (没装配来源时返回空, 并告警一次).
+   *
+   * @param take 取多少行
+   * @param cutoff 时间窗口起点 (缺省 = 不限)
+   * @returns 自动对练行
+   */
+  private async autoPracticeRows(take: number, cutoff: Date | undefined): Promise<CostSourceSession[]> {
+    const source = this.autoPracticeCostSource;
+    if (!source) {
+      if (!this.autoPracticeSourceWarned) {
+        this.autoPracticeSourceWarned = true;
+        this.logger.warn('[admin_debug] 自动对练成本来源未装配 —— 成本看板只统计正式训练');
+      }
+      return [];
+    }
+    return source.fetchSessions({ take, cutoff });
+  }
+
+  /**
+   * 这次请求能不能看自动对练源.
+   *
+   * ⚠️ 只有**管理员 basic 凭据**可以 —— 自动对练没有 userId 归属, 学员身份
+   *   看不到"这场对练属于谁", 合并进来就是越权 (WP-F 任务单 §6 硬约束).
+   *
+   * @param req 请求
+   * @returns 能不能看
+   */
+  private canSeeAutoPractice(req: AdminDebugRequest): boolean {
+    return req.adminBasicAuth === true;
+  }
 }
 
 /**
@@ -674,16 +764,6 @@ export class AdminDebugController {
 function clampInt(raw: number, fallback: number, min: number, max: number): number {
   if (!Number.isFinite(raw)) return fallback;
   return Math.min(Math.max(Math.trunc(raw), min), max);
-}
-
-/**
- * 读调试快照数组 (DB 里是 JSON 列, 可能为空 / 形状不对).
- *
- * @param raw 原始列值
- * @returns 快照数组 (读不出来就给空数组)
- */
-function readTraces(raw: unknown): TurnTrace[] {
-  return Array.isArray(raw) ? (raw as TurnTrace[]) : [];
 }
 
 /**

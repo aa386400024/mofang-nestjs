@@ -74,6 +74,11 @@ export class DeliberationGateService {
       }
       await this.deps.trace.record({
         sessionId: input.sessionId,
+        // V2026-11-09 (闸门 trace 查询接口): 落 MySQL 真相源要的两个口径 ——
+        //   dbSessionId (落库会话 id) + userId (学员归属, 用于学员隔离).
+        //   两者缺省 = 空 → 落库写 NULL (不是空串, 也不是 0).
+        dbSessionId: input.dbSessionId ?? null,
+        userId: input.userId ?? null,
         turnIndex: input.turnIndex,
         mode: input.mode,
         decision: result.decision,

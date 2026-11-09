@@ -15,6 +15,9 @@ import { resolve } from 'node:path';
 import { AdminDebugChatModule } from './admin-debug/admin-debug-chat.module.js';
 import { AdminDebugModule } from './admin-debug/admin-debug.module.js';
 import { AdminInsightsModule } from './admin-debug/admin-insights.module.js';
+// V2026-11-09 — Phase2.5 闸门 trace 查询接口: 闸门决策列表 / 详情 / 按天统计.
+import { GateTraceModule } from './admin-debug/gate-trace.module.js';
+import { EvalReportAdminModule } from './admin-debug/eval-report.module.js';
 import { AgentModule } from './agent/agent.module.js';
 import { AiConversationsModule } from './ai-companion/ai-conversations.module.js';
 import { AIEngineModule } from './ai-engine/ai-engine.module.js';
@@ -243,6 +246,11 @@ import { VoiceModule } from './voice/voice.module.js';
     //   单独成模块: 洞察面要多依赖一个向量库 (QdrantService, 长时记忆的真存储),
     //   而 AdminDebugModule 被 EngineWiringModule import —— 塞进去依赖方向会变浑.
     AdminInsightsModule, // /admin/api/dashboard* /memories /psyguard*
+    // V2026-11-09 — 闸门决策查询 (/admin/api/gate/traces /traces/:id /stats).
+    //   单独成模块: 数据源在 engine-adapters 的 gate_decisions 表 + Redis 日计数器,
+    //   与 AdminDebugModule 的依赖没有交集 (admin-debug 是"会话 + 角色", 这里是"闸门决策").
+    GateTraceModule, // /admin/api/gate/*
+    EvalReportAdminModule, // /admin/api/eval/*
     // V2026-09-04 — 心塑 V6.0 §4.2 急救闭环 — 5 工具会话上报 + 跨设备同步
     EmergencyModule, // /emergency/*
     // V2026-10-13 — 心理咨询师学员端 server module (Phase 7.10 启动 P0-1)

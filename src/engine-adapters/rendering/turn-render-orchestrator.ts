@@ -152,6 +152,15 @@ export interface TurnSessionContext {
   readonly tenantId: string;
   /** 业务会话 id. */
   readonly sessionId: string;
+  /**
+   * 稳定落库会话 id (`training_sessions.id`) —— 可选.
+   *
+   * V2026-11-09 (Phase2.5 闸门 trace 查询接口): 闸门决策要落 MySQL 真相源,
+   *   而 admin 后台是按**落库 id** 查会话的 —— 于是归属里要多带这一个口径.
+   *
+   * ⚠️ 缺省 = 这场**没有**落库会话 (自动对练 / 未持久化的调试会话) → 闸门记录写 NULL.
+   */
+  readonly dbSessionId?: string;
   /** 稳定来访者 id. */
   readonly visitorId: string;
   /**
@@ -841,6 +850,10 @@ export class TurnRenderOrchestrator {
     try {
       const output = await gate.evaluate({
         sessionId: round.context.sessionId,
+        // V2026-11-09: 闸门决策要落 MySQL (真相源), 需要**两个**会话口径 + 学员归属:
+        //   缺省 = 空 → 落库写 NULL (自动对练没有落库会话, 也没有真实学员).
+        dbSessionId: round.context.dbSessionId,
+        userId: round.context.userId,
         turnIndex: round.output.turnIndex,
         stateBefore: round.baseSnapshot,
         stateAfter: round.output.snapshot,

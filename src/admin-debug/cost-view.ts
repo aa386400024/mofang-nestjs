@@ -201,3 +201,251 @@ export function buildCostTrend(
     sessions: bucket.sessions,
   }));
 }
+
+// ─────────────────────────────────────────────────────────────
+// V2026-11-09 治本 (Phase2.5 WP-F · 成本看板合并两个数据源)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * 成本数据的来源.
+ *
+ * - `formal` —— 正式训练 (`training_sessions`);
+ * - `auto_practice` —— 自动对练 (`ap_practice_sessions`).
+ *
+ * 为什么用**同一个行模型**而不是两张表各出一套形状:
+ *   合并的口径 (按天分桶 / 排序 / 计数规则) 必须只有一份实现 —— 两张表各算一遍,
+ *   两边迟早漂. 适配层把两边的行**归一**成同一个模型, 纯函数层只认这一个模型.
+ */
+export type CostSourceKind = 'formal' | 'auto_practice';
+
+/**
+ * 合并看板的成本口径.
+ *
+ * - `full` —— 输入输出都计, 是全场成本;
+ * - `output_only` —— 上游没报输入侧用量, 成本是**下界**;
+ * - `estimated` —— 该行**没有可追溯的口径记录** (WP-F 之前跑的历史场次 / 一轮都没跑成),
+ *   成本取库内存量 (通常为 0). 它既不等于"输入输出都计", 也不等于"只算了输出侧" ——
+ *   读表的人看到 `estimated` 就该知道: **这个数没有口径背书**.
+ */
+export type MergedCostBasis = SessionCostBasis | 'estimated';
+
+/**
+ * 两个来源统一后的**行模型** (纯数据).
+ *
+ * 谁产它: 来源适配层 (`FormalCostSource` / `AutoPracticeCostSource`) —— 它们做 IO,
+ *   把各自的表读成这个模型.
+ * 谁吃它: `buildMergedCostTrend` / `buildMergedSessionList` —— 纯函数, 零 IO.
+ *
+ * ⚠️ `countsAsSession` 与 `costCny` **刻意不联动**:
+ *   钱花了就是花了 (failed / canceled 的场次照样计成本), 但"跑成了一场有效对练"
+ *   是另一回事 (failed / canceled / running 不计 sessions). 把这两个口径拆成两个字段,
+ *   是为了不让"该不该计一次会话"这个业务判断去污染成本数字.
+ */
+export interface CostSourceSession {
+  /** 数据来源. */
+  readonly source: CostSourceKind;
+  /** 会话 id (两个表各自的 id, 不跨源比较). */
+  readonly sessionId: string;
+  /** 来访者别名 (正式训练 = personaName; 自动对练 = 来访者角色 slug). */
+  readonly visitorAlias: string;
+  /** 开场时刻 (正式训练可空; 自动对练 NOT NULL). */
+  readonly startedAt: Date | null;
+  /** token 总量 (输入 + 输出, 与 `GET /admin/api/sessions` 的 totalTokens 同口径). */
+  readonly totalTokens: number;
+  /** 预估费用 (元). */
+  readonly costCny: number;
+  /** 成本口径 (见 `MergedCostBasis`). */
+  readonly costBasis: MergedCostBasis;
+  /** 是否计入 sessions 计数 (成本照算, 但不是每场都算一次会话). */
+  readonly countsAsSession: boolean;
+  /** 自动对练特有: 来访者角色 slug. */
+  readonly characterSlug?: string;
+  /** 自动对练特有: 咨询师模式 id. */
+  readonly counselorModeId?: string;
+  /** 自动对练特有: 批次 id (单场实时跑为 null). */
+  readonly batchId?: string | null;
+  /** 自动对练特有: 场次状态. */
+  readonly status?: string;
+}
+
+/**
+ * 合并后的成本趋势行 (按天聚合).
+ *
+ * 合计字段 (`tokens` / `costCny` / `sessions`) 与分来源字段 (`*Formal` /
+ * `*AutoPractice`) **同时给出** —— 前端要么只用合计, 要么画分组柱状图, 两边都够用.
+ */
+export interface MergedCostTrendPoint {
+  /** 日期键 (`YYYY-MM-DD`, Asia/Shanghai). */
+  readonly date: string;
+  /** 当天 token 总量 (两源合计). */
+  readonly tokens: number;
+  /** 当天预估费用 (元, 两源合计). */
+  readonly costCny: number;
+  /** 当天会话数 (两源合计, 按各自口径过滤后的). */
+  readonly sessions: number;
+  /** 当天正式训练会话数. */
+  readonly sessionsFormal: number;
+  /** 当天自动对练场次数 (只算跑成的: completed / crisis_ended / stagnant). */
+  readonly sessionsAutoPractice: number;
+  /** 当天正式训练成本 (元). */
+  readonly costFormal: number;
+  /** 当天自动对练成本 (元). */
+  readonly costAutoPractice: number;
+  /** 当天正式训练 token 总量. */
+  readonly tokensFormal: number;
+  /** 当天自动对练 token 总量. */
+  readonly tokensAutoPractice: number;
+}
+
+/**
+ * 合并后的会话成本列表行.
+ */
+export interface MergedSessionCost {
+  readonly sessionId: string;
+  /** 数据来源 (前端据此打"来源"标签). */
+  readonly source: CostSourceKind;
+  readonly visitorAlias: string;
+  readonly startedAt: Date | null;
+  readonly totalTokens: number;
+  readonly costCny: number;
+  readonly costBasis: MergedCostBasis;
+  readonly characterSlug?: string;
+  readonly counselorModeId?: string;
+  readonly batchId?: string | null;
+  readonly status?: string;
+}
+
+/**
+ * 构造成本趋势 (两源合并, 按天聚合).
+ *
+ * 与 `buildCostTrend` (单源) 的关系: 口径完全一致, 只是输入换成了归一后的行模型 ——
+ *   补齐没有数据的天 (行数恒等于 days)、按 Asia/Shanghai 分桶、金额 6 位定点.
+ *
+ * ⚠️ **sessions 与成本刻意分开累加**:
+ *   成本每个有数的场次都计 (failed / canceled 也花了钱), sessions 只计 `countsAsSession`
+ *   为真的场次. 两者的差额就是"花了钱但没跑成"的场次 —— 这正是看板要让人看见的东西.
+ *
+ * @param rows 两源归一后的行 (可混合顺序)
+ * @param days 窗口天数 (含今天)
+ * @param now 参考时刻 (决定窗口末端)
+ * @returns 趋势点 (按日期升序, 行数 = days)
+ */
+export function buildMergedCostTrend(rows: readonly CostSourceSession[], days: number, now: Date): MergedCostTrendPoint[] {
+  const buckets = new Map<
+    string,
+    {
+      tokens: number;
+      costCny: number;
+      sessions: number;
+      sessionsFormal: number;
+      sessionsAutoPractice: number;
+      costFormal: number;
+      costAutoPractice: number;
+      tokensFormal: number;
+      tokensAutoPractice: number;
+    }
+  >();
+
+  // 先把窗口内的每一天建出来 (最老 → 最新), 缺数据的天补 0.
+  for (let back = days - 1; back >= 0; back -= 1) {
+    buckets.set(shanghaiDateKey(new Date(shanghaiDayStartUtc(now, back))), {
+      tokens: 0,
+      costCny: 0,
+      sessions: 0,
+      sessionsFormal: 0,
+      sessionsAutoPractice: 0,
+      costFormal: 0,
+      costAutoPractice: 0,
+      tokensFormal: 0,
+      tokensAutoPractice: 0,
+    });
+  }
+
+  for (const row of rows) {
+    // 没有开场时刻的会话**无法落到某一天** —— 不硬塞进"今天", 也不编日期.
+    if (!row.startedAt) continue;
+    const bucket = buckets.get(shanghaiDateKey(row.startedAt));
+    // 窗口外 (调用方已按 startedAt 过滤, 这里兜底).
+    if (!bucket) continue;
+
+    bucket.tokens += row.totalTokens;
+    bucket.costCny += row.costCny;
+    if (row.countsAsSession) bucket.sessions += 1;
+    if (row.source === 'formal') {
+      bucket.sessionsFormal += row.countsAsSession ? 1 : 0;
+      bucket.costFormal += row.costCny;
+      bucket.tokensFormal += row.totalTokens;
+    } else {
+      bucket.sessionsAutoPractice += row.countsAsSession ? 1 : 0;
+      bucket.costAutoPractice += row.costCny;
+      bucket.tokensAutoPractice += row.totalTokens;
+    }
+  }
+
+  return [...buckets.entries()].map(([date, bucket]) => ({
+    date,
+    tokens: bucket.tokens,
+    costCny: roundCost(bucket.costCny),
+    sessions: bucket.sessions,
+    sessionsFormal: bucket.sessionsFormal,
+    sessionsAutoPractice: bucket.sessionsAutoPractice,
+    costFormal: roundCost(bucket.costFormal),
+    costAutoPractice: roundCost(bucket.costAutoPractice),
+    tokensFormal: bucket.tokensFormal,
+    tokensAutoPractice: bucket.tokensAutoPractice,
+  }));
+}
+
+/**
+ * 构造合并后的会话成本列表 (按开场时刻倒序).
+ *
+ * ⚠️ **不做跨源截断** —— 每个源各自先取 N 条 (调用方负责), 合并后最多 2N 行.
+ *   为什么: 一次跑 30 场自动对练时, 若合并后再截到 N 条, 列表会被单一来源占满,
+ *   看板上"正式训练"那一栏永远是空的 —— 分来源的看板就失去意义了.
+ *
+ * @param rows 两源归一后的行 (可混合顺序)
+ * @returns 按 startedAt 倒序的列表行
+ */
+export function buildMergedSessionList(rows: readonly CostSourceSession[]): MergedSessionCost[] {
+  return rows
+    .toSorted((left, right) => compareStartedAtDesc(left.startedAt, right.startedAt))
+    .map((row) => ({
+      sessionId: row.sessionId,
+      source: row.source,
+      visitorAlias: row.visitorAlias,
+      startedAt: row.startedAt,
+      totalTokens: row.totalTokens,
+      costCny: row.costCny,
+      costBasis: row.costBasis,
+      ...(row.characterSlug === undefined ? {} : { characterSlug: row.characterSlug }),
+      ...(row.counselorModeId === undefined ? {} : { counselorModeId: row.counselorModeId }),
+      ...(row.batchId === undefined ? {} : { batchId: row.batchId }),
+      ...(row.status === undefined ? {} : { status: row.status }),
+    }));
+}
+
+/**
+ * 读调试快照数组 (DB 里是 JSON 列, 可能为空 / 形状不对).
+ *
+ * 为什么搬到本模块: 来源适配层也要读留痕快照算成本 —— 两处各写一份"读 JSON 列"的
+ * helper, 迟早一边改成"读不出就当空"、另一边还在抛错.
+ *
+ * @param raw 原始列值
+ * @returns 快照数组 (读不出来就给空数组)
+ */
+export function readTraces(raw: unknown): TurnTrace[] {
+  return Array.isArray(raw) ? (raw as TurnTrace[]) : [];
+}
+
+/**
+ * 开场时刻倒序比较 (没有开场时刻的排最后).
+ *
+ * 为什么 null 排最后: 排不出时间先后的行, 放最后比放最前诚实 —— 放最前会让人以为
+ * "这是最新的一场".
+ */
+function compareStartedAtDesc(left: Date | null, right: Date | null): number {
+  if (!left && !right) return 0;
+  if (!left) return 1;
+  if (!right) return -1;
+  return right.getTime() - left.getTime();
+}

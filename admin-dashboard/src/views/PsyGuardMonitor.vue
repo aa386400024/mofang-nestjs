@@ -16,12 +16,24 @@ use([LineChart, BarChart, GridComponent, TooltipComponent, LegendComponent, Canv
 
 const stats = ref<PsyGuardStats | null>(null)
 const trend = ref<PsyGuardTrend | null>(null)
+const loading = ref(true)
+const err = ref('')
 
-onMounted(async () => {
-  const [s, tr] = await Promise.all([api.psyguard(), api.psyguardTrend()])
-  stats.value = s
-  trend.value = tr
-})
+async function loadData() {
+  loading.value = true
+  err.value = ''
+  try {
+    const [s, tr] = await Promise.all([api.psyguard(), api.psyguardTrend()])
+    stats.value = s
+    trend.value = tr
+  } catch (e) {
+    err.value = String(e)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadData)
 
 const riskLabel = (cat: string) => t(`risk.${cat}.label`)
 const riskDesc = (cat: string) => t(`risk.${cat}.desc`)
@@ -77,93 +89,109 @@ const requestsOption = computed(() => ({
     itemStyle: { color: 'rgba(200,144,168,0.6)', borderRadius: [3, 3, 0, 0] },
   }],
 }))
+
+// ─── 风险类别百分比 ───
+const riskCategories = computed(() => {
+  if (!stats.value || !stats.value.totalRequests) return []
+  return Object.entries(stats.value.byCategory as Record<string, number>)
+    .map(([cat, count]) => ({
+      cat,
+      label: riskLabel(cat),
+      desc: riskDesc(cat),
+      count,
+      pct: ((count / stats.value!.totalRequests) * 100).toFixed(1),
+    }))
+    .sort((a, b) => b.count - a.count)
+})
 </script>
 
 <template>
   <div class="p-6 max-w-6xl mx-auto">
-    <h1 class="text-lg font-semibold mb-4">{{ t('psyguard.title') }}</h1>
+    <!-- 页面标题 -->
+    <div class="mb-6">
+      <h1 class="text-xl font-semibold">PsyGuard 监控</h1>
+      <p class="text-sm text-muted mt-1">危机识别模型运行状态、延迟和命中分布</p>
+    </div>
+
+    <!-- 三态 -->
+    <EmptyState v-if="loading" icon="shield" title="加载中…" description="正在获取 PsyGuard 监控数据" />
     <EmptyState
-      v-if="!stats"
-      icon="shield"
-      :title="t('psyguard.loading')"
-      :description="t('psyguard.loadingDesc')"
+      v-else-if="err"
+      icon="warning"
+      title="加载失败"
+      :description="err"
+      retry-text="重试"
+      @retry="loadData"
     />
+    <EmptyState
+      v-else-if="!stats"
+      icon="shield"
+      title="暂无数据"
+      description="PsyGuard 服务尚未产生数据"
+    />
+
     <template v-else>
-      <!-- 状态卡片 -->
-      <n-grid cols="4" responsive="screen" class="mb-4">
-        <n-gi>
-          <n-card size="small">
-            <n-statistic :label="t('psyguard.status')">
-              <template #default>
-                <div class="flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full" :class="stats.status === 'ok' ? 'bg-ok' : 'bg-warn'"></span>
-                  <span class="font-mono text-lg">{{ stats.status === 'ok' ? t('psyguard.running') : t('psyguard.degraded') }}</span>
-                </div>
-              </template>
-            </n-statistic>
-          </n-card>
-        </n-gi>
-        <!-- ⚠️ 指标未采集 → 显示 "—" 而不是 0 (0 会被读成"没调用过") -->
-        <n-gi>
-          <n-card size="small">
-            <n-statistic :label="t('psyguard.p50')" :value="stats.metricsAvailable ? stats.p50Ms : '—'">
-              <template #suffix>
-                <span class="text-xs text-muted ml-1">{{ stats.metricsAvailable ? 'ms' : t('psyguard.metricsUnavailable') }}</span>
-              </template>
-            </n-statistic>
-          </n-card>
-        </n-gi>
-        <n-gi>
-          <n-card size="small">
-            <n-statistic :label="t('psyguard.p90')" :value="stats.metricsAvailable ? stats.p90Ms : '—'">
-              <template #suffix>
-                <span class="text-xs text-muted ml-1">{{ stats.metricsAvailable ? 'ms' : t('psyguard.metricsUnavailable') }}</span>
-              </template>
-            </n-statistic>
-          </n-card>
-        </n-gi>
-        <n-gi>
-          <n-card size="small">
-            <n-statistic :label="t('psyguard.totalRequests')" :value="stats.metricsAvailable ? stats.totalRequests.toLocaleString() : '—'" />
-          </n-card>
-        </n-gi>
-      </n-grid>
-
-      <!-- ⚠️ 指标未采集 → 不画"贴着 0 的假曲线" (那看着像"服务很闲", 实际是"我们没在数") -->
-      <n-card v-if="!stats.metricsAvailable" size="small" class="mb-4">
-        <div class="text-muted text-sm">
-          {{ t('psyguard.metricsUnavailableDesc') }}
+      <!-- 统计卡片 -->
+      <div class="grid grid-cols-4 gap-4 mb-6">
+        <div class="card p-4">
+          <div class="text-xs text-muted mb-1">服务状态</div>
+          <div class="flex items-center gap-2 mt-1">
+            <span class="w-2.5 h-2.5 rounded-full" :class="stats.status === 'ok' ? 'bg-ok' : 'bg-warn'"></span>
+            <span class="font-mono text-lg">{{ stats.status === 'ok' ? '运行中' : '降级' }}</span>
+          </div>
         </div>
-      </n-card>
-      <template v-else>
-        <!-- 延迟趋势 -->
-        <n-card :title="t('psyguard.latencyTrend')" size="small" class="mb-4">
-          <VChart :option="latencyOption" :autoresize="true" style="height: 240px" />
-        </n-card>
+        <div class="card p-4">
+          <div class="text-xs text-muted mb-1">P50 延迟</div>
+          <div class="text-2xl font-mono font-semibold">{{ stats.metricsAvailable ? stats.p50Ms : '—' }}</div>
+          <div class="text-xs text-muted mt-1">{{ stats.metricsAvailable ? 'ms' : '未采集' }}</div>
+        </div>
+        <div class="card p-4">
+          <div class="text-xs text-muted mb-1">P90 延迟</div>
+          <div class="text-2xl font-mono font-semibold">{{ stats.metricsAvailable ? stats.p90Ms : '—' }}</div>
+          <div class="text-xs text-muted mt-1">{{ stats.metricsAvailable ? 'ms' : '未采集' }}</div>
+        </div>
+        <div class="card p-4">
+          <div class="text-xs text-muted mb-1">总请求数</div>
+          <div class="text-2xl font-mono font-semibold">{{ stats.metricsAvailable ? stats.totalRequests.toLocaleString() : '—' }}</div>
+        </div>
+      </div>
 
-        <n-grid cols="2" responsive="screen" class="gap-4">
-          <!-- 请求量 -->
-          <n-gi>
-            <n-card :title="t('psyguard.requestDist')" size="small">
-              <VChart :option="requestsOption" :autoresize="true" style="height: 200px" />
-            </n-card>
-          </n-gi>
-          <!-- 类别分布 -->
-          <n-gi>
-            <n-card :title="t('psyguard.riskDist')" size="small">
-              <div class="space-y-2.5">
-                <div v-for="(count, cat) in stats.byCategory" :key="cat" class="flex items-center gap-3">
-                  <span class="text-xs font-mono w-36 text-gray-300 flex items-center">
-                    {{ riskLabel(cat) }}
-                    <InfoTooltip :text="riskDesc(cat)" />
-                  </span>
-                  <n-progress type="line" :percentage="Math.min(100, count / stats.totalRequests * 100 * 5)" :show-text="false" class="flex-1" />
-                  <span class="text-xs font-mono text-muted w-10 text-right">{{ count }}</span>
+      <!-- 指标未采集提示 -->
+      <div v-if="!stats.metricsAvailable" class="card p-4 mb-6 text-muted text-sm">
+        指标数据尚未采集，可能是服务刚启动或尚未配置监控埋点。
+      </div>
+
+      <template v-else>
+        <!-- 延迟趋势图 -->
+        <div class="card p-4 mb-6">
+          <h3 class="text-sm font-medium mb-3">延迟趋势</h3>
+          <VChart :option="latencyOption" :autoresize="true" style="height: 240px" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <!-- 请求量柱状图 -->
+          <div class="card p-4">
+            <h3 class="text-sm font-medium mb-3">每日请求量</h3>
+            <VChart :option="requestsOption" :autoresize="true" style="height: 200px" />
+          </div>
+
+          <!-- 风险类别分布 -->
+          <div class="card p-4">
+            <h3 class="text-sm font-medium mb-3">风险类别分布</h3>
+            <div class="space-y-3">
+              <div v-for="item in riskCategories" :key="item.cat" class="flex items-center gap-3">
+                <span class="text-xs w-24 text-gray-300">{{ item.label }}</span>
+                <div class="flex-1 h-2 bg-bg-elevated rounded-full overflow-hidden">
+                  <div
+                    class="h-full rounded-full bg-accent/60"
+                    :style="{ width: Math.min(100, parseFloat(item.pct) * 5) + '%' }"
+                  ></div>
                 </div>
+                <span class="text-xs font-mono text-muted w-12 text-right">{{ item.count }}</span>
               </div>
-            </n-card>
-          </n-gi>
-        </n-grid>
+            </div>
+          </div>
+        </div>
       </template>
     </template>
   </div>

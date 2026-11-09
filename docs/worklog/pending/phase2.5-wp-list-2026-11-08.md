@@ -2,12 +2,12 @@
 
 > **路径**：`docs/worklog/pending/phase2.5-wp-list-2026-11-08.md`
 > **总览**：[§Phase2.5 总览](phase2.5-overview-2026-11-08.md)
-> **状态**：✅ Phase2.5 五个 WP 全部交付（WP-A + WP-B + WP-C + WP-D + WP-E）
+> **状态**：✅ Phase2.5 WP-F 已交付（2026-11-09）· WP 清单（6 条）见下表 · 另交付独立单 1 条（闸门 trace 查询接口）
 > **创建日期**：2026-11-08
 
 ---
 
-## 一、WP 清单（5 条）
+## 一、WP 清单（6 条）
 
 | WP | 名称 | 优先级 | 一句话描述 | 状态 |
 |---|---|---|---|---|
@@ -16,6 +16,7 @@
 | **WP-C** | 触发式审议闸门 | 🟡 P1 | 状态变化幅度大才跑审议，平静时不跑；高风险永远不跑；预期成本降 90% | ✅ 已交付 → [`交付记录`](../completed/phase2.5/phase2.5-wp-c-triggered-deliberation-gate-implementation-2026-11-09.md)；[任务单](../completed/phase2.5/phase2.5-wp-c-triggered-deliberation-gate.md) |
 | **WP-D** | 模拟咨询师 AI + 自动对练 | 🟡 P1 | 用一万份个案逐字稿（附督导解析）训练模拟咨询师 AI；自动跑几千场对练，积累数据集 | ✅ 已交付 → [`交付记录`](../completed/phase2.5/phase2.5-wp-d-auto-practice-2026-11-08-implementation.md)；2026-11-09 全量实测 → [`测试报告`](../completed/phase2.5/phase2.5-wp-d-auto-practice-2026-11-09-test-report.md) · [`修复任务单`](phase2.5-wp-d-auto-practice-2026-11-09-fix-list.md) |
 | **WP-E** | 自动评测 + 参数调优 | 🟡 P1 | 用督导解析当 ground truth，自动评测审议建议准确率；调到 ≥80% 达标 | ✅ 已交付 → [`交付记录`](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-implementation-2026-11-09.md)；[任务单](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-tuning.md) |
+| **WP-F** | 成本看板合并数据源（正式训练 + 自动对练） | 🟡 P1 | 自动对练的 token / 成本落库（人民币元，同一张定价表）；成本看板合并两张表，按来源区分 | ✅ 已交付 → [`交付记录`](../completed/phase2.5/phase2.5-wp-f-cost-board-merge-sources-implementation-2026-11-09.md)；[任务单](../completed/phase2.5/phase2.5-wp-f-cost-board-merge-sources.md) |
 
 ---
 
@@ -56,7 +57,11 @@ WP-B 可复现控制 + 版本锁定
 
 ## 四、独立单（非编号工作）
 
-> Phase2 有 9 条独立单（切灰度前置安全网）。Phase2.5 目前没有独立单——5 个 WP 就够了。
+> Phase2 有 9 条独立单（切灰度前置安全网）。Phase2.5 现有 1 条独立单。
+
+| 独立单 | 一句话描述 | 状态 |
+|---|---|---|
+| 闸门 trace 查询接口 | 闸门决策落 MySQL 真相源（`gate_decisions`）+ Redis 热缓存与写时按天计数；admin 三个只读端点（列表 / 详情 / 按天统计），sessionId 双口径 | ✅ 已交付（2026-11-09）→ [任务单](../completed/phase2.5/phase2.5-gate-decisions-trace-api.md) · [交付记录](../completed/phase2.5/phase2.5-gate-decisions-trace-api-implementation-2026-11-09.md) |
 
 ---
 
@@ -75,4 +80,4 @@ Phase2 封版记录里列了 6 项 Phase3 阻塞，本阶段处理其中 4 项�
 
 ---
 
-_本登记表为 Phase2.5 的任务清单：5 个 WP，按依赖顺序开工。_
+_本登记表为 Phase2.5 的任务清单：6 个 WP，按依赖顺序开工。_

@@ -226,6 +226,15 @@ import { AddPracticeSessionVersionColumns1714900000035 } from '../src/migration/
 //   漏登记的表现极具迷惑性: migration:run 输出 "No migrations are pending"(看起来像都跑完了),
 //   实际是它压根没被看见 → 表不建 → 评测报告落库直接报错.
 import { CreateEvalReports1714900000036 } from '../src/migration/1714900000036-CreateEvalReports.js';
+// V2026-11-09 治本 (Phase2.5 WP-F — ap_practice_sessions 补 token / 成本列, 跟 src/migration/index.ts 严格 1:1):
+//   prompt_tokens / completion_tokens / reasoning_tokens / total_tokens +
+//   total_cost_cny (人民币元) + cost_basis (full | output_only).
+//   部署顺序: **必须先 migration:run 再起服务** —— runner 结算时要往新列写值.
+import { AddPracticeSessionCostColumns1714900000037 } from '../src/migration/1714900000037-AddPracticeSessionCostColumns.js';
+// V2026-11-09 治本 (Phase2.5 闸门 trace 查询接口 — gate_decisions 新表, 跟 src/migration/index.ts 严格 1:1):
+//   闸门决策的 **MySQL 真相源** (列表 / 详情端点的数据源).
+//   部署顺序: **必须先 migration:run 再起服务** —— 闸门每轮都要往这张表写一行.
+import { CreateGateDecisions1714900000038 } from '../src/migration/1714900000038-CreateGateDecisions.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -386,6 +395,12 @@ const ormconfig = async (): Promise<DataSource> => {
       // V2026-11-09 治本 (Phase2.5 WP-E — eval_reports 新表, 跟 src/migration/index.ts 严格 1:1):
       //   部署顺序: **必须先于 migration:run 再起服务** —— 运行时写评测报告前表得先在.
       CreateEvalReports1714900000036,
+      // V2026-11-09 治本 (Phase2.5 WP-F — ap_practice_sessions 补 token / 成本列, 跟 src/migration/index.ts 严格 1:1):
+      //   部署顺序: **必须先于 migration:run 再起服务** —— runner 结算时往新列写 token / 成本.
+      AddPracticeSessionCostColumns1714900000037,
+      // V2026-11-09 治本 (Phase2.5 闸门 trace 查询接口 — gate_decisions 新表, 跟 src/migration/index.ts 严格 1:1):
+      //   部署顺序: **必须先于 migration:run 再起服务** —— 闸门落库前表得先在.
+      CreateGateDecisions1714900000038,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

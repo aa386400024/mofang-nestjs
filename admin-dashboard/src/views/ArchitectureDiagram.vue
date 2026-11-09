@@ -271,18 +271,18 @@ const overallProgress = 40
   <div class="p-6 max-w-7xl mx-auto">
     <!-- 标题 -->
     <div class="mb-6">
-      <h1 class="text-lg font-semibold mb-2">{{ t('arch.title') }}</h1>
-      <p class="text-sm text-muted">{{ t('arch.subtitle') }}</p>
+      <h1 class="text-xl font-semibold">系统架构图</h1>
+      <p class="text-sm text-muted mt-1">七层架构全貌，从纯层内核到观测调优层的完整技术栈</p>
     </div>
 
     <!-- 进度概览卡片 -->
     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
-      <div class="bg-bg-surface border border-bg-border rounded-lg p-3 text-center">
-        <div class="text-2xl font-bold text-accent">{{ overallProgress }}%</div>
-        <div class="text-xs text-muted mt-1">{{ t('arch.overallProgress') }}</div>
+      <div class="card p-3 text-center">
+        <div class="text-2xl font-bold text-accent font-mono">{{ overallProgress }}%</div>
+        <div class="text-xs text-muted mt-1">整体进度</div>
       </div>
       <div v-for="item in layerProgress" :key="item.layer"
-           class="bg-bg-surface border border-bg-border rounded-lg p-3">
+           class="card p-3">
         <div class="text-xs text-muted mb-1">{{ item.layer }}</div>
         <div class="flex items-center gap-2">
           <div class="flex-1 h-1.5 bg-bg-elevated rounded-full overflow-hidden">
@@ -295,14 +295,14 @@ const overallProgress = 40
     </div>
 
     <!-- 架构图 -->
-    <div class="bg-bg-surface border border-bg-border rounded-lg p-4">
-      <v-chart ref="chartRef" :option="option" class="w-full" style="height: 900px" />
+    <div class="card p-4 mb-6">
+      <VChart ref="chartRef" :option="option" class="w-full" style="height: 900px" />
     </div>
 
     <!-- 说明 -->
-    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-      <div class="bg-bg-surface border border-bg-border rounded-lg p-4">
-        <h3 class="font-semibold mb-2">{{ t('arch.endgoal') }}</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+      <div class="card p-4">
+        <h3 class="font-semibold mb-2">终局目标</h3>
         <p class="text-muted text-sm leading-relaxed">
           临床级可信、工程级可控、对标专业心理咨询师执业训练标准的 AI 来访仿真引擎。
           不是"更聪明的聊天机器人"，是"可以拿来训练心理咨询师执业能力的仿真系统"。

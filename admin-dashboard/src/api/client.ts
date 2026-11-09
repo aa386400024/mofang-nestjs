@@ -4,6 +4,7 @@ import type {
   TrajectoryState, PsyGuardTrend, CostTrendPoint, SessionCost,
   CharacterSession, HealthStatus, DeliberationStats,
   CounselorMode, PracticeSession, BatchProgress,
+  EvalReportListResponse, EvalReportDetail, GateTraceListResponse, GateStatsResponse,
 } from './types'
 
 const BASE = '/admin/api'
@@ -346,5 +347,37 @@ export const api = {
     deleteMode: async (id: string): Promise<{ deleted: boolean }> => {
       return del<{ deleted: boolean }>(`/auto-practice/modes/${id}`)
     },
+  },
+
+  // ─── 自动评测报告 (WP-E · 离线批量评测质量看板) ───
+  evalReports: async (params?: { page?: number; pageSize?: number; status?: string }): Promise<EvalReportListResponse> => {
+    const q = new URLSearchParams(
+      Object.entries(params ?? {}).filter(([, v]) => v !== undefined && v !== '') as Record<string, string>,
+    ).toString()
+    return get<EvalReportListResponse>(`/eval/reports${q ? `?${q}` : ''}`)
+  },
+  evalReportDetail: async (id: string): Promise<EvalReportDetail> => {
+    return get<EvalReportDetail>(`/eval/reports/${id}`)
+  },
+
+  // ─── 闸门决策 trace (GateDecisions) ───
+  gateTraces: async (params?: {
+    page?: number
+    pageSize?: number
+    sessionId?: string
+    dbSessionId?: string
+    mode?: string
+    reason?: string
+    decision?: 'run' | 'skip'
+    startDate?: string
+    endDate?: string
+  }): Promise<GateTraceListResponse> => {
+    const q = new URLSearchParams(
+      Object.entries(params ?? {}).filter(([, v]) => v !== undefined && v !== '') as Record<string, string>,
+    ).toString()
+    return get<GateTraceListResponse>(`/gate/traces${q ? `?${q}` : ''}`)
+  },
+  gateStats: async (days = 7): Promise<GateStatsResponse> => {
+    return get<GateStatsResponse>(`/gate/stats?days=${days}`)
   },
 }

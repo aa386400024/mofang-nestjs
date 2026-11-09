@@ -54,6 +54,19 @@ class FakeRedis {
   });
 
   readonly expire = vi.fn(async (): Promise<void> => undefined);
+
+  // V2026-11-09 (闸门 trace 查询接口): 闸门决策现在**三写** —— Redis 热读 + Redis 日计数器
+  //   (写时聚合, 走 EVAL) + MySQL 真相源. 这里补上 eval 替身, 让写侧链路在本单里可测.
+  /** EVAL 调用记录 (脚本 + key + 参数). */
+  readonly evalCalls: unknown[][] = [];
+
+  readonly eval = vi.fn(async (...args: unknown[]): Promise<number> => {
+    this.evalCalls.push(args);
+    return 1;
+  });
+
+  /** 原始 client (只暴露 eval). */
+  readonly getClient = vi.fn(() => ({ eval: this.eval }));
 }
 
 /** 假配置服务. */

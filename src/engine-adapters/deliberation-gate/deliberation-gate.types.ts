@@ -35,7 +35,17 @@ import type { DeliberationOperatorTag, DeliberationRiskLevel } from '../delibera
  * ⚠️ 两套模式的**状态互不干扰** (Redis key 带 mode 段) —— 同一场会话可以先影子后切生效,
  *   冷却计数不会互相污染 (切灰度时最怕这个: "以为在冷却, 其实没冷却").
  */
-export type GateMode = 'shadow' | 'effect';
+/**
+ * 闸门模式的**运行时取值清单**.
+ *
+ * ⚠️ V2026-11-09 (Phase2.5 闸门 trace 查询接口): 为什么清单也要导出 (而不只是类型):
+ *   读侧要**校验** query 里的 mode 值, 统计侧要按 mode 分桶 —— 两处都要**运行时**清单.
+ *   类型是编译期的事, 清单才是运行期能遍历的东西.
+ */
+export const GATE_MODE_VALUES = ['shadow', 'effect'] as const;
+
+/** 闸门模式 (取值见 `GATE_MODE_VALUES`). */
+export type GateMode = (typeof GATE_MODE_VALUES)[number];
 
 /**
  * 闸门决策 (只有两种: 跑 / 不跑).
@@ -43,7 +53,13 @@ export type GateMode = 'shadow' | 'effect';
  * ⚠️ **没有第三种** —— 闸门不"降级跑", 也不"稍后再跑". 拿不准就是 skip (走纯规则 delta),
  *   这是四层兜底里最保守的一层.
  */
-export type GateDecision = 'run' | 'skip';
+/**
+ * 闸门决策的**运行时取值清单** (V2026-11-09 · 理由同 `GATE_MODE_VALUES`).
+ */
+export const GATE_DECISION_VALUES = ['run', 'skip'] as const;
+
+/** 跑 / 不跑 (取值见 `GATE_DECISION_VALUES`). */
+export type GateDecision = (typeof GATE_DECISION_VALUES)[number];
 
 /**
  * 决策理由 (决策 trace 的口径 —— 看板按它统计"为什么跑 / 为什么没跑").
@@ -51,29 +67,35 @@ export type GateDecision = 'run' | 'skip';
  * ⚠️ 每个值都是**可枚举的**, 不允许自由文本 —— 自由文本进 trace 等于把判断依据
  *   变成不可统计的字符串 (仓库纪律: 判定与观测口径都要能机器读).
  */
-export type GateReason =
+/**
+ * 决策理由的**运行时取值清单** (V2026-11-09 · 理由同 `GATE_MODE_VALUES`).
+ *
+ * ⚠️ 清单与类型**必须同源** (类型由清单推导) —— 两处各写一份 = 迟早漂,
+ *   而漂了的代价是"看板按 11 个理由统计, 实际有第 12 个" (漏统计的静默失效).
+ */
+export const GATE_REASON_VALUES = [
   /** 危机轮次: 永远不跑 LLM 审议 (合规红线). */
-  | 'crisis_skip'
+  'crisis_skip',
   /** 本场第一次跑: 强制建立基线. */
-  | 'first_turn_baseline'
+  'first_turn_baseline',
   /** 关键事件硬触发 (越界 / 评判 / 触碰敏感议题): 不管 delta 多大都跑. */
-  | 'key_event'
+  'key_event',
   /** 冷却中: 距上次跑不到 N 轮. */
-  | 'cooldown'
+  'cooldown',
   /** 配额用尽: 会话次数上限 或 全局每分钟上限. */
-  | 'quota_exceeded'
+  'quota_exceeded',
   /** 熔断中: 连续失败次数达阈值 (仅生效模式). */
-  | 'circuit_open'
+  'circuit_open',
   /** 出现规则**算不准**的事件类型 (LLM 专属标签): 规则没把握, 交给 LLM. */
-  | 'unknown_event_type'
+  'unknown_event_type',
   /** 同盟三维 (trust/safety/bond) 变化超过阈值. */
-  | 'alliance_delta_high'
+  'alliance_delta_high',
   /** 阻抗三维 (verbal/depth/style) 变化超过阈值. */
-  | 'resistance_delta_high'
+  'resistance_delta_high',
   /** 全平静: 所有维度变化都很小 —— 规则算得准, 不用问 LLM. */
-  | 'calm_turn'
+  'calm_turn',
   /** 默认: 规则有把握, 不跑. */
-  | 'rule_confident'
+  'rule_confident',
   /**
    * 闸门自身出故障 (Redis 读不出来 / 纯判定抛异常): **放行** (退化成改造前每轮都跑).
    *
@@ -82,7 +104,11 @@ export type GateReason =
    *     排障时最怕这种 (看上去一切正常, 实际审议成本已经失控).
    *     与审议层的 skipped_high_risk / circuit_open 分开是同一款理由.
    */
-  | 'gate_error';
+  'gate_error',
+] as const;
+
+/** 决策理由 (取值见 `GATE_REASON_VALUES`). */
+export type GateReason = (typeof GATE_REASON_VALUES)[number];
 
 /**
  * 闸门看得到的事件标签.
@@ -118,6 +144,26 @@ export interface GateSafety {
 export interface GateInput {
   /** 业务会话 id (Redis key 的一段). */
   readonly sessionId: string;
+  /**
+   * 稳定落库会话 id (`training_sessions.id`) —— 可选.
+   *
+   * V2026-11-09 (Phase2.5 闸门 trace 查询接口): 闸门决策要落 MySQL 真相源,
+   *   而 admin 后台是按**落库 id** 查会话的 —— 于是 trace 需要**两个**会话口径:
+   *   引擎侧 sessionId (运行时) + dbSessionId (落库).
+   *
+   * ⚠️ 缺省 = 空 = 这场**没有**落库会话 (自动对练 / 未持久化的调试会话)
+   *   → 落库时写 NULL (不是空串, 也不是 0).
+   */
+  readonly dbSessionId?: string;
+  /**
+   * 学员账号 id —— 可选.
+   *
+   * 用途: 闸门决策落库后的**学员隔离** (admin 看板按 user_id 过滤, 见 `admin-scope.ts`).
+   *
+   * ⚠️ 缺省 = 空 = **无归属** (自动对练走 `debug-admin` 这个假身份) → 落库时写 NULL
+   *   → 学员身份**看不到**这些行 (filter 是 `user_id = 自己`, NULL 行自然被排除).
+   */
+  readonly userId?: string;
   /** 本轮轮次 (从 1 起; 冷却与"首轮"判定都用它). */
   readonly turnIndex: number;
   /** 本轮**开始时**的 BDI 快照 (R0). */

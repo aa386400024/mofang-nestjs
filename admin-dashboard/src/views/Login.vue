@@ -2,6 +2,8 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { NIcon } from 'naive-ui'
+import { RocketOutline } from '@vicons/ionicons5'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -57,7 +59,7 @@ const handleLogin = async () => {
       <!-- Logo -->
       <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-accent/10 mb-4">
-          <div class="w-5 h-5 rounded-md bg-accent"></div>
+          <n-icon size="24" class="text-accent"><rocket-outline /></n-icon>
         </div>
         <h1 class="text-xl font-semibold text-gray-100">{{ t('app.loginTitle') }}</h1>
         <p class="text-sm text-muted mt-1">{{ t('app.loginSubtitle') }}</p>

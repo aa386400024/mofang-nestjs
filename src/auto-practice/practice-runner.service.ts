@@ -20,9 +20,19 @@
 //     - **engine-core 零改动**: 所有变化在适配层 (本类 + counselor agent).
 //     - **crisis 也走现有探测**: 不自己写危机关键词表, trace.crisis.detected 是引擎算的.
 //
-//   验证: test/auto-practice/practice-runner.spec.ts
+//   V2026-11-09 治本 (Phase2.5 WP-F · Step 0 — 结算时把 token / 成本落库):
+//     成本看板要合并"正式训练 + 自动对练"两个数据源, 但自动对练**没有留痕 JSON 列**
+//     (正式训练从 `turn_debug_trace[].llmUsage` 现算) —— 不落库, 看板这边永远是 0.
+//     于是这里在结算时把 token / 成本 / 成本口径写进 `ap_practice_sessions`:
+//       · 成本用**同一张定价表** (`LLM_PRICE_*`) + 同一个 `estimateSessionCost()`,
+//         单位是**人民币元** —— 不搞美元字段、不搞汇率 (WP-F 任务单 §6 硬约束).
+//       · failed / running 的场次**也落库** —— 钱花了就是花了.
+//       · 只取**数字**, 不碰 prompt 全文 / 来访者原话 (隐私红线 AGENTS.md §5.4).
+//
+//   验证: test/auto-practice/practice-runner.spec.ts + practice-runner-cost.spec.ts
 
 import { Inject, Injectable, Logger, Optional, type OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { nanoid } from 'nanoid';
 import { Repository } from 'typeorm';
@@ -34,6 +44,27 @@ import { CounselorMode } from './entities/counselor-mode.entity.js';
 import { PracticeSession, type PracticeSessionStatus } from './entities/practice-session.entity.js';
 import { InferenceFingerprintService, type InferenceFingerprint, type ScenarioType } from './inference-fingerprint.service.js';
 import { TURN_ENGINE_PORT, type TurnEnginePort } from './ports/turn-engine.port.js';
+import { resolveCostPricingFromEnv } from '../admin-debug/cost-pricing.js';
+import type { DebugTurnTrace } from '../admin-debug/debug-session.service.js';
+import {
+  estimateSessionCost,
+  type SessionCostBasis,
+  type SessionCostPricing,
+  type SessionUsageTotals,
+} from '../engine-adapters/observability/session-cost.js';
+
+/**
+ * 本场累计 LLM 用量 (WP-F Step 0 · 结算时落库到 ap_practice_sessions).
+ *
+ * ⚠️ 这里只存**数字** —— 不存 prompt 全文 / 来访者原话 (隐私红线 AGENTS.md §5.4).
+ */
+interface PracticeUsage {
+  /** 有用量记录的轮数 (跟 token 累加同步). */
+  turnCount: number;
+  promptTokens: number;
+  completionTokens: number;
+  reasoningTokens: number;
+}
 
 /** 默认最大轮数 (一场对练聊多少轮). */
 export const DEFAULT_MAX_TURNS = 15;
@@ -88,6 +119,10 @@ export class PracticeRunnerService implements OnModuleInit {
     // 退化成 `Object`, Nest 按 `Object` 找不到 provider 就静默注入 undefined —— 于是
     // 所有 `publishToSession` 变成空调用 (WS 能连上但永远收不到事件). 必须显式 @Inject 令牌.
     @Optional() @Inject(AutoPracticeGateway) private readonly gateway?: AutoPracticeGateway,
+    // WP-F Step 0: 结算时算成本要用单价 (LLM_PRICE_*).
+    // 为什么是 @Optional(): 单测直接 new runner (不注入配置) —— 缺配置时按**默认单价**算,
+    // 不能让"没注入配置"变成"跑不起来". 生产环境 ConfigModule 是全局的, 一定注得到.
+    @Optional() private readonly config?: ConfigService,
   ) {}
 
   /**
@@ -98,6 +133,10 @@ export class PracticeRunnerService implements OnModuleInit {
    * 单实例部署下, 启动瞬间还留在 running 的必然是上次进程留下的.
    */
   async onModuleInit(): Promise<void> {
+    // ⚠️ 缺配置 → 成本按默认单价算 (数字还是对的, 但不是运营配的价) —— 说出来, 别静默.
+    if (!this.config) {
+      this.logger.warn('[auto_practice] 未注入 ConfigService — 成本按默认单价估算 (LLM_PRICE_*)');
+    }
     try {
       const stale = await this.sessionRepo.find({ where: { status: 'running' }, select: { id: true } });
       if (stale.length === 0) return;
@@ -130,6 +169,8 @@ export class PracticeRunnerService implements OnModuleInit {
     let turnCount = 0;
     let degradedTurns = 0;
     let errorMessage: string | null = null;
+    // WP-F Step 0: 本场累计用量 (循环里原地累加; 抛异常也不丢 —— 已经花的钱要算进去).
+    const usage: PracticeUsage = { turnCount: 0, promptTokens: 0, completionTokens: 0, reasoningTokens: 0 };
 
     // ① 开引擎会话 (失败就建 failed 行, 然后 return —— 不 throw).
     const openResult = await this.openSessionOrFail(input, practiceSessionId, scenarioType, maxTurns);
@@ -162,7 +203,7 @@ export class PracticeRunnerService implements OnModuleInit {
       degradedTurns: number;
     };
     try {
-      loopResult = await this.runConversationLoop(input, practiceSessionId, debugSessionId, maxTurns, history);
+      loopResult = await this.runConversationLoop(input, practiceSessionId, debugSessionId, maxTurns, history, usage);
     } catch (error) {
       loopResult = {
         status: 'failed',
@@ -187,7 +228,23 @@ export class PracticeRunnerService implements OnModuleInit {
     turnCount = loopResult.turnCount;
     degradedTurns = loopResult.degradedTurns;
 
-    // ⑥ 更新终态.
+    // ⑥ 结算 token / 成本 (WP-F Step 0).
+    //   口径跟正式训练**完全同一套**: 同一个 `estimateSessionCost()` + 同一张定价表,
+    //   单位是**人民币元** —— 不搞美元字段、不搞汇率 (WP-F 任务单 §6 硬约束).
+    //   ⚠️ failed 的场次也算钱: 跑了几轮就烧了几轮的钱, 不能因为异常就不记.
+    const usageTotals: SessionUsageTotals = {
+      turnCount: usage.turnCount,
+      promptTokens: usage.promptTokens,
+      completionTokens: usage.completionTokens,
+      totalTokens: usage.promptTokens + usage.completionTokens,
+      reasoningTokens: usage.reasoningTokens,
+      // 整场 promptTokens 都是 0 = 上游没报输入侧 → 成本口径如实落成 output_only (下界),
+      // 不拿 0 冒充"输入侧免费" (与 `aggregateSessionCost` 同款纪律).
+      promptTokensAvailable: usage.promptTokens > 0,
+    };
+    const cost = estimateSessionCost(usageTotals, this.resolveCostPricing());
+
+    // ⑦ 更新终态 (含 token / 成本 / 成本口径).
     await this.updateSessionResult(practiceSessionId, {
       status,
       exitReason,
@@ -195,9 +252,15 @@ export class PracticeRunnerService implements OnModuleInit {
       crisisEnded,
       errorMessage,
       degradedTurns,
+      promptTokens: usageTotals.promptTokens,
+      completionTokens: usageTotals.completionTokens,
+      reasoningTokens: usageTotals.reasoningTokens,
+      totalTokens: usageTotals.totalTokens,
+      totalCostCny: cost.estimatedCostCny,
+      costBasis: cost.costBasis,
     });
 
-    // ⑦ 推 session_end.
+    // ⑧ 推 session_end.
     const endPayload: AutoPracticeSessionEndPayload = {
       practiceSessionId,
       status,
@@ -229,6 +292,7 @@ export class PracticeRunnerService implements OnModuleInit {
     debugSessionId: string,
     maxTurns: number,
     history: CounselorHistoryTurn[],
+    usage: PracticeUsage,
   ): Promise<{ status: PracticeSessionStatus; exitReason: string; crisisEnded: number; turnCount: number; degradedTurns: number }> {
     let status: PracticeSessionStatus = 'running';
     let exitReason = 'max_turns';
@@ -247,6 +311,8 @@ export class PracticeRunnerService implements OnModuleInit {
       // 引擎跑一轮.
       const result = await this.engine.turn(debugSessionId, counselorReply.text);
       turnCount = result.turnIndex;
+      // WP-F Step 0: 累加本轮 LLM 用量 (只取数字, 不碰任何心理内容).
+      this.accumulateUsage(usage, result.trace);
       if (result.trace.degraded) degradedTurns += 1;
       history.push({ role: 'visitor', text: result.reply });
 
@@ -403,7 +469,9 @@ export class PracticeRunnerService implements OnModuleInit {
     });
   }
 
-  /** 更新终态 (status / turnCount / finishedAt). */
+  /**
+   * 更新终态 (status / turnCount / finishedAt + WP-F 的 token / 成本 / 成本口径).
+   */
   private async updateSessionResult(
     id: string,
     fields: {
@@ -413,6 +481,13 @@ export class PracticeRunnerService implements OnModuleInit {
       crisisEnded: number;
       errorMessage: string | null;
       degradedTurns: number;
+      /** WP-F Step 0: 结算落库的用量与成本. */
+      promptTokens: number;
+      completionTokens: number;
+      reasoningTokens: number;
+      totalTokens: number;
+      totalCostCny: number;
+      costBasis: SessionCostBasis;
     },
   ): Promise<void> {
     await this.sessionRepo
@@ -423,6 +498,38 @@ export class PracticeRunnerService implements OnModuleInit {
       .catch((error: unknown) => {
         this.logger.warn(`[auto_practice] 更新场次终态失败 session=${id}: ${errorName(error)}`);
       });
+  }
+
+  /**
+   * 累加一轮的 LLM 用量 (WP-F Step 0).
+   *
+   * ⚠️ 只取**数字** (token 数) —— 不碰 prompt 全文 / 来访者原话 (隐私红线 AGENTS.md §5.4).
+   * ⚠️ `llmUsage` 在类型上是必填, 但老数据 / 没留痕的轮次运行时可能真的没有 —— 按可空处理,
+   *   缺就是缺 (不补 0 冒充"这轮免费").
+   *
+   * @param usage 累计量 (原地累加)
+   * @param trace 本轮留痕
+   */
+  private accumulateUsage(usage: PracticeUsage, trace: DebugTurnTrace): void {
+    const llm: Partial<DebugTurnTrace['llmUsage']> | undefined = trace.llmUsage;
+    if (!llm) return;
+    usage.turnCount += 1;
+    usage.promptTokens += llm.promptTokens ?? 0;
+    usage.completionTokens += llm.completionTokens ?? 0;
+    usage.reasoningTokens += llm.reasoningTokens ?? 0;
+  }
+
+  /**
+   * 成本单价 (元 / 千 token).
+   *
+   * 走 **WP24 已有的两个 env** (`LLM_PRICE_INPUT_PER_1K` / `LLM_PRICE_OUTPUT_PER_1K`) ——
+   *   与正式训练看板、单场成本日志是**同一张定价表** (env 键 → 单价的映射只有一份:
+   *   `admin-debug/cost-pricing.ts`). 少一个 env = 两张会漂的定价表.
+   *
+   * @returns 单价
+   */
+  private resolveCostPricing(): SessionCostPricing {
+    return resolveCostPricingFromEnv((key) => this.config?.get<string>(key));
   }
 }
 

@@ -524,12 +524,15 @@ onMounted(() => {
     <!-- 顶部：标题 + 操作 -->
     <div class="flex items-center justify-between mb-3 flex-shrink-0">
       <div class="flex items-center gap-4">
-        <h1 class="text-base font-semibold whitespace-nowrap">{{ t('calibrator.title') }}</h1>
+        <div>
+          <h1 class="text-xl font-semibold whitespace-nowrap">参数校准</h1>
+          <p class="text-xs text-muted mt-0.5">可视化调节 BDI 引擎参数，实时预览效果</p>
+        </div>
         <!-- 场景选择 -->
-        <n-radio-group v-model:value="activeScenario" size="tiny">
-          <n-radio-button v-for="s in presetScenarios" :key="s.id" :value="s.id">{{ s.shortName }}</n-radio-button>
-          <n-radio-button value="custom">{{ t('calibrator.custom') }}</n-radio-button>
-        </n-radio-group>
+        <NRadioGroup v-model:value="activeScenario" size="small" class="ml-4">
+          <NRadioButton v-for="s in presetScenarios" :key="s.id" :value="s.id">{{ s.shortName }}</NRadioButton>
+          <NRadioButton value="custom">自定义</NRadioButton>
+        </NRadioGroup>
       </div>
       <div class="flex items-center gap-2">
         <!-- 对比设置：下拉多选 -->

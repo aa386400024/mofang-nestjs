@@ -19,6 +19,17 @@
 //       指向 character_profiles (应用层校验), 都不加物理外键 (ADR-0003).
 //     - **不做软删**: 场次是审计数据, 删了等于让批量统计凭空少一场.
 //
+//   V2026-11-09 治本 (Phase2.5 WP-F · Step 0 · 补 token / 成本列):
+//     成本看板要合并"正式训练 + 自动对练"两个数据源, 但自动对练**没有留痕 JSON 列**
+//     (正式训练从 `turn_debug_trace[].llmUsage` 算) —— 不落库, 看板这边永远是 0.
+//     于是 runner 结算时把 token / 成本 / 成本口径写进本表:
+//       prompt_tokens / completion_tokens / reasoning_tokens / total_tokens
+//       total_cost_cny (元) / cost_basis (full | output_only)
+//     ⚠️ 成本**直接算人民币元** (同一张定价表 + 同一个 `estimateSessionCost()`),
+//        不搞美元字段、不搞汇率 (WP-F 任务单 §6 硬约束).
+//     ⚠️ 旧列 `total_cost` (声明"美元") 保留但**不再读写** —— 迁移已把它的 DB 注释
+//        标成"已废弃"; 权威字段是 `total_cost_cny`.
+//
 //   验证 (大炮跑 pnpm migration:run 后):
 //     1. SHOW TABLES LIKE 'ap_practice_sessions';
 //     2. DESCRIBE ap_practice_sessions;
@@ -146,9 +157,59 @@ export class PracticeSession {
   @Column({ type: 'varchar', length: 64, nullable: true, name: 'engine_version' })
   engineVersion!: string | null;
 
-  /** 本场 LLM 总成本 (美元, 粗略估算; WP-E 做成本分析用). */
+  /**
+   * 本场 LLM 总成本 (**已废弃** —— 历史列, 声明"美元"但全仓零写入点, 恒 NULL).
+   *
+   * V2026-11-09 (Phase2.5 WP-F): 成本口径改为**人民币元**, 权威字段是 `total_cost_cny`.
+   *   本列保留 (不 DROP, 避免不可逆的 schema 变更), 但**不再读写** ——
+   *   留着一条"美元"语义的死列, 迟早有人再拿它算一遍钱.
+   *   迁移 `1714900000037` 已把本列的 DB 注释改成"已废弃", 别再拿它算成本.
+   */
   @Column({ type: 'decimal', precision: 10, scale: 4, nullable: true, name: 'total_cost' })
   totalCost!: number | null;
+
+  /**
+   * 本场 LLM 输入 token 合计 (引擎侧; 咨询师侧用量不可得, 见 WP-F 交付记录 §偏差).
+   *
+   * V2026-11-09 (Phase2.5 WP-F · Step 0): runner 结算时按轮累加 `trace.llmUsage`.
+   *   落库理由: 成本看板要合并两个数据源, 而自动对练**没有留痕 JSON 列** ——
+   *   token 与成本不落库, 看板就只能显示"自动对练成本恒 0".
+   */
+  @Column({ type: 'int', default: 0, name: 'prompt_tokens' })
+  promptTokens!: number;
+
+  /** 本场 LLM 输出 token 合计 (思考 token 已含在内, 不重复计入 totalTokens). */
+  @Column({ type: 'int', default: 0, name: 'completion_tokens' })
+  completionTokens!: number;
+
+  /** 本场思考 token 合计 (已含在输出侧里, 单列只为可追溯). */
+  @Column({ type: 'int', default: 0, name: 'reasoning_tokens' })
+  reasoningTokens!: number;
+
+  /** 本场 token 总量 (输入 + 输出; 与正式训练 totalTokens 同口径). */
+  @Column({ type: 'int', default: 0, name: 'total_tokens' })
+  totalTokens!: number;
+
+  /**
+   * 本场 LLM 总成本 (**人民币元**) —— 跑时定价快照.
+   *
+   * 口径: 用 WP24 的 `estimateSessionCost()` + 同一张定价表算出来 (元 / 千 token),
+   *   **不搞美元字段, 不搞汇率** (WP-F 任务单 §6 硬约束).
+   *   定价快照 = 这场跑的时候单价是多少就算多少 —— 事后调 env 不会改写历史行.
+   *   (与正式训练"读时按当前 env 重算"的口径差异登记在交付记录 §偏差.)
+   *
+   * ⚠️ DECIMAL 在 mysql2 驱动下取回来是**字符串** —— 读的时候记得 `Number(...)`.
+   */
+  @Column({ type: 'decimal', precision: 12, scale: 6, nullable: true, name: 'total_cost_cny' })
+  totalCostCny!: number | null;
+
+  /**
+   * 成本口径 (`full` = 输入输出都计 / `output_only` = 只含输出侧, 是下界).
+   *
+   * null = 没有口径记录 (WP-F 之前跑的历史场次) —— 看板把这种行标成 `estimated`.
+   */
+  @Column({ type: 'varchar', length: 16, nullable: true, name: 'cost_basis' })
+  costBasis!: string | null;
 
   /**
    * 咨询师侧降级轮数 (V2026-11-09 P1-3).

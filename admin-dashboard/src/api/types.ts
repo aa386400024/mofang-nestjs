@@ -286,11 +286,13 @@ export interface CostTrendPoint {
   tokens: number
   costCny: number
   sessions: number
-  // WP-F: 分来源统计（后端补，前端先做兼容）
+  // WP-F: 分来源统计
   sessionsFormal?: number
   sessionsAutoPractice?: number
   costFormal?: number
   costAutoPractice?: number
+  tokensFormal?: number
+  tokensAutoPractice?: number
 }
 
 export interface SessionCost {
@@ -310,9 +312,10 @@ export interface SessionCost {
   /**
    * 成本口径：
    * - `full` —— 输入输出都计，这是全场成本；
-   * - `output_only` —— 上游没报输入侧用量，成本只是**下界**。
+   * - `output_only` —— 上游没报输入侧用量，成本只是下界；
+   * - `estimated` —— 历史场次无成本数据，成本 0 只是占位。
    */
-  costBasis: 'full' | 'output_only'
+  costBasis: 'full' | 'output_only' | 'estimated'
 }
 
 // ─── 角色历史会话 ───
@@ -482,4 +485,142 @@ export interface ApSessionEnd {
   exitReason: string
   turnCount: number
   crisisEnded: boolean
+}
+
+// ─── 闸门决策 trace (GateDecisions) ───
+
+export type GateMode = 'shadow' | 'effect'
+export type GateDecision = 'run' | 'skip'
+
+/** 闸门原因枚举（12 值） */
+export type GateReason =
+  | 'crisis_skip'
+  | 'first_turn_baseline'
+  | 'key_event'
+  | 'cooldown'
+  | 'quota_exceeded'
+  | 'circuit_open'
+  | 'unknown_event_type'
+  | 'alliance_delta_high'
+  | 'resistance_delta_high'
+  | 'calm_turn'
+  | 'rule_confident'
+  | 'gate_error'
+
+export interface GateThresholdUsed {
+  alliance: number
+  resistance: number
+  calm: number
+}
+
+export interface GateTraceRecord {
+  id: number
+  sessionId: string
+  /** 落库 id（uuid char(36)，不是数字） */
+  dbSessionId: string | null
+  turnIndex: number
+  mode: GateMode
+  decision: GateDecision
+  reason: GateReason
+  thresholdUsed: GateThresholdUsed
+  deltaSummary: Record<string, number> | null
+  elapsedMs: number
+  recordedAt: string
+}
+
+export interface GateTraceListResponse {
+  total: number
+  page: number
+  pageSize: number
+  items: GateTraceRecord[]
+}
+
+export interface GateStatsPoint {
+  date: string
+  totalDecisions: number
+  skipDecisions: number
+  runDecisions: number
+  byReason: Record<GateReason, number>
+  byMode: {
+    shadow: number
+    effect: number
+  }
+}
+
+/** GET /admin/api/gate/stats?days=N 返回形状：所有数组与 dates 等长对齐 */
+export interface GateStatsResponse {
+  dates: string[]
+  totalDecisions: number[]
+  skipDecisions: number[]
+  runDecisions: number[]
+  byReason: Record<GateReason, number[]>
+  byMode: {
+    shadow: number[]
+    effect: number[]
+  }
+}
+
+// ─── 自动评测报告 (WP-E · 离线批量评测质量看板) ───
+
+/** 报告状态: ok / degraded / failed (后端 metrics_json.status) */
+export type EvalReportStatus = 'ok' | 'degraded' | 'failed'
+
+/** 列表行 (扁平, 不嵌套 JSON) */
+export interface EvalReportListItem {
+  /** 主键 (uuid) */
+  id: string
+  /** 报告业务 id */
+  reportId: string
+  /** 生成时刻 ISO */
+  createdAt: string
+  /** 数据集版本 */
+  datasetVersion: string
+  /** 评测模式: offline / full */
+  mode: string
+  /** 触发 F1 (历史行可能为 null) */
+  triggerF1: number | null
+  /** 建议方向准确率 macro F1 */
+  directionAccuracy: number | null
+  /** 报告状态 */
+  status: EvalReportStatus
+  /** 告警条数 */
+  warningCount: number
+  /** 成本 (元) */
+  costCny: number | null
+}
+
+export interface EvalReportListResponse {
+  total: number
+  page: number
+  pageSize: number
+  items: EvalReportListItem[]
+}
+
+/** 详情 (完整 report_json 快照) */
+export interface EvalReportDetail {
+  id: string
+  reportId: string
+  datasetVersion: string
+  mode: string
+  createdAt: string
+  config: Record<string, unknown>
+  metrics: {
+    triggerQuality?: Record<string, number>
+    suggestionQuality?: Record<string, number>
+    baselineComparison?: Record<string, unknown>
+    runs?: { mean: number; stdDev: number }
+    cost?: Record<string, number>
+    durationSec?: number
+    status?: EvalReportStatus
+  }
+  dataQuality: Record<string, unknown>
+  report: {
+    warnings?: string[]
+    sampleIds?: string[]
+    status?: EvalReportStatus
+  }
+}
+  avgScore: number | null
+  passRate: number | null
+  createdAt: string
 }

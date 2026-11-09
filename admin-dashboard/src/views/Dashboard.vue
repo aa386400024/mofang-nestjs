@@ -19,11 +19,31 @@ const weekly = ref<{ date: string; count: number }[]>([])
 const recentSessions = ref<Awaited<ReturnType<typeof api.sessions>>>([])
 const loading = ref(true)
 
+// Phase2.5 灰度指标
+const autoPracticeCount = ref(0)
+const gateStats = ref<{ totalGateDecisions?: number; triggerRate?: number }>({})
+const evalReportCount = ref(0)
+
 onMounted(async () => {
   try {
     data.value = await api.dashboard()
     weekly.value = await api.weeklySessions()
     recentSessions.value = await api.sessions(5)
+
+    // 并行加载 Phase2.5 指标（失败不阻塞主页面）
+    try {
+      const practiceSessions = await api.autoPractice.listSessions({})
+      autoPracticeCount.value = practiceSessions.length
+    } catch { /* 忽略 */ }
+
+    try {
+      gateStats.value = await api.deliberationStats()
+    } catch { /* 忽略 */ }
+
+    try {
+      const evalRes = await api.evalReports({ page: 1, pageSize: 1 })
+      evalReportCount.value = evalRes.total
+    } catch { /* 忽略 */ }
   }
   finally { loading.value = false }
 })
@@ -129,6 +149,59 @@ const riskDesc = (cat: string) => t(`risk.${cat}.desc`)
             <div class="text-2xl font-semibold text-gray-100 mb-1">—</div>
             <div class="text-xs text-muted">{{ t('dashboard.metricsUnavailable') }}</div>
           </template>
+        </div>
+      </div>
+
+      <!-- Phase2.5 灰度指标 -->
+      <div class="mb-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-sm font-medium text-gray-300">Phase2.5 灰度验证</span>
+          <n-tag size="tiny" :bordered="false" type="info">灰度期</n-tag>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- 自动对练场次 -->
+          <div class="card p-5 hover:bg-bg-elevated transition">
+            <div class="flex items-start justify-between mb-3">
+              <div class="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <RouterLink to="/auto-practice" class="text-xs text-blue-400 hover:text-blue-300">查看 →</RouterLink>
+            </div>
+            <div class="text-2xl font-semibold text-gray-100 mb-1">{{ autoPracticeCount }}</div>
+            <div class="text-xs text-muted">自动对练场次</div>
+          </div>
+
+          <!-- 闸门触发率 -->
+          <div class="card p-5 hover:bg-bg-elevated transition">
+            <div class="flex items-start justify-between mb-3">
+              <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <RouterLink to="/gate-decisions" class="text-xs text-blue-400 hover:text-blue-300">查看 →</RouterLink>
+            </div>
+            <div class="text-2xl font-semibold text-gray-100 mb-1">
+              {{ gateStats.triggerRate != null ? `${(gateStats.triggerRate * 100).toFixed(1)}%` : '—' }}
+            </div>
+            <div class="text-xs text-muted">闸门触发率 · 共 {{ gateStats.totalGateDecisions ?? 0 }} 次</div>
+          </div>
+
+          <!-- 评测报告数 -->
+          <div class="card p-5 hover:bg-bg-elevated transition">
+            <div class="flex items-start justify-between mb-3">
+              <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <RouterLink to="/eval-reports" class="text-xs text-blue-400 hover:text-blue-300">查看 →</RouterLink>
+            </div>
+            <div class="text-2xl font-semibold text-gray-100 mb-1">{{ evalReportCount }}</div>
+            <div class="text-xs text-muted">评测报告总数</div>
+          </div>
         </div>
       </div>
 

@@ -22,6 +22,8 @@ import { AdminBasicAuthMiddleware } from '../../src/admin-debug/admin-basic-auth
 import { AdminDebugController } from '../../src/admin-debug/admin-debug.controller.js';
 import { AdminDebugModule } from '../../src/admin-debug/admin-debug.module.js';
 import { AdminInsightsController } from '../../src/admin-debug/admin-insights.controller.js';
+import { GateTraceController } from '../../src/admin-debug/gate-trace.controller.js';
+import { GateTraceModule } from '../../src/admin-debug/gate-trace.module.js';
 import { AdminRoleGuard } from '../../src/admin-debug/guards/admin-role.guard.js';
 import { BizCode } from '../../src/common/exceptions/biz-code.enum.js';
 import { User } from '../../src/user/entities/user.entity.js';
@@ -351,6 +353,25 @@ describe('WP26 §1 P2-4 · admin-debug 命名空间加角色校验', () => {
         expect(route.method).toBe(RequestMethod.GET);
         expect(route.guards).toContain(AdminRoleGuard);
       }
+    });
+
+    it('闸门决策查询面 (V2026-11-09) 的 3 个端点也全部继承 class 级 AdminRoleGuard', () => {
+      const routes = collectRoutes(GateTraceController);
+
+      expect(routes.map((route) => route.path).sort()).toEqual(['stats', 'traces', 'traces/:id']);
+      for (const route of routes) {
+        expect(route.method).toBe(RequestMethod.GET);
+        expect(route.guards).toContain(AdminRoleGuard);
+      }
+    });
+
+    it('闸门查询模块里注册了 AdminRoleGuard 与 User 仓储 (DI 能解析, 不会启动期 UnknownDependencies)', () => {
+      const providers = Reflect.getMetadata('providers', GateTraceModule) as unknown[] | undefined;
+      expect(providers).toContain(AdminRoleGuard);
+
+      const imports = Reflect.getMetadata('imports', GateTraceModule) as { providers?: { provide: unknown }[] }[] | undefined;
+      const userRepoToken = getRepositoryToken(User);
+      expect(imports?.some((module) => (module.providers ?? []).some((provider) => provider.provide === userRepoToken))).toBe(true);
     });
 
     it('module 里注册了 AdminRoleGuard 与 User 仓储 (DI 能解析, 不会启动期 UnknownDependencies)', () => {

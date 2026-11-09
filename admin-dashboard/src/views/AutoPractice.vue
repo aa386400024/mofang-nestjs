@@ -45,10 +45,23 @@ const manualEditLoading = ref(false)
 // 手动模式：删除确认
 const manualDeleteConfirmVisible = ref(false)
 const manualDeletingSessionId = ref<string | null>(null)
+const manualDeletingSessionTitle = ref('')
 const manualDeleteLoading = ref(false)
+
+// 自动对练：删除确认弹窗
+const practiceDeleteConfirmVisible = ref(false)
+const practiceDeletingSession = ref<PracticeSession | null>(null)
+const practiceDeleteLoading = ref(false)
 
 // 切换模式时加载对应的会话列表
 watch(mode, async (newMode) => {
+  // 切换模式时清空中间对话窗口
+  messages.value = []
+  turns.value = new Map()
+  sessionMeta.value = null
+  runningSessionId.value = null
+  manualDebugSessionId.value = null
+
   if (newMode === 'manual') {
     try {
       debugSessions.value = await api.debugSession.list()
@@ -142,6 +155,18 @@ let socket: Socket | null = null
 const canStart = computed(() => !!selectedCharacterSlug.value && !!selectedModeId.value && !running.value)
 const modeOptions = computed(() => modes.value.filter(m => m.enabled === 1).map(m => ({ label: m.name, value: m.id })))
 
+// 根据 ID 查咨询师模式名称
+function modeNameById(id: string): string {
+  const m = modes.value.find(x => x.id === id)
+  return m?.name ?? id
+}
+
+// 根据 slug 查角色名称（codename）
+function characterNameBySlug(slug: string): string {
+  const c = characters.value.find(x => x.slug === slug)
+  return c?.codename || slug
+}
+
 // ========== 方法 ==========
 
 /** 从 turns 重建消息流 / BDI 曲线 / 当前 trace（所有更新的唯一出口）. */
@@ -234,9 +259,26 @@ async function submitEditTitle() {
 }
 
 // ─── 删除场次 ───
-function confirmDeleteSession(s: PracticeSession) {
-  // TODO: 后端补 DELETE /admin/api/auto-practice/sessions/:id 接口
-  message.info('删除功能待后端接口（后端补 DELETE /auto-practice/sessions/:id）')
+function openPracticeDeleteConfirm(s: PracticeSession) {
+  practiceDeletingSession.value = s
+  practiceDeleteConfirmVisible.value = true
+}
+
+async function confirmPracticeDelete() {
+  const s = practiceDeletingSession.value
+  if (!s || practiceDeleteLoading.value) return
+  practiceDeleteLoading.value = true
+  try {
+    // TODO: 后端补 DELETE /admin/api/auto-practice/sessions/:id 接口
+    // await api.autoPractice.deleteSession(s.id)
+    message.info('删除接口待后端上线')
+    practiceDeleteConfirmVisible.value = false
+    practiceDeletingSession.value = null
+  } catch (e) {
+    message.error('删除场次失败')
+  } finally {
+    practiceDeleteLoading.value = false
+  }
 }
 
 // ─── AI 重命名 ───
@@ -363,8 +405,9 @@ async function submitManualEditTitle() {
 }
 
 // ─── 手动模式：删除调试会话 ───
-function openManualDeleteConfirm(s: { id: string }) {
+function openManualDeleteConfirm(s: { id: string; title: string }) {
   manualDeletingSessionId.value = s.id
+  manualDeletingSessionTitle.value = s.title || '未命名会话'
   manualDeleteConfirmVisible.value = true
 }
 
@@ -943,14 +986,38 @@ onUnmounted(() => {
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="text-sm truncate font-medium leading-6 flex items-center gap-1.5">
-                    <span class="truncate">{{ (s as any).title || (s.characterSlug || '未命名').slice(0, 12) }}</span>
+                    <span class="truncate">{{ (s as any).title || characterNameBySlug(s.characterSlug) }}</span>
                     <NTag size="tiny" :type="s.status === 'completed' ? 'success' : s.status === 'failed' ? 'error' : 'info'">{{ s.status }}</NTag>
                   </div>
                   <div class="text-xs text-muted mt-0.5 flex items-center gap-1.5">
                     <span>{{ s.id === runningSessionId && turns.size ? turns.size : s.turnCount }} 轮</span>
                     <span>·</span>
-                    <span>{{ s.counselorModeId }}</span>
+                    <span>{{ modeNameById(s.counselorModeId) }}</span>
                   </div>
+                </div>
+
+                <!-- hover 操作按钮 -->
+                <div class="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 pt-0.5">
+                  <button
+                    class="w-6 h-6 flex items-center justify-center rounded text-muted hover:text-accent hover:bg-bg-surface transition-colors"
+                    title="重命名"
+                    @click.stop="openEditSessionDialog(s)"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                    </svg>
+                  </button>
+                  <button
+                    class="w-6 h-6 flex items-center justify-center rounded text-muted hover:text-danger hover:bg-bg-surface transition-colors"
+                    title="删除"
+                    @click.stop="openPracticeDeleteConfirm(s)"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 6h18"/>
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                    </svg>
+                  </button>
                 </div>
               </div>
             </div>
@@ -1025,6 +1092,18 @@ onUnmounted(() => {
 
       <!-- 中栏: 对话流 -->
       <div class="w-[42%] flex-shrink-0 flex flex-col bg-bg-surface rounded-lg border border-bg-border min-w-0 h-full min-h-0">
+        <!-- 当前会话信息栏 -->
+        <div v-if="sessionMeta" class="px-4 py-2.5 border-b border-bg-border bg-bg-elevated/30 flex items-center gap-3 flex-shrink-0">
+          <div class="flex items-center gap-1.5 text-xs">
+            <span class="text-muted">角色</span>
+            <span class="font-medium text-gray-200">{{ characterNameBySlug(sessionMeta.characterSlug) }}</span>
+          </div>
+          <span class="w-px h-3 bg-bg-border"></span>
+          <div class="flex items-center gap-1.5 text-xs">
+            <span class="text-muted">咨询师模式</span>
+            <span class="font-medium text-gray-200">{{ modeNameById(sessionMeta.counselorModeId) }}</span>
+          </div>
+        </div>
         <div id="ap-messages" class="flex-1 overflow-auto p-4 space-y-4">
           <!-- 未开始：只有空态提示 -->
           <NEmpty v-if="messages.length === 0 && !running" :description="mode === 'auto' ? '选择角色和咨询师模式，点「跑一场」开始自动对练' : '选择角色，点「开启调试会话」开始手动调试'" />
@@ -1210,6 +1289,8 @@ onUnmounted(() => {
         @keyup.enter="submitManualEditTitle"
         autofocus
         :disabled="manualEditLoading"
+        maxlength="50"
+        show-count
       />
       <template #footer>
         <div class="flex justify-end gap-2">
@@ -1227,13 +1308,38 @@ onUnmounted(() => {
       style="width: 400px"
       :bordered="false"
     >
-      <p class="text-sm text-text-secondary leading-relaxed">
+      <p class="text-sm text-text-secondary leading-relaxed mb-3">
         确定要删除这个调试会话吗？删除后对话记录将无法恢复。
       </p>
+      <div v-if="manualDeletingSessionTitle" class="p-3 rounded bg-error/10 border border-error/20 text-sm text-error mb-2">
+        {{ manualDeletingSessionTitle }}
+      </div>
       <template #footer>
         <div class="flex justify-end gap-2">
           <NButton size="small" :disabled="manualDeleteLoading" @click="manualDeleteConfirmVisible = false">取消</NButton>
           <NButton size="small" type="error" :loading="manualDeleteLoading" @click="confirmManualDelete">确认删除</NButton>
+        </div>
+      </template>
+    </NModal>
+
+    <!-- 自动对练：删除场次确认弹窗 -->
+    <NModal
+      v-model:show="practiceDeleteConfirmVisible"
+      preset="card"
+      title="删除对练场次"
+      style="width: 400px"
+      :bordered="false"
+    >
+      <p class="text-sm text-text-secondary leading-relaxed mb-3">
+        确定要删除这个对练场次吗？删除后对话记录和评测数据将无法恢复。
+      </p>
+      <div v-if="practiceDeletingSession" class="p-3 rounded bg-error/10 border border-error/20 text-sm text-error mb-2">
+        {{ characterNameBySlug(practiceDeletingSession.characterSlug) }} · {{ modeNameById(practiceDeletingSession.counselorModeId) }}
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <NButton size="small" :disabled="practiceDeleteLoading" @click="practiceDeleteConfirmVisible = false">取消</NButton>
+          <NButton size="small" type="error" :loading="practiceDeleteLoading" @click="confirmPracticeDelete">确认删除</NButton>
         </div>
       </template>
     </NModal>

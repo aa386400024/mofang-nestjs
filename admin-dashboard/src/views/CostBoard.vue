@@ -11,6 +11,7 @@ import { api } from '@/api/client'
 import type { CostTrendPoint, SessionCost } from '@/api/types'
 import InfoTooltip from '@/components/InfoTooltip.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import Skeleton from '@/components/Skeleton.vue'
 
 const { t } = useI18n()
 use([BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
@@ -30,48 +31,96 @@ onMounted(async () => {
 })
 
 // ─── 汇总卡片 ───
-// ⚠️ 这几个数**必须用 computed** —— 之前是在 setup 里求值一次的常量,
-// 那时 trend 还是空数组 → 页面永远显示 0. 数据是异步到的, 汇总得跟着数据走。
 const totalTokens = computed(() => trend.value.reduce((a, tr) => a + tr.tokens, 0))
 const totalCost = computed(() => trend.value.reduce((a, tr) => a + tr.costCny, 0))
 const totalSessions = computed(() => trend.value.reduce((a, tr) => a + tr.sessions, 0))
 const avgCost = computed(() => (totalSessions.value ? totalCost.value / totalSessions.value : 0))
 
-// 有会话但一个 token 都没有 → 多半是留痕没开（成本数据来自留痕快照）。
+// 分来源汇总
+const formalSessions = computed(() => trend.value.reduce((a, tr) => a + (tr.sessionsFormal ?? 0), 0))
+const autoPracticeSessions = computed(() => trend.value.reduce((a, tr) => a + (tr.sessionsAutoPractice ?? 0), 0))
+const formalCost = computed(() => trend.value.reduce((a, tr) => a + (tr.costFormal ?? 0), 0))
+const autoPracticeCost = computed(() => trend.value.reduce((a, tr) => a + (tr.costAutoPractice ?? 0), 0))
+const formalTokens = computed(() => trend.value.reduce((a, tr) => a + (tr.tokensFormal ?? 0), 0))
+const autoPracticeTokens = computed(() => trend.value.reduce((a, tr) => a + (tr.tokensAutoPractice ?? 0), 0))
+
 const hasSessions = computed(() => totalSessions.value > 0)
 const hasTokenStats = computed(() => totalTokens.value > 0)
+const hasAutoPractice = computed(() => autoPracticeSessions.value > 0)
 
-const tokenChart = computed(() => ({
-  tooltip: { trigger: 'axis', backgroundColor: '#1e222d', borderColor: '#2a2f3d', textStyle: { color: '#e5e7eb', fontSize: 12 } },
-  legend: { textStyle: { color: '#9ca3af', fontSize: 11 }, top: 0 },
-  grid: { left: 50, right: 20, top: 30, bottom: 24 },
+// ─── 分组柱状图：分来源会话数 + 成本 ───
+const trendChart = computed(() => ({
+  tooltip: {
+    trigger: 'axis',
+    backgroundColor: '#1e222d',
+    borderColor: '#2a2f3d',
+    textStyle: { color: '#e5e7eb', fontSize: 12 },
+    axisPointer: { type: 'shadow' },
+  },
+  legend: {
+    textStyle: { color: '#9ca3af', fontSize: 11 },
+    top: 0,
+    data: ['正式训练会话', '自动对练场次', '总成本(¥)'],
+  },
+  grid: { left: 50, right: 50, top: 40, bottom: 24 },
   xAxis: {
-    type: 'category', data: trend.value.map(tr => tr.date),
+    type: 'category',
+    data: trend.value.map(tr => tr.date),
     axisLabel: { color: '#6b7280', fontSize: 10 },
     axisLine: { lineStyle: { color: '#2a2f3d' } },
   },
   yAxis: [
-    { type: 'value', name: 'tokens', axisLabel: { color: '#6b7280', fontSize: 10 }, splitLine: { lineStyle: { color: '#2a2f3d' } } },
-    { type: 'value', name: '¥', axisLabel: { color: '#6b7280', fontSize: 10 }, splitLine: { show: false } },
+    {
+      type: 'value',
+      name: '场次',
+      axisLabel: { color: '#6b7280', fontSize: 10 },
+      splitLine: { lineStyle: { color: '#2a2f3d' } },
+    },
+    {
+      type: 'value',
+      name: '¥',
+      axisLabel: { color: '#6b7280', fontSize: 10 },
+      splitLine: { show: false },
+    },
   ],
   series: [
-    { name: 'Tokens', type: 'bar', data: trend.value.map(tr => tr.tokens), itemStyle: { color: 'rgba(126,201,160,0.6)', borderRadius: [3, 3, 0, 0] } },
-    { name: 'Cost (¥)', type: 'line', yAxisIndex: 1, data: trend.value.map(tr => tr.costCny), smooth: true, lineStyle: { width: 2, color: '#e8c87a' }, itemStyle: { color: '#e8c87a' } },
+    {
+      name: '正式训练会话',
+      type: 'bar',
+      stack: 'sessions',
+      data: trend.value.map(tr => tr.sessionsFormal ?? 0),
+      itemStyle: { color: '#5eb88a', borderRadius: [0, 0, 0, 0] },
+    },
+    {
+      name: '自动对练场次',
+      type: 'bar',
+      stack: 'sessions',
+      data: trend.value.map(tr => tr.sessionsAutoPractice ?? 0),
+      itemStyle: { color: '#7a9eff', borderRadius: [3, 3, 0, 0] },
+    },
+    {
+      name: '总成本(¥)',
+      type: 'line',
+      yAxisIndex: 1,
+      data: trend.value.map(tr => tr.costCny),
+      smooth: true,
+      lineStyle: { width: 2, color: '#e8c87a' },
+      itemStyle: { color: '#e8c87a' },
+    },
   ],
 }))
 
-// n-data-table 列定义
+// ─── 会话列表 ───
 const costColumns = [
   {
     title: () => t('cost.time'),
     key: 'startedAt',
     width: 150,
   },
-  // WP-F: 来源标签列
   {
     title: '来源',
     key: 'source',
-    width: 100,
+    width: 110,
     render: (row: SessionCost) => {
       const source = row.source ?? 'formal'
       if (source === 'auto_practice') {
@@ -83,6 +132,10 @@ const costColumns = [
   {
     title: () => t('cost.visitor'),
     key: 'visitorAlias',
+    render: (row: SessionCost) => h('div', { class: 'flex items-center gap-2' }, [
+      h('span', null, row.visitorAlias),
+      row.characterSlug && h(NTag, { size: 'tiny', bordered: false, type: 'info' }, () => row.characterSlug),
+    ]),
   },
   {
     title: () => t('cost.token'),
@@ -99,12 +152,15 @@ const costColumns = [
     render: (row: SessionCost) => `¥${row.costCny.toFixed(4)}`,
   },
   {
-    // 成本口径: 上游没报输入侧用量时, 这个数只是**下界** —— 得让人看得出区别。
     title: () => t('cost.basis'),
     key: 'costBasis',
     width: 96,
     align: 'right' as const,
-    render: (row: SessionCost) => (row.costBasis === 'full' ? t('cost.basisFull') : t('cost.basisOutputOnly')),
+    render: (row: SessionCost) => {
+      if (row.costBasis === 'full') return t('cost.basisFull')
+      if (row.costBasis === 'estimated') return '无口径记录'
+      return t('cost.basisOutputOnly')
+    },
   },
 ]
 </script>
@@ -113,10 +169,15 @@ const costColumns = [
   <div class="p-6 max-w-6xl mx-auto">
     <h1 class="text-lg font-semibold mb-4">{{ t('cost.title') }}</h1>
 
-    <div v-if="loading" class="text-muted text-sm">…</div>
-    <div v-else-if="err" class="text-danger text-sm">{{ err }}</div>
-
-    <!-- 空状态：窗口内一场会话都没有 -->
+    <Skeleton v-if="loading" type="card-list" :count="4" />
+    <EmptyState
+      v-else-if="err"
+      icon="warning"
+      title="加载失败"
+      :description="err"
+      retry-text="重试"
+      @retry="loadData"
+    />
     <EmptyState
       v-else-if="!hasSessions"
       icon="cost"
@@ -125,34 +186,49 @@ const costColumns = [
     />
 
     <template v-else>
-      <!-- 有会话但没有 token 统计：数据来自调试留痕，留痕没开就是 0 -->
       <n-alert v-if="!hasTokenStats" type="warning" class="mb-4" :show-icon="true">
         {{ t('cost.noTokenStats') }}
       </n-alert>
 
-      <!-- 汇总卡片 -->
-      <div class="grid grid-cols-4 gap-3 mb-4">
+      <!-- 汇总卡片：合计 + 分来源 -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <!-- 总场次 -->
+        <div class="card p-4">
+          <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">
+            总会话数
+            <InfoTooltip text="正式训练 + 自动对练合计" />
+          </div>
+          <div class="font-mono text-lg text-gray-100">{{ totalSessions }}</div>
+          <div class="text-xs text-muted mt-1">
+            正式 {{ formalSessions }} · 对练 {{ autoPracticeSessions }}
+          </div>
+        </div>
+
+        <!-- 总成本 -->
+        <div class="card p-4">
+          <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">
+            总成本
+            <InfoTooltip text="所有会话的 LLM 成本合计" />
+          </div>
+          <div class="font-mono text-lg text-gray-100">¥{{ totalCost.toFixed(4) }}</div>
+          <div class="text-xs text-muted mt-1">
+            正式 ¥{{ formalCost.toFixed(2) }} · 对练 ¥{{ autoPracticeCost.toFixed(2) }}
+          </div>
+        </div>
+
+        <!-- 总 token -->
         <div class="card p-4">
           <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">
             {{ t('cost.totalTokens') }}
             <InfoTooltip :text="t('cost.totalTokensTooltip')" />
           </div>
           <div class="font-mono text-lg text-gray-100">{{ totalTokens.toLocaleString() }}</div>
-        </div>
-        <div class="card p-4">
-          <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">
-            {{ t('cost.totalCost') }}
-            <InfoTooltip :text="t('cost.totalCostTooltip')" />
+          <div class="text-xs text-muted mt-1">
+            正式 {{ formalTokens.toLocaleString() }} · 对练 {{ autoPracticeTokens.toLocaleString() }}
           </div>
-          <div class="font-mono text-lg text-gray-100">¥{{ totalCost.toFixed(4) }}</div>
         </div>
-        <div class="card p-4">
-          <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">
-            {{ t('cost.sessions') }}
-            <InfoTooltip :text="t('cost.sessionsTooltip')" />
-          </div>
-          <div class="font-mono text-lg text-gray-100">{{ totalSessions }}</div>
-        </div>
+
+        <!-- 场均成本 -->
         <div class="card p-4">
           <div class="text-[10px] uppercase tracking-wider text-muted mb-1 flex items-center">
             {{ t('cost.avgCost') }}
@@ -162,10 +238,15 @@ const costColumns = [
         </div>
       </div>
 
-      <!-- 趋势图 -->
+      <!-- 趋势图：堆叠柱状图 + 成本线 -->
       <div class="card p-4 mb-4">
-        <h2 class="text-xs uppercase tracking-wider text-muted mb-3">{{ t('cost.trend') }}</h2>
-        <VChart :option="tokenChart" :autoresize="true" style="height: 260px" />
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xs uppercase tracking-wider text-muted">{{ t('cost.trend') }}</h2>
+          <div v-if="hasAutoPractice" class="text-xs text-muted">
+            堆叠柱状图：正式训练 + 自动对练
+          </div>
+        </div>
+        <VChart :option="trendChart" :autoresize="true" style="height: 280px" />
       </div>
 
       <!-- 会话成本排行 -->

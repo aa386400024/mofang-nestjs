@@ -4,10 +4,12 @@ import { useI18n } from 'vue-i18n'
 import { api } from '@/api/client'
 import type { SessionDetail, TurnTrace, MemoryEntry, MemorySource, DeltaDetail, CapReport } from '@/api/types'
 import InfoTooltip from '@/components/InfoTooltip.vue'
+import EmptyState from '@/components/EmptyState.vue'
 import BdiTrajectoryChart from '@/components/BdiTrajectoryChart.vue'
 import SafetyVerdictPanel from '@/components/SafetyVerdictPanel.vue'
 import ReportPanel from '@/components/ReportPanel.vue'
 import TrajectoryPanel from '@/components/TrajectoryPanel.vue'
+import { NTag } from 'naive-ui'
 
 const { t } = useI18n()
 const props = defineProps<{ id: string }>()
@@ -253,30 +255,75 @@ const deltaResistance = computed(() => {
     { key: 'style', label: '风格', value: deltaDetail.value.style },
   ]
 })
+
+// ─── 页面顶部统计 ───
+const sessionStats = computed(() => {
+  if (!data.value) return null
+  const totalTokens = data.value.traces.reduce((a, t) => a + (t.llmTokens || 0), 0)
+  const durationMin = Math.round((data.value.durationSec || 0) / 60)
+  return {
+    turns: data.value.traces.length,
+    memories: sessionMemories.value.length,
+    totalTokens,
+    durationMin,
+    status: data.value.status,
+  }
+})
+
+const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 </script>
 
 <template>
   <div class="p-6 max-w-6xl mx-auto">
-    <n-button size="small" quaternary class="mb-4" @click="$router.push('/sessions')">{{ t('sessionDetail.back') }}</n-button>
-    <div v-if="loading" class="text-muted text-sm">…</div>
-    <div v-else-if="err" class="text-danger text-sm">{{ err }}</div>
+    <!-- 返回按钮 -->
+    <button
+      class="text-sm text-muted hover:text-accent mb-4 flex items-center gap-1 transition-colors"
+      @click="$router.push('/sessions')"
+    >
+      ← 返回会话列表
+    </button>
+
+    <!-- 三态：加载 / 错误 -->
+    <EmptyState v-if="loading" icon="list" title="加载中…" description="正在获取会话详情" />
+    <EmptyState
+      v-else-if="err"
+      icon="warning"
+      title="加载失败"
+      :description="err"
+      retry-text="重试"
+      @retry="onMounted"
+    />
+
     <template v-else-if="data">
-      <div class="flex items-center gap-3 mb-5 text-sm">
-        <span class="font-semibold text-base">{{ data.visitorAlias }}</span>
-        <n-tag size="small" :bordered="false">
-          <template v-if="sessionStatusLabels[data.status]">
-            {{ sessionStatusLabels[data.status].zh }}
-            <span class="text-muted ml-1">({{ sessionStatusLabels[data.status].en }})</span>
-          </template>
-          <template v-else>{{ data.status }}</template>
-        </n-tag>
-        <RouterLink to="/memories" class="text-xs text-accent hover:underline underline-offset-2">
-          {{ t('sessionDetail.viewMemories') }} →
+      <!-- 会话标题 + 状态 -->
+      <div class="flex items-center gap-3 mb-5">
+        <h1 class="text-xl font-semibold">{{ data.visitorAlias }}</h1>
+        <NTag size="small" :type="data.status === 'completed' ? 'success' : data.status === 'no_content' ? 'default' : 'error'">
+          {{ sessionStatusLabels[data.status]?.zh || data.status }}
+        </NTag>
+        <RouterLink to="/memories" class="text-xs text-accent hover:underline ml-auto">
+          查看记忆库 →
         </RouterLink>
-        <span class="ml-auto flex gap-4 text-xs text-muted font-mono">
-          <span>{{ data.traces.length }} trace</span>
-          <span>{{ sessionMemories.length }} {{ t('sessionDetail.memories') }}</span>
-        </span>
+      </div>
+
+      <!-- 顶部统计卡片 -->
+      <div class="grid grid-cols-4 gap-4 mb-6" v-if="sessionStats">
+        <div class="card p-4">
+          <div class="text-xs text-muted mb-1">轮次数</div>
+          <div class="text-2xl font-mono font-semibold">{{ sessionStats.turns }}</div>
+        </div>
+        <div class="card p-4">
+          <div class="text-xs text-muted mb-1">记忆条目</div>
+          <div class="text-2xl font-mono font-semibold">{{ sessionStats.memories }}</div>
+        </div>
+        <div class="card p-4">
+          <div class="text-xs text-muted mb-1">总 Token</div>
+          <div class="text-2xl font-mono font-semibold">{{ sessionStats.totalTokens.toLocaleString() }}</div>
+        </div>
+        <div class="card p-4">
+          <div class="text-xs text-muted mb-1">时长</div>
+          <div class="text-2xl font-mono font-semibold">{{ sessionStats.durationMin }} 分钟</div>
+        </div>
       </div>
       <n-grid cols="2" responsive="screen" class="gap-4">
           <!-- 对话记录 -->

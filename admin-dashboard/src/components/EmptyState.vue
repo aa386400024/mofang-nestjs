@@ -1,9 +1,11 @@
 <script setup lang="ts">
 defineProps<{
-  icon?: 'chart' | 'list' | 'users' | 'memory' | 'shield' | 'cost'
+  icon?: 'chart' | 'list' | 'users' | 'memory' | 'shield' | 'cost' | 'warning' | 'doc'
   title: string
   description?: string
   pendingTag?: string
+  retryText?: string
+  onRetry?: () => void
 }>()
 
 const icons: Record<string, string> = {
@@ -13,6 +15,8 @@ const icons: Record<string, string> = {
   memory: 'M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25',
   shield: 'M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.197 0-6.1-1.248-8.25-3.285z',
   cost: 'M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.002-.659c-1.171-.879-1.171-2.303 0-3.182c1.172-.879 3.07-.879 4.242 0l.879.659M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+  warning: 'M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z',
+  doc: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z',
 }
 </script>
 
@@ -29,5 +33,12 @@ const icons: Record<string, string> = {
       <span class="w-1.5 h-1.5 rounded-full bg-warn"></span>
       {{ pendingTag }}
     </div>
+    <button
+      v-if="retryText && onRetry"
+      class="mt-4 px-4 py-1.5 text-xs rounded-md bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition"
+      @click="onRetry"
+    >
+      {{ retryText }}
+    </button>
   </div>
 </template>
