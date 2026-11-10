@@ -35,6 +35,21 @@
 //     2. DESCRIBE ap_practice_sessions;
 //     3. 跑一场单场对练 → 表里多一行 status=completed
 //
+//   V2026-11-10 治本 (Phase2.5 WP-J P1b — 危机后置练习窗指标落库):
+//     P1a 把「危机披露后继续练应对」写进了引擎, 但指标只活在内存里 ——
+//       run() 返回了 metrics, updateSessionResult() 却只写旧的 crisis_ended,
+//       跑完几十场自动对练, "危机窗后有没有真练到 / 练了几轮 / 峰值多高 / 有没有升级"
+//       这几个核心质量指标**全丢了**, 没法回答「危机应对协议到底有没有用」.
+//     本次补 6 列 (纯数字 / 枚举, 不含任何台词):
+//       crisis_practiced / crisis_first_turn / crisis_post_turns /
+//       crisis_peak_level / crisis_category / crisis_escalated
+//     ⚠️ 老行这 6 列 = 默认值 (0 / NULL), 语义是"**没这数据**" (P1a 上线前跑的场次),
+//        **不是**"当时没危机" —— 历史不可反推, 不回填.
+//     ⚠️ crisis_ended (旧列) **保留不动**: 它与 crisis_practiced 是两个独立信号,
+//        四种组合都合法 (见 crisis_ended 列注释里的对照表).
+//     ⚠️ 本表的 crisis_peak_level 是**规则自动判**的档位; quality_annotation 表里
+//        同名列是**人工标**的 —— 两者只做对照, 不要 join.
+//
 //   V2026-11-10 治本 (Phase2.5 WP-H 第二波 · 改动 5 / 改动 6 — 渲染降级率指标列):
 //     第一波把 LLM 拉回来了, 但"这批数据能不能用"还是看不出来 —— 库里没有任何字段
 //     能区分"LLM 挂了"和"内容质量差". 本次补 5 列:
@@ -107,9 +122,78 @@ export class PracticeSession {
   @Column({ type: 'int', default: 0, name: 'turn_count' })
   turnCount!: number;
 
-  /** 是否触发了危机 (来访者说了自伤 / 自杀相关的话). */
+  /**
+   * 是否因危机**终止** (旧列, 保留不动).
+   *
+   * ⚠️ **与 `crisisPracticed` 是两个独立信号**, 四种组合都合法:
+   *   · `c_ended=0 c_practiced=0` —— 没危机;
+   *   · `c_ended=0 c_practiced=1` —— 进了危机后置练习窗, 正常收尾 (**理想情况**);
+   *   · `c_ended=1 c_practiced=1` —— 进了窗, 但强度二次升级仍终止 (协议没救回来);
+   *   · `c_ended=1 c_practiced=0` —— **P1a 之前的老数据**: 直接因危机掉线, 从没进过窗.
+   *   ⇒ 写 `WHERE crisis_ended=1 AND crisis_practiced=0` 时**别把老数据当成新 bug**.
+   */
   @Column({ type: 'tinyint', default: 0, name: 'crisis_ended' })
   crisisEnded!: number;
+
+  /**
+   * 是否进过**危机后置练习窗** (WP-J P1b).
+   *
+   * 语义 = "危机披露之后, 还继续跟来访者练过应对". 与 `crisisEnded` 独立,
+   * 四种组合见上一列的注释.
+   *
+   * ⚠️ **老行的 0 不等于"没练过危机"** —— 只等于"P1a 上线前跑的场次, 当时没有这个数据".
+   *   历史场次**不可反推**, 不回填 (见迁移 `1714900000042` 文件头).
+   *
+   * ⚠️ **用 number (0/1) 而不是 boolean**: mysql 驱动的 tinyint 读回来就是数字,
+   *   本表既有的 `crisis_ended` / `ap_counselor_modes.enabled` 都是同一口径,
+   *   写成 boolean 会让类型撒谎 (JSON 里是 0/1, 类型却说 true/false).
+   */
+  @Column({ type: 'tinyint', default: 0, name: 'crisis_practiced' })
+  crisisPracticed!: number;
+
+  /**
+   * 危机**首次披露**的轮次 (NULL = 本场没披露过危机).
+   *
+   * 从 1 起 (与逐字稿轮次同口径).
+   */
+  @Column({ type: 'int', nullable: true, name: 'crisis_first_turn' })
+  crisisFirstTurn!: number | null;
+
+  /**
+   * 危机窗内**实际完成**的练习轮数 (披露之后又聊了多少轮).
+   *
+   * 0 = 披露后一轮都没练 (要么当场升级终止, 要么这场压根没危机).
+   */
+  @Column({ type: 'int', default: 0, name: 'crisis_post_turns' })
+  crisisPostTurns!: number;
+
+  /**
+   * 危机**强度峰值**档位 0~3 (规则自动判定; 见 `CRISIS_LEVEL_BY_CATEGORY`).
+   *
+   * ⚠️ **与 `quality_annotation.crisis_peak_level` 不是一回事**:
+   *   · 本列 = **规则自动判**的危机档 (自动对练场次的引擎结论);
+   *   · `quality_annotation.crisis_peak_level` = **人工标**的危机档 (WP-J P2 校准用).
+   *   两张表都有这一列, 语义相反 —— **只做对照, 不要 join** (join 会把"人工标"和
+   *   "规则判"混成同一个真相). 对照的正确姿势: 人工档 vs 自动档, 算一致率.
+   */
+  @Column({ type: 'int', default: 0, name: 'crisis_peak_level' })
+  crisisPeakLevel!: number;
+
+  /**
+   * 危机类别 (内核 `VisitorRiskCategory` 枚举值, **非自由文本**; 没披露过 → NULL).
+   *
+   * 只落枚举字符串, **不落任何台词** (隐私红线 AGENTS.md §5.4).
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true, name: 'crisis_category' })
+  crisisCategory!: string | null;
+
+  /**
+   * 是否发生"**强度上升**"型二次升级 (WP-J P1b).
+   *
+   * 同等或更低强度的"又说了一次"**不算**升级 —— 那正是需要练的稳定化过程.
+   */
+  @Column({ type: 'tinyint', default: 0, name: 'crisis_escalated' })
+  crisisEscalated!: number;
 
   /**
    * 退出原因 (与 status 对应, 便于统计):

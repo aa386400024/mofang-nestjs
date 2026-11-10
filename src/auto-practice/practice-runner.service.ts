@@ -346,6 +346,15 @@ export class PracticeRunnerService implements OnModuleInit {
       totalTokens: usageTotals.totalTokens,
       totalCostCny: cost.estimatedCostCny,
       costBasis: cost.costBasis,
+      // WP-J P1b: 危机练习窗指标落库 (布尔量转 0/1, 跟 crisis_ended 同口径).
+      //   ⚠️ 失败路径走的是 emptyMetrics() —— 这里写进去的是 0 / null / 0 / 0 / null / 0,
+      //      语义是"这场没测到危机指标", **不是** undefined.
+      crisisPracticed: metrics.crisisPracticed ? 1 : 0,
+      crisisFirstTurn: metrics.crisisFirstTurn,
+      crisisPostTurns: metrics.crisisPostTurns,
+      crisisPeakLevel: metrics.crisisPeakLevel,
+      crisisCategory: metrics.crisisCategory,
+      crisisEscalated: metrics.crisisEscalated ? 1 : 0,
     });
 
     // ⑧ 推 session_end.
@@ -356,8 +365,15 @@ export class PracticeRunnerService implements OnModuleInit {
       turnCount,
       crisisEnded: crisisEnded === 1,
       // WP-J: 危机练习窗与语义回响指标 (纯数字/枚举).
+      //   ⚠️ WS 契约里这两个是 **boolean** (跟库里那两列的 0/1 不是一回事):
+      //   WS 面向前端实时渲染, 库里面向查询与统计 —— 两套载体, 两套表示.
       crisisPracticed: metrics.crisisPracticed,
       crisisPostTurns: metrics.crisisPostTurns,
+      // WP-J P1b: 补齐剩下的 4 个危机字段 (与库列同源, 不另算一套).
+      crisisFirstTurn: metrics.crisisFirstTurn,
+      crisisPeakLevel: metrics.crisisPeakLevel,
+      crisisCategory: metrics.crisisCategory,
+      crisisEscalated: metrics.crisisEscalated,
     };
     this.gateway?.publishToSession(practiceSessionId, AUTO_PRACTICE_EVENTS.sessionEnd, endPayload);
 
@@ -617,7 +633,8 @@ export class PracticeRunnerService implements OnModuleInit {
   }
 
   /**
-   * 更新终态 (status / turnCount / finishedAt + WP-F 的 token / 成本 / 成本口径).
+   * 更新终态 (status / turnCount / finishedAt + WP-F 的 token / 成本 / 成本口径
+   * + WP-J P1b 的 6 个危机练习窗指标).
    */
   private async updateSessionResult(
     id: string,
@@ -635,6 +652,18 @@ export class PracticeRunnerService implements OnModuleInit {
       totalTokens: number;
       totalCostCny: number;
       costBasis: SessionCostBasis;
+      /**
+       * WP-J P1b: 危机后置练习窗指标 (纯数字 / 枚举, **不含任何台词**).
+       *
+       * ⚠️ 两个布尔量在**库里**是 0/1 (tinyint), 不是 true/false ——
+       *   mysql 驱动读回来就是数字, 跟既有的 crisis_ended / enabled 同口径.
+       */
+      crisisPracticed: number;
+      crisisFirstTurn: number | null;
+      crisisPostTurns: number;
+      crisisPeakLevel: number;
+      crisisCategory: string | null;
+      crisisEscalated: number;
     },
   ): Promise<void> {
     await this.sessionRepo

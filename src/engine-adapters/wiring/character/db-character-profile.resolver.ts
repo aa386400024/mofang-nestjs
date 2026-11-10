@@ -155,6 +155,7 @@ export class DbCharacterProfileResolver implements CharacterProfileResolver {
       // seed 由角色 key 稳定派生 (与内置种子同一口径: 同一角色 = 同一条轨迹).
       seed: stableSeedFromKey(templateId),
       displayName: row.displayName,
+      ...(row.verbalVoice ? { verbalVoice: row.verbalVoice } : {}),
     };
   }
 

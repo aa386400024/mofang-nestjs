@@ -126,6 +126,7 @@ const menuOptions = computed<MenuOption[]>(() => [
     children: [
       { label: '自动对练', key: '/auto-practice' },
       { label: '评测报告', key: '/eval-reports' },
+      { label: '标注台', key: '/quality/annotation' },
     ],
   },
   {
@@ -165,6 +166,7 @@ const allPages = [
   { name: '记忆浏览器', path: '/memories', keywords: 'memories 记忆 向量 库' },
   { name: '自动对练', path: '/auto-practice', keywords: 'auto practice 对练 训练 调试' },
   { name: '评测报告', path: '/eval-reports', keywords: 'eval reports 评测 报告 质量' },
+  { name: '标注台', path: '/quality/annotation', keywords: 'annotation 标注 锚点 质量 人工' },
   { name: 'PsyGuard 监控', path: '/psyguard', keywords: 'psyguard 监控 安全 风险 危机' },
   { name: '成本看板', path: '/cost', keywords: 'cost 成本 token 消耗 费用' },
   { name: '审议统计', path: '/deliberation-stats', keywords: 'deliberation 审议 统计 闸门' },
@@ -312,6 +314,8 @@ const breadcrumbs = computed(() => {
     crumbs.push({ label: '自动对练' })
   } else if (path.startsWith('/eval-reports')) {
     crumbs.push({ label: '评测报告' })
+  } else if (path.startsWith('/quality/annotation')) {
+    crumbs.push({ label: '标注台' })
   }
 
   return crumbs

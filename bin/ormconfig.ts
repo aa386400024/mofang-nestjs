@@ -241,10 +241,26 @@ import { CreateGateDecisions1714900000038 } from '../src/migration/1714900000038
 //   历史场次不可反推: 四个 INT 列回填 0 (= 没测过), ratio 留 NULL (= 未知).
 //   部署顺序: **必须先 migration:run 再起服务** —— runner 结算时要往新列写值.
 import { AddPracticeSessionRenderMetrics1714900000039 } from '../src/migration/1714900000039-AddPracticeSessionRenderMetrics.js';
+// V2026-11-10 补注册 (Phase2.5 路线1 — 台词指纹 verbal_voice 列):
+//   character_profiles 加 verbal_voice (varchar 500 null). 实体早已带该列,
+//   但 migration 之前**漏登记**在本文件与 src/migration/index.ts 两处 → 从未执行,
+//   导致真库上 `SELECT verbal_voice` 报 Unknown column. 现补齐两处注册点.
+//   时间戳 1714900000040 与 CreateAutoPracticeBatches 撞号, 类名不同故 TypeORM 按类名记账, 不冲突.
+import { AddCharacterProfileVerbalVoice1714900000040 } from '../src/migration/1714900000040-AddCharacterProfileVerbalVoice.js';
 // V2026-11-10 治本 (Phase2.5 WP-H 第三波 改动 9 — ap_practice_batches 新表):
 //   批次有效性门禁的结论落库 (一批一行: valid / validity_flags / 三个比率).
 //   部署顺序: **必须先 migration:run 再起服务** —— 批次收尾时要往这张表写结论.
 import { CreateAutoPracticeBatches1714900000040 } from '../src/migration/1714900000040-CreateAutoPracticeBatches.js';
+// V2026-11-10 治本 (Phase2.5 WP-J P2 — quality_annotation 新表, 跟 src/migration/index.ts 严格 1:1):
+//   人工标注入库 (30 场锚点一行一条; 标注列只存人工值, 自动口径一律现算).
+//   部署顺序: **必须先 migration:run 再起服务** —— 标注台读写前表得先在.
+//   表由手写 DDL 建 (ADR-0003 禁用 synchronize); 内容走独立 seed (bin/seed-quality-annotations.ts).
+import { CreateQualityAnnotations1714900000041 } from '../src/migration/1714900000041-CreateQualityAnnotations.js';
+// V2026-11-10 治本 (Phase2.5 WP-J P1b — ap_practice_sessions 加危机练习窗指标列):
+//   crisis_practiced / crisis_first_turn / crisis_post_turns /
+//   crisis_peak_level / crisis_category / crisis_escalated
+//   部署顺序: **必须先 migration:run 再起服务** —— runner 结算时要往这 6 列写值.
+import { AddCrisisMetricsToPracticeSessions1714900000042 } from '../src/migration/1714900000042-AddCrisisMetricsToPracticeSessions.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -414,9 +430,18 @@ const ormconfig = async (): Promise<DataSource> => {
       // V2026-11-10 治本 (Phase2.5 WP-H 第二波 改动 5/6 — ap_practice_sessions 加渲染降级率指标列):
       //   跟 src/migration/index.ts 严格 1:1. 部署顺序: **必须先 migration:run 再起服务**.
       AddPracticeSessionRenderMetrics1714900000039,
+      // V2026-11-10 补注册 (Phase2.5 路线1 — 台词指纹 verbal_voice 列, 跟 src/migration/index.ts 严格 1:1):
+      //   character_profiles 加一列; 之前漏登记两处注册点 → 真库无此列 → Unknown column.
+      AddCharacterProfileVerbalVoice1714900000040,
       // V2026-11-10 治本 (Phase2.5 WP-H 第三波 改动 9 — ap_practice_batches 新表, 跟 src/migration/index.ts 严格 1:1):
       //   部署顺序: **必须先 migration:run 再起服务**.
       CreateAutoPracticeBatches1714900000040,
+      // V2026-11-10 治本 (Phase2.5 WP-J P2 — quality_annotation 新表):
+      //   部署顺序: **必须先 migration:run 再起服务** —— 标注台读写前表得先在.
+      CreateQualityAnnotations1714900000041,
+      // V2026-11-10 治本 (Phase2.5 WP-J P1b — ap_practice_sessions 加危机练习窗指标列):
+      //   部署顺序: **必须先 migration:run 再起服务** —— runner 结算时要往这 6 列写值.
+      AddCrisisMetricsToPracticeSessions1714900000042,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

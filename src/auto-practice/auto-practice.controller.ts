@@ -149,13 +149,20 @@ export class AutoPracticeController {
     return { batchId, enqueued };
   }
 
-  /** 列场次 (按 batchId / status 筛, 分页). */
+  /**
+   * 列场次 (按 batchId / status 筛, 分页).
+   *
+   * ⚠️ **WP-J P1b: 列表默认**不带** 6 个危机练习窗指标** (避免列表膨胀);
+   *   要看就显式加 `?include=crisis` —— "显式要的东西才给", 不默认塞一坨指标列.
+   *   (单场详情 `GET /sessions/:id` 则**始终**带 —— 详情就是给复盘用的.)
+   */
   @Get('sessions')
   async listSessions(
     @Query('batchId') batchId?: string,
     @Query('status') status?: string,
     @Query('page') pageRaw?: string,
     @Query('pageSize') pageSizeRaw?: string,
+    @Query('include') include?: string,
   ) {
     const where: Record<string, unknown> = {};
     if (batchId) where['batchId'] = batchId;
@@ -172,10 +179,19 @@ export class AutoPracticeController {
       skip,
     });
 
-    return { items, total, page, pageSize };
+    // WP-J P1b: include=crisis 才带危机指标; 否则剥掉这 6 列.
+    const includeCrisis = (include ?? '').trim().toLowerCase() === 'crisis';
+    return { items: items.map((row) => toListItem(row, includeCrisis)), total, page, pageSize };
   }
 
-  /** 查单场. */
+  /**
+   * 查单场.
+   *
+   * ⚠️ **WP-J P1b: 详情**始终**带 6 个危机练习窗指标** (crisis_practiced /
+   *   crisis_first_turn / crisis_post_turns / crisis_peak_level / crisis_category /
+   *   crisis_escalated) —— 详情就是给"复盘这一场"用的, 危机指标是复盘最先要看的东西.
+   *   (返的是实体行, 新增的 6 列自动就在里面; 列表才需要显式剥.)
+   */
   @Get('sessions/:id')
   async getSession(@Param('id') id: string) {
     const row = await this.sessionRepo.findOne({ where: { id } });
@@ -273,4 +289,34 @@ export class AutoPracticeController {
     await this.modeRepo.delete(id);
     return { deleted: true };
   }
+}
+
+/**
+ * 危机练习窗指标的 6 个列名 (列表默认要剥掉的那些).
+ */
+const CRISIS_METRIC_KEYS: readonly string[] = [
+  'crisisPracticed',
+  'crisisFirstTurn',
+  'crisisPostTurns',
+  'crisisPeakLevel',
+  'crisisCategory',
+  'crisisEscalated',
+];
+
+/**
+ * 场次列表行 (按需剥掉危机指标列).
+ *
+ * ⚠️ **只剥这 6 列**: `crisis_ended` (旧列) 一直在列表里 —— 前端
+ *   `AutoPractice.vue` 用 `crisisEnded === 1` 判"这场因危机掉线", 剥了它前端就瞎了.
+ *
+ * @param row 场次行
+ * @param includeCrisis 是否带危机指标
+ * @returns 列表行
+ */
+function toListItem(row: PracticeSession, includeCrisis: boolean): Record<string, unknown> {
+  const item = { ...row } as Record<string, unknown>;
+  if (!includeCrisis) {
+    for (const key of CRISIS_METRIC_KEYS) delete item[key];
+  }
+  return item;
 }

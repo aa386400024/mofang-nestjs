@@ -15,6 +15,7 @@ const ArchitectureDiagram = () => import('@/views/ArchitectureDiagram.vue')
 const ParamCalibrator = () => import('@/views/ParamCalibrator.vue')
 const AutoPractice = () => import('@/views/AutoPractice.vue')
 const EvalReports = () => import('@/views/EvalReports.vue')
+const AnnotationTool = () => import('@/views/AnnotationTool.vue')
 const Login = () => import('@/views/Login.vue')
 
 const router = createRouter({
@@ -36,6 +37,7 @@ const router = createRouter({
     { path: '/calibrator', component: ParamCalibrator },
     { path: '/auto-practice', component: AutoPractice },
     { path: '/eval-reports', component: EvalReports },
+    { path: '/quality/annotation', component: AnnotationTool },
   ],
 })
 

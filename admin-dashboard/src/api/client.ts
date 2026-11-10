@@ -5,6 +5,8 @@ import type {
   CharacterSession, HealthStatus, DeliberationStats,
   CounselorMode, PracticeSession, BatchProgress,
   EvalReportListResponse, EvalReportDetail, GateTraceListResponse, GateStatsResponse,
+  AnnotationListResponse, AnnotationDetail, AnnotationSaveBody, AnnotationReveal,
+  AnnotationConsistency, AnnotationRow,
 } from './types'
 
 const BASE = '/admin/api'
@@ -384,5 +386,29 @@ export const api = {
   },
   gateStats: async (days = 7): Promise<GateStatsResponse> => {
     return get<GateStatsResponse>(`/gate/stats?days=${days}`)
+  },
+
+  // ─── 质量标注台 (WP-J P2 · 人工锚点) ───
+  qualityAnnotation: {
+    list: async (status: 'pending' | 'done' | 'all' = 'pending'): Promise<AnnotationListResponse> => {
+      return get<AnnotationListResponse>(`/quality/annotations?status=${status}`)
+    },
+    detail: async (id: string): Promise<AnnotationDetail> => {
+      return get<AnnotationDetail>(`/quality/annotations/${id}`)
+    },
+    save: async (id: string, body: AnnotationSaveBody): Promise<AnnotationRow> => {
+      return put<AnnotationRow>(`/quality/annotations/${id}`, body)
+    },
+    /** 双盲揭示: 保存后才调, 返回自动判定 */
+    reveal: async (id: string): Promise<AnnotationReveal> => {
+      return get<AnnotationReveal>(`/quality/annotations/${id}/reveal`)
+    },
+    /** 双盲辅助: 随时可调用, 返回规则引擎的自动判定本身 (标注员拿不准时主动问) */
+    auto: async (id: string): Promise<AnnotationReveal> => {
+      return get<AnnotationReveal>(`/quality/annotations/${id}/auto`)
+    },
+    consistency: async (): Promise<AnnotationConsistency> => {
+      return get<AnnotationConsistency>('/quality/consistency')
+    },
   },
 }

@@ -203,6 +203,8 @@ export interface TurnSessionContext {
   readonly speechVolumeBaseline?: RenderSpec['speechVolumeBaseline'];
   readonly narrativeStyle?: RenderSpec['narrativeStyle'];
   readonly expressionTone?: RenderSpec['expressionTone'];
+  /** 台词指纹 (WP-J P2): 自由文本, 渲染层 prompt 用. */
+  readonly verbalVoice?: string;
 }
 
 /**
@@ -992,6 +994,7 @@ export class TurnRenderOrchestrator {
       ...(context?.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: context.speechVolumeBaseline }),
       ...(context?.narrativeStyle === undefined ? {} : { narrativeStyle: context.narrativeStyle }),
       ...(context?.expressionTone === undefined ? {} : { expressionTone: context.expressionTone }),
+      ...(context?.verbalVoice === undefined ? {} : { verbalVoice: context.verbalVoice }),
     });
   }
 
@@ -1641,6 +1644,45 @@ const VARIATION_INSTRUCTION =
 const NON_VERBAL_INSTRUCTION = '可以有一点非语言的表达：比如停顿、叹气、犹豫，但不要写括号里的动作描写。';
 
 /**
+ * 依恋风格行为指引 (Phase2.5 WP-J P2 · 修复 anxious 行为通道).
+ *
+ * 为什么只给 anxious 写行为指令:
+ *   P2 v1 基线: avoidant 已由阻抗三维驱动 (阻抗 50~91%、探索 0%), disorganized
+ *   阻抗 41% + depth 0.58, 两者在内核指标上已可区分; 唯一塌掉的是 anxious ——
+ *   三个焦虑型角色 11 场阻抗 0%、探索 0%, 与"平稳叙事"分不出. 原因是意图规划器
+ *   只看 trust/safety/resistance 选策略, attachment_style 只决定基线数值,
+ *   焦虑型的临床行为 (反复求证 / 讨好 / 被抛弃预演) 没有任何出口.
+ *
+ * 为什么放渲染层而不是加新策略:
+ *   新增 BehaviorStrategy 枚举是 engine-core 改动 (红线); 渲染层按 attachment_style
+ *   注入行为指引, 在 recounting 策略上也能带出求证句式 —— 不动内核契约.
+ *   secure / avoidant / disorganized 留空串 = 这一块不渲染 = 既有 prompt 逐字不变.
+ *
+ * ⚠️ 文案是工程种子值, 待真实对练校准.
+ */
+type AttachmentStyle = NonNullable<RenderSpec['attachmentStyle']>;
+
+const ATTACHMENT_BEHAVIOR_INSTRUCTION: Readonly<Record<AttachmentStyle, string>> = {
+  secure: '',
+  avoidant: '',
+  anxious:
+    '你是焦虑型依恋：你会忍不住反复确认咨询师对你的看法——比如"你不会觉得我很麻烦吧""我说这些正常吗"；你怕自己添麻烦，会抢先说"你忙就先忙，我没事"。这种求证和讨好是你真实的说话习惯，不是刻意提问，自然地带出来。',
+  disorganized: '',
+};
+
+/**
+ * 信息增量指令 (Phase2.5 WP-J P2 · 减少表层停留).
+ *
+ * P2 v1: 88.9% 场次末 3 轮停在表层, recounting 54.8% —— 来访者只复述同一件事.
+ * 探索门槛 (trust/safety ≥ 0.6) 是内核门槛, 本期不动; 渲染层先保证"就算在叙述,
+ * 每两三轮也带一个新细节", 为后续门槛标定留出深度素材.
+ *
+ * ⚠️ 工程种子值, 待标定.
+ */
+const INFO_INCREMENT_INSTRUCTION =
+  '每说两三轮，要带出一个之前没提过的新细节：一个具体场景、一句当时的感受、或一个没说过的念头；不要只把同一件事翻来覆去地说。';
+
+/**
  * 叙事逻辑风格 (WP41) —— 取值取自内核契约.
  *
  * 为什么用 `NonNullable<RenderSpec[...]>` 而不是自己写一遍联合类型:
@@ -1718,6 +1760,14 @@ const RISK_GUARDRAIL =
  * @param spec 渲染规格
  * @returns 系统提示词
  */
+/** WP-J: 依恋行为指引块 (只 anxious 有文案, 其余空串 = 不渲染). */
+function appendAttachmentBehavior(lines: string[], spec: AdaptiveRenderSpec): void {
+  const behavior = spec.attachmentStyle ? ATTACHMENT_BEHAVIOR_INSTRUCTION[spec.attachmentStyle] : '';
+  if (behavior.length > 0) {
+    lines.push('', '你的依恋模式带来的行为习惯（平时就有的，不是这一轮的情绪；自然带出来，不要刻意念出来）：', behavior);
+  }
+}
+
 function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec): string {
   const lines: string[] = [
     '你正在扮演一位来访者，正在和一位咨询师对话。你不是咨询师，也不是助手。',
@@ -1824,6 +1874,13 @@ function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec): string {
       lines.push(EXPRESSION_TONE_INSTRUCTION[spec.expressionTone]);
     }
   }
+  // WP-J: 台词指纹 —— 角色自由文本"说话的味道". 缺省不渲染 (零回归).
+  if (spec.verbalVoice) {
+    lines.push(`你说话的味道：${spec.verbalVoice}`);
+  }
+
+  // WP-J: 依恋行为指引 —— anxious 的求证/讨好通道 (纯渲染层, 不动内核策略).
+  appendAttachmentBehavior(lines, spec);
 
   lines.push('', '这一轮怎么说：', VERBOSITY_INSTRUCTION[resolveTurnVerbosity(spec)]);
 
@@ -1852,8 +1909,10 @@ function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec): string {
   lines.push(
     // WP35 手法三: 表达层轻量随机.
     VARIATION_INSTRUCTION,
+    // WP-J: 信息增量 —— 别把同一件事翻来覆去, 每两三轮带一个新细节.
+    INFO_INCREMENT_INSTRUCTION,
     // 为什么把"说完就停"放在这一块**最后**:
-    //   这一块现在有四行 (话量 / 语气 / 情绪 / 变化), 收尾的"交还话头"是**硬行为
+    //   这一块现在有五行 (话量 / 语气 / 情绪 / 变化 / 信息增量), 收尾的"交还话头"是**硬行为
     //   约束** —— 放最后、紧挨着下面的"硬规则", 权重最高, 不会被上面的表现类指令盖掉.
     '说完一两句就停下来，把话头交还给咨询师 —— 真人对话不是独白。',
   );

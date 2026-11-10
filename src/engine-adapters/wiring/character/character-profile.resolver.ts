@@ -76,6 +76,8 @@ export interface ResolvedCharacter {
   readonly seed?: number;
   /** 展示用角色名 (供 persona 快照 / 报告 / 日志; 不进决策). */
   readonly displayName: string;
+  /** 台词指纹 (WP-J P2): 自由文本, 渲染层 prompt 用, 不进内核. */
+  readonly verbalVoice?: string;
 }
 
 /**

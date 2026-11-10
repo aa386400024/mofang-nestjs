@@ -438,6 +438,7 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       ...(profile?.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: profile.speechVolumeBaseline }),
       ...(profile?.narrativeStyle === undefined ? {} : { narrativeStyle: profile.narrativeStyle }),
       ...(profile?.expressionTone === undefined ? {} : { expressionTone: profile.expressionTone }),
+      ...(character?.verbalVoice ? { verbalVoice: character.verbalVoice } : {}),
       // WP64: 旁路审议的计费归属 (学员账号) —— 缺省 = 审议层跳过 (见 engine-turn.service.ts).
       ...(opts.userId?.trim() ? { userId: opts.userId.trim() } : {}),
       // WP64: 角色底色简述 (依恋 + 大五) —— 审议 prompt 的「角色背景」块.

@@ -191,10 +191,22 @@ export { CreateGateDecisions1714900000038 } from './1714900000038-CreateGateDeci
 //   历史场次不可反推: 四个 INT 列回填 0 (= 没测过), ratio 留 NULL (= 未知).
 //   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
 export { AddPracticeSessionRenderMetrics1714900000039 } from './1714900000039-AddPracticeSessionRenderMetrics.js';
+// V2026-11-10 补注册 (Phase2.5 路线1 — 台词指纹 verbal_voice 列, 跟 bin/ormconfig.ts 严格 1:1):
+//   character_profiles 加 verbal_voice (varchar 500 null). 之前两处注册点都漏 → 真库无此列.
+export { AddCharacterProfileVerbalVoice1714900000040 } from './1714900000040-AddCharacterProfileVerbalVoice.js';
 // V2026-11-10 治本 (Phase2.5 WP-H 第三波 改动 9 — ap_practice_batches 新表):
 //   批次有效性门禁的结论落库 (一批一行: valid / validity_flags / 三个比率).
 //   历史批次**不回填** —— 门禁依据当时根本没统计, 回填就是编造.
 //   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
 export { CreateAutoPracticeBatches1714900000040 } from './1714900000040-CreateAutoPracticeBatches.js';
+// V2026-11-10 治本 (Phase2.5 WP-J P2 — quality_annotation 新表, 跟 bin/ormconfig.ts 严格 1:1):
+//   人工标注入库 (一行 = 一场锚点会话; 唯一键 debug_session_id; 标注列只存人工值).
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏建.
+export { CreateQualityAnnotations1714900000041 } from './1714900000041-CreateQualityAnnotations.js';
+// V2026-11-10 治本 (Phase2.5 WP-J P1b — ap_practice_sessions 加危机练习窗指标列):
+//   crisis_practiced / crisis_first_turn / crisis_post_turns / crisis_peak_level /
+//   crisis_category / crisis_escalated —— 自动对练场次的危机指标落库 (纯数字/枚举).
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
+export { AddCrisisMetricsToPracticeSessions1714900000042 } from './1714900000042-AddCrisisMetricsToPracticeSessions.js';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

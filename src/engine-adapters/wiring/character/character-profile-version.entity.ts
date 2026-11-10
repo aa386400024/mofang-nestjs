@@ -59,6 +59,7 @@ export interface CharacterProfileSnapshot {
   readonly speechVolumeBaseline: number;
   readonly narrativeStyle: CharacterNarrativeStyle;
   readonly expressionTone: CharacterExpressionTone;
+  readonly verbalVoice: string | null;
   readonly coreBeliefs: CoreBelief[];
   readonly underlyingDesires: UnderlyingDesireSeed[];
   readonly forbiddenBehaviors: string[];

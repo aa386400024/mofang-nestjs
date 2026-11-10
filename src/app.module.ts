@@ -83,6 +83,8 @@ import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module.js';
 import { LifeMapModule } from './life-map/life-map.module.js';
 import { PracticeModule } from './practice/practice.module.js';
 import { ProfileModule } from './profile/index.js';
+// V2026-11-10 治本 (WP-J P2 · 专业级标注工具): 质量标注台 admin 端点 (列表/详情/保存/reveal/一致性).
+import { QualityAnnotationModule } from './quality/quality-annotation.module.js';
 import { EmailModule, MetricsModule, ObservabilityModule, QueueModule, RedisModule, SmsModule } from './shared/infra/index.js';
 import { SentryService } from './shared/infra/observability/index.js';
 import { UserCronModule } from './user/cron/cron.module.js';
@@ -251,6 +253,9 @@ import { VoiceModule } from './voice/voice.module.js';
     //   与 AdminDebugModule 的依赖没有交集 (admin-debug 是"会话 + 角色", 这里是"闸门决策").
     GateTraceModule, // /admin/api/gate/*
     EvalReportAdminModule, // /admin/api/eval/*
+    // V2026-11-10 — WP-J P2 质量标注台 (独立模块: 只读 quality_annotation 表 + 调试逐字稿文件,
+    //   与 AdminDebugModule 的依赖没有交集 —— admin-debug 是"会话 + 角色", 这里是"人工标注").
+    QualityAnnotationModule, // /admin/api/quality/*
     // V2026-09-04 — 心塑 V6.0 §4.2 急救闭环 — 5 工具会话上报 + 跨设备同步
     EmergencyModule, // /emergency/*
     // V2026-10-13 — 心理咨询师学员端 server module (Phase 7.10 启动 P0-1)

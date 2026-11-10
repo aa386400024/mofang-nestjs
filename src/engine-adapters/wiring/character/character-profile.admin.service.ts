@@ -467,6 +467,7 @@ function toSnapshot(row: CharacterProfileEntity): CharacterProfileSnapshot {
     speechVolumeBaseline: row.speechVolumeBaseline,
     narrativeStyle: row.narrativeStyle,
     expressionTone: row.expressionTone,
+    verbalVoice: row.verbalVoice,
     coreBeliefs: row.coreBeliefs,
     underlyingDesires: row.underlyingDesires,
     forbiddenBehaviors: row.forbiddenBehaviors,

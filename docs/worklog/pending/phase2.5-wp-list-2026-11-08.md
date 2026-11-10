@@ -2,7 +2,7 @@
 
 > **路径**：`docs/worklog/pending/phase2.5-wp-list-2026-11-08.md`
 > **总览**：[§Phase2.5 总览](phase2.5-overview-2026-11-08.md)
-> **状态**：✅ Phase2.5 WP-F / WP-G 已交付（2026-11-09）· 🚧 WP-H 第一波已交付（2026-11-09）· WP 清单（8 条）见下表 · 另交付独立单 1 条（闸门 trace 查询接口）
+> **状态**：✅ Phase2.5 WP-F / WP-G 已交付（2026-11-09）· 🚧 WP-H 第一波已交付（2026-11-09）· WP 清单（8 条）见下表 · 另交付独立单 3 条（闸门 trace 查询接口 · WP-J P2 专业级标注工具 · WP-J P1b 危机指标落库）
 > **创建日期**：2026-11-08
 
 ---
@@ -58,11 +58,13 @@ WP-B 可复现控制 + 版本锁定
 
 ## 四、独立单（非编号工作）
 
-> Phase2 有 9 条独立单（切灰度前置安全网）。Phase2.5 现有 1 条独立单。
+> Phase2 有 9 条独立单（切灰度前置安全网）。Phase2.5 现有 3 条独立单。
 
 | 独立单 | 一句话描述 | 状态 |
 |---|---|---|
 | 闸门 trace 查询接口 | 闸门决策落 MySQL 真相源（`gate_decisions`）+ Redis 热缓存与写时按天计数；admin 三个只读端点（列表 / 详情 / 按天统计），sessionId 双口径 | ✅ 已交付（2026-11-09）→ [任务单](../completed/phase2.5/phase2.5-gate-decisions-trace-api.md) · [交付记录](../completed/phase2.5/phase2.5-gate-decisions-trace-api-implementation-2026-11-09.md) |
+| WP-J P2 专业级标注工具 | 30 场锚点人工标注台（admin-dashboard 内嵌）：`quality_annotation` 新表 + 五个 admin 端点（列表 / 详情 / 保存 / 双盲 reveal / 一致性报告）+ 锚点清单幂等导入；**后端已交付**，前端三栏页归主 Agent | 🚧 后端已交付（2026-11-10）→ [任务单](../completed/phase2.5/wp-j-p2-annotation-calibration-task-2026-11-10.md) · [交付记录](../completed/phase2.5/wp-j-p2-annotation-calibration-implementation-2026-11-10.md) |
+| WP-J P1b 危机指标落库 | P1a 的危机后置练习窗指标只活在内存里 —— `ap_practice_sessions` 加 6 列（crisis_practiced / crisis_first_turn / crisis_post_turns / crisis_peak_level / crisis_category / crisis_escalated）+ runner 结算落库 + WS payload 补全 + admin 列表 `?include=crisis` / 详情带出 | ✅ 已交付（2026-11-10）→ [任务单](../completed/phase2.5/wp-j-p1b-crisis-metrics-persist-task-2026-11-10.md) · [交付记录](../completed/phase2.5/wp-j-p1b-crisis-metrics-persist-implementation-2026-11-10.md) |
 
 ---
 

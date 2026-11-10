@@ -105,6 +105,7 @@ export interface SpecAssemblyInput {
   readonly speechVolumeBaseline?: AdaptiveRenderSpec['speechVolumeBaseline'];
   readonly narrativeStyle?: AdaptiveRenderSpec['narrativeStyle'];
   readonly expressionTone?: AdaptiveRenderSpec['expressionTone'];
+  readonly verbalVoice?: AdaptiveRenderSpec['verbalVoice'];
 }
 
 /**
@@ -159,6 +160,7 @@ export function buildRenderSpec(input: SpecAssemblyInput): AdaptiveRenderSpec {
     ...(input.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: input.speechVolumeBaseline }),
     ...(input.narrativeStyle === undefined ? {} : { narrativeStyle: input.narrativeStyle }),
     ...(input.expressionTone === undefined ? {} : { expressionTone: input.expressionTone }),
+    ...(input.verbalVoice === undefined ? {} : { verbalVoice: input.verbalVoice }),
   };
 }
 

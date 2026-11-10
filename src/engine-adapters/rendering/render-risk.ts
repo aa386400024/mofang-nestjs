@@ -59,6 +59,8 @@ export interface AdaptiveRenderSpec extends RenderSpec {
   readonly riskSignal?: RenderRiskSignal;
   /** 角色代号 (仅供 dev 调试日志; **不进 prompt**, 模型不该看见自己的角色名). */
   readonly characterLabel?: string;
+  /** 台词指纹 (WP-J P2): 自由文本, 渲染层 prompt 用, 不进内核. */
+  readonly verbalVoice?: string;
 }
 
 /**

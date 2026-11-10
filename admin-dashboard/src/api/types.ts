@@ -432,6 +432,15 @@ export interface PracticeSession {
   maxTurns: number
   turnCount: number
   crisisEnded: number
+  // P1b 危机练习窗 6 列 (ap_practice_sessions).
+  // 列表接口默认不返回这 6 列, 需 ?include=crisis 才带 (后端 B6), 故全部可选.
+  // 两个 tinyint 后端用 number(0/1) 而非 boolean (B1/B5: mysql 驱动读回来就是数字).
+  crisisPracticed?: number
+  crisisFirstTurn?: number | null
+  crisisPostTurns?: number
+  crisisPeakLevel?: number
+  crisisCategory?: string | null
+  crisisEscalated?: number
   exitReason: string | null
   batchId: string | null
   modelVersion: string | null
@@ -620,7 +629,88 @@ export interface EvalReportDetail {
     status?: EvalReportStatus
   }
 }
-  avgScore: number | null
-  passRate: number | null
-  createdAt: string
+
+// ─── 质量标注台 (WP-J P2 · 人工锚点标注) ───
+
+/** 主导行为标签 (对齐内核策略枚举) */
+export type AnnotationLabel =
+  | 'recounting'
+  | 'resistance'
+  | 'simple_response'
+  | 'affective'
+  | 'cognitive_exploration'
+
+/** 列表行 */
+export interface AnnotationRow {
+  id: string
+  debugSessionId: string
+  characterSlug: string
+  attachmentStyle: string
+  /** 人工标注: 探索开始轮次 (null = 未标) */
+  firstExplorationTurn: number | null
+  /** 人工标注: 主导标签 */
+  dominantLabel: AnnotationLabel | null
+  /** 人工标注: 危机峰值 0~3 */
+  crisisPeakLevel: number
+  /** 人工标注: 危机首次出现轮次 (null = 无) */
+  crisisFirstTurn: number | null
+  /** 人工标注: 该断轮次 */
+  shouldEndTurn: number | null
+  /** 存疑/待复审 */
+  needsReview: boolean
+  /** 本场标注耗时 ms (前端打点) */
+  durationMs: number
+  notes: string | null
+  updatedAt: string
+}
+
+/** 列表响应 */
+export interface AnnotationListResponse {
+  items: AnnotationRow[]
+  done: number
+  total: number
+}
+
+/** 逐字稿消息 (只双方台词) */
+export interface AnnotationMessage {
+  role: 'visitor' | 'counselor' | string
+  text: string
+  turnIndex: number
+}
+
+/** 详情 = 行 + 逐字稿 */
+export interface AnnotationDetail {
+  row: AnnotationRow
+  characterLabel: string | null
+  messages: AnnotationMessage[]
+}
+
+/** 保存入参 */
+export interface AnnotationSaveBody {
+  firstExplorationTurn: number | null
+  dominantLabel: AnnotationLabel | null
+  crisisPeakLevel: number
+  crisisFirstTurn: number | null
+  shouldEndTurn: number | null
+  needsReview: boolean
+  durationMs: number
+  notes?: string
+}
+
+/** 双盲揭示: 自动判定结果 (保存后才返回) */
+export interface AnnotationReveal {
+  auto: {
+    explorationTurn: number | null
+    dominantLabel: AnnotationLabel | null
+    crisisLevel: number
+  }
+}
+
+/** 一致性报告 */
+export interface AnnotationConsistency {
+  labeled: number
+  total: number
+  labelAgreement: number | null
+  crisisAgreement: number | null
+  explorationTurnMae: number | null
 }

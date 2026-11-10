@@ -279,6 +279,14 @@ export class CharacterProfileEntity {
   @Column({ type: 'varchar', length: 20, name: 'expression_tone', default: 'restrained' })
   expressionTone!: CharacterExpressionTone;
 
+  /**
+   * 台词指纹 (WP-J P2): 自由文本描述这个角色"说话的味道"——
+   *  句式习惯 / 口头禅 / 节奏 / 语气质感. NULL = 不渲染 (零回归).
+   *  它是渲染层增强, 不进内核决策.
+   */
+  @Column({ type: 'varchar', length: 500, name: 'verbal_voice', nullable: true })
+  verbalVoice!: string | null;
+
   /** 核心信念 (第一人称, 永久不可变): `[{theme, statement, activationTags[]}]`. */
   @Column({ type: 'json', name: 'core_beliefs' })
   coreBeliefs!: CoreBelief[];

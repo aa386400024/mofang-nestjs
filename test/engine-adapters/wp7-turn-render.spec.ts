@@ -756,12 +756,13 @@ describe('WP7 · 决策→说话闭环', () => {
     it('零回归: 情绪是 neutral → 不给额外的情绪表现指令', () => {
       const systemText = buildVisitorMessages(buildSpecWithEmotion('neutral', 0.3))[0]?.content ?? '';
 
-      // "这一轮怎么说"块里只有话量 + 语气 + 随机提示三行 —— **没有**情绪表现那一行.
+      // "这一轮怎么说"块里只有话量 + 语气 + 随机提示 + 信息增量四行 —— **没有**情绪表现那一行.
       // (断言整块而不是单行: 单行只能证明"某行在", 证明不了"没有多出情绪那一行".)
       expect(howToSayLines(systemText)).toEqual([
         '这轮你按平时的样子说话，不刻意多讲，也不刻意收着。',
         '语气按平时的样子，不刻意亲近也不刻意疏远。',
         '不要重复最近几轮用过的句式：换个角度、换个措辞表达同一个意思，可以有时候停顿一下、有时候用短回应、有时候多说一点。',
+        '每说两三轮，要带出一个之前没提过的新细节：一个具体场景、一句当时的感受、或一个没说过的念头；不要只把同一件事翻来覆去地说。',
       ]);
     });
 
@@ -807,19 +808,29 @@ describe('WP7 · 决策→说话闭环', () => {
       expect(verbosityLine(medium ?? '')).toContain('这轮你按平时的样子说话');
     });
 
-    it('四个手法都在"这一轮怎么说"块里 (硬规则之前)', () => {
+    it('五段都在"这一轮怎么说"块里 (硬规则之前)', () => {
       const systemText = buildVisitorMessages(buildSpecWithEmotion('anxious', 0.8))[0]?.content ?? '';
       const block = howToSayLines(systemText);
 
-      expect(block).toHaveLength(4);
-      // 顺序: 话量 → 语气疏离度 → 情绪表现 → 轻量随机.
+      expect(block).toHaveLength(5);
+      // 顺序: 话量 → 语气疏离度 → 情绪表现 → 轻量随机 → 信息增量.
       expect(block[0]).toContain('这轮你');
       expect(block[1]).toContain('语气');
       expect(block[2]).toContain('这轮你有点焦虑');
       expect(block[3]).toContain('不要重复最近几轮用过的句式');
+      expect(block[4]).toContain('新细节');
 
       const hardRuleIdx = systemText.indexOf('硬规则：');
       expect(systemText.indexOf('不要重复最近几轮用过的句式')).toBeLessThan(hardRuleIdx);
+    });
+
+    it('WP-J: 焦虑型依恋注入求证/讨好行为指引, 安全型不渲染', () => {
+      const anxious = buildVisitorMessages(buildSpecForRender({ attachmentStyle: 'anxious' }))[0]?.content ?? '';
+      expect(anxious).toContain('你不会觉得我很麻烦吧');
+      expect(anxious).toContain('焦虑型依恋');
+
+      const secure = buildVisitorMessages(buildSpecForRender({ attachmentStyle: 'secure' }))[0]?.content ?? '';
+      expect(secure).not.toContain('反复确认咨询师对你的看法');
     });
   });
 });

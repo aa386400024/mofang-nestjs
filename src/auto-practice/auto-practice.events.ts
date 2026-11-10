@@ -58,4 +58,17 @@ export interface AutoPracticeSessionEndPayload {
   readonly crisisPracticed?: boolean;
   /** WP-J: 危机窗内完成的练习轮数. */
   readonly crisisPostTurns?: number;
+  /**
+   * WP-J P1b: 危机首次披露的轮次 (未披露为 null).
+   *
+   * ⚠️ 新字段一律**可选** (optional): 老前端不解析新字段也不会炸
+   *   (JSON 多字段不影响), 契约向后兼容.
+   */
+  readonly crisisFirstTurn?: number | null;
+  /** WP-J P1b: 危机强度峰值档 0~3 (未披露为 0). */
+  readonly crisisPeakLevel?: number;
+  /** WP-J P1b: 危机类别 (内核枚举值, 非自由文本; 未披露为 null). */
+  readonly crisisCategory?: string | null;
+  /** WP-J P1b: 是否发生"强度上升"型二次升级. */
+  readonly crisisEscalated?: boolean;
 }
