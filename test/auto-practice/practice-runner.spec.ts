@@ -1,19 +1,31 @@
-// V2026-11-08 治本 (Phase2.5 WP-D · 自动对练 runner 单测):
+// V2026-11-08 建立 / 2026-11-10 WP-J 重写 (自动对练 runner 单测):
 //   覆盖核心循环的结束条件:
 //     ① 跑满 maxTurns → status=completed
-//     ② crisisDetected → status=crisis_ended, 提前停
-//     ③ 来访连续复读 → status=stagnant, 提前停
-//     ④ LLM/引擎抛错 → status=failed
+//     ② 危机披露 → **不终止**, 进后置练习窗; 只有强度上升才 crisis_ended
+//     ③ 来访字面复读 / 来回打转(无新信息) → status=stagnant, 提前停
+//     ④ 咨询师重复措辞 → **不再**判停滞, 只记 counselorSemanticEchoTurns 指标
+//     ⑤ LLM/引擎抛错 → status=failed
 //   全 mock: TurnEnginePort / CounselorAgentService / repo 全是替身, 不起容器不连 DB.
 //
 //   验证: npx vitest run test/auto-practice/practice-runner.spec.ts
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { CounselorGenerateOptions, CounselorReply } from '../../src/auto-practice/counselor-agent.service.js';
 import { CounselorMode } from '../../src/auto-practice/entities/counselor-mode.entity.js';
 import type { InferenceFingerprint } from '../../src/auto-practice/inference-fingerprint.service.js';
-import type { EngineTurnResult, TurnEnginePort } from '../../src/auto-practice/ports/turn-engine.port.js';
+import type { CounselorHistoryTurn, EngineTurnResult, TurnEnginePort } from '../../src/auto-practice/ports/turn-engine.port.js';
 import { PracticeRunnerService, DEFAULT_MAX_TURNS } from '../../src/auto-practice/practice-runner.service.js';
+
+/**
+ * 咨询师 generate 的真实签名 (显式标注给 vi.fn, 让 mockImplementation 的回调类型
+ * 与线上一致 —— 否则 mock 会被当成"返回 void 的回调", 触发 no-misused-promises).
+ */
+type CounselorGenerateSignature = (
+  mode: CounselorMode,
+  history: readonly CounselorHistoryTurn[],
+  options?: CounselorGenerateOptions,
+) => Promise<CounselorReply>;
 
 /** 造一个 CounselorMode 替身. */
 function makeMode(): CounselorMode {
@@ -28,13 +40,14 @@ function makeMode(): CounselorMode {
 }
 
 /** 造一轮引擎结果. */
-function makeTurn(turnIndex: number, reply: string, crisis = false): EngineTurnResult {
+function makeTurn(turnIndex: number, reply: string, crisisCategory: string | null = null): EngineTurnResult {
+  const crisis = crisisCategory !== null;
   return {
     reply,
     turnIndex,
     crisisDetected: crisis,
-    crisisCategory: crisis ? 'suicidal_ideation' : null,
-    trace: { turnIndex, crisis: { detected: crisis, category: crisis ? 'x' : null } } as EngineTurnResult['trace'],
+    crisisCategory,
+    trace: { turnIndex, crisis: { detected: crisis, category: crisisCategory } } as EngineTurnResult['trace'],
   };
 }
 
@@ -59,14 +72,14 @@ const COUNSELOR_LINES = ['我先把这句接住。', '你愿意再多说一点�
 describe('PracticeRunnerService', () => {
   let counselorTurn = 0;
   let engine: { open: ReturnType<typeof vi.fn>; turn: ReturnType<typeof vi.fn>; close: ReturnType<typeof vi.fn> };
-  let counselor: { generate: ReturnType<typeof vi.fn> };
+  let counselor: { generate: ReturnType<typeof vi.fn<CounselorGenerateSignature>> };
   let repo: ReturnType<typeof stubRepo>;
   let runner: PracticeRunnerService;
 
   beforeEach(() => {
     counselorTurn = 0;
     engine = { open: vi.fn(), turn: vi.fn(), close: vi.fn() };
-    counselor = { generate: vi.fn() };
+    counselor = { generate: vi.fn<CounselorGenerateSignature>() };
     repo = stubRepo();
     const fingerprint = {
       build: vi.fn(async () => ({
@@ -118,8 +131,40 @@ describe('PracticeRunnerService', () => {
     expect(engine.close).toHaveBeenCalledWith('ds_test');
   });
 
-  it('crisisDetected → crisis_ended 提前停', async () => {
-    engine.turn.mockResolvedValueOnce(makeTurn(1, '来访第一句')).mockResolvedValueOnce(makeTurn(2, '我不想活了', true));
+  // ── WP-J 改动 B: 危机后置练习窗 ────────────────────────────────────────────
+  //   旧行为 (crisisDetected → 立刻 crisis_ended) 已废除: 它把"危机"当"会话中断",
+  //   24 场里 3 场停在来访者刚说出危机那一句, 咨询师一个字都没回.
+  it('危机披露 → 不终止, 继续练满后置练习窗 → crisis_practice_max', async () => {
+    engine.turn
+      .mockResolvedValueOnce(makeTurn(1, '我最近状态还算稳'))
+      .mockResolvedValueOnce(makeTurn(2, '有时候真的觉得活着没意思', 'passive_ideation'))
+      .mockResolvedValueOnce(makeTurn(3, '今晚我一个人在家，没什么人'))
+      .mockResolvedValueOnce(makeTurn(4, '试了呼吸，稍微能坐住了'))
+      .mockResolvedValueOnce(makeTurn(5, '我姐可以过来陪我'))
+      .mockResolvedValueOnce(makeTurn(6, '明天我打算去找医生聊一聊'));
+
+    const result = await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: makeMode(),
+      maxTurns: 8,
+    });
+
+    expect(result.status).toBe('completed');
+    expect(result.exitReason).toBe('crisis_practice_max');
+    // 危机没有终止对话: 披露后继续跑了 4 轮.
+    expect(engine.turn).toHaveBeenCalledTimes(6);
+    expect(result.metrics.crisisPracticed).toBe(true);
+    expect(result.metrics.crisisFirstTurn).toBe(2);
+    expect(result.metrics.crisisPostTurns).toBe(4);
+    expect(result.metrics.crisisPeakLevel).toBe(1);
+    expect(result.crisisEnded).toBe(false);
+  });
+
+  it('危机强度上升 (二次升级) → 才交回 crisis_ended', async () => {
+    engine.turn
+      .mockResolvedValueOnce(makeTurn(1, '我最近状态还算稳'))
+      .mockResolvedValueOnce(makeTurn(2, '有时候真的觉得活着没意思', 'passive_ideation'))
+      .mockResolvedValueOnce(makeTurn(3, '我已经想好了，今晚就动手', 'suicide_plan'));
 
     const result = await runner.run({
       characterSlug: 'vpt_test',
@@ -128,10 +173,35 @@ describe('PracticeRunnerService', () => {
     });
 
     expect(result.status).toBe('crisis_ended');
-    expect(result.exitReason).toBe('crisis');
+    expect(result.exitReason).toBe('crisis_escalated');
     expect(result.crisisEnded).toBe(true);
-    // 第 3 轮不该跑.
-    expect(engine.turn).toHaveBeenCalledTimes(2);
+    expect(result.metrics.crisisEscalated).toBe(true);
+    expect(result.metrics.crisisPeakLevel).toBe(3);
+    expect(engine.turn).toHaveBeenCalledTimes(3);
+  });
+
+  it('危机轮咨询师请求收尾 → 强制继续 (至少走完 1 轮稳定化)', async () => {
+    // 第 2 轮 (危机披露轮) 咨询师就想收尾 —— 必须被挡一次.
+    counselor.generate
+      .mockResolvedValueOnce({ text: '你最近怎么样？', model: 'm', degraded: false, closeRequested: false })
+      .mockResolvedValueOnce({ text: '今天就到这里吧。', model: 'm', degraded: false, closeRequested: true })
+      .mockResolvedValue({ text: '我先确认一下你此刻的安全。', model: 'm', degraded: false, closeRequested: false });
+    for (let i = 1; i <= 4; i += 1) {
+      engine.turn.mockResolvedValueOnce(
+        makeTurn(i, i === 2 ? '有时候觉得活着没意思' : `来访第${i}句不同内容`, i === 2 ? 'passive_ideation' : null),
+      );
+    }
+
+    const result = await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: makeMode(),
+      maxTurns: 4,
+    });
+
+    // 没有在第 2 轮收尾 (那条 closeRequested 被挡掉), 一路跑到 maxTurns.
+    expect(result.exitReason).toBe('max_turns');
+    expect(engine.turn).toHaveBeenCalledTimes(4);
+    expect(result.metrics.crisisPracticed).toBe(true);
   });
 
   it('来访连续复读 → stagnant 提前停', async () => {
@@ -148,23 +218,56 @@ describe('PracticeRunnerService', () => {
     expect(result.exitReason).toBe('stagnant');
   });
 
-  it('咨询师连续复读 → stagnant 提前停 (WP-G 改动 3)', async () => {
-    // 咨询师每轮说同一句, 来访者每轮都在换话 —— 只有咨询师这一侧卡死.
-    counselor.generate.mockResolvedValue({ text: '嗯，我在听。你可以接着说。', model: 'm', degraded: false });
-    for (let i = 1; i <= 5; i += 1) {
-      engine.turn.mockResolvedValueOnce(makeTurn(i, `来访第${i}句不同内容`));
+  // ★ WP-J 的判定对象变更: 来访者**来回打转**(A→B→A′→B′→A″), 每一对相邻都不同,
+  //   但每一轮都与**历史某一条**高度相似 → 这是真正的"聊了没新东西", 必须判停滞.
+  //   旧口径(只跟上一轮比)对这种形态完全漏判, 会一路跑到 maxTurns.
+  it('来访者来回打转 (相邻不同但与历史高度重合) → 判无推进停滞', async () => {
+    const lines = [
+      '我最近一直睡不好，晚上躺在床上就开始想白天工作上的事',
+      '我妈上周打电话来，我们聊了很久也没聊明白',
+      '我最近一直睡不好，晚上躺在床上就开始想白天工作上的那些事',
+      '我妈上周打电话来，我们聊了很久也没聊清楚',
+      '我最近一直睡不好，晚上躺在床上就开始想白天工作上的那些事情',
+    ];
+    for (const [index, line] of lines.entries()) {
+      engine.turn.mockResolvedValueOnce(makeTurn(index + 1, line));
     }
 
     const result = await runner.run({
       characterSlug: 'vpt_test',
       counselorMode: makeMode(),
-      maxTurns: 10,
+      maxTurns: 8,
     });
 
     expect(result.status).toBe('stagnant');
     expect(result.exitReason).toBe('stagnant');
-    // 连续 3 轮复读 → 第 3 轮就停.
-    expect(engine.turn).toHaveBeenCalledTimes(3);
+    // 连续 3 轮无新信息 → 第 5 轮终止.
+    expect(engine.turn).toHaveBeenCalledTimes(5);
+  });
+
+  // ★ 旧行为 (WP-G 改动 3): 咨询师连续复读 → stagnant. 该行为已废除:
+  //   金丝雀 5 场误判全部由它触发, 而触发文本的字符相似度只有 0.00~0.04 ——
+  //   真正命中的是语义层, 反映式复述本来就会"连续两轮谈同一件事".
+  it('咨询师连续说同一句 → 不再判停滞, 只记语义回响指标 (WP-J 改动 A-③)', async () => {
+    counselor.generate.mockResolvedValue({ text: '我听到你很难受。', model: 'm', degraded: false, closeRequested: false });
+    for (let i = 1; i <= 5; i += 1) {
+      engine.turn.mockResolvedValueOnce(
+        makeTurn(i, `来访第${i}句不同内容，${['说的是工作', '说的是父母', '说的是睡眠', '说的是健康', '说的是朋友'][i - 1]}`),
+      );
+    }
+
+    const result = await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: makeMode(),
+      maxTurns: 5,
+    });
+
+    // 对话没有被掐断: 跑满 maxTurns 正常结束.
+    expect(result.status).toBe('completed');
+    expect(result.exitReason).toBe('max_turns');
+    expect(engine.turn).toHaveBeenCalledTimes(5);
+    // 但"咨询师一直在同一状态上打转"这件事被记下来了.
+    expect(result.metrics.counselorSemanticEchoTurns).toBeGreaterThanOrEqual(2);
   });
 
   it('咨询师判断可收尾 → natural_close 提前停 (且不超过最小轮数保护)', async () => {

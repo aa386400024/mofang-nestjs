@@ -54,6 +54,19 @@ export interface CounselorReply {
   readonly closeRequested: boolean;
 }
 
+/**
+ * 生成咨询师台词的附加上下文 (WP-J).
+ */
+export interface CounselorGenerateOptions {
+  /**
+   * 是否处于危机后置练习窗.
+   *
+   * true 时追加"危机已披露 → 稳定化"阶段任务: 只做安全确认 / 稳定化 / 下一步,
+   * 不推进新议题、不深挖细节. 由 runner 在检测到危机后逐轮传入.
+   */
+  readonly crisisMode?: boolean;
+}
+
 /** 历史窗口: 最多喂给咨询师最近 N 轮. */
 const HISTORY_WINDOW_TURNS = 10;
 
@@ -116,6 +129,30 @@ const CRISIS_PROTOCOL = [
 ].join('\n');
 
 /**
+ * 危机后置练习窗的**阶段任务** (WP-J 改动 B).
+ *
+ * 为什么不能复用 CRISIS_PROTOCOL:
+ *   ① 那段说的是"怎么回应一次危机", 没有说"危机之后这几轮练什么";
+ *   ② 后置窗里的任务与常规轮**不一样** —— 这一阶段不推进新议题、不做解释性诠释,
+ *      只做安全确认 / 稳定化 / 下一步. 不写清楚, 咨询师会顺着剧情继续深挖,
+ *      把训练目标从"危机应对"带成"创伤暴露"(那是另一个训练模块的事).
+ *
+ * 只约束"做什么", **不注入任何剧情内容** —— 剧情归引擎, 咨询师只负责动作标准.
+ *
+ * ⚠️ 文案是**工程种子值, 非临床标定** —— 待真实对练校准.
+ */
+const CRISIS_STABILIZATION = [
+  '',
+  '## 当前阶段：危机已披露，进入稳定化',
+  '来访者刚才表达了危机。接下来的几轮，你的任务只有三件，按顺序推进：',
+  '① 安全确认 —— 直接、平静地确认他此刻是否安全：有没有实施伤害自己的打算、有没有具体计划、身边有没有人可以陪着；',
+  '② 稳定化 —— 帮他回到当下：呼吸、身边能摸到看到的具体物件、此刻能联系上的人；',
+  '③ 下一步 —— 明确今天/今晚的行动安排与求助渠道：可信任的人、心理援助热线、必要时就医。',
+  '这一阶段**不**推进新议题、**不**深挖创伤细节、**不**做解释性诠释；没有完成安全确认之前不要收尾。',
+  `每一轮仍然按上面的收尾纪律标注状态，但这一阶段通常应输出 ${CONTINUE_TAG}。`,
+].join('\n');
+
+/**
  * 收尾纪律 (拼在 system 末尾).
  *
  * 现状问题: 结束条件只有 危机 / 来访复读 / 跑满轮数, 于是 maxTurns 一到就硬停,
@@ -159,10 +196,15 @@ export class CounselorAgentService {
    *
    * @param mode 咨询师模式 (system prompt 来源)
    * @param history 到上一轮为止的对话 (counselor/visitor 交替; 首轮为空数组)
+   * @param options 附加上下文 (危机后置练习窗)
    * @returns 咨询师台词
    */
-  async generate(mode: CounselorMode, history: readonly CounselorHistoryTurn[]): Promise<CounselorReply> {
-    const messages = this.buildMessages(mode, history);
+  async generate(
+    mode: CounselorMode,
+    history: readonly CounselorHistoryTurn[],
+    options?: CounselorGenerateOptions,
+  ): Promise<CounselorReply> {
+    const messages = this.buildMessages(mode, history, options?.crisisMode === true);
     try {
       const response = await this.router.chat({
         model: this.model,
@@ -234,10 +276,13 @@ export class CounselorAgentService {
    *
    * @param mode 咨询师模式
    * @param history 对话历史
+   * @param crisisMode 是否处于危机后置练习窗
    * @returns chat messages
    */
-  private buildMessages(mode: CounselorMode, history: readonly CounselorHistoryTurn[]): ChatMessage[] {
-    const systemContent = `${mode.systemPrompt}\n\n输出纪律：你只输出咨询师本人说的话，不要写旁白、括号注释、动作描写、心理活动或任何解释；也不要使用 markdown 符号（**、#、>、- 列表等），这是当面说话，不是写文档。${CLOSE_DISCIPLINE}${CRISIS_PROTOCOL}`;
+  private buildMessages(mode: CounselorMode, history: readonly CounselorHistoryTurn[], crisisMode: boolean): ChatMessage[] {
+    const systemContent =
+      `${mode.systemPrompt}\n\n输出纪律：你只输出咨询师本人说的话，不要写旁白、括号注释、动作描写、心理活动或任何解释；也不要使用 markdown 符号（**、#、>、- 列表等），这是当面说话，不是写文档。` +
+      `${CLOSE_DISCIPLINE}${CRISIS_PROTOCOL}${crisisMode ? CRISIS_STABILIZATION : ''}`;
     const messages: ChatMessage[] = [{ role: 'system', content: systemContent }];
 
     // 截断到最近 N 轮.

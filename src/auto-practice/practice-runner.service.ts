@@ -69,8 +69,47 @@ interface PracticeUsage {
 /** 默认最大轮数 (一场对练聊多少轮). */
 export const DEFAULT_MAX_TURNS = 15;
 
-/** 来访复读阈值: 连续 N 轮回复几乎一样就判停滞. */
-const STAGNANT_REPEAT_LIMIT = 2; // 第 3 轮复读时停 (共 3 轮相同)
+// ─────────────────────────────────────────────────────────────────────────────
+// V2026-11-10 治本 (Phase2.5 WP-J · 改动 A): 停滞判定的**判据对象**换了.
+//
+// 原来: 用 `isNearDuplicate` 的"相邻两轮像不像"同时充当两个判定 ——
+//   ① 复读检测 (该抓的是"同一句话反复说");
+//   ② 对话停滞 (该抓的是"聊了半天没有新信息").
+// 这两个是**不同的东西**, 阈值怎么调都会错:
+//   金丝雀 24 场里 5 场被判 stagnant, 逐对回放后 5 场**全部**是咨询师侧触发,
+//   而触发它们的那 5 对文本, 字符 3-gram Jaccard 只有 0.00~0.04 (阈值 0.6, 差两个数量级),
+//   ——真正命中的是第 ④ 层"语义簇判定"(阈值 0.5), 即"连续两轮都在谈工作/领导/担心".
+//   那正是反映式复述的**正常形态**: 真人咨询师比 AI 更容易踩这个动作.
+//   于是"判定对象错位"被当成了"阈值太严", 越调越偏.
+//
+// 现在: 三条各自独立, 各管一件事 ——
+//   ① 字面复读 (来访者侧): 去空白全等 / 长文前 15 字同 / 3-gram ≥ 0.6, 连 2 次 → 停;
+//   ② 无推进   (来访者侧): 与**历史全部来访文本**的最大相似度都 ≥ 0.8, 连 3 轮 → 停;
+//   ③ 语义相邻 (咨询师侧): **只记指标** `counselor_semantic_echo`, 永不终止.
+//
+// 为什么 ② 要跟"历史全部"比而不是"上一轮":
+//   跟上一轮比只能抓"原地复读", 抓不到"换个说法还是原地打转"(这正是来访者卡住的样子);
+//   跟全部历史比, 只要这一轮带来了任何新信息, 最大相似度就会掉下来 —— 判据自然放过推进.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 字面复读阈值: 连续 N 次判重即停 (N=2 → 第 3 轮说同样的话时终止). */
+export const STAGNANT_LITERAL_STREAK_LIMIT = 2;
+
+/** 无推进阈值: 来访者连续 N 轮没有带来新信息即判停滞. */
+export const STAGNANT_NO_PROGRESS_LIMIT = 3;
+
+/** 无推进判定的相似度阈值: 与历史全部来访文本的最大相似度 ≥ 该值 = 没带新信息. */
+export const NO_PROGRESS_SIMILARITY_THRESHOLD = 0.8;
+
+/**
+ * 危机后置练习窗轮数 (WP-J 改动 B).
+ *
+ * 危机披露后**不终止**, 继续练这么多轮危机应对. 取 4:
+ *   - 少 1 轮走不完"安全确认 → 稳定化 → 下一步"三步;
+ *   - 多 1 轮就会滑进"反复追问细节", 反而稀释训练目标.
+ * 这是产品决策 (用户已拍板), 不是临床标定.
+ */
+export const CRISIS_PRACTICE_TURNS = 4;
 
 /** 允许"自然收尾"的最少轮数: 太早收尾等于没聊, 至少建立议题后再结束. */
 const MIN_TURNS_BEFORE_CLOSE = 5;
@@ -94,6 +133,50 @@ export interface RunPracticeInput {
 }
 
 /**
+ * 一场对练的可观测指标 (WP-J).
+ *
+ * ⚠️ 全部是数字 / 枚举 / 轮次 —— **不含任何对话文本**(隐私红线),
+ *   可以安全进日志、进库、进看板.
+ */
+export interface PracticeRunMetrics {
+  /** 咨询师语义回响轮数 (反映式复述的计数, 不参与终止). */
+  readonly counselorSemanticEchoTurns: number;
+  /** 是否经历过后置危机练习窗. */
+  readonly crisisPracticed: boolean;
+  /** 危机首次披露的轮次 (未披露为 null). */
+  readonly crisisFirstTurn: number | null;
+  /** 危机窗内实际完成的练习轮数. */
+  readonly crisisPostTurns: number;
+  /** 危机表达强度档位 0~3 (未披露为 0). 见 CRISIS_LEVEL_BY_CATEGORY. */
+  readonly crisisPeakLevel: number;
+  /** 危机类别 (内核 VisitorRiskCategory 枚举值, 非自由文本; 未披露为 null). */
+  readonly crisisCategory: string | null;
+  /** 是否发生"强度上升"型二次升级. */
+  readonly crisisEscalated: boolean;
+}
+
+/**
+ * 危机后置练习窗状态 (WP-J 改动 B).
+ *
+ * 为什么需要独立状态: "危机披露" 与 "会话终止" 原来是同一件事,
+ * 于是"练了危机应对"和"在危机里掉线"在数据上无法区分.
+ */
+interface CrisisWindowState {
+  /** 是否已进入后置练习窗. */
+  active: boolean;
+  /** 首次披露的轮次. */
+  firstTurn: number;
+  /** 披露之后已进行的轮数. */
+  postTurns: number;
+  /** 观测到的最高强度档位. */
+  peakLevel: number;
+  /** 最高强度对应的类别. */
+  category: string | null;
+  /** 是否发生强度上升型二次升级. */
+  escalated: boolean;
+}
+
+/**
  * 一场对练的结果摘要.
  */
 export interface RunPracticeResult {
@@ -103,6 +186,8 @@ export interface RunPracticeResult {
   readonly exitReason: string;
   readonly turnCount: number;
   readonly crisisEnded: boolean;
+  /** WP-J: 可观测指标 (无对话文本). */
+  readonly metrics: PracticeRunMetrics;
 }
 
 @Injectable()
@@ -201,6 +286,7 @@ export class PracticeRunnerService implements OnModuleInit {
       crisisEnded: number;
       turnCount: number;
       degradedTurns: number;
+      metrics: PracticeRunMetrics;
     };
     try {
       loopResult = await this.runConversationLoop(input, practiceSessionId, debugSessionId, maxTurns, history, usage);
@@ -211,6 +297,7 @@ export class PracticeRunnerService implements OnModuleInit {
         crisisEnded: 0,
         turnCount: 0,
         degradedTurns: 0,
+        metrics: emptyMetrics(),
       };
       errorMessage = errorName(error);
       this.logger.error(`[auto_practice] 对练循环异常 session=${practiceSessionId}: ${errorMessage}`);
@@ -227,6 +314,7 @@ export class PracticeRunnerService implements OnModuleInit {
     crisisEnded = loopResult.crisisEnded;
     turnCount = loopResult.turnCount;
     degradedTurns = loopResult.degradedTurns;
+    const metrics = loopResult.metrics;
 
     // ⑥ 结算 token / 成本 (WP-F Step 0).
     //   口径跟正式训练**完全同一套**: 同一个 `estimateSessionCost()` + 同一张定价表,
@@ -267,10 +355,17 @@ export class PracticeRunnerService implements OnModuleInit {
       exitReason,
       turnCount,
       crisisEnded: crisisEnded === 1,
+      // WP-J: 危机练习窗与语义回响指标 (纯数字/枚举).
+      crisisPracticed: metrics.crisisPracticed,
+      crisisPostTurns: metrics.crisisPostTurns,
     };
     this.gateway?.publishToSession(practiceSessionId, AUTO_PRACTICE_EVENTS.sessionEnd, endPayload);
 
-    this.logger.log(`[auto_practice] 对练结束 session=${practiceSessionId} status=${status} turns=${turnCount} reason=${exitReason}`);
+    this.logger.log(
+      `[auto_practice] 对练结束 session=${practiceSessionId} status=${status} turns=${turnCount} reason=${exitReason}` +
+        ` semantic_echo=${metrics.counselorSemanticEchoTurns} crisis=${metrics.crisisPracticed ? 1 : 0}` +
+        `${metrics.crisisPracticed ? `/post=${metrics.crisisPostTurns}/peak=${metrics.crisisPeakLevel}` : ''}`,
+    );
     return {
       practiceSessionId,
       debugSessionId,
@@ -278,13 +373,18 @@ export class PracticeRunnerService implements OnModuleInit {
       exitReason,
       turnCount,
       crisisEnded: crisisEnded === 1,
+      metrics,
     };
   }
 
   /**
    * 跑对话主循环 (抽出来降低 run() 圈复杂度).
    *
-   * @returns 终态: status / exitReason / crisisEnded / turnCount / degradedTurns
+   * 单轮"要不要停、停成什么"的判断全部在纯函数 {@link decideTurn} 里, 这里只负责
+   * 执行副作用 (生成台词 / 跑引擎 / 推事件 / 记状态) —— 判定与执行分离,
+   * 判定可被标定脚本原样复用 (scripts/ops/calibration/stagnation-calibration.ts).
+   *
+   * @returns 终态: status / exitReason / crisisEnded / turnCount / degradedTurns / metrics
    */
   private async runConversationLoop(
     input: RunPracticeInput,
@@ -293,20 +393,41 @@ export class PracticeRunnerService implements OnModuleInit {
     maxTurns: number,
     history: CounselorHistoryTurn[],
     usage: PracticeUsage,
-  ): Promise<{ status: PracticeSessionStatus; exitReason: string; crisisEnded: number; turnCount: number; degradedTurns: number }> {
+  ): Promise<{
+    status: PracticeSessionStatus;
+    exitReason: string;
+    crisisEnded: number;
+    turnCount: number;
+    degradedTurns: number;
+    metrics: PracticeRunMetrics;
+  }> {
     let status: PracticeSessionStatus = 'running';
     let exitReason = 'max_turns';
     let crisisEnded = 0;
     let turnCount = 0;
-    let repeatStreak = 0;
-    let lastVisitorText = '';
-    let counselorRepeatStreak = 0;
+    /** 来访者已经说过的话 —— 判"无推进"要跟**全部历史**比, 不是只跟上一轮比. */
+    const visitorHistory: string[] = [];
+    /** 停滞计数 (只统计来访者侧, 咨询师侧只记指标). */
+    const stagnation: StagnationState = { literalRepeatStreak: 0, noProgressStreak: 0, semanticEchoTurns: 0 };
     let lastCounselorText = '';
+    /** 危机后置练习窗状态 (WP-J 改动 B). */
+    const crisisWindow: CrisisWindowState = {
+      active: false,
+      firstTurn: 0,
+      postTurns: 0,
+      peakLevel: 0,
+      category: null,
+      escalated: false,
+    };
     let degradedTurns = 0;
 
     for (let i = 1; i <= maxTurns; i += 1) {
       // AI 咨询师生成台词.
-      const counselorReply = await this.counselorAgent.generate(input.counselorMode, history);
+      //   WP-J 改动 B: 危机后置练习窗内传 crisisMode —— 咨询师切到"稳定化"任务
+      //   (安全确认 / 稳定化 / 下一步), 不再推进新议题.
+      const counselorReply = await this.counselorAgent.generate(input.counselorMode, history, {
+        crisisMode: crisisWindow.active,
+      });
       if (counselorReply.degraded) degradedTurns += 1;
       history.push({ role: 'counselor', text: counselorReply.text });
 
@@ -333,49 +454,46 @@ export class PracticeRunnerService implements OnModuleInit {
         this.logger.warn(`[auto_practice] 更新轮次失败 session=${practiceSessionId}: ${errorName(error)}`);
       });
 
-      // 结束条件: 危机.
-      if (result.crisisDetected) {
-        status = 'crisis_ended';
-        exitReason = 'crisis';
-        crisisEnded = 1;
-        break;
+      const crisisEntered = result.crisisDetected && !crisisWindow.active;
+      const decision = decideTurn(
+        {
+          turnIndex: result.turnIndex,
+          closeRequested: counselorReply.closeRequested === true,
+          crisisDetected: result.crisisDetected,
+          crisisCategory: result.crisisCategory ?? null,
+          visitorText: result.reply,
+          visitorHistory,
+          counselorText: counselorReply.text,
+          lastCounselorText,
+        },
+        crisisWindow,
+        stagnation,
+      );
+
+      if (crisisEntered) {
+        // 只记轮次与档位数字 (隐私红线: 不记任何对话文本).
+        this.logger.warn(
+          `[auto_practice] 危机披露 → 进入后置练习窗 turn=${result.turnIndex} level=${crisisWindow.peakLevel} (不终止, 续 ${CRISIS_PRACTICE_TURNS} 轮)`,
+        );
       }
 
-      // 结束条件: 自然收尾.
-      if (counselorReply.closeRequested && result.turnIndex >= MIN_TURNS_BEFORE_CLOSE) {
-        status = 'completed';
-        exitReason = 'natural_close';
-        break;
-      }
-
-      // 结束条件: 咨询师复读 (停滞).
-      //   V2026-11-09 治本 (Phase2.5 WP-G · 改动 3): 原来只检测**来访者**复读 ——
-      //   咨询师连说十几句"嗯我在听"也不停 (396 场里这句出现 5018 次, 占咨询师消息 65.3%).
-      //   现在咨询师侧用**同一套**口径 (isNearDuplicate) 检测, 连续 3 轮复读同样判停滞.
-      if (isNearDuplicate(counselorReply.text, lastCounselorText)) {
-        counselorRepeatStreak += 1;
-        if (counselorRepeatStreak >= STAGNANT_REPEAT_LIMIT) {
-          status = 'stagnant';
-          exitReason = 'stagnant';
-          break;
+      if (decision.kind === 'stop') {
+        ({ status, exitReason } = resolveStopOutcome(decision));
+        if (decision.reason === 'stagnant') {
+          this.logger.warn(
+            `[auto_practice] 判停滞 turn=${result.turnIndex} literal=${decision.literalStreak} no_progress=${decision.noProgressStreak} max_sim=${decision.maxSimilarity.toFixed(2)}`,
+          );
         }
-      } else {
-        counselorRepeatStreak = 0;
+        if (decision.reason === 'crisis_escalated') crisisEnded = 1;
+        break;
       }
+      if (decision.closeBlocked) {
+        // 危机披露当轮就想收尾 = 把来访者一个人留在危机里. 挡一次, 强制走完稳定化.
+        this.logger.warn(`[auto_practice] 危机轮咨询师请求收尾 → 强制继续 session=${practiceSessionId}`);
+      }
+
       lastCounselorText = counselorReply.text;
-
-      // 结束条件: 来访复读 (停滞).
-      if (isNearDuplicate(result.reply, lastVisitorText)) {
-        repeatStreak += 1;
-        if (repeatStreak >= STAGNANT_REPEAT_LIMIT) {
-          status = 'stagnant';
-          exitReason = 'stagnant';
-          break;
-        }
-      } else {
-        repeatStreak = 0;
-      }
-      lastVisitorText = result.reply;
+      visitorHistory.push(result.reply);
     }
 
     // 跑满 maxTurns.
@@ -389,7 +507,17 @@ export class PracticeRunnerService implements OnModuleInit {
       exitReason = `${exitReason}_heavy_degraded`;
     }
 
-    return { status, exitReason, crisisEnded, turnCount, degradedTurns };
+    const metrics: PracticeRunMetrics = {
+      counselorSemanticEchoTurns: stagnation.semanticEchoTurns,
+      crisisPracticed: crisisWindow.active,
+      crisisFirstTurn: crisisWindow.active ? crisisWindow.firstTurn : null,
+      crisisPostTurns: crisisWindow.postTurns,
+      crisisPeakLevel: crisisWindow.peakLevel,
+      crisisCategory: crisisWindow.category,
+      crisisEscalated: crisisWindow.escalated,
+    };
+
+    return { status, exitReason, crisisEnded, turnCount, degradedTurns, metrics };
   }
 
   /**
@@ -430,6 +558,7 @@ export class PracticeRunnerService implements OnModuleInit {
           exitReason: 'error',
           turnCount: 0,
           crisisEnded: false,
+          metrics: emptyMetrics(),
         },
       };
     }
@@ -552,29 +681,23 @@ export class PracticeRunnerService implements OnModuleInit {
 }
 
 /**
- * 近似重复判定 (停滞检测) —— V2026-11-09 治本 (Phase2.5 WP-G · 改动 4).
+ * 停滞检测的词表层 —— V2026-11-09 起 (Phase2.5 WP-G · 改动 4), WP-J 后**仅服务指标**.
  *
- * 四层判定, 从严到宽:
- *   ① 去掉空白后完全相同 → 复读 ("嗯""好的"这种短答重复也要抓);
- *   ② 都 >= 15 字, 长度差 < 10% 且前 15 字相同 → 复读 (长文几乎不会撞, 原有口径, 保留);
- *   ③ 字符级 3-gram Jaccard >= 0.6 (任务单口径);
- *   ④ 语义近似: "表达状态簇"重叠 + 话题不冲突.
+ * 字符层 (①②③, 见 `isLiteralRepeat`) 用来抓"同一句话反复说";
+ * 语义层 (表达状态簇 + 话题簇, 见 `isSemanticEcho`) 用来抓"连续两轮在同一状态/议题上打转".
  *
- * 为什么必须有第 ④ 层:
- *   任务单的验收对是"我不太想现在讲清楚"与"最近确实有点难说出口" ——
- *   这两句**零字符重叠**, 纯字符 n-gram 的 Jaccard 恒为 0, 判不出近似;
- *   而它们在临床上就是同一句话的两种说法 (都在说"说不出口"), 不判重就是停滞漏判.
- *   396 场里 49.7% 跑满 maxTurns, 就是靠这条漏掉的.
+ * ⚠️ 语义层的结论**只能记指标**(`counselor_semantic_echo`), 不得作为终止依据 ——
+ *   它对反映式复述(咨询师的正常技术动作)天然误伤, 金丝雀 5 场误判全在这里.
  *
- * 为什么第 ④ 层不用 embedding:
- *   本仓的 embedding provider (通义 / 豆包 / DeepSeek) 都要各自的 env key 才注册,
- *   MiniMax 只提供 CHAT 不提供 embedding —— 走向量会让这个判定依赖未配置的上游,
- *   本机根本验不了. 本地词表计算零网络开销、确定性可测.
+ * 为什么语义层不用 embedding:
+ *   本仓 embedding provider (通义 / 豆包 / DeepSeek) 都要各自 env key 才注册,
+ *   MiniMax 只提供 CHAT —— 走向量会让判定依赖未配置的上游, 本机根本验不了.
+ *   本地词表计算零网络开销、确定性可测.
  *
  * ⚠️ 词表是**工程种子值, 非临床标定** —— 只覆盖常见口语表达, 待真实对练校准.
  */
 
-/** 字符级 3-gram 相似度阈值 (任务单口径: 超过就算近似重复). */
+/** 字符级 3-gram 相似度阈值 (超过即判"字面复读"). */
 const CHAR_NGRAM_THRESHOLD = 0.6;
 
 /** 语义簇相似度阈值 (表达状态簇的 Jaccard). */
@@ -635,13 +758,24 @@ const TOPIC_CLUSTERS: readonly KeywordCluster[] = [
 ];
 
 /**
- * 判断这一轮是否跟上一轮几乎一样 (停滞检测).
+ * 字面复读判定 (WP-J 改动 A-①) —— 只负责抓"同一句话反复说".
+ *
+ * 三层, 从严到宽, **不含语义层**:
+ *   ① 去掉空白后完全相同 ("嗯""好的"这种短答重复也要抓);
+ *   ② 都 >= 15 字, 长度差 < 10% 且前 15 字相同 (长文几乎不会撞, 原有口径保留);
+ *   ③ 字符级 3-gram Jaccard >= 0.6.
+ *
+ * 为什么**不能**把语义层并进来:
+ *   `"我不太想现在讲清楚"` 与 `"最近确实有点难说出口"` 在临床上确实是同一句话的两种说法,
+ *   字符相似度为 0 —— 但这条判定用在**咨询师的反映式复述**上时, 会把"连续两轮都在谈同一议题"
+ *   判成复读 (实测 5 场误判的字符相似度只有 0.00~0.04, 全是语义层命中).
+ *   语义相邻现在只做**指标**(`isSemanticEcho`), 不再作为终止依据.
  *
  * @param current 这一轮说的话
  * @param previous 上一轮说的话 (空串 = 首轮, 永远不判重)
- * @returns 是否近似重复
+ * @returns 是否字面复读
  */
-export function isNearDuplicate(current: string, previous: string): boolean {
+export function isLiteralRepeat(current: string, previous: string): boolean {
   if (previous.length === 0) return false;
   const a = current.trim();
   const b = previous.trim();
@@ -652,9 +786,250 @@ export function isNearDuplicate(current: string, previous: string): boolean {
     if (lenDiff < 0.1 && a.slice(0, 15) === b.slice(0, 15)) return true;
   }
   // ③ 字符级 3-gram.
-  if (charNgramSimilarity(a, b) >= CHAR_NGRAM_THRESHOLD) return true;
-  // ④ 语义近似.
-  return isSemanticNearDuplicate(a, b);
+  return charNgramSimilarity(a, b) >= CHAR_NGRAM_THRESHOLD;
+}
+
+/**
+ * 与历史文本集合的**最大**字符 3-gram 相似度 (无历史 = 0).
+ *
+ * 这是"无推进"判定 (A-②) 的核心: 跟**全部历史**比而不是跟上一轮比,
+ * 才能抓到"换个说法仍然原地打转"这种真正的停滞形态.
+ *
+ * @param text 本轮文本
+ * @param history 历史文本 (不含本轮)
+ * @returns 最大相似度 0~1
+ */
+export function maxCharNgramSimilarity(text: string, history: readonly string[]): number {
+  const current = text.trim();
+  let max = 0;
+  for (const item of history) {
+    if (item.length === 0) continue;
+    const similarity = charNgramSimilarity(current, item.trim());
+    if (similarity > max) max = similarity;
+  }
+  return max;
+}
+
+/** 单轮停滞探测的入参. */
+export interface StagnationProbeInput {
+  /** 本轮来访者说的话. */
+  readonly visitorText: string;
+  /** 本轮之前的**全部**来访文本 (不含本轮). */
+  readonly visitorHistory: readonly string[];
+  /** 本轮咨询师说的话. */
+  readonly counselorText: string;
+  /** 上一轮咨询师说的话 (空串 = 首轮). */
+  readonly lastCounselorText: string;
+}
+
+/**
+ * 单轮停滞探测结果.
+ *
+ * 三条口径各自独立, 各自管一件事 —— 调用方按各自的连续计数决定是否终止.
+ */
+export interface StagnationObservation {
+  /** 来访者本轮是否只是把上一轮的话换个说法 (A-①, 参与终止). */
+  readonly literalRepeat: boolean;
+  /** 来访者本轮与历史全部来访文本的最大相似度 (A-②, 参与终止). */
+  readonly maxSimilarity: number;
+  /** 来访者本轮是否"没有带来新信息" (A-②, 参与终止). */
+  readonly noProgress: boolean;
+  /** 咨询师相邻两轮是否语义相邻 (A-③, **只记指标, 永不终止**). */
+  readonly counselorSemanticEcho: boolean;
+}
+
+/**
+ * 探测一轮是否构成停滞信号 (纯函数, 无副作用, 便于标定与回归).
+ *
+ * @param input 本轮文本与历史
+ * @returns 各口径的观测结果
+ */
+export function probeStagnation(input: StagnationProbeInput): StagnationObservation {
+  const literalRepeat = isLiteralRepeat(input.visitorText, input.visitorHistory.at(-1) ?? '');
+  const maxSimilarity = maxCharNgramSimilarity(input.visitorText, input.visitorHistory);
+  const noProgress = input.visitorHistory.length > 0 && maxSimilarity >= NO_PROGRESS_SIMILARITY_THRESHOLD;
+  const counselorSemanticEcho = input.lastCounselorText.length > 0 && isSemanticEcho(input.counselorText, input.lastCounselorText);
+  return { literalRepeat, maxSimilarity, noProgress, counselorSemanticEcho };
+}
+
+/**
+ * 危机表达强度档位 (0~3).
+ *
+ * ⚠️ 由内核 `VisitorRiskCategory` 枚举**映射**, 不做文本推断 ——
+ *   分类器已经给出了细粒度标签, 上层再自己读一遍文本就是第二套口径.
+ *
+ * | 档位 | 含义 | 对应类别 |
+ * |---|---|---|
+ * | 0 | 隐念 / 探索 | `suicide_exploration` |
+ * | 1 | 被动意念 | `passive_ideation` |
+ * | 2 | 明确意念 / 自伤意图 | `active_ideation`、`self_harm_ideation` |
+ * | 3 | 计划 / 准备 / 行为 / 攻击 | `suicide_plan`、`suicide_preparation`、`suicide_attempt`、`self_harm_behavior`、`aggression_*` |
+ *
+ * 未知类别按 1 处理: 既承认"危机已判出", 又不冒充最严重档位.
+ */
+const CRISIS_LEVEL_BY_CATEGORY: Readonly<Record<string, number>> = {
+  suicide_exploration: 0,
+  passive_ideation: 1,
+  active_ideation: 2,
+  self_harm_ideation: 2,
+  suicide_plan: 3,
+  suicide_preparation: 3,
+  suicide_attempt: 3,
+  self_harm_behavior: 3,
+  aggression_others: 3,
+  aggression_self: 3,
+};
+
+/**
+ * 把内核危机类别映射成强度档位 (0~3).
+ *
+ * @param category 内核 VisitorRiskCategory (可能为 null)
+ * @returns 强度档位
+ */
+export function crisisLevelOf(category: string | null): number {
+  if (!category) return 0;
+  return CRISIS_LEVEL_BY_CATEGORY[category] ?? 1;
+}
+
+/** 停滞计数状态 (跨轮累积; 只统计来访者侧, 咨询师侧只记指标). */
+interface StagnationState {
+  /** 字面复读连续轮数. */
+  literalRepeatStreak: number;
+  /** 无推进连续轮数. */
+  noProgressStreak: number;
+  /** 咨询师语义回响累计轮数 (指标). */
+  semanticEchoTurns: number;
+}
+
+/** 单轮结束判定的输入 (全部是"事实", 不含任何副作用). */
+interface TurnJudgementInput {
+  /** 本轮序号. */
+  readonly turnIndex: number;
+  /** 咨询师本轮是否请求收尾. */
+  readonly closeRequested: boolean;
+  /** 本轮是否判出危机. */
+  readonly crisisDetected: boolean;
+  /** 危机类别 (未判出为 null). */
+  readonly crisisCategory: string | null;
+  /** 来访者本轮台词. */
+  readonly visitorText: string;
+  /** 来访者历史台词 (不含本轮). */
+  readonly visitorHistory: readonly string[];
+  /** 咨询师本轮台词. */
+  readonly counselorText: string;
+  /** 咨询师上一轮台词. */
+  readonly lastCounselorText: string;
+}
+
+/** 单轮结束判定的结论. */
+type TurnDecision =
+  | { readonly kind: 'continue'; readonly closeBlocked: boolean }
+  | { readonly kind: 'stop'; readonly reason: 'crisis_escalated' | 'crisis_practice_max' | 'crisis_practice_close' | 'natural_close' }
+  | {
+      readonly kind: 'stop';
+      readonly reason: 'stagnant';
+      readonly literalStreak: number;
+      readonly noProgressStreak: number;
+      readonly maxSimilarity: number;
+    };
+
+/**
+ * 单轮结束判定 (纯函数, WP-J 改动 A+B 的全部判据都收敛在这里).
+ *
+ * 优先级与旧实现一致, 但**每一条的理由都改了**:
+ *   ① 危机: 首次披露**不终止**(开窗); 只有强度上升才终止.
+ *   ② 危机窗计时: 披露之后满 CRISIS_PRACTICE_TURNS 轮 → 正常收尾.
+ *   ③ 自然收尾: 危机窗内"披露当轮就收尾"挡一次 (不能把来访者留在危机里),
+ *      之后咨询师再请求才认.
+ *   ④ 停滞: **只认来访者侧**(字面复读连 2 / 无推进连 3); 咨询师语义回响只计数.
+ *
+ * 之所以抽成纯函数: 判定逻辑要能被标定脚本按同一份代码回放
+ * (scripts/ops/calibration/stagnation-calibration.ts), 不能在两条路径上各写一遍.
+ *
+ * @param input 本轮事实
+ * @param crisisWindow 危机窗状态 (会被就地更新)
+ * @param stagnation 停滞计数 (会被就地更新)
+ * @returns 判定结论
+ */
+export function decideTurn(input: TurnJudgementInput, crisisWindow: CrisisWindowState, stagnation: StagnationState): TurnDecision {
+  const crisisStartedThisTurn = input.crisisDetected && !crisisWindow.active;
+
+  if (input.crisisDetected) {
+    const level = crisisLevelOf(input.crisisCategory);
+    if (crisisStartedThisTurn) {
+      crisisWindow.active = true;
+      crisisWindow.firstTurn = input.turnIndex;
+      crisisWindow.peakLevel = level;
+      crisisWindow.category = input.crisisCategory;
+    } else if (level > crisisWindow.peakLevel) {
+      // 只有**强度真的上升**才算二次升级. 同等或更低强度的"又说了一次"
+      // 正是需要练的稳定化过程, 不是失败.
+      crisisWindow.peakLevel = level;
+      crisisWindow.category = input.crisisCategory ?? crisisWindow.category;
+      // 升级这一轮本身也是练过的一轮, 计入练习轮数, 否则指标会少算 1.
+      crisisWindow.postTurns += 1;
+      crisisWindow.escalated = true;
+      return { kind: 'stop', reason: 'crisis_escalated' };
+    }
+  }
+
+  // 危机窗计时: 只统计"披露之后"的轮次, 披露那一轮本身不算练习轮.
+  if (crisisWindow.active && !crisisStartedThisTurn) {
+    crisisWindow.postTurns += 1;
+    if (crisisWindow.postTurns >= CRISIS_PRACTICE_TURNS) {
+      return { kind: 'stop', reason: 'crisis_practice_max' };
+    }
+  }
+
+  const closeAllowed = input.closeRequested && input.turnIndex >= MIN_TURNS_BEFORE_CLOSE;
+  const closeBlocked = closeAllowed && crisisWindow.active && crisisWindow.postTurns === 0;
+  if (closeAllowed && !closeBlocked) {
+    return { kind: 'stop', reason: crisisWindow.active ? 'crisis_practice_close' : 'natural_close' };
+  }
+
+  const probe = probeStagnation({
+    visitorText: input.visitorText,
+    visitorHistory: input.visitorHistory,
+    counselorText: input.counselorText,
+    lastCounselorText: input.lastCounselorText,
+  });
+  // 咨询师语义相邻 → 只计数, 永不终止. 反映式复述天然语义相邻, 那是技术动作.
+  if (probe.counselorSemanticEcho) stagnation.semanticEchoTurns += 1;
+  stagnation.literalRepeatStreak = probe.literalRepeat ? stagnation.literalRepeatStreak + 1 : 0;
+  stagnation.noProgressStreak = probe.noProgress ? stagnation.noProgressStreak + 1 : 0;
+  if (stagnation.literalRepeatStreak >= STAGNANT_LITERAL_STREAK_LIMIT || stagnation.noProgressStreak >= STAGNANT_NO_PROGRESS_LIMIT) {
+    return {
+      kind: 'stop',
+      reason: 'stagnant',
+      literalStreak: stagnation.literalRepeatStreak,
+      noProgressStreak: stagnation.noProgressStreak,
+      maxSimilarity: probe.maxSimilarity,
+    };
+  }
+  return { kind: 'continue', closeBlocked };
+}
+
+/** 把终止结论映射成落库用的 status / exit_reason. */
+function resolveStopOutcome(decision: Extract<TurnDecision, { kind: 'stop' }>): {
+  status: PracticeSessionStatus;
+  exitReason: string;
+} {
+  if (decision.reason === 'stagnant') return { status: 'stagnant', exitReason: 'stagnant' };
+  if (decision.reason === 'crisis_escalated') return { status: 'crisis_ended', exitReason: 'crisis_escalated' };
+  return { status: 'completed', exitReason: decision.reason };
+}
+
+/** 空指标 (开引擎失败 / 循环异常时用, 保证结构不缺失). */
+function emptyMetrics(): PracticeRunMetrics {
+  return {
+    counselorSemanticEchoTurns: 0,
+    crisisPracticed: false,
+    crisisFirstTurn: null,
+    crisisPostTurns: 0,
+    crisisPeakLevel: 0,
+    crisisCategory: null,
+    crisisEscalated: false,
+  };
 }
 
 /** 字符级 n-gram Jaccard 相似度. */
@@ -685,14 +1060,21 @@ function ngramSet(text: string, n: number): Set<string> {
 }
 
 /**
- * 语义近似判定: 表达状态簇重叠 + 话题不冲突.
+ * 语义回响判定 (WP-J 改动 A-③) —— **指标, 不是判据**.
  *
  * 三道闸:
  *   ① 两句都要够长 (太短的应答不参与);
  *   ② 表达状态簇要有交集 (交集为空 = 说的不是同一种状态);
  *   ③ 话题不能冲突 (话题不同 = 不是同一句话的换皮).
+ *
+ * ⚠️ 它抓的是"连续两轮都在谈同一议题" —— 对咨询师的反映式复述来说这是**正常技术动作**,
+ *   所以只能记成 `counselor_semantic_echo` 供质量分析, 绝不能拿来终止对话.
+ *
+ * @param a 本轮文本
+ * @param b 上一轮文本
+ * @returns 是否语义相邻
  */
-function isSemanticNearDuplicate(a: string, b: string): boolean {
+export function isSemanticEcho(a: string, b: string): boolean {
   if (a.length < SEMANTIC_MIN_LENGTH || b.length < SEMANTIC_MIN_LENGTH) return false;
   const statesA = matchClusters(a, SEMANTIC_STATE_CLUSTERS);
   const statesB = matchClusters(b, SEMANTIC_STATE_CLUSTERS);

@@ -48,4 +48,14 @@ export interface AutoPracticeSessionEndPayload {
   readonly exitReason: string;
   readonly turnCount: number;
   readonly crisisEnded: boolean;
+  /**
+   * WP-J: 是否经历过后置危机练习窗.
+   *
+   * 与 `crisisEnded` 是两个维度: `crisisEnded` = 场次因危机**终止**;
+   * `crisisPracticed` = 危机披露后**继续练过**应对. 两者可以同时为 false (没危机),
+   * 也可以同时为 true (练完之后仍因升级终止).
+   */
+  readonly crisisPracticed?: boolean;
+  /** WP-J: 危机窗内完成的练习轮数. */
+  readonly crisisPostTurns?: number;
 }
