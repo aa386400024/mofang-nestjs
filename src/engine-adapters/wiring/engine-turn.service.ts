@@ -140,6 +140,17 @@ export class EngineTurnService {
        */
       readonly attachmentStyle?: TurnSessionContext['attachmentStyle'];
       /**
+       * 台词指纹 (WP-J P2): 渲染层 prompt 的「你说话的味道」块.
+       *
+       * 为什么它必须走**同一条登记路径** (与 attachmentStyle 并排):
+       *   调试面板与自动对练开场都调本方法, 不走 voice 后端那条 open ——
+       *   只在 `engine-stream-backend.adapter` 里登记, 这条路径就静默拿不到,
+       *   渲染层的 `if (spec.verbalVoice)` 直接跳过 (台词指纹白落库).
+       *
+       * ⚠️ 缺省 = 不登记 = 渲染层不消费 = prompt 逐字不变 (零回归).
+       */
+      readonly verbalVoice?: TurnSessionContext['verbalVoice'];
+      /**
        * 学员账号 id (V2026-11-05 WP64).
        *
        * 用途: LLM 审议的计费 / 审计归属 —— 归属登记后, 旁路审议才知道该把这次调用记在谁头上.
@@ -175,6 +186,8 @@ export class EngineTurnService {
       ...(options?.expressionTone === undefined ? {} : { expressionTone: options.expressionTone }),
       // WP-J P1d: 依恋风格登记 —— 条件展开, 缺省不登记 (零回归: prompt 逐字不变).
       ...(options?.attachmentStyle === undefined ? {} : { attachmentStyle: options.attachmentStyle }),
+      // WP-J P2: 台词指纹登记 —— 条件展开, 缺省不登记 (零回归: prompt 逐字不变).
+      ...(options?.verbalVoice === undefined ? {} : { verbalVoice: options.verbalVoice }),
       // WP64: 学员账号 + 角色简述 —— 条件展开 (缺省 = 旁路审议跳过这一轮, 不影响会话).
       ...(options?.userId ? { userId: options.userId } : {}),
       ...(options?.characterBrief ? { characterBrief: options.characterBrief } : {}),

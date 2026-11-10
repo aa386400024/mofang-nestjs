@@ -71,8 +71,8 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 |---|---|
 | **8 角色基线差异化** | ✅ 已交付（2026-11-10）：8 行标定表作单一真相源 + A 类 seed 装配 / B 类只更新基线列 → [交付记录](../completed/phase2.5/wp-j-character-baseline-differentiation-2026-11-10.md) · **主 Agent 独立复验通过**（连库 8 行逐字一致 + 自检反向验证 8/8）→ [复验记录](../completed/phase2.5/wp-j-character-baseline-independent-verification-2026-11-10.md) |
 | P1e Phase2 来访者语义离线落库 | ✅ 已交付并 push（commit d14daa5），真库 migration 已跑两次 |
-| verbal_voice 8 角色文案 | ✅ 已落库（2026-11-10）：8 条文案进 `CHARACTER_BASELINE_CALIBRATION`（与数值同源），A 类经 `baselineOf()` 装配、B 类随基线校准 UPDATE 一起写；真库 8/8 逐字一致，seed 连跑两次幂等 → [文案定稿](phase2.5-verbal-voice-drafts-2026-11-10.md) |
-| P1d 接线修复后的验收 + 重跑 | 📋 方案已写未执行（[验收+重跑方案](phase2.5-p1d-acceptance-and-rerun-plan-2026-11-10.md)） |
+| verbal_voice 8 角色文案 | ✅ 已落库（2026-11-10）：8 条文案进 `CHARACTER_BASELINE_CALIBRATION`（与数值同源），A 类经 `baselineOf()` 装配、B 类随基线校准 UPDATE 一起写；真库 8/8 逐字一致，seed 连跑两次幂等 → [文案定稿](phase2.5-verbal-voice-drafts-2026-11-10.md) · **动态验收已通过**（8 角色 × 2 模式 15/16 场命中，缺的那场是 LLM 全失败） |
+| P1d 接线修复后的验收 + 重跑 | ⚠️ **已跑完，判读 FAIL（但根因不是接线）**：阶段 A 冒烟 PASS（`vv_prefix_hits` / `vv_text_hits` / `anxious_hits` = 8/8/17）；16 场重跑完成（completed 14 / crisis_ended 1 / stagnant 1）；recounting 57.9%、degraded 18.8% 达标，**anxious 仍 0%/0%** —— 真因是探索门槛 `trust≥0.65` 与差异化基线（anxious 最高 0.35）冲突，7 个角色物理不可达 → [交付记录](../completed/phase2.5/wp-j-p1d-rerun-and-verbal-voice-smoke-implementation-2026-11-10.md) · [任务单](../completed/phase2.5/wp-j-p1d-rerun-and-verbal-voice-smoke-task-2026-11-10.md) |
 | 30 场人工锚点标注 → 阈值标定 | 📋 标注台已交付，人工标注进行中；标定方案已写（[标定方案](phase2.5-anchor-calibration-plan-2026-11-10.md)） |
 | 100 场级验证批次 | 门禁已过，待主 Agent 发起（`.env` 还需配第二家 chat provider 的 key） |
 

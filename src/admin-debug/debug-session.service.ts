@@ -469,6 +469,9 @@ export class DebugSessionService {
         // WP-J P1d: 依恋风格登记 —— 自动对练 / 调试面板都走这一条开场路径.
         //   不登记则渲染层拿不到 attachmentStyle, anxious 行为指引永远不渲染.
         ...(resolved.characterProfile.attachmentStyle === undefined ? {} : { attachmentStyle: resolved.characterProfile.attachmentStyle }),
+        // WP-J P2: 台词指纹登记 —— 与依恋风格同一条开场路径.
+        //   缺了这一步, 渲染层拿不到「你说话的味道」, 库里的文案等于白落.
+        ...(resolved.verbalVoice === undefined ? {} : { verbalVoice: resolved.verbalVoice }),
       },
     );
 
@@ -698,6 +701,8 @@ export class DebugSessionService {
           ...(resolved.characterProfile.attachmentStyle === undefined
             ? {}
             : { attachmentStyle: resolved.characterProfile.attachmentStyle }),
+          // WP-J P2: 台词指纹登记 (恢复路径与新建路径同口径).
+          ...(resolved.verbalVoice === undefined ? {} : { verbalVoice: resolved.verbalVoice }),
         },
       );
       handleId = opened.handleId;
