@@ -15,9 +15,12 @@
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import type { Repository } from 'typeorm';
 import { readFile } from 'node:fs/promises';
+// node:path 没有 default export —— unicorn/import-style 对 node: 内置模块误报, 忽略.
+//   (仓库既有约定: 见 debug-session-store.ts / prompt-fingerprint.ts 同款豁免)
+// eslint-disable-next-line unicorn/import-style
 import { join } from 'node:path';
+import type { Repository } from 'typeorm';
 
 import type { QualityAnnotationSaveDto } from './dto/quality-annotation.dto.js';
 import { computeAutoMetrics, toAutoTraces, type AutoMetrics } from './quality-annotation-auto.js';

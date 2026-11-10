@@ -318,11 +318,20 @@ describe('WP-H 第二/三波 · 批次可观测性', () => {
         },
       ]);
 
-      // 零对话文本: 索引里只有 id / 枚举 / 计数.
+      // 零对话文本: 索引里只有 id / 枚举 / 计数 / 版本号.
+      //
+      // ⚠️ 为什么 prompt 这一条从"查子串 'prompt'"改成"查**内容特征**":
+      //   WP-B 给索引加了 promptVersion (16 位哈希的版本号), 字段名本身含 'prompt'
+      //   → 老探针必然误报, 而它本来想拦的是"**prompt 全文**漏进索引".
+      //   改成查真实的 prompt 文本特征 (渲染层 system 开头 / 咨询师输出纪律开头):
+      //   判据更准, 而且比原来**更严** —— 原来那三个子串本来就拦不住任何中文正文.
       const raw = readFileSync(indexPath, 'utf8');
       expect(raw).not.toContain('text');
       expect(raw).not.toContain('reply');
-      expect(raw).not.toContain('prompt');
+      expect(raw).not.toContain('你正在扮演一位来访者');
+      expect(raw).not.toContain('输出纪律');
+      // 版本号要真的进索引 (WP-B: prompt 模板版本与 engine_version 并列).
+      expect(raw).toContain('promptVersion');
     });
 
     it('单场实时跑也能生成索引 (scope=single, batchId=null)', async () => {

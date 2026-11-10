@@ -69,6 +69,16 @@ export class PracticeBatch {
   @Column({ type: 'varchar', length: 64, nullable: true, name: 'engine_version' })
   engineVersion!: string | null;
 
+  /**
+   * 本批跑的时候的 prompt 模板版本 (V2026-11-10 · WP-B).
+   *
+   * 取批次内**第一个非空**的场次值 —— 同一批的场次理论上同版;
+   *   万一不一致 (中途改代码重启), 取第一个只当"这批大概用的哪版",
+   *   场次级才是逐场的真值 (ap_practice_sessions.prompt_version).
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true, name: 'prompt_version' })
+  promptVersion!: string | null;
+
   /** 首次判定时刻. */
   @Column({ type: 'datetime', name: 'created_at' })
   createdAt!: Date;

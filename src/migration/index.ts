@@ -209,4 +209,10 @@ export { CreateQualityAnnotations1714900000041 } from './1714900000041-CreateQua
 //   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
 export { AddCrisisMetricsToPracticeSessions1714900000042 } from './1714900000042-AddCrisisMetricsToPracticeSessions.js';
 
+// V2026-11-10 治本 (Phase2.5 WP-B — prompt 模板版本列):
+//   ap_practice_sessions / ap_practice_batches 各加 prompt_version VARCHAR(64) NULL.
+//   与 engine_version 分工: 后者答"哪份代码", 它答"prompt 文案是不是同一版".
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
+export { AddPromptVersionColumns1714900000043 } from './1714900000043-AddPromptVersionColumns.js';
+
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

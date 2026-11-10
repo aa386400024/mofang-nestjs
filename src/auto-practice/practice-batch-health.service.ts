@@ -68,6 +68,8 @@ export interface BatchSessionMetrics {
   readonly renderFallbackRatio: number | null;
   readonly exitReason: string | null;
   readonly engineVersion: string | null;
+  /** WP-B: 本场跑的时候的 prompt 模板版本 (批次对比用). */
+  readonly promptVersion: string | null;
 }
 
 /**
@@ -126,6 +128,7 @@ export function toBatchSessionMetrics(row: PracticeSession): BatchSessionMetrics
     renderFallbackRatio: toRatio(row.renderFallbackRatio),
     exitReason: row.exitReason,
     engineVersion: row.engineVersion,
+    promptVersion: row.promptVersion,
   };
 }
 
@@ -264,6 +267,8 @@ interface TranscriptIndexFile {
   /** batch = 批量跑的一批; single = 单场实时跑 (没有 batchId). */
   readonly scope: 'batch' | 'single';
   readonly engineVersion: string | null;
+  /** WP-B: 本批的 prompt 模板版本 (批次对比用). */
+  readonly promptVersion: string | null;
   readonly createdAt: string;
   readonly sessions: readonly TranscriptIndexEntry[];
 }
@@ -354,6 +359,8 @@ export class PracticeBatchHealthService {
       row.valid = health.valid ? 1 : 0;
       row.validityFlags = health.flags.length > 0 ? health.flags.join(',') : null;
       row.engineVersion = rows.find((r) => r.engineVersion)?.engineVersion ?? null;
+      // WP-B: prompt 模板版本 —— 批次对比时"prompt 是不是同一版"就看这一列.
+      row.promptVersion = rows.find((r) => r.promptVersion)?.promptVersion ?? null;
       if (!existing) row.createdAt = now;
       row.updatedAt = now;
       await this.batchRepo.save(row);
@@ -375,6 +382,7 @@ export class PracticeBatchHealthService {
         batchId: scope === 'batch' ? key : null,
         scope,
         engineVersion: rows.find((row) => row.engineVersion)?.engineVersion ?? null,
+        promptVersion: rows.find((row) => row.promptVersion)?.promptVersion ?? null,
         createdAt: new Date().toISOString(),
         sessions: rows.map((row) => ({
           practiceSessionId: row.id,

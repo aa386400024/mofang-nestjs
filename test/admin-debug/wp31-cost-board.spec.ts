@@ -399,7 +399,7 @@ describe('WP31 · 成本看板切真 API', () => {
       expect(classGuards).toContain(AdminRoleGuard);
     });
 
-    it('2 个新端点都是 GET 且有效 guard 含 AdminRoleGuard', () => {
+    it('2 个新端点都在 + 全部端点的有效 guard 都含 AdminRoleGuard', () => {
       const prototype = AdminDebugController.prototype;
       const classGuards = (Reflect.getMetadata(GUARDS_METADATA, AdminDebugController) as unknown[] | undefined) ?? [];
       const routes: { readonly path: string; readonly method: number; readonly guards: unknown[] }[] = [];
@@ -420,10 +420,14 @@ describe('WP31 · 成本看板切真 API', () => {
       const paths = routes.map((route) => route.path);
       expect(paths).toContain('cost/trend');
       expect(paths).toContain('cost/sessions');
+      // 守卫断言对**所有**端点生效 (class 级 guard 自动继承).
       for (const route of routes) {
-        expect(route.method).toBe(RequestMethod.GET);
         expect(route.guards).toContain(AdminRoleGuard);
       }
+      // method 断言只管**读端点** —— 写端点 (POST characters) 单独钉住,
+      //   口径与 wp26 的同类用例一致 (为什么不再一刀切断言"全是 GET"见那里的注释).
+      const writeRoutes = routes.filter((route) => route.method !== RequestMethod.GET);
+      expect(writeRoutes.map((route) => `${RequestMethod[route.method]} ${route.path}`).sort()).toEqual(['POST characters']);
     });
   });
 });

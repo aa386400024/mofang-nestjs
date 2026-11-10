@@ -252,6 +252,17 @@ export class PracticeSession {
   engineVersion!: string | null;
 
   /**
+   * prompt 模板版本 (V2026-11-10 · WP-B): 关键 prompt 模板文件的 sha256 前 16 位.
+   *
+   * 与 `engineVersion` 的分工: engineVersion 答"哪份代码", 这个答
+   * "**prompt 文案**是不是同一版" —— 批次对比时后者才是要看的那个数.
+   *
+   * NULL = 算不出 / 老场次没记 (= 不知道, 不是"和上一批一样").
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true, name: 'prompt_version' })
+  promptVersion!: string | null;
+
+  /**
    * 本场 LLM 总成本 (**已废弃** —— 历史列, 声明"美元"但全仓零写入点, 恒 NULL).
    *
    * V2026-11-09 (Phase2.5 WP-F): 成本口径改为**人民币元**, 权威字段是 `total_cost_cny`.

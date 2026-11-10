@@ -17,6 +17,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { execFileSync } from 'node:child_process';
 
+import { computePromptVersion, resolvePromptVersion } from './prompt-fingerprint.js';
 import { CharacterVersionRegistry } from '../voice/character-version-slot.js';
 
 /**
@@ -102,6 +103,13 @@ export interface InferenceFingerprint {
   readonly scenarioType: ScenarioType;
   /** 后端代码版本 (git sha 或 build id; 缺省 "dev"). */
   readonly engineVersion: string;
+  /**
+   * prompt 模板版本 (关键 prompt 模板文件的 sha256 前 16 位; 算不出时 "unknown").
+   *
+   * 与 `engineVersion` 的分工: engineVersion 答"哪份代码", promptVersion 答
+   * "**prompt 文案**是不是同一版" —— 批次对比时后者才是要看的那个数.
+   */
+  readonly promptVersion: string;
   /** 逻辑种子 (批次+会话的确定性标识, 不是 LLM seed). */
   readonly sessionSeed: string;
 }
@@ -110,6 +118,8 @@ export interface InferenceFingerprint {
 export class InferenceFingerprintService {
   /** 引擎版本描述缓存 (null = 还没算过). */
   private cachedEngineVersion: string | null = null;
+  /** prompt 模板指纹缓存 (null = 还没算过). */
+  private cachedPromptVersion: string | null = null;
 
   constructor(
     private readonly config: ConfigService,
@@ -149,6 +159,7 @@ export class InferenceFingerprintService {
       deliberationMode,
       scenarioType,
       engineVersion: resolveEngineVersion(this.config.get<string>('ENGINE_VERSION'), () => this.describeEngineVersion()),
+      promptVersion: resolvePromptVersion(this.config.get<string>('PROMPT_VERSION'), () => this.describePromptVersion()),
       sessionSeed,
     };
   }
@@ -162,6 +173,17 @@ export class InferenceFingerprintService {
   private describeEngineVersion(): string {
     this.cachedEngineVersion ??= gitDescribeDirty();
     return this.cachedEngineVersion;
+  }
+
+  /**
+   * 取 prompt 模板指纹 (进程内**只算一次**).
+   *
+   * 为什么缓存: 指纹要读几个文件做 sha256 —— 一场对练建一次指纹就算一次的话,
+   *   100 场批次 = 几百次文件读. 模板在一次进程生命周期里不会变, 算一次就够.
+   */
+  private describePromptVersion(): string {
+    this.cachedPromptVersion ??= computePromptVersion();
+    return this.cachedPromptVersion;
   }
 
   /**

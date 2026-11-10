@@ -247,7 +247,10 @@ describe('V2026-11-05 · 调试会话持久化', () => {
   });
 
   afterEach(async () => {
-    await rm(dir, { recursive: true, force: true });
+    // maxRetries/retryDelay: Windows 上递归删目录会偶发 ENOTEMPTY
+    //   (Node 的 fs.rm 默认 maxRetries=0, 不重试; 高负载全量跑时目录项可能还在落盘).
+    //   口径与 test/admin-debug/wp38-debug-session-resume.spec.ts 一致.
+    await rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   });
 
   // ── ① 文件存储 ───────────────────────────────────────────────────────────
@@ -359,13 +362,20 @@ describe('V2026-11-05 · 调试会话持久化', () => {
   });
 
   // ── ② 保留上限 ───────────────────────────────────────────────────────────
-  describe('② 保留最近 50 个会话', () => {
+  describe(`② 保留最近 ${MAX_DEBUG_SESSIONS} 个会话`, () => {
     it(`超出 ${MAX_DEBUG_SESSIONS} 个 → 最旧的被自动删掉`, async () => {
+      // createdAt **严格递增** (每场 +1 秒) → 淘汰名单唯一确定.
+      //
+      // ⚠️ 为什么不能用 `12:${i % 60}` 那种写法:
+      //   它只保证**前 60 场**的时间戳互不相同. MAX_DEBUG_SESSIONS 从 50 抬到 500
+      //   (commit 1cd56ee, 为了批量实验不吃掉对比基线) 之后, 场次数超过 60,
+      //   时间戳开始**每 60 场循环一次** → 同秒的场次并列 → prune 按 createdAt
+      //   排序时"最旧的 3 个"具体是哪几个变得不确定 (取决于 readdir 顺序).
+      //   这**不是生产逻辑的 bug** (prune 保留的是 createdAt 最新的 MAX 个, 语义正确),
+      //   是**夹具造法**依赖了"场数 < 60"这个已经失效的前提 —— 断言因此随机红.
+      const base = Date.parse('2026-11-05T12:00:00.000Z');
       for (let i = 0; i < MAX_DEBUG_SESSIONS + 3; i += 1) {
-        // createdAt 递增 → 最后一个最新.
-        await store.create(
-          buildRecord(`debug_${String(i).padStart(3, '0')}`, { createdAt: `2026-11-05T12:${String(i % 60).padStart(2, '0')}:00.000Z` }),
-        );
+        await store.create(buildRecord(`debug_${String(i).padStart(3, '0')}`, { createdAt: new Date(base + i * 1000).toISOString() }));
       }
 
       const files = await readdir(dir);
@@ -374,8 +384,15 @@ describe('V2026-11-05 · 调试会话持久化', () => {
       expect(files).not.toContain('debug_000.json');
       expect(files).not.toContain('debug_001.json');
       expect(files).not.toContain('debug_002.json');
-      expect(files).toContain('debug_052.json');
-    });
+      expect(files).toContain(`debug_${String(MAX_DEBUG_SESSIONS + 2).padStart(3, '0')}.json`);
+      // 单独给 120s 超时: 这条用例要建 503 个会话, 而 **每次 create 都会触发一次
+      //   prune()** —— prune 是个平方级 IO (readdir + 逐个 readFile + JSON.parse
+      //   全部会话文件, 上限 500) → 建 503 场约 12 万次文件读.
+      //   单独跑约 7~9s, 但全量跑时 (174 个 worker 并行 + 同机其它任务) 会超过
+      //   vitest 全局 30s 的 testTimeout → 随机红.
+      //   ⚠️ 治本 (prune 改用内存索引, 不再每次读盘) 属**生产代码**改动, 不在
+      //   本单范围 —— 这里只把超时放宽, 断言一个字没动.
+    }, 120_000);
   });
 
   // ── ③ 标题生成 ───────────────────────────────────────────────────────────

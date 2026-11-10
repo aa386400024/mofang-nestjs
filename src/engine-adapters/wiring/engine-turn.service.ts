@@ -134,6 +134,12 @@ export class EngineTurnService {
       readonly narrativeStyle?: TurnSessionContext['narrativeStyle'];
       readonly expressionTone?: TurnSessionContext['expressionTone'];
       /**
+       * 依恋风格 (WP-J P1d): 渲染层的依恋行为指引开关 (anxious 通道).
+       *
+       * ⚠️ 缺省 = 不登记 = 渲染层不消费 = prompt 逐字不变 (零回归).
+       */
+      readonly attachmentStyle?: TurnSessionContext['attachmentStyle'];
+      /**
        * 学员账号 id (V2026-11-05 WP64).
        *
        * 用途: LLM 审议的计费 / 审计归属 —— 归属登记后, 旁路审议才知道该把这次调用记在谁头上.
@@ -167,6 +173,8 @@ export class EngineTurnService {
       ...(options?.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: options.speechVolumeBaseline }),
       ...(options?.narrativeStyle === undefined ? {} : { narrativeStyle: options.narrativeStyle }),
       ...(options?.expressionTone === undefined ? {} : { expressionTone: options.expressionTone }),
+      // WP-J P1d: 依恋风格登记 —— 条件展开, 缺省不登记 (零回归: prompt 逐字不变).
+      ...(options?.attachmentStyle === undefined ? {} : { attachmentStyle: options.attachmentStyle }),
       // WP64: 学员账号 + 角色简述 —— 条件展开 (缺省 = 旁路审议跳过这一轮, 不影响会话).
       ...(options?.userId ? { userId: options.userId } : {}),
       ...(options?.characterBrief ? { characterBrief: options.characterBrief } : {}),

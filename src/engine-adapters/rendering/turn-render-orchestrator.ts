@@ -205,6 +205,24 @@ export interface TurnSessionContext {
   readonly expressionTone?: RenderSpec['expressionTone'];
   /** 台词指纹 (WP-J P2): 自由文本, 渲染层 prompt 用. */
   readonly verbalVoice?: string;
+  /**
+   * 依恋风格 (WP-J P1d): 渲染层的**依恋行为指引**开关.
+   *
+   * 为什么必须登记在**会话归属**里 (与 verbalVoice 同一处):
+   *   归属登记表是**装配层唯一同时知道"业务会话是谁"与"这场用的是哪个角色"的位置** ——
+   *   依恋风格是角色的固有属性 (整个会话不变), 不是本轮状态.
+   *
+   * ⚠️ WP-J P1c 修本条的原因 (为什么之前它一直是 undefined):
+   *   `appendAttachmentBehavior()` 靠 `spec.attachmentStyle` 决定要不要渲染
+   *   `ATTACHMENT_BEHAVIOR_INSTRUCTION` (anxious 专属的求证/讨好通道).
+   *   而 spec-assembler 只在**调用方显式传了** `attachmentStyle` 时才带上该字段 ——
+   *   装配层没登记 → spec 里没有 → 指引块**一次都没进过 prompt**.
+   *   于是 "anxious 行为通道" 这项修复实际上从未跑过 (P1c 实测: anxious 角色
+   *   阻抗 0% / 探索 0%, 与基线逐字相同).
+   *
+   * 缺省 = 不带 = 渲染层不消费 = prompt 与 WP-J P1c 之前**逐字不变** (零回归).
+   */
+  readonly attachmentStyle?: RenderSpec['attachmentStyle'];
 }
 
 /**
@@ -995,6 +1013,8 @@ export class TurnRenderOrchestrator {
       ...(context?.narrativeStyle === undefined ? {} : { narrativeStyle: context.narrativeStyle }),
       ...(context?.expressionTone === undefined ? {} : { expressionTone: context.expressionTone }),
       ...(context?.verbalVoice === undefined ? {} : { verbalVoice: context.verbalVoice }),
+      // WP-J P1d: 依恋风格透传 —— 不传则 spec 里没有该字段, 渲染层不渲染行为指引 (零回归).
+      ...(context?.attachmentStyle === undefined ? {} : { attachmentStyle: context.attachmentStyle }),
     });
   }
 
@@ -1675,12 +1695,21 @@ const ATTACHMENT_BEHAVIOR_INSTRUCTION: Readonly<Record<AttachmentStyle, string>>
  *
  * P2 v1: 88.9% 场次末 3 轮停在表层, recounting 54.8% —— 来访者只复述同一件事.
  * 探索门槛 (trust/safety ≥ 0.6) 是内核门槛, 本期不动; 渲染层先保证"就算在叙述,
- * 每两三轮也带一个新细节", 为后续门槛标定留出深度素材.
+ * 每两三轮也带出一个新细节", 为后续门槛标定留出深度素材.
+ *
+ * ⚠️ **WP-J P1d 补了第二条约束 (为什么)**: P1c 实测发现, 光有"带出新细节"不够 ——
+ *   "把事实换个说法再讲一遍"也算"新细节", 于是模型学会了**换着法子复述**:
+ *   同口径基线对照 (cold+expert@12): recounting 53.9% → 80.9%, 表层停留 85.2% → 100%,
+ *   而 resistance 25.4% → 9.0% (停滞判定确实修好了).
+ *   也就是说: 停滞消了, 深度没来 —— 能量从"阻抗"挪到了"复述".
+ *   所以现在补一条**方向**约束: 新细节必须往情感体验 (affective) 或认知反思 (cognitive) 走,
+ *   单纯复述事实不算推进. 这仍然只动**外层 prompt**, 不碰内核策略与阈值.
  *
  * ⚠️ 工程种子值, 待标定.
  */
 const INFO_INCREMENT_INSTRUCTION =
-  '每说两三轮，要带出一个之前没提过的新细节：一个具体场景、一句当时的感受、或一个没说过的念头；不要只把同一件事翻来覆去地说。';
+  '每说两三轮，要带出一个之前没提过的新细节：一个具体场景、一句当时的感受、或一个没说过的念头；不要只把同一件事翻来覆去地说。' +
+  '而且这个新细节要往深处走 —— 要么指向你当下的感受（当时其实挺难受／有点怕），要么是你自己才想明白的一点（现在我才发现……）；只是把事情重新讲一遍不算推进。';
 
 /**
  * 叙事逻辑风格 (WP41) —— 取值取自内核契约.
@@ -1762,10 +1791,32 @@ const RISK_GUARDRAIL =
  */
 /** WP-J: 依恋行为指引块 (只 anxious 有文案, 其余空串 = 不渲染). */
 function appendAttachmentBehavior(lines: string[], spec: AdaptiveRenderSpec): void {
-  const behavior = spec.attachmentStyle ? ATTACHMENT_BEHAVIOR_INSTRUCTION[spec.attachmentStyle] : '';
+  const style = spec.attachmentStyle;
+  if (style === undefined) return;
+  const behavior = ATTACHMENT_BEHAVIOR_INSTRUCTION[style];
   if (behavior.length > 0) {
     lines.push('', '你的依恋模式带来的行为习惯（平时就有的，不是这一轮的情绪；自然带出来，不要刻意念出来）：', behavior);
+    logAttachmentBehaviorInjection(style, behavior.length);
   }
+}
+
+/**
+ * dev 调试日志: 依恋行为指引**确实已进 prompt** 的锚点.
+ *
+ * 为什么要有这条 (为什么不能只靠 logPromptCharacterFragment):
+ *   P1c 的结论是「指引不生效」, 根因是 **spec 里没有 attachmentStyle**,
+ *   也就是依恋指引根本没被渲染. 旧日志只能证明「spec 带了这个字段」,
+ *   证不了「指引文案进了 prompt」—— 两者之间还可能有漏点.
+ *   本行是直接在插入点之后打印的 —— 它打印时文案已经在 lines 里了.
+ *
+ * 隐私红线: 只打印**风格名 + 文案长度**, 不打印指引文案本身,
+ *   更不打印任何来访者台词原文.
+ *
+ * 只在非生产环境打印 (与 logPromptCharacterFragment 同规矩).
+ */
+function logAttachmentBehaviorInjection(style: AttachmentStyle, length: number): void {
+  if (process.env.NODE_ENV === 'production') return;
+  console.log(`[TurnRenderOrchestrator] 依恋行为指引已注入 prompt: style=${style} len=${length}`);
 }
 
 function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec): string {
@@ -1910,6 +1961,7 @@ function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec): string {
     // WP35 手法三: 表达层轻量随机.
     VARIATION_INSTRUCTION,
     // WP-J: 信息增量 —— 别把同一件事翻来覆去, 每两三轮带一个新细节.
+    // WP-J P1d: 这条指令的第二句 (深度约束) 把"新细节"的方向钉住, 防"换着法子复述".
     INFO_INCREMENT_INSTRUCTION,
     // 为什么把"说完就停"放在这一块**最后**:
     //   这一块现在有五行 (话量 / 语气 / 情绪 / 变化 / 信息增量), 收尾的"交还话头"是**硬行为

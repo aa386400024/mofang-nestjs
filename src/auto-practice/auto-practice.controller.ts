@@ -220,6 +220,11 @@ export class AutoPracticeController {
       batchId,
       total: sessions.length,
       byStatus: Object.fromEntries(byStatus),
+      // WP-B: 版本口径 —— 批次对比时先看这两个数:
+      //   engineVersion  = 哪份代码跑的; promptVersion = **prompt 文案**是不是同一版.
+      //   取批次内第一个非空值 (同一批理论上同版; 场次级才是逐场真值).
+      engineVersion: sessions.find((row) => row.engineVersion)?.engineVersion ?? null,
+      promptVersion: sessions.find((row) => row.promptVersion)?.promptVersion ?? null,
       metrics: {
         totalTurns: metrics.totalTurns,
         renderFallbackTurns: metrics.renderFallbackTurns,
@@ -244,6 +249,9 @@ export class AutoPracticeController {
         renderFallbackTurns: r.renderFallbackTurns,
         llmCallTurns: r.llmCallTurns,
         renderFallbackRatio: r.renderFallbackRatio,
+        // WP-B: 逐场带上两个版本号 (逐场才是真值).
+        engineVersion: r.engineVersion,
+        promptVersion: r.promptVersion,
       })),
     };
   }

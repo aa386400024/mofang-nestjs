@@ -320,23 +320,36 @@ describe('WP26 §1 P2-4 · admin-debug 命名空间加角色校验', () => {
       // 这里把端点清单一起列出来, 免得将来加端点时"忘了挂 guard"却没人发现.
       // V2026-11-05 (WP31): 再加 2 个成本看板端点.
       // V2026-11-07 (影子模式数据统计面板): 再加 1 个审议统计端点.
-      expect(routes.map((route) => route.path).sort()).toEqual([
-        'characters',
-        'characters/:slug',
-        'characters/:slug/sessions',
-        'cost/sessions',
-        'cost/trend',
-        'deliberation/stats',
-        'health',
-        'sessions',
-        'sessions/:id',
-        'sessions/:id/memories',
-        'sessions/:id/trajectory',
+      // 清单用 "METHOD path" 表述 —— 同路径不同 method 才分得开.
+      // (以前只列 path: Phase2.5 加了 POST characters 之后, GET/POST 同路径
+      //  在清单里长得一模一样, 看不出是哪一条.)
+      expect(routes.map((route) => `${RequestMethod[route.method]} ${route.path}`).sort()).toEqual([
+        'GET characters',
+        'GET characters/:slug',
+        'GET characters/:slug/sessions',
+        'GET cost/sessions',
+        'GET cost/trend',
+        'GET deliberation/stats',
+        'GET health',
+        'GET sessions',
+        'GET sessions/:id',
+        'GET sessions/:id/memories',
+        'GET sessions/:id/trajectory',
+        'POST characters',
       ]);
+      // 守卫断言对**所有**端点生效 (这才是本用例的目的).
       for (const route of routes) {
-        expect(route.method).toBe(RequestMethod.GET);
         expect(route.guards).toContain(AdminRoleGuard);
       }
+      // method 断言: **写端点有且只有一个** (Phase2.5 角色池扩充用的 POST characters),
+      // 其余全是只读.
+      //
+      // 为什么不是"全部端点都必须是 GET": 那个断言是"这个命名空间只读"的代理,
+      //   Phase2.5 引入写端点后它必然红 —— 但那不等于"守卫没生效".
+      //   这里把不变量改成**更精确**的版本: 除了这一个明确登记过的写端点,
+      //   其余都是只读; 将来再加第二个写端点会红 (而不是默默放行).
+      const writeRoutes = routes.filter((route) => route.method !== RequestMethod.GET);
+      expect(writeRoutes.map((route) => `${RequestMethod[route.method]} ${route.path}`).sort()).toEqual(['POST characters']);
     });
 
     it('洞察面 (V2026-11-05) 的 5 个新端点也全部继承 class 级 AdminRoleGuard', () => {

@@ -439,6 +439,9 @@ export class EngineStreamBackend implements VoiceTurnBackend {
       ...(profile?.narrativeStyle === undefined ? {} : { narrativeStyle: profile.narrativeStyle }),
       ...(profile?.expressionTone === undefined ? {} : { expressionTone: profile.expressionTone }),
       ...(character?.verbalVoice ? { verbalVoice: character.verbalVoice } : {}),
+      // WP-J P1d: 依恋风格 —— 语音链路的开场登记点 (自动对练/调试面板走 debug-session 那条).
+      //   不登记则渲染层拿不到 attachmentStyle, anxious 行为指引永远不渲染.
+      ...attachmentStyleOption(profile),
       // WP64: 旁路审议的计费归属 (学员账号) —— 缺省 = 审议层跳过 (见 engine-turn.service.ts).
       ...(opts.userId?.trim() ? { userId: opts.userId.trim() } : {}),
       // WP64: 角色底色简述 (依恋 + 大五) —— 审议 prompt 的「角色背景」块.
@@ -1677,6 +1680,25 @@ function resolveCharacterKey(opts: VoiceTurnBackendOpenOptions, characterId: str
 function buildMemoryScope(userId: string | undefined, characterKey: string): string {
   const user = (userId ?? '').trim();
   return user.length > 0 ? `${user}:${characterKey}` : characterKey;
+}
+
+/**
+ * 依恋风格 → 开场登记选项 (WP-J P1d).
+ *
+ * 为什么抽成**模块级函数**而不是在 `openKernelSession()` 里写条件展开:
+ *   那个方法的圈复杂度已经贴着仓库上限 (eslint complexity ≤ 20), 内联三元会把它顶穿.
+ *   抽出来 = 判定逻辑单点可测, 主方法复杂度不变.
+ *
+ * 缺省 = 空对象 = 不登记 = 渲染层不消费 = prompt 逐字不变 (零回归).
+ *
+ * @param profile 已解析的角色内核基线
+ * @returns 登记选项 (有依恋风格才带 key)
+ */
+function attachmentStyleOption(profile: CharacterProfile | undefined): {
+  readonly attachmentStyle?: CharacterProfile['attachmentStyle'];
+} {
+  const style = profile?.attachmentStyle;
+  return style === undefined ? {} : { attachmentStyle: style };
 }
 
 /**

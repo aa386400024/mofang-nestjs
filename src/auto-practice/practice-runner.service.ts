@@ -253,6 +253,8 @@ export class PracticeRunnerService implements OnModuleInit {
     let crisisEnded = 0;
     let turnCount = 0;
     let degradedTurns = 0;
+    let counselorDegradedTurns = 0;
+    let visitorDegradedTurns = 0;
     let errorMessage: string | null = null;
     // WP-F Step 0: 本场累计用量 (循环里原地累加; 抛异常也不丢 —— 已经花的钱要算进去).
     const usage: PracticeUsage = { turnCount: 0, promptTokens: 0, completionTokens: 0, reasoningTokens: 0 };
@@ -286,6 +288,10 @@ export class PracticeRunnerService implements OnModuleInit {
       crisisEnded: number;
       turnCount: number;
       degradedTurns: number;
+      counselorDegradedTurns: number;
+      visitorDegradedTurns: number;
+      renderFallbackTurns: number;
+      llmCallTurns: number;
       metrics: PracticeRunMetrics;
     };
     try {
@@ -297,6 +303,12 @@ export class PracticeRunnerService implements OnModuleInit {
         crisisEnded: 0,
         turnCount: 0,
         degradedTurns: 0,
+        counselorDegradedTurns: 0,
+        visitorDegradedTurns: 0,
+        // WP-J P1d: 循环抛异常 → 计数按 0 落库 (与既有 degraded_turns 同口径:
+        //   异常路径拿不到循环内的局部计数, 不拿"部分值"冒充整场口径).
+        renderFallbackTurns: 0,
+        llmCallTurns: 0,
         metrics: emptyMetrics(),
       };
       errorMessage = errorName(error);
@@ -314,6 +326,11 @@ export class PracticeRunnerService implements OnModuleInit {
     crisisEnded = loopResult.crisisEnded;
     turnCount = loopResult.turnCount;
     degradedTurns = loopResult.degradedTurns;
+    counselorDegradedTurns = loopResult.counselorDegradedTurns;
+    visitorDegradedTurns = loopResult.visitorDegradedTurns;
+    // WP-J P1d: 批次有效性门禁的两列 (访客侧口径).
+    const renderFallbackTurns = loopResult.renderFallbackTurns;
+    const llmCallTurns = loopResult.llmCallTurns;
     const metrics = loopResult.metrics;
 
     // ⑥ 结算 token / 成本 (WP-F Step 0).
@@ -355,6 +372,15 @@ export class PracticeRunnerService implements OnModuleInit {
       crisisPeakLevel: metrics.crisisPeakLevel,
       crisisCategory: metrics.crisisCategory,
       crisisEscalated: metrics.crisisEscalated ? 1 : 0,
+      // WP-J P1d: 渲染兜底 / 真实调用两列落库 (批次有效性门禁靠它们判合格).
+      //   ⚠️ 这两列此前**建了但没人写** → 批次健康服务永远算出 llmCallRatio=0,
+      //     于是任何批次都被判 `LLM_CALL_RATIO_LOW` + `FALLBACK_RATIO_UNKNOWN` 不合格.
+      renderFallbackTurns,
+      llmCallTurns,
+      // WP-J P1d: 两侧降级拆分列落库 (WP-H 改动 5 建了, 此前同样没人写).
+      //   `degraded_turns` 仍是两侧合计 (口径不变), 这两列给出"哪一侧降的".
+      counselorDegradedTurns,
+      visitorDegradedTurns,
     });
 
     // ⑧ 推 session_end.
@@ -415,6 +441,14 @@ export class PracticeRunnerService implements OnModuleInit {
     crisisEnded: number;
     turnCount: number;
     degradedTurns: number;
+    /** WP-J P1d: 咨询师侧降级轮数 (两侧拆分, WP-H 改动 5 的列此前无人写). */
+    counselorDegradedTurns: number;
+    /** WP-J P1d: 来访者侧降级轮数 (同上). */
+    visitorDegradedTurns: number;
+    /** WP-J P1d: 访客侧渲染兜底轮数. */
+    renderFallbackTurns: number;
+    /** WP-J P1d: 访客侧真实 LLM 调用轮数. */
+    llmCallTurns: number;
     metrics: PracticeRunMetrics;
   }> {
     let status: PracticeSessionStatus = 'running';
@@ -436,6 +470,16 @@ export class PracticeRunnerService implements OnModuleInit {
       escalated: false,
     };
     let degradedTurns = 0;
+    // WP-J P1d: 两侧降级**分开**计数 —— `degraded_turns` 仍是两侧合计 (口径不变),
+    //   但 `counselor_degraded_turns` / `visitor_degraded_turns` 这两列 WP-H 就建好了,
+    //   此前**全库无人写** → 批次看板与 audit 拿到的永远是 0.
+    let counselorDegradedTurns = 0;
+    let visitorDegradedTurns = 0;
+    // WP-J P1d: 访客侧两个口径 (批次有效性门禁的两列, 见 §2).
+    //   renderFallbackTurns —— 访客侧渲染兜底 (providerHint==='degraded') 的轮数;
+    //   llmCallTurns        —— 访客侧**真调了 LLM** 的轮数 (兜底轮与阻断轮都不算).
+    let renderFallbackTurns = 0;
+    let llmCallTurns = 0;
 
     for (let i = 1; i <= maxTurns; i += 1) {
       // AI 咨询师生成台词.
@@ -444,7 +488,10 @@ export class PracticeRunnerService implements OnModuleInit {
       const counselorReply = await this.counselorAgent.generate(input.counselorMode, history, {
         crisisMode: crisisWindow.active,
       });
-      if (counselorReply.degraded) degradedTurns += 1;
+      if (counselorReply.degraded) {
+        degradedTurns += 1;
+        counselorDegradedTurns += 1;
+      }
       history.push({ role: 'counselor', text: counselorReply.text });
 
       // 引擎跑一轮.
@@ -452,7 +499,21 @@ export class PracticeRunnerService implements OnModuleInit {
       turnCount = result.turnIndex;
       // WP-F Step 0: 累加本轮 LLM 用量 (只取数字, 不碰任何心理内容).
       this.accumulateUsage(usage, result.trace);
-      if (result.trace.degraded) degradedTurns += 1;
+      if (result.trace.degraded) {
+        degradedTurns += 1;
+        visitorDegradedTurns += 1;
+      }
+      // WP-J P1d: 访客侧口径分账 ——
+      //   ① 兜底轮 (trace.degraded): 渲染层吐的是系统兜底句, **没调成 LLM**;
+      //   ② 阻断轮 (disposal=block): 来访者一个字都没说 (reply 为空), 也没调 LLM;
+      //   ③ 其余轮: 真调了 LLM, 计入 llm_call_turns.
+      //   ⚠️ "回复非空"是判据 (不是 token 数): token 可能是 0 而调用是真的,
+      //     反过来兜底轮回复非空但根本没调用 —— 只有"有内容且没降级"才等于真调用.
+      if (result.trace.degraded) {
+        renderFallbackTurns += 1;
+      } else if (result.reply.trim().length > 0) {
+        llmCallTurns += 1;
+      }
       history.push({ role: 'visitor', text: result.reply });
 
       // 推 turn 事件.
@@ -533,7 +594,18 @@ export class PracticeRunnerService implements OnModuleInit {
       crisisEscalated: crisisWindow.escalated,
     };
 
-    return { status, exitReason, crisisEnded, turnCount, degradedTurns, metrics };
+    return {
+      status,
+      exitReason,
+      crisisEnded,
+      turnCount,
+      degradedTurns,
+      counselorDegradedTurns,
+      visitorDegradedTurns,
+      renderFallbackTurns,
+      llmCallTurns,
+      metrics,
+    };
   }
 
   /**
@@ -615,6 +687,8 @@ export class PracticeRunnerService implements OnModuleInit {
       characterVersion: fingerprint.characterVersion,
       deliberationMode: fingerprint.deliberationMode,
       engineVersion: fingerprint.engineVersion,
+      // WP-B: prompt 模板版本 —— 批次对比时靠它判断"prompt 文案是不是同一版".
+      promptVersion: fingerprint.promptVersion,
     });
     return fingerprint;
   }
@@ -664,11 +738,43 @@ export class PracticeRunnerService implements OnModuleInit {
       crisisPeakLevel: number;
       crisisCategory: string | null;
       crisisEscalated: number;
+      /**
+       * WP-J P1d: 访客侧渲染兜底轮数 (providerHint==='degraded').
+       *
+       * 与既有 `degradedTurns` 的差别: `degradedTurns` 是**两侧**合计
+       *   (咨询师侧降级 + 访客侧降级), 这里是**访客侧**那一半 ——
+       *   批次健康服务的 `render_fallback_ratio` 问的是"渲染层兜底了多少轮".
+       */
+      renderFallbackTurns: number;
+      /**
+       * WP-J P1d: 访客侧**真实 LLM 调用**轮数 (兜底轮 / 阻断轮都不算).
+       *
+       * ⚠️ 不是 maxTurns: 批次健康服务的 `llm_call_ratio` 要判的是
+       *   "这场到底有没有真调上 LLM", 拿 maxTurns 冒充会让整场兜底的批次也被判合格.
+       */
+      llmCallTurns: number;
+      /**
+       * WP-J P1d: 咨询师侧降级轮数 (WP-H 改动 5 的列, 此前无人写).
+       *
+       * 与 `degradedTurns` 的差别: `degradedTurns` 是**两侧**合计,
+       *   这里是咨询师那一半 —— 批次看板要分得清"谁降的".
+       */
+      counselorDegradedTurns: number;
+      /**
+       * WP-J P1d: 来访者侧降级轮数 (同上).
+       */
+      visitorDegradedTurns: number;
     },
   ): Promise<void> {
     await this.sessionRepo
       .update(id, {
         ...fields,
+        // WP-J P1d: 渲染兜底率 = `render_fallback_turns / turn_count` (实体注释里的口径).
+        //   ⚠️ 这列此前**建了但没人写** → 批次健康服务的 fallback_ratio 永远是 null
+        //      → 每个批次都被标 `FALLBACK_RATIO_UNKNOWN` → valid 永远 false.
+        //   分子分母都取**访客侧**口径 (turn_count = 来访者轮数), 与 render_fallback_turns 同源.
+        //   turn_count = 0 (没跑起来) → 落 null: "没测过" ≠ 0, 不替历史数据编结论.
+        renderFallbackRatio: fields.turnCount > 0 ? fields.renderFallbackTurns / fields.turnCount : null,
         finishedAt: new Date(),
       })
       .catch((error: unknown) => {

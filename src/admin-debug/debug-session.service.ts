@@ -466,6 +466,9 @@ export class DebugSessionService {
         // 审议侧要一个非空 userId (否则影子审议跳过这一轮 → 面板看不到审议 trace).
         userId: DEBUG_CHAT_VISITOR_ID,
         characterBrief: buildCharacterBrief(resolved),
+        // WP-J P1d: 依恋风格登记 —— 自动对练 / 调试面板都走这一条开场路径.
+        //   不登记则渲染层拿不到 attachmentStyle, anxious 行为指引永远不渲染.
+        ...(resolved.characterProfile.attachmentStyle === undefined ? {} : { attachmentStyle: resolved.characterProfile.attachmentStyle }),
       },
     );
 
@@ -691,6 +694,10 @@ export class DebugSessionService {
           characterLabel: resolved.displayName,
           userId: DEBUG_CHAT_VISITOR_ID,
           characterBrief: buildCharacterBrief(resolved),
+          // WP-J P1d: 依恋风格登记 (恢复路径与新建路径同口径).
+          ...(resolved.characterProfile.attachmentStyle === undefined
+            ? {}
+            : { attachmentStyle: resolved.characterProfile.attachmentStyle }),
         },
       );
       handleId = opened.handleId;
