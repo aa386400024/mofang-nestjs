@@ -221,4 +221,8 @@ export { AddPromptVersionColumns1714900000043 } from './1714900000043-AddPromptV
 //   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏建.
 export { CreatePracticeTurns1714900000044 } from './1714900000044-CreatePracticeTurns.js';
 
+// V2026-11-11 WP-K (批次回归追踪 · ap_practice_batches 加 8 指标列 + 2 索引):
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
+export { AddBatchMetricsColumns1714900000045 } from './1714900000045-AddBatchMetricsColumns.js';
+
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

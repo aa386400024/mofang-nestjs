@@ -189,11 +189,11 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
       trust: 0.1,
       safety: 0.02,
       bond: 0.01,
-      verbal: -0.08,
-      depth: -0.1,
-      style: -0.06,
-      valence: 0.1,
-      arousal: -0.05,
+      verbal: -0.03,
+      depth: -0.02,
+      style: -0.01,
+      valence: 0.03,
+      arousal: -0.02,
       positive: 0.03,
       negative: 0,
       dependency: 0,
@@ -237,9 +237,9 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
     // 本期 sensitive_touch 只记类型不记命中词 (拿不到).
     const touch = row?.eventDetails.find((detail) => detail.kind === 'sensitive_touch');
     expect(touch?.matchedTerms).toEqual([]);
-    // delta = empathy + sensitive_touch 两份系数之和 (safety 0.02 + (-0.01) / arousal -0.05 + 0.15).
+    // delta = empathy + sensitive_touch 两份系数之和 (safety 0.02 + (-0.01) / arousal -0.02 + 0.15).
     expect(row?.rawDelta.safety).toBeCloseTo(0.01, 10);
-    expect(row?.rawDelta.arousal).toBeCloseTo(0.1, 10);
+    expect(row?.rawDelta.arousal).toBeCloseTo(0.13, 10);
   });
 
   it('重试覆盖同一行 (同一轮再记一次不堆行)', async () => {

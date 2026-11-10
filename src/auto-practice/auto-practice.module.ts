@@ -35,6 +35,7 @@ import { PracticeBatch } from './entities/practice-batch.entity.js';
 import { PracticeSession } from './entities/practice-session.entity.js';
 import { PracticeTurn } from './entities/practice-turn.entity.js';
 import { InferenceFingerprintService } from './inference-fingerprint.service.js';
+import { BatchMetricsService } from './metrics/batch-metrics.service.js';
 import { TURN_ENGINE_PORT } from './ports/turn-engine.port.js';
 import { PracticeBatchHealthService } from './practice-batch-health.service.js';
 import { PracticeQueueService } from './practice-queue.service.js';
@@ -65,6 +66,8 @@ import { SemanticTurnPersister } from './semantic/semantic-turn.persister.js';
     PracticeQueueService,
     // V2026-11-10 (WP-H 改动 6/9 + 新增 12): 批次指标聚合 / 有效性门禁 / 逐字稿索引.
     PracticeBatchHealthService,
+    // V2026-11-11 (WP-K): 批次临床指标快照计算 (收尾固化).
+    BatchMetricsService,
     // V2026-11-10 (WP-J P1e Phase2): 来访者语义落库 (解析 + 三份拆解 + upsert).
     SemanticTurnPersister,
     AutoPracticeGateway,

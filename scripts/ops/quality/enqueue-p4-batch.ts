@@ -44,10 +44,7 @@ const CHARACTER_SLUGS: readonly string[] = [
 ];
 
 /** 咨询师模式 (跟 P1c r2 同口径: cold + expert). */
-const COUNSELOR_MODE_IDS: readonly string[] = [
-  'cold',
-  'expert',
-];
+const COUNSELOR_MODE_IDS: readonly string[] = ['cold', 'expert'];
 
 /** 每组合重复几场. 8 角色 × 2 模式 × 6 repeats = 96 场 (≈100 场目标). */
 const REPEATS_PER_COMBO = 6;
@@ -95,10 +92,7 @@ async function main(): Promise<void> {
       for (const modeId of COUNSELOR_MODE_IDS) {
         for (let r = 0; r < REPEATS_PER_COMBO; r += 1) {
           // jobId 用内容派生 (batch_id + slug + mode + repeat), 幂等 —— 重跑不会重复入队
-          const jobId = createHash('sha1')
-            .update(`${BATCH_ID}:${slug}:${modeId}:${r}`)
-            .digest('hex')
-            .slice(0, 16);
+          const jobId = createHash('sha1').update(`${BATCH_ID}:${slug}:${modeId}:${r}`).digest('hex').slice(0, 16);
 
           await queue.add(
             'run-practice',
@@ -120,7 +114,7 @@ async function main(): Promise<void> {
     console.log(`batch_id: ${BATCH_ID}`);
     console.log(`\n下一步:`);
     console.log(`1. 确认 3000 实例的 worker 并发是 1 (AUTO_PRACTICE_WORKER_CONCURRENCY=1)`);
-    console.log(`2. 等批量跑完 (预计 ${Math.ceil(totalExpected * 3 / 60)} 小时, 单场 ~3 分钟, 并发 1)`);
+    console.log(`2. 等批量跑完 (预计 ${Math.ceil((totalExpected * 3) / 60)} 小时, 单场 ~3 分钟, 并发 1)`);
     console.log(`3. 跑完后按 batch_id 从 DB 取 debug_session_id → 拷到独立目录 → 跑 audit`);
   } finally {
     await queue.close();
@@ -129,5 +123,5 @@ async function main(): Promise<void> {
 
 main().catch((error) => {
   console.error('入队失败:', error);
-  process.exit(1);
+  process.exitCode = 1;
 });

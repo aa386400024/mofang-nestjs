@@ -18,10 +18,10 @@
 
 ### 2.1 首轮 FAIL → 修复 → 复验 PASS
 
-| 轮次 | 会话 | 状态 | `vv_prefix_hits` | `vv_text_hits` | `anxious_hits` | 判定 |
-|---|---|---|---|---|---|---|
-| ① 首轮（MiniMax 跑） | `debug_FGdlhVwguOxjM0PbNAOQN` | completed / 4 轮 | **0** | **0** | 16 | FAIL |
-| ② 复验（修复后） | `debug__ejw8FTUOV2WRXYErcRwA` | completed / 4 轮 | **8** | **8** | 17 | **PASS** |
+| 轮次                 | 会话                          | 状态             | `vv_prefix_hits` | `vv_text_hits` | `anxious_hits` | 判定     |
+| -------------------- | ----------------------------- | ---------------- | ---------------- | -------------- | -------------- | -------- |
+| ① 首轮（MiniMax 跑） | `debug_FGdlhVwguOxjM0PbNAOQN` | completed / 4 轮 | **0**            | **0**          | 16             | FAIL     |
+| ② 复验（修复后）     | `debug__ejw8FTUOV2WRXYErcRwA` | completed / 4 轮 | **8**            | **8**          | 17             | **PASS** |
 
 （`vv_prefix_hits` = `你说话的味道：` 命中次数；`vv_text_hits` = 语桐文案首句命中次数；`anxious_hits` = 依恋行为块关键词命中次数。只报计数，不含任何 prompt / 台词文本。）
 
@@ -30,6 +30,7 @@
 **真因**：`verbalVoice` 从未登记进开场装配路径。库里有值、渲染层有消费点，但中间的登记环节缺失 → 渲染层 `if (spec.verbalVoice)` 恒为假 → 静默跳过，prompt 里一个字都没有。
 
 链路证据：
+
 - 消费端 `src/engine-adapters/rendering/turn-render-orchestrator.ts` 从 `context.verbalVoice` 取值，上游没登记就永远是 `undefined`。
 - 生产开场路径 `src/engine-adapters/wiring/engine-turn.service.ts` 的 `open(input, options)` 里，`attachmentStyle` 有类型声明 + 显式登记，`verbalVoice` **一次都没出现**。
 - `src/admin-debug/debug-session.service.ts` 两处 `engine.open(...)`（新建 / 恢复）都登记了 `attachmentStyle`，都没登记 `verbalVoice`，尽管 `resolved.verbalVoice` 就在手上。
@@ -49,11 +50,11 @@
 - 配置：8 角色 × {cold, expert} × 1 场，`maxTurns=12`
 - 结果：**16/16 场落库，0 failed**
 
-| status | 场数 | 说明 |
-|---|---|---|
-| completed | 14 | 12 轮跑满（小满/cold 为 natural_close 提前收尾） |
-| crisis_ended | 1 | 念安/expert，8 轮，`crisis_escalated` |
-| stagnant | 1 | 惊尘/expert，7 轮，`stagnant_heavy_degraded` |
+| status       | 场数 | 说明                                             |
+| ------------ | ---- | ------------------------------------------------ |
+| completed    | 14   | 12 轮跑满（小满/cold 为 natural_close 提前收尾） |
+| crisis_ended | 1    | 念安/expert，8 轮，`crisis_escalated`            |
+| stagnant     | 1    | 惊尘/expert，7 轮，`stagnant_heavy_degraded`     |
 
 轮次级：183 轮，其中 degraded 11 轮（6.0%）。**degraded 场次 3/16 = 18.8%**（门槛 ≤25% ✅）。
 
@@ -65,37 +66,38 @@ LLM 调用：`llm_call_turns=172`，`render_fallback_turns=11`。
 
 口径说明：探索 / 停留 / 阻抗 / recounting 等指标统一取逐字稿 `traces[].intention.strategy`（决策层每轮输出的策略枚举），可复算、不依赖人工标注。
 
-| 指标 | v1 基线（36 场） | P1c r2（15 有效） | **P1d 重跑（16 场 / 183 轮）** | 目标 | 判读 |
-|---|---|---|---|---|---|
-| 探索率 | 11.1% | 6.7% | **13.1%**（24/183） | ≥15% | ❌ 未达标（但高于两个基线） |
-| 表层停留 | 88.9% | 100% | **86.9%** | ≤75% | ❌ 未达标 |
-| anxious 阻抗率 | 0% | 0% | **0%**（0/72 轮） | 破 0%（≥10%） | ❌ 未破 0 |
-| anxious 探索率 | 0% | 0% | **0%**（0/72 轮） | 破 0% | ❌ 未破 0 |
-| anxious 文本通道命中 | N/A | N/A | **有**（三角色台词指纹块均命中，anxious 行为块命中 36/36/49） | ≥3 轮命中 | ✅ |
-| 角色可分辨度 | 22.2% | 13.3% | **未取到** | ≥30% | 未取到（该指标依赖标签命中率的独立算法，本批只做策略分布，见 §7 局限） |
-| 危机单次披露 | 100% | 100% | 1 场危机（念安/expert，8 轮，3 个危机轮） | 持平 | 未取到（"单次"需人工核是否同一披露，本批只报场次与危机轮数） |
-| degraded 率 | 36.8% | 25.0% | **18.8%**（3/16 场） | ≤25% | ✅ |
-| stagnant 退场 | 5/24 | 0/16 | **1/16** | 保持 0 | ❌ 但有独立原因（见下） |
-| recounting 占比 | 53.9% | 80.9% | **57.9%**（106/183） | ≤60% | ✅ |
-| resistance 占比 | 25.4% | 9.0% | **18.0%**（33/183） | 不反弹回 25% | ✅ |
-| affective_exploration 占比 | 10.7% | 3.4% | **13.1%**（24/183） | ≥8% | ✅ |
+| 指标                       | v1 基线（36 场） | P1c r2（15 有效） | **P1d 重跑（16 场 / 183 轮）**                                | 目标          | 判读                                                                   |
+| -------------------------- | ---------------- | ----------------- | ------------------------------------------------------------- | ------------- | ---------------------------------------------------------------------- |
+| 探索率                     | 11.1%            | 6.7%              | **13.1%**（24/183）                                           | ≥15%          | ❌ 未达标（但高于两个基线）                                            |
+| 表层停留                   | 88.9%            | 100%              | **86.9%**                                                     | ≤75%          | ❌ 未达标                                                              |
+| anxious 阻抗率             | 0%               | 0%                | **0%**（0/72 轮）                                             | 破 0%（≥10%） | ❌ 未破 0                                                              |
+| anxious 探索率             | 0%               | 0%                | **0%**（0/72 轮）                                             | 破 0%         | ❌ 未破 0                                                              |
+| anxious 文本通道命中       | N/A              | N/A               | **有**（三角色台词指纹块均命中，anxious 行为块命中 36/36/49） | ≥3 轮命中     | ✅                                                                     |
+| 角色可分辨度               | 22.2%            | 13.3%             | **未取到**                                                    | ≥30%          | 未取到（该指标依赖标签命中率的独立算法，本批只做策略分布，见 §7 局限） |
+| 危机单次披露               | 100%             | 100%              | 1 场危机（念安/expert，8 轮，3 个危机轮）                     | 持平          | 未取到（"单次"需人工核是否同一披露，本批只报场次与危机轮数）           |
+| degraded 率                | 36.8%            | 25.0%             | **18.8%**（3/16 场）                                          | ≤25%          | ✅                                                                     |
+| stagnant 退场              | 5/24             | 0/16              | **1/16**                                                      | 保持 0        | ❌ 但有独立原因（见下）                                                |
+| recounting 占比            | 53.9%            | 80.9%             | **57.9%**（106/183）                                          | ≤60%          | ✅                                                                     |
+| resistance 占比            | 25.4%            | 9.0%              | **18.0%**（33/183）                                           | 不反弹回 25%  | ✅                                                                     |
+| affective_exploration 占比 | 10.7%            | 3.4%              | **13.1%**（24/183）                                           | ≥8%           | ✅                                                                     |
 
 补充：全局策略分布 = `recounting 106 (57.9%)` / `resistance 33 (18.0%)` / `affective_exploration 24 (13.1%)` / `simple_response 20 (10.9%)`。
 
 ### 4.1 按角色的策略分布（本批最有诊断价值的一段）
 
-| 角色 | 依恋 | trust | safety | 轮数 | 探索 | 阻抗 | recounting |
-|---|---|---|---|---|---|---|---|
-| 安然 secure | secure | 0.65 | 0.70 | 24 | **24（100%）** | 0 | 0 |
-| 晚晴 anxious | anxious | 0.32 | 0.35 | 24 | **0** | 0 | 24 |
-| 小满 anxious | anxious | 0.30 | 0.35 | 24 | **0** | 0 | 24 |
-| 语桐 anxious | anxious | 0.35 | 0.40 | 24 | **0** | 0 | 20 |
-| 沉舟 avoidant | avoidant | 0.18 | 0.20 | 24 | **0** | 20 | 1 |
-| 念安 avoidant | avoidant | 0.25 | 0.25 | 20 | **0** | 0 | 7 |
-| 亦舟 avoidant | avoidant | 0.22 | 0.25 | 24 | **0** | 13 | 11 |
-| 惊尘 disorganized | disorganized | 0.10 | 0.10 | 19 | **0** | 0 | 19 |
+| 角色              | 依恋         | trust | safety | 轮数 | 探索           | 阻抗 | recounting |
+| ----------------- | ------------ | ----- | ------ | ---- | -------------- | ---- | ---------- |
+| 安然 secure       | secure       | 0.65  | 0.70   | 24   | **24（100%）** | 0    | 0          |
+| 晚晴 anxious      | anxious      | 0.32  | 0.35   | 24   | **0**          | 0    | 24         |
+| 小满 anxious      | anxious      | 0.30  | 0.35   | 24   | **0**          | 0    | 24         |
+| 语桐 anxious      | anxious      | 0.35  | 0.40   | 24   | **0**          | 0    | 20         |
+| 沉舟 avoidant     | avoidant     | 0.18  | 0.20   | 24   | **0**          | 20   | 1          |
+| 念安 avoidant     | avoidant     | 0.25  | 0.25   | 20   | **0**          | 0    | 7          |
+| 亦舟 avoidant     | avoidant     | 0.22  | 0.25   | 24   | **0**          | 13   | 11         |
+| 惊尘 disorganized | disorganized | 0.10  | 0.10   | 19   | **0**          | 0    | 19         |
 
 **这张表是结构性证据**：探索决策要求 `trust ≥ 0.65 且 safety ≥ 0.70`（逐字稿 rationale 里的门槛数字），而除安然外 7 个角色的标定值最高只有 0.35 / 0.40 —— **物理上不可达**。所以：
+
 - 探索率 100% 集中在安然一个人身上；
 - 7 个角色被永久锁在 recounting 或 resistance；
 - anxious 三角色 trust 0.30~0.35，永远不会产生阻抗也不是探索（它们落在 recounting），所以"anxious 0%/0%"是必然结果，与接线无关。
@@ -107,6 +109,7 @@ LLM 调用：`llm_call_turns=172`，`render_fallback_turns=11`。
 ## 5. PASS / FAIL 判读（按任务单 §3.5 逐条对照）
 
 **PASS 条件**：
+
 - ❌ anxious 三角色至少 1 个破 0% 阻抗或 0% 探索 —— 三个全 0，且是门槛不可达导致（非接线）
 - ✅ anxious 文本通道至少有命中 —— 三角色台词指纹块 + 依恋块均命中
 - ❌ 探索率 ≥15% —— 13.1%
@@ -117,18 +120,31 @@ LLM 调用：`llm_call_turns=172`，`render_fallback_turns=11`。
 
 按 §3.5 的 FAIL 分支定义——"anxious 还是 0%/0% → 接线还是没通，回去查"——本批的实测已经推翻了这条归因：接线通了（8 角色命中率 15/16 场，剩 1 场是 LLM 全失败），0%/0% 来自探索门槛与基线数值的冲突。**这是一条需要拍板的方向性结论，不是可以自己改代码收掉的 bug。**
 
+### 5.1 判读更正（2026-11-11，后续深挖结论）
+
+本节以上内容保留原文不动（它是当时的判断记录）。后续对 16 场 183 轮做了**全维度复核**，结论与上面的口径不同，以新文档为准：
+
+- 上文"探索门槛与基线数值的冲突"只是**表层**。复核发现更深的两层：
+  1. **事件判定漏判**：`EVENT_LEXICON` 只有 9 条共情句式，expert 场 31 轮涉情发言里 26 轮（83.9%）未被识别 → 记为 `neutral`（delta=0）；
+  2. **`DELTA_TABLE` 把 trust 增量与 depth/style 减量写成同向配平**（9 个非零事件无一例外）→ 12 轮内 depth 从 0.30 归零，临床上不成立。
+- 上文"safety 系数失配"的表述**已撤回**：safety 慢涨在临床上是正确的，问题是门槛 0.6 在首次会谈内不可达。
+- 上文未涉及的两个失真已单独记录：valence 单调改善、arousal 单调下降。
+
+完整清单（17 条，含证据文件、可复算方式、以及**已撤回的 6 条旧判断**）见
+[`phase2.5-p1d-known-issues-2026-11-11.md`](../../pending/phase2.5-p1d-known-issues-2026-11-11.md)。
+
 ---
 
 ## 6. 改动文件清单
 
 本单原设计是"纯验证单，不改业务代码"。实际执行中阶段 A 首轮 FAIL 并定位到装配漏登记，经用户授权接手修复，故 `src/` 有改动：
 
-| 文件 | 改动 | 状态 |
-|---|---|---|
-| `src/engine-adapters/wiring/engine-turn.service.ts` | options 类型加 `verbalVoice`；`registry.register` 加条件展开登记 | 未提交 |
-| `src/admin-debug/debug-session.service.ts` | 新建 / 恢复两处 `engine.open` 各加条件展开登记 | 未提交 |
-| `test/engine-adapters/wp-j-p2-verbal-voice-wiring.spec.ts` | 新建 11 例（渲染 2 / 零回归 1 / 透传 2 / 装配 2 / 端到端 1 / 源码扫描 3） | 未提交 |
-| `src/engine-core/**` | **零改动** | — |
+| 文件                                                       | 改动                                                                      | 状态             |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------- | ---------------- |
+| `src/engine-adapters/wiring/engine-turn.service.ts`        | options 类型加 `verbalVoice`；`registry.register` 加条件展开登记          | 已提交 `e3b0680` |
+| `src/admin-debug/debug-session.service.ts`                 | 新建 / 恢复两处 `engine.open` 各加条件展开登记                            | 已提交 `e3b0680` |
+| `test/engine-adapters/wp-j-p2-verbal-voice-wiring.spec.ts` | 新建 11 例（渲染 2 / 零回归 1 / 透传 2 / 装配 2 / 端到端 1 / 源码扫描 3） | 已提交 `e3b0680` |
+| `src/engine-core/**`                                       | **零改动**                                                                | —                |
 
 - `npx vitest run` 两个 spec：**2 files / 21 tests passed, exit 0**
 - `npx eslint --fix` 三个文件：`eslint_exit=0`，零输出
@@ -155,6 +171,7 @@ LLM 调用：`llm_call_turns=172`，`render_fallback_turns=11`。
 **不建议直接开 P4 100 场。** 按 §3.5 是 FAIL，且 FAIL 的根因不在接线。
 
 优先级建议：
+
 1. **拍板探索门槛与基线的匹配关系**（最高优先）。三条路选一条：
    - (a) 门槛按角色基线缩放（如 `trust ≥ 基线 trust + 0.2`），最贴合"差异化"设计意图；
    - (b) 把 8 角色基线的 trust/safety 整体抬到能过门槛的量级（会削弱"差异化"，且改变已验收的标定表）；
@@ -175,15 +192,15 @@ LLM 调用：`llm_call_turns=172`，`render_fallback_turns=11`。
 
 ## 附 2：§8 回写清单核对
 
-| 项 | 结果 |
-|---|---|
-| 交付记录写到固定路径 | ✅ |
-| 任务单移入 `completed/phase2.5/` 并改状态行 | ✅ |
-| `phase2.5-wp-list` 两行回写 | ✅（verbal_voice 补动态验收 / P1d 改"已执行 FAIL + 根因"） |
-| `phase2.5-README` §3 表格两行回写 | ✅ |
-| `git diff --stat HEAD -- src/engine-core` 为空 | ✅ 空 |
-| `src` / `test` 无既有文件改动 | ❌ **有 2 个 src 文件改动 + 1 个新测试**（阶段 A 接线修复，用户授权，见 §6） |
-| 3100 已关 | ✅ |
-| `data/debug-sessions` 份数恢复 | ✅ 59 |
-| 临时脚本 / 临时目录已删 | ✅ |
-| 一行 commit message 草稿（不自己 commit） | ✅ 已给（见对话） |
+| 项                                             | 结果                                                                         |
+| ---------------------------------------------- | ---------------------------------------------------------------------------- |
+| 交付记录写到固定路径                           | ✅                                                                           |
+| 任务单移入 `completed/phase2.5/` 并改状态行    | ✅                                                                           |
+| `phase2.5-wp-list` 两行回写                    | ✅（verbal_voice 补动态验收 / P1d 改"已执行 FAIL + 根因"）                   |
+| `phase2.5-README` §3 表格两行回写              | ✅                                                                           |
+| `git diff --stat HEAD -- src/engine-core` 为空 | ✅ 空                                                                        |
+| `src` / `test` 无既有文件改动                  | ❌ **有 2 个 src 文件改动 + 1 个新测试**（阶段 A 接线修复，用户授权，见 §6） |
+| 3100 已关                                      | ✅                                                                           |
+| `data/debug-sessions` 份数恢复                 | ✅ 59                                                                        |
+| 临时脚本 / 临时目录已删                        | ✅                                                                           |
+| 一行 commit message 草稿（不自己 commit）      | ✅ 已给（见对话）                                                            |

@@ -10,14 +10,14 @@
 
 ### 1.1 六个问题各自的验收标准
 
-| # | 问题 | 验收点 | 怎么验 | 不通过的后果 |
-|---|---|---|---|---|
-| 1 | P0 attachmentStyle 三处接线 | 三处装配点都有 `attachmentStyle` 透传 | `git diff` 看 `EngineTurnService.open()` options、`openKernelSession()` 登记、`TurnRenderOrchestrator.assemble()` 透传 | anxious 行为通道仍是死代码，重跑数据全部作废 |
-| 2 | P1 llm_call_turns / render_fallback_turns 落库 | `practice-runner.service.ts` 的 `updateSessionResult()` 里写了这两列 | grep `llm_call_turns` 在 practice-runner 里的写入点 | 批次门禁永远 `valid:false`，没法自动判数据质量 |
-| 3 | P1 audit 补 anxious 词表 | `visitor-quality-lexicon.ts` 存在且三维度词表非空 | 读文件确认；跑 `npx vitest run test/quality/p1d-visitor-quality-lexicon.spec.ts` | anxious 通道生效与否无法用文本指标验证 |
-| 4 | P2 degraded 口径对齐 | audit 脚本优先取 DB `degraded_turns`，DB 没有才回退逐字稿 | 读 audit 脚本 `degradedFromDb` 字段逻辑 | degraded 率到底是多少永远说不清 |
-| 5 | P1 admin 日志脱敏 Authorization | 请求日志 middleware 里屏蔽 `authorization` 头 | grep `authorization` 在日志相关文件里的处理 | base64 还原 admin 凭据，安全隐患 |
-| 6 | P2 信息增量判据补"深度"约束 | 停滞判据不再只看"有没有新信息"，还看"是否向情感/认知方向" | grep 信息增量指令的 prompt 文本，确认有深度约束 | 复述替代探索的问题继续存在 |
+| #   | 问题                                           | 验收点                                                               | 怎么验                                                                                                                 | 不通过的后果                                   |
+| --- | ---------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| 1   | P0 attachmentStyle 三处接线                    | 三处装配点都有 `attachmentStyle` 透传                                | `git diff` 看 `EngineTurnService.open()` options、`openKernelSession()` 登记、`TurnRenderOrchestrator.assemble()` 透传 | anxious 行为通道仍是死代码，重跑数据全部作废   |
+| 2   | P1 llm_call_turns / render_fallback_turns 落库 | `practice-runner.service.ts` 的 `updateSessionResult()` 里写了这两列 | grep `llm_call_turns` 在 practice-runner 里的写入点                                                                    | 批次门禁永远 `valid:false`，没法自动判数据质量 |
+| 3   | P1 audit 补 anxious 词表                       | `visitor-quality-lexicon.ts` 存在且三维度词表非空                    | 读文件确认；跑 `npx vitest run test/quality/p1d-visitor-quality-lexicon.spec.ts`                                       | anxious 通道生效与否无法用文本指标验证         |
+| 4   | P2 degraded 口径对齐                           | audit 脚本优先取 DB `degraded_turns`，DB 没有才回退逐字稿            | 读 audit 脚本 `degradedFromDb` 字段逻辑                                                                                | degraded 率到底是多少永远说不清                |
+| 5   | P1 admin 日志脱敏 Authorization                | 请求日志 middleware 里屏蔽 `authorization` 头                        | grep `authorization` 在日志相关文件里的处理                                                                            | base64 还原 admin 凭据，安全隐患               |
+| 6   | P2 信息增量判据补"深度"约束                    | 停滞判据不再只看"有没有新信息"，还看"是否向情感/认知方向"            | grep 信息增量指令的 prompt 文本，确认有深度约束                                                                        | 复述替代探索的问题继续存在                     |
 
 ### 1.2 闸门验收（必须全绿）
 
@@ -29,6 +29,7 @@ npx vitest run test/quality/                 # P1d 新增的 lexicon 单测必�
 ```
 
 **既有可豁免的失败（与本次无关，不要让 MiniMax 顺手修）：**
+
 - `debug-session-persistence` 断言 50 vs 500
 - `wp26/wp30/wp31` admin-role-guard 重复 characters 路由
 - `practice-runner.spec` 的 closeRequested mock
@@ -62,14 +63,14 @@ rg "attachmentStyle" src/engine-adapters/turn-render-orchestrator.ts
 
 > 说明：此时工作区有 WP-J 角色基线任务在改 `character-profile.seed.ts`，**不能跑 tsc/vitest**（会测到半成品）；下面只做静态接线核对。动态冒烟与闸门仍按 2.2/1.2 在 WP-J 交付后执行。
 
-| # | 验收点 | 落点证据 | 静态结论 |
-|---|---|---|---|
-| 1 | attachmentStyle 三处接线 | `engine-turn.service.ts:137/177` 收参入 context → `engine-stream-backend.adapter.ts:444/1697` 从 profile 取 → `turn-render-orchestrator.ts:1685/1794/1933` 用 `ATTACHMENT_BEHAVIOR_INSTRUCTION` 渲染 anxious 求证/讨好块（dev 日志锚点"依恋行为指引已注入 prompt"） | ✅ 端到端在 |
-| 2 | llm_call_turns / render_fallback_turns 落库 | `practice-runner.service.ts:486-520` 逐轮计数 → 383/615 写 fields → `practice-batch-health.service.ts:155-191/354` 批次聚合回写 | ✅ |
-| 3 | anxious 三维词表非空 | `visitor-quality-lexicon.ts:54-58` seekReassure/appease/abandonment 各 20+ 词；四行为表在 26-30 | ✅ |
-| 4 | degraded 优先取 DB | `visitor-quality-audit.ts:124/426/495` `degradedFromDb` 优先、回退逐字稿并打印口径来源 | ✅ |
-| 5 | Authorization 头脱敏 | `logger.config.ts:24-26` 显式列 `req.headers.authorization`/`proxy-authorization` 脱敏（注释记 P1c 在 3100 临时日志抓到明文 Basic 前科） | ✅ |
-| 6 | 信息增量"深度"约束 | `turn-render-orchestrator.ts:1963-1967` INFO_INCREMENT_INSTRUCTION 第二句钉住"新细节方向"防换着法子复述 | ✅ |
+| #   | 验收点                                      | 落点证据                                                                                                                                                                                                                                                            | 静态结论    |
+| --- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| 1   | attachmentStyle 三处接线                    | `engine-turn.service.ts:137/177` 收参入 context → `engine-stream-backend.adapter.ts:444/1697` 从 profile 取 → `turn-render-orchestrator.ts:1685/1794/1933` 用 `ATTACHMENT_BEHAVIOR_INSTRUCTION` 渲染 anxious 求证/讨好块（dev 日志锚点"依恋行为指引已注入 prompt"） | ✅ 端到端在 |
+| 2   | llm_call_turns / render_fallback_turns 落库 | `practice-runner.service.ts:486-520` 逐轮计数 → 383/615 写 fields → `practice-batch-health.service.ts:155-191/354` 批次聚合回写                                                                                                                                     | ✅          |
+| 3   | anxious 三维词表非空                        | `visitor-quality-lexicon.ts:54-58` seekReassure/appease/abandonment 各 20+ 词；四行为表在 26-30                                                                                                                                                                     | ✅          |
+| 4   | degraded 优先取 DB                          | `visitor-quality-audit.ts:124/426/495` `degradedFromDb` 优先、回退逐字稿并打印口径来源                                                                                                                                                                              | ✅          |
+| 5   | Authorization 头脱敏                        | `logger.config.ts:24-26` 显式列 `req.headers.authorization`/`proxy-authorization` 脱敏（注释记 P1c 在 3100 临时日志抓到明文 Basic 前科）                                                                                                                            | ✅          |
+| 6   | 信息增量"深度"约束                          | `turn-render-orchestrator.ts:1963-1967` INFO_INCREMENT_INSTRUCTION 第二句钉住"新细节方向"防换着法子复述                                                                                                                                                             | ✅          |
 
 **静态判读**：六项接线全部在代码里找到落点。但静态 ≠ 动态——P1c 当年就是"看着接了、spec 里没带 attachmentStyle"导致块没进 prompt。**铁证仍是 2.2 的 1 场动态冒烟**（跑 anxious 角色，grep 逐字稿有无"反复确认/怕添麻烦"），通过后才烧 LLM 预算跑 §三 16 场。
 
@@ -86,6 +87,7 @@ node dist/app.js
 ```
 
 **然后做这件事（关键！）：**
+
 1. 用 Postman 或 curl 入队 1 场 anxious 角色（推荐 `vpt_social_anxious_l1`，cold 模式），maxTurns=4
 2. 等跑完后，找到这场的逐字稿文件
 3. **grep 逐字稿里的 system prompt 或 renderSpec**，看有没有"反复确认咨询师对你的看法"或"怕自己添麻烦"这类 anxious 指引文案
@@ -114,13 +116,13 @@ ORDER BY id DESC LIMIT 1;
 
 ### 3.1 批次配置
 
-| 项 | 值 | 为什么 |
-|---|---|---|
-| batch_id | `verify-route1-p1d-2026-11-10` | 与 P1c 的 r1/r2 区分 |
-| 场数 | 16 场（8 角色 × {cold, expert}） | 与 P1c r2 同口径，可比 |
-| maxTurns | 12 | P1c 实测 30 会触发上游 429，12 是基线主力批次口径 |
-| 并发 | 1 | 避免 429 限流 |
-| 端口 | 3100 临时实例 | 不碰用户 3000 标注台 |
+| 项       | 值                               | 为什么                                            |
+| -------- | -------------------------------- | ------------------------------------------------- |
+| batch_id | `verify-route1-p1d-2026-11-10`   | 与 P1c 的 r1/r2 区分                              |
+| 场数     | 16 场（8 角色 × {cold, expert}） | 与 P1c r2 同口径，可比                            |
+| maxTurns | 12                               | P1c 实测 30 会触发上游 429，12 是基线主力批次口径 |
+| 并发     | 1                                | 避免 429 限流                                     |
+| 端口     | 3100 临时实例                    | 不碰用户 3000 标注台                              |
 
 ### 3.2 入队方式
 
@@ -143,24 +145,27 @@ npx tsx scripts/ops/quality/visitor-quality-audit.ts --dir .tmp-p1d-verify/
 
 ### 3.4 对比表（跟 P1c r2 和 v1 基线三方对比）
 
-| 指标 | v1 基线（36场） | P1c r2（15有效） | **P1d 重跑** | 判读 |
-|---|---|---|---|---|
-| 探索率 | 11.1% | 6.7% | ? | 目标：≥15% |
-| 表层停留 | 88.9% | 100% | ? | 目标：≤75% |
-| anxious 阻抗率 | 0% | 0% | ? | 目标：破 0%（≥10%） |
-| anxious 探索率 | 0% | 0% | ? | 目标：破 0% |
-| anxious 文本通道命中 | N/A | N/A | ? | 目标：anxious 三角色平均 ≥3 轮命中 |
-| 角色可分辨度 | 22.2% | 13.3% | ? | 目标：≥30% |
-| 危机单次披露 | 100% | 100% | ? | 持平即可 |
-| degraded 率 | 36.8% | 25.0% | ? | 目标：≤25% |
-| stagnant 退场 | 5/24 | 0/16 | ? | 保持 0 |
-| recounting 占比 | 53.9% | 80.9% | ? | 目标：≤60%（降下来） |
-| resistance 占比 | 25.4% | 9.0% | ? | 不要反弹回 25% |
-| affective_exploration 占比 | 10.7% | 3.4% | ? | 目标：≥8% |
+| 指标                       | v1 基线（36场） | P1c r2（15有效） | **P1d 重跑** | 判读                               |
+| -------------------------- | --------------- | ---------------- | ------------ | ---------------------------------- |
+| 探索率                     | 11.1%           | 6.7%             | ?            | 目标：≥15%                         |
+| 表层停留                   | 88.9%           | 100%             | ?            | 目标：≤75%                         |
+| anxious 阻抗率             | 0%              | 0%               | ?            | 目标：破 0%（≥10%）                |
+| anxious 探索率             | 0%              | 0%               | ?            | 目标：破 0%                        |
+| anxious 文本通道命中       | N/A             | N/A              | ?            | 目标：anxious 三角色平均 ≥3 轮命中 |
+| 角色可分辨度               | 22.2%           | 13.3%            | ?            | 目标：≥30%                         |
+| 危机单次披露               | 100%            | 100%             | ?            | 持平即可                           |
+| degraded 率                | 36.8%           | 25.0%            | ?            | 目标：≤25%                         |
+| stagnant 退场              | 5/24            | 0/16             | ?            | 保持 0                             |
+| recounting 占比            | 53.9%           | 80.9%            | ?            | 目标：≤60%（降下来）               |
+| resistance 占比            | 25.4%           | 9.0%             | ?            | 不要反弹回 25%                     |
+| affective_exploration 占比 | 10.7%           | 3.4%             | ?            | 目标：≥8%                          |
 
 ### 3.5 判定标准（什么算"方向对了"）
 
+> **历史口径提示（2026-11-11 WP-L）：12 轮档判据已被 `phase2.5-intake-acceptance-criteria-2026-11-11.md` 取代，本节（含探索率 ≥15% 等）保留作历史口径，不再作为 intake 验收依据。**
+
 **PASS（可以进入 verbal_voice 落库 + P4 100 场）：**
+
 - anxious 三角色至少有 1 个破 0% 阻抗 或 0% 探索
 - anxious 文本通道（求证/讨好/怕被抛弃）至少有命中
 - 探索率 ≥15%（比基线 11.1% 高）
@@ -168,6 +173,7 @@ npx tsx scripts/ops/quality/visitor-quality-audit.ts --dir .tmp-p1d-verify/
 - degraded ≤25%
 
 **FAIL（方向还是不对，要停下来重新想）：**
+
 - anxious 还是 0%/0% → 接线还是没通，回去查
 - 探索率还是 <10% → 信息增量的深度约束没起作用
 - recounting 还是 >75% → "深度"约束没加上
@@ -179,6 +185,7 @@ npx tsx scripts/ops/quality/visitor-quality-audit.ts --dir .tmp-p1d-verify/
 文案初稿已写在 `docs/worklog/pending/phase2.5-verbal-voice-drafts-2026-11-10.md`。
 
 **落库方式：seed 幂等，不写 migration。**
+
 - 在 `character-profile.seed.ts` 里给 8 个角色补上 `verbalVoice` 字段
 - seed 函数做成"有则跳过，无则填入"的幂等模式
 - 落完跑一次 seed，再 grep DB 确认 8 个角色都不是 NULL

@@ -60,10 +60,10 @@ describe('WP34 · P1 人格调节算子', () => {
       const verbalByStyle = STYLES.map((style) => modulateDeltaByPersonality(base, { attachmentStyle: style }).verbal);
 
       // 种子值: secure 1.0 / avoidant 1.3 / anxious 0.8 / disorganized 1.2.
-      expect(verbalByStyle[0]).toBeCloseTo(-0.08, 10);
-      expect(verbalByStyle[1]).toBeCloseTo(-0.08 / 1.3, 10);
-      expect(verbalByStyle[2]).toBeCloseTo(-0.08 / 0.8, 10);
-      expect(verbalByStyle[3]).toBeCloseTo(-0.08 / 1.2, 10);
+      expect(verbalByStyle[0]).toBeCloseTo(-0.03, 10);
+      expect(verbalByStyle[1]).toBeCloseTo(-0.03 / 1.3, 10);
+      expect(verbalByStyle[2]).toBeCloseTo(-0.03 / 0.8, 10);
+      expect(verbalByStyle[3]).toBeCloseTo(-0.03 / 1.2, 10);
       // 下降幅度 (绝对值): 回避型最小, 焦虑型最大.
       expect(Math.abs(verbalByStyle[1] ?? 0)).toBeLessThan(Math.abs(verbalByStyle[0] ?? 0));
       expect(Math.abs(verbalByStyle[2] ?? 0)).toBeGreaterThan(Math.abs(verbalByStyle[0] ?? 0));
@@ -138,12 +138,12 @@ describe('WP34 · P1 人格调节算子', () => {
       // avoidant: trustScale 无穷 → 回退 0.6; resistanceScale 0 (除数) → 回退 1.3.
       const avoidant = modulateDeltaByPersonality(base, { attachmentStyle: 'avoidant', config: broken });
       expect(avoidant.trust).toBeCloseTo(0.06, 10);
-      expect(avoidant.verbal).toBeCloseTo(-0.08 / 1.3, 10);
+      expect(avoidant.verbal).toBeCloseTo(-0.03 / 1.3, 10);
 
       // anxious: trustScale 负 → 回退 1.2; resistanceScale NaN → 回退 0.8.
       const anxious = modulateDeltaByPersonality(base, { attachmentStyle: 'anxious', config: broken });
       expect(anxious.trust).toBeCloseTo(0.12, 10);
-      expect(anxious.verbal).toBeCloseTo(-0.08 / 0.8, 10);
+      expect(anxious.verbal).toBeCloseTo(-0.03 / 0.8, 10);
     });
 
     it('端口缺该项 → 用内核种子值 (不是中性)', () => {
@@ -154,7 +154,7 @@ describe('WP34 · P1 人格调节算子', () => {
 
       const avoidant = modulateDeltaByPersonality(base, { attachmentStyle: 'avoidant', config: partial });
       expect(avoidant.trust).toBeCloseTo(0.06, 10);
-      expect(avoidant.verbal).toBeCloseTo(-0.08 / 1.3, 10);
+      expect(avoidant.verbal).toBeCloseTo(-0.03 / 1.3, 10);
     });
   });
 
@@ -248,7 +248,7 @@ describe('WP34 · P1 人格调节算子', () => {
 
       const modulated = modulateDeltaByPersonality(base, { attachmentStyle: 'avoidant', config: custom });
       expect(modulated.trust).toBeCloseTo(0.02, 10);
-      expect(modulated.verbal).toBeCloseTo(-0.04, 10);
+      expect(modulated.verbal).toBeCloseTo(-0.015, 10);
     });
   });
 
@@ -324,9 +324,9 @@ describe('WP34 · P1 人格调节算子', () => {
 
       const out = await session.turn(handleId, { userText: '听起来你现在一定很难受, 我能理解你' });
 
-      // trust: 0.3 + 0.1 × 0.6; verbal 阻抗: 0.4 − 0.08 ÷ 1.3.
+      // trust: 0.3 + 0.1 × 0.6; verbal 阻抗: 0.4 − 0.03 ÷ 1.3.
       expect(out.snapshot.trust).toBeCloseTo(0.36, 10);
-      expect(out.snapshot.resistance.verbal).toBeCloseTo(0.4 - 0.08 / 1.3, 10);
+      expect(out.snapshot.resistance.verbal).toBeCloseTo(0.4 - 0.03 / 1.3, 10);
     });
 
     it('落库路径与内核 transitionState 路径逐字一致 (provisional 不漂)', async () => {
@@ -357,7 +357,7 @@ describe('WP34 · P1 人格调节算子', () => {
       const out = await session.turn(handleId, { userText: '听起来你现在一定很难受, 我能理解你' });
 
       expect(out.snapshot.trust).toBeCloseTo(0.4, 10);
-      expect(out.snapshot.resistance.verbal).toBeCloseTo(0.32, 10);
+      expect(out.snapshot.resistance.verbal).toBeCloseTo(0.37, 10);
     });
   });
 });

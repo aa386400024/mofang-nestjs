@@ -265,4 +265,11 @@ export default defineConfig(
       '@typescript-eslint/prefer-for-of': 'off',
     },
   },
+  {
+    // V2026-11-11: scripts 下的独立运维脚本 (入队/seed/审计, 用 tsx 跑、不进 build、不被 src/test import)
+    // 不属于任何 tsconfig project. 它们本就 transpile-only 执行、不做 tsc 类型检查,
+    // 故这里关闭 type-aware lint, 只保留语法/import/prettier 等非类型规则, 避免 project service 解析错误阻塞 lint-staged.
+    files: ['scripts/**/*.ts'],
+    extends: [tseslint.configs.disableTypeChecked],
+  },
 );

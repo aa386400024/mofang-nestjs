@@ -26,6 +26,8 @@ import { Repository } from 'typeorm';
 import { resolveStoreDir } from '../admin-debug/debug-session-store.js';
 import { PracticeBatch } from './entities/practice-batch.entity.js';
 import { PracticeSession } from './entities/practice-session.entity.js';
+import type { BatchMetricsV1 } from './metrics/batch-metrics.schema.js';
+import { BatchMetricsService } from './metrics/batch-metrics.service.js';
 
 /** 合格线: 有真实调用的场次占比 (改动 9). */
 export const BATCH_HEALTH_LLM_CALL_RATIO_MIN = 0.9;
@@ -296,6 +298,7 @@ export class PracticeBatchHealthService {
     private readonly config: ConfigService,
     @InjectRepository(PracticeSession) private readonly sessionRepo: Repository<PracticeSession>,
     @InjectRepository(PracticeBatch) private readonly batchRepo: Repository<PracticeBatch>,
+    private readonly batchMetrics: BatchMetricsService,
   ) {}
 
   /**
@@ -316,7 +319,17 @@ export class PracticeBatchHealthService {
     // `onlyWhenFinished`: 队列侧每跑完一场就调一次 —— 批次还在跑时不落库、不写索引,
     //   免得 100 场批次刷 100 次 (判定照算, 只是不落).
     if (!(options.onlyWhenFinished === true && !allSessionsFinished)) {
-      await this.persist(batchId, metrics, health, rows);
+      // WP-K: 批次收尾时, 逐字稿还在, 立即固化指标快照 (P0: MAX_DEBUG_SESSIONS 会
+      //   淘汰逐字稿, 晚算 = 永久丢失). 构建失败只 warn, 不阻断健康落库.
+      let metricsSnapshot: BatchMetricsV1 | null = null;
+      if (allSessionsFinished) {
+        try {
+          metricsSnapshot = await this.batchMetrics.buildBatchSnapshot(batchId);
+        } catch (error) {
+          this.logger.warn(`批次指标快照构建失败 batch=${batchId}: ${error instanceof Error ? error.message : 'unknown'}`);
+        }
+      }
+      await this.persist(batchId, metrics, health, rows, metricsSnapshot);
       await this.writeTranscriptIndex(batchId, 'batch', sessionMetrics);
     }
     return { metrics, health, sessions: sessionMetrics, allSessionsFinished };
@@ -343,7 +356,13 @@ export class PracticeBatchHealthService {
   /**
    * 把判定结论落库 (幂等 upsert 语义).
    */
-  private async persist(batchId: string, metrics: BatchMetrics, health: BatchHealth, rows: readonly PracticeSession[]): Promise<void> {
+  private async persist(
+    batchId: string,
+    metrics: BatchMetrics,
+    health: BatchHealth,
+    rows: readonly PracticeSession[],
+    metricsSnapshot: BatchMetricsV1 | null,
+  ): Promise<void> {
     try {
       const now = new Date();
       const existing = await this.batchRepo.findOne({ where: { batchId } });
@@ -361,6 +380,19 @@ export class PracticeBatchHealthService {
       row.engineVersion = rows.find((r) => r.engineVersion)?.engineVersion ?? null;
       // WP-B: prompt 模板版本 —— 批次对比时"prompt 是不是同一版"就看这一列.
       row.promptVersion = rows.find((r) => r.promptVersion)?.promptVersion ?? null;
+
+      // WP-K: 固化指标快照. 只在快照构建成功时写; 失败不清空已有列 (避免误删).
+      if (metricsSnapshot) {
+        row.configFingerprint = metricsSnapshot.fingerprint.combined;
+        row.configFingerprintJson = JSON.stringify(metricsSnapshot.fingerprint);
+        row.metricsJson = JSON.stringify(metricsSnapshot);
+        row.explorationRate = metricsSnapshot.metrics['exploration.rate'] ?? null;
+        row.depthDeltaAvg = metricsSnapshot.metrics['dim.depth.delta_avg'] ?? null;
+        row.safetyDeltaAvg = metricsSnapshot.metrics['dim.safety.delta_avg'] ?? null;
+        row.positiveEventRate = metricsSnapshot.metrics['event.positive.rate'] ?? null;
+        // note 是人工字段, 不在此覆盖.
+      }
+
       if (!existing) row.createdAt = now;
       row.updatedAt = now;
       await this.batchRepo.save(row);

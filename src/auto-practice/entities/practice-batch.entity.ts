@@ -2,12 +2,15 @@
 //   原因: 改动 9 要"把批次状态写成 INVALID", 但 ap_practice_sessions 是**场次**表,
 //     没有批次级状态位 —— 批次是"一组场次", 它的结论无处安放.
 //     于是本表专门存"这一批能不能用"的判定结果: 一批一行.
-//   表结构 (13 列):
+//   表结构 (原 13 列 + WP-K 8 列 = 21 列):
 //     batch_id / total_sessions / total_turns /
 //     render_fallback_turns / llm_call_turns /
 //     llm_call_ratio / fallback_ratio /
 //     counter_consistent / valid / validity_flags /
-//     engine_version / created_at / updated_at
+//     engine_version / prompt_version /
+//     config_fingerprint / config_fingerprint_json / metrics_json / note /
+//     exploration_rate / depth_delta_avg / safety_delta_avg / positive_event_rate /
+//     created_at / updated_at
 //
 //   反双胞胎:
 //     - **不做软删**: 批次结论是审计数据, 删了就等于让"这批不能用"这件事凭空消失.
@@ -78,6 +81,40 @@ export class PracticeBatch {
    */
   @Column({ type: 'varchar', length: 64, nullable: true, name: 'prompt_version' })
   promptVersion!: string | null;
+
+  // ── V2026-11-11 WP-K: 批次回归追踪 (8 列; 全 nullable, 老行不受影响) ──
+
+  /** 配置指纹 combined 段 (列表页快速比对; 与 config_fingerprint_json 同源). */
+  @Column({ type: 'varchar', length: 64, nullable: true, name: 'config_fingerprint' })
+  configFingerprint!: string | null;
+
+  /** 配置指纹 7 段明细 (JSON 字符串; 归因: 变了哪段). */
+  @Column({ type: 'text', nullable: true, name: 'config_fingerprint_json' })
+  configFingerprintJson!: string | null;
+
+  /** 完整批次指标快照 v1 (JSON 字符串; BatchMetricsV1). */
+  @Column({ type: 'text', nullable: true, name: 'metrics_json' })
+  metricsJson!: string | null;
+
+  /** 人写的一句话变更说明 (本批改了什么参数). */
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  note!: string | null;
+
+  /** 探索率 (冗余标量, 供列表 SQL 排序; 真相在 metrics_json). */
+  @Column({ type: 'decimal', precision: 5, scale: 4, nullable: true, name: 'exploration_rate' })
+  explorationRate!: number | null;
+
+  /** 深度阻抗平均变化 (冗余标量, 供过滤). */
+  @Column({ type: 'decimal', precision: 7, scale: 6, nullable: true, name: 'depth_delta_avg' })
+  depthDeltaAvg!: number | null;
+
+  /** 安全感平均变化 (冗余标量). */
+  @Column({ type: 'decimal', precision: 7, scale: 6, nullable: true, name: 'safety_delta_avg' })
+  safetyDeltaAvg!: number | null;
+
+  /** 正事件率 (冗余标量). */
+  @Column({ type: 'decimal', precision: 5, scale: 4, nullable: true, name: 'positive_event_rate' })
+  positiveEventRate!: number | null;
 
   /** 首次判定时刻. */
   @Column({ type: 'datetime', name: 'created_at' })

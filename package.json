@@ -45,6 +45,8 @@
     "start:debug": "nest start --debug --watch",
     "start:repl": "nest start --entryFile repl",
     "test": "vitest run --exclude '**/e2e/**/*.ts'",
+    "test:changed": "vitest run --changed",
+    "test:related": "vitest related",
     "test:e2e": "vitest run --config ./test/vitest.e2e.mts",
     "doc": "compodoc -p tsconfig.json -s -d docs",
     "doc:api": "pnpm build && node dist/swagger.js",
@@ -163,7 +165,7 @@
   ],
   "lint-staged": {
     "*.{ts,tsx}": [
-      "eslint",
+      "eslint --fix",
       "prettier --write"
     ],
     "*.{json,md,yml,yaml}": [

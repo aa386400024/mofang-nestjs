@@ -110,7 +110,7 @@ describe('WP15 · 单回合非对称 delta cap', () => {
 
       const single = transitionState(base, [ev('empathy')]);
       expect(single.trust).toBeCloseTo(0.4, 5); // 0.3 + 0.10, 单事件远低于 cap
-      expect(single.emotion.valence).toBeCloseTo(0.1, 5);
+      expect(single.emotion.valence).toBeCloseTo(0.03, 5);
     });
   });
 

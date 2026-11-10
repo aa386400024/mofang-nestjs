@@ -11,11 +11,11 @@
 
 **Phase2.5 不是功能开发阶段，是验证阶段。**
 
-| 阶段 | 干什么 | 类比 |
-|---|---|---|
-| Phase2 | 造出引擎（规则算子 / 同盟三维 / 记忆 / 审议层 PoC） | 造出一辆车 |
+| 阶段         | 干什么                                                     | 类比       |
+| ------------ | ---------------------------------------------------------- | ---------- |
+| Phase2       | 造出引擎（规则算子 / 同盟三维 / 记忆 / 审议层 PoC）        | 造出一辆车 |
 | **Phase2.5** | **把车开上路试一圈——小范围验证质量，确认没问题再正式上路** | **试车场** |
-| Phase3 | 正式上路商业化（全量切 + 收费） | 正式运营 |
+| Phase3       | 正式上路商业化（全量切 + 收费）                            | 正式运营   |
 
 **一句话：Phase2.5 的目标不是"做新功能"，而是"用自动化数据验证引擎质量达标，决定要不要全量切"。**
 
@@ -23,31 +23,32 @@
 
 ## 1. 出口条件（做完的标志）
 
-| # | 出口条件 | 可判定标准 |
-|---|---|---|
-| ① **合规过线** | 审议不传心理原文，只传结构化数据；高风险轮次永远走本地规则 | 合规口径过关 |
-| ② **考核公平** | 考核场景永远走纯规则模式，LLM 审议只用于非考核场景 | 同一场考核两次跑结果一致 |
-| ③ **成本可控** | 触发式闸门——只有状态变化大才跑审议，平静时不跑 | 单场（50 分钟）审议成本 ≤ 1 元 |
-| ④ **质量达标** | 审议建议准确率 ≥ 80%（用督导解析当 ground truth 自动评测） | 自动评测报告达标 |
-| ⑤ **数据积累** | 1000+ 场自动对练数据（用模拟咨询师 AI 自动跑） | 数据集齐备 |
+| #              | 出口条件                                                   | 可判定标准                     |
+| -------------- | ---------------------------------------------------------- | ------------------------------ |
+| ① **合规过线** | 审议不传心理原文，只传结构化数据；高风险轮次永远走本地规则 | 合规口径过关                   |
+| ② **考核公平** | 考核场景永远走纯规则模式，LLM 审议只用于非考核场景         | 同一场考核两次跑结果一致       |
+| ③ **成本可控** | 触发式闸门——只有状态变化大才跑审议，平静时不跑             | 单场（50 分钟）审议成本 ≤ 1 元 |
+| ④ **质量达标** | 审议建议准确率 ≥ 80%（用督导解析当 ground truth 自动评测） | 自动评测报告达标               |
+| ⑤ **数据积累** | 1000+ 场自动对练数据（用模拟咨询师 AI 自动跑）             | 数据集齐备                     |
 
 ---
 
 ## 2. WP 清单与进度
 
-| WP | 名称 | 优先级 | 状态 | 任务单 / 交付记录 |
-|---|---|---|---|---|
-| **WP-A** | 审议输入最小化（合规 + 成本双解决） | 🔴 P0 | ✅ 已完成 | [任务单](phase2.5-wp-a-deliberation-input-minimization-2026-11-08.md) / [交付记录](../completed/phase2.5/phase2.5-wp-a-deliberation-input-minimization-implementation-2026-11-08.md) |
-| **WP-B** | 可复现控制 + 版本锁定 | 🔴 P0 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-b-reproducibility-version-locking.md) |
-| **WP-C** | 触发式审议闸门 | 🟡 P1 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-c-triggered-deliberation-gate.md) / [交付记录](../completed/phase2.5/phase2.5-wp-c-triggered-deliberation-gate-implementation-2026-11-09.md) |
-| **WP-D** | 模拟咨询师 AI + 自动对练 | 🟡 P1 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-d-auto-practice-2026-11-08.md) / [交付记录](../completed/phase2.5/phase2.5-wp-d-auto-practice-2026-11-08-implementation.md) |
-| **WP-E** | 自动评测 + 参数调优 | 🟡 P1 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-tuning.md) / [交付记录](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-implementation-2026-11-09.md) |
-| **WP-F** | 成本看板多源合并 | 🟢 P2 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-f-cost-board-merge-sources.md) / [交付记录](../completed/phase2.5/phase2.5-wp-f-cost-board-merge-sources-implementation-2026-11-09.md) |
-| **WP-G** | 对话质量修复（来访话术 / 咨询师兜底 / 停滞检测 / 危机应对） | 🔴 P0 | ✅ 已交付（**验收推迟，见下**） | [任务单](../completed/phase2.5/wp-g-dialogue-quality-fix-task.md) / [交付记录](../completed/phase2.5/phase2.5-wp-g-dialogue-quality-fix-implementation-2026-11-09.md) |
-| **WP-H** | 渲染可用性与指标可信度修复 | 🔴 **P0** | ✅ **三波全交付**（改动 1~9 + 批次可观测性收口）；金丝雀门禁已过，100 场级批次待主 Agent 发起 | [任务单](wp-h-render-availability-fix-task.md) / [第一波交付记录](../completed/phase2.5/phase2.5-wp-h-wave1-render-availability-implementation-2026-11-09.md) / [第二/三波交付记录](../completed/phase2.5/phase2.5-wp-h-wave2-3-implementation-2026-11-10.md) / [金丝雀验证记录](phase2.5-wp-h-wave1-canary-verification-2026-11-09.md) |
-| **WP-G** | 对话质量修复 · 金丝雀验收 | 🔴 P0 | ✅ **金丝雀层面已验证**（24 场：来访兜底句 82.9%→0.0%、重复率 81.4%→0.0%） | [金丝雀验证记录](phase2.5-wp-h-wave1-canary-verification-2026-11-09.md) |
+| WP       | 名称                                                        | 优先级    | 状态                                                                                          | 任务单 / 交付记录                                                                                                                                                                                                                                                                                                                       |
+| -------- | ----------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **WP-A** | 审议输入最小化（合规 + 成本双解决）                         | 🔴 P0     | ✅ 已完成                                                                                     | [任务单](phase2.5-wp-a-deliberation-input-minimization-2026-11-08.md) / [交付记录](../completed/phase2.5/phase2.5-wp-a-deliberation-input-minimization-implementation-2026-11-08.md)                                                                                                                                                    |
+| **WP-B** | 可复现控制 + 版本锁定                                       | 🔴 P0     | ✅ 已完成                                                                                     | [任务单](../completed/phase2.5/phase2.5-wp-b-reproducibility-version-locking.md)                                                                                                                                                                                                                                                        |
+| **WP-C** | 触发式审议闸门                                              | 🟡 P1     | ✅ 已完成                                                                                     | [任务单](../completed/phase2.5/phase2.5-wp-c-triggered-deliberation-gate.md) / [交付记录](../completed/phase2.5/phase2.5-wp-c-triggered-deliberation-gate-implementation-2026-11-09.md)                                                                                                                                                 |
+| **WP-D** | 模拟咨询师 AI + 自动对练                                    | 🟡 P1     | ✅ 已完成                                                                                     | [任务单](../completed/phase2.5/phase2.5-wp-d-auto-practice-2026-11-08.md) / [交付记录](../completed/phase2.5/phase2.5-wp-d-auto-practice-2026-11-08-implementation.md)                                                                                                                                                                  |
+| **WP-E** | 自动评测 + 参数调优                                         | 🟡 P1     | ✅ 已完成                                                                                     | [任务单](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-tuning.md) / [交付记录](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-implementation-2026-11-09.md)                                                                                                                                                                  |
+| **WP-F** | 成本看板多源合并                                            | 🟢 P2     | ✅ 已完成                                                                                     | [任务单](../completed/phase2.5/phase2.5-wp-f-cost-board-merge-sources.md) / [交付记录](../completed/phase2.5/phase2.5-wp-f-cost-board-merge-sources-implementation-2026-11-09.md)                                                                                                                                                       |
+| **WP-G** | 对话质量修复（来访话术 / 咨询师兜底 / 停滞检测 / 危机应对） | 🔴 P0     | ✅ 已交付（**验收推迟，见下**）                                                               | [任务单](../completed/phase2.5/wp-g-dialogue-quality-fix-task.md) / [交付记录](../completed/phase2.5/phase2.5-wp-g-dialogue-quality-fix-implementation-2026-11-09.md)                                                                                                                                                                   |
+| **WP-H** | 渲染可用性与指标可信度修复                                  | 🔴 **P0** | ✅ **三波全交付**（改动 1~9 + 批次可观测性收口）；金丝雀门禁已过，100 场级批次待主 Agent 发起 | [任务单](wp-h-render-availability-fix-task.md) / [第一波交付记录](../completed/phase2.5/phase2.5-wp-h-wave1-render-availability-implementation-2026-11-09.md) / [第二/三波交付记录](../completed/phase2.5/phase2.5-wp-h-wave2-3-implementation-2026-11-10.md) / [金丝雀验证记录](phase2.5-wp-h-wave1-canary-verification-2026-11-09.md) |
+| **WP-G** | 对话质量修复 · 金丝雀验收                                   | 🔴 P0     | ✅ **金丝雀层面已验证**（24 场：来访兜底句 82.9%→0.0%、重复率 81.4%→0.0%）                    | [金丝雀验证记录](phase2.5-wp-h-wave1-canary-verification-2026-11-09.md)                                                                                                                                                                                                                                                                 |
 
 **依赖关系：**
+
 ```
 WP-A 审议输入最小化
   ↓
@@ -67,14 +68,16 @@ WP-B 可复现控制 + 版本锁定
 
 WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [§WP 登记表](phase2.5-wp-list-2026-11-08.md) 第四节独立单）：
 
-| 事项 | 状态 |
-|---|---|
-| **8 角色基线差异化** | ✅ 已交付（2026-11-10）：8 行标定表作单一真相源 + A 类 seed 装配 / B 类只更新基线列 → [交付记录](../completed/phase2.5/wp-j-character-baseline-differentiation-2026-11-10.md) · **主 Agent 独立复验通过**（连库 8 行逐字一致 + 自检反向验证 8/8）→ [复验记录](../completed/phase2.5/wp-j-character-baseline-independent-verification-2026-11-10.md) |
-| P1e Phase2 来访者语义离线落库 | ✅ 已交付并 push（commit d14daa5），真库 migration 已跑两次 |
-| verbal_voice 8 角色文案 | ✅ 已落库（2026-11-10）：8 条文案进 `CHARACTER_BASELINE_CALIBRATION`（与数值同源），A 类经 `baselineOf()` 装配、B 类随基线校准 UPDATE 一起写；真库 8/8 逐字一致，seed 连跑两次幂等 → [文案定稿](phase2.5-verbal-voice-drafts-2026-11-10.md) · **动态验收已通过**（8 角色 × 2 模式 15/16 场命中，缺的那场是 LLM 全失败） |
-| P1d 接线修复后的验收 + 重跑 | ⚠️ **已跑完，判读 FAIL（但根因不是接线）**：阶段 A 冒烟 PASS（`vv_prefix_hits` / `vv_text_hits` / `anxious_hits` = 8/8/17）；16 场重跑完成（completed 14 / crisis_ended 1 / stagnant 1）；recounting 57.9%、degraded 18.8% 达标，**anxious 仍 0%/0%** —— 真因是探索门槛 `trust≥0.65` 与差异化基线（anxious 最高 0.35）冲突，7 个角色物理不可达 → [交付记录](../completed/phase2.5/wp-j-p1d-rerun-and-verbal-voice-smoke-implementation-2026-11-10.md) · [任务单](../completed/phase2.5/wp-j-p1d-rerun-and-verbal-voice-smoke-task-2026-11-10.md) |
-| 30 场人工锚点标注 → 阈值标定 | 📋 标注台已交付，人工标注进行中；标定方案已写（[标定方案](phase2.5-anchor-calibration-plan-2026-11-10.md)） |
-| 100 场级验证批次 | 门禁已过，待主 Agent 发起（`.env` 还需配第二家 chat provider 的 key） |
+| 事项                          | 状态                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **8 角色基线差异化**          | ✅ 已交付（2026-11-10）：8 行标定表作单一真相源 + A 类 seed 装配 / B 类只更新基线列 → [交付记录](../completed/phase2.5/wp-j-character-baseline-differentiation-2026-11-10.md) · **主 Agent 独立复验通过**（连库 8 行逐字一致 + 自检反向验证 8/8）→ [复验记录](../completed/phase2.5/wp-j-character-baseline-independent-verification-2026-11-10.md)                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| P1e Phase2 来访者语义离线落库 | ✅ 已交付并 push（commit d14daa5），真库 migration 已跑两次                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| verbal_voice 8 角色文案       | ✅ 已落库（2026-11-10）：8 条文案进 `CHARACTER_BASELINE_CALIBRATION`（与数值同源），A 类经 `baselineOf()` 装配、B 类随基线校准 UPDATE 一起写；真库 8/8 逐字一致，seed 连跑两次幂等 → [文案定稿](phase2.5-verbal-voice-drafts-2026-11-10.md) · **动态验收已通过**（8 角色 × 2 模式 15/16 场命中，缺的那场是 LLM 全失败）                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| P1d 接线修复后的验收 + 重跑   | ⚠️ **已跑完，判读 FAIL（根因不是接线）**：阶段 A 冒烟 PASS（`vv_prefix_hits` / `vv_text_hits` / `anxious_hits` = 8/8/17）；16 场重跑完成（completed 14 / crisis_ended 1 / stagnant 1）；recounting 57.9%、degraded 18.8% 达标，**anxious 仍 0%/0%**。**根因已深挖并更正**：探索需同时满足 `min(trust,safety) ≥ 0.6` 且 `depth < 0.35`，8 个角色中仅安然两者都满足；更严重的是判定器漏判（涉情发言 83.9% 判成 `neutral`）与 `DELTA_TABLE` 把 trust 增幅与 depth 减幅写成 1:1 配平 → [交付记录](../completed/phase2.5/wp-j-p1d-rerun-and-verbal-voice-smoke-implementation-2026-11-10.md) · [任务单](../completed/phase2.5/wp-j-p1d-rerun-and-verbal-voice-smoke-task-2026-11-10.md) · **[已发现问题清单（19 条 + 6 条撤回）](phase2.5-p1d-known-issues-2026-11-11.md)** |
+| 30 场人工锚点标注 → 阈值标定  | 📋 标注台已交付，人工标注进行中；标定方案已写（[标定方案](phase2.5-anchor-calibration-plan-2026-11-10.md)）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 100 场级验证批次              | 门禁已过，待主 Agent 发起（`.env` 还需配第二家 chat provider 的 key）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **批次回归追踪设施（WP-K）**  | ✅ **已交付**（2026-11-11，企业级）：指标字典（单一真相源）+ 分段配置指纹（可归因）+ 快照 schema v1（version/血缘/覆盖率）+ 回归四态判定（含 `incomparable`，5 条不可比条件）+ 判据代码化 + CLI（可进 CI）+ 3 端点 + API 契约；真库 8 列+2 索引已建、9 批次真实回填、36 新用例；自查 K-1/K-2/K-4 已修，K-3 记演进 → [任务单](../completed/phase2.5/wp-k-batch-regression-tracking-task-2026-11-11.md) · [交付记录](../completed/phase2.5/wp-k-batch-regression-tracking-implementation-2026-11-11.md)                                                                                                                                                                                                                                                                  |
+| **临床增量表纠正（WP-L）**    | ✅ **已交付**（2026-11-11，实改 24 处数值）：拆 `DELTA_TABLE` 的 trust↔resistance 配平 + `sensitive_touch` 代价上调 + 12 轮档验收改 intake 口径（探索移 40 轮档）；tsc/eslint 0 错、boundary 12 绿；**16 场重跑通过**（16/16 completed、llm_call_ratio=1.0、intake 验收 PASS、语桐 depth 不触底）→ [任务单](../completed/phase2.5/wp-l-clinical-delta-and-acceptance-correction-task-2026-11-11.md) · [交付记录](../completed/phase2.5/wp-l-clinical-delta-and-acceptance-correction-2026-11-11.md) · [新 intake 口径](phase2.5-intake-acceptance-criteria-2026-11-11.md)                                                                                                                                                                                              |
 
 ### 3.1 必须先知道的转折（2026-11-09 晚）
 
@@ -87,6 +90,7 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 **结论：这三批数据不是「质量差的对练」，是「LLM 基本没被调用」。** 根因是渲染候选序列只有 1 个 provider（`ENGINE_RENDER_FALLBACK_PROVIDERS` 未配置）+ `failureThreshold=3` + `cooldownMaxMs=300s` 的单例熔断 —— 批量并发下上游限流即导致长时间全损降级。
 
 **因此：**
+
 - **不能拿这三批数据调参**。95.9% 重复率、停滞率、cold/nonsense 模式对比等结论全部建立在这批无效数据上，作废
 - **WP-G 的 3 项渲染层 prompt 改动保留代码，验收推迟** —— LLM 不说话时，角色 prompt 里写多少句都无意义
 - 第④②出口条件的「质量达标」判定，必须等 WP-H 过了门禁重跑才算数
@@ -95,13 +99,13 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 
 ### 3.2 出口条件当前状态
 
-| 出口条件 | 状态 |
-|---|---|
-| ① 合规过线 | ✅ WP-A 交付（入参零原文 + 三道风险闸门） |
-| ② 考核公平 | ✅ WP-B 交付（考核场景永远纯规则 + 版本锁定） |
-| ③ 成本可控 | 🚧 WP-C 闸门已上线，**种子值待真实评测校准**；`prompt_tokens` 恒为 0 的根因已修（WP-H 改动 7：上游报了的输入侧用量现在能穿透流式链路），成本口径可从 `output_only` 升到 `full` —— **待 100 场级批次重新取证** |
+| 出口条件   | 状态                                                                                                                                                                                                                                                                    |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ① 合规过线 | ✅ WP-A 交付（入参零原文 + 三道风险闸门）                                                                                                                                                                                                                               |
+| ② 考核公平 | ✅ WP-B 交付（考核场景永远纯规则 + 版本锁定）                                                                                                                                                                                                                           |
+| ③ 成本可控 | 🚧 WP-C 闸门已上线，**种子值待真实评测校准**；`prompt_tokens` 恒为 0 的根因已修（WP-H 改动 7：上游报了的输入侧用量现在能穿透流式链路），成本口径可从 `output_only` 升到 `full` —— **待 100 场级批次重新取证**                                                           |
 | ④ 质量达标 | 🚧 **部分解除** —— 2026-11-09 金丝雀已证明 LLM 真的被调用（24/24 场 `total_tokens>0`、兜底句 0.0%）；改动 7/8 已落地（`prompt_tokens` 归约链 + `engine_version` 走 `git describe --dirty`），改动 9 的批次有效性门禁已上线 —— **质量结论仍须等 100 场级批次重跑后再判** |
-| ⑤ 数据积累 | 🚧 WP-D 自动对练已交付；**但 534/1034 场（51.6%）逐字稿已被 `MAX_DEBUG_SESSIONS=500` 淘汰**，幸存 500 场已归档到 `data/archives/debug-sessions-baseline-20261109/` |
+| ⑤ 数据积累 | 🚧 WP-D 自动对练已交付；**但 534/1034 场（51.6%）逐字稿已被 `MAX_DEBUG_SESSIONS=500` 淘汰**，幸存 500 场已归档到 `data/archives/debug-sessions-baseline-20261109/`                                                                                                      |
 
 ### 3.3 下一步（严格按顺序）
 
@@ -117,17 +121,20 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 ## 4. 红线（Phase2.5 特有）
 
 ### 4.1 engine-core 边界（按纯不纯分层，不是"一行不动"）
+
 - ❌ 不在 `src/engine-core/` 加任何副作用：NestJS / DB / Redis / 网络 / prompt / 模型名 / process.env
 - ✅ 纯决策计算、纯出口字段、纯类型该进内核就进（不要为了"避开内核"把纯计算堆到适配层）
 - ✅ IO / LLM / 装配一律在 `src/engine-adapters/`；内核不知道 LLM 是什么
 - ✅ `boundary.spec.ts`（AST 护栏）不许自己改
 
 ### 4.2 合规红线
+
 - ❌ 审议 prompt 里永远不出现对话原文（咨询师说的话 / 来访者说的话）
 - ❌ 高风险轮次永远不跑 LLM 审议，直接走规则
 - ✅ 心理数据不出境——这是底线，没有商量余地
 
 ### 4.3 零回归红线
+
 - ❌ 不改现有审议的输出格式（deltas + reason + operatorTags + intentionShift）
 - ❌ 不改现有审议钩子的调用方式
 - ✅ 只是改"传给 LLM 的输入是什么"，不改"LLM 输出什么"
@@ -139,6 +146,7 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 ### 5.1 交付记录放哪里
 
 做完一个 WP，写一份交付记录，放：
+
 ```
 docs/worklog/completed/phase2.5/
   └─ phase2.5-wp-x-implementation-2026-11-08.md
@@ -147,6 +155,7 @@ docs/worklog/completed/phase2.5/
 ### 5.2 交付记录写什么
 
 参照 Phase2 的格式：
+
 1. 本单做了什么（一句话总结）
 2. 方案设计（实际实现的方案，跟任务单的方案有什么差异）
 3. 偏差说明（如果改了方案，为什么改，理由是什么）
@@ -157,6 +166,7 @@ docs/worklog/completed/phase2.5/
 ### 5.3 方案可以改，但要写偏差
 
 如果开发期间发现更合理更专业的方案，可以按后端的来——但要在交付记录里写明：
+
 - 原方案是什么
 - 实际方案是什么
 - 为什么改（理由要充分）
@@ -165,24 +175,24 @@ docs/worklog/completed/phase2.5/
 
 ## 6. 文档导航
 
-| 文档 | 内容 |
-|---|---|
-| 本文件（Phase2.5 README） | 工作入口：定位 / 出口条件 / WP 进度 / 红线 / 交付格式 |
-| [§Phase2.5 总览](phase2.5-overview-2026-11-08.md) | 详细的定位 / 目标 / 范围 / 关键设计决策 |
-| [§WP 登记表](phase2.5-wp-list-2026-11-08.md) | 逐 WP 一行的登记表（依赖关系 / 出口条件对照） |
+| 文档                                                            | 内容                                                                   |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 本文件（Phase2.5 README）                                       | 工作入口：定位 / 出口条件 / WP 进度 / 红线 / 交付格式                  |
+| [§Phase2.5 总览](phase2.5-overview-2026-11-08.md)               | 详细的定位 / 目标 / 范围 / 关键设计决策                                |
+| [§WP 登记表](phase2.5-wp-list-2026-11-08.md)                    | 逐 WP 一行的登记表（依赖关系 / 出口条件对照）                          |
 | [§数据链路体检记录](phase2.5-data-pipeline-audit-2026-11-09.md) | **必读**：6 项待修发现，含「91.8% 发言是兜底句」的完整证据链与代码行号 |
-| [§WP-H 任务单](wp-h-render-availability-fix-task.md) | **当前在办**：渲染可用性 + 指标可信度 + 批次门禁，9 项改动 + 验收门禁 |
-| [§worklog/README.md](../README.md) | 整个项目的工作入口（Phase2 封版 / R9 / Phase2.5 状态） |
+| [§WP-H 任务单](wp-h-render-availability-fix-task.md)            | **当前在办**：渲染可用性 + 指标可信度 + 批次门禁，9 项改动 + 验收门禁  |
+| [§worklog/README.md](../README.md)                              | 整个项目的工作入口（Phase2 封版 / R9 / Phase2.5 状态）                 |
 
 ---
 
 ## 7. 术语澄清（2026-11-09 补）
 
-| 术语 | 容易误解成 | 实际含义 |
-|---|---|---|
-| 「话术重复率」 | Prompt 写得不够多样 | 本次三批数据里，它的真实含义是**渲染降级兜底率** |
-| 「渲染降级 / degraded」 | 内容质量不高 | **LLM 没被调用**，返回的是 `render-adapter.config.ts` 里的常量兜底句 |
-| 「heavy_degraded」 | 一半以上轮次质量差 | 计数口径错：两侧各 +1，可 2×turn_count；阈值却按轮数算 |
-| 「engine_version」 | 代码版本可追溯 | 实际全为 `"dev"`（`.env` 未配 `ENGINE_VERSION`），零区分度 |
+| 术语                    | 容易误解成          | 实际含义                                                             |
+| ----------------------- | ------------------- | -------------------------------------------------------------------- |
+| 「话术重复率」          | Prompt 写得不够多样 | 本次三批数据里，它的真实含义是**渲染降级兜底率**                     |
+| 「渲染降级 / degraded」 | 内容质量不高        | **LLM 没被调用**，返回的是 `render-adapter.config.ts` 里的常量兜底句 |
+| 「heavy_degraded」      | 一半以上轮次质量差  | 计数口径错：两侧各 +1，可 2×turn_count；阈值却按轮数算               |
+| 「engine_version」      | 代码版本可追溯      | 实际全为 `"dev"`（`.env` 未配 `ENGINE_VERSION`），零区分度           |
 
 这三批数据的**唯一**正确用法：拿来定位管道缺陷。**不能**拿来调 prompt、不能拿来比较模式优劣、不能拿来给出口条件④打分。

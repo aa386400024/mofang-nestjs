@@ -56,11 +56,11 @@ describe('WP60 · delta 规则表端口 (内核)', () => {
       expect(delta.trust).toBeCloseTo(0.1, 10);
       expect(delta.safety).toBeCloseTo(0.02, 10);
       expect(delta.bond).toBeCloseTo(0.01, 10);
-      expect(delta.verbal).toBeCloseTo(-0.08, 10);
-      expect(delta.depth).toBeCloseTo(-0.1, 10);
-      expect(delta.style).toBeCloseTo(-0.06, 10);
-      expect(delta.valence).toBeCloseTo(0.1, 10);
-      expect(delta.arousal).toBeCloseTo(-0.05, 10);
+      expect(delta.verbal).toBeCloseTo(-0.03, 10);
+      expect(delta.depth).toBeCloseTo(-0.02, 10);
+      expect(delta.style).toBeCloseTo(-0.01, 10);
+      expect(delta.valence).toBeCloseTo(0.03, 10);
+      expect(delta.arousal).toBeCloseTo(-0.02, 10);
       expect(delta.positive).toBeCloseTo(0.03, 10);
       expect(delta.negative).toBeCloseTo(0, 10);
       expect(delta.dependency).toBeCloseTo(0, 10);
@@ -76,7 +76,7 @@ describe('WP60 · delta 规则表端口 (内核)', () => {
       expect(delta.safety).toBeCloseTo(0.05, 10);
       expect(delta.bond).toBeCloseTo(0.03, 10);
       expect(delta.trust).toBeCloseTo(0.1, 10);
-      expect(delta.valence).toBeCloseTo(0.1, 10);
+      expect(delta.valence).toBeCloseTo(0.03, 10);
     });
   });
 
@@ -87,8 +87,8 @@ describe('WP60 · delta 规则表端口 (内核)', () => {
       expect(delta.trust).toBeCloseTo(0.2, 10);
       expect(delta.safety).toBeCloseTo(0.02, 10);
       expect(delta.bond).toBeCloseTo(0.01, 10);
-      expect(delta.valence).toBeCloseTo(0.1, 10);
-      expect(delta.arousal).toBeCloseTo(-0.05, 10);
+      expect(delta.valence).toBeCloseTo(0.03, 10);
+      expect(delta.arousal).toBeCloseTo(-0.02, 10);
     });
 
     it('覆写 safety → bond 仍走基础值 (两个维度各管各的)', () => {
@@ -128,8 +128,8 @@ describe('WP60 · delta 规则表端口 (内核)', () => {
       expect(delta.safety).toBeCloseTo(0.05, 10);
       expect(delta.bond).toBeCloseTo(0.03, 10);
       // 其余维度: 都没覆写 → 基础值.
-      expect(delta.valence).toBeCloseTo(0.1, 10);
-      expect(delta.arousal).toBeCloseTo(-0.05, 10);
+      expect(delta.valence).toBeCloseTo(0.03, 10);
+      expect(delta.arousal).toBeCloseTo(-0.02, 10);
     });
 
     it('两个端口覆写**同一个维度** → deltaTable 赢 (不打架, 只有一个生效)', () => {
@@ -146,7 +146,7 @@ describe('WP60 · delta 规则表端口 (内核)', () => {
       });
 
       expect(delta.trust).toBeCloseTo(0.1, 10);
-      expect(delta.valence).toBeCloseTo(0.1, 10);
+      expect(delta.valence).toBeCloseTo(0.03, 10);
       expect(Number.isNaN(delta.trust)).toBe(false);
     });
 

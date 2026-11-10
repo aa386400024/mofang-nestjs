@@ -176,9 +176,9 @@ describe('WP53 · 人格调节算子扩展到同盟三维 (safety / bond)', () =
       expect(modulated.trust).toBeCloseTo(0.1 * 0.6, 10);
       expect(modulated.safety).toBeCloseTo(0.02 * 0.5, 10);
       expect(modulated.bond).toBeCloseTo(0.01 * 0.5, 10);
-      expect(modulated.verbal).toBeCloseTo(-0.08 / 1.3, 10);
-      expect(modulated.depth).toBeCloseTo(-0.1 / 1.3, 10);
-      expect(modulated.style).toBeCloseTo(-0.06 / 1.3, 10);
+      expect(modulated.verbal).toBeCloseTo(-0.03 / 1.3, 10);
+      expect(modulated.depth).toBeCloseTo(-0.02 / 1.3, 10);
+      expect(modulated.style).toBeCloseTo(-0.01 / 1.3, 10);
     });
 
     it('四个系数互相独立: 改一个不动另一个 (端口注入)', () => {
@@ -196,7 +196,7 @@ describe('WP53 · 人格调节算子扩展到同盟三维 (safety / bond)', () =
       expect(modulated.trust).toBeCloseTo(0.1, 10); // trustScale 改了 → 不再是 0.6
       expect(modulated.safety).toBeCloseTo(0.02 * 0.25, 10);
       expect(modulated.bond).toBeCloseTo(0.01 * 2, 10);
-      expect(modulated.verbal).toBeCloseTo(-0.08, 10); // resistanceScale = 1 → 不再除 1.3
+      expect(modulated.verbal).toBeCloseTo(-0.03, 10); // resistanceScale = 1 → 不再除 1.3
     });
   });
 

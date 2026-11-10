@@ -20,7 +20,10 @@ import { nanoid } from 'nanoid';
 import { Repository } from 'typeorm';
 
 import { CounselorMode } from './entities/counselor-mode.entity.js';
+import { PracticeBatch } from './entities/practice-batch.entity.js';
 import { PracticeSession } from './entities/practice-session.entity.js';
+import { assertBatchMetricsV1, BATCH_METRICS_SCHEMA_VERSION } from './metrics/batch-metrics.schema.js';
+import { evaluateRegression } from './metrics/regression-evaluator.js';
 import { BATCH_INVALID_WARNING, PracticeBatchHealthService } from './practice-batch-health.service.js';
 import { PracticeQueueService } from './practice-queue.service.js';
 import { PracticeRunnerService } from './practice-runner.service.js';
@@ -68,6 +71,7 @@ export class AutoPracticeController {
     private readonly batchHealth: PracticeBatchHealthService,
     @InjectRepository(PracticeSession) private readonly sessionRepo: Repository<PracticeSession>,
     @InjectRepository(CounselorMode) private readonly modeRepo: Repository<CounselorMode>,
+    @InjectRepository(PracticeBatch) private readonly batchRepo: Repository<PracticeBatch>,
   ) {}
 
   /**
@@ -253,6 +257,133 @@ export class AutoPracticeController {
         engineVersion: r.engineVersion,
         promptVersion: r.promptVersion,
       })),
+    };
+  }
+
+  /** 把批次行投影成轻量列表行 (不含 JSON 大字段; DECIMAL 转 Number). */
+  private static toLightRow(batch: PracticeBatch) {
+    const num = (value: number | null): number | null => (value === null ? null : Number(value));
+    return {
+      batchId: batch.batchId,
+      totalSessions: batch.totalSessions,
+      totalTurns: batch.totalTurns,
+      valid: batch.valid,
+      createdAt: batch.createdAt,
+      configFingerprint: batch.configFingerprint,
+      explorationRate: num(batch.explorationRate),
+      depthDeltaAvg: num(batch.depthDeltaAvg),
+      safetyDeltaAvg: num(batch.safetyDeltaAvg),
+      positiveEventRate: num(batch.positiveEventRate),
+      note: batch.note,
+    };
+  }
+
+  /** 从批次表读并校验完整快照; 读不到返回 null (legacy). */
+  private async loadSnapshot(batchId: string): Promise<import('./metrics/batch-metrics.schema.js').BatchMetricsV1 | null> {
+    const batch = await this.batchRepo.findOne({ where: { batchId } });
+    if (!batch || !batch.metricsJson) return null;
+    try {
+      const parsed: unknown = JSON.parse(batch.metricsJson);
+      assertBatchMetricsV1(parsed, batchId);
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * 批次列表 (分页 / 排序 / 过滤); 返回轻量行, 不带 JSON 大字段.
+   */
+  @Get('batches')
+  async listBatches(
+    @Query('page') pageRaw?: string,
+    @Query('pageSize') pageSizeRaw?: string,
+    @Query('sort') sortRaw?: string,
+    @Query('order') orderRaw?: string,
+    @Query('valid') valid?: string,
+    @Query('since') since?: string,
+    @Query('fingerprint') fingerprint?: string,
+  ) {
+    const page = Math.max(1, Number(pageRaw) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number(pageSizeRaw) || 20));
+    const sortable = new Set(['createdAt', 'explorationRate', 'depthDeltaAvg', 'safetyDeltaAvg', 'positiveEventRate', 'totalSessions']);
+    const sort = sortRaw && sortable.has(sortRaw) ? sortRaw : 'createdAt';
+    const direction = orderRaw === 'asc' ? 'ASC' : 'DESC';
+
+    const qb = this.batchRepo.createQueryBuilder('b');
+    if (valid === '1' || valid === '0') qb.andWhere('b.valid = :valid', { valid: Number(valid) });
+    if (since) qb.andWhere('b.createdAt >= :since', { since: new Date(`${since}T00:00:00`) });
+    if (fingerprint) qb.andWhere('b.configFingerprint = :fp', { fp: fingerprint });
+    qb.orderBy(`b.${sort}`, direction)
+      .skip((page - 1) * pageSize)
+      .take(pageSize);
+
+    const [rows, total] = await qb.getManyAndCount();
+    return {
+      data: rows.map((row) => AutoPracticeController.toLightRow(row)),
+      meta: { generatedAt: new Date().toISOString(), schemaVersion: BATCH_METRICS_SCHEMA_VERSION, total, page, pageSize },
+      warnings: [],
+    };
+  }
+
+  /**
+   * 单批完整快照; legacy 批次 (metrics_json NULL) 返回 metrics=null + 告警.
+   */
+  @Get('batches/:id/metrics')
+  async batchMetricsEndpoint(@Param('id') batchId: string) {
+    const generatedAt = new Date().toISOString();
+    const snapshot = await this.loadSnapshot(batchId);
+    if (!snapshot) {
+      return {
+        data: { batchId, metrics: null, legacy: true },
+        meta: { generatedAt, schemaVersion: BATCH_METRICS_SCHEMA_VERSION },
+        warnings: ['METRICS_NOT_COLLECTED'],
+      };
+    }
+    const batch = await this.batchRepo.findOne({ where: { batchId } });
+    return {
+      data: { ...snapshot, legacy: false },
+      meta: { generatedAt, schemaVersion: BATCH_METRICS_SCHEMA_VERSION },
+      warnings: batch && batch.valid === 0 ? [BATCH_INVALID_WARNING] : [],
+    };
+  }
+
+  /**
+   * 批次对比: 一个基线 × 最多 10 个候选, 返回四态 / 差异段 / 逐指标项.
+   */
+  @Get('batches/compare')
+  async compareBatches(@Query('base') baseId: string, @Query('candidates') candidatesRaw?: string) {
+    const warnings: string[] = [];
+    const candidateIds = (candidatesRaw ?? '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .slice(0, 10);
+
+    const base = await this.loadSnapshot(baseId ?? '');
+    if (!base) warnings.push(`BASE_METRICS_NOT_COLLECTED:${baseId}`);
+
+    const data = [];
+    for (const cid of candidateIds) {
+      const candidate = await this.loadSnapshot(cid);
+      if (!base || !candidate) {
+        data.push({ batchId: cid, verdict: 'incomparable', reasons: ['METRICS_NOT_COLLECTED'], changedSegments: [], items: [] });
+        continue;
+      }
+      const report = evaluateRegression({ base, candidate });
+      data.push({
+        batchId: cid,
+        verdict: report.verdict,
+        reasons: report.reasons,
+        changedSegments: report.changedSegments,
+        items: report.items,
+      });
+    }
+
+    return {
+      data,
+      meta: { generatedAt: new Date().toISOString(), schemaVersion: BATCH_METRICS_SCHEMA_VERSION, total: data.length },
+      warnings,
     };
   }
 
