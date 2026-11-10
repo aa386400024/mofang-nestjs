@@ -203,13 +203,21 @@ export interface CharacterProfileSeedSpec {
    * **缺省 = 走 DB DEFAULT 'restrained'**.
    */
   readonly expressionTone?: CharacterExpressionTone;
+  /**
+   * 台词指纹 (WP-J P2) —— 渲染层文案, 不进内核决策.
+   *
+   * **缺省 = 不表态** (INSERT 走 DB DEFAULT NULL / UPDATE 整列不碰).
+   * A 类四个角色实际都由 `baselineOf()` 从标定表装配, 不会缺省; 留可选是为了
+   * 将来"只有数值没有台词"的角色也能存在, 不用为此改类型.
+   */
+  readonly verbalVoice?: string;
 }
 
 /**
- * 按 templateId 从权威标定表装配**数值部分** (trust / 三维阻抗 / 情绪 / safety / bond).
+ * 按 templateId 从权威标定表装配**数值部分 + 台词指纹** (trust / 三维阻抗 / 情绪 / safety / bond / verbalVoice).
  *
  * 为什么是"装配"而不是"抄一份":
- *   数值是**工程标定值**, 唯一真相源在 character-baseline-calibration.ts (循证研究 v2).
+ *   数值与台词都是**工程标定内容**, 唯一真相源在 character-baseline-calibration.ts (循证研究 v2 + 文案定稿).
  *   在这里手写就等于开了第二份真相 —— 改了标定表忘了改 seed, 库里就会一半新一半旧,
  *   而且**没有任何报错**. 装配 = 改一处, 全仓跟着动.
  *
@@ -218,10 +226,12 @@ export interface CharacterProfileSeedSpec {
  *   平庸角色" —— 那正是本单要消灭的同档化.
  *
  * @param templateId 公共模板 id
- * @returns 该角色的数值部分 (可直接展开进种子规格)
+ * @returns 该角色的数值部分与台词指纹 (可直接展开进种子规格)
  * @throws Error 标定表里没有这个 templateId
  */
-function baselineOf(templateId: string): Pick<CharacterProfileSeedSpec, 'trust' | 'resistance' | 'emotion' | 'safety' | 'bond'> {
+function baselineOf(
+  templateId: string,
+): Pick<CharacterProfileSeedSpec, 'trust' | 'resistance' | 'emotion' | 'safety' | 'bond' | 'verbalVoice'> {
   const row = getBaselineCalibration(templateId);
   return {
     trust: row.trust,
@@ -229,6 +239,8 @@ function baselineOf(templateId: string): Pick<CharacterProfileSeedSpec, 'trust' 
     emotion: row.emotion,
     safety: row.safety,
     bond: row.bond,
+    // WP-J P2: 台词指纹同源装配 —— 8 条文案全仓只有标定表这一份 (A/B 两类都从这里取).
+    verbalVoice: row.verbalVoice,
   };
 }
 
@@ -404,6 +416,13 @@ export interface CharacterProfileSeed {
   readonly speechVolumeBaseline?: number;
   readonly narrativeStyle?: CharacterNarrativeStyle;
   readonly expressionTone?: CharacterExpressionTone;
+  /**
+   * 台词指纹 (WP-J P2 · 渲染层文案).
+   *
+   * **缺省 = 不表态** (走 DB DEFAULT NULL) —— 种子没写的列, 灌库时整列不出现,
+   * 存量行里运营改过的文案也不会被 seed 冲掉.
+   */
+  readonly verbalVoice?: string;
 }
 
 /**
@@ -545,6 +564,8 @@ export function buildCharacterProfileSeeds(sources: readonly VisitorTemplateBeli
       ...(spec.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: spec.speechVolumeBaseline }),
       ...(spec.narrativeStyle === undefined ? {} : { narrativeStyle: spec.narrativeStyle }),
       ...(spec.expressionTone === undefined ? {} : { expressionTone: spec.expressionTone }),
+      // WP-J P2: 台词指纹 —— 同样只在规格表态时带上 (A 类四个角色由 baselineOf 装配, 都有值).
+      ...(spec.verbalVoice === undefined ? {} : { verbalVoice: spec.verbalVoice }),
     };
   });
 }
@@ -623,11 +644,15 @@ export async function seedCharacterProfiles(
  *   - 找不到行 → 进 missing 显式报告 (**不 INSERT**): 新环境没有这些行是**正常**的,
  *     静默造行等于替它们补内容 + 补来访池模板 —— 那是越权, 也是本单明令禁止的.
  *   - 行值与目标一致 → unchanged (不产生无谓写, 不抖动 updated_at).
- *   - 行值有差 → 只 UPDATE 8 个基线列.
+ *   - 行值有差 → 只 UPDATE 8 个基线列 + 台词指纹.
  *
  * 载荷里**不得**出现: 内容列 (five_ps / core_beliefs / underlying_desires /
  * forbidden_behaviors / sensitive_topics / 表达风格三列)、enabled / audit_status /
- * version* —— 那些是**运营决策**, 数值校准无权推翻.
+ * version* —— 那些是**运营决策**, 校准无权推翻.
+ *
+ * 为什么台词指纹能进这个载荷 (WP-J P2):
+ *   它不是运营决策, 是**角色标定内容** —— 与那 8 个数值同源 (同一张标定表), 且 B 类
+ *   角色的行只存在于数据库, 内容 seed 带不进去. 除此之外仍一列不加.
  *
  * @param repo 角色行仓储
  * @param calibration 待校准的标定行 (缺省 = DB-only 那批)
@@ -669,10 +694,14 @@ export async function applyBaselineCalibration(
 }
 
 /**
- * 标定行 → 8 个基线列的写入载荷 (只有这 8 列, 别的一律不碰).
+ * 标定行 → 8 个基线列 + 台词指纹的写入载荷 (只有这 9 列, 别的一律不碰).
+ *
+ * 为什么台词指纹也走这条路 (而不是内容 seed):
+ *   B 类 4 个角色**没有来访池模板**, 内容 seed 根本碰不到它们 —— 它们的行只存在于数据库.
+ *   所以它们的文案只能随基线校准一起写: 同一行、同一次 UPDATE、同一份幂等判定.
  *
  * @param target 标定行
- * @returns 基线列载荷
+ * @returns 基线列 + 文案列载荷
  */
 function toBaselineColumns(target: CharacterBaselineCalibration): {
   readonly baselineTrust: number;
@@ -683,6 +712,8 @@ function toBaselineColumns(target: CharacterBaselineCalibration): {
   readonly baselineEmotionArousal: number;
   readonly baselineSafety: number;
   readonly baselineBond: number;
+  /** 台词指纹 (`varchar(500)` NULL — 空串不算"没写", 但自检已挡住空串). */
+  readonly verbalVoice: string;
 } {
   return {
     baselineTrust: target.trust,
@@ -693,22 +724,26 @@ function toBaselineColumns(target: CharacterBaselineCalibration): {
     baselineEmotionArousal: target.emotion.arousal,
     baselineSafety: target.safety,
     baselineBond: target.bond,
+    verbalVoice: target.verbalVoice,
   };
 }
 
 /**
- * 8 个基线列的漂移检测 (只看这 8 列).
+ * 8 个基线列 + 台词指纹的漂移检测 (只看这 9 列).
  *
- * 比较用 `STORAGE_FLOAT_TOLERANCE` 而非裸 `!==`: 基线列是 MySQL **单精度 FLOAT**,
+ * 数值比较用 `STORAGE_FLOAT_TOLERANCE` 而非裸 `!==`: 基线列是 MySQL **单精度 FLOAT**,
  * 同一组数值经二进制协议读回会带约 1e-8 量级的表示误差 (0.65 → 0.6499999761581421).
  * 用 `!==` 判定会把"值其实没变"误判成"有漂移" → 每次 seed 都 UPDATE, 幂等静默破功.
  * 当前 TypeORM 走 text protocol 暂时掩盖了该误差, 但读取路径一旦变化就会暴露.
  *
+ * 台词指纹是 `varchar`, 没有精度问题 —— 一字之差都算真漂移, 严格比较.
+ *
  * @param row 库里的行
- * @param payload 期望的基线列
+ * @param payload 期望的基线列与文案
  * @returns 有漂移 → true
  */
 function hasBaselineDrift(row: CharacterProfileEntity, payload: ReturnType<typeof toBaselineColumns>): boolean {
+  if (row.verbalVoice !== payload.verbalVoice) return true;
   const pairs: readonly (readonly [number, number])[] = [
     [row.baselineTrust, payload.baselineTrust],
     [row.baselineResistanceVerbal, payload.baselineResistanceVerbal],
@@ -750,6 +785,8 @@ function toEntityPayload(seed: CharacterProfileSeed): {
   readonly speechVolumeBaseline?: number;
   readonly narrativeStyle?: CharacterNarrativeStyle;
   readonly expressionTone?: CharacterExpressionTone;
+  /** 台词指纹 (WP-J P2; 缺省 = 不出现 → INSERT 走 DEFAULT NULL / UPDATE 整列不碰). */
+  readonly verbalVoice?: string;
 } {
   return {
     templateId: seed.templateId,
@@ -777,6 +814,8 @@ function toEntityPayload(seed: CharacterProfileSeed): {
     ...(seed.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: seed.speechVolumeBaseline }),
     ...(seed.narrativeStyle === undefined ? {} : { narrativeStyle: seed.narrativeStyle }),
     ...(seed.expressionTone === undefined ? {} : { expressionTone: seed.expressionTone }),
+    // WP-J P2: 台词指纹 —— 口径同表达风格三列: 种子没给 → 整列不出现 (不冲掉运营改过的文案).
+    ...(seed.verbalVoice === undefined ? {} : { verbalVoice: seed.verbalVoice }),
   };
 }
 
@@ -827,6 +866,8 @@ function hasOptionalColumnDrift(row: CharacterProfileEntity, payload: ReturnType
   if (payload.speechVolumeBaseline !== undefined && row.speechVolumeBaseline !== payload.speechVolumeBaseline) return true;
   if (payload.narrativeStyle !== undefined && row.narrativeStyle !== payload.narrativeStyle) return true;
   if (payload.expressionTone !== undefined && row.expressionTone !== payload.expressionTone) return true;
+  // WP-J P2: 台词指纹 —— 同样只在种子给了值时才算漂移.
+  if (payload.verbalVoice !== undefined && row.verbalVoice !== payload.verbalVoice) return true;
   // WP51: 同盟三维基线两列 —— 同样只在种子给了值时才算漂移.
   if (payload.baselineSafety !== undefined && row.baselineSafety !== payload.baselineSafety) return true;
   if (payload.baselineBond !== undefined && row.baselineBond !== payload.baselineBond) return true;

@@ -22,8 +22,8 @@
 //   V2026-11-10 治本 (WP-J · 角色基线差异化标定):
 //   执行顺序 (两段, 分别打印):
 //     ① 内容 seed (A 类 4 个有 seed 规格的角色) —— 内容 + 数值一起走幂等 upsert;
-//     ② 基线校准 (B 类 4 个 DB-only 角色) —— **只 UPDATE 已存在且未软删行的 8 个基线列**,
-//        不 INSERT、不补内容、不碰 enabled / audit_status / version.
+//     ② 基线校准 (B 类 4 个 DB-only 角色) —— **只 UPDATE 已存在且未软删行的 8 个基线列
+//        + 台词指纹 verbal_voice**, 不 INSERT、不补内容、不碰 enabled / audit_status / version.
 //     两者分开打印, 便于人工核对"哪一步动了什么".
 //
 //   为什么情绪标签自检要用内核那个真函数:
@@ -138,7 +138,7 @@ async function main(): Promise<void> {
         '）\n',
     );
 
-    // ② B 类 (DB-only): 只更新已存在且未软删行的 8 个基线列 —— 不 INSERT、不碰内容与状态字段.
+    // ② B 类 (DB-only): 只更新已存在且未软删行的 8 个基线列 + 台词指纹 —— 不 INSERT、不碰内容与状态字段.
     const calibrationResult = await applyBaselineCalibration(repo, DB_ONLY_BASELINE_CALIBRATION);
     process.stdout.write(
       '[seed:character-profiles] 基线校准 (B 类 ' +

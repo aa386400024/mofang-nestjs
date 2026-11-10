@@ -25,7 +25,7 @@ import {
   applyBaselineCalibration,
 } from '../../src/engine-adapters/wiring/character/character-profile.seed.js';
 
-/** 校准只允许写的 8 个列 (顺序固定, 便于断言). */
+/** 校准写的 8 个基线数值列 (顺序固定, 便于断言). */
 const BASELINE_COLUMNS = [
   'baselineTrust',
   'baselineResistanceVerbal',
@@ -36,6 +36,17 @@ const BASELINE_COLUMNS = [
   'baselineSafety',
   'baselineBond',
 ] as const;
+
+/**
+ * WP-J P2: 台词指纹列.
+ *
+ * 它**也**由这条 UPDATE 写入 —— B 类 4 个角色没有来访池模板, 内容 seed 带不进去,
+ * 文案只能随基线校准一起落. 所以它**不是**内容列.
+ */
+const VERBAL_VOICE_COLUMN = 'verbalVoice';
+
+/** 一条校准 UPDATE 允许写的全部列 = 8 个基线数值 + 台词指纹. */
+const CALIBRATION_COLUMNS = [...BASELINE_COLUMNS, VERBAL_VOICE_COLUMN] as const;
 
 /** 载荷里**绝不允许**出现的列 (内容列 + 运营状态列 + 版本列). */
 const FORBIDDEN_COLUMNS = [
@@ -50,7 +61,6 @@ const FORBIDDEN_COLUMNS = [
   'speechVolumeBaseline',
   'narrativeStyle',
   'expressionTone',
-  'verbalVoice',
   'auditStatus',
   'enabled',
   'version',
@@ -139,6 +149,8 @@ function buildDriftedRow(target: CharacterBaselineCalibration, overrides: Partia
     baselineEmotionArousal: 0.5,
     baselineSafety: 0.5,
     baselineBond: 0.5,
+    // WP-J P2: 库里原本 8 行 verbal_voice 全 NULL —— 默认就按"待写入"造, 与真库一致.
+    verbalVoice: null,
     speechVolumeBaseline: 0.5,
     narrativeStyle: 'mixed',
     expressionTone: 'restrained',
@@ -178,8 +190,8 @@ describe('WP-J · DB-only 角色集合的推导', () => {
   });
 });
 
-describe('WP-J · applyBaselineCalibration · 只更新 8 个基线列', () => {
-  it('③ 4 行全部更新, 载荷里只有那 8 个基线列', async () => {
+describe('WP-J · applyBaselineCalibration · 只更新基线列 + 台词指纹', () => {
+  it('③ 4 行全部更新, 载荷里只有 8 个基线列 + 台词指纹', async () => {
     const repo = new FakeCharacterProfileRepo();
     for (const target of DB_ONLY_BASELINE_CALIBRATION) {
       repo.rows.push(buildDriftedRow(target));
@@ -192,14 +204,14 @@ describe('WP-J · applyBaselineCalibration · 只更新 8 个基线列', () => {
     expect(repo.insertCalls).toHaveLength(0);
 
     for (const call of repo.updateCalls) {
-      expect(Object.keys(call.payload).toSorted()).toEqual([...BASELINE_COLUMNS].toSorted());
+      expect(Object.keys(call.payload).toSorted()).toEqual([...CALIBRATION_COLUMNS].toSorted());
       for (const forbidden of FORBIDDEN_COLUMNS) {
         expect(Object.keys(call.payload)).not.toContain(forbidden);
       }
     }
   });
 
-  it('④ 校准后的行: 基线八维对齐标定表, 内容列与状态列**一字未动**', async () => {
+  it('④ 校准后的行: 基线八维 + 台词指纹对齐标定表, 内容列与状态列**一字未动**', async () => {
     const repo = new FakeCharacterProfileRepo();
     for (const target of DB_ONLY_BASELINE_CALIBRATION) {
       repo.rows.push(buildDriftedRow(target));
@@ -232,6 +244,8 @@ describe('WP-J · applyBaselineCalibration · 只更新 8 个基线列', () => {
       expect(row.baselineEmotionArousal).toBe(target?.emotion.arousal);
       expect(row.baselineSafety).toBe(target?.safety);
       expect(row.baselineBond).toBe(target?.bond);
+      // WP-J P2: 台词指纹同样必须落成标定表那一份 (不是 NULL, 也不是别的角色的文案).
+      expect(row.verbalVoice).toBe(target?.verbalVoice);
 
       const snapshot = before[index];
       expect(row.fivePs).toEqual(JSON.parse(snapshot?.fivePs ?? '{}'));
@@ -331,6 +345,8 @@ describe('WP-J · applyBaselineCalibration · 幂等', () => {
           baselineEmotionArousal: target.emotion.arousal,
           baselineSafety: target.safety,
           baselineBond: target.bond,
+          // WP-J P2: 文案也必须一致, 否则"8 维全对"仍会因文案 NULL 判漂移.
+          verbalVoice: target.verbalVoice,
         }),
       );
     }
@@ -358,6 +374,8 @@ describe('WP-J · applyBaselineCalibration · 幂等', () => {
           baselineEmotionArousal: Math.fround(target.emotion.arousal),
           baselineSafety: Math.fround(target.safety),
           baselineBond: Math.fround(target.bond),
+          // 文案是 varchar, 不存在单精度问题 —— 但要一致, 否则这条用例测的就不是"精度"了.
+          verbalVoice: target.verbalVoice,
         }),
       );
     }
@@ -382,6 +400,8 @@ describe('WP-J · applyBaselineCalibration · 幂等', () => {
           baselineSafety: target.safety,
           // 只把 bond 偏 0.01 (= 标定最小刻度, 也远大于 1e-6 容差)
           baselineBond: Number(Math.max(target.bond - 0.01, 0).toFixed(4)),
+          // 文案保持一致 —— 让这条用例只测"容差不吞真差异", 不被文案漂移干扰.
+          verbalVoice: target.verbalVoice,
         }),
       );
     }
@@ -390,6 +410,60 @@ describe('WP-J · applyBaselineCalibration · 幂等', () => {
 
     expect(result).toEqual({ updated: 4, unchanged: 0, missing: [] });
     expect(repo.updateCalls).toHaveLength(4);
+  });
+
+  it('⑨-d 8 维全对、库里 verbal_voice 仍为 NULL → 判漂移并真的把文案写进载荷', async () => {
+    const repo = new FakeCharacterProfileRepo();
+    for (const target of DB_ONLY_BASELINE_CALIBRATION) {
+      repo.rows.push(
+        buildDriftedRow(target, {
+          baselineTrust: target.trust,
+          baselineResistanceVerbal: target.resistance.verbal,
+          baselineResistanceDepth: target.resistance.depth,
+          baselineResistanceStyle: target.resistance.style,
+          baselineEmotionValence: target.emotion.valence,
+          baselineEmotionArousal: target.emotion.arousal,
+          baselineSafety: target.safety,
+          baselineBond: target.bond,
+          // 真库现状: 8 行 verbal_voice 全 NULL.
+          verbalVoice: null,
+        }),
+      );
+    }
+
+    const result = await applyBaselineCalibration(repo as never);
+
+    expect(result).toEqual({ updated: 4, unchanged: 0, missing: [] });
+    expect(repo.updateCalls).toHaveLength(4);
+    for (const call of repo.updateCalls) {
+      // buildDriftedRow 的主键格式是 `row-<templateId>`.
+      const templateId = call.id.replace(/^row-/, '');
+      const target = DB_ONLY_BASELINE_CALIBRATION.find((item) => item.templateId === templateId);
+      expect(call.payload.verbalVoice).toBe(target?.verbalVoice);
+    }
+  });
+
+  it('⑨-e 文案被运营改过一个字 → 判漂移 (不会因为"8 维对上了"就放过文案)', async () => {
+    const repo = new FakeCharacterProfileRepo();
+    for (const target of DB_ONLY_BASELINE_CALIBRATION) {
+      repo.rows.push(
+        buildDriftedRow(target, {
+          baselineTrust: target.trust,
+          baselineResistanceVerbal: target.resistance.verbal,
+          baselineResistanceDepth: target.resistance.depth,
+          baselineResistanceStyle: target.resistance.style,
+          baselineEmotionValence: target.emotion.valence,
+          baselineEmotionArousal: target.emotion.arousal,
+          baselineSafety: target.safety,
+          baselineBond: target.bond,
+          verbalVoice: '（运营改过）' + target.verbalVoice,
+        }),
+      );
+    }
+
+    const result = await applyBaselineCalibration(repo as never);
+
+    expect(result).toEqual({ updated: 4, unchanged: 0, missing: [] });
   });
 });
 

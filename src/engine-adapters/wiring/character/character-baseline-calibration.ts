@@ -41,11 +41,16 @@
 import type { EmotionLabel } from '../../../engine-core/index.js';
 
 /**
- * 一个角色的基线标定行 (8 个数值维度 + 期望情绪标签).
+ * 一个角色的基线标定行 (8 个数值维度 + 期望情绪标签 + 台词指纹).
  *
  * 为什么**不带** displayName / attachmentStyle:
  *   这两样各有自己的真相源 (A 类在 seed 规格里, B 类在库里). 本模块再抄一份 = 第二份真相,
- *   迟早漂. 本模块只声明**数值** —— 数值是它唯一负责的东西.
+ *   迟早漂.
+ *
+ * 为什么**带** verbalVoice (WP-J P2 起):
+ *   8 个角色的数值与台词必须**同生共死** —— 加一个角色, 数值和台词一起到齐. 拆成两张表就得
+ *   额外维护"两边 templateId 集合相等"的自检, 而那本身就是一处新的、会漂的真相.
+ *   文案本身仍是**渲染层**的东西 (不进内核决策), 只是**存放位置**选在这里.
  */
 export interface CharacterBaselineCalibration {
   /** 公共模板 id (`vpt_*` slug) —— 内容与数值唯一的对齐键. */
@@ -69,6 +74,15 @@ export interface CharacterBaselineCalibration {
   readonly bond: number;
   /** 期望的离散情绪标签 (由**真实**内核函数 resolveEmotionLabel 核对). */
   readonly expectedLabel: EmotionLabel;
+  /**
+   * 台词指纹 (WP-J P2) —— 一段"可执行的说话方式描述".
+   *
+   * 内容口径: 只补**句式习惯 / 口头禅 / 节奏 / 语气质感**, 不复述已有的
+   *   narrativeStyle (叙事逻辑) 与 expressionTone (语态倾向) —— 那两列另有真相源.
+   * 用途: 渲染层拼成"你说话的味道：xxx" 塞进来访者 prompt; 空/NULL = 不渲染那一行 (零回归).
+   * 长度: 见 `MAX_VERBAL_VOICE_LENGTH` (与 DDL varchar(500) 对齐).
+   */
+  readonly verbalVoice: string;
 }
 
 /**
@@ -151,12 +165,23 @@ export const STORAGE_FLOAT_TOLERANCE = 1e-6;
 export const MIN_DIMENSION_SPREAD = 0.4;
 
 /**
+ * 台词指纹的最大长度 —— 与 DDL `verbal_voice varchar(500)` **逐字对齐**.
+ *
+ * 为什么代码里要再写一遍上限: 这边超了, 落库时才炸 (严格模式 "Data too long", 或更糟的
+ * 静默截断) —— 那时已经跑到 seed 末尾了. 入库前自检挡住, 排查成本差一个数量级.
+ */
+export const MAX_VERBAL_VOICE_LENGTH = 500;
+
+/**
  * 8 个角色的基线标定表 (唯一真相源).
  *
  * 数值来源: docs/reference/character-baseline-research.md §6 (v2 循证推导) 与任务单 §四,
  * **逐字照抄, 一个数都没改**. 其中两处是研究阶段做的真实函数边界修正:
  *   · 沉舟 arousal 0.18 (< 0.2) → 内核落 `empty` (迟滞空洞), 不是 `sad`;
  *   · 惊尘 arousal 0.64 (< 0.65) → 内核落 `hurt` (创伤以恐惧为主), 不是 `angry`.
+ *
+ * 台词指纹 (verbalVoice) 来源: docs/worklog/pending/phase2.5-verbal-voice-drafts-2026-11-10.md
+ * (8 段 80-120 字定稿), 逐字搬入, 未做改写.
  *
  * ⚠️ 数值是**工程标定值** (文献给排序 / 方向 / 剖面形状, 小数是工程锚点),
  *    不是临床标定 —— 待真实对练数据回来后再校准.
@@ -170,6 +195,11 @@ export const CHARACTER_BASELINE_CALIBRATION: readonly CharacterBaselineCalibrati
     safety: 0.7,
     bond: 0.5,
     expectedLabel: 'guarded',
+    // 安然: 安全型是对照组 —— 不能写得太"健康"得不像来访者 (他仍有困扰), 但也不防御.
+    //   核心是"能直接说感受, 说完不粘".
+    verbalVoice:
+      '说话自然直接，不绕弯。会用"我觉得"、"其实吧"开头，不把自己当受害者。' +
+      '说到压力时会停顿一下，但说完就过了，不反复咀嚼。语气放松，偶尔带点自嘲。',
   },
   {
     templateId: 'vpt_intimate_avoidance_l1',
@@ -179,6 +209,11 @@ export const CHARACTER_BASELINE_CALIBRATION: readonly CharacterBaselineCalibrati
     safety: 0.35,
     bond: 0.65,
     expectedLabel: 'guarded',
+    // 晚晴: 压抑不满时的语言特征 —— 用场景代替情绪、用对方代替自己
+    //   (依恋行为指引已渲染了"反复确认/讨好", 这里不重复).
+    verbalVoice:
+      '说话柔和，常说"没事"、"我都行"、"你决定就好"。说到委屈时不直接说生气，而是绕着场景讲——' +
+      '"那天他回来得晚，我就一个人吃了饭"。会快速把话题拉回对方："你呢，你最近怎么样？"',
   },
   {
     templateId: 'vpt_self_worth_intellectualization_l1',
@@ -188,6 +223,11 @@ export const CHARACTER_BASELINE_CALIBRATION: readonly CharacterBaselineCalibrati
     safety: 0.35,
     bond: 0.55,
     expectedLabel: 'guarded',
+    // 小满: 理智化的**具体句式** —— 绩效自评腔、被夸就谦虚、用工作指标代替情绪.
+    //   与亦舟的区分: 小满是"向内证明自己够好", 亦舟是"向外解决问题".
+    verbalVoice:
+      '习惯用"我分析"、"客观来讲"开头。描述自己时像在写绩效自评——"这个事我其实还有提升空间"。' +
+      '被夸会立刻说"没有没有，差得远"。不直接说"我慌"，会说"效率有点波动"。',
   },
   {
     templateId: 'vpt_social_anxious_l1',
@@ -197,6 +237,11 @@ export const CHARACTER_BASELINE_CALIBRATION: readonly CharacterBaselineCalibrati
     safety: 0.4,
     bond: 0.5,
     expectedLabel: 'anxious',
+    // 语桐: 社交焦虑的核心是"语言自我修正" —— 跟晚晴 (不说不满) 区分开,
+    //   语桐是"说了就往回收".
+    verbalVoice:
+      '说话前会犹豫，常用"就是…那个…"、"可能吧"填充。刚说完一句话会立刻修正——' +
+      '"我不是那个意思，我是说…"。怕说错，观点刚出口就往回收。声音偏小，语速偏快。',
   },
   {
     templateId: 'vpt_depression_avoidant_l1',
@@ -206,6 +251,11 @@ export const CHARACTER_BASELINE_CALIBRATION: readonly CharacterBaselineCalibrati
     safety: 0.2,
     bond: 0.15,
     expectedLabel: 'empty',
+    // 沉舟: restrained 是"情绪不外露但还是在说", 沉舟是"连话都不想组织" ——
+    //   抑郁性迟缓的语言特征, 不是一般回避.
+    verbalVoice:
+      '句子短，停顿多。"不知道"、"没什么"、"就那样"是高频回答。语速慢，声音平，没有起伏。' +
+      '问到感受只答"没什么"，然后沉默。不会主动展开任何话题。',
   },
   {
     templateId: 'vpt_grief_avoidance_l1',
@@ -215,6 +265,11 @@ export const CHARACTER_BASELINE_CALIBRATION: readonly CharacterBaselineCalibrati
     safety: 0.25,
     bond: 0.2,
     expectedLabel: 'sad',
+    // 念安: 回避型 + 哀伤的核心是"用日程表盖住情绪" —— 白天的"像没事人一样",
+    //   所以不写 disorganized (那是夜间/被触碰时).
+    verbalVoice:
+      '说话像在汇报日常——"早上送了孩子，中午开了会，晚上煮了面"。条理清楚，不带情绪。' +
+      '问到伴侣会停一下，然后说"都过去了"。用"还好"开场每一句话。不会主动提那个人的名字。',
   },
   {
     templateId: 'vpt_workplace_intellectualization_l1',
@@ -224,6 +279,11 @@ export const CHARACTER_BASELINE_CALIBRATION: readonly CharacterBaselineCalibrati
     safety: 0.25,
     bond: 0.1,
     expectedLabel: 'sad',
+    // 亦舟: 理智化是"控制感" —— 把感受变成待办事项; 跟小满 (证明自己优秀) 区分开,
+    //   亦舟的核心是"不要给人添麻烦".
+    verbalVoice:
+      '被问感受会自动切到"问题清单"——"这个事主要分三块"。用"我理解"、"从逻辑上讲"代替"我觉得"。' +
+      '不说"我难受"，说"这个状态影响了产出"。偶尔自嘲但立刻收住。',
   },
   {
     templateId: 'vpt_trauma_disorganized_l1',
@@ -233,6 +293,11 @@ export const CHARACTER_BASELINE_CALIBRATION: readonly CharacterBaselineCalibrati
     safety: 0.1,
     bond: 0.45,
     expectedLabel: 'hurt',
+    // 惊尘: disorganized 依恋在内核的 ATTACHMENT_BEHAVIOR_INSTRUCTION 里是空的 (只有 anxious 有),
+    //   这里补的是混乱型的核心语言特征 —— 接近 (突然倒豆子) 与回避 (突然断片) 交替.
+    verbalVoice:
+      '说话前后矛盾——刚说"我没事"突然又说"那晚走廊的声音…"然后戛然而止。会突然换话题。' +
+      '有时语速很快像倒豆子，有时像失忆一样接不上。偶尔会问"我刚才说到哪了？"',
   },
 ];
 
@@ -262,11 +327,12 @@ export function getBaselineCalibration(templateId: string): CharacterBaselineCal
 /**
  * 标定表自检 (入库前必炸).
  *
- * 四条规则:
+ * 五条规则:
  *   ① 区间: trust / 三维阻抗 / safety / bond / arousal ∈ [0,1]; valence ∈ [-1,1];
  *   ② 情绪标签: 用**真实**内核函数逐行核对 resolveEmotionLabel(valence, arousal) === expectedLabel;
  *   ③ 可区分性: 任意两个角色, 8 个维度中至少有一维绝对差 ≥ 0.05;
- *   ④ 无维度塌缩: 每个维度在全部角色上的 (max − min) ≥ 0.40.
+ *   ④ 无维度塌缩: 每个维度在全部角色上的 (max − min) ≥ 0.40;
+ *   ⑤ 台词指纹: 8 条都非空、都不超 MAX_VERBAL_VOICE_LENGTH、两两不得完全相同.
  *
  * @param resolveLabel 情绪标签解析函数 (必须是内核那个真函数)
  * @param calibration 待检标定表 (缺省 = 权威表本身)
@@ -279,6 +345,12 @@ export function validateBaselineCalibration(
   const duplicate = findDuplicateTemplateId(calibration);
   if (duplicate) {
     return `角色基线标定表重复: ${duplicate}`;
+  }
+
+  // WP-J P2: 台词指纹与数值同批入库 —— 所以走同一道闸门, 不另开一条容易漏跑的检查.
+  const voiceError = validateVerbalVoice(calibration);
+  if (voiceError) {
+    return voiceError;
   }
 
   for (const row of calibration) {
@@ -389,6 +461,38 @@ function validateBaselineDimensionSpread(calibration: readonly CharacterBaseline
     if (spread < MIN_DIMENSION_SPREAD - FLOAT_TOLERANCE) {
       return `基线维度 ${key} 在 ${calibration.length} 个角色上被压成常数 ` + `(跨度 ${spread.toFixed(4)} < ${MIN_DIMENSION_SPREAD})`;
     }
+  }
+  return null;
+}
+
+/**
+ * 台词指纹自检 (WP-J P2).
+ *
+ * 三条规则:
+ *   ① 非空 (纯空白也算空): 空文案会渲染出"你说话的味道："这种半句话 —— 比不渲染更糟,
+ *      因为它明确在提示模型"这里该有内容", 却什么都没给;
+ *   ② 不超 `MAX_VERBAL_VOICE_LENGTH`: 与 DDL varchar(500) 对齐, 避免入库时才报 Data too long;
+ *   ③ 两行不得完全相同: 复制粘贴会让两个角色同腔同调, 而"角色可分辨度"正是本单的目标.
+ *      完全相同 = 复制事故, 直接炸 (近似不同则不拦, 那是文案质量, 归人工评审).
+ *
+ * @param calibration 待检标定表
+ * @returns 首条错误描述; 全部通过 → null
+ */
+function validateVerbalVoice(calibration: readonly CharacterBaselineCalibration[]): string | null {
+  const seen = new Map<string, string>();
+  for (const row of calibration) {
+    const voice = row.verbalVoice.trim();
+    if (voice.length === 0) {
+      return `角色 ${row.templateId} 的台词指纹为空`;
+    }
+    if (voice.length > MAX_VERBAL_VOICE_LENGTH) {
+      return `角色 ${row.templateId} 的台词指纹超长: ${voice.length} 字 > 上限 ${MAX_VERBAL_VOICE_LENGTH}`;
+    }
+    const twin = seen.get(voice);
+    if (twin) {
+      return `角色 ${twin} 与 ${row.templateId} 的台词指纹完全相同 (复制粘贴事故)`;
+    }
+    seen.set(voice, row.templateId);
   }
   return null;
 }

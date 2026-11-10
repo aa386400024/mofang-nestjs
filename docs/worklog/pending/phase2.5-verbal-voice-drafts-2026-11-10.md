@@ -129,7 +129,34 @@
 
 ---
 
-## 落库方式建议
+## 落库实施记录（2026-11-10 已完成）
+
+**实际做法**（与下面原建议不同，以本段为准）：
+
+1. 8 条文案作为 `verbalVoice` 字段写进 **`CHARACTER_BASELINE_CALIBRATION`**（`src/engine-adapters/wiring/character/character-baseline-calibration.ts`），
+   与 8 个数值维度**同一行**存放 —— 这样"数值和台词同生共死"，不需要另维护一张 map 的 templateId 对齐。
+2. **A 类 4 角色**：`baselineOf(templateId)` 的装配范围扩到 `verbalVoice`，规格里 `...baselineOf(...)` 自动带上，
+   **没有**在 `CharacterProfileSeedSpec` 里手写第二份文案。
+3. **B 类 4 角色（安然 / 语桐 / 沉舟 / 惊尘）**：`toBaselineColumns` 多写一列 `verbalVoice`，
+   随那条幂等 UPDATE 一起落库（这 4 个角色没有来访池模板，内容 seed 碰不到它们）。
+4. 新增**第 5 道入库前自检** `validateVerbalVoice`：非空、≤ `MAX_VERBAL_VOICE_LENGTH`(500，与 DDL 对齐)、
+   两两不得完全相同（防复制粘贴导致两个角色同腔同调）。
+5. 不写 migration、不碰 engine-core。
+
+**验证结果**：
+
+| 项 | 结果 |
+|---|---|
+| tsc | exit 0 |
+| eslint（改动文件） | exit 0 |
+| 4 个相关 spec | 83 例全绿（calibration 21 / seed-calibration 15 / wp51 20 / wp9b 27）|
+| seed 第一次 | A 类 更新 4、B 类 更新 4（文案从 NULL 写入）|
+| seed 第二次 | A 类 未变 4、B 类 未变 4（**幂等成立**）|
+| 连真库核对 | **8/8 逐字一致**（长度 72–89 字），数值列未受影响 |
+
+---
+
+## 原落库方式建议（历史，已被上面取代）
 
 审完文案后，走仓库既有内容治理（不走 migration）：
 
