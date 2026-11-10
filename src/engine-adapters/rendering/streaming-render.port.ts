@@ -95,11 +95,14 @@ export interface StreamRenderOutcome {
     /**
      * 输入 token (WP24 · 成本日志要用).
      *
-     * 流式路径上游**只给累计** tokenCount, 没有 prompt/completion 拆分 ——
-     * 所以这里通常**缺省** (即"不可得"), 而不是 0.
+     * V2026-11-10 治本 (WP-H · 改动 7): 流式路径现在**也能拿到**输入侧用量了 ——
+     *   上游一直报着 (OpenAI 兼容 usage.prompt_tokens), 此前是本仓在 provider →
+     *   chunk → 适配器的归约链上把 input 侧丢了, 于是这里恒缺省, prompt_tokens 全库恒 0.
      *
-     * 为什么"通常"而不是"永远": 走"聚合收集成流"兜底形态时 (`streamViaAggregate`)
-     * 上游给的是完整 usage, 那时它是有值的. 口径由**实际走哪条路**决定, 不猜.
+     * 仍然**缺省**的两种情况: 上游没报 (老 provider / 没开 include_usage), 或者
+     *   走"聚合收集成流"兜底形态时上游压根没给完整 usage. 口径由**实际走哪条路**决定, 不猜.
+     *
+     * 缺省 ≠ 0: 0 的含义是"输入侧确实是 0 token", 那在实践中不可能.
      */
     readonly promptTokens?: number;
     /**

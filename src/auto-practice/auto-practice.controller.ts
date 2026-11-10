@@ -21,6 +21,7 @@ import { Repository } from 'typeorm';
 
 import { CounselorMode } from './entities/counselor-mode.entity.js';
 import { PracticeSession } from './entities/practice-session.entity.js';
+import { BATCH_INVALID_WARNING, PracticeBatchHealthService } from './practice-batch-health.service.js';
 import { PracticeQueueService } from './practice-queue.service.js';
 import { PracticeRunnerService } from './practice-runner.service.js';
 import { AdminRoleGuard } from '../admin-debug/guards/admin-role.guard.js';
@@ -64,6 +65,7 @@ export class AutoPracticeController {
   constructor(
     private readonly runner: PracticeRunnerService,
     private readonly queue: PracticeQueueService,
+    private readonly batchHealth: PracticeBatchHealthService,
     @InjectRepository(PracticeSession) private readonly sessionRepo: Repository<PracticeSession>,
     @InjectRepository(CounselorMode) private readonly modeRepo: Repository<CounselorMode>,
   ) {}
@@ -97,6 +99,18 @@ export class AutoPracticeController {
         maxTurns: body?.maxTurns,
         batchId: null,
         practiceSessionId,
+      })
+      .then(async () => {
+        // V2026-11-10 (WP-H 新增 12): 单场跑完也写一份逐字稿索引 ——
+        //   "只跑了一场就没法核对"是最常见的调试场景, 反而最不能没有索引.
+        //   索引写失败只 warn: 它是便利设施, 不该把对练收尾搞挂.
+        try {
+          await this.batchHealth.refreshSingleSession(practiceSessionId);
+        } catch (error) {
+          this.logger.warn(
+            `[auto_practice] 单场索引写入失败 session=${practiceSessionId}: ${error instanceof Error ? error.message : 'unknown'}`,
+          );
+        }
       })
       .catch((error: unknown) => {
         this.logger.error(
@@ -168,25 +182,52 @@ export class AutoPracticeController {
     return row ?? { error: '场次不存在' };
   }
 
-  /** 批量进度汇总. */
+  /**
+   * 批量进度汇总 (V2026-11-10 扩: 改动 6 批次级指标 + 改动 9 有效性门禁).
+   *
+   * 现在返回的不只是"跑了几场", 还有:
+   *   · metrics —— 批次级渲染降级率指标 (改动 6: 三项之和 + 兜底率);
+   *   · batchHealth —— 有效性门禁判定 (改动 9);
+   *   · warning —— 批次不合格时**必须**带上, 否则看的人会拿不可用的数据下结论.
+   *
+   * ⚠️ 判定是**读时算**的: 每次调用都按当前库里的场次重算 —— 批次跑到一半也能立刻
+   *   看出"这批已经废了", 不必等它跑完.
+   */
   @Get('batches/:id')
   async batchProgress(@Param('id') batchId: string) {
-    const rows = await this.sessionRepo.find({ where: { batchId } });
+    const { metrics, health, sessions } = await this.batchHealth.refreshBatch(batchId);
     const byStatus = new Map<string, number>();
-    for (const row of rows) {
+    for (const row of sessions) {
       byStatus.set(row.status, (byStatus.get(row.status) ?? 0) + 1);
     }
     return {
       batchId,
-      total: rows.length,
+      total: sessions.length,
       byStatus: Object.fromEntries(byStatus),
-      sessions: rows.map((r) => ({
+      metrics: {
+        totalTurns: metrics.totalTurns,
+        renderFallbackTurns: metrics.renderFallbackTurns,
+        llmCallTurns: metrics.llmCallTurns,
+        renderFallbackRatio: metrics.renderFallbackRatio,
+        renderFallbackRatioWeighted: metrics.renderFallbackRatioWeighted,
+        llmCallRatio: metrics.llmCallRatio,
+        degradedTurns: metrics.degradedTurns,
+        counselorDegradedTurns: metrics.counselorDegradedTurns,
+        visitorDegradedTurns: metrics.visitorDegradedTurns,
+        counterConsistent: metrics.counterConsistent,
+      },
+      batchHealth: health,
+      ...(health.valid ? {} : { warning: BATCH_INVALID_WARNING }),
+      sessions: sessions.map((r) => ({
         id: r.id,
         characterSlug: r.characterSlug,
         counselorModeId: r.counselorModeId,
         status: r.status,
         turnCount: r.turnCount,
         exitReason: r.exitReason,
+        renderFallbackTurns: r.renderFallbackTurns,
+        llmCallTurns: r.llmCallTurns,
+        renderFallbackRatio: r.renderFallbackRatio,
       })),
     };
   }

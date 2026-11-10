@@ -235,6 +235,16 @@ import { AddPracticeSessionCostColumns1714900000037 } from '../src/migration/171
 //   闸门决策的 **MySQL 真相源** (列表 / 详情端点的数据源).
 //   部署顺序: **必须先 migration:run 再起服务** —— 闸门每轮都要往这张表写一行.
 import { CreateGateDecisions1714900000038 } from '../src/migration/1714900000038-CreateGateDecisions.js';
+// V2026-11-10 治本 (Phase2.5 WP-H 第二波 改动 5/6 — ap_practice_sessions 加渲染降级率指标列):
+//   counselor_degraded_turns / visitor_degraded_turns (拆双计数器) +
+//   render_fallback_turns / llm_call_turns / render_fallback_ratio (渲染降级率独立指标).
+//   历史场次不可反推: 四个 INT 列回填 0 (= 没测过), ratio 留 NULL (= 未知).
+//   部署顺序: **必须先 migration:run 再起服务** —— runner 结算时要往新列写值.
+import { AddPracticeSessionRenderMetrics1714900000039 } from '../src/migration/1714900000039-AddPracticeSessionRenderMetrics.js';
+// V2026-11-10 治本 (Phase2.5 WP-H 第三波 改动 9 — ap_practice_batches 新表):
+//   批次有效性门禁的结论落库 (一批一行: valid / validity_flags / 三个比率).
+//   部署顺序: **必须先 migration:run 再起服务** —— 批次收尾时要往这张表写结论.
+import { CreateAutoPracticeBatches1714900000040 } from '../src/migration/1714900000040-CreateAutoPracticeBatches.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -401,6 +411,12 @@ const ormconfig = async (): Promise<DataSource> => {
       // V2026-11-09 治本 (Phase2.5 闸门 trace 查询接口 — gate_decisions 新表, 跟 src/migration/index.ts 严格 1:1):
       //   部署顺序: **必须先于 migration:run 再起服务** —— 闸门落库前表得先在.
       CreateGateDecisions1714900000038,
+      // V2026-11-10 治本 (Phase2.5 WP-H 第二波 改动 5/6 — ap_practice_sessions 加渲染降级率指标列):
+      //   跟 src/migration/index.ts 严格 1:1. 部署顺序: **必须先 migration:run 再起服务**.
+      AddPracticeSessionRenderMetrics1714900000039,
+      // V2026-11-10 治本 (Phase2.5 WP-H 第三波 改动 9 — ap_practice_batches 新表, 跟 src/migration/index.ts 严格 1:1):
+      //   部署顺序: **必须先 migration:run 再起服务**.
+      CreateAutoPracticeBatches1714900000040,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

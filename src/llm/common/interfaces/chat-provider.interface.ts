@@ -144,6 +144,28 @@ export interface ChatCompletionChunk {
   /** 累计 token 数 (含本次, OpenAI usage 字段). */
   tokenCount: number;
 
+  /**
+   * 累计**输入侧** token 数 (上游报了就带; 没报 = 缺省, 不是 0).
+   *
+   * V2026-11-10 治本 (Phase2.5 WP-H · 改动 7): 这个字段是**补上的**, 不是新增能力 ——
+   *   上游本来就在报输入侧用量 (OpenAI 兼容的 `usage.prompt_tokens` / LangChain 的
+   *   `usage_metadata.input_tokens`), 但本仓在 provider → chunk → 适配器的归约链上
+   *   **只保留了 input+output 的和**, 把 input 侧扔了 —— 于是流式路径的 prompt_tokens
+   *   全库恒为 0, 成本口径永远只能是 output_only (严重低估).
+   *
+   * 为什么"没报 = 缺省"而不是 0: 0 的含义是"输入侧确实是 0 token", 那在实践中不可能;
+   *   缺省才表示"上游没报, 不可得". 两者混为一谈就会拿 0 冒充"输入侧免费".
+   */
+  promptTokens?: number;
+
+  /**
+   * 累计**输出侧** token 数 (上游报了就带; 没报 = 缺省, 不是 0).
+   *
+   * 与 `promptTokens` 同款纪律. 有它, `tokenCount` 就不是"只能当输出侧用"了 ——
+   *   输入 / 输出 / 合计三者第一次能对上账.
+   */
+  completionTokens?: number;
+
   /** 是否为最终 chunk. */
   isFinal: boolean;
 

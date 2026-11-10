@@ -20,6 +20,8 @@ import { Logger } from '@nestjs/common';
 import { OnGatewayConnection, OnGatewayDisconnect, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
 
+import { AUTO_PRACTICE_EVENTS } from './auto-practice.events.js';
+
 /**
  * 自动对练实时推送网关.
  *
@@ -42,6 +44,15 @@ export class AutoPracticeGateway implements OnGatewayConnection, OnGatewayDiscon
   private readonly server!: Server;
 
   /**
+   * 已经为"空房间"打过一次 debug 的场次 id (V2026-11-10 · WP-H 新增 11).
+   *
+   * 为什么去重: 批量跑批时每轮都会推一次 —— 24 场 × 12 轮 = 288 次,
+   *   每次一条日志就是几百行噪音. 但"这个场次没人订阅"这件事**每场只值得说一次**,
+   *   重复说是纯噪音, 不重复说又看不出"订阅没生效".
+   */
+  private readonly emptyRoomNotified = new Set<string>();
+
+  /**
    * 把事件推给订阅了某场次的所有客户端.
    *
    * @param practiceSessionId 场次 id
@@ -55,13 +66,34 @@ export class AutoPracticeGateway implements OnGatewayConnection, OnGatewayDiscon
     }
     const room = this.room(practiceSessionId);
     const roomSize = this.server.sockets.adapter.rooms.get(room)?.size ?? 0;
-    this.server.to(room).emit(event, payload);
     if (roomSize === 0) {
-      // 没人订阅时推送是丢进空房间 —— 一次性可见告警, 避免"WS 连上了但永远收不到事件"的静默失败.
-      this.logger.warn(`推送 ${event} → ${practiceSessionId} 时房间为空 (无客户端订阅)`);
+      // V2026-11-10 治本 (WP-H 新增 11 — WS 空房间短路):
+      //   没人订阅时, 推送是丢进空房间 —— 既白跑一遍序列化, 又刷一条 WARN.
+      //   现在: 直接 return (不序列化、不 emit), 且**同一场次只打一条 debug**.
+      //   降级到 debug 而不是直接静音: "订阅没生效"这件事仍然要看得见,
+      //   但它不该以 WARN 的身份在跑批日志里刷几百行.
+      if (!this.emptyRoomNotified.has(practiceSessionId)) {
+        this.emptyRoomNotified.add(practiceSessionId);
+        this.logger.debug(`推送 ${event} → ${practiceSessionId} 跳过: 房间为空 (无客户端订阅)`);
+      }
+      this.forgetSessionIfEnded(practiceSessionId, event);
       return;
     }
+    this.server.to(room).emit(event, payload);
     this.logger.debug(`推送 ${event} → ${practiceSessionId} (room ${roomSize} 人)`);
+    this.forgetSessionIfEnded(practiceSessionId, event);
+  }
+
+  /**
+   * 场次结束时清掉去重记录 (V2026-11-10 · WP-H 新增 11).
+   *
+   * 场次 id 是 nanoid, 不会复用 —— 所以不清也不会串味, 但不清就是内存泄漏:
+   *   跑 100 场批次 = 100 个条目赖着不走. 结束即清, 干净.
+   */
+  private forgetSessionIfEnded(practiceSessionId: string, event: string): void {
+    if (event === AUTO_PRACTICE_EVENTS.sessionEnd) {
+      this.emptyRoomNotified.delete(practiceSessionId);
+    }
   }
 
   /** @inheritdoc */

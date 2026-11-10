@@ -24,6 +24,7 @@ import { nanoid } from 'nanoid';
 import { Repository } from 'typeorm';
 
 import { CounselorMode } from './entities/counselor-mode.entity.js';
+import { PracticeBatchHealthService } from './practice-batch-health.service.js';
 import { PracticeRunnerService } from './practice-runner.service.js';
 import { QUEUE_NAMES } from '../shared/infra/redis/redis.constants.js';
 import { RedisService } from '../shared/infra/redis/redis.service.js';
@@ -112,6 +113,7 @@ export class PracticeQueueService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly redis: RedisService,
     private readonly runner: PracticeRunnerService,
+    private readonly batchHealth: PracticeBatchHealthService,
     @InjectRepository(CounselorMode) private readonly modeRepo: Repository<CounselorMode>,
   ) {
     const raw = process.env.AUTO_PRACTICE_WORKER_CONCURRENCY;
@@ -178,5 +180,16 @@ export class PracticeQueueService implements OnModuleInit, OnModuleDestroy {
       maxTurns: data.maxTurns,
       batchId: data.batchId,
     });
+    // V2026-11-10 治本 (WP-H 改动 9 + 新增 12): 批次收尾时算有效性门禁 + 写逐字稿索引.
+    //   只在"批次全部跑完"时才落库 (最后一场跑完的那次会命中) —— 中途不落, 免得刷 100 次.
+    //   失败只 warn: 门禁与索引是可观测性设施, 不该让 job 失败重跑 (重跑 = 再烧一遍钱).
+    try {
+      const result = await this.batchHealth.refreshBatch(data.batchId, { onlyWhenFinished: true });
+      if (result.allSessionsFinished && !result.health.valid) {
+        this.logger.warn(`[auto_practice] 批次未通过有效性门禁 batch=${data.batchId} flags=${result.health.flags.join(',')}`);
+      }
+    } catch (error) {
+      this.logger.warn(`[auto_practice] 批次健康刷新失败 batch=${data.batchId}: ${error instanceof Error ? error.message : 'unknown'}`);
+    }
   }
 }

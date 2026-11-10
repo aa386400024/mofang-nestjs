@@ -44,7 +44,8 @@
 | **WP-E** | 自动评测 + 参数调优 | 🟡 P1 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-tuning.md) / [交付记录](../completed/phase2.5/phase2.5-wp-e-auto-evaluation-implementation-2026-11-09.md) |
 | **WP-F** | 成本看板多源合并 | 🟢 P2 | ✅ 已完成 | [任务单](../completed/phase2.5/phase2.5-wp-f-cost-board-merge-sources.md) / [交付记录](../completed/phase2.5/phase2.5-wp-f-cost-board-merge-sources-implementation-2026-11-09.md) |
 | **WP-G** | 对话质量修复（来访话术 / 咨询师兜底 / 停滞检测 / 危机应对） | 🔴 P0 | ✅ 已交付（**验收推迟，见下**） | [任务单](../completed/phase2.5/wp-g-dialogue-quality-fix-task.md) / [交付记录](../completed/phase2.5/phase2.5-wp-g-dialogue-quality-fix-implementation-2026-11-09.md) |
-| **WP-H** | 渲染可用性与指标可信度修复 | 🔴 **P0** | 🚧 **第一波已交付**（改动 1~4；第二/三波待开工） | [任务单](wp-h-render-availability-fix-task.md) / [第一波交付记录](../completed/phase2.5/phase2.5-wp-h-wave1-render-availability-implementation-2026-11-09.md) |
+| **WP-H** | 渲染可用性与指标可信度修复 | 🔴 **P0** | ✅ **三波全交付**（改动 1~9 + 批次可观测性收口）；金丝雀门禁已过，100 场级批次待主 Agent 发起 | [任务单](wp-h-render-availability-fix-task.md) / [第一波交付记录](../completed/phase2.5/phase2.5-wp-h-wave1-render-availability-implementation-2026-11-09.md) / [第二/三波交付记录](../completed/phase2.5/phase2.5-wp-h-wave2-3-implementation-2026-11-10.md) / [金丝雀验证记录](phase2.5-wp-h-wave1-canary-verification-2026-11-09.md) |
+| **WP-G** | 对话质量修复 · 金丝雀验收 | 🔴 P0 | ✅ **金丝雀层面已验证**（24 场：来访兜底句 82.9%→0.0%、重复率 81.4%→0.0%） | [金丝雀验证记录](phase2.5-wp-h-wave1-canary-verification-2026-11-09.md) |
 
 **依赖关系：**
 ```
@@ -89,17 +90,17 @@ WP-B 可复现控制 + 版本锁定
 |---|---|
 | ① 合规过线 | ✅ WP-A 交付（入参零原文 + 三道风险闸门） |
 | ② 考核公平 | ✅ WP-B 交付（考核场景永远纯规则 + 版本锁定） |
-| ③ 成本可控 | 🚧 WP-C 闸门已上线，**种子值待真实评测校准**；且 `prompt_tokens` 恒为 0 导致成本只算输出侧，修完 WP-H 改动 7 才可信 |
-| ④ 质量达标 | 🔴 **不可判定** —— 现有数据 LLM 未真正调用，需 WP-H 修完重跑金丝雀才能重新评估 |
+| ③ 成本可控 | 🚧 WP-C 闸门已上线，**种子值待真实评测校准**；`prompt_tokens` 恒为 0 的根因已修（WP-H 改动 7：上游报了的输入侧用量现在能穿透流式链路），成本口径可从 `output_only` 升到 `full` —— **待 100 场级批次重新取证** |
+| ④ 质量达标 | 🚧 **部分解除** —— 2026-11-09 金丝雀已证明 LLM 真的被调用（24/24 场 `total_tokens>0`、兜底句 0.0%）；改动 7/8 已落地（`prompt_tokens` 归约链 + `engine_version` 走 `git describe --dirty`），改动 9 的批次有效性门禁已上线 —— **质量结论仍须等 100 场级批次重跑后再判** |
 | ⑤ 数据积累 | 🚧 WP-D 自动对练已交付；**但 534/1034 场（51.6%）逐字稿已被 `MAX_DEBUG_SESSIONS=500` 淘汰**，幸存 500 场已归档到 `data/archives/debug-sessions-baseline-20261109/` |
 
 ### 3.3 下一步（严格按顺序）
 
 1. ~~**WP-H 第一波**（让 LLM 真的被调用）~~ ✅ **已交付（2026-11-09）**：半开探测（冷却 60s / 半开 30s）+ 显式退避重试层（关掉 LangChain 隐式 6 次）+ 超时即中止（修"幽灵重试"）+ 并发缺省 3→2 + 单候选启动告警。**运维还差一步：`.env` 里配第二家 chat provider 的 key**（deepseek / doubao / qwen 的 provider 代码已注册，只差 key）
-2. **WP-H 第二波**（指标可信度）：`degraded_turns` 拆双计数器 + `render_fallback_*` 三列 + `prompt_tokens` 归约链（改动 5~7，含两笔迁移）
-3. **WP-H 第三波**（版本追溯 + 批次门禁）：`engine_version` 走 `git describe --dirty` + 批次有效性门禁（改动 8~9）
-4. **跑金丝雀验证门禁**：20~30 场，并发 1~2，要求 `total_tokens>0` 场次 ≥90%、兜底句占比 <5%、`degraded_turns ≤ turn_count`
-5. 门禁过了才允许跑大批；否则跑出来的数还是无效
+2. ~~**WP-H 第二波**（指标可信度）~~ ✅ **已交付（2026-11-10）**：改动 5（双计数器五列 + 迁移 0039）、改动 6（批次端点聚合）、改动 7（`prompt_tokens` 归约链真根因修复：provider/chunk 契约层丢掉了输入侧拆分）
+3. ~~**WP-H 第三波**（版本追溯 + 批次门禁）~~ ✅ **已交付（2026-11-10）**：改动 8（`engine_version` 走 `git describe --always --dirty`，无 git 回落 `unknown`）、改动 9（批次有效性门禁：`ap_practice_batches` 表 + `GET /batches/:id` 返回 `batchHealth` 与 `warning`）；另加批次可观测性三项（`DB_QUERY_LOGGING` 日志降噪 / WS 空房间短路 / 逐字稿批次索引）
+4. ~~**跑金丝雀验证门禁**~~ ✅ **已通过（2026-11-09 23:23~23:31）**，24 场（4 角色 × expert/cold × 3 重复，maxTurns 12，并发 2），三项门禁全过：`total_tokens>0` 场次 **24/24 = 100%**（要求 ≥90%）、兜底句占比 **0.0%**（要求 <5%）、`degraded_turns = 0` 且 `degraded ≤ turn_count` **24/24**（要求全满足）。同规格旧产物对照：`total_tokens=0` 18/24、兜底句 82.9%、`degraded_turns` 350。记录见 [金丝雀验证记录](phase2.5-wp-h-wave1-canary-verification-2026-11-09.md)
+5. 门禁已过 → 允许开 100 场级验证（改动 6/7/9 已落库，`GET /admin/api/auto-practice/batches/:id` 会直接给出 `batchHealth.valid` 与不合格时的 `warning`；批次跑批由主 Agent 发起）
 6. `engine-core` 全程不动
 
 ---

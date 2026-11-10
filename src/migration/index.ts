@@ -185,5 +185,16 @@ export { AddPracticeSessionCostColumns1714900000037 } from './1714900000037-AddP
 // V2026-11-09 治本 (Phase2.5 闸门 trace 查询接口 — gate_decisions 新表, 跟 bin/ormconfig.ts 严格 1:1):
 //   闸门决策的 MySQL 真相源 (每轮一行; 只存枚举 / 数值 / 阈值 / 耗时 / id, 零对话原文).
 export { CreateGateDecisions1714900000038 } from './1714900000038-CreateGateDecisions.js';
+// V2026-11-10 治本 (Phase2.5 WP-H 第二波 改动 5/6 — ap_practice_sessions 加渲染降级率指标列):
+//   counselor_degraded_turns / visitor_degraded_turns (拆双计数器) +
+//   render_fallback_turns / llm_call_turns / render_fallback_ratio (渲染降级率独立指标).
+//   历史场次不可反推: 四个 INT 列回填 0 (= 没测过), ratio 留 NULL (= 未知).
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
+export { AddPracticeSessionRenderMetrics1714900000039 } from './1714900000039-AddPracticeSessionRenderMetrics.js';
+// V2026-11-10 治本 (Phase2.5 WP-H 第三波 改动 9 — ap_practice_batches 新表):
+//   批次有效性门禁的结论落库 (一批一行: valid / validity_flags / 三个比率).
+//   历史批次**不回填** —— 门禁依据当时根本没统计, 回填就是编造.
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
+export { CreateAutoPracticeBatches1714900000040 } from './1714900000040-CreateAutoPracticeBatches.js';
 
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

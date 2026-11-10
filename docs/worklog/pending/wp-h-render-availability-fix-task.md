@@ -1,8 +1,10 @@
 # Phase2.5 WP-H · 渲染可用性与指标可信度修复任务单
 
-> **状态：🚧 第一波已交付（2026-11-09）** —— 改动 1~4（让 LLM 真的被调用）完成；
-> 第二波（改动 5~7，指标可信度）与第三波（改动 8~9，版本追溯 + 批次门禁）**待开工**。
+> **状态：✅ 三波全交付（2026-11-10）**（第一波 2026-11-09 交付并过金丝雀门禁；第二/三波 2026-11-10 交付） —— 改动 1~4（让 LLM 真的被调用）完成并在 24 场上验收：`total_tokens>0` 24/24、兜底句 0.0%、`degraded_turns` 0（同规格旧产物对照：18/24 为 token=0、兜底句 82.9%、`degraded_turns` 350）；
+> 第二波（改动 5~7，指标可信度）与第三波（改动 8~9，版本追溯 + 批次门禁）已于 2026-11-10 交付，另加批次可观测性三项（DB_QUERY_LOGGING 日志降噪 / WS 空房间短路 / 逐字稿批次索引）。
+> **第二/三波交付记录**：[`completed/phase2.5/phase2.5-wp-h-wave2-3-implementation-2026-11-10.md`](../completed/phase2.5/phase2.5-wp-h-wave2-3-implementation-2026-11-10.md)
 > **第一波交付记录**：[`completed/phase2.5/phase2.5-wp-h-wave1-render-availability-implementation-2026-11-09.md`](../completed/phase2.5/phase2.5-wp-h-wave1-render-availability-implementation-2026-11-09.md)
+> **金丝雀验证记录**：[`pending/phase2.5-wp-h-wave1-canary-verification-2026-11-09.md`](phase2.5-wp-h-wave1-canary-verification-2026-11-09.md)（含"服务跑的是旧 dist 产物"事故与跑批前的环境核对三步）
 > **前置阅读**：`docs/worklog/pending/phase2.5-data-pipeline-audit-2026-11-09.md`
 > **生成时间**：2026-11-09
 

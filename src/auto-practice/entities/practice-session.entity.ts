@@ -35,6 +35,16 @@
 //     2. DESCRIBE ap_practice_sessions;
 //     3. 跑一场单场对练 → 表里多一行 status=completed
 //
+//   V2026-11-10 治本 (Phase2.5 WP-H 第二波 · 改动 5 / 改动 6 — 渲染降级率指标列):
+//     第一波把 LLM 拉回来了, 但"这批数据能不能用"还是看不出来 —— 库里没有任何字段
+//     能区分"LLM 挂了"和"内容质量差". 本次补 5 列:
+//       counselor_degraded_turns / visitor_degraded_turns  ← 拆双计数器 (每轮最多 +1)
+//       render_fallback_turns / llm_call_turns              ← 渲染降级 vs 真实调用
+//       render_fallback_ratio                                ← 兜底率 (DECIMAL(5,4) NULL)
+//     旧列 degraded_turns **保留不动**, 写入时取 max(counselor, visitor) 维持旧语义可读性.
+//     历史场次**不可反推** (迁移注释已写死): 四个 INT 列 = 0 表示"没测过", 不是"没问题";
+//     ratio 留 NULL 表示"未知" —— 不许当成 0, 那等于替历史数据编了个结论.
+//
 //   时间戳: 2026-11-08
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColumn } from 'typeorm';
@@ -220,6 +230,54 @@ export class PracticeSession {
    */
   @Column({ type: 'int', default: 0, name: 'degraded_turns' })
   degradedTurns!: number;
+
+  /**
+   * 咨询师侧降级轮数 (V2026-11-10 · WP-H 改动 5).
+   *
+   * 为什么要拆: 旧列 `degraded_turns` 一个计数同时装"咨询师侧"和"来访者侧",
+   *   每轮最多 +2, 而重活率判定拿它除以**轮数** —— 分子是事件数、分母是轮数,
+   *   两个口径混用, 实测 67.8% 的场次 `degraded_turns > turn_count` (数学上不可能).
+   *
+   * 口径: 咨询师这一侧每一轮**最多 +1** (这一轮是不是回了一句兜底话).
+   */
+  @Column({ type: 'int', default: 0, name: 'counselor_degraded_turns' })
+  counselorDegradedTurns!: number;
+
+  /**
+   * 来访者侧降级轮数 (V2026-11-10 · WP-H 改动 5).
+   *
+   * 口径: 来访者这一侧每一轮**最多 +1** (这一轮是不是走了渲染兜底话术池).
+   */
+  @Column({ type: 'int', default: 0, name: 'visitor_degraded_turns' })
+  visitorDegradedTurns!: number;
+
+  /**
+   * 本场渲染兜底轮数 (V2026-11-10 · WP-H 改动 6) —— 来访者侧走兜底的总次数.
+   *
+   * 这是"LLM 挂了"与"内容质量差"的**唯一可分界线**: 以前所有字段都分不开这两件事,
+   *   数据一直在流, 没人拦 —— 三批无效数据就是这么静默流进分析的.
+   */
+  @Column({ type: 'int', default: 0, name: 'render_fallback_turns' })
+  renderFallbackTurns!: number;
+
+  /**
+   * 本场真实调用 LLM 的轮数 (V2026-11-10 · WP-H 改动 6) —— 来访者侧成功发起的调用次数.
+   *
+   * 与 `renderFallbackTurns` 互斥: 每一轮要么真调了, 要么走了兜底.
+   */
+  @Column({ type: 'int', default: 0, name: 'llm_call_turns' })
+  llmCallTurns!: number;
+
+  /**
+   * 渲染兜底率 (V2026-11-10 · WP-H 改动 6) = `render_fallback_turns / turn_count`.
+   *
+   * ⚠️ DECIMAL 在 mysql2 驱动下取回来是**字符串** —— 读的时候记得 `Number(...)`.
+   *
+   * NULL = 没记录 (WP-H 之前跑的历史场次, 兜底率不可反推) —— 看板按"未知"处理,
+   *   **不许**当成 0 (那等于替历史数据编了一个"当时没问题"的结论).
+   */
+  @Column({ type: 'decimal', precision: 5, scale: 4, nullable: true, name: 'render_fallback_ratio' })
+  renderFallbackRatio!: number | null;
 
   /** 失败时的错误信息 (status=failed 时有值). */
   @Column({ type: 'text', nullable: true, name: 'error_message' })

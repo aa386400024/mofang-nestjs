@@ -225,6 +225,28 @@ type AttemptOutcome<T> =
   | { readonly kind: 'degrade'; readonly reason: string };
 
 /**
+ * 流式阶段的用量累计状态 (阶段 3 边吐边累计时用).
+ *
+ * V2026-11-10 治本 (WP-H · 改动 7): 输入 / 输出侧的拆分也在其中 ——
+ *   上游的 usage 通常在**收尾那块**才到齐, 所以累计器要吃下**每一条** chunk.
+ *
+ * 为什么要单独成结构 (而不是一堆局部变量): 归约逻辑抽成独立方法后,
+ *   `streamAttempt` 只剩状态机 (建流 → 锁定 → 边吐边累计 → 收尾), 复杂度不再顶线.
+ */
+interface StreamUsageAccumulator {
+  /** 累计 token 数 (上游口径 = 输入 + 输出). */
+  tokenCount: number;
+  /** 思考 token 数 (推理模型才有). */
+  reasoningTokens?: number;
+  /** 累计输入侧 token (上游报了才有; 没报 = 不可得). */
+  promptTokens?: number;
+  /** 累计输出侧 token (上游报了才有; 没报 = 不可得). */
+  completionTokens?: number;
+  /** 终止原因 (上游报了就记). */
+  finishReason?: string;
+}
+
+/**
  * 单次 render 调用的可变上下文 (每次调用独立, 不跨调用共享).
  */
 interface RenderCallContext {
@@ -655,23 +677,19 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     }
 
     // 阶段 3: 边吐边累计.
-    let tokenCount = opened.tokenCount;
-    let finishReason: string | undefined;
-    let reasoningTokens: number | undefined;
+    const usage: StreamUsageAccumulator = {
+      tokenCount: opened.tokenCount,
+      promptTokens: opened.promptTokens,
+      completionTokens: opened.completionTokens,
+    };
     try {
       for (;;) {
         const next = await opened.iterator.next();
         if (next.done) break;
         const chunk = next.value;
-        if (typeof chunk.tokenCount === 'number' && Number.isFinite(chunk.tokenCount)) {
-          tokenCount = chunk.tokenCount;
-        }
-        if (typeof chunk.reasoningTokens === 'number' && Number.isFinite(chunk.reasoningTokens)) {
-          reasoningTokens = chunk.reasoningTokens;
-        }
-        if (typeof chunk.finishReason === 'string' && chunk.finishReason.length > 0) {
-          finishReason = chunk.finishReason;
-        }
+        // 用量在**最后一块**才到齐 (上游的 usage 是收尾时补的), 所以这里必须读
+        //   **每一条** chunk —— 哪怕这条 chunk 没有 delta.
+        LlmRenderAdapter.applyChunkFacts(usage, chunk);
         const delta = chunk.delta ?? '';
         if (delta.length === 0) continue;
         pending += delta;
@@ -689,7 +707,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     //   · 被上游截断 (length) → **丢弃** (半句不出声, 任务单 §2.2);
     //   · 正常结束 → 照常发出 (一句"嗯"不该被误判成没说完, 任务单 §4.2).
     if (pending.length > 0) {
-      if (finishReason === 'length') {
+      if (usage.finishReason === 'length') {
         this.logger.warn(
           `[streamRender] 候选 ${candidate.id} 被上游按长度截断 (finish_reason=length), 丢弃未闭合尾句: ${pending.slice(0, 60)}`,
         );
@@ -708,16 +726,49 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       value: this.buildStreamOutcome({
         text,
         taskKind: spec.taskKind,
-        tokenCount,
-        reasoningTokens,
+        tokenCount: usage.tokenCount,
+        reasoningTokens: usage.reasoningTokens,
+        promptTokens: usage.promptTokens,
+        completionTokens: usage.completionTokens,
         params,
         messages,
         candidateId: candidate.id,
-        finishReason,
+        finishReason: usage.finishReason,
         ttftMs,
         verdict,
       }),
     };
+  }
+
+  /**
+   * 把一条 chunk 的用量 / 终止原因归到累计器里 (纯函数, 原地更新).
+   *
+   * V2026-11-10 治本 (WP-H · 改动 7): 输入 / 输出侧的拆分在此**第一次被保留** ——
+   *   上游一直报着 (usage.prompt_tokens), 此前本仓在 provider → chunk → 适配器的
+   *   归约链上把它合进了 tokenCount 就扔了, 于是 prompt_tokens 全库恒为 0.
+   *
+   * 口径: 上游的 usage 是**累计**值, 所以"最后报了的值"就是这一轮的真值;
+   *   没报的维度保持 undefined (不可得), 不补 0.
+   *
+   * @param acc 累计器 (原地更新)
+   * @param chunk 本条 chunk
+   */
+  private static applyChunkFacts(acc: StreamUsageAccumulator, chunk: ChatCompletionChunk): void {
+    if (typeof chunk.tokenCount === 'number' && Number.isFinite(chunk.tokenCount)) {
+      acc.tokenCount = chunk.tokenCount;
+    }
+    if (typeof chunk.reasoningTokens === 'number' && Number.isFinite(chunk.reasoningTokens)) {
+      acc.reasoningTokens = chunk.reasoningTokens;
+    }
+    if (typeof chunk.promptTokens === 'number' && Number.isFinite(chunk.promptTokens)) {
+      acc.promptTokens = chunk.promptTokens;
+    }
+    if (typeof chunk.completionTokens === 'number' && Number.isFinite(chunk.completionTokens)) {
+      acc.completionTokens = chunk.completionTokens;
+    }
+    if (typeof chunk.finishReason === 'string' && chunk.finishReason.length > 0) {
+      acc.finishReason = chunk.finishReason;
+    }
   }
 
   /**
@@ -734,6 +785,10 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     readonly taskKind: RenderTaskKind;
     readonly tokenCount: number;
     readonly reasoningTokens: number | undefined;
+    /** 上游报的输入侧累计 token (没报 = 不可得). */
+    readonly promptTokens: number | undefined;
+    /** 上游报的输出侧累计 token (没报 = 不可得). */
+    readonly completionTokens: number | undefined;
     readonly params: ResolvedRenderParams;
     readonly messages: readonly ChatMessage[];
     readonly candidateId: string;
@@ -744,12 +799,15 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     return {
       text: input.text,
       taskKind: input.taskKind,
-      // 流式只有累计 tokenCount, 无 prompt/completion 拆分 —— 同源取末条, 不编造.
-      // WP24: 因此**流式路径的输入侧用量不可得** (promptTokens 缺省) ——
-      //   成本口径会如实落成 output_only, 而不是拿 0 冒充"输入侧没花钱".
+      // V2026-11-10 治本 (WP-H · 改动 7): 输入 / 输出侧的拆分**现在能拿到了**.
+      //   此前只把累计 tokenCount 当成输出侧 (prompt 缺省) —— 上游其实一直报着输入侧,
+      //   是本仓在 provider → chunk → 适配器的归约链上把它丢了, 于是 prompt_tokens
+      //   全库恒为 0, 成本口径永远 output_only (严重低估).
+      //   上游报了拆分就用它; 没报就回落累计 tokenCount (旧口径), 不编造.
       usage: {
-        completionTokens: input.tokenCount,
+        completionTokens: input.completionTokens ?? input.tokenCount,
         totalTokens: input.tokenCount,
+        ...(input.promptTokens === undefined ? {} : { promptTokens: input.promptTokens }),
         ...(input.reasoningTokens === undefined ? {} : { reasoningTokens: input.reasoningTokens }),
       },
       fallbackUsed: false,
@@ -783,7 +841,16 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     request: ChatCompletionRequest,
     handlers: StreamRenderHandlers,
   ): Promise<
-    | { readonly ok: true; readonly iterator: AsyncIterator<ChatCompletionChunk>; readonly firstDelta: string; readonly tokenCount: number }
+    | {
+        readonly ok: true;
+        readonly iterator: AsyncIterator<ChatCompletionChunk>;
+        readonly firstDelta: string;
+        readonly tokenCount: number;
+        /** 上游报的输入侧累计 token (没报 = 不可得). V2026-11-10 (WP-H 改动 7). */
+        readonly promptTokens?: number;
+        /** 上游报的输出侧累计 token (没报 = 不可得). V2026-11-10 (WP-H 改动 7). */
+        readonly completionTokens?: number;
+      }
     | { readonly ok: false; readonly retryable: boolean; readonly reason: string }
   > {
     const stream = this.deps.caller.stream?.(request, {
@@ -797,6 +864,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
 
     const iterator = stream[Symbol.asyncIterator]();
     let tokenCount = 0;
+    // V2026-11-10 (WP-H 改动 7): 首 chunk 也可能带用量 (上游有时第一块就报) —— 带着走.
+    let promptTokens: number | undefined;
+    let completionTokens: number | undefined;
     try {
       for (;;) {
         const next = await iterator.next();
@@ -805,9 +875,15 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         if (typeof chunk.tokenCount === 'number' && Number.isFinite(chunk.tokenCount)) {
           tokenCount = chunk.tokenCount;
         }
+        if (typeof chunk.promptTokens === 'number' && Number.isFinite(chunk.promptTokens)) {
+          promptTokens = chunk.promptTokens;
+        }
+        if (typeof chunk.completionTokens === 'number' && Number.isFinite(chunk.completionTokens)) {
+          completionTokens = chunk.completionTokens;
+        }
         const delta = chunk.delta ?? '';
         if (delta.length > 0) {
-          return { ok: true, iterator, firstDelta: delta, tokenCount };
+          return { ok: true, iterator, firstDelta: delta, tokenCount, promptTokens, completionTokens };
         }
       }
     } catch (error) {

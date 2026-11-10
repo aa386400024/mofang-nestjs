@@ -280,6 +280,9 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
               finishReason: isFinal ? finishReason : undefined,
               model: request.model ?? this.defaultChatModel,
               reasoningTokens: usage.reasoningTokens,
+              // V2026-11-10 (WP-H · 改动 7): 输入 / 输出侧拆分随 chunk 透传 (上游报了才有).
+              promptTokens: usage.promptTokens,
+              completionTokens: usage.completionTokens,
             });
           }
         }
@@ -294,6 +297,9 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
           finishReason: 'stop',
           model: request.model ?? this.defaultChatModel,
           reasoningTokens: usage.reasoningTokens,
+          // V2026-11-10 (WP-H · 改动 7): 收尾 chunk 同样带输入 / 输出侧拆分.
+          promptTokens: usage.promptTokens,
+          completionTokens: usage.completionTokens,
         });
       }
     } catch (e) {
@@ -410,6 +416,15 @@ interface StreamUsageState {
   tokenCount: number;
   /** 思考 token 数 (推理模型才有). */
   reasoningTokens?: number;
+  /**
+   * 累计输入侧 token (上游报了就带).
+   *
+   * V2026-11-10 治本 (WP-H · 改动 7): 此前只合成 tokenCount, 输入侧就此丢失 ——
+   *   于是流式路径的 prompt_tokens 全库恒为 0, 成本口径永远 output_only.
+   */
+  promptTokens?: number;
+  /** 累计输出侧 token (上游报了就带). */
+  completionTokens?: number;
 }
 
 /** 新建一份空的流式用量状态. */
@@ -424,16 +439,54 @@ function createStreamUsageState(): StreamUsageState {
  * @param chunk LangChain chunk
  */
 function applyChunkUsage(state: StreamUsageState, chunk: AIMessageChunk): void {
-  const inputTokens = chunk.usage_metadata?.input_tokens ?? 0;
-  const outputTokens = chunk.usage_metadata?.output_tokens ?? 0;
-  const total = inputTokens + outputTokens;
-  if (total > 0) {
-    state.tokenCount = total;
+  const split = resolveChunkUsageSplit(chunk.usage_metadata);
+  if (split.totalTokens > 0) {
+    state.tokenCount = split.totalTokens;
+  }
+  // V2026-11-10 治本 (WP-H · 改动 7): 把 input / output 的**拆分**留下来.
+  //   此前这里只留了 input+output 的和 —— 上游明明报了输入侧用量, 本仓在归约链上
+  //   把它扔了, 于是"流式路径没有 prompt_tokens"被当成"上游没报"传了整整三批数据.
+  //   取"最后一个报了的值"为准 (上游的 usage 是累计口径).
+  if (split.promptTokens !== undefined) {
+    state.promptTokens = split.promptTokens;
+  }
+  if (split.completionTokens !== undefined) {
+    state.completionTokens = split.completionTokens;
   }
   const reasoning = chunk.usage_metadata?.output_token_details?.reasoning;
   if (typeof reasoning === 'number') {
     state.reasoningTokens = reasoning;
   }
+}
+
+/**
+ * 一条 chunk 的用量拆分 (纯函数; 便于单测).
+ *
+ * 口径:
+ *   · 输入侧 = upstream 的 `input_tokens` (OpenAI 兼容的 `usage.prompt_tokens`);
+ *   · 输出侧 = `output_tokens`;
+ *   · 合计 = 输入 + 输出.
+ *
+ * **没报就是没报** (返回 undefined), 不是 0:
+ *   0 的含义是"输入侧确实是 0 token", 那在实践中不可能; 缺省才表示"上游没报".
+ *   两者混为一谈, 就会拿 0 冒充"输入侧免费" —— 成本口径因此永远只能是下界.
+ *
+ * @param usageMetadata LangChain 的 usage_metadata
+ * @returns 用量拆分
+ */
+export function resolveChunkUsageSplit(usageMetadata: { readonly input_tokens?: number; readonly output_tokens?: number } | undefined): {
+  readonly promptTokens?: number;
+  readonly completionTokens?: number;
+  readonly totalTokens: number;
+} {
+  const inputTokens = usageMetadata?.input_tokens;
+  const outputTokens = usageMetadata?.output_tokens;
+  const total = (inputTokens ?? 0) + (outputTokens ?? 0);
+  return {
+    ...(typeof inputTokens === 'number' && inputTokens > 0 ? { promptTokens: inputTokens } : {}),
+    ...(typeof outputTokens === 'number' && outputTokens > 0 ? { completionTokens: outputTokens } : {}),
+    totalTokens: total,
+  };
 }
 
 /**
@@ -449,6 +502,8 @@ function buildStreamChunk(params: {
   readonly finishReason?: string;
   readonly model: string;
   readonly reasoningTokens?: number;
+  readonly promptTokens?: number;
+  readonly completionTokens?: number;
 }): ChatCompletionChunk {
   return {
     delta: params.delta,
@@ -457,6 +512,9 @@ function buildStreamChunk(params: {
     ...(params.finishReason === undefined ? {} : { finishReason: params.finishReason }),
     model: params.model,
     ...(params.reasoningTokens === undefined ? {} : { reasoningTokens: params.reasoningTokens }),
+    // V2026-11-10 (WP-H · 改动 7): 输入 / 输出侧的拆分随 chunk 一起透传.
+    ...(params.promptTokens === undefined ? {} : { promptTokens: params.promptTokens }),
+    ...(params.completionTokens === undefined ? {} : { completionTokens: params.completionTokens }),
   };
 }
 

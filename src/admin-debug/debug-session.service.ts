@@ -288,7 +288,14 @@ export interface DebugTurnTrace {
   };
   /** 本轮模型用量. */
   readonly llmUsage: {
-    readonly promptTokens: number;
+    /**
+     * 本轮输入侧 token.
+     *
+     * V2026-11-10 治本 (WP-H · 改动 7): **null = 上游没报 (不可得)**, 不是 0.
+     *   此前这里是必填数字, "没报"被填成 0 —— 于是"上游没报输入侧"与"输入侧确实是 0"
+     *   分不开, 成本口径只能靠猜. 消费方按 `?? 0` 累加, 按 `> 0` 判断可得性.
+     */
+    readonly promptTokens: number | null;
     readonly completionTokens: number;
     readonly reasoningTokens: number;
     readonly ttftMs: number;
@@ -1101,7 +1108,8 @@ function buildLlmUsage(result: {
 }): DebugTurnTrace['llmUsage'] {
   const usage = result.render.usage;
   return {
-    promptTokens: usage?.promptTokens ?? 0,
+    // V2026-11-10 (WP-H · 改动 7): 上游没报就落 null (不可得), 不写 0 冒充"输入侧免费".
+    promptTokens: usage?.promptTokens ?? null,
     completionTokens: usage?.completionTokens ?? 0,
     reasoningTokens: usage?.reasoningTokens ?? 0,
     ttftMs: result.render.ttftMs ?? 0,

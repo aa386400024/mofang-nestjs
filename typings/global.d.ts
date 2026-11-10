@@ -390,6 +390,10 @@ export declare global {
       AUTO_PRACTICE_COUNSELOR_MODEL?: string; // 自动对练的咨询师模型名 (留空 = 用 router 默认)
       AUTO_PRACTICE_WORKER_CONCURRENCY?: string; // 自动对练 Worker 并发数 (默认 2, 范围 1~5; 非法值回退默认)
       ENGINE_VERSION?: string; // 推理环境指纹里的引擎版本号 (默认 dev; 非法值回退默认)
+      // V2026-11-10 治本 (WP-H 新增 10 — 跑批期 TypeORM query 日志降噪):
+      //   缺省 = 关 query 日志 (跑批时逐条 SQL 会把关键行淹没);
+      //   error / warn / migration 永远保留 (慢查询按 warn 落, 不会被静音).
+      DB_QUERY_LOGGING?: string; // 是否打印 TypeORM query 日志 (只有字面量 "true" 才开)
       // V2026-11-07 治本 (临床合理性校验 · 观测版):
       //   审议输出的临床合理性**观测**开关. 同样**逐个字面量**读
       //   (src/engine-adapters/deliberation/llm-deliberation.service.ts).
