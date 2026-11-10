@@ -27,6 +27,7 @@
 import { FindOperator } from 'typeorm';
 
 import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed.js';
+import { BASELINE_CALIBRATION_BY_TEMPLATE_ID } from '../../src/engine-adapters/wiring/character/character-baseline-calibration.js';
 import { CharacterProfileEntity } from '../../src/engine-adapters/wiring/character/character-profile.entity.js';
 import type { ResolvedCharacter } from '../../src/engine-adapters/wiring/character/character-profile.resolver.js';
 import {
@@ -652,35 +653,57 @@ describe('WP9-B · MySQL 角色解析器 (DB 数据源)', () => {
     });
   });
 
-  describe('E. 与 WP9-A 内置种子的档位口径一致', () => {
-    it('焦虑型行抄 WP9-A anxious 档, 回避型行抄 avoidant 档', () => {
-      const anxiousSpec = seedSpecByStyle('anxious');
-      expect(anxiousSpec.trust).toBeCloseTo(0.28);
-      expect(anxiousSpec.resistance.verbal).toBe(BUILTIN_ANXIOUS_LOW_MOOD_L1.baseline.resistance.verbal);
-      expect(anxiousSpec.resistance.depth).toBe(BUILTIN_ANXIOUS_LOW_MOOD_L1.baseline.resistance.depth);
-      expect(anxiousSpec.resistance.style).toBe(BUILTIN_ANXIOUS_LOW_MOOD_L1.baseline.resistance.style);
-      expect(anxiousSpec.emotion.valence).toBe(BUILTIN_ANXIOUS_LOW_MOOD_L1.baseline.emotion.valence);
-      expect(anxiousSpec.emotion.arousal).toBe(BUILTIN_ANXIOUS_LOW_MOOD_L1.baseline.emotion.arousal);
+  describe('E. 与权威基线标定表的口径一致 (WP-J 起)', () => {
+    it('seed 规格的数值逐字等于权威标定表对应行 (数值单一真相源, 不是抄第二份)', () => {
+      for (const spec of CHARACTER_PROFILE_SEED_SPECS) {
+        const target = BASELINE_CALIBRATION_BY_TEMPLATE_ID.get(spec.templateId);
+        expect(target, `标定表缺少 ${spec.templateId}`).toBeDefined();
+        expect(spec.trust).toBe(target?.trust);
+        expect(spec.resistance.verbal).toBe(target?.resistance.verbal);
+        expect(spec.resistance.depth).toBe(target?.resistance.depth);
+        expect(spec.resistance.style).toBe(target?.resistance.style);
+        expect(spec.emotion.valence).toBe(target?.emotion.valence);
+        expect(spec.emotion.arousal).toBe(target?.emotion.arousal);
+        expect(spec.safety).toBe(target?.safety);
+        expect(spec.bond).toBe(target?.bond);
+      }
+    });
 
-      const avoidantSpec = seedSpecByStyle('avoidant');
-      expect(avoidantSpec.trust).toBe(BUILTIN_AVOIDANT_L1.baseline.trust);
-      expect(avoidantSpec.resistance.verbal).toBe(BUILTIN_AVOIDANT_L1.baseline.resistance.verbal);
-      expect(avoidantSpec.resistance.depth).toBe(BUILTIN_AVOIDANT_L1.baseline.resistance.depth);
-      expect(avoidantSpec.resistance.style).toBe(BUILTIN_AVOIDANT_L1.baseline.resistance.style);
-      expect(avoidantSpec.emotion.valence).toBe(BUILTIN_AVOIDANT_L1.baseline.emotion.valence);
-      expect(avoidantSpec.emotion.arousal).toBe(BUILTIN_AVOIDANT_L1.baseline.emotion.arousal);
+    it('同依恋风格的两个角色**不再同值** (反双胞胎: 晚晴 ≠ 小满, 亦舟 ≠ 念安)', () => {
+      const wanqing = seedSpecByTemplateId('vpt_intimate_avoidance_l1');
+      const xiaoman = seedSpecByTemplateId('vpt_self_worth_intellectualization_l1');
+      const yizhou = seedSpecByTemplateId('vpt_workplace_intellectualization_l1');
+      const nianan = seedSpecByTemplateId('vpt_grief_avoidance_l1');
+
+      // 焦虑型两角色: 信任与深度阻抗都分开了 (不再一字不差).
+      expect(xiaoman.trust).not.toBe(wanqing.trust);
+      expect(xiaoman.resistance.depth).not.toBe(wanqing.resistance.depth);
+      // 回避型两角色: 亦舟理智化 → style 阻抗最高; 念安深度阻抗低一档.
+      expect(yizhou.resistance.style).toBeGreaterThan(nianan.resistance.style);
+      expect(yizhou.resistance.depth).not.toBe(nianan.resistance.depth);
+
+      // 老口径没有被推翻 (标定只是把"同档"拆细, 档位方向不变):
+      //   回避型阻抗高于焦虑型、信任低于焦虑型.
+      expect(yizhou.resistance.depth).toBeGreaterThan(wanqing.resistance.depth);
+      expect(yizhou.trust).toBeLessThan(wanqing.trust);
+    });
+
+    it('内置种子 (纯内存档位) 不在这 8 个角色里 —— 另一条数据源, 不受 WP-J 影响', () => {
+      // 内置种子是"纯内存部署 / 测试档", 不落库、也不在权威标定表里 (本单只管 8 个 DB 角色).
+      expect(BASELINE_CALIBRATION_BY_TEMPLATE_ID.has(BUILTIN_AVOIDANT_L1.key)).toBe(false);
+      expect(BASELINE_CALIBRATION_BY_TEMPLATE_ID.has(BUILTIN_ANXIOUS_LOW_MOOD_L1.key)).toBe(false);
     });
   });
 });
 
 /**
- * 取某一档的首个内容基线 (用于口径对照).
+ * 按 templateId 取内容基线 (用于口径对照).
  *
- * @param style 依恋风格
- * @returns 该档的内容基线
+ * @param templateId 公共模板 id
+ * @returns 该角色的内容基线
  */
-function seedSpecByStyle(style: string): CharacterProfileSeedSpec {
-  const spec = CHARACTER_PROFILE_SEED_SPECS.find((item) => item.attachmentStyle === style);
-  if (!spec) throw new Error(`没有 ${style} 档的内容基线`);
+function seedSpecByTemplateId(templateId: string): CharacterProfileSeedSpec {
+  const spec = CHARACTER_PROFILE_SEED_SPECS.find((item) => item.templateId === templateId);
+  if (!spec) throw new Error(`没有 ${templateId} 的内容基线`);
   return spec;
 }

@@ -34,6 +34,7 @@ import {
   buildCharacterProfile,
   type BuiltinCharacterSeed,
 } from '../../src/engine-adapters/wiring/character/builtin-character-registry.js';
+import { BASELINE_CALIBRATION_BY_TEMPLATE_ID } from '../../src/engine-adapters/wiring/character/character-baseline-calibration.js';
 import { CharacterProfileEntity } from '../../src/engine-adapters/wiring/character/character-profile.entity.js';
 import {
   buildCharacterProfileSeeds,
@@ -242,7 +243,7 @@ describe('WP51 · DB 角色路径: 行 → toCharacterSeed → 内核快照', ()
 });
 
 describe('WP51 · seed 内容基线与灌库载荷', () => {
-  it('⑩ 4 个 DB 角色都表态了 safety / bond, 且按 attachmentStyle 分档', () => {
+  it('⑩ 4 个 DB 角色都表态了 safety / bond, 且数值取自权威标定表 (WP-J 起不再是"按风格分档")', () => {
     const byTemplateId = new Map(CHARACTER_PROFILE_SEED_SPECS.map((spec) => [spec.templateId, spec]));
 
     for (const spec of CHARACTER_PROFILE_SEED_SPECS) {
@@ -250,27 +251,36 @@ describe('WP51 · seed 内容基线与灌库载荷', () => {
       expect(spec.bond).toBeDefined();
     }
 
-    // 焦虑型两档: safety 0.4 / bond 0.5 (抄 WP9-A 焦虑型内置种子).
-    expect(byTemplateId.get('vpt_intimate_avoidance_l1')?.safety).toBe(0.4);
-    expect(byTemplateId.get('vpt_intimate_avoidance_l1')?.bond).toBe(0.5);
-    expect(byTemplateId.get('vpt_self_worth_intellectualization_l1')?.safety).toBe(0.4);
-    expect(byTemplateId.get('vpt_self_worth_intellectualization_l1')?.bond).toBe(0.5);
-    // 回避型两档: safety 0.25 / bond 0.05 (抄 WP9-A 回避型内置种子).
-    expect(byTemplateId.get('vpt_workplace_intellectualization_l1')?.safety).toBe(0.25);
-    expect(byTemplateId.get('vpt_workplace_intellectualization_l1')?.bond).toBe(0.05);
-    expect(byTemplateId.get('vpt_grief_avoidance_l1')?.safety).toBe(0.25);
-    expect(byTemplateId.get('vpt_grief_avoidance_l1')?.bond).toBe(0.05);
+    // 数值口径 (WP-J): 安全感 / 联结感取自权威标定表 (character-baseline-calibration.ts) ——
+    //   每个角色**各自独立**, 不再"焦虑型一档 / 回避型一档". 这里断言的是**装配关系**,
+    //   不是把数值再抄一份 (抄一份 = 第二份真相, 改了标定表就会静默漂).
+    for (const spec of CHARACTER_PROFILE_SEED_SPECS) {
+      const target = BASELINE_CALIBRATION_BY_TEMPLATE_ID.get(spec.templateId);
+      expect(target, `标定表缺少 ${spec.templateId}`).toBeDefined();
+      expect(spec.safety).toBe(target?.safety);
+      expect(spec.bond).toBe(target?.bond);
+    }
+
+    // 反双胞胎 (WP-J): 同风格的晚晴 / 小满**不再同值** (联结感分开).
+    const wanqing = byTemplateId.get('vpt_intimate_avoidance_l1');
+    const xiaoman = byTemplateId.get('vpt_self_worth_intellectualization_l1');
+    expect(wanqing?.bond).not.toBe(xiaoman?.bond);
+
+    // 同风格的亦舟 / 念安同样被区分开 (联结感 0.10 vs 0.20).
+    const yizhou = byTemplateId.get('vpt_workplace_intellectualization_l1');
+    const nianan = byTemplateId.get('vpt_grief_avoidance_l1');
+    expect(yizhou?.bond).not.toBe(nianan?.bond);
   });
 
-  it('⑪ 种子构建出的行带上两列 (表态的带值)', () => {
+  it('⑪ 种子构建出的行带上两列 (数值 = 权威标定表对应行)', () => {
     const seeds = buildCharacterProfileSeeds(VISITOR_POOL_TEMPLATE_SEEDS);
-    const wanqing = seeds.find((seed) => seed.templateId === 'vpt_intimate_avoidance_l1');
-    const nianan = seeds.find((seed) => seed.templateId === 'vpt_grief_avoidance_l1');
 
-    expect(wanqing?.safety).toBe(0.4);
-    expect(wanqing?.bond).toBe(0.5);
-    expect(nianan?.safety).toBe(0.25);
-    expect(nianan?.bond).toBe(0.05);
+    for (const seed of seeds) {
+      const target = BASELINE_CALIBRATION_BY_TEMPLATE_ID.get(seed.templateId);
+      expect(target, `标定表缺少 ${seed.templateId}`).toBeDefined();
+      expect(seed.safety).toBe(target?.safety);
+      expect(seed.bond).toBe(target?.bond);
+    }
   });
 
   it('⑫ 灌库载荷带上两列, 且 DTO 暴露这两个字段 (运营能改)', () => {

@@ -65,7 +65,16 @@ WP-B 可复现控制 + 版本锁定
 
 ## 3. 当前有什么活
 
-**唯一在办任务单：WP-H「渲染可用性与指标可信度修复」** → [wp-h-render-availability-fix-task.md](wp-h-render-availability-fix-task.md)
+WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [§WP 登记表](phase2.5-wp-list-2026-11-08.md) 第四节独立单）：
+
+| 事项 | 状态 |
+|---|---|
+| **8 角色基线差异化** | ✅ 已交付（2026-11-10）：8 行标定表作单一真相源 + A 类 seed 装配 / B 类只更新基线列 → [交付记录](../completed/phase2.5/wp-j-character-baseline-differentiation-2026-11-10.md) · **主 Agent 独立复验通过**（连库 8 行逐字一致 + 自检反向验证 8/8）→ [复验记录](../completed/phase2.5/wp-j-character-baseline-independent-verification-2026-11-10.md) |
+| P1e Phase2 来访者语义离线落库 | ✅ 已交付并 push（commit d14daa5），真库 migration 已跑两次 |
+| verbal_voice 8 角色文案 | 📝 初稿待审，审完走 seed 幂等落库 |
+| P1d 接线修复后的验收 + 重跑 | 📋 方案已写未执行（[验收+重跑方案](phase2.5-p1d-acceptance-and-rerun-plan-2026-11-10.md)） |
+| 30 场人工锚点标注 → 阈值标定 | 📋 标注台已交付，人工标注进行中；标定方案已写（[标定方案](phase2.5-anchor-calibration-plan-2026-11-10.md)） |
+| 100 场级验证批次 | 门禁已过，待主 Agent 发起（`.env` 还需配第二家 chat provider 的 key） |
 
 ### 3.1 必须先知道的转折（2026-11-09 晚）
 
@@ -107,10 +116,11 @@ WP-B 可复现控制 + 版本锁定
 
 ## 4. 红线（Phase2.5 特有）
 
-### 4.1 engine-core 纯层红线
-- ❌ 不改 `src/engine-core/` 下任何文件
-- ✅ 所有改动都在 `src/engine-adapters/` 下
-- ✅ 审议在适配层，内核不知道 LLM 是什么
+### 4.1 engine-core 边界（按纯不纯分层，不是"一行不动"）
+- ❌ 不在 `src/engine-core/` 加任何副作用：NestJS / DB / Redis / 网络 / prompt / 模型名 / process.env
+- ✅ 纯决策计算、纯出口字段、纯类型该进内核就进（不要为了"避开内核"把纯计算堆到适配层）
+- ✅ IO / LLM / 装配一律在 `src/engine-adapters/`；内核不知道 LLM 是什么
+- ✅ `boundary.spec.ts`（AST 护栏）不许自己改
 
 ### 4.2 合规红线
 - ❌ 审议 prompt 里永远不出现对话原文（咨询师说的话 / 来访者说的话）

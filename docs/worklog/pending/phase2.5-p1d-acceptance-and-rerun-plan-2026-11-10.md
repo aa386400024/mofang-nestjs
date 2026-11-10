@@ -58,6 +58,21 @@ rg "attachmentStyle" src/engine-adapters/turn-render-orchestrator.ts
 
 **预期**：每个文件至少 2-3 处（open / register / assemble / render 条件）。如果某文件 0 处 = 没接上。
 
+#### 2.1.1 静态验收结果（2026-11-10 只读 grep 实跑，未跑编译/测试）
+
+> 说明：此时工作区有 WP-J 角色基线任务在改 `character-profile.seed.ts`，**不能跑 tsc/vitest**（会测到半成品）；下面只做静态接线核对。动态冒烟与闸门仍按 2.2/1.2 在 WP-J 交付后执行。
+
+| # | 验收点 | 落点证据 | 静态结论 |
+|---|---|---|---|
+| 1 | attachmentStyle 三处接线 | `engine-turn.service.ts:137/177` 收参入 context → `engine-stream-backend.adapter.ts:444/1697` 从 profile 取 → `turn-render-orchestrator.ts:1685/1794/1933` 用 `ATTACHMENT_BEHAVIOR_INSTRUCTION` 渲染 anxious 求证/讨好块（dev 日志锚点"依恋行为指引已注入 prompt"） | ✅ 端到端在 |
+| 2 | llm_call_turns / render_fallback_turns 落库 | `practice-runner.service.ts:486-520` 逐轮计数 → 383/615 写 fields → `practice-batch-health.service.ts:155-191/354` 批次聚合回写 | ✅ |
+| 3 | anxious 三维词表非空 | `visitor-quality-lexicon.ts:54-58` seekReassure/appease/abandonment 各 20+ 词；四行为表在 26-30 | ✅ |
+| 4 | degraded 优先取 DB | `visitor-quality-audit.ts:124/426/495` `degradedFromDb` 优先、回退逐字稿并打印口径来源 | ✅ |
+| 5 | Authorization 头脱敏 | `logger.config.ts:24-26` 显式列 `req.headers.authorization`/`proxy-authorization` 脱敏（注释记 P1c 在 3100 临时日志抓到明文 Basic 前科） | ✅ |
+| 6 | 信息增量"深度"约束 | `turn-render-orchestrator.ts:1963-1967` INFO_INCREMENT_INSTRUCTION 第二句钉住"新细节方向"防换着法子复述 | ✅ |
+
+**静态判读**：六项接线全部在代码里找到落点。但静态 ≠ 动态——P1c 当年就是"看着接了、spec 里没带 attachmentStyle"导致块没进 prompt。**铁证仍是 2.2 的 1 场动态冒烟**（跑 anxious 角色，grep 逐字稿有无"反复确认/怕添麻烦"），通过后才烧 LLM 预算跑 §三 16 场。
+
 ### 2.2 第二步：动态烟雾验证（起 3100 临时实例，1 场就够）
 
 ```powershell

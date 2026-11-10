@@ -40,7 +40,8 @@ docs/
 │   └── docker-deploy.md Docker 部署
 │
 ├── team/               ← 团队规范
-│   └── conventions.md  代码红线 + 交付格式
+│   ├── conventions.md  代码红线 + 交付格式
+│   └── wp-task-template.md  后端任务单模板（派 MiniMax 前照此写）
 │
 ├── reference/          ← 上游愿景原件（备查，冲突以 architecture 为准）
 │
@@ -83,6 +84,7 @@ Phase1（✅ 已封版） → Phase2（✅ 已封版） → Phase2.5（🚧 进�
 | **分阶段路线图** | [`architecture/ai-engine-roadmap-v1.1.md`](architecture/ai-engine-roadmap-v1.1.md) |
 | **技术契约（API / 协议）** | [`specs/active/`](specs/active/) |
 | **代码红线 / 交付规范** | [`team/conventions.md`](team/conventions.md) |
+| **给后端 / MiniMax 派任务单** | [`team/wp-task-template.md`](team/wp-task-template.md)（必读入口 + 固定结构 + 回写清单） |
 | **本地环境怎么跑** | [`runbooks/local-setup.md`](runbooks/local-setup.md) |
 | **部署 / 排障手册** | [`runbooks/`](runbooks/) |
 | **历史交付记录** | [`worklog/completed/`](worklog/completed/) |

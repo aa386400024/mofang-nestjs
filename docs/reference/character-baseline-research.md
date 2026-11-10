@@ -134,6 +134,12 @@ LSAS 明确两条可分离通道：主观恐惧 + **自主神经唤醒（心悸�
 | **亦舟** workplace | dismissing | 0.22 | 0.50 | 0.65 | **0.70** | -0.55 | 0.25 | 0.25 | 0.10 | sad |
 | **惊尘** trauma | fearful | **0.10** | 0.50 | 0.60 | 0.45 | -0.60 | 0.64 | **0.10** | 0.45 | hurt |
 
+> **命名映射（重要，勿混用）**：本表"依恋"列用的是 **Bartholomew & Horowitz (1991) 四类**学术命名
+> （`secure / preoccupied / dismissing / fearful`），不是内核的 `AttachmentStyle` 枚举。
+> 落库到 `character_profiles.attachment_style` 时按此映射：`secure→secure`、`preoccupied→anxious`、
+> `dismissing→avoidant`、`fearful→disorganized`。**工程文档（任务单 / 交付记录）一律写内核枚举值**，
+> 例如惊尘在交付记录 §五 应写 `disorganized`，写 `fearful` 会与真库不符。
+
 证据映射：关系三维依据 §1+§4；valence/arousal 依据 §2+§5；理智化两角色 §3.1+§3.6；沉舟 §3.2；惊尘 §3.3；语桐 §3.4；念安 §3.5。
 
 **两处循证微调（v1→v2）：**

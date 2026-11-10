@@ -207,7 +207,7 @@ docs/worklog/
 
 ```
 □ 我读完了 pending/ 里的任务单全文
-□ 我确认 engine-core 一行不动（或任务单有明确例外批准）
+□ 我确认遵守 engine-core 分层边界（纯计算/纯出口归内核；NestJS/IO/网络/prompt 不进内核；boundary.spec.ts 不改；要动算子逻辑走例外批准）
 □ 我知道交付记录要写什么格式（见 team/conventions.md）
 □ 我知道交付后要移文件
 ```

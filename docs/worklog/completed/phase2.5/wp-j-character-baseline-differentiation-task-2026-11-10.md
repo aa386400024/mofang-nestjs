@@ -1,6 +1,6 @@
 # WP-J · 8 角色基线差异化落地任务单（企业级 · 直接做成品）
 
-> 状态：待执行（2026-11-10）
+> 状态：✅ 已完成（2026-11-10）→ 交付记录：`docs/worklog/completed/phase2.5/wp-j-character-baseline-differentiation-2026-11-10.md`
 > 执行方：MiniMax Code
 > 仓库：`E:\Work\Project\backend\mofang-nestjs`，分支 `integrate`
 > 唯一事实源（数值与循证依据，先读）：`docs/reference/character-baseline-research.md`（v2）
@@ -124,7 +124,11 @@
 | `vpt_depression_avoidant_l1` | 沉舟 | avoidant | 0.18 | 0.65 | 0.70 | 0.55 | -0.65 | 0.18 | 0.20 | 0.15 | empty |
 | `vpt_grief_avoidance_l1` | 念安 | avoidant | 0.25 | 0.55 | 0.50 | 0.50 | -0.55 | 0.35 | 0.25 | 0.20 | sad |
 | `vpt_workplace_intellectualization_l1` | 亦舟 | avoidant | 0.22 | 0.50 | 0.65 | 0.70 | -0.55 | 0.25 | 0.25 | 0.10 | sad |
-| `vpt_trauma_disorganized_l1` | 惊尘 | fearful | 0.10 | 0.50 | 0.60 | 0.45 | -0.60 | 0.64 | 0.10 | 0.45 | hurt |
+| `vpt_trauma_disorganized_l1` | 惊尘 | disorganized | 0.10 | 0.50 | 0.60 | 0.45 | -0.60 | 0.64 | 0.10 | 0.45 | hurt |
+
+> 依恋列一律用**内核 `AttachmentStyle` 枚举值**（`secure | anxious | avoidant | disorganized`），
+> 不是研究阶段的 Bartholomew 四类命名。研究 v2 §6 表格写的 `preoccupied / dismissing / fearful`
+> 对应落库的 `anxious / avoidant / disorganized`（见 [研究文档 §6 映射说明](../../reference/character-baseline-research.md)）。
 
 > 情绪标签边界（真实 `resolveEmotionLabel`，供核对，不要重写）：valence≥.25 落正向；
 > valence≤−.5 时 arousal≥.65→angry、≥.45→hurt、<.2→empty、否则 sad；中间带 arousal≥.6→anxious、≥.4→guarded、否则 neutral。
