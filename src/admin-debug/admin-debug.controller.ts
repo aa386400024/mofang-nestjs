@@ -316,11 +316,23 @@ export class AdminDebugController {
     const hex = createHash('sha1').update(`character_profile:${templateId}`).digest('hex');
     const id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 
-    const row = this.characterRepo.create({
+    const row = this.buildCharacterRow(body, id);
+    await this.characterRepo.save(row);
+    return { ok: true, templateId, displayName };
+  }
+
+  /**
+   * 把请求体组装成角色行 (私有, 纯结构派生).
+   *
+   * 单独抽出来: 每个 baseline 字段都有 `??` 默认值, 全堆在 createCharacter 里
+   * 静态复杂度会算到 21 (规则把 `??` 计入分支点), 触发 pre-commit lint 红线.
+   */
+  private buildCharacterRow(body: Record<string, unknown>, id: string): CharacterProfileEntity {
+    return this.characterRepo.create({
       id,
-      templateId,
-      displayName,
-      attachmentStyle: attachmentStyle as 'secure' | 'avoidant' | 'anxious' | 'disorganized',
+      templateId: String(body['templateId'] ?? '').trim(),
+      displayName: String(body['displayName'] ?? '').trim(),
+      attachmentStyle: String(body['attachmentStyle'] ?? '').trim() as 'secure' | 'avoidant' | 'anxious' | 'disorganized',
       fivePs: (body['fivePs'] ?? {}) as CharacterProfileEntity['fivePs'],
       baselineTrust: Number(body['baselineTrust'] ?? 0.3),
       baselineResistanceVerbal: Number(body['baselineResistanceVerbal'] ?? 0.5),
@@ -337,8 +349,6 @@ export class AdminDebugController {
       auditStatus: 'approved',
       enabled: true,
     });
-    await this.characterRepo.save(row);
-    return { ok: true, templateId, displayName };
   }
 
   /**
