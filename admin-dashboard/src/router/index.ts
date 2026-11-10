@@ -1,4 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 // 路由懒加载：动态 import 实现代码分割
 const Dashboard = () => import('@/views/Dashboard.vue')
@@ -41,15 +42,13 @@ const router = createRouter({
   ],
 })
 
-// 路由守卫：没登录跳登录页
+// 路由守卫：用 Pinia auth store 判断登录态
 router.beforeEach((to) => {
-  const isAuthenticated = !!sessionStorage.getItem('admin_basic_auth')
-  const isPublic = to.meta.public === true
-
-  if (!isAuthenticated && !isPublic) {
+  const auth = useAuthStore()
+  if (!auth.isAuthenticated && !to.meta.public) {
     return '/login'
   }
-  if (isAuthenticated && to.path === '/login') {
+  if (auth.isAuthenticated && to.path === '/login') {
     return '/dashboard'
   }
 })

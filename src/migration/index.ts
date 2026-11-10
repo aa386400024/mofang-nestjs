@@ -215,4 +215,10 @@ export { AddCrisisMetricsToPracticeSessions1714900000042 } from './1714900000042
 //   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
 export { AddPromptVersionColumns1714900000043 } from './1714900000043-AddPromptVersionColumns.js';
 
+// V2026-11-10 治本 (WP-J P1e Phase2 — 自动对练轮次级语义落库表):
+//   ap_practice_turns 新表 (一行 = 一场里的一轮) + 5 个 visitor_ 列
+//   (display_text / tts_text / semantic_json / semantic_level / semantic_version).
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏建.
+export { CreatePracticeTurns1714900000044 } from './1714900000044-CreatePracticeTurns.js';
+
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

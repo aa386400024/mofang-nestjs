@@ -10,10 +10,13 @@
 //     · 控制标记:  语义 `[[STATE:END]]`  → **剥掉** (TTS 看不见, 那是引擎的事)
 //   以后加火山/阿里云适配器 = 再写一个同形状的适配器, 语义层与存储层一行不动.
 //
-// ── 情绪映射里的一处妥协 (必须写清楚) ────────────────────────────────────
-//   语义层的 'calm' 在 MiniMax 的 emotion 枚举里**没有对应值** —— MiniMax 只有
-//   happy / sad / angry / fearful / disgusted / surprised / neutral.
-//   这里映射成 'neutral' (最接近), 而不是把 'calm' 生搬过去 (那会让 TTS 报非法值).
+// ── 情绪枚举: 以官方白名单为准 ────────────────────────────────────────────
+//   官方 voice_setting.emotion 合法值: happy / sad / angry / fearful / disgusted /
+//   surprised / calm / fluent / whisper (fluent、whisper 仅 speech-2.6 系列; speech-2.8
+//   不支持 whisper). 语义层的 5 个情绪**全部直通**, 不做任何映射 ——
+//   ⚠️ V2026-11-10 修正: 批次一的交付记录写"calm → neutral"是**错的** ——
+//   官方白名单里就有 calm, 而 **neutral 不是合法值** (TTS 会报 2013 参数异常).
+//   现在改成直通, 并加单测钉住.
 //
 // ── 语速/音调为什么不放在语义层 ───────────────────────────────────────────
 //   speed / pitch 是**角色基线属性** (8 个角色各有自己的语速音调, 存在角色 profile 里),
@@ -39,8 +42,13 @@ import type {
   SemanticUnknownTagSpan,
 } from '../utils/semantic-tag-parser.js';
 
-/** MiniMax voice_setting.emotion 的合法取值. */
-export type MiniMaxEmotion = 'happy' | 'sad' | 'angry' | 'fearful' | 'disgusted' | 'surprised' | 'neutral';
+/**
+ * MiniMax voice_setting.emotion 的合法取值 (**官方白名单**, 见 docs/reference/minimax-t2a-api.md).
+ *
+ * ⚠️ 'neutral' **不是**合法值 —— 官方中性值叫 'calm'.
+ * ⚠️ 'fluent' / 'whisper' 仅 speech-2.6 系列支持 (speech-2.8 不支持 whisper).
+ */
+export type MiniMaxEmotion = 'happy' | 'sad' | 'angry' | 'fearful' | 'disgusted' | 'surprised' | 'calm' | 'fluent' | 'whisper';
 
 /** MiniMax voice_setting 里本项目会用到的参数. */
 export interface MiniMaxVoiceParams {
@@ -77,10 +85,10 @@ const PRE_SPEECH_MARKERS: Readonly<Record<SemanticPreSpeech, string>> = {
   inhale: '(inhales)',
 };
 
-/** 语义层情绪 → MiniMax emotion (calm 在 MiniMax 侧没有对应值, 归到 neutral). */
+/** 语义层情绪 → MiniMax emotion (**直通**: 语义层的 5 个值全在官方白名单里). */
 const EMOTION_MAPPING: Readonly<Record<SemanticEmotion, MiniMaxEmotion>> = {
   sad: 'sad',
-  calm: 'neutral',
+  calm: 'calm',
   fearful: 'fearful',
   angry: 'angry',
   happy: 'happy',

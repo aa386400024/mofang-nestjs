@@ -10,13 +10,16 @@ import type {
 } from './types'
 
 const BASE = '/admin/api'
-
-// ─── Basic Auth 凭据管理 ───
 const CRED_KEY = 'admin_basic_auth'
 
-function getAuthHeader(): string | null {
+// ─── Auth 凭据 ───
+export function getAuthHeader(): string | null {
   const raw = sessionStorage.getItem(CRED_KEY)
   return raw ? `Basic ${raw}` : null
+}
+
+export function clearAuth(): void {
+  sessionStorage.removeItem(CRED_KEY)
 }
 
 function promptCredentials(): string | null {
@@ -29,158 +32,59 @@ function promptCredentials(): string | null {
   return `Basic ${encoded}`
 }
 
-async function get<T>(path: string): Promise<T> {
-  const headers: Record<string, string> = {}
-  const auth = getAuthHeader()
-  if (auth) headers.Authorization = auth
+// ─── 核心请求函数（统一处理 method / headers / 401 重试） ───
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const doFetch = (auth: string | null) => {
+    const headers: Record<string, string> = {}
+    if (auth) headers.Authorization = auth
+    if (body !== undefined) headers['Content-Type'] = 'application/json'
+    return fetch(`${BASE}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    })
+  }
 
-  const r = await fetch(`${BASE}${path}`, { headers })
+  let r = await doFetch(getAuthHeader())
 
+  // 401 → 重新弹框输凭据 → 重试一次
   if (r.status === 401) {
-    // 后端要求鉴权，弹框输入
-    sessionStorage.removeItem(CRED_KEY)
+    clearAuth()
     const newAuth = promptCredentials()
     if (!newAuth) throw new Error('需要登录')
-    const retry = await fetch(`${BASE}${path}`, {
-      headers: { Authorization: newAuth },
-    })
-    if (!retry.ok) throw new Error(`${path} → ${retry.status}`)
-    return retry.json() as Promise<T>
+    r = await doFetch(newAuth)
   }
 
   if (!r.ok) throw new Error(`${path} → ${r.status}`)
   return r.json() as Promise<T>
 }
 
-async function post<T>(path: string, body: unknown): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const auth = getAuthHeader()
-  if (auth) headers.Authorization = auth
-
-  const r = await fetch(`${BASE}${path}`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body),
-  })
-
-  if (r.status === 401) {
-    sessionStorage.removeItem(CRED_KEY)
-    const newAuth = promptCredentials()
-    if (!newAuth) throw new Error('需要登录')
-    const retry = await fetch(`${BASE}${path}`, {
-      method: 'POST',
-      headers: { ...headers, Authorization: newAuth },
-      body: JSON.stringify(body),
-    })
-    if (!retry.ok) throw new Error(`${path} → ${retry.status}`)
-    return retry.json() as Promise<T>
-  }
-
-  if (!r.ok) throw new Error(`${path} → ${r.status}`)
-  return r.json() as Promise<T>
-}
-
-async function del<T>(path: string): Promise<T> {
-  const headers: Record<string, string> = {}
-  const auth = getAuthHeader()
-  if (auth) headers.Authorization = auth
-
-  const r = await fetch(`${BASE}${path}`, {
-    method: 'DELETE',
-    headers,
-  })
-
-  if (r.status === 401) {
-    sessionStorage.removeItem(CRED_KEY)
-    const newAuth = promptCredentials()
-    if (!newAuth) throw new Error('需要登录')
-    const retry = await fetch(`${BASE}${path}`, {
-      method: 'DELETE',
-      headers: { Authorization: newAuth },
-    })
-    if (!retry.ok) throw new Error(`${path} → ${retry.status}`)
-    return retry.json() as Promise<T>
-  }
-
-  if (!r.ok) throw new Error(`${path} → ${r.status}`)
-  return r.json() as Promise<T>
-}
-
-async function patch<T>(path: string, body: unknown): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const auth = getAuthHeader()
-  if (auth) headers.Authorization = auth
-
-  const r = await fetch(`${BASE}${path}`, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify(body),
-  })
-
-  if (r.status === 401) {
-    sessionStorage.removeItem(CRED_KEY)
-    const newAuth = promptCredentials()
-    if (!newAuth) throw new Error('需要登录')
-    const retry = await fetch(`${BASE}${path}`, {
-      method: 'PATCH',
-      headers: { ...headers, Authorization: newAuth },
-      body: JSON.stringify(body),
-    })
-    if (!retry.ok) throw new Error(`${path} → ${retry.status}`)
-    return retry.json() as Promise<T>
-  }
-
-  if (!r.ok) throw new Error(`${path} → ${r.status}`)
-  return r.json() as Promise<T>
-}
-
-async function put<T>(path: string, body: unknown): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const auth = getAuthHeader()
-  if (auth) headers.Authorization = auth
-
-  const r = await fetch(`${BASE}${path}`, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify(body),
-  })
-
-  if (r.status === 401) {
-    sessionStorage.removeItem(CRED_KEY)
-    const newAuth = promptCredentials()
-    if (!newAuth) throw new Error('需要登录')
-    const retry = await fetch(`${BASE}${path}`, {
-      method: 'PUT',
-      headers: { ...headers, Authorization: newAuth },
-      body: JSON.stringify(body),
-    })
-    if (!retry.ok) throw new Error(`${path} → ${retry.status}`)
-    return retry.json() as Promise<T>
-  }
-
-  if (!r.ok) throw new Error(`${path} → ${r.status}`)
-  return r.json() as Promise<T>
-}
+// HTTP 方法代理
+const get  = <T>(path: string) => request<T>('GET', path)
+const post = <T>(path: string, body: unknown) => request<T>('POST', path, body)
+const put  = <T>(path: string, body: unknown) => request<T>('PUT', path, body)
+const patch = <T>(path: string, body: unknown) => request<T>('PATCH', path, body)
+const del  = <T>(path: string) => request<T>('DELETE', path)
 
 // ─── 真实 API 端点 ───
 
 export const api = {
-  // ─── 会话列表（真 API） ───
+  // ─── 会话列表 ───
   sessions: async (limit = 20): Promise<SessionSummary[]> => {
     return get<SessionSummary[]>(`/sessions?limit=${limit}`)
   },
 
-  // ─── 会话详情（真 API） ───
+  // ─── 会话详情 ───
   session: async (id: string): Promise<SessionDetail> => {
     return get<SessionDetail>(`/sessions/${id}`)
   },
 
-  // ─── 角色池列表（真 API） ───
+  // ─── 角色池列表 ───
   characters: async (): Promise<CharacterBaseline[]> => {
     return get<CharacterBaseline[]>('/characters')
   },
 
-  // ─── 引擎健康状态（真 API） ───
+  // ─── 引擎健康状态 ───
   health: async (): Promise<HealthStatus> => {
     return get<HealthStatus>('/health')
   },
@@ -196,29 +100,21 @@ export const api = {
     close: async (sessionId: string): Promise<{ sessionId: string; closed: boolean }> => {
       return del(`/debug/session/${sessionId}`)
     },
-    // 列出所有历史会话 (V2026-11-05 持久化)
-    // V2026-11-06 WP69: 每行带 active = 本进程内存里还有运行时状态
     list: async (): Promise<Array<{ id: string; title: string; characterSlug: string; createdAt: string; updatedAt: string; turnCount: number; status: string; active: boolean }>> => {
       return get('/debug/sessions')
     },
-    // 获取某个会话的完整 trace (messages 里来访者那条自带 trace)
     get: async (sessionId: string): Promise<{ id: string; title: string; characterSlug: string; createdAt: string; updatedAt: string; turnCount: number; status: string; messages: Array<{ role: string; text: string; turnIndex: number; ts: string; trace: unknown }> }> => {
       return get(`/debug/sessions/${sessionId}`)
     },
-    // 更新会话标题
     update: async (sessionId: string, title: string): Promise<{ id: string; title: string }> => {
       return patch(`/debug/sessions/${sessionId}`, { title })
     },
-    // 删除会话 (连文件一起删)
     remove: async (sessionId: string): Promise<{ id: string; deleted: boolean }> => {
       return del(`/debug/sessions/${sessionId}`)
     },
-    // 恢复调试会话 (后端重启后从快照重建内核句柄, V2026-11-06 WP38)
     resume: async (sessionId: string): Promise<{ sessionId: string; resumed: boolean; turnCount: number }> => {
       return post(`/debug/session/${sessionId}/resume`, {})
     },
-    // 本轮事件 + delta 审计 (WP58: 正式训练会话出问题时按 sessionId 查每轮触发了什么事件/原始 delta)
-    // 注意: 返回体是 { code: 0, data: {...} } 外壳, 跟其他 admin 端点不一样
     deltaAudit: async (sessionId: string): Promise<{ sessionId: string; turns: Array<{
       turnIndex: number
       events: string[]
@@ -239,88 +135,71 @@ export const api = {
     },
   },
 
-  // ─── 角色详情（真 API · WP30） ───
-  // 后端: GET /admin/api/characters/:slug (character_profiles 单行 + 会话数)
+  // ─── 角色详情（WP30） ───
   character: async (slug: string): Promise<CharacterDetail> => {
     return get<CharacterDetail>(`/characters/${slug}`)
   },
 
-  // ─── 角色历史会话（真 API · WP30） ───
-  // 后端: GET /admin/api/characters/:slug/sessions (按留痕里的 characterSlug 过滤)
+  // ─── 角色历史会话 ───
   characterSessions: async (slug: string): Promise<CharacterSession[]> => {
     return get<CharacterSession[]>(`/characters/${slug}/sessions`)
   },
 
-  // ─── 轨迹/剧本节点（真 API · WP30） ───
-  // 后端: GET /admin/api/sessions/:id/trajectory (返 null = 本场无剧本)
+  // ─── 轨迹/剧本节点 ───
   trajectory: async (sessionId: string): Promise<TrajectoryState | null> => {
     return get<TrajectoryState | null>(`/sessions/${sessionId}/trajectory`)
   },
 
-  // ─── 本场记忆（真 API · WP30） ───
-  // 后端: GET /admin/api/sessions/:id/memories
-  // 注: 后端当前恒返空数组 (training_sessions 无 memories 列), 见交付记录 §缺口 G1
+  // ─── 本场记忆 ───
   sessionMemories: async (sessionId: string): Promise<MemoryEntry[]> => {
     return get<MemoryEntry[]>(`/sessions/${sessionId}/memories`)
   },
 
-  // ─── 仪表盘 (真 API · V2026-11-05) ───
-  // 后端: GET /admin/api/dashboard (总览统计; 含 psyguard 子视图)
+  // ─── 仪表盘 ───
   dashboard: async (): Promise<DashboardStats> => {
     return get<DashboardStats>('/dashboard')
   },
 
-  // ─── 近 7 天会话趋势 (真 API · V2026-11-05) ───
-  // 后端: GET /admin/api/dashboard/weekly-sessions (行数恒 7, 没有会话的天补 0)
+  // ─── 近 7 天会话趋势 ───
   weeklySessions: async (): Promise<{ date: string; count: number }[]> => {
     return get<{ date: string; count: number }[]>('/dashboard/weekly-sessions')
   },
 
-  // ─── 记忆浏览器 (真 API · V2026-11-05) ───
-  // 后端: GET /admin/api/memories (长时记忆; source='unavailable' = 向量库读不到)
+  // ─── 记忆浏览器 ───
   memories: async (): Promise<MemoryListResponse> => {
     return get<MemoryListResponse>('/memories')
   },
 
-  // ─── PsyGUARD 监控 (真 API · V2026-11-05) ───
-  // 后端: GET /admin/api/psyguard (真实探活; metricsAvailable=false = 指标未采集)
+  // ─── PsyGUARD 监控 ───
   psyguard: async (): Promise<PsyGuardStats> => {
     return get<PsyGuardStats>('/psyguard')
   },
-  // 后端: GET /admin/api/psyguard/trend (近 7 天调用量趋势)
   psyguardTrend: async (): Promise<PsyGuardTrend> => {
     return get<PsyGuardTrend>('/psyguard/trend')
   },
 
-  // ─── 成本看板（真 API · WP31） ───
-  // 后端: GET /admin/api/cost/trend?days=N (按天聚合, 行数恒等于 days)
+  // ─── 成本看板（WP31） ───
   costTrend: async (days = 7): Promise<CostTrendPoint[]> => {
     return get<CostTrendPoint[]>(`/cost/trend?days=${days}`)
   },
-  // 后端: GET /admin/api/cost/sessions?limit=N (含成本口径 costBasis)
   sessionCosts: async (limit = 20): Promise<SessionCost[]> => {
     return get<SessionCost[]>(`/cost/sessions?limit=${limit}`)
   },
 
-  // ─── 影子模式审议统计 (切灰度决策用) ───
-  // 后端: GET /admin/api/deliberation/stats?days=N (Redis hash 计数器, O(1))
-  // days 不传 = 累计值; days=7 = 最近 7 天
+  // ─── 影子模式审议统计 ───
   deliberationStats: async (days?: number): Promise<DeliberationStats> => {
     const query = days ? `?days=${days}` : ''
     return get<DeliberationStats>(`/deliberation/stats${query}`)
   },
 
-  // ─── 自动对练 (Phase2.5 WP-D) ───
+  // ─── 自动对练（WP-D） ───
   autoPractice: {
-    /** 启动一场实时对练 (立即返回 practiceSessionId, 后台跑循环) */
     startSession: async (body: { characterSlug: string; counselorModeId: string; maxTurns?: number }): Promise<{ practiceSessionId: string; characterSlug: string; counselorModeId: string }> => {
       return post('/auto-practice/sessions', body)
     },
-    /** 批量入队, 返回 batchId */
     enqueueBatch: async (body: { characterSlugs: string[]; counselorModeIds: string[]; maxTurns?: number; repeats?: number }): Promise<{ batchId: string; enqueued: number }> => {
       return post('/auto-practice/batch', body)
     },
-    /** 列场次 (分页) */
     listSessions: async (params?: { batchId?: string; status?: string; page?: number; pageSize?: number }): Promise<{ items: PracticeSession[]; total: number; page: number; pageSize: number }> => {
       const q = new URLSearchParams()
       if (params?.batchId) q.set('batchId', params.batchId)
@@ -330,33 +209,27 @@ export const api = {
       const qs = q.toString()
       return get<{ items: PracticeSession[]; total: number; page: number; pageSize: number }>(`/auto-practice/sessions${qs ? `?${qs}` : ''}`)
     },
-    /** 查单场 */
     getSession: async (id: string): Promise<PracticeSession> => {
       return get<PracticeSession>(`/auto-practice/sessions/${id}`)
     },
-    /** 批量进度汇总 */
     batchProgress: async (batchId: string): Promise<BatchProgress> => {
       return get<BatchProgress>(`/auto-practice/batches/${batchId}`)
     },
-    /** 列咨询师模式 */
     listModes: async (): Promise<CounselorMode[]> => {
       return get<CounselorMode[]>('/auto-practice/modes')
     },
-    /** 新建咨询师模式 */
     createMode: async (body: { name: string; systemPrompt?: string; description?: string; enabled?: boolean; sortOrder?: number }): Promise<CounselorMode> => {
       return post('/auto-practice/modes', body)
     },
-    /** 改咨询师模式 */
     updateMode: async (id: string, body: Partial<{ name: string; systemPrompt: string; description: string; enabled: boolean; sortOrder: number }>): Promise<CounselorMode> => {
       return put<CounselorMode>(`/auto-practice/modes/${id}`, body)
     },
-    /** 删咨询师模式 */
     deleteMode: async (id: string): Promise<{ deleted: boolean }> => {
       return del<{ deleted: boolean }>(`/auto-practice/modes/${id}`)
     },
   },
 
-  // ─── 自动评测报告 (WP-E · 离线批量评测质量看板) ───
+  // ─── 自动评测报告（WP-E） ───
   evalReports: async (params?: { page?: number; pageSize?: number; status?: string }): Promise<EvalReportListResponse> => {
     const q = new URLSearchParams(
       Object.entries(params ?? {}).filter(([, v]) => v !== undefined && v !== '') as Record<string, string>,
@@ -367,7 +240,7 @@ export const api = {
     return get<EvalReportDetail>(`/eval/reports/${id}`)
   },
 
-  // ─── 闸门决策 trace (GateDecisions) ───
+  // ─── 闸门决策 trace ───
   gateTraces: async (params?: {
     page?: number
     pageSize?: number
@@ -388,7 +261,7 @@ export const api = {
     return get<GateStatsResponse>(`/gate/stats?days=${days}`)
   },
 
-  // ─── 质量标注台 (WP-J P2 · 人工锚点) ───
+  // ─── 质量标注台（WP-J P2） ───
   qualityAnnotation: {
     list: async (status: 'pending' | 'done' | 'all' = 'pending'): Promise<AnnotationListResponse> => {
       return get<AnnotationListResponse>(`/quality/annotations?status=${status}`)
@@ -399,11 +272,9 @@ export const api = {
     save: async (id: string, body: AnnotationSaveBody): Promise<AnnotationRow> => {
       return put<AnnotationRow>(`/quality/annotations/${id}`, body)
     },
-    /** 双盲揭示: 保存后才调, 返回自动判定 */
     reveal: async (id: string): Promise<AnnotationReveal> => {
       return get<AnnotationReveal>(`/quality/annotations/${id}/reveal`)
     },
-    /** 双盲辅助: 随时可调用, 返回规则引擎的自动判定本身 (标注员拿不准时主动问) */
     auto: async (id: string): Promise<AnnotationReveal> => {
       return get<AnnotationReveal>(`/quality/annotations/${id}/auto`)
     },

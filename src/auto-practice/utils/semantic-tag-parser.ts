@@ -301,29 +301,47 @@ const SHAPE_DIGITS: ReadonlyMap<string, string> = new Map([
  * "校验层兜底" 的价值.
  */
 const VENDOR_PRE_SPEECH: ReadonlyMap<string, SemanticPreSpeech | null> = new Map([
-  ['sigh', 'sigh'],
+  // ── 官方白名单 (speech-2.8-hd / speech-2.8-turbo) ──────────────────────────
+  //    见 docs/reference/minimax-t2a-api.md:
+  //    (laughs) (chuckle) (coughs) (clear-throat) (groans) (breath) (pant) (inhale)
+  //    (exhale) (gasps) (sniffs) (sighs) (snorts) (burps) (lip-smacking) (humming)
+  //    (hissing) (emm) (sneezes)
+  //    能映射到语义层的 → 转换; 语义层表达不了的 → null (丢弃, 不入正文).
   ['sighs', 'sigh'],
   ['breath', 'breath'],
-  ['breaths', 'breath'],
   ['emm', 'emm'],
-  ['laugh', 'laugh'],
   ['laughs', 'laugh'],
   ['chuckle', 'laugh'],
   ['inhale', 'inhale'],
-  ['inhales', 'inhale'],
   ['coughs', null],
-  ['crying', null],
+  ['clear-throat', null],
+  ['groans', null],
+  ['pant', null],
+  ['exhale', null],
   ['gasps', null],
+  ['sniffs', null],
+  ['snorts', null],
+  ['burps', null],
+  ['lip-smacking', null],
   ['humming', null],
+  ['hissing', null],
+  ['sneezes', null],
+  // ── 容错别名 (不在官方白名单, 但语义明确): 认下来转成官方标签,
+  //    比让它被 TTS 当普通文字念出来强.
+  ['sigh', 'sigh'],
+  ['breaths', 'breath'],
+  ['laugh', 'laugh'],
+  ['inhales', 'inhale'],
+  // ── 旧集合里非官方的语气词 (官方白名单没有) → TTS 会当普通文字念出来 → 丢弃 + 记 warning
   ['clears throat', null],
   ['clucking', null],
+  ['crying', null],
   ['sniffling', null],
   ['sobbing', null],
+  ['whimper', null],
   ['whistles', null],
   ['snores', null],
-  ['whimper', null],
   ['screams', null],
-  ['groans', null],
 ]);
 
 /** 标记形态: 只认 "字母开头的名字" 或 "名字:值" —— 避免把正文里的方括号当标记. */
@@ -557,6 +575,96 @@ function keepUnknownMarkup(ctx: ScanContext, text: string, start: number, end: n
 }
 
 /**
+ * 单个标记的语义分类 (**纯函数** —— 离线扫描与流式预处理共用同一份判定).
+ *
+ * 为什么抽出来: 流式预处理 (StreamingSemanticPreprocessor) 拿到一个闭合的
+ * `[xxx]` 片段时, 需要的是"这个片段是什么意思" —— 与离线扫描要的是**同一个**判定.
+ * 两边各写一套 = 迟早漂移 (一边认 `[sigh]` 另一边不认, 同一段文本两种听感).
+ * 所以判定只有这一份, 两边都调它.
+ */
+export type SemanticTagClassification =
+  | { readonly kind: 'preSpeech'; readonly value: SemanticPreSpeech; readonly corrected: boolean }
+  | { readonly kind: 'pause'; readonly value: number | null; readonly rawValue: string | null; readonly corrected: boolean }
+  | { readonly kind: 'emotion'; readonly value: SemanticEmotion | null; readonly corrected: boolean }
+  | { readonly kind: 'control'; readonly value: SemanticControlTag; readonly corrected: boolean }
+  | { readonly kind: 'unknown'; readonly corrected: boolean };
+
+/**
+ * 夹取停顿时长到官方合法区间 [0.01, 99.99] 秒.
+ *
+ * @param duration 原始时长
+ * @returns 夹取后的时长
+ */
+function clampPauseDuration(duration: number): number {
+  if (duration < SEMANTIC_PAUSE_MIN_SEC) {
+    return SEMANTIC_PAUSE_MIN_SEC;
+  }
+  if (duration > SEMANTIC_PAUSE_MAX_SEC) {
+    return SEMANTIC_PAUSE_MAX_SEC;
+  }
+  return duration;
+}
+
+/**
+ * 判定一个标记的语义 (**纯函数**, 不碰任何扫描状态).
+ *
+ * @param inner 标记内文 (不含两侧方括号, 已小写归一)
+ * @param isControl 是否是 [[...]] 形态 (控制标记)
+ * @returns 语义分类
+ */
+export function classifySemanticTag(inner: string, isControl: boolean): SemanticTagClassification {
+  const colon = inner.indexOf(':');
+  const rawName = colon === -1 ? inner : inner.slice(0, colon);
+  const rawValue = colon === -1 ? null : inner.slice(colon + 1);
+  const name = rawName.trim().toLowerCase();
+
+  if (isControl) {
+    const value = (rawValue ?? '').trim().toUpperCase();
+    const control = SEMANTIC_CONTROL_TAGS.find((item) => item === value);
+    if (!control) {
+      return { kind: 'unknown', corrected: false };
+    }
+    return { kind: 'control', value: control, corrected: false };
+  }
+
+  if (name === TAG_NAME_PAUSE) {
+    return { kind: 'pause', value: parseNumericValue(rawValue ?? ''), rawValue, corrected: false };
+  }
+  if (name === TAG_NAME_EMOTION) {
+    const value = (rawValue ?? '').trim().toLowerCase();
+    const exact = SEMANTIC_EMOTION_TAGS.find((item) => item === value);
+    if (exact) {
+      return { kind: 'emotion', value: exact, corrected: false };
+    }
+    const fuzzy = fuzzyMatchTag(value, [...SEMANTIC_EMOTION_TAGS]);
+    if (fuzzy === null) {
+      return { kind: 'emotion', value: null, corrected: false };
+    }
+    return { kind: 'emotion', value: fuzzy as SemanticEmotion, corrected: true };
+  }
+  const exact = SEMANTIC_PRE_SPEECH_TAGS.find((item) => item === name);
+  if (exact) {
+    return { kind: 'preSpeech', value: exact, corrected: false };
+  }
+  const fuzzy = fuzzyMatchTag(name, [...SEMANTIC_PRE_SPEECH_TAGS, TAG_NAME_PAUSE, TAG_NAME_EMOTION]);
+  if (fuzzy === TAG_NAME_PAUSE) {
+    return { kind: 'pause', value: parseNumericValue(rawValue ?? ''), rawValue, corrected: true };
+  }
+  if (fuzzy === TAG_NAME_EMOTION) {
+    const value = (rawValue ?? '').trim().toLowerCase();
+    const fuzzyValue = fuzzyMatchTag(value, [...SEMANTIC_EMOTION_TAGS]);
+    if (fuzzyValue === null) {
+      return { kind: 'emotion', value: null, corrected: true };
+    }
+    return { kind: 'emotion', value: fuzzyValue as SemanticEmotion, corrected: true };
+  }
+  if (fuzzy) {
+    return { kind: 'preSpeech', value: fuzzy as SemanticPreSpeech, corrected: true };
+  }
+  return { kind: 'unknown', corrected: false };
+}
+
+/**
  * 处理一个已识别的标记.
  *
  * @param ctx 扫描上下文
@@ -566,51 +674,31 @@ function keepUnknownMarkup(ctx: ScanContext, text: string, start: number, end: n
  */
 function applySemanticTag(ctx: ScanContext, inner: string, isControl: boolean): TagOutcome {
   ctx.totalTags++;
-  const colon = inner.indexOf(':');
-  const rawName = colon === -1 ? inner : inner.slice(0, colon);
-  const rawValue = colon === -1 ? null : inner.slice(colon + 1);
-  const name = rawName.trim().toLowerCase();
-
-  if (isControl) {
-    const value = (rawValue ?? '').trim().toUpperCase();
-    const control = SEMANTIC_CONTROL_TAGS.find((item) => item === value);
-    if (control) {
+  const classification = classifySemanticTag(inner, isControl);
+  if (classification.corrected) {
+    ctx.correctedTags++;
+    report(ctx, 'TAG_FUZZY_CORRECTED', 'warning', { tag: sanitizeTagName(inner) });
+  }
+  switch (classification.kind) {
+    case 'control': {
       ctx.controlTagCount++;
-      ctx.controlTags.push(control);
+      ctx.controlTags.push(classification.value);
       return 'consumed';
     }
-    return 'unknown';
+    case 'preSpeech': {
+      applyPreSpeechTag(ctx, classification.value);
+      return 'consumed';
+    }
+    case 'pause': {
+      return applyPauseTag(ctx, classification.rawValue, classification.value);
+    }
+    case 'emotion': {
+      return applyEmotionTag(ctx, classification.value);
+    }
+    default: {
+      return 'unknown';
+    }
   }
-
-  if (name === TAG_NAME_PAUSE) {
-    return applyPauseTag(ctx, rawValue);
-  }
-  if (name === TAG_NAME_EMOTION) {
-    return applyEmotionTag(ctx, rawValue);
-  }
-  const exact = SEMANTIC_PRE_SPEECH_TAGS.find((item) => item === name);
-  if (exact) {
-    applyPreSpeechTag(ctx, exact);
-    return 'consumed';
-  }
-  const fuzzy = fuzzyMatchTag(name, [...SEMANTIC_PRE_SPEECH_TAGS, TAG_NAME_PAUSE, TAG_NAME_EMOTION]);
-  if (fuzzy === TAG_NAME_PAUSE) {
-    ctx.correctedTags++;
-    report(ctx, 'TAG_FUZZY_CORRECTED', 'warning', { tag: sanitizeTagName(rawName) });
-    return applyPauseTag(ctx, rawValue);
-  }
-  if (fuzzy === TAG_NAME_EMOTION) {
-    ctx.correctedTags++;
-    report(ctx, 'TAG_FUZZY_CORRECTED', 'warning', { tag: sanitizeTagName(rawName) });
-    return applyEmotionTag(ctx, rawValue);
-  }
-  if (fuzzy) {
-    ctx.correctedTags++;
-    report(ctx, 'TAG_FUZZY_CORRECTED', 'warning', { tag: sanitizeTagName(rawName) });
-    applyPreSpeechTag(ctx, fuzzy as SemanticPreSpeech);
-    return 'consumed';
-  }
-  return 'unknown';
 }
 
 /**
@@ -619,9 +707,8 @@ function applySemanticTag(ctx: ScanContext, inner: string, isControl: boolean): 
  * @param ctx 扫描上下文
  * @param rawValue 时长原文
  */
-function applyPauseTag(ctx: ScanContext, rawValue: string | null): TagOutcome {
+function applyPauseTag(ctx: ScanContext, rawValue: string | null, parsed: number | null): TagOutcome {
   ctx.pauseTags++;
-  const parsed = rawValue === null ? null : parseNumericValue(rawValue);
   if (parsed === null) {
     return 'unknown';
   }
@@ -631,12 +718,8 @@ function applyPauseTag(ctx: ScanContext, rawValue: string | null): TagOutcome {
     ctx.correctedTags++;
     report(ctx, 'TAG_FUZZY_CORRECTED', 'warning', { tag: sanitizeTagName(rawTrimmed) });
   }
-  let duration = parsed;
-  if (duration < SEMANTIC_PAUSE_MIN_SEC) {
-    duration = SEMANTIC_PAUSE_MIN_SEC;
-    report(ctx, 'PAUSE_DURATION_CLAMPED', 'warning', { value: duration, count: ctx.pauseTags });
-  } else if (duration > SEMANTIC_PAUSE_MAX_SEC) {
-    duration = SEMANTIC_PAUSE_MAX_SEC;
+  const duration = clampPauseDuration(parsed);
+  if (duration !== parsed) {
     report(ctx, 'PAUSE_DURATION_CLAMPED', 'warning', { value: duration, count: ctx.pauseTags });
   }
   ctx.pauses.push({ offset: ctx.plain.length, durationSec: duration });
@@ -649,22 +732,13 @@ function applyPauseTag(ctx: ScanContext, rawValue: string | null): TagOutcome {
  * @param ctx 扫描上下文
  * @param rawValue 情绪原文
  */
-function applyEmotionTag(ctx: ScanContext, rawValue: string | null): TagOutcome {
+function applyEmotionTag(ctx: ScanContext, value: SemanticEmotion | null): TagOutcome {
   ctx.emotionTags++;
-  const value = (rawValue ?? '').trim().toLowerCase();
-  const exact = SEMANTIC_EMOTION_TAGS.find((item) => item === value);
-  if (exact) {
-    applyEmotionValue(ctx, exact);
-    return 'consumed';
+  if (value === null) {
+    return 'unknown';
   }
-  const fuzzy = fuzzyMatchTag(value, [...SEMANTIC_EMOTION_TAGS]);
-  if (fuzzy) {
-    ctx.correctedTags++;
-    report(ctx, 'TAG_FUZZY_CORRECTED', 'warning', { tag: sanitizeTagName(rawValue ?? '') });
-    applyEmotionValue(ctx, fuzzy as SemanticEmotion);
-    return 'consumed';
-  }
-  return 'unknown';
+  applyEmotionValue(ctx, value);
+  return 'consumed';
 }
 
 /**
@@ -713,7 +787,7 @@ function applyVendorPause(ctx: ScanContext, inner: string): void {
   ctx.convertedVendorTags++;
   ctx.totalTags++;
   report(ctx, 'VENDOR_FORMAT_CONVERTED', 'warning', { tag: sanitizeTagName(inner) });
-  applyPauseTag(ctx, inner);
+  applyPauseTag(ctx, inner, parsed);
 }
 
 /**
@@ -1071,4 +1145,66 @@ export class SemanticTagParser {
  */
 export function parseSemanticTags(input: string, options: SemanticTagParserOptions = {}): SemanticParseResult {
   return new SemanticTagParser(options).parse(input);
+}
+/**
+ * 一个**完整标记**的解析结果 (流式预处理用).
+ *
+ * 三态而不是两态, 因为"不是标记"与"是标记但不认识"要区别对待:
+ *   · 'tag'     —— 认识的语义标记 → 翻译成厂商格式;
+ *   · 'unknown' —— 形态像标记但不认识 → **丢掉** (TTS 会把 "[xyzzy]" 当词念出来);
+ *   · 'plain'   —— 根本不是标记 (如 "[1]" / "[你好]") → **当普通文本原样透传**.
+ */
+export interface SemanticTagFragment {
+  readonly kind: 'tag' | 'unknown' | 'plain';
+  /** 语义中间表示 (kind='tag' 时有意义). */
+  readonly turn: SemanticTurn;
+  /** 标签名是否被模糊纠正过. */
+  readonly corrected: boolean;
+}
+
+/**
+ * 造一个空的语义中间表示.
+ *
+ * @returns 空 turn
+ */
+function emptySemanticTurn(): SemanticTurn {
+  return { text: '', preSpeech: null, pauses: [], controlTags: [], emotion: null, unknownTags: [] };
+}
+
+/**
+ * 解析**单个完整标记** (流式预处理用).
+ *
+ * 与 `parseSemanticTags` 的区别:
+ *   · 输入是**一个**标记片段, 不是一整段文本;
+ *   · **不做**句尾停顿丢弃 —— 流式里"停顿出现在当前片段末尾"是常态
+ *     (整句还没结束), 按句级规则丢掉会把停顿吞掉;
+ *   · 判定逻辑与离线扫描**共用** `classifySemanticTag` (不漂移).
+ *
+ * @param raw 完整标记 (如 '[sigh]' / '[pause:0.5]' / '[[STATE:END]]')
+ * @returns 片段解析结果
+ */
+export function parseSemanticTagFragment(raw: string): SemanticTagFragment {
+  const trimmed = raw.trim();
+  const isControl = trimmed.startsWith('[[');
+  const inner = isControl ? trimmed.slice(2, Math.max(2, trimmed.length - 2)) : trimmed.slice(1, Math.max(1, trimmed.length - 1));
+  if (!TAG_SHAPE.test(inner)) {
+    return { kind: 'plain', turn: emptySemanticTurn(), corrected: false };
+  }
+  const classification = classifySemanticTag(inner, isControl);
+  if (classification.kind === 'unknown') {
+    return { kind: 'unknown', turn: emptySemanticTurn(), corrected: classification.corrected };
+  }
+  const pauses: SemanticPause[] = [];
+  if (classification.kind === 'pause' && classification.value !== null) {
+    pauses.push({ offset: 0, durationSec: clampPauseDuration(classification.value) });
+  }
+  const turn: SemanticTurn = {
+    text: '',
+    preSpeech: classification.kind === 'preSpeech' ? classification.value : null,
+    pauses,
+    controlTags: classification.kind === 'control' ? [classification.value] : [],
+    emotion: classification.kind === 'emotion' ? classification.value : null,
+    unknownTags: [],
+  };
+  return { kind: 'tag', turn, corrected: classification.corrected };
 }

@@ -4,9 +4,11 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { NIcon } from 'naive-ui'
 import { RocketOutline } from '@vicons/ionicons5'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
 const router = useRouter()
+const auth = useAuthStore()
 const loading = ref(false)
 const error = ref('')
 
@@ -20,22 +22,20 @@ const handleLogin = async () => {
   loading.value = true
   error.value = ''
 
-  // 存凭据到 sessionStorage
   const encoded = btoa(`${form.username}:${form.password}`)
-  sessionStorage.setItem('admin_basic_auth', encoded)
 
-  // 测试一下能不能通
   try {
     const r = await fetch('/admin/api/health', {
       headers: { Authorization: `Basic ${encoded}` },
     })
     if (r.ok) {
+      auth.login(encoded)
       router.push('/dashboard')
     } else if (r.status === 401) {
       error.value = '用户名或密码错误'
-      sessionStorage.removeItem('admin_basic_auth')
     } else {
       // 后端没配鉴权，也放行
+      auth.login(encoded)
       router.push('/dashboard')
     }
   } catch {

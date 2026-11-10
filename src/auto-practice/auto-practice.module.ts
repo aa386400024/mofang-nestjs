@@ -33,16 +33,18 @@ import { CounselorAgentService } from './counselor-agent.service.js';
 import { CounselorMode } from './entities/counselor-mode.entity.js';
 import { PracticeBatch } from './entities/practice-batch.entity.js';
 import { PracticeSession } from './entities/practice-session.entity.js';
+import { PracticeTurn } from './entities/practice-turn.entity.js';
 import { InferenceFingerprintService } from './inference-fingerprint.service.js';
 import { TURN_ENGINE_PORT } from './ports/turn-engine.port.js';
 import { PracticeBatchHealthService } from './practice-batch-health.service.js';
 import { PracticeQueueService } from './practice-queue.service.js';
 import { PracticeRunnerService } from './practice-runner.service.js';
+import { SemanticTurnPersister } from './semantic/semantic-turn.persister.js';
 
 @Module({
   imports: [
     // 本模块的两张表 + User (AdminRoleGuard 要查 admin_role).
-    TypeOrmModule.forFeature([CounselorMode, PracticeSession, PracticeBatch, User]),
+    TypeOrmModule.forFeature([CounselorMode, PracticeSession, PracticeBatch, PracticeTurn, User]),
     // 复用调试会话管道 (DebugSessionService 已从该模块导出).
     AdminDebugChatModule,
     // LLM 路由层 (咨询师台词生成).
@@ -63,6 +65,8 @@ import { PracticeRunnerService } from './practice-runner.service.js';
     PracticeQueueService,
     // V2026-11-10 (WP-H 改动 6/9 + 新增 12): 批次指标聚合 / 有效性门禁 / 逐字稿索引.
     PracticeBatchHealthService,
+    // V2026-11-10 (WP-J P1e Phase2): 来访者语义落库 (解析 + 三份拆解 + upsert).
+    SemanticTurnPersister,
     AutoPracticeGateway,
     AdminRoleGuard,
   ],

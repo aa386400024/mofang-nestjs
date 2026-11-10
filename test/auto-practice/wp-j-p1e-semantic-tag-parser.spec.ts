@@ -336,6 +336,13 @@ describe('WP-J P1e · TTS 语义标记解析层', () => {
       expect(result.turn.text).toBe('(这是括号)你好');
       expect(result.stats.droppedVendorMarkers).toBe(0);
     });
+
+    it('官方白名单里的语气词 (sniffs / clear-throat) → 认得, 丢弃并记 warning', () => {
+      const result = parseSemanticTags('(sniffs)(clear-throat)你好');
+      expect(result.turn.text).toBe('你好');
+      expect(result.stats.droppedVendorMarkers).toBe(2);
+      expect(result.warnings.map((item) => item.code)).toContain('VENDOR_MARKER_DROPPED');
+    });
   });
 
   describe('⑦ 三级降级', () => {
@@ -487,7 +494,7 @@ describe('WP-J P1e · TTS 语义标记解析层', () => {
       expect(result.ttsText).not.toContain('sad');
     });
 
-    it("情绪 'calm' → MiniMax 的 'neutral' (MiniMax 没有 calm)", () => {
+    it("情绪 'calm' → 直通 'calm' (官方白名单有 calm, 没有 neutral)", () => {
       const result = adapter.render({
         text: '你好',
         preSpeech: null,
@@ -496,7 +503,28 @@ describe('WP-J P1e · TTS 语义标记解析层', () => {
         emotion: 'calm',
         unknownTags: [],
       });
-      expect(result.voiceParams.emotion).toBe('neutral');
+      expect(result.voiceParams.emotion).toBe('calm');
+    });
+
+    it('语义层的 5 个情绪全部直通官方枚举, 不做任何映射', () => {
+      const expectations = [
+        ['sad', 'sad'],
+        ['calm', 'calm'],
+        ['fearful', 'fearful'],
+        ['angry', 'angry'],
+        ['happy', 'happy'],
+      ] as const;
+      for (const [semantic, official] of expectations) {
+        const result = adapter.render({
+          text: '你好',
+          preSpeech: null,
+          pauses: [],
+          controlTags: [],
+          emotion: semantic,
+          unknownTags: [],
+        });
+        expect(result.voiceParams.emotion).toBe(official);
+      }
     });
 
     it('角色基线参数保留, 本轮情绪覆盖情绪位', () => {

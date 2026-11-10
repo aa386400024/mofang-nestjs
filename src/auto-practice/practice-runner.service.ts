@@ -43,7 +43,8 @@ import { CounselorAgentService, type CounselorHistoryTurn } from './counselor-ag
 import { CounselorMode } from './entities/counselor-mode.entity.js';
 import { PracticeSession, type PracticeSessionStatus } from './entities/practice-session.entity.js';
 import { InferenceFingerprintService, type InferenceFingerprint, type ScenarioType } from './inference-fingerprint.service.js';
-import { TURN_ENGINE_PORT, type TurnEnginePort } from './ports/turn-engine.port.js';
+import { TURN_ENGINE_PORT, type EngineTurnResult, type TurnEnginePort } from './ports/turn-engine.port.js';
+import { SemanticTurnPersister } from './semantic/semantic-turn.persister.js';
 import { resolveCostPricingFromEnv } from '../admin-debug/cost-pricing.js';
 import type { DebugTurnTrace } from '../admin-debug/debug-session.service.js';
 import {
@@ -208,6 +209,10 @@ export class PracticeRunnerService implements OnModuleInit {
     // 为什么是 @Optional(): 单测直接 new runner (不注入配置) —— 缺配置时按**默认单价**算,
     // 不能让"没注入配置"变成"跑不起来". 生产环境 ConfigModule 是全局的, 一定注得到.
     @Optional() private readonly config?: ConfigService,
+    // WP-J P1e Phase2: 来访者语义落库服务 (optional).
+    //   为什么 optional: 既有单测直接 new runner (不注入这个服务) —— 缺它时跳过语义落库,
+    //   不能让"没注入"变成"跑不起来". 生产环境 AutoPracticeModule 一定注册了它.
+    @Optional() private readonly semanticPersister?: SemanticTurnPersister,
   ) {}
 
   /**
@@ -516,6 +521,11 @@ export class PracticeRunnerService implements OnModuleInit {
       }
       history.push({ role: 'visitor', text: result.reply });
 
+      // WP-J P1e Phase2: 来访者这半边拆三份落库 (displayText / ttsText / semanticJson).
+      //   咨询师那半边本批不落语义列 —— counselorReply.text 一行没动.
+      //   落库条件 / 失败语义 / 隐私口径见 {@link persistVisitorSemantic}.
+      await this.persistVisitorSemantic(practiceSessionId, result);
+
       // 推 turn 事件.
       this.gateway?.publishToSession(practiceSessionId, AUTO_PRACTICE_EVENTS.turn, {
         practiceSessionId,
@@ -606,6 +616,36 @@ export class PracticeRunnerService implements OnModuleInit {
       llmCallTurns,
       metrics,
     };
+  }
+
+  /**
+   * WP-J P1e Phase2: 把**来访者这半边**的回复拆三份落库 (displayText / ttsText / semanticJson).
+   *
+   * 落库条件 (三个同时满足):
+   *   ① `result.trace.degraded === false` —— 渲染层兜底句不是"来访者真说的话"
+   *      (它没过 LLM, 也没标记), 落进去只会污染语义统计;
+   *   ② `result.reply` 非空 —— 阻断轮 (disposal=block) 来访者一个字都没说;
+   *   ③ 危机窗口**不特判** —— 危机轮照样 parse (那正是最需要留证的地方).
+   *
+   * ⚠️ 失败只 warn 不抛: 语义落库是"锦上添花", 绝不能因为它炸掉整批对练.
+   * ⚠️ 日志只打 sessionId / turnIndex / 错误类型 —— 心理原文禁止进日志.
+   *
+   * 抽成独立方法是为了把 runConversationLoop 的圈复杂度压回阈值内
+   * (eslint complexity ≤ 20 / sonarjs cognitive-complexity ≤ 25).
+   */
+  private async persistVisitorSemantic(practiceSessionId: string, result: EngineTurnResult): Promise<void> {
+    if (result.trace.degraded || result.reply.trim().length === 0) {
+      return;
+    }
+    try {
+      await this.semanticPersister?.persistVisitorTurn({
+        practiceSessionId,
+        turnIndex: result.turnIndex,
+        rawVisitorText: result.reply,
+      });
+    } catch (error) {
+      this.logger.warn(`[auto_practice] 语义落库失败 session=${practiceSessionId} turn=${result.turnIndex}: ${errorName(error)}`);
+    }
   }
 
   /**
