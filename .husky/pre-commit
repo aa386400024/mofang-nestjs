@@ -1,11 +1,14 @@
 # Husky v9+ 写法
 
-# 大厂 pre-commit 标准 (V2026-11-11 分层门禁改造):
-#   - lint-staged 只对 git 暂存文件跑, 不做全量, 秒级反馈, 避免近半小时等待
-#   - eslint --fix + prettier --write 自动修; lint-staged 会把修复后的内容重新加入暂存
-#   - 修不了的错误 (如 cognitive complexity) 阻塞提交, 强制处理后再提
-#   - 全量 tsc/eslint/vitest 不在这里跑, 改为任务收尾时手动执行一次 (见 wp-task-template §5)
+# 大厂 pre-commit 标准 (V2026-11-12 分层门禁改造 · 第二次提速):
+#   - lint-staged 只对 git 暂存文件跑, 不做全量, 秒级反馈
+#   - 钩子内用 oxlint --fix (无类型程序, 全仓 1295 文件 ~0.4s) + prettier --write 自动修
+#     eslint 单进程启动就要 ~100s (实测规则执行仅占 ~2s, 97% 是加载插件 + 建 TS 程序),
+#     放进每次提交会把"提交"变成分钟级等待, 故只在任务收尾权威闸门跑一次
+#   - 权威闸门 (任务交付前一次): pnpm lint (eslint type-aware) + pnpm typecheck:build + pnpm test
+#   - 修不了的错误 (如 cognitive complexity / import 顺序) 由收尾闸门拦下, 强制处理后再交付
+#   - lint-staged 会把修复后的内容重新加入暂存
 #
 # 历史: 2026-10-15 曾因 e2e spec 有 100+ lint 错改为 `npm run lint:fix` 跳过 e2e;
 #   2026-11-11 实测 e2e 已 0 lint error, 故切回 lint-staged, 无需 ignore.
-npx lint-staged
+pnpm exec lint-staged

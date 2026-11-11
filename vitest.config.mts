@@ -16,6 +16,11 @@ export default defineConfig({
     testTimeout: 30_000,
     // Vitest keeps an existing NODE_ENV (e.g. `development` from the shell), so override it to always load `envs/test.ts`.
     env: { NODE_ENV: 'test' },
+    // V2026-11-12 闸门提速: deps.optimizer.ssr 已试并回退 —— 把 bullmq 预打包后,
+    //   4 个 spec (wp65-queue / wp65-mutex / wp66-retry / wp67-circuit) 的 `vi.mock('bullmq')`
+    //   (只有命名导出) 整文件收集失败: `No "default" export is defined on the "bullmq" mock`.
+    //   结论: 本仓这些重型依赖同时被大量 spec 以 vi.mock 替换, 预打包会改变模块导出形态,
+    //   收益未验证而风险确定, 故不启用. 若要再试, 只排除 bullmq/ioredis 这类被 mock 的包.
     coverage: {
       include: ['src/**/*.ts'],
       exclude: ['src/entity/**'],

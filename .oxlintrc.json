@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["oxc", "typescript", "unicorn"],
+  "categories": {
+    "correctness": "warn"
+  },
+  "rules": {
+    "no-unused-vars": "off",
+    "no-undef": "off",
+    "typescript/no-this-alias": "off",
+    "unicorn/no-useless-spread": "off"
+  },
+  "ignorePatterns": ["dist/**", "src/entity/**", "**/node_modules/**", "admin-dashboard/**"]
+}
