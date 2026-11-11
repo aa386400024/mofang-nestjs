@@ -577,4 +577,30 @@ describe('WP-N · 标注台批次化契约与服务行为', () => {
       for (const text of collectStrings(consistency)) expect(text.length).toBeLessThanOrEqual(200);
     });
   });
+
+  describe('⑨ 全局一致性排除 legacy 行', () => {
+    it('无批次归属与归属无效批的行不进全量一致性分母', async () => {
+      const repo = new StubRepo();
+      repo.rows.push(
+        makeRow({ id: 'row-valid', debugSessionId: 'debug_valid', batchId: 'batch-1' }),
+        makeRow({ id: 'row-null-batch', debugSessionId: 'debug_null', batchId: null }),
+        makeRow({ id: 'row-invalid-batch', debugSessionId: 'debug_invalid', batchId: 'invalid-batch' }),
+      );
+      const batch = new StubBatchService(new FakeReader(), freezeRoot);
+      batch.batchFacts.push({
+        batchId: 'batch-1',
+        valid: true,
+        validityFlags: [],
+        engineVersion: null,
+        promptVersion: null,
+        configFingerprint: null,
+      });
+      const service = new QualityAnnotationService(repo as never, batch as never);
+
+      const consistency = await service.consistency();
+
+      expect(consistency.total).toBe(1);
+      expect(consistency.scope.sessions).toBe(1);
+    });
+  });
 });

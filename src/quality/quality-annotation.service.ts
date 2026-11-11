@@ -371,7 +371,10 @@ export class QualityAnnotationService implements OnModuleInit {
    * @returns 一致性报告
    */
   private async consistencyAll(): Promise<AnnotationConsistency> {
-    const rows = sortByAnchorOrder(await this.repo.find());
+    const allRows = sortByAnchorOrder(await this.repo.find());
+    const validBatchIds = await this.validBatchIdSet();
+    // 全局一致性分母只计有效批次内的行; 批次化之前的 legacy 行 (无批次归属 / 归属无效批) 不参与.
+    const rows = allRows.filter((row) => !isLegacyAnnotationRow(row.batchId, validBatchIds));
     const inputs: ConsistencyInput[] = [];
     let missing = 0;
     for (const row of rows) {
@@ -461,6 +464,16 @@ export class QualityAnnotationService implements OnModuleInit {
         ...verdict,
       },
     };
+  }
+
+  /**
+   * 有效批次 id 集合 (供全局一致性过滤 legacy 行).
+   *
+   * @returns valid=true 的批次 id 集合
+   */
+  private async validBatchIdSet(): Promise<Set<string>> {
+    const batchRows = await this.batch.batchRows();
+    return new Set(batchRows.filter((row) => row.valid === true).map((row) => row.batchId));
   }
 
   /**
@@ -826,4 +839,17 @@ function sortByAnchorOrder(rows: readonly QualityAnnotationEntity[]): QualityAnn
     if (left.anchorOrder !== right.anchorOrder) return left.anchorOrder - right.anchorOrder;
     return left.id.localeCompare(right.id);
   });
+}
+
+/**
+ * 判定一行是否为 legacy (批次化之前的旧标注行).
+ *
+ * legacy = 无批次归属, 或归属的批次不在有效批次集合内; 这类行不进全局一致性分母.
+ *
+ * @param batchId 标注行批次 id
+ * @param validBatchIds 有效批次 id 集合
+ * @returns true = legacy
+ */
+function isLegacyAnnotationRow(batchId: string | null, validBatchIds: ReadonlySet<string>): boolean {
+  return batchId === null || !validBatchIds.has(batchId);
 }
