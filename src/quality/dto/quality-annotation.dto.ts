@@ -11,10 +11,12 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
 import {
+  ANNOTATION_BAD_TURNS_MAX_LENGTH,
   ANNOTATION_LABEL,
   ANNOTATION_DURATION_MS_MAX,
   ANNOTATION_NOTES_MAX_LENGTH,
   ANNOTATION_TURN_MIN,
+  ANNOTATION_TURN_NOTE_MAX_LENGTH,
   CRISIS_LEVEL_MAX,
   CRISIS_LEVEL_MIN,
   type AnnotationLabel,
@@ -104,4 +106,55 @@ export class QualityAnnotationSaveDto {
   @IsString()
   @MaxLength(ANNOTATION_NOTES_MAX_LENGTH)
   notes?: string;
+
+  // ── V2026-11-11 治本 (WP-N): 轮级最小集 (三列) ──
+  //
+  // ⚠️ **这三列不参与 done 判定** (done 仍只认 dominant_label) ——
+  //   前端进度条合同不变; 轮级标记是**补充事实**, 不是完成条件.
+  //
+  // ⚠️ **零压红线**: 只允许事实描述, **禁止**任何评分 / 等级 / 对错语义.
+  //   服务层会再查一遍禁用词, 命中直接 400 —— DTO 只管形状, 管不了语义.
+
+  /**
+   * 轮级标记: 从第几轮开始"不对" (离题 / 崩 / 共情缺失).
+   *
+   * NULL = 未标, 或整场无问题. 上界 (≤ turn_count) 由服务层按该场轮数校验.
+   */
+  @ApiPropertyOptional({
+    description: '轮级标记: 从第几轮开始不对 (null = 未标 / 整场无问题)',
+    nullable: true,
+    type: Number,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(ANNOTATION_TURN_MIN)
+  firstBadTurn?: number | null;
+
+  /**
+   * 轮级标记: 明确有问题的轮次清单 (逗号分隔正整数).
+   *
+   * ⚠️ 非法值**不静默丢弃** —— 服务层返回 400, 让标注员知道自己写错了.
+   */
+  @ApiPropertyOptional({
+    description: '轮级标记: 有问题的轮次清单 (逗号分隔, 最多 10 个, 升序去重)',
+    nullable: true,
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(ANNOTATION_BAD_TURNS_MAX_LENGTH)
+  badTurns?: string | null;
+
+  /**
+   * 轮级说明 (事实描述; **禁评分 / 等级 / 对错**).
+   */
+  @ApiPropertyOptional({
+    description: '轮级说明 (事实描述; 禁评分 / 等级 / 对错)',
+    nullable: true,
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(ANNOTATION_TURN_NOTE_MAX_LENGTH)
+  turnNote?: string | null;
 }

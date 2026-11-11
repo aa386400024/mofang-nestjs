@@ -225,4 +225,10 @@ export { CreatePracticeTurns1714900000044 } from './1714900000044-CreatePractice
 //   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏执行.
 export { AddBatchMetricsColumns1714900000045 } from './1714900000045-AddBatchMetricsColumns.js';
 
+// V2026-11-11 治本 (WP-N · 标注台批次化 — quality_annotation 加 9 列 + 1 索引):
+//   batch_id / counselor_mode_id / turn_count / engine_version / prompt_version /
+//   character_version + 轮级三列 (first_bad_turn / bad_turns / turn_note).
+//   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏建.
+export { AddQualityAnnotationBatchColumns1714900000047 } from './1714900000047-AddQualityAnnotationBatchColumns.js';
+
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

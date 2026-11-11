@@ -31,6 +31,8 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColum
  */
 @Entity('quality_annotation')
 @Index('idx_quality_annotation_debug_session', ['debugSessionId'], { unique: true })
+// V2026-11-11 治本 (WP-N): 批次维度索引 —— 按批派生队列 / 按批统计一致性都要走它.
+@Index('idx_quality_annotation_batch', ['batchId'])
 export class QualityAnnotationEntity {
   /**
    * 主键 (UUID v4, 由应用层用 `node:crypto` 的 randomUUID 生成).
@@ -117,6 +119,68 @@ export class QualityAnnotationEntity {
    * 备注 (存疑原因等).
    */
   @Column({ type: 'text', name: 'notes', nullable: true }) notes!: string | null;
+
+  // ── V2026-11-11 治本 (WP-N): 归属 / 版本锁 / 轮级最小集 (9 列) ──
+  //
+  // ⚠️ **这 9 列回答的是"这条结论对应哪批、哪版引擎、哪几轮不对"** ——
+  //   没有它们, 一致率只能把所有批次扔进同一个分母, 跨引擎版本混算.
+  //
+  // ⚠️ **归属列是"派生时的快照"**: 标一行时从 ap_practice_sessions 抄一份过来.
+  //   之后批次表变了也不回改 —— 结论必须锚在"标注当时"的那一版上.
+  //
+  // ⚠️ **轮级三列不参与 done 判定** (done 仍只认 dominant_label) ——
+  //   前端进度条合同不变; 轮级标记是**补充事实**, 不是完成条件.
+  //
+  // ⚠️ **零压红线**: 轮级三列只允许**事实描述**, 禁止任何评分 / 等级 / 对错语义.
+
+  /**
+   * 归属批次 id (NULL = 无法归属的历史单场 —— **不编造**).
+   *
+   * 存量回填按 ap_practice_sessions 反查; 查不到的行保持 NULL.
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true, name: 'batch_id' }) batchId!: string | null;
+
+  /**
+   * 该场咨询师模式 id (批次内切片用).
+   */
+  @Column({ type: 'varchar', length: 32, nullable: true, name: 'counselor_mode_id' }) counselorModeId!: string | null;
+
+  /**
+   * 该场轮数 (派生时的快照值; 防后续表变更影响判读).
+   */
+  @Column({ type: 'int', nullable: true, name: 'turn_count' }) turnCount!: number | null;
+
+  /**
+   * 该场引擎版本 (git describe --dirty; 版本锁: 结论对应哪版引擎).
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true, name: 'engine_version' }) engineVersion!: string | null;
+
+  /**
+   * 该场 prompt 模板指纹 (16 位 hex, 或 unknown).
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true, name: 'prompt_version' }) promptVersion!: string | null;
+
+  /**
+   * 该场角色版本 (与 WP-B 版本锁定对齐).
+   */
+  @Column({ type: 'varchar', length: 32, nullable: true, name: 'character_version' }) characterVersion!: string | null;
+
+  /**
+   * 轮级标记: 从第几轮开始"不对" (离题 / 崩 / 共情缺失).
+   *
+   * NULL = 未标, 或整场无问题. **事实描述, 不含评分语义**.
+   */
+  @Column({ type: 'int', nullable: true, name: 'first_bad_turn' }) firstBadTurn!: number | null;
+
+  /**
+   * 轮级标记: 明确有问题的轮次清单 (逗号分隔、最多 10 个、去重升序).
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true, name: 'bad_turns' }) badTurns!: string | null;
+
+  /**
+   * 轮级说明 (自由文本; 事实描述, **禁评分 / 等级 / 对错**).
+   */
+  @Column({ type: 'text', nullable: true, name: 'turn_note' }) turnNote!: string | null;
 
   /**
    * 建档时刻.

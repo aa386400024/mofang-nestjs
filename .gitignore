@@ -116,3 +116,7 @@ data/eval-reports/
 #   每次开新一批批量实验前, 把当时的 data/debug-sessions/ 搬到这里归档,
 #   防止 MAX_DEBUG_SESSIONS=500 的自动淘汰把 baseline 逐字稿顶掉.
 data/archives/
+
+# V2026-11-11 — WP-N 标注台逐字稿冻结留档 (data/quality/transcripts/<batchId>/*.json)
+#   ⚠️ 同 debug-sessions: 逐字稿原文 (心理内容), 绝不进版本库.
+data/quality/transcripts/

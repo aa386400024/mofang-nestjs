@@ -114,6 +114,57 @@ function makeRow(overrides: Partial<QualityAnnotationEntity> = {}): QualityAnnot
 }
 
 /**
+ * 批次读侧服务替身 (只实现标注服务用到的方法).
+ *
+ * ⚠️ V2026-11-11 (WP-N): 标注服务不再直接依赖 DebugSessionStore ——
+ *   批次事实 / 逐字稿来源 / 冻结都走批次读侧服务. 这里替身保持"逐字稿从哪来"可注入.
+ */
+class StubBatchService {
+  constructor(private readonly store: StubStore) {}
+
+  transcriptSource(): 'frozen' | 'live' | 'missing' {
+    return 'live';
+  }
+
+  async readTranscript(): Promise<{ source: 'frozen' | 'live' | 'missing'; record: unknown }> {
+    const record = await this.store.get('debug_abc');
+    return { source: record === null ? 'missing' : 'live', record };
+  }
+
+  async freezeTranscript(): Promise<{ frozen: boolean; reason: 'frozen' | 'already-frozen' | 'missing' | 'failed' }> {
+    return { frozen: false, reason: 'already-frozen' };
+  }
+
+  async batchSessions(): Promise<never[]> {
+    return [];
+  }
+
+  async findSessionFact(): Promise<{ fact: null; ambiguous: boolean }> {
+    return { fact: null, ambiguous: false };
+  }
+
+  async attachmentStyles(): Promise<Map<string, string>> {
+    return new Map<string, string>();
+  }
+
+  async batchAnchorOrder(): Promise<number> {
+    return 0;
+  }
+
+  async groupedSessions(): Promise<Map<string, never[]>> {
+    return new Map<string, never[]>();
+  }
+
+  async batchRows(): Promise<never[]> {
+    return [];
+  }
+
+  async allSessions(): Promise<never[]> {
+    return [];
+  }
+}
+
+/**
  * 一场逐字稿 (只给 service 要用的字段 + 几个不该外泄的字段做对照).
  */
 const TRANSCRIPT = {
@@ -135,17 +186,18 @@ const TRANSCRIPT = {
 
 describe('WP-J P2 · 标注台端点契约与服务行为', () => {
   describe('① 端点清单', () => {
-    it('六个端点的路径与方法与前端 api.qualityAnnotation 严格 1:1', () => {
+    it('七个端点的路径与方法与前端 api.qualityAnnotation 严格 1:1 (V2026-11-11 WP-N 新增 batches)', () => {
       const routes = collectRoutes(QualityAnnotationController);
 
       expect(routes.map((route) => `${route.method} ${route.path}`).toSorted()).toEqual(
         [
           `${RequestMethod.GET} annotations`,
-          `${RequestMethod.GET} annotations/:id`,
-          `${RequestMethod.GET} annotations/:id/auto`,
-          `${RequestMethod.GET} annotations/:id/reveal`,
+          `${RequestMethod.GET} annotations/:ref`,
+          `${RequestMethod.GET} annotations/:ref/auto`,
+          `${RequestMethod.GET} annotations/:ref/reveal`,
+          `${RequestMethod.GET} batches`,
           `${RequestMethod.GET} consistency`,
-          `${RequestMethod.PUT} annotations/:id`,
+          `${RequestMethod.PUT} annotations/:ref`,
         ].toSorted(),
       );
     });
@@ -178,7 +230,7 @@ describe('WP-J P2 · 标注台端点契约与服务行为', () => {
     it('status=pending 只返未标的, 但 done/total 是全量口径', async () => {
       const repo = new StubRepo();
       repo.rows.push(makeRow({ id: 'row-1' }), makeRow({ id: 'row-2', dominantLabel: 'recounting', anchorOrder: 2 }));
-      const service = new QualityAnnotationService(repo as never, new StubStore(null) as never);
+      const service = new QualityAnnotationService(repo as never, new StubBatchService(new StubStore(null)) as never);
 
       const pending = await service.list('pending');
       expect(pending.items.map((row) => row.id)).toEqual(['row-1']);
@@ -194,7 +246,7 @@ describe('WP-J P2 · 标注台端点契约与服务行为', () => {
     it('status=all 返全部, 且顺序按锚点清单顺序', async () => {
       const repo = new StubRepo();
       repo.rows.push(makeRow({ id: 'row-2', anchorOrder: 2 }), makeRow({ id: 'row-1', anchorOrder: 1 }));
-      const service = new QualityAnnotationService(repo as never, new StubStore(null) as never);
+      const service = new QualityAnnotationService(repo as never, new StubBatchService(new StubStore(null)) as never);
 
       const all = await service.list('all');
       expect(all.items.map((row) => row.id)).toEqual(['row-1', 'row-2']);
@@ -205,7 +257,7 @@ describe('WP-J P2 · 标注台端点契约与服务行为', () => {
     it('返回行 + 台词, 不含 traces / kernelState / prompt', async () => {
       const repo = new StubRepo();
       repo.rows.push(makeRow());
-      const service = new QualityAnnotationService(repo as never, new StubStore(TRANSCRIPT) as never);
+      const service = new QualityAnnotationService(repo as never, new StubBatchService(new StubStore(TRANSCRIPT)) as never);
 
       const detail = await service.detail('row-1');
 
@@ -219,14 +271,14 @@ describe('WP-J P2 · 标注台端点契约与服务行为', () => {
     it('逐字稿缺失 → 台词空数组, 不报错', async () => {
       const repo = new StubRepo();
       repo.rows.push(makeRow());
-      const service = new QualityAnnotationService(repo as never, new StubStore(null) as never);
+      const service = new QualityAnnotationService(repo as never, new StubBatchService(new StubStore(null)) as never);
 
       const detail = await service.detail('row-1');
       expect(detail.messages).toEqual([]);
     });
 
     it('标注记录不存在 → 404 (BizCode.ResourceNotFound)', async () => {
-      const service = new QualityAnnotationService(new StubRepo() as never, new StubStore(null) as never);
+      const service = new QualityAnnotationService(new StubRepo() as never, new StubBatchService(new StubStore(null)) as never);
 
       await expect(service.detail('nope')).rejects.toMatchObject({ code: BizCode.ResourceNotFound });
     });
@@ -236,7 +288,7 @@ describe('WP-J P2 · 标注台端点契约与服务行为', () => {
     it('还没保存人工标注 → 拒 (BizCode.InvalidParameter)', async () => {
       const repo = new StubRepo();
       repo.rows.push(makeRow());
-      const service = new QualityAnnotationService(repo as never, new StubStore(TRANSCRIPT) as never);
+      const service = new QualityAnnotationService(repo as never, new StubBatchService(new StubStore(TRANSCRIPT)) as never);
 
       await expect(service.reveal('row-1')).rejects.toMatchObject({ code: BizCode.InvalidParameter });
     });
@@ -245,7 +297,7 @@ describe('WP-J P2 · 标注台端点契约与服务行为', () => {
       const repo = new StubRepo();
       repo.rows.push(makeRow({ dominantLabel: 'recounting' }));
       const store = new StubStore(TRANSCRIPT);
-      const service = new QualityAnnotationService(repo as never, store as never);
+      const service = new QualityAnnotationService(repo as never, new StubBatchService(store) as never);
 
       const reveal = await service.reveal('row-1');
 
@@ -258,7 +310,7 @@ describe('WP-J P2 · 标注台端点契约与服务行为', () => {
     it('保存人工标注 + 记录标注人', async () => {
       const repo = new StubRepo();
       repo.rows.push(makeRow());
-      const service = new QualityAnnotationService(repo as never, new StubStore(TRANSCRIPT) as never);
+      const service = new QualityAnnotationService(repo as never, new StubBatchService(new StubStore(TRANSCRIPT)) as never);
 
       const saved = await service.save(
         'row-1',
