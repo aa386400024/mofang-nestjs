@@ -1,6 +1,6 @@
 # WP-M · 工程工具链技术债治本修复（修复）
 
-> 状态：🚧 部分完成（2026-11-11）—— **M-1 + M-2 已由 D 主控完成（commit `666b0a8` / `fc9285c`）**；M-3 / M-4 待执行
+> 状态：✅ 已完成（2026-11-11）—— M-1 / M-2 由 D 主控完成（commit `666b0a8` / `fc9285c`）；**M-3 / M-4 已由 MiniMax Code 完成** → [交付记录](wp-m-toolchain-tech-debt-fix-implementation-2026-11-11.md)
 > 执行方：MiniMax Code（**仅需处理 M-3 / M-4，M-1 / M-2 已完成请勿重做**）
 > 仓库：`E:\Work\Project\backend\mofang-nestjs`，分支 `integrate`
 > 唯一事实源：`docs/worklog/pending/phase2.5-toolchain-tech-debt-2026-11-11.md`（技术债清单 TD-1 / TD-2 / TD-3）
@@ -97,8 +97,13 @@ npx --no -- commitlint --edit "$1" 2>/dev/null || { ... 打印格式提示 ... }
   | 做法：先 `pnpm exec eslint --fix "scripts/**/*.ts"` 吃掉可自动修复的 41 个；剩余手工修。**复杂度超标的两个函数（`auditSession`、`main`）需要拆分，属本项主要工作量** —— 拆分时保持行为不变、不改变输出口径（这些脚本产出的是审计报告，数值口径不能变）。 |
   | **红线：`visitor-quality-lexicon.ts` 的词表内容一个字符都不许改**（它是被单测消费的单一真相源，改内容会连带 test 失败）；只允许改格式/换行。                                                                                                             |
 
+> **✅ 已完成（2026-11-11，MiniMax Code）**：基线 **65 error + 2 warning = 67** → 终态 **0 error 0 warning**（`pnpm exec eslint "scripts/**/*.ts"` exit 0）。`--fix` 自动吃掉 50 个，剩余 17 个手工修。`visitor-quality-audit.ts` 的 `auditSession`（complexity 49 / cognitive 37）与 `main`（53 / 91）拆成 13 个纯函数，**审计报告输出逐字节一致**（前后 SHA256 相同、0 行差异）；`visitor-quality-lexicon.ts` 词表 **186 个字符串字面量逐字未改**（词表单测 15/15 绿）。详见交付记录。 |
+
 - **M-4 · 把「scripts 不在任何 tsconfig」这件事交代清楚（可不做，二选一写进交付记录）**
   当前用 `eslint.config.mjs` 的 `disableTypeChecked` 兜住了。可选：新增一个 `scripts/tsconfig.json`（只给编辑器/IDE 用，不参与 build、不被 eslint project service 读取 —— 注意 project service **只认名为 `tsconfig.json` 的文件**，见官方文档），或维持现状。**维持现状也是合理选择，但必须在交付记录里明确说明「已知并接受」**。
+
+> **✅ 已完成（2026-11-11，MiniMax Code）**：选择**维持现状**（**不新增** `scripts/tsconfig.json`），并在交付记录里写明**「已知并接受」**。
+> 实测依据：加了 `scripts/tsconfig.json` 后，eslint project service 会开始对 transpile-only 的 scripts 做类型检查，立刻顶出 `stagnation-calibration.ts` 里 **2 个既有的 `TS2459`**（`CrisisWindowState` / `StagnationState` 未从 `src/auto-practice/practice-runner.service.ts` 导出）—— 等于凭空开一个「一开就红」的类型检查面，却不增加任何 lint 价值；修它要动 `src/` 业务代码的导出，超出本单红线，故记为遗留项（交付记录 §7）。
 
 **明确不在范围内（禁止顺手做）：**
 
@@ -179,13 +184,13 @@ npx --no -- commitlint --edit "$1" 2>/dev/null || { ... 打印格式提示 ... }
 
 ## 7. 【交付回写清单】做完逐项勾选（不许跳）
 
-- [ ] 交付记录已写到 §6 的固定路径
-- [ ] 本任务单从 `pending/` 移到 `completed/phase2.5/`，顶部状态行改成 `✅` 并链接交付记录
-- [ ] 回写 WP 登记表 `docs/worklog/pending/phase2.5-wp-list-2026-11-08.md` 本任务行状态
-- [ ] 回写阶段入口 `docs/worklog/pending/phase2.5-README.md` §3.0
-- [ ] **回写技术债清单 `docs/worklog/pending/phase2.5-toolchain-tech-debt-2026-11-11.md`，TD-1/TD-2/TD-3 逐条标状态**
-- [ ] `git diff --stat HEAD -- src/engine-core` 为空
-- [ ] 给一行 commit message 草稿（**不自己 commit/push**）
+- [x] 交付记录已写到 §6 的固定路径
+- [x] 本任务单从 `pending/` 移到 `completed/phase2.5/`，顶部状态行改成 `✅` 并链接交付记录
+- [x] 回写 WP 登记表 `docs/worklog/pending/phase2.5-wp-list-2026-11-08.md` 本任务行状态
+- [x] 回写阶段入口 `docs/worklog/pending/phase2.5-README.md` §3.0
+- [x] **回写技术债清单 `docs/worklog/pending/phase2.5-toolchain-tech-debt-2026-11-11.md`，TD-1/TD-2/TD-3 逐条标状态**
+- [x] `git diff --stat HEAD -- src/engine-core` 为空
+- [x] 给一行 commit message 草稿（**不自己 commit/push**）
 
 ---
 

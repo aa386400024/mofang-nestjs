@@ -17,7 +17,7 @@
 import 'reflect-metadata';
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import path from 'node:path';
 
 import { DEFAULT_EVAL_DATASET_ROOT, runEvaluationPipeline } from '../src/engine-adapters/eval/eval.service.js';
 import type { EvalMode, EvalReport } from '../src/engine-adapters/eval/eval.types.js';
@@ -53,6 +53,8 @@ const DEFAULT_REPORT_DIR = 'data/eval-reports';
  * @param argv 参数数组
  * @returns 解析结果
  */
+// ⚠️ 本函数被 test/engine-adapters/eval/eval.runner.spec.ts 直接 import 消费 (单测覆盖参数解析), 不能去 export.
+// eslint-disable-next-line unicorn/no-exports-in-scripts
 export function parseEvalCliArgs(argv: readonly string[]): EvalCliOptions {
   const options: EvalCliOptions = {
     mode: 'offline',
@@ -119,14 +121,14 @@ export function parseEvalCliArgs(argv: readonly string[]): EvalCliOptions {
  * @param datasetVersion 数据集版本
  * @returns 上一版报告 (没有则为 null)
  */
-export function loadPreviousReport(dir: string, datasetVersion: string): EvalReport | null {
+function loadPreviousReport(dir: string, datasetVersion: string): EvalReport | null {
   if (!existsSync(dir)) return null;
   const files = readdirSync(dir)
     .filter((name) => name.startsWith('eval-') && name.endsWith('.json'))
-    .sort();
+    .toSorted();
   for (const name of files.reverse()) {
     try {
-      const parsed = JSON.parse(readFileSync(join(dir, name), 'utf8')) as EvalReport;
+      const parsed = JSON.parse(readFileSync(path.join(dir, name), 'utf8')) as EvalReport;
       if (parsed?.config?.datasetVersion === datasetVersion) return parsed;
     } catch {
       // 报告文件损坏不算致命: 跳过, 继续找上一版.
@@ -146,11 +148,16 @@ function printSummary(report: EvalReport, outPath: string | null): void {
   const suggestion = report.suggestionQuality;
   const baseline = report.baselineComparison;
   const quality = report.dataQuality;
+  // 基线对比文案拆成两步 —— 嵌套三元 (ternary 套 ternary) 会被 sonarjs/no-nested-conditional 拦下.
+  const deltaSign = (baseline.directionAccuracyDelta ?? 0) >= 0 ? '+' : '';
+  const baselineText = baseline.available
+    ? `${(baseline.baselineDirectionAccuracy ?? 0).toFixed(3)} → ${(baseline.subjectDirectionAccuracy ?? 0).toFixed(3)} (${deltaSign}${(baseline.directionAccuracyDelta ?? 0).toFixed(3)})`
+    : `不可算 (${baseline.unavailableReason})`;
   const lines = [
     outPath ? `报告已写入: ${outPath}` : '报告 (stdout)',
     `  触发质量: P=${trigger.precision.toFixed(3)} R=${trigger.recall.toFixed(3)} F1=${trigger.f1.toFixed(3)} (TP=${trigger.tp} FP=${trigger.fp} FN=${trigger.fn} TN=${trigger.tn})`,
     `  建议质量: ${suggestion.available ? `macro F1=${(suggestion.macroAverage ?? 0).toFixed(3)} 幅度 MAE=${(suggestion.amplitudeMAE ?? 0).toFixed(3)} (对比轮次 ${suggestion.comparedTurns})` : `不可算 (${suggestion.unavailableReason})`}`,
-    `  基线对比: ${baseline.available ? `${(baseline.baselineDirectionAccuracy ?? 0).toFixed(3)} → ${(baseline.subjectDirectionAccuracy ?? 0).toFixed(3)} (${(baseline.directionAccuracyDelta ?? 0) >= 0 ? '+' : ''}${(baseline.directionAccuracyDelta ?? 0).toFixed(3)})` : `不可算 (${baseline.unavailableReason})`}`,
+    `  基线对比: ${baselineText}`,
     `  数据质量: 总 ${quality.totalSessions} / 有效 ${quality.validSessions} / 丢弃 ${quality.droppedSessions} (tooShort=${quality.dropReasons.too_short} errors=${quality.dropReasons.has_error} bdiAnomaly=${quality.dropReasons.bdi_anomaly} noTrace=${quality.dropReasons.missing_gate_trace})`,
     `  运行 ${report.runs.count} 次 (F1 标准差 ${(report.runs.stdDev.triggerF1 ?? 0).toFixed(4)}) / 耗时 ${report.durationSec.toFixed(2)}s / token ${report.cost.totalTokens}`,
   ];
@@ -166,9 +173,9 @@ function printSummary(report: EvalReport, outPath: string | null): void {
  * @param argv 参数数组
  * @returns 退出码
  */
-export async function main(argv: readonly string[]): Promise<number> {
+async function main(argv: readonly string[]): Promise<number> {
   const options = parseEvalCliArgs(argv);
-  const reportDir = options.out && options.out !== '-' ? resolve(options.out).replace(/[\\/][^\\/]*$/, '') : DEFAULT_REPORT_DIR;
+  const reportDir = options.out && options.out !== '-' ? path.resolve(options.out).replace(/[\\/][^\\/]*$/, '') : DEFAULT_REPORT_DIR;
   const previous = loadPreviousReport(reportDir, options.dataset);
 
   const result = await runEvaluationPipeline(
@@ -183,7 +190,7 @@ export async function main(argv: readonly string[]): Promise<number> {
     },
     {
       loadDataset: (root, version) => {
-        const file = join(root, version, 'dataset.json');
+        const file = path.join(root, version, 'dataset.json');
         if (!existsSync(file)) {
           throw new Error(`找不到数据集文件: ${file} (可用版本见 ${root})`);
         }
@@ -195,8 +202,8 @@ export async function main(argv: readonly string[]): Promise<number> {
   const report = result.report;
   let outPath: string | null = null;
   if (options.out !== '-') {
-    const target = options.out ? resolve(options.out) : join(reportDir, `${report.reportId}.json`);
-    mkdirSync(resolve(target).replace(/[\\/][^\\/]*$/, ''), { recursive: true });
+    const target = options.out ? path.resolve(options.out) : path.join(reportDir, `${report.reportId}.json`);
+    mkdirSync(path.resolve(target).replace(/[\\/][^\\/]*$/, ''), { recursive: true });
     writeFileSync(target, JSON.stringify(report, null, 2) + '\n', 'utf8');
     outPath = target;
   }

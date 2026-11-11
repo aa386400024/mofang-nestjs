@@ -18,19 +18,13 @@
 //   npx tsx scripts/ops/quality/visitor-quality-audit.ts --anchor 30
 
 import 'dotenv/config';
+import mysql from 'mysql2/promise';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import mysql from 'mysql2/promise';
-
 // WP-J P1d · #4: 词表与打标逻辑抽到纯模块 —— 脚本末尾是 `await main()`, 直接 import 会跑整场审计,
 //   单测没法 import 本文件. 口径与实现仍然同源 (脚本用的就是这套词表).
-import {
-  anxiousDimensionsOf,
-  labelOf,
-  type AnxiousChannelHits,
-  type BehaviorLabel,
-} from './visitor-quality-lexicon.js';
+import { anxiousDimensionsOf, labelOf, type AnxiousChannelHits, type BehaviorLabel } from './visitor-quality-lexicon.js';
 
 /** 逐字稿消息. */
 interface TranscriptMessage {
@@ -140,10 +134,10 @@ interface SessionAudit {
 const FILLERS: readonly string[] = ['嗯', '呃', '那个', '然后', '其实', '就是'];
 
 /** 探索类策略 (内核口径). */
-const EXPLORATION_STRATEGIES: readonly string[] = ['affective_exploration', 'cognitive_exploration'];
+const EXPLORATION_STRATEGIES: ReadonlySet<string> = new Set(['affective_exploration', 'cognitive_exploration']);
 
 /** 表层策略 (停在这里 = 深度不动). */
-const SURFACE_STRATEGIES: readonly string[] = ['recounting', 'resistance', 'simple_response'];
+const SURFACE_STRATEGIES: ReadonlySet<string> = new Set(['recounting', 'resistance', 'simple_response']);
 
 /** 危机档位 (与 practice-runner 的 CRISIS_LEVEL_BY_CATEGORY 同口径, 只取本脚本需要的). */
 const CRISIS_LEVEL: Readonly<Record<string, number>> = {
@@ -212,7 +206,7 @@ async function loadAttachmentStyles(): Promise<Map<string, AttachmentStyle>> {
       database: process.env['DB_NAME'],
     });
     const [rows] = await conn.execute('SELECT template_id, attachment_style FROM character_profiles');
-    for (const row of rows as Array<{ template_id: string; attachment_style: string }>) {
+    for (const row of rows as { template_id: string; attachment_style: string }[]) {
       out.set(row.template_id, row.attachment_style as AttachmentStyle);
     }
   } catch (error) {
@@ -246,10 +240,8 @@ async function loadDegradedTurns(): Promise<Map<string, number>> {
       password: process.env['DB_PASSWORD'],
       database: process.env['DB_NAME'],
     });
-    const [rows] = await conn.execute(
-      "SELECT debug_session_id, degraded_turns FROM ap_practice_sessions WHERE debug_session_id <> ''",
-    );
-    for (const row of rows as Array<{ debug_session_id: string; degraded_turns: number | string }>) {
+    const [rows] = await conn.execute("SELECT debug_session_id, degraded_turns FROM ap_practice_sessions WHERE debug_session_id <> ''");
+    for (const row of rows as { debug_session_id: string; degraded_turns: number | string }[]) {
       const value = Number(row.degraded_turns);
       out.set(row.debug_session_id, Number.isFinite(value) ? value : 0);
     }
@@ -319,27 +311,29 @@ function dominantLabelOf(counts: Record<BehaviorLabel, number>): BehaviorLabel {
 }
 
 /**
- * 审一场.
+ * 内核 trace 侧的派生量 (策略分布 / 降级轮数 / 危机统计).
  *
- * @param debugSessionId 逐字稿 id
- * @param doc 逐字稿内容
- * @param style 依恋风格
- * @param dbDegradedTurns DB 里的 degraded_turns (WP-J P1d · #5); 缺省 = 回退逐字稿自数
- * @returns 审计结果 (无可审轮次 → null)
+ * 为什么要拆出来: 这些量**只跟 traces 有关**, 与台词无关 ——
+ *   拆开后 `auditSession` 只剩"取数 → 汇总"两层, 复杂度从 49 降到个位数.
  */
-function auditSession(
-  debugSessionId: string,
-  doc: TranscriptFile,
-  style: AttachmentStyle,
-  dbDegradedTurns?: number,
-): SessionAudit | null {
-  const messages = doc.messages ?? [];
-  const traces = doc.traces ?? [];
-  const visits = messages.filter((m) => m.role === 'visitor');
-  if (visits.length === 0) return null;
+interface TraceDerived {
+  /** 轮次 → 内核策略. */
+  readonly strategyByTurn: Map<number, string>;
+  /** 逐字稿自数的降级轮数 (只有访客侧) —— 仅在 DB 没这场时兜底用. */
+  readonly traceDegradedTurns: number;
+  readonly crisisTurns: number;
+  readonly crisisFirstTurn: number | null;
+  readonly crisisPeakLevel: number;
+}
 
+/**
+ * 汇总逐字稿 traces 里的内核侧信号.
+ *
+ * @param traces 逐字稿 traces
+ * @returns 策略表 / 降级轮数 / 危机统计
+ */
+function deriveTraceSignals(traces: readonly TranscriptTrace[]): TraceDerived {
   const strategyByTurn = new Map<number, string>();
-  // WP-J P1d · #5: 逐字稿自数的降级轮数 (只有访客侧) —— 仅在 DB 没这场时兜底用.
   let traceDegradedTurns = 0;
   let crisisTurns = 0;
   let crisisFirstTurn: number | null = null;
@@ -355,23 +349,31 @@ function auditSession(
       crisisPeakLevel = Math.max(crisisPeakLevel, CRISIS_LEVEL[trace.crisis.category ?? ''] ?? 1);
     }
   }
+  return { strategyByTurn, traceDegradedTurns, crisisTurns, crisisFirstTurn, crisisPeakLevel };
+}
 
-  const strategies: string[] = [];
-  for (let i = 1; i <= visits.length; i += 1) {
-    strategies.push(strategyByTurn.get(i) ?? 'unknown');
-  }
-  const strategyCounts: Record<string, number> = {};
-  for (const s of strategies) strategyCounts[s] = (strategyCounts[s] ?? 0) + 1;
+/**
+ * 台词侧派生量 (行为标签 / 填充词 / anxious 三维度 / 并集覆盖).
+ */
+interface TextDerived {
+  readonly labelCounts: Record<BehaviorLabel, number>;
+  /** 能打上非中性标签的轮数 (词表覆盖率分子). */
+  readonly labeledTurns: number;
+  readonly fillerHits: number;
+  readonly anxiousChannel: AnxiousChannelHits;
+  readonly anxiousChannelTurns: number;
+  readonly coveredTurns: number;
+}
 
-  const firstExplorationTurn = strategies.findIndex((s) => EXPLORATION_STRATEGIES.includes(s));
-  const tail = strategies.slice(-3);
-  const tailStuck = tail.length > 0 && tail.every((s) => SURFACE_STRATEGIES.includes(s));
-  // 前 2 轮就进入**情感**探索 = 提前泄露 (叙事节奏应有铺垫).
-  const earlyDisclosure = strategies.slice(0, 2).includes('affective_exploration');
-
+/**
+ * 汇总台词侧的文本层信号.
+ *
+ * @param texts 本场访客台词
+ * @returns 标签分布 / 填充词 / anxious 三维度 / 并集覆盖
+ */
+function deriveTextSignals(texts: readonly string[]): TextDerived {
   const labelCounts: Record<BehaviorLabel, number> = { approach: 0, avoid: 0, attack: 0, appease: 0, neutral: 0 };
   let fillerHits = 0;
-  const texts = visits.map((m) => String(m.text ?? ''));
   // WP-J P1d · #4: anxious 三维度命中 (文本层) + 并集覆盖率.
   const anxiousChannel = { seekReassure: 0, appease: 0, abandonment: 0 };
   let anxiousChannelTurns = 0;
@@ -391,7 +393,28 @@ function auditSession(
     if (label !== 'neutral' || channelHit) coveredTurns += 1;
     for (const filler of FILLERS) fillerHits += text.split(filler).length - 1;
   }
+  const labeledTurns = (['approach', 'avoid', 'attack', 'appease'] as BehaviorLabel[]).reduce((sum, label) => sum + labelCounts[label], 0);
+  return { labelCounts, labeledTurns, fillerHits, anxiousChannel, anxiousChannelTurns, coveredTurns };
+}
 
+/**
+ * 重复率派生量 (唯一句 / 3-gram / 首句模板 / 填充词密度).
+ */
+interface RepeatDerived {
+  readonly repeatRate: number;
+  readonly trigramRepeatRate: number;
+  readonly headTemplateRate: number;
+  readonly fillerPerTurn: number;
+}
+
+/**
+ * 汇总本场的重复度指标.
+ *
+ * @param texts 本场访客台词
+ * @param fillerHits 填充词命中总数 (整场)
+ * @returns 四个重复率
+ */
+function deriveRepeatRates(texts: readonly string[], fillerHits: number): RepeatDerived {
   const uniqueTexts = new Set(texts.map((t) => normalize(t))).size;
   const repeatRate = 1 - uniqueTexts / texts.length;
 
@@ -410,11 +433,78 @@ function auditSession(
   }
   const trigramRepeatRate = pairCount > 0 ? pairSum / pairCount : 0;
 
-  const snapshot = doc.kernelState?.snapshot;
-  const labeledTurns = (['approach', 'avoid', 'attack', 'appease'] as BehaviorLabel[]).reduce(
-    (sum, label) => sum + labelCounts[label],
-    0,
-  );
+  return {
+    repeatRate,
+    trigramRepeatRate,
+    headTemplateRate: texts.length > 0 ? 1 - heads.size / texts.length : 0,
+    fillerPerTurn: texts.length > 0 ? fillerHits / texts.length : 0,
+  };
+}
+
+/**
+ * 终局内核状态 (逐字稿只有末轮快照).
+ */
+interface KernelEndState {
+  readonly endTrust: number;
+  readonly endSafety: number;
+  readonly endBond: number;
+  readonly resistanceDepth: number;
+  readonly resistanceVerbal: number;
+}
+
+/**
+ * 读终局内核状态 (缺字段一律补 0).
+ *
+ * 为什么单独抽出来: 这 5 个字段全是 `?? 0` / `?.` 兜底, 全部堆在 `auditSession`
+ *   里会让它的复杂度虚高 —— 拆开后 auditSession 只剩"取数 → 汇总"两层.
+ *
+ * @param kernelState 逐字稿里的内核状态
+ * @returns 终局内核状态 (缺字段补 0)
+ */
+function readKernelEndState(kernelState: TranscriptFile['kernelState']): KernelEndState {
+  const snapshot = kernelState?.snapshot;
+  return {
+    endTrust: snapshot?.trust ?? 0,
+    endSafety: snapshot?.safety ?? 0,
+    endBond: snapshot?.bond ?? 0,
+    resistanceDepth: snapshot?.resistance?.depth ?? 0,
+    resistanceVerbal: snapshot?.resistance?.verbal ?? 0,
+  };
+}
+
+/**
+ * 审一场.
+ *
+ * @param debugSessionId 逐字稿 id
+ * @param doc 逐字稿内容
+ * @param style 依恋风格
+ * @param dbDegradedTurns DB 里的 degraded_turns (WP-J P1d · #5); 缺省 = 回退逐字稿自数
+ * @returns 审计结果 (无可审轮次 → null)
+ */
+function auditSession(debugSessionId: string, doc: TranscriptFile, style: AttachmentStyle, dbDegradedTurns?: number): SessionAudit | null {
+  const messages = doc.messages ?? [];
+  const visits = messages.filter((m) => m.role === 'visitor');
+  if (visits.length === 0) return null;
+
+  const traceSignals = deriveTraceSignals(doc.traces ?? []);
+  const strategies: string[] = [];
+  for (let i = 1; i <= visits.length; i += 1) {
+    strategies.push(traceSignals.strategyByTurn.get(i) ?? 'unknown');
+  }
+  const strategyCounts: Record<string, number> = {};
+  for (const s of strategies) strategyCounts[s] = (strategyCounts[s] ?? 0) + 1;
+
+  const firstExplorationTurn = strategies.findIndex((s) => EXPLORATION_STRATEGIES.has(s));
+  const tail = strategies.slice(-3);
+  const tailStuck = tail.length > 0 && tail.every((s) => SURFACE_STRATEGIES.has(s));
+  // 前 2 轮就进入**情感**探索 = 提前泄露 (叙事节奏应有铺垫).
+  const earlyDisclosure = strategies.slice(0, 2).includes('affective_exploration');
+
+  const texts = visits.map((m) => String(m.text ?? ''));
+  const textSignals = deriveTextSignals(texts);
+  const repeatRates = deriveRepeatRates(texts, textSignals.fillerHits);
+
+  const endState = readKernelEndState(doc.kernelState);
 
   return {
     debugSessionId,
@@ -422,31 +512,31 @@ function auditSession(
     attachmentStyle: style,
     turns: visits.length,
     // WP-J P1d · #5: 降级轮数以 **DB (runner 落库)** 为准; DB 没这场才回退逐字稿自数.
-    degradedTurns: dbDegradedTurns !== undefined ? dbDegradedTurns : traceDegradedTurns,
+    degradedTurns: dbDegradedTurns === undefined ? traceSignals.traceDegradedTurns : dbDegradedTurns,
     degradedFromDb: dbDegradedTurns !== undefined,
     strategyCounts,
-    firstExplorationTurn: firstExplorationTurn >= 0 ? firstExplorationTurn + 1 : null,
+    firstExplorationTurn: firstExplorationTurn === -1 ? null : firstExplorationTurn + 1,
     tailStuck,
     earlyDisclosure,
-    labelCounts,
-    labeledTurns,
-    dominantLabel: dominantLabelOf(labelCounts),
-    endTrust: snapshot?.trust ?? 0,
-    endSafety: snapshot?.safety ?? 0,
-    endBond: snapshot?.bond ?? 0,
-    resistanceDepth: snapshot?.resistance?.depth ?? 0,
-    resistanceVerbal: snapshot?.resistance?.verbal ?? 0,
-    repeatRate,
-    trigramRepeatRate,
-    headTemplateRate: texts.length > 0 ? 1 - heads.size / texts.length : 0,
-    fillerPerTurn: texts.length > 0 ? fillerHits / texts.length : 0,
-    crisisTurns,
-    crisisFirstTurn,
-    crisisPeakLevel,
+    labelCounts: textSignals.labelCounts,
+    labeledTurns: textSignals.labeledTurns,
+    dominantLabel: dominantLabelOf(textSignals.labelCounts),
+    endTrust: endState.endTrust,
+    endSafety: endState.endSafety,
+    endBond: endState.endBond,
+    resistanceDepth: endState.resistanceDepth,
+    resistanceVerbal: endState.resistanceVerbal,
+    repeatRate: repeatRates.repeatRate,
+    trigramRepeatRate: repeatRates.trigramRepeatRate,
+    headTemplateRate: repeatRates.headTemplateRate,
+    fillerPerTurn: repeatRates.fillerPerTurn,
+    crisisTurns: traceSignals.crisisTurns,
+    crisisFirstTurn: traceSignals.crisisFirstTurn,
+    crisisPeakLevel: traceSignals.crisisPeakLevel,
     // WP-J P1d · #4: anxious 三维度 + 并集覆盖率.
-    anxiousChannel,
-    anxiousChannelTurns,
-    coveredTurns,
+    anxiousChannel: textSignals.anxiousChannel,
+    anxiousChannelTurns: textSignals.anxiousChannelTurns,
+    coveredTurns: textSignals.coveredTurns,
   };
 }
 
@@ -455,22 +545,31 @@ function pct(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
-async function main(): Promise<void> {
-  const argv = process.argv.slice(2);
-  const dirIndex = argv.indexOf('--dir');
-  const dir = dirIndex >= 0 ? argv[dirIndex + 1] : 'data/debug-sessions';
-  const anchorIndex = argv.indexOf('--anchor');
+/**
+ * 一轮审计的产物 + 降级口径来源计数.
+ */
+interface AuditRun {
+  /** 全部可审场次 (含降级场). */
+  readonly audits: SessionAudit[];
+  /** 降级轮数取自 DB 的场次. */
+  readonly degradedFromDbCount: number;
+  /** 降级轮数回退逐字稿自数的场次. */
+  readonly degradedFallbackCount: number;
+}
 
-  if (!fs.existsSync(dir)) {
-    console.error(`目录不存在: ${dir}`);
-    process.exitCode = 1;
-    return;
-  }
-
-  const styles = await loadAttachmentStyles();
-  // WP-J P1d · #5: 降级口径以 DB (runner 落库) 为准.
-  const degradedMap = await loadDegradedTurns();
-  const transcripts = loadTranscripts(dir);
+/**
+ * 逐场审计 + 统计降级口径来源.
+ *
+ * @param transcripts 逐字稿 (id → 内容)
+ * @param styles 角色 slug → 依恋风格
+ * @param degradedMap 场次 id → DB 里的 degraded_turns
+ * @returns 审计结果 + 口径来源计数
+ */
+function auditAll(
+  transcripts: Map<string, TranscriptFile>,
+  styles: Map<string, AttachmentStyle>,
+  degradedMap: Map<string, number>,
+): AuditRun {
   const audits: SessionAudit[] = [];
   let degradedFromDbCount = 0;
   let degradedFallbackCount = 0;
@@ -478,23 +577,34 @@ async function main(): Promise<void> {
     const slug = doc.characterSlug ?? '';
     const style = styles.get(slug) ?? attachmentFromSlug(slug);
     const dbDegraded = degradedMap.get(id);
-    if (dbDegraded !== undefined) degradedFromDbCount += 1;
-    else degradedFallbackCount += 1;
+    if (dbDegraded === undefined) {
+      degradedFallbackCount += 1;
+    } else {
+      degradedFromDbCount += 1;
+    }
     const audit = auditSession(id, doc, style, dbDegraded);
     if (audit) audits.push(audit);
   }
+  return { audits, degradedFromDbCount, degradedFallbackCount };
+}
 
-  console.log('\n=== 来访者质量评测 v1 ===');
-  console.log(`目录 ${dir}`);
-  console.log(`逐字稿 ${transcripts.size} 份 / 可审 ${audits.length} 场`);
+/** 按角色分组 (D2 / D3 共用). */
+function groupByCharacter(valid: readonly SessionAudit[]): Map<string, SessionAudit[]> {
+  const byCharacter = new Map<string, SessionAudit[]>();
+  for (const a of valid) {
+    const list = byCharacter.get(a.characterSlug) ?? [];
+    list.push(a);
+    byCharacter.set(a.characterSlug, list);
+  }
+  return byCharacter;
+}
 
-  // ── 数据有效性门禁: 渲染降级的场次不能进质量统计 ─────────────────────────
-  const valid = audits.filter((a) => a.degradedTurns === 0);
-  console.log(`有效场次(无渲染降级) ${valid.length} / 降级场次 ${audits.length - valid.length}`);
-  // WP-J P1d · #5: 口径来源透明化 —— DB 有几场 / 回退逐字稿自数几场.
-  console.log(`  降级口径: DB(runner 落库) ${degradedFromDbCount} 场 / 回退逐字稿自数 ${degradedFallbackCount} 场  (口径来源不同, 数字不可混用)`);
-
-  // ── D1 深度推进 ─────────────────────────────────────────────────────────
+/**
+ * D1 · 披露轨迹 / 深度推进.
+ *
+ * @param valid 有效场次 (无渲染降级)
+ */
+function reportD1(valid: readonly SessionAudit[]): void {
   const explored = valid.filter((a) => a.firstExplorationTurn !== null);
   const firstTurns = explored.map((a) => a.firstExplorationTurn as number);
   const tailStuckCount = valid.filter((a) => a.tailStuck).length;
@@ -507,20 +617,21 @@ async function main(): Promise<void> {
   console.log(`  末 3 轮仍停在表层的场次 ${tailStuckCount}/${valid.length}  ${pct(valid.length ? tailStuckCount / valid.length : 0)}`);
   console.log(`  前 2 轮即情感探索(提前泄露) ${valid.filter((a) => a.earlyDisclosure).length} 场`);
   console.log('  内核策略占比:');
-  for (const [s, c] of Object.entries(strategyTotals).sort((x, y) => y[1] - x[1])) {
+  for (const [s, c] of Object.entries(strategyTotals).toSorted((x, y) => y[1] - x[1])) {
     console.log(`    ${s.padEnd(22)} ${String(c).padStart(4)}  ${pct(strategyTurnTotal ? c / strategyTurnTotal : 0)}`);
   }
+}
 
-  // ── D2 依恋一致性 ────────────────────────────────────────────────────────
+/**
+ * D2 · 依恋一致性 (内核侧 + 文本侧两条独立证据).
+ *
+ * @param valid 有效场次 (无渲染降级)
+ * @param byCharacter 按角色分组
+ */
+function reportD2(valid: readonly SessionAudit[], byCharacter: Map<string, SessionAudit[]>): void {
   console.log('\n[D2] 依恋一致性 (角色没有"演成另一种人", 有两条独立证据)');
   console.log('  (a) 内核侧: 各角色的阻抗 / 探索 / 终局信任, 风格之间应该拉得开');
-  const byCharacter = new Map<string, SessionAudit[]>();
-  for (const a of valid) {
-    const list = byCharacter.get(a.characterSlug) ?? [];
-    list.push(a);
-    byCharacter.set(a.characterSlug, list);
-  }
-  for (const [slug, list] of [...byCharacter].sort((x, y) => y[1].length - x[1].length)) {
+  for (const [slug, list] of [...byCharacter].toSorted((x, y) => y[1].length - x[1].length)) {
     const style = list[0].attachmentStyle;
     const turns = list.reduce((sum, a) => sum + a.turns, 0);
     const resistance = list.reduce((sum, a) => sum + (a.strategyCounts['resistance'] ?? 0), 0);
@@ -545,7 +656,9 @@ async function main(): Promise<void> {
       const expected = EXPECTED_LABEL[list[0].attachmentStyle];
       matchSessions += list.filter((a) => a.dominantLabel === expected).length;
     }
-    console.log(`      主导标签命中率 ${matchSessions}/${valid.length}  ${pct(valid.length ? matchSessions / valid.length : 0)}  (门禁 ≥70%)`);
+    console.log(
+      `      主导标签命中率 ${matchSessions}/${valid.length}  ${pct(valid.length ? matchSessions / valid.length : 0)}  (门禁 ≥70%)`,
+    );
   } else {
     console.log('      → 覆盖率不足 30%, 命中率**不计算**(算出来也是噪声), 需先扩词表或改用内核信号定判据');
   }
@@ -553,80 +666,153 @@ async function main(): Promise<void> {
   // (c) WP-J P1d · #4: anxious 行为通道三维度 (文本层) —— 内核侧看不见的那部分.
   //   为什么单列: 焦虑型的"求证/讨好/怕被抛弃"在内核指标上完全可能仍是 阻抗 0% / 探索 0%,
   //   所以"anxious 通道生效没有"这个问题, 只能靠文本层指标回答.
-  const coveredRate =
-    valid.length > 0
-      ? valid.reduce((s, a) => s + a.coveredTurns, 0) / valid.reduce((s, a) => s + a.turns, 0)
-      : 0;
+  const coveredRate = valid.length > 0 ? valid.reduce((s, a) => s + a.coveredTurns, 0) / valid.reduce((s, a) => s + a.turns, 0) : 0;
   console.log('  (c) anxious 行为通道三维度 (文本层: 求证 / 讨好 / 怕被抛弃)');
   console.log(`      四行为标签 + 三维度 并集覆盖率 ${pct(coveredRate)}  (目标 ≥15%)`);
-  const printAnxiousGroup = (label: string, list: SessionAudit[]): void => {
-    const turns = list.reduce((s, a) => s + a.turns, 0);
-    const seek = list.reduce((s, a) => s + a.anxiousChannel.seekReassure, 0);
-    const appease = list.reduce((s, a) => s + a.anxiousChannel.appease, 0);
-    const abandon = list.reduce((s, a) => s + a.anxiousChannel.abandonment, 0);
-    const hitTurns = list.reduce((s, a) => s + a.anxiousChannelTurns, 0);
-    const withHit = list.filter((a) => a.anxiousChannelTurns > 0).length;
-    console.log(
-      `      ${label.padEnd(14)} 场次 ${String(list.length).padStart(2)}  轮数 ${String(turns).padStart(4)}` +
-        `  求证 ${pct(turns ? seek / turns : 0)}  讨好 ${pct(turns ? appease / turns : 0)}` +
-        `  怕被抛弃 ${pct(turns ? abandon / turns : 0)}` +
-        `  任一命中轮占比 ${pct(turns ? hitTurns / turns : 0)}  有命中的场次 ${withHit}/${list.length}`,
-    );
-  };
-  printAnxiousGroup('anxious 角色', valid.filter((a) => a.attachmentStyle === 'anxious'));
-  printAnxiousGroup('其余角色', valid.filter((a) => a.attachmentStyle !== 'anxious'));
+  printAnxiousGroup(
+    'anxious 角色',
+    valid.filter((a) => a.attachmentStyle === 'anxious'),
+  );
+  printAnxiousGroup(
+    '其余角色',
+    valid.filter((a) => a.attachmentStyle !== 'anxious'),
+  );
+}
 
-  // ── D3 角色可分辨度 (先报随机基线, 且必须是真留一法) ──────────────────────
+/**
+ * 打印一组角色的 anxious 三维度命中情况.
+ *
+ * @param label 组名 (人看的)
+ * @param list 该组的场次
+ */
+function printAnxiousGroup(label: string, list: readonly SessionAudit[]): void {
+  const turns = list.reduce((s, a) => s + a.turns, 0);
+  const seek = list.reduce((s, a) => s + a.anxiousChannel.seekReassure, 0);
+  const appease = list.reduce((s, a) => s + a.anxiousChannel.appease, 0);
+  const abandon = list.reduce((s, a) => s + a.anxiousChannel.abandonment, 0);
+  const hitTurns = list.reduce((s, a) => s + a.anxiousChannelTurns, 0);
+  const withHit = list.filter((a) => a.anxiousChannelTurns > 0).length;
+  console.log(
+    `      ${label.padEnd(14)} 场次 ${String(list.length).padStart(2)}  轮数 ${String(turns).padStart(4)}` +
+      `  求证 ${pct(turns ? seek / turns : 0)}  讨好 ${pct(turns ? appease / turns : 0)}` +
+      `  怕被抛弃 ${pct(turns ? abandon / turns : 0)}` +
+      `  任一命中轮占比 ${pct(turns ? hitTurns / turns : 0)}  有命中的场次 ${withHit}/${list.length}`,
+  );
+}
+
+/**
+ * 每场的 3-gram 集合 (D3 留一法用).
+ *
+ * @param valid 有效场次
+ * @param transcripts 逐字稿 (id → 内容)
+ * @returns 场次 id → 3-gram 集合
+ */
+function buildOwnGrams(valid: readonly SessionAudit[], transcripts: Map<string, TranscriptFile>): Map<string, Set<string>> {
+  const ownGrams = new Map<string, Set<string>>();
+  for (const a of valid) {
+    const doc = transcripts.get(a.debugSessionId);
+    const set = new Set<string>();
+    for (const m of doc?.messages ?? []) {
+      if (m.role === 'visitor') for (const gram of gramSet(String(m.text ?? ''), 3)) set.add(gram);
+    }
+    ownGrams.set(a.debugSessionId, set);
+  }
+  return ownGrams;
+}
+
+/**
+ * 留一法质心: 某候选角色的 gram 并集, **排除**被测场.
+ *
+ * 不排除自身样本的话, 质心必然包含被测场, Jaccard 偏高, 结果虚高到 100%.
+ *
+ * @param candidateList 候选角色的场次
+ * @param ownGrams 场次 id → 3-gram 集合
+ * @param excludeId 被测场 id (留一)
+ * @returns 质心 gram 集合
+ */
+function centroidExcluding(candidateList: readonly SessionAudit[], ownGrams: Map<string, Set<string>>, excludeId: string): Set<string> {
+  const centroid = new Set<string>();
+  for (const other of candidateList) {
+    if (other.debugSessionId === excludeId) continue; // ← 留一
+    for (const gram of ownGrams.get(other.debugSessionId) ?? []) centroid.add(gram);
+  }
+  return centroid;
+}
+
+/**
+ * 留一法最近质心分类: 判一场最像哪个角色.
+ *
+ * @param byCharacter 按角色分组
+ * @param ownGrams 场次 id → 3-gram 集合
+ * @param target 被测场
+ * @returns 命中的角色 slug
+ */
+function nearestCentroid(byCharacter: Map<string, SessionAudit[]>, ownGrams: Map<string, Set<string>>, target: SessionAudit): string {
+  let bestSlug = '';
+  let bestScore = -1;
+  for (const [candidate, candidateList] of byCharacter) {
+    const centroid = centroidExcluding(candidateList, ownGrams, target.debugSessionId);
+    const score = jaccard(ownGrams.get(target.debugSessionId) ?? new Set(), centroid);
+    if (score > bestScore) {
+      bestScore = score;
+      bestSlug = candidate;
+    }
+  }
+  return bestSlug;
+}
+
+/**
+ * D3 · 角色可分辨度 (先报随机基线, 且必须是真留一法).
+ *
+ * @param valid 有效场次 (无渲染降级)
+ * @param byCharacter 按角色分组
+ * @param transcripts 逐字稿 (id → 内容)
+ */
+function reportD3(
+  valid: readonly SessionAudit[],
+  byCharacter: Map<string, SessionAudit[]>,
+  transcripts: Map<string, TranscriptFile>,
+): void {
   console.log('\n[D3] 角色可分辨度 (文本 3-gram 最近质心分类)');
   const characterCount = byCharacter.size;
   console.log(`  参与角色 ${characterCount} 个 → 随机基线 ${pct(characterCount ? 1 / characterCount : 0)}`);
-  if (characterCount >= 2) {
-    // 每场先算自己的 3-gram 集合, 再给每个角色算"去掉该场之后"的质心 —— 真留一法.
-    //   不排除自身样本的话, 质心必然包含被测场, Jaccard 偏高, 结果虚高到 100%.
-    const ownGrams = new Map<string, Set<string>>();
-    for (const a of valid) {
-      const doc = transcripts.get(a.debugSessionId);
-      const set = new Set<string>();
-      for (const m of doc?.messages ?? []) {
-        if (m.role === 'visitor') for (const gram of gramSet(String(m.text ?? ''), 3)) set.add(gram);
-      }
-      ownGrams.set(a.debugSessionId, set);
-    }
-    let correct = 0;
-    let total = 0;
-    for (const [slug, list] of byCharacter) {
-      for (const a of list) {
-        let bestSlug = '';
-        let bestScore = -1;
-        for (const [candidate, candidateList] of byCharacter) {
-          const centroid = new Set<string>();
-          for (const other of candidateList) {
-            if (other.debugSessionId === a.debugSessionId) continue; // ← 留一
-            for (const gram of ownGrams.get(other.debugSessionId) ?? []) centroid.add(gram);
-          }
-          const score = jaccard(ownGrams.get(a.debugSessionId) ?? new Set(), centroid);
-          if (score > bestScore) {
-            bestScore = score;
-            bestSlug = candidate;
-          }
-        }
-        if (bestSlug === slug) correct += 1;
-        total += 1;
-      }
-    }
-    console.log(`  分类命中 ${correct}/${total}  ${pct(total ? correct / total : 0)}  (随机基线 ${pct(characterCount ? 1 / characterCount : 0)})`);
-  }
+  if (characterCount < 2) return;
 
-  // ── D4 口癖与句式重复 ────────────────────────────────────────────────────
+  const ownGrams = buildOwnGrams(valid, transcripts);
+  let correct = 0;
+  let total = 0;
+  for (const [slug, list] of byCharacter) {
+    for (const a of list) {
+      if (nearestCentroid(byCharacter, ownGrams, a) === slug) correct += 1;
+      total += 1;
+    }
+  }
+  console.log(
+    `  分类命中 ${correct}/${total}  ${pct(total ? correct / total : 0)}  (随机基线 ${pct(characterCount ? 1 / characterCount : 0)})`,
+  );
+}
+
+/**
+ * D4 · 口癖与句式重复.
+ *
+ * @param valid 有效场次 (无渲染降级)
+ */
+function reportD4(valid: readonly SessionAudit[]): void {
   console.log('\n[D4] 口癖与句式重复');
   console.log(`  台词重复率 (与全场均值)    ${pct(mean(valid.map((a) => a.repeatRate)))}`);
   console.log(`  句间 3-gram 相似 均值     ${pct(mean(valid.map((a) => a.trigramRepeatRate)))}   (门禁 <15%)`);
   console.log(`  首句模板率 均值           ${pct(mean(valid.map((a) => a.headTemplateRate)))}`);
   console.log(`  填充词/轮 均值            ${mean(valid.map((a) => a.fillerPerTurn)).toFixed(2)}`);
-  const worst = [...valid].sort((x, y) => y.trigramRepeatRate - x.trigramRepeatRate).slice(0, 3);
+  const worst = [...valid].toSorted((x, y) => y.trigramRepeatRate - x.trigramRepeatRate).slice(0, 3);
   for (const a of worst) console.log(`    最像自己的 3 场: ${a.debugSessionId} ${pct(a.trigramRepeatRate)}`);
+}
 
-  // ── D5 危机表达分布 ──────────────────────────────────────────────────────
+/**
+ * D5 · 危机表达分布.
+ *
+ * @param valid 有效场次 (无渲染降级)
+ */
+function reportD5(valid: readonly SessionAudit[]): void {
   const crisisSessions = valid.filter((a) => a.crisisTurns > 0);
   console.log('\n[D5] 危机表达分布');
   console.log(`  出现危机的场次 ${crisisSessions.length}/${valid.length}  ${pct(valid.length ? crisisSessions.length / valid.length : 0)}`);
@@ -635,22 +821,71 @@ async function main(): Promise<void> {
     console.log(`  最高档位 ${crisisSessions.map((a) => a.crisisPeakLevel).join(', ')}`);
     console.log(`  单次披露(只 1 轮就没了) ${crisisSessions.filter((a) => a.crisisTurns === 1).length}/${crisisSessions.length}`);
   }
+}
+
+/**
+ * D6 · 导出人工锚标注清单 (只含 id 与维度, 不含任何台词).
+ *
+ * @param valid 有效场次 (无渲染降级)
+ * @param size 抽样条数
+ */
+function exportAnchor(valid: readonly SessionAudit[], size: number): void {
+  const outDir = path.resolve('data/quality');
+  fs.mkdirSync(outDir, { recursive: true });
+  const sample = [...valid].toSorted((x, y) => y.turns - x.turns).slice(0, size);
+  const csv = ['debug_session_id,character_slug,attachment_style,turns,first_exploration_turn,dominant_label,crisis_peak_level'];
+  for (const a of sample) {
+    csv.push(
+      `${a.debugSessionId},${a.characterSlug},${a.attachmentStyle},${a.turns},${a.firstExplorationTurn ?? ''},${a.dominantLabel},${a.crisisPeakLevel}`,
+    );
+  }
+  const file = path.join(outDir, `anchor-sample-${sample.length}.csv`);
+  fs.writeFileSync(file, `${csv.join('\n')}\n`, 'utf8');
+  console.log(`\n[D6] 人工锚标注清单已导出: ${file}（只含 id 与维度, 台词请按 id 到逐字稿目录自行调阅）`);
+}
+
+async function main(): Promise<void> {
+  const argv = process.argv.slice(2);
+  const dirIndex = argv.indexOf('--dir');
+  const dir = dirIndex === -1 ? 'data/debug-sessions' : argv[dirIndex + 1];
+  const anchorIndex = argv.indexOf('--anchor');
+
+  if (!fs.existsSync(dir)) {
+    console.error(`目录不存在: ${dir}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const styles = await loadAttachmentStyles();
+  // WP-J P1d · #5: 降级口径以 DB (runner 落库) 为准.
+  const degradedMap = await loadDegradedTurns();
+  const transcripts = loadTranscripts(dir);
+  const run = auditAll(transcripts, styles, degradedMap);
+  const audits = run.audits;
+
+  console.log('\n=== 来访者质量评测 v1 ===');
+  console.log(`目录 ${dir}`);
+  console.log(`逐字稿 ${transcripts.size} 份 / 可审 ${audits.length} 场`);
+
+  // ── 数据有效性门禁: 渲染降级的场次不能进质量统计 ─────────────────────────
+  const valid = audits.filter((a) => a.degradedTurns === 0);
+  console.log(`有效场次(无渲染降级) ${valid.length} / 降级场次 ${audits.length - valid.length}`);
+  // WP-J P1d · #5: 口径来源透明化 —— DB 有几场 / 回退逐字稿自数几场.
+  console.log(
+    `  降级口径: DB(runner 落库) ${run.degradedFromDbCount} 场 / 回退逐字稿自数 ${run.degradedFallbackCount} 场  (口径来源不同, 数字不可混用)`,
+  );
+
+  const byCharacter = groupByCharacter(valid);
+
+  reportD1(valid);
+  reportD2(valid, byCharacter);
+  reportD3(valid, byCharacter, transcripts);
+  reportD4(valid);
+  reportD5(valid);
 
   // ── D6 人工锚: 导出标注清单 (不含任何台词) ──────────────────────────────
-  if (anchorIndex >= 0) {
-    const size = Number(argv[anchorIndex + 1] ?? 30);
-    const outDir = path.resolve('data/quality');
-    fs.mkdirSync(outDir, { recursive: true });
-    const sample = [...valid].sort((x, y) => y.turns - x.turns).slice(0, size);
-    const csv = ['debug_session_id,character_slug,attachment_style,turns,first_exploration_turn,dominant_label,crisis_peak_level'];
-    for (const a of sample) {
-      csv.push(
-        `${a.debugSessionId},${a.characterSlug},${a.attachmentStyle},${a.turns},${a.firstExplorationTurn ?? ''},${a.dominantLabel},${a.crisisPeakLevel}`,
-      );
-    }
-    const file = path.join(outDir, `anchor-sample-${sample.length}.csv`);
-    fs.writeFileSync(file, `${csv.join('\n')}\n`, 'utf8');
-    console.log(`\n[D6] 人工锚标注清单已导出: ${file}（只含 id 与维度, 台词请按 id 到逐字稿目录自行调阅）`);
+  if (anchorIndex !== -1) {
+    exportAnchor(valid, Number(argv[anchorIndex + 1] ?? 30));
   }
   console.log('');
 }
@@ -658,7 +893,7 @@ async function main(): Promise<void> {
 /** 中位数. */
 function median(values: number[]): number | string {
   if (values.length === 0) return 'n/a';
-  const sorted = [...values].sort((a, b) => a - b);
+  const sorted = values.toSorted((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 === 0 ? ((sorted[mid - 1] + sorted[mid]) / 2).toFixed(1) : String(sorted[mid]);
 }

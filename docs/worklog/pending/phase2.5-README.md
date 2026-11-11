@@ -83,11 +83,11 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 
 工具链技术债（husky 旧格式、scripts 存量 lint、commitlint 未装）已单独建档，处理前先读：[**工程工具链技术债清单**](phase2.5-toolchain-tech-debt-2026-11-11.md)。
 
-**治本修复已派单（WP-M）**：[任务单](wp-m-toolchain-tech-debt-fix-2026-11-11.md)。
+**治本修复已派单（WP-M）**：[任务单](../completed/phase2.5/wp-m-toolchain-tech-debt-fix-2026-11-11.md) · [交付记录](../completed/phase2.5/wp-m-toolchain-tech-debt-fix-implementation-2026-11-11.md)。
 
 - **M-1 ✅ 已完成**（2026-11-11，commit `666b0a8`）：删掉 `.husky/commit-msg` 顶部 husky 旧格式两行。`husky - DEPRECATED` 警告消失，且 husky v10 时不会失效（`.husky/_/h` 用 `sh -e` 显式执行，不依赖 shebang）。
 - **M-2 ✅ 已完成**（2026-11-11，commit `fc9285c`）：`.husky/commit-msg` 的裸 `npx --no -- commitlint` 换成纯 shell 正则校验。单次钩子 **13.4 秒 → 0.67 秒**（约 20 倍），且格式校验首次真正生效（不合规消息现在会被 `exit 1` 阻断）。
-- **M-3 / M-4 待执行**：清 `scripts/` 下 5 文件 67 个存量 lint；交代 scripts 不在 tsconfig 的处置。
+- **M-3 / M-4 ✅ 已完成**（2026-11-11，MiniMax Code）：`scripts/` 下 5 文件 67 个存量 lint → **0 error 0 warning**（审计脚本两个超复杂度函数拆分后，输出**逐字节一致**；词表 186 个字符串**零改动**）；M-4 选**维持现状**（不新增 `scripts/tsconfig.json`），交付记录已写明**「已知并接受」**。遗留：`stagnation-calibration.ts` 2 个**既有** `TS2459`（需动 `src/` 导出，超红线未修）。
 
 ### 3.1 必须先知道的转折（2026-11-09 晚）
 

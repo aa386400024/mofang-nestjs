@@ -18,16 +18,11 @@
 //   npx tsx scripts/ops/calibration/stagnation-calibration.ts YiBgpQSxbQh_q663IiVbT gzu9tnrBuXzztNMizliYh
 
 import 'dotenv/config';
+import mysql from 'mysql2/promise';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import mysql from 'mysql2/promise';
-
-import {
-  decideTurn,
-  type CrisisWindowState,
-  type StagnationState,
-} from '../../../src/auto-practice/practice-runner.service.js';
+import { decideTurn, type CrisisWindowState, type StagnationState } from '../../../src/auto-practice/practice-runner.service.js';
 
 /** 逐字稿默认目录. */
 const TRANSCRIPT_DIR = path.resolve('data/debug-sessions');

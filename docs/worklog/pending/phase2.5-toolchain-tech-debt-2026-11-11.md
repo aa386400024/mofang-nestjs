@@ -3,7 +3,8 @@
 > 建立日期：2026-11-11
 > 发现来源：WP-K / WP-L 收尾提交（commit `401a5a2`）时，husky/lint-staged 拦截后排查所得
 > 性质：**工程工具链待办，不阻塞当前已交付代码**；但其中部分项会在将来修改对应文件时阻塞提交，处理前先读本文
-> **派单状态**：治本修复已派 **WP-M**（2026-11-11）→ [任务单](wp-m-toolchain-tech-debt-fix-2026-11-11.md)
+> **派单状态**：治本修复已派 **WP-M**（2026-11-11）→ [任务单](../completed/phase2.5/wp-m-toolchain-tech-debt-fix-2026-11-11.md) · [交付记录](../completed/phase2.5/wp-m-toolchain-tech-debt-fix-implementation-2026-11-11.md)
+> **处理状态**：TD-1 ✅ 已修复（`666b0a8` / `fc9285c`）· TD-2 ✅ 已修复（2026-11-11）· TD-3 ✅ 已关闭（随 TD-1b 一并决策）
 > 本文件是工具链技术债的单一事实源，README 只保留指向这里的链接
 
 ---
@@ -70,6 +71,8 @@ WP-K / WP-L 首次 `git commit` 时被 husky 的 lint-staged 拦截，eslint 报
 
 ### TD-2 · scripts 下 5 个历史文件共 67 个 lint 存量问题（优先级：P2，潜在阻塞）
 
+> **状态：✅ 已修复（2026-11-11，MiniMax Code）** —— 67 → **0 error 0 warning**；详见本节末尾「修复结果」。
+
 - 现象：对 `scripts/**/*.ts` 跑 eslint，5 个 clean 的历史文件共报 67 个问题（65 error + 2 warning）。
 - 涉及文件：
   - `scripts/eval-runner.ts`
@@ -86,7 +89,22 @@ WP-K / WP-L 首次 `git commit` 时被 husky 的 lint-staged 拦截，eslint 报
   pnpm exec eslint "scripts/**/*.ts"
   ```
 
+**修复结果（2026-11-11，MiniMax Code）：**
+
+- **终态**：`pnpm exec eslint "scripts/**/*.ts"` → exit **0**，**0 error 0 warning**（基线为 exit 1 / 65 error + 2 warning = 67）。
+- **做法**：`eslint --fix` 自动吃掉 **50 个**，剩余 **17 个**手工修。
+- **`visitor-quality-audit.ts` 复杂度拆分**：`auditSession`（complexity 49 / cognitive 37）与 `main`（53 / 91）拆成 **13 个纯函数**（`deriveTraceSignals` / `deriveTextSignals` / `deriveRepeatRates` / `readKernelEndState` / `auditAll` / `groupByCharacter` / `reportD1`~`reportD5` / `printAnxiousGroup` / `buildOwnGrams` / `centroidExcluding` / `nearestCentroid` / `exportAnchor`）。
+- **口径零漂移（强证据）**：重构前后各跑一次审计脚本，输出 **SHA256 相同**（`9F7D9923…397CA`）、**0 行差异**。
+- **词表零改动（红线）**：`visitor-quality-lexicon.ts` **186 个字符串字面量逐字未改**（仅换行/缩进），词表单测 `test/quality/p1d-visitor-quality-lexicon.spec.ts` **15/15 绿**。
+- **裸 IP**：`seed-verbal-voice.ts` 的 `117.72.30.78` 改为 `process.env.DB_HOST`（已核对 `.env` 同值），不留裸 IP。
+- **唯一规则豁免**：`scripts/eval-runner.ts` 中 1 行**文件内** `eslint-disable-next-line unicorn/no-exports-in-scripts`（`parseEvalCliArgs` 被 `test/engine-adapters/eval/eval.runner.spec.ts` 消费，不能去 export），**未改全局 eslint 配置**。
+- **回归闸门**：全量 `pnpm test` → **178 files（177 passed / 1 skipped）、2896 tests（2892 passed / 4 skipped）**、exit 0；`pnpm lint` exit 0；`pnpm exec tsc -p tsconfig.build.json --noEmit` exit 0；`git diff --stat HEAD -- src/engine-core` 为空。
+- **遗留**：`stagnation-calibration.ts` 的 **2 个既有** `TS2459`（`CrisisWindowState` / `StagnationState` 未从 `src/auto-practice/practice-runner.service.ts` 导出）——改动前就存在，修它要动 `src/` 业务代码导出，超本单红线，留待单独小任务。
+- **交付记录**：[wp-m-toolchain-tech-debt-fix-implementation-2026-11-11.md](../completed/phase2.5/wp-m-toolchain-tech-debt-fix-implementation-2026-11-11.md)
+
 ### TD-3 · commitlint 是否正式安装（优先级：P3，与 TD-1b 联动）
+
+> **状态：✅ 已关闭（2026-11-11，D 主控，commit `fc9285c`）** —— 决策结论：**不安装 `@commitlint/cli`**，改用**纯 shell 正则校验**（零新增依赖、不引入 commitlint）。TD-1b 已按此路径完成提速与真阻断，TD-3 的「是否安装」决策随之落地，**不再作为独立待办**。若将来确需 commitlint 的完整规则集，再单独立项（届时走 `pnpm add -D` + `commitlint.config.js` + 钩子走 `pnpm exec commitlint`）。
 
 - 现象：提交时只出现 conventional commits 格式提示，不强制；日志写明 `skipping commitlint check — install @commitlint/cli for enforcement`。
 - 与 TD-1b 的关系：TD-1b 的 13.4 秒开销正是「调用了 commitlint 但没装」造成的。**只要按 TD-1b 改成纯 shell 校验，本项前半段（性能损耗）就一并消失**。
