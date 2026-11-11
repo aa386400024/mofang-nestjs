@@ -32,15 +32,16 @@
 
 > **例外批准**：任务单里写明改哪个文件、改什么、为什么必须在内核而不是适配层能解决；改完 `git diff --stat HEAD -- src/engine-core` 与 `boundary.spec.ts` 都要过。
 
-### 1.2 不写前端代码
+### 1.2 前端代码边界（默认隔离，授权可写）
 
-- ❌ 不碰 `admin-dashboard/`（Vue3 SPA，前端另一个 AI 管）；任务单明确授权时只动契约层（共享类型 / API client / 只读展示接线），交互样式归前端流程
-- ❌ 不碰 Flutter 客户端代码
-- `admin-dashboard/**` 不在后端 `tsconfig` 内、不进后端 lint-staged 的 eslint / prettier；后端 AI 不跑前端构建命令（`vue-tsc` / `vite build` 由前端流程执行）。详见 `wp-task-template.md` §2 与 §5.3
+- **默认不碰** `admin-dashboard/`（Vue3 SPA）与 Flutter 客户端代码；未授权任务只做后端。
+- **任务单明确授权前端工作时**，可在 `admin-dashboard/` 内实现与任务单不冲突的代码（共享类型 / API client / 视图 / 组件 / 接线均可）；沿用前端工程既有目录与样式结构，不借机重构无关页面。
+- Flutter 客户端始终不在本仓任务范围（独立仓库）。
+- **命令边界**：`admin-dashboard/**` 不在后端 `tsconfig` 内、不进后端 lint-staged；授权前端任务在 `admin-dashboard/` 目录用其自带 `package.json` 脚本（`pnpm type-check` / `pnpm build-only`）跑闸门；后端 `eslint / tsc / vitest` 仍只管 `src/`。详见 `wp-task-template.md` §2 与 §5.3
 
-### 1.3 不跑前端命令 + 后端命令规范
+### 1.3 不跑 Flutter 命令 + 后端命令规范
 
-- ❌ 不跑 flutter / dart / pub 命令
+- ❌ 不跑 flutter / dart / pub（Flutter 是独立仓库，本仓任务不涉及）
 - 后端 `packageManager=pnpm`，**一律用 pnpm，禁止裸 `npx`**（裸 npx 启动慢、且会绕过 eslint 缓存）：
   - 跑脚本：`pnpm lint` / `pnpm lint:fix` / `pnpm test` / `pnpm test:changed` / `pnpm test:related -- <file>`
   - 跑二进制：`pnpm exec tsc -p tsconfig.build.json --noEmit`、`pnpm exec vitest run <file>`

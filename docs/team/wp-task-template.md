@@ -17,10 +17,10 @@
 > 仓库：E:\Work\Project\backend\mofang-nestjs，分支 {{integrate}}
 > 唯一事实源：{{相关研究文档 / spec 路径，没有就写"无"}}
 > 任务性质：{{新功能 / 数值标定落地 / bug 修复 / 纯验证 / 文档}}
-> 改动范围：{{仅后端 src/test/bin/scripts ｜ 含 admin-dashboard 前端契约/类型 ｜ 纯文档}}
+> 改动范围：{{仅后端 src/test/bin/scripts ｜ 含 admin-dashboard 前端 ｜ 纯文档}}
 ```
 
-> **改动范围怎么填**：决定本单文件归哪组提交、走哪套闸门（见 §2 隔离规则与 §5 闸门）。`admin-dashboard/` 是嵌在本仓库的 Vue 前端，由前端流程维护；后端任务默认「仅后端」，只有任务单明确授权才在该目录动契约层文件。
+> **改动范围怎么填**：决定本单文件归哪组提交、走哪套闸门（见 §2 隔离规则与 §5 闸门）。`admin-dashboard/` 是嵌在本仓库的 Vue 前端；后端任务默认「仅后端」，只有任务单明确授权才在该目录写前端代码。
 
 ---
 
@@ -62,10 +62,10 @@
 - 不改表结构 / 不加 migration / 不加列（除非本任务明确写了要加）。
 - 不改映射函数、resolver、module 装配（除非本任务明确要求）。
 - 不碰任何角色的 `enabled` / `audit_status` / `version` / 内容字段。
-- **前端目录隔离**（`admin-dashboard/` 嵌在本仓库的 Vue 前端，与 Flutter 客户端都属前端范畴）：
-  - 后端任务默认不写前端实现；任务单 §头部「改动范围」标了「含 admin-dashboard」时，才允许动契约层（共享类型 / API client / 只读展示接线），交互与样式归前端流程。
-  - `admin-dashboard/**` **不进**后端 lint-staged 的 eslint / prettier，也不在后端 `tsconfig` 内；后端 AI 不跑前端构建命令（`vue-tsc` / `vite build` 由前端流程执行）。前端文件不套用后端分号 / 折行风格。
-  - Flutter 客户端代码一律不碰。
+- **前端目录边界**（`admin-dashboard/` 嵌在本仓库的 Vue 前端，与 Flutter 客户端都属前端范畴）：
+  - 后端任务默认不写前端实现；任务单 §头部「改动范围」标了「含 admin-dashboard」时，才允许动前端代码（共享类型 / API client / 视图 / 组件 / 接线），且只写与任务单不冲突的部分，交互与样式沿用前端工程既有结构。
+  - `admin-dashboard/**` **不进**后端 lint-staged 的 eslint / prettier，也不在后端 `tsconfig` 内；前端闸门在前端目录用其自带脚本跑（`vue-tsc` / `vite build`），不套用后端分号 / 折行风格。详见 §5.3。
+  - Flutter 客户端代码一律不碰（独立仓库）。
 - **提交分组隔离**：工作区可能并行存在其他进程（MiniMax Code / 前端 AI）的未提交产物；若用户授权代提交，只暂存本单文件，按任务分组分开 stage，不混入并行产物（详见 §7）。
 - 不自动 git commit / push（写完给 commit 草稿，等用户指令）。
 
@@ -120,7 +120,7 @@
 
 ### 5.3 前端产物闸门（仅当 §头部改动范围含 admin-dashboard）
 
-- 前端目录不走后端 `tsc` / `eslint` / `lint-staged`；验证由前端流程：`pnpm type-check`（`vue-tsc --build`）+ `pnpm build-only`（纯 `vite build`，不串 type-check）。
+- 前端目录不走后端 `tsc` / `eslint` / `lint-staged`；授权任务的执行方在 `admin-dashboard/` 目录跑前端脚本：`pnpm type-check`（`vue-tsc --build`）+ `pnpm build-only`（纯 `vite build`，不串 type-check）。
 - **既有类型债基线**：前端工程可能存在改动前就有的类型错误。交付记录要分开写「本单新增文件 / 新增改动 0 错误」与「既有债 N 条（改动前基线，本单未清理，隔离红线不顺手重构）」；不要把既有债误记为本单引入，也不在本单清理。
 - 前端产物不套后端 lint 规则；若发现后端 lint-staged 误扫 `admin-dashboard/**`，按 §2 前端目录隔离处理，不为迁就后端规则改写前端风格。
 
@@ -152,7 +152,7 @@
 - [ ] 回写阶段入口：`docs/worklog/pending/phase2.5-README.md` §3「当前有什么活」表里挪走/改成本任务已完成
 - [ ] 回写 backlog（若任务单 §2 指定了母版）
 - [ ] `git diff --stat HEAD -- src/engine-core` 为空
-- [ ] 提交分组已核对：本单文件清单与并行进程产物分开；若授权代提交，stage 时只含本单文件（后端目录 / admin-dashboard 契约层 / 文档各自成组，不混提）
+- [ ] 提交分组已核对：本单文件清单与并行进程产物分开；若授权代提交，stage 时只含本单文件（后端目录 / admin-dashboard 前端文件 / 文档各自成组，不混提）
 - [ ] 给一行 commit message 草稿（**不自己 commit/push**，等用户指令）
 
 ---

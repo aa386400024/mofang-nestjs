@@ -49,8 +49,8 @@ src/
 大炮（用户本人）是独立开发者，你是结对 AI。
 
 1. **engine-core 纯层一行不动**：`git diff --stat HEAD -- src/engine-core` 交付时必须为空。例外必须由大炮在任务单里明确批准，改完要过 `boundary.spec.ts` 的 11 条断言。新逻辑放 `engine-adapters/` 或业务层。
-2. **不写前端代码**：不碰 `admin-dashboard/`（Vue3，另一个 AI 管），不碰 Flutter 客户端代码。
-3. **不跑前端命令**：不跑 `flutter` / `dart` / `pub`。只跑后端的 `npx eslint` / `npx tsc` / `npx vitest`，且由大炮在终端执行，不要替他跑。
+2. **前端代码边界**：默认不碰 `admin-dashboard/` 与 Flutter；任务单明确授权时可在 `admin-dashboard/` 内实现与任务单不冲突的前端代码，Flutter 始终不碰。详见 `docs/team/conventions.md` §1.2。
+3. **命令边界**：不跑 `flutter` / `dart` / `pub`；后端 `eslint` / `tsc` / `vitest` 由大炮在终端执行。授权前端任务可在 `admin-dashboard/` 目录跑其自带 `type-check` / `build-only` 脚本。
 4. **禁止自动 `git commit` / `git push`**。写完给一行 commit message 草稿，大炮手动提交。
 5. **先讨论后实现**：涉及 engine-core 改动、跨模块重构、协议变更，先给方案和取舍，等大炮确认。
 6. **任务单与代码不符时**：先 grep 核实真实函数名/调用链/文件路径，找企业级最佳方案，在交付记录里写明偏差和理由。不要因为任务单写错就凑活做，也不要默默改了不提。
@@ -61,21 +61,21 @@ src/
 
 **不要一上来把 docs/ 全读了——context 会爆。** README + 当前任务单 = 99% 够用。遇到生字再翻字典。
 
-| 你要做什么 | 去读 |
-|---|---|
-| **开工第一步（必做）** | `docs/worklog/README.md` — 后端 AI 开工自检，看 pending/ 里有什么任务单 |
-| **代码红线 + 交付格式** | `docs/team/conventions.md` — engine-core 红线、16 条硬约束、零压红线、交付记录格式 |
-| 文档总入口 | `docs/README.md` |
-| 引擎路线图 / 为什么这么设计 | `docs/architecture/ai-engine-roadmap-v1.1.md` |
-| V6.0 引擎架构 | `docs/architecture/v6.0-ai-engine.md` |
-| BDI 认知引擎设计原则 | `docs/reference/bdi-cognitive-engine-principles-v1.0.md` |
-| AI 模拟来访蓝图 | `docs/reference/ai-simulation-blueprint-v1.1.md` |
-| 伦理/安全/兜底 | `docs/reference/architecture-blindspot-fill-v1.0.md` |
-| 微服务演进边界（5 条规则） | `docs/architecture/microservices-evolution-plan.md` |
-| 活跃技术契约（spec） | `docs/specs/active/`（6 份：语音训练 v0.3 / 全真执业 v1.2 / 自由练习 v1.3 / 来访池 / ASR-LLM / 语音 BIDI） |
-| 架构决策记录 | `docs/adr/`（JWT vs Cookie / 异步审计 / TypeORM Migration） |
-| 本地环境 / 部署 | `docs/runbooks/local-setup.md` / `docs/runbooks/docker-deploy.md` |
-| Phase1 已交付速查 | `docs/worklog/completed/phase1/`（按 wp0-wp5-core / wp6-wp12-wiring / wp14-wp24-augment 分目录） |
+| 你要做什么                  | 去读                                                                                                       |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **开工第一步（必做）**      | `docs/worklog/README.md` — 后端 AI 开工自检，看 pending/ 里有什么任务单                                    |
+| **代码红线 + 交付格式**     | `docs/team/conventions.md` — engine-core 红线、16 条硬约束、零压红线、交付记录格式                         |
+| 文档总入口                  | `docs/README.md`                                                                                           |
+| 引擎路线图 / 为什么这么设计 | `docs/architecture/ai-engine-roadmap-v1.1.md`                                                              |
+| V6.0 引擎架构               | `docs/architecture/v6.0-ai-engine.md`                                                                      |
+| BDI 认知引擎设计原则        | `docs/reference/bdi-cognitive-engine-principles-v1.0.md`                                                   |
+| AI 模拟来访蓝图             | `docs/reference/ai-simulation-blueprint-v1.1.md`                                                           |
+| 伦理/安全/兜底              | `docs/reference/architecture-blindspot-fill-v1.0.md`                                                       |
+| 微服务演进边界（5 条规则）  | `docs/architecture/microservices-evolution-plan.md`                                                        |
+| 活跃技术契约（spec）        | `docs/specs/active/`（6 份：语音训练 v0.3 / 全真执业 v1.2 / 自由练习 v1.3 / 来访池 / ASR-LLM / 语音 BIDI） |
+| 架构决策记录                | `docs/adr/`（JWT vs Cookie / 异步审计 / TypeORM Migration）                                                |
+| 本地环境 / 部署             | `docs/runbooks/local-setup.md` / `docs/runbooks/docker-deploy.md`                                          |
+| Phase1 已交付速查           | `docs/worklog/completed/phase1/`（按 wp0-wp5-core / wp6-wp12-wiring / wp14-wp24-augment 分目录）           |
 
 ---
 
