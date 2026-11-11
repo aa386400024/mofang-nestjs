@@ -332,10 +332,16 @@ const wiringLogger = new Logger('EngineWiring');
     },
     {
       provide: ENGINE_DELIBERATION_HOOK,
-      useFactory: (modeConfig: DeliberationModeConfig, deliberation: LlmDeliberationService): LlmDeliberationHook =>
+      useFactory: (
+        modeConfig: DeliberationModeConfig,
+        deliberation: LlmDeliberationService,
+        registry: EngineSessionRegistry,
+      ): LlmDeliberationHook =>
         // 执行器复用审议服务 (超时 / 校验 / cap / 临床规则 / trace 全在里面, 不重写一遍).
-        new LlmDeliberationHook(modeConfig, new LlmDeliberationEffectiveRunner(deliberation)),
-      inject: [ENGINE_DELIBERATION_MODE_CONFIG, LlmDeliberationService],
+        // ⚠️ 场景反查器 = 归属登记表 (V2026-11-11 G-1): 钩子只拿得到 sessionId,
+        //   场景在归属表里 (开局登记) —— 复用它, 不另建第二份状态.
+        new LlmDeliberationHook(modeConfig, new LlmDeliberationEffectiveRunner(deliberation), Date.now, registry),
+      inject: [ENGINE_DELIBERATION_MODE_CONFIG, LlmDeliberationService, EngineSessionRegistry],
     },
     {
       // I-12: 会话级同盟门槛覆盖来源 —— **缺省 = 永远无覆盖**.

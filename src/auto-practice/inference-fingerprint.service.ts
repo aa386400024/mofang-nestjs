@@ -18,6 +18,8 @@ import { ConfigService } from '@nestjs/config';
 import { execFileSync } from 'node:child_process';
 
 import { computePromptVersion, resolvePromptVersion } from './prompt-fingerprint.js';
+import type { DeliberationScenarioType } from '../engine-adapters/deliberation/deliberation-mode.config.js';
+import { resolveDeliberationModeConfig, resolveSessionEffectiveMode } from '../engine-adapters/deliberation/deliberation-mode.config.js';
 import { CharacterVersionRegistry } from '../voice/character-version-slot.js';
 
 /**
@@ -81,8 +83,15 @@ export function resolveEngineVersion(envValue: string | undefined, describe: () 
   return described.length > 0 ? described : ENGINE_VERSION_UNKNOWN;
 }
 
-/** 场景类型 (决定审议模式是否硬隔离). */
-export type ScenarioType = 'exam' | 'freeform' | 'full_simulation';
+/**
+ * 场景类型 (决定审议模式是否硬隔离).
+ *
+ * ⚠️ **这是审议侧规范类型的 re-export, 不是第二份定义** (V2026-11-11 G-1):
+ *   场景枚举原先在本文件与 `deliberation-mode.config.ts` 各写一份 —— 两份迟早漂移
+ *   (加了一个新场景, 忘了改这头 → 判定按旧场景跑, 且**记录与运行时不一致**).
+ *   现在唯一的定义在审议侧, 这里只做转发 (消费方 import 路径保持不变).
+ */
+export type ScenarioType = DeliberationScenarioType;
 
 /** 审议生效模式. */
 export type DeliberationMode = 'rule_only' | 'shadow' | 'llm_active';
@@ -133,7 +142,14 @@ export class InferenceFingerprintService {
    * @param counselorModeId 咨询师模式 id
    * @param scenarioType 场景类型 (缺省 full_simulation)
    * @param batchId 批次 id (可选, 用于生成逻辑种子)
-   * @param sessionId 场次 id
+   * @param sessionId 场次 id (业务口径 —— 用于逻辑种子)
+   * @param engineSessionId **引擎侧** session id (可选; 用于审议模式判定).
+   *
+   *   ⚠️ **为什么必须用引擎侧口径判白名单** (V2026-11-11 G-1):
+   *     运行时钩子拿到的 `context.sessionId` 是**引擎侧**会话 id (debugSessionId),
+   *     而这里 `sessionId` 是**业务场次 id** (practiceSessionId) —— 两者不同.
+   *     白名单 `ENGINE_DELIBERATION_GRAYSCALE_SESSIONS` 匹配的是运行时那一侧的口径,
+   *     所以判定必须传同一个 id, 否则会出现"库写着 llm_active, 实际没跑" (或反过来).
    */
   async build(
     characterSlug: string,
@@ -141,12 +157,17 @@ export class InferenceFingerprintService {
     scenarioType: ScenarioType = 'full_simulation',
     batchId: string | null,
     sessionId: string,
+    engineSessionId?: string,
   ): Promise<InferenceFingerprint> {
     // 角色版本: 建会话时读实时值, 不缓存.
     const characterVersion = await this.characterVersionRegistry.resolve(characterSlug);
 
-    // 审议模式: 考核场景硬隔离 rule_only, 其他场景读全局配置 (缺省 rule_only).
-    const deliberationMode: DeliberationMode = scenarioType === 'exam' ? 'rule_only' : this.resolveGlobalDeliberationMode();
+    // 审议模式: **调与运行时同一个判定函数** (单一真相源) —— 不再在本文件另抄一份.
+    //   考核场景在 resolveSessionEffectiveMode 里首条命中 → 恒 rule_only;
+    //   非考核场景走全局模式 + 会话白名单 (与运行时逐字同口径).
+    const modeConfig = resolveDeliberationModeConfig(this.config);
+    const engineSession = engineSessionId ?? sessionId;
+    const deliberationMode: DeliberationMode = resolveSessionEffectiveMode(modeConfig, engineSession, scenarioType);
 
     // 逻辑种子: batchId + sessionId 的确定性 hash (不是真随机, 是可复现标识).
     const sessionSeed = this.buildSessionSeed(batchId, sessionId);
@@ -187,20 +208,19 @@ export class InferenceFingerprintService {
   }
 
   /**
-   * 读全局审议模式配置 (考核场景不走这里).
+   * 只解析 prompt 模板版本 (引擎无关; fail-closed 回落 'unknown').
    *
-   * 缺省 = rule_only: 与生产现状一致 (总开关关着时全 rule_only).
+   * ⚠️ **为什么单独一个公有方法** (V2026-11-11 G-2):
+   *     引擎开不起来的失败场次也要记 `prompt_version` —— 但完整 `build()` 要连角色
+   *     版本仓储 (可能抛错) 且会算一堆本场无意义的字段. 而 prompt 模板是**静态文件**,
+   *     它的版本与"引擎能不能开起来"**完全无关** —— 所以这个值在失败路径上依然
+   *     是真值, 不该因为引擎没开就留空 (留空 = "来源不明", 与实际不符:
+   *     prompt 模板其实算得出来).
+   *
+   * @returns prompt 模板版本号 (env → 模板指纹 → 'unknown'; 永不返 null/undefined)
    */
-  private resolveGlobalDeliberationMode(): DeliberationMode {
-    const enabled = this.config.get<string>('ENGINE_DELIBERATION_ENABLED');
-    if (enabled !== 'true') {
-      return 'rule_only';
-    }
-    const mode = this.config.get<string>('ENGINE_DELIBERATION_EFFECTIVE_MODE');
-    if (mode === 'shadow' || mode === 'llm_active') {
-      return mode;
-    }
-    return 'rule_only';
+  resolvePromptVersionOnly(): string {
+    return resolvePromptVersion(this.config.get<string>('PROMPT_VERSION'), () => this.describePromptVersion());
   }
 
   /**

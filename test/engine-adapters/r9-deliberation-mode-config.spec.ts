@@ -6,7 +6,9 @@
 //     ④ 总开关折叠 (ENGINE_DELIBERATION_ENABLED 关着 → 模式一律降级 rule_only);
 //     ⑤ 会话级判定矩阵 (全局模式 × 名单);
 //     ⑥ 场景路由: 考核场景**恒为 rule_only** (可复现性红线, 不接受配置覆盖);
-//     ⑦ 超时解析 (非法值 → 3000).
+//     ⑦ 超时解析 (非法值 → 3000);
+//     ⑧ **场景红线** (V2026-11-11 G-1): 考核场景在**任何**全局模式/白名单下
+//        都恒为 rule_only —— 判定链的**首条命中**, 优先于一切配置.
 //
 //   为什么"非法值必须回退"要单独钉:
 //     灰度期改 env 的人**不是**开发者 —— 填错一个值不该让整场对练的行为面目全非.
@@ -20,6 +22,7 @@ import type { ConfigService } from '@nestjs/config';
 
 import {
   DELIBERATION_EFFECTIVE_MODES,
+  DELIBERATION_SCENARIO_TYPES,
   isLlmDeliberationActiveForSession,
   parseDeliberationGrayscaleSessions,
   resolveDeliberationEffectiveMode,
@@ -91,15 +94,15 @@ describe('R9 · 灰度切换配置 (适配层)', () => {
     const config = resolveDeliberationModeConfig(
       fakeConfig({ ENGINE_DELIBERATION_ENABLED: 'true', ENGINE_DELIBERATION_EFFECTIVE_MODE: 'rule_only' }),
     );
-    expect(resolveSessionEffectiveMode(config, 's1')).toBe('rule_only');
-    expect(resolveSessionEffectiveMode(config, '不在名单里')).toBe('rule_only');
+    expect(resolveSessionEffectiveMode(config, 's1', 'full_simulation')).toBe('rule_only');
+    expect(resolveSessionEffectiveMode(config, '不在名单里', 'full_simulation')).toBe('rule_only');
   });
 
   it('⑤ 会话级判定: shadow → 一律 shadow (名单无关)', () => {
     const config = resolveDeliberationModeConfig(
       fakeConfig({ ENGINE_DELIBERATION_ENABLED: 'true', ENGINE_DELIBERATION_EFFECTIVE_MODE: 'shadow' }),
     );
-    expect(resolveSessionEffectiveMode(config, 's1')).toBe('shadow');
+    expect(resolveSessionEffectiveMode(config, 's1', 'full_simulation')).toBe('shadow');
   });
 
   it('⑤ 会话级判定: llm_active + 名单为空 → 全量生效', () => {
@@ -107,8 +110,8 @@ describe('R9 · 灰度切换配置 (适配层)', () => {
       fakeConfig({ ENGINE_DELIBERATION_ENABLED: 'true', ENGINE_DELIBERATION_EFFECTIVE_MODE: 'llm_active' }),
     );
     expect(config.grayscaleSessions.size).toBe(0);
-    expect(resolveSessionEffectiveMode(config, '随便哪场')).toBe('llm_active');
-    expect(isLlmDeliberationActiveForSession(config, '随便哪场')).toBe(true);
+    expect(resolveSessionEffectiveMode(config, '随便哪场', 'full_simulation')).toBe('llm_active');
+    expect(isLlmDeliberationActiveForSession(config, '随便哪场', 'full_simulation')).toBe(true);
   });
 
   it('⑤ 会话级判定: llm_active + 名单非空 → 名单内生效, 名单外 **rule_only**', () => {
@@ -119,11 +122,48 @@ describe('R9 · 灰度切换配置 (适配层)', () => {
         ENGINE_DELIBERATION_GRAYSCALE_SESSIONS: 's1,s2',
       }),
     );
-    expect(resolveSessionEffectiveMode(config, 's1')).toBe('llm_active');
-    expect(resolveSessionEffectiveMode(config, 's2')).toBe('llm_active');
+    expect(resolveSessionEffectiveMode(config, 's1', 'full_simulation')).toBe('llm_active');
+    expect(resolveSessionEffectiveMode(config, 's2', 'full_simulation')).toBe('llm_active');
     // 名单外 = 纯规则 (**不是** shadow): 名单外会话此刻不该跑审议 (省 LLM 成本).
-    expect(resolveSessionEffectiveMode(config, 's3')).toBe('rule_only');
-    expect(isLlmDeliberationActiveForSession(config, 's3')).toBe(false);
+    expect(resolveSessionEffectiveMode(config, 's3', 'full_simulation')).toBe('rule_only');
+    expect(isLlmDeliberationActiveForSession(config, 's3', 'full_simulation')).toBe(false);
+  });
+
+  it('⑧ 场景红线: 考核场景恒 rule_only (任何全局模式 / 白名单下都不生效)', () => {
+    // llm_active + 名单内 —— 唯一能让普通场次生效的配置.
+    const active = resolveDeliberationModeConfig(
+      fakeConfig({
+        ENGINE_DELIBERATION_ENABLED: 'true',
+        ENGINE_DELIBERATION_EFFECTIVE_MODE: 'llm_active',
+        ENGINE_DELIBERATION_GRAYSCALE_SESSIONS: 's1',
+      }),
+    );
+    expect(resolveSessionEffectiveMode(active, 's1', 'full_simulation')).toBe('llm_active');
+    // 同一场会话, 只是场景变成考核 → 恒 rule_only (红线优先于白名单).
+    expect(resolveSessionEffectiveMode(active, 's1', 'exam')).toBe('rule_only');
+    expect(isLlmDeliberationActiveForSession(active, 's1', 'exam')).toBe(false);
+
+    // shadow / rule_only 全局模式下, 考核场景同样是 rule_only.
+    const shadow = resolveDeliberationModeConfig(
+      fakeConfig({ ENGINE_DELIBERATION_ENABLED: 'true', ENGINE_DELIBERATION_EFFECTIVE_MODE: 'shadow' }),
+    );
+    expect(resolveSessionEffectiveMode(shadow, 's1', 'exam')).toBe('rule_only');
+    const ruleOnly = resolveDeliberationModeConfig(fakeConfig({}));
+    expect(resolveSessionEffectiveMode(ruleOnly, 's1', 'exam')).toBe('rule_only');
+  });
+
+  it('⑧ 非考核场景不受红线影响 (freeform 与 full_simulation 走同一口径)', () => {
+    const config = resolveDeliberationModeConfig(
+      fakeConfig({ ENGINE_DELIBERATION_ENABLED: 'true', ENGINE_DELIBERATION_EFFECTIVE_MODE: 'llm_active' }),
+    );
+    expect(resolveSessionEffectiveMode(config, 's1', 'freeform')).toBe('llm_active');
+    expect(resolveSessionEffectiveMode(config, 's1', 'full_simulation')).toBe('llm_active');
+  });
+
+  it('⑧ 场景类型清单与 ScenarioRouteConfig 的键一一对应 (三处不留两份)', () => {
+    const config = resolveDeliberationModeConfig(fakeConfig({}));
+    expect([...DELIBERATION_SCENARIO_TYPES].toSorted()).toEqual(['exam', 'freeform', 'full_simulation']);
+    expect(Object.keys(config.scenarioRoutes).toSorted()).toEqual([...DELIBERATION_SCENARIO_TYPES].toSorted());
   });
 
   it('⑥ 场景路由: 考核场景**恒为 rule_only** (可复现性红线, 不接受配置覆盖)', () => {

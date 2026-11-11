@@ -45,6 +45,17 @@ import type { RedisService } from '../../shared/infra/redis/redis.service.js';
 export const GATE_TRACE_KEY_PREFIX = 'deliberation:gate:trace';
 
 /**
+ * 结构性跳过时的**空阈值**.
+ *
+ * ⚠️ **为什么是空对象而不是零值三元组**:
+ *   `{alliance: 0, resistance: 0, calm: 0}` 会被读成"按零阈值判过" ——
+ *   而结构性跳过**压根没做判定**, 零阈值是**假的判定依据** (看板会拿它算命中率).
+ *   空对象表达的是"这里没有阈值" —— 读侧 (`normalizeThresholds`) 对空对象回落零值,
+ *   展示层与统计口径都不受影响.
+ */
+export const EMPTY_GATE_THRESHOLDS: Record<string, never> = {};
+
+/**
  * 闸门 trace 的存活时长 (秒) —— 7 天.
  *
  * ⚠️ 为什么 7 天而不是审议层的 30 天:
@@ -82,8 +93,14 @@ export interface GateTraceRecord {
   readonly reason: GateReason;
   /** 11 维逐维 delta (数值). */
   readonly deltaSummary: Readonly<Record<string, number>>;
-  /** 当时用的阈值 (看板要能看出"按什么标准判的"). */
-  readonly thresholdUsed: GateThresholds;
+  /**
+   * 当时用的阈值 (看板要能看出"按什么标准判的").
+   *
+   * ⚠️ **放宽为可为空对象** (V2026-11-11 G-3): 结构性跳过 (`rule_only_skip`)
+   *   压根没做判定, 没有阈值 —— 用 `Record<string, never>` 表达"没有阈值",
+   *   而不是伪造一份零值阈值.
+   */
+  readonly thresholdUsed: GateThresholds | Record<string, never>;
   /** 本次判定耗时 (毫秒). */
   readonly elapsedMs: number;
   /** 落库时刻 (毫秒时间戳). */

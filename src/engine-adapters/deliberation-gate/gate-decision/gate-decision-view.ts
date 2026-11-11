@@ -182,7 +182,7 @@ export interface GateTraceRow {
   /** 决策理由. */
   readonly reason: string;
   /** 阈值. */
-  readonly thresholdUsed: GateThresholds | null;
+  readonly thresholdUsed: GateThresholds | Record<string, never> | null;
   /** delta 摘要. */
   readonly deltaSummary: Record<string, number> | null;
   /** 耗时. */
@@ -219,10 +219,13 @@ export function toGateTraceRecordView(row: GateTraceRow): GateTraceRecordView {
 /**
  * 阈值归一化 (缺字段补 0, 值转 number).
  *
+ * ⚠️ **空对象 (结构性跳过) → 三个 0** (V2026-11-11 G-3):
+ *   结构性跳过压根没做判定, 没有阈值 —— 空对象回落零值, 展示层与统计口径不受影响.
+ *
  * @param raw 原始阈值
  * @returns 三个阈值 (数字)
  */
-function normalizeThresholds(raw: GateThresholds | null): { alliance: number; resistance: number; calm: number } {
+function normalizeThresholds(raw: GateThresholds | Record<string, never> | null): { alliance: number; resistance: number; calm: number } {
   return {
     alliance: toFiniteNumber(raw?.alliance),
     resistance: toFiniteNumber(raw?.resistance),

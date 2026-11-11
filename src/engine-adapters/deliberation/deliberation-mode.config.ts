@@ -46,10 +46,32 @@ export type DeliberationEffectiveMode = 'shadow' | 'rule_only' | 'llm_active';
 export const DELIBERATION_EFFECTIVE_MODES: readonly DeliberationEffectiveMode[] = ['shadow', 'rule_only', 'llm_active'];
 
 /**
+ * 审议侧的**规范场景类型** (适配层权威定义).
+ *
+ * ⚠️ **为什么放在这里**: 场景类型同时被三处消费 ——
+ *   ① `ScenarioRouteConfig` 的三个键 (本文件);
+ *   ② 逐场审议模式的判定 (本文件 `resolveSessionEffectiveMode`);
+ *   ③ auto-practice 的 `ScenarioType` (业务层).
+ *   三处各写一份字面量 = 迟早漂移 (加了一个新场景, 忘了改第三处 → 判定按旧场景跑).
+ *   所以定义收口在这里, 业务层 import/re-export 本类型 (**不复制**).
+ *
+ * ⚠️ **值集合与 `ScenarioRouteConfig` 的键一一对应** —— 键名即场景名, 不另造别名.
+ */
+export type DeliberationScenarioType = 'freeform' | 'full_simulation' | 'exam';
+
+/**
+ * 场景类型的**运行时取值清单** (解析/校验用).
+ *
+ * ⚠️ 为什么类型之外还要清单: 类型是编译期的事, 清单才是运行期能遍历/校验的东西
+ *   (落盘记录的字段解析、接口入参校验都用它) —— 与 `GATE_MODE_VALUES` 同款纪律.
+ */
+export const DELIBERATION_SCENARIO_TYPES: readonly DeliberationScenarioType[] = ['freeform', 'full_simulation', 'exam'];
+
+/**
  * 场景路由配置 (蓝图 §6 Phase 3A "两种模式可配置切换" 的**预留结构**).
  *
- * ⚠️ **本单只定义类型与解析, 不接路由逻辑** —— 场景类型机制 (`VoiceSessionMode`
- *   只有 text/voice) 还没建, 现在接路由就是猜. Phase 4 场景类型建好后直接填这张表.
+ * ⚠️ **这张表是"预留结构", 不是判定依据** —— 逐场判定只由
+ *   `resolveSessionEffectiveMode` 出值 (见下), 这张表不参与判定.
  *
  * ⚠️ **考核场景恒为 `rule_only`** —— 蓝图 §7 红线 4: "考核场景必须能锁版本、
  *   锁温度、逐字复现". LLM 审议做不到逐字复现 (模型输出不可复现), 所以考核场景
@@ -171,7 +193,12 @@ export function resolveDeliberationModeConfig(config: ConfigService): Deliberati
 /**
  * 判定**某一场会话**最终走哪个生效模式.
  *
+ * ⚠️ **本函数是逐场审议模式的唯一真相源** —— 运行时钩子与落库指纹都调它,
+ *   谁也不另抄一份 (抄一份 = 迟早漂移, 于是"记录说谎": 库写着 rule_only,
+ *   实际在跑 LLM 审议).
+ *
  * 判定链 (自上而下, 第一个命中即返回):
+ *   0. **场景 = `exam` → `rule_only`** (考核场景红线, **优先于一切全局/白名单判定**);
  *   1. 全局模式 = `rule_only` → `rule_only` (纯规则; 灰度名单无关 —— 运维说全关就全关);
  *   2. 全局模式 = `shadow` → `shadow` (影子; 灰度名单无关 —— 影子不影响任何行为);
  *   3. 全局模式 = `llm_active` → 名单内会话 `llm_active`, 名单外 `rule_only`.
@@ -181,11 +208,25 @@ export function resolveDeliberationModeConfig(config: ConfigService): Deliberati
  *     名单外会话此刻是**纯规则**状态 —— 它没跑过审议, 也不该跑. 若让它跑影子模式,
  *     就等于"名单外也在烧 LLM" (成本白花) 且让人误以为灰度范围没生效.
  *
+ * ⚠️ **为什么 exam 排在第 0 条 (而不是跟全局模式并列)**:
+ *     考核场景要"锁版本、逐字复现" (蓝图 §7 红线 4) —— 只要**有任何**路径能让它
+ *     跑 LLM 审议, 逐字复现就没了. 而白名单是运维手段: 灰度期有人把某场考核会话
+ *     误加进名单 (或者名单本来就是"全部会话"), 考核就悄悄烧起了 LLM ——
+ *     不可复现的数据混进考核数据集, 事后没人查得出来. 所以 exam 是**红线**:
+ *     不接受任何配置覆盖, 也不接受名单覆盖.
+ *
  * @param modeConfig 装配好的配置
- * @param sessionId 会话 id
+ * @param sessionId 会话 id (引擎侧口径 —— 与运行时钩子、白名单匹配同一口径)
+ * @param scenarioType 本场场景类型
  * @returns 该会话的生效模式
  */
-export function resolveSessionEffectiveMode(modeConfig: DeliberationModeConfig, sessionId: string): DeliberationEffectiveMode {
+export function resolveSessionEffectiveMode(
+  modeConfig: DeliberationModeConfig,
+  sessionId: string,
+  scenarioType: DeliberationScenarioType,
+): DeliberationEffectiveMode {
+  // 场景红线: 考核场景恒 rule_only (可复现性, 优先于一切全局/白名单判定).
+  if (scenarioType === 'exam') return 'rule_only';
   if (modeConfig.effectiveMode === 'rule_only') return 'rule_only';
   if (modeConfig.effectiveMode === 'shadow') return 'shadow';
   if (modeConfig.grayscaleSessions.size === 0) return 'llm_active';
@@ -198,9 +239,14 @@ export function resolveSessionEffectiveMode(modeConfig: DeliberationModeConfig, 
  * 便捷判定 —— 与 `resolveSessionEffectiveMode(...) === 'llm_active'` 等价.
  *
  * @param modeConfig 装配好的配置
- * @param sessionId 会话 id
+ * @param sessionId 会话 id (引擎侧口径)
+ * @param scenarioType 本场场景类型
  * @returns true = 该会话走 LLM 审议生效
  */
-export function isLlmDeliberationActiveForSession(modeConfig: DeliberationModeConfig, sessionId: string): boolean {
-  return resolveSessionEffectiveMode(modeConfig, sessionId) === 'llm_active';
+export function isLlmDeliberationActiveForSession(
+  modeConfig: DeliberationModeConfig,
+  sessionId: string,
+  scenarioType: DeliberationScenarioType,
+): boolean {
+  return resolveSessionEffectiveMode(modeConfig, sessionId, scenarioType) === 'llm_active';
 }

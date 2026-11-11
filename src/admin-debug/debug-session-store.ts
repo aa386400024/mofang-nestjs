@@ -41,6 +41,7 @@ import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promise
 import { isAbsolute, join, resolve } from 'node:path';
 
 import { parseDebugKernelState, type DebugKernelState } from './debug-kernel-state.js';
+import type { DeliberationScenarioType } from '../engine-adapters/deliberation/deliberation-mode.config.js';
 
 /**
  * 调试会话的标题来源.
@@ -108,6 +109,14 @@ export interface DebugSessionRecord {
    *   而不是拿一个中性状态糊弄过去 (那等于"看着恢复了, 其实从头开始").
    */
   readonly kernelState: DebugKernelState | null;
+  /**
+   * 场景类型 (可选) —— 恢复会话时用来保持**同一场景红线** (考核场景恒 rule_only).
+   *
+   * ⚠️ **缺省 = 老记录没有这个字段** → 恢复时回落 `full_simulation`
+   *   (不施加考核红线, 与恢复前的行为逐字一致) —— 向后兼容, 无需 migration
+   *   (文件存储不是 schema, 加字段不需要改表).
+   */
+  readonly scenarioType?: DeliberationScenarioType;
 }
 
 /**
@@ -523,7 +532,20 @@ function parseRecord(raw: string): DebugSessionRecord | null {
     traces: Array.isArray(record['traces']) ? (record['traces'] as unknown[]) : [],
     // 内核快照: 老文件没这个键 → null (恢复接口会明确报"没有可恢复的快照").
     kernelState: parseDebugKernelState(record['kernelState']),
+    // 场景类型: 老文件没这个键 → undefined (恢复时回落 full_simulation).
+    scenarioType: readScenarioType(record['scenarioType']),
   };
+}
+
+/**
+ * 读场景类型 (非法值 → undefined, 由调用方按缺省处理).
+ *
+ * ⚠️ **为什么非法值不兜底成某个场景**: 文件可能被手工改过 —— 与其猜一个场景
+ *   (可能把普通场次误判成考核, 白白关掉审议), 不如"读不到" (回落无场景限制).
+ */
+function readScenarioType(value: unknown): DeliberationScenarioType | undefined {
+  if (value === 'freeform' || value === 'full_simulation' || value === 'exam') return value;
+  return undefined;
 }
 
 /**

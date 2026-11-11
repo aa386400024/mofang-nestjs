@@ -187,6 +187,54 @@ describe('R9 · 生效钩子 (适配层)', () => {
     expect(hook.applyDeliberation(makeContext({ currentRevision: 7 }))).toEqual({ trust: 0.1 });
   });
 
+  it('⑧ 场景红线 (G-1): 考核场景 → **一次 LLM 都不发** (哪怕在名单内 + 全局 llm_active)', async () => {
+    const { runner, calls } = fakeRunner({ trust: 0.1 });
+    // 唯一能让普通场次生效的配置: 全局 llm_active + 会话在白名单里.
+    const hook = new LlmDeliberationHook(
+      modeConfig({ effectiveMode: 'llm_active', grayscaleSessions: new Set([SESSION]) }),
+      runner,
+      Date.now,
+      { resolveScenario: (sessionId: string) => (sessionId === SESSION ? 'exam' : 'full_simulation') },
+    );
+
+    // 产出拍被场景红线拦住 → runner 一次都没被调用 (钱没花).
+    await hook.produce(makeProduceInput({ currentRevision: 7 }));
+    expect(calls()).toBe(0);
+    // 消费拍同样被拦住 → 回退规则 delta.
+    expect(hook.applyDeliberation(makeContext({ currentRevision: 7 }))).toBeNull();
+  });
+
+  it('⑧ 场景反查查不到 → 回落 full_simulation (不施加场景红线, 行为与接入前一致)', async () => {
+    const { runner, calls } = fakeRunner({ trust: 0.1 });
+    // 解析器一律返回 undefined (会话没登记场景).
+    const hook = new LlmDeliberationHook(
+      modeConfig({ effectiveMode: 'llm_active', grayscaleSessions: new Set([SESSION]) }),
+      runner,
+      Date.now,
+      { resolveScenario: () => void 0 },
+    );
+
+    await hook.produce(makeProduceInput({ currentRevision: 7 }));
+    expect(calls()).toBe(1);
+    expect(hook.applyDeliberation(makeContext({ currentRevision: 7 }))).toEqual({ trust: 0.1 });
+  });
+
+  it('⑧ 场景反查逐场生效: 只有被标成考核的那场被拦住', async () => {
+    const { runner, calls } = fakeRunner({ trust: 0.1 });
+    const hook = new LlmDeliberationHook(
+      modeConfig({ effectiveMode: 'llm_active', grayscaleSessions: new Set(['exam-session', 'normal-session']) }),
+      runner,
+      Date.now,
+      { resolveScenario: (sessionId: string) => (sessionId === 'exam-session' ? 'exam' : 'full_simulation') },
+    );
+
+    await hook.produce(makeProduceInput({ sessionId: 'exam-session', currentRevision: 7 }));
+    expect(calls()).toBe(0);
+
+    await hook.produce(makeProduceInput({ sessionId: 'normal-session', currentRevision: 7 }));
+    expect(calls()).toBe(1);
+  });
+
   it('⑤ 兜底①: runner 抛错 → 产出拍吞掉, 主流程不炸, 建议为空', async () => {
     const hook = new LlmDeliberationHook(modeConfig({ effectiveMode: 'llm_active' }), {
       run: async () => {

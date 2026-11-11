@@ -51,7 +51,7 @@
 import { Logger } from '@nestjs/common';
 
 import { isDeliberationRiskAcceptable } from './deliberation-input.js';
-import type { DeliberationModeConfig } from './deliberation-mode.config.js';
+import type { DeliberationModeConfig, DeliberationScenarioType } from './deliberation-mode.config.js';
 import { isLlmDeliberationActiveForSession } from './deliberation-mode.config.js';
 import { DELIBERATION_DIMS } from './deliberation-types.js';
 import type { DeliberationInput } from './deliberation-types.js';
@@ -111,6 +111,29 @@ export interface DeliberationProduceInput {
  */
 export interface DeliberationRunner {
   run(input: DeliberationProduceInput): Promise<DeliberationDeltaPatch | null>;
+}
+
+/**
+ * 场景反查端口 (适配层窄面; 内核拿不到场景, 由装配侧按 sessionId 提供解析).
+ *
+ * ⚠️ **为什么需要它 (而不是往内核端口加字段)**:
+ *     内核的 `DeliberationHookContext` 是**内核视角** —— 它只带得到会话 id / 轮次 /
+ *     版本号这些运行时维度, 带不到"这场是什么场景" (那是**业务维度**, 由门面开局时
+ *     才知道). 往内核端口加字段 = 让内核契约长出它自己填不了的字段 (且要过内核红线).
+ *     所以场景由**适配层反查**: 钩子拿着 sessionId 去问装配侧"这场是什么场景".
+ *
+ * ⚠️ **为什么反查而不是"开局时塞进钩子"**:
+ *     钩子是**单例** (内核会话端口也是单例) —— 塞进去就得按会话存一张表再自己清理,
+ *     等于把归属登记表 (装配层已有) 复制一份. 反查直接复用归属登记, 零重复状态.
+ */
+export interface DeliberationScenarioResolver {
+  /**
+   * 反查某场会话的场景类型.
+   *
+   * @param sessionId 会话 id (引擎侧口径)
+   * @returns 场景类型; `undefined` = 查不到 (调用方按缺省处理)
+   */
+  resolveScenario(sessionId: string): DeliberationScenarioType | undefined;
 }
 
 /**
@@ -177,13 +200,40 @@ export class LlmDeliberationHook implements DeliberationHookPort, DeliberationEf
      * 时钟是**部署形态**的决定 (测试要固定它), 不该藏在模块级变量里.
      */
     private readonly now: () => number = Date.now,
+    /**
+     * 场景反查器 (缺省 = 查不到任何场景).
+     *
+     * ⚠️ **为什么放第 4 位 (在 `now` 之后)**: 既有单测用 2/3 参构造钩子
+     *   (模式配置 + 执行器 + 时钟), 往前插参数会让那些构造全部编译不过 ——
+     *   插在末尾 = 既有调用零改动, 新能力可选注入.
+     *
+     * ⚠️ **缺省解析器返回 `undefined`** → 本钩子按"查不到场景"处理 (回落
+     *   `full_simulation`), 行为与改造前逐字一致 (改造前根本没场景这一维).
+     */
+    private readonly scenarioResolver: DeliberationScenarioResolver = { resolveScenario: () => void 0 },
   ) {}
+
+  /**
+   * 解析本场会话的场景类型.
+   *
+   * ⚠️ **查不到 → 回落 `full_simulation`** (不是 `exam`):
+   *     回落成 exam 会把正常场次误判成考核场次 (一律 rule_only) —— 那会让审议
+   *     **静默失效**, 看起来像"生效模式没配上". 回落成 full_simulation 才是
+   *     改造前的行为 (无场景限制).
+   *     而 exam 场次必然在开局时就已登记进归属表, 不会被这个兜底误降级.
+   *
+   * @param sessionId 会话 id
+   * @returns 场景类型
+   */
+  private resolveScenario(sessionId: string): DeliberationScenarioType {
+    return this.scenarioResolver.resolveScenario(sessionId) ?? 'full_simulation';
+  }
 
   /**
    * 取本轮可用的审议建议 (内核**同步**调这里).
    *
    * 返回 `null` 的四种情形 (= 回退规则 delta):
-   *   ① 本会话不在 LLM 生效模式 (影子 / 纯规则 / 名单外);
+   *   ① 本会话不在 LLM 生效模式 (影子 / 纯规则 / 名单外 / 考核场景);
    *   ② 缓存里没有建议 (第 1 轮 / 上一拍失败 / 已过期);
    *   ③ 建议的快照版本已经过时 (过期判定);
    *   ④ 取建议的过程本身抛错 (防御).
@@ -193,7 +243,7 @@ export class LlmDeliberationHook implements DeliberationHookPort, DeliberationEf
    */
   applyDeliberation(context: DeliberationHookContext): DeliberationDeltaPatch | null {
     try {
-      if (!isLlmDeliberationActiveForSession(this.modeConfig, context.sessionId)) return null;
+      if (!isLlmDeliberationActiveForSession(this.modeConfig, context.sessionId, this.resolveScenario(context.sessionId))) return null;
       const cached = this.takeSuggestion(context.sessionId);
       if (!cached) return null;
       // 过期判定: 建议算完时状态是 baseRevision 那个版本, 此刻内核报上来的是
@@ -223,7 +273,7 @@ export class LlmDeliberationHook implements DeliberationHookPort, DeliberationEf
   async produce(input: DeliberationProduceInput): Promise<void> {
     const { context } = input;
     try {
-      if (!isLlmDeliberationActiveForSession(this.modeConfig, context.sessionId)) return;
+      if (!isLlmDeliberationActiveForSession(this.modeConfig, context.sessionId, this.resolveScenario(context.sessionId))) return;
       // WP-A 合规红线: 高风险轮次**永远不跑** LLM 审议 —— 不产建议, 下一轮回退规则 delta.
       //   ⚠️ **双重保险**: service 侧执行时还会再判一次 (任何一层被绕过, 另一层还在).
       if (!isDeliberationRiskAcceptable(input.extras.structured.riskLevel)) {

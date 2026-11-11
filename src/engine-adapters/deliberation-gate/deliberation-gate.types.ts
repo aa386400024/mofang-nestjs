@@ -31,6 +31,9 @@ import type { DeliberationOperatorTag, DeliberationRiskLevel } from '../delibera
  *   会话次数与全局配额**不设限**, **不熔断** (任务单 §2.1 参数表).
  * - `effect` —— 生效模式: 审议建议**真的改 delta**. 门槛**高** (谨慎干预), 冷却**长**,
  *   每会话最多跑 N 次, 全局每分钟配额, 连续失败即熔断.
+ * - `rule_only` —— 纯规则态: 本场**结构性**不跑审议 (全局纯规则 / 考核场景红线).
+ *   ⚠️ 这不是"第三条审议路径", 只是"没跑"的**留痕口径** —— 让看板能区分
+ *   "该跑没跑" 与 "本就不该跑" (V2026-11-11 G-3).
  *
  * ⚠️ 两套模式的**状态互不干扰** (Redis key 带 mode 段) —— 同一场会话可以先影子后切生效,
  *   冷却计数不会互相污染 (切灰度时最怕这个: "以为在冷却, 其实没冷却").
@@ -42,7 +45,7 @@ import type { DeliberationOperatorTag, DeliberationRiskLevel } from '../delibera
  *   读侧要**校验** query 里的 mode 值, 统计侧要按 mode 分桶 —— 两处都要**运行时**清单.
  *   类型是编译期的事, 清单才是运行期能遍历的东西.
  */
-export const GATE_MODE_VALUES = ['shadow', 'effect'] as const;
+export const GATE_MODE_VALUES = ['shadow', 'effect', 'rule_only'] as const;
 
 /** 闸门模式 (取值见 `GATE_MODE_VALUES`). */
 export type GateMode = (typeof GATE_MODE_VALUES)[number];
@@ -105,6 +108,16 @@ export const GATE_REASON_VALUES = [
    *     与审议层的 skipped_high_risk / circuit_open 分开是同一款理由.
    */
   'gate_error',
+  /**
+   * 结构性跳过: 本场**本就处于纯规则态**, 压根不该跑审议 (V2026-11-11 G-3).
+   *
+   * ⚠️ **为什么单独一个码** (而不是复用 'rule_confident'):
+   *     'rule_confident' 的语义是"闸门问过了, 规则有把握, 所以不跑" ——
+   *     那是**判定后**的结论. 而本码是**判定前**就注定不跑 (全局纯规则 / 考核场景).
+   *     两者混在一起, 看板就把"根本不该跑"统计成"规则有把握" —— 那是撒谎:
+   *     看上去审议在正常评估, 实际上一场都没跑过.
+   */
+  'rule_only_skip',
 ] as const;
 
 /** 决策理由 (取值见 `GATE_REASON_VALUES`). */
@@ -269,6 +282,23 @@ export interface GateOutput {
 export type GateExecutionOutcome = 'success' | 'failure';
 
 /**
+ * 结构性跳过 (纯规则态) 的留痕入参.
+ *
+ * ⚠️ **为什么单独一个类型**: 它**没有**阈值与前后快照 —— 结构性跳过压根没做判定,
+ *   硬塞一份空阈值进去只会让人误以为"判过了, 阈值是 0".
+ */
+export interface GateRuleOnlySkipInput {
+  /** 业务会话 id (Redis key 的一段). */
+  readonly sessionId: string;
+  /** 稳定落库会话 id (可选; 缺省 → 落库写 NULL). */
+  readonly dbSessionId?: string | null;
+  /** 学员账号 id (可选; 缺省 → 落库写 NULL → 学员看不到这些行). */
+  readonly userId?: string | null;
+  /** 本轮轮次 (从 1 起). */
+  readonly turnIndex: number;
+}
+
+/**
  * 闸门的**窄端口** (编排门面只依赖这两个方法).
  *
  * ⚠️ 为什么是接口而不是实现类 (与 DeliberationShadowPort / DeliberationEffectPort 同款纪律):
@@ -297,4 +327,20 @@ export interface DeliberationGatePort {
    * @param outcome 成功还是失败
    */
   reportOutcome?(mode: GateMode, outcome: GateExecutionOutcome): void;
+
+  /**
+   * 记一条**结构性跳过** 留痕 (纯规则态: 本场压根不该跑审议).
+   *
+   * ⚠️ **为什么需要它** (V2026-11-11 G-3):
+   *     纯规则模式下门面**压根不发起审议** → 闸门一次都不会被问 → 决策表恒 0 行.
+   *     于是看板分不清两种完全不同的情况:
+   *       "该跑没跑" (闸门误判 / 装配坏了 —— **要修**) vs
+   *       "本就不该跑" (全局纯规则 / 考核场景红线 —— **正常**).
+   *     前者被当成后者 = 问题被静默掩盖; 后者被当成前者 = 每次看板上都是假警报.
+   *
+   * ⚠️ **可选**: 装配缺席 / 只想用判定能力时可以不实现 (与 reportOutcome 同款纪律).
+   *
+   * @param input 留痕入参 (零对话原文)
+   */
+  recordRuleOnlySkip?(input: GateRuleOnlySkipInput): Promise<void>;
 }

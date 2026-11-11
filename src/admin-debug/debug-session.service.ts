@@ -92,6 +92,7 @@ import {
 import { labelCounselorEvent } from './event-tag-labels.js';
 import { BizCode } from '../common/exceptions/biz-code.enum.js';
 import { BizException } from '../common/exceptions/biz.exception.js';
+import type { DeliberationScenarioType } from '../engine-adapters/deliberation/deliberation-mode.config.js';
 import {
   buildDeliberationTraceKey,
   computeRuleDelta,
@@ -438,10 +439,11 @@ export class DebugSessionService {
    *   调试者要的就是"这个角色跑起来是什么样", 开错角色等于白跑一轮.
    *
    * @param characterSlug 角色代号 (从 `GET /admin/api/characters` 拿)
+   * @param scenarioType 场景类型 (可选; 缺省 = 不登记 = 审议侧不施加场景红线)
    * @returns 调试会话信息
    * @throws BizException 开关关闭 (403) / 角色代号为空 (400) / 角色不存在 (400)
    */
-  async createSession(characterSlug: string | undefined): Promise<DebugSessionCreated> {
+  async createSession(characterSlug: string | undefined, scenarioType?: DeliberationScenarioType): Promise<DebugSessionCreated> {
     this.assertEnabled();
     const slug = (characterSlug ?? '').trim();
     if (slug.length === 0) {
@@ -472,6 +474,8 @@ export class DebugSessionService {
         // WP-J P2: 台词指纹登记 —— 与依恋风格同一条开场路径.
         //   缺了这一步, 渲染层拿不到「你说话的味道」, 库里的文案等于白落.
         ...(resolved.verbalVoice === undefined ? {} : { verbalVoice: resolved.verbalVoice }),
+        // 场景类型登记 —— 条件展开 (缺省 = 不登记 = 审议侧不施加场景红线).
+        ...(scenarioType === undefined ? {} : { scenarioType }),
       },
     );
 
@@ -491,7 +495,7 @@ export class DebugSessionService {
     // 这样"刚开一场就跑崩了"也能在列表里看到这场会话存在过.
     // 落盘失败**不阻断**开会话 (引擎句柄已经开出来了, 那是更要紧的);
     // 只记 warn —— 调试工具不该因为磁盘问题就开不出会话.
-    await this.persistCreate(debugSessionId, slug, resolved.displayName, createdAt);
+    await this.persistCreate(debugSessionId, slug, resolved.displayName, createdAt, scenarioType);
     // 日志只出定位信息 (隐私红线): 会话 id + 角色代号, 不打角色基线内容.
     this.logger.log(`[debug_chat] 调试会话已开启 session=${debugSessionId} character=${slug}`);
     return {
@@ -703,6 +707,9 @@ export class DebugSessionService {
             : { attachmentStyle: resolved.characterProfile.attachmentStyle }),
           // WP-J P2: 台词指纹登记 (恢复路径与新建路径同口径).
           ...(resolved.verbalVoice === undefined ? {} : { verbalVoice: resolved.verbalVoice }),
+          // 场景类型登记 (恢复路径与新建路径同口径) —— 从落盘记录读:
+          //   旧记录没有这个字段 → full_simulation (不施加考核红线, 与恢复前逐字一致).
+          scenarioType: record.scenarioType ?? 'full_simulation',
         },
       );
       handleId = opened.handleId;
@@ -854,8 +861,15 @@ export class DebugSessionService {
    * @param characterSlug 角色代号
    * @param characterLabel 角色展示名
    * @param createdAt 创建时刻 (ISO)
+   * @param scenarioType 场景类型 (可选; 落盘是为了**恢复后仍能保持同一场景红线**)
    */
-  private async persistCreate(debugSessionId: string, characterSlug: string, characterLabel: string, createdAt: string): Promise<void> {
+  private async persistCreate(
+    debugSessionId: string,
+    characterSlug: string,
+    characterLabel: string,
+    createdAt: string,
+    scenarioType?: DeliberationScenarioType,
+  ): Promise<void> {
     try {
       await this.store.create({
         id: debugSessionId,
@@ -873,6 +887,8 @@ export class DebugSessionService {
         traces: [],
         // 内核快照: 建档时还没有 (第一轮跑完才有).
         kernelState: null,
+        // 场景类型 —— 条件展开 (缺省 = 不写 = 旧记录同款, 恢复时回落 full_simulation).
+        ...(scenarioType === undefined ? {} : { scenarioType }),
       });
     } catch (error) {
       this.logger.warn(`[debug_chat] 调试会话建档失败 session=${debugSessionId}: ${errorName(error)}`);

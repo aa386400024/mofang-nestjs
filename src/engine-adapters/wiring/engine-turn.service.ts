@@ -38,6 +38,8 @@ import type {
   OpenEngineSessionInput,
   RenderContextTurn,
 } from '../../engine-core/index.js';
+import type { DeliberationScenarioType } from '../deliberation/deliberation-mode.config.js';
+import type { DeliberationScenarioResolver } from '../deliberation/llm-deliberation-hook.js';
 import type { RollingSummaryCleanupPort } from '../persistence/rolling-session-summary.service.js';
 import type { StreamRenderHandlers } from '../rendering/streaming-render.port.js';
 import type { TurnRenderResult, TurnSessionContext } from '../rendering/turn-render-orchestrator.js';
@@ -49,7 +51,7 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
  * 进程内瞬时: 进程重启即失效 (与内核会话句柄同生命周期 —— 句柄没了, 归属也没意义).
  */
 @Injectable()
-export class EngineSessionRegistry {
+export class EngineSessionRegistry implements DeliberationScenarioResolver {
   private readonly contexts = new Map<string, TurnSessionContext>();
 
   /**
@@ -85,6 +87,105 @@ export class EngineSessionRegistry {
   size(): number {
     return this.contexts.size;
   }
+
+  /**
+   * 按**会话 id** 反查归属 (不是按句柄) —— 审议钩子只拿得到会话 id.
+   *
+   * ⚠️ **为什么按会话 id 扫而不是维护第二张表**:
+   *     归属登记表已经是"句柄 → 归属"的唯一真相源; 再开一张"会话 id → 归属"
+   *     就是第二份真相 (两份迟早不同步 —— 尤其 close 时机不一致时, 会出现
+   *     "句柄已清、残留一条" 的幽灵条目).
+   *     归属表是**进程内瞬时**的 (句柄数量级, 几十上百), 线性扫完全够用.
+   *
+   * @param sessionId 会话 id
+   * @returns 会话归属; 查不到 → undefined
+   */
+  resolveBySessionId(sessionId: string): TurnSessionContext | undefined {
+    for (const context of this.contexts.values()) {
+      if (context.sessionId === sessionId) return context;
+    }
+    return undefined;
+  }
+
+  /**
+   * 反查某场会话的场景类型 (审议钩子用).
+   *
+   * ⚠️ **查不到 → `undefined`** (由调用方按缺省处理) —— 不在这里兜底成某个场景,
+   *   兜底口径归调用方 (钩子侧回落 full_simulation), 免得两处各兜一次兜出不同值.
+   *
+   * @param sessionId 会话 id
+   * @returns 场景类型; 查不到 → undefined
+   */
+  resolveScenario(sessionId: string): DeliberationScenarioType | undefined {
+    return this.resolveBySessionId(sessionId)?.scenarioType;
+  }
+}
+
+/**
+ * 开会话时装配层附加的**可选信息** (登记进会话归属).
+ *
+ * ⚠️ **为什么提成具名接口**: `open()` 的参数类型原本是内联对象字面量 ——
+ *   提取之后, `open()` 里那条"十来条条件展开"的圈复杂度也跟着降下来
+ *   (eslint complexity ≤ 20), 而且别处 (归属组装) 也能复用同一份类型, 不会漂.
+ *
+ * ⚠️ **全部字段都是"缺省 = 不登记"**:
+ *   渲染层靠"字段在不在"区分"这个角色没表态"与"这个角色话量基线是空" ——
+ *   无条件展开成 undefined 会把两者混成一样, 于是 prompt 逐字变了 (零回归被破坏).
+ */
+export interface EngineTurnOpenOptions {
+  /** 角色代号 (仅供 dev 调试日志核对 prompt 拼装). */
+  readonly characterLabel?: string;
+  /** 话量基线 (WP41). */
+  readonly speechVolumeBaseline?: number;
+  /** 叙事风格 (WP41). */
+  readonly narrativeStyle?: TurnSessionContext['narrativeStyle'];
+  /** 表达语调 (WP41). */
+  readonly expressionTone?: TurnSessionContext['expressionTone'];
+  /**
+   * 依恋风格 (WP-J P1d): 渲染层的依恋行为指引开关 (anxious 通道).
+   *
+   * ⚠️ 缺省 = 不登记 = 渲染层不消费 = prompt 逐字不变 (零回归).
+   */
+  readonly attachmentStyle?: TurnSessionContext['attachmentStyle'];
+  /**
+   * 台词指纹 (WP-J P2): 渲染层 prompt 的「你说话的味道」块.
+   *
+   * 为什么它必须走**同一条登记路径** (与 attachmentStyle 并排):
+   *   调试面板与自动对练开场都调本方法, 不走 voice 后端那条 open ——
+   *   只在 `engine-stream-backend.adapter` 里登记, 这条路径就静默拿不到,
+   *   渲染层的 `if (spec.verbalVoice)` 直接跳过 (台词指纹白落库).
+   *
+   * ⚠️ 缺省 = 不登记 = 渲染层不消费 = prompt 逐字不变 (零回归).
+   */
+  readonly verbalVoice?: TurnSessionContext['verbalVoice'];
+  /**
+   * 学员账号 id (V2026-11-05 WP64).
+   *
+   * 用途: LLM 审议的计费 / 审计归属 —— 归属登记后, 旁路审议才知道该把这次调用记在谁头上.
+   */
+  readonly userId?: string;
+  /**
+   * 角色种子简述 (依恋风格 + 大五人格) (V2026-11-05 WP64).
+   *
+   * 用途: 审议 prompt 的「角色背景」块.
+   */
+  readonly characterBrief?: string;
+  /**
+   * 稳定落库会话 id (`training_sessions.id`) (V2026-11-09 闸门 trace 查询接口).
+   *
+   * 用途: 登记进归属 → 闸门决策落库时带上**落库口径**的会话 id,
+   *   让 admin 后台能按 dbSessionId 筛 (sessionId 双口径的另一半).
+   *
+   * ⚠️ 缺省 = 没有落库会话 (自动对练) → 闸门记录里写 NULL.
+   */
+  readonly dbSessionId?: string;
+  /**
+   * 本场会话的**场景类型** (V2026-11-11 G-1).
+   *
+   * ⚠️ 缺省 = 不登记 = 审议侧按"查不到场景"处理 (回落 full_simulation,
+   *   即无场景限制) —— 与接入前逐字一致 (零回归).
+   */
+  readonly scenarioType?: DeliberationScenarioType;
 }
 
 /**
@@ -141,62 +242,72 @@ export class EngineTurnService {
    *   表达风格三字段 (WP41): 角色"天生怎么说话" —— 登记进归属, 渲染层每轮从这里读)
    * @returns 会话句柄 id + 业务会话 id
    */
-  open(
+  open(input: OpenEngineSessionInput, options?: EngineTurnOpenOptions): { readonly handleId: string; readonly sessionId: string } {
+    // I-12: 解析本场的同盟门槛覆盖 (无覆盖 → undefined → 内核逐字回落模块 env 单例).
+    //   ⚠️ 来源坏掉不该炸会话开场 —— 捕获后按"无覆盖"处理 (与仓库"失败不炸主流程"纪律同款).
+    const thresholdOverride = this.resolveThresholdOverride(input, options);
+    //   ⚠️ 无覆盖时**原样传 input** (同一引用) —— 内核侧零变化, 逐字零回归.
+    const handle = this.session.openSession(thresholdOverride ? { ...input, allianceThresholds: thresholdOverride } : input);
+    this.registry.register(handle.handleId, this.buildSessionContext(input, options));
+    this.logger.log(`引擎会话已开启 handle=${handle.handleId} session=${input.sessionId}`);
+    return { handleId: handle.handleId, sessionId: handle.sessionId };
+  }
+
+  /**
+   * 组装会话归属 (handleId → 归属).
+   *
+   * ⚠️ **为什么抽出来**: `open()` 里堆了十来条"条件展开", 圈复杂度直接顶到 eslint 上限
+   *   (complexity ≤ 20) —— 再加一个字段就得再抽一次. 抽成独立方法后,
+   *   `open()` 只剩"开句柄 + 登记归属"两件事, 新增字段只改这一处.
+   *
+   * ⚠️ **为什么全部是条件展开** (缺省 = 不登记):
+   *   渲染层靠"字段在不在"区分"这个角色没表态"与"这个角色话量基线是空" ——
+   *   无条件展开成 undefined 会把两者混成一样, 于是 prompt 逐字变了 (零回归被破坏).
+   *
+   * @param input 开场参数
+   * @param options 装配层附加信息
+   * @returns 会话归属
+   */
+  private buildSessionContext(
     input: OpenEngineSessionInput,
     options?: {
       readonly characterLabel?: string;
       readonly speechVolumeBaseline?: number;
       readonly narrativeStyle?: TurnSessionContext['narrativeStyle'];
       readonly expressionTone?: TurnSessionContext['expressionTone'];
-      /**
-       * 依恋风格 (WP-J P1d): 渲染层的依恋行为指引开关 (anxious 通道).
-       *
-       * ⚠️ 缺省 = 不登记 = 渲染层不消费 = prompt 逐字不变 (零回归).
-       */
       readonly attachmentStyle?: TurnSessionContext['attachmentStyle'];
-      /**
-       * 台词指纹 (WP-J P2): 渲染层 prompt 的「你说话的味道」块.
-       *
-       * 为什么它必须走**同一条登记路径** (与 attachmentStyle 并排):
-       *   调试面板与自动对练开场都调本方法, 不走 voice 后端那条 open ——
-       *   只在 `engine-stream-backend.adapter` 里登记, 这条路径就静默拿不到,
-       *   渲染层的 `if (spec.verbalVoice)` 直接跳过 (台词指纹白落库).
-       *
-       * ⚠️ 缺省 = 不登记 = 渲染层不消费 = prompt 逐字不变 (零回归).
-       */
       readonly verbalVoice?: TurnSessionContext['verbalVoice'];
-      /**
-       * 学员账号 id (V2026-11-05 WP64).
-       *
-       * 用途: LLM 审议的计费 / 审计归属 —— 归属登记后, 旁路审议才知道该把这次调用记在谁头上.
-       */
       readonly userId?: string;
-      /**
-       * 角色种子简述 (依恋风格 + 大五人格) (V2026-11-05 WP64).
-       *
-       * 用途: 审议 prompt 的「角色背景」块.
-       */
       readonly characterBrief?: string;
-      /**
-       * 稳定落库会话 id (`training_sessions.id`) (V2026-11-09 闸门 trace 查询接口).
-       *
-       * 用途: 登记进归属 → 闸门决策落库时带上**落库口径**的会话 id,
-       *   让 admin 后台能按 dbSessionId 筛 (sessionId 双口径的另一半).
-       *
-       * ⚠️ 缺省 = 没有落库会话 (自动对练) → 闸门记录里写 NULL.
-       */
       readonly dbSessionId?: string;
+      readonly scenarioType?: DeliberationScenarioType;
     },
-  ): { readonly handleId: string; readonly sessionId: string } {
-    // I-12: 解析本场的同盟门槛覆盖 (无覆盖 → undefined → 内核逐字回落模块 env 单例).
-    //   ⚠️ 来源坏掉不该炸会话开场 —— 捕获后按"无覆盖"处理 (与仓库"失败不炸主流程"纪律同款).
-    const thresholdOverride = this.resolveThresholdOverride(input, options);
-    //   ⚠️ 无覆盖时**原样传 input** (同一引用) —— 内核侧零变化, 逐字零回归.
-    const handle = this.session.openSession(thresholdOverride ? { ...input, allianceThresholds: thresholdOverride } : input);
-    this.registry.register(handle.handleId, {
+  ): TurnSessionContext {
+    return {
       tenantId: input.tenantId,
       sessionId: input.sessionId,
       visitorId: input.visitorId,
+      ...this.buildRenderAttribution(options),
+      ...this.buildDeliberationAttribution(options),
+    };
+  }
+
+  /**
+   * 组装**渲染侧**归属 (角色代号 / 表达风格三字段 / 依恋风格 / 台词指纹).
+   *
+   * ⚠️ **为什么拆成两个方法**: 归属字段有十来个, 全塞一个方法里圈复杂度顶到
+   *   eslint 上限 (complexity ≤ 20) —— 再加一个字段就得再抽一次. 按"渲染侧"
+   *   与"审议侧"切开, 两边各管各的字段, 新增字段只改对应那一个方法.
+   *
+   * ⚠️ **为什么全是条件展开** (缺省 = 不登记):
+   *   渲染层靠"字段在不在"区分"这个角色没表态"与"这个角色话量基线是空" ——
+   *   无条件展开成 undefined 会把两者混成一样, 于是 prompt 逐字变了 (零回归被破坏).
+   *
+   * @param options 装配层附加信息
+   * @returns 渲染侧归属片段
+   */
+  private buildRenderAttribution(options?: EngineTurnOpenOptions): Partial<TurnSessionContext> {
+    return {
       ...(options?.characterLabel ? { characterLabel: options.characterLabel } : {}),
       // WP41: 表达风格三字段 —— 条件展开: 装配层没给就不登记, 渲染层分得清
       //   "这个角色没表态"与"这个角色话量基线是空" (零回归: 没登记 = prompt 逐字不变).
@@ -207,14 +318,29 @@ export class EngineTurnService {
       ...(options?.attachmentStyle === undefined ? {} : { attachmentStyle: options.attachmentStyle }),
       // WP-J P2: 台词指纹登记 —— 条件展开, 缺省不登记 (零回归: prompt 逐字不变).
       ...(options?.verbalVoice === undefined ? {} : { verbalVoice: options.verbalVoice }),
+    };
+  }
+
+  /**
+   * 组装**审议侧**归属 (学员账号 / 角色简述 / 落库会话 id / 场景类型).
+   *
+   * ⚠️ **为什么与渲染侧分开**: 审议侧的四个字段各有各的"缺省语义" ——
+   *   学员账号缺省 = 旁路审议跳过这一轮; 场景类型缺省 = 不施加场景红线.
+   *   混进渲染侧那一堆里, 后面加字段的人很容易顺手抄错缺省语义.
+   *
+   * @param options 装配层附加信息
+   * @returns 审议侧归属片段
+   */
+  private buildDeliberationAttribution(options?: EngineTurnOpenOptions): Partial<TurnSessionContext> {
+    return {
       // WP64: 学员账号 + 角色简述 —— 条件展开 (缺省 = 旁路审议跳过这一轮, 不影响会话).
       ...(options?.userId ? { userId: options.userId } : {}),
       ...(options?.characterBrief ? { characterBrief: options.characterBrief } : {}),
       // V2026-11-09: 落库会话 id (闸门决策落 MySQL 真相源用) —— 条件展开 (缺省 = 不带).
       ...(options?.dbSessionId ? { dbSessionId: options.dbSessionId } : {}),
-    });
-    this.logger.log(`引擎会话已开启 handle=${handle.handleId} session=${input.sessionId}`);
-    return { handleId: handle.handleId, sessionId: handle.sessionId };
+      // 场景类型 (V2026-11-11 G-1) —— 条件展开 (缺省 = 不带 = 审议侧不施加场景红线).
+      ...(options?.scenarioType ? { scenarioType: options.scenarioType } : {}),
+    };
   }
 
   /**

@@ -24,8 +24,16 @@ import { Logger } from '@nestjs/common';
 
 import { evaluateGate } from './deliberation-gate.evaluator.js';
 import type { DeliberationGateQuotas } from './deliberation-gate.quotas.js';
-import type { DeliberationGateTrace } from './deliberation-gate.trace.js';
-import type { GateConfig, GateExecutionOutcome, GateInput, GateMode, GateOutput, GatePolicy } from './deliberation-gate.types.js';
+import { EMPTY_GATE_THRESHOLDS, type DeliberationGateTrace } from './deliberation-gate.trace.js';
+import type {
+  GateConfig,
+  GateExecutionOutcome,
+  GateInput,
+  GateMode,
+  GateOutput,
+  GatePolicy,
+  GateRuleOnlySkipInput,
+} from './deliberation-gate.types.js';
 
 /**
  * 闸门服务的装配入参.
@@ -122,6 +130,41 @@ export class DeliberationGateService {
       return;
     }
     void this.deps.quotas.resetCircuit();
+  }
+
+  /**
+   * 记一条**结构性跳过** 留痕 (纯规则态: 本场压根不该跑审议).
+   *
+   * ⚠️ **不抛** (与本类 evaluate 同款纪律): 留痕是观察面, 写不进去不是会话失败.
+   *   三写 (Redis / 日计数 / MySQL) 各自 try/catch —— 见 `DeliberationGateTrace.record`.
+   *
+   * ⚠️ **不记配额/冷却**: 结构性跳过压根没跑审议, 不该消耗"每会话跑几次"的额度 ——
+   *   否则纯规则场次会把额度"占满", 后面真要跑的时候反而跑不了.
+   *
+   * @param input 留痕入参
+   */
+  async recordRuleOnlySkip(input: GateRuleOnlySkipInput): Promise<void> {
+    const startedAt = Date.now();
+    try {
+      await this.deps.trace.record({
+        sessionId: input.sessionId,
+        dbSessionId: input.dbSessionId ?? null,
+        userId: input.userId ?? null,
+        turnIndex: input.turnIndex,
+        mode: 'rule_only',
+        decision: 'skip',
+        reason: 'rule_only_skip',
+        deltaSummary: {},
+        // 结构性跳过没做判定 → 没有阈值 (空对象, 不是零值三元组).
+        thresholdUsed: EMPTY_GATE_THRESHOLDS,
+        elapsedMs: Date.now() - startedAt,
+        recordedAt: startedAt,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `[deliberation_gate_rule_only_skip_failed] sessionId=${input.sessionId} turn=${input.turnIndex}: ${messageOf(error)}`,
+      );
+    }
   }
 
   /**

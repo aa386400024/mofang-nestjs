@@ -135,6 +135,7 @@ import {
 } from '../../engine-core/index.js';
 import type { ChatMessage } from '../../llm/common/interfaces/chat-provider.interface.js';
 import { buildDeliberationInput } from '../deliberation/deliberation-input.js';
+import type { DeliberationScenarioType } from '../deliberation/deliberation-mode.config.js';
 import type { DeliberationInput, DeliberationMode } from '../deliberation/deliberation-types.js';
 import type { DeliberationEffectPort } from '../deliberation/llm-deliberation-hook.js';
 import { computeRuleDelta, type DeliberationShadowPort } from '../deliberation/llm-deliberation.service.js';
@@ -223,6 +224,18 @@ export interface TurnSessionContext {
    * 缺省 = 不带 = 渲染层不消费 = prompt 与 WP-J P1c 之前**逐字不变** (零回归).
    */
   readonly attachmentStyle?: RenderSpec['attachmentStyle'];
+  /**
+   * 本场会话的**场景类型** (可选).
+   *
+   * ⚠️ **为什么登记在会话归属里** (与 characterLabel 同一处):
+   *     归属登记表是**装配层唯一同时知道"业务会话是谁"与"这场用什么跑"的位置** ——
+   *     场景类型是"这场对练的性质" (考核 / 自由练习 / 全真执业), 整场不变.
+   *
+   * ⚠️ **缺省 = 不带 = 不参与场景红线**:
+   *     归属里没登记场景 → 审议侧按"查不到场景"处理, 回落 full_simulation
+   *     (即无场景限制), 行为与接入前逐字一致 (零回归).
+   */
+  readonly scenarioType?: DeliberationScenarioType;
 }
 
 /**
@@ -781,8 +794,14 @@ export class TurnRenderOrchestrator {
   ): void {
     const shadow = this.deps.deliberation;
     const effect = this.deps.deliberationHook;
-    // 两种审议都没装 → 什么都不做 (连"上一轮快照"都不记, 与装审议之前**逐字一致**).
-    if (!shadow && !effect) return;
+    // 两种审议都没装 → 本场是**全局纯规则态** (装配层只在 shadow / llm_active 模式下挂端口).
+    //   ⚠️ **G-3**: 留一条结构性 skip 痕迹再返回 —— 不留痕的话看板分不清
+    //   "该跑没跑" (装配坏了, 要修) 与 "本就不该跑" (纯规则态, 正常).
+    //   ⚠️ 留痕走 fire-and-forget + .catch(warn): 观察面**绝不绑架主流程**.
+    if (!shadow && !effect) {
+      this.fireRuleOnlySkip(this.resolveContext(handleId), output.turnIndex);
+      return;
+    }
     // 本轮开始时的快照 = 上一轮结束时记下的那份 (首轮没有 → 跳过).
     const baseSnapshot = this.lastSnapshots.get(handleId);
     // 记下本轮结束后的快照, 供下一轮当"起始快照"用.
@@ -791,6 +810,14 @@ export class TurnRenderOrchestrator {
 
     const context = this.resolveContext(handleId);
     if (!context) return;
+    // ⚠️ **G-1 场景红线 (考核场景恒 rule_only)**: 任何全局模式下都不跑 LLM 审议.
+    //   放在这里 (而不是只靠钩子内部那道闸) 是因为**影子路径也要挡住** ——
+    //   影子端口在全局 shadow 模式下是挂着的, 它同样会发 LLM 请求.
+    //   钩子内部那道判定只管生效路径 (produce), 挡不住影子路径 —— 两处都要.
+    if (context.scenarioType === 'exam') {
+      this.fireRuleOnlySkip(context, output.turnIndex);
+      return;
+    }
     const userId = (context.userId ?? '').trim();
     if (!userId) return;
 
@@ -827,6 +854,36 @@ export class TurnRenderOrchestrator {
     void this.runGatedDeliberation(round).catch((error: unknown) => {
       warn(`[gate] 审议闸门旁路异常 (已忽略): ${errorMessage(error)}`);
     });
+  }
+
+  /**
+   * 记一条**结构性跳过** 留痕 (纯规则态: 本场压根不该跑审议) —— fire-and-forget.
+   *
+   * ⚠️ **绝不影响主流程**:
+   *   · 闸门没装 / 没实现该方法 → 直接跳过 (缺省 = 不留痕, 不报错);
+   *   · 闸门缺席 → 没有归属可写 → 直接跳过;
+   *   · 写失败 → 只 warn (观察面挂了不该炸对练).
+   *
+   * ⚠️ **为什么留痕**: 纯规则模式下决策表恒 0 行 —— 看板分不清"该跑没跑"
+   *   (装配坏了, 该修) 与 "本就不该跑" (纯规则态 / 考核场景, 正常).
+   *
+   * @param context 会话归属 (拿不到 → 不留痕)
+   * @param turnIndex 本轮轮次
+   */
+  private fireRuleOnlySkip(context: TurnSessionContext | undefined, turnIndex: number): void {
+    const gate = this.deps.gate;
+    if (!gate || typeof gate.recordRuleOnlySkip !== 'function') return;
+    if (!context) return;
+    void gate
+      .recordRuleOnlySkip({
+        sessionId: context.sessionId,
+        dbSessionId: context.dbSessionId ?? null,
+        userId: context.userId ?? null,
+        turnIndex,
+      })
+      .catch((error: unknown) => {
+        warn(`[gate] 结构性跳过留痕失败 (已忽略): ${errorMessage(error)}`);
+      });
   }
 
   /**

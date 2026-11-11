@@ -30,9 +30,13 @@ export class DebugTurnEngineAdapter implements TurnEnginePort {
 
   /** @inheritdoc */
   async open(characterSlug: string, scenarioType: ScenarioType = 'full_simulation'): Promise<{ readonly debugSessionId: string }> {
-    const created = await this.debugSession.createSession(characterSlug);
-    // 考核场景硬隔离: 日志标记, 实际 rule_only 强制由 InferenceFingerprintService +
-    // 审议层 scenario route 共同保证. 这里只是记录"本场声明了什么场景".
+    // ⚠️ **场景必须透传下去** (V2026-11-11 G-1): 不透传 = 引擎侧不知道本场是考核场景
+    //   → 审议运行时按"查不到场景"回落 full_simulation → 考核场次照样跑 LLM 审议
+    //   (逐字复现没了), 而落库指纹却写着 rule_only —— **记录说谎**。
+    //   场景要从这里一路登记进引擎归属表, 审议钩子才能按 sessionId 反查到它。
+    const created = await this.debugSession.createSession(characterSlug, scenarioType);
+    // 考核场景硬隔离: 日志标记, 实际 rule_only 强制由审议层 resolveSessionEffectiveMode
+    // (场景红线首条命中) 与 InferenceFingerprintService (同一判定函数) 共同保证.
     if (scenarioType === 'exam') {
       this.logger.log(`[debug_engine] 考核场景会话 session=${created.sessionId} — 强制 rule_only`);
     }

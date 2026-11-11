@@ -178,6 +178,13 @@ export function buildGateStatsDateKeys(days: number, now: Date): string[] {
  *
  * ⚠️ **数组与 dates 一一对应** (等长) —— 看板画趋势图靠的就是"下标对齐",
  *   长度不齐的数组会让图错位 (而错位的图比没有图更危险).
+ *
+ * ⚠️ **byMode 恒为 `{shadow, effect}` 两键** (V2026-11-11 G-3 决策):
+ *     结构性跳过会写 `mode=rule_only` 的行, 但**不新增 byMode 桶** ——
+ *     响应契约不能为了新枚举悄悄变形 (前端按固定两键取数, 多一桶就崩).
+ *     rule_only 行照样计入 `totalDecisions` 与 `byReason.rule_only_skip`,
+ *     列表端点也支持 `?mode=rule_only` 过滤 —— 要不要在 byMode 加桶,
+ *     登记为**前端后续单**, 不在本单做.
  */
 export interface GateStatsResponse {
   /** 日期键列表 (Asia/Shanghai, `YYYY-MM-DD`). */

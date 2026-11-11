@@ -676,6 +676,12 @@ export class PracticeRunnerService implements OnModuleInit {
         exitReason: 'error',
         batchId: input.batchId ?? null,
         errorMessage,
+        // V2026-11-11 (G-2): 失败场次也记 prompt 模板版本.
+        //   ⚠️ **只补这一个字段** —— 模型 / 种子 / 角色版本 / 审议模式 / 引擎版本
+        //   在引擎没开起来时**无定义** (引擎没开 = 没有"跑的模型"与"实际模式"),
+        //   硬填一个反而是撒谎. prompt 模板版本不同: 它是静态文件的指纹,
+        //   与引擎能否开启无关 —— 所以失败行也写得出来, 也**应该**写.
+        promptVersion: this.fingerprintService.resolvePromptVersionOnly(),
       });
       return {
         failed: true,
@@ -710,6 +716,10 @@ export class PracticeRunnerService implements OnModuleInit {
       scenarioType,
       input.batchId ?? null,
       practiceSessionId,
+      // ⚠️ **引擎侧 session id** (V2026-11-11 G-1): 审议模式的判定必须与运行时
+      //   钩子用**同一个 id** (白名单匹配的是引擎侧口径) —— 否则落库与运行时
+      //   会出现"记录说谎" (库写 llm_active, 实际名单外没跑).
+      debugSessionId,
     );
     await this.persistSession(practiceSessionId, {
       debugSessionId,

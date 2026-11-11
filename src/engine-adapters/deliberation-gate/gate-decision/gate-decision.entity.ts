@@ -76,8 +76,13 @@ export class GateDecisionEntity {
   /** 决策理由 (枚举值). */
   @Column({ type: 'varchar', length: 64 }) reason!: string;
 
-  /** 当时用的阈值 ({ alliance, resistance, calm }). */
-  @Column({ type: 'json', name: 'threshold_used' }) thresholdUsed!: GateThresholds;
+  /**
+   * 当时用的阈值 ({ alliance, resistance, calm }).
+   *
+   * ⚠️ **可为 `{}`** (V2026-11-11 G-3): 结构性跳过 (`mode=rule_only`) 压根没做判定,
+   *   没有阈值 —— 写空对象, 不伪造零值三元组.
+   */
+  @Column({ type: 'json', name: 'threshold_used' }) thresholdUsed!: GateThresholds | Record<string, never>;
 
   /** 逐维 delta 摘要 (数值). */
   @Column({ type: 'json', name: 'delta_summary', nullable: true }) deltaSummary!: Record<string, number> | null;
