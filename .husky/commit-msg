@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Commit message lint (大厂标配 — 强制 conventional commit 格式)
 # 例: feat: add OAuth Google login
 #     fix: jwt blacklist memory leak
