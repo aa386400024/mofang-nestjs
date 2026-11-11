@@ -101,30 +101,31 @@
 
 - 本仓库 `packageManager=pnpm`，**一律用 pnpm 跑脚本/二进制，不要用裸 `npx`**（裸 npx 启动慢，且会绕过缓存）。
 - 跑 package.json 脚本用 `pnpm <script>`（如 `pnpm lint`）；直接跑二进制用 `pnpm exec <bin> <args>`（如 `pnpm exec tsc ...`）。
-- **跑闸门前先确认机器干净**：没有 `nest start --watch` / 后台 `vite dev` / `dist/app` 在跑。实测同一仓库同一代码，长驻 watch 进程在时全量 vitest 从 148s 恶化到 1265–1512s（10 倍），测出来的数字不可用于验收。
+- **跑闸门前先确认机器干净**：没有 `nest start --watch` / 后台 `vite dev` / `dist/app` 在跑。实测 `nest start --watch` 连跑两天占 7.7k s CPU、1.5 GB 常驻，全量 vitest 从 1102 s 恶化到 1512 s。
+- **跑闸门前先确认盘不慢**：本机 E: 盘读文件内容约 90 ms/个（C:/D: 0.3 ms），`require('@nestjs/common')` 冷加载要 14 s。十秒体检法：用 node 顺序读 `node_modules/@nestjs/common` 下 200 个 `.js`，耗时应在 100 ms 量级；若是秒级，先把仓库目录加入安全软件信任区（或迁盘），否则闸门数字全部无效。详见 `gate-performance-remediation-2026-11-11.md` §1.5。
 
 ### 5.1 日常内循环（高频，定向，秒~分钟级）
 
-| 目的                             | 命令                                                      | 实测耗时                       |
-| -------------------------------- | --------------------------------------------------------- | ------------------------------ |
-| 语法/明显缺陷（全仓）            | `pnpm lint:fast`（oxlint，1295 文件）                     | **2.1s**                       |
-| 需要类型感知的快速一遍           | `pnpm lint:deep`（`oxlint --type-aware`）                 | **26.8s**                      |
-| 类型（增量，走 `tsc -b` 缓存）   | `pnpm typecheck`                                          | **~2.5s（热）**，改文件后 ~3s  |
-| 单个测试文件                     | `pnpm exec vitest run <file.spec.ts>`                     | 秒级~十几秒                    |
-| 受影响测试                       | `pnpm test:changed` / `pnpm test:related -- <src/xxx.ts>` | 分钟级以内                     |
-| 全量测试的快速近似（**非权威**） | `pnpm test:fast`（`isolate:false`）                       | 干净环境约为权威全量的一半以下 |
+| 目的                             | 命令                                                      | 实测耗时                                                       |
+| -------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------- |
+| 语法/明显缺陷（全仓）            | `pnpm lint:fast`（oxlint，1295 文件）                     | **2.1s**                                                       |
+| 需要类型感知的快速一遍           | `pnpm lint:deep`（`oxlint --type-aware`）                 | **26.8s**                                                      |
+| 类型（增量，走 `tsc -b` 缓存）   | `pnpm typecheck`                                          | **~2.5s（热）**，改文件后 ~3s                                  |
+| 单个测试文件                     | `pnpm exec vitest run <file.spec.ts>`                     | 秒级~十几秒                                                    |
+| 受影响测试                       | `pnpm test:changed` / `pnpm test:related -- <src/xxx.ts>` | 分钟级以内                                                     |
+| 全量测试的快速近似（**非权威**） | `pnpm test:fast`（`isolate:false`）                       | 同一台机器上约为权威全量的 1/5~1/7（10 例 env 泄漏假失败已知） |
 
 - `pnpm test:fast` 会因 spec 之间 `process.env` 泄漏出现假失败（已知 10 例，登记在 backlog）；它只用来"快速看有没有大面积挂"，**不作为交付证据**，交付证据必须用 `pnpm test`。
 
 ### 5.2 收尾全量闸门（每个任务只跑一次，交付前后台执行，可同时做别的事）
 
-| 闸门        | 命令                                                     | 要求                                                            | 实测耗时                               |
-| ----------- | -------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------- |
-| 类型        | `pnpm typecheck`（`tsc -b tsconfig.check.json`，走缓存） | 0 error；怀疑缓存失真时改跑 `pnpm typecheck:full`（无缓存全量） | 热 ~2.5s，冷 87s，增删文件后 ~32s      |
-| Lint        | `pnpm lint`（ESLint type-aware，权威，不降级）           | 0 error，记 warning 数                                          | 冷 394.9s / 热 69.3s                   |
-| 测试        | `pnpm test`                                              | 全绿，记用例总数与墙钟                                          | 干净环境 140.29s（186 文件 / 3008 例） |
-| engine-core | `git diff --stat HEAD -- src/engine-core`                | 空（或写明例外批准）                                            | 即时                                   |
-| 任务特有    | {{如 seed 连跑两次幂等、边界 spec、连库抽查}}            | {{要求}}                                                        | —                                      |
+| 闸门        | 命令                                                     | 要求                                                                       | 实测耗时                               |
+| ----------- | -------------------------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------- |
+| 类型        | `pnpm typecheck`（`tsc -b tsconfig.check.json`，走缓存） | 0 error；怀疑缓存失真时改跑 `pnpm typecheck:full`（无缓存全量）            | 热 ~2.5s，冷 87s，增删文件后 ~32s      |
+| Lint        | `pnpm lint`（ESLint type-aware，权威，不降级）           | 0 error，记 warning 数                                                     | 冷 394.9s / 热 69.3s                   |
+| 测试        | `pnpm test`                                              | 全绿，记用例总数与墙钟；**同时记录机器状态**（是否干净、盘读延迟是否正常） | 停机后仍 1102.6s（E: 盘读税，见 §5.0） |
+| engine-core | `git diff --stat HEAD -- src/engine-core`                | 空（或写明例外批准）                                                       | 即时                                   |
+| 任务特有    | {{如 seed 连跑两次幂等、边界 spec、连库抽查}}            | {{要求}}                                                                   | —                                      |
 
 ### 5.4 验收闸门（回收方：定向 + 范围核对，**不重跑全量**）
 
