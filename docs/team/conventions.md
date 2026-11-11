@@ -34,8 +34,9 @@
 
 ### 1.2 不写前端代码
 
-- ❌ 不碰 `admin-dashboard/`（Vue3 SPA，前端另一个 AI 管）
+- ❌ 不碰 `admin-dashboard/`（Vue3 SPA，前端另一个 AI 管）；任务单明确授权时只动契约层（共享类型 / API client / 只读展示接线），交互样式归前端流程
 - ❌ 不碰 Flutter 客户端代码
+- `admin-dashboard/**` 不在后端 `tsconfig` 内、不进后端 lint-staged 的 eslint / prettier；后端 AI 不跑前端构建命令（`vue-tsc` / `vite build` 由前端流程执行）。详见 `wp-task-template.md` §2 与 §5.3
 
 ### 1.3 不跑前端命令 + 后端命令规范
 

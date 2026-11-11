@@ -8,6 +8,7 @@
 ## 0. 你在哪（项目一句话）
 
 心塑 App 的后端引擎：咨询师用 Flutter 客户端跟 AI 心理咨询来访做语音对练。
+
 - 内核纯层在 `src/engine-core/`（BDI 决策、记忆、轨迹、伦理、渲染契约）—— **纯函数、零网络、零 prompt、零 @nestjs/**
 - 适配/装配层在 `src/engine-adapters/`（把纯层接成真实可用的对练：LLM 调用、WS 流式、DB 角色池、PsyGUARD 探测）
 - 业务层在 `src/voice/` `src/counselor/` 等（WS 会话、语音网关、报告）
@@ -20,6 +21,7 @@
 > 🆕 **2026-11-05 新增 6 条 WP（WP63–WP68）**：混合式 BDI PoC 组，基于 Coze 下线趋势判断的架构方向校准。详见 [`../architecture/hybrid-bdi-agent-blueprint-v1.0.md`](../architecture/hybrid-bdi-agent-blueprint-v1.0.md)。这组 WP 全部在适配层做，engine-core 零改动。
 >
 > **Phase2 已开工（2026-11-03）**：
+>
 > - WP28（PsyGUARD 临时值回改正式值）✅ → [`completed/phase2/engine-wp28-psyguard-production-values-implementation-2026-11-03.md`](completed/phase2/engine-wp28-psyguard-production-values-implementation-2026-11-03.md)
 > - WP34（P1 人格调节算子）✅ → [`completed/phase2/engine-wp34-personality-modulator-operators-implementation-2026-11-03.md`](completed/phase2/engine-wp34-personality-modulator-operators-implementation-2026-11-03.md)
 > - WP36（跨会话间隔自然衰减）✅ → [`completed/phase2/engine-wp36-cross-session-decay-implementation-2026-11-03.md`](completed/phase2/engine-wp36-cross-session-decay-implementation-2026-11-03.md)
@@ -112,6 +114,7 @@
 - 没有文件 = 没有新活，不要自己找事做，等用户派新任务单
 
 > ℹ️ **pending/ 里的文件分类**（2026-11-08 起）：
+>
 > - `phase2-overview-2026-11-03.md` / `phase2-wp-list-2026-11-03.md` —— **常驻母版**（Phase2 总览 + 登记表），只读不改；
 > - `phase2.5-overview-2026-11-08.md` —— **Phase2.5 总览**，只读；
 > - `phase2.5-wp-list-2026-11-08.md` —— **Phase2.5 WP 登记表**，**每个 WP 交付后更新那一行**（状态 ✅ + 交付记录链接，§六 导航里就是这么定义的）；
@@ -139,23 +142,25 @@
 
 **Phase1 全部交付在 `completed/phase1/` 下，共 26 个 WP + 2 轮封版审查。** 需要参考 Phase1 的某个设计决策时，直接翻对应目录的交付记录：
 
-| 你要查什么 | 去哪找 |
-|---|---|
-| 引擎核心逻辑（BDI / 记忆 / 轨迹 / 伦理） | `completed/phase1/wp0-wp5-core/` |
-| LLM 渲染 / WS 流式 / 角色池 / PsyGUARD / resume 接线 | `completed/phase1/wp6-wp12-wiring/` |
-| 风险处置 / delta cap / 幂等 / 报告 / 限流 / 重连 / P2 全修 | `completed/phase1/wp14-wp24-augment/` |
-| 认证密码 | `completed/phase1/auth-and-password/` |
-| 早期杂项（历史列表 / 来访者池） | `completed/phase1/early-misc/` |
-| Phase1 整体状态 / WP 清单 / 依赖关系 | `completed/phase1/phase1-backlog-archived-2026-11-03.md` |
-| 封版审查发现了哪些问题、怎么修的 | `audits/wp25-phase1-audit-report-2026-11-03.md` |
+| 你要查什么                                                 | 去哪找                                                   |
+| ---------------------------------------------------------- | -------------------------------------------------------- |
+| 引擎核心逻辑（BDI / 记忆 / 轨迹 / 伦理）                   | `completed/phase1/wp0-wp5-core/`                         |
+| LLM 渲染 / WS 流式 / 角色池 / PsyGUARD / resume 接线       | `completed/phase1/wp6-wp12-wiring/`                      |
+| 风险处置 / delta cap / 幂等 / 报告 / 限流 / 重连 / P2 全修 | `completed/phase1/wp14-wp24-augment/`                    |
+| 认证密码                                                   | `completed/phase1/auth-and-password/`                    |
+| 早期杂项（历史列表 / 来访者池）                            | `completed/phase1/early-misc/`                           |
+| Phase1 整体状态 / WP 清单 / 依赖关系                       | `completed/phase1/phase1-backlog-archived-2026-11-03.md` |
+| 封版审查发现了哪些问题、怎么修的                           | `audits/wp25-phase1-audit-report-2026-11-03.md`          |
 
 **什么时候该翻 Phase1 文档：**
+
 - 任务单里提到某个 WP 的编号（如"WP15 的 cap 逻辑要扩展"）→ 翻对应目录的交付记录
 - 拿不准某个设计决策的原因 → 翻对应交付记录的 §4「关键设计决策」
 - 改 engine-core 前 → 先翻 `completed/phase1/wp0-wp5-core/` 确认边界
 - 改 WS 协议前 → 翻 `wp23` 交付记录（断连重连追平逻辑）
 
 **Phase1 关键红线（已由机器断言守住）：**
+
 - `src/engine-core/**` 零 `process.env`、零 `globalThis`、零 NestJS（`boundary.spec.ts` 11 条断言）
 - delta cap 参数走注入（`DeltaCapConfig` 端口），不由内核读 env
 - 轨迹 delta 也走 cap（本轮总 delta = 事件 + 剧本，统一过一次）
@@ -189,15 +194,15 @@ docs/worklog/
 
 **不要开工前把这些全读了——context 会爆。** 遇到口径歧义、拿不准边界时，再翻对应文档。
 
-| 文档 | 什么时候读 |
-|---|---|
-| `docs/architecture/engine-endstate-blueprint-v1.0.md` | 拿不准方向对不对、想知道最终要做成什么样时——北极星参考，不是任务单 |
-| `docs/architecture/hybrid-bdi-agent-blueprint-v1.0.md` | 做 WP63–WP68 混合式 BDI PoC 前必读——方向校准、12 个边界问题、三层分离架构 |
-| `docs/architecture/ai-engine-roadmap-v1.1.md` | 任务单里没写清楚"为什么这么做"、或者你拿不准某个设计决策的上游依据时 |
-| `docs/reference/ai-simulation-blueprint-v1.1.md` | 蓝图原始愿景，roadmap 冲突时以 roadmap 为准 |
-| `docs/reference/bdi-cognitive-engine-principles-v1.0.md` | 改 BDI 算子/记忆/轨迹相关逻辑时，确认设计原则 |
-| `docs/reference/architecture-blindspot-fill-v1.0.md` | 改伦理/安全/兜底相关逻辑时，确认盲区补全口径 |
-| `docs/architecture/microservices-evolution-plan.md` | 写新功能前看一眼 §2 的 5 条边界规则——现在不拆微服务，但代码要保持将来好拆 |
+| 文档                                                     | 什么时候读                                                                |
+| -------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `docs/architecture/engine-endstate-blueprint-v1.0.md`    | 拿不准方向对不对、想知道最终要做成什么样时——北极星参考，不是任务单        |
+| `docs/architecture/hybrid-bdi-agent-blueprint-v1.0.md`   | 做 WP63–WP68 混合式 BDI PoC 前必读——方向校准、12 个边界问题、三层分离架构 |
+| `docs/architecture/ai-engine-roadmap-v1.1.md`            | 任务单里没写清楚"为什么这么做"、或者你拿不准某个设计决策的上游依据时      |
+| `docs/reference/ai-simulation-blueprint-v1.1.md`         | 蓝图原始愿景，roadmap 冲突时以 roadmap 为准                               |
+| `docs/reference/bdi-cognitive-engine-principles-v1.0.md` | 改 BDI 算子/记忆/轨迹相关逻辑时，确认设计原则                             |
+| `docs/reference/architecture-blindspot-fill-v1.0.md`     | 改伦理/安全/兜底相关逻辑时，确认盲区补全口径                              |
+| `docs/architecture/microservices-evolution-plan.md`      | 写新功能前看一眼 §2 的 5 条边界规则——现在不拆微服务，但代码要保持将来好拆 |
 
 **原则：README + 当前任务单 = 99% 够用。** 上面这些是"字典"，遇到生字才翻。
 
@@ -208,7 +213,9 @@ docs/worklog/
 ```
 □ 我读完了 pending/ 里的任务单全文
 □ 我确认遵守 engine-core 分层边界（纯计算/纯出口归内核；NestJS/IO/网络/prompt 不进内核；boundary.spec.ts 不改；要动算子逻辑走例外批准）
+□ 我已核对改动范围（后端目录 / admin-dashboard 契约层 / 纯文档）与对应闸门（前端目录不走后端 lint 与 tsconfig）
 □ 我知道交付记录要写什么格式（见 team/conventions.md）
 □ 我知道交付后要移文件
 ```
+
 全勾了再动手。
