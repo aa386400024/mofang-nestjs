@@ -51,7 +51,7 @@
 | 类型           | `pnpm type-check`（`vue-tsc --build`）                                                                    | 2         | 51 条**既有**类型债（其他视图 / 组件）；本单文件 0 新增错误：`AnnotationTool.vue`、`api/types.ts`、`client.ts` 的 `qualityAnnotation` 段均无报错。`client.ts:237 / :258` 两条为既有 `evalReports / gateTraces` 代码的 `Object.entries` cast，非本单引入 |
 | 构建           | `pnpm build-only`（`vite build`）                                                                         | 0         | 4731 modules transformed；`AnnotationTool` chunk 23.79 kB（gzip 8.74 kB）；built in 8.27s                                                                                                                                                               |
 | engine-core    | `git diff --stat HEAD -- src/engine-core`                                                                 | —         | 空（0 行）                                                                                                                                                                                                                                              |
-| 手工浏览器回归 | 三条路径：① 不传 batchId 与改造前一致；② 选批次队列 / 进度 / 一致性随批切换；③ `missing` 与不可比横幅可见 | —         | **未执行**：本地无在线后端会话，列为遗留人工复核项（见 §7）                                                                                                                                                                                             |
+| 手工浏览器回归 | 三条路径：① 不传 batchId 与改造前一致；② 选批次队列 / 进度 / 一致性随批切换；③ `missing` 与不可比横幅可见 | —         | ✅ **已在线回归**（2026-11-11，用户现场三路径走查，未发现问题）                                                                                                                                                                                         |
 
 ## 5. 三态与批次切换实现对照
 
@@ -72,8 +72,8 @@
 
 ## 7. 遗留项与建议人工复核
 
-1. **契约复核**：WP-N 后端交付契约文档后，逐条对照 D1–D7 与文档 §D2–D4；字段不一致时先同步类型与 client。
-2. **浏览器手工回归**：起本地后端后走查 §4 三条路径，重点看批次切换不串口径、两种横幅文案与禁用态。
+1. **契约复核**：✅ 已在后端验收 §4 逐条核对（7 路由、行视图 22 字段、枚举码、可比性判定、`id` 可空性与前端 `types.ts` / client 对齐）。
+2. **浏览器手工回归**：✅ 已完成（2026-11-11，用户现场走查 §4 三条路径，批次切换不串口径、两种横幅文案与禁用态均正常，未发现问题）。
 3. **既有类型债**：51 条 vue-tsc 错误另立 backlog（`AutoPractice.vue` / `DebugTracePanel.vue` / `SessionDetail.vue` / `CharacterDetail.vue` 等），不在本单清理。
 4. **无效批次查看**：如后续需要在标注台查看 `valid=false` 批次，再在选择器加 `includeInvalid` 开关。
 
