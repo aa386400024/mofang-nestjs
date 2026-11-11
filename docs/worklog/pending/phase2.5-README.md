@@ -79,6 +79,12 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 | **批次回归追踪设施（WP-K）**  | ✅ **已交付**（2026-11-11，企业级）：指标字典（单一真相源）+ 分段配置指纹（可归因）+ 快照 schema v1（version/血缘/覆盖率）+ 回归四态判定（含 `incomparable`，5 条不可比条件）+ 判据代码化 + CLI（可进 CI）+ 3 端点 + API 契约；真库 8 列+2 索引已建、9 批次真实回填、36 新用例；自查 K-1/K-2/K-4 已修，K-3 记演进 → [任务单](../completed/phase2.5/wp-k-batch-regression-tracking-task-2026-11-11.md) · [交付记录](../completed/phase2.5/wp-k-batch-regression-tracking-implementation-2026-11-11.md)                                                                                                                                                                                                                                                                  |
 | **临床增量表纠正（WP-L）**    | ✅ **已交付**（2026-11-11，实改 24 处数值）：拆 `DELTA_TABLE` 的 trust↔resistance 配平 + `sensitive_touch` 代价上调 + 12 轮档验收改 intake 口径（探索移 40 轮档）；tsc/eslint 0 错、boundary 12 绿；**16 场重跑通过**（16/16 completed、llm_call_ratio=1.0、intake 验收 PASS、语桐 depth 不触底）→ [任务单](../completed/phase2.5/wp-l-clinical-delta-and-acceptance-correction-task-2026-11-11.md) · [交付记录](../completed/phase2.5/wp-l-clinical-delta-and-acceptance-correction-2026-11-11.md) · [新 intake 口径](phase2.5-intake-acceptance-criteria-2026-11-11.md)                                                                                                                                                                                              |
 
+### 3.0 工程工具链技术债（2026-11-11 提交时发现，不阻塞当前，记此待办）
+
+1. **husky `commit-msg` 旧格式将在 v10 失败**：`.husky/commit-msg` 仍含 `#!/usr/bin/env sh` 与 `. "$(dirname -- "$0")/_/husky.sh"` 两行，需删除（小改动，独立一次提交）。
+2. **scripts 下 5 个历史文件共 67 个 lint 存量问题**：`eval-runner.ts`、`stagnation-calibration.ts`、`seed-verbal-voice.ts`、`visitor-quality-audit.ts`、`visitor-quality-lexicon.ts`，含函数复杂度过高、hardcoded IP、prettier、array-type、prefer-set-has 等。当前这些文件是 clean 的，不触发 lint-staged；但**一旦修改其中任一文件，会被这些存量问题阻塞提交**。本次已在 eslint 加 `scripts/**/*.ts` 的 `disableTypeChecked` override 解决"project service 解析错误"，但非类型的存量规则问题仍待分批清理。
+3. **commitlint 未安装**：现在只有 conventional commits 格式提示、不强制；如需强约束再装 `@commitlint/cli`。
+
 ### 3.1 必须先知道的转折（2026-11-09 晚）
 
 三批自动对练（合计 1034 场）跑完后，对归档逐字稿做全量复算，发现一个**推翻既有结论**的事实：
