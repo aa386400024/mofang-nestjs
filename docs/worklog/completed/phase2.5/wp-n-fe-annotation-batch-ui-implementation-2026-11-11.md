@@ -74,7 +74,7 @@
 
 1. **契约复核**：✅ 已在后端验收 §4 逐条核对（7 路由、行视图 22 字段、枚举码、可比性判定、`id` 可空性与前端 `types.ts` / client 对齐）。
 2. **浏览器手工回归**：✅ 已完成（2026-11-11，用户现场走查 §4 三条路径，批次切换不串口径、两种横幅文案与禁用态均正常，未发现问题）。
-3. **既有类型债**：51 条 vue-tsc 错误另立 backlog（`AutoPractice.vue` / `DebugTracePanel.vue` / `SessionDetail.vue` / `CharacterDetail.vue` 等），不在本单清理。
+3. **既有类型债**：51 条 vue-tsc 错误另立 backlog（`AutoPractice.vue` / `DebugTracePanel.vue` / `SessionDetail.vue` / `CharacterDetail.vue` 等 13 个文件），不在本单清理。2026-11-11 复跑 `pnpm type-check`：51 错误 / 13 文件；本单改动的 `AnnotationTool.vue`、`types.ts` 为 0 错误，`client.ts` 2 条为既有。
 4. **无效批次查看**：如后续需要在标注台查看 `valid=false` 批次，再在选择器加 `includeInvalid` 开关。
 
 ## 8. 提交分组与 commit 草稿（不自动提交）
