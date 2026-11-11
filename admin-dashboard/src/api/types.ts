@@ -714,3 +714,160 @@ export interface AnnotationConsistency {
   crisisAgreement: number | null
   explorationTurnMae: number | null
 }
+
+// ─── 批次回归追踪 (WP-K · 历史批次效果对比) ───
+// 契约: docs/team/batch-regression-api-contract.md v1.
+// 后端纯函数判定器: src/auto-practice/metrics/regression-evaluator.ts.
+
+/** 四态结论（对齐后端 Verdict）。incomparable = 两批不是同一类东西，拒绝硬比。 */
+export type BatchVerdict = 'improved' | 'neutral' | 'regressed' | 'incomparable'
+
+/** 配置指纹段（7 段；combined 不在此列）。 */
+export type ConfigSegment =
+  | 'stateTransition'
+  | 'alliance'
+  | 'deltaTableConfig'
+  | 'lexicon'
+  | 'baselines'
+  | 'prompts'
+  | 'acceptance'
+
+/** 分段配置指纹（§5）。任一段读不到为 'unknown'，combined 随之 'unknown'。 */
+export interface ConfigFingerprintSegments {
+  stateTransition: string
+  alliance: string
+  deltaTableConfig: string
+  lexicon: string
+  baselines: string
+  prompts: string
+  acceptance: string
+  combined: string
+}
+
+/** 统一响应包（契约 §1）。warnings 只放枚举型告警码。 */
+export interface ApiEnvelope<T> {
+  data: T
+  meta: {
+    generatedAt: string
+    schemaVersion: number
+    total?: number
+    page?: number
+    pageSize?: number
+  }
+  warnings: string[]
+}
+
+/** 批次列表轻量行（§2.1；不含 metricsJson / configFingerprintJson 大字段）。 */
+export interface BatchSummaryRow {
+  batchId: string
+  totalSessions: number
+  totalTurns: number
+  /** 有效性门禁: 1 = 通过, 0 = 不通过（不可用于下结论）。 */
+  valid: number
+  createdAt: string
+  /** combined 指纹；老批次可能为 null。 */
+  configFingerprint: string | null
+  /** 冗余标量（真相在快照 metricsJson）；legacy 批次四者均为 null。 */
+  explorationRate: number | null
+  depthDeltaAvg: number | null
+  safetyDeltaAvg: number | null
+  positiveEventRate: number | null
+  /** 人工变更说明。 */
+  note: string | null
+}
+
+/** 快照覆盖率（§3）。 */
+export interface BatchCoverage {
+  expectedSessions: number
+  includedSessions: number
+  skippedSessions: number
+  skipReasons: Record<string, number>
+  totalTurns: number
+  transcriptRoot: string
+}
+
+/** 单场血缘（审计：快照由哪些场次算出）。 */
+export interface BatchLineageEntry {
+  debugSessionId: string
+  characterSlug: string
+  counselorModeId: string
+  turns: number
+  fileSha256: string
+}
+
+/** 分组切片（byMode / byCharacter 共用）。 */
+export interface MetricsSlice {
+  sessions: number
+  turns: number
+  metrics: Record<string, number | null>
+}
+
+/** 完整批次指标快照 v1（§3）。 */
+export interface BatchMetricsV1 {
+  schemaVersion: 1
+  computedAt: string
+  batchId: string
+  fingerprint: ConfigFingerprintSegments
+  coverage: BatchCoverage
+  lineage: BatchLineageEntry[]
+  /** 键 = 指标字典 id；值可为 null。 */
+  metrics: Record<string, number | null>
+  byMode: Record<string, MetricsSlice>
+  byCharacter: Record<string, MetricsSlice>
+}
+
+/** 单批快照响应 data：v1 快照，或 legacy 占位（metricsJson 为 NULL）。 */
+export type BatchMetricsPayload =
+  | (BatchMetricsV1 & { legacy: false })
+  | { batchId: string; metrics: null; legacy: true }
+
+/** 单指标对比项（对齐后端 RegressionItem）。 */
+export interface RegressionItem {
+  metricId: string
+  base: number | null
+  candidate: number | null
+  delta: number | null
+  movement: 'improved' | 'neutral' | 'regressed'
+}
+
+/** 单个候选批的回归报告（§2.3）。 */
+export interface CompareCandidateReport {
+  batchId: string
+  verdict: BatchVerdict
+  /** incomparable 时的原因列表；可比时为空。 */
+  reasons: string[]
+  /** 两批配置指纹发生变化的段。 */
+  changedSegments: ConfigSegment[]
+  /** 逐指标对比；incomparable 时为空。 */
+  items: RegressionItem[]
+}
+
+/** 指标字典条目（对齐后端 MetricDef）。 */
+export interface CatalogMetricDef {
+  id: string
+  label: string
+  unit: 'ratio' | 'delta' | 'count' | 'per_turn'
+  direction: 'higher_is_better' | 'lower_is_better' | 'neutral'
+  bounds: { min: number; max: number } | null
+  nullable: boolean
+  definition: string
+}
+
+/** 验收判据（对齐后端 MetricExpectation；tol 为边界缓冲，前端展示不使用）。 */
+export interface CatalogExpectation {
+  metricId: string
+  kind: 'range' | 'max_delta' | 'min_value' | 'must_be_zero'
+  min?: number
+  max?: number
+  absLimit?: number
+  tol: number
+  rationale: string
+}
+
+/** GET /metrics/catalog 的 data 载荷。 */
+export interface MetricCatalogPayload {
+  dictionaryVersion: string
+  acceptanceVersion: string
+  metrics: CatalogMetricDef[]
+  expectations: CatalogExpectation[]
+}

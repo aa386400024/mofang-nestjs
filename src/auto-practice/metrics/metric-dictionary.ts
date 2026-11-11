@@ -284,6 +284,13 @@ const SCALAR_METRICS: readonly MetricDef[] = [
   },
 ];
 
+/**
+ * 字典版本标识.
+ *
+ * 改字典条目 / 口径 / 取值域时手动递增; 供前端缓存与审计比对.
+ */
+export const METRIC_DICTIONARY_VERSION = 'dict-v1';
+
 /** 完整指标字典 (单一真相源). */
 export const METRIC_DICTIONARY: readonly MetricDef[] = [
   ...buildDimensionMetrics(),

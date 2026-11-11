@@ -7,6 +7,8 @@ import type {
   EvalReportListResponse, EvalReportDetail, GateTraceListResponse, GateStatsResponse,
   AnnotationListResponse, AnnotationDetail, AnnotationSaveBody, AnnotationReveal,
   AnnotationConsistency, AnnotationRow,
+  ApiEnvelope, BatchSummaryRow, BatchMetricsPayload, CompareCandidateReport,
+  MetricCatalogPayload,
 } from './types'
 
 const BASE = '/admin/api'
@@ -280,6 +282,51 @@ export const api = {
     },
     consistency: async (): Promise<AnnotationConsistency> => {
       return get<AnnotationConsistency>('/quality/consistency')
+    },
+  },
+
+  // ─── 批次回归追踪（WP-K · 历史批次效果对比） ───
+  batchRegression: {
+    /** 批次历史列表（轻量行，分页 / 排序 / 过滤）。 */
+    listBatches: async (params?: {
+      page?: number
+      pageSize?: number
+      sort?: 'createdAt' | 'explorationRate' | 'depthDeltaAvg' | 'safetyDeltaAvg' | 'positiveEventRate' | 'totalSessions'
+      order?: 'asc' | 'desc'
+      valid?: '0' | '1'
+      since?: string
+      fingerprint?: string
+    }): Promise<ApiEnvelope<BatchSummaryRow[]>> => {
+      const q = new URLSearchParams()
+      if (params?.page) q.set('page', String(params.page))
+      if (params?.pageSize) q.set('pageSize', String(params.pageSize))
+      if (params?.sort) q.set('sort', params.sort)
+      if (params?.order) q.set('order', params.order)
+      if (params?.valid) q.set('valid', params.valid)
+      if (params?.since) q.set('since', params.since)
+      if (params?.fingerprint) q.set('fingerprint', params.fingerprint)
+      const qs = q.toString()
+      return get<ApiEnvelope<BatchSummaryRow[]>>(`/auto-practice/batches${qs ? `?${qs}` : ''}`)
+    },
+
+    /** 单批完整快照；legacy 批次返回 metrics=null + warnings[METRICS_NOT_COLLECTED]。 */
+    batchMetrics: async (batchId: string): Promise<ApiEnvelope<BatchMetricsPayload>> => {
+      return get<ApiEnvelope<BatchMetricsPayload>>(`/auto-practice/batches/${batchId}/metrics`)
+    },
+
+    /**
+     * 回归对比：一个基线 × 候选批（上限 10）。
+     * 返回四态结论 / 不可比原因 / 变化指纹段 / 逐指标差异。
+     */
+    compareBatches: async (baseId: string, candidateIds: string[]): Promise<ApiEnvelope<CompareCandidateReport[]>> => {
+      const candidates = candidateIds.slice(0, 10).join(',')
+      const qs = `base=${encodeURIComponent(baseId)}&candidates=${encodeURIComponent(candidates)}`
+      return get<ApiEnvelope<CompareCandidateReport[]>>(`/auto-practice/batches/compare?${qs}`)
+    },
+
+    /** 指标字典 + 验收判据只读投影（前端说明浮层 / 字典卡的真相源）。 */
+    getMetricCatalog: async (): Promise<ApiEnvelope<MetricCatalogPayload>> => {
+      return get<ApiEnvelope<MetricCatalogPayload>>('/auto-practice/metrics/catalog')
     },
   },
 }

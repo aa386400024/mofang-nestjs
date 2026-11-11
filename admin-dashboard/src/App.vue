@@ -76,6 +76,7 @@ const menuOptions = computed<MenuOption[]>(() => [
     icon: renderIcon(SchoolOutline),
     children: [
       { label: t('nav.autoPractice'), key: '/auto-practice' },
+      { label: t('nav.batchRegression'), key: '/batch-regression' },
       { label: t('nav.evalReports'), key: '/eval-reports' },
       { label: t('nav.annotation'), key: '/quality/annotation' },
     ],
@@ -113,6 +114,7 @@ const allPages = computed(() => [
   { name: t('nav.characters'), path: '/characters', keywords: 'characters 角色 人物 来访者' },
   { name: t('nav.memories'), path: '/memories', keywords: 'memories 记忆 向量 库' },
   { name: t('nav.autoPractice'), path: '/auto-practice', keywords: 'auto practice 对练 训练 调试' },
+  { name: t('nav.batchRegression'), path: '/batch-regression', keywords: 'batch regression 批次 回归 对比 历史 效果' },
   { name: t('nav.evalReports'), path: '/eval-reports', keywords: 'eval reports 评测 报告 质量' },
   { name: t('nav.annotation'), path: '/quality/annotation', keywords: 'annotation 标注 锚点 质量 人工' },
   { name: t('nav.psyguard'), path: '/psyguard', keywords: 'psyguard 监控 安全 风险 危机' },
@@ -240,6 +242,8 @@ const breadcrumbs = computed(() => {
     crumbs.push({ label: t('nav.calibrator') })
   } else if (path.startsWith('/auto-practice')) {
     crumbs.push({ label: t('nav.autoPractice') })
+  } else if (path.startsWith('/batch-regression')) {
+    crumbs.push({ label: t('nav.batchRegression') })
   } else if (path.startsWith('/eval-reports')) {
     crumbs.push({ label: t('nav.evalReports') })
   } else if (path.startsWith('/quality/annotation')) {

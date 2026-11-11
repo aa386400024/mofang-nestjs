@@ -22,7 +22,9 @@ import { Repository } from 'typeorm';
 import { CounselorMode } from './entities/counselor-mode.entity.js';
 import { PracticeBatch } from './entities/practice-batch.entity.js';
 import { PracticeSession } from './entities/practice-session.entity.js';
+import { INTAKE_ACCEPTANCE_VERSION, INTAKE_EXPECTATIONS } from './metrics/acceptance-thresholds.js';
 import { assertBatchMetricsV1, BATCH_METRICS_SCHEMA_VERSION } from './metrics/batch-metrics.schema.js';
+import { METRIC_DICTIONARY, METRIC_DICTIONARY_VERSION } from './metrics/metric-dictionary.js';
 import { evaluateRegression } from './metrics/regression-evaluator.js';
 import { BATCH_INVALID_WARNING, PracticeBatchHealthService } from './practice-batch-health.service.js';
 import { PracticeQueueService } from './practice-queue.service.js';
@@ -289,6 +291,33 @@ export class AutoPracticeController {
     } catch {
       return null;
     }
+  }
+
+  /** 字典 + 判据只读投影 (纯常量组装, 便于单测; 不含判定逻辑). */
+  static buildMetricCatalog() {
+    return {
+      dictionaryVersion: METRIC_DICTIONARY_VERSION,
+      acceptanceVersion: INTAKE_ACCEPTANCE_VERSION,
+      metrics: METRIC_DICTIONARY,
+      expectations: INTAKE_EXPECTATIONS,
+    };
+  }
+
+  /**
+   * 指标字典 + intake 验收判据只读投影 (前端说明浮层 / 字典卡的真相源).
+   * 纯常量下发, 不含判定逻辑; 前端只展示口径与区间, 不复算 pass/fail.
+   */
+  @Get('metrics/catalog')
+  listMetricCatalog() {
+    return {
+      data: AutoPracticeController.buildMetricCatalog(),
+      meta: {
+        generatedAt: new Date().toISOString(),
+        metricCount: METRIC_DICTIONARY.length,
+        expectationCount: INTAKE_EXPECTATIONS.length,
+      },
+      warnings: [],
+    };
   }
 
   /**

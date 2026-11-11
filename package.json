@@ -164,7 +164,19 @@
     "TypeScript"
   ],
   "lint-staged": {
-    "*.{ts,tsx}": [
+    "src/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "test/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "bin/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "scripts/**/*.{ts,tsx}": [
       "eslint --fix",
       "prettier --write"
     ],
