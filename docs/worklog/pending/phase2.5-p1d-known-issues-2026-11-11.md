@@ -13,28 +13,28 @@
 
 ## §1 总表
 
-| ID   | 问题                                                             | 严重度 | 证据强度               | 状态                                                                                           |
-| ---- | ---------------------------------------------------------------- | ------ | ---------------------- | ---------------------------------------------------------------------------------------------- |
-| I-01 | 事件判定是纯关键词子串匹配，词表仅 9 条共情句式                  | P0     | 硬（代码可见）         | 已核验                                                                                         |
-| I-02 | 词表漏判下界：expert 场 29.9% 涉情轮次被判 `neutral`（delta=0）  | P0     | 硬（可复算）           | 已核验                                                                                         |
-| I-03 | `DELTA_TABLE` 把 trust 增量与 depth/style 减量写成对称配平       | P0     | 硬（代码常量）         | **已修复（WP-L）**                                                                             |
-| I-04 | depth 在 12 轮内大幅下降（-0.27~-0.32），临床不合理              | P0     | 硬（数据）             | **已修复（WP-L，16 场重跑确认：语桐 depth 终值 0.25/0.275 不触底，批次 depth p10 0.15→0.23）** |
-| I-05 | style（人格级防御）12 轮内同步下降                               | P0     | 硬（数据）             | **已修复（WP-L，代码层复算 style 停 0.2625）**                                                 |
-| I-06 | verbal 与 depth 同步下降，未解耦                                 | P1     | 硬（数据）             | **已修复（WP-L，verbal/depth 已用不同减量解耦）**                                              |
-| I-07 | valence 单调改善（谈论痛苦反而变好）                             | P0     | 硬（数据+代码）        | **已修复（WP-L，触碰代价 0.12 > 共情收益 0.03，单调性打破）**                                  |
-| I-08 | arousal 单调下降（被激活后反而平静）                             | P1     | 硬（数据+代码）        | **部分缓解（WP-L，镇静系数大幅调小；真实曲线待批次验证，角色级调节见 I-20）**                  |
-| I-09 | safety 实际增量受三重折扣（小系数 × 依恋系数 × 低事件率）        | P1     | 硬（代码+数据）        | 已核验                                                                                         |
-| I-10 | 4 场 cold 会话八个维度全部零变化                                 | P1     | 硬（数据）             | 已核验                                                                                         |
-| I-11 | 探索门槛 0.6 是绝对线，7/8 角色 12 轮内数学不可达                | P0     | 硬（可复算）           | 已核验                                                                                         |
-| I-12 | 门槛是实例级单例，无法按角色/批次配置                            | P1     | 硬（代码）             | 已核验                                                                                         |
-| I-13 | 单场 LLM 全失败（原判 stagnant）                                 | P1     | 硬（重跑反证）         | **已闭环**                                                                                     |
-| I-14 | `prompt_version` 本批 16/16 落库 vs 历史 1135/1136 NULL          | P2     | 中（数据）             | **未查根因**                                                                                   |
-| I-15 | `gate_decisions` 始终 0 行                                       | P2     | 中（数据）             | **未查**                                                                                       |
-| I-16 | 探索率用全局总量做门禁，掩盖结构                                 | P1     | 硬（推论）             | 已核验                                                                                         |
-| I-17 | L1 主导标签 47.2% / L4 讨好维度恒 0%                             | P1     | 弱（未独立算法）       | **待验**                                                                                       |
-| I-18 | `neutral` 把"有效中性回应"与"冷漠缺席"合并成一个类别             | P1     | 硬（代码+prompt+数据） | 已核验                                                                                         |
-| I-19 | 状态演化是纯累加，对事件**发生在第几轮**不敏感                   | P2     | 硬（数据+代码）        | 已核验                                                                                         |
-| I-20 | `valence` / `arousal` 没有角色级调节，八角色情绪反应幅度完全相同 | P2     | 硬（逐轮 delta）       | 已核验                                                                                         |
+| ID   | 问题                                                             | 严重度 | 证据强度               | 状态                                                                                                                                                                                                                                                                                                                                                                                           |
+| ---- | ---------------------------------------------------------------- | ------ | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I-01 | 事件判定是纯关键词子串匹配，词表仅 9 条共情句式                  | P0     | 硬（代码可见）         | 已核验                                                                                                                                                                                                                                                                                                                                                                                         |
+| I-02 | 词表漏判下界：expert 场 29.9% 涉情轮次被判 `neutral`（delta=0）  | P0     | 硬（可复算）           | 已核验                                                                                                                                                                                                                                                                                                                                                                                         |
+| I-03 | `DELTA_TABLE` 把 trust 增量与 depth/style 减量写成对称配平       | P0     | 硬（代码常量）         | **已修复（WP-L）**                                                                                                                                                                                                                                                                                                                                                                             |
+| I-04 | depth 在 12 轮内大幅下降（-0.27~-0.32），临床不合理              | P0     | 硬（数据）             | **已修复（WP-L，16 场重跑确认：语桐 depth 终值 0.25/0.275 不触底，批次 depth p10 0.15→0.23）**                                                                                                                                                                                                                                                                                                 |
+| I-05 | style（人格级防御）12 轮内同步下降                               | P0     | 硬（数据）             | **已修复（WP-L，代码层复算 style 停 0.2625）**                                                                                                                                                                                                                                                                                                                                                 |
+| I-06 | verbal 与 depth 同步下降，未解耦                                 | P1     | 硬（数据）             | **已修复（WP-L，verbal/depth 已用不同减量解耦）**                                                                                                                                                                                                                                                                                                                                              |
+| I-07 | valence 单调改善（谈论痛苦反而变好）                             | P0     | 硬（数据+代码）        | **已修复（WP-L，触碰代价 0.12 > 共情收益 0.03，单调性打破）**                                                                                                                                                                                                                                                                                                                                  |
+| I-08 | arousal 单调下降（被激活后反而平静）                             | P1     | 硬（数据+代码）        | **部分缓解（WP-L，镇静系数大幅调小；真实曲线待批次验证，角色级调节见 I-20）**                                                                                                                                                                                                                                                                                                                  |
+| I-09 | safety 实际增量受三重折扣（小系数 × 依恋系数 × 低事件率）        | P1     | 硬（代码+数据）        | 已核验                                                                                                                                                                                                                                                                                                                                                                                         |
+| I-10 | 4 场 cold 会话八个维度全部零变化                                 | P1     | 硬（数据）             | 已核验                                                                                                                                                                                                                                                                                                                                                                                         |
+| I-11 | 探索门槛 0.6 是绝对线，7/8 角色 12 轮内数学不可达                | P0     | 硬（可复算）           | 已核验                                                                                                                                                                                                                                                                                                                                                                                         |
+| I-12 | 门槛是实例级单例，无法按角色/批次配置                            | P1     | 硬（代码）             | **注入缝已打通（2026-11-11）** → [I-12 交付记录](../completed/phase2.5/i12-per-session-threshold-plumbing-2026-11-11.md)：新增会话级门槛覆盖解析端口 + 内核纯函数 `resolveSessionAllianceConfig`；**缺省永远无覆盖 → 逐字回落模块 env 单例，零行为变化、零数值改动**；三条回落规则由内核唯一校验口裁决；**真实覆盖来源待后续标定批次接入**（接来源只换 1 个 provider，四个会话创建入口零改动） |
+| I-13 | 单场 LLM 全失败（原判 stagnant）                                 | P1     | 硬（重跑反证）         | **已闭环**                                                                                                                                                                                                                                                                                                                                                                                     |
+| I-14 | `prompt_version` 本批 16/16 落库 vs 历史 1135/1136 NULL          | P2     | 中（数据）             | **已核验（2026-11-11）** → [AUDIT-D1](../completed/phase2.5/audit-d1-deliberation-fingerprint-2026-11-11.md)：**历史旧行默认 NULL**（加列迁移与 runner 写入同一提交 `5a3d1b0` 落地），非活路径漏写；残留边角路径 G-2（failed 场次行恒 NULL）已登记 backlog                                                                                                                                     |
+| I-15 | `gate_decisions` 始终 0 行                                       | P2     | 中（数据）             | **已核验（2026-11-11）** → [AUDIT-D1](../completed/phase2.5/audit-d1-deliberation-fingerprint-2026-11-11.md)：**预期行为**（`rule_only` 下无审议路径 → 闸门从不被问 → trace 不写），非装配漏接 / persistence 未注入；留痕盲区 G-3 待用户拍板                                                                                                                                                   |
+| I-16 | 探索率用全局总量做门禁，掩盖结构                                 | P1     | 硬（推论）             | 已核验                                                                                                                                                                                                                                                                                                                                                                                         |
+| I-17 | L1 主导标签 47.2% / L4 讨好维度恒 0%                             | P1     | 弱（未独立算法）       | **待验**                                                                                                                                                                                                                                                                                                                                                                                       |
+| I-18 | `neutral` 把"有效中性回应"与"冷漠缺席"合并成一个类别             | P1     | 硬（代码+prompt+数据） | **已核验 + 已评估（2026-11-11）** → [DOC-2 备忘](../completed/phase2.5/doc2-neutral-split-timing-weight-assessment-2026-11-11.md)：事件级拆分**必须等判定器升级**（规则轨结构性做不到）；模式先验方案**只消一半失真、不交付"破裂"**，不建议单独实施 → 待派 D-1/D-2                                                                                                                             |
+| I-19 | 状态演化是纯累加，对事件**发生在第几轮**不敏感                   | P2     | 硬（数据+代码）        | **已核验 + 已评估（2026-11-11）** → [DOC-2 备忘](../completed/phase2.5/doc2-neutral-split-timing-weight-assessment-2026-11-11.md)：**有条件可行**，硬前置 = ①不新增内核公开导出/文件（否则撞 boundary 断言⑥/⑦）②权重走注入端口 ③**须先落地 I-18 的 `cold_absent` 事件**（否则权重表达不了"缺席"）④权重配置须进 WP-K 配置指纹 `stateTransition` 段 → 待派 D-3                                   |
+| I-20 | `valence` / `arousal` 没有角色级调节，八角色情绪反应幅度完全相同 | P2     | 硬（逐轮 delta）       | **端口已打通（2026-11-11）** → [I-20 交付记录](../completed/phase2.5/i20-valence-arousal-role-coefficients-2026-11-11.md)：内核 `AttachmentModulation` 加 `valenceScale` / `arousalScale`（**种子四种依恋类型全 1.0**），算子只调正向增量、受损方向不调；**零行为变化**（乘 1 不改数值，既有四列系数零改动）；**临床差异化倍率待后续标定单落地**（适配层 env 键扩列同属后续）                  |
 
 ---
 
@@ -298,7 +298,7 @@
 
 ---
 
-### I-12 · 门槛是实例级单例
+### I-12 · 门槛是实例级单例（注入缝已打通 · 2026-11-11）
 
 **证据**：`engine.module.ts:363-364` 在 provider 工厂里 `allianceConfig: resolveAllianceConfig(config)`，
 全局一份；`engine-turn.service.open` 无 `allianceConfig` 参数（grep 0 命中）；
@@ -306,6 +306,8 @@
 但注释（`:224-226`）的顾虑是"同一场内部前后两轮门槛不一样"，**不是**"不同会话不同门槛"。
 
 **判定**：per-session 注入不违反注释语义，但当前装配链未透传。
+
+**处置（2026-11-11，I-12 交付）**：注入链已打通 —— 新增 `SessionAllianceThresholdResolver` 解析端口（适配层）+ 内核纯函数 `resolveSessionAllianceConfig`（三条回落规则：覆盖优先 / 缺项回落单例 / 非法值回落种子，由内核唯一校验口 `resolveAllianceThresholds` 裁决）+ `OpenEngineSessionInput.allianceThresholds` 字段；覆盖只在**开场**解析一次并固定在该句柄（per-handle 恒定，**不引入逐轮可变**，故不违反 `:224-226` 注释的顾虑）。**缺省装配永远无覆盖 → 门槛逐字回落到模块 env 单例**，实测零行为变化、零数值改动（内核 diff grep 阈值字面量零命中），全量 2965 例全绿、boundary 12 绿。**真实覆盖来源（按角色档案自动算门槛）属后续标定批次**，接来源时只换 `ALLIANCE_THRESHOLD_RESOLVER` 一个 provider，四个会话创建入口零改动。详见 → [I-12 交付记录](../completed/phase2.5/i12-per-session-threshold-plumbing-2026-11-11.md)。
 
 ---
 
@@ -328,7 +330,9 @@ tokens=14832  engine=e3b0680
 
 ---
 
-### I-14 · `prompt_version` 填充率突变（未查）
+### I-14 · `prompt_version` 填充率突变（**已核验 2026-11-11** → [AUDIT-D1](../completed/phase2.5/audit-d1-deliberation-fingerprint-2026-11-11.md)）
+
+> **审计结论：属「历史旧行默认 NULL」，不是活路径漏写。** 加列迁移 `1714900000043` 与 runner 写入（`practice-runner.service.ts:731`）**同一提交 `5a3d1b0`** 落地 → 迁移前的行该列只能是 NULL。`resolvePromptVersion`（`prompt-fingerprint.ts:177-181`）算不出时回落 `'unknown'`，**不存在把 undefined/NULL 落库的分支**。批次行 `prompt_version` 从场次行派生（`practice-batch-health.service.ts:382`）。残留边角路径 G-2：开引擎失败的 `status='failed'` 场次行恒 NULL（语义上本就无意义，待用户拍板口径）。
 
 **现象**：本批 16/16 全部落库 `prompt_version=f1fdb4f90a5e622a`；历史全库 1135/1136 为 NULL。
 
@@ -340,7 +344,9 @@ tokens=14832  engine=e3b0680
 
 ---
 
-### I-15 · `gate_decisions` 0 行（未查）
+### I-15 · `gate_decisions` 0 行（**已核验 2026-11-11** → [AUDIT-D1](../completed/phase2.5/audit-d1-deliberation-fingerprint-2026-11-11.md)）
+
+> **审计结论：属「预期行为」，不是装配漏接、不是 persistence 未注入。** 生产缺省 `ENGINE_DELIBERATION_ENABLED` 关 → `effectiveMode='rule_only'`（`deliberation-mode.config.ts:160`）→ `engine.module.ts:429/:431` 两条审议路径**都不挂** → `runGatedDeliberation`（`turn-render-orchestrator.ts:843-854`）两个 `if` 都不进 → `evaluateGate` 从不被调 → trace/MySQL 都不写。MySQL 落库口**确实带上了**（`deliberation-gate.module.ts:49/:58`）。残留盲区 G-3：`rule_only` 无 skip 留痕，待用户拍板。
 
 历史盘点与批次盘点都是 0 行。闸门决策落库开关可能未开，或自动对练路径不写。未核验。
 
@@ -362,7 +368,7 @@ tokens=14832  engine=e3b0680
 
 ---
 
-### I-18 · `neutral` 吞掉了"冷漠缺席"
+### I-18 · `neutral` 吞掉了"冷漠缺席"（**已评估 2026-11-11** → [DOC-2 备忘](../completed/phase2.5/doc2-neutral-split-timing-weight-assessment-2026-11-11.md) §A）
 
 **核验起点**：cold 模式 3.1% 正事件率是设计意图还是缺陷？
 
@@ -412,7 +418,7 @@ tokens=14832  engine=e3b0680
 
 ---
 
-### I-19 · 状态演化对"事件发生在第几轮"完全不敏感
+### I-19 · 状态演化对"事件发生在第几轮"完全不敏感（**已评估 2026-11-11** → [DOC-2 备忘](../completed/phase2.5/doc2-neutral-split-timing-weight-assessment-2026-11-11.md) §B）
 
 **怎么发现的**：整理八维表时发现安然的 cold 场与 expert 场**八维轨迹 16 个数值完全相同**。
 第一反应是"数据串了"，于是逐项核验——**结果不是数据串**：
@@ -449,7 +455,7 @@ tokens=14832  engine=e3b0680
 
 ---
 
-### I-20 · `valence` / `arousal` 没有角色级调节
+### I-20 · `valence` / `arousal` 没有角色级调节（端口已打通 · 2026-11-11）
 
 **现象（二次核验时发现）**：语桐（anxious）场里 3 次 empathy 的 `valence` / `arousal` 增量，与安然（secure）场**完全相同**：
 
@@ -471,6 +477,10 @@ tokens=14832  engine=e3b0680
 **严重度 P2**：不改变行为路径（情绪不做决策门槛），但影响体验真实度与"情绪唤醒曲线"的可信度。
 
 **复算方式**：任取两个不同依恋角色的 empathy 轮，比 `d_valence` / `d_arousal`；若完全相同即成立。
+
+**处置（2026-11-11，I-20 交付）**：**角色级系数端口已打通** —— 内核 `AttachmentModulation` 加 `valenceScale` / `arousalScale` 两个必填字段（四种依恋类型**种子全 1.0**），`resolveAttachment` 逐项走既有 `sanitizeGainScale` 回落，算子 `modulateDeltaByPersonality` 加两行**只调正向增量**（受损方向不调，与 trust/safety/bond 同口径）。**当前八角色情绪反应幅度仍然完全相同** —— 因为系数全 1.0（= 不调节），这是刻意的：灰度期只搭端口、**不填临床倍率**，避免参数叠加看不清归因。
+
+**剩余**：真实差异化倍率（焦虑型 valence > 1.0 / 回避型 < 1.0、创伤型 arousal 敏感度更高等）待**真实批次标定后**另单落地；适配层 `ENGINE_MOD_*_VALENCE_SCALE` / `_AROUSAL_SCALE` env 键扩列同属该单。详见 → [I-20 交付记录](../completed/phase2.5/i20-valence-arousal-role-coefficients-2026-11-11.md)。
 
 ---
 
@@ -518,16 +528,20 @@ valence 不要求改善、arousal 结束 ≥ 基线 −0.05。**不验探索**�
 **但规则轨判定器做不到这个区分**（两者都不含词表项）→ 这条在技术上依赖 I-01/I-02 的判定器升级，
 或退一步按"咨询师模式"给先验（cold 模式整体不享受 holding 增益）。**建议在 P0 验证之后再做**，避免参数叠加看不清归因。
 
-### P1 · per-session 阈值注入（I-12）
+### P1 · per-session 阈值注入（I-12）✅ 注入缝已打通（2026-11-11）
 
 为按角色/按档位配置门槛做准备。可与 P0-c 一起做。
 
-### P2 · 情绪维度补角色级调节（I-20）
+**进展**：装配缝已交付（`SessionAllianceThresholdResolver` 端口 + 内核 `resolveSessionAllianceConfig` + `allianceThresholds` 入参），数值一律冻结、缺省零行为变化。**剩余**：真实覆盖来源（按角色档案自动算门槛）待后续标定批次接入 → → [I-12 交付记录](../completed/phase2.5/i12-per-session-threshold-plumbing-2026-11-11.md)。
+
+### P2 · 情绪维度补角色级调节（I-20）✅ 端口已打通（2026-11-11）
 
 `AttachmentModulation` 只有 `trustScale / resistanceScale / safetyScale / bondScale` 四个系数，
 `valence` / `arousal` **没有**角色级调节 → 八个角色对同一个共情的情绪反应幅度完全相同。
 
 做法：加 `valenceScale` / `arousalScale`（焦虑型 > 1.0、回避型 < 1.0，创伤型 arousal 敏感度更高）。
+
+**进展**：端口已交付（2026-11-11，内核 `AttachmentModulation` 加两字段 + 算子两行 + 回落校验），**种子全 1.0 → 零行为变化**。**剩余**：临床差异化倍率填值 + 适配层 env 键扩列，待真实批次标定后另单落地 → → [I-20 交付记录](../completed/phase2.5/i20-valence-arousal-role-coefficients-2026-11-11.md)。
 
 **必须排在 P0-b 之后做**：先修"幅度错"，再修"差异化"。两个变量同时动，
 P0-b 的数值验证就无法归因（改了幅度还是改了系数，说不清）。

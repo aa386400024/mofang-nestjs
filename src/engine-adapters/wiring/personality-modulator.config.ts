@@ -101,6 +101,13 @@ function resolveAttachment(
     resistanceScale: resolvePositive(resistRaw, fallback.resistanceScale),
     safetyScale: resolveNonNegative(safetyRaw, fallback.safetyScale),
     bondScale: resolveNonNegative(bondRaw, fallback.bondScale),
+    // I-20: 情绪两维 (valence / arousal) —— **本单不接 env 键** (任务单 §2 明确
+    //   "适配层 env 扩列不在本单"), 直接用内核种子值 (1.0 = 不调节).
+    //   ⚠️ 这两个字段进了公开端口类型 AttachmentModulation 后, 适配层**必须**显式给出
+    //   —— 否则 TS 编译不过 (必填字段). 所以这里是"跟随种子的透传", 不是新的真相源:
+    //   种子仍在内核 DEFAULT_PERSONALITY_MODULATOR_CONFIG 一处.
+    valenceScale: fallback.valenceScale,
+    arousalScale: fallback.arousalScale,
   };
 }
 

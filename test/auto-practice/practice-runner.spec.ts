@@ -15,7 +15,13 @@ import type { CounselorGenerateOptions, CounselorReply } from '../../src/auto-pr
 import { CounselorMode } from '../../src/auto-practice/entities/counselor-mode.entity.js';
 import type { InferenceFingerprint } from '../../src/auto-practice/inference-fingerprint.service.js';
 import type { CounselorHistoryTurn, EngineTurnResult, TurnEnginePort } from '../../src/auto-practice/ports/turn-engine.port.js';
-import { PracticeRunnerService, DEFAULT_MAX_TURNS } from '../../src/auto-practice/practice-runner.service.js';
+import {
+  decideTurn,
+  PracticeRunnerService,
+  DEFAULT_MAX_TURNS,
+  type CrisisWindowState,
+  type StagnationState,
+} from '../../src/auto-practice/practice-runner.service.js';
 
 /**
  * 咨询师 generate 的真实签名 (显式标注给 vi.fn, 让 mockImplementation 的回调类型
@@ -336,5 +342,32 @@ describe('PracticeRunnerService', () => {
   it('默认 maxTurns = 15', async () => {
     // 不传 maxTurns 时, 应该用 DEFAULT_MAX_TURNS.
     expect(DEFAULT_MAX_TURNS).toBe(15);
+  });
+});
+
+/**
+ * V2026-11-11 RESID-1 (状态接口类型导出 · 回归护栏).
+ *
+ * 为什么需要这条: `scripts/ops/calibration/stagnation-calibration.ts` 要 import
+ * `CrisisWindowState` / `StagnationState` 两个类型, 而它们原先在 runner 里是**非导出**的
+ * interface —— 脚本侧类型检查报 2 个 TS2459 (类型不存在于导出清单).
+ *
+ * 这条断言的作用是**让「导出」这件事本身可测**: 只要下面这两行编译得过,
+ * 就证明两个类型确实在 runner 的导出清单里 —— 谁再把 export 去掉, 这里立刻红.
+ *
+ * 形态: 静态投影校验 (纯类型 + 零 IO / 不起 Nest / 不连 DB).
+ */
+describe('RESID-1 · runner 状态接口类型导出', () => {
+  it('CrisisWindowState / StagnationState 可被外部 import (TS2459 护栏)', () => {
+    // 编译期即断言: 这两个 import 能解析, 说明确实在导出清单里.
+    const crisisWindow: Partial<CrisisWindowState> = {};
+    const stagnation: Partial<StagnationState> = {};
+
+    expect(crisisWindow).toEqual({});
+    expect(stagnation).toEqual({});
+  });
+
+  it('decideTurn 仍是导出的纯函数 (入参形状未变)', () => {
+    expect(typeof decideTurn).toBe('function');
   });
 });

@@ -59,10 +59,10 @@ const COLUMN = 'personality_traits';
  * 1.0, 于是 trust 增量的差异**只**可能来自宜人性规则 —— 断言才能写死一个具体数字.
  */
 const NEUTRAL_ATTACHMENT: PersonalityModulatorConfig['attachment'] = {
-  secure: { trustScale: 1, resistanceScale: 1, safetyScale: 1, bondScale: 1 },
-  avoidant: { trustScale: 1, resistanceScale: 1, safetyScale: 1, bondScale: 1 },
-  anxious: { trustScale: 1, resistanceScale: 1, safetyScale: 1, bondScale: 1 },
-  disorganized: { trustScale: 1, resistanceScale: 1, safetyScale: 1, bondScale: 1 },
+  secure: { trustScale: 1, resistanceScale: 1, safetyScale: 1, bondScale: 1, valenceScale: 1, arousalScale: 1 },
+  avoidant: { trustScale: 1, resistanceScale: 1, safetyScale: 1, bondScale: 1, valenceScale: 1, arousalScale: 1 },
+  anxious: { trustScale: 1, resistanceScale: 1, safetyScale: 1, bondScale: 1, valenceScale: 1, arousalScale: 1 },
+  disorganized: { trustScale: 1, resistanceScale: 1, safetyScale: 1, bondScale: 1, valenceScale: 1, arousalScale: 1 },
 };
 
 /** 阈值压到 0.4 的配置 (回避型 0.45 / 焦虑型 0.6 都过线). */

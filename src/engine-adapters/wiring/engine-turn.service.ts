@@ -28,9 +28,16 @@
 
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 
-import { ENGINE_SESSION_PORT, ROLLING_SUMMARY_CLEANUP } from './engine.tokens.js';
+import type { SessionAllianceThresholdResolver } from './alliance-threshold-resolver.js';
+import { ALLIANCE_THRESHOLD_RESOLVER, ENGINE_SESSION_PORT, ROLLING_SUMMARY_CLEANUP } from './engine.tokens.js';
 import { TURN_DELTA_AUDIT, type TurnDeltaAuditPort } from './turn-delta-audit/turn-delta-audit.port.js';
-import type { EngineSessionPort, EngineTurnInput, OpenEngineSessionInput, RenderContextTurn } from '../../engine-core/index.js';
+import type {
+  AllianceThresholds,
+  EngineSessionPort,
+  EngineTurnInput,
+  OpenEngineSessionInput,
+  RenderContextTurn,
+} from '../../engine-core/index.js';
 import type { RollingSummaryCleanupPort } from '../persistence/rolling-session-summary.service.js';
 import type { StreamRenderHandlers } from '../rendering/streaming-render.port.js';
 import type { TurnRenderResult, TurnSessionContext } from '../rendering/turn-render-orchestrator.js';
@@ -113,6 +120,14 @@ export class EngineTurnService {
      * 门面开不起来 (与仓库里 LlmRouterService 的做法同理).
      */
     @Optional() @Inject(TURN_DELTA_AUDIT) private readonly audit?: TurnDeltaAuditPort,
+    /**
+     * 会话级同盟门槛覆盖解析端口 (I-12).
+     *
+     * ⚠️ 用 `@Optional()`: 覆盖是**增强** —— 端口缺席 = 本场无覆盖,
+     *   门槛逐字回落到模块 env 单例, 不能让整个引擎门面开不起来.
+     *   缺省 provider 已装配为 `NO_SESSION_ALLIANCE_THRESHOLD_OVERRIDE` (永远无覆盖).
+     */
+    @Optional() @Inject(ALLIANCE_THRESHOLD_RESOLVER) private readonly allianceThresholds?: SessionAllianceThresholdResolver,
   ) {}
 
   /**
@@ -173,7 +188,11 @@ export class EngineTurnService {
       readonly dbSessionId?: string;
     },
   ): { readonly handleId: string; readonly sessionId: string } {
-    const handle = this.session.openSession(input);
+    // I-12: 解析本场的同盟门槛覆盖 (无覆盖 → undefined → 内核逐字回落模块 env 单例).
+    //   ⚠️ 来源坏掉不该炸会话开场 —— 捕获后按"无覆盖"处理 (与仓库"失败不炸主流程"纪律同款).
+    const thresholdOverride = this.resolveThresholdOverride(input, options);
+    //   ⚠️ 无覆盖时**原样传 input** (同一引用) —— 内核侧零变化, 逐字零回归.
+    const handle = this.session.openSession(thresholdOverride ? { ...input, allianceThresholds: thresholdOverride } : input);
     this.registry.register(handle.handleId, {
       tenantId: input.tenantId,
       sessionId: input.sessionId,
@@ -196,6 +215,45 @@ export class EngineTurnService {
     });
     this.logger.log(`引擎会话已开启 handle=${handle.handleId} session=${input.sessionId}`);
     return { handleId: handle.handleId, sessionId: handle.sessionId };
+  }
+
+  /**
+   * 解析本场的同盟门槛覆盖 (I-12).
+   *
+   * ⚠️ **失败 = 无覆盖**: 覆盖来源抛错 / 返回非法形状 → 一律按"无覆盖"处理,
+   *   门槛逐字回落到模块 env 单例 —— 覆盖是**增强**, 不该让会话开场失败.
+   *
+   * ⚠️ 本方法**不读 env、不算门槛数值** —— 它只把"来源解析出来的覆盖"原样带给内核,
+   *   合并与回落由内核 resolveSessionAllianceConfig 一处裁决.
+   *
+   * @param input 开场入参
+   * @param options 装配层附加信息 (角色档案)
+   * @returns 覆盖项; undefined = 无覆盖
+   */
+  private resolveThresholdOverride(
+    input: OpenEngineSessionInput,
+    options?: { readonly characterLabel?: string; readonly attachmentStyle?: TurnSessionContext['attachmentStyle'] },
+  ): Partial<AllianceThresholds> | undefined {
+    const resolver = this.allianceThresholds;
+    if (!resolver) return undefined;
+    try {
+      const override = resolver.resolve({
+        sessionId: input.sessionId,
+        tenantId: input.tenantId,
+        visitorId: input.visitorId,
+        ...(options?.characterLabel ? { characterLabel: options.characterLabel } : {}),
+        ...(options?.attachmentStyle ? { attachmentStyle: options.attachmentStyle } : {}),
+      });
+      if (!override) return undefined;
+      // 只接受**对象**形状 —— 来源返回别的 (字符串 / 数字 / null) 一律按无覆盖处理.
+      if (typeof override !== 'object') return undefined;
+      return override;
+    } catch (error) {
+      this.logger.warn(
+        `会话级同盟门槛覆盖解析失败 (按无覆盖处理): session=${input.sessionId} ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return undefined;
+    }
   }
 
   /**

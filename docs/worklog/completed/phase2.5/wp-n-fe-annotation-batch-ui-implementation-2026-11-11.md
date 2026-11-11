@@ -77,6 +77,17 @@
 3. **既有类型债**：51 条 vue-tsc 错误另立 backlog（`AutoPractice.vue` / `DebugTracePanel.vue` / `SessionDetail.vue` / `CharacterDetail.vue` 等 13 个文件），不在本单清理。2026-11-11 复跑 `pnpm type-check`：51 错误 / 13 文件；本单改动的 `AnnotationTool.vue`、`types.ts` 为 0 错误，`client.ts` 2 条为既有。
 4. **无效批次查看**：如后续需要在标注台查看 `valid=false` 批次，再在选择器加 `includeInvalid` 开关。
 
+## 7.1 后续补丁（2026-11-11 · REVIEW-3 契约类型对齐复核）
+
+契约 7 端点 × 前端 `types.ts`/`client.ts` 逐条对照后，发现并修正 **2 处前端类型偏松**（均在 `admin-dashboard/src/api/types.ts`，**零运行时变化**）：
+
+1. `AnnotationConsistency.scope` 由可选改为**必填** —— 后端 `quality-annotation.view.ts:166` 恒返回 `scope`；此前可选 + 视图层 `?? true` 兜底会把「scope 缺失」悄悄当成「可比」= 自信的错结论（WP-K 教训）。
+2. `AnnotationConsistencyScope.incomparableReasons` / `.warnings` 由 `string[]` **收窄为枚举联合**（4 + 2 个码，与后端 `COMPARABILITY_REASON` / `COMPARABILITY_WARNING` 严格 1:1）—— 契约 §2.7 标注为 `enum[]`。
+
+前端 `pnpm type-check` 改动前后均为 **51 错误 / 13 文件**（既有债数字逐一致，新增 0 错误）；`pnpm build-only` exit 0。详见 [REVIEW-3 交付记录](review3-wpn-contract-alignment-2026-11-11.md)。
+
+---
+
 ## 8. 提交分组与 commit 草稿（不自动提交）
 
 建议分两组 stage：

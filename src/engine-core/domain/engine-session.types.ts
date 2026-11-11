@@ -70,6 +70,28 @@ export interface OpenEngineSessionInput {
    * 省略 = 无轨迹约束, 本场行为与 WP1/WP2 **逐字一致**.
    */
   readonly trajectory?: TrajectoryScript;
+  /**
+   * 会话级同盟门槛覆盖 (I-12).
+   *
+   * ⚠️ **形状镜像** `cognition/alliance-config.ts` 的 `AllianceThresholds` (三字段严格 1:1),
+   *   但**刻意不 import 那个类型** —— `domain/` 层不认识 `cognition/` 的计算,
+   *   而本仓 `domain/` → `cognition/` 的依赖方向**至今不存在** (反向依赖是既成事实:
+   *   `cognition/` → `domain/`). 这里只放"形状", 校验与回落仍由
+   *   `alliance-config.ts` 的 `resolveAllianceThresholds` 一处裁决.
+   *
+   * 语义 (三条回落规则, 顺序即优先级):
+   *   1. 覆盖优先 —— 给了且合法 → 用覆盖值;
+   *   2. 缺项回落单例 —— 没给 → 用实例级配置 (模块 env 单例) 的值;
+   *   3. 非法值回落种子 —— 给了但越界 → 回落内核种子值.
+   *
+   * ⚠️ 省略 = 无覆盖 = 逐字回落到模块 env 单例 (**与改造前逐字一致**).
+   *   本单只打通"注入缝", 真实来源 (按角色档案自动算门槛) 属后续标定批次.
+   */
+  readonly allianceThresholds?: {
+    readonly open?: number;
+    readonly resistanceTrust?: number;
+    readonly resistanceSafety?: number;
+  };
 }
 
 /**

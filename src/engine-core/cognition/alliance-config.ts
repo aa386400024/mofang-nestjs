@@ -125,6 +125,49 @@ export function resolveAllianceThresholds(config: AllianceConfig | undefined): A
 }
 
 /**
+ * 解析**会话级**同盟门槛覆盖 (I-12).
+ *
+ * 为什么要这一层 (而不是让适配层自己拼一个 AllianceConfig 塞进来):
+ *   ① 门槛校验的**唯一真相源**在本文件的 `resolveAllianceThresholds` —— 适配层若自己
+ *      拼一份, 就是第二套校验, 迟早对不上 (仓库"反双胞胎"纪律);
+ *   ② "缺项回落单例 / 非法值回落种子"这两条回落规则必须与内核其余部分同口径.
+ *
+ * 三条回落规则 (顺序即优先级):
+ *   1. **会话覆盖优先** —— 覆盖里给了且合法 → 用覆盖值;
+ *   2. **缺项回落单例** —— 覆盖里没给 → 用实例级配置 (模块 env 单例) 的值;
+ *   3. **非法值回落种子** —— 覆盖里给了但越界 (非有限 / <0 / >1) → 回落内核种子值.
+ *
+ * ⚠️ **缺省 (无覆盖) → 原样返回实例级配置对象 (同一引用)** —— 逐字零回归:
+ *   没有覆盖时, 返回的就是 `base` 本身, 后续所有消费点的行为与改造前**完全一致**.
+ *
+ * ⚠️ 本函数是**模块级导出**, 刻意**不进 `index.ts` barrel** —— 内核公开面是契约
+ *   (`boundary.spec.ts` 断言⑥ 是双向白名单), 新增公开导出必须显式改那份测试,
+ *   而本批任务单禁止改它. 适配层因此**不需要**引用本函数: 它只负责把"覆盖"原样传下去.
+ *
+ * @param base 实例级配置 (模块 env 单例; 缺省 = 内核种子值)
+ * @param override 会话级覆盖 (缺省 = 无覆盖)
+ * @returns 会话级生效的同盟配置
+ */
+export function resolveSessionAllianceConfig(base?: AllianceConfig, override?: Partial<AllianceThresholds>): AllianceConfig | undefined {
+  // 无覆盖 → 原样返回 (同一引用) —— 逐字零回归.
+  if (!override) return base;
+  const seed = DEFAULT_ALLIANCE_CONFIG.thresholds;
+  const baseThresholds = base?.thresholds ?? seed;
+  // 合并: 覆盖优先, 缺项回落单例.
+  //   `??` 同时兜住"显式传 undefined" —— 那种情况按缺项处理, 不能把单例值覆盖成 undefined.
+  const merged: AllianceThresholds = {
+    open: override.open ?? baseThresholds.open,
+    resistanceTrust: override.resistanceTrust ?? baseThresholds.resistanceTrust,
+    resistanceSafety: override.resistanceSafety ?? baseThresholds.resistanceSafety,
+  };
+  // 校验 + 非法值回落种子 —— 复用既有唯一校验口, 不新写一套.
+  return {
+    deltas: base?.deltas ?? {},
+    thresholds: resolveAllianceThresholds({ deltas: {}, thresholds: merged }),
+  };
+}
+
+/**
  * 解析某事件的同盟三维增量 (端口覆写优先, 缺项回基础值).
  *
  * @param kind 事件类型

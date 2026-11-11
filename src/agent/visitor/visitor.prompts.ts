@@ -3,7 +3,9 @@
 //     1. 严格保持"来访者"角色, 不替用户做决定
 //     2. 难度分层 (L1/L2/L3) 控制行为模式: 开放 / 中等阻抗 / 高度防御
 //     3. 情绪动态: 随对话演进, 不固定一种情绪
-//     4. 情绪 inline tag (sighs/breath/laughs/coughs) 控制 TTS 语气
+//     4. 情绪 inline tag 控制 TTS 语气 (P1e Phase3 起改用**语义标记**
+//        [sigh] [breath] [laugh] [pause:x] [emotion:x], 由 SemanticTagParser
+//        统一解析后再由 TTS 适配器映射回厂商格式 —— 换厂商不用改 prompt)
 //   输出: renderSystemPrompt(persona, memory) → string
 //
 //   关键设计:
@@ -69,35 +71,70 @@ const EMOTION_BASELINE_LABEL: Readonly<Record<PersonaEmotionBaseline, string>> =
  * 难度对应情绪 tag 使用频率.
  *
  * V2026-10-23 治本 (v2.0 语音对语音 — tag 集对齐官方 TTS 语气词白名单):
- *   原因: 这些 tag 不是"随便写的括号词", 而是**官方 TTS 的语气词指令**:
- *     官方《双向流式语音合成》文档列了支持的 tag 白名单 (且仅 speech-2.8-hd / speech-2.8-turbo 支持):
- *     (laughs) (chuckle) (coughs) (clear-throat) (groans) (breath) (pant) (inhale) (exhale)
- *     (gasps) (sniffs) (sighs) (snorts) (burps) (lip-smacking) (humming) (hissing) (emm) (sneezes)
+ *   原因: 厂商的括号 tag 不是"随便写的括号词", 而是**官方 TTS 的语气词指令**;
  *     白名单外的 tag 不会被当作语气指令 —— 在"逐句出声"场景下会被**当成普通文字念出来**
- *     (用户会听到机器念出 "voice trembling" 这类英文), 属于直接影响产品体验的缺陷.
- *   修法: tag 集收敛到官方白名单内. 旧集合里的 (voice trembling) / (crying) / (laughs softly) /
- *     (pauses) 均**不在**白名单, 已替换为语义相近的官方 tag.
+ *     (用户会听到机器念出一串英文), 属于直接影响产品体验的缺陷.
+ *   当时的修法: tag 集收敛到官方白名单内 (那批 tag 是**直接写给模型的**).
  *   反双胞胎:
  *     - 不保留"看起来更像人"但不被支持的自造 tag: 文本模式下无害, 语音模式下是事故
  *     - 不在 TTS 层做 tag 清洗: 清洗只能"删", 删了就没有语气了; 正确做法是**源头只生成合法 tag**
+ *
+ * V2026-11-11 治本 (P1e Phase3 — 厂商标记 → 语义标记):
+ *   上面那套"直接写厂商 tag"的做法有两个新问题:
+ *     ① **换厂商要改 prompt**: 厂商标记是 MiniMax 的私有格式, 换火山/阿里云就得
+ *        重写这段文案并重跑全部数据;
+ *     ② **标记来源不可观测**: parser 会把厂商 tag "认领式转换"成语义 tag 再转回去,
+ *        语义上没错, 但事后看不出这轮语气是模型直接写的还是转换来的.
+ *   修法: **prompt 只教语义标记** ([sigh] [breath] [laugh] [emm] / [pause:x] / [emotion:x]),
+ *     由 `SemanticTagParser` 统一解析 (模糊纠正 + 归一化 + 三级降级),
+ *     再由 TTS 适配器映射回厂商格式 —— 厂商格式只由适配层产出, 不再进 prompt.
+ *   频率纪律与难度分层**一字未动** (见 snippet §二: 只改 tag 名称形态).
  */
 const DIFFICULTY_TAG_FREQ: Readonly<Record<PersonaDifficulty, string>> = {
   L1: `情绪 inline tag 频率 (L1 入门):
 - 可主动用, 表达真实感受
-- 推荐 (只可用官方支持的语气词): (sighs) (breath) (laughs) (sniffs) (humming)
-- 每 2-3 轮至少出现一个 tag, 让 TTS 语气有起伏`,
+- 推荐 (只用语义标记): [sigh] [breath] [laugh]
+- 每 2-3 轮至少出现一个 tag, 让语音语气有起伏`,
 
   L2: `情绪 inline tag 频率 (L2 进阶):
 - 偶尔用, 不频繁
-- 推荐 (只可用官方支持的语气词): (sighs) (breath) (chuckle)
-- 多数回复可不用 tag, 偶尔压抑不住流露一个 (sighs)`,
+- 推荐 (只用语义标记): [sigh] [breath]
+- 多数回复可不用 tag, 偶尔压抑不住流露一个 [sigh]`,
 
   L3: `情绪 inline tag 频率 (L3 专家):
 - 极少用, 最多 5-8 轮一个
-- 推荐 (只可用官方支持的语气词): (sighs) (emm)
+- 推荐 (只用语义标记): [sigh] [emm]
 - 即便内心有情绪, 也不主动让咨询师察觉`,
 };
 
+/**
+ * 停顿标记纪律 (P1e Phase3 · snippet §三) — 跨难度通用.
+ *
+ * 为什么单独教: 停顿是**新增能力** —— 厂商标记体系里没有停顿, LLM 不会自己写.
+ *   不教的话模型要么不写, 要么瞎猜格式.
+ *
+ * ⚠️ 措辞以 snippet §三为准; 本单**不改**解析层, 只教模型怎么写.
+ */
+const PAUSE_TAG_RULES = `停顿标记 (可选, 谨慎使用):
+- 格式: [pause:0.5] —— 括号里是秒数, 范围 [0.01, 99.99], 最多两位小数
+- 一轮最多 1 个, 且必须放在**句子中间** (两个可发音的词之间)
+- 放在句尾的停顿会被解析层丢弃 —— 不要在句尾写停顿
+- 不要连着写两个停顿 (例如 [pause:0.3][pause:0.5]) —— 会被合并成一个
+- 用途: 犹豫、吞咽、话说到一半收住 —— 不是每轮都要用`;
+
+/**
+ * 情绪标记纪律 (P1e Phase3 · snippet §四) — 跨难度通用.
+ *
+ * ⚠️ 合法值按**官方白名单 7 个**写 (与厂商一致, 避免模型学到一个会被丢的值);
+ *   但语义层目前只认 5 个 —— `disgusted` / `surprised` 会被丢弃并记一条 warning
+ *   (见 snippet §四注, 已登记为遗留项, 本单不改解析层).
+ */
+const EMOTION_TAG_RULES = `情绪标记 (可选, 一轮最多 1 个):
+- 格式: [emotion:sad] —— 放在**这一轮的最后**
+- 合法值只有这 7 个: happy / sad / angry / fearful / disgusted / surprised / calm
+- calm 就是中性 —— **不要写 neutral** (那不是合法值, TTS 会报参数异常)
+- 不要写 fluent / whisper —— 那是 speech-2.6 系列专属, speech-2.8 不支持
+- 一轮里情绪最多出现一次; 后面的会被忽略 (第一个说了算)`;
 /** 历史区段最大对话轮数 (提示用, 实际截断由 VisitorService 控制). */
 export const VISITOR_HISTORY_SLICE_TURNS = 10;
 
@@ -170,6 +207,10 @@ export function renderSystemPrompt(persona: Persona, memory: VisitorSessionMemor
     '## ' + EMOTION_DYNAMICS,
     '',
     '## ' + tagFreq,
+    '',
+    '## ' + PAUSE_TAG_RULES,
+    '',
+    '## ' + EMOTION_TAG_RULES,
     '',
     '## ' + HARD_RULES,
   );

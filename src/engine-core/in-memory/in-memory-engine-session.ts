@@ -40,7 +40,7 @@
 import { nanoid } from 'nanoid';
 import { randomInt } from 'node:crypto';
 
-import type { AllianceConfig } from '../cognition/alliance-config.js';
+import { resolveSessionAllianceConfig, type AllianceConfig } from '../cognition/alliance-config.js';
 import type { DeltaTableConfig } from '../cognition/delta-table-config.js';
 import { planIntention } from '../cognition/intention-planner.js';
 import {
@@ -148,6 +148,14 @@ interface EngineSessionRuntime {
   readonly resumeFromSessionId: string | null;
   /** 角色内核基线 (WP1); 仅用于全新会话开场装配, 接续不覆盖. */
   readonly characterProfile: CharacterProfile | null;
+  /**
+   * 本场生效的同盟三维配置 (I-12).
+   *
+   * ⚠️ **会话级** —— 开场时由 `resolveSessionAllianceConfig(实例级配置, 会话级覆盖)` 解析一次,
+   *   之后**本场恒定** (与实例级配置一样是"一场一值", 不是每轮可变).
+   *   无覆盖时它就是实例级配置**本身** (同一引用) → 逐字零回归.
+   */
+  readonly allianceConfig: AllianceConfig | undefined;
   readonly openedAt: number;
   /** 已完成轮次. */
   turnIndex: number;
@@ -348,6 +356,9 @@ export class InMemoryEngineSession implements EngineSessionPort {
       seed: input.seed ?? this.generateSeed(),
       resumeFromSessionId: input.resumeFromSessionId ?? null,
       characterProfile: input.characterProfile ?? null,
+      // I-12: 会话级门槛覆盖在此**解析一次**并固定在本句柄上.
+      //   无覆盖 → 原样返回实例级配置 (同一引用) → 逐字零回归.
+      allianceConfig: resolveSessionAllianceConfig(this.allianceConfig, input.allianceThresholds),
       openedAt: this.now(),
       turnIndex: 0,
       workingWindow: [],
@@ -398,13 +409,13 @@ export class InMemoryEngineSession implements EngineSessionPort {
     //    WP34: 聚合之后先过**人格调节**, 再进 cap (同一管道, 调节不得绕过 cap).
     //    WP42: 同盟三维的 safety / bond 走**同一个端口** (构造注入), 口径与
     //    临时快照 / 落库路径必须一致 —— 否则两处会漂.
-    const eventDelta = modulateDeltaByPersonality(aggregateTurnDelta(events, this.allianceConfig, this.deltaTableConfig), personality);
+    const eventDelta = modulateDeltaByPersonality(aggregateTurnDelta(events, runtime.allianceConfig, this.deltaTableConfig), personality);
     //    临时快照: 只按事件 delta 推进 (供意图规划与轨迹触发判定) ——
     //    它是**中间量**, 不是本轮落库的状态 (落库口径见第 5 步).
     const provisional = transitionState(base.snapshot, events, {
       capConfig: this.capConfig,
       personality,
-      alliance: this.allianceConfig,
+      alliance: runtime.allianceConfig,
       // WP60: delta 规则表端口 (逐维度覆写) —— 与落库路径**同一份**配置,
       //   否则临时快照与落库快照会漂 (WP42 的同款纪律).
       deltaTable: this.deltaTableConfig,
@@ -413,7 +424,7 @@ export class InMemoryEngineSession implements EngineSessionPort {
       //   所以不会重复演化 (各演一次, 结果相同).
       counselorText: userText,
     });
-    const intention = planIntention(provisional, runtime.characterProfile ?? undefined, this.allianceConfig);
+    const intention = planIntention(provisional, runtime.characterProfile ?? undefined, runtime.allianceConfig);
     // 4. 轨迹步 (WP3): BDI 自由规划**之后**、落库**之前**.
     //    BDI 永远先发生, 轨迹只做后处理 —— 于是"同一段行为在开/关轨迹两种配置下"
     //    可以直接对比, 轨迹出问题时也能回退到纯 BDI (任务单 M1).

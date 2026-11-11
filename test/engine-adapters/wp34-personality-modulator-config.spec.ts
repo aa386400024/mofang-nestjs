@@ -65,29 +65,38 @@ describe('WP34 · 人格调节系数装配 (env → PersonalityModulatorConfig)'
       }),
     );
 
+    // I-20: 情绪两维系数已进端口类型 —— 本单**不接 env 键**, 一律取内核种子值 1.0.
     expect(config.attachment.secure).toEqual({
       trustScale: 1.05,
       resistanceScale: 0.95,
       safetyScale: 1.08,
       bondScale: 1.02,
+      valenceScale: 1,
+      arousalScale: 1,
     });
     expect(config.attachment.avoidant).toEqual({
       trustScale: 0.5,
       resistanceScale: 1.4,
       safetyScale: 0.45,
       bondScale: 0.55,
+      valenceScale: 1,
+      arousalScale: 1,
     });
     expect(config.attachment.anxious).toEqual({
       trustScale: 1.3,
       resistanceScale: 0.75,
       safetyScale: 0.65,
       bondScale: 1.35,
+      valenceScale: 1,
+      arousalScale: 1,
     });
     expect(config.attachment.disorganized).toEqual({
       trustScale: 0.85,
       resistanceScale: 1.15,
       safetyScale: 0.55,
       bondScale: 0.75,
+      valenceScale: 1,
+      arousalScale: 1,
     });
     expect(config.agreeableness).toEqual({ trustScale: 1.2, highThreshold: 0.6 });
   });

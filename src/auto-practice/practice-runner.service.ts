@@ -162,7 +162,7 @@ export interface PracticeRunMetrics {
  * 为什么需要独立状态: "危机披露" 与 "会话终止" 原来是同一件事,
  * 于是"练了危机应对"和"在危机里掉线"在数据上无法区分.
  */
-interface CrisisWindowState {
+export interface CrisisWindowState {
   /** 是否已进入后置练习窗. */
   active: boolean;
   /** 首次披露的轮次. */
@@ -1067,7 +1067,7 @@ export function crisisLevelOf(category: string | null): number {
 }
 
 /** 停滞计数状态 (跨轮累积; 只统计来访者侧, 咨询师侧只记指标). */
-interface StagnationState {
+export interface StagnationState {
   /** 字面复读连续轮数. */
   literalRepeatStreak: number;
   /** 无推进连续轮数. */

@@ -99,7 +99,7 @@ WP-K / WP-L 首次 `git commit` 时被 husky 的 lint-staged 拦截，eslint 报
 - **裸 IP**：`seed-verbal-voice.ts` 的 `117.72.30.78` 改为 `process.env.DB_HOST`（已核对 `.env` 同值），不留裸 IP。
 - **唯一规则豁免**：`scripts/eval-runner.ts` 中 1 行**文件内** `eslint-disable-next-line unicorn/no-exports-in-scripts`（`parseEvalCliArgs` 被 `test/engine-adapters/eval/eval.runner.spec.ts` 消费，不能去 export），**未改全局 eslint 配置**。
 - **回归闸门**：全量 `pnpm test` → **178 files（177 passed / 1 skipped）、2896 tests（2892 passed / 4 skipped）**、exit 0；`pnpm lint` exit 0；`pnpm exec tsc -p tsconfig.build.json --noEmit` exit 0；`git diff --stat HEAD -- src/engine-core` 为空。
-- **遗留**：`stagnation-calibration.ts` 的 **2 个既有** `TS2459`（`CrisisWindowState` / `StagnationState` 未从 `src/auto-practice/practice-runner.service.ts` 导出）——改动前就存在，修它要动 `src/` 业务代码导出，超本单红线，留待单独小任务。
+- **遗留（✅ 已关闭 2026-11-11 · RESID-1）**：`stagnation-calibration.ts` 的 **2 个既有** `TS2459`（`CrisisWindowState` / `StagnationState` 未从 `src/auto-practice/practice-runner.service.ts` 导出）—— 改动前就存在。**已由独立小单 RESID-1 关闭**：两个接口加 `export`（纯可见性，零运行时行为变化），脚本侧类型检查 **TS2459 由 2 → 0**（错误总数 114 → 112，无新增）→ [RESID-1 交付记录](../completed/phase2.5/resid1-stagnation-state-exports-2026-11-11.md)。**M-4 决策（scripts 不进任何 tsconfig）维持现状不变。**
 - **交付记录**：[wp-m-toolchain-tech-debt-fix-implementation-2026-11-11.md](../completed/phase2.5/wp-m-toolchain-tech-debt-fix-implementation-2026-11-11.md)
 
 ### TD-3 · commitlint 是否正式安装（优先级：P3，与 TD-1b 联动）

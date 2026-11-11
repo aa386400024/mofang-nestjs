@@ -4,6 +4,7 @@
 > 依据：`docs/worklog/completed/phase2.5/wp-j-p1e-semantic-wiring-offline-2026-11-10.md`（P1e Phase2 接线）
 > 官方格式参考：`docs/reference/minimax-t2a-api.md`
 > 时间戳：2026-11-10
+> **状态（2026-11-11）**：**prompt 已迁移，在线切换待离线指标复核** —— P1e Phase3 已按本片段逐字迁移 `DIFFICULTY_TAG_FREQ` 三档并补入 §三 / §四两段纪律；离线三形态对比见 [交付记录](../completed/phase2.5/p1e3-visitor-semantic-tag-migration-2026-11-11.md)（802 真实轮：新形态零降级、停顿 / 情绪 100%）。**真实 LLM 批次待跑**（执行步骤见交付记录 §5.5）→ 在线放量由用户复核指标后拍板。
 
 ---
 

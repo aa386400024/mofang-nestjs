@@ -65,7 +65,28 @@
 //     人格影响的是**建立速度**, 不是**保持时长** —— 同盟三维的半衰期 (30 天) 不需要分化.
 //
 //   ⚠️ 全部系数是**工程种子值, 非临床标定** —— 待真实对练校准.
-
+//
+// V2026-11-11 I-20 (引擎内核 · 情绪两维补角色级调节系数):
+//   WP34/WP53 把依恋系数接到了 trust / safety / bond (增益) 与 verbal / depth / style
+//   (阻抗下降), 但 **valence (情绪效价) 与 arousal (唤醒度) 两个情绪维度原样透传** ——
+//   算子里根本没有它们的调节通道. 于是"回避型来访被共情后情绪改善得更慢"这类
+//   角色差异在状态上看不出来: 同样一句共情, 回避型与安全型的 valence 涨得一样多.
+//
+//   本文件的扩展: `AttachmentModulation` 加 valenceScale / arousalScale 两个系数,
+//   口径与 safetyScale / bondScale **完全同范式** (增益型, 只调正向):
+//     · 只调**增益**方向 (delta.valence > 0 时乘 valenceScale, delta.arousal > 0 时乘 arousalScale);
+//     · **受损方向不调** (不发明惩罚系数 —— 同 trustScale 的理由);
+//     · 非法值逐项回退内核种子值 (复用既有 `sanitizeGainScale`);
+//     · 缺省 = 全 1.0 (零回归).
+//
+//   种子值**一律 1.0** (= 不调节): 临床差异化倍率待真实批次标定后另单落地
+//   (与本文件既有的"工程种子值, 非临床标定"纪律同款). 因此本单**零行为变化**.
+//
+//   为什么不动 positive / negative / dependency 三维: 任务单只点了情绪两维,
+//   那三维是**情绪分解的伴随量** (正负情绪计数 / 依赖感), 与 valence / arousal
+//   的调节语义不同源 —— 顺手扩会发明没有依据的口径.
+//
+//   ⚠️ 全部系数是**工程种子值, 非临床标定** —— 待真实对练校准.
 import type { DeltaVector } from './state-transition.js';
 import type { AttachmentStyle, PersonalityTraits } from '../domain/character-profile.js';
 import type { SessionEvent } from '../domain/events/session-event.js';
@@ -120,6 +141,23 @@ export interface AttachmentModulation {
    * ⚠️ 只作用于**增益**方向 (delta.bond > 0). 受损方向不调.
    */
   readonly bondScale: number;
+  /**
+   * valence (情绪效价) **增益**系数 (≥ 0) (I-20).
+   *
+   * >1 = 情绪改善得快, <1 = 改善得慢. 任务单 §2.1 种子: 四种依恋类型**一律 1**
+   * (= 不调节; 临床差异化倍率待标定单).
+   *
+   * ⚠️ 只作用于**增益**方向 (delta.valence > 0). 受损方向不调.
+   */
+  readonly valenceScale: number;
+  /**
+   * arousal (唤醒度) **增益**系数 (≥ 0) (I-20).
+   *
+   * >1 = 唤醒升得快, <1 = 升得慢. 任务单 §2.1 种子: 四种依恋类型**一律 1**.
+   *
+   * ⚠️ 只作用于**增益**方向 (delta.arousal > 0). 受损方向不调.
+   */
+  readonly arousalScale: number;
 }
 
 /**
@@ -152,10 +190,10 @@ export interface PersonalityModulatorConfig {
  */
 export const DEFAULT_PERSONALITY_MODULATOR_CONFIG: PersonalityModulatorConfig = {
   attachment: {
-    secure: { trustScale: 1, resistanceScale: 1, safetyScale: 1, bondScale: 1 },
-    avoidant: { trustScale: 0.6, resistanceScale: 1.3, safetyScale: 0.5, bondScale: 0.5 },
-    anxious: { trustScale: 1.2, resistanceScale: 0.8, safetyScale: 0.7, bondScale: 1.3 },
-    disorganized: { trustScale: 0.8, resistanceScale: 1.2, safetyScale: 0.6, bondScale: 0.8 },
+    secure: { trustScale: 1, resistanceScale: 1, safetyScale: 1, bondScale: 1, valenceScale: 1, arousalScale: 1 },
+    avoidant: { trustScale: 0.6, resistanceScale: 1.3, safetyScale: 0.5, bondScale: 0.5, valenceScale: 1, arousalScale: 1 },
+    anxious: { trustScale: 1.2, resistanceScale: 0.8, safetyScale: 0.7, bondScale: 1.3, valenceScale: 1, arousalScale: 1 },
+    disorganized: { trustScale: 0.8, resistanceScale: 1.2, safetyScale: 0.6, bondScale: 0.8, valenceScale: 1, arousalScale: 1 },
   },
   agreeableness: { trustScale: 1.1, highThreshold: 0.7 },
 };
@@ -166,7 +204,14 @@ export const DEFAULT_PERSONALITY_MODULATOR_CONFIG: PersonalityModulatorConfig = 
  * 四个系数全 1.0 —— WP53 追加的两列同样必须是 1.0, 否则"没有依恋类型的角色"
  * 会被当成有调节 (零回归的前提是**什么都不改**).
  */
-const NEUTRAL_ATTACHMENT: AttachmentModulation = { trustScale: 1, resistanceScale: 1, safetyScale: 1, bondScale: 1 };
+const NEUTRAL_ATTACHMENT: AttachmentModulation = {
+  trustScale: 1,
+  resistanceScale: 1,
+  safetyScale: 1,
+  bondScale: 1,
+  valenceScale: 1,
+  arousalScale: 1,
+};
 
 /**
  * 取某依恋类型的系数 (运行时安全: 表缺项 / 键非法 → undefined).
@@ -234,6 +279,10 @@ function resolveAttachment(style: AttachmentStyle | undefined, config: Personali
     // WP53: 同盟三维的两个增益系数 —— 逐项校验, 非法值各自回退种子值.
     safetyScale: sanitizeGainScale(provided.safetyScale, seed.safetyScale),
     bondScale: sanitizeGainScale(provided.bondScale, seed.bondScale),
+    // I-20: 情绪两维 (valence / arousal) 的增益系数 —— 同样逐项校验, 非法值各自回退种子值.
+    //   ⚠️ 种子值一律 1.0 → 缺项 / 非法值都回落成"不调节", 零行为变化.
+    valenceScale: sanitizeGainScale(provided.valenceScale, seed.valenceScale),
+    arousalScale: sanitizeGainScale(provided.arousalScale, seed.arousalScale),
   };
 }
 
@@ -307,6 +356,10 @@ export function modulateDeltaByPersonality(delta: DeltaVector, input: Personalit
     // WP53: 同盟三维的 safety / bond 同口径 —— 只调"增益"方向, 受损方向不调.
     safety: delta.safety > 0 ? delta.safety * attachment.safetyScale : delta.safety,
     bond: delta.bond > 0 ? delta.bond * attachment.bondScale : delta.bond,
+    // I-20: 情绪两维 (valence / arousal) 同口径 —— 只调"增益"方向, 受损方向不调.
+    //   ⚠️ 种子值全 1.0 → 这两行与改造前**逐字等价** (乘 1 不改变任何数值).
+    valence: delta.valence > 0 ? delta.valence * attachment.valenceScale : delta.valence,
+    arousal: delta.arousal > 0 ? delta.arousal * attachment.arousalScale : delta.arousal,
     // 只调"下降"方向: 阻抗上升的方向保持基准速率.
     verbal: delta.verbal < 0 ? delta.verbal * resistanceFactor : delta.verbal,
     depth: delta.depth < 0 ? delta.depth * resistanceFactor : delta.depth,

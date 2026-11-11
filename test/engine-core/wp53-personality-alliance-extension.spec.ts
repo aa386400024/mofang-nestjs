@@ -186,7 +186,7 @@ describe('WP53 · 人格调节算子扩展到同盟三维 (safety / bond)', () =
       const custom: PersonalityModulatorConfig = {
         attachment: {
           ...SEED.attachment,
-          avoidant: { trustScale: 1, resistanceScale: 1, safetyScale: 0.25, bondScale: 2 },
+          avoidant: { trustScale: 1, resistanceScale: 1, safetyScale: 0.25, bondScale: 2, valenceScale: 1, arousalScale: 1 },
         },
         agreeableness: SEED.agreeableness,
       };
@@ -206,8 +206,15 @@ describe('WP53 · 人格调节算子扩展到同盟三维 (safety / bond)', () =
       const broken: PersonalityModulatorConfig = {
         attachment: {
           ...SEED.attachment,
-          avoidant: { trustScale: 1, resistanceScale: 1, safetyScale: Number.NaN, bondScale: -1 },
-          anxious: { trustScale: 1, resistanceScale: 1, safetyScale: Number.POSITIVE_INFINITY, bondScale: -2 },
+          avoidant: { trustScale: 1, resistanceScale: 1, safetyScale: Number.NaN, bondScale: -1, valenceScale: 1, arousalScale: 1 },
+          anxious: {
+            trustScale: 1,
+            resistanceScale: 1,
+            safetyScale: Number.POSITIVE_INFINITY,
+            bondScale: -2,
+            valenceScale: 1,
+            arousalScale: 1,
+          },
         },
         agreeableness: SEED.agreeableness,
       };
@@ -228,7 +235,7 @@ describe('WP53 · 人格调节算子扩展到同盟三维 (safety / bond)', () =
       const zeroed: PersonalityModulatorConfig = {
         attachment: {
           ...SEED.attachment,
-          avoidant: { trustScale: 1, resistanceScale: 1, safetyScale: 0, bondScale: 0 },
+          avoidant: { trustScale: 1, resistanceScale: 1, safetyScale: 0, bondScale: 0, valenceScale: 1, arousalScale: 1 },
         },
         agreeableness: SEED.agreeableness,
       };
@@ -316,7 +323,7 @@ describe('WP53 · 人格调节算子扩展到同盟三维 (safety / bond)', () =
       const amplified: PersonalityModulatorConfig = {
         attachment: {
           ...SEED.attachment,
-          secure: { trustScale: 1, resistanceScale: 1, safetyScale: 100, bondScale: 1 },
+          secure: { trustScale: 1, resistanceScale: 1, safetyScale: 100, bondScale: 1, valenceScale: 1, arousalScale: 1 },
         },
         agreeableness: SEED.agreeableness,
       };
@@ -338,7 +345,7 @@ describe('WP53 · 人格调节算子扩展到同盟三维 (safety / bond)', () =
       const amplified: PersonalityModulatorConfig = {
         attachment: {
           ...SEED.attachment,
-          secure: { trustScale: 1, resistanceScale: 1, safetyScale: 1, bondScale: 100 },
+          secure: { trustScale: 1, resistanceScale: 1, safetyScale: 1, bondScale: 100, valenceScale: 1, arousalScale: 1 },
         },
         agreeableness: SEED.agreeableness,
       };

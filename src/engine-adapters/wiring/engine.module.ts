@@ -45,6 +45,7 @@ import { Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { resolveAllianceConfig } from './alliance-config.js';
+import { NO_SESSION_ALLIANCE_THRESHOLD_OVERRIDE } from './alliance-threshold-resolver.js';
 import { resolveBdiStateStoreConfig } from './bdi-state-store.config.js';
 import { CharacterPoolModule } from './character/character-pool.module.js';
 import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver } from './character/index.js';
@@ -67,6 +68,7 @@ import {
   createVisitorOutputProbe,
 } from './engine.providers.js';
 import {
+  ALLIANCE_THRESHOLD_RESOLVER,
   ENGINE_BDI_STATE_REPOSITORY,
   ENGINE_DELIBERATION_HOOK,
   ENGINE_DELIBERATION_MODE_CONFIG,
@@ -334,6 +336,13 @@ const wiringLogger = new Logger('EngineWiring');
         // 执行器复用审议服务 (超时 / 校验 / cap / 临床规则 / trace 全在里面, 不重写一遍).
         new LlmDeliberationHook(modeConfig, new LlmDeliberationEffectiveRunner(deliberation)),
       inject: [ENGINE_DELIBERATION_MODE_CONFIG, LlmDeliberationService],
+    },
+    {
+      // I-12: 会话级同盟门槛覆盖来源 —— **缺省 = 永远无覆盖**.
+      //   门槛逐字回落到模块 env 单例 (灰度期数值冻结); 真实来源 (按角色档案自动算门槛)
+      //   属后续标定批次, 到时只换这一个 provider, 会话创建入口零改动.
+      provide: ALLIANCE_THRESHOLD_RESOLVER,
+      useValue: NO_SESSION_ALLIANCE_THRESHOLD_OVERRIDE,
     },
     {
       provide: ENGINE_SESSION_PORT,

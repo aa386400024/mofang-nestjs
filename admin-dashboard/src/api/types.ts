@@ -672,6 +672,27 @@ export interface AnnotationBatchListResponse {
   warnings: string[]
 }
 
+/**
+ * 一致性报告不可比原因码（WP-N §D4）。
+ *
+ * ⚠️ 与后端 `src/quality/quality-annotation.constants.ts` 的 `COMPARABILITY_REASON` 严格 1:1 ——
+ *   判定只看这 4 个码（`quality-annotation-batch.ts` 只 push 这 4 个），多一个少一个都会让
+ *   「不可比」的口径与后端对不上。改一边必须改另一边。
+ */
+export type ComparabilityReason =
+  | 'MIXED_ENGINE_VERSION'
+  | 'MIXED_PROMPT_VERSION'
+  | 'NO_LABELED_SESSION'
+  | 'TRANSCRIPT_MISSING_PARTIAL'
+
+/**
+ * 一致性报告只告警码（不影响 `comparable`）。
+ *
+ * ⚠️ 与后端 `COMPARABILITY_WARNING` 严格 1:1。
+ *   ⚠️ 这两个码**不进入**不可比原因 —— 「够不够看」与「能不能比」是两件事。
+ */
+export type ComparabilityWarning = 'SMALL_SAMPLE' | 'ENGINE_VERSION_DIRTY'
+
 /** 一致性报告可比性守卫（WP-N §D4）。 */
 export interface AnnotationConsistencyScope {
   batchId: string | null
@@ -679,10 +700,10 @@ export interface AnnotationConsistencyScope {
   engineVersions: string[]
   promptVersions: string[]
   comparable: boolean
-  /** 不可比原因码：MIXED_ENGINE_VERSION / MIXED_PROMPT_VERSION / NO_LABELED_SESSION / TRANSCRIPT_MISSING_PARTIAL */
-  incomparableReasons: string[]
-  /** 只告警不判不可比：SMALL_SAMPLE / ENGINE_VERSION_DIRTY 等。 */
-  warnings: string[]
+  /** 不可比原因码：任一命中 → comparable=false。 */
+  incomparableReasons: ComparabilityReason[]
+  /** 只告警不判不可比。 */
+  warnings: ComparabilityWarning[]
 }
 
 /** 列表行 */
@@ -785,8 +806,14 @@ export interface AnnotationConsistency {
   labelAgreement: number | null
   crisisAgreement: number | null
   explorationTurnMae: number | null
-  /** 可比性守卫；不可比时数字仍返回，但前端必须用横幅遮住。 */
-  scope?: AnnotationConsistencyScope
+  /**
+   * 可比性守卫；不可比时数字仍返回，但前端必须用横幅遮住。
+   *
+   * ⚠️ **必填**（后端 `quality-annotation.view.ts` 声明 `readonly scope: AnnotationConsistencyScope`，
+   *   契约 §2.7 的响应也恒带 scope）—— 之前这里写成可选，兜底 `?? true` 会把
+   *   「scope 缺失」悄悄当成「可比」= 给出一个**自信的错结论**（WP-K 教训）。
+   */
+  scope: AnnotationConsistencyScope
 }
 
 // ─── 批次回归追踪 (WP-K · 历史批次效果对比) ───

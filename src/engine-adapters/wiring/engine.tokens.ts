@@ -83,3 +83,15 @@ export const ENGINE_DELIBERATION_MODE_CONFIG = Symbol('ENGINE_DELIBERATION_MODE_
  *   钩子持有"每场会话最近一条建议"的进程内缓存, 两个实例 = 两份缓存 = 建议永远对不上.
  */
 export const ENGINE_DELIBERATION_HOOK = Symbol('ENGINE_DELIBERATION_HOOK');
+
+/**
+ * 会话级同盟门槛覆盖端口 token (V2026-11-11 I-12 · 实现 = `SessionAllianceThresholdResolver`).
+ *
+ * ⚠️ 必须是**显式 token**: `SessionAllianceThresholdResolver` 是 **interface** —— 编译后没有运行时值,
+ *   `emitDecoratorMetadata` 只能把它降级成 `Object`; 不给显式 token 的话 Nest 会去找一个叫
+ *   "Object" 的 provider, 找不到就**静默注入 undefined** —— 那会让"接了真实来源却没生效"
+ *   变成一个**看不出来**的静默失效. 与本文件其它 token 同一类问题.
+ *
+ * ⚠️ 缺省实现 = 永远无覆盖 → 门槛逐字回落到模块 env 单例 (灰度期数值冻结).
+ */
+export const ALLIANCE_THRESHOLD_RESOLVER = Symbol('ALLIANCE_THRESHOLD_RESOLVER');
