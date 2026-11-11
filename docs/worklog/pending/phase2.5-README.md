@@ -85,8 +85,9 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 
 **治本修复已派单（WP-M）**：[任务单](wp-m-toolchain-tech-debt-fix-2026-11-11.md)。
 
+- **M-1 ✅ 已完成**（2026-11-11，commit `666b0a8`）：删掉 `.husky/commit-msg` 顶部 husky 旧格式两行。`husky - DEPRECATED` 警告消失，且 husky v10 时不会失效（`.husky/_/h` 用 `sh -e` 显式执行，不依赖 shebang）。
 - **M-2 ✅ 已完成**（2026-11-11，commit `fc9285c`）：`.husky/commit-msg` 的裸 `npx --no -- commitlint` 换成纯 shell 正则校验。单次钩子 **13.4 秒 → 0.67 秒**（约 20 倍），且格式校验首次真正生效（不合规消息现在会被 `exit 1` 阻断）。
-- **M-1 / M-3 / M-4 待执行**：删 commit-msg 旧格式两行（现在每次提交仍会打印 `husky - DEPRECATED`）、清 `scripts/` 下 5 文件 67 个存量 lint。
+- **M-3 / M-4 待执行**：清 `scripts/` 下 5 文件 67 个存量 lint；交代 scripts 不在 tsconfig 的处置。
 
 ### 3.1 必须先知道的转折（2026-11-09 晚）
 

@@ -1,7 +1,7 @@
 # WP-M · 工程工具链技术债治本修复（修复）
 
-> 状态：🚧 部分完成（2026-11-11）—— **M-2 已由 D 主控完成（commit `fc9285c`）**；M-1 / M-3 / M-4 待执行
-> 执行方：MiniMax Code（**仅需处理 M-1 / M-3 / M-4，M-2 已完成请勿重做**）
+> 状态：🚧 部分完成（2026-11-11）—— **M-1 + M-2 已由 D 主控完成（commit `666b0a8` / `fc9285c`）**；M-3 / M-4 待执行
+> 执行方：MiniMax Code（**仅需处理 M-3 / M-4，M-1 / M-2 已完成请勿重做**）
 > 仓库：`E:\Work\Project\backend\mofang-nestjs`，分支 `integrate`
 > 唯一事实源：`docs/worklog/pending/phase2.5-toolchain-tech-debt-2026-11-11.md`（技术债清单 TD-1 / TD-2 / TD-3）
 > 任务性质：工具链 / 性能修复（**不碰业务代码，不碰 engine-core**）
@@ -65,15 +65,17 @@ npx --no -- commitlint --edit "$1" 2>/dev/null || { ... 打印格式提示 ... }
 
 **在范围内 —— 四处，逐条闭合：**
 
-- **M-1 · 清理 `.husky/commit-msg` 的 husky 旧格式两行**
-  删除文件顶部：
+- ~~**M-1 · 清理 `.husky/commit-msg` 的 husky 旧格式两行**~~
+  已删除的两行：
 
   ```sh
   #!/usr/bin/env sh
   . "$(dirname -- "$0")/_/husky.sh"
   ```
 
-  husky 9.1.7 已废弃该写法，v10 会直接失败。删除后确认钩子仍能正常触发（见 §5.3 验证方法）。
+  > **✅ 已完成（2026-11-11，D 主控自做，commit `666b0a8`）—— 本项无需再派，MiniMax 不要重做。**
+  > 安全性依据：husky 9 的 `.husky/_/h` 用 `sh -e "$s" "$@"` 显式执行，不依赖 shebang。
+  > 验证：`sh -e` 三类用例（合规 487 ms/exit 0、不合规 716 ms/exit 1、仅注释 exit 1）；真提交 `666b0a8` 通过，日志中 `husky - DEPRECATED` 已消失。
 
 - ~~**M-2 · 干掉 commit-msg 里的裸 npx，并让格式校验真正生效（核心提速项）**~~
 

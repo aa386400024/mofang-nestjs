@@ -27,15 +27,19 @@ WP-K / WP-L 首次 `git commit` 时被 husky 的 lint-staged 拦截，eslint 报
 
 #### TD-1a · 旧格式两行将在 husky v10 失败
 
+> **状态：✅ 已修复（2026-11-11，D 主控自做，commit `666b0a8`）**
+
 - 现象：提交日志出现 `husky - DEPRECATED`，提示 `.husky/commit-msg` 里的两行在 v10.0.0 会失败（当前 husky 实装 9.1.7）。
 - 涉及文件：`.husky/commit-msg`
-- 需删除的两行：
+- 已删除的两行：
   ```
   #!/usr/bin/env sh
   . "$(dirname -- "$0")/_/husky.sh"
   ```
-- 修复方式：删除这两行，保留实际的 commit-msg 逻辑；独立一次小提交。
-- 风险：低，删除前确认文件里除这两行外还有需要保留的内容。
+- 修复结果：删除两行（并去掉因此产生的开头空行），共 3 行改动。
+  - 安全性依据：husky 9 的 `.husky/_/h` 第 17 行用 `sh -e "$s" "$@"` **显式以 sh 执行用户脚本**，不依赖 shebang，故删除后钩子照常运行。
+  - 验证：`sh -e .husky/commit-msg` 三类用例——合规 `487 ms/exit 0`、不合规 `716 ms/exit 1`、仅注释消息 `exit 1`；真提交 `666b0a8` 通过，提交日志**不再出现** `husky - DEPRECATED`。
+- 风险：低。
 
 #### TD-1b · 裸 `npx --no -- commitlint` 让每次提交白等约 13.4 秒（**本次核查新发现**）
 
@@ -62,7 +66,7 @@ WP-K / WP-L 首次 `git commit` 时被 husky 的 lint-staged 拦截，eslint 报
   即单次钩子从约 13.4 秒降到约 0.67 秒（**约 20 倍**），且校验首次真正生效。
 
 - 真提交验证：commit `fc9285c` 通过钩子，日志中已**不再出现** `skipping commitlint check`。
-- 遗留：`.husky/commit-msg` 顶部两行旧格式（TD-1a）仍在，故每次提交仍会打印 `husky - DEPRECATED` 警告，待 TD-1a 处理。
+- 后续：顶部两行旧格式（TD-1a）已于同日一并删除（commit `666b0a8`），`husky - DEPRECATED` 警告随之消失。
 
 ### TD-2 · scripts 下 5 个历史文件共 67 个 lint 存量问题（优先级：P2，潜在阻塞）
 
