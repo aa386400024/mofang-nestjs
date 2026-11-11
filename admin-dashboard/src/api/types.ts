@@ -640,12 +640,67 @@ export type AnnotationLabel =
   | 'affective'
   | 'cognitive_exploration'
 
+// ─── WP-N 标注台批次化（契约以后端 docs/team/quality-annotation-batch-api-contract.md 为准） ───
+
+/** 逐字稿来源：冻结副本 / 活文件 / 已淘汰缺失。 */
+export type AnnotationTranscriptSource = 'frozen' | 'live' | 'missing'
+
+/** 可标注批次清单行（GET /admin/api/quality/batches）。 */
+export interface AnnotationBatchSummary {
+  batchId: string
+  createdAt: string | null
+  sessions: number
+  completedSessions: number
+  annotatableSessions: number
+  annotatedSessions: number
+  transcriptAvailableSessions: number
+  /** 门禁结论；无批次行时为 null。 */
+  valid: boolean | null
+  validityFlags: string[]
+  engineVersion: string | null
+  promptVersion: string | null
+  configFingerprint: string | null
+}
+
+/** 批次清单响应（后端非通用 envelope：meta 仅 generatedAt + total）。 */
+export interface AnnotationBatchListResponse {
+  data: AnnotationBatchSummary[]
+  meta: {
+    generatedAt: string
+    total: number
+  }
+  warnings: string[]
+}
+
+/** 一致性报告可比性守卫（WP-N §D4）。 */
+export interface AnnotationConsistencyScope {
+  batchId: string | null
+  sessions: number
+  engineVersions: string[]
+  promptVersions: string[]
+  comparable: boolean
+  /** 不可比原因码：MIXED_ENGINE_VERSION / MIXED_PROMPT_VERSION / NO_LABELED_SESSION / TRANSCRIPT_MISSING_PARTIAL */
+  incomparableReasons: string[]
+  /** 只告警不判不可比：SMALL_SAMPLE / ENGINE_VERSION_DIRTY 等。 */
+  warnings: string[]
+}
+
 /** 列表行 */
 export interface AnnotationRow {
-  id: string
+  /** 未建行（派生队列）时为 null；首次保存后由后端生成。 */
+  id: string | null
   debugSessionId: string
   characterSlug: string
   attachmentStyle: string
+  /** 归属批次；历史单场为 null。 */
+  batchId: string | null
+  counselorModeId: string | null
+  turnCount: number | null
+  engineVersion: string | null
+  promptVersion: string | null
+  characterVersion: string | null
+  /** 逐字稿来源；missing 时 messages 为空且必须显式提示。 */
+  transcriptSource: AnnotationTranscriptSource
   /** 人工标注: 探索开始轮次 (null = 未标) */
   firstExplorationTurn: number | null
   /** 人工标注: 主导标签 */
@@ -658,10 +713,19 @@ export interface AnnotationRow {
   shouldEndTurn: number | null
   /** 存疑/待复审 */
   needsReview: boolean
+  /** 轮级最小集: 从第几轮开始「不对」(null = 未标或整场无问题) */
+  firstBadTurn: number | null
+  /** 轮级最小集: 有问题的轮次清单（逗号分隔字符串；去重升序, ≤10）。 */
+  badTurns: string | null
+  /** 轮级最小集: 事实描述备注（禁止评分/等级）。 */
+  turnNote: string | null
+  /** 本行告警码（空数组 = 无告警）。 */
+  warnings: string[]
   /** 本场标注耗时 ms (前端打点) */
   durationMs: number
   notes: string | null
-  updatedAt: string
+  /** 派生视图（未落行）为 null。 */
+  updatedAt: string | null
 }
 
 /** 列表响应 */
@@ -683,6 +747,10 @@ export interface AnnotationDetail {
   row: AnnotationRow
   characterLabel: string | null
   messages: AnnotationMessage[]
+  /** 逐字稿来源（与 row.transcriptSource 同源，详情层冗余一份便于消费）。 */
+  transcriptSource: AnnotationTranscriptSource
+  /** 告警码（空数组 = 无告警；逐字稿缺失 → ['TRANSCRIPT_MISSING']）。 */
+  warnings: string[]
 }
 
 /** 保存入参 */
@@ -695,6 +763,10 @@ export interface AnnotationSaveBody {
   needsReview: boolean
   durationMs: number
   notes?: string
+  /** 轮级最小集（可选；不传 = 不更新对应列）。 */
+  firstBadTurn?: number | null
+  badTurns?: string | null
+  turnNote?: string
 }
 
 /** 双盲揭示: 自动判定结果 (保存后才返回) */
@@ -713,6 +785,8 @@ export interface AnnotationConsistency {
   labelAgreement: number | null
   crisisAgreement: number | null
   explorationTurnMae: number | null
+  /** 可比性守卫；不可比时数字仍返回，但前端必须用横幅遮住。 */
+  scope?: AnnotationConsistencyScope
 }
 
 // ─── 批次回归追踪 (WP-K · 历史批次效果对比) ───

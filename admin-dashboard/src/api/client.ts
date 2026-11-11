@@ -6,7 +6,7 @@ import type {
   CounselorMode, PracticeSession, BatchProgress,
   EvalReportListResponse, EvalReportDetail, GateTraceListResponse, GateStatsResponse,
   AnnotationListResponse, AnnotationDetail, AnnotationSaveBody, AnnotationReveal,
-  AnnotationConsistency, AnnotationRow,
+  AnnotationConsistency, AnnotationRow, AnnotationBatchSummary, AnnotationBatchListResponse,
   ApiEnvelope, BatchSummaryRow, BatchMetricsPayload, CompareCandidateReport,
   MetricCatalogPayload,
 } from './types'
@@ -263,25 +263,38 @@ export const api = {
     return get<GateStatsResponse>(`/gate/stats?days=${days}`)
   },
 
-  // ─── 质量标注台（WP-J P2） ───
+  // ─── 质量标注台（WP-J P2；WP-N 批次化） ───
   qualityAnnotation: {
-    list: async (status: 'pending' | 'done' | 'all' = 'pending'): Promise<AnnotationListResponse> => {
-      return get<AnnotationListResponse>(`/quality/annotations?status=${status}`)
+    /** 可标注批次清单（GET /quality/batches；默认隐藏 valid=false 批次）。 */
+    listBatches: async (params?: { includeInvalid?: boolean }): Promise<AnnotationBatchListResponse> => {
+      const q = new URLSearchParams()
+      if (params?.includeInvalid) q.set('includeInvalid', '1')
+      const qs = q.toString()
+      return get<AnnotationBatchListResponse>(`/quality/batches${qs ? `?${qs}` : ''}`)
     },
-    detail: async (id: string): Promise<AnnotationDetail> => {
-      return get<AnnotationDetail>(`/quality/annotations/${id}`)
+    list: async (status: 'pending' | 'done' | 'all' = 'pending', params?: { batchId?: string }): Promise<AnnotationListResponse> => {
+      const q = new URLSearchParams({ status })
+      if (params?.batchId) q.set('batchId', params.batchId)
+      return get<AnnotationListResponse>(`/quality/annotations?${q.toString()}`)
     },
-    save: async (id: string, body: AnnotationSaveBody): Promise<AnnotationRow> => {
-      return put<AnnotationRow>(`/quality/annotations/${id}`, body)
+    /** ref = 行 UUID 或 debugSessionId（派生行 id 为 null 时用后者）。 */
+    detail: async (ref: string): Promise<AnnotationDetail> => {
+      return get<AnnotationDetail>(`/quality/annotations/${ref}`)
     },
-    reveal: async (id: string): Promise<AnnotationReveal> => {
-      return get<AnnotationReveal>(`/quality/annotations/${id}/reveal`)
+    save: async (ref: string, body: AnnotationSaveBody): Promise<AnnotationRow> => {
+      return put<AnnotationRow>(`/quality/annotations/${ref}`, body)
     },
-    auto: async (id: string): Promise<AnnotationReveal> => {
-      return get<AnnotationReveal>(`/quality/annotations/${id}/auto`)
+    reveal: async (ref: string): Promise<AnnotationReveal> => {
+      return get<AnnotationReveal>(`/quality/annotations/${ref}/reveal`)
     },
-    consistency: async (): Promise<AnnotationConsistency> => {
-      return get<AnnotationConsistency>('/quality/consistency')
+    auto: async (ref: string): Promise<AnnotationReveal> => {
+      return get<AnnotationReveal>(`/quality/annotations/${ref}/auto`)
+    },
+    consistency: async (params?: { batchId?: string }): Promise<AnnotationConsistency> => {
+      const q = new URLSearchParams()
+      if (params?.batchId) q.set('batchId', params.batchId)
+      const qs = q.toString()
+      return get<AnnotationConsistency>(`/quality/consistency${qs ? `?${qs}` : ''}`)
     },
   },
 
