@@ -83,7 +83,10 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 
 工具链技术债（husky 旧格式、scripts 存量 lint、commitlint 未装）已单独建档，处理前先读：[**工程工具链技术债清单**](phase2.5-toolchain-tech-debt-2026-11-11.md)。
 
-**治本修复已派单（WP-M，待执行）**：[任务单](wp-m-toolchain-tech-debt-fix-2026-11-11.md)。其中一项是实测硬收益——`.husky/commit-msg` 里那句裸 `npx --no -- commitlint` 每次提交白等约 **13.4 秒**（且 commitlint 根本没装、校验形同虚设），修掉后每次提交直接省这 13 秒。
+**治本修复已派单（WP-M）**：[任务单](wp-m-toolchain-tech-debt-fix-2026-11-11.md)。
+
+- **M-2 ✅ 已完成**（2026-11-11，commit `fc9285c`）：`.husky/commit-msg` 的裸 `npx --no -- commitlint` 换成纯 shell 正则校验。单次钩子 **13.4 秒 → 0.67 秒**（约 20 倍），且格式校验首次真正生效（不合规消息现在会被 `exit 1` 阻断）。
+- **M-1 / M-3 / M-4 待执行**：删 commit-msg 旧格式两行（现在每次提交仍会打印 `husky - DEPRECATED`）、清 `scripts/` 下 5 文件 67 个存量 lint。
 
 ### 3.1 必须先知道的转折（2026-11-09 晚）
 

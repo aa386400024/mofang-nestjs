@@ -1,7 +1,7 @@
 # WP-M · 工程工具链技术债治本修复（修复）
 
-> 状态：📋 待执行（2026-11-11）
-> 执行方：MiniMax Code
+> 状态：🚧 部分完成（2026-11-11）—— **M-2 已由 D 主控完成（commit `fc9285c`）**；M-1 / M-3 / M-4 待执行
+> 执行方：MiniMax Code（**仅需处理 M-1 / M-3 / M-4，M-2 已完成请勿重做**）
 > 仓库：`E:\Work\Project\backend\mofang-nestjs`，分支 `integrate`
 > 唯一事实源：`docs/worklog/pending/phase2.5-toolchain-tech-debt-2026-11-11.md`（技术债清单 TD-1 / TD-2 / TD-3）
 > 任务性质：工具链 / 性能修复（**不碰业务代码，不碰 engine-core**）
@@ -75,10 +75,12 @@ npx --no -- commitlint --edit "$1" 2>/dev/null || { ... 打印格式提示 ... }
 
   husky 9.1.7 已废弃该写法，v10 会直接失败。删除后确认钩子仍能正常触发（见 §5.3 验证方法）。
 
-- **M-2 · 干掉 commit-msg 里的裸 npx，并让格式校验真正生效（核心提速项）**
-  目标：**不再用裸 npx，且每次 commit 不再白等 13 秒**。
-  推荐做法（**零新增依赖、微秒级**）：把那句 `npx --no -- commitlint ...` 整段换成**纯 shell 正则校验** conventional commit 前缀，例如用 `grep -Eq` 匹配 `^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\(.+\))?: .+`，不匹配则打印现有那套提示并 `exit 1`（或在确认采取「只提示不阻断」策略时 `exit 0` 并打印提示 —— **二选一，在交付记录里写明并说明理由**）。
-  约束：不得引入 `@commitlint/cli` 除非你评估后认为必须（若引入，必须走 `pnpm exec`，并在交付记录里给出引入理由与每次提交的实测耗时增量）。
+- ~~**M-2 · 干掉 commit-msg 里的裸 npx，并让格式校验真正生效（核心提速项）**~~
+
+  > **✅ 已完成（2026-11-11，D 主控自做，commit `fc9285c`）—— 本项无需再派，MiniMax 不要重做。**
+  > 实际做法：删掉裸 npx 整段，改纯 shell 正则校验（零新增依赖）；取首个有效行（跳过注释/空行），放行 `Merge`/`Revert`/`fixup!`/`squash!`，其余必须匹配 `^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\([^)]+\))?: .+`，不匹配则打印提示并 `exit 1`（选择**真阻断**，理由见技术债清单 TD-1b）。
+  > 实测：合规 exit 0 / 665 ms，不合规 exit 1 / 627 ms；改造前基线约 13 400 ms → **约 20 倍提速**，校验首次真正生效。
+  > 详见 `docs/worklog/pending/phase2.5-toolchain-tech-debt-2026-11-11.md` 的 TD-1b「修复结果」。
 
 - **M-3 · 清理 `scripts/` 下 5 个文件的 67 个存量 lint 问题**
   涉及文件与当前问题数（实测 `pnpm exec eslint "scripts/**/*.ts"` → 65 error + 2 warning，其中 41 可自动修复）：

@@ -39,18 +39,30 @@ WP-K / WP-L 首次 `git commit` 时被 husky 的 lint-staged 拦截，eslint 报
 
 #### TD-1b · 裸 `npx --no -- commitlint` 让每次提交白等约 13.4 秒（**本次核查新发现**）
 
+> **状态：✅ 已修复（2026-11-11，D 主控自做，commit `fc9285c`）** —— 修复详情见本节末尾「修复结果」。
+
 - 现象：`.husky/commit-msg` 正文有一句 `npx --no -- commitlint --edit "$1" 2>/dev/null || { ... 打印格式提示 ... }`。
 - 双重问题：
   1. **`@commitlint/cli` 根本没装**（`node_modules/@commitlint/cli` 不存在、`package.json` 无该依赖），该句**每次都必然失败**，只走 fallback 打印提示 → 格式校验从未真正生效，形同虚设。
   2. **裸 npx 启动极慢**：实测三次 19 630 ms（冷启动）/ 13 487 ms / 13 376 ms，**稳定约 13.4 秒/次提交**。即每敲一次 `git commit`，在 lint-staged 真正开工前先空转 13 秒等一个注定失败的调用。
 - 性质：既是**性能问题**（与用户「被速度逼疯」诉求直接冲突），也是**规范问题**（项目三处已固化「禁止裸 npx、优先 pnpm」），还是**功能问题**（校验形同虚设）。
-- 修复方式（推荐，零新增依赖）：删掉该句，改为**纯 shell 正则校验** conventional commit 前缀（`grep -Eq '^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\(.+\))?: .+'`），不匹配则打印现有提示（阻断或仅提示，二选一并在交付记录写明理由）。若确需 `@commitlint/cli`，安装后**必须走 `pnpm exec`**。
-- 复算命令（改造后应为毫秒级）：
-  ```
-  # 计时单次 commit-msg 钩子
-  ```
-  改造前基线：约 13.4 秒。
-- 风险：低；但需实测确认钩子改造后仍能正常触发（见任务单 §5.3）。
+
+**修复结果（2026-11-11，commit `fc9285c`）：**
+
+- 做法：删掉裸 npx 整段，改为**纯 shell 正则校验**（零新增依赖、不引入 commitlint）。取提交消息首个有效行（跳过注释/空行），放行 `Merge` / `Revert` / `fixup!` / `squash!` 自动提交，其余必须匹配 `^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\([^)]+\))?: .+`，不匹配则打印格式提示并 **`exit 1` 真正阻断**。
+- 决策：选择「**真阻断**」而非「只提示」。理由——该脚本注释本就写着「大厂标配 — 强制 conventional commit 格式」，且仓库既有全部提交均已是规范格式；只提示等于继续维持「形同虚设」的现状。
+- 实测对比（`D:\Apps\Git\usr\bin\sh.exe` 直接执行钩子，补全 PATH）：
+
+  | 场景                                       | 结果                                     |
+  | ------------------------------------------ | ---------------------------------------- |
+  | 合规消息 `docs: smoke test ...`            | exit **0**，**665 ms**（含 sh 进程启动） |
+  | 不合规消息 `random message without prefix` | exit **1**，**627 ms**，打印格式提示     |
+  | 改造前基线（裸 npx）                       | **约 13 400 ms**，exit 1 后走 fallback   |
+
+  即单次钩子从约 13.4 秒降到约 0.67 秒（**约 20 倍**），且校验首次真正生效。
+
+- 真提交验证：commit `fc9285c` 通过钩子，日志中已**不再出现** `skipping commitlint check`。
+- 遗留：`.husky/commit-msg` 顶部两行旧格式（TD-1a）仍在，故每次提交仍会打印 `husky - DEPRECATED` 警告，待 TD-1a 处理。
 
 ### TD-2 · scripts 下 5 个历史文件共 67 个 lint 存量问题（优先级：P2，潜在阻塞）
 
