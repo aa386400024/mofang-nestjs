@@ -95,28 +95,52 @@
 
 ## 5. 闸门（分层执行，填真实数字，禁止留空）
 
-> 全量 tsc/eslint/vitest 在本仓库约 11~30 分钟（实测瓶颈是 import 重依赖，占 97%，不是断言执行），**不要每个小改动都全量**。按下面两层走，把**实际命令、exit code、结果数字**写进交付记录。跑不起来就写明报错原因，**不许 silently skip、不许写"待用户执行"、不许用 `--no-verify`**。
+> **V2026-11-12 更新（闸门提速落地）**：实测口径已变，按下面三层走。旧的"单文件 lint 也要 100s"已作为反例登记——**ESLint 单进程启动固定成本 ~70–100s（97% 是加载插件 + 建 TS 程序），所以"定向 ESLint"没有意义**；日常改一行用 oxlint（全仓 0.4s），ESLint 只在收尾跑一次。全量 tsc/eslint/vitest 仍不要每个小改动都跑，把**实际命令、exit code、结果数字**写进交付记录。跑不起来就写明报错原因，**不许 silently skip、不许写"待用户执行"、不许用 `--no-verify`**。
 
 ### 5.0 命令规范（强制，禁止裸 npx）
 
-- 本仓库 `packageManager=pnpm`，**一律用 pnpm 跑脚本/二进制，不要用裸 `npx`**（裸 npx 启动慢，且会绕过 eslint 缓存）。
+- 本仓库 `packageManager=pnpm`，**一律用 pnpm 跑脚本/二进制，不要用裸 `npx`**（裸 npx 启动慢，且会绕过缓存）。
 - 跑 package.json 脚本用 `pnpm <script>`（如 `pnpm lint`）；直接跑二进制用 `pnpm exec <bin> <args>`（如 `pnpm exec tsc ...`）。
+- **跑闸门前先确认机器干净**：没有 `nest start --watch` / 后台 `vite dev` / `dist/app` 在跑。实测同一仓库同一代码，长驻 watch 进程在时全量 vitest 从 148s 恶化到 1265–1512s（10 倍），测出来的数字不可用于验收。
 
 ### 5.1 日常内循环（高频，定向，秒~分钟级）
 
-- 单个测试文件：`pnpm exec vitest run <file.spec.ts>`；或开 `pnpm vitest` watch 常驻，改完自动只重跑受影响用例。
-- 只跑本次改动影响的测试：`pnpm test:changed`（按 git 变更收敛）或 `pnpm test:related -- <src/xxx.ts>`（按 import 依赖图）。
-- Lint 走缓存：`pnpm lint`（已带 `--cache`，只查变更文件），**不要用 `pnpm exec eslint` 不带 `--cache` 裸跑**。
+| 目的                             | 命令                                                      | 实测耗时                       |
+| -------------------------------- | --------------------------------------------------------- | ------------------------------ |
+| 语法/明显缺陷（全仓）            | `pnpm lint:fast`（oxlint，1295 文件）                     | **2.1s**                       |
+| 需要类型感知的快速一遍           | `pnpm lint:deep`（`oxlint --type-aware`）                 | **26.8s**                      |
+| 类型（增量，走 `tsc -b` 缓存）   | `pnpm typecheck`                                          | **~2.5s（热）**，改文件后 ~3s  |
+| 单个测试文件                     | `pnpm exec vitest run <file.spec.ts>`                     | 秒级~十几秒                    |
+| 受影响测试                       | `pnpm test:changed` / `pnpm test:related -- <src/xxx.ts>` | 分钟级以内                     |
+| 全量测试的快速近似（**非权威**） | `pnpm test:fast`（`isolate:false`）                       | 干净环境约为权威全量的一半以下 |
+
+- `pnpm test:fast` 会因 spec 之间 `process.env` 泄漏出现假失败（已知 10 例，登记在 backlog）；它只用来"快速看有没有大面积挂"，**不作为交付证据**，交付证据必须用 `pnpm test`。
 
 ### 5.2 收尾全量闸门（每个任务只跑一次，交付前后台执行，可同时做别的事）
 
-| 闸门        | 命令                                            | 要求                   |
-| ----------- | ----------------------------------------------- | ---------------------- |
-| 类型        | `pnpm exec tsc -p tsconfig.build.json --noEmit` | 0 error                |
-| Lint        | `pnpm lint`                                     | 0 error，记 warning 数 |
-| 测试        | `pnpm test`                                     | 全绿，记用例总数       |
-| engine-core | `git diff --stat HEAD -- src/engine-core`       | 空（或写明例外批准）   |
-| 任务特有    | {{如 seed 连跑两次幂等、边界 spec、连库抽查}}   | {{要求}}               |
+| 闸门        | 命令                                                     | 要求                                                            | 实测耗时                               |
+| ----------- | -------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------- |
+| 类型        | `pnpm typecheck`（`tsc -b tsconfig.check.json`，走缓存） | 0 error；怀疑缓存失真时改跑 `pnpm typecheck:full`（无缓存全量） | 热 ~2.5s，冷 87s，增删文件后 ~32s      |
+| Lint        | `pnpm lint`（ESLint type-aware，权威，不降级）           | 0 error，记 warning 数                                          | 冷 394.9s / 热 69.3s                   |
+| 测试        | `pnpm test`                                              | 全绿，记用例总数与墙钟                                          | 干净环境 140.29s（186 文件 / 3008 例） |
+| engine-core | `git diff --stat HEAD -- src/engine-core`                | 空（或写明例外批准）                                            | 即时                                   |
+| 任务特有    | {{如 seed 连跑两次幂等、边界 spec、连库抽查}}            | {{要求}}                                                        | —                                      |
+
+### 5.4 验收闸门（回收方：定向 + 范围核对，**不重跑全量**）
+
+验收方（大炮 / 验收代理）默认**不重跑全量套件**；执行方交付记录里的全量数字 + CI 结果作为合并底线。验收动作固定为：
+
+| 动作                | 命令                                                                | 目的                         |
+| ------------------- | ------------------------------------------------------------------- | ---------------------------- |
+| 1. 相关测试         | `pnpm test:related -- <本次触碰的 src 文件>` 或 `pnpm test:changed` | 验证改动面覆盖               |
+| 2. 关键路径抽跑     | 1–2 条关键 spec 单文件复现                                          | 核对交付记录里的用例数与断言 |
+| 3. 触碰文件快速复查 | `pnpm lint:fast` + `pnpm typecheck`                                 | 类型/lint 未退化             |
+| 4. 边界核对         | `git diff --stat HEAD -- src/engine-core`                           | 内核零改动                   |
+| 5. 范围核对         | `git diff --name-only HEAD` 对照任务单授权范围                      | 无越界、无并行产物混入       |
+
+**只有以下情形才升级为全量复跑**：交付记录闸门数字存疑、发现并行产物混入、抽跑出现确定性失败、里程碑/冻结节点。
+
+**为什么要这么定**：验收侧重复全量会让总成本翻倍（放大系数 ≈2，历史 581s×2≈19min）。执行方已跑过全量，验收再跑一遍不提供新信息，只消耗时间。
 
 ### 5.3 前端产物闸门（仅当 §头部改动范围含 admin-dashboard）
 
