@@ -29,6 +29,7 @@
 ```
 
 **痛点**:
+
 1. 源码本地 + 服务器两份,**drift 风险**(大炮在本地改,服务器没改 → 启动失败)
 2. 服务器跑 pm2,**进程管理脱节**(pm2 自己一份,docker 自己一份,概念混)
 3. 升级部署:**本地 tsc → scp dist → 服务器 mv → pm2 reload**,5 步手动
@@ -36,14 +37,14 @@
 
 ### 1.2 V3 设计目标
 
-| 目标 | 怎么达成 |
-|---|---|
+| 目标       | 怎么达成                                                                           |
+| ---------- | ---------------------------------------------------------------------------------- |
 | 单一事实源 | 服务器**不保留**源码 / node_modules / git;镜像 build 在服务器端用本地 tarball 喂入 |
-| 进程隔离 | docker 替代 pm2 (ebook-reader 仍用 pm2,两个独立进程管理) |
-| 一键部署 | `bin/deploy-prod.sh` (本地) → 服务器 docker build → 滚动重启 |
-| 一键回滚 | `bin/rollback-prod.sh` (本地) → 退到上一个 tag |
-| 资源可控 | 2 核 2G 严格限制 (0.5 cpu / 256M memory) |
-| 简单 | 单服务、单镜像、host 网络、Compose v2 |
+| 进程隔离   | docker 替代 pm2 (ebook-reader 仍用 pm2,两个独立进程管理)                           |
+| 一键部署   | `bin/deploy-prod.sh` (本地) → 服务器 docker build → 滚动重启                       |
+| 一键回滚   | `bin/rollback-prod.sh` (本地) → 退到上一个 tag                                     |
+| 资源可控   | 2 核 2G 严格限制 (0.5 cpu / 256M memory)                                           |
+| 简单       | 单服务、单镜像、host 网络、Compose v2                                              |
 
 ---
 
@@ -107,11 +108,13 @@
 ### 3.1 ✅ MySQL/Redis **不进 docker**
 
 **为什么**:
+
 - ebook-reader 已经用 host MySQL 4 个 schema + Redis OSS 配置
 - docker 重启会丢数据 (除非挂卷,但 MySQL 8GB 数据卷会让 2G 服务器吃不消)
 - ebook-reader 共享账号库,共享 Redis 是**架构设计**(JWT blacklist / BullMQ 都共用)
 
 **怎么做**:
+
 - docker 容器用 `network_mode: host` 直接访问 host 的 127.0.0.1:3306 / 6379
 - 不在 compose 里定义 mysql/redis services
 - `.env` 里 `DB_HOST=127.0.0.1` `REDIS_HOST=127.0.0.1`
@@ -119,11 +122,13 @@
 ### 3.2 ✅ `network_mode: host` 而非 bridge
 
 **为什么**:
+
 - bridge 网络下,容器内 `127.0.0.1` 是容器自己,要靠 DNS 解析 `mysql` / `redis` 等服务名
 - host 网络下,容器内 `127.0.0.1` = host `127.0.0.1`,MySQL/Redis 直接连,零配置
 - 牺牲: 容器端口跟 host 端口绑定 (3001 直接绑 host 3001),**不能用 docker port mapping**
 
 **怎么做**:
+
 - `docker-compose.prod.yml`: `network_mode: host`
 - 端口由容器内 app 决定 (`PORT=3001`)
 - 不写 `ports:` 段 (host 网络下写了也无效)
@@ -131,11 +136,13 @@
 ### 3.3 ✅ 服务器 build 镜像 (WSL 不装 docker)
 
 **为什么**:
+
 - WSL 装 docker = 222MB Flutter SDK 性质一样,违反"WSL 不装 SDK"红线 (大炮 8/17 明确)
 - 服务器已有 docker,带宽够 (内网 daocloud 镜像源)
 - 服务器 build = 镜像 label 标记成 prod,本地只负责 `npm run build` 出 `dist/`
 
 **怎么做**:
+
 - 本地: `npm run build` → `dist/` 通过 `rsync` / `scp` 传到服务器 `/tmp/mofang-build/dist/`
 - 服务器: `cd /tmp/mofang-build && docker build -f Dockerfile.prod -t mofang-nestjs-api:v1.0.1 .`
 - 服务器的 `/tmp/mofang-build/` 用完即删(临时 build context)
@@ -143,11 +150,13 @@
 ### 3.4 ✅ daemon.json 国内镜像源
 
 **为什么**:
+
 - 服务器 IP `117.72.30.78` 是**京东云**(非阿里云,内网 registry 不通)
 - docker.io 默认被墙,直连超时
 - daocloud.io 在服务器上可达 (HTTP 401 = 通,需要 auth 才能 push,pull OK)
 
 **怎么做**:
+
 - `/etc/docker/daemon.json`: `"registry-mirrors": ["https://docker.m.daocloud.io"]`
 - `systemctl restart docker`
 - `docker info | grep "Registry Mirrors"` 验证生效
@@ -158,14 +167,15 @@
 deploy:
   resources:
     limits:
-      cpus: '0.5'      # 50% 单核 (爆炸时不拖垮整个服务器)
-      memory: 256M     # 实际跑下来 ~143MB,余量 113MB
+      cpus: '0.5' # 50% 单核 (爆炸时不拖垮整个服务器)
+      memory: 256M # 实际跑下来 ~143MB,余量 113MB
     reservations:
-      cpus: '0.25'     # 保底 25% 单核
-      memory: 96M      # 保底 96MB
+      cpus: '0.25' # 保底 25% 单核
+      memory: 96M # 保底 96MB
 ```
 
 **内存预算 (服务器 2G 减去现有)**:
+
 ```
 system + sshd ≈ 200M
 ebook-reader pm2 (12M) + 旧 mofang pm2 (已停) ≈ 12M
@@ -178,6 +188,7 @@ docker container api (实测) ≈ 143M
 ```
 
 **为什么不上 Prometheus/Grafana**:
+
 - Prometheus 内存基线 200M+,Grafana 300M+,2G 跑不动
 - 监控先用 `/metrics` endpoint (Prometheus 文本格式)
 - V3.1 加 swap 4G 后再考虑上
@@ -339,6 +350,7 @@ cd /mnt/e/Work/Project/backend/mofang-nestjs
 ```
 
 脚本流程:
+
 1. 本地 build 镜像 (需要本地有 docker,目前**服务器 build 版本稍后适配**)
 2. save 镜像到 tarball
 3. scp 到服务器
@@ -400,6 +412,7 @@ npm run build                      # 验证编译
 ### 6.1 docker pull 超时 (国内服务器)
 
 **症状**:
+
 ```
 failed to do request: Head "https://registry-1.docker.io/v2/...":
 dial tcp 104.244.46.104:443: i/o timeout
@@ -408,6 +421,7 @@ dial tcp 104.244.46.104:443: i/o timeout
 **治本**: 配 daemon.json 国内镜像源 (见 §4.1)。
 
 **调试步骤**:
+
 ```bash
 # 1. 测试可达性
 curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 5 \
@@ -429,6 +443,7 @@ docker info | grep "Registry Mirrors"
 ### 6.2 npm ci 失败 (lockfile 缺失)
 
 **症状**:
+
 ```
 npm error code EUSAGE
 npm error The `npm ci` command can only install with an existing package-lock.json
@@ -437,6 +452,7 @@ npm error The `npm ci` command can only install with an existing package-lock.js
 **治本**: `package-lock.json` 必须传到 build context。检查 rsync / scp 是否漏传。
 
 **调试**:
+
 ```bash
 ssh root@117.72.30.78 'ls -la /tmp/mofang-build/'
 # 期望看到: dist/ Dockerfile.prod package.json package-lock.json
@@ -445,12 +461,14 @@ ssh root@117.72.30.78 'ls -la /tmp/mofang-build/'
 ### 6.3 容器起不来 (host mysql/redis 没起来)
 
 **症状**:
+
 ```
 docker logs mofang-nestjs-api
 {"context":"TypeOrmCoreModule","msg":"Error: getaddrinfo ENOTFOUND mysql"}
 ```
 
 **检查**:
+
 ```bash
 ssh root@117.72.30.78 'systemctl status mysql'
 ssh root@117.72.30.78 'systemctl status redis-server'
@@ -462,12 +480,14 @@ ssh root@117.72.30.78 'ss -tlnp | grep -E "3306|6379"'
 ### 6.4 镜像太大 (>300MB)
 
 **症状**:
+
 ```
 docker images
 mofang-nestjs-api:latest   1.2GB
 ```
 
 **排查**:
+
 ```bash
 # 看每层大小
 docker history mofang-nestjs-api:latest
@@ -483,11 +503,13 @@ docker run --rm mofang-nestjs-api:latest sh -c \
 ### 6.5 健康检查失败 (404 /health)
 
 **症状**:
+
 ```
 docker ps  # STATUS 显示 "health: starting" 持续
 ```
 
 **注意**: 当前**没有 `/health` endpoint**(只是 docker compose 文件里写了期望路径)。容器真正启动的标志:
+
 - 日志里看到 `Nest application successfully started`
 - `curl /user/register` 返回 201
 
@@ -536,6 +558,13 @@ cp /opt/mofang-nestjs/.env /backup/.env.$(date +%Y%m%d)
 chmod 600 /backup/.env.*  # 只 root 能读
 ```
 
+### 7.5 标注台冻结逐字稿备份（WP-N 审计留档）
+
+- **目录**: 容器内 `/app/data/quality/transcripts/<batchId>/`（无批次归属落 `_unassigned/`）；宿主侧由 compose bind mount 映射到 `./data/quality/transcripts`（相对 compose 文件目录）。可用环境变量 `QUALITY_TRANSCRIPT_DIR` 覆盖根目录。
+- **为什么必须备份**: 活逐字稿受 `MAX_DEBUG_SESSIONS=500` 淘汰；冻结副本是标注结论与自动对照在活文件淘汰后的**唯一回看依据**。容器重建 / 回滚若未挂卷，冻结副本会丢——现 compose 已挂 bind mount，但**备份策略仍需纳入日常运维**。
+- **备份方式**: 与 MySQL 备份同节奏（每日一次、保留 7 天），`tar` / `rsync` 该目录到 `/backup`；多副本部署时该目录须放共享存储，不能留在单容器本地盘。
+- **隐私**: 目录含完整对话原文，已在 `.gitignore` 排除、绝不进版本库；宿主目录权限按 `.env` 同口径收紧（只 root 可读）。
+
 ---
 
 ## 8. 安全 checklist
@@ -554,16 +583,19 @@ chmod 600 /backup/.env.*  # 只 root 能读
 ## 9. 待办 (V3.x 路线)
 
 ### V3.1 (本周内)
+
 - [ ] 加 `/health` endpoint (`@nestjs/terminus` 已装,只需 controller + module)
 - [ ] 改 `bin/deploy-prod.sh` 适配"服务器 build"模式(本地不依赖 docker)
 - [ ] 写 systemd `mofang-nestjs-api.service` 监控容器(可选,docker 已 restart: unless-stopped)
 
 ### V3.2 (1-2 周)
+
 - [ ] nginx 加 HTTPS 反代 (`/etc/nginx/ssl/mystudy.cloud/` 复用)
 - [ ] 加 swap 4G (`fallocate -l 4G /swapfile`),为 V3.3 Prometheus/Grafana 腾空间
 - [ ] CI/CD: GitHub Actions 自动 build + 推送镜像到阿里云容器仓库
 
 ### V3.3 (1 月)
+
 - [ ] 加 Prometheus + Grafana (监控容器 + DB + Redis)
 - [ ] 加 Loki 收集 docker logs
 - [ ] 加自动备份脚本(crontab + S3 归档)
@@ -606,19 +638,19 @@ scp 传 522 个小文件超时,rsync 增量同步秒级。
 
 ## 11. 关键文件速查
 
-| 文件 | 位置 | 作用 |
-|---|---|---|
-| `Dockerfile.prod` | 项目根 | 服务器专用镜像构建 (单阶段精简) |
-| `docker-compose.prod.yml` | 项目根 | 单服务编排 (host 网络 + 资源限制) |
-| `nginx/mofang-nestjs.conf` | 项目根 | nginx 反代片段 (含限流 + metrics 内部屏蔽) |
-| `bin/deploy-prod.sh` | 项目根 | 一键部署 (本地 docker build + save + scp) |
-| `bin/rollback-prod.sh` | 项目根 | 一键回滚 (退到上一个 tag) |
-| `.dockerignore` | 项目根 | 排除 dev 文件,**保留** Dockerfile.prod |
-| `/opt/mofang-nestjs/.env` | 服务器 | 生产配置(不进 git) |
-| `/opt/mofang-nestjs/docker-compose.prod.yml` | 服务器 | 服务器用编排 |
-| `/opt/mofang-nestjs/Dockerfile.prod` | 服务器 | 服务器用构建 |
-| `/etc/docker/daemon.json` | 服务器 | docker 镜像加速 |
-| `/var/lib/docker/` | 服务器 | 镜像 + 容器 + 卷实际存储 |
+| 文件                                         | 位置   | 作用                                       |
+| -------------------------------------------- | ------ | ------------------------------------------ |
+| `Dockerfile.prod`                            | 项目根 | 服务器专用镜像构建 (单阶段精简)            |
+| `docker-compose.prod.yml`                    | 项目根 | 单服务编排 (host 网络 + 资源限制)          |
+| `nginx/mofang-nestjs.conf`                   | 项目根 | nginx 反代片段 (含限流 + metrics 内部屏蔽) |
+| `bin/deploy-prod.sh`                         | 项目根 | 一键部署 (本地 docker build + save + scp)  |
+| `bin/rollback-prod.sh`                       | 项目根 | 一键回滚 (退到上一个 tag)                  |
+| `.dockerignore`                              | 项目根 | 排除 dev 文件,**保留** Dockerfile.prod     |
+| `/opt/mofang-nestjs/.env`                    | 服务器 | 生产配置(不进 git)                         |
+| `/opt/mofang-nestjs/docker-compose.prod.yml` | 服务器 | 服务器用编排                               |
+| `/opt/mofang-nestjs/Dockerfile.prod`         | 服务器 | 服务器用构建                               |
+| `/etc/docker/daemon.json`                    | 服务器 | docker 镜像加速                            |
+| `/var/lib/docker/`                           | 服务器 | 镜像 + 容器 + 卷实际存储                   |
 
 ---
 

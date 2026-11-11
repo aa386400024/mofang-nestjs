@@ -22,13 +22,15 @@
 //     —— 挂控制器而不是路径通配, 新增端点自动继承.
 
 import { MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import path from 'node:path';
 
 import { QualityAnnotationBatchService } from './quality-annotation-batch.service.js';
 import { QualityAnnotationController } from './quality-annotation.controller.js';
 import { QualityAnnotationEntity } from './quality-annotation.entity.js';
 import { QualityAnnotationService } from './quality-annotation.service.js';
-import { QualityTranscriptFreeze } from './quality-transcript-freeze.js';
+import { QualityTranscriptFreeze, TRANSCRIPT_FREEZE_DIR_ENV, TRANSCRIPT_FREEZE_ROOT_DIR } from './quality-transcript-freeze.js';
 import { AdminBasicAuthMiddleware } from '../admin-debug/admin-basic-auth.middleware.js';
 import { DebugSessionStore } from '../admin-debug/debug-session-store.js';
 import { AdminRoleGuard } from '../admin-debug/guards/admin-role.guard.js';
@@ -57,11 +59,13 @@ import { UserModule } from '../user/index.js';
     QualityAnnotationBatchService,
     // 逐字稿只读存储 (见文件头说明: 不 import AdminDebugChatModule).
     DebugSessionStore,
-    // 冻结留档器: 读端口就是上面的 store —— 用工厂装配, 不让 DI 去猜接口.
+    // 冻结留档器: 读端口就是上面的 store —— 用工厂装配, 不让 DI 去猜接口怎么解析.
+    // 根目录走 env 覆盖 (QUALITY_TRANSCRIPT_DIR), 便于部署时挂独立卷 / 备份.
     {
       provide: QualityTranscriptFreeze,
-      useFactory: (store: DebugSessionStore): QualityTranscriptFreeze => new QualityTranscriptFreeze(store),
-      inject: [DebugSessionStore],
+      useFactory: (store: DebugSessionStore, config: ConfigService): QualityTranscriptFreeze =>
+        new QualityTranscriptFreeze(store, resolveFreezeDir(config)),
+      inject: [DebugSessionStore, ConfigService],
     },
     // 内部角色判定 (直读 users.admin_role) —— 仓库既有的内部能力守卫.
     AdminRoleGuard,
@@ -77,4 +81,18 @@ export class QualityAnnotationModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     consumer.apply(AdminBasicAuthMiddleware).forRoutes(QualityAnnotationController);
   }
+}
+
+/**
+ * 解析冻结副本根目录 (env 覆盖, 缺省 `data/quality/transcripts`).
+ *
+ * 相对路径按进程工作目录解析 —— 与 DebugSessionStore 的目录口径一致.
+ *
+ * @param config 配置服务
+ * @returns 目录绝对路径
+ */
+function resolveFreezeDir(config: ConfigService): string {
+  const raw = (config.get<string>(TRANSCRIPT_FREEZE_DIR_ENV) ?? '').trim();
+  if (raw.length === 0) return path.resolve(process.cwd(), TRANSCRIPT_FREEZE_ROOT_DIR);
+  return path.isAbsolute(raw) ? raw : path.resolve(process.cwd(), raw);
 }

@@ -29,6 +29,9 @@ services:
       - '${PORT:-3000}:3000'
     networks:
       - mofang-net
+    # 标注台冻结逐字稿 (审计留档, 容器重建不丢; 内容已在 .gitignore, 不进版本库).
+    volumes:
+      - ./data/quality/transcripts:/app/data/quality/transcripts
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3000/health']
       interval: 30s

@@ -42,6 +42,10 @@ services:
       - REDIS_HOST=127.0.0.1
       - PORT=3001
 
+    # 标注台冻结逐字稿 (审计留档, 容器重建 / 回滚不丢; 内容已在 .gitignore, 不进版本库).
+    volumes:
+      - ./data/quality/transcripts:/app/data/quality/transcripts
+
     # 资源限制 (2 核 2G 严格)
     # 0.5 cpu = 50% 单核 (容器爆炸时不会拖垮整个服务器)
     # 256M limit / 96M reserve (MySQL 已经在吃 256M+)

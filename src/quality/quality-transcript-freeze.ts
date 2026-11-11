@@ -20,6 +20,11 @@ import { TRANSCRIPT_SOURCE, UNASSIGNED_BATCH_DIR, type TranscriptSource } from '
 export const TRANSCRIPT_FREEZE_ROOT_DIR = 'data/quality/transcripts';
 
 /**
+ * 冻结副本根目录的 env 键 (可覆盖, 便于部署时挂到独立卷).
+ */
+export const TRANSCRIPT_FREEZE_DIR_ENV = 'QUALITY_TRANSCRIPT_DIR';
+
+/**
  * 调试会话 id 的合法形状 —— 与 `debug-session-store.ts` 的 SESSION_ID_PATTERN 同口径.
  *
  * ⚠️ **为什么在这里重写一份**: 会话 id 会被拼成文件路径, 不校验就能写到目录外面去.
