@@ -102,21 +102,22 @@
 - 本仓库 `packageManager=pnpm`，**一律用 pnpm 跑脚本/二进制，不要用裸 `npx`**（裸 npx 启动慢，且会绕过缓存）。
 - 跑 package.json 脚本用 `pnpm <script>`（如 `pnpm lint`）；直接跑二进制用 `pnpm exec <bin> <args>`（如 `pnpm exec tsc ...`）。
 - **跑闸门前先确认机器干净**：没有 `nest start --watch` / 后台 `vite dev` / `dist/app` 在跑。实测 `nest start --watch` 连跑两天占 7.7k s CPU、1.5 GB 常驻，全量 vitest 从 1102 s 恶化到 1512 s。
-- **跑闸门前先确认盘不慢（十秒体检，已归零）**：用 node 顺序读 `node_modules/@nestjs/common` 下 200 个 `.js`，正常应为 **<100 ms（当前本机 63–81 ms，0 慢文件）**；若是秒级，说明读税回来了。读税的本质是 **minifilter 按 inode 收税**：`node_modules` 若以 pnpm 默认 hardlink 装法从 store 继承旧 inode，约 35% 文件每次读付 200–260 ms，`require('@nestjs/common')` 冷加载 14 s，全量 vitest 会从 132 s 打回 1100 s。修复动作：`pnpm install --force --config.package-import-method=copy`（只在本机执行，**不要写进仓库 `.npmrc`**）。机制与全部实测见 `gate-performance-remediation-2026-11-11.md` §1.5。
+- **跑闸门前先确认盘不慢（一条命令体检）**：`pnpm doctor:fs`（读 `node_modules/@nestjs/common` 200 个 `.js`，判据"均值 <1 ms/文件 且 慢文件占比 <5%"）。当前本机正常值约 **0.8 ms/文件**，读取延迟已归零。不通过说明读税回来了：本质是 **minifilter 按 inode 收税**——`node_modules` 若以 pnpm 默认 hardlink 装法从 store 继承旧 inode，约 35% 文件每次读付 200–260 ms，全量 vitest 会从 132 s 打回 1100 s。修复：`pnpm install --force --config.package-import-method=copy`（只在本机执行，**不要写进仓库 `.npmrc`**）。机制与实测见 `gate-performance-remediation-2026-11-11.md` §1.5。
 - **取证会话先补 PATH**：执行环境的 `PATH` 可能不继承系统 `PATH`，本机 `git` 在 `D:\Apps\Git\cmd`。依赖外部命令的 spec 会因此报假失败（实测 `wp-h-wave2-3-batch-observability.spec.ts` 报 `spawnSync git ENOENT`，补齐 PATH 后 25/25 全绿）。**不补齐就下结论，等于把环境缺陷记成回归。**
 
 ### 5.1 日常内循环（高频，定向，秒~分钟级）
 
-| 目的                             | 命令                                                      | 实测耗时                                                       |
-| -------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------- |
-| 语法/明显缺陷（全仓）            | `pnpm lint:fast`（oxlint，1295 文件）                     | **1.0s**                                                       |
-| 需要类型感知的快速一遍           | `pnpm lint:deep`（`oxlint --type-aware`）                 | **26.8s**                                                      |
-| 类型（增量，走 `tsc -b` 缓存）   | `pnpm typecheck`                                          | **~2.5s（热）**，改文件后 ~3s                                  |
-| 单个测试文件                     | `pnpm exec vitest run <file.spec.ts>`                     | 秒级~十几秒                                                    |
-| 受影响测试                       | `pnpm test:changed` / `pnpm test:related -- <src/xxx.ts>` | 分钟级以内                                                     |
-| 全量测试的快速近似（**非权威**） | `pnpm test:fast`（`isolate:false`）                       | 同一台机器上约为权威全量的 1/5~1/7（10 例 env 泄漏假失败已知） |
+| 目的                                           | 命令                                                      | 实测耗时                                                                    |
+| ---------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------- |
+| 语法/明显缺陷（全仓）                          | `pnpm lint:fast`（oxlint，1295 文件）                     | **1.0s**                                                                    |
+| 需要类型感知的快速一遍                         | `pnpm lint:deep`（`oxlint --type-aware`）                 | **26.8s**                                                                   |
+| 类型（增量，走 `tsc -b` 缓存）                 | `pnpm typecheck`                                          | **1.8s（热）**，改文件后 ~3s                                                |
+| 单个测试文件                                   | `pnpm exec vitest run <file.spec.ts>`                     | 秒级~十几秒                                                                 |
+| 受影响测试                                     | `pnpm test:changed` / `pnpm test:related -- <src/xxx.ts>` | 分钟级以内                                                                  |
+| 全量测试的快速近似（**非权威，且已证伪更快**） | `pnpm test:fast`（`isolate:false`）                       | **比权威全量更慢**（179.2 s vs 132 s），且 5 文件 27 例跨文件污染；仅供冒烟 |
+| 读取延迟体检（跑闸门前）                       | `pnpm doctor:fs`                                          | **~0.8 ms/文件，退出码 0 = 可信**                                           |
 
-- `pnpm test:fast` 会因 spec 之间 `process.env` 泄漏出现假失败（已知 10 例，登记在 backlog）；它只用来"快速看有没有大面积挂"，**不作为交付证据**，交付证据必须用 `pnpm test`。
+- `pnpm test:fast` 不是提速手段：读税归零后实测 **179.2 s（147.14 s Duration）慢于权威 132 s**，且 `wp65`/`wp67` 的 `vi.mock('bullmq')`、Redis/DB 假状态跨文件残留导致 27 例红，`wp12` 被拖到 80.5 s 超时。它只用来"快速看有没有大面积挂"，**不作为交付证据**，交付证据必须用 `pnpm test`。原理与数据见 `gate-performance-remediation-2026-11-11.md` §1.5.3。
 
 ### 5.2 收尾全量闸门（每个任务只跑一次，交付前后台执行，可同时做别的事）
 

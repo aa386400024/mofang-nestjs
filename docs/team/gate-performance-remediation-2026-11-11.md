@@ -139,7 +139,22 @@ pnpm install --force --config.package-import-method=copy
 | `lint:fast`（全仓 1295 文件）  | 2.1 s                      | **1.0 s**                              | 2×               |
 | `pnpm lint`（ESLint 权威）     | 热 69.3 s / 冷 394.9 s     | **49.3 s（0 error / 0 warning）**      | 1.4×（热态口径） |
 
-**纪律**：此动作只对本机生效，不进仓库配置（不改 `.npmrc`），因为 copy 装法会增加安装耗时与磁盘占用（`node_modules` 1.46 GB 全部转为实占）；他人与 CI 不应继承该代价。任何 `pnpm install` 若回落到默认 hardlink 装法，税会回来——复验方法见 §7.2 的读取探针。
+**纪律**：此动作只对本机生效，不进仓库配置（不改 `.npmrc`），因为 copy 装法会增加安装耗时与磁盘占用（`node_modules` 1.46 GB 全部转为实占）；他人与 CI 不应继承该代价。任何 `pnpm install` 若回落到默认 hardlink 装法，税会回来——**复验用 `pnpm doctor:fs`**（本仓新增体检脚本 `scripts/fs-latency-check.mjs`，判据为"均值 <1 ms/文件 且 慢文件占比 <5%"，避开并发负载抖动误判；不合格 exit 1 并直接给出重装命令）。
+
+**Defender 排除已撤销（2026-11-12 收尾）**：卸载火绒后 Defender 接管期间追加的 `ExclusionPath = {E:\Work\Project, E:\.pnpm-store}` 已全部移除（`Get-MpPreference` 回读为空）。理由是它对普通权限 node 从未命中该现象（提权归零、普通仍 45 ms），属**无收益地降低安全面**。撤销后复验：首轮 3106 ms（Defender 重建扫描缓存的一次性成本）、次轮 **88 ms（0 慢文件）**、单文件 0.4 ms——读税未回归，因为税按 inode 收取，而 copy 装法已把 inode 换干净。
+
+##### 1.5.3 连带结论：`isolate:false` 的收益已被读税清零抵消（原判断作废）
+
+税 2 存在时，`isolate:false` 实测 206.19 s vs `isolate:true` 1081–1467 s，**7 倍**——那个收益的本质是"少交 read 税"的镜像，不是 worker 复用本身。读税归零后重测（2026-11-12 09:30，同机同版本）：
+
+| 配置                                | 墙钟        | Duration | import 占比 | 结果                                  |
+| ----------------------------------- | ----------- | -------- | ----------- | ------------------------------------- |
+| `isolate:true`（权威 `pnpm test`）  | **132 s**   | 127.72 s | 83%         | 3004 passed / 0 failed                |
+| `isolate:false`（`pnpm test:fast`） | **179.2 s** | 147.14 s | 51%         | 2977 passed / **27 failed（5 文件）** |
+
+`isolate:false` 把 import 从 83% 压到 51%，但 **transform 涨到 32%**，且共享模块单例让 5 个 spec 互相污染：`wp65-deliberation-mutex-revision`（10 例）、`wp67-deliberation-circuit-breaker`（12 例）因 `vi.mock('bullmq')` 与 Redis 假替身跨文件残留而红；`wp12-memory-closeout` 被前序 spec 的假 DB 状态拖到 **80.5 s 超时**（隔离模式下该文件是秒级）；另有 `i12-session-alliance-config` 2 例、`good-state-diary.service.spec` 1 例。
+
+**结论**：`isolate:false` 在本仓已不是提速手段，而是"更慢 + 不可信"。`P-DEBT-1`（清 env 泄漏）优先级由最高降为 P2——即使清干净，理论收益也只有约 19%（132 s → ~106 s），代价是跨 5 个 spec 的共享状态治理（mock 替身、Redis/DB 假状态、模块级单例），风险高于收益。`vitest.fast.config.mts` / `pnpm test:fast` 保留为快速冒烟用途，**不作为交付证据，也不再作为提速目标**。
 
 **取证环境副作用（重要）**：本轮执行会话的 `PATH` 被沙盒替换、未继承系统 `PATH`，导致 `git` 不在搜索路径（本机 git 在 `D:\Apps\Git\cmd`）。全量跑批因此出现 1 例 `spawnSync git ENOENT` 假失败（`wp-h-wave2-3-batch-observability.spec.ts`），补齐 PATH 后 25/25 全绿。**凡依赖外部命令（git 等）的用例，取证前先补 PATH，否则会把环境缺陷误判成回归**。
 
@@ -163,15 +178,15 @@ pnpm install --force --config.package-import-method=copy
 
 ### 2.2 量化目标与达成情况（A/B 实测回填，2026-11-12 收口）
 
-| 指标                 | 原始目标                           | 实测达成（本机、无 watch、读取延迟已归零）                                                                                            | 判定                                                    |
-| -------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| 全量 vitest          | 140.29 s 基线 → `≤ 90 s`           | **132 s 墙钟 / 127.72 s Duration（import 83%）**                                                                                      | 部分：由环境税主导，未达 90 s；下一步靠 `isolate:false` |
-| eslint 冷跑          | 394.9 s → `≤ 120 s`                | `lint:fast`（oxlint 全仓 1295 文件）**1.0 s**；权威 `pnpm lint`（ESLint type-aware）**49.3 s / 0 error / 0 warning**（原热态 69.3 s） | 达成（分层 + 读税归零）                                 |
-| 重复 tsc             | 38.2 s → 增量                      | `tsc -b`（热）**1.8 s**，冷 87.4 s                                                                                                    | 达成                                                    |
-| 验收环节本地耗时     | 全量双跑 → `≤ 2–3 min` 定向        | `test:related` / `test:changed` + `lint:fast` + `typecheck`，见 §5.4                                                                  | 达成（流程层）                                          |
-| 正确性零回退         | 全量 0 failed、engine-core 空 diff | **3004 passed / 0 failed / 4 skipped**；engine-core diff 为空；`boundary.spec.ts` 未改                                                | 达成                                                    |
-| 读取延迟（根因指标） | 200 文件 `< 100 ms`                | **63–81 ms（0 慢文件）**，单文件 0.4 ms                                                                                               | 达成                                                    |
-| 全量闸门总时长       | 冷 9.7 min / 热 4.3 min            | **132 s（约 2.2 min）**                                                                                                               | 达成                                                    |
+| 指标                 | 原始目标                           | 实测达成（本机、无 watch、读取延迟已归零）                                                                                            | 判定                                                                                    |
+| -------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 全量 vitest          | 140.29 s 基线 → `≤ 90 s`           | **132 s 墙钟 / 127.72 s Duration（import 83%）**                                                                                      | 部分达标：`isolate:false` 已证伪（更慢且 27 例污染），见 §1.5.3；余量在 worker 启动结构 |
+| eslint 冷跑          | 394.9 s → `≤ 120 s`                | `lint:fast`（oxlint 全仓 1295 文件）**1.0 s**；权威 `pnpm lint`（ESLint type-aware）**49.3 s / 0 error / 0 warning**（原热态 69.3 s） | 达成（分层 + 读税归零）                                                                 |
+| 重复 tsc             | 38.2 s → 增量                      | `tsc -b`（热）**1.8 s**，冷 87.4 s                                                                                                    | 达成                                                                                    |
+| 验收环节本地耗时     | 全量双跑 → `≤ 2–3 min` 定向        | `test:related` / `test:changed` + `lint:fast` + `typecheck`，见 §5.4                                                                  | 达成（流程层）                                                                          |
+| 正确性零回退         | 全量 0 failed、engine-core 空 diff | **3004 passed / 0 failed / 4 skipped**；engine-core diff 为空；`boundary.spec.ts` 未改                                                | 达成                                                                                    |
+| 读取延迟（根因指标） | 200 文件 `< 100 ms`                | **63–81 ms（0 慢文件）**，单文件 0.4 ms                                                                                               | 达成                                                                                    |
+| 全量闸门总时长       | 冷 9.7 min / 热 4.3 min            | **132 s（约 2.2 min）**                                                                                                               | 达成                                                                                    |
 
 ---
 
@@ -290,7 +305,9 @@ pnpm install --force --config.package-import-method=copy
 - `test/engine-core/i12-session-alliance-config.spec.ts`（2 例）："无覆盖 → 消费点拿实例级配置"；
 - `test/engine-adapters/wp12-memory-closeout.spec.ts`（2 例）：逐字稿覆盖写语义。
 
-这三类都是"读 env 默认值"的 spec，被其他文件改过的 env 污染。**因此 `isolate:false` 不能直接做权威闸门**，除非先把 spec 之间的 env 泄漏清理干净（登记为 backlog：`测试间 process.env 泄漏清理 → 之后可把 isolate:false 提升为权威闸门`）。清理完成后，权威闸门还能再省一次 ~70% 的 import 开销。
+这三类都是"读 env 默认值"的 spec，被其他文件改过的 env 污染。**因此 `isolate:false` 不能直接做权威闸门**，除非先把 spec 之间的 env 泄漏清理干净（登记为 backlog：`测试间 process.env 泄漏清理 → 之后可把 isolate:false 提升为权威闸门`）。
+
+> **2026-11-12 复核：上表"7 倍收益"已作废。** 该收益是读税（§1.5）的镜像而非 worker 复用本身；读税归零后重测，`isolate:false` 为 **179.2 s / 147.14 s Duration**，**慢于** `isolate:true` 的 **132 s / 127.72 s**，且污染面扩大到 **5 文件 27 例**（含 `wp65` 10 例、`wp67` 12 例、`wp12` 被拖到 80.5 s 超时）。结论：`isolate:false` 在本仓不再具备提速价值，`P-DEBT-1` 降为 P2；`pnpm test:fast` 仅保留为冒烟。详见 §1.5.3。
 
 **原始方案设想（保留对照，实际以上方"已落地"为准）**：
 
@@ -527,6 +544,9 @@ test: {
 pnpm exec vitest doctor
 pnpm exec vitest run --experimental.importDurations.print
 
+# 读取延迟体检（闸门数字可信度前置；也用于 pnpm install 后复验读税是否回归）
+pnpm doctor:fs                       # → 合格：均值 <1ms/文件、慢文件 <5%（当前 ~0.8ms、0-1 个抖动）
+
 # L2-a projects 落地核对：确认文件归属无遗漏 + 两次 shuffle 暴露顺序依赖
 $env:DEBUG = "vitest:projects"
 pnpm exec vitest run
@@ -591,7 +611,7 @@ pnpm lint:files <touched-files...>
 
 | 编号 | 债务 | 影响 | 解除条件 / 下一步 |
 | --- | --- | --- | --- |
-| **P-DEBT-1** | **spec 文件之间 `process.env` 泄漏**（`isolate:false` 全量实测 10 例假失败：wp66 6 例、i12 2 例、wp12 2 例） | 权威闸门只能保持 `isolate:true`，`isolate:false` 的 7 倍提速拿不到手 | 逐个补 `afterEach` 还原 env（或统一 setup 快照 + 还原）；全量 `pnpm test:fast` 0 failed 后，把 `isolate:false` 提升为权威闸门配置，预计再省 ~70% import 开销 |
+| **P-DEBT-1** | **spec 文件之间 `process.env` / mock 单例泄漏**（`isolate:false` 读数：税清零后 5 文件 27 例红，`wp12` 被拖到 80.5 s 超时） | 等级下调：**该配置已证伪为提速手段**（179.2 s 慢于 132 s），只影响 `test:fast` 冒烟可信度 | 若要重启该方向，必须先清 mock 替身与 Redis/DB 假状态，理论收益仅 ~19%；见 §1.5.3，暂列 P2 |
 | **P-DEBT-2** | `.eslintcache` 存在却大面积失效（22:58 生成，00:24 全量仍 394.9s） | ESLint 冷跑成本无法稳定压到热跑的 69.3s | 定位触发失效的变量（config/tsconfig 变更、`projectService` 重建、多工作树）；在 CI 与本机统一缓存 key |
 | **P-DEBT-3** | oxlint 4 条既有 warning（2×`no-unsafe-optional-chaining`、2×`oxc/erasing-op`）；类型感知模式另 53 条风格项 | 只是噪声，不阻塞 | 独立清理单；`wp3-trajectory.spec.ts:243,245` 的 `0.6*0.6+0.4*0` 恒等 0.36 属测试写法问题，改断言即可 |
 | **P-DEBT-4** | 构建工具链版本升级无验收纪律（vite 8.3.8 / vitest 5.1 各自带来 9 倍 / 7.7 倍回归） | 任何"顺手升 patch"都可能把闸门时间打回 20 分钟 | 规则：vite/vitest 版本变动必须附全量绿跑 + 墙钟数字，且已钉死 `vite 8.3.5` |
@@ -600,7 +620,7 @@ pnpm lint:files <touched-files...>
 | **P-DEBT-7** | 本机长驻开发进程污染闸门测量（`nest start --watch` 跑 2 天 7709s CPU / 1527 MB） | 同一份代码实测 1102.6 s（停机后）vs 1512 s（带 watch） | 已写入 `wp-task-template` §5.0 纪律：跑闸门前确认无 watch / dev server |
 | **P-DEBT-8** | ~~E: 盘每次文件内容读取 ~90 ms~~ | — | **已解除（2026-11-12）**：根因为 minifilter 按 inode 收税；以 `pnpm install --force --config.package-import-method=copy` 让 `node_modules` 脱离 store 的旧 inode 后归零（200 文件 63–81 ms）。复验方法见 §1.5.2 与 §7.2 |
 | **P-DEBT-9** | 依赖外部命令的 spec 无环境前置（`wp-h-wave2-3-batch-observability.spec.ts` 直接 `execFileSync('git')`） | 取证会话 PATH 不继承系统 PATH 时（本机 git 在 `D:\Apps\Git\cmd`）报 `spawnSync git ENOENT`，会被误判成回归 | 在 spec 里探测 `git` 可用性并 skip，或用 `GIT_BIN` 注入；短期纪律：跑全量前补齐 PATH |
-| **P-DEBT-10** | `node_modules` 若回落到 pnpm 默认 hardlink 装法，读税会复发 | 一次 `pnpm install` 就能把 132 s 打回 1100 s | 每次大版本安装后用读取探针复验（200 文件应 <100 ms）；需要固化为本机习惯，不写进仓库 `.npmrc`（避免把磁盘与安装耗时代价带给他人/CI） |
+| **P-DEBT-10** | `node_modules` 若回落到 pnpm 默认 hardlink 装法，读税会复发 | 一次 `pnpm install` 就能把 132 s 打回 1100 s | 已落地自动化：`pnpm doctor:fs`（`scripts/fs-latency-check.mjs`）判定"均值 <1 ms/文件 且 慢文件 <5%"，不合格 exit 1 并给重装命令；仍不写进仓库 `.npmrc`（避免把磁盘与安装耗时代价带给他人/CI） |
 
 ---
 

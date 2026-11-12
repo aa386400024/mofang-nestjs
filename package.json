@@ -23,6 +23,7 @@
     "typecheck:full": "tsc -p tsconfig.build.json --noEmit",
     "typecheck:build": "tsc -p tsconfig.build.json --noEmit",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "doctor:fs": "node scripts/fs-latency-check.mjs",
     "prepare": "husky || true",
     "lint-staged": "lint-staged",
     "entity:load": "tsx bin/entity.ts",
