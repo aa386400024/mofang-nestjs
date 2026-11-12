@@ -157,6 +157,9 @@ export function resolveAllianceConfig(config: ConfigService): AllianceConfig {
       open: resolveThreshold(config.get<string>('ENGINE_ALLIANCE_OPEN_THRESHOLD'), seed.open),
       resistanceTrust: resolveThreshold(config.get<string>('ENGINE_ALLIANCE_RESIST_TRUST_THRESHOLD'), seed.resistanceTrust),
       resistanceSafety: resolveThreshold(config.get<string>('ENGINE_ALLIANCE_RESIST_SAFETY_THRESHOLD'), seed.resistanceSafety),
+      // S-1: 深度门槛**不接 env** (本单只打通端口), 固定透传内核种子值,
+      // 让适配层产出的端口对象形状与内核种子保持一致 (两侧同为四字段).
+      openDepth: seed.openDepth,
     },
   };
 }

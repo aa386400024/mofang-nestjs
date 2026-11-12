@@ -25,7 +25,14 @@
 //
 //   门槛值走**端口** (AllianceConfig.thresholds, 见 cognition/alliance-config.ts):
 //     门槛是部署形态的决定 (内测期按真实对练校准), 不该写死在算子里.
-//     缺省 = 内核种子值 (open 0.6 / resistanceTrust 0.4 / resistanceSafety 0.3).
+//     缺省 = 内核种子值 (open 0.6 / resistanceTrust 0.4 / resistanceSafety 0.3
+//     / openDepth 0.35).
+//
+//   V2026-11-12 S-1 (探索深度门槛端口化):
+//     探索分支的第二个条件原先是本文件内的局部常量 `LOW_DEPTH = 0.35`, 与另外三个
+//     同盟门槛不同构 (按角色 / 会话配不动). 本次把它并入端口字段
+//     `thresholds.openDepth` —— **种子值逐字不变**, 缺省路径的判定结果与改造前
+//     完全一致 (零行为变化); 只是让深度门槛从此可被同一条注入通道配置.
 
 import { resolveAllianceThresholds, type AllianceConfig } from './alliance-config.js';
 import type { BdiSnapshot } from '../domain/bdi-snapshot.js';
@@ -36,8 +43,9 @@ import type { BehaviorStrategy, Intention } from '../domain/intention.js';
 const HIGH_RESISTANCE_AGG = 0.6;
 /** 话量阻抗阈值: 达到即倾向简短回应. */
 const HIGH_VERBAL = 0.55;
-/** 开放探索要求的深度阻抗上限. */
-const LOW_DEPTH = 0.35;
+// 探索的深度阻抗上限 (原局部常量 LOW_DEPTH = 0.35) 已并入同盟门槛端口
+// `AllianceConfig.thresholds.openDepth` —— 见 cognition/alliance-config.ts.
+// 种子值逐字不变 (0.35), 缺省零行为变化.
 
 /**
  * 规划本轮意图. 阈值为集中常量, 便于后期调参.
@@ -63,7 +71,7 @@ export function planIntention(snapshot: BdiSnapshot, profile?: CharacterProfile,
   } else if (verbal >= HIGH_VERBAL) {
     strategy = 'simple_response';
     rationale = `话量阻抗高(${verbal.toFixed(2)}), 倾向简短回应`;
-  } else if (allianceGate >= thresholds.open && depth < LOW_DEPTH) {
+  } else if (allianceGate >= thresholds.open && depth < thresholds.openDepth) {
     strategy = snapshot.emotion.valence < 0 ? 'affective_exploration' : 'cognitive_exploration';
     rationale = `信任与安全感均达探索门槛(min=${allianceGate.toFixed(2)}, trust=${snapshot.trust.toFixed(2)}, safety=${snapshot.safety.toFixed(2)})且深度阻抗低(${depth.toFixed(2)}), 进入探索`;
   }

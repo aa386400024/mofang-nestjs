@@ -55,6 +55,8 @@ export type AllianceDeltaOverrides = Readonly<Partial<Record<CounselorEventKind,
  * 同盟三维的**决策门槛**.
  *
  * 门槛与系数分开: 系数管"每轮动多少", 门槛管"什么时候换策略" —— 两者调参节奏不同.
+ *
+ * 四个门槛字段 (S-1 起): 探索同盟门槛 `open` + 两个抗拒门槛 + 探索深度上限 `openDepth`.
  */
 export interface AllianceThresholds {
   /**
@@ -68,6 +70,16 @@ export interface AllianceThresholds {
   readonly resistanceTrust: number;
   /** 抗拒门槛 (安全感维): `safety < resistanceSafety` 即倾向抗拒. */
   readonly resistanceSafety: number;
+  /**
+   * 探索通道的**深度阻抗上限**: `depth < openDepth` 才与同盟门槛一起满足探索条件.
+   *
+   * ⚠️ 本字段比较的是 `BdiResistance.depth` (阻抗维 · 内容深度阻抗), 不是别的 depth.
+   *
+   * 为什么是**可选**字段: 注入形状 (适配层 env 装配 / 会话级覆盖) 允许缺项,
+   * 缺项由解析口 `resolveAllianceThresholds` 回落到内核种子 0.35.
+   * 解析结果是**完整**的 (见该函数的返回类型).
+   */
+  readonly openDepth?: number;
 }
 
 /**
@@ -83,6 +95,17 @@ export interface AllianceConfig {
 }
 
 /**
+ * 探索通道的深度阻抗上限 · **内核种子值** (工程种子值, 非临床标定).
+ *
+ * 为什么单独一个常量 (而不是只把 0.35 写在种子对象里):
+ *   解析口的**早退分支**必须无条件产出完整的 `openDepth`. 若它只依赖"种子对象碰巧
+ *   带着这个键", 日后有人改种子形状时就会静默漏掉 —— 让 `depth < thresholds.openDepth`
+ *   变成 `depth < undefined` (恒 false → 探索分支永不触发, 编译还不报错).
+ *   常量与种子对象共用同一个值, 真相源仍是一处.
+ */
+const DEFAULT_OPEN_DEPTH = 0.35;
+
+/**
  * 内核种子值 (工程种子值, **非临床标定** —— 待真实对练校准).
  *
  * 门槛数值来自任务单 §3.4 (0.6 / 0.4 / 0.3); 系数不在这里 ——
@@ -94,6 +117,8 @@ export const DEFAULT_ALLIANCE_CONFIG: AllianceConfig = {
     open: 0.6,
     resistanceTrust: 0.4,
     resistanceSafety: 0.3,
+    // 深度门槛种子 (S-1) —— 与 planner 旧局部常量 LOW_DEPTH = 0.35 逐字相同.
+    openDepth: DEFAULT_OPEN_DEPTH,
   },
 };
 
@@ -112,15 +137,27 @@ function sanitizeThreshold(value: number | undefined, fallback: number): number 
 
 /**
  * 解析同盟三维的有效门槛 (端口缺项 / 非法 → 逐项回退内核种子值).
+ *
+ * 返回类型 = `AllianceThresholds` + **`openDepth` 必填**:
+ *   `AllianceThresholds.openDepth` 是**可选**的 (注入形状允许缺项), 但解析结果一定完整 ——
+ *   消费方 (intention-planner) 拿到手就能直接比大小, 不必写 `?? 0.35` 那种第二份种子兜底.
+ *   用内联交叉类型而不是另起一个导出类型别名: **不新增任何导出名** (内核公开面是契约,
+ *   `boundary.spec.ts` 断言⑥ 守着 barrel 的双向白名单).
  */
-export function resolveAllianceThresholds(config: AllianceConfig | undefined): AllianceThresholds {
+export function resolveAllianceThresholds(config?: AllianceConfig): AllianceThresholds & { readonly openDepth: number } {
   const seed = DEFAULT_ALLIANCE_CONFIG.thresholds;
   const provided = config?.thresholds;
-  if (!provided) return seed;
+  if (!provided) {
+    // ⚠️ 早退分支也必须产出**完整**门槛 (含 openDepth) —— 种子对象带着它, 这里再显式补一次:
+    //    免得日后改种子形状时静默漏掉, 让 `depth < thresholds.openDepth` 变成
+    //    `depth < undefined` (恒 false → 探索分支永不触发, 编译还不报错).
+    return { ...seed, openDepth: DEFAULT_OPEN_DEPTH };
+  }
   return {
     open: sanitizeThreshold(provided.open, seed.open),
     resistanceTrust: sanitizeThreshold(provided.resistanceTrust, seed.resistanceTrust),
     resistanceSafety: sanitizeThreshold(provided.resistanceSafety, seed.resistanceSafety),
+    openDepth: sanitizeThreshold(provided.openDepth, DEFAULT_OPEN_DEPTH),
   };
 }
 
@@ -159,6 +196,8 @@ export function resolveSessionAllianceConfig(base?: AllianceConfig, override?: P
     open: override.open ?? baseThresholds.open,
     resistanceTrust: override.resistanceTrust ?? baseThresholds.resistanceTrust,
     resistanceSafety: override.resistanceSafety ?? baseThresholds.resistanceSafety,
+    // 深度门槛同走三条回落规则 (覆盖优先 / 缺项回落单例 / 非法回落种子).
+    openDepth: override.openDepth ?? baseThresholds.openDepth,
   };
   // 校验 + 非法值回落种子 —— 复用既有唯一校验口, 不新写一套.
   return {

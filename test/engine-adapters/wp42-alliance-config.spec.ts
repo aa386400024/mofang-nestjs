@@ -76,6 +76,8 @@ describe('WP42 · 咨询同盟三维装配 (env → AllianceConfig)', () => {
       open: 0.5,
       resistanceTrust: 0.35,
       resistanceSafety: 0.25,
+      // S-1: 深度门槛不接 env, 固定透传内核种子 0.35.
+      openDepth: 0.35,
     });
   });
 

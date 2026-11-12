@@ -73,7 +73,7 @@ export interface OpenEngineSessionInput {
   /**
    * 会话级同盟门槛覆盖 (I-12).
    *
-   * ⚠️ **形状镜像** `cognition/alliance-config.ts` 的 `AllianceThresholds` (三字段严格 1:1),
+   * ⚠️ **形状镜像** `cognition/alliance-config.ts` 的 `AllianceThresholds` (四字段严格 1:1),
    *   但**刻意不 import 那个类型** —— `domain/` 层不认识 `cognition/` 的计算,
    *   而本仓 `domain/` → `cognition/` 的依赖方向**至今不存在** (反向依赖是既成事实:
    *   `cognition/` → `domain/`). 这里只放"形状", 校验与回落仍由
@@ -91,6 +91,8 @@ export interface OpenEngineSessionInput {
     readonly open?: number;
     readonly resistanceTrust?: number;
     readonly resistanceSafety?: number;
+    /** 探索通道的深度阻抗上限 (S-1 端口化; 缺省由内核种子回落). */
+    readonly openDepth?: number;
   };
 }
 
