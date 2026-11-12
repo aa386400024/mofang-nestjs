@@ -113,6 +113,17 @@ WP-K / WP-L 首次 `git commit` 时被 husky 的 lint-staged 拦截，eslint 报
 
 ---
 
+### TD-4 · 批次报告 CLI 指纹走 `src/.ts`、服务端落库走 `dist/.js`，两者按设计永不相等（优先级：P2）
+
+> **状态：待修复**（2026-11-12 批次 `g3ONzlqSGMVJqkFMF9Lwh` 发现，[交付记录 §9 B-2](../completed/phase2.5/phase2.5-verification-batch-96-implementation-2026-11-12.md)）
+
+- **现象**：`ap_practice_batches.config_fingerprint` 由服务端收尾按 dist/`.js` 计算；`bin/batch-report.ts` CLI 报告指纹从 src/`.ts` 计算。`src/auto-practice/config-fingerprint.ts:17` 文件头自述"`.ts` 与 `.js` 口径互不可比，统一用 dist"，CLI 违反了该口径。
+- **影响**：任何"DB 快照 vs CLI 报告"的指纹比对必然报"全段变化"，跨来源指纹不可用；不影响运行时与批次门禁判定。
+- **建议**：`bin/batch-report.ts` 改为按 `dist/` 计算指纹（与服务端口径一致），或在指纹字段显式标注口径来源。
+- **证据**：交付记录 §4.3 逐段举证（src combined `491558624aeafdb3` / dist combined `cf032d71ea4849b1`，dist 值与库内落库逐位相同）。
+
+---
+
 ## 3. 处理原则
 
 - 三项均不影响已交付的 WP-K / WP-L 临床正确性，可在后续迭代穿插处理。
