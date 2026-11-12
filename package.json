@@ -191,6 +191,9 @@
       "oxlint --fix",
       "prettier --write"
     ],
+    "scripts/**/*.{mjs,cjs}": [
+      "prettier --write"
+    ],
     "*.{json,md,yml,yaml}": [
       "prettier --write"
     ]

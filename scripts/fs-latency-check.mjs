@@ -7,7 +7,7 @@
  * 修复动作：pnpm install --force --config.package-import-method=copy
  *
  * 用法：pnpm doctor:fs [目录] [文件数]
- * 判定：热轮读 200 个文件应 < 100ms 且慢文件（>5ms）为 0，否则 exit 1。
+ * 判定：均值 <1ms/文件 且 慢文件（>5ms）占比 <5%，否则 exit 1 并给修复指引。
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -39,7 +39,7 @@ function readRound(files) {
     const t0 = process.hrtime.bigint();
     readFileSync(file, 'utf8');
     const ms = Number(process.hrtime.bigint() - t0) / 1e6;
-    if (ms > SLOW_MS) slow.push(`${(ms).toFixed(1)}ms ${file}`);
+    if (ms > SLOW_MS) slow.push(`${ms.toFixed(1)}ms ${file}`);
   }
   const total = Number(process.hrtime.bigint() - started) / 1e6;
   return { total, slow };
