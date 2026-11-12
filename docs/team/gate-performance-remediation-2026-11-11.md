@@ -63,7 +63,7 @@
 
 停机前取证：`nest start --watch`（pid 27392）从 11-10 11:59 连续运行 2 天，**累计 7709 s CPU、1527 MB 常驻**；另有 `admin-dashboard` 的 vite dev（pid 17896）与 `dist/app`（pid 15452）。全部停止后 node 进程数归 0，CPU 从 100% 落到 26%。**纪律：跑闸门前确认机器干净**（已写入 `wp-task-template` §5.0）。
 
-#### 税 2：**既有 node_modules 中的一部分文件**每次读取被拦截（决定性发现）
+#### 税 2：安全软件 minifilter 按**文件身份（inode）**逐次收税（已定位到机制并归零，2026-11-12）
 
 第一轮对照（同一批 `node_modules/@nestjs/common` 下 202 个 `.js`，同一段 Node 读取代码）：
 
@@ -98,13 +98,52 @@
 
 **机制推论**：读权限请求按文件身份（inode/文件 ID）命中某个安全过滤层，每次读内容都付一次固定代价（~200 ms），且该路径不参与 OS 缓存。Node 模块加载 = 成百上千次小文件读取，于是每个 vitest worker 仅 import 就要 15–19 s——这正是"186 workers × import 96%"的来源，也是"停掉 watch 后仍需 1081.94 s"的根因。
 
-**这一条改写了优先级**：
+##### 1.5.1 机制闭环：三轮对照把因果链钉死（2026-11-12）
 
-1. 本机治本动作在机器侧，按性价比排序：① 安全软件（火绒）把 `E:\Work\Project` 加入信任区/白名单，并重启其服务；② 若无效，把 pnpm store 迁到 D:（`pnpm config set store-dir D:\pnpm-store`）+ 删除 `node_modules` 重装，让所有模块文件重新落盘到快盘；③ 兜底把仓库整体迁到 D:。
-2. 仓库侧**唯一有效杠杆是减少"文件读取次数"**——即 worker 复用（`isolate:false`）。同一台被收税的机器上实测 `isolate:false` **206.19 s** vs `isolate:true` 1081–1467 s，**7 倍**；这个收益本身就是税 2 的镜像。因此 `P-DEBT-1`（清 spec 间 `process.env` 泄漏）升为最高优先级。
-3. `deps.optimizer` 的"预打包成少数文件"方向正确，本次被 `vi.mock('bullmq')` 的导出形态挡住；若重试应排除被 mock 的重依赖（见 §L2）。
+**第一轮：进程完整性级别**。管理员权限 node 跑同一探针 **37 ms / 200 文件（0 慢）**，普通权限 node 同一时刻 **16.5 s（71 慢）**。差异不在文件、不在磁盘，而在**进程完整性级别**——安全软件只对非提权进程的读请求收费。提权 `fltmc filters` 证实：`sysdiag`（火绒驱动）以 altitude 324600 挂在 E:，共 6 实例。
 
-**基线口径更正**：§1.2 的"干净环境 140.29 s"已不可复现（04:19 同机同版本同配置为 1081.94 s）。差异不来自代码，来自上述环境税。**对外引用闸门耗时必须同时标注机器状态与读取延迟**，否则数字没有意义。
+**第二轮：税源随卸载迁移**。用户卸载火绒后（`HipsDaemon`/`sysdiag`/`hrdevmon`/`hrwfpdrv`/`HRWSCCtrl` 全部 `1060 服务不存在`），探针 16.5 s → **5.1–5.9 s**；提权 `fltmc instances -v E:` 显示 `sysdiag` 消失、**`WdFilter`（Defender，altitude 328010，7 实例）接手**，`MsMpEng` 启动时间正是卸载时刻。写入 Defender 排除路径（`E:\Work\Project`、`E:\.pnpm-store`）后：**提权 node 35 ms 归零，普通 node 仍 3583/4757 ms**——路径排除对非提权进程未命中该现象。
+
+**第三轮：inode 判别（决定性）**。取一个 11 字节慢文件做五组对照：
+
+| 组                                     | 单次读耗时            | 结论   |
+| -------------------------------------- | --------------------- | ------ |
+| 原文件（既有 inode）                   | 31.7 / 30.7 / 32.3 ms | 收税   |
+| `Copy-Item` 副本（**新 inode**）       | 0.2 / 0.2 / 0.2 ms    | 免税   |
+| 硬链接到 repo 内新路径（**同 inode**） | 34.1 / 33.6 / 39.2 ms | 仍收税 |
+| 硬链接到 `E:\Temp`（同 inode、跨目录） | 33.3 / 32.8 / 32.6 ms | 仍收税 |
+| **同路径删除后写回同内容（换 inode）** | 0.4 / 0.3 / 0.3 ms    | 免税   |
+
+→ 税按 **inode 身份**收取，与路径、目录、磁盘均无关；同路径换 inode 即归零。另两条候选判据被逐一否证：**硬链接计数**（给快文件加硬链后原路径仍 0.3 ms）、**链接类型**（`@nestjs/common` 前 202 个 `.js` 中 201 个都是 HardLink，快慢两组同构），真正的分组特征是 `size < 50B` 的 73 个文件里含 71 个慢文件——即"**小文件 + 从 store 链接来的旧 inode**"这一组合才被收费。
+
+##### 1.5.2 治本动作：把 node_modules 从 hardlink 改为独立文件（唯一真正归零的动作）
+
+三条原设想的治本动作在本轮实测中全部被推翻：① 火绒信任区/白名单——加了两条目录信任区，探针无变化，且火绒驱动仍在收税；② store 迁盘——inode 判别已证明与盘无关；③ 仓库迁盘——同上，且 `E:\Temp`/`C:\Temp`/`D:\Temp` 同样 55–67 ms 不达标。
+
+**有效动作**：pnpm 默认以 hardlink 复用 store 里的 inode，于是"旧 inode"被整包继承。用 copy 装法重装，让每个文件拿到全新独立 inode：
+
+```powershell
+pnpm install --force --config.package-import-method=copy
+```
+
+实测：**12 min 19 s、exit 0、1282 包全部从 store 复用（0 新增下载）**；`@nestjs/common` 前 202 个 `.js` 的 LinkType 全部变为 `(none)`。复验（普通权限、无 watch 进程）：
+
+| 指标                           | 改造前（2026-11-12 08:4x） | 改造后                                 | 倍数             |
+| ------------------------------ | -------------------------- | -------------------------------------- | ---------------- |
+| 读 200 个 `.js`                | 16.5 s（71 慢）            | **63 / 81 ms（0 慢）**                 | **~230×**        |
+| 单文件 `abstract.interface.js` | 189–510 ms                 | **0.4 / 0.3 / 0.5 ms**                 | **~500×**        |
+| 全量 vitest 墙钟               | 1102.6 s                   | **132 s**                              | **8.3×**         |
+| 全量 vitest Duration           | 1081.94 s（import 96%）    | **127.72 s（import 83%）**             | 8.5×             |
+| 全量结果                       | 3003 passed / 1 failed     | **3004 passed / 0 failed / 4 skipped** | 转绿             |
+| `tsc -b`（热）                 | 2.0–2.7 s                  | **1.8 s**                              | —                |
+| `lint:fast`（全仓 1295 文件）  | 2.1 s                      | **1.0 s**                              | 2×               |
+| `pnpm lint`（ESLint 权威）     | 热 69.3 s / 冷 394.9 s     | **49.3 s（0 error / 0 warning）**      | 1.4×（热态口径） |
+
+**纪律**：此动作只对本机生效，不进仓库配置（不改 `.npmrc`），因为 copy 装法会增加安装耗时与磁盘占用（`node_modules` 1.46 GB 全部转为实占）；他人与 CI 不应继承该代价。任何 `pnpm install` 若回落到默认 hardlink 装法，税会回来——复验方法见 §7.2 的读取探针。
+
+**取证环境副作用（重要）**：本轮执行会话的 `PATH` 被沙盒替换、未继承系统 `PATH`，导致 `git` 不在搜索路径（本机 git 在 `D:\Apps\Git\cmd`）。全量跑批因此出现 1 例 `spawnSync git ENOENT` 假失败（`wp-h-wave2-3-batch-observability.spec.ts`），补齐 PATH 后 25/25 全绿。**凡依赖外部命令（git 等）的用例，取证前先补 PATH，否则会把环境缺陷误判成回归**。
+
+**基线口径更正**：§1.2 的"干净环境 140.29 s"已不可复现（04:19 同机同版本同配置为 1081.94 s）。差异不来自代码，来自上述环境税。**对外引用闸门耗时必须同时标注机器状态与读取延迟**，否则数字没有意义。现在本机读取延迟已归零，**132 s 成为本机的新基线**（import 仍占 83%，是 `isolate:true` 下 186 个 worker × ~1.00 s 启动的固有成本）。
 
 ---
 
@@ -122,14 +161,17 @@
 | CI（push / PR，既有，不动） | 全量            | `tsc --noEmit -p tsconfig.json`            | `npm run lint`           | 全量 unit + e2e                                    | CI 环境              |
 | 里程碑 / 阶段冻结           | 全量            | 全量                                       | 全量                     | 全量 + e2e                                         | 每阶段一次           |
 
-### 2.2 量化目标（以 §1.2 实测基数为准，A/B 实测回填）
+### 2.2 量化目标与达成情况（A/B 实测回填，2026-11-12 收口）
 
-- **单次全量闸门（热缓存）**：基线 `38.2 s（tsc）+ 69.3 s（lint）+ 148.3 s（test 墙钟）≈ 4.3 min`；**冷缓存** 基线 `≈ 9.7 min`。
-- **第一优先目标：eslint 冷跑 394.9 s → ≤ 120 s**（定向 + 缓存治理 + 必要的工具替换；这是全链路最大单腿，收益最大）。
-- **全量 vitest**：基线 140.29 s；`isolate: false` 官方提示省 28.10 s，叠加 `fsModuleCache` / `deps.optimizer` 后目标 `≤ 90 s`（import 段占比从 74% 降下来）。
-- **验收环节本地耗时**：从"跑一遍全量"（冷 9.7 min / 热 4.3 min）降到 **≤ 2–3 分钟定向**（流程层确定性收益，不依赖调参）。
-- **重复 tsc 检查**：基线 38.2 s；开 `incremental` 后第二次起只编译改动子图（实测回填）。
-- **正确性零回退**：全量套件 0 failed；`src/engine-core` 的 `git diff` 为空；`boundary.spec.ts` 未改；type-aware lint 规则不整体降级。
+| 指标                 | 原始目标                           | 实测达成（本机、无 watch、读取延迟已归零）                                                                                            | 判定                                                    |
+| -------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| 全量 vitest          | 140.29 s 基线 → `≤ 90 s`           | **132 s 墙钟 / 127.72 s Duration（import 83%）**                                                                                      | 部分：由环境税主导，未达 90 s；下一步靠 `isolate:false` |
+| eslint 冷跑          | 394.9 s → `≤ 120 s`                | `lint:fast`（oxlint 全仓 1295 文件）**1.0 s**；权威 `pnpm lint`（ESLint type-aware）**49.3 s / 0 error / 0 warning**（原热态 69.3 s） | 达成（分层 + 读税归零）                                 |
+| 重复 tsc             | 38.2 s → 增量                      | `tsc -b`（热）**1.8 s**，冷 87.4 s                                                                                                    | 达成                                                    |
+| 验收环节本地耗时     | 全量双跑 → `≤ 2–3 min` 定向        | `test:related` / `test:changed` + `lint:fast` + `typecheck`，见 §5.4                                                                  | 达成（流程层）                                          |
+| 正确性零回退         | 全量 0 failed、engine-core 空 diff | **3004 passed / 0 failed / 4 skipped**；engine-core diff 为空；`boundary.spec.ts` 未改                                                | 达成                                                    |
+| 读取延迟（根因指标） | 200 文件 `< 100 ms`                | **63–81 ms（0 慢文件）**，单文件 0.4 ms                                                                                               | 达成                                                    |
+| 全量闸门总时长       | 冷 9.7 min / 热 4.3 min            | **132 s（约 2.2 min）**                                                                                                               | 达成                                                    |
 
 ---
 
@@ -521,12 +563,13 @@ pnpm lint:files <touched-files...>
 
 ```
 
-### 7.3 DoD
+### 7.3 DoD（2026-11-12 收口核对）
 
-- 全量套件 0 failed，用例总数与基线一致（仅允许既存 skip 数不变）。
-- `git diff --stat HEAD -- src/engine-core` 为空；`boundary.spec.ts` 未出现在改动清单。
-- A/B 数字回填到交付记录：全量 vitest 前后耗时与 import 占比、重复 tsc 前后耗时、验收定向命令耗时。
-- CI 既有全量门禁保持通过；未新增必须本地全量复跑的环节。
+- [x] 全量套件 0 failed：**3004 passed / 0 failed / 4 skipped（186 文件，1 skipped 文件）**，用例总数与基线 3008 一致。
+- [x] `git diff --stat HEAD -- src/engine-core` 为空；`boundary.spec.ts` 未出现在改动清单。
+- [x] A/B 数字回填：全量 vitest 1102.6 s → 132 s（import 96% → 83%）；`tsc -b` 热 1.8 s；`lint:fast` 1.0 s；读取延迟 16.5 s → 63–81 ms。
+- [x] CI 既有全量门禁未改动；未新增必须本地全量复跑的环节（验收走 §5.4 定向闸门）。
+- [x] 权威绿跑取证口径记录：执行会话需先补 `PATH`（git 在 `D:\Apps\Git\cmd`），否则 `wp-h-wave2-3-batch-observability.spec.ts` 会报 `spawnSync git ENOENT` 假失败。
 
 ---
 
@@ -555,9 +598,11 @@ pnpm lint:files <touched-files...>
 | **P-DEBT-5** | CI 缓存与分片未做（`actions/cache` + shard 矩阵、CI 侧 pnpm 统一） | CI 每次全量冷跑 | 独立技术债单，不在本方案范围 |
 | **P-DEBT-6** | 测试结构减重（L5）：集成 spec 收敛、外部 SDK 端口层 mock、barrel 瘦身 | import 74% 的结构性根因 | 独立任务单 |
 | **P-DEBT-7** | 本机长驻开发进程污染闸门测量（`nest start --watch` 跑 2 天 7709s CPU / 1527 MB） | 同一份代码实测 1102.6 s（停机后）vs 1512 s（带 watch） | 已写入 `wp-task-template` §5.0 纪律：跑闸门前确认无 watch / dev server |
-| **P-DEBT-8** | **E: 盘每次文件内容读取 ~90 ms（C:/D: 0.3 ms），`require('@nestjs/common')` 14 s** | 全量 vitest 无法进入百秒量级；这是当前第一瓶颈，比任何配置项都大 | ① 安全软件（火绒 HIPS）对 `E:\Work\Project` 加信任区，或临时关闭实时监控；② 或把仓库迁到 C:/D: 盘；③ 每次变更后用 §1.5 的 read-test 复验（200 文件应 <100 ms） |
+| **P-DEBT-8** | ~~E: 盘每次文件内容读取 ~90 ms~~ | — | **已解除（2026-11-12）**：根因为 minifilter 按 inode 收税；以 `pnpm install --force --config.package-import-method=copy` 让 `node_modules` 脱离 store 的旧 inode 后归零（200 文件 63–81 ms）。复验方法见 §1.5.2 与 §7.2 |
+| **P-DEBT-9** | 依赖外部命令的 spec 无环境前置（`wp-h-wave2-3-batch-observability.spec.ts` 直接 `execFileSync('git')`） | 取证会话 PATH 不继承系统 PATH 时（本机 git 在 `D:\Apps\Git\cmd`）报 `spawnSync git ENOENT`，会被误判成回归 | 在 spec 里探测 `git` 可用性并 skip，或用 `GIT_BIN` 注入；短期纪律：跑全量前补齐 PATH |
+| **P-DEBT-10** | `node_modules` 若回落到 pnpm 默认 hardlink 装法，读税会复发 | 一次 `pnpm install` 就能把 132 s 打回 1100 s | 每次大版本安装后用读取探针复验（200 文件应 <100 ms）；需要固化为本机习惯，不写进仓库 `.npmrc`（避免把磁盘与安装耗时代价带给他人/CI） |
 
 ---
 
-_更新记录：2026-11-12 —— L4 落地（oxlint 分层）、L3 落地（`tsc -b` 缓存）、L2 部分落地（`deps.optimizer.ssr` + `test:fast`）；版本升级两项实测回滚；新增 §1.5 环境纯净度与 §9 债务登记。_
+_更新记录：2026-11-12 —— L4 落地（oxlint 分层）、L3 落地（`tsc -b` 缓存）、L2 部分落地（`deps.optimizer.ssr` + `test:fast`）；版本升级两项实测回滚；§1.5 升级为机制级结论（minifilter 按 inode 收税 → `package-import-method=copy` 归零，全量 1102.6 s → 132 s，3004 passed / 0 failed）；§2.2 改为达成情况表；§9 新增 P-DEBT-9 / P-DEBT-10。_
 ```

@@ -102,13 +102,14 @@
 - 本仓库 `packageManager=pnpm`，**一律用 pnpm 跑脚本/二进制，不要用裸 `npx`**（裸 npx 启动慢，且会绕过缓存）。
 - 跑 package.json 脚本用 `pnpm <script>`（如 `pnpm lint`）；直接跑二进制用 `pnpm exec <bin> <args>`（如 `pnpm exec tsc ...`）。
 - **跑闸门前先确认机器干净**：没有 `nest start --watch` / 后台 `vite dev` / `dist/app` 在跑。实测 `nest start --watch` 连跑两天占 7.7k s CPU、1.5 GB 常驻，全量 vitest 从 1102 s 恶化到 1512 s。
-- **跑闸门前先确认盘不慢**：本机 E: 盘读文件内容约 90 ms/个（C:/D: 0.3 ms），`require('@nestjs/common')` 冷加载要 14 s。十秒体检法：用 node 顺序读 `node_modules/@nestjs/common` 下 200 个 `.js`，耗时应在 100 ms 量级；若是秒级，先把仓库目录加入安全软件信任区（或迁盘），否则闸门数字全部无效。详见 `gate-performance-remediation-2026-11-11.md` §1.5。
+- **跑闸门前先确认盘不慢（十秒体检，已归零）**：用 node 顺序读 `node_modules/@nestjs/common` 下 200 个 `.js`，正常应为 **<100 ms（当前本机 63–81 ms，0 慢文件）**；若是秒级，说明读税回来了。读税的本质是 **minifilter 按 inode 收税**：`node_modules` 若以 pnpm 默认 hardlink 装法从 store 继承旧 inode，约 35% 文件每次读付 200–260 ms，`require('@nestjs/common')` 冷加载 14 s，全量 vitest 会从 132 s 打回 1100 s。修复动作：`pnpm install --force --config.package-import-method=copy`（只在本机执行，**不要写进仓库 `.npmrc`**）。机制与全部实测见 `gate-performance-remediation-2026-11-11.md` §1.5。
+- **取证会话先补 PATH**：执行环境的 `PATH` 可能不继承系统 `PATH`，本机 `git` 在 `D:\Apps\Git\cmd`。依赖外部命令的 spec 会因此报假失败（实测 `wp-h-wave2-3-batch-observability.spec.ts` 报 `spawnSync git ENOENT`，补齐 PATH 后 25/25 全绿）。**不补齐就下结论，等于把环境缺陷记成回归。**
 
 ### 5.1 日常内循环（高频，定向，秒~分钟级）
 
 | 目的                             | 命令                                                      | 实测耗时                                                       |
 | -------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------- |
-| 语法/明显缺陷（全仓）            | `pnpm lint:fast`（oxlint，1295 文件）                     | **2.1s**                                                       |
+| 语法/明显缺陷（全仓）            | `pnpm lint:fast`（oxlint，1295 文件）                     | **1.0s**                                                       |
 | 需要类型感知的快速一遍           | `pnpm lint:deep`（`oxlint --type-aware`）                 | **26.8s**                                                      |
 | 类型（增量，走 `tsc -b` 缓存）   | `pnpm typecheck`                                          | **~2.5s（热）**，改文件后 ~3s                                  |
 | 单个测试文件                     | `pnpm exec vitest run <file.spec.ts>`                     | 秒级~十几秒                                                    |
@@ -119,13 +120,13 @@
 
 ### 5.2 收尾全量闸门（每个任务只跑一次，交付前后台执行，可同时做别的事）
 
-| 闸门        | 命令                                                     | 要求                                                                       | 实测耗时                               |
-| ----------- | -------------------------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------- |
-| 类型        | `pnpm typecheck`（`tsc -b tsconfig.check.json`，走缓存） | 0 error；怀疑缓存失真时改跑 `pnpm typecheck:full`（无缓存全量）            | 热 ~2.5s，冷 87s，增删文件后 ~32s      |
-| Lint        | `pnpm lint`（ESLint type-aware，权威，不降级）           | 0 error，记 warning 数                                                     | 冷 394.9s / 热 69.3s                   |
-| 测试        | `pnpm test`                                              | 全绿，记用例总数与墙钟；**同时记录机器状态**（是否干净、盘读延迟是否正常） | 停机后仍 1102.6s（E: 盘读税，见 §5.0） |
-| engine-core | `git diff --stat HEAD -- src/engine-core`                | 空（或写明例外批准）                                                       | 即时                                   |
-| 任务特有    | {{如 seed 连跑两次幂等、边界 spec、连库抽查}}            | {{要求}}                                                                   | —                                      |
+| 闸门        | 命令                                                     | 要求                                                                       | 实测耗时                                        |
+| ----------- | -------------------------------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------- |
+| 类型        | `pnpm typecheck`（`tsc -b tsconfig.check.json`，走缓存） | 0 error；怀疑缓存失真时改跑 `pnpm typecheck:full`（无缓存全量）            | 热 **1.8s**，冷 87s，增删文件后 ~32s            |
+| Lint        | `pnpm lint`（ESLint type-aware，权威，不降级）           | 0 error，记 warning 数                                                     | **49.3s（0 error / 0 warning，读取归零后）**    |
+| 测试        | `pnpm test`                                              | 全绿，记用例总数与墙钟；**同时记录机器状态**（是否干净、盘读延迟是否正常） | **132s / 3004 passed / 0 failed（读取归零后）** |
+| engine-core | `git diff --stat HEAD -- src/engine-core`                | 空（或写明例外批准）                                                       | 即时                                            |
+| 任务特有    | {{如 seed 连跑两次幂等、边界 spec、连库抽查}}            | {{要求}}                                                                   | —                                               |
 
 ### 5.4 验收闸门（回收方：定向 + 范围核对，**不重跑全量**）
 
