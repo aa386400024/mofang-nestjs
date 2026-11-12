@@ -209,6 +209,18 @@ export interface EngineSessionTuningDeps {
    */
   readonly sessionDecayConfig?: SessionDecayConfig;
   /**
+   * 时序权重配置 (D-3; 缺省 = **不折损**, delta 逐字不变).
+   *
+   * 与 cap 同款范式: 权重形态是**部署形态**的决定 (灰度到哪批会话), 不是会话参数.
+   *
+   * ⚠️ 本单**不开 env 覆写通道** —— 只能由装配代码显式传值 (内核零 process.env);
+   *   env 通道留标定批次单 (同 D-2 L-4 范式).
+   *
+   * 类型走 `EngineSessionOptions` 反推 (下方类型别名) —— **不新增 core 具名导出**,
+   *   也不必把内核的选项形状再抄一遍 (抄一遍 = 两份真相, 迟早漂).
+   */
+  readonly timingWeightConfig?: EngineSessionOptions['timingWeightConfig'];
+  /**
    * 工作窗口溢出回调 (WP37; 缺省 = 不做滚动摘要).
    *
    * 与 cap 同款范式: 这是**内核 → 适配层**的通知口, 缺省 = 内核只裁窗口不通知.
@@ -262,6 +274,8 @@ function resolveEngineSessionTuningOptions(tuning: EngineSessionTuningDeps | und
     ...(tuning.allianceConfig ? { allianceConfig: tuning.allianceConfig } : {}),
     ...(tuning.deltaTableConfig ? { deltaTableConfig: tuning.deltaTableConfig } : {}),
     ...(tuning.sessionDecayConfig ? { sessionDecayConfig: tuning.sessionDecayConfig } : {}),
+    // D-3: 时序权重端口 —— 不传 = 内核走缺省 (不折损, delta 逐字不变).
+    ...(tuning.timingWeightConfig ? { timingWeightConfig: tuning.timingWeightConfig } : {}),
     ...(tuning.onWorkingWindowOverflow ? { onWorkingWindowOverflow: tuning.onWorkingWindowOverflow } : {}),
     ...(tuning.deliberationHook ? { deliberationHook: tuning.deliberationHook } : {}),
     // D-1 第二段: 事件分类器 (模型轨) —— 不传 = 内核用默认规则轨 (逐字零回归).

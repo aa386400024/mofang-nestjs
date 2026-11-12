@@ -63,6 +63,7 @@ import {
   type DeltaCapConfig,
   type DeltaCapObserver,
   type DeltaVector,
+  type TransitionStateOptions,
 } from '../cognition/state-transition.js';
 import { planAct } from '../cognition/trajectory/act-cursor.js';
 import { applyTrajectory } from '../cognition/trajectory/trajectory-applier.js';
@@ -254,6 +255,17 @@ export interface InMemoryEngineSessionOptions {
    */
   readonly sessionDecayConfig?: SessionDecayConfig;
   /**
+   * 时序权重配置 (D-3 · 与 cap / 人格 / 同盟 / 衰减同款注入范式).
+   *
+   * 缺省 = **不折损** (内核决策链里没有折损这一步, delta 逐字不变).
+   * 为什么是**构造注入**而不是每次 turn 传: 与 cap 同理 —— 权重形态是**部署形态**
+   * 的决定 (灰度到哪批会话), 不是会话参数; 放构造上 = 一场会话内口径恒定.
+   *
+   * ⚠️ 本单只落地 `none` 形态的**端口骨架** —— `linear_decay / recency / window`
+   *   的曲线实现与 `slope` / `windowTurns` 标定值留标定批次单.
+   */
+  readonly timingWeightConfig?: TransitionStateOptions['timingWeight'];
+  /**
    * 工作窗口溢出回调 (WP37 · 与 cap / 人格 / 同盟 / 衰减同款注入范式).
    *
    * 缺省 = 不回调 (工作窗口照旧裁剪, 行为与 WP2 **逐字一致**).
@@ -312,6 +324,8 @@ export class InMemoryEngineSession implements EngineSessionPort {
   private readonly deltaTableConfig: DeltaTableConfig | undefined;
   /** 跨会话间隔衰减配置 (WP36 · 缺省 = 内核种子值). */
   private readonly sessionDecayConfig: SessionDecayConfig | undefined;
+  /** 时序权重配置 (D-3 · 缺省 = 不折损, delta 逐字不变). */
+  private readonly timingWeightConfig: InMemoryEngineSessionOptions['timingWeightConfig'];
   /** 工作窗口溢出回调 (WP37 · 缺省 = 不回调). */
   private readonly onWorkingWindowOverflow: ((event: WorkingWindowOverflowEvent) => void) | undefined;
   /** 审议钩子 (R9; 缺省 = 不注入 = 零回归). */
@@ -330,6 +344,7 @@ export class InMemoryEngineSession implements EngineSessionPort {
     this.allianceConfig = options.allianceConfig;
     this.deltaTableConfig = options.deltaTableConfig;
     this.sessionDecayConfig = options.sessionDecayConfig;
+    this.timingWeightConfig = options.timingWeightConfig;
     this.onWorkingWindowOverflow = options.onWorkingWindowOverflow;
     this.deliberationHook = options.deliberationHook;
   }
@@ -432,6 +447,12 @@ export class InMemoryEngineSession implements EngineSessionPort {
       //   临时快照与落库快照**两处口径必须一致** —— 两处都从 base.snapshot 出发,
       //   所以不会重复演化 (各演一次, 结果相同).
       counselorText: userText,
+      // D-3: 时序权重端口 —— 轮次号 **1 起** (同 `MatchContext` 口径: runtime.turnIndex + 1),
+      //   权重配置走构造注入 (缺省 = 不折损, delta 逐字不变).
+      //   ⚠️ 落库路径 (事件 delta + 剧本 delta 合并后统一过一次 cap) 本单**不接入**折损分支 ——
+      //   `none` 恒等下两路径逐字一致; 接入点与口径 (cap 后、turnIndex + 1) 见交付记录 §6 R2.
+      turnIndex: runtime.turnIndex + 1,
+      timingWeight: this.timingWeightConfig,
     });
     const intention = planIntention(provisional, runtime.characterProfile ?? undefined, runtime.allianceConfig);
     // 4. 轨迹步 (WP3): BDI 自由规划**之后**、落库**之前**.

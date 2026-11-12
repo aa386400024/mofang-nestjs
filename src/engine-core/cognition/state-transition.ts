@@ -630,6 +630,23 @@ export interface TransitionStateOptions {
    * 缺省时行为 = 内核种子系数 (逐字可复现); 适配层将来要接 env 时, 在这里覆写.
    */
   readonly beliefConfig?: BeliefOperatorConfig;
+  /**
+   * 时序权重配置 (D-3; 缺省 = 不折损, delta 逐字不变).
+   *
+   * 折损发生在 cap 之后 —— cap 是"一回合最多动多少"的最后一道尺子,
+   * 权重不得绕过它 (与人格调节同款纪律, 但位置在 cap 之后).
+   * 本单仅 `none` 形态落地; 其余形态纯函数实现留标定批次.
+   *
+   * 缺省语义: 不传 = 内核决策链里**没有折损这一步** (不是"结果一样",
+   * 是"根本没走那条路") —— 落库 delta 与改造前逐字相同.
+   */
+  readonly timingWeight?: {
+    readonly kind: 'none' | 'linear_decay' | 'recency' | 'window';
+    readonly slope?: number;
+    readonly windowTurns?: number;
+  };
+  /** 本轮轮次号 (1 起; 会话层传 runtime.turnIndex + 1). 缺省 = 权重算子取不到位置, 回落等权. */
+  readonly turnIndex?: number;
 }
 
 /**
@@ -645,6 +662,67 @@ function modulateByPersonality(
 ): DeltaVector {
   if (!personality) return raw;
   return modulateDeltaByPersonality(raw, { ...personality, events: personality.events ?? events });
+}
+
+/**
+ * 等权系数 (D-3 骨架).
+ *
+ * 缺省 / `kind: 'none'` / 轮次号缺省 / **未实现形态** —— 四种情形一律回退到它.
+ * 为什么写成常量而不是裸 `1`: 权重是这个数的**唯一语义来源**, 标定批次落地形态后
+ * 换的是**算子公式**, 不是这个"等权"的语义 —— 命名常量让两件事不混.
+ */
+const TIMING_WEIGHT_EQUAL = 1;
+
+/**
+ * 解析本轮的时序权重 (D-3 · 端口骨架 · **模块私有** · 纯函数).
+ *
+ * 缺省 / `kind: 'none'` / 轮次号缺省 → 等权 (不折损).
+ * 非 `none` 形态 (`linear_decay` / `recency` / `window`) **本单回退等权** ——
+ * 形态曲线与临床斜率留标定批次单; 骨架阶段"未实现形态不得改变行为".
+ *
+ * 为什么是纯函数: 权重是纯计算 (不读 env / 不摸全局对象 / 无时钟 / 无随机数),
+ * 同样的输入必得同样的输出 —— 状态可复现性契约 (R1) 的前提.
+ *
+ * @param config 权重配置 (缺省 = 不折损)
+ * @param turnIndex 本轮轮次号 (1 起; 缺省 = 算子取不到位置)
+ * @returns 权重系数 (本单恒为等权)
+ */
+function resolveTimingWeight(config: TransitionStateOptions['timingWeight'], turnIndex: number | undefined): number {
+  // 缺省 = 内核决策链里没有折损这一步 (逐字零回归的根).
+  if (!config) return TIMING_WEIGHT_EQUAL;
+  if (config.kind === 'none') return TIMING_WEIGHT_EQUAL;
+  // 非 `none` 形态: 本单只留**联合位**, 曲线实现留标定批次单 —— 此刻**刻意**回退等权.
+  //   轮次号缺省 → 算子取不到位置 → 等权; 形态未实现 → 同样等权.
+  if (turnIndex === undefined) return TIMING_WEIGHT_EQUAL;
+  return TIMING_WEIGHT_EQUAL;
+}
+
+/**
+ * 把 delta 向量按权重折损 (D-3 · **模块私有** · 纯函数).
+ *
+ * `weight === 1` → **原样返回入参引用** (恒等短路): 数值逐字相同, 且连对象都不换.
+ *   这条短路是"缺省 = 逐字零回归"的实现保证 —— 缺省路径不新建任何对象.
+ * 其余情况 → 逐维乘权重, 返回**新**向量 (不原地改入参).
+ *
+ * @param delta 本轮 delta 向量
+ * @param weight 权重系数
+ * @returns 折损后的 delta 向量
+ */
+function scaleDeltaVector(delta: DeltaVector, weight: number): DeltaVector {
+  if (weight === 1) return delta;
+  return {
+    trust: delta.trust * weight,
+    safety: delta.safety * weight,
+    bond: delta.bond * weight,
+    verbal: delta.verbal * weight,
+    depth: delta.depth * weight,
+    style: delta.style * weight,
+    valence: delta.valence * weight,
+    arousal: delta.arousal * weight,
+    positive: delta.positive * weight,
+    negative: delta.negative * weight,
+    dependency: delta.dependency * weight,
+  };
 }
 
 /**
@@ -930,8 +1008,14 @@ export function applyBeliefEvolution(snapshot: BdiSnapshot, counselorText: strin
 export function transitionState(snapshot: BdiSnapshot, events: readonly SessionEvent[], options?: TransitionStateOptions): BdiSnapshot {
   const aggregated = aggregateTurnDelta(events, options?.alliance, options?.deltaTable);
   const raw = modulateByPersonality(aggregated, events, options?.personality);
-  const delta = capTurnDelta(raw, options?.capConfig);
-  notifyDeltaCap(options?.observer, buildDeltaCapReport(raw, delta, events, options?.capContext));
+  const capped = capTurnDelta(raw, options?.capConfig);
+  // D-3: 轮次权重折损在 **cap 之后** —— cap 是"一回合最多动多少"的最后一道尺子,
+  //   权重不得绕过它 (P5 已定案: 聚合 → 人格调节 → cap → 折损 → apply).
+  //   缺省 = 不折损 → `scaleDeltaVector` 原样返回 (连对象都不换, 逐字零回归).
+  const delta = scaleDeltaVector(capped, resolveTimingWeight(options?.timingWeight, options?.turnIndex));
+  //   cap 报告口径**不变**: 仍按 `raw → capped` 构造 (第二参是折损**前**的 capped,
+  //   不是加权后的 delta) —— 折损不改变砍幅结论.
+  notifyDeltaCap(options?.observer, buildDeltaCapReport(raw, capped, events, options?.capContext));
   // WP57: 信念演化在管道**末端** —— 它与事件 delta 无关 (每轮自动发生),
   //   且不参与 delta 计算. 放最后 = 信念算子出 bug 也污染不到 delta 与 cap 报告.
   return applyBeliefEvolution(applyDeltaVector(snapshot, delta), options?.counselorText ?? '', options?.beliefConfig);
@@ -952,8 +1036,10 @@ export function transitionStateDetailed(
 ): { readonly snapshot: BdiSnapshot; readonly capped: TurnDeltaCapReport | null } {
   const aggregated = aggregateTurnDelta(events, options?.alliance, options?.deltaTable);
   const raw = modulateByPersonality(aggregated, events, options?.personality);
-  const delta = capTurnDelta(raw, options?.capConfig);
-  const report = buildDeltaCapReport(raw, delta, events, options?.capContext);
+  const capped = capTurnDelta(raw, options?.capConfig);
+  // D-3: 与 `transitionState` **同一管道** —— 折损在 cap 之后, cap 报告仍按 `raw → capped` 构造.
+  const delta = scaleDeltaVector(capped, resolveTimingWeight(options?.timingWeight, options?.turnIndex));
+  const report = buildDeltaCapReport(raw, capped, events, options?.capContext);
   notifyDeltaCap(options?.observer, report);
   // WP57: 与 `transitionState` 同一口径的信念演化 (两处必须一致 —— 见交付记录 §2.6).
   const next = applyBeliefEvolution(applyDeltaVector(snapshot, delta), options?.counselorText ?? '', options?.beliefConfig);
