@@ -957,12 +957,25 @@ export interface CatalogMetricDef {
 /** 验收判据（对齐后端 MetricExpectation；tol 为边界缓冲，前端展示不使用）。 */
 export interface CatalogExpectation {
   metricId: string
-  kind: 'range' | 'max_delta' | 'min_value' | 'must_be_zero'
+  kind: 'range' | 'max_delta' | 'min_value' | 'must_be_zero' | 'max_ratio'
   min?: number
   max?: number
   absLimit?: number
+  /** max_ratio 的分子口径；缺省 raw。 */
+  numerator?: 'raw' | 'idle'
   tol: number
   rationale: string
+}
+
+/** 一档判据（按 counselorModeId 划分；对齐后端 IntakeTier）。 */
+export interface CatalogTier {
+  id: string
+  label: string
+  counselorModeIds: string[]
+  /** true = 候选阈值（待主控复核），不是已定稿硬门槛。 */
+  provisional: boolean
+  note: string
+  expectations: CatalogExpectation[]
 }
 
 /** GET /metrics/catalog 的 data 载荷。 */
@@ -971,4 +984,8 @@ export interface MetricCatalogPayload {
   acceptanceVersion: string
   metrics: CatalogMetricDef[]
   expectations: CatalogExpectation[]
+  /** 分档判据（intake-v2 起下发；基线档在 expectations 中保持兼容）。 */
+  tiers?: CatalogTier[]
+  /** 判据版本历史（新→旧）。 */
+  acceptanceVersionHistory?: string[]
 }

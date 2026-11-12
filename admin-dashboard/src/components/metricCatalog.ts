@@ -6,12 +6,13 @@
 // 前端只展示阈值与口径，不复算验收 pass/fail（结论以后端 acceptance 为准）。
 import { ref } from 'vue'
 import { api } from '@/api/client'
-import type { CatalogMetricDef, CatalogExpectation } from '@/api/types'
+import type { CatalogMetricDef, CatalogExpectation, CatalogTier } from '@/api/types'
 import { dimensionLabel, eventLabel, strategyLabel, outcomeLabel } from './batchRegressionMeta'
 
 export type MetricUnit = 'ratio' | 'delta' | 'count' | 'per_turn'
 export type MetricDirection = 'higher_is_better' | 'lower_is_better' | 'neutral'
-export type ExpectationKind = 'range' | 'max_delta' | 'min_value' | 'must_be_zero'
+export type ExpectationKind = 'range' | 'max_delta' | 'min_value' | 'must_be_zero' | 'max_ratio'
+export type ExpectationNumerator = 'raw' | 'idle'
 
 /** 一条验收判据（对齐后端 MetricExpectation；tol 为边界缓冲，前端展示省略）。 */
 export interface MetricExpectation {
@@ -19,6 +20,8 @@ export interface MetricExpectation {
   min?: number
   max?: number
   absLimit?: number
+  /** max_ratio 的分子口径；缺省 raw。 */
+  numerator?: ExpectationNumerator
   rationale: string
 }
 
@@ -33,6 +36,17 @@ export interface MetricInfo {
   definition: string
   /** 验收判据（仅 intake 档 8 条指标有；其余指标未纳入验收）。 */
   expectation?: MetricExpectation
+}
+
+/** 一档判据视图（远端 CatalogTier 与本地兜底归一化后的形态）。 */
+export interface TierView {
+  id: string
+  label: string
+  counselorModeIds: string[]
+  /** true = 候选阈值（待主控复核），不是定稿硬门槛。 */
+  provisional: boolean
+  note: string
+  expectations: ExpectationEntry[]
 }
 
 // ─── 本地兜底常量（远端目录不可用时的离线副本） ──────────────────────────────
@@ -68,6 +82,42 @@ const LOCAL_EXPECTATIONS: Record<string, MetricExpectation> = {
   'dim.arousal.delta_avg': { kind: 'range', min: -0.05, rationale: '结束时唤醒仍可能高于基线，不要求下降' },
   'session.zero_motion': { kind: 'must_be_zero', rationale: '零变化场次应为 0；否则说明冷漠被静默成中性、检测失效' },
 }
+
+/** 本地兜底 cold 档判据（镜像后端 INTAKE_EXPECTATIONS_COLD；离线回退副本，真相源在后端 tiers）。 */
+const LOCAL_COLD_EXPECTATIONS: Record<string, MetricExpectation> = {
+  'dim.trust.delta_avg': { kind: 'range', min: 0.01, max: 0.08, rationale: 'cold 冷漠输入下信任建立显著慢；下限 0.01 保住完全无响应即不合格的底线' },
+  'dim.safety.delta_avg': { kind: 'range', min: 0, max: 0.03, rationale: '试探性安全几乎不涨属合理反应；上限 0.03 防无节制依赖滑向另一端' },
+  'dim.bond.delta_avg': { kind: 'range', min: -0.03, max: 0.03, rationale: '纽带 3-5 次会谈后才成形，首次会谈本就不该动' },
+  'dim.depth.delta_avg': { kind: 'max_delta', absLimit: 0.05, rationale: '深度防御基本稳；收窄到 ±0.05，捕捉冷漠输入反而把深度防御撬开 / 塌陷' },
+  'dim.style.delta_avg': { kind: 'max_delta', absLimit: 0.05, rationale: '人格级表达风格防御稳定' },
+  'dim.verbal.delta_avg': { kind: 'max_delta', absLimit: 0.05, rationale: '话量阻抗几乎不动；收窄到 ±0.05，捕捉被压垮 / 泄洪' },
+  'dim.arousal.delta_avg': { kind: 'range', min: -0.05, rationale: '结束时唤醒仍可能高于基线，不要求下降' },
+  'session.zero_motion': { kind: 'max_ratio', max: 0.7, numerator: 'idle', rationale: '只计纯 neutral 空转的零变化场次；不要求为 0，但空转率过高说明失效面过大' },
+}
+
+function expectationsOf(record: Record<string, MetricExpectation>): ExpectationEntry[] {
+  return Object.entries(record).map(([metricId, expectation]) => ({ metricId, expectation }))
+}
+
+/** 本地兜底判据档（远端目录不可用时的离线副本；baseline = intake-v1 阈值，cold = 候选档）。 */
+const LOCAL_TIERS: TierView[] = [
+  {
+    id: 'baseline',
+    label: '基线档 (intake-v1 阈值)',
+    counselorModeIds: [],
+    provisional: false,
+    note: '兜底档：expert 及所有未单列的 counselorModeId 落此；阈值与 intake-v1 逐条相同。',
+    expectations: expectationsOf(LOCAL_EXPECTATIONS),
+  },
+  {
+    id: 'cold',
+    label: 'cold 负向极端档 (候选阈值 · 待主控复核)',
+    counselorModeIds: ['cold'],
+    provisional: true,
+    note: 'cold = 冷漠型 AI 咨询师：来访者面对冷漠输入时联盟建立慢属合理反应；候选值待主控复核，不作硬门槛。',
+    expectations: expectationsOf(LOCAL_COLD_EXPECTATIONS),
+  },
+]
 
 /** 本地兜底显式标量指标（族规则覆盖不到的汇总指标）。 */
 const LOCAL_EXPLICIT: Record<string, MetricInfo> = {
@@ -106,6 +156,7 @@ const ROW_FIELD_TO_METRIC: Record<string, string> = {
 
 const remoteMetrics = new Map<string, CatalogMetricDef>()
 const remoteExpectations = new Map<string, CatalogExpectation>()
+const remoteTiers: CatalogTier[] = []
 let remoteVersions: { dictionaryVersion: string | null; acceptanceVersion: string | null } = {
   dictionaryVersion: null,
   acceptanceVersion: null,
@@ -126,8 +177,10 @@ export function loadMetricCatalog(): Promise<void> {
       const payload = res.data
       remoteMetrics.clear()
       remoteExpectations.clear()
+      remoteTiers.length = 0
       for (const metric of payload.metrics) remoteMetrics.set(metric.id, metric)
       for (const expectation of payload.expectations) remoteExpectations.set(expectation.metricId, expectation)
+      for (const tier of payload.tiers ?? []) remoteTiers.push(tier)
       remoteVersions = {
         dictionaryVersion: payload.dictionaryVersion,
         acceptanceVersion: payload.acceptanceVersion,
@@ -152,7 +205,7 @@ export function getCatalogMeta(): {
 }
 
 function expectationToLocal(e: CatalogExpectation): MetricExpectation {
-  return { kind: e.kind, min: e.min, max: e.max, absLimit: e.absLimit, rationale: e.rationale }
+  return { kind: e.kind, min: e.min, max: e.max, absLimit: e.absLimit, numerator: e.numerator, rationale: e.rationale }
 }
 
 function infoFromRemote(def: CatalogMetricDef): MetricInfo {
@@ -202,6 +255,10 @@ export function expectationText(e: MetricExpectation): string {
       return `≥ ${e.min}`
     case 'must_be_zero':
       return '= 0'
+    case 'max_ratio': {
+      const numerator = e.numerator === 'idle' ? '空转占比' : '占比'
+      return `${numerator} ≤ ${e.max}`
+    }
   }
 }
 
@@ -209,8 +266,31 @@ const LOCAL_EXPECTATION_LIST: ExpectationEntry[] = Object.entries(LOCAL_EXPECTAT
   ([metricId, expectation]) => ({ metricId, expectation }),
 )
 
-/** 验收判据列表：远端优先；远端未加载时回退本地兜底。 */
-export function getExpectationList(): ExpectationEntry[] {
+/** 判据档列表：远端优先；远端未加载时回退本地兜底。 */
+export function getTierList(): TierView[] {
+  if (remoteTiers.length > 0) {
+    return remoteTiers.map((tier) => ({
+      id: tier.id,
+      label: tier.label,
+      counselorModeIds: tier.counselorModeIds,
+      provisional: tier.provisional,
+      note: tier.note,
+      expectations: tier.expectations.map((e) => ({ metricId: e.metricId, expectation: expectationToLocal(e) })),
+    }))
+  }
+  return LOCAL_TIERS
+}
+
+/** 指定档的判据条目；档 id 不存在时回落首档（基线档）。 */
+export function getTierExpectations(tierId: string): ExpectationEntry[] {
+  const tiers = getTierList()
+  const tier = tiers.find((t) => t.id === tierId) ?? tiers[0]
+  return tier?.expectations ?? []
+}
+
+/** 验收判据列表：传 tierId 返回该档；不传则沿用基线档（远端优先，本地兜底）。 */
+export function getExpectationList(tierId?: string): ExpectationEntry[] {
+  if (tierId !== undefined) return getTierExpectations(tierId)
   if (remoteExpectations.size > 0) {
     return [...remoteExpectations.entries()].map(([metricId, expectation]) => ({
       metricId,

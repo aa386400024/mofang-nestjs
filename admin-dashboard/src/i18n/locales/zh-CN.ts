@@ -537,6 +537,8 @@ export default {
         scalars: '5 项汇总',
       },
       versionLabel: '目录版本',
+      tierTitle: '判据档位',
+      tierProvisional: '候选 · 待复核',
       source: {
         remote: '远端目录',
         fallback: '本地兜底',
@@ -546,6 +548,7 @@ export default {
         max_delta: '最大变化',
         min_value: '最小值',
         must_be_zero: '必须为零',
+        max_ratio: '占比上限',
       },
       direction: {
         higher_is_better: '越高越好',

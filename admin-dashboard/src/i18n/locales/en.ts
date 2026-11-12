@@ -537,6 +537,8 @@ export default {
         scalars: '5 scalar metrics',
       },
       versionLabel: 'Catalog version',
+      tierTitle: 'Acceptance tier',
+      tierProvisional: 'Provisional · pending review',
       source: {
         remote: 'remote',
         fallback: 'local fallback',
@@ -546,6 +548,7 @@ export default {
         max_delta: 'Max Δ',
         min_value: 'Min value',
         must_be_zero: 'Must be zero',
+        max_ratio: 'Ratio cap',
       },
       direction: {
         higher_is_better: 'Higher better',

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-// WP-K 批次回归页 · 指标字典汇总卡：验收判据表（8 条 intake 档）+ 指标族目录摘要。
+// WP-K 批次回归页 · 指标字典汇总卡：验收判据表（按咨询师模式分档）+ 指标族目录摘要。
 // 目录运行时从后端 /metrics/catalog 拉取（本地兜底）；本卡只展示说明，不复算验收结论。
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { getExpectationList, getCatalogMeta, catalogTick, expectationText } from './metricCatalog'
+import { getExpectationList, getTierList, getCatalogMeta, catalogTick, expectationText } from './metricCatalog'
+import type { TierView } from './metricCatalog'
 import { metricLabel } from './batchRegressionMeta'
 
 const { t } = useI18n()
@@ -17,9 +18,20 @@ const FAMILIES = [
 ]
 
 // 引用 catalogTick 建立响应依赖：远端目录加载完成后重算判据表与版本标注。
+const tiers = computed(() => {
+  void catalogTick.value
+  return getTierList()
+})
+
+const selectedTierId = ref('baseline')
+
+const currentTier = computed<TierView | null>(
+  () => tiers.value.find((t) => t.id === selectedTierId.value) ?? tiers.value[0] ?? null,
+)
+
 const expectationList = computed(() => {
   void catalogTick.value
-  return getExpectationList()
+  return currentTier.value ? getExpectationList(currentTier.value.id) : []
 })
 
 const catalogMeta = computed(() => {
@@ -37,6 +49,24 @@ const catalogMeta = computed(() => {
       <span :class="catalogMeta.source === 'remote' ? 'text-ok' : 'text-warning'">
         ({{ t(`batchRegression.catalog.source.${catalogMeta.source}`) }})
       </span>
+    </div>
+
+    <!-- 判据档位切换 -->
+    <div class="flex items-center gap-2 mb-2 flex-wrap">
+      <span class="text-xs text-muted">{{ t('batchRegression.catalog.tierTitle') }}</span>
+      <button
+        v-for="tier in tiers"
+        :key="tier.id"
+        class="px-2 py-0.5 rounded text-xs border"
+        :class="tier.id === selectedTierId ? 'border-gray-400 text-gray-200' : 'border-border/60 text-muted'"
+        @click="selectedTierId = tier.id"
+      >
+        {{ tier.label }}
+      </button>
+    </div>
+    <div v-if="currentTier" class="text-[11px] text-muted mb-3 flex items-center gap-2 flex-wrap">
+      <span v-if="currentTier.provisional" class="chip text-warning">{{ t('batchRegression.catalog.tierProvisional') }}</span>
+      <span>{{ currentTier.note }}</span>
     </div>
 
     <!-- 验收判据表 -->
