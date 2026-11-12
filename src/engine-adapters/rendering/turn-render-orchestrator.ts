@@ -131,6 +131,7 @@ import {
   type RenderSpec,
   type RenderTokenBudget,
   type SafetyVerdict,
+  type SessionEvent,
   type TrajectoryTrace,
 } from '../../engine-core/index.js';
 import type { ChatMessage } from '../../llm/common/interfaces/chat-provider.interface.js';
@@ -279,6 +280,15 @@ export interface TurnRenderResult {
    * 缺省 = 内核本轮没产出事件 (分类器返回空) —— 与本字段引入前行为逐字一致.
    */
   readonly events?: readonly CounselorEventKind[];
+  /**
+   * 本轮咨询师事件**明细** (kind + 命中词 + 强度) —— 透传内核出参, **只读观测**.
+   *
+   * V2026-11-12 (D-2): 与 `events` 同时透传. 用途只有一个 —— **审计层要拿到命中词**:
+   *   适配层若自己再跑一遍分类器去凑命中词, 就与内核漂移了 (C3 已禁).
+   *   ⚠️ **不含咨询师原话**: matchedTerms 只装词表命中词 / 正则原文.
+   *   缺省 = 内核本轮没产出事件 —— 与本字段引入前行为逐字一致.
+   */
+  readonly eventDetails?: readonly SessionEvent[];
   /** 渲染元信息 (供观测, 不进内核). */
   readonly render: {
     /** 是否走过备用路径 (切过备 / 走过 block 重生成 / 走过降级). */
@@ -647,6 +657,8 @@ export class TurnRenderOrchestrator {
       ...(output.intention ? { intention: output.intention } : {}),
       // WP38: 事件分类 —— 内核出参原样透传 (适配层不预判).
       ...(output.events ? { events: output.events } : {}),
+      // D-2: 事件明细同源透传 (审计层据此记回命中词, 不自己重跑分类器).
+      ...(output.eventDetails ? { eventDetails: output.eventDetails } : {}),
       render: {
         fallbackUsed: rendered.fallbackUsed,
         ...(rendered.providerHint ? { providerHint: rendered.providerHint } : {}),
@@ -724,6 +736,8 @@ export class TurnRenderOrchestrator {
       ...(output.intention ? { intention: output.intention } : {}),
       // WP38: 事件分类 —— 内核出参原样透传 (适配层不预判).
       ...(output.events ? { events: output.events } : {}),
+      // D-2: 事件明细同源透传 (审计层据此记回命中词, 不自己重跑分类器).
+      ...(output.eventDetails ? { eventDetails: output.eventDetails } : {}),
       render: {
         fallbackUsed: rendered.fallbackUsed,
         ...(rendered.providerHint ? { providerHint: rendered.providerHint } : {}),
@@ -1375,6 +1389,8 @@ export class TurnRenderOrchestrator {
       ...(output.intention ? { intention: output.intention } : {}),
       // WP38: 事件分类 —— 阻断轮次同样透传 (本轮确实发生了事件, 只是 AI 没出声).
       ...(output.events ? { events: output.events } : {}),
+      // D-2: 事件明细同样透传 (阻断轮也有事件明细, 审计口径一致).
+      ...(output.eventDetails ? { eventDetails: output.eventDetails } : {}),
       render: {
         fallbackUsed: false,
         usage: { completionTokens: 0, totalTokens: 0 },

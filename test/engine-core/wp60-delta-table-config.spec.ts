@@ -221,7 +221,7 @@ describe('WP60 · delta 规则表端口 (内核)', () => {
     });
   });
 
-  describe('⑦ 事件类型穷举 (端口表覆盖全部 11 种事件)', () => {
+  describe('⑦ 事件类型穷举 (端口表覆盖全部 13 种事件)', () => {
     it('每种事件都能被覆写, 且覆写是**替换**而不是叠加', () => {
       const kinds: readonly CounselorEventKind[] = [
         'empathy',
@@ -235,6 +235,9 @@ describe('WP60 · delta 规则表端口 (内核)', () => {
         'boundary_cross',
         'sensitive_touch',
         'neutral',
+        // D-2: 两类新 kind 也走同一条覆写路径 (种子 ZERO, 覆写由标定批次灌入).
+        'holding_present',
+        'cold_absent',
       ];
 
       for (const kind of kinds) {

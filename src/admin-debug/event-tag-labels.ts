@@ -3,7 +3,7 @@
 //   边界: 纯常量 + 一个查表函数; 零 IO / 零依赖.
 //
 //   为什么映射要由后端出 (而不是前端各抄一份):
-//     内核的 CounselorEventKind 有 **11** 类 (见 engine-core/domain/events/session-event.ts),
+//     内核的 CounselorEventKind 有 **13** 类 (见 engine-core/domain/events/session-event.ts),
 //     而调试面板 (admin-dashboard/src/views/DebugChat.vue) 里那份手写映射只有 6~8 个键:
 //       · 缺的 7 个: acceptance / affirmation / judgment / preaching / minimizing /
 //                    boundary_cross / sensitive_touch —— 面板上会直接显示英文原值;
@@ -30,7 +30,7 @@ import type { CounselorEventKind } from '../engine-core/index.js';
 /**
  * 事件分类 → 中文标签 (权威映射).
  *
- * 键集合与内核 CounselorEventKind **严格一致** (11 类); 少一个就是面板上少一盏灯.
+ * 键集合与内核 CounselorEventKind **严格一致** (13 类); 少一个就是面板上少一盏灯.
  */
 export const COUNSELOR_EVENT_LABELS: Readonly<Record<CounselorEventKind, string>> = {
   empathy: '共情回应',
@@ -44,6 +44,10 @@ export const COUNSELOR_EVENT_LABELS: Readonly<Record<CounselorEventKind, string>
   boundary_cross: '越界',
   sensitive_touch: '触及敏感议题',
   neutral: '中性表达',
+  // V2026-11-12 (D-2): 两类**在场状态**事件 (进 core 联合后必须同步登记).
+  //   展示名以任务单 §3.1-7 的定稿为准, 执行方不另造近义词.
+  holding_present: '稳定在场',
+  cold_absent: '冷漠缺席',
 };
 
 /**

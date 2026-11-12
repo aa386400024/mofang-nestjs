@@ -43,7 +43,28 @@ export interface TurnDeltaAuditInput {
   readonly tenantId: string;
   readonly sessionId: string;
   readonly turnIndex: number;
-  readonly kernelEventKinds: readonly CounselorEventKind[];
+  /**
+   * 内核本轮判出的事件**明细** —— **审计的唯一事件来源**.
+   *
+   * V2026-11-12 治本 (D-2): 由「事件种类数组」升级为「明细」.
+   *   理由: 内核出参新增 `eventDetails` (kind + 命中词 + 强度) —— 审计因此能记回
+   *   **内核自己算出的命中词**, 不必再跑一遍分类器 (C3 的口径不变).
+   *   ⚠️ 模型轨事件的 matchedTerms 是**空数组** —— 模型轨不产词表命中,
+   *     本单**不造词**: 空数组 = 「没有词表证据」, 不是「忘了填」.
+   */
+  readonly kernelEvents: readonly TurnDeltaAuditEventInput[];
+}
+
+/**
+ * 单个内核事件的写侧明细 (喂给审计的形状).
+ *
+ * ⚠️ `matchedTerms` 只装**词表命中词 / 正则原文**, 不是咨询师原话 (隐私红线).
+ */
+export interface TurnDeltaAuditEventInput {
+  readonly kind: CounselorEventKind;
+  readonly matchedTerms: readonly string[];
+  /** 命中强度; 缺省 = 1 (规则轨与模型轨首版都是 1). */
+  readonly strength?: number;
 }
 
 /**

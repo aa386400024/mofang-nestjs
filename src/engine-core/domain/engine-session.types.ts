@@ -23,7 +23,7 @@
 
 import type { BdiSnapshot } from './bdi-snapshot.js';
 import type { CharacterProfile } from './character-profile.js';
-import type { CounselorEventKind } from './events/session-event.js';
+import type { CounselorEventKind, SessionEvent } from './events/session-event.js';
 import type { Intention } from './intention.js';
 import type { MemoryHit } from './ports/memory.store.js';
 import type { SafetyVerdict } from './safety/safety-types.js';
@@ -213,6 +213,21 @@ export interface EngineTurnOutput {
    *   - 可选 = 向后兼容: 不传 = 行为与本字段引入前**逐字一致** (零回归).
    */
   readonly events?: readonly CounselorEventKind[];
+  /**
+   * 本轮事件**明细** (kind + 命中词 + 强度) —— 只读观测, 不参与任何决策.
+   *
+   * V2026-11-12 治本 (D-2 · 事件类型拆分): 新增, 为的是**把词表命中证据交出去**.
+   *   为什么需要: `events` 只带 kind, 命中词 (matchedTerms) 在内核出参的投影里丢了.
+   *   审计层要记命中词, 唯一的办法是内核把明细一起给出 —— 否则审计要么自己重跑一遍
+   *   分类器 (C3 已禁: 那会让审计与内核漂移), 要么就永远记不到证据.
+   *
+   * 边界:
+   *   - **不含咨询师原话**: matchedTerms 只装**词表命中词 / 正则原文**, 不是话;
+   *   - 不改快照 / Intention / 轨迹游标 —— 纯挂出参的观测字段;
+   *   - 可选 = 向后兼容: 不传 = 行为与本字段引入前**逐字一致** (零回归);
+   *   - 与 `events` 同时出现 (内核同一分支一起填), 旧消费端读 `events` 路径不变.
+   */
+  readonly eventDetails?: readonly SessionEvent[];
   /**
    * 本轮落库后的 BDI 快照版本号 (WP65).
    *

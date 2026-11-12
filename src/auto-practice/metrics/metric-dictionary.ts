@@ -63,7 +63,13 @@ const DIMENSION_META: Readonly<Record<TrackedDimension, { readonly label: string
   style: { label: '风格阻抗', direction: 'neutral' },
 };
 
-/** 11 种事件 (与 CounselorEventKind 对齐; 含 neutral). */
+/**
+ * 13 种事件 (与 CounselorEventKind 对齐; 含 neutral).
+ *
+ * V2026-11-12 (D-2): 追加两类**在场状态**事件 —— `holding_present` / `cold_absent`.
+ *   之前它们只是模型轨的旁路标签, 批次指标**看不见**; 进 core 联合后必须同步登记,
+ *   否则「事件种类表与内核不一致」= 指标字典静默漏统计 (D-1 预研结论 §4 已点名).
+ */
 export const TRACKED_EVENTS = [
   'empathy',
   'acceptance',
@@ -76,11 +82,23 @@ export const TRACKED_EVENTS = [
   'boundary_cross',
   'sensitive_touch',
   'neutral',
+  'holding_present',
+  'cold_absent',
 ] as const;
 
 export type TrackedEvent = (typeof TRACKED_EVENTS)[number];
 
-/** 正向事件 (用于正事件率). */
+/**
+ * 正向事件 (用于正事件率).
+ *
+ * ⚠️ **D-2 默认不纳入 `holding_present`** —— 这是**待决**的临床口径, 不是结论.
+ *   理由: `holding_present` (稳定在场) 临床上倾向微正向 (草案候选: safety +0.002 /
+ *   bond +0.001), 但「在场的有效中性」算不算「正事件」属临床判断 ——
+ *   放进正事件率会让「正事件率」这个指标同时混入「行为动作」与「在场状态」两类东西,
+ *   口径变糊. 任务单 §3.1-8 明确: **默认不纳入**, 留标定批次拍板.
+ *   此刻它也**不可能**出现: 规则轨词表不扩 (本单不动 event-lexicon), 模型轨走 shadow
+ *   旁路不落 core events —— 两类新 kind 在指标里恒为 0.
+ */
 export const POSITIVE_EVENTS: readonly TrackedEvent[] = ['empathy', 'acceptance', 'normalization', 'open_probe', 'affirmation'];
 
 /** 8 种行为策略 (与 BehaviorStrategy 对齐). */
@@ -378,9 +396,13 @@ function buildDisfluencyMetrics(): readonly MetricDef[] {
  * 改字典条目 / 口径 / 取值域时手动递增; 供前端缓存与审计比对.
  *
  * · dict-v1 (2026-11-11): WP-K 首批指标;
- * · dict-v2 (2026-11-12): Phase3 P0 新增 text.disfluency.* 八项 (文字层真人度).
+ * · dict-v2 (2026-11-12): Phase3 P0 新增 text.disfluency.* 八项 (文字层真人度);
+ * · dict-v3 (2026-11-12): D-2 事件类型拆分 —— 新增两类在场状态事件的
+ *   event.holding_present.{count,rate} / event.cold_absent.{count,rate} 四项.
+ *   ⚠️ **版本必须跟着字典内容走**: 两份不同的字典共用同一个版本号 =
+ *     前端缓存不失效 + 审计比对看不出字典换过 (Phase3 P0 已是同款约定).
  */
-export const METRIC_DICTIONARY_VERSION = 'dict-v2';
+export const METRIC_DICTIONARY_VERSION = 'dict-v3';
 
 /** 完整指标字典 (单一真相源). */
 export const METRIC_DICTIONARY: readonly MetricDef[] = [

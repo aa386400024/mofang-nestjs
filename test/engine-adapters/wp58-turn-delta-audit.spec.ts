@@ -4,6 +4,7 @@
 //     ② 落库: 事件类型 + 原始 delta (11 维) 一次写齐, 重试覆盖同一行;
 //     ③ 同源: 审计**只吃内核事件** (V2026-11-12 D-1 第二段 · C3) ——
 //        审计事件集合 == 内核事件集合, 不再本地重分类 + 取并集;
+//        D-2 起输入升级为**事件明细**, 命中词由内核给出 —— 审计不必自己重跑分类器;
 //     ④ 出口: 门面两个出口 (turn / turnStream) 都挂观测, 失败静默不影响主链路;
 //     ⑤ 读侧: admin 端点按轮次升序返回, 无数据 = 空数组.
 //   边界: 全 mock; 不起 Nest 容器; 不连 DB / 不发网络.
@@ -137,7 +138,7 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
       tenantId: 't1',
       sessionId: 's1',
       turnIndex: 1,
-      kernelEventKinds: ['empathy'],
+      kernelEvents: [{ kind: 'empathy', matchedTerms: [] }],
     });
     await flush();
 
@@ -153,7 +154,7 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
       tenantId: 't1',
       sessionId: 's1',
       turnIndex: 1,
-      kernelEventKinds: ['empathy'],
+      kernelEvents: [{ kind: 'empathy', matchedTerms: ['听起来你', '我觉得'], strength: 1 }],
     });
     await flush();
 
@@ -165,12 +166,51 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
     expect(row.turnIndex).toBe(1);
     expect(row.eventKinds).toEqual(['empathy']);
     expect(row.eventDetails[0]?.kind).toBe('empathy');
-    // C3 (D-1 第二段): 审计**不再自行跑分类器** —— 命中词明细随之归零.
-    //   内核出参只带事件**种类**, 不带命中词 (那是内核内部产物);
-    //   要拿命中词就得再跑一遍分类器 —— 那正是 C3 去掉的动作.
-    //   断言的**语义**没变: 审计记的仍然是内核这一轮判出的东西 (不多不少).
-    expect(row.eventDetails[0]?.matchedTerms).toEqual([]);
+    // D-2: 命中词明细**由内核给出** (内核出参 eventDetails), 审计原样落库 ——
+    //   断言的**语义**没变: 审计记的仍然是内核这一轮判出的东西 (不多不少),
+    //   只是 D-1 期间「命中词归零」的已知代价**解除**了.
+    expect(row.eventDetails[0]?.matchedTerms).toEqual(['听起来你', '我觉得']);
     expect(row.eventDetails[0]?.strength).toBe(1);
+  });
+
+  it('规则轨命中词原样落库 (D-2: 审计恢复词表证据, 不自己重跑分类器)', async () => {
+    const repo = repoStub();
+    const service = makeService(ON, repo);
+
+    service.record({
+      tenantId: 't1',
+      sessionId: 's1',
+      turnIndex: 1,
+      kernelEvents: [
+        { kind: 'empathy', matchedTerms: ['听起来你'], strength: 1 },
+        { kind: 'open_probe', matchedTerms: ['你觉得呢'], strength: 1 },
+      ],
+    });
+    await flush();
+
+    const details = repo.saved[0]?.eventDetails ?? [];
+    expect(details.map((detail) => detail.kind)).toEqual(['empathy', 'open_probe']);
+    expect(details[0]?.matchedTerms).toEqual(['听起来你']);
+    expect(details[1]?.matchedTerms).toEqual(['你觉得呢']);
+  });
+
+  it('模型轨事件的命中词是**空数组** (模型轨不产词表命中 —— 不造词)', async () => {
+    const repo = repoStub();
+    const service = makeService(ON, repo);
+
+    service.record({
+      tenantId: 't1',
+      sessionId: 's1',
+      turnIndex: 1,
+      kernelEvents: [{ kind: 'holding_present', matchedTerms: [], strength: 1 }],
+    });
+    await flush();
+
+    expect(repo.saved[0]?.eventKinds).toEqual(['holding_present']);
+    // 空数组 = 「没有词表证据」, 不是「忘了填」 —— 审计**不补造**命中词.
+    expect(repo.saved[0]?.eventDetails[0]?.matchedTerms).toEqual([]);
+    // 两类新 kind 的 delta 种子是 ZERO —— 审计侧的 rawDelta 同样不推进任何维度.
+    expect(repo.saved[0]?.rawDelta.trust).toBe(0);
   });
 
   it('审计事件集合 == 内核事件集合 (C3: 不产生第二套标签, 也不多算)', async () => {
@@ -181,7 +221,10 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
       tenantId: 't1',
       sessionId: 's1',
       turnIndex: 1,
-      kernelEventKinds: ['empathy', 'open_probe'],
+      kernelEvents: [
+        { kind: 'empathy', matchedTerms: [] },
+        { kind: 'open_probe', matchedTerms: [] },
+      ],
     });
     await flush();
 
@@ -197,7 +240,7 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
       tenantId: 't1',
       sessionId: 's1',
       turnIndex: 1,
-      kernelEventKinds: ['empathy'],
+      kernelEvents: [{ kind: 'empathy', matchedTerms: [] }],
     });
     await flush();
 
@@ -225,7 +268,7 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
       tenantId: 't1',
       sessionId: 's1',
       turnIndex: 1,
-      kernelEventKinds: ['neutral'],
+      kernelEvents: [{ kind: 'neutral', matchedTerms: [] }],
     });
     await flush();
 
@@ -243,13 +286,17 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
       sessionId: 's1',
       turnIndex: 1,
       // 内核带了角色的敏感议题词表, 认得出 sensitive_touch; 适配层拿不到那个词表.
-      kernelEventKinds: ['empathy', 'sensitive_touch'],
+      kernelEvents: [
+        { kind: 'empathy', matchedTerms: [] },
+        { kind: 'sensitive_touch', matchedTerms: [] },
+      ],
     });
     await flush();
 
     const row = repo.saved[0];
     expect(row?.eventKinds).toEqual(['empathy', 'sensitive_touch']);
-    // 本期 sensitive_touch 只记类型不记命中词 (拿不到).
+    // D-2: 命中词由内核给出 —— 这里内核给了空数组 (该轮 sensitive_touch 无词表命中),
+    //   审计**原样落库**, 不补造.
     const touch = row?.eventDetails.find((detail) => detail.kind === 'sensitive_touch');
     expect(touch?.matchedTerms).toEqual([]);
     // delta = empathy + sensitive_touch 两份系数之和 (safety 0.02 + (-0.01) / arousal -0.02 + 0.15).
@@ -275,7 +322,7 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
       tenantId: 't1',
       sessionId: 's1',
       turnIndex: 2,
-      kernelEventKinds: ['empathy'],
+      kernelEvents: [{ kind: 'empathy', matchedTerms: [] }],
     });
     await flush();
 
@@ -295,7 +342,7 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
         tenantId: 't1',
         sessionId: 's1',
         turnIndex: 1,
-        kernelEventKinds: ['empathy'],
+        kernelEvents: [{ kind: 'empathy', matchedTerms: [] }],
       }),
     ).not.toThrow();
     await flush();
@@ -366,6 +413,7 @@ describe('WP58 · 门面观测点 (turn / turnStream 两个出口)', () => {
       reply: '来访者回应',
       turnIndex: 3,
       events: ['empathy'],
+      eventDetails: [{ kind: 'empathy', matchedTerms: ['听起来你现在一定很难受'], strength: 1 }],
       render: { fallbackUsed: false },
     } as unknown as TurnRenderResult;
     const orchestrator = {
@@ -377,17 +425,41 @@ describe('WP58 · 门面观测点 (turn / turnStream 两个出口)', () => {
     return { facade, registry, record };
   }
 
-  it('turn() 之后记一行 (归属 + 轮次 + 原话 + 内核事件类型)', async () => {
+  it('turn() 之后记一行 (归属 + 轮次 + 内核事件明细)', async () => {
     const { facade, record } = makeFacade();
 
     await facade.turn('h1', { userText: '听起来你现在一定很难受' });
 
     // C3 (D-1 第二段): 审计**只吃内核事件** —— 咨询师原话不再进审计层.
+    // D-2: 传的是内核出参的**明细** (含命中词), 审计不必自己重跑分类器.
     expect(record).toHaveBeenCalledWith({
       tenantId: 't1',
       sessionId: 's1',
       turnIndex: 3,
-      kernelEventKinds: ['empathy'],
+      kernelEvents: [{ kind: 'empathy', matchedTerms: ['听起来你现在一定很难受'], strength: 1 }],
+    });
+  });
+
+  it('内核没给明细时兜底记 kind (命中词空数组, 不造词)', async () => {
+    const registry = new EngineSessionRegistry();
+    registry.register('h2', { tenantId: 't1', sessionId: 's2', visitorId: 'v1' });
+    const result = {
+      reply: '来访者回应',
+      turnIndex: 1,
+      events: ['neutral'],
+      render: { fallbackUsed: false },
+    } as unknown as TurnRenderResult;
+    const orchestrator = { turn: vi.fn(async () => result), turnStream: vi.fn(async () => result) };
+    const record = vi.fn();
+    const facade = new EngineTurnService({} as never, orchestrator as never, registry, undefined, { record });
+
+    await facade.turn('h2', { userText: '嗯' });
+
+    expect(record).toHaveBeenCalledWith({
+      tenantId: 't1',
+      sessionId: 's2',
+      turnIndex: 1,
+      kernelEvents: [{ kind: 'neutral', matchedTerms: [], strength: 1 }],
     });
   });
 

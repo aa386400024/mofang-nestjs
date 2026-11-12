@@ -658,23 +658,23 @@ describe('模型轨 · 观测表 (字段白名单 · 隐私红线)', () => {
   });
 });
 
-describe('模型轨 · 映射规则表 (方案 b: 映射回 core kind + 旁路标签)', () => {
-  it('core 事件种类 = 11 类 (10 行为 + neutral)', () => {
-    expect(CORE_EVENT_KINDS).toHaveLength(11);
+describe('模型轨 · 映射规则表 (D-2: 标签全集 = core 事件种类, 旁路层取消)', () => {
+  it('core 事件种类 = 13 类 (11 行为 + neutral + 两类在场状态)', () => {
+    expect(CORE_EVENT_KINDS).toHaveLength(13);
     expect(CORE_EVENT_KINDS).toContain('neutral');
     expect(CORE_EVENT_KINDS).toContain('sensitive_touch');
+    expect(CORE_EVENT_KINDS).toContain('holding_present');
+    expect(CORE_EVENT_KINDS).toContain('cold_absent');
   });
 
-  it('旁路标签只进 sideLabels, 不映射成 core kind', () => {
+  it('两类新标签映射成**自己的** core kind (D-2: 不再有 sideLabels 形态)', () => {
     const mapped = mapModelLabels(['holding_present', 'cold_absent']);
-    expect(mapped?.coreKinds).toEqual([]);
-    expect(mapped?.sideLabels).toEqual(['holding_present', 'cold_absent']);
+    expect(mapped?.coreKinds).toEqual(['holding_present', 'cold_absent']);
   });
 
   it('core kind 原样映射', () => {
     const mapped = mapModelLabels(['empathy', 'open_probe']);
     expect(mapped?.coreKinds).toEqual(['empathy', 'open_probe']);
-    expect(mapped?.sideLabels).toEqual([]);
   });
 
   it('未知标签被丢弃, 去重保序', () => {

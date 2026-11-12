@@ -319,7 +319,10 @@ describe('WP5 · 渲染契约层', () => {
       //   events (事件分类) —— 纯加字段, 不改任何决策与数值; 字段清单随之 +1.
       //   V2026-11-06 治本 (WP65 · 预批准例外): 再加一个**只读观测字段** revision
       //   (本轮落库后的快照版本号) —— 同样是纯加字段, 不参与任何决策; 字段清单再 +1.
+      //   V2026-11-12 治本 (D-2 · 例外批准): 再加一个**只读观测字段** eventDetails
+      //   (本轮事件明细: kind + 命中词 + 强度) —— 纯加字段, 不参与任何决策; 字段清单再 +1.
       expect(Object.keys(output).toSorted((a, b) => a.localeCompare(b))).toEqual([
+        'eventDetails',
         'events',
         'intention',
         'reply',

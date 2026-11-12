@@ -481,7 +481,11 @@ export class EngineTurnService {
         sessionId: context.sessionId,
         turnIndex: result.turnIndex,
         // C3 (D-1 第二段): 审计**只吃内核事件** —— 不再传咨询师原话 (审计层不再自行分类).
-        kernelEventKinds: result.events ?? [],
+        // D-2: 传**明细** (kind + 命中词 + 强度) —— 内核出参 `eventDetails` 原样透传,
+        //   审计因此能记回内核自己算出的命中词, 不必再跑一遍分类器.
+        //   ⚠️ 兜底: `eventDetails` 缺失但 `events` 在 (旧出参形状) → 记 kind, 命中词为空
+        //     (空数组 = 「没有词表证据」, 不造词).
+        kernelEvents: result.eventDetails ?? (result.events ?? []).map((kind) => ({ kind, matchedTerms: [], strength: 1 })),
       });
     } catch (error) {
       this.logger.debug(

@@ -94,6 +94,14 @@ export type DeliberationDim = (typeof DELIBERATION_DIMS)[number];
  *   它是"没命中任何规则"的占位, **不会**成为任何一条 delta 的成因标签.
  *   把 `neutral` 塞进标签枚举 = 让模型给一条 delta 打"我什么也没匹配到"的标签 = 噪声.
  *
+ * ⚠️ **V2026-11-12 (D-2) 的显式决定**: 内核 `CounselorEventKind` 扩到 13 类, 新增两类
+ *   **在场状态**事件 (`holding_present` / `cold_absent`) —— 本组**刻意不加**它们:
+ *   · 规则轨**词表不扩** → 规则侧**产不出**这两个标签 (本组是「规则算子也会打」的标签);
+ *   · 模型轨走 shadow 旁路 → 影子对比口径不变 (两侧都是规则轨口径);
+ *   · 两类的 delta 种子是 ZERO, 没有"规则可覆盖的 delta"可对齐;
+ *   → 纳入本组 = 把模型独有标签误算成规则可覆盖 (任务单 §6 T6).
+ *   是否纳入**留标定批次评估**.
+ *
  * ⚠️ 另一处**刻意的补齐** (相对任务单原文):
  *   任务单 §3.2 列了 9 个 (少了 `sensitive_touch`), 但内核 `DELTA_TABLE` 里
  *   `sensitive_touch` 是**有真实非零 delta** 的算子 (arousal +0.15 / safety -0.01 …).

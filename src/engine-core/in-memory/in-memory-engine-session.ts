@@ -501,7 +501,9 @@ export class InMemoryEngineSession implements EngineSessionPort {
       // 安全判定只在非 pass 时挂出 (pass 的空块会污染出参, 破坏零回归).
       ...(safetyVerdict.level === 'pass' ? {} : { safety: safetyVerdict }),
       // WP38: 事件分类 (只读观测) —— 内核自己填, 适配层只透传; 空则不挂 (零回归).
-      ...(events.length > 0 ? { events: events.map((event) => event.kind) } : {}),
+      // D-2: 一并挂**事件明细** (kind + 命中词 + 强度) —— 旧 `events` 投影逐字不变,
+      //   审计层因此能拿到内核自己算出的命中词, 不必再跑一遍分类器 (C3 的口径).
+      ...(events.length > 0 ? { events: events.map((event) => event.kind), eventDetails: [...events] } : {}),
       // WP65: 本轮落库后的快照版本号 (只读观测) —— 适配层用它判断异步审议结果有没有过期.
       //   取的是**仓储返回的** revision (归一化后的权威值), 不是本地算的那个.
       revision: saved.revision,

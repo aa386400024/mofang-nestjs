@@ -75,6 +75,10 @@ const KERNEL_EVENT_KINDS: readonly CounselorEventKind[] = [
   'boundary_cross',
   'sensitive_touch',
   'neutral',
+  // V2026-11-12 (D-2): 两类**在场状态**事件进 core 联合 —— 本列表是「内核枚举的运行时基线」,
+  //   不跟着改就会让下面的断言与内核脱节 (那正是这份清单存在的理由).
+  'holding_present',
+  'cold_absent',
 ];
 
 describe('WP63 · 审议输出 Schema 与可解释性', () => {
@@ -99,13 +103,23 @@ describe('WP63 · 审议输出 Schema 与可解释性', () => {
   });
 
   describe('② DeliberationOperatorTag —— 规则对齐 + LLM 独有', () => {
-    it('规则对齐的一组 = 内核事件类型去掉 neutral (10 个)', () => {
+    it('规则对齐的一组 = 内核事件类型去掉 neutral 与两类在场状态事件 (10 个)', () => {
       expect(DELIBERATION_RULE_ALIGNED_TAGS).toHaveLength(10);
       expect([...DELIBERATION_RULE_ALIGNED_TAGS].sort()).toEqual(
-        KERNEL_EVENT_KINDS.filter((kind) => kind !== 'neutral')
+        KERNEL_EVENT_KINDS.filter((kind) => kind !== 'neutral' && kind !== 'holding_present' && kind !== 'cold_absent')
           .slice()
           .sort(),
       );
+    });
+
+    it('D-2: 两类新 kind **刻意不在**规则对齐组 (规则轨词表不扩 → 产不出)', () => {
+      // 任务单 §3.1-9 的显式决定: 规则对齐组 = 「规则算子也会打」的标签.
+      //   两类新 kind 是模型轨独有的在场状态判定, 规则轨**产不出** (词表不扩),
+      //   纳入本组 = 把模型独有标签误算成规则可覆盖 (风险 T6).
+      expect(KERNEL_EVENT_KINDS).toContain('holding_present');
+      expect(KERNEL_EVENT_KINDS).toContain('cold_absent');
+      expect(DELIBERATION_RULE_ALIGNED_TAGS).not.toContain('holding_present');
+      expect(DELIBERATION_RULE_ALIGNED_TAGS).not.toContain('cold_absent');
     });
 
     it('中性事件 (neutral) 不进标签枚举 —— 它在 DELTA_TABLE 里是全零 delta', () => {

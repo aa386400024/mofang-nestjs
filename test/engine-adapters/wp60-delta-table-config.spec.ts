@@ -150,7 +150,7 @@ describe('WP60 · delta 规则表装配 (env → DeltaTableConfig)', () => {
       'sensitive_touch',
       'neutral',
     ];
-    const envKeys: Readonly<Record<CounselorEventKind, string>> = {
+    const envKeys: Readonly<Record<CounselorEventKind, string | undefined>> = {
       empathy: 'ENGINE_DELTA_EMPATHY',
       acceptance: 'ENGINE_DELTA_ACCEPTANCE',
       normalization: 'ENGINE_DELTA_NORMALIZATION',
@@ -162,10 +162,19 @@ describe('WP60 · delta 规则表装配 (env → DeltaTableConfig)', () => {
       boundary_cross: 'ENGINE_DELTA_BOUNDARY_CROSS',
       sensitive_touch: 'ENGINE_DELTA_SENSITIVE_TOUCH',
       neutral: 'ENGINE_DELTA_NEUTRAL',
+      // D-2: 两类新 kind 本单**刻意不开 env 通道** (任务单 §3.2「不新增 env 键」) ——
+      //   临床幅度是标定批次的事, 那一单再扩这两个字面量读取.
+      //   这里显式写成 undefined: 联合一变, 编译仍逼着人显式决定, 不会静默漏掉.
+      holding_present: undefined,
+      cold_absent: undefined,
     };
 
     const env: Record<string, string> = {};
-    for (const kind of kinds) env[envKeys[kind]] = '{"trust":0.11}';
+    for (const kind of kinds) {
+      const key = envKeys[kind];
+      if (key === undefined) continue;
+      env[key] = '{"trust":0.11}';
+    }
 
     const { config, warnings } = assemble(env);
 
@@ -173,5 +182,18 @@ describe('WP60 · delta 规则表装配 (env → DeltaTableConfig)', () => {
     for (const kind of kinds) {
       expect(config.deltas[kind]).toEqual({ trust: 0.11 });
     }
+  });
+
+  it('D-2: 两类新 kind 刻意**没有** env 通道 (临床幅度留标定批次)', () => {
+    // 任务单 §3.2 明确「不新增 env 键」—— 临床幅度由标定批次经 DeltaTableConfig 覆写落地.
+    //   这里把「没有通道」钉成显式事实: 填了 env 也不生效, 且**不告警** (不是解析失败).
+    const { config, warnings } = assemble({
+      ENGINE_DELTA_HOLDING_PRESENT: '{"trust":0.11}',
+      ENGINE_DELTA_COLD_ABSENT: '{"trust":0.11}',
+    });
+
+    expect(config.deltas.holding_present).toBeUndefined();
+    expect(config.deltas.cold_absent).toBeUndefined();
+    expect(warnings).toEqual([]);
   });
 });

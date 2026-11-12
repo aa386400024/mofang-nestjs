@@ -38,14 +38,8 @@ import type { Repository } from 'typeorm';
 
 import { resolveTurnDeltaAuditConfig } from './turn-delta-audit.config.js';
 import { TurnDeltaAuditEntity } from './turn-delta-audit.entity.js';
-import type { TurnDeltaAuditInput, TurnDeltaAuditPort, TurnDeltaAuditTurnView } from './turn-delta-audit.port.js';
-import {
-  aggregateTurnDelta,
-  type AllianceConfig,
-  type CounselorEventKind,
-  type DeltaTableConfig,
-  type SessionEvent,
-} from '../../../engine-core/index.js';
+import type { TurnDeltaAuditEventInput, TurnDeltaAuditInput, TurnDeltaAuditPort, TurnDeltaAuditTurnView } from './turn-delta-audit.port.js';
+import { aggregateTurnDelta, type AllianceConfig, type DeltaTableConfig, type SessionEvent } from '../../../engine-core/index.js';
 import { resolveAllianceConfig } from '../alliance-config.js';
 import { resolveDeltaTableConfig } from '../delta-table.config.js';
 
@@ -60,24 +54,31 @@ function describeError(error: unknown): string {
 }
 
 /**
- * 把内核判出的事件种类转成本次审计的事件明细.
+ * 把内核给出的事件**明细**转成本次审计要落库的事件明细.
  *
  * V2026-11-12 治本 (D-1 第二段 · C3): 旧口径是「本地再跑一遍规则分类器 → 与内核
  * 事件取并集」. 那条并集的前提是「本地规则轨与内核**逐字同源**」; 模型轨上线后
  * 这条前提**直接失效** (本地 = 规则轨, 内核 = 模型轨) → 并集 = 两套标签的并集 →
  * 记下来的 raw_delta 既不等于内核实际施加的 delta, 又比内核**多算一截** (风险 N).
- * 新口径: **事件集合只认内核** —— 内核判了什么, 审计就记什么.
+ * C3 口径: **事件集合只认内核** —— 内核判了什么, 审计就记什么.
  *
- * ⚠️ **matchedTerms 归零是已知代价** (交付记录已写明):
- *   内核出参只带事件**种类**, 不带命中词明细. 审计要拿到命中词就得再跑一遍分类器 ——
- *   那正是 C3 去掉的动作. 本单选「不造命中词」: 只记内核给出的事实.
+ * V2026-11-12 治本 (D-2): 输入从「事件种类数组」升级为「事件明细」——
+ *   内核出参新增 `eventDetails` (kind + matchedTerms + strength), 于是审计能记回
+ *   **内核自己算出的命中词**, D-1 期间「matchedTerms 归零」这个已知代价**解除**.
  *
- * @param kernelEventKinds 内核本轮判出的事件种类
- * @returns 事件明细 (strength 恒 1 —— 规则轨与模型轨首版都是 1)
+ * ⚠️ **模型轨事件的 matchedTerms 是空数组, 这是事实** —— 模型轨不产词表命中,
+ *   本单**不造词**: 空数组 = 「没有词表证据」, 不是「忘了填」.
+ *
+ * @param kernelEvents 内核本轮判出的事件明细
+ * @returns 事件明细 (strength 缺省 1 —— 规则轨与模型轨首版都是 1)
  */
-function kernelEventsToSessionEvents(kernelEventKinds: readonly CounselorEventKind[]): readonly SessionEvent[] {
-  if (kernelEventKinds.length === 0) return [];
-  return kernelEventKinds.map((kind) => ({ kind, matchedTerms: [], strength: 1 }));
+function toAuditSessionEvents(kernelEvents: readonly TurnDeltaAuditEventInput[]): readonly SessionEvent[] {
+  if (kernelEvents.length === 0) return [];
+  return kernelEvents.map((event) => ({
+    kind: event.kind,
+    matchedTerms: [...event.matchedTerms],
+    strength: event.strength ?? 1,
+  }));
 }
 
 /**
@@ -161,7 +162,8 @@ export class TurnDeltaAuditService implements TurnDeltaAuditPort {
    */
   private async persist(input: TurnDeltaAuditInput): Promise<void> {
     // C3: 事件集合**只认内核** —— 不再本地跑分类器, 不再与内核取并集.
-    const merged = kernelEventsToSessionEvents(input.kernelEventKinds);
+    // D-2: 输入已是内核给出的**明细** (含命中词), 直接落库, 不再自己造.
+    const merged = toAuditSessionEvents(input.kernelEvents);
     const rawDelta = aggregateTurnDelta(merged, this.alliance, this.deltaTable);
     const existing = await this.repo.findOne({
       where: { tenantId: input.tenantId, sessionId: input.sessionId, turnIndex: input.turnIndex },

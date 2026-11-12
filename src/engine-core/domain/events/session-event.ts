@@ -9,6 +9,15 @@
  * 负向: 评判 / 说教 / 淡化 / 越界;
  * 触发: 触碰敏感议题;
  * neutral: 未命中任何规则 (迁移 delta = 0).
+ *
+ * V2026-11-12 治本 (D-2 · 事件类型拆分): 追加两类**在场状态**事件.
+ *   · holding_present —— 稳定在场的有效中性 (结构化过渡 / 陪着 / 不评判也不机械).
+ *   · cold_absent    —— 实质缺席 (心不在焉 / 敷衍 / 模板化 / 只顾自己).
+ *   为什么单独拆: 规则轨把这两类都吞进 neutral, 同乘 ZERO ——
+ *   前者临床应微正向、后者临床应零或负向, 两者都测不出来 (台账 I-18).
+ *   ⚠️ 这两类是**状态类**而非**行为动作类** —— 与上面十种行为算子不同层.
+ *   ⚠️ DELTA_TABLE 里的种子向量 = ZERO (零回归): 临床方向与幅度由标定批次
+ *     经 DeltaTableConfig 覆写落地, 基础表不承担临床参数.
  */
 export type CounselorEventKind =
   | 'empathy'
@@ -21,7 +30,11 @@ export type CounselorEventKind =
   | 'minimizing'
   | 'boundary_cross'
   | 'sensitive_touch'
-  | 'neutral';
+  | 'neutral'
+  /** 稳定在场的有效中性 (D-2 新增; 种子 delta = ZERO, 临床增量待标定). */
+  | 'holding_present'
+  /** 实质缺席 / 敷衍 (D-2 新增; 种子 delta = ZERO, 临床增量待标定). */
+  | 'cold_absent';
 
 /** 一条标准会话事件. */
 export interface SessionEvent {

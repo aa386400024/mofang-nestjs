@@ -253,11 +253,16 @@ describe('WP38 · 调试 trace 接引擎事件标签', () => {
   });
 
   describe('② 中文标签映射 (后端唯一真相)', () => {
-    it('覆盖内核全部 11 类事件', () => {
-      expect(Object.keys(COUNSELOR_EVENT_LABELS)).toHaveLength(11);
+    it('覆盖内核全部 13 类事件', () => {
+      expect(Object.keys(COUNSELOR_EVENT_LABELS)).toHaveLength(13);
       for (const label of Object.values(COUNSELOR_EVENT_LABELS)) {
         expect(label.length).toBeGreaterThan(0);
       }
+    });
+
+    it('D-2: 两类在场状态事件有中文标签 (少了 = 面板上少一盏灯)', () => {
+      expect(COUNSELOR_EVENT_LABELS.holding_present).toBe('稳定在场');
+      expect(COUNSELOR_EVENT_LABELS.cold_absent).toBe('冷漠缺席');
     });
 
     it('前端那份映射缺的 7 个, 后端全都有', () => {

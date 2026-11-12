@@ -56,7 +56,7 @@ describe('WP-K · 指标字典自洽', () => {
     }
   });
 
-  it('11 个事件、8 个策略各有 count + rate', () => {
+  it('13 个事件、8 个策略各有 count + rate', () => {
     for (const kind of TRACKED_EVENTS) {
       expect(METRIC_BY_ID.has(`event.${kind}.count`)).toBe(true);
       expect(METRIC_BY_ID.has(`event.${kind}.rate`)).toBe(true);
@@ -76,7 +76,7 @@ describe('WP-K · 指标字典自洽', () => {
   });
 });
 
-describe('Phase3 P0 · text.disfluency.* 指标 (dict-v2)', () => {
+describe('Phase3 P0 · text.disfluency.* 指标 (dict-v2 起)', () => {
   const DISFLUENCY_IDS = [
     'text.disfluency.events_per_turn',
     'text.disfluency.event_turn_rate',
@@ -88,8 +88,8 @@ describe('Phase3 P0 · text.disfluency.* 指标 (dict-v2)', () => {
     'text.disfluency.trailoff_per_turn',
   ];
 
-  it('字典版本已升到 dict-v2', () => {
-    expect(METRIC_DICTIONARY_VERSION).toBe('dict-v2');
+  it('字典版本已升到 dict-v3 (D-2 事件类型拆分后)', () => {
+    expect(METRIC_DICTIONARY_VERSION).toBe('dict-v3');
   });
 
   it('八个新键齐备, 全部 nullable=false 且方向 neutral', () => {
@@ -122,5 +122,20 @@ describe('Phase3 P0 · text.disfluency.* 指标 (dict-v2)', () => {
     for (const id of DISFLUENCY_IDS) {
       expect(NON_NULLABLE_IDS).toContain(id);
     }
+  });
+});
+
+describe('D-2 · 两类在场状态事件的指标登记 (dict-v3)', () => {
+  it('两类新 kind 各有 count + rate, 方向 neutral (不参与好坏判定)', () => {
+    for (const kind of ['holding_present', 'cold_absent'] as const) {
+      expect(METRIC_BY_ID.has(`event.${kind}.count`)).toBe(true);
+      expect(METRIC_BY_ID.has(`event.${kind}.rate`)).toBe(true);
+      expect(METRIC_BY_ID.get(`event.${kind}.count`)?.direction).toBe('neutral');
+      expect(METRIC_BY_ID.get(`event.${kind}.rate`)?.direction).toBe('neutral');
+    }
+  });
+
+  it('字典版本已随内容升到 dict-v3 (两份字典不共用同一版本号)', () => {
+    expect(METRIC_DICTIONARY_VERSION).toBe('dict-v3');
   });
 });

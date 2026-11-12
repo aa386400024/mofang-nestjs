@@ -199,7 +199,7 @@ export function normalizeModelClassifierFallbackCode(errorCode: string | null | 
 /**
  * 比较两轨的标签集合是否一致 (集合语义, 顺序无关).
  *
- * ⚠️ **口径**: 规则轨的标签集 vs 模型轨的标签集 (core kind + 旁路标签).
+ * ⚠️ **口径**: 规则轨的标签集 vs 模型轨的标签集 (D-2 起两者都是 core kind 集合).
  *   规则轨判 neutral 而模型判 holding_present → **不一致** —— 这正是本单要量的那个差.
  *
  * @param ruleKinds 规则轨标签
@@ -234,8 +234,8 @@ const MODEL_CLASSIFIER_SYSTEM_PROMPT = [
   '- boundary_cross: 越界 (承诺治愈 / 双重关系 / 替来访者做决定);',
   '- sensitive_touch: 触碰来访者当下的敏感议题;',
   '- neutral: 本轮没有命中任何行为标签;',
-  '- holding_present: 咨询师在场但没有推进干预 —— 温和稳定地陪着, 不评判也不机械 (旁路标签);',
-  '- cold_absent: 咨询师实质缺席 —— 心不在焉 / 敷衍 / 模板化 / 只顾自己 (旁路标签).',
+  '- holding_present: 咨询师在场但没有推进干预 —— 温和稳定地陪着, 不评判也不机械 (在场状态事件);',
+  '- cold_absent: 咨询师实质缺席 —— 心不在焉 / 敷衍 / 模板化 / 只顾自己 (在场状态事件).',
   '',
   '判定口径:',
   '- 一轮可以给多个标签, 但只给确实成立的, 不要为了凑数多选;',
@@ -550,13 +550,14 @@ export class ModelEventClassifier implements EventClassifier, ModelClassifierCon
     turnIndex: number,
   ): void {
     const ruleNeutral = ruleEvents.every((event) => event.kind === 'neutral');
-    const modelNeutral =
-      outcome.labels === null
-        ? ruleNeutral
-        : outcome.labels.coreKinds.every((kind) => kind === 'neutral') && outcome.labels.sideLabels.length === 0;
+    // D-2: 两类新 kind 已进 coreKinds —— 「模型判 neutral」= coreKinds **全**是 neutral.
+    //   (D-1 时代还要额外判 sideLabels 为空; 现在两类本身就是 core kind,
+    //    判 holding_present / cold_absent 时 coreKinds 里就有非 neutral 项 → 自动不算 neutral.)
+    const modelNeutral = outcome.labels === null ? ruleNeutral : outcome.labels.coreKinds.every((kind) => kind === 'neutral');
     state.consecutiveNeutral = ruleNeutral && modelNeutral ? state.consecutiveNeutral + 1 : 0;
-    const cold = outcome.labels?.sideLabels.includes('cold_absent') ?? false;
-    const holding = outcome.labels?.sideLabels.includes('holding_present') ?? false;
+    // D-2: 取值来源从 sideLabels 改到 coreKinds —— **判定语义不变** (见任务单 §5).
+    const cold = outcome.labels?.coreKinds.includes('cold_absent') ?? false;
+    const holding = outcome.labels?.coreKinds.includes('holding_present') ?? false;
     const ruleHit = ruleEvents.some((event) => event.kind !== 'neutral');
     state.consecutiveColdAbsent = cold && !holding && !ruleHit ? state.consecutiveColdAbsent + 1 : 0;
     state.turnIndex = turnIndex;
@@ -580,7 +581,8 @@ export class ModelEventClassifier implements EventClassifier, ModelClassifierCon
     outcome: ModelTrackOutcome,
   ): void {
     const ruleKinds = ruleEvents.map((event) => event.kind as string);
-    const modelKinds = outcome.labels ? [...outcome.labels.coreKinds, ...outcome.labels.sideLabels] : [];
+    // D-2: modelKinds 直接取 coreKinds (旁路标签层已取消).
+    const modelKinds = outcome.labels ? [...outcome.labels.coreKinds] : [];
     const observation: ModelClassifierObservation = {
       tenantId: session.tenantId,
       sessionId,

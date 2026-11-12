@@ -2,17 +2,15 @@
 //   职责: 定义「模型轨判定 → core 事件 + 旁路标签」的**唯一**映射规则表 (纯函数, 零 IO).
 //   边界: 纯类型 + 纯函数; 零 @nestjs / 零网络 / 零 prompt.
 //
-//   为什么是「映射回 core kind + 旁路标签」 (任务单 §7.3 方案 b):
-//     · core 的 CounselorEventKind 联合**不动** —— 扩联合会打红两处穷尽 Record
-//       (cognition/state-transition.ts 的 DELTA_TABLE / admin-debug/event-tag-labels.ts
-//        的 COUNSELOR_EVENT_LABELS), 那是 D-2 的改动面, 本单不碰 (断言⑥⑦ 必须保持绿).
-//     · 模型轨判出的两类新标签 (holding_present / cold_absent) 只进**旁路记录**,
-//       不进 core events —— 首版是「中间态」: 产出新标签, 但不改 delta.
-//     · 映射规则表从一开始就按 D-2 的最终形状写 → D-2 只换实现, 类型层不返工.
+//   V2026-11-12 治本 (D-2 · 事件类型拆分): 本表从「core kind + 旁路标签」**收敛**为
+//     「只有 core kind」. 两类新标签 (holding_present / cold_absent) 已进 core 联合,
+//     不再是旁路 —— 映射表不再有 sideLabels 分支, 每个标签都映射到自己的 core kind.
+//     为什么收: D-1 时代它们只进旁路 (core 联合不动, 断言⑥⑦ 保绿), D-2 例外批准了
+//     扩联合 —— 于是「旁路」这层中间结构没有存在价值了, 留着反而两套真相.
 //
-//   ⚠️ **映射是有损压缩**: 两类新标签在 D-2 接 delta 时, 映射表本身要重做.
-//     本单**只落形状**, 不落任何 delta 方向 / 数值 / 权重斜率 / 缺席轮数阈值 ——
-//     那些是 D-2 + 标定批次的事 (临床口径, 不由工程拍板).
+//   ⚠️ **D-2 仍然只落形状, 不落临床参数**: 两类新 kind 在 DELTA_TABLE 里的种子 =
+//     ZERO, 临床方向 / 幅度 / 权重斜率 / 缺席轮数阈值全部留标定批次 ——
+//     那是临床口径, 不由工程拍板 (台账 I-18 / 结构债草案 §4.2).
 //
 //   如何验证:
 //     1. pnpm exec tsc -p tsconfig.build.json --noEmit 0 错
@@ -28,7 +26,7 @@ import type { CounselorEventKind } from '../../engine-core/index.js';
  *   写成 Record<CounselorEventKind, true> → 内核联合一变, 这里**编译报错**, 逼着补.
  *   (与 admin-debug/event-tag-labels.ts 的 COUNSELOR_EVENT_LABELS 同一款纪律.)
  *
- * ⚠️ 本表**不含** holding_present / cold_absent —— 那两个是旁路标签, 不是 core 事件种类.
+ * V2026-11-12 (D-2): 本表已含 holding_present / cold_absent (两类**在场状态**事件).
  */
 const CORE_EVENT_KIND_TABLE: Readonly<Record<CounselorEventKind, true>> = {
   empathy: true,
@@ -42,6 +40,8 @@ const CORE_EVENT_KIND_TABLE: Readonly<Record<CounselorEventKind, true>> = {
   boundary_cross: true,
   sensitive_touch: true,
   neutral: true,
+  holding_present: true,
+  cold_absent: true,
 };
 
 /**
@@ -52,20 +52,15 @@ const CORE_EVENT_KIND_TABLE: Readonly<Record<CounselorEventKind, true>> = {
 export const CORE_EVENT_KINDS: readonly CounselorEventKind[] = Object.keys(CORE_EVENT_KIND_TABLE) as CounselorEventKind[];
 
 /**
- * 旁路标签的**唯一**合法取值清单 (两类新标签).
+ * 模型轨的标签全集 = core 事件种类 (13 类).
  *
- * ⚠️ 这两个标签**不进 core events** —— 首版只进旁路记录 (D-2 才接 delta).
+ * V2026-11-12 (D-2): 原来模型轨标签全集 = core 事件种类 + 旁路标签 (两类新标签).
+ *   两类新标签已进 core 联合 → **旁路标签这一层整体消失**, 标签全集 = core 事件种类.
  */
-export const MODEL_SIDE_LABELS = ['holding_present', 'cold_absent'] as const;
-
-/** 旁路标签类型 (两类新标签). */
-export type ModelSideLabel = (typeof MODEL_SIDE_LABELS)[number];
-
-/** 模型轨的标签全集 = core 事件种类 + 旁路标签. */
-export type ModelEventLabel = CounselorEventKind | ModelSideLabel;
+export type ModelEventLabel = CounselorEventKind;
 
 /** 模型轨标签全集的运行时清单 (校验 / prompt 用). */
-export const MODEL_EVENT_LABELS: readonly ModelEventLabel[] = [...CORE_EVENT_KINDS, ...MODEL_SIDE_LABELS];
+export const MODEL_EVENT_LABELS: readonly ModelEventLabel[] = [...CORE_EVENT_KINDS];
 
 /**
  * 模型轨判定的结果 (映射后).
@@ -73,10 +68,8 @@ export const MODEL_EVENT_LABELS: readonly ModelEventLabel[] = [...CORE_EVENT_KIN
  * ⚠️ **confidence 只进观测, 不参与 delta 缩放** —— strength 首版恒 1 (风险 G).
  */
 export interface ModelClassification {
-  /** 映射回现有 core 事件种类 (11 类 = 10 行为 + neutral); core 侧零类型变化. */
+  /** 映射回 core 事件种类 (13 类 = 11 行为 + neutral + 两类在场状态事件). */
   readonly coreKinds: readonly CounselorEventKind[];
-  /** 旁路标签 (只进观测记录, **不进** core events). */
-  readonly sideLabels: readonly ModelSideLabel[];
   /** 模型置信度 [0,1]. */
   readonly confidence: number;
 }
@@ -84,14 +77,13 @@ export interface ModelClassification {
 /**
  * 一个标签的映射结果.
  *
- * ⚠️ coreKind 与 sideLabel **至多一个非空**: 旁路标签在 D-2 之前不映射到任何 core kind
- *   (它的 delta 方向 / 数值属临床口径, 未标定 → 映射它 = 凭空发明数值).
+ * V2026-11-12 (D-2): **每个标签都有 coreKind** —— 旁路标签层已取消.
+ *   两类新 kind 的 DELTA_TABLE 种子是 ZERO (零回归), 映射到 core kind **不等于**
+ *   给了它们临床幅度: 幅度由标定批次经 DeltaTableConfig 覆写落地.
  */
 export interface ModelLabelMapping {
   /** 映射回 core 的事件种类. */
-  readonly coreKind?: CounselorEventKind;
-  /** 旁路标签 (只进观测). */
-  readonly sideLabel?: ModelSideLabel;
+  readonly coreKind: CounselorEventKind;
 }
 
 /**
@@ -112,14 +104,13 @@ export const MODEL_LABEL_MAPPING: Readonly<Record<ModelEventLabel, ModelLabelMap
   boundary_cross: { coreKind: 'boundary_cross' },
   sensitive_touch: { coreKind: 'sensitive_touch' },
   neutral: { coreKind: 'neutral' },
-  holding_present: { sideLabel: 'holding_present' },
-  cold_absent: { sideLabel: 'cold_absent' },
+  holding_present: { coreKind: 'holding_present' },
+  cold_absent: { coreKind: 'cold_absent' },
 };
 
 /** 映射后的标签集合 (不含置信度). */
 export interface MappedModelLabels {
   readonly coreKinds: readonly CounselorEventKind[];
-  readonly sideLabels: readonly ModelSideLabel[];
 }
 
 /**
@@ -135,16 +126,14 @@ export interface MappedModelLabels {
  */
 export function mapModelLabels(labels: readonly unknown[]): MappedModelLabels | null {
   const coreKinds: CounselorEventKind[] = [];
-  const sideLabels: ModelSideLabel[] = [];
   for (const raw of labels) {
     if (typeof raw !== 'string') continue;
     const mapping: ModelLabelMapping | undefined = MODEL_LABEL_MAPPING[raw as ModelEventLabel];
     if (!mapping) continue;
-    if (mapping.coreKind && !coreKinds.includes(mapping.coreKind)) coreKinds.push(mapping.coreKind);
-    if (mapping.sideLabel && !sideLabels.includes(mapping.sideLabel)) sideLabels.push(mapping.sideLabel);
+    if (!coreKinds.includes(mapping.coreKind)) coreKinds.push(mapping.coreKind);
   }
-  if (coreKinds.length === 0 && sideLabels.length === 0) return null;
-  return { coreKinds, sideLabels };
+  if (coreKinds.length === 0) return null;
+  return { coreKinds };
 }
 
 /**

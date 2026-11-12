@@ -177,8 +177,9 @@ const ZERO: DeltaVector = {
  *
  * WP15: 每个事件上方加一行**幅度声明** —— 新增算子时对照单回合 cap 看一眼:
  *   某维度单事件 |delta| 超过该维度单回合 cap 的 80% → 注释里标 ⚠️ 接近 cap.
- *   (现有 11 个算子里最高比值是 75%: boundary_cross.style / sensitive_touch.arousal,
- *    都还没到 80% 警戒线, 所以没有 ⚠️ 标记.)
+ *   (现有 13 个算子里最高比值是 75%: boundary_cross.style / sensitive_touch.arousal,
+ *    都还没到 80% 警戒线, 所以没有 ⚠️ 标记.
+ *    D-2 新增的两类在场状态事件种子为 ZERO, 不参与幅度比对.)
  *
  * WP42: 加 **safety / bond** 两列 (同盟三维).
  *   ⚠️ 系数是**工程种子值, 非临床标定** —— 待真实对练校准.
@@ -348,6 +349,14 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
   },
   // 中性算子: 零 delta (不推进任何维度)
   neutral: ZERO,
+  // V2026-11-12 治本 (D-2 · 事件类型拆分): 两类**在场状态**事件, 种子 = ZERO.
+  //   ⚠️ **刻意是零向量**: 临床方向与幅度属临床口径, 由**标定批次**经
+  //     `DeltaTableConfig.deltas` 覆写落地 —— 基础表不承担临床参数.
+  //     (草案候选幅度 holding_present: safety +0.002 / bond +0.001;
+  //      cold_absent: trust -0.002 —— **只登记为候选**, 不进本表.)
+  //   零回归: 缺省时两类事件的 delta 与改造前逐字一致 (= 不推进任何维度).
+  holding_present: ZERO,
+  cold_absent: ZERO,
 };
 
 /**
