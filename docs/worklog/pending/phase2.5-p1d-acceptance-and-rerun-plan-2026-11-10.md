@@ -14,7 +14,7 @@
 | --- | ---------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
 | 1   | P0 attachmentStyle 三处接线                    | 三处装配点都有 `attachmentStyle` 透传                                | `git diff` 看 `EngineTurnService.open()` options、`openKernelSession()` 登记、`TurnRenderOrchestrator.assemble()` 透传 | anxious 行为通道仍是死代码，重跑数据全部作废   |
 | 2   | P1 llm_call_turns / render_fallback_turns 落库 | `practice-runner.service.ts` 的 `updateSessionResult()` 里写了这两列 | grep `llm_call_turns` 在 practice-runner 里的写入点                                                                    | 批次门禁永远 `valid:false`，没法自动判数据质量 |
-| 3   | P1 audit 补 anxious 词表                       | `visitor-quality-lexicon.ts` 存在且三维度词表非空                    | 读文件确认；跑 `npx vitest run test/quality/p1d-visitor-quality-lexicon.spec.ts`                                       | anxious 通道生效与否无法用文本指标验证         |
+| 3   | P1 audit 补 anxious 词表                       | `visitor-quality-lexicon.ts` 存在且三维度词表非空                    | 读文件确认；跑 `pnpm exec vitest run test/quality/p1d-visitor-quality-lexicon.spec.ts`                                 | anxious 通道生效与否无法用文本指标验证         |
 | 4   | P2 degraded 口径对齐                           | audit 脚本优先取 DB `degraded_turns`，DB 没有才回退逐字稿            | 读 audit 脚本 `degradedFromDb` 字段逻辑                                                                                | degraded 率到底是多少永远说不清                |
 | 5   | P1 admin 日志脱敏 Authorization                | 请求日志 middleware 里屏蔽 `authorization` 头                        | grep `authorization` 在日志相关文件里的处理                                                                            | base64 还原 admin 凭据，安全隐患               |
 | 6   | P2 信息增量判据补"深度"约束                    | 停滞判据不再只看"有没有新信息"，还看"是否向情感/认知方向"            | grep 信息增量指令的 prompt 文本，确认有深度约束                                                                        | 复述替代探索的问题继续存在                     |
@@ -22,11 +22,13 @@
 ### 1.2 闸门验收（必须全绿）
 
 ```
-npx tsc -p tsconfig.build.json --noEmit     # 0 error
-npm run lint                                 # 0 error（warning 可接受但要记下）
-npx vitest run test/auto-practice           # 全绿（4 个既有失败可豁免，见下）
-npx vitest run test/quality/                 # P1d 新增的 lexicon 单测必须绿
+pnpm typecheck                                # tsc -b 缓存，热 ~1.8s；怀疑缓存时改 pnpm typecheck:full
+pnpm lint                                     # 权威 ESLint，0 error（warning 可接受但要记下）
+pnpm exec vitest run test/auto-practice       # 全绿（4 个既有失败可豁免，见下）
+pnpm exec vitest run test/quality/            # P1d 新增的 lexicon 单测必须绿
 ```
+
+> 命令口径统一为 pnpm（禁裸 npx，见 `docs/team/wp-task-template.md` §5.0）。跑前先 `pnpm doctor:fs` 确认盘读取正常，否则耗时数字不可比。
 
 **既有可豁免的失败（与本次无关，不要让 MiniMax 顺手修）：**
 
@@ -136,11 +138,11 @@ ORDER BY id DESC LIMIT 1;
 
 ```powershell
 # 1. 先跑基线复现（确认还是 36/57）
-npx tsx scripts/ops/quality/visitor-quality-audit.ts --dir data/debug-sessions
+pnpm exec tsx scripts/ops/quality/visitor-quality-audit.ts --dir data/debug-sessions
 
 # 2. 按 batch_id 从 DB 取 debug_session_id → 拷到独立目录
 # 3. 跑 audit
-npx tsx scripts/ops/quality/visitor-quality-audit.ts --dir .tmp-p1d-verify/
+pnpm exec tsx scripts/ops/quality/visitor-quality-audit.ts --dir .tmp-p1d-verify/
 ```
 
 ### 3.4 对比表（跟 P1c r2 和 v1 基线三方对比）
