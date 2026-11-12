@@ -11,6 +11,11 @@ import {
   type SkippedSession,
   type TraceInput,
 } from '../../src/auto-practice/metrics/batch-metrics.compute.js';
+import {
+  EMPTY_DISFLUENCY_METRICS,
+  type DisfluencyCounts,
+  type DisfluencyMetrics,
+} from '../../src/auto-practice/metrics/disfluency-lexicon.js';
 
 const FP: ConfigFingerprintSegments = {
   stateTransition: 'a111111111111111',
@@ -44,8 +49,16 @@ function trace(turnIndex: number, overrides: Partial<TraceInput> = {}): TraceInp
     eventTags: [],
     strategy: 'recounting',
     degraded: false,
+    disfluency: EMPTY_DISFLUENCY_METRICS,
     ...overrides,
   };
+}
+
+/** 构造一份不流利数值 (纯数值, 与服务层投影同形状). */
+function disfluency(counts: Partial<DisfluencyCounts>, normalizedLength = 100): DisfluencyMetrics {
+  const merged: DisfluencyCounts = { ...EMPTY_DISFLUENCY_METRICS.counts, ...counts };
+  const events = merged.filler + merged.pause + merged.repetition + merged.repair + merged.trailoff + merged.elongation;
+  return { counts: merged, events, hasEvent: events > 0, normalizedLength };
 }
 
 function context(overrides: Partial<BatchComputeContext> = {}): BatchComputeContext {
@@ -133,6 +146,52 @@ describe('WP-K · 黄金样本 (回归护栏)', () => {
         { debugSessionId: 'debug-1', characterSlug: 'vpt_test', counselorModeId: 'expert', turns: 2, fileSha256: 'sha11111111111111' },
       ],
     });
+  });
+});
+
+describe('Phase3 P0 · text.disfluency.* 聚合 (纯数值投影)', () => {
+  it('八指标: 全局与 byMode / byCharacter 切片一致', () => {
+    const s = session({
+      traces: [trace(1, { disfluency: disfluency({ filler: 2, pause: 1 }) }), trace(2, { disfluency: disfluency({ repair: 1 }) })],
+    });
+    const result = computeBatchSnapshot([s], [], 1, context());
+    // 4 个事件 / 2 轮 = 2; 每轮 100 归一化字符 → 4 / 200 * 100 = 2.
+    expect(result.metrics['text.disfluency.events_per_turn']).toBe(2);
+    expect(result.metrics['text.disfluency.event_turn_rate']).toBe(1);
+    expect(result.metrics['text.disfluency.density_per100']).toBe(2);
+    expect(result.metrics['text.disfluency.filler_per_turn']).toBe(1);
+    expect(result.metrics['text.disfluency.pause_per_turn']).toBe(0.5);
+    expect(result.metrics['text.disfluency.repair_per_turn']).toBe(0.5);
+    expect(result.metrics['text.disfluency.repetition_per_turn']).toBe(0);
+    expect(result.metrics['text.disfluency.trailoff_per_turn']).toBe(0);
+    expect(result.byMode['expert']?.metrics['text.disfluency.events_per_turn']).toBe(2);
+    expect(result.byCharacter['vpt_test']?.metrics['text.disfluency.filler_per_turn']).toBe(1);
+  });
+
+  it('零值兜底轮次: 八指标为 0, 不留 null', () => {
+    const result = computeBatchSnapshot([session()], [], 1, context());
+    for (const id of [
+      'text.disfluency.events_per_turn',
+      'text.disfluency.event_turn_rate',
+      'text.disfluency.density_per100',
+      'text.disfluency.filler_per_turn',
+      'text.disfluency.pause_per_turn',
+      'text.disfluency.repair_per_turn',
+      'text.disfluency.repetition_per_turn',
+      'text.disfluency.trailoff_per_turn',
+    ]) {
+      expect(result.metrics[id]).toBe(0);
+    }
+  });
+
+  it('elongation 计入事件总量, 但不单列 per-turn 指标', () => {
+    const s = session({
+      traces: [trace(1, { disfluency: disfluency({ elongation: 2 }) }), trace(2)],
+    });
+    const result = computeBatchSnapshot([s], [], 1, context());
+    expect(result.metrics['text.disfluency.events_per_turn']).toBe(1);
+    expect(result.metrics['text.disfluency.event_turn_rate']).toBe(0.5);
+    expect(result.metrics['text.disfluency.elongation_per_turn']).toBeUndefined();
   });
 });
 

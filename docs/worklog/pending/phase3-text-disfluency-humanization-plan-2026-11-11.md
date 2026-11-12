@@ -1,6 +1,6 @@
 # 文字层真人度（不流利表达）体系化方案
 
-> 状态：📋 待评审（第二轮复核已修订）
+> 状态：📋 待评审（第二轮复核已修订）；**P0 · 度量层已于 2026-11-12 交付**（见 §6「P0 落地状态」）
 > 日期：2026-11-11
 > 复核修订：2026-11-11 —— 修正 5.2.3 分析器落点（服务层执行、数值投影）、5.4 角色配置走 verbalVoice 侧通道、5.5.1 指纹口径（prompt 自动 / 配置显式加段），新增附录 C 文献依据与第 10 章跨话轮打断目标态预留（本期不实现）
 > 适用范围：auto-practice 文字链路（前端页面轮次文字），**不含 TTS 层**
@@ -346,6 +346,40 @@ env 键（装配层读取，适配层不直接读 env，沿用 WP8 纪律）：
 - `batch-metrics.service.ts` 投影接线（messages 对齐 + 调分析器 + 数值投影），`batch-metrics.compute.ts` 扩 `TraceInput.disfluency` 数值字段与聚合；快照 schema 测试补新键断言
 
 闸门：`pnpm exec tsc -p tsconfig.build.json --noEmit` 0 错；`pnpm lint` 0 error；`pnpm exec vitest run test/auto-practice` 全绿。
+
+#### P0 落地状态（2026-11-12 · ✅ 已交付）
+
+| 项       | 内容                                                                                                                                                                                             |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 任务单   | `docs/worklog/completed/phase2.5/phase3-disfluency-p0-metrics-2026-11-12.md`                                                                                                                     |
+| 交付记录 | `docs/worklog/completed/phase2.5/phase3-disfluency-p0-metrics-implementation-2026-11-12.md`                                                                                                      |
+| 落地范围 | 度量层全部：六类纯函数分析器 + 词表 + `dict-v2` 八指标 + 服务层数值投影 + 快照聚合（`byMode` / `byCharacter` 自动带上）                                                                          |
+| 闸门     | tsc 0 error；lint 0 error / 0 warning；`vitest run test/auto-practice` 19 文件 / 293 例全过；`pnpm test` 全量 3058 passed / 4 skipped / 0 failed；`git diff --stat HEAD -- src/engine-core` 为空 |
+| 行为变化 | **零** —— 未碰 prompt / env / 表 / migration / 装配；快照 `schemaVersion` 仍为 1                                                                                                                 |
+
+**P0 与本蓝图的 6 处偏差（已登记在交付记录 §2）**：
+
+1. 数值契约（`DisfluencyCounts` / `DisfluencyMetrics` / `aggregateDisfluency`）落在 `disfluency-lexicon.ts`，analyzer 原样 re-export —— 否则 compute 层为拿类型就必须 import analyzer，破 §5.2.3 隐私分层。对外 API 形状不变。
+2. 归一化拆两套：`normalizeForLength`（与 `visitor-quality-audit.ts:266-268` 逐字等价，作密度分母）+ `normalizeForDetection`（保留省略号 / 破折号标记，否则 pause / elongation 永不命中）。
+3. repetition 收窄为「只认子句开头的重复」，消除「今天天气」类跨词边界误计；代价是句中口吃式重复漏计，交 P1 量化。
+4. `TraceInput.disfluency` 设为必填字段（编译期暴露漏填），既有 spec 夹具同步补字段。
+5. 8 指标不含 `elongation_per_turn`（本蓝图 §5.2.2 原表即无此项），elongation 只入事件总量。
+6. 新键断言落在字典 spec + compute spec，不落在「快照 schema 测试」（本单不改 schema 文件）。
+
+**P0 遗留项（登记在此；Phase3 专属 backlog 台账尚未建立，待 P1 派单时建）**：
+
+| #    | 遗留项                                                                                                                                                   | 归属      |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| L-1  | `visitor-quality-audit.ts` 迁 `disfluency-lexicon.ts` 词表口径 + D7 段六类分布；废弃脚本内私有 FILLERS 独立口径（旧字段保留一个版本周期并标 deprecated） | P1        |
+| L-2  | 8 指标 bounds 基线后补齐（`density_per100` 上界；per_turn 若确认可 > 1 则调整语义取值域）                                                                | P1        |
+| L-3  | `density_per100` 取值域校准 + 归一化字符数跨批次可比性确认                                                                                               | P1        |
+| L-4  | repetition「只认子句开头」的位置取舍是否保留                                                                                                             | P1        |
+| L-5  | filler 词表与位置约束阈值校准                                                                                                                            | P1        |
+| L-6  | `TRAILOFF_MIN_CHARS = 4` 阈值校准                                                                                                                        | P1        |
+| L-7  | `humanization-v1` 判据（§5.2.4）未实现                                                                                                                   | P2        |
+| L-8  | 角色侧联动（disfluency-profile / disfluency-instruction / env 三态开关 / 指纹段 / 灰度）                                                                 | P2 / P3   |
+| L-9  | 角色实体列 / 迁移 / 透传 / 灰度判据                                                                                                                      | P3        |
+| L-10 | Phase3 专属 backlog 台账建立（L-1 ~ L-9 迁移过去）                                                                                                       | P1 派单时 |
 
 ### P1 · 审计基线（仍零行为变化）
 

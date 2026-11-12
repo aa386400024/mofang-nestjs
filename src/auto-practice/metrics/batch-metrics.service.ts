@@ -22,6 +22,8 @@ import { PracticeSession } from '../entities/practice-session.entity.js';
 import { computePromptVersion } from '../prompt-fingerprint.js';
 import { computeBatchSnapshot, type SessionComputationInput, type SkippedSession, type TraceInput } from './batch-metrics.compute.js';
 import type { BatchMetricsV1 } from './batch-metrics.schema.js';
+import { analyzeDisfluency } from './disfluency-analyzer.js';
+import { EMPTY_DISFLUENCY_METRICS, type DisfluencyMetrics } from './disfluency-lexicon.js';
 import { round6 } from './round.js';
 
 /** 投影阶段的错误 (携带 skipReason). */
@@ -37,10 +39,48 @@ function toNumber(value: unknown): number {
 }
 
 /**
+ * 从逐字稿顶层 messages 里取 visitor 台词, **当场**算成纯数值.
+ *
+ * 隐私 (蓝图 §5.2.3): 原始 text 只在本函数内活一次, 算完即随解析对象释放;
+ * 返回的 Map 里只有数字 (六类计数 / events / hasEvent / 归一化字符数), 无任何文本.
+ *
+ * 对齐规则: role === 'visitor' 且按 turnIndex 建索引; 同一 turnIndex 出现重复
+ * visitor 条目时**取数组首条** (本单约定).
+ *
+ * @param parsed 已解析的逐字稿对象
+ * @returns turnIndex → 不流利数值
+ */
+function collectVisitorDisfluency(parsed: unknown): Map<number, DisfluencyMetrics> {
+  const out = new Map<number, DisfluencyMetrics>();
+  if (typeof parsed !== 'object' || parsed === null) return out;
+  const messages = (parsed as Record<string, unknown>)['messages'];
+  if (!Array.isArray(messages)) return out;
+  for (const message of messages) {
+    if (typeof message !== 'object' || message === null) continue;
+    const record = message as Record<string, unknown>;
+    if (record['role'] !== 'visitor') continue;
+    const turnIndex = toNumber(record['turnIndex']);
+    if (out.has(turnIndex)) continue;
+    const text = typeof record['text'] === 'string' ? record['text'] : '';
+    out.set(turnIndex, analyzeDisfluency(text));
+  }
+  return out;
+}
+
+/** 取原始 trace 的 turnIndex (投影前用, 用来与 visitor 台词对齐). */
+function rawTurnIndex(raw: unknown): number {
+  if (typeof raw !== 'object' || raw === null) return Number.NaN;
+  return toNumber((raw as Record<string, unknown>)['turnIndex']);
+}
+
+/**
  * 把一个原始 trace 投影成合规 TraceInput.
  * 只取需要的字段; 不含任何文本 / prompt.
+ *
+ * @param raw 原始 trace
+ * @param disfluency 该轮的不流利**纯数值** (服务层已算好)
  */
-function projectTrace(raw: unknown): TraceInput {
+function projectTrace(raw: unknown, disfluency: DisfluencyMetrics): TraceInput {
   if (typeof raw !== 'object' || raw === null) throw new ProjectError('json_invalid');
   const trace = raw as Record<string, unknown>;
   const snapshot = (trace['bdiSnapshot'] ?? {}) as Record<string, unknown>;
@@ -61,6 +101,7 @@ function projectTrace(raw: unknown): TraceInput {
     eventTags,
     strategy: typeof intention['strategy'] === 'string' ? intention['strategy'] : 'recounting',
     degraded: Boolean(trace['degraded']),
+    disfluency,
   };
 }
 
@@ -76,7 +117,9 @@ function projectTraces(fileContent: string): TraceInput[] {
   const rawTraces = (parsed as Record<string, unknown>)['traces'];
   if (!Array.isArray(rawTraces)) throw new ProjectError('no_traces');
   if (rawTraces.length === 0) throw new ProjectError('no_traces');
-  const traces = rawTraces.map(projectTrace);
+  // Phase3 P0: 台词判读在**本层**(IO 层)完成, 只把纯数值投影进 TraceInput.
+  const visitorDisfluency = collectVisitorDisfluency(parsed);
+  const traces = rawTraces.map((raw) => projectTrace(raw, visitorDisfluency.get(rawTurnIndex(raw)) ?? EMPTY_DISFLUENCY_METRICS));
   if (traces.every((trace) => typeof trace.bdiSnapshot.trust !== 'number')) throw new ProjectError('no_snapshot');
   return traces;
 }

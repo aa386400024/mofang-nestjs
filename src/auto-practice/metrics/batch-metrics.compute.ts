@@ -8,6 +8,7 @@
 import type { ConfigFingerprintSegments } from '../config-fingerprint.js';
 import type { ZeroMotionBreakdown } from './acceptance-thresholds.js';
 import type { BatchMetricsV1, MetricsSlice, SessionLineage, SkipReason } from './batch-metrics.schema.js';
+import { aggregateDisfluency, type DisfluencyMetrics } from './disfluency-lexicon.js';
 import {
   POSITIVE_EVENTS,
   SESSION_OUTCOMES,
@@ -35,6 +36,13 @@ export interface TraceInput {
   readonly eventTags: readonly string[];
   readonly strategy: string;
   readonly degraded: boolean;
+  /**
+   * 文字层不流利的**纯数值**投影 (Phase3 P0).
+   *
+   * 隐私分层: 台词原文的判读在服务层 (IO 层) 完成, 本层只聚合数字.
+   * 本字段物理上不含任何文本引用 —— 只有六类计数 / events / hasEvent / 归一化字符数.
+   */
+  readonly disfluency: DisfluencyMetrics;
 }
 
 /** 一场的计算输入. */
@@ -255,6 +263,34 @@ function computeSummaryMetrics(
   metrics['pipeline.fallback_ratio'] = pipeline.fallbackRatio === null ? null : round6(pipeline.fallbackRatio);
 }
 
+/**
+ * 文字层不流利指标 (Phase3 P0) —— 纯数值聚合.
+ *
+ * 只读 TraceInput.disfluency 的数字; 本层不 import 分析器、不接触任何文本.
+ * 口径: 见 metric-dictionary.ts 里 text.disfluency.* 八项的 definition.
+ *
+ * @param sessions 场次
+ * @param metrics 指标 map (原地写入)
+ */
+function computeDisfluencyMetrics(sessions: readonly SessionComputationInput[], metrics: Record<string, number | null>): void {
+  const turns: DisfluencyMetrics[] = [];
+  for (const session of sessions) {
+    for (const trace of session.traces) turns.push(trace.disfluency);
+  }
+  const aggregate = aggregateDisfluency(turns);
+  const turnCount = turns.length;
+  const perTurn = (value: number): number => (turnCount > 0 ? round6(value / turnCount) : 0);
+  metrics['text.disfluency.events_per_turn'] = aggregate.eventsPerTurn;
+  metrics['text.disfluency.event_turn_rate'] = aggregate.eventTurnRate;
+  metrics['text.disfluency.density_per100'] = aggregate.densityPer100Chars;
+  metrics['text.disfluency.filler_per_turn'] = perTurn(aggregate.typeCounts.filler);
+  metrics['text.disfluency.pause_per_turn'] = perTurn(aggregate.typeCounts.pause);
+  metrics['text.disfluency.repair_per_turn'] = perTurn(aggregate.typeCounts.repair);
+  metrics['text.disfluency.repetition_per_turn'] = perTurn(aggregate.typeCounts.repetition);
+  metrics['text.disfluency.trailoff_per_turn'] = perTurn(aggregate.typeCounts.trailoff);
+  // elongation 只计入事件总量, 按蓝图 §5.2.2 不单列 per-turn 指标.
+}
+
 function computeMetricMap(
   sessions: readonly SessionComputationInput[],
   pipeline: PipelineContext,
@@ -269,6 +305,7 @@ function computeMetricMap(
   computeStrategyMetrics(sessions, totalTurns, metrics);
   const zeroMotionBreakdown = computeZeroMotionBreakdown(sessions);
   computeSummaryMetrics(sessions, pipeline, metrics, zeroMotionBreakdown);
+  computeDisfluencyMetrics(sessions, metrics);
   return { metrics, zeroMotionBreakdown };
 }
 

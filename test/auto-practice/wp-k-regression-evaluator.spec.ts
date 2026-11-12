@@ -10,6 +10,7 @@ import {
   type SessionComputationInput,
 } from '../../src/auto-practice/metrics/batch-metrics.compute.js';
 import { assertBatchMetricsV1, isBatchMetricsV1, type BatchMetricsV1 } from '../../src/auto-practice/metrics/batch-metrics.schema.js';
+import { EMPTY_DISFLUENCY_METRICS } from '../../src/auto-practice/metrics/disfluency-lexicon.js';
 import { evaluateRegression } from '../../src/auto-practice/metrics/regression-evaluator.js';
 
 const FP: ConfigFingerprintSegments = {
@@ -52,6 +53,7 @@ const SESSION: SessionComputationInput = {
       eventTags: [],
       strategy: 'recounting',
       degraded: false,
+      disfluency: EMPTY_DISFLUENCY_METRICS,
     },
     {
       turnIndex: 2,
@@ -68,6 +70,7 @@ const SESSION: SessionComputationInput = {
       eventTags: [],
       strategy: 'recounting',
       degraded: false,
+      disfluency: EMPTY_DISFLUENCY_METRICS,
     },
   ],
 };

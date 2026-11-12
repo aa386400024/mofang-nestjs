@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import {
   METRIC_DICTIONARY,
   METRIC_BY_ID,
+  METRIC_DICTIONARY_VERSION,
   NON_NULLABLE_IDS,
   POSITIVE_EVENTS,
   SESSION_OUTCOMES,
@@ -72,5 +73,54 @@ describe('WP-K · 指标字典自洽', () => {
 
   it('出口状态枚举非空且互不重复', () => {
     expect(new Set(SESSION_OUTCOMES).size).toBe(SESSION_OUTCOMES.length);
+  });
+});
+
+describe('Phase3 P0 · text.disfluency.* 指标 (dict-v2)', () => {
+  const DISFLUENCY_IDS = [
+    'text.disfluency.events_per_turn',
+    'text.disfluency.event_turn_rate',
+    'text.disfluency.density_per100',
+    'text.disfluency.filler_per_turn',
+    'text.disfluency.pause_per_turn',
+    'text.disfluency.repair_per_turn',
+    'text.disfluency.repetition_per_turn',
+    'text.disfluency.trailoff_per_turn',
+  ];
+
+  it('字典版本已升到 dict-v2', () => {
+    expect(METRIC_DICTIONARY_VERSION).toBe('dict-v2');
+  });
+
+  it('八个新键齐备, 全部 nullable=false 且方向 neutral', () => {
+    for (const id of DISFLUENCY_IDS) {
+      const metric = METRIC_BY_ID.get(id);
+      expect(metric).toBeDefined();
+      expect(metric?.nullable).toBe(false);
+      expect(metric?.direction).toBe('neutral');
+      expect(metric?.definition.length).toBeGreaterThan(0);
+      expect(metric?.label.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('单位与蓝图 §5.2.2 表一致 (per_turn / ratio / count)', () => {
+    expect(METRIC_BY_ID.get('text.disfluency.events_per_turn')?.unit).toBe('per_turn');
+    expect(METRIC_BY_ID.get('text.disfluency.event_turn_rate')?.unit).toBe('ratio');
+    expect(METRIC_BY_ID.get('text.disfluency.density_per100')?.unit).toBe('count');
+    for (const id of DISFLUENCY_IDS.filter((item) => item.endsWith('_per_turn'))) {
+      expect(METRIC_BY_ID.get(id)?.unit).toBe('per_turn');
+    }
+  });
+
+  it('bounds 纪律: per_turn / ratio 给 [0,1], density 首版无界', () => {
+    expect(METRIC_BY_ID.get('text.disfluency.events_per_turn')?.bounds).toEqual({ min: 0, max: 1 });
+    expect(METRIC_BY_ID.get('text.disfluency.event_turn_rate')?.bounds).toEqual({ min: 0, max: 1 });
+    expect(METRIC_BY_ID.get('text.disfluency.density_per100')?.bounds).toBeNull();
+  });
+
+  it('八键全部进 NON_NULLABLE_IDS (计算层缺赋值即失败)', () => {
+    for (const id of DISFLUENCY_IDS) {
+      expect(NON_NULLABLE_IDS).toContain(id);
+    }
   });
 });

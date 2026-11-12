@@ -285,11 +285,102 @@ const SCALAR_METRICS: readonly MetricDef[] = [
 ];
 
 /**
+ * 文字层不流利指标 (Phase3 P0 · 文字层真人度).
+ *
+ * 口径真相源在 src/auto-practice/metrics/disfluency-lexicon.ts 与 disfluency-analyzer.ts;
+ * 这里只登记**指标 id / 单位 / 方向 / 分子分母定义**, 供快照与前端对齐.
+ *
+ * bounds 纪律 (蓝图 §5.2.2): per_turn / ratio 给 [0,1] **语义取值域** (是均值口径,
+ * 不是硬上限; 单轮多事件时均值可 > 1); density_per100 首版无取值域 (null),
+ * 待 P1 基线批次产出历史观测后再补.
+ */
+function buildDisfluencyMetrics(): readonly MetricDef[] {
+  return [
+    {
+      id: 'text.disfluency.events_per_turn',
+      label: '不流利事件·每轮',
+      unit: 'per_turn',
+      direction: 'neutral',
+      bounds: RATIO_BOUNDS,
+      nullable: false,
+      definition:
+        '六类不流利事件总数 (filler / pause / repetition / repair / trailoff / elongation) ÷ 纳入轮数; 均值口径, 语义取值域 [0,1]',
+    },
+    {
+      id: 'text.disfluency.event_turn_rate',
+      label: '不流利轮次占比',
+      unit: 'ratio',
+      direction: 'neutral',
+      bounds: RATIO_BOUNDS,
+      nullable: false,
+      definition: '含至少一次不流利事件的轮次 ÷ 纳入轮次',
+    },
+    {
+      id: 'text.disfluency.density_per100',
+      label: '不流利密度·每百字',
+      unit: 'count',
+      direction: 'neutral',
+      bounds: null,
+      nullable: false,
+      definition: '不流利事件总数 ÷ 归一化总字符数 × 100 (归一化 = 去空白与标点); 首版无取值域上界, 待基线批次后补',
+    },
+    {
+      id: 'text.disfluency.filler_per_turn',
+      label: '填充词·每轮',
+      unit: 'per_turn',
+      direction: 'neutral',
+      bounds: RATIO_BOUNDS,
+      nullable: false,
+      definition: '填充词命中次数 ÷ 纳入轮数 (只计句首或被标点隔离的命中; 与旧 fillerPerTurn 同口径, 新 id 取代之)',
+    },
+    {
+      id: 'text.disfluency.pause_per_turn',
+      label: '停顿·每轮',
+      unit: 'per_turn',
+      direction: 'neutral',
+      bounds: RATIO_BOUNDS,
+      nullable: false,
+      definition: '停顿事件次数 ÷ 纳入轮数 (连续省略号 / 句号串归一后合并为一次)',
+    },
+    {
+      id: 'text.disfluency.repair_per_turn',
+      label: '自我修正·每轮',
+      unit: 'per_turn',
+      direction: 'neutral',
+      bounds: RATIO_BOUNDS,
+      nullable: false,
+      definition: '自我修正次数 ÷ 纳入轮数 (修正触发词命中; 优先级高于其余五类)',
+    },
+    {
+      id: 'text.disfluency.repetition_per_turn',
+      label: '词语重复·每轮',
+      unit: 'per_turn',
+      direction: 'neutral',
+      bounds: RATIO_BOUNDS,
+      nullable: false,
+      definition: '相邻 1-2 字重复次数 ÷ 纳入轮数 (叠词白名单不计)',
+    },
+    {
+      id: 'text.disfluency.trailoff_per_turn',
+      label: '半截话·每轮',
+      unit: 'per_turn',
+      direction: 'neutral',
+      bounds: RATIO_BOUNDS,
+      nullable: false,
+      definition: '半截话次数 ÷ 纳入轮数 (句末停顿 + 未完成启发式; 与句末停顿互斥归类)',
+    },
+  ];
+}
+
+/**
  * 字典版本标识.
  *
  * 改字典条目 / 口径 / 取值域时手动递增; 供前端缓存与审计比对.
+ *
+ * · dict-v1 (2026-11-11): WP-K 首批指标;
+ * · dict-v2 (2026-11-12): Phase3 P0 新增 text.disfluency.* 八项 (文字层真人度).
  */
-export const METRIC_DICTIONARY_VERSION = 'dict-v1';
+export const METRIC_DICTIONARY_VERSION = 'dict-v2';
 
 /** 完整指标字典 (单一真相源). */
 export const METRIC_DICTIONARY: readonly MetricDef[] = [
@@ -297,6 +388,7 @@ export const METRIC_DICTIONARY: readonly MetricDef[] = [
   ...buildEventMetrics(),
   ...buildStrategyMetrics(),
   ...SCALAR_METRICS,
+  ...buildDisfluencyMetrics(),
 ];
 
 /** id → 定义 的快速索引. */
