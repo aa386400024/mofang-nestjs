@@ -300,6 +300,8 @@
 **判定**：`min(trust,safety)` 使 safety 成为唯一卡点（语桐 trust 已到 0.71 仍因 safety 0.442 被否）。
 **12 轮内除安然外无一可达，且不是"少几轮"的量级问题。**
 
+**处置（2026-11-12，S-1 交付 · 仅端口化，不解决可达性）**：深度门槛 `LOW_DEPTH = 0.35` 已从 planner 局部常量并入既有同盟门槛端口 `AllianceThresholds.openDepth`（可选字段，缺省种子 **0.35 逐字不变**，**不接 env**）；`intention-planner` 改读 `thresholds.openDepth`，`LOW_DEPTH` 已删除；会话级镜像类型同步（`domain/engine-session.types.ts`），适配层 `wiring/alliance-config.ts` 补 `openDepth: seed.openDepth` 一行。**缺省门槛逐字不变 → 零行为变化**（全量 3072 例全绿、boundary 12 绿、engine-core 零新增导出 / 零新增文件）。**但 I-11 的判定结论不变**：门槛值仍是 0.35，12 轮内除安然外仍无一可达；本单只把「深度门槛不可配」变成「可配」。**剩余三件另案**：① 门槛取值与临床口径复核（候选方向 2：低 depth 是否仍是探索前提）；② 可达性对账（候选方向 3）；③ 按角色 / 按档位的来源接入（属标定批次，届时只换 `SessionAllianceThresholdResolver` 一个 provider）。详见 → [S-1 交付记录](../completed/phase2.5/phase2.5-s1-open-depth-threshold-port-implementation-2026-11-12.md)。
+
 ---
 
 ### I-12 · 门槛是实例级单例（注入缝已打通 · 2026-11-11）
