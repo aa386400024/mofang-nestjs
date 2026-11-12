@@ -22,10 +22,9 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 // eslint-disable-next-line unicorn/import-style
-import { dirname, extname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join, resolve } from 'node:path';
 
-import { hashPromptTemplates, PROMPT_VERSION_LENGTH, PROMPT_VERSION_UNKNOWN } from './prompt-fingerprint.js';
+import { hashPromptTemplates, PROMPT_VERSION_LENGTH, PROMPT_VERSION_UNKNOWN, resolveFingerprintSource } from './prompt-fingerprint.js';
 
 /** 指纹段 (除 prompts / combined 外, 每段对应一个真实文件). */
 export type ConfigSegment = 'stateTransition' | 'alliance' | 'deltaTableConfig' | 'lexicon' | 'baselines' | 'prompts' | 'acceptance';
@@ -110,8 +109,12 @@ export function computeConfigFingerprint(options: {
   readonly baseDir?: string;
   readonly extension?: string;
 }): ConfigFingerprintSegments {
-  const baseDir = options.baseDir ?? dirname(fileURLToPath(import.meta.url));
-  const extension = options.extension ?? extname(fileURLToPath(import.meta.url));
+  // TD-4: 口径统一到 dist/*.js —— CLI (tsx 跑 src) 与服务端 (node dist/app.js)
+  // 对同一份构建产物算出同一套分段指纹; 显式注入 baseDir/extension 时按注入值走
+  // (单测用), 不做自动解析.
+  const source = options.baseDir ? { baseDir: options.baseDir, extension: options.extension ?? '.js' } : resolveFingerprintSource();
+  const baseDir = source.baseDir;
+  const extension = source.extension;
 
   const partial: Omit<ConfigFingerprintSegments, 'combined'> = {
     stateTransition: hashSegment('stateTransition', baseDir, extension),

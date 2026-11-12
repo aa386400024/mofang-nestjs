@@ -17,7 +17,12 @@ import { DataSource, Repository } from 'typeorm';
 import ormconfig from './ormconfig.js';
 import { PracticeBatch } from '../src/auto-practice/entities/practice-batch.entity.js';
 import { PracticeSession } from '../src/auto-practice/entities/practice-session.entity.js';
-import { evaluateIntakeAcceptance } from '../src/auto-practice/metrics/acceptance-thresholds.js';
+import {
+  evaluateIntakeAcceptance,
+  getIntakeTier,
+  INTAKE_ACCEPTANCE_VERSION,
+  type IntakeAcceptanceResult,
+} from '../src/auto-practice/metrics/acceptance-thresholds.js';
 import { assertBatchMetricsV1, type BatchMetricsV1 } from '../src/auto-practice/metrics/batch-metrics.schema.js';
 import { BatchMetricsService } from '../src/auto-practice/metrics/batch-metrics.service.js';
 import { evaluateRegression } from '../src/auto-practice/metrics/regression-evaluator.js';
@@ -122,8 +127,72 @@ function printHelp(): void {
   console.log(lines.join('\n'));
 }
 
+/** 单个模式切片的判分结果 (报告用). */
+interface ModeVerdict {
+  readonly mode: string;
+  readonly sessions: number;
+  readonly turns: number;
+  readonly acceptance: IntakeAcceptanceResult;
+  /** 零变化细分: 总 / 豁免(合理封闭) / 计入(纯 neutral 空转). */
+  readonly zeroMotion: { readonly total: number; readonly closure: number; readonly idle: number } | null;
+}
+
+/** 对 byMode 各切片分别判分 (intake-v2 分档). */
+function judgeByMode(snapshot: BatchMetricsV1): ModeVerdict[] {
+  return Object.entries(snapshot.byMode).map(([mode, slice]) => ({
+    mode,
+    sessions: slice.sessions,
+    turns: slice.turns,
+    acceptance: evaluateIntakeAcceptance(slice.metrics, {
+      counselorModeId: mode,
+      sessions: slice.sessions,
+      zeroMotion: slice.zeroMotionBreakdown ?? null,
+    }),
+    zeroMotion: slice.zeroMotionBreakdown ?? null,
+  }));
+}
+
+/** 渲染"按咨询师模式分档判定"一节 (全局结论保留, 分档结论并列追加). */
+function renderModeSection(verdicts: readonly ModeVerdict[]): string[] {
+  const lines: string[] = [];
+  lines.push(
+    '',
+    `## 按咨询师模式分档判定 (${INTAKE_ACCEPTANCE_VERSION})`,
+    '',
+    '| 模式 | 档位 | 场次 | 判定 | 未达标项 | 零变化 总/豁免/计入 |',
+    '|---|---|---|---|---|---|',
+  );
+  for (const verdict of verdicts) {
+    const tier = getIntakeTier(verdict.acceptance.tierId);
+    const failed = verdict.acceptance.results.filter((result) => !result.passed).length;
+    const zeroMotion = verdict.zeroMotion ? `${verdict.zeroMotion.total}/${verdict.zeroMotion.closure}/${verdict.zeroMotion.idle}` : 'n/a';
+    lines.push(
+      `| \`${verdict.mode}\` | ${tier.label} | ${verdict.sessions} | **${verdict.acceptance.passed ? 'PASS' : 'FAIL'}** | ${failed} | ${zeroMotion} |`,
+    );
+  }
+  for (const verdict of verdicts) {
+    const tier = getIntakeTier(verdict.acceptance.tierId);
+    lines.push('', `### \`${verdict.mode}\` · ${tier.label}`);
+    const failed = verdict.acceptance.results.filter((result) => !result.passed);
+    if (failed.length === 0) {
+      lines.push('- 全部判据通过');
+
+      continue;
+    }
+    for (const result of failed) {
+      const ratio = result.numerator === undefined ? '' : ` [${result.numerator}/${result.denominator}]`;
+      lines.push(`- \`${result.metricId}\` (实际 ${result.actual}${ratio}): ${result.reason}`);
+    }
+  }
+  return lines;
+}
+
 function renderMarkdown(snapshot: BatchMetricsV1, verdictLine: string | null): string {
-  const acceptance = evaluateIntakeAcceptance(snapshot.metrics);
+  const acceptance = evaluateIntakeAcceptance(snapshot.metrics, {
+    sessions: snapshot.coverage.includedSessions,
+    zeroMotion: snapshot.zeroMotionBreakdown ?? null,
+  });
+  const modeVerdicts = judgeByMode(snapshot);
   const lines: string[] = [];
   lines.push(
     `# 批次 ${snapshot.batchId}`,
@@ -131,7 +200,7 @@ function renderMarkdown(snapshot: BatchMetricsV1, verdictLine: string | null): s
     `- 计算时间: ${snapshot.computedAt}`,
     `- 配置指纹 combined: \`${snapshot.fingerprint.combined}\``,
     `- 纳入/期望: ${snapshot.coverage.includedSessions}/${snapshot.coverage.expectedSessions}, 总轮数 ${snapshot.coverage.totalTurns}`,
-    `- intake 验收: **${acceptance.passed ? 'PASS' : 'FAIL'}**`,
+    `- intake 验收 (全局 · ${getIntakeTier(acceptance.tierId).label}): **${acceptance.passed ? 'PASS' : 'FAIL'}**`,
   );
   if (verdictLine) lines.push(`- 回归结论: ${verdictLine}`);
   lines.push('', '## 指标', '', '| 指标 | 值 |', '|---|---|');
@@ -140,9 +209,10 @@ function renderMarkdown(snapshot: BatchMetricsV1, verdictLine: string | null): s
   }
   if (!acceptance.passed) {
     const failed = acceptance.results.filter((result) => !result.passed);
-    lines.push('', '## 未达标项', '');
+    lines.push('', '## 未达标项 (全局)', '');
     for (const result of failed) lines.push(`- \`${result.metricId}\` (实际 ${result.actual}): ${result.reason}`);
   }
+  lines.push(...renderModeSection(modeVerdicts));
   return `${lines.join('\n')}\n`;
 }
 

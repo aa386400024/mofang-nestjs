@@ -27,10 +27,11 @@
 //   已知取舍 (诚实写明, 别假装没有):
 //     · 同一文件里的**非文案**改动 (加日志 / 改逻辑) 也会改变指纹 —— 这是
 //       **保守方向**: 宁可多报"变了", 不可漏报"没变";
-//     · 指纹按**当前进程实际加载的那份代码**计算 (见 resolveTemplatePaths):
-//       `nest start` 直跑 .ts 源码 → 算 .ts; `node dist/app.js` → 算 .js.
-//       两种口径**互不可比** (同一份文案的 .ts 与 .js 字节不同) ——
-//       批次对比请统一用 dist 口径 (仓库的部署方式与本地验证方式都是 dist).
+//     · 指纹统一按 **构建产物 dist/*.js** 口径计算 (见 resolveFingerprintSource).
+//       2026-11-12 之前这里取的是"当前进程实际加载的那份代码"的扩展名:
+//       CLI (tsx 跑 src) 读 .ts, 服务端 (node dist/app.js) 读 .js —— 两侧
+//       **按设计永不相等**, 跨来源指纹比对必然报"全段变化" (TD-4). 现在两侧
+//       都读 dist, 对同一份构建产物算出同一个指纹.
 //
 // ── 覆盖范围 (边界写清楚, 别让人误以为覆盖了全部 prompt) ───────────────────
 //   覆盖: 自动对练路径上**代码里写死**的 prompt 模板 ——
@@ -49,10 +50,10 @@
 //   一半"的值 —— 半个指纹比没有指纹更坏 (它看起来像个正常的版本号).
 
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 // node:path 没有 default export —— unicorn/import-style 对 node: 内置模块误报, 忽略.
 // eslint-disable-next-line unicorn/import-style
-import { dirname, extname, join, resolve } from 'node:path';
+import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -108,25 +109,97 @@ export function hashPromptTemplates(entries: readonly { readonly path: string; r
 }
 
 /**
- * 解析模板文件的真实路径 (**当前进程实际加载的那份代码**).
+ * 指纹读取口径.
  *
- * 为什么用本模块自己的扩展名推导:
- *   `nest start` (ts-node) 加载的是 .ts, `node dist/app.js` 加载的是 .js ——
- *   "当前进程实际在跑的代码"是哪一份, 扩展名就是哪一份的.
- *   ⚠️ 不能固定读 src/ (生产镜像只有 dist), 也不能固定读 dist/ (本地 nest start
- *   跑的是源码, 读 dist 算出来的是**上次构建**的旧值 —— 那比算不出来更坏).
+ * · baseDir   = 读文件的基准目录;
+ * · extension = 文件扩展名 (含点);
+ * · mode      = 口径标识 (审计用): dist = 统一按构建产物; source = 回退当前进程源码.
+ */
+export interface FingerprintSourceTarget {
+  readonly baseDir: string;
+  readonly extension: string;
+  readonly mode: 'dist' | 'source';
+}
+
+/**
+ * 找最近的含 package.json 的祖先目录 (包根).
  *
- * @param baseDir 基准目录 (缺省 = 本模块所在目录)
- * @param extension 扩展名 (缺省 = 本模块自己的扩展名)
+ * @param startDir 起点目录
+ * @returns 包根; 找不到返回 null
+ */
+function findPackageRoot(startDir: string): string | null {
+  let current = startDir;
+  for (;;) {
+    if (existsSync(join(current, 'package.json'))) return current;
+    const parent = dirname(current);
+    if (parent === current) return null;
+    current = parent;
+  }
+}
+
+/**
+ * 把源码树里的路径映射到 dist 产物里的对应路径 (去掉 src/dist 前导段).
+ *
+ * 例: <root>/src/auto-practice → <root>/dist/auto-practice;
+ *     <root>/dist/auto-practice → <root>/dist/auto-practice (幂等).
+ *
+ * @param sourcePath 源码树里的路径
+ * @param packageRoot 包根
+ * @returns dist 路径; 不在 src/dist 树下返回 null
+ */
+export function resolveDistArtifactPath(sourcePath: string, packageRoot: string): string | null {
+  const relativePath = relative(packageRoot, sourcePath);
+  if (relativePath.length === 0 || relativePath.startsWith('..')) return null;
+  const segments = relativePath.split(sep);
+  const head = segments[0];
+  if (head !== 'src' && head !== 'dist') return null;
+  return join(packageRoot, 'dist', ...segments.slice(1));
+}
+
+/**
+ * 解析指纹读取口径 (TD-4: 统一按 dist/*.js).
+ *
+ * 为什么统一到 dist:
+ *   扩展名原先取自 import.meta.url —— CLI (tsx 跑 src) 读 .ts, 服务端 (node
+ *   dist/app.js) 读 .js, 两侧**按设计永不相等**; 指纹要回答的是"这批数据是在
+ *   **哪份构建产物**的配置下跑的", 因此两侧都读 dist.
+ *
+ * 回退条件 (唯一): 包根下**没有**构建产物 —— 按当前进程源码口径算 (本地只跑
+ *   nest start 没 build 的场景). 服务端本来就跑 dist, 不会进这条分支;
+ *   两侧的判断依据是同一个 (dist 产物在不在), 所以不会各走各的.
+ *
+ * @param currentModulePath 当前模块自身路径 (单测可注入)
+ * @returns 读取口径
+ */
+export function resolveFingerprintSource(currentModulePath: string = fileURLToPath(import.meta.url)): FingerprintSourceTarget {
+  const currentDir = dirname(currentModulePath);
+  const currentExtension = extname(currentModulePath);
+  const packageRoot = findPackageRoot(currentDir);
+  if (packageRoot) {
+    const distDir = resolveDistArtifactPath(currentDir, packageRoot);
+    if (distDir) {
+      const distSelf = join(distDir, `${basename(currentModulePath, currentExtension)}.js`);
+      if (existsSync(distSelf)) {
+        return { baseDir: distDir, extension: '.js', mode: 'dist' };
+      }
+    }
+  }
+  return { baseDir: currentDir, extension: currentExtension, mode: 'source' };
+}
+
+/**
+ * 解析模板文件的真实路径 (按统一后的指纹口径).
+ *
+ * @param baseDir 基准目录 (缺省 = 按 resolveFingerprintSource 解析)
+ * @param extension 扩展名 (缺省 = 按 resolveFingerprintSource 解析)
  * @param files 清单 (缺省 = PROMPT_TEMPLATE_FILES)
  * @returns 绝对路径列表
  */
-export function resolveTemplatePaths(
-  baseDir: string = dirname(fileURLToPath(import.meta.url)),
-  extension: string = extname(fileURLToPath(import.meta.url)),
-  files: readonly string[] = PROMPT_TEMPLATE_FILES,
-): string[] {
-  return files.map((relative) => resolve(baseDir, join(relative + extension)));
+export function resolveTemplatePaths(baseDir?: string, extension?: string, files: readonly string[] = PROMPT_TEMPLATE_FILES): string[] {
+  const target = resolveFingerprintSource();
+  const dir = baseDir ?? target.baseDir;
+  const ext = extension ?? target.extension;
+  return files.map((file) => resolve(dir, join(file + ext)));
 }
 
 /**
@@ -140,12 +213,11 @@ export function resolveTemplatePaths(
 export function computePromptVersion(
   options: { readonly baseDir?: string; readonly extension?: string; readonly files?: readonly string[] } = {},
 ): string {
-  const baseDir = options.baseDir ?? dirname(fileURLToPath(import.meta.url));
-  const extension = options.extension ?? extname(fileURLToPath(import.meta.url));
+  const target = options.baseDir ? { baseDir: options.baseDir, extension: options.extension ?? '.js' } : resolveFingerprintSource();
   const files = options.files ?? PROMPT_TEMPLATE_FILES;
   const entries: { path: string; content: string }[] = [];
-  for (const relative of files) {
-    const file = resolve(baseDir, join(relative + extension));
+  for (const name of files) {
+    const file = resolve(target.baseDir, join(name + target.extension));
     let content: string;
     try {
       content = readFileSync(file, 'utf8');
@@ -154,7 +226,7 @@ export function computePromptVersion(
       // 而不是返回一个"看起来正常"的半截指纹.
       return PROMPT_VERSION_UNKNOWN;
     }
-    entries.push({ path: relative, content });
+    entries.push({ path: name, content });
   }
   if (entries.length === 0) return PROMPT_VERSION_UNKNOWN;
   return hashPromptTemplates(entries);

@@ -115,12 +115,15 @@ WP-K / WP-L 首次 `git commit` 时被 husky 的 lint-staged 拦截，eslint 报
 
 ### TD-4 · 批次报告 CLI 指纹走 `src/.ts`、服务端落库走 `dist/.js`，两者按设计永不相等（优先级：P2）
 
-> **状态：待修复**（2026-11-12 批次 `g3ONzlqSGMVJqkFMF9Lwh` 发现，[交付记录 §9 B-2](../completed/phase2.5/phase2.5-verification-batch-96-implementation-2026-11-12.md)）
+> **状态：✅ 已修复**（2026-11-12，与 intake-v2 分档同单交付 → [交付记录](../completed/phase2.5/phase2.5-intake-v2-mode-stratified-acceptance-implementation-2026-11-12.md)）
 
 - **现象**：`ap_practice_batches.config_fingerprint` 由服务端收尾按 dist/`.js` 计算；`bin/batch-report.ts` CLI 报告指纹从 src/`.ts` 计算。`src/auto-practice/config-fingerprint.ts:17` 文件头自述"`.ts` 与 `.js` 口径互不可比，统一用 dist"，CLI 违反了该口径。
 - **影响**：任何"DB 快照 vs CLI 报告"的指纹比对必然报"全段变化"，跨来源指纹不可用；不影响运行时与批次门禁判定。
 - **建议**：`bin/batch-report.ts` 改为按 `dist/` 计算指纹（与服务端口径一致），或在指纹字段显式标注口径来源。
 - **证据**：交付记录 §4.3 逐段举证（src combined `491558624aeafdb3` / dist combined `cf032d71ea4849b1`，dist 值与库内落库逐位相同）。
+- **修复方式（2026-11-12）**：新增共享口径解析器 `resolveFingerprintSource()`（`prompt-fingerprint.ts`）——包根下存在构建产物时，一律读 `<root>/dist/**/*.js`；`computePromptVersion()`（prompts 段）与 `computeConfigFingerprint()` 的其余 6 段全部走该口径。**没有在 CLI 里另写哈希**，修复落在指纹模块/调用链（符合本项建议）。
+- **修复后证据**：CLI（`pnpm exec tsx` → src 上下文）与服务端（`node` → dist 上下文）**7 段逐段相同**，combined 同为 `ce51839d02ea4020`；fail-closed 保留（读不到 → 该段 `unknown` → combined `unknown`）。与库内旧落库值 `cf032d71ea4849b1` 不同是**判据文件内容变更**（acceptance 段）导致的预期差异，跨批判 `incomparable` 属设计预期。
+- **残留**：无（本项关闭）。附带收益：`prompt` 段原先也两侧不等，只修 `config-fingerprint.ts` 不足以让 combined 可比，故修复面覆盖到 `prompt-fingerprint.ts`。
 
 ---
 

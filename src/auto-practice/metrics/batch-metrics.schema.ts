@@ -8,6 +8,7 @@
 //       (历史行当时没算过, 回填 = 编数据);
 //     · 字段只增不删; 确需删除/改语义, 必须升 schemaVersion 而不是就地改 v1.
 
+import type { ZeroMotionBreakdown } from './acceptance-thresholds.js';
 import type { ConfigFingerprintSegments } from '../config-fingerprint.js';
 
 /** 当前快照版本. */
@@ -42,6 +43,12 @@ export interface MetricsSlice {
   readonly sessions: number;
   readonly turns: number;
   readonly metrics: Readonly<Record<string, number | null>>;
+  /**
+   * 零变化场次细分 (I-22): total / closure (事件层非 neutral → 豁免) / idle (纯 neutral → 计入).
+   *
+   * 字段只增不删: 旧快照 (intake-v1 时期落库) 没有这个字段, 读端按"缺省"处理.
+   */
+  readonly zeroMotionBreakdown?: ZeroMotionBreakdown;
 }
 
 /** 批次指标快照 v1. */
@@ -54,6 +61,8 @@ export interface BatchMetricsV1 {
   readonly lineage: readonly SessionLineage[];
   /** 键 = 指标字典 id; 值 = 指标值 (nullable 指标可为 null). */
   readonly metrics: Readonly<Record<string, number | null>>;
+  /** 全批零变化场次细分 (I-22); 字段只增不删, 旧快照缺省. */
+  readonly zeroMotionBreakdown?: ZeroMotionBreakdown;
   readonly byMode: Readonly<Record<string, MetricsSlice>>;
   readonly byCharacter: Readonly<Record<string, MetricsSlice>>;
 }
@@ -118,6 +127,19 @@ function assertMetricsMap(value: Record<string, unknown>, label: string): void {
   }
 }
 
+/**
+ * 校验零变化细分 (可选字段; 在场则逐个字段验型).
+ *
+ * @param value 待校验值
+ * @param label 出错时的标识
+ */
+function assertZeroMotionBreakdown(value: unknown, label: string): void {
+  if (!isObject(value)) throw new Error(`[${label}] zeroMotionBreakdown 非法`);
+  for (const field of ['total', 'closure', 'idle'] as const) {
+    if (!isFiniteNumber(value[field])) throw new Error(`[${label}] zeroMotionBreakdown.${field} 非法`);
+  }
+}
+
 export function assertBatchMetricsV1(value: unknown, label = 'snapshot'): asserts value is BatchMetricsV1 {
   if (!isObject(value)) throw new Error(`[${label}] 快照不是对象`);
   if (value['schemaVersion'] !== BATCH_METRICS_SCHEMA_VERSION) {
@@ -131,4 +153,16 @@ export function assertBatchMetricsV1(value: unknown, label = 'snapshot'): assert
   assertMetricsMap(value, label);
   if (!isObject(value['byMode'])) throw new Error(`[${label}] byMode 缺失`);
   if (!isObject(value['byCharacter'])) throw new Error(`[${label}] byCharacter 缺失`);
+  if (value['zeroMotionBreakdown'] !== undefined) assertZeroMotionBreakdown(value['zeroMotionBreakdown'], label);
+  for (const [sliceName, slices] of [
+    ['byMode', value['byMode']],
+    ['byCharacter', value['byCharacter']],
+  ] as const) {
+    for (const [key, slice] of Object.entries(slices)) {
+      if (!isObject(slice)) throw new Error(`[${label}] ${sliceName}.${key} 非法`);
+      if (slice['zeroMotionBreakdown'] !== undefined) {
+        assertZeroMotionBreakdown(slice['zeroMotionBreakdown'], `${label}.${sliceName}.${key}`);
+      }
+    }
+  }
 }

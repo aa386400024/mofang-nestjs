@@ -22,7 +22,12 @@ import { Repository } from 'typeorm';
 import { CounselorMode } from './entities/counselor-mode.entity.js';
 import { PracticeBatch } from './entities/practice-batch.entity.js';
 import { PracticeSession } from './entities/practice-session.entity.js';
-import { INTAKE_ACCEPTANCE_VERSION, INTAKE_EXPECTATIONS } from './metrics/acceptance-thresholds.js';
+import {
+  INTAKE_ACCEPTANCE_VERSION,
+  INTAKE_ACCEPTANCE_VERSION_HISTORY,
+  INTAKE_EXPECTATIONS,
+  INTAKE_TIERS,
+} from './metrics/acceptance-thresholds.js';
 import { assertBatchMetricsV1, BATCH_METRICS_SCHEMA_VERSION } from './metrics/batch-metrics.schema.js';
 import { METRIC_DICTIONARY, METRIC_DICTIONARY_VERSION } from './metrics/metric-dictionary.js';
 import { evaluateRegression } from './metrics/regression-evaluator.js';
@@ -293,13 +298,27 @@ export class AutoPracticeController {
     }
   }
 
-  /** 字典 + 判据只读投影 (纯常量组装, 便于单测; 不含判定逻辑). */
+  /**
+   * 字典 + 判据只读投影 (纯常量组装, 便于单测; 不含判定逻辑).
+   *
+   * intake-v2 起下发**分档结构**: `expectations` 仍是基线档 (= intake-v1 历史口径,
+   * 保持与前端旧镜像同源), 新增 `tiers` 逐档给出阈值 + 适用模式 + 是否候选档.
+   */
   static buildMetricCatalog() {
     return {
       dictionaryVersion: METRIC_DICTIONARY_VERSION,
       acceptanceVersion: INTAKE_ACCEPTANCE_VERSION,
+      acceptanceVersionHistory: INTAKE_ACCEPTANCE_VERSION_HISTORY,
       metrics: METRIC_DICTIONARY,
       expectations: INTAKE_EXPECTATIONS,
+      tiers: INTAKE_TIERS.map((tier) => ({
+        id: tier.id,
+        label: tier.label,
+        counselorModeIds: tier.counselorModeIds,
+        provisional: tier.provisional,
+        note: tier.note,
+        expectations: tier.expectations,
+      })),
     };
   }
 
@@ -315,6 +334,7 @@ export class AutoPracticeController {
         generatedAt: new Date().toISOString(),
         metricCount: METRIC_DICTIONARY.length,
         expectationCount: INTAKE_EXPECTATIONS.length,
+        tierCount: INTAKE_TIERS.length,
       },
       warnings: [],
     };

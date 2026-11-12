@@ -1,8 +1,9 @@
 # Phase2.5 · Intake（12 轮档）临床验收口径
 
 - 文档日期：2026-11-11
-- 版本：intake-v1
+- 版本：**intake-v2**（判据按 `counselorModeId` 分档；**intake-v1 判据表作为历史口径原样保留在 §3**）
 - 状态：现行（取代 `phase2.5-p1d-acceptance-and-rerun-plan-2026-11-10.md` §3.5 的 12 轮档判定）
+- 增补记录：2026-11-12 intake-v2 分档（I-21 / I-22 + TD-4）→ [任务单](../completed/phase2.5/phase2.5-intake-v2-mode-stratified-acceptance-2026-11-12.md) · [交付记录](../completed/phase2.5/phase2.5-intake-v2-mode-stratified-acceptance-implementation-2026-11-12.md)
 - 关联任务：WP-L「临床增量表纠正 + 12 轮档验收口径重写」
 - 关联代码：`src/engine-core/cognition/state-transition.ts` 的 `DELTA_TABLE`；`src/auto-practice/metrics/acceptance-thresholds.ts`
 
@@ -40,9 +41,11 @@ WP-L 做两件事，二者必须同时落地，否则会互相误读：
 
 ---
 
-## 3. 12 轮档（intake）判据
+## 3. 12 轮档（intake）判据 —— **基线档（intake-v1 口径，历史保留）**
 
 所有幅度均为「相对该场基线快照的净变化」，比较前必须经 `round6` 处理（见 §6）。
+
+> **本节即 intake-v2 的「基线档」**：intake-v2 起判据按 `counselorModeId` 分档，`expert` 及**所有未单列模式**回落本节阈值（数值一个未改）；`cold` 负向极端模式走 §3.2 的专属候选档。**本节内容作为 intake-v1 历史口径原样保留**（判据唯一真相源：`src/auto-practice/metrics/acceptance-thresholds.ts` 的 `INTAKE_EXPECTATIONS`）。
 
 | 维度       | 判据                                        | 方向     | 临床依据                                                                        |
 | ---------- | ------------------------------------------- | -------- | ------------------------------------------------------------------------------- |
@@ -62,6 +65,51 @@ WP-L 做两件事，二者必须同时落地，否则会互相误读：
 - `trust` 超过 +0.20 同样需要警惕（可能是快速理想化，而非真实联盟），在报告中标注但不直接判失败。
 - 任一维度出现 NaN / Infinity / 会话中断，无论其他维度如何，直接判失败。
 - 探索率不验，但需在报告中**记录其数值与变化方向**，用于解释「为什么下降是对的」，不能直接忽略。
+
+### 3.2 intake-v2 分档口径（2026-11-12 增补）
+
+**为什么分档**：intake-v1 是按「称职咨询师首次会谈」标定的**全局单表**。`cold`（冷漠型 AI 咨询师）是**负向极端模式**——来访者面对冷漠输入时联盟建立慢、低 trust/safety 属**合理反应**，用基线档阈值套 `cold` 切片会把「合理封闭」误判成来访者质量不合格；批次级聚合还会掩盖 expert / cold 两端的极端差异（96 场批次：expert safety 0.0213 达标，cold 0.0035、trust 0.0297 双低）。
+
+**分档规则**（代码真相源：`acceptance-thresholds.ts` 的 `INTAKE_TIERS` + `resolveIntakeTier()`）：
+
+| 档位                 | 适用 `counselorModeId`                                                             | 阈值来源                             | 状态                  |
+| -------------------- | ---------------------------------------------------------------------------------- | ------------------------------------ | --------------------- |
+| `baseline`（兜底档） | `expert` / `novice` / `chatty` / `preachy` / `nonsense` / 空值等**所有未单列模式** | §3 的 intake-v1 原表（数值一个未改） | 现行                  |
+| `cold`               | `cold`                                                                             | §3.2.1 的候选阈值                    | **候选 · 待主控复核** |
+
+> **被验收对象不变**：判据度量的始终是 **AI 来访者的状态轨迹**；`counselorModeId` 只是**切片维度**（观察同一个来访者在不同风格咨询师输入下的反应），**不给 AI 咨询师台词定任何 KPI**。
+
+#### 3.2.1 cold 档候选阈值
+
+依 96 场批次 `g3ONzlqSGMVJqkFMF9Lwh` 的 cold 切片实测（48 场 / 551 轮）提出，**待主控复核后再转正**。
+
+> **主控复核结论（2026-11-12）**：维持候选档（`provisional=true`），**暂不转正**。当前仅单批 48 场样本标定，样本内裕度足够但缺样本外复现；下一批复核 cold 切片仍稳定落区间且不贴边后，再去掉候选标记转正。
+
+| 判据          | cold 候选值                | 实测           | 依据                                                                                   |
+| ------------- | -------------------------- | -------------- | -------------------------------------------------------------------------------------- |
+| `trust`       | +0.01 ~ +0.08              | 0.029667       | 冷漠输入下信任建立显著慢（expert 0.1386）；下限 0.01 保住「完全无响应即不合格」的底线  |
+| `safety`      | 0.00 ~ +0.03               | 0.003479       | 试探性安全几乎不涨属合理反应；上限 0.03 防「无节制依赖」滑向另一端                     |
+| `bond`        | ±0.03                      | 0.002917       | 沿用 v1：纽带 3–5 次会谈后才成形，首次会谈本就不该动                                   |
+| `depth`       | 降幅 ≤ 0.05                | −0.000857      | 深度防御基本稳；比基线更紧，捕捉「冷漠输入反而把深度防御撬开 / 塌陷」                  |
+| `style`       | 净变化 ≤ 0.05              | 0.002384       | 沿用 v1：人格级防御属于稳定特质                                                        |
+| `verbal`      | 降幅 ≤ 0.05                | −0.004880      | 冷漠输入下话量阻抗几乎不动；比基线更紧，捕捉「被压垮 / 泄洪」                          |
+| `arousal`     | ≥ 基线 − 0.05              | 0.004167       | 沿用 v1：结束时唤醒仍可能高于基线                                                      |
+| `zero_motion` | 纯 neutral 空转占比 ≤ 0.70 | 31/48 = 0.6458 | I-22 语义（见 §3.3）；该档不要求为 0，但空转率过高说明「冷漠被静默成中性」的失效面过大 |
+
+### 3.3 `session.zero_motion` 在 cold 档的两类语义（I-22）
+
+`session.zero_motion` 定义为「八维首末全部相等的场次数」，v1 要求必须为 0。在 `cold` 模式下需要区分两种本质不同的情形：
+
+| 情形                        | 判定（逐场）                                | cold 档处理                               |
+| --------------------------- | ------------------------------------------- | ----------------------------------------- |
+| **合理封闭**（closure）     | 零变化 **且** 事件层存在**非 neutral** 事件 | 按任务单口径**豁免**，不计入失效          |
+| **纯 neutral 空转**（idle） | 零变化 **且** 事件层只有 neutral / 无事件   | **计入失效**（进 `max_ratio` 判据的分子） |
+
+- **判定粒度**：逐场。切片级 event 指标只有聚合值、无法归因到具体场次，故在计算层逐场判定并汇总为 `MetricsSlice.zeroMotionBreakdown`（`total` / `closure` / `idle`）。
+- **数据来源**：逐字稿合规投影的 `traces[].eventTags`（**只有事件标签**，不含对话原文 / 量表答案 / 心理画像）。
+- **基线档不受影响**：`baseline` 档仍用 v1 原语义（原始计数必须为 0），保证 v1 口径一个数值都没改。
+- **96 场批次实测**：全局 38/0/38、`expert` 7/0/7、`cold` 31/0/31 —— **豁免命中 0 场**（零变化场次与全 neutral 场次完全重合）；cold 档判 PASS 靠的是它自己的候选阈值，不是豁免。**豁免 / 计入的映射方向待主控复核**（详见交付记录 §5.4）。
+- **主控复核倾向（2026-11-12）**：按「检测状态转移失效」本意，**反向语义更自洽**——有非 neutral 输入而状态不动属转移未生效（应计入）；全程 neutral 无推动源的不动属合理封闭（应豁免）。现字面实现与之相反；本批两种方向数据重合、无法区分，取证前代码不反转。下一批需统计「存在非 neutral 事件且零变化」的场次占比，据此定方向。
 
 ---
 
@@ -94,8 +142,9 @@ WP-L 做两件事，二者必须同时落地，否则会互相误读：
 1. 批次完成后，用 `pnpm exec tsx bin/batch-report.ts --batch <batchId> --out <path>` 生成批次快照；
 2. 快照内逐字稿已投影为 `TraceInput`，只含 `turnIndex` / 八扁平键 `bdiSnapshot` / `delta` / `eventTags` / `strategy` / `degraded`，不含对话原文、`messages`、`renderSpec`、`intention.rationale`；
 3. 各维度净变化经 `round6` 取整后，与 §3 区间逐维比对；
-4. 单批验收由 `evaluateIntakeAcceptance`（`INTAKE_ACCEPTANCE_VERSION = 'intake-v1'`）执行，输出逐维通过/不通过；
-5. 与历史批次比较时，须先经 `compareFingerprints` 确认 `deltaTableConfig` 段指纹变化；若角色集合或覆盖不成立，`evaluateRegression` 会给出 `incomparable`，此时禁止硬比。
+4. 单批验收由 `evaluateIntakeAcceptance`（`INTAKE_ACCEPTANCE_VERSION = 'intake-v2'`）执行：全局判定**不带** `counselorModeId` → 走**基线档**（= §3 的 v1 口径，全局结论保留不替换）；切片判定传 `{ counselorModeId, sessions, zeroMotion }` → 走该模式的档（未单列则回落基线档），输出逐维通过/不通过 + 命中的档位 id；
+5. 报告 CLI（`bin/batch-report.ts`）在保留全局结论的同时，按 `byMode` 各切片分别判分并输出每档 PASS/FAIL 与未达标项；
+6. 与历史批次比较时，须先经 `compareFingerprints` 确认 `deltaTableConfig` 段指纹变化；若角色集合或覆盖不成立，`evaluateRegression` 会给出 `incomparable`，此时禁止硬比。判据文件（`acceptance-thresholds.ts`）本身是配置指纹 `acceptance` 段的哈希对象——改判据必然让该段变化，跨批判 `incomparable` 属**设计预期**（TD-4 修复后 CLI 与服务端指纹口径统一为 `dist/*.js`，两侧逐段可比）。
 
 ---
 

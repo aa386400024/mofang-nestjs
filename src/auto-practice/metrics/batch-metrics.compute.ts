@@ -6,6 +6,7 @@
 //   intention.rationale, 物理上接触不到对话文本.
 
 import type { ConfigFingerprintSegments } from '../config-fingerprint.js';
+import type { ZeroMotionBreakdown } from './acceptance-thresholds.js';
 import type { BatchMetricsV1, MetricsSlice, SessionLineage, SkipReason } from './batch-metrics.schema.js';
 import {
   POSITIVE_EVENTS,
@@ -189,19 +190,57 @@ function isZeroMotion(session: SessionComputationInput): boolean {
   });
 }
 
+/**
+ * 判定一场的事件层是否存在**非 neutral** 事件 (I-22 豁免的依据).
+ *
+ * 数据来源: 逐字稿合规投影里的 traces[].eventTags (只有事件标签, 不含对话原文).
+ * 口径: 只要有一轮挂着非 neutral 的事件标签, 该场就算"事件层有动作";
+ * 全程只有 neutral (或没有任何事件标签) → 纯 neutral 空转.
+ */
+function hasNonNeutralEvent(session: SessionComputationInput): boolean {
+  for (const trace of session.traces) {
+    for (const tag of trace.eventTags) {
+      if (tag !== 'neutral') return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * 零变化场次细分 (I-22): 区分"合理封闭"与"纯 neutral 空转".
+ *
+ * · total   = 零变化场次总数 (与 session.zero_motion 同值, 同口径);
+ * · closure = 其中事件层存在非 neutral 事件的场次 (**合理封闭**, 按任务单口径豁免);
+ * · idle    = 其中纯 neutral 空转的场次 (**计入失效**).
+ *
+ * 逐场判定, 纯函数, 零 IO.
+ *
+ * @param sessions 场次
+ * @returns 细分
+ */
+function computeZeroMotionBreakdown(sessions: readonly SessionComputationInput[]): ZeroMotionBreakdown {
+  let total = 0;
+  let closure = 0;
+  for (const session of sessions) {
+    if (!isZeroMotion(session)) continue;
+    total += 1;
+    if (hasNonNeutralEvent(session)) closure += 1;
+  }
+  return { total, closure, idle: total - closure };
+}
+
 function computeSummaryMetrics(
   sessions: readonly SessionComputationInput[],
   pipeline: PipelineContext,
   metrics: Record<string, number | null>,
+  zeroMotionBreakdown: ZeroMotionBreakdown,
 ): void {
   let explorationSessions = 0;
-  let zeroMotion = 0;
   for (const session of sessions) {
     if (session.traces.some((trace) => EXPLORATION_STRATEGIES.has(trace.strategy))) explorationSessions += 1;
-    if (isZeroMotion(session)) zeroMotion += 1;
   }
   metrics['exploration.rate'] = round6(sessions.length > 0 ? explorationSessions / sessions.length : 0);
-  metrics['session.zero_motion'] = zeroMotion;
+  metrics['session.zero_motion'] = zeroMotionBreakdown.total;
 
   const outcomeCounts: Record<string, number> = {};
   for (const outcome of SESSION_OUTCOMES) outcomeCounts[outcome] = 0;
@@ -216,22 +255,31 @@ function computeSummaryMetrics(
   metrics['pipeline.fallback_ratio'] = pipeline.fallbackRatio === null ? null : round6(pipeline.fallbackRatio);
 }
 
-function computeMetricMap(sessions: readonly SessionComputationInput[], pipeline: PipelineContext): Record<string, number | null> {
+function computeMetricMap(
+  sessions: readonly SessionComputationInput[],
+  pipeline: PipelineContext,
+): {
+  readonly metrics: Record<string, number | null>;
+  readonly zeroMotionBreakdown: ZeroMotionBreakdown;
+} {
   const metrics: Record<string, number | null> = {};
   const totalTurns = sessions.reduce((acc, session) => acc + session.traces.length, 0);
   computeDimensionMetrics(sessions, metrics);
   computeEventMetrics(sessions, totalTurns, metrics);
   computeStrategyMetrics(sessions, totalTurns, metrics);
-  computeSummaryMetrics(sessions, pipeline, metrics);
-  return metrics;
+  const zeroMotionBreakdown = computeZeroMotionBreakdown(sessions);
+  computeSummaryMetrics(sessions, pipeline, metrics, zeroMotionBreakdown);
+  return { metrics, zeroMotionBreakdown };
 }
 
 /** 构建一个分组切片. */
 function buildSlice(sessions: readonly SessionComputationInput[], pipeline: PipelineContext): MetricsSlice {
+  const { metrics, zeroMotionBreakdown } = computeMetricMap(sessions, pipeline);
   return {
     sessions: sessions.length,
     turns: sessions.reduce((acc, session) => acc + session.traces.length, 0),
-    metrics: computeMetricMap(sessions, pipeline),
+    metrics,
+    zeroMotionBreakdown,
   };
 }
 
@@ -283,6 +331,8 @@ export function computeBatchSnapshot(
   for (const [mode, sessions] of Object.entries(byModeGroups)) byMode[mode] = buildSlice(sessions, context.pipeline);
   for (const [character, sessions] of Object.entries(byCharacterGroups)) byCharacter[character] = buildSlice(sessions, context.pipeline);
 
+  const global = computeMetricMap(included, context.pipeline);
+
   return {
     schemaVersion: 1,
     computedAt: new Date().toISOString(),
@@ -297,7 +347,8 @@ export function computeBatchSnapshot(
       transcriptRoot: context.transcriptRoot,
     },
     lineage,
-    metrics: computeMetricMap(included, context.pipeline),
+    metrics: global.metrics,
+    zeroMotionBreakdown: global.zeroMotionBreakdown,
     byMode,
     byCharacter,
   };
