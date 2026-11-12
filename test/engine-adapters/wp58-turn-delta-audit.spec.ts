@@ -1,9 +1,9 @@
 // V2026-11-06 治本 (WP58 · B 层 · 事件 + delta 审计观测):
 //   职责: 钉死"adapter 层自观测"这条链路的五段行为 ——
-//     ① 开关: 关着时**连分类器都不跑** (零开销), 开时才观测;
-//     ② 落库: 事件类型 + 命中词 + 原始 delta (11 维) 一次写齐, 重试覆盖同一行;
-//     ③ 补齐: 内核认得的 sensitive_touch (本地分类器看不到) 按类型补回来 ——
-//        免得记下来的 delta 与内核实际施加的对不上;
+//     ① 开关: 关着时**连仓储都不碰** (零开销), 开时才观测;
+//     ② 落库: 事件类型 + 原始 delta (11 维) 一次写齐, 重试覆盖同一行;
+//     ③ 同源: 审计**只吃内核事件** (V2026-11-12 D-1 第二段 · C3) ——
+//        审计事件集合 == 内核事件集合, 不再本地重分类 + 取并集;
 //     ④ 出口: 门面两个出口 (turn / turnStream) 都挂观测, 失败静默不影响主链路;
 //     ⑤ 读侧: admin 端点按轮次升序返回, 无数据 = 空数组.
 //   边界: 全 mock; 不起 Nest 容器; 不连 DB / 不发网络.
@@ -137,7 +137,6 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
       tenantId: 't1',
       sessionId: 's1',
       turnIndex: 1,
-      userText: '听起来你现在一定很难受',
       kernelEventKinds: ['empathy'],
     });
     await flush();
@@ -154,7 +153,6 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
       tenantId: 't1',
       sessionId: 's1',
       turnIndex: 1,
-      userText: '听起来你现在一定很难受',
       kernelEventKinds: ['empathy'],
     });
     await flush();
@@ -167,8 +165,28 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
     expect(row.turnIndex).toBe(1);
     expect(row.eventKinds).toEqual(['empathy']);
     expect(row.eventDetails[0]?.kind).toBe('empathy');
-    expect(row.eventDetails[0]?.matchedTerms).toContain('听起来你');
+    // C3 (D-1 第二段): 审计**不再自行跑分类器** —— 命中词明细随之归零.
+    //   内核出参只带事件**种类**, 不带命中词 (那是内核内部产物);
+    //   要拿命中词就得再跑一遍分类器 —— 那正是 C3 去掉的动作.
+    //   断言的**语义**没变: 审计记的仍然是内核这一轮判出的东西 (不多不少).
+    expect(row.eventDetails[0]?.matchedTerms).toEqual([]);
     expect(row.eventDetails[0]?.strength).toBe(1);
+  });
+
+  it('审计事件集合 == 内核事件集合 (C3: 不产生第二套标签, 也不多算)', async () => {
+    const repo = repoStub();
+    const service = makeService(ON, repo);
+
+    service.record({
+      tenantId: 't1',
+      sessionId: 's1',
+      turnIndex: 1,
+      kernelEventKinds: ['empathy', 'open_probe'],
+    });
+    await flush();
+
+    expect(repo.saved[0]?.eventKinds).toEqual(['empathy', 'open_probe']);
+    expect(repo.saved[0]?.eventDetails.map((detail) => detail.kind)).toEqual(['empathy', 'open_probe']);
   });
 
   it('原始 delta 与内核系数表逐字一致 (11 维全落, 不是自己估的数)', async () => {
@@ -179,7 +197,6 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
       tenantId: 't1',
       sessionId: 's1',
       turnIndex: 1,
-      userText: '听起来你现在一定很难受',
       kernelEventKinds: ['empathy'],
     });
     await flush();
@@ -208,7 +225,6 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
       tenantId: 't1',
       sessionId: 's1',
       turnIndex: 1,
-      userText: '嗯。',
       kernelEventKinds: ['neutral'],
     });
     await flush();
@@ -226,7 +242,6 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
       tenantId: 't1',
       sessionId: 's1',
       turnIndex: 1,
-      userText: '听起来你现在一定很难受',
       // 内核带了角色的敏感议题词表, 认得出 sensitive_touch; 适配层拿不到那个词表.
       kernelEventKinds: ['empathy', 'sensitive_touch'],
     });
@@ -260,7 +275,6 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
       tenantId: 't1',
       sessionId: 's1',
       turnIndex: 2,
-      userText: '听起来你现在一定很难受',
       kernelEventKinds: ['empathy'],
     });
     await flush();
@@ -281,7 +295,6 @@ describe('WP58 · 观测服务 (开关 / 落库 / 补齐 / 失败静默)', () =>
         tenantId: 't1',
         sessionId: 's1',
         turnIndex: 1,
-        userText: '听起来你现在一定很难受',
         kernelEventKinds: ['empathy'],
       }),
     ).not.toThrow();
@@ -369,11 +382,11 @@ describe('WP58 · 门面观测点 (turn / turnStream 两个出口)', () => {
 
     await facade.turn('h1', { userText: '听起来你现在一定很难受' });
 
+    // C3 (D-1 第二段): 审计**只吃内核事件** —— 咨询师原话不再进审计层.
     expect(record).toHaveBeenCalledWith({
       tenantId: 't1',
       sessionId: 's1',
       turnIndex: 3,
-      userText: '听起来你现在一定很难受',
       kernelEventKinds: ['empathy'],
     });
   });

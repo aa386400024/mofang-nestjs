@@ -82,6 +82,7 @@ import { RenderConfigFactory, buildEngineRenderPort } from './render-config.fact
 import { resolveSessionSummaryConfig } from './session-summary.config.js';
 import { TurnDeltaAuditModule } from './turn-delta-audit/turn-delta-audit.module.js';
 import { LlmModule as AgentLlmModule } from '../../agent/llm/llm.module.js';
+import { COUNSELOR_LLM_DEFAULT_MODEL, COUNSELOR_LLM_MODEL_ENV_KEY } from '../../counselor/config/counselor-llm.config.js';
 import { CounselorLlmJsonClient } from '../../counselor/providers/llm-json.client.js';
 import type { BdiStateRepository, EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
 import { resolveSessionCostPricing } from '../observability/session-cost.js';
@@ -106,6 +107,9 @@ import { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
 import { VOICE_TURN_BACKEND } from '../../voice/voice-turn-backend.port.js';
+import { resolveModelClassifierModeConfig } from '../cognition/model-classifier-mode.config.js';
+import { RedisModelClassifierObserver } from '../cognition/model-classifier-observation.js';
+import { ModelEventClassifier } from '../cognition/model-event-classifier.js';
 import { resolveDeliberationModeConfig, type DeliberationModeConfig } from '../deliberation/deliberation-mode.config.js';
 import { DeliberationProcessor } from '../deliberation/deliberation.processor.js';
 import { LlmDeliberationEffectiveRunner } from '../deliberation/llm-deliberation-effective.js';
@@ -343,6 +347,40 @@ const wiringLogger = new Logger('EngineWiring');
         new LlmDeliberationHook(modeConfig, new LlmDeliberationEffectiveRunner(deliberation), Date.now, registry),
       inject: [ENGINE_DELIBERATION_MODE_CONFIG, LlmDeliberationService, EngineSessionRegistry],
     },
+    // V2026-11-12 治本 (D-1 第二段 · 模型轨事件分类器 · 装配):
+    //   ① 模式配置 —— 启动期求值一次 (与审议同款: 不做热更新, 两端口径恒等).
+    //   ② 分类器 —— **单例** (内核会话端口与编排门面必须拿到**同一个**实例:
+    //      跨轮状态分桶在它身上, 两个实例 = 两份状态 = 跨轮计数对不上).
+    //
+    //   ⚠️ **缺省不挂 = 逐字零回归**: 不配任何 env → 模式 = rule_only →
+    //     内核决策链里**根本没有模型轨这一步** (不是「结果一样」, 是「没走那条路」).
+    {
+      provide: ModelEventClassifier,
+      useFactory: (
+        config: ConfigService,
+        llmJson: CounselorLlmJsonClient,
+        registry: EngineSessionRegistry,
+        redis: RedisService,
+      ): ModelEventClassifier => {
+        const modeConfig = resolveModelClassifierModeConfig(config);
+        // 启动期**喊一声**解析后的模式 —— 灰度期最贵的坑就是「以为在灰度, 其实没生效」.
+        //   只出模式名与名单规模 (不含任何会话 / 心理内容 —— 隐私红线 AGENTS.md §5.4).
+        wiringLogger.log(
+          `[d1] 模型轨生效模式=${modeConfig.effectiveMode} 灰度名单=${
+            modeConfig.grayscaleSessions.size > 0 ? `${modeConfig.grayscaleSessions.size} 场` : '全量'
+          }`,
+        );
+        if (modeConfig.effectiveMode === 'llm_active') {
+          // 首版是**中间态**: 模型轨结果只进旁路观测, 不接 delta.
+          //   llm_active 通路留 D-2 —— 这里明确喊一声, 别让人以为已经生效了.
+          wiringLogger.warn('[d1] 模型轨 llm_active 通路本单**未接线** (留 D-2) —— 按 rule_only 运行');
+        }
+        // 模型标识 (观测字段) —— 口径与 CounselorLlmJsonClient.resolveModel 一致.
+        const modelId = config.get<string>(COUNSELOR_LLM_MODEL_ENV_KEY) ?? COUNSELOR_LLM_DEFAULT_MODEL;
+        return new ModelEventClassifier(llmJson, modeConfig, new RedisModelClassifierObserver(redis), registry, modelId);
+      },
+      inject: [ConfigService, CounselorLlmJsonClient, EngineSessionRegistry, RedisService],
+    },
     {
       // I-12: 会话级同盟门槛覆盖来源 —— **缺省 = 永远无覆盖**.
       //   门槛逐字回落到模块 env 单例 (灰度期数值冻结); 真实来源 (按角色档案自动算门槛)
@@ -361,6 +399,7 @@ const wiringLogger = new Logger('EngineWiring');
         bdiStates: BdiStateRepository,
         modeConfig: DeliberationModeConfig,
         deliberationHook: LlmDeliberationHook,
+        modelClassifier: ModelEventClassifier,
       ): EngineSessionPort => {
         return createEngineSessionPort(
           memories,
@@ -389,8 +428,12 @@ const wiringLogger = new Logger('EngineWiring');
             onWorkingWindowOverflow: (event) => rollingSummary.recordOverflow(event),
             // R9: 审议钩子 —— **只在生效模式打开时注入内核**.
             //   不注入 = 内核决策链里根本没有审议这一步 (逐字零回归, 不是"结果一样").
-            //   ⚠️ 会话白名单的逐场判定在钩子**内部**做 —— 装配期拿不到"当前是哪场会话".
+            //   ⚠️ 会话白名单的逐场判定在钩子**内部**做 —— 装配期拿不到“当前是哪场会话”.
             ...(modeConfig.effectiveMode === 'llm_active' ? { deliberationHook } : {}),
+            // D-1 第二段: 模型轨事件分类器 —— **只在影子模式注入内核**.
+            //   不注入 = 内核决策链里根本没有模型轨这一步 (逐字零回归, 不是“结果一样”).
+            //   ⚠️ llm_active 通路本单**未接线** (留 D-2) —— 所以这里只挂 shadow.
+            ...(modelClassifier.effectiveMode() === 'shadow' ? { classifier: modelClassifier } : {}),
           },
           // 状态仓储**单例**注入 (与上面那个 provider 是同一个实例).
           bdiStates,
@@ -405,6 +448,7 @@ const wiringLogger = new Logger('EngineWiring');
         ENGINE_BDI_STATE_REPOSITORY,
         ENGINE_DELIBERATION_MODE_CONFIG,
         ENGINE_DELIBERATION_HOOK,
+        ModelEventClassifier,
       ],
     },
     // 装配门面 (WP7): 接上归属解析缝 (多会话, 不传固定 sessionContext).
@@ -423,6 +467,7 @@ const wiringLogger = new Logger('EngineWiring');
         modeConfig: DeliberationModeConfig,
         deliberationHook: LlmDeliberationHook,
         gate: DeliberationGateService,
+        modelClassifier: ModelEventClassifier,
       ): TurnRenderOrchestrator =>
         createEngineOrchestrator({
           session,
@@ -449,6 +494,9 @@ const wiringLogger = new Logger('EngineWiring');
           //     (纯规则模式 = 压根没有审议路径 = 闸门一次都不会被调用).
           //   ⚠️ 门面只认窄端口 (DeliberationGatePort) —— 这里传的是实现, 门面不知道实现细节.
           gate,
+          // D-1 第二段: 模型轨跨轮上下文 (上一轮来访话语 + 清理挂点).
+          //   ⚠️ **只在影子模式挂** —— rule_only 时挂上去只会白白攒状态分桶 (内存涨).
+          ...(modelClassifier.effectiveMode() === 'shadow' ? { modelClassifierContext: modelClassifier } : {}),
         }),
       inject: [
         ENGINE_SESSION_PORT,
@@ -461,6 +509,7 @@ const wiringLogger = new Logger('EngineWiring');
         ENGINE_DELIBERATION_MODE_CONFIG,
         ENGINE_DELIBERATION_HOOK,
         DeliberationGateService,
+        ModelEventClassifier,
       ],
     },
     // V2026-11-02 治本 (WP14 §1.6 — 重点监测场次的强制远端探测):

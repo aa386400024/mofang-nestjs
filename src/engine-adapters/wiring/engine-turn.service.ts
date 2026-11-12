@@ -394,7 +394,7 @@ export class EngineTurnService {
    */
   async turn(handleId: string, input: EngineTurnInput): Promise<TurnRenderResult> {
     const result = await this.orchestrator.turn(handleId, input);
-    this.auditTurn(handleId, input, result);
+    this.auditTurn(handleId, result);
     return result;
   }
 
@@ -417,7 +417,7 @@ export class EngineTurnService {
     options?: { readonly includePromptFull?: boolean },
   ): Promise<TurnRenderResult> {
     const result = await this.orchestrator.turnStream(handleId, input, handlers, options);
-    this.auditTurn(handleId, input, result);
+    this.auditTurn(handleId, result);
     return result;
   }
 
@@ -469,10 +469,9 @@ export class EngineTurnService {
    *     承诺不抛, 但门面不该把"观测出问题"变成"对话出问题".
    *
    * @param handleId 内核会话句柄
-   * @param input 本轮入参
    * @param result 本轮出参
    */
-  private auditTurn(handleId: string, input: EngineTurnInput, result: TurnRenderResult): void {
+  private auditTurn(handleId: string, result: TurnRenderResult): void {
     if (!this.audit) return;
     const context = this.registry.resolve(handleId);
     if (!context) return;
@@ -481,7 +480,7 @@ export class EngineTurnService {
         tenantId: context.tenantId,
         sessionId: context.sessionId,
         turnIndex: result.turnIndex,
-        userText: input.userText,
+        // C3 (D-1 第二段): 审计**只吃内核事件** —— 不再传咨询师原话 (审计层不再自行分类).
         kernelEventKinds: result.events ?? [],
       });
     } catch (error) {

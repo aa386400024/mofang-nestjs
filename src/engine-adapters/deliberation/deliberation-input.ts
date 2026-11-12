@@ -38,8 +38,9 @@ import {
   type DeliberationRiskLevel,
   type DeliberationStateComparisonEntry,
 } from './deliberation-types.js';
-import { PSYGUARD_LEVEL_MAP, RuleBasedClassifier, evaluateSafety, maxSafetyLevel } from '../../engine-core/index.js';
+import { PSYGUARD_LEVEL_MAP, evaluateSafety, maxSafetyLevel } from '../../engine-core/index.js';
 import type { BehaviorStrategy, BdiSnapshot, CounselorEventKind, SafetyVerdict } from '../../engine-core/index.js';
+import { SHARED_RULE_TRACK } from '../cognition/model-event-classifier.js';
 
 /**
  * 风险等级的中文标签 (给 prompt 看).
@@ -69,8 +70,12 @@ const CRISIS_CATEGORY_SET: ReadonlySet<string> = new Set(Object.keys(PSYGUARD_LE
  * ⚠️ 这是**兜底**, 不是主路: 主路是内核算好的 `EngineTurnOutput.events` (权威真相).
  *   只有内核没给出 events 时 (老版本 / 测试 mock) 才走这里.
  *   ⚠️ 兜底路径拿不到角色的敏感议题词表 → `sensitive_touch` 可能漏判 (内核路径不缺).
+ *
+ * V2026-11-12 治本 (D-1 第二段 · 三处同源收敛): 改用**适配层共享单例**
+ *   `SHARED_RULE_TRACK` —— 与模型轨的回落用**同一份**规则轨.
+ *   仓库纪律是「判定只有一份」: 两处各 new 一个, 将来改词典只改一处就漂了.
  */
-const fallbackClassifier = new RuleBasedClassifier();
+const fallbackClassifier = SHARED_RULE_TRACK;
 
 /**
  * 事件分类结果 (事件分类 + 风险等级).

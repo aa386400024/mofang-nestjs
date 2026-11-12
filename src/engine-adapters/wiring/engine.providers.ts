@@ -50,6 +50,7 @@ import type {
   DeltaTableConfig,
   Embedder,
   EngineSessionPort,
+  EventClassifier,
   MemoryStore,
   PersonalityModulatorConfig,
   RiskProbePort,
@@ -223,8 +224,50 @@ export interface EngineSessionTuningDeps {
    * 审议能力是**部署形态**的决定 (灰度到哪批会话), 不是会话参数.
    */
   readonly deliberationHook?: DeliberationHookPort;
+  /**
+   * 事件分类器 (D-1 第二段 · 模型轨; 缺省 = 内核用**默认规则轨**).
+   *
+   * 缺省语义: **逐字零回归** —— 不注入 = 内核走 `new RuleBasedClassifier()`,
+   *   落库的 delta 与改造前**逐字相同** (不是「结果一样」, 是「根本没走那条路」).
+   *
+   * ⚠️ 注入模型轨 = 内核每轮关键路径多一次 LLM 往返 —— 所以**只在灰度打开时装配**
+   *   (见 engine.module.ts), 且模型轨实现内部失败即回落规则轨.
+   */
+  readonly classifier?: EventClassifier;
 }
 
+/**
+ * 内核会话的构造选项形状 (从构造函数反推 —— 不新增 core 导出).
+ */
+type EngineSessionOptions = ConstructorParameters<typeof InMemoryEngineSession>[0];
+
+/**
+ * 把调参依赖摊平成内核会话的构造选项 (**缺省 = 不传 = 逐字零回归**).
+ *
+ * ⚠️ **为什么抽出来**: 每个可选项都写成「有才传」的三元, 装配项一多, 这个工厂的
+ *   圈复杂度就顶到 eslint 的上限 (20) —— 而「某个可选项没传」本质是**同一件事重复 N 遍**.
+ *   抽出来之后判定只剩一处, 以后加装配项也只是加一行.
+ *
+ * ⚠️ **缺省语义**: 一项都没传 → 返回空对象 → 内核走自己的默认值 (逐字零回归).
+ *
+ * @param tuning 调参依赖
+ * @returns 内核会话构造选项 (可选项缺省不出现)
+ */
+function resolveEngineSessionTuningOptions(tuning: EngineSessionTuningDeps | undefined): Partial<EngineSessionOptions> {
+  if (!tuning) return {};
+  return {
+    ...(tuning.capConfig ? { capConfig: tuning.capConfig } : {}),
+    ...(tuning.capObserver ? { capObserver: tuning.capObserver } : {}),
+    ...(tuning.personalityModulatorConfig ? { personalityModulatorConfig: tuning.personalityModulatorConfig } : {}),
+    ...(tuning.allianceConfig ? { allianceConfig: tuning.allianceConfig } : {}),
+    ...(tuning.deltaTableConfig ? { deltaTableConfig: tuning.deltaTableConfig } : {}),
+    ...(tuning.sessionDecayConfig ? { sessionDecayConfig: tuning.sessionDecayConfig } : {}),
+    ...(tuning.onWorkingWindowOverflow ? { onWorkingWindowOverflow: tuning.onWorkingWindowOverflow } : {}),
+    ...(tuning.deliberationHook ? { deliberationHook: tuning.deliberationHook } : {}),
+    // D-1 第二段: 事件分类器 (模型轨) —— 不传 = 内核用默认规则轨 (逐字零回归).
+    ...(tuning.classifier ? { classifier: tuning.classifier } : {}),
+  };
+}
 /**
  * 装配内核会话端口.
  *
@@ -251,14 +294,7 @@ export function createEngineSessionPort(
     bdiStates: bdiStates ?? new InMemoryBdiStateRepository(),
     memories,
     ...(riskProbe ? { riskProbe } : {}),
-    ...(tuning?.capConfig ? { capConfig: tuning.capConfig } : {}),
-    ...(tuning?.capObserver ? { capObserver: tuning.capObserver } : {}),
-    ...(tuning?.personalityModulatorConfig ? { personalityModulatorConfig: tuning.personalityModulatorConfig } : {}),
-    ...(tuning?.allianceConfig ? { allianceConfig: tuning.allianceConfig } : {}),
-    ...(tuning?.deltaTableConfig ? { deltaTableConfig: tuning.deltaTableConfig } : {}),
-    ...(tuning?.sessionDecayConfig ? { sessionDecayConfig: tuning.sessionDecayConfig } : {}),
-    ...(tuning?.onWorkingWindowOverflow ? { onWorkingWindowOverflow: tuning.onWorkingWindowOverflow } : {}),
-    ...(tuning?.deliberationHook ? { deliberationHook: tuning.deliberationHook } : {}),
+    ...resolveEngineSessionTuningOptions(tuning),
   });
 }
 

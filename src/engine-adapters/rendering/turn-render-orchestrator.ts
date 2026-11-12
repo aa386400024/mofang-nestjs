@@ -134,6 +134,7 @@ import {
   type TrajectoryTrace,
 } from '../../engine-core/index.js';
 import type { ChatMessage } from '../../llm/common/interfaces/chat-provider.interface.js';
+import type { ModelClassifierContextPort } from '../cognition/model-event-classifier.js';
 import { buildDeliberationInput } from '../deliberation/deliberation-input.js';
 import type { DeliberationScenarioType } from '../deliberation/deliberation-mode.config.js';
 import type { DeliberationInput, DeliberationMode } from '../deliberation/deliberation-types.js';
@@ -433,6 +434,16 @@ export interface TurnRenderOrchestratorDeps {
    *   窄端口让单测能用极小替身覆盖, 也让"装配缺席"退化成"没有闸门"而不是"门面起不来".
    */
   readonly gate?: DeliberationGatePort;
+  /**
+   * 模型轨跨轮上下文端口 (V2026-11-12 D-1 第二段; 缺省 = 不写).
+   *
+   * 缺省语义: **纯增强** —— 没装就没有模型轨对照数据, 会话与渲染逐字不变.
+   *
+   * ⚠️ **为什么由门面写「上一轮来访话语」**:
+   *   那是编排器历史里的东西 (内核的 workingWindow 只累积**咨询师**文本, 算不出来);
+   *   而模型轨的连续计数由分类器自持 (更新者 = 判定者). 两者职责不同, 分开.
+   */
+  readonly modelClassifierContext?: ModelClassifierContextPort;
 }
 
 /**
@@ -600,6 +611,8 @@ export class TurnRenderOrchestrator {
     // 1. 内核决策 (错误原样冒泡 —— 门面只兜"渲染这块", 不兜内核).
     //    V2026-11-02 (WP14): 用探测来源通道包住这一段 —— 内核判定在会话端口内部发生,
     //    调用方拿不到"这一轮是谁判的"; 通道记下来, 审计表才有 source 列可填.
+    // D-1 第二段: **先把上一轮来访话语交给模型轨** (内核分类发生在这一行内部, 得先备好).
+    this.prepareModelClassifierContext(handleId);
     const { value: output, source } = await runWithProbeSource(() => this.deps.session.turn(handleId, input));
 
     // 1.5 学员侧处置判定 (WP14): side/等级/类别三条边界 + 监测场次的强制远端探测.
@@ -675,6 +688,8 @@ export class TurnRenderOrchestrator {
     options?: { readonly includePromptFull?: boolean },
   ): Promise<TurnRenderResult> {
     // 1. 内核决策 (与 turn() 同一入口, 错误同样原样冒泡; 探测来源通道同样包住这一段).
+    // D-1 第二段: **先把上一轮来访话语交给模型轨** (内核分类发生在这一行内部, 得先备好).
+    this.prepareModelClassifierContext(handleId);
     const { value: output, source } = await runWithProbeSource(() => this.deps.session.turn(handleId, input));
 
     // 1.5 学员侧处置判定 (WP14): 与聚合路径**同一份**判定, 不复制一份流式专属逻辑.
@@ -736,8 +751,57 @@ export class TurnRenderOrchestrator {
    */
   forgetSession(handleId: string): void {
     this.histories.delete(handleId);
-    // WP64: 影子审议的"上一轮快照"与历史同生命周期 —— 一起清, 不留残留.
+    // WP64: 影子审议的“上一轮快照”与历史同生命周期 —— 一起清, 不留残留.
     this.lastSnapshots.delete(handleId);
+    // D-1 第二段: 模型轨的跨轮状态**同生命周期** —— 一起清, 不留跨场残留 (风险 O).
+    this.clearModelClassifierContext(handleId);
+  }
+
+  /**
+   * 把「上一轮来访话语」交给模型轨 (每轮开始前).
+   *
+   * ⚠️ **为什么在 turn 之前**: 内核的分类发生在 session.turn **内部** ——
+   *   模型轨要拿到上一轮来访话语, 就必须在那之前备好.
+   *
+   * @param handleId 内核会话句柄
+   */
+  private prepareModelClassifierContext(handleId: string): void {
+    const port = this.deps.modelClassifierContext;
+    if (!port) return;
+    const context = this.resolveContext(handleId);
+    if (!context) return;
+    port.recordVisitorTurn(context.sessionId, this.lastVisitorText(handleId) ?? '');
+  }
+
+  /**
+   * 清掉某场会话的模型轨跨轮上下文 (会话关闭时).
+   *
+   * @param handleId 内核会话句柄
+   */
+  private clearModelClassifierContext(handleId: string): void {
+    const port = this.deps.modelClassifierContext;
+    if (!port) return;
+    const context = this.resolveContext(handleId);
+    if (!context) return;
+    port.forgetSession(context.sessionId);
+  }
+
+  /**
+   * 取历史里最近一条**来访**话语 (模型轨的跨轮上下文来源).
+   *
+   * ⚠️ 历史里是「问 + 答」两条腿 (settleTurn 追加) —— 来访半边在降级轮**不追加**
+   *   (兜底句不是来访真说的话), 所以这里天然只会拿到真实发言.
+   *
+   * @param handleId 内核会话句柄
+   * @returns 最近一条来访话语; 没有 → null
+   */
+  private lastVisitorText(handleId: string): string | null {
+    const history = this.historyOf(handleId);
+    for (let index = history.length - 1; index >= 0; index -= 1) {
+      const turn = history[index];
+      if (turn && turn.role === 'visitor') return turn.text;
+    }
+    return null;
   }
 
   /**

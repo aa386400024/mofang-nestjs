@@ -78,7 +78,7 @@ import type {
   OpenEngineSessionInput,
   WorkingWindowOverflowEvent,
 } from '../domain/engine-session.types.js';
-import type { EventClassifier, SessionEvent } from '../domain/events/session-event.js';
+import type { ClassifyContext, EventClassifier, SessionEvent } from '../domain/events/session-event.js';
 import type { Intention } from '../domain/intention.js';
 import type { BdiStateRecord, BdiStateRepository } from '../domain/ports/bdi-state.repository.js';
 import { MemorySource, MemoryTier, type MemoryHit, type MemoryStore } from '../domain/ports/memory.store.js';
@@ -397,9 +397,18 @@ export class InMemoryEngineSession implements EngineSessionPort {
     const safetyVerdict = await assessSafety({ text: userText, side: 'counselor_input', probe: this.riskProbe });
     this.recordSafetyEvent(runtime, safetyVerdict, userText);
     // 3. WP1 认知管线: 事件分类 → 状态迁移 → 本轮意图 (规则轨, 确定性, 无随机).
-    const events = this.classifier.classify(userText, {
+    //    V2026-11-12 治本 (D-1 第二段 · 模型轨): 分类器若提供**可选**异步成员, 内核 await 它;
+    //    没有则走同步 classify (规则轨, 逐字现状).
+    //    ⚠️ 两条分支**互斥** (不是「先同步再异步」) —— 每轮跑两遍词表扫描既白烧 CPU,
+    //      又让两条结果并存 (容易漂). 谁来回落由**实现内部**决定, 内核不感知.
+    const classifyContext: ClassifyContext = {
       sensitiveTopics: runtime.characterProfile?.sensitiveTopics,
-    });
+      // L1-a: 业务会话 id —— 带状态分类器的跨轮状态分桶键 (禁用 handleId: 运行时维度, 恢复后会变).
+      sessionId: runtime.sessionId,
+    };
+    const events = this.classifier.classifyAsync
+      ? await this.classifier.classifyAsync(userText, classifyContext)
+      : this.classifier.classify(userText, classifyContext);
     //    人格调节输入 (WP34): 角色的依恋类型 / 人格特质 + 调节端口 + 本轮事件.
     //    **两处**消费它 (临时快照 / 落库路径) —— 两处口径必须一致, 否则 provisional
     //    (供意图规划与轨迹触发判定) 与落库快照会漂.

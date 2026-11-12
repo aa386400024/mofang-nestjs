@@ -33,15 +33,16 @@ export const TURN_DELTA_AUDIT = Symbol('TURN_DELTA_AUDIT');
  * 字段口径:
  *   · tenantId / sessionId —— 会话归属 (来自 EngineSessionRegistry);
  *   · turnIndex           —— 本会话累计轮次 (从 1 起, 与内核出参同口径);
- *   · userText            —— 咨询师本轮原话 (**只在内存里过一遍分类器, 不落库**);
- *   · kernelEventKinds    —— 内核本轮判出的事件种类 (含 sensitive_touch 这类
- *     只有内核看得见的), 用来补齐本地分类器看不到的那部分.
+ *   · kernelEventKinds    —— 内核本轮判出的事件种类 —— **审计的唯一事件来源**.
+ *
+ * V2026-11-12 治本 (D-1 第二段 · C3): **userText 字段已移除**.
+ *   审计不再自行跑分类器 (那条并集的前提在模型轨上线后直接失效, 风险 N),
+ *   于是它不再需要咨询师原话 —— 心理内容**不再流进审计层** (隐私面收窄).
  */
 export interface TurnDeltaAuditInput {
   readonly tenantId: string;
   readonly sessionId: string;
   readonly turnIndex: number;
-  readonly userText: string;
   readonly kernelEventKinds: readonly CounselorEventKind[];
 }
 

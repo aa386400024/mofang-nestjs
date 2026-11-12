@@ -1,22 +1,29 @@
 // V2026-11-06 治本 (WP58 · B 层 · 事件 + delta 审计观测服务):
-//   职责: 每轮 turn 结束后**自观测** —— 自己跑一遍内核分类器拿命中词, 聚合出原始
+//   职责: 每轮 turn 结束后**自观测** —— 消费内核本轮判出的事件, 聚合出原始
 //         delta, fire-and-forget 落库; 并提供按会话读取的查询出口.
 //   边界: 只做观测; 不改内核状态、不改内核出参、不参与任何决策.
 //
-//   为什么是"adapter 层自观测"而不是改内核输出:
-//     · 内核出参 EngineTurnOutput.events 只有事件**种类**, 不带命中词明细
-//       (那是内核内部产物) —— 观测要的恰恰是命中词;
-//     · 内核出参没有 raw / modulated / capped 的中间 delta 向量;
-//     · 改内核出参 = 改公开契约 = 影响面大; 自观测 = 零侵入、可开关、可回退.
-//     代价: 本服务自己跑一遍分类器 —— 所以**必须**复用内核那一份 (RuleBasedClassifier),
-//     绝不能另写一套 (另写一套 = 与内核真值漂移, 记下来的 delta 对不上实际).
+//   V2026-11-12 治本 (D-1 第二段 · C3 · **审计停止自行分类**):
+//     旧口径: 本服务自己跑一遍规则分类器, 再与内核事件取**并集**.
+//     那条并集的前提是「本地规则轨与内核**逐字同源**」 —— 模型轨上线后这条前提
+//     **直接失效** (本地 = 规则轨, 内核 = 模型轨) → 并集 = 两套标签的并集 →
+//     记下来的 raw_delta 既不等于内核实际施加的 delta, 又比内核**多算一截**
+//     (风险 N · 审计 delta 失真 —— 观测结论不可用).
+//     新口径: **事件集合只认内核** —— 内核判了什么, 审计就记什么. 审计层不再持有
+//     任何分类器 (少一份可能漂移的真相源).
+//
+//   ⚠️ **matchedTerms 归零的已知代价** (写进交付记录, 不静默):
+//     内核出参 EngineTurnOutput.events 只带事件**种类**, 不带命中词明细
+//     (那是内核内部产物). 审计要拿到命中词就得再跑一遍分类器 —— 那正是 C3 去掉的动作.
+//     本单选「不造命中词」: 只记内核给出的事实, 不给模型轨判出的事件硬安词表证据.
+//     要恢复命中词明细, 需扩内核出参 (第 3 个 core 文件) —— 属 D-2 或单开例外.
 //
 //   为什么写库失败静默:
 //     观测通道是**增强**, 不是主链路依赖 —— 写库失败不该让整轮 turn 失败.
 //     与仓库里 notifyDeltaCap / DeltaCapLogger 同一纪律 ("观测通道失败不影响状态迁移").
 //
 //   隐私纪律 (本单硬要求):
-//     · 不落咨询师原话 (只有命中词);
+//     · **不落咨询师原话** (V2026-11-12 C3 起连原话都不再进这一层 —— 审计只吃内核事件);
 //     · 不落完整 BDI 快照 (只有 11 维 delta);
 //     · 心理内容不进日志 —— 日志只出定位信息 (sessionId / turnIndex / 失败原因).
 //
@@ -33,7 +40,6 @@ import { resolveTurnDeltaAuditConfig } from './turn-delta-audit.config.js';
 import { TurnDeltaAuditEntity } from './turn-delta-audit.entity.js';
 import type { TurnDeltaAuditInput, TurnDeltaAuditPort, TurnDeltaAuditTurnView } from './turn-delta-audit.port.js';
 import {
-  RuleBasedClassifier,
   aggregateTurnDelta,
   type AllianceConfig,
   type CounselorEventKind,
@@ -54,27 +60,24 @@ function describeError(error: unknown): string {
 }
 
 /**
- * 把内核报告、但本地分类器看不到的事件补进来.
+ * 把内核判出的事件种类转成本次审计的事件明细.
  *
- * 为什么需要补: 内核分类时带了**角色的敏感议题词表** (sensitiveTopics), 适配层
- * 观测时拿不到 (TurnSessionContext 里没有这个字段) —— 于是内核认得的
- * sensitive_touch 在本地分类里不会出现. 不补 = 记下来的 raw_delta 与内核实际
- * 施加的 delta 对不上 (少了一维的贡献), 观测就失去了"这一轮改了多少分"的意义.
+ * V2026-11-12 治本 (D-1 第二段 · C3): 旧口径是「本地再跑一遍规则分类器 → 与内核
+ * 事件取并集」. 那条并集的前提是「本地规则轨与内核**逐字同源**」; 模型轨上线后
+ * 这条前提**直接失效** (本地 = 规则轨, 内核 = 模型轨) → 并集 = 两套标签的并集 →
+ * 记下来的 raw_delta 既不等于内核实际施加的 delta, 又比内核**多算一截** (风险 N).
+ * 新口径: **事件集合只认内核** —— 内核判了什么, 审计就记什么.
  *
- * 怎么补: 按内核给的**类型**补一条 strength=1 的事件, matchedTerms 留空
- * (命中词拿不到 —— 本期 sensitive_touch 只记类型不记词).
+ * ⚠️ **matchedTerms 归零是已知代价** (交付记录已写明):
+ *   内核出参只带事件**种类**, 不带命中词明细. 审计要拿到命中词就得再跑一遍分类器 ——
+ *   那正是 C3 去掉的动作. 本单选「不造命中词」: 只记内核给出的事实.
  *
- * ⚠️ 只有 sensitive_touch 会这样: 静态词典事件本地分类与内核**逐字同源**
- *   (同一个分类器 + 同一段文本), 不会漂移.
- *
- * @param events 本地分类器给出的事件
  * @param kernelEventKinds 内核本轮判出的事件种类
- * @returns 合并后的事件 (供 delta 聚合)
+ * @returns 事件明细 (strength 恒 1 —— 规则轨与模型轨首版都是 1)
  */
-function mergeKernelOnlyEvents(events: readonly SessionEvent[], kernelEventKinds: readonly CounselorEventKind[]): readonly SessionEvent[] {
-  const missing = kernelEventKinds.filter((kind) => kind !== 'neutral' && !events.some((event) => event.kind === kind));
-  if (missing.length === 0) return events;
-  return [...events, ...missing.map((kind) => ({ kind, matchedTerms: [], strength: 1 }))];
+function kernelEventsToSessionEvents(kernelEventKinds: readonly CounselorEventKind[]): readonly SessionEvent[] {
+  if (kernelEventKinds.length === 0) return [];
+  return kernelEventKinds.map((kind) => ({ kind, matchedTerms: [], strength: 1 }));
 }
 
 /**
@@ -83,8 +86,6 @@ function mergeKernelOnlyEvents(events: readonly SessionEvent[], kernelEventKinds
 @Injectable()
 export class TurnDeltaAuditService implements TurnDeltaAuditPort {
   private readonly logger = new Logger(TurnDeltaAuditService.name);
-  /** 内核那份规则分类器 (纯函数, 无状态 —— 复用即可, 不自己实现一套). */
-  private readonly classifier = new RuleBasedClassifier();
   /** 观测通道开关 (装配期解析一次 —— 开关是部署级配置, 不是每轮配置). */
   private readonly enabled: boolean;
   /** 同盟三维系数 (与内核会话同一份 env 口径 —— 聚合口径要和内核一致). */
@@ -114,7 +115,7 @@ export class TurnDeltaAuditService implements TurnDeltaAuditPort {
   /**
    * 记录一轮的事件 + delta (fire-and-forget).
    *
-   * 开关关着时**立刻返回** —— 连分类器都不跑 (零开销).
+   * 开关关着时**立刻返回** —— 连仓储都不碰 (零开销).
    * 写库失败只打一条 debug 日志, 不抛错、不重试、不告警.
    *
    * @param input 本轮观测输入
@@ -159,8 +160,8 @@ export class TurnDeltaAuditService implements TurnDeltaAuditPort {
    * @param input 本轮观测输入
    */
   private async persist(input: TurnDeltaAuditInput): Promise<void> {
-    const events = this.classifier.classify(input.userText);
-    const merged = mergeKernelOnlyEvents(events, input.kernelEventKinds);
+    // C3: 事件集合**只认内核** —— 不再本地跑分类器, 不再与内核取并集.
+    const merged = kernelEventsToSessionEvents(input.kernelEventKinds);
     const rawDelta = aggregateTurnDelta(merged, this.alliance, this.deltaTable);
     const existing = await this.repo.findOne({
       where: { tenantId: input.tenantId, sessionId: input.sessionId, turnIndex: input.turnIndex },
