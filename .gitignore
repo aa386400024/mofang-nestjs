@@ -120,3 +120,10 @@ data/archives/
 # V2026-11-11 — WP-N 标注台逐字稿冻结留档 (data/quality/transcripts/<batchId>/*.json)
 #   ⚠️ 同 debug-sessions: 逐字稿原文 (心理内容), 绝不进版本库.
 data/quality/transcripts/
+
+# V2026-11-12 — Phase2.5 复核复算输出与切片证据 (id / 计数 / 比率, 可由入库脚本重现)
+#   复算 txt 与 D-1 取证中间产物 CSV (逐轮投影 / 抽样清单 / 标注骨架 / 人工标签) 均不进版本库;
+#   仅放行既定入库样本 anchor-sample-30.csv.
+data/quality/*.txt
+data/quality/*.csv
+!data/quality/anchor-sample-30.csv
