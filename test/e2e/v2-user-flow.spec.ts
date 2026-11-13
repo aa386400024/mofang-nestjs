@@ -1,7 +1,5 @@
 /* eslint-disable new-cap, prettier/prettier, import/order, prefer-const */
 
-
-
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { Test } from '@nestjs/testing';
@@ -218,9 +216,7 @@ describe('V2 sessions UI', () => {
       console.warn('Skipping: 需要先登录拿 token');
       return;
     }
-    const res = await request
-      .get('/user/sessions')
-      .set('Authorization', `Bearer ${accessToken}`);
+    const res = await request.get('/user/sessions').set('Authorization', `Bearer ${String(accessToken)}`);
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.sessions)).toBe(true);
   });

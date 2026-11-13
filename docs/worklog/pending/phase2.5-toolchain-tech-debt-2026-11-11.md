@@ -4,7 +4,7 @@
 > 发现来源：WP-K / WP-L 收尾提交（commit `401a5a2`）时，husky/lint-staged 拦截后排查所得
 > 性质：**工程工具链待办，不阻塞当前已交付代码**；但其中部分项会在将来修改对应文件时阻塞提交，处理前先读本文
 > **派单状态**：治本修复已派 **WP-M**（2026-11-11）→ [任务单](../completed/phase2.5/wp-m-toolchain-tech-debt-fix-2026-11-11.md) · [交付记录](../completed/phase2.5/wp-m-toolchain-tech-debt-fix-implementation-2026-11-11.md)
-> **处理状态**：TD-1 ✅ 已修复（`666b0a8` / `fc9285c`）· TD-2 ✅ 已修复（2026-11-11）· TD-3 ✅ 已关闭（随 TD-1b 一并决策）· **闸门提速未决项 ✅ 已全部关闭（2026-11-12，见 §4）** · **CI 三条遗留 ✅ 已处置（2026-11-13，TD-8）**：npm/pnpm 对齐 + 无效 coverage 步骤清理 + CI 缓存持久化 → [交付记录](../completed/phase2.5/td8-ci-pnpm-parity-and-caching-implementation-2026-11-13.md)
+> **处理状态**：TD-1 ✅ 已修复（`666b0a8` / `fc9285c`）· TD-2 ✅ 已修复（2026-11-11）· TD-3 ✅ 已关闭（随 TD-1b 一并决策）· **闸门提速未决项 ✅ 已全部关闭（2026-11-12，见 §4）** · **CI 三条遗留 ✅ 已处置（2026-11-13，TD-8）**：npm/pnpm 对齐 + 无效 coverage 步骤清理 + CI 缓存持久化 → [交付记录](../completed/phase2.5/td8-ci-pnpm-parity-and-caching-implementation-2026-11-13.md) · **TD-9 四条工程卫生 ✅ 已处置（2026-11-13，TD-9）**：spec 隔离残留清理 + oxlint 告警清零 + ESLint 缓存口径统一（并修掉 TD-8 遗留的失效缓存键）+ git 依赖 spec 环境前置 → [交付记录](../completed/phase2.5/td9-test-isolation-and-lint-hygiene-implementation-2026-11-13.md)
 > 本文件是工具链技术债的单一事实源，README 只保留指向这里的链接
 
 ---
@@ -143,6 +143,25 @@ WP-K / WP-L 首次 `git commit` 时被 husky 的 lint-staged 拦截，eslint 报
 - **D-b · 是否在 CI 开启覆盖率采集**：本单**只移除无效上传步骤**、不启用采集。开启需补 provider（`@vitest/coverage-v8` 已在 devDeps）/ reporter / 输出目录，并**定义阈值门禁**（阈值数值须先跑一轮真实覆盖率报告再拍），且只作用于 CI。
 - **CI 侧结果待复核**：本机跑不了 GitHub CI，交付记录**未写「CI 已通过」**；需在 Actions 复核 `corepack enable` 可用性、`--frozen-lockfile` 与 lock 的一致性、缓存命中后的墙钟改善。
 - **P-DEBT-5 的分片（shard）部分未做**：本单落地「缓存 + CI 侧 pnpm 统一」两项；分片矩阵会改变测试执行拓扑，需单独评估。
+
+### TD-9 · 测试隔离残留 · lint 告警 · ESLint 缓存 · git 环境前置（优先级：P3，2026-11-13 处置）
+
+> **状态：✅ 已处置（2026-11-13，MiniMax Code，TD-9 收尾单）** —— **engine-core 零 diff**、断言期望与用例数逐字未变（3252 例 / 194 文件）；改动落在 `test/`、少量 `src/` 告警点、`.oxlintrc.json`、`.github/workflows/ci.yml` → [交付记录](../completed/phase2.5/td9-test-isolation-and-lint-hygiene-implementation-2026-11-13.md)
+
+| #   | 遗留项                                               | 处置结论                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T-1 | spec 间 `process.env` / mock 单例 / 模块级 stub 残留 | 4 个非 e2e spec 补**统一重置钩子**（共享 `test/helpers/isolation.ts`）：`resetTestDoubles` = 还原 spy + `mockReset` 把替身复位回 `vi.fn` 工厂默认实现（清计数 + 清一次性实现）；4 文件现场复核**零** `process.env` 读写（env 快照 helper 仍封装为可复用件，本单无调用点）；`good-state-diary.service.spec` 已不在权威 `pnpm test` 集合                                                                                                                                                                     |
+| T-2 | `.eslintcache` 存在却大面积失效                      | 对照实验定位：失效变量 = **解析后配置对象的内容**（改规则 → 189.9 s 整体失效；只改配置注释 → 5.6 s 不失效）+ ESLint / Node 版本 + 文件自身 mtime/size；**tsconfig 内容不在键里**（改 tsconfig → 8.2 s 仍命中 → 旧缓存会给出过期 type-aware 结论）。统一口径 `eslint-<os>-<hash(eslint 配置 + tsconfig 指纹)>`，**不带 restore-keys**（指纹不同宁可冷跑）；CI lint job 新增 ESLint 缓存步骤（冷 183.6 s → 热 5.8 s，31.8×）；**顺带修掉 TD-8 遗留的 4 个失效缓存键**（单 `$` → `[object Object]`，共 8 处） |
+| T-3 | oxlint 既有告警（fast 4 + deep 57）                  | 逐条定性后**清零**（fast **0/0**、deep **0/0**）：22 条 `no-misused-spread` 规则层豁免（DTO / row 字段拷贝；权威 ESLint 闸门用 `recommendedTypeChecked` 本就不含该规则）、17 条 `unbound-method` 在 `.oxlintrc.json` 的 test / bin 段豁免（取路由元数据 / 挂原型方法 spy 的标准写法）、10 条 `no-base-to-string` 走新共享纯函数 `safeString` / `toUtf8Text`（`src/shared/infra/string-utils/`）、其余 8 条真问题最小修正（可选链补 `?.`、恒等零项化简、去多余 `await`、模板串窄化）                        |
+| T-4 | 依赖外部命令的 spec 无环境前置                       | 新增 `test/helpers/git-probe.ts` 探测（`GIT_BIN` 注入优先 → 回退 PATH 的 `git` → 跑 `--version`）；三处 `execFileSync` 统一走解析后的路径；不可用时该用例 `it.skipIf` 跳过（跳过条件取"注入路径与 PATH 同时可用"，因 src 侧 `gitDescribeDirty()` 硬编码走 PATH）                                                                                                                                                                                                                                           |
+
+**遗留（待主控拍板 / 另案）**：
+
+- **ESLint 缓存键不含 tsconfig / 插件版本**：本机改 tsconfig 或升 eslint / 插件版本后**必须删 `.eslintcache`**，否则会读到过期的 type-aware 结论；本单只写纪律，**未**做自动化（后续可加 `lint:cache:reset` 脚本）。
+- **本机 ESLint 冷跑 183.6 s 远高于模板记录的 49.3 s**：归因于用户侧长驻进程并行（`nest start --watch` + vite + `dist/app`），读税已归零（`doctor:fs` 0.11 ms/文件合格）→ 属环境状态，非本单引入。
+- **CI 侧结果待复核**：本机跑不了 GitHub CI，交付记录未写「CI 已通过」；需在 Actions 复核新增的 ESLint 缓存步骤与修正后的 4 个缓存键。
+
+---
 
 ---
 

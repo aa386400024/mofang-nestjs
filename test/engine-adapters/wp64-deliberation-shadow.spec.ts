@@ -620,7 +620,7 @@ describe('WP64 · LLM 审议层 PoC (影子模式)', () => {
       expect(validated).not.toBeNull();
       expect(validated?.output.deltas).toHaveLength(1);
       expect(validated?.rejectedEntries).toHaveLength(1);
-      expect((validated?.rejectedEntries[0] as { dimension: string }).dimension).toBe('suicideRisk');
+      expect((validated?.rejectedEntries[0] as { dimension: string } | undefined)?.dimension).toBe('suicideRisk');
     });
 
     it('顶层形状不对 → 整份判不合法 (client 返 schema_validation_failed)', () => {

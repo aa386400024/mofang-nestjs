@@ -37,12 +37,24 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.pnpm-store
-          key: pnpm-store-${ runner.os }-${ hashFiles('pnpm-lock.yaml') }
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
-            pnpm-store-${ runner.os }-
+            pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Cache ESLint results
+        uses: actions/cache@v4
+        with:
+          path: .eslintcache
+          # T-2 (TD-9) 键口径: ESLint 自身的缓存键 = ESLint 版本 + Node 版本 + **解析后配置对象**哈希
+          #   + 每个文件的 mtime/size —— **不含 tsconfig 内容**. 改过 tsconfig (类型收窄 / 规则开关)
+          #   之后旧缓存会给出**过期**的 type-aware 结论, 所以外层键必须把 eslint 配置与 tsconfig
+          #   指纹绑成一个不可分割的版本.
+          #   不用 restore-keys: 指纹不同就宁可冷跑, 也不拿旧类型配置的缓存充数.
+          #   收益 (本机实测): 冷跑 183.6s → 命中 5.8s.
+          key: eslint-${{ runner.os }}-${{ hashFiles('eslint.config.mjs', 'tsconfig.json', 'tsconfig.build.json', 'tsconfig.check.json') }}
 
       - name: Lint
         run: pnpm lint
@@ -119,9 +131,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.pnpm-store
-          key: pnpm-store-${ runner.os }-${ hashFiles('pnpm-lock.yaml') }
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
-            pnpm-store-${ runner.os }-
+            pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -130,9 +142,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules/.vite/vitest
-          key: vitest-transform-${ runner.os }-${ hashFiles('pnpm-lock.yaml') }
+          key: vitest-transform-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
-            vitest-transform-${ runner.os }-
+            vitest-transform-${{ runner.os }}-
 
       - name: Run migrations (建测试库 schema)
         run: pnpm migration:run
@@ -193,9 +205,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.pnpm-store
-          key: pnpm-store-${ runner.os }-${ hashFiles('pnpm-lock.yaml') }
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
-            pnpm-store-${ runner.os }-
+            pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

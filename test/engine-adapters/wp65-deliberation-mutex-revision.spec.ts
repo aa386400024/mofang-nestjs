@@ -75,6 +75,7 @@ import {
   type RenderSpec,
 } from '../../src/engine-core/index.js';
 import { RedisService } from '../../src/shared/infra/redis/redis.service.js';
+import { resetTestDoubles } from '../helpers/index.js';
 
 // ── bullmq 替身 (Queue / Worker) ────────────────────────────────────────────
 //   vi.hoisted: 工厂函数会被 vitest 提升到 import 之前, 所以共享状态必须先 hoisted.
@@ -396,13 +397,14 @@ async function driveTwoTurns(output: EngineTurnOutput): Promise<StubDeliberation
   return deliberation;
 }
 
+// V2026-11-13 (TD-9 · T-1): 统一复位钩子.
+//   ① 还原前序用例可能残留的 spy (本文件 ②-3 里的 Logger.prototype.warn spy 原先只在
+//      用例体内 restore —— 用例中途失败就会漏给下一个用例);
+//   ② 把 bullmq 替身复位成 vi.fn 工厂的默认实现 (清调用计数 + 清一次性实现,
+//      防止 mockRejectedValueOnce 之类跨用例泄漏).
+//   口径统一走 test/helpers/isolation.ts, 不在本文件各抄一份.
 beforeEach(() => {
-  bull.add.mockClear();
-  bull.queueClose.mockClear();
-  bull.workerClose.mockClear();
-  bull.workerOn.mockClear();
-  bull.queueCtor.mockClear();
-  bull.workerCtor.mockClear();
+  resetTestDoubles(bull);
 });
 
 describe('WP65 后半段 · per-session mutex + 快照版本号传递', () => {

@@ -239,9 +239,9 @@ describe('WP3 · 轨迹控制引擎', () => {
 
       expect(result.intention.strategy).toBe('simple_response');
       expect(result.intention.resistance.verbal).toBeCloseTo(0.6 * 0.8 + 0.4 * 0.4, 10);
-      expect(result.intention.emotion.valence).toBeCloseTo(0.6 * -0.5 + 0.4 * 0, 10);
+      expect(result.intention.emotion.valence).toBeCloseTo(0.6 * -0.5 + 0, 10);
       expect(result.intention.emotion.arousal).toBeCloseTo(0.6 * 0.9 + 0.4 * 0.3, 10);
-      expect(result.intention.transference.positive).toBeCloseTo(0.6 * 0.6 + 0.4 * 0, 10);
+      expect(result.intention.transference.positive).toBeCloseTo(0.6 * 0.6 + 0, 10);
       // 未给 target 的数值字段保留 BDI 原值.
       expect(result.intention.resistance.depth).toBe(0.4);
       expect(result.intention.transference.negative).toBe(0);

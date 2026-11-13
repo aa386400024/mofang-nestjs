@@ -98,6 +98,7 @@ import {
 import type { SessionCostPricing } from '../engine-adapters/observability/session-cost.js';
 import { CharacterProfileEntity } from '../engine-adapters/wiring/character/character-profile.entity.js';
 import { RedisService } from '../shared/infra/redis/redis.service.js';
+import { safeString } from '../shared/infra/string-utils/index.js';
 
 /**
  * 角色会话的**扫描窗口** (内存过滤的上限).
@@ -302,9 +303,9 @@ export class AdminDebugController {
    */
   @Post('characters')
   async createCharacter(@Body() body: Record<string, unknown>) {
-    const templateId = String(body['templateId'] ?? '').trim();
-    const displayName = String(body['displayName'] ?? '').trim();
-    const attachmentStyle = String(body['attachmentStyle'] ?? '').trim();
+    const templateId = safeString(body['templateId']).trim();
+    const displayName = safeString(body['displayName']).trim();
+    const attachmentStyle = safeString(body['attachmentStyle']).trim();
     if (!templateId || !displayName || !attachmentStyle) {
       return { error: 'templateId / displayName / attachmentStyle 必填' };
     }
@@ -330,9 +331,9 @@ export class AdminDebugController {
   private buildCharacterRow(body: Record<string, unknown>, id: string): CharacterProfileEntity {
     return this.characterRepo.create({
       id,
-      templateId: String(body['templateId'] ?? '').trim(),
-      displayName: String(body['displayName'] ?? '').trim(),
-      attachmentStyle: String(body['attachmentStyle'] ?? '').trim() as 'secure' | 'avoidant' | 'anxious' | 'disorganized',
+      templateId: safeString(body['templateId']).trim(),
+      displayName: safeString(body['displayName']).trim(),
+      attachmentStyle: safeString(body['attachmentStyle']).trim() as 'secure' | 'avoidant' | 'anxious' | 'disorganized',
       fivePs: (body['fivePs'] ?? {}) as CharacterProfileEntity['fivePs'],
       baselineTrust: Number(body['baselineTrust'] ?? 0.3),
       baselineResistanceVerbal: Number(body['baselineResistanceVerbal'] ?? 0.5),

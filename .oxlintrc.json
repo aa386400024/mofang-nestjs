@@ -8,7 +8,28 @@
     "no-unused-vars": "off",
     "no-undef": "off",
     "typescript/no-this-alias": "off",
-    "unicorn/no-useless-spread": "off"
+    "unicorn/no-useless-spread": "off",
+    // V2026-11-13 (TD-9 · T-3): no-misused-spread 全仓豁免.
+    //   口径: 本仓 22 处告警逐条核实为 **DTO / row 字段拷贝** —— 把类实例的字段摊成普通对象,
+    //   刻意不带原型方法; 摊平后的对象从不调用原型方法, 不存在"丢了原型就炸"的运行时风险.
+    //   为什么不逐处改代码: 权威 ESLint 闸门用 recommendedTypeChecked, **不含** no-misused-spread
+    //   (仓库权威口径本来就不要求这条规则); 为迁就 oxlint 更宽的 type-aware 规则集去改 22 处
+    //   生产代码, 属"为消告警改业务代码", 与本单红线 (不改业务行为 / 不重构 entity 层) 冲突.
+    //   若将来真出现"摊平后仍要调原型方法"的缺陷, 由类型系统与测试拦截, 不靠这条规则.
+    "typescript/no-misused-spread": "off"
   },
+  "overrides": [
+    {
+      // V2026-11-13 (TD-9 · T-3): unbound-method 在测试侧是**标准写法** ——
+      //   取路由元数据 (Reflect.getMetadata(PATH_METADATA, Controller.prototype.handler))
+      //   或给原型方法挂 spy (Logger.prototype.error): 只引用, 不调用, 不依赖 this. 属误报.
+      //   统一豁免, 不逐处 disable. 与 eslint.config.mjs 的 test 段口径一致
+      //   (那边早就有关闭: '@typescript-eslint/unbound-method': 'off').
+      "files": ["test/**/*.ts", "bin/**/*.ts"],
+      "rules": {
+        "typescript/unbound-method": "off"
+      }
+    }
+  ],
   "ignorePatterns": ["dist/**", "src/entity/**", "**/node_modules/**", "admin-dashboard/**"]
 }

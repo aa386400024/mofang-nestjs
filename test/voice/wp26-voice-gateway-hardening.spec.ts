@@ -18,6 +18,7 @@ import type { Socket } from 'socket.io';
 import { Server as SocketIoServer } from 'socket.io';
 import { WebSocket as WsClient } from 'ws';
 
+import { toUtf8Text } from '../../src/shared/infra/string-utils/index.js';
 import { VoiceFrameRegistry } from '../../src/voice/voice-frame-registry.js';
 import { VoiceSessionRegistry } from '../../src/voice/voice-session-registry.js';
 import { selectVoiceSubprotocol, VoiceGateway, VoiceSubprotocolWsServer } from '../../src/voice/voice.gateway.js';
@@ -637,7 +638,7 @@ async function readWireHandshakeAuth(auth: Record<string, unknown>): Promise<Rec
   try {
     // engine.io 的 OPEN 包 ("0{...}") 之后才允许发 CONNECT 包 ("40{...}").
     client.on('message', (raw) => {
-      if (String(raw).startsWith('0')) {
+      if (toUtf8Text(raw).startsWith('0')) {
         client.send(`40${JSON.stringify(auth)}`);
       }
     });

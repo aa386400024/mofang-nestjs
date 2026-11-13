@@ -62,6 +62,7 @@ import { CounselorSupervisionProcessor } from './counselor-supervision.processor
 import { TurnAnalysisProcessor } from './turn-analysis.processor.js';
 import type { TurnTrace } from '../../admin-debug/trace-recorder.service.js';
 import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types.js';
+import { safeString } from '../../shared/infra/string-utils/index.js';
 import { CharacterVersionRegistry } from '../../voice/character-version-slot.js';
 import {
   VoiceSessionBridgeRegistry,
@@ -386,7 +387,7 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
     // 链不断: 失败只影响本次 op, 后续 op 照常排队.
     this.chain = next.then(() => {});
     await next;
-    if (failure !== undefined) throw failure instanceof Error ? failure : new Error(String(failure));
+    if (failure !== undefined) throw failure instanceof Error ? failure : new Error(safeString(failure, 'unknown error'));
     return result as T;
   }
 

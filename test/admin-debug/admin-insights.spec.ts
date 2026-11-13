@@ -428,7 +428,7 @@ describe('V2026-11-05 · Admin Dashboard 剩余三页切真 API', () => {
   describe('⑤ GET /admin/api/psyguard/trend', () => {
     it('行数恒等于 7, 且明说"指标未采集" (不是"这段时间没有调用")', async () => {
       const { controller } = buildController();
-      const trend = await controller.psyguardTrend();
+      const trend = controller.psyguardTrend();
 
       expect(trend.metricsAvailable).toBe(false);
       expect(trend.points).toHaveLength(7);

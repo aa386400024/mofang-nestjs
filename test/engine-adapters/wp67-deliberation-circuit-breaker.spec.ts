@@ -50,6 +50,7 @@ import {
 import { type DeltaVector } from '../../src/engine-core/index.js';
 import { QUEUE_NAMES } from '../../src/shared/infra/redis/redis.constants.js';
 import type { RedisService } from '../../src/shared/infra/redis/redis.service.js';
+import { resetTestDoubles } from '../helpers/index.js';
 
 // ── bullmq 替身 (Queue / Worker) ────────────────────────────────────────────
 const bull = vi.hoisted(() => ({
@@ -198,14 +199,11 @@ function workerProcessor(): (job: unknown) => Promise<void> {
   return call![1];
 }
 
+// V2026-11-13 (TD-9 · T-1): 统一复位钩子 (与 wp65 同口径).
+//   原先这里只有 mockClear + vi.restoreAllMocks —— 一次性实现 (mockRejectedValueOnce 等)
+//   不会被清掉; 改走 resetTestDoubles: 还原 spy + 把替身复位回 vi.fn 工厂默认实现.
 beforeEach(() => {
-  bull.add.mockClear();
-  bull.queueClose.mockClear();
-  bull.workerClose.mockClear();
-  bull.workerOn.mockClear();
-  bull.queueCtor.mockClear();
-  bull.workerCtor.mockClear();
-  vi.restoreAllMocks();
+  resetTestDoubles(bull);
 });
 
 describe('WP67 · 审议熔断与降级策略', () => {

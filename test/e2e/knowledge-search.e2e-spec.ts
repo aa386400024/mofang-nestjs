@@ -290,7 +290,7 @@ describe('SearchService (e2e — VS-3e RAG 端到端)', () => {
       };
       await itemRepo.save(testItem);
 
-      await qdrant.setPoint(
+      qdrant.setPoint(
         'knowledge_chunks',
         `${TEST_ITEM_ID}-chunk-0`,
         [0.85, 0.15, 0.1, 0.1], // V2026-10-14: 跟 llm.nextResponse 返 [0.9, 0.1, 0.1, 0.1] 高相似度
@@ -333,7 +333,7 @@ describe('SearchService (e2e — VS-3e RAG 端到端)', () => {
           scheduledPublishAt: null,
         };
         await itemRepo.save(item);
-        await qdrant.setPoint('knowledge_chunks', `${it.id}-c0`, it.vector, {
+        qdrant.setPoint('knowledge_chunks', `${it.id}-c0`, it.vector, {
           item_id: it.id,
           tenant_id: TEST_UID,
         });

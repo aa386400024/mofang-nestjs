@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { beforeEach, vi } from 'vitest';
 // V2026-10-30 治本 (WP12 · 记忆收尾 + 跨会话 resume 接线单测):
 //   覆盖任务单 §3 验收 1-6 与 §3.9 的四种场景:
 //     ① resume 成功        → engine.open 收到 resumeFromSessionId
@@ -56,6 +56,7 @@ import {
   type VoiceSessionBridge,
   type VoiceSessionTranscriptInput,
 } from '../../src/voice/voice-session-bridge.js';
+import { clearMockCalls } from '../helpers/index.js';
 
 const TENANT = 'tenant-1';
 const USER = 'user-1';
@@ -167,6 +168,14 @@ function turns(): TranscriptTurn[] {
     { role: 'assistant', content: '有多久了？', at: CLOCK + 1 },
   ];
 }
+
+// V2026-11-13 (TD-9 · T-1): 统一复位钩子 —— 本文件原先没有任何生命周期钩子.
+//   现场复核结论: 模块级只有不可变常量 (TENANT / USER / PERSONA / CLOCK), 没有 env 读写,
+//   没有 vi.mock 替身; 唯一的跨用例可变状态是**两个 describe 共用的 embedder 计数器**
+//   (describe 级 const, 用例间累积) —— 这里统一清零, 其余替身都是用例内局部 new, 无残留.
+beforeEach(() => {
+  clearMockCalls();
+});
 
 describe('WP12 · 跨会话 resume 接线 (EngineStreamBackend.openSession)', () => {
   it('① resume 成功 → engine.open 收到 resumeFromSessionId', async () => {

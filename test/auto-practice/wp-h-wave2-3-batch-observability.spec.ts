@@ -38,6 +38,7 @@ import {
   toBatchSessionMetrics,
 } from '../../src/auto-practice/practice-batch-health.service.js';
 import { ALWAYS_ON_DB_LOG_LEVELS, resolveDbLoggingLevels, resolveDbQueryLogging } from '../../src/config/envs/db-logging.js';
+import { DEFAULT_GIT_BINARY, probeGit, probeGitBinary } from '../helpers/index.js';
 
 /** 造一行场次 (只填本单关心的字段). */
 function makeSession(overrides: Partial<PracticeSession> = {}): PracticeSession {
@@ -79,6 +80,18 @@ function makeMetrics(overrides: Partial<BatchSessionMetrics> = {}): BatchSession
     ...overrides,
   } as BatchSessionMetrics;
 }
+
+// V2026-11-13 (TD-9 · T-4): git 环境前置.
+//   取证会话的 PATH 不继承系统 PATH (本机 git 在 D:\Apps\Git\cmd) 时, 直接跑 git 会报
+//   spawnSync git ENOENT —— 那是**环境缺陷**, 不是回归, 不能记成测试失败.
+//   口径:
+//     ① 本文件的三处直接调用走**解析后**的可执行文件 (GIT_BIN 注入优先, 否则 PATH 的 'git');
+//     ② src 侧 gitDescribeDirty() 硬编码走 PATH 的 'git' (本单不改 src 语义),
+//        所以跳过条件取**两者同时可用** —— 否则那条断言测的是 unknown 回落, 不是 dirty 语义.
+const gitProbe = probeGit();
+const gitOnPath = probeGitBinary(DEFAULT_GIT_BINARY);
+const gitUsable = gitProbe.available && gitOnPath;
+const gitBinary = gitProbe.binary ?? DEFAULT_GIT_BINARY;
 
 /** 假 repo: 批次场次表 + 批次结论表. */
 function stubRepos(sessions: readonly PracticeSession[]) {
@@ -169,17 +182,15 @@ describe('WP-H 第二/三波 · 批次可观测性', () => {
       expect(resolveEngineVersion(undefined, () => '')).toBe(ENGINE_VERSION_UNKNOWN);
     });
 
-    it('工作区 dirty → 版本号带 -dirty 后缀 (数据里看得见"跑的是未提交代码")', () => {
+    it.skipIf(!gitUsable)('工作区 dirty → 版本号带 -dirty 后缀 (数据里看得见"跑的是未提交代码")', () => {
       const dir = mkdtempSync(join(tmpdir(), 'wp-h-git-'));
       try {
-        // sonarjs/no-os-command-from-path 豁免: 命令与参数都是硬编码常量 (不接外部输入).
-        // eslint-disable-next-line sonarjs/no-os-command-from-path
-        execFileSync('git', ['init', '-q'], { cwd: dir, stdio: 'ignore' });
+        // V2026-11-13 (TD-9 · T-4): 命令换成解析后的可执行文件后, sonarjs/no-os-command-from-path
+        //   不再触发 (它只拦字面量路径) —— 原先的 eslint-disable 随之失效, 一并移除.
+        execFileSync(gitBinary, ['init', '-q'], { cwd: dir, stdio: 'ignore' });
         writeFileSync(join(dir, 'a.txt'), 'one', 'utf8');
-        // eslint-disable-next-line sonarjs/no-os-command-from-path
-        execFileSync('git', ['add', '.'], { cwd: dir, stdio: 'ignore' });
-        // eslint-disable-next-line sonarjs/no-os-command-from-path
-        execFileSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '-m', 'init'], {
+        execFileSync(gitBinary, ['add', '.'], { cwd: dir, stdio: 'ignore' });
+        execFileSync(gitBinary, ['-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '-m', 'init'], {
           cwd: dir,
           stdio: 'ignore',
         });

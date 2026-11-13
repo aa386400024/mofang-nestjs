@@ -281,7 +281,7 @@ describe('WP68 · 意图锁定机制 (基础版)', () => {
       // 丢掉 → 当成"不建议切换"; 原始值留在 rejectedEntries 里 (证据不丢).
       expect(validated?.output.intentionShift).toBeNull();
       expect(validated?.rejectedEntries).toHaveLength(1);
-      expect((validated?.rejectedEntries[0] as { targetStrategy: string }).targetStrategy).toBe('catharsis');
+      expect((validated?.rejectedEntries[0] as { targetStrategy: string } | undefined)?.targetStrategy).toBe('catharsis');
     });
 
     it('②-8 reason 为空字符串 → 校验失败, 丢掉', () => {

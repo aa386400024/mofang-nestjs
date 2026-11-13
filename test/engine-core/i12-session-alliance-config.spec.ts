@@ -8,7 +8,7 @@
 //
 //   验证: pnpm exec vitest run test/engine-core/i12-session-alliance-config.spec.ts
 
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { resolveSessionAllianceConfig } from '../../src/engine-core/cognition/alliance-config.js';
 import { planIntention } from '../../src/engine-core/cognition/intention-planner.js';
@@ -16,6 +16,7 @@ import { createEmptyBdiSnapshot } from '../../src/engine-core/domain/bdi-snapsho
 import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository.js';
 import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session.js';
 import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
+import { resetTestDoubles } from '../helpers/index.js';
 
 // .spy: 让 planIntention 可观测 —— 断言"消费点拿到的到底是哪份配置".
 vi.mock('../../src/engine-core/cognition/intention-planner.js', async (importOriginal) => {
@@ -31,6 +32,12 @@ const BASE_CONFIG = {
   deltas: {},
   thresholds: { open: 0.6, resistanceTrust: 0.4, resistanceSafety: 0.3 },
 };
+
+// V2026-11-13 (TD-9 · T-1): 统一复位钩子 —— 原先 mockClear 写在两个用例体内,
+//   用例中途失败会把 planner 替身的调用计数漏给下一个用例; 现在统一在钩子里复位.
+beforeEach(() => {
+  resetTestDoubles({ planIntention: vi.mocked(planIntention) });
+});
 
 describe('I-12 · 会话级同盟门槛覆盖 · 内核纯函数', () => {
   it('无覆盖 → 原样返回实例级配置 (同一引用, 逐字零回归)', () => {
@@ -97,7 +104,6 @@ describe('I-12 · 会话级同盟门槛覆盖 · 装配链 (覆盖真的送到�
   }
 
   it('无覆盖 → 消费点拿到的就是实例级配置 (逐字不变)', async () => {
-    vi.mocked(planIntention).mockClear();
     const session = createSession();
     const handle = session.openSession({ sessionId: 's-1', tenantId: TENANT, visitorId: VISITOR, seed: 7 });
     await session.turn(handle.handleId, { userText: '我最近睡不好。' });
@@ -107,7 +113,6 @@ describe('I-12 · 会话级同盟门槛覆盖 · 装配链 (覆盖真的送到�
   });
 
   it('有覆盖 → 消费点拿到的是**合并后**的会话级配置', async () => {
-    vi.mocked(planIntention).mockClear();
     const session = createSession();
     const handle = session.openSession({
       sessionId: 's-2',

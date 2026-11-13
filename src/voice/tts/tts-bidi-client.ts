@@ -49,6 +49,7 @@ import {
 import type { TtsBidiClientEvent, TtsBidiServerEvent } from './tts-protocol.types.js';
 import { splitSentences } from './tts-sentence-splitter.js';
 import type { TtsEvent, TtsOptions } from './tts.types.js';
+import { toUtf8Text } from '../../shared/infra/string-utils/index.js';
 
 /** 客户端状态机. */
 type TtsClientState = 'idle' | 'connecting' | 'streaming' | 'closing' | 'closed';
@@ -355,7 +356,7 @@ export class TtsBidiClient implements AsyncIterable<TtsEvent> {
    * @param data 原始帧
    */
   private handleIncoming(data: wsWebSocket.RawData): void {
-    const text = typeof data === 'string' ? data : data.toString('utf8');
+    const text = toUtf8Text(data);
     let parsed: TtsBidiServerEvent;
     try {
       parsed = JSON.parse(text) as TtsBidiServerEvent;
