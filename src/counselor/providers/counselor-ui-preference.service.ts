@@ -12,7 +12,7 @@
 //   时间戳: 2026-10-20
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import type { CounselorUiPreferencesDto, UpdateCounselorUiPreferencesDto } from '../dto/training-exercise.dto.js';
 import { CounselorUiPreference } from '../entities/counselor-ui-preference.entity.js';

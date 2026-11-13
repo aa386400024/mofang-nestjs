@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { CompanionRecordDto, CreateCompanionRecordDto, ListCompanionRecordsResponseDto } from '../dto/companion-record.dto.js';
 import { CompanionRecord } from '../entities/companion-record.entity.js';

@@ -21,7 +21,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { type Job, Queue, Worker } from 'bullmq';
 import { nanoid } from 'nanoid';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { CounselorMode } from './entities/counselor-mode.entity.js';
 import { PracticeBatchHealthService } from './practice-batch-health.service.js';

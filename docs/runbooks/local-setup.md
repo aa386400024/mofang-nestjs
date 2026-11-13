@@ -7,10 +7,11 @@
 
 ```bash
 cd /mnt/e/Work/Project/backend/mofang-nestjs
-npm ci
+pnpm install --frozen-lockfile
 ```
 
 新增依赖 (~13 个):
+
 - `@nestjs/schedule` (cron)
 - `bullmq` (异步队列)
 - `ioredis` (Redis 客户端)
@@ -64,6 +65,7 @@ npm run migration:revert
 ```
 
 迁移按时间顺序:
+
 1. `1700000000000-InitUser` — V2 起点 schema (users / sessions / audit_logs)
 2. `1700000001000-AddUserV2Fields` — user 加 V2 字段
 3. `1700000002000-AddSessionV2Fields` — session 加 V2 字段
@@ -78,6 +80,7 @@ npm run start:dev
 ```
 
 启动日志应该显示:
+
 - `Redis connected: 127.0.0.1:6379/0`
 - `Email SMTP ...` (如果 EMAIL_ENABLED=true)
 - `AuditLogProcessor started: queue=audit-log`
@@ -132,7 +135,7 @@ systemctl start redis-server
 mkdir -p /opt/mofang-nestjs
 cd /opt/mofang-nestjs
 git clone <repo> .
-npm ci --production
+pnpm install --prod --frozen-lockfile
 
 # 3. 写 .env (强密码 + 真 secrets)
 cat > .env <<EOF
@@ -170,7 +173,7 @@ nginx -t && nginx -s reload
 
 ### 8.2 启动报 "Cannot find module 'ioredis'"
 
-跑 `npm ci` 重新装依赖.
+跑 `pnpm install --frozen-lockfile` 重新装依赖.
 
 ### 8.3 启动报 "Cannot find module '@nestjs/schedule'"
 

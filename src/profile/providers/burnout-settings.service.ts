@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { BurnoutSettingsDto, UpdateBurnoutSettingsDto } from '../dto/burnout-settings.dto.js';
 import { BurnoutSettings } from '../entities/burnout-settings.entity.js';

@@ -14,7 +14,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 // eslint-disable-next-line unicorn/import-style
 import { isAbsolute, join, resolve } from 'node:path';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { resolveStoreDir } from '../../admin-debug/debug-session-store.js';
 import { computeConfigFingerprint } from '../config-fingerprint.js';

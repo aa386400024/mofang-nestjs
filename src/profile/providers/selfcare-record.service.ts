@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { CreateSelfcareRecordDto, ListSelfcareRecordsResponseDto, SelfcareRecordDto } from '../dto/selfcare-record.dto.js';
 import { SelfcareRecord } from '../entities/selfcare-record.entity.js';

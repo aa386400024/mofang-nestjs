@@ -35,7 +35,7 @@ import { Inject, Injectable, Logger, Optional, type OnModuleInit } from '@nestjs
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { nanoid } from 'nanoid';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { AUTO_PRACTICE_EVENTS, type AutoPracticeSessionEndPayload, type AutoPracticeSessionStartPayload } from './auto-practice.events.js';
 import { AutoPracticeGateway } from './auto-practice.gateway.js';

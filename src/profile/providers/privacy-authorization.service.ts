@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { PrivacyAuthorizationDto, PrivacyAuthorizationsResponseDto } from '../dto/privacy-authorization.dto.js';
 import { PrivacyAuthorization } from '../entities/privacy-authorization.entity.js';

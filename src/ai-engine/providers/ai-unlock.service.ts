@@ -6,7 +6,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import type { AIUnlockStateDto, AIUnlockStatesDto } from '../dto/ai-unlock.dto.js';
 import { AIUnlockStateEntity } from '../entities/ai-unlock-state.entity.js';

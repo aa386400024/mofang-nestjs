@@ -12,7 +12,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Job, Worker } from 'bullmq';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { KnowledgeService } from './knowledge.service.js';
 import { ScheduledPublishService } from './scheduled-publish.service.js';

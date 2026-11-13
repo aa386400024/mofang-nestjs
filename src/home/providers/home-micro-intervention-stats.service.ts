@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { MicroInterventionStatsDto } from '../dto/home-overview.dto.js';
 import { MicroInterventionHistory } from '../entities/micro-intervention-history.entity.js';

@@ -6,10 +6,10 @@
  * 流程:
  *   1. 大炮本地跑 pnpm build → 拿到最新 dist
  *   2. 大炮跑 pnpm run test:smoke 验证 dist 能起 + /health 通
- *   3. 通过后大炮跑 npm run deploy:tested
+ *   3. 通过后大炮跑 pnpm run deploy:tested
  *      ↓ 本脚本会:
  *      - 强制 prompt "yes-deploy" 才继续
- *      - scp 上传 dist/ + package.json + package-lock.json + Dockerfile.prod + .dockerignore
+ *      - scp 上传 dist/ + package.json + pnpm-lock.yaml + Dockerfile.prod + .dockerignore
  *      - 服务器 docker build (基于上传的 dist/)
  *      - 服务器 docker tag 旧镜像 :previous (回滚点)
  *      - 服务器 docker compose down + up -d
@@ -23,19 +23,19 @@
  *
  * 前置条件:
  *   - 本地 dist/app.js 已存在 (pnpm build 过)
- *   - npm run test:smoke 已通过 (本脚本不重复跑, 但会读 .smoke-last)
+ *   - pnpm run test:smoke 已通过 (本脚本不重复跑, 但会读 .smoke-last)
  *   - ssh root@117.72.30.78 已配好无密码登录 / sshpass / ssh key
  *
  * 用法:
- *   $ npm run deploy:tested
- *   $ npm run deploy:tested -- --skip-upload (本地已有 server 上的 build-context)
+ *   $ pnpm run deploy:tested
+ *   $ pnpm run deploy:tested -- --skip-upload (本地已有 server 上的 build-context)
  *
  * 大厂踩坑:
  *   - 必须用 readline 拿键盘输入, 纯 --force 参数不安全 (脚本被误调就 GG)
  *   - 服务器 docker compose down 期间 API 会断, 提示大炮在低峰跑
  *   - 远程回滚预案: 旧镜像 tag (deploy 脚本会保留 :previous tag)
  *   - 服务器 .env 不会被覆盖 (部署只动镜像, 不动 .env)
- *   - scp 上传 package-lock.json 是为了 npm ci 装相同的依赖版本 (避免漂移)
+ *   - scp 上传 pnpm-lock.yaml 是为了 pnpm install --frozen-lockfile 装相同的依赖版本 (避免漂移)
  */
 
 const readline = require('node:readline');
@@ -126,14 +126,10 @@ async function main() {
 
   // Step 2: scp 上传必要文件
   if (!SKIP_UPLOAD) {
-    log('info', '\n[2/6] 上传 dist + package.json + Dockerfile.prod 到服务器...');
-    const filesToUpload = [
-      'dist',
-      'package.json',
-      'package-lock.json',
-      'Dockerfile.prod',
-      '.dockerignore',
-    ].filter((f) => fs.existsSync(path.join(ROOT, f)));
+    log('info', '\n[2/6] 上传 dist + package.json + pnpm-lock.yaml + Dockerfile.prod 到服务器...');
+    const filesToUpload = ['dist', 'package.json', 'pnpm-lock.yaml', 'Dockerfile.prod', '.dockerignore'].filter((f) =>
+      fs.existsSync(path.join(ROOT, f)),
+    );
 
     if (!filesToUpload.includes('dist')) {
       log('fail', 'dist 目录不存在, 请先跑 pnpm build');
@@ -195,7 +191,9 @@ async function main() {
   } catch (err) {
     log('fail', `remote /health 验证失败: ${err.message}`);
     log('warn', '回滚命令 (在本地跑):');
-    console.log(`    ssh ${REMOTE_HOST} "docker tag ${IMAGE_NAME}:previous ${IMAGE_NAME}:latest && cd ${REMOTE_DEPLOY_DIR} && docker compose -f docker-compose.prod.yml down && docker compose -f docker-compose.prod.yml up -d"`);
+    console.log(
+      `    ssh ${REMOTE_HOST} "docker tag ${IMAGE_NAME}:previous ${IMAGE_NAME}:latest && cd ${REMOTE_DEPLOY_DIR} && docker compose -f docker-compose.prod.yml down && docker compose -f docker-compose.prod.yml up -d"`,
+    );
     process.exit(1);
   }
 }

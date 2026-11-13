@@ -139,10 +139,13 @@ WP-K / WP-L 首次 `git commit` 时被 husky 的 lint-staged 拦截，eslint 报
 
 **遗留（待主控拍板 / 另案）**：
 
-- **D-a · npm 锁去留**：`package-lock.json` **保留未删**（本单不动）。改造后 CI 与 Docker **只读 `pnpm-lock.yaml`**，该文件已不被任何安装路径读取 —— 建议移除，让版本控制只保留一份锁文件真相源。
-- **D-b · 是否在 CI 开启覆盖率采集**：本单**只移除无效上传步骤**、不启用采集。开启需补 provider（`@vitest/coverage-v8` 已在 devDeps）/ reporter / 输出目录，并**定义阈值门禁**（阈值数值须先跑一轮真实覆盖率报告再拍），且只作用于 CI。
-- **CI 侧结果待复核**：本机跑不了 GitHub CI，交付记录**未写「CI 已通过」**；需在 Actions 复核 `corepack enable` 可用性、`--frozen-lockfile` 与 lock 的一致性、缓存命中后的墙钟改善。
-- **P-DEBT-5 的分片（shard）部分未做**：本单落地「缓存 + CI 侧 pnpm 统一」两项；分片矩阵会改变测试执行拓扑，需单独评估。
+- **D-a · npm 锁去留**：✅ **已关闭（2026-11-14，TD-11）** —— 根目录 `package-lock.json`（659 714 B）**已删**，版本控制只留 `pnpm-lock.yaml` 一份锁文件真相源；被删锁打断的 4 处 `npm ci` 活路径（README 快速开始 / `bin/dev-up.ps1` / `bin/check-dev-env.sh` / `docs/runbooks/local-setup.md`）经主控拍板一并改口 `pnpm install --frozen-lockfile`；`deploy-tested.cjs` 上传清单 + README scp 清单同步 `pnpm-lock.yaml`；`docs/runbooks/docker-deploy.md` 的 npm 时代口径**只标注不改写**（部署文档历史债另案）。
+- **D-b · 是否在 CI 开启覆盖率采集**：✅ **采集已接通（2026-11-14，TD-11）** —— `vitest.config.mts` 补 `provider: 'v8'` / `reporter: ['text','lcov']` / `reportsDirectory: './coverage'`；CI 新增**独立 `coverage` job**（单进程全量跑 unit 并把 `coverage/` 上传为 artifact），本地 `pnpm test` 仍不插桩。**首轮真实报告已产出**：Statements **46.92%** / Branches **45.66%** / Functions **42.48%** / Lines **46.68%**（26 408 stmts）。**阈值门禁仍另案**（须由主控基于该轮拍板，本单未设 thresholds）。
+- **audit registry 容错**：✅ **已关闭（2026-11-14，TD-11）** —— CI `security-audit` 改 `pnpm audit --audit-level=high --prod --ignore-registry-errors`（registry 网络 / 服务故障放行，**真实 high 及以上 advisory 仍按阈值阻断**）。
+- **P-DEBT-5 的分片（shard）部分**：✅ **已落地（2026-11-14，TD-11）** —— `ci.yml` matrix **2 片**（`pnpm run test -- --shard=N/2`，仅 unit、e2e 不进矩阵），`build` 的 `needs` 改 `[unit, e2e]`；前置核查通过（单测不连真实 MySQL、无固定端口占用），本机实跑 **97 + 97 = 194 文件 / 3252 例**与基线逐字一致；收益仅在 CI 多 runner 并行成立（**CI job run 净增 2**）。
+- **CI 侧结果待复核**：本机跑不了 GitHub CI，交付记录**未写「CI 已通过」**；需在 Actions 复核 ① matrix shard 传参 ② coverage artifact 上传 ③ audit 容错不影响真实 high+ 阻断 ④ `build` 的 `needs` 等齐两片。
+
+> **TD-11 立项（2026-11-14）**：上述 D-a 锁文件单轨（T-A 删 `package-lock.json` + 部署脚本 / README 清单同步，runbook npm 历史口径登记另案）、D-b coverage 采集接通（T-D v8 + text/lcov，CI 采集、本地不插桩；**阈值门禁仍另案**，待首轮真实报告拍板）、audit registry 容错（T-C `--ignore-registry-errors`，registry 网络故障放行、真实 high+ 漏洞仍阻断）、P-DEBT-5 分片矩阵（T-E matrix 2 片 `--shard`，仅 unit，前置核查不足降级另案）四项纳入 [TD-11 任务单](../completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-task-2026-11-14.md)；L-1b 仓储端口抽象、coverage 阈值门禁不在本单。
 
 ### TD-9 · 测试隔离残留 · lint 告警 · ESLint 缓存 · git 环境前置（优先级：P3，2026-11-13 处置）
 

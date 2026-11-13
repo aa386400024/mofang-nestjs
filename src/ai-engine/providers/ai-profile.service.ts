@@ -6,7 +6,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import type { AIProfileDimensionDto, AIProfileDto, UpsertAIProfileDimensionDto } from '../dto/ai-profile.dto.js';
 import { AIProfileCache } from '../entities/ai-profile-cache.entity.js';

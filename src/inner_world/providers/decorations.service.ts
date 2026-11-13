@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { FragmentsService } from './fragments.service.js';
 import { DecorationDto, PlaceDecorationDto, PurchaseDecorationDto, PurchaseDecorationResponseDto } from '../dto/island.dto.js';

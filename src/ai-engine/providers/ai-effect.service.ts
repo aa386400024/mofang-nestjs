@@ -7,7 +7,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import type { AIEffectHistoryDto, AIEffectRecordDto, RecordImmediateEffectDto } from '../dto/ai-effect.dto.js';
 import { AIEffectRecordEntity } from '../entities/ai-effect-record.entity.js';

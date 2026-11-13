@@ -9,7 +9,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { CrisisDetectorService } from './crisis-detector.service.js';
 import { LlmRouterService } from '../../llm/registry/llm-router.service.js';

@@ -36,7 +36,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 import { WorkflowAction, WorkflowService } from './workflow.service.js';
 import { QdrantService } from '../../ai-engine/providers/qdrant.service.js';
 import { AnalyticsEventType } from '../../analytics/entities/analytics-event.entity.js';

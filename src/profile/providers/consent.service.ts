@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { SignConsentDto, ConsentDocumentDto, ConsentSignatureDto, ConsentSectionDto } from '../dto/consent.dto.js';
 import { ConsentSignature } from '../entities/consent-signature.entity.js';

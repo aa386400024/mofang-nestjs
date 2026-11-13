@@ -63,13 +63,21 @@ jobs:
         run: pnpm exec tsc --noEmit -p tsconfig.json
 
   # ============================================================
-  # 2. Unit + E2E Test (需 MySQL + Redis service)
+  # 2. Unit tests (TD-11 · T-E: matrix 2 片, 仅 unit 进分片)
   # ============================================================
-  test:
-    name: Test (Unit + E2E)
+  unit:
+    name: Unit (shard ${{ matrix.shard }}/${{ matrix.count }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: lint-and-typecheck
+    # TD-11 · T-E: --shard 只切「哪些 spec 文件归本片跑」, 不改测试集合 / 断言 / 用例数
+    #   (本机实测: 1/2 = 97 文件 1608 例, 2/2 = 97 文件 1644 例, 合计 194 文件 3252 例, 与基线逐字一致).
+    #   fail-fast: false: 一片挂了另一片照跑完, 一次能看到完整失败面 (不掩盖问题).
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+        count: [2]
     services:
       mysql:
         image: mysql:8.0
@@ -149,23 +157,208 @@ jobs:
       - name: Run migrations (建测试库 schema)
         run: pnpm migration:run
 
-      - name: Unit tests
-        run: pnpm test
+      - name: Unit tests (shard ${{ matrix.shard }}/${{ matrix.count }})
+        # ⚠️ 必须用 `pnpm run <script> -- <args>` 形态.
+        #    pnpm 的 `pnpm <script> -- <args>` 简写会把 --shard 当成 pnpm 自己的未知选项直接报错
+        #    (本机实测: ERROR Unknown option: 'shard'), 只有 `pnpm run test -- --shard=1/2` 才会透传.
+        run: pnpm run test -- --shard=${{ matrix.shard }}/${{ matrix.count }}
+
+  # ============================================================
+  # 3. E2E tests (独立 config + 独立步骤, 不进分片矩阵)
+  # ============================================================
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: lint-and-typecheck
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: mofang_test
+          MYSQL_USER: mofang
+          MYSQL_PASSWORD: mofangpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -prootpass"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=3s
+          --health-retries=5
+    env:
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: mofang_test
+      DB_USER: mofang
+      DB_PASSWORD: mofangpass
+      DB_TYPE: mysql
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ''
+      REDIS_KEY_PREFIX: mofang:test
+      JWT_SECRET: test-jwt-secret-do-not-use-in-prod
+      JWT_REFRESH_SECRET: test-jwt-refresh-secret-do-not-use-in-prod
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      EMAIL_ENABLED: 'false'
+      SMS_ENABLED: 'false'
+      METRICS_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Enable pnpm (corepack)
+        run: corepack enable
+
+      - name: Resolve pnpm version
+        run: pnpm --version
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run migrations (建测试库 schema)
+        run: pnpm migration:run
 
       - name: E2E tests
         run: pnpm test:e2e
         env:
           # E2E 需真实 HTTP server
           PORT: 3000
+  # ============================================================
+  # 4. Coverage (TD-11 · T-D: 单进程全量跑 unit + 覆盖率采集, 不分片)
+  # ============================================================
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: lint-and-typecheck
+    # 为什么单跑一遍而不复用 unit 分片: --shard 切的是「哪些 spec 文件归本片跑」,
+    #   每片只执行一部分测试 → 每片的覆盖率只反映本片, **不是全量口径**.
+    #   覆盖率阈值 (另案, 待首轮真实报告拍板) 不能建立在分片报告上, 故这里单进程跑全量.
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: mofang_test
+          MYSQL_USER: mofang
+          MYSQL_PASSWORD: mofangpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -prootpass"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=3s
+          --health-retries=5
+    env:
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: mofang_test
+      DB_USER: mofang
+      DB_PASSWORD: mofangpass
+      DB_TYPE: mysql
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ''
+      REDIS_KEY_PREFIX: mofang:test
+      JWT_SECRET: test-jwt-secret-do-not-use-in-prod
+      JWT_REFRESH_SECRET: test-jwt-refresh-secret-do-not-use-in-prod
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      EMAIL_ENABLED: 'false'
+      SMS_ENABLED: 'false'
+      METRICS_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Enable pnpm (corepack)
+        run: corepack enable
+
+      - name: Resolve pnpm version
+        run: pnpm --version
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache vitest transform cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules/.vite/vitest
+          key: vitest-transform-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            vitest-transform-${{ runner.os }}-
+
+      - name: Run migrations (建测试库 schema)
+        run: pnpm migration:run
+
+      - name: Unit tests with coverage
+        # ⚠️ 与 unit job 同一个透传约束: 必须 `pnpm run test -- --coverage`.
+        #    本地 pnpm test 脚本不带 --coverage (日常闸门不插桩), 只有 CI 这条路径开采集.
+        run: pnpm run test -- --coverage
+
+      - name: Upload coverage report (lcov)
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage/
+          retention-days: 7
+          if-no-files-found: error
 
   # ============================================================
-  # 3. Build (编译产物, 验证 Dockerfile 能 build)
+  # 5. Build (编译产物, 验证 Dockerfile 能 build)
   # ============================================================
   build:
     name: Build (Docker)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: test
+    # TD-11 · T-E: unit 是 matrix, `needs: unit` 会等**所有**分片跑完; 再叠加 e2e.
+    needs: [unit, e2e]
     steps:
       - uses: actions/checkout@v4
 
@@ -181,7 +374,7 @@ jobs:
           echo "Image size: $SIZE"
 
   # ============================================================
-  # 4. Security audit (大厂必备)
+  # 6. Security audit (大厂必备)
   # ============================================================
   security-audit:
     name: Security Audit
@@ -213,7 +406,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: pnpm audit
-        run: pnpm audit --audit-level=high --prod
+        # TD-11 · T-C: --ignore-registry-errors 只在 registry 网络 / 服务故障时放行 (exit 0),
+        #   **真实 high 及以上 advisory 仍按 --audit-level=high 阻断** —— 容错不覆盖漏洞判定.
+        run: pnpm audit --audit-level=high --prod --ignore-registry-errors
 
       - name: Run Trivy vulnerability scanner on Dockerfile
         uses: aquasecurity/trivy-action@master

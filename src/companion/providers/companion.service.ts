@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { CompanionBinding } from '../../profile/entities/companion-binding.entity.js';
 import { CompanionRecord as ProfileCompanionRecord } from '../../profile/entities/companion-record.entity.js';

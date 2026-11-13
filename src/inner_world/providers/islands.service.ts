@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { ReconciliationService } from './reconciliation.service.js';
 import { IslandElementDto, IslandElementsDto, GrowElementDto } from '../dto/island.dto.js';

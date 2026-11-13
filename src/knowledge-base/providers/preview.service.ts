@@ -15,7 +15,7 @@
 
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { LlmService } from '../../agent/llm/llm.service.js';
 // V2026-10-12 治本 (Phase 8.4 — Preview import path):

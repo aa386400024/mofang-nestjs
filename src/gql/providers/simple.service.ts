@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { Sampletable1 } from '#entity/sampledb1/index.js';
 import { UtilService } from '../../common/index.js';

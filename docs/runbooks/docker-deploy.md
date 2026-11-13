@@ -247,6 +247,7 @@ npm run build
 sshpass -p '0126ZHang@@' rsync -avz --progress -e "ssh -p 22" \
   dist/ root@117.72.30.78:/tmp/mofang-build/dist/
 
+# ⚠️ TD-11 遗留: 下面 scp 清单仍是 npm 时代口径 (package-lock.json 已删除, 现状应为 pnpm-lock.yaml), 本单不改写, 待部署文档重写另案统一.
 sshpass -p '0126ZHang@@' scp -P 22 \
   package.json package-lock.json Dockerfile.prod \
   root@117.72.30.78:/tmp/mofang-build/
@@ -324,6 +325,7 @@ npm run build
 sshpass -p '0126ZHang@@' rsync -avz --delete -e "ssh -p 22" \
   dist/ root@117.72.30.78:/tmp/mofang-build/dist/
 
+# ⚠️ TD-11 遗留: 下面 lockfile 清单仍是 npm 时代口径 (package-lock.json 已删除, 现状应为 pnpm-lock.yaml), 待另案.
 # 3. (如有 package.json 改) 传 lockfile
 sshpass -p '0126ZHang@@' scp -P 22 \
   package.json package-lock.json \
@@ -402,7 +404,7 @@ npm install <package>@<version>    # 改 package.json
 npm ci                             # 锁文件更新
 npm run build                      # 验证编译
 
-# 部署流程同 §5.1 (上传 package-lock.json)
+# 部署流程同 §5.1 (上传 lockfile) # ⚠️ TD-11 遗留: npm 时代口径, 待另案
 ```
 
 ---
@@ -455,7 +457,7 @@ npm error The `npm ci` command can only install with an existing package-lock.js
 
 ```bash
 ssh root@117.72.30.78 'ls -la /tmp/mofang-build/'
-# 期望看到: dist/ Dockerfile.prod package.json package-lock.json
+# 期望看到: dist/ Dockerfile.prod package.json package-lock.json # ⚠️ TD-11 遗留: npm 时代口径, 现状应为 pnpm-lock.yaml, 待另案
 ```
 
 ### 6.3 容器起不来 (host mysql/redis 没起来)
@@ -622,7 +624,7 @@ scp 传 522 个小文件超时,rsync 增量同步秒级。
 ### ⚠️ Dockerfile COPY 必须显式 package-lock.json
 
 `npm ci` 必须有 lockfile,否则 fallback 到 `npm install` 但**安装结果可能跟本地不一致**。
-**正解**: Dockerfile.prod `COPY package.json package-lock.json* ./`,**部署时务必上传 lockfile**。
+**正解**: Dockerfile.prod `COPY package.json package-lock.json* ./`,**部署时务必上传 lockfile**。（⚠️ TD-11 遗留：现状 Dockerfile.prod 实为 `COPY package.json pnpm-lock.yaml ./` + `pnpm install --prod --frozen-lockfile`，本段为 npm 时代口径，待部署文档重写另案统一）
 
 ### ⚠️ .dockerignore 默认排除 Dockerfile + docker-compose.yml
 

@@ -15,7 +15,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { QdrantService } from '../../ai-engine/providers/qdrant.service.js';
 import { LlmRouterService } from '../../llm/registry/llm-router.service.js';

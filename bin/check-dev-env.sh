@@ -51,7 +51,7 @@ if [ -d node_modules ]; then
   ok "node_modules 已装"
 else
   fail "node_modules 未装"
-  echo "   修复: npm ci"
+  echo "   修复: pnpm install --frozen-lockfile"
   exit 1
 fi
 

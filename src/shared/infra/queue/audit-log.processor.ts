@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Worker, type Job, Queue } from 'bullmq';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { AuditEvent, AuditLog } from '../../../user/entities/audit-log.entity.js';
 import { RedisService } from '../redis/index.js';

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { CompanionBinding } from '../../profile/entities/companion-binding.entity.js';
 import { UserProfile } from '../../profile/entities/user-profile.entity.js';

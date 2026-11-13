@@ -35,9 +35,9 @@ Ok(".env 存在")
 
 # ==================== 2. node_modules 检查 ====================
 if (-not (Test-Path "node_modules")) {
-    Warn("node_modules 未装, 正在跑 npm ci (可能需要几分钟)...")
-    npm ci
-    if ($LASTEXITCODE -ne 0) { Err "npm ci 失败" }
+    Warn("node_modules 未装, 正在跑 pnpm install --frozen-lockfile (可能需要几分钟)...")
+    pnpm install --frozen-lockfile
+    if ($LASTEXITCODE -ne 0) { Err "pnpm install --frozen-lockfile 失败" }
 }
 Ok("node_modules OK")
 

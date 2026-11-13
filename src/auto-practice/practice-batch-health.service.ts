@@ -21,7 +21,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { resolveStoreDir } from '../admin-debug/debug-session-store.js';
 import { PracticeBatch } from './entities/practice-batch.entity.js';

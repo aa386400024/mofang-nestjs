@@ -12,7 +12,7 @@ import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 // eslint-disable-next-line unicorn/import-style
 import { join, extname } from 'node:path';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 import { BizException } from '../../common/exceptions/biz.exception.js';

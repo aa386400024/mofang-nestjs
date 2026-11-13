@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomInt } from 'node:crypto';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
 import { User } from '../../user/entities/user.entity.js';
 import {
