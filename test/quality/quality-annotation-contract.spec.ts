@@ -19,6 +19,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 
 import { describe, expect, it } from 'vitest';
 
+import { buildQualityAnnotationRow } from './quality-annotation-fixtures.js';
 import { AdminRoleGuard } from '../../src/admin-debug/guards/admin-role.guard.js';
 import { BizCode } from '../../src/common/exceptions/biz-code.enum.js';
 import { QualityAnnotationController } from '../../src/quality/quality-annotation.controller.js';
@@ -92,27 +93,8 @@ class StubStore {
  * @returns 标注行
  */
 function makeRow(overrides: Partial<QualityAnnotationEntity> = {}): QualityAnnotationEntity {
-  return {
-    id: 'row-1',
-    debugSessionId: 'debug_abc',
-    characterSlug: 'vpt_general_secure_l1',
-    attachmentStyle: 'secure',
-    anchorOrder: 1,
-    firstExplorationTurn: null,
-    dominantLabel: null,
-    crisisPeakLevel: 0,
-    crisisFirstTurn: null,
-    shouldEndTurn: null,
-    needsReview: false,
-    durationMs: 0,
-    annotator: null,
-    notes: null,
-    createdAt: new Date('2026-11-10T00:00:00.000Z'),
-    updatedAt: new Date('2026-11-10T00:00:00.000Z'),
-    ...overrides,
-    // ⚠️ 故意不填 WP-N 新增的 9 列 (归属 / 版本锁 / 轮级最小集) ——
-    //   用类型断言而不是补值: 补值会改变运行时行为 (零变化红线).
-  } as QualityAnnotationEntity;
+  // 默认值来自共享夹具 (quality-annotation-fixtures.ts) —— WP-N 九列按实体口径缺省 null.
+  return buildQualityAnnotationRow(overrides);
 }
 
 /**

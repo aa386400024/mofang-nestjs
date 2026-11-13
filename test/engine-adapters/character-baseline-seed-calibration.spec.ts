@@ -15,6 +15,7 @@
 
 import { FindOperator } from 'typeorm';
 
+import { buildCharacterProfileRow } from './character-profile-fixtures.js';
 import {
   CHARACTER_BASELINE_CALIBRATION,
   type CharacterBaselineCalibration,
@@ -129,11 +130,11 @@ function matchesWhere(row: CharacterProfileEntity, where: Record<string, unknown
  * @returns 角色行
  */
 function buildDriftedRow(target: CharacterBaselineCalibration, overrides: Partial<CharacterProfileEntity> = {}): CharacterProfileEntity {
-  return {
+  // 默认值来自共享夹具 (character-profile-fixtures.ts) —— 本组用例只覆盖"漂移"相关的列.
+  return buildCharacterProfileRow({
     id: `row-${target.templateId}`,
     templateId: target.templateId,
     displayName: '原展示名',
-    attachmentStyle: 'avoidant',
     fivePs: {
       presenting: '原主诉',
       precipitating: '原诱发',
@@ -151,21 +152,10 @@ function buildDriftedRow(target: CharacterBaselineCalibration, overrides: Partia
     baselineBond: 0.5,
     // WP-J P2: 库里原本 8 行 verbal_voice 全 NULL —— 默认就按"待写入"造, 与真库一致.
     verbalVoice: null,
-    speechVolumeBaseline: 0.5,
-    narrativeStyle: 'mixed',
-    expressionTone: 'restrained',
-    coreBeliefs: [],
-    underlyingDesires: [],
-    forbiddenBehaviors: [],
-    sensitiveTopics: [],
     auditStatus: 'approved',
-    enabled: true,
     version: 7,
-    createdAt: new Date(0),
-    updatedAt: new Date(0),
-    deletedAt: null,
     ...overrides,
-  } as CharacterProfileEntity;
+  });
 }
 
 /** B 类那 4 个 templateId. */

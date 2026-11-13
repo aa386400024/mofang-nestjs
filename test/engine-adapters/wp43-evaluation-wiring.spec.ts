@@ -21,7 +21,6 @@ import {
   type SessionEvaluationSessionInput,
   type SessionEvaluationSink,
 } from '../../src/voice/session-evaluation-slot.js';
-import type { VoiceTurnBackendTurnOptions } from '../../src/voice/voice-turn-backend.port.js';
 
 const SESSION_ID = 'session-1';
 const HANDLE_ID = 'handle-1';
@@ -243,7 +242,7 @@ describe('WP43 · 引擎侧接线 (内核出参 → 评估插槽)', () => {
         tenantId: TENANT_ID,
         personaId: 'v',
         userText: '第一句',
-      } as VoiceTurnBackendTurnOptions),
+      }),
     );
     second.backend.closeSession('session-2');
     await flushMicrotasks();

@@ -21,6 +21,7 @@
 //     (自检通过 / 标签一致 / 可区分 / 无塌缩 / 装配而非复制), 不是抄一份数字 ——
 //     抄一份的真正代价是"改标定表要改两处, 忘了就静默漂".
 
+import { buildCharacterProfileRow } from './character-profile-fixtures.js';
 import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed.js';
 import { buildCharacterProfile } from '../../src/engine-adapters/wiring/character/builtin-character-registry.js';
 import {
@@ -62,11 +63,11 @@ const NO_PRESET = undefined;
  * @returns 角色行
  */
 function buildRow(target: CharacterBaselineCalibration): CharacterProfileEntity {
-  return {
+  // 默认值来自共享夹具 (character-profile-fixtures.ts) —— 本组用例只覆盖标定相关的列.
+  return buildCharacterProfileRow({
     id: `row-${target.templateId}`,
     templateId: target.templateId,
     displayName: target.templateId,
-    attachmentStyle: 'avoidant',
     fivePs: {
       presenting: '',
       precipitating: '',
@@ -82,23 +83,8 @@ function buildRow(target: CharacterBaselineCalibration): CharacterProfileEntity 
     baselineEmotionArousal: target.emotion.arousal,
     baselineSafety: target.safety,
     baselineBond: target.bond,
-    speechVolumeBaseline: 0.5,
-    narrativeStyle: 'mixed',
-    expressionTone: 'restrained',
-    coreBeliefs: [],
-    underlyingDesires: [],
-    forbiddenBehaviors: [],
-    sensitiveTopics: [],
     auditStatus: 'approved',
-    enabled: true,
-    version: 1,
-    createdAt: new Date(0),
-    updatedAt: new Date(0),
-    deletedAt: null,
-    // ⚠️ 故意**不填** personalityTraits / verbalVoice / versionMajor·Minor·Patch ——
-    //   这几列是后加的 (WP38 / WP49 / WP-J P2), 夹具按"旧形状"写.
-    //   用类型断言而不是补值: 补值会改变运行时行为 (零变化红线).
-  } as unknown as CharacterProfileEntity;
+  });
 }
 
 /**

@@ -308,8 +308,14 @@ export interface VoiceTurnBackendTurnOptions {
   readonly sessionId: string;
   /** 租户隔离键. */
   readonly tenantId: string;
-  /** 用户 id (计费 / 审计). */
-  readonly userId: string;
+  /**
+   * 用户 id (计费 / 审计).
+   *
+   * 缺省 = 本轮**没有**学员身份 —— 身份一律以**会话 context** 为准 (openSession 写入,
+   * turn 读取); turn 级这个字段只是把已知的学员 id 透传下去, 后端实现**不读**它.
+   * 与同文件 `OpenOptions.userId?` 同一口径 (可选).
+   */
+  readonly userId?: string;
   /** persona 已 resolve 后的 id. */
   readonly personaId: string;
   /** 用户本轮文本 (ASR final). */

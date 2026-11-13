@@ -26,6 +26,7 @@
 
 import { FindOperator } from 'typeorm';
 
+import { buildCharacterProfileRow } from './character-profile-fixtures.js';
 import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed.js';
 import { BASELINE_CALIBRATION_BY_TEMPLATE_ID } from '../../src/engine-adapters/wiring/character/character-baseline-calibration.js';
 import { CharacterProfileEntity } from '../../src/engine-adapters/wiring/character/character-profile.entity.js';
@@ -108,7 +109,8 @@ function matchesWhere(row: CharacterProfileEntity, where: Record<string, unknown
  * 种子行 → 实体行 (可覆盖任意列).
  */
 function buildRow(seed: CharacterProfileSeed, overrides: Partial<CharacterProfileEntity> = {}): CharacterProfileEntity {
-  return {
+  // 默认值来自共享夹具 (character-profile-fixtures.ts) —— 本组用例只覆盖"种子 → 行"的映射列.
+  return buildCharacterProfileRow({
     id: seed.id,
     templateId: seed.templateId,
     displayName: seed.displayName,
@@ -130,13 +132,10 @@ function buildRow(seed: CharacterProfileSeed, overrides: Partial<CharacterProfil
     narrativeStyle: seed.narrativeStyle ?? 'mixed',
     expressionTone: seed.expressionTone ?? 'restrained',
     auditStatus: 'approved',
-    enabled: true,
-    version: 1,
     createdAt: new Date(CLOCK),
     updatedAt: new Date(CLOCK),
-    deletedAt: null,
     ...overrides,
-  } as CharacterProfileEntity;
+  });
 }
 
 /** 首批 4 行 (由内容基线 + 来访池内容构建). */
@@ -547,6 +546,9 @@ describe('WP9-B · MySQL 角色解析器 (DB 数据源)', () => {
             style: row.baselineResistanceStyle,
           },
           emotion: { valence: row.baselineEmotionValence, arousal: row.baselineEmotionArousal },
+          // WP51: 同盟两列 —— "等价的种子"必须**镜像 DB 行**的全部字段 (同 WP41 三列的口径).
+          safety: row.baselineSafety,
+          bond: row.baselineBond,
         },
       };
       const viaBuiltin = await new BuiltinCharacterProfileResolver([equivalentSeed]).resolve({

@@ -106,10 +106,16 @@ class StubCharacterResolver {
  * 角色内核基线 (只需结构对).
  */
 function makeCharacterProfile(): CharacterProfile {
-  // ⚠️ 故意不填 forbiddenBehaviors / sensitiveTopics (内核契约里的**必填**字段) ——
-  //   这两个调试服务只读 attachmentStyle / personalityTraits;
-  //   用类型断言而不是补值: 补空数组会改变运行时行为 (零变化红线).
-  return { coreBeliefs: [], attachmentStyle: 'avoidant', personalityTraits: { agreeableness: 0.4 } } as unknown as CharacterProfile;
+  // forbiddenBehaviors / sensitiveTopics 是内核契约里的**必填**字段 —— 补空数组.
+  // 调试服务只读 attachmentStyle / personalityTraits (见 debug-session.service.ts 的
+  // buildCharacterBrief), 这两个字段补 [] 对运行时零影响.
+  return {
+    coreBeliefs: [],
+    attachmentStyle: 'avoidant',
+    personalityTraits: { agreeableness: 0.4 },
+    forbiddenBehaviors: [],
+    sensitiveTopics: [],
+  };
 }
 
 /**

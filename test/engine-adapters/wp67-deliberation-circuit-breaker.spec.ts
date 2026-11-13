@@ -126,9 +126,10 @@ function buildInput(overrides: Partial<DeliberationShadowInput> = {}): Deliberat
 
 /** 一次"成功"的结局. */
 function okOutcome(): DeliberationOutcome {
+  const output: DeliberationOutput = { deltas: [], summary: 's', confidence: 0.5, intentionShift: null };
   return {
     kind: 'ok',
-    validated: { output: { deltas: [], summary: 's', confidence: 0.5 } as unknown as DeliberationOutput, rejectedEntries: [] },
+    validated: { output, rejectedEntries: [] },
     usage: null,
   };
 }

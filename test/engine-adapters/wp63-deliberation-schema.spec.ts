@@ -320,7 +320,7 @@ describe('WP63 · 审议输出 Schema 与可解释性', () => {
   });
 
   describe('⑥ 输出契约形状 (类型级 + 运行时)', () => {
-    it('DeliberationOutput 是 { deltas, summary, confidence } 三件套', () => {
+    it('DeliberationOutput 是 { deltas, summary, confidence, intentionShift } 四件套', () => {
       const output: DeliberationOutput = {
         deltas: [
           {
@@ -332,11 +332,11 @@ describe('WP63 · 审议输出 Schema 与可解释性', () => {
         ],
         summary: '来访者仍保持戒备, 但语气比上一轮软了一点',
         confidence: 0.62,
-        // ⚠️ 生产契约现在是**四件套** (加了 intentionShift, WP68) —— 这里**故意**只造三件套,
-        //   断言的正是"输出契约形状"这个视角; 用类型断言保住运行时形状 (Object.keys 仍是 3 个).
-      } as unknown as DeliberationOutput;
+        // WP68 起 intentionShift 是**恒在**字段 (值可能是 null) —— 形状断言按生产契约的四件套走.
+        intentionShift: null,
+      };
 
-      expect(Object.keys(output).sort()).toEqual(['confidence', 'deltas', 'summary']);
+      expect(Object.keys(output).sort()).toEqual(['confidence', 'deltas', 'intentionShift', 'summary']);
       expect(output.deltas[0]?.dimension).toBe('trust');
       expect(output.deltas[0]?.operatorTags).toContain('empathy');
     });
@@ -354,7 +354,7 @@ describe('WP63 · 审议输出 Schema 与可解释性', () => {
     });
 
     it('"没变化"= 空数组 (不是 delta=0 的条目)', () => {
-      const output: DeliberationOutput = { deltas: [], summary: '本轮没有显著变化', confidence: 0.4 } as unknown as DeliberationOutput;
+      const output: DeliberationOutput = { deltas: [], summary: '本轮没有显著变化', confidence: 0.4, intentionShift: null };
 
       expect(output.deltas).toHaveLength(0);
     });

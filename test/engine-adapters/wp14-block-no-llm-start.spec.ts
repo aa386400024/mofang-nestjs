@@ -219,19 +219,21 @@ describe('WP14 优化项 · adapter 侧前置 safety gate', () => {
       expect(audit.events).toHaveLength(0);
     });
 
-    it('非危机类别 (专业越界) → 放行 (类别边界不能因前置 gate 丢掉)', async () => {
+    it('非危机类别 → 放行 (类别边界不能因前置 gate 丢掉)', async () => {
       const probe = new StubProbe();
-      // promise_cure = 承诺治愈 —— 属督导事后复盘项, 不是危机类别.
-      // ⚠️ 'promise_cure' 是**咨询师侧**类别 (不是来访侧 VisitorRiskCategory) ——
-      //   本用例恰好喂它, 验前置 gate 不因为"不是危机类别"就把信号丢掉.
-      probe.result = { level: 'block', categories: ['promise_cure'] } as unknown as RiskProbeResult;
+      // 'neutral' = 与自杀 / 自伤 / 攻击无关 —— 合法来访类别, 但**不在**危机子集里.
+      // 本用例喂它 (等级仍给 block), 验前置 gate 不因为"不是危机类别"就把信号丢掉.
+      // ⚠️ 为什么不用 'promise_cure' (咨询师侧类别): probe 端口的类别口径是
+      //   VisitorRiskCategory —— probe 只探测来访输出, 咨询师违规类别由规则层
+      //   SafetyVerdict 产出 (那条路径见 wp14-student-risk-disposal.spec.ts).
+      probe.result = { level: 'block', categories: ['neutral'] };
       const { backend, audit } = buildBackend({ probe });
       await backend.openSession({ sessionId: SESSION_ID, tenantId: 'tenant-1', userId: USER_ID, dbSessionId: DB_SESSION_ID });
       const frames: VoiceServerMessage[] = [];
 
       const result = await backend.preCheckSafety({
         sessionId: SESSION_ID,
-        userText: '我保证能治好你',
+        userText: '最近睡得不太好',
         turnIndex: 1,
         publishFrame: (frame) => frames.push(frame),
       });

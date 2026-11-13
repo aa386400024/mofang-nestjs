@@ -1243,7 +1243,8 @@ export class VoiceService {
   private async *guardEngineStream(
     primary: LlmStream,
     state: VoiceSessionState,
-    options: VoiceTurnBackendTurnOptions,
+    // 同 buildTurnOptions: 这份 options 一定带 userId (旧链路回落时要转交给它).
+    options: VoiceTurnBackendTurnOptions & { readonly userId: string },
   ): AsyncIterable<LlmStreamChunk> {
     let contentSeen = false;
     try {
@@ -1310,7 +1311,11 @@ export class VoiceService {
     signal: AbortSignal,
     send: SendFn,
     roundId?: number,
-  ): VoiceTurnBackendTurnOptions {
+  ): VoiceTurnBackendTurnOptions & { readonly userId: string } {
+    // ⚠️ 返回类型把 userId **收窄回必填**: 端口那一层的 userId 是可选的
+    //   (后端实现可以不读它 —— 身份以会话 context 为准), 但 voice 层构造的这份
+    //   **一定带**学员身份 (会话 meta 里就有). 旧链路的 VisitorTurnOptions.userId
+    //   必填, 收窄让这条不变量在类型层显式成立 —— 而不是用 `?? ''` 造一个假身份.
     return {
       sessionId: state.meta.sessionId,
       tenantId: state.meta.tenantId,

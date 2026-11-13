@@ -21,6 +21,7 @@
 import type { ConfigService } from '@nestjs/config';
 import { describe, expect, it, vi } from 'vitest';
 
+import { buildTestStructuredInput } from './deliberation-fixtures.js';
 import { InferenceFingerprintService } from '../../src/auto-practice/inference-fingerprint.service.js';
 
 import {
@@ -29,7 +30,6 @@ import {
   resolveSessionEffectiveMode,
   type DeliberationScenarioType,
 } from '../../src/engine-adapters/deliberation/deliberation-mode.config.js';
-import type { DeliberationInput } from '../../src/engine-adapters/deliberation/deliberation-types.js';
 import { LlmDeliberationHook } from '../../src/engine-adapters/deliberation/llm-deliberation-hook.js';
 import { DeliberationGateService } from '../../src/engine-adapters/deliberation-gate/deliberation-gate.service.js';
 import type { GateTraceRecord } from '../../src/engine-adapters/deliberation-gate/deliberation-gate.trace.js';
@@ -153,19 +153,9 @@ describe('G123 · 审议场景硬隔离 + 指纹诚实化 + rule_only 留痕', (
       await hook.produce({
         context: makeContext('debug-exam'),
         extras: {
-          // ⚠️ 这份 structured 用的是**旧形状** (审议输入最小化 WP-A 之前的字段名) ——
-          //   本用例只验"exam 场次一次 LLM 都不发", 不消费这个对象;
-          //   用类型断言保住运行时形状.
-          structured: {
-            kernelEvents: [],
-            stateBefore: createEmptyBdiSnapshot(),
-            stateAfter: createEmptyBdiSnapshot(),
-            characterBrief: '',
-            counselorVerdict: { level: 'low' },
-            visitorText: '',
-            ruleStrategy: 'simple_response',
-            riskLevel: 'low',
-          } as unknown as DeliberationInput,
+          // 结构化输入走**共享夹具** (走真实的 buildDeliberationInput 装配) ——
+          //   本用例只验"exam 场次一次 LLM 都不发", 不消费这个对象.
+          structured: buildTestStructuredInput({ ruleStrategy: 'simple_response' }),
           userId: 'user-g123',
         },
       });

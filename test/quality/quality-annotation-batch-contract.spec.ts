@@ -22,6 +22,7 @@ import { join } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { buildQualityAnnotationRow } from './quality-annotation-fixtures.js';
 import { AdminRoleGuard } from '../../src/admin-debug/guards/admin-role.guard.js';
 import { BizCode } from '../../src/common/exceptions/biz-code.enum.js';
 import { sortBatchSessions, type BatchSessionFact } from '../../src/quality/quality-annotation-batch.js';
@@ -90,34 +91,8 @@ class StubRepo {
  * @returns 标注行
  */
 function makeRow(overrides: Partial<QualityAnnotationEntity> = {}): QualityAnnotationEntity {
-  return {
-    id: 'row-1',
-    debugSessionId: 'debug_1',
-    characterSlug: 'vpt_a',
-    attachmentStyle: 'secure',
-    anchorOrder: 1,
-    firstExplorationTurn: null,
-    dominantLabel: null,
-    crisisPeakLevel: 0,
-    crisisFirstTurn: null,
-    shouldEndTurn: null,
-    needsReview: false,
-    durationMs: 0,
-    annotator: null,
-    notes: null,
-    createdAt: new Date('2026-11-10T00:00:00.000Z'),
-    updatedAt: new Date('2026-11-10T00:00:00.000Z'),
-    batchId: null,
-    counselorModeId: null,
-    turnCount: null,
-    engineVersion: null,
-    promptVersion: null,
-    characterVersion: null,
-    firstBadTurn: null,
-    badTurns: null,
-    turnNote: null,
-    ...overrides,
-  };
+  // 默认值来自共享夹具 (quality-annotation-fixtures.ts) —— 本组用例只覆盖批次相关的列.
+  return buildQualityAnnotationRow({ debugSessionId: 'debug_1', characterSlug: 'vpt_a', ...overrides });
 }
 
 /**

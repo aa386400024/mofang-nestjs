@@ -21,6 +21,7 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { buildCharacterProfileRow } from './character-profile-fixtures.js';
 import type { AdaptiveRenderSpec } from '../../src/engine-adapters/rendering/render-risk.js';
 import { buildRenderSpec } from '../../src/engine-adapters/rendering/spec-assembler.js';
 import { buildVisitorMessages } from '../../src/engine-adapters/rendering/turn-render-orchestrator.js';
@@ -99,7 +100,8 @@ function promptOf(spec: AdaptiveRenderSpec): string {
 
 /** 造一行 DB 角色 (表达风格三列有值). */
 function buildRow(overrides: Partial<CharacterProfileEntity> = {}): CharacterProfileEntity {
-  return {
+  // 默认值来自共享夹具 (character-profile-fixtures.ts) —— 本组用例只覆盖表达风格相关的列.
+  return buildCharacterProfileRow({
     id: 'row-1',
     templateId: 'vpt_test_l1',
     displayName: '测试角色',
@@ -115,18 +117,11 @@ function buildRow(overrides: Partial<CharacterProfileEntity> = {}): CharacterPro
     speechVolumeBaseline: 0.8,
     narrativeStyle: 'structured',
     expressionTone: 'intellectualizing',
-    coreBeliefs: [],
-    underlyingDesires: [],
-    forbiddenBehaviors: [],
-    sensitiveTopics: [],
     auditStatus: 'approved',
-    enabled: true,
-    version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
-    deletedAt: null,
     ...overrides,
-  } as CharacterProfileEntity;
+  });
 }
 
 /** 构造内核一轮出参. */
