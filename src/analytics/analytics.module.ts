@@ -18,6 +18,8 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AnalyticsController } from './controllers/analytics.controller.js';
+import { AnalyticsEventRepositoryTypeorm } from './data/analytics-event.repository.typeorm.js';
+import { ANALYTICS_EVENT_REPOSITORY } from './domain/repositories/analytics-event.repository.js';
 import { AnalyticsEvent } from './entities/analytics-event.entity.js';
 import { AnalyticsEventTrackerService } from './providers/analytics-event-tracker.service.js';
 import { AnalyticsService } from './providers/analytics.service.js';
@@ -25,7 +27,17 @@ import { AnalyticsService } from './providers/analytics.service.js';
 @Module({
   imports: [TypeOrmModule.forFeature([AnalyticsEvent])],
   controllers: [AnalyticsController],
-  providers: [AnalyticsService, AnalyticsEventTrackerService],
+  providers: [
+    AnalyticsService,
+    AnalyticsEventTrackerService,
+    {
+      // V2026-11-14 治本 (TD-13): 仓储端口接线 —— service 依赖 token, 不依赖 TypeORM 实现.
+      //   仓储 token **不 export**: analytics 仓储不被跨模块消费 (跨模块只消费
+      //   AnalyticsEventTrackerService 这个 service), 不给外部开第二个入口.
+      provide: ANALYTICS_EVENT_REPOSITORY,
+      useClass: AnalyticsEventRepositoryTypeorm,
+    },
+  ],
   exports: [AnalyticsService, AnalyticsEventTrackerService],
 })
 export class AnalyticsModule {}

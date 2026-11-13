@@ -11,18 +11,27 @@
 //     - KPI 3 (avg review SLA) V0.x 占位返 0 (真实计算要 join events by item_id
 //       + 时间差聚合, V1.x 增强), 跟 client 7.8 spec 注释一致.
 
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+// V2026-11-14 治本 (TD-13 · L-1b 仓储端口抽象试点 · analytics 域):
+//   依赖从 `@InjectRepository(AnalyticsEvent)` 换成 `@Inject(ANALYTICS_EVENT_REPOSITORY)` ——
+//   service 只依赖仓储端口接口, 不再直接碰 typeorm 的仓储 API 与区间操作符.
+//   治本:
+//     - KPI 计数与 trend 取数都收成**端口方法** (countByType / findCreatedAtBetween),
+//       查询口径 (tenantId 隔离 + eventType + 时间窗) 封在 TypeORM 实现里, 与改前逐字一致
+//     - 纯计算 (timeRangeWindow / bucketCount / buildTrend 分桶) 全部留在本 service ——
+//       它们是纯函数, 不属于仓储
+//     - KPI 3 / KPI 4 仍是 V0.x 占位 0 (口径不动, 本单只做结构重构)
 
+import { Inject, Injectable } from '@nestjs/common';
+
+import { ANALYTICS_EVENT_REPOSITORY, type AnalyticsEventRepository } from '../domain/repositories/analytics-event.repository.js';
 import { AnalyticsOverviewDto, TimeRange } from '../dto/analytics.dto.js';
-import { AnalyticsEvent, AnalyticsEventType } from '../entities/analytics-event.entity.js';
+import { AnalyticsEventType } from '../entities/analytics-event.entity.js';
 
 @Injectable()
 export class AnalyticsService {
   constructor(
-    @InjectRepository(AnalyticsEvent)
-    private readonly events: Repository<AnalyticsEvent>,
+    @Inject(ANALYTICS_EVENT_REPOSITORY)
+    private readonly events: AnalyticsEventRepository,
   ) {}
 
   /**
@@ -33,22 +42,10 @@ export class AnalyticsService {
     const { start, end } = this.timeRangeWindow(range);
 
     // KPI 1: KB 发布量 (approve 计数)
-    const kbPublished = await this.events.count({
-      where: {
-        tenantId,
-        eventType: AnalyticsEventType.KbPublished,
-        createdAt: Between(start, end),
-      },
-    });
+    const kbPublished = await this.events.countByType(tenantId, AnalyticsEventType.KbPublished, start, end);
 
     // KPI 2: 草稿→发布转化率 (published / submitted, 0 分母保护)
-    const submitted = await this.events.count({
-      where: {
-        tenantId,
-        eventType: AnalyticsEventType.DraftSubmitted,
-        createdAt: Between(start, end),
-      },
-    });
+    const submitted = await this.events.countByType(tenantId, AnalyticsEventType.DraftSubmitted, start, end);
     const draftToPublishRate = submitted > 0 ? kbPublished / submitted : 0;
 
     // KPI 3: 平均审核 SLA (V0.x 占位返 0, V1.x 真实计算)
@@ -135,18 +132,11 @@ export class AnalyticsService {
     //   显式 <number> 泛型, 第 2 参数返回 number 推断.
     const counts = Array.from({ length: bucketCount }, () => 0);
 
-    // V2026-10-12 治本 (Phase 8.3 — TypeORM select 类型):
-    //   TypeORM FindOptions select 是对象形式 { field: true }, 不是 string[].
-    //   string[] 走 createQueryBuilder().select() 合法 (跟 src/ai-engine
-    //   providers/ai-effect.service.ts getHistory 同 pattern), 但 Repository.find
-    //   的 select 必须是对象. 治本: 改对象形式.
-    const events = await this.events.find({
-      where: { tenantId, eventType, createdAt: Between(start, end) },
-      select: { createdAt: true },
-    });
+    // V2026-11-14 治本 (TD-13): 只取 createdAt 序列 (端口方法), 分桶口径一字不改.
+    const createdAts = await this.events.findCreatedAtBetween(tenantId, eventType, start, end);
 
-    for (const e of events) {
-      const idx = Math.min(Math.floor((e.createdAt.getTime() - start.getTime()) / bucketMs), bucketCount - 1);
+    for (const createdAt of createdAts) {
+      const idx = Math.min(Math.floor((createdAt.getTime() - start.getTime()) / bucketMs), bucketCount - 1);
       counts[idx]++;
     }
     return counts;
