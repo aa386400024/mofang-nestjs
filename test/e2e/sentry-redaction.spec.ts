@@ -106,6 +106,14 @@ const capturedEvents: Record<string, unknown>[] = [];
 const capturedEnvelopes: unknown[] = [];
 
 /**
+ * Sentry integrations 的**数组形态**.
+ *
+ * ⚠️ SDK 的类型是"数组 **or** 回调"的联合 (展开时只可能是数组) ——
+ *   直接归结一个可用的数组元素类型, 不另建一份类型定义.
+ */
+type IntegrationList = Extract<NonNullable<NodeOptions['integrations']>, readonly unknown[]>;
+
+/**
  * 把 envelope 摊平成字符串 —— 断言"真正发出去的内容"时用它.
  *
  * @param envelope envelope
@@ -141,7 +149,7 @@ function initSentry(dataCollection: SentryDataCollection): void {
   //   关掉默认集的原因: Console 会把 console 输出变成 breadcrumb (测试自己的输出会污染断言),
   //   Dedupe 会把重复错误当重复事件丢掉.
   options.defaultIntegrations = false;
-  options.integrations = [...(options.integrations ?? []), Sentry.requestDataIntegration()];
+  options.integrations = [...((options.integrations ?? []) as IntegrationList), Sentry.requestDataIntegration()];
 
   // 空 transport —— 事件只进内存, 绝不离开本机.
   options.transport = (() => ({
@@ -252,8 +260,8 @@ describe('WP46 · Sentry 通道脱敏 (e2e 出血测试)', () => {
       await supertest(app.getHttpServer()).post('/__test__/throw5xx').send(PAYLOAD).expect(500);
 
       const event = await waitForCapturedEvent();
-      const request = event.request as Record<string, unknown>;
-      expect(request.data).toBe('[REDACTED body]');
+      const request = event['request'] as Record<string, unknown>;
+      expect(request['data']).toBe('[REDACTED body]');
     });
 
     it('异常本身照常上报 (脱敏不能把事件整个吞掉)', async () => {
@@ -263,9 +271,9 @@ describe('WP46 · Sentry 通道脱敏 (e2e 出血测试)', () => {
       await supertest(app.getHttpServer()).post('/__test__/throw5xx').send(PAYLOAD).expect(500);
 
       const event = await waitForCapturedEvent();
-      expect(event.exception).toBeDefined();
-      const values = (event.exception as Record<string, unknown>).values as Record<string, unknown>[];
-      expect(String(values[0].value)).toContain('test 5xx internal error');
+      expect(event['exception']).toBeDefined();
+      const values = (event['exception'] as Record<string, unknown>)['values'] as Record<string, unknown>[];
+      expect(String(values[0]['value'])).toContain('test 5xx internal error');
     });
   });
 
@@ -281,8 +289,8 @@ describe('WP46 · Sentry 通道脱敏 (e2e 出血测试)', () => {
       await supertest(app.getHttpServer()).post('/__test__/throw5xx').send(PAYLOAD).expect(500);
 
       const event = await waitForCapturedEvent();
-      const request = event.request as Record<string, unknown>;
-      expect(request.data).toBeUndefined();
+      const request = event['request'] as Record<string, unknown>;
+      expect(request['data']).toBeUndefined();
 
       const sent = capturedEnvelopes.map((envelope) => envelopeToString(envelope)).join('');
       expect(sent).not.toContain(PSYCH_TEXT);
@@ -310,11 +318,11 @@ describe('WP46 · Sentry 通道脱敏 (e2e 出血测试)', () => {
       );
 
       expect(result).not.toBeNull();
-      const data = (result.request as Record<string, unknown>).data as Record<string, unknown>;
-      expect(data.body).toBe('[REDACTED]');
-      expect(data.title).toBe('[REDACTED]');
-      expect(data.password).toBe('[REDACTED]');
-      expect(data.userId).toBe(USER_ID);
+      const data = (result!['request'] as Record<string, unknown>)['data'] as Record<string, unknown>;
+      expect(data['body']).toBe('[REDACTED]');
+      expect(data['title']).toBe('[REDACTED]');
+      expect(data['password']).toBe('[REDACTED]');
+      expect(data['userId']).toBe(USER_ID);
     });
   });
 });

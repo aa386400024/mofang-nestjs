@@ -775,11 +775,14 @@ describe('WP12 · 逐字稿定稿写入 (业务侧桥)', () => {
     };
 
     const service = new VptSessionBridgeService(
-      repo,
-      { enqueue: async () => true },
-      { enqueue: async () => true },
+      // ⚠️ 这六个依赖在本单里全是夹具 (本单只验"逐字稿定稿写入") ——
+      //   类型不匹配的部分用 never 断言过去 (不改运行时形状).
+      repo as never,
+      { enqueue: async () => true } as never,
+      { enqueue: async () => true } as never,
       new VoiceSessionBridgeRegistry(),
-      { get: () => {} },
+      { get: () => {} } as never,
+      { get: () => {} } as never,
     );
 
     await service.replaceTranscript({ dbSessionId: 'db-1', userId: USER, turns: turns() });
@@ -802,11 +805,14 @@ describe('WP12 · 逐字稿定稿写入 (业务侧桥)', () => {
     };
 
     const service = new VptSessionBridgeService(
-      repo,
-      { enqueue: async () => true },
-      { enqueue: async () => true },
+      // ⚠️ 这六个依赖在本单里全是夹具 (本单只验"逐字稿定稿写入") ——
+      //   类型不匹配的部分用 never 断言过去 (不改运行时形状).
+      repo as never,
+      { enqueue: async () => true } as never,
+      { enqueue: async () => true } as never,
       new VoiceSessionBridgeRegistry(),
-      { get: () => {} },
+      { get: () => {} } as never,
+      { get: () => {} } as never,
     );
 
     await service.replaceTranscript({ dbSessionId: 'db-1', userId: USER, turns: [] });
@@ -823,11 +829,14 @@ describe('WP12 · 逐字稿定稿写入 (业务侧桥)', () => {
     };
 
     const service = new VptSessionBridgeService(
-      repo,
-      { enqueue: async () => true },
-      { enqueue: async () => true },
+      // ⚠️ 这六个依赖在本单里全是夹具 (本单只验"逐字稿定稿写入") ——
+      //   类型不匹配的部分用 never 断言过去 (不改运行时形状).
+      repo as never,
+      { enqueue: async () => true } as never,
+      { enqueue: async () => true } as never,
       new VoiceSessionBridgeRegistry(),
-      { get: () => {} },
+      { get: () => {} } as never,
+      { get: () => {} } as never,
     );
 
     await expect(service.replaceTranscript({ dbSessionId: 'db-x', userId: USER, turns: turns() })).rejects.toThrow('落库会话不存在');

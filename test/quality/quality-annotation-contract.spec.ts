@@ -110,7 +110,9 @@ function makeRow(overrides: Partial<QualityAnnotationEntity> = {}): QualityAnnot
     createdAt: new Date('2026-11-10T00:00:00.000Z'),
     updatedAt: new Date('2026-11-10T00:00:00.000Z'),
     ...overrides,
-  };
+    // ⚠️ 故意不填 WP-N 新增的 9 列 (归属 / 版本锁 / 轮级最小集) ——
+    //   用类型断言而不是补值: 补值会改变运行时行为 (零变化红线).
+  } as QualityAnnotationEntity;
 }
 
 /**

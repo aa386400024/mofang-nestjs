@@ -51,7 +51,7 @@ import {
   type DeliberationTraceRecord,
   type ValidatedDeliberation,
 } from '../../src/engine-adapters/deliberation/llm-deliberation.service.js';
-import { createEmptyBdiSnapshot, type BdiStateRepository, type DeltaVector } from '../../src/engine-core/index.js';
+import { type BdiStateRepository, type DeltaVector } from '../../src/engine-core/index.js';
 import { QUEUE_NAMES } from '../../src/shared/infra/redis/redis.constants.js';
 import type { RedisService } from '../../src/shared/infra/redis/redis.service.js';
 
@@ -235,14 +235,14 @@ function writtenRecord(set: ReturnType<typeof vi.fn>): DeliberationTraceRecord {
 function workerProcessor(): (job: unknown) => Promise<void> {
   const calls = bull.workerCtor.mock.calls as [string, (job: unknown) => Promise<void>, unknown][];
   const call = calls.at(-1);
-  return call[1];
+  return call![1];
 }
 
 /** 取 Worker 注册的 'failed' 监听器. */
 function workerFailedHandler(): (job: unknown, err: Error) => void {
   const calls = bull.workerOn.mock.calls as [string, (job: unknown, err: Error) => void][];
   const call = calls.at(-1);
-  return call[1];
+  return call![1];
 }
 
 /** 取 Queue 构造时传的 options (最后一次构造). */
@@ -252,14 +252,14 @@ function queueOptions(): { connection: unknown; prefix: string; defaultJobOption
     { connection: unknown; prefix: string; defaultJobOptions: Record<string, unknown> },
   ][];
   const call = calls.at(-1);
-  return call[1];
+  return call![1];
 }
 
 /** 取 Worker 构造时传的 options (最后一次构造). */
 function workerOptions(): { connection: unknown; prefix: string; concurrency: number } {
   const calls = bull.workerCtor.mock.calls as [string, unknown, { connection: unknown; prefix: string; concurrency: number }][];
   const call = calls.at(-1);
-  return call[2];
+  return call![2];
 }
 
 beforeEach(() => {
@@ -281,7 +281,7 @@ describe('WP65 · 审议影子模式 BullMQ 队列化', () => {
       await processor.runShadowMode(input);
 
       expect(bull.add).toHaveBeenCalledTimes(1);
-      const [name, data, opts] = bull.add.mock.calls[0] as [string, DeliberationShadowInput, { jobId: string }];
+      const [name, data, opts] = bull.add.mock.calls[0] as unknown as [string, DeliberationShadowInput, { jobId: string }];
       expect(name).toBe(DELIBERATION_JOB_NAME);
       expect(data).toEqual(input);
       // jobId 必须带 turnIndex —— 否则第 2 轮起会被 BullMQ 静默去重丢弃.
@@ -559,10 +559,10 @@ describe('WP65 · 审议影子模式 BullMQ 队列化', () => {
 
       const options = queueOptions();
       expect(options.prefix).toBe('bullmq');
-      expect(options.defaultJobOptions.attempts).toBe(3);
-      expect(options.defaultJobOptions.backoff).toEqual({ type: 'exponential', delay: 1000 });
-      expect(options.defaultJobOptions.removeOnComplete).toEqual({ count: 1000, age: 24 * 3600 });
-      expect(options.defaultJobOptions.removeOnFail).toEqual({ count: 5000 });
+      expect(options.defaultJobOptions['attempts']).toBe(3);
+      expect(options.defaultJobOptions['backoff']).toEqual({ type: 'exponential', delay: 1000 });
+      expect(options.defaultJobOptions['removeOnComplete']).toEqual({ count: 1000, age: 24 * 3600 });
+      expect(options.defaultJobOptions['removeOnFail']).toEqual({ count: 5000 });
 
       // Worker 与 Queue 必须同前缀同连接 —— 不同前缀 = 两个互不相干的队列.
       expect(workerOptions().prefix).toBe('bullmq');

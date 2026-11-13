@@ -23,9 +23,9 @@ import type { LlmStream, LlmStreamChunk } from '../../src/agent/llm/llm.types.js
 import type { VisitorService } from '../../src/agent/visitor/visitor.service.js';
 import type { TtsSessionHandle } from '../../src/voice/tts/tts.types.js';
 import { parseVoiceHandshake } from '../../src/voice/voice-handshake.js';
-import type { VoiceCatchUpResult, VoiceCatchUpTurn } from '../../src/voice/voice-turn-backend.port.js';
+import type { VoiceCatchUpResult } from '../../src/voice/voice-turn-backend.port.js';
 import { VoiceService } from '../../src/voice/voice.service.js';
-import type { VoiceSessionMeta, VoiceServerMessage } from '../../src/voice/voice.types.js';
+import type { VoiceCatchUpTurn, VoiceSessionMeta, VoiceServerMessage } from '../../src/voice/voice.types.js';
 
 const SESSION_ID = 'session-1';
 const USER_ID = 'user-1';

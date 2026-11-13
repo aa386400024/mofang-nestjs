@@ -8,7 +8,6 @@
 //
 //   隐私: 本脚本只输出计数 / 指标 / 结论, 不打印任何对话文本或 prompt.
 
-/// <reference types="../typings/global" />
 import { mkdir, writeFile } from 'node:fs/promises';
 
 import { join } from 'node:path';
@@ -95,9 +94,9 @@ function parseArgs(argv: readonly string[]): CliArgs {
       case '--help':
       case '-h': {
         printHelp();
-        process.exit(0);
-
-        break;
+        // ⚠️ process.exit 的返回类型是 never —— 直接 return, 既不落进 default 分支 (no-fallthrough),
+        //   也不会留下"不可达的 break" (TS7027, allowUnreachableCode=false).
+        return process.exit(0);
       }
       default: {
         throw new Error(`未知参数: ${arg}`);

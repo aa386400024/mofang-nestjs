@@ -211,7 +211,7 @@ describe('WP10 · 剧本解析端口 (静态实现)', () => {
   it('③ 缺省 / 空白 / 前后空格 → undefined 或归一化后的剧本', () => {
     const resolver = new StaticTrajectoryScriptResolver();
 
-    expect(resolver.resolve()).toBeUndefined();
+    expect(resolver.resolve(void 0)).toBeUndefined();
     expect(resolver.resolve('')).toBeUndefined();
     expect(resolver.resolve(' '.repeat(3))).toBeUndefined();
     // 前后空格归一 (客户端拼串时常见) —— 归一后仍查得到.

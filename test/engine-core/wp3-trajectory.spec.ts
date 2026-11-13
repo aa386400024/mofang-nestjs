@@ -46,7 +46,6 @@ import {
   resolveCorrectWeight,
   type ActPlan,
   type BdiSnapshot,
-  type DeltaVector,
   type EngineTurnOutput,
   type Intention,
   type MatchContext,
@@ -267,7 +266,7 @@ describe('WP3 · 轨迹控制引擎', () => {
     });
 
     it('correctWeight 越界被夹到 (0,1], 缺省 0.6, NaN 回落默认', () => {
-      expect(resolveCorrectWeight()).toBe(DEFAULT_CORRECT_WEIGHT);
+      expect(resolveCorrectWeight(void 0)).toBe(DEFAULT_CORRECT_WEIGHT);
       expect(resolveCorrectWeight(0.3)).toBe(0.3);
       expect(resolveCorrectWeight(2)).toBe(1);
       expect(resolveCorrectWeight(0)).toBe(MIN_CORRECT_WEIGHT);

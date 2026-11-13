@@ -20,6 +20,7 @@
 
 import { buildTestStructuredInput } from './deliberation-fixtures.js';
 import type { DeliberationModeConfig } from '../../src/engine-adapters/deliberation/deliberation-mode.config.js';
+import type { DeliberationDeltaEntry } from '../../src/engine-adapters/deliberation/deliberation-types.js';
 import {
   LlmDeliberationHook,
   toDeliberationDeltaPatch,
@@ -264,9 +265,9 @@ describe('R9 · 生效钩子 (适配层)', () => {
   });
 
   it('⑤ 兜底④: 临床可疑维度被剔除, 其余维度照常生效', () => {
-    const deltas = [
-      { dimension: 'trust' as const, delta: 0.2, operatorTags: ['trust_repair' as const], reason: '理由' },
-      { dimension: 'safety' as const, delta: 0.1, operatorTags: ['trust_repair' as const], reason: '理由' },
+    const deltas: DeliberationDeltaEntry[] = [
+      { dimension: 'trust', delta: 0.2, operatorTags: ['empathy'], reason: '理由' },
+      { dimension: 'safety', delta: 0.1, operatorTags: ['empathy'], reason: '理由' },
     ];
     const flags = [
       {
@@ -285,7 +286,7 @@ describe('R9 · 生效钩子 (适配层)', () => {
   });
 
   it('⑤ 兜底④: info 级标记**不剔** (只是"值得看一眼", 不是可疑)', () => {
-    const deltas = [{ dimension: 'verbal' as const, delta: 0.12, operatorTags: ['resistance_detect' as const], reason: '理由' }];
+    const deltas: DeliberationDeltaEntry[] = [{ dimension: 'verbal', delta: 0.12, operatorTags: ['implicit_resistance'], reason: '理由' }];
     const flags = [
       {
         rule: 'resistance_triple_jump' as const,

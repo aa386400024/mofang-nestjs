@@ -63,7 +63,10 @@ class FakeRedis {
         return null;
       },
       exec: async (): Promise<[null, Record<string, string>][]> =>
-        keys.map((key) => [null, key.endsWith(shanghaiDateKey(new Date())) ? { total: '3', 'decision:skip': '2' } : {}]),
+        keys.map((key): [null, Record<string, string>] => [
+          null,
+          key.endsWith(shanghaiDateKey(new Date())) ? { total: '3', 'decision:skip': '2' } : {},
+        ]),
     };
   });
 
@@ -254,8 +257,8 @@ describe('Phase2.5 · 闸门 trace 查询接口', () => {
       expect(response.byMode.shadow).toEqual([1, 0]);
       expect(response.byMode.effect).toEqual([2, 0]);
       expect(Object.keys(response.byReason).sort()).toEqual([...GATE_REASON_VALUES].sort());
-      expect(response.byReason.cooldown).toEqual([0, 0]);
-      expect(response.byReason.gate_error).toEqual([0, 0]);
+      expect(response.byReason['cooldown']).toEqual([0, 0]);
+      expect(response.byReason['gate_error']).toEqual([0, 0]);
       for (const bucket of Object.values(response.byReason)) {
         expect(bucket).toHaveLength(dates.length);
       }

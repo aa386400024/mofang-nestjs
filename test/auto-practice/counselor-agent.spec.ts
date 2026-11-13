@@ -22,6 +22,19 @@ const MODE = {
   sortOrder: 10,
 } as unknown as CounselorMode;
 
+/**
+ * 取 chat 第 0 次调用的请求体.
+ *
+ * chat 是**零参**替身 (实现不读入参), 但 vi.fn 照样记录调用实参 ——
+ * 这里读的是"记录下来的实参", 不是替身实现里的形参.
+ */
+function firstRequest(chat: ReturnType<typeof vi.fn>): { messages: { role: string; content: string }[] } {
+  // ⚠️ chat 的类型是 `Mock<Procedure>` (mock.calls 是 any[][]) —— 用**类型标注**收窄,
+  //   不用 as 断言 (从 any 断言会被 @typescript-eslint/no-unnecessary-type-assertion 判成"等于没断言").
+  const calls: { messages: { role: string; content: string }[] }[][] = chat.mock.calls;
+  return calls[0][0];
+}
+
 /** 造一个只关心 chat 的假 router. */
 function makeService(chat: ReturnType<typeof vi.fn>): CounselorAgentService {
   const router = {
@@ -70,7 +83,7 @@ describe('CounselorAgentService · 危机应对协议 (WP-G 改动 5)', () => {
 
     await service.generate(MODE, []);
 
-    const request = chat.mock.calls[0]?.[0] as { messages: { role: string; content: string }[] };
+    const request = firstRequest(chat);
     const system = request.messages[0]?.content ?? '';
 
     expect(system).toContain('危机应对');
@@ -86,7 +99,7 @@ describe('CounselorAgentService · 危机应对协议 (WP-G 改动 5)', () => {
 
     await service.generate(MODE, []);
 
-    const request = chat.mock.calls[0]?.[0] as { messages: { role: string; content: string }[] };
+    const request = firstRequest(chat);
     const system = request.messages[0]?.content ?? '';
 
     expect(system).toContain('出现危机时，这一轮输出 [[STATE:MORE]]（不要收尾）');
@@ -98,7 +111,7 @@ describe('CounselorAgentService · 危机应对协议 (WP-G 改动 5)', () => {
 
     await service.generate(MODE, []);
 
-    const request = chat.mock.calls[0]?.[0] as { messages: { role: string; content: string }[] };
+    const request = firstRequest(chat);
     const system = request.messages[0]?.content ?? '';
 
     expect(system.indexOf('## 收尾纪律')).toBeLessThan(system.indexOf('## 危机应对'));

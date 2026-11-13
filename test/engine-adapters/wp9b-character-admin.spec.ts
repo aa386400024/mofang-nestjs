@@ -103,7 +103,7 @@ class FakeCharacterProfileVersionRepo {
 /**
  * where 条件匹配 (等值 + IsNull).
  */
-function matchesWhere(row: CharacterProfileEntity, where: Record<string, unknown>): boolean {
+function matchesWhere(row: object, where: Record<string, unknown>): boolean {
   for (const [key, expected] of Object.entries(where)) {
     const actual = (row as unknown as Record<string, unknown>)[key];
     if (expected instanceof FindOperator) {

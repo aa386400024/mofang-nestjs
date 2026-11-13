@@ -67,8 +67,8 @@ function makeSession(sessionId: string, turnCount: number, overrides: Partial<Ev
   for (let index = 1; index <= turnCount; index += 1) {
     const turn = makeTurn(index, overrides);
     if (supervisor) {
-      turn.expectedShouldRun = index % 2 === 1;
-      turn.expectedDeltas = { trust: 0.02 };
+      // ⚠️ 这两个字段是 readonly —— 用 Object.assign 写入 (与直接赋值逐字等价).
+      Object.assign(turn, { expectedShouldRun: index % 2 === 1, expectedDeltas: { trust: 0.02 } });
     }
     turns.push(turn);
   }

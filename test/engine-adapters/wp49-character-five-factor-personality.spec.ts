@@ -159,7 +159,7 @@ function makeRow(overrides: Partial<CharacterProfileEntity> = {}): CharacterProf
     updatedAt: new Date(),
     deletedAt: null,
     ...overrides,
-  };
+  } as CharacterProfileEntity;
 }
 
 /** 一个"什么都没表态"的种子 (用于验证"没说"的分支). */

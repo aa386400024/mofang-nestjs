@@ -1,4 +1,3 @@
-/// <reference types="../typings/global" />
 import path from 'node:path';
 import { loadEnvFile } from 'node:process';
 import { fileURLToPath } from 'node:url';

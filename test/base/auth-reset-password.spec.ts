@@ -26,7 +26,6 @@ import { GUARDS_METADATA, HTTP_CODE_METADATA, METHOD_METADATA, PATH_METADATA } f
 import { Test } from '@nestjs/testing';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import type { Request } from 'express';
 import supertest from 'supertest';
 
 import { AuthService } from '../../src/auth/auth.service.js';

@@ -21,6 +21,7 @@ import {
   type SessionEvaluationSessionInput,
   type SessionEvaluationSink,
 } from '../../src/voice/session-evaluation-slot.js';
+import type { VoiceTurnBackendTurnOptions } from '../../src/voice/voice-turn-backend.port.js';
 
 const SESSION_ID = 'session-1';
 const HANDLE_ID = 'handle-1';
@@ -73,7 +74,7 @@ function buildRenderResult(): TurnRenderResult {
     } as TurnRenderResult['snapshot'],
     turnIndex: 7,
     events: ['empathy', 'open_probe'],
-    safety: { level: 'warn', categories: ['passive_ideation'] } as TurnRenderResult['safety'],
+    safety: { level: 'warn', categories: ['passive_ideation'] } as unknown as TurnRenderResult['safety'],
     render: {
       fallbackUsed: false,
       providerHint: 'minimax',
@@ -235,7 +236,15 @@ describe('WP43 · 引擎侧接线 (内核出参 → 评估插槽)', () => {
     const second = buildBackend();
     // 没有学员身份 → 归属不明 → 不评估.
     await second.backend.openSession({ sessionId: 'session-2', tenantId: TENANT_ID, dbSessionId: DB_SESSION_ID });
-    await collect(second.backend.streamTurn({ sessionId: 'session-2', tenantId: TENANT_ID, personaId: 'v', userText: '第一句' }));
+    // ⚠️ 故意**不带** userId (学员身份缺失) —— 这是本用例要验的前置条件.
+    await collect(
+      second.backend.streamTurn({
+        sessionId: 'session-2',
+        tenantId: TENANT_ID,
+        personaId: 'v',
+        userText: '第一句',
+      } as VoiceTurnBackendTurnOptions),
+    );
     second.backend.closeSession('session-2');
     await flushMicrotasks();
     expect(second.handed).toHaveLength(0);

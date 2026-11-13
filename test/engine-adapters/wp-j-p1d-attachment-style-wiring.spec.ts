@@ -128,7 +128,7 @@ class StubMemoryStore implements MemoryStore {
 /** 取 prompt 的 system 段. */
 function systemPromptOf(spec: RenderSpec): string {
   for (const message of buildVisitorMessages(spec)) {
-    if (message.role === 'system') return message.content;
+    if (message.role === 'system') return message.content as string;
   }
   return '';
 }

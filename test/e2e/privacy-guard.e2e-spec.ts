@@ -34,7 +34,7 @@
 import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
-import { vi } from 'vitest';
+import { vi, type MockInstance } from 'vitest';
 
 import { PrivacyGuard } from '../../src/common/guards/privacy.guard.js';
 import { PrivacyLevel, PrivacyFailure } from '../../src/common/privacy/privacy-level.enum.js';
@@ -76,7 +76,7 @@ function buildMockContext(req: Record<string, unknown>): ExecutionContext {
 // Test helper: new PrivacyGuard with mocked Reflector + spied PrivacyLogger
 function buildGuard(privacyLevel: PrivacyLevel | undefined): {
   guard: PrivacyGuard;
-  logSpy: vi.SpyInstance;
+  logSpy: MockInstance;
 } {
   const reflector = {
     getAllAndOverride: vi.fn().mockReturnValue(privacyLevel),
@@ -183,11 +183,9 @@ describe('PrivacyGuard (VS-4 e2e 收尾, V2026-10-15 治本)', () => {
 
   describe('no @RequirePrivacyLevel metadata — 放行 (跟 RolesGuard 同 pattern)', () => {
     it('should return true when no privacy_level metadata set (装饰器未应用)', () => {
-      const { guard } = buildGuard();
+      const { guard } = buildGuard(void 0);
       const ctx = buildMockContext({});
       expect(guard.canActivate(ctx)).toBe(true);
     });
   });
 });
-
-

@@ -238,7 +238,7 @@ describe('WP11 · PsyGUARD HTTP 风险探测器 (内核 RiskProbePort 实现)', 
       expect(resolvePsyGuardTimeoutMs('300')).toBe(300);
       expect(resolvePsyGuardTimeoutMs('abc')).toBe(DEFAULT_PROBE_TIMEOUT_MS);
       expect(resolvePsyGuardTimeoutMs('0')).toBe(DEFAULT_PROBE_TIMEOUT_MS);
-      expect(resolvePsyGuardTimeoutMs()).toBe(DEFAULT_PROBE_TIMEOUT_MS);
+      expect(resolvePsyGuardTimeoutMs(void 0)).toBe(DEFAULT_PROBE_TIMEOUT_MS);
     });
   });
 

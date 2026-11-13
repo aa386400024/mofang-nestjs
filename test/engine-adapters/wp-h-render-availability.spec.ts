@@ -293,7 +293,7 @@ describe('WP-H 第一波 · 渲染可用性 (冷却 / 半开探测 / 候选校�
 
   describe('④ 批量并发 (改动 4)', () => {
     it('缺省 2 (从 3 降下来)', () => {
-      expect(resolveAutoPracticeConcurrency()).toBe(2);
+      expect(resolveAutoPracticeConcurrency(void 0)).toBe(2);
     });
 
     it('显式配 1 → 1 (金丝雀验证用串行档)', () => {

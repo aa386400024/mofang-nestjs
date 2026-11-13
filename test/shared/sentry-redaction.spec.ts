@@ -130,8 +130,8 @@ describe('WP46 · pii-redactor (脱敏器本体)', () => {
       const input: Record<string, unknown> = { body: 'x' };
       input['self'] = input;
       const result = redactRecord(input, SENSITIVE_CONTENT_NAMES);
-      expect(result.body).toBe(REDACTED);
-      expect(result.self).toBe(REDACTED);
+      expect(result['body']).toBe(REDACTED);
+      expect(result['self']).toBe(REDACTED);
     });
   });
 
@@ -218,56 +218,56 @@ describe('WP46 · pii-redactor (脱敏器本体)', () => {
           data: { body: '我想自杀，日记原文', title: '求助', password: 'abc123', userId: 'u123' },
         },
       });
-      const data = event.request.data as Record<string, unknown>;
-      expect(data.body).toBe(REDACTED);
-      expect(data.title).toBe(REDACTED);
-      expect(data.password).toBe(REDACTED);
-      expect(data.userId).toBe('u123');
+      const data = (event['request'] as Record<string, unknown>)['data'] as Record<string, unknown>;
+      expect(data['body']).toBe(REDACTED);
+      expect(data['title']).toBe(REDACTED);
+      expect(data['password']).toBe(REDACTED);
+      expect(data['userId']).toBe('u123');
     });
 
     it('request.data 是字符串 (原始 body) 时整体替换', () => {
       const event = redactEventForSentry({
         request: { data: '{"body":"我想自杀","title":"求助"}' },
       });
-      expect((event.request as Record<string, unknown>).data).toBe(REDACTED_BODY);
+      expect((event['request'] as Record<string, unknown>)['data']).toBe(REDACTED_BODY);
       expect(JSON.stringify(event)).not.toContain('我想自杀');
     });
 
     it('request.data 是 Buffer 时整体替换', () => {
       const event = redactEventForSentry({ request: { data: Buffer.from('binary') } });
-      expect((event.request as Record<string, unknown>).data).toBe(REDACTED_BODY);
+      expect((event['request'] as Record<string, unknown>)['data']).toBe(REDACTED_BODY);
     });
 
     it('extra 里只遮凭据类, 业务 id 保留', () => {
       const event = redactEventForSentry({
         extra: { userId: 'u123', sessionId: 's1', code: 1000, password: 'hunter2', token: 'abc' },
       });
-      const extra = event.extra as Record<string, unknown>;
-      expect(extra.userId).toBe('u123');
-      expect(extra.sessionId).toBe('s1');
-      expect(extra.code).toBe(1000);
-      expect(extra.password).toBe(REDACTED);
-      expect(extra.token).toBe(REDACTED);
+      const extra = event['extra'] as Record<string, unknown>;
+      expect(extra['userId']).toBe('u123');
+      expect(extra['sessionId']).toBe('s1');
+      expect(extra['code']).toBe(1000);
+      expect(extra['password']).toBe(REDACTED);
+      expect(extra['token']).toBe(REDACTED);
     });
 
     it('event.user 里 email / username 被删, id 保留, ip 截断', () => {
       const event = redactEventForSentry({
         user: { id: 'u123', email: 'a@b.com', username: 'zhangsan', ip_address: '1.2.3.4' },
       });
-      const user = event.user as Record<string, unknown>;
-      expect(user.id).toBe('u123');
-      expect(user.email).toBeUndefined();
-      expect(user.username).toBeUndefined();
-      expect(user.ip_address).toBe('1.2.3.0');
+      const user = event['user'] as Record<string, unknown>;
+      expect(user['id']).toBe('u123');
+      expect(user['email']).toBeUndefined();
+      expect(user['username']).toBeUndefined();
+      expect(user['ip_address']).toBe('1.2.3.0');
     });
 
     it('request.headers 里 authorization / cookie 被删, 其他保留', () => {
       const event = redactEventForSentry({
         request: { headers: { authorization: 'Bearer x', cookie: 'sid=1', 'content-type': 'application/json' } },
       });
-      const headers = (event.request as Record<string, unknown>).headers as Record<string, unknown>;
-      expect(headers.authorization).toBeUndefined();
-      expect(headers.cookie).toBeUndefined();
+      const headers = (event['request'] as Record<string, unknown>)['headers'] as Record<string, unknown>;
+      expect(headers['authorization']).toBeUndefined();
+      expect(headers['cookie']).toBeUndefined();
       expect(headers['content-type']).toBe('application/json');
     });
 
@@ -275,9 +275,9 @@ describe('WP46 · pii-redactor (脱敏器本体)', () => {
       const event = redactEventForSentry({
         request: { cookies: { sid: 'x' }, url: '/api/x?token=abc123' },
       });
-      const request = event.request as Record<string, unknown>;
-      expect(request.cookies).toBeUndefined();
-      expect(request.url).toBe('/api/x?***');
+      const request = event['request'] as Record<string, unknown>;
+      expect(request['cookies']).toBeUndefined();
+      expect(request['url']).toBe('/api/x?***');
     });
 
     it('query_string 里命中黑名单的参数被删', () => {
@@ -290,12 +290,12 @@ describe('WP46 · pii-redactor (脱敏器本体)', () => {
       const event = redactEventForSentry({
         breadcrumbs: [{ message: 'call 13800138000', url: '/a?token=x', data: { token: 'abc', keep: '1' } }],
       });
-      const crumb = (event.breadcrumbs as Record<string, unknown>[])[0];
-      expect(String(crumb.message)).not.toContain('13800138000');
-      expect(crumb.url).toBe('/a?***');
-      const data = crumb.data as Record<string, unknown>;
-      expect(data.token).toBe(REDACTED);
-      expect(data.keep).toBe('1');
+      const crumb = (event['breadcrumbs'] as Record<string, unknown>[])[0];
+      expect(String(crumb['message'])).not.toContain('13800138000');
+      expect(crumb['url']).toBe('/a?***');
+      const data = crumb['data'] as Record<string, unknown>;
+      expect(data['token']).toBe(REDACTED);
+      expect(data['keep']).toBe('1');
     });
 
     it('exception 的 message / 栈帧局部变量过一遍', () => {
@@ -318,14 +318,14 @@ describe('WP46 · pii-redactor (脱敏器本体)', () => {
           ],
         },
       });
-      const value = (event.exception as Record<string, unknown>).values as Record<string, unknown>[];
-      expect(String(value[0].value)).not.toContain('13800138000');
-      const frame = (value[0].stacktrace as Record<string, unknown>).frames as Record<string, unknown>[];
-      expect(frame[0].filename).toBe('/app/x.ts');
-      const vars = frame[0].vars as Record<string, unknown>;
-      expect(vars.userInput).toBe(REDACTED);
-      expect(vars.keep).toBe('ok');
-      expect(String(frame[0].context_line)).not.toContain('13800138000');
+      const value = (event['exception'] as Record<string, unknown>)['values'] as Record<string, unknown>[];
+      expect(String(value[0]['value'])).not.toContain('13800138000');
+      const frame = (value[0]['stacktrace'] as Record<string, unknown>)['frames'] as Record<string, unknown>[];
+      expect(frame[0]['filename']).toBe('/app/x.ts');
+      const vars = frame[0]['vars'] as Record<string, unknown>;
+      expect(vars['userInput']).toBe(REDACTED);
+      expect(vars['keep']).toBe('ok');
+      expect(String(frame[0]['context_line'])).not.toContain('13800138000');
     });
 
     it('不改入参', () => {
@@ -383,9 +383,9 @@ describe('WP46 · pii-redactor (脱敏器本体)', () => {
     it('beforeSend 会真的脱敏 (不是空壳)', () => {
       const beforeSend = options.beforeSend as unknown as (event: unknown, hint: unknown) => unknown;
       const result = beforeSend({ request: { data: { body: '我想自杀', userId: 'u1' } } }, {}) as Record<string, unknown>;
-      const data = (result.request as Record<string, unknown>).data as Record<string, unknown>;
-      expect(data.body).toBe(REDACTED);
-      expect(data.userId).toBe('u1');
+      const data = (result['request'] as Record<string, unknown>)['data'] as Record<string, unknown>;
+      expect(data['body']).toBe(REDACTED);
+      expect(data['userId']).toBe('u1');
     });
 
     it('beforeSend 仍然过滤 ECONNRESET (返回 null)', () => {
@@ -422,10 +422,10 @@ describe('WP46 · pii-redactor (脱敏器本体)', () => {
 
       expect(Sentry.captureException).toHaveBeenCalledTimes(1);
       const call = vi.mocked(Sentry.captureException).mock.calls[0];
-      const extra = call[1]?.extra as Record<string, unknown>;
-      expect(extra.userId).toBe('u1');
-      expect(extra.sessionId).toBe('s1');
-      expect(extra.password).toBe(REDACTED);
+      const extra = (call[1]! as unknown as { extra?: Record<string, unknown> }).extra!;
+      expect(extra['userId']).toBe('u1');
+      expect(extra['sessionId']).toBe('s1');
+      expect(extra['password']).toBe(REDACTED);
     });
 
     it('captureMessage 的 message 过一遍文本脱敏', async () => {
@@ -435,8 +435,8 @@ describe('WP46 · pii-redactor (脱敏器本体)', () => {
 
       const call = vi.mocked(Sentry.captureMessage).mock.calls[0];
       expect(String(call[0])).not.toContain('13800138000');
-      const extra = call[1]?.extra as Record<string, unknown>;
-      expect(extra.token).toBe(REDACTED);
+      const extra = (call[1]! as unknown as { extra?: Record<string, unknown> }).extra!;
+      expect(extra['token']).toBe(REDACTED);
     });
 
     it('dev 模式: extra 里出现心理内容字段名时给出提示 (但不自动遮)', async () => {
@@ -451,10 +451,10 @@ describe('WP46 · pii-redactor (脱敏器本体)', () => {
       expect(message).toContain('body');
 
       const call = vi.mocked(Sentry.captureException).mock.calls[0];
-      const extra = call[1]?.extra as Record<string, unknown>;
+      const extra = (call[1]! as unknown as { extra?: Record<string, unknown> }).extra!;
       // extra 不遮业务内容类 —— 只提示, 由业务侧自律
-      expect(extra.body).toBe('我想自杀');
-      expect(extra.userId).toBe('u1');
+      expect(extra['body']).toBe('我想自杀');
+      expect(extra['userId']).toBe('u1');
     });
 
     it('未初始化时不上报', () => {

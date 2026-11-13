@@ -222,7 +222,9 @@ describe('WP14 优化项 · adapter 侧前置 safety gate', () => {
     it('非危机类别 (专业越界) → 放行 (类别边界不能因前置 gate 丢掉)', async () => {
       const probe = new StubProbe();
       // promise_cure = 承诺治愈 —— 属督导事后复盘项, 不是危机类别.
-      probe.result = { level: 'block', categories: ['promise_cure'] };
+      // ⚠️ 'promise_cure' 是**咨询师侧**类别 (不是来访侧 VisitorRiskCategory) ——
+      //   本用例恰好喂它, 验前置 gate 不因为"不是危机类别"就把信号丢掉.
+      probe.result = { level: 'block', categories: ['promise_cure'] } as unknown as RiskProbeResult;
       const { backend, audit } = buildBackend({ probe });
       await backend.openSession({ sessionId: SESSION_ID, tenantId: 'tenant-1', userId: USER_ID, dbSessionId: DB_SESSION_ID });
       const frames: VoiceServerMessage[] = [];

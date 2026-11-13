@@ -23,11 +23,8 @@ import type { Repository } from 'typeorm';
 import type { SupervisionReportRow } from '../../src/agent/supervisor/supervisor.types.js';
 import { SESSION_ABILITY_MAPPING } from '../../src/counselor/config/session-ability-mapping.js';
 import { CounselorGrowthController } from '../../src/counselor/controllers/counselor-growth.controller.js';
-import { AbilityDimension } from '../../src/counselor/entities/ability-dimension.entity.js';
 import { AbilityScore } from '../../src/counselor/entities/ability-score.entity.js';
-import { PracticeAttempt } from '../../src/counselor/entities/practice-attempt.entity.js';
 import { SessionEvaluation } from '../../src/counselor/entities/session-evaluation.entity.js';
-import { TrainingSession } from '../../src/counselor/entities/training-session.entity.js';
 import { AbilityAggregateService } from '../../src/counselor/providers/ability-aggregate.service.js';
 import { GrowthArchiveService } from '../../src/counselor/providers/growth-archive.service.js';
 import { SessionAbilitySyncService } from '../../src/counselor/providers/session-ability-sync.service.js';
@@ -130,11 +127,12 @@ function buildAggregator(overrides: Record<string, unknown> = {}): {
         saved.push(row as AbilityScore);
       },
     }),
-    makeRepo(overrides['attemptRepo'] ?? {}),
-    makeRepo(overrides['evaluationRepo'] ?? {}),
-    makeRepo(overrides['sessionRepo'] ?? {}),
+    makeRepo((overrides['attemptRepo'] ?? {}) as Record<string, unknown>),
+    makeRepo((overrides['evaluationRepo'] ?? {}) as Record<string, unknown>),
+    makeRepo((overrides['sessionRepo'] ?? {}) as Record<string, unknown>),
     {
-      findBySessionIds: async (): Promise<Map<string, SupervisionReportRow>> => new Map(overrides['reports']),
+      findBySessionIds: async (): Promise<Map<string, SupervisionReportRow>> =>
+        new Map(overrides['reports'] as [string, SupervisionReportRow][]),
     } as unknown as never,
   );
   return { aggregate, saved };
@@ -294,7 +292,7 @@ describe('WP44 · 成长档案读取侧', () => {
       }),
       makeRepo({ count: async () => totalSessions }),
       {
-        syncFromSessions: async (userId: string) => {
+        syncFromSessions: async (_userId: string) => {
           syncCalls.push(1);
           return { syncedCount: 0, outcomes: [] };
         },

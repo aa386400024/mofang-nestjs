@@ -1,4 +1,3 @@
-/// <reference types="../typings/global" />
 import { spawnSync } from 'node:child_process';
 import { readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';

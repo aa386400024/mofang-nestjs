@@ -53,7 +53,7 @@ import {
   type DeliberationTraceRecord,
   type IntentionLockState,
 } from '../../src/engine-adapters/deliberation/llm-deliberation.service.js';
-import { createEmptyBdiSnapshot, type BehaviorStrategy, type BdiStateRepository, type DeltaVector } from '../../src/engine-core/index.js';
+import { type BehaviorStrategy, type BdiStateRepository, type DeltaVector } from '../../src/engine-core/index.js';
 import type { RedisService } from '../../src/shared/infra/redis/redis.service.js';
 
 const TENANT = 'tenant-1';

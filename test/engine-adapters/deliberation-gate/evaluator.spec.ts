@@ -295,7 +295,7 @@ describe('WP-C · 触发式审议闸门 · 纯判定', () => {
       const before = createEmptyBdiSnapshot();
       const summary = computeGateDeltaSummary(before, before);
       expect(Object.keys(summary)).toHaveLength(11);
-      expect(summary.trust).toBe(0);
+      expect(summary['trust']).toBe(0);
     });
   });
 

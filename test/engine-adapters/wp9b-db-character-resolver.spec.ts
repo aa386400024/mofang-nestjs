@@ -136,7 +136,7 @@ function buildRow(seed: CharacterProfileSeed, overrides: Partial<CharacterProfil
     updatedAt: new Date(CLOCK),
     deletedAt: null,
     ...overrides,
-  };
+  } as CharacterProfileEntity;
 }
 
 /** 首批 4 行 (由内容基线 + 来访池内容构建). */

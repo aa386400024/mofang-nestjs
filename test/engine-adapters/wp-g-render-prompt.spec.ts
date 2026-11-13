@@ -43,7 +43,7 @@ function buildBareSpec(overrides: Partial<AdaptiveRenderSpec> = {}): AdaptiveRen
 
 /** 取系统提示词. */
 function systemPrompt(spec: AdaptiveRenderSpec): string {
-  return buildVisitorMessages(spec)[0]?.content ?? '';
+  return (buildVisitorMessages(spec)[0]?.content ?? '') as string;
 }
 
 /** 取"硬规则"块的全部条目. */

@@ -43,7 +43,7 @@ describe('LLM errorCode → 失败原因码', () => {
 
   it('空 / 未知错误码 → upstream_unavailable (不猜, 归到最保守的一档)', () => {
     expect(mapLlmErrorCodeToFailureCode(null)).toBe(SupervisionFailureCode.UPSTREAM_UNAVAILABLE);
-    expect(mapLlmErrorCodeToFailureCode()).toBe(SupervisionFailureCode.UPSTREAM_UNAVAILABLE);
+    expect(mapLlmErrorCodeToFailureCode(void 0)).toBe(SupervisionFailureCode.UPSTREAM_UNAVAILABLE);
     expect(mapLlmErrorCodeToFailureCode('  ')).toBe(SupervisionFailureCode.UPSTREAM_UNAVAILABLE);
     expect(mapLlmErrorCodeToFailureCode('http_401')).toBe(SupervisionFailureCode.UPSTREAM_UNAVAILABLE);
   });
@@ -95,7 +95,7 @@ describe('失败分类', () => {
   it('非异常值 (字符串 / null) 也不炸', () => {
     expect(classifySupervisionFailure('boom').permanent).toBe(false);
     expect(classifySupervisionFailure(null).permanent).toBe(false);
-    expect(classifySupervisionFailure().permanent).toBe(false);
+    expect(classifySupervisionFailure(void 0).permanent).toBe(false);
   });
 });
 

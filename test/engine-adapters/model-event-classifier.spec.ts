@@ -242,7 +242,7 @@ describe('模型轨 · 灰度配置 (env → 模式)', () => {
 
   it('非法模式值 → rule_only (回落方向与审议相反: 回落到各自的现状)', () => {
     expect(resolveModelClassifierEffectiveMode('nonsense')).toBe('rule_only');
-    expect(resolveModelClassifierEffectiveMode()).toBe('rule_only');
+    expect(resolveModelClassifierEffectiveMode(void 0)).toBe('rule_only');
     expect(resolveModelClassifierEffectiveMode('SHADOW')).toBe('shadow');
   });
 
@@ -252,17 +252,17 @@ describe('模型轨 · 灰度配置 (env → 模式)', () => {
     expect(resolveModelClassifierEnabled('yes')).toBe(true);
     expect(resolveModelClassifierEnabled('on')).toBe(true);
     expect(resolveModelClassifierEnabled('abc')).toBe(false);
-    expect(resolveModelClassifierEnabled()).toBe(false);
+    expect(resolveModelClassifierEnabled(void 0)).toBe(false);
   });
 
   it('名单: 空 = 全量; 逗号分隔去空白去重', () => {
     expect(parseModelClassifierGrayscaleSessions('').size).toBe(0);
-    expect(parseModelClassifierGrayscaleSessions().size).toBe(0);
+    expect(parseModelClassifierGrayscaleSessions(void 0).size).toBe(0);
     expect([...parseModelClassifierGrayscaleSessions(' s1 , s2 ,s1 ')]).toEqual(['s1', 's2']);
   });
 
   it('超时: 非法值 → 缺省 3000 (照审议口径)', () => {
-    expect(resolveModelClassifierTimeoutMs()).toBe(DEFAULT_MODEL_CLASSIFIER_TIMEOUT_MS);
+    expect(resolveModelClassifierTimeoutMs(void 0)).toBe(DEFAULT_MODEL_CLASSIFIER_TIMEOUT_MS);
     expect(resolveModelClassifierTimeoutMs('abc')).toBe(DEFAULT_MODEL_CLASSIFIER_TIMEOUT_MS);
     expect(resolveModelClassifierTimeoutMs('1500')).toBe(1500);
   });
@@ -274,7 +274,7 @@ describe('模型轨 · 灰度配置 (env → 模式)', () => {
 
   it('场景查不到 → rule_only (保守: 没法证明它不是考核场)', () => {
     const config = modeConfig({ effectiveMode: 'llm_active', grayscaleSessions: new Set(['s1']) });
-    expect(resolveModelClassifierSessionMode(config, 's1')).toBe('rule_only');
+    expect(resolveModelClassifierSessionMode(config, 's1', void 0)).toBe('rule_only');
   });
 
   it('llm_active: 名单内 → llm_active; 名单外 → rule_only; 名单空 = 全量', () => {

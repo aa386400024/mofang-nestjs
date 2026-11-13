@@ -85,11 +85,11 @@ describe.skipIf(!TEST_REDIS_URL)('审议统计 · Lua 脚本 · 真 Redis 集成
     const globalHash = await redis.hgetall(GLOBAL_KEY);
     const dailyHash = await redis.hgetall(DAILY_KEY);
 
-    expect(globalHash.max_duration_ms).toBe('1200');
-    expect(dailyHash.max_duration_ms).toBe('1200');
+    expect(globalHash['max_duration_ms']).toBe('1200');
+    expect(dailyHash['max_duration_ms']).toBe('1200');
     // 计数器照常累加 (取大与累加是两条独立的路)
-    expect(globalHash.total_turns).toBe('2');
-    expect(dailyHash.total_turns).toBe('2');
+    expect(globalHash['total_turns']).toBe('2');
+    expect(dailyHash['total_turns']).toBe('2');
   });
 
   it('浮点增量: HINCRBYFLOAT 存出来的形态与整数增量一致 (不补 ".0")', async () => {
@@ -109,8 +109,8 @@ describe.skipIf(!TEST_REDIS_URL)('审议统计 · Lua 脚本 · 真 Redis 集成
     );
 
     const hash = await redis.hgetall(floatKey);
-    expect(hash.total_turns).toBe('1');
-    expect(hash.sum_delta_diff_abs).toBe('0.875');
+    expect(hash['total_turns']).toBe('1');
+    expect(hash['sum_delta_diff_abs']).toBe('0.875');
 
     await redis.del(floatKey);
   });

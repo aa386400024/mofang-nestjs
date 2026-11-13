@@ -213,7 +213,7 @@ function buildProcessor(options: { env?: Record<string, string>; redis?: FakeRed
 function workerProcessor(): (job: unknown) => Promise<void> {
   const calls = bull.workerCtor.mock.calls as [string, (job: unknown) => Promise<void>, unknown][];
   const call = calls.at(-1);
-  return call[1];
+  return call![1];
 }
 
 /** 审议成功时的 client 返回体. */
@@ -472,7 +472,7 @@ describe('WP65 后半段 · per-session mutex + 快照版本号传递', () => {
       await processor.enqueue(buildInput({ turnIndex: 5 }));
 
       expect(redis.setnx).toHaveBeenCalledTimes(1);
-      const [key, value, ttl] = redis.setnx.mock.calls[0] as [string, string, number];
+      const [key, value, ttl] = redis.setnx.mock.calls[0] as unknown as [string, string, number];
       expect(key).toBe(buildDeliberationMutexKey(TENANT, SESSION));
       // 锁的值 = 持有者标识 (本轮序号) —— 释放时靠它判断"这把锁是不是我的".
       expect(value).toBe('5');
@@ -638,7 +638,7 @@ describe('WP65 后半段 · per-session mutex + 快照版本号传递', () => {
       await processor.enqueue(input);
 
       // job 载荷里的 baseRevision = 入队时的那个.
-      const [, payload] = bull.add.mock.calls[0] as [string, DeliberationShadowInput, unknown];
+      const [, payload] = bull.add.mock.calls[0] as unknown as [string, DeliberationShadowInput, unknown];
       expect(payload.baseRevision).toBe(42);
 
       // worker 跑完 → trace 里记的还是同一个.

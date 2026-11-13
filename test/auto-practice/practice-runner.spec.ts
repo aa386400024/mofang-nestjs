@@ -11,10 +11,9 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CounselorGenerateOptions, CounselorReply } from '../../src/auto-practice/counselor-agent.service.js';
+import type { CounselorGenerateOptions, CounselorHistoryTurn, CounselorReply } from '../../src/auto-practice/counselor-agent.service.js';
 import { CounselorMode } from '../../src/auto-practice/entities/counselor-mode.entity.js';
-import type { InferenceFingerprint } from '../../src/auto-practice/inference-fingerprint.service.js';
-import type { CounselorHistoryTurn, EngineTurnResult, TurnEnginePort } from '../../src/auto-practice/ports/turn-engine.port.js';
+import type { EngineTurnResult, TurnEnginePort } from '../../src/auto-practice/ports/turn-engine.port.js';
 import {
   decideTurn,
   PracticeRunnerService,
@@ -112,7 +111,13 @@ describe('PracticeRunnerService', () => {
     // (那是新逻辑的**正确**行为, 但不是这些用例想测的东西).
     counselor.generate.mockImplementation(() => {
       counselorTurn += 1;
-      return Promise.resolve({ text: COUNSELOR_LINES[counselorTurn % COUNSELOR_LINES.length], model: 'test-model', degraded: false });
+      // ⚠️ closeRequested 是 CounselorReply 的必填字段, 这里**故意不填** (缺省 = 不收尾) ——
+      //   用类型断言保住运行时形状 (补 false 与 undefined 语义等价, 但仍不改形状).
+      return Promise.resolve({
+        text: COUNSELOR_LINES[counselorTurn % COUNSELOR_LINES.length],
+        model: 'test-model',
+        degraded: false,
+      } as CounselorReply);
     });
   });
 

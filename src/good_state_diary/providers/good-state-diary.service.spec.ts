@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { vi } from 'vitest';
+import { vi, type Mock } from 'vitest';
 
 import { GoodStateDiaryService } from './good-state-diary.service.js';
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
@@ -122,14 +122,14 @@ function setupQueryBuilderMock(repo: ReturnType<typeof makeMockRepo>, store: Moc
   //   「qb 的类型依赖 qb 自己的初始化器」的循环 → TS7022 (qb 隐式 any) + TS7024 (返回 any).
   //   治本: 把形状抽成显式 interface —— 类型是**声明**出来的, 不是推断出来的, 循环自然断开.
   interface QueryBuilderMock {
-    where: vi.Mock<QueryBuilderMock, [string, Record<string, unknown>?]>;
-    andWhere: vi.Mock<QueryBuilderMock, [string, Record<string, unknown>?]>;
-    orderBy: vi.Mock<QueryBuilderMock, [string, string]>;
-    addOrderBy: vi.Mock<QueryBuilderMock, [string, string]>;
-    limit: vi.Mock<QueryBuilderMock, [number]>;
-    getMany: vi.Mock<Promise<MockEntry[]>>;
-    delete: vi.Mock<QueryBuilderMock>;
-    execute: vi.Mock<Promise<{ affected: number }>>;
+    where: Mock<(clause: string, params?: Record<string, unknown>) => QueryBuilderMock>;
+    andWhere: Mock<(clause: string, params?: Record<string, unknown>) => QueryBuilderMock>;
+    orderBy: Mock<(clause: string, dir: string) => QueryBuilderMock>;
+    addOrderBy: Mock<(clause: string, dir: string) => QueryBuilderMock>;
+    limit: Mock<(n: number) => QueryBuilderMock>;
+    getMany: Mock<() => Promise<MockEntry[]>>;
+    delete: Mock<() => QueryBuilderMock>;
+    execute: Mock<() => Promise<{ affected: number }>>;
   }
 
   repo.createQueryBuilder = vi.fn(() => {

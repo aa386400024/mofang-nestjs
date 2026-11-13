@@ -94,7 +94,7 @@ function stripExpressionStyleBlock(prompt: string): string {
 
 /** 渲染整段 system prompt. */
 function promptOf(spec: AdaptiveRenderSpec): string {
-  return buildVisitorMessages(spec)[0]?.content ?? '';
+  return (buildVisitorMessages(spec)[0]?.content ?? '') as string;
 }
 
 /** 造一行 DB 角色 (表达风格三列有值). */

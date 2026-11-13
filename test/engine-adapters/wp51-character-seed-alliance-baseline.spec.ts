@@ -118,7 +118,7 @@ function makeRow(overrides: Partial<CharacterProfileEntity> = {}): CharacterProf
     updatedAt: new Date(),
     deletedAt: null,
     ...overrides,
-  };
+  } as CharacterProfileEntity;
 }
 
 describe('WP51 · 角色种子同盟三维基线 · 内置种子 → 内核快照', () => {

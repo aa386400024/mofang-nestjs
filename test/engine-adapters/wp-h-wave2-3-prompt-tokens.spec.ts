@@ -110,7 +110,7 @@ describe('WP-H · 改动 7 · prompt_tokens 归约链', () => {
     });
 
     it('上游没报 → 缺省 (undefined), 不是 0', () => {
-      const split = resolveChunkUsageSplit();
+      const split = resolveChunkUsageSplit(void 0);
 
       expect(split.promptTokens).toBeUndefined();
       expect(split.completionTokens).toBeUndefined();

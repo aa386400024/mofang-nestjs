@@ -28,14 +28,13 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { buildTestStructuredInput } from './deliberation-fixtures.js';
 import type { CounselorLlmJsonClient } from '../../src/counselor/providers/llm-json.client.js';
+import type { DeliberationDeltaEntry, DeliberationDim } from '../../src/engine-adapters/deliberation/deliberation-types.js';
 import {
   DeliberationRetryableError,
   LlmDeliberationService,
   applyDeliberationDeltaCap,
   validateDeliberationOutput,
   type DeliberationCapEntry,
-  type DeliberationDeltaEntry,
-  type DeliberationDim,
   type DeliberationShadowInput,
   type DeliberationTraceRecord,
   type ValidatedDeliberation,

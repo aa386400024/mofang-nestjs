@@ -40,7 +40,6 @@ import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import type { Request } from 'express';
 import supertest from 'supertest';
 
 import { BizCode } from '../../src/common/exceptions/biz-code.enum.js';
@@ -146,15 +145,6 @@ function buildService(options: { row?: User | null } = {}): {
     { get: async () => null } as never,
   );
   return { service, row, audits, revokedByUid, blacklisted: () => blacklisted };
-}
-
-/** 假请求 (extractContext 只要 headers / ip). */
-function fakeRequest(): Request {
-  return {
-    headers: { 'user-agent': 'jest-agent', 'x-forwarded-for': 'client-ip' },
-    ip: 'client-ip',
-    socket: {},
-  } as unknown as Request;
 }
 
 /** 假 ExecutionContext (只提供 switchToHttp().getRequest). */

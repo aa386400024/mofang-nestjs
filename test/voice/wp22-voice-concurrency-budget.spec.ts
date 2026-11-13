@@ -15,13 +15,13 @@
 //   验证: npx vitest run test/voice/wp22-voice-concurrency-budget.spec.ts
 //   时间戳: 2026-11-02 GMT+8
 
-import { Logger } from '@nestjs/common';
 // ⚠️ 值导入: ConfigService 在 DI 冒烟用例里要当 provider 的 token 用.
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import type { Socket } from 'socket.io';
 import { vi } from 'vitest';
 
+import type { LlmStream } from '../../src/agent/llm/llm.types.js';
 import type { VisitorService } from '../../src/agent/visitor/visitor.service.js';
 import type { TurnRenderResult } from '../../src/engine-adapters/rendering/turn-render-orchestrator.js';
 import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service.js';
@@ -185,6 +185,16 @@ class FakeEngineBackend implements VoiceTurnBackend {
 
   transcript(): readonly never[] {
     return [];
+  }
+
+  /**
+   * 流式对话 —— 本单**不测**这条路径 (只测限流闸门与用量记账).
+   *
+   * 之所以显式实现: `VoiceTurnBackend` 窄接口要求这四个方法齐全,
+   * 少一个就编译不过 —— 这里显式抛错, 免得"天么被调到"时静默跑出一场假对话.
+   */
+  streamTurn(): Promise<{ readonly stream: LlmStream }> {
+    throw new Error('本单不测流式对话 (FakeEngineBackend.streamTurn 不该被调用)');
   }
 }
 

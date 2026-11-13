@@ -95,7 +95,10 @@ function buildRow(target: CharacterBaselineCalibration): CharacterProfileEntity 
     createdAt: new Date(0),
     updatedAt: new Date(0),
     deletedAt: null,
-  };
+    // ⚠️ 故意**不填** personalityTraits / verbalVoice / versionMajor·Minor·Patch ——
+    //   这几列是后加的 (WP38 / WP49 / WP-J P2), 夹具按"旧形状"写.
+    //   用类型断言而不是补值: 补值会改变运行时行为 (零变化红线).
+  } as unknown as CharacterProfileEntity;
 }
 
 /**

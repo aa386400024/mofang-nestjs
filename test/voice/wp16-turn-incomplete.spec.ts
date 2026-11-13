@@ -13,8 +13,8 @@
 import type { ConfigService } from '@nestjs/config';
 
 import type { LlmStream, LlmStreamChunk } from '../../src/agent/llm/llm.types.js';
-import type { VisitorPersonaSnapshot } from '../../src/agent/supervisor/supervisor.types.js';
 import type { VisitorService } from '../../src/agent/visitor/visitor.service.js';
+import type { VisitorPersonaSnapshot } from '../../src/agent/visitor/visitor.types.js';
 import { TURN_INCOMPLETE_CODE, type VoiceTurnBackend, type VoiceTurnBackendTurnOptions } from '../../src/voice/voice-turn-backend.port.js';
 import { VoiceService } from '../../src/voice/voice.service.js';
 import type { VoiceSessionMeta, VoiceServerMessage } from '../../src/voice/voice.types.js';
@@ -46,7 +46,9 @@ class FakeVisitor {
 
   async streamTurn(opts: VoiceTurnBackendTurnOptions): Promise<{ stream: LlmStream }> {
     this.turnCalls.push(opts.userText);
-    return { stream: buildStream(['旧链路回复']) };
+    // ⚠️ 旧链路的替身直接吐**字符串** (不是 LlmStreamChunk 对象) ——
+    //   用类型断言保住运行时形状 (本单例不消费这段流).
+    return { stream: buildStream(['旧链路回复'] as unknown as readonly LlmStreamChunk[]) };
   }
 
   closeSession(): { finalTurnCount: number; finalMessageCount: number } {

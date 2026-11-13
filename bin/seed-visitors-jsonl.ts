@@ -120,7 +120,7 @@ async function main(): Promise<void> {
         styleHint: VisitorStyle.COOPERATIVE,
         emotionBaselineDefault: 0.35,
         defenseLevelDefault: 0.2,
-        script: script as VisitorPoolTemplate['script'],
+        script: script as unknown as VisitorPoolTemplate['script'],
         enabled: true,
         sortOrder: 100,
       };

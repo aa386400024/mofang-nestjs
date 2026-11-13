@@ -210,7 +210,7 @@ describe('WP14 · 学员心理风险处置层', () => {
 
     it('pass → none; 没有判定 → none', () => {
       expect(decideStudentRiskAction(buildVerdict({ level: 'pass' }))).toBe('none');
-      expect(decideStudentRiskAction()).toBe('none');
+      expect(decideStudentRiskAction(void 0)).toBe('none');
     });
   });
 
@@ -243,7 +243,7 @@ describe('WP14 · 学员心理风险处置层', () => {
     });
 
     it('判定来源口径: 规则层 → rule; 探测 → 通道记录的来源', () => {
-      expect(buildStudentRiskDecision(buildVerdict({ level: 'block', categories: ['active_ideation'] })).source).toBe('rule');
+      expect(buildStudentRiskDecision(buildVerdict({ level: 'block', categories: ['active_ideation'] }), void 0).source).toBe('rule');
       expect(
         buildStudentRiskDecision(buildVerdict({ level: 'warn', categories: ['passive_ideation'], source: 'probe' }), 'psyguard').source,
       ).toBe('psyguard');
@@ -262,7 +262,7 @@ describe('WP14 · 学员心理风险处置层', () => {
       expect(mergeStudentRiskDecisions(toast, block).action).toBe('block');
       expect(mergeStudentRiskDecisions(block, toast).action).toBe('block');
       expect(mergeStudentRiskDecisions(toast, none).action).toBe('toast');
-      expect(mergeStudentRiskDecisions(toast).action).toBe('toast');
+      expect(mergeStudentRiskDecisions(toast, void 0).action).toBe('toast');
     });
 
     it('探测结果 → 处置决定 (side 固定在学员输入面)', () => {
@@ -270,7 +270,7 @@ describe('WP14 · 学员心理风险处置层', () => {
       expect(decision.action).toBe('block');
       expect(decision.category).toBe('active_ideation');
       expect(decision.source).toBe('psyguard');
-      expect(buildStudentRiskDecisionFromProbe().action).toBe('none');
+      expect(buildStudentRiskDecisionFromProbe(void 0).action).toBe('none');
     });
   });
 
@@ -333,7 +333,15 @@ describe('WP14 · 学员心理风险处置层', () => {
       });
 
       const deltas: string[] = [];
-      const result = await orchestrator.turnStream(HANDLE_ID, { userText: '我已经想好怎么做了' }, { onDelta: (d) => deltas.push(d) });
+      const result = await orchestrator.turnStream(
+        HANDLE_ID,
+        { userText: '我已经想好怎么做了' },
+        {
+          onDelta: (d) => {
+            deltas.push(d);
+          },
+        },
+      );
 
       expect(renderer.specs).toHaveLength(0);
       expect(deltas).toHaveLength(0);

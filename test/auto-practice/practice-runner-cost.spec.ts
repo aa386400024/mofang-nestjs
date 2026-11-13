@@ -112,7 +112,7 @@ describe('PracticeRunnerService · WP-F 成本落库', () => {
 
   /** 取最后一次 update 的落库字段. */
   function lastUpdate(): Record<string, unknown> {
-    const calls = repo.update.mock.calls;
+    const calls = repo.update.mock.calls as unknown as [unknown, Record<string, unknown>][];
     return calls.at(-1)?.[1] ?? {};
   }
 

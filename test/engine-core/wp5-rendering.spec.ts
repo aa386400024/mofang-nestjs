@@ -184,7 +184,7 @@ describe('WP5 · 渲染契约层', () => {
 
   describe('⑤ 预算上限归一', () => {
     it('undefined / 0 / NaN / 负数 → 回落 160', () => {
-      expect(resolveCompletionTokens()).toBe(160);
+      expect(resolveCompletionTokens(void 0)).toBe(160);
       expect(resolveCompletionTokens(0)).toBe(160);
       expect(resolveCompletionTokens(Number.NaN)).toBe(160);
       expect(resolveCompletionTokens(-5)).toBe(160);

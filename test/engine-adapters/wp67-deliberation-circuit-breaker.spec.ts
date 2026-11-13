@@ -31,6 +31,7 @@ import * as path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildTestStructuredInput } from './deliberation-fixtures.js';
+import type { DeliberationOutput } from '../../src/engine-adapters/deliberation/deliberation-types.js';
 import {
   DEFAULT_DELIBERATION_COOLDOWN_MS,
   DEFAULT_DELIBERATION_FAILURE_THRESHOLD,
@@ -46,7 +47,7 @@ import {
   type DeliberationOutcome,
   type DeliberationShadowInput,
 } from '../../src/engine-adapters/deliberation/llm-deliberation.service.js';
-import { createEmptyBdiSnapshot, type DeltaVector } from '../../src/engine-core/index.js';
+import { type DeltaVector } from '../../src/engine-core/index.js';
 import { QUEUE_NAMES } from '../../src/shared/infra/redis/redis.constants.js';
 import type { RedisService } from '../../src/shared/infra/redis/redis.service.js';
 
@@ -127,7 +128,7 @@ function buildInput(overrides: Partial<DeliberationShadowInput> = {}): Deliberat
 function okOutcome(): DeliberationOutcome {
   return {
     kind: 'ok',
-    validated: { output: { deltas: [], summary: 's', confidence: 0.5 }, rejectedEntries: [] },
+    validated: { output: { deltas: [], summary: 's', confidence: 0.5 } as unknown as DeliberationOutput, rejectedEntries: [] },
     usage: null,
   };
 }
@@ -193,7 +194,7 @@ type LlmDeliberationServiceLike = ConstructorParameters<typeof DeliberationProce
 function workerProcessor(): (job: unknown) => Promise<void> {
   const calls = bull.workerCtor.mock.calls as [string, (job: unknown) => Promise<void>, unknown][];
   const call = calls.at(-1);
-  return call[1];
+  return call![1];
 }
 
 beforeEach(() => {

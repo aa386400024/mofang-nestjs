@@ -466,7 +466,7 @@ describe('WP7 · 决策→说话闭环', () => {
       const snapshot = { ...createEmptyBdiSnapshot(), trust: 0.3, safety: 0.2, bond: 0.4 };
       const spec = buildRenderSpec({ output: buildOutput({ snapshot }), recentTurns: [], tokenBudget: BUDGET });
 
-      const systemText = buildVisitorMessages(spec)[0]?.content ?? '';
+      const systemText = (buildVisitorMessages(spec)[0]?.content ?? '') as string;
 
       expect(systemText).toContain('- 安全感：0.20（越低越不敢说真话、越试探性）');
       expect(systemText).toContain('- 联结感：0.40（越低越疏离、越像问诊）');
@@ -478,8 +478,8 @@ describe('WP7 · 决策→说话闭环', () => {
 
     it('prompt 组装: 不提供 safety / bond 时逐字不变 (零回归)', () => {
       const spec = buildRenderSpec({ output: buildOutput(), recentTurns: [], tokenBudget: BUDGET });
-      const withAlliance = buildVisitorMessages(spec)[0]?.content ?? '';
-      const withoutAlliance = buildVisitorMessages(withoutAllianceDimensions(spec))[0]?.content ?? '';
+      const withAlliance = (buildVisitorMessages(spec)[0]?.content ?? '') as string;
+      const withoutAlliance = (buildVisitorMessages(withoutAllianceDimensions(spec))[0]?.content ?? '') as string;
 
       // 缺省 = 不显示 = 这两行整个不出现.
       expect(withoutAlliance).not.toContain('安全感');
@@ -505,8 +505,8 @@ describe('WP7 · 决策→说话闭环', () => {
         tokenBudget: BUDGET,
       });
 
-      const baselineText = buildVisitorMessages(baseline)[0]?.content ?? '';
-      const lowText = buildVisitorMessages(lowAlliance)[0]?.content ?? '';
+      const baselineText = (buildVisitorMessages(baseline)[0]?.content ?? '') as string;
+      const lowText = (buildVisitorMessages(lowAlliance)[0]?.content ?? '') as string;
 
       // "这一轮怎么说"那一段逐字相同 —— safety / bond 低了不会让模型自动变话少.
       expect(verbosityLine(lowText)).toBe(verbosityLine(baselineText));
@@ -557,7 +557,7 @@ describe('WP7 · 决策→说话闭环', () => {
     it('recall 有内容 → prompt 显示"你还记得这些事"那一段与各条记忆', () => {
       const spec = buildSpecWithRecall(buildRecallHits(2));
 
-      const systemText = buildVisitorMessages(spec)[0]?.content ?? '';
+      const systemText = (buildVisitorMessages(spec)[0]?.content ?? '') as string;
 
       expect(systemText).toContain('- 你还记得这些事（背景，不要说出口）：');
       expect(systemText).toContain('  - 长期记忆第1条');
@@ -565,8 +565,8 @@ describe('WP7 · 决策→说话闭环', () => {
     });
 
     it('recall 为空数组 → prompt 逐字不变 (零回归)', () => {
-      const withRecall = buildVisitorMessages(buildSpecWithRecall(buildRecallHits(3)))[0]?.content ?? '';
-      const withoutRecall = buildVisitorMessages(buildSpecWithRecall([]))[0]?.content ?? '';
+      const withRecall = (buildVisitorMessages(buildSpecWithRecall(buildRecallHits(3)))[0]?.content ?? '') as string;
+      const withoutRecall = (buildVisitorMessages(buildSpecWithRecall([]))[0]?.content ?? '') as string;
 
       // 空召回 = 这一段整个不出现.
       expect(withoutRecall).not.toContain('你还记得这些事');
@@ -583,7 +583,7 @@ describe('WP7 · 决策→说话闭环', () => {
     it('recall 有 5 条 → 只渲染 Top3 (不全部塞进去)', () => {
       const spec = buildSpecWithRecall(buildRecallHits(5));
 
-      const systemText = buildVisitorMessages(spec)[0]?.content ?? '';
+      const systemText = (buildVisitorMessages(spec)[0]?.content ?? '') as string;
 
       expect(systemText).toContain('  - 长期记忆第1条');
       expect(systemText).toContain('  - 长期记忆第2条');
@@ -595,7 +595,7 @@ describe('WP7 · 决策→说话闭环', () => {
     });
 
     it('recall 内容放在"内在状态"块里 (在硬规则之前)', () => {
-      const systemText = buildVisitorMessages(buildSpecWithRecall(buildRecallHits(1)))[0]?.content ?? '';
+      const systemText = (buildVisitorMessages(buildSpecWithRecall(buildRecallHits(1)))[0]?.content ?? '') as string;
 
       const stateIdx = systemText.indexOf('你此刻的内在状态');
       const recallIdx = systemText.indexOf('- 你还记得这些事');
@@ -609,7 +609,7 @@ describe('WP7 · 决策→说话闭环', () => {
     it('记忆正文原样渲染 (不被改写 / 不截断)', () => {
       const hits: MemoryHit[] = [{ entry: { ...buildMemoryEntry(), content: '我小时候被父母抛弃过。' }, score: 0.9 }];
 
-      const systemText = buildVisitorMessages(buildSpecWithRecall(hits))[0]?.content ?? '';
+      const systemText = (buildVisitorMessages(buildSpecWithRecall(hits))[0]?.content ?? '') as string;
 
       expect(systemText).toContain('  - 我小时候被父母抛弃过。');
     });
@@ -668,46 +668,47 @@ describe('WP7 · 决策→说话闭环', () => {
     }
 
     it('语气疏离度: 表达风格阻抗高 → 疏离', () => {
-      const systemText = buildVisitorMessages(buildSpecForRender({ resistance: { verbal: 0.4, depth: 0.4, style: 0.7 } }))[0]?.content;
+      const systemText = (buildVisitorMessages(buildSpecForRender({ resistance: { verbal: 0.4, depth: 0.4, style: 0.7 } }))[0]?.content ??
+        '') as string;
 
       expect(warmthLine(systemText ?? '')).toBe('语气有点疏离：像在应付、像隔着一层，不太愿意真正投入。');
     });
 
     it('语气疏离度: 信任低 → 疏离', () => {
-      const systemText = buildVisitorMessages(buildSpecForRender({ trust: 0.2 }))[0]?.content;
+      const systemText = (buildVisitorMessages(buildSpecForRender({ trust: 0.2 }))[0]?.content ?? '') as string;
 
       expect(warmthLine(systemText ?? '')).toContain('语气有点疏离');
     });
 
     it('语气疏离度: 安全感低 → 疏离', () => {
-      const systemText = buildVisitorMessages(buildSpecForRender({ safety: 0.2 }))[0]?.content;
+      const systemText = (buildVisitorMessages(buildSpecForRender({ safety: 0.2 }))[0]?.content ?? '') as string;
 
       expect(warmthLine(systemText ?? '')).toContain('语气有点疏离');
     });
 
     it('语气疏离度: 信任 + 安全感 + 联结感都高 → 亲近', () => {
-      const systemText = buildVisitorMessages(buildSpecForRender({ trust: 0.7, safety: 0.7, bond: 0.5 }))[0]?.content;
+      const systemText = (buildVisitorMessages(buildSpecForRender({ trust: 0.7, safety: 0.7, bond: 0.5 }))[0]?.content ?? '') as string;
 
       expect(warmthLine(systemText ?? '')).toBe('语气放松一点：没那么防备，愿意流露一点真实感受。');
     });
 
     it('语气疏离度: 其余 → 中性', () => {
-      const systemText = buildVisitorMessages(buildSpecForRender())[0]?.content;
+      const systemText = (buildVisitorMessages(buildSpecForRender())[0]?.content ?? '') as string;
 
       expect(warmthLine(systemText ?? '')).toBe('语气按平时的样子，不刻意亲近也不刻意疏远。');
     });
 
     it('语气疏离度: 阻抗优先 (同盟三维都高但风格阻抗高 → 仍是疏离)', () => {
-      const systemText = buildVisitorMessages(
+      const systemText = (buildVisitorMessages(
         buildSpecForRender({ trust: 0.7, safety: 0.7, bond: 0.5, resistance: { verbal: 0.4, depth: 0.4, style: 0.7 } }),
-      )[0]?.content;
+      )[0]?.content ?? '') as string;
 
       expect(warmthLine(systemText ?? '')).toContain('语气有点疏离');
     });
 
     it('情绪表现: 焦虑分高唤醒 / 低唤醒两种说法', () => {
-      const high = buildVisitorMessages(buildSpecWithEmotion('anxious', 0.8))[0]?.content ?? '';
-      const low = buildVisitorMessages(buildSpecWithEmotion('anxious', 0.4))[0]?.content ?? '';
+      const high = (buildVisitorMessages(buildSpecWithEmotion('anxious', 0.8))[0]?.content ?? '') as string;
+      const low = (buildVisitorMessages(buildSpecWithEmotion('anxious', 0.4))[0]?.content ?? '') as string;
 
       expect(high).toContain('这轮你有点焦虑：语速偏快、容易犹豫、可能反复确认对方的意思。');
       expect(high).not.toContain('这轮你有点不安');
@@ -716,8 +717,8 @@ describe('WP7 · 决策→说话闭环', () => {
     });
 
     it('情绪表现: 愤怒分高唤醒 / 低唤醒两种说法', () => {
-      const high = buildVisitorMessages(buildSpecWithEmotion('angry', 0.8))[0]?.content ?? '';
-      const low = buildVisitorMessages(buildSpecWithEmotion('angry', 0.4))[0]?.content ?? '';
+      const high = (buildVisitorMessages(buildSpecWithEmotion('angry', 0.8))[0]?.content ?? '') as string;
+      const low = (buildVisitorMessages(buildSpecWithEmotion('angry', 0.4))[0]?.content ?? '') as string;
 
       expect(high).toContain('这轮你有点恼火：语气冲一点、有点不耐烦。');
       expect(high).not.toContain('这轮你有点不爽');
@@ -737,7 +738,7 @@ describe('WP7 · 决策→说话闭环', () => {
       };
 
       for (const [label, expression] of Object.entries(expected)) {
-        const systemText = buildVisitorMessages(buildSpecWithEmotion(label as EmotionLabel, 0.3))[0]?.content ?? '';
+        const systemText = (buildVisitorMessages(buildSpecWithEmotion(label as EmotionLabel, 0.3))[0]?.content ?? '') as string;
 
         expect(systemText).toContain(expression);
       }
@@ -746,7 +747,7 @@ describe('WP7 · 决策→说话闭环', () => {
     it('零回归: 没有 safety / bond → 不渲染语气疏离度那一行', () => {
       const spec = withoutAllianceDimensions(buildSpecForRender());
 
-      const systemText = buildVisitorMessages(spec)[0]?.content ?? '';
+      const systemText = (buildVisitorMessages(spec)[0]?.content ?? '') as string;
 
       expect(warmthLine(systemText)).toBe('');
       // 但缺的是**同盟维度**, 不是别的维度 —— 话量那一行照常在.
@@ -754,7 +755,7 @@ describe('WP7 · 决策→说话闭环', () => {
     });
 
     it('零回归: 情绪是 neutral → 不给额外的情绪表现指令', () => {
-      const systemText = buildVisitorMessages(buildSpecWithEmotion('neutral', 0.3))[0]?.content ?? '';
+      const systemText = (buildVisitorMessages(buildSpecWithEmotion('neutral', 0.3))[0]?.content ?? '') as string;
 
       // "这一轮怎么说"块里只有话量 + 语气 + 随机提示 + 信息增量四行 —— **没有**情绪表现那一行.
       // (断言整块而不是单行: 单行只能证明"某行在", 证明不了"没有多出情绪那一行".)
@@ -770,13 +771,13 @@ describe('WP7 · 决策→说话闭环', () => {
     });
 
     it('表达层变化: prompt 里有一句"不要重复最近几轮用过的句式" (WP-G 改动 6)', () => {
-      const systemText = buildVisitorMessages(buildSpecForRender())[0]?.content ?? '';
+      const systemText = (buildVisitorMessages(buildSpecForRender())[0]?.content ?? '') as string;
 
       expect(systemText).toContain('不要重复最近几轮用过的句式：换个角度、换个措辞表达同一个意思');
     });
 
     it('口语化 / 非语言: "说话方式"后面补了非语言表达那一行', () => {
-      const systemText = buildVisitorMessages(buildSpecForRender())[0]?.content ?? '';
+      const systemText = (buildVisitorMessages(buildSpecForRender())[0]?.content ?? '') as string;
       const lines = systemText.split('\n');
       const speechIdx = lines.findIndex((line) => line.startsWith('说话方式：'));
 
@@ -786,9 +787,10 @@ describe('WP7 · 决策→说话闭环', () => {
 
     it('话量三档的判定口径没被改 (resolveTurnVerbosity 一个字没动)', () => {
       // 短: 话量阻抗高.
-      const short = buildVisitorMessages(buildSpecForRender({ resistance: { verbal: 0.8, depth: 0.6, style: 0.35 } }))[0]?.content;
+      const short = (buildVisitorMessages(buildSpecForRender({ resistance: { verbal: 0.8, depth: 0.6, style: 0.35 } }))[0]?.content ??
+        '') as string;
       // 长: 话量阻抗低 + 信任高 + 探索策略.
-      const long = buildVisitorMessages(
+      const long = (buildVisitorMessages(
         buildSpecForRender({
           intention: {
             strategy: 'cognitive_exploration',
@@ -802,9 +804,9 @@ describe('WP7 · 决策→说话闭环', () => {
           transference: { positive: 0, negative: 0, dependency: 0 },
           trust: 0.8,
         }),
-      )[0]?.content;
+      )[0]?.content ?? '') as string;
       // 中: 其余.
-      const medium = buildVisitorMessages(buildSpecForRender())[0]?.content;
+      const medium = (buildVisitorMessages(buildSpecForRender())[0]?.content ?? '') as string;
 
       expect(verbosityLine(short ?? '')).toContain('这轮你不太想多说');
       expect(verbosityLine(long ?? '')).toContain('这轮你愿意多说一点');
@@ -812,7 +814,7 @@ describe('WP7 · 决策→说话闭环', () => {
     });
 
     it('五段都在"这一轮怎么说"块里 (硬规则之前)', () => {
-      const systemText = buildVisitorMessages(buildSpecWithEmotion('anxious', 0.8))[0]?.content ?? '';
+      const systemText = (buildVisitorMessages(buildSpecWithEmotion('anxious', 0.8))[0]?.content ?? '') as string;
       const block = howToSayLines(systemText);
 
       expect(block).toHaveLength(5);
@@ -828,11 +830,11 @@ describe('WP7 · 决策→说话闭环', () => {
     });
 
     it('WP-J: 焦虑型依恋注入求证/讨好行为指引, 安全型不渲染', () => {
-      const anxious = buildVisitorMessages(buildSpecForRender({ attachmentStyle: 'anxious' }))[0]?.content ?? '';
+      const anxious = (buildVisitorMessages(buildSpecForRender({ attachmentStyle: 'anxious' }))[0]?.content ?? '') as string;
       expect(anxious).toContain('你不会觉得我很麻烦吧');
       expect(anxious).toContain('焦虑型依恋');
 
-      const secure = buildVisitorMessages(buildSpecForRender({ attachmentStyle: 'secure' }))[0]?.content ?? '';
+      const secure = (buildVisitorMessages(buildSpecForRender({ attachmentStyle: 'secure' }))[0]?.content ?? '') as string;
       expect(secure).not.toContain('反复确认咨询师对你的看法');
     });
   });

@@ -506,7 +506,7 @@ describe('WP30 · Admin Dashboard 切真 API', () => {
         const methodGuards = (Reflect.getMetadata(GUARDS_METADATA, handler) as unknown[] | undefined) ?? [];
         routes.push({
           path,
-          method: Reflect.getMetadata(METHOD_METADATA, handler) as number | undefined,
+          method: Reflect.getMetadata(METHOD_METADATA, handler) as number,
           guards: [...classGuards, ...methodGuards],
         });
       }

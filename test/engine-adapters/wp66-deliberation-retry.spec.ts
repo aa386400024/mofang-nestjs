@@ -21,7 +21,6 @@
 //
 //   验证: npx vitest run test/engine-adapters/wp66-deliberation-retry.spec.ts
 
-import { Logger } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import * as path from 'node:path';
@@ -46,7 +45,7 @@ import {
   type DeliberationTraceRecord,
   type ValidatedDeliberation,
 } from '../../src/engine-adapters/deliberation/llm-deliberation.service.js';
-import { createEmptyBdiSnapshot, type BdiStateRepository, type DeltaVector } from '../../src/engine-core/index.js';
+import { type BdiStateRepository, type DeltaVector } from '../../src/engine-core/index.js';
 import { QUEUE_NAMES } from '../../src/shared/infra/redis/redis.constants.js';
 import type { RedisService } from '../../src/shared/infra/redis/redis.service.js';
 
@@ -224,21 +223,25 @@ function writtenRecord(set: ReturnType<typeof vi.fn>, index = 0): DeliberationTr
 function workerProcessor(): (job: unknown) => Promise<void> {
   const calls = bull.workerCtor.mock.calls as [string, (job: unknown) => Promise<void>, unknown][];
   const call = calls.at(-1);
-  return call[1];
+  return call![1];
 }
 
 /** 取 Queue 构造时传的 options (最后一次构造). */
 function queueOptions(): { prefix: string; defaultJobOptions: Record<string, unknown> } {
   const calls = bull.queueCtor.mock.calls as [string, { prefix: string; defaultJobOptions: Record<string, unknown> }][];
   const call = calls.at(-1);
-  return call[1];
+  return call![1];
 }
 
 /** 取 enqueue 时传给 queue.add 的 job 选项. */
 function jobOptions(): { jobId: string; attempts: number; backoff: { type: string; delay: number } } {
-  const calls = bull.add.mock.calls as [string, unknown, { jobId: string; attempts: number; backoff: { type: string; delay: number } }][];
+  const calls = bull.add.mock.calls as unknown as [
+    string,
+    unknown,
+    { jobId: string; attempts: number; backoff: { type: string; delay: number } },
+  ][];
   const call = calls.at(-1);
-  return call[2];
+  return call![2];
 }
 
 beforeEach(() => {
@@ -373,7 +376,7 @@ describe('WP66 · 审议输出格式校验与重试', () => {
       expect(jobOptions().attempts).toBe(4);
       expect(jobOptions().backoff).toEqual({ type: 'exponential', delay: 1000 });
       // 全项目统一的 defaultJobOptions **一个字没动** —— 只在本 job 上覆盖.
-      expect(queueOptions().defaultJobOptions.attempts).toBe(3);
+      expect(queueOptions().defaultJobOptions['attempts']).toBe(3);
       expect(queueOptions().prefix).toBe('bullmq');
     });
   });
@@ -504,7 +507,7 @@ describe('WP66 · 审议输出格式校验与重试', () => {
     });
 
     it('⑤-f processJob 把 job.attemptsMade 当 retryCount 传下去', async () => {
-      const executeShadowMode = vi.fn().mockResolvedValue();
+      const executeShadowMode = vi.fn().mockResolvedValue(void 0);
       const { processor } = buildProcessor({ env: { ENGINE_DELIBERATION_ENABLED: 'true' }, executeShadowMode });
       await processor.onModuleInit();
 

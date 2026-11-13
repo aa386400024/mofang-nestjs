@@ -73,7 +73,7 @@ describe('WP-K · 分段配置指纹', () => {
     const layout = makeLayout();
     try {
       const before = compute(layout.baseDir);
-      writeFileSync(join(layout.baseDir, `${SEGMENT_PATHS.alliance}.ts`), '// changed threshold', 'utf8');
+      writeFileSync(join(layout.baseDir, `${SEGMENT_PATHS['alliance']}.ts`), '// changed threshold', 'utf8');
       const after = compute(layout.baseDir);
       expect(after.alliance).not.toBe(before.alliance);
       expect(after.combined).not.toBe(before.combined);
@@ -90,7 +90,7 @@ describe('WP-K · 分段配置指纹', () => {
     const layout = makeLayout();
     try {
       const before = compute(layout.baseDir);
-      writeFileSync(join(layout.baseDir, `${SEGMENT_PATHS.lexicon}.ts`), '// 仅加一行注释说明', 'utf8');
+      writeFileSync(join(layout.baseDir, `${SEGMENT_PATHS['lexicon']}.ts`), '// 仅加一行注释说明', 'utf8');
       const after = compute(layout.baseDir);
       expect(after.lexicon).not.toBe(before.lexicon);
     } finally {
@@ -101,7 +101,7 @@ describe('WP-K · 分段配置指纹', () => {
   it('任一段文件缺失 → 该段 unknown 且 combined unknown (fail-closed)', () => {
     const layout = makeLayout();
     try {
-      const missing = join(layout.baseDir, `${SEGMENT_PATHS.baselines}.ts`);
+      const missing = join(layout.baseDir, `${SEGMENT_PATHS['baselines']}.ts`);
       rmSync(missing, { force: true });
       const fp = compute(layout.baseDir);
       expect(fp.baselines).toBe('unknown');

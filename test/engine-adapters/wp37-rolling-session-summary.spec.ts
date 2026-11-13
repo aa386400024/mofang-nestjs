@@ -43,7 +43,6 @@ import {
   type RollingSummaryResult,
 } from '../../src/engine-adapters/persistence/rolling-summary.generator.js';
 import { buildRenderSpec } from '../../src/engine-adapters/rendering/spec-assembler.js';
-import type { StreamingRenderPort } from '../../src/engine-adapters/rendering/streaming-render.port.js';
 import {
   TurnRenderOrchestrator,
   buildVisitorMessages,

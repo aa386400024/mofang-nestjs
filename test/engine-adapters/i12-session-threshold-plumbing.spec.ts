@@ -36,11 +36,11 @@ const INPUT = {
  *
  * @param resolver 解析端口 (缺省 = 不注入)
  */
-function createService(resolver?: Parameters<typeof EngineTurnService>[5]): {
+function createService(resolver?: ConstructorParameters<typeof EngineTurnService>[5]): {
   readonly service: EngineTurnService;
   readonly openSession: ReturnType<typeof vi.fn>;
 } {
-  const openSession = vi.fn(async (input: unknown) => ({ handleId: 'h-1', sessionId: 's-1' }));
+  const openSession = vi.fn(async (_input: unknown) => ({ handleId: 'h-1', sessionId: 's-1' }));
   const session = { openSession } as unknown as EngineSessionPort;
   const orchestrator = {} as never;
   const registry = { register: vi.fn() } as never;

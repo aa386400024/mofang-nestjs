@@ -17,7 +17,7 @@ import { Logger } from '@nestjs/common';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -77,7 +77,7 @@ function makeMetrics(overrides: Partial<BatchSessionMetrics> = {}): BatchSession
     exitReason: 'max_turns',
     engineVersion: 'f59c307-dirty',
     ...overrides,
-  };
+  } as BatchSessionMetrics;
 }
 
 /** 假 repo: 批次场次表 + 批次结论表. */
@@ -285,6 +285,7 @@ describe('WP-H 第二/三波 · 批次可观测性', () => {
         stubConfig({ ADMIN_DEBUG_SESSION_DIR: dir }) as never,
         sessionRepo as never,
         batchRepo as never,
+        {} as never,
       );
 
       const result = await service.refreshBatch('batch-1');
@@ -341,6 +342,7 @@ describe('WP-H 第二/三波 · 批次可观测性', () => {
         stubConfig({ ADMIN_DEBUG_SESSION_DIR: dir }) as never,
         sessionRepo as never,
         batchRepo as never,
+        {} as never,
       );
 
       await service.refreshSingleSession('sess-single');
@@ -361,6 +363,7 @@ describe('WP-H 第二/三波 · 批次可观测性', () => {
         stubConfig({ ADMIN_DEBUG_SESSION_DIR: dir }) as never,
         sessionRepo as never,
         batchRepo as never,
+        {} as never,
       );
 
       const result = await service.refreshBatch('batch-x');
@@ -379,8 +382,8 @@ describe('WP-H 第二/三波 · 批次可观测性', () => {
 
   describe('⑤ 新增 10 · DB_QUERY_LOGGING 日志降噪', () => {
     it('缺省 (未配) → 不开 query 日志', () => {
-      expect(resolveDbQueryLogging()).toBe(false);
-      expect(resolveDbLoggingLevels()).not.toContain('query');
+      expect(resolveDbQueryLogging(void 0)).toBe(false);
+      expect(resolveDbLoggingLevels(void 0)).not.toContain('query');
     });
 
     it('配 true → 开 query 日志', () => {
@@ -419,7 +422,7 @@ describe('WP-H 第二/三波 · 批次可观测性', () => {
       Object.assign(gateway, {
         server: {
           sockets: { adapter: { rooms } },
-          to: (room: string) => ({
+          to: (_room: string) => ({
             emit: (event: string, payload: unknown) => {
               emitted.push({ event, payload });
             },

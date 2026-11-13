@@ -165,7 +165,7 @@ function buildDriftedRow(target: CharacterBaselineCalibration, overrides: Partia
     updatedAt: new Date(0),
     deletedAt: null,
     ...overrides,
-  };
+  } as CharacterProfileEntity;
 }
 
 /** B 类那 4 个 templateId. */
@@ -439,7 +439,7 @@ describe('WP-J · applyBaselineCalibration · 幂等', () => {
       // buildDriftedRow 的主键格式是 `row-<templateId>`.
       const templateId = call.id.replace(/^row-/, '');
       const target = DB_ONLY_BASELINE_CALIBRATION.find((item) => item.templateId === templateId);
-      expect(call.payload.verbalVoice).toBe(target?.verbalVoice);
+      expect(call.payload['verbalVoice']).toBe(target?.verbalVoice);
     }
   });
 

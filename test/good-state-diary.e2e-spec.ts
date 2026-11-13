@@ -1,7 +1,7 @@
 import { ExecutionContext, INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import * as request from 'supertest';
+import request from 'supertest';
 
 // V2026-09-11 治本: 路径修正 — BizExceptionFilter 实位于 src/common/filters/, 不是 common/exceptions/.
 //   旧路径解析为 undefined, 触发 no-unsafe-argument (useGlobalFilters(new undefined()) 类型为 any).
@@ -14,11 +14,6 @@ import { DiaryTag } from '../src/good_state_diary/enums/diary-tag.enum.js';
 import { GoodStateDiaryModule } from '../src/good_state_diary/good_state_diary.module.js';
 import { SentryService } from '../src/shared/infra/observability/index.js';
 import { JwtAuthGuard } from '../src/user/guards/jwt-auth.guard.js';
-
-// V2026-09-11 治本: supertest.Response 类型别名 — 作为 (await ...) as HttpResponse cast 的目标类型.
-//   验证: 后续 await request(...) 链虽然 error-typed (getHttpServer 返回 any),
-//         但右值经过 as cast 后变为 HttpResponse, ESLint 放行且 .body 子属性类型正确.
-type HttpResponse = request.Response;
 
 /**
  * V2026-09-11 治本 (好状态日记 · e2e 测试模板):
@@ -103,18 +98,18 @@ class InMemoryEntryRepository {
   }): Promise<StoredEntry[]> {
     let list = Array.from(this.entries.values());
     for (const [key, value] of Object.entries(opts.where)) {
-      list = list.filter((e) => (e as Record<string, unknown>)[key] === value);
+      list = list.filter((e) => (e as unknown as Record<string, unknown>)[key] === value);
     }
     if (!opts.withDeleted) {
       list = list.filter((e) => !e.deletedAt);
     }
-    if (opts.order?.createdAt) {
+    if (opts.order?.['createdAt']) {
       list.sort((a, b) =>
-        opts.order!.createdAt === 'DESC' ? b.createdAt.getTime() - a.createdAt.getTime() : a.createdAt.getTime() - b.createdAt.getTime(),
+        opts.order!['createdAt'] === 'DESC' ? b.createdAt.getTime() - a.createdAt.getTime() : a.createdAt.getTime() - b.createdAt.getTime(),
       );
     }
-    if (opts.order?.id) {
-      list.sort((a, b) => (opts.order!.id === 'DESC' ? b.id.localeCompare(a.id) : a.id.localeCompare(b.id)));
+    if (opts.order?.['id']) {
+      list.sort((a, b) => (opts.order!['id'] === 'DESC' ? b.id.localeCompare(a.id) : a.id.localeCompare(b.id)));
     }
     if (opts.take !== undefined) list = list.slice(0, opts.take);
     return list;
@@ -178,7 +173,7 @@ class InMemoryEntryRepository {
         }
         for (const k of Object.keys(params ?? {})) {
           if (k.startsWith('tagFilter')) {
-            const tag = params[k] as string;
+            const tag = params?.[k] as string;
             conds.push((e) => (e.tags ?? '').split(',').includes(tag));
           }
         }
@@ -207,8 +202,8 @@ class InMemoryEntryRepository {
         if (order.length > 0) {
           list.sort((a, b) => {
             for (const o of order) {
-              const av = (a as Record<string, unknown>)[o.col];
-              const bv = (b as Record<string, unknown>)[o.col];
+              const av = (a as unknown as Record<string, unknown>)[o.col];
+              const bv = (b as unknown as Record<string, unknown>)[o.col];
               if (av instanceof Date && bv instanceof Date) {
                 const diff = av.getTime() - bv.getTime();
                 if (diff !== 0) return o.dir === 'DESC' ? -diff : diff;
@@ -288,16 +283,16 @@ describe('GoodStateDiaryController (e2e)', () => {
 
   describe('POST /diary/entries', () => {
     it('should create a new diary entry', async () => {
-      // V2026-09-11 治本: (await ...) as HttpResponse ——
-      //   原因: app.getHttpServer() 返回 any, supertest 链因此 error-typed,
-      //         单纯 : HttpResponse 注解仍触发 @typescript-eslint/no-unsafe-assignment.
-      //         改用 as cast 把 await 结果显式声明为 HttpResponse, ESLint 看到右值无 any 放行,
-      //         且 .body / .body.id 子属性类型正确传递, 后续 expect() 断言安全.
-      const res = (await request(app.getHttpServer())
+      // V2026-11-13 治本 (TD-5): 去掉 (await ...) as HttpResponse 断言 ——
+      //   原因: supertest 改成 default import 后, await request(...) 链本身就是
+      //         superagent Response 类型; 那层 cast 变成"同类型断言", 被
+      //         @typescript-eslint/no-unnecessary-type-assertion 判为冗余.
+      //   影响: 运行时逐字不变 (断言是编译期的), .body 仍是 any (与之前一致).
+      const res = await request(app.getHttpServer())
         .post('/diary/entries')
         .set('X-Test-Uid', TEST_UID)
         .send({ body: '今天在...', status: DiaryEntryStatus.Finalized })
-        .expect(201)) as HttpResponse;
+        .expect(201);
 
       expect(res.body).toMatchObject({
         authorId: TEST_UID,
@@ -311,23 +306,23 @@ describe('GoodStateDiaryController (e2e)', () => {
     it('should reject body longer than 5000 chars', async () => {
       const longBody = 'a'.repeat(5001);
       // V2026-09-11 #6 治本: await 表达式链拆多行 (整行 159 > 140)
-      const res = (await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/diary/entries')
         .set('X-Test-Uid', TEST_UID)
         .send({ body: longBody })
-        .expect(400)) as HttpResponse;
+        .expect(400);
       // V2026-09-11 治本: sonarjs/assertions-in-tests 要求显式 expect(),
-      //   .expect(N) 链式不算. 加 status 二次断言, 同时验证 res 标 HttpResponse 后访问 .status 安全.
+      //   .expect(N) 链式不算. 加 status 二次断言, 同时验证 res 访问 .status 安全.
       expect(res.status).toBe(400);
     });
 
     it('should silently drop unknown tags', async () => {
       // V2026-09-11 #6 治本: await 表达式链拆多行 (整行 200 > 140)
-      const res = (await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/diary/entries')
         .set('X-Test-Uid', TEST_UID)
         .send({ body: 'test', tags: [DiaryTag.GoodMoment, 'unknownTag'] })
-        .expect(201)) as HttpResponse;
+        .expect(201);
 
       expect(res.body.tags).toEqual([DiaryTag.GoodMoment]);
     });
@@ -336,34 +331,28 @@ describe('GoodStateDiaryController (e2e)', () => {
   describe('GET /diary/entries/:id (越权防护)', () => {
     it('should 404 when accessing another user entry', async () => {
       // V2026-09-11 #6 治本: await 表达式链拆多行 (整行 164 > 140)
-      const created = (await request(app.getHttpServer())
+      const created = await request(app.getHttpServer())
         .post('/diary/entries')
         .set('X-Test-Uid', TEST_UID)
         .send({ body: 'private' })
-        .expect(201)) as HttpResponse;
+        .expect(201);
 
       // V2026-09-11 #6 治本: 整行 153 > 140, 拆多行 (v5 误判 ≤140, 已修)
-      const res = (await request(app.getHttpServer())
-        .get(`/diary/entries/${created.body.id}`)
-        .set('X-Test-Uid', OTHER_UID)
-        .expect(404)) as HttpResponse;
+      const res = await request(app.getHttpServer()).get(`/diary/entries/${created.body.id}`).set('X-Test-Uid', OTHER_UID).expect(404);
       // V2026-09-11 治本: 显式断言 — sonarjs 兜底.
       expect(res.status).toBe(404);
     });
 
     it('should return entry to owner', async () => {
       // V2026-09-11 #6 治本: await 表达式链拆多行 (整行 164 > 140)
-      const created = (await request(app.getHttpServer())
+      const created = await request(app.getHttpServer())
         .post('/diary/entries')
         .set('X-Test-Uid', TEST_UID)
         .send({ body: 'private' })
-        .expect(201)) as HttpResponse;
+        .expect(201);
 
       // V2026-09-11 #6 治本: 整行 152 > 140, 拆多行 (v5 误判, 已修)
-      const res = (await request(app.getHttpServer())
-        .get(`/diary/entries/${created.body.id}`)
-        .set('X-Test-Uid', TEST_UID)
-        .expect(200)) as HttpResponse;
+      const res = await request(app.getHttpServer()).get(`/diary/entries/${created.body.id}`).set('X-Test-Uid', TEST_UID).expect(200);
 
       expect(res.body.id).toBe(created.body.id);
     });
@@ -376,44 +365,38 @@ describe('GoodStateDiaryController (e2e)', () => {
   describe('DELETE /diary/entries/:id (软删除)', () => {
     it('should soft delete and exclude from default get', async () => {
       // V2026-09-11 #6 治本: await 表达式链拆多行 (整行 168 > 140)
-      const created = (await request(app.getHttpServer())
+      const created = await request(app.getHttpServer())
         .post('/diary/entries')
         .set('X-Test-Uid', TEST_UID)
         .send({ body: 'will delete' })
-        .expect(201)) as HttpResponse;
+        .expect(201);
 
       // V2026-09-11 #6 治本: 整行 158 > 140, 拆多行 (v5 误判, 已修)
-      const delRes = (await request(app.getHttpServer())
-        .delete(`/diary/entries/${created.body.id}`)
-        .set('X-Test-Uid', TEST_UID)
-        .expect(204)) as HttpResponse;
+      const delRes = await request(app.getHttpServer()).delete(`/diary/entries/${created.body.id}`).set('X-Test-Uid', TEST_UID).expect(204);
       // V2026-09-11 治本: 显式断言 — sonarjs 兜底, 同时验证软删状态码契约.
       expect(delRes.status).toBe(204);
 
       // V2026-09-11 #6 治本: 整行 155 > 140, 拆多行 (v5 误判, 已修)
-      const getRes = (await request(app.getHttpServer())
-        .get(`/diary/entries/${created.body.id}`)
-        .set('X-Test-Uid', TEST_UID)
-        .expect(404)) as HttpResponse;
+      const getRes = await request(app.getHttpServer()).get(`/diary/entries/${created.body.id}`).set('X-Test-Uid', TEST_UID).expect(404);
       expect(getRes.status).toBe(404);
     });
 
     it('should restore after soft delete', async () => {
       // V2026-09-11 #6 治本: await 表达式链拆多行 (整行 167 > 140)
-      const created = (await request(app.getHttpServer())
+      const created = await request(app.getHttpServer())
         .post('/diary/entries')
         .set('X-Test-Uid', TEST_UID)
         .send({ body: 'restore me' })
-        .expect(201)) as HttpResponse;
+        .expect(201);
 
       // V2026-09-11 #6 治本: 整行 166 > 140, 拆多行 (v5 误判, 已修)
       await request(app.getHttpServer()).delete(`/diary/entries/${created.body.id}`).set('X-Test-Uid', TEST_UID).expect(204);
 
       // V2026-09-11 #6 治本: 整行 158 > 140, 拆多行 (v5 误判, 已修)
-      const restored = (await request(app.getHttpServer())
+      const restored = await request(app.getHttpServer())
         .post(`/diary/entries/${created.body.id}/restore`)
         .set('X-Test-Uid', TEST_UID)
-        .expect(200)) as HttpResponse;
+        .expect(200);
 
       expect(restored.body.deletedAt).toBeNull();
     });
@@ -431,15 +414,15 @@ describe('GoodStateDiaryController (e2e)', () => {
       }
 
       // V2026-09-11 #6 治本: 整行 163 > 140, 拆多行 (v5 误判, 已修)
-      const res = (await request(app.getHttpServer()).delete('/diary/entries/all').set('X-Test-Uid', TEST_UID).expect(200)) as HttpResponse;
+      const res = await request(app.getHttpServer()).delete('/diary/entries/all').set('X-Test-Uid', TEST_UID).expect(200);
 
       expect(res.body.deletedCount).toBe(3);
 
       // V2026-09-11 #6 治本: 整行 163 > 140, 拆多行 (v5 误判, 已修)
-      const list = (await request(app.getHttpServer())
+      const list = await request(app.getHttpServer())
         .get('/diary/entries?statusFilter=draft,finalized')
         .set('X-Test-Uid', TEST_UID)
-        .expect(200)) as HttpResponse;
+        .expect(200);
 
       expect(list.body.entries).toHaveLength(0);
     });
@@ -452,18 +435,18 @@ describe('GoodStateDiaryController (e2e)', () => {
   describe('POST /ai/diary-feedback', () => {
     it('should generate feedback with crisisFlag=true when moodHint=crisis', async () => {
       // V2026-09-11 #6 治本: await 表达式链整行 253 > 140 (含中文 moodSnapshot), 拆多行
-      const created = (await request(app.getHttpServer())
+      const created = await request(app.getHttpServer())
         .post('/diary/entries')
         .set('X-Test-Uid', TEST_UID)
         .send({
           body: '难受到需要支持',
           moodSnapshot: { level: DiaryMoodLevel.Crisis, snapshottedAt: new Date().toISOString() },
         })
-        .expect(201)) as HttpResponse;
+        .expect(201);
 
       // V2026-09-11 #6 治本: await 表达式链 .send({ entryId, themes, moodHint, localSummary, tags })
       //   拆多行 (object literal 必拆, prettier 自动)
-      const res = (await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/ai/diary-feedback')
         .set('X-Test-Uid', TEST_UID)
         .send({
@@ -475,7 +458,7 @@ describe('GoodStateDiaryController (e2e)', () => {
           localSummary: '今天状态很差',
           tags: [DiaryTag.Challenge],
         })
-        .expect(200)) as HttpResponse;
+        .expect(200);
 
       expect(res.body.crisisFlag).toBe(true);
       expect(res.body.perspectiveQuestions).toHaveLength(3);
@@ -484,13 +467,13 @@ describe('GoodStateDiaryController (e2e)', () => {
 
     it('should 404 when entry does not belong to user', async () => {
       // V2026-09-11 #6 治本: await 表达式链拆多行 (整行 164 > 140)
-      const created = (await request(app.getHttpServer())
+      const created = await request(app.getHttpServer())
         .post('/diary/entries')
         .set('X-Test-Uid', TEST_UID)
         .send({ body: 'private' })
-        .expect(201)) as HttpResponse;
+        .expect(201);
 
-      const res = (await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/ai/diary-feedback')
         .set('X-Test-Uid', OTHER_UID)
         .send({
@@ -499,7 +482,7 @@ describe('GoodStateDiaryController (e2e)', () => {
           localSummary: '',
           tags: [],
         })
-        .expect(404)) as HttpResponse;
+        .expect(404);
       // V2026-09-11 治本: 显式断言 — sonarjs 兜底.
       expect(res.status).toBe(404);
     });

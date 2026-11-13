@@ -112,7 +112,7 @@ function jwtStubThatInjects(userId: string): { canActivate(context: ExecutionCon
   return {
     canActivate: async (context: ExecutionContext) => {
       const request = context.switchToHttp().getRequest<Record<string, unknown>>();
-      request.user = { userId, username: 'student', roles: [] };
+      request['user'] = { userId, username: 'student', roles: [] };
       return true;
     },
   };
@@ -132,7 +132,7 @@ function collectRoutes(
 ): { readonly path: string; readonly method: number; readonly guards: unknown[] }[] {
   const controller = target as { prototype: unknown };
   const prototype = controller.prototype;
-  const classGuards = (Reflect.getMetadata(GUARDS_METADATA, target) as unknown[] | undefined) ?? [];
+  const classGuards = (Reflect.getMetadata(GUARDS_METADATA, target as object) as unknown[] | undefined) ?? [];
   const routes: { path: string; method: number; guards: unknown[] }[] = [];
   for (const name of Object.getOwnPropertyNames(prototype)) {
     if (name === 'constructor') continue;

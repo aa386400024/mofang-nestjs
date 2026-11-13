@@ -29,7 +29,7 @@ describe('alternatives · 解析容错', () => {
   });
 
   it('缺失 / 非数组 → 空数组 (不是 null)', () => {
-    expect(parseAlternatives()).toEqual([]);
+    expect(parseAlternatives(void 0)).toEqual([]);
     expect(parseAlternatives(null)).toEqual([]);
     expect(parseAlternatives('not-an-array')).toEqual([]);
     expect(parseAlternatives({})).toEqual([]);

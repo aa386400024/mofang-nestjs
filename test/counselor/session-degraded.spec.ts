@@ -25,7 +25,7 @@
 //   验证: npx vitest run test/counselor/session-degraded.spec.ts
 //
 //   时间戳: 2026-11-07
-import { In, IsNull, Not, type Repository } from 'typeorm';
+import { In, IsNull, Not, type ObjectLiteral, type Repository } from 'typeorm';
 
 import { BizException } from '../../src/common/exceptions/biz.exception.js';
 import { evaluateSessionDegraded } from '../../src/counselor/domain/session-degraded.js';
@@ -104,7 +104,7 @@ function makeSession(
  * @param overrides 差异项
  * @returns 假仓储
  */
-function makeRepo<T>(overrides: Record<string, unknown> = {}): Repository<T> {
+function makeRepo<T extends ObjectLiteral>(overrides: Record<string, unknown> = {}): Repository<T> {
   const repo = {
     find: async (): Promise<never[]> => [],
     findOne: async (): Promise<null> => null,

@@ -23,7 +23,7 @@ describe('量有效素材', () => {
 
   it('null / undefined (老数据的 transcript 列可能是 NULL) → 0 轮 0 字', () => {
     expect(measureEffectiveMaterial(null)).toEqual({ effectiveTurns: 0, effectiveChars: 0 });
-    expect(measureEffectiveMaterial()).toEqual({ effectiveTurns: 0, effectiveChars: 0 });
+    expect(measureEffectiveMaterial(void 0)).toEqual({ effectiveTurns: 0, effectiveChars: 0 });
   });
 
   it('空白串轮不计入 (只有空格的"发言"不是发言)', () => {

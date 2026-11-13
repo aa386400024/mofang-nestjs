@@ -323,7 +323,7 @@ describe('Phase2.5 WP-A · 审议输入最小化 (合规 + 成本双解决)', ()
 
   describe('⑤ 高风险分流 (高风险轮次永远不跑 LLM 审议)', () => {
     it('block 级判定 → high (咨询师硬红线 / 来访行动层危机)', () => {
-      const risk = resolveDeliberationRiskLevel(buildBlockCounselorVerdict());
+      const risk = resolveDeliberationRiskLevel(buildBlockCounselorVerdict(), void 0);
 
       expect(risk.level).toBe('high');
       expect(risk.categories).toContain('suicide_coaching');
@@ -350,7 +350,7 @@ describe('Phase2.5 WP-A · 审议输入最小化 (合规 + 成本双解决)', ()
         source: 'rule',
       };
 
-      expect(resolveDeliberationRiskLevel(verdict).level).toBe('low');
+      expect(resolveDeliberationRiskLevel(verdict, void 0).level).toBe('low');
     });
 
     it('只有 low 允许跑审议 (medium / high 一律不跑)', () => {

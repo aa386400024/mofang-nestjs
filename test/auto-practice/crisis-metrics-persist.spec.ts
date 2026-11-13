@@ -242,7 +242,7 @@ describe('WP-J P1b · 危机练习窗指标落库', () => {
       findAndCount: vi.fn(async () => [[row], 1]),
       findOne: vi.fn(async () => row),
     };
-    const controller = new AutoPracticeController({} as never, {} as never, {} as never, sessionRepo as never, {} as never);
+    const controller = new AutoPracticeController({} as never, {} as never, {} as never, sessionRepo as never, {} as never, {} as never);
 
     const plain = await controller.listSessions();
     const plainItem = plain.items[0];
@@ -275,7 +275,7 @@ describe('WP-J P1b · 危机练习窗指标落库', () => {
       findAndCount: vi.fn(async () => [[row], 1]),
       findOne: vi.fn(async () => row),
     };
-    const controller = new AutoPracticeController({} as never, {} as never, {} as never, sessionRepo as never, {} as never);
+    const controller = new AutoPracticeController({} as never, {} as never, {} as never, sessionRepo as never, {} as never, {} as never);
 
     const detail = (await controller.getSession('sess-1')) as Record<string, unknown>;
     expect(detail['crisisPracticed']).toBe(1);

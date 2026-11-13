@@ -30,13 +30,13 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { buildTestStructuredInput } from './deliberation-fixtures.js';
 import type { CounselorLlmJsonClient } from '../../src/counselor/providers/llm-json.client.js';
+import type { DeliberationDeltaEntry } from '../../src/engine-adapters/deliberation/deliberation-types.js';
 import {
   CLINICAL_SANITY_THRESHOLDS,
   DeliberationRetryableError,
   LlmDeliberationService,
   applyClinicalSanityCheck,
   validateDeliberationOutput,
-  type DeliberationDeltaEntry,
   type DeliberationShadowInput,
   type DeliberationTraceRecord,
 } from '../../src/engine-adapters/deliberation/llm-deliberation.service.js';
@@ -270,7 +270,7 @@ describe('临床合理性校验 · 观测版', () => {
       { dim: 'verbal', delta: 0.1, label: '规则 3 上沿' },
       { dim: 'depth', delta: 0.1, label: '规则 3 上沿' },
     ])('④-1 $dim = $delta ($label) → 不 flagged', ({ dim, delta }) => {
-      const result = applyClinicalSanityCheck([buildEntry({ dimension: dim, delta })], true);
+      const result = applyClinicalSanityCheck([buildEntry({ dimension: dim as DeliberationDeltaEntry['dimension'], delta })], true);
 
       expect(result.clinicalFlags).toEqual([]);
     });

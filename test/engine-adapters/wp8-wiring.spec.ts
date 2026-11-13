@@ -30,7 +30,7 @@
 import { HttpException } from '@nestjs/common';
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
-import { vi } from 'vitest';
+import { vi, type Mock } from 'vitest';
 
 import { LlmRenderAdapter, createVisitorOutputGuard, type ChatCaller } from '../../src/engine-adapters/rendering/llm-render.adapter.js';
 import {
@@ -607,7 +607,7 @@ describe('WP8-A · 引擎装配层 (DI + 聚合接线)', () => {
   // ── 附加 B: 调试端点 ─────────────────────────────────────────────
   describe('附加 B · 调试端点 (错误映射 + 角色内核净化)', () => {
     /** 造一个只按脚本抛错的门面替身. */
-    function stubService(openError?: Error): { open: vi.Mock; turn: vi.Mock; close: vi.Mock } {
+    function stubService(openError?: Error): { open: Mock; turn: Mock; close: Mock } {
       return {
         open: vi.fn(() => {
           if (openError) throw openError;

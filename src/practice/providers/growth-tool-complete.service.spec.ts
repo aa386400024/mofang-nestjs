@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-
-import { vi } from 'vitest';
+import { vi, type Mocked } from 'vitest';
 /**
  * V2026-09-14 治本 (Stage C 后端契约): GrowthToolCompleteService 单测.
  *
@@ -26,7 +24,7 @@ import { BizException } from '../../common/exceptions/biz.exception.js';
 
 describe('V2026-09-14 GrowthToolCompleteService — 单测', () => {
   let service: GrowthToolCompleteService;
-  let mockDailyTools: vi.Mocked<GrowthDailyToolsService>;
+  let mockDailyTools: Mocked<GrowthDailyToolsService>;
   const userId = 'test-user-uuid';
 
   // V2026-09-14 治本: 跟 daily-tools.service 默认 3 条 1:1.
@@ -70,7 +68,7 @@ describe('V2026-09-14 GrowthToolCompleteService — 单测', () => {
   beforeEach(() => {
     mockDailyTools = {
       getDailyTools: vi.fn().mockResolvedValue(sampleTools),
-    };
+    } as unknown as Mocked<GrowthDailyToolsService>;
 
     service = new GrowthToolCompleteService(mockDailyTools);
   });

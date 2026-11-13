@@ -26,6 +26,7 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import type { AdaptiveRenderSpec } from '../../src/engine-adapters/rendering/render-risk.js';
 import { buildRenderSpec } from '../../src/engine-adapters/rendering/spec-assembler.js';
 import {
   TurnRenderOrchestrator,
@@ -106,7 +107,7 @@ class StubSession implements EngineSessionPort {
 
 /** 渲染端口 stub: 记录每一轮拿到的 spec. */
 class StubRenderer implements RenderPort {
-  readonly specs: RenderSpec[] = [];
+  readonly specs: AdaptiveRenderSpec[] = [];
 
   async render(spec: RenderSpec): Promise<RenderResult> {
     this.specs.push(spec);
@@ -135,7 +136,7 @@ class StubMemoryStore implements MemoryStore {
 /** 取 prompt 的 system 段. */
 function systemPromptOf(spec: RenderSpec): string {
   for (const message of buildVisitorMessages(spec)) {
-    if (message.role === 'system') return message.content;
+    if (message.role === 'system') return message.content as string;
   }
   return '';
 }

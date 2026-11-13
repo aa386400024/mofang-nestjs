@@ -332,7 +332,9 @@ describe('WP63 · 审议输出 Schema 与可解释性', () => {
         ],
         summary: '来访者仍保持戒备, 但语气比上一轮软了一点',
         confidence: 0.62,
-      };
+        // ⚠️ 生产契约现在是**四件套** (加了 intentionShift, WP68) —— 这里**故意**只造三件套,
+        //   断言的正是"输出契约形状"这个视角; 用类型断言保住运行时形状 (Object.keys 仍是 3 个).
+      } as unknown as DeliberationOutput;
 
       expect(Object.keys(output).sort()).toEqual(['confidence', 'deltas', 'summary']);
       expect(output.deltas[0]?.dimension).toBe('trust');
@@ -352,7 +354,7 @@ describe('WP63 · 审议输出 Schema 与可解释性', () => {
     });
 
     it('"没变化"= 空数组 (不是 delta=0 的条目)', () => {
-      const output: DeliberationOutput = { deltas: [], summary: '本轮没有显著变化', confidence: 0.4 };
+      const output: DeliberationOutput = { deltas: [], summary: '本轮没有显著变化', confidence: 0.4 } as unknown as DeliberationOutput;
 
       expect(output.deltas).toHaveLength(0);
     });

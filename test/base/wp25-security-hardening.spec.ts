@@ -19,7 +19,7 @@
 import { Logger } from '@nestjs/common';
 import type { NestMiddleware } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
-import type { NextFunction, Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AdminBasicAuthMiddleware } from '../../src/admin-debug/admin-basic-auth.middleware.js';

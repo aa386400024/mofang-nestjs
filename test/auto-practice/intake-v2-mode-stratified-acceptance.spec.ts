@@ -10,7 +10,6 @@
 //
 //   切片实测值取自 96 场批次 g3ONzlqSGMVJqkFMF9Lwh 的快照 (expert / cold 各 48 场).
 
-import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -25,6 +24,7 @@ import {
   INTAKE_EXPECTATIONS_COLD,
   INTAKE_TIERS,
   resolveIntakeTier,
+  type AcceptanceResult,
   type ZeroMotionBreakdown,
 } from '../../src/auto-practice/metrics/acceptance-thresholds.js';
 import { METRIC_BY_ID } from '../../src/auto-practice/metrics/metric-dictionary.js';
@@ -58,7 +58,7 @@ const COLD_METRICS = {
 const COLD_ZERO_MOTION: ZeroMotionBreakdown = { total: 31, closure: 0, idle: 31 };
 
 /** 取某条判据的结果 (找不到直接让用例炸, 避免静默漏判). */
-function resultOf(metricId: string, results: readonly { metricId: string; passed: boolean; actual: number | null }[]) {
+function resultOf(metricId: string, results: readonly AcceptanceResult[]): AcceptanceResult {
   const found = results.find((result) => result.metricId === metricId);
   if (!found) throw new Error(`判据 ${metricId} 不在结果里`);
   return found;

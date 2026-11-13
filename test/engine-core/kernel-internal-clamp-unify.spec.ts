@@ -36,9 +36,6 @@ import {
 
 const KERNEL_ROOT = path.join(__dirname, '..', '..', 'src', 'engine-core');
 
-/** 内核里**应该**只有这一处 clamp01 声明 (domain/emotion.ts 那份, 且它已进 barrel). */
-const ALLOWED_CLAMP01_DECLARATION = path.join('domain', 'emotion.ts');
-
 /** 递归列出内核树下所有 .ts 文件. */
 function collectTsFiles(dir: string): string[] {
   const out: string[] = [];

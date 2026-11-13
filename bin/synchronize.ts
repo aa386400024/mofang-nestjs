@@ -1,4 +1,3 @@
-/// <reference types="../typings/global" />
 import ormconfig from './ormconfig.js';
 
 /**

@@ -106,7 +106,10 @@ class StubCharacterResolver {
  * 角色内核基线 (只需结构对).
  */
 function makeCharacterProfile(): CharacterProfile {
-  return { coreBeliefs: [], attachmentStyle: 'avoidant', personalityTraits: { agreeableness: 0.4 } };
+  // ⚠️ 故意不填 forbiddenBehaviors / sensitiveTopics (内核契约里的**必填**字段) ——
+  //   这两个调试服务只读 attachmentStyle / personalityTraits;
+  //   用类型断言而不是补值: 补空数组会改变运行时行为 (零变化红线).
+  return { coreBeliefs: [], attachmentStyle: 'avoidant', personalityTraits: { agreeableness: 0.4 } } as unknown as CharacterProfile;
 }
 
 /**
@@ -300,7 +303,7 @@ describe('WP38 · 调试 trace 接引擎事件标签', () => {
       const created = await service.createSession(KNOWN_SLUG);
 
       const engine = (service as unknown as { engine: StubEngineTurnService }).engine;
-      engine.queue.push(makeTurnResult());
+      engine.queue.push(makeTurnResult(void 0));
 
       const { trace } = await service.runTurn(created.debugSessionId, '……');
 

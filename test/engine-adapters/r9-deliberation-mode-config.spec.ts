@@ -56,14 +56,14 @@ describe('R9 · 灰度切换配置 (适配层)', () => {
     expect(resolveDeliberationEffectiveMode('on')).toBe('shadow');
     expect(resolveDeliberationEffectiveMode('')).toBe('shadow');
     expect(resolveDeliberationEffectiveMode(' '.repeat(3))).toBe('shadow');
-    expect(resolveDeliberationEffectiveMode()).toBe('shadow');
+    expect(resolveDeliberationEffectiveMode(void 0)).toBe('shadow');
   });
 
   it('③ 白名单解析: 逗号分隔, 去空白, 丢空项; 空串 = 空集合 (= 全量)', () => {
     expect([...parseDeliberationGrayscaleSessions('a,b, c ')]).toEqual(['a', 'b', 'c']);
     expect([...parseDeliberationGrayscaleSessions('a,,b')]).toEqual(['a', 'b']);
     expect([...parseDeliberationGrayscaleSessions('')]).toEqual([]);
-    expect([...parseDeliberationGrayscaleSessions()]).toEqual([]);
+    expect([...parseDeliberationGrayscaleSessions(void 0)]).toEqual([]);
   });
 
   it('④ 总开关关着 → 模式一律降级 rule_only (一次 LLM 都不发)', () => {
@@ -176,7 +176,7 @@ describe('R9 · 灰度切换配置 (适配层)', () => {
   });
 
   it('⑦ 超时解析: 非法值 / 空 → 3000; 合法值取整', () => {
-    expect(resolveDeliberationEffectiveTimeoutMs()).toBe(3000);
+    expect(resolveDeliberationEffectiveTimeoutMs(void 0)).toBe(3000);
     expect(resolveDeliberationEffectiveTimeoutMs('')).toBe(3000);
     expect(resolveDeliberationEffectiveTimeoutMs('abc')).toBe(3000);
     expect(resolveDeliberationEffectiveTimeoutMs('0')).toBe(3000);

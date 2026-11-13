@@ -19,6 +19,7 @@
 //
 //   验证: npx vitest run test/engine-adapters/wp45-qdrant-sdk-contract.spec.ts
 //   时间戳: 2026-11-05 GMT+8
+import type { ConfigService } from '@nestjs/config';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { QdrantService } from '../../src/ai-engine/providers/qdrant.service.js';
@@ -54,7 +55,7 @@ function stubConfig(env: Record<string, string>): { get<T>(key: string): T | und
  * @returns 装好客户端的 service
  */
 async function buildService(captured: CapturedRequest[]): Promise<QdrantService> {
-  const service = new QdrantService(stubConfig({ QDRANT_URL: 'http://qdrant.test:6333' }));
+  const service = new QdrantService(stubConfig({ QDRANT_URL: 'http://qdrant.test:6333' }) as unknown as ConfigService);
   const { QdrantClient } = await import('@qdrant/js-client-rest');
   const client = new QdrantClient({ url: 'http://qdrant.test:6333' });
   // 反射写入私有字段 (TS 私有只是编译期约束, 运行时是普通属性).

@@ -106,9 +106,10 @@ class FakeCharacterProfileVersionRepo {
 /**
  * where 条件匹配 (等值).
  */
-function matchesWhere(row: Record<string, unknown>, where: Record<string, unknown>): boolean {
+function matchesWhere(row: object, where: Record<string, unknown>): boolean {
+  const values = row as Record<string, unknown>;
   for (const [key, expected] of Object.entries(where)) {
-    if (row[key] !== expected) return false;
+    if (values[key] !== expected) return false;
   }
   return true;
 }

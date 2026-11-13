@@ -323,23 +323,23 @@ describe('影子模式数据统计面板 · 后端接口', () => {
       await applyDeliberationStats(redis as unknown as RedisService, record);
 
       const hash = redis.ensureHash(buildDeliberationStatsKey());
-      expect(hash.total_turns).toBe('1');
-      expect(hash.success_turns).toBe('1');
-      expect(hash.failure_turns).toBeUndefined();
-      expect(hash.total_duration_ms).toBe('1200');
-      expect(hash.max_duration_ms).toBe('1200');
-      expect(hash.total_retry_count).toBe('2');
-      expect(hash.total_prompt_tokens).toBe('100');
-      expect(hash.total_completion_tokens).toBe('50');
-      expect(hash.stale_turns).toBe('1');
+      expect(hash['total_turns']).toBe('1');
+      expect(hash['success_turns']).toBe('1');
+      expect(hash['failure_turns']).toBeUndefined();
+      expect(hash['total_duration_ms']).toBe('1200');
+      expect(hash['max_duration_ms']).toBe('1200');
+      expect(hash['total_retry_count']).toBe('2');
+      expect(hash['total_prompt_tokens']).toBe('100');
+      expect(hash['total_completion_tokens']).toBe('50');
+      expect(hash['stale_turns']).toBe('1');
       // deltaDiff 绝对值之和 = 0.25 + 0.5 + 0.125 = 0.875 (逐维取绝对值后**求和**)
-      expect(hash.sum_delta_diff_abs).toBe('0.875');
-      expect(hash.max_delta_diff_abs).toBe('0.5');
-      expect(hash.cap_trust).toBe('1');
-      expect(hash.clinical_alliance_positive_spike).toBe('1');
-      expect(hash.flagged_turns).toBe('1');
+      expect(hash['sum_delta_diff_abs']).toBe('0.875');
+      expect(hash['max_delta_diff_abs']).toBe('0.5');
+      expect(hash['cap_trust']).toBe('1');
+      expect(hash['clinical_alliance_positive_spike']).toBe('1');
+      expect(hash['flagged_turns']).toBe('1');
       // 延迟桶: 1200ms 落在 [1000, 1500) → 第 7 个桶 (上界 1500)
-      expect(hash.latency_b7).toBe('1');
+      expect(hash['latency_b7']).toBe('1');
     });
 
     it('失败轮次: total_turns / failure_turns 累加, 其它语义字段不累加', async () => {
@@ -359,24 +359,24 @@ describe('影子模式数据统计面板 · 后端接口', () => {
       await applyDeliberationStats(redis as unknown as RedisService, record);
 
       const hash = redis.ensureHash(buildDeliberationStatsKey());
-      expect(hash.total_turns).toBe('1');
-      expect(hash.failure_turns).toBe('1');
-      expect(hash.success_turns).toBeUndefined();
+      expect(hash['total_turns']).toBe('1');
+      expect(hash['failure_turns']).toBe('1');
+      expect(hash['success_turns']).toBeUndefined();
       // ⚠️ 失败轮次**也有**耗时 / 重试 —— 一并累加 (平均值的分母是总轮次).
       //   (任务单 §4.3 的失败清单漏了这两项, 照抄会让分子分母对不上.)
-      expect(hash.total_duration_ms).toBe('120');
-      expect(hash.total_retry_count).toBe('1');
+      expect(hash['total_duration_ms']).toBe('120');
+      expect(hash['total_retry_count']).toBe('1');
       // 失败轮次没有 deltaDiff / 砍幅 / 临床标记 / 过期的语义 —— 一个都不记
-      expect(hash.sum_delta_diff_abs).toBeUndefined();
-      expect(hash.max_delta_diff_abs).toBeUndefined();
-      expect(hash.stale_turns).toBeUndefined();
-      expect(hash.flagged_turns).toBeUndefined();
-      expect(hash.cap_trust).toBeUndefined();
-      expect(hash.clinical_alliance_positive_spike).toBeUndefined();
+      expect(hash['sum_delta_diff_abs']).toBeUndefined();
+      expect(hash['max_delta_diff_abs']).toBeUndefined();
+      expect(hash['stale_turns']).toBeUndefined();
+      expect(hash['flagged_turns']).toBeUndefined();
+      expect(hash['cap_trust']).toBeUndefined();
+      expect(hash['clinical_alliance_positive_spike']).toBeUndefined();
       // 失败原因分布 (答 "失败的主要原因是什么")
-      expect(hash.error_json_parse_failed).toBe('1');
+      expect(hash['error_json_parse_failed']).toBe('1');
       // 延迟桶: 120ms 落在 [100, 200) → 第 2 个桶 (上界 200)
-      expect(hash.latency_b2).toBe('1');
+      expect(hash['latency_b2']).toBe('1');
     });
 
     it('取大字段: 后一轮的更小值不会覆盖前一轮的最大值', async () => {
@@ -385,7 +385,7 @@ describe('影子模式数据统计面板 · 后端接口', () => {
       await applyDeliberationStats(redis as unknown as RedisService, buildRecord({ durationMs: 1200 }));
       await applyDeliberationStats(redis as unknown as RedisService, buildRecord({ durationMs: 100 }));
 
-      expect(redis.ensureHash(buildDeliberationStatsKey()).max_duration_ms).toBe('1200');
+      expect(redis.ensureHash(buildDeliberationStatsKey())['max_duration_ms']).toBe('1200');
     });
 
     it('Lua 参数编排: 一次脚本调用带齐全部计数器与取大字段', async () => {
@@ -412,19 +412,19 @@ describe('影子模式数据统计面板 · 后端接口', () => {
       const { ttl, counters, maxima } = parseArgs(call.args);
       expect(ttl).toBe(DELIBERATION_STATS_DAILY_TTL_SECONDS);
       expect(Object.keys(counters)).toHaveLength(12);
-      expect(counters.total_turns).toBe(1);
-      expect(counters.success_turns).toBe(1);
-      expect(counters.total_duration_ms).toBe(1200);
-      expect(counters.total_retry_count).toBe(2);
-      expect(counters.stale_turns).toBe(1);
-      expect(counters.sum_delta_diff_abs).toBe(0.875);
-      expect(counters.cap_trust).toBe(1);
-      expect(counters.clinical_alliance_positive_spike).toBe(1);
-      expect(counters.flagged_turns).toBe(1);
+      expect(counters['total_turns']).toBe(1);
+      expect(counters['success_turns']).toBe(1);
+      expect(counters['total_duration_ms']).toBe(1200);
+      expect(counters['total_retry_count']).toBe(2);
+      expect(counters['stale_turns']).toBe(1);
+      expect(counters['sum_delta_diff_abs']).toBe(0.875);
+      expect(counters['cap_trust']).toBe(1);
+      expect(counters['clinical_alliance_positive_spike']).toBe(1);
+      expect(counters['flagged_turns']).toBe(1);
       // 取大字段**不进**计数器表 (两者在脚本里走的是两段不同的循环)
-      expect(counters.max_duration_ms).toBeUndefined();
-      expect(maxima.max_duration_ms).toBe(1200);
-      expect(maxima.max_delta_diff_abs).toBe(0.5);
+      expect(counters['max_duration_ms']).toBeUndefined();
+      expect(maxima['max_duration_ms']).toBe(1200);
+      expect(maxima['max_delta_diff_abs']).toBe(0.5);
     });
 
     it('脚本形状与假实现同源 (改了 Lua 的 ARGV 布局, 这条会红)', () => {
@@ -472,8 +472,8 @@ describe('影子模式数据统计面板 · 后端接口', () => {
       const second = buildDeliberationStatsDeltas(record);
 
       expect(first).toEqual(second);
-      expect(first.counters.total_turns).toBe(1);
-      expect(first.maxima.max_duration_ms).toBe(1200);
+      expect(first.counters['total_turns']).toBe(1);
+      expect(first.maxima['max_duration_ms']).toBe(1200);
     });
   });
 
@@ -490,11 +490,11 @@ describe('影子模式数据统计面板 · 后端接口', () => {
       //   (写入侧与断言侧必须同源, 否则跨零点就分家)
       const dailyKey = `${buildDeliberationStatsKey()}:${resolveDeliberationStatsDay(record.timestamp)}`;
       const dailyHash = redis.ensureHash(dailyKey);
-      expect(dailyHash.total_turns).toBe('1');
-      expect(dailyHash.success_turns).toBe('1');
-      expect(dailyHash.total_duration_ms).toBe('300');
-      expect(dailyHash.max_duration_ms).toBe('300');
-      expect(globalHash.total_turns).toBe('1');
+      expect(dailyHash['total_turns']).toBe('1');
+      expect(dailyHash['success_turns']).toBe('1');
+      expect(dailyHash['total_duration_ms']).toBe('300');
+      expect(dailyHash['max_duration_ms']).toBe('300');
+      expect(globalHash['total_turns']).toBe('1');
     });
 
     it('日 key 的 TTL = 90 天 (保留期)', async () => {
@@ -527,13 +527,13 @@ describe('影子模式数据统计面板 · 后端接口', () => {
       await applyDeliberationStats(redis as unknown as RedisService, record);
 
       const dailyKey = 'deliberation_stats:global:2026-11-08';
-      expect(redis.ensureHash(dailyKey).total_turns).toBe('1');
+      expect(redis.ensureHash(dailyKey)['total_turns']).toBe('1');
       expect(redis.hashes.get('deliberation_stats:global:2026-11-07')).toBeUndefined();
     });
 
     it('坏时间戳不炸统计 (落进当前这一天)', () => {
       expect(resolveDeliberationStatsDay('not-a-date')).toBe(todayKey());
-      expect(resolveDeliberationStatsDay()).toBe(todayKey());
+      expect(resolveDeliberationStatsDay(void 0)).toBe(todayKey());
     });
   });
 
@@ -707,16 +707,16 @@ describe('影子模式数据统计面板 · 后端接口', () => {
         },
       ]);
 
-      expect(merged.total_turns).toBe('7');
-      expect(merged.success_turns).toBe('6');
-      expect(merged.total_duration_ms).toBe('1600');
+      expect(merged['total_turns']).toBe('7');
+      expect(merged['success_turns']).toBe('6');
+      expect(merged['total_duration_ms']).toBe('1600');
       // ⚠️ 取大字段**取最大值**, 不是求和 (求和 = "最慢的那轮" + "别的轮次", 语义就错了)
-      expect(merged.max_duration_ms).toBe('300');
+      expect(merged['max_duration_ms']).toBe('300');
       // 延迟桶逐桶累加
-      expect(merged.latency_b2).toBe('3');
-      expect(merged.latency_b7).toBe('2');
+      expect(merged['latency_b2']).toBe('3');
+      expect(merged['latency_b7']).toBe('2');
       // 分布按 key 累加
-      expect(merged.error_http_429).toBe('3');
+      expect(merged['error_http_429']).toBe('3');
     });
 
     it('多日聚合后比率仍然自洽 (分母口径不变)', () => {
@@ -737,7 +737,7 @@ describe('影子模式数据统计面板 · 后端接口', () => {
     it('浮点求和不留小数尾巴 (与单日直接累加一致)', () => {
       const merged = aggregateDeliberationStatsHashes([{ sum_delta_diff_abs: '0.1' }, { sum_delta_diff_abs: '0.2' }]);
 
-      expect(merged.sum_delta_diff_abs).toBe('0.3');
+      expect(merged['sum_delta_diff_abs']).toBe('0.3');
     });
 
     it('最近 N 天的日期键: 含今天, 升序, 上海日界', () => {
@@ -812,7 +812,7 @@ describe('影子模式数据统计面板 · 后端接口', () => {
       const yesterday = buildDeliberationStatsDateKeys(2, now)[0];
       // 断言前提: 两天不是同一天 (否则上面那个覆盖问题会复活)
       expect(yesterday).not.toBe(recordDay);
-      redis.ensureHash(`deliberation_stats:global:${yesterday}`).total_turns = '5';
+      redis.ensureHash(`deliberation_stats:global:${yesterday}`)['total_turns'] = '5';
 
       const response = await controller.deliberationStats('7');
 
@@ -827,7 +827,7 @@ describe('影子模式数据统计面板 · 后端接口', () => {
       const redis = new FakeRedis();
       const controller = buildController(redis);
       // 只写全局 key (模拟"日 key 之前的历史数据"), 窗口查询看不到它
-      redis.ensureHash(buildDeliberationStatsKey()).total_turns = '999';
+      redis.ensureHash(buildDeliberationStatsKey())['total_turns'] = '999';
 
       const response = await controller.deliberationStats('7');
 
@@ -839,7 +839,7 @@ describe('影子模式数据统计面板 · 后端接口', () => {
       const redis = new FakeRedis();
       const controller = buildController(redis);
       const today = todayKey();
-      redis.ensureHash(`deliberation_stats:global:${today}`).total_turns = '2';
+      redis.ensureHash(`deliberation_stats:global:${today}`)['total_turns'] = '2';
 
       const response = await controller.deliberationStats(undefined, today, today);
 
@@ -916,10 +916,10 @@ describe('影子模式数据统计面板 · 后端接口', () => {
       await service.recordCircuitOpen(buildInput());
 
       expect(set).toHaveBeenCalledTimes(1);
-      expect(redis.ensureHash(buildDeliberationStatsKey()).total_turns).toBe('1');
-      expect(redis.ensureHash(buildDeliberationStatsKey()).failure_turns).toBe('1');
+      expect(redis.ensureHash(buildDeliberationStatsKey())['total_turns']).toBe('1');
+      expect(redis.ensureHash(buildDeliberationStatsKey())['failure_turns']).toBe('1');
       expect(redis.ensureHash(buildDeliberationStatsKey())['error_' + DELIBERATION_CIRCUIT_OPEN_ERROR_CODE]).toBe('1');
-      expect(redis.ensureHash(`${buildDeliberationStatsKey()}:${todayKey()}`).total_turns).toBe('1');
+      expect(redis.ensureHash(`${buildDeliberationStatsKey()}:${todayKey()}`)['total_turns']).toBe('1');
     });
 
     it('统计写失败不炸审议 (影子模式: 观察面挂了, 会话照跑)', async () => {
