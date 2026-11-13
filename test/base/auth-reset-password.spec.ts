@@ -27,6 +27,7 @@ import { Test } from '@nestjs/testing';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import supertest from 'supertest';
+import { vi } from 'vitest';
 
 import { AuthService } from '../../src/auth/auth.service.js';
 import { LoginCodeService } from '../../src/auth/login-code.service.js';
@@ -37,101 +38,24 @@ import { hashPassword, verifyPassword } from '../../src/shared/infra/security/pa
 import { AuditEvent } from '../../src/user/entities/audit-log.entity.js';
 import { User } from '../../src/user/entities/user.entity.js';
 import { UserService } from '../../src/user/providers/user.service.js';
+import { buildUserEntityStub, buildUserServiceStub } from '../helpers/user-stub.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
+// TD-10 · T-2: 真实 bullmq 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('bullmq', async () => {
+  const { createBullmqStub } = await import('../helpers/sdk-stubs.js');
+  return createBullmqStub();
+});
 
 const EMAIL = 'student@example.com';
 const CODE = '123456';
 const NEW_PASSWORD = 'NewPass123';
 const WEAK_PASSWORD = '123';
-
-/** 审计条目 (只取关心的字段). */
-interface AuditEntry {
-  userId: string | null;
-  event: AuditEvent;
-  metadata?: Record<string, unknown>;
-}
-
-/** 假的 user 表. */
-function buildUser(overrides: Partial<User> = {}): User {
-  const user = new User();
-  user.uid = '11111111-1111-1111-1111-111111111111';
-  user.email = EMAIL;
-  user.phone = null;
-  user.passwordHash = '';
-  user.state = 'active' as User['state'];
-  user.emailVerifiedAt = new Date();
-  user.phoneVerifiedAt = null;
-  user.lastLoginAt = null;
-  user.passwordChangedAt = null;
-  user.mustChangePassword = false;
-  user.failedLoginCount = 0;
-  user.lockedUntil = null;
-  user.deletedAt = null;
-  user.tenantId = '11111111-1111-1111-1111-111111111111';
-  return Object.assign(user, overrides);
-}
-
-/** 装配一个被测的 V2 UserService (依赖全 stub). */
-function buildService(options: { row?: User | null } = {}): {
-  readonly service: UserService;
-  readonly row: User | null;
-  readonly audits: AuditEntry[];
-  readonly revokedByUid: string[];
-  readonly blacklisted: () => number;
-  readonly reuseChecks: string[];
-  readonly historyWrites: { uid: string; hash: string }[];
-} {
-  const row = options.row === undefined ? buildUser() : options.row;
-  const audits: AuditEntry[] = [];
-  const revokedByUid: string[] = [];
-  const reuseChecks: string[] = [];
-  const historyWrites: { uid: string; hash: string }[] = [];
-  let blacklisted = 0;
-
-  const userRepo = {
-    findOne: async (): Promise<User | null> => row,
-    save: async (user: User): Promise<User> => user,
-    create: (partial: Partial<User>): User => Object.assign(new User(), partial),
-  };
-  const sessionService = {
-    revokeAllByUserId: async (uid: string): Promise<{ jti: string; expiresAtMs: number }[]> => {
-      revokedByUid.push(uid);
-      return [{ jti: 'jti-1', expiresAtMs: 1_800_000_000_000 }];
-    },
-  };
-  const blacklist = {
-    revokeMany: async (): Promise<void> => {
-      blacklisted += 1;
-    },
-  };
-  const auditLog = {
-    log: async (entry: AuditEntry): Promise<void> => {
-      audits.push(entry);
-    },
-  };
-  const passwordHistory = {
-    assertNotReused: async (uid: string): Promise<void> => {
-      reuseChecks.push(uid);
-    },
-    isMinAgeViolation: (): boolean => false,
-    recordOldPassword: async (uid: string, hash: string): Promise<void> => {
-      historyWrites.push({ uid, hash });
-    },
-  };
-
-  const service = new UserService(
-    userRepo as never,
-    { sign: () => 'token' } as never,
-    { get: () => 'secret' } as never,
-    sessionService as never,
-    auditLog as never,
-    blacklist as never,
-    passwordHistory as never,
-    { sendVerification: async () => {} } as never,
-    { incAuthLogin: () => {}, incAuthPasswordReset: () => {} } as never,
-    { get: async () => null } as never,
-  );
-  return { service, row, audits, revokedByUid, blacklisted: () => blacklisted, reuseChecks, historyWrites };
-}
 
 describe('忘记密码重置 · POST /auth/reset-password', () => {
   describe('① HTTP 层 (真路由 + 真校验管 + 真解密拦截器)', () => {
@@ -160,7 +84,7 @@ describe('忘记密码重置 · POST /auth/reset-password', () => {
               resetPasswordByEmail: async (email: string, password: string): Promise<User | null> => {
                 if (userMissing) return null;
                 calls.push({ email, password });
-                return buildUser();
+                return buildUserEntityStub();
               },
             },
           },
@@ -303,7 +227,7 @@ describe('忘记密码重置 · POST /auth/reset-password', () => {
 
   describe('③ Service 层: 改密 + 撤销所有 session + 审计', () => {
     it('① 密码已更新 (新密码能验过), passwordChangedAt 刷新, mustChangePassword=false', async () => {
-      const { service, row } = buildService({ row: buildUser({ passwordHash: await hashPassword('OldPass123') }) });
+      const { service, row } = buildUserServiceStub({ row: buildUserEntityStub({ passwordHash: await hashPassword('OldPass123') }) });
 
       const user = await service.resetPasswordByEmail(EMAIL, NEW_PASSWORD);
 
@@ -314,7 +238,7 @@ describe('忘记密码重置 · POST /auth/reset-password', () => {
     });
 
     it('⑤ 撤销该用户**所有** session + blacklist (旧登录态全部失效)', async () => {
-      const { service, revokedByUid, blacklisted } = buildService();
+      const { service, revokedByUid, blacklisted } = buildUserServiceStub();
 
       await service.resetPasswordByEmail(EMAIL, NEW_PASSWORD);
 
@@ -324,7 +248,7 @@ describe('忘记密码重置 · POST /auth/reset-password', () => {
     });
 
     it('记审计 user_password_reset_completed + 指标 (跟邮件 token 流程同款)', async () => {
-      const { service, audits } = buildService();
+      const { service, audits } = buildUserServiceStub();
 
       await service.resetPasswordByEmail(EMAIL, NEW_PASSWORD);
 
@@ -334,7 +258,7 @@ describe('忘记密码重置 · POST /auth/reset-password', () => {
     });
 
     it('③ 邮箱不存在 → 返 null (**不抛错**, 防枚举由调用方统一文案)', async () => {
-      const { service, audits, revokedByUid } = buildService({ row: null });
+      const { service, audits, revokedByUid } = buildUserServiceStub({ row: null });
 
       const user = await service.resetPasswordByEmail('nobody@example.com', NEW_PASSWORD);
 
@@ -344,7 +268,7 @@ describe('忘记密码重置 · POST /auth/reset-password', () => {
     });
 
     it('密码复用检查被调用 (跟邮件 token 流程同款: 最近 5 次不许复用)', async () => {
-      const { service, reuseChecks } = buildService();
+      const { service, reuseChecks } = buildUserServiceStub();
 
       await service.resetPasswordByEmail(EMAIL, NEW_PASSWORD);
 
@@ -352,7 +276,7 @@ describe('忘记密码重置 · POST /auth/reset-password', () => {
     });
 
     it('旧密码进历史 (防立即复用)', async () => {
-      const { service, row, historyWrites } = buildService();
+      const { service, row, historyWrites } = buildUserServiceStub();
 
       await service.resetPasswordByEmail(EMAIL, NEW_PASSWORD);
 

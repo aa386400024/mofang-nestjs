@@ -16,7 +16,7 @@
 //
 //   时间戳: 2026-11-06
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { BizCode } from '../../src/common/exceptions/biz-code.enum.js';
 import { BizException } from '../../src/common/exceptions/biz.exception.js';
@@ -38,6 +38,18 @@ import { CharacterUsageRegistry } from '../../src/voice/character-usage-slot.js'
 import { CharacterVersionRegistry } from '../../src/voice/character-version-slot.js';
 import { VoiceSessionBridgeRegistry } from '../../src/voice/voice-session-bridge.js';
 import type { VoiceSessionOpenInput } from '../../src/voice/voice-session-bridge.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
+// TD-10 · T-2: 真实 bullmq 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('bullmq', async () => {
+  const { createBullmqStub } = await import('../helpers/sdk-stubs.js');
+  return createBullmqStub();
+});
 
 const TEMPLATE_ID = 'vpt_test_role_l1';
 

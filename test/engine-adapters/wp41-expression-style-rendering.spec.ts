@@ -19,7 +19,7 @@
 //   验证: npx vitest run test/engine-adapters/wp41-expression-style-rendering.spec.ts
 //   时间戳: 2026-11-04 GMT+8
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { buildCharacterProfileRow } from './character-profile-fixtures.js';
 import type { AdaptiveRenderSpec } from '../../src/engine-adapters/rendering/render-risk.js';
@@ -29,6 +29,12 @@ import { buildCharacterProfile } from '../../src/engine-adapters/wiring/characte
 import type { CharacterProfileEntity } from '../../src/engine-adapters/wiring/character/character-profile.entity.js';
 import { toCharacterSeed } from '../../src/engine-adapters/wiring/character/db-character-profile.resolver.js';
 import { createEmptyBdiSnapshot, type EngineTurnOutput, type RenderTokenBudget } from '../../src/engine-core/index.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 const BUDGET: RenderTokenBudget = { maxCompletionTokens: 160, contextTokens: 512 };
 

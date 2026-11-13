@@ -18,6 +18,7 @@
 //   验证: npx jest test/engine-adapters/wp8b-turn-stream.spec.ts
 //   时间戳: 2026-10-29 GMT+8
 
+import { vi } from 'vitest';
 import type { StreamRenderOutcome, StreamingRenderPort } from '../../src/engine-adapters/rendering/streaming-render.port.js';
 import { TurnRenderOrchestrator, type TurnSessionContext } from '../../src/engine-adapters/rendering/turn-render-orchestrator.js';
 import {
@@ -34,6 +35,12 @@ import {
   type RenderResult,
   type RenderSpec,
 } from '../../src/engine-core/index.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 const HANDLE_ID = 'handle-1';
 const TENANT = 'tenant-1';

@@ -12,7 +12,7 @@
 
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { AutoPracticeController } from '../../src/auto-practice/auto-practice.controller.js';
 import { computeConfigFingerprint } from '../../src/auto-practice/config-fingerprint.js';
@@ -29,6 +29,18 @@ import {
 } from '../../src/auto-practice/metrics/acceptance-thresholds.js';
 import { METRIC_BY_ID } from '../../src/auto-practice/metrics/metric-dictionary.js';
 import { computePromptVersion, resolveFingerprintSource } from '../../src/auto-practice/prompt-fingerprint.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
+// TD-10 · T-2: 真实 bullmq 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('bullmq', async () => {
+  const { createBullmqStub } = await import('../helpers/sdk-stubs.js');
+  return createBullmqStub();
+});
 
 /** expert 切片实测指标 (96 场批次 · 48 场 / 561 轮). */
 const EXPERT_METRICS = {

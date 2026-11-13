@@ -42,6 +42,12 @@ import { resolveDeltaCapConfig } from '../../src/engine-adapters/wiring/delta-ca
 import { DEFAULT_DELTA_CAP_CONFIG, type BdiStateRepository, type DeltaVector } from '../../src/engine-core/index.js';
 import type { RedisService } from '../../src/shared/infra/redis/redis.service.js';
 
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
 const TENANT = 'tenant-1';
 const SESSION = 'session-1';
 const USER = 'user-1';

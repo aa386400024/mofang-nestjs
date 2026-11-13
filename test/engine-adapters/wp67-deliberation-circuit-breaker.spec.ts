@@ -52,6 +52,12 @@ import { QUEUE_NAMES } from '../../src/shared/infra/redis/redis.constants.js';
 import type { RedisService } from '../../src/shared/infra/redis/redis.service.js';
 import { resetTestDoubles } from '../helpers/index.js';
 
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
 // ── bullmq 替身 (Queue / Worker) ────────────────────────────────────────────
 const bull = vi.hoisted(() => ({
   add: vi.fn(async (): Promise<{ id: string }> => ({ id: 'job-1' })),

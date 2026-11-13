@@ -16,6 +16,12 @@ import type { EngineTurnResult, TurnEnginePort } from '../../src/auto-practice/p
 import { PracticeRunnerService } from '../../src/auto-practice/practice-runner.service.js';
 import { DEFAULT_SESSION_COST_PRICING } from '../../src/engine-adapters/observability/session-cost.js';
 
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
 /** 造一个 CounselorMode 替身. */
 function makeMode(): CounselorMode {
   const m = new CounselorMode();

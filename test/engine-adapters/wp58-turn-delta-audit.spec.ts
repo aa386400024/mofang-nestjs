@@ -37,6 +37,36 @@ import { TurnDeltaAuditModule } from '../../src/engine-adapters/wiring/turn-delt
 import { TURN_DELTA_AUDIT } from '../../src/engine-adapters/wiring/turn-delta-audit/turn-delta-audit.port.js';
 import { TurnDeltaAuditService } from '../../src/engine-adapters/wiring/turn-delta-audit/turn-delta-audit.service.js';
 
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
+// TD-10 · T-2: 真实 bullmq 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('bullmq', async () => {
+  const { createBullmqStub } = await import('../helpers/sdk-stubs.js');
+  return createBullmqStub();
+});
+
+// TD-10 · T-2: 真实 @qdrant/js-client-rest 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('@qdrant/js-client-rest', async () => {
+  const { createQdrantStub } = await import('../helpers/sdk-stubs.js');
+  return createQdrantStub();
+});
+
+// TD-10 · T-2: 真实 @langchain/openai 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('@langchain/openai', async () => {
+  const { createLangchainOpenAiStub } = await import('../helpers/sdk-stubs.js');
+  return createLangchainOpenAiStub();
+});
+
+// TD-10 · T-2: 真实 @langchain/core/messages 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('@langchain/core/messages', async () => {
+  const { createLangchainMessagesStub } = await import('../helpers/sdk-stubs.js');
+  return createLangchainMessagesStub();
+});
+
 /** 仓库根目录. */
 const REPO_ROOT = path.join(__dirname, '../..');
 

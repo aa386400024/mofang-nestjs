@@ -35,7 +35,7 @@ import {
   type ProjectedTurn,
   type RawTranscript,
 } from '../../scripts/ops/quality/d1-event-classifier-evidence.lexicon.js';
-import { RuleBasedClassifier } from '../../src/engine-core/index.js';
+import { RuleBasedClassifier } from '../../src/engine-core/cognition/rule-based-classifier.js';
 
 /** 构造一条投影行 (统计用例用, 不依赖真实语料). */
 function turn(overrides: Partial<ProjectedTurn> & { readonly turnIndex: number }): ProjectedTurn {

@@ -20,7 +20,7 @@
 import { ConfigService } from '@nestjs/config';
 
 import { resolvePersonalityModulatorConfig } from '../../src/engine-adapters/wiring/personality-modulator.config.js';
-import { DEFAULT_PERSONALITY_MODULATOR_CONFIG } from '../../src/engine-core/index.js';
+import { DEFAULT_PERSONALITY_MODULATOR_CONFIG } from '../../src/engine-core/cognition/personality-modulator.js';
 
 /**
  * 造一个 ConfigService 桩 (只实现 get).

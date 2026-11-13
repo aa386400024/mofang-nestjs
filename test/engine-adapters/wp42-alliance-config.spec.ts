@@ -16,7 +16,7 @@
 import { ConfigService } from '@nestjs/config';
 
 import { resolveAllianceConfig } from '../../src/engine-adapters/wiring/alliance-config.js';
-import { DEFAULT_ALLIANCE_CONFIG } from '../../src/engine-core/index.js';
+import { DEFAULT_ALLIANCE_CONFIG } from '../../src/engine-core/cognition/alliance-config.js';
 
 /**
  * 造一个 ConfigService 桩 (只实现 get).

@@ -77,6 +77,12 @@ import {
 import { RedisService } from '../../src/shared/infra/redis/redis.service.js';
 import { resetTestDoubles } from '../helpers/index.js';
 
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
 // ── bullmq 替身 (Queue / Worker) ────────────────────────────────────────────
 //   vi.hoisted: 工厂函数会被 vitest 提升到 import 之前, 所以共享状态必须先 hoisted.
 const bull = vi.hoisted(() => ({

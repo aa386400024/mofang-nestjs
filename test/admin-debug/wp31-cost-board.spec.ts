@@ -17,6 +17,7 @@
 import { RequestMethod } from '@nestjs/common';
 import { GUARDS_METADATA, METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { FindOperator } from 'typeorm';
+import { vi } from 'vitest';
 
 import { AdminDebugController } from '../../src/admin-debug/admin-debug.controller.js';
 import { aggregateSessionCost, buildCostTrend } from '../../src/admin-debug/cost-view.js';
@@ -24,6 +25,12 @@ import { AdminRoleGuard } from '../../src/admin-debug/guards/admin-role.guard.js
 import type { TurnTrace } from '../../src/admin-debug/trace-recorder.service.js';
 import { DEFAULT_SESSION_COST_PRICING } from '../../src/engine-adapters/observability/session-cost.js';
 import { shanghaiDateKey, shanghaiDayStartUtc } from '../../src/shared/time/shanghai-date.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 /** 冻结的"现在": 2026-11-05 12:00Z = 上海 2026-11-05 20:00. */
 const NOW = new Date('2026-11-05T12:00:00.000Z');

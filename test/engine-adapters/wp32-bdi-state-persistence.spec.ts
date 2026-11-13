@@ -13,7 +13,7 @@
 //
 //   边界: 不起 Nest 容器 / 不触网 / 不连真 Redis; 全部走窄面替身.
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   BDI_STATE_CAS_SCRIPT,
@@ -23,9 +23,16 @@ import {
 } from '../../src/engine-adapters/persistence/redis-bdi-state.repository.js';
 import { resolveBdiStateStoreConfig } from '../../src/engine-adapters/wiring/bdi-state-store.config.js';
 import { createBdiStateRepository, createEngineSessionPort } from '../../src/engine-adapters/wiring/engine.providers.js';
+import { createEmptyBdiSnapshot } from '../../src/engine-core/domain/bdi-snapshot.js';
+import { EngineCoreError, EngineErrorCode } from '../../src/engine-core/domain/engine-errors.js';
 import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository.js';
 import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
-import { EngineCoreError, EngineErrorCode, createEmptyBdiSnapshot } from '../../src/engine-core/index.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 const TENANT = 'tenant-1';
 const SESSION = 'session-1';

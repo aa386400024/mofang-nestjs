@@ -17,6 +17,7 @@
 import { type ExecutionContext, RequestMethod } from '@nestjs/common';
 import { GUARDS_METADATA, METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { vi } from 'vitest';
 
 import { AdminBasicAuthMiddleware } from '../../src/admin-debug/admin-basic-auth.middleware.js';
 import { AdminDebugController } from '../../src/admin-debug/admin-debug.controller.js';
@@ -27,6 +28,24 @@ import { GateTraceModule } from '../../src/admin-debug/gate-trace.module.js';
 import { AdminRoleGuard } from '../../src/admin-debug/guards/admin-role.guard.js';
 import { BizCode } from '../../src/common/exceptions/biz-code.enum.js';
 import { User } from '../../src/user/entities/user.entity.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
+// TD-10 · T-2: 真实 bullmq 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('bullmq', async () => {
+  const { createBullmqStub } = await import('../helpers/sdk-stubs.js');
+  return createBullmqStub();
+});
+
+// TD-10 · T-2: 真实 @qdrant/js-client-rest 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('@qdrant/js-client-rest', async () => {
+  const { createQdrantStub } = await import('../helpers/sdk-stubs.js');
+  return createQdrantStub();
+});
 
 const STUDENT_ID = 'student-a';
 

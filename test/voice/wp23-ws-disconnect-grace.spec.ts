@@ -18,6 +18,7 @@
 //   时间戳: 2026-11-03 GMT+8
 
 import type { ConfigService } from '@nestjs/config';
+import { vi } from 'vitest';
 
 import type { LlmStream, LlmStreamChunk } from '../../src/agent/llm/llm.types.js';
 import type { VisitorService } from '../../src/agent/visitor/visitor.service.js';
@@ -26,6 +27,18 @@ import { parseVoiceHandshake } from '../../src/voice/voice-handshake.js';
 import type { VoiceCatchUpResult } from '../../src/voice/voice-turn-backend.port.js';
 import { VoiceService } from '../../src/voice/voice.service.js';
 import type { VoiceCatchUpTurn, VoiceSessionMeta, VoiceServerMessage } from '../../src/voice/voice.types.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
+// TD-10 · T-2: 真实 bullmq 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('bullmq', async () => {
+  const { createBullmqStub } = await import('../helpers/sdk-stubs.js');
+  return createBullmqStub();
+});
 
 const SESSION_ID = 'session-1';
 const USER_ID = 'user-1';

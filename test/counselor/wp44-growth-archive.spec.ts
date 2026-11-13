@@ -19,6 +19,7 @@
 import { RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import type { Repository } from 'typeorm';
+import { vi } from 'vitest';
 
 import type { SupervisionReportRow } from '../../src/agent/supervisor/supervisor.types.js';
 import { SESSION_ABILITY_MAPPING } from '../../src/counselor/config/session-ability-mapping.js';
@@ -28,6 +29,12 @@ import { SessionEvaluation } from '../../src/counselor/entities/session-evaluati
 import { AbilityAggregateService } from '../../src/counselor/providers/ability-aggregate.service.js';
 import { GrowthArchiveService } from '../../src/counselor/providers/growth-archive.service.js';
 import { SessionAbilitySyncService } from '../../src/counselor/providers/session-ability-sync.service.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 const USER_ID = 'user-1';
 

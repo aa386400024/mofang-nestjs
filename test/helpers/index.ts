@@ -3,3 +3,4 @@
 //   只放**纯函数 / 无状态工具** (不装夹具、不硬编码业务阈值、不做 module 装配).
 export * from './git-probe.js';
 export * from './isolation.js';
+export * from './sdk-stubs.js';

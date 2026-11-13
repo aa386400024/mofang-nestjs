@@ -26,6 +26,18 @@ import type { RenderSpec, RenderTaskKind } from '../../src/engine-core/index.js'
 import type { ChatCompletionResponse } from '../../src/llm/common/interfaces/chat-provider.interface.js';
 import type { LlmRouterService } from '../../src/llm/registry/llm-router.service.js';
 
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
+// TD-10 · T-2: 真实 bullmq 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('bullmq', async () => {
+  const { createBullmqStub } = await import('../helpers/sdk-stubs.js');
+  return createBullmqStub();
+});
+
 /** 假时钟: 手动推进, 不等真实时间. */
 class FakeClock {
   constructor(private current: number) {}

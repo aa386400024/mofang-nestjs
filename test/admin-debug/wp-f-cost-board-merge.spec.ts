@@ -11,6 +11,7 @@
 //   时间戳: 2026-11-09 GMT+8
 
 import { FindOperator } from 'typeorm';
+import { vi } from 'vitest';
 
 import { AdminDebugController } from '../../src/admin-debug/admin-debug.controller.js';
 import { AutoPracticeCostSource } from '../../src/admin-debug/cost-source.auto-practice.js';
@@ -18,6 +19,12 @@ import { FormalCostSource } from '../../src/admin-debug/cost-source.formal.js';
 import { buildMergedCostTrend, buildMergedSessionList, type CostSourceSession } from '../../src/admin-debug/cost-view.js';
 import type { TurnTrace } from '../../src/admin-debug/trace-recorder.service.js';
 import { DEFAULT_SESSION_COST_PRICING } from '../../src/engine-adapters/observability/session-cost.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 /** 冻结的"现在": 2026-11-09 12:00Z = 上海 2026-11-09 20:00. */
 const NOW = new Date('2026-11-09T12:00:00.000Z');

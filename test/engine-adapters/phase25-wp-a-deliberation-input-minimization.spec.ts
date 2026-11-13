@@ -43,9 +43,15 @@ import {
   type DeliberationShadowInput,
   type DeliberationTraceRecord,
 } from '../../src/engine-adapters/deliberation/llm-deliberation.service.js';
-import { createEmptyBdiSnapshot } from '../../src/engine-core/index.js';
+import { createEmptyBdiSnapshot } from '../../src/engine-core/domain/bdi-snapshot.js';
 import type { BdiSnapshot, BdiStateRepository, SafetyVerdict } from '../../src/engine-core/index.js';
 import type { RedisService } from '../../src/shared/infra/redis/redis.service.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 const TENANT = 'tenant-1';
 const SESSION = 'session-1';

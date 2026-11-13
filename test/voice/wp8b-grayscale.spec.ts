@@ -20,6 +20,7 @@
 //   时间戳: 2026-10-29 GMT+8
 
 import type { ConfigService } from '@nestjs/config';
+import { vi } from 'vitest';
 
 import type { LlmStream, LlmStreamChunk } from '../../src/agent/llm/llm.types.js';
 import type { VisitorService } from '../../src/agent/visitor/visitor.service.js';
@@ -27,6 +28,18 @@ import type { TtsEventStream, TtsSessionHandle } from '../../src/voice/tts/tts.t
 import type { VoiceTurnBackend, VoiceTurnBackendTurnOptions } from '../../src/voice/voice-turn-backend.port.js';
 import { VoiceService } from '../../src/voice/voice.service.js';
 import type { VoiceSessionMeta, VoiceServerMessage } from '../../src/voice/voice.types.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
+// TD-10 · T-2: 真实 bullmq 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('bullmq', async () => {
+  const { createBullmqStub } = await import('../helpers/sdk-stubs.js');
+  return createBullmqStub();
+});
 
 /** 会话元数据 (text 模式: 不碰 TTS). */
 const META: VoiceSessionMeta = {
@@ -411,7 +424,7 @@ describe('WP8-B · voice 灰度接入 (开关关 / 开关开 / 失败回落)', (
       expect(visitor.turnCalls.length).toBeGreaterThanOrEqual(1);
       expect(frameTypes(frames)).not.toContain('error');
       // 两轮都正常收尾 → 状态没卡在 processing.
-      expect(frameTypes(frames).filter((type) => type === 'llm_done').length).toBe(2);
+      expect(frameTypes(frames).filter((type) => type === 'llm_done')).toHaveLength(2);
     });
   });
 

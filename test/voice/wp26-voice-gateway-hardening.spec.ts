@@ -16,6 +16,7 @@ import type { JwtService } from '@nestjs/jwt';
 import { createServer } from 'node:http';
 import type { Socket } from 'socket.io';
 import { Server as SocketIoServer } from 'socket.io';
+import { vi } from 'vitest';
 import { WebSocket as WsClient } from 'ws';
 
 import { toUtf8Text } from '../../src/shared/infra/string-utils/index.js';
@@ -24,6 +25,18 @@ import { VoiceSessionRegistry } from '../../src/voice/voice-session-registry.js'
 import { selectVoiceSubprotocol, VoiceGateway, VoiceSubprotocolWsServer } from '../../src/voice/voice.gateway.js';
 import type { VoiceReconnectOutcome } from '../../src/voice/voice.service.js';
 import type { VoiceServerMessage } from '../../src/voice/voice.types.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
+// TD-10 · T-2: 真实 bullmq 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('bullmq', async () => {
+  const { createBullmqStub } = await import('../helpers/sdk-stubs.js');
+  return createBullmqStub();
+});
 
 const SESSION_ID = 'session-1';
 const USER_ID = 'user-1';

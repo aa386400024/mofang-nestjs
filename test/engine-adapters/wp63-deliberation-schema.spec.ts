@@ -10,7 +10,7 @@
 //
 //   边界: 不起 Nest 容器 / 不触网 / 不调 LLM; 全部是纯函数断言.
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { buildTestStructuredInput } from './deliberation-fixtures.js';
 import {
@@ -32,6 +32,12 @@ import {
   type DeliberationOperatorTag,
 } from '../../src/engine-adapters/deliberation/deliberation-types.js';
 import type { CounselorEventKind, DeltaVector } from '../../src/engine-core/index.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 /**
  * 内核 `DeltaVector` 的键 (运行时基线).

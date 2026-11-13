@@ -25,6 +25,18 @@ import { PracticeSession } from '../../src/auto-practice/entities/practice-sessi
 import type { EngineTurnResult } from '../../src/auto-practice/ports/turn-engine.port.js';
 import { PracticeRunnerService } from '../../src/auto-practice/practice-runner.service.js';
 
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
+// TD-10 · T-2: 真实 bullmq 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('bullmq', async () => {
+  const { createBullmqStub } = await import('../helpers/sdk-stubs.js');
+  return createBullmqStub();
+});
+
 /**
  * 咨询师 generate 的真实签名 (显式标注给 vi.fn, 让 mockImplementation 的回调类型
  * 与线上一致 —— 否则 mock 会被当成"返回 void 的回调", 触发 no-misused-promises).

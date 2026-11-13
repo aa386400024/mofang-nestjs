@@ -81,6 +81,12 @@ import { AIProviderId, LLMTier } from '../../src/llm/common/enums/llm.enums.js';
 import type { ChatCompletionRequest, ChatCompletionResponse } from '../../src/llm/common/interfaces/chat-provider.interface.js';
 import type { LlmRouterService } from '../../src/llm/registry/llm-router.service.js';
 
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
 const HANDLE_ID = 'handle-1';
 const TENANT = 'tenant-1';
 const VISITOR = 'visitor-1';

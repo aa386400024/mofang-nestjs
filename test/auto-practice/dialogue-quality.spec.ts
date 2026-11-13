@@ -21,7 +21,7 @@
 //
 //   验证: npx vitest run test/auto-practice/dialogue-quality.spec.ts
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   crisisLevelOf,
@@ -31,6 +31,12 @@ import {
   NO_PROGRESS_SIMILARITY_THRESHOLD,
   probeStagnation,
 } from '../../src/auto-practice/practice-runner.service.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 describe('isLiteralRepeat · 字面复读 (A-①, 参与终止)', () => {
   it('完全相同 → 复读', () => {

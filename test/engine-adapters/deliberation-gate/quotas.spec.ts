@@ -20,8 +20,14 @@ import {
 import { DeliberationGateService } from '../../../src/engine-adapters/deliberation-gate/deliberation-gate.service.js';
 import { DeliberationGateTrace, buildGateTraceKey } from '../../../src/engine-adapters/deliberation-gate/deliberation-gate.trace.js';
 import type { GateInput } from '../../../src/engine-adapters/deliberation-gate/deliberation-gate.types.js';
-import { createEmptyBdiSnapshot } from '../../../src/engine-core/index.js';
+import { createEmptyBdiSnapshot } from '../../../src/engine-core/domain/bdi-snapshot.js';
 import type { RedisService } from '../../../src/shared/infra/redis/redis.service.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 const SESSION = 'session-1';
 

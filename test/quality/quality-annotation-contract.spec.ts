@@ -17,7 +17,7 @@ import { RequestMethod } from '@nestjs/common';
 import { GUARDS_METADATA, METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { buildQualityAnnotationRow } from './quality-annotation-fixtures.js';
 import { AdminRoleGuard } from '../../src/admin-debug/guards/admin-role.guard.js';
@@ -27,6 +27,18 @@ import { QualityAnnotationEntity } from '../../src/quality/quality-annotation.en
 import { QualityAnnotationModule } from '../../src/quality/quality-annotation.module.js';
 import { QualityAnnotationService } from '../../src/quality/quality-annotation.service.js';
 import { User } from '../../src/user/entities/user.entity.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
+// TD-10 · T-2: 真实 bullmq 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('bullmq', async () => {
+  const { createBullmqStub } = await import('../helpers/sdk-stubs.js');
+  return createBullmqStub();
+});
 
 /**
  * 收集控制器上的路由 + 每个路由的**有效** guard 集合 (class 级 + method 级).

@@ -41,6 +41,7 @@ import { Test } from '@nestjs/testing';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import supertest from 'supertest';
+import { vi } from 'vitest';
 
 import { BizCode } from '../../src/common/exceptions/biz-code.enum.js';
 import { BizException } from '../../src/common/exceptions/biz.exception.js';
@@ -51,101 +52,29 @@ import { UserController } from '../../src/user/controllers/user.controller.js';
 import { ChangePasswordDto } from '../../src/user/dto/change-password.dto.js';
 import { SetLoggedInPasswordDto } from '../../src/user/dto/set-password.dto.js';
 import { AuditEvent } from '../../src/user/entities/audit-log.entity.js';
-import { User } from '../../src/user/entities/user.entity.js';
 import { JwtAuthGuard } from '../../src/user/guards/jwt-auth.guard.js';
 import { JwtBlacklistService } from '../../src/user/providers/jwt-blacklist.service.js';
 import { PasswordResetService } from '../../src/user/providers/password-reset.service.js';
 import { SessionService } from '../../src/user/providers/session.service.js';
 import { UserService } from '../../src/user/providers/user.service.js';
 import { TokenType } from '../../src/user/user.constant.js';
+import { buildUserEntityStub, buildUserServiceStub } from '../helpers/user-stub.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
+// TD-10 · T-2: 真实 bullmq 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('bullmq', async () => {
+  const { createBullmqStub } = await import('../helpers/sdk-stubs.js');
+  return createBullmqStub();
+});
 
 const UID = 'uid-1';
-const DB_UID = '11111111-1111-1111-1111-111111111111';
 const STRONG_PASSWORD = 'NewPass123';
 const WEAK_PASSWORD = '123';
-
-/** 审计条目 (只取关心的字段). */
-interface AuditEntry {
-  userId: string | null;
-  event: AuditEvent;
-  ipAddress?: string | null;
-  userAgent?: string | null;
-}
-
-/** 假的 user 表. */
-function buildUser(overrides: Partial<User> = {}): User {
-  const user = new User();
-  user.uid = DB_UID;
-  user.email = 'student@example.com';
-  user.phone = null;
-  user.passwordHash = '';
-  user.state = 'active' as User['state'];
-  user.emailVerifiedAt = new Date();
-  user.phoneVerifiedAt = null;
-  user.lastLoginAt = null;
-  user.passwordChangedAt = null;
-  user.mustChangePassword = true;
-  user.failedLoginCount = 0;
-  user.lockedUntil = null;
-  user.deletedAt = null;
-  user.tenantId = DB_UID;
-  return Object.assign(user, overrides);
-}
-
-/** 装配一个被测的 UserService (依赖全 stub). */
-function buildService(options: { row?: User | null } = {}): {
-  readonly service: UserService;
-  readonly row: User | null;
-  readonly audits: AuditEntry[];
-  readonly revokedByUid: string[];
-  readonly blacklisted: () => number;
-} {
-  const row = options.row === undefined ? buildUser() : options.row;
-  const audits: AuditEntry[] = [];
-  const revokedByUid: string[] = [];
-  let blacklisted = 0;
-
-  const userRepo = {
-    findOne: async (): Promise<User | null> => row,
-    save: async (user: User): Promise<User> => user,
-    create: (partial: Partial<User>): User => Object.assign(new User(), partial),
-  };
-  const sessionService = {
-    revokeAllByUserId: async (uid: string): Promise<never[]> => {
-      revokedByUid.push(uid);
-      return [];
-    },
-  };
-  const blacklist = {
-    revokeMany: async (): Promise<void> => {
-      blacklisted += 1;
-    },
-  };
-  const auditLog = {
-    log: async (entry: AuditEntry): Promise<void> => {
-      audits.push(entry);
-    },
-  };
-  const passwordHistory = {
-    assertNotReused: async (): Promise<void> => {},
-    isMinAgeViolation: (): boolean => false,
-    recordOldPassword: async (): Promise<void> => {},
-  };
-
-  const service = new UserService(
-    userRepo as never,
-    { sign: () => 'token' } as unknown as JwtService,
-    { get: () => 'secret' } as unknown as ConfigService,
-    sessionService as never,
-    auditLog as never,
-    blacklist as never,
-    passwordHistory as never,
-    { sendVerification: async () => {} } as never,
-    { incAuthLogin: () => {} } as never,
-    { get: async () => null } as never,
-  );
-  return { service, row, audits, revokedByUid, blacklisted: () => blacklisted };
-}
 
 /** 假 ExecutionContext (只提供 switchToHttp().getRequest). */
 function fakeExecutionContext(request: unknown): ExecutionContext {
@@ -304,7 +233,7 @@ describe('已登录态首次设置密码 · POST /user/set-password', () => {
 
   describe('④ Service 层: 复用 setInitialPassword (反查 + 写入 + 审计)', () => {
     it('① 从没设过密码 → 写入 hash, passwordChangedAt 非空, mustChangePassword=false', async () => {
-      const { service, row } = buildService();
+      const { service, row } = buildUserServiceStub();
 
       await service.setLoggedInPassword(UID, STRONG_PASSWORD);
 
@@ -315,7 +244,10 @@ describe('已登录态首次设置密码 · POST /user/set-password', () => {
     });
 
     it('③ 已设过密码 → BizException(InvalidParameter, "用户已有密码, 请用改密流程")', async () => {
-      const { service } = buildService({ row: buildUser({ passwordHash: await hashPassword('OldPass123') }) });
+      const { service } = buildUserServiceStub({
+        mustChangePassword: true,
+        row: buildUserEntityStub({ passwordHash: await hashPassword('OldPass123') }),
+      });
 
       await expect(service.setLoggedInPassword(UID, STRONG_PASSWORD)).rejects.toBeInstanceOf(BizException);
       await expect(service.setLoggedInPassword(UID, STRONG_PASSWORD)).rejects.toMatchObject({
@@ -325,7 +257,7 @@ describe('已登录态首次设置密码 · POST /user/set-password', () => {
     });
 
     it('用户不存在 → UserNotFound', async () => {
-      const { service } = buildService({ row: null });
+      const { service } = buildUserServiceStub({ row: null });
 
       await expect(service.setLoggedInPassword(UID, STRONG_PASSWORD)).rejects.toMatchObject({
         code: BizCode.UserNotFound,
@@ -333,7 +265,7 @@ describe('已登录态首次设置密码 · POST /user/set-password', () => {
     });
 
     it('审计: 记 user_password_first_set (与改密的 user_password_changed 分开)', async () => {
-      const { service, audits } = buildService();
+      const { service, audits } = buildUserServiceStub();
 
       await service.setLoggedInPassword(UID, STRONG_PASSWORD, { ipAddress: 'client-ip', userAgent: 'jest-agent' });
 
@@ -347,7 +279,10 @@ describe('已登录态首次设置密码 · POST /user/set-password', () => {
     });
 
     it('失败时**不写**审计 (已设过密码 → 只报错)', async () => {
-      const { service, audits } = buildService({ row: buildUser({ passwordHash: await hashPassword('OldPass123') }) });
+      const { service, audits } = buildUserServiceStub({
+        mustChangePassword: true,
+        row: buildUserEntityStub({ passwordHash: await hashPassword('OldPass123') }),
+      });
 
       await expect(service.setLoggedInPassword(UID, STRONG_PASSWORD)).rejects.toBeInstanceOf(BizException);
 
@@ -355,7 +290,7 @@ describe('已登录态首次设置密码 · POST /user/set-password', () => {
     });
 
     it('⑥ 不撤销 session (用户是刚登录进来主动设密码的, 撤销会把自己踢下线)', async () => {
-      const { service, revokedByUid, blacklisted } = buildService();
+      const { service, revokedByUid, blacklisted } = buildUserServiceStub();
 
       await service.setLoggedInPassword(UID, STRONG_PASSWORD);
 
@@ -366,7 +301,10 @@ describe('已登录态首次设置密码 · POST /user/set-password', () => {
 
   describe('②④ change-password 现有行为不变 (零回归)', () => {
     it('旧密码错 → InvalidCredentials "旧密码错误"', async () => {
-      const { service } = buildService({ row: buildUser({ passwordHash: await hashPassword('OldPass123') }) });
+      const { service } = buildUserServiceStub({
+        mustChangePassword: true,
+        row: buildUserEntityStub({ passwordHash: await hashPassword('OldPass123') }),
+      });
 
       await expect(service.changePassword(UID, 'WrongPass123', STRONG_PASSWORD)).rejects.toMatchObject({
         code: BizCode.InvalidCredentials,
@@ -375,7 +313,7 @@ describe('已登录态首次设置密码 · POST /user/set-password', () => {
     });
 
     it('旧密码对 → 改密成功 + 撤销所有 session + 审计 user_password_changed', async () => {
-      const { service, row, audits, revokedByUid } = buildService();
+      const { service, row, audits, revokedByUid } = buildUserServiceStub();
       // 先设一次密码, 拿到真 hash (走真实 argon2).
       await service.setLoggedInPassword(UID, STRONG_PASSWORD);
       audits.length = 0;

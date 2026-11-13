@@ -32,6 +32,12 @@ import {
 import type { RedisService } from '../../src/shared/infra/redis/redis.service.js';
 import { shanghaiDateKey } from '../../src/shared/time/shanghai-date.js';
 
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
 const SESSION = 'voice-session-1';
 const DB_SESSION = 'b7f0f0a2-1111-4444-8888-abcdefabcdef';
 

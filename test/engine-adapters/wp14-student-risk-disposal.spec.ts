@@ -17,6 +17,7 @@
 //   验证: npx vitest run test/engine-adapters/wp14-student-risk-disposal.spec.ts
 //   时间戳: 2026-11-02
 
+import { vi } from 'vitest';
 import { runWithProbeSource } from '../../src/engine-adapters/rendering/probe-source.js';
 import {
   buildCrisisModalFrame,
@@ -49,6 +50,12 @@ import {
   type RenderSpec,
   type SafetyVerdict,
 } from '../../src/engine-core/index.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 const HANDLE_ID = 'handle-1';
 const CLOCK = 1_700_000_000_000;
@@ -238,7 +245,7 @@ describe('WP14 · 学员心理风险处置层', () => {
     it('snippet 截 200 字 (不存完整原文)', () => {
       const long = '学'.repeat(500);
       const snippet = truncateRiskSnippet(long);
-      expect(snippet.length).toBe(200);
+      expect(snippet).toHaveLength(200);
       expect(truncateRiskSnippet('  你好  ')).toBe('你好');
     });
 

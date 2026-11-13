@@ -19,6 +19,7 @@
 //   时间戳: 2026-10-29 GMT+8
 
 import type { ConfigService } from '@nestjs/config';
+import { vi } from 'vitest';
 
 import type { VisitorService } from '../../src/agent/visitor/visitor.service.js';
 import {
@@ -37,6 +38,18 @@ import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-m
 import type { BdiSnapshot, OpenEngineSessionInput } from '../../src/engine-core/index.js';
 import { VoiceService } from '../../src/voice/voice.service.js';
 import type { VoiceSessionMeta } from '../../src/voice/voice.types.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
+// TD-10 · T-2: 真实 bullmq 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('bullmq', async () => {
+  const { createBullmqStub } = await import('../helpers/sdk-stubs.js');
+  return createBullmqStub();
+});
 
 const TENANT = 'tenant-1';
 const VISITOR = 'visitor-1';

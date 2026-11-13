@@ -34,6 +34,12 @@ import type { TurnRenderResult } from '../../src/engine-adapters/rendering/turn-
 import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service.js';
 import { createEngineStreamBackend } from '../../src/engine-adapters/wiring/engine.providers.js';
 
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
 /**
  * 引擎门面 stub: open / close / turnStream 三件套.
  *

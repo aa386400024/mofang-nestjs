@@ -12,7 +12,7 @@
 //   时间戳: 2026-10-29 GMT+8
 
 import { LocalCrisisProbe, detectCrisisCategories } from '../../src/engine-adapters/wiring/risk/local-crisis.probe.js';
-import { assessSafety } from '../../src/engine-core/index.js';
+import { assessSafety } from '../../src/engine-core/cognition/safety/assess-safety.js';
 
 describe('WP9-C · 本地危机探测器 (内核 RiskProbePort 扩展点)', () => {
   const probe = new LocalCrisisProbe();

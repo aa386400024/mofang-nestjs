@@ -17,6 +17,7 @@
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { vi } from 'vitest';
 
 import {
   DebugSessionStore,
@@ -35,6 +36,12 @@ import { BizCode } from '../../src/common/exceptions/biz-code.enum.js';
 import type { TurnRenderResult } from '../../src/engine-adapters/rendering/turn-render-orchestrator.js';
 import type { ResolvedCharacter } from '../../src/engine-adapters/wiring/character/character-profile.resolver.js';
 import { createEmptyBdiSnapshot, type BdiSnapshot } from '../../src/engine-core/index.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 /** 已知角色代号 (解析器只认它). */
 const KNOWN_SLUG = 'vpt_intimate_avoidance_l1';
@@ -379,7 +386,7 @@ describe('V2026-11-05 · 调试会话持久化', () => {
       }
 
       const files = await readdir(dir);
-      expect(files.filter((name) => name.endsWith('.json')).length).toBe(MAX_DEBUG_SESSIONS);
+      expect(files.filter((name) => name.endsWith('.json'))).toHaveLength(MAX_DEBUG_SESSIONS);
       // 最旧的三个 (000 / 001 / 002) 没了, 最新的还在.
       expect(files).not.toContain('debug_000.json');
       expect(files).not.toContain('debug_001.json');
@@ -408,7 +415,7 @@ describe('V2026-11-05 · 调试会话持久化', () => {
       expect(parseDebugSessionTitle('标题：初始访谈')).toBe('初始访谈');
       expect(parseDebugSessionTitle('第一行\n第二行解释')).toBe('第一行');
       expect(parseDebugSessionTitle('```\n悲伤回避型\n```')).toBe('悲伤回避型');
-      expect(parseDebugSessionTitle('x'.repeat(80)).length).toBe(MAX_DEBUG_SESSION_TITLE_LENGTH);
+      expect(parseDebugSessionTitle('x'.repeat(80))).toHaveLength(MAX_DEBUG_SESSION_TITLE_LENGTH);
       // 模型没给出可用内容 → 空串 (**不编一个**).
       expect(parseDebugSessionTitle(' '.repeat(3))).toBe('');
     });
@@ -478,7 +485,7 @@ describe('V2026-11-05 · 调试会话持久化', () => {
       }
       await waitFor(async () => (await store.get(created.sessionId))?.titleSource === 'llm');
 
-      expect(titleGenerator.calls.length).toBe(1);
+      expect(titleGenerator.calls).toHaveLength(1);
       const record = await store.get(created.sessionId);
       expect(record?.title).toBe('悲伤回避型来访者 - 初始访谈');
       expect(record?.titleSource).toBe('llm');
@@ -494,7 +501,7 @@ describe('V2026-11-05 · 调试会话持久化', () => {
       }
       await settleAsync();
 
-      expect(titleGenerator.calls.length).toBe(0);
+      expect(titleGenerator.calls).toHaveLength(0);
       expect((await store.get(created.sessionId))?.titleSource).toBe('fallback');
     });
 
@@ -519,7 +526,7 @@ describe('V2026-11-05 · 调试会话持久化', () => {
       engine.queue.push(makeTurnResult(4));
       await service.runTurn(created.sessionId, '第 4 句');
       expect((await store.get(created.sessionId))?.turnCount).toBe(4);
-      expect(titleGenerator.calls.length).toBe(1);
+      expect(titleGenerator.calls).toHaveLength(1);
     });
 
     it('人工改过的标题 → 自动命名**盖不掉**', async () => {
@@ -533,7 +540,7 @@ describe('V2026-11-05 · 调试会话持久化', () => {
       }
       await settleAsync();
 
-      expect(titleGenerator.calls.length).toBe(0);
+      expect(titleGenerator.calls).toHaveLength(0);
       expect((await store.get(created.sessionId))?.title).toBe('我改的标题');
     });
 

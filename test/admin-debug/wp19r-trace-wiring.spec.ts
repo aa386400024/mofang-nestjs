@@ -18,12 +18,19 @@
 //   时间戳: 2026-10-30 GMT+8
 
 import { FindOperator } from 'typeorm';
+import { vi } from 'vitest';
 import { AdminBasicAuthMiddleware } from '../../src/admin-debug/admin-basic-auth.middleware.js';
 import { AdminDebugController } from '../../src/admin-debug/admin-debug.controller.js';
 import { TraceRecorder, resolveTraceEnabled, type TurnTrace } from '../../src/admin-debug/trace-recorder.service.js';
 import { BizCode } from '../../src/common/exceptions/biz-code.enum.js';
 import type { TurnRenderResult } from '../../src/engine-adapters/rendering/turn-render-orchestrator.js';
 import { EngineStreamBackend } from '../../src/engine-adapters/wiring/engine-stream-backend.adapter.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 const SESSION_ID = 'session-1';
 const DB_SESSION_ID = 'db-session-1';

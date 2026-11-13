@@ -9,11 +9,17 @@
 //
 //   验证: npx vitest run test/engine-adapters/wp-g-render-prompt.spec.ts
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { AdaptiveRenderSpec } from '../../src/engine-adapters/rendering/render-risk.js';
 import { buildVisitorMessages } from '../../src/engine-adapters/rendering/turn-render-orchestrator.js';
 import type { RenderTokenBudget } from '../../src/engine-core/index.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 const BUDGET: RenderTokenBudget = { maxCompletionTokens: 160, contextTokens: 512 };
 

@@ -12,6 +12,7 @@
 //   验证: npx vitest run test/engine-core/wp42-alliance-three-dimensions.spec.ts
 //   时间戳: 2026-11-03 GMT+8
 
+import { DEFAULT_ALLIANCE_CONFIG } from '../../src/engine-core/cognition/alliance-config.js';
 import { planIntention } from '../../src/engine-core/cognition/intention-planner.js';
 import {
   aggregateTurnDelta,
@@ -26,7 +27,6 @@ import type { SessionEvent } from '../../src/engine-core/domain/events/session-e
 import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository.js';
 import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session.js';
 import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
-import { DEFAULT_ALLIANCE_CONFIG } from '../../src/engine-core/index.js';
 
 /** 一条"咨询师表达共情"事件. */
 const EMPATHY: SessionEvent = { kind: 'empathy', matchedTerms: ['我能理解你'], strength: 1 };

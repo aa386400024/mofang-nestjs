@@ -13,6 +13,7 @@
 //   验证: npx jest test/engine-adapters/wp9c-render-safety.spec.ts
 //   时间戳: 2026-10-29 GMT+8
 
+import { vi } from 'vitest';
 import { LlmRenderAdapter, escalateReasoningEffort, type ChatCaller } from '../../src/engine-adapters/rendering/llm-render.adapter.js';
 import { createRenderAdapterConfig, type RenderCandidate } from '../../src/engine-adapters/rendering/render-adapter.config.js';
 import { resolveRiskLevel, type AdaptiveRenderSpec } from '../../src/engine-adapters/rendering/render-risk.js';
@@ -23,6 +24,12 @@ import type {
   ChatCompletionRequest,
   ChatCompletionResponse,
 } from '../../src/llm/common/interfaces/chat-provider.interface.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 /** 兜底话术 (与测试配置一致). */
 const FALLBACK_UTTERANCE = '我先缓一下，我们接着说。';

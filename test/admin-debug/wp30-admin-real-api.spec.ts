@@ -17,12 +17,19 @@
 import { RequestMethod } from '@nestjs/common';
 import { GUARDS_METADATA, METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { FindOperator } from 'typeorm';
+import { vi } from 'vitest';
 
 import { AdminDebugController } from '../../src/admin-debug/admin-debug.controller.js';
 import { AdminRoleGuard } from '../../src/admin-debug/guards/admin-role.guard.js';
 import type { TurnTrace } from '../../src/admin-debug/trace-recorder.service.js';
 import { buildAdminTrajectoryState } from '../../src/admin-debug/trajectory-view.js';
 import { BizCode } from '../../src/common/exceptions/biz-code.enum.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 const USER_ID = 'admin-user';
 const SLUG = 'vpt_intimate_avoidance_l1';

@@ -11,7 +11,7 @@
 //   验证: npx vitest run test/engine-adapters/deliberation-gate/
 
 import type { ConfigService } from '@nestjs/config';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { DELIBERATION_RULE_ALIGNED_TAGS } from '../../../src/engine-adapters/deliberation/deliberation-types.js';
 import {
@@ -39,8 +39,14 @@ import {
   isRuleConfidentEvent,
 } from '../../../src/engine-adapters/deliberation-gate/deliberation-gate.evaluator.js';
 import type { GateInput, GateMode, GateRuntimeState } from '../../../src/engine-adapters/deliberation-gate/deliberation-gate.types.js';
-import { createEmptyBdiSnapshot } from '../../../src/engine-core/index.js';
+import { createEmptyBdiSnapshot } from '../../../src/engine-core/domain/bdi-snapshot.js';
 import type { BdiSnapshot } from '../../../src/engine-core/index.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 /** 假配置服务 (只认 env 表). */
 function fakeConfig(values: Record<string, string>): ConfigService {

@@ -19,6 +19,7 @@
 //   验证: npx vitest run test/engine-adapters/r9-deliberation-mode-config.spec.ts
 
 import type { ConfigService } from '@nestjs/config';
+import { vi } from 'vitest';
 
 import {
   DELIBERATION_EFFECTIVE_MODES,
@@ -30,6 +31,12 @@ import {
   resolveDeliberationModeConfig,
   resolveSessionEffectiveMode,
 } from '../../src/engine-adapters/deliberation/deliberation-mode.config.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 /** 假 ConfigService: 只按 map 回值 (只读, 不碰 process.env). */
 function fakeConfig(values: Record<string, string>): ConfigService {

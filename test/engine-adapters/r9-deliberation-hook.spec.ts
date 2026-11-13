@@ -18,6 +18,7 @@
 //
 //   验证: npx vitest run test/engine-adapters/r9-deliberation-hook.spec.ts
 
+import { vi } from 'vitest';
 import { buildTestStructuredInput } from './deliberation-fixtures.js';
 import type { DeliberationModeConfig } from '../../src/engine-adapters/deliberation/deliberation-mode.config.js';
 import type { DeliberationDeltaEntry } from '../../src/engine-adapters/deliberation/deliberation-types.js';
@@ -29,6 +30,12 @@ import {
 } from '../../src/engine-adapters/deliberation/llm-deliberation-hook.js';
 import { dropClinicalFlaggedDimensions } from '../../src/engine-adapters/deliberation/llm-deliberation.service.js';
 import { createEmptyBdiSnapshot, type DeliberationHookContext, type DeltaVector } from '../../src/engine-core/index.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 const TENANT = 'tenant-r9';
 const SESSION = 'session-r9';

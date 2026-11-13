@@ -20,6 +20,12 @@ import { NO_SESSION_ALLIANCE_THRESHOLD_OVERRIDE } from '../../src/engine-adapter
 import { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service.js';
 import type { EngineSessionPort } from '../../src/engine-core/index.js';
 
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
 const TENANT = 'tenant-i12';
 const VISITOR = 'visitor-i12';
 

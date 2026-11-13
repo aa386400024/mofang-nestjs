@@ -2,11 +2,23 @@
 //   守住"后端常量是唯一真相源": catalog 端点下发的字典 / 判据 / 版本号与常量逐条一致,
 //   判据引用的指标 id 都在字典内. 纯静态校验, 不起 Nest, 不连 DB.
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { AutoPracticeController } from '../../src/auto-practice/auto-practice.controller.js';
 import { INTAKE_EXPECTATIONS, INTAKE_ACCEPTANCE_VERSION } from '../../src/auto-practice/metrics/acceptance-thresholds.js';
 import { METRIC_DICTIONARY, METRIC_BY_ID, METRIC_DICTIONARY_VERSION } from '../../src/auto-practice/metrics/metric-dictionary.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
+// TD-10 · T-2: 真实 bullmq 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('bullmq', async () => {
+  const { createBullmqStub } = await import('../helpers/sdk-stubs.js');
+  return createBullmqStub();
+});
 
 describe('WP-K · metrics/catalog 投影一致性', () => {
   const catalog = AutoPracticeController.buildMetricCatalog();

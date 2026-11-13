@@ -22,7 +22,7 @@
 //     5. **ioredis 的 keyPrefix 对 EVAL 的 key 也生效** —— 写入与读取命中同一个 key
 //        (这条是读写两侧口径一致的前提; 读侧走 HGETALL, 写侧走 EVAL)
 
-import { Redis } from 'ioredis';
+import type { Redis } from 'ioredis';
 import { randomUUID } from 'node:crypto';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -46,9 +46,12 @@ function buildArgs(): (string | number)[] {
 
 describe.skipIf(!TEST_REDIS_URL)('审议统计 · Lua 脚本 · 真 Redis 集成验证', () => {
   let redis: Redis;
+  /** ioredis 客户端类 (动态加载: 没设 TEST_REDIS_URL 时整份跳过, ioredis 不该进 import 阶段). */
+  let RedisClient: typeof import('ioredis').Redis;
 
   beforeAll(async () => {
-    redis = new Redis(TEST_REDIS_URL!, { maxRetriesPerRequest: 3 });
+    ({ Redis: RedisClient } = await import('ioredis'));
+    redis = new RedisClient(TEST_REDIS_URL!, { maxRetriesPerRequest: 3 });
     await redis.ping();
   });
 
@@ -117,8 +120,8 @@ describe.skipIf(!TEST_REDIS_URL)('审议统计 · Lua 脚本 · 真 Redis 集成
 
   it('ioredis 的 keyPrefix 对 EVAL 的 key 也生效 (写入与读取命中同一个 key)', async () => {
     const prefix = `${RUN_ID}:prefixed:`;
-    const prefixed = new Redis(TEST_REDIS_URL!, { keyPrefix: prefix, maxRetriesPerRequest: 3 });
-    const raw = new Redis(TEST_REDIS_URL!, { maxRetriesPerRequest: 3 });
+    const prefixed = new RedisClient(TEST_REDIS_URL!, { keyPrefix: prefix, maxRetriesPerRequest: 3 });
+    const raw = new RedisClient(TEST_REDIS_URL!, { maxRetriesPerRequest: 3 });
     try {
       const logicalGlobal = 'deliberation_stats:global';
       const logicalDaily = 'deliberation_stats:global:2026-11-08';

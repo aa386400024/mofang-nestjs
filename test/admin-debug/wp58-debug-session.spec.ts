@@ -54,6 +54,36 @@ import {
 } from '../../src/engine-core/index.js';
 import { UserModule } from '../../src/user/index.js';
 
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
+// TD-10 · T-2: 真实 bullmq 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('bullmq', async () => {
+  const { createBullmqStub } = await import('../helpers/sdk-stubs.js');
+  return createBullmqStub();
+});
+
+// TD-10 · T-2: 真实 @qdrant/js-client-rest 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('@qdrant/js-client-rest', async () => {
+  const { createQdrantStub } = await import('../helpers/sdk-stubs.js');
+  return createQdrantStub();
+});
+
+// TD-10 · T-2: 真实 @langchain/openai 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('@langchain/openai', async () => {
+  const { createLangchainOpenAiStub } = await import('../helpers/sdk-stubs.js');
+  return createLangchainOpenAiStub();
+});
+
+// TD-10 · T-2: 真实 @langchain/core/messages 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('@langchain/core/messages', async () => {
+  const { createLangchainMessagesStub } = await import('../helpers/sdk-stubs.js');
+  return createLangchainMessagesStub();
+});
+
 /** 已知角色代号 (解析器只认它). */
 const KNOWN_SLUG = 'vpt_intimate_avoidance_l1';
 

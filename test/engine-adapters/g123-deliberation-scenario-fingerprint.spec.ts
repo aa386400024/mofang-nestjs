@@ -38,6 +38,12 @@ import type { TurnSessionContext } from '../../src/engine-adapters/rendering/tur
 import { EngineSessionRegistry } from '../../src/engine-adapters/wiring/engine-turn.service.js';
 import { createEmptyBdiSnapshot, type DeliberationHookContext, type DeltaVector } from '../../src/engine-core/index.js';
 
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
 /** 假 ConfigService: 只按 map 回值 (只读, 不碰 process.env). */
 function fakeConfig(values: Record<string, string>): ConfigService {
   return {

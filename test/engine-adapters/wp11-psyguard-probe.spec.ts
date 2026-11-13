@@ -14,6 +14,7 @@
 //   验证: npx jest test/engine-adapters/wp11-psyguard-probe.spec.ts
 //   时间戳: 2026-10-30 GMT+8
 
+import { vi } from 'vitest';
 import type { ChatCaller } from '../../src/engine-adapters/rendering/llm-render.adapter.js';
 import {
   DEFAULT_RENDER_COOLDOWN_BASE_MS,
@@ -33,9 +34,16 @@ import {
 } from '../../src/engine-adapters/wiring/risk/http-psyguard.probe.js';
 import { LocalCrisisProbe, detectCrisisCategories, normalizeWidth } from '../../src/engine-adapters/wiring/risk/local-crisis.probe.js';
 import { PsyGuardHealthChecker } from '../../src/engine-adapters/wiring/risk/psyguard-health.checker.js';
-import { assessSafety, DEFAULT_PROBE_TIMEOUT_MS, PSYGUARD_LEVEL_MAP } from '../../src/engine-core/index.js';
+import { assessSafety, DEFAULT_PROBE_TIMEOUT_MS } from '../../src/engine-core/cognition/safety/assess-safety.js';
+import { PSYGUARD_LEVEL_MAP } from '../../src/engine-core/domain/safety/safety-types.js';
 import type { RiskProbePort } from '../../src/engine-core/index.js';
 import { AIProviderId } from '../../src/llm/common/enums/llm.enums.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 /** 假响应的构造入参. */
 interface FakeResponseInit {

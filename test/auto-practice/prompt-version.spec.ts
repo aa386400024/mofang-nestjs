@@ -22,7 +22,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { InferenceFingerprintService } from '../../src/auto-practice/inference-fingerprint.service.js';
 import {
@@ -33,6 +33,12 @@ import {
   PROMPT_VERSION_UNKNOWN,
   resolvePromptVersion,
 } from '../../src/auto-practice/prompt-fingerprint.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 /**
  * 造一个临时目录当"模板目录", 里面放若干文件.

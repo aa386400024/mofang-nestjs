@@ -27,6 +27,12 @@ import { PRODUCTION_CSP_DIRECTIVES, resolveSessionSecret } from '../../src/app.m
 import { BizException } from '../../src/common/exceptions/biz.exception.js';
 import { ProfileService } from '../../src/profile/providers/profile.service.js';
 
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
 // ── node:fs 的桩 (头像上传要写文件) ──────────────────────────────────────
 const fsMocks = vi.hoisted(() => ({
   mkdir: vi.fn(async (): Promise<void> => {}),

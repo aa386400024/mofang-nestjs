@@ -19,6 +19,12 @@ import { CounselorMode } from '../../src/auto-practice/entities/counselor-mode.e
 import type { EngineTurnResult } from '../../src/auto-practice/ports/turn-engine.port.js';
 import { PracticeRunnerService } from '../../src/auto-practice/practice-runner.service.js';
 
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
 /** 咨询师 generate 的真实签名 (显式标注, 让 mockImplementation 的回调类型与线上一致). */
 type CounselorGenerateSignature = (
   mode: CounselorMode,

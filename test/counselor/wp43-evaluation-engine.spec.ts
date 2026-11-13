@@ -15,6 +15,7 @@
 import { RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import type { Repository } from 'typeorm';
+import { vi } from 'vitest';
 
 import { BizException } from '../../src/common/exceptions/biz.exception.js';
 import { SessionEvaluationController } from '../../src/counselor/controllers/session-evaluation.controller.js';
@@ -29,6 +30,18 @@ import {
   type SessionEvaluationSink,
   type SessionEvaluationTurnInput,
 } from '../../src/voice/session-evaluation-slot.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
+// TD-10 · T-2: 真实 bullmq 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('bullmq', async () => {
+  const { createBullmqStub } = await import('../helpers/sdk-stubs.js');
+  return createBullmqStub();
+});
 
 /**
  * 造一轮评估输入 (只写差异项).

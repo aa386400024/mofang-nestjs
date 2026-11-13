@@ -22,7 +22,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { buildRenderSpec } from '../../src/engine-adapters/rendering/spec-assembler.js';
 import {
@@ -46,6 +46,12 @@ import {
   type RenderSpec,
   type RenderTokenBudget,
 } from '../../src/engine-core/index.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 const HANDLE_ID = 'handle-1';
 const TENANT = 'tenant-1';

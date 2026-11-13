@@ -15,7 +15,7 @@
 import { ConfigService } from '@nestjs/config';
 
 import { resolveSessionDecayConfig } from '../../src/engine-adapters/wiring/session-decay.config.js';
-import { DEFAULT_SESSION_DECAY_CONFIG } from '../../src/engine-core/index.js';
+import { DEFAULT_SESSION_DECAY_CONFIG } from '../../src/engine-core/cognition/session-decay.js';
 
 /**
  * 造一个 ConfigService 桩 (只实现 get).

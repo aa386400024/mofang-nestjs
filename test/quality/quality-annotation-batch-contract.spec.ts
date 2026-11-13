@@ -20,7 +20,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { buildQualityAnnotationRow } from './quality-annotation-fixtures.js';
 import { AdminRoleGuard } from '../../src/admin-debug/guards/admin-role.guard.js';
@@ -31,6 +31,12 @@ import { QualityAnnotationController } from '../../src/quality/quality-annotatio
 import { QualityAnnotationEntity } from '../../src/quality/quality-annotation.entity.js';
 import { QualityAnnotationService } from '../../src/quality/quality-annotation.service.js';
 import { QualityTranscriptFreeze, type TranscriptRecord } from '../../src/quality/quality-transcript-freeze.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 /**
  * 收集控制器上的路由 + 每个路由的**有效** guard 集合 (class 级 + method 级).

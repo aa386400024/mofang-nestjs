@@ -13,12 +13,18 @@
 //
 //   验证: npx vitest run test/admin-debug/wp69-debug-panel-improvements.spec.ts
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { DebugSessionSummary } from '../../src/admin-debug/debug-session-store.js';
 import { DebugSessionService } from '../../src/admin-debug/debug-session.service.js';
 import { ConsentService as SharedConsentService } from '../../src/consent/providers/consent.service.js';
 import { ConsentService as ProfileConsentService } from '../../src/profile/providers/consent.service.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 /** 已知角色代号 (解析器替身只认它). */
 const KNOWN_SLUG = 'vpt_intimate_avoidance_l1';

@@ -14,7 +14,7 @@
 //   验证: npx vitest run test/engine-adapters/wp-h-wave2-3-prompt-tokens.spec.ts
 //   时间戳: 2026-11-10 GMT+8
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { LlmRenderAdapter, type ChatCaller, type ChatStreamOptions } from '../../src/engine-adapters/rendering/llm-render.adapter.js';
 import {
@@ -29,6 +29,18 @@ import type {
   ChatCompletionRequest,
   ChatCompletionResponse,
 } from '../../src/llm/common/interfaces/chat-provider.interface.js';
+
+// TD-10 · T-2: 真实 @langchain/openai 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('@langchain/openai', async () => {
+  const { createLangchainOpenAiStub } = await import('../helpers/sdk-stubs.js');
+  return createLangchainOpenAiStub();
+});
+
+// TD-10 · T-2: 真实 @langchain/core/messages 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('@langchain/core/messages', async () => {
+  const { createLangchainMessagesStub } = await import('../helpers/sdk-stubs.js');
+  return createLangchainMessagesStub();
+});
 
 /** 兜底话术 (与测试配置一致). */
 const FALLBACK_UTTERANCE = '我先缓一下，我们接着说。';

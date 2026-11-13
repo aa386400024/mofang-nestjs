@@ -40,6 +40,12 @@ import {
 import { ALWAYS_ON_DB_LOG_LEVELS, resolveDbLoggingLevels, resolveDbQueryLogging } from '../../src/config/envs/db-logging.js';
 import { DEFAULT_GIT_BINARY, probeGit, probeGitBinary } from '../helpers/index.js';
 
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
 /** 造一行场次 (只填本单关心的字段). */
 function makeSession(overrides: Partial<PracticeSession> = {}): PracticeSession {
   const row = new PracticeSession();

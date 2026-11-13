@@ -17,7 +17,7 @@ import { ConfigService } from '@nestjs/config';
 import { vi } from 'vitest';
 
 import { resolveDeltaCapConfig } from '../../src/engine-adapters/wiring/delta-cap.config.js';
-import { DEFAULT_DELTA_CAP_CONFIG } from '../../src/engine-core/index.js';
+import { DEFAULT_DELTA_CAP_CONFIG } from '../../src/engine-core/cognition/state-transition.js';
 
 /**
  * 造一个 ConfigService 桩 (只实现 get).
