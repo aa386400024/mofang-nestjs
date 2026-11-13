@@ -66,6 +66,8 @@
 
 **D-1 取证落地（2026-11-12）**：上面的手工复算已升级为可复算脚本 —— `scripts/ops/quality/d1-event-classifier-evidence.lexicon.ts`（纯逻辑）+ `scripts/ops/quality/d1-event-classifier-evidence.ts`（CLI 编排），产物落 `data/quality/d1-*.csv`；**规则轨基线快照**在 `test/quality/d1-event-classifier-evidence.spec.ts`（39 例）里逐字锁定旧口径 → [交付记录](../completed/phase2.5/phase2.5-d1-event-classifier-evidence-implementation-2026-11-12.md)。
 
+**G-4 子串重叠取证（2026-11-13 · 已交付 · 纯取证 · 零 core 改动）**：词表跨规则子串重叠对 `empathy.「你觉得」 ⊂ open_probe.「你觉得呢」`，一句「你觉得呢」双命中叠加。**静态穷举复核一致**：真相源实为 **9 条**规则（任务单写「8 条」但枚举了 9 个 kind），跨规则子串对**仅此 1 对**、同规则内无包含。**归档实测**：646 场 / 18592 有效轮中，与该重叠对口径一致的双命中轮**仅 3 轮（0.0161%）**，全部落在 baseline 且全部非退化（小满 2 轮 + 亦舟 1 轮）；其他多事件轮 61 轮（真实双事件，量级是重叠对的 20 倍）。**群体对照按口径判「样本不足 · 不出结论」**（重叠对组 n=3 < `--min-samples` 20），改用上界报告：重叠对轮 trust 增量占全库正向 trust 累计 **0.4016%**。**结论口径**：机制成立、量级接近不可见；归档不落命中词 → 按上界报告，不逐轮证明因果。**是否消歧仍待拍板**（改词 / 分类器互斥 / 最长匹配均不在本单；动规则轨口径须同步评估 D-1 基线快照 spec `:453-456` 锚）。→ [G-4 交付记录](../completed/phase2.5/phase2.5-g4-lexicon-substring-overlap-evidence-implementation-2026-11-13.md)
+
 ---
 
 ### I-02 · 词表漏判下界
