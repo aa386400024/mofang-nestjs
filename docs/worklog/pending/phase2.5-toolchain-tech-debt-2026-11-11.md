@@ -4,7 +4,7 @@
 > 发现来源：WP-K / WP-L 收尾提交（commit `401a5a2`）时，husky/lint-staged 拦截后排查所得
 > 性质：**工程工具链待办，不阻塞当前已交付代码**；但其中部分项会在将来修改对应文件时阻塞提交，处理前先读本文
 > **派单状态**：治本修复已派 **WP-M**（2026-11-11）→ [任务单](../completed/phase2.5/wp-m-toolchain-tech-debt-fix-2026-11-11.md) · [交付记录](../completed/phase2.5/wp-m-toolchain-tech-debt-fix-implementation-2026-11-11.md)
-> **处理状态**：TD-1 ✅ 已修复（`666b0a8` / `fc9285c`）· TD-2 ✅ 已修复（2026-11-11）· TD-3 ✅ 已关闭（随 TD-1b 一并决策）· **闸门提速未决项 ✅ 已全部关闭（2026-11-12，见 §4）**
+> **处理状态**：TD-1 ✅ 已修复（`666b0a8` / `fc9285c`）· TD-2 ✅ 已修复（2026-11-11）· TD-3 ✅ 已关闭（随 TD-1b 一并决策）· **闸门提速未决项 ✅ 已全部关闭（2026-11-12，见 §4）** · **CI 三条遗留 ✅ 已处置（2026-11-13，TD-8）**：npm/pnpm 对齐 + 无效 coverage 步骤清理 + CI 缓存持久化 → [交付记录](../completed/phase2.5/td8-ci-pnpm-parity-and-caching-implementation-2026-11-13.md)
 > 本文件是工具链技术债的单一事实源，README 只保留指向这里的链接
 
 ---
@@ -124,6 +124,25 @@ WP-K / WP-L 首次 `git commit` 时被 husky 的 lint-staged 拦截，eslint 报
 - **修复方式（2026-11-12）**：新增共享口径解析器 `resolveFingerprintSource()`（`prompt-fingerprint.ts`）——包根下存在构建产物时，一律读 `<root>/dist/**/*.js`；`computePromptVersion()`（prompts 段）与 `computeConfigFingerprint()` 的其余 6 段全部走该口径。**没有在 CLI 里另写哈希**，修复落在指纹模块/调用链（符合本项建议）。
 - **修复后证据**：CLI（`pnpm exec tsx` → src 上下文）与服务端（`node` → dist 上下文）**7 段逐段相同**，combined 同为 `ce51839d02ea4020`；fail-closed 保留（读不到 → 该段 `unknown` → combined `unknown`）。与库内旧落库值 `cf032d71ea4849b1` 不同是**判据文件内容变更**（acceptance 段）导致的预期差异，跨批判 `incomparable` 属设计预期。
 - **残留**：无（本项关闭）。附带收益：`prompt` 段原先也两侧不等，只修 `config-fingerprint.ts` 不足以让 combined 可比，故修复面覆盖到 `prompt-fingerprint.ts`。
+
+---
+
+### TD-8 · CI 侧工具链遗留三条（优先级：P3，2026-11-13 处置）
+
+> **状态：✅ 已处置（2026-11-13，MiniMax Code，TD-8 收尾单）** —— 代码级唯一改动 `.github/workflows/ci.yml`；`src` / `test` / `bin` / `scripts` / `admin-dashboard` 零改动，engine-core 零 diff → [交付记录](../completed/phase2.5/td8-ci-pnpm-parity-and-caching-implementation-2026-11-13.md)
+
+| #   | 遗留项                                              | 处置结论                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C-1 | CI 包管理用 npm，与本地 / Dockerfile 的 pnpm 不一致 | 三个 job（`lint-and-typecheck` / `test` / `security-audit`）全部改 pnpm：**corepack enable**（与 Dockerfile 逐字一致）→ `pnpm install --frozen-lockfile` → 脚本名逐字对应 `package.json`（`lint` / `test` / `test:e2e` / `migration:run` / `pnpm exec tsc --noEmit -p tsconfig.json`）；`npm audit --omit=dev` → `pnpm audit --prod`（pnpm 无 `--omit=dev` 参数，`--prod` 为语义等价项）；`cache: 'npm'` 移除 → 独立 `actions/cache` 缓存 `~/.pnpm-store` |
+| C-2 | coverage 上传步骤无效（上传空目录）                 | **移除** `test` job 的 `Upload coverage` 步骤（`name` / `if` / `uses` / `with` 四行整体）。证据：`test` 脚本无 `--coverage`、`vitest.config.mts` 的 coverage 段只有 include/exclude 无 provider/reporter → `coverage/` 目录不生成。**`vitest.config.mts` 的 coverage 段保留不动**（未来启用采集可直接复用）                                                                                                                                               |
+| C-3 | CI 未持久化依赖与 vitest 转换缓存                   | 新增 **pnpm store 缓存**（3 job，path `~/.pnpm-store`，key `pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}`）+ **vitest 转换缓存**（仅 `test` job，path `node_modules/.vite/vitest`，key 同口径）；**未缓存 `node_modules` 本体**（pnpm 走 store + 硬链，缓存 node_modules 跨 CI 易产生路径 / 符号链接抖动）；缓存未命中时行为与现状等价                                                                                                  |
+
+**遗留（待主控拍板 / 另案）**：
+
+- **D-a · npm 锁去留**：`package-lock.json` **保留未删**（本单不动）。改造后 CI 与 Docker **只读 `pnpm-lock.yaml`**，该文件已不被任何安装路径读取 —— 建议移除，让版本控制只保留一份锁文件真相源。
+- **D-b · 是否在 CI 开启覆盖率采集**：本单**只移除无效上传步骤**、不启用采集。开启需补 provider（`@vitest/coverage-v8` 已在 devDeps）/ reporter / 输出目录，并**定义阈值门禁**（阈值数值须先跑一轮真实覆盖率报告再拍），且只作用于 CI。
+- **CI 侧结果待复核**：本机跑不了 GitHub CI，交付记录**未写「CI 已通过」**；需在 Actions 复核 `corepack enable` 可用性、`--frozen-lockfile` 与 lock 的一致性、缓存命中后的墙钟改善。
+- **P-DEBT-5 的分片（shard）部分未做**：本单落地「缓存 + CI 侧 pnpm 统一」两项；分片矩阵会改变测试执行拓扑，需单独评估。
 
 ---
 

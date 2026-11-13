@@ -617,7 +617,7 @@ pnpm lint:files <touched-files...>
 | **P-DEBT-2** | `.eslintcache` 存在却大面积失效（22:58 生成，00:24 全量仍 394.9s） | ESLint 冷跑成本无法稳定压到热跑的 69.3s | 定位触发失效的变量（config/tsconfig 变更、`projectService` 重建、多工作树）；在 CI 与本机统一缓存 key |
 | **P-DEBT-3** | oxlint 4 条既有 warning（2×`no-unsafe-optional-chaining`、2×`oxc/erasing-op`）；类型感知模式另 53 条风格项 | 只是噪声，不阻塞 | 独立清理单；`wp3-trajectory.spec.ts:243,245` 的 `0.6*0.6+0.4*0` 恒等 0.36 属测试写法问题，改断言即可 |
 | **P-DEBT-4** | 构建工具链版本升级无验收纪律（vite 8.3.8 / vitest 5.1 各自带来 9 倍 / 7.7 倍回归） | 任何"顺手升 patch"都可能把闸门时间打回 20 分钟 | 规则：vite/vitest 版本变动必须附全量绿跑 + 墙钟数字，且已钉死 `vite 8.3.5` |
-| **P-DEBT-5** | CI 缓存与分片未做（`actions/cache` + shard 矩阵、CI 侧 pnpm 统一） | CI 每次全量冷跑 | 独立技术债单，不在本方案范围 |
+| **P-DEBT-5** | CI 缓存与分片未做（`actions/cache` + shard 矩阵、CI 侧 pnpm 统一） | CI 每次全量冷跑 | 🟡 **部分落地（2026-11-13，TD-8）**：**CI 缓存 + CI 侧 pnpm 统一**两项已交付 —— `.github/workflows/ci.yml` 三个 job 改 corepack + `pnpm install --frozen-lockfile` + 脚本名逐字对应 package.json，新增 pnpm store 缓存（key 含 `pnpm-lock.yaml` 哈希）与 vitest 转换缓存（`node_modules/.vite/vitest`），未缓存 `node_modules` 本体；**分片（shard 矩阵）仍未做**（会改变测试执行拓扑，需单独评估）→ [交付记录](../worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-implementation-2026-11-13.md) |
 | **P-DEBT-6** | 测试结构减重（L5）：集成 spec 收敛、外部 SDK 端口层 mock、barrel 瘦身 | import 74% 的结构性根因 | 独立任务单 |
 | **P-DEBT-7** | 本机长驻开发进程污染闸门测量（`nest start --watch` 跑 2 天 7709s CPU / 1527 MB） | 同一份代码实测 1102.6 s（停机后）vs 1512 s（带 watch） | 已写入 `wp-task-template` §5.0 纪律：跑闸门前确认无 watch / dev server |
 | **P-DEBT-8** | ~~E: 盘每次文件内容读取 ~90 ms~~ | — | **已解除（2026-11-12）**：根因为 minifilter 按 inode 收税；以 `pnpm install --force --config.package-import-method=copy` 让 `node_modules` 脱离 store 的旧 inode 后归零（200 文件 63–81 ms）。复验方法见 §1.5.2 与 §7.2 |

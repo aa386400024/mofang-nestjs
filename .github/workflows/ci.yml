@@ -26,16 +26,29 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: 'npm'
+
+      - name: Enable pnpm (corepack)
+        run: corepack enable
+
+      - name: Resolve pnpm version
+        run: pnpm --version
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${ runner.os }-${ hashFiles('pnpm-lock.yaml') }
+          restore-keys: |
+            pnpm-store-${ runner.os }-
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: npm run lint
+        run: pnpm lint
 
       - name: Typecheck
-        run: npx tsc --noEmit -p tsconfig.json
+        run: pnpm exec tsc --noEmit -p tsconfig.json
 
   # ============================================================
   # 2. Unit + E2E Test (需 MySQL + Redis service)
@@ -95,29 +108,43 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: 'npm'
+
+      - name: Enable pnpm (corepack)
+        run: corepack enable
+
+      - name: Resolve pnpm version
+        run: pnpm --version
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${ runner.os }-${ hashFiles('pnpm-lock.yaml') }
+          restore-keys: |
+            pnpm-store-${ runner.os }-
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache vitest transform cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules/.vite/vitest
+          key: vitest-transform-${ runner.os }-${ hashFiles('pnpm-lock.yaml') }
+          restore-keys: |
+            vitest-transform-${ runner.os }-
 
       - name: Run migrations (建测试库 schema)
-        run: npm run migration:run
+        run: pnpm migration:run
 
       - name: Unit tests
-        run: npm test
+        run: pnpm test
 
       - name: E2E tests
-        run: npm run test:e2e
+        run: pnpm test:e2e
         env:
           # E2E 需真实 HTTP server
           PORT: 3000
-
-      - name: Upload coverage
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-${{ github.run_id }}
-          path: coverage/
 
   # ============================================================
   # 3. Build (编译产物, 验证 Dockerfile 能 build)
@@ -155,13 +182,26 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: 'npm'
+
+      - name: Enable pnpm (corepack)
+        run: corepack enable
+
+      - name: Resolve pnpm version
+        run: pnpm --version
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${ runner.os }-${ hashFiles('pnpm-lock.yaml') }
+          restore-keys: |
+            pnpm-store-${ runner.os }-
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
-      - name: npm audit
-        run: npm audit --audit-level=high --omit=dev
+      - name: pnpm audit
+        run: pnpm audit --audit-level=high --prod
 
       - name: Run Trivy vulnerability scanner on Dockerfile
         uses: aquasecurity/trivy-action@master

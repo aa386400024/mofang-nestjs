@@ -113,6 +113,7 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 - **M-1 ✅ 已完成**（2026-11-11，commit `666b0a8`）：删掉 `.husky/commit-msg` 顶部 husky 旧格式两行。`husky - DEPRECATED` 警告消失，且 husky v10 时不会失效（`.husky/_/h` 用 `sh -e` 显式执行，不依赖 shebang）。
 - **M-2 ✅ 已完成**（2026-11-11，commit `fc9285c`）：`.husky/commit-msg` 的裸 `npx --no -- commitlint` 换成纯 shell 正则校验。单次钩子 **13.4 秒 → 0.67 秒**（约 20 倍），且格式校验首次真正生效（不合规消息现在会被 `exit 1` 阻断）。
 - **M-3 / M-4 ✅ 已完成**（2026-11-11，MiniMax Code）：`scripts/` 下 5 文件 67 个存量 lint → **0 error 0 warning**（审计脚本两个超复杂度函数拆分后，输出**逐字节一致**；词表 186 个字符串**零改动**）；M-4 选**维持现状**（不新增 `scripts/tsconfig.json`），交付记录已写明**「已知并接受」**。遗留：`stagnation-calibration.ts` 2 个**既有** `TS2459` —— ✅ **已由 RESID-1 关闭**（2026-11-11：两个状态接口加 `export`，脚本侧类型检查 TS2459 **2 → 0**，零运行时行为变化）→ [交付记录](../completed/phase2.5/resid1-stagnation-state-exports-2026-11-11.md)。M-4 维持现状不变。
+- **TD-8 ✅ 已交付**（2026-11-13，CI 工具链遗留，MiniMax Code）：① CI 包管理 npm/npx → pnpm 对齐（corepack 安装 + `pnpm install --frozen-lockfile` + 脚本名逐字对应 package.json + 缓存改 pnpm store）；② 清理无效 coverage 上传步骤；③ 持久化 pnpm store 与 vitest 转换缓存（key 含 `pnpm-lock.yaml` 哈希，不缓存 `node_modules` 本体）。**代码级唯一改动 `.github/workflows/ci.yml`**，`src` / `test` / `bin` / `scripts` 零改动，engine-core 零 diff；闸门：根 tsc / build tsc 0 error、lint 0/0、boundary 12 绿、全量 **3248 passed + 4 skipped（3252 例，194 文件）**、yml 静态自检 YAML_PARSE_OK；**CI 侧结果待主控 push 后在 Actions 复核** → [任务单](../completed/phase2.5/td8-ci-pnpm-parity-and-caching-task-2026-11-13.md) · [交付记录](../completed/phase2.5/td8-ci-pnpm-parity-and-caching-implementation-2026-11-13.md)
 
 ### 3.1 必须先知道的转折（2026-11-09 晚）
 
