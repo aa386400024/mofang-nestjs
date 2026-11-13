@@ -1,6 +1,6 @@
-# Phase3 文字层真人度 · P1 审计基线（草案 · 待 P0 收口后复核派发）
+# Phase3 文字层真人度 · P1 审计基线（草案 · 已被开工单取代）
 
-> 状态：📝 预研草案（2026-11-12），**不是待开工任务单**；须等 P0 度量层验收闭环后，主控复核锚点与闸门数字再派。
+> 状态：✅ **已收口**（2026-11-13）—— P0 度量层已验收闭环，主控复核锚点后开工单落盘：[`phase3-disfluency-p1-audit-baseline-task-2026-11-13.md`](../completed/phase2.5/phase3-disfluency-p1-audit-baseline-task-2026-11-13.md)。本草案仅作预研记录保留，不再作为执行依据；开放项裁定见开工单 §1.5。
 > 仓库：E:\Work\Project\backend\mofang-nestjs，分支 `integrate`
 > 唯一事实源：`docs/worklog/pending/phase3-text-disfluency-humanization-plan-2026-11-11.md`（下称「蓝图」）§5.2、§6 P1。
 >
@@ -51,3 +51,14 @@
 - P0 实际落地的模块导出名与字段形状（以代码为准，蓝图签名仅参考）。
 - audit 脚本是否需要一并读取服务层已投影的 `disfluency` 数值（复用快照），还是脚本内对 visitor 文本直调 analyzer——二选一，口径必须与 P0 快照一致。
 - 基线第二批离线批次选哪个目录（既有归档批次 `data/archives/` 下候选）。
+
+---
+
+## 6. 开工单执行结果指向（2026-11-13 交付时追加）
+
+- 任务单（已归档）：[`phase3-disfluency-p1-audit-baseline-task-2026-11-13.md`](../completed/phase2.5/phase3-disfluency-p1-audit-baseline-task-2026-11-13.md)
+- 交付记录：[`phase3-disfluency-p1-audit-baseline-implementation-2026-11-13.md`](../completed/phase2.5/phase3-disfluency-p1-audit-baseline-implementation-2026-11-13.md)
+- 遗留台账（L-10）：[`phase3-disfluency-backlog-2026-11-13.md`](phase3-disfluency-backlog-2026-11-13.md)
+- 基线产物与备忘：`data/quality/disfluency-baseline-{baseline-20261109,pre96-2026-11-12}.json` + `data/quality/disfluency-baseline-memo-2026-11-13.md`
+
+> 本草案 §3 闸门清单与 §4 交付记录路径里的日期为预研期占位，实际闸门数字与路径以交付记录为准（交付记录路径日期为 `2026-11-13`）。

@@ -368,18 +368,20 @@ env 键（装配层读取，适配层不直接读 env，沿用 WP8 纪律）：
 
 **P0 遗留项（登记在此；Phase3 专属 backlog 台账尚未建立，待 P1 派单时建）**：
 
-| #    | 遗留项                                                                                                                                                   | 归属      |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| L-1  | `visitor-quality-audit.ts` 迁 `disfluency-lexicon.ts` 词表口径 + D7 段六类分布；废弃脚本内私有 FILLERS 独立口径（旧字段保留一个版本周期并标 deprecated） | P1        |
-| L-2  | 8 指标 bounds 基线后补齐（`density_per100` 上界；per_turn 若确认可 > 1 则调整语义取值域）                                                                | P1        |
-| L-3  | `density_per100` 取值域校准 + 归一化字符数跨批次可比性确认                                                                                               | P1        |
-| L-4  | repetition「只认子句开头」的位置取舍是否保留                                                                                                             | P1        |
-| L-5  | filler 词表与位置约束阈值校准                                                                                                                            | P1        |
-| L-6  | `TRAILOFF_MIN_CHARS = 4` 阈值校准                                                                                                                        | P1        |
-| L-7  | `humanization-v1` 判据（§5.2.4）未实现                                                                                                                   | P2        |
-| L-8  | 角色侧联动（disfluency-profile / disfluency-instruction / env 三态开关 / 指纹段 / 灰度）                                                                 | P2 / P3   |
-| L-9  | 角色实体列 / 迁移 / 透传 / 灰度判据                                                                                                                      | P3        |
-| L-10 | Phase3 专属 backlog 台账建立（L-1 ~ L-9 迁移过去）                                                                                                       | P1 派单时 |
+| #    | 遗留项                                                                                                                                                   | 归属         |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| L-1  | `visitor-quality-audit.ts` 迁 `disfluency-lexicon.ts` 词表口径 + D7 段六类分布；废弃脚本内私有 FILLERS 独立口径（旧字段保留一个版本周期并标 deprecated） | P1           |
+| L-2  | 8 指标 bounds 基线后补齐（`density_per100` 上界；per_turn 若确认可 > 1 则调整语义取值域）                                                                | P1           |
+| L-3  | `density_per100` 取值域校准 + 归一化字符数跨批次可比性确认                                                                                               | P1           |
+| L-4  | repetition「只认子句开头」的位置取舍是否保留                                                                                                             | P1           |
+| L-5  | filler 词表与位置约束阈值校准                                                                                                                            | P1           |
+| L-6  | `TRAILOFF_MIN_CHARS = 4` 阈值校准                                                                                                                        | P1           |
+| L-7  | `humanization-v1` 判据（§5.2.4）未实现                                                                                                                   | P2           |
+| L-8  | 角色侧联动（disfluency-profile / disfluency-instruction / env 三态开关 / 指纹段 / 灰度）                                                                 | P2 / P3      |
+| L-9  | 角色实体列 / 迁移 / 透传 / 灰度判据                                                                                                                      | P3           |
+| L-10 | Phase3 专属 backlog 台账建立（L-1 ~ L-9 迁移过去）                                                                                                       | P1 ✅ 已完成 |
+
+> **遗留跟踪入口已迁移**：L-1 ~ L-9 现由 [Phase3 专属 backlog 台账](phase3-disfluency-backlog-2026-11-13.md) 统一跟踪（本表保留作历史记录；台账另登记本单新遗留 P1-N1 ~ P1-N7）。
 
 ### P1 · 审计基线（仍零行为变化）
 
@@ -387,6 +389,8 @@ env 键（装配层读取，适配层不直接读 env，沿用 WP8 纪律）：
 - env 默认 audit，跑两个离线批次，产出基线文档与区间建议（种子值校准建议，不直接改判据）
 
 闸门：定向 vitest + 审计脚本实跑（exit 0、输出无原文，人工核对输出结构）。
+
+> **P1 开工单（2026-11-13）**：[`phase3-disfluency-p1-audit-baseline-task-2026-11-13.md`](../completed/phase2.5/phase3-disfluency-p1-audit-baseline-task-2026-11-13.md)（✅ 已完成）· [交付记录](../completed/phase2.5/phase3-disfluency-p1-audit-baseline-implementation-2026-11-13.md) · [基线备忘](../../../data/quality/disfluency-baseline-memo-2026-11-13.md) · [Phase3 backlog 台账](phase3-disfluency-backlog-2026-11-13.md)。开放项已由主控复核裁定：脚本直调 analyzer（归档快照无 disfluency 字段）；批次固定 `baseline-20261109` + `pre96-2026-11-12`；导出名以源码为准。台账（L-10）已由本单建立，L-1 ~ L-9 已迁移过去。
 
 ### P2 · Prompt 与开关（active 能力就位，默认不启用）
 
