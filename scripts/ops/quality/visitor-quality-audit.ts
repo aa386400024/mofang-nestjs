@@ -26,6 +26,22 @@ import path from 'node:path';
 //   单测没法 import 本文件. 口径与实现仍然同源 (脚本用的就是这套词表).
 import { anxiousDimensionsOf, labelOf, type AnxiousChannelHits, type BehaviorLabel } from './visitor-quality-lexicon.js';
 
+// Phase3 P1 (文字层真人度 · 审计基线 · 口径同源迁移, 蓝图 §6 P1 · 遗留 L-1):
+//   ⚠️ 隐私分层 (蓝图 §5.2.3): analyzer 是**唯一接触台词原文**的模块,
+//      本脚本是 IO 层离线工具 —— 它的合法调用方; 纯计算层不得 import analyzer.
+//   词表 / 归一化口径全部来自 P0 纯模块: 脚本内私有 FILLERS 与 normalize 已废弃.
+import { analyzeDisfluency } from '../../../src/auto-practice/metrics/disfluency-analyzer.js';
+import { normalizeForLength, type DisfluencyMetrics } from '../../../src/auto-practice/metrics/disfluency-lexicon.js';
+import {
+  aggregateDisfluencyBatch,
+  batchIdOf,
+  buildDisfluencyBaselinePayload,
+  renderD7Report,
+  summarizeDisfluency,
+  type BatchDisfluencySummary,
+  type SessionDisfluencySummary,
+} from './visitor-quality-disfluency.js';
+
 /** 逐字稿消息. */
 interface TranscriptMessage {
   readonly role?: string;
@@ -99,8 +115,21 @@ interface SessionAudit {
   readonly trigramRepeatRate: number;
   /** 首句模板率 (开头 4 字重复率). */
   readonly headTemplateRate: number;
-  /** 填充词频 (每轮). */
+  /**
+   * 填充词频 (每轮).
+   *
+   * @deprecated Phase3 P1 (蓝图 §6 遗留 L-1): 旧口径 = 脚本私有 6 词 split (无位置约束 / 无消歧),
+   *   已废弃; 字段保留一个版本周期, 现由 P0 analyzer 的位置敏感口径填充.
+   *   D4 报告行保留展示并标注 deprecated —— **新旧两个 filler 数字不混用对照**,
+   *   新口径六类分布一律走 D7.
+   */
   readonly fillerPerTurn: number;
+  /**
+   * 整场不流利汇总 (Phase3 P1 · 纯数值, 无任何文本引用).
+   *
+   * 形状 = P0 聚合结果 + 五类 per_turn (elongation 只入事件总量, 无 per_turn 键).
+   */
+  readonly disfluency: SessionDisfluencySummary;
   /** 危机轮数 / 首现轮次 / 最高档位. */
   readonly crisisTurns: number;
   readonly crisisFirstTurn: number | null;
@@ -129,9 +158,6 @@ interface SessionAudit {
   /** 四行为标签 + anxious 三维度**并集**命中的轮数 (覆盖率口径). */
   readonly coveredTurns: number;
 }
-
-/** 填充词. */
-const FILLERS: readonly string[] = ['嗯', '呃', '那个', '然后', '其实', '就是'];
 
 /** 探索类策略 (内核口径). */
 const EXPLORATION_STRATEGIES: ReadonlySet<string> = new Set(['affective_exploration', 'cognitive_exploration']);
@@ -262,14 +288,9 @@ function attachmentFromSlug(slug: string): AttachmentStyle {
   return 'unknown';
 }
 
-/** 去空白与标点, 便于做字符 n-gram 与唯一性统计. */
-function normalize(text: string): string {
-  return text.replaceAll(/\s+/g, '').replaceAll(/[，。！？、,.!?；;：:"“”'‘’()（）…—-]/g, '');
-}
-
-/** 取字符 n-gram 集合. */
+/** 取字符 n-gram 集合 (归一化口径同 P0 normalizeForLength —— 去空白 + 去标点). */
 function gramSet(text: string, n: number): Set<string> {
-  const compact = normalize(text);
+  const compact = normalizeForLength(text);
   const grams = new Set<string>();
   if (compact.length === 0) return grams;
   if (compact.length < n) {
@@ -368,10 +389,15 @@ interface TextDerived {
 /**
  * 汇总台词侧的文本层信号.
  *
+ * 填充词口径 (Phase3 P1 · 遗留 L-1): **已迁 P0 analyzer** ——
+ *   旧口径是脚本私有 6 词 split (无位置约束 / 无消歧), 已废弃;
+ *   现在取 analyzeDisfluency 的 counts.filler (位置敏感 + 消歧优先级).
+ *
  * @param texts 本场访客台词
+ * @param metrics 逐轮不流利度量 (P0 analyzer 输出)
  * @returns 标签分布 / 填充词 / anxious 三维度 / 并集覆盖
  */
-function deriveTextSignals(texts: readonly string[]): TextDerived {
+function deriveTextSignals(texts: readonly string[], metrics: readonly DisfluencyMetrics[]): TextDerived {
   const labelCounts: Record<BehaviorLabel, number> = { approach: 0, avoid: 0, attack: 0, appease: 0, neutral: 0 };
   let fillerHits = 0;
   // WP-J P1d · #4: anxious 三维度命中 (文本层) + 并集覆盖率.
@@ -391,8 +417,9 @@ function deriveTextSignals(texts: readonly string[]): TextDerived {
     }
     if (channelHit) anxiousChannelTurns += 1;
     if (label !== 'neutral' || channelHit) coveredTurns += 1;
-    for (const filler of FILLERS) fillerHits += text.split(filler).length - 1;
   }
+  // 填充词命中改由 P0 analyzer 的位置敏感口径给出 (不再脚本内 split).
+  for (const metric of metrics) fillerHits += metric.counts.filler;
   const labeledTurns = (['approach', 'avoid', 'attack', 'appease'] as BehaviorLabel[]).reduce((sum, label) => sum + labelCounts[label], 0);
   return { labelCounts, labeledTurns, fillerHits, anxiousChannel, anxiousChannelTurns, coveredTurns };
 }
@@ -415,11 +442,11 @@ interface RepeatDerived {
  * @returns 四个重复率
  */
 function deriveRepeatRates(texts: readonly string[], fillerHits: number): RepeatDerived {
-  const uniqueTexts = new Set(texts.map((t) => normalize(t))).size;
+  const uniqueTexts = new Set(texts.map((t) => normalizeForLength(t))).size;
   const repeatRate = 1 - uniqueTexts / texts.length;
 
   const heads = new Set<string>();
-  for (const text of texts) heads.add(normalize(text).slice(0, 4));
+  for (const text of texts) heads.add(normalizeForLength(text).slice(0, 4));
   // 句间相似度: 本场不同句子两两的 3-gram Jaccard 均值 ——
   //   直接衡量"这些话是不是同一个模子倒出来的".
   const textGrams = texts.map((t) => gramSet(t, 3));
@@ -501,7 +528,10 @@ function auditSession(debugSessionId: string, doc: TranscriptFile, style: Attach
   const earlyDisclosure = strategies.slice(0, 2).includes('affective_exploration');
 
   const texts = visits.map((m) => String(m.text ?? ''));
-  const textSignals = deriveTextSignals(texts);
+  // Phase3 P1: 逐轮不流利度量 (P0 analyzer) → 整场汇总 (纯数值).
+  const disfluencyMetrics = texts.map((text) => analyzeDisfluency(text));
+  const disfluency = summarizeDisfluency(disfluencyMetrics);
+  const textSignals = deriveTextSignals(texts, disfluencyMetrics);
   const repeatRates = deriveRepeatRates(texts, textSignals.fillerHits);
 
   const endState = readKernelEndState(doc.kernelState);
@@ -530,6 +560,7 @@ function auditSession(debugSessionId: string, doc: TranscriptFile, style: Attach
     trigramRepeatRate: repeatRates.trigramRepeatRate,
     headTemplateRate: repeatRates.headTemplateRate,
     fillerPerTurn: repeatRates.fillerPerTurn,
+    disfluency,
     crisisTurns: traceSignals.crisisTurns,
     crisisFirstTurn: traceSignals.crisisFirstTurn,
     crisisPeakLevel: traceSignals.crisisPeakLevel,
@@ -802,7 +833,7 @@ function reportD4(valid: readonly SessionAudit[]): void {
   console.log(`  台词重复率 (与全场均值)    ${pct(mean(valid.map((a) => a.repeatRate)))}`);
   console.log(`  句间 3-gram 相似 均值     ${pct(mean(valid.map((a) => a.trigramRepeatRate)))}   (门禁 <15%)`);
   console.log(`  首句模板率 均值           ${pct(mean(valid.map((a) => a.headTemplateRate)))}`);
-  console.log(`  填充词/轮 均值            ${mean(valid.map((a) => a.fillerPerTurn)).toFixed(2)}`);
+  console.log(`  填充词/轮 均值            ${mean(valid.map((a) => a.fillerPerTurn)).toFixed(2)}   (deprecated · 已迁 P0 analyzer 口径)`);
   const worst = [...valid].toSorted((x, y) => y.trigramRepeatRate - x.trigramRepeatRate).slice(0, 3);
   for (const a of worst) console.log(`    最像自己的 3 场: ${a.debugSessionId} ${pct(a.trigramRepeatRate)}`);
 }
@@ -821,6 +852,18 @@ function reportD5(valid: readonly SessionAudit[]): void {
     console.log(`  最高档位 ${crisisSessions.map((a) => a.crisisPeakLevel).join(', ')}`);
     console.log(`  单次披露(只 1 轮就没了) ${crisisSessions.filter((a) => a.crisisTurns === 1).length}/${crisisSessions.length}`);
   }
+}
+
+/**
+ * D7 · 不流利分布 (Phase3 P1 · 观测对照, 不接门禁).
+ *
+ * @param valid 有效场次 (无渲染降级)
+ * @returns 批次级不流利汇总 (供基线 JSON 导出)
+ */
+function reportD7(valid: readonly SessionAudit[]): BatchDisfluencySummary {
+  const batch = aggregateDisfluencyBatch(valid.map((a) => a.disfluency));
+  console.log(renderD7Report(batch, { sessions: valid.length }));
+  return batch;
 }
 
 /**
@@ -882,10 +925,25 @@ async function main(): Promise<void> {
   reportD3(valid, byCharacter, transcripts);
   reportD4(valid);
   reportD5(valid);
+  // Phase3 P1: D7 不流利分布 (只观测, 不接门禁).
+  const disfluencyBatch = reportD7(valid);
 
   // ── D6 人工锚: 导出标注清单 (不含任何台词) ──────────────────────────────
   if (anchorIndex !== -1) {
     exportAnchor(valid, Number(argv[anchorIndex + 1] ?? 30));
+  }
+
+  // ── Phase3 P1: 基线 JSON (只含数字与批次 id, 无台词) ──────────────────────
+  const disfluencyOutIndex = argv.indexOf('--disfluency-out');
+  if (disfluencyOutIndex !== -1) {
+    const target = argv[disfluencyOutIndex + 1] ?? '';
+    if (target !== '') {
+      const resolved = path.resolve(target);
+      fs.mkdirSync(path.dirname(resolved), { recursive: true });
+      const payload = buildDisfluencyBaselinePayload(batchIdOf(dir), path.basename(path.resolve(dir)), disfluencyBatch);
+      fs.writeFileSync(resolved, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+      console.log(`[D7] 基线 JSON 已导出: ${target} (只含数字与批次 id, 无台词)`);
+    }
   }
   console.log('');
 }
