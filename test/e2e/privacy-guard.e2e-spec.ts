@@ -1,5 +1,3 @@
-/* eslint-disable prettier/prettier */
-
 // V2026-10-15 治本 (VS-4 e2e 收尾 — PrivacyGuard 4 describe + logL3Access spy):
 //   原因: V2026-10-15 5 段治本已建 src/common/privacy/privacy-level.enum.ts (PrivacyLevel
 //     L1/L2/L3 + PrivacyFailure 401/403) + privacy-logger.service.ts (L3 访问审计 logger)

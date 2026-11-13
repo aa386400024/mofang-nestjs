@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier, import/order */
+/* eslint-disable import/order */
 
 // V2026-10-14 治本 (VS-3e — RAG 知识库搜索 e2e 端到端验证):
 //   原因: VS-3a/3b/3c 治本装 LangChain 1.x + Qdrant 1.x + OpenAI 兼容 4 provider embedding

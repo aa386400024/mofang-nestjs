@@ -23,6 +23,7 @@ import path from 'node:path';
 
 import { getMetadataArgsStorage } from 'typeorm';
 
+import { buildCharacterProfileRow } from './character-profile-fixtures.js';
 import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed.js';
 import { CharacterProfileEntity } from '../../src/engine-adapters/wiring/character/character-profile.entity.js';
 import {
@@ -265,7 +266,11 @@ describe('WP10A · 表达风格基线字段 · 红线 (不消费 / 不进内核)
   //   已反转的部分: ⑬ resolver 现在**读**这三列 —— 断言方向随之反转 (见用例内注释).
   it('⑬ resolver 映射的输出里**有**这三列 (字段已进内核, WP41)', () => {
     const seed = buildCharacterProfileSeeds(VISITOR_POOL_TEMPLATE_SEEDS)[0];
-    const row = {
+    // 默认值来自共享夹具 (character-profile-fixtures.ts) —— 表达风格三列在夹具里就是
+    // 本用例断言的 0.5 / 'mixed' / 'restrained', 无需重复铺陈; 缺的后加列由夹具按
+    // 实体口径补齐 (personalityTraits / verbalVoice = null, safety = 0.5, bond = 0,
+    // semver 三列 = 1/0/0 —— 与内核 DEFAULT_SAFETY / DEFAULT_BOND 同值).
+    const row = buildCharacterProfileRow({
       id: seed.id,
       templateId: seed.templateId,
       displayName: seed.displayName,
@@ -277,20 +282,15 @@ describe('WP10A · 表达风格基线字段 · 红线 (不消费 / 不进内核)
       baselineResistanceStyle: seed.resistance.style,
       baselineEmotionValence: seed.emotion.valence,
       baselineEmotionArousal: seed.emotion.arousal,
-      speechVolumeBaseline: 0.5,
-      narrativeStyle: 'mixed',
-      expressionTone: 'restrained',
-      coreBeliefs: seed.coreBeliefs,
-      underlyingDesires: seed.underlyingDesires,
-      forbiddenBehaviors: seed.forbiddenBehaviors,
-      sensitiveTopics: seed.sensitiveTopics,
+      // seed 的集合列是 readonly 数组, 实体列是可变数组 —— 复制一份再落 (与 wp9b 同款).
+      coreBeliefs: seed.coreBeliefs.map((belief) => ({ ...belief, activationTags: [...belief.activationTags] })),
+      underlyingDesires: seed.underlyingDesires.map((desire) => ({ ...desire })),
+      forbiddenBehaviors: [...seed.forbiddenBehaviors],
+      sensitiveTopics: [...seed.sensitiveTopics],
       auditStatus: 'approved',
-      enabled: true,
-      version: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
-      deletedAt: null,
-    } as CharacterProfileEntity;
+    });
 
     const mapped = toCharacterSeed(row) as unknown as Record<string, unknown>;
 

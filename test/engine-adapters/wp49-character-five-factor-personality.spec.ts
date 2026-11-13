@@ -30,6 +30,7 @@ import path from 'node:path';
 
 import { getMetadataArgsStorage } from 'typeorm';
 
+import { buildCharacterProfileRow } from './character-profile-fixtures.js';
 import {
   BUILTIN_ANXIOUS_LOW_MOOD_L1,
   BUILTIN_AVOIDANT_L1,
@@ -123,20 +124,10 @@ function entityColumns(): ReadonlyMap<string, { readonly type: string; readonly 
 
 /** 造一条 DB 角色行 (字段齐备, 供 toCharacterSeed 消费). */
 function makeRow(overrides: Partial<CharacterProfileEntity> = {}): CharacterProfileEntity {
-  return {
-    id: 'row-1',
+  // 默认值来自共享夹具 (character-profile-fixtures.ts) —— 本组用例只覆盖"大五人格 + 基线数值"相关列.
+  // 夹具默认已含 personalityTraits: null (WP49: 大五人格列**可空** = 默认 NULL = 没表态).
+  return buildCharacterProfileRow({
     templateId: 'vpt_x',
-    displayName: '测试角色',
-    attachmentStyle: 'avoidant',
-    fivePs: {
-      presenting: '',
-      precipitating: '',
-      maintaining: '',
-      protective: '',
-      vulnerability: '',
-    },
-    // WP49: 大五人格列是**可空**的 —— 默认 NULL (= 没表态).
-    personalityTraits: null,
     baselineTrust: 0.2,
     baselineResistanceVerbal: 0.62,
     baselineResistanceDepth: 0.68,
@@ -145,21 +136,11 @@ function makeRow(overrides: Partial<CharacterProfileEntity> = {}): CharacterProf
     baselineEmotionArousal: 0.18,
     baselineSafety: 0.25,
     baselineBond: 0.05,
-    speechVolumeBaseline: 0.5,
-    narrativeStyle: 'mixed',
-    expressionTone: 'restrained',
-    coreBeliefs: [],
-    underlyingDesires: [],
-    forbiddenBehaviors: [],
-    sensitiveTopics: [],
     auditStatus: 'approved',
-    enabled: true,
-    version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
-    deletedAt: null,
     ...overrides,
-  } as CharacterProfileEntity;
+  });
 }
 
 /** 一个"什么都没表态"的种子 (用于验证"没说"的分支). */

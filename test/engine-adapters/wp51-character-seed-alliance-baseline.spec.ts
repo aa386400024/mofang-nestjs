@@ -26,6 +26,7 @@ import path from 'node:path';
 
 import { getMetadataArgsStorage } from 'typeorm';
 
+import { buildCharacterProfileRow } from './character-profile-fixtures.js';
 import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed.js';
 import {
   BUILTIN_ANXIOUS_LOW_MOOD_L1,
@@ -84,18 +85,9 @@ function entityColumns(): ReadonlyMap<string, { readonly type: string; readonly 
 
 /** 造一条 DB 角色行 (字段齐备, 供 toCharacterSeed 消费). */
 function makeRow(overrides: Partial<CharacterProfileEntity> = {}): CharacterProfileEntity {
-  return {
-    id: 'row-1',
+  // 默认值来自共享夹具 (character-profile-fixtures.ts) —— 本组用例只覆盖"同盟三维基线"相关列.
+  return buildCharacterProfileRow({
     templateId: 'vpt_x',
-    displayName: '测试角色',
-    attachmentStyle: 'avoidant',
-    fivePs: {
-      presenting: '',
-      precipitating: '',
-      maintaining: '',
-      protective: '',
-      vulnerability: '',
-    },
     baselineTrust: 0.2,
     baselineResistanceVerbal: 0.62,
     baselineResistanceDepth: 0.68,
@@ -104,21 +96,11 @@ function makeRow(overrides: Partial<CharacterProfileEntity> = {}): CharacterProf
     baselineEmotionArousal: 0.18,
     baselineSafety: 0.25,
     baselineBond: 0.05,
-    speechVolumeBaseline: 0.5,
-    narrativeStyle: 'mixed',
-    expressionTone: 'restrained',
-    coreBeliefs: [],
-    underlyingDesires: [],
-    forbiddenBehaviors: [],
-    sensitiveTopics: [],
     auditStatus: 'approved',
-    enabled: true,
-    version: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
-    deletedAt: null,
     ...overrides,
-  } as CharacterProfileEntity;
+  });
 }
 
 describe('WP51 · 角色种子同盟三维基线 · 内置种子 → 内核快照', () => {
