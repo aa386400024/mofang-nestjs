@@ -13,9 +13,10 @@
 //     ③ 跨轮状态分桶键用**业务 sessionId** (禁用 handleId: 运行时维度, 恢复后会变).
 //     ④ 模型轨每条事件 strength **恒 1** —— 置信度只进观测, 不参与 delta 缩放.
 //
-//   首版形态 = **中间态** (任务单 "7.5):
+//   三态形态 (D-7 已接线; 逐场判定唯一真相源 = model-classifier-mode.config.ts):
+//     · rule_only  : 只跑规则轨 (缺省; 一次 LLM 都不发);
 //     · shadow 模式: 跑模型轨 → 写观测 → **返回规则轨结果** (core events 与 BDI 逐字不变);
-//     · llm_active: core 接口层**预留** (D-2 才接线, 装配本单不注入).
+//     · llm_active: 模型轨结果**替换**规则轨结果进 core events (名单内场次; 考核场次恒 rule_only).
 //
 //   ⚠️ **考核红线**: exam 场景恒 rule_only —— 判定在 model-classifier-mode.config.ts 里,
 //     优先于一切配置与名单, 模型轨在考核场次**一次 LLM 都不发**.
@@ -421,9 +422,16 @@ export class ModelEventClassifier implements EventClassifier, ModelClassifierCon
     this.advanceState(state, ruleEvents, outcome, turnIndex);
     this.observeRound(session, sessionId, turnIndex, ruleEvents, outcome);
 
-    if (mode === 'llm_active' && outcome.labels) {
-      // D-2 预留通路: 模型轨结果替换规则轨结果进 core events.
-      //   首版装配**不注入** llm_active (中间态), 所以这条分支本单走不到.
+    if (mode === 'llm_active' && outcome.labels && outcome.fallbackReason === null) {
+      // D-7 已接线: 模型轨结果替换规则轨结果进 core events.
+      //   走到这里 = 全局 llm_active + 本场在名单内 + 场景非考核
+      //   (逐场判定在 model-classifier-mode.config.ts —— 装配层只管全局形态).
+      //   ⚠️ **必须同时判 fallbackReason === null**: 低置信这一轮**是回落**
+      //     (模型标签仍进观测, 但判定不可用) —— 它带着 labels 回来.
+      //     只看 labels 的话, 低置信轮会把模型事件**漏进 core**, 违反
+      //     「回落一律规则轨等价事件」红线 (D-7 接线时发现并补上).
+      //   ⚠️ 两类新 kind (holding_present / cold_absent) 在 DELTA_TABLE 里种子仍是 ZERO ——
+      //     本单接的是**通路**, 幅度改善待标定批次赋表行增量.
       return outcome.labels.coreKinds.map((kind) => ({ kind, matchedTerms: [], strength: 1 }));
     }
     // shadow: core events 与 BDI **逐字**保持规则轨 (首版是中间态: 只观测, 不改 delta).

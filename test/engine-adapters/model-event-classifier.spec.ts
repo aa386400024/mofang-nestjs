@@ -1,11 +1,13 @@
 // V2026-11-12 治本 (D-1 第二段 · 模型轨事件分类器):
-//   职责: 钉死模型轨的六段行为 ——
+//   职责: 钉死模型轨的七段行为 ——
 //     ① 回落: 每个错误码**逐字**回落到规则轨 (失败即等价, 不产生第二套结果);
 //     ② 熔断: 开闸后**一次 LLM 都不发**;
 //     ③ 跨轮: 连续计数递增 / 命中重置 / 中断不推进 / 多会话隔离 / forgetSession 清空;
 //     ④ 影子零回归: core events 与 BDI **逐字**不变;
 //     ⑤ 红线: 考核场景恒 rule_only (零 LLM); 缺省灰度零回归;
-//     ⑥ 隐私: 观测表**装不下**原文 / matchedTerms / 展示名.
+//     ⑥ 隐私: 观测表**装不下**原文 / matchedTerms / 展示名;
+//     ⑦ 生效 (D-7): llm_active 下模型轨结果**替换**规则轨结果进 core events;
+//        名单外 / 考核场次 / 总开关关 → 逐场 rule_only (零 LLM 零副作用).
 //   边界: 全 mock; 不起 Nest 容器; 不连 DB / 不发网络 / 不调真模型.
 //
 //   ⚠️ **fixture 只放人工构造的样例, 不放真实逐字稿** (隐私 + 双盲纪律).
@@ -223,6 +225,11 @@ describe('模型轨 · 灰度配置 (env → 模式)', () => {
 
   it('总开关开着但模式没配 → 仍 rule_only (现状就是规则轨)', () => {
     const config = resolveModelClassifierModeConfig(configStub({ ENGINE_MODEL_CLASSIFIER_ENABLED: 'true' }));
+    expect(config.effectiveMode).toBe('rule_only');
+  });
+
+  it('总开关关着但模式写着 llm_active → 仍 rule_only (总开关先于模式)', () => {
+    const config = resolveModelClassifierModeConfig(configStub({ ENGINE_MODEL_CLASSIFIER_EFFECTIVE_MODE: 'llm_active' }));
     expect(config.effectiveMode).toBe('rule_only');
   });
 
@@ -607,6 +614,113 @@ describe('模型轨 · 影子模式 (core events 与 BDI 逐字不变)', () => {
   });
 });
 
+describe('模型轨 · 生效模式 (llm_active: 模型轨结果进 core events)', () => {
+  const rule = new RuleBasedClassifier();
+
+  it('全局 llm_active + 名单内 → 返回**模型**事件 (替换规则轨结果进 core)', async () => {
+    const { classifier, llm, observer } = makeClassifier({
+      llm: llmStub([okResponse({ kinds: ['holding_present'], confidence: 0.9 })]),
+      modeConfig: { effectiveMode: 'llm_active', grayscaleSessions: new Set(['s1']) },
+    });
+
+    const events = await classifier.classifyAsync(EMPATHY_TEXT, { sessionId: 's1' });
+
+    // 规则轨判的是 empathy; 进 core 的是**模型**那份 (holding_present) —— 两者不是同一套.
+    expect(rule.classify(EMPATHY_TEXT).map((event) => event.kind)).toEqual(['empathy']);
+    expect(events).toEqual([{ kind: 'holding_present', matchedTerms: [], strength: 1 }]);
+    expect(llm.calls).toHaveLength(1);
+    // 对照观测**照写** (同 shadow 口径, 不新增字段).
+    expect(observer.records[0]?.ruleKinds).toEqual(['empathy']);
+    expect(observer.records[0]?.modelKinds).toEqual(['holding_present']);
+    expect(observer.records[0]?.agreement).toBe(false);
+    expect(observer.records[0]?.fallbackReason).toBeNull();
+    expect(observer.records[0]?.degraded).toBe(false);
+  });
+
+  it('llm_active 回落 → 返回**规则轨**事件, 逐字一致', async () => {
+    const { classifier, observer } = makeClassifier({
+      llm: llmStub([failResponse('fetch_error')]),
+      modeConfig: { effectiveMode: 'llm_active', grayscaleSessions: new Set(['s1']) },
+    });
+
+    const events = await classifier.classifyAsync(EMPATHY_TEXT, { sessionId: 's1' });
+
+    expect(events).toEqual(rule.classify(EMPATHY_TEXT));
+    expect(observer.records[0]?.fallbackReason).toBe('fetch_error');
+    expect(observer.records[0]?.degraded).toBe(true);
+    expect(observer.records[0]?.modelKinds).toEqual([]);
+  });
+
+  it('全局 llm_active + 名单外场次 → 逐场 rule_only, 零模型轨副作用', async () => {
+    const { classifier, llm, observer } = makeClassifier({
+      llm: llmStub([okResponse({ kinds: ['holding_present'], confidence: 0.9 })]),
+      modeConfig: { effectiveMode: 'llm_active', grayscaleSessions: new Set(['other']) },
+    });
+
+    const events = await classifier.classifyAsync(EMPATHY_TEXT, { sessionId: 's1' });
+
+    expect(events).toEqual(rule.classify(EMPATHY_TEXT));
+    expect(llm.calls).toHaveLength(0);
+    expect(observer.records).toHaveLength(0);
+  });
+
+  it('llm_active + 考核场景 → 零 LLM (考核红线: 名单也放行不了)', async () => {
+    const { classifier, llm } = makeClassifier({
+      llm: llmStub([okResponse({ kinds: ['holding_present'], confidence: 0.9 })]),
+      modeConfig: { effectiveMode: 'llm_active', grayscaleSessions: new Set(['s1']) },
+      sessions: { s1: { tenantId: 't1', userId: 'u1', scenarioType: 'exam' } },
+    });
+
+    const events = await classifier.classifyAsync(EMPATHY_TEXT, { sessionId: 's1' });
+
+    expect(events).toEqual(rule.classify(EMPATHY_TEXT));
+    expect(llm.calls).toHaveLength(0);
+  });
+
+  it('总开关关 + 模式写着 llm_active → 装配层读到的是 rule_only (零 LLM)', async () => {
+    const config = resolveModelClassifierModeConfig(configStub({ ENGINE_MODEL_CLASSIFIER_EFFECTIVE_MODE: 'llm_active' }));
+    const { classifier, llm } = makeClassifier({ modeConfig: config });
+
+    const events = await classifier.classifyAsync(EMPATHY_TEXT, { sessionId: 's1' });
+
+    expect(events).toEqual(rule.classify(EMPATHY_TEXT));
+    expect(llm.calls).toHaveLength(0);
+  });
+
+  it('低置信回落**不计入熔断** (上游没挂, 只是这一轮把握不足)', async () => {
+    const { classifier, llm } = makeClassifier({
+      llm: llmStub([
+        okResponse({ kinds: ['holding_present'], confidence: 0.2 }),
+        okResponse({ kinds: ['holding_present'], confidence: 0.9 }),
+      ]),
+      modeConfig: { effectiveMode: 'llm_active', grayscaleSessions: new Set(['s1']) },
+      minConfidence: 0.6,
+      circuitThreshold: 1,
+    });
+
+    // 低置信 = **回落** → 规则轨等价事件 (模型事件**不许**漏进 core).
+    const first = await classifier.classifyAsync(EMPATHY_TEXT, { sessionId: 's1' });
+    expect(first).toEqual(rule.classify(EMPATHY_TEXT));
+
+    // 熔断阈值 = 1: 低置信**没**开闸 → 第二轮照样发 LLM, 且模型结果进 core.
+    const second = await classifier.classifyAsync(EMPATHY_TEXT, { sessionId: 's1' });
+    expect(llm.calls).toHaveLength(2);
+    expect(second).toEqual([{ kind: 'holding_present', matchedTerms: [], strength: 1 }]);
+  });
+
+  it('llm_active + 拿不到 sessionId → 零 LLM, 逐字回落规则轨', async () => {
+    const { classifier, llm } = makeClassifier({
+      llm: llmStub([okResponse({ kinds: ['holding_present'], confidence: 0.9 })]),
+      modeConfig: { effectiveMode: 'llm_active', grayscaleSessions: new Set(['s1']) },
+    });
+
+    const events = await classifier.classifyAsync(EMPATHY_TEXT, {});
+
+    expect(events).toEqual(rule.classify(EMPATHY_TEXT));
+    expect(llm.calls).toHaveLength(0);
+  });
+});
+
 describe('模型轨 · 观测表 (字段白名单 · 隐私红线)', () => {
   it('字段集合就是白名单 —— 装不下原文 / matchedTerms / 展示名', async () => {
     const { classifier, observer } = makeClassifier({ llm: llmStub([okResponse({ kinds: ['empathy'], confidence: 0.9 })]) });
@@ -766,5 +880,19 @@ describe('模型轨 · 内核契约 (路径 E: 可选异步成员)', () => {
       code: 'ENGINE_ABORTED',
     });
     expect(classify).not.toHaveBeenCalled();
+  });
+
+  it('D-7 接线 → 内核真的拿到**模型**事件 (不是规则轨那份)', async () => {
+    const { classifier } = makeClassifier({
+      llm: llmStub([okResponse({ kinds: ['holding_present'], confidence: 0.9 })]),
+      modeConfig: { effectiveMode: 'llm_active', grayscaleSessions: new Set(['s-kernel']) },
+      sessions: { 's-kernel': { tenantId: 't1', userId: 'u1', scenarioType: 'full_simulation' } },
+    });
+    const session = kernelSession(classifier);
+    const handle = session.openSession({ sessionId: 's-kernel', tenantId: 't1', visitorId: 'v1' });
+
+    const output = await session.turn(handle.handleId, { userText: EMPATHY_TEXT });
+
+    expect(output.events).toEqual(['holding_present']);
   });
 });

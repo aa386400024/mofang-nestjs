@@ -107,7 +107,7 @@ import { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js
 import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
 import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
 import { VOICE_TURN_BACKEND } from '../../voice/voice-turn-backend.port.js';
-import { resolveModelClassifierModeConfig } from '../cognition/model-classifier-mode.config.js';
+import { resolveModelClassifierModeConfig, type ModelClassifierEffectiveMode } from '../cognition/model-classifier-mode.config.js';
 import { RedisModelClassifierObserver } from '../cognition/model-classifier-observation.js';
 import { ModelEventClassifier } from '../cognition/model-event-classifier.js';
 import { resolveDeliberationModeConfig, type DeliberationModeConfig } from '../deliberation/deliberation-mode.config.js';
@@ -137,6 +137,24 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
  *   模块级单例 (不每次告警都 new 一个 Logger).
  */
 const wiringLogger = new Logger('EngineWiring');
+
+/**
+ * 模型轨是否需要装配到内核 / 门面 (D-7).
+ *
+ * ⚠️ **为什么是「非 rule_only」而不是「只有 llm_active」**: 影子与生效**两种形态都要挂** ——
+ *   影子挂 = 跑模型轨但结果只进旁路观测 (core events 逐字不变);
+ *   生效挂 = 模型轨结果替换规则轨结果进 core events 与 delta.
+ *   两种形态都需要分类器**在位**, 否则内核决策链里根本没有模型轨这一步.
+ *
+ * ⚠️ **逐场判定不在这里**: 灰度名单 / 考核红线由分类器**内部**的
+ *   resolveModelClassifierSessionMode 判 —— 装配期只管「全局形态要不要挂」.
+ *
+ * @param mode 全局生效模式
+ * @returns 该模式是否需要装配模型轨端口
+ */
+function isModelTrackWired(mode: ModelClassifierEffectiveMode): boolean {
+  return mode === 'shadow' || mode === 'llm_active';
+}
 
 @Module({
   imports: [
@@ -371,9 +389,11 @@ const wiringLogger = new Logger('EngineWiring');
           }`,
         );
         if (modeConfig.effectiveMode === 'llm_active') {
-          // 首版是**中间态**: 模型轨结果只进旁路观测, 不接 delta.
-          //   llm_active 通路留 D-2 —— 这里明确喊一声, 别让人以为已经生效了.
-          wiringLogger.warn('[d1] 模型轨 llm_active 通路本单**未接线** (留 D-2) —— 按 rule_only 运行');
+          // D-7: 模型轨**生效轨已装配** —— 名单内场次每轮关键路径多一次 LLM 往返,
+          //   模型轨事件替换规则轨结果进 core events 与 delta.
+          //   ⚠️ 逐场判定 (灰度名单 / 考核红线) 在分类器**内部**做 —— 这里只喊全局形态.
+          //   ⚠️ 只出形态提示, 不含会话 id / 心理内容 (隐私红线 AGENTS.md §5.4).
+          wiringLogger.warn('[d7] 模型轨 llm_active 生效轨已装配 —— 名单内场次每轮关键路径多一次 LLM 往返');
         }
         // 模型标识 (观测字段) —— 口径与 CounselorLlmJsonClient.resolveModel 一致.
         const modelId = config.get<string>(COUNSELOR_LLM_MODEL_ENV_KEY) ?? COUNSELOR_LLM_DEFAULT_MODEL;
@@ -430,10 +450,11 @@ const wiringLogger = new Logger('EngineWiring');
             //   不注入 = 内核决策链里根本没有审议这一步 (逐字零回归, 不是"结果一样").
             //   ⚠️ 会话白名单的逐场判定在钩子**内部**做 —— 装配期拿不到“当前是哪场会话”.
             ...(modeConfig.effectiveMode === 'llm_active' ? { deliberationHook } : {}),
-            // D-1 第二段: 模型轨事件分类器 —— **只在影子模式注入内核**.
+            // D-1 第二段 / D-7: 模型轨事件分类器 —— **只在影子 / 生效模式注入内核**.
             //   不注入 = 内核决策链里根本没有模型轨这一步 (逐字零回归, 不是“结果一样”).
-            //   ⚠️ llm_active 通路本单**未接线** (留 D-2) —— 所以这里只挂 shadow.
-            ...(modelClassifier.effectiveMode() === 'shadow' ? { classifier: modelClassifier } : {}),
+            //   ⚠️ 逐场判定 (灰度名单 / 考核红线) 在分类器**内部**做
+            //     (model-classifier-mode.config.ts) —— 装配期只管「全局形态要不要挂」.
+            ...(isModelTrackWired(modelClassifier.effectiveMode()) ? { classifier: modelClassifier } : {}),
           },
           // 状态仓储**单例**注入 (与上面那个 provider 是同一个实例).
           bdiStates,
@@ -494,9 +515,10 @@ const wiringLogger = new Logger('EngineWiring');
           //     (纯规则模式 = 压根没有审议路径 = 闸门一次都不会被调用).
           //   ⚠️ 门面只认窄端口 (DeliberationGatePort) —— 这里传的是实现, 门面不知道实现细节.
           gate,
-          // D-1 第二段: 模型轨跨轮上下文 (上一轮来访话语 + 清理挂点).
-          //   ⚠️ **只在影子模式挂** —— rule_only 时挂上去只会白白攒状态分桶 (内存涨).
-          ...(modelClassifier.effectiveMode() === 'shadow' ? { modelClassifierContext: modelClassifier } : {}),
+          // D-1 第二段 / D-7: 模型轨跨轮上下文 (上一轮来访话语 + 清理挂点).
+          //   ⚠️ **只在影子 / 生效模式挂** —— rule_only 时挂上去只会白白攒状态分桶 (内存涨).
+          //   ⚠️ 生效模式下也挂 = 跨轮状态继续攒 (代价是内存, 收益是模型轨能拿到上一轮来访话语).
+          ...(isModelTrackWired(modelClassifier.effectiveMode()) ? { modelClassifierContext: modelClassifier } : {}),
         }),
       inject: [
         ENGINE_SESSION_PORT,
