@@ -2,7 +2,7 @@
 
 > 2026-11-12 · 执行方：MiniMax Code · 分支 `integrate` · 基线 HEAD `7b80615`
 > 任务单：[`phase2.5-d1-model-classifier-implementation-task-2026-11-12.md`](phase2.5-d1-model-classifier-implementation-task-2026-11-12.md)（已归档至本目录，状态行已改为 ✅）
-> 事实源：[预研结论](../pending/phase2.5-d1-model-classifier-implementation-research-result-2026-11-12.md)（S1–S9 / F1–F5 / 风险 A–R，已验收通过）
+> 事实源：[预研结论](../../archive/phase2.5-d1-model-classifier-implementation-research-result-2026-11-12.md)（S1–S9 / F1–F5 / 风险 A–R，已验收通过）
 > 前序：[D-1 第一段取证交付记录](phase2.5-d1-event-classifier-evidence-implementation-2026-11-12.md)
 
 ---
