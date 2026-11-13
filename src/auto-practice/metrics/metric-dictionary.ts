@@ -16,7 +16,8 @@
 //     strategy.<name>.*       策略计数与率
 //     session.*               场次级汇总 (零变化/出口分布)
 //     pipeline.*              管道健康 (复用既有口径)
-//     exploration.rate        探索率
+//     exploration.rate        探索率 (场次比例)
+//     exploration.character_coverage  探索角色覆盖率 (角色比例 · 结构观测)
 //     event.positive.rate     正事件率
 
 /** 指标的度量单位 (决定取值域与展示方式). */
@@ -253,7 +254,26 @@ const SCALAR_METRICS: readonly MetricDef[] = [
     direction: 'higher_is_better',
     bounds: RATIO_BOUNDS,
     nullable: false,
-    definition: '至少一轮出现 affective_exploration / cognitive_exploration 的场次数 ÷ 纳入场次数',
+    // C5-1: 补档位适用标注 (数值口径与 direction **一字不改**).
+    //   探索属**长会话 (40 轮档)** 观测 —— 12 轮 intake 档判据刻意不验探索
+    //   (见 acceptance-thresholds.ts 的 INTAKE_EXPECTATIONS 注释), 本指标不参与合格判定.
+    definition:
+      '至少一轮出现 affective_exploration / cognitive_exploration 的场次数 ÷ 纳入场次数。' +
+      '属长会话（40 轮档）观测口径：12 轮 intake 档判据不验探索（见 acceptance-thresholds.ts 注释），不参与合格判定',
+  },
+  {
+    // C5-1 (I-16 / I-24): 角色级探索覆盖 —— 与上面的场次比例**并存**,
+    //   回答"多少角色完全 0 探索" (结构性观测), 不替换、不改写旧键口径.
+    id: 'exploration.character_coverage',
+    label: '探索角色覆盖率',
+    unit: 'ratio',
+    direction: 'neutral',
+    bounds: RATIO_BOUNDS,
+    nullable: false,
+    definition:
+      '本批纳入场次覆盖到的不同角色中，至少一场出现 affective_exploration / cognitive_exploration 的角色数 ÷ 角色数；' +
+      '回答「多少角色完全 0 探索」，与场次比例 exploration.rate 口径不同。属长会话（40 轮档）观测口径，' +
+      '12 轮 intake 档判据不验探索，本指标不参与合格判定。',
   },
   {
     id: 'event.positive.rate',
@@ -399,10 +419,12 @@ function buildDisfluencyMetrics(): readonly MetricDef[] {
  * · dict-v2 (2026-11-12): Phase3 P0 新增 text.disfluency.* 八项 (文字层真人度);
  * · dict-v3 (2026-11-12): D-2 事件类型拆分 —— 新增两类在场状态事件的
  *   event.holding_present.{count,rate} / event.cold_absent.{count,rate} 四项.
+ * · dict-v4 (2026-11-13): C-5-1 探索指标分层 —— 新增 exploration.character_coverage
+ *   (探索角色覆盖率 · 角色比例 · 结构观测), 并给 exploration.rate 补长会话档位标注.
  *   ⚠️ **版本必须跟着字典内容走**: 两份不同的字典共用同一个版本号 =
  *     前端缓存不失效 + 审计比对看不出字典换过 (Phase3 P0 已是同款约定).
  */
-export const METRIC_DICTIONARY_VERSION = 'dict-v3';
+export const METRIC_DICTIONARY_VERSION = 'dict-v4';
 
 /** 完整指标字典 (单一真相源). */
 export const METRIC_DICTIONARY: readonly MetricDef[] = [

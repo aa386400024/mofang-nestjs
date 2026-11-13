@@ -216,3 +216,97 @@ describe('WP-K · 确定性与合规', () => {
     check(result);
   });
 });
+
+describe('C5-1 · 探索指标分层 (角色覆盖 · 纯观测)', () => {
+  /** 跨角色 / 跨模式的固定场次: vpt_a 两场 (各含探索), vpt_b 一场 (无探索). */
+  const MIXED = [
+    session({
+      debugSessionId: 'd1',
+      characterSlug: 'vpt_a',
+      counselorModeId: 'expert',
+      traces: [trace(1, { strategy: 'affective_exploration' }), trace(2)],
+    }),
+    session({
+      debugSessionId: 'd2',
+      characterSlug: 'vpt_b',
+      counselorModeId: 'expert',
+      traces: [trace(1), trace(2)],
+    }),
+    session({
+      debugSessionId: 'd3',
+      characterSlug: 'vpt_a',
+      counselorModeId: 'cold',
+      traces: [trace(1, { strategy: 'cognitive_exploration' }), trace(2)],
+    }),
+  ];
+
+  it('切片内 exploration.rate = 各自切片内的场次比例 (不只是 sessions 数)', () => {
+    const result = computeBatchSnapshot(MIXED, [], 3, context());
+
+    // 全局: 3 场里 2 场含探索 → 场次比例 2/3.
+    expect(result.metrics['exploration.rate']).toBe(0.666667);
+    // byMode[expert]: 2 场里 1 场含探索 → 1/2.
+    expect(result.byMode['expert']?.metrics['exploration.rate']).toBe(0.5);
+    // byMode[cold]: 1 场含探索 → 1.
+    expect(result.byMode['cold']?.metrics['exploration.rate']).toBe(1);
+    // byCharacter[vpt_a]: 2 场都含探索 → 1; byCharacter[vpt_b]: 0 场含探索 → 0.
+    expect(result.byCharacter['vpt_a']?.metrics['exploration.rate']).toBe(1);
+    expect(result.byCharacter['vpt_b']?.metrics['exploration.rate']).toBe(0);
+  });
+
+  it('覆盖率 a: 多角色仅一个含探索 → 1/N; 与场次比例 rate 口径不同 (两值分别断言)', () => {
+    const result = computeBatchSnapshot(MIXED, [], 3, context());
+
+    // 角色维度: 覆盖到的角色 = {vpt_a, vpt_b} = 2; 含探索的角色 = {vpt_a} = 1 → 1/2.
+    expect(result.metrics['exploration.character_coverage']).toBe(0.5);
+    // 场次维度: 3 场里 2 场含探索 → 2/3 (与覆盖率**不是**同一个数).
+    expect(result.metrics['exploration.rate']).toBe(0.666667);
+  });
+
+  it('覆盖率 b: 全部角色都至少有 1 场探索 → 1', () => {
+    const allExplored = [
+      session({ characterSlug: 'vpt_a', traces: [trace(1, { strategy: 'affective_exploration' }), trace(2)] }),
+      session({ characterSlug: 'vpt_b', traces: [trace(1, { strategy: 'cognitive_exploration' }), trace(2)] }),
+    ];
+    const result = computeBatchSnapshot(allExplored, [], 2, context());
+
+    expect(result.metrics['exploration.character_coverage']).toBe(1);
+    expect(result.metrics['exploration.rate']).toBe(1);
+  });
+
+  it('覆盖率 c: 空场次集合 → 0 (不抛错, 不为 null)', () => {
+    const result = computeBatchSnapshot([], [], 0, context());
+
+    expect(result.metrics['exploration.character_coverage']).toBe(0);
+    expect(result.metrics['exploration.rate']).toBe(0);
+    expect(result.byMode).toEqual({});
+    expect(result.byCharacter).toEqual({});
+  });
+
+  it('覆盖率 d: 同一角色多场只算一个角色 (角色级去重, 不按场次重复计数)', () => {
+    const result = computeBatchSnapshot(MIXED, [], 3, context());
+
+    // vpt_a 跑了两场 —— 若按场次计, 分子分母会变成 2/3 = 0.333333.
+    expect(result.metrics['exploration.character_coverage']).toBe(0.5);
+    expect(result.metrics['exploration.rate']).toBe(0.666667);
+  });
+
+  it('覆盖率 e: 切片退化 —— byCharacter 切片值 ∈ {0, 1}; byMode 分组内口径正确', () => {
+    const result = computeBatchSnapshot(MIXED, [], 3, context());
+
+    // 单角色切片: 有探索 → 1, 无探索 → 0 (不是场次比例, 也不是 1/N).
+    expect(result.byCharacter['vpt_a']?.metrics['exploration.character_coverage']).toBe(1);
+    expect(result.byCharacter['vpt_b']?.metrics['exploration.character_coverage']).toBe(0);
+    // byMode[expert] 内含 vpt_a / vpt_b 两个角色 → 1/2; byMode[cold] 内只有 vpt_a → 1.
+    expect(result.byMode['expert']?.metrics['exploration.character_coverage']).toBe(0.5);
+    expect(result.byMode['cold']?.metrics['exploration.character_coverage']).toBe(1);
+  });
+
+  it('覆盖率 f: 确定性 —— 同输入两次快照深相等 (除 computedAt), 新指标值一致', () => {
+    const a = computeBatchSnapshot(MIXED, [], 3, context());
+    const b = computeBatchSnapshot(MIXED, [], 3, context());
+
+    expect({ ...a, computedAt: '' }).toEqual({ ...b, computedAt: '' });
+    expect(a.metrics['exploration.character_coverage']).toBe(b.metrics['exploration.character_coverage']);
+  });
+});

@@ -237,6 +237,30 @@ function computeZeroMotionBreakdown(sessions: readonly SessionComputationInput[]
   return { total, closure, idle: total - closure };
 }
 
+/**
+ * 角色级探索覆盖 (C5-1 · I-16 / I-24).
+ *
+ * 分子: 至少一场含探索策略的**角色**数; 分母: 本批纳入场次覆盖到的不同角色数.
+ * 角色级去重 —— 同一角色跑多场只算一个角色 (分子分母同口径).
+ * 空集 (无纳入场次) → 0 (不 null、不抛错).
+ *
+ * 为什么与 `exploration.rate` 并存: rate 是**场次比例** (含探索的场次 ÷ 场次),
+ * 回答"多少场有探索"; coverage 是**角色比例**, 回答"多少角色完全 0 探索" ——
+ * I-16 的结构问题 (一人 100% 探索掩盖其余 7 人 0 探索) 只有后者能复算.
+ *
+ * 纯函数: 只读 `characterSlug` 与 `traces[].strategy` (合规投影字段),
+ * 不接触台词 / prompt / kernelState / 展示名.
+ */
+function computeCharacterExplorationCoverage(sessions: readonly SessionComputationInput[]): number {
+  const characters = new Set<string>();
+  const exploredCharacters = new Set<string>();
+  for (const session of sessions) {
+    characters.add(session.characterSlug);
+    if (session.traces.some((trace) => EXPLORATION_STRATEGIES.has(trace.strategy))) exploredCharacters.add(session.characterSlug);
+  }
+  return characters.size > 0 ? exploredCharacters.size / characters.size : 0;
+}
+
 function computeSummaryMetrics(
   sessions: readonly SessionComputationInput[],
   pipeline: PipelineContext,
@@ -248,6 +272,9 @@ function computeSummaryMetrics(
     if (session.traces.some((trace) => EXPLORATION_STRATEGIES.has(trace.strategy))) explorationSessions += 1;
   }
   metrics['exploration.rate'] = round6(sessions.length > 0 ? explorationSessions / sessions.length : 0);
+  // C5-1 (I-16 / I-24): 角色级探索覆盖 —— 回答"多少角色完全 0 探索".
+  //   与 `exploration.rate` (场次比例) 口径**不同**, 两者并存, 互不替代.
+  metrics['exploration.character_coverage'] = round6(computeCharacterExplorationCoverage(sessions));
   metrics['session.zero_motion'] = zeroMotionBreakdown.total;
 
   const outcomeCounts: Record<string, number> = {};

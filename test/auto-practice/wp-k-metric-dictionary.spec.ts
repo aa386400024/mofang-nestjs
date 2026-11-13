@@ -88,8 +88,8 @@ describe('Phase3 P0 · text.disfluency.* 指标 (dict-v2 起)', () => {
     'text.disfluency.trailoff_per_turn',
   ];
 
-  it('字典版本已升到 dict-v3 (D-2 事件类型拆分后)', () => {
-    expect(METRIC_DICTIONARY_VERSION).toBe('dict-v3');
+  it('字典版本已升到 dict-v4 (C5-1 探索指标分层后; 版本必须跟着字典内容走)', () => {
+    expect(METRIC_DICTIONARY_VERSION).toBe('dict-v4');
   });
 
   it('八个新键齐备, 全部 nullable=false 且方向 neutral', () => {
@@ -135,7 +135,40 @@ describe('D-2 · 两类在场状态事件的指标登记 (dict-v3)', () => {
     }
   });
 
-  it('字典版本已随内容升到 dict-v3 (两份字典不共用同一版本号)', () => {
-    expect(METRIC_DICTIONARY_VERSION).toBe('dict-v3');
+  it('字典版本已随内容升到 dict-v4 (两份字典不共用同一版本号)', () => {
+    expect(METRIC_DICTIONARY_VERSION).toBe('dict-v4');
+  });
+});
+
+describe('C5-1 · 探索角色覆盖指标 (dict-v4)', () => {
+  it('新键齐备: ratio / neutral / nullable=false / bounds [0,1]', () => {
+    const metric = METRIC_BY_ID.get('exploration.character_coverage');
+
+    expect(metric).toBeDefined();
+    expect(metric?.id).toBe('exploration.character_coverage');
+    expect(metric?.unit).toBe('ratio');
+    expect(metric?.direction).toBe('neutral');
+    expect(metric?.nullable).toBe(false);
+    expect(metric?.bounds).toEqual({ min: 0, max: 1 });
+    expect(metric?.label.length).toBeGreaterThan(0);
+    expect(metric?.definition.length).toBeGreaterThan(0);
+  });
+
+  it('新键进 NON_NULLABLE_IDS (计算层缺赋值即失败)', () => {
+    expect(NON_NULLABLE_IDS).toContain('exploration.character_coverage');
+  });
+
+  it('方向 neutral → 不参与跨批回归的好坏判定 (回归判定器整条跳过 neutral 指标)', () => {
+    expect(METRIC_BY_ID.get('exploration.character_coverage')?.direction).toBe('neutral');
+  });
+
+  it('旧键 exploration.rate 仍在且口径未改 (场次比例), 只补了长会话档位标注', () => {
+    const old = METRIC_BY_ID.get('exploration.rate');
+
+    expect(old).toBeDefined();
+    expect(old?.unit).toBe('ratio');
+    expect(old?.direction).toBe('higher_is_better');
+    expect(old?.definition).toContain('场次数 ÷ 纳入场次数');
+    expect(old?.definition).toContain('40 轮档');
   });
 });
