@@ -1,0 +1,93 @@
+diff --git a/src/admin-debug/event-tag-labels.ts b/src/admin-debug/event-tag-labels.ts
+index b86eca5..294f72f 100644
+--- a/src/admin-debug/event-tag-labels.ts
++++ b/src/admin-debug/event-tag-labels.ts
+@@ -3,7 +3,7 @@
+ //   边界: 纯常量 + 一个查表函数; 零 IO / 零依赖.
+ //
+ //   为什么映射要由后端出 (而不是前端各抄一份):
+-//     内核的 CounselorEventKind 有 **11** 类 (见 engine-core/domain/events/session-event.ts),
++//     内核的 CounselorEventKind 有 **13** 类 (见 engine-core/domain/events/session-event.ts),
+ //     而调试面板 (admin-dashboard/src/views/DebugChat.vue) 里那份手写映射只有 6~8 个键:
+ //       · 缺的 7 个: acceptance / affirmation / judgment / preaching / minimizing /
+ //                    boundary_cross / sensitive_touch —— 面板上会直接显示英文原值;
+@@ -30,7 +30,7 @@ import type { CounselorEventKind } from '../engine-core/index.js';
+ /**
+  * 事件分类 → 中文标签 (权威映射).
+  *
+- * 键集合与内核 CounselorEventKind **严格一致** (11 类); 少一个就是面板上少一盏灯.
++ * 键集合与内核 CounselorEventKind **严格一致** (13 类); 少一个就是面板上少一盏灯.
+  */
+ export const COUNSELOR_EVENT_LABELS: Readonly<Record<CounselorEventKind, string>> = {
+   empathy: '共情回应',
+@@ -44,6 +44,10 @@ export const COUNSELOR_EVENT_LABELS: Readonly<Record<CounselorEventKind, string>
+   boundary_cross: '越界',
+   sensitive_touch: '触及敏感议题',
+   neutral: '中性表达',
++  // V2026-11-12 (D-2): 两类**在场状态**事件 (进 core 联合后必须同步登记).
++  //   展示名以任务单 §3.1-7 的定稿为准, 执行方不另造近义词.
++  holding_present: '稳定在场',
++  cold_absent: '冷漠缺席',
+ };
+ 
+ /**
+diff --git a/src/auto-practice/metrics/metric-dictionary.ts b/src/auto-practice/metrics/metric-dictionary.ts
+index 0311ab9..4f4ef70 100644
+--- a/src/auto-practice/metrics/metric-dictionary.ts
++++ b/src/auto-practice/metrics/metric-dictionary.ts
+@@ -63,7 +63,13 @@ const DIMENSION_META: Readonly<Record<TrackedDimension, { readonly label: string
+   style: { label: '风格阻抗', direction: 'neutral' },
+ };
+ 
+-/** 11 种事件 (与 CounselorEventKind 对齐; 含 neutral). */
++/**
++ * 13 种事件 (与 CounselorEventKind 对齐; 含 neutral).
++ *
++ * V2026-11-12 (D-2): 追加两类**在场状态**事件 —— `holding_present` / `cold_absent`.
++ *   之前它们只是模型轨的旁路标签, 批次指标**看不见**; 进 core 联合后必须同步登记,
++ *   否则「事件种类表与内核不一致」= 指标字典静默漏统计 (D-1 预研结论 §4 已点名).
++ */
+ export const TRACKED_EVENTS = [
+   'empathy',
+   'acceptance',
+@@ -76,11 +82,23 @@ export const TRACKED_EVENTS = [
+   'boundary_cross',
+   'sensitive_touch',
+   'neutral',
++  'holding_present',
++  'cold_absent',
+ ] as const;
+ 
+ export type TrackedEvent = (typeof TRACKED_EVENTS)[number];
+ 
+-/** 正向事件 (用于正事件率). */
++/**
++ * 正向事件 (用于正事件率).
++ *
++ * ⚠️ **D-2 默认不纳入 `holding_present`** —— 这是**待决**的临床口径, 不是结论.
++ *   理由: `holding_present` (稳定在场) 临床上倾向微正向 (草案候选: safety +0.002 /
++ *   bond +0.001), 但「在场的有效中性」算不算「正事件」属临床判断 ——
++ *   放进正事件率会让「正事件率」这个指标同时混入「行为动作」与「在场状态」两类东西,
++ *   口径变糊. 任务单 §3.1-8 明确: **默认不纳入**, 留标定批次拍板.
++ *   此刻它也**不可能**出现: 规则轨词表不扩 (本单不动 event-lexicon), 模型轨走 shadow
++ *   旁路不落 core events —— 两类新 kind 在指标里恒为 0.
++ */
+ export const POSITIVE_EVENTS: readonly TrackedEvent[] = ['empathy', 'acceptance', 'normalization', 'open_probe', 'affirmation'];
+ 
+ /** 8 种行为策略 (与 BehaviorStrategy 对齐). */
+@@ -378,9 +396,13 @@ function buildDisfluencyMetrics(): readonly MetricDef[] {
+  * 改字典条目 / 口径 / 取值域时手动递增; 供前端缓存与审计比对.
+  *
+  * · dict-v1 (2026-11-11): WP-K 首批指标;
+- * · dict-v2 (2026-11-12): Phase3 P0 新增 text.disfluency.* 八项 (文字层真人度).
++ * · dict-v2 (2026-11-12): Phase3 P0 新增 text.disfluency.* 八项 (文字层真人度);
++ * · dict-v3 (2026-11-12): D-2 事件类型拆分 —— 新增两类在场状态事件的
++ *   event.holding_present.{count,rate} / event.cold_absent.{count,rate} 四项.
++ *   ⚠️ **版本必须跟着字典内容走**: 两份不同的字典共用同一个版本号 =
++ *     前端缓存不失效 + 审计比对看不出字典换过 (Phase3 P0 已是同款约定).
+  */
+-export const METRIC_DICTIONARY_VERSION = 'dict-v2';
++export const METRIC_DICTIONARY_VERSION = 'dict-v3';
+ 
+ /** 完整指标字典 (单一真相源). */
+ export const METRIC_DICTIONARY: readonly MetricDef[] = [

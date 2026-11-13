@@ -1,0 +1,114 @@
+diff --git a/src/engine-core/cognition/state-transition.ts b/src/engine-core/cognition/state-transition.ts
+index 2bf85e0..86b7c86 100644
+--- a/src/engine-core/cognition/state-transition.ts
++++ b/src/engine-core/cognition/state-transition.ts
+@@ -177,8 +177,9 @@ const ZERO: DeltaVector = {
+  *
+  * WP15: 每个事件上方加一行**幅度声明** —— 新增算子时对照单回合 cap 看一眼:
+  *   某维度单事件 |delta| 超过该维度单回合 cap 的 80% → 注释里标 ⚠️ 接近 cap.
+- *   (现有 11 个算子里最高比值是 75%: boundary_cross.style / sensitive_touch.arousal,
+- *    都还没到 80% 警戒线, 所以没有 ⚠️ 标记.)
++ *   (现有 13 个算子里最高比值是 75%: boundary_cross.style / sensitive_touch.arousal,
++ *    都还没到 80% 警戒线, 所以没有 ⚠️ 标记.
++ *    D-2 新增的两类在场状态事件种子为 ZERO, 不参与幅度比对.)
+  *
+  * WP42: 加 **safety / bond** 两列 (同盟三维).
+  *   ⚠️ 系数是**工程种子值, 非临床标定** —— 待真实对练校准.
+@@ -348,6 +349,14 @@ const DELTA_TABLE: Readonly<Record<CounselorEventKind, DeltaVector>> = {
+   },
+   // 中性算子: 零 delta (不推进任何维度)
+   neutral: ZERO,
++  // V2026-11-12 治本 (D-2 · 事件类型拆分): 两类**在场状态**事件, 种子 = ZERO.
++  //   ⚠️ **刻意是零向量**: 临床方向与幅度属临床口径, 由**标定批次**经
++  //     `DeltaTableConfig.deltas` 覆写落地 —— 基础表不承担临床参数.
++  //     (草案候选幅度 holding_present: safety +0.002 / bond +0.001;
++  //      cold_absent: trust -0.002 —— **只登记为候选**, 不进本表.)
++  //   零回归: 缺省时两类事件的 delta 与改造前逐字一致 (= 不推进任何维度).
++  holding_present: ZERO,
++  cold_absent: ZERO,
+ };
+ 
+ /**
+diff --git a/src/engine-core/domain/engine-session.types.ts b/src/engine-core/domain/engine-session.types.ts
+index 384b17f..9a030df 100644
+--- a/src/engine-core/domain/engine-session.types.ts
++++ b/src/engine-core/domain/engine-session.types.ts
+@@ -23,7 +23,7 @@
+ 
+ import type { BdiSnapshot } from './bdi-snapshot.js';
+ import type { CharacterProfile } from './character-profile.js';
+-import type { CounselorEventKind } from './events/session-event.js';
++import type { CounselorEventKind, SessionEvent } from './events/session-event.js';
+ import type { Intention } from './intention.js';
+ import type { MemoryHit } from './ports/memory.store.js';
+ import type { SafetyVerdict } from './safety/safety-types.js';
+@@ -213,6 +213,21 @@ export interface EngineTurnOutput {
+    *   - 可选 = 向后兼容: 不传 = 行为与本字段引入前**逐字一致** (零回归).
+    */
+   readonly events?: readonly CounselorEventKind[];
++  /**
++   * 本轮事件**明细** (kind + 命中词 + 强度) —— 只读观测, 不参与任何决策.
++   *
++   * V2026-11-12 治本 (D-2 · 事件类型拆分): 新增, 为的是**把词表命中证据交出去**.
++   *   为什么需要: `events` 只带 kind, 命中词 (matchedTerms) 在内核出参的投影里丢了.
++   *   审计层要记命中词, 唯一的办法是内核把明细一起给出 —— 否则审计要么自己重跑一遍
++   *   分类器 (C3 已禁: 那会让审计与内核漂移), 要么就永远记不到证据.
++   *
++   * 边界:
++   *   - **不含咨询师原话**: matchedTerms 只装**词表命中词 / 正则原文**, 不是话;
++   *   - 不改快照 / Intention / 轨迹游标 —— 纯挂出参的观测字段;
++   *   - 可选 = 向后兼容: 不传 = 行为与本字段引入前**逐字一致** (零回归);
++   *   - 与 `events` 同时出现 (内核同一分支一起填), 旧消费端读 `events` 路径不变.
++   */
++  readonly eventDetails?: readonly SessionEvent[];
+   /**
+    * 本轮落库后的 BDI 快照版本号 (WP65).
+    *
+diff --git a/src/engine-core/domain/events/session-event.ts b/src/engine-core/domain/events/session-event.ts
+index bded185..d4a1bed 100644
+--- a/src/engine-core/domain/events/session-event.ts
++++ b/src/engine-core/domain/events/session-event.ts
+@@ -9,6 +9,15 @@
+  * 负向: 评判 / 说教 / 淡化 / 越界;
+  * 触发: 触碰敏感议题;
+  * neutral: 未命中任何规则 (迁移 delta = 0).
++ *
++ * V2026-11-12 治本 (D-2 · 事件类型拆分): 追加两类**在场状态**事件.
++ *   · holding_present —— 稳定在场的有效中性 (结构化过渡 / 陪着 / 不评判也不机械).
++ *   · cold_absent    —— 实质缺席 (心不在焉 / 敷衍 / 模板化 / 只顾自己).
++ *   为什么单独拆: 规则轨把这两类都吞进 neutral, 同乘 ZERO ——
++ *   前者临床应微正向、后者临床应零或负向, 两者都测不出来 (台账 I-18).
++ *   ⚠️ 这两类是**状态类**而非**行为动作类** —— 与上面十种行为算子不同层.
++ *   ⚠️ DELTA_TABLE 里的种子向量 = ZERO (零回归): 临床方向与幅度由标定批次
++ *     经 DeltaTableConfig 覆写落地, 基础表不承担临床参数.
+  */
+ export type CounselorEventKind =
+   | 'empathy'
+@@ -21,7 +30,11 @@ export type CounselorEventKind =
+   | 'minimizing'
+   | 'boundary_cross'
+   | 'sensitive_touch'
+-  | 'neutral';
++  | 'neutral'
++  /** 稳定在场的有效中性 (D-2 新增; 种子 delta = ZERO, 临床增量待标定). */
++  | 'holding_present'
++  /** 实质缺席 / 敷衍 (D-2 新增; 种子 delta = ZERO, 临床增量待标定). */
++  | 'cold_absent';
+ 
+ /** 一条标准会话事件. */
+ export interface SessionEvent {
+diff --git a/src/engine-core/in-memory/in-memory-engine-session.ts b/src/engine-core/in-memory/in-memory-engine-session.ts
+index 96e7da0..cc01b8b 100644
+--- a/src/engine-core/in-memory/in-memory-engine-session.ts
++++ b/src/engine-core/in-memory/in-memory-engine-session.ts
+@@ -501,7 +501,9 @@ export class InMemoryEngineSession implements EngineSessionPort {
+       // 安全判定只在非 pass 时挂出 (pass 的空块会污染出参, 破坏零回归).
+       ...(safetyVerdict.level === 'pass' ? {} : { safety: safetyVerdict }),
+       // WP38: 事件分类 (只读观测) —— 内核自己填, 适配层只透传; 空则不挂 (零回归).
+-      ...(events.length > 0 ? { events: events.map((event) => event.kind) } : {}),
++      // D-2: 一并挂**事件明细** (kind + 命中词 + 强度) —— 旧 `events` 投影逐字不变,
++      //   审计层因此能拿到内核自己算出的命中词, 不必再跑一遍分类器 (C3 的口径).
++      ...(events.length > 0 ? { events: events.map((event) => event.kind), eventDetails: [...events] } : {}),
+       // WP65: 本轮落库后的快照版本号 (只读观测) —— 适配层用它判断异步审议结果有没有过期.
+       //   取的是**仓储返回的** revision (归一化后的权威值), 不是本地算的那个.
+       revision: saved.revision,

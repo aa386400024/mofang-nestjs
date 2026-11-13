@@ -1,0 +1,133 @@
+diff --git a/test/engine-adapters/wp60-delta-table-config.spec.ts b/test/engine-adapters/wp60-delta-table-config.spec.ts
+index bd771df..4da260e 100644
+--- a/test/engine-adapters/wp60-delta-table-config.spec.ts
++++ b/test/engine-adapters/wp60-delta-table-config.spec.ts
+@@ -150,7 +150,7 @@ describe('WP60 · delta 规则表装配 (env → DeltaTableConfig)', () => {
+       'sensitive_touch',
+       'neutral',
+     ];
+-    const envKeys: Readonly<Record<CounselorEventKind, string>> = {
++    const envKeys: Readonly<Record<CounselorEventKind, string | undefined>> = {
+       empathy: 'ENGINE_DELTA_EMPATHY',
+       acceptance: 'ENGINE_DELTA_ACCEPTANCE',
+       normalization: 'ENGINE_DELTA_NORMALIZATION',
+@@ -162,10 +162,19 @@ describe('WP60 · delta 规则表装配 (env → DeltaTableConfig)', () => {
+       boundary_cross: 'ENGINE_DELTA_BOUNDARY_CROSS',
+       sensitive_touch: 'ENGINE_DELTA_SENSITIVE_TOUCH',
+       neutral: 'ENGINE_DELTA_NEUTRAL',
++      // D-2: 两类新 kind 本单**刻意不开 env 通道** (任务单 §3.2「不新增 env 键」) ——
++      //   临床幅度是标定批次的事, 那一单再扩这两个字面量读取.
++      //   这里显式写成 undefined: 联合一变, 编译仍逼着人显式决定, 不会静默漏掉.
++      holding_present: undefined,
++      cold_absent: undefined,
+     };
+ 
+     const env: Record<string, string> = {};
+-    for (const kind of kinds) env[envKeys[kind]] = '{"trust":0.11}';
++    for (const kind of kinds) {
++      const key = envKeys[kind];
++      if (key === undefined) continue;
++      env[key] = '{"trust":0.11}';
++    }
+ 
+     const { config, warnings } = assemble(env);
+ 
+@@ -174,4 +183,17 @@ describe('WP60 · delta 规则表装配 (env → DeltaTableConfig)', () => {
+       expect(config.deltas[kind]).toEqual({ trust: 0.11 });
+     }
+   });
++
++  it('D-2: 两类新 kind 刻意**没有** env 通道 (临床幅度留标定批次)', () => {
++    // 任务单 §3.2 明确「不新增 env 键」—— 临床幅度由标定批次经 DeltaTableConfig 覆写落地.
++    //   这里把「没有通道」钉成显式事实: 填了 env 也不生效, 且**不告警** (不是解析失败).
++    const { config, warnings } = assemble({
++      ENGINE_DELTA_HOLDING_PRESENT: '{"trust":0.11}',
++      ENGINE_DELTA_COLD_ABSENT: '{"trust":0.11}',
++    });
++
++    expect(config.deltas.holding_present).toBeUndefined();
++    expect(config.deltas.cold_absent).toBeUndefined();
++    expect(warnings).toEqual([]);
++  });
+ });
+diff --git a/test/engine-adapters/wp63-deliberation-schema.spec.ts b/test/engine-adapters/wp63-deliberation-schema.spec.ts
+index e07cd2a..ee9e9bc 100644
+--- a/test/engine-adapters/wp63-deliberation-schema.spec.ts
++++ b/test/engine-adapters/wp63-deliberation-schema.spec.ts
+@@ -75,6 +75,10 @@ const KERNEL_EVENT_KINDS: readonly CounselorEventKind[] = [
+   'boundary_cross',
+   'sensitive_touch',
+   'neutral',
++  // V2026-11-12 (D-2): 两类**在场状态**事件进 core 联合 —— 本列表是「内核枚举的运行时基线」,
++  //   不跟着改就会让下面的断言与内核脱节 (那正是这份清单存在的理由).
++  'holding_present',
++  'cold_absent',
+ ];
+ 
+ describe('WP63 · 审议输出 Schema 与可解释性', () => {
+@@ -99,15 +103,25 @@ describe('WP63 · 审议输出 Schema 与可解释性', () => {
+   });
+ 
+   describe('② DeliberationOperatorTag —— 规则对齐 + LLM 独有', () => {
+-    it('规则对齐的一组 = 内核事件类型去掉 neutral (10 个)', () => {
++    it('规则对齐的一组 = 内核事件类型去掉 neutral 与两类在场状态事件 (10 个)', () => {
+       expect(DELIBERATION_RULE_ALIGNED_TAGS).toHaveLength(10);
+       expect([...DELIBERATION_RULE_ALIGNED_TAGS].sort()).toEqual(
+-        KERNEL_EVENT_KINDS.filter((kind) => kind !== 'neutral')
++        KERNEL_EVENT_KINDS.filter((kind) => kind !== 'neutral' && kind !== 'holding_present' && kind !== 'cold_absent')
+           .slice()
+           .sort(),
+       );
+     });
+ 
++    it('D-2: 两类新 kind **刻意不在**规则对齐组 (规则轨词表不扩 → 产不出)', () => {
++      // 任务单 §3.1-9 的显式决定: 规则对齐组 = 「规则算子也会打」的标签.
++      //   两类新 kind 是模型轨独有的在场状态判定, 规则轨**产不出** (词表不扩),
++      //   纳入本组 = 把模型独有标签误算成规则可覆盖 (风险 T6).
++      expect(KERNEL_EVENT_KINDS).toContain('holding_present');
++      expect(KERNEL_EVENT_KINDS).toContain('cold_absent');
++      expect(DELIBERATION_RULE_ALIGNED_TAGS).not.toContain('holding_present');
++      expect(DELIBERATION_RULE_ALIGNED_TAGS).not.toContain('cold_absent');
++    });
++
+     it('中性事件 (neutral) 不进标签枚举 —— 它在 DELTA_TABLE 里是全零 delta', () => {
+       expect(DELIBERATION_RULE_ALIGNED_TAGS).not.toContain('neutral');
+       expect(DELIBERATION_OPERATOR_TAGS).not.toContain('neutral');
+diff --git a/test/engine-core/wp5-rendering.spec.ts b/test/engine-core/wp5-rendering.spec.ts
+index 7f5db49..72d3163 100644
+--- a/test/engine-core/wp5-rendering.spec.ts
++++ b/test/engine-core/wp5-rendering.spec.ts
+@@ -319,7 +319,10 @@ describe('WP5 · 渲染契约层', () => {
+       //   events (事件分类) —— 纯加字段, 不改任何决策与数值; 字段清单随之 +1.
+       //   V2026-11-06 治本 (WP65 · 预批准例外): 再加一个**只读观测字段** revision
+       //   (本轮落库后的快照版本号) —— 同样是纯加字段, 不参与任何决策; 字段清单再 +1.
++      //   V2026-11-12 治本 (D-2 · 例外批准): 再加一个**只读观测字段** eventDetails
++      //   (本轮事件明细: kind + 命中词 + 强度) —— 纯加字段, 不参与任何决策; 字段清单再 +1.
+       expect(Object.keys(output).toSorted((a, b) => a.localeCompare(b))).toEqual([
++        'eventDetails',
+         'events',
+         'intention',
+         'reply',
+diff --git a/test/engine-core/wp60-delta-table-config.spec.ts b/test/engine-core/wp60-delta-table-config.spec.ts
+index 77bfe9d..c945991 100644
+--- a/test/engine-core/wp60-delta-table-config.spec.ts
++++ b/test/engine-core/wp60-delta-table-config.spec.ts
+@@ -221,7 +221,7 @@ describe('WP60 · delta 规则表端口 (内核)', () => {
+     });
+   });
+ 
+-  describe('⑦ 事件类型穷举 (端口表覆盖全部 11 种事件)', () => {
++  describe('⑦ 事件类型穷举 (端口表覆盖全部 13 种事件)', () => {
+     it('每种事件都能被覆写, 且覆写是**替换**而不是叠加', () => {
+       const kinds: readonly CounselorEventKind[] = [
+         'empathy',
+@@ -235,6 +235,9 @@ describe('WP60 · delta 规则表端口 (内核)', () => {
+         'boundary_cross',
+         'sensitive_touch',
+         'neutral',
++        // D-2: 两类新 kind 也走同一条覆写路径 (种子 ZERO, 覆写由标定批次灌入).
++        'holding_present',
++        'cold_absent',
+       ];
+ 
+       for (const kind of kinds) {

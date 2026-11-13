@@ -1,0 +1,395 @@
+diff --git a/src/engine-adapters/cognition/model-event-classifier.ts b/src/engine-adapters/cognition/model-event-classifier.ts
+index 6bf0256..e69e024 100644
+--- a/src/engine-adapters/cognition/model-event-classifier.ts
++++ b/src/engine-adapters/cognition/model-event-classifier.ts
+@@ -199,7 +199,7 @@ export function normalizeModelClassifierFallbackCode(errorCode: string | null |
+ /**
+  * 比较两轨的标签集合是否一致 (集合语义, 顺序无关).
+  *
+- * ⚠️ **口径**: 规则轨的标签集 vs 模型轨的标签集 (core kind + 旁路标签).
++ * ⚠️ **口径**: 规则轨的标签集 vs 模型轨的标签集 (D-2 起两者都是 core kind 集合).
+  *   规则轨判 neutral 而模型判 holding_present → **不一致** —— 这正是本单要量的那个差.
+  *
+  * @param ruleKinds 规则轨标签
+@@ -234,8 +234,8 @@ const MODEL_CLASSIFIER_SYSTEM_PROMPT = [
+   '- boundary_cross: 越界 (承诺治愈 / 双重关系 / 替来访者做决定);',
+   '- sensitive_touch: 触碰来访者当下的敏感议题;',
+   '- neutral: 本轮没有命中任何行为标签;',
+-  '- holding_present: 咨询师在场但没有推进干预 —— 温和稳定地陪着, 不评判也不机械 (旁路标签);',
+-  '- cold_absent: 咨询师实质缺席 —— 心不在焉 / 敷衍 / 模板化 / 只顾自己 (旁路标签).',
++  '- holding_present: 咨询师在场但没有推进干预 —— 温和稳定地陪着, 不评判也不机械 (在场状态事件);',
++  '- cold_absent: 咨询师实质缺席 —— 心不在焉 / 敷衍 / 模板化 / 只顾自己 (在场状态事件).',
+   '',
+   '判定口径:',
+   '- 一轮可以给多个标签, 但只给确实成立的, 不要为了凑数多选;',
+@@ -550,13 +550,14 @@ export class ModelEventClassifier implements EventClassifier, ModelClassifierCon
+     turnIndex: number,
+   ): void {
+     const ruleNeutral = ruleEvents.every((event) => event.kind === 'neutral');
+-    const modelNeutral =
+-      outcome.labels === null
+-        ? ruleNeutral
+-        : outcome.labels.coreKinds.every((kind) => kind === 'neutral') && outcome.labels.sideLabels.length === 0;
++    // D-2: 两类新 kind 已进 coreKinds —— 「模型判 neutral」= coreKinds **全**是 neutral.
++    //   (D-1 时代还要额外判 sideLabels 为空; 现在两类本身就是 core kind,
++    //    判 holding_present / cold_absent 时 coreKinds 里就有非 neutral 项 → 自动不算 neutral.)
++    const modelNeutral = outcome.labels === null ? ruleNeutral : outcome.labels.coreKinds.every((kind) => kind === 'neutral');
+     state.consecutiveNeutral = ruleNeutral && modelNeutral ? state.consecutiveNeutral + 1 : 0;
+-    const cold = outcome.labels?.sideLabels.includes('cold_absent') ?? false;
+-    const holding = outcome.labels?.sideLabels.includes('holding_present') ?? false;
++    // D-2: 取值来源从 sideLabels 改到 coreKinds —— **判定语义不变** (见任务单 §5).
++    const cold = outcome.labels?.coreKinds.includes('cold_absent') ?? false;
++    const holding = outcome.labels?.coreKinds.includes('holding_present') ?? false;
+     const ruleHit = ruleEvents.some((event) => event.kind !== 'neutral');
+     state.consecutiveColdAbsent = cold && !holding && !ruleHit ? state.consecutiveColdAbsent + 1 : 0;
+     state.turnIndex = turnIndex;
+@@ -580,7 +581,8 @@ export class ModelEventClassifier implements EventClassifier, ModelClassifierCon
+     outcome: ModelTrackOutcome,
+   ): void {
+     const ruleKinds = ruleEvents.map((event) => event.kind as string);
+-    const modelKinds = outcome.labels ? [...outcome.labels.coreKinds, ...outcome.labels.sideLabels] : [];
++    // D-2: modelKinds 直接取 coreKinds (旁路标签层已取消).
++    const modelKinds = outcome.labels ? [...outcome.labels.coreKinds] : [];
+     const observation: ModelClassifierObservation = {
+       tenantId: session.tenantId,
+       sessionId,
+diff --git a/src/engine-adapters/cognition/model-event-mapping.ts b/src/engine-adapters/cognition/model-event-mapping.ts
+index 845bd6f..9221cc8 100644
+--- a/src/engine-adapters/cognition/model-event-mapping.ts
++++ b/src/engine-adapters/cognition/model-event-mapping.ts
+@@ -2,17 +2,15 @@
+ //   职责: 定义「模型轨判定 → core 事件 + 旁路标签」的**唯一**映射规则表 (纯函数, 零 IO).
+ //   边界: 纯类型 + 纯函数; 零 @nestjs / 零网络 / 零 prompt.
+ //
+-//   为什么是「映射回 core kind + 旁路标签」 (任务单 §7.3 方案 b):
+-//     · core 的 CounselorEventKind 联合**不动** —— 扩联合会打红两处穷尽 Record
+-//       (cognition/state-transition.ts 的 DELTA_TABLE / admin-debug/event-tag-labels.ts
+-//        的 COUNSELOR_EVENT_LABELS), 那是 D-2 的改动面, 本单不碰 (断言⑥⑦ 必须保持绿).
+-//     · 模型轨判出的两类新标签 (holding_present / cold_absent) 只进**旁路记录**,
+-//       不进 core events —— 首版是「中间态」: 产出新标签, 但不改 delta.
+-//     · 映射规则表从一开始就按 D-2 的最终形状写 → D-2 只换实现, 类型层不返工.
++//   V2026-11-12 治本 (D-2 · 事件类型拆分): 本表从「core kind + 旁路标签」**收敛**为
++//     「只有 core kind」. 两类新标签 (holding_present / cold_absent) 已进 core 联合,
++//     不再是旁路 —— 映射表不再有 sideLabels 分支, 每个标签都映射到自己的 core kind.
++//     为什么收: D-1 时代它们只进旁路 (core 联合不动, 断言⑥⑦ 保绿), D-2 例外批准了
++//     扩联合 —— 于是「旁路」这层中间结构没有存在价值了, 留着反而两套真相.
+ //
+-//   ⚠️ **映射是有损压缩**: 两类新标签在 D-2 接 delta 时, 映射表本身要重做.
+-//     本单**只落形状**, 不落任何 delta 方向 / 数值 / 权重斜率 / 缺席轮数阈值 ——
+-//     那些是 D-2 + 标定批次的事 (临床口径, 不由工程拍板).
++//   ⚠️ **D-2 仍然只落形状, 不落临床参数**: 两类新 kind 在 DELTA_TABLE 里的种子 =
++//     ZERO, 临床方向 / 幅度 / 权重斜率 / 缺席轮数阈值全部留标定批次 ——
++//     那是临床口径, 不由工程拍板 (台账 I-18 / 结构债草案 §4.2).
+ //
+ //   如何验证:
+ //     1. pnpm exec tsc -p tsconfig.build.json --noEmit 0 错
+@@ -28,7 +26,7 @@ import type { CounselorEventKind } from '../../engine-core/index.js';
+  *   写成 Record<CounselorEventKind, true> → 内核联合一变, 这里**编译报错**, 逼着补.
+  *   (与 admin-debug/event-tag-labels.ts 的 COUNSELOR_EVENT_LABELS 同一款纪律.)
+  *
+- * ⚠️ 本表**不含** holding_present / cold_absent —— 那两个是旁路标签, 不是 core 事件种类.
++ * V2026-11-12 (D-2): 本表已含 holding_present / cold_absent (两类**在场状态**事件).
+  */
+ const CORE_EVENT_KIND_TABLE: Readonly<Record<CounselorEventKind, true>> = {
+   empathy: true,
+@@ -42,6 +40,8 @@ const CORE_EVENT_KIND_TABLE: Readonly<Record<CounselorEventKind, true>> = {
+   boundary_cross: true,
+   sensitive_touch: true,
+   neutral: true,
++  holding_present: true,
++  cold_absent: true,
+ };
+ 
+ /**
+@@ -52,20 +52,15 @@ const CORE_EVENT_KIND_TABLE: Readonly<Record<CounselorEventKind, true>> = {
+ export const CORE_EVENT_KINDS: readonly CounselorEventKind[] = Object.keys(CORE_EVENT_KIND_TABLE) as CounselorEventKind[];
+ 
+ /**
+- * 旁路标签的**唯一**合法取值清单 (两类新标签).
++ * 模型轨的标签全集 = core 事件种类 (13 类).
+  *
+- * ⚠️ 这两个标签**不进 core events** —— 首版只进旁路记录 (D-2 才接 delta).
++ * V2026-11-12 (D-2): 原来模型轨标签全集 = core 事件种类 + 旁路标签 (两类新标签).
++ *   两类新标签已进 core 联合 → **旁路标签这一层整体消失**, 标签全集 = core 事件种类.
+  */
+-export const MODEL_SIDE_LABELS = ['holding_present', 'cold_absent'] as const;
+-
+-/** 旁路标签类型 (两类新标签). */
+-export type ModelSideLabel = (typeof MODEL_SIDE_LABELS)[number];
+-
+-/** 模型轨的标签全集 = core 事件种类 + 旁路标签. */
+-export type ModelEventLabel = CounselorEventKind | ModelSideLabel;
++export type ModelEventLabel = CounselorEventKind;
+ 
+ /** 模型轨标签全集的运行时清单 (校验 / prompt 用). */
+-export const MODEL_EVENT_LABELS: readonly ModelEventLabel[] = [...CORE_EVENT_KINDS, ...MODEL_SIDE_LABELS];
++export const MODEL_EVENT_LABELS: readonly ModelEventLabel[] = [...CORE_EVENT_KINDS];
+ 
+ /**
+  * 模型轨判定的结果 (映射后).
+@@ -73,10 +68,8 @@ export const MODEL_EVENT_LABELS: readonly ModelEventLabel[] = [...CORE_EVENT_KIN
+  * ⚠️ **confidence 只进观测, 不参与 delta 缩放** —— strength 首版恒 1 (风险 G).
+  */
+ export interface ModelClassification {
+-  /** 映射回现有 core 事件种类 (11 类 = 10 行为 + neutral); core 侧零类型变化. */
++  /** 映射回 core 事件种类 (13 类 = 11 行为 + neutral + 两类在场状态事件). */
+   readonly coreKinds: readonly CounselorEventKind[];
+-  /** 旁路标签 (只进观测记录, **不进** core events). */
+-  readonly sideLabels: readonly ModelSideLabel[];
+   /** 模型置信度 [0,1]. */
+   readonly confidence: number;
+ }
+@@ -84,14 +77,13 @@ export interface ModelClassification {
+ /**
+  * 一个标签的映射结果.
+  *
+- * ⚠️ coreKind 与 sideLabel **至多一个非空**: 旁路标签在 D-2 之前不映射到任何 core kind
+- *   (它的 delta 方向 / 数值属临床口径, 未标定 → 映射它 = 凭空发明数值).
++ * V2026-11-12 (D-2): **每个标签都有 coreKind** —— 旁路标签层已取消.
++ *   两类新 kind 的 DELTA_TABLE 种子是 ZERO (零回归), 映射到 core kind **不等于**
++ *   给了它们临床幅度: 幅度由标定批次经 DeltaTableConfig 覆写落地.
+  */
+ export interface ModelLabelMapping {
+   /** 映射回 core 的事件种类. */
+-  readonly coreKind?: CounselorEventKind;
+-  /** 旁路标签 (只进观测). */
+-  readonly sideLabel?: ModelSideLabel;
++  readonly coreKind: CounselorEventKind;
+ }
+ 
+ /**
+@@ -112,14 +104,13 @@ export const MODEL_LABEL_MAPPING: Readonly<Record<ModelEventLabel, ModelLabelMap
+   boundary_cross: { coreKind: 'boundary_cross' },
+   sensitive_touch: { coreKind: 'sensitive_touch' },
+   neutral: { coreKind: 'neutral' },
+-  holding_present: { sideLabel: 'holding_present' },
+-  cold_absent: { sideLabel: 'cold_absent' },
++  holding_present: { coreKind: 'holding_present' },
++  cold_absent: { coreKind: 'cold_absent' },
+ };
+ 
+ /** 映射后的标签集合 (不含置信度). */
+ export interface MappedModelLabels {
+   readonly coreKinds: readonly CounselorEventKind[];
+-  readonly sideLabels: readonly ModelSideLabel[];
+ }
+ 
+ /**
+@@ -135,16 +126,14 @@ export interface MappedModelLabels {
+  */
+ export function mapModelLabels(labels: readonly unknown[]): MappedModelLabels | null {
+   const coreKinds: CounselorEventKind[] = [];
+-  const sideLabels: ModelSideLabel[] = [];
+   for (const raw of labels) {
+     if (typeof raw !== 'string') continue;
+     const mapping: ModelLabelMapping | undefined = MODEL_LABEL_MAPPING[raw as ModelEventLabel];
+     if (!mapping) continue;
+-    if (mapping.coreKind && !coreKinds.includes(mapping.coreKind)) coreKinds.push(mapping.coreKind);
+-    if (mapping.sideLabel && !sideLabels.includes(mapping.sideLabel)) sideLabels.push(mapping.sideLabel);
++    if (!coreKinds.includes(mapping.coreKind)) coreKinds.push(mapping.coreKind);
+   }
+-  if (coreKinds.length === 0 && sideLabels.length === 0) return null;
+-  return { coreKinds, sideLabels };
++  if (coreKinds.length === 0) return null;
++  return { coreKinds };
+ }
+ 
+ /**
+diff --git a/src/engine-adapters/deliberation/deliberation-types.ts b/src/engine-adapters/deliberation/deliberation-types.ts
+index 64dd1fb..7d25431 100644
+--- a/src/engine-adapters/deliberation/deliberation-types.ts
++++ b/src/engine-adapters/deliberation/deliberation-types.ts
+@@ -94,6 +94,14 @@ export type DeliberationDim = (typeof DELIBERATION_DIMS)[number];
+  *   它是"没命中任何规则"的占位, **不会**成为任何一条 delta 的成因标签.
+  *   把 `neutral` 塞进标签枚举 = 让模型给一条 delta 打"我什么也没匹配到"的标签 = 噪声.
+  *
++ * ⚠️ **V2026-11-12 (D-2) 的显式决定**: 内核 `CounselorEventKind` 扩到 13 类, 新增两类
++ *   **在场状态**事件 (`holding_present` / `cold_absent`) —— 本组**刻意不加**它们:
++ *   · 规则轨**词表不扩** → 规则侧**产不出**这两个标签 (本组是「规则算子也会打」的标签);
++ *   · 模型轨走 shadow 旁路 → 影子对比口径不变 (两侧都是规则轨口径);
++ *   · 两类的 delta 种子是 ZERO, 没有"规则可覆盖的 delta"可对齐;
++ *   → 纳入本组 = 把模型独有标签误算成规则可覆盖 (任务单 §6 T6).
++ *   是否纳入**留标定批次评估**.
++ *
+  * ⚠️ 另一处**刻意的补齐** (相对任务单原文):
+  *   任务单 §3.2 列了 9 个 (少了 `sensitive_touch`), 但内核 `DELTA_TABLE` 里
+  *   `sensitive_touch` 是**有真实非零 delta** 的算子 (arousal +0.15 / safety -0.01 …).
+diff --git a/src/engine-adapters/rendering/turn-render-orchestrator.ts b/src/engine-adapters/rendering/turn-render-orchestrator.ts
+index 1a8ef1c..2cce010 100644
+--- a/src/engine-adapters/rendering/turn-render-orchestrator.ts
++++ b/src/engine-adapters/rendering/turn-render-orchestrator.ts
+@@ -131,6 +131,7 @@ import {
+   type RenderSpec,
+   type RenderTokenBudget,
+   type SafetyVerdict,
++  type SessionEvent,
+   type TrajectoryTrace,
+ } from '../../engine-core/index.js';
+ import type { ChatMessage } from '../../llm/common/interfaces/chat-provider.interface.js';
+@@ -279,6 +280,15 @@ export interface TurnRenderResult {
+    * 缺省 = 内核本轮没产出事件 (分类器返回空) —— 与本字段引入前行为逐字一致.
+    */
+   readonly events?: readonly CounselorEventKind[];
++  /**
++   * 本轮咨询师事件**明细** (kind + 命中词 + 强度) —— 透传内核出参, **只读观测**.
++   *
++   * V2026-11-12 (D-2): 与 `events` 同时透传. 用途只有一个 —— **审计层要拿到命中词**:
++   *   适配层若自己再跑一遍分类器去凑命中词, 就与内核漂移了 (C3 已禁).
++   *   ⚠️ **不含咨询师原话**: matchedTerms 只装词表命中词 / 正则原文.
++   *   缺省 = 内核本轮没产出事件 —— 与本字段引入前行为逐字一致.
++   */
++  readonly eventDetails?: readonly SessionEvent[];
+   /** 渲染元信息 (供观测, 不进内核). */
+   readonly render: {
+     /** 是否走过备用路径 (切过备 / 走过 block 重生成 / 走过降级). */
+@@ -647,6 +657,8 @@ export class TurnRenderOrchestrator {
+       ...(output.intention ? { intention: output.intention } : {}),
+       // WP38: 事件分类 —— 内核出参原样透传 (适配层不预判).
+       ...(output.events ? { events: output.events } : {}),
++      // D-2: 事件明细同源透传 (审计层据此记回命中词, 不自己重跑分类器).
++      ...(output.eventDetails ? { eventDetails: output.eventDetails } : {}),
+       render: {
+         fallbackUsed: rendered.fallbackUsed,
+         ...(rendered.providerHint ? { providerHint: rendered.providerHint } : {}),
+@@ -724,6 +736,8 @@ export class TurnRenderOrchestrator {
+       ...(output.intention ? { intention: output.intention } : {}),
+       // WP38: 事件分类 —— 内核出参原样透传 (适配层不预判).
+       ...(output.events ? { events: output.events } : {}),
++      // D-2: 事件明细同源透传 (审计层据此记回命中词, 不自己重跑分类器).
++      ...(output.eventDetails ? { eventDetails: output.eventDetails } : {}),
+       render: {
+         fallbackUsed: rendered.fallbackUsed,
+         ...(rendered.providerHint ? { providerHint: rendered.providerHint } : {}),
+@@ -1375,6 +1389,8 @@ export class TurnRenderOrchestrator {
+       ...(output.intention ? { intention: output.intention } : {}),
+       // WP38: 事件分类 —— 阻断轮次同样透传 (本轮确实发生了事件, 只是 AI 没出声).
+       ...(output.events ? { events: output.events } : {}),
++      // D-2: 事件明细同样透传 (阻断轮也有事件明细, 审计口径一致).
++      ...(output.eventDetails ? { eventDetails: output.eventDetails } : {}),
+       render: {
+         fallbackUsed: false,
+         usage: { completionTokens: 0, totalTokens: 0 },
+diff --git a/src/engine-adapters/wiring/engine-turn.service.ts b/src/engine-adapters/wiring/engine-turn.service.ts
+index 693a747..7b34d7f 100644
+--- a/src/engine-adapters/wiring/engine-turn.service.ts
++++ b/src/engine-adapters/wiring/engine-turn.service.ts
+@@ -481,7 +481,11 @@ export class EngineTurnService {
+         sessionId: context.sessionId,
+         turnIndex: result.turnIndex,
+         // C3 (D-1 第二段): 审计**只吃内核事件** —— 不再传咨询师原话 (审计层不再自行分类).
+-        kernelEventKinds: result.events ?? [],
++        // D-2: 传**明细** (kind + 命中词 + 强度) —— 内核出参 `eventDetails` 原样透传,
++        //   审计因此能记回内核自己算出的命中词, 不必再跑一遍分类器.
++        //   ⚠️ 兜底: `eventDetails` 缺失但 `events` 在 (旧出参形状) → 记 kind, 命中词为空
++        //     (空数组 = 「没有词表证据」, 不造词).
++        kernelEvents: result.eventDetails ?? (result.events ?? []).map((kind) => ({ kind, matchedTerms: [], strength: 1 })),
+       });
+     } catch (error) {
+       this.logger.debug(
+diff --git a/src/engine-adapters/wiring/turn-delta-audit/turn-delta-audit.port.ts b/src/engine-adapters/wiring/turn-delta-audit/turn-delta-audit.port.ts
+index 8d6572c..c72fd04 100644
+--- a/src/engine-adapters/wiring/turn-delta-audit/turn-delta-audit.port.ts
++++ b/src/engine-adapters/wiring/turn-delta-audit/turn-delta-audit.port.ts
+@@ -43,7 +43,28 @@ export interface TurnDeltaAuditInput {
+   readonly tenantId: string;
+   readonly sessionId: string;
+   readonly turnIndex: number;
+-  readonly kernelEventKinds: readonly CounselorEventKind[];
++  /**
++   * 内核本轮判出的事件**明细** —— **审计的唯一事件来源**.
++   *
++   * V2026-11-12 治本 (D-2): 由「事件种类数组」升级为「明细」.
++   *   理由: 内核出参新增 `eventDetails` (kind + 命中词 + 强度) —— 审计因此能记回
++   *   **内核自己算出的命中词**, 不必再跑一遍分类器 (C3 的口径不变).
++   *   ⚠️ 模型轨事件的 matchedTerms 是**空数组** —— 模型轨不产词表命中,
++   *     本单**不造词**: 空数组 = 「没有词表证据」, 不是「忘了填」.
++   */
++  readonly kernelEvents: readonly TurnDeltaAuditEventInput[];
++}
++
++/**
++ * 单个内核事件的写侧明细 (喂给审计的形状).
++ *
++ * ⚠️ `matchedTerms` 只装**词表命中词 / 正则原文**, 不是咨询师原话 (隐私红线).
++ */
++export interface TurnDeltaAuditEventInput {
++  readonly kind: CounselorEventKind;
++  readonly matchedTerms: readonly string[];
++  /** 命中强度; 缺省 = 1 (规则轨与模型轨首版都是 1). */
++  readonly strength?: number;
+ }
+ 
+ /**
+diff --git a/src/engine-adapters/wiring/turn-delta-audit/turn-delta-audit.service.ts b/src/engine-adapters/wiring/turn-delta-audit/turn-delta-audit.service.ts
+index 8382c7f..3e7d7aa 100644
+--- a/src/engine-adapters/wiring/turn-delta-audit/turn-delta-audit.service.ts
++++ b/src/engine-adapters/wiring/turn-delta-audit/turn-delta-audit.service.ts
+@@ -38,14 +38,8 @@ import type { Repository } from 'typeorm';
+ 
+ import { resolveTurnDeltaAuditConfig } from './turn-delta-audit.config.js';
+ import { TurnDeltaAuditEntity } from './turn-delta-audit.entity.js';
+-import type { TurnDeltaAuditInput, TurnDeltaAuditPort, TurnDeltaAuditTurnView } from './turn-delta-audit.port.js';
+-import {
+-  aggregateTurnDelta,
+-  type AllianceConfig,
+-  type CounselorEventKind,
+-  type DeltaTableConfig,
+-  type SessionEvent,
+-} from '../../../engine-core/index.js';
++import type { TurnDeltaAuditEventInput, TurnDeltaAuditInput, TurnDeltaAuditPort, TurnDeltaAuditTurnView } from './turn-delta-audit.port.js';
++import { aggregateTurnDelta, type AllianceConfig, type DeltaTableConfig, type SessionEvent } from '../../../engine-core/index.js';
+ import { resolveAllianceConfig } from '../alliance-config.js';
+ import { resolveDeltaTableConfig } from '../delta-table.config.js';
+ 
+@@ -60,24 +54,31 @@ function describeError(error: unknown): string {
+ }
+ 
+ /**
+- * 把内核判出的事件种类转成本次审计的事件明细.
++ * 把内核给出的事件**明细**转成本次审计要落库的事件明细.
+  *
+  * V2026-11-12 治本 (D-1 第二段 · C3): 旧口径是「本地再跑一遍规则分类器 → 与内核
+  * 事件取并集」. 那条并集的前提是「本地规则轨与内核**逐字同源**」; 模型轨上线后
+  * 这条前提**直接失效** (本地 = 规则轨, 内核 = 模型轨) → 并集 = 两套标签的并集 →
+  * 记下来的 raw_delta 既不等于内核实际施加的 delta, 又比内核**多算一截** (风险 N).
+- * 新口径: **事件集合只认内核** —— 内核判了什么, 审计就记什么.
++ * C3 口径: **事件集合只认内核** —— 内核判了什么, 审计就记什么.
+  *
+- * ⚠️ **matchedTerms 归零是已知代价** (交付记录已写明):
+- *   内核出参只带事件**种类**, 不带命中词明细. 审计要拿到命中词就得再跑一遍分类器 ——
+- *   那正是 C3 去掉的动作. 本单选「不造命中词」: 只记内核给出的事实.
++ * V2026-11-12 治本 (D-2): 输入从「事件种类数组」升级为「事件明细」——
++ *   内核出参新增 `eventDetails` (kind + matchedTerms + strength), 于是审计能记回
++ *   **内核自己算出的命中词**, D-1 期间「matchedTerms 归零」这个已知代价**解除**.
+  *
+- * @param kernelEventKinds 内核本轮判出的事件种类
+- * @returns 事件明细 (strength 恒 1 —— 规则轨与模型轨首版都是 1)
++ * ⚠️ **模型轨事件的 matchedTerms 是空数组, 这是事实** —— 模型轨不产词表命中,
++ *   本单**不造词**: 空数组 = 「没有词表证据」, 不是「忘了填」.
++ *
++ * @param kernelEvents 内核本轮判出的事件明细
++ * @returns 事件明细 (strength 缺省 1 —— 规则轨与模型轨首版都是 1)
+  */
+-function kernelEventsToSessionEvents(kernelEventKinds: readonly CounselorEventKind[]): readonly SessionEvent[] {
+-  if (kernelEventKinds.length === 0) return [];
+-  return kernelEventKinds.map((kind) => ({ kind, matchedTerms: [], strength: 1 }));
++function toAuditSessionEvents(kernelEvents: readonly TurnDeltaAuditEventInput[]): readonly SessionEvent[] {
++  if (kernelEvents.length === 0) return [];
++  return kernelEvents.map((event) => ({
++    kind: event.kind,
++    matchedTerms: [...event.matchedTerms],
++    strength: event.strength ?? 1,
++  }));
+ }
+ 
+ /**
+@@ -161,7 +162,8 @@ export class TurnDeltaAuditService implements TurnDeltaAuditPort {
+    */
+   private async persist(input: TurnDeltaAuditInput): Promise<void> {
+     // C3: 事件集合**只认内核** —— 不再本地跑分类器, 不再与内核取并集.
+-    const merged = kernelEventsToSessionEvents(input.kernelEventKinds);
++    // D-2: 输入已是内核给出的**明细** (含命中词), 直接落库, 不再自己造.
++    const merged = toAuditSessionEvents(input.kernelEvents);
+     const rawDelta = aggregateTurnDelta(merged, this.alliance, this.deltaTable);
+     const existing = await this.repo.findOne({
+       where: { tenantId: input.tenantId, sessionId: input.sessionId, turnIndex: input.turnIndex },

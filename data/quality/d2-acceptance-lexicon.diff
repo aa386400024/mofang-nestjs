@@ -1,0 +1,15 @@
+diff --git a/scripts/ops/quality/d1-event-classifier-evidence.lexicon.ts b/scripts/ops/quality/d1-event-classifier-evidence.lexicon.ts
+index eebe641..effb0df 100644
+--- a/scripts/ops/quality/d1-event-classifier-evidence.lexicon.ts
++++ b/scripts/ops/quality/d1-event-classifier-evidence.lexicon.ts
+@@ -40,7 +40,9 @@ export type EvidenceEventKind = CounselorEventKind;
+  * ⚠️ 两类在场标签只是**标注列取值**, 不是 core 事件种类 —— 本单不产出 core 类型
+  *   (联合形状留 D-2 拍板).
+  */
+-export const HUMAN_LABEL_VOCABULARY: readonly string[] = [...TRACKED_EVENTS, 'holding_present', 'cold_absent'];
++// V2026-11-12 (D-2): 两类新 kind 已进 TRACKED_EVENTS —— 直接展开会产生重复项
++//   (CSV 表头重复 = 标注模板出现两列同名). 去重后词表与 D-1 逐字相同 (13 项).
++export const HUMAN_LABEL_VOCABULARY: readonly string[] = [...new Set([...TRACKED_EVENTS, 'holding_present', 'cold_absent'])];
+ 
+ /**
+  * 负向**词**事件种类 (4 类) —— 从静态词表派生, 不另立一份清单.
