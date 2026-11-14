@@ -14,8 +14,9 @@ import { RedisService } from '../../shared/infra/redis/index.js';
 import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants.js';
 
 import { AuthResponseDto } from '../dto/auth-response.dto.js';
-import { OAuthIdentity, OAuthProvider } from '../entities/oauth-identity.entity.js';
+import { OAuthIdentity } from '../entities/oauth-identity.entity.js';
 import { User } from '../entities/user.entity.js';
+import { OAuthProvider } from '../enums/oauth-provider.enum.js';
 import { UserService } from '../providers/user.service.js';
 import { UserState } from '../user.state.js';
 

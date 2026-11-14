@@ -26,7 +26,7 @@
 //     2. grep 复核: 端口 / 两个 service / 新 spec 里 typeorm 值符号 0 命中
 //   时间戳: 2026-11-14 GMT+8
 
-import type { AnalyticsEventType } from '../../entities/analytics-event.entity.js';
+import type { AnalyticsEventType } from '../../enums/analytics-event-type.enum.js';
 
 /**
  * 写一行业务事件的入参 —— 5 个业务字段.

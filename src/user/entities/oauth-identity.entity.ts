@@ -2,16 +2,7 @@ import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, Primary
 
 import { User } from './user.entity.js';
 
-/**
- * OAuth provider enum — 第三方登录 provider 枚举.
- */
-
-export enum OAuthProvider {
-  Wechat = 'wechat',
-  Google = 'google',
-  Apple = 'apple',
-}
-
+import type { OAuthProvider } from '../enums/oauth-provider.enum.js';
 /**
  * OAuth identity entity — 用户第三方账号绑定 (大厂标准).
  *

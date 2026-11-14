@@ -1,66 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-/**
- * Audit event enum — 用户鉴权事件 (大厂合规要求).
- *
- * V1 事件:
- *   - USER_REGISTER / USER_LOGIN_SUCCESS / USER_LOGIN_FAILED
- *   - USER_LOGOUT / USER_TOKEN_REFRESH / USER_TOKEN_REVOKED / USER_STATE_CHANGED
- *
- * V2 新增 (企业级鉴权必备):
- *   - USER_PASSWORD_CHANGED: 改密 (合规审计)
- *   - USER_PASSWORD_RESET_REQUESTED / USER_PASSWORD_RESET_COMPLETED: 密码重置流程
- *   - USER_EMAIL_VERIFICATION_SENT / USER_EMAIL_VERIFIED: 邮箱验证
- *   - USER_PHONE_VERIFICATION_SENT / USER_PHONE_VERIFIED: 手机号验证
- *   - USER_ACCOUNT_LOCKED / USER_ACCOUNT_UNLOCKED: 账号锁定/解锁
- *   - USER_OAUTH_LINKED / USER_OAUTH_UNLINKED: OAuth 绑定/解绑
- *   - USER_OAUTH_LOGIN_SUCCESS / USER_OAUTH_LOGIN_FAILED: OAuth 登录
- *   - USER_HARD_DELETED: 软删到期真删 (cron 跑)
- *   - USER_FORCED_PASSWORD_RESET: 强制重置周期触发
- */
-export enum AuditEvent {
-  // V1
-  UserRegister = 'user_register',
-  UserLoginSuccess = 'user_login_success',
-  UserLoginFailed = 'user_login_failed',
-  UserLogout = 'user_logout',
-  UserTokenRefresh = 'user_token_refresh',
-  UserTokenRevoked = 'user_token_revoked',
-  UserStateChanged = 'user_state_changed',
-
-  // V2 密码
-  UserPasswordChanged = 'user_password_changed',
-  // V2026-11-02 (已登录态首次设密码): 与"改密"分开记 —— 首次设置 (无密码 → 有密码)
-  //   跟 修改 (有密码 → 新密码) 是两件事, 审计上必须能分开看.
-  UserPasswordFirstSet = 'user_password_first_set',
-  UserPasswordResetRequested = 'user_password_reset_requested',
-  UserPasswordResetCompleted = 'user_password_reset_completed',
-  UserForcedPasswordReset = 'user_forced_password_reset',
-
-  // V2 验证
-  UserEmailVerificationSent = 'user_email_verification_sent',
-  UserEmailVerified = 'user_email_verified',
-  UserPhoneVerificationSent = 'user_phone_verification_sent',
-  UserPhoneVerified = 'user_phone_verified',
-
-  // V2 锁定
-  UserAccountLocked = 'user_account_locked',
-  UserAccountUnlocked = 'user_account_unlocked',
-
-  // V2 OAuth
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  UserOAuthLinked = 'user_oauth_linked',
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  UserOAuthUnlinked = 'user_oauth_unlinked',
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  UserOAuthLoginSuccess = 'user_oauth_login_success',
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  UserOAuthLoginFailed = 'user_oauth_login_failed',
-
-  // V2 软删
-  UserHardDeleted = 'user_hard_deleted',
-}
-
+import type { AuditEvent } from '../enums/audit-event.enum.js';
 /**
  * Audit log entity — 用户鉴权事件日志 (大厂合规要求).
  *

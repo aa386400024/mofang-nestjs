@@ -8,7 +8,7 @@ import { ConfigService } from '../../common/index.js';
 import { CurrentUser } from '../decorators/current-user.decorator.js';
 
 import { AuthResponseDto } from '../dto/auth-response.dto.js';
-import { OAuthProvider } from '../entities/oauth-identity.entity.js';
+import { OAuthProvider } from '../enums/oauth-provider.enum.js';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
 
 /**

@@ -3,7 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Worker, type Job, Queue } from 'bullmq';
 import type { Repository } from 'typeorm';
 
-import { AuditEvent, AuditLog } from '../../../user/entities/audit-log.entity.js';
+import { AuditLog } from '../../../user/entities/audit-log.entity.js';
+import { AuditEvent } from '../../../user/enums/audit-event.enum.js';
 import { RedisService } from '../redis/index.js';
 import { QUEUE_NAMES } from '../redis/redis.constants.js';
 

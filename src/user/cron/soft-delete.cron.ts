@@ -5,11 +5,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { CronJob } from 'cron';
 import { LessThan, Repository } from 'typeorm';
 
-import { AuditEvent } from '../entities/audit-log.entity.js';
 import { OAuthIdentity } from '../entities/oauth-identity.entity.js';
 import { PasswordHistory } from '../entities/password-history.entity.js';
 import { Session } from '../entities/session.entity.js';
 import { User } from '../entities/user.entity.js';
+import { AuditEvent } from '../enums/audit-event.enum.js';
 import { AuditLogService } from '../providers/audit-log.service.js';
 import { SessionService } from '../providers/session.service.js';
 

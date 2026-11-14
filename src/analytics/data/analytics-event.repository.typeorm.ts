@@ -27,7 +27,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
 
 import type { AnalyticsEventRecordInput, AnalyticsEventRepository } from '../domain/repositories/analytics-event.repository.js';
-import { AnalyticsEvent, type AnalyticsEventType } from '../entities/analytics-event.entity.js';
+import { AnalyticsEvent } from '../entities/analytics-event.entity.js';
+import type { AnalyticsEventType } from '../enums/analytics-event-type.enum.js';
 
 /**
  * Analytics 事件仓储 (TypeORM 真库实现).

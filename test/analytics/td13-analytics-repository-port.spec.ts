@@ -25,7 +25,7 @@ import type {
   AnalyticsEventRepository,
 } from '../../src/analytics/domain/repositories/analytics-event.repository.js';
 import { TimeRange } from '../../src/analytics/dto/analytics.dto.js';
-import { AnalyticsEventType } from '../../src/analytics/entities/analytics-event.entity.js';
+import { AnalyticsEventType } from '../../src/analytics/enums/analytics-event-type.enum.js';
 import { AnalyticsEventTrackerService } from '../../src/analytics/providers/analytics-event-tracker.service.js';
 import { AnalyticsService } from '../../src/analytics/providers/analytics.service.js';
 

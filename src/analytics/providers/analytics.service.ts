@@ -25,7 +25,7 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { ANALYTICS_EVENT_REPOSITORY, type AnalyticsEventRepository } from '../domain/repositories/analytics-event.repository.js';
 import { AnalyticsOverviewDto, TimeRange } from '../dto/analytics.dto.js';
-import { AnalyticsEventType } from '../entities/analytics-event.entity.js';
+import { AnalyticsEventType } from '../enums/analytics-event-type.enum.js';
 
 @Injectable()
 export class AnalyticsService {

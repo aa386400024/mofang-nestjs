@@ -39,7 +39,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { WorkflowAction, WorkflowService } from './workflow.service.js';
 import { QdrantService } from '../../ai-engine/providers/qdrant.service.js';
-import { AnalyticsEventType } from '../../analytics/entities/analytics-event.entity.js';
+import { AnalyticsEventType } from '../../analytics/enums/analytics-event-type.enum.js';
 import { AnalyticsEventTrackerService } from '../../analytics/providers/analytics-event-tracker.service.js';
 import { AIProviderId } from '../../llm/common/enums/llm.enums.js';
 import { LlmRouterService } from '../../llm/registry/llm-router.service.js';

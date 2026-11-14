@@ -51,7 +51,7 @@ import { hashPassword, verifyPassword } from '../../src/shared/infra/security/pa
 import { UserController } from '../../src/user/controllers/user.controller.js';
 import { ChangePasswordDto } from '../../src/user/dto/change-password.dto.js';
 import { SetLoggedInPasswordDto } from '../../src/user/dto/set-password.dto.js';
-import { AuditEvent } from '../../src/user/entities/audit-log.entity.js';
+import { AuditEvent } from '../../src/user/enums/audit-event.enum.js';
 import { JwtAuthGuard } from '../../src/user/guards/jwt-auth.guard.js';
 import { JwtBlacklistService } from '../../src/user/providers/jwt-blacklist.service.js';
 import { PasswordResetService } from '../../src/user/providers/password-reset.service.js';

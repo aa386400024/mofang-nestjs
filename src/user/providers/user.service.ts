@@ -15,8 +15,8 @@ import { hashPassword, verifyPassword } from '../../shared/infra/security/passwo
 import { AuthResponseDto, CurrentUserDto } from '../dto/auth-response.dto.js';
 import { LoginDto } from '../dto/login.dto.js';
 import { RegisterDto } from '../dto/register.dto.js';
-import { AuditEvent } from '../entities/audit-log.entity.js';
 import { User } from '../entities/user.entity.js';
+import { AuditEvent } from '../enums/audit-event.enum.js';
 import { SessionRevokeReason, TokenType } from '../user.constant.js';
 import { UserState, isLoginAllowed } from '../user.state.js';
 

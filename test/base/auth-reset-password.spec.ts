@@ -35,8 +35,8 @@ import { AuthController } from '../../src/base/controllers/auth.controller.js';
 import { ResetPasswordDto } from '../../src/base/dto/reset-password.dto.js';
 import { RsaKeyService } from '../../src/common/security/rsa-key.service.js';
 import { hashPassword, verifyPassword } from '../../src/shared/infra/security/password-hasher.js';
-import { AuditEvent } from '../../src/user/entities/audit-log.entity.js';
 import { User } from '../../src/user/entities/user.entity.js';
+import { AuditEvent } from '../../src/user/enums/audit-event.enum.js';
 import { UserService } from '../../src/user/providers/user.service.js';
 import { buildUserEntityStub, buildUserServiceStub } from '../helpers/user-stub.js';
 

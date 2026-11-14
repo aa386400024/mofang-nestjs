@@ -16,8 +16,8 @@
 //     · mustChangePassword: 首次设密码场景默认 true, 其余默认 false;
 //     · recordPasswordHistory: 是否记录复用检查 / 旧密码入历史.
 
-import { AuditEvent } from '../../src/user/entities/audit-log.entity.js';
 import { User } from '../../src/user/entities/user.entity.js';
+import { AuditEvent } from '../../src/user/enums/audit-event.enum.js';
 import { UserService } from '../../src/user/providers/user.service.js';
 
 /** 审计条目 (UserService 交给 AuditLogService.log 的那几个字段). */

@@ -23,7 +23,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 
 import { ANALYTICS_EVENT_REPOSITORY, type AnalyticsEventRepository } from '../domain/repositories/analytics-event.repository.js';
-import { AnalyticsEventType } from '../entities/analytics-event.entity.js';
+import { AnalyticsEventType } from '../enums/analytics-event-type.enum.js';
 
 @Injectable()
 export class AnalyticsEventTrackerService {
