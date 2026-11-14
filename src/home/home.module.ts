@@ -12,6 +12,10 @@ import { HomeCompanionController } from './controllers/home-companion.controller
 import { HomeMessagesController } from './controllers/home-messages.controller.js';
 import { HomeMicroInterventionController } from './controllers/home-micro-intervention.controller.js';
 import { HomeOverviewController } from './controllers/home-overview.controller.js';
+import { HomeMessageRepositoryTypeorm } from './data/home-message.repository.typeorm.js';
+import { MoodLogRepositoryTypeorm } from './data/mood-log.repository.typeorm.js';
+import { HOME_MESSAGE_REPOSITORY } from './domain/repositories/home-message.repository.js';
+import { MOOD_LOG_REPOSITORY } from './domain/repositories/mood-log.repository.js';
 import { HomeMessage } from './entities/home-message.entity.js';
 import { MicroInterventionConfig } from './entities/micro-intervention-config.entity.js';
 import { MicroInterventionHistory } from './entities/micro-intervention-history.entity.js';
@@ -88,6 +92,10 @@ import { HomeRecommendationEngine } from './providers/home-recommendation.engine
     HomeCompanionController,
   ],
   providers: [
+    // V2026-11-15 治本 (TD-20 · C2 第四批仓储端口化 · home 域 · P-DEBT-11 / L-1):
+    //   两个仓储端口的 TypeORM 实现接线 —— 仓储 token **不 export** (对齐 TD-13 ~ TD-19).
+    { provide: HOME_MESSAGE_REPOSITORY, useClass: HomeMessageRepositoryTypeorm },
+    { provide: MOOD_LOG_REPOSITORY, useClass: MoodLogRepositoryTypeorm },
     HomeOverviewService,
     HomeMoodLogService,
     HomeMicroInterventionService,

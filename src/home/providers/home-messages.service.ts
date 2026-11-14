@@ -1,9 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, IsNull, Repository } from 'typeorm';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 
+import { HOME_MESSAGE_REPOSITORY, type HomeMessageRepository } from '../domain/repositories/home-message.repository.js';
 import type { MarkMessagesReadResponseDto, UnreadMessageCountDto } from '../dto/home-overview.dto.js';
-import { HomeMessage } from '../entities/home-message.entity.js';
 
 /**
  * 心塑首页「消息未读」核心服务.
@@ -15,24 +13,26 @@ import { HomeMessage } from '../entities/home-message.entity.js';
  * 大厂做法:
  *   - 单 query: WHERE uid=? AND read_at IS NULL
  *   - 标记: 走 update 一次性写 read_at (避免 N+1)
- *   - 软删: read_at 不为空 → 不显示 (保留审计)
+ *   - 已读隐藏: read_at 不为空 → 不显示 (保留审计; 已读标记不是软删列)
+ *
+ * V2026-11-15 治本 (TD-20 · C2 第四批仓储端口化 · P-DEBT-11 / L-1):
+ *   仓储依赖改为端口 (`HOME_MESSAGE_REPOSITORY`) —— 查询口径下沉 data/ 实现,
+ *   service 只保留业务语义 (计数 → DTO / 标记 → 重算剩余 → DTO).
  */
 @Injectable()
 export class HomeMessagesService {
   private readonly logger = new Logger(HomeMessagesService.name);
 
   constructor(
-    @InjectRepository(HomeMessage)
-    private readonly repo: Repository<HomeMessage>,
+    @Inject(HOME_MESSAGE_REPOSITORY)
+    private readonly repo: HomeMessageRepository,
   ) {}
 
   /**
    * 读未读消息数.
    */
   async getUnreadCount(uid: string): Promise<UnreadMessageCountDto> {
-    const count = await this.repo.count({
-      where: { uid, readAt: IsNull() },
-    });
+    const count = await this.repo.countUnread(uid);
     return { count };
   }
 
@@ -43,31 +43,18 @@ export class HomeMessagesService {
    * V3: 加 idempotency key 防双击 (e.g. requestUuid)
    *
    * 大厂做法:
-   *   - 用 FindOptionsWhere<HomeMessage> 显式声明 where 类型, 避开 IsNull() / In()
-   *     在 union 类型下的 type widening 问题.
    *   - update + 1 query 重算剩余 — 比 save + count 2 步省 1 次 DB roundtrip.
    */
   async markRead(uid: string, messageIds: string[] | undefined): Promise<MarkMessagesReadResponseDto> {
-    const now = new Date();
-    const where: FindOptionsWhere<HomeMessage> = {
-      uid,
-      readAt: IsNull(),
-    };
-    if (messageIds && messageIds.length > 0) {
-      where.id = In(messageIds);
-    }
-
-    const result = await this.repo.update(where, { readAt: now });
+    const markedCount = await this.repo.markRead(uid, messageIds);
 
     // 重算剩余未读
-    const remaining = await this.repo.count({
-      where: { uid, readAt: IsNull() } as FindOptionsWhere<HomeMessage>,
-    });
+    const remaining = await this.repo.countUnread(uid);
 
-    this.logger.log(`markRead uid=${uid} marked=${result.affected ?? 0} remaining=${remaining}`);
+    this.logger.log(`markRead uid=${uid} marked=${markedCount} remaining=${remaining}`);
     return {
       count: remaining,
-      markedCount: result.affected ?? 0,
+      markedCount,
     };
   }
 }
