@@ -1,13 +1,19 @@
 import { ExecutionContext, INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
 import request from 'supertest';
 
 // V2026-09-11 治本: 路径修正 — BizExceptionFilter 实位于 src/common/filters/, 不是 common/exceptions/.
 //   旧路径解析为 undefined, 触发 no-unsafe-argument (useGlobalFilters(new undefined()) 类型为 any).
 import { BizExceptionFilter } from '../src/common/filters/biz-exception.filter.js';
 
-import { GoodStateDiaryEntry } from '../src/good_state_diary/entities/good-state-diary-entry.entity.js';
+import {
+  DIARY_ENTRY_REPOSITORY,
+  type CreateDiaryEntryInput,
+  type DiaryEntryRepository,
+  type DiaryRow,
+  type ListRecentEntriesQuery,
+  type SearchEntriesQuery,
+} from '../src/good_state_diary/domain/repositories/diary-entry.repository.js';
 import { DiaryEntryStatus } from '../src/good_state_diary/enums/diary-entry-status.enum.js';
 import { DiaryMoodLevel } from '../src/good_state_diary/enums/diary-mood-level.enum.js';
 import { DiaryTag } from '../src/good_state_diary/enums/diary-tag.enum.js';
@@ -24,10 +30,10 @@ import { JwtAuthGuard } from '../src/user/guards/jwt-auth.guard.js';
  *     4. AI feedback 边界 (metadata-only, crisisFlag)
  *   修复:
  *     - JwtAuthGuard override, 测试不依赖真 JWT 生成
- *     - Repository mock — 不连真 DB, 用 in-memory Map<id, entity>
+ *     - 仓储 mock — 不连真 DB, 用 in-memory Map<id, entry>
  *     - 每个 test 前重置 mock 状态, 防止串扰
- *   如何验证: npx jest test/good-state-diary.e2e-spec.ts 全绿,
- *             关键断言覆盖 12 个 Repository 方法.
+ *   如何验证: pnpm exec vitest run test/good-state-diary.e2e-spec.ts 全绿,
+ *             关键断言覆盖 12 个仓储方法.
  *
  *   反双胞胎:
  *     - 不连真 MySQL / sqlite (连真库时序坑多, e2e 阶段不需要)
@@ -37,104 +43,125 @@ import { JwtAuthGuard } from '../src/user/guards/jwt-auth.guard.js';
  *     - 整行 > 140 chars 的 await request(...) 链, 拆多行 (单 chain 方法 / 单行)
  *     - 整行 ≤ 140 chars 的 await request(...) 链, 保持单行
  *     - 判据: prettier printWidth=140 与 ESLint max-len=140 双向约束
+ *
+ *   V2026-11-14 治本 (TD-18 · C2 第二批仓储端口化):
+ *     - 内存替身从「typeorm 泛型仓储形状」换成**端口方法面** (10 个方法),
+ *       覆盖的 provider 换端口 Symbol —— 10 例 HTTP 断言**逐字未改**
+ *     - 本文件位于 test/ 根目录, 两套 vitest 入口 (默认 config / test/vitest.e2e.mts)
+ *       均不收集它 (实测 "No test files found"), 属既有组织现状 —— 本单不移动位置、
+ *       不改 vitest include/exclude, 适配只为源码与端口化后的 service / module 一致
  */
 
 const TEST_UID = 'test-uid-001';
 const OTHER_UID = 'test-uid-002';
 
-interface StoredEntry extends GoodStateDiaryEntry {
-  // TypeORM 实体所有字段, mock 直接以 plain object 存储
-}
-
 /**
- * V2026-09-11 简化版 in-memory repo: 不实现完整 QueryBuilder 语义,
+ * V2026-09-11 简化版 in-memory 端口替身: 不实现完整检索语义,
  * 只覆盖 e2e 测试需要的 happy path + 越权防护. 复杂断言走 service 单测.
+ *
+ * V2026-11-14 治本 (TD-18): 替身实现端口 interface (DiaryEntryRepository) ——
+ *   方法面与端口一一对应, 编译期即可发现形状漂移.
  */
-class InMemoryEntryRepository {
-  private entries = new Map<string, StoredEntry>();
+class InMemoryEntryRepository implements DiaryEntryRepository {
+  private entries = new Map<string, DiaryRow>();
 
-  create(partial: Partial<StoredEntry>): StoredEntry {
+  async create(input: CreateDiaryEntryInput): Promise<DiaryRow> {
     const now = new Date();
-    return {
-      id: partial.id ?? crypto.randomUUID(),
-      authorId: partial.authorId!,
-      status: partial.status ?? DiaryEntryStatus.Draft,
-      body: partial.body ?? '',
-      title: partial.title ?? null,
-      moodLevel: partial.moodLevel ?? null,
-      moodSnapshottedAt: partial.moodSnapshottedAt ?? null,
-      moodNote: partial.moodNote ?? null,
-      sourceEmotionLogId: partial.sourceEmotionLogId ?? null,
-      tags: partial.tags ?? null,
-      linkedPracticeId: partial.linkedPracticeId ?? null,
-      aiFeedback: partial.aiFeedback ?? null,
-      aiFeedbackGeneratedAt: partial.aiFeedbackGeneratedAt ?? null,
-      isPrivate: partial.isPrivate ?? true,
-      createdAt: partial.createdAt ?? now,
-      updatedAt: partial.updatedAt ?? now,
-      deletedAt: partial.deletedAt ?? null,
+    const row: DiaryRow = {
+      id: crypto.randomUUID(),
+      authorId: input.authorId,
+      status: input.status,
+      title: input.title,
+      body: input.body,
+      moodLevel: input.moodLevel,
+      moodSnapshottedAt: input.moodSnapshottedAt,
+      moodNote: input.moodNote,
+      sourceEmotionLogId: input.sourceEmotionLogId,
+      tags: input.tags,
+      linkedPracticeId: input.linkedPracticeId,
+      aiFeedback: null,
+      aiFeedbackGeneratedAt: null,
+      isPrivate: input.isPrivate,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
     };
+    this.entries.set(row.id, row);
+    return row;
   }
 
-  async save(entity: StoredEntry): Promise<StoredEntry> {
-    const updated: StoredEntry = { ...entity, updatedAt: new Date() };
+  async save(row: DiaryRow): Promise<DiaryRow> {
+    const updated: DiaryRow = { ...row, updatedAt: new Date() };
     this.entries.set(updated.id, updated);
     return updated;
   }
 
-  async findOne(opts: { where: { id: string; authorId: string }; withDeleted?: boolean }): Promise<StoredEntry | null> {
-    const entity = this.entries.get(opts.where.id);
-    if (!entity) return null;
-    if (entity.authorId !== opts.where.authorId) return null;
-    if (entity.deletedAt && !opts.withDeleted) return null;
-    return entity;
+  async findById(uid: string, entryId: string, opts?: { includeDeleted?: boolean }): Promise<DiaryRow | null> {
+    const row = this.entries.get(entryId);
+    if (!row) return null;
+    if (row.authorId !== uid) return null;
+    if (row.deletedAt && opts?.includeDeleted !== true) return null;
+    return row;
   }
 
-  async find(opts: {
-    where: Partial<StoredEntry>;
-    order?: Record<string, 'ASC' | 'DESC'>;
-    take?: number;
-    withDeleted?: boolean;
-  }): Promise<StoredEntry[]> {
-    let list = Array.from(this.entries.values());
-    for (const [key, value] of Object.entries(opts.where)) {
-      list = list.filter((e) => (e as unknown as Record<string, unknown>)[key] === value);
-    }
-    if (!opts.withDeleted) {
-      list = list.filter((e) => !e.deletedAt);
-    }
-    if (opts.order?.['createdAt']) {
-      list.sort((a, b) =>
-        opts.order!['createdAt'] === 'DESC' ? b.createdAt.getTime() - a.createdAt.getTime() : a.createdAt.getTime() - b.createdAt.getTime(),
-      );
-    }
-    if (opts.order?.['id']) {
-      list.sort((a, b) => (opts.order!['id'] === 'DESC' ? b.id.localeCompare(a.id) : a.id.localeCompare(b.id)));
-    }
-    if (opts.take !== undefined) list = list.slice(0, opts.take);
-    return list;
+  async findDrafts(uid: string): Promise<DiaryRow[]> {
+    return Array.from(this.entries.values())
+      .filter((e) => e.authorId === uid && e.status === DiaryEntryStatus.Draft && !e.deletedAt)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id.localeCompare(a.id))
+      .slice(0, 200);
   }
 
-  async softDelete(criteria: { id: string; authorId: string }): Promise<{ affected: number }> {
-    const entity = this.entries.get(criteria.id);
-    if (!entity || entity.authorId !== criteria.authorId) return { affected: 0 };
-    if (entity.deletedAt) return { affected: 0 };
-    entity.deletedAt = new Date();
+  async listRecent(query: ListRecentEntriesQuery): Promise<DiaryRow[]> {
+    let list = Array.from(this.entries.values()).filter(
+      (e) => e.authorId === query.uid && !e.deletedAt && query.statuses.includes(e.status),
+    );
+    list = list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id.localeCompare(a.id));
+    if (query.cursor) {
+      const cursorT = new Date(query.cursor.t).getTime();
+      const cursorI = query.cursor.i;
+      list = list.filter((e) => e.createdAt.getTime() < cursorT || (e.createdAt.getTime() === cursorT && e.id < cursorI));
+    }
+    return list.slice(0, query.limit + 1);
+  }
+
+  async searchEntries(query: SearchEntriesQuery): Promise<DiaryRow[]> {
+    const keyword = query.likePattern.replace(/^%/, '').replace(/%$/, '');
+    let list = Array.from(this.entries.values()).filter(
+      (e) =>
+        e.authorId === query.uid &&
+        !e.deletedAt &&
+        ((e.title ?? '').includes(keyword) || e.body.includes(keyword)) &&
+        query.tagFilters.every((tag) => (e.tags ?? '').split(',').includes(tag)),
+    );
+    list = list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id.localeCompare(a.id));
+    if (query.cursor) {
+      const cursorT = new Date(query.cursor.t).getTime();
+      const cursorI = query.cursor.i;
+      list = list.filter((e) => e.createdAt.getTime() < cursorT || (e.createdAt.getTime() === cursorT && e.id < cursorI));
+    }
+    return list.slice(0, query.limit + 1);
+  }
+
+  async softDelete(uid: string, entryId: string): Promise<{ affected: number }> {
+    const row = this.entries.get(entryId);
+    if (!row || row.authorId !== uid) return { affected: 0 };
+    if (row.deletedAt) return { affected: 0 };
+    row.deletedAt = new Date();
     return { affected: 1 };
   }
 
-  async restore(criteria: { id: string; authorId: string }): Promise<{ affected: number }> {
-    const entity = this.entries.get(criteria.id);
-    if (!entity || entity.authorId !== criteria.authorId) return { affected: 0 };
-    if (!entity.deletedAt) return { affected: 0 };
-    entity.deletedAt = null;
+  async restore(uid: string, entryId: string): Promise<{ affected: number }> {
+    const row = this.entries.get(entryId);
+    if (!row || row.authorId !== uid) return { affected: 0 };
+    if (!row.deletedAt) return { affected: 0 };
+    row.deletedAt = null;
     return { affected: 1 };
   }
 
-  async delete(criteria: { authorId: string }): Promise<{ affected: number }> {
+  async deleteByAuthor(uid: string): Promise<{ affected: number }> {
     let affected = 0;
-    for (const [id, entity] of this.entries.entries()) {
-      if (entity.authorId === criteria.authorId) {
+    for (const [id, row] of this.entries.entries()) {
+      if (row.authorId === uid) {
         this.entries.delete(id);
         affected += 1;
       }
@@ -142,84 +169,15 @@ class InMemoryEntryRepository {
     return { affected };
   }
 
-  /**
-   * V2026-09-11 简化版 QueryBuilder: 仅支持 service 用到的链式调用.
-   * 复杂断言 (cursor 翻页一致) 走 service 单测, e2e 只验证基本列表.
-   */
-  createQueryBuilder() {
-    // V2026-09-11 治本: 直接捕获 entries Map 引用 (字段访问, 非 this 别名).
-    //   原因: unicorn/no-this-assignment + @typescript-eslint/no-this-alias 两条规则
-    //         都拒绝 const self = this (this 别名), 但允许 const ref = this.field (字段访问).
-    //         Map 是引用类型, ref 始终反映最新状态, 行为与 this.entries 完全等价.
-    //   验证: getMany() 不再触发两条 lint, 且读写 .entries.set() 后 .getMany() 看到最新值.
-    const entries = this.entries;
-    let whereClause: ((e: StoredEntry) => boolean) | null = null;
-    const conds: ((e: StoredEntry) => boolean)[] = [];
-    const order: { col: string; dir: 'ASC' | 'DESC' }[] = [];
-    let take: number | null = null;
-
-    const builder = {
-      where(_alias: string, params: Record<string, unknown>) {
-        whereClause = (e: StoredEntry) => e.authorId === params['uid'];
-        return builder;
-      },
-      andWhere(_expr: string, params?: Record<string, unknown>) {
-        if (params && 'statuses' in params) {
-          conds.push((e) => Array.isArray(params['statuses']) && (params['statuses'] as string[]).includes(e.status));
-        }
-        if (params && 'like' in params) {
-          const kw = (params['like'] as string).replace(/^%/, '').replace(/%$/, '');
-          conds.push((e) => (e.title ?? '').includes(kw) || e.body.includes(kw));
-        }
-        for (const k of Object.keys(params ?? {})) {
-          if (k.startsWith('tagFilter')) {
-            const tag = params?.[k] as string;
-            conds.push((e) => (e.tags ?? '').split(',').includes(tag));
-          }
-        }
-        return builder;
-      },
-      orderBy(_col: string, dir: 'ASC' | 'DESC') {
-        order.push({ col: 'createdAt', dir });
-        return builder;
-      },
-      addOrderBy(_col: string, dir: 'ASC' | 'DESC') {
-        order.push({ col: 'id', dir });
-        return builder;
-      },
-      limit(n: number) {
-        take = n;
-        return builder;
-      },
-      // V2026-09-11 治本: 箭头函数 + 闭包访问 entries ——
-      //   getMany() 的 this=builder 而非 repo, 所以不能写 this.entries; 通过闭包捕获 entries 局部变量.
-      //   验证: 任何调用 InMemoryEntryRepository.createQueryBuilder()...getMany() 路径不再 throw,
-      //         且 L149 不再触发 unicorn/no-this-assignment + @typescript-eslint/no-this-alias.
-      getMany: async (): Promise<StoredEntry[]> => {
-        let list = Array.from(entries.values());
-        if (whereClause) list = list.filter(whereClause);
-        for (const c of conds) list = list.filter(c);
-        if (order.length > 0) {
-          list.sort((a, b) => {
-            for (const o of order) {
-              const av = (a as unknown as Record<string, unknown>)[o.col];
-              const bv = (b as unknown as Record<string, unknown>)[o.col];
-              if (av instanceof Date && bv instanceof Date) {
-                const diff = av.getTime() - bv.getTime();
-                if (diff !== 0) return o.dir === 'DESC' ? -diff : diff;
-              } else if (typeof av === 'string' && typeof bv === 'string') {
-                const diff = av.localeCompare(bv);
-                if (diff !== 0) return o.dir === 'DESC' ? -diff : diff;
-              }
-            }
-            return 0;
-          });
-        }
-        if (take !== null) list = list.slice(0, take);
-        return list;
-      },
-    };
-    return builder;
+  async purgeExpiredSoftDeletes(cutoff: Date): Promise<{ affected: number }> {
+    let affected = 0;
+    for (const [id, row] of this.entries.entries()) {
+      if (row.deletedAt && row.deletedAt < cutoff) {
+        this.entries.delete(id);
+        affected += 1;
+      }
+    }
+    return { affected };
   }
 
   clear(): void {
@@ -247,8 +205,14 @@ describe('GoodStateDiaryController (e2e)', () => {
     const moduleFixture = await Test.createTestingModule({
       imports: [GoodStateDiaryModule],
     })
-      .overrideProvider(getRepositoryToken(GoodStateDiaryEntry))
+      // V2026-11-14 治本 (TD-18): 覆盖改打**端口 Symbol** —— 端口替身接管全部读写口径.
+      .overrideProvider(DIARY_ENTRY_REPOSITORY)
       .useValue(repo)
+      // V2026-11-14 治本 (TD-18): forFeature 注册的实体仓储 provider 在模块编译期会被实例化,
+      //   其工厂需要 DataSource token; 本 e2e 不连真库, 且本单要求零 typeorm 值符号 /
+      //   零 entity import, 故按 token 字符串覆盖掉它 (端口已被上一行覆盖, 该 provider 的产物不会被使用).
+      .overrideProvider('GoodStateDiaryEntryRepository')
+      .useValue({})
       .overrideProvider(SentryService)
       .useValue(sentryStub)
       .overrideGuard(JwtAuthGuard)
@@ -339,7 +303,7 @@ describe('GoodStateDiaryController (e2e)', () => {
 
       // V2026-09-11 #6 治本: 整行 153 > 140, 拆多行 (v5 误判 ≤140, 已修)
       const res = await request(app.getHttpServer()).get(`/diary/entries/${created.body.id}`).set('X-Test-Uid', OTHER_UID).expect(404);
-      // V2026-09-11 治本: 显式断言 — sonarjs 兜底.
+      // V2026-11-13 治本: 显式断言 — sonarjs 兜底.
       expect(res.status).toBe(404);
     });
 
@@ -483,7 +447,7 @@ describe('GoodStateDiaryController (e2e)', () => {
           tags: [],
         })
         .expect(404);
-      // V2026-09-11 治本: 显式断言 — sonarjs 兜底.
+      // V2026-11-13 治本: 显式断言 — sonarjs 兜底.
       expect(res.status).toBe(404);
     });
   });

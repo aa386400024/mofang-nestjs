@@ -1,11 +1,16 @@
 import { Test } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { vi, type Mock } from 'vitest';
+import { vi } from 'vitest';
 
 import { GoodStateDiaryService } from './good-state-diary.service.js';
 import { BizCode } from '../../common/exceptions/biz-code.enum.js';
 
-import { GoodStateDiaryEntry } from '../entities/good-state-diary-entry.entity.js';
+import {
+  DIARY_ENTRY_REPOSITORY,
+  type CreateDiaryEntryInput,
+  type DiaryRow,
+  type ListRecentEntriesQuery,
+  type SearchEntriesQuery,
+} from '../domain/repositories/diary-entry.repository.js';
 import { DiaryEntryStatus } from '../enums/diary-entry-status.enum.js';
 import { DiaryMoodLevel } from '../enums/diary-mood-level.enum.js';
 import { DiaryTag } from '../enums/diary-tag.enum.js';
@@ -15,7 +20,7 @@ import { DiaryTag } from '../enums/diary-tag.enum.js';
  *   原因: 单测聚焦业务逻辑 (cursor 编解码 / 边界校验 / 软删判定),
  *         比 e2e 快 10x, 改 service 内部实现时回归保护.
  *   修复:
- *     - Repository 用 vi.fn mock, 不连真 DB
+ *     - 仓储端口用 vi.fn 替身, 不连真 DB
  *     - 覆盖所有 public 方法的 happy path + 关键 error path (越权 / 软删 / 入参校验)
  *     - 不测 DTO 校验 (那是 ValidationPipe 的活, 单元测不到)
  *   反双胞胎:
@@ -23,171 +28,135 @@ import { DiaryTag } from '../enums/diary-tag.enum.js';
  *     - 不测 AI service (它依赖日记 service 的 findOwnedOrThrow, 单测时拆开测)
  *
  *   反依赖污染:
- *     - mock repo 字段都按 TypeORM entity 定义, 避免编译时类型断言漏字段
+ *     - mock 端口字段都按端口行类型定义, 避免编译时类型断言漏字段
+ *
+ *   V2026-11-14 治本 (TD-18 · C2 第二批仓储端口化):
+ *     - 替身从「typeorm 泛型仓储形状」换成**端口方法面** (10 个方法),
+ *       注入 token 换 DIARY_ENTRY_REPOSITORY —— 15 例断言**逐字未改**
+ *     - 原 QB 链式替身 (setupQueryBuilderMock) 整段移除: 分页 / 检索条件
+ *       现在下沉在 data/ 实现里, 单测改用端口内存替身方法表达同样的口径
+ *       (authorId 隔离 / status 过滤 / 软删过滤 / createdAt+id DESC / take 上限)
  */
-
-interface MockEntry extends GoodStateDiaryEntry {
-  // 完全对齐
-}
 
 function makeMockRepo() {
-  const store: MockEntry[] = [];
+  const store: DiaryRow[] = [];
   return {
     store,
-    create: vi.fn((partial: Partial<MockEntry>) => {
+    create: vi.fn(async (input: CreateDiaryEntryInput): Promise<DiaryRow> => {
       const now = new Date();
-      return {
-        id: partial.id ?? crypto.randomUUID(),
-        ...partial,
-        createdAt: partial.createdAt ?? now,
-        updatedAt: partial.updatedAt ?? now,
-      } as MockEntry;
+      const row: DiaryRow = {
+        id: crypto.randomUUID(),
+        authorId: input.authorId,
+        status: input.status,
+        title: input.title,
+        body: input.body,
+        moodLevel: input.moodLevel,
+        moodSnapshottedAt: input.moodSnapshottedAt,
+        moodNote: input.moodNote,
+        sourceEmotionLogId: input.sourceEmotionLogId,
+        tags: input.tags,
+        linkedPracticeId: input.linkedPracticeId,
+        aiFeedback: null,
+        aiFeedbackGeneratedAt: null,
+        isPrivate: input.isPrivate,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+      };
+      store.push(row);
+      return row;
     }),
-    save: vi.fn(async (entity: MockEntry) => {
-      Object.assign(entity, { updatedAt: new Date() });
-      const idx = store.findIndex((e) => e.id === entity.id);
+    save: vi.fn(async (row: DiaryRow): Promise<DiaryRow> => {
+      const updated: DiaryRow = { ...row, updatedAt: new Date() };
+      const idx = store.findIndex((e) => e.id === row.id);
       if (idx === -1) {
-        store.push(entity);
+        store.push(updated);
       } else {
-        store[idx] = entity;
+        store[idx] = updated;
       }
-      return entity;
+      return updated;
     }),
-    findOne: vi.fn(async (opts: { where: { id: string; authorId: string }; withDeleted?: boolean }) => {
-      const e = store.find((x) => x.id === opts.where.id);
-      if (!e) return null;
-      if (e.authorId !== opts.where.authorId) return null;
-      if (e.deletedAt && !opts.withDeleted) return null;
-      return e;
+    findById: vi.fn(async (uid: string, entryId: string, opts?: { includeDeleted?: boolean }): Promise<DiaryRow | null> => {
+      const row = store.find((x) => x.id === entryId);
+      if (!row) return null;
+      if (row.authorId !== uid) return null;
+      if (row.deletedAt && opts?.includeDeleted !== true) return null;
+      return row;
     }),
-    softDelete: vi.fn(async (criteria: { id: string; authorId: string }) => {
-      const e = store.find((x) => x.id === criteria.id);
-      if (!e || e.authorId !== criteria.authorId) return { affected: 0 };
-      e.deletedAt = new Date();
+    findDrafts: vi.fn(async (uid: string): Promise<DiaryRow[]> => {
+      return store
+        .filter((e) => e.authorId === uid && e.status === DiaryEntryStatus.Draft && !e.deletedAt)
+        .toSorted((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id.localeCompare(a.id))
+        .slice(0, 200);
+    }),
+    listRecent: vi.fn(async (query: ListRecentEntriesQuery): Promise<DiaryRow[]> => {
+      let list = store.filter((e) => e.authorId === query.uid && !e.deletedAt && query.statuses.includes(e.status));
+      list = list.toSorted((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id.localeCompare(a.id));
+      if (query.cursor) {
+        const cursorT = new Date(query.cursor.t).getTime();
+        const cursorI = query.cursor.i;
+        list = list.filter((e) => e.createdAt.getTime() < cursorT || (e.createdAt.getTime() === cursorT && e.id < cursorI));
+      }
+      return list.slice(0, query.limit + 1);
+    }),
+    searchEntries: vi.fn(async (query: SearchEntriesQuery): Promise<DiaryRow[]> => {
+      const keyword = query.likePattern.replace(/^%/, '').replace(/%$/, '');
+      let list = store.filter(
+        (e) =>
+          e.authorId === query.uid &&
+          !e.deletedAt &&
+          ((e.title ?? '').includes(keyword) || e.body.includes(keyword)) &&
+          query.tagFilters.every((tag) => (e.tags ?? '').split(',').includes(tag)),
+      );
+      list = list.toSorted((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id.localeCompare(a.id));
+      if (query.cursor) {
+        const cursorT = new Date(query.cursor.t).getTime();
+        const cursorI = query.cursor.i;
+        list = list.filter((e) => e.createdAt.getTime() < cursorT || (e.createdAt.getTime() === cursorT && e.id < cursorI));
+      }
+      return list.slice(0, query.limit + 1);
+    }),
+    softDelete: vi.fn(async (uid: string, entryId: string) => {
+      const row = store.find((x) => x.id === entryId);
+      if (!row || row.authorId !== uid) return { affected: 0 };
+      row.deletedAt = new Date();
       return { affected: 1 };
     }),
-    restore: vi.fn(async (criteria: { id: string; authorId: string }) => {
-      const e = store.find((x) => x.id === criteria.id);
-      if (!e || e.authorId !== criteria.authorId) return { affected: 0 };
-      e.deletedAt = null;
+    restore: vi.fn(async (uid: string, entryId: string) => {
+      const row = store.find((x) => x.id === entryId);
+      if (!row || row.authorId !== uid) return { affected: 0 };
+      row.deletedAt = null;
       return { affected: 1 };
     }),
-    delete: vi.fn(async (criteria: { authorId: string }) => {
+    deleteByAuthor: vi.fn(async (uid: string) => {
       const before = store.length;
-      const filtered = store.filter((e) => e.authorId !== criteria.authorId);
+      const kept = store.filter((e) => e.authorId !== uid);
       store.length = 0;
-      store.push(...filtered);
+      store.push(...kept);
       return { affected: before - store.length };
     }),
-    find: vi.fn(
-      async (opts: { where: Partial<MockEntry>; order?: Record<string, 'ASC' | 'DESC'>; take?: number; withDeleted?: boolean }) => {
-        let list = store.slice();
-        for (const [k, v] of Object.entries(opts.where)) {
-          // V2026-10-24 治本 (TS2352): MockEntry 没有索引签名, 直接断言成
-          //   Record<string, unknown> 不被 TS 认可 → 必须先过 unknown 一道.
-          list = list.filter((e) => (e as unknown as Record<string, unknown>)[k] === v);
-        }
-        if (!opts.withDeleted) list = list.filter((e) => !e.deletedAt);
-        // V2026-10-24 治本 (TS4111): order 是 Record<string, 'ASC'|'DESC'>,
-        //   属性来自索引签名 → 必须用 bracket 访问.
-        if (opts.order?.['createdAt'])
-          list.sort((a, b) =>
-            opts.order!['createdAt'] === 'DESC'
-              ? b.createdAt.getTime() - a.createdAt.getTime()
-              : a.createdAt.getTime() - b.createdAt.getTime(),
-          );
-        if (opts.take !== undefined) list = list.slice(0, opts.take);
-        return list;
-      },
-    ),
-    createQueryBuilder: vi.fn(),
+    purgeExpiredSoftDeletes: vi.fn(async (cutoff: Date) => {
+      const kept = store.filter((e) => !(e.deletedAt && e.deletedAt < cutoff));
+      const affected = store.length - kept.length;
+      store.length = 0;
+      store.push(...kept);
+      return { affected };
+    }),
   };
-}
-
-/**
- * V2026-10-26 治本 (QueryBuilder mock 补 author / status 过滤 — 之前完全不过滤):
- *   原因: 旧 mock 的 `getMany` 直接 `return store.slice()` —— 一条过滤都不做,
- *     于是 service.getRecent 的 SQL 过滤 (`e.author_id = :uid` / `e.status IN (...)`)
- *     在单测里是**假的**:
- *       - 「默认只看 finalized」拿到的却是全部条目 → 直接变红
- *       - purgeAll 的跨用户断言是**侥幸通过**的 —— 它通过, 只是因为 purgeAll 真的把
- *         本人的行从 store 里删掉了, **不是**因为查询带了 author 过滤
- *   修法: mock 记录 where/andWhere 传进来的参数, getMany 时按 author + status 过滤.
- *     这两条是 service 每次都必带的, 也是这个单测真正要验的那两条.
- *     cursor 条件**故意不实现**: 本文件没有 cursor 用例, 实现了也没人验 (留着占位).
- */
-function setupQueryBuilderMock(repo: ReturnType<typeof makeMockRepo>, store: MockEntry[]) {
-  // V2026-10-26 治本 (TS7022/TS7024 — 自引用对象必须**显式标注类型**):
-  //   `qb` 的成员要 `return qb` (链式调用), 若让 TS 去**推断** qb 的类型, 就成了
-  //   「qb 的类型依赖 qb 自己的初始化器」的循环 → TS7022 (qb 隐式 any) + TS7024 (返回 any).
-  //   治本: 把形状抽成显式 interface —— 类型是**声明**出来的, 不是推断出来的, 循环自然断开.
-  interface QueryBuilderMock {
-    where: Mock<(clause: string, params?: Record<string, unknown>) => QueryBuilderMock>;
-    andWhere: Mock<(clause: string, params?: Record<string, unknown>) => QueryBuilderMock>;
-    orderBy: Mock<(clause: string, dir: string) => QueryBuilderMock>;
-    addOrderBy: Mock<(clause: string, dir: string) => QueryBuilderMock>;
-    limit: Mock<(n: number) => QueryBuilderMock>;
-    getMany: Mock<() => Promise<MockEntry[]>>;
-    delete: Mock<() => QueryBuilderMock>;
-    execute: Mock<() => Promise<{ affected: number }>>;
-  }
-
-  repo.createQueryBuilder = vi.fn(() => {
-    // V2026-10-26 治本: 过滤条件**每次建 QB 都要新建** ——
-    //   建在工厂外面的话, 上一条查询留下的 status 过滤会漏进下一条 (service.search
-    //   不带 status 过滤, 却被上一次 getRecent 的 status 条件污染).
-    const filters: { authorId?: string; statuses?: string[] } = {};
-    const qb: QueryBuilderMock = {
-      where: vi.fn((clause: string, params?: Record<string, unknown>) => {
-        // V2026-10-26 治本 (TS4111): params 是索引签名 → 必须方括号访问.
-        if (clause.includes('e.author_id') && typeof params?.['uid'] === 'string') {
-          filters.authorId = params['uid'];
-        }
-        return qb;
-      }),
-      andWhere: vi.fn((clause: string, params?: Record<string, unknown>) => {
-        if (clause.includes('e.status IN') && Array.isArray(params?.['statuses'])) {
-          filters.statuses = params['statuses'] as string[];
-        }
-        return qb;
-      }),
-      orderBy: vi.fn((_clause: string, _dir: string): QueryBuilderMock => qb),
-      addOrderBy: vi.fn((_clause: string, _dir: string): QueryBuilderMock => qb),
-      limit: vi.fn((_n: number): QueryBuilderMock => qb),
-      getMany: vi.fn(async () => {
-        let list = store.slice();
-        if (filters.authorId !== undefined) {
-          list = list.filter((e) => e.authorId === filters.authorId);
-        }
-        // 局部 const 收窄 (不在回调里读 filters.statuses, 避免非空断言).
-        const statuses = filters.statuses;
-        if (statuses !== undefined) {
-          list = list.filter((e) => statuses.includes(e.status));
-        }
-        return list;
-      }),
-      delete: vi.fn((): QueryBuilderMock => qb),
-      execute: vi.fn(async () => ({ affected: store.length })),
-    };
-    return qb;
-  });
 }
 
 describe('GoodStateDiaryService', () => {
   let service: GoodStateDiaryService;
   let repo: ReturnType<typeof makeMockRepo>;
-  let store: MockEntry[];
 
   const TEST_UID = 'test-uid-001';
   const OTHER_UID = 'test-uid-002';
 
   beforeEach(async () => {
     repo = makeMockRepo();
-    store = repo.store;
-    setupQueryBuilderMock(repo, store);
 
     const moduleRef = await Test.createTestingModule({
-      providers: [GoodStateDiaryService, { provide: getRepositoryToken(GoodStateDiaryEntry), useValue: repo }],
+      providers: [GoodStateDiaryService, { provide: DIARY_ENTRY_REPOSITORY, useValue: repo }],
     }).compile();
 
     service = moduleRef.get(GoodStateDiaryService);

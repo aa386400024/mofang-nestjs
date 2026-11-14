@@ -5,6 +5,8 @@ import { UserModule } from '../user/user.module.js';
 
 import { GoodStateDiaryAiController } from './controllers/good-state-diary-ai.controller.js';
 import { GoodStateDiaryController } from './controllers/good-state-diary.controller.js';
+import { DiaryEntryRepositoryTypeorm } from './data/diary-entry.repository.typeorm.js';
+import { DIARY_ENTRY_REPOSITORY } from './domain/repositories/diary-entry.repository.js';
 import { GoodStateDiaryEntry } from './entities/good-state-diary-entry.entity.js';
 import { GoodStateDiaryAiService } from './providers/good-state-diary-ai.service.js';
 import { GoodStateDiaryService } from './providers/good-state-diary.service.js';
@@ -28,11 +30,19 @@ import { GoodStateDiaryService } from './providers/good-state-diary.service.js';
  *   导出:
  *     - GoodStateDiaryService: 给可能的 V3 模块 (e.g. growth / dashboard) 复用查日记的能力
  *     - 不导出 AI service: AI 反馈是日记专属, 不外暴露
+ *
+ * V2026-11-14 治本 (TD-18 · C2 第二批仓储端口化 · good_state_diary 域 · P-DEBT-11 / L-1):
+ *   - 装配层接入**端口**: DIARY_ENTRY_REPOSITORY → DiaryEntryRepositoryTypeorm
+ *   - **保留** TypeOrmModule.forFeature([GoodStateDiaryEntry]) —— 实现层的
+ *     @InjectRepository 靠它拿真库仓储; forFeature 是本域 typeorm 值符号的
+ *     第二个 (也是最后一个) 允许出现的位置
+ *   - 仓储 token **不 export** —— 本域无跨模块仓储消费 (对齐 TD-13 D-4 / TD-16 / TD-17)
+ *   - exports 口径不变: 仍只导出 GoodStateDiaryService
  */
 @Module({
   imports: [TypeOrmModule.forFeature([GoodStateDiaryEntry]), UserModule],
   controllers: [GoodStateDiaryController, GoodStateDiaryAiController],
-  providers: [GoodStateDiaryService, GoodStateDiaryAiService],
+  providers: [GoodStateDiaryService, GoodStateDiaryAiService, { provide: DIARY_ENTRY_REPOSITORY, useClass: DiaryEntryRepositoryTypeorm }],
   exports: [GoodStateDiaryService],
 })
 export class GoodStateDiaryModule {}
