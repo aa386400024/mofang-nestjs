@@ -1,8 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 
 import { LIFE_STAGES, type LifeStage } from '../../shared/types/practice.types.js';
+import {
+  GENOME_DIMENSION_REPOSITORY,
+  type GenomeDimensionKey,
+  type GenomeDimensionRepository,
+  type GenomeDimensionRow,
+} from '../domain/repositories/genome-dimension.repository.js';
+import { KEY_EVENT_REPOSITORY, type KeyEventRepository, type KeyEventRow } from '../domain/repositories/key-event.repository.js';
+import {
+  LIFE_STAGE_PROGRESS_REPOSITORY,
+  type LifeStageProgressRepository,
+  type LifeStageProgressRow,
+} from '../domain/repositories/life-stage-progress.repository.js';
 import type {
   CreateKeyEventDto,
   ForecastDimensionDto,
@@ -24,7 +34,6 @@ import type {
   StageProgressListDto,
   UpdateKeyEventDto,
 } from '../dto/life-map.dto.js';
-import { type GenomeDimensionKey, GenomeDimensionEntity, KeyEventEntity, LifeStageProgressEntity } from '../entities/index.js';
 
 /**
  * 人生地图服务 — V3.0 §3 Tab3 完整业务化.
@@ -32,6 +41,9 @@ import { type GenomeDimensionKey, GenomeDimensionEntity, KeyEventEntity, LifeSta
  * V2.0 → V3.0 升级:
  *   - V2.0 全部 sample 占位, 跟前端 ProfileLifeMapPage 一致
  *   - V3.0 真后端: TypeORM + 3 张表 (life_stage_progress / key_events / genome_dimensions)
+ *   - V2026-11-14 治本 (TD-16 · C1 试点域): 仓储访问改走**端口** —— service 只依赖
+ *     domain/repositories/ 的 interface + Symbol token, typeorm 值符号全部收进
+ *     data/ 的 TypeORM 实现; service 内不再出现 entity 类名
  *   - 提供阶段梳理 / 关键事件 CRUD / 基因盘点 / 推演 / 综合报告全量业务
  *
  * 命名规范:
@@ -47,12 +59,12 @@ import { type GenomeDimensionKey, GenomeDimensionEntity, KeyEventEntity, LifeSta
 @Injectable()
 export class LifeMapService {
   constructor(
-    @InjectRepository(LifeStageProgressEntity)
-    private readonly stageRepo: Repository<LifeStageProgressEntity>,
-    @InjectRepository(KeyEventEntity)
-    private readonly eventRepo: Repository<KeyEventEntity>,
-    @InjectRepository(GenomeDimensionEntity)
-    private readonly dimensionRepo: Repository<GenomeDimensionEntity>,
+    @Inject(LIFE_STAGE_PROGRESS_REPOSITORY)
+    private readonly stageRepo: LifeStageProgressRepository,
+    @Inject(KEY_EVENT_REPOSITORY)
+    private readonly eventRepo: KeyEventRepository,
+    @Inject(GENOME_DIMENSION_REPOSITORY)
+    private readonly dimensionRepo: GenomeDimensionRepository,
   ) {}
 
   // ═════════════════════════════════════════════════════════════
@@ -153,25 +165,13 @@ export class LifeMapService {
   }
 
   async saveStageProgress(uid: string, dto: SaveStageProgressDto): Promise<LifeStageProgressDto> {
-    let entity = await this.stageRepo.findOne({
-      where: { userId: uid, stage: dto.stage },
+    const saved = await this.stageRepo.saveProgress({
+      userId: uid,
+      stage: dto.stage,
+      completionPct: dto.completionPct,
+      stuckPoints: dto.stuckPoints,
+      gains: dto.gains,
     });
-
-    if (entity) {
-      entity.completionPct = dto.completionPct;
-      entity.stuckPoints = dto.stuckPoints ?? entity.stuckPoints ?? null;
-      entity.gains = dto.gains ?? entity.gains ?? null;
-    } else {
-      entity = this.stageRepo.create({
-        userId: uid,
-        stage: dto.stage,
-        completionPct: dto.completionPct,
-        stuckPoints: dto.stuckPoints ?? null,
-        gains: dto.gains ?? null,
-      });
-    }
-
-    const saved = await this.stageRepo.save(entity);
     return this.stageToDto(saved);
   }
 
@@ -180,10 +180,7 @@ export class LifeMapService {
   // ═════════════════════════════════════════════════════════════
 
   async listKeyEvents(uid: string): Promise<KeyEventListDto> {
-    const events = await this.eventRepo.find({
-      where: { userId: uid, deletedAt: IsNull() },
-      order: { age: 'ASC' },
-    });
+    const events = await this.eventRepo.listActiveByUser(uid);
     return {
       events: events.map((e) => this.eventToDto(e)),
       total: events.length,
@@ -191,7 +188,7 @@ export class LifeMapService {
   }
 
   async createKeyEvent(uid: string, dto: CreateKeyEventDto): Promise<KeyEventDto> {
-    const entity = this.eventRepo.create({
+    const saved = await this.eventRepo.createEvent({
       userId: uid,
       title: dto.title,
       age: dto.age,
@@ -202,29 +199,29 @@ export class LifeMapService {
       interpretation: dto.interpretation ?? null,
       stage: dto.stage ?? null,
     });
-    const saved = await this.eventRepo.save(entity);
     return this.eventToDto(saved);
   }
 
   async updateKeyEvent(uid: string, eventId: string, dto: UpdateKeyEventDto): Promise<KeyEventDto> {
-    const entity = await this.requireActiveEvent(uid, eventId);
-    Object.assign(entity, {
-      title: dto.title ?? entity.title,
-      type: dto.type ?? entity.type,
-      description: dto.description ?? entity.description,
-      feelings: dto.feelings ?? entity.feelings,
-      influence: dto.influence ?? entity.influence,
-      interpretation: dto.interpretation ?? entity.interpretation,
-      stage: dto.stage ?? entity.stage,
+    const row = await this.requireActiveEvent(uid, eventId);
+    const saved = await this.eventRepo.saveEvent({
+      id: row.id,
+      userId: row.userId,
+      title: dto.title ?? row.title,
+      age: row.age,
+      type: dto.type ?? row.type,
+      description: dto.description ?? row.description,
+      feelings: dto.feelings ?? row.feelings,
+      influence: dto.influence ?? row.influence,
+      interpretation: dto.interpretation ?? row.interpretation,
+      stage: dto.stage ?? row.stage,
     });
-    const saved = await this.eventRepo.save(entity);
     return this.eventToDto(saved);
   }
 
   async deleteKeyEvent(uid: string, eventId: string): Promise<void> {
-    const entity = await this.requireActiveEvent(uid, eventId);
-    entity.deletedAt = new Date();
-    await this.eventRepo.save(entity);
+    await this.requireActiveEvent(uid, eventId);
+    await this.eventRepo.softDeleteEvent(eventId, new Date());
   }
 
   // ═════════════════════════════════════════════════════════════
@@ -232,9 +229,7 @@ export class LifeMapService {
   // ═════════════════════════════════════════════════════════════
 
   async listGenomeDimensions(uid: string): Promise<GenomeDimensionListDto> {
-    const dims = await this.dimensionRepo.find({
-      where: { userId: uid, deletedAt: IsNull() },
-    });
+    const dims = await this.dimensionRepo.listActiveByUser(uid);
     return {
       dimensions: dims.map((d) => this.dimToDto(d)),
       filledCount: dims.length,
@@ -243,29 +238,16 @@ export class LifeMapService {
   }
 
   async saveGenomeDimension(uid: string, dto: SaveGenomeDimensionDto): Promise<GenomeDimensionDto> {
-    let entity = await this.dimensionRepo.findOne({
-      where: { userId: uid, key: dto.key },
-    });
-
     const tier = this.calcTier(dto.score);
 
-    if (entity) {
-      entity.score = dto.score;
-      entity.tier = tier;
-      entity.source = dto.source ?? entity.source ?? null;
-      entity.improvement = dto.improvement ?? entity.improvement ?? null;
-    } else {
-      entity = this.dimensionRepo.create({
-        userId: uid,
-        key: dto.key,
-        score: dto.score,
-        tier,
-        source: dto.source ?? null,
-        improvement: dto.improvement ?? null,
-      });
-    }
-
-    const saved = await this.dimensionRepo.save(entity);
+    const saved = await this.dimensionRepo.saveDimension({
+      userId: uid,
+      key: dto.key,
+      score: dto.score,
+      tier,
+      source: dto.source,
+      improvement: dto.improvement,
+    });
     return this.dimToDto(saved);
   }
 
@@ -303,12 +285,8 @@ export class LifeMapService {
    *   - 模板生成, 简单可控, 用户随时可保存多次对比
    */
   async runForecast(uid: string, input: ForecastInputDto): Promise<LifeForecastDto> {
-    const dims = await this.dimensionRepo.find({
-      where: { userId: uid, deletedAt: IsNull() },
-    });
-    const events = await this.eventRepo.find({
-      where: { userId: uid, deletedAt: IsNull() },
-    });
+    const dims = await this.dimensionRepo.listActiveByUser(uid);
+    const events = await this.eventRepo.listActiveByUser(uid);
 
     const securityScore = dims.find((d) => d.key === 'security')?.score ?? 50;
     const selfEsteemScore = dims.find((d) => d.key === 'self_esteem')?.score ?? 50;
@@ -345,9 +323,7 @@ export class LifeMapService {
 
   async getGrowthReport(uid: string): Promise<GrowthReportDto> {
     const stages = await this.loadAllStages(uid);
-    const dims = await this.dimensionRepo.find({
-      where: { userId: uid, deletedAt: IsNull() },
-    });
+    const dims = await this.dimensionRepo.listActiveByUser(uid);
     const eventCount = await this.countActiveEvents(uid);
 
     const stageDone = stages.filter((s) => s.completionPct != null).length;
@@ -402,9 +378,7 @@ export class LifeMapService {
   // ═════════════════════════════════════════════════════════════
 
   private async loadAllStages(uid: string): Promise<LifeStageProgressDto[]> {
-    const rows = await this.stageRepo.find({
-      where: { userId: uid, deletedAt: IsNull() },
-    });
+    const rows = await this.stageRepo.listActiveByUser(uid);
     // V3.0 治本: 返回全 4 阶段, 未填写的为 null completionPct
     const byStage = new Map(rows.map((r) => [r.stage, r]));
     return LIFE_STAGES.map((stageKey) => {
@@ -422,25 +396,19 @@ export class LifeMapService {
   }
 
   private async countActiveEvents(uid: string): Promise<number> {
-    return this.eventRepo.count({
-      where: { userId: uid, deletedAt: IsNull() },
-    });
+    return this.eventRepo.countActiveByUser(uid);
   }
 
   private async countActiveDimensions(uid: string): Promise<number> {
-    return this.dimensionRepo.count({
-      where: { userId: uid, deletedAt: IsNull() },
-    });
+    return this.dimensionRepo.countActiveByUser(uid);
   }
 
-  private async requireActiveEvent(uid: string, eventId: string): Promise<KeyEventEntity> {
-    const entity = await this.eventRepo.findOne({
-      where: { id: eventId, userId: uid, deletedAt: IsNull() },
-    });
-    if (!entity) {
+  private async requireActiveEvent(uid: string, eventId: string): Promise<KeyEventRow> {
+    const row = await this.eventRepo.findActiveById(uid, eventId);
+    if (!row) {
       throw new NotFoundException(`Key event ${eventId} not found`);
     }
-    return entity;
+    return row;
   }
 
   evaluateForecastUnlock(stageDone: number, eventCount: number): 'unlocked' | 'locking' | 'locked' {
@@ -462,7 +430,7 @@ export class LifeMapService {
     return 'strong';
   }
 
-  stageToDto(e: LifeStageProgressEntity): LifeStageProgressDto {
+  stageToDto(e: LifeStageProgressRow): LifeStageProgressDto {
     return {
       stage: e.stage,
       completionPct: e.completionPct,
@@ -473,7 +441,7 @@ export class LifeMapService {
     };
   }
 
-  eventToDto(e: KeyEventEntity): KeyEventDto {
+  eventToDto(e: KeyEventRow): KeyEventDto {
     return {
       id: e.id,
       title: e.title,
@@ -489,7 +457,7 @@ export class LifeMapService {
     };
   }
 
-  dimToDto(d: GenomeDimensionEntity): GenomeDimensionDto {
+  dimToDto(d: GenomeDimensionRow): GenomeDimensionDto {
     return {
       key: d.key,
       label: GENOME_DIMENSION_LABELS[d.key],
@@ -578,7 +546,7 @@ export class LifeMapService {
     return base;
   }
 
-  recommendTools(dims: GenomeDimensionEntity[]): string[] {
+  recommendTools(dims: GenomeDimensionRow[]): string[] {
     const tools: string[] = [];
     if (dims.some((d) => d.key === 'security' && d.score < 50)) {
       tools.push('安全岛想象练习 (emergency.safe-island)');
@@ -592,7 +560,7 @@ export class LifeMapService {
     return tools;
   }
 
-  buildReportSummary(stages: LifeStageProgressDto[], dims: GenomeDimensionEntity[], eventCount: number): string {
+  buildReportSummary(stages: LifeStageProgressDto[], dims: GenomeDimensionRow[], eventCount: number): string {
     const filledStages = stages.filter((s) => s.completionPct != null).length;
     const avgScore = dims.length > 0 ? Math.round(dims.reduce((sum, d) => sum + d.score, 0) / dims.length) : 0;
     return `你已完成 ${filledStages} / ${stages.length} 个人生阶段梳理, 记录 ${eventCount} 个关键事件, 心理基因 5 维度平均得分 ${avgScore}。建议从得分较低维度开始针对性训练。`;

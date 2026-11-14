@@ -1,9 +1,12 @@
-import { Injectable, UnprocessableEntityException, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, UnprocessableEntityException, NotFoundException } from '@nestjs/common';
 
-import { DriftBottleRepository } from './drift-bottle.repository.js';
+import {
+  DRIFT_BOTTLE_REPOSITORY,
+  type DriftBottleRepository,
+  type DriftBottleRow,
+} from '../domain/repositories/drift-bottle.repository.js';
 import { DriftBottleEntryDto } from '../dto/drift-bottle-entry.dto.js';
 import { DriftBottleStatsDto } from '../dto/drift-bottle-stats.dto.js';
-import { DriftBottleEntry } from '../entities/drift-bottle-entry.entity.js';
 import { DriftBottleStatus } from '../enums/drift-bottle-status.enum.js';
 
 /**
@@ -51,7 +54,10 @@ export class DriftBottleService {
   /** 捞瓶冷却: uid → (bottleId → 时间). */
   private readonly recentlyPicked = new Map<string, Map<string, Date>>();
 
-  constructor(private readonly repository: DriftBottleRepository) {}
+  constructor(
+    @Inject(DRIFT_BOTTLE_REPOSITORY)
+    private readonly repository: DriftBottleRepository,
+  ) {}
 
   // ─── 投瓶 ─────────────────────────────────────────────────────
 
@@ -109,8 +115,7 @@ export class DriftBottleService {
     this.recordPicked(input.currentUserId, picked.id);
 
     // 状态变更: DRIFT → PICKED + 标记捞起者
-    const updated = await this.repository.update(picked.id, {
-      status: DriftBottleStatus.PICKED,
+    const updated = await this.repository.markPicked(picked.id, {
       pickedByUserId: input.currentUserId,
       pickedByAnonymousName: '你',
       pickedAt: new Date(),
@@ -146,8 +151,7 @@ export class DriftBottleService {
       throw new UnprocessableEntityException(`回信内容需在 1..500 字之间 (当前 ${trimmed.length}).`);
     }
 
-    const updated = await this.repository.update(input.bottleId, {
-      status: DriftBottleStatus.RESPONDED,
+    const updated = await this.repository.markResponded(input.bottleId, {
       respondedText: trimmed,
       respondedAt: new Date(),
     });
@@ -207,7 +211,7 @@ export class DriftBottleService {
     return DriftBottleService.ANONYMOUS_NAMES[idx];
   }
 
-  private toDto(e: DriftBottleEntry): DriftBottleEntryDto {
+  private toDto(e: DriftBottleRow): DriftBottleEntryDto {
     return {
       id: e.id,
       authorId: e.authorId,
