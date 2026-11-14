@@ -1,11 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { InjectRepository } from '@nestjs/typeorm';
-import type { Repository } from 'typeorm';
 
+import { CONSENT_REPOSITORY, type ConsentRepository } from '../domain/repositories/consent.repository.js';
 import { ConsentStatusResponseDto } from '../dto/consent-status.dto.js';
 import { RecordConsentDto } from '../dto/record-consent.dto.js';
-import { UserConsent } from '../entities/user-consent.entity.js';
 
 /**
  * Consent context — 审计所需的请求元数据.
@@ -27,6 +25,17 @@ export interface ConsentContext {
  * 不抛异常的原则:
  *   - 写入失败 → 返回 lastError 给调用方, 不 throw (前端 fire-and-forget 不受影响)
  *   - 状态查询失败 → 抛异常 (前端启动关键路径, 必须 fail-fast)
+ *
+ * V2026-11-14 治本 (TD-17 · C2 第一批仓储端口化 · consent 域 · P-DEBT-11 / L-1):
+ *   - 仓储访问改走**端口** ($domain/repositories/consent.repository.js$ 的 interface
+ *     + $CONSENT_REPOSITORY$ DI token), typeorm 值符号全部收进 $data/$ 的
+ *     TypeORM 实现; service 不再出现 entity 类名, 不再值位置 import entity
+ *   - **行的构造移到 service 侧** (纯对象), 仓储侧的工厂方法依赖移除 ——
+ *     幂等更新时 service 带原 $acceptedAt$ / $updatedAt$, 「首写时间保留」语义不变
+ *   - 公共签名 ($record$ / $checkStatus$ / $bindToUser$) 与失败语义**逐字不变**
+ *   - ⚠️ 上方「不抛异常的原则」是**设计意图**, 当前实现**未加** try/catch ——
+ *     写入失败实际会抛异常. 本单是结构重构, **不改失败语义**; 该注释与实现的
+ *     不一致登记为另案 P (交付记录 §八), 不在本单顺手修.
  */
 @Injectable()
 export class ConsentService {
@@ -34,8 +43,8 @@ export class ConsentService {
   private readonly currentVersion: string;
 
   constructor(
-    @InjectRepository(UserConsent)
-    private readonly repo: Repository<UserConsent>,
+    @Inject(CONSENT_REPOSITORY)
+    private readonly repo: ConsentRepository,
     private readonly config: ConfigService,
   ) {
     // V2026-11-06 治本 (WP69 · 路径错误型 env 盲区):
@@ -53,40 +62,53 @@ export class ConsentService {
    */
   public async record(dto: RecordConsentDto, ctx: ConsentContext): Promise<{ id: string; acceptedAt: Date }> {
     // 幂等查询: 已有则更新 IP/UA/metadata (审计), 保留原始 acceptedAt
-    const existing = await this.repo.findOne({
-      where: {
-        deviceId: dto.deviceId,
-        consentVersion: dto.consentVersion,
-        consentType: dto.consentType,
-        appId: dto.appId,
-      },
+    const existing = await this.repo.findByIdempotentKey({
+      deviceId: dto.deviceId,
+      consentVersion: dto.consentVersion,
+      consentType: dto.consentType,
+      appId: dto.appId,
     });
 
     if (existing) {
       this.log.debug(`[record] idempotent update: deviceId=${dto.deviceId.slice(0, 8)}... version=${dto.consentVersion}`);
-      existing.ipAddress = ctx.ipAddress;
-      existing.userAgent = ctx.userAgent;
+      // 行纯对象 (service 内构造): 幂等更新带原 id / acceptedAt / updatedAt,
+      // 只刷新审计三件套 (IP / UA / metadata) —— 与改前逐字一致.
+      // metadata 缺省 (undefined) = 保留原值 —— 与改前 `if (dto.metadata !== undefined)`
+      // 逐字一致; **不能用 ??** —— dto.metadata 显式为 null 时改前会写 null,
+      // ?? 会保留原值 (语义漂移).
+      let metadata = existing.metadata;
       if (dto.metadata !== undefined) {
-        existing.metadata = dto.metadata;
+        metadata = dto.metadata;
       }
-      const saved = await this.repo.save(existing);
+      const saved = await this.repo.save({
+        id: existing.id,
+        userId: existing.userId,
+        deviceId: existing.deviceId,
+        consentVersion: existing.consentVersion,
+        consentType: existing.consentType,
+        platform: existing.platform,
+        appId: existing.appId,
+        acceptedAt: existing.acceptedAt,
+        updatedAt: existing.updatedAt,
+        ipAddress: ctx.ipAddress,
+        userAgent: ctx.userAgent,
+        metadata,
+      });
       return { id: saved.id, acceptedAt: saved.acceptedAt };
     }
 
     // 首次写入: userId 留 NULL, 登录后由 bindToUser 关联
-    const saved = await this.repo.save(
-      this.repo.create({
-        userId: null,
-        deviceId: dto.deviceId,
-        consentVersion: dto.consentVersion,
-        consentType: dto.consentType,
-        platform: dto.platform,
-        appId: dto.appId,
-        ipAddress: ctx.ipAddress,
-        userAgent: ctx.userAgent,
-        metadata: dto.metadata ?? null,
-      }),
-    );
+    const saved = await this.repo.save({
+      userId: null,
+      deviceId: dto.deviceId,
+      consentVersion: dto.consentVersion,
+      consentType: dto.consentType,
+      platform: dto.platform,
+      appId: dto.appId,
+      ipAddress: ctx.ipAddress,
+      userAgent: ctx.userAgent,
+      metadata: dto.metadata ?? null,
+    });
     this.log.log(`[record] new consent: id=${saved.id} device=${dto.deviceId.slice(0, 8)}... version=${dto.consentVersion}`);
     return { id: saved.id, acceptedAt: saved.acceptedAt };
   }
@@ -98,10 +120,7 @@ export class ConsentService {
    */
   public async checkStatus(deviceId: string, consentType: string, appId: string): Promise<ConsentStatusResponseDto> {
     // 取最新一次同意记录 (任意版本)
-    const accepted = await this.repo.findOne({
-      where: { deviceId, consentType, appId },
-      order: { acceptedAt: 'DESC' },
-    });
+    const accepted = await this.repo.findLatestByDevice(deviceId, consentType, appId);
 
     if (!accepted) {
       return {
@@ -127,16 +146,11 @@ export class ConsentService {
    * @returns 实际更新的记录数
    */
   public async bindToUser(deviceId: string, userId: string): Promise<number> {
-    const result = await this.repo
-      .createQueryBuilder()
-      .update(UserConsent)
-      .set({ userId })
-      .where('device_id = :deviceId AND user_id IS NULL', { deviceId })
-      .execute();
+    const affected = await this.repo.bindDeviceToUser(deviceId, userId);
 
-    if (result.affected && result.affected > 0) {
-      this.log.log(`[bindToUser] migrated ${result.affected} consents to user=${userId.slice(0, 8)}...`);
+    if (affected > 0) {
+      this.log.log(`[bindToUser] migrated ${affected} consents to user=${userId.slice(0, 8)}...`);
     }
-    return result.affected ?? 0;
+    return affected;
   }
 }

@@ -162,10 +162,13 @@ describe('WP69 · 调试面板小改进', () => {
   });
 
   // ── ② consent 路径修复 ──────────────────────────────────────────
+  // V2026-11-14 (TD-17 · C2 第一批仓储端口化): consent service 的第一个构造参数由
+  //   typeorm 仓储对象改为**仓储端口**, 替身形状随之改为 findLatestByDevice
+  //   (checkStatus 走的端口方法) —— **断言逐字不变**, 只换替身的方法名.
   describe('② consent 路径修复', () => {
     it('心塑/魔方 consent service: 配 consent.currentVersion=v2.0 → 真生效', async () => {
       const service = new SharedConsentService(
-        { findOne: async () => null } as never,
+        { findLatestByDevice: async () => null } as never,
         stubConfig({ consent: { currentVersion: 'v2.0' } }) as never,
       );
 
@@ -175,7 +178,7 @@ describe('WP69 · 调试面板小改进', () => {
 
     it('心塑/魔方 consent service: 旧的平铺键 consentCurrentVersion 不再生效', async () => {
       const service = new SharedConsentService(
-        { findOne: async () => null } as never,
+        { findLatestByDevice: async () => null } as never,
         // 两个都配: 命名空间的是 v2.0, 平铺的是 v9.9 —— 只认命名空间那个.
         stubConfig({ consent: { currentVersion: 'v2.0' }, consentCurrentVersion: 'v9.9' }) as never,
       );
@@ -185,7 +188,7 @@ describe('WP69 · 调试面板小改进', () => {
     });
 
     it('心塑/魔方 consent service: 没配时回落 v1.0', async () => {
-      const service = new SharedConsentService({ findOne: async () => null } as never, stubConfig({}) as never);
+      const service = new SharedConsentService({ findLatestByDevice: async () => null } as never, stubConfig({}) as never);
 
       const status = await service.checkStatus('device-1', 'terms', 'xin_su');
       expect(status.currentVersion).toBe('v1.0');
