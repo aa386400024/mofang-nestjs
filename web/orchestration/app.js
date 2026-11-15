@@ -157,12 +157,24 @@
       .join('');
   }
 
+  function renderImprovements(snap) {
+    const box = el('improvements');
+    const imp = snap.improvements;
+    if (!imp || imp.total === 0) {
+      box.innerHTML = '<p class="empty">无候选改进。</p>';
+      return;
+    }
+    const b = imp.byStatus;
+    box.innerHTML = `<div class="list-text">活跃 ${imp.activeCount} / 总 ${imp.total}　·　候选 ${b.candidate}　排队 ${b.queued}　实现中 ${b.accepted}　完成 ${b.done}　不采纳 ${b.wontfix}</div>`;
+  }
+
   function renderEmpty() {
     el('overview-cards').innerHTML = '<p class="empty">尚未生成快照。请先在仓库运行 <code>pnpm orchestration:snapshot</code>。</p>';
     el('task-list').innerHTML = '';
     el('dead-letters').innerHTML = '';
     el('rework-proposals').innerHTML = '';
     el('pending-approvals').innerHTML = '';
+    el('improvements').innerHTML = '';
   }
 
   renderMode(snapshot);
@@ -172,6 +184,7 @@
     renderDeadLetters(snapshot);
     renderRework(snapshot);
     renderPending(snapshot);
+    renderImprovements(snapshot);
   } else {
     renderEmpty();
   }

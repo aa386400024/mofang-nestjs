@@ -34,18 +34,19 @@
 
 ## 3. 目录映射（directories）
 
-| 映射项                             | 本项目落点                                                                                |
-| ---------------------------------- | ----------------------------------------------------------------------------------------- |
-| `directories.taskSheets`           | `docs/worklog/pending/`（`ready / submitted / working` 任务单）                           |
-| `directories.deliveryRecords`      | `docs/worklog/completed/<phase>/`（任务单 + 交付记录成对归档，只读历史）                  |
-| `directories.replyArchive`         | `docs/worklog/pending/archive/`（回执原文、中间产物归档）                                 |
-| `directories.artifacts`            | 各任务单切片范围内的源码 / 测试 / 规格路径；工件正文留在各自文件                          |
-| `directories.stateIndex`           | `docs/team/agent-orchestration/task-state-index.json`                                     |
-| `directories.runtimeState`         | `docs/team/agent-orchestration/orchestration-state.json`（L2 运行态，首次 run-once 生成） |
-| `directories.snapshot`             | `docs/team/agent-orchestration/orchestration-snapshot.json`（队列快照，网页数据源）       |
-| `directories.deliveryPacks`        | `docs/team/agent-orchestration/delivery-packs/`（夜间交付包汇总目录）                     |
-| `directories.orchestrationScripts` | `scripts/orchestration/`（L2 工具链实现；工具声明见 `tools/orchestration-tools.json`）    |
-| `directories.agentCards`           | `docs/team/agent-orchestration/agent-cards/`（本项目代理能力声明 JSON）                   |
+| 映射项                             | 本项目落点                                                                                         |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `directories.taskSheets`           | `docs/worklog/pending/`（`ready / submitted / working` 任务单）                                    |
+| `directories.deliveryRecords`      | `docs/worklog/completed/<phase>/`（任务单 + 交付记录成对归档，只读历史）                           |
+| `directories.replyArchive`         | `docs/worklog/pending/archive/`（回执原文、中间产物归档）                                          |
+| `directories.artifacts`            | 各任务单切片范围内的源码 / 测试 / 规格路径；工件正文留在各自文件                                   |
+| `directories.stateIndex`           | `docs/team/agent-orchestration/task-state-index.json`                                              |
+| `directories.runtimeState`         | `docs/team/agent-orchestration/orchestration-state.json`（L2 运行态，首次 run-once 生成）          |
+| `directories.snapshot`             | `docs/team/agent-orchestration/orchestration-snapshot.json`（队列快照，网页数据源）                |
+| `directories.improvementLog`       | `docs/team/agent-orchestration/improvement-log.json`（候选改进台账；口径见 `improvement-loop.md`） |
+| `directories.deliveryPacks`        | `docs/team/agent-orchestration/delivery-packs/`（夜间交付包汇总目录）                              |
+| `directories.orchestrationScripts` | `scripts/orchestration/`（L2 工具链实现；工具声明见 `tools/orchestration-tools.json`）             |
+| `directories.agentCards`           | `docs/team/agent-orchestration/agent-cards/`（本项目代理能力声明 JSON）                            |
 
 四类落点互不重叠；任务单与交付记录成对归档；状态索引纳入 git 版本控制，保证崩溃后可重建。工件正文留在各自文件，状态索引只存**指针与状态**，不复制正文（见框架仓 `docs/task-contract.md` 工件模型）。运行态、快照、交付包与脚本目录为适配层扩展映射项，不进通用层 schema。
 
@@ -62,7 +63,7 @@
 | 前端闸门（仅授权前端任务） | 在 `admin-dashboard/` 目录跑 `pnpm type-check` / `pnpm build-only`，不套用后端 tsc / eslint                                                         |
 | 敏感操作                   | git commit / push、engine-core 例外改动、策略边界冲突处理，绑定 Human 批准；AI 不自动 commit / push                                                 |
 
-L2 编排工具链（状态存储、验收护栏、调度器、交付包、CLI）的类别、授权角色与副作用级别见 `tools/orchestration-tools.json`；实现位于 `scripts/orchestration/`。自治模式关闭时，`run-once` 只生成只读快照，不执行领单、验收归档与返修等状态迁移；开启须经 `pnpm orchestration:config --enable` 显式操作。
+L2 编排工具链（状态存储、验收护栏、调度器、交付包、候选改进台账、CLI）的类别、授权角色与副作用级别见 `tools/orchestration-tools.json`；实现位于 `scripts/orchestration/`。自治模式关闭时，`run-once` 只生成只读快照，不执行领单、验收归档与返修等状态迁移；开启须经 `pnpm orchestration:config --enable` 显式操作。改进台账命令：`pnpm orchestration:improvements`（list / `--extract` / `--add` / `--transition`），闭环口径见 `improvement-loop.md`。
 
 ## 5. 轮询档位（relay 轮询节奏与兜底次数）
 
@@ -103,6 +104,8 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、CLI�
 | `orchestration-state.json`       | L2 运行态（租约、领单、超时等；首次 run-once 生成）         | 框架仓 `docs/reliability.md`、`docs/autonomous-loop.md`                          |
 | `orchestration-snapshot.json`    | 队列快照（网页与 CLI 只读数据源）                           | 框架仓 `docs/autonomous-loop.md`                                                 |
 | `delivery-packs/`                | 夜间交付包汇总输出目录                                      | 框架仓 `docs/autonomous-loop.md` 交付包结构                                      |
+| `improvement-log.json`           | 候选改进台账（缺口 / 护栏 / 工具 / 规范 / 债的登记与闭环）  | 框架仓 `docs/context-and-memory.md` §2 共享记忆分层                              |
+| `improvement-loop.md`            | 改进闭环字段、状态机、闸门边界与命令口径（adapter 活文档）  | 框架仓 `docs/context-and-memory.md`、`docs/evolution.md`                         |
 
 ## 8. 通用层指针（规则真相源在框架仓）
 
@@ -114,7 +117,7 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、CLI�
 | 回执七组字段契约                                                       | `docs/receipt-contract.md`；`templates/receipt.template.md`                                                               |
 | 验收五类与三级结论                                                     | `docs/acceptance.md`                                                                                                      |
 | 可靠性（租约、超时释放、重试、崩溃恢复）                               | `docs/reliability.md`                                                                                                     |
-| 上下文隔离与记忆分层                                                   | `docs/context-and-memory.md`                                                                                              |
+| 上下文隔离与记忆分层（共享记忆 / 台账受控写入与撤回留痕）              | `docs/context-and-memory.md`                                                                                              |
 | 权限、策略与审计                                                       | `docs/security-and-policy.md`                                                                                             |
 | 工具契约（类别、声明结构、权限收口与审计）                             | `docs/tools.md`；`schemas/tool-contract.schema.json`；`templates/tool.template.md`                                        |
 | 能力声明（Agent Card：角色、能力、边界、可用性）                       | `docs/roles.md`；`schemas/agent-card.schema.json`；`templates/agent-card.template.md`；`examples/example-agent-card.json` |
