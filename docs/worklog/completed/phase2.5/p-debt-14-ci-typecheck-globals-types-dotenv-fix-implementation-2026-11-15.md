@@ -1,6 +1,6 @@
 # P-DEBT-14 · CI Typecheck 修复（vitest 全局类型注入 + bin dotenv 幽灵依赖转正）— 交付记录
 
-- **状态**：✅ 已交付（2026-11-15，本机闸门全绿；CI 结果待 push 后 Actions 复核）
+- **状态**：✅ 已交付（2026-11-15，本机闸门全绿；CI run #43665067314 复核：Typecheck ✅ / Lint ✅ / Audit ✅；下游测试收集失败归另案 P-DEBT-15）
 - **基线 HEAD**：`404cbe6`（P-DEBT-13 第三轮复核后，与 `origin/integrate` 一致）
 - **债务条目**：P-DEBT-14（技术债台账 §9）
 - **提交方式**：单 commit（tsconfig 类型 + dotenv 声明 + 台账 / 交付记录同批）
@@ -120,10 +120,17 @@ CI / 本机错误文件全部为 `test/**/*.spec.ts` + `src/**/*.spec.ts` + `bin
 
 ### 6.1 本单遗留（不阻断）
 
-- **CI fresh install 口径待复核**：本机实体 `node_modules` 掩盖传递依赖，TS2307（dotenv）与 P-DEBT-13 cron 同现象；dotenv 类型解析在 CI fresh install 是否成立，最终以推送后 CI Typecheck 步骤为准。
+- **CI fresh install 口径已复核（run #43665067314）**：Typecheck 步骤 success，dotenv 类型解析在 CI fresh install 成立；§3.2 的本机掩盖现象已在 CI 口径下归零确认。
 - **观察（flake，沿用 P-DEBT-13）**：`debug-session-persistence.spec.ts` ⑥ waitFor 在全量 isolate 模式下偶发超时（隔离重跑 26 passed）；文件持久化 + Redis，IO 竞争敏感；观察项，不阻断。
 
-### 6.2 未纳入本单（范围隔离）
+### 6.2 未纳入本单（范围隔离）· 另案 P-DEBT-15（CI 测试 job 首次运行暴露的模块解析债）
+
+下游 `unit` / `e2e` / `coverage` 本轮**首次在 CI 真正运行**，收集阶段（非断言）暴露两类 `ERR_MODULE_NOT_FOUND`，**与本单改动无关**（本单仅改 tsconfig `types` 行 + dotenv devDep + 文档；失败栈涉及的 `profile.service.ts` / `profile.controller.ts` / `crud.service.ts` / `foobar.module.ts` / `crud.service.spec.ts` 均不在改动清单；`types` 声明只影响 tsc 编译期类型，不进入 vitest 运行时模块解析；dotenv 仅 bin 脚本使用，src / spec 无 import）：
+
+1. **multer 幽灵依赖**：`src/profile/providers/profile.service.ts:3` 与 `src/profile/controllers/profile.controller.ts` 副作用 `import 'multer'`，`package.json` 未声明（仅 `@types/multer` 在 devDeps；`multer@2.5.0` 为 `@nestjs/platform-express` 传递副本）。pnpm isolated + nodenext 下 CI fresh install 顶层 `node_modules` 无未声明符号链接 → `Cannot find package 'multer'`。本机实体 `node_modules` 平铺掩盖。影响：unit 1 文件 + e2e 5 文件收集失败。
+2. **`#entity/*` 运行期别名解析依赖 dist 产物**：`src/sample/providers/crud.service.ts:5`、`src/shared/foobar/foobar.module.ts:4`、`src/sample/providers/crud.service.spec.ts:7` `import { Sampletable1 } from '#entity/sampledb1/index.js'`。`package.json` `imports` 映射 `#entity/* → ./dist/entity/*`（生产构建产物路径）；`vitest.config.mts` 仅开 `resolve.tsconfigPaths: true`（tsconfig paths 映射 `#entity/* → ./src/entity/*`），未配显式 vite alias。本机存在历史 `dist/entity/` 产物，运行期按 `imports` 解析到真实 `.js`；CI fresh install 无 dist，`.js` 后缀在 src 侧解析不到对应 `.ts` → `Cannot find module '#entity/sampledb1/index.js'`。影响：unit / coverage 3 文件收集失败。
+
+**处置方向（另案，本单不动）**：① multer 按 cron / dotenv 先例显式声明（运行时 profile 上传经 `FileInterceptor`，倾向 dependencies 或 devDependencies 待另案核实调用面）；② `#entity` 别名在 vitest 侧补显式 alias 指向 `src/entity/*`（或统一 `imports` 与 tsconfig paths 口径），消除对 dist 产物的测试期依赖。另立 **P-DEBT-15** 跟踪；在其闭合前，`build` job 仍因 `needs: [unit, e2e]` 保持 skipped。
 
 - 37 moderate + 2 low audit 漏洞（CI `--audit-level=high` 不阻断）
 - openai / langsmith / typeorm / @nestjs/typeorm patch 升级（advisory 未命中）
@@ -133,17 +140,20 @@ CI / 本机错误文件全部为 `test/**/*.spec.ts` + `src/**/*.spec.ts` + `bin
 
 ---
 
-## 七、Actions 复核结论（待 push 后回填）
+## 七、Actions 复核结论（run #43665067314，`a3ebcfa`，2026-11-15）
 
-| Job / 步骤                              | 结论   | 证据                                                                                                                       |
-| --------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------- |
-| `Lint + Typecheck` · **Typecheck** 步骤 | 待复核 | 预期：`tsc --noEmit -p tsconfig.json` EXIT 0（globals 类型 + dotenv 声明后，7406 条错误归零）                              |
-| `Lint + Typecheck` · **Lint** 步骤      | 待复核 | 预期：沿用 P-DEBT-13 已确认的 success（本单未改 lint 规则与源码）                                                          |
-| `unit`（2 分片）/ `e2e` / `coverage`    | 待复核 | Typecheck 转绿后，三个 `needs: lint-and-typecheck` job 将**首次在 CI 真正跑起来**（既往自 TD-11 分片改造起一直被 skipped） |
-| `build`（needs `[unit, e2e]`）          | 待复核 | 依赖 unit / e2e 真正跑完后触发                                                                                             |
-| `security-audit`                        | 待复核 | 预期：沿用 P-DEBT-13 已确认的 success（19 high 清零）                                                                      |
+| Job / 步骤                              | 结论       | 证据                                                                                                                                                                  |
+| --------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Lint + Typecheck` · **Typecheck** 步骤 | ✅ success | job 132662503838 step 10 `tsc --noEmit -p tsconfig.json` **EXIT 0**；globals 类型 + dotenv 声明后 CI 口径 7406 条错误归零（本机 7397 + TS2307 9）                     |
+| `Lint + Typecheck` · **Lint** 步骤      | ✅ success | step 9 `pnpm lint` success（本单未改 lint 规则与源码，沿用 P-DEBT-13 口径）                                                                                           |
+| `Security Audit`                        | ✅ success | job 132662504148 success，19 high 清零保持                                                                                                                            |
+| `unit`（shard 1/2）                     | ❌ failure | job 132662999693，测试步骤失败；**Test Files 4 failed / 195 passed / 1 skipped（200）**，Duration 37.29s；4 个文件**收集阶段失败（0 test）**，失败面见 §6.2 P-DEBT-15 |
+| `unit`（shard 2/2）                     | ❌ failure | job 132662999702，与 shard 1 同批 4 文件收集失败、同两类错误（分片为同一全量切片，非跨片 flake）                                                                      |
+| `coverage`                              | ❌ failure | job 132662999680，同批 4 文件收集失败（单进程全量）                                                                                                                   |
+| `e2e`                                   | ❌ failure | job 132662999667，**5 failed / 1 passed（6 文件）**；全部为 `Cannot find package 'multer'`（`profile.controller.ts`），见 §6.2 P-DEBT-15                              |
+| `build`（needs `[unit, e2e]`）          | ⏭ skipped  | job 132663389489；unit / e2e failure 未满足 `needs` 触发条件（与本单目标无关，属下游测试债阻塞）                                                                      |
 
-**目标达成判定（待 CI 复核后回填）**：Typecheck 步骤转绿 → 下游 unit / e2e / coverage / build 解除 skipped；P-DEBT-14 闭合。
+**目标达成判定**：P-DEBT-14 两目标均达成 —— ① **Typecheck 步骤在 CI 转绿**（主目标）；② 下游 `unit`（2 分片）/ `e2e` / `coverage` **首次在 Actions 真正跑起来**（既往自 TD-11 分片改造起一直被 `needs` skipped，本轮已解除 skipped；不再是"从未运行"）。下游测试收集阶段失败为**既有模块解析债首次暴露**，与本单改动无关（定性见 §6.2），另立 **P-DEBT-15** 跟踪，本单不修复。
 
 ---
 
@@ -160,4 +170,4 @@ fix(ci): P-DEBT-14 补 vitest 全局类型与 dotenv 直接依赖，修复 CI Ty
 
 ---
 
-_记录时间：2026-11-15 GMT+8 · 基线 HEAD `404cbe6` · 未自动提交 / push_
+_记录时间：2026-11-15 GMT+8 · 基线 HEAD `404cbe6` · 提交 `a3ebcfa` 已推送 `origin/integrate`；CI 复核 run #43665067314_
