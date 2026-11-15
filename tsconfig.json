@@ -5,7 +5,7 @@
       // https://nodejs.org/api/packages.html#imports
       // 运行时由 package.json "imports" 映射到 ./dist/entity/* (ESM).
       // 源码里 #entity/sampledb1/index.js 显式写 index.js, Node ESM 不再做目录解析.
-      "#entity/*": ["./src/entity/*"],
+      "#entity/*": ["./src/entity/*"]
     },
     "target": "es2024",
     // V2026-11-02: CommonJS → ESM (NodeNext)
@@ -15,7 +15,7 @@
     //   - dynamic import() 路径用 pathToFileURL 包裹
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "types": ["node"],
+    "types": ["node", "vitest/globals"],
     "declaration": true,
     "newLine": "lf",
     "strict": true,
