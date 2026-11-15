@@ -1,12 +1,14 @@
 /**
- * AF-008 · Transport 端口与文件 Transport 默认实现。
+ * AF-008 / AF-009 · Transport 端口与文件 Transport 默认实现。
  *
- * 端口接口（实现须提供三方法）：
+ * 端口接口（实现须提供四方法）：
  *   submitTask(task)          投递标准任务模型
  *   submitReceipt(receipt)   投递回执模型
+ *   submitReview(review)     投递协商轮意见模型（AF-009）
  *   publishArtifact(ref)     发布工件引用
  *
  * 文件 Transport 为默认实现：把模型序列化为交接 JSON 文件，对齐现状文件交接口径。
+ * 结构校验归 handover-contract.mjs 纯函数；本层保持薄 IO，不强制校验、不回写索引。
  * 预留实现位：MCP / HTTP Transport —— 仅注释占位，本批次不实现、不引协议栈依赖。
  * 厂商中立：模型不变，只换传输层。
  */
@@ -35,6 +37,7 @@ export function createFileTransport(opts = {}) {
   const dirs = {
     tasks: join(outDir, 'tasks'),
     receipts: join(outDir, 'receipts'),
+    reviews: join(outDir, 'reviews'),
     artifacts: join(outDir, 'artifacts'),
   };
   return {
@@ -44,6 +47,9 @@ export function createFileTransport(opts = {}) {
     },
     submitReceipt(receipt) {
       return writeHandover(dirs.receipts, `${safeName(receipt?.receiptId ?? receipt?.taskId)}.json`, receipt);
+    },
+    submitReview(review) {
+      return writeHandover(dirs.reviews, `${safeName(review?.reviewId ?? review?.taskId)}.json`, review);
     },
     publishArtifact(ref) {
       return writeHandover(dirs.artifacts, `${safeName(ref?.refId ?? ref?.kind)}.json`, ref);

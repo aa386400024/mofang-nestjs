@@ -34,19 +34,20 @@
 
 ## 3. 目录映射（directories）
 
-| 映射项                             | 本项目落点                                                                                         |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `directories.taskSheets`           | `docs/worklog/pending/`（`ready / submitted / working` 任务单）                                    |
-| `directories.deliveryRecords`      | `docs/worklog/completed/<phase>/`（任务单 + 交付记录成对归档，只读历史）                           |
-| `directories.replyArchive`         | `docs/worklog/pending/archive/`（回执原文、中间产物归档）                                          |
-| `directories.artifacts`            | 各任务单切片范围内的源码 / 测试 / 规格路径；工件正文留在各自文件                                   |
-| `directories.stateIndex`           | `docs/team/agent-orchestration/task-state-index.json`                                              |
-| `directories.runtimeState`         | `docs/team/agent-orchestration/orchestration-state.json`（L2 运行态，首次 run-once 生成）          |
-| `directories.snapshot`             | `docs/team/agent-orchestration/orchestration-snapshot.json`（队列快照，网页数据源）                |
-| `directories.improvementLog`       | `docs/team/agent-orchestration/improvement-log.json`（候选改进台账；口径见 `improvement-loop.md`） |
-| `directories.deliveryPacks`        | `docs/team/agent-orchestration/delivery-packs/`（夜间交付包汇总目录）                              |
-| `directories.orchestrationScripts` | `scripts/orchestration/`（L2 工具链实现；工具声明见 `tools/orchestration-tools.json`）             |
-| `directories.agentCards`           | `docs/team/agent-orchestration/agent-cards/`（本项目代理能力声明 JSON）                            |
+| 映射项                             | 本项目落点                                                                                                                                                    |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `directories.taskSheets`           | `docs/worklog/pending/`（`ready / submitted / working` 任务单）                                                                                               |
+| `directories.deliveryRecords`      | `docs/worklog/completed/<phase>/`（任务单 + 交付记录成对归档，只读历史）                                                                                      |
+| `directories.replyArchive`         | `docs/worklog/pending/archive/`（回执原文、中间产物归档）                                                                                                     |
+| `directories.artifacts`            | 各任务单切片范围内的源码 / 测试 / 规格路径；工件正文留在各自文件                                                                                              |
+| `directories.stateIndex`           | `docs/team/agent-orchestration/task-state-index.json`                                                                                                         |
+| `directories.runtimeState`         | `docs/team/agent-orchestration/orchestration-state.json`（L2 运行态，首次 run-once 生成）                                                                     |
+| `directories.snapshot`             | `docs/team/agent-orchestration/orchestration-snapshot.json`（队列快照，网页数据源）                                                                           |
+| `directories.improvementLog`       | `docs/team/agent-orchestration/improvement-log.json`（候选改进台账；口径见 `improvement-loop.md`）                                                            |
+| `directories.deliveryPacks`        | `docs/team/agent-orchestration/delivery-packs/`（夜间交付包汇总目录）                                                                                         |
+| `directories.orchestrationScripts` | `scripts/orchestration/`（L2 工具链实现；工具声明见 `tools/orchestration-tools.json`）                                                                        |
+| `directories.agentCards`           | `docs/team/agent-orchestration/agent-cards/`（本项目代理能力声明 JSON）                                                                                       |
+| `directories.handoverTransport`    | `docs/team/agent-orchestration/transport/`（运行态交接件：`tasks/` 任务契约、`receipts/` 回执、`reviews/` 协商轮意见、`artifacts/` 工件指针；gitignore 忽略） |
 
 四类落点互不重叠；任务单与交付记录成对归档；状态索引纳入 git 版本控制，保证崩溃后可重建。工件正文留在各自文件，状态索引只存**指针与状态**，不复制正文（见框架仓 `docs/task-contract.md` 工件模型）。运行态、快照、交付包与脚本目录为适配层扩展映射项，不进通用层 schema。
 

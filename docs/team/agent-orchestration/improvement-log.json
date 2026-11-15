@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-15T16:34:25.728Z",
+  "updatedAt": "2026-11-15T17:19:41.002Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -136,6 +136,54 @@
           "to": "accepted",
           "by": "orchestrator",
           "note": "实现落地：archiveTaskEntry 纯函数 + cli archive 子命令 + package 脚本；56 例绿；自动扫描归档留后续；待人工验收转 done"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-005",
+      "status": "candidate",
+      "title": "交接契约校验枚举与 taskId 模式与框架 ajv schema 双源镜像",
+      "source": "implementation",
+      "type": "tech-debt",
+      "layer": "adapter",
+      "relatedTaskId": "AF-009",
+      "evidence": ["handover-contract.mjs 手写 TASK_TYPES/TASK_STATUSES/TASK_ID_PATTERN", "validator.mjs 走框架 task-sheet.schema.json"],
+      "impact": "框架枚举或模式演进时两处需同步 存在口径漂移风险",
+      "suggestion": "交接件校验复用框架 schema 同步封装 消除手写镜像",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-15T17:19:39.551Z",
+      "updatedAt": "2026-11-15T17:19:39.551Z",
+      "history": [
+        {
+          "at": "2026-11-15T17:19:39.551Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-006",
+      "status": "candidate",
+      "title": "协商轮 review 交接件结构尚未进框架仓 schema 与模板",
+      "source": "implementation",
+      "type": "standard",
+      "layer": "framework",
+      "relatedTaskId": "AF-009",
+      "evidence": ["autonomous-team-design.md 协商轮定义", "handover-contract.mjs review 字段为本仓适配层定义"],
+      "impact": "review 结构目前仅本仓定义 跨代理复用需框架层固化",
+      "suggestion": "P1 评估将 review 交接件字段组上提框架仓 schema 与模板",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-15T17:19:40.999Z",
+      "updatedAt": "2026-11-15T17:19:40.999Z",
+      "history": [
+        {
+          "at": "2026-11-15T17:19:40.999Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
         }
       ]
     }

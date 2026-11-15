@@ -4,23 +4,6 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。字段可扩展、不删除既有字段；未来迁 DB 时一一对应。历史任务仅登记工件指针，基线与 claim 字段待按需补录。 type 字段索引侧不做枚举约束（schema additionalProperties 放宽，兼容项目扩展）；归档条目只保留工件指针，运行态字段不回填；schemaRef 指向框架 schema URN。",
   "tasks": [
     {
-      "taskId": "AF-009",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "交接契约 schema 与 transport 目录接线（tasks / receipts / reviews 三组交接件机读结构）",
-      "status": "backlog",
-      "baselineRef": "09df090",
-      "dependsOn": [],
-      "policyRefs": ["framework/task-contract.md", "framework/receipt-contract.md", "framework/evolution.md"],
-      "createdAt": "2026-11-16",
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af009-handover-contract-schema-transport-2026-11-16.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "history": []
-    },
-    {
       "taskId": "AF-010",
       "contextId": "phase2.5-orchestration-closed-loop",
       "type": "implementation",
@@ -315,6 +298,16 @@
         "taskSheet": "docs/worklog/completed/phase2.5/af008-framework-evolution-agent-protocol-mapping-2026-11-15.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
       }
+    },
+    {
+      "taskId": "AF-009",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-implementation-2026-11-16.md",
+        "reply": null
+      },
+      "note": "交接契约 schema 与 transport reviews 接线；编排层 61 passed"
     }
   ]
 }

@@ -16,6 +16,13 @@ import { createStore } from '../store-port.mjs';
 import { dedupeEvents } from '../file-watcher.mjs';
 import { buildProtocolView, mapCapabilityDeclaration, mapStatus, mapTask } from '../protocol-mapper.mjs';
 import { createFileTransport, createTransport } from '../transport.mjs';
+import {
+  validateTaskHandover,
+  validateReceiptHandover,
+  validateReviewHandover,
+  buildTaskHandover,
+  HANDOVER_SCHEMA_VERSION,
+} from '../handover-contract.mjs';
 import { ARCHIVE_STATUSES, archiveTaskEntry, canTransition, shouldAdvance, buildSnapshot } from '../scheduler.mjs';
 import { runAcceptance } from '../acceptance-runner.mjs';
 import {
@@ -623,6 +630,139 @@ describe('AF-008 Transport 端口与文件实现', () => {
     const file = createTransport({});
     expect(file.kind).toBe('file');
     expect(() => createTransport({ transport: { type: 'mcp' } })).toThrow(/尚未实现/);
+  });
+});
+
+describe('AF-009 交接契约校验与构造器', () => {
+  const validTask = {
+    taskId: 'AF-009',
+    contextId: 'phase2.5-orchestration-closed-loop',
+    type: 'implementation',
+    title: '交接契约 schema 与 transport 接线',
+    status: 'backlog',
+    createdAt: '2026-11-16',
+    scope: { files: ['scripts/orchestration/transport.mjs'], modules: [], interfaces: [] },
+    dependsOn: [],
+    policyRefs: ['framework/task-contract.md'],
+  };
+
+  function validReceipt(overrides = {}) {
+    return {
+      taskId: 'AF-009',
+      contextId: 'phase2.5-orchestration-closed-loop',
+      type: 'implementation',
+      baselineRef: '09df090',
+      dependsOn: [],
+      policyRefs: [],
+      changedFiles: [{ path: 'scripts/orchestration/transport.mjs', kind: 'modified' }],
+      artifactRefs: [{ path: 'docs/worklog/completed/af009.md', kind: 'document' }],
+      gateResults: [{ command: 'pnpm exec vitest run', exitCode: 0, errors: 0, warnings: 0, tests: 56 }],
+      reproNotes: '定向运行编排层 spec',
+      scopeCheck: true,
+      parallelArtifactsExcluded: true,
+      noOutscopeRefactor: true,
+      contractChecks: [{ field: 'taskId', aligned: true }],
+      schemaVersion: HANDOVER_SCHEMA_VERSION,
+      fieldAlignment: { taskId: 'matched' },
+      backlogItems: [],
+      openQuestions: [],
+      manualReviewList: [],
+      deviationTable: '无',
+      finalStatus: 'completed',
+      reviewVerdict: 'passed',
+      verdictRationale: '五类核对全清',
+      ...overrides,
+    };
+  }
+
+  function validReview(overrides = {}) {
+    return {
+      reviewId: 'RV-AF-009-1',
+      taskId: 'AF-009',
+      contextId: 'phase2.5-orchestration-closed-loop',
+      proposal: '契约结构前置固化，transport 保持薄 IO',
+      risks: ['双代理并发写同一交接件'],
+      alternatives: ['复用框架 ajv schema 校验'],
+      disputes: ['校验强制点应在派发前还是 transport 层'],
+      recommendation: '派发前由编排层调用纯函数校验',
+      createdBy: 'executor',
+      createdAt: '2026-11-16T02:00:00.000Z',
+      ...overrides,
+    };
+  }
+
+  it('合法任务交接件通过校验；构造器补契约版本与追溯字段', () => {
+    expect(validateTaskHandover(validTask)).toMatchObject({ valid: true, errors: [] });
+    const built = buildTaskHandover(validTask);
+    expect(built.handoverKind).toBe('task');
+    expect(built.schemaVersion).toBe(HANDOVER_SCHEMA_VERSION);
+    expect(built.producedBy).toBe('orchestrator');
+    expect(built.producedAt).toBeTruthy();
+    expect(built.dependsOn).toEqual([]);
+    expect(built.scope.files).toEqual(['scripts/orchestration/transport.mjs']);
+  });
+
+  it('任务交接件：缺必填 / taskId 模式非法 / 类型越界 / 路径越界均被拦截', () => {
+    const missingContext = { ...validTask, contextId: undefined };
+    expect(validateTaskHandover(missingContext)).toMatchObject({ valid: false });
+    expect(validateTaskHandover(missingContext).errors.join(' ')).toMatch('contextId');
+
+    const badId = { ...validTask, taskId: 'af-9' };
+    expect(validateTaskHandover(badId).errors.join(' ')).toMatch('taskId');
+
+    const badType = { ...validTask, type: 'unknown' };
+    expect(validateTaskHandover(badType).errors.join(' ')).toMatch('type');
+
+    const badPath = { ...validTask, scope: { files: ['../../etc/passwd'] } };
+    expect(validateTaskHandover(badPath).errors.join(' ')).toMatch('scope.files');
+  });
+
+  it('合法回执交接件通过；缺七组字段与结论越界被拦截', () => {
+    expect(validateReceiptHandover(validReceipt())).toMatchObject({ valid: true, errors: [] });
+
+    const missing = validReceipt();
+    delete missing.gateResults;
+    delete missing.verdictRationale;
+    const result = validateReceiptHandover(missing);
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' ')).toMatch('gateResults');
+    expect(result.errors.join(' ')).toMatch('verdictRationale');
+
+    const badVerdict = validReceipt({ reviewVerdict: 'maybe' });
+    expect(validateReceiptHandover(badVerdict).errors.join(' ')).toMatch('reviewVerdict');
+
+    const badFinal = validReceipt({ finalStatus: 'running' });
+    expect(validateReceiptHandover(badFinal).errors.join(' ')).toMatch('finalStatus');
+  });
+
+  it('合法协商轮意见通过；缺意见字段与裁决缺 decision 被拦截', () => {
+    expect(validateReviewHandover(validReview())).toMatchObject({ valid: true, errors: [] });
+
+    const missing = validReview();
+    delete missing.proposal;
+    delete missing.risks;
+    const result = validateReviewHandover(missing);
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' ')).toMatch('proposal');
+    expect(result.errors.join(' ')).toMatch('risks');
+
+    const badResolution = validReview({ resolution: { by: 'orchestrator', at: '2026-11-16' } });
+    expect(validateReviewHandover(badResolution).errors.join(' ')).toMatch('resolution.decision');
+  });
+
+  it('文件 Transport 落盘 reviews 目录并可回读交接件', () => {
+    const outDir = join(tmpdir(), `orch-review-${Date.now()}-${Math.floor(Math.random() * 1e6)}.sqlite`).replace(/\.sqlite$/, '');
+    try {
+      const transport = createFileTransport({ outDir });
+      const path = transport.submitReview(validReview());
+      expect(existsSync(path)).toBe(true);
+      expect(path).toMatch(/reviews/);
+      const record = JSON.parse(readFileSync(path, 'utf8'));
+      expect(record.payload.reviewId).toBe('RV-AF-009-1');
+      expect(record.deliveredAt).toBeTruthy();
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
   });
 });
 

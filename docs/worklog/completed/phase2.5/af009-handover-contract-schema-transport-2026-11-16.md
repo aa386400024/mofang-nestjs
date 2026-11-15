@@ -3,8 +3,8 @@ taskId: AF-009
 contextId: phase2.5-orchestration-closed-loop
 title: 交接契约 schema 与 transport 目录接线（tasks / receipts / reviews 三组交接件机读结构）
 type: implementation
-status: backlog
-baselineRef: 09df090
+status: completed
+baselineRef: d1d806b
 dependsOn: []
 policyRefs: [framework/task-contract.md, framework/receipt-contract.md, framework/evolution.md]
 createdAt: 2026-11-16
@@ -12,7 +12,7 @@ createdAt: 2026-11-16
 
 # AF-009 · 交接契约 schema 与 transport 目录接线
 
-> 状态：📋 待立项（2026-11-16）｜编排：主控 Doubao（orchestrator 自做）
+> 状态：✅ 已交付（2026-11-16）｜编排：主控 Doubao（orchestrator 自做）｜交付记录：af009-handover-contract-schema-transport-implementation-2026-11-16.md
 > 仓库：`E:\Work\Project\backend\mofang-nestjs`；落点 `transport/`、`scripts/orchestration/`、本仓适配层文档
 > 唯一事实源：`docs/team/agent-orchestration/autonomous-team-design.md` §3.4（契约文件化）、§8 P0-1
 > 任务性质：编排层工具链演进；不碰业务源码（`src/` / `test/` / `bin/` / `admin-dashboard/` / `src/migration/`）
@@ -65,10 +65,10 @@ createdAt: 2026-11-16
 
 ## 6. 交付记录路径（实施完成后）
 
-`docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-implementation-{{YYYY-MM-DD}}.md`
+`docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-implementation-2026-11-16.md`
 
 ## 7. 回写清单（实施完成后）
 
-- [ ] 交付记录落固定路径；任务单与交付记录成对归档；索引 / 阶段入口 / README 目录映射同步回写；
-- [ ] 索引状态迁移追加 `history`，工件指针填全；
-- [ ] 审计链闭合：`taskId` 贯穿任务单 / 交接件 / 交付记录 / commit message。
+- [x] 交付记录落固定路径；任务单与交付记录成对归档；索引 / 阶段入口 / README 目录映射同步回写；
+- [x] 索引状态迁移追加 `history`，工件指针填全；
+- [x] 审计链闭合：`taskId` 贯穿任务单 / 交接件 / 交付记录 / commit message。
