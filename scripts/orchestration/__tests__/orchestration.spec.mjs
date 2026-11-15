@@ -3,8 +3,19 @@
  * 覆盖：配置校验、状态迁移合法性、自治守门、快照计数与人工复核回填、验收 rejected 结论。
  */
 import { describe, expect, it } from 'vitest';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 
-import { validateConfig } from '../state-store.mjs';
+import { validateConfig, PATHS } from '../state-store.mjs';
+import { validateAgentCard, validateTaskIndex, validateTaskSheet, validateToolManifest } from '../validator.mjs';
+import { buildRegistry, call as registryCall } from '../tool-registry.mjs';
+import { listAudits, recordAudit, summarizeAudits } from '../audit-log.mjs';
+import { createStore } from '../store-port.mjs';
+import { dedupeEvents } from '../file-watcher.mjs';
+import { buildProtocolView, mapCapabilityDeclaration, mapStatus, mapTask } from '../protocol-mapper.mjs';
+import { createFileTransport, createTransport } from '../transport.mjs';
 import { canTransition, shouldAdvance, buildSnapshot } from '../scheduler.mjs';
 import { runAcceptance } from '../acceptance-runner.mjs';
 import {
@@ -36,6 +47,11 @@ describe('validateConfig 配置结构校验', () => {
 
   it('任务类型白名单非数组时抛错', () => {
     expect(() => validateConfig({ allowedTaskTypes: 'implementation' })).toThrow(/allowedTaskTypes/);
+  });
+
+  it('存储后端缺省归一化为 json，非法后端抛错', () => {
+    expect(validateConfig({}).store.backend).toBe('json');
+    expect(() => validateConfig({ store: { backend: 'mysql' } })).toThrow(/backend/);
   });
 });
 
@@ -102,6 +118,15 @@ describe('buildSnapshot 快照计数与人工复核回填', () => {
     expect(reviewed.manualReview).toEqual(['回执七组字段完整性需人工核对']);
     const plain = snapshot.tasks.find((t) => t.taskId === 'AF-005');
     expect(plain.manualReview).toEqual([]);
+  });
+
+  it('快照携带交付包 / Agent Card / 工具契约只读段（数组结构，容错空）', () => {
+    const snapshot = buildSnapshot(index, runtimeState, config);
+    expect(Array.isArray(snapshot.deliveryPacks)).toBe(true);
+    expect(Array.isArray(snapshot.agentCards)).toBe(true);
+    expect(Array.isArray(snapshot.toolContracts)).toBe(true);
+    if (snapshot.agentCards.length > 0) expect(snapshot.agentCards[0]).toHaveProperty('role');
+    if (snapshot.toolContracts.length > 0) expect(snapshot.toolContracts[0]).toHaveProperty('toolId');
   });
 });
 
@@ -222,5 +247,307 @@ describe('改进台账快照抽取与汇总', () => {
     expect(summary.activeCount).toBe(1);
     expect(summary.byStatus.done).toBe(1);
     expect(listOpen(log)).toHaveLength(1);
+    const active = summary.items.find((i) => i.title === '活跃项');
+    expect(active.status).toBe('candidate');
+    expect(active.evidence).toEqual([]);
+    expect(active.lastTransition.to).toBe('candidate');
+    expect(active.historyCount).toBe(1);
+  });
+});
+
+const __testDir = dirname(fileURLToPath(import.meta.url));
+function readFixture(name) {
+  return JSON.parse(readFileSync(join(__testDir, 'fixtures', name), 'utf8'));
+}
+function readJsonFile(file) {
+  return JSON.parse(readFileSync(file, 'utf8'));
+}
+/** 框架仓 schema 不可达时校验结果为 skipped；此时不断言通过性。 */
+function assertNotFailed(res) {
+  if (!res.skipped) expect(res.ok).toBe(true);
+}
+
+describe('validator AF-006 框架 schema 机读校验', () => {
+  it('合法任务单元数据通过 schema 校验', async () => {
+    const res = await validateTaskSheet(readFixture('valid-task-sheet.json'));
+    assertNotFailed(res);
+  });
+
+  it('非法任务单（标识模式 / 枚举 / 必填缺失）被拒绝', async () => {
+    const res = await validateTaskSheet(readFixture('invalid-task-sheet.json'));
+    if (!res.skipped) {
+      expect(res.ok).toBe(false);
+      expect(res.errors.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('合法状态索引通过 schema 校验', async () => {
+    const res = await validateTaskIndex(readFixture('valid-task-index.json'));
+    assertNotFailed(res);
+  });
+
+  it('仓内现有工具契约清单通过 schema 校验', async () => {
+    const manifest = readJsonFile(PATHS.toolsContractFile);
+    const res = await validateToolManifest(manifest);
+    assertNotFailed(res);
+  });
+
+  it('仓内现有 Agent Card 通过 schema 校验', async () => {
+    const card = readJsonFile(join(PATHS.agentCardsDir, 'orchestrator.json'));
+    const res = await validateAgentCard(card);
+    assertNotFailed(res);
+  });
+});
+
+const sampleTool = {
+  toolId: 'TOOL-TEST-READ',
+  category: 'workspace-read',
+  sideEffect: 'read-only',
+  allowedRoles: ['orchestrator', 'reviewer'],
+  resources: ['docs/'],
+  description: '测试只读工具',
+};
+
+describe('tool-registry AF-007 注册表收口与权限校验', () => {
+  it('合法工具契约构建注册表并暴露只读清单', () => {
+    const registry = buildRegistry([sampleTool]);
+    const tools = Object.values(registry.tools);
+    expect(tools).toHaveLength(1);
+    expect(tools[0].toolId).toBe('TOOL-TEST-READ');
+  });
+
+  it('重复工具标识抛错', () => {
+    expect(() => buildRegistry([sampleTool, sampleTool])).toThrow(/重复/);
+  });
+
+  it('非法副作用级别抛错', () => {
+    expect(() => buildRegistry([{ ...sampleTool, sideEffect: 'explosive' }])).toThrow(/sideEffect/);
+  });
+
+  it('非法角色抛错', () => {
+    expect(() => buildRegistry([{ ...sampleTool, allowedRoles: ['wizard'] }])).toThrow(/角色/);
+  });
+
+  it('白名单内角色调用放行并记 allowed 审计', () => {
+    const registry = buildRegistry([sampleTool]);
+    const auditLog = { audits: [] };
+    const res = registryCall(registry, 'TOOL-TEST-READ', { actor: 'reviewer', correlationId: 'T-1' }, auditLog);
+    expect(res.ok).toBe(true);
+    expect(res.denied).toBe(false);
+    expect(auditLog.audits[0].result).toBe('allowed');
+  });
+
+  it('白名单外角色调用拒绝并记 denied 审计', () => {
+    const registry = buildRegistry([sampleTool]);
+    const auditLog = { audits: [] };
+    const res = registryCall(registry, 'TOOL-TEST-READ', { actor: 'executor', correlationId: 'T-2' }, auditLog);
+    expect(res.ok).toBe(false);
+    expect(res.denied).toBe(true);
+    expect(res.reason).toMatch(/未被授权/);
+    expect(auditLog.audits[0].result).toBe('denied');
+  });
+
+  it('未注册工具拒绝', () => {
+    const registry = buildRegistry([sampleTool]);
+    const res = registryCall(registry, 'TOOL-MISSING', { actor: 'orchestrator' });
+    expect(res.denied).toBe(true);
+    expect(res.reason).toMatch(/未注册/);
+  });
+});
+
+describe('audit-log AF-007 审计记录与汇总', () => {
+  it('追加审计条目，同签名幂等去重', () => {
+    const log = { audits: [] };
+    const first = recordAudit(log, { actorRef: 'orchestrator', toolId: 'TOOL-TEST-READ', result: 'allowed', correlationId: 'T-1' });
+    const second = recordAudit(log, { actorRef: 'orchestrator', toolId: 'TOOL-TEST-READ', result: 'allowed', correlationId: 'T-1' });
+    expect(log.audits).toHaveLength(1);
+    expect(second.auditId).toBe(first.auditId);
+  });
+
+  it('listAudits 倒序并按工具过滤；summarizeAudits 计数', () => {
+    const log = { audits: [] };
+    recordAudit(log, { actorRef: 'orchestrator', toolId: 'TOOL-A', result: 'allowed' });
+    recordAudit(log, { actorRef: 'reviewer', toolId: 'TOOL-A', result: 'denied' });
+    recordAudit(log, { actorRef: 'orchestrator', toolId: 'TOOL-B', result: 'allowed' });
+    const toolA = listAudits(log, { toolId: 'TOOL-A' });
+    expect(toolA).toHaveLength(2);
+    const summary = summarizeAudits(log);
+    expect(summary.total).toBe(3);
+    expect(summary.byResult.allowed).toBe(2);
+    expect(summary.byResult.denied).toBe(1);
+  });
+});
+
+describe('快照审计段', () => {
+  it('快照携带 toolAudits 数组与 auditSummary 汇总段（容错空）', () => {
+    const config = validateConfig({});
+    const snapshot = buildSnapshot({ version: '1.0.0', tasks: [], archivedTasks: [] }, { tasks: {} }, config);
+    expect(Array.isArray(snapshot.toolAudits)).toBe(true);
+    expect(snapshot.auditSummary).toMatchObject({ total: expect.any(Number), byResult: expect.any(Object) });
+  });
+});
+
+function seedIndex() {
+  return {
+    version: '1.0.0',
+    tasks: [{ taskId: 'T-1', contextId: 'c', type: 'implementation', title: '样例', status: 'backlog', artifacts: {} }],
+    archivedTasks: [],
+  };
+}
+
+describe('AF-005 Store 端口与双后端往返', () => {
+  it('JSON 后端经工厂创建并完成领取 / 历史 / 释放往返（内存读写隔离）', () => {
+    let index = seedIndex();
+    const store = createStore(
+      { store: { backend: 'json' } },
+      {
+        loadIndex: () => index,
+        saveIndex: (next) => {
+          index = next;
+        },
+      },
+    );
+    expect(store.backend).toBe('json');
+    expect(store.getTask('T-1').status).toBe('backlog');
+    expect(store.listByStatus('backlog')).toHaveLength(1);
+    expect(store.claim('T-1', 'executor')).toBe(true);
+    expect(store.getTask('T-1').agent).toBe('executor');
+    store.appendHistory('T-1', { event: 'claim', at: '2026-11-15T00:00:00+08:00' });
+    expect(store.getTask('T-1').history).toHaveLength(1);
+    expect(store.release('T-1')).toBe(true);
+    expect(store.getTask('T-1').agent).toBeNull();
+    expect(store.getTask('MISSING')).toBeNull();
+  });
+
+  it('SQLite 后端在临时库完成状态持久化往返', () => {
+    const dbPath = join(tmpdir(), `orch-store-test-${Date.now()}-${Math.floor(Math.random() * 1e6)}.sqlite`);
+    let store;
+    let reopen;
+    try {
+      store = createStore({ store: { backend: 'sqlite' } }, { dbPath });
+      expect(store.backend).toBe('sqlite');
+      store.saveIndex(seedIndex());
+      expect(store.getTask('T-1').status).toBe('backlog');
+      expect(store.listByStatus('backlog')).toHaveLength(1);
+      store.claim('T-1', 'reviewer');
+      store.appendHistory('T-1', { event: 'claim', at: '2026-11-15T00:00:00+08:00' });
+      expect(store.getTask('T-1').agent).toBe('reviewer');
+      expect(store.getTask('T-1').history).toHaveLength(1);
+      // 重新打开同一库，验证持久化
+      reopen = createStore({ store: { backend: 'sqlite' } }, { dbPath });
+      expect(reopen.getTask('T-1').agent).toBe('reviewer');
+      expect(reopen.getTask('T-1').history).toHaveLength(1);
+    } finally {
+      reopen?.close();
+      store?.close();
+      rmSync(dbPath, { force: true });
+    }
+  });
+});
+
+describe('AF-005 file-watcher 事件聚合', () => {
+  it('同一路径在窗口内去重并累计次数', () => {
+    const events = dedupeEvents([
+      { path: 'a.md', kind: 'change' },
+      { path: 'a.md', kind: 'rename' },
+      { path: 'b.md', kind: 'change' },
+    ]);
+    expect(events.map((e) => e.path).sort()).toEqual(['a.md', 'b.md']);
+    expect(events.find((e) => e.path === 'a.md').count).toBe(2);
+  });
+});
+
+describe('AF-008 协议映射层', () => {
+  it('状态映射：前置态 / 活跃态 / 终态归类正确', () => {
+    expect(mapStatus('backlog')).toMatchObject({ protocol: 'DRAFT', stage: 'prelude' });
+    expect(mapStatus('ready')).toMatchObject({ protocol: 'QUEUED', stage: 'prelude' });
+    expect(mapStatus('working')).toMatchObject({ protocol: 'WORKING', stage: 'active' });
+    expect(mapStatus('completed')).toMatchObject({ protocol: 'COMPLETED', stage: 'terminal' });
+    expect(mapStatus('unknown-x')).toMatchObject({ protocol: 'UNKNOWN', stage: 'unknown' });
+  });
+
+  it('任务与工件引用映射（对象 / 数组两种工件口径）', () => {
+    const task = mapTask({
+      taskId: 'T-1',
+      contextId: 'g',
+      type: 'implementation',
+      title: '样例',
+      status: 'ready',
+      requiredSkills: ['audit'],
+      dependsOn: ['T-0'],
+      artifacts: { deliveryRecord: 'docs/x.md' },
+    });
+    expect(task.groupId).toBe('g');
+    expect(task.status.protocol).toBe('QUEUED');
+    expect(task.artifactReferences).toEqual([{ kind: 'deliveryRecord', ref: 'docs/x.md' }]);
+    const arr = mapTask({ taskId: 'T-2', status: 'working', artifacts: ['docs/a.md'] });
+    expect(arr.artifactReferences).toEqual([{ kind: null, ref: 'docs/a.md' }]);
+  });
+
+  it('Agent Card → 能力声明字段映射', () => {
+    const decl = mapCapabilityDeclaration({
+      agentId: 'orc',
+      role: 'orchestrator',
+      skills: ['route'],
+      tools: ['state-store'],
+      resources: ['docs/'],
+      availability: 'available',
+    });
+    expect(decl.agentId).toBe('orc');
+    expect(decl.skills).toEqual(['route']);
+    expect(decl.availability).toBe('available');
+  });
+
+  it('协议视图聚合任务 / 工件 / 归组 / 能力声明，归档任务带 archived 标记', () => {
+    const view = buildProtocolView({
+      tasks: [{ taskId: 'T-1', contextId: 'g', status: 'working', artifacts: { doc: 'docs/a.md' } }],
+      archivedTasks: [{ taskId: 'T-0', status: 'completed', artifacts: {} }],
+      agentCards: [{ agentId: 'orc', role: 'orchestrator', availability: 'available' }],
+    });
+    expect(view.tasks).toHaveLength(2);
+    expect(view.artifacts).toEqual([{ taskId: 'T-1', kind: 'doc', ref: 'docs/a.md' }]);
+    expect(view.groupIds).toEqual(['g']);
+    expect(view.groupId).toBe('g');
+    expect(view.capabilityDeclarations).toHaveLength(1);
+    expect(view.tasks.find((t) => t.taskId === 'T-0').archived).toBe(true);
+  });
+});
+
+describe('AF-008 Transport 端口与文件实现', () => {
+  it('文件 Transport 投递任务 / 回执 / 工件三类交接文件', () => {
+    const outDir = join(tmpdir(), `orch-transport-${Date.now()}-${Math.floor(Math.random() * 1e6)}.sqlite`).replace(/\.sqlite$/, '');
+    try {
+      const transport = createFileTransport({ outDir });
+      const p1 = transport.submitTask({ taskId: 'T-1', title: '样例' });
+      const p2 = transport.submitReceipt({ receiptId: 'R-1', taskId: 'T-1' });
+      const p3 = transport.publishArtifact({ refId: 'A-1', kind: 'doc' });
+      expect(existsSync(p1)).toBe(true);
+      expect(existsSync(p2)).toBe(true);
+      expect(existsSync(p3)).toBe(true);
+      const record = JSON.parse(readFileSync(p1, 'utf8'));
+      expect(record.payload.taskId).toBe('T-1');
+      expect(record.deliveredAt).toBeTruthy();
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  });
+
+  it('工厂默认文件 Transport；MCP / HTTP 预留位抛未实现错误', () => {
+    const file = createTransport({});
+    expect(file.kind).toBe('file');
+    expect(() => createTransport({ transport: { type: 'mcp' } })).toThrow(/尚未实现/);
+  });
+});
+
+describe('快照协议视图段', () => {
+  it('快照携带 protocolView 只读投影段（容错空）', () => {
+    const config = validateConfig({});
+    const snapshot = buildSnapshot({ version: '1.0.0', tasks: [], archivedTasks: [] }, { tasks: {} }, config);
+    expect(snapshot.protocolView).toMatchObject({
+      tasks: expect.any(Array),
+      statusMap: expect.any(Object),
+      artifacts: expect.any(Array),
+      capabilityDeclarations: expect.any(Array),
+    });
   });
 });

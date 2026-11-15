@@ -3,16 +3,16 @@ taskId: AF-006
 contextId: framework-evolution
 title: 框架机读校验工具固化（索引 / 任务单 schema 校验、工件指针与链接 / 编码一致性校验）
 type: implementation
-status: backlog
+status: completed
 baselineRef: 3a28da6
 dependsOn: []
 policyRefs: [framework/acceptance.md, framework/task-contract.md]
 createdAt: 2026-11-15
 ---
 
-# AF-006 · 框架机读校验工具固化（backlog · 触发后立项实施）
+# AF-006 · 框架机读校验工具固化
 
-> 状态：📋 backlog（2026-11-15）｜编排：主控 Doubao｜执行方：待定（触发时派发）
+> 状态：✅ 已交付（2026-11-15）｜交付记录：docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md｜编排：主控 Doubao
 > 仓库：本仓 `E:\Work\Project\backend\mofang-nestjs`（adapter 侧登记）；工具落点预期为框架仓 `E:\Work\Project\agent-collaboration-framework`
 > 任务性质：框架工具链演进；本单当前**不实现**，仅立项登记；引入时机随框架演进档评估后另开 ready 子单。
 
@@ -74,6 +74,6 @@ AF-003 / AF-004 回收验收以临时 node 命令现场实跑：JSON 双解析�
 
 ## 7. 回写清单（实施完成后）
 
-- [ ] 交付记录落固定路径；任务单归档成对；wp-list / 阶段入口 / 索引同步回写；
-- [ ] 索引状态迁移追加 `history`，工件指针填全；
-- [ ] 审计链闭合：`taskId` 贯穿任务单 / 交付记录 / 回执 / commit message。
+- [x] 交付记录落固定路径；任务单归档成对；wp-list / 阶段入口 / 索引同步回写；
+- [x] 索引状态迁移追加 `history`，工件指针填全；
+- [x] 审计链闭合：`taskId` 贯穿任务单 / 交付记录 / 回执 / commit message。

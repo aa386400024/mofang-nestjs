@@ -4,17 +4,25 @@
  * 子命令：
  *   status                 打印队列概览计数与任务列表（读快照；无快照则按当前索引构建）
  *   run-once               执行一轮状态机推进并落盘索引 / 运行态 / 快照
+ *   watch                  监听任务单 / 回执目录，变更防抖后自动执行一轮 run-once
+ *   protocol               导出标准协议视图（protocolView 只读映射投影）
  *   snapshot               仅刷新队列快照（不推进验收与返修）
  *   pack                   生成夜间交付包（JSON + MD 副本）
  *   improvements           候选改进台账：list / extract / add / transition
+ *   validate [--sheet f]   AF-006 框架 schema 机读校验（索引 / 工具契约 / Agent Card）
  *   config --enable        开启自治模式（写回 config.json）
  *   config --disable       关闭自治模式
  *
  * 用法（pnpm，禁裸 npx）：`pnpm orchestration:<subcommand>`，入口在 package.json。
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { PATHS, loadConfig, loadIndex, loadRuntimeState, saveConfigPatch, writeJsonAtomic } from './state-store.mjs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { PATHS, REPO_ROOT, loadConfig, loadIndex, loadRuntimeState, saveConfigPatch, writeJsonAtomic } from './state-store.mjs';
 import { advanceOnce, buildSnapshot, shouldAdvance } from './scheduler.mjs';
+import { validateAgentCard, validateTaskIndex, validateTaskSheet, validateToolManifest } from './validator.mjs';
+import { loadRegistry, call as registryCall } from './tool-registry.mjs';
+import { loadAuditLog, saveAuditLog } from './audit-log.mjs';
+import { createWatcher } from './file-watcher.mjs';
 import { generateDeliveryPack } from './delivery-pack.mjs';
 import {
   addCandidate,
@@ -32,6 +40,15 @@ function writeSnapshotArtifacts(snapshot) {
   writeFileSync(PATHS.webDataJs, `// 由 orchestration CLI 生成，勿手改\nwindow.ORCH_SNAPSHOT = ${JSON.stringify(snapshot, null, 2)};\n`, {
     encoding: 'utf8',
   });
+}
+
+/** 经注册表登记一次工具调用审计并落盘；返回注册表调用结果。 */
+function auditRegistryCall(toolId, ctx) {
+  const registry = loadRegistry();
+  const auditLog = loadAuditLog();
+  const result = registryCall(registry, toolId, ctx, auditLog);
+  saveAuditLog(auditLog);
+  return result;
 }
 
 function printSnapshot(snapshot) {
@@ -80,6 +97,7 @@ function cmdRunOnce() {
   if (!shouldAdvance(config)) {
     console.log('自治模式关闭：本轮仅生成只读快照，不执行领单 / 验收归档 / 返修等状态迁移。');
   }
+  auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: 'run-once' });
   const { snapshot, actions } = advanceOnce({ commit: true });
   writeSnapshotArtifacts(snapshot);
   for (const action of actions) console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
@@ -87,7 +105,40 @@ function cmdRunOnce() {
   printSnapshot(snapshot);
 }
 
+function cmdWatch() {
+  const dirs = [join(REPO_ROOT, 'docs', 'worklog', 'pending'), join(REPO_ROOT, 'docs', 'worklog', 'completed')];
+  const watcher = createWatcher({
+    dirs,
+    debounceMs: 300,
+    onChange(events) {
+      console.log(`[watch] 检测到变更 ${events.length} 项，执行一轮 run-once`);
+      auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: 'watch' });
+      const { snapshot, actions } = advanceOnce({ commit: true });
+      writeSnapshotArtifacts(snapshot);
+      for (const action of actions)
+        console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
+      printSnapshot(snapshot);
+    },
+    onError(err) {
+      console.error(`[watch] 监听错误：${err.message}`);
+    },
+  });
+  console.log(`[watch] 监听目录：${dirs.join('、')}；Ctrl+C 退出。`);
+  const stop = () => {
+    watcher.stop();
+    process.exit(0);
+  };
+  process.on('SIGINT', stop);
+  process.on('SIGTERM', stop);
+}
+
+function cmdProtocol() {
+  const snapshot = buildSnapshot(loadIndex(), loadRuntimeState(), loadConfig(), summarizeLog(loadImprovementLog()));
+  console.log(JSON.stringify(snapshot.protocolView, null, 2));
+}
+
 function cmdSnapshot() {
+  auditRegistryCall('TOOL-STATE-STORE', { actor: 'orchestrator', correlationId: 'snapshot' });
   const snapshot = buildSnapshot(loadIndex(), loadRuntimeState(), loadConfig(), summarizeLog(loadImprovementLog()));
   writeSnapshotArtifacts(snapshot);
   console.log(`快照已写入：${PATHS.snapshot}`);
@@ -96,11 +147,63 @@ function cmdSnapshot() {
 
 function cmdPack() {
   const { pack, jsonPath, mdPath } = generateDeliveryPack({ write: true });
+  auditRegistryCall('TOOL-DELIVERY-PACK', { actor: 'orchestrator', correlationId: 'pack' });
   console.log(`交付包 JSON：${jsonPath}`);
   console.log(`交付包 MD ：${mdPath}`);
   console.log(
     `任务结论=${pack.taskResults.length} 死信=${pack.deadLetters.length} 遗留项=${pack.openItems.length} 待批=${pack.pendingApprovals.length}`,
   );
+}
+
+const SKIPPED = { ok: true, skipped: true, errors: [], schemaId: null };
+
+/** AF-006：框架 schema 机读校验（索引 / 工具契约 / Agent Card；可选任务单元 JSON）。 */
+async function cmdValidate(args) {
+  const sections = [];
+
+  if (existsSync(PATHS.index)) {
+    sections.push(['状态索引', await validateTaskIndex(JSON.parse(readFileSync(PATHS.index, 'utf8')))]);
+  } else {
+    sections.push(['状态索引', SKIPPED]);
+  }
+
+  if (existsSync(PATHS.toolsContractFile)) {
+    sections.push(['工具契约清单', await validateToolManifest(JSON.parse(readFileSync(PATHS.toolsContractFile, 'utf8')))]);
+  } else {
+    sections.push(['工具契约清单', SKIPPED]);
+  }
+
+  const cardFiles = existsSync(PATHS.agentCardsDir) ? readdirSync(PATHS.agentCardsDir).filter((f) => f.endsWith('.json')) : [];
+  for (const file of cardFiles) {
+    const card = JSON.parse(readFileSync(join(PATHS.agentCardsDir, file), 'utf8'));
+    sections.push([`Agent Card ${file}`, await validateAgentCard(card)]);
+  }
+
+  const sheetFile = argValue(args, '--sheet');
+  if (sheetFile) {
+    const abs = resolve(REPO_ROOT, sheetFile);
+    if (existsSync(abs)) {
+      sections.push(['任务单元', await validateTaskSheet(JSON.parse(readFileSync(abs, 'utf8')))]);
+    } else {
+      console.log(`[SKIP] 任务单元：文件不存在：${sheetFile}`);
+    }
+  }
+
+  let failed = false;
+  for (const [name, res] of sections) {
+    if (res.skipped) {
+      console.log(`[SKIP] ${name}：schema 不可达，跳过机读校验`);
+      continue;
+    }
+    if (res.ok) {
+      console.log(`[PASS] ${name}${res.schemaId ? `（${res.schemaId}）` : ''}`);
+    } else {
+      failed = true;
+      console.log(`[FAIL] ${name}`);
+      for (const err of res.errors) console.log(`   - ${err.instancePath || '/'}：${err.message}`);
+    }
+  }
+  if (failed) process.exit(1);
 }
 
 function cmdConfig(args) {
@@ -203,7 +306,10 @@ function cmdImprovements(args) {
 }
 
 function printHelp() {
-  console.log('用法：cli.mjs <status|run-once|snapshot|pack|config|improvements> [参数]');
+  console.log('用法：cli.mjs <status|run-once|watch|protocol|snapshot|pack|validate|config|improvements> [参数]');
+  console.log('  watch                        监听任务单 / 回执目录，变更防抖后自动执行一轮 run-once');
+  console.log('  protocol                     导出标准协议视图（protocolView 只读映射投影）');
+  console.log('  validate [--sheet <file>]   校验索引 / 工具契约 / Agent Card（可选任务单元 JSON）');
   console.log('  improvements [--summary]              列出台账与活跃候选');
   console.log('  improvements --extract                 从快照遗留项抽取候选（只登记 candidate）');
   console.log(
@@ -221,11 +327,25 @@ switch (command) {
   case 'run-once':
     cmdRunOnce();
     break;
+  case 'watch':
+    cmdWatch();
+    break;
+  case 'protocol':
+    cmdProtocol();
+    break;
   case 'snapshot':
     cmdSnapshot();
     break;
   case 'pack':
     cmdPack();
+    break;
+  case 'validate':
+    try {
+      await cmdValidate(args);
+    } catch (err) {
+      console.error(`Schema 校验失败：${err.message}`);
+      process.exit(2);
+    }
     break;
   case 'config':
     cmdConfig(args);

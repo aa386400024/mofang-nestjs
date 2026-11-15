@@ -128,6 +128,9 @@ data/quality/*.txt
 data/quality/*.csv
 !data/quality/anchor-sample-30.csv
 
-# V2026-11-15 — L2 编排运行态（租约 / 领单 / 临时态），随轮次变化不进版本库；
+# V2026-11-15 — L2 编排运行态（租约 / 领单 / 临时态 / 工具调用审计），随轮次变化不进版本库；
 #   task-state-index.json（索引）与 orchestration-snapshot.json（网页数据源）保留入库。
 docs/team/agent-orchestration/orchestration-state.json
+docs/team/agent-orchestration/tool-audit-log.json
+docs/team/agent-orchestration/orchestration-store.sqlite
+docs/team/agent-orchestration/transport/

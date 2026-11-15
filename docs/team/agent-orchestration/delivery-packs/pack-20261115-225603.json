@@ -1,0 +1,172 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-11-15T14:56:03.135Z",
+  "meta": {
+    "mode": {
+      "autoLoopEnabled": false,
+      "reworkLimit": 2
+    },
+    "queueCounts": {
+      "ready": 0,
+      "submitted": 0,
+      "working": 0,
+      "completed": 0,
+      "failed": 0,
+      "canceled": 0,
+      "rejected": 0,
+      "input-required": 0,
+      "deadLetter": 0,
+      "backlog": 4
+    },
+    "archivedCount": 21,
+    "improvementSummary": {
+      "total": 3,
+      "activeCount": 3,
+      "byStatus": {
+        "candidate": 1,
+        "queued": 1,
+        "accepted": 1,
+        "done": 0,
+        "wontfix": 0
+      },
+      "byType": {
+        "gap": 1,
+        "guardrail": 0,
+        "tool": 0,
+        "standard": 0,
+        "performance": 0,
+        "tech-debt": 2
+      },
+      "bySource": {
+        "implementation": 1,
+        "acceptance": 0,
+        "rework": 0,
+        "dead-letter": 0,
+        "review": 2
+      },
+      "items": [
+        {
+          "improvementId": "IM-001",
+          "title": "台账抽取通道仅识别快照遗留项，未直接解析回执文件正文",
+          "status": "queued",
+          "source": "implementation",
+          "type": "gap",
+          "layer": "adapter",
+          "relatedTaskId": null,
+          "evidence": ["scripts/orchestration/improvement-log.mjs#extractFromSnapshot"],
+          "impact": "回执正文中未进入快照遗留区的缺口不会被台账捕获，存在漏登记风险",
+          "suggestion": "抽取通道增加回执文件正文解析，与快照遗留项双通道合并去重",
+          "historyCount": 2,
+          "lastTransition": {
+            "at": "2026-11-15T13:30:32.466Z",
+            "by": "orchestrator",
+            "to": "queued",
+            "note": "编排者评审立项，纳入演进 backlog 跟踪"
+          }
+        },
+        {
+          "improvementId": "IM-002",
+          "title": "typeorm-model-generator 废弃工具链及其传递依赖存在未修复漏洞",
+          "status": "accepted",
+          "source": "review",
+          "type": "tech-debt",
+          "layer": "adapter",
+          "relatedTaskId": null,
+          "evidence": ["pnpm audit: . > typeorm-model-generator@0.4.6-no-engines > typeorm@0.2.45 / mysql2@2.3.3 / sqlite3@5.1.7"],
+          "impact": "该 dev 工具上游停更，拖入老 typeorm/mysql2/sqlite3/tar/tmp，贡献全部 4 条 critical 及多数 high/moderate 告警；仅开发期反向生成使用，不进生产运行时",
+          "suggestion": "评估移除 typeorm-model-generator、bin/entity.ts、NamingStrategy.cjs 及样品 entity；移除前确认无 DB→装饰器反向生成需求",
+          "historyCount": 3,
+          "lastTransition": {
+            "at": "2026-11-15T14:08:05.685Z",
+            "by": "orchestrator",
+            "to": "accepted",
+            "note": "实现落地：移除 devDep typeorm-model-generator、bin/entity.ts、bin/NamingStrategy.cjs、entity:load 脚本；typecheck/lint/oxlint/21 例绿；待提交归档转 done"
+          }
+        },
+        {
+          "improvementId": "IM-003",
+          "title": "运行时传递依赖 uuid/glob/minimatch 存在版本告警，须随主依赖升级治理",
+          "status": "candidate",
+          "source": "review",
+          "type": "tech-debt",
+          "layer": "adapter",
+          "relatedTaskId": null,
+          "evidence": [
+            "pnpm audit: typeorm@1.1.2>mssql>tedious>@azure/ms-rest-js>uuid@8.3.2; @sentry/rimraf>glob@13.0.6; ts-morph/@sentry>minimatch@10.2.6"
+          ],
+          "impact": "间接依赖告警，非运行时直连路径；typeorm 的 mssql/tedious 为可选方言打包，本仓实际使用 mysql2",
+          "suggestion": "随 typeorm/sentry/rimraf/ts-morph 主依赖升级带动传递版本；按 P-DEBT-4 纪律，版本变动须附全量绿跑与墙钟数字",
+          "historyCount": 1,
+          "lastTransition": {
+            "at": "2026-11-15T13:43:09.887Z",
+            "by": "orchestrator-cli",
+            "to": "candidate",
+            "note": "登记候选改进"
+          }
+        }
+      ]
+    }
+  },
+  "taskResults": [
+    {
+      "taskId": "AF-005",
+      "contextId": "framework-evolution",
+      "type": "implementation",
+      "status": "backlog",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "reworkOf": null,
+      "artifactRefs": {
+        "taskSheet": "docs/worklog/pending/af005-framework-evolution-watcher-state-machine-2026-11-15.md",
+        "deliveryRecord": null
+      }
+    },
+    {
+      "taskId": "AF-006",
+      "contextId": "framework-evolution",
+      "type": "implementation",
+      "status": "backlog",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "reworkOf": null,
+      "artifactRefs": {
+        "taskSheet": "docs/worklog/pending/af006-framework-evolution-validation-scripts-2026-11-15.md",
+        "deliveryRecord": null
+      }
+    },
+    {
+      "taskId": "AF-007",
+      "contextId": "framework-evolution",
+      "type": "implementation",
+      "status": "backlog",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "reworkOf": null,
+      "artifactRefs": {
+        "taskSheet": "docs/worklog/pending/af007-framework-evolution-tool-standardization-2026-11-15.md",
+        "deliveryRecord": null
+      }
+    },
+    {
+      "taskId": "AF-008",
+      "contextId": "framework-evolution",
+      "type": "implementation",
+      "status": "backlog",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "reworkOf": null,
+      "artifactRefs": {
+        "taskSheet": "docs/worklog/pending/af008-framework-evolution-agent-protocol-mapping-2026-11-15.md",
+        "deliveryRecord": null
+      }
+    }
+  ],
+  "deadLetters": [],
+  "openItems": [],
+  "pendingApprovals": [],
+  "snapshotRef": "E:\\Work\\Project\\backend\\mofang-nestjs\\docs\\team\\agent-orchestration\\orchestration-snapshot.json"
+}

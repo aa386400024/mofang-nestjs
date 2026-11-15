@@ -3,16 +3,16 @@ taskId: AF-008
 contextId: framework-evolution
 title: 框架 L3 代理协议化映射 —— Agent Card 能力声明与任务 / 消息 / 工件标准映射（远期概念位）
 type: implementation
-status: backlog
+status: completed
 baselineRef: 5d464f7
 dependsOn: []
 policyRefs: [framework/evolution.md, framework/state-machine.md, framework/task-contract.md]
 createdAt: 2026-11-15
 ---
 
-# AF-008 · 框架 L3 代理协议化映射（backlog · 远期概念位，触发后立项）
+# AF-008 · 框架 L3 代理协议化映射
 
-> 状态：📋 backlog（2026-11-15）｜编排：主控 Doubao｜执行方：待定（触发时派发）
+> 状态：✅ 已交付（2026-11-15）｜交付记录：docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md｜编排：主控 Doubao
 > 仓库：本仓 `E:\Work\Project\backend\mofang-nestjs`（adapter 侧登记）；规范映射落点预期为框架仓 `E:\Work\Project\agent-collaboration-framework`
 > 任务性质：远期演进概念位；本单当前**不实现**协议适配、客户端 / 服务端或协议栈依赖；登记映射方向，触发条件满足后另开 ready 子单。
 
@@ -69,6 +69,6 @@ createdAt: 2026-11-15
 
 ## 7. 回写清单（实施完成后）
 
-- [ ] 交付记录落固定路径；任务单归档成对；wp-list / 阶段入口 / 索引同步回写；
-- [ ] 索引状态迁移追加 `history`，工件指针填全；
-- [ ] 审计链闭合：`taskId` 贯穿任务单 / 交付记录 / 回执 / commit message。
+- [x] 交付记录落固定路径；任务单归档成对；wp-list / 阶段入口 / 索引同步回写；
+- [x] 索引状态迁移追加 `history`，工件指针填全；
+- [x] 审计链闭合：`taskId` 贯穿任务单 / 交付记录 / 回执 / commit message。

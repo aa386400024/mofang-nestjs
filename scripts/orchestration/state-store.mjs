@@ -9,7 +9,7 @@
  * 持久层为 JSON 文件 + 原子写；store 接口在此隔离，后续迁移 DB / 工作流引擎
  * 只替换本模块实现，上层流程不变（见设计备忘 §11）。
  */
-import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -24,8 +24,13 @@ export const PATHS = {
   runtimeState: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'orchestration-state.json'),
   snapshot: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'orchestration-snapshot.json'),
   improvementLog: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'improvement-log.json'),
+  auditLog: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'tool-audit-log.json'),
+  sqliteDb: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'orchestration-store.sqlite'),
+  transportDir: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'transport'),
   webDataJs: join(REPO_ROOT, 'web', 'orchestration', 'data.js'),
   deliveryPackDir: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'delivery-packs'),
+  agentCardsDir: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'agent-cards'),
+  toolsContractFile: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'tools', 'orchestration-tools.json'),
   config: join(__dirname, 'config.json'),
 };
 
@@ -74,6 +79,14 @@ export function validateConfig(raw) {
   if (raw.frozenActions !== undefined && !Array.isArray(raw.frozenActions)) {
     errors.push('frozenActions 须为数组');
   }
+  const backend = raw.store?.backend ?? 'json';
+  if (!['json', 'sqlite'].includes(backend)) {
+    errors.push(`store.backend 非法：${String(backend)}（允许 json / sqlite）`);
+  }
+  const transportType = raw.transport?.type ?? 'file';
+  if (!['file', 'mcp', 'http'].includes(transportType)) {
+    errors.push(`transport.type 非法：${String(transportType)}（允许 file / mcp / http）`);
+  }
   if (errors.length > 0) throw new Error(`编排配置非法：${errors.join('；')}`);
   return {
     schemaVersion: raw.schemaVersion ?? '1.0.0',
@@ -82,6 +95,8 @@ export function validateConfig(raw) {
     leaseDefaultMinutes: lease,
     allowedTaskTypes: Array.isArray(raw.allowedTaskTypes) ? raw.allowedTaskTypes : [],
     frozenActions: Array.isArray(raw.frozenActions) ? raw.frozenActions : [],
+    store: { backend },
+    transport: { type: transportType },
     notes: raw.notes ?? {},
   };
 }
@@ -151,4 +166,73 @@ export function findTask(index, taskId) {
 export function isLeaseExpired(entry, now = nowIso()) {
   if (!entry.leaseDeadline) return false;
   return new Date(entry.leaseDeadline).getTime() <= new Date(now).getTime();
+}
+
+function safeReadJson(file) {
+  try {
+    return readJson(file);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 交付包清单（只读，供快照 / 网页）：只保留文件名、生成时间与各类计数，不复制包正文。
+ * @param {number} limit 倒序保留条数
+ * @returns {Array<object>}
+ */
+export function listDeliveryPacks(limit = 10) {
+  if (!existsSync(PATHS.deliveryPackDir)) return [];
+  const packs = [];
+  for (const fileName of readdirSync(PATHS.deliveryPackDir)) {
+    if (!fileName.startsWith('pack-') || !fileName.endsWith('.json')) continue;
+    const pack = safeReadJson(join(PATHS.deliveryPackDir, fileName));
+    if (!pack) continue;
+    const count = (arr) => (Array.isArray(arr) ? arr.length : 0);
+    packs.push({
+      fileName,
+      ref: `docs/team/agent-orchestration/delivery-packs/${fileName}`,
+      generatedAt: pack.generatedAt ?? null,
+      taskResults: count(pack.taskResults),
+      deadLetters: count(pack.deadLetters),
+      openItems: count(pack.openItems),
+      pendingApprovals: count(pack.pendingApprovals),
+    });
+  }
+  packs.sort((a, b) => String(b.generatedAt ?? '').localeCompare(String(a.generatedAt ?? '')));
+  return packs.slice(0, limit);
+}
+
+/** Agent Card 声明只读投影；目录缺失或单文件损坏时返回空数组，不阻断快照。 */
+export function loadAgentCards() {
+  if (!existsSync(PATHS.agentCardsDir)) return [];
+  const cards = [];
+  for (const fileName of readdirSync(PATHS.agentCardsDir)) {
+    if (!fileName.endsWith('.json')) continue;
+    const card = safeReadJson(join(PATHS.agentCardsDir, fileName));
+    if (!card) continue;
+    cards.push({
+      agentId: card.agentId ?? null,
+      role: card.role ?? null,
+      availability: card.availability ?? null,
+      skills: Array.isArray(card.skills) ? card.skills : [],
+      tools: Array.isArray(card.tools) ? card.tools : [],
+      note: card.note ?? null,
+    });
+  }
+  return cards;
+}
+
+/** 工具契约声明只读投影；文件缺失或损坏时返回空数组，不阻断快照。 */
+export function loadToolContracts() {
+  if (!existsSync(PATHS.toolsContractFile)) return [];
+  const raw = safeReadJson(PATHS.toolsContractFile);
+  if (!raw || !Array.isArray(raw.tools)) return [];
+  return raw.tools.map((tool) => ({
+    toolId: tool.toolId ?? null,
+    category: tool.category ?? null,
+    sideEffect: tool.sideEffect ?? null,
+    allowedRoles: Array.isArray(tool.allowedRoles) ? tool.allowedRoles : [],
+    description: tool.description ?? null,
+  }));
 }

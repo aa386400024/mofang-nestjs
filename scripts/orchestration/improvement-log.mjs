@@ -267,7 +267,10 @@ export function extractFromSnapshot(snapshot, existing = []) {
   return candidates;
 }
 
-/** 台账汇总计数（供快照 / CLI / 交付包读取，不复制条目正文）。 */
+/**
+ * 台账汇总计数 + 只读条目投影（供快照 / CLI / 交付包 / 网页视图读取）。
+ * items 只保留展示所需的登记字段与末次流转记录，不复制会话正文；明细口径与汇总同源。
+ */
 export function summarizeLog(log) {
   const byStatus = Object.fromEntries(STATUSES.map((s) => [s, 0]));
   const byType = Object.fromEntries(TYPES.map((t) => [t, 0]));
@@ -279,7 +282,25 @@ export function summarizeLog(log) {
     bySource[entry.source] = (bySource[entry.source] ?? 0) + 1;
     if (!isTerminalStatus(entry.status)) activeCount += 1;
   }
-  return { total: log.improvements.length, activeCount, byStatus, byType, bySource };
+  const items = log.improvements.map((entry) => {
+    const history = Array.isArray(entry.history) ? entry.history : [];
+    const last = history.length > 0 ? history[history.length - 1] : null;
+    return {
+      improvementId: entry.improvementId,
+      title: entry.title,
+      status: entry.status,
+      source: entry.source,
+      type: entry.type,
+      layer: entry.layer,
+      relatedTaskId: entry.relatedTaskId ?? null,
+      evidence: Array.isArray(entry.evidence) ? entry.evidence : [],
+      impact: entry.impact ?? null,
+      suggestion: entry.suggestion ?? null,
+      historyCount: history.length,
+      lastTransition: last ? { at: last.at ?? null, by: last.by ?? null, to: last.to ?? null, note: last.note ?? null } : null,
+    };
+  });
+  return { total: log.improvements.length, activeCount, byStatus, byType, bySource, items };
 }
 
 /** 非终态条目（立项 / 实现跟踪用）。 */

@@ -99,7 +99,7 @@ body {
 
 .cards {
   display: grid;
-  grid-template-columns: repeat(9, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   gap: 12px;
 }
 
@@ -276,4 +276,24 @@ code {
 
 .footer p {
   margin: 4px 0;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: #f1f5f9;
+  color: var(--gray);
+}
+
+.imp-list {
+  margin-top: 12px;
 }

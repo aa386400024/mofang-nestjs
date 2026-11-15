@@ -6,6 +6,12 @@
   "reworkLimit": 2,
   "leaseDefaultMinutes": 30,
   "allowedTaskTypes": ["implementation", "fix", "documentation"],
+  "store": {
+    "backend": "json"
+  },
+  "transport": {
+    "type": "file"
+  },
   "frozenActions": [
     "external-release",
     "policy-exception",
@@ -19,6 +25,8 @@
     "reworkLimit": "同一 contextId 下返修次数上限，超限进死信隔离。",
     "leaseDefaultMinutes": "任务未声明 deadline 时的默认租约时长（分钟）。",
     "allowedTaskTypes": "允许自动执行的任务类型；investigation / review 等只读产出类型不在白名单，不自动改实现。",
-    "frozenActions": "命中即冻结、转 input-required 并转人工，不阻塞队列其他任务；类别对齐框架仓 docs/autonomous-loop.md §3.2。"
+    "frozenActions": "命中即冻结、转 input-required 并转人工，不阻塞队列其他任务；类别对齐框架仓 docs/autonomous-loop.md §3.2。",
+    "store.backend": "状态持久化后端：json（默认，JSON 文件 + 原子写）或 sqlite（可选内置 node:sqlite）；SQLite 仅存指针 / 状态 / 历史，工件正文仍留文件，不进业务 MySQL。",
+    "transport.type": "协议投递通道：file（默认，交接 JSON 文件）；mcp / http 为预留实现位，本批次不实现、不引协议栈依赖。"
   }
 }

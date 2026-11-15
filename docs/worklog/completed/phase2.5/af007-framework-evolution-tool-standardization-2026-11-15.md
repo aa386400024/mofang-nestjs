@@ -3,16 +3,16 @@ taskId: AF-007
 contextId: framework-evolution
 title: 框架 L1 工具标准化 —— 标准工具原语、IO 契约、副作用分级、权限收口与调用审计
 type: implementation
-status: backlog
+status: completed
 baselineRef: 5d464f7
 dependsOn: []
 policyRefs: [framework/security-and-policy.md, framework/roles.md, framework/evolution.md]
 createdAt: 2026-11-15
 ---
 
-# AF-007 · 框架 L1 工具标准化（backlog · 触发后立项实施）
+# AF-007 · 框架 L1 工具标准化
 
-> 状态：📋 backlog（2026-11-15）｜编排：主控 Doubao｜执行方：待定（触发时派发）
+> 状态：✅ 已交付（2026-11-15）｜交付记录：docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md｜编排：主控 Doubao
 > 仓库：本仓 `E:\Work\Project\backend\mofang-nestjs`（adapter 侧登记）；规范与工具契约落点预期为框架仓 `E:\Work\Project\agent-collaboration-framework`
 > 任务性质：框架工具链演进；本单当前**不实现**，仅立项登记；触发条件满足后另开 ready 子单实施。AF-006（机读校验工具固化）是本单在「校验工具」上的子集。
 
@@ -76,6 +76,6 @@ L0 阶段，仓库读写、检查执行、版本控制、检索、状态索引�
 
 ## 7. 回写清单（实施完成后）
 
-- [ ] 交付记录落固定路径；任务单归档成对；wp-list / 阶段入口 / 索引同步回写；
-- [ ] 索引状态迁移追加 `history`，工件指针填全；
-- [ ] 审计链闭合：`taskId` 贯穿任务单 / 交付记录 / 回执 / commit message。
+- [x] 交付记录落固定路径；任务单归档成对；wp-list / 阶段入口 / 索引同步回写；
+- [x] 索引状态迁移追加 `history`，工件指针填全；
+- [x] 审计链闭合：`taskId` 贯穿任务单 / 交付记录 / 回执 / commit message。

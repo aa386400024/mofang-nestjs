@@ -20,9 +20,12 @@ import {
   findTask,
   getRuntimeEntry,
   isLeaseExpired,
+  listDeliveryPacks,
+  loadAgentCards,
   loadConfig,
   loadIndex,
   loadRuntimeState,
+  loadToolContracts,
   nowIso,
   saveIndex,
   saveRuntimeState,
@@ -30,6 +33,8 @@ import {
 } from './state-store.mjs';
 import { runAcceptance } from './acceptance-runner.mjs';
 import { loadImprovementLog, summarizeLog } from './improvement-log.mjs';
+import { listAudits, loadAuditLog, summarizeAudits } from './audit-log.mjs';
+import { buildProtocolView } from './protocol-mapper.mjs';
 
 const BY_ORCHESTRATOR = 'orchestrator-cli';
 
@@ -220,6 +225,9 @@ export function buildSnapshot(index, runtimeState, config, improvementSummary) {
     if (entry.frozen) pendingApprovals.push({ taskId: task.taskId, reason: entry.escalation?.waiting ?? '冻结待批' });
   }
 
+  const auditLog = loadAuditLog();
+  const agentCards = loadAgentCards();
+
   return {
     generatedAt: nowIso(),
     mode: { autoLoopEnabled: config.autoLoop.enabled, reworkLimit: config.reworkLimit },
@@ -229,6 +237,12 @@ export function buildSnapshot(index, runtimeState, config, improvementSummary) {
     reworkProposals,
     pendingApprovals,
     improvements: improvementSummary ?? null,
+    deliveryPacks: listDeliveryPacks(),
+    agentCards,
+    toolContracts: loadToolContracts(),
+    toolAudits: listAudits(auditLog, { limit: 15 }),
+    auditSummary: summarizeAudits(auditLog),
+    protocolView: buildProtocolView({ tasks: index.tasks, archivedTasks: index.archivedTasks, agentCards }),
     archivedCount: index.archivedTasks.length,
   };
 }

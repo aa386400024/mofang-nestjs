@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T14:09:09.969Z",
+  "generatedAt": "2026-11-15T15:21:55.029Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -113,7 +113,1194 @@
       "rework": 0,
       "dead-letter": 0,
       "review": 2
+    },
+    "items": [
+      {
+        "improvementId": "IM-001",
+        "title": "台账抽取通道仅识别快照遗留项，未直接解析回执文件正文",
+        "status": "queued",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": null,
+        "evidence": ["scripts/orchestration/improvement-log.mjs#extractFromSnapshot"],
+        "impact": "回执正文中未进入快照遗留区的缺口不会被台账捕获，存在漏登记风险",
+        "suggestion": "抽取通道增加回执文件正文解析，与快照遗留项双通道合并去重",
+        "historyCount": 2,
+        "lastTransition": {
+          "at": "2026-11-15T13:30:32.466Z",
+          "by": "orchestrator",
+          "to": "queued",
+          "note": "编排者评审立项，纳入演进 backlog 跟踪"
+        }
+      },
+      {
+        "improvementId": "IM-002",
+        "title": "typeorm-model-generator 废弃工具链及其传递依赖存在未修复漏洞",
+        "status": "accepted",
+        "source": "review",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": null,
+        "evidence": ["pnpm audit: . > typeorm-model-generator@0.4.6-no-engines > typeorm@0.2.45 / mysql2@2.3.3 / sqlite3@5.1.7"],
+        "impact": "该 dev 工具上游停更，拖入老 typeorm/mysql2/sqlite3/tar/tmp，贡献全部 4 条 critical 及多数 high/moderate 告警；仅开发期反向生成使用，不进生产运行时",
+        "suggestion": "评估移除 typeorm-model-generator、bin/entity.ts、NamingStrategy.cjs 及样品 entity；移除前确认无 DB→装饰器反向生成需求",
+        "historyCount": 3,
+        "lastTransition": {
+          "at": "2026-11-15T14:08:05.685Z",
+          "by": "orchestrator",
+          "to": "accepted",
+          "note": "实现落地：移除 devDep typeorm-model-generator、bin/entity.ts、bin/NamingStrategy.cjs、entity:load 脚本；typecheck/lint/oxlint/21 例绿；待提交归档转 done"
+        }
+      },
+      {
+        "improvementId": "IM-003",
+        "title": "运行时传递依赖 uuid/glob/minimatch 存在版本告警，须随主依赖升级治理",
+        "status": "candidate",
+        "source": "review",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": null,
+        "evidence": [
+          "pnpm audit: typeorm@1.1.2>mssql>tedious>@azure/ms-rest-js>uuid@8.3.2; @sentry/rimraf>glob@13.0.6; ts-morph/@sentry>minimatch@10.2.6"
+        ],
+        "impact": "间接依赖告警，非运行时直连路径；typeorm 的 mssql/tedious 为可选方言打包，本仓实际使用 mysql2",
+        "suggestion": "随 typeorm/sentry/rimraf/ts-morph 主依赖升级带动传递版本；按 P-DEBT-4 纪律，版本变动须附全量绿跑与墙钟数字",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T13:43:09.887Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      }
+    ]
+  },
+  "deliveryPacks": [
+    {
+      "fileName": "pack-20261115-225603.json",
+      "ref": "docs/team/agent-orchestration/delivery-packs/pack-20261115-225603.json",
+      "generatedAt": "2026-11-15T14:56:03.135Z",
+      "taskResults": 4,
+      "deadLetters": 0,
+      "openItems": 0,
+      "pendingApprovals": 0
     }
+  ],
+  "agentCards": [
+    {
+      "agentId": "AGENT-EXEC-001",
+      "role": "executor",
+      "availability": "available",
+      "skills": ["implementation", "gate-evidence", "deviation-reporting", "self-test"],
+      "tools": ["workspace-read", "workspace-write", "gate-execution"],
+      "note": "执行 AI（MiniMax Code）；researcher / critic 角色当前未启用，需要调研或独立评审任务时再绑定。"
+    },
+    {
+      "agentId": "AGENT-HUMAN-001",
+      "role": "human",
+      "availability": "available",
+      "skills": ["goal-setting", "policy-approval", "arbitration", "release-decision"],
+      "tools": [],
+      "note": "本项目唯一人类角色（用户 / 大炮）；是敏感操作的审批节点，本身不进入工具白名单。"
+    },
+    {
+      "agentId": "AGENT-ORCH-001",
+      "role": "orchestrator",
+      "availability": "available",
+      "skills": [
+        "queue-management",
+        "task-decomposition",
+        "claim-management",
+        "acceptance-organization",
+        "index-maintenance",
+        "evidence-review",
+        "improvement-tracking"
+      ],
+      "tools": ["state-persistence", "queue-scheduler", "acceptance-gate", "delivery-packing", "knowledge-capture", "orchestration-cli"],
+      "note": "主控 AI（Doubao）；兼任 reviewer。制衡：验收结论只能基于工件证据与抽跑复现，不引用执行侧「已通过」的自述；验收与执行由不同执行方承担，兼任时以证据复核隔离。"
+    }
+  ],
+  "toolContracts": [
+    {
+      "toolId": "TOOL-STATE-STORE",
+      "category": "state-persistence",
+      "sideEffect": "restricted-write",
+      "allowedRoles": ["orchestrator"],
+      "description": "状态索引与附加运行态的原子读写、租约字段管理；store 抽象隔离，后续可替换为 DB 持久化。"
+    },
+    {
+      "toolId": "TOOL-ACCEPTANCE-RUNNER",
+      "category": "acceptance-gate",
+      "sideEffect": "read-only",
+      "allowedRoles": ["orchestrator", "reviewer"],
+      "description": "V1–V6 机读护栏：工件存在性与非空、指针可达、链接可达、编码、结构断言；输出三级结论与人工复核清单。"
+    },
+    {
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "queue-scheduler",
+      "sideEffect": "restricted-write",
+      "allowedRoles": ["orchestrator"],
+      "description": "队列扫描、领单租约、超时释放、验收驱动状态迁移、返修提案与限次、死信隔离、队列快照生成。"
+    },
+    {
+      "toolId": "TOOL-DELIVERY-PACK",
+      "category": "delivery-packing",
+      "sideEffect": "restricted-write",
+      "allowedRoles": ["orchestrator"],
+      "description": "汇总夜间交付包：验收结论、证据指针、死信任务、遗留项与待人工批准动作。"
+    },
+    {
+      "toolId": "TOOL-IMPROVEMENT-LOG",
+      "category": "knowledge-capture",
+      "sideEffect": "restricted-write",
+      "allowedRoles": ["orchestrator"],
+      "description": "候选改进台账：实现 / 验收 / 返修 / 死信复盘 / 评审发现的缺口与架构提升点结构化登记、去重、状态流转与汇总；抽取只产生候选，立项与终态须人工闸门流转。"
+    },
+    {
+      "toolId": "TOOL-ORCH-CLI",
+      "category": "orchestration-cli",
+      "sideEffect": "restricted-write",
+      "allowedRoles": ["orchestrator"],
+      "description": "编排工具链命令入口：status / run-once / snapshot / pack / config；不直接操作桌面 GUI，桌面派发与回执衔接由执行代理单元在调度间隙完成。"
+    }
+  ],
+  "toolAudits": [
+    {
+      "auditId": "AUD-001",
+      "recordedAt": "2026-11-15T15:09:17.483Z",
+      "actorRef": "orchestrator",
+      "correlationId": "snapshot",
+      "toolId": "TOOL-STATE-STORE",
+      "category": "state-persistence",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": ["docs/team/agent-orchestration/task-state-index.json", "docs/team/agent-orchestration/orchestration-state.json"]
+    }
+  ],
+  "auditSummary": {
+    "total": 1,
+    "byResult": {
+      "allowed": 1,
+      "denied": 0
+    },
+    "byTool": {
+      "TOOL-STATE-STORE": 1
+    },
+    "byActor": {
+      "orchestrator": 1
+    }
+  },
+  "protocolView": {
+    "tasks": [
+      {
+        "taskId": "AF-005",
+        "title": "框架 L2 演进 —— watcher 与状态机自动化",
+        "type": "implementation",
+        "status": {
+          "framework": "backlog",
+          "protocol": "DRAFT",
+          "stage": "prelude"
+        },
+        "groupId": "framework-evolution",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af005-framework-evolution-watcher-state-machine-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": null
+          }
+        ]
+      },
+      {
+        "taskId": "AF-006",
+        "title": "框架机读校验工具固化",
+        "type": "implementation",
+        "status": {
+          "framework": "backlog",
+          "protocol": "DRAFT",
+          "stage": "prelude"
+        },
+        "groupId": "framework-evolution",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af006-framework-evolution-validation-scripts-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": null
+          }
+        ]
+      },
+      {
+        "taskId": "AF-007",
+        "title": "框架 L1 工具标准化 —— 标准工具原语、IO 契约、权限收口与调用审计",
+        "type": "implementation",
+        "status": {
+          "framework": "backlog",
+          "protocol": "DRAFT",
+          "stage": "prelude"
+        },
+        "groupId": "framework-evolution",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af007-framework-evolution-tool-standardization-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": null
+          }
+        ]
+      },
+      {
+        "taskId": "AF-008",
+        "title": "框架 L3 代理协议化映射 —— 能力声明与任务/消息/工件标准映射（远期概念位）",
+        "type": "implementation",
+        "status": {
+          "framework": "backlog",
+          "protocol": "DRAFT",
+          "stage": "prelude"
+        },
+        "groupId": "framework-evolution",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af008-framework-evolution-agent-protocol-mapping-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": null
+          }
+        ]
+      },
+      {
+        "taskId": "TD-5",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-task-2026-11-13.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-implementation-2026-11-13.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "TD-6",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-task-2026-11-13.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-implementation-2026-11-13.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "TD-7",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td7-contract-drift-remediation-task-2026-11-13.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td7-contract-drift-remediation-implementation-2026-11-13.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "TD-8",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-task-2026-11-13.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-implementation-2026-11-13.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "TD-9",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td9-test-isolation-and-lint-hygiene-task-2026-11-13.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td9-test-isolation-and-lint-hygiene-implementation-2026-11-13.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "TD-10",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td10-test-structure-debt-reduction-task-2026-11-13.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td10-test-structure-debt-reduction-implementation-2026-11-13.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "TD-11",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-task-2026-11-14.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-implementation-2026-11-14.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "TD-12",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-task-2026-11-14.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-implementation-2026-11-14.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "TD-13",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-task-2026-11-14.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-implementation-2026-11-14.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "TD-14",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td14-entity-typeorm-decoupling-assessment-task-2026-11-14.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td14-entity-typeorm-decoupling-assessment-implementation-2026-11-14.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "TD-15",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td15-enum-extraction-cplus-task-2026-11-14.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td15-enum-extraction-cplus-implementation-2026-11-14.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "TD-16",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td16-life-map-port-pilot-c1-task-2026-11-14.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td16-life-map-port-pilot-c1-implementation-2026-11-14.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261114-1524.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "TD-17",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td17-consent-port-c2-batch1-task-2026-11-14.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td17-consent-port-c2-batch1-implementation-2026-11-14.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261114-1719.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "TD-18",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td18-good-state-diary-port-c2-batch2-task-2026-11-14.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td18-good-state-diary-port-c2-batch2-implementation-2026-11-14.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261114-1818.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "TD-19",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td19-emergency-port-c2-batch3-task-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td19-emergency-port-c2-batch3-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261115-0227.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "TD-20",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td20-home-messages-moodlog-port-c2-batch4-task-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td20-home-messages-moodlog-port-c2-batch4-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261115-0346.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "TD-21",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td21-counselor-quote-port-c2-batch5-task-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td21-counselor-quote-port-c2-batch5-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261115-1211.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "AF-001",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af001-framework-bootstrap-task-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af001-framework-bootstrap-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-af001-20261115.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "AF-002",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": null
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af002-framework-adapter-decoupling-implementation-2026-11-15.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "AF-003",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af003-framework-finalization-task-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af003-framework-finalization-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261115-1533.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "AF-004",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af004-framework-hardening-task-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af004-framework-hardening-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261115-1616.md"
+          }
+        ],
+        "archived": true
+      }
+    ],
+    "statusMap": {
+      "backlog": "DRAFT",
+      "ready": "QUEUED",
+      "submitted": "SUBMITTED",
+      "working": "WORKING",
+      "input-required": "INPUT_REQUIRED",
+      "auth-required": "AUTH_REQUIRED",
+      "completed": "COMPLETED",
+      "failed": "FAILED",
+      "canceled": "CANCELED",
+      "rejected": "REJECTED"
+    },
+    "artifacts": [
+      {
+        "taskId": "AF-005",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af005-framework-evolution-watcher-state-machine-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-005",
+        "kind": "deliveryRecord",
+        "ref": null
+      },
+      {
+        "taskId": "AF-006",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af006-framework-evolution-validation-scripts-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-006",
+        "kind": "deliveryRecord",
+        "ref": null
+      },
+      {
+        "taskId": "AF-007",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af007-framework-evolution-tool-standardization-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-007",
+        "kind": "deliveryRecord",
+        "ref": null
+      },
+      {
+        "taskId": "AF-008",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af008-framework-evolution-agent-protocol-mapping-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-008",
+        "kind": "deliveryRecord",
+        "ref": null
+      },
+      {
+        "taskId": "TD-5",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-task-2026-11-13.md"
+      },
+      {
+        "taskId": "TD-5",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-implementation-2026-11-13.md"
+      },
+      {
+        "taskId": "TD-6",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-task-2026-11-13.md"
+      },
+      {
+        "taskId": "TD-6",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-implementation-2026-11-13.md"
+      },
+      {
+        "taskId": "TD-7",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/td7-contract-drift-remediation-task-2026-11-13.md"
+      },
+      {
+        "taskId": "TD-7",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/td7-contract-drift-remediation-implementation-2026-11-13.md"
+      },
+      {
+        "taskId": "TD-8",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-task-2026-11-13.md"
+      },
+      {
+        "taskId": "TD-8",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-implementation-2026-11-13.md"
+      },
+      {
+        "taskId": "TD-9",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/td9-test-isolation-and-lint-hygiene-task-2026-11-13.md"
+      },
+      {
+        "taskId": "TD-9",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/td9-test-isolation-and-lint-hygiene-implementation-2026-11-13.md"
+      },
+      {
+        "taskId": "TD-10",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/td10-test-structure-debt-reduction-task-2026-11-13.md"
+      },
+      {
+        "taskId": "TD-10",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/td10-test-structure-debt-reduction-implementation-2026-11-13.md"
+      },
+      {
+        "taskId": "TD-11",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-task-2026-11-14.md"
+      },
+      {
+        "taskId": "TD-11",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-implementation-2026-11-14.md"
+      },
+      {
+        "taskId": "TD-12",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-task-2026-11-14.md"
+      },
+      {
+        "taskId": "TD-12",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-implementation-2026-11-14.md"
+      },
+      {
+        "taskId": "TD-13",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-task-2026-11-14.md"
+      },
+      {
+        "taskId": "TD-13",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-implementation-2026-11-14.md"
+      },
+      {
+        "taskId": "TD-14",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/td14-entity-typeorm-decoupling-assessment-task-2026-11-14.md"
+      },
+      {
+        "taskId": "TD-14",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/td14-entity-typeorm-decoupling-assessment-implementation-2026-11-14.md"
+      },
+      {
+        "taskId": "TD-15",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/td15-enum-extraction-cplus-task-2026-11-14.md"
+      },
+      {
+        "taskId": "TD-15",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/td15-enum-extraction-cplus-implementation-2026-11-14.md"
+      },
+      {
+        "taskId": "TD-16",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/td16-life-map-port-pilot-c1-task-2026-11-14.md"
+      },
+      {
+        "taskId": "TD-16",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/td16-life-map-port-pilot-c1-implementation-2026-11-14.md"
+      },
+      {
+        "taskId": "TD-16",
+        "kind": "reply",
+        "ref": "docs/worklog/pending/archive/relay-response-20261114-1524.md"
+      },
+      {
+        "taskId": "TD-17",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/td17-consent-port-c2-batch1-task-2026-11-14.md"
+      },
+      {
+        "taskId": "TD-17",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/td17-consent-port-c2-batch1-implementation-2026-11-14.md"
+      },
+      {
+        "taskId": "TD-17",
+        "kind": "reply",
+        "ref": "docs/worklog/pending/archive/relay-response-20261114-1719.md"
+      },
+      {
+        "taskId": "TD-18",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/td18-good-state-diary-port-c2-batch2-task-2026-11-14.md"
+      },
+      {
+        "taskId": "TD-18",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/td18-good-state-diary-port-c2-batch2-implementation-2026-11-14.md"
+      },
+      {
+        "taskId": "TD-18",
+        "kind": "reply",
+        "ref": "docs/worklog/pending/archive/relay-response-20261114-1818.md"
+      },
+      {
+        "taskId": "TD-19",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/td19-emergency-port-c2-batch3-task-2026-11-15.md"
+      },
+      {
+        "taskId": "TD-19",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/td19-emergency-port-c2-batch3-implementation-2026-11-15.md"
+      },
+      {
+        "taskId": "TD-19",
+        "kind": "reply",
+        "ref": "docs/worklog/pending/archive/relay-response-20261115-0227.md"
+      },
+      {
+        "taskId": "TD-20",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/td20-home-messages-moodlog-port-c2-batch4-task-2026-11-15.md"
+      },
+      {
+        "taskId": "TD-20",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/td20-home-messages-moodlog-port-c2-batch4-implementation-2026-11-15.md"
+      },
+      {
+        "taskId": "TD-20",
+        "kind": "reply",
+        "ref": "docs/worklog/pending/archive/relay-response-20261115-0346.md"
+      },
+      {
+        "taskId": "TD-21",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/td21-counselor-quote-port-c2-batch5-task-2026-11-15.md"
+      },
+      {
+        "taskId": "TD-21",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/td21-counselor-quote-port-c2-batch5-implementation-2026-11-15.md"
+      },
+      {
+        "taskId": "TD-21",
+        "kind": "reply",
+        "ref": "docs/worklog/pending/archive/relay-response-20261115-1211.md"
+      },
+      {
+        "taskId": "AF-001",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/af001-framework-bootstrap-task-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-001",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af001-framework-bootstrap-implementation-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-001",
+        "kind": "reply",
+        "ref": "docs/worklog/pending/archive/relay-response-af001-20261115.md"
+      },
+      {
+        "taskId": "AF-002",
+        "kind": "taskSheet",
+        "ref": null
+      },
+      {
+        "taskId": "AF-002",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af002-framework-adapter-decoupling-implementation-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-003",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/af003-framework-finalization-task-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-003",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af003-framework-finalization-implementation-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-003",
+        "kind": "reply",
+        "ref": "docs/worklog/pending/archive/relay-response-20261115-1533.md"
+      },
+      {
+        "taskId": "AF-004",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/af004-framework-hardening-task-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-004",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af004-framework-hardening-implementation-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-004",
+        "kind": "reply",
+        "ref": "docs/worklog/pending/archive/relay-response-20261115-1616.md"
+      }
+    ],
+    "groupId": "framework-evolution",
+    "groupIds": ["framework-evolution"],
+    "capabilityDeclarations": [
+      {
+        "agentId": "AGENT-EXEC-001",
+        "role": "executor",
+        "skills": ["implementation", "gate-evidence", "deviation-reporting", "self-test"],
+        "tools": ["workspace-read", "workspace-write", "gate-execution"],
+        "resources": [],
+        "limits": null,
+        "availability": "available"
+      },
+      {
+        "agentId": "AGENT-HUMAN-001",
+        "role": "human",
+        "skills": ["goal-setting", "policy-approval", "arbitration", "release-decision"],
+        "tools": [],
+        "resources": [],
+        "limits": null,
+        "availability": "available"
+      },
+      {
+        "agentId": "AGENT-ORCH-001",
+        "role": "orchestrator",
+        "skills": [
+          "queue-management",
+          "task-decomposition",
+          "claim-management",
+          "acceptance-organization",
+          "index-maintenance",
+          "evidence-review",
+          "improvement-tracking"
+        ],
+        "tools": ["state-persistence", "queue-scheduler", "acceptance-gate", "delivery-packing", "knowledge-capture", "orchestration-cli"],
+        "resources": [],
+        "limits": null,
+        "availability": "available"
+      }
+    ]
   },
   "archivedCount": 21
 }
