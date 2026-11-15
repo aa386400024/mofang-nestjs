@@ -130,7 +130,7 @@
 
 ### 6.1 本单新登记既有债
 
-- **P-DEBT-14**：`tsconfig.json` `types: ["node"]` 且 `include` 含 `test/**/*`，spec 缺 vitest 全局类型（describe / it / expect）；`tsc --noEmit -p tsconfig.json` 报 12295 条 TS2593 / TS2304（全 spec，src 非 spec 0）。CI lint job 的 Typecheck 步骤跑该命令，lint 转绿后会撞上此既有错误（既往因 lint 失败被 skipped 从未暴露）；正式闸门 `tsc -b tsconfig.check.json` 通过、不受影响。处置方向：types 注入 vitest globals，或为 test 段补类型，或把 spec 排除出该 tsconfig；方案另案评估。
+- **P-DEBT-14**：`tsconfig.json` `types: ["node"]` 且 `include` 含 `test/**/*`，spec 缺 vitest 全局类型（describe / it / expect）；本机 `tsc --noEmit -p tsconfig.json` 报 12295 条 TS2593 / TS2304（全 spec，src 非 spec 0）。CI Typecheck 步骤实测（run #43662569044）**7406** 条：TS2304 4829 / TS2593 2556 / TS7006 12 / TS2307 9；错误文件 = spec + bin 脚本，**src 非 spec 业务代码 0**；TS2307 9 条为 bin `import 'dotenv'`（dotenv 幽灵依赖）。lint 转绿后已在 CI 首次暴露；正式闸门 `tsc -b tsconfig.check.json` 通过、不受影响。处置方向：types 注入 vitest globals，或为 test 段补类型，或把 spec 排除出该 tsconfig；bin dotenv 显式声明可同批或另案；方案另案评估。
 - **观察（flake）**：`debug-session-persistence.spec.ts` ⑥ waitFor 在全量 isolate 模式下偶发超时（隔离重跑 26 passed）；文件持久化 + Redis，IO 竞争敏感；观察项，不阻断。
 
 ### 6.2 未纳入本单（范围隔离）
@@ -142,11 +142,16 @@
 
 ---
 
-## 七、Actions 侧待复核点（push 后）
+## 七、Actions 复核结论（run #43662569044，commit `9b08dc1`）
 
-1. ~~`Security Audit` job：high 是否清零~~ —— **已确认 ✅ success**（run #43660807194，commit `0c82a76`，19 high 清零）；Trivy 步骤随 audit 一起通过。
-2. `Lint + Typecheck` job：第二轮 cron 显式声明推送后，复核 lint 步骤是否转绿；**留意 Typecheck 步骤会暴露 P-DEBT-14 的 spec 全局类型错误**（若转红需另案处置）。
-3. 下游 `unit`（2 分片）/ `e2e` / `coverage` / `build` 在 CI **首次真正跑通**（既往全被 `needs: lint-and-typecheck` skipped，自 TD-11 分片改造起从未在 Actions 真正运行过）。
+| Job / 步骤                                     | 结论           | 证据                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Security Audit`                               | **success ✅** | 19 high 保持清零（第一轮 run #43660807194 已确认，第二轮复核保持绿）；Trivy 步骤随 audit 通过。                                                                                                                                                                                                                                            |
+| `Lint + Typecheck` · **Lint** 步骤             | **success ✅** | cron 显式声明生效，`soft-delete.cron.ts` 58:11 `no-unsafe-assignment` / 61:60 `no-unsafe-argument` 两条 type-aware error **消除**。                                                                                                                                                                                                        |
+| `Lint + Typecheck` · **Typecheck** 步骤        | **failure**    | = **P-DEBT-14** 首次在 CI 暴露（见 §6.1）。CI 实测 **7406** 条：TS2304 **4829** / TS2593 **2556** / TS7006 **12** / TS2307 **9**；错误文件 = `test/**/*.spec.ts` + `src/**/*.spec.ts` + `bin/*.ts`，**src 非 spec 业务代码 0 错误**；TS2307 9 条全为 bin 脚本 `import 'dotenv'`（dotenv 同为未显式声明的传递依赖，与 cron 同类幽灵依赖）。 |
+| `unit`（2 分片）/ `e2e` / `coverage` / `build` | **skipped**    | 因 `Lint + Typecheck` job 整体 failure，下游 `needs` 仍未触发；待 P-DEBT-14 另案处置后才能在 CI 首次真正跑通。                                                                                                                                                                                                                             |
+
+**本单目标达成判定**：① lint type-aware error —— **已修复并经 CI Lint 步骤确认转绿**；② audit 19 high —— **已清零并经 CI Security Audit 确认 success**。剩余 Typecheck 红全部归 P-DEBT-14（另案，不在本单范围）。
 
 ---
 
