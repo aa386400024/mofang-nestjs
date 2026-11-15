@@ -87,6 +87,11 @@ export function validateConfig(raw) {
   if (!['file', 'mcp', 'http'].includes(transportType)) {
     errors.push(`transport.type 非法：${String(transportType)}（允许 file / mcp / http）`);
   }
+  const refreshEnabled = raw.web?.refresh?.enabled !== false;
+  const refreshInterval = Number(raw.web?.refresh?.intervalMs ?? 3000);
+  if (!Number.isInteger(refreshInterval) || refreshInterval < 1000) {
+    errors.push(`web.refresh.intervalMs 须为不小于 1000 的整数，实际 ${String(raw.web?.refresh?.intervalMs)}`);
+  }
   if (errors.length > 0) throw new Error(`编排配置非法：${errors.join('；')}`);
   return {
     schemaVersion: raw.schemaVersion ?? '1.0.0',
@@ -97,6 +102,7 @@ export function validateConfig(raw) {
     frozenActions: Array.isArray(raw.frozenActions) ? raw.frozenActions : [],
     store: { backend },
     transport: { type: transportType },
+    web: { refresh: { enabled: refreshEnabled === true, intervalMs: refreshInterval } },
     notes: raw.notes ?? {},
   };
 }

@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-15T15:21:55.029Z",
+  "generatedAt": "2026-11-15T16:17:30.334Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -306,6 +306,38 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-003",
+      "recordedAt": "2026-11-15T16:06:25.786Z",
+      "actorRef": "orchestrator",
+      "correlationId": "run-once",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "queue-scheduler",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-002",
+      "recordedAt": "2026-11-15T16:06:21.674Z",
+      "actorRef": "orchestrator",
+      "correlationId": "pack",
+      "toolId": "TOOL-DELIVERY-PACK",
+      "category": "delivery-packing",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/delivery-packs/"
+      ]
+    },
+    {
       "auditId": "AUD-001",
       "recordedAt": "2026-11-15T15:09:17.483Z",
       "actorRef": "orchestrator",
@@ -323,16 +355,18 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "auditSummary": {
-    "total": 1,
+    "total": 3,
     "byResult": {
-      "allowed": 1,
+      "allowed": 3,
       "denied": 0
     },
     "byTool": {
-      "TOOL-STATE-STORE": 1
+      "TOOL-STATE-STORE": 1,
+      "TOOL-DELIVERY-PACK": 1,
+      "TOOL-QUEUE-SCHEDULER": 1
     },
     "byActor": {
-      "orchestrator": 1
+      "orchestrator": 3
     }
   },
   "protocolView": {
@@ -1366,6 +1400,10 @@ window.ORCH_SNAPSHOT = {
         "availability": "available"
       }
     ]
+  },
+  "webRefresh": {
+    "enabled": true,
+    "intervalMs": 3000
   },
   "archivedCount": 21
 };

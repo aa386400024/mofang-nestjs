@@ -295,18 +295,54 @@
     el('tool-contracts').innerHTML = '';
   }
 
-  renderMode(snapshot);
-  if (snapshot) {
-    renderOverview(snapshot);
-    renderTasks(snapshot);
-    renderDeadLetters(snapshot);
-    renderRework(snapshot);
-    renderPending(snapshot);
-    renderImprovements(snapshot);
-    renderDeliveryPacks(snapshot);
-    renderAgentCards(snapshot);
-    renderToolContracts(snapshot);
-  } else {
-    renderEmpty();
+  function renderAll(snap) {
+    renderMode(snap);
+    if (snap) {
+      renderOverview(snap);
+      renderTasks(snap);
+      renderDeadLetters(snap);
+      renderRework(snap);
+      renderPending(snap);
+      renderImprovements(snap);
+      renderDeliveryPacks(snap);
+      renderAgentCards(snap);
+      renderToolContracts(snap);
+    } else {
+      renderEmpty();
+    }
   }
+
+  /**
+   * 定时重载 data.js，快照 generatedAt 变化后重渲染。
+   * 配置来自快照 webRefresh（CLI 按 config.json 投影）；读取失败保留当前视图，不抛错。
+   */
+  function startAutoRefresh(initial) {
+    const cfg = initial && initial.webRefresh;
+    const enabled = cfg ? cfg.enabled !== false : true;
+    if (!enabled) return;
+    const intervalMs = Math.max(1000, Number(cfg && cfg.intervalMs) || 3000);
+    let lastGeneratedAt = initial ? initial.generatedAt : null;
+
+    setInterval(() => {
+      const script = document.createElement('script');
+      script.src = `data.js?t=${Date.now()}`;
+      script.onload = () => {
+        try {
+          const next = window.ORCH_SNAPSHOT || null;
+          if (next && next.generatedAt !== lastGeneratedAt) {
+            lastGeneratedAt = next.generatedAt;
+            renderAll(next);
+          }
+        } catch (err) {
+          console.warn('[orchestration] 快照自动刷新失败：', err);
+        }
+        script.remove();
+      };
+      script.onerror = () => script.remove();
+      document.head.appendChild(script);
+    }, intervalMs);
+  }
+
+  renderAll(snapshot);
+  startAutoRefresh(snapshot);
 })();

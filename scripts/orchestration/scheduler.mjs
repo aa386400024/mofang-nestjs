@@ -243,6 +243,7 @@ export function buildSnapshot(index, runtimeState, config, improvementSummary) {
     toolAudits: listAudits(auditLog, { limit: 15 }),
     auditSummary: summarizeAudits(auditLog),
     protocolView: buildProtocolView({ tasks: index.tasks, archivedTasks: index.archivedTasks, agentCards }),
+    webRefresh: { enabled: config.web.refresh.enabled, intervalMs: config.web.refresh.intervalMs },
     archivedCount: index.archivedTasks.length,
   };
 }

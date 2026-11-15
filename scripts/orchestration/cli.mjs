@@ -42,6 +42,23 @@ function writeSnapshotArtifacts(snapshot) {
   });
 }
 
+/**
+ * 重建快照并双写 JSON + data.js，供变更类命令尾部自动刷新看板数据。
+ * 索引缺失等读取异常时跳过刷新并告警，不阻断台账 / 交付包等已落盘产物。
+ * @returns {object|null} 快照对象；跳过刷新时为 null。
+ */
+function refreshSnapshotArtifacts() {
+  try {
+    const config = loadConfig();
+    const snapshot = buildSnapshot(loadIndex(), loadRuntimeState(), config, summarizeLog(loadImprovementLog()));
+    writeSnapshotArtifacts(snapshot);
+    return snapshot;
+  } catch (err) {
+    console.warn(`[snapshot] 跳过快照刷新：${err.message}`);
+    return null;
+  }
+}
+
 /** 经注册表登记一次工具调用审计并落盘；返回注册表调用结果。 */
 function auditRegistryCall(toolId, ctx) {
   const registry = loadRegistry();
@@ -139,15 +156,15 @@ function cmdProtocol() {
 
 function cmdSnapshot() {
   auditRegistryCall('TOOL-STATE-STORE', { actor: 'orchestrator', correlationId: 'snapshot' });
-  const snapshot = buildSnapshot(loadIndex(), loadRuntimeState(), loadConfig(), summarizeLog(loadImprovementLog()));
-  writeSnapshotArtifacts(snapshot);
+  const snapshot = refreshSnapshotArtifacts();
   console.log(`快照已写入：${PATHS.snapshot}`);
-  printSnapshot(snapshot);
+  if (snapshot) printSnapshot(snapshot);
 }
 
 function cmdPack() {
   const { pack, jsonPath, mdPath } = generateDeliveryPack({ write: true });
   auditRegistryCall('TOOL-DELIVERY-PACK', { actor: 'orchestrator', correlationId: 'pack' });
+  refreshSnapshotArtifacts();
   console.log(`交付包 JSON：${jsonPath}`);
   console.log(`交付包 MD ：${mdPath}`);
   console.log(
@@ -249,10 +266,11 @@ function cmdImprovements(args) {
   }
 
   if (args.includes('--extract')) {
-    const snapshot = buildSnapshot(loadIndex(), loadRuntimeState(), loadConfig());
+    const snapshot = buildSnapshot(loadIndex(), loadRuntimeState(), loadConfig(), summarizeLog(log));
     const drafts = extractFromSnapshot(snapshot, log.improvements);
     const added = drafts.map((draft) => addCandidate(log, draft));
     if (added.length > 0) saveImprovementLog(log);
+    refreshSnapshotArtifacts();
     console.log(`从快照抽取候选 ${added.length} 条${added.length === 0 ? '（无新增，均已登记或队列为空）' : ''}。`);
     for (const e of added) console.log(`  + ${e.improvementId} [${e.status}] ${e.source}/${e.type}｜${e.title}`);
     console.log(formatSummary(summarizeLog(log)));
@@ -273,6 +291,7 @@ function cmdImprovements(args) {
     };
     const entry = addCandidate(log, raw);
     saveImprovementLog(log);
+    refreshSnapshotArtifacts();
     console.log(`已登记候选：${entry.improvementId}｜${entry.title}`);
     return;
   }
@@ -287,6 +306,7 @@ function cmdImprovements(args) {
       by: argValue(args, '--by') ?? undefined,
     });
     saveImprovementLog(log);
+    refreshSnapshotArtifacts();
     console.log(`${entry.improvementId} → ${entry.status}｜${entry.title}`);
     return;
   }

@@ -53,6 +53,22 @@ describe('validateConfig 配置结构校验', () => {
     expect(validateConfig({}).store.backend).toBe('json');
     expect(() => validateConfig({ store: { backend: 'mysql' } })).toThrow(/backend/);
   });
+
+  it('看板轮询缺省开启、间隔 3000；显式关闭保留 false', () => {
+    const def = validateConfig({});
+    expect(def.web.refresh.enabled).toBe(true);
+    expect(def.web.refresh.intervalMs).toBe(3000);
+    expect(validateConfig({ web: { refresh: { enabled: false, intervalMs: 5000 } } }).web.refresh).toEqual({
+      enabled: false,
+      intervalMs: 5000,
+    });
+  });
+
+  it('轮询间隔非法（非整数 / 小于 1000）时抛错', () => {
+    expect(() => validateConfig({ web: { refresh: { intervalMs: 0 } } })).toThrow(/intervalMs/);
+    expect(() => validateConfig({ web: { refresh: { intervalMs: 800 } } })).toThrow(/intervalMs/);
+    expect(() => validateConfig({ web: { refresh: { intervalMs: 'fast' } } })).toThrow(/intervalMs/);
+  });
 });
 
 describe('canTransition 状态迁移合法性', () => {
@@ -127,6 +143,13 @@ describe('buildSnapshot 快照计数与人工复核回填', () => {
     expect(Array.isArray(snapshot.toolContracts)).toBe(true);
     if (snapshot.agentCards.length > 0) expect(snapshot.agentCards[0]).toHaveProperty('role');
     if (snapshot.toolContracts.length > 0) expect(snapshot.toolContracts[0]).toHaveProperty('toolId');
+  });
+
+  it('快照投影看板轮询配置 webRefresh', () => {
+    const snapshot = buildSnapshot(index, runtimeState, config);
+    expect(snapshot.webRefresh).toEqual({ enabled: true, intervalMs: 3000 });
+    const off = validateConfig({ web: { refresh: { enabled: false, intervalMs: 5000 } } });
+    expect(buildSnapshot(index, runtimeState, off).webRefresh).toEqual({ enabled: false, intervalMs: 5000 });
   });
 });
 

@@ -1,6 +1,6 @@
 /**
  * 在系统默认浏览器打开编排看板（web/orchestration/index.html）。
- * 纯静态只读视图；页面数据来自 data.js，刷新队列 / 台账请先跑 `pnpm orchestration:snapshot`。
+ * 纯静态只读视图；数据来自 data.js（CLI 自动刷新），页面按 config.web.refresh 间隔轮询重载。
  */
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -25,4 +25,4 @@ if (process.platform === 'win32') {
 }
 
 console.log(`已在默认浏览器打开编排看板：${indexHtml}`);
-console.log('提示：页面数据来自 data.js；刷新队列 / 台账请先跑 `pnpm orchestration:snapshot`。');
+console.log('提示：run / watch / pack / 台账变更后 CLI 自动刷新 data.js；页面按 web.refresh 间隔轮询重载，无需手动 F5。');
