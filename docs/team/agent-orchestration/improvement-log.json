@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-15T14:08:05.686Z",
+  "updatedAt": "2026-11-15T16:23:32.444Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -91,6 +91,33 @@
       "history": [
         {
           "at": "2026-11-15T13:43:09.887Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-004",
+      "status": "candidate",
+      "title": "任务交付归档后台账状态未自动回填，快照仍显示 backlog / 未验收",
+      "source": "implementation",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": null,
+      "evidence": [
+        "task-state-index.json: AF-005~008 交付后仍在 tasks 且 status=backlog",
+        "taskSheet 指针指向已归档的 pending 路径（断链）"
+      ],
+      "impact": "任务实际已验收归档，但看板活跃列表仍显示待立项/未验收；台账状态与交付记录脱节，需人工回填，闭环未自动化",
+      "suggestion": "交付包或验收落地后由编排链路自动把任务单元迁移到 archivedTasks 并写 status=completed 与工件指针；或 CLI 提供归档命令在交付记录落盘后回填索引",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-15T16:23:32.442Z",
+      "updatedAt": "2026-11-15T16:23:32.442Z",
+      "history": [
+        {
+          "at": "2026-11-15T16:23:32.442Z",
           "from": null,
           "to": "candidate",
           "by": "orchestrator-cli",

@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-15T16:17:30.334Z",
+  "generatedAt": "2026-11-15T16:23:32.459Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -14,94 +14,24 @@ window.ORCH_SNAPSHOT = {
     "canceled": 0,
     "rejected": 0,
     "input-required": 0,
-    "deadLetter": 0,
-    "backlog": 4
+    "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-005",
-      "contextId": "framework-evolution",
-      "type": "implementation",
-      "title": "框架 L2 演进 —— watcher 与状态机自动化",
-      "status": "backlog",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af005-framework-evolution-watcher-state-machine-2026-11-15.md",
-        "deliveryRecord": null
-      },
-      "manualReview": []
-    },
-    {
-      "taskId": "AF-006",
-      "contextId": "framework-evolution",
-      "type": "implementation",
-      "title": "框架机读校验工具固化",
-      "status": "backlog",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af006-framework-evolution-validation-scripts-2026-11-15.md",
-        "deliveryRecord": null
-      },
-      "manualReview": []
-    },
-    {
-      "taskId": "AF-007",
-      "contextId": "framework-evolution",
-      "type": "implementation",
-      "title": "框架 L1 工具标准化 —— 标准工具原语、IO 契约、权限收口与调用审计",
-      "status": "backlog",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af007-framework-evolution-tool-standardization-2026-11-15.md",
-        "deliveryRecord": null
-      },
-      "manualReview": []
-    },
-    {
-      "taskId": "AF-008",
-      "contextId": "framework-evolution",
-      "type": "implementation",
-      "title": "框架 L3 代理协议化映射 —— 能力声明与任务/消息/工件标准映射（远期概念位）",
-      "status": "backlog",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af008-framework-evolution-agent-protocol-mapping-2026-11-15.md",
-        "deliveryRecord": null
-      },
-      "manualReview": []
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 3,
-    "activeCount": 3,
+    "total": 4,
+    "activeCount": 4,
     "byStatus": {
-      "candidate": 1,
+      "candidate": 2,
       "queued": 1,
       "accepted": 1,
       "done": 0,
       "wontfix": 0
     },
     "byType": {
-      "gap": 1,
+      "gap": 2,
       "guardrail": 0,
       "tool": 0,
       "standard": 0,
@@ -109,7 +39,7 @@ window.ORCH_SNAPSHOT = {
       "tech-debt": 2
     },
     "bySource": {
-      "implementation": 1,
+      "implementation": 2,
       "acceptance": 0,
       "rework": 0,
       "dead-letter": 0,
@@ -174,6 +104,28 @@ window.ORCH_SNAPSHOT = {
         "historyCount": 1,
         "lastTransition": {
           "at": "2026-11-15T13:43:09.887Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-004",
+        "title": "任务交付归档后台账状态未自动回填，快照仍显示 backlog / 未验收",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": null,
+        "evidence": [
+          "task-state-index.json: AF-005~008 交付后仍在 tasks 且 status=backlog",
+          "taskSheet 指针指向已归档的 pending 路径（断链）"
+        ],
+        "impact": "任务实际已验收归档，但看板活跃列表仍显示待立项/未验收；台账状态与交付记录脱节，需人工回填，闭环未自动化",
+        "suggestion": "交付包或验收落地后由编排链路自动把任务单元迁移到 archivedTasks 并写 status=completed 与工件指针；或 CLI 提供归档命令在交付记录落盘后回填索引",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T16:23:32.442Z",
           "by": "orchestrator-cli",
           "to": "candidate",
           "note": "登记候选改进"
@@ -371,102 +323,6 @@ window.ORCH_SNAPSHOT = {
   },
   "protocolView": {
     "tasks": [
-      {
-        "taskId": "AF-005",
-        "title": "框架 L2 演进 —— watcher 与状态机自动化",
-        "type": "implementation",
-        "status": {
-          "framework": "backlog",
-          "protocol": "DRAFT",
-          "stage": "prelude"
-        },
-        "groupId": "framework-evolution",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af005-framework-evolution-watcher-state-machine-2026-11-15.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": null
-          }
-        ]
-      },
-      {
-        "taskId": "AF-006",
-        "title": "框架机读校验工具固化",
-        "type": "implementation",
-        "status": {
-          "framework": "backlog",
-          "protocol": "DRAFT",
-          "stage": "prelude"
-        },
-        "groupId": "framework-evolution",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af006-framework-evolution-validation-scripts-2026-11-15.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": null
-          }
-        ]
-      },
-      {
-        "taskId": "AF-007",
-        "title": "框架 L1 工具标准化 —— 标准工具原语、IO 契约、权限收口与调用审计",
-        "type": "implementation",
-        "status": {
-          "framework": "backlog",
-          "protocol": "DRAFT",
-          "stage": "prelude"
-        },
-        "groupId": "framework-evolution",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af007-framework-evolution-tool-standardization-2026-11-15.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": null
-          }
-        ]
-      },
-      {
-        "taskId": "AF-008",
-        "title": "框架 L3 代理协议化映射 —— 能力声明与任务/消息/工件标准映射（远期概念位）",
-        "type": "implementation",
-        "status": {
-          "framework": "backlog",
-          "protocol": "DRAFT",
-          "stage": "prelude"
-        },
-        "groupId": "framework-evolution",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af008-framework-evolution-agent-protocol-mapping-2026-11-15.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": null
-          }
-        ]
-      },
       {
         "taskId": "TD-5",
         "title": null,
@@ -1027,6 +883,106 @@ window.ORCH_SNAPSHOT = {
           }
         ],
         "archived": true
+      },
+      {
+        "taskId": "AF-005",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af005-framework-evolution-watcher-state-machine-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "AF-006",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af006-framework-evolution-validation-scripts-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "AF-007",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af007-framework-evolution-tool-standardization-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "AF-008",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af008-framework-evolution-agent-protocol-mapping-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+          }
+        ],
+        "archived": true
       }
     ],
     "statusMap": {
@@ -1042,46 +998,6 @@ window.ORCH_SNAPSHOT = {
       "rejected": "REJECTED"
     },
     "artifacts": [
-      {
-        "taskId": "AF-005",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af005-framework-evolution-watcher-state-machine-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-005",
-        "kind": "deliveryRecord",
-        "ref": null
-      },
-      {
-        "taskId": "AF-006",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af006-framework-evolution-validation-scripts-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-006",
-        "kind": "deliveryRecord",
-        "ref": null
-      },
-      {
-        "taskId": "AF-007",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af007-framework-evolution-tool-standardization-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-007",
-        "kind": "deliveryRecord",
-        "ref": null
-      },
-      {
-        "taskId": "AF-008",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af008-framework-evolution-agent-protocol-mapping-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-008",
-        "kind": "deliveryRecord",
-        "ref": null
-      },
       {
         "taskId": "TD-5",
         "kind": "taskSheet",
@@ -1336,12 +1252,50 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-004",
         "kind": "reply",
         "ref": "docs/worklog/pending/archive/relay-response-20261115-1616.md"
+      },
+      {
+        "taskId": "AF-005",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/af005-framework-evolution-watcher-state-machine-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-005",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-006",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/af006-framework-evolution-validation-scripts-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-006",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-007",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/af007-framework-evolution-tool-standardization-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-007",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-008",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/af008-framework-evolution-agent-protocol-mapping-2026-11-15.md"
+      },
+      {
+        "taskId": "AF-008",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
       }
     ],
-    "groupId": "framework-evolution",
-    "groupIds": [
-      "framework-evolution"
-    ],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -1405,5 +1359,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 21
+  "archivedCount": 25
 };
