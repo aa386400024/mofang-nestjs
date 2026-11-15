@@ -62,6 +62,7 @@ import { runAcceptance } from '../acceptance-runner.mjs';
 import {
   addCandidate,
   canTransitionImprovement,
+  extractFromReceiptDoc,
   extractFromSnapshot,
   listOpen,
   summarizeLog,
@@ -396,6 +397,65 @@ describe('改进台账快照抽取与汇总', () => {
     expect(active.evidence).toEqual([]);
     expect(active.lastTransition.to).toBe('candidate');
     expect(active.historyCount).toBe(1);
+  });
+});
+
+describe('改进台账回执正文抽取', () => {
+  const fixture = [
+    '---',
+    'taskId: AF-017',
+    '---',
+    '',
+    '## 遗留',
+    '',
+    '**backlogItems**',
+    '',
+    '- 通道重试规则未锚定框架 §4',
+    '- 12 条差异需在两仓文档修订时消化',
+    '',
+    '**openQuestions**',
+    '',
+    '1. 通道失败的权威终态出口以哪侧为准？',
+    '| 列 A | 列 B |',
+    '| 表格行 | 不应抽取 |',
+    '2. 熔断阈值在通道侧复用通用熔断，还是独立计数？',
+    '',
+    '**manualReviewList**',
+    '',
+    '- 抽查备忘 §3 五个子节行号锚点',
+  ].join('\n');
+
+  it('抽取 backlog 与 openQuestion 列表项，跳过 manualReview 与表格行', () => {
+    const drafts = extractFromReceiptDoc(fixture, [], { docRef: 'relay-response-af017.md' });
+    expect(drafts).toHaveLength(4);
+    expect(drafts[0].title).toBe('通道重试规则未锚定框架 §4');
+    expect(drafts[0].relatedTaskId).toBe('AF-017');
+    expect(drafts[0].evidence).toEqual(['receipt:relay-response-af017.md', 'backlogItem']);
+    expect(drafts[2].evidence).toEqual(['receipt:relay-response-af017.md', 'openQuestion']);
+    expect(drafts.some((d) => d.title.includes('抽查备忘'))).toBe(false);
+    expect(drafts.some((d) => d.title.includes('表格行'))).toBe(false);
+    expect(drafts.every((d) => d.source === 'acceptance' && d.type === 'gap' && d.layer === 'adapter')).toBe(true);
+  });
+
+  it('existing 命中标题跳过，同通道重复标题去重', () => {
+    const existing = [{ title: '通道重试规则未锚定框架 §4', source: 'acceptance', relatedTaskId: 'AF-017' }];
+    const drafts = extractFromReceiptDoc(fixture, existing, { docRef: 'r.md' });
+    expect(drafts).toHaveLength(3);
+    expect(drafts.some((d) => d.title === '通道重试规则未锚定框架 §4')).toBe(false);
+  });
+
+  it('空文本 / 非字符串返回空数组', () => {
+    expect(extractFromReceiptDoc('', [])).toEqual([]);
+    expect(extractFromReceiptDoc(null, [])).toEqual([]);
+    expect(extractFromReceiptDoc(undefined, [])).toEqual([]);
+  });
+
+  it('正文“任务标识”行解析 taskId；无标识返回 null', () => {
+    const inline = '# DR-001 回执\n\n> 任务标识：`DR-001`\n\n**openQuestions**\n\n1. 待拍板问题？\n';
+    const drafts = extractFromReceiptDoc(inline, []);
+    expect(drafts[0].relatedTaskId).toBe('DR-001');
+    const noId = '**openQuestions**\n\n1. 待拍板问题？\n';
+    expect(extractFromReceiptDoc(noId, [])[0].relatedTaskId).toBeNull();
   });
 });
 

@@ -27,6 +27,7 @@ export const PATHS = {
   auditLog: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'tool-audit-log.json'),
   sqliteDb: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'orchestration-store.sqlite'),
   transportDir: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'transport'),
+  receiptArchiveDir: join(REPO_ROOT, 'docs', 'worklog', 'pending', 'archive'),
   webDataJs: join(REPO_ROOT, 'web', 'orchestration', 'data.js'),
   deliveryPackDir: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'delivery-packs'),
   agentCardsDir: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'agent-cards'),

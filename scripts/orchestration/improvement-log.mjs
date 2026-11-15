@@ -267,6 +267,97 @@ export function extractFromSnapshot(snapshot, existing = []) {
   return candidates;
 }
 
+/** taskId 标识模式（与交接契约 taskId 模式一致；局部常量保持 adapter 内聚）。 */
+const RECEIPT_TASK_ID_PATTERN = /^[A-Z0-9]+-[0-9]+$/;
+
+/** 回执遗留组标签 → 台账证据标签（manualReviewList 归快照通道，正文通道不抽取以免双源重复）。 */
+const RECEIPT_SECTION_TAG = {
+  backlogItems: 'backlogItem',
+  openQuestions: 'openQuestion',
+};
+
+/** 从回执正文解析关联 taskId：优先 frontmatter `taskId:`，其次正文 `任务标识：` 行；取不到返回 null。 */
+function parseReceiptTaskId(markdown) {
+  const text = String(markdown ?? '');
+  const frontmatter = /(?:^|\n)taskId:\s*([A-Z0-9]+-[0-9]+)/.exec(text);
+  if (frontmatter) return frontmatter[1];
+  const inline = /任务标识[：:]\s*`?([A-Z0-9]+-[0-9]+)`?/.exec(text);
+  if (inline && RECEIPT_TASK_ID_PATTERN.test(inline[1])) return inline[1];
+  return null;
+}
+
+/** 列表项文本清洗：去行内反引号、链接保留文本、折叠空白。 */
+function cleanReceiptItem(raw) {
+  return String(raw ?? '')
+    .replace(/`/g, '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * 从回执交接件正文（markdown）抽取候选改进（双通道之一；只产 candidate，不自动立项）。
+ *
+ * 解析遗留组 `**backlogItems**` / `**openQuestions**` 下的列表项；`manualReviewList`
+ * 由快照通道抽取，本通道不重复采集。表格行、空行与段内叙述句不入台账。
+ * 与 extractFromSnapshot 结果按标题键 + 签名去重，existing 命中跳过。
+ *
+ * @param {string} markdown 回执正文
+ * @param {object[]} existing 既有台账条目（去重）
+ * @param {{docRef?: string}} opts docRef 为回执文件名（写入 evidence 指针）
+ * @returns {object[]} 待登记草稿数组
+ */
+export function extractFromReceiptDoc(markdown, existing = [], opts = {}) {
+  const candidates = [];
+  const seenTitle = new Set(existing.map((e) => titleKey(e.title)));
+  const seenSig = new Set(existing.map((e) => signature(e)));
+  const docRef = opts.docRef ? String(opts.docRef) : null;
+  const relatedTaskId = parseReceiptTaskId(markdown);
+
+  const listRe = /^\s*(?:[-*]|\d+[.)])\s+(.*)$/;
+  const headingRe = /^\s#{1,6}\s/;
+  const labelRe = /^\s*\*\*(backlogItems|openQuestions|manualReviewList)\*\*\s*[:：]?\s*$/;
+
+  let section = null;
+  for (const line of String(markdown ?? '').split(/\r?\n/)) {
+    const label = labelRe.exec(line);
+    if (label) {
+      section = label[1];
+      continue;
+    }
+    if (headingRe.test(line)) {
+      section = null;
+      continue;
+    }
+    if (!section || section === 'manualReviewList') continue;
+    if (line.includes('|')) continue; // 表格行
+    const item = listRe.exec(line);
+    if (!item) continue;
+
+    const title = cleanReceiptItem(item[1]);
+    if (!title) continue;
+    const evidenceTag = RECEIPT_SECTION_TAG[section] ?? 'backlogItem';
+    const draft = {
+      title,
+      source: 'acceptance',
+      type: 'gap',
+      layer: 'adapter',
+      relatedTaskId,
+      evidence: [docRef ? `receipt:${docRef}` : 'receipt', evidenceTag],
+      impact: null,
+      suggestion: null,
+      createdBy: 'receipt-extract',
+    };
+    if (seenTitle.has(titleKey(draft.title))) continue;
+    if (seenSig.has(signature(draft))) continue;
+    seenTitle.add(titleKey(draft.title));
+    seenSig.add(signature(draft));
+    candidates.push(draft);
+  }
+
+  return candidates;
+}
+
 /**
  * 台账汇总计数 + 只读条目投影（供快照 / CLI / 交付包 / 网页视图读取）。
  * items 只保留展示所需的登记字段与末次流转记录，不复制会话正文；明细口径与汇总同源。

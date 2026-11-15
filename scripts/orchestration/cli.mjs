@@ -27,6 +27,7 @@ import { createWatcher } from './file-watcher.mjs';
 import { generateDeliveryPack } from './delivery-pack.mjs';
 import {
   addCandidate,
+  extractFromReceiptDoc,
   extractFromSnapshot,
   listOpen,
   loadImprovementLog,
@@ -500,10 +501,24 @@ function cmdImprovements(args) {
   if (args.includes('--extract')) {
     const snapshot = buildSnapshot(loadIndex(), loadRuntimeState(), loadConfig(), summarizeLog(log));
     const drafts = extractFromSnapshot(snapshot, log.improvements);
-    const added = drafts.map((draft) => addCandidate(log, draft));
+    // IM-001：回执正文解析通道；existing 并入快照草稿，避免跨通道重复登记。
+    const receiptDrafts = [];
+    if (existsSync(PATHS.receiptArchiveDir)) {
+      for (const fileName of readdirSync(PATHS.receiptArchiveDir)) {
+        if (!/^relay-response-.*\.md$/.test(fileName)) continue;
+        let markdown = '';
+        try {
+          markdown = readFileSync(join(PATHS.receiptArchiveDir, fileName), 'utf8');
+        } catch {
+          continue;
+        }
+        receiptDrafts.push(...extractFromReceiptDoc(markdown, [...log.improvements, ...drafts], { docRef: fileName }));
+      }
+    }
+    const added = [...drafts, ...receiptDrafts].map((draft) => addCandidate(log, draft));
     if (added.length > 0) saveImprovementLog(log);
     refreshSnapshotArtifacts();
-    console.log(`从快照抽取候选 ${added.length} 条${added.length === 0 ? '（无新增，均已登记或队列为空）' : ''}。`);
+    console.log(`从快照与回执正文抽取候选 ${added.length} 条${added.length === 0 ? '（无新增，均已登记或队列为空）' : ''}。`);
     for (const e of added) console.log(`  + ${e.improvementId} [${e.status}] ${e.source}/${e.type}｜${e.title}`);
     console.log(formatSummary(summarizeLog(log)));
     return;
