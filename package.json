@@ -58,6 +58,7 @@
     "start:debug": "nest start --debug --watch",
     "start:repl": "nest start --entryFile repl",
     "test": "vitest run --exclude '**/e2e/**/*.ts'",
+    "test:coverage": "vitest run --coverage --exclude '**/e2e/**/*.ts'",
     "test:fast": "vitest run --config ./vitest.fast.config.mts --exclude '**/e2e/**/*.ts'",
     "test:changed": "vitest run --changed",
     "test:related": "vitest related",

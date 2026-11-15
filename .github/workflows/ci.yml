@@ -214,6 +214,11 @@ jobs:
       EMAIL_ENABLED: 'false'
       SMS_ENABLED: 'false'
       METRICS_ENABLED: 'false'
+      # P-DEBT-17: LlmService 构造期 configMust 硬校验三 env; e2e 装配真实 AppModule 触发构造.
+      #   stub 仅通过非空校验, 不发起网络调用 (e2e 用例均 skip 或不触达 LLM 调用); 生产 env 由部署环境注入.
+      MINIMAX_BASE_URL: http://127.0.0.1:1
+      MINIMAX_API_KEY: stub-test-key
+      MINIMAX_LLM_MODEL: stub-model
     steps:
       - uses: actions/checkout@v4
 
@@ -338,9 +343,10 @@ jobs:
         run: pnpm migration:run
 
       - name: Unit tests with coverage
-        # ⚠️ 与 unit job 同一个透传约束: 必须 `pnpm run test -- --coverage`.
+        # 独立 test:coverage 脚本内嵌 --coverage, 不经 `pnpm run test -- <flag>` 透传,
+        #    避免 --coverage 落在字面 `--` 之后被 vitest 当位置参数 (spec filter) 而非采集 flag.
         #    本地 pnpm test 脚本不带 --coverage (日常闸门不插桩), 只有 CI 这条路径开采集.
-        run: pnpm run test -- --coverage
+        run: pnpm run test:coverage
 
       - name: Upload coverage report (lcov)
         uses: actions/upload-artifact@v4
