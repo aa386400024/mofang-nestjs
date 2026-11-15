@@ -34,6 +34,15 @@ import {
   summarizeLog,
   transitionImprovement,
 } from './improvement-log.mjs';
+import {
+  buildBranchName,
+  classifyBranches,
+  planCleanup,
+  verifyBaseline,
+  branchAgeDays,
+  createGitPort,
+  DEFAULT_STALE_DAYS,
+} from './branch-workflow.mjs';
 
 /** 快照双写：JSON（机读 / 存档）+ data.js（静态网页在 file:// 下读取，规避本地 fetch 限制）。 */
 function writeSnapshotArtifacts(snapshot) {
@@ -238,6 +247,122 @@ function cmdArchive(args) {
   console.log(`已归档：${entry.taskId} [${entry.status}]${note ? `｜${note}` : ''}`);
 }
 
+/**
+ * AF-012 任务分支流程：list（巡检分类）/ plan（基线与清理计划干跑）/ create / merge / cleanup。
+ * 默认干跑校验；仅显式 --apply 调用变更型 git 端口。脚本不自动 commit / push，不触碰 master。
+ */
+function cmdBranch(args) {
+  const action = args[0] ?? 'list';
+  const apply = args.includes('--apply');
+  const git = createGitPort();
+  const nowIso = new Date().toISOString();
+
+  function collectBranches() {
+    const { local, remote } = git.listBranches();
+    return [...new Set(local)].map((name) => {
+      const remoteRef = remote.find((r) => r.endsWith(`/${name}`)) ?? null;
+      const date = git.ageFor(name);
+      return {
+        name,
+        remote: remoteRef ? remoteRef.split('/')[0] : null,
+        merged: git.isMerged(name),
+        ageDays: date ? branchAgeDays(`${date}T00:00:00.000Z`, nowIso) : null,
+      };
+    });
+  }
+
+  if (action === 'list') {
+    const staleDays = Number(argValue(args, '--stale-days')) || DEFAULT_STALE_DAYS;
+    const { merged, unmerged, stale } = classifyBranches(collectBranches(), { staleDays });
+    console.log(`=== 分支巡检（已合并 ${merged.length} / 未合并 ${unmerged.length} / 超期 ${stale.length}）===`);
+    for (const b of merged) console.log(`  [已合并] ${b.name}${b.remote ? `（远端 ${b.remote}）` : ''}`);
+    for (const b of stale) console.log(`  [超期·未合并] ${b.name}（${b.ageDays} 天，保留不删）`);
+    for (const b of unmerged) console.log(`  [未合并] ${b.name}${b.ageDays !== null ? `（${b.ageDays} 天）` : ''}`);
+    return;
+  }
+
+  const taskId = argValue(args, '--taskId');
+  if (!taskId) {
+    console.error('用法：cli.mjs branch <plan|create|merge|cleanup> --taskId <id> [--slug <slug>] [--apply] [--stale-days n]');
+    process.exit(2);
+  }
+  const index = loadIndex();
+  const task = index.tasks.find((t) => t.taskId === taskId) ?? index.archivedTasks.find((t) => t.taskId === taskId);
+  if (!task) throw new Error(`任务不在索引中：${taskId}`);
+
+  const slug = argValue(args, '--slug') ?? taskId.toLowerCase();
+  const name = buildBranchName(taskId, slug);
+  if (!name.valid) throw new Error(`分支名校验失败：${name.errors.join('；')}`);
+  const branchName = name.branchName;
+
+  if (action === 'plan') {
+    const baseline = verifyBaseline(task, git.headRef());
+    const plan = planCleanup(collectBranches());
+    console.log(`任务分支：${branchName}`);
+    console.log(`基线核对：${baseline.reason ?? '基线一致'}`);
+    console.log(`清理计划：待删 ${plan.toDelete.length}，保留未合并 ${plan.keptUnmerged.length}，超期 ${plan.stale.length}`);
+    return;
+  }
+
+  if (action === 'create') {
+    if (apply) {
+      if (git.branchExists(branchName)) throw new Error(`分支已存在：${branchName}`);
+      git.createBranch(branchName, 'integrate');
+      auditRegistryCall('TOOL-QUEUE-SCHEDULER', {
+        actor: 'orchestrator',
+        correlationId: `branch:create:${taskId}`,
+        resources: [branchName],
+      });
+      console.log(`已建分支：${branchName}（自 integrate）`);
+    } else {
+      console.log(`[干跑] 将自 integrate 切出 ${branchName}（--apply 执行）`);
+    }
+    return;
+  }
+
+  if (action === 'merge') {
+    const baseline = verifyBaseline(task, git.headRef());
+    if (baseline.matches === false) throw new Error(baseline.reason);
+    if (!git.worktreeClean()) throw new Error('工作区存在未归属改动，拒绝合并（先清理或归组）');
+    if (apply) {
+      git.squashMerge(branchName);
+      auditRegistryCall('TOOL-QUEUE-SCHEDULER', {
+        actor: 'orchestrator',
+        correlationId: `branch:merge:${taskId}`,
+        resources: [branchName],
+      });
+      console.log(`squash 暂存完成：${branchName}；提交归编排者闸门，脚本不自动 commit`);
+    } else {
+      console.log(`[干跑] 将 squash 合并 ${branchName} → integrate（基线：${baseline.reason ?? '一致'}；--apply 执行）`);
+    }
+    return;
+  }
+
+  if (action === 'cleanup') {
+    const plan = planCleanup(collectBranches());
+    if (apply) {
+      for (const item of plan.toDelete) {
+        if (item.ref === 'local') git.deleteLocal(item.name);
+        else git.deleteRemote(item.name, item.ref.slice('remote:'.length));
+      }
+      auditRegistryCall('TOOL-QUEUE-SCHEDULER', {
+        actor: 'orchestrator',
+        correlationId: `branch:cleanup:${taskId}`,
+        resources: plan.toDelete.map((d) => d.name),
+      });
+      console.log(`已清理 ${plan.toDelete.length} 项分支引用；保留未合并 ${plan.keptUnmerged.length}，超期 ${plan.stale.length}`);
+    } else {
+      console.log(
+        `[干跑] 待删 ${plan.toDelete.length} 项；保留未合并 ${plan.keptUnmerged.length}；超期 ${plan.stale.length}（--apply 执行）`,
+      );
+    }
+    return;
+  }
+
+  console.error(`未知分支动作：${action}`);
+  process.exit(2);
+}
+
 const SKIPPED = { ok: true, skipped: true, errors: [], schemaId: null };
 
 /** AF-006：框架 schema 机读校验（索引 / 工具契约 / Agent Card；可选任务单元 JSON）。 */
@@ -394,6 +519,7 @@ function cmdImprovements(args) {
 function printHelp() {
   console.log('用法：cli.mjs <status|run-once|watch|protocol|snapshot|pack|archive|validate|config|improvements> [参数]');
   console.log('  archive <taskId> [--status ..] [--sheet ..] [--record ..] [--reply ..] [--note ..]');
+  console.log('  branch <list|plan|create|merge|cleanup> [--taskId <id>] [--slug <slug>] [--apply] [--stale-days n]');
   console.log('  watch                        监听任务单 / 回执目录，变更防抖后自动执行一轮 run-once');
   console.log('  protocol                     导出标准协议视图（protocolView 只读映射投影）');
   console.log('  validate [--sheet <file>]   校验索引 / 工具契约 / Agent Card（可选任务单元 JSON）');
@@ -431,6 +557,14 @@ switch (command) {
       cmdArchive(args);
     } catch (err) {
       console.error(`归档失败：${err.message}`);
+      process.exit(2);
+    }
+    break;
+  case 'branch':
+    try {
+      cmdBranch(args);
+    } catch (err) {
+      console.error(`分支流程失败：${err.message}`);
       process.exit(2);
     }
     break;

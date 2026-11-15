@@ -4,23 +4,6 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。字段可扩展、不删除既有字段；未来迁 DB 时一一对应。历史任务仅登记工件指针，基线与 claim 字段待按需补录。 type 字段索引侧不做枚举约束（schema additionalProperties 放宽，兼容项目扩展）；归档条目只保留工件指针，运行态字段不回填；schemaRef 指向框架 schema URN。",
   "tasks": [
     {
-      "taskId": "AF-012",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "任务分支流程脚本（建分支 / squash 合并 / 合并清理 / 陈旧分支巡检）",
-      "status": "backlog",
-      "baselineRef": "09df090",
-      "dependsOn": [],
-      "policyRefs": ["framework/state-machine.md", "autonomous-team-design.md#branch-strategy"],
-      "createdAt": "2026-11-16",
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af012-task-branch-workflow-scripts-2026-11-16.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "history": []
-    },
-    {
       "taskId": "AF-013",
       "contextId": "phase2.5-orchestration-closed-loop",
       "type": "verification",
@@ -294,6 +277,16 @@
         "reply": null
       },
       "note": "文件域互斥纯函数 + claim 拦截 + V7 残留护栏；76 passed"
+    },
+    {
+      "taskId": "AF-012",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-implementation-2026-11-16.md",
+        "reply": null
+      },
+      "note": "分支流程 CLI + 纯函数治理；82 passed"
     }
   ]
 }

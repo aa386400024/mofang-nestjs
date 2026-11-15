@@ -26,6 +26,15 @@ import {
 import { ARCHIVE_STATUSES, archiveTaskEntry, canTransition, shouldAdvance, buildSnapshot } from '../scheduler.mjs';
 import { dispatchTask, buildDispatchRecord, receiptFingerprint, isReceiptProcessed, markReceiptProcessed } from '../dispatch.mjs';
 import { normalizeScope, findScopeConflicts, detectResidualFiles, scopeCovers } from '../scope-mutex.mjs';
+import {
+  buildBranchName,
+  validateBranchName,
+  classifyBranches,
+  planCleanup,
+  verifyBaseline,
+  branchAgeDays,
+  LONG_LIVED_BRANCHES,
+} from '../branch-workflow.mjs';
 import { runAcceptance } from '../acceptance-runner.mjs';
 import {
   addCandidate,
@@ -983,5 +992,69 @@ describe('AF-011 文件域 scope 互斥校验', () => {
 
     const skipped = runAcceptance(t, { tasks: [t], archivedTasks: [] });
     expect(skipped.checks.find((c) => c.code === 'V7').status).toBe('skip');
+  });
+});
+
+describe('AF-012 任务分支流程与治理', () => {
+  it('分支名构造：合规 taskId + slug 规范化；非法 taskId / 空 slug 报错', () => {
+    const ok = buildBranchName('AF-012', 'Task Branch_Workflow');
+    expect(ok).toMatchObject({ valid: true, branchName: 'task/AF-012-task-branch-workflow' });
+    const badId = buildBranchName('af 12', 'x');
+    expect(badId.valid).toBe(false);
+    expect(badId.errors.join(' ')).toMatch('taskId');
+    const emptySlug = buildBranchName('AF-012', '___');
+    expect(emptySlug.valid).toBe(false);
+    expect(emptySlug.branchName).toBeNull();
+  });
+
+  it('分支名校验：前缀、taskId 包含、空任务段判定', () => {
+    expect(validateBranchName('task/AF-012-x', 'AF-012').valid).toBe(true);
+    expect(validateBranchName('feature/x', 'AF-012').valid).toBe(false);
+    expect(validateBranchName('task/OTHER-x', 'AF-012').valid).toBe(false);
+    expect(validateBranchName('task/', 'AF-012').valid).toBe(false);
+  });
+
+  it('巡检分类：已合并 / 未合并 / 超期三分；长期分支不进入清理集合', () => {
+    const branches = [
+      { name: 'master', remote: null, merged: true, ageDays: 300 },
+      { name: 'integrate', remote: null, merged: true, ageDays: 300 },
+      { name: 'task/AF-012-a', remote: 'origin', merged: true, ageDays: 5 },
+      { name: 'task/AF-013-b', remote: null, merged: false, ageDays: 3 },
+      { name: 'task/AF-014-c', remote: null, merged: false, ageDays: 20 },
+    ];
+    const { merged, unmerged, stale } = classifyBranches(branches, { staleDays: 14 });
+    expect(merged.map((b) => b.name)).toEqual(['task/AF-012-a']);
+    expect(unmerged.map((b) => b.name)).toEqual(['task/AF-013-b']);
+    expect(stale.map((b) => b.name)).toEqual(['task/AF-014-c']);
+    expect(LONG_LIVED_BRANCHES).toEqual(['master', 'integrate']);
+  });
+
+  it('清理计划：只对已合并生成本地 + 远端删除项；未合并与超期只列名保留', () => {
+    const branches = [
+      { name: 'task/AF-012-a', remote: 'origin', merged: true, ageDays: 5 },
+      { name: 'task/AF-013-b', remote: null, merged: false, ageDays: 3 },
+      { name: 'task/AF-014-c', remote: null, merged: false, ageDays: 20 },
+    ];
+    const plan = planCleanup(branches, { staleDays: 14 });
+    expect(plan.toDelete).toEqual([
+      { name: 'task/AF-012-a', ref: 'local' },
+      { name: 'task/AF-012-a', ref: 'remote:origin' },
+    ]);
+    expect(plan.keptUnmerged).toEqual(['task/AF-013-b']);
+    expect(plan.stale).toEqual(['task/AF-014-c']);
+  });
+
+  it('基线核对：一致通过；漂移返回原因；缺 baselineRef 记 null 而非报错', () => {
+    const task = { taskId: 'AF-012', baselineRef: 'abc1234' };
+    expect(verifyBaseline(task, 'abc1234')).toMatchObject({ matches: true, reason: null });
+    const drift = verifyBaseline(task, 'def5678');
+    expect(drift.matches).toBe(false);
+    expect(drift.reason).toMatch('基线漂移');
+    expect(verifyBaseline({ taskId: 'X' }, 'abc1234').matches).toBeNull();
+  });
+
+  it('分支年龄天数：按日期差折算；非法日期返回 null', () => {
+    expect(branchAgeDays('2026-11-10T00:00:00.000Z', '2026-11-16T00:00:00.000Z')).toBe(6);
+    expect(branchAgeDays('not-a-date', '2026-11-16T00:00:00.000Z')).toBeNull();
   });
 });

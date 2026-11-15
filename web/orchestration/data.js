@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-15T17:43:50.907Z",
+  "generatedAt": "2026-11-15T17:50:43.545Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -15,28 +15,9 @@ window.ORCH_SNAPSHOT = {
     "rejected": 0,
     "input-required": 0,
     "deadLetter": 0,
-    "backlog": 3
+    "backlog": 2
   },
   "tasks": [
-    {
-      "taskId": "AF-012",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "任务分支流程脚本（建分支 / squash 合并 / 合并清理 / 陈旧分支巡检）",
-      "status": "backlog",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af012-task-branch-workflow-scripts-2026-11-16.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": null
-    },
     {
       "taskId": "AF-013",
       "contextId": "phase2.5-orchestration-closed-loop",
@@ -80,25 +61,25 @@ window.ORCH_SNAPSHOT = {
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 11,
-    "activeCount": 11,
+    "total": 13,
+    "activeCount": 13,
     "byStatus": {
-      "candidate": 8,
+      "candidate": 10,
       "queued": 1,
       "accepted": 2,
       "done": 0,
       "wontfix": 0
     },
     "byType": {
-      "gap": 4,
+      "gap": 5,
       "guardrail": 0,
       "tool": 0,
       "standard": 1,
       "performance": 0,
-      "tech-debt": 6
+      "tech-debt": 7
     },
     "bySource": {
-      "implementation": 9,
+      "implementation": 11,
       "acceptance": 0,
       "rework": 0,
       "dead-letter": 0,
@@ -340,6 +321,48 @@ window.ORCH_SNAPSHOT = {
           "to": "candidate",
           "note": "登记候选改进"
         }
+      },
+      {
+        "improvementId": "IM-012",
+        "title": "squash 合并后的提交动作未自动化，脚本仅做 squash 暂存与删除端口",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-012",
+        "evidence": [
+          "branch-workflow.mjs squashMerge 仅执行 git merge --squash cli.mjs cmdBranch merge 注明提交归编排者闸门"
+        ],
+        "impact": "合并链路停在暂存阶段；提交标题（conventional + taskId）与合并后远端分支清理需编排者手工闭合，未形成自动 L1 合并闭环",
+        "suggestion": "L1 自动化阶段在闸门全绿后补提交动作（标题带 taskId），并在合并成功后串联本地/远端源分支清理",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T17:49:21.140Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-013",
+        "title": "分支巡检未判定未合并分支是否落后 integrate（rebase 状态）",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-012",
+        "evidence": [
+          "branch-workflow.mjs classifyBranches 仅按 merged/ageDays 分类 cli.mjs collectBranches 未采集 ahead/behind"
+        ],
+        "impact": "未合并分支可能已落后基线但巡检只标注超期天数，无法识别需先 rebase 的陈旧分支",
+        "suggestion": "巡检采集 git status --branch ahead/behind 或 merge-base 差量，未合并且落后基线的分支单独标注待 rebase",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T17:49:22.354Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
       }
     ]
   },
@@ -468,6 +491,23 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-007",
+      "recordedAt": "2026-11-15T17:50:02.805Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-012",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "queue-scheduler",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-006",
       "recordedAt": "2026-11-15T17:42:18.346Z",
       "actorRef": "orchestrator",
@@ -568,50 +608,22 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "auditSummary": {
-    "total": 6,
+    "total": 7,
     "byResult": {
-      "allowed": 6,
+      "allowed": 7,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 4
+      "TOOL-QUEUE-SCHEDULER": 5
     },
     "byActor": {
-      "orchestrator": 6
+      "orchestrator": 7
     }
   },
   "protocolView": {
     "tasks": [
-      {
-        "taskId": "AF-012",
-        "title": "任务分支流程脚本（建分支 / squash 合并 / 合并清理 / 陈旧分支巡检）",
-        "type": "implementation",
-        "status": {
-          "framework": "backlog",
-          "protocol": "DRAFT",
-          "stage": "prelude"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af012-task-branch-workflow-scripts-2026-11-16.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": null
-          },
-          {
-            "kind": "reply",
-            "ref": null
-          }
-        ]
-      },
       {
         "taskId": "AF-013",
         "title": "GUI 派发只读演练（进程自愈、四层定位、路径固化、失败重试与转人工、派发审计）",
@@ -1418,6 +1430,35 @@ window.ORCH_SNAPSHOT = {
           }
         ],
         "archived": true
+      },
+      {
+        "taskId": "AF-012",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-implementation-2026-11-16.md"
+          },
+          {
+            "kind": "reply",
+            "ref": null
+          }
+        ],
+        "archived": true
       }
     ],
     "statusMap": {
@@ -1433,21 +1474,6 @@ window.ORCH_SNAPSHOT = {
       "rejected": "REJECTED"
     },
     "artifacts": [
-      {
-        "taskId": "AF-012",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af012-task-branch-workflow-scripts-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-012",
-        "kind": "deliveryRecord",
-        "ref": null
-      },
-      {
-        "taskId": "AF-012",
-        "kind": "reply",
-        "ref": null
-      },
       {
         "taskId": "AF-013",
         "kind": "taskSheet",
@@ -1817,6 +1843,21 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-011",
         "kind": "reply",
         "ref": null
+      },
+      {
+        "taskId": "AF-012",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-012",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-implementation-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-012",
+        "kind": "reply",
+        "ref": null
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -1886,5 +1927,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 28
+  "archivedCount": 29
 };
