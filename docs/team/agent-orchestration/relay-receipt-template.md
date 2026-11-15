@@ -65,4 +65,4 @@ reviewVerdict: passed # passed / conditional-pass / rejected
 - [ ] 实现中发现的缺口 / 架构提升点已登记改进台账（`improvement-log.json`，口径 `improvement-loop.md`）；
 - [ ] 任务单与交付记录成对归档到 `completed/<phase>/`；
 - [ ] 状态索引已更新（状态迁移追加 `history`）；
-- [ ] commit message 草稿关联 `taskId`（不自动 commit / push）。
+- [ ] commit message 草稿关联 `taskId`；executor 不提交、不推送，提交与推送由 orchestrator 按 `autonomous-team-design.md` §6.1 分层执行。

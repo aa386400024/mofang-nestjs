@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-15T18:13:18.029Z",
+  "updatedAt": "2026-11-15T18:29:06.843Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -100,7 +100,7 @@
     },
     {
       "improvementId": "IM-004",
-      "status": "accepted",
+      "status": "done",
       "title": "任务交付归档后台账状态未自动回填，快照仍显示 backlog / 未验收",
       "source": "implementation",
       "type": "gap",
@@ -114,7 +114,7 @@
       "suggestion": "交付包或验收落地后由编排链路自动把任务单元迁移到 archivedTasks 并写 status=completed 与工件指针；或 CLI 提供归档命令在交付记录落盘后回填索引",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T16:23:32.442Z",
-      "updatedAt": "2026-11-15T16:34:25.726Z",
+      "updatedAt": "2026-11-15T18:28:30.007Z",
       "history": [
         {
           "at": "2026-11-15T16:23:32.442Z",
@@ -136,8 +136,20 @@
           "to": "accepted",
           "by": "orchestrator",
           "note": "实现落地：archiveTaskEntry 纯函数 + cli archive 子命令 + package 脚本；56 例绿；自动扫描归档留后续；待人工验收转 done"
+        },
+        {
+          "at": "2026-11-15T18:28:30.007Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "AF-015回填机制已生效;索引与快照均显示AF-005~008completed"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-15T18:28:30.007Z",
+        "resolutionNote": "AF-015回填机制已生效;索引与快照均显示AF-005~008completed",
+        "linkedTaskId": "AF-015"
+      }
     },
     {
       "improvementId": "IM-005",
@@ -357,7 +369,7 @@
     },
     {
       "improvementId": "IM-014",
-      "status": "candidate",
+      "status": "done",
       "title": "通道层重试规则与失败终态未锚定 framework reliability §4（各自立法）",
       "source": "review",
       "type": "gap",
@@ -368,7 +380,7 @@
       "suggestion": "在 design memo §3 补 framework §4 锚点；先定权威终态出口（ready vs failed），再统一任务级重试预算与退避；确定性缺陷直落 failed 不重试。",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T18:05:07.422Z",
-      "updatedAt": "2026-11-15T18:05:07.422Z",
+      "updatedAt": "2026-11-15T18:28:30.680Z",
       "history": [
         {
           "at": "2026-11-15T18:05:07.422Z",
@@ -376,12 +388,38 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-15T18:28:30.208Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "AF-015立项"
+        },
+        {
+          "at": "2026-11-15T18:28:30.421Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "AF-015实现预算退避终态出口"
+        },
+        {
+          "at": "2026-11-15T18:28:30.680Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "已落地不可恢复四类终态任务级预算退避序列;备忘锚定§4"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-15T18:28:30.680Z",
+        "resolutionNote": "已落地不可恢复四类终态任务级预算退避序列;备忘锚定§4",
+        "linkedTaskId": "AF-015"
+      }
     },
     {
       "improvementId": "IM-015",
-      "status": "candidate",
+      "status": "done",
       "title": "派发审计缺逐次重试留痕载体与失败定性三分法字段",
       "source": "review",
       "type": "gap",
@@ -392,7 +430,7 @@
       "suggestion": "审计记录扩为逐次尝试条目（层、原因、退避、结果）；任务/通道失败补定性字段与既有债-本次改动分栏；通道演练基线来源另立只读核对单确认。",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T18:05:19.082Z",
-      "updatedAt": "2026-11-15T18:05:19.082Z",
+      "updatedAt": "2026-11-15T18:28:45.355Z",
       "history": [
         {
           "at": "2026-11-15T18:05:19.082Z",
@@ -400,12 +438,38 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-15T18:28:44.924Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "AF-015立项"
+        },
+        {
+          "at": "2026-11-15T18:28:45.127Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "AF-015实现逐次留痕与定性字段"
+        },
+        {
+          "at": "2026-11-15T18:28:45.355Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "已落地attempts逐次留痕定性三分法基线分栏;审计校验枚举"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-15T18:28:45.355Z",
+        "resolutionNote": "已落地attempts逐次留痕定性三分法基线分栏;审计校验枚举",
+        "linkedTaskId": "AF-015"
+      }
     },
     {
       "improvementId": "IM-016",
-      "status": "candidate",
+      "status": "done",
       "title": "conventions 与回执模板仍保留旧「不自动 commit/push」口径，未对齐 §6.1 分层",
       "source": "review",
       "type": "standard",
@@ -416,10 +480,108 @@
       "suggestion": "另开规范同步单：conventions §1.4 提交纪律与回执模板 commit 草稿条目改为引用设计备忘 §6.1 分层口径；executor 不提交口径保留，L1–L3 自动前置条件与 L4 冻结清单指向 §6.1",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T18:13:18.026Z",
-      "updatedAt": "2026-11-15T18:13:18.026Z",
+      "updatedAt": "2026-11-15T18:28:46.369Z",
       "history": [
         {
           "at": "2026-11-15T18:13:18.026Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-15T18:28:45.702Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "AF-015立项"
+        },
+        {
+          "at": "2026-11-15T18:28:46.104Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "AF-015同步两处活规范"
+        },
+        {
+          "at": "2026-11-15T18:28:46.369Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "conventions§132与回执模板§68已对齐§6.1分层口径"
+        }
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-15T18:28:46.369Z",
+        "resolutionNote": "conventions§132与回执模板§68已对齐§6.1分层口径",
+        "linkedTaskId": "AF-015"
+      }
+    },
+    {
+      "improvementId": "IM-017",
+      "status": "candidate",
+      "title": "熔断阈值参数化与通道独立计数预留(P2)",
+      "source": "review",
+      "type": "guardrail",
+      "layer": "framework",
+      "relatedTaskId": "AF-015",
+      "evidence": ["reliability.md§5;design-memo§3.5"],
+      "impact": "框架§5熔断/死信为本版本预留位;通道侧不独立计数;接入通用阈值参数化归P2",
+      "suggestion": "P2复用框架熔断扩展位,落地连续失败阈值与快速失败事件;不另立通道独立熔断",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-15T18:29:06.350Z",
+      "updatedAt": "2026-11-15T18:29:06.350Z",
+      "history": [
+        {
+          "at": "2026-11-15T18:29:06.350Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-018",
+      "status": "candidate",
+      "title": "L3合并接远端CI状态门禁(无gh/token,P2)",
+      "source": "review",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-015",
+      "evidence": ["design-memo§6.2"],
+      "impact": "本机无gh CLI与GITHUB_TOKEN,CI状态本机不可读;当前以本地等价闸门替代远端CI门禁,属过渡方案",
+      "suggestion": "接入token/gh后改为以CI状态作为L3自动合并门禁;过渡口径标注目标态不固化为永久设计",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-15T18:29:06.582Z",
+      "updatedAt": "2026-11-15T18:29:06.582Z",
+      "history": [
+        {
+          "at": "2026-11-15T18:29:06.582Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-019",
+      "status": "candidate",
+      "title": "development分支退役执行待人工拍板",
+      "source": "review",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-015",
+      "evidence": ["design-memo§4.4"],
+      "impact": "退役需删除本地与远端development分支;高风险不可逆动作,须人工确认git-diff为空后执行",
+      "suggestion": "人工拍板后按§4.4流程复核integrate..development为空再删除;本批不执行分支删除",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-15T18:29:06.841Z",
+      "updatedAt": "2026-11-15T18:29:06.841Z",
+      "history": [
+        {
+          "at": "2026-11-15T18:29:06.841Z",
           "from": null,
           "to": "candidate",
           "by": "orchestrator-cli",

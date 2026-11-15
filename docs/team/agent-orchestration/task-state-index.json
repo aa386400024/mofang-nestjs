@@ -272,6 +272,15 @@
         "reply": null
       },
       "note": "README §2/§4 + 三份角色卡 limits + 任务单模板对齐 §6.1 L1–L4 分层；纯文档零源码改动；IM-016 登记 conventions/回执模板旧口径另案"
+    },
+    {
+      "taskId": "AF-015",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-implementation-2026-11-16.md"
+      },
+      "note": "通道可靠性锚定§4:任务级预算/退避/终态出口/定性三分法/逐次留痕;94 passed;零业务源码改动"
     }
   ]
 }

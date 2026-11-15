@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-15T18:15:25.837Z",
+  "generatedAt": "2026-11-15T18:34:04.363Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -21,18 +21,18 @@ window.ORCH_SNAPSHOT = {
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 16,
-    "activeCount": 16,
+    "total": 19,
+    "activeCount": 15,
     "byStatus": {
       "candidate": 13,
       "queued": 1,
-      "accepted": 2,
-      "done": 0,
+      "accepted": 1,
+      "done": 4,
       "wontfix": 0
     },
     "byType": {
-      "gap": 7,
-      "guardrail": 0,
+      "gap": 9,
+      "guardrail": 1,
       "tool": 0,
       "standard": 2,
       "performance": 0,
@@ -43,7 +43,7 @@ window.ORCH_SNAPSHOT = {
       "acceptance": 0,
       "rework": 0,
       "dead-letter": 0,
-      "review": 5
+      "review": 8
     },
     "items": [
       {
@@ -112,7 +112,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-004",
         "title": "任务交付归档后台账状态未自动回填，快照仍显示 backlog / 未验收",
-        "status": "accepted",
+        "status": "done",
         "source": "implementation",
         "type": "gap",
         "layer": "adapter",
@@ -123,12 +123,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "任务实际已验收归档，但看板活跃列表仍显示待立项/未验收；台账状态与交付记录脱节，需人工回填，闭环未自动化",
         "suggestion": "交付包或验收落地后由编排链路自动把任务单元迁移到 archivedTasks 并写 status=completed 与工件指针；或 CLI 提供归档命令在交付记录落盘后回填索引",
-        "historyCount": 3,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T16:34:25.726Z",
-          "by": "orchestrator",
-          "to": "accepted",
-          "note": "实现落地：archiveTaskEntry 纯函数 + cli archive 子命令 + package 脚本；56 例绿；自动扫描归档留后续；待人工验收转 done"
+          "at": "2026-11-15T18:28:30.007Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "AF-015回填机制已生效;索引与快照均显示AF-005~008completed"
         }
       },
       {
@@ -327,7 +327,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-014",
         "title": "通道层重试规则与失败终态未锚定 framework reliability §4（各自立法）",
-        "status": "candidate",
+        "status": "done",
         "source": "review",
         "type": "gap",
         "layer": "framework",
@@ -341,18 +341,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "通道重试形态/数值（固定重试一次、无退避）与框架指数退避不一致；失败终态出口双轨（保持 ready+转人工 vs 直接 failed）；确定性缺陷在通道层缺终止规则。跨两仓文档修订时需统一权威终态出口与重试预算。",
         "suggestion": "在 design memo §3 补 framework §4 锚点；先定权威终态出口（ready vs failed），再统一任务级重试预算与退避；确定性缺陷直落 failed 不重试。",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T18:05:07.422Z",
+          "at": "2026-11-15T18:28:30.680Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "已落地不可恢复四类终态任务级预算退避序列;备忘锚定§4"
         }
       },
       {
         "improvementId": "IM-015",
         "title": "派发审计缺逐次重试留痕载体与失败定性三分法字段",
-        "status": "candidate",
+        "status": "done",
         "source": "review",
         "type": "gap",
         "layer": "framework",
@@ -364,18 +364,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "审计只留尝试次数聚合值，丢失逐次尝试的失败原因/所在层/退避时长，无法复原重试链；通道失败未纳入确定性/偶发/既有债定性三分法，框架要求的基线分栏在通道侧无载体。",
         "suggestion": "审计记录扩为逐次尝试条目（层、原因、退避、结果）；任务/通道失败补定性字段与既有债-本次改动分栏；通道演练基线来源另立只读核对单确认。",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T18:05:19.082Z",
+          "at": "2026-11-15T18:28:45.355Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "已落地attempts逐次留痕定性三分法基线分栏;审计校验枚举"
         }
       },
       {
         "improvementId": "IM-016",
         "title": "conventions 与回执模板仍保留旧「不自动 commit/push」口径，未对齐 §6.1 分层",
-        "status": "candidate",
+        "status": "done",
         "source": "review",
         "type": "standard",
         "layer": "adapter",
@@ -386,9 +386,72 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "两处活规范仍写「提交推送等用户指令」，与 README/角色卡/模板已落地的 L1–L3 自动 + L4 冻结口径并存，消费方可能读到旧口径造成边界漂移",
         "suggestion": "另开规范同步单：conventions §1.4 提交纪律与回执模板 commit 草稿条目改为引用设计备忘 §6.1 分层口径；executor 不提交口径保留，L1–L3 自动前置条件与 L4 冻结清单指向 §6.1",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T18:28:46.369Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "conventions§132与回执模板§68已对齐§6.1分层口径"
+        }
+      },
+      {
+        "improvementId": "IM-017",
+        "title": "熔断阈值参数化与通道独立计数预留(P2)",
+        "status": "candidate",
+        "source": "review",
+        "type": "guardrail",
+        "layer": "framework",
+        "relatedTaskId": "AF-015",
+        "evidence": [
+          "reliability.md§5;design-memo§3.5"
+        ],
+        "impact": "框架§5熔断/死信为本版本预留位;通道侧不独立计数;接入通用阈值参数化归P2",
+        "suggestion": "P2复用框架熔断扩展位,落地连续失败阈值与快速失败事件;不另立通道独立熔断",
         "historyCount": 1,
         "lastTransition": {
-          "at": "2026-11-15T18:13:18.026Z",
+          "at": "2026-11-15T18:29:06.350Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-018",
+        "title": "L3合并接远端CI状态门禁(无gh/token,P2)",
+        "status": "candidate",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-015",
+        "evidence": [
+          "design-memo§6.2"
+        ],
+        "impact": "本机无gh CLI与GITHUB_TOKEN,CI状态本机不可读;当前以本地等价闸门替代远端CI门禁,属过渡方案",
+        "suggestion": "接入token/gh后改为以CI状态作为L3自动合并门禁;过渡口径标注目标态不固化为永久设计",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T18:29:06.582Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-019",
+        "title": "development分支退役执行待人工拍板",
+        "status": "candidate",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-015",
+        "evidence": [
+          "design-memo§4.4"
+        ],
+        "impact": "退役需删除本地与远端development分支;高风险不可逆动作,须人工确认git-diff为空后执行",
+        "suggestion": "人工拍板后按§4.4流程复核integrate..development为空再删除;本批不执行分支删除",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T18:29:06.841Z",
           "by": "orchestrator-cli",
           "to": "candidate",
           "note": "登记候选改进"
@@ -520,6 +583,23 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-010",
+      "recordedAt": "2026-11-15T18:33:41.024Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-015",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "queue-scheduler",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-009",
       "recordedAt": "2026-11-15T18:14:37.253Z",
@@ -672,18 +752,18 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "auditSummary": {
-    "total": 9,
+    "total": 10,
     "byResult": {
-      "allowed": 9,
+      "allowed": 10,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 7
+      "TOOL-QUEUE-SCHEDULER": 8
     },
     "byActor": {
-      "orchestrator": 9
+      "orchestrator": 10
     }
   },
   "protocolView": {
@@ -1522,6 +1602,31 @@ window.ORCH_SNAPSHOT = {
           }
         ],
         "archived": true
+      },
+      {
+        "taskId": "AF-015",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-implementation-2026-11-16.md"
+          }
+        ],
+        "archived": true
       }
     ],
     "statusMap": {
@@ -1921,6 +2026,16 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-014",
         "kind": "reply",
         "ref": null
+      },
+      {
+        "taskId": "AF-015",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-015",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-implementation-2026-11-16.md"
       }
     ],
     "groupId": null,
@@ -1988,5 +2103,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 31
+  "archivedCount": 32
 };

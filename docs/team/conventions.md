@@ -129,7 +129,7 @@ feat(wpXX): 一句话说清做了什么
 6. **结构化输出只有一条链** —— 走 `CounselorLlmJsonClient`
 7. **`.env` 的 `MINIMAX_LLM_MODEL` / `MINIMAX_BASE_URL` 是 ASR/TTS 共用值，不许动**
 8. **M3.1-Flash 忽略 `temperature`/`top_p`**；**thinking token 计入生成长度上限**
-9. **不自动 commit / push** —— 写完给 commit 文字，等用户指令
+9. **executor 不建分支、不提交、不推送** —— 只产出 commit message 草稿；提交与推送由 orchestrator 按 `agent-orchestration/autonomous-team-design.md` §6.1 分层执行（L1–L3 前置条件满足自动，L4 人工冻结）
 10. **偏好表的键白名单拦不住"已知键 + 非法值"**
 11. **SSE 事件总线是进程内的** —— 多实例部署需换 Redis Pub/Sub
 12. **异步任务的偏好在「执行时」读**
