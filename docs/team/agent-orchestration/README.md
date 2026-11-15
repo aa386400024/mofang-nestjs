@@ -94,18 +94,19 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 
 ## 7. 本目录文件
 
-| 文件                             | 角色                                                        | 通用层对应                                                                       |
-| -------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `task-state-index.json`          | 本项目状态索引（真实任务记录与归档指针）                    | 框架仓 `schemas/task-state-index.schema.json`                                    |
-| `acceptance-checklist.md`        | 项目特定验收命令与仓库边界                                  | 五类核对口径见框架仓 `docs/acceptance.md`                                        |
-| `relay-receipt-template.md`      | 回执 / 交付记录的项目路径约定与命令示例                     | 七组字段骨架见框架仓 `templates/receipt.template.md`、`docs/receipt-contract.md` |
-| `agent-cards/*.json`             | 本项目代理能力声明（human / orchestrator / executor）       | 框架仓 `schemas/agent-card.schema.json`、`templates/agent-card.template.md`      |
-| `tools/orchestration-tools.json` | L2 工具链工具声明（类别、角色白名单、副作用级别、资源范围） | 框架仓 `schemas/tool-contract.schema.json`、`docs/tools.md`                      |
-| `orchestration-state.json`       | L2 运行态（租约、领单、超时等；首次 run-once 生成）         | 框架仓 `docs/reliability.md`、`docs/autonomous-loop.md`                          |
-| `orchestration-snapshot.json`    | 队列快照（网页与 CLI 只读数据源）                           | 框架仓 `docs/autonomous-loop.md`                                                 |
-| `delivery-packs/`                | 夜间交付包汇总输出目录                                      | 框架仓 `docs/autonomous-loop.md` 交付包结构                                      |
-| `improvement-log.json`           | 候选改进台账（缺口 / 护栏 / 工具 / 规范 / 债的登记与闭环）  | 框架仓 `docs/context-and-memory.md` §2 共享记忆分层                              |
-| `improvement-loop.md`            | 改进闭环字段、状态机、闸门边界与命令口径（adapter 活文档）  | 框架仓 `docs/context-and-memory.md`、`docs/evolution.md`                         |
+| 文件                             | 角色                                                         | 通用层对应                                                                       |
+| -------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| `task-state-index.json`          | 本项目状态索引（真实任务记录与归档指针）                     | 框架仓 `schemas/task-state-index.schema.json`                                    |
+| `acceptance-checklist.md`        | 项目特定验收命令与仓库边界                                   | 五类核对口径见框架仓 `docs/acceptance.md`                                        |
+| `relay-receipt-template.md`      | 回执 / 交付记录的项目路径约定与命令示例                      | 七组字段骨架见框架仓 `templates/receipt.template.md`、`docs/receipt-contract.md` |
+| `agent-cards/*.json`             | 本项目代理能力声明（human / orchestrator / executor）        | 框架仓 `schemas/agent-card.schema.json`、`templates/agent-card.template.md`      |
+| `tools/orchestration-tools.json` | L2 工具链工具声明（类别、角色白名单、副作用级别、资源范围）  | 框架仓 `schemas/tool-contract.schema.json`、`docs/tools.md`                      |
+| `orchestration-state.json`       | L2 运行态（租约、领单、超时等；首次 run-once 生成）          | 框架仓 `docs/reliability.md`、`docs/autonomous-loop.md`                          |
+| `orchestration-snapshot.json`    | 队列快照（网页与 CLI 只读数据源）                            | 框架仓 `docs/autonomous-loop.md`                                                 |
+| `delivery-packs/`                | 夜间交付包汇总输出目录                                       | 框架仓 `docs/autonomous-loop.md` 交付包结构                                      |
+| `improvement-log.json`           | 候选改进台账（缺口 / 护栏 / 工具 / 规范 / 债的登记与闭环）   | 框架仓 `docs/context-and-memory.md` §2 共享记忆分层                              |
+| `improvement-loop.md`            | 改进闭环字段、状态机、闸门边界与命令口径（adapter 活文档）   | 框架仓 `docs/context-and-memory.md`、`docs/evolution.md`                         |
+| `autonomous-team-design.md`      | 双代理派发通道、分支治理、文件域互斥、分层发布与回退设计备忘 | 框架仓 `docs/roles.md`、`docs/autonomous-loop.md`、`docs/reliability.md`         |
 
 ## 8. 通用层指针（规则真相源在框架仓）
 

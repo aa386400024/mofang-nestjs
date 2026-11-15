@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T16:34:25.749Z",
+  "generatedAt": "2026-11-15T17:08:24.894Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -13,9 +13,119 @@
     "canceled": 0,
     "rejected": 0,
     "input-required": 0,
-    "deadLetter": 0
+    "deadLetter": 0,
+    "backlog": 6
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-009",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "交接契约 schema 与 transport 目录接线（tasks / receipts / reviews 三组交接件机读结构）",
+      "status": "backlog",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af009-handover-contract-schema-transport-2026-11-16.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": []
+    },
+    {
+      "taskId": "AF-010",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "派发接线（claim 接 submitTask、派发记录落盘、watcher 监听 receipts 触发验收轮）",
+      "status": "backlog",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af010-dispatch-wiring-receipt-watcher-2026-11-16.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": []
+    },
+    {
+      "taskId": "AF-011",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "文件域 scope 校验与在办任务交集拦截（双代理文件互斥前置护栏）",
+      "status": "backlog",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af011-file-scope-mutex-validation-2026-11-16.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": []
+    },
+    {
+      "taskId": "AF-012",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "任务分支流程脚本（建分支 / squash 合并 / 合并清理 / 陈旧分支巡检）",
+      "status": "backlog",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af012-task-branch-workflow-scripts-2026-11-16.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": []
+    },
+    {
+      "taskId": "AF-013",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "verification",
+      "title": "GUI 派发只读演练（进程自愈、四层定位、路径固化、失败重试与转人工、派发审计）",
+      "status": "backlog",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af013-gui-dispatch-readonly-drill-2026-11-16.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": []
+    },
+    {
+      "taskId": "AF-014",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "documentation",
+      "title": "分层发布口径同步（README 角色绑定 / 敏感操作边界与角色卡 limits 对齐 L1–L4 模型）",
+      "status": "backlog",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af014-release-layer-policy-doc-sync-2026-11-16.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": []
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -279,6 +389,174 @@
   },
   "protocolView": {
     "tasks": [
+      {
+        "taskId": "AF-009",
+        "title": "交接契约 schema 与 transport 目录接线（tasks / receipts / reviews 三组交接件机读结构）",
+        "type": "implementation",
+        "status": {
+          "framework": "backlog",
+          "protocol": "DRAFT",
+          "stage": "prelude"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af009-handover-contract-schema-transport-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": null
+          },
+          {
+            "kind": "reply",
+            "ref": null
+          }
+        ]
+      },
+      {
+        "taskId": "AF-010",
+        "title": "派发接线（claim 接 submitTask、派发记录落盘、watcher 监听 receipts 触发验收轮）",
+        "type": "implementation",
+        "status": {
+          "framework": "backlog",
+          "protocol": "DRAFT",
+          "stage": "prelude"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": ["AF-009"],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af010-dispatch-wiring-receipt-watcher-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": null
+          },
+          {
+            "kind": "reply",
+            "ref": null
+          }
+        ]
+      },
+      {
+        "taskId": "AF-011",
+        "title": "文件域 scope 校验与在办任务交集拦截（双代理文件互斥前置护栏）",
+        "type": "implementation",
+        "status": {
+          "framework": "backlog",
+          "protocol": "DRAFT",
+          "stage": "prelude"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": ["AF-009"],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af011-file-scope-mutex-validation-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": null
+          },
+          {
+            "kind": "reply",
+            "ref": null
+          }
+        ]
+      },
+      {
+        "taskId": "AF-012",
+        "title": "任务分支流程脚本（建分支 / squash 合并 / 合并清理 / 陈旧分支巡检）",
+        "type": "implementation",
+        "status": {
+          "framework": "backlog",
+          "protocol": "DRAFT",
+          "stage": "prelude"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af012-task-branch-workflow-scripts-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": null
+          },
+          {
+            "kind": "reply",
+            "ref": null
+          }
+        ]
+      },
+      {
+        "taskId": "AF-013",
+        "title": "GUI 派发只读演练（进程自愈、四层定位、路径固化、失败重试与转人工、派发审计）",
+        "type": "verification",
+        "status": {
+          "framework": "backlog",
+          "protocol": "DRAFT",
+          "stage": "prelude"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": ["AF-010", "AF-011"],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af013-gui-dispatch-readonly-drill-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": null
+          },
+          {
+            "kind": "reply",
+            "ref": null
+          }
+        ]
+      },
+      {
+        "taskId": "AF-014",
+        "title": "分层发布口径同步（README 角色绑定 / 敏感操作边界与角色卡 limits 对齐 L1–L4 模型）",
+        "type": "documentation",
+        "status": {
+          "framework": "backlog",
+          "protocol": "DRAFT",
+          "stage": "prelude"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af014-release-layer-policy-doc-sync-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": null
+          },
+          {
+            "kind": "reply",
+            "ref": null
+          }
+        ]
+      },
       {
         "taskId": "TD-5",
         "title": null,
@@ -955,6 +1233,96 @@
     },
     "artifacts": [
       {
+        "taskId": "AF-009",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af009-handover-contract-schema-transport-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-009",
+        "kind": "deliveryRecord",
+        "ref": null
+      },
+      {
+        "taskId": "AF-009",
+        "kind": "reply",
+        "ref": null
+      },
+      {
+        "taskId": "AF-010",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af010-dispatch-wiring-receipt-watcher-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-010",
+        "kind": "deliveryRecord",
+        "ref": null
+      },
+      {
+        "taskId": "AF-010",
+        "kind": "reply",
+        "ref": null
+      },
+      {
+        "taskId": "AF-011",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af011-file-scope-mutex-validation-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-011",
+        "kind": "deliveryRecord",
+        "ref": null
+      },
+      {
+        "taskId": "AF-011",
+        "kind": "reply",
+        "ref": null
+      },
+      {
+        "taskId": "AF-012",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af012-task-branch-workflow-scripts-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-012",
+        "kind": "deliveryRecord",
+        "ref": null
+      },
+      {
+        "taskId": "AF-012",
+        "kind": "reply",
+        "ref": null
+      },
+      {
+        "taskId": "AF-013",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af013-gui-dispatch-readonly-drill-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-013",
+        "kind": "deliveryRecord",
+        "ref": null
+      },
+      {
+        "taskId": "AF-013",
+        "kind": "reply",
+        "ref": null
+      },
+      {
+        "taskId": "AF-014",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af014-release-layer-policy-doc-sync-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-014",
+        "kind": "deliveryRecord",
+        "ref": null
+      },
+      {
+        "taskId": "AF-014",
+        "kind": "reply",
+        "ref": null
+      },
+      {
         "taskId": "TD-5",
         "kind": "taskSheet",
         "ref": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-task-2026-11-13.md"
@@ -1250,8 +1618,8 @@
         "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
       }
     ],
-    "groupId": null,
-    "groupIds": [],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": ["phase2.5-orchestration-closed-loop"],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
