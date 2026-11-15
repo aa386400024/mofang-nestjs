@@ -134,6 +134,9 @@ importers:
       jose:
         specifier: ^5.10.0
         version: 5.10.0
+      multer:
+        specifier: 2.5.0
+        version: 2.5.0
       mysql2:
         specifier: ^3.24.4
         version: 3.24.6(@types/node@24.19.2)

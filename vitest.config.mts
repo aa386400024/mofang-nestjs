@@ -1,4 +1,5 @@
 /* eslint-disable import/no-default-export */
+import { fileURLToPath, URL } from 'node:url';
 import { loadEnvFile } from 'node:process';
 import { defineConfig } from 'vitest/config';
 
@@ -48,5 +49,13 @@ export default defineConfig({
   },
   resolve: {
     tsconfigPaths: true,
+    alias: [
+      // P-DEBT-15: `#entity/*` 在 package.json `imports` 映射到 `./dist/entity/*`（prod 构建产物路径）；
+      //   测试期源码在 `src/entity`，CI fresh install 无 dist 产物，显式别名指向 src，避免运行期解析落到 dist。
+      {
+        find: /^#entity\//,
+        replacement: fileURLToPath(new URL('./src/entity/', import.meta.url)),
+      },
+    ],
   },
 });
