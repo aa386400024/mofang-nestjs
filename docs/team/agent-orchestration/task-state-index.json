@@ -1,0 +1,166 @@
+{
+  "version": "1.0",
+  "schemaRef": "docs/architecture/multi-agent-baseline-profile-2026-11-15.md#5.2",
+  "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。字段可扩展、不删除既有字段；未来迁 DB 时一一对应。历史任务仅登记工件指针，基线与 claim 字段待按需补录。",
+  "tasks": [
+    {
+      "taskId": "TD-21",
+      "contextId": "phase2.5-c2-ports",
+      "type": "repository-port",
+      "title": "counselor 域金句子族仓储端口化（C2 第五批）",
+      "status": "completed",
+      "agent": "minimax-code",
+      "baselineRef": "2b03756",
+      "dependsOn": ["TD-20"],
+      "policyRefs": ["conventions.md#1.1", "conventions.md#1.3"],
+      "createdAt": "2026-11-15T12:05:00+08:00",
+      "claimedAt": "2026-11-15T12:06:00+08:00",
+      "deadline": "2026-11-15T15:04:49+08:00",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td21-counselor-quote-port-c2-batch5-task-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td21-counselor-quote-port-c2-batch5-implementation-2026-11-15.md",
+        "reply": "docs/worklog/pending/archive/relay-response-20261115-1211.md"
+      },
+      "verdict": {
+        "result": "passed",
+        "rationale": "五类核对全清：7 文件落地非空；边界 spec 12 例与 counselor 定向 287 例主控抽跑复现一致；端口 / DTO 契约口径对齐；范围隔离无越界；遗留项已登记 backlog。全量 3377 passed + 4 skipped 以回执口径为准，验收未重复跑全量。"
+      },
+      "history": [
+        { "at": "2026-11-15T12:05:00+08:00", "from": "ready", "to": "submitted", "by": "orchestrator" },
+        { "at": "2026-11-15T12:06:00+08:00", "from": "submitted", "to": "working", "by": "executor" },
+        { "at": "2026-11-15T12:11:00+08:00", "from": "working", "to": "submitted", "by": "executor" },
+        { "at": "2026-11-15T12:35:00+08:00", "from": "submitted", "to": "completed", "by": "orchestrator" }
+      ]
+    }
+  ],
+  "archivedTasks": [
+    {
+      "taskId": "TD-5",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-6",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-7",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td7-contract-drift-remediation-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td7-contract-drift-remediation-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-8",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-9",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td9-test-isolation-and-lint-hygiene-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td9-test-isolation-and-lint-hygiene-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-10",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td10-test-structure-debt-reduction-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td10-test-structure-debt-reduction-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-11",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-12",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-13",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-14",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td14-entity-typeorm-decoupling-assessment-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td14-entity-typeorm-decoupling-assessment-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-15",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td15-enum-extraction-cplus-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td15-enum-extraction-cplus-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-16",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td16-life-map-port-pilot-c1-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td16-life-map-port-pilot-c1-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-17",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td17-consent-port-c2-batch1-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td17-consent-port-c2-batch1-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-18",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td18-good-state-diary-port-c2-batch2-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td18-good-state-diary-port-c2-batch2-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-19",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td19-emergency-port-c2-batch3-task-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td19-emergency-port-c2-batch3-implementation-2026-11-15.md"
+      }
+    },
+    {
+      "taskId": "TD-20",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td20-home-messages-moodlog-port-c2-batch4-task-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td20-home-messages-moodlog-port-c2-batch4-implementation-2026-11-15.md"
+      }
+    }
+  ]
+}
