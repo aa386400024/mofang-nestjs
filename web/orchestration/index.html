@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>心塑 · 编排队列可视化</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>编排队列 · L2 自治循环</h1>
+        <p class="subtitle">任务状态、验收结论、死信与交付包只读视图；自治开关经 CLI 切换，网页不直接写本地文件。</p>
+      </div>
+      <div class="mode-pill" id="mode-pill">未加载</div>
+    </header>
+
+    <main class="container">
+      <section class="panel">
+        <h2>队列概览</h2>
+        <div class="cards" id="overview-cards"></div>
+        <p class="meta" id="snapshot-meta"></p>
+      </section>
+
+      <section class="panel">
+        <h2>任务列表</h2>
+        <div id="task-list" class="task-list"></div>
+      </section>
+
+      <section class="panel-grid">
+        <div class="panel">
+          <h2>死信隔离</h2>
+          <div id="dead-letters" class="panel-list"></div>
+        </div>
+        <div class="panel">
+          <h2>返修提案</h2>
+          <div id="rework-proposals" class="panel-list"></div>
+        </div>
+        <div class="panel">
+          <h2>待批动作</h2>
+          <div id="pending-approvals" class="panel-list"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>数据来源：<code>docs/team/agent-orchestration/orchestration-snapshot.json</code>（由 <code>pnpm orchestration:snapshot</code> 或 <code>pnpm orchestration:run</code> 刷新）。</p>
+      <p>交付包：<code>docs/team/agent-orchestration/delivery-packs/</code>（<code>pnpm orchestration:pack</code> 生成）。</p>
+    </footer>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
