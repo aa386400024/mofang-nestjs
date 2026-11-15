@@ -2,7 +2,32 @@
   "version": "1.0.0",
   "schemaRef": "urn:agent-collaboration-framework:schema:task-state-index:1.0.0",
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。字段可扩展、不删除既有字段；未来迁 DB 时一一对应。历史任务仅登记工件指针，基线与 claim 字段待按需补录。 type 字段索引侧不做枚举约束（schema additionalProperties 放宽，兼容项目扩展）；归档条目只保留工件指针，运行态字段不回填；schemaRef 指向框架 schema URN。",
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-005",
+      "contextId": "framework-evolution",
+      "type": "implementation",
+      "title": "框架 L2 演进 —— watcher 与状态机自动化",
+      "status": "backlog",
+      "createdAt": "2026-11-15",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af005-framework-evolution-watcher-state-machine-2026-11-15.md",
+        "deliveryRecord": null
+      }
+    },
+    {
+      "taskId": "AF-006",
+      "contextId": "framework-evolution",
+      "type": "implementation",
+      "title": "框架机读校验工具固化",
+      "status": "backlog",
+      "createdAt": "2026-11-15",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af006-framework-evolution-validation-scripts-2026-11-15.md",
+        "deliveryRecord": null
+      }
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
