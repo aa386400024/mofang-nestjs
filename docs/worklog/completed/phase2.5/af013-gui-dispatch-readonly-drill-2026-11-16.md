@@ -3,8 +3,8 @@ taskId: AF-013
 contextId: phase2.5-orchestration-closed-loop
 title: GUI 派发只读演练（进程自愈、四层定位、路径固化、失败重试与转人工、派发审计）
 type: verification
-status: backlog
-baselineRef: 09df090
+status: completed
+baselineRef: 7b75137
 dependsOn: [AF-010, AF-011]
 policyRefs: [framework/human-in-the-loop.md, framework/reliability.md, autonomous-team-design.md#gui-channel]
 createdAt: 2026-11-16
@@ -12,7 +12,7 @@ createdAt: 2026-11-16
 
 # AF-013 · GUI 派发只读演练与通道规则固化
 
-> 状态：📋 待立项（2026-11-16）｜编排：主控 Doubao（orchestrator 自做）
+> 状态：✅ 已交付（2026-11-16）｜编排：主控 Doubao（orchestrator 自做）｜交付记录：af013-gui-dispatch-readonly-drill-implementation-2026-11-16.md
 > 仓库：`E:\Work\Project\backend\mofang-nestjs`；落点 `scripts/orchestration/`（派发通道规则 / 审计）、演练回执归档
 > 唯一事实源：`docs/team/agent-orchestration/autonomous-team-design.md` §3（派发通道）、§7（autoLoop 阶段 2 前置）、§8 P0-5
 > 任务性质：通道演练 + 规则固化；演练任务为纯只读调研，零业务代码改动、零提交

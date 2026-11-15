@@ -3,8 +3,8 @@ taskId: AF-014
 contextId: phase2.5-orchestration-closed-loop
 title: 分层发布口径同步（README 角色绑定 / 敏感操作边界与角色卡 limits 对齐 L1–L4 模型）
 type: documentation
-status: backlog
-baselineRef: 09df090
+status: completed
+baselineRef: 7b75137
 dependsOn: []
 policyRefs: [framework/roles.md, framework/autonomous-loop.md, autonomous-team-design.md#release-layers]
 createdAt: 2026-11-16
@@ -12,7 +12,7 @@ createdAt: 2026-11-16
 
 # AF-014 · 分层发布口径同步：README 与角色卡
 
-> 状态：📋 待立项（2026-11-16）｜编排：主控 Doubao（orchestrator 自做）
+> 状态：✅ 已交付（2026-11-16）｜编排：主控 Doubao（orchestrator 自做）｜交付记录：af014-release-layer-policy-doc-sync-implementation-2026-11-16.md
 > 仓库：`E:\Work\Project\backend\mofang-nestjs`；落点 `docs/team/agent-orchestration/README.md`、`agent-cards/*.json`
 > 唯一事实源：`docs/team/agent-orchestration/autonomous-team-design.md` §6（分层发布与回退）、§10（边界）、§8 P0-6
 > 任务性质：文档与声明件口径修订；零代码、零业务源码改动

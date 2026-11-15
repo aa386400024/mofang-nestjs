@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-15T17:50:43.545Z",
+  "generatedAt": "2026-11-15T18:15:25.837Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -14,67 +14,27 @@ window.ORCH_SNAPSHOT = {
     "canceled": 0,
     "rejected": 0,
     "input-required": 0,
-    "deadLetter": 0,
-    "backlog": 2
+    "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-013",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "verification",
-      "title": "GUI 派发只读演练（进程自愈、四层定位、路径固化、失败重试与转人工、派发审计）",
-      "status": "backlog",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af013-gui-dispatch-readonly-drill-2026-11-16.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": null
-    },
-    {
-      "taskId": "AF-014",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "documentation",
-      "title": "分层发布口径同步（README 角色绑定 / 敏感操作边界与角色卡 limits 对齐 L1–L4 模型）",
-      "status": "backlog",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af014-release-layer-policy-doc-sync-2026-11-16.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": null
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 13,
-    "activeCount": 13,
+    "total": 16,
+    "activeCount": 16,
     "byStatus": {
-      "candidate": 10,
+      "candidate": 13,
       "queued": 1,
       "accepted": 2,
       "done": 0,
       "wontfix": 0
     },
     "byType": {
-      "gap": 5,
+      "gap": 7,
       "guardrail": 0,
       "tool": 0,
-      "standard": 1,
+      "standard": 2,
       "performance": 0,
       "tech-debt": 7
     },
@@ -83,7 +43,7 @@ window.ORCH_SNAPSHOT = {
       "acceptance": 0,
       "rework": 0,
       "dead-letter": 0,
-      "review": 2
+      "review": 5
     },
     "items": [
       {
@@ -363,6 +323,76 @@ window.ORCH_SNAPSHOT = {
           "to": "candidate",
           "note": "登记候选改进"
         }
+      },
+      {
+        "improvementId": "IM-014",
+        "title": "通道层重试规则与失败终态未锚定 framework reliability §4（各自立法）",
+        "status": "candidate",
+        "source": "review",
+        "type": "gap",
+        "layer": "framework",
+        "relatedTaskId": "AF-013",
+        "evidence": [
+          "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md",
+          "D-10",
+          "D-2",
+          "D-5",
+          "D-7"
+        ],
+        "impact": "通道重试形态/数值（固定重试一次、无退避）与框架指数退避不一致；失败终态出口双轨（保持 ready+转人工 vs 直接 failed）；确定性缺陷在通道层缺终止规则。跨两仓文档修订时需统一权威终态出口与重试预算。",
+        "suggestion": "在 design memo §3 补 framework §4 锚点；先定权威终态出口（ready vs failed），再统一任务级重试预算与退避；确定性缺陷直落 failed 不重试。",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T18:05:07.422Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-015",
+        "title": "派发审计缺逐次重试留痕载体与失败定性三分法字段",
+        "status": "candidate",
+        "source": "review",
+        "type": "gap",
+        "layer": "framework",
+        "relatedTaskId": "AF-013",
+        "evidence": [
+          "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md",
+          "D-1",
+          "D-3"
+        ],
+        "impact": "审计只留尝试次数聚合值，丢失逐次尝试的失败原因/所在层/退避时长，无法复原重试链；通道失败未纳入确定性/偶发/既有债定性三分法，框架要求的基线分栏在通道侧无载体。",
+        "suggestion": "审计记录扩为逐次尝试条目（层、原因、退避、结果）；任务/通道失败补定性字段与既有债-本次改动分栏；通道演练基线来源另立只读核对单确认。",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T18:05:19.082Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-016",
+        "title": "conventions 与回执模板仍保留旧「不自动 commit/push」口径，未对齐 §6.1 分层",
+        "status": "candidate",
+        "source": "review",
+        "type": "standard",
+        "layer": "adapter",
+        "relatedTaskId": "AF-014",
+        "evidence": [
+          "docs/team/conventions.md#132",
+          "docs/team/agent-orchestration/relay-receipt-template.md#68"
+        ],
+        "impact": "两处活规范仍写「提交推送等用户指令」，与 README/角色卡/模板已落地的 L1–L3 自动 + L4 冻结口径并存，消费方可能读到旧口径造成边界漂移",
+        "suggestion": "另开规范同步单：conventions §1.4 提交纪律与回执模板 commit 草稿条目改为引用设计备忘 §6.1 分层口径；executor 不提交口径保留，L1–L3 自动前置条件与 L4 冻结清单指向 §6.1",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T18:13:18.026Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
       }
     ]
   },
@@ -393,7 +423,7 @@ window.ORCH_SNAPSHOT = {
         "workspace-write",
         "gate-execution"
       ],
-      "note": "执行 AI（MiniMax Code）；researcher / critic 角色当前未启用，需要调研或独立评审任务时再绑定。"
+      "note": "执行 AI（MiniMax Code）；researcher / critic 角色当前未启用，需要调研或独立评审任务时再绑定。本角色不进入分支与提交链路：L1 任务分支提交由验收后的 orchestrator 完成（设计备忘 §6.1）。"
     },
     {
       "agentId": "AGENT-HUMAN-001",
@@ -406,7 +436,7 @@ window.ORCH_SNAPSHOT = {
         "release-decision"
       ],
       "tools": [],
-      "note": "本项目唯一人类角色（用户 / 大炮）；是敏感操作的审批节点，本身不进入工具白名单。"
+      "note": "本项目唯一人类角色（用户 / 大炮）；是 L4 冻结动作的审批节点，本身不进入工具白名单。L1 任务分支提交、L2 推任务分支、L3 合并进 integrate 在前置条件满足下由 orchestrator 自动，不依赖本角色批准（设计备忘 §6.1）。"
     },
     {
       "agentId": "AGENT-ORCH-001",
@@ -429,7 +459,7 @@ window.ORCH_SNAPSHOT = {
         "knowledge-capture",
         "orchestration-cli"
       ],
-      "note": "主控 AI（Doubao）；兼任 reviewer。制衡：验收结论只能基于工件证据与抽跑复现，不引用执行侧「已通过」的自述；验收与执行由不同执行方承担，兼任时以证据复核隔离。"
+      "note": "主控 AI（Doubao）；兼任 reviewer。制衡：验收结论只能基于工件证据与抽跑复现，不引用执行侧「已通过」的自述；验收与执行由不同执行方承担，兼任时以证据复核隔离。发布分层：L1–L3 在前置条件满足下由本角色自动，L4 转 Human 批准（设计备忘 §6.1）。"
     }
   ],
   "toolContracts": [
@@ -490,6 +520,40 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-009",
+      "recordedAt": "2026-11-15T18:14:37.253Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-014",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "queue-scheduler",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-008",
+      "recordedAt": "2026-11-15T18:08:26.377Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-013",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "queue-scheduler",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-007",
       "recordedAt": "2026-11-15T17:50:02.805Z",
@@ -608,81 +672,22 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "auditSummary": {
-    "total": 7,
+    "total": 9,
     "byResult": {
-      "allowed": 7,
+      "allowed": 9,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 5
+      "TOOL-QUEUE-SCHEDULER": 7
     },
     "byActor": {
-      "orchestrator": 7
+      "orchestrator": 9
     }
   },
   "protocolView": {
     "tasks": [
-      {
-        "taskId": "AF-013",
-        "title": "GUI 派发只读演练（进程自愈、四层定位、路径固化、失败重试与转人工、派发审计）",
-        "type": "verification",
-        "status": {
-          "framework": "backlog",
-          "protocol": "DRAFT",
-          "stage": "prelude"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-010",
-          "AF-011"
-        ],
-        "agentRole": null,
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af013-gui-dispatch-readonly-drill-2026-11-16.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": null
-          },
-          {
-            "kind": "reply",
-            "ref": null
-          }
-        ]
-      },
-      {
-        "taskId": "AF-014",
-        "title": "分层发布口径同步（README 角色绑定 / 敏感操作边界与角色卡 limits 对齐 L1–L4 模型）",
-        "type": "documentation",
-        "status": {
-          "framework": "backlog",
-          "protocol": "DRAFT",
-          "stage": "prelude"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af014-release-layer-policy-doc-sync-2026-11-16.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": null
-          },
-          {
-            "kind": "reply",
-            "ref": null
-          }
-        ]
-      },
       {
         "taskId": "TD-5",
         "title": null,
@@ -1459,6 +1464,64 @@ window.ORCH_SNAPSHOT = {
           }
         ],
         "archived": true
+      },
+      {
+        "taskId": "AF-013",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-implementation-2026-11-16.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md"
+          }
+        ],
+        "archived": true
+      },
+      {
+        "taskId": "AF-014",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-implementation-2026-11-16.md"
+          },
+          {
+            "kind": "reply",
+            "ref": null
+          }
+        ],
+        "archived": true
       }
     ],
     "statusMap": {
@@ -1474,36 +1537,6 @@ window.ORCH_SNAPSHOT = {
       "rejected": "REJECTED"
     },
     "artifacts": [
-      {
-        "taskId": "AF-013",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af013-gui-dispatch-readonly-drill-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-013",
-        "kind": "deliveryRecord",
-        "ref": null
-      },
-      {
-        "taskId": "AF-013",
-        "kind": "reply",
-        "ref": null
-      },
-      {
-        "taskId": "AF-014",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af014-release-layer-policy-doc-sync-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-014",
-        "kind": "deliveryRecord",
-        "ref": null
-      },
-      {
-        "taskId": "AF-014",
-        "kind": "reply",
-        "ref": null
-      },
       {
         "taskId": "TD-5",
         "kind": "taskSheet",
@@ -1858,12 +1891,40 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-012",
         "kind": "reply",
         "ref": null
+      },
+      {
+        "taskId": "AF-013",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-013",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-implementation-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-013",
+        "kind": "reply",
+        "ref": "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md"
+      },
+      {
+        "taskId": "AF-014",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-014",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-implementation-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-014",
+        "kind": "reply",
+        "ref": null
       }
     ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -1927,5 +1988,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 29
+  "archivedCount": 31
 };

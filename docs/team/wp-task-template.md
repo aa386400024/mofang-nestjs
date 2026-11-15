@@ -90,7 +90,7 @@ createdAt: 2026-11-15
   - `admin-dashboard/**` **不进**后端 lint-staged 的 eslint / prettier，也不在后端 `tsconfig` 内；前端闸门在前端目录用其自带脚本跑（`vue-tsc` / `vite build`），不套用后端分号 / 折行风格。详见 §5.3。
   - Flutter 客户端代码一律不碰（独立仓库）。
 - **提交分组隔离**：工作区可能并行存在其他进程（MiniMax Code / 前端 AI）的未提交产物；若用户授权代提交，只暂存本单文件，按任务分组分开 stage，不混入并行产物（详见 §7）。
-- 不自动 git commit / push（写完给 commit 草稿，等用户指令）。
+- 提交与推送按发布分层口径执行（[设计备忘 §6.1](agent-orchestration/autonomous-team-design.md#61-发布分层自动化逐层收紧)）：executor 不建分支、不提交、不推送，写完给 commit 草稿；L1–L3 在闸门绿 + 验收五类通过等前置条件下由 orchestrator 自动；L4 冻结动作转人工批准。
 
 ---
 
@@ -112,7 +112,7 @@ createdAt: 2026-11-15
 - 心理对话原文禁止进日志 / console / crash report（只出码和计数）。
 - {{任务特有红线，如：数值单一真相源、只 UPDATE 不 INSERT、不碰内容列}}
 - schema / migration / 映射函数按 §2 范围处理；不越权加需求外功能。
-- 不自动 commit/push。
+- 提交 / 推送按发布分层口径执行（设计备忘 §6.1）：executor 不提交；L1–L3 前置条件满足由 orchestrator 自动；L4 冻结动作（master 合并、tag、release、对外部署、策略例外、路线选型、跨任务变更、验收分歧、新增依赖）人工批准。
 
 ---
 
@@ -207,7 +207,7 @@ createdAt: 2026-11-15
 - [ ] `policyRefs` 锚点在交付记录契约组逐条留痕核对结果
 - [ ] `git diff --stat HEAD -- src/engine-core` 为空
 - [ ] 提交分组已核对：本单文件清单与并行进程产物分开；若授权代提交，stage 时只含本单文件（后端目录 / admin-dashboard 前端文件 / 文档各自成组，不混提）
-- [ ] 给一行 commit message 草稿（**不自己 commit/push**，等用户指令）
+- [ ] 给一行 commit message 草稿（executor 不自己 commit/push；提交 / 推送按 §6.1 分层：L1–L3 前置条件满足由 orchestrator 自动，L4 转人工）
 
 ---
 

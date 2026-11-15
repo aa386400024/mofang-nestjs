@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-15T17:49:22.356Z",
+  "updatedAt": "2026-11-15T18:13:18.029Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -348,6 +348,78 @@
       "history": [
         {
           "at": "2026-11-15T17:49:22.354Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-014",
+      "status": "candidate",
+      "title": "通道层重试规则与失败终态未锚定 framework reliability §4（各自立法）",
+      "source": "review",
+      "type": "gap",
+      "layer": "framework",
+      "relatedTaskId": "AF-013",
+      "evidence": ["docs/worklog/pending/archive/relay-response-af013-drill-20261116.md", "D-10", "D-2", "D-5", "D-7"],
+      "impact": "通道重试形态/数值（固定重试一次、无退避）与框架指数退避不一致；失败终态出口双轨（保持 ready+转人工 vs 直接 failed）；确定性缺陷在通道层缺终止规则。跨两仓文档修订时需统一权威终态出口与重试预算。",
+      "suggestion": "在 design memo §3 补 framework §4 锚点；先定权威终态出口（ready vs failed），再统一任务级重试预算与退避；确定性缺陷直落 failed 不重试。",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-15T18:05:07.422Z",
+      "updatedAt": "2026-11-15T18:05:07.422Z",
+      "history": [
+        {
+          "at": "2026-11-15T18:05:07.422Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-015",
+      "status": "candidate",
+      "title": "派发审计缺逐次重试留痕载体与失败定性三分法字段",
+      "source": "review",
+      "type": "gap",
+      "layer": "framework",
+      "relatedTaskId": "AF-013",
+      "evidence": ["docs/worklog/pending/archive/relay-response-af013-drill-20261116.md", "D-1", "D-3"],
+      "impact": "审计只留尝试次数聚合值，丢失逐次尝试的失败原因/所在层/退避时长，无法复原重试链；通道失败未纳入确定性/偶发/既有债定性三分法，框架要求的基线分栏在通道侧无载体。",
+      "suggestion": "审计记录扩为逐次尝试条目（层、原因、退避、结果）；任务/通道失败补定性字段与既有债-本次改动分栏；通道演练基线来源另立只读核对单确认。",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-15T18:05:19.082Z",
+      "updatedAt": "2026-11-15T18:05:19.082Z",
+      "history": [
+        {
+          "at": "2026-11-15T18:05:19.082Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-016",
+      "status": "candidate",
+      "title": "conventions 与回执模板仍保留旧「不自动 commit/push」口径，未对齐 §6.1 分层",
+      "source": "review",
+      "type": "standard",
+      "layer": "adapter",
+      "relatedTaskId": "AF-014",
+      "evidence": ["docs/team/conventions.md#132", "docs/team/agent-orchestration/relay-receipt-template.md#68"],
+      "impact": "两处活规范仍写「提交推送等用户指令」，与 README/角色卡/模板已落地的 L1–L3 自动 + L4 冻结口径并存，消费方可能读到旧口径造成边界漂移",
+      "suggestion": "另开规范同步单：conventions §1.4 提交纪律与回执模板 commit 草稿条目改为引用设计备忘 §6.1 分层口径；executor 不提交口径保留，L1–L3 自动前置条件与 L4 冻结清单指向 §6.1",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-15T18:13:18.026Z",
+      "updatedAt": "2026-11-15T18:13:18.026Z",
+      "history": [
+        {
+          "at": "2026-11-15T18:13:18.026Z",
           "from": null,
           "to": "candidate",
           "by": "orchestrator-cli",

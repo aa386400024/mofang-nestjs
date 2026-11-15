@@ -2,42 +2,7 @@
   "version": "1.0.0",
   "schemaRef": "urn:agent-collaboration-framework:schema:task-state-index:1.0.0",
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。字段可扩展、不删除既有字段；未来迁 DB 时一一对应。历史任务仅登记工件指针，基线与 claim 字段待按需补录。 type 字段索引侧不做枚举约束（schema additionalProperties 放宽，兼容项目扩展）；归档条目只保留工件指针，运行态字段不回填；schemaRef 指向框架 schema URN。",
-  "tasks": [
-    {
-      "taskId": "AF-013",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "verification",
-      "title": "GUI 派发只读演练（进程自愈、四层定位、路径固化、失败重试与转人工、派发审计）",
-      "status": "backlog",
-      "baselineRef": "09df090",
-      "dependsOn": ["AF-010", "AF-011"],
-      "policyRefs": ["framework/human-in-the-loop.md", "framework/reliability.md", "autonomous-team-design.md#gui-channel"],
-      "createdAt": "2026-11-16",
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af013-gui-dispatch-readonly-drill-2026-11-16.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "history": []
-    },
-    {
-      "taskId": "AF-014",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "documentation",
-      "title": "分层发布口径同步（README 角色绑定 / 敏感操作边界与角色卡 limits 对齐 L1–L4 模型）",
-      "status": "backlog",
-      "baselineRef": "09df090",
-      "dependsOn": [],
-      "policyRefs": ["framework/roles.md", "framework/autonomous-loop.md", "autonomous-team-design.md#release-layers"],
-      "createdAt": "2026-11-16",
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af014-release-layer-policy-doc-sync-2026-11-16.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "history": []
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -287,6 +252,26 @@
         "reply": null
       },
       "note": "分支流程 CLI + 纯函数治理；82 passed"
+    },
+    {
+      "taskId": "AF-013",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-implementation-2026-11-16.md",
+        "reply": "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md"
+      },
+      "note": "GUI 通道规则纯函数模块 + CLI channel 只读视图；真实只读演练 DR-001 闭环；89 passed"
+    },
+    {
+      "taskId": "AF-014",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-implementation-2026-11-16.md",
+        "reply": null
+      },
+      "note": "README §2/§4 + 三份角色卡 limits + 任务单模板对齐 §6.1 L1–L4 分层；纯文档零源码改动；IM-016 登记 conventions/回执模板旧口径另案"
     }
   ]
 }

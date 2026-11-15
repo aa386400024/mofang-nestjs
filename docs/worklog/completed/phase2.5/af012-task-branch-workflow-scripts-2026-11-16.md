@@ -3,8 +3,8 @@ taskId: AF-012
 contextId: phase2.5-orchestration-closed-loop
 title: 任务分支流程脚本（建分支 / squash 合并 / 合并清理 / 陈旧分支巡检）
 type: implementation
-status: backlog
-baselineRef: 09df090
+status: completed
+baselineRef: 67047ea
 dependsOn: []
 policyRefs: [framework/state-machine.md, autonomous-team-design.md#branch-strategy]
 createdAt: 2026-11-16
@@ -12,7 +12,7 @@ createdAt: 2026-11-16
 
 # AF-012 · 任务分支流程脚本与分支数量治理
 
-> 状态：📋 待立项（2026-11-16）｜编排：主控 Doubao（orchestrator 自做）
+> 状态：✅ 已交付（2026-11-16）｜编排：主控 Doubao（orchestrator 自做）｜交付记录：af012-task-branch-workflow-scripts-implementation-2026-11-16.md
 > 仓库：`E:\Work\Project\backend\mofang-nestjs`；落点 `scripts/orchestration/`、CLI 子命令
 > 唯一事实源：`docs/team/agent-orchestration/autonomous-team-design.md` §4（分支策略与治理）、§6（分层发布）、§8 P0-4
 > 任务性质：编排层工具链演进；不碰业务源码

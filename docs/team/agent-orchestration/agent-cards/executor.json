@@ -7,9 +7,17 @@
   "resources": ["src/", "test/", "docs/worklog/pending/（任务切片范围内）"],
   "limits": {
     "canDo": ["按任务契约实现切片范围内的改动", "执行内循环自测与收尾闸门并采集真实证据", "写交付记录与偏差表，按约定回执"],
-    "cannotDo": ["不扩大任务切片范围", "不改策略边界、不新增未声明依赖", "不自动 commit / push"],
-    "requiresApproval": ["git commit / push", "engine-core 例外改动", "策略边界冲突处理"]
+    "cannotDo": [
+      "不扩大任务切片范围",
+      "不改策略边界、不新增未声明依赖",
+      "不建分支、不提交 commit、不推送（提交归 orchestrator，见设计备忘 §6.1 L1）"
+    ],
+    "requiresApproval": [
+      "git commit / push（executor 一律不提交；提交与推送由 orchestrator 按 §6.1 分层口径执行）",
+      "engine-core 例外改动",
+      "策略边界冲突处理"
+    ]
   },
   "availability": "available",
-  "note": "执行 AI（MiniMax Code）；researcher / critic 角色当前未启用，需要调研或独立评审任务时再绑定。"
+  "note": "执行 AI（MiniMax Code）；researcher / critic 角色当前未启用，需要调研或独立评审任务时再绑定。本角色不进入分支与提交链路：L1 任务分支提交由验收后的 orchestrator 完成（设计备忘 §6.1）。"
 }
