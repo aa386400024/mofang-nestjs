@@ -37,7 +37,8 @@ pnpm lint:fast
 pnpm typecheck
 
 # 2.6 状态索引一致性（taskId 存在、终态 history 闭合、工件指针路径存在）
-# 由主控按 task-state-index.json 逐条核对；机读校验护栏 V1–V6 见框架 docs/tools.md §8；L2 可由脚本校验 schema 与指针
+# 机读护栏 V1–V6 由 scripts/orchestration/acceptance-runner.mjs 执行（只读，不改代码）；
+# 工具声明见 tools/orchestration-tools.json；框架口径 docs/tools.md、docs/acceptance.md
 ```
 
 ## 3. 本仓库特定核对项
@@ -57,6 +58,15 @@ pnpm typecheck
 | `passed`           | 五类全清                                                        | `completed`                                   |
 | `conditional-pass` | 主体合格，遗留显式登记且不阻塞当前交付                          | `completed`，遗留入 backlog                   |
 | `rejected`         | 落地缺口 / 证据不实 / 越界改动 / 契约未对齐；写明原因与待补动作 | `rejected`，返修在同一 `contextId` 下新开任务 |
+
+### 4.1 自治循环专项核对（框架 `docs/autonomous-loop.md`）
+
+| 核对项   | 口径                                                                                            |
+| -------- | ----------------------------------------------------------------------------------------------- |
+| 返修限次 | 返修在同一 `contextId` 下新开任务；返修次数达上限（`config.reworkLimit=2`）进入死信，不无限返修 |
+| 冻结动作 | push、策略例外、路线选型等敏感动作夜间不自动执行，列入交付包 `pendingApprovals` 待人工批准      |
+| 死信隔离 | `deadLetters` 单独标记并进入快照，不回流待办队列；留待人工复核                                  |
+| 崩溃恢复 | 状态索引 + 运行态 JSON 落盘；重启后从索引重建队列，租约超时由调度器释放                         |
 
 ## 5. 仍由人工 / 主控判断、不脚本化的项
 

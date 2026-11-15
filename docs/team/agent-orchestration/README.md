@@ -15,8 +15,8 @@
 | ----------------------- | ------------------------------------------------------------------------------------------ |
 | `projectId`             | `mofang-nestjs`（心塑 / XinSu 后端 NestJS 仓）                                             |
 | `frameworkVersionRange` | `>=1.0.0 <2.0.0`                                                                           |
-| 框架契约版本            | 任务单 / 状态索引 / 工具声明 schema 均为 1.0.0（见框架仓 `schemas/` 的 `$id`）             |
-| 框架发布版本            | 当前本地发布版本 `1.2.0`（框架仓为本地独立 git、未挂远端未发包；挂远端后以版本化引用为准） |
+| 框架契约版本            | 任务单 / 状态索引 / 工具声明 / 能力声明 schema 均为 1.0.0（见框架仓 `schemas/` 的 `$id`）  |
+| 框架发布版本            | 当前本地发布版本 `1.3.0`（框架仓为本地独立 git、未挂远端未发包；挂远端后以版本化引用为准） |
 
 > 框架契约发生破坏性变更（字段删除或语义改变）时，先复核本适配层的版本区间与字段对齐，再升级；既有字段只增不删。
 
@@ -34,15 +34,20 @@
 
 ## 3. 目录映射（directories）
 
-| 映射项                        | 本项目落点                                                               |
-| ----------------------------- | ------------------------------------------------------------------------ |
-| `directories.taskSheets`      | `docs/worklog/pending/`（`ready / submitted / working` 任务单）          |
-| `directories.deliveryRecords` | `docs/worklog/completed/<phase>/`（任务单 + 交付记录成对归档，只读历史） |
-| `directories.replyArchive`    | `docs/worklog/pending/archive/`（回执原文、中间产物归档）                |
-| `directories.artifacts`       | 各任务单切片范围内的源码 / 测试 / 规格路径；工件正文留在各自文件         |
-| `directories.stateIndex`      | `docs/team/agent-orchestration/task-state-index.json`                    |
+| 映射项                             | 本项目落点                                                                                |
+| ---------------------------------- | ----------------------------------------------------------------------------------------- |
+| `directories.taskSheets`           | `docs/worklog/pending/`（`ready / submitted / working` 任务单）                           |
+| `directories.deliveryRecords`      | `docs/worklog/completed/<phase>/`（任务单 + 交付记录成对归档，只读历史）                  |
+| `directories.replyArchive`         | `docs/worklog/pending/archive/`（回执原文、中间产物归档）                                 |
+| `directories.artifacts`            | 各任务单切片范围内的源码 / 测试 / 规格路径；工件正文留在各自文件                          |
+| `directories.stateIndex`           | `docs/team/agent-orchestration/task-state-index.json`                                     |
+| `directories.runtimeState`         | `docs/team/agent-orchestration/orchestration-state.json`（L2 运行态，首次 run-once 生成） |
+| `directories.snapshot`             | `docs/team/agent-orchestration/orchestration-snapshot.json`（队列快照，网页数据源）       |
+| `directories.deliveryPacks`        | `docs/team/agent-orchestration/delivery-packs/`（夜间交付包汇总目录）                     |
+| `directories.orchestrationScripts` | `scripts/orchestration/`（L2 工具链实现；工具声明见 `tools/orchestration-tools.json`）    |
+| `directories.agentCards`           | `docs/team/agent-orchestration/agent-cards/`（本项目代理能力声明 JSON）                   |
 
-四类落点互不重叠；任务单与交付记录成对归档；状态索引纳入 git 版本控制，保证崩溃后可重建。工件正文留在各自文件，状态索引只存**指针与状态**，不复制正文（见框架仓 `docs/task-contract.md` 工件模型）。
+四类落点互不重叠；任务单与交付记录成对归档；状态索引纳入 git 版本控制，保证崩溃后可重建。工件正文留在各自文件，状态索引只存**指针与状态**，不复制正文（见框架仓 `docs/task-contract.md` 工件模型）。运行态、快照、交付包与脚本目录为适配层扩展映射项，不进通用层 schema。
 
 ## 4. 工具与闸门命令（tools / gates）
 
@@ -56,6 +61,8 @@
 | 验收侧                     | 定向测试 + 关键路径抽跑 + 触碰文件快速复查 + 边界核对 + 范围核对；不重跑全量（升级全量的条件见模板 §5.4）                                           |
 | 前端闸门（仅授权前端任务） | 在 `admin-dashboard/` 目录跑 `pnpm type-check` / `pnpm build-only`，不套用后端 tsc / eslint                                                         |
 | 敏感操作                   | git commit / push、engine-core 例外改动、策略边界冲突处理，绑定 Human 批准；AI 不自动 commit / push                                                 |
+
+L2 编排工具链（状态存储、验收护栏、调度器、交付包、CLI）的类别、授权角色与副作用级别见 `tools/orchestration-tools.json`；实现位于 `scripts/orchestration/`。
 
 ## 5. 轮询档位（relay 轮询节奏与兜底次数）
 
@@ -86,28 +93,35 @@
 
 ## 7. 本目录文件
 
-| 文件                        | 角色                                     | 通用层对应                                                                       |
-| --------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------- |
-| `task-state-index.json`     | 本项目状态索引（真实任务记录与归档指针） | 框架仓 `schemas/task-state-index.schema.json`                                    |
-| `acceptance-checklist.md`   | 项目特定验收命令与仓库边界               | 五类核对口径见框架仓 `docs/acceptance.md`                                        |
-| `relay-receipt-template.md` | 回执 / 交付记录的项目路径约定与命令示例  | 七组字段骨架见框架仓 `templates/receipt.template.md`、`docs/receipt-contract.md` |
+| 文件                             | 角色                                                        | 通用层对应                                                                       |
+| -------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `task-state-index.json`          | 本项目状态索引（真实任务记录与归档指针）                    | 框架仓 `schemas/task-state-index.schema.json`                                    |
+| `acceptance-checklist.md`        | 项目特定验收命令与仓库边界                                  | 五类核对口径见框架仓 `docs/acceptance.md`                                        |
+| `relay-receipt-template.md`      | 回执 / 交付记录的项目路径约定与命令示例                     | 七组字段骨架见框架仓 `templates/receipt.template.md`、`docs/receipt-contract.md` |
+| `agent-cards/*.json`             | 本项目代理能力声明（human / orchestrator / executor）       | 框架仓 `schemas/agent-card.schema.json`、`templates/agent-card.template.md`      |
+| `tools/orchestration-tools.json` | L2 工具链工具声明（类别、角色白名单、副作用级别、资源范围） | 框架仓 `schemas/tool-contract.schema.json`、`docs/tools.md`                      |
+| `orchestration-state.json`       | L2 运行态（租约、领单、超时等；首次 run-once 生成）         | 框架仓 `docs/reliability.md`、`docs/autonomous-loop.md`                          |
+| `orchestration-snapshot.json`    | 队列快照（网页与 CLI 只读数据源）                           | 框架仓 `docs/autonomous-loop.md`                                                 |
+| `delivery-packs/`                | 夜间交付包汇总输出目录                                      | 框架仓 `docs/autonomous-loop.md` 交付包结构                                      |
 
 ## 8. 通用层指针（规则真相源在框架仓）
 
-| 主题                                       | 框架仓位置（`E:\Work\Project\agent-collaboration-framework\`）                                |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| 角色模型与隔离规则                         | `docs/roles.md`                                                                               |
-| 任务单字段组与工件模型                     | `docs/task-contract.md`；`schemas/task-sheet.schema.json`；`templates/task-sheet.template.md` |
-| 状态枚举与迁移规则                         | `docs/state-machine.md`                                                                       |
-| 回执七组字段契约                           | `docs/receipt-contract.md`；`templates/receipt.template.md`                                   |
-| 验收五类与三级结论                         | `docs/acceptance.md`                                                                          |
-| 可靠性（租约、超时释放、重试、崩溃恢复）   | `docs/reliability.md`                                                                         |
-| 上下文隔离与记忆分层                       | `docs/context-and-memory.md`                                                                  |
-| 权限、策略与审计                           | `docs/security-and-policy.md`                                                                 |
-| 工具契约（类别、声明结构、权限收口与审计） | `docs/tools.md`；`schemas/tool-contract.schema.json`；`templates/tool.template.md`            |
-| 人在环模式与升级                           | `docs/human-in-the-loop.md`                                                                   |
-| 演进路线 L0–L3                             | `docs/evolution.md`                                                                           |
-| 适配层声明规范                             | `adapters/README.md`                                                                          |
+| 主题                                                                   | 框架仓位置（`E:\Work\Project\agent-collaboration-framework\`）                                                            |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 角色模型与隔离规则                                                     | `docs/roles.md`                                                                                                           |
+| 任务单字段组与工件模型                                                 | `docs/task-contract.md`；`schemas/task-sheet.schema.json`；`templates/task-sheet.template.md`                             |
+| 状态枚举与迁移规则                                                     | `docs/state-machine.md`                                                                                                   |
+| 回执七组字段契约                                                       | `docs/receipt-contract.md`；`templates/receipt.template.md`                                                               |
+| 验收五类与三级结论                                                     | `docs/acceptance.md`                                                                                                      |
+| 可靠性（租约、超时释放、重试、崩溃恢复）                               | `docs/reliability.md`                                                                                                     |
+| 上下文隔离与记忆分层                                                   | `docs/context-and-memory.md`                                                                                              |
+| 权限、策略与审计                                                       | `docs/security-and-policy.md`                                                                                             |
+| 工具契约（类别、声明结构、权限收口与审计）                             | `docs/tools.md`；`schemas/tool-contract.schema.json`；`templates/tool.template.md`                                        |
+| 能力声明（Agent Card：角色、能力、边界、可用性）                       | `docs/roles.md`；`schemas/agent-card.schema.json`；`templates/agent-card.template.md`；`examples/example-agent-card.json` |
+| 自治循环（环上模型、决策与冻结边界、返修限次、死信、崩溃恢复、交付包） | `docs/autonomous-loop.md`                                                                                                 |
+| 人在环模式与升级                                                       | `docs/human-in-the-loop.md`                                                                                               |
+| 演进路线 L0–L3                                                         | `docs/evolution.md`                                                                                                       |
+| 适配层声明规范                                                         | `adapters/README.md`                                                                                                      |
 
 ## 9. 与仓库文档的衔接
 
