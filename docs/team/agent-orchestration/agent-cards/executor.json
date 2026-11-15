@@ -1,0 +1,15 @@
+{
+  "schemaRef": "urn:agent-collaboration-framework:schema:agent-card:1.0.0",
+  "agentId": "AGENT-EXEC-001",
+  "role": "executor",
+  "skills": ["implementation", "gate-evidence", "deviation-reporting", "self-test"],
+  "tools": ["workspace-read", "workspace-write", "gate-execution"],
+  "resources": ["src/", "test/", "docs/worklog/pending/（任务切片范围内）"],
+  "limits": {
+    "canDo": ["按任务契约实现切片范围内的改动", "执行内循环自测与收尾闸门并采集真实证据", "写交付记录与偏差表，按约定回执"],
+    "cannotDo": ["不扩大任务切片范围", "不改策略边界、不新增未声明依赖", "不自动 commit / push"],
+    "requiresApproval": ["git commit / push", "engine-core 例外改动", "策略边界冲突处理"]
+  },
+  "availability": "available",
+  "note": "执行 AI（MiniMax Code）；researcher / critic 角色当前未启用，需要调研或独立评审任务时再绑定。"
+}

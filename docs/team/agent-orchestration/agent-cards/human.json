@@ -1,0 +1,15 @@
+{
+  "schemaRef": "urn:agent-collaboration-framework:schema:agent-card:1.0.0",
+  "agentId": "AGENT-HUMAN-001",
+  "role": "human",
+  "skills": ["goal-setting", "policy-approval", "arbitration", "release-decision"],
+  "tools": [],
+  "resources": ["docs/team/conventions.md", "docs/team/agent-orchestration/"],
+  "limits": {
+    "canDo": ["确定任务目标与方向", "批准策略与红线例外", "裁决验收分歧", "决定技术路线选型与跨任务架构变更", "决定 git commit / push"],
+    "cannotDo": ["不承担工作单元的代码实现", "不替代执行代理完成切片内改动"],
+    "requiresApproval": []
+  },
+  "availability": "available",
+  "note": "本项目唯一人类角色（用户 / 大炮）；是敏感操作的审批节点，本身不进入工具白名单。"
+}

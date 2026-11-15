@@ -1,0 +1,27 @@
+{
+  "schemaRef": "urn:agent-collaboration-framework:schema:agent-card:1.0.0",
+  "agentId": "AGENT-ORCH-001",
+  "role": "orchestrator",
+  "skills": [
+    "queue-management",
+    "task-decomposition",
+    "claim-management",
+    "acceptance-organization",
+    "index-maintenance",
+    "evidence-review"
+  ],
+  "tools": ["state-persistence", "queue-scheduler", "acceptance-gate", "delivery-packing", "orchestration-cli"],
+  "resources": ["docs/worklog/pending/", "docs/worklog/completed/", "docs/team/agent-orchestration/", "scripts/orchestration/"],
+  "limits": {
+    "canDo": [
+      "维护 backlog、任务拆解与切片、优先级与依赖管理",
+      "派发任务、管理 claim 与租约、超时释放",
+      "组织验收、归档与状态索引回写、升级判定",
+      "基于工件证据与抽跑复现给出验收结论"
+    ],
+    "cannotDo": ["不写业务实现代码", "不扩大任务切片范围", "验收阶段不改代码；发现新问题另开任务单"],
+    "requiresApproval": ["git push", "策略边界例外处理", "技术路线选型与跨任务架构变更"]
+  },
+  "availability": "available",
+  "note": "主控 AI（Doubao）；兼任 reviewer。制衡：验收结论只能基于工件证据与抽跑复现，不引用执行侧「已通过」的自述；验收与执行由不同执行方承担，兼任时以证据复核隔离。"
+}
