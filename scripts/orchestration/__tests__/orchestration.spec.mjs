@@ -40,6 +40,14 @@ import {
   LOCATE_LAYERS,
   MAX_START_RETRIES,
   MAX_SEND_RETRIES,
+  MAX_TOTAL_ATTEMPTS,
+  BACKOFF_MS,
+  IRRECOVERABLE_CAUSES,
+  FAILURE_CLASSIFICATIONS,
+  isIrrecoverable,
+  nextBackoff,
+  CIRCUIT_BREAKER_RESERVED,
+  DEAD_LETTER_RESERVED,
   nextSessionPath,
   nextLocateLayer,
   canDispatch,
@@ -1180,5 +1188,78 @@ describe('AF-013 GUI 派发通道规则', () => {
     expect(buildEscalationMessage({ ...base, failureEvidence: [] }).valid).toBe(false);
     expect(buildEscalationMessage({ ...base, options: [] }).valid).toBe(false);
     expect(buildEscalationMessage({ ...base, recommendedDecision: '' }).valid).toBe(false);
+  });
+
+  it('不可恢复类别：四类判定为不可恢复；决策直接终态 failed，不进入重试', () => {
+    for (const cause of IRRECOVERABLE_CAUSES) expect(isIrrecoverable(cause)).toBe(true);
+    expect(isIrrecoverable('transient-flake')).toBe(false);
+    const terminal = resolveDispatchDecision({ processRunning: false, cause: 'deterministic-defect', attemptCount: 0 });
+    expect(terminal).toMatchObject({ action: 'fail-terminal', result: 'failed', cause: 'deterministic-defect' });
+    // 登录门优先于不可恢复短路（认证问题不在不可恢复四类内时仍走人工）
+    const login = resolveDispatchDecision({ loginGate: true, cause: 'permission-denied' });
+    expect(login.action).toBe('human-login');
+  });
+
+  it('任务级重试预算：耗尽保持 held-ready 升级人工；降级路径切换计入尝试', () => {
+    const exhausted = resolveDispatchDecision({
+      processRunning: true,
+      windowReady: true,
+      locateAttempted: LOCATE_LAYERS,
+      sessionAttempted: SESSION_PATHS,
+      sendRetries: MAX_SEND_RETRIES,
+      attemptCount: MAX_TOTAL_ATTEMPTS,
+    });
+    expect(exhausted).toMatchObject({ action: 'human-escalate', result: 'held-ready' });
+    const withinBudget = resolveDispatchDecision({
+      processRunning: true,
+      windowReady: true,
+      locateAttempted: [],
+      attemptCount: 1,
+    });
+    expect(withinBudget.action).toBe('locate');
+  });
+
+  it('指数退避序列：首试无退避，序列用尽复用末位', () => {
+    expect(nextBackoff(0)).toBe(BACKOFF_MS[0]);
+    expect(nextBackoff(1)).toBe(BACKOFF_MS[1]);
+    expect(nextBackoff(2)).toBe(BACKOFF_MS[2]);
+    expect(nextBackoff(5)).toBe(BACKOFF_MS[BACKOFF_MS.length - 1]);
+    expect(nextBackoff(-1)).toBe(BACKOFF_MS[0]);
+  });
+
+  it('审计：定性三分法与基线分栏落库；非法定性 / 基线形态 / 逐次条目被拒', () => {
+    const ok = buildDispatchAudit({
+      taskId: 'AF-015',
+      attempt: 2,
+      result: 'held-ready',
+      classification: 'flaky',
+      baseline: { legacyDebt: 'AF-013 演练基线', changeIntroduced: null },
+      attempts: [
+        { sessionPath: 'existing-session', locateLayer: 'shortcut', reason: '定位未聚焦', backoffMs: 0, result: 'held-ready' },
+        { sessionPath: 'mini-chat', locateLayer: 'paste-verify', reason: '降级路径', backoffMs: 500, result: 'dispatched' },
+      ],
+    });
+    expect(ok.valid).toBe(true);
+    expect(ok.audit.classification).toBe('flaky');
+    expect(ok.audit.baseline).toMatchObject({ legacyDebt: 'AF-013 演练基线', changeIntroduced: null });
+    expect(ok.audit.attempts).toHaveLength(2);
+    expect(ok.audit.attempts[0]).toMatchObject({ sessionPath: 'existing-session', locateLayer: 'shortcut', backoffMs: 0 });
+    expect(ok.audit).not.toHaveProperty('messageText');
+
+    expect(buildDispatchAudit({ taskId: 'X', attempt: 0, result: 'dispatched', classification: 'bogus' }).valid).toBe(false);
+    expect(buildDispatchAudit({ taskId: 'X', attempt: 0, result: 'dispatched', baseline: ['legacy'] }).valid).toBe(false);
+    expect(buildDispatchAudit({ taskId: 'X', attempt: 0, result: 'dispatched', attempts: [{ result: 'bogus' }] }).valid).toBe(false);
+  });
+
+  it('路径聚合：held-ready 计入未成功；预留位常量标注本版本不实现', () => {
+    const summary = summarizeChannelOutcomes([
+      { sessionPath: 'existing-session', result: 'dispatched' },
+      { sessionPath: 'existing-session', result: 'held-ready' },
+    ]);
+    const first = summary.find((s) => s.sessionPath === 'existing-session');
+    expect(first).toMatchObject({ attempted: 2, dispatched: 1, failed: 1, successRate: 0.5 });
+    expect(CIRCUIT_BREAKER_RESERVED.reserved).toBe(true);
+    expect(DEAD_LETTER_RESERVED.reserved).toBe(true);
+    expect(FAILURE_CLASSIFICATIONS).toEqual(['deterministic', 'flaky', 'legacy-debt']);
   });
 });
