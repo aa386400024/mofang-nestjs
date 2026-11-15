@@ -50,6 +50,8 @@ AF-003 / AF-004 回收验收以临时 node 命令现场实跑：JSON 双解析�
 ## 3. 目标架构 / 交付物（触发后立项时细化）
 
 > 进度备注（2026-11-15）：校验规则口径已成文进框架仓 `docs/tools.md` §8（机读校验护栏 V1–V6，与 `docs/acceptance.md` §3 分界对齐）；可复用脚本 / CI 校验入口仍未固化，留本单 backlog。
+>
+> 进度备注（2026-11-15 第二轮）：机读护栏已固化为本仓 adapter 工具 `scripts/orchestration/acceptance-runner.mjs`，覆盖工件存在非空、指针可达、Markdown 相对链接可达、编码（无 BOM / CR）、索引结构断言；输出三级结论（passed / conditional-pass / rejected）与人工复核清单。规则真相源仍在框架 schema 与 `docs/acceptance.md`，工具不另抄口径。**剩余仍留本单 backlog**：框架仓自带可复用校验工具 / CI 校验入口；任务单 schema 的 ajv 机读校验尚未进工具链。
 
 - 固化校验工具与可复用调用入口；
 - 覆盖上述四类校验规则的自检样例（中性占位，不含业务实体与真实任务标识）；

@@ -48,6 +48,8 @@ createdAt: 2026-11-15
 
 ## 3. 目标架构 / 交付物（触发后立项时细化）
 
+> 进度备注（2026-11-15）：adapter 侧 L2 编排工具链已落地本仓 `scripts/orchestration/`（落点为适配层，框架仓通用层仍只保留规范与 schema）：`state-store.mjs`（JSON 文件持久化 + 原子写 + 租约字段，store 抽象隔离便于后续迁 DB）、`scheduler.mjs`（队列扫描、领单租约、超时释放、验收驱动、返修提案与限次、死信隔离、队列快照）。设计备忘见 `docs/architecture/orchestration-l2-autonomous-pipeline-2026-11-15.md`。**剩余仍留本单 backlog**：持久层迁数据库 / 工作流引擎；watcher 事件触发通道（当前由 CLI `run-once` 或定时衔接，未做文件事件监听）。
+
 - 演进设计备忘：触发条件判定、watcher 选型、持久层存储选型（事务 / 并发锁 / 租约 / 可查询）、状态机 / 重试承接方案、L0 → L2 迁移与回滚路径；
 - 框架仓对应规范 / 代码 / 配置（若进入实现阶段）；
 - 验收：框架两类 schema 校验通过；五类验收留证；既有 L0 闭环回归不破坏。
