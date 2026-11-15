@@ -35,6 +35,19 @@ import {
   branchAgeDays,
   LONG_LIVED_BRANCHES,
 } from '../branch-workflow.mjs';
+import {
+  SESSION_PATHS,
+  LOCATE_LAYERS,
+  MAX_START_RETRIES,
+  MAX_SEND_RETRIES,
+  nextSessionPath,
+  nextLocateLayer,
+  canDispatch,
+  resolveDispatchDecision,
+  buildDispatchAudit,
+  summarizeChannelOutcomes,
+  buildEscalationMessage,
+} from '../dispatch-channel.mjs';
 import { runAcceptance } from '../acceptance-runner.mjs';
 import {
   addCandidate,
@@ -1056,5 +1069,116 @@ describe('AF-012 任务分支流程与治理', () => {
   it('分支年龄天数：按日期差折算；非法日期返回 null', () => {
     expect(branchAgeDays('2026-11-10T00:00:00.000Z', '2026-11-16T00:00:00.000Z')).toBe(6);
     expect(branchAgeDays('not-a-date', '2026-11-16T00:00:00.000Z')).toBeNull();
+  });
+});
+
+describe('AF-013 GUI 派发通道规则', () => {
+  it('会话降级链与定位层按固定顺序返回下一条；链尾返回 null', () => {
+    expect(SESSION_PATHS).toEqual(['existing-session', 'mini-chat', 'new-task']);
+    expect(LOCATE_LAYERS).toEqual(['health', 'element-tree', 'shortcut', 'paste-verify']);
+    expect(nextSessionPath([])).toBe('existing-session');
+    expect(nextSessionPath(['existing-session'])).toBe('mini-chat');
+    expect(nextSessionPath(SESSION_PATHS)).toBeNull();
+    expect(nextLocateLayer(['health'])).toBe('element-tree');
+    expect(nextLocateLayer(LOCATE_LAYERS)).toBeNull();
+  });
+
+  it('单任务队列：无在办允许；其他在办阻断；自身在办不阻断', () => {
+    expect(canDispatch({ tasks: [{ taskId: 'AF-013', status: 'backlog' }] }, 'AF-013')).toMatchObject({ allowed: true, blockers: [] });
+    const busy = canDispatch(
+      {
+        tasks: [
+          { taskId: 'AF-013', status: 'backlog' },
+          { taskId: 'AF-010B', status: 'working' },
+        ],
+      },
+      'AF-013',
+    );
+    expect(busy.allowed).toBe(false);
+    expect(busy.blockers).toEqual(['AF-010B']);
+    const self = canDispatch({ tasks: [{ taskId: 'AF-013', status: 'working' }] }, 'AF-013');
+    expect(self.allowed).toBe(true);
+  });
+
+  it('决策：登录门优先转人工接管；进程 / 窗口未起按重试上限拉起，超限升级', () => {
+    expect(resolveDispatchDecision({ loginGate: true, processRunning: false, windowReady: false, startRetries: 0 }).action).toBe(
+      'human-login',
+    );
+    expect(resolveDispatchDecision({ processRunning: false, windowReady: false, startRetries: 0 }).action).toBe('start-process');
+    expect(resolveDispatchDecision({ processRunning: false, windowReady: false, startRetries: MAX_START_RETRIES }).action).toBe(
+      'human-escalate',
+    );
+    expect(resolveDispatchDecision({ processRunning: true, windowReady: false, startRetries: 0 }).action).toBe('relaunch-window');
+    expect(resolveDispatchDecision({ processRunning: true, windowReady: false, startRetries: MAX_START_RETRIES }).action).toBe(
+      'human-escalate',
+    );
+  });
+
+  it('决策：就绪后逐层定位；定位走完沿会话链发送；发送超限升级人工', () => {
+    const locating = resolveDispatchDecision({ processRunning: true, windowReady: true, locateAttempted: [] });
+    expect(locating).toMatchObject({ action: 'locate', layer: 'health' });
+    const sending = resolveDispatchDecision({
+      processRunning: true,
+      windowReady: true,
+      locateAttempted: LOCATE_LAYERS,
+      sessionAttempted: [],
+      sendRetries: 0,
+    });
+    expect(sending).toMatchObject({ action: 'send', sessionPath: 'existing-session' });
+    const exhausted = resolveDispatchDecision({
+      processRunning: true,
+      windowReady: true,
+      locateAttempted: LOCATE_LAYERS,
+      sessionAttempted: SESSION_PATHS,
+      sendRetries: MAX_SEND_RETRIES,
+    });
+    expect(exhausted.action).toBe('human-escalate');
+  });
+
+  it('派发审计：合法构造且不含消息正文；缺字段 / 非法枚举被拒', () => {
+    const ok = buildDispatchAudit({
+      taskId: 'AF-013',
+      attempt: 0,
+      result: 'dispatched',
+      sessionPath: 'mini-chat',
+      locateLayer: 'shortcut',
+    });
+    expect(ok.valid).toBe(true);
+    expect(ok.audit).not.toHaveProperty('messageText');
+    expect(ok.audit).toMatchObject({ taskId: 'AF-013', attempt: 0, result: 'dispatched' });
+
+    expect(buildDispatchAudit({ taskId: '', attempt: 0, result: 'dispatched' }).valid).toBe(false);
+    expect(buildDispatchAudit({ taskId: 'X', attempt: -1, result: 'dispatched' }).valid).toBe(false);
+    expect(buildDispatchAudit({ taskId: 'X', attempt: 0, result: 'bogus' }).valid).toBe(false);
+    expect(buildDispatchAudit({ taskId: 'X', attempt: 0, result: 'dispatched', sessionPath: 'nope' }).valid).toBe(false);
+  });
+
+  it('路径成功率聚合：按会话路径统计成功 / 失败；无样本记 null', () => {
+    const summary = summarizeChannelOutcomes([
+      { sessionPath: 'existing-session', result: 'dispatched' },
+      { sessionPath: 'existing-session', result: 'failed' },
+      { sessionPath: 'mini-chat', result: 'dispatched' },
+    ]);
+    const first = summary.find((s) => s.sessionPath === 'existing-session');
+    expect(first).toMatchObject({ attempted: 2, dispatched: 1, failed: 1, successRate: 0.5 });
+    expect(summary.find((s) => s.sessionPath === 'new-task').successRate).toBeNull();
+  });
+
+  it('升级消息：标准字段齐全通过；缺证据 / 少于两条选项 / 缺决定点被拒', () => {
+    const base = {
+      taskId: 'AF-013',
+      currentStatus: 'ready',
+      attemptedPaths: [{ path: 'existing-session', conclusion: '失败' }],
+      failureEvidence: [{ command: 'launch', exitCode: 1, note: '窗口未就绪' }],
+      options: [
+        { action: '人工接管登录', cost: '一次人工操作', risk: '无', benefit: '恢复通道' },
+        { action: '保持 ready 并稍后重试', cost: '延后一轮派发', risk: '任务继续等待', benefit: '不阻塞其他只读任务' },
+      ],
+      recommendedDecision: '是否由人工接管完成登录',
+    };
+    expect(buildEscalationMessage(base).valid).toBe(true);
+    expect(buildEscalationMessage({ ...base, failureEvidence: [] }).valid).toBe(false);
+    expect(buildEscalationMessage({ ...base, options: [] }).valid).toBe(false);
+    expect(buildEscalationMessage({ ...base, recommendedDecision: '' }).valid).toBe(false);
   });
 });

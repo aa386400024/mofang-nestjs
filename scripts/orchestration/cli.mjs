@@ -43,6 +43,7 @@ import {
   createGitPort,
   DEFAULT_STALE_DAYS,
 } from './branch-workflow.mjs';
+import { SESSION_PATHS, LOCATE_LAYERS, MAX_START_RETRIES, MAX_SEND_RETRIES, canDispatch } from './dispatch-channel.mjs';
 
 /** 快照双写：JSON（机读 / 存档）+ data.js（静态网页在 file:// 下读取，规避本地 fetch 限制）。 */
 function writeSnapshotArtifacts(snapshot) {
@@ -363,6 +364,36 @@ function cmdBranch(args) {
   process.exit(2);
 }
 
+/**
+ * AF-013 派发通道规则只读视图：rules（降级链 / 定位层 / 重试上限）、queue（单任务队列可派判定）。
+ * 纯只读；进程探测、窗口操作与发送由 relay 层在真实桌面执行，本命令不落审计、不触发变更。
+ */
+function cmdChannel(args) {
+  const action = args[0] ?? 'rules';
+  if (action === 'rules') {
+    console.log('=== GUI 派发通道规则（只读）===');
+    console.log(`会话降级链：${SESSION_PATHS.join(' → ')}`);
+    console.log(`定位四层：${LOCATE_LAYERS.join(' → ')}`);
+    console.log(`进程 / 窗口启动重试上限：${MAX_START_RETRIES}；发送换路径重试上限：${MAX_SEND_RETRIES}`);
+    console.log('登录门交人工接管；审计与回执不含对话原文；单任务队列，在办未回收不发下一个');
+    return;
+  }
+  if (action === 'queue') {
+    const taskId = argValue(args, '--taskId');
+    if (!taskId) {
+      console.error('用法：cli.mjs channel queue --taskId <id>');
+      process.exit(2);
+    }
+    const index = loadIndex();
+    const decision = canDispatch(index, taskId);
+    if (decision.allowed) console.log(`可派发：${taskId}（无其他在办任务）`);
+    else console.log(`队列占用：${taskId} 暂不派发；在办阻塞 ${decision.blockers.join(', ')}`);
+    return;
+  }
+  console.error(`未知通道动作：${action}`);
+  process.exit(2);
+}
+
 const SKIPPED = { ok: true, skipped: true, errors: [], schemaId: null };
 
 /** AF-006：框架 schema 机读校验（索引 / 工具契约 / Agent Card；可选任务单元 JSON）。 */
@@ -520,6 +551,7 @@ function printHelp() {
   console.log('用法：cli.mjs <status|run-once|watch|protocol|snapshot|pack|archive|validate|config|improvements> [参数]');
   console.log('  archive <taskId> [--status ..] [--sheet ..] [--record ..] [--reply ..] [--note ..]');
   console.log('  branch <list|plan|create|merge|cleanup> [--taskId <id>] [--slug <slug>] [--apply] [--stale-days n]');
+  console.log('  channel <rules|queue> [--taskId <id>]   AF-013 派发通道规则只读视图');
   console.log('  watch                        监听任务单 / 回执目录，变更防抖后自动执行一轮 run-once');
   console.log('  protocol                     导出标准协议视图（protocolView 只读映射投影）');
   console.log('  validate [--sheet <file>]   校验索引 / 工具契约 / Agent Card（可选任务单元 JSON）');
@@ -565,6 +597,14 @@ switch (command) {
       cmdBranch(args);
     } catch (err) {
       console.error(`分支流程失败：${err.message}`);
+      process.exit(2);
+    }
+    break;
+  case 'channel':
+    try {
+      cmdChannel(args);
+    } catch (err) {
+      console.error(`通道规则失败：${err.message}`);
       process.exit(2);
     }
     break;
