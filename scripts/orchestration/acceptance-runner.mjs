@@ -11,7 +11,7 @@
  *   V3 工件指针     登记指针存在且非空，可反查交付记录
  *   V4 链接可达     文档内相对链接目标存在；断链归零或显式标注
  *   V5 编码一致     文本工件无 BOM、无 CR（纯 LF）
- *   V6 工具契约     工具声明 JSON 结构齐全（当前仓无工具声明时记 skip）
+ *   V6 工具契约     工具声明 JSON 字段与枚举合法；未登记工具声明时记 skip
  *
  * 结论：任一 fail → rejected；无 fail 且人工复核非空 → conditional-pass；
  * 无 fail 且人工复核为空 → passed。
@@ -168,10 +168,46 @@ function checkEncoding(task) {
   return { checks, manualReview: [] };
 }
 
-/** V6 工具契约：当前仓未登记工具声明 JSON，记 skip；存在时做基础字段断言。 */
+const SIDE_EFFECTS = ['read-only', 'restricted-write', 'sensitive'];
+const ROLES = ['orchestrator', 'executor', 'reviewer', 'researcher', 'critic'];
+const TOOL_MANIFEST = join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'tools', 'orchestration-tools.json');
+
+/** V6 工具契约：读取工具声明清单，断言字段齐全与枚举合法；未登记时记 skip。 */
 function checkToolContracts() {
   const checks = [];
-  record(checks, 'V6', '工具契约', 'skip', '当前仓无工具声明工件；工具契约 schema 合规由框架仓样例校验覆盖');
+  if (!existsSync(TOOL_MANIFEST)) {
+    record(checks, 'V6', '工具契约', 'skip', '未登记工具声明工件；工具契约 schema 合规由框架仓样例校验覆盖');
+    return { checks, manualReview: [] };
+  }
+  const problems = [];
+  let tools = [];
+  try {
+    const manifest = JSON.parse(readFileSync(TOOL_MANIFEST, 'utf8'));
+    tools = Array.isArray(manifest.tools) ? manifest.tools : [];
+    if (!manifest.schemaRef) problems.push('清单缺 schemaRef');
+  } catch (err) {
+    record(checks, 'V6', '工具契约', 'fail', `工具声明 JSON 解析失败：${err.message}`);
+    return { checks, manualReview: [] };
+  }
+  if (tools.length === 0) problems.push('工具清单为空');
+  for (const tool of tools) {
+    const id = tool.toolId ?? '未命名工具';
+    if (!tool.toolId) problems.push(`${id}：缺 toolId`);
+    if (!tool.category) problems.push(`${id}：缺 category`);
+    if (!SIDE_EFFECTS.includes(tool.sideEffect)) problems.push(`${id}：sideEffect 非法（${String(tool.sideEffect)}）`);
+    if (!Array.isArray(tool.allowedRoles)) {
+      problems.push(`${id}：allowedRoles 须为数组`);
+    } else {
+      for (const role of tool.allowedRoles) {
+        if (!ROLES.includes(role)) problems.push(`${id}：角色非法（${role}）`);
+      }
+    }
+  }
+  if (problems.length > 0) {
+    record(checks, 'V6', '工具契约', 'fail', problems.join('；'));
+  } else {
+    record(checks, 'V6', '工具契约', 'pass', `工具声明 ${tools.length} 件，字段与枚举合法`);
+  }
   return { checks, manualReview: [] };
 }
 

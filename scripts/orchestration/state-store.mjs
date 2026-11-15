@@ -53,18 +53,41 @@ export function writeJsonAtomic(file, value) {
   renameSync(tmp, file);
 }
 
-/** 加载配置；缺省值兜底。 */
-export function loadConfig() {
-  const raw = readJson(PATHS.config) ?? {};
+/**
+ * 配置结构校验：非法取值抛错，避免静默兜底掩盖配置缺陷；返回归一化配置。
+ * 仅做结构与取值合法性校验，不解析业务语义。
+ */
+export function validateConfig(raw) {
+  const errors = [];
+  const reworkLimit = Number(raw.reworkLimit ?? 2);
+  if (!Number.isInteger(reworkLimit) || reworkLimit < 0) {
+    errors.push(`reworkLimit 须为非负整数，实际 ${raw.reworkLimit}`);
+  }
+  const lease = Number(raw.leaseDefaultMinutes ?? 30);
+  if (!Number.isFinite(lease) || lease <= 0) {
+    errors.push(`leaseDefaultMinutes 须为正数，实际 ${raw.leaseDefaultMinutes}`);
+  }
+  if (raw.allowedTaskTypes !== undefined && !Array.isArray(raw.allowedTaskTypes)) {
+    errors.push('allowedTaskTypes 须为数组');
+  }
+  if (raw.frozenActions !== undefined && !Array.isArray(raw.frozenActions)) {
+    errors.push('frozenActions 须为数组');
+  }
+  if (errors.length > 0) throw new Error(`编排配置非法：${errors.join('；')}`);
   return {
     schemaVersion: raw.schemaVersion ?? '1.0.0',
     autoLoop: { enabled: raw.autoLoop?.enabled === true },
-    reworkLimit: Number(raw.reworkLimit ?? 2),
-    leaseDefaultMinutes: Number(raw.leaseDefaultMinutes ?? 30),
+    reworkLimit,
+    leaseDefaultMinutes: lease,
     allowedTaskTypes: Array.isArray(raw.allowedTaskTypes) ? raw.allowedTaskTypes : [],
     frozenActions: Array.isArray(raw.frozenActions) ? raw.frozenActions : [],
     notes: raw.notes ?? {},
   };
+}
+
+/** 加载配置；结构非法时抛错。 */
+export function loadConfig() {
+  return validateConfig(readJson(PATHS.config) ?? {});
 }
 
 /** 局部更新配置（仅开关与数值字段），保留 notes。 */

@@ -13,7 +13,7 @@
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { PATHS, loadConfig, loadIndex, loadRuntimeState, saveConfigPatch, writeJsonAtomic } from './state-store.mjs';
-import { advanceOnce, buildSnapshot } from './scheduler.mjs';
+import { advanceOnce, buildSnapshot, shouldAdvance } from './scheduler.mjs';
 import { generateDeliveryPack } from './delivery-pack.mjs';
 
 /** 快照双写：JSON（机读 / 存档）+ data.js（静态网页在 file:// 下读取，规避本地 fetch 限制）。 */
@@ -66,9 +66,13 @@ function cmdStatus() {
 }
 
 function cmdRunOnce() {
+  const config = loadConfig();
+  if (!shouldAdvance(config)) {
+    console.log('自治模式关闭：本轮仅生成只读快照，不执行领单 / 验收归档 / 返修等状态迁移。');
+  }
   const { snapshot, actions } = advanceOnce({ commit: true });
   writeSnapshotArtifacts(snapshot);
-  for (const action of actions) console.log(`[动作] ${action.type} ${action.taskId}${action.reason ? `（${action.reason}）` : ''}`);
+  for (const action of actions) console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
   console.log('');
   printSnapshot(snapshot);
 }

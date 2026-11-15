@@ -49,6 +49,11 @@ export function canTransition(from, to) {
   return TRANSITIONS[from]?.includes(to) ?? false;
 }
 
+/** 自治模式是否开启；关闭时调度器只输出只读快照，不推进任何状态迁移。 */
+export function shouldAdvance(config) {
+  return config?.autoLoop?.enabled === true;
+}
+
 function pushHistory(task, to, by, reason) {
   if (!Array.isArray(task.history)) task.history = [];
   task.history.push({ at: nowIso(), from: task.status, to, by, reason: reason ?? null });
@@ -121,6 +126,7 @@ function processReceipts(index, runtimeState, config, actions) {
     const result = runAcceptance(task, index);
     const entry = ensureRuntimeEntry(runtimeState, task.taskId);
     entry.autoVerdict = { verdict: result.verdict, rationale: result.rationale, at: nowIso() };
+    entry.manualReview = result.manualReview;
 
     if (result.verdict === 'rejected') {
       entry.attemptCount = Number(entry.attemptCount ?? 0);
@@ -202,7 +208,7 @@ export function buildSnapshot(index, runtimeState, config) {
       frozen: entry.frozen === true,
       reworkOf: entry.reworkOf ?? null,
       artifacts: task.artifacts ?? {},
-      manualReview: entry.autoVerdict ? [] : [],
+      manualReview: entry.manualReview ?? [],
     };
     tasks.push(row);
     if (entry.deadLetter) deadLetters.push({ ...row, escalation: entry.escalation ?? null });
@@ -233,16 +239,26 @@ export function advanceOnce(opts = {}) {
   const runtimeState = loadRuntimeState();
   const actions = [];
 
-  releaseExpiredLeases(index, runtimeState, actions);
-  claimReadyTasks(index, runtimeState, config, actions);
-  processReceipts(index, runtimeState, config, actions);
+  if (shouldAdvance(config)) {
+    releaseExpiredLeases(index, runtimeState, actions);
+    claimReadyTasks(index, runtimeState, config, actions);
+    processReceipts(index, runtimeState, config, actions);
+  } else {
+    actions.push({
+      type: 'readonly-snapshot',
+      taskId: null,
+      reason: '自治模式关闭，仅生成只读快照，不执行领单 / 验收归档 / 返修等状态迁移',
+    });
+  }
 
   const snapshot = buildSnapshot(index, runtimeState, config);
 
   if (opts.commit !== false) {
-    saveIndex(index);
-    saveRuntimeState(runtimeState);
-    // 快照单独落盘，供静态网页读取。
+    if (shouldAdvance(config)) {
+      saveIndex(index);
+      saveRuntimeState(runtimeState);
+    }
+    // 快照为只读产物，关闭自治时同样落盘，供静态网页读取。
     writeJsonAtomic(PATHS.snapshot, snapshot);
   }
   return { snapshot, actions };
