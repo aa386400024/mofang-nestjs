@@ -9,8 +9,8 @@ WORKDIR /app
 # Alpine 缺 python3 / make / g++ 的话, bcrypt / sharp 等 native module 需要
 RUN apk add --no-cache python3 make g++ libc6-compat
 
-# pnpm via corepack (Node 26 自带)
-RUN corepack enable
+# pnpm via corepack. Node v25+ 不再捆绑 corepack (v24 及之前内置), 需先经 npm 全局安装.
+RUN npm install -g corepack && corepack enable
 
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
@@ -21,7 +21,7 @@ RUN pnpm install --frozen-lockfile
 FROM node:26-alpine AS build
 WORKDIR /app
 
-RUN corepack enable
+RUN npm install -g corepack && corepack enable
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
