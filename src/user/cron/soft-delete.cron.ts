@@ -52,11 +52,10 @@ export class SoftDeleteCron {
     private readonly config: ConfigService,
   ) {
     // 启动时注册动态 cron (主任务: 软删到期真删)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const cronExpr = this.config.get('softDelete').cronSchedule;
+    const cronExpr = this.config.get<string>('softDelete.cronSchedule') ?? '0 3 * * *';
     this.logger.log(`Registering cron: soft-delete-purge schedule="${cronExpr}"`);
 
-    const job = new CronJob(cronExpr as string, () => {
+    const job = new CronJob(cronExpr, () => {
       void this.purgeExpiredSoftDeletes();
     });
     this.schedulerRegistry.addCronJob('soft-delete-purge', job);
@@ -68,8 +67,7 @@ export class SoftDeleteCron {
    */
 
   public async purgeExpiredSoftDeletes(): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const retentionDays = this.config.get('softDelete').retentionDays;
+    const retentionDays = this.config.get<number>('softDelete.retentionDays') ?? 30;
     const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
 
     this.logger.log(`Soft delete purge started: cutoff=${cutoff.toISOString()} retention=${retentionDays}d`);
