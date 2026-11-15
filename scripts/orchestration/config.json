@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0.0",
+  "autoLoop": {
+    "enabled": false
+  },
+  "reworkLimit": 2,
+  "leaseDefaultMinutes": 30,
+  "allowedTaskTypes": ["implementation", "fix", "documentation"],
+  "frozenActions": [
+    "external-release",
+    "policy-exception",
+    "route-selection",
+    "cross-task-change",
+    "verdict-disagreement",
+    "dependency-change"
+  ],
+  "notes": {
+    "enabled": "自治模式总开关，默认关闭；经 CLI `pnpm orchestration:config --enable` 显式开启，静态网页只读展示，不直接写本地文件。",
+    "reworkLimit": "同一 contextId 下返修次数上限，超限进死信隔离。",
+    "leaseDefaultMinutes": "任务未声明 deadline 时的默认租约时长（分钟）。",
+    "allowedTaskTypes": "允许自动执行的任务类型；investigation / review 等只读产出类型不在白名单，不自动改实现。",
+    "frozenActions": "命中即冻结、转 input-required 并转人工，不阻塞队列其他任务；类别对齐框架仓 docs/autonomous-loop.md §3.2。"
+  }
+}
