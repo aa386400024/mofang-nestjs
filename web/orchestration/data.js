@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-15T13:16:47.822Z",
+  "generatedAt": "2026-11-15T13:44:52.290Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -91,29 +91,29 @@ window.ORCH_SNAPSHOT = {
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 0,
-    "activeCount": 0,
+    "total": 3,
+    "activeCount": 3,
     "byStatus": {
-      "candidate": 0,
-      "queued": 0,
+      "candidate": 2,
+      "queued": 1,
       "accepted": 0,
       "done": 0,
       "wontfix": 0
     },
     "byType": {
-      "gap": 0,
+      "gap": 1,
       "guardrail": 0,
       "tool": 0,
       "standard": 0,
       "performance": 0,
-      "tech-debt": 0
+      "tech-debt": 2
     },
     "bySource": {
-      "implementation": 0,
+      "implementation": 1,
       "acceptance": 0,
       "rework": 0,
       "dead-letter": 0,
-      "review": 0
+      "review": 2
     }
   },
   "archivedCount": 21
