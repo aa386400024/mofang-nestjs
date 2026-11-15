@@ -4,10 +4,31 @@
 > **为什么有这个文件**：之前任务单结构不一、读完不知从何下手、做完忘回写索引。本模板固化三件事——
 > ① 开头固定「必读入口」，每次从同一条链路进；② 中间结构固定；③ 结尾有「交付回写清单」，做完逐项勾选，不许跳。
 > **怎么用**：复制本文件 → 另存为 `docs/worklog/pending/<wp-id>-<slug>-YYYY-MM-DD.md` → 填掉所有 `{{双花括号}}` 占位 → 红字提示保留在任务单里提醒执行者。
+> **契约来源**：任务单字段骨架与必填项以通用框架为准（框架仓 `templates/task-sheet.template.md`、`schemas/task-sheet.schema.json`、`docs/task-contract.md`）；本模板在框架骨架上叠加本项目的必读入口、范围红线、闸门命令与回写清单（适配层取值）。
 
 ---
 
 ## 头部（每条任务必填）
+
+### A. YAML frontmatter（机器可读；状态索引与审计链依据。字段定义与必填项见框架仓 `docs/task-contract.md` 与 `schemas/task-sheet.schema.json`）
+
+```yaml
+---
+taskId: TD-XX # 唯一标识，贯穿任务单 / 回执 / 索引 / commit message
+contextId: phase2.5-c2-ports # 归组标识；返修新任务沿用同一 contextId
+title: 任务一句话标题 # 必填；与正文 §B 标题一致
+type: implementation # implementation / review / investigation / documentation / fix / verification
+status: ready # backlog / ready / submitted / working / input-required / completed / failed / canceled / rejected（auth-required 预留）
+baselineRef: 2b03756 # 版本锚点（commit ref）
+dependsOn: [TD-20] # 上游任务；上游 completed 才解锁下游
+policyRefs: [conventions.md#1.1, conventions.md#1.3] # 策略规则锚点，验收逐条核对
+createdAt: 2026-11-15
+---
+```
+
+> 类型名历史映射：`repository-port` / `feature` → `implementation`；`docs` → `documentation`；`fix`、`verification` 不变。
+
+### B. 人类可读元信息（正文首屏）
 
 ```
 # {{WP-ID}} · {{任务一句话名}}（{{企业级 / 修复 / 验证}}）
@@ -157,15 +178,16 @@
 
 写完到：`docs/worklog/completed/{{阶段}}/{{wp-id}}-{{slug}}-implementation-{{YYYY-MM-DD}}.md`
 
-内容必须含：
+**字段骨架以框架仓 `templates/receipt.template.md` 与 `docs/receipt-contract.md` 为准**；本项目路径约定与命令示例见 `agent-orchestration/relay-receipt-template.md`。七组对应内容：
 
-1. 本单做了什么（一句话总结）
-2. 方案设计：实际实现 vs 任务单方案，有偏差就写清原方案/实际方案/为什么（conventions §2.5）
-3. 改动文件清单（新建 / 修改 / 删除，逐个一句用途）
-4. 闸门表：命令 / exit code / 真实数字（error、warning、用例数）
-5. 任务特有结果（如 8 角色落库数值、`{updated,unchanged,missing}`、两次运行对比）
-6. 风险与回归：哪些既有测试被改、为什么；确认未碰 engine-core / schema / 内容 / 状态字段
-7. 遗留项与建议人工复核（`git diff --stat`、连库 `SELECT ...` 抽查）
+0. 任务标识：`taskId / contextId / baselineRef / dependsOn / policyRefs / finalStatus / reviewVerdict`（审计链入口）
+1. 落地：本单做了什么（一句话总结）+ 改动文件清单（新建 / 修改 / 删除，逐个一句用途）+ 工件指针
+2. 证据：闸门表（命令 / exit code / 真实数字 error、warning、用例数）+ 复现说明
+3. 范围：scopeCheck / parallelArtifactsExcluded / noOutscopeRefactor
+4. 契约：契约核对、schemaVersion、字段对齐；口径真相源唯一
+5. 遗留：backlogItems / openQuestions / manualReviewList（风险与回归、既有测试改动原因、未碰边界确认）
+6. 偏差：实际实现 vs 任务单方案，有偏差就写清原方案 / 实际方案 / 为什么（conventions §2.5），列偏差表
+7. 结论：finalStatus / reviewVerdict / verdictRationale
 
 ---
 
@@ -178,6 +200,9 @@
 - [ ] 回写 WP 登记表：`docs/worklog/pending/phase2.5-wp-list-2026-11-08.md` 里本任务那行状态改成完成、补交付记录链接
 - [ ] 回写阶段入口：`docs/worklog/pending/phase2.5-README.md` §3「当前有什么活」表里挪走/改成本任务已完成
 - [ ] 回写 backlog（若任务单 §2 指定了母版）
+- [ ] 状态索引已更新：`docs/team/agent-orchestration/task-state-index.json` 中本任务状态迁移追加 `history`（时间 / from / to / by），工件指针（任务单 / 交付记录 / 回执）填全
+- [ ] 审计链闭合：`taskId` 贯穿任务单 frontmatter、交付记录、回执、commit message 草稿与台账更新行
+- [ ] `policyRefs` 锚点在交付记录契约组逐条留痕核对结果
 - [ ] `git diff --stat HEAD -- src/engine-core` 为空
 - [ ] 提交分组已核对：本单文件清单与并行进程产物分开；若授权代提交，stage 时只含本单文件（后端目录 / admin-dashboard 前端文件 / 文档各自成组，不混提）
 - [ ] 给一行 commit message 草稿（**不自己 commit/push**，等用户指令）
