@@ -27,6 +27,8 @@ createdAt: 2026-11-15
 ```
 
 > 类型名历史映射：`repository-port` / `feature` → `implementation`；`docs` → `documentation`；`fix`、`verification` 不变。
+>
+> **调度组取值**：本模板 frontmatter 示例未展开可选的 `priority` / `deadline` / `retention`；需要声明时按框架字段组补入，档位与缓冲取值以适配层 README 的「轮询档位」小节为准（唯一真相源，见 [适配层 README §5](agent-orchestration/README.md)，模板不复制阈值数字）。
 
 ### B. 人类可读元信息（正文首屏）
 
