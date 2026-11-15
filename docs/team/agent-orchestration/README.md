@@ -62,7 +62,7 @@
 | 前端闸门（仅授权前端任务） | 在 `admin-dashboard/` 目录跑 `pnpm type-check` / `pnpm build-only`，不套用后端 tsc / eslint                                                         |
 | 敏感操作                   | git commit / push、engine-core 例外改动、策略边界冲突处理，绑定 Human 批准；AI 不自动 commit / push                                                 |
 
-L2 编排工具链（状态存储、验收护栏、调度器、交付包、CLI）的类别、授权角色与副作用级别见 `tools/orchestration-tools.json`；实现位于 `scripts/orchestration/`。
+L2 编排工具链（状态存储、验收护栏、调度器、交付包、CLI）的类别、授权角色与副作用级别见 `tools/orchestration-tools.json`；实现位于 `scripts/orchestration/`。自治模式关闭时，`run-once` 只生成只读快照，不执行领单、验收归档与返修等状态迁移；开启须经 `pnpm orchestration:config --enable` 显式操作。
 
 ## 5. 轮询档位（relay 轮询节奏与兜底次数）
 
