@@ -37,7 +37,7 @@ pnpm lint:fast
 pnpm typecheck
 
 # 2.6 状态索引一致性（taskId 存在、终态 history 闭合、工件指针路径存在）
-# 由主控按 task-state-index.json 逐条核对；L2 可由脚本校验 schema 与指针
+# 由主控按 task-state-index.json 逐条核对；机读校验护栏 V1–V6 见框架 docs/tools.md §8；L2 可由脚本校验 schema 与指针
 ```
 
 ## 3. 本仓库特定核对项

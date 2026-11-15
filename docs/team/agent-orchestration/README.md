@@ -15,8 +15,8 @@
 | ----------------------- | ------------------------------------------------------------------------------------------ |
 | `projectId`             | `mofang-nestjs`（心塑 / XinSu 后端 NestJS 仓）                                             |
 | `frameworkVersionRange` | `>=1.0.0 <2.0.0`                                                                           |
-| 框架契约版本            | 任务单 / 状态索引 schema 均为 1.0.0（见框架仓 `schemas/` 的 `$id`）                        |
-| 框架发布版本            | 当前本地发布版本 `1.1.0`（框架仓为本地独立 git、未挂远端未发包；挂远端后以版本化引用为准） |
+| 框架契约版本            | 任务单 / 状态索引 / 工具声明 schema 均为 1.0.0（见框架仓 `schemas/` 的 `$id`）             |
+| 框架发布版本            | 当前本地发布版本 `1.2.0`（框架仓为本地独立 git、未挂远端未发包；挂远端后以版本化引用为准） |
 
 > 框架契约发生破坏性变更（字段删除或语义改变）时，先复核本适配层的版本区间与字段对齐，再升级；既有字段只增不删。
 
@@ -46,7 +46,7 @@
 
 ## 4. 工具与闸门命令（tools / gates）
 
-工具副作用分级、敏感操作审批节点见框架仓 `docs/security-and-policy.md`；本项目命令口径固定如下，详细分层闸门见 `docs/team/wp-task-template.md` §5。
+工具类别、声明结构、IO 契约与调用审计见框架仓 `docs/tools.md`；工具副作用分级、敏感操作审批节点见框架仓 `docs/security-and-policy.md`；本项目命令口径固定如下，详细分层闸门见 `docs/team/wp-task-template.md` §5。
 
 | 项                         | 本项目取值                                                                                                                                          |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -94,19 +94,20 @@
 
 ## 8. 通用层指针（规则真相源在框架仓）
 
-| 主题                                     | 框架仓位置（`E:\Work\Project\agent-collaboration-framework\`）                                |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------- |
-| 角色模型与隔离规则                       | `docs/roles.md`                                                                               |
-| 任务单字段组与工件模型                   | `docs/task-contract.md`；`schemas/task-sheet.schema.json`；`templates/task-sheet.template.md` |
-| 状态枚举与迁移规则                       | `docs/state-machine.md`                                                                       |
-| 回执七组字段契约                         | `docs/receipt-contract.md`；`templates/receipt.template.md`                                   |
-| 验收五类与三级结论                       | `docs/acceptance.md`                                                                          |
-| 可靠性（租约、超时释放、重试、崩溃恢复） | `docs/reliability.md`                                                                         |
-| 上下文隔离与记忆分层                     | `docs/context-and-memory.md`                                                                  |
-| 权限、策略与审计                         | `docs/security-and-policy.md`                                                                 |
-| 人在环模式与升级                         | `docs/human-in-the-loop.md`                                                                   |
-| 演进路线 L0–L3                           | `docs/evolution.md`                                                                           |
-| 适配层声明规范                           | `adapters/README.md`                                                                          |
+| 主题                                       | 框架仓位置（`E:\Work\Project\agent-collaboration-framework\`）                                |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| 角色模型与隔离规则                         | `docs/roles.md`                                                                               |
+| 任务单字段组与工件模型                     | `docs/task-contract.md`；`schemas/task-sheet.schema.json`；`templates/task-sheet.template.md` |
+| 状态枚举与迁移规则                         | `docs/state-machine.md`                                                                       |
+| 回执七组字段契约                           | `docs/receipt-contract.md`；`templates/receipt.template.md`                                   |
+| 验收五类与三级结论                         | `docs/acceptance.md`                                                                          |
+| 可靠性（租约、超时释放、重试、崩溃恢复）   | `docs/reliability.md`                                                                         |
+| 上下文隔离与记忆分层                       | `docs/context-and-memory.md`                                                                  |
+| 权限、策略与审计                           | `docs/security-and-policy.md`                                                                 |
+| 工具契约（类别、声明结构、权限收口与审计） | `docs/tools.md`；`schemas/tool-contract.schema.json`；`templates/tool.template.md`            |
+| 人在环模式与升级                           | `docs/human-in-the-loop.md`                                                                   |
+| 演进路线 L0–L3                             | `docs/evolution.md`                                                                           |
+| 适配层声明规范                             | `adapters/README.md`                                                                          |
 
 ## 9. 与仓库文档的衔接
 

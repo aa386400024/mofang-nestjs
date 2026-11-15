@@ -51,6 +51,8 @@ L0 阶段，仓库读写、检查执行、版本控制、检索、状态索引�
 
 ## 3. 目标架构 / 交付物（触发后立项时细化）
 
+> 进度备注（2026-11-15）：规范层标准件已落地框架仓 v1.2.0 —— `docs/tools.md`（工具类别、声明结构、IO 契约、副作用分级、权限收口、调用审计）、`schemas/tool-contract.schema.json`、`templates/tool.template.md`、`examples/example-tool-contract.json`。工具运行时服务化与并行调度仍属 L1 演进承载，留本单 backlog，触发后另开 ready 子单。
+
 - 工具契约规范备忘：原语清单、IO 契约、副作用分级、权限白名单模型、审计记录结构；
 - 工具契约 schema（若进入实现阶段）与中性占位样例；
 - 适配层工具映射（项目特定命令、资源路径只落在本仓 adapter）；
