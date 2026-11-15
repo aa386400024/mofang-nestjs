@@ -2,7 +2,7 @@
 taskId: AF-001
 contextId: framework-bootstrap
 type: documentation
-status: ready
+status: completed
 baselineRef: 2b03756
 dependsOn: []
 policyRefs: []
@@ -13,6 +13,7 @@ createdAt: 2026-11-15
 
 > 任务性质：纯文档 + JSON Schema + 模板骨架；**不写运行时代码、不建脚本 / CI / 依赖**。
 > 执行方：MiniMax Code　｜　编排：主控 Doubao　｜　本任务单即契约，正文占位符以外不得自由增删契约字段。
+> 状态：✅ 已交付（2026-11-15）｜交付记录：`docs/worklog/completed/phase2.5/af001-framework-bootstrap-implementation-2026-11-15.md`
 
 ## 1. 背景与目标
 
