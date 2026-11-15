@@ -9,6 +9,7 @@
  * 通道与计数，不含对话原文；状态迁移仍由 scheduler 状态机负责，本模块不新增状态枚举。
  */
 import { buildTaskHandover, validateTaskHandover } from './handover-contract.mjs';
+import { selectTargetRole } from './card-router.mjs';
 import { nowIso } from './state-store.mjs';
 
 /** 派发通道枚举（file 为本批实现；gui-relay / mcp / http 预留位）。 */
@@ -47,8 +48,8 @@ export function buildDispatchRecord(task, opts = {}) {
  *
  * @param {object} task 索引任务条目（须已领单）
  * @param {object} entry 任务运行态条目（就地写入 dispatch）
- * @param {object} opts {transport, channel, targetRole, sessionRef, producedBy, force, attempt}
- * @returns {{dispatched: boolean, record: object|null, handoverRef: string|null, handover: object|null, errors: string[], reason: string|null}}
+ * @param {object} opts {transport, channel, targetRole, sessionRef, producedBy, force, attempt, cards}
+ * @returns {{dispatched: boolean, record: object|null, handoverRef: string|null, handover: object|null, errors: string[], reason: string|null, route: object|null}}
  */
 export function dispatchTask(task, entry, opts = {}) {
   if (!entry) throw new Error('派发缺运行态条目');
@@ -60,13 +61,18 @@ export function dispatchTask(task, entry, opts = {}) {
       handover: null,
       errors: [],
       reason: 'already-dispatched',
+      route: null,
     };
   }
+
+  // IM-008：注入 Agent Card 投影时按能力声明选择目标角色；未传 cards 保持原显式 / agentRole 口径。
+  const route = opts.cards ? selectTargetRole(task, opts.cards, { targetRole: opts.targetRole }) : null;
+  const targetRole = route ? route.targetRole : (opts.targetRole ?? task.agentRole ?? null);
 
   const handover = buildTaskHandover(task, { producedBy: opts.producedBy ?? 'orchestrator' });
   const validation = validateTaskHandover(handover);
   if (!validation.valid) {
-    return { dispatched: false, record: null, handoverRef: null, handover, errors: validation.errors, reason: 'contract-invalid' };
+    return { dispatched: false, record: null, handoverRef: null, handover, errors: validation.errors, reason: 'contract-invalid', route };
   }
 
   const transport = opts.transport ?? null;
@@ -74,14 +80,14 @@ export function dispatchTask(task, entry, opts = {}) {
   const attempt = Number(opts.attempt ?? entry.dispatch?.attempt ?? 1);
   const record = buildDispatchRecord(task, {
     channel: opts.channel,
-    targetRole: opts.targetRole,
+    targetRole,
     sessionRef: opts.sessionRef,
     leaseDeadline: entry.leaseDeadline ?? null,
     attempt,
     handoverRef,
   });
   entry.dispatch = record;
-  return { dispatched: true, record, handoverRef, handover, errors: [], reason: null };
+  return { dispatched: true, record, handoverRef, handover, errors: [], reason: null, route };
 }
 
 /**

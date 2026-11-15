@@ -41,6 +41,7 @@ import {
   verifyBaseline,
   branchAgeDays,
   createGitPort,
+  collectChangedFiles,
   DEFAULT_STALE_DAYS,
 } from './branch-workflow.mjs';
 import { SESSION_PATHS, LOCATE_LAYERS, MAX_START_RETRIES, MAX_SEND_RETRIES, canDispatch } from './dispatch-channel.mjs';
@@ -150,7 +151,9 @@ function cmdRunOnce() {
     console.log('自治模式关闭：本轮仅生成只读快照，不执行领单 / 验收归档 / 返修等状态迁移。');
   }
   auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: 'run-once' });
-  const { snapshot, actions } = advanceOnce({ commit: true });
+  // IM-009：采集本次变更文件清单供 V7 文件域残留比对；空清单时 V7 记 skip。
+  const changedFiles = collectChangedFiles(createGitPort());
+  const { snapshot, actions } = advanceOnce({ commit: true, changedFiles });
   auditDispatchActions(actions);
   writeSnapshotArtifacts(snapshot);
   for (const action of actions) console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
@@ -170,7 +173,8 @@ function cmdWatch() {
     onChange(events) {
       console.log(`[watch] 检测到变更 ${events.length} 项，执行一轮 run-once`);
       auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: 'watch' });
-      const { snapshot, actions } = advanceOnce({ commit: true });
+      const changedFiles = collectChangedFiles(createGitPort());
+      const { snapshot, actions } = advanceOnce({ commit: true, changedFiles });
       auditDispatchActions(actions);
       writeSnapshotArtifacts(snapshot);
       for (const action of actions)
@@ -263,20 +267,26 @@ function cmdBranch(args) {
     return [...new Set(local)].map((name) => {
       const remoteRef = remote.find((r) => r.endsWith(`/${name}`)) ?? null;
       const date = git.ageFor(name);
+      const ab = git.aheadBehind(name);
       return {
         name,
         remote: remoteRef ? remoteRef.split('/')[0] : null,
         merged: git.isMerged(name),
         ageDays: date ? branchAgeDays(`${date}T00:00:00.000Z`, nowIso) : null,
+        aheadBy: ab.ahead,
+        behindBy: ab.behind,
       };
     });
   }
 
   if (action === 'list') {
     const staleDays = Number(argValue(args, '--stale-days')) || DEFAULT_STALE_DAYS;
-    const { merged, unmerged, stale } = classifyBranches(collectBranches(), { staleDays });
-    console.log(`=== 分支巡检（已合并 ${merged.length} / 未合并 ${unmerged.length} / 超期 ${stale.length}）===`);
+    const { merged, unmerged, stale, needsRebase } = classifyBranches(collectBranches(), { staleDays });
+    console.log(
+      `=== 分支巡检（已合并 ${merged.length} / 未合并 ${unmerged.length} / 待 rebase ${needsRebase.length} / 超期 ${stale.length}）===`,
+    );
     for (const b of merged) console.log(`  [已合并] ${b.name}${b.remote ? `（远端 ${b.remote}）` : ''}`);
+    for (const b of needsRebase) console.log(`  [待 rebase] ${b.name}（落后基线 ${b.behindBy} 个提交，保留待 rebase）`);
     for (const b of stale) console.log(`  [超期·未合并] ${b.name}（${b.ageDays} 天，保留不删）`);
     for (const b of unmerged) console.log(`  [未合并] ${b.name}${b.ageDays !== null ? `（${b.ageDays} 天）` : ''}`);
     return;

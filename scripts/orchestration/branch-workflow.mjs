@@ -60,35 +60,41 @@ export function branchAgeDays(committerDateIso, nowIso) {
 }
 
 /**
- * 巡检分类：已合并（可清理）/ 未合并（保留）/ 未合并且超期（stale，仅标注不删）。
- * 长期分支不进入任一清理集合。
- * @param {Array<{name:string, remote?:string, merged:boolean, ageDays:number|null}>} branches
- * @param {{staleDays?:number}} opts
+ * 巡检分类：已合并（可清理）/ 未合并（保留）/ 未合并且落后基线（needsRebase）/ 未合并且超期（stale，仅标注不删）。
+ * 长期分支不进入任一清理集合。behindBy>0 表示分支落后基线（integrate），需 rebase，优先于超期标注。
+ * @param {Array<{name:string, remote?:string, merged:boolean, ageDays:number|null, aheadBy?:number, behindBy?:number}>} branches
+ * @param {{staleDays?:number, base?:string}} opts
  */
 export function classifyBranches(branches, opts = {}) {
   const staleDays = opts.staleDays ?? DEFAULT_STALE_DAYS;
   const merged = [];
   const unmerged = [];
   const stale = [];
+  const needsRebase = [];
   for (const branch of branches ?? []) {
     if (LONG_LIVED_BRANCHES.includes(branch.name)) continue;
     if (branch.merged) {
       merged.push(branch);
+      continue;
+    }
+    const behind = Number(branch.behindBy ?? 0);
+    if (Number.isFinite(behind) && behind > 0) {
+      needsRebase.push({ ...branch, behindBy: behind });
     } else if (branch.ageDays !== null && branch.ageDays > staleDays) {
       stale.push(branch);
     } else {
       unmerged.push(branch);
     }
   }
-  return { merged, unmerged, stale };
+  return { merged, unmerged, stale, needsRebase };
 }
 
 /**
- * 清理计划：只对已合并分支生成本地 / 远端删除项；未合并与超期分支只列名保留。
- * @returns {{toDelete: Array<{name:string, ref:string}>, keptUnmerged: string[], stale: string[]}}
+ * 清理计划：只对已合并分支生成本地 / 远端删除项；未合并、待 rebase 与超期分支只列名保留。
+ * @returns {{toDelete: Array<{name:string, ref:string}>, keptUnmerged: string[], stale: string[], needsRebase: string[]}}
  */
 export function planCleanup(branches, opts = {}) {
-  const { merged, unmerged, stale } = classifyBranches(branches, opts);
+  const { merged, unmerged, stale, needsRebase } = classifyBranches(branches, opts);
   const toDelete = [];
   for (const branch of merged) {
     toDelete.push({ name: branch.name, ref: 'local' });
@@ -98,6 +104,7 @@ export function planCleanup(branches, opts = {}) {
     toDelete,
     keptUnmerged: unmerged.map((b) => b.name),
     stale: stale.map((b) => b.name),
+    needsRebase: needsRebase.map((b) => b.name),
   };
 }
 
@@ -157,6 +164,11 @@ export function createGitPort() {
         return false;
       }
     },
+    aheadBehind(name, base = 'integrate') {
+      const ahead = Number(runGit(['rev-list', '--count', `${base}..${name}`]) || 0);
+      const behind = Number(runGit(['rev-list', '--count', `${name}..${base}`]) || 0);
+      return { ahead: Number.isFinite(ahead) ? ahead : 0, behind: Number.isFinite(behind) ? behind : 0 };
+    },
     ageFor(name) {
       try {
         return runGit(['log', '-1', '--format=%cs', name]) || null;
@@ -173,6 +185,10 @@ export function createGitPort() {
         return false;
       }
     },
+    changedFiles() {
+      const raw = runGit(['diff', '--name-only', 'HEAD']);
+      return raw ? raw.split('\n').filter(Boolean) : [];
+    },
     createBranch(name, from) {
       return runGit(['checkout', '-b', name, from]);
     },
@@ -187,4 +203,16 @@ export function createGitPort() {
       return runGit(['push', remote, '--delete', name]);
     },
   };
+}
+
+/**
+ * IM-009：经注入 git 端口采集本次变更文件清单（相对仓根）。
+ * 端口缺 changedFiles 方法或返回非数组时返回空清单（V7 记 skip，不阻断）。
+ * @param {object} gitPort 注入式 git 端口（createGitPort 返回值或测试替身）
+ * @returns {string[]} 变更文件相对路径清单
+ */
+export function collectChangedFiles(gitPort) {
+  if (!gitPort || typeof gitPort.changedFiles !== 'function') return [];
+  const files = gitPort.changedFiles();
+  return Array.isArray(files) ? files.filter((f) => typeof f === 'string' && f.trim() !== '') : [];
 }

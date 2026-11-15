@@ -33,8 +33,10 @@ import {
   planCleanup,
   verifyBaseline,
   branchAgeDays,
+  collectChangedFiles,
   LONG_LIVED_BRANCHES,
 } from '../branch-workflow.mjs';
+import { matchAgentCard, selectTargetRole, validateScopeDomain } from '../card-router.mjs';
 import {
   SESSION_PATHS,
   LOCATE_LAYERS,
@@ -1261,5 +1263,187 @@ describe('AF-013 GUI 派发通道规则', () => {
     expect(CIRCUIT_BREAKER_RESERVED.reserved).toBe(true);
     expect(DEAD_LETTER_RESERVED.reserved).toBe(true);
     expect(FAILURE_CLASSIFICATIONS).toEqual(['deterministic', 'flaky', 'legacy-debt']);
+  });
+});
+
+const routerCards = [
+  {
+    agentId: 'AGENT-EXEC-001',
+    role: 'executor',
+    skills: ['implementation', 'self-test'],
+    tools: ['workspace-write'],
+    resources: ['src/', 'docs/worklog/pending/'],
+    availability: 'available',
+  },
+  {
+    agentId: 'AGENT-ORCH-001',
+    role: 'orchestrator',
+    skills: ['queue-management'],
+    tools: ['state-persistence'],
+    resources: ['docs/team/agent-orchestration/'],
+    availability: 'available',
+  },
+  { agentId: 'AGENT-REVIEW-002', role: 'reviewer', skills: ['review'], tools: [], resources: ['docs/'], availability: 'busy' },
+];
+
+describe('AF-016 IM-008 Agent Card 能力声明路由', () => {
+  it('按 requiredSkills 命中评分选择最契合角色', () => {
+    const m = matchAgentCard({ requiredSkills: ['implementation'] }, routerCards);
+    expect(m.eligible).toBe(true);
+    expect(m.role).toBe('executor');
+    expect(m.matchedSkills).toContain('implementation');
+  });
+
+  it('busy 角色不进入候选', () => {
+    const m = matchAgentCard({ role: 'reviewer' }, routerCards);
+    expect(m.eligible).toBe(false);
+    expect(m.reason).toMatch('reviewer');
+  });
+
+  it('显式角色不可用时保留显式角色，不擅自改派', () => {
+    const r = selectTargetRole({ agentRole: 'reviewer' }, routerCards, {});
+    expect(r.targetRole).toBe('reviewer');
+    expect(r.routedBy).toBe('explicit-role-fallback');
+    expect(r.match.eligible).toBe(false);
+  });
+
+  it('无显式角色时按能力匹配到 executor', () => {
+    const r = selectTargetRole({ requiredSkills: ['implementation'] }, routerCards, {});
+    expect(r.targetRole).toBe('executor');
+    expect(r.routedBy).toBe('capability-match');
+  });
+
+  it('空候选卡返回不可用原因', () => {
+    const m = matchAgentCard({}, []);
+    expect(m.eligible).toBe(false);
+    expect(m.reason).toBeTruthy();
+  });
+});
+
+describe('AF-016 IM-010 角色资源域越域校验', () => {
+  const baseTask = { taskId: 'AF-016', agentRole: 'executor', type: 'implementation', scope: { files: [] } };
+
+  it('scope 落在角色 resources 内 → valid', () => {
+    const task = { ...baseTask, scope: { files: ['src/engine/a.ts'] } };
+    const r = validateScopeDomain(task, routerCards);
+    expect(r.valid).toBe(true);
+    expect(r.inside).toContain('src/engine/a.ts');
+    expect(r.outside).toHaveLength(0);
+  });
+
+  it('scope 越出角色资源域 → 标注 outside', () => {
+    const task = { ...baseTask, scope: { files: ['engine-core/x.ts'] } };
+    const r = validateScopeDomain(task, routerCards);
+    expect(r.valid).toBe(false);
+    expect(r.outside[0].file).toBe('engine-core/x.ts');
+  });
+
+  it('只读 / 评审类任务豁免资源域校验', () => {
+    const task = { ...baseTask, type: 'review', scope: { files: ['engine-core/x.ts'] } };
+    const r = validateScopeDomain(task, routerCards);
+    expect(r.valid).toBe(true);
+    expect(r.outside).toHaveLength(0);
+  });
+
+  it('目标角色无卡 → errors 标注', () => {
+    const task = { ...baseTask, agentRole: 'researcher' };
+    const r = validateScopeDomain(task, routerCards);
+    expect(r.valid).toBe(false);
+    expect(r.errors.join(' ')).toMatch('researcher');
+  });
+
+  it('卡未声明 resources → errors 标注', () => {
+    const noRes = [{ role: 'executor', availability: 'available', skills: [], tools: [], resources: [] }];
+    const r = validateScopeDomain(baseTask, noRes);
+    expect(r.valid).toBe(false);
+    expect(r.errors.join(' ')).toMatch('resources');
+  });
+});
+
+describe('AF-016 IM-013 分支 rebase 状态巡检', () => {
+  const branches = [
+    { name: 'task/AF-016-a', merged: false, ageDays: 3, aheadBy: 1, behindBy: 2 },
+    { name: 'task/AF-016-b', merged: false, ageDays: 3, aheadBy: 0, behindBy: 0 },
+    { name: 'task/AF-016-c', merged: false, ageDays: 30, aheadBy: 0, behindBy: 0 },
+    { name: 'task/AF-016-d', merged: true, ageDays: 1 },
+  ];
+
+  it('落后基线的未合并分支归入 needsRebase', () => {
+    const c = classifyBranches(branches, { staleDays: 14 });
+    expect(c.needsRebase.map((b) => b.name)).toEqual(['task/AF-016-a']);
+    expect(c.unmerged.map((b) => b.name)).toEqual(['task/AF-016-b']);
+    expect(c.stale.map((b) => b.name)).toEqual(['task/AF-016-c']);
+    expect(c.merged.map((b) => b.name)).toEqual(['task/AF-016-d']);
+  });
+
+  it('planCleanup 透出 needsRebase 名清单', () => {
+    const p = planCleanup(branches, { staleDays: 14 });
+    expect(p.needsRebase).toEqual(['task/AF-016-a']);
+    expect(p.keptUnmerged).toEqual(['task/AF-016-b']);
+  });
+
+  it('旧分支对象缺 behindBy 不进入 needsRebase', () => {
+    const c = classifyBranches([{ name: 'task/AF-016-e', merged: false, ageDays: 2 }], { staleDays: 14 });
+    expect(c.needsRebase).toHaveLength(0);
+    expect(c.unmerged).toHaveLength(1);
+  });
+});
+
+describe('AF-016 IM-009 变更文件清单采集器', () => {
+  it('端口清单过滤空串与非字符串', () => {
+    const port = { changedFiles: () => ['src/a.ts', '', 'docs/b.md', 42, null] };
+    expect(collectChangedFiles(port)).toEqual(['src/a.ts', 'docs/b.md']);
+  });
+
+  it('端口缺方法返回空清单', () => {
+    expect(collectChangedFiles({})).toEqual([]);
+    expect(collectChangedFiles(null)).toEqual([]);
+  });
+
+  it('端口返回非数组返回空清单', () => {
+    expect(collectChangedFiles({ changedFiles: () => 'src/a.ts' })).toEqual([]);
+  });
+});
+
+describe('AF-016 dispatchTask 能力路由接线', () => {
+  function baseTask() {
+    return {
+      taskId: 'AF-016',
+      contextId: 'phase2.5-orchestration-closed-loop',
+      type: 'implementation',
+      title: '能力路由与资源域护栏',
+      status: 'ready',
+      createdAt: '2026-11-16',
+      scope: { files: ['src/a.ts'] },
+      dependsOn: [],
+      policyRefs: [],
+      agentRole: 'executor',
+    };
+  }
+  function fakeTransport() {
+    const calls = [];
+    return {
+      calls,
+      submitTask(h) {
+        calls.push(h);
+        return `transport/${h.taskId}.json`;
+      },
+    };
+  }
+
+  it('传入 cards 时目标角色来自能力匹配并返回 route 明细', () => {
+    const transport = fakeTransport();
+    const r = dispatchTask(baseTask(), {}, { transport, cards: routerCards });
+    expect(r.dispatched).toBe(true);
+    expect(r.record.targetRole).toBe('executor');
+    expect(r.route.match.eligible).toBe(true);
+  });
+
+  it('不传 cards 时保持原显式 / agentRole 口径，route 为 null', () => {
+    const transport = fakeTransport();
+    const r = dispatchTask(baseTask(), {}, { transport });
+    expect(r.dispatched).toBe(true);
+    expect(r.record.targetRole).toBe('executor');
+    expect(r.route).toBeNull();
   });
 });

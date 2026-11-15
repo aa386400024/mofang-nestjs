@@ -38,6 +38,7 @@ import { buildProtocolView } from './protocol-mapper.mjs';
 import { createTransport } from './transport.mjs';
 import { dispatchTask, receiptFingerprint, isReceiptProcessed, markReceiptProcessed } from './dispatch.mjs';
 import { findScopeConflicts } from './scope-mutex.mjs';
+import { validateScopeDomain } from './card-router.mjs';
 
 const BY_ORCHESTRATOR = 'orchestrator-cli';
 
@@ -106,6 +107,12 @@ function claimReadyTasks(index, runtimeState, config, actions, opts = {}) {
       actions.push({ type: 'scope-conflict', taskId: task.taskId, conflicts: scopeConflicts });
       continue;
     }
+    // IM-010：任务 scope 与目标角色 Agent Card resources 资源域越域拦截。
+    const domain = validateScopeDomain(task, opts.cards ?? [], {});
+    if (!domain.valid) {
+      actions.push({ type: 'scope-domain-conflict', taskId: task.taskId, outside: domain.outside, errors: domain.errors });
+      continue;
+    }
     const entry = ensureRuntimeEntry(runtimeState, task.taskId);
     const deadline = new Date(Date.now() + config.leaseDefaultMinutes * 60_000).toISOString();
     pushHistory(task, 'submitted', BY_ORCHESTRATOR, '编排者领单（派发通道由 agent cu 衔接）');
@@ -117,6 +124,7 @@ function claimReadyTasks(index, runtimeState, config, actions, opts = {}) {
       transport,
       channel: config.transport?.type ?? 'file',
       targetRole: task.agentRole ?? 'executor',
+      cards: opts.cards,
     });
     actions.push({
       type: dispatch.dispatched ? 'dispatch' : 'dispatch-rejected',
@@ -159,7 +167,7 @@ function archiveTask(index, task, status) {
 }
 
 /** 回执验收驱动：已落盘交付记录的任务跑护栏并归档 / 提案返修 / 死信。 */
-function processReceipts(index, runtimeState, config, actions) {
+function processReceipts(index, runtimeState, config, actions, opts = {}) {
   const remaining = [];
   for (const task of index.tasks) {
     if (task.status !== 'submitted' && task.status !== 'working') {
@@ -178,7 +186,7 @@ function processReceipts(index, runtimeState, config, actions) {
       remaining.push(task);
       continue;
     }
-    const result = runAcceptance(task, index);
+    const result = runAcceptance(task, index, { changedFiles: opts.changedFiles });
     markReceiptProcessed(entry, fingerprint);
     entry.autoVerdict = { verdict: result.verdict, rationale: result.rationale, at: nowIso() };
     entry.manualReview = result.manualReview;
@@ -300,7 +308,8 @@ export function buildSnapshot(index, runtimeState, config, improvementSummary) {
 
 /**
  * 执行一轮推进。
- * @param {{commit?: boolean}} opts commit=false 时只计算快照与动作，不落盘。
+ * @param {{commit?: boolean, transport?: object, cards?: object[], changedFiles?: string[]}} opts
+ *   commit=false 时只计算快照与动作，不落盘；cards 为 Agent Card 投影；changedFiles 供 V7 残留比对。
  * @returns {{snapshot: object, actions: object[]}}
  */
 export function advanceOnce(opts = {}) {
@@ -311,8 +320,9 @@ export function advanceOnce(opts = {}) {
 
   if (shouldAdvance(config)) {
     releaseExpiredLeases(index, runtimeState, actions);
-    claimReadyTasks(index, runtimeState, config, actions, { transport: opts.transport });
-    processReceipts(index, runtimeState, config, actions);
+    const cards = opts.cards ?? loadAgentCards();
+    claimReadyTasks(index, runtimeState, config, actions, { transport: opts.transport, cards });
+    processReceipts(index, runtimeState, config, actions, { changedFiles: opts.changedFiles });
   } else {
     actions.push({
       type: 'readonly-snapshot',

@@ -223,6 +223,7 @@ export function loadAgentCards() {
       availability: card.availability ?? null,
       skills: Array.isArray(card.skills) ? card.skills : [],
       tools: Array.isArray(card.tools) ? card.tools : [],
+      resources: Array.isArray(card.resources) ? card.resources : [],
       note: card.note ?? null,
     });
   }
