@@ -186,6 +186,10 @@ import { CounselorVisitorPersonaController } from './controllers/visitor-persona
 import { CounselorVisitorPoolAdminController } from './controllers/visitor-pool-admin.controller.js';
 import { CounselorVisitorPoolController } from './controllers/visitor-pool.controller.js';
 import { CounselorVoicesController } from './controllers/voices.controller.js';
+import { QuoteFavoriteRepositoryTypeorm } from './data/quote-favorite.repository.typeorm.js';
+import { QuoteRepositoryTypeorm } from './data/quote.repository.typeorm.js';
+import { QUOTE_FAVORITE_REPOSITORY } from './domain/repositories/quote-favorite.repository.js';
+import { QUOTE_REPOSITORY } from './domain/repositories/quote.repository.js';
 import { DrillController } from './drills/controllers/drill.controller.js';
 import { DrillEvaluatorService } from './drills/providers/drill-evaluator.service.js';
 import { DrillService } from './drills/providers/drill.service.js';
@@ -640,6 +644,10 @@ import { VptSessionBridgeService } from './providers/vpt-session-bridge.service.
     PracticeAsrService,
     PracticeAsrThrottlerGuard,
     PracticeAsrUploadFilter,
+    // V2026-11-15 治本 (TD-21 · C2 第五批仓储端口化 · counselor 域 · P-DEBT-11 / L-1):
+    //   两个仓储端口的 TypeORM 实现接线 —— 仓储 token **不 export** (对齐 TD-13 ~ TD-20).
+    { provide: QUOTE_REPOSITORY, useClass: QuoteRepositoryTypeorm },
+    { provide: QUOTE_FAVORITE_REPOSITORY, useClass: QuoteFavoriteRepositoryTypeorm },
     // V2026-10-22 治本 (首页金句 · 每日一句 service):
     //   QuoteService (今日轮换 / 游标分页 / 收藏)
     QuoteService,
