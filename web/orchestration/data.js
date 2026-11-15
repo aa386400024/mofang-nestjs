@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-15T18:34:04.363Z",
+  "generatedAt": "2026-11-15T18:53:07.834Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -22,12 +22,12 @@ window.ORCH_SNAPSHOT = {
   "pendingApprovals": [],
   "improvements": {
     "total": 19,
-    "activeCount": 15,
+    "activeCount": 11,
     "byStatus": {
-      "candidate": 13,
+      "candidate": 9,
       "queued": 1,
       "accepted": 1,
-      "done": 4,
+      "done": 8,
       "wontfix": 0
     },
     "byType": {
@@ -200,7 +200,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-008",
         "title": "派发目标角色未按 Agent Card 能力声明匹配路由",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "gap",
         "layer": "adapter",
@@ -211,18 +211,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "多执行代理并存时无法按能力与可用性路由；当前单 executor 角色无实际影响",
         "suggestion": "AF-013 演练阶段或 P1 接入 agent card 能力声明匹配，按 skills/tools/availability 选择目标代理",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T17:29:43.156Z",
-          "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "at": "2026-11-15T18:52:11.929Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-016 编排闭环护栏落地"
         }
       },
       {
         "improvementId": "IM-009",
         "title": "验收残留比对缺 git diff 变更清单采集器，V7 当前 skip",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "tech-debt",
         "layer": "adapter",
@@ -232,18 +232,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "纯函数模块无 git IO；变更清单须由调用方采集传入，未接入采集器前 V7 残留护栏记 skip，清单外文件不会被机读拦截",
         "suggestion": "后续在调度/验收入口采集 git diff --name-only（相对仓根）传入 runAcceptance opts.changedFiles，使 V7 残留比对生效",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T17:41:33.766Z",
-          "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "at": "2026-11-15T18:52:12.815Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-016 编排闭环护栏落地"
         }
       },
       {
         "improvementId": "IM-010",
         "title": "任务 scope 未与 Agent Card resources 角色资源域做越域校验",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "gap",
         "layer": "adapter",
@@ -253,12 +253,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "本单只拦截在办任务间文件域冲突；任务 scope 越出角色声明资源域（如 executor 写编排目录）暂无前置机读校验",
         "suggestion": "P1 接入 Agent Card resources 投影，派发前校验任务 scope 落在目标角色资源域内；资源域真相源保持角色卡与框架 roles.md",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T17:41:34.843Z",
-          "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "at": "2026-11-15T18:52:13.539Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-016 编排闭环护栏落地"
         }
       },
       {
@@ -306,7 +306,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-013",
         "title": "分支巡检未判定未合并分支是否落后 integrate（rebase 状态）",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "gap",
         "layer": "adapter",
@@ -316,12 +316,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "未合并分支可能已落后基线但巡检只标注超期天数，无法识别需先 rebase 的陈旧分支",
         "suggestion": "巡检采集 git status --branch ahead/behind 或 merge-base 差量，未合并且落后基线的分支单独标注待 rebase",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T17:49:22.354Z",
-          "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "at": "2026-11-15T18:52:14.152Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-016 编排闭环护栏落地"
         }
       },
       {
@@ -486,6 +486,11 @@ window.ORCH_SNAPSHOT = {
         "workspace-write",
         "gate-execution"
       ],
+      "resources": [
+        "src/",
+        "test/",
+        "docs/worklog/pending/（任务切片范围内）"
+      ],
       "note": "执行 AI（MiniMax Code）；researcher / critic 角色当前未启用，需要调研或独立评审任务时再绑定。本角色不进入分支与提交链路：L1 任务分支提交由验收后的 orchestrator 完成（设计备忘 §6.1）。"
     },
     {
@@ -499,6 +504,10 @@ window.ORCH_SNAPSHOT = {
         "release-decision"
       ],
       "tools": [],
+      "resources": [
+        "docs/team/conventions.md",
+        "docs/team/agent-orchestration/"
+      ],
       "note": "本项目唯一人类角色（用户 / 大炮）；是 L4 冻结动作的审批节点，本身不进入工具白名单。L1 任务分支提交、L2 推任务分支、L3 合并进 integrate 在前置条件满足下由 orchestrator 自动，不依赖本角色批准（设计备忘 §6.1）。"
     },
     {
@@ -521,6 +530,12 @@ window.ORCH_SNAPSHOT = {
         "delivery-packing",
         "knowledge-capture",
         "orchestration-cli"
+      ],
+      "resources": [
+        "docs/worklog/pending/",
+        "docs/worklog/completed/",
+        "docs/team/agent-orchestration/",
+        "scripts/orchestration/"
       ],
       "note": "主控 AI（Doubao）；兼任 reviewer。制衡：验收结论只能基于工件证据与抽跑复现，不引用执行侧「已通过」的自述；验收与执行由不同执行方承担，兼任时以证据复核隔离。发布分层：L1–L3 在前置条件满足下由本角色自动，L4 转 Human 批准（设计备忘 §6.1）。"
     }
@@ -583,6 +598,23 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-011",
+      "recordedAt": "2026-11-15T18:53:07.816Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-016",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "queue-scheduler",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-010",
       "recordedAt": "2026-11-15T18:33:41.024Z",
@@ -752,18 +784,18 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "auditSummary": {
-    "total": 10,
+    "total": 11,
     "byResult": {
-      "allowed": 10,
+      "allowed": 11,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 8
+      "TOOL-QUEUE-SCHEDULER": 9
     },
     "byActor": {
-      "orchestrator": 10
+      "orchestrator": 11
     }
   },
   "protocolView": {
@@ -1627,6 +1659,31 @@ window.ORCH_SNAPSHOT = {
           }
         ],
         "archived": true
+      },
+      {
+        "taskId": "AF-016",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-implementation-2026-11-16.md"
+          }
+        ],
+        "archived": true
       }
     ],
     "statusMap": {
@@ -2036,6 +2093,16 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-015",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-implementation-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-016",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-016",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-implementation-2026-11-16.md"
       }
     ],
     "groupId": null,
@@ -2055,7 +2122,11 @@ window.ORCH_SNAPSHOT = {
           "workspace-write",
           "gate-execution"
         ],
-        "resources": [],
+        "resources": [
+          "src/",
+          "test/",
+          "docs/worklog/pending/（任务切片范围内）"
+        ],
         "limits": null,
         "availability": "available"
       },
@@ -2069,7 +2140,10 @@ window.ORCH_SNAPSHOT = {
           "release-decision"
         ],
         "tools": [],
-        "resources": [],
+        "resources": [
+          "docs/team/conventions.md",
+          "docs/team/agent-orchestration/"
+        ],
         "limits": null,
         "availability": "available"
       },
@@ -2093,7 +2167,12 @@ window.ORCH_SNAPSHOT = {
           "knowledge-capture",
           "orchestration-cli"
         ],
-        "resources": [],
+        "resources": [
+          "docs/worklog/pending/",
+          "docs/worklog/completed/",
+          "docs/team/agent-orchestration/",
+          "scripts/orchestration/"
+        ],
         "limits": null,
         "availability": "available"
       }
@@ -2103,5 +2182,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 32
+  "archivedCount": 33
 };

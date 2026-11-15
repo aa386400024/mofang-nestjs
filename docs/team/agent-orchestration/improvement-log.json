@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-15T18:29:06.843Z",
+  "updatedAt": "2026-11-15T18:52:14.154Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -225,7 +225,7 @@
     },
     {
       "improvementId": "IM-008",
-      "status": "candidate",
+      "status": "done",
       "title": "派发目标角色未按 Agent Card 能力声明匹配路由",
       "source": "implementation",
       "type": "gap",
@@ -236,7 +236,7 @@
       "suggestion": "AF-013 演练阶段或 P1 接入 agent card 能力声明匹配，按 skills/tools/availability 选择目标代理",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T17:29:43.156Z",
-      "updatedAt": "2026-11-15T17:29:43.156Z",
+      "updatedAt": "2026-11-15T18:52:11.929Z",
       "history": [
         {
           "at": "2026-11-15T17:29:43.156Z",
@@ -244,12 +244,38 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-15T18:52:11.484Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator",
+          "note": null
+        },
+        {
+          "at": "2026-11-15T18:52:11.686Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator",
+          "note": null
+        },
+        {
+          "at": "2026-11-15T18:52:11.929Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator",
+          "note": "AF-016 编排闭环护栏落地"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-15T18:52:11.929Z",
+        "resolutionNote": "AF-016 编排闭环护栏落地",
+        "linkedTaskId": "AF-016"
+      }
     },
     {
       "improvementId": "IM-009",
-      "status": "candidate",
+      "status": "done",
       "title": "验收残留比对缺 git diff 变更清单采集器，V7 当前 skip",
       "source": "implementation",
       "type": "tech-debt",
@@ -260,7 +286,7 @@
       "suggestion": "后续在调度/验收入口采集 git diff --name-only（相对仓根）传入 runAcceptance opts.changedFiles，使 V7 残留比对生效",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T17:41:33.766Z",
-      "updatedAt": "2026-11-15T17:41:33.766Z",
+      "updatedAt": "2026-11-15T18:52:12.815Z",
       "history": [
         {
           "at": "2026-11-15T17:41:33.766Z",
@@ -268,12 +294,38 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-15T18:52:12.386Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator",
+          "note": null
+        },
+        {
+          "at": "2026-11-15T18:52:12.609Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator",
+          "note": null
+        },
+        {
+          "at": "2026-11-15T18:52:12.815Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator",
+          "note": "AF-016 编排闭环护栏落地"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-15T18:52:12.815Z",
+        "resolutionNote": "AF-016 编排闭环护栏落地",
+        "linkedTaskId": "AF-016"
+      }
     },
     {
       "improvementId": "IM-010",
-      "status": "candidate",
+      "status": "done",
       "title": "任务 scope 未与 Agent Card resources 角色资源域做越域校验",
       "source": "implementation",
       "type": "gap",
@@ -284,7 +336,7 @@
       "suggestion": "P1 接入 Agent Card resources 投影，派发前校验任务 scope 落在目标角色资源域内；资源域真相源保持角色卡与框架 roles.md",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T17:41:34.843Z",
-      "updatedAt": "2026-11-15T17:41:34.843Z",
+      "updatedAt": "2026-11-15T18:52:13.539Z",
       "history": [
         {
           "at": "2026-11-15T17:41:34.843Z",
@@ -292,8 +344,34 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-15T18:52:13.039Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator",
+          "note": null
+        },
+        {
+          "at": "2026-11-15T18:52:13.248Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator",
+          "note": null
+        },
+        {
+          "at": "2026-11-15T18:52:13.539Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator",
+          "note": "AF-016 编排闭环护栏落地"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-15T18:52:13.539Z",
+        "resolutionNote": "AF-016 编排闭环护栏落地",
+        "linkedTaskId": "AF-016"
+      }
     },
     {
       "improvementId": "IM-011",
@@ -345,7 +423,7 @@
     },
     {
       "improvementId": "IM-013",
-      "status": "candidate",
+      "status": "done",
       "title": "分支巡检未判定未合并分支是否落后 integrate（rebase 状态）",
       "source": "implementation",
       "type": "gap",
@@ -356,7 +434,7 @@
       "suggestion": "巡检采集 git status --branch ahead/behind 或 merge-base 差量，未合并且落后基线的分支单独标注待 rebase",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T17:49:22.354Z",
-      "updatedAt": "2026-11-15T17:49:22.354Z",
+      "updatedAt": "2026-11-15T18:52:14.152Z",
       "history": [
         {
           "at": "2026-11-15T17:49:22.354Z",
@@ -364,8 +442,34 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-15T18:52:13.768Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator",
+          "note": null
+        },
+        {
+          "at": "2026-11-15T18:52:13.956Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator",
+          "note": null
+        },
+        {
+          "at": "2026-11-15T18:52:14.152Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator",
+          "note": "AF-016 编排闭环护栏落地"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-15T18:52:14.152Z",
+        "resolutionNote": "AF-016 编排闭环护栏落地",
+        "linkedTaskId": "AF-016"
+      }
     },
     {
       "improvementId": "IM-014",

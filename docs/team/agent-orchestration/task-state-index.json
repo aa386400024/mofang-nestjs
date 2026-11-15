@@ -281,6 +281,15 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-implementation-2026-11-16.md"
       },
       "note": "通道可靠性锚定§4:任务级预算/退避/终态出口/定性三分法/逐次留痕;94 passed;零业务源码改动"
+    },
+    {
+      "taskId": "AF-016",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-implementation-2026-11-16.md"
+      },
+      "note": "编排护栏:能力路由/资源域校验/rebase巡检/V7采集接线;112 passed;零业务源码改动"
     }
   ]
 }
