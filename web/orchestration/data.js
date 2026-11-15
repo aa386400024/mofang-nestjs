@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-15T18:53:07.834Z",
+  "generatedAt": "2026-11-15T19:41:33.307Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -21,17 +21,17 @@ window.ORCH_SNAPSHOT = {
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 19,
-    "activeCount": 11,
+    "total": 27,
+    "activeCount": 18,
     "byStatus": {
-      "candidate": 9,
-      "queued": 1,
+      "candidate": 17,
+      "queued": 0,
       "accepted": 1,
-      "done": 8,
+      "done": 9,
       "wontfix": 0
     },
     "byType": {
-      "gap": 9,
+      "gap": 17,
       "guardrail": 1,
       "tool": 0,
       "standard": 2,
@@ -40,7 +40,7 @@ window.ORCH_SNAPSHOT = {
     },
     "bySource": {
       "implementation": 11,
-      "acceptance": 0,
+      "acceptance": 8,
       "rework": 0,
       "dead-letter": 0,
       "review": 8
@@ -49,7 +49,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-001",
         "title": "台账抽取通道仅识别快照遗留项，未直接解析回执文件正文",
-        "status": "queued",
+        "status": "done",
         "source": "implementation",
         "type": "gap",
         "layer": "adapter",
@@ -59,12 +59,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "回执正文中未进入快照遗留区的缺口不会被台账捕获，存在漏登记风险",
         "suggestion": "抽取通道增加回执文件正文解析，与快照遗留项双通道合并去重",
-        "historyCount": 2,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T13:30:32.466Z",
+          "at": "2026-11-15T19:39:09.747Z",
           "by": "orchestrator",
-          "to": "queued",
-          "note": "编排者评审立项，纳入演进 backlog 跟踪"
+          "to": "done",
+          "note": "回执正文解析通道 extractFromReceiptDoc 落地，与快照抽取双通道合并去重"
         }
       },
       {
@@ -456,6 +456,182 @@ window.ORCH_SNAPSHOT = {
           "to": "candidate",
           "note": "登记候选改进"
         }
+      },
+      {
+        "improvementId": "IM-020",
+        "title": "12 条差异 / 缺口需在两仓文档修订时消化（备忘 §3 + framework reliability.md §4）；本单不就地修订（outOfScope）。",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "backlogItem"
+        ],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T19:38:37.044Z",
+          "by": "receipt-extract",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-021",
+        "title": "D-11 属备忘自身字段不自洽，可在下次改备忘 §3.5 时一并修。",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "backlogItem"
+        ],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T19:38:37.045Z",
+          "by": "receipt-extract",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-022",
+        "title": "工作区存在未纳入版本控制的 scripts/orchestration/dispatch-channel.mjs —— **本单未审读、不对其作任何口径结论**；若其已实现重试逻辑，D-2 / D-5 / D-7 可能已有代码侧对应，需另开只读核对单确认。",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "backlogItem"
+        ],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T19:38:37.045Z",
+          "by": "receipt-extract",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-023",
+        "title": "通道失败的权威终态出口以哪侧为准（ready vs failed）？§7「终态不重启」是否约束通道失败？",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "openQuestion"
+        ],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T19:38:37.045Z",
+          "by": "receipt-extract",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-024",
+        "title": "通道级重试总预算归谁定义（备忘 §3 自定义 vs framework §4 任务级）？降级路径切换是否计一次重试？",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "openQuestion"
+        ],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T19:38:37.045Z",
+          "by": "receipt-extract",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-025",
+        "title": "熔断阈值在通道侧复用通用熔断，还是独立计数？",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "openQuestion"
+        ],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T19:38:37.045Z",
+          "by": "receipt-extract",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-026",
+        "title": "framework §4.2 的失败定性三分法是否正式豁免通道层失败，还是另立通道定性？",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "openQuestion"
+        ],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T19:38:37.046Z",
+          "by": "receipt-extract",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-027",
+        "title": "通道演练的「可复核基线」具体取什么（稳定路径清单 / 当日成功率快照 / 两者）？",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "openQuestion"
+        ],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T19:38:37.046Z",
+          "by": "receipt-extract",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
       }
     ]
   },
@@ -598,6 +774,23 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-012",
+      "recordedAt": "2026-11-15T19:41:33.283Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-017",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "queue-scheduler",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-011",
       "recordedAt": "2026-11-15T18:53:07.816Z",
@@ -784,18 +977,18 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "auditSummary": {
-    "total": 11,
+    "total": 12,
     "byResult": {
-      "allowed": 11,
+      "allowed": 12,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 9
+      "TOOL-QUEUE-SCHEDULER": 10
     },
     "byActor": {
-      "orchestrator": 11
+      "orchestrator": 12
     }
   },
   "protocolView": {
@@ -1684,6 +1877,31 @@ window.ORCH_SNAPSHOT = {
           }
         ],
         "archived": true
+      },
+      {
+        "taskId": "AF-017",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-implementation-2026-11-16.md"
+          }
+        ],
+        "archived": true
       }
     ],
     "statusMap": {
@@ -2103,6 +2321,16 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-016",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-implementation-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-017",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-017",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-implementation-2026-11-16.md"
       }
     ],
     "groupId": null,
@@ -2182,5 +2410,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 33
+  "archivedCount": 34
 };

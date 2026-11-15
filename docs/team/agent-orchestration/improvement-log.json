@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-15T18:52:14.154Z",
+  "updatedAt": "2026-11-15T19:39:09.749Z",
   "improvements": [
     {
       "improvementId": "IM-001",
-      "status": "queued",
+      "status": "done",
       "title": "台账抽取通道仅识别快照遗留项，未直接解析回执文件正文",
       "source": "implementation",
       "type": "gap",
@@ -16,7 +16,7 @@
       "suggestion": "抽取通道增加回执文件正文解析，与快照遗留项双通道合并去重",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T13:30:16.322Z",
-      "updatedAt": "2026-11-15T13:30:32.466Z",
+      "updatedAt": "2026-11-15T19:39:09.747Z",
       "history": [
         {
           "at": "2026-11-15T13:30:16.322Z",
@@ -31,8 +31,27 @@
           "to": "queued",
           "by": "orchestrator",
           "note": "编排者评审立项，纳入演进 backlog 跟踪"
+        },
+        {
+          "at": "2026-11-15T19:39:09.562Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator",
+          "note": null
+        },
+        {
+          "at": "2026-11-15T19:39:09.747Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator",
+          "note": "回执正文解析通道 extractFromReceiptDoc 落地，与快照抽取双通道合并去重"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-15T19:39:09.747Z",
+        "resolutionNote": "回执正文解析通道 extractFromReceiptDoc 落地，与快照抽取双通道合并去重",
+        "linkedTaskId": "AF-017"
+      }
     },
     {
       "improvementId": "IM-002",
@@ -689,6 +708,198 @@
           "from": null,
           "to": "candidate",
           "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-020",
+      "status": "candidate",
+      "title": "12 条差异 / 缺口需在两仓文档修订时消化（备忘 §3 + framework reliability.md §4）；本单不就地修订（outOfScope）。",
+      "source": "acceptance",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "DR-001",
+      "evidence": ["receipt:relay-response-af013-drill-20261116.md", "backlogItem"],
+      "impact": null,
+      "suggestion": null,
+      "createdBy": "receipt-extract",
+      "createdAt": "2026-11-15T19:38:37.044Z",
+      "updatedAt": "2026-11-15T19:38:37.044Z",
+      "history": [
+        {
+          "at": "2026-11-15T19:38:37.044Z",
+          "from": null,
+          "to": "candidate",
+          "by": "receipt-extract",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-021",
+      "status": "candidate",
+      "title": "D-11 属备忘自身字段不自洽，可在下次改备忘 §3.5 时一并修。",
+      "source": "acceptance",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "DR-001",
+      "evidence": ["receipt:relay-response-af013-drill-20261116.md", "backlogItem"],
+      "impact": null,
+      "suggestion": null,
+      "createdBy": "receipt-extract",
+      "createdAt": "2026-11-15T19:38:37.045Z",
+      "updatedAt": "2026-11-15T19:38:37.045Z",
+      "history": [
+        {
+          "at": "2026-11-15T19:38:37.045Z",
+          "from": null,
+          "to": "candidate",
+          "by": "receipt-extract",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-022",
+      "status": "candidate",
+      "title": "工作区存在未纳入版本控制的 scripts/orchestration/dispatch-channel.mjs —— **本单未审读、不对其作任何口径结论**；若其已实现重试逻辑，D-2 / D-5 / D-7 可能已有代码侧对应，需另开只读核对单确认。",
+      "source": "acceptance",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "DR-001",
+      "evidence": ["receipt:relay-response-af013-drill-20261116.md", "backlogItem"],
+      "impact": null,
+      "suggestion": null,
+      "createdBy": "receipt-extract",
+      "createdAt": "2026-11-15T19:38:37.045Z",
+      "updatedAt": "2026-11-15T19:38:37.045Z",
+      "history": [
+        {
+          "at": "2026-11-15T19:38:37.045Z",
+          "from": null,
+          "to": "candidate",
+          "by": "receipt-extract",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-023",
+      "status": "candidate",
+      "title": "通道失败的权威终态出口以哪侧为准（ready vs failed）？§7「终态不重启」是否约束通道失败？",
+      "source": "acceptance",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "DR-001",
+      "evidence": ["receipt:relay-response-af013-drill-20261116.md", "openQuestion"],
+      "impact": null,
+      "suggestion": null,
+      "createdBy": "receipt-extract",
+      "createdAt": "2026-11-15T19:38:37.045Z",
+      "updatedAt": "2026-11-15T19:38:37.045Z",
+      "history": [
+        {
+          "at": "2026-11-15T19:38:37.045Z",
+          "from": null,
+          "to": "candidate",
+          "by": "receipt-extract",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-024",
+      "status": "candidate",
+      "title": "通道级重试总预算归谁定义（备忘 §3 自定义 vs framework §4 任务级）？降级路径切换是否计一次重试？",
+      "source": "acceptance",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "DR-001",
+      "evidence": ["receipt:relay-response-af013-drill-20261116.md", "openQuestion"],
+      "impact": null,
+      "suggestion": null,
+      "createdBy": "receipt-extract",
+      "createdAt": "2026-11-15T19:38:37.045Z",
+      "updatedAt": "2026-11-15T19:38:37.045Z",
+      "history": [
+        {
+          "at": "2026-11-15T19:38:37.045Z",
+          "from": null,
+          "to": "candidate",
+          "by": "receipt-extract",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-025",
+      "status": "candidate",
+      "title": "熔断阈值在通道侧复用通用熔断，还是独立计数？",
+      "source": "acceptance",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "DR-001",
+      "evidence": ["receipt:relay-response-af013-drill-20261116.md", "openQuestion"],
+      "impact": null,
+      "suggestion": null,
+      "createdBy": "receipt-extract",
+      "createdAt": "2026-11-15T19:38:37.045Z",
+      "updatedAt": "2026-11-15T19:38:37.045Z",
+      "history": [
+        {
+          "at": "2026-11-15T19:38:37.045Z",
+          "from": null,
+          "to": "candidate",
+          "by": "receipt-extract",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-026",
+      "status": "candidate",
+      "title": "framework §4.2 的失败定性三分法是否正式豁免通道层失败，还是另立通道定性？",
+      "source": "acceptance",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "DR-001",
+      "evidence": ["receipt:relay-response-af013-drill-20261116.md", "openQuestion"],
+      "impact": null,
+      "suggestion": null,
+      "createdBy": "receipt-extract",
+      "createdAt": "2026-11-15T19:38:37.046Z",
+      "updatedAt": "2026-11-15T19:38:37.046Z",
+      "history": [
+        {
+          "at": "2026-11-15T19:38:37.046Z",
+          "from": null,
+          "to": "candidate",
+          "by": "receipt-extract",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-027",
+      "status": "candidate",
+      "title": "通道演练的「可复核基线」具体取什么（稳定路径清单 / 当日成功率快照 / 两者）？",
+      "source": "acceptance",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "DR-001",
+      "evidence": ["receipt:relay-response-af013-drill-20261116.md", "openQuestion"],
+      "impact": null,
+      "suggestion": null,
+      "createdBy": "receipt-extract",
+      "createdAt": "2026-11-15T19:38:37.046Z",
+      "updatedAt": "2026-11-15T19:38:37.046Z",
+      "history": [
+        {
+          "at": "2026-11-15T19:38:37.046Z",
+          "from": null,
+          "to": "candidate",
+          "by": "receipt-extract",
           "note": "登记候选改进"
         }
       ]

@@ -290,6 +290,15 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-implementation-2026-11-16.md"
       },
       "note": "编排护栏:能力路由/资源域校验/rebase巡检/V7采集接线;112 passed;零业务源码改动"
+    },
+    {
+      "taskId": "AF-017",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-implementation-2026-11-16.md"
+      },
+      "note": "回执正文抽取双通道;116 passed;零业务源码改动"
     }
   ]
 }

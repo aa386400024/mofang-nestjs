@@ -169,6 +169,8 @@ GUI 会话只传递一句话：交接文件绝对路径 + 回执路径。任务�
 
 **已同步（AF-016，2026-11-16）**：§3.6 落地角色能力路由（IM-008：availability 门槛 + skill/tool 评分 + 显式角色优先、不可用不改派）与角色资源域越域校验（IM-010：scope 落在 Card `resources` 前缀内，只读类豁免）；§4.2 巡检补 ahead/behind rebase 标注（IM-013）；§5 残留识别补 git diff 采集入口接线（IM-009：run-once / watch 采集清单传入 V7，空清单 skip）。纯函数落 `card-router.mjs` / `branch-workflow.mjs`，调度与 CLI 仅做注入接线，未碰业务 `src/`。
 
+**已同步（AF-017，2026-11-16）**：改进台账抽取通道补回执正文解析（IM-001）：`extractFromReceiptDoc` 解析回执 markdown 遗留组 `backlogItems` / `openQuestions` 列表项转候选草稿，与 `extractFromSnapshot` 快照结果按标题键 + 签名合并去重；`manualReviewList` 仍归快照通道，避免双源重复；CLI `--extract` 枚举归档回执 `relay-response-*.md` 接入双通道。纯函数落 `improvement-log.mjs`，文件 IO 归 CLI，未碰业务 `src/`。
+
 ## 7. autoLoop 开启时机
 
 | 阶段                 | 状态                                                                           | 条件            |
