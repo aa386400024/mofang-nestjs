@@ -19,6 +19,7 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { PATHS, REPO_ROOT } from './state-store.mjs';
+import { detectResidualFiles } from './scope-mutex.mjs';
 
 const TASK_ID_PATTERN = /^[A-Z0-9]+-[0-9]+$/;
 
@@ -211,6 +212,26 @@ function checkToolContracts() {
   return { checks, manualReview: [] };
 }
 
+/**
+ * V7 文件域残留：变更清单与 scope 比对，清单外文件判残留（只识别报告，不删除、不归集）。
+ * changedFiles 由调用方采集 git diff 传入；未传入时记 skip（纯函数模块无 git IO）。
+ */
+function checkResidual(task, opts) {
+  const checks = [];
+  const changed = Array.isArray(opts?.changedFiles) ? opts.changedFiles : null;
+  if (!changed || changed.length === 0) {
+    record(checks, 'V7', '文件域残留', 'skip', '未传入变更文件清单；残留比对需调用方采集 git diff');
+    return { checks, manualReview: [] };
+  }
+  const { covered, residual } = detectResidualFiles(changed, task);
+  if (residual.length > 0) {
+    record(checks, 'V7', '文件域残留', 'fail', `scope 外变更文件（不进提交分组）：${residual.join('；')}`);
+  } else {
+    record(checks, 'V7', '文件域残留', 'pass', `变更 ${changed.length} 个文件均在 scope 文件域内（覆盖 ${covered.length}）`);
+  }
+  return { checks, manualReview: [] };
+}
+
 /** 人工复核项：脚本不可判定的语义 / 口径 / 偏差类核对。 */
 function manualReviewItems(task) {
   const items = [
@@ -234,9 +255,10 @@ function manualReviewItems(task) {
  * 运行单任务验收。
  * @param {object} task 索引任务条目
  * @param {object} index 完整索引
+ * @param {object} [opts] changedFiles：本次变更文件相对路径清单（V7 残留比对）；缺省 skip
  * @returns {{taskId:string, verdict:'passed'|'conditional-pass'|'rejected', checks:object[], manualReview:string[], rationale:string}}
  */
-export function runAcceptance(task, index) {
+export function runAcceptance(task, index, opts = {}) {
   const parts = [
     checkTaskSheet(task),
     checkIndexContract(index, task),
@@ -244,6 +266,7 @@ export function runAcceptance(task, index) {
     checkLinks(task),
     checkEncoding(task),
     checkToolContracts(),
+    checkResidual(task, opts),
   ];
   const checks = parts.flatMap((p) => p.checks);
   const manualReview = manualReviewItems(task);

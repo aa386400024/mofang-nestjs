@@ -37,6 +37,7 @@ import { listAudits, loadAuditLog, summarizeAudits } from './audit-log.mjs';
 import { buildProtocolView } from './protocol-mapper.mjs';
 import { createTransport } from './transport.mjs';
 import { dispatchTask, receiptFingerprint, isReceiptProcessed, markReceiptProcessed } from './dispatch.mjs';
+import { findScopeConflicts } from './scope-mutex.mjs';
 
 const BY_ORCHESTRATOR = 'orchestrator-cli';
 
@@ -99,6 +100,12 @@ function claimReadyTasks(index, runtimeState, config, actions, opts = {}) {
     if (task.status !== 'ready') continue;
     if (!dependenciesMet(task, index)) continue;
     if (!config.allowedTaskTypes.includes(task.type)) continue;
+    const scopeConflicts = findScopeConflicts(task, index.tasks);
+    if (scopeConflicts.length > 0) {
+      // 文件域与在办任务相交：拦截派发，任务留 ready，不登记租约、不投递交接件。
+      actions.push({ type: 'scope-conflict', taskId: task.taskId, conflicts: scopeConflicts });
+      continue;
+    }
     const entry = ensureRuntimeEntry(runtimeState, task.taskId);
     const deadline = new Date(Date.now() + config.leaseDefaultMinutes * 60_000).toISOString();
     pushHistory(task, 'submitted', BY_ORCHESTRATOR, '编排者领单（派发通道由 agent cu 衔接）');

@@ -69,9 +69,20 @@ function auditRegistryCall(toolId, ctx) {
   return result;
 }
 
-/** 派发类动作逐条落审计（通道、任务标识、交接件指针）；复用队列调度器工具契约。 */
+/** 调度类动作逐条落审计（派发通道 / 交接件指针 / 文件域冲突）；复用队列调度器工具契约。 */
 function auditDispatchActions(actions) {
   for (const action of actions ?? []) {
+    if (action.type === 'scope-conflict') {
+      const conflictTaskIds = (action.conflicts ?? []).map((c) => c.taskId);
+      auditRegistryCall('TOOL-QUEUE-SCHEDULER', {
+        actor: 'orchestrator',
+        correlationId: `scope-conflict:${action.taskId}`,
+        taskId: action.taskId,
+        resources: conflictTaskIds,
+        reason: `文件域与在办任务相交：${conflictTaskIds.join(', ')}`,
+      });
+      continue;
+    }
     if (action.type !== 'dispatch' && action.type !== 'dispatch-rejected') continue;
     auditRegistryCall('TOOL-QUEUE-SCHEDULER', {
       actor: 'orchestrator',

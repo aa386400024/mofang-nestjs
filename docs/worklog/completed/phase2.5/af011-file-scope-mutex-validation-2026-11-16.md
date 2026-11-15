@@ -3,8 +3,8 @@ taskId: AF-011
 contextId: phase2.5-orchestration-closed-loop
 title: 文件域 scope 校验与在办任务交集拦截（双代理文件互斥前置护栏）
 type: implementation
-status: backlog
-baselineRef: 09df090
+status: completed
+baselineRef: 9a25342
 dependsOn: [AF-009]
 policyRefs: [framework/roles.md, framework/reliability.md, framework/task-contract.md]
 createdAt: 2026-11-16
@@ -12,7 +12,7 @@ createdAt: 2026-11-16
 
 # AF-011 · 文件域 scope 校验与在办交集拦截
 
-> 状态：📋 待立项（2026-11-16）｜编排：主控 Doubao（orchestrator 自做）
+> 状态：✅ 已交付（2026-11-16）｜编排：主控 Doubao（orchestrator 自做）｜交付记录：af011-file-scope-mutex-validation-implementation-2026-11-16.md
 > 仓库：`E:\Work\Project\backend\mofang-nestjs`；落点 `scripts/orchestration/`、任务单 schema 字段口径
 > 唯一事实源：`docs/team/agent-orchestration/autonomous-team-design.md` §5（并发与文件域互斥）、§8 P0-3
 > 任务性质：编排层工具链演进；不碰业务源码

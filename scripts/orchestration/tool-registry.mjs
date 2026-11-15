@@ -115,7 +115,7 @@ export function call(registry, toolId, ctx = {}, auditLog = null) {
       resources: ctx.resources ?? base.resources,
       taskId: ctx.taskId,
       result: denied ? 'denied' : 'allowed',
-      reason,
+      reason: ctx.reason ?? reason,
     });
   }
 

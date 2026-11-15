@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T17:31:16.717Z",
+  "generatedAt": "2026-11-15T17:43:50.907Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -14,28 +14,9 @@
     "rejected": 0,
     "input-required": 0,
     "deadLetter": 0,
-    "backlog": 4
+    "backlog": 3
   },
   "tasks": [
-    {
-      "taskId": "AF-011",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "文件域 scope 校验与在办任务交集拦截（双代理文件互斥前置护栏）",
-      "status": "backlog",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af011-file-scope-mutex-validation-2026-11-16.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": null
-    },
     {
       "taskId": "AF-012",
       "contextId": "phase2.5-orchestration-closed-loop",
@@ -98,25 +79,25 @@
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 8,
-    "activeCount": 8,
+    "total": 11,
+    "activeCount": 11,
     "byStatus": {
-      "candidate": 5,
+      "candidate": 8,
       "queued": 1,
       "accepted": 2,
       "done": 0,
       "wontfix": 0
     },
     "byType": {
-      "gap": 3,
+      "gap": 4,
       "guardrail": 0,
       "tool": 0,
       "standard": 1,
       "performance": 0,
-      "tech-debt": 4
+      "tech-debt": 6
     },
     "bySource": {
-      "implementation": 6,
+      "implementation": 9,
       "acceptance": 0,
       "rework": 0,
       "dead-letter": 0,
@@ -279,6 +260,63 @@
           "to": "candidate",
           "note": "登记候选改进"
         }
+      },
+      {
+        "improvementId": "IM-009",
+        "title": "验收残留比对缺 git diff 变更清单采集器，V7 当前 skip",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-011",
+        "evidence": ["acceptance-runner.mjs checkResidual opts.changedFiles scope-mutex.mjs detectResidualFiles"],
+        "impact": "纯函数模块无 git IO；变更清单须由调用方采集传入，未接入采集器前 V7 残留护栏记 skip，清单外文件不会被机读拦截",
+        "suggestion": "后续在调度/验收入口采集 git diff --name-only（相对仓根）传入 runAcceptance opts.changedFiles，使 V7 残留比对生效",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T17:41:33.766Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-010",
+        "title": "任务 scope 未与 Agent Card resources 角色资源域做越域校验",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-011",
+        "evidence": ["scope-mutex.mjs findScopeConflicts 仅做任务间互斥 agent-cards resources 字段未投影进校验"],
+        "impact": "本单只拦截在办任务间文件域冲突；任务 scope 越出角色声明资源域（如 executor 写编排目录）暂无前置机读校验",
+        "suggestion": "P1 接入 Agent Card resources 投影，派发前校验任务 scope 落在目标角色资源域内；资源域真相源保持角色卡与框架 roles.md",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T17:41:34.843Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-011",
+        "title": "scope 通配路径仅降级目录前缀，未做真实目录枚举 glob 展开",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-011",
+        "evidence": ["scope-mutex.mjs normalizePath wildcard 截断 纯函数无 fs 列目录能力"],
+        "impact": "src/**/*.ts 类通配按 src/ 目录前缀近似判定；跨层通配与单段 * 的精确覆盖口径可能偏宽或偏窄",
+        "suggestion": "P2 并行文件锁升级时引入只读路径匹配器（读目录或框架 glob 工具），在纯函数之外的采集层做展开",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T17:41:35.976Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
       }
     ]
   },
@@ -373,6 +411,23 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-006",
+      "recordedAt": "2026-11-15T17:42:18.346Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-011",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "queue-scheduler",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-005",
       "recordedAt": "2026-11-15T17:31:16.686Z",
       "actorRef": "orchestrator",
@@ -451,50 +506,22 @@
     }
   ],
   "auditSummary": {
-    "total": 5,
+    "total": 6,
     "byResult": {
-      "allowed": 5,
+      "allowed": 6,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 3
+      "TOOL-QUEUE-SCHEDULER": 4
     },
     "byActor": {
-      "orchestrator": 5
+      "orchestrator": 6
     }
   },
   "protocolView": {
     "tasks": [
-      {
-        "taskId": "AF-011",
-        "title": "文件域 scope 校验与在办任务交集拦截（双代理文件互斥前置护栏）",
-        "type": "implementation",
-        "status": {
-          "framework": "backlog",
-          "protocol": "DRAFT",
-          "stage": "prelude"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": ["AF-009"],
-        "agentRole": null,
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af011-file-scope-mutex-validation-2026-11-16.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": null
-          },
-          {
-            "kind": "reply",
-            "ref": null
-          }
-        ]
-      },
       {
         "taskId": "AF-012",
         "title": "任务分支流程脚本（建分支 / squash 合并 / 合并清理 / 陈旧分支巡检）",
@@ -1297,6 +1324,35 @@
           }
         ],
         "archived": true
+      },
+      {
+        "taskId": "AF-011",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af011-file-scope-mutex-validation-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af011-file-scope-mutex-validation-implementation-2026-11-16.md"
+          },
+          {
+            "kind": "reply",
+            "ref": null
+          }
+        ],
+        "archived": true
       }
     ],
     "statusMap": {
@@ -1312,21 +1368,6 @@
       "rejected": "REJECTED"
     },
     "artifacts": [
-      {
-        "taskId": "AF-011",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af011-file-scope-mutex-validation-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-011",
-        "kind": "deliveryRecord",
-        "ref": null
-      },
-      {
-        "taskId": "AF-011",
-        "kind": "reply",
-        "ref": null
-      },
       {
         "taskId": "AF-012",
         "kind": "taskSheet",
@@ -1696,6 +1737,21 @@
         "taskId": "AF-010",
         "kind": "reply",
         "ref": null
+      },
+      {
+        "taskId": "AF-011",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/af011-file-scope-mutex-validation-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-011",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af011-file-scope-mutex-validation-implementation-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-011",
+        "kind": "reply",
+        "ref": null
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -1742,5 +1798,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 27
+  "archivedCount": 28
 }

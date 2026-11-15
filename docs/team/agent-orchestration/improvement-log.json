@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-15T17:29:43.158Z",
+  "updatedAt": "2026-11-15T17:41:35.978Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -228,6 +228,78 @@
       "history": [
         {
           "at": "2026-11-15T17:29:43.156Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-009",
+      "status": "candidate",
+      "title": "验收残留比对缺 git diff 变更清单采集器，V7 当前 skip",
+      "source": "implementation",
+      "type": "tech-debt",
+      "layer": "adapter",
+      "relatedTaskId": "AF-011",
+      "evidence": ["acceptance-runner.mjs checkResidual opts.changedFiles scope-mutex.mjs detectResidualFiles"],
+      "impact": "纯函数模块无 git IO；变更清单须由调用方采集传入，未接入采集器前 V7 残留护栏记 skip，清单外文件不会被机读拦截",
+      "suggestion": "后续在调度/验收入口采集 git diff --name-only（相对仓根）传入 runAcceptance opts.changedFiles，使 V7 残留比对生效",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-15T17:41:33.766Z",
+      "updatedAt": "2026-11-15T17:41:33.766Z",
+      "history": [
+        {
+          "at": "2026-11-15T17:41:33.766Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-010",
+      "status": "candidate",
+      "title": "任务 scope 未与 Agent Card resources 角色资源域做越域校验",
+      "source": "implementation",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-011",
+      "evidence": ["scope-mutex.mjs findScopeConflicts 仅做任务间互斥 agent-cards resources 字段未投影进校验"],
+      "impact": "本单只拦截在办任务间文件域冲突；任务 scope 越出角色声明资源域（如 executor 写编排目录）暂无前置机读校验",
+      "suggestion": "P1 接入 Agent Card resources 投影，派发前校验任务 scope 落在目标角色资源域内；资源域真相源保持角色卡与框架 roles.md",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-15T17:41:34.843Z",
+      "updatedAt": "2026-11-15T17:41:34.843Z",
+      "history": [
+        {
+          "at": "2026-11-15T17:41:34.843Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-011",
+      "status": "candidate",
+      "title": "scope 通配路径仅降级目录前缀，未做真实目录枚举 glob 展开",
+      "source": "implementation",
+      "type": "tech-debt",
+      "layer": "adapter",
+      "relatedTaskId": "AF-011",
+      "evidence": ["scope-mutex.mjs normalizePath wildcard 截断 纯函数无 fs 列目录能力"],
+      "impact": "src/**/*.ts 类通配按 src/ 目录前缀近似判定；跨层通配与单段 * 的精确覆盖口径可能偏宽或偏窄",
+      "suggestion": "P2 并行文件锁升级时引入只读路径匹配器（读目录或框架 glob 工具），在纯函数之外的采集层做展开",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-15T17:41:35.976Z",
+      "updatedAt": "2026-11-15T17:41:35.976Z",
+      "history": [
+        {
+          "at": "2026-11-15T17:41:35.976Z",
           "from": null,
           "to": "candidate",
           "by": "orchestrator-cli",

@@ -25,6 +25,7 @@ import {
 } from '../handover-contract.mjs';
 import { ARCHIVE_STATUSES, archiveTaskEntry, canTransition, shouldAdvance, buildSnapshot } from '../scheduler.mjs';
 import { dispatchTask, buildDispatchRecord, receiptFingerprint, isReceiptProcessed, markReceiptProcessed } from '../dispatch.mjs';
+import { normalizeScope, findScopeConflicts, detectResidualFiles, scopeCovers } from '../scope-mutex.mjs';
 import { runAcceptance } from '../acceptance-runner.mjs';
 import {
   addCandidate,
@@ -900,5 +901,87 @@ describe('AF-010 派发接线与回执幂等', () => {
     const deduped = dedupeEvents(events);
     expect(deduped).toHaveLength(2);
     expect(deduped.find((e) => e.path === 'AF-010.json').count).toBe(2);
+  });
+});
+
+describe('AF-011 文件域 scope 互斥校验', () => {
+  function task(id, files, opts = {}) {
+    return {
+      taskId: id,
+      contextId: 'phase2.5-orchestration-closed-loop',
+      type: 'implementation',
+      status: 'submitted',
+      scope: { files },
+      ...opts,
+    };
+  }
+
+  it('路径归一化：相对路径 / 目录前缀 / 反斜杠与 ./ 前缀；拒绝绝对路径与 .. 段', () => {
+    const norm = normalizeScope(task('T1', ['./src/app.ts', 'src\\shared\\', '/abs/x.ts', 'src/../secret.ts']));
+    expect(norm.errors).toHaveLength(2);
+    expect(norm.entries[0]).toMatchObject({ path: 'src/app.ts', isDir: false });
+    expect(norm.entries[1]).toMatchObject({ path: 'src/shared', isDir: true });
+  });
+
+  it('通配段降级为目录前缀，不展开 glob', () => {
+    const norm = normalizeScope(task('T1', ['src/**/*.ts']));
+    expect(norm.entries).toHaveLength(1);
+    expect(norm.entries[0].path).toBe('src');
+    expect(norm.entries[0].isDir).toBe(true);
+  });
+
+  it('同文件精确命中 → 报告冲突；不同文件域 → 无冲突', () => {
+    const other = task('AF-011B', ['src/a.ts'], { status: 'submitted' });
+    expect(findScopeConflicts(task('AF-011A', ['src/a.ts']), [other])).toHaveLength(1);
+    const disjoint = task('AF-011B', ['src/b.ts'], { status: 'submitted' });
+    expect(findScopeConflicts(task('AF-011A', ['src/a.ts']), [disjoint])).toHaveLength(0);
+  });
+
+  it('目录前缀覆盖：目录与目录下文件、父子目录互相包含均判冲突', () => {
+    const dirOther = task('AF-011B', ['src/'], { status: 'working' });
+    const hit = findScopeConflicts(task('AF-011A', ['src/app/a.ts']), [dirOther]);
+    expect(hit).toHaveLength(1);
+    expect(hit[0].conflicts.join(' ')).toMatch('src/');
+
+    const parent = task('AF-011B', ['src/'], { status: 'working' });
+    const child = task('AF-011A', ['src/orchestration/'], { status: 'submitted' });
+    expect(findScopeConflicts(child, [parent])).toHaveLength(1);
+  });
+
+  it('只读调研任务豁免写域互斥：自身只读不产生冲突，对方只读不构成冲突', () => {
+    const researcher = task('AF-011R', ['src/a.ts'], { type: 'investigation', status: 'submitted' });
+    expect(findScopeConflicts(task('AF-011A', ['src/a.ts']), [researcher])).toHaveLength(0);
+    expect(findScopeConflicts(researcher, [task('AF-011B', ['src/a.ts'])])).toHaveLength(0);
+    const readonlyFlag = task('AF-011Q', ['src/a.ts'], { scope: { files: ['src/a.ts'], readOnly: true }, status: 'submitted' });
+    expect(normalizeScope(readonlyFlag).readOnly).toBe(true);
+  });
+
+  it('非在办状态（ready / completed）不参与文件域冲突', () => {
+    const ready = task('AF-011B', ['src/a.ts'], { status: 'ready' });
+    const done = task('AF-011C', ['src/a.ts'], { status: 'completed' });
+    expect(findScopeConflicts(task('AF-011A', ['src/a.ts']), [ready, done])).toHaveLength(0);
+  });
+
+  it('残留识别：scope 内文件计 covered，scope 外文件计 residual', () => {
+    const t = task('AF-011A', ['scripts/orchestration/']);
+    const { covered, residual } = detectResidualFiles(['scripts/orchestration/scheduler.mjs', 'src/engine-core/secret.ts'], t);
+    expect(covered).toEqual(['scripts/orchestration/scheduler.mjs']);
+    expect(residual).toEqual(['src/engine-core/secret.ts']);
+    expect(scopeCovers(t, 'scripts/orchestration/cli.mjs')).toBe(true);
+    expect(scopeCovers(t, 'README.md')).toBe(false);
+  });
+
+  it('验收 V7：变更清单含 scope 外文件 → fail；全在域内 → pass；未传清单 → skip', () => {
+    const t = task('AF-011A', ['docs/']);
+    t.artifacts = { deliveryRecord: 'docs/worklog/completed/af011.md' };
+    const rejected = runAcceptance(t, { tasks: [t], archivedTasks: [] }, { changedFiles: ['docs/a.md', 'src/b.ts'] });
+    expect(rejected.checks.find((c) => c.code === 'V7').status).toBe('fail');
+    expect(rejected.verdict).toBe('rejected');
+
+    const passed = runAcceptance(t, { tasks: [t], archivedTasks: [] }, { changedFiles: ['docs/a.md'] });
+    expect(passed.checks.find((c) => c.code === 'V7').status).toBe('pass');
+
+    const skipped = runAcceptance(t, { tasks: [t], archivedTasks: [] });
+    expect(skipped.checks.find((c) => c.code === 'V7').status).toBe('skip');
   });
 });
