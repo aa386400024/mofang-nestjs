@@ -1,4 +1,4 @@
-/* eslint-disable new-cap, prettier/prettier, import/order, prefer-const */
+/* eslint-disable new-cap, import/order, prefer-const */
 
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { IoAdapter } from '@nestjs/platform-socket.io';
