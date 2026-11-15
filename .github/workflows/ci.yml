@@ -214,11 +214,12 @@ jobs:
       EMAIL_ENABLED: 'false'
       SMS_ENABLED: 'false'
       METRICS_ENABLED: 'false'
-      # P-DEBT-17: LlmService 构造期 configMust 硬校验三 env; e2e 装配真实 AppModule 触发构造.
-      #   stub 仅通过非空校验, 不发起网络调用 (e2e 用例均 skip 或不触达 LLM 调用); 生产 env 由部署环境注入.
+      # P-DEBT-17: 构造期硬校验 env; e2e 装配真实 AppModule 触发 LlmService + AsrTokenService 构造.
+      #   stub 仅通过非空校验, 不发起网络调用 (e2e 用例均 skip 或不触达 LLM/ASR 调用); 生产 env 由部署环境注入.
       MINIMAX_BASE_URL: http://127.0.0.1:1
       MINIMAX_API_KEY: stub-test-key
       MINIMAX_LLM_MODEL: stub-model
+      MINIMAX_ASR_TOKEN_SECRET: stub-asr-token-secret
     steps:
       - uses: actions/checkout@v4
 
