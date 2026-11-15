@@ -8,6 +8,7 @@
  *   protocol               导出标准协议视图（protocolView 只读映射投影）
  *   snapshot               仅刷新队列快照（不推进验收与返修）
  *   pack                   生成夜间交付包（JSON + MD 副本）
+ *   archive <taskId>       显式归档活跃任务到 archivedTasks（补工件指针与终态）
  *   improvements           候选改进台账：list / extract / add / transition
  *   validate [--sheet f]   AF-006 框架 schema 机读校验（索引 / 工具契约 / Agent Card）
  *   config --enable        开启自治模式（写回 config.json）
@@ -17,8 +18,8 @@
  */
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { PATHS, REPO_ROOT, loadConfig, loadIndex, loadRuntimeState, saveConfigPatch, writeJsonAtomic } from './state-store.mjs';
-import { advanceOnce, buildSnapshot, shouldAdvance } from './scheduler.mjs';
+import { PATHS, REPO_ROOT, loadConfig, loadIndex, loadRuntimeState, saveConfigPatch, saveIndex, writeJsonAtomic } from './state-store.mjs';
+import { advanceOnce, archiveTaskEntry, buildSnapshot, shouldAdvance } from './scheduler.mjs';
 import { validateAgentCard, validateTaskIndex, validateTaskSheet, validateToolManifest } from './validator.mjs';
 import { loadRegistry, call as registryCall } from './tool-registry.mjs';
 import { loadAuditLog, saveAuditLog } from './audit-log.mjs';
@@ -170,6 +171,41 @@ function cmdPack() {
   console.log(
     `任务结论=${pack.taskResults.length} 死信=${pack.deadLetters.length} 遗留项=${pack.openItems.length} 待批=${pack.pendingApprovals.length}`,
   );
+}
+
+/**
+ * 显式归档活跃任务：迁移到 archivedTasks 并补写工件指针与终态（人工 / 编排者闸门动作）。
+ * 覆盖事后补登的历史任务；运行态闭环任务的自动归档由 scheduler.processReceipts 负责。
+ */
+function cmdArchive(args) {
+  const taskId = args[0];
+  if (!taskId) {
+    console.error(
+      '用法：cli.mjs archive <taskId> [--status completed|rejected|canceled] [--sheet <file>] [--record <file>] [--reply <file>] [--note <text>]',
+    );
+    process.exit(2);
+  }
+  const status = argValue(args, '--status') ?? 'completed';
+  const refs = {
+    taskSheet: argValue(args, '--sheet'),
+    deliveryRecord: argValue(args, '--record'),
+    reply: argValue(args, '--reply'),
+  };
+  const artifacts = {};
+  for (const [key, relPath] of Object.entries(refs)) {
+    if (!relPath) continue;
+    const abs = resolve(REPO_ROOT, relPath);
+    if (!existsSync(abs)) throw new Error(`归档失败：工件文件不存在（${key}）：${relPath}`);
+    artifacts[key] = relPath;
+  }
+  const note = argValue(args, '--note');
+
+  const index = loadIndex();
+  const entry = archiveTaskEntry(index, taskId, { status, artifacts, note });
+  saveIndex(index);
+  auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: `archive:${taskId}` });
+  refreshSnapshotArtifacts();
+  console.log(`已归档：${entry.taskId} [${entry.status}]${note ? `｜${note}` : ''}`);
 }
 
 const SKIPPED = { ok: true, skipped: true, errors: [], schemaId: null };
@@ -326,7 +362,8 @@ function cmdImprovements(args) {
 }
 
 function printHelp() {
-  console.log('用法：cli.mjs <status|run-once|watch|protocol|snapshot|pack|validate|config|improvements> [参数]');
+  console.log('用法：cli.mjs <status|run-once|watch|protocol|snapshot|pack|archive|validate|config|improvements> [参数]');
+  console.log('  archive <taskId> [--status ..] [--sheet ..] [--record ..] [--reply ..] [--note ..]');
   console.log('  watch                        监听任务单 / 回执目录，变更防抖后自动执行一轮 run-once');
   console.log('  protocol                     导出标准协议视图（protocolView 只读映射投影）');
   console.log('  validate [--sheet <file>]   校验索引 / 工具契约 / Agent Card（可选任务单元 JSON）');
@@ -358,6 +395,14 @@ switch (command) {
     break;
   case 'pack':
     cmdPack();
+    break;
+  case 'archive':
+    try {
+      cmdArchive(args);
+    } catch (err) {
+      console.error(`归档失败：${err.message}`);
+      process.exit(2);
+    }
     break;
   case 'validate':
     try {

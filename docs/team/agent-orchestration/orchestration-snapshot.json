@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T16:23:32.459Z",
+  "generatedAt": "2026-11-15T16:34:25.749Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -23,9 +23,9 @@
     "total": 4,
     "activeCount": 4,
     "byStatus": {
-      "candidate": 2,
+      "candidate": 1,
       "queued": 1,
-      "accepted": 1,
+      "accepted": 2,
       "done": 0,
       "wontfix": 0
     },
@@ -107,7 +107,7 @@
       {
         "improvementId": "IM-004",
         "title": "任务交付归档后台账状态未自动回填，快照仍显示 backlog / 未验收",
-        "status": "candidate",
+        "status": "accepted",
         "source": "implementation",
         "type": "gap",
         "layer": "adapter",
@@ -118,12 +118,12 @@
         ],
         "impact": "任务实际已验收归档，但看板活跃列表仍显示待立项/未验收；台账状态与交付记录脱节，需人工回填，闭环未自动化",
         "suggestion": "交付包或验收落地后由编排链路自动把任务单元迁移到 archivedTasks 并写 status=completed 与工件指针；或 CLI 提供归档命令在交付记录落盘后回填索引",
-        "historyCount": 1,
+        "historyCount": 3,
         "lastTransition": {
-          "at": "2026-11-15T16:23:32.442Z",
-          "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "at": "2026-11-15T16:34:25.726Z",
+          "by": "orchestrator",
+          "to": "accepted",
+          "note": "实现落地：archiveTaskEntry 纯函数 + cli archive 子命令 + package 脚本；56 例绿；自动扫描归档留后续；待人工验收转 done"
         }
       }
     ]

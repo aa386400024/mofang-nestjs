@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-15T16:23:32.444Z",
+  "updatedAt": "2026-11-15T16:34:25.728Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -100,7 +100,7 @@
     },
     {
       "improvementId": "IM-004",
-      "status": "candidate",
+      "status": "accepted",
       "title": "任务交付归档后台账状态未自动回填，快照仍显示 backlog / 未验收",
       "source": "implementation",
       "type": "gap",
@@ -114,7 +114,7 @@
       "suggestion": "交付包或验收落地后由编排链路自动把任务单元迁移到 archivedTasks 并写 status=completed 与工件指针；或 CLI 提供归档命令在交付记录落盘后回填索引",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T16:23:32.442Z",
-      "updatedAt": "2026-11-15T16:23:32.442Z",
+      "updatedAt": "2026-11-15T16:34:25.726Z",
       "history": [
         {
           "at": "2026-11-15T16:23:32.442Z",
@@ -122,6 +122,20 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-15T16:34:13.983Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator",
+          "note": "编排者评审立项：提供显式归档命令作为归档回填通道"
+        },
+        {
+          "at": "2026-11-15T16:34:25.726Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator",
+          "note": "实现落地：archiveTaskEntry 纯函数 + cli archive 子命令 + package 脚本；56 例绿；自动扫描归档留后续；待人工验收转 done"
         }
       ]
     }

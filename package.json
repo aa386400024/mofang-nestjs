@@ -36,6 +36,7 @@
     "orchestration:protocol": "node scripts/orchestration/cli.mjs protocol",
     "orchestration:snapshot": "node scripts/orchestration/cli.mjs snapshot",
     "orchestration:pack": "node scripts/orchestration/cli.mjs pack",
+    "orchestration:archive": "node scripts/orchestration/cli.mjs archive",
     "orchestration:validate": "node scripts/orchestration/cli.mjs validate",
     "orchestration:config": "node scripts/orchestration/cli.mjs config",
     "orchestration:improvements": "node scripts/orchestration/cli.mjs improvements",

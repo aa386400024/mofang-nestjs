@@ -16,7 +16,7 @@ import { createStore } from '../store-port.mjs';
 import { dedupeEvents } from '../file-watcher.mjs';
 import { buildProtocolView, mapCapabilityDeclaration, mapStatus, mapTask } from '../protocol-mapper.mjs';
 import { createFileTransport, createTransport } from '../transport.mjs';
-import { canTransition, shouldAdvance, buildSnapshot } from '../scheduler.mjs';
+import { ARCHIVE_STATUSES, archiveTaskEntry, canTransition, shouldAdvance, buildSnapshot } from '../scheduler.mjs';
 import { runAcceptance } from '../acceptance-runner.mjs';
 import {
   addCandidate,
@@ -150,6 +150,70 @@ describe('buildSnapshot 快照计数与人工复核回填', () => {
     expect(snapshot.webRefresh).toEqual({ enabled: true, intervalMs: 3000 });
     const off = validateConfig({ web: { refresh: { enabled: false, intervalMs: 5000 } } });
     expect(buildSnapshot(index, runtimeState, off).webRefresh).toEqual({ enabled: false, intervalMs: 5000 });
+  });
+});
+
+describe('archiveTaskEntry 归档迁移', () => {
+  function buildIndex() {
+    return {
+      version: '1.0.0',
+      tasks: [
+        {
+          taskId: 'AF-005',
+          contextId: 'framework-evolution',
+          type: 'implementation',
+          title: '单',
+          status: 'backlog',
+          artifacts: { taskSheet: 'docs/team/af-005.md' },
+        },
+        { taskId: 'AF-006', contextId: 'framework-evolution', type: 'implementation', title: '验收单', status: 'submitted', artifacts: {} },
+      ],
+      archivedTasks: [],
+    };
+  }
+
+  it('把任务从活跃列表迁入归档段并合并工件指针', () => {
+    const index = buildIndex();
+    const entry = archiveTaskEntry(index, 'AF-005', {
+      status: 'completed',
+      artifacts: { deliveryRecord: 'docs/team/record.md' },
+      note: '事后补登归档',
+    });
+    expect(index.tasks).toHaveLength(1);
+    expect(index.tasks[0].taskId).toBe('AF-006');
+    expect(index.archivedTasks).toHaveLength(1);
+    expect(entry).toMatchObject({
+      taskId: 'AF-005',
+      status: 'completed',
+      artifacts: { taskSheet: 'docs/team/af-005.md', deliveryRecord: 'docs/team/record.md' },
+      note: '事后补登归档',
+    });
+  });
+
+  it('默认终态为 completed', () => {
+    const index = buildIndex();
+    expect(archiveTaskEntry(index, 'AF-006').status).toBe('completed');
+  });
+
+  it('任务不在活跃列表时抛错', () => {
+    const index = buildIndex();
+    expect(() => archiveTaskEntry(index, 'AF-999')).toThrow(/不在活跃列表/);
+  });
+
+  it('已归档任务重复归档时抛错', () => {
+    const index = buildIndex();
+    archiveTaskEntry(index, 'AF-005');
+    expect(() => archiveTaskEntry(index, 'AF-005')).toThrow(/已归档/);
+  });
+
+  it('非法归档终态抛错；合法终态对齐白名单', () => {
+    const index = buildIndex();
+    expect(() => archiveTaskEntry(index, 'AF-005', { status: 'working' })).toThrow(/终态非法/);
+    expect(ARCHIVE_STATUSES).toEqual(['completed', 'rejected', 'canceled']);
+    for (const status of ['rejected', 'canceled']) {
+      const ix = buildIndex();
+      expect(archiveTaskEntry(ix, 'AF-005', { status }).status).toBe(status);
+    }
   });
 });
 

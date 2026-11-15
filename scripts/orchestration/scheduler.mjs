@@ -106,14 +106,34 @@ function claimReadyTasks(index, runtimeState, config, actions) {
   }
 }
 
-/** 归档终态任务：从 tasks 移入 archivedTasks，只保留标识、终态与工件指针。 */
+/** 归档终态白名单（终态任务从活跃列表迁入归档段）。 */
+export const ARCHIVE_STATUSES = ['completed', 'rejected', 'canceled'];
+
+/**
+ * 把任务从活跃 tasks 迁移到 archivedTasks（纯函数，就地修改 index，不落盘）。
+ * 校验：任务存在于活跃列表、未归档过、终态合法；返回归档条目。
+ */
+export function archiveTaskEntry(index, taskId, opts = {}) {
+  if (index.archivedTasks.some((t) => t.taskId === taskId)) {
+    throw new Error(`任务已归档：${taskId}`);
+  }
+  const task = index.tasks.find((t) => t.taskId === taskId);
+  if (!task) throw new Error(`归档失败：任务不在活跃列表：${taskId}`);
+  const status = opts.status ?? 'completed';
+  if (!ARCHIVE_STATUSES.includes(status)) {
+    throw new Error(`归档终态非法：${status}（允许 ${ARCHIVE_STATUSES.join('/')}）`);
+  }
+  const artifacts = { ...(task.artifacts ?? {}), ...(opts.artifacts ?? {}) };
+  const entry = { taskId, status, artifacts };
+  if (opts.note) entry.note = opts.note;
+  index.tasks = index.tasks.filter((t) => t.taskId !== taskId);
+  index.archivedTasks.push(entry);
+  return entry;
+}
+
+/** 归档终态任务（scheduler 内部调用，复用 archiveTaskEntry）。 */
 function archiveTask(index, task, status) {
-  index.tasks = index.tasks.filter((t) => t.taskId !== task.taskId);
-  index.archivedTasks.push({
-    taskId: task.taskId,
-    status,
-    artifacts: { ...(task.artifacts ?? {}) },
-  });
+  archiveTaskEntry(index, task.taskId, { status });
 }
 
 /** 回执验收驱动：已落盘交付记录的任务跑护栏并归档 / 提案返修 / 死信。 */
