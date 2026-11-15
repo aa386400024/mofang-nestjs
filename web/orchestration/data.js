@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-15T13:44:52.290Z",
+  "generatedAt": "2026-11-15T14:09:09.969Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -94,9 +94,9 @@ window.ORCH_SNAPSHOT = {
     "total": 3,
     "activeCount": 3,
     "byStatus": {
-      "candidate": 2,
+      "candidate": 1,
       "queued": 1,
-      "accepted": 0,
+      "accepted": 1,
       "done": 0,
       "wontfix": 0
     },

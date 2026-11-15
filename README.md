@@ -315,8 +315,8 @@ docker compose exec api npm run migration:run
 - [ ] `src/shared/foobar/`, `src/shared/user/`
 - [ ] `src/entity/sampledb1/`, `src/entity/sampledb2/`
 - [ ] `test/e2e/local-auth.spec.ts`, `test/e2e/jwt-auth.spec.ts`
-- [ ] `bin/entity.ts` (entity 同步生成脚本)
-- [ ] package.json: 删 `passport-*` `express-session` `@nestjs/passport` `passport` `typeorm-model-generator`
+- [x] `bin/entity.ts` (entity 同步生成脚本) —— 2026-11-15 随 P-DEBT-20 移除（生成器链路事实废弃）
+- [x] package.json: 删 `typeorm-model-generator`（2026-11-15，P-DEBT-20）；`passport-*` `express-session` `@nestjs/passport` `passport` 属 demo 链路，留 V3 上线清理
 
 删完应该剩 50% 文件，纯净 V2 真生产。
 

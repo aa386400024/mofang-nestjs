@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-15T13:43:09.891Z",
+  "updatedAt": "2026-11-15T14:08:05.686Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -36,7 +36,7 @@
     },
     {
       "improvementId": "IM-002",
-      "status": "candidate",
+      "status": "accepted",
       "title": "typeorm-model-generator 废弃工具链及其传递依赖存在未修复漏洞",
       "source": "review",
       "type": "tech-debt",
@@ -47,7 +47,7 @@
       "suggestion": "评估移除 typeorm-model-generator、bin/entity.ts、NamingStrategy.cjs 及样品 entity；移除前确认无 DB→装饰器反向生成需求",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T13:43:08.381Z",
-      "updatedAt": "2026-11-15T13:43:08.381Z",
+      "updatedAt": "2026-11-15T14:08:05.685Z",
       "history": [
         {
           "at": "2026-11-15T13:43:08.381Z",
@@ -55,6 +55,20 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-15T14:08:05.532Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator",
+          "note": "编排者评审立项：废弃的 typeorm-model-generator 链路移除（P-DEBT-20）"
+        },
+        {
+          "at": "2026-11-15T14:08:05.685Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator",
+          "note": "实现落地：移除 devDep typeorm-model-generator、bin/entity.ts、bin/NamingStrategy.cjs、entity:load 脚本；typecheck/lint/oxlint/21 例绿；待提交归档转 done"
         }
       ]
     },
