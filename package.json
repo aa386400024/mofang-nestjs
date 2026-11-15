@@ -35,6 +35,7 @@
     "orchestration:snapshot": "node scripts/orchestration/cli.mjs snapshot",
     "orchestration:pack": "node scripts/orchestration/cli.mjs pack",
     "orchestration:config": "node scripts/orchestration/cli.mjs config",
+    "orchestration:improvements": "node scripts/orchestration/cli.mjs improvements",
     "prepare": "husky || true",
     "lint-staged": "lint-staged",
     "entity:load": "tsx bin/entity.ts",

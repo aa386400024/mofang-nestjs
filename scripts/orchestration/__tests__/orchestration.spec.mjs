@@ -7,6 +7,15 @@ import { describe, expect, it } from 'vitest';
 import { validateConfig } from '../state-store.mjs';
 import { canTransition, shouldAdvance, buildSnapshot } from '../scheduler.mjs';
 import { runAcceptance } from '../acceptance-runner.mjs';
+import {
+  addCandidate,
+  canTransitionImprovement,
+  extractFromSnapshot,
+  listOpen,
+  summarizeLog,
+  transitionImprovement,
+  validateImprovementEntry,
+} from '../improvement-log.mjs';
 
 describe('validateConfig 配置结构校验', () => {
   it('合法缺省值归一化通过', () => {
@@ -121,5 +130,97 @@ describe('runAcceptance 验收结论', () => {
     const result = runAcceptance(task, emptyIndex);
     expect(result.verdict).toBe('rejected');
     expect(result.checks.find((c) => c.code === 'V2')?.status).toBe('fail');
+  });
+});
+
+const baseEntry = { title: '快照复核清单需机读化', source: 'implementation', type: 'gap', layer: 'adapter' };
+
+describe('改进台账字段校验与去重', () => {
+  it('合法条目归一化并分配递增编号', () => {
+    const log = { improvements: [] };
+    const first = addCandidate(log, baseEntry);
+    const second = addCandidate(log, { ...baseEntry, title: '护栏覆盖不足' });
+    expect(first.improvementId).toBe('IM-001');
+    expect(second.improvementId).toBe('IM-002');
+    expect(first.status).toBe('candidate');
+    expect(first.history).toHaveLength(1);
+    expect(first.evidence).toEqual([]);
+  });
+
+  it('source / type / layer 枚举非法时抛错', () => {
+    expect(() => validateImprovementEntry({ ...baseEntry, source: 'unknown' })).toThrow(/source/);
+    expect(() => validateImprovementEntry({ ...baseEntry, type: 'unknown' })).toThrow(/type/);
+    expect(() => validateImprovementEntry({ ...baseEntry, layer: 'unknown' })).toThrow(/layer/);
+  });
+
+  it('标题重复时拒绝登记', () => {
+    const log = { improvements: [] };
+    addCandidate(log, baseEntry);
+    expect(() => addCandidate(log, { ...baseEntry, title: '快照复核清单需机读化' })).toThrow(/标题已存在/);
+  });
+});
+
+describe('改进台账状态流转', () => {
+  it('candidate → queued → accepted → done 合法，终态留 resolution', () => {
+    const log = { improvements: [] };
+    const entry = addCandidate(log, { ...baseEntry, title: '流转跟踪项' });
+    transitionImprovement(log, entry.improvementId, 'queued', { by: 'orchestrator' });
+    expect(entry.status).toBe('queued');
+    transitionImprovement(log, entry.improvementId, 'accepted');
+    transitionImprovement(log, entry.improvementId, 'done', { note: '已落地为护栏', linkedTaskId: 'AF-006' });
+    expect(entry.status).toBe('done');
+    expect(entry.resolution.resolutionNote).toBe('已落地为护栏');
+    expect(entry.resolution.linkedTaskId).toBe('AF-006');
+    expect(entry.history.length).toBeGreaterThan(1);
+  });
+
+  it('queued 不可直达 done；终态不可再迁移', () => {
+    const log = { improvements: [] };
+    const entry = addCandidate(log, { ...baseEntry, title: '非法流转项' });
+    transitionImprovement(log, entry.improvementId, 'queued');
+    expect(canTransitionImprovement('queued', 'done')).toBe(false);
+    expect(() => transitionImprovement(log, entry.improvementId, 'done')).toThrow(/非法/);
+    transitionImprovement(log, entry.improvementId, 'wontfix', { note: '不采纳' });
+    expect(() => transitionImprovement(log, entry.improvementId, 'queued')).toThrow(/非法/);
+  });
+});
+
+describe('改进台账快照抽取与汇总', () => {
+  const snapshot = {
+    tasks: [
+      {
+        taskId: 'AF-005',
+        title: '试点单',
+        verdict: 'conditional-pass',
+        verdictRationale: '附条件通过，遗留已登记',
+        manualReview: ['复核项 A'],
+      },
+    ],
+    reworkProposals: [
+      { proposalId: 'RW-AF-005-1', originalTaskId: 'AF-005', title: '返修单', rationale: '根因：指针缺失', priorTasks: ['AF-005'] },
+    ],
+    deadLetters: [{ taskId: 'DL-1', title: '死信单', escalation: { waiting: '待裁决', evidence: ['E1'] } }],
+  };
+
+  it('四类来源各抽一条，existing 命中的跳过', () => {
+    const drafts = extractFromSnapshot(snapshot, []);
+    expect(drafts).toHaveLength(4);
+    const existing = [{ title: '复核项 A', source: 'acceptance', relatedTaskId: 'AF-005', type: 'gap', layer: 'adapter' }];
+    const after = extractFromSnapshot(snapshot, existing);
+    expect(after).toHaveLength(3);
+  });
+
+  it('汇总计数区分活跃与终态', () => {
+    const log = { improvements: [] };
+    addCandidate(log, { ...baseEntry, title: '活跃项' });
+    const done = addCandidate(log, { ...baseEntry, title: '完成项', type: 'tech-debt' });
+    transitionImprovement(log, done.improvementId, 'queued');
+    transitionImprovement(log, done.improvementId, 'accepted');
+    transitionImprovement(log, done.improvementId, 'done');
+    const summary = summarizeLog(log);
+    expect(summary.total).toBe(2);
+    expect(summary.activeCount).toBe(1);
+    expect(summary.byStatus.done).toBe(1);
+    expect(listOpen(log)).toHaveLength(1);
   });
 });

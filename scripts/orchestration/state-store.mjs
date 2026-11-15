@@ -23,6 +23,7 @@ export const PATHS = {
   index: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'task-state-index.json'),
   runtimeState: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'orchestration-state.json'),
   snapshot: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'orchestration-snapshot.json'),
+  improvementLog: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'improvement-log.json'),
   webDataJs: join(REPO_ROOT, 'web', 'orchestration', 'data.js'),
   deliveryPackDir: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'delivery-packs'),
   config: join(__dirname, 'config.json'),

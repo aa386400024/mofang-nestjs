@@ -29,6 +29,7 @@ import {
   writeJsonAtomic,
 } from './state-store.mjs';
 import { runAcceptance } from './acceptance-runner.mjs';
+import { loadImprovementLog, summarizeLog } from './improvement-log.mjs';
 
 const BY_ORCHESTRATOR = 'orchestrator-cli';
 
@@ -174,8 +175,11 @@ function processReceipts(index, runtimeState, config, actions) {
   index.tasks = remaining;
 }
 
-/** 汇总快照（可视化网页读取的唯一数据源）。 */
-export function buildSnapshot(index, runtimeState, config) {
+/**
+ * 汇总快照（可视化网页读取的唯一数据源）。
+ * @param {object} improvementSummary 台账汇总（summarizeLog 结果）；缺省为 null，快照不携带台账段。
+ */
+export function buildSnapshot(index, runtimeState, config, improvementSummary) {
   const counts = {
     ready: 0,
     submitted: 0,
@@ -224,6 +228,7 @@ export function buildSnapshot(index, runtimeState, config) {
     deadLetters,
     reworkProposals,
     pendingApprovals,
+    improvements: improvementSummary ?? null,
     archivedCount: index.archivedTasks.length,
   };
 }
@@ -251,7 +256,7 @@ export function advanceOnce(opts = {}) {
     });
   }
 
-  const snapshot = buildSnapshot(index, runtimeState, config);
+  const snapshot = buildSnapshot(index, runtimeState, config, summarizeLog(loadImprovementLog()));
 
   if (opts.commit !== false) {
     if (shouldAdvance(config)) {

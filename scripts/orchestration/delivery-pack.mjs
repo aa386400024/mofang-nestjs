@@ -8,6 +8,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { PATHS, loadConfig, loadIndex, loadRuntimeState, nowIso, writeJsonAtomic } from './state-store.mjs';
 import { buildSnapshot } from './scheduler.mjs';
+import { loadImprovementLog, summarizeLog } from './improvement-log.mjs';
 
 function timestamp() {
   const d = new Date();
@@ -41,6 +42,7 @@ export function generateDeliveryPack(opts = {}) {
   const runtimeState = loadRuntimeState();
   const snapshot = buildSnapshot(index, runtimeState, config);
 
+  const improvementSummary = summarizeLog(loadImprovementLog());
   const pack = {
     schemaVersion: '1.0.0',
     generatedAt: nowIso(),
@@ -48,6 +50,7 @@ export function generateDeliveryPack(opts = {}) {
       mode: snapshot.mode,
       queueCounts: snapshot.counts,
       archivedCount: snapshot.archivedCount,
+      improvementSummary,
     },
     taskResults: snapshot.tasks.map((t) => ({
       taskId: t.taskId,
@@ -127,6 +130,17 @@ function renderMarkdown(pack) {
     lines.push('- 无');
   } else {
     for (const p of pack.pendingApprovals) lines.push(`- ${p.taskId}：${p.reason}`);
+  }
+  lines.push('');
+  lines.push('## 改进台账');
+  lines.push('');
+  const imp = pack.meta.improvementSummary;
+  if (!imp || imp.total === 0) {
+    lines.push('- 无候选改进');
+  } else {
+    lines.push(
+      `- 活跃=${imp.activeCount} / 总=${imp.total}；候选=${imp.byStatus.candidate} 排队=${imp.byStatus.queued} 实现中=${imp.byStatus.accepted} 已完成=${imp.byStatus.done} 不采纳=${imp.byStatus.wontfix}`,
+    );
   }
   lines.push('');
   return lines.join('\n');
