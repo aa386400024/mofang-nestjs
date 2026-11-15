@@ -20,8 +20,8 @@
 | 文件                                                   | 改动                                                                                                                                                                                                                                                                                                                                   |
 | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/user/cron/soft-delete.cron.ts`                    | `cronExpr = this.config.get<string>('softDelete.cronSchedule') ?? '0 3 * * *'`；`new CronJob(cronExpr, ...)`（撤 `as string`）；`retentionDays = this.config.get<number>('softDelete.retentionDays') ?? 30`；删除 2 条 `eslint-disable-next-line no-unsafe-assignment` 注释。默认值与 `src/config/envs/default.ts` softDelete 段一致。 |
-| `package.json`                                         | axios `^1.20.0 → ^1.21.1`；nodemailer `^6.10.1 → ^10.5.0`；删除 devDep `@types/nodemailer ^6.4.24`（10.x 自带类型）；新增顶层 `"pnpm": { "overrides": { "axios": "^1.21.1", "undici": "^7.30.1" } }`。                                                                                                                                 |
-| `pnpm-lock.yaml`                                       | install 后副本替换：axios 唯一 1.21.1、nodemailer 唯一 10.5.0、undici 唯一 7.30.1；`@types/nodemailer` 0 处；resolved 块无跨大版本漂移（@nestjs/* 等仅 peer 哈希内 axios 版本号更新，包版本不变）。                                                                                                                                    |
+| `package.json`                                         | axios `^1.20.0 → ^1.21.1`；nodemailer `^6.10.1 → ^10.5.0`；删除 devDep `@types/nodemailer ^6.4.24`（10.x 自带类型）；新增顶层 `"pnpm": { "overrides": { "axios": "^1.21.1", "undici": "^7.30.1" } }`；**第二轮**补直接依赖 `"cron": "4.4.0"`（schedule 传递副本转正，同版本，见 §3.5）。                                               |
+| `pnpm-lock.yaml`                                       | install 后副本替换：axios 唯一 1.21.1、nodemailer 唯一 10.5.0、undici 唯一 7.30.1；`@types/nodemailer` 0 处；resolved 块无跨大版本漂移（@nestjs/* 等仅 peer 哈希内 axios 版本号更新，包版本不变）；**第二轮** root importer 补 cron 4.4.0 三行（既有 snapshot 复用，无新包副本）。                                                     |
 | `docs/team/gate-performance-remediation-2026-11-11.md` | P-DEBT-13 状态 🟠 → 🟢 已处置（补修复手段与闸门数字）；新增 P-DEBT-14 行；§更新记录追加本单落地条目。                                                                                                                                                                                                                                  |
 
 ### 2.2 删除
@@ -32,7 +32,7 @@
 
 - `src/engine-core/`、`src/migration/`、`test/engine-core/boundary.spec.ts`、整个 `test/` 目录 —— 零 diff
 - 其他业务域 service / controller / entity / DTO / module、`tsconfig*.json`、`vitest.config.mts`、CI workflow、Dockerfile、前端 / Flutter —— 零改动
-- 未新增第三方依赖（仅升级现有依赖 + pnpm override）
+- 未引入新第三方包：仅升级现有依赖 + pnpm override；第二轮 `cron@4.4.0` 为已在依赖树内的 schedule 传递副本转正为直接依赖，版本与现有 snapshot 逐字一致（§3.5）
 
 ### 2.4 显式排除的未跟踪产物（不纳入本单 stage）
 
@@ -75,6 +75,21 @@
 
 使用面仅 `src/shared/infra/email/email.service.ts`：`createTransport({ jsonTransport: true })` / `createTransport({ host, port, secure, auth })` / `transporter.sendMail({ from, to, subject, text, html })`；调用方 `src/auth/login-code.service.ts` 只走 `EmailService.send({ to, subject, html, text })`。6→10 breaking（错误码 NoAuth → ENOAUTH、移除旧 SES SDK）均不触及；不用 OAuth2 / raw / envelope.size。无 email 专项 spec。
 
+### 3.5 第二轮 CI 复核（run #43660807194，commit `0c82a76`）：lint 残留根因修正
+
+第一轮推送后 CI 结论：**Security Audit = success** ✅（19 high 清零，第二目标达成）；**Lint + Typecheck 仍 failure**。复核 CI 全量日志（Node v24.22.2 / TS 6.0.3 / typescript-eslint 8.72.1 / pnpm 9.15.0）：
+
+| 位置（改后行号）            | 规则                   | 复核结论                                                                                                                                                                            |
+| --------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `soft-delete.cron.ts` 58:11 | `no-unsafe-assignment` | 第一轮的 `config.get<...>` 收窄**已生效**（55 行 `cronExpr` 不再报 unsafe）；错误转移到 `const job = new CronJob(cronExpr, ...)` —— **`new CronJob(...)` 实例被推断为 error typed** |
+| `soft-delete.cron.ts` 61:60 | `no-unsafe-argument`   | 传导：`job`（error typed）传入 `addCronJob(name, job: CronJob<null, null>)` 实参 unsafe                                                                                             |
+
+**真根因（幽灵依赖）**：`cron` 包是 `@nestjs/schedule@12.0.2` 的传递 dependencies（钉 `cron@4.4.0`），本仓 `package.json` **未显式声明**；源码仅本文件 `import { CronJob } from 'cron'`。仓内 `moduleResolution: nodenext` + pnpm isolated 严格隔离下，项目源码只能解析 `package.json` 直接依赖；未声明的传递依赖在 CI fresh `pnpm install --frozen-lockfile`（Linux，顶层 `node_modules` 仅直接依赖符号链接）解析不到类型 → `CronJob` 符号退化为 error typed → 构造实例 error typed。本机 Windows `node_modules/cron` 为历史遗留实体目录（非 `.pnpm` 符号链接）恰好能解析，故本机 eslint / tsc 均 0 error，**复现不出 CI 报错**。
+
+**修复**：`package.json` dependencies 显式补 `"cron": "4.4.0"`（与 schedule 传递副本、lockfile 现有 snapshot **同版本**，非新版本）；`pnpm-lock.yaml` root importer 补 cron 三行（snapshot `cron@4.4.0` 块已存在，未新增包副本）。性质 = 把已在运行时依赖树内的包转正为直接依赖（修正 pnpm 幽灵依赖），**未引入新第三方包、版本零变化**；NestJS 动态 cron 官方示例即直接 `import { CronJob } from 'cron'`，显式声明对齐该惯例。
+
+> 1:1 unused eslint-disable warning 归属 `test/e2e/v2-user-flow.spec.ts`（既有，范围外未修），非本 cron 文件。
+
 ---
 
 ## 四、闸门表（真实数字，exit code 实测）
@@ -94,6 +109,8 @@
 | migration          | `git diff --stat HEAD -- src/migration/`                                 | 0            | **空**（零 diff）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | 范围隔离           | `git diff --name-only HEAD` + `git ls-files --others --exclude-standard` | 0            | tracked 改动仅 4 文件（§2.1）；未跟踪 6 产物（§2.4）显式排除                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | 边界               | `test/engine-core/boundary.spec.ts`                                      | 0            | 零改动，12 绿（沿用基线）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+
+**第二轮（cron 显式声明）本机闸门**：`tsc -b tsconfig.check.json` **0 error**；`pnpm lint`（清 `.eslintcache` 冷跑）**0 error / 1 warning**（既有 e2e）；`pnpm lint:fast` **0 warning / 0 error**（1347 文件）；`vitest run test/base` **2 文件 / 32 passed** EXIT 0；`pnpm install --frozen-lockfile --lockfile-only` EXIT 0（lockfile 与 package.json 一致、cron snapshot 齐全）。本轮仅 `package.json` + `pnpm-lock.yaml` 两行依赖声明增量，`src/` 零改动，未重跑全量测试（沿用第一轮 3356 passed + 4 skipped 基线）。
 
 **全量口径对比**：基线 **3356 passed + 4 skipped（3360 例 / 200 文件）**（TD-20 `d008326`）→ 本单修正 flake后 **3356 passed + 4 skipped（3360 例 / 200 文件）**，用例数 / 文件数逐字一致（本单未新增 spec）。
 
@@ -127,13 +144,15 @@
 
 ## 七、Actions 侧待复核点（push 后）
 
-1. `Lint + Typecheck` job：lint 步骤转绿；**留意 Typecheck 步骤会暴露 P-DEBT-14 的 spec 全局类型错误**（若转红需另案处置）。
-2. `Security Audit` job：high 是否清零（本机端点不可用，以 CI 为准）；Trivy 步骤随 audit 一起复核。
+1. ~~`Security Audit` job：high 是否清零~~ —— **已确认 ✅ success**（run #43660807194，commit `0c82a76`，19 high 清零）；Trivy 步骤随 audit 一起通过。
+2. `Lint + Typecheck` job：第二轮 cron 显式声明推送后，复核 lint 步骤是否转绿；**留意 Typecheck 步骤会暴露 P-DEBT-14 的 spec 全局类型错误**（若转红需另案处置）。
 3. 下游 `unit`（2 分片）/ `e2e` / `coverage` / `build` 在 CI **首次真正跑通**（既往全被 `needs: lint-and-typecheck` skipped，自 TD-11 分片改造起从未在 Actions 真正运行过）。
 
 ---
 
-## 八、commit message 草稿（单 commit，不自己 push）
+## 八、commit message 草稿
+
+第一轮 commit `0c82a76`（已推送）：
 
 ```
 fix(ci): P-DEBT-13 修复 lint type-aware error 与 audit high 依赖漏洞
@@ -142,6 +161,17 @@ fix(ci): P-DEBT-13 修复 lint type-aware error 与 audit high 依赖漏洞
 - deps: nodemailer 6.10.1 → 10.5.0（移除 @types/nodemailer）；axios → 1.21.1
 - pnpm overrides: axios ^1.21.1 / undici ^7.30.1，消除传递链旧漏洞副本
 - 台账: P-DEBT-13 已处置；新登记 P-DEBT-14（tsconfig spec 全局类型缺失）
+```
+
+第二轮追加 commit（cron 幽灵依赖转正）：
+
+```
+fix(ci): P-DEBT-13 补 cron 直接依赖声明，修复 CI lint CronJob error typed
+
+- cron 为 @nestjs/schedule 传递依赖，源码直接 import 却未在 package.json 声明；
+  pnpm isolated + nodenext 下 CI 类型解析失败，CronJob 实例退化为 error typed
+- dependencies 显式声明 cron 4.4.0（与 schedule 传递副本同版本，无新包/版本变化）
+- lockfile root importer 补 cron 引用，复用既有 snapshot
 ```
 
 ---
