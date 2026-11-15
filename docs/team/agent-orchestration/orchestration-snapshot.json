@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T17:22:11.978Z",
+  "generatedAt": "2026-11-15T17:31:16.717Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -14,27 +14,9 @@
     "rejected": 0,
     "input-required": 0,
     "deadLetter": 0,
-    "backlog": 5
+    "backlog": 4
   },
   "tasks": [
-    {
-      "taskId": "AF-010",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "派发接线（claim 接 submitTask、派发记录落盘、watcher 监听 receipts 触发验收轮）",
-      "status": "backlog",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af010-dispatch-wiring-receipt-watcher-2026-11-16.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": []
-    },
     {
       "taskId": "AF-011",
       "contextId": "phase2.5-orchestration-closed-loop",
@@ -51,7 +33,8 @@
         "deliveryRecord": null,
         "reply": null
       },
-      "manualReview": []
+      "manualReview": [],
+      "dispatch": null
     },
     {
       "taskId": "AF-012",
@@ -69,7 +52,8 @@
         "deliveryRecord": null,
         "reply": null
       },
-      "manualReview": []
+      "manualReview": [],
+      "dispatch": null
     },
     {
       "taskId": "AF-013",
@@ -87,7 +71,8 @@
         "deliveryRecord": null,
         "reply": null
       },
-      "manualReview": []
+      "manualReview": [],
+      "dispatch": null
     },
     {
       "taskId": "AF-014",
@@ -105,32 +90,33 @@
         "deliveryRecord": null,
         "reply": null
       },
-      "manualReview": []
+      "manualReview": [],
+      "dispatch": null
     }
   ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 6,
-    "activeCount": 6,
+    "total": 8,
+    "activeCount": 8,
     "byStatus": {
-      "candidate": 3,
+      "candidate": 5,
       "queued": 1,
       "accepted": 2,
       "done": 0,
       "wontfix": 0
     },
     "byType": {
-      "gap": 2,
+      "gap": 3,
       "guardrail": 0,
       "tool": 0,
       "standard": 1,
       "performance": 0,
-      "tech-debt": 3
+      "tech-debt": 4
     },
     "bySource": {
-      "implementation": 4,
+      "implementation": 6,
       "acceptance": 0,
       "rework": 0,
       "dead-letter": 0,
@@ -255,6 +241,44 @@
           "to": "candidate",
           "note": "登记候选改进"
         }
+      },
+      {
+        "improvementId": "IM-007",
+        "title": "回执幂等次键以交付记录路径代替独立工件版本号",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-010",
+        "evidence": ["dispatch.mjs receiptFingerprint", "framework reliability.md §2"],
+        "impact": "同一 taskId 若交付记录路径不变而内容被覆盖，指纹无法区分版本；当前交接件不可变口径下风险可控",
+        "suggestion": "后续在任务条目或交接件补独立工件版本号（revision/version），指纹以 taskId+version 为准",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T17:29:33.755Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-008",
+        "title": "派发目标角色未按 Agent Card 能力声明匹配路由",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-010",
+        "evidence": ["dispatch.mjs targetRole 取 agentRole 兜底 executor", "framework autonomous-loop.md §100"],
+        "impact": "多执行代理并存时无法按能力与可用性路由；当前单 executor 角色无实际影响",
+        "suggestion": "AF-013 演练阶段或 P1 接入 agent card 能力声明匹配，按 skills/tools/availability 选择目标代理",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T17:29:43.156Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
       }
     ]
   },
@@ -349,6 +373,23 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-005",
+      "recordedAt": "2026-11-15T17:31:16.686Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-010",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "queue-scheduler",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-004",
       "recordedAt": "2026-11-15T17:22:11.954Z",
       "actorRef": "orchestrator",
@@ -410,50 +451,22 @@
     }
   ],
   "auditSummary": {
-    "total": 4,
+    "total": 5,
     "byResult": {
-      "allowed": 4,
+      "allowed": 5,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 2
+      "TOOL-QUEUE-SCHEDULER": 3
     },
     "byActor": {
-      "orchestrator": 4
+      "orchestrator": 5
     }
   },
   "protocolView": {
     "tasks": [
-      {
-        "taskId": "AF-010",
-        "title": "派发接线（claim 接 submitTask、派发记录落盘、watcher 监听 receipts 触发验收轮）",
-        "type": "implementation",
-        "status": {
-          "framework": "backlog",
-          "protocol": "DRAFT",
-          "stage": "prelude"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": ["AF-009"],
-        "agentRole": null,
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af010-dispatch-wiring-receipt-watcher-2026-11-16.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": null
-          },
-          {
-            "kind": "reply",
-            "ref": null
-          }
-        ]
-      },
       {
         "taskId": "AF-011",
         "title": "文件域 scope 校验与在办任务交集拦截（双代理文件互斥前置护栏）",
@@ -1255,6 +1268,35 @@
           }
         ],
         "archived": true
+      },
+      {
+        "taskId": "AF-010",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-implementation-2026-11-16.md"
+          },
+          {
+            "kind": "reply",
+            "ref": null
+          }
+        ],
+        "archived": true
       }
     ],
     "statusMap": {
@@ -1270,21 +1312,6 @@
       "rejected": "REJECTED"
     },
     "artifacts": [
-      {
-        "taskId": "AF-010",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af010-dispatch-wiring-receipt-watcher-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-010",
-        "kind": "deliveryRecord",
-        "ref": null
-      },
-      {
-        "taskId": "AF-010",
-        "kind": "reply",
-        "ref": null
-      },
       {
         "taskId": "AF-011",
         "kind": "taskSheet",
@@ -1654,6 +1681,21 @@
         "taskId": "AF-009",
         "kind": "reply",
         "ref": null
+      },
+      {
+        "taskId": "AF-010",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-010",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-implementation-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-010",
+        "kind": "reply",
+        "ref": null
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -1700,5 +1742,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 26
+  "archivedCount": 27
 }

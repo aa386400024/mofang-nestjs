@@ -35,6 +35,8 @@ import { runAcceptance } from './acceptance-runner.mjs';
 import { loadImprovementLog, summarizeLog } from './improvement-log.mjs';
 import { listAudits, loadAuditLog, summarizeAudits } from './audit-log.mjs';
 import { buildProtocolView } from './protocol-mapper.mjs';
+import { createTransport } from './transport.mjs';
+import { dispatchTask, receiptFingerprint, isReceiptProcessed, markReceiptProcessed } from './dispatch.mjs';
 
 const BY_ORCHESTRATOR = 'orchestrator-cli';
 
@@ -90,8 +92,9 @@ function releaseExpiredLeases(index, runtimeState, actions) {
   }
 }
 
-/** 领单：ready 且依赖满足、类型在白名单 → submitted，登记租约。 */
-function claimReadyTasks(index, runtimeState, config, actions) {
+/** 领单：ready 且依赖满足、类型在白名单 → submitted，登记租约并经 Transport 派发交接件。 */
+function claimReadyTasks(index, runtimeState, config, actions, opts = {}) {
+  const transport = opts.transport ?? createTransport(config);
   for (const task of index.tasks) {
     if (task.status !== 'ready') continue;
     if (!dependenciesMet(task, index)) continue;
@@ -103,6 +106,18 @@ function claimReadyTasks(index, runtimeState, config, actions) {
     entry.leaseDeadline = deadline;
     entry.lastRunner = BY_ORCHESTRATOR;
     actions.push({ type: 'claim', taskId: task.taskId });
+    const dispatch = dispatchTask(task, entry, {
+      transport,
+      channel: config.transport?.type ?? 'file',
+      targetRole: task.agentRole ?? 'executor',
+    });
+    actions.push({
+      type: dispatch.dispatched ? 'dispatch' : 'dispatch-rejected',
+      taskId: task.taskId,
+      channel: dispatch.record?.channel ?? 'file',
+      handoverRef: dispatch.handoverRef,
+      errors: dispatch.errors,
+    });
   }
 }
 
@@ -149,8 +164,15 @@ function processReceipts(index, runtimeState, config, actions) {
       remaining.push(task);
       continue;
     }
-    const result = runAcceptance(task, index);
     const entry = ensureRuntimeEntry(runtimeState, task.taskId);
+    const fingerprint = receiptFingerprint(task, deliveryRef);
+    if (isReceiptProcessed(entry, fingerprint)) {
+      // 同一交付记录重复投递：只触发一次验收，不重复跑护栏。
+      remaining.push(task);
+      continue;
+    }
+    const result = runAcceptance(task, index);
+    markReceiptProcessed(entry, fingerprint);
     entry.autoVerdict = { verdict: result.verdict, rationale: result.rationale, at: nowIso() };
     entry.manualReview = result.manualReview;
 
@@ -238,6 +260,7 @@ export function buildSnapshot(index, runtimeState, config, improvementSummary) {
       reworkOf: entry.reworkOf ?? null,
       artifacts: task.artifacts ?? {},
       manualReview: entry.manualReview ?? [],
+      dispatch: entry.dispatch ?? null,
     };
     tasks.push(row);
     if (entry.deadLetter) deadLetters.push({ ...row, escalation: entry.escalation ?? null });
@@ -281,7 +304,7 @@ export function advanceOnce(opts = {}) {
 
   if (shouldAdvance(config)) {
     releaseExpiredLeases(index, runtimeState, actions);
-    claimReadyTasks(index, runtimeState, config, actions);
+    claimReadyTasks(index, runtimeState, config, actions, { transport: opts.transport });
     processReceipts(index, runtimeState, config, actions);
   } else {
     actions.push({

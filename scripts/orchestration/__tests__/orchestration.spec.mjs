@@ -24,6 +24,7 @@ import {
   HANDOVER_SCHEMA_VERSION,
 } from '../handover-contract.mjs';
 import { ARCHIVE_STATUSES, archiveTaskEntry, canTransition, shouldAdvance, buildSnapshot } from '../scheduler.mjs';
+import { dispatchTask, buildDispatchRecord, receiptFingerprint, isReceiptProcessed, markReceiptProcessed } from '../dispatch.mjs';
 import { runAcceptance } from '../acceptance-runner.mjs';
 import {
   addCandidate,
@@ -124,6 +125,14 @@ describe('buildSnapshot 快照计数与人工复核回填', () => {
       'AF-006': {
         manualReview: ['回执七组字段完整性需人工核对'],
         autoVerdict: { verdict: 'conditional-pass', rationale: '机读全绿，存在人工复核项', at: '2026-11-15T00:00:00+08:00' },
+        dispatch: {
+          taskId: 'AF-006',
+          channel: 'file',
+          targetRole: 'executor',
+          status: 'submitted',
+          handoverRef: 'transport/tasks/AF-006.json',
+          dispatchedAt: '2026-11-15T00:00:00+08:00',
+        },
       },
     },
   };
@@ -133,6 +142,14 @@ describe('buildSnapshot 快照计数与人工复核回填', () => {
     expect(snapshot.counts.backlog).toBe(1);
     expect(snapshot.counts.submitted).toBe(1);
     expect(snapshot.tasks).toHaveLength(2);
+  });
+
+  it('回填运行态派发记录只读投影；未派发任务为 null', () => {
+    const snapshot = buildSnapshot(index, runtimeState, config);
+    const dispatched = snapshot.tasks.find((t) => t.taskId === 'AF-006');
+    expect(dispatched.dispatch).toMatchObject({ channel: 'file', targetRole: 'executor', handoverRef: 'transport/tasks/AF-006.json' });
+    const plain = snapshot.tasks.find((t) => t.taskId === 'AF-005');
+    expect(plain.dispatch).toBeNull();
   });
 
   it('回填运行态人工复核清单，无记录时为空数组', () => {
@@ -776,5 +793,112 @@ describe('快照协议视图段', () => {
       artifacts: expect.any(Array),
       capabilityDeclarations: expect.any(Array),
     });
+  });
+});
+
+describe('AF-010 派发接线与回执幂等', () => {
+  const validDispatchTask = {
+    taskId: 'AF-010',
+    contextId: 'phase2.5-orchestration-closed-loop',
+    type: 'implementation',
+    title: '派发接线与回执监听',
+    status: 'ready',
+    createdAt: '2026-11-16',
+    scope: { files: ['scripts/orchestration/scheduler.mjs'], modules: [], interfaces: [] },
+    dependsOn: [],
+    policyRefs: [],
+    agentRole: 'executor',
+  };
+
+  function fakeTransport() {
+    const calls = [];
+    return {
+      calls,
+      submitTask(handover) {
+        calls.push(handover);
+        return `transport/tasks/${handover.taskId}.json`;
+      },
+    };
+  }
+
+  it('首次派发：交接件投递 transport，派发记录字段齐全并落运行态条目', () => {
+    const transport = fakeTransport();
+    const entry = { leaseClaimedAt: '2026-11-16T01:00:00.000Z', leaseDeadline: '2026-11-16T01:30:00.000Z' };
+    const result = dispatchTask(validDispatchTask, entry, { transport, channel: 'file', targetRole: 'executor' });
+
+    expect(result.dispatched).toBe(true);
+    expect(transport.calls).toHaveLength(1);
+    expect(transport.calls[0].taskId).toBe('AF-010');
+    expect(transport.calls[0].handoverKind).toBe('task');
+    expect(result.handoverRef).toBe('transport/tasks/AF-010.json');
+    expect(entry.dispatch).toMatchObject({
+      taskId: 'AF-010',
+      contextId: 'phase2.5-orchestration-closed-loop',
+      channel: 'file',
+      targetRole: 'executor',
+      status: 'submitted',
+      attempt: 1,
+      handoverRef: 'transport/tasks/AF-010.json',
+    });
+    expect(entry.dispatch.dispatchedAt).toBeTruthy();
+    expect(entry.dispatch.sessionRef).toBeNull();
+  });
+
+  it('重复派发同一任务不重复投递（幂等），保留首次派发记录', () => {
+    const transport = fakeTransport();
+    const entry = { leaseDeadline: '2026-11-16T01:30:00.000Z' };
+    const first = dispatchTask(validDispatchTask, entry, { transport });
+    const second = dispatchTask(validDispatchTask, entry, { transport });
+
+    expect(first.dispatched).toBe(true);
+    expect(second.dispatched).toBe(false);
+    expect(second.reason).toBe('already-dispatched');
+    expect(transport.calls).toHaveLength(1);
+    expect(second.record).toBe(first.record);
+  });
+
+  it('交接件契约非法时不投递 transport，返回错误清单', () => {
+    const transport = fakeTransport();
+    const invalid = { ...validDispatchTask, contextId: undefined };
+    const entry = {};
+    const result = dispatchTask(invalid, entry, { transport });
+
+    expect(result.dispatched).toBe(false);
+    expect(result.reason).toBe('contract-invalid');
+    expect(result.errors.join(' ')).toMatch('contextId');
+    expect(transport.calls).toHaveLength(0);
+    expect(entry.dispatch).toBeUndefined();
+  });
+
+  it('派发动作不触碰租约字段，租约超时释放不被派发绕过', () => {
+    const transport = fakeTransport();
+    const leaseDeadline = '2026-11-16T01:30:00.000Z';
+    const entry = { leaseDeadline };
+    dispatchTask(validDispatchTask, entry, { transport });
+    expect(entry.leaseDeadline).toBe(leaseDeadline);
+  });
+
+  it('回执验收指纹按 taskId + 交付记录生成；重复指纹只标记一次', () => {
+    const task = { taskId: 'AF-010', artifacts: { deliveryRecord: 'docs/worklog/completed/af010.md' } };
+    const fp = receiptFingerprint(task);
+    expect(fp).toBe('AF-010|docs/worklog/completed/af010.md');
+    expect(receiptFingerprint(task, 'other-ref.md')).toBe('AF-010|other-ref.md');
+
+    const entry = {};
+    expect(isReceiptProcessed(entry, fp)).toBe(false);
+    markReceiptProcessed(entry, fp);
+    expect(isReceiptProcessed(entry, fp)).toBe(true);
+    expect(isReceiptProcessed(entry, 'AF-010|other-ref.md')).toBe(false);
+  });
+
+  it('回执目录事件在防抖窗口内按路径去重合并', () => {
+    const events = [
+      { path: 'AF-010.json', kind: 'change' },
+      { path: 'AF-010.json', kind: 'change' },
+      { path: 'AF-011.json', kind: 'rename' },
+    ];
+    const deduped = dedupeEvents(events);
+    expect(deduped).toHaveLength(2);
+    expect(deduped.find((e) => e.path === 'AF-010.json').count).toBe(2);
   });
 });

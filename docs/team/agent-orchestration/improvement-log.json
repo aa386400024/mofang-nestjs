@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-15T17:19:41.002Z",
+  "updatedAt": "2026-11-15T17:29:43.158Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -180,6 +180,54 @@
       "history": [
         {
           "at": "2026-11-15T17:19:40.999Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-007",
+      "status": "candidate",
+      "title": "回执幂等次键以交付记录路径代替独立工件版本号",
+      "source": "implementation",
+      "type": "tech-debt",
+      "layer": "adapter",
+      "relatedTaskId": "AF-010",
+      "evidence": ["dispatch.mjs receiptFingerprint", "framework reliability.md §2"],
+      "impact": "同一 taskId 若交付记录路径不变而内容被覆盖，指纹无法区分版本；当前交接件不可变口径下风险可控",
+      "suggestion": "后续在任务条目或交接件补独立工件版本号（revision/version），指纹以 taskId+version 为准",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-15T17:29:33.755Z",
+      "updatedAt": "2026-11-15T17:29:33.755Z",
+      "history": [
+        {
+          "at": "2026-11-15T17:29:33.755Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-008",
+      "status": "candidate",
+      "title": "派发目标角色未按 Agent Card 能力声明匹配路由",
+      "source": "implementation",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-010",
+      "evidence": ["dispatch.mjs targetRole 取 agentRole 兜底 executor", "framework autonomous-loop.md §100"],
+      "impact": "多执行代理并存时无法按能力与可用性路由；当前单 executor 角色无实际影响",
+      "suggestion": "AF-013 演练阶段或 P1 接入 agent card 能力声明匹配，按 skills/tools/availability 选择目标代理",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-15T17:29:43.156Z",
+      "updatedAt": "2026-11-15T17:29:43.156Z",
+      "history": [
+        {
+          "at": "2026-11-15T17:29:43.156Z",
           "from": null,
           "to": "candidate",
           "by": "orchestrator-cli",

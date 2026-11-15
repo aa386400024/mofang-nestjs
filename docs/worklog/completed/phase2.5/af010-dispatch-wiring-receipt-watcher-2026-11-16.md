@@ -3,8 +3,8 @@ taskId: AF-010
 contextId: phase2.5-orchestration-closed-loop
 title: 派发接线（claim 接 submitTask、派发记录落盘、watcher 监听 receipts 触发验收轮）
 type: implementation
-status: backlog
-baselineRef: 09df090
+status: completed
+baselineRef: 1e2d277
 dependsOn: [AF-009]
 policyRefs: [framework/state-machine.md, framework/reliability.md, framework/autonomous-loop.md]
 createdAt: 2026-11-16
@@ -12,7 +12,7 @@ createdAt: 2026-11-16
 
 # AF-010 · 派发接线：claim → submitTask → 派发记录 → 回执监听
 
-> 状态：📋 待立项（2026-11-16）｜编排：主控 Doubao（orchestrator 自做）
+> 状态：✅ 已交付（2026-11-16）｜编排：主控 Doubao（orchestrator 自做）｜交付记录：af010-dispatch-wiring-receipt-watcher-implementation-2026-11-16.md
 > 仓库：`E:\Work\Project\backend\mofang-nestjs`；落点 `scripts/orchestration/`、`transport/`
 > 唯一事实源：`docs/team/agent-orchestration/autonomous-team-design.md` §2（闭环链路③④⑤）、§3.5（派发审计）、§8 P0-2
 > 任务性质：编排层工具链演进；不碰业务源码
@@ -64,10 +64,10 @@ createdAt: 2026-11-16
 
 ## 6. 交付记录路径（实施完成后）
 
-`docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-implementation-{{YYYY-MM-DD}}.md`
+`docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-implementation-2026-11-16.md`
 
 ## 7. 回写清单（实施完成后）
 
-- [ ] 交付记录落固定路径；任务单与交付记录成对归档；索引 / 阶段入口同步回写；
-- [ ] 索引状态迁移追加 `history`，工件指针填全；
-- [ ] 审计链闭合：`taskId` 贯穿任务单 / 交接件 / 派发记录 / 交付记录 / commit message。
+- [x] 交付记录落固定路径；任务单与交付记录成对归档；索引 / 阶段入口同步回写；
+- [x] 索引状态迁移追加 `history`，工件指针填全；
+- [x] 审计链闭合：`taskId` 贯穿任务单 / 交接件 / 派发记录 / 交付记录 / commit message。

@@ -1,0 +1,106 @@
+/**
+ * AF-010 · 派发链路（adapter 层纯逻辑，注入式 transport）。
+ *
+ * 职责：领单成功后构造任务交接件（AF-009 契约）、经注入的 Transport 投递、
+ * 生成派发记录（通道 / 目标角色 / 会话指针 / 派发时间 / 租约 / 状态）落到运行态条目；
+ * 回执验收指纹幂等：同一 taskId + 工件指针只触发一次验收。
+ *
+ * 边界：本模块不直接读写仓内文件（transport 由调用方注入）；派发记录只留指针、
+ * 通道与计数，不含对话原文；状态迁移仍由 scheduler 状态机负责，本模块不新增状态枚举。
+ */
+import { buildTaskHandover, validateTaskHandover } from './handover-contract.mjs';
+import { nowIso } from './state-store.mjs';
+
+/** 派发通道枚举（file 为本批实现；gui-relay / mcp / http 预留位）。 */
+export const DISPATCH_CHANNELS = ['file', 'gui-relay', 'mcp', 'http'];
+
+function normalizeChannel(channel) {
+  return DISPATCH_CHANNELS.includes(channel) ? channel : 'file';
+}
+
+/**
+ * 构造派发记录（只留指针、通道与计数，不含对话原文）。
+ * @param {object} task 索引任务条目
+ * @param {object} opts {channel, targetRole, sessionRef, leaseDeadline, attempt, handoverRef}
+ * @returns {object} 派发记录
+ */
+export function buildDispatchRecord(task, opts = {}) {
+  return {
+    taskId: task.taskId,
+    contextId: task.contextId ?? null,
+    channel: normalizeChannel(opts.channel),
+    targetRole: opts.targetRole ?? task.agentRole ?? null,
+    sessionRef: opts.sessionRef ?? null,
+    dispatchedAt: nowIso(),
+    leaseDeadline: opts.leaseDeadline ?? null,
+    attempt: Number(opts.attempt ?? 1),
+    status: 'submitted',
+    handoverRef: opts.handoverRef ?? null,
+  };
+}
+
+/**
+ * 派发一个已领单任务：构造并校验交接件 → transport.submitTask → 记录派发条目。
+ *
+ * 幂等：运行态条目已存在 dispatch 记录且未显式 force 时不重复投递；
+ * 交接件契约校验失败不投递，返回 errors，由调度层记录动作并保留租约（状态回退归状态机）。
+ *
+ * @param {object} task 索引任务条目（须已领单）
+ * @param {object} entry 任务运行态条目（就地写入 dispatch）
+ * @param {object} opts {transport, channel, targetRole, sessionRef, producedBy, force, attempt}
+ * @returns {{dispatched: boolean, record: object|null, handoverRef: string|null, handover: object|null, errors: string[], reason: string|null}}
+ */
+export function dispatchTask(task, entry, opts = {}) {
+  if (!entry) throw new Error('派发缺运行态条目');
+  if (entry.dispatch && !opts.force) {
+    return {
+      dispatched: false,
+      record: entry.dispatch,
+      handoverRef: entry.dispatch.handoverRef ?? null,
+      handover: null,
+      errors: [],
+      reason: 'already-dispatched',
+    };
+  }
+
+  const handover = buildTaskHandover(task, { producedBy: opts.producedBy ?? 'orchestrator' });
+  const validation = validateTaskHandover(handover);
+  if (!validation.valid) {
+    return { dispatched: false, record: null, handoverRef: null, handover, errors: validation.errors, reason: 'contract-invalid' };
+  }
+
+  const transport = opts.transport ?? null;
+  const handoverRef = transport?.submitTask ? transport.submitTask(handover) : null;
+  const attempt = Number(opts.attempt ?? entry.dispatch?.attempt ?? 1);
+  const record = buildDispatchRecord(task, {
+    channel: opts.channel,
+    targetRole: opts.targetRole,
+    sessionRef: opts.sessionRef,
+    leaseDeadline: entry.leaseDeadline ?? null,
+    attempt,
+    handoverRef,
+  });
+  entry.dispatch = record;
+  return { dispatched: true, record, handoverRef, handover, errors: [], reason: null };
+}
+
+/**
+ * 回执验收指纹：taskId + 工件指针；同一任务同一交付记录重复投递只触发一次验收。
+ * @param {object} task 索引任务条目
+ * @param {string} [deliveryRef] 交付记录指针；缺省取 task.artifacts.deliveryRecord
+ * @returns {string} 指纹串
+ */
+export function receiptFingerprint(task, deliveryRef) {
+  const ref = deliveryRef ?? task?.artifacts?.deliveryRecord ?? '';
+  return `${task?.taskId ?? ''}|${ref}`;
+}
+
+/** 运行态条目是否已处理过该指纹回执。 */
+export function isReceiptProcessed(entry, fingerprint) {
+  return entry?.receiptFingerprint === fingerprint;
+}
+
+/** 标记该指纹回执已完成验收。 */
+export function markReceiptProcessed(entry, fingerprint) {
+  entry.receiptFingerprint = fingerprint;
+}

@@ -69,6 +69,19 @@ function auditRegistryCall(toolId, ctx) {
   return result;
 }
 
+/** 派发类动作逐条落审计（通道、任务标识、交接件指针）；复用队列调度器工具契约。 */
+function auditDispatchActions(actions) {
+  for (const action of actions ?? []) {
+    if (action.type !== 'dispatch' && action.type !== 'dispatch-rejected') continue;
+    auditRegistryCall('TOOL-QUEUE-SCHEDULER', {
+      actor: 'orchestrator',
+      correlationId: `dispatch:${action.taskId}`,
+      taskId: action.taskId,
+      resources: action.handoverRef ? [action.handoverRef] : [],
+    });
+  }
+}
+
 function printSnapshot(snapshot) {
   const c = snapshot.counts;
   console.log('=== 队列概览 ===');
@@ -117,6 +130,7 @@ function cmdRunOnce() {
   }
   auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: 'run-once' });
   const { snapshot, actions } = advanceOnce({ commit: true });
+  auditDispatchActions(actions);
   writeSnapshotArtifacts(snapshot);
   for (const action of actions) console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
   console.log('');
@@ -124,7 +138,11 @@ function cmdRunOnce() {
 }
 
 function cmdWatch() {
-  const dirs = [join(REPO_ROOT, 'docs', 'worklog', 'pending'), join(REPO_ROOT, 'docs', 'worklog', 'completed')];
+  const dirs = [
+    join(REPO_ROOT, 'docs', 'worklog', 'pending'),
+    join(REPO_ROOT, 'docs', 'worklog', 'completed'),
+    join(PATHS.transportDir, 'receipts'),
+  ];
   const watcher = createWatcher({
     dirs,
     debounceMs: 300,
@@ -132,6 +150,7 @@ function cmdWatch() {
       console.log(`[watch] 检测到变更 ${events.length} 项，执行一轮 run-once`);
       auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: 'watch' });
       const { snapshot, actions } = advanceOnce({ commit: true });
+      auditDispatchActions(actions);
       writeSnapshotArtifacts(snapshot);
       for (const action of actions)
         console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
