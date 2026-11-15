@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-15T10:25:45.452Z",
+  "generatedAt": "2026-11-15T13:04:33.524Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
