@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-16T01:57:13.904Z",
+  "updatedAt": "2026-11-16T02:10:14.592Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -1036,6 +1036,106 @@
           "note": "登记候选改进"
         }
       ]
+    },
+    {
+      "improvementId": "IM-029",
+      "status": "done",
+      "title": "三处编排模块 taskId 校验正则手写镜像未收敛到共享契约投影",
+      "source": "implementation",
+      "type": "tech-debt",
+      "layer": "adapter",
+      "relatedTaskId": "AF-009",
+      "evidence": ["branch-workflow.mjs", "acceptance-runner.mjs", "improvement-log.mjs 各自手写 taskId 校验正则"],
+      "impact": "taskId 模式演进时三处需同步,存在口径漂移风险",
+      "suggestion": "枚举与模式收口到 contract-enums.mjs 共享投影,各消费方统一导入",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-16T02:09:57.034Z",
+      "updatedAt": "2026-11-16T02:10:13.482Z",
+      "history": [
+        {
+          "at": "2026-11-16T02:09:57.034Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-16T02:10:12.398Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator",
+          "note": "立项:taskId 模式镜像收敛到共享投影模块"
+        },
+        {
+          "at": "2026-11-16T02:10:12.818Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator",
+          "note": "落地 contract-enums.mjs 共享投影;branch-workflow/acceptance-runner/improvement-log 统一导入 TASK_ID_PATTERN"
+        },
+        {
+          "at": "2026-11-16T02:10:13.482Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator",
+          "note": "三处手写 taskId 正则镜像消除;122 用例绿,validate 5/5;共享模式护栏单测覆盖"
+        }
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-16T02:10:13.482Z",
+        "resolutionNote": "三处手写 taskId 正则镜像消除;122 用例绿,validate 5/5;共享模式护栏单测覆盖",
+        "linkedTaskId": "AF-009"
+      }
+    },
+    {
+      "improvementId": "IM-030",
+      "status": "done",
+      "title": "review 交接件校验尚未切读框架 review-handover.schema.json(消费侧接线)",
+      "source": "implementation",
+      "type": "standard",
+      "layer": "adapter",
+      "relatedTaskId": "AF-009",
+      "evidence": ["validator.mjs 仅覆盖 taskSheet/taskIndex/toolContract/agentCard;CLI validate 未扫 transport/reviews"],
+      "impact": "review 交接件结构只经本仓轻量校验,未受框架 schema 机读约束",
+      "suggestion": "validator 纳入 reviewHandover schema,CLI 扫 reviews 目录解包 payload 校验",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-16T02:09:57.243Z",
+      "updatedAt": "2026-11-16T02:10:14.590Z",
+      "history": [
+        {
+          "at": "2026-11-16T02:09:57.243Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-16T02:10:13.979Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator",
+          "note": "立项:review-handover schema 消费侧接线"
+        },
+        {
+          "at": "2026-11-16T02:10:14.234Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator",
+          "note": "validator 纳入 reviewHandover schema 并导出校验函数;CLI validate 扫 transport/reviews 解包 payload"
+        },
+        {
+          "at": "2026-11-16T02:10:14.590Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator",
+          "note": "review 交接件接入框架 schema 机读校验;框架样例通过/缺字段被拒用例覆盖;122 用例绿"
+        }
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-16T02:10:14.590Z",
+        "resolutionNote": "review 交接件接入框架 schema 机读校验;框架样例通过/缺字段被拒用例覆盖;122 用例绿",
+        "linkedTaskId": "AF-009"
+      }
     }
   ]
 }

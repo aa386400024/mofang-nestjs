@@ -8,36 +8,18 @@
  *
  * 口径真相源在框架仓：`schemas/task-sheet.schema.json`、`docs/task-contract.md`、
  * `docs/receipt-contract.md`；枚举与标识模式真相源为框架仓 `schemas/contract-enums.json`，
- * 本仓同目录 `contract-enums.json` 为其 vendored 投影。本模块只做适配层投影与结构 /
- * 枚举 / 模式校验，不复制阈值口径，不回写索引，不做文件存在性检查（存在性归验收层）。
- * 契约字段只增不删；既有交接件行为保持不变。
+ * 本仓同目录 `contract-enums.json` 为其 vendored 投影，经共享模块 `contract-enums.mjs`
+ * 唯一加载。本模块只做适配层投影与结构 / 枚举 / 模式校验，不复制阈值口径，不回写
+ * 索引，不做文件存在性检查（存在性归验收层）。契约字段只增不删；既有交接件行为保持不变。
  */
 
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-/** 同目录 vendored 枚举投影（框架仓 contract-enums.json 的本仓副本，护栏单测对账）。 */
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const CONTRACT_ENUMS = JSON.parse(readFileSync(join(__dirname, 'contract-enums.json'), 'utf8'));
+import { TASK_ID_PATTERN, TASK_TYPES, TASK_STATUSES, FINAL_STATUSES, REVIEW_VERDICTS } from './contract-enums.mjs';
 
 /** 交接件契约版本（随数据下发，消费端按版本分派解析）。 */
 export const HANDOVER_SCHEMA_VERSION = '1.0.0';
 
-/** 任务类型枚举（派生自 vendored 契约枚举投影 contract-enums.json）。 */
-export const TASK_TYPES = [...CONTRACT_ENUMS.taskTypes];
-
-/** 任务状态枚举（派生自 vendored 契约枚举投影 contract-enums.json）。 */
-export const TASK_STATUSES = [...CONTRACT_ENUMS.taskStatuses];
-
-/** 回执终态枚举（派生自 vendored 契约枚举投影 contract-enums.json）。 */
-export const FINAL_STATUSES = [...CONTRACT_ENUMS.finalStatuses];
-
-/** 验收三级结论（派生自 vendored 契约枚举投影 contract-enums.json）。 */
-export const REVIEW_VERDICTS = [...CONTRACT_ENUMS.reviewVerdicts];
-
-/** taskId 模式（派生自 vendored 契约枚举投影 contract-enums.json）。 */
-const TASK_ID_PATTERN = new RegExp(CONTRACT_ENUMS.taskIdPattern);
+/** 任务类型 / 状态 / 终态 / 验收结论枚举（共享投影派生；对外签名保持不变）。 */
+export { TASK_TYPES, TASK_STATUSES, FINAL_STATUSES, REVIEW_VERDICTS };
 
 /** 回执七组字段（框架 receipt-contract.md §1，逐字同名）。 */
 export const RECEIPT_GROUPS = {

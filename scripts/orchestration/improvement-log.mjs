@@ -17,6 +17,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { PATHS, nowIso, writeJsonAtomic } from './state-store.mjs';
+import { TASK_ID_PATTERN as RECEIPT_TASK_ID_PATTERN } from './contract-enums.mjs';
 
 /** 发现来源枚举。 */
 export const SOURCES = ['implementation', 'acceptance', 'rework', 'dead-letter', 'review'];
@@ -266,9 +267,6 @@ export function extractFromSnapshot(snapshot, existing = []) {
 
   return candidates;
 }
-
-/** taskId 标识模式（与交接契约 taskId 模式一致；局部常量保持 adapter 内聚）。 */
-const RECEIPT_TASK_ID_PATTERN = /^[A-Z0-9]+-[0-9]+$/;
 
 /** 回执遗留组标签 → 台账证据标签（manualReviewList 归快照通道，正文通道不抽取以免双源重复）。 */
 const RECEIPT_SECTION_TAG = {

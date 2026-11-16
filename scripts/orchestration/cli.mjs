@@ -10,7 +10,7 @@
  *   pack                   生成夜间交付包（JSON + MD 副本）
  *   archive <taskId>       显式归档活跃任务到 archivedTasks（补工件指针与终态）
  *   improvements           候选改进台账：list / extract / add / transition
- *   validate [--sheet f]   AF-006 框架 schema 机读校验（索引 / 工具契约 / Agent Card）
+ *   validate [--sheet f]   AF-006 框架 schema 机读校验（索引 / 工具契约 / Agent Card / Review 交接件）
  *   config --enable        开启自治模式（写回 config.json）
  *   config --disable       关闭自治模式
  *
@@ -20,7 +20,13 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { PATHS, REPO_ROOT, loadConfig, loadIndex, loadRuntimeState, saveConfigPatch, saveIndex, writeJsonAtomic } from './state-store.mjs';
 import { advanceOnce, archiveTaskEntry, buildSnapshot, shouldAdvance } from './scheduler.mjs';
-import { validateAgentCard, validateTaskIndex, validateTaskSheet, validateToolManifest } from './validator.mjs';
+import {
+  validateAgentCard,
+  validateReviewHandoverSchema,
+  validateTaskIndex,
+  validateTaskSheet,
+  validateToolManifest,
+} from './validator.mjs';
 import { loadRegistry, call as registryCall } from './tool-registry.mjs';
 import { loadAuditLog, saveAuditLog } from './audit-log.mjs';
 import { createWatcher } from './file-watcher.mjs';
@@ -429,6 +435,14 @@ async function cmdValidate(args) {
     sections.push([`Agent Card ${file}`, await validateAgentCard(card)]);
   }
 
+  const reviewDir = join(PATHS.transportDir, 'reviews');
+  const reviewFiles = existsSync(reviewDir) ? readdirSync(reviewDir).filter((f) => f.endsWith('.json')) : [];
+  for (const file of reviewFiles) {
+    const record = JSON.parse(readFileSync(join(reviewDir, file), 'utf8'));
+    const review = record?.payload ?? record;
+    sections.push([`Review 交接件 ${file}`, await validateReviewHandoverSchema(review)]);
+  }
+
   const sheetFile = argValue(args, '--sheet');
   if (sheetFile) {
     const abs = resolve(REPO_ROOT, sheetFile);
@@ -579,7 +593,7 @@ function printHelp() {
   console.log('  channel <rules|queue> [--taskId <id>]   AF-013 派发通道规则只读视图');
   console.log('  watch                        监听任务单 / 回执目录，变更防抖后自动执行一轮 run-once');
   console.log('  protocol                     导出标准协议视图（protocolView 只读映射投影）');
-  console.log('  validate [--sheet <file>]   校验索引 / 工具契约 / Agent Card（可选任务单元 JSON）');
+  console.log('  validate [--sheet <file>]   校验索引 / 工具契约 / Agent Card / Review 交接件（可选任务单元 JSON）');
   console.log('  improvements [--summary]              列出台账与活跃候选');
   console.log('  improvements --extract                 从快照遗留项抽取候选（只登记 candidate）');
   console.log(

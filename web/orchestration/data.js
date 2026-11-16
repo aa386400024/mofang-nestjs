@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-16T01:57:30.214Z",
+  "generatedAt": "2026-11-16T02:10:35.516Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -21,25 +21,25 @@ window.ORCH_SNAPSHOT = {
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 28,
+    "total": 30,
     "activeCount": 15,
     "byStatus": {
       "candidate": 14,
       "queued": 0,
       "accepted": 1,
-      "done": 13,
+      "done": 15,
       "wontfix": 0
     },
     "byType": {
       "gap": 18,
       "guardrail": 1,
       "tool": 0,
-      "standard": 2,
+      "standard": 3,
       "performance": 0,
-      "tech-debt": 7
+      "tech-debt": 8
     },
     "bySource": {
-      "implementation": 12,
+      "implementation": 14,
       "acceptance": 8,
       "rework": 0,
       "dead-letter": 0,
@@ -657,6 +657,50 @@ window.ORCH_SNAPSHOT = {
           "by": "orchestrator-cli",
           "to": "candidate",
           "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-029",
+        "title": "三处编排模块 taskId 校验正则手写镜像未收敛到共享契约投影",
+        "status": "done",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-009",
+        "evidence": [
+          "branch-workflow.mjs",
+          "acceptance-runner.mjs",
+          "improvement-log.mjs 各自手写 taskId 校验正则"
+        ],
+        "impact": "taskId 模式演进时三处需同步,存在口径漂移风险",
+        "suggestion": "枚举与模式收口到 contract-enums.mjs 共享投影,各消费方统一导入",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T02:10:13.482Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "三处手写 taskId 正则镜像消除;122 用例绿,validate 5/5;共享模式护栏单测覆盖"
+        }
+      },
+      {
+        "improvementId": "IM-030",
+        "title": "review 交接件校验尚未切读框架 review-handover.schema.json(消费侧接线)",
+        "status": "done",
+        "source": "implementation",
+        "type": "standard",
+        "layer": "adapter",
+        "relatedTaskId": "AF-009",
+        "evidence": [
+          "validator.mjs 仅覆盖 taskSheet/taskIndex/toolContract/agentCard;CLI validate 未扫 transport/reviews"
+        ],
+        "impact": "review 交接件结构只经本仓轻量校验,未受框架 schema 机读约束",
+        "suggestion": "validator 纳入 reviewHandover schema,CLI 扫 reviews 目录解包 payload 校验",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T02:10:14.590Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "review 交接件接入框架 schema 机读校验;框架样例通过/缺字段被拒用例覆盖;122 用例绿"
         }
       }
     ]

@@ -19,6 +19,7 @@ export const SCHEMA_FILES = {
   taskIndex: 'task-state-index.schema.json',
   toolContract: 'tool-contract.schema.json',
   agentCard: 'agent-card.schema.json',
+  reviewHandover: 'review-handover.schema.json',
 };
 
 /** 框架仓根目录：env 优先；默认本仓上两级平级目录。 */
@@ -92,7 +93,7 @@ function normalizeErrors(validate) {
 
 /**
  * 通用对象校验。
- * @param {'taskSheet'|'taskIndex'|'toolContract'|'agentCard'} schemaKey
+ * @param {'taskSheet'|'taskIndex'|'toolContract'|'agentCard'|'reviewHandover'} schemaKey
  * @param {object} value 待校验对象
  * @returns {Promise<{ok:boolean,skipped:boolean,errors:object[],schemaId:string|null}>}
  */
@@ -128,6 +129,11 @@ export function validateTool(tool) {
 /** Agent Card 对象校验。 */
 export function validateAgentCard(card) {
   return validateObject('agentCard', card);
+}
+
+/** 协商轮 review 交接件对象校验（框架 review-handover.schema.json）。 */
+export function validateReviewHandoverSchema(review) {
+  return validateObject('reviewHandover', review);
 }
 
 /**

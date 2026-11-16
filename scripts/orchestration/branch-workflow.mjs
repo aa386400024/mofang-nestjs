@@ -12,8 +12,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { REPO_ROOT } from './state-store.mjs';
-
-const TASK_ID_PATTERN = /^[A-Z0-9]+-[0-9]+$/;
+import { TASK_ID_PATTERN } from './contract-enums.mjs';
 
 /** 长期分支（不参与任务分支巡检与自动清理）。 */
 export const LONG_LIVED_BRANCHES = ['master', 'integrate'];

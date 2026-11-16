@@ -20,8 +20,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { PATHS, REPO_ROOT } from './state-store.mjs';
 import { detectResidualFiles } from './scope-mutex.mjs';
-
-const TASK_ID_PATTERN = /^[A-Z0-9]+-[0-9]+$/;
+import { TASK_ID_PATTERN } from './contract-enums.mjs';
 
 function relToAbs(rel) {
   if (!rel) return null;

@@ -9,7 +9,13 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 import { validateConfig, PATHS, REPO_ROOT } from '../state-store.mjs';
-import { validateAgentCard, validateTaskIndex, validateTaskSheet, validateToolManifest } from '../validator.mjs';
+import {
+  validateAgentCard,
+  validateReviewHandoverSchema,
+  validateTaskIndex,
+  validateTaskSheet,
+  validateToolManifest,
+} from '../validator.mjs';
 import { buildRegistry, call as registryCall } from '../tool-registry.mjs';
 import { listAudits, recordAudit, summarizeAudits } from '../audit-log.mjs';
 import { createStore } from '../store-port.mjs';
@@ -27,6 +33,7 @@ import {
   FINAL_STATUSES,
   REVIEW_VERDICTS,
 } from '../handover-contract.mjs';
+import { TASK_ID_PATTERN as SHARED_TASK_ID_PATTERN } from '../contract-enums.mjs';
 import { ARCHIVE_STATUSES, archiveTaskEntry, canTransition, shouldAdvance, buildSnapshot } from '../scheduler.mjs';
 import { dispatchTask, buildDispatchRecord, receiptFingerprint, isReceiptProcessed, markReceiptProcessed } from '../dispatch.mjs';
 import { normalizeScope, findScopeConflicts, detectResidualFiles, scopeCovers } from '../scope-mutex.mjs';
@@ -504,6 +511,32 @@ describe('validator AF-006 框架 schema 机读校验', () => {
     const card = readJsonFile(join(PATHS.agentCardsDir, 'orchestrator.json'));
     const res = await validateAgentCard(card);
     assertNotFailed(res);
+  });
+
+  it('框架样例 review 交接件通过 schema 校验', async () => {
+    const fwDir = process.env.ORCH_FRAMEWORK_DIR
+      ? process.env.ORCH_FRAMEWORK_DIR
+      : join(REPO_ROOT, '..', '..', 'agent-collaboration-framework');
+    const fwFile = join(fwDir, 'examples', 'example-review-handover.json');
+    if (!existsSync(fwFile)) return;
+    const res = await validateReviewHandoverSchema(readJsonFile(fwFile));
+    assertNotFailed(res);
+  });
+
+  it('缺必填字段的 review 交接件被拒绝', async () => {
+    const fwDir = process.env.ORCH_FRAMEWORK_DIR
+      ? process.env.ORCH_FRAMEWORK_DIR
+      : join(REPO_ROOT, '..', '..', 'agent-collaboration-framework');
+    const fwFile = join(fwDir, 'examples', 'example-review-handover.json');
+    const review = existsSync(fwFile)
+      ? readJsonFile(fwFile)
+      : { reviewId: 'REVIEW-001', taskId: 'TASK-001', contextId: 'CTX-1', recommendation: 'r', createdBy: 'x', createdAt: '2026-11-16' };
+    delete review.proposal;
+    const res = await validateReviewHandoverSchema(review);
+    if (!res.skipped) {
+      expect(res.ok).toBe(false);
+      expect(res.errors.length).toBeGreaterThan(0);
+    }
   });
 });
 
@@ -1529,6 +1562,16 @@ describe('契约枚举 vendored 投影对账（IM-005）', () => {
     const bad = ['task-001', 'TASK-001-X', 'TASK', 'TASK-abc', ''];
     for (const id of good) expect(new RegExp(enums.taskIdPattern).test(id)).toBe(true);
     for (const id of bad) expect(new RegExp(enums.taskIdPattern).test(id)).toBe(false);
+  });
+
+  it('共享模块导出的 taskId 模式与投影一致', () => {
+    expect(SHARED_TASK_ID_PATTERN.source).toBe(enums.taskIdPattern);
+    for (const id of ['TASK-001', 'AF-009', 'REVIEW-001']) {
+      expect(SHARED_TASK_ID_PATTERN.test(id)).toBe(true);
+    }
+    for (const id of ['task-001', 'TASK-001-X', 'TASK', 'TASK-abc', '']) {
+      expect(SHARED_TASK_ID_PATTERN.test(id)).toBe(false);
+    }
   });
 
   it('vendored 投影与框架仓权威枚举一致（框架仓不可达则跳过跨仓对账）', () => {
