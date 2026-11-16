@@ -120,4 +120,5 @@ AF-021 给 `master` 开启 12 项必需检查并 `enforce_admins=true` 后，原
 - 首次真实发布需人工盯守：`gh pr merge`、merge SHA 树一致性、tag、Release、GHCR 双 tag；dry-run 已证明 `mergeStateStatus=CLEAN`，但未执行真实合并。
 - 生产部署仍未执行；`DEPLOY_HOST` / `DEPLOY_SSH_KEY` / production environment 未验证。
 - PR-only 保护仍未开启；master 已通过 release PR + 12 项检查约束 direct push。
+- master 当前仍是引导提交 `2f8afd9` 的旧版 2 片 `ci.yml`（push CI 8/8）；首次真实 release 合并后由 integrate 的 3 片 / 12 项 `ci.yml` 覆盖。
 - master 不再自动跑 `pull_request` CI；普通 PR 一律走 integrate，master 只接收 release PR。

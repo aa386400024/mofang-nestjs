@@ -18,7 +18,7 @@ createdAt: 2026-11-17T02:20:00+08:00
 > 仓库：`D:\work\Project\backend\mofang-nestjs`，分支 `integrate`
 > 唯一事实源：`.github/workflows/release.yml`、`.github/workflows/ci.yml`
 > 任务性质：发布流水线保护兼容改造
-> 改动范围：仅两个 workflow + 发布文档；生产部署排除，真实发版未执行
+> 改动范围：两个 workflow + 发布文档 + 编排发布口径/状态投影；生产部署排除，真实发版未执行
 
 ## 1. 目标
 
@@ -32,7 +32,7 @@ AF-021 开启 `master` 12 项必需检查后，原 `release.yml` 的本地 `merg
 
 ## 2. 范围与隔离
 
-- 允许：`.github/workflows/release.yml`、`.github/workflows/ci.yml`、发布相关 worklog。
+- 允许：`.github/workflows/release.yml`、`.github/workflows/ci.yml`、发布相关 worklog、`docs/team/agent-orchestration/autonomous-team-design.md` 发布口径、AF-022 编排事件与状态投影。
 - 禁止：生产部署、业务 `src/`、框架仓、未跟踪设计稿。
 - 不真实发版：dry-run 不合并 master、不打 tag、不推 GHCR、不建 Release。
 - 一次性例外：为让 `workflow_dispatch` 在默认分支可用，master 做过一次仅改触发器的受控直推；推前临时摘除必需检查，推后立即原样恢复。
