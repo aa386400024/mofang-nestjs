@@ -1,11 +1,11 @@
 import { Body, Controller, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { DecorationDto, PlaceDecorationDto, PurchaseDecorationDto, PurchaseDecorationResponseDto } from '../dto/island.dto';
-import { DecorationsService } from '../providers/decorations.service';
+import { DecorationDto, PlaceDecorationDto, PurchaseDecorationDto, PurchaseDecorationResponseDto } from '../dto/island.dto.js';
+import { DecorationsService } from '../providers/decorations.service.js';
 
 /**
  * 装饰接口 — V4.0 §3.2.

@@ -41,9 +41,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { IsNull, type Repository } from 'typeorm';
 
-import { practiceDailyPeriod } from '../config/practice-custom-scenario.config';
-import { QuotaUsage } from '../entities/quota-usage.entity';
-import { PracticeQuotaType } from '../enums/practice-quota-type.enum';
+import { practiceDailyPeriod } from '../config/practice-custom-scenario.config.js';
+import { QuotaUsage } from '../entities/quota-usage.entity.js';
+import { PracticeQuotaType } from '../enums/practice-quota-type.enum.js';
 
 /**
  * 日配额计数结果.

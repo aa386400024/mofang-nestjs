@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { TreeWaterLog } from './tree-water-log.entity';
+import { TreeWaterLog } from './tree-water-log.entity.js';
 
 /**
  * 共种陪伴树 entity — V2026-09-12 §6.3 共种陪伴树.

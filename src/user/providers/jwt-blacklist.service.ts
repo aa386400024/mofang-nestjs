@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import { RedisService } from '../../shared/infra/redis';
-import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants';
+import { RedisService } from '../../shared/infra/redis/index.js';
+import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants.js';
 
 /**
  * JWT blacklist service (大厂 token 撤销标准).

@@ -18,7 +18,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString } from 'class-validator';
 
-import { HOME_EMOTION_LEVELS, type HomeEmotionLevel } from '../../home/home.constants';
+import { HOME_EMOTION_LEVELS, type HomeEmotionLevel } from '../../home/home.constants.js';
 
 /**
  * V2026-10-20 治本 (专项技能训练中心改版 — 路由意图显式化):

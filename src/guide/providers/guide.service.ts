@@ -12,7 +12,7 @@ import {
   SaveCourseNoteDto,
   SaveCourseProgressDto,
   ToggleFavoriteDto,
-} from '../dto/guide.dto';
+} from '../dto/guide.dto.js';
 
 /**
  * 陪伴者端「指南」Tab 服务 — V3.0 §4 Tab3.

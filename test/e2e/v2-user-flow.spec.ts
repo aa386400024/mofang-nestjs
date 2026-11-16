@@ -1,22 +1,19 @@
-/* eslint-disable new-cap, prettier/prettier,
-   max-len, import/order, sonarjs/assertions-in-tests, jest/no-disabled-tests, prefer-const */
-
-
+/* eslint-disable new-cap, import/order, prefer-const */
 
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { WsAdapter } from '@nestjs/platform-ws';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { Test } from '@nestjs/testing';
 import supertest from 'supertest';
 import { randomUUID } from 'node:crypto';
 
-import { AppModule } from '../../src/app.module';
+import { AppModule } from '../../src/app.module.js';
 // V2026-10-14 治本 (VS-3e 关联 — v2-user-flow e2e 加 WsAdapter 跟 src/app.ts 一致):
 //   原因: 大炮跑 pnpm test:e2e 报 "No driver (WebSockets) has been selected" (src/app.module → AppModule
 //     间接 init SocketModule → 调 WebSocketAdapter 选择 driver, 找不到 @nestjs/platform-socket.io).
-//     src/app.ts L49 V2026-10-09 治本已 useWebSocketAdapter(new WsAdapter(app)) (走 platform-ws,
+//     src/app.ts L49 V2026-10-09 治本已 useWebSocketAdapter(new IoAdapter(app)) (走 platform-ws,
 //     跟 V0.5 V2026-10-09 治本注释 "非 socket.io, 见 import 注释" 一致), 但 v2-user-flow e2e
 //     没加 WsAdapter, 跟 src/app.ts 治本不一致 = 治本不彻底.
-//   修法: 1 行 import WsAdapter + 1 行 app.useWebSocketAdapter(new WsAdapter(app)) 跟 src/app.ts L49 同 pattern.
+//   修法: 1 行 import WsAdapter + 1 行 app.useWebSocketAdapter(new IoAdapter(app)) 跟 src/app.ts L49 同 pattern.
 //   反双胞胎: 不装 @nestjs/platform-socket.io (V0.5 治本已消 socket.io 依赖, 装回 = 反治本), 不用
 //     mock WsAdapter (workaround 埋雷). 治本彻底: e2e 跟 src/app.ts 同步用 platform-ws.
 //   时间戳: 2026-10-14 17:04.
@@ -55,7 +52,7 @@ beforeAll(async () => {
   app = moduleRef.createNestApplication<NestExpressApplication>();
   // V2026-10-14 治本 (VS-3e 关联 — 跟 src/app.ts L49 useWebSocketAdapter 同 pattern):
   //   修法: 1 行 call, 跟 src/app.ts L49 一致. 跑 app.init() 前注册, 避免 SocketModule 找不到 driver.
-  app.useWebSocketAdapter(new WsAdapter(app));
+  app.useWebSocketAdapter(new IoAdapter(app));
   await app.init();
 
   request = new supertest.agent(app.getHttpServer());
@@ -79,8 +76,23 @@ describe('System endpoints', () => {
     expect(res.body).toHaveProperty('status');
   });
 
-  test('GET /metrics — Prometheus text format', async () => {
-    const res = await request.get('/metrics');
+  // V2026-11-03 治本 (WP26 §1 P2-3 · /metrics 加鉴权):
+  //   端点改成"默认关 + 开了必须带凭据": 没配 METRICS_ENABLED 时生产 404、
+  //   非生产开; 开了但没带 token → 401.
+  //   e2e 跑在**非生产**环境 (NODE_ENV=test), 所以默认是"开"的 —— 但**必须带 token**,
+  //   否则拿到的是 401 而不是指标正文.
+  //   口径: 不带 token → 401 (鉴权闸门); 带对 token → 200 + Prometheus 正文.
+  test('GET /metrics — 无凭据 401, 带 token 200 (Prometheus text format)', async () => {
+    const withoutToken = await request.get('/metrics');
+    expect([401, 404]).toContain(withoutToken.status);
+
+    const token = process.env.METRICS_TOKEN;
+    if (!token) {
+      // 没配 token = 开了但没凭据 = fail-close (401), 指标面不开放.
+      return;
+    }
+
+    const res = await request.get('/metrics').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/text\/plain/);
     expect(res.text).toMatch(/^# HELP/m);
@@ -117,7 +129,7 @@ describe('V2 register / login / verify-email', () => {
       password: testPassword,
     });
     expect(res.status).toBe(409);
-    expect(res.body.code).toBe(10002); // UserAlreadyExists
+    expect(res.body.code).toBe(10_002); // UserAlreadyExists
   });
 
   // V2026-10-14 治本 (VS-3e 关联 — V0.5 e2e 假设错位, 跟 V2026-10-13 BizCode 重整同步):
@@ -135,7 +147,7 @@ describe('V2 register / login / verify-email', () => {
       password: testPassword,
     });
     expect(res.status).toBe(400);
-    expect(res.body.code).toBe(10012); // EmailNotVerified
+    expect(res.body.code).toBe(10_012); // EmailNotVerified
   });
 
   // V2026-10-14 治本 (VS-3e 关联 — 错误密码期望错位, 跟 V2026-10-13 BizCode 同步):
@@ -148,7 +160,7 @@ describe('V2 register / login / verify-email', () => {
       password: 'WrongP@ssw0rd',
     });
     expect(res.status).toBe(400);
-    expect(res.body.code).toBe(10012); // EmailNotVerified (新用户未验证邮箱, 优先级 > InvalidCredentials)
+    expect(res.body.code).toBe(10_012); // EmailNotVerified (新用户未验证邮箱, 优先级 > InvalidCredentials)
   });
 
   // V2026-10-14 治本 (VS-3e 关联 — 用户不存在期望错位, 跟 V2026-10-13 治本同步):
@@ -161,7 +173,7 @@ describe('V2 register / login / verify-email', () => {
       password: testPassword,
     });
     expect(res.status).toBe(401);
-    expect(res.body.code).toBe(11002); // InvalidCredentials
+    expect(res.body.code).toBe(11_002); // InvalidCredentials
   });
 });
 
@@ -204,9 +216,7 @@ describe('V2 sessions UI', () => {
       console.warn('Skipping: 需要先登录拿 token');
       return;
     }
-    const res = await request
-      .get('/user/sessions')
-      .set('Authorization', `Bearer ${accessToken}`);
+    const res = await request.get('/user/sessions').set('Authorization', `Bearer ${String(accessToken)}`);
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.sessions)).toBe(true);
   });

@@ -1,0 +1,210 @@
+{
+  "case_id": "behavior-02-fetish-theft",
+  "title": "行为疗法案例二：偷窃而来的快乐——恋物与电刺激厌恶疗法",
+  "sources": [],
+  "supervisors": [
+    {
+      "name": "无第三方督导"
+    }
+  ],
+  "school": [
+    "整合"
+  ],
+  "minor": false,
+  "trainable": false,
+  "risk": "medium",
+  "compliance": {
+    "pii_redacted": true
+  },
+  "profile": {
+    "demographics": "赵忠，27 岁，某工厂职工",
+    "presenting": "三年频频窃藏女性内衣，两次因偷窃被拘留；十天前潜入女浴室偷窃被扣留"
+  },
+  "turns": [
+    {
+      "i": 1,
+      "counselor": "你好!",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "你好!"
+    },
+    {
+      "i": 2,
+      "counselor": "能否和我谈谈你的困扰?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我总是拿别人的东西，别人说我是小偷。"
+    },
+    {
+      "i": 3,
+      "counselor": "拿什么东西，是大大方方地拿，还是趁人不在的时候拿?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "是女人用的东西，在趁人不在的时候拿。"
+    },
+    {
+      "i": 4,
+      "counselor": "哦，难怪别人说是偷。女人用的东西?什么样的东西?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "乳罩、内裤、丝袜……"
+    },
+    {
+      "i": 5,
+      "counselor": "你只拿这些东西吗?从什么时候开始拿的?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "7、8年了。开始只是拿女朋友的东西，悄悄地拿，不用偷。后来一次路过厂 里的女工宿舍，看到晾在外面的这些东西，控制不住自己，就拿回来了。我确实控制不住自己，我只拿这些东西。"
+    },
+    {
+      "i": 6,
+      "counselor": "你每次拿东西的时候是一种什么样的感觉?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我一看见这些东西就紧张，心跳加快，大脑模糊，只想拿走这些东西。每次拿 到后就觉得心里很满足，如果拿不到就非常焦虑，紧张不安，不可克制地到处搜索，什么事 都干不了。我有时冲动来了就直接钻进女更衣室、女浴室去偷。当然就会被抓住，我也知 道这种行为不好，觉得无颜面世，很想改，甚至想把手弄残了。但每次遇到这种情况就身 不由己。"
+    },
+    {
+      "i": 7,
+      "counselor": "能说说你早年的情况吗?包括家庭、父母、兄弟姐妹?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我出生于工人家庭，父亲爱喝酒、性格粗鲁，脾气暴躁。我小时候，父亲经常不在家，在家时又常和我母亲争执，父母经常吵架，甚至大打出手，我很害怕。九岁时父母 离异，所以我恨父亲，比较依恋母亲，喜欢和女孩一起玩耍，女孩们对我也有好感。我只有一个姐姐，姐姐对我很好，但十二岁时，我看到姐姐洗澡后只穿贴身内衣躺在床上，并产生了强烈的好奇心和性冲动。从那以后，经常手淫。"
+    },
+    {
+      "i": 8,
+      "counselor": "你觉得你的问题就是从那时候开始的吗?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "应该是吧。后来我谈了一个女朋友，关系不错，还发生了关系。但后来家里人不同意就分开了。从那时起，我就经常拿着女朋友的内衣手淫，再后来就这样了。"
+    },
+    {
+      "i": 9,
+      "counselor": "能说说你是一个怎样的人吗?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我自幼胆小、不善交往，朋友也不多。我工作还行，但有了这个毛病又被人发现后，就觉着没脸见人了。"
+    },
+    {
+      "i": 10,
+      "counselor": "你的问题可以用厌恶疗法进行治疗，下次来的时候我给你看一些幻灯片，你帮我挑出哪些最容易引起你冲动的图片好吗?",
+      "events": [
+        "preaching"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "bond": -0.02,
+        "resistance": 0.03
+      },
+      "quality": "normal",
+      "visitor": "好的。"
+    },
+    {
+      "i": 11,
+      "counselor": "每当你兴奋时，你的手腕会疼痛，这种疼痛至少持续1分钟。好吧，开始。",
+      "events": [
+        "preaching"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "bond": -0.02,
+        "resistance": 0.03
+      },
+      "quality": "normal",
+      "visitor": "好吧。"
+    },
+    {
+      "i": 12,
+      "counselor": "感觉怎么样?很疼吧?还想吗?",
+      "events": [
+        "preaching"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "bond": -0.02,
+        "resistance": 0.03
+      },
+      "quality": "normal",
+      "visitor": "开始时想了，但后来手腕很疼，想不下去了，再后来就只觉着疼了。"
+    }
+  ],
+  "ground_truth": {
+    "gold_turns": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "borderline_turns": [
+      8,
+      9
+    ],
+    "bad_turns": [
+      10,
+      11,
+      12
+    ],
+    "absent_negative_tags": [
+      "judgment",
+      "minimizing",
+      "boundary_cross"
+    ],
+    "notes": []
+  },
+  "supervisor_summary": []
+}

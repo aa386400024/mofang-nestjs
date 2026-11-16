@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { UserModule } from '../user/user.module';
+import { UserModule } from '../user/user.module.js';
 
-import { AiConversationsController } from './controllers/ai-conversations.controller';
-import { ChatSession } from './entities/chat-session.entity';
-import { AiConversationsService } from './providers/ai-conversations.service';
+import { AiConversationsController } from './controllers/ai-conversations.controller.js';
+import { ChatSession } from './entities/chat-session.entity.js';
+import { AiConversationsService } from './providers/ai-conversations.service.js';
 
 /**
  * AI 对话记录模块 — V2.0 §Tab4 「我的数据」AI 对话记录.

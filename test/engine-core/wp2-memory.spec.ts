@@ -17,6 +17,9 @@
 //   验证: npx jest test/engine-core/wp2-memory.spec.ts
 //   时间戳: 2026-10-28 GMT+8
 
+import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository.js';
+import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
 import {
   DEFAULT_DECAY_HALF_LIFE_MS,
   EngineErrorCode,
@@ -34,10 +37,7 @@ import {
   trimWorkingWindow,
   WORKING_MEMORY_WINDOW_TURNS,
   type MemoryEntry,
-} from '../../src/engine-core';
-import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository';
-import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
+} from '../../src/engine-core/index.js';
 
 const TENANT = 'default';
 const VISITOR = 'visitor-1';
@@ -109,7 +109,7 @@ describe('WP2 · 分层记忆 V1', () => {
       const trimmed = trimWorkingWindow(lines);
       expect(trimmed).toHaveLength(WORKING_MEMORY_WINDOW_TURNS);
       expect(trimmed[0]).toBe('第 4 轮');
-      expect(trimmed[trimmed.length - 1]).toBe('第 11 轮');
+      expect(trimmed.at(-1)).toBe('第 11 轮');
     });
 
     it('不足 8 轮原样返回', () => {
@@ -166,21 +166,26 @@ describe('WP2 · 分层记忆 V1', () => {
     });
 
     it('effectiveImportance 用条目时间算年龄', () => {
-      const entry = longTermEntry({ importance: 0.8, occurredAt: 1_000 });
-      const now = 1_000 + DEFAULT_DECAY_HALF_LIFE_MS;
+      const entry = longTermEntry({ importance: 0.8, occurredAt: 1000 });
+      const now = 1000 + DEFAULT_DECAY_HALF_LIFE_MS;
       expect(effectiveImportance(entry, now)).toBeCloseTo(0.4, 10);
     });
 
     it('衰减到阈值以下的条目判为不召回', () => {
-      const entry = longTermEntry({ importance: 0.5, occurredAt: 1_000 });
-      const now = 1_000 + 10 * DEFAULT_DECAY_HALF_LIFE_MS;
-      const evaluation = evaluateRecallCandidate(entry, null, {
-        tenantId: TENANT,
-        sessionId: 'session-a',
-        query: 'x',
-        scope: 'visitor',
-        visitorId: VISITOR,
-      }, now);
+      const entry = longTermEntry({ importance: 0.5, occurredAt: 1000 });
+      const now = 1000 + 10 * DEFAULT_DECAY_HALF_LIFE_MS;
+      const evaluation = evaluateRecallCandidate(
+        entry,
+        null,
+        {
+          tenantId: TENANT,
+          sessionId: 'session-a',
+          query: 'x',
+          scope: 'visitor',
+          visitorId: VISITOR,
+        },
+        now,
+      );
       expect(evaluation.accepted).toBe(false);
       expect(evaluation.effectiveImportance).toBeLessThan(RECALL_MIN_EFFECTIVE_IMPORTANCE);
     });
@@ -188,8 +193,8 @@ describe('WP2 · 分层记忆 V1', () => {
 
   describe('③ 冲突消解', () => {
     const group = (): MemoryEntry[] => [
-      longTermEntry({ id: 'old', topicKey: 'insomnia', occurredAt: 1_000, importance: 0.9 }),
-      longTermEntry({ id: 'new', topicKey: 'insomnia', occurredAt: 2_000, importance: 0.5 }),
+      longTermEntry({ id: 'old', topicKey: 'insomnia', occurredAt: 1000, importance: 0.9 }),
+      longTermEntry({ id: 'new', topicKey: 'insomnia', occurredAt: 2000, importance: 0.5 }),
     ];
 
     it('时间更新者存活', () => {
@@ -203,20 +208,20 @@ describe('WP2 · 分层记忆 V1', () => {
 
     it('同一时刻取重要度更高者存活', () => {
       const { survivor } = resolveConflict([
-        longTermEntry({ id: 'a', topicKey: 'k', occurredAt: 5_000, importance: 0.3 }),
-        longTermEntry({ id: 'b', topicKey: 'k', occurredAt: 5_000, importance: 0.8 }),
+        longTermEntry({ id: 'a', topicKey: 'k', occurredAt: 5000, importance: 0.3 }),
+        longTermEntry({ id: 'b', topicKey: 'k', occurredAt: 5000, importance: 0.8 }),
       ]);
       expect(survivor.id).toBe('b');
     });
 
     it('完全同刻同重要度时按 id 判定 (确定性)', () => {
       const first = resolveConflict([
-        longTermEntry({ id: 'aaa', topicKey: 'k', occurredAt: 5_000, importance: 0.5 }),
-        longTermEntry({ id: 'bbb', topicKey: 'k', occurredAt: 5_000, importance: 0.5 }),
+        longTermEntry({ id: 'aaa', topicKey: 'k', occurredAt: 5000, importance: 0.5 }),
+        longTermEntry({ id: 'bbb', topicKey: 'k', occurredAt: 5000, importance: 0.5 }),
       ]).survivor.id;
       const second = resolveConflict([
-        longTermEntry({ id: 'bbb', topicKey: 'k', occurredAt: 5_000, importance: 0.5 }),
-        longTermEntry({ id: 'aaa', topicKey: 'k', occurredAt: 5_000, importance: 0.5 }),
+        longTermEntry({ id: 'bbb', topicKey: 'k', occurredAt: 5000, importance: 0.5 }),
+        longTermEntry({ id: 'aaa', topicKey: 'k', occurredAt: 5000, importance: 0.5 }),
       ]).survivor.id;
       expect(first).toBe(second);
       expect(first).toBe('aaa');
@@ -249,7 +254,7 @@ describe('WP2 · 分层记忆 V1', () => {
       expect(conflicts).toHaveLength(1);
 
       // 写回标记 (编排层动作).
-      await harness.memories.remember(superseded[0]!);
+      await harness.memories.remember(superseded[0]);
 
       const hits = await harness.memories.recall({
         tenantId: TENANT,
@@ -282,9 +287,7 @@ describe('WP2 · 分层记忆 V1', () => {
     it('session 范围不叠加衰减 (有效重要度 = 原始 important)', async () => {
       const harness = createHarness();
       // 极老 + 低重要度: visitor 范围会被衰减阈值淘汰, session 范围不衰减.
-      await harness.memories.remember(
-        longTermEntry({ id: 'ancient', sessionId: 'session-a', importance: 0.2, occurredAt: 1 }),
-      );
+      await harness.memories.remember(longTermEntry({ id: 'ancient', sessionId: 'session-a', importance: 0.2, occurredAt: 1 }));
       const hits = await harness.memories.recall({ tenantId: TENANT, sessionId: 'session-a', query: 'x' });
       expect(hits).toHaveLength(1);
     });
@@ -323,9 +326,7 @@ describe('WP2 · 分层记忆 V1', () => {
 
     it('只召回长时 (工作/短时不进跨会话召回)', async () => {
       const harness = createHarness();
-      await harness.memories.remember(
-        longTermEntry({ id: 'w', tier: MemoryTier.WORKING, source: MemorySource.TURN, visitorId: VISITOR }),
-      );
+      await harness.memories.remember(longTermEntry({ id: 'w', tier: MemoryTier.WORKING, source: MemorySource.TURN, visitorId: VISITOR }));
       await harness.memories.remember(
         longTermEntry({ id: 's', tier: MemoryTier.SHORT_TERM, source: MemorySource.SUMMARY, visitorId: VISITOR }),
       );
@@ -351,13 +352,9 @@ describe('WP2 · 分层记忆 V1', () => {
     it('TTL 过期不召回', async () => {
       const harness = createHarness();
       await harness.memories.remember(longTermEntry({ id: 'ttl', ttlMs: 1000 }));
-      expect(
-        await harness.memories.recall({ tenantId: TENANT, sessionId: 'session-a', query: 'x' }),
-      ).toHaveLength(1);
+      expect(await harness.memories.recall({ tenantId: TENANT, sessionId: 'session-a', query: 'x' })).toHaveLength(1);
       harness.advance(1001);
-      expect(
-        await harness.memories.recall({ tenantId: TENANT, sessionId: 'session-a', query: 'x' }),
-      ).toHaveLength(0);
+      expect(await harness.memories.recall({ tenantId: TENANT, sessionId: 'session-a', query: 'x' })).toHaveLength(0);
     });
 
     it('limit clamp: 默认 5, 上限 50', async () => {
@@ -366,9 +363,7 @@ describe('WP2 · 分层记忆 V1', () => {
         await harness.memories.remember(longTermEntry({ id: `m-${i}`, sessionId: 'session-a' }));
       }
       expect(await harness.memories.recall({ tenantId: TENANT, sessionId: 'session-a', query: 'x' })).toHaveLength(5);
-      expect(
-        await harness.memories.recall({ tenantId: TENANT, sessionId: 'session-a', query: 'x', limit: 1000 }),
-      ).toHaveLength(50);
+      expect(await harness.memories.recall({ tenantId: TENANT, sessionId: 'session-a', query: 'x', limit: 1000 })).toHaveLength(50);
     });
 
     it('minImportance 过滤 (visitor 范围按衰减后有效重要度)', async () => {
@@ -535,6 +530,106 @@ describe('WP2 · 分层记忆 V1', () => {
 
       expect(resumeOutput.openingContext).toBeDefined();
       expect(resumeOutput.snapshot).toEqual(freshOutput.snapshot);
+    });
+  });
+
+  // WP59 (2026-11-04) · 召回策略配置端口统一:
+  //   半衰期与阈值两个工程种子值改成**可选端口注入** —— 不传 = 内核默认值 = 行为逐字不变,
+  //   传了 = 配置值直接生效. 覆盖: 零回归 / 半衰期生效 / 阈值生效 / 只覆盖一个 /
+  //   内存版 recallPolicy 端口生效.
+  describe('⑨ WP59 · 召回策略配置端口统一', () => {
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const NOW = 1_700_000_000_000;
+    /** 访客范围召回条件 (跨会话, 只召回长时). */
+    const visitorQuery = {
+      tenantId: TENANT,
+      sessionId: 'session-a',
+      query: 'x',
+      scope: 'visitor',
+      visitorId: VISITOR,
+    } as const;
+
+    /**
+     * 造一条"十天前"的长时记忆 (importance=0.8).
+     *
+     * 期望值是**算出来的**, 不是拍脑袋的:
+     *   - 默认半衰期 30 天 → 0.8 * 2^(-10/30) ≈ 0.6349604;
+     *   - 半衰期 10 天     → 0.8 * 2^(-10/10) = 0.4.
+     * 用例里把这三个数分得很开, 是为了让"参数没生效"和"阈值差一点"都变成**硬失败**,
+     * 而不是靠容差糊过去.
+     */
+    const agedEntry = (): MemoryEntry => longTermEntry({ id: 'aged', importance: 0.8, occurredAt: NOW - 10 * DAY_MS });
+
+    it('① 不传 options = 用内核默认值 (零回归: 与 4 参调用逐字一致)', () => {
+      const entry = agedEntry();
+      const withoutOptions = evaluateRecallCandidate(entry, null, visitorQuery, NOW);
+      const withEmptyOptions = evaluateRecallCandidate(entry, null, visitorQuery, NOW, {});
+
+      expect(withEmptyOptions).toEqual(withoutOptions);
+      expect(withoutOptions.accepted).toBe(true);
+      // 默认口径 = 内核默认半衰期算出来的有效重要度.
+      expect(withoutOptions.effectiveImportance).toBeCloseTo(0.8 * Math.pow(2, -10 / 30), 10);
+      expect(withoutOptions.effectiveImportance).toBeCloseTo(effectiveImportance(entry, NOW), 10);
+    });
+
+    it('② 传 halfLifeMs = 用配置值算有效重要度 (不是内核默认的 30 天)', () => {
+      const entry = agedEntry();
+      const evaluation = evaluateRecallCandidate(entry, null, visitorQuery, NOW, { halfLifeMs: 10 * DAY_MS });
+
+      expect(evaluation.accepted).toBe(true);
+      expect(evaluation.effectiveImportance).toBeCloseTo(0.4, 10);
+      // 与默认口径明显不同 —— 否则这条用例是空转 (参数没生效也照样绿).
+      expect(evaluation.effectiveImportance).not.toBeCloseTo(effectiveImportance(entry, NOW), 6);
+    });
+
+    it('③ 传 minEffectiveImportance = 用配置值卡阈值', () => {
+      const entry = agedEntry();
+      // 默认阈值 0.1 → 放行.
+      expect(evaluateRecallCandidate(entry, null, visitorQuery, NOW).accepted).toBe(true);
+      // 配置阈值 0.7 → 有效重要度 0.635 < 0.7 → 拒绝.
+      expect(evaluateRecallCandidate(entry, null, visitorQuery, NOW, { minEffectiveImportance: 0.7 }).accepted).toBe(false);
+      // 配置阈值 0.5 → 放行.
+      expect(evaluateRecallCandidate(entry, null, visitorQuery, NOW, { minEffectiveImportance: 0.5 }).accepted).toBe(true);
+    });
+
+    it('④ 两个字段可以只覆盖一个 (另一个回落内核默认值)', () => {
+      const entry = agedEntry();
+      // 只给半衰期 → 阈值仍是内核默认 0.1 → 0.4 ≥ 0.1 → 放行.
+      const onlyHalfLife = evaluateRecallCandidate(entry, null, visitorQuery, NOW, { halfLifeMs: 10 * DAY_MS });
+      expect(onlyHalfLife.accepted).toBe(true);
+      expect(onlyHalfLife.effectiveImportance).toBeCloseTo(0.4, 10);
+      // 半衰期与阈值都给 → 0.4 < 0.5 → 拒绝.
+      const both = evaluateRecallCandidate(entry, null, visitorQuery, NOW, {
+        halfLifeMs: 10 * DAY_MS,
+        minEffectiveImportance: 0.5,
+      });
+      expect(both.accepted).toBe(false);
+    });
+
+    it('⑤ 内存版 recallPolicy 端口生效 (与内核判定同口径)', async () => {
+      const entry = agedEntry();
+      // 缺省 → 内核默认阈值 0.1 → 召回.
+      const defaultStore = new InMemoryMemoryStore({ now: () => NOW });
+      await defaultStore.remember(entry);
+      expect(await defaultStore.recall(visitorQuery)).toHaveLength(1);
+
+      // 配更严的阈值 → 与内核判定同口径 → 不召回.
+      const strictStore = new InMemoryMemoryStore({ now: () => NOW, recallPolicy: { minEffectiveImportance: 0.7 } });
+      await strictStore.remember(entry);
+      expect(await strictStore.recall(visitorQuery)).toHaveLength(0);
+
+      // 配更短的半衰期 → 有效重要度掉到 0.4 → 阈值 0.5 拦下.
+      const shortHalfLifeStore = new InMemoryMemoryStore({
+        now: () => NOW,
+        recallPolicy: { halfLifeMs: 10 * DAY_MS, minEffectiveImportance: 0.5 },
+      });
+      await shortHalfLifeStore.remember(entry);
+      expect(await shortHalfLifeStore.recall(visitorQuery)).toHaveLength(0);
+
+      // 只配半衰期 → 阈值仍是内核默认 0.1 → 0.4 ≥ 0.1 → 召回.
+      const halfLifeOnlyStore = new InMemoryMemoryStore({ now: () => NOW, recallPolicy: { halfLifeMs: 10 * DAY_MS } });
+      await halfLifeOnlyStore.remember(entry);
+      expect(await halfLifeOnlyStore.recall(visitorQuery)).toHaveLength(1);
     });
   });
 

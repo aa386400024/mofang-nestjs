@@ -1,11 +1,12 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Worker, type Job, Queue } from 'bullmq';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
-import { AuditEvent, AuditLog } from '../../../user/entities/audit-log.entity';
-import { RedisService } from '../redis';
-import { QUEUE_NAMES } from '../redis/redis.constants';
+import { AuditLog } from '../../../user/entities/audit-log.entity.js';
+import { AuditEvent } from '../../../user/enums/audit-event.enum.js';
+import { RedisService } from '../redis/index.js';
+import { QUEUE_NAMES } from '../redis/redis.constants.js';
 
 /**
  * 审计日志 Job 数据结构 (BullMQ payload).

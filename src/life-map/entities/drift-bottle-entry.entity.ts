@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { DriftBottleStatus } from '../enums/drift-bottle-status.enum';
+import { DriftBottleStatus } from '../enums/drift-bottle-status.enum.js';
 
 /**
  * 漂流瓶 entity — V2026-09-12 §6.5 心塑 V6.0.

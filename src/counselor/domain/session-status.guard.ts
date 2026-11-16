@@ -28,7 +28,7 @@
 //        - finished → listening → 400 (终态不可迁出)
 //   时间戳: 2026-10-21
 
-import { TrainingSessionStatus } from '../enums/training-session-status.enum';
+import { TrainingSessionStatus } from '../enums/training-session-status.enum.js';
 
 /**
  * 状态迁移表: 源状态 → 允许的目标状态集合.

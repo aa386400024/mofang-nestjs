@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 import type {
   CreateKeyEventDto,
   ForecastInputDto,
@@ -18,8 +18,8 @@ import type {
   SaveStageProgressDto,
   StageProgressListDto,
   UpdateKeyEventDto,
-} from '../dto/life-map.dto';
-import { LifeMapService } from '../providers/life-map.service';
+} from '../dto/life-map.dto.js';
+import { LifeMapService } from '../providers/life-map.service.js';
 
 /**
  * 人生地图 controller — V3.0 §3 Tab3 心理地图 + 推演 + 报告 完整版.

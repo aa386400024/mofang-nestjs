@@ -54,9 +54,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomInt, randomUUID } from 'node:crypto';
 import { In, IsNull, type Repository } from 'typeorm';
 
-import { PracticeEvaluatorService } from './practice-evaluator.service';
-import { PracticeQuotaService } from './practice-quota.service';
-import { PracticeScenarioService } from './practice-scenario.service';
+import { PracticeEvaluatorService } from './practice-evaluator.service.js';
+import { PracticeQuotaService } from './practice-quota.service.js';
+import { PracticeScenarioService } from './practice-scenario.service.js';
 import {
   buildTemplateScenario,
   parsePositiveIntEnv,
@@ -68,9 +68,9 @@ import {
   PRACTICE_CUSTOM_SCENARIO_TIMEOUT_ENV_KEY,
   templateScenarioToContent,
   PracticeCustomScenarioDegradeReason,
-} from '../config/practice-custom-scenario.config';
-import { engineOfMode, labelOfMode } from '../config/practice-display-meta';
-import type { PracticeCustomScenarioContent } from '../domain/practice/practice.types';
+} from '../config/practice-custom-scenario.config.js';
+import { engineOfMode, labelOfMode } from '../config/practice-display-meta.js';
+import type { PracticeCustomScenarioContent } from '../domain/practice/practice.types.js';
 import type {
   CreateCustomPracticeScenarioDto,
   CustomPracticeScenarioListDto,
@@ -78,16 +78,16 @@ import type {
   CustomPracticeScenarioResultDto,
   GenerateCustomPracticeScenarioDto,
   GeneratedCustomPracticeScenarioDto,
-} from '../dto/practice.dto';
-import { PracticeAttempt } from '../entities/practice-attempt.entity';
-import { PracticeCustomScenario } from '../entities/practice-custom-scenario.entity';
-import { TrainingExercise } from '../entities/training-exercise.entity';
-import { PracticeDifficulty } from '../enums/practice-difficulty.enum';
-import { PracticeEngine } from '../enums/practice-engine.enum';
-import { PracticeQuotaType } from '../enums/practice-quota-type.enum';
-import { PracticeScenarioGenerationMode } from '../enums/practice-scenario-generation-mode.enum';
-import { PracticeScenarioOrigin } from '../enums/practice-scenario-source.enum';
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
+} from '../dto/practice.dto.js';
+import { PracticeAttempt } from '../entities/practice-attempt.entity.js';
+import { PracticeCustomScenario } from '../entities/practice-custom-scenario.entity.js';
+import { TrainingExercise } from '../entities/training-exercise.entity.js';
+import { PracticeDifficulty } from '../enums/practice-difficulty.enum.js';
+import { PracticeEngine } from '../enums/practice-engine.enum.js';
+import { PracticeQuotaType } from '../enums/practice-quota-type.enum.js';
+import { PracticeScenarioGenerationMode } from '../enums/practice-scenario-generation-mode.enum.js';
+import { PracticeScenarioOrigin } from '../enums/practice-scenario-source.enum.js';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
 
 /**
  * 用户私有场景 service.

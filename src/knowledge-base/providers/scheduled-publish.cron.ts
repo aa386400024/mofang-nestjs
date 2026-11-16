@@ -10,7 +10,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
-import { ScheduledPublishService } from './scheduled-publish.service';
+import { ScheduledPublishService } from './scheduled-publish.service.js';
 
 @Injectable()
 export class ScheduledPublishCron {

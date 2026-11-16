@@ -1,11 +1,11 @@
 import { Controller, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { ThemePacksListDto } from '../dto/skin-pack.dto';
-import { ThemePacksService } from '../providers/theme-packs.service';
+import { ThemePacksListDto } from '../dto/skin-pack.dto.js';
+import { ThemePacksService } from '../providers/theme-packs.service.js';
 
 /**
  * 主题包接口 — V4.0 §3.4.

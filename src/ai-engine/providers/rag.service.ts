@@ -11,8 +11,8 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 
-import { QdrantService } from './qdrant.service';
-import { LlmRouterService } from '../../llm/registry/llm-router.service';
+import { QdrantService } from './qdrant.service.js';
+import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
 
 /**
  * RAG 服务 — V6.0 §3.5 高阶层对话 + §3.2 科普.

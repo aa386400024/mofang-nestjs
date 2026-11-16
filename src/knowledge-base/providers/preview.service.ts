@@ -15,16 +15,16 @@
 
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
-import { LlmService } from '../../agent/llm/llm.service';
+import { LlmService } from '../../agent/llm/llm.service.js';
 // V2026-10-12 治本 (Phase 8.4 — Preview import path):
 //   LlmMessage 在 llm.types.ts, llm.service.ts 只 import 不 re-export.
 //   治本: 拆 2 个 import, 类型从 types 取 (跟 7.x 客户端 dartz show Either 同 pattern,
 //   显式 import 类型不走 value path).
-import { LlmMessage } from '../../agent/llm/llm.types';
-import { PreviewPersonaDto, PreviewRequestDto, PreviewResponseDto } from '../dto/preview.dto';
-import { KnowledgeItem } from '../entities/knowledge-item.entity';
+import { LlmMessage } from '../../agent/llm/llm.types.js';
+import { PreviewPersonaDto, PreviewRequestDto, PreviewResponseDto } from '../dto/preview.dto.js';
+import { KnowledgeItem } from '../entities/knowledge-item.entity.js';
 
 @Injectable()
 export class PreviewService {
@@ -65,7 +65,8 @@ export class PreviewService {
     const responses: string[] = [];
     let isFallback = false;
 
-    for (const userInput of PreviewService.MOCK_USER_INPUTS) {
+    // V2026-11-06 治本 (WP46): 用 entries() 拿**索引**, 日志里只打索引不打 mock 输入原文.
+    for (const [idx, userInput] of PreviewService.MOCK_USER_INPUTS.entries()) {
       try {
         const response = await this.callLlm(item, userInput, persona, tenantId, userId);
         responses.push(response);
@@ -73,7 +74,8 @@ export class PreviewService {
         // V0.x dev fallback (跟 spec §5.3 "可降级" + §12.3 "V0.x 后端未建
         // 失败路径" 一致). LLM 失败不影响主流程, 标 isFallback 让前端 UI
         // 提示 "preview 不可用, 真实训练时再试".
-        this.logger.warn(`preview LLM call failed: itemId=${itemId} userInput=${userInput.slice(0, 30)} err=${(e as Error).message}`);
+        // V2026-11-06 治本 (WP46): 不打 userInput 原文 (心理内容), 只打索引.
+        this.logger.warn(`preview LLM call failed: itemId=${itemId} userInput_idx=${idx} err=${(e as Error).message}`);
         responses.push(this.mockFallbackResponse(userInput));
         isFallback = true;
       }

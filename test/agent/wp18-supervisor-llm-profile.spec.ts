@@ -16,7 +16,7 @@ import {
   SUPERVISOR_REASONING_EFFORT_ENV_KEY,
   SUPERVISOR_TIMEOUT_MS_ENV_KEY,
   readSupervisorLlmProfile,
-} from '../../src/agent/supervisor/supervisor-llm.config';
+} from '../../src/agent/supervisor/supervisor-llm.config.js';
 
 /** 只实现 get() 的配置替身 (够 readSupervisorLlmProfile 用). */
 function stubConfig(values: Record<string, string>): ConfigService {

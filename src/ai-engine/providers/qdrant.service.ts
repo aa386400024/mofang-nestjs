@@ -1,11 +1,3 @@
-// V2026-10-14 治本 (VS-3b lint 阶段 — file 级 eslint-disable 豁免 Qdrant 6 类 any 错):
-//   原因: pnpm lint 报 6 个错 (1 no-explicit-any + 5 no-unsafe-assignment), 分散加
-//     disable-line 不彻底 (V0.5 stub 6 类 any 调用 + 后续 VS-3c RagService.search 注入又新增).
-//   治本: file 顶部加 /* eslint-disable */ 全豁免 (跟 VS-3a 5 段治本 culture 一致:
-//     "不写全工, 写最简"). 验证: pnpm lint 0 错.
-//   时间戳: 2026-10-14 15:30.
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
-
 // V2026-09-12 fix (LLM/qdrant 包卸载): 包已删, runtime 需 stub 让 onModuleInit 不 crash.
 //   用 eslint-disable 区块精准豁免声明, 等真接 LLM 时再去掉.
 
@@ -59,7 +51,7 @@ import { ConfigService } from '@nestjs/config';
 //   修法: 1 行 import 路径. V0.5 stub interface 删, stub class 删. provider 业务代码 0 改动
 //     (V0.5 跟真实 SDK 调用面 1:1 兼容, 跟 LangChain stub 治本注释一致).
 //   时间戳: 2026-10-14 11:59.
-import { QdrantClient } from '@qdrant/js-client-rest';
+import { QdrantClient, type Schemas } from '@qdrant/js-client-rest';
 
 /**
  * Qdrant 向量库服务.
@@ -74,9 +66,19 @@ import { QdrantClient } from '@qdrant/js-client-rest';
 @Injectable()
 export class QdrantService implements OnModuleInit {
   private readonly logger = new Logger(QdrantService.name);
-  // V2026-10-14 治本 (VS-3b): private client: any 避开真 SDK 类型严格检查, runtime 仍 work
-  //   (跟 VS-3a LangChain 一样, as any 跳过 TS 严格检查, Qdrant 真实 SDK 接受 V0.5 调用的 shape).
-  private client: any;
+  /**
+   * Qdrant 客户端 (真 SDK 类型).
+   *
+   * V2026-11-05 治本 (WP45 · P3-1): 原来是 `private client: any` + 文件级 eslint-disable
+   *   —— 代价是**整个文件对类型系统隐形**, 而且真出过事故: `setPayload` 按 v0.x 的
+   *   三参形状调 (`setPayload(collection, id, payload)`), 而真 SDK v1.19 是
+   *   **两参** `setPayload(collection, { payload, points })` —— 运行时把第 2 参的
+   *   字符串 id 解构成全 undefined, 第 3 参被整个忽略 → 请求打过去必被 Qdrant 拒.
+   *   `any` 让这件事在编译期**完全隐形**, 直到今天才被发现 (见下方 setPayload).
+   *
+   * 现在用真类型: 编译期就能挡住"SDK 契约对不上"这类错误.
+   */
+  private client!: QdrantClient;
   private readonly defaultVectorSize = 1536;
 
   constructor(private readonly config: ConfigService) {}
@@ -93,7 +95,7 @@ export class QdrantService implements OnModuleInit {
 
     try {
       const collections = await this.client.getCollections();
-      this.logger.log(`Qdrant connected url=${url} collections=${(collections as { collections: unknown[] }).collections.length}`);
+      this.logger.log(`Qdrant connected url=${url} collections=${collections.collections.length}`);
     } catch (e) {
       this.logger.warn(
         `Qdrant unreachable url=${url} — RAG knowledge base disabled (V2.0 fallback to basic tier). Error: ${(e as Error).message}`,
@@ -104,30 +106,14 @@ export class QdrantService implements OnModuleInit {
   /**
    * 确保 collection 存在 — 维度跟 embedding 模型对齐.
    *
-   * V2026-09-14 治本: `info` 现在是 any 类型 (VS-3b 治本), 不再 unknown.
-   * `info.config?.params?.vectors?.size` 类型 narrow 走 union 两个分支:
-   *   - number (unnamed vector 直接 size)
-   *   - { size?: number; ... } (named vector map 的索引结果)
-   * `typeof rawSize === 'number' ? rawSize : (rawSize as { size?: number } | undefined)?.size` 兼容两种 case.
+   * V2026-11-05 治本 (WP45 · P3-1): 原来靠 `client: any` + 一堆 `as` 绕过类型检查,
+   *   现在直接用 SDK 的真类型 —— 维度从 `CollectionInfo.config.params.vectors` 里读,
+   *   两种形状 (具名向量 map / 单个向量) 都有分支.
    */
   async ensureCollection(name: string, vectorSize = this.defaultVectorSize): Promise<void> {
     try {
-      // V2026-10-14 治本 (VS-3b lint 阶段 — 简化 cast 类型, 避开 espree parser 解析错):
-      //   原因: 之前 `(info as { config?: { params?: { vectors?: { size?: number | { size?: number } } } }).config...`
-      //     内嵌联合类型 `number | { size?: number }` espree 解析器报 "';' expected at col 106".
-      //   治本: 拆出 type alias, 简化嵌套. 验证: eslint parse OK + tsc 类型 OK.
-      interface VectorsConfig {
-        size?: number | NamedVectorConfig;
-      }
-      interface NamedVectorConfig {
-        size?: number;
-      }
-      interface CollectionInfoPartial {
-        config?: { params?: { vectors?: VectorsConfig } };
-      }
-      const info = (await this.client.getCollection(name)) as CollectionInfoPartial;
-      const rawSize = info.config?.params?.vectors?.size;
-      const existingSize: number | undefined = typeof rawSize === 'number' ? rawSize : rawSize?.size;
+      const info = await this.client.getCollection(name);
+      const existingSize = readVectorSize(info);
       if (existingSize !== undefined && existingSize !== vectorSize) {
         throw new Error(
           `Collection ${name} vector size mismatch: existing=${existingSize}, requested=${vectorSize}. ` +
@@ -139,7 +125,7 @@ export class QdrantService implements OnModuleInit {
       if (msg.includes('Not found') || msg.includes('404')) {
         await this.client.createCollection(name, {
           vectors: { size: vectorSize, distance: 'Cosine' },
-        } as any);
+        });
         this.logger.log(`Qdrant collection created name=${name} dim=${vectorSize}`);
       } else if (msg.includes('mismatch')) {
         throw e;
@@ -201,8 +187,8 @@ export class QdrantService implements OnModuleInit {
       score_threshold: scoreThreshold,
     });
 
-    const points = (response as { points?: { id: string | number; score?: number; payload?: Record<string, unknown> }[] }).points ?? [];
-    return points.map((p: { id: string | number; score?: number; payload?: Record<string, unknown> }) => ({
+    const points = response.points ?? [];
+    return points.map((p) => ({
       id: String(p.id),
       score: p.score ?? 0,
       payload: p.payload ?? {},
@@ -222,9 +208,24 @@ export class QdrantService implements OnModuleInit {
    * @param collection collection 名
    * @param id 点 id
    * @param payload 要合并进该点 payload 的字段
+   *
+   * ⚠️ **V2026-11-05 治本 (WP45 · P3-1 挖出来的真 bug)**:
+   *   真 SDK v1.19 的 `setPayload` 是**两参** `setPayload(collection, { payload, points })`.
+   *   本方法原来按 v0.x 的三参形状调 `this.client.setPayload(collection, id, payload)` ——
+   *   SDK 运行时把第 2 参 (那个**字符串 id**) 解构成 `{payload, points, filter, ...}`,
+   *   于是 payload / points 全是 undefined, 第 3 个参数**被整个忽略** → 请求打过去必被 Qdrant 拒.
+   *   后果: WP12 的**冲突消解标记从未真正落库** → 内核 `recall-policy` 排除
+   *   "已被取代的记忆"的那道判定 (supersededBy 非空就拒) 永远不生效 →
+   *   **同主题的新旧两条矛盾记忆会一起被召回** (正是 WP12 要解决的问题).
+   *   为什么一直没被发现: `private client: any` 让 TS 完全看不见这个错, 而单测用的
+   *   窄端口替身也是三参形状 —— 两端自洽, 只有真 SDK 不认.
+   *   现在按 SDK 的两参形状调, 并由 `test/base/wp45-qdrant-sdk-contract.spec.ts` 钉住.
    */
   async setPayload(collection: string, id: string, payload: Record<string, unknown>): Promise<void> {
-    await this.client.setPayload(collection, id, payload);
+    // ⚠️ SDK 契约 (v1.19): 第 2 参是**一个对象** (payload + points), 不是 (id, payload) 两个位置参数.
+    //   原来按 v0.x 三参形状调 → SDK 把第 2 参 (那个字符串 id) 解构成全 undefined,
+    //   第 3 参被整个忽略 → 请求必被 Qdrant 拒 (详见上方注释).
+    await this.client.setPayload(collection, { payload, points: [id] });
   }
 
   /**
@@ -254,8 +255,8 @@ export class QdrantService implements OnModuleInit {
       with_payload: true,
       with_vector: false,
     });
-    const points = (response as { points?: { id: string | number; payload?: Record<string, unknown> }[] }).points ?? [];
-    return points.map((p: { id: string | number; payload?: Record<string, unknown> }) => ({
+    const points = response.points ?? [];
+    return points.map((p) => ({
       id: String(p.id),
       payload: p.payload ?? {},
     }));
@@ -274,4 +275,25 @@ export class QdrantService implements OnModuleInit {
   async deleteCollection(collection: string): Promise<void> {
     await this.client.deleteCollection(collection);
   }
+}
+
+/**
+ * 读 collection 的向量维度.
+ *
+ * 两种形状都要认:
+ *   · 单向量 (unnamed) → `vectors.size` 直接是 number;
+ *   · 具名向量 (named map) → `vectors` 是 `{ 别名: { size, distance } }`, 取第一个的 size.
+ *
+ * @param info SDK 返回的 collection 信息
+ * @returns 维度; 读不到 (没配向量 / 形状不认识) → undefined
+ */
+function readVectorSize(info: Schemas['CollectionInfo']): number | undefined {
+  const vectors = info.config?.params?.vectors;
+  if (!vectors) return undefined;
+  const direct = vectors.size;
+  // 单向量: `vectors.size` 直接是 number.
+  if (typeof direct === 'number') return direct;
+  // 具名向量 map: `vectors` 是 { 别名: { size, distance } } —— 取第一个具名向量的维度.
+  if (direct && typeof direct.size === 'number') return direct.size;
+  return undefined;
 }

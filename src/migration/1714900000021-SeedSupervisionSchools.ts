@@ -33,7 +33,7 @@
 //   时间戳: 2026-10-26
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-import { SUPERVISION_SCHOOL_PRESETS } from '../counselor/config/supervision-school-presets';
+import { SUPERVISION_SCHOOL_PRESETS } from '../counselor/config/supervision-school-presets.js';
 
 export class SeedSupervisionSchools1714900000021 implements MigrationInterface {
   name = 'SeedSupervisionSchools1714900000021';

@@ -40,7 +40,8 @@
 //   修法: import 路径加 /messages. 6 个 TS2305 治本, provider 业务代码 0 改动.
 import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
 import { ChatOpenAI } from '@langchain/openai';
-import { AIProviderId, LLMCapability } from '../enums/llm.enums';
+import { Logger } from '@nestjs/common';
+import { AIProviderId, LLMCapability } from '../enums/llm.enums.js';
 import type {
   ChatCompletionChunk,
   ChatCompletionRequest,
@@ -49,7 +50,8 @@ import type {
   ChatMessage,
   ChatMessageContentPart,
   ChatReasoningEffort,
-} from '../interfaces/chat-provider.interface';
+} from '../interfaces/chat-provider.interface.js';
+import { DEFAULT_LLM_MAX_RETRIES, runWithLlmRetry } from '../llm-retry.js';
 
 /**
  * 子类配置 — 子 provider 构造函数传入.
@@ -65,6 +67,34 @@ export interface OpenAICompatibleConfig {
    * 模型名映射 — 部分国产厂商的 model 名跟 OpenAI 不完全一致
    * (e.g. deepseek-chat vs deepseek-reasoner). 子类覆盖 modelAlias() 方法.
    */
+  /**
+   * 单次请求的**客户端超时** ms (仅聚合路径下发).
+   *
+   * 缺省 = 不下发 → 维持上游 SDK 的默认行为. 之所以要这个旋钮: 此前渲染适配器
+   * 的 30s 超时**不取消**底层请求, 于是一个卡住的上游请求会一直挂着;
+   * 客户端超时是最后一道闸 (WP-H 改动 3).
+   */
+  readonly requestTimeoutMs?: number;
+  /**
+   * 显式退避层的最大重试次数 (缺省 2 = 总共 3 次尝试).
+   *
+   * ⚠️ 这是**我们自己**的重试次数, 与 LangChain 内部那个 maxRetries 无关 ——
+   * 后者已被显式置 0 (见 buildLLM), 否则会有两层重试相乘.
+   */
+  readonly maxRetries?: number;
+}
+
+/**
+ * OpenAI 兼容 chat provider 的**运行时选项** (各厂商共用).
+ *
+ * 为什么单独一个类型: 超时与重试次数是**部署事实**, 不是厂商事实 ——
+ * 四家厂商共用同一套 env 口径, 于是这层不该由各子类各写一遍.
+ */
+export interface OpenAICompatibleChatOptions {
+  /** 单次请求客户端超时 ms (缺省 = `DEFAULT_LLM_REQUEST_TIMEOUT_MS`). */
+  readonly requestTimeoutMs?: number;
+  /** 显式退避层的最大重试次数 (缺省 = `DEFAULT_LLM_MAX_RETRIES`). */
+  readonly maxRetries?: number;
 }
 
 /**
@@ -86,6 +116,12 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
   public readonly capabilities: readonly LLMCapability[] = [LLMCapability.CHAT] as const;
 
   protected readonly customHeaders?: Record<string, string>;
+  /** 单次请求客户端超时 ms (仅聚合路径下发; 缺省 = 不下发). */
+  protected readonly requestTimeoutMs?: number;
+  /** 显式退避层的最大重试次数. */
+  protected readonly maxRetries: number;
+  /** 重试观测日志 (只打状态码/错误类型名, 不打内容). */
+  private readonly logger = new Logger(this.constructor.name);
 
   protected constructor(cfg: OpenAICompatibleConfig) {
     this.id = cfg.id;
@@ -93,6 +129,8 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
     this.baseUrl = cfg.baseUrl;
     this.defaultChatModel = cfg.defaultChatModel;
     this.customHeaders = cfg.customHeaders;
+    this.requestTimeoutMs = cfg.requestTimeoutMs;
+    this.maxRetries = cfg.maxRetries ?? DEFAULT_LLM_MAX_RETRIES;
   }
 
   /**
@@ -142,11 +180,20 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
    * 单轮 chat — 包装 LangChain ChatOpenAI.invoke.
    */
   public async chat(request: ChatCompletionRequest, apiKey: string, signal?: AbortSignal): Promise<ChatCompletionResponse> {
-    const llm = this.buildLLM(apiKey, { ...request, stream: false });
+    const llm = this.buildLLM(apiKey, { ...request, stream: false }, { timeoutMs: this.requestTimeoutMs });
 
     const baseMessages = toLangChainMessages(request.messages);
-    const result: AIMessage = await llm.invoke(baseMessages, {
-      signal,
+    // V2026-11-09 治本 (WP-H · 改动 3): 走**显式**退避重试层.
+    //   此前是 LangChain AsyncCaller 的隐式 6 次重试: 次数不可配、没有单测、
+    //   且**不看调用方的截止时间** —— 适配器放弃后它还在后台继续打上游.
+    const result: AIMessage = await runWithLlmRetry(() => llm.invoke(baseMessages, { signal }), {
+      maxRetries: this.maxRetries,
+      ...(signal ? { signal } : {}),
+      onRetry: (info) => {
+        this.logger.warn(
+          `[llm] 上游调用失败, 退避后重试 attempt=${info.attempt} delay_ms=${info.delayMs} error=${describeLlmError(info.error)}`,
+        );
+      },
     });
 
     return {
@@ -190,7 +237,17 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
     let finishReason = 'stop';
 
     try {
-      const stream = await llm.stream(baseMessages, { signal });
+      // 建流失败 (连接被拒 / 429 / 5xx) 可重试; 建流**之后**的迭代错误不可重试
+      // (已经出声, 重试会把两段话拼在一起).
+      const stream = await runWithLlmRetry(() => llm.stream(baseMessages, { signal }), {
+        maxRetries: this.maxRetries,
+        ...(signal ? { signal } : {}),
+        onRetry: (info) => {
+          this.logger.warn(
+            `[llm] 上游建流失败, 退避后重试 attempt=${info.attempt} delay_ms=${info.delayMs} error=${describeLlmError(info.error)}`,
+          );
+        },
+      });
 
       for await (const chunk of stream) {
         if (signal?.aborted) break;
@@ -223,6 +280,9 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
               finishReason: isFinal ? finishReason : undefined,
               model: request.model ?? this.defaultChatModel,
               reasoningTokens: usage.reasoningTokens,
+              // V2026-11-10 (WP-H · 改动 7): 输入 / 输出侧拆分随 chunk 透传 (上游报了才有).
+              promptTokens: usage.promptTokens,
+              completionTokens: usage.completionTokens,
             });
           }
         }
@@ -237,6 +297,9 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
           finishReason: 'stop',
           model: request.model ?? this.defaultChatModel,
           reasoningTokens: usage.reasoningTokens,
+          // V2026-11-10 (WP-H · 改动 7): 收尾 chunk 同样带输入 / 输出侧拆分.
+          promptTokens: usage.promptTokens,
+          completionTokens: usage.completionTokens,
         });
       }
     } catch (e) {
@@ -251,12 +314,19 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
   /**
    * 构建 LangChain ChatOpenAI — 子类可覆盖 (e.g. 加 vision 模型特殊处理).
    */
-  protected buildLLM(apiKey: string, request: ChatCompletionRequest): ChatOpenAI {
+  protected buildLLM(apiKey: string, request: ChatCompletionRequest, options?: { readonly timeoutMs?: number }): ChatOpenAI {
     const modelName = this.modelAlias(request.model ?? this.defaultChatModel);
     const overrides = this.buildRequestOverrides(request);
 
     return new ChatOpenAI({
       modelName,
+      // V2026-11-09 治本 (WP-H · 改动 3): **关掉** LangChain 的隐式重试.
+      //   AsyncCaller 默认 maxRetries=6 (指数退避 + 抖动), 且不看调用方的截止时间:
+      //   适配器 30s 超时放弃后, 那条重试链仍在后台继续打上游 (「幽灵重试」).
+      //   重试策略只留一份 —— 就是本文件底下的 runWithLlmRetry (显式 / 可配 / 可单测).
+      maxRetries: 0,
+      // 客户端超时 (仅聚合路径): 上游卡住时不再无限期挂着.
+      ...(options?.timeoutMs === undefined ? {} : { timeout: options.timeoutMs }),
       // V2026-10-28 治本 (LangChain 1.x 凭据字段名 — 存量缺陷, 一次修好全部 OpenAI 兼容 provider):
       //   `@langchain/openai` 1.x 的 BaseChatOpenAI 取凭据只有这一条链:
       //     this.apiKey = fields?.apiKey ?? fields?.configuration?.apiKey ?? env OPENAI_API_KEY
@@ -346,6 +416,15 @@ interface StreamUsageState {
   tokenCount: number;
   /** 思考 token 数 (推理模型才有). */
   reasoningTokens?: number;
+  /**
+   * 累计输入侧 token (上游报了就带).
+   *
+   * V2026-11-10 治本 (WP-H · 改动 7): 此前只合成 tokenCount, 输入侧就此丢失 ——
+   *   于是流式路径的 prompt_tokens 全库恒为 0, 成本口径永远 output_only.
+   */
+  promptTokens?: number;
+  /** 累计输出侧 token (上游报了就带). */
+  completionTokens?: number;
 }
 
 /** 新建一份空的流式用量状态. */
@@ -360,16 +439,54 @@ function createStreamUsageState(): StreamUsageState {
  * @param chunk LangChain chunk
  */
 function applyChunkUsage(state: StreamUsageState, chunk: AIMessageChunk): void {
-  const inputTokens = chunk.usage_metadata?.input_tokens ?? 0;
-  const outputTokens = chunk.usage_metadata?.output_tokens ?? 0;
-  const total = inputTokens + outputTokens;
-  if (total > 0) {
-    state.tokenCount = total;
+  const split = resolveChunkUsageSplit(chunk.usage_metadata);
+  if (split.totalTokens > 0) {
+    state.tokenCount = split.totalTokens;
+  }
+  // V2026-11-10 治本 (WP-H · 改动 7): 把 input / output 的**拆分**留下来.
+  //   此前这里只留了 input+output 的和 —— 上游明明报了输入侧用量, 本仓在归约链上
+  //   把它扔了, 于是"流式路径没有 prompt_tokens"被当成"上游没报"传了整整三批数据.
+  //   取"最后一个报了的值"为准 (上游的 usage 是累计口径).
+  if (split.promptTokens !== undefined) {
+    state.promptTokens = split.promptTokens;
+  }
+  if (split.completionTokens !== undefined) {
+    state.completionTokens = split.completionTokens;
   }
   const reasoning = chunk.usage_metadata?.output_token_details?.reasoning;
   if (typeof reasoning === 'number') {
     state.reasoningTokens = reasoning;
   }
+}
+
+/**
+ * 一条 chunk 的用量拆分 (纯函数; 便于单测).
+ *
+ * 口径:
+ *   · 输入侧 = upstream 的 `input_tokens` (OpenAI 兼容的 `usage.prompt_tokens`);
+ *   · 输出侧 = `output_tokens`;
+ *   · 合计 = 输入 + 输出.
+ *
+ * **没报就是没报** (返回 undefined), 不是 0:
+ *   0 的含义是"输入侧确实是 0 token", 那在实践中不可能; 缺省才表示"上游没报".
+ *   两者混为一谈, 就会拿 0 冒充"输入侧免费" —— 成本口径因此永远只能是下界.
+ *
+ * @param usageMetadata LangChain 的 usage_metadata
+ * @returns 用量拆分
+ */
+export function resolveChunkUsageSplit(usageMetadata: { readonly input_tokens?: number; readonly output_tokens?: number } | undefined): {
+  readonly promptTokens?: number;
+  readonly completionTokens?: number;
+  readonly totalTokens: number;
+} {
+  const inputTokens = usageMetadata?.input_tokens;
+  const outputTokens = usageMetadata?.output_tokens;
+  const total = (inputTokens ?? 0) + (outputTokens ?? 0);
+  return {
+    ...(typeof inputTokens === 'number' && inputTokens > 0 ? { promptTokens: inputTokens } : {}),
+    ...(typeof outputTokens === 'number' && outputTokens > 0 ? { completionTokens: outputTokens } : {}),
+    totalTokens: total,
+  };
 }
 
 /**
@@ -385,6 +502,8 @@ function buildStreamChunk(params: {
   readonly finishReason?: string;
   readonly model: string;
   readonly reasoningTokens?: number;
+  readonly promptTokens?: number;
+  readonly completionTokens?: number;
 }): ChatCompletionChunk {
   return {
     delta: params.delta,
@@ -393,6 +512,9 @@ function buildStreamChunk(params: {
     ...(params.finishReason === undefined ? {} : { finishReason: params.finishReason }),
     model: params.model,
     ...(params.reasoningTokens === undefined ? {} : { reasoningTokens: params.reasoningTokens }),
+    // V2026-11-10 (WP-H · 改动 7): 输入 / 输出侧的拆分随 chunk 一起透传.
+    ...(params.promptTokens === undefined ? {} : { promptTokens: params.promptTokens }),
+    ...(params.completionTokens === undefined ? {} : { completionTokens: params.completionTokens }),
   };
 }
 
@@ -413,6 +535,24 @@ function buildStreamChunk(params: {
 function readFinishReason(metadata: Record<string, unknown> | undefined): string | undefined {
   const raw = metadata?.['finish_reason'] ?? metadata?.['finishReason'];
   return typeof raw === 'string' ? raw : undefined;
+}
+
+/**
+ * 把错误压成"状态码/类型名"的安全描述 (只给日志用).
+ *
+ * 为什么不打 error.message: 上游错误文案可能夹带请求内容片段, 而本项目的
+ * 隐私红线禁止把心理相关内容写进日志 —— 一律只打状态码与错误类名.
+ *
+ * @param error 错误对象
+ * @returns 安全描述
+ */
+function describeLlmError(error: unknown): string {
+  if (!error || typeof error !== 'object') return 'unknown';
+  const candidate = error as { status?: unknown; statusCode?: unknown; response?: { status?: unknown }; name?: unknown };
+  const status = candidate.status ?? candidate.statusCode ?? candidate.response?.status;
+  const statusText = typeof status === 'number' ? String(status) : '-';
+  const name = typeof candidate.name === 'string' ? candidate.name : 'Error';
+  return `${statusText}/${name}`;
 }
 
 /**

@@ -1,5 +1,5 @@
 > **⚠️ 本版本已 superseded by V0.3 (V2026-10-15 治本, 8 处 spec-vs-代码修订 + 2 对重复章节合并)**
-> **当前主 spec**: [`docs/specs/ai-voice-training-v0.3.md`](./ai-voice-training-v0.3.md) (22 章, 整合 V0.1 + V0.2 + 8 处修订)
+> **当前主 spec**: [`docs/specs/ai-voice-training-v0.3.md`](../../specs/ai-voice-training-v0.3.md) (22 章, 整合 V0.1 + V0.2 + 8 处修订)
 > **变更摘要**: 见 V0.3 §21 Changelog v0.2 → v0.3 (8 处修订 + 2 对重复合并)
 > **保留原因**: V0.2 culture "保留历史 reference", V0.2 内容 = V0.x 实际 push 状态 snapshot, 不删
 

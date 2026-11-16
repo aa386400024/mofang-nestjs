@@ -1,6 +1,3 @@
-/* eslint-disable new-cap, prettier/prettier,
-   max-len, import/order, sonarjs/assertions-in-tests, jest/no-disabled-tests, prefer-const */
-
 // V2026-10-15 治本 (VS-4 e2e 收尾 — PrivacyGuard 4 describe + logL3Access spy):
 //   原因: V2026-10-15 5 段治本已建 src/common/privacy/privacy-level.enum.ts (PrivacyLevel
 //     L1/L2/L3 + PrivacyFailure 401/403) + privacy-logger.service.ts (L3 访问审计 logger)
@@ -26,7 +23,7 @@
 //     - 不应用 @RequirePrivacyLevel 到现有 controller (V2026-10-15 5 段治本"反双胞胎"
 //       明确"留 V1.x", e2e 验证 guard 基础行为 = VS-4 当前 scope)
 //     - 不写完整 Express Request mock (e2e 阶段不需要, 用 Partial<Request> stub 够)
-//     - 不 mock Logger 内部调用 (jest.spyOn(logger, 'logL3Access') 直接 spy 实际方法,
+//     - 不 mock Logger 内部调用 (vi.spyOn(logger, 'logL3Access') 直接 spy 实际方法,
 //       实际方法仍执行 NestJS Logger.log() 但不影响断言)
 //   验证: 大炮跑 npx tsc -p tsconfig.build.json --noEmit 0 error + pnpm test:e2e
 //     -- privacy-guard 全过 (5 describe + 6 it 全绿).
@@ -35,10 +32,11 @@
 import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
+import { vi, type MockInstance } from 'vitest';
 
-import { PrivacyGuard } from '../../src/common/guards/privacy.guard';
-import { PrivacyLevel, PrivacyFailure } from '../../src/common/privacy/privacy-level.enum';
-import { PrivacyLogger } from '../../src/common/privacy/privacy-logger.service';
+import { PrivacyGuard } from '../../src/common/guards/privacy.guard.js';
+import { PrivacyLevel, PrivacyFailure } from '../../src/common/privacy/privacy-level.enum.js';
+import { PrivacyLogger } from '../../src/common/privacy/privacy-logger.service.js';
 
 /**
  * 4 mock 覆盖 (V0.5 V2026-10-09 治本 culture "mock 简化, 精度满足调用链即可"):
@@ -55,7 +53,7 @@ import { PrivacyLogger } from '../../src/common/privacy/privacy-logger.service';
 //     到 Record<string, unknown>, 内部 as unknown as Request 强转, 跟 V3.1 §1 VS-3e
 //     e2e mock 简化 culture "mock 精度满足调用链即可" 一致.
 //   反双胞胎: 不补全 User entity 全字段 (mock 越全越脆, e2e 不应依赖 entity 完整 schema),
-//             不用 jest.MockedFunction 包装 (over-engineering, unit-test 风格不必要).
+//             不用 vi.MockedFunction 包装 (over-engineering, unit-test 风格不必要).
 function buildMockContext(req: Record<string, unknown>): ExecutionContext {
   return {
     switchToHttp: () => ({
@@ -76,13 +74,13 @@ function buildMockContext(req: Record<string, unknown>): ExecutionContext {
 // Test helper: new PrivacyGuard with mocked Reflector + spied PrivacyLogger
 function buildGuard(privacyLevel: PrivacyLevel | undefined): {
   guard: PrivacyGuard;
-  logSpy: jest.SpyInstance;
+  logSpy: MockInstance;
 } {
   const reflector = {
-    getAllAndOverride: jest.fn().mockReturnValue(privacyLevel),
+    getAllAndOverride: vi.fn().mockReturnValue(privacyLevel),
   } as unknown as Reflector;
   const logger = new PrivacyLogger();
-  const logSpy = jest.spyOn(logger, 'logL3Access');
+  const logSpy = vi.spyOn(logger, 'logL3Access');
   const guard = new PrivacyGuard(reflector, logger);
   return { guard, logSpy };
 }
@@ -183,7 +181,7 @@ describe('PrivacyGuard (VS-4 e2e 收尾, V2026-10-15 治本)', () => {
 
   describe('no @RequirePrivacyLevel metadata — 放行 (跟 RolesGuard 同 pattern)', () => {
     it('should return true when no privacy_level metadata set (装饰器未应用)', () => {
-      const { guard } = buildGuard(undefined);
+      const { guard } = buildGuard(void 0);
       const ctx = buildMockContext({});
       expect(guard.canActivate(ctx)).toBe(true);
     });

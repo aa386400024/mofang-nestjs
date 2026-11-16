@@ -30,9 +30,9 @@ import { config as loadEnvFile } from 'dotenv';
 
 import { DataSource, type DataSourceOptions } from 'typeorm';
 
-import { configuration } from '../src/config/configuration';
-import { PracticeScenario } from '../src/counselor/entities/practice-scenario.entity';
-import { seedPracticeScenarios } from '../src/counselor/seeds/practice-scenarios.seed';
+import { configuration } from '../src/config/configuration.js';
+import { PracticeScenario } from '../src/counselor/entities/practice-scenario.entity.js';
+import { seedPracticeScenarios } from '../src/counselor/seeds/practice-scenarios.seed.js';
 
 type DbConfig = DataSourceOptions & { autoLoadEntities?: boolean };
 
@@ -64,6 +64,7 @@ async function main(): Promise<void> {
   const config = (await configuration()) as { db: DbConfig };
 
   // autoLoadEntities 是 TypeOrmModule 的选项, 不是 TypeORM DataSource 的选项, 剔除以免传入多余键.
+
   const { autoLoadEntities: _ignored, ...dbOptions } = config.db;
 
   const dataSource = new DataSource({

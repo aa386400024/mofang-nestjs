@@ -23,16 +23,16 @@ import path from 'node:path';
 
 import { getMetadataArgsStorage } from 'typeorm';
 
-import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed';
+import { buildCharacterProfileRow } from './character-profile-fixtures.js';
+import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed.js';
+import { CharacterProfileEntity } from '../../src/engine-adapters/wiring/character/character-profile.entity.js';
 import {
   buildCharacterProfileSeeds,
   CHARACTER_PROFILE_SEED_SPECS,
   seedCharacterProfiles,
-  type CharacterProfileSeed,
-} from '../../src/engine-adapters/wiring/character/character-profile.seed';
-import { CharacterProfileEntity } from '../../src/engine-adapters/wiring/character/character-profile.entity';
-import { toCharacterSeed } from '../../src/engine-adapters/wiring/character/db-character-profile.resolver';
-import { AddCharacterProfileExpressionFields1714900000025 } from '../../src/migration/1714900000025-AddCharacterProfileExpressionFields';
+} from '../../src/engine-adapters/wiring/character/character-profile.seed.js';
+import { toCharacterSeed } from '../../src/engine-adapters/wiring/character/db-character-profile.resolver.js';
+import { AddCharacterProfileExpressionFields1714900000025 } from '../../src/migration/1714900000025-AddCharacterProfileExpressionFields.js';
 
 /** 本轮加的三列 (列名 → DB 默认值). */
 const EXPECTED_COLUMNS: readonly { readonly column: string; readonly default: string | number; readonly type: string }[] = [
@@ -261,9 +261,16 @@ describe('WP10A · 表达风格基线字段 · 灌库载荷语义', () => {
 });
 
 describe('WP10A · 表达风格基线字段 · 红线 (不消费 / 不进内核)', () => {
-  it('⑬ resolver 映射的输出里不含这三列 (字段没进内核)', () => {
-    const seed = buildCharacterProfileSeeds(VISITOR_POOL_TEMPLATE_SEEDS)[0] as CharacterProfileSeed;
-    const row = {
+  // V2026-11-04 WP41: 本块的"不进内核"红线**已解除** (WP41 的全部意义就是消费这三列).
+  //   仍成立的部分: ① 前端 DTO 不暴露这三列 (⑭); ② 列的 DDL 与 DEFAULT 一字未改.
+  //   已反转的部分: ⑬ resolver 现在**读**这三列 —— 断言方向随之反转 (见用例内注释).
+  it('⑬ resolver 映射的输出里**有**这三列 (字段已进内核, WP41)', () => {
+    const seed = buildCharacterProfileSeeds(VISITOR_POOL_TEMPLATE_SEEDS)[0];
+    // 默认值来自共享夹具 (character-profile-fixtures.ts) —— 表达风格三列在夹具里就是
+    // 本用例断言的 0.5 / 'mixed' / 'restrained', 无需重复铺陈; 缺的后加列由夹具按
+    // 实体口径补齐 (personalityTraits / verbalVoice = null, safety = 0.5, bond = 0,
+    // semver 三列 = 1/0/0 —— 与内核 DEFAULT_SAFETY / DEFAULT_BOND 同值).
+    const row = buildCharacterProfileRow({
       id: seed.id,
       templateId: seed.templateId,
       displayName: seed.displayName,
@@ -275,34 +282,31 @@ describe('WP10A · 表达风格基线字段 · 红线 (不消费 / 不进内核)
       baselineResistanceStyle: seed.resistance.style,
       baselineEmotionValence: seed.emotion.valence,
       baselineEmotionArousal: seed.emotion.arousal,
-      speechVolumeBaseline: 0.5,
-      narrativeStyle: 'mixed',
-      expressionTone: 'restrained',
-      coreBeliefs: seed.coreBeliefs,
-      underlyingDesires: seed.underlyingDesires,
-      forbiddenBehaviors: seed.forbiddenBehaviors,
-      sensitiveTopics: seed.sensitiveTopics,
+      // seed 的集合列是 readonly 数组, 实体列是可变数组 —— 复制一份再落 (与 wp9b 同款).
+      coreBeliefs: seed.coreBeliefs.map((belief) => ({ ...belief, activationTags: [...belief.activationTags] })),
+      underlyingDesires: seed.underlyingDesires.map((desire) => ({ ...desire })),
+      forbiddenBehaviors: [...seed.forbiddenBehaviors],
+      sensitiveTopics: [...seed.sensitiveTopics],
       auditStatus: 'approved',
-      enabled: true,
-      version: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
-      deletedAt: null,
-    } as CharacterProfileEntity;
+    });
 
     const mapped = toCharacterSeed(row) as unknown as Record<string, unknown>;
 
-    expect(mapped['speechVolumeBaseline']).toBeUndefined();
-    expect(mapped['narrativeStyle']).toBeUndefined();
-    expect(mapped['expressionTone']).toBeUndefined();
+    // V2026-11-04 WP41: 本用例的断言**方向反转** —— WP10A 当时立的红线是
+    //   "resolver 映射的输出里不含这三列 (纯预留, 字段没进内核)".
+    //   WP41 的全部意义就是**消费**这三列, 所以红线解除, 断言跟着反转:
+    //   DB 列是 NOT NULL DEFAULT → 恒有值 → **直接传**, 不做条件展开
+    //   (与 personality_traits 那列的口径相反: 那是可空列, NULL 才是"没说").
+    expect(mapped['speechVolumeBaseline']).toBe(0.5);
+    expect(mapped['narrativeStyle']).toBe('mixed');
+    expect(mapped['expressionTone']).toBe('restrained');
   });
 
   it('⑭ 前端 DTO 里不含这三列 (本期不暴露给前端)', () => {
     const root = path.join(__dirname, '..', '..');
-    const dto = readFileSync(
-      path.join(root, 'src', 'engine-adapters', 'wiring', 'character', 'character-profile.dto.ts'),
-      'utf8',
-    );
+    const dto = readFileSync(path.join(root, 'src', 'engine-adapters', 'wiring', 'character', 'character-profile.dto.ts'), 'utf8');
 
     expect(dto).not.toContain('speechVolumeBaseline');
     expect(dto).not.toContain('narrativeStyle');

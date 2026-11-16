@@ -1,0 +1,248 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agent-collaboration-framework:schema:tool-contract:1.1.0",
+  "title": "Agent Collaboration Framework - Tool Contract",
+  "description": "工具声明契约。承载一个标准工具类别的标识、授权角色、副作用级别、作用资源范围、输入 / 输出契约与审计字段。字段可扩展、不删除既有字段；additionalProperties 允许附加字段。通用层不含项目取值、命令名与路径，具体取值由适配层声明。",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "toolId",
+    "category",
+    "sideEffect",
+    "allowedRoles"
+  ],
+  "properties": {
+    "toolId": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9-]*$",
+      "description": "工具唯一标识，中性标识，形如 TOOL-READ-WORKSPACE。"
+    },
+    "category": {
+      "$ref": "#/$defs/toolCategory",
+      "description": "工具类别；取值口径与 schemas/contract-enums.json 的 toolCategories 一致，具体命令由适配层声明。"
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "工具职责的一句话说明。"
+    },
+    "sideEffect": {
+      "$ref": "#/$defs/sideEffect",
+      "description": "副作用级别；分级定义见 docs/security-and-policy.md §2。"
+    },
+    "allowedRoles": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/role"
+      },
+      "default": [],
+      "description": "允许调用该工具的角色白名单；未列出的角色一律拒绝。"
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "工具可作用的资源范围（路径 / 模块 / 作用域标识）；具体取值由适配层声明。"
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "输入契约。",
+      "properties": {
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "输入用途说明。"
+        },
+        "params": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/contractField"
+          },
+          "default": [],
+          "description": "输入参数清单。"
+        }
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "输出契约。",
+      "properties": {
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "输出用途说明。"
+        },
+        "result": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "成功返回结构说明。"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": [],
+          "description": "可出现的错误形态清单。"
+        }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "调用审计记录结构；审计关联标识见 docs/security-and-policy.md §7。",
+      "properties": {
+        "actorRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "调用方角色或执行方标识。"
+        },
+        "correlationId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "关联本次调用与任务 / 回执的标识。"
+        },
+        "toolId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "被调用工具标识（冗余自工具契约，便于审计记录独立读取）。"
+        },
+        "category": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "工具类别（冗余自工具契约）。"
+        },
+        "sideEffect": {
+          "$ref": "#/$defs/sideEffect"
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": [],
+          "description": "本次调用触及的资源范围指针。"
+        },
+        "taskId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "关联任务标识；无任务关联时为 null。"
+        },
+        "result": {
+          "type": "string",
+          "enum": [
+            "allowed",
+            "denied"
+          ],
+          "description": "调用结论：放行或拒绝。"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "拒绝或放行的原因说明。"
+        },
+        "recordedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "调用记录时间，ISO 时间戳。"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "toolCategory": {
+      "type": "string",
+      "enum": [
+        "workspace-read",
+        "workspace-write",
+        "gate-execution",
+        "version-control",
+        "retrieval",
+        "state-store",
+        "artifact-archive",
+        "artifact-publish"
+      ],
+      "description": "工具类别枚举；取值口径与 schemas/contract-enums.json 的 toolCategories 一致。新增类别须同步真相源与本文档。"
+    },
+    "sideEffect": {
+      "type": "string",
+      "enum": [
+        "read-only",
+        "restricted-write",
+        "sensitive"
+      ],
+      "description": "副作用级别：只读不改变任何状态；受限写改变工作区状态、须幂等且可回溯；敏感操作对外发布、不可逆或影响他人，须审批节点与留痕。"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "orchestrator",
+        "executor",
+        "reviewer",
+        "researcher",
+        "critic"
+      ],
+      "description": "角色枚举，与任务单 agentRole 取值一致。"
+    },
+    "contractField": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "参数或字段名。"
+        },
+        "type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "参数类型说明。"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否必填。"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "字段用途说明。"
+        }
+      }
+    }
+  }
+}

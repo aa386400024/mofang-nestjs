@@ -20,9 +20,9 @@
 //
 //   时间戳: 2026-10-22
 
-import type { PracticeScenarioPersona, PracticeScenarioRubric } from './practice.types';
-import { PracticeDifficulty } from '../../enums/practice-difficulty.enum';
-import { TrainingExerciseMode } from '../../enums/training-exercise-mode.enum';
+import type { PracticeScenarioPersona, PracticeScenarioRubric } from './practice.types.js';
+import { PracticeDifficulty } from '../../enums/practice-difficulty.enum.js';
+import { TrainingExerciseMode } from '../../enums/training-exercise-mode.enum.js';
 
 /**
  * 一条场景变体的 seed 记录 (V1.3 §2.1 practice_scenarios 表的内容投影).

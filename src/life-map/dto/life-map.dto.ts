@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import type { LifeStage } from '../../shared/types/practice.types';
+import type { LifeStage } from '../../shared/types/practice.types.js';
 
 /**
  * 人生地图完整 DTO 集合 — V3.0 §3 Tab3 评估子模块.

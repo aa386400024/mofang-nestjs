@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
-import { DiaryAiFeedbackDto, RequestDiaryAiFeedbackDto } from '../dto/good-state-diary.dto';
-import { DiaryAiFeedbackSource } from '../enums/diary-ai-feedback-source.enum';
-import { DiaryMoodLevel } from '../enums/diary-mood-level.enum';
+import { DiaryAiFeedbackDto, RequestDiaryAiFeedbackDto } from '../dto/good-state-diary.dto.js';
+import { DiaryAiFeedbackSource } from '../enums/diary-ai-feedback-source.enum.js';
+import { DiaryMoodLevel } from '../enums/diary-mood-level.enum.js';
 
 /**
  * V2026-09-11 治本 (好状态日记 · LLM 注入骨架):
@@ -151,12 +151,12 @@ export function makeDiaryLlmClientProvider() {
  * ```ts
  * // ai-engine/providers/llm-orchestrator-diary-client.ts
  * import { Injectable } from '@nestjs/common';
- * import { LlmOrchestratorService } from './llm-orchestrator.service';
+ * import { LlmOrchestratorService } from './llm-orchestrator.service.js';
  * import {
  *   DiaryLlmClient,
  *   RequestDiaryAiFeedbackDto,
  *   DiaryAiFeedbackDto,
- * } from '../../good_state_diary/providers/good-state-diary-ai.integration';
+ * } from '../../good_state_diary/providers/good-state-diary-ai.integration.js';
  *
  * @Injectable()
  * export class LlmOrchestratorDiaryClient implements DiaryLlmClient {

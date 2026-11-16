@@ -18,8 +18,8 @@ import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 
-import { PrivacyLevel, PrivacyFailure } from '../privacy/privacy-level.enum';
-import { PrivacyLogger } from '../privacy/privacy-logger.service';
+import { PrivacyLevel, PrivacyFailure } from '../privacy/privacy-level.enum.js';
+import { PrivacyLogger } from '../privacy/privacy-logger.service.js';
 
 /**
  * 隐私分级 enforcement guard.

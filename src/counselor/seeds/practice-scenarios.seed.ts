@@ -23,10 +23,10 @@
 //   时间戳: 2026-10-22
 import type { DataSource } from 'typeorm';
 
-import { PRACTICE_SYSTEM_TENANT_ID } from '../config/practice-display-meta';
-import { PRACTICE_SCENARIO_SEEDS, validatePracticeScenarioSeeds } from '../config/practice-scenario-seeds';
-import type { PracticeScenarioSeed } from '../domain/practice/practice-seed.types';
-import { PracticeScenario } from '../entities/practice-scenario.entity';
+import { PRACTICE_SYSTEM_TENANT_ID } from '../config/practice-display-meta.js';
+import { PRACTICE_SCENARIO_SEEDS, validatePracticeScenarioSeeds } from '../config/practice-scenario-seeds.js';
+import type { PracticeScenarioSeed } from '../domain/practice/practice-seed.types.js';
+import { PracticeScenario } from '../entities/practice-scenario.entity.js';
 
 /**
  * 场景 seed 执行结果.

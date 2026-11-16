@@ -2,6 +2,9 @@
 .idea
 .history
 .DS_Store
+.omc
+.omx
+.serena
 dist
 build
 
@@ -96,3 +99,38 @@ jspm_packages/
 .smoke-last
 # 临时 docker image tar (deploy 脚本生成)
 *.tar.gz
+
+# V2026-11-05 — 调试会话持久化 (data/debug-sessions/*.json)
+#   ⚠️ 这些文件含**心理内容** (对话原文 + prompt 全文) —— 绝不进版本库.
+data/debug-sessions/
+
+# V2026-11-09 — Phase2.5 WP-E 自动评测: 数据集与报告
+#   ⚠️ 真实数据集含 BDI 状态 / 事件标签 / delta (心理画像), 报告含指标与样本 id —— 都不进版本库.
+#   只放行**合成**种子集 (synthetic-*): 无对话原文, 只用来验链路.
+data/eval-datasets/*
+!data/eval-datasets/synthetic-*/
+data/eval-reports/
+
+# V2026-11-09 — 历史批次逐字稿归档 (baseline / 对比数据)
+#   ⚠️ 同 debug-sessions: 含完整对话原文 + prompt 全文 (心理内容), 绝不进版本库.
+#   每次开新一批批量实验前, 把当时的 data/debug-sessions/ 搬到这里归档,
+#   防止 MAX_DEBUG_SESSIONS=500 的自动淘汰把 baseline 逐字稿顶掉.
+data/archives/
+
+# V2026-11-11 — WP-N 标注台逐字稿冻结留档 (data/quality/transcripts/<batchId>/*.json)
+#   ⚠️ 同 debug-sessions: 逐字稿原文 (心理内容), 绝不进版本库.
+data/quality/transcripts/
+
+# V2026-11-12 — Phase2.5 复核复算输出与切片证据 (id / 计数 / 比率, 可由入库脚本重现)
+#   复算 txt 与 D-1 取证中间产物 CSV (逐轮投影 / 抽样清单 / 标注骨架 / 人工标签) 均不进版本库;
+#   仅放行既定入库样本 anchor-sample-30.csv.
+data/quality/*.txt
+data/quality/*.csv
+!data/quality/anchor-sample-30.csv
+
+# V2026-11-15 — L2 编排运行态（租约 / 领单 / 临时态 / 工具调用审计），随轮次变化不进版本库；
+#   task-state-index.json（索引）与 orchestration-snapshot.json（网页数据源）保留入库。
+docs/team/agent-orchestration/orchestration-state.json
+docs/team/agent-orchestration/tool-audit-log.json
+docs/team/agent-orchestration/orchestration-store.sqlite
+docs/team/agent-orchestration/transport/

@@ -9,15 +9,15 @@
 import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
-import type { AIProfileDimensionDto, AIProfileDto } from '../dto/ai-profile.dto';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
+import type { AIProfileDimensionDto, AIProfileDto } from '../dto/ai-profile.dto.js';
 // V2026-09-04 治本 (smoke 修): 必须真 import, 不用 `import type`.
 //   `import type` 编译时擦除, runtime 拿不到 DTO class 引用, NestJS design:paramtypes
 //   metadata 退化成 `Function`, ValidationPipe 不会调 plainToClass, dto 永远 {}.
 //   上一轮加的 @IsEnum/@IsObject 装饰器在 dist 里, 但因没转换不会触发, service 拿 undefined.
-import { UpsertAIProfileDimensionDto } from '../dto/ai-profile.dto';
-import { AIProfileService } from '../providers/ai-profile.service';
+import { UpsertAIProfileDimensionDto } from '../dto/ai-profile.dto.js';
+import { AIProfileService } from '../providers/ai-profile.service.js';
 
 @ApiTags('ai-profile')
 @Controller('ai/profile')

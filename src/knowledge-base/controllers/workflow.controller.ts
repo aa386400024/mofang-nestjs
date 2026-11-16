@@ -18,11 +18,11 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { JwtAuthGuard } from '../../auth';
-import { TenantId } from '../../common';
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { ListKnowledgeQueryDto, ListKnowledgeResponseDto } from '../dto/knowledge.dto';
-import { KnowledgeService } from '../providers/knowledge.service';
+import { JwtAuthGuard } from '../../auth/index.js';
+import { TenantId } from '../../common/index.js';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { ListKnowledgeQueryDto, ListKnowledgeResponseDto } from '../dto/knowledge.dto.js';
+import { KnowledgeService } from '../providers/knowledge.service.js';
 
 @ApiTags('Admin · Knowledge · Workflow')
 @ApiBearerAuth()

@@ -27,5 +27,5 @@
 //
 //   时间戳: 2026-10-29
 
-export * from './builtin-character-registry';
-export * from './character-profile.resolver';
+export * from './builtin-character-registry.js';
+export * from './character-profile.resolver.js';

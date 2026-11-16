@@ -1,0 +1,31 @@
+{
+  "toolId": "TOOL-STATE-STORE",
+  "category": "state-store",
+  "description": "状态索引与附加运行态的原子读写、租约字段管理；store 抽象隔离，后续可替换为 DB 持久化。",
+  "sideEffect": "restricted-write",
+  "allowedRoles": ["orchestrator"],
+  "resources": ["docs/team/agent-orchestration/task-state-index.json", "docs/team/agent-orchestration/orchestration-state.json"],
+  "inputs": {
+    "description": "任务标识与待落盘的状态变更。",
+    "params": [
+      {
+        "name": "taskId",
+        "type": "string",
+        "required": true,
+        "description": "任务唯一标识，贯穿任务单 / 回执 / 索引。"
+      },
+      {
+        "name": "mutation",
+        "type": "object",
+        "required": true,
+        "description": "状态迁移、租约或工件指针变更；须幂等且可回溯。"
+      }
+    ]
+  },
+  "outputs": {
+    "description": "返回更新后的索引条目与运行态快照。",
+    "result": "对象：含 taskId、status、history、artifacts 指针与租约字段。",
+    "errors": ["目标文件不可写", "租约冲突（任务已被其他执行者领单）", "索引结构非法"]
+  },
+  "contractRef": "urn:agent-collaboration-framework:schema:tool-contract:1.1.0"
+}

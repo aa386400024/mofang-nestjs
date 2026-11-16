@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString } from 'class-validator';
 
-import { isStrongPassword } from '../../common/validators/is-strong-password.validator';
+import { isStrongPassword } from '../../common/validators/is-strong-password.validator.js';
 
 /**
  * 改密 DTO — 已登录状态, 知道旧密码.

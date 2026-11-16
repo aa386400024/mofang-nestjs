@@ -24,12 +24,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { type Observable } from 'rxjs';
 import { IsNull, Repository } from 'typeorm';
 
-import { SessionCoreEventsService } from './session-core-events.service';
-import { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
-import type { LiveTurnHint } from '../domain/session-core/session-core.types';
-import { type LiveSupervisionHintDto } from '../dto/session-core.dto';
-import { LiveSupervisionHint } from '../entities/live-supervision-hint.entity';
-import { LiveSupervisionHintTier } from '../enums/live-supervision-hint-tier.enum';
+import { SessionCoreEventsService } from './session-core-events.service.js';
+import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
+import type { LiveTurnHint } from '../domain/session-core/session-core.types.js';
+import { type LiveSupervisionHintDto } from '../dto/session-core.dto.js';
+import { LiveSupervisionHint } from '../entities/live-supervision-hint.entity.js';
+import { LiveSupervisionHintTier } from '../enums/live-supervision-hint-tier.enum.js';
 
 /**
  * 同类提示的防抖窗口 (spec §6.1 硬约束 4: 5 分钟内不重复推送).

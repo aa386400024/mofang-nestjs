@@ -15,8 +15,8 @@
 //     2. 1004 → retryable=false; 2205 → retryable=true 且**不重连**
 //   时间戳: 2026-10-23
 
-import { TTS_STATUS } from './tts-protocol.config';
-import type { TtsError } from './tts.types';
+import { TTS_STATUS } from './tts-protocol.config.js';
+import type { TtsError } from './tts.types.js';
 
 /**
  * 状态码 → 业务错误码映射表.

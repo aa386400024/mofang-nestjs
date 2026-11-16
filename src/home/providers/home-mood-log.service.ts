@@ -1,12 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThanOrEqual, Repository } from 'typeorm';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
 
-import { MoodLog } from '../entities/mood-log.entity';
-import type { HomeEmotionLevel } from '../home.constants';
+import { MOOD_LOG_REPOSITORY, type MoodLogRepository, type MoodLogRow } from '../domain/repositories/mood-log.repository.js';
+import type { HomeEmotionLevel } from '../home.constants.js';
 
 /**
  * 心塑首页「情绪打卡」核心服务.
@@ -19,14 +17,19 @@ import type { HomeEmotionLevel } from '../home.constants';
  *   - 每日多次打卡: 心理产品原则「允许多次改主意」, 不限制次数
  *   - 「今天」= 本地时区 0 点起, 用服务器本地时区简化 (后续可改 timezone 入参)
  *   - 微干预 id 透明化: 选了 crisis 自动推「2 分钟平稳」, 把干预 id 一起记下
+ *
+ * V2026-11-15 治本 (TD-20 · C2 第四批仓储端口化 · P-DEBT-11 / L-1):
+ *   仓储依赖改为端口 (`MOOD_LOG_REPOSITORY`) —— 实体工厂 / 保存 / 两个时间窗
+ *   查询 / 物理删除的口径下沉 data/ 实现; service 只保留业务语义 (档位校验 /
+ *   日期窗口换算 / level 映射 / DTO 转换).
  */
 @Injectable()
 export class HomeMoodLogService {
   private readonly logger = new Logger(HomeMoodLogService.name);
 
   constructor(
-    @InjectRepository(MoodLog)
-    private readonly repo: Repository<MoodLog>,
+    @Inject(MOOD_LOG_REPOSITORY)
+    private readonly repo: MoodLogRepository,
   ) {}
 
   /**
@@ -37,18 +40,21 @@ export class HomeMoodLogService {
    *   - note 限长 280 字 (DTO 校验过)
    *   - 多次打卡: 用户改主意 → 新增一条, 历史保留
    */
-  async logMood(uid: string, level: HomeEmotionLevel, note: string | null, triggeredMicroInterventionId: string | null): Promise<MoodLog> {
+  async logMood(
+    uid: string,
+    level: HomeEmotionLevel,
+    note: string | null,
+    triggeredMicroInterventionId: string | null,
+  ): Promise<MoodLogRow> {
     if (!['great', 'okay', 'low', 'crisis'].includes(level)) {
       throw new BizException(BizCode.InvalidParameter, `未知的情绪档位: ${level}`);
     }
-    const saved = await this.repo.save(
-      this.repo.create({
-        uid,
-        level,
-        note,
-        triggeredMicroInterventionId,
-      }),
-    );
+    const saved = await this.repo.create({
+      uid,
+      level,
+      note,
+      triggeredMicroInterventionId,
+    });
     this.logger.log(`logMood uid=${uid} level=${level} intervention=${triggeredMicroInterventionId ?? 'none'}`);
     return saved;
   }
@@ -59,14 +65,11 @@ export class HomeMoodLogService {
    * 「今天」用服务端本地时间 0 点划分 (避免 UTC 跨天误差).
    * V3 升级: 接 timezone 入参, 让客户端传时区.
    *
-   * 大厂做法: 用 MoreThanOrEqual 走 SQL 比较, 不在内存二次过滤 (索引走得到).
+   * 大厂做法: 用 created_at 下界走 SQL 比较, 不在内存二次过滤 (索引走得到).
    */
-  async getTodayLatest(uid: string, now: Date = new Date()): Promise<MoodLog | null> {
+  async getTodayLatest(uid: string, now: Date = new Date()): Promise<MoodLogRow | null> {
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const row = await this.repo.findOne({
-      where: { uid, createdAt: MoreThanOrEqual(startOfDay) },
-      order: { createdAt: 'DESC' },
-    });
+    const row = await this.repo.findLatestSince(uid, startOfDay);
     return row ?? null;
   }
 
@@ -76,17 +79,14 @@ export class HomeMoodLogService {
   async getRecentTrend(uid: string, days = 7): Promise<HomeEmotionLevel[]> {
     const start = new Date();
     start.setDate(start.getDate() - days);
-    const rows = await this.repo.find({
-      where: { uid, createdAt: MoreThanOrEqual(start) },
-      order: { createdAt: 'ASC' },
-    });
+    const rows = await this.repo.findRecentSince(uid, start);
     return rows.map((r) => r.level);
   }
 
   /**
    * 转 DTO — 给 HomeOverviewDto 用的字段.
    */
-  toOverviewFields(log: MoodLog | null): {
+  toOverviewFields(log: MoodLogRow | null): {
     emotionLevel: HomeEmotionLevel | null;
     emotionNote: string | null;
     emotionLoggedAt: string | null;
@@ -108,7 +108,7 @@ export class HomeMoodLogService {
    * V3: 接 users.deleted_at cascade 兜底.
    */
   async clearForUser(uid: string): Promise<{ deletedCount: number }> {
-    const result = await this.repo.delete({ uid });
-    return { deletedCount: result.affected ?? 0 };
+    const deletedCount = await this.repo.deleteByUser(uid);
+    return { deletedCount };
   }
 }

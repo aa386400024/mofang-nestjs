@@ -1,5 +1,5 @@
-import { BadgeId } from '../enums/badge-id.enum';
-import { FragmentType } from '../enums/fragment-type.enum';
+import { BadgeId } from '../enums/badge-id.enum.js';
+import { FragmentType } from '../enums/fragment-type.enum.js';
 
 /**
  * 徽章解锁规则 — 纯函数, 跟数据层解耦.

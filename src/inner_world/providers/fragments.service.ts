@@ -2,16 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
-import { ReconciliationService } from './reconciliation.service';
+import { ReconciliationService } from './reconciliation.service.js';
 import {
   FragmentBalanceItemDto,
   FragmentLogDto,
   GrantFragmentsDto,
   GrantFragmentsResponseDto,
   ListFragmentLogsQueryDto,
-} from '../dto/fragment.dto';
-import { FragmentLog } from '../entities/fragment-log.entity';
-import { FRAGMENT_TYPE_VALUES, FragmentSource, FragmentType } from '../enums/fragment-type.enum';
+} from '../dto/fragment.dto.js';
+import { FragmentLog } from '../entities/fragment-log.entity.js';
+import { FRAGMENT_TYPE_VALUES, FragmentSource, FragmentType } from '../enums/fragment-type.enum.js';
 
 /**
  * 碎片业务服务 — V4.0 §3.2.

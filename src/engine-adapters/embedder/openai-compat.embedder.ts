@@ -26,8 +26,8 @@
 
 import { Logger } from '@nestjs/common';
 
-import type { Embedder } from '../../engine-core';
-import { LlmRouterService } from '../../llm/registry/llm-router.service';
+import type { Embedder } from '../../engine-core/index.js';
+import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
 
 /** 适配器构造选项. */
 export interface OpenAICompatEmbedderOptions {

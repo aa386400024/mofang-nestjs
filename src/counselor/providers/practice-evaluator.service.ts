@@ -28,14 +28,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { CounselorLlmJsonClient } from './llm-json.client';
-import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config';
+import { CounselorLlmJsonClient } from './llm-json.client.js';
+import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config.js';
 import {
   buildPracticeCustomScenarioUserPrompt,
   PRACTICE_CUSTOM_SCENARIO_SCHEMA_DESCRIPTION,
   PRACTICE_CUSTOM_SCENARIO_SYSTEM_PROMPT,
-} from '../config/practice-custom-scenario-prompts';
-import { engineOfMode, labelOfMode } from '../config/practice-display-meta';
+} from '../config/practice-custom-scenario-prompts.js';
+import { engineOfMode, labelOfMode } from '../config/practice-display-meta.js';
 import {
   buildPracticeEvaluationUserPrompt,
   buildPracticeScenarioGenerationPrompt,
@@ -46,7 +46,7 @@ import {
   PRACTICE_SCENARIO_GENERATION_SYSTEM_PROMPT,
   PRACTICE_VISITOR_REACTION_SCHEMA_DESCRIPTION,
   PRACTICE_VISITOR_REACTION_SYSTEM_PROMPT,
-} from '../config/practice-evaluation-prompts';
+} from '../config/practice-evaluation-prompts.js';
 import {
   isPracticeLlmEvaluationEnabled,
   isPracticeLlmGenerationEnabled,
@@ -54,7 +54,7 @@ import {
   PRACTICE_LLM_GENERATION_ENV_KEY,
   SPEECH_RATE_TARGET_HIGH,
   SPEECH_RATE_TARGET_LOW,
-} from '../config/practice-evaluation.config';
+} from '../config/practice-evaluation.config.js';
 import {
   validateCustomScenarioPayload,
   validateGeneratedScenarioPayload,
@@ -65,16 +65,16 @@ import {
   type PracticeScenarioRubric,
   type PracticeScenarioView,
   type PracticeTurn,
-} from '../domain/practice/practice.types';
-import { ZERO_PRESSURE_FORBIDDEN_TOKENS } from '../domain/zero-pressure.guard';
-import { PRACTICE_DEFENSE_STYLE_LABELS } from '../enums/practice-defense-style.enum';
-import { PRACTICE_DIFFICULTY_LABELS } from '../enums/practice-difficulty.enum';
-import { PRACTICE_EMOTION_INTENSITY_LABELS } from '../enums/practice-emotion-intensity.enum';
-import { PracticeEngine } from '../enums/practice-engine.enum';
-import { PracticeFeedbackSource } from '../enums/practice-feedback-source.enum';
-import { PracticeFeedbackTone } from '../enums/practice-feedback-tone.enum';
-import { PracticeRubricCheck } from '../enums/practice-rubric-check.enum';
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
+} from '../domain/practice/practice.types.js';
+import { ZERO_PRESSURE_FORBIDDEN_TOKENS } from '../domain/zero-pressure.guard.js';
+import { PRACTICE_DEFENSE_STYLE_LABELS } from '../enums/practice-defense-style.enum.js';
+import { PRACTICE_DIFFICULTY_LABELS } from '../enums/practice-difficulty.enum.js';
+import { PRACTICE_EMOTION_INTENSITY_LABELS } from '../enums/practice-emotion-intensity.enum.js';
+import { PracticeEngine } from '../enums/practice-engine.enum.js';
+import { PracticeFeedbackSource } from '../enums/practice-feedback-source.enum.js';
+import { PracticeFeedbackTone } from '../enums/practice-feedback-tone.enum.js';
+import { PracticeRubricCheck } from '../enums/practice-rubric-check.enum.js';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
 
 /**
  * 评判入参.

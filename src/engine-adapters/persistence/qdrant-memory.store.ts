@@ -24,6 +24,9 @@
 //       也让"以后换向量库"只需换这一个窄面, 而不是整个 service.
 //     - **不自己写召回判定** —— 判定统一走内核的 evaluateRecallCandidate (内存版同款),
 //       杜绝"内存版按原始重要度过滤 / Qdrant 版按衰减后过滤"这种换实现即漂移.
+//     - **不自己写分数夹取 (WP62)** —— 本文件原先自带一个 clamp01, 语义是"NaN 透传",
+//       与内核那份"NaN → 0"不同: 一条 NaN score 会让下面的 ranked.sort 比较恒为 false,
+//       静默把该条留在原位 (排序结果不可预期). 现在直接 import 内核那份.
 //     - **不用文本子串过滤** —— 语义检索由向量负责; 再加一层子串过滤等于把
 //       "同义词也算相关"的语义检索降级成关键词匹配.
 //     - **不物理删除被取代的记忆** (M4) —— 只在 payload 上标 supersededBy.
@@ -40,8 +43,19 @@
 //
 //   V2026-10-30 治本 (WP12 · §1.3 配置化):
 //     衰减半衰期与访客范围召回阈值改为**可配置** (见 persistence/memory-config.ts).
-//     本文件在 visitor 范围用配置值算"有效重要度"(门槛判定 + 排序都用它),
-//     内核的共享判定仍原样跑 (内核常量本轮不改, 见 memory-config.ts 顶部说明).
+//     WP12 当时的做法是"双层判定": 内核共享判定照原样跑 (内核卡一道), B 层再用配置值
+//     算一遍有效重要度**追加**一道门槛 —— 两道取交集, 意味着配置值只能**收紧**
+//     (配成比内核地板更松的值不生效), 且两份判定逻辑迟早漂移.
+//
+//   V2026-11-04 治本 (WP59 · 消除双层判定):
+//     判定口径收进内核**一份**: `evaluateRecallCandidate` 加可选 `RecallPolicyOptions`
+//     (半衰期 + 阈值), 本文件把 `this.config` 的值**直接传进去**, 删掉 B 层第二道门槛.
+//     带来的三点:
+//       ① 配置值直接生效, 不再"取交集" —— 配成比内核地板更松的值也放行;
+//       ② 与内存版共用同一份判定 (内存版同期加了 `recallPolicy` 端口) ——
+//          开发期 (内存版) 与生产 (Qdrant 版) 召回结果一致;
+//       ③ 排序口径同步收口: 有效重要度由内核按配置半衰期算出, 本文件直接取用,
+//          不再自己复算一遍 (复算 = 两份公式迟早漂移).
 //     默认配置下 (30 天 / 0.1) 与现状**逐字一致**.
 //
 //   如何验证:
@@ -51,12 +65,12 @@
 
 import { Logger } from '@nestjs/common';
 
-import { DEFAULT_MEMORY_CONFIG, type MemoryConfig } from './memory-config';
+import { DEFAULT_MEMORY_CONFIG, toRecallPolicyOptions, type MemoryConfig } from './memory-config.js';
 import {
   applyConflictResolution,
   assertValidMemoryEntry,
   assertValidMemoryRecallQuery,
-  effectiveImportance,
+  clamp01,
   evaluateRecallCandidate,
   MemorySource,
   MemoryTier,
@@ -66,8 +80,7 @@ import {
   type MemoryHit,
   type MemoryRecallQuery,
   type MemoryStore,
-} from '../../engine-core';
-import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store';
+} from '../../engine-core/index.js';
 
 /**
  * 长时记忆 collection 名.
@@ -125,8 +138,20 @@ export interface QdrantMemoryStoreOptions {
   readonly qdrant: QdrantMemoryClient;
   /** 向量化端口 (内核 Embedder 接口). */
   readonly embedder: Embedder;
-  /** 会话级回落仓. 省略 = new InMemoryMemoryStore(). */
-  readonly fallback?: MemoryStore;
+  /**
+   * 会话级回落仓 (**必填**).
+   *
+   * ⚠️ **V2026-11-05 治本 (WP45 · P3-8)**: 原来这里是 `fallback?: MemoryStore`,
+   *   实现内部默认 `new InMemoryMemoryStore()` —— 也就是**"选实现"做在了实现里**:
+   *   同一个适配器, 传不传 fallback 会得到**两种不同的回落仓**, 而"该用哪个实现"
+   *   本该由装配层决定 (装配层一直都在显式传).
+   *   隐患: 哪天装配层漏传了, 不会报错, 只会**静默换一个实现** —— 降级路径的召回
+   *   结果于是跟正常路径不一致 (最难查的那种漂移).
+   *   现在**必填**: 装配层 (`engine.providers.ts`) 选实现, 本文件只管用.
+   *   副作用 (好的那种): 本文件不再 import `engine-core/in-memory/` 的具体实现 ——
+   *   适配层不再依赖内核的**实现类**, 只依赖内核的**端口**.
+   */
+  readonly fallback: MemoryStore;
   /** collection 名. 省略 = visitor_long_memory. */
   readonly collection?: string;
   /** 条目未显式指定 ttlMs 时的默认存活时长 (ms). 省略 = 永不过期. */
@@ -177,13 +202,6 @@ function readSource(value: unknown): MemorySource | null {
   return null;
 }
 
-/** 夹到 [0,1]. */
-function clamp01(value: number): number {
-  if (value < 0) return 0;
-  if (value > 1) return 1;
-  return value;
-}
-
 /**
  * Qdrant 长时记忆仓储.
  */
@@ -207,11 +225,14 @@ export class QdrantMemoryStore implements MemoryStore {
   constructor(options: QdrantMemoryStoreOptions) {
     this.qdrant = options.qdrant;
     this.embedder = options.embedder;
-    this.fallback = options.fallback ?? new InMemoryMemoryStore();
     this.collection = options.collection ?? VISITOR_LONG_MEMORY_COLLECTION;
     this.defaultTtlMs = options.defaultTtlMs ?? null;
     this.now = options.now ?? Date.now;
     this.config = options.config ?? DEFAULT_MEMORY_CONFIG;
+    // WP59: 内置回落仓喂**同一份**召回策略 —— 降级路径的召回结果必须与正常路径一致,
+    //   否则"向量库抖动一下"就会换一套召回结果 (最难查的那种漂移).
+    // ⚠️ 回落仓本身由**装配层**构造并传入 (WP45 · P3-8): 本实现不选实现.
+    this.fallback = options.fallback;
   }
 
   async remember(entry: MemoryEntry): Promise<void> {
@@ -279,23 +300,22 @@ export class QdrantMemoryStore implements MemoryStore {
     }
 
     const now = this.now();
+    // WP59: 配置值 → 内核召回策略端口 (映射只留 memory-config.ts 一处).
+    const recallPolicy = toRecallPolicyOptions(this.config);
     const ranked: { hit: MemoryHit; effectiveImportance: number }[] = [];
     for (const point of points) {
       const decoded = this.toEntry(point.id, point.payload);
       // payload 损坏 → 跳过该点, 不让一条脏数据炸掉整次召回.
       if (!decoded) continue;
-      const evaluation = evaluateRecallCandidate(decoded.entry, decoded.expiresAt, query, now);
+      // WP59: 判定口径只有一份 —— 配置值直接喂给内核判定 (不再"内核卡一道 + B 层再卡一道").
+      //   内核按配置的半衰期算有效重要度, 再按配置的阈值卡一道; 排序也用内核算出的同一个值.
+      //   默认配置下 (30 天 / 0.1) 与改动前**逐字一致**.
+      const evaluation = evaluateRecallCandidate(decoded.entry, decoded.expiresAt, query, now, recallPolicy);
       if (!evaluation.accepted) continue;
-
-      // WP12: 配置化的有效重要度 (半衰期来自 env).
-      //   默认配置下 (30 天) 与内核口径**完全一致**, 这里等于不做任何改变;
-      //   env 调过之后, 门槛判定与排序都以配置口径为准 (内核地板仍在, 见 memory-config.ts).
-      const configuredEffective = effectiveImportance(decoded.entry, now, this.config.decayHalfLifeMs);
-      if (configuredEffective < this.config.recallThreshold) continue;
 
       ranked.push({
         hit: { entry: decoded.entry, score: clamp01(point.score) },
-        effectiveImportance: configuredEffective,
+        effectiveImportance: evaluation.effectiveImportance,
       });
     }
 

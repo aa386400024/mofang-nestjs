@@ -19,7 +19,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import type { CaseProfileEntryLayer } from '../domain/visitor-persona/visitor-persona.types';
+import type { CaseProfileEntryLayer } from '../domain/visitor-persona/visitor-persona.types.js';
 
 /**
  * 卷宗动态解锁档案条目.

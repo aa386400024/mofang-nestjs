@@ -1,1 +1,1 @@
-export * from './soft-delete.cron';
+export * from './soft-delete.cron.js';

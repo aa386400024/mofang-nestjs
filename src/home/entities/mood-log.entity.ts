@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-import type { HomeEmotionLevel } from '../home.constants';
+import type { HomeEmotionLevel } from '../home.constants.js';
 
 /**
  * 心塑首页情绪打卡 — 单次「你现在的感受更接近哪一个?」选择.

@@ -8,7 +8,7 @@
 
 import { Injectable } from '@nestjs/common';
 
-import { type CreateOrderDto, type MembershipOverviewDto, type OrderDto, type ProductDto } from '../dto/billing.dto';
+import { type CreateOrderDto, type MembershipOverviewDto, type OrderDto, type ProductDto } from '../dto/billing.dto.js';
 
 @Injectable()
 export class BillingService {

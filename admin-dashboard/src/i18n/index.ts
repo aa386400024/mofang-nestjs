@@ -10,6 +10,6 @@ export const i18n = createI18n({
 })
 
 export function setLang(lang: string) {
-  i18n.global.locale.value = lang
+  i18n.global.locale.value = lang as 'zh-CN' | 'en'
   localStorage.setItem('lang', lang)
 }

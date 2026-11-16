@@ -1,28 +1,28 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { CompanionBinding } from '../profile/entities/companion-binding.entity';
-import { CompanionRecord as ProfileCompanionRecord } from '../profile/entities/companion-record.entity';
-import { ProfileModule } from '../profile/profile.module';
-import { UserModule } from '../user/user.module';
+import { CompanionBinding } from '../profile/entities/companion-binding.entity.js';
+import { CompanionRecord as ProfileCompanionRecord } from '../profile/entities/companion-record.entity.js';
+import { ProfileModule } from '../profile/profile.module.js';
+import { UserModule } from '../user/user.module.js';
 
-import { CompanionTreeModule } from './companion-tree/companion-tree.module';
+import { CompanionTreeModule } from './companion-tree/companion-tree.module.js';
 
-import { AiGuideController } from './controllers/ai-guide.controller';
-import { CompanionPersonsController } from './controllers/companion-persons.controller';
-import { CompanionRecordsController } from './controllers/companion-records.controller';
-import { DualExerciseController } from './controllers/dual-exercise.controller';
-import { RehabController } from './controllers/rehab.controller';
-import { RelationsController } from './controllers/relations.controller';
-import { SoothingController } from './controllers/soothing.controller';
-import { SyncPracticeController } from './controllers/sync-practice.controller';
-import { DualPuzzleModule } from './dual-puzzle/dual-puzzle.module';
+import { AiGuideController } from './controllers/ai-guide.controller.js';
+import { CompanionPersonsController } from './controllers/companion-persons.controller.js';
+import { CompanionRecordsController } from './controllers/companion-records.controller.js';
+import { DualExerciseController } from './controllers/dual-exercise.controller.js';
+import { RehabController } from './controllers/rehab.controller.js';
+import { RelationsController } from './controllers/relations.controller.js';
+import { SoothingController } from './controllers/soothing.controller.js';
+import { SyncPracticeController } from './controllers/sync-practice.controller.js';
+import { DualPuzzleModule } from './dual-puzzle/dual-puzzle.module.js';
 
-import { DualExercise } from './entities/dual-exercise.entity';
-import { DualSession } from './entities/dual-session.entity';
-import { RehabItem } from './entities/rehab-item.entity';
-import { SoothingCard } from './entities/soothing-card.entity';
-import { SyncPractice } from './entities/sync-practice.entity';
+import { DualExercise } from './entities/dual-exercise.entity.js';
+import { DualSession } from './entities/dual-session.entity.js';
+import { RehabItem } from './entities/rehab-item.entity.js';
+import { SoothingCard } from './entities/soothing-card.entity.js';
+import { SyncPractice } from './entities/sync-practice.entity.js';
 
 import {
   AiGuideService,
@@ -33,7 +33,7 @@ import {
   RelationsService,
   SoothingService,
   SyncPracticeService,
-} from './providers/companion.service';
+} from './providers/companion.service.js';
 
 /**
  * Companion 模块 — 心塑「陪伴者端」Tab2 陪伴 V2.0 (大厂企业级).

@@ -11,12 +11,12 @@
 //     2. POST /v1/chat/completions { provider: 'custom' } 流式响应正常.
 //     3. 删除时 ProviderRegistry.unregister('custom') 后路由降级到默认 provider.
 
-import { OpenAICompatibleChatProvider, type OpenAICompatibleConfig } from '../common/base/openai-compatible-chat.provider';
+import { OpenAICompatibleChatProvider, type OpenAICompatibleConfig } from '../common/base/openai-compatible-chat.provider.js';
 import {
   OpenAICompatibleEmbeddingProvider,
   type OpenAICompatibleEmbeddingConfig,
-} from '../common/base/openai-compatible-embedding.provider';
-import { AIProviderId } from '../common/enums/llm.enums';
+} from '../common/base/openai-compatible-embedding.provider.js';
+import { AIProviderId } from '../common/enums/llm.enums.js';
 
 /**
  * Custom Chat Provider — 工厂函数, 每次构造传入用户配置.

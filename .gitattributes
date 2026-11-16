@@ -4,3 +4,9 @@
 # JS and TS files must always use LF for tools to work
 *.js eol=lf
 *.ts eol=lf
+
+# Markdown and JSON must always use LF for cross-platform tooling
+*.md eol=lf
+*.json eol=lf
+# Append-only event journal: LF keeps line offsets and hash-chain review stable
+*.jsonl eol=lf

@@ -1,0 +1,1813 @@
+{
+  "generatedAt": "2026-11-16T14:25:39.922Z",
+  "mode": {
+    "autoLoopEnabled": false,
+    "reworkLimit": 2
+  },
+  "counts": {
+    "ready": 0,
+    "submitted": 0,
+    "working": 0,
+    "completed": 0,
+    "failed": 0,
+    "canceled": 0,
+    "rejected": 0,
+    "input-required": 0,
+    "deadLetter": 0
+  },
+  "tasks": [],
+  "deadLetters": [],
+  "reworkProposals": [],
+  "pendingApprovals": [],
+  "improvements": {
+    "total": 34,
+    "activeCount": 15,
+    "byStatus": {
+      "candidate": 14,
+      "queued": 0,
+      "accepted": 1,
+      "done": 19,
+      "wontfix": 0
+    },
+    "byType": {
+      "gap": 21,
+      "guardrail": 1,
+      "tool": 0,
+      "standard": 3,
+      "performance": 0,
+      "tech-debt": 9
+    },
+    "bySource": {
+      "implementation": 18,
+      "acceptance": 8,
+      "rework": 0,
+      "dead-letter": 0,
+      "review": 8
+    },
+    "items": [
+      {
+        "improvementId": "IM-001",
+        "title": "台账抽取通道仅识别快照遗留项，未直接解析回执文件正文",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": null,
+        "evidence": ["scripts/orchestration/improvement-log.mjs#extractFromSnapshot"],
+        "impact": "回执正文中未进入快照遗留区的缺口不会被台账捕获，存在漏登记风险",
+        "suggestion": "抽取通道增加回执文件正文解析，与快照遗留项双通道合并去重",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T19:39:09.747Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "回执正文解析通道 extractFromReceiptDoc 落地，与快照抽取双通道合并去重"
+        }
+      },
+      {
+        "improvementId": "IM-002",
+        "title": "typeorm-model-generator 废弃工具链及其传递依赖存在未修复漏洞",
+        "status": "accepted",
+        "source": "review",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": null,
+        "evidence": ["pnpm audit: . > typeorm-model-generator@0.4.6-no-engines > typeorm@0.2.45 / mysql2@2.3.3 / sqlite3@5.1.7"],
+        "impact": "该 dev 工具上游停更，拖入老 typeorm/mysql2/sqlite3/tar/tmp，贡献全部 4 条 critical 及多数 high/moderate 告警；仅开发期反向生成使用，不进生产运行时",
+        "suggestion": "评估移除 typeorm-model-generator、bin/entity.ts、NamingStrategy.cjs 及样品 entity；移除前确认无 DB→装饰器反向生成需求",
+        "historyCount": 3,
+        "lastTransition": {
+          "at": "2026-11-15T14:08:05.685Z",
+          "by": "orchestrator",
+          "to": "accepted",
+          "note": "实现落地：移除 devDep typeorm-model-generator、bin/entity.ts、bin/NamingStrategy.cjs、entity:load 脚本；typecheck/lint/oxlint/21 例绿；待提交归档转 done"
+        }
+      },
+      {
+        "improvementId": "IM-003",
+        "title": "运行时传递依赖 uuid/glob/minimatch 存在版本告警，须随主依赖升级治理",
+        "status": "candidate",
+        "source": "review",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": null,
+        "evidence": [
+          "pnpm audit: typeorm@1.1.2>mssql>tedious>@azure/ms-rest-js>uuid@8.3.2; @sentry/rimraf>glob@13.0.6; ts-morph/@sentry>minimatch@10.2.6"
+        ],
+        "impact": "间接依赖告警，非运行时直连路径；typeorm 的 mssql/tedious 为可选方言打包，本仓实际使用 mysql2",
+        "suggestion": "随 typeorm/sentry/rimraf/ts-morph 主依赖升级带动传递版本；按 P-DEBT-4 纪律，版本变动须附全量绿跑与墙钟数字",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T13:43:09.887Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-004",
+        "title": "任务交付归档后台账状态未自动回填，快照仍显示 backlog / 未验收",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": null,
+        "evidence": [
+          "task-state-index.json: AF-005~008 交付后仍在 tasks 且 status=backlog",
+          "taskSheet 指针指向已归档的 pending 路径（断链）"
+        ],
+        "impact": "任务实际已验收归档，但看板活跃列表仍显示待立项/未验收；台账状态与交付记录脱节，需人工回填，闭环未自动化",
+        "suggestion": "交付包或验收落地后由编排链路自动把任务单元迁移到 archivedTasks 并写 status=completed 与工件指针；或 CLI 提供归档命令在交付记录落盘后回填索引",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T18:28:30.007Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "AF-015回填机制已生效;索引与快照均显示AF-005~008completed"
+        }
+      },
+      {
+        "improvementId": "IM-005",
+        "title": "交接契约校验枚举与 taskId 模式与框架 ajv schema 双源镜像",
+        "status": "done",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-009",
+        "evidence": [
+          "handover-contract.mjs 手写 TASK_TYPES/TASK_STATUSES/TASK_ID_PATTERN",
+          "validator.mjs 走框架 task-sheet.schema.json",
+          "framework 1.4.0 commit 016d6b8: schemas/contract-enums.json 枚举/模式数据真相源",
+          "framework task-sheet/task-state-index schema 内部 $defs 收敛 taskType/taskStatus/taskId"
+        ],
+        "impact": "框架枚举或模式演进时两处需同步 存在口径漂移风险",
+        "suggestion": "交接件校验复用框架 schema 同步封装消除手写镜像；框架侧真相源已就位(1.4.0)；剩余 adapter 接线：handover-contract.mjs 改读 contract-enums.json 消除手写 TASK_TYPES/TASK_STATUSES/TASK_ID_PATTERN 镜像（另批）",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T01:57:13.902Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "镜像消除:五组枚举与 taskId 模式改读 vendored contract-enums.json;119 用例绿,validate 5/5;本仓投影由护栏单测对账"
+        }
+      },
+      {
+        "improvementId": "IM-006",
+        "title": "协商轮 review 交接件结构尚未进框架仓 schema 与模板",
+        "status": "done",
+        "source": "implementation",
+        "type": "standard",
+        "layer": "framework",
+        "relatedTaskId": "AF-009",
+        "evidence": ["autonomous-team-design.md 协商轮定义", "handover-contract.mjs review 字段为本仓适配层定义"],
+        "impact": "review 结构目前仅本仓定义 跨代理复用需框架层固化",
+        "suggestion": "P1 评估将 review 交接件字段组上提框架仓 schema 与模板",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T01:27:47.957Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "框架1.4.0落地review-handover标准件(commit 016d6b8);本仓adapter切读框架schema另批"
+        }
+      },
+      {
+        "improvementId": "IM-007",
+        "title": "回执幂等次键以交付记录路径代替独立工件版本号",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-010",
+        "evidence": ["dispatch.mjs receiptFingerprint", "framework reliability.md §2"],
+        "impact": "同一 taskId 若交付记录路径不变而内容被覆盖，指纹无法区分版本；当前交接件不可变口径下风险可控",
+        "suggestion": "后续在任务条目或交接件补独立工件版本号（revision/version），指纹以 taskId+version 为准",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T17:29:33.755Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-008",
+        "title": "派发目标角色未按 Agent Card 能力声明匹配路由",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-010",
+        "evidence": ["dispatch.mjs targetRole 取 agentRole 兜底 executor", "framework autonomous-loop.md §100"],
+        "impact": "多执行代理并存时无法按能力与可用性路由；当前单 executor 角色无实际影响",
+        "suggestion": "AF-013 演练阶段或 P1 接入 agent card 能力声明匹配，按 skills/tools/availability 选择目标代理",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T18:52:11.929Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-016 编排闭环护栏落地"
+        }
+      },
+      {
+        "improvementId": "IM-009",
+        "title": "验收残留比对缺 git diff 变更清单采集器，V7 当前 skip",
+        "status": "done",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-011",
+        "evidence": ["acceptance-runner.mjs checkResidual opts.changedFiles scope-mutex.mjs detectResidualFiles"],
+        "impact": "纯函数模块无 git IO；变更清单须由调用方采集传入，未接入采集器前 V7 残留护栏记 skip，清单外文件不会被机读拦截",
+        "suggestion": "后续在调度/验收入口采集 git diff --name-only（相对仓根）传入 runAcceptance opts.changedFiles，使 V7 残留比对生效",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T18:52:12.815Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-016 编排闭环护栏落地"
+        }
+      },
+      {
+        "improvementId": "IM-010",
+        "title": "任务 scope 未与 Agent Card resources 角色资源域做越域校验",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-011",
+        "evidence": ["scope-mutex.mjs findScopeConflicts 仅做任务间互斥 agent-cards resources 字段未投影进校验"],
+        "impact": "本单只拦截在办任务间文件域冲突；任务 scope 越出角色声明资源域（如 executor 写编排目录）暂无前置机读校验",
+        "suggestion": "P1 接入 Agent Card resources 投影，派发前校验任务 scope 落在目标角色资源域内；资源域真相源保持角色卡与框架 roles.md",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T18:52:13.539Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-016 编排闭环护栏落地"
+        }
+      },
+      {
+        "improvementId": "IM-011",
+        "title": "scope 通配路径仅降级目录前缀，未做真实目录枚举 glob 展开",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-011",
+        "evidence": ["scope-mutex.mjs normalizePath wildcard 截断 纯函数无 fs 列目录能力"],
+        "impact": "src/**/*.ts 类通配按 src/ 目录前缀近似判定；跨层通配与单段 * 的精确覆盖口径可能偏宽或偏窄",
+        "suggestion": "P2 并行文件锁升级时引入只读路径匹配器（读目录或框架 glob 工具），在纯函数之外的采集层做展开",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T17:41:35.976Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-012",
+        "title": "squash 合并后的提交动作未自动化，脚本仅做 squash 暂存与删除端口",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-012",
+        "evidence": ["branch-workflow.mjs squashMerge 仅执行 git merge --squash cli.mjs cmdBranch merge 注明提交归编排者闸门"],
+        "impact": "合并链路停在暂存阶段；提交标题（conventional + taskId）与合并后远端分支清理需编排者手工闭合，未形成自动 L1 合并闭环",
+        "suggestion": "L1 自动化阶段在闸门全绿后补提交动作（标题带 taskId），并在合并成功后串联本地/远端源分支清理",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T17:49:21.140Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-013",
+        "title": "分支巡检未判定未合并分支是否落后 integrate（rebase 状态）",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-012",
+        "evidence": ["branch-workflow.mjs classifyBranches 仅按 merged/ageDays 分类 cli.mjs collectBranches 未采集 ahead/behind"],
+        "impact": "未合并分支可能已落后基线但巡检只标注超期天数，无法识别需先 rebase 的陈旧分支",
+        "suggestion": "巡检采集 git status --branch ahead/behind 或 merge-base 差量，未合并且落后基线的分支单独标注待 rebase",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T18:52:14.152Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-016 编排闭环护栏落地"
+        }
+      },
+      {
+        "improvementId": "IM-014",
+        "title": "通道层重试规则与失败终态未锚定 framework reliability §4（各自立法）",
+        "status": "done",
+        "source": "review",
+        "type": "gap",
+        "layer": "framework",
+        "relatedTaskId": "AF-013",
+        "evidence": ["docs/worklog/pending/archive/relay-response-af013-drill-20261116.md", "D-10", "D-2", "D-5", "D-7"],
+        "impact": "通道重试形态/数值（固定重试一次、无退避）与框架指数退避不一致；失败终态出口双轨（保持 ready+转人工 vs 直接 failed）；确定性缺陷在通道层缺终止规则。跨两仓文档修订时需统一权威终态出口与重试预算。",
+        "suggestion": "在 design memo §3 补 framework §4 锚点；先定权威终态出口（ready vs failed），再统一任务级重试预算与退避；确定性缺陷直落 failed 不重试。",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T18:28:30.680Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "已落地不可恢复四类终态任务级预算退避序列;备忘锚定§4"
+        }
+      },
+      {
+        "improvementId": "IM-015",
+        "title": "派发审计缺逐次重试留痕载体与失败定性三分法字段",
+        "status": "done",
+        "source": "review",
+        "type": "gap",
+        "layer": "framework",
+        "relatedTaskId": "AF-013",
+        "evidence": ["docs/worklog/pending/archive/relay-response-af013-drill-20261116.md", "D-1", "D-3"],
+        "impact": "审计只留尝试次数聚合值，丢失逐次尝试的失败原因/所在层/退避时长，无法复原重试链；通道失败未纳入确定性/偶发/既有债定性三分法，框架要求的基线分栏在通道侧无载体。",
+        "suggestion": "审计记录扩为逐次尝试条目（层、原因、退避、结果）；任务/通道失败补定性字段与既有债-本次改动分栏；通道演练基线来源另立只读核对单确认。",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T18:28:45.355Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "已落地attempts逐次留痕定性三分法基线分栏;审计校验枚举"
+        }
+      },
+      {
+        "improvementId": "IM-016",
+        "title": "conventions 与回执模板仍保留旧「不自动 commit/push」口径，未对齐 §6.1 分层",
+        "status": "done",
+        "source": "review",
+        "type": "standard",
+        "layer": "adapter",
+        "relatedTaskId": "AF-014",
+        "evidence": ["docs/team/conventions.md#132", "docs/team/agent-orchestration/relay-receipt-template.md#68"],
+        "impact": "两处活规范仍写「提交推送等用户指令」，与 README/角色卡/模板已落地的 L1–L3 自动 + L4 冻结口径并存，消费方可能读到旧口径造成边界漂移",
+        "suggestion": "另开规范同步单：conventions §1.4 提交纪律与回执模板 commit 草稿条目改为引用设计备忘 §6.1 分层口径；executor 不提交口径保留，L1–L3 自动前置条件与 L4 冻结清单指向 §6.1",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-15T18:28:46.369Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "conventions§132与回执模板§68已对齐§6.1分层口径"
+        }
+      },
+      {
+        "improvementId": "IM-017",
+        "title": "熔断阈值参数化与通道独立计数预留(P2)",
+        "status": "candidate",
+        "source": "review",
+        "type": "guardrail",
+        "layer": "framework",
+        "relatedTaskId": "AF-015",
+        "evidence": [
+          "reliability.md§5;design-memo§3.5",
+          "framework 1.4.0 commit 016d6b8: reliability.md §5.1 熔断扩展位参数与通用计数口径"
+        ],
+        "impact": "框架§5熔断/死信为本版本预留位;通道侧不独立计数;接入通用阈值参数化归P2；框架侧扩展位参数语义与计数口径已固化(§5.1)；阈值数值与计数实现仍归适配层 P2",
+        "suggestion": "P2复用框架熔断扩展位,落地连续失败阈值与快速失败事件;不另立通道独立熔断",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T18:29:06.350Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-018",
+        "title": "L3合并接远端CI状态门禁(无gh/token,P2)",
+        "status": "candidate",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-015",
+        "evidence": ["design-memo§6.2"],
+        "impact": "本机无gh CLI与GITHUB_TOKEN,CI状态本机不可读;当前以本地等价闸门替代远端CI门禁,属过渡方案",
+        "suggestion": "接入token/gh后改为以CI状态作为L3自动合并门禁;过渡口径标注目标态不固化为永久设计",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T18:29:06.582Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-019",
+        "title": "development分支退役执行待人工拍板",
+        "status": "done",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-015",
+        "evidence": ["design-memo§4.4"],
+        "impact": "退役需删除本地与远端development分支;高风险不可逆动作,须人工确认git-diff为空后执行",
+        "suggestion": "人工拍板后按§4.4流程复核integrate..development为空再删除;本批不执行分支删除",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T13:24:11.061Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "已删除本地与远端 development；CI 触发收敛 master/integrate"
+        }
+      },
+      {
+        "improvementId": "IM-020",
+        "title": "12 条差异 / 缺口需在两仓文档修订时消化（备忘 §3 + framework reliability.md §4）；本单不就地修订（outOfScope）。",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": ["receipt:relay-response-af013-drill-20261116.md", "backlogItem"],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T19:38:37.044Z",
+          "by": "receipt-extract",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-021",
+        "title": "D-11 属备忘自身字段不自洽，可在下次改备忘 §3.5 时一并修。",
+        "status": "done",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": ["receipt:relay-response-af013-drill-20261116.md", "backlogItem"],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T00:56:38.287Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "备忘 §3.5 基础审计字段清单补顶层 reason（失败原因），与 dispatch-channel.mjs buildDispatchAudit 顶层 reason 字段对齐；baseline 分栏 legacyDebt/changeIntroduced 已由 AF-015 落地（§3.5 行 87），无需再改；纯文档修正，零代码改动。"
+        }
+      },
+      {
+        "improvementId": "IM-022",
+        "title": "工作区存在未纳入版本控制的 scripts/orchestration/dispatch-channel.mjs —— **本单未审读、不对其作任何口径结论**；若其已实现重试逻辑，D-2 / D-5 / D-7 可能已有代码侧对应，需另开只读核对单确认。",
+        "status": "done",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": ["receipt:relay-response-af013-drill-20261116.md", "backlogItem"],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T00:50:43.723Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "只读核对完成：dispatch-channel.mjs 现 git 已跟踪；规则层已对应 D-2 指数退避+任务级总预算、D-5 不可恢复 failed/可恢复 held-ready 双出口分流、D-7 确定性缺陷短路不重试，均有单测覆盖；resolveDispatchDecision/buildDispatchAudit/isIrrecoverable/nextBackoff 运行时接线未激活（CLI 仅接 canDispatch 队列互斥），接线项另登记 IM-028。"
+        }
+      },
+      {
+        "improvementId": "IM-023",
+        "title": "通道失败的权威终态出口以哪侧为准（ready vs failed）？§7「终态不重启」是否约束通道失败？",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": ["receipt:relay-response-af013-drill-20261116.md", "openQuestion"],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T19:38:37.045Z",
+          "by": "receipt-extract",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-024",
+        "title": "通道级重试总预算归谁定义（备忘 §3 自定义 vs framework §4 任务级）？降级路径切换是否计一次重试？",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": ["receipt:relay-response-af013-drill-20261116.md", "openQuestion"],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T19:38:37.045Z",
+          "by": "receipt-extract",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-025",
+        "title": "熔断阈值在通道侧复用通用熔断，还是独立计数？",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": ["receipt:relay-response-af013-drill-20261116.md", "openQuestion"],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T19:38:37.045Z",
+          "by": "receipt-extract",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-026",
+        "title": "framework §4.2 的失败定性三分法是否正式豁免通道层失败，还是另立通道定性？",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": ["receipt:relay-response-af013-drill-20261116.md", "openQuestion"],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T19:38:37.046Z",
+          "by": "receipt-extract",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-027",
+        "title": "通道演练的「可复核基线」具体取什么（稳定路径清单 / 当日成功率快照 / 两者）？",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": ["receipt:relay-response-af013-drill-20261116.md", "openQuestion"],
+        "impact": null,
+        "suggestion": null,
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-15T19:38:37.046Z",
+          "by": "receipt-extract",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-028",
+        "title": "派发决策链运行时接线：CLI/scheduler 接入 resolveDispatchDecision 与 buildDispatchAudit，审计结果映射回任务状态机",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": ["dispatch-channel.mjs#resolveDispatchDecision", "dispatch-channel.mjs#buildDispatchAudit", "cli.mjs:48"],
+        "impact": "决策/审计规则当前仅被单测引用；CLI 只接 canDispatch 队列互斥，运行时未跑任务级预算、指数退避、终态分流、失败定性与逐次留痕",
+        "suggestion": "派发流程接 resolveDispatchDecision 分流终态、buildDispatchAudit 落逐次留痕；held-ready/human-escalated 映射回 TASK_STATUSES；退避等待交 relay 层执行；依赖真实桌面通道激活，排 P2",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-16T00:50:34.173Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-029",
+        "title": "三处编排模块 taskId 校验正则手写镜像未收敛到共享契约投影",
+        "status": "done",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-009",
+        "evidence": ["branch-workflow.mjs", "acceptance-runner.mjs", "improvement-log.mjs 各自手写 taskId 校验正则"],
+        "impact": "taskId 模式演进时三处需同步,存在口径漂移风险",
+        "suggestion": "枚举与模式收口到 contract-enums.mjs 共享投影,各消费方统一导入",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T02:10:13.482Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "三处手写 taskId 正则镜像消除;122 用例绿,validate 5/5;共享模式护栏单测覆盖"
+        }
+      },
+      {
+        "improvementId": "IM-030",
+        "title": "review 交接件校验尚未切读框架 review-handover.schema.json(消费侧接线)",
+        "status": "done",
+        "source": "implementation",
+        "type": "standard",
+        "layer": "adapter",
+        "relatedTaskId": "AF-009",
+        "evidence": ["validator.mjs 仅覆盖 taskSheet/taskIndex/toolContract/agentCard;CLI validate 未扫 transport/reviews"],
+        "impact": "review 交接件结构只经本仓轻量校验,未受框架 schema 机读约束",
+        "suggestion": "validator 纳入 reviewHandover schema,CLI 扫 reviews 目录解包 payload 校验",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T02:10:14.590Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "review 交接件接入框架 schema 机读校验;框架样例通过/缺字段被拒用例覆盖;122 用例绿"
+        }
+      },
+      {
+        "improvementId": "IM-031",
+        "title": "CI 不校验跨仓契约，缺框架时 skipped 软通过",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-020",
+        "evidence": ["ci.yml 无 Contracts job; validator.mjs 缺框架返回 skipped; 当时 validate 7/7、单测对 skipped 容错"],
+        "impact": "CI 绿灯不等于 7 项契约真实通过，框架契约漂移无法在流水线拦截",
+        "suggestion": "固化框架 2.0.0 契约包，CI 设 ORCH_REQUIRE_FRAMEWORK=1 硬校验并断言缺框架 fail-fast",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T14:12:53.531Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-020 验收：代码、契约、测试与流水线已落地"
+        }
+      },
+      {
+        "improvementId": "IM-032",
+        "title": "集成到发布未闭环，无 tag/Release/GHCR/部署流水线",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-020",
+        "evidence": ["master 8ffb6a3 落后 integrate 84ed463; 无 tag; release.yml 不存在; deploy 仅本地交互脚本"],
+        "impact": "发布动作停在人工口头约定，镜像与部署不可复现，回滚缺少版本锚点",
+        "suggestion": "新增 workflow_dispatch Release：CI 同 SHA 绿灯门禁、master fast-forward、tag、GitHub Release、GHCR、可选 production deploy",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T14:12:55.135Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-020 验收：代码、契约、测试与流水线已落地"
+        }
+      },
+      {
+        "improvementId": "IM-033",
+        "title": "状态索引只有最终状态，缺事件溯源与可重建轨迹",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-020",
+        "evidence": ["task-state-index.json 36 条归档仅轻量指针; note 明确未启用 event sourcing; 无 journal"],
+        "impact": "只能查最终状态，不能重建每次迁移/审批/归档轨迹，索引手改不可检出",
+        "suggestion": "journal.jsonl 唯一写面 + 索引只读投影 + SHA-256 哈希链 + 幂等键 + 单写者锁 + 回填 36 条归档",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T14:12:56.700Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-020 验收：代码、契约、测试与流水线已落地"
+        }
+      },
+      {
+        "improvementId": "IM-034",
+        "title": "WP38 调试会话恢复用例在并发全量测试下 30s 超时（单独复跑 100ms 通过）",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": null,
+        "evidence": [
+          "并发跑 lint/typecheck 时 pnpm test 中 wp38-debug-session-resume.spec.ts ③ 超时 30013ms；单独复跑 10/10 通过、100ms；独占全量 3509 passed"
+        ],
+        "impact": "全量闸门在并发负载下会出现与本批改动无关的红灯，误导交付判断",
+        "suggestion": "为该用例增加显式 timeout 或降低全量 worker 并发，并在闸门记录中固定区分并发 flake",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-16T14:25:39.916Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      }
+    ]
+  },
+  "deliveryPacks": [
+    {
+      "fileName": "pack-20261115-225603.json",
+      "ref": "docs/team/agent-orchestration/delivery-packs/pack-20261115-225603.json",
+      "packageId": "PACK-20261115-225603",
+      "generatedAt": "2026-11-15T14:56:03.135Z",
+      "cycle": {
+        "startedAt": "2026-11-15T14:56:03.135Z",
+        "endedAt": "2026-11-15T14:56:03.135Z",
+        "mode": "human-in-the-loop",
+        "queueSize": 4,
+        "stopReason": "human-stop"
+      },
+      "counts": {
+        "passed": 0,
+        "conditionalPass": 0,
+        "rejected": 0,
+        "failed": 0,
+        "deadLettered": 0
+      },
+      "leftovers": {
+        "backlogItems": 0,
+        "openQuestions": 0,
+        "manualReviewList": 0
+      },
+      "deadLetters": 0,
+      "pendingApprovals": 0
+    }
+  ],
+  "agentCards": [
+    {
+      "agentId": "AGENT-EXEC-001",
+      "role": "executor",
+      "availability": "available",
+      "skills": ["implementation", "gate-evidence", "deviation-reporting", "self-test"],
+      "tools": ["workspace-read", "workspace-write", "gate-execution"],
+      "resources": ["src/", "test/", "docs/worklog/pending/（任务切片范围内）"],
+      "note": "执行 AI（MiniMax Code）；researcher / critic 角色当前未启用，需要调研或独立评审任务时再绑定。本角色不进入分支与提交链路：L1 任务分支提交由验收后的 orchestrator 完成（设计备忘 §6.1）。"
+    },
+    {
+      "agentId": "AGENT-ORCH-001",
+      "role": "orchestrator",
+      "availability": "available",
+      "skills": [
+        "queue-management",
+        "task-decomposition",
+        "claim-management",
+        "acceptance-organization",
+        "index-maintenance",
+        "evidence-review",
+        "improvement-tracking"
+      ],
+      "tools": [
+        "TOOL-STATE-STORE",
+        "TOOL-QUEUE-SCHEDULER",
+        "TOOL-ORCH-CLI",
+        "TOOL-IMPROVEMENT-LOG",
+        "TOOL-ACCEPTANCE-RUNNER",
+        "TOOL-DELIVERY-PACK"
+      ],
+      "resources": ["docs/worklog/pending/", "docs/worklog/completed/", "docs/team/agent-orchestration/", "scripts/orchestration/"],
+      "note": "主控 AI（Doubao）；兼任 reviewer。制衡：验收结论只能基于工件证据与抽跑复现，不引用执行侧「已通过」的自述；验收与执行由不同执行方承担，兼任时以证据复核隔离。发布分层：L1–L3 在前置条件满足下由本角色自动，L4 转 Human 批准（设计备忘 §6.1）。"
+    }
+  ],
+  "toolContracts": [
+    {
+      "toolId": "TOOL-ACCEPTANCE-RUNNER",
+      "category": "gate-execution",
+      "sideEffect": "read-only",
+      "allowedRoles": ["orchestrator", "reviewer"],
+      "description": "V1–V6 机读护栏：工件存在性与非空、指针可达、链接可达、编码、结构断言；输出三级结论与人工复核清单。"
+    },
+    {
+      "toolId": "TOOL-DELIVERY-PACK",
+      "category": "artifact-archive",
+      "sideEffect": "restricted-write",
+      "allowedRoles": ["orchestrator"],
+      "description": "汇总夜间交付包：验收结论、证据指针、死信任务、遗留项与待人工批准动作。"
+    },
+    {
+      "toolId": "TOOL-IMPROVEMENT-LOG",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "allowedRoles": ["orchestrator"],
+      "description": "候选改进台账：实现 / 验收 / 返修 / 死信复盘 / 评审发现的缺口与架构提升点结构化登记、去重、状态流转与汇总；抽取只产生候选，立项与终态须人工闸门流转。"
+    },
+    {
+      "toolId": "TOOL-ORCH-CLI",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "allowedRoles": ["orchestrator"],
+      "description": "编排工具链命令入口：status / run-once / snapshot / pack / config；不直接操作桌面 GUI，桌面派发与回执衔接由执行代理单元在调度间隙完成。"
+    },
+    {
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "allowedRoles": ["orchestrator"],
+      "description": "队列扫描、领单租约、超时释放、验收驱动状态迁移、返修提案与限次、死信隔离、队列快照生成。"
+    },
+    {
+      "toolId": "TOOL-STATE-STORE",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "allowedRoles": ["orchestrator"],
+      "description": "状态索引与附加运行态的原子读写、租约字段管理；store 抽象隔离，后续可替换为 DB 持久化。"
+    }
+  ],
+  "toolAudits": [
+    {
+      "auditId": "AUD-013",
+      "recordedAt": "2026-11-16T14:13:04.188Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-020",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-012",
+      "recordedAt": "2026-11-15T19:41:33.283Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-017",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-011",
+      "recordedAt": "2026-11-15T18:53:07.816Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-016",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-010",
+      "recordedAt": "2026-11-15T18:33:41.024Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-015",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-009",
+      "recordedAt": "2026-11-15T18:14:37.253Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-014",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-008",
+      "recordedAt": "2026-11-15T18:08:26.377Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-013",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-007",
+      "recordedAt": "2026-11-15T17:50:02.805Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-012",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-006",
+      "recordedAt": "2026-11-15T17:42:18.346Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-011",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-005",
+      "recordedAt": "2026-11-15T17:31:16.686Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-010",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-004",
+      "recordedAt": "2026-11-15T17:22:11.954Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-009",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-003",
+      "recordedAt": "2026-11-15T16:06:25.786Z",
+      "actorRef": "orchestrator",
+      "correlationId": "run-once",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-002",
+      "recordedAt": "2026-11-15T16:06:21.674Z",
+      "actorRef": "orchestrator",
+      "correlationId": "pack",
+      "toolId": "TOOL-DELIVERY-PACK",
+      "category": "artifact-archive",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": ["docs/team/agent-orchestration/delivery-packs/"]
+    },
+    {
+      "auditId": "AUD-001",
+      "recordedAt": "2026-11-15T15:09:17.483Z",
+      "actorRef": "orchestrator",
+      "correlationId": "snapshot",
+      "toolId": "TOOL-STATE-STORE",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": ["docs/team/agent-orchestration/task-state-index.json", "docs/team/agent-orchestration/orchestration-state.json"]
+    }
+  ],
+  "auditSummary": {
+    "total": 13,
+    "byResult": {
+      "allowed": 13,
+      "denied": 0
+    },
+    "byTool": {
+      "TOOL-STATE-STORE": 1,
+      "TOOL-DELIVERY-PACK": 1,
+      "TOOL-QUEUE-SCHEDULER": 11
+    },
+    "byActor": {
+      "orchestrator": 13
+    }
+  },
+  "protocolView": {
+    "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
+    "tasks": [],
+    "archivedTasks": [
+      {
+        "taskId": "TD-5",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-task-2026-11-13.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-implementation-2026-11-13.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-6",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-task-2026-11-13.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-implementation-2026-11-13.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-7",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td7-contract-drift-remediation-task-2026-11-13.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td7-contract-drift-remediation-implementation-2026-11-13.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-8",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-task-2026-11-13.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-implementation-2026-11-13.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-9",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td9-test-isolation-and-lint-hygiene-task-2026-11-13.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td9-test-isolation-and-lint-hygiene-implementation-2026-11-13.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-10",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td10-test-structure-debt-reduction-task-2026-11-13.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td10-test-structure-debt-reduction-implementation-2026-11-13.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-11",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-task-2026-11-14.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-implementation-2026-11-14.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-12",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-task-2026-11-14.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-implementation-2026-11-14.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-13",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-task-2026-11-14.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-implementation-2026-11-14.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-14",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td14-entity-typeorm-decoupling-assessment-task-2026-11-14.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td14-entity-typeorm-decoupling-assessment-implementation-2026-11-14.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-15",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td15-enum-extraction-cplus-task-2026-11-14.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td15-enum-extraction-cplus-implementation-2026-11-14.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-16",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td16-life-map-port-pilot-c1-task-2026-11-14.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td16-life-map-port-pilot-c1-implementation-2026-11-14.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261114-1524.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-17",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td17-consent-port-c2-batch1-task-2026-11-14.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td17-consent-port-c2-batch1-implementation-2026-11-14.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261114-1719.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-18",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td18-good-state-diary-port-c2-batch2-task-2026-11-14.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td18-good-state-diary-port-c2-batch2-implementation-2026-11-14.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261114-1818.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-19",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td19-emergency-port-c2-batch3-task-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td19-emergency-port-c2-batch3-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261115-0227.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-20",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td20-home-messages-moodlog-port-c2-batch4-task-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td20-home-messages-moodlog-port-c2-batch4-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261115-0346.md"
+          }
+        ]
+      },
+      {
+        "taskId": "TD-21",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/td21-counselor-quote-port-c2-batch5-task-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/td21-counselor-quote-port-c2-batch5-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261115-1211.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-001",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af001-framework-bootstrap-task-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af001-framework-bootstrap-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-af001-20261115.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-002",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af002-framework-adapter-decoupling-implementation-2026-11-15.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-003",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af003-framework-finalization-task-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af003-framework-finalization-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261115-1533.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-004",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af004-framework-hardening-task-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af004-framework-hardening-implementation-2026-11-15.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-20261115-1616.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-005",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af005-framework-evolution-watcher-state-machine-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-006",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af006-framework-evolution-validation-scripts-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-007",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af007-framework-evolution-tool-standardization-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-008",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af008-framework-evolution-agent-protocol-mapping-2026-11-15.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-009",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-010",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-011",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af011-file-scope-mutex-validation-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af011-file-scope-mutex-validation-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-012",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-013",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-implementation-2026-11-16.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-014",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-015",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-016",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-017",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-018",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-019",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af019-adapter-finalization-node26-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af019-adapter-finalization-node26-implementation-2026-11-16.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-020",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af020-orchestration-hardening-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af020-orchestration-hardening-implementation-2026-11-16.md"
+          }
+        ]
+      }
+    ],
+    "statusMap": {
+      "backlog": null,
+      "ready": null,
+      "submitted": "SUBMITTED",
+      "working": "WORKING",
+      "input-required": "INPUT_REQUIRED",
+      "auth-required": "AUTH_REQUIRED",
+      "completed": "COMPLETED",
+      "failed": "FAILED",
+      "canceled": "CANCELED",
+      "rejected": "REJECTED"
+    },
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
+    "capabilityDeclarations": [
+      {
+        "agentId": "AGENT-EXEC-001",
+        "role": "executor",
+        "skills": ["implementation", "gate-evidence", "deviation-reporting", "self-test"],
+        "tools": ["workspace-read", "workspace-write", "gate-execution"],
+        "resources": ["src/", "test/", "docs/worklog/pending/（任务切片范围内）"],
+        "limits": null,
+        "availability": "available"
+      },
+      {
+        "agentId": "AGENT-ORCH-001",
+        "role": "orchestrator",
+        "skills": [
+          "queue-management",
+          "task-decomposition",
+          "claim-management",
+          "acceptance-organization",
+          "index-maintenance",
+          "evidence-review",
+          "improvement-tracking"
+        ],
+        "tools": [
+          "TOOL-STATE-STORE",
+          "TOOL-QUEUE-SCHEDULER",
+          "TOOL-ORCH-CLI",
+          "TOOL-IMPROVEMENT-LOG",
+          "TOOL-ACCEPTANCE-RUNNER",
+          "TOOL-DELIVERY-PACK"
+        ],
+        "resources": ["docs/worklog/pending/", "docs/worklog/completed/", "docs/team/agent-orchestration/", "scripts/orchestration/"],
+        "limits": null,
+        "availability": "available"
+      }
+    ],
+    "unknownStatuses": []
+  },
+  "webRefresh": {
+    "enabled": true,
+    "intervalMs": 3000
+  },
+  "archivedCount": 37
+}

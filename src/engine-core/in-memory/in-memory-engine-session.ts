@@ -24,31 +24,76 @@
 //   如何验证:
 //     1. pnpm build 0 错
 //     2. test/engine-core/engine-core.spec.ts: 直接 new 本类跑通 open → turn → close, 不启动 NestJS 容器
+//
+//   V2026-11-06 治本 (WP38 · 事件分类只读出口):
+//   职责: turn() 的出参挂上本轮事件分类 (events), 让调试面板能显示"这一轮咨询师
+//         说了什么 techniques" (共情 / 开放提问 / 评判…).
+//   边界: **纯加观测字段** —— 决策路径与数值**逐字不变**:
+//     · 事件是分类器**已经算出来**的 (第 3 步的局部变量), 这里只是把 kind 抄进出参;
+//     · 不参与状态迁移 / delta 聚合 / 意图规划 (那三处仍吃同一个 events 数组);
+//     · 不带命中词明细 (内核内部产物, 不对外).
+//   为什么由内核填 (而不是适配层预判):
+//     事件分类是内核的**唯一真相**; 适配层另算一套就会与内核漂移, 而调试面板的
+//     职责恰恰是"看内核到底怎么判" —— 预判出来的标签会骗人.
+//   零回归: 事件为空时**不挂**该字段 (同 openingContext / trajectoryTrace 的口径).
 
 import { nanoid } from 'nanoid';
 import { randomInt } from 'node:crypto';
 
-import { planIntention } from '../cognition/intention-planner';
-import { RuleBasedClassifier } from '../cognition/rule-based-classifier';
-import { assessSafety } from '../cognition/safety/assess-safety';
-import { transitionState } from '../cognition/state-transition';
-import { planAct } from '../cognition/trajectory/act-cursor';
-import { applyTrajectory } from '../cognition/trajectory/trajectory-applier';
-import { evaluateTrigger, type MatchContext } from '../cognition/trajectory/trigger-evaluate';
-import { cloneBdiSnapshot, type BdiSnapshot } from '../domain/bdi-snapshot';
-import { buildInitialSnapshot } from '../domain/bootstrap';
-import type { CharacterProfile } from '../domain/character-profile';
-import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors';
-import type { EngineSessionHandle, EngineTurnInput, EngineTurnOutput, OpenEngineSessionInput } from '../domain/engine-session.types';
-import type { EventClassifier, SessionEvent } from '../domain/events/session-event';
-import type { Intention } from '../domain/intention';
-import type { BdiStateRecord, BdiStateRepository } from '../domain/ports/bdi-state.repository';
-import { MemorySource, MemoryTier, type MemoryHit, type MemoryStore } from '../domain/ports/memory.store';
-import type { RiskProbePort } from '../domain/ports/risk-probe';
-import type { SafetyEvent, SafetyLevel, SafetyReport, SafetyVerdict } from '../domain/safety/safety-types';
-import { orderedTrajectoryNodes, validateTrajectoryScript, type TrajectoryScript, type TrajectoryTrace } from '../domain/trajectory/script';
-import { trimWorkingWindow, WORKING_MEMORY_WINDOW_TURNS } from '../memory/working-window';
-import type { EngineSessionPort } from '../runtime/engine-session.port';
+import { resolveSessionAllianceConfig, type AllianceConfig } from '../cognition/alliance-config.js';
+import type { DeltaTableConfig } from '../cognition/delta-table-config.js';
+import { planIntention } from '../cognition/intention-planner.js';
+import {
+  modulateDeltaByPersonality,
+  type PersonalityModulationInput,
+  type PersonalityModulatorConfig,
+} from '../cognition/personality-modulator.js';
+import { RuleBasedClassifier } from '../cognition/rule-based-classifier.js';
+import { assessSafety } from '../cognition/safety/assess-safety.js';
+import { applySessionDecay, type SessionDecayConfig } from '../cognition/session-decay.js';
+import {
+  addDeltaVectors,
+  aggregateTurnDelta,
+  applyDeltaVector,
+  buildDeltaCapReport,
+  capTurnDelta,
+  notifyDeltaCap,
+  transitionState,
+  applyBeliefEvolution,
+  type DeltaCapConfig,
+  type DeltaCapObserver,
+  type DeltaVector,
+  type TransitionStateOptions,
+} from '../cognition/state-transition.js';
+import { planAct } from '../cognition/trajectory/act-cursor.js';
+import { applyTrajectory } from '../cognition/trajectory/trajectory-applier.js';
+import { evaluateTrigger, type MatchContext } from '../cognition/trajectory/trigger-evaluate.js';
+import { cloneBdiSnapshot, type BdiSnapshot } from '../domain/bdi-snapshot.js';
+import { buildInitialSnapshot } from '../domain/bootstrap.js';
+import type { CharacterProfile } from '../domain/character-profile.js';
+import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors.js';
+import type {
+  EngineSessionHandle,
+  EngineTurnInput,
+  EngineTurnOutput,
+  OpenEngineSessionInput,
+  WorkingWindowOverflowEvent,
+} from '../domain/engine-session.types.js';
+import type { ClassifyContext, EventClassifier, SessionEvent } from '../domain/events/session-event.js';
+import type { Intention } from '../domain/intention.js';
+import type { BdiStateRecord, BdiStateRepository } from '../domain/ports/bdi-state.repository.js';
+import { MemorySource, MemoryTier, type MemoryHit, type MemoryStore } from '../domain/ports/memory.store.js';
+import type { RiskProbePort } from '../domain/ports/risk-probe.js';
+import type { SafetyEvent, SafetyLevel, SafetyReport, SafetyVerdict } from '../domain/safety/safety-types.js';
+import {
+  orderedTrajectoryNodes,
+  validateTrajectoryScript,
+  type TrajectoryScript,
+  type TrajectoryTrace,
+} from '../domain/trajectory/script.js';
+import { overflowedWorkingWindowLines, trimWorkingWindow, WORKING_MEMORY_WINDOW_TURNS } from '../memory/working-window.js';
+import type { DeliberationHookPort } from '../runtime/deliberation-hook.port.js';
+import type { EngineSessionPort } from '../runtime/engine-session.port.js';
 
 /** 工作记忆条目的默认重要度. WP0 无重要度算法 (属 WP2 遗忘机制), 取中性值. */
 const WORKING_MEMORY_DEFAULT_IMPORTANCE = 0.5;
@@ -104,6 +149,14 @@ interface EngineSessionRuntime {
   readonly resumeFromSessionId: string | null;
   /** 角色内核基线 (WP1); 仅用于全新会话开场装配, 接续不覆盖. */
   readonly characterProfile: CharacterProfile | null;
+  /**
+   * 本场生效的同盟三维配置 (I-12).
+   *
+   * ⚠️ **会话级** —— 开场时由 `resolveSessionAllianceConfig(实例级配置, 会话级覆盖)` 解析一次,
+   *   之后**本场恒定** (与实例级配置一样是"一场一值", 不是每轮可变).
+   *   无覆盖时它就是实例级配置**本身** (同一引用) → 逐字零回归.
+   */
+  readonly allianceConfig: AllianceConfig | undefined;
   readonly openedAt: number;
   /** 已完成轮次. */
   turnIndex: number;
@@ -145,6 +198,100 @@ export interface InMemoryEngineSessionOptions {
    * 走构造注入而不是开场入参: 探测是**行为依赖**, 开场对象是可序列化的会话参数.
    */
   readonly riskProbe?: RiskProbePort;
+  /**
+   * 单回合 delta cap 配置 (WP26 · P2-14: 内核不再读 env, 由 adapter 读好注入).
+   *
+   * 缺省 = 内核种子值 (`DEFAULT_DELTA_CAP_CONFIG`). 为什么是**构造注入**而不是
+   * 每次 turn 传: cap 是**部署形态**的决定 (内测期要按真实对话调参), 不是会话参数;
+   * 放构造上 = 一场会话内口径恒定, 换配置 = 换实例, 不会出现"同一场里前后两轮
+   * cap 不一样"这种无法复现的漂移.
+   */
+  readonly capConfig?: DeltaCapConfig;
+  /**
+   * cap 报告观察者 (WP26 · P2-11/P2-12/P2-14).
+   *
+   * 缺省 = 不观测 (内核照常砍幅, 只是没人打日志). 观察者拿到的是**本轮总 delta**
+   * 的砍幅 (事件 + 剧本合并后), 且报告自带 sessionId / handleId —— 多人内测时
+   * 运维能直接定位到是哪场会话被砍.
+   */
+  readonly capObserver?: DeltaCapObserver;
+  /**
+   * 人格调节配置 (WP34 · 与 cap 同款注入范式).
+   *
+   * 缺省 = 内核种子值 (`DEFAULT_PERSONALITY_MODULATOR_CONFIG`).
+   * 为什么是**构造注入**而不是每次 turn 传: 与 cap 同理 —— 人格系数是**部署形态**的
+   * 决定 (内测期要按真实对练校准), 不是会话参数; 放构造上 = 一场会话内口径恒定.
+   *
+   * ⚠️ 角色侧数据 (依恋类型 / 人格特质) 走**开场参数** `characterProfile`,
+   * 不走这里: 系数是部署级的, 角色是会话级的.
+   */
+  readonly personalityModulatorConfig?: PersonalityModulatorConfig;
+  /**
+   * 同盟三维配置 (WP42 · 与 cap / 人格同款注入范式).
+   *
+   * 缺省 = 内核种子值 (DELTA_TABLE 的基础系数 + 种子门槛).
+   * 为什么是**构造注入**而不是每次 turn 传: 与 cap 同理 —— 同盟三维的系数与门槛
+   * 是**部署形态**的决定 (内测期按真实对练校准), 不是会话参数; 放构造上 =
+   * 一场会话内口径恒定, 不会出现"同一场里前后两轮门槛不一样"的漂移.
+   */
+  readonly allianceConfig?: AllianceConfig;
+  /**
+   * delta 规则表配置 (WP60 · 与 cap / 人格 / 同盟 / 衰减同款注入范式).
+   *
+   * 缺省 = 内核种子值 (DELTA_TABLE 的基础系数).
+   * 为什么是**构造注入**而不是每次 turn 传: 系数是**部署形态**的决定
+   * (内测期按真实对练校准), 不是会话参数; 放构造上 = 一场会话内口径恒定,
+   * 不会出现"同一场里前后两轮系数不一样"的漂移.
+   */
+  readonly deltaTableConfig?: DeltaTableConfig;
+  /**
+   * 跨会话间隔衰减配置 (WP36 · 与 cap / 人格 / 同盟同款注入范式).
+   *
+   * 缺省 = 内核种子值 (`DEFAULT_SESSION_DECAY_CONFIG`: 情绪 7 天 / 阻抗 14 天 / 同盟 30 天).
+   * 为什么是**构造注入**而不是每次 turn 传: 半衰期是**部署形态**的决定
+   * (内测期要按真实对练校准), 不是会话参数; 放构造上 = 一场会话内口径恒定.
+   *
+   * ⚠️ 系数是**工程种子值, 非临床标定** —— 待真实对练校准.
+   */
+  readonly sessionDecayConfig?: SessionDecayConfig;
+  /**
+   * 时序权重配置 (D-3 · 与 cap / 人格 / 同盟 / 衰减同款注入范式).
+   *
+   * 缺省 = **不折损** (内核决策链里没有折损这一步, delta 逐字不变).
+   * 为什么是**构造注入**而不是每次 turn 传: 与 cap 同理 —— 权重形态是**部署形态**
+   * 的决定 (灰度到哪批会话), 不是会话参数; 放构造上 = 一场会话内口径恒定.
+   *
+   * ⚠️ 本单只落地 `none` 形态的**端口骨架** —— `linear_decay / recency / window`
+   *   的曲线实现与 `slope` / `windowTurns` 标定值留标定批次单.
+   */
+  readonly timingWeightConfig?: TransitionStateOptions['timingWeight'];
+  /**
+   * 工作窗口溢出回调 (WP37 · 与 cap / 人格 / 同盟 / 衰减同款注入范式).
+   *
+   * 缺省 = 不回调 (工作窗口照旧裁剪, 行为与 WP2 **逐字一致**).
+   * 触发时机: 本轮内容把工作记忆窗口 (最近 8 轮) 挤掉最旧的轮次时, **同步**回调一次,
+   * 把被挤出的轮次交给适配层.
+   *
+   * 为什么内核只交出文本、不自己做摘要:
+   *   摘要要调 LLM —— 内核零网络 / 零 prompt (boundary.spec.ts 断言①②④守着).
+   *   内核负责"**什么时候**该压缩" (窗口裁剪是内核的策略), 适配层负责"**怎么**压缩".
+   *
+   * 为什么回调带归属三件套 (tenantId / sessionId / visitorId):
+   *   适配层要把摘要写成记忆条目 —— MemoryEntry 契约强制要求 tenantId + sessionId;
+   *   且滚动摘要的状态必须按会话隔离 (两个租户撞同一个 sessionId 时不能串).
+   *   只交"被挤出的文本"是写不出合法记忆条目的.
+   */
+  readonly onWorkingWindowOverflow?: (event: WorkingWindowOverflowEvent) => void;
+  /**
+   * 审议钩子 (R9 · 可选注入).
+   *
+   * 缺省 = **不注入** = 决策链与改造前**逐字一致** (零回归硬要求).
+   * 注入 = 本轮落库前多一道"审议修正 delta"的口子 (见 `applyDeliberationHook`).
+   *
+   * 为什么是**构造注入**而不是每次 turn 传: 与 cap / 人格 / 同盟同款 ——
+   * 审议能力是**部署形态**的决定 (灰度到哪批会话), 不是会话参数.
+   */
+  readonly deliberationHook?: DeliberationHookPort;
 }
 
 /** 会话内核的内存实现. */
@@ -165,6 +312,24 @@ export class InMemoryEngineSession implements EngineSessionPort {
   private readonly classifier: EventClassifier;
   /** 风险探测端口 (WP4; 可选, 缺省纯规则). */
   private readonly riskProbe: RiskProbePort | undefined;
+  /** 单回合 delta cap 配置 (WP26 · P2-14). */
+  private readonly capConfig: DeltaCapConfig | undefined;
+  /** cap 报告观察者 (WP26 · P2-11/P2-12/P2-14). */
+  private readonly capObserver: DeltaCapObserver | undefined;
+  /** 人格调节配置 (WP34 · 缺省 = 内核种子值). */
+  private readonly personalityModulatorConfig: PersonalityModulatorConfig | undefined;
+  /** 同盟三维配置 (WP42 · 缺省 = 内核种子值). */
+  private readonly allianceConfig: AllianceConfig | undefined;
+  /** delta 规则表配置 (WP60 · 缺省 = DELTA_TABLE 的基础系数). */
+  private readonly deltaTableConfig: DeltaTableConfig | undefined;
+  /** 跨会话间隔衰减配置 (WP36 · 缺省 = 内核种子值). */
+  private readonly sessionDecayConfig: SessionDecayConfig | undefined;
+  /** 时序权重配置 (D-3 · 缺省 = 不折损, delta 逐字不变). */
+  private readonly timingWeightConfig: InMemoryEngineSessionOptions['timingWeightConfig'];
+  /** 工作窗口溢出回调 (WP37 · 缺省 = 不回调). */
+  private readonly onWorkingWindowOverflow: ((event: WorkingWindowOverflowEvent) => void) | undefined;
+  /** 审议钩子 (R9; 缺省 = 不注入 = 零回归). */
+  private readonly deliberationHook: DeliberationHookPort | undefined;
 
   constructor(options: InMemoryEngineSessionOptions) {
     this.bdiStates = options.bdiStates;
@@ -173,6 +338,15 @@ export class InMemoryEngineSession implements EngineSessionPort {
     this.now = options.now ?? Date.now;
     this.classifier = options.classifier ?? new RuleBasedClassifier();
     this.riskProbe = options.riskProbe;
+    this.capConfig = options.capConfig;
+    this.capObserver = options.capObserver;
+    this.personalityModulatorConfig = options.personalityModulatorConfig;
+    this.allianceConfig = options.allianceConfig;
+    this.deltaTableConfig = options.deltaTableConfig;
+    this.sessionDecayConfig = options.sessionDecayConfig;
+    this.timingWeightConfig = options.timingWeightConfig;
+    this.onWorkingWindowOverflow = options.onWorkingWindowOverflow;
+    this.deliberationHook = options.deliberationHook;
   }
 
   openSession(input: OpenEngineSessionInput): EngineSessionHandle {
@@ -197,6 +371,9 @@ export class InMemoryEngineSession implements EngineSessionPort {
       seed: input.seed ?? this.generateSeed(),
       resumeFromSessionId: input.resumeFromSessionId ?? null,
       characterProfile: input.characterProfile ?? null,
+      // I-12: 会话级门槛覆盖在此**解析一次**并固定在本句柄上.
+      //   无覆盖 → 原样返回实例级配置 (同一引用) → 逐字零回归.
+      allianceConfig: resolveSessionAllianceConfig(this.allianceConfig, input.allianceThresholds),
       openedAt: this.now(),
       turnIndex: 0,
       workingWindow: [],
@@ -235,30 +412,103 @@ export class InMemoryEngineSession implements EngineSessionPort {
     const safetyVerdict = await assessSafety({ text: userText, side: 'counselor_input', probe: this.riskProbe });
     this.recordSafetyEvent(runtime, safetyVerdict, userText);
     // 3. WP1 认知管线: 事件分类 → 状态迁移 → 本轮意图 (规则轨, 确定性, 无随机).
-    const events = this.classifier.classify(userText, {
+    //    V2026-11-12 治本 (D-1 第二段 · 模型轨): 分类器若提供**可选**异步成员, 内核 await 它;
+    //    没有则走同步 classify (规则轨, 逐字现状).
+    //    ⚠️ 两条分支**互斥** (不是「先同步再异步」) —— 每轮跑两遍词表扫描既白烧 CPU,
+    //      又让两条结果并存 (容易漂). 谁来回落由**实现内部**决定, 内核不感知.
+    const classifyContext: ClassifyContext = {
       sensitiveTopics: runtime.characterProfile?.sensitiveTopics,
+      // L1-a: 业务会话 id —— 带状态分类器的跨轮状态分桶键 (禁用 handleId: 运行时维度, 恢复后会变).
+      sessionId: runtime.sessionId,
+    };
+    const events = this.classifier.classifyAsync
+      ? await this.classifier.classifyAsync(userText, classifyContext)
+      : this.classifier.classify(userText, classifyContext);
+    //    人格调节输入 (WP34): 角色的依恋类型 / 人格特质 + 调节端口 + 本轮事件.
+    //    **两处**消费它 (临时快照 / 落库路径) —— 两处口径必须一致, 否则 provisional
+    //    (供意图规划与轨迹触发判定) 与落库快照会漂.
+    const personality = this.personalityInput(runtime, events);
+    //    事件 delta 的**原始**值留一份 —— WP26 P2-12: 本轮总 delta = 事件 + 剧本,
+    //    要合并后统一过一次 cap, 所以分子必须是原始量, 不能是"已砍过的量".
+    //    WP34: 聚合之后先过**人格调节**, 再进 cap (同一管道, 调节不得绕过 cap).
+    //    WP42: 同盟三维的 safety / bond 走**同一个端口** (构造注入), 口径与
+    //    临时快照 / 落库路径必须一致 —— 否则两处会漂.
+    const eventDelta = modulateDeltaByPersonality(aggregateTurnDelta(events, runtime.allianceConfig, this.deltaTableConfig), personality);
+    //    临时快照: 只按事件 delta 推进 (供意图规划与轨迹触发判定) ——
+    //    它是**中间量**, 不是本轮落库的状态 (落库口径见第 5 步).
+    const provisional = transitionState(base.snapshot, events, {
+      capConfig: this.capConfig,
+      personality,
+      alliance: runtime.allianceConfig,
+      // WP60: delta 规则表端口 (逐维度覆写) —— 与落库路径**同一份**配置,
+      //   否则临时快照与落库快照会漂 (WP42 的同款纪律).
+      deltaTable: this.deltaTableConfig,
+      // WP57: 信念激活的匹配源 (咨询师原文).
+      //   临时快照与落库快照**两处口径必须一致** —— 两处都从 base.snapshot 出发,
+      //   所以不会重复演化 (各演一次, 结果相同).
+      counselorText: userText,
+      // D-3: 时序权重端口 —— 轮次号 **1 起** (同 `MatchContext` 口径: runtime.turnIndex + 1),
+      //   权重配置走构造注入 (缺省 = 不折损, delta 逐字不变).
+      //   ⚠️ 落库路径 (事件 delta + 剧本 delta 合并后统一过一次 cap) 本单**不接入**折损分支 ——
+      //   `none` 恒等下两路径逐字一致; 接入点与口径 (cap 后、turnIndex + 1) 见交付记录 §6 R2.
+      turnIndex: runtime.turnIndex + 1,
+      timingWeight: this.timingWeightConfig,
     });
-    const nextSnapshot = transitionState(base.snapshot, events);
-    const intention = planIntention(nextSnapshot, runtime.characterProfile ?? undefined);
+    const intention = planIntention(provisional, runtime.characterProfile ?? undefined, runtime.allianceConfig);
     // 4. 轨迹步 (WP3): BDI 自由规划**之后**、落库**之前**.
     //    BDI 永远先发生, 轨迹只做后处理 —— 于是"同一段行为在开/关轨迹两种配置下"
     //    可以直接对比, 轨迹出问题时也能回退到纯 BDI (任务单 M1).
-    const trajectory = this.applyTrajectoryStep(runtime, events, userText, intention, nextSnapshot);
+    //    WP26 P2-12: 本步**只取意图合成与本轮原始轨迹偏移**, 不落快照 ——
+    //    快照由第 5 步按"总 delta 过一次 cap"统一落, 避免旧路径那种
+    //    "事件 delta 已 cap + 剧本 delta 未 cap" 的 2 倍 cap 跳变.
+    const trajectory = this.applyTrajectoryStep(runtime, events, userText, intention, provisional);
+    // 5. WP26 P2-12: 本轮**总** delta = 事件 delta + 剧本 delta.
+    //    cap 管的是"一回合最多能动多少", 与 delta 的来源无关 —— 剧本作者写死的
+    //    偏移同样是"这一轮来访内心状态被改动了一次", 必须与事件 delta 一起受同一把尺子.
+    const totalDelta = trajectory.delta ? addDeltaVectors(eventDelta, trajectory.delta) : eventDelta;
+    const cappedTotal = capTurnDelta(totalDelta, this.capConfig);
+    //    WP57: 信念演化 (核心信念激活 + 短期信念置信度衰减) 落在**本轮落库快照**上.
+    //    为什么落库路径要单独接一次 (而不是只靠 transitionState):
+    //      落库口径是"事件 delta + 剧本 delta 合并后统一过一次 cap" (WP26 P2-12),
+    //      走的是 `applyDeltaVector` 而不是 `transitionState` —— 只在 transitionState
+    //      里接信念算子, 落库快照就**永远不会**带上信念演化 (机制空转).
+    //    两处口径必须一致: 临时快照 (transitionState) 与落库快照都从 base.snapshot 出发,
+    //    各自演一次, 结果相同.
+    // 5.5 (R9): 审议钩子 (可选注入) —— 本轮落库**前**的最后一道修正口.
+    //    不注入 = 整段跳过 = 决策链与改造前**逐字一致** (零回归硬要求).
+    //    注入时: 钩子给建议就用建议, 给 null / 抛错就回退规则 delta —— 主流程永远不炸.
+    //    ⚠️ 建议**再过一次 cap**: 审议结果不得绕过 delta cap (与规则侧同一把尺子).
+    const finalDelta = this.applyDeliberationHook(runtime, base.snapshot, base.revision, cappedTotal, userText);
+    const nextSnapshot = applyBeliefEvolution(applyDeltaVector(base.snapshot, finalDelta), userText);
+    //    报告口径 = 总 delta (不是事件 delta): 运维看到的就是"这一轮实际被砍了多少".
+    notifyDeltaCap(
+      this.capObserver,
+      buildDeltaCapReport(totalDelta, cappedTotal, events, {
+        sessionId: runtime.sessionId,
+        handleId: runtime.handleId,
+      }),
+    );
     const record: BdiStateRecord = {
       tenantId: runtime.tenantId,
       sessionId: runtime.sessionId,
       revision: base.revision + 1,
       updatedAt: this.now(),
-      snapshot: trajectory.snapshot,
+      snapshot: nextSnapshot,
     };
-    // 5. 落库 (乐观锁: 冲突会冒泡为 STATE_CONFLICT).
+    // 6. 落库 (乐观锁: 冲突会冒泡为 STATE_CONFLICT).
     const saved = await this.bdiStates.save(record);
-    // 6. 写工作记忆 + 维护运行时工作窗口 (WP2).
+    // 7. 写工作记忆 + 维护运行时工作窗口 (WP2).
     await this.rememberTurn(runtime, userText);
+    //    WP37: 被挤出窗口的轮次交给适配层做**滚动摘要** (内核零 LLM / 零网络 / 零 prompt).
+    //    溢出判定走纯函数 overflowedWorkingWindowLines (窗口保尾弃头 → 被挤出的是队首).
+    const overflowed = overflowedWorkingWindowLines(runtime.workingWindow, userText, WORKING_MEMORY_WINDOW_TURNS);
     runtime.workingWindow = trimWorkingWindow([...runtime.workingWindow, userText], WORKING_MEMORY_WINDOW_TURNS);
-    // 7. 推进轮次.
+    if (overflowed.length > 0) {
+      this.notifyWindowOverflow(runtime, overflowed);
+    }
+    // 8. 推进轮次.
     runtime.turnIndex += 1;
-    // 8. 跨会话开场上下文 (WP2): 仅 resume 会话的首论携带.
+    // 9. 跨会话开场上下文 (WP2): 仅 resume 会话的首论携带.
     //    刻意放在最后 —— 它只挂出参, 不参与上面的 BDI 决策, 也不改快照数值.
     const openingContext = await this.collectOpeningContext(runtime, userText);
 
@@ -271,6 +521,13 @@ export class InMemoryEngineSession implements EngineSessionPort {
       ...(trajectory.trace ? { trajectoryTrace: trajectory.trace } : {}),
       // 安全判定只在非 pass 时挂出 (pass 的空块会污染出参, 破坏零回归).
       ...(safetyVerdict.level === 'pass' ? {} : { safety: safetyVerdict }),
+      // WP38: 事件分类 (只读观测) —— 内核自己填, 适配层只透传; 空则不挂 (零回归).
+      // D-2: 一并挂**事件明细** (kind + 命中词 + 强度) —— 旧 `events` 投影逐字不变,
+      //   审计层因此能拿到内核自己算出的命中词, 不必再跑一遍分类器 (C3 的口径).
+      ...(events.length > 0 ? { events: events.map((event) => event.kind), eventDetails: [...events] } : {}),
+      // WP65: 本轮落库后的快照版本号 (只读观测) —— 适配层用它判断异步审议结果有没有过期.
+      //   取的是**仓储返回的** revision (归一化后的权威值), 不是本地算的那个.
+      revision: saved.revision,
     };
   }
 
@@ -349,6 +606,15 @@ export class InMemoryEngineSession implements EngineSessionPort {
    * 优先级: 本场已有状态 > 跨会话接续来源 > 全空快照.
    * 接续时**只搬快照, 不搬版本号** —— 新会话的版本链从 0 起算, 否则会把上一场
    * 的版本号带过来, 让乐观锁的语义变得不可解释 (新会话与旧会话共享一条版本链).
+   *
+   * V2026-11-03 (WP36): 接续时**按间隔做自然衰减** —— 不再把上一场的快照原样搬过来.
+   *   隔了一周再来, 情绪该平复、阻抗该回落, 但关系不该清零 (衰减恒 > 0, 渐近不归零).
+   *   间隔取 `resumed.updatedAt` (上一场最后一次落库时刻) 与当前时刻之差.
+   *
+   *   为什么衰减**只发生一次** (而不是每轮都衰减):
+   *     本方法每轮都调, 但"本场已有状态"分支会先命中 —— 只有本场**第一轮**才会走到
+   *     接续分支. 第一轮算出的衰减值随本轮 delta 一起落库, 之后各轮读的是本场自己的
+   *     状态 (不再衰减). 于是"衰减"是**跨场边界的一次性事件**, 不是持续时间流逝的副作用.
    */
   private async loadState(runtime: EngineSessionRuntime): Promise<BdiStateRecord> {
     const current = await this.bdiStates.load(runtime.tenantId, runtime.sessionId);
@@ -357,12 +623,13 @@ export class InMemoryEngineSession implements EngineSessionPort {
     if (runtime.resumeFromSessionId) {
       const resumed = await this.bdiStates.load(runtime.tenantId, runtime.resumeFromSessionId);
       if (resumed) {
+        const ageMs = this.now() - resumed.updatedAt;
         return {
           tenantId: runtime.tenantId,
           sessionId: runtime.sessionId,
           revision: 0,
           updatedAt: this.now(),
-          snapshot: cloneBdiSnapshot(resumed.snapshot),
+          snapshot: applySessionDecay(resumed.snapshot, ageMs, this.sessionDecayConfig),
         };
       }
     }
@@ -376,6 +643,87 @@ export class InMemoryEngineSession implements EngineSessionPort {
       // resume 接续分支在上方, 直接搬上一场快照, 不用 profile 覆盖.
       snapshot: buildInitialSnapshot(runtime.characterProfile ?? undefined),
     };
+  }
+
+  /**
+   * 问审议钩子要本轮建议 (R9).
+   *
+   * **失败语义 (本方法的核心职责)**: 任何异常 / 无建议 → **回退规则 delta**.
+   *   审议是**增强**, 不是必需 —— 它挂了不该让整轮对练失败 (与 `notifyWindowOverflow`
+   *   / `collectOpeningContext` 同款纪律).
+   *
+   * **合并语义**: 建议是**稀疏补丁** —— 只覆盖它提到的维度, 其余维度保留规则值.
+   *   (审议模型通常只提 2-3 维; 若整体替换, 规则算子算出的其余维度会被清零.)
+   *
+   * **再过一次 cap**: 审议建议**不得绕过** delta cap —— 覆盖完再过同一把尺子.
+   *   尺子用的是**与规则侧同一份** `capConfig` (构造注入), 两端口径恒等.
+   *
+   * ⚠️ **不注入端口 = 整段早退** → 返回值与入参逐字相同 → 决策链零回归.
+   *
+   * @param runtime 运行时会话
+   * @param snapshot 本轮开始时的快照 (审议基于它给建议)
+   * @param currentRevision 本轮开始时载入的状态记录版本号 (状态记录带版本, 快照不带 ——
+   *   见 `BdiStateRecord` / `BdiSnapshot` 的分工说明)
+   * @param ruleDelta 规则算子算出的本轮 delta (已过 cap)
+   * @param counselorText 本轮咨询师文本
+   * @returns 本轮实际生效的 delta
+   */
+  private applyDeliberationHook(
+    runtime: EngineSessionRuntime,
+    snapshot: BdiSnapshot,
+    currentRevision: number,
+    ruleDelta: DeltaVector,
+    counselorText: string,
+  ): DeltaVector {
+    const hook = this.deliberationHook;
+    if (!hook) return ruleDelta;
+    try {
+      const patch = hook.applyDeliberation({
+        snapshot,
+        ruleDelta,
+        counselorText,
+        tenantId: runtime.tenantId,
+        sessionId: runtime.sessionId,
+        turnIndex: runtime.turnIndex + 1,
+        // 本轮依据的状态记录版本号 —— 适配层靠它判"这份建议还作数吗" (见端口的说明).
+        //   取的是**载入时**那份状态记录的版本 (= 上一轮落库后的版本 R1), 不是本地算的 +1:
+        //   落库那一步会返回仓储归一化后的权威版本, 适配层记的基准版本要与它对齐.
+        currentRevision,
+      });
+      // 空补丁 = 没有实质建议 → 直接用规则 delta (不必再过一次 cap, 逐字相同).
+      if (!patch) return ruleDelta;
+      const merged: DeltaVector = { ...ruleDelta, ...patch };
+      // 再过一次 cap: 审议结果不得绕过 delta cap (同一把尺子, 构造注入的同一份配置).
+      return capTurnDelta(merged, this.capConfig);
+    } catch {
+      // 故意不记日志: 内核不持有 logger (零框架依赖), 适配层自己知道自己的失败.
+      //   与 `notifyWindowOverflow` / `collectOpeningContext` 同款理由.
+      return ruleDelta;
+    }
+  }
+
+  /**
+   * 通知适配层: 工作窗口挤出了这些轮次 (WP37).
+   *
+   * 失败处理: **吞掉异常** —— 与 collectOpeningContext 同款理由:
+   *   摘要是**增强** (锦上添花), 摘要服务挂了不该让整轮对练失败;
+   *   内核零 logger 依赖, 适配层自己的日志才是错因现场.
+   *
+   * @param runtime 运行时会话
+   * @param overflowed 被挤出窗口的轮次 (按时间正序)
+   */
+  private notifyWindowOverflow(runtime: EngineSessionRuntime, overflowed: readonly string[]): void {
+    if (!this.onWorkingWindowOverflow) return;
+    try {
+      this.onWorkingWindowOverflow({
+        tenantId: runtime.tenantId,
+        sessionId: runtime.sessionId,
+        visitorId: runtime.visitorId,
+        pushedOut: [...overflowed],
+      });
+    } catch {
+      // 故意不记日志: 内核不持有 logger (零框架依赖), 适配层自己知道自己的失败.
+    }
   }
 
   /**
@@ -426,12 +774,16 @@ export class InMemoryEngineSession implements EngineSessionPort {
    * 终态后 BDI 自由运行, 游标冻结, 不再推进/叠加, 本轮不再写 outcome ——
    * outcome 描述的是"本轮发生的终态事件", 不是会话的持久状态.
    *
+   * V2026-11-03 治本 (WP26 · P2-12): 本步**不再返回快照** ——
+   *   快照由调用方按"事件 delta + 剧本 delta = 本轮总 delta, 统一过一次 cap"落.
+   *   本步只负责交出两样东西: 合成后的意图 + 本轮叠加的**原始**剧本偏移.
+   *
    * @param runtime 运行时会话
    * @param events 本轮分类出的标准事件
    * @param userText 咨询师本轮文本
    * @param intention BDI 自由规划出的意图
-   * @param snapshot 本轮状态迁移后的快照
-   * @returns 最终意图 / 叠加后快照 / 本轮轨迹观测
+   * @param snapshot 本轮状态迁移后的临时快照 (供幕触发判定用)
+   * @returns 最终意图 / 本轮原始轨迹偏移 / 本轮轨迹观测
    */
   private applyTrajectoryStep(
     runtime: EngineSessionRuntime,
@@ -439,15 +791,14 @@ export class InMemoryEngineSession implements EngineSessionPort {
     userText: string,
     intention: Intention,
     snapshot: BdiSnapshot,
-  ): { readonly intention: Intention; readonly snapshot: BdiSnapshot; readonly trace?: TrajectoryTrace } {
+  ): { readonly intention: Intention; readonly delta?: DeltaVector; readonly trace?: TrajectoryTrace } {
     const trajectory = runtime.trajectory;
-    if (!trajectory) return { intention, snapshot };
+    if (!trajectory) return { intention };
 
     const script = trajectory.script;
     if (trajectory.outcome !== null) {
       return {
         intention,
-        snapshot,
         trace: {
           scriptId: script.scriptId,
           mode: script.mode,
@@ -487,7 +838,9 @@ export class InMemoryEngineSession implements EngineSessionPort {
 
     return {
       intention: applied.intention,
-      snapshot: applied.snapshot,
+      // WP26 P2-12: 把本轮叠加的**原始**剧本偏移交出去 —— 调用方拿它与事件 delta
+      // 合并后统一过一次 cap (本文件不落快照, 免得绕开 cap).
+      ...(applied.delta ? { delta: applied.delta } : {}),
       trace: {
         scriptId: script.scriptId,
         mode: script.mode,
@@ -498,6 +851,30 @@ export class InMemoryEngineSession implements EngineSessionPort {
         visitedNodeIds: [...trajectory.visitedNodeIds],
         ...(outcome ? { outcome } : {}),
       },
+    };
+  }
+
+  /**
+   * 组装本轮的人格调节输入 (WP34).
+   *
+   * 数据来源分层:
+   *   · 角色侧 (依恋类型 / 人格特质) → 开场参数 `characterProfile` (会话级);
+   *   · 系数 (调节端口) → 构造注入 `personalityModulatorConfig` (部署级);
+   *   · 本轮事件 → 用于判定"共情回应" (宜人性规则).
+   *
+   * 缺省处理: 角色没带依恋类型 → 系数全 1.0 (逐字不变); 没带人格特质 → 不做特质调节.
+   *
+   * @param runtime 运行时会话
+   * @param events 本轮分类出的标准事件
+   * @returns 人格调节输入
+   */
+  private personalityInput(runtime: EngineSessionRuntime, events: readonly SessionEvent[]): PersonalityModulationInput {
+    const profile = runtime.characterProfile;
+    return {
+      events,
+      ...(profile?.attachmentStyle ? { attachmentStyle: profile.attachmentStyle } : {}),
+      ...(profile?.personalityTraits ? { traits: profile.personalityTraits } : {}),
+      ...(this.personalityModulatorConfig ? { config: this.personalityModulatorConfig } : {}),
     };
   }
 

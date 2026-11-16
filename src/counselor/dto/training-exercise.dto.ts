@@ -13,11 +13,11 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { IsBoolean, IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
 
-import { COUNSELOR_UI_PREFERENCE_DEFAULTS, CounselorUiPreferenceKey } from '../enums/counselor-ui-preference-key.enum';
-import { TrainingAttemptStatus } from '../enums/training-attempt-status.enum';
-import { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
-import { TrainingExerciseType } from '../enums/training-exercise-type.enum';
+import { COUNSELOR_UI_PREFERENCE_DEFAULTS, CounselorUiPreferenceKey } from '../enums/counselor-ui-preference-key.enum.js';
+import { TrainingAttemptStatus } from '../enums/training-attempt-status.enum.js';
+import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
+import { TrainingExerciseType } from '../enums/training-exercise-type.enum.js';
 
 const TYPE_VALUES = Object.values(TrainingExerciseType);
 const MODE_VALUES = Object.values(TrainingExerciseMode);

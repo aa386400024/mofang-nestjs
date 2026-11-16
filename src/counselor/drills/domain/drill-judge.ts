@@ -36,8 +36,8 @@ import {
   type DrillPoint,
   type DrillScript,
   type DrillVerdict,
-} from './drill.types';
-import { PracticeFeedbackTone } from '../../enums/practice-feedback-tone.enum';
+} from './drill.types.js';
+import { PracticeFeedbackTone } from '../../enums/practice-feedback-tone.enum.js';
 
 /**
  * 单个锚点的命中结果.

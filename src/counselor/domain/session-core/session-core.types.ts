@@ -20,15 +20,15 @@
 //     3. 每轮分析器对同一轮只产生 1 条 hint + 至多 1 条 mark
 //   时间戳: 2026-10-21
 
-import { ChatRole } from '../../enums/chat-role.enum';
-import { InformedConsentElement } from '../../enums/informed-consent-element.enum';
-import { LiveSupervisionHintTier } from '../../enums/live-supervision-hint-tier.enum';
-import { SessionType } from '../../enums/session-type.enum';
-import { SupervisionFailureCode } from '../../enums/supervision-failure-code.enum';
-import { SupervisionSchoolCode } from '../../enums/supervision-school-code.enum';
-import { TrainingSessionStatus } from '../../enums/training-session-status.enum';
-import { TransferenceMarkDirection, TransferenceMarkType } from '../../enums/transference-mark.enum';
-import { isInsufficientMaterial, type EffectiveMaterial, type EffectiveMaterialThresholds } from '../session-view/session-material';
+import { ChatRole } from '../../enums/chat-role.enum.js';
+import { InformedConsentElement } from '../../enums/informed-consent-element.enum.js';
+import { LiveSupervisionHintTier } from '../../enums/live-supervision-hint-tier.enum.js';
+import { SessionType } from '../../enums/session-type.enum.js';
+import { SupervisionFailureCode } from '../../enums/supervision-failure-code.enum.js';
+import { SupervisionSchoolCode } from '../../enums/supervision-school-code.enum.js';
+import { TrainingSessionStatus } from '../../enums/training-session-status.enum.js';
+import { TransferenceMarkDirection, TransferenceMarkType } from '../../enums/transference-mark.enum.js';
+import { isInsufficientMaterial, type EffectiveMaterial, type EffectiveMaterialThresholds } from '../session-view/session-material.js';
 
 // ════════════════════════════════════════════════════════════════════════════
 // ① 知情同意 4 要素覆盖明细 (v1.2 spec §5.4)
@@ -578,7 +578,7 @@ export interface SessionReportStateInput {
   /**
    * 这条会话的「报告正身」是不是 agent 主报告链路.
    *
-   * V2026-10-27 治本 (vpt 适用范围隔离, docs/progress/vpt-feedback-status-isolation-2026-10-27.md):
+   * V2026-10-27 治本 (vpt 适用范围隔离, docs/worklog/vpt-feedback-status-isolation-2026-10-27.md):
    *   两类会话的「报告正身」不同, 反馈的**角色**也不同:
    *     · vpt_voice (true)      → 报告正身是 agent 主报告 (`supervision_reports`:
    *                                六维评分 / 亮点 / 标注 / 风险线索); 4 流派反馈只是
@@ -715,7 +715,7 @@ export interface SessionReportState {
 /**
  * 这条会话的「报告正身」是不是 agent 主报告链路.
  *
- * V2026-10-27 治本 (vpt 适用范围隔离, docs/progress/vpt-feedback-status-isolation-2026-10-27.md):
+ * V2026-10-27 治本 (vpt 适用范围隔离, docs/worklog/vpt-feedback-status-isolation-2026-10-27.md):
  *   事实依据 (读代码确认, 不是推测):
  *     · `vpt_voice` 会话由 voice 侧 `endSession → SupervisorProcessor` 触发 agent 主报告
  *       → 写 `supervision_reports` (六维评分 / 亮点 / 标注 / 风险线索) —— **有**主报告链路.

@@ -1,11 +1,11 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { MarkMessagesReadDto, MarkMessagesReadResponseDto, UnreadMessageCountDto } from '../dto/home-overview.dto';
-import { HomeMessagesService } from '../providers/home-messages.service';
+import { MarkMessagesReadDto, MarkMessagesReadResponseDto, UnreadMessageCountDto } from '../dto/home-overview.dto.js';
+import { HomeMessagesService } from '../providers/home-messages.service.js';
 
 /**
  * 首页消息未读 controller — V2.0 §3 (DESIGN Tab1 顶部消息入口).

@@ -34,9 +34,9 @@
 //
 //   时间戳: 2026-10-22
 
-import { TRAINING_EXERCISE_MODE_META } from './training-exercise-display-meta';
-import { PracticeEngine } from '../enums/practice-engine.enum';
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
+import { TRAINING_EXERCISE_MODE_META } from './training-exercise-display-meta.js';
+import { PracticeEngine } from '../enums/practice-engine.enum.js';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
 
 /**
  * 10 档基本功的中文名清单 (给 LLM 挑 exerciseMode 用).

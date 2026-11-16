@@ -21,15 +21,33 @@
 //       两边都判断一次 = 迟早出现"推进器认为不叠、合成器叠了"的状态漂移.
 //     - 不用 mutate 改快照: 快照是值语义 (可回放), 一律造新对象整体替换.
 //
+//   V2026-11-03 治本 (WP26 · P2-12 — 轨迹 delta 纳入单回合总 delta 的 cap):
+//     改之前本文件把 `node.delta` 直接 clamp 后叠到快照上 —— **只 clamp 不 cap**,
+//     于是"事件 delta (已 cap) + 剧本 delta (未 cap)"能叠出 2 倍 cap 的单回合跳变.
+//     现在: 偏移先转成内核 delta 向量 (`toDeltaVector`, 唯一转换点), 一路带出去
+//     (TrajectoryApplication.delta), 由会话层与事件 delta 合并后**统一过一次 cap**
+//     再落快照. 落快照复用内核的 `applyDeltaVector` —— 不在本文件再写第二份 clamp.
+//
+//   V2026-11-04 WP52 (引擎内核 · 剧本偏移接入同盟三维):
+//     WP42 把同盟拆成 trust / safety / bond 后, 剧本契约 (`SnapshotDelta`) 只带
+//     trust —— 剧本写"来访敞开心扉谈童年创伤"只涨 trust, 不涨 safety / bond,
+//     剧本叙事推不动同盟发展. 现在 `SnapshotDelta` 补了 safety / bond 两项
+//     (**可选**, 缺省 = 0), 本文件的转换点 `toDeltaVector` 把它们接上.
+//
+//     cap 位置**不用改**: 管道是「事件 delta + 剧本 delta → 合并 → 统一过 cap
+//     → 落快照」, safety / bond 是 `DeltaVector` 的维度, 合并后自动被同一把尺子
+//     约束 (与 trust / resistance 完全一致).
+//
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-core/wp3-trajectory.spec.ts 覆盖三模式合成与 delta 一次性
 
-import type { ActPlan } from './act-cursor';
-import type { BdiSnapshot } from '../../domain/bdi-snapshot';
-import { clamp01, clampValence, resolveEmotionLabel, type EmotionState } from '../../domain/emotion';
-import type { Intention } from '../../domain/intention';
-import type { SnapshotDelta, TrajectoryMode, TrajectoryNodeTarget } from '../../domain/trajectory/script';
+import type { ActPlan } from './act-cursor.js';
+import type { BdiSnapshot } from '../../domain/bdi-snapshot.js';
+import { clamp01, clampValence, resolveEmotionLabel, type EmotionState } from '../../domain/emotion.js';
+import type { Intention } from '../../domain/intention.js';
+import type { SnapshotDelta, TrajectoryMode, TrajectoryNodeTarget } from '../../domain/trajectory/script.js';
+import { applyDeltaVector, type DeltaVector } from '../state-transition.js';
 
 /**
  * 修正模式默认权重 (工程种子值: 幕目标占六成、BDI 占四成).
@@ -57,6 +75,17 @@ export interface TrajectoryApplication {
   readonly snapshot: BdiSnapshot;
   /** 本轮是否有幕被激活. */
   readonly activated: boolean;
+  /**
+   * 本轮叠加的**原始**状态偏移 (未过单回合 cap).
+   *
+   * V2026-11-03 治本 (WP26 · P2-12): cap 管的是"**一回合总 delta**", 不管 delta
+   * 来自事件还是剧本 —— 所以剧本这一份必须能被会话层取走, 与事件 delta 合并后
+   * 统一过一次 cap. 缺省 = 本轮没有叠加任何偏移 (等待轮 / 无 delta 的幕).
+   *
+   * 为什么是"原始": 已经过 cap 的值没法再与事件 delta 合并 —— 那等于把同一把
+   * 尺子量两次, 报告里的 raw 也就不是真的 raw 了.
+   */
+  readonly delta?: DeltaVector;
 }
 
 /**
@@ -97,8 +126,61 @@ export function applyTrajectory(mode: TrajectoryMode, bdi: Intention, baseSnapsh
       ? mergeWeighted(bdi, target, resolveCorrectWeight(node.correctWeight), node.nodeId, mode)
       : mergeOverride(bdi, target, node.nodeId, mode);
 
-  const snapshot = plan.enterNewAct ? applyDelta(baseSnapshot, node.delta) : baseSnapshot;
-  return { intention, snapshot, activated: true };
+  // V2026-11-03 治本 (WP26 · P2-12): 偏移**只转换一次** ——
+  //   落快照 (applyDeltaVector) 与外抛的 raw delta 用的是同一个向量, 杜绝
+  //   "报出来的 raw 与真正叠上去的不是同一个数".
+  const delta = plan.enterNewAct ? toDeltaVector(node.delta) : undefined;
+  const snapshot = delta ? applyDeltaVector(baseSnapshot, delta) : baseSnapshot;
+  return { intention, snapshot, activated: true, ...(delta ? { delta } : {}) };
+}
+
+/**
+ * 缺省归零: 剧本 delta 的所有数值字段缺省 = 0 (这一维本轮不动).
+ *
+ * 为什么单独抽一个函数 (而不是在 11 个字段上各写一次 `?? 0`):
+ *   ① **口径只有一处** —— "缺省 = 0" 这条规则只被说一次, 将来要改 (比如改成
+ *      "缺省 = 沿用当前值") 时只改这一行, 不会出现"改了一处漏了另一处";
+ *   ② 转换函数的复杂度回落 —— 11 个 `??` 各自算一个分支, 加上 `?.` 与 `if`
+ *      直接顶破 eslint 的 complexity 上限 (20). 抽出来之后本函数只剩
+ *      "取哪几个字段" 这一件事, 复杂度 21 → 10.
+ *
+ * @param value 幕上声明的数值 (未声明 = undefined)
+ * @returns 有效数值 (缺省 0)
+ */
+function orZero(value: number | undefined): number {
+  return value ?? 0;
+}
+
+/**
+ * 幕偏移 → 内核 delta 向量 (唯一转换点).
+ *
+ * 维度口径与 `applyDeltaVector` 一一对应: 信念层 / 愿望层**不参与**偏移
+ * (剧本改不了来访的核心信念, 那是认知演进的活).
+ *
+ * WP52: 同盟三维的 safety / bond **已接入** —— 剧本契约 (`SnapshotDelta`) 补了
+ *   这两项, 缺省 = 0 (与 trust / resistance 同口径). WP42 留下的缺口
+ *   ("剧本只涨 trust, 推不动同盟发展") 到此闭合.
+ *
+ * 为什么剧本偏移**不经过人格调节** (任务单 §4.1):
+ *   剧本是**确定性叙事** —— 这一幕的目标偏移与依恋类型无关; 人格差异体现在
+ *   **日常对话**的事件 delta 里 (见 `personality-modulator.ts`).
+ */
+function toDeltaVector(delta: SnapshotDelta | undefined): DeltaVector | undefined {
+  if (!delta) return undefined;
+  return {
+    trust: orZero(delta.trust),
+    // WP52: 同盟三维的两维从契约取值 (缺省 0 = 本轮不动).
+    safety: orZero(delta.safety),
+    bond: orZero(delta.bond),
+    verbal: orZero(delta.resistance?.verbal),
+    depth: orZero(delta.resistance?.depth),
+    style: orZero(delta.resistance?.style),
+    valence: orZero(delta.emotion?.valence),
+    arousal: orZero(delta.emotion?.arousal),
+    positive: orZero(delta.transference?.positive),
+    negative: orZero(delta.transference?.negative),
+    dependency: orZero(delta.transference?.dependency),
+  };
 }
 
 /**
@@ -191,30 +273,4 @@ function unionBehaviors(base: readonly string[], extra: readonly string[] | unde
 function mergeRationale(base: string | undefined, mode: TrajectoryMode, nodeId: string): string {
   const note = `轨迹:${mode}/${nodeId}`;
   return base ? `${base} | ${note}` : note;
-}
-
-/**
- * 状态偏移叠加 (仅进入新幕那一轮).
- *
- * 增量叠加 + 统一 clamp; 信念层与愿望层原样透传 (信念演进属后续认知轮).
- */
-function applyDelta(base: BdiSnapshot, delta: SnapshotDelta | undefined): BdiSnapshot {
-  if (!delta) return base;
-  const valence = clampValence(base.emotion.valence + (delta.emotion?.valence ?? 0));
-  const arousal = clamp01(base.emotion.arousal + (delta.emotion?.arousal ?? 0));
-  return {
-    ...base,
-    trust: clamp01(base.trust + (delta.trust ?? 0)),
-    emotion: { label: resolveEmotionLabel(valence, arousal), valence, arousal },
-    resistance: {
-      verbal: clamp01(base.resistance.verbal + (delta.resistance?.verbal ?? 0)),
-      depth: clamp01(base.resistance.depth + (delta.resistance?.depth ?? 0)),
-      style: clamp01(base.resistance.style + (delta.resistance?.style ?? 0)),
-    },
-    transference: {
-      positive: clamp01(base.transference.positive + (delta.transference?.positive ?? 0)),
-      negative: clamp01(base.transference.negative + (delta.transference?.negative ?? 0)),
-      dependency: clamp01(base.transference.dependency + (delta.transference?.dependency ?? 0)),
-    },
-  };
 }

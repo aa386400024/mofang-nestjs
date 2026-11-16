@@ -31,7 +31,7 @@
 //     2. test/engine-adapters/wp9a-character-resolver.spec.ts 覆盖解析/可复现/可区分/回退/clamp
 //     3. test/engine-adapters/wp9a-open-profile.spec.ts 覆盖 openSession 注入与中性回退
 
-import type { CharacterProfile } from '../../../engine-core';
+import type { CharacterProfile } from '../../../engine-core/index.js';
 
 /**
  * 临场参数 (握手已解析) —— 影响本场基线的**叠加项**.
@@ -76,6 +76,8 @@ export interface ResolvedCharacter {
   readonly seed?: number;
   /** 展示用角色名 (供 persona 快照 / 报告 / 日志; 不进决策). */
   readonly displayName: string;
+  /** 台词指纹 (WP-J P2): 自由文本, 渲染层 prompt 用, 不进内核. */
+  readonly verbalVoice?: string;
 }
 
 /**

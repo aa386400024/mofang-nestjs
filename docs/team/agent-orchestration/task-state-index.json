@@ -1,0 +1,338 @@
+{
+  "version": "1.1.0",
+  "schemaRef": "urn:agent-collaboration-framework:schema:task-state-index:1.1.0",
+  "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
+  "projection": {
+    "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
+    "lastEventSeq": 74,
+    "rebuiltAt": null
+  },
+  "tasks": [],
+  "archivedTasks": [
+    {
+      "taskId": "TD-5",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-6",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-7",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td7-contract-drift-remediation-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td7-contract-drift-remediation-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-8",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-9",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td9-test-isolation-and-lint-hygiene-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td9-test-isolation-and-lint-hygiene-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-10",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td10-test-structure-debt-reduction-task-2026-11-13.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td10-test-structure-debt-reduction-implementation-2026-11-13.md"
+      }
+    },
+    {
+      "taskId": "TD-11",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-12",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-13",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-14",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td14-entity-typeorm-decoupling-assessment-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td14-entity-typeorm-decoupling-assessment-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-15",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td15-enum-extraction-cplus-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td15-enum-extraction-cplus-implementation-2026-11-14.md"
+      }
+    },
+    {
+      "taskId": "TD-16",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td16-life-map-port-pilot-c1-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td16-life-map-port-pilot-c1-implementation-2026-11-14.md",
+        "reply": "docs/worklog/pending/archive/relay-response-20261114-1524.md"
+      }
+    },
+    {
+      "taskId": "TD-17",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td17-consent-port-c2-batch1-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td17-consent-port-c2-batch1-implementation-2026-11-14.md",
+        "reply": "docs/worklog/pending/archive/relay-response-20261114-1719.md"
+      }
+    },
+    {
+      "taskId": "TD-18",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td18-good-state-diary-port-c2-batch2-task-2026-11-14.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td18-good-state-diary-port-c2-batch2-implementation-2026-11-14.md",
+        "reply": "docs/worklog/pending/archive/relay-response-20261114-1818.md"
+      }
+    },
+    {
+      "taskId": "TD-19",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td19-emergency-port-c2-batch3-task-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td19-emergency-port-c2-batch3-implementation-2026-11-15.md",
+        "reply": "docs/worklog/pending/archive/relay-response-20261115-0227.md"
+      }
+    },
+    {
+      "taskId": "TD-20",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td20-home-messages-moodlog-port-c2-batch4-task-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td20-home-messages-moodlog-port-c2-batch4-implementation-2026-11-15.md",
+        "reply": "docs/worklog/pending/archive/relay-response-20261115-0346.md"
+      }
+    },
+    {
+      "taskId": "TD-21",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/td21-counselor-quote-port-c2-batch5-task-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/td21-counselor-quote-port-c2-batch5-implementation-2026-11-15.md",
+        "reply": "docs/worklog/pending/archive/relay-response-20261115-1211.md"
+      }
+    },
+    {
+      "taskId": "AF-001",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af001-framework-bootstrap-task-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af001-framework-bootstrap-implementation-2026-11-15.md",
+        "reply": "docs/worklog/pending/archive/relay-response-af001-20261115.md"
+      }
+    },
+    {
+      "taskId": "AF-002",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": null,
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af002-framework-adapter-decoupling-implementation-2026-11-15.md"
+      }
+    },
+    {
+      "taskId": "AF-003",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af003-framework-finalization-task-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af003-framework-finalization-implementation-2026-11-15.md",
+        "reply": "docs/worklog/pending/archive/relay-response-20261115-1533.md"
+      }
+    },
+    {
+      "taskId": "AF-004",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af004-framework-hardening-task-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af004-framework-hardening-implementation-2026-11-15.md",
+        "reply": "docs/worklog/pending/archive/relay-response-20261115-1616.md"
+      }
+    },
+    {
+      "taskId": "AF-005",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af005-framework-evolution-watcher-state-machine-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+      }
+    },
+    {
+      "taskId": "AF-006",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af006-framework-evolution-validation-scripts-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+      }
+    },
+    {
+      "taskId": "AF-007",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af007-framework-evolution-tool-standardization-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+      }
+    },
+    {
+      "taskId": "AF-008",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af008-framework-evolution-agent-protocol-mapping-2026-11-15.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
+      }
+    },
+    {
+      "taskId": "AF-009",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-implementation-2026-11-16.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-010",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-implementation-2026-11-16.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-011",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af011-file-scope-mutex-validation-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af011-file-scope-mutex-validation-implementation-2026-11-16.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-012",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-implementation-2026-11-16.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-013",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-implementation-2026-11-16.md",
+        "reply": "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md"
+      }
+    },
+    {
+      "taskId": "AF-014",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-implementation-2026-11-16.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-015",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-implementation-2026-11-16.md"
+      }
+    },
+    {
+      "taskId": "AF-016",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-implementation-2026-11-16.md"
+      }
+    },
+    {
+      "taskId": "AF-017",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-implementation-2026-11-16.md"
+      }
+    },
+    {
+      "taskId": "AF-018",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-implementation-2026-11-16.md"
+      }
+    },
+    {
+      "taskId": "AF-019",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af019-adapter-finalization-node26-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af019-adapter-finalization-node26-implementation-2026-11-16.md"
+      }
+    },
+    {
+      "taskId": "AF-020",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af020-orchestration-hardening-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af020-orchestration-hardening-implementation-2026-11-16.md"
+      }
+    }
+  ],
+  "archivedNotes": {
+    "AF-009": "交接契约 schema 与 transport reviews 接线；编排层 61 passed",
+    "AF-010": "派发接线 + 回执 watcher 与两层幂等；编排层 68 passed",
+    "AF-011": "文件域互斥纯函数 + claim 拦截 + V7 残留护栏；76 passed",
+    "AF-012": "分支流程 CLI + 纯函数治理；82 passed",
+    "AF-013": "GUI 通道规则纯函数模块 + CLI channel 只读视图；真实只读演练 DR-001 闭环；89 passed",
+    "AF-014": "README §2/§4 + 三份角色卡 limits + 任务单模板对齐 §6.1 L1–L4 分层；纯文档零源码改动；IM-016 登记 conventions/回执模板旧口径另案",
+    "AF-015": "通道可靠性锚定§4:任务级预算/退避/终态出口/定性三分法/逐次留痕;94 passed;零业务源码改动",
+    "AF-016": "编排护栏:能力路由/资源域校验/rebase巡检/V7采集接线;112 passed;零业务源码改动",
+    "AF-017": "回执正文抽取双通道;116 passed;零业务源码改动",
+    "AF-018": "适配层迁移到框架 v2.0.0；契约 1.1.0 / 工具一文件 / 交付包 1.0.0；保留 34 条归档与 DR-001；129 passed",
+    "AF-019": "适配层收尾：development 退役 + CI Actions 升级 + 记录闭环；36 条归档 / 11 条说明；7/7 PASS；130 passed",
+    "AF-020": "P0-P2 闭环：CI 契约硬门/发布流水线/事件溯源；validate 9/9；编排 135 passed"
+  }
+}

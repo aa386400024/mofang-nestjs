@@ -31,7 +31,7 @@
 //     3. 模型若在批注里写"得分 / 及格" → 零压守门拦下 → 整份判废 → 走关键词路径
 //   时间戳: 2026-10-27 21:00 GMT+8
 
-import type { DrillItem } from '../domain/drill.types';
+import type { DrillItem } from '../domain/drill.types.js';
 
 /**
  * 演练润色的 system prompt.

@@ -29,6 +29,43 @@
 //     2. migration:run 后 DESCRIBE character_profiles 与任务单 §3 一致
 //     3. test/engine-adapters/wp9b-*.spec.ts 覆盖 resolver / seed / admin
 //
+//   V2026-11-04 治本 (WP51 · B 层 · 同盟三维基线两列):
+//   职责: 给 `character_profiles` 加 2 列 —— `baseline_safety` / `baseline_bond`,
+//         让角色种子能按依恋风格给出**开场**的安全感 / 联结感.
+//   边界: 只加列 + 让 resolver 读; 数值口径在 seed 与内置种子两处 (各一份内容,
+//         同一档位), 映射公式仍只有 WP9-A 的 buildCharacterProfile 一份.
+//
+//   为什么这两列不是"纯预留" (与 WP10A 三列相反):
+//     WP10A 那三列是**表达风格** (话量/叙事/语态) —— 本期无消费方, 先占位.
+//     而 safety / bond 是**同盟三维**的基线: 内核 bootstrap 已经从
+//     `profile.baseline` 读 (WP51 同期), 列一到位就**真的生效**.
+//
+//   默认值与内核常量对齐:
+//     `baseline_safety` 默认 0.5 = 内核 `DEFAULT_SAFETY`;
+//     `baseline_bond` 默认 0 = 内核 `DEFAULT_BOND`.
+//     存量行由 MySQL 的 ADD COLUMN ... DEFAULT 自动填充, 不需要 UPDATE ——
+//     老角色加列后的行为与加列前逐字一致 (零回归).
+//
+//   V2026-11-04 治本 (WP49 · B 层 · 大五人格一列):
+//   职责: 给 `character_profiles` 加 1 列 —— `personality_traits` (JSON),
+//         让角色的**大五人格 (OCEAN) 数值**有地方存, 进内核后由 WP34 的人格
+//         调节算子消费 (本期只有宜人性一条规则真的接上).
+//   边界: 只加列 + 让 resolver 读; 数值口径在种子与内置种子两处 (各一份内容,
+//         同一档位), 映射公式仍只有 WP9-A 的 buildCharacterProfile 一份.
+//
+//   为什么这列是 **JSON NULL** 而不是 NOT NULL DEFAULT (与 WP51 两列不同口径):
+//     大五人格是**可选**的 —— 角色没表态 = 内核不做特质调节 (回退口径住在内核).
+//     若给它一个 DB DEFAULT (比如 0.5), "这个角色没说"与"这个角色正好是 0.5"就在
+//     数据源上被抹平了, 而适配层的条件展开也就失去了意义.
+//     同理, MySQL 的 JSON 列本来也不该挂 DEFAULT —— 默认值写在 DDL 里就是第二份
+//     真相源 (内核已经有一份).
+//
+//   为什么放在 `five_ps` 旁边 (而不是 baseline_* 那一组):
+//     `five_ps` 是**临床 5Ps** (易感 / 维持 / 诱发 / 保护 / 持续因素), 是给人读的
+//     长材料; `personality_traits` 是**大五人格数值**, 是给内核算子吃的.
+//     两者**不是一回事** (内核 `PersonalityTraits` 的注释里专门警告过), 但它们是
+//     "角色画像"里最容易被人混淆的两个东西 —— 并排放, 让"这是两列"一眼可见.
+//
 //   V2026-10-30 治本 (WP10A · B 层 · 表达风格基线字段预留):
 //   职责: 给 `character_profiles` 加 3 列**纯预留**字段 —— 话量基线 / 叙事风格 / 语态倾向,
 //         供 Phase2 P1 的表达风格渲染消费.
@@ -49,11 +86,22 @@
 //     2. migration:run 后 DESCRIBE character_profiles 与任务单 §1.1 一致
 //     3. test/engine-adapters/wp10a-*.spec.ts 覆盖列定义 / migration 幂等 / 种子默认值
 //
+//   V2026-11-04 治本 (WP41 · B 层 · 表达风格三列接通):
+//     WP10A 加的这 3 列此前是**纯预留** —— 有列、有种子、**零消费方**. 本期把它们
+//     接上: resolver 读列 → 内核 `CharacterProfile` → `RenderSpec` → 渲染层.
+//     本文件的两处改动:
+//       ① `CharacterNarrativeStyle` / `CharacterExpressionTone` 两个类型改为
+//          **从内核契约派生** (`NonNullable<CharacterProfile['...']>`) —— 内核是规范,
+//          本文件是镜像; 自己再写一份联合类型 = 两个真相源, 内核加一档而这里没加
+//          时 DB 行能装进去、内核却接不住, 而且**没有任何报错**;
+//       ② 三列的注释从"纯预留"改成真实状态 (注释过期 = 给下一个人的假话).
+//     列的定义 / DEFAULT **一字未改** (WP10A 的 DDL 口径不变, 不加 migration).
+//
 //   时间戳: 2026-10-29
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
-import type { AttachmentStyle, CoreBelief, UnderlyingDesireSeed } from '../../../engine-core';
+import type { AttachmentStyle, CharacterProfile, CoreBelief, PersonalityTraits, UnderlyingDesireSeed } from '../../../engine-core/index.js';
 
 /**
  * 角色审核状态 (字符串联合, 非 enum —— 它是纯数据判别式, 不需要运行时值).
@@ -63,28 +111,35 @@ import type { AttachmentStyle, CoreBelief, UnderlyingDesireSeed } from '../../..
 export type CharacterAuditStatus = 'draft' | 'approved' | 'rejected';
 
 /**
- * 叙事逻辑风格 (V2026-10-30 WP10A · 表达风格基线预留).
+ * 叙事逻辑风格 (V2026-10-30 WP10A · 表达风格基线).
  *
  * - structured   —— 条理清晰 / 时间线明确;
  * - disorganized —— 话题跳跃 / 想到哪说到哪;
  * - mixed        —— 兼有 (默认档).
  *
- * 本期**纯预留**: 不进内核 CharacterProfile / 不进 RenderSpec / 不影响会话行为.
- * Phase2 P1 做表达风格渲染时, 由 resolver 映射层消费.
+ * V2026-11-04 WP41: 这三列**不再纯预留** —— 内核 `CharacterProfile` 顶层已有同名字段,
+ * 渲染层据此产出叙事 / 语态两行 (详见 `turn-render-orchestrator.ts`).
+ *
+ * 为什么这里的类型**从内核契约派生**而不是自己再写一遍联合类型:
+ *   内核 `CharacterProfile` 是这 3 个字段的**规范定义**, 本文件是它的**镜像**.
+ *   自己再写一份 = 两个真相源, 内核加一档而这里没加时, DB 行能装进去、
+ *   内核却接不住 (而且**没有任何报错**). 派生写法让两者永远同步.
+ *   (内核类型没进公开 barrel —— 边界断言 ⑥ 是双向精确白名单, 加导出要动第三个
+ *    内核文件; 这里用**派生**而不是重复声明, 是与 WP59 同一套做法.)
  */
-export type CharacterNarrativeStyle = 'structured' | 'disorganized' | 'mixed';
+export type CharacterNarrativeStyle = NonNullable<CharacterProfile['narrativeStyle']>;
 
 /**
- * 语态倾向 (V2026-10-30 WP10A · 表达风格基线预留).
+ * 语态倾向 (V2026-10-30 WP10A · 表达风格基线).
  *
  * - restrained          —— 克制内敛 / 情绪平淡 (默认档);
  * - emotional           —— 情绪化宣泄 / 语句破碎;
  * - intellectualizing   —— 理智化隔离 / 讲道理 / 自我分析;
  * - passive_aggressive  —— 被动攻击 / 言语带刺 / 表面顺从实则抵触.
  *
- * 本期**纯预留**, 语义见 `CharacterNarrativeStyle`.
+ * 取值口径与来源: 见 `CharacterNarrativeStyle` (同一个内核契约派生).
  */
-export type CharacterExpressionTone = 'restrained' | 'emotional' | 'intellectualizing' | 'passive_aggressive';
+export type CharacterExpressionTone = NonNullable<CharacterProfile['expressionTone']>;
 
 /**
  * 5Ps 专业材料 (给人读, 不进内核决策).
@@ -136,6 +191,19 @@ export class CharacterProfileEntity {
   @Column({ type: 'json', name: 'five_ps' })
   fivePs!: CharacterFivePs;
 
+  /**
+   * 大五人格 (OCEAN) 数值 (WP49).
+   *
+   * NULL = 角色**没表态** = 内核不做特质调节 —— 回退口径住在内核, 本层不兜底.
+   * 与 `baseline_safety` / `baseline_bond` (NOT NULL DEFAULT) **口径相反**:
+   * 那两列是必填基线, 本列是可选人格.
+   *
+   * ⚠️ 与 `five_ps` 不是一回事: 那是临床 5Ps (人读材料), 本列是大五人格数值
+   * (给内核算子吃) —— 两个概念, 不要混用.
+   */
+  @Column({ type: 'json', name: 'personality_traits', nullable: true })
+  personalityTraits!: PersonalityTraits | null;
+
   /** 初始信任 [0,1] (种子给, 临场 preset 不覆盖). */
   @Column({ type: 'float', name: 'baseline_trust', default: 0.3 })
   baselineTrust!: number;
@@ -161,6 +229,23 @@ export class CharacterProfileEntity {
   baselineEmotionArousal!: number;
 
   /**
+   * 关系安全感基线 [0,1] (WP51).
+   *
+   * 缺省 0.5 —— 与内核 `DEFAULT_SAFETY` 一致 (存量行加列后自动就是这个值,
+   * 一条 UPDATE 都不用写).
+   */
+  @Column({ type: 'float', name: 'baseline_safety', default: 0.5 })
+  baselineSafety!: number;
+
+  /**
+   * 关系联结基线 [0,1] (WP51).
+   *
+   * 缺省 0 —— 与内核 `DEFAULT_BOND` 一致 (纽带感开场时不存在, 只能长出来).
+   */
+  @Column({ type: 'float', name: 'baseline_bond', default: 0 })
+  baselineBond!: number;
+
+  /**
    * 话量基线 [0,1] (V2026-10-30 WP10A · 表达风格预留).
    *
    * 0 = 极沉默 / 长停顿, 1 = 絮叨 / 长篇大论.
@@ -169,7 +254,9 @@ export class CharacterProfileEntity {
    * 话量基线是"天然性格话多话少" —— 两者会同时反向变化 (话多但不愿说, 或话少但很能说),
    * 合成成一个维度会把"防御性沉默"和"气质性沉默"混成同一种人 (任务单 §1.1).
    *
-   * 本期**纯预留**: 不进内核, 不影响会话行为.
+   * V2026-11-04 WP41: 这一列**已接通** —— resolver 读它 → 内核 `CharacterProfile`
+   * → `RenderSpec` → 渲染层拿它对**话量档位边界**做基线修正 (天生话多的人不容易
+   * 被判"话少"). 缺省 0.5 = 中位 = 修正量为 0 = 与没接一样.
    */
   @Column({ type: 'float', name: 'speech_volume_baseline', default: 0.5 })
   speechVolumeBaseline!: number;
@@ -177,7 +264,8 @@ export class CharacterProfileEntity {
   /**
    * 叙事逻辑风格 (V2026-10-30 WP10A · 表达风格预留).
    *
-   * 本期**纯预留**: 不进内核, 不影响会话行为.
+   * V2026-11-04 WP41: 这一列**已接通** —— resolver 读它 → 内核 `CharacterProfile`
+   * → `RenderSpec` → 渲染层渲染"说话一贯的样子"那一行.
    */
   @Column({ type: 'varchar', length: 20, name: 'narrative_style', default: 'mixed' })
   narrativeStyle!: CharacterNarrativeStyle;
@@ -185,10 +273,19 @@ export class CharacterProfileEntity {
   /**
    * 语态倾向 (V2026-10-30 WP10A · 表达风格预留).
    *
-   * 本期**纯预留**: 不进内核, 不影响会话行为.
+   * V2026-11-04 WP41: 这一列**已接通** —— resolver 读它 → 内核 `CharacterProfile`
+   * → `RenderSpec` → 渲染层渲染"说话一贯的样子"那一行.
    */
   @Column({ type: 'varchar', length: 20, name: 'expression_tone', default: 'restrained' })
   expressionTone!: CharacterExpressionTone;
+
+  /**
+   * 台词指纹 (WP-J P2): 自由文本描述这个角色"说话的味道"——
+   *  句式习惯 / 口头禅 / 节奏 / 语气质感. NULL = 不渲染 (零回归).
+   *  它是渲染层增强, 不进内核决策.
+   */
+  @Column({ type: 'varchar', length: 500, name: 'verbal_voice', nullable: true })
+  verbalVoice!: string | null;
 
   /** 核心信念 (第一人称, 永久不可变): `[{theme, statement, activationTags[]}]`. */
   @Column({ type: 'json', name: 'core_beliefs' })
@@ -214,9 +311,45 @@ export class CharacterProfileEntity {
   @Column({ type: 'tinyint', default: 1 })
   enabled!: boolean;
 
-  /** 版本号 (预留; 版本迁移本身归 Phase2). */
+  /**
+   * 内容修改计数 (int 自增).
+   *
+   * V2026-11-06 治本 (WP38): 本列**不再是版本的真相源** —— 真相源是下面三列 semver.
+   * 本列保留为"改过几次"的粗粒度计数 (既有对外契约 + 既有单测依赖它), 但它
+   * **表达不出**"这次改动是主版本还是次版本" —— 那正是 semver 要回答的问题.
+   * (两个真相源并存的风险: 有人改本列不改 semver → 版本号对不上. 所以本列的
+   *  注释写明它是"计数", 版本判定一律读三列.)
+   */
   @Column({ type: 'int', default: 1 })
   version!: number;
+
+  /**
+   * 主版本号 (semver major) — WP38.
+   *
+   * 语义: 角色定位大改 (依恋风格变了 / 核心信念变了).
+   * **进行中锁定**: 有活跃会话在用这个角色时不允许改主版本 (要改先等会话结束).
+   *
+   * 缺省 1 —— 与"初始版本 1.0.0"一致; 存量行加列后自动就是这个值 (零回归).
+   */
+  @Column({ type: 'int', name: 'version_major', default: 1 })
+  versionMajor!: number;
+
+  /**
+   * 次版本号 (semver minor) — WP38.
+   *
+   * 语义: 参数调整 (信任基线微调 / 阻抗档位调整) —— 平滑生效: 新会话用新版本,
+   * 已在跑的会话不受影响.
+   */
+  @Column({ type: 'int', name: 'version_minor', default: 0 })
+  versionMinor!: number;
+
+  /**
+   * 修订号 (semver patch) — WP38.
+   *
+   * 语义: 文案错别字 / 小参数微调 —— 实时生效档.
+   */
+  @Column({ type: 'int', name: 'version_patch', default: 0 })
+  versionPatch!: number;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

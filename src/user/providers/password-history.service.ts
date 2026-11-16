@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as bcrypt from 'bcryptjs';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { PasswordHistory } from '../entities/password-history.entity';
-import { User } from '../entities/user.entity';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { verifyPassword } from '../../shared/infra/security/password-hasher.js';
+import { PasswordHistory } from '../entities/password-history.entity.js';
+import { User } from '../entities/user.entity.js';
 
 /**
  * Password history service — 密码历史 + 强制重置周期 (大厂安全合规).
@@ -53,7 +53,7 @@ export class PasswordHistoryService {
       return;
     }
     for (const entry of history) {
-      const match = await bcrypt.compare(newPassword, entry.passwordHash);
+      const match = await verifyPassword(newPassword, entry.passwordHash);
       if (match) {
         throw new BizException(BizCode.PasswordReused);
       }

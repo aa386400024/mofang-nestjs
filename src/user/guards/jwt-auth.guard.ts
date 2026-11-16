@@ -3,12 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 
-import type { JwtPayload } from '../../auth/auth.interface';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { COOKIE_NAMES } from '../../common/security/cookie-token';
-import { JwtBlacklistService } from '../providers/jwt-blacklist.service';
-import { TokenType } from '../user.constant';
+import type { JwtPayload } from '../../auth/auth.interface.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { COOKIE_NAMES } from '../../common/security/cookie-token.js';
+import { JwtBlacklistService } from '../providers/jwt-blacklist.service.js';
+import { TokenType } from '../user.constant.js';
 
 /**
  * JwtAuthGuard — 企业级 JWT 验证 guard (大厂标准).

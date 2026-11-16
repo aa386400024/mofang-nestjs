@@ -22,7 +22,7 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp9c-render-risk.spec.ts 覆盖等级映射与思考强度升级
 
-import type { RenderSpec, SafetyLevel, VisitorRiskCategory } from '../../engine-core';
+import type { RenderSpec, SafetyLevel, VisitorRiskCategory } from '../../engine-core/index.js';
 
 /**
  * 渲染路由用的风险等级 (适配层口径).
@@ -59,6 +59,8 @@ export interface AdaptiveRenderSpec extends RenderSpec {
   readonly riskSignal?: RenderRiskSignal;
   /** 角色代号 (仅供 dev 调试日志; **不进 prompt**, 模型不该看见自己的角色名). */
   readonly characterLabel?: string;
+  /** 台词指纹 (WP-J P2): 自由文本, 渲染层 prompt 用, 不进内核. */
+  readonly verbalVoice?: string;
 }
 
 /**

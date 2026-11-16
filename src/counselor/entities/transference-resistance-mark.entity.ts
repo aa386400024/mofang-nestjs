@@ -17,7 +17,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { TransferenceMarkDirection, TransferenceMarkType } from '../enums/transference-mark.enum';
+import { TransferenceMarkDirection, TransferenceMarkType } from '../enums/transference-mark.enum.js';
 
 /**
  * 双向移情 / 阻抗标记.

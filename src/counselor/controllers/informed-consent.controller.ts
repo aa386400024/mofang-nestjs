@@ -20,11 +20,11 @@
 import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { InformedConsentMarkDto, InformedConsentMarkResultDto, InformedConsentStatusDto } from '../dto/session-core.dto';
-import { InformedConsentService } from '../providers/informed-consent.service';
+import { InformedConsentMarkDto, InformedConsentMarkResultDto, InformedConsentStatusDto } from '../dto/session-core.dto.js';
+import { InformedConsentService } from '../providers/informed-consent.service.js';
 
 /**
  * V2026-10-21 (V1.2 VS-C — CounselorInformedConsentController):

@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, DeleteDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { UserState } from '../user.state';
+import { UserState } from '../user.state.js';
 
 /**
  * User entity — 心塑 + 魔方共用账号表 (大厂企业级).

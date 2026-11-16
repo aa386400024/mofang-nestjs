@@ -24,8 +24,34 @@
 //   如何验证:
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp7-turn-render.spec.ts 覆盖字段映射与历史裁剪
+//
+// V2026-11-04 WP50 (B 层 · 渲染规格接入同盟三维):
+//   同盟三维 (trust / safety / bond) 是**内核决策的产物**, 渲染层据此调整措辞 ——
+//   所以它们进**内核 RenderSpec** (与 trust 同性质), 不进适配层的 AdaptiveRenderSpec:
+//   放进后者等于让适配层自己去读 snapshot, 破坏"组装是纯函数"的分层 (见文件头).
+//   本文件的扩展: 把 snapshot.safety / snapshot.bond 一起传进规格.
+//
+//   为什么**直接传**而不做条件展开:
+//     BdiSnapshot 的三维都是**必填**, "缺省"在数据源上不可能发生 ——
+//     与 sessionSummary / trajectoryNote 那类"可能真的没有"的字段不同.
+//     真正的可选性在**内核 RenderSpec 那一侧** (别的生产者可以不带), 本层
+//     有就传, 不搞"有条件地装"这种把简单事写复杂的写法.
 
-import { resolveRiskLevel, type AdaptiveRenderSpec } from './render-risk';
+//   V2026-11-04 治本 (WP41 · 渲染规格接入表达风格):
+//     WP10A 在 DB 里预留了话量基线 / 叙事风格 / 语态倾向 3 列, 但内核契约里没有它们,
+//     渲染层因此看不到角色"天生怎么说话" —— 同样阻抗的两个角色, 输出完全一样.
+//     本文件的扩展: `SpecAssemblyInput` 加 3 个**可选**字段, `buildRenderSpec` 条件
+//     传给内核 `RenderSpec` (与 WP50 的 safety / bond 同一范式).
+//
+//   为什么**条件展开**而不是无条件传:
+//     缺省 = 不带这些键 → 规格与 WP35 **逐字一致** (零回归): 话量基线不做修正,
+//     叙事 / 语态两行不渲染. "没说"与"说了 undefined"必须分得开.
+//
+//   为什么类型**从内核契约派生** (`AdaptiveRenderSpec['...']`):
+//     `AdaptiveRenderSpec` 是内核 `RenderSpec` 的适配层扩展, 索引出来的就是内核那
+//     一份联合类型 —— 不另立一份, 两边永远同步 (内核加一档时这里自动跟上).
+
+import { resolveRiskLevel, type AdaptiveRenderSpec } from './render-risk.js';
 import {
   fitContextToBudget,
   type BdiSnapshot,
@@ -34,8 +60,8 @@ import {
   type RenderContextTurn,
   type RenderTaskKind,
   type RenderTokenBudget,
-} from '../../engine-core';
-import type { AttachmentStyle } from '../../engine-core';
+} from '../../engine-core/index.js';
+import type { AttachmentStyle } from '../../engine-core/index.js';
 
 /**
  * 规格组装入参.
@@ -61,6 +87,25 @@ export interface SpecAssemblyInput {
    * 不进 prompt —— 模型不该看见自己的角色名.
    */
   readonly characterLabel?: string;
+  /**
+   * 本场会话的滚动摘要 (WP37): 工作窗口挤出的早期轮次被压缩成的摘要.
+   *
+   * 缺省 = 本场还没产生摘要 (对话还没超过工作窗口) —— 此时规格与 WP5 **逐字一致**.
+   */
+  readonly sessionSummary?: string;
+  /**
+   * 表达风格三字段 (WP41): 角色"天生怎么说话".
+   *
+   * 类型**从内核契约派生** (`AdaptiveRenderSpec` 是内核 `RenderSpec` 的扩展) ——
+   * 不另立一份联合类型, 两边永远同步.
+   *
+   * 缺省 = 不传 = 规格与 WP35 **逐字一致** (零回归): 话量基线不做修正,
+   * 叙事 / 语态两行不渲染.
+   */
+  readonly speechVolumeBaseline?: AdaptiveRenderSpec['speechVolumeBaseline'];
+  readonly narrativeStyle?: AdaptiveRenderSpec['narrativeStyle'];
+  readonly expressionTone?: AdaptiveRenderSpec['expressionTone'];
+  readonly verbalVoice?: AdaptiveRenderSpec['verbalVoice'];
 }
 
 /**
@@ -86,6 +131,10 @@ export function buildRenderSpec(input: SpecAssemblyInput): AdaptiveRenderSpec {
     resistance: input.output.snapshot.resistance,
     transference: input.output.snapshot.transference,
     trust: input.output.snapshot.trust,
+    // WP50: 同盟三维接入渲染层 —— safety / bond 与 trust 同性质 (内核决策产物).
+    //   直接传, 不做条件展开 (BdiSnapshot 三维必填, 缺省在数据源上不可能发生).
+    safety: input.output.snapshot.safety,
+    bond: input.output.snapshot.bond,
     coreBeliefs: input.output.snapshot.coreBeliefs,
     ...(input.attachmentStyle ? { attachmentStyle: input.attachmentStyle } : {}),
     forbiddenBehaviors: mergeForbidden(intention.forbiddenBehaviors, input.roleForbiddenBehaviors),
@@ -103,6 +152,15 @@ export function buildRenderSpec(input: SpecAssemblyInput): AdaptiveRenderSpec {
           },
         }),
     ...(input.characterLabel ? { characterLabel: input.characterLabel } : {}),
+    // WP37: 滚动摘要 (缺省 = 不带这个键 → 规格与 WP5 逐字一致).
+    ...(input.sessionSummary ? { sessionSummary: input.sessionSummary } : {}),
+    // WP41: 表达风格三字段 (缺省 = 不带这些键 → 规格与 WP35 逐字一致).
+    //   条件展开而不是无条件传 undefined: "没说"与"说了 undefined"必须分得开,
+    //   否则渲染层分不清"这个角色没表态"与"这个角色话量基线是空".
+    ...(input.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: input.speechVolumeBaseline }),
+    ...(input.narrativeStyle === undefined ? {} : { narrativeStyle: input.narrativeStyle }),
+    ...(input.expressionTone === undefined ? {} : { expressionTone: input.expressionTone }),
+    ...(input.verbalVoice === undefined ? {} : { verbalVoice: input.verbalVoice }),
   };
 }
 

@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { BadgeId } from '../enums/badge-id.enum';
+import { BadgeId } from '../enums/badge-id.enum.js';
 
 /**
  * 徽章状态表 — V4.0 §3.3.

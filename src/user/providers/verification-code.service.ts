@@ -2,13 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomInt } from 'node:crypto';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { assertChinesePhone } from '../../common/validators/is-chinese-phone.validator';
-import { MetricsService } from '../../shared/infra/metrics';
-import { RedisService } from '../../shared/infra/redis';
-import { REDIS_KEYS, SmsPurpose } from '../../shared/infra/redis/redis.constants';
-import { SmsService } from '../../shared/infra/sms';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { assertChinesePhone } from '../../common/validators/is-chinese-phone.validator.js';
+import { MetricsService } from '../../shared/infra/metrics/index.js';
+import { RedisService } from '../../shared/infra/redis/index.js';
+import { REDIS_KEYS, SmsPurpose } from '../../shared/infra/redis/redis.constants.js';
+import { SmsService } from '../../shared/infra/sms/index.js';
 
 /**
  * Verification code service — 短信验证码 (大厂标准).

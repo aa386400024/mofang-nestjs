@@ -25,7 +25,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 
-import { AbilityParentDimension } from '../enums/ability-parent-dimension.enum';
+import { AbilityParentDimension } from '../enums/ability-parent-dimension.enum.js';
 
 // ════════════════════════════════════════════════════════════════════════════
 // 单个子指标 list 项 (无 description, 减少 list 流量)

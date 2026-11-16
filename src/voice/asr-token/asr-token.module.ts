@@ -8,8 +8,8 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 
-import { AsrTokenController } from './asr-token.controller';
-import { AsrTokenService } from './asr-token.service';
+import { AsrTokenController } from './asr-token.controller.js';
+import { AsrTokenService } from './asr-token.service.js';
 
 @Module({
   imports: [

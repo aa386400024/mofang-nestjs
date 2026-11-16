@@ -20,10 +20,62 @@
 //
 //   验证: npx jest test/engine-adapters/wp7-turn-render.spec.ts
 //   时间戳: 2026-10-28 GMT+8
+//
+// V2026-11-04 WP50 (B 层 · 渲染层接入同盟三维):
+//   覆盖 RenderSpec 新增的两个可选字段 (safety / bond) 在**适配层**的落地:
+//     ① spec-assembler 把 snapshot.safety / snapshot.bond 传进 RenderSpec;
+//     ② prompt 组装: 提供了就显示对应两行;
+//     ③ prompt 组装: 没提供就**逐字不变** (零回归) —— 且新 prompt 减去那两行
+//        后与旧 prompt **逐字相同** (证明只多了这两行, 别处一个字没动);
+//     ④ safety / bond 低**不改变**轮次长短 (本期只加数据, 不调策略).
+//
+//   关于第 ③ 条的断言口径 (为什么用"减去那两行"而不是直接比对整段 prompt):
+//     "逐字不变"的真正含义是"新 prompt = 旧 prompt + 恰好那两行".
+//     只断言"没有安全感三个字"太弱 —— 万一实现顺手改了别处的措辞, 它照样绿.
+//     所以这里**双向**断言: 缺省时不含这两行, 且有这两行时减去它们等于缺省版.
+//
+// V2026-11-04 WP56 (B 层 · 长期记忆召回进渲染上下文):
+//   覆盖召回结果进 prompt 的口径 ——
+//     ① recall 有内容 → 显示"你还记得这些事"那一段与各条记忆;
+//     ② recall 为空数组 → prompt **逐字不变** (零回归, 双向断言);
+//     ③ recall 有 5 条 → 只渲染 Top3 (不全部塞进去);
+//     ④ recall 内容在"内在状态"块里 (硬规则之前);
+//     ⑤ 记忆正文原样渲染 (不被改写 / 不截断);
+//     ⑥ 召回内容只在系统消息里, 不掺进历史消息.
+//
+//   关于第 ② 条的断言口径 (同上, 双向):
+//     "逐字不变" = "新 prompt = 旧 prompt + 恰好这一段".
+//     减去的方式是滤掉 '- 你还记得这些事' 开头行与 '  - ' 开头的子项行 ——
+//     '  - ' (两空格 + 破折号) 这个前缀**只有召回子项会用**, 其余行都是
+//     '- ' 开头或纯文本, 所以这个滤法不会误伤别的内容 (用例 ③ 顺带钉住"恰好 3 个子项").
+
+// V2026-11-04 WP35 (B 层 · 渲染四手法):
+//   覆盖"这一轮怎么说"从话量三档升级到四手法的口径 ——
+//     ① 语气疏离度三档 (distant / neutral / warm): 阻抗优先, 同盟三维齐全才亲近;
+//     ② 情绪表现方式: 标签 + 唤醒 → 怎么表现 (焦虑 / 愤怒各有高低唤醒两种说法);
+//     ③ 表达层变化: prompt 里有一句"不要重复最近几轮用过的句式" (WP-G 改动 6);
+//     ④ 口语化 / 非语言: "说话方式"后面补了非语言表达那一行;
+//     ⑤ 零回归: 没有 safety / bond → **不渲染**语气疏离度那一行;
+//     ⑥ 零回归: 情绪是 neutral → 不给额外的情绪表现指令;
+//     ⑦ 话量三档的判定口径 (resolveTurnVerbosity) **一个字没改**.
+//
+//   关于第 ⑤ 条对 WP50 那条零回归断言的影响 (为什么"恰好只多两行"变成三行):
+//     WP50 的断言口径是"同盟三维带来的 prompt 差异 = 恰好那几行". WP35 的语气疏离度
+//     **也由同盟三维驱动** (缺省不渲染) —— 所以同盟维度带来的差异从 2 行变成 3 行.
+//     这是**口径的自然延伸**, 不是把断言放宽: 扣掉那三行后仍要求与缺省版**逐字相同**.
 
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import path from 'node:path';
+import { vi } from 'vitest';
 
+import type { AdaptiveRenderSpec } from '../../src/engine-adapters/rendering/render-risk.js';
+import { buildRenderSpec } from '../../src/engine-adapters/rendering/spec-assembler.js';
+import {
+  DEFAULT_TURN_FALLBACK_UTTERANCE,
+  TurnRenderOrchestrator,
+  buildVisitorMessages,
+  type TurnSessionContext,
+} from '../../src/engine-adapters/rendering/turn-render-orchestrator.js';
 import {
   EngineCoreError,
   EngineErrorCode,
@@ -35,6 +87,7 @@ import {
   type EngineSessionPort,
   type EngineTurnInput,
   type EngineTurnOutput,
+  type EmotionLabel,
   type Intention,
   type MemoryEntry,
   type MemoryHit,
@@ -45,14 +98,13 @@ import {
   type RenderResult,
   type RenderSpec,
   type RenderTokenBudget,
-} from '../../src/engine-core';
-import { buildRenderSpec } from '../../src/engine-adapters/rendering/spec-assembler';
-import {
-  DEFAULT_TURN_FALLBACK_UTTERANCE,
-  TurnRenderOrchestrator,
-  buildVisitorMessages,
-  type TurnSessionContext,
-} from '../../src/engine-adapters/rendering/turn-render-orchestrator';
+} from '../../src/engine-core/index.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 const HANDLE_ID = 'handle-1';
 const CLOCK = 1_700_000_000_000;
@@ -116,9 +168,7 @@ class StubRenderer implements RenderPort {
   readonly specs: RenderSpec[] = [];
 
   constructor(
-    private readonly behavior:
-      | { ok: true; text: string; fallbackUsed?: boolean; providerHint?: string }
-      | { ok: false; error: Error },
+    private readonly behavior: { ok: true; text: string; fallbackUsed?: boolean; providerHint?: string } | { ok: false; error: Error },
   ) {}
 
   async render(spec: RenderSpec): Promise<RenderResult> {
@@ -229,7 +279,7 @@ describe('WP7 · 决策→说话闭环', () => {
       expect(spec.recentTurns).toEqual(fitContextToBudget(longTurns, 100).turns);
       expect(spec.recentTurns.length).toBeLessThan(longTurns.length);
       // 最新一轮永远保留 (对话新近性最重要).
-      expect(spec.recentTurns[spec.recentTurns.length - 1]?.text).toBe(longTurns[longTurns.length - 1]?.text);
+      expect(spec.recentTurns.at(-1)?.text).toBe(longTurns.at(-1)?.text);
     });
   });
 
@@ -340,7 +390,7 @@ describe('WP7 · 决策→说话闭环', () => {
     });
 
     it('渲染结果为空串 → 同样降级为兜底句', async () => {
-      const renderer = new StubRenderer({ ok: true, text: '   ' });
+      const renderer = new StubRenderer({ ok: true, text: ' '.repeat(3) });
       const { orchestrator } = buildOrchestrator({ renderer });
 
       const result = await orchestrator.turn(HANDLE_ID, { userText: USER_TEXT });
@@ -398,17 +448,460 @@ describe('WP7 · 决策→说话闭环', () => {
 
   describe('⑧ 零回归', () => {
     it('门面/组装器零框架与网络依赖 (import 面扫描)', () => {
-      const root = join(__dirname, '../../src/engine-adapters/rendering');
+      const root = path.join(__dirname, '../../src/engine-adapters/rendering');
       const forbidden = /@nestjs|typeorm|\bfetch\b|axios/;
 
       for (const file of ['turn-render-orchestrator.ts', 'spec-assembler.ts']) {
-        const source = readFileSync(join(root, file), 'utf8');
+        const source = readFileSync(path.join(root, file), 'utf8');
         const specifiers = [...source.matchAll(/(?:from\s+|require\(\s*)['"]([^'"]+)['"]/g)].map((match) => match[1] ?? '');
         expect(specifiers.filter((specifier) => forbidden.test(specifier))).toEqual([]);
       }
     });
   });
+
+  describe('⑨ WP50 · 渲染层接入同盟三维 (safety / bond)', () => {
+    it('spec-assembler 把 snapshot.safety / snapshot.bond 一起传进 RenderSpec', () => {
+      const snapshot = { ...createEmptyBdiSnapshot(), trust: 0.3, safety: 0.2, bond: 0.4 };
+      const spec = buildRenderSpec({ output: buildOutput({ snapshot }), recentTurns: [], tokenBudget: BUDGET });
+
+      expect(spec.trust).toBe(0.3);
+      expect(spec.safety).toBe(0.2);
+      expect(spec.bond).toBe(0.4);
+    });
+
+    it('prompt 组装: 提供了 safety / bond 就显示对应两行', () => {
+      const snapshot = { ...createEmptyBdiSnapshot(), trust: 0.3, safety: 0.2, bond: 0.4 };
+      const spec = buildRenderSpec({ output: buildOutput({ snapshot }), recentTurns: [], tokenBudget: BUDGET });
+
+      const systemText = (buildVisitorMessages(spec)[0]?.content ?? '') as string;
+
+      expect(systemText).toContain('- 安全感：0.20（越低越不敢说真话、越试探性）');
+      expect(systemText).toContain('- 联结感：0.40（越低越疏离、越像问诊）');
+      // 三维各自成行, 不合并成一行 (合并了就看不出是哪一维在起作用).
+      expect(systemText).toContain('- 信任：0.30');
+      expect(systemText).toContain('- 安全感：0.20');
+      expect(systemText).toContain('- 联结感：0.40');
+    });
+
+    it('prompt 组装: 不提供 safety / bond 时逐字不变 (零回归)', () => {
+      const spec = buildRenderSpec({ output: buildOutput(), recentTurns: [], tokenBudget: BUDGET });
+      const withAlliance = (buildVisitorMessages(spec)[0]?.content ?? '') as string;
+      const withoutAlliance = (buildVisitorMessages(withoutAllianceDimensions(spec))[0]?.content ?? '') as string;
+
+      // 缺省 = 不显示 = 这两行整个不出现.
+      expect(withoutAlliance).not.toContain('安全感');
+      expect(withoutAlliance).not.toContain('联结感');
+      // WP35 起, 同盟三维还驱动"语气疏离度"那一行 —— 缺省时同样整个不出现.
+      expect(withoutAlliance).not.toContain('语气有点疏离');
+      expect(warmthLine(withoutAlliance)).toBe('');
+      // 新 prompt 减去那几行 = 旧 prompt —— 证明只多了这几行, 别处一个字没动.
+      const stripped = withAlliance
+        .split('\n')
+        .filter((line) => !line.startsWith('- 安全感：') && !line.startsWith('- 联结感：') && !line.startsWith('语气'))
+        .join('\n');
+      expect(stripped).toBe(withoutAlliance);
+      // 且恰好只多三行 (WP50 两行 + WP35 的语气疏离度一行).
+      expect(withAlliance.split('\n').length - withoutAlliance.split('\n').length).toBe(3);
+    });
+
+    it('safety / bond 低**不改变**轮次长短 (本期只加数据, 不调策略)', () => {
+      const baseline = buildRenderSpec({ output: buildOutput(), recentTurns: [], tokenBudget: BUDGET });
+      const lowAlliance = buildRenderSpec({
+        output: buildOutput({ snapshot: { ...createEmptyBdiSnapshot(), safety: 0.05, bond: 0 } }),
+        recentTurns: [],
+        tokenBudget: BUDGET,
+      });
+
+      const baselineText = (buildVisitorMessages(baseline)[0]?.content ?? '') as string;
+      const lowText = (buildVisitorMessages(lowAlliance)[0]?.content ?? '') as string;
+
+      // "这一轮怎么说"那一段逐字相同 —— safety / bond 低了不会让模型自动变话少.
+      expect(verbosityLine(lowText)).toBe(verbosityLine(baselineText));
+      expect(verbosityLine(baselineText)).not.toBe('');
+      // 但状态本身确实传进去了 (数据接到了, 只是不参与策略).
+      expect(lowText).toContain('- 安全感：0.05');
+    });
+
+    it('不带 safety / bond 的普通 RenderSpec 仍是合法的 AdaptiveRenderSpec (零回归)', () => {
+      // 编译期保证: 别的生产者可以只造内核 RenderSpec, 不必补这两个可选字段.
+      const plain: AdaptiveRenderSpec = {
+        taskKind: 'chat',
+        intention: buildIntention(),
+        emotion: { label: 'neutral', valence: 0, arousal: 0.3 },
+        resistance: { verbal: 0.4, depth: 0.4, style: 0.35 },
+        transference: { positive: 0, negative: 0, dependency: 0 },
+        trust: 0.3,
+        coreBeliefs: [],
+        forbiddenBehaviors: ['judge'],
+        recall: [],
+        recentTurns: [],
+        tokenBudget: BUDGET,
+      };
+
+      expect('safety' in plain).toBe(false);
+      expect('bond' in plain).toBe(false);
+    });
+  });
+
+  describe('⑩ WP56 · 长期记忆召回进渲染上下文', () => {
+    /** 造 N 条召回命中 (按召回顺序 —— 内核已按相关度/重要度/时间排好序). */
+    function buildRecallHits(count: number): MemoryHit[] {
+      return Array.from({ length: count }, (_, index) => ({
+        entry: { ...buildMemoryEntry(), id: `memory-${index + 1}`, content: `长期记忆第${index + 1}条` },
+        score: 0.9 - index * 0.1,
+      }));
+    }
+
+    /** 造一份带 recall 的规格. */
+    function buildSpecWithRecall(hits: readonly MemoryHit[]): AdaptiveRenderSpec {
+      return buildRenderSpec({
+        output: buildOutput({ openingContext: hits }),
+        recentTurns: [],
+        tokenBudget: BUDGET,
+      });
+    }
+
+    it('recall 有内容 → prompt 显示"你还记得这些事"那一段与各条记忆', () => {
+      const spec = buildSpecWithRecall(buildRecallHits(2));
+
+      const systemText = (buildVisitorMessages(spec)[0]?.content ?? '') as string;
+
+      expect(systemText).toContain('- 你还记得这些事（背景，不要说出口）：');
+      expect(systemText).toContain('  - 长期记忆第1条');
+      expect(systemText).toContain('  - 长期记忆第2条');
+    });
+
+    it('recall 为空数组 → prompt 逐字不变 (零回归)', () => {
+      const withRecall = (buildVisitorMessages(buildSpecWithRecall(buildRecallHits(3)))[0]?.content ?? '') as string;
+      const withoutRecall = (buildVisitorMessages(buildSpecWithRecall([]))[0]?.content ?? '') as string;
+
+      // 空召回 = 这一段整个不出现.
+      expect(withoutRecall).not.toContain('你还记得这些事');
+      expect(withoutRecall).not.toContain('长期记忆第1条');
+      // 有召回的版本减去这一段 == 空召回版本 —— 证明只多了这一段, 别处一个字没动.
+      //   ('  - ' 开头的行只有召回子项会用, 其余行都是 '- ' 或纯文本).
+      const stripped = withRecall
+        .split('\n')
+        .filter((line) => !line.startsWith('- 你还记得这些事') && !line.startsWith('  - '))
+        .join('\n');
+      expect(stripped).toBe(withoutRecall);
+    });
+
+    it('recall 有 5 条 → 只渲染 Top3 (不全部塞进去)', () => {
+      const spec = buildSpecWithRecall(buildRecallHits(5));
+
+      const systemText = (buildVisitorMessages(spec)[0]?.content ?? '') as string;
+
+      expect(systemText).toContain('  - 长期记忆第1条');
+      expect(systemText).toContain('  - 长期记忆第2条');
+      expect(systemText).toContain('  - 长期记忆第3条');
+      expect(systemText).not.toContain('长期记忆第4条');
+      expect(systemText).not.toContain('长期记忆第5条');
+      // 恰好 3 个子项.
+      expect(systemText.split('\n').filter((line) => line.startsWith('  - '))).toHaveLength(3);
+    });
+
+    it('recall 内容放在"内在状态"块里 (在硬规则之前)', () => {
+      const systemText = (buildVisitorMessages(buildSpecWithRecall(buildRecallHits(1)))[0]?.content ?? '') as string;
+
+      const stateIdx = systemText.indexOf('你此刻的内在状态');
+      const recallIdx = systemText.indexOf('- 你还记得这些事');
+      const hardRuleIdx = systemText.indexOf('硬规则：');
+
+      expect(stateIdx).toBeGreaterThanOrEqual(0);
+      expect(recallIdx).toBeGreaterThan(stateIdx);
+      expect(recallIdx).toBeLessThan(hardRuleIdx);
+    });
+
+    it('记忆正文原样渲染 (不被改写 / 不截断)', () => {
+      const hits: MemoryHit[] = [{ entry: { ...buildMemoryEntry(), content: '我小时候被父母抛弃过。' }, score: 0.9 }];
+
+      const systemText = (buildVisitorMessages(buildSpecWithRecall(hits))[0]?.content ?? '') as string;
+
+      expect(systemText).toContain('  - 我小时候被父母抛弃过。');
+    });
+
+    it('recall 出现在系统消息里, 不掺进历史消息', () => {
+      const spec = buildRenderSpec({
+        output: buildOutput({ openingContext: buildRecallHits(1) }),
+        recentTurns: [{ role: 'counselor', text: USER_TEXT }],
+        tokenBudget: BUDGET,
+      });
+
+      const messages = buildVisitorMessages(spec);
+
+      expect(messages[0]?.content).toContain('你还记得这些事');
+      // 历史消息只有原话, 不含召回内容.
+      expect(messages[1]?.content).toBe(USER_TEXT);
+    });
+  });
+
+  describe('⑪ WP35 · 渲染四手法 (语气疏离度 / 情绪表现 / 轻量随机 / 非语言)', () => {
+    /**
+     * 造一份**完全可控**的规格 (情绪 / 阻抗 / 同盟三维都显式给, 不吃默认值).
+     *
+     * 为什么不用 buildRenderSpec 那条路径: 它的默认值 (trust 0.3 / safety 0.5 / bond 0 /
+     * 情绪中性) 会让判定口径互相干扰 —— 断言"疏离是因为**风格阻抗**高"时, 就不该
+     * 同时被"信任低"那条命中. 显式给全, 一条用例只验一条信号.
+     */
+    function buildSpecForRender(overrides: Partial<AdaptiveRenderSpec> = {}): AdaptiveRenderSpec {
+      return {
+        taskKind: 'chat',
+        intention: {
+          strategy: 'simple_response',
+          emotion: { label: 'neutral', valence: 0, arousal: 0.3 },
+          resistance: { verbal: 0.4, depth: 0.4, style: 0.35 },
+          transference: { positive: 0, negative: 0, dependency: 0 },
+          forbiddenBehaviors: [],
+        },
+        emotion: { label: 'neutral', valence: 0, arousal: 0.3 },
+        resistance: { verbal: 0.4, depth: 0.4, style: 0.35 },
+        transference: { positive: 0, negative: 0, dependency: 0 },
+        trust: 0.5,
+        safety: 0.5,
+        bond: 0.5,
+        coreBeliefs: [],
+        forbiddenBehaviors: [],
+        recall: [],
+        recentTurns: [],
+        tokenBudget: BUDGET,
+        ...overrides,
+      };
+    }
+
+    /** 造一份情绪可控的规格 (标签 + 唤醒显式给). */
+    function buildSpecWithEmotion(label: EmotionLabel, arousal: number, overrides: Partial<AdaptiveRenderSpec> = {}): AdaptiveRenderSpec {
+      return buildSpecForRender({ emotion: { label, valence: 0, arousal }, ...overrides });
+    }
+
+    it('语气疏离度: 表达风格阻抗高 → 疏离', () => {
+      const systemText = (buildVisitorMessages(buildSpecForRender({ resistance: { verbal: 0.4, depth: 0.4, style: 0.7 } }))[0]?.content ??
+        '') as string;
+
+      expect(warmthLine(systemText ?? '')).toBe('语气有点疏离：像在应付、像隔着一层，不太愿意真正投入。');
+    });
+
+    it('语气疏离度: 信任低 → 疏离', () => {
+      const systemText = (buildVisitorMessages(buildSpecForRender({ trust: 0.2 }))[0]?.content ?? '') as string;
+
+      expect(warmthLine(systemText ?? '')).toContain('语气有点疏离');
+    });
+
+    it('语气疏离度: 安全感低 → 疏离', () => {
+      const systemText = (buildVisitorMessages(buildSpecForRender({ safety: 0.2 }))[0]?.content ?? '') as string;
+
+      expect(warmthLine(systemText ?? '')).toContain('语气有点疏离');
+    });
+
+    it('语气疏离度: 信任 + 安全感 + 联结感都高 → 亲近', () => {
+      const systemText = (buildVisitorMessages(buildSpecForRender({ trust: 0.7, safety: 0.7, bond: 0.5 }))[0]?.content ?? '') as string;
+
+      expect(warmthLine(systemText ?? '')).toBe('语气放松一点：没那么防备，愿意流露一点真实感受。');
+    });
+
+    it('语气疏离度: 其余 → 中性', () => {
+      const systemText = (buildVisitorMessages(buildSpecForRender())[0]?.content ?? '') as string;
+
+      expect(warmthLine(systemText ?? '')).toBe('语气按平时的样子，不刻意亲近也不刻意疏远。');
+    });
+
+    it('语气疏离度: 阻抗优先 (同盟三维都高但风格阻抗高 → 仍是疏离)', () => {
+      const systemText = (buildVisitorMessages(
+        buildSpecForRender({ trust: 0.7, safety: 0.7, bond: 0.5, resistance: { verbal: 0.4, depth: 0.4, style: 0.7 } }),
+      )[0]?.content ?? '') as string;
+
+      expect(warmthLine(systemText ?? '')).toContain('语气有点疏离');
+    });
+
+    it('情绪表现: 焦虑分高唤醒 / 低唤醒两种说法', () => {
+      const high = (buildVisitorMessages(buildSpecWithEmotion('anxious', 0.8))[0]?.content ?? '') as string;
+      const low = (buildVisitorMessages(buildSpecWithEmotion('anxious', 0.4))[0]?.content ?? '') as string;
+
+      expect(high).toContain('这轮你有点焦虑：语速偏快、容易犹豫、可能反复确认对方的意思。');
+      expect(high).not.toContain('这轮你有点不安');
+      expect(low).toContain('这轮你有点不安：话里带着不确定，可能会停顿一下再说。');
+      expect(low).not.toContain('这轮你有点焦虑');
+    });
+
+    it('情绪表现: 愤怒分高唤醒 / 低唤醒两种说法', () => {
+      const high = (buildVisitorMessages(buildSpecWithEmotion('angry', 0.8))[0]?.content ?? '') as string;
+      const low = (buildVisitorMessages(buildSpecWithEmotion('angry', 0.4))[0]?.content ?? '') as string;
+
+      expect(high).toContain('这轮你有点恼火：语气冲一点、有点不耐烦。');
+      expect(high).not.toContain('这轮你有点不爽');
+      expect(low).toContain('这轮你有点不爽：语气有点硬，不太想多解释。');
+      expect(low).not.toContain('这轮你有点恼火');
+    });
+
+    it('情绪表现: 其余七个情绪标签各自有表现方式', () => {
+      const expected: Readonly<Record<string, string>> = {
+        sad: '这轮你情绪低落：语速偏慢、声音轻，可能会叹气或停顿。',
+        hurt: '这轮你有点受伤：话里带着委屈，可能会停顿一下、声音轻一点。',
+        guarded: '这轮你有点戒备：话里带着试探，不太愿意说真话。',
+        relieved: '这轮你松了口气：语气放松、语速正常。',
+        hopeful: '这轮你有点期待：语气放松一点，话里带点盼头。',
+        ashamed: '这轮你有点羞愧：不太想被人细看，话会绕着说。',
+        empty: '这轮你有点空：情绪淡淡的，回答起来有点费劲。',
+      };
+
+      for (const [label, expression] of Object.entries(expected)) {
+        const systemText = (buildVisitorMessages(buildSpecWithEmotion(label as EmotionLabel, 0.3))[0]?.content ?? '') as string;
+
+        expect(systemText).toContain(expression);
+      }
+    });
+
+    it('零回归: 没有 safety / bond → 不渲染语气疏离度那一行', () => {
+      const spec = withoutAllianceDimensions(buildSpecForRender());
+
+      const systemText = (buildVisitorMessages(spec)[0]?.content ?? '') as string;
+
+      expect(warmthLine(systemText)).toBe('');
+      // 但缺的是**同盟维度**, 不是别的维度 —— 话量那一行照常在.
+      expect(verbosityLine(systemText)).not.toBe('');
+    });
+
+    it('零回归: 情绪是 neutral → 不给额外的情绪表现指令', () => {
+      const systemText = (buildVisitorMessages(buildSpecWithEmotion('neutral', 0.3))[0]?.content ?? '') as string;
+
+      // "这一轮怎么说"块里只有话量 + 语气 + 随机提示 + 信息增量四行 —— **没有**情绪表现那一行.
+      // (断言整块而不是单行: 单行只能证明"某行在", 证明不了"没有多出情绪那一行".)
+      expect(howToSayLines(systemText)).toEqual([
+        '这轮你按平时的样子说话，不刻意多讲，也不刻意收着。',
+        '语气按平时的样子，不刻意亲近也不刻意疏远。',
+        '不要重复最近几轮用过的句式：换个角度、换个措辞表达同一个意思，可以有时候停顿一下、有时候用短回应、有时候多说一点。',
+        // V2026-11-10 (WP-J P1d 改动 7): 信息增量判据补"深度"约束 ——
+        //   这行是**逐字 gold**, 渲染层文案变了它就必须跟着变 (否则零回归用例先红).
+        //   变的是这一行的后半句 (往情感体验 / 认知反思方向走), 前半句一字未动.
+        '每说两三轮，要带出一个之前没提过的新细节：一个具体场景、一句当时的感受、或一个没说过的念头；不要只把同一件事翻来覆去地说。而且这个新细节要往深处走 —— 要么指向你当下的感受（当时其实挺难受／有点怕），要么是你自己才想明白的一点（现在我才发现……）；只是把事情重新讲一遍不算推进。',
+      ]);
+    });
+
+    it('表达层变化: prompt 里有一句"不要重复最近几轮用过的句式" (WP-G 改动 6)', () => {
+      const systemText = (buildVisitorMessages(buildSpecForRender())[0]?.content ?? '') as string;
+
+      expect(systemText).toContain('不要重复最近几轮用过的句式：换个角度、换个措辞表达同一个意思');
+    });
+
+    it('口语化 / 非语言: "说话方式"后面补了非语言表达那一行', () => {
+      const systemText = (buildVisitorMessages(buildSpecForRender())[0]?.content ?? '') as string;
+      const lines = systemText.split('\n');
+      const speechIdx = lines.findIndex((line) => line.startsWith('说话方式：'));
+
+      expect(speechIdx).toBeGreaterThanOrEqual(0);
+      expect(lines[speechIdx + 1]).toBe('可以有一点非语言的表达：比如停顿、叹气、犹豫，但不要写括号里的动作描写。');
+    });
+
+    it('话量三档的判定口径没被改 (resolveTurnVerbosity 一个字没动)', () => {
+      // 短: 话量阻抗高.
+      const short = (buildVisitorMessages(buildSpecForRender({ resistance: { verbal: 0.8, depth: 0.6, style: 0.35 } }))[0]?.content ??
+        '') as string;
+      // 长: 话量阻抗低 + 信任高 + 探索策略.
+      const long = (buildVisitorMessages(
+        buildSpecForRender({
+          intention: {
+            strategy: 'cognitive_exploration',
+            emotion: { label: 'neutral', valence: 0, arousal: 0.3 },
+            resistance: { verbal: 0.1, depth: 0.2, style: 0.2 },
+            transference: { positive: 0, negative: 0, dependency: 0 },
+            forbiddenBehaviors: [],
+          },
+          emotion: { label: 'neutral', valence: 0, arousal: 0.3 },
+          resistance: { verbal: 0.1, depth: 0.2, style: 0.2 },
+          transference: { positive: 0, negative: 0, dependency: 0 },
+          trust: 0.8,
+        }),
+      )[0]?.content ?? '') as string;
+      // 中: 其余.
+      const medium = (buildVisitorMessages(buildSpecForRender())[0]?.content ?? '') as string;
+
+      expect(verbosityLine(short ?? '')).toContain('这轮你不太想多说');
+      expect(verbosityLine(long ?? '')).toContain('这轮你愿意多说一点');
+      expect(verbosityLine(medium ?? '')).toContain('这轮你按平时的样子说话');
+    });
+
+    it('五段都在"这一轮怎么说"块里 (硬规则之前)', () => {
+      const systemText = (buildVisitorMessages(buildSpecWithEmotion('anxious', 0.8))[0]?.content ?? '') as string;
+      const block = howToSayLines(systemText);
+
+      expect(block).toHaveLength(5);
+      // 顺序: 话量 → 语气疏离度 → 情绪表现 → 轻量随机 → 信息增量.
+      expect(block[0]).toContain('这轮你');
+      expect(block[1]).toContain('语气');
+      expect(block[2]).toContain('这轮你有点焦虑');
+      expect(block[3]).toContain('不要重复最近几轮用过的句式');
+      expect(block[4]).toContain('新细节');
+
+      const hardRuleIdx = systemText.indexOf('硬规则：');
+      expect(systemText.indexOf('不要重复最近几轮用过的句式')).toBeLessThan(hardRuleIdx);
+    });
+
+    it('WP-J: 焦虑型依恋注入求证/讨好行为指引, 安全型不渲染', () => {
+      const anxious = (buildVisitorMessages(buildSpecForRender({ attachmentStyle: 'anxious' }))[0]?.content ?? '') as string;
+      expect(anxious).toContain('你不会觉得我很麻烦吧');
+      expect(anxious).toContain('焦虑型依恋');
+
+      const secure = (buildVisitorMessages(buildSpecForRender({ attachmentStyle: 'secure' }))[0]?.content ?? '') as string;
+      expect(secure).not.toContain('反复确认咨询师对你的看法');
+    });
+  });
 });
+
+/**
+ * 去掉规格里的同盟三维两个键 (模拟"别的生产者不带这两个可选字段").
+ *
+ * 为什么用解构省略而不是 delete: 解构后的 rest **类型上就没有**这两个键,
+ * 与"键不存在"这件事一致; delete 依赖运行期行为, 类型上仍是"键存在但值为 undefined".
+ */
+function withoutAllianceDimensions(spec: AdaptiveRenderSpec): AdaptiveRenderSpec {
+  const { safety: _safety, bond: _bond, ...rest } = spec;
+  return rest;
+}
+
+/**
+ * 取 prompt 里"这一轮怎么说"那一段 (话量权重的指令行).
+ *
+ * 为什么单独抽出来: 要断言的是"**轮次长短没被 safety / bond 改变**" ——
+ * 直接比整段 prompt 会把状态行的差异也混进来, 断言就变得不精确.
+ *
+ * 为什么按**位置**取 (块头下一行), 而不是按"以'这轮你'开头"找:
+ *   WP35 起, 情绪表现那一行也是"这轮你有点X：…" —— 按前缀找会认错行
+ *   (情绪表现排在话量之后, 找到的第一个虽然仍是话量, 但那是**碰巧**).
+ *   块头下一行是话量那一行, 这是模板的结构不变量.
+ */
+function verbosityLine(systemText: string): string {
+  const lines = systemText.split('\n');
+  const headerIdx = lines.indexOf('这一轮怎么说：');
+  return headerIdx === -1 ? '' : (lines[headerIdx + 1] ?? '');
+}
+
+/**
+ * 取 prompt 里"语气疏离度"那一行 (WP35 手法一).
+ *
+ * 为什么用"以'语气'开头"认这一行, 而不是硬编码三段文案:
+ *   这是 prompt 里**唯一**以"语气"开头的行 (其余行要么以"- "开头, 要么以
+ *   "你正在扮演" / "说话方式" / "可以有一点" / "这轮你" / "说完" / "你可以"开头),
+ *   所以这个前缀足以唯一认出它 —— 而且改文案时这个认法不会失效
+ *   (硬编码文案会随措辞调整一起过期).
+ */
+function warmthLine(systemText: string): string {
+  return systemText.split('\n').find((line) => line.startsWith('语气')) ?? '';
+}
+
+/**
+ * 取 prompt 里"这一轮怎么说"块的全部行 (块头与"说完就停"之间).
+ *
+ * 为什么按**块**取而不是按单行: WP35 起这一块有四行 (话量 / 语气 / 情绪 / 随机),
+ * 要断言的是"这一块里**恰好**有哪几行" —— 逐行找只能证明"某行在", 证明不了
+ * "没有多出行" (那才是零回归的关键).
+ */
+function howToSayLines(systemText: string): string[] {
+  const lines = systemText.split('\n');
+  const start = lines.indexOf('这一轮怎么说：');
+  if (start === -1) return [];
+  const end = lines.indexOf('说完一两句就停下来，把话头交还给咨询师 —— 真人对话不是独白。');
+  return lines.slice(start + 1, end === -1 ? lines.length : end);
+}
 
 /** 构造一条记忆条目 (开场上上下文用). */
 function buildMemoryEntry(): MemoryEntry {

@@ -7,7 +7,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsObject } from 'class-validator';
 
-import { AIProfileDimension, AIProfileSource } from '../enums/ai-profile.enums';
+import { AIProfileDimension, AIProfileSource } from '../enums/ai-profile.enums.js';
 
 /**
  * 单维度快照 — 服务端往返都用这个 DTO.

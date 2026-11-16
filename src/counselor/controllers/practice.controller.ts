@@ -73,11 +73,11 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import 'multer'; // 加载 namespace, 让 Express.Multer.File 全局可用 (跟 profile.controller 同 pattern)
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { PRACTICE_ASR_UPSTREAM_MAX_FILE_BYTES } from '../config/practice-asr.config';
-import type { PracticeAsrResultDto } from '../dto/practice-asr.dto';
+import { PRACTICE_ASR_UPSTREAM_MAX_FILE_BYTES } from '../config/practice-asr.config.js';
+import type { PracticeAsrResultDto } from '../dto/practice-asr.dto.js';
 import type {
   CreateCustomPracticeScenarioDto,
   CustomPracticeScenarioListDto,
@@ -90,13 +90,13 @@ import type {
   RandomPracticeScenarioDto,
   RandomPracticeScenarioResultDto,
   SubmitPracticeAttemptDto,
-} from '../dto/practice.dto';
-import { PracticeAsrUploadFilter } from '../providers/practice-asr-upload.filter';
-import { PracticeAsrService } from '../providers/practice-asr.service';
-import { PracticeAsrThrottlerGuard } from '../providers/practice-asr.throttler';
-import { PracticeAttemptService } from '../providers/practice-attempt.service';
-import { PracticeCustomScenarioService } from '../providers/practice-custom-scenario.service';
-import { PracticeScenarioService } from '../providers/practice-scenario.service';
+} from '../dto/practice.dto.js';
+import { PracticeAsrUploadFilter } from '../providers/practice-asr-upload.filter.js';
+import { PracticeAsrService } from '../providers/practice-asr.service.js';
+import { PracticeAsrThrottlerGuard } from '../providers/practice-asr.throttler.js';
+import { PracticeAttemptService } from '../providers/practice-attempt.service.js';
+import { PracticeCustomScenarioService } from '../providers/practice-custom-scenario.service.js';
+import { PracticeScenarioService } from '../providers/practice-scenario.service.js';
 
 @ApiTags('counselor-practice')
 @Controller('counselor/practice')

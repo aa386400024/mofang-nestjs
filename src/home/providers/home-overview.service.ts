@@ -2,18 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
-import { HomeMicroInterventionScenarioService } from './home-micro-intervention-scenario.service';
-import { HomeMicroInterventionStatsService } from './home-micro-intervention-stats.service';
-import { HomeMicroInterventionService } from './home-micro-intervention.service';
-import { HomeMoodLogService } from './home-mood-log.service';
-import { HomeRecommendationEngine } from './home-recommendation.engine';
-import { CompanionBinding } from '../../profile/entities/companion-binding.entity';
-import { UserProfile } from '../../profile/entities/user-profile.entity';
-import { User } from '../../user/entities/user.entity';
+import { HomeMicroInterventionScenarioService } from './home-micro-intervention-scenario.service.js';
+import { HomeMicroInterventionStatsService } from './home-micro-intervention-stats.service.js';
+import { HomeMicroInterventionService } from './home-micro-intervention.service.js';
+import { HomeMoodLogService } from './home-mood-log.service.js';
+import { HomeRecommendationEngine } from './home-recommendation.engine.js';
+import { CompanionBinding } from '../../profile/entities/companion-binding.entity.js';
+import { UserProfile } from '../../profile/entities/user-profile.entity.js';
+import { User } from '../../user/entities/user.entity.js';
 
-import type { HomeOverviewDto, SupportCompanionDto, TodayRecommendationDto } from '../dto/home-overview.dto';
-import { HomeMessage } from '../entities/home-message.entity';
-import type { HomeEmotionLevel } from '../home.constants';
+import type { HomeOverviewDto, SupportCompanionDto, TodayRecommendationDto } from '../dto/home-overview.dto.js';
+import { HomeMessage } from '../entities/home-message.entity.js';
+import type { HomeEmotionLevel } from '../home.constants.js';
 
 /**
  * 心塑成长用户端「首页聚合」核心服务.

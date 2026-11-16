@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { OAuthController } from './oauth.controller';
-import { OAuthService } from './oauth.service';
-import { OAuthIdentity } from '../entities/oauth-identity.entity';
-import { User } from '../entities/user.entity';
-import { UserModule } from '../user.module';
+import { OAuthController } from './oauth.controller.js';
+import { OAuthService } from './oauth.service.js';
+import { OAuthIdentity } from '../entities/oauth-identity.entity.js';
+import { User } from '../entities/user.entity.js';
+import { UserModule } from '../user.module.js';
 
 /**
  * OAuth module — 第三方登录 (微信/Google/Apple).

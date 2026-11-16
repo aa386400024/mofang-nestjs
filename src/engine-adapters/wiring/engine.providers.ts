@@ -28,27 +28,55 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp8-wiring.spec.ts 覆盖仓储分流 / 会话构造 / 门面归属缝
 
-import { EngineStreamBackend } from './engine-stream-backend.adapter';
-import type { EngineTurnService } from './engine-turn.service';
-import type { Embedder, EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core';
-import { InMemoryBdiStateRepository } from '../../engine-core/in-memory/in-memory-bdi-state.repository';
-import { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-engine-session';
-import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store';
-import type { SessionCostPricing } from '../observability/session-cost';
-import type { MemoryConfig } from '../persistence/memory-config';
-import type { QdrantMemoryClient } from '../persistence/qdrant-memory.store';
-import { QdrantMemoryStore } from '../persistence/qdrant-memory.store';
-import type { SessionSummaryGenerator, SessionTranscriptSink } from '../persistence/session-closeout.service';
-import { SessionCloseoutService } from '../persistence/session-closeout.service';
-import type { StreamingRenderPort } from '../rendering/streaming-render.port';
-import type { TurnSessionContext } from '../rendering/turn-render-orchestrator';
-import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
-import type { CharacterProfileResolver } from './character/character-profile.resolver';
-import { HttpPsyGuardProbe } from './risk/http-psyguard.probe';
-import { LocalCrisisProbe } from './risk/local-crisis.probe';
-import type { TrajectoryScriptResolver } from './trajectory/script-resolver';
-import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
-import type { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge';
+import type { BdiStateStoreKind } from './bdi-state-store.config.js';
+import type { CharacterProfileResolver } from './character/character-profile.resolver.js';
+import { EngineStreamBackend } from './engine-stream-backend.adapter.js';
+import type { EngineTurnService } from './engine-turn.service.js';
+import { HttpPsyGuardProbe } from './risk/http-psyguard.probe.js';
+import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
+import { StudentRiskGateService } from './risk/student-risk-gate.js';
+import type { TrajectoryScriptResolver } from './trajectory/script-resolver.js';
+import { TurnIdempotencyService } from './turn-idempotency.service.js';
+import type { TraceRecorder } from '../../admin-debug/trace-recorder.service.js';
+import { InMemoryBdiStateRepository } from '../../engine-core/in-memory/in-memory-bdi-state.repository.js';
+import { InMemoryEngineSession } from '../../engine-core/in-memory/in-memory-engine-session.js';
+import { InMemoryMemoryStore } from '../../engine-core/in-memory/in-memory-memory.store.js';
+import type {
+  AllianceConfig,
+  BdiStateRepository,
+  DeliberationHookPort,
+  DeltaCapConfig,
+  DeltaCapObserver,
+  DeltaTableConfig,
+  Embedder,
+  EngineSessionPort,
+  EventClassifier,
+  MemoryStore,
+  PersonalityModulatorConfig,
+  RiskProbePort,
+  SessionDecayConfig,
+  WorkingWindowOverflowEvent,
+} from '../../engine-core/index.js';
+import type { RedisService } from '../../shared/infra/redis/redis.service.js';
+import type { SessionEvaluationRegistry } from '../../voice/session-evaluation-slot.js';
+import type { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
+import type { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
+import type { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
+import type { DeliberationEffectPort } from '../deliberation/llm-deliberation-hook.js';
+import type { DeliberationShadowPort } from '../deliberation/llm-deliberation.service.js';
+import type { DeliberationGatePort } from '../deliberation-gate/deliberation-gate.types.js';
+import type { SessionCostPricing } from '../observability/session-cost.js';
+import { toRecallPolicyOptions, type MemoryConfig } from '../persistence/memory-config.js';
+import type { QdrantMemoryClient } from '../persistence/qdrant-memory.store.js';
+import { QdrantMemoryStore } from '../persistence/qdrant-memory.store.js';
+import { RedisBdiStateRepository, RedisServiceBdiStateClient } from '../persistence/redis-bdi-state.repository.js';
+import type { RollingSummaryPort } from '../persistence/rolling-session-summary.service.js';
+import type { SessionSummaryGenerator, SessionTranscriptSink } from '../persistence/session-closeout.service.js';
+import { SessionCloseoutService } from '../persistence/session-closeout.service.js';
+import type { StreamingRenderPort } from '../rendering/streaming-render.port.js';
+import type { StudentRiskGate } from '../rendering/student-risk-disposal.js';
+import type { TurnSessionContext } from '../rendering/turn-render-orchestrator.js';
+import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js';
 
 /**
  * 记忆仓储装配入参.
@@ -63,7 +91,9 @@ export interface EngineMemoryStoreDeps {
   /**
    * 衰减/召回配置 (WP12; 缺省 = 内核同值种子 30 天 / 0.1).
    *
-   * 只对 Qdrant 版有意义 —— 纯内存版的召回判定在内核里, 走的是内核那一份常量.
+   * V2026-11-04 (WP59): **两版都生效** —— 纯内存版同期拿到了 `recallPolicy` 端口,
+   * 装配层把同一份配置喂进去 → 开发期 (纯内存部署) 与生产 (向量版部署) 的召回结果一致.
+   * 之前这里是"只对 Qdrant 版有意义", 纯内存部署直接忽略 env 配置.
    */
   readonly config?: MemoryConfig;
 }
@@ -80,7 +110,11 @@ export interface EngineMemoryStoreDeps {
  * @throws 配了向量库却缺客户端 / 向量化端口时抛错 (装配非法必须炸在启动期)
  */
 export function createEngineMemoryStore(deps: EngineMemoryStoreDeps): MemoryStore {
-  const fallback = new InMemoryMemoryStore();
+  // WP59: 召回策略配置喂给内存版 (省略 = 内核默认值, 行为与加端口前逐字一致).
+  //   纯内存部署与向量版部署喂的是**同一份**配置 → 换存储实现不换召回结果.
+  const fallback = new InMemoryMemoryStore({
+    ...(deps.config ? { recallPolicy: toRecallPolicyOptions(deps.config) } : {}),
+  });
   if (!deps.qdrantUrl) return fallback;
   if (!deps.qdrant || !deps.embedder) {
     throw new Error('引擎记忆仓储装配非法: 已配置向量库地址, 但缺少向量库客户端或向量化端口');
@@ -94,20 +128,187 @@ export function createEngineMemoryStore(deps: EngineMemoryStoreDeps): MemoryStor
 }
 
 /**
+ * BDI 状态仓储的装配入参 (WP32).
+ */
+export interface BdiStateRepositoryDeps {
+  /** 存储形态 (memory / redis). */
+  readonly store: BdiStateStoreKind;
+  /**
+   * Redis 客户端 (仅 `store='redis'` 时必需).
+   *
+   * 类型用**基础设施的窄面**而不是 ioredis —— 装配层不认识 ioredis,
+   * 换 Redis 客户端只影响 `RedisServiceBdiStateClient` 那一个窄面.
+   */
+  readonly redis?: RedisService;
+  /** Redis 版存活时长 (秒; 仅 `store='redis'` 时生效). */
+  readonly ttlSeconds?: number;
+}
+
+/**
+ * 装配 BDI 状态仓储 (WP32).
+ *
+ * 分流依据只有一个: **env 配的存储形态**.
+ *   - `memory` (缺省) → `InMemoryBdiStateRepository` (行为与 WP32 之前**逐字一致**);
+ *   - `redis`        → `RedisBdiStateRepository` (进程重启后可恢复).
+ *
+ * 为什么不静默回落 (与 `createEngineMemoryStore` 同一铁律):
+ *   "配了 redis 却没给客户端"是**装配非法**, 必须炸在启动期 ——
+ *   静默回落成纯内存 = 线上以为在持久化, 实际一条都没存, 而且**不报错**.
+ *
+ * @param deps 装配入参
+ * @returns BDI 状态仓储 (内核端口实现)
+ * @throws 配了 redis 却缺客户端时抛错 (装配非法必须炸在启动期)
+ */
+export function createBdiStateRepository(deps: BdiStateRepositoryDeps): BdiStateRepository {
+  if (deps.store === 'redis') {
+    if (!deps.redis) {
+      throw new Error('引擎 BDI 状态仓储装配非法: 已配置 redis 存储, 但缺少 Redis 客户端');
+    }
+    return new RedisBdiStateRepository({
+      client: new RedisServiceBdiStateClient(deps.redis),
+      ...(deps.ttlSeconds === undefined ? {} : { ttlSeconds: deps.ttlSeconds }),
+    });
+  }
+  return new InMemoryBdiStateRepository();
+}
+
+/**
+ * 内核会话的调参依赖 (WP26 · P2-14 · WP34 · WP42 · WP36).
+ *
+ * 单回合 delta cap 的配置与观察者、人格调节系数、同盟三维系数与门槛、跨会话间隔衰减
+ * 半衰期都是**注入**进来的 —— 内核不读 env、不持有全局槽.
+ * 缺省 = 内核种子值 + 不观测 (行为与 WP15 之前逐字一致).
+ */
+export interface EngineSessionTuningDeps {
+  /** 单回合 delta cap 配置 (缺省 = 内核种子值). */
+  readonly capConfig?: DeltaCapConfig;
+  /** cap 报告观察者 (缺省 = 不观测). */
+  readonly capObserver?: DeltaCapObserver;
+  /**
+   * 人格调节配置 (WP34; 缺省 = 内核种子值).
+   *
+   * 与 cap 同款范式: 系数是**部署形态**的决定 (内测期按真实对练校准), 不是会话参数.
+   */
+  readonly personalityModulatorConfig?: PersonalityModulatorConfig;
+  /**
+   * 同盟三维配置 (WP42; 缺省 = 内核种子值).
+   *
+   * 与 cap 同款范式: 同盟三维的系数与门槛是**部署形态**的决定, 不是会话参数.
+   */
+  readonly allianceConfig?: AllianceConfig;
+  /**
+   * delta 规则表配置 (WP60; 缺省 = 内核基础系数 DELTA_TABLE).
+   *
+   * 与 cap / 人格 / 同盟 / 衰减同款范式: 系数是**部署形态**的决定, 不是会话参数.
+   */
+  readonly deltaTableConfig?: DeltaTableConfig;
+  /**
+   * 跨会话间隔衰减配置 (WP36; 缺省 = 内核种子值).
+   *
+   * 与 cap 同款范式: 半衰期是**部署形态**的决定 (内测期按真实对练校准), 不是会话参数.
+   */
+  readonly sessionDecayConfig?: SessionDecayConfig;
+  /**
+   * 时序权重配置 (D-3; 缺省 = **不折损**, delta 逐字不变).
+   *
+   * 与 cap 同款范式: 权重形态是**部署形态**的决定 (灰度到哪批会话), 不是会话参数.
+   *
+   * ⚠️ 本单**不开 env 覆写通道** —— 只能由装配代码显式传值 (内核零 process.env);
+   *   env 通道留标定批次单 (同 D-2 L-4 范式).
+   *
+   * 类型走 `EngineSessionOptions` 反推 (下方类型别名) —— **不新增 core 具名导出**,
+   *   也不必把内核的选项形状再抄一遍 (抄一遍 = 两份真相, 迟早漂).
+   */
+  readonly timingWeightConfig?: EngineSessionOptions['timingWeightConfig'];
+  /**
+   * 工作窗口溢出回调 (WP37; 缺省 = 不做滚动摘要).
+   *
+   * 与 cap 同款范式: 这是**内核 → 适配层**的通知口, 缺省 = 内核只裁窗口不通知.
+   */
+  readonly onWorkingWindowOverflow?: (event: WorkingWindowOverflowEvent) => void;
+  /**
+   * 审议钩子 (R9; 缺省 = 内核**完全不问**审议).
+   *
+   * 缺省语义: **逐字零回归** —— 不注入 = 内核决策链里没有审议这一步,
+   * 落库的 delta 与改造前**逐字相同** (不是"结果一样", 是"根本没走那条路").
+   *
+   * 为什么是**构造注入**而不是每次 turn 传: 与 cap / 人格 / 同盟同款 ——
+   * 审议能力是**部署形态**的决定 (灰度到哪批会话), 不是会话参数.
+   */
+  readonly deliberationHook?: DeliberationHookPort;
+  /**
+   * 事件分类器 (D-1 第二段 · 模型轨; 缺省 = 内核用**默认规则轨**).
+   *
+   * 缺省语义: **逐字零回归** —— 不注入 = 内核走 `new RuleBasedClassifier()`,
+   *   落库的 delta 与改造前**逐字相同** (不是「结果一样」, 是「根本没走那条路」).
+   *
+   * ⚠️ 注入模型轨 = 内核每轮关键路径多一次 LLM 往返 —— 所以**只在灰度打开时装配**
+   *   (见 engine.module.ts), 且模型轨实现内部失败即回落规则轨.
+   */
+  readonly classifier?: EventClassifier;
+}
+
+/**
+ * 内核会话的构造选项形状 (从构造函数反推 —— 不新增 core 导出).
+ */
+type EngineSessionOptions = ConstructorParameters<typeof InMemoryEngineSession>[0];
+
+/**
+ * 把调参依赖摊平成内核会话的构造选项 (**缺省 = 不传 = 逐字零回归**).
+ *
+ * ⚠️ **为什么抽出来**: 每个可选项都写成「有才传」的三元, 装配项一多, 这个工厂的
+ *   圈复杂度就顶到 eslint 的上限 (20) —— 而「某个可选项没传」本质是**同一件事重复 N 遍**.
+ *   抽出来之后判定只剩一处, 以后加装配项也只是加一行.
+ *
+ * ⚠️ **缺省语义**: 一项都没传 → 返回空对象 → 内核走自己的默认值 (逐字零回归).
+ *
+ * @param tuning 调参依赖
+ * @returns 内核会话构造选项 (可选项缺省不出现)
+ */
+function resolveEngineSessionTuningOptions(tuning: EngineSessionTuningDeps | undefined): Partial<EngineSessionOptions> {
+  if (!tuning) return {};
+  return {
+    ...(tuning.capConfig ? { capConfig: tuning.capConfig } : {}),
+    ...(tuning.capObserver ? { capObserver: tuning.capObserver } : {}),
+    ...(tuning.personalityModulatorConfig ? { personalityModulatorConfig: tuning.personalityModulatorConfig } : {}),
+    ...(tuning.allianceConfig ? { allianceConfig: tuning.allianceConfig } : {}),
+    ...(tuning.deltaTableConfig ? { deltaTableConfig: tuning.deltaTableConfig } : {}),
+    ...(tuning.sessionDecayConfig ? { sessionDecayConfig: tuning.sessionDecayConfig } : {}),
+    // D-3: 时序权重端口 —— 不传 = 内核走缺省 (不折损, delta 逐字不变).
+    ...(tuning.timingWeightConfig ? { timingWeightConfig: tuning.timingWeightConfig } : {}),
+    ...(tuning.onWorkingWindowOverflow ? { onWorkingWindowOverflow: tuning.onWorkingWindowOverflow } : {}),
+    ...(tuning.deliberationHook ? { deliberationHook: tuning.deliberationHook } : {}),
+    // D-1 第二段: 事件分类器 (模型轨) —— 不传 = 内核用默认规则轨 (逐字零回归).
+    ...(tuning.classifier ? { classifier: tuning.classifier } : {}),
+  };
+}
+/**
  * 装配内核会话端口.
  *
- * BDI 状态本期用内存仓储 (落库仓储属后续轮); 记忆仓储与门面包的是**同一实例** ——
- * 内核写的咨询师半边与门面补的来访半边必须落在同一个仓里, 否则召回只召回得到一半.
+ * 记忆仓储与门面包的是**同一实例** —— 内核写的咨询师半边与门面补的来访半边必须落在同一个仓里,
+ * 否则召回只召回得到一半.
+ *
+ * V2026-11-05 (WP32): BDI 状态仓储从"写死内存版"改成**可注入**:
+ *   - 省略 `bdiStates` → `InMemoryBdiStateRepository` (行为与 WP32 之前**逐字一致**, 零回归);
+ *   - 传入 Redis 版 → 状态落 Redis, 进程重启后跨会话恢复自动生效.
  *
  * @param memories 记忆仓储 (与门面共用)
  * @param riskProbe 可选风险探测端口 (WP4 扩展点; 缺省 = 纯规则判定)
+ * @param tuning 可选调参依赖 (WP26 · P2-14 cap 配置与观察者; WP34 人格调节系数)
+ * @param bdiStates 可选 BDI 状态仓储 (WP32; 缺省 = 内存仓储)
  * @returns 内核会话端口
  */
-export function createEngineSessionPort(memories: MemoryStore, riskProbe?: RiskProbePort): EngineSessionPort {
+export function createEngineSessionPort(
+  memories: MemoryStore,
+  riskProbe?: RiskProbePort,
+  tuning?: EngineSessionTuningDeps,
+  bdiStates?: BdiStateRepository,
+): EngineSessionPort {
   return new InMemoryEngineSession({
-    bdiStates: new InMemoryBdiStateRepository(),
+    bdiStates: bdiStates ?? new InMemoryBdiStateRepository(),
     memories,
     ...(riskProbe ? { riskProbe } : {}),
+    ...resolveEngineSessionTuningOptions(tuning),
   });
 }
 
@@ -123,6 +324,42 @@ export interface EngineOrchestratorDeps {
   readonly memories: MemoryStore;
   /** 归属解析源 (装配层维护的登记表). */
   readonly registry: { resolve(handleId: string): TurnSessionContext | undefined };
+  /**
+   * 学员侧处置闸门 (WP14; 缺省 = 不做学员侧处置).
+   *
+   * 缺省语义与上面几个一致: 闸门是**增强** —— 装配缺席时本场照常,
+   * 只是"没有危机处置" (与本单之前逐字一致), 不影响会话开合.
+   */
+  readonly studentRisk?: StudentRiskGate;
+  /**
+   * 滚动摘要读取口 (WP37; 缺省 = 本场不注入摘要).
+   *
+   * 缺省语义: **纯增强** —— 装配缺席时只是"长对话超过 8 轮后模型不记得前面聊过什么",
+   * 不影响会话开合, 也不影响既有轮次的渲染.
+   */
+  readonly rollingSummary?: RollingSummaryPort;
+  /**
+   * 影子审议端口 (V2026-11-05 WP64; 缺省 = 不跑影子审议).
+   *
+   * 缺省语义: **纯增强** —— 没装就只是"没有影子审议数据", 会话与渲染逐字不变.
+   */
+  readonly deliberation?: DeliberationShadowPort;
+  /**
+   * 生效审议钩子 (R9; 缺省 = 不跑生效审议).
+   *
+   * 缺省语义: **纯增强** —— 没装就只是"没有生效审议", 会话与渲染逐字不变.
+   */
+  readonly deliberationHook?: DeliberationEffectPort;
+  /**
+   * 触发式审议闸门 (Phase2.5 WP-C; 缺省 = 不设闸门).
+   *
+   * 缺省语义: **纯增强** —— 没装就还是"每轮都跑审议" (与本单之前逐字不变).
+   *
+   * ⚠️ 用**窄端口**注入 (与影子 / 生效两个端口同款纪律):
+   *   门面是纯类 (零 @nestjs), 塞一个 Nest service 进去会把框架拖进门面,
+   *   让"装配缺席"从"没有闸门"退化成"门面起不来".
+   */
+  readonly gate?: DeliberationGatePort;
 }
 
 /**
@@ -141,7 +378,50 @@ export function createEngineOrchestrator(deps: EngineOrchestratorDeps): TurnRend
     renderer: deps.renderer,
     memories: deps.memories,
     resolveSession: (handleId: string) => deps.registry.resolve(handleId),
+    ...(deps.studentRisk ? { studentRisk: deps.studentRisk } : {}),
+    ...(deps.rollingSummary ? { rollingSummary: deps.rollingSummary } : {}),
+    // WP64: 影子审议端口 —— 装配缺席时门面行为逐字不变 (纯增强).
+    ...(deps.deliberation ? { deliberation: deps.deliberation } : {}),
+    // R9: 生效审议钩子 —— 装配缺席时门面行为逐字不变 (纯增强).
+    ...(deps.deliberationHook ? { deliberationHook: deps.deliberationHook } : {}),
+    // WP-C: 触发式审议闸门 —— 装配缺席时门面行为逐字不变 (纯增强).
+    ...(deps.gate ? { gate: deps.gate } : {}),
   });
+}
+
+/**
+ * 学员侧处置闸门装配入参 (WP14).
+ */
+export interface StudentRiskGateDeps {
+  /** PsyGUARD 服务地址 (空 / 缺省 = 不强制远端探测, 只靠内核判定). */
+  readonly baseUrl?: string;
+  /** HTTP 探测超时 (ms; 缺省 = 内核 DEFAULT_PROBE_TIMEOUT_MS). */
+  readonly timeoutMs?: number;
+}
+
+/**
+ * 装配学员侧处置闸门 (WP14 §1.6).
+ *
+ * 闸门里的远端探测器是**独立实例**且**不带本地词典兜底**:
+ *   · 独立实例 = 不跟内核那次判定共用同一个探测器对象 (免得状态互相污染);
+ *   · 不带兜底 = "强制走 PsyGUARD"问的必须是**远端**; 本地词典兜底已经在主链路上
+ *     (D12 治本), 再挂一遍就是同一段文本判两遍.
+ *
+ * 没配 `PSYGUARD_BASE_URL` → 闸门**不带探测器** → 强制探测直接返回 undefined,
+ * 行为退化成"只靠内核判定" (不报错, 不阻断).
+ *
+ * @param deps 装配入参
+ * @returns 闸门实例
+ */
+export function createStudentRiskGate(deps: StudentRiskGateDeps): StudentRiskGateService {
+  const baseUrl = (deps.baseUrl ?? '').trim();
+  if (!baseUrl) return new StudentRiskGateService();
+  return new StudentRiskGateService(
+    new HttpPsyGuardProbe({
+      baseUrl,
+      ...(deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs }),
+    }),
+  );
 }
 
 /**
@@ -173,6 +453,55 @@ export interface EngineStreamBackendDeps {
    * **不能**让"没配单价"变成"开不了会话".
    */
   readonly pricing?: SessionCostPricing;
+  /**
+   * 调试快照记录器 (WP19-R; 缺省 = 不留痕).
+   *
+   * 缺省语义与上面几个一致: 没装配记录器 → 只是没有调试快照落库,
+   * **不能**让"没有调试器"变成"开不了会话".
+   *
+   * V2026-10-30 治本 (WP19-R): 本参数**曾经恒为 undefined** —— 工厂第 6 位
+   * 一直占着 undefined, 而 `recordTrace()` 首行守卫直接 return, 于是
+   * "每轮 BDI 快照落库"一次都没发生过 (turn_debug_trace 恒空).
+   * 现在由 `EngineWiringModule` 显式注入 `AdminDebugModule` 导出的实例.
+   */
+  readonly traceRecorder?: TraceRecorder;
+  /**
+   * 学员侧处置闸门 (WP14; 缺省 = 不做学员侧处置).
+   *
+   * 缺省语义与上面几个一致: 闸门是**增强** —— 装配缺席时本场照常,
+   * 只是"没有危机处置" (与本单之前逐字一致), 不影响会话开合.
+   */
+  readonly studentRiskGate?: StudentRiskGate;
+  /**
+   * 学员风险审计插槽 (WP14; 缺省 = 风险事件不留痕).
+   *
+   * 缺省语义同上: 审计是**留痕能力**, 不是会话能力 ——
+   * 业务侧没注册实现时, 弹窗照弹, 只是"这次没留痕".
+   */
+  readonly riskAudit?: StudentRiskAuditRegistry;
+  /**
+   * 风险探测器 (WP14 优化项 · 前置 safety gate; 缺省 = 不做前置判定).
+   *
+   * 缺省语义同上: 前置判定是**增强** —— 装配缺席时本场照常,
+   * 只是"阻断轮会先转一下 loading 圈" (与优化项之前逐字一致).
+   *
+   * 必须是**内核注入的那一个实例** (RISK_PROBE): 口径一致 + D12 本地词典兜底生效.
+   */
+  readonly riskProbe?: RiskProbePort;
+  /**
+   * 轮次幂等表 (WP16; 缺省 = 后端自建一个).
+   *
+   * 缺省语义与上面几个一致: 幂等是**增强** —— 缺席时对练照常,
+   * 只是"重发同一轮不再幂等" (老客户端不带 round_id 时本来就用不上它).
+   */
+  readonly idempotency?: TurnIdempotencyService;
+  /**
+   * 评估插槽注册表 (V2026-11-06, WP43; 缺省 = 不做规则快评).
+   *
+   * 缺省语义与上面几个一致: 评估是**增强** —— 缺席时对练照常收尾,
+   * 只是"这场没有快速评分" (业务侧没装 counselor 模块时就是这个状态).
+   */
+  readonly evaluation?: SessionEvaluationRegistry;
 }
 
 /**
@@ -185,6 +514,12 @@ export interface SessionCloseoutDeps {
   readonly generator?: SessionSummaryGenerator;
   /** 逐字稿落库口 (缺省 = 不做逐字稿定稿). */
   readonly sink?: SessionTranscriptSink;
+  /**
+   * 最终摘要的重要度 (WP37 · 缺省 = 代码里的种子值 0.9).
+   *
+   * 只做**透传**: 摘要怎么写、怎么晋升是收尾服务的职责, 装配层只负责把配置递过去.
+   */
+  readonly summaryImportance?: number;
 }
 
 /**
@@ -265,6 +600,10 @@ export function isPsyGuardConfigured(baseUrl: string | undefined): boolean {
  * **两者不叠加**: 一个 session 只用一个探测端口. 叠加意味着同一条文本判两遍,
  * 等级取高 —— 那会让"服务偶发误报"直接变成"永远按高危走", 且双倍延迟.
  *
+ * V2026-11-02 (WP14 §1.4 · D12 治本): 配了地址时, 本地词典**不再被丢弃** ——
+ * 它被**委托**给 HTTP 探测器当兜底 (远端失败才换它判), 而不是跟远端**叠加**判.
+ * "不叠加"的口径不变: 同一时刻只有一个探测器在判.
+ *
  * 为什么做成**纯函数**而不是写在 `@Module` 的 useFactory 里:
  *   同本文件其它工厂的理由 —— useFactory 里的代码单测覆盖不到, "装哪个探测器"
  *   这件事就只能等启动时炸. 纯函数能直接断言分流口径.
@@ -276,8 +615,19 @@ export function createRiskProbe(deps: RiskProbeDeps): RiskProbePort {
   const fallback = deps.fallback ?? new LocalCrisisProbe();
   const baseUrl = (deps.baseUrl ?? '').trim();
   if (!baseUrl) return fallback;
+  // V2026-11-02 治本 (WP14 §1.4 · D12 治本): **不再丢弃 fallback** ——
+  //   配了服务地址就把本地词典扔掉, 等于"服务一挂 = 学员危机检测归零"
+  //   (内核 catch 后回落的是 `counselor_input` 侧的规则层, 那 7 条全是专业越界词,
+  //    一条危机词都没有). 现在把本地词典**委托**给 HTTP 探测器做兜底:
+  //   服务正常 → 远端判定; 服务异常 → 本地词典判定 (源记 `local_dict`).
+  //
+  //   注意"委托"与"叠加"的区别 (WP11 的既有取舍仍然成立):
+  //     · 委托 = **同一时刻只有一个探测器在判** (远端失败才换本地), 不双判、不双倍延迟;
+  //     · 叠加 = 同一段文本判两遍取最高 —— 那会让"远端偶发误报"变成"永远按高危走".
+  //   本单要的是前者.
   return new HttpPsyGuardProbe({
     baseUrl,
+    fallback,
     ...(deps.timeoutMs === undefined ? {} : { timeoutMs: deps.timeoutMs }),
   });
 }
@@ -306,8 +656,12 @@ export function createRiskProbe(deps: RiskProbeDeps): RiskProbePort {
  * 没配时维持现状还有一个好处: WP11 承诺过"没配 env → 行为逐字一致",
  * 这条承诺在输出侧也保住了 (否则本工厂会把"本地词典"偷偷扩散到输出侧).
  *
- * 超时: **不显式传** —— 让它继承内核 `DEFAULT_PROBE_TIMEOUT_MS`.
- * 这样 M3 内测把那个常量改回 150 时, 输出侧**自动跟着回**, 只有一个回改点.
+ * 超时: **两条路径, 都要是 150** (WP28 回改时发现旧注释这里写错了):
+ *   装配层 `engine.module.ts` 是**显式传** `resolvePsyGuardTimeoutMs(env)` 的 ——
+ *   env (`PSYGUARD_TIMEOUT_MS`) 没设时才回落内核 `DEFAULT_PROBE_TIMEOUT_MS`.
+ *   也就是说输出侧**不是**"只有一个回改点": 改内核常量**不会**覆盖掉 env 上
+ *   显式配的值 (WP25 审查 D34 的实锤). 两边都是 150 时口径才自洽 ——
+ *   否则会出现"内核等 150ms、HTTP 还在等 500ms"这种自相矛盾.
  *
  * @param deps 装配入参
  * @returns 探测器; 没配服务地址 → undefined (该侧不接探测)
@@ -345,8 +699,31 @@ export function createVisitorOutputProbe(deps: RiskProbeDeps): RiskProbePort | u
 export function createEngineStreamBackend(deps: EngineStreamBackendDeps): EngineStreamBackend {
   // 位置参数顺序与 adapter 的构造参数一一对应:
   //   engine / resolver / frames / scriptResolver / closeout / traceRecorder / costPricing
-  // ⚠️ `traceRecorder` 仍恒为 undefined (它至今没有装配入口), 但**必须占位**:
-  //   位置参数不能跳着传 —— WP24 的成本单价在它后面, 要传就得先给第 6 位一个
-  //   undefined. (此前"不占位"的做法只在这一个参数上成立过.)
-  return new EngineStreamBackend(deps.engine, deps.resolver, deps.frames, deps.scriptResolver, deps.closeout, undefined, deps.pricing);
+  //   / studentRiskGate / riskAudit / riskProbe
+  //
+  // V2026-10-30 治本 (WP19-R): 第 6 位**不再是恒 undefined 的占位** ——
+  //   traceRecorder 由 EngineWiringModule 注入 (AdminDebugModule 导出),
+  //   装配后每轮 turn 结束真正落库 (见 `EngineStreamBackend.recordTrace`).
+  //
+  // V2026-11-02 治本 (WP14): 第 8/9 位是学员侧处置闸门 + 风险审计插槽.
+  // V2026-11-02 治本 (WP14 优化项): 第 10 位是风险探测器 —— 前置 safety gate
+  //   委托它判一次 (与内核注入的是**同一个**实例, 口径与本地词典兜底都一致).
+  // V2026-11-02 治本 (WP16): 第 11 位是轮次幂等表 —— 同一会话同一 round_id
+  //   重发不重跑 BDI (断流重发则回 turn_incomplete).
+  // V2026-11-06 治本 (WP43): 第 12 位是评估插槽 —— 会话收尾时把本场内核出参
+  //   交给业务侧算分 (规则快评); 引擎侧只认插槽接口, 不认识评估服务.
+  return new EngineStreamBackend(
+    deps.engine,
+    deps.resolver,
+    deps.frames,
+    deps.scriptResolver,
+    deps.closeout,
+    deps.traceRecorder,
+    deps.pricing,
+    deps.studentRiskGate,
+    deps.riskAudit,
+    deps.riskProbe,
+    deps.idempotency ?? new TurnIdempotencyService(),
+    deps.evaluation,
+  );
 }

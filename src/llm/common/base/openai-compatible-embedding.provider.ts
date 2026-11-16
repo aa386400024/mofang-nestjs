@@ -26,8 +26,8 @@
 //     一起删, type alias 不再需要). 治本: 删 type 导入, 用 as unknown as OpenAIEmbeddingsParams
 //     inline 简化 (跟 VS-3a 5 段治本注释一致).
 import { OpenAIEmbeddings } from '@langchain/openai';
-import { AIProviderId, LLMCapability } from '../enums/llm.enums';
-import type { EmbeddingProvider, EmbeddingRequest, EmbeddingResponse } from '../interfaces/embedding-provider.interface';
+import { AIProviderId, LLMCapability } from '../enums/llm.enums.js';
+import type { EmbeddingProvider, EmbeddingRequest, EmbeddingResponse } from '../interfaces/embedding-provider.interface.js';
 
 // V2026-10-14 治本 (VS-3a — 删 unused type alias):
 //   原因: 改用 `as unknown as OpenAIEmbeddingsParams` 直接 cast (绕过 LangChain 1.x

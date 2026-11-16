@@ -23,7 +23,7 @@
 //     2. test/engine-core/engine-core.spec.ts: 直接 new 内存实现, 不启动 NestJS 容器
 //        跑通 open → turn → close
 
-import type { EngineSessionHandle, EngineTurnInput, EngineTurnOutput, OpenEngineSessionInput } from '../domain/engine-session.types';
+import type { EngineSessionHandle, EngineTurnInput, EngineTurnOutput, OpenEngineSessionInput } from '../domain/engine-session.types.js';
 
 /**
  * 会话内核端口.

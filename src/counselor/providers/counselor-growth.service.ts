@@ -6,8 +6,8 @@
 
 import { Injectable } from '@nestjs/common';
 
-import { CounselorHomeService } from './counselor-home.service';
-import { type CounselorGrowthDto } from '../dto/counselor-growth.dto';
+import { CounselorHomeService } from './counselor-home.service.js';
+import { type CounselorGrowthDto } from '../dto/counselor-growth.dto.js';
 
 @Injectable()
 export class CounselorGrowthService {

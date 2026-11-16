@@ -13,8 +13,8 @@
 
 import { Module } from '@nestjs/common';
 
-import { TtsBidiPoolService } from './tts-bidi-pool.service';
-import { TtsService } from './tts.service';
+import { TtsBidiPoolService } from './tts-bidi-pool.service.js';
+import { TtsService } from './tts.service.js';
 
 @Module({
   providers: [TtsService, TtsBidiPoolService],

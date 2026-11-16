@@ -9,8 +9,8 @@
 //     - 不放在前端 (客户端与 server 双份文案必然 drift, server 为单一事实源)
 //   验证: tsc 0 错 + MODES_BY_TYPE 三个 key 的 count 分别为 3/4/3.
 //   时间戳: 2026-10-20
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
-import { TrainingExerciseType } from '../enums/training-exercise-type.enum';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
+import { TrainingExerciseType } from '../enums/training-exercise-type.enum.js';
 
 export interface TrainingExerciseTypeMeta {
   /** 中文标题, 跟设计规格 §4.1 区块头一致 */

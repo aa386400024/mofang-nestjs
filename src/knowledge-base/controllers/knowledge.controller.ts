@@ -30,23 +30,23 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 //   CurrentUser 在 src/user/decorators/, JwtAuthGuard 在 src/auth/guards/, TenantId
 //   在 src/common/decorators/. common/index.ts 不 re-export 业务 guard / decorator
 //   (跟 analytics.controller 同治本), 拆 3 个 import.
-import { JwtAuthGuard } from '../../auth';
-import { TenantId } from '../../common';
-import { RequirePrivacyLevel } from '../../common/decorators/privacy-level.decorator';
-import { PrivacyGuard } from '../../common/guards/privacy.guard';
-import { PrivacyLevel } from '../../common/privacy/privacy-level.enum';
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { RejectKnowledgeDto, UpdateKnowledgeDto } from '../dto/knowledge.dto';
-import { CreateKnowledgeDto } from '../dto/knowledge.dto';
+import { JwtAuthGuard } from '../../auth/index.js';
+import { RequirePrivacyLevel } from '../../common/decorators/privacy-level.decorator.js';
+import { PrivacyGuard } from '../../common/guards/privacy.guard.js';
+import { TenantId } from '../../common/index.js';
+import { PrivacyLevel } from '../../common/privacy/privacy-level.enum.js';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { RejectKnowledgeDto, UpdateKnowledgeDto } from '../dto/knowledge.dto.js';
+import { CreateKnowledgeDto } from '../dto/knowledge.dto.js';
 import {
   ListKnowledgeQueryDto,
   ListKnowledgeResponseDto,
   ScheduleKnowledgeDto,
   KnowledgeDetailDto,
   WorkflowActionResponseDto,
-} from '../dto/knowledge.dto';
-import { KnowledgeService } from '../providers/knowledge.service';
-import { ScheduledPublishService } from '../providers/scheduled-publish.service';
+} from '../dto/knowledge.dto.js';
+import { KnowledgeService } from '../providers/knowledge.service.js';
+import { ScheduledPublishService } from '../providers/scheduled-publish.service.js';
 
 @ApiTags('Admin · Knowledge')
 @ApiBearerAuth()

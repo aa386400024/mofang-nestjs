@@ -38,8 +38,8 @@
 //     3. npx jest test/counselor/drill-judge.spec.ts 全绿 (crisis 只出覆盖清单, verdict 恒 null)
 //   时间戳: 2026-10-27 20:05 GMT+8
 
-import { PracticeDifficulty } from '../../../../enums/practice-difficulty.enum';
-import { DRILL_CRISIS_ANCHOR_KEYS, type DrillScript } from '../../../domain/drill.types';
+import { PracticeDifficulty } from '../../../../enums/practice-difficulty.enum.js';
+import { DRILL_CRISIS_ANCHOR_KEYS, type DrillScript } from '../../../domain/drill.types.js';
 
 /**
  * crisis 赛道通用边界声明 (非临床口径).

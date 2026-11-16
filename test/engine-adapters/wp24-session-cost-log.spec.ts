@@ -1,3 +1,5 @@
+import { Logger } from '@nestjs/common';
+import { vi } from 'vitest';
 // V2026-10-30 治本 (WP24 · 单场成本日志):
 //   职责: 钉死「每轮用量累加 → closeSession 打一条 session_cost_summary」的闭环,
 //         以及成本口径的诚实性 (输入侧不可得时必须落成 output_only, 不能拿 0 冒充).
@@ -18,8 +20,6 @@
 //   验证: npx jest test/engine-adapters/wp24-session-cost-log.spec.ts
 //   时间戳: 2026-10-30
 
-import { Logger } from '@nestjs/common';
-
 import {
   accumulateSessionUsage,
   buildSessionCostSummary,
@@ -29,10 +29,16 @@ import {
   resolveSessionCostPricing,
   type SessionCostSummary,
   type SessionUsageTotals,
-} from '../../src/engine-adapters/observability/session-cost';
-import type { TurnRenderResult } from '../../src/engine-adapters/rendering/turn-render-orchestrator';
-import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service';
-import { createEngineStreamBackend } from '../../src/engine-adapters/wiring/engine.providers';
+} from '../../src/engine-adapters/observability/session-cost.js';
+import type { TurnRenderResult } from '../../src/engine-adapters/rendering/turn-render-orchestrator.js';
+import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service.js';
+import { createEngineStreamBackend } from '../../src/engine-adapters/wiring/engine.providers.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 /**
  * 引擎门面 stub: open / close / turnStream 三件套.
@@ -68,7 +74,7 @@ function buildEngineStub(render: TurnRenderResult['render']): EngineTurnService 
  */
 function captureCostSummary(): { readonly summaries: SessionCostSummary[]; readonly logs: string[] } {
   const logs: string[] = [];
-  jest.spyOn(Logger.prototype, 'log').mockImplementation((message: unknown) => {
+  vi.spyOn(Logger.prototype, 'log').mockImplementation((message: unknown) => {
     logs.push(typeof message === 'string' ? message : String(message));
   });
   return {
@@ -86,7 +92,7 @@ function captureCostSummary(): { readonly summaries: SessionCostSummary[]; reado
 
 describe('WP24 · 单场成本日志', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('用量累加 (纯函数)', () => {
@@ -280,6 +286,7 @@ describe('WP24 · 单场成本日志', () => {
         personaId: 'p1',
         userText: '我最近有点睡不着。',
       });
+
       for await (const _chunk of stream) {
         // 消费掉整条流 (buildStream 要跑完才会结算 usage)
       }
@@ -326,6 +333,7 @@ describe('WP24 · 单场成本日志', () => {
         personaId: 'p1',
         userText: '在吗',
       });
+
       for await (const _chunk of stream) {
         // 消费整条流
       }
@@ -363,6 +371,7 @@ describe('WP24 · 单场成本日志', () => {
         personaId: 'p1',
         userText: '在吗',
       });
+
       for await (const _chunk of stream) {
         // 消费整条流
       }
@@ -397,6 +406,7 @@ describe('WP24 · 单场成本日志', () => {
         personaId: 'p1',
         userText: '在吗',
       });
+
       for await (const _chunk of stream) {
         // 消费整条流
       }
@@ -407,7 +417,9 @@ describe('WP24 · 单场成本日志', () => {
 
     it('这场没走过引擎 (旧链路会话) → 不打汇总 (不是"花了 0 元", 是"不归引擎管")', () => {
       const captured = captureCostSummary();
-      const backend = createEngineStreamBackend({ engine: buildEngineStub({ fallbackUsed: false, usage: { completionTokens: 0, totalTokens: 0 } }) });
+      const backend = createEngineStreamBackend({
+        engine: buildEngineStub({ fallbackUsed: false, usage: { completionTokens: 0, totalTokens: 0 } }),
+      });
 
       backend.closeSession('never-opened-session');
 

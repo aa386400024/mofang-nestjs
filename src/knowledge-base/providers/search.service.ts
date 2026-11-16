@@ -15,13 +15,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
-import { QdrantService } from '../../ai-engine/providers/qdrant.service';
-import { LlmRouterService } from '../../llm/registry/llm-router.service';
-import { User } from '../../user/entities/user.entity';
-import { KnowledgeItemDto } from '../dto/knowledge.dto';
-import { KnowledgeItem } from '../entities/knowledge-item.entity';
+import { QdrantService } from '../../ai-engine/providers/qdrant.service.js';
+import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
+import { safeString } from '../../shared/infra/string-utils/index.js';
+import { User } from '../../user/entities/user.entity.js';
+import { KnowledgeItemDto } from '../dto/knowledge.dto.js';
+import { KnowledgeItem } from '../entities/knowledge-item.entity.js';
 
 @Injectable()
 export class SearchService {
@@ -92,7 +93,7 @@ export class SearchService {
     // 3. V2026-10-14 治本 (VS-3d — Qdrant score 传给 toItemDto):
     //   改: 加 hits 索引 map (itemId → hit 含 score) 跟 DTO query 字段, 跟 score 一起
     //     传 toItemDto. 治本: client 搜索结果能显示"哪条最相关".
-    const hitById = new Map(hits.map((h) => [String(h.payload['item_id'] ?? ''), h]));
+    const hitById = new Map(hits.map((h) => [safeString(h.payload['item_id']), h]));
     const itemIds = Array.from(hitById.keys()).filter(Boolean);
     if (itemIds.length === 0) return [];
 

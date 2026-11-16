@@ -28,10 +28,10 @@
 //   时间戳: 2026-10-23
 import { IsNull, type DataSource } from 'typeorm';
 
-import { isAcceptableCodename, resolveCompliantCodename } from '../config/visitor-pool-codename';
-import { VISITOR_POOL_TEMPLATE_SEEDS, type VisitorPoolTemplateSeed } from '../config/visitor-pool-seed';
-import { VisitorPoolTemplate } from '../entities/visitor-pool-template.entity';
-import { VisitorPoolSource } from '../enums/visitor-pool.enum';
+import { isAcceptableCodename, resolveCompliantCodename } from '../config/visitor-pool-codename.js';
+import { VISITOR_POOL_TEMPLATE_SEEDS, type VisitorPoolTemplateSeed } from '../config/visitor-pool-seed.js';
+import { VisitorPoolTemplate } from '../entities/visitor-pool-template.entity.js';
+import { VisitorPoolSource } from '../enums/visitor-pool.enum.js';
 
 /**
  * 幂等灌入公共来访模板内容库.

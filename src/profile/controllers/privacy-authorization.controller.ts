@@ -1,11 +1,11 @@
 import { Controller, Delete, Get, HttpCode, HttpStatus, Param, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { PrivacyAuthorizationsResponseDto } from '../dto/privacy-authorization.dto';
-import { PrivacyAuthorizationService } from '../providers/privacy-authorization.service';
+import { PrivacyAuthorizationsResponseDto } from '../dto/privacy-authorization.dto.js';
+import { PrivacyAuthorizationService } from '../providers/privacy-authorization.service.js';
 
 /**
  * 隐私授权 controller — V2.0 §Tab4 「授权管理」.

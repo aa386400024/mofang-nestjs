@@ -1,8 +1,8 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 import {
   type GuideCategoryDto,
   type GuideCategoryKey,
@@ -13,8 +13,8 @@ import {
   SaveCourseNoteDto,
   SaveCourseProgressDto,
   ToggleFavoriteDto,
-} from '../dto/guide.dto';
-import { GuideService } from '../providers/guide.service';
+} from '../dto/guide.dto.js';
+import { GuideService } from '../providers/guide.service.js';
 
 /**
  * 陪伴者端「指南」Tab Controller — V3.0 §4 Tab3.

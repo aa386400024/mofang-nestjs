@@ -23,8 +23,8 @@
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
-import { Persona } from '../domain/entities/persona.entity';
-import type { PersonaRepository } from '../domain/repositories/persona.repository';
+import { Persona } from '../domain/entities/persona.entity.js';
+import type { PersonaRepository } from '../domain/repositories/persona.repository.js';
 
 /** V0.x 种子数据 — 3 个 persona 覆盖 L1/L2/L3. */
 const SEED_PERSONAS: readonly Persona[] = [

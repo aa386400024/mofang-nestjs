@@ -16,7 +16,7 @@
 
 import { Column, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { AIUnlockState } from '../../ai-engine/enums/ai-unlock.enums';
+import { AIUnlockState } from '../../ai-engine/enums/ai-unlock.enums.js';
 
 /**
  * 游戏化模块解锁进度 — V6.0 §6 + Inner World 扩展.

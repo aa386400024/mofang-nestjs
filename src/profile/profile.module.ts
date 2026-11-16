@@ -1,38 +1,38 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { RolesGuard } from '../common/guards/roles.guard';
-import { UserModule } from '../user/user.module';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { UserModule } from '../user/user.module.js';
 
-import { CertificationController } from './controllers/certification.controller';
-import { CompanionController } from './controllers/companion.controller';
-import { ExportController } from './controllers/export.controller';
-import { PrivacyAuthorizationController } from './controllers/privacy-authorization.controller';
-import { ProfileController } from './controllers/profile.controller';
-import { BurnoutSettings } from './entities/burnout-settings.entity';
-import { Certification } from './entities/certification.entity';
-import { CompanionBinding } from './entities/companion-binding.entity';
-import { CompanionRecord } from './entities/companion-record.entity';
-import { ConsentSignature } from './entities/consent-signature.entity';
-import { Membership } from './entities/membership.entity';
-import { NotificationSettings } from './entities/notification-settings.entity';
-import { PrivacyAuthorization } from './entities/privacy-authorization.entity';
-import { SelfcareRecord } from './entities/selfcare-record.entity';
-import { UserProfile } from './entities/user-profile.entity';
+import { CertificationController } from './controllers/certification.controller.js';
+import { CompanionController } from './controllers/companion.controller.js';
+import { ExportController } from './controllers/export.controller.js';
+import { PrivacyAuthorizationController } from './controllers/privacy-authorization.controller.js';
+import { ProfileController } from './controllers/profile.controller.js';
+import { BurnoutSettings } from './entities/burnout-settings.entity.js';
+import { Certification } from './entities/certification.entity.js';
+import { CompanionBinding } from './entities/companion-binding.entity.js';
+import { CompanionRecord } from './entities/companion-record.entity.js';
+import { ConsentSignature } from './entities/consent-signature.entity.js';
+import { Membership } from './entities/membership.entity.js';
+import { NotificationSettings } from './entities/notification-settings.entity.js';
+import { PrivacyAuthorization } from './entities/privacy-authorization.entity.js';
+import { SelfcareRecord } from './entities/selfcare-record.entity.js';
+import { UserProfile } from './entities/user-profile.entity.js';
 
-import { BurnoutSettingsService } from './providers/burnout-settings.service';
-import { CertificationService } from './providers/certification.service';
-import { CompanionBindingService } from './providers/companion-binding.service';
-import { CompanionRecordService } from './providers/companion-record.service';
-import { ConsentService } from './providers/consent.service';
-import { ExportService } from './providers/export.service';
-import { GrowthReportService } from './providers/growth-report.service';
-import { MembershipService } from './providers/membership.service';
-import { NotificationSettingsService } from './providers/notification-settings.service';
-import { PrivacyAuthorizationService } from './providers/privacy-authorization.service';
-import { ProfileService } from './providers/profile.service';
-import { SelfcareRecordService } from './providers/selfcare-record.service';
-import { User } from '../user/entities/user.entity';
+import { BurnoutSettingsService } from './providers/burnout-settings.service.js';
+import { CertificationService } from './providers/certification.service.js';
+import { CompanionBindingService } from './providers/companion-binding.service.js';
+import { CompanionRecordService } from './providers/companion-record.service.js';
+import { ConsentService } from './providers/consent.service.js';
+import { ExportService } from './providers/export.service.js';
+import { GrowthReportService } from './providers/growth-report.service.js';
+import { MembershipService } from './providers/membership.service.js';
+import { NotificationSettingsService } from './providers/notification-settings.service.js';
+import { PrivacyAuthorizationService } from './providers/privacy-authorization.service.js';
+import { ProfileService } from './providers/profile.service.js';
+import { SelfcareRecordService } from './providers/selfcare-record.service.js';
+import { User } from '../user/entities/user.entity.js';
 
 /**
  * Profile module — 心塑「我的」Tab V2.0 二级页 (大厂企业级 V3).

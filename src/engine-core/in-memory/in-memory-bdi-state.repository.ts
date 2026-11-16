@@ -19,9 +19,9 @@
 //     1. pnpm build 0 错
 //     2. test/engine-core/engine-core.spec.ts 覆盖: 存取往返 / 防御性拷贝 / revision 冲突 / 参数校验
 
-import { cloneBdiSnapshot } from '../domain/bdi-snapshot';
-import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors';
-import type { BdiStateRecord, BdiStateRepository } from '../domain/ports/bdi-state.repository';
+import { cloneBdiSnapshot } from '../domain/bdi-snapshot.js';
+import { EngineCoreError, EngineErrorCode } from '../domain/engine-errors.js';
+import type { BdiStateRecord, BdiStateRepository } from '../domain/ports/bdi-state.repository.js';
 
 /** 状态内存仓储. */
 export class InMemoryBdiStateRepository implements BdiStateRepository {

@@ -30,17 +30,17 @@ import type {
   SessionContextEntry,
   SessionContextTurn,
   SessionPersonaContext,
-} from '../domain/session-context/session-context';
-import { CaseProfileEntry } from '../entities/case-profile-entry.entity';
-import { LongTermCaseSession, type SessionTranscriptTurn } from '../entities/long-term-case-session.entity';
-import { LongTermCase } from '../entities/long-term-case.entity';
-import { TrainingSession } from '../entities/training-session.entity';
-import { VisitorFullPersona } from '../entities/visitor-full-persona.entity';
-import { ChatRole } from '../enums/chat-role.enum';
-import { SessionType } from '../enums/session-type.enum';
-import { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import { TrainingSessionStatus } from '../enums/training-session-status.enum';
-import { VisitorStyle } from '../enums/visitor-style.enum';
+} from '../domain/session-context/session-context.js';
+import { CaseProfileEntry } from '../entities/case-profile-entry.entity.js';
+import { LongTermCaseSession, type SessionTranscriptTurn } from '../entities/long-term-case-session.entity.js';
+import { LongTermCase } from '../entities/long-term-case.entity.js';
+import { TrainingSession } from '../entities/training-session.entity.js';
+import { VisitorFullPersona } from '../entities/visitor-full-persona.entity.js';
+import { ChatRole } from '../enums/chat-role.enum.js';
+import { SessionType } from '../enums/session-type.enum.js';
+import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import { TrainingSessionStatus } from '../enums/training-session-status.enum.js';
+import { VisitorStyle } from '../enums/visitor-style.enum.js';
 
 /**
  * training_sessions 行 → SessionContext.

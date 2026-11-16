@@ -25,18 +25,22 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 
-import { LiveSupervisionHintService } from './live-hint.service';
-import { CounselorLlmJsonClient } from './llm-json.client';
-import { ProfileExtractionService } from './profile-extraction.service';
-import { SessionContextBuilder } from './session-context.builder';
-import { SessionCoreEventsService } from './session-core-events.service';
-import { TransferenceMarkService } from './transference-mark.service';
-import { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
-import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config';
-import { buildTurnAnalysisUserPrompt, TURN_ANALYZER_SCHEMA_DESCRIPTION, TURN_ANALYZER_SYSTEM_PROMPT } from '../config/session-core-prompts';
-import { type LiveTurnAnalysis, validateLiveTurnAnalysis } from '../domain/session-core/session-core.types';
-import { ChatRole } from '../enums/chat-role.enum';
-import { LiveSupervisionHintTier } from '../enums/live-supervision-hint-tier.enum';
+import { LiveSupervisionHintService } from './live-hint.service.js';
+import { CounselorLlmJsonClient } from './llm-json.client.js';
+import { ProfileExtractionService } from './profile-extraction.service.js';
+import { SessionContextBuilder } from './session-context.builder.js';
+import { SessionCoreEventsService } from './session-core-events.service.js';
+import { TransferenceMarkService } from './transference-mark.service.js';
+import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
+import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config.js';
+import {
+  buildTurnAnalysisUserPrompt,
+  TURN_ANALYZER_SCHEMA_DESCRIPTION,
+  TURN_ANALYZER_SYSTEM_PROMPT,
+} from '../config/session-core-prompts.js';
+import { type LiveTurnAnalysis, validateLiveTurnAnalysis } from '../domain/session-core/session-core.types.js';
+import { ChatRole } from '../enums/chat-role.enum.js';
+import { LiveSupervisionHintTier } from '../enums/live-supervision-hint-tier.enum.js';
 
 /**
  * 每轮分析结果 (给 worker 记日志用).

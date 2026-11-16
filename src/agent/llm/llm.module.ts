@@ -7,8 +7,8 @@
 
 import { Module } from '@nestjs/common';
 
-import { LlmController } from './llm.controller';
-import { LlmService } from './llm.service';
+import { LlmController } from './llm.controller.js';
+import { LlmService } from './llm.service.js';
 
 @Module({
   controllers: [LlmController],

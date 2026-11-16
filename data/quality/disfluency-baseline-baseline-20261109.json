@@ -1,0 +1,46 @@
+{
+  "batchId": "baseline-20261109",
+  "batchDir": "debug-sessions-baseline-20261109",
+  "sessions": 4,
+  "turns": 52,
+  "events": 51,
+  "eventTurns": 34,
+  "normalizedChars": 1663,
+  "events_per_turn": 0.980769,
+  "event_turn_rate": 0.653846,
+  "density_per100": 3.066747,
+  "filler_per_turn": 0.288462,
+  "pause_per_turn": 0.442308,
+  "repair_per_turn": 0.230769,
+  "repetition_per_turn": 0.019231,
+  "trailoff_per_turn": 0,
+  "type_counts": {
+    "filler": 15,
+    "pause": 23,
+    "repetition": 1,
+    "repair": 12,
+    "trailoff": 0,
+    "elongation": 0
+  },
+  "mean_events_per_turn": 1,
+  "mean_event_turn_rate": 0.646627,
+  "mean_density_per100": 3.343264,
+  "seed_comparison": {
+    "event_turn_rate": {
+      "measured": 0.653846,
+      "inside": false,
+      "min": 0.2,
+      "max": 0.55
+    },
+    "events_per_turn": {
+      "measured": 0.980769,
+      "inside": false,
+      "max": 0.8
+    },
+    "repair_per_turn": {
+      "measured": 0.230769,
+      "inside": true,
+      "max": 0.25
+    }
+  }
+}

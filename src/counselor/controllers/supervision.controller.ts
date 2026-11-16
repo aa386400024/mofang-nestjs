@@ -37,8 +37,8 @@ import { Body, Controller, Get, MessageEvent, Param, Post, Sse, UseGuards } from
 import { ApiBearerAuth, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import { type Observable } from 'rxjs';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
 import {
   type CompareSupervisionFeedbackResponseDto,
@@ -47,12 +47,12 @@ import {
   type SupervisionFeedbackDto,
   type SupervisionSchoolDetailDto,
   type SupervisionSchoolListItemDto,
-} from '../dto/supervision.dto';
-import { type SessionType } from '../enums/session-type.enum';
-import { type SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
-import { SupervisionReportGuard } from '../guards/supervision-report.guard';
-import { SupervisionReportStreamService } from '../providers/supervision-report-stream.service';
-import { SupervisionService } from '../providers/supervision.service';
+} from '../dto/supervision.dto.js';
+import { type SessionType } from '../enums/session-type.enum.js';
+import { type SupervisionSchoolCode } from '../enums/supervision-school-code.enum.js';
+import { SupervisionReportGuard } from '../guards/supervision-report.guard.js';
+import { SupervisionReportStreamService } from '../providers/supervision-report-stream.service.js';
+import { SupervisionService } from '../providers/supervision.service.js';
 
 /**
  * V2026-10-15 (V1.x counselor-mode W3-4 — CounselorSupervisionController):

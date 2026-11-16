@@ -35,7 +35,7 @@
 //     2. test/engine-adapters/wp8b-stream-render.spec.ts 覆盖流式状态机与降级
 //     3. test/engine-adapters/wp8b-turn-stream.spec.ts 覆盖门面的流式出口
 
-import type { RenderPort, RenderSpec, RenderTaskKind } from '../../engine-core';
+import type { RenderPort, RenderSpec, RenderTaskKind } from '../../engine-core/index.js';
 
 /**
  * 输出侧校验结论 (只取内核约定的等级与类别, 不引入厂商私有结构).
@@ -95,11 +95,14 @@ export interface StreamRenderOutcome {
     /**
      * 输入 token (WP24 · 成本日志要用).
      *
-     * 流式路径上游**只给累计** tokenCount, 没有 prompt/completion 拆分 ——
-     * 所以这里通常**缺省** (即"不可得"), 而不是 0.
+     * V2026-11-10 治本 (WP-H · 改动 7): 流式路径现在**也能拿到**输入侧用量了 ——
+     *   上游一直报着 (OpenAI 兼容 usage.prompt_tokens), 此前是本仓在 provider →
+     *   chunk → 适配器的归约链上把 input 侧丢了, 于是这里恒缺省, prompt_tokens 全库恒 0.
      *
-     * 为什么"通常"而不是"永远": 走"聚合收集成流"兜底形态时 (`streamViaAggregate`)
-     * 上游给的是完整 usage, 那时它是有值的. 口径由**实际走哪条路**决定, 不猜.
+     * 仍然**缺省**的两种情况: 上游没报 (老 provider / 没开 include_usage), 或者
+     *   走"聚合收集成流"兜底形态时上游压根没给完整 usage. 口径由**实际走哪条路**决定, 不猜.
+     *
+     * 缺省 ≠ 0: 0 的含义是"输入侧确实是 0 token", 那在实践中不可能.
      */
     readonly promptTokens?: number;
     /**
@@ -130,6 +133,53 @@ export interface StreamRenderOutcome {
   readonly degraded: boolean;
   /** 后置全文 guard 判定 (观测用; 流式路径只记信号, 不 regen 不撤回). */
   readonly guardVerdict?: RenderGuardVerdict;
+  /**
+   * 本轮实际下发的**生成长度上限** (thinking token 计入本上限).
+   *
+   * V2026-10-30 治本 (WP19-R · 留痕): 留痕快照要记"这一轮模型被要求写多长".
+   *   注意它**不等于** `spec.tokenBudget.maxCompletionTokens` —— 分层默认 /
+   *   候选 overrides 都会改它, 只有适配器解析完才知道真值.
+   */
+  readonly maxCompletionTokens?: number;
+  /**
+   * 本轮实际下发的**思考强度** (缺省 = 没下发, 由上游按默认档走).
+   *
+   * V2026-10-30 治本 (WP19-R · 留痕): 风险轮次会被**抬档**, 所以真值只在适配器里.
+   */
+  readonly reasoningEffort?: string;
+  /**
+   * 本轮 system prompt 预览 (前 500 字; 不含完整 prompt).
+   *
+   * V2026-10-30 治本 (WP19-R · 留痕): 调试器要能核对"这轮到底问了模型什么",
+   *   但**不存完整 system prompt** (模板是适配层资产, 全量落库等于摊开角色约束).
+   */
+  readonly promptPreview?: string;
+  /**
+   * 本轮 system prompt **全文** (不截断).
+   *
+   * V2026-11-05 治本 (WP58 · 引擎调试面板): 调试器要能核对"这轮到底问了模型什么" ——
+   *   只有 500 字预览时, 角色约束那一段经常正好被截掉, 调试者看不到真正生效的模板.
+   *
+   * ⚠️ **只走内存, 不落库**: WP19-R 的留痕契约 (`TurnTrace.renderSpec`) 只取
+   *   `promptPreview` 那一列 —— 全文不写进 `training_sessions.turn_debug_trace`,
+   *   否则等于把角色约束摊进调试表 (留痕的既定纪律).
+   *   上层要不要把它带出去, 由**调用方显式要** (见门面的 `includePromptFull`).
+   */
+  readonly promptFull?: string;
+  /**
+   * 上游结束原因 (stop / length / content_filter …; 缺省 = 上游没报).
+   *
+   * V2026-10-30 治本 (WP19-R · 留痕): `length` 意味着正文被按长度砍断 ——
+   *   留痕里没有它, 就分不清"模型话说完了"与"模型被截断了".
+   */
+  readonly finishReason?: string;
+  /**
+   * 首 token 延迟 (ms; 从发起调用到第一个增量到达).
+   *
+   * V2026-10-30 治本 (WP19-R · 留痕): 留痕里没有它, 就没法区分
+   *   "模型慢"与"prompt 太长".
+   */
+  readonly ttftMs?: number;
 }
 
 /**

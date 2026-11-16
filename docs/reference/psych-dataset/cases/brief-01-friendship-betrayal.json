@@ -1,0 +1,220 @@
+{
+  "case_id": "brief-01-friendship-betrayal",
+  "title": "短程案例一：被朋友冷落的郁闷——一次会谈里的三角关系澄清",
+  "sources": [],
+  "supervisors": [
+    {
+      "name": "无督导"
+    }
+  ],
+  "school": [
+    "未标注"
+  ],
+  "minor": false,
+  "trainable": true,
+  "risk": "low",
+  "compliance": {
+    "pii_redacted": true
+  },
+  "profile": {
+    "demographics": "女大学生（材料提到「刚进大学没多久」，年龄未写明）",
+    "presenting": "好友最近对她爱理不理，却与她讨厌的另一位同学走得很近；感到郁闷、伤心"
+  },
+  "turns": [
+    {
+      "i": 1,
+      "counselor": "你好，请进! 你好!谢谢你对我的信任,你可以放心,今天我们的谈话内容和你的资料是绝对保密的， 不 会有外人知 道，那么你希望我在哪一方面为你提供帮助呢?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我很郁闷。"
+    },
+    {
+      "i": 2,
+      "counselor": "郁闷?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "恩。"
+    },
+    {
+      "i": 3,
+      "counselor": "那你能跟我具体说说是什么事情让你感到郁闷呢?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "事情是这样的，我有一个好朋友，本来关系是很好的，几乎是形影不离的，但是最 近不知道为什么， 她总是对我爱理不理的。而且我发现她跟我们班的另一个我特别讨厌的同 学关系很好了， 这让我感到很郁闷， 也很伤心， 她凭什么那样对我啊！ 我以前对她那么好！"
+    },
+    {
+      "i": 4,
+      "counselor": "你刚才说你的一位好朋友最近对你不理不睬，但她却和你们班的另一个同学走 得很近。这让你感到很伤心，很愤怒，对吗?",
+      "events": [
+        "empathy"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.03,
+        "safety": 0.03
+      },
+      "quality": "normal",
+      "visitor": "那肯定，因为以前我们关系都很好，现在她却那样对我。我很想不明白。她这就 叫友情上的背叛。"
+    },
+    {
+      "i": 5,
+      "counselor": "我很能理解你现在的心情。那你能否告诉我，最近跟你的好朋友发生过什么矛盾 使她疏远你吗?",
+      "events": [],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.04,
+        "safety": 0.03
+      },
+      "quality": "normal",
+      "visitor": "矛盾?好像没有吧?只是，前些天我们之间发生了一些事情。"
+    },
+    {
+      "i": 6,
+      "counselor": "那你能不能具体说一说这件事情呢?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "前些天我交了个男朋友。 然后。我就没什么时间陪她， 每天就跟我男朋友在一起。 冷落了她。她现在就这样报复我。"
+    },
+    {
+      "i": 7,
+      "counselor": "报复?你认为她这是在报复你吗?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "肯定是报复啊。 要不然现在我每次找她陪我逛街的时，她总是找借口推脱，去干 她自己的事情， 或者陪班里其他的同学。"
+    },
+    {
+      "i": 8,
+      "counselor": "那她不能陪你，是不是真的因为有其他的事情要做呢?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "…。。沉默 10 秒",
+      "stage": "非言语"
+    },
+    {
+      "i": 9,
+      "counselor": "除了这件事情。你们之间还有其他的事情影响你们关系吗?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "前段时间我们因为一件事情闹过矛盾。"
+    },
+    {
+      "i": 10,
+      "counselor": "那你把那件事情具体跟我说说好吗?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我们在刚进大学没多久的时候，我们同时喜欢上了一个男生。但是没过多久，那男 生单独请我出去吃了几次饭，我也告诉她了。但是她在班里说我很虚伪，这使我很气愤， 于 是我就找她说。但是发生了口角，吵起来了。但是这事已经过很久了啊， 吵完过后，我们的 关系并没有受到很大的影响，似乎还是跟以前一样。"
+    },
+    {
+      "i": 11,
+      "counselor": "那你现在的男朋友是你们共同喜欢的那个男生吗?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "是啊。"
+    },
+    {
+      "i": 12,
+      "counselor": "那你认为她不理你的原因是什么呢?",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "我认为就是因为那个我讨厌的女生的原因。因为我以前跟她关系一直都不好， 现在 我和朋友闹矛盾了， 她就乘机挑拨我们之间的关系， 让我的好朋友不理我， 还在我朋友面前 说我的坏话，这样就使我跟我朋友的关系进一步恶化了。"
+    },
+    {
+      "i": 13,
+      "counselor": "你大概的情况我已经有所了解了，今天时间也差不多了， 具体怎么帮助你，我下次再详细的聊好吗？谢谢你的来访。",
+      "events": [
+        "open_probe"
+      ],
+      "descriptive_tags": [],
+      "delta": {
+        "trust": 0.01
+      },
+      "quality": "normal",
+      "visitor": "好的，谢谢，再见！"
+    }
+  ],
+  "ground_truth": {
+    "gold_turns": [
+      3,
+      4,
+      5,
+      7,
+      8,
+      10,
+      11,
+      12
+    ],
+    "borderline_turns": [
+      6,
+      13
+    ],
+    "bad_turns": [],
+    "absent_negative_tags": [
+      "judgment",
+      "preaching",
+      "minimizing",
+      "boundary_cross"
+    ],
+    "notes": []
+  },
+  "supervisor_summary": []
+}

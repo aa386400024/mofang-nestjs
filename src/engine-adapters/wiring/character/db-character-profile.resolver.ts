@@ -29,15 +29,35 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-adapters/wp9b-db-character-resolver.spec.ts 覆盖命中/未命中/审核态/确定性/preset
 //
+//   V2026-11-04 治本 (WP49 · 大五人格一列):
+//     DB 角色此前**永远没有**大五人格 —— `character_profiles` 里没有这一列, 于是
+//     内核 `PersonalityTraits` 在生产路径上永远是 undefined, WP34 的宜人性调节算子
+//     在 DB 角色上一直是休眠的.
+//     本文件的扩展: `toCharacterSeed()` 读 `personality_traits` 列, **条件展开**给种子.
+//     与 safety / bond 的口径**相反** (那两列 NOT NULL DEFAULT → 直接传; 本列可空 →
+//     NULL 时不传) —— 这正是"条件展开 vs 直接传"的分界线: 能不能直传, 取决于
+//     "没值"在数据源上**是否可能发生**.
+//
+//   V2026-11-04 治本 (WP41 · 表达风格三列接通):
+//     WP10A 预留的三列 (话量基线 / 叙事风格 / 语态倾向) 此前**零消费** —— 列在表里,
+//     种子也写过, 但从没人读过. 本文件的扩展: `toCharacterSeed()` 读这三列, **直接传**
+//     给种子 (不做条件展开).
+//
+//     为什么**直接传** (与 personalityTraits 相反):
+//       "能不能直传"取决于"没值"在数据源上**是否可能发生**.
+//       这三列是 NOT NULL DEFAULT (0.5 / 'mixed' / 'restrained') → 没值不可能发生 →
+//       直传. personality_traits 是可空列 → NULL 就是真的"没说" → 条件展开.
+//       两者是**同一条判据**的两个方向, 不是两套规矩.
+//
 //   时间戳: 2026-10-29
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, type Repository } from 'typeorm';
 
-import { buildCharacterProfile, stableSeedFromKey, type BuiltinCharacterSeed } from './builtin-character-registry';
-import { CharacterProfileEntity } from './character-profile.entity';
-import type { CharacterProfileResolver, CharacterResolveRequest, ResolvedCharacter } from './character-profile.resolver';
+import { buildCharacterProfile, stableSeedFromKey, type BuiltinCharacterSeed } from './builtin-character-registry.js';
+import { CharacterProfileEntity } from './character-profile.entity.js';
+import type { CharacterProfileResolver, CharacterResolveRequest, ResolvedCharacter } from './character-profile.resolver.js';
 
 /**
  * 角色行 → WP9-A 种子形状 (纯映射).
@@ -54,6 +74,18 @@ export function toCharacterSeed(row: CharacterProfileEntity): BuiltinCharacterSe
     key: row.templateId,
     displayName: row.displayName,
     attachmentStyle: row.attachmentStyle,
+    // WP49: 大五人格 —— DB 列是 NULL 时**不传** (键都不存在), 内核按"没说"处理.
+    //   与 safety / bond 的口径**相反**: 那两列是 NOT NULL DEFAULT, "没值"在数据源上
+    //   不可能发生 (直接传); 本列是可选列, NULL 就是真的"没说" —— 所以要条件展开.
+    //   `== null` 同时兜住 null 与 undefined (前者是 DB 的空值, 后者是"字段压根没被选中").
+    ...(row.personalityTraits == null ? {} : { personalityTraits: row.personalityTraits }),
+    // WP41: 表达风格三列 —— 与 safety / bond 同口径: **直接传**, 不做条件展开.
+    //   这三列是 NOT NULL DEFAULT (0.5 / 'mixed' / 'restrained'), "没值"在数据源上
+    //   不可能发生 —— 条件展开在这里是多余的分支, 而且会让"DB 默认"与"角色没表态"
+    //   这两件事混成一件 (它们本来就分不开: DB DEFAULT 就是这一列的"没表态"档).
+    speechVolumeBaseline: row.speechVolumeBaseline,
+    narrativeStyle: row.narrativeStyle,
+    expressionTone: row.expressionTone,
     // 拷贝一层: 避免装配结果与仓储实体共享可变引用 (值语义).
     coreBeliefs: row.coreBeliefs.map((belief) => ({ ...belief, activationTags: [...belief.activationTags] })),
     underlyingDesires: row.underlyingDesires.map((desire) => ({ ...desire })),
@@ -61,6 +93,11 @@ export function toCharacterSeed(row: CharacterProfileEntity): BuiltinCharacterSe
     sensitiveTopics: [...row.sensitiveTopics],
     baseline: {
       trust: row.baselineTrust,
+      // WP51: 同盟三维基线 —— safety / bond 从 DB 行读 (列有 DEFAULT, 恒有值).
+      //   这里**不做条件展开**: DB 列是 NOT NULL DEFAULT, "没值"在数据源上不可能发生;
+      //   与 trust 一样直接传. 真正的"没有"只存在于内存种子那一侧.
+      safety: row.baselineSafety,
+      bond: row.baselineBond,
       resistance: {
         verbal: row.baselineResistanceVerbal,
         depth: row.baselineResistanceDepth,
@@ -118,6 +155,7 @@ export class DbCharacterProfileResolver implements CharacterProfileResolver {
       // seed 由角色 key 稳定派生 (与内置种子同一口径: 同一角色 = 同一条轨迹).
       seed: stableSeedFromKey(templateId),
       displayName: row.displayName,
+      ...(row.verbalVoice ? { verbalVoice: row.verbalVoice } : {}),
     };
   }
 

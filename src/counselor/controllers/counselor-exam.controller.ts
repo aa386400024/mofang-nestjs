@@ -13,11 +13,11 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { type CounselorExamDto, CounselorExamQueryDto } from '../dto/counselor-exam.dto';
-import { CounselorExamService } from '../providers/counselor-exam.service';
+import { type CounselorExamDto, CounselorExamQueryDto } from '../dto/counselor-exam.dto.js';
+import { CounselorExamService } from '../providers/counselor-exam.service.js';
 
 /**
  * V2026-10-13 (Phase 7.10 P0-3 — CounselorExamController):

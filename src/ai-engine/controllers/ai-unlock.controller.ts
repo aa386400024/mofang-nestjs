@@ -8,11 +8,11 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
-import type { AIUnlockStateDto, AIUnlockStatesDto } from '../dto/ai-unlock.dto';
-import type { AIUnlockFeature } from '../enums/ai-unlock.enums';
-import { AIUnlockService } from '../providers/ai-unlock.service';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
+import type { AIUnlockStateDto, AIUnlockStatesDto } from '../dto/ai-unlock.dto.js';
+import type { AIUnlockFeature } from '../enums/ai-unlock.enums.js';
+import { AIUnlockService } from '../providers/ai-unlock.service.js';
 
 @ApiTags('ai-unlock')
 @Controller('ai/unlock')

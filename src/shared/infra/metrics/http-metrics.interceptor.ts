@@ -2,7 +2,7 @@ import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nes
 import type { Request, Response } from 'express';
 import { tap } from 'rxjs/operators';
 
-import { MetricsService } from './metrics.service';
+import { MetricsService } from './metrics.service.js';
 
 /**
  * HTTP metrics interceptor — 自动记录每次 HTTP 请求的耗时 + 计数.

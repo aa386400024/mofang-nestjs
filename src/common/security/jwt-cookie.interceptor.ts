@@ -3,7 +3,7 @@ import type { Response } from 'express';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-import { COOKIE_NAMES, COOKIE_OPTIONS, COOKIE_PATHS, cookieMaxAge } from './cookie-token';
+import { COOKIE_NAMES, COOKIE_OPTIONS, COOKIE_PATHS, cookieMaxAge } from './cookie-token.js';
 
 /**
  * V1.1.2 JwtCookieInterceptor — 大厂 standard (Auth0 / Stripe 风格).

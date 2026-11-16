@@ -20,9 +20,9 @@
 
 import { ApiProperty } from '@nestjs/swagger';
 
-import { FragmentsGrantDto } from './fragments-grant.dto';
-import { FRAGMENT_TYPE_CODES } from '../constants/fragment-type-code';
-import { TOOL_COMPLETION_SOURCES, ToolCompletionSource } from '../constants/tool-completion-source';
+import { FragmentsGrantDto } from './fragments-grant.dto.js';
+import { FRAGMENT_TYPE_CODES } from '../constants/fragment-type-code.js';
+import { TOOL_COMPLETION_SOURCES, ToolCompletionSource } from '../constants/tool-completion-source.js';
 
 // ════════════════════════════════════════════════════════════════
 // Stage Index 枚举 (跟前端 GrowthStage 5 个 enum value 0-4 1:1)

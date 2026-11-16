@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
-import { Sampletable1 } from '#entity/sampledb1';
+import { Sampletable1 } from '#entity/sampledb1/index.js';
 
 @Injectable()
 export class FoobarService {

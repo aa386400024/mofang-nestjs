@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { LIFE_STAGES, type LifeStage } from '../../shared/types/practice.types';
+import { LIFE_STAGES, type LifeStage } from '../../shared/types/practice.types.js';
 
 /**
  * 人生阶段任务完成度记录 — V3.0 §3 Tab3 心理地图核心表.

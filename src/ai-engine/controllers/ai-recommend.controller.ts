@@ -6,10 +6,10 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
-import type { AIRecommendListDto } from '../dto/ai-recommend.dto';
-import { AIRecommendService } from '../providers/ai-recommend.service';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
+import type { AIRecommendListDto } from '../dto/ai-recommend.dto.js';
+import { AIRecommendService } from '../providers/ai-recommend.service.js';
 
 @ApiTags('ai-recommend')
 @Controller('ai/recommend')

@@ -1,0 +1,134 @@
+diff --git a/.env.example b/.env.example
+index 7bdf2dc..7176c8e 100644
+--- a/.env.example
++++ b/.env.example
+@@ -507,8 +507,8 @@ ENGINE_CHARACTER_SOURCE=db
+ ENGINE_MODEL_CLASSIFIER_ENABLED=false
+ # 模型轨生效模式: rule_only (缺省) | shadow | llm_active.
+ #   · rule_only  = 只跑规则轨 (与改造前逐字一致);
+-#   · shadow     = 跑模型轨, 结果**只进旁路观测**, 不改 delta (首版形态);
+-#   · llm_active = 模型轨结果进 delta —— **本单未接线** (留 D-2), 配了也按 rule_only 跑.
++#   · shadow     = 跑模型轨, 结果**只进旁路观测**, 不改 delta;
++#   · llm_active = 模型轨结果进 delta —— **已接线** (D-7): 名单内场次模型轨事件进 core, 名单外仍 rule_only.
+ #   ⚠️ 非法值回落 rule_only (与审议相反: 审议的现状是 shadow, 模型轨的现状是 rule_only).
+ #   ⚠️ 考核场景 (exam) 恒 rule_only —— 写死在代码里, 不接受本节任何配置覆盖.
+ ENGINE_MODEL_CLASSIFIER_EFFECTIVE_MODE=rule_only
+diff --git a/src/engine-adapters/cognition/model-event-classifier.ts b/src/engine-adapters/cognition/model-event-classifier.ts
+index e69e024..5fd8f42 100644
+--- a/src/engine-adapters/cognition/model-event-classifier.ts
++++ b/src/engine-adapters/cognition/model-event-classifier.ts
+@@ -13,9 +13,10 @@
+ //     ③ 跨轮状态分桶键用**业务 sessionId** (禁用 handleId: 运行时维度, 恢复后会变).
+ //     ④ 模型轨每条事件 strength **恒 1** —— 置信度只进观测, 不参与 delta 缩放.
+ //
+-//   首版形态 = **中间态** (任务单 "7.5):
++//   三态形态 (D-7 已接线; 逐场判定唯一真相源 = model-classifier-mode.config.ts):
++//     · rule_only  : 只跑规则轨 (缺省; 一次 LLM 都不发);
+ //     · shadow 模式: 跑模型轨 → 写观测 → **返回规则轨结果** (core events 与 BDI 逐字不变);
+-//     · llm_active: core 接口层**预留** (D-2 才接线, 装配本单不注入).
++//     · llm_active: 模型轨结果**替换**规则轨结果进 core events (名单内场次; 考核场次恒 rule_only).
+ //
+ //   ⚠️ **考核红线**: exam 场景恒 rule_only —— 判定在 model-classifier-mode.config.ts 里,
+ //     优先于一切配置与名单, 模型轨在考核场次**一次 LLM 都不发**.
+@@ -421,9 +422,16 @@ export class ModelEventClassifier implements EventClassifier, ModelClassifierCon
+     this.advanceState(state, ruleEvents, outcome, turnIndex);
+     this.observeRound(session, sessionId, turnIndex, ruleEvents, outcome);
+ 
+-    if (mode === 'llm_active' && outcome.labels) {
+-      // D-2 预留通路: 模型轨结果替换规则轨结果进 core events.
+-      //   首版装配**不注入** llm_active (中间态), 所以这条分支本单走不到.
++    if (mode === 'llm_active' && outcome.labels && outcome.fallbackReason === null) {
++      // D-7 已接线: 模型轨结果替换规则轨结果进 core events.
++      //   走到这里 = 全局 llm_active + 本场在名单内 + 场景非考核
++      //   (逐场判定在 model-classifier-mode.config.ts —— 装配层只管全局形态).
++      //   ⚠️ **必须同时判 fallbackReason === null**: 低置信这一轮**是回落**
++      //     (模型标签仍进观测, 但判定不可用) —— 它带着 labels 回来.
++      //     只看 labels 的话, 低置信轮会把模型事件**漏进 core**, 违反
++      //     「回落一律规则轨等价事件」红线 (D-7 接线时发现并补上).
++      //   ⚠️ 两类新 kind (holding_present / cold_absent) 在 DELTA_TABLE 里种子仍是 ZERO ——
++      //     本单接的是**通路**, 幅度改善待标定批次赋表行增量.
+       return outcome.labels.coreKinds.map((kind) => ({ kind, matchedTerms: [], strength: 1 }));
+     }
+     // shadow: core events 与 BDI **逐字**保持规则轨 (首版是中间态: 只观测, 不改 delta).
+diff --git a/src/engine-adapters/wiring/engine.module.ts b/src/engine-adapters/wiring/engine.module.ts
+index 2f6880a..048a12a 100644
+--- a/src/engine-adapters/wiring/engine.module.ts
++++ b/src/engine-adapters/wiring/engine.module.ts
+@@ -107,7 +107,7 @@ import { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js
+ import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
+ import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
+ import { VOICE_TURN_BACKEND } from '../../voice/voice-turn-backend.port.js';
+-import { resolveModelClassifierModeConfig } from '../cognition/model-classifier-mode.config.js';
++import { resolveModelClassifierModeConfig, type ModelClassifierEffectiveMode } from '../cognition/model-classifier-mode.config.js';
+ import { RedisModelClassifierObserver } from '../cognition/model-classifier-observation.js';
+ import { ModelEventClassifier } from '../cognition/model-event-classifier.js';
+ import { resolveDeliberationModeConfig, type DeliberationModeConfig } from '../deliberation/deliberation-mode.config.js';
+@@ -138,6 +138,24 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js
+  */
+ const wiringLogger = new Logger('EngineWiring');
+ 
++/**
++ * 模型轨是否需要装配到内核 / 门面 (D-7).
++ *
++ * ⚠️ **为什么是「非 rule_only」而不是「只有 llm_active」**: 影子与生效**两种形态都要挂** ——
++ *   影子挂 = 跑模型轨但结果只进旁路观测 (core events 逐字不变);
++ *   生效挂 = 模型轨结果替换规则轨结果进 core events 与 delta.
++ *   两种形态都需要分类器**在位**, 否则内核决策链里根本没有模型轨这一步.
++ *
++ * ⚠️ **逐场判定不在这里**: 灰度名单 / 考核红线由分类器**内部**的
++ *   resolveModelClassifierSessionMode 判 —— 装配期只管「全局形态要不要挂」.
++ *
++ * @param mode 全局生效模式
++ * @returns 该模式是否需要装配模型轨端口
++ */
++function isModelTrackWired(mode: ModelClassifierEffectiveMode): boolean {
++  return mode === 'shadow' || mode === 'llm_active';
++}
++
+ @Module({
+   imports: [
+     LlmModule,
+@@ -371,9 +389,11 @@ const wiringLogger = new Logger('EngineWiring');
+           }`,
+         );
+         if (modeConfig.effectiveMode === 'llm_active') {
+-          // 首版是**中间态**: 模型轨结果只进旁路观测, 不接 delta.
+-          //   llm_active 通路留 D-2 —— 这里明确喊一声, 别让人以为已经生效了.
+-          wiringLogger.warn('[d1] 模型轨 llm_active 通路本单**未接线** (留 D-2) —— 按 rule_only 运行');
++          // D-7: 模型轨**生效轨已装配** —— 名单内场次每轮关键路径多一次 LLM 往返,
++          //   模型轨事件替换规则轨结果进 core events 与 delta.
++          //   ⚠️ 逐场判定 (灰度名单 / 考核红线) 在分类器**内部**做 —— 这里只喊全局形态.
++          //   ⚠️ 只出形态提示, 不含会话 id / 心理内容 (隐私红线 AGENTS.md §5.4).
++          wiringLogger.warn('[d7] 模型轨 llm_active 生效轨已装配 —— 名单内场次每轮关键路径多一次 LLM 往返');
+         }
+         // 模型标识 (观测字段) —— 口径与 CounselorLlmJsonClient.resolveModel 一致.
+         const modelId = config.get<string>(COUNSELOR_LLM_MODEL_ENV_KEY) ?? COUNSELOR_LLM_DEFAULT_MODEL;
+@@ -430,10 +450,11 @@ const wiringLogger = new Logger('EngineWiring');
+             //   不注入 = 内核决策链里根本没有审议这一步 (逐字零回归, 不是"结果一样").
+             //   ⚠️ 会话白名单的逐场判定在钩子**内部**做 —— 装配期拿不到“当前是哪场会话”.
+             ...(modeConfig.effectiveMode === 'llm_active' ? { deliberationHook } : {}),
+-            // D-1 第二段: 模型轨事件分类器 —— **只在影子模式注入内核**.
++            // D-1 第二段 / D-7: 模型轨事件分类器 —— **只在影子 / 生效模式注入内核**.
+             //   不注入 = 内核决策链里根本没有模型轨这一步 (逐字零回归, 不是“结果一样”).
+-            //   ⚠️ llm_active 通路本单**未接线** (留 D-2) —— 所以这里只挂 shadow.
+-            ...(modelClassifier.effectiveMode() === 'shadow' ? { classifier: modelClassifier } : {}),
++            //   ⚠️ 逐场判定 (灰度名单 / 考核红线) 在分类器**内部**做
++            //     (model-classifier-mode.config.ts) —— 装配期只管「全局形态要不要挂」.
++            ...(isModelTrackWired(modelClassifier.effectiveMode()) ? { classifier: modelClassifier } : {}),
+           },
+           // 状态仓储**单例**注入 (与上面那个 provider 是同一个实例).
+           bdiStates,
+@@ -494,9 +515,10 @@ const wiringLogger = new Logger('EngineWiring');
+           //     (纯规则模式 = 压根没有审议路径 = 闸门一次都不会被调用).
+           //   ⚠️ 门面只认窄端口 (DeliberationGatePort) —— 这里传的是实现, 门面不知道实现细节.
+           gate,
+-          // D-1 第二段: 模型轨跨轮上下文 (上一轮来访话语 + 清理挂点).
+-          //   ⚠️ **只在影子模式挂** —— rule_only 时挂上去只会白白攒状态分桶 (内存涨).
+-          ...(modelClassifier.effectiveMode() === 'shadow' ? { modelClassifierContext: modelClassifier } : {}),
++          // D-1 第二段 / D-7: 模型轨跨轮上下文 (上一轮来访话语 + 清理挂点).
++          //   ⚠️ **只在影子 / 生效模式挂** —— rule_only 时挂上去只会白白攒状态分桶 (内存涨).
++          //   ⚠️ 生效模式下也挂 = 跨轮状态继续攒 (代价是内存, 收益是模型轨能拿到上一轮来访话语).
++          ...(isModelTrackWired(modelClassifier.effectiveMode()) ? { modelClassifierContext: modelClassifier } : {}),
+         }),
+       inject: [
+         ENGINE_SESSION_PORT,

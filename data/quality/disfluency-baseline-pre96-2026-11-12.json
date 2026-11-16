@@ -1,0 +1,46 @@
+{
+  "batchId": "pre96-2026-11-12",
+  "batchDir": "debug-sessions-pre96-2026-11-12",
+  "sessions": 70,
+  "turns": 776,
+  "events": 468,
+  "eventTurns": 344,
+  "normalizedChars": 27244,
+  "events_per_turn": 0.603093,
+  "event_turn_rate": 0.443299,
+  "density_per100": 1.717809,
+  "filler_per_turn": 0.181701,
+  "pause_per_turn": 0.207474,
+  "repair_per_turn": 0.18299,
+  "repetition_per_turn": 0.030928,
+  "trailoff_per_turn": 0,
+  "type_counts": {
+    "filler": 141,
+    "pause": 161,
+    "repetition": 24,
+    "repair": 142,
+    "trailoff": 0,
+    "elongation": 0
+  },
+  "mean_events_per_turn": 0.646769,
+  "mean_event_turn_rate": 0.466973,
+  "mean_density_per100": 2.143561,
+  "seed_comparison": {
+    "event_turn_rate": {
+      "measured": 0.443299,
+      "inside": true,
+      "min": 0.2,
+      "max": 0.55
+    },
+    "events_per_turn": {
+      "measured": 0.603093,
+      "inside": true,
+      "max": 0.8
+    },
+    "repair_per_turn": {
+      "measured": 0.18299,
+      "inside": true,
+      "max": 0.25
+    }
+  }
+}

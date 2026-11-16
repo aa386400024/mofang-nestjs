@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
-import type { HomeMicroInterventionTrigger } from '../home.constants';
+import type { HomeMicroInterventionTrigger } from '../home.constants.js';
 
 /**
  * 心塑首页「场景化微干预」配置 — V2.0 新增.

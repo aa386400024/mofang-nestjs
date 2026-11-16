@@ -26,9 +26,9 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
-import type { CrisisPracticeMetaDto } from '../dto/crisis-practice.dto';
-import { CrisisPracticeService } from '../providers/crisis-practice.service';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
+import type { CrisisPracticeMetaDto } from '../dto/crisis-practice.dto.js';
+import { CrisisPracticeService } from '../providers/crisis-practice.service.js';
 
 @ApiTags('counselor-crisis-practice')
 @Controller('counselor/crisis-practice')

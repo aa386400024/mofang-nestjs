@@ -60,13 +60,13 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import type { InformedConsentEntry, SessionTechStats } from '../domain/session-core/session-core.types';
-import { ChatRole } from '../enums/chat-role.enum';
-import { DimensionVariance } from '../enums/dimension-variance.enum';
-import { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import { TrainingSessionStatus } from '../enums/training-session-status.enum';
-import { VisitorMode } from '../enums/visitor-mode.enum';
-import { VisitorStyle } from '../enums/visitor-style.enum';
+import type { InformedConsentEntry, SessionTechStats } from '../domain/session-core/session-core.types.js';
+import { ChatRole } from '../enums/chat-role.enum.js';
+import { DimensionVariance } from '../enums/dimension-variance.enum.js';
+import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import { TrainingSessionStatus } from '../enums/training-session-status.enum.js';
+import { VisitorMode } from '../enums/visitor-mode.enum.js';
+import { VisitorStyle } from '../enums/visitor-style.enum.js';
 
 /**
  * 单次对话消息 (transcript json 数组元素, 跟 xin_su_app V0.5 client ChatMessage 1:1 wire).
@@ -243,6 +243,58 @@ export class TrainingSession {
 
   @Column({ type: 'char', length: 36, name: 'supervision_report_id', nullable: true })
   supervisionReportId!: string | null;
+
+  // ─── V2026-11-06 治本 (WP38 — 角色版本绑定) ───
+  //
+  //   为什么这两列要加 (任务单 §2.1 第 4 条):
+  //     会话要能回答"这场训练用的是哪一版角色" —— 否则督导复盘时看到的行为差异
+  //     无从归因 (是角色变了, 还是学员变了?). 绑版本 = 把"角色配置"也变成可追溯量.
+  //
+  //   口径:
+  //     · character_template_id —— 建会话那一刻的公共人物模板 id (逻辑外键, 不加 DB FK);
+  //       落桥手上只有 templateId, 没有它就查不到"谁在用这个角色" (主版本锁定要查).
+  //     · character_version —— 建会话那一刻的 semver 版本号 (例 "1.2.0").
+  //
+  //   ⚠️ 两列都可空:
+  //     · 迁移前建的会话没有这两列的值 (零回归, 不回填 —— 回填等于伪造"当时用的是哪版");
+  //     · 兜底人设通道 (无公共人物) 本来就没有角色.
+  //
+  //   时间戳: 2026-11-06
+  /** 角色模板 id (vpt_* slug; 可空 = 兜底人设通道 / 迁移前的老会话). */
+  @Column({ type: 'varchar', length: 64, name: 'character_template_id', nullable: true })
+  characterTemplateId!: string | null;
+
+  /** 角色版本号 (semver 字符串, 例 "1.2.0"; 可空 = 同上). */
+  @Column({ type: 'varchar', length: 32, name: 'character_version', nullable: true })
+  characterVersion!: string | null;
+
+  // ─── V2026-11-07 治本 (degraded 会话打标) ───
+  //
+  //   为什么加这两列: 切灰度前要确保"坏会话不污染考核数据" —— 连续失败的会话
+  //   照样参与考核统计. 要过滤它们, 就得先有一个"这场是坏的"的**持久标记**,
+  //   否则每次统计都要重新回放一遍会话去数失败轮次 (拿不到失败轮次的事实, 也太贵).
+  //
+  //   口径:
+  //     · degraded —— 是否降级 (0/1). 用 tinyint 而不是 boolean (MySQL 无原生 boolean),
+  //       跟 ~informed_consent_required~ 同款; 代码里用 === 1 判断.
+  //       默认 0 = 迁移前的存量会话**全部**是"好会话" (零回归, 不回填).
+  //     · degraded_reason —— 打标原因 ('high_failure_rate' / 'consecutive_failures';
+  //       可空 = 没打标). 是**元数据**, 不含任何心理内容 (隐私红线).
+  //
+  //   ⚠️ 是**终态**: 会话结束后不再变 (任务单 §七 "不自动恢复", "不删除会话").
+  //
+  //   时间戳: 2026-11-07
+  /**
+   * 是否为 degraded 会话 (0 = 正常; 1 = 会话结束时判定为坏会话).
+   */
+  @Column({ type: 'tinyint', name: 'degraded', default: 0 })
+  degraded!: number;
+
+  /**
+   * degraded 打标原因 (可空 = 没打标).
+   */
+  @Column({ type: 'varchar', length: 50, name: 'degraded_reason', nullable: true })
+  degradedReason!: string | null;
 
   // V0.5 stage 2 Timer.periodic 1s tick 计时 (V1.x server 端)
   @Column({ type: 'datetime', name: 'started_at', nullable: true })

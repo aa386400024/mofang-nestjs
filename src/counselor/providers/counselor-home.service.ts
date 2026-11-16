@@ -36,7 +36,7 @@ import {
   type CounselorHomeOverviewDto,
   type CounselorTrainingCategoryDto,
   type CounselorWeeklyProgressDto,
-} from '../dto/counselor-home.dto';
+} from '../dto/counselor-home.dto.js';
 
 /**
  * V2026-10-13 (Phase 7.10 — CounselorHomeService):

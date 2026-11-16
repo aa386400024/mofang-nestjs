@@ -16,27 +16,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-/**
- * 业务事件类型 — 跟客户端 7.8 AnalyticsPage 4 KPI 计算逻辑严格对应.
- *
- * - KbPublished        计数 → KPI 1 (KB 发布量)
- * - DraftSubmitted     分母 → KPI 2 (草稿→发布转化率)
- * - ReviewApproved     分子 → KPI 2
- * - KbArchived         (V0.x 占位, 4 KPI 不直接用)
- * - KbRestored         (V0.x 占位)
- * - KbScheduled        分母 → KPI 4 (排期发布占比)
- * - KbScheduleFired    分子 → KPI 4 (实际到点发布的 item)
- */
-export enum AnalyticsEventType {
-  KbPublished = 'KB_PUBLISHED',
-  DraftSubmitted = 'DRAFT_SUBMITTED',
-  ReviewApproved = 'REVIEW_APPROVED',
-  KbArchived = 'KB_ARCHIVED',
-  KbRestored = 'KB_RESTORED',
-  KbScheduled = 'KB_SCHEDULED',
-  KbScheduleFired = 'KB_SCHEDULE_FIRED',
-}
-
+import { AnalyticsEventType } from '../enums/analytics-event-type.enum.js';
 /**
  * analytics_events 表.
  */

@@ -19,10 +19,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Queue } from 'bullmq';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
-import { RedisService } from '../../shared/infra/redis';
-import { KnowledgeItem } from '../entities/knowledge-item.entity';
+import { RedisService } from '../../shared/infra/redis/index.js';
+import { KnowledgeItem } from '../entities/knowledge-item.entity.js';
 
 @Injectable()
 export class ScheduledPublishService {

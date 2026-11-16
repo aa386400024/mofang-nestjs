@@ -7,7 +7,7 @@ import {
   type StuckPointId,
   type TargetedReshapeStatusDto,
   CompleteTaskDto,
-} from '../dto/genome-reshape.dto';
+} from '../dto/genome-reshape.dto.js';
 
 /**
  * 心理基因靶向重塑服务 — V3.0 §3 Tab3 评估子模块 + 心理健身房共用.

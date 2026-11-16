@@ -56,15 +56,63 @@
 //     2. test/engine-adapters/wp10a-*.spec.ts 覆盖列定义 / migration 幂等 / 种子表态口径
 //     3. npm run seed:character-profiles → 4 行; 连跑两次行数不变
 //
+//   V2026-11-04 治本 (WP51 · 同盟三维基线):
+//   职责: 给内容基线加 2 个**可选**字段 (安全感 / 联结感), 并把"种子明确表态的才写"
+//         这条口径落到灌库载荷上.
+//   边界: 只写内容, 不写消费 —— 内核 bootstrap 同期从 `profile.baseline` 读这两项.
+//
+//   为什么 DB 侧的角色**这次要表态** (与 WP10A 的"不表态"相反):
+//     生产默认数据源是 **db** (见 character-pool.module.ts 的 readCharacterSource:
+//     缺省 db, builtin 才是回退/测试档). 若 DB 侧的角色不表态, 库里全是
+//     DEFAULT 0.5 / 0 —— 那么**生产上这个 WP 等于没做**, 内测看到的仍是
+//     "回避型和安全型安全感一样". 所以 DB 侧必须表态.
+//
+//   数值口径: **抄 WP9-A 同风格内置种子的档位** (anxious / avoidant 各一档) ——
+//     与本文件既有的 trust / 阻抗 / 情绪口径完全一致 (不是我们对这些角色的主观印象).
+//     ⚠️ 工程种子值, 非临床标定.
+//
+//   补值路径: **不写一次性回填脚本** —— 靠本文件既有的幂等 upsert 自然完成
+//     (重跑 seed → hasDrift 命中 → UPDATE 两列). 迁移只管 schema, 内容归 seed.
+//     ⚠️ 部署顺序: migration 先跑 (加列), 再跑 seed (补值).
+//
+//   V2026-11-10 治本 (WP-J · 角色基线差异化标定):
+//   职责: 让 8 个角色的基线数值"每个角色各自独立", 并把数值收敛到**唯一真相源**.
+//   边界: 内容字段 (5Ps / 信念 / 愿望 / 约束 / 敏感议题 / 表达语态) **一字不动**;
+//         数值字段改为从 `character-baseline-calibration.ts` 按 templateId **装配** (不复制);
+//         新增 `applyBaselineCalibration` —— 给 B 类 (DB-only) 角色**只更新已存在行的 8 个基线列**.
+//
+//   为什么数值不再手写 (反双胞胎):
+//     此前 4 个 seed 角色按"焦虑 / 回避两档"抄内置种子的档位 —— 同档角色 8 个基线字段
+//     一字不差 (晚晴 == 小满, 亦舟 == 念安), 同档角色在内核眼里是同一个人.
+//     现在数值由权威标定表统一声明 (循证研究 v2), seed 只**引用** —— 全仓再无第二份硬编码.
+//
+//   为什么 B 类要单独走一条校准路径 (而不是给它们补 seed):
+//     沉舟 / 安然 / 语桐 / 惊尘 **没有来访池模板** (DB-only) —— 补 seed 等于替它们造
+//     来访池模板, 那是越权. 它们的行只存在于库里, 所以校准路径是"只 UPDATE 已存在且
+//     未软删的行": **不 INSERT、不补内容、不碰 enabled / audit_status / version**.
+//     找不到行 → 进 missing 显式报告 (新环境没有这些行是正常的), 而不是静默造行.
+//
+//   验证:
+//     1. npx tsc -p tsconfig.build.json --noEmit 0 错
+//     2. test/engine-adapters/character-baseline-*.spec.ts 覆盖标定自检 + 校准幂等
+//     3. npm run seed:character-profiles → 先内容 seed 后基线校准; 连跑两次第二次全"未变"
+//
 //   时间戳: 2026-10-29
 
 import { createHash } from 'node:crypto';
 
-import { type DataSource } from 'typeorm';
+import { In, IsNull, type DataSource, type Repository } from 'typeorm';
 
-import type { CharacterExpressionTone, CharacterFivePs, CharacterNarrativeStyle } from './character-profile.entity';
-import { CharacterProfileEntity } from './character-profile.entity';
-import type { AttachmentStyle, UnderlyingDesireSeed } from '../../../engine-core';
+import {
+  CHARACTER_BASELINE_CALIBRATION,
+  STORAGE_FLOAT_TOLERANCE,
+  type CharacterBaselineCalibration,
+  getBaselineCalibration,
+  validateBaselineRowRanges,
+} from './character-baseline-calibration.js';
+import type { CharacterExpressionTone, CharacterFivePs, CharacterNarrativeStyle } from './character-profile.entity.js';
+import { CharacterProfileEntity } from './character-profile.entity.js';
+import type { AttachmentStyle, UnderlyingDesireSeed } from '../../../engine-core/index.js';
 
 /**
  * 公共模板的内容来源 (最小结构).
@@ -117,6 +165,18 @@ export interface CharacterProfileSeedSpec {
   readonly resistance: { readonly verbal: number; readonly depth: number; readonly style: number };
   /** 情绪基调 (valence [-1,1] / arousal [0,1]). */
   readonly emotion: { readonly valence: number; readonly arousal: number };
+  /**
+   * 关系安全感基线 [0,1] (WP51).
+   *
+   * **缺省 = 走 DB DEFAULT 0.5** (= 内核 DEFAULT_SAFETY) —— 种子不写自己没把握的值.
+   */
+  readonly safety?: number;
+  /**
+   * 关系联结基线 [0,1] (WP51).
+   *
+   * **缺省 = 走 DB DEFAULT 0** (= 内核 DEFAULT_BOND) —— 种子不写自己没把握的值.
+   */
+  readonly bond?: number;
   /** 底层愿望种子. */
   readonly underlyingDesires: readonly UnderlyingDesireSeed[];
   /** 绝不会做的事 (负向约束). */
@@ -143,14 +203,54 @@ export interface CharacterProfileSeedSpec {
    * **缺省 = 走 DB DEFAULT 'restrained'**.
    */
   readonly expressionTone?: CharacterExpressionTone;
+  /**
+   * 台词指纹 (WP-J P2) —— 渲染层文案, 不进内核决策.
+   *
+   * **缺省 = 不表态** (INSERT 走 DB DEFAULT NULL / UPDATE 整列不碰).
+   * A 类四个角色实际都由 `baselineOf()` 从标定表装配, 不会缺省; 留可选是为了
+   * 将来"只有数值没有台词"的角色也能存在, 不用为此改类型.
+   */
+  readonly verbalVoice?: string;
+}
+
+/**
+ * 按 templateId 从权威标定表装配**数值部分 + 台词指纹** (trust / 三维阻抗 / 情绪 / safety / bond / verbalVoice).
+ *
+ * 为什么是"装配"而不是"抄一份":
+ *   数值与台词都是**工程标定内容**, 唯一真相源在 character-baseline-calibration.ts (循证研究 v2 + 文案定稿).
+ *   在这里手写就等于开了第二份真相 —— 改了标定表忘了改 seed, 库里就会一半新一半旧,
+ *   而且**没有任何报错**. 装配 = 改一处, 全仓跟着动.
+ *
+ * 为什么找不到就抛:
+ *   "内容存在但数值缺一行"是结构性错误; 静默落回 DB DEFAULT 会让这个角色变成"又一个
+ *   平庸角色" —— 那正是本单要消灭的同档化.
+ *
+ * @param templateId 公共模板 id
+ * @returns 该角色的数值部分与台词指纹 (可直接展开进种子规格)
+ * @throws Error 标定表里没有这个 templateId
+ */
+function baselineOf(
+  templateId: string,
+): Pick<CharacterProfileSeedSpec, 'trust' | 'resistance' | 'emotion' | 'safety' | 'bond' | 'verbalVoice'> {
+  const row = getBaselineCalibration(templateId);
+  return {
+    trust: row.trust,
+    resistance: row.resistance,
+    emotion: row.emotion,
+    safety: row.safety,
+    bond: row.bond,
+    // WP-J P2: 台词指纹同源装配 —— 8 条文案全仓只有标定表这一份 (A/B 两类都从这里取).
+    verbalVoice: row.verbalVoice,
+  };
 }
 
 /**
  * 首批内容基线 (任务单 §6 拍板: 4 个 slug, 2 焦虑 × 2 回避).
  *
- * 基线数值口径: **抄 WP9-A 两个内置种子的档位** (anxious / avoidant 各一档) ——
- * 这是**工程种子值, 不是临床标定** (专业校准归后期专业评审).
- * 两档的可区分性由单测钉住 ("换角色 → 基线明显不同").
+ * 基线数值口径 (WP-J 起): **从权威标定表按 templateId 装配** ——
+ * 每个角色**各自独立**的数值剖面 (不再按"焦虑 / 回避两档"一刀切).
+ * 这是**工程标定值, 不是临床标定** (专业校准归后期专业评审).
+ * 可区分性由 character-baseline-calibration.spec.ts 钉住 ("换角色 → 基线明显不同").
  */
 export const CHARACTER_PROFILE_SEED_SPECS: readonly CharacterProfileSeedSpec[] = [
   {
@@ -161,9 +261,10 @@ export const CHARACTER_PROFILE_SEED_SPECS: readonly CharacterProfileSeedSpec[] =
       { theme: 'conditional_self_worth', activationTags: ['closeness', 'approval', 'self_worth'] },
       { theme: 'abandonment', activationTags: ['conflict', 'rejection', 'expression'] },
     ],
-    trust: 0.28,
-    resistance: { verbal: 0.42, depth: 0.5, style: 0.38 },
-    emotion: { valence: -0.45, arousal: 0.62 },
+    // WP-J: 数值从权威标定表按 templateId **装配** (不复制) ——
+    //   内容与数值分离; 数值的唯一真相源在 character-baseline-calibration.ts.
+    //   ⚠️ 工程标定值, 非临床标定.
+    ...baselineOf('vpt_intimate_avoidance_l1'),
     underlyingDesires: [
       { key: 'acceptance', label: '被接纳与认可', baselineWeight: 0.72 },
       { key: 'stability', label: '情绪与关系的稳定', baselineWeight: 0.55 },
@@ -186,9 +287,10 @@ export const CHARACTER_PROFILE_SEED_SPECS: readonly CharacterProfileSeedSpec[] =
       { theme: 'worthlessness', activationTags: ['failure', 'self_worth', 'approval'] },
       { theme: 'conditional_worth', activationTags: ['achievement', 'evaluation', 'rejection'] },
     ],
-    trust: 0.28,
-    resistance: { verbal: 0.42, depth: 0.5, style: 0.38 },
-    emotion: { valence: -0.45, arousal: 0.62 },
+    // WP-J: 数值从权威标定表按 templateId **装配** (不复制) ——
+    //   与晚晴**不再同档**: 两个焦虑型角色各有自己的数值剖面.
+    //   ⚠️ 工程标定值, 非临床标定.
+    ...baselineOf('vpt_self_worth_intellectualization_l1'),
     underlyingDesires: [
       { key: 'recognition', label: '被看见与认可', baselineWeight: 0.7 },
       { key: 'self_reliability', label: '对自己的信任', baselineWeight: 0.6 },
@@ -216,9 +318,10 @@ export const CHARACTER_PROFILE_SEED_SPECS: readonly CharacterProfileSeedSpec[] =
       { theme: 'intellectualization', activationTags: ['problem', 'analysis', 'control'] },
       { theme: 'self_sufficiency', activationTags: ['help', 'dependence', 'trust'] },
     ],
-    trust: 0.2,
-    resistance: { verbal: 0.62, depth: 0.68, style: 0.6 },
-    emotion: { valence: -0.55, arousal: 0.18 },
+    // WP-J: 数值从权威标定表按 templateId **装配** (不复制) ——
+    //   职场倦怠 → 低唤醒 + 风格阻抗最高 (理智化), 联结感 8 人最低.
+    //   ⚠️ 工程标定值, 非临床标定.
+    ...baselineOf('vpt_workplace_intellectualization_l1'),
     underlyingDesires: [
       { key: 'competence', label: '能力被认可与掌控感', baselineWeight: 0.7 },
       { key: 'autonomy', label: '自主与不被打扰', baselineWeight: 0.5 },
@@ -244,9 +347,10 @@ export const CHARACTER_PROFILE_SEED_SPECS: readonly CharacterProfileSeedSpec[] =
       { theme: 'self_sufficiency', activationTags: ['help', 'dependence', 'collapse'] },
       { theme: 'grief_avoidance', activationTags: ['loss', 'partner', 'memory'] },
     ],
-    trust: 0.2,
-    resistance: { verbal: 0.62, depth: 0.68, style: 0.6 },
-    emotion: { valence: -0.55, arousal: 0.18 },
+    // WP-J: 数值从权威标定表按 templateId **装配** (不复制) ——
+    //   哀伤双过程模型 → 深度阻抗比亦舟低一档, 唤醒略高 (昼夜节律).
+    //   ⚠️ 工程标定值, 非临床标定.
+    ...baselineOf('vpt_grief_avoidance_l1'),
     underlyingDesires: [
       { key: 'continuity', label: '维持现有的生活秩序', baselineWeight: 0.68 },
       { key: 'safe_grief', label: '有处安放未被哀悼的悲伤', baselineWeight: 0.58 },
@@ -264,6 +368,21 @@ export const CHARACTER_PROFILE_SEED_SPECS: readonly CharacterProfileSeedSpec[] =
 ];
 
 /**
+ * DB-only 角色 (B 类) 的基线标定行 —— 沉舟 / 安然 / 语桐 / 惊尘.
+ *
+ * 口径: 权威标定表里**没有** seed 规格的那些行.
+ * 这 4 个角色**没有来访池模板**, 行只存在于数据库 —— 所以它们的数值**不能**靠内容
+ * seed 带进去 (内容 seed 只处理 A 类), 得走 `applyBaselineCalibration` 这条只写数值的路.
+ *
+ * 为什么是**推导**而不是手写一份名单:
+ *   手写名单 = 第二份真相 (哪天 seed 规格增删, 名单就漂, 而且漂了没人知道).
+ *   这里从"权威表 − 有规格的行"推导 —— 名单永远跟着真相处.
+ */
+export const DB_ONLY_BASELINE_CALIBRATION: readonly CharacterBaselineCalibration[] = CHARACTER_BASELINE_CALIBRATION.filter(
+  (row) => !CHARACTER_PROFILE_SEED_SPECS.some((spec) => spec.templateId === row.templateId),
+);
+
+/**
  * 灌库用的完整行 (内容基线 + 从来访池抽取的信念陈述).
  */
 export interface CharacterProfileSeed {
@@ -276,6 +395,13 @@ export interface CharacterProfileSeed {
   readonly trust: number;
   readonly resistance: { readonly verbal: number; readonly depth: number; readonly style: number };
   readonly emotion: { readonly valence: number; readonly arousal: number };
+  /**
+   * 同盟三维基线两列 (WP51).
+   *
+   * **缺省 = 不表态** (走 DB DEFAULT) —— 种子没说的列, 灌库时整列不出现.
+   */
+  readonly safety?: number;
+  readonly bond?: number;
   /** 核心信念 (statement 从来访池抽取). */
   readonly coreBeliefs: readonly { readonly theme: string; readonly statement: string; readonly activationTags: readonly string[] }[];
   readonly underlyingDesires: readonly UnderlyingDesireSeed[];
@@ -290,6 +416,13 @@ export interface CharacterProfileSeed {
   readonly speechVolumeBaseline?: number;
   readonly narrativeStyle?: CharacterNarrativeStyle;
   readonly expressionTone?: CharacterExpressionTone;
+  /**
+   * 台词指纹 (WP-J P2 · 渲染层文案).
+   *
+   * **缺省 = 不表态** (走 DB DEFAULT NULL) —— 种子没写的列, 灌库时整列不出现,
+   * 存量行里运营改过的文案也不会被 seed 冲掉.
+   */
+  readonly verbalVoice?: string;
 }
 
 /**
@@ -358,25 +491,26 @@ function validateSeedSpec(spec: CharacterProfileSeedSpec, sourceById: ReadonlyMa
 }
 
 /**
- * 数值区间自检 (信任/阻抗 ∈ [0,1]; 效价 ∈ [-1,1]; 唤醒 ∈ [0,1]).
+ * 数值区间自检 (信任/阻抗/唤醒/安全感/联结感 ∈ [0,1]; 效价 ∈ [-1,1]).
+ *
+ * WP-J: 基线八维的区间校验**复用权威标定模块**那一份 (`validateBaselineRowRanges`),
+ * 不在本文件再写第二份 —— 两份区间逻辑迟早在边界值上分叉.
+ * 话量基线是**表达风格**字段 (WP10A), 不属基线八维, 校验仍留在本文件.
  *
  * @param spec 待检基线
  * @returns 错误描述; 通过 → null
  */
 function validateSeedRanges(spec: CharacterProfileSeedSpec): string | null {
-  if (Math.abs(spec.trust) > 1) {
-    return `角色 ${spec.templateId} 的初始信任越界: ${spec.trust}`;
-  }
-  for (const [name, value] of Object.entries(spec.resistance)) {
-    if (Math.abs(value) > 1) {
-      return `角色 ${spec.templateId} 的 ${name} 阻抗越界: ${value}`;
-    }
-  }
-  if (Math.abs(spec.emotion.valence) > 1) {
-    return `角色 ${spec.templateId} 的情绪效价越界: ${spec.emotion.valence}`;
-  }
-  if (Math.abs(spec.emotion.arousal) > 1) {
-    return `角色 ${spec.templateId} 的情绪唤醒越界: ${spec.emotion.arousal}`;
+  const baselineError = validateBaselineRowRanges({
+    templateId: spec.templateId,
+    trust: spec.trust,
+    resistance: spec.resistance,
+    emotion: spec.emotion,
+    ...(spec.safety === undefined ? {} : { safety: spec.safety }),
+    ...(spec.bond === undefined ? {} : { bond: spec.bond }),
+  });
+  if (baselineError) {
+    return baselineError;
   }
   // WP10A: 话量基线 ∈ [0,1] (只在该角色明确表态时才校验 —— 没表态就没有值可越界).
   if (spec.speechVolumeBaseline !== undefined && (spec.speechVolumeBaseline < 0 || spec.speechVolumeBaseline > 1)) {
@@ -411,6 +545,9 @@ export function buildCharacterProfileSeeds(sources: readonly VisitorTemplateBeli
       trust: spec.trust,
       resistance: spec.resistance,
       emotion: spec.emotion,
+      // WP51: 同盟三维基线两列 —— 只在基线**明确表态**时才带上 (没表态 = 不出现 = 走 DB DEFAULT).
+      ...(spec.safety === undefined ? {} : { safety: spec.safety }),
+      ...(spec.bond === undefined ? {} : { bond: spec.bond }),
       // statement 从来访池抽取 (按声明顺序一一对应), theme/标签来自基线声明.
       coreBeliefs: statements.map((statement, index) => {
         const meta = spec.beliefMeta[index];
@@ -427,6 +564,8 @@ export function buildCharacterProfileSeeds(sources: readonly VisitorTemplateBeli
       ...(spec.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: spec.speechVolumeBaseline }),
       ...(spec.narrativeStyle === undefined ? {} : { narrativeStyle: spec.narrativeStyle }),
       ...(spec.expressionTone === undefined ? {} : { expressionTone: spec.expressionTone }),
+      // WP-J P2: 台词指纹 —— 同样只在规格表态时带上 (A 类四个角色由 baselineOf 装配, 都有值).
+      ...(spec.verbalVoice === undefined ? {} : { verbalVoice: spec.verbalVoice }),
     };
   });
 }
@@ -499,6 +638,126 @@ export async function seedCharacterProfiles(
 }
 
 /**
+ * B 类 (DB-only) 角色的基线校准 —— **只 UPDATE 已存在且未软删的行**.
+ *
+ * 语义 (与内容 seed 的幂等 upsert 同一套纪律):
+ *   - 找不到行 → 进 missing 显式报告 (**不 INSERT**): 新环境没有这些行是**正常**的,
+ *     静默造行等于替它们补内容 + 补来访池模板 —— 那是越权, 也是本单明令禁止的.
+ *   - 行值与目标一致 → unchanged (不产生无谓写, 不抖动 updated_at).
+ *   - 行值有差 → 只 UPDATE 8 个基线列 + 台词指纹.
+ *
+ * 载荷里**不得**出现: 内容列 (five_ps / core_beliefs / underlying_desires /
+ * forbidden_behaviors / sensitive_topics / 表达风格三列)、enabled / audit_status /
+ * version* —— 那些是**运营决策**, 校准无权推翻.
+ *
+ * 为什么台词指纹能进这个载荷 (WP-J P2):
+ *   它不是运营决策, 是**角色标定内容** —— 与那 8 个数值同源 (同一张标定表), 且 B 类
+ *   角色的行只存在于数据库, 内容 seed 带不进去. 除此之外仍一列不加.
+ *
+ * @param repo 角色行仓储
+ * @param calibration 待校准的标定行 (缺省 = DB-only 那批)
+ * @returns 统计结果, 供脚本输出与人工核对
+ */
+export async function applyBaselineCalibration(
+  repo: Repository<CharacterProfileEntity>,
+  calibration: readonly CharacterBaselineCalibration[] = DB_ONLY_BASELINE_CALIBRATION,
+): Promise<{ updated: number; unchanged: number; missing: string[] }> {
+  if (calibration.length === 0) {
+    return { updated: 0, unchanged: 0, missing: [] };
+  }
+
+  const templateIds = calibration.map((row) => row.templateId);
+  // 软删不是 @DeleteDateColumn —— 查询手写 deletedAt: IsNull() (仓库硬约束 #3).
+  const rows = await repo.findBy({ templateId: In(templateIds), deletedAt: IsNull() });
+  const rowByTemplateId = new Map(rows.map((row) => [row.templateId, row]));
+
+  let updated = 0;
+  let unchanged = 0;
+  const missing: string[] = [];
+
+  for (const target of calibration) {
+    const row = rowByTemplateId.get(target.templateId);
+    if (!row) {
+      missing.push(target.templateId);
+      continue;
+    }
+    const payload = toBaselineColumns(target);
+    if (hasBaselineDrift(row, payload)) {
+      await repo.update(row.id, payload);
+      updated += 1;
+    } else {
+      unchanged += 1;
+    }
+  }
+
+  return { updated, unchanged, missing };
+}
+
+/**
+ * 标定行 → 8 个基线列 + 台词指纹的写入载荷 (只有这 9 列, 别的一律不碰).
+ *
+ * 为什么台词指纹也走这条路 (而不是内容 seed):
+ *   B 类 4 个角色**没有来访池模板**, 内容 seed 根本碰不到它们 —— 它们的行只存在于数据库.
+ *   所以它们的文案只能随基线校准一起写: 同一行、同一次 UPDATE、同一份幂等判定.
+ *
+ * @param target 标定行
+ * @returns 基线列 + 文案列载荷
+ */
+function toBaselineColumns(target: CharacterBaselineCalibration): {
+  readonly baselineTrust: number;
+  readonly baselineResistanceVerbal: number;
+  readonly baselineResistanceDepth: number;
+  readonly baselineResistanceStyle: number;
+  readonly baselineEmotionValence: number;
+  readonly baselineEmotionArousal: number;
+  readonly baselineSafety: number;
+  readonly baselineBond: number;
+  /** 台词指纹 (`varchar(500)` NULL — 空串不算"没写", 但自检已挡住空串). */
+  readonly verbalVoice: string;
+} {
+  return {
+    baselineTrust: target.trust,
+    baselineResistanceVerbal: target.resistance.verbal,
+    baselineResistanceDepth: target.resistance.depth,
+    baselineResistanceStyle: target.resistance.style,
+    baselineEmotionValence: target.emotion.valence,
+    baselineEmotionArousal: target.emotion.arousal,
+    baselineSafety: target.safety,
+    baselineBond: target.bond,
+    verbalVoice: target.verbalVoice,
+  };
+}
+
+/**
+ * 8 个基线列 + 台词指纹的漂移检测 (只看这 9 列).
+ *
+ * 数值比较用 `STORAGE_FLOAT_TOLERANCE` 而非裸 `!==`: 基线列是 MySQL **单精度 FLOAT**,
+ * 同一组数值经二进制协议读回会带约 1e-8 量级的表示误差 (0.65 → 0.6499999761581421).
+ * 用 `!==` 判定会把"值其实没变"误判成"有漂移" → 每次 seed 都 UPDATE, 幂等静默破功.
+ * 当前 TypeORM 走 text protocol 暂时掩盖了该误差, 但读取路径一旦变化就会暴露.
+ *
+ * 台词指纹是 `varchar`, 没有精度问题 —— 一字之差都算真漂移, 严格比较.
+ *
+ * @param row 库里的行
+ * @param payload 期望的基线列与文案
+ * @returns 有漂移 → true
+ */
+function hasBaselineDrift(row: CharacterProfileEntity, payload: ReturnType<typeof toBaselineColumns>): boolean {
+  if (row.verbalVoice !== payload.verbalVoice) return true;
+  const pairs: readonly (readonly [number, number])[] = [
+    [row.baselineTrust, payload.baselineTrust],
+    [row.baselineResistanceVerbal, payload.baselineResistanceVerbal],
+    [row.baselineResistanceDepth, payload.baselineResistanceDepth],
+    [row.baselineResistanceStyle, payload.baselineResistanceStyle],
+    [row.baselineEmotionValence, payload.baselineEmotionValence],
+    [row.baselineEmotionArousal, payload.baselineEmotionArousal],
+    [row.baselineSafety, payload.baselineSafety],
+    [row.baselineBond, payload.baselineBond],
+  ];
+  return pairs.some(([actual, expected]) => Math.abs(actual - expected) > STORAGE_FLOAT_TOLERANCE);
+}
+
+/**
  * 内容基线 → 实体写入载荷 (只含内容字段).
  *
  * @param seed 完整行
@@ -515,6 +774,9 @@ function toEntityPayload(seed: CharacterProfileSeed): {
   readonly baselineResistanceStyle: number;
   readonly baselineEmotionValence: number;
   readonly baselineEmotionArousal: number;
+  /** 同盟三维基线两列 (WP51; 缺省 = 不出现 → INSERT 走 DB DEFAULT / UPDATE 整列不碰). */
+  readonly baselineSafety?: number;
+  readonly baselineBond?: number;
   readonly coreBeliefs: { theme: string; statement: string; activationTags: string[] }[];
   readonly underlyingDesires: UnderlyingDesireSeed[];
   readonly forbiddenBehaviors: string[];
@@ -523,6 +785,8 @@ function toEntityPayload(seed: CharacterProfileSeed): {
   readonly speechVolumeBaseline?: number;
   readonly narrativeStyle?: CharacterNarrativeStyle;
   readonly expressionTone?: CharacterExpressionTone;
+  /** 台词指纹 (WP-J P2; 缺省 = 不出现 → INSERT 走 DEFAULT NULL / UPDATE 整列不碰). */
+  readonly verbalVoice?: string;
 } {
   return {
     templateId: seed.templateId,
@@ -535,6 +799,11 @@ function toEntityPayload(seed: CharacterProfileSeed): {
     baselineResistanceStyle: seed.resistance.style,
     baselineEmotionValence: seed.emotion.valence,
     baselineEmotionArousal: seed.emotion.arousal,
+    // WP51: 同盟三维基线两列 —— **只写种子自己拿得准的** (口径同表达风格三列):
+    //   没给 → 整列不出现 (TypeORM: INSERT 写 DEFAULT / UPDATE 跳过 undefined),
+    //   于是默认值只有 DDL 一处真相, 也不存在"seed 把库里标定好的值冲回默认"的路径.
+    ...(seed.safety === undefined ? {} : { baselineSafety: seed.safety }),
+    ...(seed.bond === undefined ? {} : { baselineBond: seed.bond }),
     coreBeliefs: seed.coreBeliefs.map((belief) => ({ ...belief, activationTags: [...belief.activationTags] })),
     underlyingDesires: seed.underlyingDesires.map((desire) => ({ ...desire })),
     forbiddenBehaviors: [...seed.forbiddenBehaviors],
@@ -545,6 +814,8 @@ function toEntityPayload(seed: CharacterProfileSeed): {
     ...(seed.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: seed.speechVolumeBaseline }),
     ...(seed.narrativeStyle === undefined ? {} : { narrativeStyle: seed.narrativeStyle }),
     ...(seed.expressionTone === undefined ? {} : { expressionTone: seed.expressionTone }),
+    // WP-J P2: 台词指纹 —— 口径同表达风格三列: 种子没给 → 整列不出现 (不冲掉运营改过的文案).
+    ...(seed.verbalVoice === undefined ? {} : { verbalVoice: seed.verbalVoice }),
   };
 }
 
@@ -572,11 +843,34 @@ function hasDrift(row: CharacterProfileEntity, payload: ReturnType<typeof toEnti
   if (canonicalJson(row.underlyingDesires) !== canonicalJson(payload.underlyingDesires)) return true;
   if (canonicalJson(row.forbiddenBehaviors) !== canonicalJson(payload.forbiddenBehaviors)) return true;
   if (canonicalJson(row.sensitiveTopics) !== canonicalJson(payload.sensitiveTopics)) return true;
-  // 表达风格三列 (WP10A): **只在种子给了值时才算漂移** ——
-  //   种子没表态的行, 库里是什么就是什么 (Phase2 P1 标定过的值不该被 seed 冲回默认).
+  // "种子表态过"的可选列 (表达风格三列 + 同盟三维两列) 单独走一条检测.
+  return hasOptionalColumnDrift(row, payload);
+}
+
+/**
+ * **可选列**的漂移检测 (表达风格三列 + 同盟三维两列).
+ *
+ * 为什么单独拆出来: 主体漂移检测有 13 条**必填列**, 再加 5 条"只在表态时才算"的
+ * 可选列, 单个函数的复杂度就顶穿上限了 —— 拆开不只是为指标, 更让"可选列"的
+ * 判定口径 (**只在种子给了值时才算漂移**) 集中在**一处**, 将来加第 6 个可选列
+ * 不用再动主体.
+ *
+ * 口径与 WP10A 表达风格三列完全一致:
+ *   种子没表态的行, 库里是什么就是什么 (运营标定过的值不该被 seed 冲回默认).
+ *
+ * @param row 库里的行
+ * @param payload 期望内容
+ * @returns 有漂移 → true
+ */
+function hasOptionalColumnDrift(row: CharacterProfileEntity, payload: ReturnType<typeof toEntityPayload>): boolean {
   if (payload.speechVolumeBaseline !== undefined && row.speechVolumeBaseline !== payload.speechVolumeBaseline) return true;
   if (payload.narrativeStyle !== undefined && row.narrativeStyle !== payload.narrativeStyle) return true;
   if (payload.expressionTone !== undefined && row.expressionTone !== payload.expressionTone) return true;
+  // WP-J P2: 台词指纹 —— 同样只在种子给了值时才算漂移.
+  if (payload.verbalVoice !== undefined && row.verbalVoice !== payload.verbalVoice) return true;
+  // WP51: 同盟三维基线两列 —— 同样只在种子给了值时才算漂移.
+  if (payload.baselineSafety !== undefined && row.baselineSafety !== payload.baselineSafety) return true;
+  if (payload.baselineBond !== undefined && row.baselineBond !== payload.baselineBond) return true;
   return false;
 }
 

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { DimensionChangeDto, GrowthReportDto, TrendPointDto } from '../dto/growth-report.dto';
+import { DimensionChangeDto, GrowthReportDto, TrendPointDto } from '../dto/growth-report.dto.js';
 
 /**
  * GrowthReport service — 心塑「我的」Tab 心理成长报告核心服务.

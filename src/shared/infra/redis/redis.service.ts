@@ -1,11 +1,12 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/naming-convention
-import Redis, { type RedisOptions } from 'ioredis';
+// V2026-11-02 ESM/NodeNext: ioredis v5 在 NodeNext 下 default import 拿到 namespace 而非类,
+//   改命名导入 { Redis }. 类型 RedisOptions 同名导出, 保持不变.
+import { Redis, type RedisOptions } from 'ioredis';
 
 // ⚠️ 必须直接 import 文件, 不能用 barrel '../../../common'.
 // 原因同 redis.module.ts: barrel 会触发 filters/biz-exception.filter → observability → shared/infra/index → redis 循环.
 // 直接 import 文件保证 ConfigService class token 与 CommonModule 注册的 token 是同一引用.
-import { ConfigService } from '../../../common/providers/config.service';
+import { ConfigService } from '../../../common/providers/config.service.js';
 
 /**
  * Redis service — 大厂基础设施层 (心塑 + 魔方共用).
@@ -122,12 +123,49 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return this.client.del(key);
   }
 
+  /**
+   * 原子"仅当不存在时"写 (SET NX [+ EX]).
+   *
+   * 为什么需要它 (WP65 · per-session mutex):
+   *     mutex 的语义就是"同一时刻只有一个持有者" —— 用 "先 get 再 set" 拼出来的是
+   *     **读-改-写**: 两个并发调用会同时看到"不存在" → 同时写 → 两个持有者 →
+   *     mutex 静默失效 (而且不报错, 最难查的那一类).
+   *     SET ... NX 由 Redis 侧原子完成, 才是真的互斥.
+   *
+   * ⚠️ 返回 false = **没拿到** (key 已存在), 不是失败 —— 调用方要分清
+   *     "被占用"与"Redis 挂了"两种情况 (后者的处置口径不同).
+   *
+   * @param key 逻辑 key
+   * @param value 值 (调用方自定, 例如持有者标识)
+   * @param ttlSec TTL (秒); 不给 = 不过期
+   * @returns true = 写入成功 (拿到); false = key 已存在 (没拿到)
+   */
+  async setnx(key: string, value: string, ttlSec?: number): Promise<boolean> {
+    const result = ttlSec === undefined ? await this.client.set(key, value, 'NX') : await this.client.set(key, value, 'EX', ttlSec, 'NX');
+    return result === 'OK';
+  }
+
   async exists(key: string): Promise<boolean> {
     return (await this.client.exists(key)) === 1;
   }
 
   async incr(key: string): Promise<number> {
     return this.client.incr(key);
+  }
+
+  /**
+   * 原子累加 (计数器 += amount).
+   *
+   * 为什么不用 "get + set" 自己拼: 那是读-改-写, 两个会话**同时**收尾时
+   *  后写的那个会把先写的覆盖掉 —— 计数会**少算**, 而这个计数的用途恰恰是
+   * "防烧额度", 少算等于没算. INCRBY 在 Redis 侧原子完成.
+   *
+   * @param key 逻辑 key
+   * @param amount 增量 (整数)
+   * @returns 累加后的值
+   */
+  async incrby(key: string, amount: number): Promise<number> {
+    return this.client.incrby(key, amount);
   }
 
   async expire(key: string, ttlSec: number): Promise<void> {

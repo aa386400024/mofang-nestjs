@@ -23,7 +23,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { VOICE_CATALOG_TYPE_SYSTEM, VOICE_CATALOG_UPSTREAM_PATH, type VoiceCatalogType } from '../config/voices.config';
+import { VOICE_CATALOG_TYPE_SYSTEM, VOICE_CATALOG_UPSTREAM_PATH, type VoiceCatalogType } from '../config/voices.config.js';
 
 /**
  * 上游错误的归一化分类 —— 业务层据此翻译成 HTTP 语义.

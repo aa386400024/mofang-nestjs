@@ -1,11 +1,11 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { HomeOverviewDto, HomeOverviewQueryDto, RecommendationQueryDto, TodayRecommendationDto } from '../dto/home-overview.dto';
-import { HomeOverviewService } from '../providers/home-overview.service';
+import { HomeOverviewDto, HomeOverviewQueryDto, RecommendationQueryDto, TodayRecommendationDto } from '../dto/home-overview.dto.js';
+import { HomeOverviewService } from '../providers/home-overview.service.js';
 
 /**
  * 首页综合快照 controller — V2.0 §3 (DESIGN).

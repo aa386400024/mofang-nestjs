@@ -25,19 +25,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { probePracticeAsrAudio } from './practice-asr-audio.util';
-import { PracticeAsrClient, PracticeAsrUpstreamError } from './practice-asr.client';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { MetricsService } from '../../shared/infra/metrics';
+import { probePracticeAsrAudio } from './practice-asr-audio.util.js';
+import { PracticeAsrClient, PracticeAsrUpstreamError } from './practice-asr.client.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { MetricsService } from '../../shared/infra/metrics/index.js';
 import {
   PRACTICE_ASR_SUPPORTED_FORMATS,
   PRACTICE_ASR_UPSTREAM_MAX_DURATION_SECONDS,
   PRACTICE_ASR_UPSTREAM_MAX_FILE_BYTES,
   normalizePracticeAsrLanguage,
   type PracticeAsrLanguage,
-} from '../config/practice-asr.config';
-import type { PracticeAsrResultDto } from '../dto/practice-asr.dto';
+} from '../config/practice-asr.config.js';
+import type { PracticeAsrResultDto } from '../dto/practice-asr.dto.js';
 
 /** 转写入参 (controller 传进来的原始素材). */
 export interface PracticeAsrTranscribeRequest {

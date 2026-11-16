@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import type { AiCompanionMode } from '../../shared/types/practice.types';
-import { User } from '../../user/entities/user.entity';
+import type { AiCompanionMode } from '../../shared/types/practice.types.js';
+import { User } from '../../user/entities/user.entity.js';
 
 /**
  * AI 陪伴会话 entity — V2.0 §Tab4 「我的数据」AI 对话记录.

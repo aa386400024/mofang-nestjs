@@ -22,9 +22,9 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-core/wp3-trajectory.spec.ts 覆盖四类原子与 AND 组合
 
-import type { BdiSnapshot } from '../../domain/bdi-snapshot';
-import type { SessionEvent } from '../../domain/events/session-event';
-import type { TrajectoryTrigger } from '../../domain/trajectory/script';
+import type { BdiSnapshot } from '../../domain/bdi-snapshot.js';
+import type { SessionEvent } from '../../domain/events/session-event.js';
+import type { TrajectoryTrigger } from '../../domain/trajectory/script.js';
 
 /**
  * 本轮匹配上下文 (由 in-memory session 喂入, 纯函数不读运行时).

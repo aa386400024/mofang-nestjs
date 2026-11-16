@@ -30,7 +30,7 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-core/wp5-rendering.spec.ts 覆盖估算/整轮丢弃/单轮截断/上限归一
 
-import type { RenderContextTurn } from '../../domain/rendering/render-types';
+import type { RenderContextTurn } from '../../domain/rendering/render-types.js';
 
 /**
  * 保守 token 估算种子 (中文为主; 内核不装 tiktoken, 字符率集中此处, 后期可替换为编码器).

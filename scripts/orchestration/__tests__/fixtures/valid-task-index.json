@@ -1,0 +1,16 @@
+{
+  "version": "1.1.0",
+  "schemaRef": "urn:agent-collaboration-framework:schema:task-state-index:1.1.0",
+  "tasks": [
+    {
+      "taskId": "AF-006",
+      "status": "backlog",
+      "contextId": "CTX-ORCH",
+      "type": "documentation",
+      "title": "机读校验固化（中性样例）",
+      "createdAt": "2026-11-15T09:30:00+08:00",
+      "history": [{ "at": "2026-11-15T01:30:00.000Z", "from": "backlog", "to": "backlog", "by": "orchestrator" }]
+    }
+  ],
+  "archivedTasks": []
+}

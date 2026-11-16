@@ -16,18 +16,25 @@
 import { NotFoundException, type ExecutionContext, type INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
-import type { Server } from 'http';
 import { LoggerErrorInterceptor } from 'nestjs-pino';
+import type { Server } from 'node:http';
 import supertest from 'supertest';
+import { vi } from 'vitest';
 
-import { CounselorSupervisionController } from '../../src/counselor/controllers/supervision.controller';
-import { SessionType } from '../../src/counselor/enums/session-type.enum';
-import { TrainingSessionStatus } from '../../src/counselor/enums/training-session-status.enum';
-import type { SessionReportDto } from '../../src/counselor/dto/supervision.dto';
-import { SupervisionReportGuard } from '../../src/counselor/guards/supervision-report.guard';
-import { SupervisionReportStreamService } from '../../src/counselor/providers/supervision-report-stream.service';
-import { SupervisionService, type SessionReportContext } from '../../src/counselor/providers/supervision.service';
-import { JwtAuthGuard } from '../../src/user/guards/jwt-auth.guard';
+import { CounselorSupervisionController } from '../../src/counselor/controllers/supervision.controller.js';
+import type { SessionReportDto } from '../../src/counselor/dto/supervision.dto.js';
+import { SessionType } from '../../src/counselor/enums/session-type.enum.js';
+import { TrainingSessionStatus } from '../../src/counselor/enums/training-session-status.enum.js';
+import { SupervisionReportGuard } from '../../src/counselor/guards/supervision-report.guard.js';
+import { SupervisionReportStreamService } from '../../src/counselor/providers/supervision-report-stream.service.js';
+import { SupervisionService, type SessionReportContext } from '../../src/counselor/providers/supervision.service.js';
+import { JwtAuthGuard } from '../../src/user/guards/jwt-auth.guard.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
 
 /** 固定"当前时刻". */
 const NOW = 1_800_000_000_000;
@@ -76,7 +83,7 @@ function fakeReport(status: 'completed' | 'pending'): SessionReportDto {
     endedAt: null,
     turnCount: 3,
     createdAt: null,
-  } as unknown as SessionReportDto;
+  };
 }
 
 /** SupervisionService 替身 (只实现归属校验 / 报告装载 / 拼 DTO 三件事). */

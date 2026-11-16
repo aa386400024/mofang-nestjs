@@ -41,15 +41,22 @@
 //     2. 启动后 curl POST /engine/debug/open → /turn → /close 能跑通一轮
 //     3. test/engine-adapters/wp8-wiring.spec.ts 覆盖装配链与配置面
 
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver } from './character';
-import { CharacterPoolModule } from './character/character-pool.module';
-import { EngineStreamBackend } from './engine-stream-backend.adapter';
-import { EngineSessionRegistry, EngineTurnService } from './engine-turn.service';
-import { EngineWiringController } from './engine-wiring.controller';
+import { resolveAllianceConfig } from './alliance-config.js';
+import { NO_SESSION_ALLIANCE_THRESHOLD_OVERRIDE } from './alliance-threshold-resolver.js';
+import { resolveBdiStateStoreConfig } from './bdi-state-store.config.js';
+import { CharacterPoolModule } from './character/character-pool.module.js';
+import { CHARACTER_PROFILE_RESOLVER, type CharacterProfileResolver } from './character/index.js';
+import { resolveDeltaCapConfig } from './delta-cap.config.js';
+import { DeltaCapLogger } from './delta-cap.logger.js';
+import { resolveDeltaTableConfig } from './delta-table.config.js';
+import { EngineStreamBackend } from './engine-stream-backend.adapter.js';
+import { EngineSessionRegistry, EngineTurnService } from './engine-turn.service.js';
+import { EngineWiringController } from './engine-wiring.controller.js';
 import {
+  createBdiStateRepository,
   createEngineMemoryStore,
   createEngineOrchestrator,
   createEngineSessionPort,
@@ -57,36 +64,98 @@ import {
   createBridgeTranscriptSink,
   createRiskProbe,
   createSessionCloseout,
+  createStudentRiskGate,
   createVisitorOutputProbe,
-} from './engine.providers';
-import { ENGINE_MEMORY_STORE, ENGINE_RENDER_PORT, ENGINE_SESSION_PORT } from './engine.tokens';
-import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory';
-import { resolveSessionCostPricing } from '../observability/session-cost';
-import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe';
-import { LocalCrisisProbe } from './risk/local-crisis.probe';
-import { PsyGuardHealthChecker } from './risk/psyguard-health.checker';
-import { RISK_PROBE } from './risk/risk-probe.token';
-import { RouterChatCaller } from './router-chat-caller';
-import { StaticTrajectoryScriptResolver, TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory';
-import { AdminDebugModule } from '../../admin-debug/admin-debug.module';
-import { AIEngineModule } from '../../ai-engine/ai-engine.module';
-import { QdrantService } from '../../ai-engine/providers/qdrant.service';
-import type { EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core';
-import { LlmModule } from '../../llm/llm.module';
-import { LlmRouterService } from '../../llm/registry/llm-router.service';
-import { VoiceFrameRegistry } from '../../voice/voice-frame-registry';
-import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge';
-import { VOICE_TURN_BACKEND } from '../../voice/voice-turn-backend.port';
-import { OpenAICompatEmbedder } from '../embedder/openai-compat.embedder';
-import { resolveMemoryConfig } from '../persistence/memory-config';
-import { SessionCloseoutService } from '../persistence/session-closeout.service';
-import { LlmSessionSummaryGenerator, resolveSummaryModel } from '../persistence/session-summary.generator';
-import type { StreamingRenderPort } from '../rendering/streaming-render.port';
-import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
+} from './engine.providers.js';
+import {
+  ALLIANCE_THRESHOLD_RESOLVER,
+  ENGINE_BDI_STATE_REPOSITORY,
+  ENGINE_DELIBERATION_HOOK,
+  ENGINE_DELIBERATION_MODE_CONFIG,
+  ENGINE_MEMORY_STORE,
+  ENGINE_RENDER_PORT,
+  ENGINE_SESSION_PORT,
+  ROLLING_SUMMARY_CLEANUP,
+} from './engine.tokens.js';
+import { resolvePersonalityModulatorConfig } from './personality-modulator.config.js';
+import { RenderConfigFactory, buildEngineRenderPort } from './render-config.factory.js';
+import { resolveSessionSummaryConfig } from './session-summary.config.js';
+import { TurnDeltaAuditModule } from './turn-delta-audit/turn-delta-audit.module.js';
+import { LlmModule as AgentLlmModule } from '../../agent/llm/llm.module.js';
+import { COUNSELOR_LLM_DEFAULT_MODEL, COUNSELOR_LLM_MODEL_ENV_KEY } from '../../counselor/config/counselor-llm.config.js';
+import { CounselorLlmJsonClient } from '../../counselor/providers/llm-json.client.js';
+import type { BdiStateRepository, EngineSessionPort, MemoryStore, RiskProbePort } from '../../engine-core/index.js';
+import { resolveSessionCostPricing } from '../observability/session-cost.js';
+import { resolvePsyGuardTimeoutMs } from './risk/http-psyguard.probe.js';
+import { LocalCrisisProbe } from './risk/local-crisis.probe.js';
+import { PsyGuardHealthModule } from './risk/psyguard-health.module.js';
+import { RISK_PROBE } from './risk/risk-probe.token.js';
+import { STUDENT_RISK_GATE, StudentRiskGateService } from './risk/student-risk-gate.js';
+import { RouterChatCaller } from './router-chat-caller.js';
+import { resolveSessionDecayConfig } from './session-decay.config.js';
+import { StaticTrajectoryScriptResolver, TRAJECTORY_SCRIPT_RESOLVER, type TrajectoryScriptResolver } from './trajectory/index.js';
+import { TurnIdempotencyService } from './turn-idempotency.service.js';
+import { AdminDebugModule } from '../../admin-debug/admin-debug.module.js';
+import { TraceRecorder } from '../../admin-debug/trace-recorder.service.js';
+import { AIEngineModule } from '../../ai-engine/ai-engine.module.js';
+import { QdrantService } from '../../ai-engine/providers/qdrant.service.js';
+import { LlmModule } from '../../llm/llm.module.js';
+import { LlmRouterService } from '../../llm/registry/llm-router.service.js';
+import { RedisService } from '../../shared/infra/redis/redis.service.js';
+import { SessionEvaluationRegistry } from '../../voice/session-evaluation-slot.js';
+import { StudentRiskAuditRegistry } from '../../voice/student-risk-audit-slot.js';
+import { VoiceFrameRegistry } from '../../voice/voice-frame-registry.js';
+import { VoiceSessionBridgeRegistry } from '../../voice/voice-session-bridge.js';
+import { VOICE_TURN_BACKEND } from '../../voice/voice-turn-backend.port.js';
+import { resolveModelClassifierModeConfig, type ModelClassifierEffectiveMode } from '../cognition/model-classifier-mode.config.js';
+import { RedisModelClassifierObserver } from '../cognition/model-classifier-observation.js';
+import { ModelEventClassifier } from '../cognition/model-event-classifier.js';
+import { resolveDeliberationModeConfig, type DeliberationModeConfig } from '../deliberation/deliberation-mode.config.js';
+import { DeliberationProcessor } from '../deliberation/deliberation.processor.js';
+import { LlmDeliberationEffectiveRunner } from '../deliberation/llm-deliberation-effective.js';
+import { LlmDeliberationHook } from '../deliberation/llm-deliberation-hook.js';
+import { LlmDeliberationService } from '../deliberation/llm-deliberation.service.js';
+import { DeliberationGateModule } from '../deliberation-gate/deliberation-gate.module.js';
+import { DeliberationGateService } from '../deliberation-gate/deliberation-gate.service.js';
+import { OpenAICompatEmbedder } from '../embedder/openai-compat.embedder.js';
+import { resolveMemoryConfig } from '../persistence/memory-config.js';
+import { RollingSessionSummaryService, type RollingSummaryCleanupPort } from '../persistence/rolling-session-summary.service.js';
+import { LlmRollingSummaryGenerator, resolveRollingSummaryModel } from '../persistence/rolling-summary.generator.js';
+import { SessionCloseoutService } from '../persistence/session-closeout.service.js';
+import { LlmSessionSummaryGenerator, resolveSummaryModel } from '../persistence/session-summary.generator.js';
+import type { StreamingRenderPort } from '../rendering/streaming-render.port.js';
+import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator.js';
 
 /**
  * 引擎装配模块 (NestJS).
  */
+/**
+ * 装配期告警用的 logger (WP60).
+ *
+ * 为什么要有: delta 规则表的 env 配错时 (JSON 语法错 / 维度名不认识 / 值不是有限数),
+ *   装配层**喊一声**而不是静默忽略 —— 静默失效是本仓最费时间的排障陷阱.
+ *   模块级单例 (不每次告警都 new 一个 Logger).
+ */
+const wiringLogger = new Logger('EngineWiring');
+
+/**
+ * 模型轨是否需要装配到内核 / 门面 (D-7).
+ *
+ * ⚠️ **为什么是「非 rule_only」而不是「只有 llm_active」**: 影子与生效**两种形态都要挂** ——
+ *   影子挂 = 跑模型轨但结果只进旁路观测 (core events 逐字不变);
+ *   生效挂 = 模型轨结果替换规则轨结果进 core events 与 delta.
+ *   两种形态都需要分类器**在位**, 否则内核决策链里根本没有模型轨这一步.
+ *
+ * ⚠️ **逐场判定不在这里**: 灰度名单 / 考核红线由分类器**内部**的
+ *   resolveModelClassifierSessionMode 判 —— 装配期只管「全局形态要不要挂」.
+ *
+ * @param mode 全局生效模式
+ * @returns 该模式是否需要装配模型轨端口
+ */
+function isModelTrackWired(mode: ModelClassifierEffectiveMode): boolean {
+  return mode === 'shadow' || mode === 'llm_active';
+}
+
 @Module({
   imports: [
     LlmModule,
@@ -98,8 +167,23 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
     //   拆成模块后: 本文件只 import 模块 (相对路径), 零 SDK 包名; 换数据源只改
     //   CharacterPoolModule 里那一处绑定 (任务单 §5).
     CharacterPoolModule,
+    // V2026-11-06 (WP58): 事件 + delta 审计观测 (每轮事件类型 + 命中词 + 原始 delta 落库).
+    //   **同样为护栏而拆** —— 审计表必须连库, 若把 TypeOrmModule.forFeature 直接写
+    //   在本文件, 装配层就得 import '@nestjs/typeorm' —— WP8-A §8-9 护栏立刻红.
+    //   拆成模块后: 本文件只 import 模块 (相对路径), 零 SDK 包名 (同 CharacterPoolModule).
+    TurnDeltaAuditModule,
     // WP19: 调试快照记录器 (每轮 BDI trace 落库).
     AdminDebugModule,
+    // Phase2.5 WP-C: 触发式审议闸门 —— 决定"这一轮要不要跑 LLM 审议".
+    //   独立模块 (与 CharacterPoolModule / TurnDeltaAuditModule 同款理由):
+    //   闸门只依赖 ConfigService + RedisService 两个窄面, 零 ORM / 零厂商 SDK.
+    DeliberationGateModule,
+    // V2026-11-05 (WP64): agent 侧 LlmModule —— 只为拿 `LlmService`
+    //   (结构化输出 client `CounselorLlmJsonClient` 的传输层依赖).
+    //   ⚠️ 与下面的 `LlmModule` (src/llm/llm.module.js, 路由层) 是**两个不同的类**:
+    //     前者是 agent 侧的传输层 (MiniMax 直连), 后者是路由层 (多 provider + 故障转移).
+    //     审议走 counselor 域的**唯一结构化出口** (仓库硬约束 6), 所以要的是前者.
+    AgentLlmModule,
   ],
   controllers: [EngineWiringController],
   providers: [
@@ -129,12 +213,9 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
     },
     // V2026-10-30 (WP11): PsyGUARD 服务启动自检 —— 启动时探一次 /health,
     //   失败/不可达/模型未加载都**只记 warn, 不阻断启动** (探测器是可选增强).
-    {
-      provide: PsyGuardHealthChecker,
-      useFactory: (config: ConfigService): PsyGuardHealthChecker =>
-        new PsyGuardHealthChecker({ baseUrl: (config.get<string>('PSYGUARD_BASE_URL') ?? '').trim() }),
-      inject: [ConfigService],
-    },
+    //   V2026-11-05: 装配挪进 `PsyGuardHealthModule` —— admin 调试面 (PsyGUARD 监控面板)
+    //   要用**同一个**探针实例拿真实状态; 在这里再注册一份 = 启动探两次 + 两份结论可能不一致.
+    PsyGuardHealthModule,
     // 向量化适配器 (Qdrant 长时记忆写入需要). 走 useFactory: 它的第 2 个构造参数
     // 带默认值, Nest 直接 new 会把 Object 当成待注入依赖而报错.
     {
@@ -146,8 +227,10 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
     // V2026-10-30 (WP12 · §1.3): 衰减半衰期 / 访客范围召回阈值走 env —
     //   `MEMORY_DECAY_HALF_LIFE_DAYS` (默认 30 天) 与 `MEMORY_RECALL_THRESHOLD` (默认 0.1).
     //   非法值一律回退默认值 (不抛错): 填错一个 env 不该让服务起不来.
-    //   ⚠️ 这两个值只对 **Qdrant 版**生效 (纯内存版的判定在内核里, 走内核那份常量);
-    //   内核地板仍在, 阈值只能收紧 —— 详见 persistence/memory-config.ts 顶部说明.
+    //   V2026-11-04 (WP59): 这两个值**两版都生效** —— 装配层把同一份配置喂给内存版与向量版,
+    //   召回判定只有内核那一份 → 换存储实现不换召回结果 (开发期与生产期一致).
+    //   ⚠️ 阈值不再"只能收紧": 它直接替换内核默认值 (0.1), 配成 < 0.1 也会真的放行 ——
+    //   详见 persistence/memory-config.ts 顶部说明.
     {
       provide: ENGINE_MEMORY_STORE,
       useFactory: (config: ConfigService, qdrant: QdrantService, embedder: OpenAICompatEmbedder): MemoryStore =>
@@ -184,18 +267,214 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
         ),
       inject: [RouterChatCaller, RenderConfigFactory, ConfigService],
     },
-    // 内核会话: BDI 状态用内存仓储 (落库仓储属后续轮), 记忆用上面的同一实例.
+    // V2026-11-03 (WP37): 会话级滚动摘要服务 ——
+    //   工作记忆窗口 (最近 8 轮) 挤掉旧轮次时, 内核回调它 → 攒批 → 异步调 LLM
+    //   压成滚动摘要 → 写成 SHORT_TERM 记忆 → 缓存给渲染层进 prompt.
+    //   **模块内单例**: 内核会话 (写侧) 与渲染门面 (读侧) 必须是同一个实例 ——
+    //   两份实例 = 门面读不到内核刚写的摘要 (摘要永远进不了 prompt).
+    {
+      provide: RollingSessionSummaryService,
+      useFactory: (memories: MemoryStore, router: LlmRouterService, config: ConfigService): RollingSessionSummaryService => {
+        const tuning = resolveSessionSummaryConfig(config);
+        return new RollingSessionSummaryService({
+          memories,
+          generator: new LlmRollingSummaryGenerator({
+            router,
+            // 摘要模型名与 WP12 的最终摘要**同一个键** (MEMORY_SUMMARY_MODEL):
+            //   两者是同一族任务 (从长文本抽要点), 用两个键就会出现"两个真相源".
+            model: resolveRollingSummaryModel(config.get<string>('MEMORY_SUMMARY_MODEL'), router),
+          }),
+          batchSize: tuning.rollingBatchSize,
+          importance: tuning.rollingImportance,
+        });
+      },
+      inject: [ENGINE_MEMORY_STORE, LlmRouterService, ConfigService],
+    },
+    // V2026-11-04 (WP55): 滚动摘要的**清理端口** token ——
+    //   会话门面 (EngineTurnService) 只依赖"释放这场会话的滚动摘要状态"这一个动作,
+    //   用窄端口 + 显式 token 注入 (interface 没有运行时值, 靠类型注入会静默拿到
+    //   undefined —— 症状是"会话关了但状态不释放", 详见 engine.tokens.ts).
+    //   **同一个实例**: 与上面那个服务必须是同一个 (否则清的是另一份状态).
+    {
+      provide: ROLLING_SUMMARY_CLEANUP,
+      useFactory: (service: RollingSessionSummaryService): RollingSummaryCleanupPort => service,
+      inject: [RollingSessionSummaryService],
+    },
+    // 内核会话: BDI 状态仓储按 env 分流 (WP32), 记忆用上面的同一实例.
     // V2026-10-29 治本 (WP9-C): 注入本地危机探测器 (内核 WP4 的 RiskProbePort 扩展点) ——
     //   没有它, 咨询师输入面的危机语言在内核眼里是干净的, 危机轮次路由与督导提示都无从触发.
     // V2026-10-30 (WP11): 注入点从具体实现 (LocalCrisisProbe) 换成**端口 token**
     //   (RISK_PROBE) —— 装 HttpPsyGuardProbe 还是 LocalCrisisProbe 由 env 决定,
     //   注入点零改动 (换探测器 = 改那一处 useFactory).
+    // V2026-11-05 (WP32): BDI 状态仓储从"写死内存版"改成**按 env 分流** ——
+    //   `ENGINE_BDI_STATE_STORE` 缺省 = memory (行为与本单之前逐字一致, 零回归),
+    //   = redis 时状态落 Redis (进程重启后跨会话恢复自动生效).
+    //   ⚠️ 装配非法 (配了 redis 却拿不到客户端 / 形态值非法) 在**启动期**直接炸,
+    //   不静默回落成内存版 —— 静默回落 = 线上以为在持久化, 实际一条都没存.
+    // V2026-11-06 治本 (WP38 补做 · 调试会话恢复): BDI 状态仓储**单例化**并对外暴露.
+    //   为什么必须单例: 内核会话与调试恢复器要读写**同一个**仓储实例 ——
+    //   两个实例 = 两个真相 (恢复器写进去的快照, 内核那一侧读不到),
+    //   恢复功能会**静默失效** (不报错, 只是恢复出来的状态对不上).
+    //   为什么拆成独立 provider: 只有拆出来, 外部模块 (admin-debug) 才注入得到它.
+    //   ⚠️ 装配非法 (配了 redis 却拿不到客户端 / 形态值非法) 仍然在**启动期**直接炸,
+    //   行为与拆出之前逐字一致 (不静默回落成内存版).
+    {
+      provide: ENGINE_BDI_STATE_REPOSITORY,
+      useFactory: (config: ConfigService, redis: RedisService): BdiStateRepository => {
+        // env 由**适配层**读 (内核零 process.env); 存储形态与 TTL 归一后交给纯工厂.
+        const bdiStore = resolveBdiStateStoreConfig({
+          store: config.get<string>('ENGINE_BDI_STATE_STORE'),
+          ttlSeconds: config.get<string>('ENGINE_BDI_STATE_REDIS_TTL_SECONDS'),
+        });
+        return createBdiStateRepository({
+          store: bdiStore.store,
+          ttlSeconds: bdiStore.ttlSeconds,
+          ...(bdiStore.store === 'redis' ? { redis } : {}),
+        });
+      },
+      inject: [ConfigService, RedisService],
+    },
+    // V2026-11-08 治本 (R9 · 灰度切换装配):
+    //   ① 模式配置 —— 启动期求值一次 (与 cap / 人格 / 同盟同款: 不做热更新, 两端口径恒等).
+    //   ② 生效钩子 —— 单例 (内核会话端口与门面必须拿到**同一个**实例, 否则建议缓存会散).
+    {
+      provide: ENGINE_DELIBERATION_MODE_CONFIG,
+      useFactory: (config: ConfigService): DeliberationModeConfig => {
+        const modeConfig = resolveDeliberationModeConfig(config);
+        // 启动期**喊一声**解析后的模式 —— 灰度期最贵的坑就是"以为在灰度, 其实没生效".
+        //   只出模式名与名单规模 (不含任何会话/心理内容 —— 隐私红线 AGENTS.md §5.4).
+        wiringLogger.log(
+          `[r9] 审议生效模式=${modeConfig.effectiveMode} 灰度名单=${
+            modeConfig.grayscaleSessions.size > 0 ? `${modeConfig.grayscaleSessions.size} 场` : '全量'
+          }`,
+        );
+        return modeConfig;
+      },
+      inject: [ConfigService],
+    },
+    {
+      provide: ENGINE_DELIBERATION_HOOK,
+      useFactory: (
+        modeConfig: DeliberationModeConfig,
+        deliberation: LlmDeliberationService,
+        registry: EngineSessionRegistry,
+      ): LlmDeliberationHook =>
+        // 执行器复用审议服务 (超时 / 校验 / cap / 临床规则 / trace 全在里面, 不重写一遍).
+        // ⚠️ 场景反查器 = 归属登记表 (V2026-11-11 G-1): 钩子只拿得到 sessionId,
+        //   场景在归属表里 (开局登记) —— 复用它, 不另建第二份状态.
+        new LlmDeliberationHook(modeConfig, new LlmDeliberationEffectiveRunner(deliberation), Date.now, registry),
+      inject: [ENGINE_DELIBERATION_MODE_CONFIG, LlmDeliberationService, EngineSessionRegistry],
+    },
+    // V2026-11-12 治本 (D-1 第二段 · 模型轨事件分类器 · 装配):
+    //   ① 模式配置 —— 启动期求值一次 (与审议同款: 不做热更新, 两端口径恒等).
+    //   ② 分类器 —— **单例** (内核会话端口与编排门面必须拿到**同一个**实例:
+    //      跨轮状态分桶在它身上, 两个实例 = 两份状态 = 跨轮计数对不上).
+    //
+    //   ⚠️ **缺省不挂 = 逐字零回归**: 不配任何 env → 模式 = rule_only →
+    //     内核决策链里**根本没有模型轨这一步** (不是「结果一样」, 是「没走那条路」).
+    {
+      provide: ModelEventClassifier,
+      useFactory: (
+        config: ConfigService,
+        llmJson: CounselorLlmJsonClient,
+        registry: EngineSessionRegistry,
+        redis: RedisService,
+      ): ModelEventClassifier => {
+        const modeConfig = resolveModelClassifierModeConfig(config);
+        // 启动期**喊一声**解析后的模式 —— 灰度期最贵的坑就是「以为在灰度, 其实没生效」.
+        //   只出模式名与名单规模 (不含任何会话 / 心理内容 —— 隐私红线 AGENTS.md §5.4).
+        wiringLogger.log(
+          `[d1] 模型轨生效模式=${modeConfig.effectiveMode} 灰度名单=${
+            modeConfig.grayscaleSessions.size > 0 ? `${modeConfig.grayscaleSessions.size} 场` : '全量'
+          }`,
+        );
+        if (modeConfig.effectiveMode === 'llm_active') {
+          // D-7: 模型轨**生效轨已装配** —— 名单内场次每轮关键路径多一次 LLM 往返,
+          //   模型轨事件替换规则轨结果进 core events 与 delta.
+          //   ⚠️ 逐场判定 (灰度名单 / 考核红线) 在分类器**内部**做 —— 这里只喊全局形态.
+          //   ⚠️ 只出形态提示, 不含会话 id / 心理内容 (隐私红线 AGENTS.md §5.4).
+          wiringLogger.warn('[d7] 模型轨 llm_active 生效轨已装配 —— 名单内场次每轮关键路径多一次 LLM 往返');
+        }
+        // 模型标识 (观测字段) —— 口径与 CounselorLlmJsonClient.resolveModel 一致.
+        const modelId = config.get<string>(COUNSELOR_LLM_MODEL_ENV_KEY) ?? COUNSELOR_LLM_DEFAULT_MODEL;
+        return new ModelEventClassifier(llmJson, modeConfig, new RedisModelClassifierObserver(redis), registry, modelId);
+      },
+      inject: [ConfigService, CounselorLlmJsonClient, EngineSessionRegistry, RedisService],
+    },
+    {
+      // I-12: 会话级同盟门槛覆盖来源 —— **缺省 = 永远无覆盖**.
+      //   门槛逐字回落到模块 env 单例 (灰度期数值冻结); 真实来源 (按角色档案自动算门槛)
+      //   属后续标定批次, 到时只换这一个 provider, 会话创建入口零改动.
+      provide: ALLIANCE_THRESHOLD_RESOLVER,
+      useValue: NO_SESSION_ALLIANCE_THRESHOLD_OVERRIDE,
+    },
     {
       provide: ENGINE_SESSION_PORT,
-      useFactory: (memories: MemoryStore, probe: RiskProbePort) => createEngineSessionPort(memories, probe),
-      inject: [ENGINE_MEMORY_STORE, RISK_PROBE],
+      useFactory: (
+        memories: MemoryStore,
+        probe: RiskProbePort,
+        config: ConfigService,
+        capLogger: DeltaCapLogger,
+        rollingSummary: RollingSessionSummaryService,
+        bdiStates: BdiStateRepository,
+        modeConfig: DeliberationModeConfig,
+        deliberationHook: LlmDeliberationHook,
+        modelClassifier: ModelEventClassifier,
+      ): EngineSessionPort => {
+        return createEngineSessionPort(
+          memories,
+          probe,
+          {
+            // WP26 · P2-14: env 由**适配层**读, 内核只认 DeltaCapConfig 端口 ——
+            //   内核零 process.env, 同 seed + 同 capConfig 同序列逐字同输出.
+            capConfig: resolveDeltaCapConfig(config),
+            // WP26 · P2-11/P2-12: 观察者随会话实例注入 (不再有模块级单槽),
+            //   报告带 sessionId/handleId, 口径是本轮**总** delta.
+            capObserver: capLogger.observer,
+            // WP34: 人格调节系数同理 —— env 读在适配层, 内核只认 PersonalityModulatorConfig 端口.
+            personalityModulatorConfig: resolvePersonalityModulatorConfig(config),
+            // WP42: 同盟三维 (trust / safety / bond) 的系数与门槛同理 ——
+            //   env 读在适配层, 内核只认 AllianceConfig 端口.
+            allianceConfig: resolveAllianceConfig(config),
+            // WP60: delta 规则表 (事件 → 增量逐维度覆写) 同理 ——
+            //   env 读在适配层, 内核只认 DeltaTableConfig 端口.
+            //   配错的键**喊出来** (而不是静默忽略): 静默失效是本仓最费时间的排障陷阱.
+            deltaTableConfig: resolveDeltaTableConfig(config, (message) => wiringLogger.warn(message)),
+            // WP36: 跨会话间隔衰减的三个半衰期同理 ——
+            //   env 读在适配层, 内核只认 SessionDecayConfig 端口.
+            sessionDecayConfig: resolveSessionDecayConfig(config),
+            // WP37: 工作窗口溢出通知 —— 内核只交出"挤掉了哪些轮次",
+            //   摘要生成 (LLM) 与记忆写入全在适配层 (内核零网络 / 零 prompt).
+            onWorkingWindowOverflow: (event) => rollingSummary.recordOverflow(event),
+            // R9: 审议钩子 —— **只在生效模式打开时注入内核**.
+            //   不注入 = 内核决策链里根本没有审议这一步 (逐字零回归, 不是"结果一样").
+            //   ⚠️ 会话白名单的逐场判定在钩子**内部**做 —— 装配期拿不到“当前是哪场会话”.
+            ...(modeConfig.effectiveMode === 'llm_active' ? { deliberationHook } : {}),
+            // D-1 第二段 / D-7: 模型轨事件分类器 —— **只在影子 / 生效模式注入内核**.
+            //   不注入 = 内核决策链里根本没有模型轨这一步 (逐字零回归, 不是“结果一样”).
+            //   ⚠️ 逐场判定 (灰度名单 / 考核红线) 在分类器**内部**做
+            //     (model-classifier-mode.config.ts) —— 装配期只管「全局形态要不要挂」.
+            ...(isModelTrackWired(modelClassifier.effectiveMode()) ? { classifier: modelClassifier } : {}),
+          },
+          // 状态仓储**单例**注入 (与上面那个 provider 是同一个实例).
+          bdiStates,
+        );
+      },
+      inject: [
+        ENGINE_MEMORY_STORE,
+        RISK_PROBE,
+        ConfigService,
+        DeltaCapLogger,
+        RollingSessionSummaryService,
+        ENGINE_BDI_STATE_REPOSITORY,
+        ENGINE_DELIBERATION_MODE_CONFIG,
+        ENGINE_DELIBERATION_HOOK,
+        ModelEventClassifier,
+      ],
     },
     // 装配门面 (WP7): 接上归属解析缝 (多会话, 不传固定 sessionContext).
+    // V2026-11-02 (WP14): 注入学员侧处置闸门 —— 门面在**渲染前**问它
+    //   "这一轮要不要处置 / 要不要阻断", 判成 block 就**不调 RenderPort.render**.
     {
       provide: TurnRenderOrchestrator,
       useFactory: (
@@ -203,11 +482,81 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
         renderer: StreamingRenderPort,
         memories: MemoryStore,
         registry: EngineSessionRegistry,
-      ): TurnRenderOrchestrator => createEngineOrchestrator({ session, renderer, memories, registry }),
-      inject: [ENGINE_SESSION_PORT, ENGINE_RENDER_PORT, ENGINE_MEMORY_STORE, EngineSessionRegistry],
+        studentRisk: StudentRiskGateService,
+        rollingSummary: RollingSessionSummaryService,
+        deliberation: DeliberationProcessor,
+        modeConfig: DeliberationModeConfig,
+        deliberationHook: LlmDeliberationHook,
+        gate: DeliberationGateService,
+        modelClassifier: ModelEventClassifier,
+      ): TurnRenderOrchestrator =>
+        createEngineOrchestrator({
+          session,
+          renderer,
+          memories,
+          registry,
+          studentRisk,
+          // WP37: 渲染侧读同一个滚动摘要服务 (与内核写侧同一实例).
+          rollingSummary,
+          // WP64: 影子审议端口 —— 门面每轮渲染后旁路调一次, 结果只写 Redis trace 表.
+          //   审议服务自己判 env 开关 (`ENGINE_DELIBERATION_ENABLED`), 关着时它**一次 LLM 都不发**.
+          // WP65: 注入的实现换成了 `DeliberationProcessor` —— 它把审议请求**入队**,
+          //   真正跑 LLM 由 BullMQ Worker 异步做. 门面对此**完全透明** (端口签名没变).
+          // ⚠️ R9: **只在影子模式挂** —— 生效模式下影子旁路被摘掉, 理由有两条:
+          //   ① 同一轮跑两次 LLM = 双份成本 (影子跑一遍、生效再跑一遍);
+          //   ② 两条路径写**同一个 trace key** (tenant+session+turn) → 互相覆盖,
+          //     灰度期的对比数据会丢一半.
+          //   生效路径自己写同一份 trace (字段形状逐字相同), 看板不受影响.
+          ...(modeConfig.effectiveMode === 'shadow' ? { deliberation } : {}),
+          // R9: 生效审议钩子 —— 只在生效模式挂 (会话白名单的逐场判定在钩子内部做).
+          ...(modeConfig.effectiveMode === 'llm_active' ? { deliberationHook } : {}),
+          // WP-C: 触发式审议闸门 —— 门面每轮先问它"要不要跑审议".
+          //   ⚠️ 闸门**始终挂上**, 但它只在影子/生效路径实际挂上时才被问到
+          //     (纯规则模式 = 压根没有审议路径 = 闸门一次都不会被调用).
+          //   ⚠️ 门面只认窄端口 (DeliberationGatePort) —— 这里传的是实现, 门面不知道实现细节.
+          gate,
+          // D-1 第二段 / D-7: 模型轨跨轮上下文 (上一轮来访话语 + 清理挂点).
+          //   ⚠️ **只在影子 / 生效模式挂** —— rule_only 时挂上去只会白白攒状态分桶 (内存涨).
+          //   ⚠️ 生效模式下也挂 = 跨轮状态继续攒 (代价是内存, 收益是模型轨能拿到上一轮来访话语).
+          ...(isModelTrackWired(modelClassifier.effectiveMode()) ? { modelClassifierContext: modelClassifier } : {}),
+        }),
+      inject: [
+        ENGINE_SESSION_PORT,
+        ENGINE_RENDER_PORT,
+        ENGINE_MEMORY_STORE,
+        EngineSessionRegistry,
+        STUDENT_RISK_GATE,
+        RollingSessionSummaryService,
+        DeliberationProcessor,
+        ENGINE_DELIBERATION_MODE_CONFIG,
+        ENGINE_DELIBERATION_HOOK,
+        DeliberationGateService,
+        ModelEventClassifier,
+      ],
+    },
+    // V2026-11-02 治本 (WP14 §1.6 — 重点监测场次的强制远端探测):
+    //   闸门是**模块内单例** —— 编排门面 (判定) 与对话后端适配器 (置位) 必须拿到同一个实例.
+    //   闸门里的远端探测器是**独立实例**且不带本地词典兜底 (兜底已在主链路上).
+    {
+      provide: STUDENT_RISK_GATE,
+      useFactory: (config: ConfigService): StudentRiskGateService =>
+        createStudentRiskGate({
+          baseUrl: config.get<string>('PSYGUARD_BASE_URL') ?? '',
+          timeoutMs: resolvePsyGuardTimeoutMs(config.get<string>('PSYGUARD_TIMEOUT_MS')),
+        }),
+      inject: [ConfigService],
     },
     // 对外门面服务.
     EngineTurnService,
+    // V2026-11-03 治本 (WP15): 单回合 delta cap 观测日志 ——
+    //   内核只上报"这一回合 BDI 被砍了多少", 打不打日志由本层决定 (内核零 logger 依赖).
+    //   装配缺席 = 不打日志, 但内核照常砍幅 (观测是增强, 不是会话能力).
+    //   WP26 · P2-11/P2-14: 它的 `observer` 被注入内核会话 (不再有模块级单槽),
+    //   报告自带 sessionId/handleId.
+    DeltaCapLogger,
+    // V2026-11-02 治本 (WP16): 轮次幂等表 —— 同一会话同一 round_id 重发不重跑 BDI.
+    //   模块内单例 (与对话后端同生命周期): 装配层唯一的"这一轮跑过没有"的事实来源.
+    TurnIdempotencyService,
     // V2026-10-30 治本 (WP12): 会话收尾服务 —— 逐字稿全量定稿 + 摘要晋升长时记忆.
     //   走 useFactory 显式 new (与仓库既有做法一致): 收尾服务有 4 个构造参数,
     //   其中两个可选, useClass 会让 Nest 按 design:paramtypes 找依赖而报错.
@@ -231,6 +580,8 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
             router,
             model: resolveSummaryModel(config.get<string>('MEMORY_SUMMARY_MODEL'), router),
           }),
+          // WP37: 最终摘要的重要度可配 (缺省 = 代码里的种子值, 行为与 WP12 逐字一致).
+          summaryImportance: resolveSessionSummaryConfig(config).finalImportance,
           ...(bridges ? { sink: createBridgeTranscriptSink(bridges) } : {}),
         }),
       inject: [ENGINE_MEMORY_STORE, LlmRouterService, ConfigService, { token: VoiceSessionBridgeRegistry, optional: true }],
@@ -263,7 +614,13 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
         frames: VoiceFrameRegistry,
         scriptResolver: TrajectoryScriptResolver,
         closeout: SessionCloseoutService,
+        traceRecorder: TraceRecorder,
         config: ConfigService,
+        studentRisk: StudentRiskGateService,
+        riskAudit: StudentRiskAuditRegistry,
+        riskProbe: RiskProbePort,
+        idempotency: TurnIdempotencyService,
+        evaluation: SessionEvaluationRegistry,
       ): EngineStreamBackend =>
         createEngineStreamBackend({
           engine,
@@ -271,23 +628,49 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
           frames,
           scriptResolver,
           closeout,
+          // WP19-R: 调试快照记录器 —— 由 AdminDebugModule 提供 (本模块已 import 它).
+          //   此前这里是"恒 undefined 的占位", 于是 recordTrace() 首行守卫直接 return,
+          //   "每轮 BDI 快照落库"一次都没发生过 (turn_debug_trace 恒空).
+          //   缺装配 = 不留痕 (会话照常), 不阻断对练主链路.
+          traceRecorder,
           // WP24: 成本单价走 env (定价表换版只改配置, 不发版).
           //   解析口径在 `resolveSessionCostPricing` —— 非法值回退默认, 不抛.
           pricing: resolveSessionCostPricing({
             inputPer1k: config.get<string>('LLM_PRICE_INPUT_PER_1K'),
             outputPer1k: config.get<string>('LLM_PRICE_OUTPUT_PER_1K'),
           }),
+          // WP14: 学员侧处置闸门 (置位重点监测) + 风险审计插槽 (写 student_risk_events).
+          studentRiskGate: studentRisk,
+          riskAudit,
+          // WP14 优化项: 前置 safety gate 用的探测器 —— **与内核注入的是同一个实例**
+          //   (RISK_PROBE): 口径一致, 且 D12 的本地词典兜底挂在这个实例上
+          //   (远端挂了前置 gate 也能拦住 block).
+          riskProbe,
+          // WP16: 轮次幂等表 —— 同一会话同一 round_id 重发不重跑 BDI;
+          //   断流 (回复没发完) 的那一轮重发时回 turn_incomplete, 让前端走新一轮.
+          idempotency,
+          // V2026-11-06 (WP43): 评估插槽 —— 会话收尾时把本场内核出参交给业务侧算分.
+          //   引擎侧只认插槽接口 (voice 层 @Global), 不认识评估服务的任何类型.
+          evaluation,
         }),
       // 帧出口注册表由 voice 侧的 @Global 模块提供; optional = 缺了只影响督导提示帧.
       // 剧本解析端口同理: optional = 缺了只影响伦理盲盒剧本, 不影响会话开合.
       // 收尾服务同理: optional = 缺了只影响逐字稿定稿 + 长时记忆, 不影响会话开合.
+      // 风险审计插槽同理: optional = 缺了只影响风险事件留痕, 不影响弹窗与阻断.
       inject: [
         EngineTurnService,
         CHARACTER_PROFILE_RESOLVER,
         { token: VoiceFrameRegistry, optional: true },
         { token: TRAJECTORY_SCRIPT_RESOLVER, optional: true },
         { token: SessionCloseoutService, optional: true },
+        TraceRecorder,
         ConfigService,
+        STUDENT_RISK_GATE,
+        { token: StudentRiskAuditRegistry, optional: true },
+        RISK_PROBE,
+        TurnIdempotencyService,
+        // 评估插槽: optional = 缺了只影响"这场没有快速评分", 不影响会话开合.
+        { token: SessionEvaluationRegistry, optional: true },
       ],
     },
     {
@@ -298,12 +681,32 @@ import { TurnRenderOrchestrator } from '../rendering/turn-render-orchestrator';
     //   CharacterPoolModule (数据源切换 = 改那一处 useFactory; 注入点零改动).
     //   本模块只 import 该模块, 不再直接持有角色池 provider —— 引擎装配层因此
     //   零 ORM / 零 SDK 包名 (WP8-A §8-9 护栏).
+    // V2026-11-05 治本 (WP64 · LLM 审议层 PoC · 影子模式):
+    //   审议服务 (旁路观察, 结果不生效) + 结构化输出 client.
+    //   ⚠️ `CounselorLlmJsonClient` 在这里**再注册一份** (不 import CounselorModule):
+    //     · 它是无状态 client (依赖只有 LlmService + ConfigService), 注册一份不会产生第二份真相;
+    //     · import CounselorModule 会把 counselor 域的 24 个 TypeORM entity + 控制器整包拖进引擎装配层,
+    //       引擎装配层因此会认识 ORM —— 违反 WP8-A §8-9 的"零 ORM / 零 SDK 包名"护栏.
+    //     · agent 侧 LlmModule 只提供 LlmService (传输层), 不带任何业务实体.
+    CounselorLlmJsonClient,
+    LlmDeliberationService,
+    // V2026-11-05 (WP65): 审议影子模式的 BullMQ worker ——
+    //   它是编排门面的影子审议端口实现 (`runShadowMode` = 入队), Worker 回调里
+    //   调 `LlmDeliberationService.executeShadowMode()` 真跑 LLM + 写 trace.
+    //   ⚠️ 依赖方向是单向的: processor → service (没有任何反向引用), 无循环依赖.
+    DeliberationProcessor,
   ],
   exports: [
     EngineTurnService,
     ENGINE_SESSION_PORT,
     ENGINE_RENDER_PORT,
     VOICE_TURN_BACKEND,
+    // V2026-11-06 (WP38 补做 · 调试会话恢复): 记忆仓储与 BDI 状态仓储对外暴露 ——
+    //   调试恢复器要**回灌**内核状态 (BDI 快照 → 状态仓储; 记忆条目 → 记忆仓储).
+    //   ⚠️ 这两个都是**本模块自己 providers 里声明的** provider (不是从别的模块转出),
+    //   所以导出合法 (见下面关于 CharacterPoolModule 的说明).
+    ENGINE_MEMORY_STORE,
+    ENGINE_BDI_STATE_REPOSITORY,
     // V2026-10-29 (WP9-B): 角色解析端口的 provider 声明在 CharacterPoolModule 里,
     //   本模块**不能**再把那个 symbol 单独导出一遍 —— Nest 的
     //   `Module.validateExportedProvider` 只接受两种导出:

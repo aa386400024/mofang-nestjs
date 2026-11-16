@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 
-import { SentryService } from './sentry.service';
+import { SentryService } from './sentry.service.js';
 
 /**
  * Observability module — Sentry 异常上报 (大厂可观测性).

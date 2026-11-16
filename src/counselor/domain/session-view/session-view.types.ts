@@ -1,5 +1,5 @@
 // V2026-10-27 治本 (会话对外视图 — 派生字段的**唯一**判定处):
-//   原因: docs/progress/history-list-backend-2026-10-26.md 要求列表项补
+//   原因: docs/worklog/history-list-backend-2026-10-26.md 要求列表项补
 //     sessionType / reportStatus / overallScore / reportReady / interrupted.
 //     这几个字段**全部是派生值** (库里没有对应列), 判定一旦散落在 service 的 if 里,
 //     就会出现两处口径打架 (列表说"生成中", 报告页说"生成失败") ——
@@ -42,11 +42,15 @@
 //   验证: npx jest test/counselor/session-view.spec.ts 全绿
 //   时间戳: 2026-10-27 13:40 GMT+8
 
-import type { EffectiveMaterial, EffectiveMaterialThresholds } from './session-material';
-import { SessionType } from '../../enums/session-type.enum';
-import { SupervisionFailureCode } from '../../enums/supervision-failure-code.enum';
-import { TrainingSessionStatus } from '../../enums/training-session-status.enum';
-import { resolveSessionReportState, type SessionReportStatus, type SessionSchoolFeedbackState } from '../session-core/session-core.types';
+import type { EffectiveMaterial, EffectiveMaterialThresholds } from './session-material.js';
+import { SessionType } from '../../enums/session-type.enum.js';
+import { SupervisionFailureCode } from '../../enums/supervision-failure-code.enum.js';
+import { TrainingSessionStatus } from '../../enums/training-session-status.enum.js';
+import {
+  resolveSessionReportState,
+  type SessionReportStatus,
+  type SessionSchoolFeedbackState,
+} from '../session-core/session-core.types.js';
 
 /**
  * 列表项的会话类型取值 (2 档).

@@ -1,11 +1,11 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { AiGuideTipDto } from '../dto/companion.dto';
-import { AiGuideService } from '../providers/companion.service';
+import { AiGuideTipDto } from '../dto/companion.dto.js';
+import { AiGuideService } from '../providers/companion.service.js';
 
 /**
  * AI 辅助指引 controller — V2.0 §Tab2 AI 陪伴辅助指引分区.

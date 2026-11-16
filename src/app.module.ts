@@ -12,51 +12,58 @@ import { existsSync, mkdirSync } from 'node:fs';
 // eslint-disable-next-line unicorn/import-style
 import { resolve } from 'node:path';
 
-import { AdminDebugModule } from './admin-debug/admin-debug.module';
-import { AgentModule } from './agent/agent.module';
-import { AiConversationsModule } from './ai-companion/ai-conversations.module';
-import { AIEngineModule } from './ai-engine/ai-engine.module';
-import { AnalyticsModule } from './analytics/analytics.module';
-import { AuthModule } from './auth';
-import { BaseModule } from './base/base.module';
-import { BillingModule } from './billing/billing.module';
-import { CommonModule } from './common';
-import { BizExceptionFilter } from './common/filters/biz-exception.filter';
-import { CompanionModule } from './companion/companion.module';
-import { configuration, loggerOptions } from './config';
-import { ConsentModule } from './consent';
+import { AdminDebugChatModule } from './admin-debug/admin-debug-chat.module.js';
+import { AdminDebugModule } from './admin-debug/admin-debug.module.js';
+import { AdminInsightsModule } from './admin-debug/admin-insights.module.js';
+// V2026-11-09 — Phase2.5 闸门 trace 查询接口: 闸门决策列表 / 详情 / 按天统计.
+import { EvalReportAdminModule } from './admin-debug/eval-report.module.js';
+import { GateTraceModule } from './admin-debug/gate-trace.module.js';
+import { AgentModule } from './agent/agent.module.js';
+import { AiConversationsModule } from './ai-companion/ai-conversations.module.js';
+import { AIEngineModule } from './ai-engine/ai-engine.module.js';
+import { AnalyticsModule } from './analytics/analytics.module.js';
+import { AuthModule } from './auth/index.js';
+// V2026-11-08 — Phase2.5 WP-D: AI 咨询师 + AI 来访者双向自动对练 (批量跑 30+ 场验证引擎).
+import { AutoPracticeModule } from './auto-practice/auto-practice.module.js';
+import { BaseModule } from './base/base.module.js';
+import { BillingModule } from './billing/billing.module.js';
+import { BizExceptionFilter } from './common/filters/biz-exception.filter.js';
+import { CommonModule } from './common/index.js';
+import { CompanionModule } from './companion/companion.module.js';
+import { configuration, loggerOptions } from './config/index.js';
+import { ConsentModule } from './consent/index.js';
 // V2026-10-13 治本 (Phase 7.10 — counselor 端 server module 注册):
 //   心理咨询师学员端「首页」Tab server 端, 跟 xin_su_app counselor_home
 //   1:1 对应. V0.5 简化: 仅 home overview 1 endpoint, 内存 mock.
 //   V1.x 改造: 加 training/exam/growth/profile 4 子 controller, 接数据库.
 // V2026-10-13 治本 (V0.2 — billing.module import 漏修):
 //   上一轮 app.module.ts imports 数组加 `BillingModule, // /billing/*` 成功, 但顶部 import
-//   漏写 `import { BillingModule } from './billing/billing.module';`, pnpm build 报
+//   漏写 `import { BillingModule } from './billing/billing.module.js';`, pnpm build 报
 //   TS2304 'Cannot find name BillingModule'. 治本: 补 import 跟 counselor 风格一致
 //   (字母序 B < C, 在 CounselorModule 之前).
-import { CounselorModule } from './counselor/counselor.module';
-import { DashboardModule } from './dashboard/dashboard.module';
-import { AppNamingStrategy } from './database/naming-strategy';
-import { EmbodiedModule } from './embodied/embodied.module';
-import { EmergencyModule } from './emergency/emergency.module';
+import { CounselorModule } from './counselor/counselor.module.js';
+import { DashboardModule } from './dashboard/dashboard.module.js';
+import { AppNamingStrategy } from './database/naming-strategy.js';
+import { EmbodiedModule } from './embodied/embodied.module.js';
+import { EmergencyModule } from './emergency/emergency.module.js';
 // V2026-10-28 治本 (WP8-A — 引擎装配层接入 DI):
 //   把 WP0–WP7 的引擎纯单元 (内核会话 / 渲染适配器 / 装配门面) 装进依赖注入,
 //   并注册聚合调试端点 /engine/debug/{open,turn,close} (JWT 保护, 仅联调).
 //   本期**不接**语音链路 / 不做流式 / 不替换旧 agent/visitor 直出 (归 WP8-B).
 //   反双胞胎: 与既有 AIEngineModule / VoiceModule / CounselorModule **并存**,
 //   新引擎自成一家, 谁也不替换谁 —— 灰度切换是 WP8-B 的事.
-import { EngineWiringModule } from './engine-adapters/wiring/engine.module';
-import { GenomeReshapeModule } from './genome-reshape/genome-reshape.module';
-import { GoodStateDiaryModule } from './good_state_diary/good_state_diary.module';
-import { GuideModule } from './guide/guide.module';
-import { HomeModule } from './home/home.module';
-import { GameUnlockModule } from './inner_world/game-unlock.module';
+import { EngineWiringModule } from './engine-adapters/wiring/engine.module.js';
+import { GenomeReshapeModule } from './genome-reshape/genome-reshape.module.js';
+import { GoodStateDiaryModule } from './good_state_diary/good_state_diary.module.js';
+import { GuideModule } from './guide/guide.module.js';
+import { HomeModule } from './home/home.module.js';
+import { GameUnlockModule } from './inner_world/game-unlock.module.js';
 // V2026-10-12 治本 (pre-existing inner-world 文件名 vs import path 错位):
 //   实际文件 src/inner_world/inner_world.module.ts (下划线), 但 import 写
 //   './inner_world/inner-world.module' (dash), Node 解析失败, build 断. 这是
 //   pre-existing bug (跟 8.x 无关), 治本: 改 import 路径对齐文件名.
-import { InnerWorldModule } from './inner_world/inner_world.module';
-import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module';
+import { InnerWorldModule } from './inner_world/inner_world.module.js';
+import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map 0% 真接 + drift migration 缺失):
 //   原因: V0.5 P0-6 治本时只把 app.module.ts import 改路径 (从 life-map/ 改到 life_map/),
 //     但没合并两个目录内容. life_map/ (下划线) 1 endpoint overview 是中间态,
@@ -73,15 +80,17 @@ import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module';
 //     grep '1700000010005' bin/ormconfig.ts 1 命中 (新 entry) +
 //     跑 pnpm migration:run 创 life_map_drift_bottles 表.
 //   时间戳: 2026-10-14 09:45 GMT+8 (V3 深度扫描发现 → 今日 VS-life-merge 治本).
-import { LifeMapModule } from './life-map/life-map.module';
-import { PracticeModule } from './practice/practice.module';
-import { ProfileModule } from './profile';
-import { EmailModule, MetricsModule, ObservabilityModule, QueueModule, RedisModule, SmsModule } from './shared/infra';
-import { SentryService } from './shared/infra/observability';
-import { UserModule } from './user';
-import { UserCronModule } from './user/cron/cron.module';
-import { OAuthModule } from './user/oauth';
-import { VoiceModule } from './voice/voice.module';
+import { LifeMapModule } from './life-map/life-map.module.js';
+import { PracticeModule } from './practice/practice.module.js';
+import { ProfileModule } from './profile/index.js';
+// V2026-11-10 治本 (WP-J P2 · 专业级标注工具): 质量标注台 admin 端点 (列表/详情/保存/reveal/一致性).
+import { QualityAnnotationModule } from './quality/quality-annotation.module.js';
+import { EmailModule, MetricsModule, ObservabilityModule, QueueModule, RedisModule, SmsModule } from './shared/infra/index.js';
+import { SentryService } from './shared/infra/observability/index.js';
+import { UserCronModule } from './user/cron/cron.module.js';
+import { UserModule } from './user/index.js';
+import { OAuthModule } from './user/oauth/index.js';
+import { VoiceModule } from './voice/voice.module.js';
 
 // ⚠️ AuthModule + BaseModule 必装: V2-temp 误删后, 心塑前端 /auth/* 路由全 404.
 // - AuthModule: 提供 AuthService / LoginCodeService / JwtModule / Guards
@@ -187,6 +196,8 @@ import { VoiceModule } from './voice/voice.module';
     UserModule,
     // AuthModule 必须先于 BaseModule, 因为 BaseModule 的 AuthController 依赖 AuthService / LoginCodeService.
     AuthModule,
+    // V2026-11-08 — Phase2.5 WP-D: AI 自动对练 (咨询师 LLM × 来访者引擎, 批量验证).
+    AutoPracticeModule,
     BaseModule,
     OAuthModule,
     UserCronModule,
@@ -229,6 +240,22 @@ import { VoiceModule } from './voice/voice.module';
     //   与既有 AIEngineModule / VoiceModule 并存, 本期不替换旧 visitor 直出链路 (归 WP8-B).
     EngineWiringModule, // /engine/debug/*
     AdminDebugModule, // /admin/api/* (WP19 调试器 SPA 只读 API)
+    // V2026-11-05 — WP58 引擎调试面板写接口 (/admin/api/debug/*).
+    //   单独成模块: 调试接口要用引擎门面, 而 EngineWiringModule 反过来 import 了
+    //   AdminDebugModule —— 塞进同一个模块就是循环依赖 (详见 admin-debug-chat.module.ts).
+    AdminDebugChatModule, // /admin/api/debug/session*
+    // V2026-11-05 — Admin Dashboard 剩余三页切真 API (/admin/api/dashboard* /memories /psyguard*).
+    //   单独成模块: 洞察面要多依赖一个向量库 (QdrantService, 长时记忆的真存储),
+    //   而 AdminDebugModule 被 EngineWiringModule import —— 塞进去依赖方向会变浑.
+    AdminInsightsModule, // /admin/api/dashboard* /memories /psyguard*
+    // V2026-11-09 — 闸门决策查询 (/admin/api/gate/traces /traces/:id /stats).
+    //   单独成模块: 数据源在 engine-adapters 的 gate_decisions 表 + Redis 日计数器,
+    //   与 AdminDebugModule 的依赖没有交集 (admin-debug 是"会话 + 角色", 这里是"闸门决策").
+    GateTraceModule, // /admin/api/gate/*
+    EvalReportAdminModule, // /admin/api/eval/*
+    // V2026-11-10 — WP-J P2 质量标注台 (独立模块: 只读 quality_annotation 表 + 调试逐字稿文件,
+    //   与 AdminDebugModule 的依赖没有交集 —— admin-debug 是"会话 + 角色", 这里是"人工标注").
+    QualityAnnotationModule, // /admin/api/quality/*
     // V2026-09-04 — 心塑 V6.0 §4.2 急救闭环 — 5 工具会话上报 + 跨设备同步
     EmergencyModule, // /emergency/*
     // V2026-10-13 — 心理咨询师学员端 server module (Phase 7.10 启动 P0-1)

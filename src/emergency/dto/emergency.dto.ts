@@ -6,7 +6,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsInt, IsNumber, IsObject, IsOptional, IsString, Min } from 'class-validator';
 
-import { EmergencyToolKind, SessionPhase } from '../enums/emergency.enums';
+import { EmergencyToolKind, SessionPhase } from '../enums/emergency.enums.js';
 
 /**
  * 急救会话上报 DTO — POST /emergency/sessions.

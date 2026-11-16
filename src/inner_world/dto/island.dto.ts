@@ -1,6 +1,6 @@
 import { IsEnum, IsInt, IsOptional, IsString, Length, Max, Min } from 'class-validator';
 
-import { IslandArea } from '../enums/island-area.enum';
+import { IslandArea } from '../enums/island-area.enum.js';
 
 /**
  * 单个元素 DTO — 用于 elements 列表接口.

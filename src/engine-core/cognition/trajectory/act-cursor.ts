@@ -28,9 +28,9 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/engine-core/wp3-trajectory.spec.ts 覆盖步进/等待/不跳幕/abort 优先
 
-import { evaluateTrigger, type MatchContext } from './trigger-evaluate';
-import type { TrajectoryNode, TrajectoryScript } from '../../domain/trajectory/script';
-import { orderedTrajectoryNodes } from '../../domain/trajectory/script';
+import { evaluateTrigger, type MatchContext } from './trigger-evaluate.js';
+import type { TrajectoryNode, TrajectoryScript } from '../../domain/trajectory/script.js';
+import { orderedTrajectoryNodes } from '../../domain/trajectory/script.js';
 
 /**
  * 推进器本轮决策结果.

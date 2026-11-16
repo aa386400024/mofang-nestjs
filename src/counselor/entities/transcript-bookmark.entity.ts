@@ -17,7 +17,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { TranscriptBookmarkMarkType } from '../enums/transcript-bookmark-mark-type.enum';
+import { TranscriptBookmarkMarkType } from '../enums/transcript-bookmark-mark-type.enum.js';
 
 /**
  * 逐字稿打点标记.

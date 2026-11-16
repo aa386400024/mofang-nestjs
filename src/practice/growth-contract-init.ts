@@ -22,9 +22,9 @@
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
-import { ALLOWED_EXACT_PATHS, assertLinkRouteWhitelistSync } from './constants/allowed-link-routes';
-import { assertFragmentTypeContract } from './constants/fragment-type-code';
-import { assertToolCompletionSourceContract } from './constants/tool-completion-source';
+import { ALLOWED_EXACT_PATHS, assertLinkRouteWhitelistSync } from './constants/allowed-link-routes.js';
+import { assertFragmentTypeContract } from './constants/fragment-type-code.js';
+import { assertToolCompletionSourceContract } from './constants/tool-completion-source.js';
 
 @Injectable()
 export class GrowthContractInit implements OnModuleInit {

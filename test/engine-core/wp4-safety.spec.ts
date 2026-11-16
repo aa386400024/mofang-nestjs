@@ -22,6 +22,12 @@
 //   验证: npx jest test/engine-core/wp4-safety.spec.ts
 //   时间戳: 2026-10-28 GMT+8
 
+import { planIntention } from '../../src/engine-core/cognition/intention-planner.js';
+import { RuleBasedClassifier } from '../../src/engine-core/cognition/rule-based-classifier.js';
+import { transitionState } from '../../src/engine-core/cognition/state-transition.js';
+import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository.js';
+import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
 import {
   DEFAULT_PROBE_TIMEOUT_MS,
   PSYGUARD_LEVEL_MAP,
@@ -35,13 +41,7 @@ import {
   type SafetyLevel,
   type SafetySide,
   type VisitorRiskCategory,
-} from '../../src/engine-core';
-import { planIntention } from '../../src/engine-core/cognition/intention-planner';
-import { RuleBasedClassifier } from '../../src/engine-core/cognition/rule-based-classifier';
-import { transitionState } from '../../src/engine-core/cognition/state-transition';
-import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository';
-import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
+} from '../../src/engine-core/index.js';
 
 const TENANT = 'default';
 const VISITOR = 'visitor-1';
@@ -56,10 +56,7 @@ interface ProbeStub {
 }
 
 /** 构造 probe 桩. */
-function probeStub(
-  behavior: 'ok' | 'throw' | 'hang' | 'dirty',
-  overrides: Partial<RiskProbeResult> = {},
-): ProbeStub {
+function probeStub(behavior: 'ok' | 'throw' | 'hang' | 'dirty', overrides: Partial<RiskProbeResult> = {}): ProbeStub {
   const calls: { text: string; side: SafetySide }[] = [];
   const port: RiskProbePort = {
     probe: async (text: string, side: SafetySide): Promise<RiskProbeResult> => {
@@ -160,7 +157,7 @@ describe('WP4 · 伦理安全引擎', () => {
     });
 
     it('全空白文本 → pass, 不抛', () => {
-      expect(evaluateSafety('   ', 'counselor_input').level).toBe('pass');
+      expect(evaluateSafety(' '.repeat(3), 'counselor_input').level).toBe('pass');
     });
 
     it('大小写无关 (统一小写子串匹配)', () => {
@@ -260,9 +257,10 @@ describe('WP4 · 伦理安全引擎', () => {
         timeoutMs: 0,
       });
       expect(verdict.level).toBe('pass');
-      // ⚠️ 临时值 500 (WP11 审核后决策 #4: 测试阶段放宽预算) —— M3 内测前改回 150.
-      //   改的是内核常量, 断言必须跟着改, 否则这条测试就成了"把临时值钉死"的锁.
-      expect(DEFAULT_PROBE_TIMEOUT_MS).toBe(500);
+      // ✅ 正式口径 150ms (WP28 已把 WP11 决策 #4 的测试期临时值 500 回改掉).
+      //   这条断言的作用是**把"正式探测预算"钉死**: 改内核常量的人必须同时改这里,
+      //   否则要么测试红, 要么这条测试悄悄变成"把临时值钉死"的锁.
+      expect(DEFAULT_PROBE_TIMEOUT_MS).toBe(150);
     });
   });
 
@@ -314,12 +312,7 @@ describe('WP4 · 伦理安全引擎', () => {
         'self_harm_behavior',
         'aggression_others',
       ];
-      const warnCategories: VisitorRiskCategory[] = [
-        'passive_ideation',
-        'suicide_exploration',
-        'self_harm_ideation',
-        'aggression_self',
-      ];
+      const warnCategories: VisitorRiskCategory[] = ['passive_ideation', 'suicide_exploration', 'self_harm_ideation', 'aggression_self'];
 
       for (const category of blockCategories) {
         expect(PSYGUARD_LEVEL_MAP[category]).toBe('block');
@@ -361,12 +354,7 @@ describe('WP4 · 伦理安全引擎', () => {
 
   describe('⑩ 事件累计与报告', () => {
     it('多轮 warn/block 累计正确, pass 轮不计数', async () => {
-      const { outputs, harness, handleId } = await runTurns(undefined, [
-        CLEAN_TEXT,
-        '你就是太矫情了',
-        '我保证你能治好',
-        CLEAN_TEXT,
-      ]);
+      const { outputs, harness, handleId } = await runTurns(undefined, [CLEAN_TEXT, '你就是太矫情了', '我保证你能治好', CLEAN_TEXT]);
       void outputs;
 
       const report = harness.session.getSafetyReport(handleId);
@@ -397,7 +385,7 @@ describe('WP4 · 伦理安全引擎', () => {
 
       const first = harness.session.getSafetyReport(handleId);
       const mutable = first.events as unknown as SafetyEvent[];
-      mutable.push({ turnIndex: 99, at: 0, verdict: first.events[0]!.verdict, snippet: 'x' });
+      mutable.push({ turnIndex: 99, at: 0, verdict: first.events[0].verdict, snippet: 'x' });
 
       const second = harness.session.getSafetyReport(handleId);
       expect(second.events).toHaveLength(1);

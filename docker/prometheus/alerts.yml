@@ -1,5 +1,25 @@
 # Prometheus alert rules (mofang-nestjs)
-# 大厂标配 — 业务黄金指标告警
+#
+# ⚠️ **V2026-11-05 治本 (WP45 · P3-6)**: 本文件原来混着三类规则, 其中一类**永远不会触发**:
+#   ① 引用 node_exporter / redis_exporter 的指标 (`node_memory_*` / `node_cpu_seconds_total` /
+#      `up{job="redis-exporter"}`) —— 但 `prometheus.yml` 里这两个 exporter 的 scrape job
+#      **都是注释掉的** (标记为"可选"), 指标根本不存在 → 表达式恒为空向量 → 永不触发.
+#      后端**补不了**这些指标 (它们不是本服务的指标) —— 要启用得先在 compose 里加 exporter.
+#      按任务单"没有的话, 要么补指标, 要么删掉没用的告警规则" → **本单删掉这 3 条**,
+#      并在下面留了"想启用时怎么加回来"的说明.
+#   ② 模板语法写错的: `{{ ${ $value } }}` —— Prometheus 的模板语法是 `{{ $value }}`,
+#      `${ $value }` 不是合法写法, 渲染不出值 (告警能发出去, 但描述里是空的).
+#   ③ 拿 `rate()` (每秒速率) 去比一个"次数"阈值: `sum(rate(counter[5m])) > 10`
+#      的真实含义是"每秒超过 10 次", 不是"5 分钟内 10 次" —— 描述与口径对不上.
+#      本单统一改成 `increase()` (窗口内增量, 单位=次), 与描述一致.
+#
+# 📌 **本文件只放"后端自己暴露的指标"的规则**:
+#   后端指标清单见 `src/shared/infra/metrics/metrics.service.ts` (MetricsService).
+#   新增告警前先确认: ① 指标真的在那个文件里注册了; ② 它在 `metrics.enabled`
+#   打开时会被真的 inc (注册了但没人调 = 恒 0).
+#
+# 节点 / Redis / MySQL 这类**基础设施**指标的告警, 要等对应 exporter 的 scrape job
+# 在 `prometheus.yml` 里启用后再加回本文件 (那属于"加可观测组件", 不属于清技术债).
 
 groups:
   # ============================================================
@@ -34,17 +54,18 @@ groups:
           description: "P99 延迟 {{ $value }}s (>1s, 持续 5 分钟)"
 
       - alert: SlowRequestCount
+        # ⚠️ 口径修正 (WP45): 原式是 `sum(rate(bucket{le="+Inf"})) > 0 and sum(rate(_count)) > 100`
+        #   —— 前半段恒真 (只要有流量就 > 0), 整个 `and` 等价于后半段, 但**速率**比"次数"阈值,
+        #   描述写的却是"请求数". 改成 `increase()` (窗口内增量, 单位=次), 与描述一致.
         expr: |
-          sum(rate(http_request_duration_seconds_bucket{le="+Inf"}[5m])) by (route) > 0
-            and
-          sum(rate(http_request_duration_seconds_count[5m])) by (route) > 100
+          sum(increase(http_request_duration_seconds_count[5m])) by (route) > 100
         for: 10m
         labels:
           severity: info
           team: backend
         annotations:
           summary: "路由流量监控 ({{ $labels.route }})"
-          description: "持续监控中, 关注突增"
+          description: "5 分钟内 {{ $value }} 次请求, 持续监控中, 关注突增"
 
   # ============================================================
   # Auth / 鉴权
@@ -53,8 +74,10 @@ groups:
     interval: 30s
     rules:
       - alert: HighFailedLoginRate
+        # ⚠️ 口径修正 (WP45): `rate()` → `increase()` —— 比的是"5 分钟内失败多少次",
+        #   不是"每秒失败多少次".
         expr: |
-          sum(rate(auth_login_attempts_total{result="failed"}[5m]))
+          sum(increase(auth_login_attempts_total{result="failed"}[5m]))
             > 10
         for: 5m
         labels:
@@ -62,11 +85,12 @@ groups:
           team: security
         annotations:
           summary: "登录失败率异常"
-          description: "5 分钟内 {{ ${ $value } }} 次登录失败 (可能是撞库攻击)"
+          description: "5 分钟内 {{ $value }} 次登录失败 (可能是撞库攻击)"
 
       - alert: AccountLockedSpike
+        # ⚠️ 口径修正 (WP45): 同上, `rate()` → `increase()` (窗口内锁定次数).
         expr: |
-          sum(rate(auth_login_attempts_total{result="locked"}[5m]))
+          sum(increase(auth_login_attempts_total{result="locked"}[5m]))
             > 1
         for: 1m
         labels:
@@ -74,55 +98,22 @@ groups:
           team: security
         annotations:
           summary: "账号锁定激增"
-          description: "5 分钟内有 {{ ${ $value } }} 个账号被锁定"
+          description: "5 分钟内有 {{ $value }} 个账号被锁定"
 
   # ============================================================
-  # System / 系统资源
+  # Audit / 审计
   # ============================================================
-  - name: system-resources
+  - name: audit-integrity
     interval: 30s
     rules:
-      - alert: HighMemoryUsage
-        expr: |
-          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))
-            > 0.85
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "内存使用率过高"
-          description: "内存使用 {{ ${ $value | humanizePercentage } }} (>85%, 持续 5 分钟)"
-
-      - alert: HighCPUUsage
-        expr: |
-          100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
-            > 80
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "CPU 使用率过高"
-          description: "CPU 使用 {{ ${ $value }}% (>80%, 持续 5 分钟)"
-
       - alert: AuditLogProcessingFailure
         expr: |
-          sum(rate(audit_log_failed_total[5m]))
-            > 0.1
+          sum(increase(audit_log_failed_total[5m]))
+            > 0
         for: 5m
         labels:
           severity: warning
           team: backend
         annotations:
           summary: "审计日志写入失败"
-          description: "审计日志失败率过高, 异步队列可能有问题"
-
-      - alert: RedisDown
-        expr: |
-          up{job="redis-exporter"} == 0
-        for: 1m
-        labels:
-          severity: critical
-          team: backend
-        annotations:
-          summary: "Redis 不可用"
-          description: "Redis 连接断开, JWT blacklist / 验证码受影响 (fail-open, 不阻塞登录但撤销可能失效)"
+          description: "5 分钟内失败 {{ $value }} 次, 异步队列可能有问题"

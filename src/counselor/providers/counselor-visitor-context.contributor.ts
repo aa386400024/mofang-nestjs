@@ -33,26 +33,26 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
-import { SessionContextBuilder } from './session-context.builder';
-import type { PersonaDifficulty } from '../../agent/persona/domain/entities/persona.entity';
+import { SessionContextBuilder } from './session-context.builder.js';
+import type { PersonaDifficulty } from '../../agent/persona/domain/entities/persona.entity.js';
 import {
   VisitorContextRegistry,
   type VisitorContextBlock,
   type VisitorContextContributor,
   type VisitorContextRequest,
-} from '../../agent/visitor/visitor-context';
-import type { VoiceSkillCode } from '../../shared/types/voice-skill.types';
-import { VoiceSessionRegistry } from '../../voice/voice-session-registry';
-import type { VoiceDifficulty, VoiceVisitorStyle } from '../../voice/voice-session.types';
-import { parseAgeRangeLowerBound } from '../../voice/voice-visitor-card';
+} from '../../agent/visitor/visitor-context.js';
+import type { VoiceSkillCode } from '../../shared/types/voice-skill.types.js';
+import { VoiceSessionRegistry } from '../../voice/voice-session-registry.js';
+import type { VoiceDifficulty, VoiceVisitorStyle } from '../../voice/voice-session.types.js';
+import { parseAgeRangeLowerBound } from '../../voice/voice-visitor-card.js';
 
-import { renderVisitorSkillFocus } from '../config/skill-focus.config';
-import { buildVisitorPersonaBehaviorBlock, toVisitorIdentity } from '../config/visitor-persona-behavior.config';
-import type { SessionPersonaContext } from '../domain/session-context/session-context';
-import { VisitorFullPersona } from '../entities/visitor-full-persona.entity';
-import { VisitorPoolTemplate } from '../entities/visitor-pool-template.entity';
-import { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import { VisitorStyle } from '../enums/visitor-style.enum';
+import { renderVisitorSkillFocus } from '../config/skill-focus.config.js';
+import { buildVisitorPersonaBehaviorBlock, toVisitorIdentity } from '../config/visitor-persona-behavior.config.js';
+import type { SessionPersonaContext } from '../domain/session-context/session-context.js';
+import { VisitorFullPersona } from '../entities/visitor-full-persona.entity.js';
+import { VisitorPoolTemplate } from '../entities/visitor-pool-template.entity.js';
+import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import { VisitorStyle } from '../enums/visitor-style.enum.js';
 
 /**
  * 难度档位映射 (counselor enum → agent type alias).

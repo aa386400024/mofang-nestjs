@@ -11,8 +11,8 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
 import {
   SubmitTrainingExerciseAttemptDto,
@@ -21,8 +21,8 @@ import {
   TrainingExerciseListDto,
   TrainingExerciseProgressDto,
   TrainingExerciseQueryDto,
-} from '../dto/training-exercise.dto';
-import { TrainingExerciseService } from '../providers/training-exercise.service';
+} from '../dto/training-exercise.dto.js';
+import { TrainingExerciseService } from '../providers/training-exercise.service.js';
 
 @ApiTags('counselor-training-exercises')
 @Controller('counselor/training-exercises')

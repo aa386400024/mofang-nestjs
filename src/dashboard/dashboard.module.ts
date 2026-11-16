@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 
-import { UserModule } from '../user/user.module';
+import { UserModule } from '../user/user.module.js';
 
-import { DashboardController } from './controllers/dashboard.controller';
-import { DashboardService } from './providers/dashboard.service';
+import { DashboardController } from './controllers/dashboard.controller.js';
+import { DashboardService } from './providers/dashboard.service.js';
 
 /**
  * 仪表板模块 — V2.0 §Tab4 「我的数据」心理健身数据.

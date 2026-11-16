@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import type { PrivacyAuthorizationStatus, PrivacyAuthorizationType } from '../../shared/types/practice.types';
+import type { PrivacyAuthorizationStatus, PrivacyAuthorizationType } from '../../shared/types/practice.types.js';
 
 /**
  * 隐私授权 DTO — V2.0 §Tab4 「授权管理」.

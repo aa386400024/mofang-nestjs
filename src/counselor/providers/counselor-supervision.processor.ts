@@ -25,13 +25,13 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { type Job, Queue, Worker } from 'bullmq';
 
-import { classifySupervisionFailure } from './supervision-failure';
-import { SupervisionService } from './supervision.service';
-import { QUEUE_NAMES } from '../../shared/infra/redis/redis.constants';
-import { RedisService } from '../../shared/infra/redis/redis.service';
-import { SessionType } from '../enums/session-type.enum';
-import { SupervisionFailureCode } from '../enums/supervision-failure-code.enum';
-import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
+import { classifySupervisionFailure } from './supervision-failure.js';
+import { SupervisionService } from './supervision.service.js';
+import { QUEUE_NAMES } from '../../shared/infra/redis/redis.constants.js';
+import { RedisService } from '../../shared/infra/redis/redis.service.js';
+import { SessionType } from '../enums/session-type.enum.js';
+import { SupervisionFailureCode } from '../enums/supervision-failure-code.enum.js';
+import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum.js';
 
 /**
  * counselor 督导生成 job payload.

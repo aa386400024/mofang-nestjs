@@ -27,7 +27,7 @@
 //
 //   时间戳: 2026-10-15
 
-import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
+import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum.js';
 
 /**
  * 单个督导流派预设配置.

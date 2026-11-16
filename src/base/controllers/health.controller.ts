@@ -1,8 +1,8 @@
 import { Controller, Get } from '@nestjs/common';
 import { HealthCheck, HealthCheckResult, HealthCheckService, HealthIndicatorResult, TypeOrmHealthIndicator } from '@nestjs/terminus';
 
-import { Public } from '../../common';
-import { RedisService } from '../../shared/infra/redis';
+import { Public } from '../../common/index.js';
+import { RedisService } from '../../shared/infra/redis/index.js';
 
 /**
  * 健康检查 (大厂标配).

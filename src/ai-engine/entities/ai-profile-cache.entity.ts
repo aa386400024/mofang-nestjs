@@ -11,7 +11,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { AIProfileDimension, AIProfileSource } from '../enums/ai-profile.enums';
+import { AIProfileDimension, AIProfileSource } from '../enums/ai-profile.enums.js';
 
 /**
  * AI 用户画像单维度缓存 — V6.0 §3.1.

@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { CompanionTreeController } from './controllers/companion-tree.controller';
-import { CompanionTree } from './entities/companion-tree.entity';
-import { TreeWaterLog } from './entities/tree-water-log.entity';
+import { CompanionTreeController } from './controllers/companion-tree.controller.js';
+import { CompanionTree } from './entities/companion-tree.entity.js';
+import { TreeWaterLog } from './entities/tree-water-log.entity.js';
 
-import { CompanionTreeService } from './providers/companion-tree.service';
-import { UserModule } from '../../user/user.module';
+import { CompanionTreeService } from './providers/companion-tree.service.js';
+import { UserModule } from '../../user/user.module.js';
 
 /**
  * 共种陪伴树子模块 — V2026-09-12 §6.3 心塑 V6.0.

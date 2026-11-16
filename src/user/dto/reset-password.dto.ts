@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString } from 'class-validator';
 
-import { isStrongPassword } from '../../common/validators/is-strong-password.validator';
+import { isStrongPassword } from '../../common/validators/is-strong-password.validator.js';
 
 /**
  * 重置密码 DTO — 通过邮件 token + 新密码.

@@ -1,11 +1,11 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { GrantFragmentsDto, GrantFragmentsResponseDto, ListFragmentLogsQueryDto } from '../dto/fragment.dto';
-import { FragmentsService } from '../providers/fragments.service';
+import { GrantFragmentsDto, GrantFragmentsResponseDto, ListFragmentLogsQueryDto } from '../dto/fragment.dto.js';
+import { FragmentsService } from '../providers/fragments.service.js';
 
 /**
  * 碎片接口 — V4.0 §3.2.

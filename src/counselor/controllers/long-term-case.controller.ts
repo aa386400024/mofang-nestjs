@@ -35,11 +35,11 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { type CreateLongTermCaseDto, type LongTermCaseDetailDto, type LongTermCaseListItemDto } from '../dto/long-term-case.dto';
-import { LongTermCaseService } from '../providers/long-term-case.service';
+import { type CreateLongTermCaseDto, type LongTermCaseDetailDto, type LongTermCaseListItemDto } from '../dto/long-term-case.dto.js';
+import { LongTermCaseService } from '../providers/long-term-case.service.js';
 
 /**
  * V2026-10-15 (V1.x counselor-mode W1-2 — CounselorLongTermCaseController):

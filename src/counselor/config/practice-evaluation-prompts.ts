@@ -21,9 +21,9 @@
 //     3. 模型若输出"得分 85"这类越界内容 → 守门层拦下并降级
 //   时间戳: 2026-10-22
 
-import type { PracticeRubricDimension } from '../domain/practice/practice.types';
-import type { PracticeTurn } from '../domain/practice/practice.types';
-import { PracticeEngine } from '../enums/practice-engine.enum';
+import type { PracticeRubricDimension } from '../domain/practice/practice.types.js';
+import type { PracticeTurn } from '../domain/practice/practice.types.js';
+import { PracticeEngine } from '../enums/practice-engine.enum.js';
 
 /**
  * 批注侧重点轮换 (§3.3).

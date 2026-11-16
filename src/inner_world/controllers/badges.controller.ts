@@ -1,13 +1,13 @@
 import { Controller, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { BadgesListDto, ReconcileResponseDto, UnlockBadgeResponseDto } from '../dto/badge.dto';
-import { BadgeId } from '../enums/badge-id.enum';
-import { BadgesService } from '../providers/badges.service';
-import { ReconciliationService } from '../providers/reconciliation.service';
+import { BadgesListDto, ReconcileResponseDto, UnlockBadgeResponseDto } from '../dto/badge.dto.js';
+import { BadgeId } from '../enums/badge-id.enum.js';
+import { BadgesService } from '../providers/badges.service.js';
+import { ReconciliationService } from '../providers/reconciliation.service.js';
 
 /**
  * 徽章接口 — V4.0 §3.3.

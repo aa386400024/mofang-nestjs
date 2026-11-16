@@ -15,17 +15,17 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { ProviderRegistryService } from './provider-registry.service';
-import { AIProviderId, LLMCapability, LLMTier } from '../common/enums/llm.enums';
+import { ProviderRegistryService } from './provider-registry.service.js';
+import { AIProviderId, LLMCapability, LLMTier } from '../common/enums/llm.enums.js';
 import type {
   ChatCompletionChunk,
   ChatCompletionRequest,
   ChatCompletionResponse,
   ChatProvider,
   LLMProviderConfig,
-} from '../common/interfaces/chat-provider.interface';
-import type { EmbeddingRequest, EmbeddingResponse } from '../common/interfaces/embedding-provider.interface';
-import { resolveProviderApiKeyEnvKey, resolveProviderChatModelFromEnv } from '../config/provider-env';
+} from '../common/interfaces/chat-provider.interface.js';
+import type { EmbeddingRequest, EmbeddingResponse } from '../common/interfaces/embedding-provider.interface.js';
+import { resolveProviderApiKeyEnvKey, resolveProviderChatModelFromEnv } from '../config/provider-env.js';
 
 /**
  * API key 解析回调 — 默认从 ConfigService (env) 读取,
@@ -79,14 +79,15 @@ export class LlmRouterService {
    */
   public async chat(
     request: ChatCompletionRequest,
-    opts: { providerId?: AIProviderId; uid?: string } = {},
+    opts: { providerId?: AIProviderId; uid?: string; signal?: AbortSignal } = {},
   ): Promise<ChatCompletionResponse> {
     const { provider, apiKey } = await this.resolveAndAuthorize(
       opts.providerId ?? this.defaultChatProviderId,
       LLMCapability.CHAT,
       opts.uid,
     );
-    return provider.chat(request, apiKey);
+    // signal 透传: 调用方放弃时**中止**上游请求与它的退避重试链 (WP-H 改动 3).
+    return provider.chat(request, apiKey, opts.signal);
   }
 
   /**

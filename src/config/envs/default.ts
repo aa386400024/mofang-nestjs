@@ -7,21 +7,13 @@ import {
   SUPERVISION_REPORT_PENDING_TIMEOUT_MS,
   SUPERVISION_REPORT_STREAM_POLL_INTERVAL_MS,
   SUPERVISION_REPORT_STREAM_TIMEOUT_MS,
-} from '../../counselor/config/supervision.config';
+} from '../../counselor/config/supervision.config.js';
 
 export const config = {
-  db: {
-    // entities: [`${__dirname}/../../entity/**/*.{js,ts}`],
-    // subscribers: [`${__dirname}/../../subscriber/**/*.{js,ts}`],
-    // migrations: [`${__dirname}/../../migration/**/*.{js,ts}`],
-  },
+  db: {},
   graphql: {
     debug: true,
-    playground: {
-      settings: {
-        'request.credentials': 'include',
-      },
-    },
+    graphiql: true,
     autoSchemaFile: true,
     autoTransformHttpErrors: true,
     // cors: { credentials: true },
@@ -59,10 +51,20 @@ export const config = {
   sms: {
     enabled: process.env.SMS_ENABLED === 'true',
     provider: process.env.SMS_PROVIDER ?? 'mock', // 'mock' | 'aliyun' | 'tencent' | 'twilio'
+    // @unused-read — 读进 config.sms.accessKey 但**无人消费**:
+    //   短信服务 (shared/infra/sms/sms.service.ts) 只读 enabled / provider;
+    //   真正接入阿里云 / 腾讯云 SDK 时才会用到凭据, 那时它才"有人消费".
+    //   现在配了**不生效** —— 见 .env.example 底部「预留键 (读得到但未消费)」区.
     accessKey: process.env.SMS_ACCESS_KEY,
+    // @unused-read — 读进 config.sms.accessSecret 但**无人消费** (同 accessKey).
     accessSecret: process.env.SMS_ACCESS_SECRET,
+    // @unused-read — 读进 config.sms.signName 但**无人消费** (同 accessKey).
     signName: process.env.SMS_SIGN_NAME ?? 'Mofang',
+    // @unused-read — 读进 config.sms.templateCode 但**无人消费**:
+    //   ⚠️ sms.service.ts 里那个 templateCode 是 send() 的**入参**, 不是这个配置字段 ——
+    //   名字撞了而已, 别当成消费点.
     templateCode: process.env.SMS_TEMPLATE_CODE,
+    // @unused-read — 读进 config.sms.region 但**无人消费** (同 accessKey).
     region: process.env.SMS_REGION,
   },
   // OAuth 第三方登录
@@ -111,8 +113,33 @@ export const config = {
   },
   // Prometheus metrics
   metrics: {
-    enabled: process.env.METRICS_ENABLED !== 'false', // 默认开启
+    // V2026-11-03 治本 (WP26 · P2-3 · /metrics 加鉴权):
+    //   旧口径 `process.env.METRICS_ENABLED !== 'false'` = **缺省即开**, 且端点零鉴权 ——
+    //   等于把 QPS / 延迟分位 / 错误率直接挂在网上 (WP25 报告 P2-3).
+    //   新口径 (fail-close):
+    //     · 显式配了 METRICS_ENABLED → 照配的走, 但**只有 'true' 算开**;
+    //     · 没配 (或只配了空串)      → 生产**关** (NODE_ENV=production), 非生产开 (本地调试方便).
+    //   为什么"生产缺省关"写在**共享的 default.ts** 而不是 production.ts:
+    //     default.ts 是三份 env (development / test / production) 共用的底座, 加载顺序是
+    //     default → ${NODE_ENV}; 生产实际跑的就是 production.ts + default.ts,
+    //     缺省值落在哪一层生效结果一样 —— 写在共享层就不用碰另外两份 env 文件
+    //     (改动面最小, 也不会跟别的任务单的并行改动打架).
+    //   ⚠️ 生产真的要看指标: 显式 METRICS_ENABLED=true **且** 配 METRICS_TOKEN,
+    //     两者缺一不可 (token 没配 = 拒绝一切请求, 见 metrics.controller.ts).
+    enabled: resolveMetricsEnabled(),
+    // @unused-read — 读进 config.metrics.path 但**无人消费**:
+    //   /metrics 端点的路由是**硬编码**的 (shared/infra/metrics/metrics.controller.ts
+    //   上 @Controller() + @Get('metrics')), 配 METRICS_PATH **不生效**.
+    //   真要改端点路径, 得改路由装饰器, 不是改 env —— 见 .env.example 底部「预留键」区.
     path: process.env.METRICS_PATH ?? '/metrics',
+    // 抓取端点的独立 token (Bearer). 留空 = 没开鉴权 → 端点拒绝一切请求 (fail-close).
+    // 为什么用 token 而不是内网 IP 白名单:
+    //   · 生产开了 `app.enable('trust proxy')` (src/app.ts:43), Express 的 req.ip 取自
+    //     X-Forwarded-For —— 客户端可伪造该头, 基于它的白名单在"应用端口能被直连"时形同虚设;
+    //   · 仓库没有 CIDR 匹配库, 手写 CIDR 判定 = 自己造一遍边界坑;
+    //   · Prometheus 原生支持 bearer token (authorization.credentials / bearer_token_file),
+    //     抓取侧零改造, token 还能随时轮换.
+    token: process.env.METRICS_TOKEN,
     // 默认 HTTP histogram buckets (5ms ~ 10s, 大厂经验值)
     httpDurationBuckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
   },
@@ -213,27 +240,87 @@ export const config = {
   },
   // V2026-10-08: Voice Gateway 业务配置 (Phase 3)
   voice: {
+    // @unused-read — 读进 config.voice.sessionIdleTimeoutMs 但**无人消费**:
+    //   真正生效的是 sessionIdleTimeoutMinutes (单位**分钟**, 见下方; 消费点
+    //   src/voice/voice.service.ts 读 config.get('voice.sessionIdleTimeoutMinutes')).
+    //   这个毫秒版是 Phase 3 的遗留键, 配了**不生效**;
+    //   ⚠️ 将来若接线, 别与 MINUTES 版**同时**生效 (两个都活着 = 单位打架).
+    //   见 .env.example 底部「预留键 (读得到但未消费)」区.
     sessionIdleTimeoutMs: Number(process.env.VOICE_SESSION_IDLE_TIMEOUT_MS ?? 600_000), // 10min
+    // V2026-11-03 治本 (WP23 · 断线重连追平):
+    //   · sessionIdleTimeoutMinutes: 超长 idle 兜底 (单位**分钟**, 默认 120).
+    //     语义: "从最后一次收到客户端消息算起, 超过这么久没收到任何上行 → 主动 endSession".
+    //     它是**内存卫生兜底**, 不是断连宽限期 —— 断连不挂任何定时器 (任务单 §1.1).
+    //   · catchUpMaxTurns: 重连时最多补几轮 (默认 20). 漏的轮次超过它就不补,
+    //     推 `session_stale`, 让客户端自己从头开始.
+    //   ⚠️ 两个值都走 `readPositiveNumber`: env 缺失 / 非法 / 非正数 → 回退默认.
+    //     照用非法值比"没有这个兜底"更糟: 0 或负数会让 idle 兜底**立刻**触发
+    //     (会话秒死), NaN 会让比较永远为假 (兜底形同虚设).
+    sessionIdleTimeoutMinutes: readPositiveNumber(process.env.VOICE_SESSION_IDLE_TIMEOUT_MINUTES, 120),
+    catchUpMaxTurns: readPositiveNumber(process.env.VOICE_CATCHUP_MAX_TURNS, 20),
+    // V2026-11-02 治本 (WP22 · 语音对练限流与并发上限):
+    //   - dailyTokenBudget: 全局**当日** completion token 预算 (0 = 不限制).
+    //     内测期防"bug 循环 / 恶意刷"烧 MiniMax 按量付费额度.
+    //   - maxConcurrentPerUser: 单用户并发语音会话上限 (本期恒为 1;
+    //     留这个 env 是为了以后放开时不必改代码结构).
+    dailyTokenBudget: Number(process.env.VOICE_DAILY_TOKEN_BUDGET ?? 500_000),
+    maxConcurrentPerUser: Number(process.env.VOICE_MAX_CONCURRENT_PER_USER ?? 1),
   },
-  // V2026-10-08 治本 (Embedding 服务, Phase 6 接入):
-  //   - provider 切换不改 schema (bge / chatanywhere 都是 1024 维)
-  //   - 用户已提供 2 个 chatanywhere key, 通过 EMBEDDING_API_KEY / EMBEDDING_API_KEY_MPLAN env 注入
-  //   - bge 自托管 URL 走容器内网, 生产推荐
-  embedding: {
-    providerDev: process.env.EMBEDDING_PROVIDER_DEV ?? 'chatanywhere',
-    providerProd: process.env.EMBEDDING_PROVIDER_PROD ?? 'bge_large_zh',
-    chatanywhereApiKey: process.env.EMBEDDING_API_KEY,
-    chatanywhereMplanKey: process.env.EMBEDDING_API_KEY_MPLAN,
-    bgeUrl: process.env.EMBEDDING_BGE_URL ?? 'http://bge-embedding.internal:8080',
-    model: process.env.EMBEDDING_MODEL ?? 'text-embedding-3-small',
-    dim: Number(process.env.EMBEDDING_DIM ?? 1024),
-  },
+  // V2026-11-06 删 (WP69 · env 盲区扩面): 原来的 `embedding` 命名空间已整段删除.
+  //   死因: 它服务的是 **bge 自托管 / chatanywhere** 那套方案, 而 2026-10-14 大炮已拍板
+  //   "B 方案 — 删 bge 自托管 TEI 容器, 改走 OpenAI 兼容 embedding (4 provider 之一)"
+  //   (见 src/ai-engine/ai-engine.module.ts 文件头), RAG 已改走 LLM provider pool.
+  //   于是这 7 个 env 键**读进来但没人消费** —— 配了不生效, 还会让运维以为要自建 bge.
+  //   现在向量化的口径只有一个: LLM_DEFAULT_EMBEDDING_PROVIDER + LLM_<PROVIDER>_API_KEY.
   // V2026-10-08 治本 (Qdrant 向量库, Phase 6 接入):
   //   - 跟 NestJS 同京东云 ECS, 内网 http, 0 边际成本
   //   - apiKey 走 env, 生产建议开
   qdrant: {
     url: process.env.QDRANT_URL ?? 'http://qdrant:6333',
     apiKey: process.env.QDRANT_API_KEY,
+    // @unused-read — 读进 config.qdrant.collection 但**无人消费**:
+    //   知识库走 QDRANT_KB_COLLECTION (直键读取, knowledge.service.ts / search.service.ts),
+    //   引擎记忆仓储用**代码常量** visitor_long_memory (qdrant-memory.store.ts,
+    //   与知识库集合刻意隔离: 公共科普内容不能混进来访者私有长时记忆).
+    //   所以配 QDRANT_COLLECTION **不生效** —— 见 .env.example 底部「预留键 (读得到但未消费)」区.
     collection: process.env.QDRANT_COLLECTION ?? 'knowledge_chunks',
   },
 };
+
+/**
+ * 读一个**正数** env (缺失 / 非法 / 非正数 → 回退缺省值).
+ *
+ * 为什么不用 `Number(x ?? fallback)`:
+ *   `Number('abc')` → NaN, `Number('0')` → 0 —— 两者都会**照用**:
+ *   NaN 让所有比较为假 (兜底形同虚设), 0 让兜底**立刻**触发 (会话秒死).
+ *   这类"照用比没有更糟"的参数, 必须在**解析层**就回退.
+ *
+ * @param raw env 原始值
+ * @param fallback 缺省值
+ * @returns 合法正数; 否则返回缺省值
+ */
+function readPositiveNumber(raw: string | undefined, fallback: number): number {
+  if (raw === undefined) return fallback;
+  const parsed = Number(raw.trim());
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return parsed;
+}
+
+/**
+ * 解析 /metrics 开关 (WP26 · P2-3 · /metrics 加鉴权).
+ *
+ * 口径 (fail-close —— "配错"必须落在"关", 不能落在"开"):
+ *   · 显式值: **只有 'true'** (忽略大小写与前后空白) 算**开**;
+ *     其余 ('false' / 'yes' / '1' / 拼错) 一律按**关** ——
+ *     这是一个对外端点, "配错变抓不到" (看得见的故障) 远比 "配错就裸奔" (看不见的泄漏) 安全;
+ *   · 缺省 (没配 / 只配了空串): 生产**关**, 非生产**开** (本地调试要随时能看指标).
+ *
+ * @returns /metrics 是否启用
+ */
+function resolveMetricsEnabled(): boolean {
+  const raw = process.env.METRICS_ENABLED?.trim();
+  if (raw === undefined || raw === '') {
+    return process.env.NODE_ENV !== 'production';
+  }
+  return raw.toLowerCase() === 'true';
+}

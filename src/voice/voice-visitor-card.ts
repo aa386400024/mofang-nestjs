@@ -19,7 +19,7 @@
 //     3. 卡片字段里 grep 不到 script / 剧本 7 大块任一字段名
 //   时间戳: 2026-10-26
 
-import type { VoiceTemplateSummary, VoiceVisitorCard } from './voice-session.types';
+import type { VoiceTemplateSummary, VoiceVisitorCard } from './voice-session.types.js';
 
 /**
  * 年龄区间 → 下限.

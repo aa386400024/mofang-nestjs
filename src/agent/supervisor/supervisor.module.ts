@@ -27,19 +27,19 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { SupervisionReportRepositoryTypeorm } from './data/supervision-report.repository.typeorm';
-import { SupervisionReportEntity } from './domain/entities/supervision-report.entity';
-import { SUPERVISION_REPORT_REPOSITORY } from './domain/repositories/supervision-report.repository';
-import { SUPERVISOR_LLM_PROFILE, readSupervisorLlmProfile } from './supervisor-llm.config';
-import { SupervisorController } from './supervisor.controller';
-import { SupervisorProcessor } from './supervisor.processor';
-import { SupervisorService } from './supervisor.service';
+import { SupervisionReportRepositoryTypeorm } from './data/supervision-report.repository.typeorm.js';
+import { SupervisionReportEntity } from './domain/entities/supervision-report.entity.js';
+import { SUPERVISION_REPORT_REPOSITORY } from './domain/repositories/supervision-report.repository.js';
+import { SUPERVISOR_LLM_PROFILE, readSupervisorLlmProfile } from './supervisor-llm.config.js';
+import { SupervisorController } from './supervisor.controller.js';
+import { SupervisorProcessor } from './supervisor.processor.js';
+import { SupervisorService } from './supervisor.service.js';
 // V2026-10-09 治本 (ESLint import/order 误报): sibling 全在前 + parent 在后, 跟 visitor.module.ts
 //   风格一致. 但 ESLint 在 sibling/parent 混合 + alphabetize asc 场景下 cyclically 报不同 violation
 //   (试过 4 种排序, 每种都报一条 sibling/parent 边界矛盾). 沿用 visitor.module.ts 风格, 单 import
 //   inline disable 抑制. Fallback: ESLint 升级或换 import/resolver 修复后可删 disable 重 lint 验证.
 
-import { LlmModule } from '../llm/llm.module';
+import { LlmModule } from '../llm/llm.module.js';
 
 @Module({
   // V2026-10-26 治本 (spec 任务 6): 注册督导报告实体 (表由手写 DDL migration 建).

@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional, IsString } from 'class-validator';
 
-import { isChinesePhone } from '../../common/validators/is-chinese-phone.validator';
+import { isChinesePhone } from '../../common/validators/is-chinese-phone.validator.js';
 
 /**
  * 登录 DTO — 手机号 + 密码登录 (大厂企业级).

@@ -70,10 +70,10 @@
 import { Logger } from '@nestjs/common';
 import { clearTimeout, setTimeout } from 'node:timers';
 
-import type { RenderAdapterConfig, RenderCandidate } from './render-adapter.config';
-import { RenderFailoverRuntime, type RenderCandidateHealth } from './render-failover.runtime';
-import type { AdaptiveRenderSpec, RenderRiskLevel } from './render-risk';
-import { dropUnclosedTail, splitClosedPrefix } from './render-truncation';
+import type { RenderAdapterConfig, RenderCandidate } from './render-adapter.config.js';
+import { RenderFailoverRuntime, type RenderCandidateHealth } from './render-failover.runtime.js';
+import type { AdaptiveRenderSpec, RenderRiskLevel } from './render-risk.js';
+import { dropUnclosedTail, splitClosedPrefix } from './render-truncation.js';
 import {
   splitTextIntoDeltas,
   type RenderGuardVerdict,
@@ -81,22 +81,24 @@ import {
   type StreamRenderHandlers,
   type StreamRenderOutcome,
   type StreamingRenderPort,
-} from './streaming-render.port';
+} from './streaming-render.port.js';
 import {
   evaluateSafety,
   guardVisitorOutput,
   resolveCompletionTokens,
   type RenderResult,
   type RenderSpec,
+  type RenderTaskKind,
   type RiskProbePort,
-} from '../../engine-core';
+} from '../../engine-core/index.js';
 import type {
   ChatCompletionChunk,
   ChatCompletionRequest,
   ChatCompletionResponse,
   ChatMessage,
+  ChatMessageContentPart,
   ChatReasoningEffort,
-} from '../../llm/common/interfaces/chat-provider.interface';
+} from '../../llm/common/interfaces/chat-provider.interface.js';
 
 /**
  * 流式调用选项 (窄面).
@@ -126,8 +128,9 @@ export interface ChatCaller {
    *
    * @param req 请求 (模型 / 消息 / 温度 / token 上限)
    * @param providerId 目标候选 id (缺省走调用出口自己的默认)
+   * @param signal 中断信号 (可选; 供调用方在超时/放弃时**中止**上游请求与退避重试)
    */
-  chat(req: ChatCompletionRequest, providerId?: string): Promise<ChatCompletionResponse>;
+  chat(req: ChatCompletionRequest, providerId?: string, signal?: AbortSignal): Promise<ChatCompletionResponse>;
 
   /**
    * 流式 chat 调用 (**可选**).
@@ -222,6 +225,28 @@ type AttemptOutcome<T> =
   | { readonly kind: 'degrade'; readonly reason: string };
 
 /**
+ * 流式阶段的用量累计状态 (阶段 3 边吐边累计时用).
+ *
+ * V2026-11-10 治本 (WP-H · 改动 7): 输入 / 输出侧的拆分也在其中 ——
+ *   上游的 usage 通常在**收尾那块**才到齐, 所以累计器要吃下**每一条** chunk.
+ *
+ * 为什么要单独成结构 (而不是一堆局部变量): 归约逻辑抽成独立方法后,
+ *   `streamAttempt` 只剩状态机 (建流 → 锁定 → 边吐边累计 → 收尾), 复杂度不再顶线.
+ */
+interface StreamUsageAccumulator {
+  /** 累计 token 数 (上游口径 = 输入 + 输出). */
+  tokenCount: number;
+  /** 思考 token 数 (推理模型才有). */
+  reasoningTokens?: number;
+  /** 累计输入侧 token (上游报了才有; 没报 = 不可得). */
+  promptTokens?: number;
+  /** 累计输出侧 token (上游报了才有; 没报 = 不可得). */
+  completionTokens?: number;
+  /** 终止原因 (上游报了就记). */
+  finishReason?: string;
+}
+
+/**
  * 单次 render 调用的可变上下文 (每次调用独立, 不跨调用共享).
  */
 interface RenderCallContext {
@@ -303,7 +328,11 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       };
     }
 
-    this.logger.error(`[render] 渲染失败, 降级兜底: ${outcome.reason}`);
+    // 冷却计数只打数字 (可观测; 不含任何对话内容).
+    const stats = this.runtime.stats();
+    this.logger.error(
+      `[render] 渲染失败, 降级兜底: ${outcome.reason} cooldown_served=${stats.cooldownServed} probe_attempts=${stats.probeAttempts}`,
+    );
     return this.degrade(spec, outcome.reason);
   }
 
@@ -466,7 +495,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     if (finishReason !== 'length') return { text, truncated: false };
     const kept = dropUnclosedTail(text);
     if (kept === text) return { text, truncated: false };
-    this.logger.warn(`[render] 上游按长度截断 (finish_reason=length), 丢弃未闭合尾句: ${text.slice(kept.length, kept.length + 60)}`);
+    // V2026-11-06 治本 (WP46): 原先打**被丢弃的尾句原文** —— 那正是模型说了一半的来访者话术.
+    //   改成只打丢弃**字数**: 够判断截断严重程度, 原文不留.
+    this.logger.warn(`[render] 上游按长度截断 (finish_reason=length), 丢弃未闭合尾句 dropped_chars=${text.length - kept.length}`);
     return { text: kept, truncated: true };
   }
 
@@ -559,8 +590,16 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       ...(params.reasoningEffort === undefined ? {} : { reasoningEffort: params.reasoningEffort }),
     };
 
+    // V2026-11-09 治本 (Phase2.5 WP-H · 改动 3): 自带 AbortController ——
+    //   超时/放弃时**中止**上游请求, 否则退避重试会在我们放弃之后继续打上游
+    //   (「幽灵重试」): 上游越限流, 幽灵重试越多, 限流越严重 —— 那是第二个放大回路.
+    const controller = new AbortController();
     try {
-      const response = await withTimeout(this.deps.caller.chat(request, candidate.id), this.config.timeoutMs);
+      const response = await withTimeout(
+        this.deps.caller.chat(request, candidate.id, controller.signal),
+        this.config.timeoutMs,
+        controller,
+      );
       if (!response || typeof response.content !== 'string') {
         this.runtime.markFailure(candidate.id, this.config);
         this.logger.warn(`[render] 候选 ${candidate.id} 返回非法响应形状, 视为失败并切备`);
@@ -602,10 +641,14 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       ...(params.reasoningEffort === undefined ? {} : { reasoningEffort: params.reasoningEffort }),
     };
 
+    // V2026-10-30 治本 (WP19-R · 留痕): TTFT 计时起点 —— 发起调用前.
+    const streamStartedAt = Date.now();
     const opened = await this.openStream(candidate, request, handlers);
     if (!opened.ok) {
       return opened.retryable ? { kind: 'retry', reason: opened.reason } : { kind: 'degrade', reason: opened.reason };
     }
+    // 首个增量已到达 → 本轮 TTFT 定了 (开头的预检/切备耗时算在上游等待里).
+    const ttftMs = Date.now() - streamStartedAt;
 
     // 阶段 2: 锁定 —— 首个非空 delta 到达即证明该候选健康.
     // 此后无论中途发生什么, 都不再切备 (已出声无法撤回).
@@ -634,23 +677,19 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     }
 
     // 阶段 3: 边吐边累计.
-    let tokenCount = opened.tokenCount;
-    let finishReason: string | undefined;
-    let reasoningTokens: number | undefined;
+    const usage: StreamUsageAccumulator = {
+      tokenCount: opened.tokenCount,
+      promptTokens: opened.promptTokens,
+      completionTokens: opened.completionTokens,
+    };
     try {
       for (;;) {
         const next = await opened.iterator.next();
         if (next.done) break;
         const chunk = next.value;
-        if (typeof chunk.tokenCount === 'number' && Number.isFinite(chunk.tokenCount)) {
-          tokenCount = chunk.tokenCount;
-        }
-        if (typeof chunk.reasoningTokens === 'number' && Number.isFinite(chunk.reasoningTokens)) {
-          reasoningTokens = chunk.reasoningTokens;
-        }
-        if (typeof chunk.finishReason === 'string' && chunk.finishReason.length > 0) {
-          finishReason = chunk.finishReason;
-        }
+        // 用量在**最后一块**才到齐 (上游的 usage 是收尾时补的), 所以这里必须读
+        //   **每一条** chunk —— 哪怕这条 chunk 没有 delta.
+        LlmRenderAdapter.applyChunkFacts(usage, chunk);
         const delta = chunk.delta ?? '';
         if (delta.length === 0) continue;
         pending += delta;
@@ -668,7 +707,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     //   · 被上游截断 (length) → **丢弃** (半句不出声, 任务单 §2.2);
     //   · 正常结束 → 照常发出 (一句"嗯"不该被误判成没说完, 任务单 §4.2).
     if (pending.length > 0) {
-      if (finishReason === 'length') {
+      if (usage.finishReason === 'length') {
         this.logger.warn(
           `[streamRender] 候选 ${candidate.id} 被上游按长度截断 (finish_reason=length), 丢弃未闭合尾句: ${pending.slice(0, 60)}`,
         );
@@ -684,23 +723,109 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     return {
       kind: 'success',
       candidateId: candidate.id,
-      value: {
+      value: this.buildStreamOutcome({
         text,
         taskKind: spec.taskKind,
-        // 流式只有累计 tokenCount, 无 prompt/completion 拆分 —— 同源取末条, 不编造.
-        // WP24: 因此**流式路径的输入侧用量不可得** (promptTokens 缺省) ——
-        //   成本口径会如实落成 output_only, 而不是拿 0 冒充"输入侧没花钱".
-        usage: {
-          completionTokens: tokenCount,
-          totalTokens: tokenCount,
-          ...(reasoningTokens === undefined ? {} : { reasoningTokens }),
-        },
-        fallbackUsed: false,
-        providerHint: candidate.id,
-        model: params.model,
-        degraded: false,
-        guardVerdict: verdict,
+        tokenCount: usage.tokenCount,
+        reasoningTokens: usage.reasoningTokens,
+        promptTokens: usage.promptTokens,
+        completionTokens: usage.completionTokens,
+        params,
+        messages,
+        candidateId: candidate.id,
+        finishReason: usage.finishReason,
+        ttftMs,
+        verdict,
+      }),
+    };
+  }
+
+  /**
+   * 把一条 chunk 的用量 / 终止原因归到累计器里 (纯函数, 原地更新).
+   *
+   * V2026-11-10 治本 (WP-H · 改动 7): 输入 / 输出侧的拆分在此**第一次被保留** ——
+   *   上游一直报着 (usage.prompt_tokens), 此前本仓在 provider → chunk → 适配器的
+   *   归约链上把它合进了 tokenCount 就扔了, 于是 prompt_tokens 全库恒为 0.
+   *
+   * 口径: 上游的 usage 是**累计**值, 所以"最后报了的值"就是这一轮的真值;
+   *   没报的维度保持 undefined (不可得), 不补 0.
+   *
+   * @param acc 累计器 (原地更新)
+   * @param chunk 本条 chunk
+   */
+  private static applyChunkFacts(acc: StreamUsageAccumulator, chunk: ChatCompletionChunk): void {
+    if (typeof chunk.tokenCount === 'number' && Number.isFinite(chunk.tokenCount)) {
+      acc.tokenCount = chunk.tokenCount;
+    }
+    if (typeof chunk.reasoningTokens === 'number' && Number.isFinite(chunk.reasoningTokens)) {
+      acc.reasoningTokens = chunk.reasoningTokens;
+    }
+    if (typeof chunk.promptTokens === 'number' && Number.isFinite(chunk.promptTokens)) {
+      acc.promptTokens = chunk.promptTokens;
+    }
+    if (typeof chunk.completionTokens === 'number' && Number.isFinite(chunk.completionTokens)) {
+      acc.completionTokens = chunk.completionTokens;
+    }
+    if (typeof chunk.finishReason === 'string' && chunk.finishReason.length > 0) {
+      acc.finishReason = chunk.finishReason;
+    }
+  }
+
+  /**
+   * 组装流式收尾结果 (把"这一轮真实发生了什么"归一成一个形状).
+   *
+   * 抽成独立方法: 让 `streamAttempt` 只管状态机 (建流 → 锁定 → 边吐边累计 → 收尾),
+   * "结果长什么样"集中在一处 —— 将来留痕字段加在这里, 不动状态机.
+   *
+   * @param input 本轮流式事实
+   * @returns 流式收尾结果
+   */
+  private buildStreamOutcome(input: {
+    readonly text: string;
+    readonly taskKind: RenderTaskKind;
+    readonly tokenCount: number;
+    readonly reasoningTokens: number | undefined;
+    /** 上游报的输入侧累计 token (没报 = 不可得). */
+    readonly promptTokens: number | undefined;
+    /** 上游报的输出侧累计 token (没报 = 不可得). */
+    readonly completionTokens: number | undefined;
+    readonly params: ResolvedRenderParams;
+    readonly messages: readonly ChatMessage[];
+    readonly candidateId: string;
+    readonly finishReason: string | undefined;
+    readonly ttftMs: number;
+    readonly verdict: RenderGuardVerdict;
+  }): StreamRenderOutcome {
+    return {
+      text: input.text,
+      taskKind: input.taskKind,
+      // V2026-11-10 治本 (WP-H · 改动 7): 输入 / 输出侧的拆分**现在能拿到了**.
+      //   此前只把累计 tokenCount 当成输出侧 (prompt 缺省) —— 上游其实一直报着输入侧,
+      //   是本仓在 provider → chunk → 适配器的归约链上把它丢了, 于是 prompt_tokens
+      //   全库恒为 0, 成本口径永远 output_only (严重低估).
+      //   上游报了拆分就用它; 没报就回落累计 tokenCount (旧口径), 不编造.
+      usage: {
+        completionTokens: input.completionTokens ?? input.tokenCount,
+        totalTokens: input.tokenCount,
+        ...(input.promptTokens === undefined ? {} : { promptTokens: input.promptTokens }),
+        ...(input.reasoningTokens === undefined ? {} : { reasoningTokens: input.reasoningTokens }),
       },
+      fallbackUsed: false,
+      providerHint: input.candidateId,
+      model: input.params.model,
+      degraded: false,
+      guardVerdict: input.verdict,
+      // V2026-10-30 治本 (WP19-R · 留痕): 本轮渲染真值 (真值只在适配器里 ——
+      //   分层默认 / 候选 overrides / 风险抬档都会改它们).
+      maxCompletionTokens: input.params.maxCompletionTokens,
+      ...(input.params.reasoningEffort === undefined ? {} : { reasoningEffort: input.params.reasoningEffort }),
+      promptPreview: buildPromptPreview(input.messages),
+      // V2026-11-05 治本 (WP58 · 引擎调试面板): system prompt 全文 (不截断).
+      //   上层**显式要**才会带出去 —— 调试器要核对"这轮到底问了模型什么",
+      //   而 500 字预览常常正好把角色约束那一段截掉.
+      promptFull: buildPromptFull(input.messages),
+      ...(input.finishReason === undefined ? {} : { finishReason: input.finishReason }),
+      ttftMs: input.ttftMs,
     };
   }
 
@@ -716,7 +841,16 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     request: ChatCompletionRequest,
     handlers: StreamRenderHandlers,
   ): Promise<
-    | { readonly ok: true; readonly iterator: AsyncIterator<ChatCompletionChunk>; readonly firstDelta: string; readonly tokenCount: number }
+    | {
+        readonly ok: true;
+        readonly iterator: AsyncIterator<ChatCompletionChunk>;
+        readonly firstDelta: string;
+        readonly tokenCount: number;
+        /** 上游报的输入侧累计 token (没报 = 不可得). V2026-11-10 (WP-H 改动 7). */
+        readonly promptTokens?: number;
+        /** 上游报的输出侧累计 token (没报 = 不可得). V2026-11-10 (WP-H 改动 7). */
+        readonly completionTokens?: number;
+      }
     | { readonly ok: false; readonly retryable: boolean; readonly reason: string }
   > {
     const stream = this.deps.caller.stream?.(request, {
@@ -730,6 +864,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
 
     const iterator = stream[Symbol.asyncIterator]();
     let tokenCount = 0;
+    // V2026-11-10 (WP-H 改动 7): 首 chunk 也可能带用量 (上游有时第一块就报) —— 带着走.
+    let promptTokens: number | undefined;
+    let completionTokens: number | undefined;
     try {
       for (;;) {
         const next = await iterator.next();
@@ -738,9 +875,15 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         if (typeof chunk.tokenCount === 'number' && Number.isFinite(chunk.tokenCount)) {
           tokenCount = chunk.tokenCount;
         }
+        if (typeof chunk.promptTokens === 'number' && Number.isFinite(chunk.promptTokens)) {
+          promptTokens = chunk.promptTokens;
+        }
+        if (typeof chunk.completionTokens === 'number' && Number.isFinite(chunk.completionTokens)) {
+          completionTokens = chunk.completionTokens;
+        }
         const delta = chunk.delta ?? '';
         if (delta.length > 0) {
-          return { ok: true, iterator, firstDelta: delta, tokenCount };
+          return { ok: true, iterator, firstDelta: delta, tokenCount, promptTokens, completionTokens };
         }
       }
     } catch (error) {
@@ -766,6 +909,8 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       await handlers.onDelta(chunk);
     }
     const degraded = result.providerHint === 'degraded';
+    // 消息序列只拼一次 (buildMessages 每次都重新拼) —— 预览与全文同源.
+    const messages = this.buildMessages(spec);
     return {
       text: result.text,
       taskKind: result.taskKind,
@@ -779,6 +924,11 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       ...(result.providerHint ? { providerHint: result.providerHint } : {}),
       ...(result.model ? { model: result.model } : {}),
       degraded,
+      // V2026-10-30 治本 (WP19-R · 留痕): 兜底形态也带 prompt 预览 ——
+      //   留痕要记的是"这一轮问了什么", 与走哪条取文路径无关.
+      promptPreview: buildPromptPreview(messages),
+      // V2026-11-05 治本 (WP58): 全文同理 (调试器要核对模板).
+      promptFull: buildPromptFull(messages),
     };
   }
 
@@ -876,7 +1026,10 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     if (verdict.level === 'pass') return;
     const categories = verdict.categories ?? [];
     this.deps.onSafetySignal?.(text, verdict.level, categories);
-    this.logger.warn(`[render] 输出侧安全信号 level=${verdict.level} categories=${categories.join(',') || '-'} 片段=${text.slice(0, 120)}`);
+    // V2026-11-06 治本 (WP46): 安全信号判定需要看片段 (dev 排查用), 但**生产不能打心理原文**.
+    //   prod 只打长度, dev 保留片段 —— 只改日志内容, 不改级别 / 触发条件 / 上下游逻辑.
+    const signalFragment = process.env.NODE_ENV === 'production' ? `text_len=${text.length}` : `片段=${text.slice(0, 120)}`;
+    this.logger.warn(`[render] 输出侧安全信号 level=${verdict.level} categories=${categories.join(',') || '-'} ${signalFragment}`);
   }
 
   /**
@@ -1040,12 +1193,26 @@ function riskReasoningFloor(risk: RenderRiskLevel | undefined): ChatReasoningEff
  * 吊住 (线上表现为服务停不下来). unref 只影响"是否吊住事件循环", 不影响计时器
  * 正常触发. 正常路径另有 clearTimeout, 不会留下悬挂句柄.
  *
- * 说明: 超时后**不取消**底层请求 —— 窄面 ChatCaller 不承诺支持取消 (与 WP4 的
- * "不强行 abort 探测实现"同思路); 迟到的响应被丢弃即可.
+ * V2026-11-09 治本 (Phase2.5 WP-H · 改动 3): 超时后**中止**底层请求.
+ *
+ * 原口径是"超时后不取消 —— 窄面 ChatCaller 不承诺支持取消"; 那条在只调一次时成立,
+ * 但接上退避重试后就成了放大器: 上游 429 → 重试退避 1s/1.5s/4s → 我们 30s 超时放弃 →
+ * **重试链还在后台继续打上游**. 于是"上游限流"变成"我们自己在加压".
+ * 现在窄面多了可选 signal (缺省不传 = 旧行为), 适配器传了就真能中止.
+ *
+ * @param promise 底层调用
+ * @param timeoutMs 超时 ms
+ * @param controller 可选中止器 (超时时 abort)
  */
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, controller?: AbortController): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('渲染调用超时')), Math.max(1, timeoutMs));
+    const timer = setTimeout(
+      () => {
+        controller?.abort();
+        reject(new Error('渲染调用超时'));
+      },
+      Math.max(1, timeoutMs),
+    );
     timer.unref();
     promise.then(
       (value) => {
@@ -1101,6 +1268,66 @@ function extractErrorStatus(error: unknown): number | undefined {
  */
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * system prompt 预览长度上限 (WP19 原单 §1.1: 截断前 500 字).
+ */
+const PROMPT_PREVIEW_LIMIT = 500;
+
+/**
+ * 构造 system prompt 预览 (留痕用).
+ *
+ * 取**第一条 system 消息**的前 500 字; 没有 system 消息时退回首条消息.
+ *
+ * 为什么不落完整 prompt:
+ *   system 模板是适配层资产 (角色约束 / 护栏 / 输出格式), 全量落库等于把
+ *   "这个角色是怎么被约束的"摊到库里 —— 而调试器只需要"这轮大概问了什么".
+ *
+ * @param messages 本轮实际发出的消息序列
+ * @returns 预览文本 (至多 500 字)
+ */
+export function buildPromptPreview(messages: readonly ChatMessage[]): string {
+  const system = messages.find((message) => message.role === 'system');
+  const content = toPreviewText(system?.content ?? messages[0]?.content);
+  return content.length > PROMPT_PREVIEW_LIMIT ? content.slice(0, PROMPT_PREVIEW_LIMIT) : content;
+}
+
+/**
+ * 构造 system prompt **全文** (调试用; V2026-11-05 WP58).
+ *
+ * 与 `buildPromptPreview` **同源** (第一条 system 消息; 没有 system 时退回首条消息),
+ * 唯一区别是**不截断** —— 预览的 500 字上限对"核对模板"这个用途不够用.
+ *
+ * ⚠️ 为什么不落库 (与 `buildPromptPreview` 同一纪律):
+ *   全文含角色约束 / 护栏 / 输出格式, 写进 `training_sessions.turn_debug_trace`
+ *   等于把"这个角色是怎么被约束的"摊到库里. 调试器是**实时**看的, 拿完即弃,
+ *   不需要持久化 —— 所以全文只在内存里随本轮结果走到调试接口.
+ *
+ * @param messages 本轮实际发出的消息序列
+ * @returns 完整 prompt 文本 (没有 system 消息时为首条消息; 都为空则空串)
+ */
+export function buildPromptFull(messages: readonly ChatMessage[]): string {
+  const system = messages.find((message) => message.role === 'system');
+  return toPreviewText(system?.content ?? messages[0]?.content);
+}
+
+/**
+ * 消息内容 → 纯文本 (留痕只留文本形态).
+ *
+ * 多模态消息的内容可能是"内容片段数组" —— 那不是文本, 留痕里只取文本片段,
+ * 其它形态 (图片等) 记为空串, 不做序列化 (会把二进制塞进调试表).
+ *
+ * @param content 消息内容
+ * @returns 文本形态的内容
+ */
+function toPreviewText(content: string | ChatMessageContentPart[] | undefined): string {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  return content
+    .filter((part): part is ChatMessageContentPart & { readonly text: string } => part.type === 'text' && typeof part.text === 'string')
+    .map((part) => part.text)
+    .join('\n');
 }
 
 // 兼容导出: `RenderGuardVerdict` 的单一真相已搬到 streaming-render.port.ts,

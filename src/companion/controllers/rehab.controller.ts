@@ -1,11 +1,11 @@
 import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { RehabItemDto } from '../dto/companion.dto';
-import { RehabService } from '../providers/companion.service';
+import { RehabItemDto } from '../dto/companion.dto.js';
+import { RehabService } from '../providers/companion.service.js';
 
 /**
  * 康复协同 controller — V2.0 §Tab2 陪伴者端 (仅 L3 权限).

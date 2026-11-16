@@ -24,12 +24,12 @@
 //     3. 60 条 seed 场景按 mode 分组后, 引擎分布 = 接话 5 基本功 / 改写 3 / 语音 3
 //
 //   时间戳: 2026-10-22
-import { TRAINING_EXERCISE_MODE_META } from './training-exercise-display-meta';
-import { PracticeDifficulty } from '../enums/practice-difficulty.enum';
-import { PracticeEngine } from '../enums/practice-engine.enum';
-import { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
-import { TrainingExerciseType } from '../enums/training-exercise-type.enum';
+import { TRAINING_EXERCISE_MODE_META } from './training-exercise-display-meta.js';
+import { PracticeDifficulty } from '../enums/practice-difficulty.enum.js';
+import { PracticeEngine } from '../enums/practice-engine.enum.js';
+import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
+import { TrainingExerciseType } from '../enums/training-exercise-type.enum.js';
 
 /**
  * 全局共享内容库的系统租户哨兵值.

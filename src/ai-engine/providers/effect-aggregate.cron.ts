@@ -15,8 +15,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
 
-import { AIEffectRecordEntity } from '../entities/ai-effect-record.entity';
-import { AIEffectHorizon } from '../enums/ai-effect.enums';
+import { AIEffectRecordEntity } from '../entities/ai-effect-record.entity.js';
+import { AIEffectHorizon } from '../enums/ai-effect.enums.js';
 
 /**
  * 效果聚合 cron — §3.4 周 / 月维度.

@@ -30,8 +30,8 @@
 //   时间戳: 2026-10-20
 import type { DataSource } from 'typeorm';
 
-import { TRAINING_EXERCISE_SEEDS, type TrainingExerciseSeed } from '../config/training-exercise-seeds';
-import { TrainingExercise } from '../entities/training-exercise.entity';
+import { TRAINING_EXERCISE_SEEDS, type TrainingExerciseSeed } from '../config/training-exercise-seeds.js';
+import { TrainingExercise } from '../entities/training-exercise.entity.js';
 
 /**
  * 训练项 → 稳定 ID 映射 (知识库 upsert 的主键契约, 不可改为随机 UUID).

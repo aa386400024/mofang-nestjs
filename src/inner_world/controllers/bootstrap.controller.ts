@@ -1,17 +1,17 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { BootstrapDto, BootstrapQueryDto } from '../dto/bootstrap.dto';
-import { ToolId } from '../enums/skin-rarity.enum';
-import { BadgesService } from '../providers/badges.service';
-import { DecorationsService } from '../providers/decorations.service';
-import { FragmentsService } from '../providers/fragments.service';
-import { IslandsService } from '../providers/islands.service';
-import { ThemePacksService } from '../providers/theme-packs.service';
-import { ToolSkinsService } from '../providers/tool-skins.service';
+import { BootstrapDto, BootstrapQueryDto } from '../dto/bootstrap.dto.js';
+import { ToolId } from '../enums/skin-rarity.enum.js';
+import { BadgesService } from '../providers/badges.service.js';
+import { DecorationsService } from '../providers/decorations.service.js';
+import { FragmentsService } from '../providers/fragments.service.js';
+import { IslandsService } from '../providers/islands.service.js';
+import { ThemePacksService } from '../providers/theme-packs.service.js';
+import { ToolSkinsService } from '../providers/tool-skins.service.js';
 
 /**
  * 冷启动聚合接口 — V4.0 §3 整体.

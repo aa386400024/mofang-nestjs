@@ -8,9 +8,9 @@ import { IsArray, IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-vali
 //   返回不了 「'counselor_learner'」 → TS2322.
 //   治本: 跟 profile dto 同模式, HomeOverviewDto.currentRole 用 RoleValues
 //   + Role — source 变 sink 同跟 (DRY 单一真理).
-import { Role, RoleValues } from '../../profile/entities/user-profile.entity';
+import { Role, RoleValues } from '../../profile/entities/user-profile.entity.js';
 
-import { HOME_EMOTION_LEVELS, HOME_TIME_SLOTS, type HomeEmotionLevel, type HomeTimeSlot } from '../home.constants';
+import { HOME_EMOTION_LEVELS, HOME_TIME_SLOTS, type HomeEmotionLevel, type HomeTimeSlot } from '../home.constants.js';
 
 /**
  * 首页综合快照 DTO — GET /home/overview 返回.

@@ -1,0 +1,31 @@
+{
+  "toolId": "TOOL-ACCEPTANCE-RUNNER",
+  "category": "gate-execution",
+  "description": "V1–V6 机读护栏：工件存在性与非空、指针可达、链接可达、编码、结构断言；输出三级结论与人工复核清单。",
+  "sideEffect": "read-only",
+  "allowedRoles": ["orchestrator", "reviewer"],
+  "resources": ["docs/worklog/pending/", "docs/worklog/completed/"],
+  "inputs": {
+    "description": "待验收任务单、回执与工件指针清单。",
+    "params": [
+      {
+        "name": "taskId",
+        "type": "string",
+        "required": true,
+        "description": "待验收任务标识。"
+      },
+      {
+        "name": "receiptRef",
+        "type": "string",
+        "required": false,
+        "description": "交付记录 / 回执文件路径；缺省时按索引工件指针解析。"
+      }
+    ]
+  },
+  "outputs": {
+    "description": "返回护栏结果、验收结论与人工复核项。",
+    "result": "对象：含 gateResults、verdict（passed / conditional-pass / rejected）、manualReviewList。",
+    "errors": ["工件缺失或为空", "工件指针不可达", "文件编码异常", "结构断言不满足"]
+  },
+  "contractRef": "urn:agent-collaboration-framework:schema:tool-contract:1.1.0"
+}

@@ -1,2 +1,2 @@
-export * from './sms.module';
-export * from './sms.service';
+export * from './sms.module.js';
+export * from './sms.service.js';

@@ -4,14 +4,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomBytes } from 'node:crypto';
 import { IsNull, Repository } from 'typeorm';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { EmailService } from '../../shared/infra/email';
-import { MetricsService } from '../../shared/infra/metrics';
-import { RedisService } from '../../shared/infra/redis';
-import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { EmailService } from '../../shared/infra/email/index.js';
+import { MetricsService } from '../../shared/infra/metrics/index.js';
+import { RedisService } from '../../shared/infra/redis/index.js';
+import { REDIS_KEYS } from '../../shared/infra/redis/redis.constants.js';
 
-import { User } from '../entities/user.entity';
+import { User } from '../entities/user.entity.js';
 
 /**
  * Email verification service — 邮箱验证流程 (大厂标准).

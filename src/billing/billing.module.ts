@@ -6,11 +6,11 @@
 
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from '../auth';
-import { UserModule } from '../user';
+import { AuthModule } from '../auth/index.js';
+import { UserModule } from '../user/index.js';
 
-import { BillingController } from './controllers/billing.controller';
-import { BillingService } from './providers/billing.service';
+import { BillingController } from './controllers/billing.controller.js';
+import { BillingService } from './providers/billing.service.js';
 
 @Module({
   imports: [UserModule, AuthModule],

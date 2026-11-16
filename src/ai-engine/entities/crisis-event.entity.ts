@@ -14,7 +14,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-import { CrisisLevel, CrisisSignalSource } from '../enums/ai-crisis.enums';
+import { CrisisLevel, CrisisSignalSource } from '../enums/ai-crisis.enums.js';
 
 /**
  * 危机事件审计 — V6.0 §11.2 / §11.3.

@@ -1,8 +1,4 @@
-/* eslint-disable new-cap, prettier/prettier,
-   max-len, import/order, sonarjs/assertions-in-tests, jest/no-disabled-tests, prefer-const */
-
-
-
+/* eslint-disable import/order */
 
 // V2026-10-14 治本 (VS-3e — RAG 知识库搜索 e2e 端到端验证):
 //   原因: VS-3a/3b/3c 治本装 LangChain 1.x + Qdrant 1.x + OpenAI 兼容 4 provider embedding
@@ -24,16 +20,16 @@
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
-import { EmbeddingRequest, EmbeddingResponse } from '../src/llm/common/interfaces/embedding-provider.interface';
-import { KnowledgeBaseModule } from '../src/knowledge-base/knowledge-base.module';
-import { KnowledgeItem } from '../src/knowledge-base/entities/knowledge-item.entity';
-import { KnowledgeType } from '../src/knowledge-base/enums/knowledge-type.enum';
-import { KnowledgeStatus } from '../src/knowledge-base/enums/knowledge-status.enum';
-import { SearchService } from '../src/knowledge-base/providers/search.service';
-import { LlmRouterService } from '../src/llm/registry/llm-router.service';
-import { QdrantService } from '../src/ai-engine/providers/qdrant.service';
-import { SentryService } from '../src/shared/infra/observability';
-import { User } from '../src/user/entities/user.entity';
+import { EmbeddingRequest, EmbeddingResponse } from '../../src/llm/common/interfaces/embedding-provider.interface.js';
+import { KnowledgeBaseModule } from '../../src/knowledge-base/knowledge-base.module.js';
+import { KnowledgeItem } from '../../src/knowledge-base/entities/knowledge-item.entity.js';
+import { KnowledgeType } from '../../src/knowledge-base/enums/knowledge-type.enum.js';
+import { KnowledgeStatus } from '../../src/knowledge-base/enums/knowledge-status.enum.js';
+import { SearchService } from '../../src/knowledge-base/providers/search.service.js';
+import { LlmRouterService } from '../../src/llm/registry/llm-router.service.js';
+import { QdrantService } from '../../src/ai-engine/providers/qdrant.service.js';
+import { SentryService } from '../../src/shared/infra/observability/sentry.service.js';
+import { User } from '../../src/user/entities/user.entity.js';
 
 const TEST_UID = 'test-uid-vs3e';
 const TEST_ITEM_ID = 'test-item-id-vs3e-001';
@@ -88,14 +84,21 @@ class InMemoryUserRepository {
     return {
       select: () => ({
         where: () => ({
-          // eslint-disable-next-line @typescript-eslint/await-thenable
-      getMany: async () => Array.from(users.values()),
+          getMany: async () => Array.from(users.values()),
         }),
       }),
     };
   }
+
   clear(): void {
     this.users.clear();
+  }
+
+  // V2026-11-13 TD-5 (类型债清零 · TS2339): mock 缺 setUser, 用例在 beforeEach 里调用它.
+  //   之前一直没人跑到 —— e2e 不在 pnpm test 的执行集里, 缺方法要到真跑 e2e 才炸.
+  //   这里补齐 mock (只写内存 Map, 不连真 DB; 字段与 createQueryBuilder().getMany() 读的形状一致).
+  setUser(uid: string, email: string | null, phone: string | null): void {
+    this.users.set(uid, { uid, email, phone });
   }
 }
 
@@ -113,18 +116,13 @@ class InMemoryUserRepository {
 class MockQdrantService {
   private points = new Map<string, Map<string, { vector: number[]; payload: Record<string, unknown> }>>();
 
-  async ensureCollection(name: string, vectorSize: number): Promise<void> {
+  async ensureCollection(name: string, _vectorSize: number): Promise<void> {
     if (!this.points.has(name)) {
       this.points.set(name, new Map());
     }
   }
 
-  async upsert(
-    collection: string,
-    id: string,
-    vector: number[],
-    payload: Record<string, unknown>,
-  ): Promise<void> {
+  async upsert(collection: string, id: string, vector: number[], payload: Record<string, unknown>): Promise<void> {
     let col = this.points.get(collection);
     if (!col) {
       col = new Map();
@@ -196,7 +194,6 @@ class MockLlmRouterService {
   //   - 正常场景: 返跟 test item vector 高相似度的向量
   //   - 异常场景: 返空向量 (触发 SearchService fallback LIKE)
   //   - 异常场景: 抛异常 (触发 SearchService fallback LIKE + warn log)
-  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
   public nextResponse: EmbeddingResponse | 'throw' = {
     results: [{ vector: [0.9, 0.1, 0.1, 0.1], index: 0, tokenCount: 5 }],
     model: 'mock-embed',
@@ -206,15 +203,15 @@ class MockLlmRouterService {
 
   async embed(req: EmbeddingRequest): Promise<EmbeddingResponse> {
     if (this.nextResponse === 'throw') {
-      // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-    throw new Error('mock LLM error');
+      throw new Error('mock LLM error');
     }
     // V2026-10-14 治本: 根据 req.inputs 长度返对应数量 vector (跟真实 OpenAI 兼容 API 行为一致).
+    const response = this.nextResponse;
     const inputCount = Array.isArray(req.inputs) ? req.inputs.length : 1;
     return {
-      ...this.nextResponse,
+      ...response,
       results: Array.from({ length: inputCount }, (_, i) => ({
-        vector: this.nextResponse.results[0].vector,
+        vector: response.results[0].vector,
         index: i,
         tokenCount: 5,
       })),
@@ -285,17 +282,15 @@ describe('SearchService (e2e — VS-3e RAG 端到端)', () => {
         status: KnowledgeStatus.Published,
         version: 1,
         authorId: TEST_UID,
-        authorName: 'Test User',
         createdAt: new Date(),
         updatedAt: new Date(),
         reviewerId: null,
-        reviewerName: null,
         publishedAt: new Date(),
         scheduledPublishAt: null,
       };
       await itemRepo.save(testItem);
-      // eslint-disable-next-line @typescript-eslint/await-thenable
-      await qdrant.setPoint(
+
+      qdrant.setPoint(
         'knowledge_chunks',
         `${TEST_ITEM_ID}-chunk-0`,
         [0.85, 0.15, 0.1, 0.1], // V2026-10-14: 跟 llm.nextResponse 返 [0.9, 0.1, 0.1, 0.1] 高相似度
@@ -331,16 +326,14 @@ describe('SearchService (e2e — VS-3e RAG 端到端)', () => {
           status: KnowledgeStatus.Published,
           version: 1,
           authorId: TEST_UID,
-          authorName: 'Test User',
           createdAt: new Date(),
           updatedAt: new Date(),
           reviewerId: null,
-          reviewerName: null,
           publishedAt: new Date(),
           scheduledPublishAt: null,
         };
         await itemRepo.save(item);
-        await qdrant.setPoint('knowledge_chunks', `${it.id}-c0`, it.vector, {
+        qdrant.setPoint('knowledge_chunks', `${it.id}-c0`, it.vector, {
           item_id: it.id,
           tenant_id: TEST_UID,
         });
@@ -368,11 +361,9 @@ describe('SearchService (e2e — VS-3e RAG 端到端)', () => {
         status: KnowledgeStatus.Published,
         version: 1,
         authorId: TEST_UID,
-        authorName: 'Test User',
         createdAt: new Date(),
         updatedAt: new Date(),
         reviewerId: null,
-        reviewerName: null,
         publishedAt: new Date(),
         scheduledPublishAt: null,
       };

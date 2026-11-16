@@ -46,8 +46,8 @@
 import { Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 
-import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types';
-import { MemorySource, MemoryTier, promoteShortTermToLongTerm, type MemoryEntry, type MemoryStore } from '../../engine-core';
+import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types.js';
+import { MemorySource, MemoryTier, promoteShortTermToLongTerm, type MemoryEntry, type MemoryStore } from '../../engine-core/index.js';
 
 /**
  * 摘要重要度种子值 (工程种子值, **未标定**).

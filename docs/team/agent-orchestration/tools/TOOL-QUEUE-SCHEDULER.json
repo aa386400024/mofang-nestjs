@@ -1,0 +1,29 @@
+{
+  "toolId": "TOOL-QUEUE-SCHEDULER",
+  "category": "state-store",
+  "description": "队列扫描、领单租约、超时释放、验收驱动状态迁移、返修提案与限次、死信隔离、队列快照生成。",
+  "sideEffect": "restricted-write",
+  "allowedRoles": ["orchestrator"],
+  "resources": [
+    "docs/team/agent-orchestration/task-state-index.json",
+    "docs/team/agent-orchestration/orchestration-state.json",
+    "docs/team/agent-orchestration/orchestration-snapshot.json"
+  ],
+  "inputs": {
+    "description": "调度轮次参数；自治开关与返修上限由 config.json 声明。",
+    "params": [
+      {
+        "name": "runMode",
+        "type": "string",
+        "required": false,
+        "description": "单轮扫描（run-once）；自治模式默认关闭，须显式开启。"
+      }
+    ]
+  },
+  "outputs": {
+    "description": "返回本轮领单、状态迁移、返修提案、死信与快照。",
+    "result": "对象：含 claims、transitions、reworkProposals、deadLetters、snapshot。",
+    "errors": ["租约超时未释放", "返修次数超限进入死信", "任务类型不在白名单", "配置非法"]
+  },
+  "contractRef": "urn:agent-collaboration-framework:schema:tool-contract:1.1.0"
+}

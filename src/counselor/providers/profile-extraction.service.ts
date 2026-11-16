@@ -25,10 +25,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
-import { SessionCoreEventsService } from './session-core-events.service';
-import { trustWeightForAnchor, type LiveTurnDisclosure } from '../domain/session-core/session-core.types';
-import { CaseProfileEntry } from '../entities/case-profile-entry.entity';
-import { VisitorFullPersona } from '../entities/visitor-full-persona.entity';
+import { SessionCoreEventsService } from './session-core-events.service.js';
+import { trustWeightForAnchor, type LiveTurnDisclosure } from '../domain/session-core/session-core.types.js';
+import { CaseProfileEntry } from '../entities/case-profile-entry.entity.js';
+import { VisitorFullPersona } from '../entities/visitor-full-persona.entity.js';
 
 /**
  * 披露落库结果.

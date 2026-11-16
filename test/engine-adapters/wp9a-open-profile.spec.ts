@@ -19,12 +19,9 @@
 //   时间戳: 2026-10-29 GMT+8
 
 import type { ConfigService } from '@nestjs/config';
+import { vi } from 'vitest';
 
-import type { BdiSnapshot, OpenEngineSessionInput } from '../../src/engine-core';
-import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository';
-import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
-import type { VisitorService } from '../../src/agent/visitor/visitor.service';
+import type { VisitorService } from '../../src/agent/visitor/visitor.service.js';
 import {
   BUILTIN_ANXIOUS_LOW_MOOD_L1,
   BUILTIN_AVOIDANT_L1,
@@ -32,11 +29,27 @@ import {
   type CharacterProfileResolver,
   type CharacterResolveRequest,
   type ResolvedCharacter,
-} from '../../src/engine-adapters/wiring/character';
-import { EngineStreamBackend } from '../../src/engine-adapters/wiring/engine-stream-backend.adapter';
-import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service';
-import type { VoiceSessionMeta } from '../../src/voice/voice.types';
-import { VoiceService } from '../../src/voice/voice.service';
+} from '../../src/engine-adapters/wiring/character/index.js';
+import { EngineStreamBackend } from '../../src/engine-adapters/wiring/engine-stream-backend.adapter.js';
+import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service.js';
+import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository.js';
+import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
+import type { BdiSnapshot, OpenEngineSessionInput } from '../../src/engine-core/index.js';
+import { VoiceService } from '../../src/voice/voice.service.js';
+import type { VoiceSessionMeta } from '../../src/voice/voice.types.js';
+
+// TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('ioredis', async () => {
+  const { createIoredisStub } = await import('../helpers/sdk-stubs.js');
+  return createIoredisStub();
+});
+
+// TD-10 · T-2: 真实 bullmq 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
+vi.mock('bullmq', async () => {
+  const { createBullmqStub } = await import('../helpers/sdk-stubs.js');
+  return createBullmqStub();
+});
 
 const TENANT = 'tenant-1';
 const VISITOR = 'visitor-1';
@@ -292,7 +305,9 @@ describe('WP9-A · 开场角色注入与中性回退', () => {
     it('换角色 → 初始快照基线明显不同', async () => {
       const resolver = new BuiltinCharacterProfileResolver();
 
-      const snapshotOf = async (templateId: string): Promise<{
+      const snapshotOf = async (
+        templateId: string,
+      ): Promise<{
         readonly trust: number;
         readonly resistance: { readonly verbal: number; readonly depth: number; readonly style: number };
         readonly beliefs: readonly string[];
@@ -362,7 +377,9 @@ describe('WP9-A · 开场角色注入与中性回退', () => {
 
   describe('⑪ 灰度关 / 名单外 → 角色解析完全不参与', () => {
     /** 装一个 voice 服务: 引擎后端是真的 EngineStreamBackend, 但灰度决定走不走它. */
-    const buildVoiceService = (env: Readonly<Record<string, string>>): {
+    const buildVoiceService = (
+      env: Readonly<Record<string, string>>,
+    ): {
       readonly service: VoiceService;
       readonly visitor: FakeVisitor;
       readonly resolver: RecordingResolver;
@@ -372,8 +389,8 @@ describe('WP9-A · 开场角色注入与中性回退', () => {
       const resolver = new RecordingResolver();
       const engine = new FakeEngineTurnService();
       const backend = new EngineStreamBackend(engine as unknown as EngineTurnService, resolver);
-      const supervisor = { enqueue: async () => true, processSync: async () => undefined };
-      const bridges = { appendTurn: async () => undefined, close: async () => null };
+      const supervisor = { enqueue: async () => true, processSync: async () => {} };
+      const bridges = { appendTurn: async () => {}, close: async () => null };
       const tts = { startSession: async () => null };
       const service = new VoiceService(
         visitor as unknown as VisitorService,

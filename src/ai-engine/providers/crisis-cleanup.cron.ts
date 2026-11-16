@@ -12,8 +12,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
 
-import { CrisisEventEntity } from '../entities/crisis-event.entity';
-import { CrisisLevel } from '../enums/ai-crisis.enums';
+import { CrisisEventEntity } from '../entities/crisis-event.entity.js';
+import { CrisisLevel } from '../enums/ai-crisis.enums.js';
 
 /**
  * CrisisEvent 清理 — §11.3 审计数据保留期.

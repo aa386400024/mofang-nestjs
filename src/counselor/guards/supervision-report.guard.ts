@@ -27,7 +27,7 @@
 import { type CanActivate, type ExecutionContext, Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 
-import { SupervisionService } from '../providers/supervision.service';
+import { SupervisionService } from '../providers/supervision.service.js';
 
 /**
  * 复盘报告端点的归属守卫 (SSE 通道前置校验).

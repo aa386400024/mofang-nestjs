@@ -29,9 +29,9 @@
 //
 //   时间戳: 2026-10-23
 
-import { VISITOR_POOL_EXCLUDED_CONTENT_KEYWORDS } from './visitor-pool.config';
-import type { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import type { VisitorPoolDefenseType, VisitorPoolIssueDomain } from '../enums/visitor-pool.enum';
+import { VISITOR_POOL_EXCLUDED_CONTENT_KEYWORDS } from './visitor-pool.config.js';
+import type { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import type { VisitorPoolDefenseType, VisitorPoolIssueDomain } from '../enums/visitor-pool.enum.js';
 
 /**
  * 公共模板生成的 system prompt.

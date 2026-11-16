@@ -28,10 +28,10 @@ import { config as loadEnvFile } from 'dotenv';
 
 import { DataSource, type DataSourceOptions } from 'typeorm';
 
-import { configuration } from '../src/config/configuration';
-import { VISITOR_POOL_TEMPLATE_SEEDS, validateVisitorPoolTemplateSeeds } from '../src/counselor/config/visitor-pool-seed';
-import { VisitorPoolTemplate } from '../src/counselor/entities/visitor-pool-template.entity';
-import { seedVisitorPoolTemplates, correctVisitorPoolCodenames } from '../src/counselor/seeds/visitor-pool-templates.seed';
+import { configuration } from '../src/config/configuration.js';
+import { VISITOR_POOL_TEMPLATE_SEEDS, validateVisitorPoolTemplateSeeds } from '../src/counselor/config/visitor-pool-seed.js';
+import { VisitorPoolTemplate } from '../src/counselor/entities/visitor-pool-template.entity.js';
+import { seedVisitorPoolTemplates, correctVisitorPoolCodenames } from '../src/counselor/seeds/visitor-pool-templates.seed.js';
 
 type DbConfig = DataSourceOptions & { autoLoadEntities?: boolean };
 
@@ -85,7 +85,15 @@ async function main(): Promise<void> {
     const result = await seedVisitorPoolTemplates(dataSource);
     const total = result.inserted + result.updated + result.unchanged;
     process.stdout.write(
-      '[seed:visitor-pool] 新增 ' + result.inserted + ' / 更新 ' + result.updated + ' / 未变 ' + result.unchanged + '（合计 ' + total + '）\n',
+      '[seed:visitor-pool] 新增 ' +
+        result.inserted +
+        ' / 更新 ' +
+        result.updated +
+        ' / 未变 ' +
+        result.unchanged +
+        '（合计 ' +
+        total +
+        '）\n',
     );
     // V2026-10-27 治本 (spec 任务 D2 — 历史脏代号幂等订正):
     //   seed 的 upsert 只覆盖 6 位官方人物, 碰不到历史 AI 生成行的代号;

@@ -1,4 +1,4 @@
-import { DriftBottleStatus } from '../enums/drift-bottle-status.enum';
+import { DriftBottleStatus } from '../enums/drift-bottle-status.enum.js';
 
 /**
  * 漂流瓶 entry DTO (前端 DriftBottleEntry 1:1).

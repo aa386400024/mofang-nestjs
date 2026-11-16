@@ -28,15 +28,15 @@ import { ApiProperty } from '@nestjs/swagger';
 import { ArrayMinSize, IsArray, IsEnum, IsString, MaxLength, MinLength } from 'class-validator';
 
 // V2026-10-26 治本 (spec 任务 6): 报告状态类型与归一函数在 domain 层 (唯一真值源),
-//   本文件只做**转出** —— 保持 `import type { SessionReportStatus } from '../dto/supervision.dto'`
+//   本文件只做**转出** —— 保持 `import type { SessionReportStatus } from '../dto/supervision.dto.js'`
 //   的既有引用全部照旧可用, 且全仓只有一份定义.
 //   注意: 下面那行 `export type { ... }` 需要配套的 `import type` —— 只写 re-export 的话,
 //   本文件内引用该类型会报 "Cannot find name" (本文件里的 DTO 类确实要用它).
-import { SessionTechStatsDto, TransferenceMarkDto } from './session-core.dto';
-import type { SessionReportStatus } from '../domain/session-core/session-core.types';
-import { SessionType } from '../enums/session-type.enum';
-import { SUPERVISION_FAILURE_CODE_VALUES, SupervisionFailureCode } from '../enums/supervision-failure-code.enum';
-import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
+import { SessionTechStatsDto, TransferenceMarkDto } from './session-core.dto.js';
+import type { SessionReportStatus } from '../domain/session-core/session-core.types.js';
+import { SessionType } from '../enums/session-type.enum.js';
+import { SUPERVISION_FAILURE_CODE_VALUES, SupervisionFailureCode } from '../enums/supervision-failure-code.enum.js';
+import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum.js';
 // V2026-10-26 治本 (spec 任务 6 — 复盘报告 DTO):
 //   **值导入** (不是 `import type`): `@ApiProperty({ type: X })` 里的 X 是**运行时取值**
 //   (swagger 要拿它当 class 反射元数据), type-only 导入会被 TS 擦除 → TS1361

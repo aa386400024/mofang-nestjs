@@ -13,7 +13,7 @@
 //     更 idiomatic, for-of 即可消费.
 //   - 不用 LlmResponse 单类型 — 流式天然多事件, union type 强制 type 判别.
 
-import type { ChatReasoningEffort } from '../../llm/common/interfaces/chat-provider.interface';
+import type { ChatReasoningEffort } from '../../llm/common/interfaces/chat-provider.interface.js';
 
 /** OpenAI 风格 message. */
 export interface LlmMessage {
@@ -94,6 +94,17 @@ export type LlmStreamChunk =
        * 缺省 = 上游没给 (老 provider / 非 OpenAI 兼容上游).
        */
       readonly finishReason?: string;
+      /**
+       * 本次内容是**重放**出来的 (V2026-11-02, WP16).
+       *
+       * 语义: 这一轮的正文不是新生成的, 而是后端从幂等缓存里**原样复述**的
+       * (同一会话同一 round_id 的重试). 消费方据此知道"这一轮不该再当成新的一轮记账"
+       * —— 逐字稿不能再落一条、用量不能再累加一次.
+       *
+       * 只增可选字段 (老消费方零破坏): 老链路 (`VisitorService`) 恒不设它,
+       * 缺省 = "这是新的一轮", 与 WP16 之前的行为逐字一致.
+       */
+      readonly replayed?: boolean;
     }
   | { readonly type: 'error'; readonly error: LlmError };
 

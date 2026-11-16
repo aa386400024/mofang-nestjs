@@ -20,7 +20,7 @@
 //     3. grep 'VPT_SCENARIO_ID' 于 src/ → 命中写方 + 读方 (无第三处字面量)
 //   时间戳: 2026-10-26
 
-import type { SelfReportedRisk } from '../domain/visitor-persona/visitor-persona.types';
+import type { SelfReportedRisk } from '../domain/visitor-persona/visitor-persona.types.js';
 
 /**
  * vpt 会话在 `training_sessions` 表里的场景标识.

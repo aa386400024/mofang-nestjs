@@ -1,31 +1,31 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { PracticeModule } from '../practice/practice.module';
-import { UserModule } from '../user/user.module';
+import { PracticeModule } from '../practice/practice.module.js';
+import { UserModule } from '../user/user.module.js';
 
-import { BadgesController } from './controllers/badges.controller';
-import { BootstrapController } from './controllers/bootstrap.controller';
-import { DecorationsController } from './controllers/decorations.controller';
-import { FragmentsController } from './controllers/fragments.controller';
-import { IslandsController } from './controllers/islands.controller';
-import { ThemePacksController } from './controllers/theme-packs.controller';
-import { ToolSkinsController } from './controllers/tool-skins.controller';
+import { BadgesController } from './controllers/badges.controller.js';
+import { BootstrapController } from './controllers/bootstrap.controller.js';
+import { DecorationsController } from './controllers/decorations.controller.js';
+import { FragmentsController } from './controllers/fragments.controller.js';
+import { IslandsController } from './controllers/islands.controller.js';
+import { ThemePacksController } from './controllers/theme-packs.controller.js';
+import { ToolSkinsController } from './controllers/tool-skins.controller.js';
 
-import { BadgeState } from './entities/badge-state.entity';
-import { FragmentLog } from './entities/fragment-log.entity';
-import { IslandDecoration } from './entities/island-decoration.entity';
-import { IslandElement } from './entities/island-element.entity';
-import { ThemePackState } from './entities/theme-pack-state.entity';
-import { ToolSkinState } from './entities/tool-skin-state.entity';
+import { BadgeState } from './entities/badge-state.entity.js';
+import { FragmentLog } from './entities/fragment-log.entity.js';
+import { IslandDecoration } from './entities/island-decoration.entity.js';
+import { IslandElement } from './entities/island-element.entity.js';
+import { ThemePackState } from './entities/theme-pack-state.entity.js';
+import { ToolSkinState } from './entities/tool-skin-state.entity.js';
 
-import { BadgesService } from './providers/badges.service';
-import { DecorationsService } from './providers/decorations.service';
-import { FragmentsService } from './providers/fragments.service';
-import { IslandsService } from './providers/islands.service';
-import { ReconciliationService } from './providers/reconciliation.service';
-import { ThemePacksService } from './providers/theme-packs.service';
-import { ToolSkinsService } from './providers/tool-skins.service';
+import { BadgesService } from './providers/badges.service.js';
+import { DecorationsService } from './providers/decorations.service.js';
+import { FragmentsService } from './providers/fragments.service.js';
+import { IslandsService } from './providers/islands.service.js';
+import { ReconciliationService } from './providers/reconciliation.service.js';
+import { ThemePacksService } from './providers/theme-packs.service.js';
+import { ToolSkinsService } from './providers/tool-skins.service.js';
 
 /**
  * Inner World 模块 — V4.0 §3 完整游戏化核心层.

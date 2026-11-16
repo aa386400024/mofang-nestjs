@@ -21,5 +21,5 @@
 //
 //   时间戳: 2026-10-30
 
-export * from './ethical-scripts';
-export * from './script-resolver';
+export * from './ethical-scripts.js';
+export * from './script-resolver.js';

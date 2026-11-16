@@ -13,11 +13,11 @@
 //
 //   验证: npx jest test/counselor/drill-judge.spec.ts 全绿
 //   时间戳: 2026-10-27 21:55 GMT+8
-import { BOUNDARY_DRILL_SCRIPTS } from '../../src/counselor/drills/config/scripts/boundary/boundary-scripts';
-import { CRISIS_DRILL_SCRIPTS } from '../../src/counselor/drills/config/scripts/crisis/crisis-scripts';
-import { listDrillScripts, validateDrillScripts } from '../../src/counselor/drills/config/drill-registry';
-import { judgeDrill, matchDrillAnchors } from '../../src/counselor/drills/domain/drill-judge';
-import type { DrillScript } from '../../src/counselor/drills/domain/drill.types';
+import { listDrillScripts, validateDrillScripts } from '../../src/counselor/drills/config/drill-registry.js';
+import { BOUNDARY_DRILL_SCRIPTS } from '../../src/counselor/drills/config/scripts/boundary/boundary-scripts.js';
+import { CRISIS_DRILL_SCRIPTS } from '../../src/counselor/drills/config/scripts/crisis/crisis-scripts.js';
+import { judgeDrill, matchDrillAnchors } from '../../src/counselor/drills/domain/drill-judge.js';
+import type { DrillScript } from '../../src/counselor/drills/domain/drill.types.js';
 
 /**
  * 取一个 boundary 剧本 (按 drillId 精确取, 避免用例依赖数组顺序).
@@ -76,10 +76,7 @@ describe('boundary 三档判定 (§2.2 优先级规则)', () => {
 
   it('over_compromise: 命中"答应加微信"类反向词 → 过度妥协 (优先级高于共情)', () => {
     const script = boundaryScript('boundary_wechat_contact');
-    const result = judgeDrill(
-      script,
-      '我理解你的担心, 听起来确实不容易。那我加你微信, 随时找我都可以, 有急事我一定秒回你。',
-    );
+    const result = judgeDrill(script, '我理解你的担心, 听起来确实不容易。那我加你微信, 随时找我都可以, 有急事我一定秒回你。');
     expect(result.verdict).toBe('over_compromise');
     // 松口时"守住设置"不算做到 —— 覆盖清单必须如实反映.
     expect(result.coveredPointKeys).not.toContain('holdsBoundary');
@@ -95,21 +92,20 @@ describe('boundary 三档判定 (§2.2 优先级规则)', () => {
 
   it('否定守卫: "不加微信" 不被判成松口 (中文 includes 的经典误判)', () => {
     const script = boundaryScript('boundary_wechat_contact');
-    const result = judgeDrill(
-      script,
-      '我理解你担心, 也听见你的着急。不过按我们的设置, 不加微信, 我加你私人号更不行。',
-    );
+    const result = judgeDrill(script, '我理解你担心, 也听见你的着急。不过按我们的设置, 不加微信, 我加你私人号更不行。');
     expect(result.verdict).not.toBe('over_compromise');
     expect(result.coveredPointKeys).toContain('holdsBoundary');
   });
 
   it('否定守卫: 命中词前有否定字时该次命中不计入, 但同词后面的未否定出现仍计入', () => {
     const script = boundaryScript('boundary_wechat_contact');
-    const signals = matchDrillAnchors(script, '我不加微信, 但我加你微信行不行');
+    // V2026-11-02: 第二次必须命中 antiKeywords 里配的词 ('那我加你'), 否则 antiHit 恒 null.
+    //   原输入 "我加你微信" 不在 antiKeywords 表 (表里是 '那我加你'), 测试跟配置不同步.
+    const signals = matchDrillAnchors(script, '我不加微信, 但那我加你微信行不行');
     const hold = signals.find((signal) => signal.pointKey === 'holdsBoundary');
     expect(hold).toBeDefined();
     // 第一次出现被否定, 第二次未被否定 → 以未否定的那次为准.
-    expect(hold?.antiHit).toBe('我加你');
+    expect(hold?.antiHit).toBe('那我加你');
   });
 
   it('覆盖清单与批注自洽: 每个锚点在 covered/missed 里恰好出现一次, 且都有对应批注', () => {
@@ -117,9 +113,11 @@ describe('boundary 三档判定 (§2.2 优先级规则)', () => {
     const result = judgeDrill(script, '我理解这一段对你很重要, 但今天先到这里, 下次接着讲。');
     const keys = [...result.coveredPointKeys, ...result.missedPointKeys];
     expect(new Set(keys).size).toBe(script.requiredPoints.length);
-    expect(keys.sort()).toEqual([...result.coveredPointKeys, ...result.missedPointKeys].sort());
+    expect(keys.toSorted((a, b) => a.localeCompare(b))).toEqual(
+      [...result.coveredPointKeys, ...result.missedPointKeys].toSorted((a, b) => a.localeCompare(b)),
+    );
     const itemKeys = result.items.map((item) => item.pointKey).filter((key) => key !== 'verdictShape');
-    expect(itemKeys.sort()).toEqual(keys.sort());
+    expect(itemKeys.toSorted((a, b) => a.localeCompare(b))).toEqual(keys.toSorted((a, b) => a.localeCompare(b)));
   });
 
   it('同一份回应连判两次结果恒等 (零随机, 可复盘)', () => {
@@ -130,7 +128,7 @@ describe('boundary 三档判定 (§2.2 优先级规则)', () => {
 
   it('空文本不崩溃, 且不判成任何"做到"', () => {
     const script = boundaryScript('boundary_after_hours_chat');
-    const result = judgeDrill(script, '   ');
+    const result = judgeDrill(script, ' '.repeat(3));
     expect(result.verdict).toBe('abrupt_refusal');
     expect(result.coveredPointKeys).toHaveLength(0);
     expect(result.missedPointKeys).toHaveLength(script.requiredPoints.length);
@@ -154,12 +152,15 @@ describe('crisis 判定 (§3.2 只出覆盖清单, 不判档)', () => {
     expect(result.missedPointKeys).toHaveLength(0);
   });
 
-  it('评判式回应 → 不评判锚点未覆盖, 且给"这里可以多问一句"方向提示', () => {
+  it('评判式回应 → 不评判锚点越位 (antiHit 命中), 给"出现了这类措辞"方向提示', () => {
     const script = crisisScript('crisis_no_support_anchor');
     const result = judgeDrill(script, '别想太多了, 别人比你惨多了。多讲讲是什么让你觉得谁都靠不上?');
     expect(result.coveredPointKeys).not.toContain('nonJudgmental');
     expect(result.missedPointKeys).toContain('nonJudgmental');
+    // V2026-11-02: "别想太多" 命中 nonJudgmental 的 antiKeywords, 走越位提示分支
+    //   (buildAnchorItem 第一支), 不是 missedHint 分支. "多问一句" 是 openProbe 的
+    //   missedHint, 跟 nonJudgmental 无关 —— 原测试 pointKey 找错了锚点.
     const item = result.items.find((entry) => entry.pointKey === 'nonJudgmental');
-    expect(item?.text).toContain('多问一句');
+    expect(item?.text).toContain('别想太多');
   });
 });

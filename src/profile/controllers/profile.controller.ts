@@ -17,25 +17,25 @@ import 'multer'; // 加载 namespace, 让 Express.Multer.File 全局可用
 type MulterFile = Express.Multer.File;
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { RequirePrivacyLevel } from '../../common/decorators/privacy-level.decorator';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { PrivacyGuard } from '../../common/guards/privacy.guard';
-import { PrivacyLevel } from '../../common/privacy/privacy-level.enum';
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { RequirePrivacyLevel } from '../../common/decorators/privacy-level.decorator.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { PrivacyGuard } from '../../common/guards/privacy.guard.js';
+import { PrivacyLevel } from '../../common/privacy/privacy-level.enum.js';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { GrowthReportDto, GrowthReportQueryDto } from '../dto/growth-report.dto';
-import { ListFaqsResponseDto, ListHotlinesResponseDto } from '../dto/help-content.dto';
-import { MembershipDto } from '../dto/membership.dto';
-import { NotificationSettingsDto, UpdateNotificationSettingsDto } from '../dto/notification-settings.dto';
-import { ProfileDto, SwitchRoleDto, UpdateProfileDto, UploadAvatarResponseDto } from '../dto/profile.dto';
-import { FAQS, HOTLINES } from '../profile.constant';
+import { GrowthReportDto, GrowthReportQueryDto } from '../dto/growth-report.dto.js';
+import { ListFaqsResponseDto, ListHotlinesResponseDto } from '../dto/help-content.dto.js';
+import { MembershipDto } from '../dto/membership.dto.js';
+import { NotificationSettingsDto, UpdateNotificationSettingsDto } from '../dto/notification-settings.dto.js';
+import { ProfileDto, SwitchRoleDto, UpdateProfileDto, UploadAvatarResponseDto } from '../dto/profile.dto.js';
+import { FAQS, HOTLINES } from '../profile.constant.js';
 
-import { GrowthReportService } from '../providers/growth-report.service';
-import { MembershipService } from '../providers/membership.service';
-import { NotificationSettingsService } from '../providers/notification-settings.service';
-import { ProfileService } from '../providers/profile.service';
+import { GrowthReportService } from '../providers/growth-report.service.js';
+import { MembershipService } from '../providers/membership.service.js';
+import { NotificationSettingsService } from '../providers/notification-settings.service.js';
+import { ProfileService } from '../providers/profile.service.js';
 
 /**
  * Profile controller — 心塑「我的」Tab 主控制器 (大厂企业级 V3).

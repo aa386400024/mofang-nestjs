@@ -15,9 +15,9 @@
 
 import { Module } from '@nestjs/common';
 
-import { PersonaRepositoryMemory } from './data/persona.repository.memory';
-import { PERSONA_REPOSITORY } from './domain/repositories/persona.repository';
-import { PersonaController } from './persona.controller';
+import { PersonaRepositoryMemory } from './data/persona.repository.memory.js';
+import { PERSONA_REPOSITORY } from './domain/repositories/persona.repository.js';
+import { PersonaController } from './persona.controller.js';
 
 @Module({
   controllers: [PersonaController],

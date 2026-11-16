@@ -26,12 +26,12 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { VoiceCatalogUpstreamError, VoicesClient } from './voices.client';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { VoiceCatalogRegistry, type VoiceCatalogAvailability, type VoiceCatalogResolver } from '../../voice/voice-catalog-slot';
-import { resolveVoiceCatalogType, VOICE_CATALOG_TYPE_SYSTEM } from '../config/voices.config';
-import type { SystemVoiceDto, VoicesListDto } from '../dto/voices.dto';
+import { VoiceCatalogUpstreamError, VoicesClient } from './voices.client.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { VoiceCatalogRegistry, type VoiceCatalogAvailability, type VoiceCatalogResolver } from '../../voice/voice-catalog-slot.js';
+import { resolveVoiceCatalogType, VOICE_CATALOG_TYPE_SYSTEM } from '../config/voices.config.js';
+import type { SystemVoiceDto, VoicesListDto } from '../dto/voices.dto.js';
 
 /**
  * 缓存条目.

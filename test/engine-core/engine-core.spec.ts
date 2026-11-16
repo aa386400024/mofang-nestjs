@@ -22,6 +22,9 @@
 //   验证: npx jest test/engine-core/engine-core.spec.ts
 //   时间戳: 2026-10-28 GMT+8
 
+import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository.js';
+import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
 import {
   EngineCoreError,
   EngineErrorCode,
@@ -30,10 +33,7 @@ import {
   createEmptyBdiSnapshot,
   type EngineSessionPort,
   type EngineTurnOutput,
-} from '../../src/engine-core';
-import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository';
-import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
+} from '../../src/engine-core/index.js';
 
 /** 测试台: 三个内存实现 + 确定性 id / 确定性时钟. */
 interface Harness {
@@ -167,7 +167,7 @@ describe('engine-core · WP0 边界骨架', () => {
     it('turn 的 userText 为空白 → INVALID_INPUT, 且不产生状态变更', async () => {
       const { session, bdiStates } = createHarness();
       const handle = session.openSession(OPEN_INPUT);
-      await expect(session.turn(handle.handleId, { userText: '   ' })).rejects.toMatchObject({
+      await expect(session.turn(handle.handleId, { userText: ' '.repeat(3) })).rejects.toMatchObject({
         code: EngineErrorCode.INVALID_INPUT,
       });
       expect(await bdiStates.load(TENANT, 'session-1')).toBeNull();

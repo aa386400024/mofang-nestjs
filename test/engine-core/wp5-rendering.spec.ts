@@ -19,7 +19,23 @@
 //
 //   验证: npx jest test/engine-core/wp5-rendering.spec.ts
 //   时间戳: 2026-10-28 GMT+8
+//
+// V2026-11-04 WP50 (引擎内核 · 渲染规格接入同盟三维):
+//   覆盖 RenderSpec 新增的两个**可选**字段 (safety / bond):
+//     ① 提供时, 规格对象里带这两个字段;
+//     ② 不提供时, 对象里**没有**这两个键 (零回归 —— 既有形状逐字不变).
+//
+//   为什么"没有这个键"要用 `'safety' in spec` 断言 (而不是 `expect(spec.safety).toBeUndefined()`):
+//     后者**分不出**"没传"与"传了 undefined" —— 而这两者对渲染层不是一回事:
+//     "没传" = 渲染层不该显示这一行; "传了 undefined" = 是个 bug (值丢了).
+//     `in` 断言把口径钉在**键是否存在**上, 与适配层的 `!== undefined` 判断对齐.
 
+import { planIntention } from '../../src/engine-core/cognition/intention-planner.js';
+import { RuleBasedClassifier } from '../../src/engine-core/cognition/rule-based-classifier.js';
+import { transitionState } from '../../src/engine-core/cognition/state-transition.js';
+import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository.js';
+import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
 import {
   CHARS_PER_TOKEN,
   DEFAULT_COMPLETION_TOKENS,
@@ -39,13 +55,7 @@ import {
   type RenderTaskKind,
   type RiskProbePort,
   type RiskProbeResult,
-} from '../../src/engine-core';
-import { planIntention } from '../../src/engine-core/cognition/intention-planner';
-import { RuleBasedClassifier } from '../../src/engine-core/cognition/rule-based-classifier';
-import { transitionState } from '../../src/engine-core/cognition/state-transition';
-import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository';
-import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
+} from '../../src/engine-core/index.js';
 
 const TENANT = 'default';
 const VISITOR = 'visitor-1';
@@ -131,17 +141,13 @@ describe('WP5 · 渲染契约层', () => {
     it('超预算 → 尾部最近轮保留, 最旧轮被丢', () => {
       // 每轮 60 字 ≈ 38 token; 三轮共 ≈ 114 token, 预算 60 → 只能留一轮 (最新那轮),
       // 于是从最旧开始整轮丢, 且最后一轮单独放得下 (不该触发截断).
-      const turns = [
-        turn('counselor', '第一轮'.repeat(20)),
-        turn('visitor', '第二轮'.repeat(20)),
-        turn('counselor', '第三轮'.repeat(20)),
-      ];
+      const turns = [turn('counselor', '第一轮'.repeat(20)), turn('visitor', '第二轮'.repeat(20)), turn('counselor', '第三轮'.repeat(20))];
       const result = fitContextToBudget(turns, 60);
 
       expect(result.droppedTurns).toBeGreaterThan(0);
       expect(result.truncatedTurns).toBe(0);
       // 尾部保留: 结果里应含最新一轮.
-      expect(result.turns[result.turns.length - 1]?.text).toBe('第三轮'.repeat(20));
+      expect(result.turns.at(-1)?.text).toBe('第三轮'.repeat(20));
       expect(result.turns.length).toBeLessThan(turns.length);
     });
 
@@ -178,7 +184,7 @@ describe('WP5 · 渲染契约层', () => {
 
   describe('⑤ 预算上限归一', () => {
     it('undefined / 0 / NaN / 负数 → 回落 160', () => {
-      expect(resolveCompletionTokens(undefined)).toBe(160);
+      expect(resolveCompletionTokens(void 0)).toBe(160);
       expect(resolveCompletionTokens(0)).toBe(160);
       expect(resolveCompletionTokens(Number.NaN)).toBe(160);
       expect(resolveCompletionTokens(-5)).toBe(160);
@@ -282,7 +288,7 @@ describe('WP5 · 渲染契约层', () => {
   });
 
   describe('⑫ 零回归', () => {
-    it('不传任何渲染依赖 → turn 出参与 WP4 逐字一致, reply 恒空, 无新增字段', async () => {
+    it('不传任何渲染依赖 → turn 出参与 WP4 逐字一致, reply 恒空, 无渲染相关字段', async () => {
       const text = '听起来你最近挺辛苦的';
       const bdiStates = new InMemoryBdiStateRepository();
       let idSeq = 0;
@@ -308,8 +314,22 @@ describe('WP5 · 渲染契约层', () => {
       expect(output.snapshot).toEqual(expectedSnapshot);
       expect(output.intention).toEqual(planIntention(expectedSnapshot));
       expect(output.turnIndex).toBe(1);
-      // 出参字段集合与 WP4 完全一致 —— 没有多出任何渲染相关字段.
-      expect(Object.keys(output).sort()).toEqual(['intention', 'reply', 'snapshot', 'turnIndex']);
+      // 出参字段集合 —— WP5 关心的仍是"没有多出任何**渲染相关**字段" (下面两行继续盯着).
+      //   V2026-11-06 治本 (WP38 · 预批准例外): 内核给 EngineTurnOutput 加了**只读观测字段**
+      //   events (事件分类) —— 纯加字段, 不改任何决策与数值; 字段清单随之 +1.
+      //   V2026-11-06 治本 (WP65 · 预批准例外): 再加一个**只读观测字段** revision
+      //   (本轮落库后的快照版本号) —— 同样是纯加字段, 不参与任何决策; 字段清单再 +1.
+      //   V2026-11-12 治本 (D-2 · 例外批准): 再加一个**只读观测字段** eventDetails
+      //   (本轮事件明细: kind + 命中词 + 强度) —— 纯加字段, 不参与任何决策; 字段清单再 +1.
+      expect(Object.keys(output).toSorted((a, b) => a.localeCompare(b))).toEqual([
+        'eventDetails',
+        'events',
+        'intention',
+        'reply',
+        'revision',
+        'snapshot',
+        'turnIndex',
+      ]);
       expect((output as unknown as Record<string, unknown>)['render']).toBeUndefined();
       expect((output as unknown as Record<string, unknown>)['renderResult']).toBeUndefined();
     });
@@ -351,5 +371,45 @@ describe('WP5 · 渲染契约层', () => {
     it('引擎错误码仍走 EngineCoreError (WP5 未引入新错误面)', () => {
       expect(EngineErrorCode.INVALID_INPUT).toBeDefined();
     });
+  });
+});
+
+describe('WP50 · 渲染规格接入同盟三维 (safety / bond)', () => {
+  it('提供 safety / bond 时, 规格对象里带这两个字段', () => {
+    const spec = buildSpec('chat', { safety: 0.2, bond: 0.4 });
+
+    expect(spec.safety).toBe(0.2);
+    expect(spec.bond).toBe(0.4);
+    expect('safety' in spec).toBe(true);
+    expect('bond' in spec).toBe(true);
+  });
+
+  it('不提供 safety / bond 时, 对象里没有这两个键 (零回归)', () => {
+    const spec = buildSpec('chat');
+
+    expect('safety' in spec).toBe(false);
+    expect('bond' in spec).toBe(false);
+    expect(Object.keys(spec)).not.toContain('safety');
+    expect(Object.keys(spec)).not.toContain('bond');
+  });
+
+  it('既有规格形状逐字不变: 不传这两个字段时, 字段集合与 WP5 一致', () => {
+    const spec = buildSpec('chat');
+
+    // WP5 的字段集合 —— 加两个**可选**字段不该动到任何一个既有键.
+    expect(Object.keys(spec).toSorted((a, b) => a.localeCompare(b))).toEqual([
+      'coreBeliefs',
+      'emotion',
+      'forbiddenBehaviors',
+      'intention',
+      'recall',
+      'recentTurns',
+      'resistance',
+      'taskKind',
+      'tokenBudget',
+      'transference',
+      'trust',
+    ]);
+    expect(spec.trust).toBe(0.3);
   });
 });

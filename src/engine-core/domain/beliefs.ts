@@ -41,3 +41,24 @@ export interface MemoryBelief {
   /** 过期时刻 (ms timestamp); null = 不过期. */
   readonly expiresAt: number | null;
 }
+
+/**
+ * 核心信念的**激活强度** (WP57).
+ *
+ * key = `CoreBelief.theme`, value = 激活强度 [0,1].
+ *
+ * 为什么激活强度**不在 `CoreBelief` 结构里**:
+ *   `CoreBelief` 是**角色内核**的一部分 —— 同一个角色, 不同场次会话, 激活状态
+ *   应该是**独立**的 (A 场被激活过不代表 B 场也带着这份强度).
+ *   把动态状态放进静态结构 = 角色种子被运行时状态污染, 换场就串味.
+ *   所以激活强度是**会话级动态状态**, 与快照同生命周期 (见 `BdiSnapshot`).
+ *
+ * 为什么用 `Record<theme, number>` 而不是数组:
+ *   快照是**值语义** (readonly), 数组要靠下标寻址, 而"哪个信念被激活了"这个问题
+ *   的天然主键是 theme. 用 theme 寻址后, 激活强度可以 O(1) 查, 也不受信念数组
+ *   重排影响.
+ *
+ * ⚠️ theme 重复时**共享同一个键** (后者覆盖前者) —— theme 唯一是**角色配置的
+ *   责任**, 引擎不做校验也不抛错 (见交付记录 §2.4).
+ */
+export type CoreBeliefActivation = Readonly<Record<string, number>>;

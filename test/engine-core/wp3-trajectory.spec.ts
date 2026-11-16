@@ -14,6 +14,8 @@
 //    12. 无剧本零回归 (与 WP1 路径逐字一致, 出参无 trajectoryTrace)
 //    13. 非法剧本 → INVALID_INPUT
 //    14. 同轮多幕命中只取升序首个
+//    15. 剧本偏移接入同盟三维 (WP52): safety / bond 写入 / 合并后统一过 cap /
+//        缺省零回归 / 等待轮不叠
 //   外加: 同剧本 + 同行为序列复跑一致 (任务单 §9 可复现验收).
 //
 //   反依赖污染:
@@ -24,11 +26,20 @@
 //   验证: npx jest test/engine-core/wp3-trajectory.spec.ts
 //   时间戳: 2026-10-28 GMT+8
 
+import { planIntention } from '../../src/engine-core/cognition/intention-planner.js';
+import { RuleBasedClassifier } from '../../src/engine-core/cognition/rule-based-classifier.js';
+import { transitionState } from '../../src/engine-core/cognition/state-transition.js';
+import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository.js';
+import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
 import {
   DEFAULT_CORRECT_WEIGHT,
   EngineErrorCode,
   MIN_CORRECT_WEIGHT,
+  addDeltaVectors,
+  aggregateTurnDelta,
   applyTrajectory,
+  capTurnDelta,
   createEmptyBdiSnapshot,
   evaluateTrigger,
   planAct,
@@ -41,13 +52,7 @@ import {
   type SessionEvent,
   type TrajectoryNode,
   type TrajectoryScript,
-} from '../../src/engine-core';
-import { planIntention } from '../../src/engine-core/cognition/intention-planner';
-import { RuleBasedClassifier } from '../../src/engine-core/cognition/rule-based-classifier';
-import { transitionState } from '../../src/engine-core/cognition/state-transition';
-import { InMemoryBdiStateRepository } from '../../src/engine-core/in-memory/in-memory-bdi-state.repository';
-import { InMemoryEngineSession } from '../../src/engine-core/in-memory/in-memory-engine-session';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
+} from '../../src/engine-core/index.js';
 
 const TENANT = 'default';
 const VISITOR = 'visitor-1';
@@ -188,10 +193,7 @@ describe('WP3 · 轨迹控制引擎', () => {
     });
 
     it('显式给的 emotion.label 沿用 (不重算)', () => {
-      const plan = actPlan(
-        trajectoryNode('n1', { target: { emotion: { label: 'hopeful', valence: -0.6, arousal: 0.7 } } }),
-        true,
-      );
+      const plan = actPlan(trajectoryNode('n1', { target: { emotion: { label: 'hopeful', valence: -0.6, arousal: 0.7 } } }), true);
       const result = applyTrajectory('force_override', bdiIntention(), baseSnapshot(), plan);
       expect(result.intention.emotion.label).toBe('hopeful');
     });
@@ -237,9 +239,9 @@ describe('WP3 · 轨迹控制引擎', () => {
 
       expect(result.intention.strategy).toBe('simple_response');
       expect(result.intention.resistance.verbal).toBeCloseTo(0.6 * 0.8 + 0.4 * 0.4, 10);
-      expect(result.intention.emotion.valence).toBeCloseTo(0.6 * -0.5 + 0.4 * 0, 10);
+      expect(result.intention.emotion.valence).toBeCloseTo(0.6 * -0.5 + 0, 10);
       expect(result.intention.emotion.arousal).toBeCloseTo(0.6 * 0.9 + 0.4 * 0.3, 10);
-      expect(result.intention.transference.positive).toBeCloseTo(0.6 * 0.6 + 0.4 * 0, 10);
+      expect(result.intention.transference.positive).toBeCloseTo(0.6 * 0.6 + 0, 10);
       // 未给 target 的数值字段保留 BDI 原值.
       expect(result.intention.resistance.depth).toBe(0.4);
       expect(result.intention.transference.negative).toBe(0);
@@ -253,10 +255,7 @@ describe('WP3 · 轨迹控制引擎', () => {
 
     it('混合结果越界被 clamp, NaN 落回边界不写进快照', () => {
       // target 越界 (valence 2 / verbal 1.5) → 混合后越界 → clamp 回契约区间.
-      const overflow = actPlan(
-        trajectoryNode('n1', { target: { emotion: { valence: 2 }, resistance: { verbal: 1.5 } } }),
-        true,
-      );
+      const overflow = actPlan(trajectoryNode('n1', { target: { emotion: { valence: 2 }, resistance: { verbal: 1.5 } } }), true);
       const clamped = applyTrajectory('weighted_correct', bdiIntention(), baseSnapshot(), overflow);
       expect(clamped.intention.emotion.valence).toBe(1);
       expect(clamped.intention.resistance.verbal).toBe(1);
@@ -267,7 +266,7 @@ describe('WP3 · 轨迹控制引擎', () => {
     });
 
     it('correctWeight 越界被夹到 (0,1], 缺省 0.6, NaN 回落默认', () => {
-      expect(resolveCorrectWeight(undefined)).toBe(DEFAULT_CORRECT_WEIGHT);
+      expect(resolveCorrectWeight(void 0)).toBe(DEFAULT_CORRECT_WEIGHT);
       expect(resolveCorrectWeight(0.3)).toBe(0.3);
       expect(resolveCorrectWeight(2)).toBe(1);
       expect(resolveCorrectWeight(0)).toBe(MIN_CORRECT_WEIGHT);
@@ -276,10 +275,7 @@ describe('WP3 · 轨迹控制引擎', () => {
     });
 
     it('权重夹取后参与混合 (w=1 → 完全取 target)', () => {
-      const plan = actPlan(
-        trajectoryNode('n1', { correctWeight: 5, target: { resistance: { verbal: 0.9 } } }),
-        true,
-      );
+      const plan = actPlan(trajectoryNode('n1', { correctWeight: 5, target: { resistance: { verbal: 0.9 } } }), true);
       const result = applyTrajectory('weighted_correct', bdiIntention(), baseSnapshot(), plan);
       expect(result.intention.resistance.verbal).toBeCloseTo(0.9, 10);
     });
@@ -334,12 +330,9 @@ describe('WP3 · 轨迹控制引擎', () => {
     it('onEvents: 本轮事件与列表有交集即满足, 无交集不满足', () => {
       expect(evaluateTrigger({ onEvents: ['empathy'] }, matchContext({ events: [event('empathy')] }))).toBe(true);
       expect(evaluateTrigger({ onEvents: ['empathy'] }, matchContext({ events: [event('judgment')] }))).toBe(false);
-      expect(
-        evaluateTrigger(
-          { onEvents: ['empathy', 'judgment'] },
-          matchContext({ events: [event('judgment'), event('neutral')] }),
-        ),
-      ).toBe(true);
+      expect(evaluateTrigger({ onEvents: ['empathy', 'judgment'] }, matchContext({ events: [event('judgment'), event('neutral')] }))).toBe(
+        true,
+      );
     });
 
     it('onKeywords: 小写子串命中, 大小写无关', () => {
@@ -350,7 +343,7 @@ describe('WP3 · 轨迹控制引擎', () => {
 
     it('onKeywords: 全空白关键词跳过该原子 (不视为命中, 也不阻断)', () => {
       // 只有空白关键词 → 该原子跳过 → 无有效约束 → 空真.
-      expect(evaluateTrigger({ onKeywords: ['   ', ''] }, matchContext({ userText: '随便' }))).toBe(true);
+      expect(evaluateTrigger({ onKeywords: [' '.repeat(3), ''] }, matchContext({ userText: '随便' }))).toBe(true);
       // 空白 + 真实关键词 → 真实关键词照常判定.
       expect(evaluateTrigger({ onKeywords: ['  ', '失眠'] }, matchContext({ userText: '头疼' }))).toBe(false);
     });
@@ -389,24 +382,9 @@ describe('WP3 · 轨迹控制引擎', () => {
 
     it('多原子 AND: 缺一不命中', () => {
       const ctx = matchContext({ events: [event('empathy')], userText: '我最近失眠', turnIndex: 2 });
-      expect(
-        evaluateTrigger(
-          { onEvents: ['empathy'], onKeywords: ['失眠'], afterTurns: 2, state: { minTrust: 0.1 } },
-          ctx,
-        ),
-      ).toBe(true);
-      expect(
-        evaluateTrigger(
-          { onEvents: ['empathy'], onKeywords: ['失眠'], afterTurns: 3, state: { minTrust: 0.1 } },
-          ctx,
-        ),
-      ).toBe(false);
-      expect(
-        evaluateTrigger(
-          { onEvents: ['judgment'], onKeywords: ['失眠'], afterTurns: 2, state: { minTrust: 0.1 } },
-          ctx,
-        ),
-      ).toBe(false);
+      expect(evaluateTrigger({ onEvents: ['empathy'], onKeywords: ['失眠'], afterTurns: 2, state: { minTrust: 0.1 } }, ctx)).toBe(true);
+      expect(evaluateTrigger({ onEvents: ['empathy'], onKeywords: ['失眠'], afterTurns: 3, state: { minTrust: 0.1 } }, ctx)).toBe(false);
+      expect(evaluateTrigger({ onEvents: ['judgment'], onKeywords: ['失眠'], afterTurns: 2, state: { minTrust: 0.1 } }, ctx)).toBe(false);
     });
   });
 
@@ -681,6 +659,135 @@ describe('WP3 · 轨迹控制引擎', () => {
     });
   });
 
+  describe('⑮ 剧本偏移接入同盟三维 (WP52)', () => {
+    /** 一条"咨询师表达共情"事件 (safety +0.02 / bond +0.01 / trust +0.10). */
+    const EMPATHY_EVENT: SessionEvent = { kind: 'empathy', matchedTerms: ['我能理解你'], strength: 1 };
+
+    /**
+     * 只命中 empathy 一条规则的文本 (其余词表均不含这些词).
+     *
+     * 为什么不用"听起来你现在一定很难受"这类更长的句子: 它虽然也只命中 empathy,
+     * 但多个 empathy 词同时命中会让"命中了几个词"与"产生了几条事件"两件事混在一起 ——
+     * 而本组要验的是**事件 delta 的 safety 值**, 事件条数必须唯一确定.
+     */
+    const EMPATHY_TEXT = '你现在一定很难受, 我能理解你';
+
+    it('幕 delta 写了 safety → 进入该幕那一轮 safety 真的涨了', () => {
+      const plan = actPlan(trajectoryNode('n1', { delta: { safety: 0.05 } }), true);
+
+      const result = applyTrajectory('force_override', bdiIntention(), baseSnapshot({ safety: 0.5 }), plan);
+
+      expect(result.snapshot.safety).toBeCloseTo(0.55, 10);
+      expect(result.delta?.safety).toBeCloseTo(0.05, 10);
+    });
+
+    it('幕 delta 写了 bond → 进入该幕那一轮 bond 真的涨了', () => {
+      const plan = actPlan(trajectoryNode('n1', { delta: { bond: 0.03 } }), true);
+
+      const result = applyTrajectory('force_override', bdiIntention(), baseSnapshot({ bond: 0 }), plan);
+
+      expect(result.snapshot.bond).toBeCloseTo(0.03, 10);
+      expect(result.delta?.bond).toBeCloseTo(0.03, 10);
+    });
+
+    it('缺省 (剧本 delta 不写 safety/bond) → 这两维不动 (零回归)', () => {
+      const plan = actPlan(trajectoryNode('n1', { delta: { trust: 0.05 } }), true);
+
+      const result = applyTrajectory('force_override', bdiIntention(), baseSnapshot({ safety: 0.5, bond: 0 }), plan);
+
+      expect(result.snapshot.safety).toBe(0.5);
+      expect(result.snapshot.bond).toBe(0);
+      // 外抛的原始 delta 里这两维是 0 (不是 undefined) —— 合并口径统一.
+      expect(result.delta?.safety).toBe(0);
+      expect(result.delta?.bond).toBe(0);
+    });
+
+    it('等待轮 (enterNewAct=false) → 不叠 safety/bond delta (与 trust 口径一致)', () => {
+      const plan = actPlan(trajectoryNode('n1', { delta: { safety: 0.05, bond: 0.03, trust: 0.1 } }), false);
+
+      const result = applyTrajectory('force_override', bdiIntention(), baseSnapshot({ safety: 0.5, bond: 0 }), plan);
+
+      expect(result.snapshot.safety).toBe(0.5);
+      expect(result.snapshot.bond).toBe(0);
+      expect(result.snapshot.trust).toBe(0.3);
+      expect(result.delta).toBeUndefined();
+    });
+
+    it('剧本 safety 与事件 safety **合并后统一过 cap** (不是各自过 cap)', () => {
+      const eventDelta = aggregateTurnDelta([EMPATHY_EVENT]);
+      expect(eventDelta.safety).toBeCloseTo(0.02, 10);
+
+      const plan = actPlan(trajectoryNode('n1', { delta: { safety: 0.25 } }), true);
+      const applied = applyTrajectory('force_override', bdiIntention(), baseSnapshot(), plan);
+      const scriptDelta = applied.delta;
+      if (!scriptDelta) throw new Error('进入新幕那一轮必须带出剧本 delta');
+
+      const merged = addDeltaVectors(eventDelta, scriptDelta);
+      expect(merged.safety).toBeCloseTo(0.27, 10);
+
+      const capped = capTurnDelta(merged);
+      expect(capped.safety).toBeCloseTo(0.2, 10);
+      // 各自过 cap 会得到 0.2 + 0.02 = 0.22 —— 合并后统一过才是 0.2.
+      expect(capped.safety).not.toBeCloseTo(0.22, 10);
+    });
+
+    it('会话层: 落库快照走的是"合并后统一过 cap" (0.7, 不是各自过 cap 的 0.72)', async () => {
+      const script = trajectoryScript({
+        mode: 'force_override',
+        nodes: [trajectoryNode('n1', { trigger: {}, delta: { safety: 0.25 } })],
+      });
+      const { outputs } = await runTurns(script, [EMPATHY_TEXT]);
+
+      // 事件 empathy safety +0.02 + 剧本 safety 0.25 = 0.27 → cap 0.2 → 基线 0.5 + 0.2.
+      expect(outputs[0]?.snapshot.safety).toBeCloseTo(0.7, 10);
+      expect(outputs[0]?.snapshot.safety).not.toBeCloseTo(0.72, 10);
+    });
+
+    it('会话层零回归: 剧本只写 trust → safety / bond 与无剧本路径逐字一致', async () => {
+      const script = trajectoryScript({
+        mode: 'force_override',
+        nodes: [trajectoryNode('n1', { trigger: {}, delta: { trust: 0.1 } })],
+      });
+
+      const scripted = await runTurns(script, [EMPATHY_TEXT]);
+      const plain = await runTurns(undefined, [EMPATHY_TEXT]);
+      const scriptedSnapshot = scripted.outputs[0]?.snapshot;
+      const plainSnapshot = plain.outputs[0]?.snapshot;
+      if (!scriptedSnapshot || !plainSnapshot) throw new Error('两轮都应有一份快照');
+
+      expect(scriptedSnapshot.safety).toBeCloseTo(plainSnapshot.safety, 10);
+      expect(scriptedSnapshot.bond).toBeCloseTo(plainSnapshot.bond, 10);
+      // 无剧本路径的事件 delta: empathy safety +0.02 / bond +0.01.
+      expect(plainSnapshot.safety).toBeCloseTo(0.52, 10);
+      expect(plainSnapshot.bond).toBeCloseTo(0.01, 10);
+    });
+
+    it('会话层: 剧本 bond 与事件 bond 合并后统一过 cap (bond 上向 cap 与 trust 同档 0.2)', async () => {
+      const script = trajectoryScript({
+        mode: 'force_override',
+        nodes: [trajectoryNode('n1', { trigger: {}, delta: { bond: 0.3 } })],
+      });
+      const { outputs } = await runTurns(script, [EMPATHY_TEXT]);
+
+      // 事件 bond +0.01 + 剧本 bond 0.3 = 0.31 → cap 0.2 → 基线 0 + 0.2.
+      expect(outputs[0]?.snapshot.bond).toBeCloseTo(0.2, 10);
+    });
+
+    it('剧本写了脏值 (NaN) → 不把 NaN 写进快照 (clamp 落 0, 与 trust 口径一致)', () => {
+      // 任务单 §4.4: 剧本 delta 不做 sanitize 校验, 脏值由 clamp 与 cap 兜住.
+      // 落点是 0 (不是"保持原值") —— 这与 trust / resistance / emotion / transference
+      // 的既有口径**完全一致**, 所以这里把行为钉死: 将来要改成"脏值回退不变",
+      // 必须四个维度一起改, 不能只改 safety 一个.
+      const plan = actPlan(trajectoryNode('n1', { delta: { safety: Number.NaN, trust: Number.NaN } }), true);
+
+      const result = applyTrajectory('force_override', bdiIntention(), baseSnapshot({ safety: 0.5 }), plan);
+
+      expect(result.snapshot.safety).toBe(0);
+      expect(result.snapshot.trust).toBe(0);
+      expect(Number.isNaN(result.snapshot.safety)).toBe(false);
+    });
+  });
+
   describe('可复现性 (任务单 §9 验收)', () => {
     it('同剧本 + 同行为序列复跑两轮, 游标/激活幕/意图/快照逐轮一致', async () => {
       const script = trajectoryScript({
@@ -699,24 +806,15 @@ describe('WP3 · 轨迹控制引擎', () => {
       const first = await runTurns(script, texts);
       const second = await runTurns(script, texts);
 
-      expect(second.outputs.map((output) => output.trajectoryTrace)).toEqual(
-        first.outputs.map((output) => output.trajectoryTrace),
-      );
-      expect(second.outputs.map((output) => output.intention)).toEqual(
-        first.outputs.map((output) => output.intention),
-      );
-      expect(second.outputs.map((output) => output.snapshot)).toEqual(
-        first.outputs.map((output) => output.snapshot),
-      );
+      expect(second.outputs.map((output) => output.trajectoryTrace)).toEqual(first.outputs.map((output) => output.trajectoryTrace));
+      expect(second.outputs.map((output) => output.intention)).toEqual(first.outputs.map((output) => output.intention));
+      expect(second.outputs.map((output) => output.snapshot)).toEqual(first.outputs.map((output) => output.snapshot));
     });
 
     it('游标单向推进, trace 记录已访问幕与位置', async () => {
       const script = trajectoryScript({
         mode: 'force_override',
-        nodes: [
-          trajectoryNode('n1', { trigger: { afterTurns: 1 } }),
-          trajectoryNode('n2', { trigger: { afterTurns: 2 } }),
-        ],
+        nodes: [trajectoryNode('n1', { trigger: { afterTurns: 1 } }), trajectoryNode('n2', { trigger: { afterTurns: 2 } })],
       });
       const { outputs } = await runTurns(script, [NEUTRAL_TEXT, NEUTRAL_TEXT]);
 

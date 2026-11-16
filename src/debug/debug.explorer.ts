@@ -4,10 +4,10 @@ import { MODULE_METADATA } from '@nestjs/common/constants';
 import { DiscoveryService, Reflector } from '@nestjs/core';
 import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 
-import { DebugLog } from './debug-log.decorator';
-import { DEBUG_METADATA } from './debug.constant';
-import type { DebugModuleOptions, DebugOptions, Metatype } from './debug.interface';
-import { MODULE_OPTIONS_TOKEN } from './debug.module-definition';
+import { DebugLog } from './debug-log.decorator.js';
+import { DEBUG_METADATA } from './debug.constant.js';
+import type { DebugModuleOptions, DebugOptions, Metatype } from './debug.interface.js';
+import { MODULE_OPTIONS_TOKEN } from './debug.module-definition.js';
 
 @Injectable()
 export class DebugExplorer {

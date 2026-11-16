@@ -8,10 +8,10 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
-import type { GameUnlockProgressDto, GameUnlockProgressListDto, UpsertGameUnlockDto } from '../dto/game-unlock.dto';
-import { GameUnlockService } from '../providers/game-unlock.service';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
+import type { GameUnlockProgressDto, GameUnlockProgressListDto, UpsertGameUnlockDto } from '../dto/game-unlock.dto.js';
+import { GameUnlockService } from '../providers/game-unlock.service.js';
 
 @ApiTags('inner-world-game-unlock')
 @Controller('inner-world/game-unlock')

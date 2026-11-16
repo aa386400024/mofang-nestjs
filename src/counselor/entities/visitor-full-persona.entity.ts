@@ -24,7 +24,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH } from '../config/visitor-pool.config';
+import { VISITOR_POOL_TEMPLATE_ID_MAX_LENGTH } from '../config/visitor-pool.config.js';
 import type {
   VisitorPersonaBasics,
   VisitorPersonaCoping,
@@ -33,7 +33,7 @@ import type {
   VisitorPersonaPresentingIssue,
   VisitorPersonaSocialRelation,
   VisitorPersonaTherapyExpectation,
-} from '../domain/visitor-persona/visitor-persona.types';
+} from '../domain/visitor-persona/visitor-persona.types.js';
 
 /**
  * AI 底层全量人设 (AI 独享, 用户默认不可见).

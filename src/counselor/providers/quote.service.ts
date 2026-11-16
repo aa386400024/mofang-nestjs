@@ -35,16 +35,14 @@
 //     6. 内容库为空 → /quotes/today 返回 404 (前端回退本地种子, 不白屏)
 //
 //   时间戳: 2026-10-22
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, type Repository } from 'typeorm';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { QUOTE_LIST_DEFAULT_LIMIT, quoteDayIndexOf } from '../config/quote-seeds';
-import type { QuoteDto, QuoteFavoriteResultDto, QuoteListDto, QuoteQueryDto } from '../dto/quote.dto';
-import { Quote } from '../entities/quote.entity';
-import { UserQuoteFavorite } from '../entities/user-quote-favorite.entity';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { QUOTE_LIST_DEFAULT_LIMIT, quoteDayIndexOf } from '../config/quote-seeds.js';
+import { QUOTE_FAVORITE_REPOSITORY, type QuoteFavoriteRepository } from '../domain/repositories/quote-favorite.repository.js';
+import { QUOTE_REPOSITORY, type QuoteCursorAnchor, type QuoteRepository, type QuoteRow } from '../domain/repositories/quote.repository.js';
+import type { QuoteDto, QuoteFavoriteResultDto, QuoteListDto, QuoteQueryDto } from '../dto/quote.dto.js';
 
 /**
  * 首页金句 service.
@@ -54,10 +52,10 @@ export class QuoteService {
   private readonly logger = new Logger(QuoteService.name);
 
   constructor(
-    @InjectRepository(Quote)
-    private readonly quoteRepo: Repository<Quote>,
-    @InjectRepository(UserQuoteFavorite)
-    private readonly favoriteRepo: Repository<UserQuoteFavorite>,
+    @Inject(QUOTE_REPOSITORY)
+    private readonly quoteRepo: QuoteRepository,
+    @Inject(QUOTE_FAVORITE_REPOSITORY)
+    private readonly favoriteRepo: QuoteFavoriteRepository,
   ) {}
 
   // ══════════════════════════════════════════════════════════════════════
@@ -78,7 +76,7 @@ export class QuoteService {
    * @throws BizException(QuoteLibraryEmpty) 内容库为空
    */
   async getToday(userId: string): Promise<QuoteDto> {
-    const pool = await this.findVisibleQuotes(userId);
+    const pool = await this.quoteRepo.findVisiblePool(userId);
     if (pool.length === 0) {
       this.logger.warn('[quote_today_empty] 内容库为空, 前端应回退本地种子');
       throw new BizException(BizCode.QuoteLibraryEmpty);
@@ -114,33 +112,20 @@ export class QuoteService {
   async list(userId: string, query: QuoteQueryDto): Promise<QuoteListDto> {
     const limit = query.limit ?? QUOTE_LIST_DEFAULT_LIMIT;
 
-    const qb = this.quoteRepo
-      .createQueryBuilder('q')
-      .where('q.deletedAt IS NULL')
-      .andWhere('q.enabled = :enabled', { enabled: true })
-      // 可见性谓词 (**全仓唯一一处**): 共享内容库 user_id IS NULL, 本人自建 user_id = 本人.
-      // 今天库里全是共享内容, 但 user_id 列已预留 —— 谓词必须现在就写对, 否则将来
-      // 加了"用户自建金句"就会漏过滤, 别人的私有金句直接泄露.
-      .andWhere('(q.userId IS NULL OR q.userId = :userId)', { userId })
-      .orderBy('q.publishedAt', 'DESC')
-      .addOrderBy('q.id', 'DESC');
-
+    // 可见性谓词 + 排序 (publishedAt DESC, id DESC) 全部下沉实现层 (全仓唯一一处).
+    let anchor: QuoteCursorAnchor | null = null;
     if (query.cursor) {
       // 游标解析: 找到该条, 拿它的 (published_at, id) 作为游标锚点.
       // 解析不到 → 400 (游标失效, 客户端应重置分页从头开始), 不静默从头返回.
-      const anchor = await this.quoteRepo.findOne({ where: { id: query.cursor } });
-      if (!anchor) {
+      const anchorRow = await this.quoteRepo.findAnchorById(query.cursor);
+      if (!anchorRow) {
         throw new BizException(BizCode.QuoteCursorInvalid, `游标无效或已失效: ${query.cursor}`);
       }
-      // keyset 推进: 更旧的 (published_at 更大 = 更小 because DESC) ...
-      qb.andWhere('(q.publishedAt < :anchorPublishedAt OR (q.publishedAt = :anchorPublishedAt AND q.id < :anchorId))', {
-        anchorPublishedAt: anchor.publishedAt,
-        anchorId: anchor.id,
-      });
+      anchor = { publishedAt: anchorRow.publishedAt, id: anchorRow.id };
     }
 
     // 多取一条用来判断还有没有下一页 (LIMIT n+1 惯用法), 避免多打一次 COUNT。
-    const rows = await qb.take(limit + 1).getMany();
+    const rows = await this.quoteRepo.listVisibleKeyset(userId, anchor, limit + 1);
     const hasMore = rows.length > limit;
     const items = hasMore ? rows.slice(0, limit) : rows;
 
@@ -173,14 +158,8 @@ export class QuoteService {
     await this.assertQuoteExists(quoteId);
 
     // upsert: 冲突时走 ON DUPLICATE KEY UPDATE, 保证"重复收藏"是幂等 no-op.
-    await this.favoriteRepo.upsert(
-      {
-        tenantId: userId, // A9 一人一租户
-        userId,
-        quoteId,
-      },
-      { conflictPaths: ['userId', 'quoteId'] },
-    );
+    // tenantId = userId (A9 一人一租户); 冲突键口径下沉实现层.
+    await this.favoriteRepo.upsert(userId, quoteId, userId);
 
     this.logger.log(`[quote_favorited] user=${userId} quote=${quoteId}`);
     return { quoteId, favorited: true };
@@ -202,7 +181,7 @@ export class QuoteService {
     // (前端列表里那条还在, 收藏态却删不掉). 删除一条不存在的收藏本来就是 no-op.
     // 注意与收藏端点的不对称: POST 必须校验 (不能收藏不存在的句子),
     // DELETE 不校验 (清收藏永远应该成功).
-    await this.favoriteRepo.delete({ userId, quoteId });
+    await this.favoriteRepo.deleteByUserAndQuote(userId, quoteId);
 
     this.logger.log(`[quote_unfavorited] user=${userId} quote=${quoteId}`);
     return { quoteId, favorited: false };
@@ -222,16 +201,13 @@ export class QuoteService {
    * @returns 收藏的金句列表
    */
   async listFavorites(userId: string): Promise<QuoteListDto> {
-    const relations = await this.favoriteRepo.find({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    });
+    const relations = await this.favoriteRepo.findFavoritesByUser(userId);
     if (relations.length === 0) {
       return { items: [], nextCursor: null };
     }
 
     const quoteIds = relations.map((relation) => relation.quoteId);
-    const quotes = await this.quoteRepo.find({ where: { id: In(quoteIds) } });
+    const quotes = await this.quoteRepo.findManyByIds(quoteIds);
     const byId = new Map(quotes.map((quote) => [quote.id, quote]));
 
     // 按收藏顺序输出; 金句已被下架/删除的跳过 (收藏指向的是 id, 内容没了就没了).
@@ -251,27 +227,6 @@ export class QuoteService {
   // ══════════════════════════════════════════════════════════════════════
 
   /**
-   * 取可见内容库 (按 feed 顺序: 发布日倒序).
-   *
-   * @param userId 当前用户 id (用于可见性谓词: 共享库 + 本人自建)
-   */
-  private async findVisibleQuotes(userId: string): Promise<Quote[]> {
-    return (
-      this.quoteRepo
-        .createQueryBuilder('q')
-        .where('q.deletedAt IS NULL')
-        .andWhere('q.enabled = :enabled', { enabled: true })
-        // 可见性谓词 (**全仓唯一一处**): 共享内容库 user_id IS NULL, 本人自建 user_id = 本人.
-        // 今天库里全是共享内容, 但 user_id 列已预留 —— 谓词必须现在就写对, 否则将来
-        // 加了"用户自建金句"就会漏过滤, 别人的私有金句直接泄露.
-        .andWhere('(q.userId IS NULL OR q.userId = :userId)', { userId })
-        .orderBy('q.publishedAt', 'DESC')
-        .addOrderBy('q.id', 'DESC')
-        .getMany()
-    );
-  }
-
-  /**
    * 取本人在给定金句集合里的收藏状态 (零 N+1: 一条查询 + 内存 Set).
    *
    * @param userId 当前用户 id
@@ -282,11 +237,8 @@ export class QuoteService {
     if (quoteIds.length === 0) {
       return new Set<string>();
     }
-    const relations = await this.favoriteRepo.find({
-      where: { userId, quoteId: In(quoteIds) },
-      select: { id: true, quoteId: true },
-    });
-    return new Set(relations.map((relation) => relation.quoteId));
+    const favoritedIds = await this.favoriteRepo.findFavoriteQuoteIds(userId, quoteIds);
+    return new Set(favoritedIds);
   }
 
   /**
@@ -295,8 +247,8 @@ export class QuoteService {
    * @param quoteId 金句 id
    * @throws BizException(QuoteNotFound) 不存在 / 已下架
    */
-  private async assertQuoteExists(quoteId: string): Promise<Quote> {
-    const quote = await this.quoteRepo.findOne({ where: { id: quoteId } });
+  private async assertQuoteExists(quoteId: string): Promise<QuoteRow> {
+    const quote = await this.quoteRepo.findById(quoteId);
     if (!quote || !quote.enabled || quote.deletedAt !== null) {
       throw new BizException(BizCode.QuoteNotFound, `金句不存在或已下架: ${quoteId}`);
     }
@@ -309,7 +261,7 @@ export class QuoteService {
    * @param quote 金句行
    * @param favorited 已收藏的 id 集合
    */
-  private toDto(quote: Quote, favorited: Set<string>): QuoteDto {
+  private toDto(quote: QuoteRow, favorited: Set<string>): QuoteDto {
     return {
       id: quote.id,
       text: quote.text,

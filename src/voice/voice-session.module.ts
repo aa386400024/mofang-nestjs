@@ -15,11 +15,15 @@
 
 import { Global, Module } from '@nestjs/common';
 
-import { VoiceCatalogRegistry } from './voice-catalog-slot';
-import { VoiceFrameRegistry } from './voice-frame-registry';
-import { VoiceSessionBridgeRegistry } from './voice-session-bridge';
-import { VoiceSessionRegistry } from './voice-session-registry';
-import { VoiceTemplateRegistry } from './voice-template-slot';
+import { CharacterUsageRegistry } from './character-usage-slot.js';
+import { CharacterVersionRegistry } from './character-version-slot.js';
+import { SessionEvaluationRegistry } from './session-evaluation-slot.js';
+import { StudentRiskAuditRegistry } from './student-risk-audit-slot.js';
+import { VoiceCatalogRegistry } from './voice-catalog-slot.js';
+import { VoiceFrameRegistry } from './voice-frame-registry.js';
+import { VoiceSessionBridgeRegistry } from './voice-session-bridge.js';
+import { VoiceSessionRegistry } from './voice-session-registry.js';
+import { VoiceTemplateRegistry } from './voice-template-slot.js';
 
 /**
  * Voice 会话基础设施模块 (@Global).
@@ -38,7 +42,34 @@ import { VoiceTemplateRegistry } from './voice-template-slot';
     //   VoiceFrameRegistry          business → voice 方向 (WS 帧出口: 轻提示 / 移情标记)
     VoiceSessionBridgeRegistry,
     VoiceFrameRegistry,
+    // V2026-11-02 治本 (WP14 — 学员风险事件审计插槽):
+    //   引擎装配层判出危机后要落审计, 但 engine → counselor 是反向依赖;
+    //   voice 层是两侧都能依赖的位置 —— 跟 VoiceSessionBridgeRegistry 同款范式.
+    StudentRiskAuditRegistry,
+    // V2026-11-06 治本 (WP38 — 角色版本 / 角色占用 2 个新注册表):
+    //   CharacterVersionRegistry  engine-adapters → business 方向 (角色当前版本号:
+    //     数据在 character_profiles, 消费方是 counselor 侧落库桥);
+    //   CharacterUsageRegistry   business → engine-adapters 方向 (活跃会话数:
+    //     数据在 training_sessions, 消费方是角色管理服务的主版本锁定判定).
+    //   两侧都走 voice 层当中站, 跟 VoiceSessionBridgeRegistry / StudentRiskAuditRegistry 同款范式.
+    CharacterVersionRegistry,
+    CharacterUsageRegistry,
+    // V2026-11-06 治本 (WP43 — 评估引擎插槽):
+    //   SessionEvaluationRegistry  engine-adapters → business 方向 (会话结束后
+    //     把本场内核出参交给业务侧算分: 算分规则与落库都在 counselor 侧,
+    //     引擎侧只认插槽接口, 不认识评估服务的任何类型).
+    SessionEvaluationRegistry,
   ],
-  exports: [VoiceSessionRegistry, VoiceTemplateRegistry, VoiceCatalogRegistry, VoiceSessionBridgeRegistry, VoiceFrameRegistry],
+  exports: [
+    VoiceSessionRegistry,
+    VoiceTemplateRegistry,
+    VoiceCatalogRegistry,
+    VoiceSessionBridgeRegistry,
+    VoiceFrameRegistry,
+    StudentRiskAuditRegistry,
+    CharacterVersionRegistry,
+    CharacterUsageRegistry,
+    SessionEvaluationRegistry,
+  ],
 })
 export class VoiceSessionModule {}

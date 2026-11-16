@@ -26,7 +26,7 @@
 //
 //   时间戳: 2026-10-15
 
-import { LongTermCaseType } from '../enums/long-term-case-type.enum';
+import { LongTermCaseType } from '../enums/long-term-case-type.enum.js';
 
 /**
  * 单个预设长程个案模板.

@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-import { FragmentType } from '../enums/fragment-type.enum';
+import { FragmentType } from '../enums/fragment-type.enum.js';
 
 /**
  * 碎片流水表 — V4.0 §3.2.

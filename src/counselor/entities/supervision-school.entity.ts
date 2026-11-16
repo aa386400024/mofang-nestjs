@@ -30,7 +30,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
+import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum.js';
 
 /**
  * supervision_schools 表.

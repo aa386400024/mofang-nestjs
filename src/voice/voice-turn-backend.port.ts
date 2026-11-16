@@ -41,9 +41,10 @@
 //     2. test/voice/wp8b-grayscale.spec.ts: 旧 VisitorService 结构化满足本接口;
 //        新引擎适配实现同一接口; 灰度开关选实现、失败回落
 
-import type { VoiceSessionPersona } from './voice.types';
-import type { LlmStream } from '../agent/llm/llm.types';
-import type { TranscriptTurn } from '../agent/supervisor/supervisor.types';
+import type { StudentRiskAuditChoice } from './student-risk-audit-slot.js';
+import type { VoiceCatchUpSessionState, VoiceCatchUpTurn, VoiceServerMessage, VoiceSessionPersona } from './voice.types.js';
+import type { LlmStream } from '../agent/llm/llm.types.js';
+import type { TranscriptTurn } from '../agent/supervisor/supervisor.types.js';
 
 /**
  * 对话后端窄接口 (新旧同构).
@@ -84,6 +85,136 @@ export interface VoiceTurnBackend {
    * @returns 完整消息副本; 会话不存在返 []
    */
   transcript(sessionId: string): readonly TranscriptTurn[];
+
+  /**
+   * 回写学员在危机弹窗后的选择 (V2026-11-02, WP14 §1.3).
+   *
+   * **可选方法**: 旧链路 (`VisitorService`) 没有危机弹窗, 不实现它**完全正常** ——
+   * 必填会把旧实现挡在契约外, "并存可回退"当场破产 (与角色 / 剧本参数同款理由).
+   *
+   * 语义: 只回写审计表的 `user_choice` (唯一允许 update 的列),
+   * **不**重置 monitored 状态、**不**改会话状态.
+   *
+   * @param sessionId 会话 id
+   * @param choice 学员的选择
+   */
+  markUserChoice?(sessionId: string, choice: StudentRiskAuditChoice): Promise<void>;
+
+  /**
+   * 前置 safety 判定 (V2026-11-02, WP14 优化项 · block 不发 llm_start).
+   *
+   * **可选方法**: 旧链路 (`VisitorService`) 不做危机处置, 不实现它**完全正常** ——
+   * 必填会把旧实现挡在契约外, "并存可回退"当场破产 (与角色 / 剧本参数同款理由).
+   *
+   * 为什么要有它: 内核的 safety 判定发生在**内核 turn 内部** —— 等它判完,
+   * voice 层已经把 `llm_start` 发出去 (前端 loading 圈转起来了), 而 block 之后
+   * 前端既收不到 `llm_done` (后端根本没渲染), 又被全屏 modal 抢屏 ——
+   * 体感是"开始了但永远不会结束". 前置判一次就能把 modal 干干净净地弹出来.
+   *
+   * 语义:
+   *   · `block` → voice 层**不发** `llm_start` / `llm_done` / `tts_done`,
+   *     直接发 `crisis_modal`, **不调**内核 turn / render;
+   *   · `warn` / `pass` → 走既有流程, 一行不动 (warn 仍由内核侧按原时序发 toast).
+   *
+   * 失败语义: **静默失败** —— 调用方按"放行"处理, 不能因为前置判定挂了就把
+   * 整场对练搞挂 (内核侧仍会再判一次, 双层防御).
+   *
+   * @param input 判定入参 (会话 / 文本 / 轮次 / 帧出口)
+   * @returns 判定结果
+   */
+  preCheckSafety?(input: VoiceSafetyPreCheckInput): Promise<VoiceSafetyPreCheckResult>;
+
+  /**
+   * 断线重连的补漏数据 (V2026-11-03, WP23) —— **可选方法**.
+   *
+   * 语义: 返回本场**已提交**的轮次里, `turnIndex > lastSeenTurnIndex` 的那些,
+   * 供服务端组装 `session_catchup` 帧推给重连回来的客户端.
+   *
+   * 为什么是**可选方法**: 旧链路 (`VisitorService`) 没有"已提交轮次台账"这个概念,
+   * 不实现它**完全正常** —— 没有补漏数据时, 服务端发轻量的 `session_reattached`
+   * (客户端知道"连上了, 没漏东西"), 对练照常. 必填会把旧实现挡在契约外,
+   * "并存可回退"当场破产 (与角色 / 剧本参数同款理由).
+   *
+   * 为什么数据由**后端**给而不是 voice 层自己攒:
+   *   一轮到底算不算"已提交", 只有后端知道 (BDI 状态有没有落、回复有没有发完);
+   *   voice 层看到的只是"流结束了" —— 那不足以判断这一轮该不该补.
+   *
+   * @param sessionId 会话 id
+   * @param lastSeenTurnIndex 客户端已收到的最后一轮 (从 0 起 = 一轮都没收到)
+   * @returns 已提交轮次里漏掉的部分; undefined = 本场没有台账 (无可补)
+   */
+  catchUp?(sessionId: string, lastSeenTurnIndex: number): VoiceCatchUpResult | undefined;
+}
+
+/**
+ * 补漏结果 (后端 → voice 层).
+ */
+export interface VoiceCatchUpResult {
+  /** 本场已提交的最大轮次号 (从 1 起; 没有则 0). */
+  readonly serverLatestTurnIndex: number;
+  /** 漏掉的轮次 (turnIndex > lastSeenTurnIndex, 按轮次升序). */
+  readonly missedTurns: readonly VoiceCatchUpTurn[];
+  /**
+   * 后端知道的本场状态 (V2026-11-03, WP23).
+   *
+   * **为什么只给"后端知道的那部分"**: 相位 (listening / speaking / paused) 是 voice
+   *   层的会话状态, 只有 voice 层知道; 而"是否重点监测 / 角色代号"是后端 (引擎侧)
+   *   的状态, 只有后端知道. 硬塞进一个类型里就得有一方**编**另一方的值 ——
+   *   编出来的状态比没有状态更糟 (客户端会照着它渲染 UI).
+   *
+   * 所以这里给的是**缺相位**的半个状态, 由 voice 层补上相位再发帧.
+   *
+   * 缺省 = 后端不提供 (旧链路 / 无引擎) → voice 层按"普通场"处理.
+   */
+  readonly sessionState?: Omit<VoiceCatchUpSessionState, 'phase'>;
+}
+
+/**
+ * 前置 safety 判定入参.
+ *
+ * 为什么用**入参对象**而不是一个 `text` 字符串:
+ *   判定为 block 时, 后端要**当场**做三件事 —— 推 `crisis_modal` 帧、写审计行、
+ *   置位重点监测. 三件事都要"本场"的口径:
+ *     · 推帧要知道推给**哪一场** (WS 会话 id 客户端可控, 不能拿它当注册键);
+ *     · 写审计要知道**落库 id + 学员 id + 轮次**;
+ *     · 置位要知道**内核句柄**.
+ *   只给一个 `text` 的话, 后端**无从判断这些口径** —— 判定得了, 却推不出弹窗、
+ *   留不下痕. 所以这里把"本场上下文"显式传进来.
+ */
+export interface VoiceSafetyPreCheckInput {
+  /** 会话 id (voice 会话 id). */
+  readonly sessionId: string;
+  /** 学员本轮输入 (ASR 定稿). */
+  readonly userText: string;
+  /**
+   * 本场轮次 (从 1 起).
+   *
+   * 为什么必须由 voice 层给: 前置 gate 在**内核 turn 之前**拦截, 内核的轮次计数器
+   * 还没动 —— 只有 voice 层知道"这是本场第几轮". 而审计表的 `turn_index` 口径与
+   * 逐字稿锚点一致 (报告按 `(turnIndex - 1) * 2` 定位那条"问"), 两边必须同源.
+   */
+  readonly turnIndex: number;
+  /**
+   * 推一帧给**本场**的客户端 (危机弹窗).
+   *
+   * 缺省 = 没有出口 (独立调用后端) → 后端只记审计, 不推帧.
+   */
+  readonly publishFrame?: (frame: VoiceServerMessage) => void;
+}
+
+/**
+ * 前置 safety 判定结果.
+ */
+export interface VoiceSafetyPreCheckResult {
+  /**
+   * 等级.
+   *
+   * `pass` = 放行; `warn` = 放行但有风险信号 (由内核侧按原时序处置);
+   * `block` = 阻断 (voice 层不发 `llm_start`, 直接发 `crisis_modal`).
+   */
+  readonly level: 'pass' | 'warn' | 'block';
+  /** 命中的危机类别 (block / warn 时有值). */
+  readonly category?: string;
 }
 
 /** 开场参数. */
@@ -177,17 +308,75 @@ export interface VoiceTurnBackendTurnOptions {
   readonly sessionId: string;
   /** 租户隔离键. */
   readonly tenantId: string;
-  /** 用户 id (计费 / 审计). */
-  readonly userId: string;
+  /**
+   * 用户 id (计费 / 审计).
+   *
+   * 缺省 = 本轮**没有**学员身份 —— 身份一律以**会话 context** 为准 (openSession 写入,
+   * turn 读取); turn 级这个字段只是把已知的学员 id 透传下去, 后端实现**不读**它.
+   * 与同文件 `OpenOptions.userId?` 同一口径 (可选).
+   */
+  readonly userId?: string;
   /** persona 已 resolve 后的 id. */
   readonly personaId: string;
   /** 用户本轮文本 (ASR final). */
   readonly userText: string;
+  /**
+   * 轮次号 (V2026-11-02, WP16 · 幂等键的另一半).
+   *
+   * 语义: 客户端给这一轮编的号. **同一会话 + 同一 round_id**, 后端认得出
+   * "这是同一轮的重发", 于是**不重跑 BDI** (阻抗 / 情绪 / 信任不再二次跳变).
+   *
+   * 缺省 = 客户端没给号 → 后端**不走幂等**, 行为与 WP16 之前逐字一致.
+   *   为什么缺省是"正常跑"而不是"报错": 老客户端 (以及还没适配的端) 不带这个字段,
+   *   后端不能因此把对练搞挂 —— 幂等是**增强**, 不是会话的前置条件.
+   *
+   * 只增可选字段: 旧实现 (`VisitorService`) 天然是 undefined, 一行都不用改.
+   */
+  readonly roundId?: number;
+  /**
+   * 本场第几轮 (从 1 起) (V2026-11-03, WP23).
+   *
+   * 语义: **voice 层是轮次号的唯一真相** —— 它知道"这是本场第几轮",
+   * 后端不知道 (后端只知道自己内部的轮次, 与 voice 的计数在"被阻断 / 出错的轮"
+   * 上会错位). 而断线补漏 (WP23) 要用轮次号与客户端对齐, 客户端的计数来自
+   * `llm_done` 帧里的同一个号 —— 三处必须同源, 所以由 voice 层发号, 后端照抄.
+   *
+   * 缺省 = voice 层没给 (独立调用后端时) → 后端按"轮次未知"处理 (不参与补漏台账的排序).
+   */
+  readonly turnIndex?: number;
   /** 链路 trace id (透传给上游). */
   readonly traceId?: string;
   /** AbortSignal — barge-in 时 abort(), 请求真正中断. */
   readonly signal?: AbortSignal;
+  /**
+   * 推一帧给**本场**的客户端 (V2026-11-02, WP14 · 危机帧).
+   *
+   * 为什么走窄接口而不是让后端去碰帧出口注册表:
+   *   · 帧出口注册表按**落库 id** 索引, 而 WS 会话 id 是**客户端给的** ——
+   *     让后端用客户端可控的 id 去注册出口, 等于开一个"把 A 的帧推给 B"的口子;
+   *   · 落库 id 在"本场没落库"(降级成纯内存)时**没有** ——
+   *     而**危机弹窗不能因为数据库降级就推不出去**;
+   *   · 传一个"推给本场"的回调, 两条问题一起消失: 后端不需要知道任何 id 口径.
+   *
+   * 缺省 = 没有出口 (旧链路 / 独立调用后端) → 后端**不推**危机帧, 只记 warn.
+   */
+  readonly publishFrame?: (frame: VoiceServerMessage) => void;
 }
+
+/**
+ * 「本轮不完整」错误码 (V2026-11-02, WP16).
+ *
+ * 语义: 这一轮的**状态已经提交**, 但**回复没发完** (流式断流 / LLM 超时 / 前端 abort).
+ * 客户端拿到它应当**换一个轮次号**重发新一轮, 而不是重发同一轮 ——
+ * 重发同一轮会被后端幂等挡下, 拿到的还是这句"不完整".
+ *
+ * 为什么这个码住在**窄接口**文件里 (而不是引擎侧):
+ *   它是"引擎 → 语音层 → 客户端"三方共用的**协议词汇**. 引擎侧要产出它,
+ *   语音层要**认出它并放过它** (不能把它当引擎故障去回落旧链路 ——
+ *   旧链路没有轮次语义, 回落等于让同一句话在两条链路上各跑一遍).
+ *   放窄接口 = 两侧都从同一处 import, 不会各写一份字符串常量然后慢慢漂移.
+ */
+export const TURN_INCOMPLETE_CODE = 'turn_incomplete';
 
 /** 收尾统计 (旧链路的 hadMemory 字段与语音侧无关, 不进窄接口). */
 export interface VoiceTurnBackendCloseResult {
@@ -195,6 +384,19 @@ export interface VoiceTurnBackendCloseResult {
   readonly finalTurnCount: number;
   /** 本场留下的消息条数 (一问一答算两条). */
   readonly finalMessageCount: number;
+  /**
+   * 本场累计的 completion tokens (V2026-11-02, WP22).
+   *
+   * 用途: 全局日 token 预算要按"这场真的花了多少"累加 —— 复用引擎侧已有的用量
+   * 累加器 (WP24), 不另算一套 (两套口径必然对不上).
+   *
+   * **可选字段** (缺省 = 这场没给出用量):
+   *   · 旧链路 (`VisitorService`) 没有用量累加器 → 缺省;
+   *   · 引擎侧已经收过尾 (同一场被 close 两次) → 第二次拿不到 → 缺省.
+   * 缺省语义是"不可得", **不是 0** —— 两者不能混: 0 会被当成"这场没花钱",
+   * 而"不可得"是"不知道花了多少". 预算宁可少算也不能把 0 当成事实.
+   */
+  readonly totalCompletionTokens?: number;
 }
 
 /**

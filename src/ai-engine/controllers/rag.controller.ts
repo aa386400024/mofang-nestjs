@@ -8,11 +8,11 @@
 import { Body, Controller, Delete, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
-import type { IngestArticleDto, IngestResponseDto, SearchHitDto, SearchRequestDto, SearchResponseDto } from '../dto/rag.dto';
-import { QdrantService } from '../providers/qdrant.service';
-import { RagService } from '../providers/rag.service';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
+import type { IngestArticleDto, IngestResponseDto, SearchHitDto, SearchRequestDto, SearchResponseDto } from '../dto/rag.dto.js';
+import { QdrantService } from '../providers/qdrant.service.js';
+import { RagService } from '../providers/rag.service.js';
 
 @ApiTags('ai-knowledge')
 @Controller('ai/knowledge')

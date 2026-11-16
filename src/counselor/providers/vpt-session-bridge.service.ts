@@ -58,32 +58,38 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomInt, randomUUID } from 'node:crypto';
 import { IsNull, type Repository } from 'typeorm';
 
-import { CounselorSupervisionProcessor } from './counselor-supervision.processor';
-import { TurnAnalysisProcessor } from './turn-analysis.processor';
-import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types';
+import { CounselorSupervisionProcessor } from './counselor-supervision.processor.js';
+import { TurnAnalysisProcessor } from './turn-analysis.processor.js';
+import type { TurnTrace } from '../../admin-debug/trace-recorder.service.js';
+import type { TranscriptTurn } from '../../agent/supervisor/supervisor.types.js';
+import { safeString } from '../../shared/infra/string-utils/index.js';
+import { CharacterVersionRegistry } from '../../voice/character-version-slot.js';
 import {
   VoiceSessionBridgeRegistry,
   type VoiceSessionBridge,
   type VoiceSessionCloseInput,
   type VoiceSessionCloseResult,
+  type VoiceSessionCommittedTurnsInput,
+  type VoiceSessionCommittedTurnsResult,
   type VoiceSessionOpenInput,
   type VoiceSessionOpenResult,
   type VoiceSessionTranscriptInput,
   type VoiceSessionTurnInput,
-} from '../../voice/voice-session-bridge';
-import type { VoiceDifficulty, VoiceVisitorStyle } from '../../voice/voice-session.types';
-import { SUPERVISION_MIN_EFFECTIVE_CHARS, SUPERVISION_MIN_EFFECTIVE_TURNS } from '../config/supervision.config';
-import { VPT_SCENARIO_ID } from '../config/vpt.config';
-import { isInsufficientMaterial, measureEffectiveMaterial } from '../domain/session-view/session-material';
-import { TrainingSession, type TrainingTranscriptTurn } from '../entities/training-session.entity';
-import { ChatRole } from '../enums/chat-role.enum';
-import { DimensionVariance } from '../enums/dimension-variance.enum';
-import { SessionType } from '../enums/session-type.enum';
-import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum';
-import { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import { TrainingSessionStatus } from '../enums/training-session-status.enum';
-import { VisitorMode } from '../enums/visitor-mode.enum';
-import { VisitorStyle } from '../enums/visitor-style.enum';
+} from '../../voice/voice-session-bridge.js';
+import type { VoiceDifficulty, VoiceVisitorStyle } from '../../voice/voice-session.types.js';
+import type { VoiceCatchUpTurn } from '../../voice/voice.types.js';
+import { SUPERVISION_MIN_EFFECTIVE_CHARS, SUPERVISION_MIN_EFFECTIVE_TURNS } from '../config/supervision.config.js';
+import { VPT_SCENARIO_ID } from '../config/vpt.config.js';
+import { isInsufficientMaterial, measureEffectiveMaterial } from '../domain/session-view/session-material.js';
+import { TrainingSession, type TrainingTranscriptTurn } from '../entities/training-session.entity.js';
+import { ChatRole } from '../enums/chat-role.enum.js';
+import { DimensionVariance } from '../enums/dimension-variance.enum.js';
+import { SessionType } from '../enums/session-type.enum.js';
+import { SupervisionSchoolCode } from '../enums/supervision-school-code.enum.js';
+import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import { TrainingSessionStatus } from '../enums/training-session-status.enum.js';
+import { VisitorMode } from '../enums/visitor-mode.enum.js';
+import { VisitorStyle } from '../enums/visitor-style.enum.js';
 
 /**
  * vpt 会话在 `training_sessions` 表里的场景标识 → 见 `../config/vpt.config`.
@@ -181,6 +187,8 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
     private readonly turnAnalysisProcessor: TurnAnalysisProcessor,
     private readonly supervisionProcessor: CounselorSupervisionProcessor,
     private readonly registry: VoiceSessionBridgeRegistry,
+    /** 角色版本插槽 (WP38): 取建会话那一刻的实时角色版本号. */
+    private readonly characterVersions: CharacterVersionRegistry,
     // 全局配置 (最小可分析量阈值) — 空局拦截要用.
     private readonly config: ConfigService,
   ) {}
@@ -198,6 +206,9 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
    */
   async open(input: VoiceSessionOpenInput): Promise<VoiceSessionOpenResult> {
     const difficulty = toTrainingDifficulty(input.preset.difficulty);
+    // WP38: 角色版本 —— 建会话这一刻的**实时**版本号 (角色刚被改过, 这里读到的就是新值).
+    //   读不到 (无角色 / 兜底通道) → null, 不阻断建会话 (角色是可选增强).
+    const characterVersion = input.templateId ? await this.characterVersions.resolve(input.templateId) : null;
     const entity = this.sessionRepo.create({
       // V0.x: tenantId = userId (一人一租户, A9). V1.x 多租户上线后 backfill.
       tenantId: input.tenantId,
@@ -223,6 +234,9 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
       defenseVariance: DimensionVariance.MEDIUM,
       transcript: [],
       supervisionReportId: null,
+      // WP38: 绑定本场用的角色与版本 (可空 = 兜底人设通道 / 无角色).
+      characterTemplateId: input.templateId,
+      characterVersion,
       // 建连成功即计时起点 (与语音侧的墙钟起点一致).
       startedAt: new Date(),
       endedAt: null,
@@ -272,6 +286,54 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
    */
   async replaceTranscript(input: VoiceSessionTranscriptInput): Promise<void> {
     await this.enqueueOpOrThrow(() => this.doReplaceTranscript(input));
+  }
+
+  /**
+   * 读回本场已提交轮次 (V2026-11-03, WP23 · 进程重启后的补漏数据源).
+   *
+   * 数据来源两处, 各管一段:
+   *   · `training_sessions.transcript` (WP18 每轮增量写) → "这一轮说了什么";
+   *   · `training_sessions.turn_debug_trace` (WP19-R 每轮写) → "这一轮的 BDI 快照".
+   *
+   * ⚠️ 归属校验**在这里**做 (按 id + userId 查): `dbSessionId` 是客户端带来的,
+   *   不校验就等于"谁的咨询记录我都能读出来". 查不到 → null → voice 层按不可续处理.
+   *
+   * @param input 读回入参
+   * @returns 已提交轮次; null = 会话不存在 / 不属于该学员
+   */
+  async readCommittedTurns(input: VoiceSessionCommittedTurnsInput): Promise<VoiceSessionCommittedTurnsResult | null> {
+    const row = await this.sessionRepo.findOne({
+      where: { id: input.dbSessionId, userId: input.userId, deletedAt: IsNull() },
+    });
+    if (!row) {
+      this.logger.warn(`[read_committed_turns_no_row] db_session=${input.dbSessionId} user=${input.userId}`);
+      return null;
+    }
+    const rounds = pairTranscriptRounds(row.transcript ?? []);
+    const traces = readTraceArray(row.turnDebugTrace);
+    // 只有当 trace 与轮次**逐号对齐**时才附 BDI 快照 —— 对不上宁可不附:
+    //   trace 的轮次号是内核的累计轮次 (含被 barge-in 掐掉的半截轮), 逐字稿的轮次是
+    //   voice 层的完成轮次. 两者一旦错位, 按序 zip 会把**别的轮次**的快照贴上去 ——
+    //   贴错比不贴更糟 (客户端会照着错的 BDI 继续这段对话).
+    const aligned = traces.length === rounds.length && traces.every((trace, index) => trace.turnIndex === index + 1);
+    const turns: VoiceCatchUpTurn[] = rounds.map((round, index) => {
+      const trace = aligned ? traces[index] : undefined;
+      return {
+        turnIndex: index + 1,
+        userText: round.userText,
+        replyText: round.replyText,
+        ...(trace?.bdiSnapshot ? { bdiSnapshot: trace.bdiSnapshot } : {}),
+        // 标记恒空: 标记由 counselor 侧 worker 实时推帧, 没有可回读的逐轮标记存储.
+        marks: [],
+        // trace 只记了 `detected` / `category`, 没有档位 —— detected 映射成 warn
+        // (三档里最接近的一档); block 档在这一条链路上**还原不出来**.
+        crisisLevel: trace?.crisis?.detected === true ? 'warn' : 'pass',
+      };
+    });
+    this.logger.log(
+      `[read_committed_turns] db_session=${input.dbSessionId} rounds=${rounds.length} ` + `traces=${traces.length} aligned=${aligned}`,
+    );
+    return { turns };
   }
 
   // ── private ────────────────────────────────────────────────────
@@ -325,7 +387,7 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
     // 链不断: 失败只影响本次 op, 后续 op 照常排队.
     this.chain = next.then(() => {});
     await next;
-    if (failure !== undefined) throw failure instanceof Error ? failure : new Error(String(failure));
+    if (failure !== undefined) throw failure instanceof Error ? failure : new Error(safeString(failure, 'unknown error'));
     return result as T;
   }
 
@@ -365,10 +427,14 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
     ];
     row.transcript = [...(row.transcript ?? []), ...turns];
     // 首次发言即视为进入"会谈中" (跟单次训练的 LISTENING 语义一致).
-    if (row.status === TrainingSessionStatus.IDLE) {
-      row.status = TrainingSessionStatus.LISTENING;
-    }
-    await this.sessionRepo.save(row);
+    const nextStatus = row.status === TrainingSessionStatus.IDLE ? TrainingSessionStatus.LISTENING : row.status;
+    // V2026-10-30 治本 (WP19-R · 只写自己管的列):
+    //   这里**不能**用 `save(row)` —— TypeORM 的 save 会把"加载时的整行快照"写回去,
+    //   而 JSON 列在它的 diff 里是**按引用**比较的 (加载出来的对象 ≠ 新对象) →
+    //   于是 `turn_debug_trace` (WP19 每轮留痕) 会被**逐字稿写手的旧副本覆盖**:
+    //   逐字稿与留痕并发写同一行时, 留痕会丢轮次 (实测: 2 轮只留 1 轮).
+    //   改成**只更新自己管的列** (transcript / status): 别的列谁写谁负责, 互不覆盖.
+    await this.sessionRepo.update({ id: dbSessionId }, { transcript: row.transcript, status: nextStatus });
 
     // 该轮分析: 触发点是"来访者那一轮落库后" (与单次训练同款口径 ——
     // 咨询师发言本身不足以判定, 提示要看来访者的反应).
@@ -422,7 +488,9 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
 
     row.status = TrainingSessionStatus.FINISHED;
     row.endedAt = row.endedAt ?? new Date();
-    await this.sessionRepo.save(row);
+    // V2026-10-30 治本 (WP19-R · 只写自己管的列): 收尾同样不用 `save(row)` ——
+    //   否则会把加载时的旧 `turn_debug_trace` 副本写回去, 覆盖掉最后一轮留痕.
+    await this.sessionRepo.update({ id: dbSessionId }, { status: row.status, endedAt: row.endedAt });
     this.logger.log(`[close] db_session=${dbSessionId} reason=${input.reason} turns=${input.turnCount} duration_ms=${input.durationMs}`);
 
     // 空局: 不派发 4 流派督导 (记录保留, 报告派生为 `no_content`).
@@ -491,10 +559,11 @@ export class VptSessionBridgeService implements OnModuleInit, VoiceSessionBridge
 
     const before = (row.transcript ?? []).length;
     row.transcript = incoming;
-    if (row.status === TrainingSessionStatus.IDLE) {
-      row.status = TrainingSessionStatus.LISTENING;
-    }
-    await this.sessionRepo.save(row);
+    const nextStatus = row.status === TrainingSessionStatus.IDLE ? TrainingSessionStatus.LISTENING : row.status;
+    // V2026-10-30 治本 (WP19-R · 只写自己管的列): 同 doAppendTurn ——
+    //   `save(row)` 会把加载时的旧 `turn_debug_trace` 副本一起写回去, 覆盖掉
+    //   这段时间里新落库的留痕. 定向 update 只碰 transcript / status.
+    await this.sessionRepo.update({ id: dbSessionId }, { transcript: row.transcript, status: nextStatus });
     this.logger.log(`[replace_transcript] db_session=${dbSessionId} turns=${before}->${incoming.length}`);
   }
 
@@ -546,4 +615,50 @@ function toTrainingTurns(turns: readonly TranscriptTurn[]): TrainingTranscriptTu
     text: turn.content,
     timestamp: turn.at,
   }));
+}
+
+/**
+ * 逐字稿 → 一轮一轮 (咨询师问 + 来访者答) (V2026-11-03, WP23).
+ *
+ * 落库的逐字稿是**扁平数组** (一问一答两条交替追加), 补漏要的是"一轮"为单位 ——
+ * 客户端把一轮补回去, 才是"我问了一句, 它回了一句".
+ *
+ * 两条硬边界:
+ *   · **成对才收**: 落库是两条两条写的, 进程崩在两条之间时会留下**落单**的一条 ——
+ *     落单的那条不算一轮 (它没有对应的回答), 丢掉它比凑成一轮更真实;
+ *   · **角色必须对上**: 形状不对 (不是 counselor/visitor 交替) 就**停**在那 ——
+ *     继续往下猜会把后面的轮次整体错位.
+ *
+ * @param turns 业务表格式逐字稿
+ * @returns 一轮一轮的对话
+ */
+function pairTranscriptRounds(turns: readonly TrainingTranscriptTurn[]): { userText: string; replyText: string }[] {
+  const rounds: { userText: string; replyText: string }[] = [];
+  for (let index = 0; index + 1 < turns.length; index += 2) {
+    const counselor = turns[index];
+    const visitor = turns[index + 1];
+    if (!counselor || !visitor) break;
+    if (counselor.role !== ChatRole.COUNSELOR || visitor.role !== ChatRole.VISITOR) break;
+    rounds.push({ userText: counselor.text, replyText: visitor.text });
+  }
+  return rounds;
+}
+
+/**
+ * 读回调试快照数组 (V2026-11-03, WP23).
+ *
+ * `turn_debug_trace` 是 json 列, 里面的东西**不保证**是我们写进去的那种 ——
+ * 别的分支写过 / 手工改过 / 老版本写的, 形状都可能不同. 所以这里逐条校验,
+ * 形状不对的直接丢 (宁可少一条, 不要一个坏对象把整轮补漏带歪).
+ *
+ * @param raw json 列的原始值
+ * @returns 形状合法的快照数组
+ */
+function readTraceArray(raw: unknown): TurnTrace[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((item): item is TurnTrace => {
+    if (typeof item !== 'object' || item === null) return false;
+    const candidate = item as { turnIndex?: unknown; bdiSnapshot?: unknown };
+    return typeof candidate.turnIndex === 'number' && typeof candidate.bdiSnapshot === 'object' && candidate.bdiSnapshot !== null;
+  });
 }

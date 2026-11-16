@@ -1,11 +1,11 @@
 import { Controller, Get, NotFoundException, Param, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { PracticeCategoryKey, PracticeToolDto } from '../dto/practice.dto';
-import { PracticeToolService } from '../providers/practice.service';
+import { PracticeCategoryKey, PracticeToolDto } from '../dto/practice.dto.js';
+import { PracticeToolService } from '../providers/practice.service.js';
 
 /**
  * 工具元数据 controller — V2.0 §Tab2 工具列表 + 详情.

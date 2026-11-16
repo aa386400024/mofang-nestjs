@@ -35,8 +35,8 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { SessionType } from '../enums/session-type.enum';
-import { SupervisionFailureCode } from '../enums/supervision-failure-code.enum';
+import { SessionType } from '../enums/session-type.enum.js';
+import { SupervisionFailureCode } from '../enums/supervision-failure-code.enum.js';
 
 /**
  * 一条替代回应 (V2026-10-27, spec 任务 C).

@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-import { DualPuzzleCategory } from '../enums/dual-puzzle-category.enum';
+import { DualPuzzleCategory } from '../enums/dual-puzzle-category.enum.js';
 
 /**
  * 默契拼图题目 entity — V2026-09-12 §6.4 共种默契拼图.

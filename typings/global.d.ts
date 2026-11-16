@@ -1,4 +1,4 @@
-import type { Payload } from '../src/auth';
+import type { Payload } from '../src/auth/index.js';
 
 export declare global {
   type AnyObject = Record<string, unknown>;
@@ -79,6 +79,11 @@ export declare global {
 
       METRICS_ENABLED?: string;
       METRICS_PATH?: string;
+      // V2026-11-03 治本 (WP26 · P2-3 · /metrics 加鉴权):
+      //   抓取端点的独立 token (Bearer). 不声明会直接报 TS4111
+      //   (noPropertyAccessFromIndexSignature: 走 @types/node 的 [key: string] 索引签名时
+      //    点访问不合法, 必须 bracket 访问) —— 与上面 METRICS_* 同一治本思路.
+      METRICS_TOKEN?: string; // 留空 = 没开鉴权 → /metrics 拒绝一切请求 (fail-close)
 
       // V3 合规模块 (心塑 / 魔方共用同意记录)
       // 服务端升级此版本号 → 强制客户端重弹同意 dialog (后端权威)
@@ -158,7 +163,23 @@ export declare global {
       SUPERVISION_REPORT_STREAM_POLL_INTERVAL_MS?: string;
       SUPERVISION_REPORT_STREAM_TIMEOUT_MS?: string;
       // V2026-10-08: Voice Gateway 空闲超时 (Phase 3)
+      //
+      // ⚠️ 这个键**当前无人消费** (仓库里没有任何地方读 `voice.sessionIdleTimeoutMs`),
+      //   它是 Phase 3 留下的死配置. V2026-11-03 (WP23) 新增的
+      //   `VOICE_SESSION_IDLE_TIMEOUT_MINUTES` 才是真正生效的那个 (单位: 分钟).
+      //   保留声明是为了不破坏任何"按 env 键查文档"的用法, 但**别拿它配超时**.
       VOICE_SESSION_IDLE_TIMEOUT_MS?: string;
+      // V2026-11-03 治本 (WP23 · 断线重连追平):
+      //   下面是本轮新增的 2 个 env 键 (不声明会报 TS4111 —— 同上治理思路).
+      VOICE_SESSION_IDLE_TIMEOUT_MINUTES?: string; // 会话 idle 兜底 (分钟, 默认 120; 非法 → 回退默认)
+      VOICE_CATCHUP_MAX_TURNS?: string; // 重连最多补几轮 (默认 20; 非法 → 回退默认)
+      // V2026-11-02 治本 (WP22 · 语音对练限流与并发上限):
+      //   下面是本轮新增的 2 个 env 键. 不声明会直接报 TS4111
+      //   (noPropertyAccessFromIndexSignature: 走 @types/node 的 [key: string] 索引签名时
+      //    点访问不合法, 必须 bracket 访问) —— 与上面 VOICE_SESSION_IDLE_TIMEOUT_MS
+      //    同一治本思路: **显式声明到 ProcessEnv**, 不用 bracket 访问绕过.
+      VOICE_DAILY_TOKEN_BUDGET?: string; // 全局当日 completion token 预算 (0 = 不限制)
+      VOICE_MAX_CONCURRENT_PER_USER?: string; // 单用户并发语音会话上限 (本期恒为 1)
       EMBEDDING_PROVIDER_DEV?: string;
       EMBEDDING_PROVIDER_PROD?: string;
       EMBEDDING_API_KEY?: string;
@@ -169,6 +190,227 @@ export declare global {
       QDRANT_URL?: string;
       QDRANT_API_KEY?: string;
       QDRANT_COLLECTION?: string;
+      // V2026-11-03 WP37 (会话摘要参数 · 滚动摘要 + 最终摘要):
+      //   下面是会话摘要一族的 3 个 env 键. 显式声明的理由与上面 ENGINE_* 同一治本思路:
+      //   **逐个字面量**读 (src/engine-adapters/wiring/session-summary.config.ts),
+      //   不用计算键 —— 计算键编译器拦不住, 且 env 覆盖断言 (AST 抽取) 扫不到,
+      //   漏写一个键会静默失效.
+      //   ⚠️ 参数是**工程种子值, 非临床标定** (待真实对练校准).
+      SESSION_SUMMARY_BATCH_SIZE?: string; // 滚动摘要攒批阈值 (默认 3: 攒够 3 轮压一次)
+      SESSION_SUMMARY_ROLLING_IMPORTANCE?: string; // 滚动摘要重要度 [0,1] (默认 0.5)
+      SESSION_SUMMARY_FINAL_IMPORTANCE?: string; // 最终摘要重要度 [0,1] (默认 0.9)
+      // V2026-11-03 治本 (WP26 · P2-13 — 单回合 delta cap 参数):
+      //   下面是 WP15 引入的 18 个 env 键 (9 维度 × 上下向).
+      //   显式声明的理由与上面 MINIMAX_* / VOICE_* 同一治本思路:
+      //   **显式登记到 ProcessEnv**, 不用 bracket / 计算键访问绕过 ——
+      //   计算键 (`ENGINE_CAP_${dim}_${direction}`) 编译器拦不住 (TS4111 只管点访问),
+      //   属**静默偏离**: 键名散在运行时算出来, 人读代码读不到, env 覆盖断言也扫不到.
+      //   现在由适配层 (src/engine-adapters/wiring/delta-cap.config.ts) **逐个字面量**读,
+      //   装配成内核的 DeltaCapConfig 端口注入 —— 内核零 process.env.
+      ENGINE_CAP_TRUST_UP?: string; // 信任单回合上向 cap (默认 0.2)
+      ENGINE_CAP_TRUST_DOWN?: string; // 信任单回合下向 cap (默认 -0.3)
+      ENGINE_CAP_SAFETY_UP?: string; // 安全感单回合上向 cap (默认 0.2)
+      ENGINE_CAP_SAFETY_DOWN?: string; // 安全感单回合下向 cap (默认 -0.3)
+      ENGINE_CAP_BOND_UP?: string; // 纽带感单回合上向 cap (默认 0.2)
+      ENGINE_CAP_BOND_DOWN?: string; // 纽带感单回合下向 cap (默认 -0.3)
+      ENGINE_CAP_VALENCE_UP?: string; // 情绪效价单回合上向 cap (默认 0.2)
+      ENGINE_CAP_VALENCE_DOWN?: string; // 情绪效价单回合下向 cap (默认 -0.3)
+      ENGINE_CAP_AROUSAL_UP?: string; // 唤醒度单回合上向 cap (默认 0.2)
+      ENGINE_CAP_AROUSAL_DOWN?: string; // 唤醒度单回合下向 cap (默认 -0.2)
+      ENGINE_CAP_VERBAL_UP?: string; // 言语阻抗单回合上向 cap (默认 0.2)
+      ENGINE_CAP_VERBAL_DOWN?: string; // 言语阻抗单回合下向 cap (默认 -0.2)
+      ENGINE_CAP_DEPTH_UP?: string; // 深度阻抗单回合上向 cap (默认 0.2)
+      ENGINE_CAP_DEPTH_DOWN?: string; // 深度阻抗单回合下向 cap (默认 -0.2)
+      ENGINE_CAP_STYLE_UP?: string; // 风格阻抗单回合上向 cap (默认 0.2)
+      ENGINE_CAP_STYLE_DOWN?: string; // 风格阻抗单回合下向 cap (默认 -0.2)
+      ENGINE_CAP_POSITIVE_UP?: string; // 正向移情单回合上向 cap (默认 0.15)
+      ENGINE_CAP_POSITIVE_DOWN?: string; // 正向移情单回合下向 cap (默认 -0.15)
+      ENGINE_CAP_NEGATIVE_UP?: string; // 负向移情单回合上向 cap (默认 0.15)
+      ENGINE_CAP_NEGATIVE_DOWN?: string; // 负向移情单回合下向 cap (默认 -0.15)
+      ENGINE_CAP_DEPENDENCY_UP?: string; // 依赖单回合上向 cap (默认 0.15)
+      ENGINE_CAP_DEPENDENCY_DOWN?: string; // 依赖单回合下向 cap (默认 -0.15)
+      // V2026-11-03 治本 (WP34 — P1 人格调节系数):
+      //   下面是人格调节算子的 env 键 (4 依恋类型 × 2 系数 + 宜人性 2 项 = 10 个;
+      //   WP53 再加 4 依恋类型 × 2 同盟系数 = 8 个 → 本段共 18 个).
+      //   显式声明的理由与上面 ENGINE_CAP_* 同一治本思路:
+      //   **逐个字面量**读 (src/engine-adapters/wiring/personality-modulator.config.ts),
+      //   不用计算键 (`ENGINE_MOD_${style}_${kind}`) —— 计算键编译器拦不住,
+      //   且 env 覆盖断言 (AST 抽取) 扫不到, 漏写一个键会静默失效.
+      //   装配成内核的 PersonalityModulatorConfig 端口注入 —— 内核零 process.env.
+      //   ⚠️ 系数是**工程种子值, 非临床标定** (待真实对练校准).
+      ENGINE_MOD_SECURE_TRUST_SCALE?: string; // 安全型 trust 增益系数 (默认 1.0)
+      ENGINE_MOD_SECURE_RESIST_SCALE?: string; // 安全型 阻抗倍率 (默认 1.0)
+      ENGINE_MOD_SECURE_SAFETY_SCALE?: string; // 安全型 safety 增益系数 (默认 1.0)
+      ENGINE_MOD_SECURE_BOND_SCALE?: string; // 安全型 bond 增益系数 (默认 1.0)
+      ENGINE_MOD_AVOIDANT_TRUST_SCALE?: string; // 回避型 trust 增益系数 (默认 0.6)
+      ENGINE_MOD_AVOIDANT_RESIST_SCALE?: string; // 回避型 阻抗倍率 (默认 1.3)
+      ENGINE_MOD_AVOIDANT_SAFETY_SCALE?: string; // 回避型 safety 增益系数 (默认 0.5)
+      ENGINE_MOD_AVOIDANT_BOND_SCALE?: string; // 回避型 bond 增益系数 (默认 0.5)
+      ENGINE_MOD_ANXIOUS_TRUST_SCALE?: string; // 焦虑型 trust 增益系数 (默认 1.2)
+      ENGINE_MOD_ANXIOUS_RESIST_SCALE?: string; // 焦虑型 阻抗倍率 (默认 0.8)
+      ENGINE_MOD_ANXIOUS_SAFETY_SCALE?: string; // 焦虑型 safety 增益系数 (默认 0.7)
+      ENGINE_MOD_ANXIOUS_BOND_SCALE?: string; // 焦虑型 bond 增益系数 (默认 1.3)
+      ENGINE_MOD_DISORGANIZED_TRUST_SCALE?: string; // 混乱型 trust 增益系数 (默认 0.8)
+      ENGINE_MOD_DISORGANIZED_RESIST_SCALE?: string; // 混乱型 阻抗倍率 (默认 1.2)
+      ENGINE_MOD_DISORGANIZED_SAFETY_SCALE?: string; // 混乱型 safety 增益系数 (默认 0.6)
+      ENGINE_MOD_DISORGANIZED_BOND_SCALE?: string; // 混乱型 bond 增益系数 (默认 0.8)
+      ENGINE_MOD_AGREEABLENESS_TRUST_SCALE?: string; // 高宜人性的 trust 增益系数 (默认 1.1)
+      ENGINE_MOD_AGREEABLENESS_HIGH_THRESHOLD?: string; // 高宜人性阈值 [0,1] (默认 0.7)
+      // V2026-11-03 WP42 (咨询同盟三维 · 系数与门槛):
+      //   下面是同盟三维 (trust / safety / bond) 的 25 个 env 键
+      //   (11 种事件 × 2 维覆写 + 3 个门槛).
+      //   显式声明的理由与上面 ENGINE_CAP_* / ENGINE_MOD_* 同一治本思路:
+      //   **逐个字面量**读 (src/engine-adapters/wiring/alliance-config.ts),
+      //   不用计算键 (`ENGINE_ALLIANCE_${kind}_${dim}`) —— 计算键编译器拦不住,
+      //   且 env 覆盖断言 (AST 抽取) 扫不到, 漏写一个键会静默失效.
+      //   装配成内核的 AllianceConfig 端口注入 —— 内核零 process.env.
+      //   ⚠️ 系数是**工程种子值, 非临床标定** (待真实对练校准).
+      ENGINE_ALLIANCE_EMPATHY_SAFETY?: string; // 共情对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_EMPATHY_BOND?: string; // 共情对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_ACCEPTANCE_SAFETY?: string; // 接纳对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_ACCEPTANCE_BOND?: string; // 接纳对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_NORMALIZATION_SAFETY?: string; // 正常化对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_NORMALIZATION_BOND?: string; // 正常化对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_OPEN_PROBE_SAFETY?: string; // 开放探问对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_OPEN_PROBE_BOND?: string; // 开放探问对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_AFFIRMATION_SAFETY?: string; // 肯定对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_AFFIRMATION_BOND?: string; // 肯定对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_JUDGMENT_SAFETY?: string; // 评判对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_JUDGMENT_BOND?: string; // 评判对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_PREACHING_SAFETY?: string; // 说教对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_PREACHING_BOND?: string; // 说教对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_MINIMIZING_SAFETY?: string; // 淡化对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_MINIMIZING_BOND?: string; // 淡化对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_BOUNDARY_CROSS_SAFETY?: string; // 越界对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_BOUNDARY_CROSS_BOND?: string; // 越界对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_SENSITIVE_TOUCH_SAFETY?: string; // 敏感议题触碰对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_SENSITIVE_TOUCH_BOND?: string; // 敏感议题触碰对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_NEUTRAL_SAFETY?: string; // 中性事件对安全感的单事件增量覆写
+      ENGINE_ALLIANCE_NEUTRAL_BOND?: string; // 中性事件对纽带感的单事件增量覆写
+      ENGINE_ALLIANCE_OPEN_THRESHOLD?: string; // 探索门槛 [0,1]: min(信任, 安全感) >= 它才探索 (默认 0.6)
+      ENGINE_ALLIANCE_RESIST_TRUST_THRESHOLD?: string; // 抗拒门槛 (信任维) [0,1] (默认 0.4)
+      ENGINE_ALLIANCE_RESIST_SAFETY_THRESHOLD?: string; // 抗拒门槛 (安全感维) [0,1] (默认 0.3)
+      // V2026-11-08 WP60 (delta 规则表配置化):
+      //   下面是 11 个事件各一个 JSON 键 —— 事件 → delta 增量的**逐维度**覆写.
+      //   显式声明的理由与上面 ENGINE_CAP_* / ENGINE_MOD_* / ENGINE_ALLIANCE_* 同一治本思路:
+      //   **逐个字面量**读 (src/engine-adapters/wiring/delta-table.config.ts),
+      //   不用计算键 (`ENGINE_DELTA_${kind}`) —— 计算键编译器拦不住,
+      //   且 env 覆盖断言 (AST 抽取) 扫不到, 漏写一个键会静默失效.
+      //   装配成内核的 DeltaTableConfig 端口注入 —— 内核零 process.env.
+      //   合法维度 (11 个): trust / safety / bond / verbal / depth / style /
+      //                     valence / arousal / positive / negative / dependency.
+      //   ⚠️ 系数是**工程种子值, 非临床标定** (待真实对练校准).
+      ENGINE_DELTA_EMPATHY?: string; // 共情事件的增量覆写 JSON (如 {"trust":0.15})
+      ENGINE_DELTA_ACCEPTANCE?: string; // 接纳事件的增量覆写 JSON
+      ENGINE_DELTA_NORMALIZATION?: string; // 正常化事件的增量覆写 JSON
+      ENGINE_DELTA_OPEN_PROBE?: string; // 开放探问事件的增量覆写 JSON
+      ENGINE_DELTA_AFFIRMATION?: string; // 肯定事件的增量覆写 JSON
+      ENGINE_DELTA_JUDGMENT?: string; // 评判事件的增量覆写 JSON
+      ENGINE_DELTA_PREACHING?: string; // 说教事件的增量覆写 JSON
+      ENGINE_DELTA_MINIMIZING?: string; // 淡化事件的增量覆写 JSON
+      ENGINE_DELTA_BOUNDARY_CROSS?: string; // 越界事件的增量覆写 JSON
+      ENGINE_DELTA_SENSITIVE_TOUCH?: string; // 敏感议题触碰事件的增量覆写 JSON
+      ENGINE_DELTA_NEUTRAL?: string; // 中性事件的增量覆写 JSON
+      // V2026-11-03 WP36 (跨会话间隔自然衰减 · 半衰期):
+      //   下面是 resume 时对情绪 / 阻抗 / 同盟三维做差异化半衰期回落的 3 个 env 键.
+      //   显式声明的理由与上面 ENGINE_CAP_* / ENGINE_MOD_* / ENGINE_ALLIANCE_* 同一治本思路:
+      //   **逐个字面量**读 (src/engine-adapters/wiring/session-decay.config.ts),
+      //   不用计算键 (`ENGINE_DECAY_${group}_HALF_LIFE_MS`) —— 计算键编译器拦不住,
+      //   且 env 覆盖断言 (AST 抽取) 扫不到, 漏写一个键会静默失效.
+      //   装配成内核的 SessionDecayConfig 端口注入 —— 内核零 process.env.
+      //   ⚠️ 半衰期是**工程种子值, 非临床标定** (待真实对练校准).
+      ENGINE_DECAY_EMOTION_HALF_LIFE_MS?: string; // 情绪半衰期 (ms, 默认 7 天)
+      ENGINE_DECAY_RESISTANCE_HALF_LIFE_MS?: string; // 阻抗半衰期 (ms, 默认 14 天)
+      ENGINE_DECAY_ALLIANCE_HALF_LIFE_MS?: string; // 同盟半衰期 (ms, 默认 30 天)
+      // V2026-11-05 治本 (WP32 — BDI 状态持久化):
+      //   下面是 BDI 状态存储形态的 2 个 env 键. 显式声明的理由与上面 ENGINE_DECAY_* 同一治本思路:
+      //   **逐个字面量**读 (src/engine-adapters/wiring/engine.module.ts), 不用计算键 ——
+      //   env 覆盖断言 (AST 抽取) 扫不到计算键, 漏写一个键会静默失效.
+      //   装配成"BDI 状态存哪儿"的部署形态决定 (内核零 env 读取, 状态仓储本身在 B 层).
+      ENGINE_BDI_STATE_STORE?: string; // BDI 状态存储形态: memory (缺省) | redis (非法值启动期炸)
+      ENGINE_BDI_STATE_REDIS_TTL_SECONDS?: string; // Redis 版 TTL 秒数 (默认 604800 = 7 天)
+      // V2026-11-05 治本 (WP64 — LLM 审议层 PoC · 影子模式):
+      //   下面是影子审议的 4 个 env 键. 显式声明的理由与上面 ENGINE_DECAY_* 同一治本思路:
+      //   **逐个字面量**读 (src/engine-adapters/deliberation/llm-deliberation.service.ts),
+      //   不用计算键 —— env 覆盖断言 (AST 抽取) 扫不到计算键, 漏写一个键会静默失效.
+      //   装配成"审议层的运行参数"注入审议服务 (内核零 env 读取).
+      //   ⚠️ 影子模式**默认关** —— 它每轮会多发一次 LLM 请求 (真花钱).
+      //   ⚠️ 数值键读到的**一定是字符串** (ConfigService 不做类型转换), 必须自己解析 + 回退默认.
+      ENGINE_DELIBERATION_ENABLED?: string; // 影子审议开关: true/1/yes/on 开; 缺省 = 关
+      ENGINE_DELIBERATION_MODEL?: string; // 审议专用模型名 (留空 = 用 counselor 域默认模型)
+      ENGINE_DELIBERATION_TIMEOUT_MS?: string; // 单次审议超时 (毫秒, 默认 3000; 非法值回退默认)
+      ENGINE_DELIBERATION_TEMPERATURE?: string; // 审议采样温度 (默认 0.3; M3.1-Flash 会忽略它)
+      // V2026-11-05 治本 (WP65 — 审议影子模式 BullMQ 队列化):
+      //   审议 Worker 的并发数. 同样**逐个字面量**读
+      //   (src/engine-adapters/deliberation/deliberation.processor.ts).
+      //   ⚠️ 数值键读到的**一定是字符串**, 必须自己解析 + 回退默认 (填错一个 env 不该让服务起不来).
+      ENGINE_DELIBERATION_WORKER_CONCURRENCY?: string; // 审议 Worker 并发数 (默认 3; 非法值回退默认)
+      // V2026-11-05 治本 (WP66 — 审议输出格式校验与重试):
+      //   审议的重试次数. 同样**逐个字面量**读
+      //   (src/engine-adapters/deliberation/deliberation.processor.ts).
+      //   ⚠️ 只在**入队时**读 (attempts 是 job 选项, 入队后固定) —— 开关仍在执行时读.
+      ENGINE_DELIBERATION_MAX_RETRIES?: string; // 审议重试次数 (默认 1 = 总共跑 2 次; 非法值回退默认)
+      // V2026-11-05 治本 (WP67 — 审议熔断与降级策略):
+      //   熔断阈值与冷却时长. 同样**逐个字面量**读
+      //   (src/engine-adapters/deliberation/deliberation.processor.ts).
+      //   ⚠️ 数值键读到的**一定是字符串**, 必须自己解析 + 回退默认.
+      ENGINE_DELIBERATION_FAILURE_THRESHOLD?: string; // 连续失败多少次熔断 (默认 3; 非法值回退默认)
+      ENGINE_DELIBERATION_COOLDOWN_MS?: string; // 熔断冷却时长 (毫秒, 默认 600000 = 10 分钟; 非法值回退默认)
+      // V2026-11-05 治本 (WP68 — 意图锁定机制):
+      //   意图锁定轮数. 同样**逐个字面量**读
+      //   (src/engine-adapters/deliberation/llm-deliberation.service.ts).
+      //   ⚠️ 数值键读到的**一定是字符串**, 必须自己解析 + 回退默认.
+      ENGINE_DELIBERATION_INTENTION_LOCK_ROUNDS?: string; // 锁定几轮 (默认 3; 0 = 关掉锁定; 非法值回退默认)
+      // V2026-11-08 治本 (R9 — 灰度切换开关):
+      //   下面是"审议从只观察升级为可生效"的两个键. 同样**逐个字面量**读
+      //   (src/engine-adapters/deliberation/deliberation-mode.config.ts).
+      //   ⚠️ 缺省组合 = **纯规则** —— 与改造前逐字一致 (零回归).
+      ENGINE_DELIBERATION_EFFECTIVE_MODE?: string; // 生效模式: shadow(缺省) / rule_only / llm_active; 非法值回退 shadow
+      ENGINE_DELIBERATION_GRAYSCALE_SESSIONS?: string; // 生效路径的会话白名单 (逗号分隔 sessionId; 缺省 = 全量)
+      // V2026-11-09 治本 (Phase2.5 WP-C — 触发式审议闸门):
+      //   下面是闸门的 12 个 env 键. 同样**逐个字面量**读
+      //   (src/engine-adapters/deliberation-gate/deliberation-gate.config.ts).
+      //   ⚠️ 影子与生效各一套参数 (SHADOW / EFFECT 后缀) —— 两套冷却/计数互不干扰.
+      //   ⚠️ 数值键读到的**一定是字符串**, 必须自己解析 + 回退默认 (填错一个 env 不该让服务起不来).
+      ENGINE_DELIBERATION_GATE_ALLIANCE_THRESHOLD_EFFECT?: string; // 同盟三维触发阈值 (生效, 默认 0.05; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_ALLIANCE_THRESHOLD_SHADOW?: string; // 同盟三维触发阈值 (影子, 默认 0.03; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_RESISTANCE_THRESHOLD_EFFECT?: string; // 阻抗三维触发阈值 (生效, 默认 0.08; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_RESISTANCE_THRESHOLD_SHADOW?: string; // 阻抗三维触发阈值 (影子, 默认 0.05; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_CALM_THRESHOLD_EFFECT?: string; // 全平静阈值 (生效, 默认 0.03; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_CALM_THRESHOLD_SHADOW?: string; // 全平静阈值 (影子, 默认 0.03; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_COOLDOWN_EFFECT?: string; // 冷却轮数 (生效, 默认 4; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_COOLDOWN_SHADOW?: string; // 冷却轮数 (影子, 默认 1; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_MAX_PER_SESSION_EFFECT?: string; // 每会话最大生效次数 (默认 6; 影子不限)
+      ENGINE_DELIBERATION_GATE_GLOBAL_RPM?: string; // 全局每分钟配额 (默认 20; 影子不限)
+      ENGINE_DELIBERATION_GATE_CIRCUIT_FAIL_COUNT?: string; // 连续失败多少次熔断 (默认 5; 非法值回退默认)
+      ENGINE_DELIBERATION_GATE_CIRCUIT_COOLDOWN_MS?: string; // 熔断持续时长 (毫秒, 默认 600000; 非法值回退默认)
+      // V2026-11-09 治本 (WP-C 顺手补齐 · Phase2.5 WP-D 自动对练的登记缺口):
+      //   这 3 个键代码里早就在读 (src/auto-practice/), 但 .env.example 一直没登记 ——
+      //   WP25 的 env 双向守卫断言①一直是红的. 这里补上 (不改任何行为).
+      AUTO_PRACTICE_COUNSELOR_MODEL?: string; // 自动对练的咨询师模型名 (留空 = 用 router 默认)
+      AUTO_PRACTICE_WORKER_CONCURRENCY?: string; // 自动对练 Worker 并发数 (默认 2, 范围 1~5; 非法值回退默认)
+      ENGINE_VERSION?: string; // 推理环境指纹里的引擎版本号 (默认 dev; 非法值回退默认)
+      // V2026-11-10 治本 (WP-H 新增 10 — 跑批期 TypeORM query 日志降噪):
+      //   缺省 = 关 query 日志 (跑批时逐条 SQL 会把关键行淹没);
+      //   error / warn / migration 永远保留 (慢查询按 warn 落, 不会被静音).
+      DB_QUERY_LOGGING?: string; // 是否打印 TypeORM query 日志 (只有字面量 "true" 才开)
+      // V2026-11-07 治本 (临床合理性校验 · 观测版):
+      //   审议输出的临床合理性**观测**开关. 同样**逐个字面量**读
+      //   (src/engine-adapters/deliberation/llm-deliberation.service.ts).
+      //   ⚠️ 缺省 = **关** (影子期默认不跑); 打开后只**标记**可疑轮次, 不拦截不砍幅.
+      ENGINE_CLINICAL_SANITY_ENABLED?: string; // 临床合理性观测开关 (缺省 = 关 false; true/1/yes/on 开)
+      // V2026-11-05 治本 (WP58 — 引擎调试面板):
+      //   下面是调试面板写接口的 2 个 env 键. 同样**逐个字面量**读
+      //   (src/admin-debug/debug-session.service.ts).
+      //   ⚠️ 数值键读到的**一定是字符串**, 必须自己解析 + 回退默认.
+      // ⚠️ 调试接口**能真跑引擎** (每轮一次 LLM) —— 生产环境缺省必须关.
+      ENGINE_DEBUG_CHAT_ENABLED?: string; // 调试面板写接口开关: true/1/yes/on 开; 缺省 = 非生产开 / 生产关
+      ENGINE_DEBUG_CHAT_DELIBERATION_WAIT_MS?: string; // 等审议 trace 的上限 (毫秒, 默认 5000; 0 = 不等)
+      // V2026-11-06 治本 (WP58 — 事件 + delta 审计观测):
+      //   下面是观测通道的开关. 同样**逐个字面量**读
+      //   (src/engine-adapters/wiring/turn-delta-audit/turn-delta-audit.config.ts).
+      //   ⚠️ 缺省 = 关 —— 关着时连分类器都不跑 (零开销).
+      TURN_DELTA_AUDIT_ENABLED?: string; // 事件 + delta 审计观测开关: true/1/yes/on 开; 缺省 = 关
     }
   }
 

@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 // V2026-10-28 治本 (WP2 · B 层 · Qdrant 记忆仓储与 embedding 适配器单测):
 //   覆盖任务单 §8 B 层清单 9-10:
 //     9. QdrantMemoryStore.remember/recall 正确映射 payload 与 score;
@@ -11,15 +12,15 @@
 //   验证: npx jest test/engine-adapters
 //   时间戳: 2026-10-28 GMT+8
 
-import { OpenAICompatEmbedder } from '../../src/engine-adapters/embedder/openai-compat.embedder';
+import { OpenAICompatEmbedder } from '../../src/engine-adapters/embedder/openai-compat.embedder.js';
 import {
   QdrantMemoryStore,
   VISITOR_LONG_MEMORY_COLLECTION,
   type QdrantMemoryClient,
-} from '../../src/engine-adapters/persistence/qdrant-memory.store';
-import { MemorySource, MemoryTier, type Embedder, type MemoryEntry } from '../../src/engine-core';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
-import type { LlmRouterService } from '../../src/llm/registry/llm-router.service';
+} from '../../src/engine-adapters/persistence/qdrant-memory.store.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
+import { MemorySource, MemoryTier, type Embedder, type MemoryEntry } from '../../src/engine-core/index.js';
+import type { LlmRouterService } from '../../src/llm/registry/llm-router.service.js';
 
 const TENANT = 'default';
 const VISITOR = 'visitor-1';
@@ -87,7 +88,7 @@ class StubQdrant implements QdrantMemoryClient {
 /** Embedder stub: 传入 Error 即模拟"embed 失败" (真实适配器返回空向量). */
 function stubEmbedder(result: number[] | Error): Embedder {
   return {
-    embed: jest.fn(async () => (result instanceof Error ? [] : result)),
+    embed: vi.fn(async () => (result instanceof Error ? [] : result)),
   };
 }
 
@@ -318,7 +319,7 @@ describe('WP2 · B 层 OpenAI 兼容 embedding 适配器', () => {
   /** router stub: 返回固定响应或抛错. */
   function makeRouter(result: { results: { vector: number[] }[] } | Error): LlmRouterService {
     return {
-      embed: jest.fn(async () => {
+      embed: vi.fn(async () => {
         if (result instanceof Error) throw result;
         return result;
       }),

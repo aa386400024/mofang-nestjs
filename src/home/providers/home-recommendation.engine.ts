@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
 
-import type { TodayRecommendationDto } from '../dto/home-overview.dto';
-import { formatDateLabel, getTimeSlotFromHour, HOME_GREETING_BY_SLOT, type HomeEmotionLevel, type HomeTimeSlot } from '../home.constants';
+import type { TodayRecommendationDto } from '../dto/home-overview.dto.js';
+import {
+  formatDateLabel,
+  getTimeSlotFromHour,
+  HOME_GREETING_BY_SLOT,
+  type HomeEmotionLevel,
+  type HomeTimeSlot,
+} from '../home.constants.js';
 
 /**
  * 首页「今日推荐」算法引擎 — 大厂「配置驱动」设计 (V2.0 §3 Tab1 今日推荐).

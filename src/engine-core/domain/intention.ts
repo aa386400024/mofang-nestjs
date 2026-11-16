@@ -5,9 +5,9 @@
 //
 //   五字段 (对齐 roadmap WP1 意图层): 行为策略 + 情绪 + 阻抗 + 移情 + 禁止行为.
 
-import type { BdiResistance } from './bdi-snapshot';
-import type { EmotionState } from './emotion';
-import type { TransferenceState } from './transference';
+import type { BdiResistance } from './bdi-snapshot.js';
+import type { EmotionState } from './emotion.js';
+import type { TransferenceState } from './transference.js';
 
 /** 来访本轮行为策略 (借 PatientHub BEHAVIORS). */
 export type BehaviorStrategy =

@@ -36,7 +36,7 @@
 //     2. InMemoryMemoryStore 的 TTL 过期 / limit clamp / tier 过滤有单测覆盖
 //     3. WP2 换 Qdrant 实现时本文件只需追加, 不改既有字段
 
-import { EngineCoreError, EngineErrorCode } from '../engine-errors';
+import { EngineCoreError, EngineErrorCode } from '../engine-errors.js';
 
 /** 记忆分层 (三级记忆). */
 export enum MemoryTier {
@@ -201,6 +201,7 @@ export interface MemoryStore {
    * @param entry 待写条目
    * @throws EngineCoreError code=INVALID_INPUT tenantId / id / sessionId 为空 / importance 越界 /
    *         ttlMs 非法 / LONG_TERM 缺 visitorId
+   * @throws EngineCoreError code=STORAGE_FAILURE 底层存储不可达 / 写入失败 (WP26 · P2-18)
    */
   remember(entry: MemoryEntry): Promise<void>;
 
@@ -208,6 +209,8 @@ export interface MemoryStore {
    * 按租户 + 会话 (或租户 + 来访者) 召回记忆.
    * @param query 召回条件
    * @returns 命中列表, 已按相关度 / 有效重要度 / 时间排序并截断
+   * @throws EngineCoreError code=INVALID_INPUT 召回条件非法
+   * @throws EngineCoreError code=STORAGE_FAILURE 底层存储不可达 / 查询失败 (WP26 · P2-18)
    */
   recall(query: MemoryRecallQuery): Promise<readonly MemoryHit[]>;
 }

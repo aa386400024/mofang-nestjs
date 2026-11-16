@@ -13,9 +13,9 @@
 //     3. SupervisorReportStatus 枚举值写库时落 supervision_reports.status 字符串
 //     4. parseErrorPlaceholder 工厂函数返回 status=parse_error 的占位报告
 
-import type { VoiceSkillCode } from '../../shared/types/voice-skill.types';
-import type { LlmStream, LlmStreamChunk } from '../llm/llm.types';
-import type { VisitorPersonaSnapshot } from '../visitor/visitor.types';
+import type { VoiceSkillCode } from '../../shared/types/voice-skill.types.js';
+import type { LlmStream, LlmStreamChunk } from '../llm/llm.types.js';
+import type { VisitorPersonaSnapshot } from '../visitor/visitor.types.js';
 
 /** 报告状态机 — V0.x 两态, V1.x 扩 retry/timeout. */
 export type SupervisorReportStatus = 'completed' | 'parse_error';

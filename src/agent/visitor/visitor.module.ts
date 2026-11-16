@@ -14,10 +14,10 @@
 
 import { Module } from '@nestjs/common';
 
-import { VisitorContextModule } from './visitor-context.module';
-import { VisitorService } from './visitor.service';
-import { LlmModule } from '../llm/llm.module';
-import { PersonaModule } from '../persona/persona.module';
+import { VisitorContextModule } from './visitor-context.module.js';
+import { VisitorService } from './visitor.service.js';
+import { LlmModule } from '../llm/llm.module.js';
+import { PersonaModule } from '../persona/persona.module.js';
 
 @Module({
   // V2026-10-21 治本 (V1.2 VS-B2 — 引入 @Global 上下文注册表模块):

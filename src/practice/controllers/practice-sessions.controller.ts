@@ -1,11 +1,11 @@
 import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { CompleteSessionDto, PracticeFeedbackDto, PracticeSessionDto, StartSessionDto } from '../dto/practice.dto';
-import { PracticeSessionService } from '../providers/practice.service';
+import { CompleteSessionDto, PracticeFeedbackDto, PracticeSessionDto, StartSessionDto } from '../dto/practice.dto.js';
+import { PracticeSessionService } from '../providers/practice.service.js';
 
 /**
  * 练习会话生命周期 controller — V2.0 §Tab2 工具执行页.

@@ -8,8 +8,8 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 
-import type { AIRecommendItemDto, AIRecommendListDto } from '../dto/ai-recommend.dto';
-import { AIRecommendKind, AIRecommendPhase } from '../enums/ai-recommend.enums';
+import type { AIRecommendItemDto, AIRecommendListDto } from '../dto/ai-recommend.dto.js';
+import { AIRecommendKind, AIRecommendPhase } from '../enums/ai-recommend.enums.js';
 
 /**
  * V2.0 推荐服务 — 规则版 (V3 接 ML).

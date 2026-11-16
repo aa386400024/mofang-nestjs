@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
 import {
   MicroInterventionActiveResponseDto,
@@ -11,8 +11,8 @@ import {
   MicroInterventionQueryDto,
   MicroInterventionSettingsDto,
   MicroInterventionStartResponseDto,
-} from '../dto/home-overview.dto';
-import { HomeMicroInterventionService } from '../providers/home-micro-intervention.service';
+} from '../dto/home-overview.dto.js';
+import { HomeMicroInterventionService } from '../providers/home-micro-intervention.service.js';
 
 /**
  * 场景化微干预 controller — V2.0 §3 + §6 (DESIGN).

@@ -3,21 +3,21 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { UserController } from './controllers/user.controller';
-import { AuditLog } from './entities/audit-log.entity';
-import { OAuthIdentity } from './entities/oauth-identity.entity';
-import { PasswordHistory } from './entities/password-history.entity';
-import { Session } from './entities/session.entity';
-import { User } from './entities/user.entity';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { AuditLogService } from './providers/audit-log.service';
-import { EmailVerificationService } from './providers/email-verification.service';
-import { JwtBlacklistService } from './providers/jwt-blacklist.service';
-import { PasswordHistoryService } from './providers/password-history.service';
-import { PasswordResetService } from './providers/password-reset.service';
-import { SessionService } from './providers/session.service';
-import { UserService } from './providers/user.service';
-import { VerificationCodeService } from './providers/verification-code.service';
+import { UserController } from './controllers/user.controller.js';
+import { AuditLog } from './entities/audit-log.entity.js';
+import { OAuthIdentity } from './entities/oauth-identity.entity.js';
+import { PasswordHistory } from './entities/password-history.entity.js';
+import { Session } from './entities/session.entity.js';
+import { User } from './entities/user.entity.js';
+import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import { AuditLogService } from './providers/audit-log.service.js';
+import { EmailVerificationService } from './providers/email-verification.service.js';
+import { JwtBlacklistService } from './providers/jwt-blacklist.service.js';
+import { PasswordHistoryService } from './providers/password-history.service.js';
+import { PasswordResetService } from './providers/password-reset.service.js';
+import { SessionService } from './providers/session.service.js';
+import { UserService } from './providers/user.service.js';
+import { VerificationCodeService } from './providers/verification-code.service.js';
 
 /**
  * Parse JWT expiresIn string (e.g. '15m', '7d', '1h') into seconds number.

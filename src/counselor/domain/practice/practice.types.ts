@@ -23,14 +23,14 @@
 //
 //   时间戳: 2026-10-22
 
-import { PracticeDefenseStyle } from '../../enums/practice-defense-style.enum';
-import { PracticeDifficulty } from '../../enums/practice-difficulty.enum';
-import { PracticeEmotionIntensity } from '../../enums/practice-emotion-intensity.enum';
-import { PracticeFeedbackSource } from '../../enums/practice-feedback-source.enum';
-import { PracticeFeedbackTone } from '../../enums/practice-feedback-tone.enum';
-import { PracticeRubricCheck } from '../../enums/practice-rubric-check.enum';
-import { PracticeScenarioSource } from '../../enums/practice-scenario-source.enum';
-import { TrainingExerciseMode } from '../../enums/training-exercise-mode.enum';
+import { PracticeDefenseStyle } from '../../enums/practice-defense-style.enum.js';
+import { PracticeDifficulty } from '../../enums/practice-difficulty.enum.js';
+import { PracticeEmotionIntensity } from '../../enums/practice-emotion-intensity.enum.js';
+import { PracticeFeedbackSource } from '../../enums/practice-feedback-source.enum.js';
+import { PracticeFeedbackTone } from '../../enums/practice-feedback-tone.enum.js';
+import { PracticeRubricCheck } from '../../enums/practice-rubric-check.enum.js';
+import { PracticeScenarioSource } from '../../enums/practice-scenario-source.enum.js';
+import { TrainingExerciseMode } from '../../enums/training-exercise-mode.enum.js';
 
 /**
  * 来访者画像 (practice_scenarios.persona json 列).

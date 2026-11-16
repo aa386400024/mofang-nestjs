@@ -38,17 +38,22 @@ import {
   VisitorPersonaPresentingIssueDto,
   VisitorPersonaSocialRelationDto,
   VisitorPersonaTherapyExpectationDto,
-} from './visitor-persona.dto';
+} from './visitor-persona.dto.js';
 import {
   VISITOR_POOL_GENERATE_MAX_COUNT_DEFAULT,
   VISITOR_POOL_GENERATE_MAX_COUNT_LIMIT,
   VISITOR_POOL_LIST_DEFAULT_LIMIT,
   VISITOR_POOL_LIST_MAX_LIMIT,
-} from '../config/visitor-pool.config';
-import { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import { VisitorMode } from '../enums/visitor-mode.enum';
-import { VisitorPoolDefenseType, VisitorPoolIssueDomain, VisitorPoolSource, VisitorPoolTemplateStatus } from '../enums/visitor-pool.enum';
-import { VisitorStyle } from '../enums/visitor-style.enum';
+} from '../config/visitor-pool.config.js';
+import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import { VisitorMode } from '../enums/visitor-mode.enum.js';
+import {
+  VisitorPoolDefenseType,
+  VisitorPoolIssueDomain,
+  VisitorPoolSource,
+  VisitorPoolTemplateStatus,
+} from '../enums/visitor-pool.enum.js';
+import { VisitorStyle } from '../enums/visitor-style.enum.js';
 
 // 值导入 (非 import type): @ApiProperty({ type: X }) 需要运行时类引用.
 //   (DTO 作为 @Body/@Query 参数时必须是**值导入**, 否则 design:paramtypes 元数据

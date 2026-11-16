@@ -19,10 +19,10 @@
 
 import { Injectable } from '@nestjs/common';
 
-import { BizCode, BizException } from '../../common/exceptions';
-import { ALLOWED_EXACT_PATHS, ALLOWED_DYNAMIC_TEMPLATES } from '../constants/allowed-link-routes';
-import { assertFragmentsGrantContract } from '../dto/fragments-grant.dto';
-import { DailyGrowthToolDto } from '../dto/growth.dto';
+import { BizCode, BizException } from '../../common/exceptions/index.js';
+import { ALLOWED_EXACT_PATHS, ALLOWED_DYNAMIC_TEMPLATES } from '../constants/allowed-link-routes.js';
+import { assertFragmentsGrantContract } from '../dto/fragments-grant.dto.js';
+import { DailyGrowthToolDto } from '../dto/growth.dto.js';
 
 @Injectable()
 export class GrowthDailyToolsService {

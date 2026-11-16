@@ -7,7 +7,7 @@
 
 import { Injectable } from '@nestjs/common';
 
-import { CrisisLevel, CrisisSignalSource } from '../enums/ai-crisis.enums';
+import { CrisisLevel, CrisisSignalSource } from '../enums/ai-crisis.enums.js';
 
 /**
  * 危机检测结果.

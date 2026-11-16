@@ -10,6 +10,8 @@
 //         ⑦ 目录结构与任务单 §3.1 一致;
 //         ⑧ 内核根目录无散落文件;
 //         ⑨ B 层实现 (Qdrant / embedding) 落在内核包之外 (WP2).
+//         ⑩ 内核树零 process.env / 零 globalThis 访问 (WP26 · P2-17).
+//         ⑪ adapter 不得深路径 import engine-core 的内部模块 (WP26 · P2-16).
 //
 //   为什么必须是断言而不是注释:
 //     这条边界是整个 Phase1 的地基 (roadmap 第 0 原则: 引擎未来独立成微服务).
@@ -29,12 +31,12 @@
 //   时间戳: 2026-10-28 GMT+8
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import * as path from 'node:path';
 
 import ts from 'typescript';
 
 /** 内核包根目录. */
-const KERNEL_ROOT = join(__dirname, '../../src/engine-core');
+const KERNEL_ROOT = path.join(__dirname, '../../src/engine-core');
 
 /** 允许的外部包 (纯 TS 依赖; 标准库走 node: 前缀). */
 const ALLOWED_EXTERNAL_PACKAGES = new Set(['nanoid']);
@@ -49,7 +51,7 @@ const FORBIDDEN_PACKAGE_NAMES = ['typeorm'];
 function collectTsFiles(dir: string): string[] {
   const files: string[] = [];
   for (const entry of readdirSync(dir)) {
-    const fullPath = join(dir, entry);
+    const fullPath = path.join(dir, entry);
     if (statSync(fullPath).isDirectory()) {
       files.push(...collectTsFiles(fullPath));
       continue;
@@ -61,7 +63,7 @@ function collectTsFiles(dir: string): string[] {
 
 /** 文件相对内核根的路径 (统一用 / 分隔, 便于断言与报错可读). */
 function relPath(file: string): string {
-  return relative(KERNEL_ROOT, file).split('\\').join('/');
+  return path.relative(KERNEL_ROOT, file).replaceAll('\\', '/');
 }
 
 /**
@@ -93,13 +95,13 @@ function extractModuleSpecifiers(file: string): string[] {
   return specifiers;
 }
 
-/** AST 级抽取: 文件里真实存在的装饰器名. */
+/** AST 级抽取: 装饰器名. */
 function extractDecorators(file: string): string[] {
   const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
   const decorators: string[] = [];
   const visit = (node: ts.Node): void => {
     if (node.kind === ts.SyntaxKind.Decorator) {
-      decorators.push(node.getText(source).replace(/^@/, '').split('(')[0] ?? '');
+      decorators.push(node.getText(source).replace(/^@/, '').split('(', 1)[0] ?? '');
     }
     ts.forEachChild(node, visit);
   };
@@ -107,10 +109,46 @@ function extractDecorators(file: string): string[] {
   return decorators;
 }
 
+/**
+ * AST 级抽取: 对**进程级全局**的访问 (WP26 · P2-17).
+ *
+ * 为什么要单独一条断言:
+ *   前面 9 条断言全部基于"模块说明符"抽取 —— 只覆盖 import.
+ *   而 `process.env` 是**全局对象访问**, 不是 import —— WP15 在核心里引进第一处
+ *   env 读取时, 9 条断言全绿. 也就是说"内核不读 env"这条内核最核心的不变量,
+ *   在机器层面**裸奔**.
+ *
+ * 抓两种形态:
+ *   · process.env            (裸读整个 env 对象)
+ *   · process.env.FOO / process.env['FOO']  (点访问 / bracket 访问)
+ *   —— 三者都含一个 `process.env` 这个 PropertyAccessExpression 节点, 抓它即可全覆盖.
+ *   · globalThis             (内核不该摸全局对象; 同样属于"配置/环境"的旁路)
+ *
+ * 零白名单: P2-14 改注入之后, 内核树本就该零命中.
+ */
+function extractGlobalAccesses(file: string): string[] {
+  const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
+  const hits: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isPropertyAccessExpression(node) && node.expression.getText(source) === 'process' && node.name.text === 'env') {
+      hits.push(`${relPath(file)} → process.env`);
+    }
+    if (ts.isIdentifier(node) && node.text === 'globalThis') {
+      // 排除 `foo.globalThis` 这种把 globalThis 当**属性名**用的情况 (不是全局访问).
+      const parent = node.parent;
+      const isPropertyName = ts.isPropertyAccessExpression(parent) && parent.name === node;
+      if (!isPropertyName) hits.push(`${relPath(file)} → globalThis`);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return hits;
+}
+
 /** 目标路径是否位于 root 之内. */
 function isInside(root: string, target: string): boolean {
-  const rel = relative(resolve(root), resolve(target));
-  return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel);
+  const rel = path.relative(path.resolve(root), path.resolve(target));
+  return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
 }
 
 describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)', () => {
@@ -148,7 +186,7 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
     for (const file of kernelFiles) {
       for (const specifier of extractModuleSpecifiers(file)) {
         if (!specifier.startsWith('.')) continue;
-        const resolved = resolve(dirname(file), specifier);
+        const resolved = path.resolve(path.dirname(file), specifier);
         if (!isInside(KERNEL_ROOT, resolved)) {
           violations.push(`${relPath(file)} → ${specifier}`);
         }
@@ -183,7 +221,7 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
     // 用 AST 看**真实导出**, 不用原始文本:
     //   index.ts 的注释里必然要解释"为什么不导出 InMemory*" —— 文本 grep 会把这段说明
     //   自己判成违规. 任务单验收条目的原话也是「注释里提到不算, import 必须为 0」.
-    const indexFile = join(KERNEL_ROOT, 'index.ts');
+    const indexFile = path.join(KERNEL_ROOT, 'index.ts');
     const source = ts.createSourceFile(indexFile, readFileSync(indexFile, 'utf8'), ts.ScriptTarget.Latest, true);
     const exportedNames: string[] = [];
     const exportedSpecifiers: string[] = [];
@@ -217,6 +255,18 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'CoreBelief',
       'TemporaryBelief',
       'MemoryBelief',
+      // WP57: 信念层动态算子 (核心信念激活 + 短期信念置信度衰减)
+      'CoreBeliefActivation',
+      'BeliefOperatorConfig',
+      'applyBeliefActivationDelta',
+      'applyTemporaryBeliefDecay',
+      'applyBeliefEvolution',
+      'DEFAULT_BELIEF_OPERATOR_CONFIG',
+      'DEFAULT_BELIEF_ACTIVATION_DELTA',
+      'DEFAULT_BELIEF_DECAY_RATE',
+      'DEFAULT_INTRODUCED_BELIEF_DECAY_RATE',
+      'DEFAULT_OBSERVED_BELIEF_DECAY_RATE',
+      'DEFAULT_TEMPORARY_BELIEF_REMOVE_THRESHOLD',
       // 愿望层
       'UnderlyingDesire',
       'SituationalDesire',
@@ -224,6 +274,9 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'EmotionLabel',
       'EmotionState',
       'TransferenceState',
+      // WP62: 数值夹取纯函数 (适配层此前各自自带一份, 口径已分叉)
+      'clamp01',
+      'clampValence',
       // 意图层
       'BehaviorStrategy',
       'Intention',
@@ -236,6 +289,8 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'CounselorEventKind',
       'EventClassifier',
       'SessionEvent',
+      // WP58: 规则分类器实现 (公开面临时扩展 — 观测通道要 matchedTerms; 模型轨替换后可退役)
+      'RuleBasedClassifier',
       // 错误 / DTO / 仓储 / 端口
       'EngineCoreError',
       'EngineErrorCode',
@@ -256,10 +311,13 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'EngineSessionHandle',
       'EngineTurnInput',
       'EngineTurnOutput',
+      // WP37: 工作窗口溢出事件 (内核 → 适配层的通知载荷)
+      'WorkingWindowOverflowEvent',
       // WP2: 向量化端口
       'Embedder',
       // WP2: 记忆策略算子 (纯函数)
       'trimWorkingWindow',
+      'overflowedWorkingWindowLines',
       'WORKING_MEMORY_WINDOW_TURNS',
       'decayImportance',
       'effectiveImportance',
@@ -272,6 +330,8 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'applyConflictResolution',
       'promoteShortTermToLongTerm',
       'RecallEvaluation',
+      // WP62: 召回策略端口 (适配层装配端口时要引用内核那个类型)
+      'RecallPolicyOptions',
       'evaluateRecallCandidate',
       // WP3: 轨迹控制 (剧本契约 + 纯策略算子)
       'OrderedTrajectoryNode',
@@ -329,6 +389,61 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'FailoverState',
       'selectFailoverTarget',
       'guardVisitorOutput',
+      // WP15/WP26: 状态迁移与单回合 delta cap
+      //   (P2-14 改注入后, cap 参数是**端口**不是 env; P2-16 把公开面补进 barrel)
+      'CapBounds',
+      'CapDim',
+      'DeltaCapConfig',
+      'DeltaCapContext',
+      'DeltaCapEntry',
+      'DeltaCapObserver',
+      'DeltaVector',
+      'TransitionStateOptions',
+      'TurnDeltaCapReport',
+      'addDeltaVectors',
+      'aggregateTurnDelta',
+      'applyDeltaVector',
+      'buildDeltaCapReport',
+      'capTurnDelta',
+      'DEFAULT_DELTA_CAP_CONFIG',
+      'transitionState',
+      'transitionStateDetailed',
+      // WP34: P1 人格调节算子 (依恋调节 + 人格特质调节)
+      //   (系数走端口注入, 与 WP26 P2-14 的 cap 参数同一范式)
+      'PersonalityTraits',
+      'AgreeablenessModulation',
+      'AttachmentModulation',
+      'PersonalityModulationInput',
+      'PersonalityModulatorConfig',
+      'DEFAULT_PERSONALITY_MODULATOR_CONFIG',
+      'modulateDeltaByPersonality',
+      // WP42: 咨询同盟三维端口 (trust / safety / bond 独立建模)
+      //   (系数与门槛走端口注入, 与 WP26 P2-14 的 cap 参数同一范式)
+      'AllianceConfig',
+      'AllianceDeltaOverride',
+      'AllianceDeltaOverrides',
+      'AllianceThresholds',
+      'DEFAULT_ALLIANCE_CONFIG',
+      // WP60: delta 规则表端口 (事件 → 增量逐维度覆写)
+      //   (系数走端口注入, 与 WP26 P2-14 的 cap 参数同一范式;
+      //    维度名单也公开 —— 适配层要按它校验 env 里的 JSON 键)
+      'DeltaDimension',
+      'DeltaDimensionOverride',
+      'DeltaTableConfig',
+      'DeltaTableOverrides',
+      'DELTA_DIMENSIONS',
+      'DEFAULT_DELTA_TABLE_CONFIG',
+      'resolveDeltaVector',
+      // WP36: 跨会话间隔自然衰减 (情绪 / 阻抗 / 同盟差异化半衰期)
+      //   (端口 + 纯函数一起公开: 适配层装配端口, 内核会话调纯函数)
+      'SessionDecayConfig',
+      'DEFAULT_SESSION_DECAY_CONFIG',
+      'applySessionDecay',
+      // R9: 审议钩子端口 (内核只认这个**纯类型**接口: 同步 / 稀疏补丁 / 失败回退)
+      //   (公开面是契约 —— 适配层要引用这三个类型名, 变更必须被看见)
+      'DeliberationDeltaPatch',
+      'DeliberationHookContext',
+      'DeliberationHookPort',
     ];
     // 少导出
     expect(expectedPublic.filter((name) => !exportedNames.includes(name))).toEqual([]);
@@ -361,6 +476,10 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'domain/trajectory/script.ts',
       'cognition/rule-based-classifier.ts',
       'cognition/state-transition.ts',
+      'cognition/personality-modulator.ts',
+      'cognition/alliance-config.ts',
+      'cognition/delta-table-config.ts',
+      'cognition/session-decay.ts',
       'cognition/intention-planner.ts',
       'cognition/rendering/token-budget.ts',
       'cognition/rendering/failover.ts',
@@ -376,18 +495,33 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       'memory/promotion.ts',
       'memory/recall-policy.ts',
       'runtime/engine-session.port.ts',
+      'runtime/deliberation-hook.port.ts',
       'in-memory/in-memory-bdi-state.repository.ts',
       'in-memory/in-memory-memory.store.ts',
       'in-memory/in-memory-engine-session.ts',
       'adapters/README.md',
     ];
-    const missing = expected.filter((expectedPath) => !existsSync(join(KERNEL_ROOT, expectedPath)));
+    const missing = expected.filter((expectedPath) => !existsSync(path.join(KERNEL_ROOT, expectedPath)));
     expect(missing).toEqual([]);
+
+    // ⚠️ **V2026-11-05 治本 (WP45 · P3-9)**: 原来这条断言是**单向**的 ——
+    //   只查"该有的文件在不在", 不查"多出来的文件". 后果: **新增内核文件不会被拦** ——
+    //   往内核里塞一个新模块 (或整个新子系统) 不会有任何红灯, 边界清单形同虚设.
+    //   (WP25 审查 P3-9 登记的这条.)
+    //
+    //   现在补上**反向**检查: 内核树里出现的每个 .ts 都必须在清单里登记过.
+    //   ⚠️ 代价 (说清楚, 免得将来有人觉得"这条太烦"): **新增内核文件必须同步改这里**
+    //   —— 而这正是这条断言想要的: 内核的**形状**变更必须是**显式**的, 不是顺手就长出来的.
+    //   (注意: 断言①–⑤ / ⑩ 扫的是**全部**内核文件, 所以它们不受这条影响 ——
+    //    这条管的是"形状", 不是"纯度".)
+    const actual = kernelFiles.map((file) => relPath(file));
+    const extra = actual.filter((actualPath) => !expected.includes(actualPath)).sort();
+    expect(extra, `内核树里出现了未登记的文件 (新增内核文件必须同步登记到本清单):\n${extra.join('\n')}`).toEqual([]);
   });
 
   it('⑧ 内核根目录无散落文件 (结构不漂移, 防止随手往内核根扔 service)', () => {
     const strays = readdirSync(KERNEL_ROOT).filter((name) => {
-      const fullPath = join(KERNEL_ROOT, name);
+      const fullPath = path.join(KERNEL_ROOT, name);
       if (statSync(fullPath).isDirectory()) return false;
       return name !== 'index.ts' && !name.endsWith('.md');
     });
@@ -398,9 +532,9 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
     // 内核整树零框架依赖的第二道防线: 光断言"内核里没有 @nestjs"还不够 ——
     // 万一有人把 Qdrant 实现塞进内核包, 断言①会绿 (qdrant 不是 @nestjs),
     // 但内核已经被绑死在向量库上. 所以显式断言"实现必须在 B 层".
-    const adapterRoot = join(__dirname, '../../src/engine-adapters');
-    expect(existsSync(join(adapterRoot, 'persistence/qdrant-memory.store.ts'))).toBe(true);
-    expect(existsSync(join(adapterRoot, 'embedder/openai-compat.embedder.ts'))).toBe(true);
+    const adapterRoot = path.join(__dirname, '../../src/engine-adapters');
+    expect(existsSync(path.join(adapterRoot, 'persistence/qdrant-memory.store.ts'))).toBe(true);
+    expect(existsSync(path.join(adapterRoot, 'embedder/openai-compat.embedder.ts'))).toBe(true);
 
     // 内核包里不得出现向量库 / embedding 实现的痕迹.
     const forbiddenInKernel: string[] = [];
@@ -412,5 +546,35 @@ describe('engine-core · 边界隔离不变量 (任务单 §5 验收机械化)',
       }
     }
     expect(forbiddenInKernel).toEqual([]);
+  });
+
+  it('⑩ 内核树零 process.env / 零 globalThis 访问 (WP26 · P2-17)', () => {
+    // 前 9 条断言只覆盖 import —— WP15 引进内核第一处 env 读取时它们全绿.
+    // 这条把"内核不读 env / 不摸全局对象"这条最核心的不变量**机械化**:
+    //   违反即测试变红, 而不是等 review 时靠眼力发现.
+    const violations: string[] = [];
+    for (const file of kernelFiles) {
+      violations.push(...extractGlobalAccesses(file));
+    }
+    expect(violations).toEqual([]);
+  });
+
+  it('⑪ adapter 不得深路径 import engine-core 的内部模块 (只能走 barrel 或 in-memory/)', () => {
+    // WP26 · P2-16: 断言⑥ 的双向白名单是"公开 API 面"的**唯一**机器守卫 ——
+    //   它只看 index.ts. 所以 adapter 若走深路径 import 内核内部模块 (例如
+    //   `../../engine-core/cognition/state-transition.js`), 那批符号就**完全在守卫
+    //   视野之外**: 内核改文件名/目录, adapter 直接断, 没有任何断言会红.
+    // 允许两种: barrel (公开面) 与 in-memory/ (内核 barrel 注释里写明的用法).
+    const adapterRoot = path.join(__dirname, '../../src/engine-adapters');
+    const violations: string[] = [];
+    for (const file of collectTsFiles(adapterRoot)) {
+      for (const specifier of extractModuleSpecifiers(file)) {
+        if (!specifier.includes('engine-core/')) continue;
+        if (specifier.endsWith('engine-core/index.js')) continue;
+        if (specifier.includes('engine-core/in-memory/')) continue;
+        violations.push(`${path.relative(adapterRoot, file).replaceAll('\\', '/')} → ${specifier}`);
+      }
+    }
+    expect(violations).toEqual([]);
   });
 });

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0.0",
+  "autoLoop": {
+    "enabled": false
+  },
+  "reworkLimit": 2,
+  "leaseDefaultMinutes": 30,
+  "allowedTaskTypes": ["implementation", "fix", "documentation"],
+  "store": {
+    "backend": "json"
+  },
+  "transport": {
+    "type": "file"
+  },
+  "web": {
+    "refresh": {
+      "enabled": true,
+      "intervalMs": 3000
+    }
+  },
+  "frozenActions": [
+    "external-release",
+    "policy-exception",
+    "route-selection",
+    "cross-task-change",
+    "verdict-disagreement",
+    "dependency-change"
+  ],
+  "notes": {
+    "enabled": "自治模式总开关，默认关闭；经 CLI `pnpm orchestration:config --enable` 显式开启，静态网页只读展示，不直接写本地文件。",
+    "reworkLimit": "同一 contextId 下返修次数上限，超限进死信隔离。",
+    "leaseDefaultMinutes": "任务未声明 deadline 时的默认租约时长（分钟）。",
+    "allowedTaskTypes": "允许自动执行的任务类型；investigation / review 等只读产出类型不在白名单，不自动改实现。",
+    "frozenActions": "命中即冻结、转 input-required 并转人工，不阻塞队列其他任务；类别对齐框架仓 docs/autonomous-loop.md §3.2。",
+    "store.backend": "状态持久化后端：json（默认，JSON 文件 + 原子写）或 sqlite（可选内置 node:sqlite）；SQLite 仅存指针 / 状态 / 历史，工件正文仍留文件，不进业务 MySQL。",
+    "transport.type": "协议投递通道：file（默认，交接 JSON 文件）；mcp / http 为预留实现位，本批次不实现、不引协议栈依赖。",
+    "web.refresh.enabled": "编排看板前端轮询开关：true（默认）定时重载 data.js 并在快照变化后重渲染；false 关闭自动刷新，页面仅手动刷新。",
+    "web.refresh.intervalMs": "看板轮询间隔（毫秒），须为不小于 1000 的整数；默认 3000。"
+  }
+}

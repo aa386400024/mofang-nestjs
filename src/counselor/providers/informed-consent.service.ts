@@ -24,13 +24,17 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 
-import { CounselorLlmJsonClient } from './llm-json.client';
-import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config';
-import { buildConsentJudgeUserPrompt, CONSENT_JUDGE_SCHEMA_DESCRIPTION, CONSENT_JUDGE_SYSTEM_PROMPT } from '../config/session-core-prompts';
-import { type InformedConsentEntry, validateInformedConsentEntries } from '../domain/session-core/session-core.types';
-import { type InformedConsentMarkDto, type InformedConsentMarkResultDto, type InformedConsentStatusDto } from '../dto/session-core.dto';
-import { TrainingSession } from '../entities/training-session.entity';
-import { InformedConsentElement } from '../enums/informed-consent-element.enum';
+import { CounselorLlmJsonClient } from './llm-json.client.js';
+import { COUNSELOR_LLM_PROFILES } from '../config/counselor-llm.config.js';
+import {
+  buildConsentJudgeUserPrompt,
+  CONSENT_JUDGE_SCHEMA_DESCRIPTION,
+  CONSENT_JUDGE_SYSTEM_PROMPT,
+} from '../config/session-core-prompts.js';
+import { type InformedConsentEntry, validateInformedConsentEntries } from '../domain/session-core/session-core.types.js';
+import { type InformedConsentMarkDto, type InformedConsentMarkResultDto, type InformedConsentStatusDto } from '../dto/session-core.dto.js';
+import { TrainingSession } from '../entities/training-session.entity.js';
+import { InformedConsentElement } from '../enums/informed-consent-element.enum.js';
 
 /**
  * 知情同意 service (M2).
@@ -119,9 +123,12 @@ export class InformedConsentService {
     const entries = this.ensureAllElements(result.data);
     const passed = entries.every((e) => e.covered);
 
-    session.informedConsentTranscript = entries;
-    session.informedConsentPassed = passed ? 1 : 0;
-    await this.sessionRepo.save(session);
+    // V2026-10-30 治本 (WP19-R · 只写自己管的列):
+    //   不用 `save(session)` —— TypeORM 的 save 会把"加载时的整行快照"写回去, 而 JSON 列
+    //   (turn_debug_trace / informed_consent_transcript) 在它的 diff 里是**按引用**比较的
+    //   (加载出来的对象 ≠ 新对象), 于是本方法会把**加载时**的 `turn_debug_trace` 旧副本一并写回,
+    //   覆盖掉 WP19 每轮落的留痕 (实测: 2 轮只留 1 轮). 定向 update 只碰自己管的两列.
+    await this.sessionRepo.update({ id: session.id }, { informedConsentTranscript: entries, informedConsentPassed: passed ? 1 : 0 });
 
     return {
       sessionId,

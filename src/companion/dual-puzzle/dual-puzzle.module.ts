@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { DualPuzzleController } from './controllers/dual-puzzle.controller';
-import { DualPuzzleAnswer } from './entities/dual-puzzle-answer.entity';
-import { DualPuzzleQuestion } from './entities/dual-puzzle-question.entity';
-import { DualPuzzleSet } from './entities/dual-puzzle-set.entity';
+import { DualPuzzleController } from './controllers/dual-puzzle.controller.js';
+import { DualPuzzleAnswer } from './entities/dual-puzzle-answer.entity.js';
+import { DualPuzzleQuestion } from './entities/dual-puzzle-question.entity.js';
+import { DualPuzzleSet } from './entities/dual-puzzle-set.entity.js';
 
-import { DualPuzzleService } from './providers/dual-puzzle.service';
-import { UserModule } from '../../user/user.module';
+import { DualPuzzleService } from './providers/dual-puzzle.service.js';
+import { UserModule } from '../../user/user.module.js';
 
 /**
  * 默契拼图子模块 — V2026-09-12 §6.4 心塑 V6.0.

@@ -1,13 +1,13 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { Roles } from '../../common/decorators/roles.decorator';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { Roles } from '../../common/decorators/roles.decorator.js';
+import { RolesGuard } from '../../common/guards/roles.guard.js';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { CertificationDto, SubmitCertificationDto } from '../dto/certification.dto';
-import { CertificationService } from '../providers/certification.service';
+import { CertificationDto, SubmitCertificationDto } from '../dto/certification.dto.js';
+import { CertificationService } from '../providers/certification.service.js';
 
 /**
  * Certification controller — 心塑「我的」Tab 实名认证控制器 (陪伴者专属).

@@ -1,3 +1,4 @@
+import { beforeEach, vi } from 'vitest';
 // V2026-10-30 治本 (WP12 · 记忆收尾 + 跨会话 resume 接线单测):
 //   覆盖任务单 §3 验收 1-6 与 §3.9 的四种场景:
 //     ① resume 成功        → engine.open 收到 resumeFromSessionId
@@ -14,12 +15,24 @@
 //     会抛 INVALID_INPUT, 若适配层不兜住, 学员第二次打开角色就会直接 500 + 断连.
 //     断言的是"抛错被吞掉 + 按新会话重开一次 + 第二次不带 resume", 三件事缺一不可.
 //
+//   V2026-11-04 治本 (WP59 · 召回策略配置端口统一):
+//     新增「WP59 · 召回策略配置端口统一」describe 块 —— Qdrant 版消除双层判定后的行为:
+//     默认配置逐字一致 / 配置值直接生效 (不是取交集) / 阈值卡的是衰减后的有效重要度 /
+//     内存版与向量版喂同一份配置 → 召回结果一致.
+//     顺带把 `StubQdrant.search` 从"恒返回空数组"改成可注入检索点 —— 之前召回路径
+//     从没被真正走通过 ("Qdrant 版的召回判定"只能靠读代码确认, 测不到).
+//
 //   验证: npx jest test/engine-adapters/wp12-memory-closeout.spec.ts
 //   时间戳: 2026-10-30 GMT+8
 
-import type { TranscriptTurn } from '../../src/agent/supervisor/supervisor.types';
-import { DEFAULT_MEMORY_CONFIG, MS_PER_DAY, resolveMemoryConfig } from '../../src/engine-adapters/persistence/memory-config';
-import { QdrantMemoryStore, type QdrantMemoryClient } from '../../src/engine-adapters/persistence/qdrant-memory.store';
+import type { TranscriptTurn } from '../../src/agent/supervisor/supervisor.types.js';
+import {
+  DEFAULT_MEMORY_CONFIG,
+  MS_PER_DAY,
+  resolveMemoryConfig,
+  toRecallPolicyOptions,
+} from '../../src/engine-adapters/persistence/memory-config.js';
+import { QdrantMemoryStore, type QdrantMemoryClient } from '../../src/engine-adapters/persistence/qdrant-memory.store.js';
 import {
   DEFAULT_SESSION_SUMMARY_IMPORTANCE,
   SessionCloseoutService,
@@ -27,22 +40,23 @@ import {
   type SessionSummary,
   type SessionSummaryGenerator,
   type SessionTranscriptSaveInput,
-} from '../../src/engine-adapters/persistence/session-closeout.service';
+} from '../../src/engine-adapters/persistence/session-closeout.service.js';
 import {
   formatTranscript,
   parseSummaryResponse,
   resolveSummaryModel,
-} from '../../src/engine-adapters/persistence/session-summary.generator';
-import { EngineStreamBackend } from '../../src/engine-adapters/wiring/engine-stream-backend.adapter';
-import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service';
-import { MemorySource, MemoryTier, type MemoryEntry, type OpenEngineSessionInput } from '../../src/engine-core';
-import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store';
-import type { LlmRouterService } from '../../src/llm/registry/llm-router.service';
+} from '../../src/engine-adapters/persistence/session-summary.generator.js';
+import { EngineStreamBackend } from '../../src/engine-adapters/wiring/engine-stream-backend.adapter.js';
+import type { EngineTurnService } from '../../src/engine-adapters/wiring/engine-turn.service.js';
+import { InMemoryMemoryStore } from '../../src/engine-core/in-memory/in-memory-memory.store.js';
+import { MemorySource, MemoryTier, type MemoryEntry, type OpenEngineSessionInput } from '../../src/engine-core/index.js';
+import type { LlmRouterService } from '../../src/llm/registry/llm-router.service.js';
 import {
   VoiceSessionBridgeRegistry,
   type VoiceSessionBridge,
   type VoiceSessionTranscriptInput,
-} from '../../src/voice/voice-session-bridge';
+} from '../../src/voice/voice-session-bridge.js';
+import { clearMockCalls } from '../helpers/index.js';
 
 const TENANT = 'tenant-1';
 const USER = 'user-1';
@@ -114,6 +128,14 @@ class StubQdrant implements QdrantMemoryClient {
   readonly payloadWrites: { id: string; payload: Record<string, unknown> }[] = [];
   readonly scrolls: { filter: Record<string, unknown>; limit?: number }[] = [];
   scrollPoints: { id: string; payload: Record<string, unknown> }[] = [];
+  /**
+   * 检索命中的点 (WP59).
+   *
+   * 之前这个 stub 的 `search` 恒返回空数组 —— 召回路径从来没被真正走通过,
+   * 于是"Qdrant 版的召回判定"只能靠读代码确认, 测不到. WP59 要验"配置值直接生效",
+   * 就必须让它**搜得出东西**.
+   */
+  searchPoints: { id: string; score: number; payload: Record<string, unknown> }[] = [];
   failScroll = false;
 
   async upsert(_collection: string, id: string, _vector: number[], payload: Record<string, unknown>): Promise<void> {
@@ -121,7 +143,7 @@ class StubQdrant implements QdrantMemoryClient {
   }
 
   async search(): Promise<{ id: string; score: number; payload: Record<string, unknown> }[]> {
-    return [];
+    return this.searchPoints;
   }
 
   async setPayload(_collection: string, id: string, payload: Record<string, unknown>): Promise<void> {
@@ -146,6 +168,14 @@ function turns(): TranscriptTurn[] {
     { role: 'assistant', content: '有多久了？', at: CLOCK + 1 },
   ];
 }
+
+// V2026-11-13 (TD-9 · T-1): 统一复位钩子 —— 本文件原先没有任何生命周期钩子.
+//   现场复核结论: 模块级只有不可变常量 (TENANT / USER / PERSONA / CLOCK), 没有 env 读写,
+//   没有 vi.mock 替身; 唯一的跨用例可变状态是**两个 describe 共用的 embedder 计数器**
+//   (describe 级 const, 用例间累积) —— 这里统一清零, 其余替身都是用例内局部 new, 无残留.
+beforeEach(() => {
+  clearMockCalls();
+});
 
 describe('WP12 · 跨会话 resume 接线 (EngineStreamBackend.openSession)', () => {
   it('① resume 成功 → engine.open 收到 resumeFromSessionId', async () => {
@@ -446,12 +476,12 @@ describe('WP12 · Qdrant 写侧冲突标记 (supersededBy)', () => {
     ...overrides,
   });
 
-  const embedder = { embed: jest.fn(async () => [0.1, 0.2]) };
+  const embedder = { embed: vi.fn(async () => [0.1, 0.2]) };
 
   it('④ 新条目更晚 → 旧点被标 supersededBy (不物理删除)', async () => {
     const qdrant = new StubQdrant();
     qdrant.scrollPoints = [{ id: 'lt-old', payload: entryOf({}) as unknown as Record<string, unknown> }];
-    const store = new QdrantMemoryStore({ qdrant, embedder, now: () => CLOCK });
+    const store = new QdrantMemoryStore({ qdrant, embedder, fallback: new InMemoryMemoryStore(), now: () => CLOCK });
 
     await store.remember(entryOf({ id: 'lt-new', occurredAt: CLOCK + 1000, content: '来访者提到持续失眠' }));
 
@@ -472,7 +502,7 @@ describe('WP12 · Qdrant 写侧冲突标记 (supersededBy)', () => {
   it('旧条目更晚 (旧存活) → 新条目带着 supersededBy 一起落库', async () => {
     const qdrant = new StubQdrant();
     qdrant.scrollPoints = [{ id: 'lt-old', payload: entryOf({ occurredAt: CLOCK + 5000 }) as unknown as Record<string, unknown> }];
-    const store = new QdrantMemoryStore({ qdrant, embedder, now: () => CLOCK });
+    const store = new QdrantMemoryStore({ qdrant, embedder, fallback: new InMemoryMemoryStore(), now: () => CLOCK });
 
     await store.remember(entryOf({ id: 'lt-new', occurredAt: CLOCK }));
 
@@ -484,7 +514,7 @@ describe('WP12 · Qdrant 写侧冲突标记 (supersededBy)', () => {
   it('冲突扫描失败 → 不阻断写入 (失败方向安全: 少标记, 不误标)', async () => {
     const qdrant = new StubQdrant();
     qdrant.failScroll = true;
-    const store = new QdrantMemoryStore({ qdrant, embedder, now: () => CLOCK });
+    const store = new QdrantMemoryStore({ qdrant, embedder, fallback: new InMemoryMemoryStore(), now: () => CLOCK });
 
     await expect(store.remember(entryOf({ id: 'lt-new' }))).resolves.toBeUndefined();
 
@@ -494,7 +524,7 @@ describe('WP12 · Qdrant 写侧冲突标记 (supersededBy)', () => {
 
   it('无 topicKey → 不构成冲突组, 不扫描', async () => {
     const qdrant = new StubQdrant();
-    const store = new QdrantMemoryStore({ qdrant, embedder, now: () => CLOCK });
+    const store = new QdrantMemoryStore({ qdrant, embedder, fallback: new InMemoryMemoryStore(), now: () => CLOCK });
 
     await store.remember(entryOf({ id: 'lt-new', topicKey: undefined }));
 
@@ -522,6 +552,130 @@ describe('WP12 · 记忆衰减/召回配置 (memory-config)', () => {
     expect(resolveMemoryConfig({ decayHalfLifeDays: '-1' })).toEqual(DEFAULT_MEMORY_CONFIG);
     expect(resolveMemoryConfig({ recallThreshold: '2' })).toEqual(DEFAULT_MEMORY_CONFIG);
     expect(resolveMemoryConfig({ recallThreshold: 'x' })).toEqual(DEFAULT_MEMORY_CONFIG);
+  });
+
+  it('toRecallPolicyOptions: B 层字段名 → 内核端口字段名 (映射只留这一处)', () => {
+    const config = resolveMemoryConfig({ decayHalfLifeDays: '7', recallThreshold: '0.4' });
+    expect(toRecallPolicyOptions(config)).toEqual({ halfLifeMs: 7 * MS_PER_DAY, minEffectiveImportance: 0.4 });
+  });
+});
+
+describe('WP59 · 召回策略配置端口统一 (Qdrant 版消除双层判定)', () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const VISITOR_KEY = `${USER}:${PERSONA}`;
+  const embedder = { embed: vi.fn(async () => [0.1, 0.2]) };
+
+  /** 访客范围召回条件 (跨会话, 只召回长时). */
+  const visitorQuery = {
+    tenantId: TENANT,
+    sessionId: 'session-1',
+    query: '失眠',
+    scope: 'visitor',
+    visitorId: VISITOR_KEY,
+  } as const;
+
+  /** 造一条 Qdrant payload (访客范围只召回长时). */
+  const visitorPayload = (overrides: Partial<MemoryEntry> = {}): Record<string, unknown> => ({
+    tenantId: TENANT,
+    id: 'lt-1',
+    sessionId: 'session-1',
+    visitorId: VISITOR_KEY,
+    tier: MemoryTier.LONG_TERM,
+    source: MemorySource.SUMMARY,
+    content: '来访者提到失眠',
+    importance: 0.5,
+    occurredAt: CLOCK,
+    ttlMs: null,
+    ...overrides,
+  });
+
+  /** 造一个只含检索点的 Qdrant stub. */
+  const qdrantWith = (points: { id: string; score: number; payload: Record<string, unknown> }[]): StubQdrant => {
+    const qdrant = new StubQdrant();
+    qdrant.searchPoints = points;
+    return qdrant;
+  };
+
+  it('① 默认配置下行为与改动前逐字一致 (零回归)', async () => {
+    const qdrant = qdrantWith([
+      // 60 天前 → 默认 30 天半衰期下有效重要度 = 0.5 * 2^(-2) = 0.125 ≥ 0.1 → 召回
+      { id: 'fresh', score: 0.9, payload: visitorPayload({ id: 'fresh', occurredAt: CLOCK - 60 * DAY_MS }) },
+      // 100 天前 → 0.5 * 2^(-100/30) ≈ 0.0496 < 0.1 → 不召回
+      { id: 'old', score: 0.9, payload: visitorPayload({ id: 'old', occurredAt: CLOCK - 100 * DAY_MS }) },
+    ]);
+    const store = new QdrantMemoryStore({ qdrant, embedder, fallback: new InMemoryMemoryStore(), now: () => CLOCK });
+
+    const hits = await store.recall(visitorQuery);
+
+    expect(hits.map((hit) => hit.entry.id)).toEqual(['fresh']);
+  });
+
+  it('② 配置值直接生效 (不是"内核卡一道 + B 层再卡一道"的取交集)', async () => {
+    const qdrant = qdrantWith([{ id: 'lt-1', score: 0.9, payload: visitorPayload({ occurredAt: CLOCK - 100 * DAY_MS }) }]);
+    // 配置半衰期 90 天 → 有效重要度 = 0.5 * 2^(-100/90) ≈ 0.2315 ≥ 0.1 → 放行.
+    //   同一条目在内核默认 30 天口径下只剩 ≈ 0.0496 < 0.1 —— 旧的双层判定会先被内核那道拦下.
+    const store = new QdrantMemoryStore({
+      qdrant,
+      embedder,
+      fallback: new InMemoryMemoryStore(),
+      now: () => CLOCK,
+      config: { decayHalfLifeMs: 90 * DAY_MS, recallThreshold: 0.1 },
+    });
+
+    const hits = await store.recall(visitorQuery);
+
+    expect(hits.map((hit) => hit.entry.id)).toEqual(['lt-1']);
+  });
+
+  it('③ 阈值卡的是"配置半衰期算出来的有效重要度" (不是原始重要度)', async () => {
+    const qdrant = qdrantWith([{ id: 'lt-1', score: 0.9, payload: visitorPayload({ occurredAt: CLOCK - 20 * DAY_MS }) }]);
+    // 配置半衰期 7 天 → 有效重要度 = 0.5 * 2^(-20/7) ≈ 0.0693.
+    const strict = new QdrantMemoryStore({
+      qdrant,
+      embedder,
+      fallback: new InMemoryMemoryStore(),
+      now: () => CLOCK,
+      config: { decayHalfLifeMs: 7 * DAY_MS, recallThreshold: 0.3 },
+    });
+    // 原始重要度 0.5 ≥ 0.3, 但衰减后只剩 ≈ 0.0693 < 0.3 → 拒绝 (阈值作用在衰减后的值上).
+    expect(await strict.recall(visitorQuery)).toHaveLength(0);
+
+    const relaxed = new QdrantMemoryStore({
+      qdrant,
+      embedder,
+      fallback: new InMemoryMemoryStore(),
+      now: () => CLOCK,
+      config: { decayHalfLifeMs: 7 * DAY_MS, recallThreshold: 0.05 },
+    });
+    // 同一个有效重要度 ≈ 0.0693 ≥ 0.05 → 放行.
+    expect(await relaxed.recall(visitorQuery)).toHaveLength(1);
+  });
+
+  it('④ 内存版与向量版喂同一份配置 → 召回结果一致', async () => {
+    const config = { decayHalfLifeMs: 90 * DAY_MS, recallThreshold: 0.1 };
+    const entry: MemoryEntry = {
+      tenantId: TENANT,
+      id: 'lt-1',
+      sessionId: 'session-1',
+      visitorId: VISITOR_KEY,
+      tier: MemoryTier.LONG_TERM,
+      source: MemorySource.SUMMARY,
+      content: '来访者提到失眠',
+      importance: 0.5,
+      occurredAt: CLOCK - 100 * DAY_MS,
+      ttlMs: null,
+    };
+
+    const qdrant = qdrantWith([{ id: 'lt-1', score: 0.9, payload: visitorPayload({ occurredAt: entry.occurredAt }) }]);
+    const qdrantStore = new QdrantMemoryStore({ qdrant, embedder, fallback: new InMemoryMemoryStore(), now: () => CLOCK, config });
+    const memoryStore = new InMemoryMemoryStore({ now: () => CLOCK, recallPolicy: toRecallPolicyOptions(config) });
+    await memoryStore.remember(entry);
+
+    const qdrantHits = await qdrantStore.recall(visitorQuery);
+    const memoryHits = await memoryStore.recall(visitorQuery);
+
+    expect(qdrantHits.map((hit) => hit.entry.id)).toEqual(['lt-1']);
+    expect(memoryHits.map((hit) => hit.entry.id)).toEqual(qdrantHits.map((hit) => hit.entry.id));
   });
 });
 
@@ -553,7 +707,7 @@ describe('WP12 · 摘要生成 (解析与提示词)', () => {
 
   it('模型名 env 优先, 否则问 router 的 RAG 分层', () => {
     const router = {
-      getDefaultModelForTier: jest.fn(() => 'deepseek-chat'),
+      getDefaultModelForTier: vi.fn(() => 'deepseek-chat'),
     } as unknown as LlmRouterService;
     expect(resolveSummaryModel(' my-model ', router)).toBe('my-model');
     expect(resolveSummaryModel(undefined, router)).toBe('deepseek-chat');
@@ -609,28 +763,34 @@ describe('WP12 · 逐字稿落库桥插槽 (VoiceSessionBridgeRegistry)', () => 
 
 describe('WP12 · 逐字稿定稿写入 (业务侧桥)', () => {
   it('覆盖写 → 逐字稿表拿到引擎副本的全量 (咨询师/来访者角色映射正确)', async () => {
-    const { VptSessionBridgeService } = await import('../../src/counselor/providers/vpt-session-bridge.service');
-    const { ChatRole } = await import('../../src/counselor/enums/chat-role.enum');
+    const { VptSessionBridgeService } = await import('../../src/counselor/providers/vpt-session-bridge.service.js');
+    const { ChatRole } = await import('../../src/counselor/enums/chat-role.enum.js');
 
     const saved: { transcript: unknown[] }[] = [];
     const repo = {
-      findOne: jest.fn(async () => ({
+      findOne: vi.fn(async () => ({
         id: 'db-1',
         userId: USER,
         status: 'listening',
         transcript: [{ id: 'old', role: ChatRole.COUNSELOR, text: '旧的一轮', timestamp: 1 }],
       })),
-      save: jest.fn(async (row: { transcript: unknown[] }) => {
-        saved.push(row);
-        return row;
+      // V2026-10-30 (WP19-R): 业务侧桥改成**定向 update**（只写自己管的列）——
+      //   原来的 `save(整行)` 会把加载时的旧 turn_debug_trace 副本一并写回,
+      //   覆盖掉并发落库的 WP19 每轮留痕（实测 2 轮只剩 1 轮）.
+      update: vi.fn(async (_criteria: unknown, partial: { transcript: unknown[] }) => {
+        saved.push(partial);
+        return { affected: 1 };
       }),
     };
 
     const service = new VptSessionBridgeService(
+      // ⚠️ 这六个依赖在本单里全是夹具 (本单只验"逐字稿定稿写入") ——
+      //   类型不匹配的部分用 never 断言过去 (不改运行时形状).
       repo as never,
       { enqueue: async () => true } as never,
       { enqueue: async () => true } as never,
       new VoiceSessionBridgeRegistry(),
+      { get: () => {} } as never,
       { get: () => {} } as never,
     );
 
@@ -646,39 +806,45 @@ describe('WP12 · 逐字稿定稿写入 (业务侧桥)', () => {
   });
 
   it('引擎副本为空 → 不覆盖 (拿空去覆盖会抹掉已落库的逐字稿)', async () => {
-    const { VptSessionBridgeService } = await import('../../src/counselor/providers/vpt-session-bridge.service');
+    const { VptSessionBridgeService } = await import('../../src/counselor/providers/vpt-session-bridge.service.js');
 
     const repo = {
-      findOne: jest.fn(async () => ({ id: 'db-1', userId: USER, status: 'finished', transcript: [{ id: 'old' }] })),
-      save: jest.fn(async (row: unknown) => row),
+      findOne: vi.fn(async () => ({ id: 'db-1', userId: USER, status: 'finished', transcript: [{ id: 'old' }] })),
+      update: vi.fn(async () => ({ affected: 0 })),
     };
 
     const service = new VptSessionBridgeService(
+      // ⚠️ 这六个依赖在本单里全是夹具 (本单只验"逐字稿定稿写入") ——
+      //   类型不匹配的部分用 never 断言过去 (不改运行时形状).
       repo as never,
       { enqueue: async () => true } as never,
       { enqueue: async () => true } as never,
       new VoiceSessionBridgeRegistry(),
       { get: () => {} } as never,
+      { get: () => {} } as never,
     );
 
     await service.replaceTranscript({ dbSessionId: 'db-1', userId: USER, turns: [] });
 
-    expect(repo.save).not.toHaveBeenCalled();
+    expect(repo.update).not.toHaveBeenCalled();
   });
 
   it('落库会话不存在 → 抛错 (不静默)', async () => {
-    const { VptSessionBridgeService } = await import('../../src/counselor/providers/vpt-session-bridge.service');
+    const { VptSessionBridgeService } = await import('../../src/counselor/providers/vpt-session-bridge.service.js');
 
     const repo = {
-      findOne: jest.fn(async () => null),
-      save: jest.fn(async (row: unknown) => row),
+      findOne: vi.fn(async () => null),
+      update: vi.fn(async () => ({ affected: 0 })),
     };
 
     const service = new VptSessionBridgeService(
+      // ⚠️ 这六个依赖在本单里全是夹具 (本单只验"逐字稿定稿写入") ——
+      //   类型不匹配的部分用 never 断言过去 (不改运行时形状).
       repo as never,
       { enqueue: async () => true } as never,
       { enqueue: async () => true } as never,
       new VoiceSessionBridgeRegistry(),
+      { get: () => {} } as never,
       { get: () => {} } as never,
     );
 

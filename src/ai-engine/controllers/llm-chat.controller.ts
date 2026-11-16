@@ -10,10 +10,10 @@ import { Body, Controller, Get, HttpCode, HttpStatus, MessageEvent, Param, Post,
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Observable, from } from 'rxjs';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
-import type { ChatCompletionChunkDto, ChatCompletionDto } from '../dto/llm-chat.dto';
-import { LlmOrchestratorService } from '../providers/llm-orchestrator.service';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
+import type { ChatCompletionChunkDto, ChatCompletionDto } from '../dto/llm-chat.dto.js';
+import { LlmOrchestratorService } from '../providers/llm-orchestrator.service.js';
 
 @ApiTags('llm-chat')
 @Controller('v1/chat')

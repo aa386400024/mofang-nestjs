@@ -1,3 +1,4 @@
+import { vi, type Mocked } from 'vitest';
 /**
  * V2026-09-14 治本 (Stage C 后端契约): GrowthToolCompleteService 单测.
  *
@@ -8,7 +9,7 @@
  *   - 默认 V1.0 行为: 不实际落 fragment_log (V2.1 接 inner_world 模块)
  *
  * 设计 (大厂 service 单测):
- *   - mockDailyToolsService 用 jest.spyOn, 模拟 dailyTools.getDailyTools 返值
+ *   - mockDailyToolsService 用 vi.spyOn, 模拟 dailyTools.getDailyTools 返值
  *   - 覆盖 happy + 3 个 error path
  *
  * 反双胞胎:
@@ -16,14 +17,14 @@
  *   - 不测 controller 层 (单测聚焦 service)
  */
 
-import { GrowthDailyToolsService } from './growth-daily-tools.service';
-import { GrowthToolCompleteService } from './growth-tool-complete.service';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
+import { GrowthDailyToolsService } from './growth-daily-tools.service.js';
+import { GrowthToolCompleteService } from './growth-tool-complete.service.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
 
 describe('V2026-09-14 GrowthToolCompleteService — 单测', () => {
   let service: GrowthToolCompleteService;
-  let mockDailyTools: jest.Mocked<GrowthDailyToolsService>;
+  let mockDailyTools: Mocked<GrowthDailyToolsService>;
   const userId = 'test-user-uuid';
 
   // V2026-09-14 治本: 跟 daily-tools.service 默认 3 条 1:1.
@@ -66,8 +67,8 @@ describe('V2026-09-14 GrowthToolCompleteService — 单测', () => {
 
   beforeEach(() => {
     mockDailyTools = {
-      getDailyTools: jest.fn().mockResolvedValue(sampleTools),
-    } as unknown as jest.Mocked<GrowthDailyToolsService>;
+      getDailyTools: vi.fn().mockResolvedValue(sampleTools),
+    } as unknown as Mocked<GrowthDailyToolsService>;
 
     service = new GrowthToolCompleteService(mockDailyTools);
   });

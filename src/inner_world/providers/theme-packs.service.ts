@@ -2,11 +2,11 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
-import { FragmentsService } from './fragments.service';
-import { ThemePackDto, ThemePacksListDto } from '../dto/skin-pack.dto';
-import { ThemePackState } from '../entities/theme-pack-state.entity';
-import { FragmentType } from '../enums/fragment-type.enum';
-import { THEME_PACK_DEFS, ThemePackDef, SkinRarity } from '../enums/skin-rarity.enum';
+import { FragmentsService } from './fragments.service.js';
+import { ThemePackDto, ThemePacksListDto } from '../dto/skin-pack.dto.js';
+import { ThemePackState } from '../entities/theme-pack-state.entity.js';
+import { FragmentType } from '../enums/fragment-type.enum.js';
+import { THEME_PACK_DEFS, ThemePackDef, SkinRarity } from '../enums/skin-rarity.enum.js';
 
 /**
  * 主题包服务 — V4.0 §3.4.

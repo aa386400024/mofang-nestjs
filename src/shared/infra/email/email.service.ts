@@ -3,7 +3,7 @@ import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 
 // ⚠️ 必须直接 import 文件, 详见 redis.service.ts 治本注释.
-import { ConfigService } from '../../../common/providers/config.service';
+import { ConfigService } from '../../../common/providers/config.service.js';
 
 /**
  * 邮件发送参数.

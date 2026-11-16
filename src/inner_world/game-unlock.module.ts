@@ -6,11 +6,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { UserModule } from '../user/user.module';
+import { UserModule } from '../user/user.module.js';
 
-import { GameUnlockController } from './controllers/game-unlock.controller';
-import { GameUnlockProgressEntity } from './entities/game-unlock-progress.entity';
-import { GameUnlockService } from './providers/game-unlock.service';
+import { GameUnlockController } from './controllers/game-unlock.controller.js';
+import { GameUnlockProgressEntity } from './entities/game-unlock-progress.entity.js';
+import { GameUnlockService } from './providers/game-unlock.service.js';
 
 @Module({
   imports: [TypeOrmModule.forFeature([GameUnlockProgressEntity]), UserModule],

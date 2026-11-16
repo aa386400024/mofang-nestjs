@@ -15,11 +15,11 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import { type CreateOrderDto, type MembershipOverviewDto, type OrderDto, type ProductDto } from '../dto/billing.dto';
-import { BillingService } from '../providers/billing.service';
+import { type CreateOrderDto, type MembershipOverviewDto, type OrderDto, type ProductDto } from '../dto/billing.dto.js';
+import { BillingService } from '../providers/billing.service.js';
 
 /**
  * V2026-10-13 (V0.2 — BillingController):

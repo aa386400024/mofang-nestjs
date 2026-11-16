@@ -27,11 +27,11 @@
 import { Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
-import type { QuoteDto, QuoteFavoriteResultDto, QuoteListDto, QuoteQueryDto } from '../dto/quote.dto';
-import { QuoteService } from '../providers/quote.service';
+import type { QuoteDto, QuoteFavoriteResultDto, QuoteListDto, QuoteQueryDto } from '../dto/quote.dto.js';
+import { QuoteService } from '../providers/quote.service.js';
 
 @ApiTags('counselor-quotes')
 @Controller('counselor/quotes')

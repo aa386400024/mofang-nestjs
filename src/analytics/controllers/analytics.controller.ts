@@ -16,10 +16,10 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 //   JwtAuthGuard 在 src/auth/guards/, 不在 src/common/. common/index.ts 也不
 //   re-export (大厂 spec: common 是跨切关注点 utilities, 不含业务 guard).
 //   治本: 从 '../../auth' 直接 import (auth/index.ts re-export JwtAuthGuard).
-import { JwtAuthGuard } from '../../auth';
-import { TenantId } from '../../common';
-import { AnalyticsOverviewDto, TimeRange } from '../dto/analytics.dto';
-import { AnalyticsService } from '../providers/analytics.service';
+import { JwtAuthGuard } from '../../auth/index.js';
+import { TenantId } from '../../common/index.js';
+import { AnalyticsOverviewDto, TimeRange } from '../dto/analytics.dto.js';
+import { AnalyticsService } from '../providers/analytics.service.js';
 
 @ApiTags('Admin · Analytics')
 @ApiBearerAuth()

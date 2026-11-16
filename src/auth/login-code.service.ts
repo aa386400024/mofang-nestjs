@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomInt } from 'node:crypto';
 
-import { EmailService } from '../shared/infra/email';
-import { RedisService } from '../shared/infra/redis';
+import { EmailService } from '../shared/infra/email/index.js';
+import { RedisService } from '../shared/infra/redis/index.js';
 
 const REDIS_KEY_PREFIX = 'auth:login-code:';
 

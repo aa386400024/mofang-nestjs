@@ -21,12 +21,13 @@
 //     1. pnpm build 0 错
 //     2. runtime/engine-session.port.ts 只 import 本文件的类型, 无循环依赖
 
-import type { BdiSnapshot } from './bdi-snapshot';
-import type { CharacterProfile } from './character-profile';
-import type { Intention } from './intention';
-import type { MemoryHit } from './ports/memory.store';
-import type { SafetyVerdict } from './safety/safety-types';
-import type { TrajectoryScript, TrajectoryTrace } from './trajectory/script';
+import type { BdiSnapshot } from './bdi-snapshot.js';
+import type { CharacterProfile } from './character-profile.js';
+import type { CounselorEventKind, SessionEvent } from './events/session-event.js';
+import type { Intention } from './intention.js';
+import type { MemoryHit } from './ports/memory.store.js';
+import type { SafetyVerdict } from './safety/safety-types.js';
+import type { TrajectoryScript, TrajectoryTrace } from './trajectory/script.js';
 
 /**
  * 开场入参.
@@ -69,6 +70,30 @@ export interface OpenEngineSessionInput {
    * 省略 = 无轨迹约束, 本场行为与 WP1/WP2 **逐字一致**.
    */
   readonly trajectory?: TrajectoryScript;
+  /**
+   * 会话级同盟门槛覆盖 (I-12).
+   *
+   * ⚠️ **形状镜像** `cognition/alliance-config.ts` 的 `AllianceThresholds` (四字段严格 1:1),
+   *   但**刻意不 import 那个类型** —— `domain/` 层不认识 `cognition/` 的计算,
+   *   而本仓 `domain/` → `cognition/` 的依赖方向**至今不存在** (反向依赖是既成事实:
+   *   `cognition/` → `domain/`). 这里只放"形状", 校验与回落仍由
+   *   `alliance-config.ts` 的 `resolveAllianceThresholds` 一处裁决.
+   *
+   * 语义 (三条回落规则, 顺序即优先级):
+   *   1. 覆盖优先 —— 给了且合法 → 用覆盖值;
+   *   2. 缺项回落单例 —— 没给 → 用实例级配置 (模块 env 单例) 的值;
+   *   3. 非法值回落种子 —— 给了但越界 → 回落内核种子值.
+   *
+   * ⚠️ 省略 = 无覆盖 = 逐字回落到模块 env 单例 (**与改造前逐字一致**).
+   *   本单只打通"注入缝", 真实来源 (按角色档案自动算门槛) 属后续标定批次.
+   */
+  readonly allianceThresholds?: {
+    readonly open?: number;
+    readonly resistanceTrust?: number;
+    readonly resistanceSafety?: number;
+    /** 探索通道的深度阻抗上限 (S-1 端口化; 缺省由内核种子回落). */
+    readonly openDepth?: number;
+  };
 }
 
 /**
@@ -99,6 +124,32 @@ export interface EngineTurnInput {
   readonly traceId?: string;
   /** 中断信号 (语音侧 barge-in). 已触发时内核抛 ABORTED, 不产生状态变更. */
   readonly signal?: AbortSignal;
+}
+
+/**
+ * 工作窗口溢出事件 (WP37).
+ *
+ * 触发时机: 工作记忆窗口 (最近 8 轮) 被新内容挤掉最旧的轮次时, 由内核**同步**回调一次.
+ *
+ * 字段口径:
+ *   - tenantId / sessionId / visitorId = 归属三件套. 适配层要写记忆条目时**必须**带上
+ *     (MemoryEntry 的契约强制要求 tenantId + sessionId), 且滚动摘要的状态必须按会话隔离
+ *     —— 只给"被挤出的文本"是写不出合法记忆条目的.
+ *   - pushedOut = 被挤出窗口的轮次 (咨询师原话, 按时间正序, 最早的在前).
+ *     只有**咨询师这一侧** —— 内核不渲染, 拿不到来访者的话 (见 in-memory-engine-session.ts
+ *     的 rememberTurn 说明). 适配层据此生成的是"咨询侧发言摘要", 不是完整逐字稿摘要.
+ *
+ * 边界: 内核**只交出文本**, 不调 LLM / 不发网络请求 —— 摘要生成在适配层 (零网络 / 零 prompt).
+ */
+export interface WorkingWindowOverflowEvent {
+  /** 租户隔离键. */
+  readonly tenantId: string;
+  /** 业务会话 id. */
+  readonly sessionId: string;
+  /** 来访者 id. */
+  readonly visitorId: string;
+  /** 被挤出工作窗口的轮次 (按时间正序). */
+  readonly pushedOut: readonly string[];
 }
 
 /**
@@ -146,4 +197,55 @@ export interface EngineTurnOutput {
    * `pass` 且探测无额外结果时省略本字段 (零回归: 干净会话的出参与 WP3 完全一致).
    */
   readonly safety?: SafetyVerdict;
+  /**
+   * 本轮咨询师事件分类 (WP38 · **只读观测**, 不参与任何决策).
+   *
+   * 内容 = 内核分类器本轮算出的事件种类 (共情 / 接纳 / 评判 / 越界…), 已去重保序.
+   *
+   * 为什么由内核自己填 (而不是让适配层预判):
+   *   事件分类是内核的**唯一真相** —— 状态迁移 / delta 聚合 / 意图规划全都吃它.
+   *   适配层若另起一套预判, 就会与内核真值**漂移** (同一句话两套标签),
+   *   而调试面板恰恰是用来"看内核到底怎么判"的 —— 预判出来的标签会骗人.
+   *
+   * 边界:
+   *   - **不含口语**, 不带命中词明细 (那是内核内部产物);
+   *   - **不改**快照 / Intention / 轨迹游标 —— 纯挂出参的观测字段;
+   *   - 可选 = 向后兼容: 不传 = 行为与本字段引入前**逐字一致** (零回归).
+   */
+  readonly events?: readonly CounselorEventKind[];
+  /**
+   * 本轮事件**明细** (kind + 命中词 + 强度) —— 只读观测, 不参与任何决策.
+   *
+   * V2026-11-12 治本 (D-2 · 事件类型拆分): 新增, 为的是**把词表命中证据交出去**.
+   *   为什么需要: `events` 只带 kind, 命中词 (matchedTerms) 在内核出参的投影里丢了.
+   *   审计层要记命中词, 唯一的办法是内核把明细一起给出 —— 否则审计要么自己重跑一遍
+   *   分类器 (C3 已禁: 那会让审计与内核漂移), 要么就永远记不到证据.
+   *
+   * 边界:
+   *   - **不含咨询师原话**: matchedTerms 只装**词表命中词 / 正则原文**, 不是话;
+   *   - 不改快照 / Intention / 轨迹游标 —— 纯挂出参的观测字段;
+   *   - 可选 = 向后兼容: 不传 = 行为与本字段引入前**逐字一致** (零回归);
+   *   - 与 `events` 同时出现 (内核同一分支一起填), 旧消费端读 `events` 路径不变.
+   */
+  readonly eventDetails?: readonly SessionEvent[];
+  /**
+   * 本轮落库后的 BDI 快照版本号 (WP65).
+   *
+   * 为什么加这个字段:
+   *     影子审议是**异步**的 —— 第 N 轮入队后, 第 N+1 轮可能已经跑完了.
+   *     审议结果回来时, 要知道自己对应的是哪一版快照, 才能判断有没有过期.
+   *     切灰度后, 过期的审议结果直接丢弃, 不写回快照.
+   *
+   * 口径 (⚠️ 与"本轮开始时"差一版, 别搞混):
+   *     本字段 = **本轮落库后**的版本 (记作 R1); 本轮开始时的那份 (R0) = R1 - 1.
+   *     锚 R1 而不是 R0, 是因为切灰度时的过期判定是
+   *     "回来时的当前版本 == 本字段" —— 审议是本轮**落库之后**才入队的,
+   *     回来时当前版本必然 >= R1. 锚 R0 的话, 当前版本恒 > R0, 判定会**永远**
+   *     判成过期 —— 机制作废.
+   *
+   * 边界:
+   *     - 纯观测字段, **不参与任何决策** (与 events / safety 同一范式);
+   *     - 可选 = 向后兼容: 不传 = 行为与本字段引入前**逐字一致** (零回归).
+   */
+  readonly revision?: number;
 }

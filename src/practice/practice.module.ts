@@ -1,29 +1,29 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { EmbodiedModule } from '../embodied/embodied.module';
-import { UserModule } from '../user/user.module';
+import { EmbodiedModule } from '../embodied/embodied.module.js';
+import { UserModule } from '../user/user.module.js';
 
-import { GrowthDailyToolsController } from './controllers/growth-daily-tools.controller';
-import { GrowthToolCompleteController } from './controllers/growth-tool-complete.controller';
-import { GrowthWeeklyOverviewController } from './controllers/growth-weekly-overview.controller';
-import { PracticeCategoriesController } from './controllers/practice-categories.controller';
-import { PracticeEmbodiedController } from './controllers/practice-embodied.controller';
-import { PracticeGymController } from './controllers/practice-gym.controller';
-import { PracticeRecordsController } from './controllers/practice-records.controller';
-import { PracticeSessionsController } from './controllers/practice-sessions.controller';
-import { PracticeToolsController } from './controllers/practice-tools.controller';
+import { GrowthDailyToolsController } from './controllers/growth-daily-tools.controller.js';
+import { GrowthToolCompleteController } from './controllers/growth-tool-complete.controller.js';
+import { GrowthWeeklyOverviewController } from './controllers/growth-weekly-overview.controller.js';
+import { PracticeCategoriesController } from './controllers/practice-categories.controller.js';
+import { PracticeEmbodiedController } from './controllers/practice-embodied.controller.js';
+import { PracticeGymController } from './controllers/practice-gym.controller.js';
+import { PracticeRecordsController } from './controllers/practice-records.controller.js';
+import { PracticeSessionsController } from './controllers/practice-sessions.controller.js';
+import { PracticeToolsController } from './controllers/practice-tools.controller.js';
 
-import { GymCurrentPlan } from './entities/gym-plan.entity';
-import { PracticeRecord } from './entities/practice-record.entity';
-import { PracticeSession } from './entities/practice-session.entity';
-import { PracticeTool } from './entities/practice-tool.entity';
-import { TargetedReshape } from './entities/targeted-reshape.entity';
+import { GymCurrentPlan } from './entities/gym-plan.entity.js';
+import { PracticeRecord } from './entities/practice-record.entity.js';
+import { PracticeSession } from './entities/practice-session.entity.js';
+import { PracticeTool } from './entities/practice-tool.entity.js';
+import { TargetedReshape } from './entities/targeted-reshape.entity.js';
 
-import { GrowthContractInit } from './growth-contract-init';
-import { GrowthDailyToolsService } from './providers/growth-daily-tools.service';
-import { GrowthToolCompleteService } from './providers/growth-tool-complete.service';
-import { GrowthWeeklyOverviewService } from './providers/growth-weekly-overview.service';
+import { GrowthContractInit } from './growth-contract-init.js';
+import { GrowthDailyToolsService } from './providers/growth-daily-tools.service.js';
+import { GrowthToolCompleteService } from './providers/growth-tool-complete.service.js';
+import { GrowthWeeklyOverviewService } from './providers/growth-weekly-overview.service.js';
 import {
   PracticeCategoryService,
   PracticeToolService,
@@ -32,7 +32,7 @@ import {
   PracticeGymService,
   TargetedReshapeService,
   PracticeEmbodiedService,
-} from './providers/practice.service';
+} from './providers/practice.service.js';
 
 /**
  * Practice 模块 — 心塑「成长用户端」Tab2 练习 V2.0 (大厂企业级).

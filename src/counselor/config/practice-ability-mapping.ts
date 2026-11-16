@@ -27,7 +27,7 @@
 //     2. 每个映射值都能在 ability_dimensions.sub_indicator_code 里找到
 //
 //   时间戳: 2026-10-22
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
 
 /**
  * 基本功 → 能力子指标 code 的映射 (10 档全覆盖).

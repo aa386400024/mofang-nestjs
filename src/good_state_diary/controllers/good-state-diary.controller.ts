@@ -1,13 +1,13 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { RequirePrivacyLevel } from '../../common/decorators/privacy-level.decorator';
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { PrivacyGuard } from '../../common/guards/privacy.guard';
-import { PrivacyLevel } from '../../common/privacy/privacy-level.enum';
-import { CurrentUser } from '../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard';
+import { RequirePrivacyLevel } from '../../common/decorators/privacy-level.decorator.js';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { PrivacyGuard } from '../../common/guards/privacy.guard.js';
+import { PrivacyLevel } from '../../common/privacy/privacy-level.enum.js';
+import { CurrentUser } from '../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../user/guards/jwt-auth.guard.js';
 
 import {
   CreateDiaryEntryDto,
@@ -17,8 +17,8 @@ import {
   ListDiaryEntriesQueryDto,
   SearchDiaryEntriesQueryDto,
   UpdateDiaryEntryDto,
-} from '../dto/good-state-diary.dto';
-import { GoodStateDiaryService } from '../providers/good-state-diary.service';
+} from '../dto/good-state-diary.dto.js';
+import { GoodStateDiaryService } from '../providers/good-state-diary.service.js';
 
 /**
  * V2026-09-11 治本 (好状态日记 · 控制器):

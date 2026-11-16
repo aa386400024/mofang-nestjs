@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, integrate, develop]
+    branches: [master, integrate]
   pull_request:
-    branches: [main, integrate]
+    branches: [master, integrate]
 
 # 同一个 PR 取消之前的 run (节省 CI quota)
 concurrency:
@@ -13,6 +13,60 @@ concurrency:
 
 jobs:
   # ============================================================
+  # 0. Contracts (跨仓契约硬门 · P0)
+  #    框架仓为私有仓，CI 不能匿名 checkout；用仓内不可变契约包做真实 schema 校验。
+  #    ORCH_REQUIRE_FRAMEWORK=1 表示框架不可达时禁止 skipped 软通过，必须 fail-fast。
+  # ============================================================
+  contracts:
+    name: Contracts (framework 2.0.0)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ORCH_FRAMEWORK_DIR: ${{ github.workspace }}/contracts/agent-collaboration-framework/2.0.0
+      ORCH_REQUIRE_FRAMEWORK: '1'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Enable pnpm (corepack)
+        run: npm install -g corepack && corepack enable
+
+      - name: Resolve pnpm version
+        run: pnpm --version
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify immutable framework bundle (hash + version)
+        run: pnpm orchestration:contracts
+
+      - name: Assert hard mode fails when framework is missing
+        run: |
+          set +e
+          ORCH_FRAMEWORK_DIR="$RUNNER_TEMP/absent-framework" ORCH_REQUIRE_FRAMEWORK=1 \
+            node scripts/orchestration/cli.mjs validate > "$RUNNER_TEMP/absent.log" 2>&1
+          code=$?
+          set -e
+          cat "$RUNNER_TEMP/absent.log"
+          test "$code" -ne 0
+
+      - name: Validate schemas + event journal + projection
+        run: pnpm orchestration:validate
+
+  # ============================================================
   # 1. Lint + Typecheck (最快, 先跑)
   # ============================================================
   lint-and-typecheck:
@@ -20,28 +74,156 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Enable pnpm (corepack)
+        run: npm install -g corepack && corepack enable
+
+      - name: Resolve pnpm version
+        run: pnpm --version
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache ESLint results
+        uses: actions/cache@v5
+        with:
+          path: .eslintcache
+          # T-2 (TD-9) 键口径: ESLint 自身的缓存键 = ESLint 版本 + Node 版本 + **解析后配置对象**哈希
+          #   + 每个文件的 mtime/size —— **不含 tsconfig 内容**. 改过 tsconfig (类型收窄 / 规则开关)
+          #   之后旧缓存会给出**过期**的 type-aware 结论, 所以外层键必须把 eslint 配置与 tsconfig
+          #   指纹绑成一个不可分割的版本.
+          #   不用 restore-keys: 指纹不同就宁可冷跑, 也不拿旧类型配置的缓存充数.
+          #   收益 (本机实测): 冷跑 183.6s → 命中 5.8s.
+          key: eslint-${{ runner.os }}-${{ hashFiles('eslint.config.mjs', 'tsconfig.json', 'tsconfig.build.json', 'tsconfig.check.json') }}
 
       - name: Lint
-        run: npm run lint
+        run: pnpm lint
 
       - name: Typecheck
-        run: npx tsc --noEmit -p tsconfig.json
+        run: pnpm exec tsc --noEmit -p tsconfig.json
 
   # ============================================================
-  # 2. Unit + E2E Test (需 MySQL + Redis service)
+  # 2. Unit tests (TD-11 · T-E: matrix 2 片, 仅 unit 进分片)
   # ============================================================
-  test:
-    name: Test (Unit + E2E)
+  unit:
+    name: Unit (shard ${{ matrix.shard }}/${{ matrix.count }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: lint-and-typecheck
+    # TD-11 · T-E: --shard 只切「哪些 spec 文件归本片跑」, 不改测试集合 / 断言 / 用例数
+    #   (本机实测: 1/2 = 97 文件 1608 例, 2/2 = 97 文件 1644 例, 合计 194 文件 3252 例, 与基线逐字一致).
+    #   fail-fast: false: 一片挂了另一片照跑完, 一次能看到完整失败面 (不掩盖问题).
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+        count: [2]
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: mofang_test
+          MYSQL_USER: mofang
+          MYSQL_PASSWORD: mofangpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -prootpass"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=3s
+          --health-retries=5
+    env:
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: mofang_test
+      DB_USER: mofang
+      DB_PASSWORD: mofangpass
+      DB_TYPE: mysql
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ''
+      REDIS_KEY_PREFIX: mofang:test
+      JWT_SECRET: test-jwt-secret-do-not-use-in-prod
+      JWT_REFRESH_SECRET: test-jwt-refresh-secret-do-not-use-in-prod
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      EMAIL_ENABLED: 'false'
+      SMS_ENABLED: 'false'
+      METRICS_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Enable pnpm (corepack)
+        run: npm install -g corepack && corepack enable
+
+      - name: Resolve pnpm version
+        run: pnpm --version
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache vitest transform cache
+        uses: actions/cache@v5
+        with:
+          path: node_modules/.vite/vitest
+          key: vitest-transform-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            vitest-transform-${{ runner.os }}-
+
+      - name: Run migrations (建测试库 schema)
+        run: pnpm migration:run
+
+      - name: Unit tests (shard ${{ matrix.shard }}/${{ matrix.count }})
+        # ⚠️ 必须用 `pnpm run <script> -- <args>` 形态.
+        #    pnpm 的 `pnpm <script> -- <args>` 简写会把 --shard 当成 pnpm 自己的未知选项直接报错
+        #    (本机实测: ERROR Unknown option: 'shard'), 只有 `pnpm run test -- --shard=1/2` 才会透传.
+        run: pnpm run test -- --shard=${{ matrix.shard }}/${{ matrix.count }}
+
+  # ============================================================
+  # 3. E2E tests (独立 config + 独立步骤, 不进分片矩阵)
+  # ============================================================
+  e2e:
+    name: E2E
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: lint-and-typecheck
@@ -88,50 +270,165 @@ jobs:
       EMAIL_ENABLED: 'false'
       SMS_ENABLED: 'false'
       METRICS_ENABLED: 'false'
+      # P-DEBT-17: 构造期硬校验 env; e2e 装配真实 AppModule 触发 LlmService + AsrTokenService 构造.
+      #   stub 仅通过非空校验, 不发起网络调用 (e2e 用例均 skip 或不触达 LLM/ASR 调用); 生产 env 由部署环境注入.
+      MINIMAX_BASE_URL: http://127.0.0.1:1
+      MINIMAX_API_KEY: stub-test-key
+      MINIMAX_LLM_MODEL: stub-model
+      MINIMAX_ASR_TOKEN_SECRET: stub-asr-token-secret
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Enable pnpm (corepack)
+        run: npm install -g corepack && corepack enable
+
+      - name: Resolve pnpm version
+        run: pnpm --version
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Run migrations (建测试库 schema)
-        run: npm run migration:run
-
-      - name: Unit tests
-        run: npm test
+        run: pnpm migration:run
 
       - name: E2E tests
-        run: npm run test:e2e
+        run: pnpm test:e2e
         env:
           # E2E 需真实 HTTP server
           PORT: 3000
+  # ============================================================
+  # 4. Coverage (TD-11 · T-D: 单进程全量跑 unit + 覆盖率采集, 不分片)
+  # ============================================================
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: lint-and-typecheck
+    # 为什么单跑一遍而不复用 unit 分片: --shard 切的是「哪些 spec 文件归本片跑」,
+    #   每片只执行一部分测试 → 每片的覆盖率只反映本片, **不是全量口径**.
+    #   覆盖率阈值 (另案, 待首轮真实报告拍板) 不能建立在分片报告上, 故这里单进程跑全量.
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: mofang_test
+          MYSQL_USER: mofang
+          MYSQL_PASSWORD: mofangpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -prootpass"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=3s
+          --health-retries=5
+    env:
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: mofang_test
+      DB_USER: mofang
+      DB_PASSWORD: mofangpass
+      DB_TYPE: mysql
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ''
+      REDIS_KEY_PREFIX: mofang:test
+      JWT_SECRET: test-jwt-secret-do-not-use-in-prod
+      JWT_REFRESH_SECRET: test-jwt-refresh-secret-do-not-use-in-prod
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      EMAIL_ENABLED: 'false'
+      SMS_ENABLED: 'false'
+      METRICS_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v5
 
-      - name: Upload coverage
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
         with:
-          name: coverage-${{ github.run_id }}
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Enable pnpm (corepack)
+        run: npm install -g corepack && corepack enable
+
+      - name: Resolve pnpm version
+        run: pnpm --version
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache vitest transform cache
+        uses: actions/cache@v5
+        with:
+          path: node_modules/.vite/vitest
+          key: vitest-transform-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            vitest-transform-${{ runner.os }}-
+
+      - name: Run migrations (建测试库 schema)
+        run: pnpm migration:run
+
+      - name: Unit tests with coverage
+        # 独立 test:coverage 脚本内嵌 --coverage, 不经 `pnpm run test -- <flag>` 透传,
+        #    避免 --coverage 落在字面 `--` 之后被 vitest 当位置参数 (spec filter) 而非采集 flag.
+        #    本地 pnpm test 脚本不带 --coverage (日常闸门不插桩), 只有 CI 这条路径开采集.
+        run: pnpm run test:coverage
+
+      - name: Upload coverage report (lcov)
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-lcov
           path: coverage/
+          retention-days: 7
+          if-no-files-found: error
 
   # ============================================================
-  # 3. Build (编译产物, 验证 Dockerfile 能 build)
+  # 5. Build (编译产物, 验证 Dockerfile 能 build)
   # ============================================================
   build:
     name: Build (Docker)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: test
+    # TD-11 · T-E: unit 是 matrix, `needs: unit` 会等**所有**分片跑完; 再叠加 e2e.
+    needs: [unit, e2e]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build Docker image
         run: docker build -t mofang-nestjs:${{ github.sha }} .
@@ -142,31 +439,47 @@ jobs:
           echo "Image size: $SIZE"
 
   # ============================================================
-  # 4. Security audit (大厂必备)
+  # 6. Security audit (大厂必备)
   # ============================================================
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Enable pnpm (corepack)
+        run: npm install -g corepack && corepack enable
+
+      - name: Resolve pnpm version
+        run: pnpm --version
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
-      - name: npm audit
-        run: npm audit --audit-level=high --omit=dev
+      - name: pnpm audit
+        # TD-11 · T-C: --ignore-registry-errors 只在 registry 网络 / 服务故障时放行 (exit 0),
+        #   **真实 high 及以上 advisory 仍按 --audit-level=high 阻断** —— 容错不覆盖漏洞判定.
+        run: pnpm audit --audit-level=high --prod --ignore-registry-errors
 
       - name: Run Trivy vulnerability scanner on Dockerfile
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: 'node:24-alpine'
+          image-ref: 'node:26-alpine'
           format: 'table'
           exit-code: '0'
           ignore-unfixed: true

@@ -15,7 +15,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-import { AIEffectHorizon } from '../enums/ai-effect.enums';
+import { AIEffectHorizon } from '../enums/ai-effect.enums.js';
 
 /**
  * AI 干预效果记录 — V6.0 §3.4.

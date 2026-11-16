@@ -35,7 +35,26 @@ export enum EngineErrorCode {
   STATE_CONFLICT = 'ENGINE_STATE_CONFLICT',
   /** 操作被取消 (AbortSignal 已触发, 对应语音侧 barge-in). */
   ABORTED = 'ENGINE_ABORTED',
-  /** 端口不支持该操作 (预留: 未来 trajectory / ethics 端口的未实现分支). */
+  /**
+   * 仓储 / 依赖失败 (WP26 · P2-18).
+   *
+   * 为什么要补这个码: 改之前, 内核只有"状态冲突"与"会话不存在"两类**内核自身**的错,
+   * 而"底层存储挂了 / 依赖不可达"这一类**外部依赖故障**只能落到裸 Error ——
+   * adapter 拿到裸 Error 只能按 message 字符串匹配 (内核错误契约明令禁止的写法),
+   * 于是这类故障最终一律落成 500, 且日志里没有可机器聚合的码.
+   *
+   * 语义边界: 这是**依赖侧**的失败 (B 层实现抛的), 不是内核逻辑错.
+   * 内核自己在契约端口上遇到依赖失败时, 应把它包成这个码再冒泡.
+   */
+  STORAGE_FAILURE = 'ENGINE_STORAGE_FAILURE',
+  /**
+   * 端口不支持该操作 (预留: 未来 trajectory / ethics 端口的未实现分支).
+   *
+   * V2026-11-03 治本 (WP26 · P2-18): 标注 **Phase2** ——
+   *   本期内核**没有任何抛这个码的路径** (它是给未来的端口扩展位预留的).
+   *   留着它是为了错误码表完整 (adapter 能穷举), 但它现在是个**死码**:
+   *   谁要真的用它, 必须同时补上"哪个端口 / 哪个操作"的口径说明.
+   */
   UNSUPPORTED = 'ENGINE_UNSUPPORTED',
 }
 

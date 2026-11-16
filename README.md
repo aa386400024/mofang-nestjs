@@ -100,20 +100,20 @@ mofang-nestjs/
 
 ```bash
 # 1. 装依赖
-npm ci
+pnpm install --frozen-lockfile
 
 # 2. 启动依赖服务 (MySQL + Redis)
 docker compose up -d mysql redis
 
 # 3. 跑迁移
-npm run migration:run
+pnpm run migration:run
 
 # 4. 配置 .env
 cp .env.example .env
 # 编辑 .env: DB_HOST=mysql / REDIS_HOST=redis / JWT_SECRET=...
 
 # 5. 启动 dev
-npm run start:dev
+pnpm run start:dev
 
 # 6. 验证
 curl http://localhost:3000/health
@@ -129,13 +129,13 @@ curl http://localhost:3000/metrics | head -30
 ```bash
 # 本地
 cd /mnt/e/Work/Project/backend/mofang-nestjs
-npm run build
+pnpm build
 
 # 传 dist + lockfile 到服务器
 sshpass -p '0126ZHang@@' rsync -avz --delete -e "ssh -p 22" \
   dist/ root@117.72.30.78:/tmp/mofang-build/dist/
 sshpass -p '0126ZHang@@' scp -P 22 \
-  package.json package-lock.json \
+  package.json pnpm-lock.yaml \
   root@117.72.30.78:/tmp/mofang-build/
 
 # 服务器 build + up
@@ -158,10 +158,10 @@ cp .env.example .env
 docker compose up -d mysql redis
 
 # 3. 跑迁移
-npm run migration:run
+pnpm run migration:run
 
 # 4. 起 nest (开发模式, watch)
-npm run start:dev
+pnpm run start:dev
 ```
 
 详见 [`docs/architecture/V2_SETUP.md`](docs/architecture/V2_SETUP.md) (本地开发文档)。
@@ -315,8 +315,8 @@ docker compose exec api npm run migration:run
 - [ ] `src/shared/foobar/`, `src/shared/user/`
 - [ ] `src/entity/sampledb1/`, `src/entity/sampledb2/`
 - [ ] `test/e2e/local-auth.spec.ts`, `test/e2e/jwt-auth.spec.ts`
-- [ ] `bin/entity.ts` (entity 同步生成脚本)
-- [ ] package.json: 删 `passport-*` `express-session` `@nestjs/passport` `passport` `typeorm-model-generator`
+- [x] `bin/entity.ts` (entity 同步生成脚本) —— 2026-11-15 随 P-DEBT-20 移除（生成器链路事实废弃）
+- [x] package.json: 删 `typeorm-model-generator`（2026-11-15，P-DEBT-20）；`passport-*` `express-session` `@nestjs/passport` `passport` 属 demo 链路，留 V3 上线清理
 
 删完应该剩 50% 文件，纯净 V2 真生产。
 

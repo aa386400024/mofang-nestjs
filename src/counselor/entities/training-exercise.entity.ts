@@ -48,9 +48,9 @@
 //   时间戳: 2026-10-19
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { TrainingDifficulty } from '../enums/training-difficulty.enum';
-import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum';
-import { TrainingExerciseType } from '../enums/training-exercise-type.enum';
+import { TrainingDifficulty } from '../enums/training-difficulty.enum.js';
+import { TrainingExerciseMode } from '../enums/training-exercise-mode.enum.js';
+import { TrainingExerciseType } from '../enums/training-exercise-type.enum.js';
 
 /**
  * 训练题评分标准 (rubric json 字段 1:1 wire, 跟 xin_su_app TrainingExerciseRubric 1:1 wire).

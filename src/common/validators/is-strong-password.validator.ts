@@ -1,7 +1,7 @@
 import { registerDecorator, type ValidationOptions } from 'class-validator';
 
-import { BizCode } from '../exceptions/biz-code.enum';
-import { BizException } from '../exceptions/biz.exception';
+import { BizCode } from '../exceptions/biz-code.enum.js';
+import { BizException } from '../exceptions/biz.exception.js';
 
 /**
  * 强密码校验 (大厂安全标准).

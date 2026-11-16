@@ -1,14 +1,14 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import { CurrentUser } from '../../../user/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../../user/guards/jwt-auth.guard';
+import { CurrentUser } from '../../../user/decorators/current-user.decorator.js';
+import { JwtAuthGuard } from '../../../user/guards/jwt-auth.guard.js';
 
-import { DualPuzzleResultDto, DualPuzzleSetDto } from '../dto/dual-puzzle-dtos';
-import { SubmitDualPuzzleAnswerDto } from '../dto/submit-dual-puzzle-answer.dto';
-import { DualPuzzleCategory } from '../enums/dual-puzzle-category.enum';
+import { DualPuzzleResultDto, DualPuzzleSetDto } from '../dto/dual-puzzle-dtos.js';
+import { SubmitDualPuzzleAnswerDto } from '../dto/submit-dual-puzzle-answer.dto.js';
+import { DualPuzzleCategory } from '../enums/dual-puzzle-category.enum.js';
 
-import { DualPuzzleService } from '../providers/dual-puzzle.service';
+import { DualPuzzleService } from '../providers/dual-puzzle.service.js';
 
 /**
  * 默契拼图 controller — V2026-09-12 §6.4 心塑 V6.0.

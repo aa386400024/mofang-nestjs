@@ -27,8 +27,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsInt, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 
-import { MembershipTier } from '../enums/membership-tier.enum';
-import { QuotaType } from '../enums/quota-type.enum';
+import { MembershipTier } from '../enums/membership-tier.enum.js';
+import { QuotaType } from '../enums/quota-type.enum.js';
 
 // ════════════════════════════════════════════════════════════════════════════
 // 单类配额状态 (3 类配额都走这结构)

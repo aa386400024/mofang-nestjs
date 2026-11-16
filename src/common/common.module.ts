@@ -1,10 +1,10 @@
 import { Global, MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 
-import { PrivacyGuard } from './guards/privacy.guard';
-import { TenantContextMiddleware } from './middleware/tenant-context.middleware';
-import { PrivacyLogger } from './privacy/privacy-logger.service';
-import * as providers from './providers';
-import { SecurityHeadersMiddleware } from './security/security-headers.middleware';
+import { PrivacyGuard } from './guards/privacy.guard.js';
+import { TenantContextMiddleware } from './middleware/tenant-context.middleware.js';
+import { PrivacyLogger } from './privacy/privacy-logger.service.js';
+import * as providers from './providers/index.js';
+import { SecurityHeadersMiddleware } from './security/security-headers.middleware.js';
 // V2026-10-12 (Phase 8.2 — 多租户, spec §8.3): 全局注入 tenantId.
 
 const services = [...Object.values(providers), PrivacyLogger, PrivacyGuard];

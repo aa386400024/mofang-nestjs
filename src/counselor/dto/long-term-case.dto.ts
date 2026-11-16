@@ -28,8 +28,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
-import { LongTermCaseStatus } from '../enums/long-term-case-status.enum';
-import { LongTermCaseType } from '../enums/long-term-case-type.enum';
+import { LongTermCaseStatus } from '../enums/long-term-case-status.enum.js';
+import { LongTermCaseType } from '../enums/long-term-case-type.enum.js';
 
 // ════════════════════════════════════════════════════════════════════════════
 // 来访者人设 (跟 long-term-case-presets.ts 1:1, 跟 xin_su_app LongTermCaseVisitorPersona 1:1)

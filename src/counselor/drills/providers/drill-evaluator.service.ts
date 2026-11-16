@@ -33,13 +33,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { hasZeroPressureViolation } from '../../domain/zero-pressure.guard';
-import { PracticeFeedbackSource } from '../../enums/practice-feedback-source.enum';
-import { CounselorLlmJsonClient } from '../../providers/llm-json.client';
-import { DRILL_LLM_EVALUATION_ENV_KEY, isDrillLlmEvaluationEnabled } from '../config/drill-evaluation.config';
-import { DRILL_POLISH_SCHEMA_DESCRIPTION, DRILL_POLISH_SYSTEM_PROMPT, buildDrillPolishUserPrompt } from '../config/drill-prompts';
-import { judgeDrill } from '../domain/drill-judge';
-import type { DrillItem, DrillScript } from '../domain/drill.types';
+import { hasZeroPressureViolation } from '../../domain/zero-pressure.guard.js';
+import { PracticeFeedbackSource } from '../../enums/practice-feedback-source.enum.js';
+import { CounselorLlmJsonClient } from '../../providers/llm-json.client.js';
+import { DRILL_LLM_EVALUATION_ENV_KEY, isDrillLlmEvaluationEnabled } from '../config/drill-evaluation.config.js';
+import { DRILL_POLISH_SCHEMA_DESCRIPTION, DRILL_POLISH_SYSTEM_PROMPT, buildDrillPolishUserPrompt } from '../config/drill-prompts.js';
+import { judgeDrill } from '../domain/drill-judge.js';
+import type { DrillItem, DrillScript } from '../domain/drill.types.js';
 
 /**
  * 润色调用的 LLM 参数 (与 practice 的 profile 同款口径, 但**独立取值** —— 演练的产出很短).

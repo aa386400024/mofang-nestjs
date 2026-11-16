@@ -39,11 +39,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { In, IsNull, type Repository } from 'typeorm';
 
-import { BizCode } from '../../common/exceptions/biz-code.enum';
-import { BizException } from '../../common/exceptions/biz.exception';
-import { VISITOR_POOL_LIST_DEFAULT_LIMIT } from '../config/visitor-pool.config';
-import type { VisitorFullPersonaScript } from '../domain/visitor-persona/visitor-persona.types';
-import type { VisitorPoolCard, VisitorPoolDefaultPreset } from '../domain/visitor-pool/visitor-pool.types';
+import { BizCode } from '../../common/exceptions/biz-code.enum.js';
+import { BizException } from '../../common/exceptions/biz.exception.js';
+import { VISITOR_POOL_LIST_DEFAULT_LIMIT } from '../config/visitor-pool.config.js';
+import type { VisitorFullPersonaScript } from '../domain/visitor-persona/visitor-persona.types.js';
+import type { VisitorPoolCard, VisitorPoolDefaultPreset } from '../domain/visitor-pool/visitor-pool.types.js';
 import type {
   InstantiateVisitorPoolDto,
   VisitorPoolCardDto,
@@ -51,11 +51,11 @@ import type {
   VisitorPoolInstantiateResultDto,
   VisitorPoolListDto,
   VisitorPoolQueryDto,
-} from '../dto/visitor-pool.dto';
-import { VisitorFullPersona } from '../entities/visitor-full-persona.entity';
-import { VisitorPoolFavorite } from '../entities/visitor-pool-favorite.entity';
-import { VisitorPoolTemplate } from '../entities/visitor-pool-template.entity';
-import { VisitorMode } from '../enums/visitor-mode.enum';
+} from '../dto/visitor-pool.dto.js';
+import { VisitorFullPersona } from '../entities/visitor-full-persona.entity.js';
+import { VisitorPoolFavorite } from '../entities/visitor-pool-favorite.entity.js';
+import { VisitorPoolTemplate } from '../entities/visitor-pool-template.entity.js';
+import { VisitorMode } from '../enums/visitor-mode.enum.js';
 
 /**
  * 公共来访模板 service.

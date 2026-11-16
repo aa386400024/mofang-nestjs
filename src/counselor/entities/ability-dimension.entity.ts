@@ -30,7 +30,7 @@
 
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-import { AbilityParentDimension } from '../enums/ability-parent-dimension.enum';
+import { AbilityParentDimension } from '../enums/ability-parent-dimension.enum.js';
 
 /**
  * ability_dimensions 表.
