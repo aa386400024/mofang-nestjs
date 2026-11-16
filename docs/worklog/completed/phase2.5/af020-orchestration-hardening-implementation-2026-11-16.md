@@ -28,10 +28,17 @@
 2. `gh run list --workflow ci.yml --branch integrate` 轮询当前 SHA 的 CI 结论（最长 15 分钟）：未出现 / `in_progress` 继续等待，失败立即拒绝，`completed/success` 才放行。
 3. `git fetch origin master integrate --tags` → `checkout -B master origin/master` → 若 `master` 尚未包含 `integrate`，执行 `merge --no-ff` → 校验 `master` 工作树与 `integrate` 完全一致（`git diff --quiet`）；此时只在本地合并，不 push。
 4. `docker login ghcr.io` + `docker build/push`，镜像 `ghcr.io/<repo>:<tag>` 与 `:latest`；镜像成功后才 `git push origin master`，避免 master 先于制品推进。
-5. tag 采用 `vYYYY.MM.DD-<sha7>`；同 tag 已存在时只允许指向同一 commit，否则失败；GitHub Release 已存在则跳过。tag 与 Release 均排在镜像成功之后，失败重跑可幂等补完。权限为 `contents: write` + `packages: write` + `actions: read`（`gh run list` 查询 CI 必需）。
+5. tag 采用 `vYYYY.MM.DD-<sha7>`（短 SHA 来自 `integrate` 发布源）；tag 对象指向 `master` 发布合并提交，该提交工作树与 CI 验证过的 `integrate` SHA 完全一致。同 tag 已存在时只允许指向同一发布提交，否则失败；GitHub Release 已存在则跳过。tag 与 Release 均排在镜像成功之后，失败重跑可幂等补完。权限为 `contents: write` + `packages: write` + `actions: read`（`gh run list` 查询 CI 必需）。
 6. 可选 `deploy` job：`needs: release`、`if: inputs.deploy == true`、`environment: production`；ssh key 写入、`pnpm build`、`printf 'yes-deploy\n' | pnpm deploy:tested`。默认 `deploy=false`，不自动触发。
 
-**未执行的真实动作**：master fast-forward、tag、GitHub Release、GHCR push、生产部署均未在本轮执行。这是 L4 人工冻结边界；流水线已落地，等待人手动触发。不能把“workflow 文件存在”写成“已发布”。
+**L4 实际执行（2026-11-16）**：
+
+- 首次 run `43894869205` 在 `Fast-forward master locally` 步骤失败。根因：`master` 含 PR 合并提交，与 `integrate` 不是 fast-forward 关系，`merge --ff-only` 无法成立；流水线改为 `merge --no-ff` 并增加 `git diff --quiet` 树一致校验。
+- 第二次 run `43895793062` 长期 `queued` 且 API 取消返回 409；同窗口 CI 能正常执行，判定为旧 concurrency 组卡死。保留“同 ref 串行”语义，将组名重置为 `release-publish-${{ github.ref }}`。
+- 最终 run [`43901276012`](https://github.com/aa386400024/mofang-nestjs/actions/runs/43901276012) 全步骤 success：CI 门禁 → 本地合并 → GHCR 双 tag 推送 → master 推送 → annotated tag → GitHub Release。
+- 发布结果：`master` = `665b19176066155c16a51950bf57482c9329beae`；tag `v2026.11.16-6cfb46e` 指向该 master 发布提交；GitHub Release 已发布；GHCR package `mofang-nestjs` 为 public。
+- GitHub 的 `workflow_dispatch` 要求 workflow 文件存在于默认分支。发布前临时把默认分支切到 `integrate` 以暴露工作流，发布成功后已恢复 `master`。
+- `deploy=false`，生产部署未执行；需要时再以 `deploy=true` 人工触发。
 
 ### 1.3 P2 · 状态索引事件溯源
 
@@ -64,7 +71,9 @@
 | 全量单测 / Lint / Typecheck | 见 §2.1                                                                                                        | 全部 exit 0                                                                             |
 | 快照与看板                  | `pnpm orchestration:snapshot`                                                                                  | 归档 37 / 说明 12 / 改进台账 34 / 工具审计 13；快照与数据源同步                         |
 | 本批 CI                     | push `integrate` → CI run [43885756756](https://github.com/aa386400024/mofang-nestjs/actions/runs/43885756756) | 8/8 success（含 Contracts）；0 warning / 0 error 注解，仅 GitHub `ubuntu-latest` notice |
-| 本批 CI                     | 待本轮 push 后回填                                                                                             | 待回填                                                                                  |
+| L4 首次发布失败             | Release run [43894869205](https://github.com/aa386400024/mofang-nestjs/actions/runs/43894869205)               | 步骤 11 `Fast-forward master locally` 失败；master 与 integrate 非 ff 关系              |
+| L4 卡队列                   | Release run [43895793062](https://github.com/aa386400024/mofang-nestjs/actions/runs/43895793062)               | 长期 queued；API cancel/force-cancel 均 409；重置 concurrency 组后解除                  |
+| L4 最终发布                 | Release run [43901276012](https://github.com/aa386400024/mofang-nestjs/actions/runs/43901276012)               | success；master `665b191`、tag `v2026.11.16-6cfb46e`、Release 已发布、GHCR public       |
 
 ### 2.1 收尾闸门
 
