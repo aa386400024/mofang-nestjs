@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T00:56:38.304Z",
+  "generatedAt": "2026-11-16T01:29:27.103Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -21,12 +21,12 @@
   "pendingApprovals": [],
   "improvements": {
     "total": 28,
-    "activeCount": 17,
+    "activeCount": 16,
     "byStatus": {
-      "candidate": 16,
+      "candidate": 15,
       "queued": 0,
       "accepted": 1,
-      "done": 11,
+      "done": 12,
       "wontfix": 0
     },
     "byType": {
@@ -134,9 +134,14 @@
         "type": "tech-debt",
         "layer": "adapter",
         "relatedTaskId": "AF-009",
-        "evidence": ["handover-contract.mjs 手写 TASK_TYPES/TASK_STATUSES/TASK_ID_PATTERN", "validator.mjs 走框架 task-sheet.schema.json"],
+        "evidence": [
+          "handover-contract.mjs 手写 TASK_TYPES/TASK_STATUSES/TASK_ID_PATTERN",
+          "validator.mjs 走框架 task-sheet.schema.json",
+          "framework 1.4.0 commit 016d6b8: schemas/contract-enums.json 枚举/模式数据真相源",
+          "framework task-sheet/task-state-index schema 内部 $defs 收敛 taskType/taskStatus/taskId"
+        ],
         "impact": "框架枚举或模式演进时两处需同步 存在口径漂移风险",
-        "suggestion": "交接件校验复用框架 schema 同步封装 消除手写镜像",
+        "suggestion": "交接件校验复用框架 schema 同步封装消除手写镜像；框架侧真相源已就位(1.4.0)；剩余 adapter 接线：handover-contract.mjs 改读 contract-enums.json 消除手写 TASK_TYPES/TASK_STATUSES/TASK_ID_PATTERN 镜像（另批）",
         "historyCount": 1,
         "lastTransition": {
           "at": "2026-11-15T17:19:39.551Z",
@@ -148,7 +153,7 @@
       {
         "improvementId": "IM-006",
         "title": "协商轮 review 交接件结构尚未进框架仓 schema 与模板",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "standard",
         "layer": "framework",
@@ -156,12 +161,12 @@
         "evidence": ["autonomous-team-design.md 协商轮定义", "handover-contract.mjs review 字段为本仓适配层定义"],
         "impact": "review 结构目前仅本仓定义 跨代理复用需框架层固化",
         "suggestion": "P1 评估将 review 交接件字段组上提框架仓 schema 与模板",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T17:19:40.999Z",
-          "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "at": "2026-11-16T01:27:47.957Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "框架1.4.0落地review-handover标准件(commit 016d6b8);本仓adapter切读框架schema另批"
         }
       },
       {
@@ -362,8 +367,11 @@
         "type": "guardrail",
         "layer": "framework",
         "relatedTaskId": "AF-015",
-        "evidence": ["reliability.md§5;design-memo§3.5"],
-        "impact": "框架§5熔断/死信为本版本预留位;通道侧不独立计数;接入通用阈值参数化归P2",
+        "evidence": [
+          "reliability.md§5;design-memo§3.5",
+          "framework 1.4.0 commit 016d6b8: reliability.md §5.1 熔断扩展位参数与通用计数口径"
+        ],
+        "impact": "框架§5熔断/死信为本版本预留位;通道侧不独立计数;接入通用阈值参数化归P2；框架侧扩展位参数语义与计数口径已固化(§5.1)；阈值数值与计数实现仍归适配层 P2",
         "suggestion": "P2复用框架熔断扩展位,落地连续失败阈值与快速失败事件;不另立通道独立熔断",
         "historyCount": 1,
         "lastTransition": {
