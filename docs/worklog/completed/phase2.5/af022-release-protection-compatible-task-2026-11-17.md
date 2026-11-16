@@ -36,26 +36,29 @@ AF-021 开启 `master` 12 项必需检查后，原 `release.yml` 的本地 `merg
 - 禁止：生产部署、业务 `src/`、框架仓、未跟踪设计稿。
 - 不真实发版：dry-run 不合并 master、不打 tag、不推 GHCR、不建 Release。
 - 一次性例外：为让 `workflow_dispatch` 在默认分支可用，master 做过一次仅改触发器的受控直推；推前临时摘除必需检查，推后立即原样恢复。
+- 合并回填：master 引导提交已合回 `integrate`（`09bb446`），master 现为 integrate 祖先；后续 release 分支无需再解决 `ci.yml` add/add 冲突。
 
 ## 3. 验收口径
 
-- workflow YAML 可解析；`ci.yml` 的 12 个 job 名称不变。
-- release 分支提交上的 check-runs 恰好 12 项且全部 success。
-- dry-run 结束后：PR 已关闭、release 分支已删除、master SHA 未变、无新 tag/Release、保护 12 项已恢复。
+- workflow YAML 可解析；`ci.yml` 的 12 个 job 实例名称不变。
+- release 分支提交上的 check-runs 恰好覆盖 12 个 required contexts 且全部 success。
+- dry-run 结束时 PR `mergeStateStatus` 必须为 `CLEAN`/`HAS_HOOKS`；随后 PR 已关闭、release 分支已删除、master SHA 未变、无新 tag/Release、保护 12 项已恢复。
 - 真实发布路径保留 `deploy=true && dry_run=false` 双条件；生产仍不执行。
 
 ## 4. 交付回写
 
 - [x] release 分支 + PR + dispatch CI 落地
 - [x] `dry_run` 默认 true 与清理逻辑
-- [x] dry-run 实测：`43927385743` success；PR #7 closed；分支删除
-- [x] 守卫版 dry-run 实测：`43929498385` success；PR #8 closed；分支删除
-- [x] release 分支 CI 实测：`43927477978` 12/12；`43929883733` 12/12；check-runs 12/12
+- [x] release 分支 CI 实测：`43927477978`、`43929883733`、`43934114240` 均 12/12
+- [x] dry-run 可合并性闸门：`43933759652` success，PR #10 `mergeStateStatus=CLEAN`
+- [x] 发现并修复 `GITHUB_TOKEN` PR 触发 `pull_request` run 的阻塞；`ci.yml` master PR 改为仅显式 dispatch
+- [x] master 引导提交合回 integrate（`09bb446`），release 分支不再冲突
 - [x] master 保护恢复：12 contexts / strict / enforce_admins
 - [ ] 真实合并、tag、Release、GHCR：按用户要求只做 dry-run，未执行
 - [ ] 生产部署：未执行
 
 ## 5. 遗留风险
 
-- 真实路径的 `gh pr merge`、tag、GHCR 未实跑；首次真实发布仍需人工盯守。
-- `master` 引导提交 `2f8afd9` 是保护开启后唯一一次受控直推，已在交付记录中留证。
+- 真实路径的 `gh pr merge`、tag、GHCR 未实跑；但 dry-run 已验证 PR `mergeStateStatus=CLEAN`，首次真实发布仍需人工盯守。
+- `master` 引导提交 `2f8afd9` 是保护开启后唯一一次受控直推，已合回 integrate 并在交付记录中留证。
+- master 不再自动跑 `pull_request` CI；master 只接收 release PR，普通 PR 一律走 integrate。
