@@ -1,7 +1,7 @@
 # AF-019 交付记录 · 适配层收尾：development 退役、CI 运行时升级与记录闭环
 
 > 任务单：`af019-adapter-finalization-node26-2026-11-16.md`｜执行：主控 AI（orchestrator 自做）｜日期：2026-11-16
-> 仓库：`D:\work\Project\backend\mofang-nestjs`（分支 `task/AF-019-adapter-finalization-node26`，基线 `355aae6`）
+> 仓库：`D:\work\Project\backend\mofang-nestjs`（分支 `task/AF-019-adapter-finalization-node26`，基线 `355aae6`，合流提交 `d57a767`）
 > 上游：AF-018 适配层迁移完成；框架仓 `v2.0.0` 口径不变
 
 ## 1. 落地
@@ -57,7 +57,7 @@
 | Lint       | `pnpm lint`                                                                   | `0 error`                            |
 | Typecheck  | `pnpm typecheck`                                                              | `0 error`                            |
 | 远端分支   | `git ls-remote --heads origin`                                                | 仅 `master` / `integrate`            |
-| CI         | GitHub Actions `integrate` run                                                | 七个作业全 success，warning 注解 0   |
+| CI         | GitHub Actions run `43875858880`（`d57a767`）                                 | 七个作业全 success，warning 注解 0   |
 
 ## 3. 范围核对
 
