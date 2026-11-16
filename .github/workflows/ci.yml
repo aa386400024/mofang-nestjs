@@ -439,6 +439,7 @@ jobs:
           path: .vitest-reports
           retention-days: 7
           if-no-files-found: error
+          include-hidden-files: true
 
   coverage-gate:
     name: Coverage Gate
