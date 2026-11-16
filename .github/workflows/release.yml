@@ -243,10 +243,34 @@ jobs:
           echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
           echo "PR #$PR_NUMBER: https://github.com/${GITHUB_REPOSITORY}/pull/${PR_NUMBER}"
 
+      - name: Verify release PR is mergeable
+        if: inputs.dry_run == true
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 24); do
+            STATE=$(gh pr view "$PR_NUMBER" --json mergeStateStatus --jq .mergeStateStatus)
+            echo "merge state: $STATE（第 ${i}/24 次）"
+            case "$STATE" in
+              CLEAN|HAS_HOOKS)
+                echo "release PR 在 master 保护下可合并"
+                exit 0
+                ;;
+              DIRTY|BEHIND|BLOCKED)
+                echo "release PR 不可合并：$STATE"
+                exit 1
+                ;;
+            esac
+            sleep 5
+          done
+          echo "等待 mergeStateStatus 超时"
+          exit 1
+
       - name: Dry-run summary
         if: inputs.dry_run == true
         run: |
-          echo "dry-run 验证通过：release 分支、12 项 CI、PR 创建均成功；未合并 master、未打 tag、未推 GHCR、未建 Release。"
+          echo "dry-run 验证通过：release 分支、12 项 CI、PR 创建与可合并性均成功；未合并 master、未打 tag、未推 GHCR、未建 Release。"
 
       - name: Cleanup dry-run artifacts
         if: always() && inputs.dry_run == true
