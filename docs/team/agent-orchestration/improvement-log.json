@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-15T19:39:09.749Z",
+  "updatedAt": "2026-11-16T00:50:43.726Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -762,7 +762,7 @@
     },
     {
       "improvementId": "IM-022",
-      "status": "candidate",
+      "status": "done",
       "title": "工作区存在未纳入版本控制的 scripts/orchestration/dispatch-channel.mjs —— **本单未审读、不对其作任何口径结论**；若其已实现重试逻辑，D-2 / D-5 / D-7 可能已有代码侧对应，需另开只读核对单确认。",
       "source": "acceptance",
       "type": "gap",
@@ -773,7 +773,7 @@
       "suggestion": null,
       "createdBy": "receipt-extract",
       "createdAt": "2026-11-15T19:38:37.045Z",
-      "updatedAt": "2026-11-15T19:38:37.045Z",
+      "updatedAt": "2026-11-16T00:50:43.723Z",
       "history": [
         {
           "at": "2026-11-15T19:38:37.045Z",
@@ -781,8 +781,34 @@
           "to": "candidate",
           "by": "receipt-extract",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-16T00:50:43.232Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator",
+          "note": null
+        },
+        {
+          "at": "2026-11-16T00:50:43.475Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator",
+          "note": null
+        },
+        {
+          "at": "2026-11-16T00:50:43.723Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator",
+          "note": "只读核对完成：dispatch-channel.mjs 现 git 已跟踪；规则层已对应 D-2 指数退避+任务级总预算、D-5 不可恢复 failed/可恢复 held-ready 双出口分流、D-7 确定性缺陷短路不重试，均有单测覆盖；resolveDispatchDecision/buildDispatchAudit/isIrrecoverable/nextBackoff 运行时接线未激活（CLI 仅接 canDispatch 队列互斥），接线项另登记 IM-028。"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-16T00:50:43.723Z",
+        "resolutionNote": "只读核对完成：dispatch-channel.mjs 现 git 已跟踪；规则层已对应 D-2 指数退避+任务级总预算、D-5 不可恢复 failed/可恢复 held-ready 双出口分流、D-7 确定性缺陷短路不重试，均有单测覆盖；resolveDispatchDecision/buildDispatchAudit/isIrrecoverable/nextBackoff 运行时接线未激活（CLI 仅接 canDispatch 队列互斥），接线项另登记 IM-028。",
+        "linkedTaskId": null
+      }
     },
     {
       "improvementId": "IM-023",
@@ -900,6 +926,30 @@
           "from": null,
           "to": "candidate",
           "by": "receipt-extract",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-028",
+      "status": "candidate",
+      "title": "派发决策链运行时接线：CLI/scheduler 接入 resolveDispatchDecision 与 buildDispatchAudit，审计结果映射回任务状态机",
+      "source": "implementation",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "DR-001",
+      "evidence": ["dispatch-channel.mjs#resolveDispatchDecision", "dispatch-channel.mjs#buildDispatchAudit", "cli.mjs:48"],
+      "impact": "决策/审计规则当前仅被单测引用；CLI 只接 canDispatch 队列互斥，运行时未跑任务级预算、指数退避、终态分流、失败定性与逐次留痕",
+      "suggestion": "派发流程接 resolveDispatchDecision 分流终态、buildDispatchAudit 落逐次留痕；held-ready/human-escalated 映射回 TASK_STATUSES；退避等待交 relay 层执行；依赖真实桌面通道激活，排 P2",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-16T00:50:34.173Z",
+      "updatedAt": "2026-11-16T00:50:34.173Z",
+      "history": [
+        {
+          "at": "2026-11-16T00:50:34.173Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
           "note": "登记候选改进"
         }
       ]

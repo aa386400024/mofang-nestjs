@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T19:41:33.307Z",
+  "generatedAt": "2026-11-16T00:50:43.751Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -20,17 +20,17 @@
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 27,
+    "total": 28,
     "activeCount": 18,
     "byStatus": {
       "candidate": 17,
       "queued": 0,
       "accepted": 1,
-      "done": 9,
+      "done": 10,
       "wontfix": 0
     },
     "byType": {
-      "gap": 17,
+      "gap": 18,
       "guardrail": 1,
       "tool": 0,
       "standard": 2,
@@ -38,7 +38,7 @@
       "tech-debt": 7
     },
     "bySource": {
-      "implementation": 11,
+      "implementation": 12,
       "acceptance": 8,
       "rework": 0,
       "dead-letter": 0,
@@ -452,7 +452,7 @@
       {
         "improvementId": "IM-022",
         "title": "工作区存在未纳入版本控制的 scripts/orchestration/dispatch-channel.mjs —— **本单未审读、不对其作任何口径结论**；若其已实现重试逻辑，D-2 / D-5 / D-7 可能已有代码侧对应，需另开只读核对单确认。",
-        "status": "candidate",
+        "status": "done",
         "source": "acceptance",
         "type": "gap",
         "layer": "adapter",
@@ -460,12 +460,12 @@
         "evidence": ["receipt:relay-response-af013-drill-20261116.md", "backlogItem"],
         "impact": null,
         "suggestion": null,
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T19:38:37.045Z",
-          "by": "receipt-extract",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "at": "2026-11-16T00:50:43.723Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "只读核对完成：dispatch-channel.mjs 现 git 已跟踪；规则层已对应 D-2 指数退避+任务级总预算、D-5 不可恢复 failed/可恢复 held-ready 双出口分流、D-7 确定性缺陷短路不重试，均有单测覆盖；resolveDispatchDecision/buildDispatchAudit/isIrrecoverable/nextBackoff 运行时接线未激活（CLI 仅接 canDispatch 队列互斥），接线项另登记 IM-028。"
         }
       },
       {
@@ -559,6 +559,25 @@
         "lastTransition": {
           "at": "2026-11-15T19:38:37.046Z",
           "by": "receipt-extract",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-028",
+        "title": "派发决策链运行时接线：CLI/scheduler 接入 resolveDispatchDecision 与 buildDispatchAudit，审计结果映射回任务状态机",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "DR-001",
+        "evidence": ["dispatch-channel.mjs#resolveDispatchDecision", "dispatch-channel.mjs#buildDispatchAudit", "cli.mjs:48"],
+        "impact": "决策/审计规则当前仅被单测引用；CLI 只接 canDispatch 队列互斥，运行时未跑任务级预算、指数退避、终态分流、失败定性与逐次留痕",
+        "suggestion": "派发流程接 resolveDispatchDecision 分流终态、buildDispatchAudit 落逐次留痕；held-ready/human-escalated 映射回 TASK_STATUSES；退避等待交 relay 层执行；依赖真实桌面通道激活，排 P2",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-16T00:50:34.173Z",
+          "by": "orchestrator-cli",
           "to": "candidate",
           "note": "登记候选改进"
         }
