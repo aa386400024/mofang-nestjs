@@ -5,7 +5,16 @@
   "description": "夜间交付包契约。自治循环结束（队列空 / 达上限 / 熔断）后生成的机读汇总，供人工早上验收。只存指针与汇总，不复制工件正文。字段组见 docs/autonomous-loop.md §7。",
   "type": "object",
   "additionalProperties": true,
-  "required": ["packageId", "cycle", "counts", "tasks", "deadLetters", "leftovers", "pendingApprovals", "queueSnapshot"],
+  "required": [
+    "packageId",
+    "cycle",
+    "counts",
+    "tasks",
+    "deadLetters",
+    "leftovers",
+    "pendingApprovals",
+    "queueSnapshot"
+  ],
   "properties": {
     "packageId": {
       "type": "string",
@@ -15,7 +24,13 @@
     "cycle": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["startedAt", "endedAt", "mode", "queueSize", "stopReason"],
+      "required": [
+        "startedAt",
+        "endedAt",
+        "mode",
+        "queueSize",
+        "stopReason"
+      ],
       "description": "汇总元信息。",
       "properties": {
         "startedAt": {
@@ -30,7 +45,10 @@
         },
         "mode": {
           "type": "string",
-          "enum": ["human-on-the-loop", "human-in-the-loop"],
+          "enum": [
+            "human-on-the-loop",
+            "human-in-the-loop"
+          ],
           "description": "运行模式。"
         },
         "queueSize": {
@@ -40,7 +58,12 @@
         },
         "stopReason": {
           "type": "string",
-          "enum": ["queue-empty", "limit-reached", "circuit-open", "human-stop"],
+          "enum": [
+            "queue-empty",
+            "limit-reached",
+            "circuit-open",
+            "human-stop"
+          ],
           "description": "循环终止原因。"
         }
       }
@@ -48,7 +71,13 @@
     "counts": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["passed", "conditionalPass", "rejected", "failed", "deadLettered"],
+      "required": [
+        "passed",
+        "conditionalPass",
+        "rejected",
+        "failed",
+        "deadLettered"
+      ],
       "properties": {
         "passed": {
           "type": "integer",
@@ -83,7 +112,14 @@
       "items": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["taskId", "contextId", "type", "finalStatus", "artifactRefs", "repairCount"],
+        "required": [
+          "taskId",
+          "contextId",
+          "type",
+          "finalStatus",
+          "artifactRefs",
+          "repairCount"
+        ],
         "properties": {
           "taskId": {
             "type": "string",
@@ -97,23 +133,46 @@
           },
           "type": {
             "type": "string",
-            "enum": ["implementation", "review", "investigation", "documentation", "fix", "verification"],
+            "enum": [
+              "implementation",
+              "review",
+              "investigation",
+              "documentation",
+              "fix",
+              "verification"
+            ],
             "description": "任务类型。"
           },
           "finalStatus": {
             "type": "string",
-            "enum": ["completed", "failed", "rejected", "canceled"],
+            "enum": [
+              "completed",
+              "failed",
+              "rejected",
+              "canceled"
+            ],
             "description": "终态。"
           },
           "reviewVerdict": {
-            "type": ["string", "null"],
-            "enum": ["passed", "conditional-pass", "rejected", null],
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "passed",
+              "conditional-pass",
+              "rejected",
+              null
+            ],
             "description": "验收结论。"
           },
           "artifactRefs": {
             "type": "object",
             "additionalProperties": true,
-            "required": ["taskSheet", "deliveryRecord"],
+            "required": [
+              "taskSheet",
+              "deliveryRecord"
+            ],
             "properties": {
               "taskSheet": {
                 "type": "string",
@@ -126,7 +185,10 @@
                 "description": "交付记录指针。"
               },
               "reply": {
-                "type": ["string", "null"],
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "description": "回执指针。"
               }
             },
@@ -146,7 +208,12 @@
       "items": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["taskId", "failureEvidence", "attemptedPaths", "decisionPoint"],
+        "required": [
+          "taskId",
+          "failureEvidence",
+          "attemptedPaths",
+          "decisionPoint"
+        ],
         "properties": {
           "taskId": {
             "type": "string",
@@ -182,7 +249,11 @@
     "leftovers": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["backlogItems", "openQuestions", "manualReviewList"],
+      "required": [
+        "backlogItems",
+        "openQuestions",
+        "manualReviewList"
+      ],
       "description": "遗留项。",
       "properties": {
         "backlogItems": {
@@ -217,7 +288,11 @@
       "items": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["taskId", "node", "action"],
+        "required": [
+          "taskId",
+          "node",
+          "action"
+        ],
         "properties": {
           "taskId": {
             "type": "string",
@@ -250,7 +325,11 @@
       "items": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["taskId", "status", "pointer"],
+        "required": [
+          "taskId",
+          "status",
+          "pointer"
+        ],
         "properties": {
           "taskId": {
             "type": "string",

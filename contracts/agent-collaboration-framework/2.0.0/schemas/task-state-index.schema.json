@@ -5,7 +5,9 @@
   "description": "状态索引契约。v1.1.0 起索引是事件日志（state-event）的只读投影：projection 字段记录投影来源与末条事件序号，禁止手改投影中的状态；新增 waitingOn / triggerReason / deadLetter / deadLetterReason 与 verdict.failureReasonCode；归档仅接受终态；时间字段一律 ISO 8601 带时区。",
   "type": "object",
   "additionalProperties": true,
-  "required": ["version"],
+  "required": [
+    "version"
+  ],
   "allOf": [
     {
       "properties": {
@@ -14,7 +16,9 @@
             "allOf": [
               {
                 "if": {
-                  "required": ["status"],
+                  "required": [
+                    "status"
+                  ],
                   "properties": {
                     "status": {
                       "const": "input-required"
@@ -22,7 +26,10 @@
                   }
                 },
                 "then": {
-                  "required": ["waitingOn", "triggerReason"],
+                  "required": [
+                    "waitingOn",
+                    "triggerReason"
+                  ],
                   "properties": {
                     "waitingOn": {
                       "type": "string",
@@ -37,7 +44,9 @@
               },
               {
                 "if": {
-                  "required": ["deadLetter"],
+                  "required": [
+                    "deadLetter"
+                  ],
                   "properties": {
                     "deadLetter": {
                       "const": true
@@ -45,7 +54,9 @@
                   }
                 },
                 "then": {
-                  "required": ["deadLetterReason"],
+                  "required": [
+                    "deadLetterReason"
+                  ],
                   "properties": {
                     "deadLetterReason": {
                       "type": "string",
@@ -67,17 +78,26 @@
       "description": "契约版本号，语义化版本；随数据下发，消费端按版本分派解析。"
     },
     "schemaRef": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "本索引所遵循的契约引用（urn:...:task-state-index:X.Y.Z）。"
     },
     "note": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "索引说明：存储形态、字段约定与例外。"
     },
     "projection": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["journalPointer", "lastEventSeq"],
+      "required": [
+        "journalPointer",
+        "lastEventSeq"
+      ],
       "description": "投影来源。存在时表示本索引由事件日志重建，禁止手改；缺失表示该部署未启用事件溯源。",
       "properties": {
         "journalPointer": {
@@ -91,7 +111,10 @@
           "description": "已投影的末条事件序号；与日志末条 eventSeq 必须一致。"
         },
         "rebuiltAt": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date-time",
           "description": "投影重建时间。"
         }
@@ -138,7 +161,12 @@
     },
     "terminalStatus": {
       "type": "string",
-      "enum": ["completed", "failed", "canceled", "rejected"],
+      "enum": [
+        "completed",
+        "failed",
+        "canceled",
+        "rejected"
+      ],
       "description": "终态枚举；取值口径与 schemas/contract-enums.json 的 terminalStatuses 一致。"
     },
     "failureReasonCode": {
@@ -161,22 +189,34 @@
     "taskRecord": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["taskId", "status"],
+      "required": [
+        "taskId",
+        "status"
+      ],
       "properties": {
         "taskId": {
           "$ref": "#/$defs/taskId",
           "description": "任务唯一标识。"
         },
         "contextId": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "归组标识。"
         },
         "type": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "任务类型；取值与任务单的 type 词汇一致，索引侧不做枚举约束以允许项目扩展。"
         },
         "title": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "任务标题。"
         },
         "status": {
@@ -184,11 +224,17 @@
           "description": "当前状态（投影值，禁止手改）。"
         },
         "agent": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "当前领取者。"
         },
         "baselineRef": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "开工基线锚点。"
         },
         "dependsOn": {
@@ -209,26 +255,41 @@
           "description": "策略规则锚点数组。"
         },
         "createdAt": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date-time",
           "description": "创建时间（ISO 8601 带时区）。"
         },
         "claimedAt": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date-time",
           "description": "领取时间；租约到点自动释放。"
         },
         "deadline": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date-time",
           "description": "截止时间，同时是领取租约的到期点。"
         },
         "waitingOn": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "等待项：input-required 时必填，写明缺什么（输入 / 授权 / 裁决）。"
         },
         "triggerReason": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "中断触发原因：input-required 时必填。"
         },
         "deadLetter": {
@@ -237,7 +298,10 @@
           "description": "死信标记：反复失败或达返修上限的任务隔离，不占用 input-required。"
         },
         "deadLetterReason": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "死信原因：deadLetter 为真时必填。"
         },
         "artifacts": {
@@ -249,15 +313,24 @@
             {
               "type": "object",
               "additionalProperties": true,
-              "required": ["result"],
+              "required": [
+                "result"
+              ],
               "properties": {
                 "result": {
                   "type": "string",
-                  "enum": ["passed", "conditional-pass", "rejected"],
+                  "enum": [
+                    "passed",
+                    "conditional-pass",
+                    "rejected"
+                  ],
                   "description": "验收结论三级之一；取值口径与 schemas/contract-enums.json 的 reviewVerdicts 一致。"
                 },
                 "rationale": {
-                  "type": ["string", "null"],
+                  "type": [
+                    "string",
+                    "null"
+                  ],
                   "description": "结论依据摘要。"
                 },
                 "failureReasonCode": {
@@ -294,15 +367,24 @@
       "additionalProperties": true,
       "properties": {
         "taskSheet": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "任务单路径指针。"
         },
         "deliveryRecord": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "交付记录路径指针。"
         },
         "reply": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "回执原文路径指针。"
         }
       }
@@ -310,7 +392,12 @@
     "historyEntry": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["at", "from", "to", "by"],
+      "required": [
+        "at",
+        "from",
+        "to",
+        "by"
+      ],
       "properties": {
         "at": {
           "type": "string",
@@ -331,7 +418,10 @@
           "description": "执行迁移的角色或执行方。"
         },
         "reason": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "迁移原因；释放、打回、取消、死信时必须写明。"
         }
       }
@@ -339,7 +429,10 @@
     "archivedTask": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["taskId", "status"],
+      "required": [
+        "taskId",
+        "status"
+      ],
       "properties": {
         "taskId": {
           "$ref": "#/$defs/taskId",
@@ -354,15 +447,24 @@
           "additionalProperties": false,
           "properties": {
             "taskSheet": {
-              "type": ["string", "null"],
+              "type": [
+                "string",
+                "null"
+              ],
               "description": "任务单路径指针。"
             },
             "deliveryRecord": {
-              "type": ["string", "null"],
+              "type": [
+                "string",
+                "null"
+              ],
               "description": "交付记录路径指针。"
             },
             "reply": {
-              "type": ["string", "null"],
+              "type": [
+                "string",
+                "null"
+              ],
               "description": "回执原文路径指针。"
             }
           },

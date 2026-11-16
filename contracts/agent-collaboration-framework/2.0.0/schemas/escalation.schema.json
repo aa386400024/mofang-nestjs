@@ -56,7 +56,10 @@
       "items": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["path", "conclusion"],
+        "required": [
+          "path",
+          "conclusion"
+        ],
         "properties": {
           "path": {
             "type": "string",
@@ -78,7 +81,11 @@
       "items": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["command", "exitCode", "summary"],
+        "required": [
+          "command",
+          "exitCode",
+          "summary"
+        ],
         "properties": {
           "command": {
             "type": "string",
@@ -95,7 +102,10 @@
             "description": "错误摘要。"
           },
           "count": {
-            "type": ["integer", "null"],
+            "type": [
+              "integer",
+              "null"
+            ],
             "description": "失败计数（错误数 / 用例数等）。"
           }
         }
@@ -108,7 +118,13 @@
       "items": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["id", "approach", "cost", "risk", "benefit"],
+        "required": [
+          "id",
+          "approach",
+          "cost",
+          "risk",
+          "benefit"
+        ],
         "properties": {
           "id": {
             "type": "string",

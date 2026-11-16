@@ -5,7 +5,14 @@
   "description": "任务单契约。承载一个工作单元的标识、目标、上下文、切片、能力要求、交付物、质量门禁、风险与调度信息。字段可扩展、不删除既有字段；additionalProperties 允许附加字段。v1.1.0 起 status 语义调整为「立项快照」，运行态以状态索引为唯一权威源；新增 contractRef 与 parentTaskId。",
   "type": "object",
   "additionalProperties": true,
-  "required": ["taskId", "contextId", "type", "title", "status", "createdAt"],
+  "required": [
+    "taskId",
+    "contextId",
+    "type",
+    "title",
+    "status",
+    "createdAt"
+  ],
   "properties": {
     "contractRef": {
       "$ref": "#/$defs/contractRef",
@@ -38,7 +45,10 @@
       "description": "立项快照：任务单允许记录的状态。运行态以状态索引 tasks[].status 为唯一权威源；任务单不得在立项后被回写状态（见 docs/task-contract.md §6.3）。"
     },
     "baselineRef": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "版本锚点：开工基线的版本控制标识或等价版本标识，形式 <tag>@<commit> 或 <commit>。"
     },
     "dependsOn": {
@@ -64,7 +74,10 @@
       "description": "创建时间，ISO 8601 日期时间，必须带时区偏移。"
     },
     "objective": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "做什么：一句话目标。"
     },
     "successCriteria": {
@@ -154,11 +167,17 @@
       "description": "产出清单。"
     },
     "artifactSchema": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "产出结构标识：结构化产出的字段契约名。"
     },
     "deliveryPath": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "交付落点；具体目录由适配层声明。"
     },
     "gates": {
@@ -170,7 +189,10 @@
       "description": "质量门禁检查项。"
     },
     "evidenceFormat": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "证据格式约定，例如命令加退出码加计数。"
     },
     "escalationTriggers": {
@@ -183,15 +205,25 @@
       "description": "升级触发条件，逐条可判定。"
     },
     "priority": {
-      "type": ["string", "number", "null"],
+      "type": [
+        "string",
+        "number",
+        "null"
+      ],
       "description": "优先级。"
     },
     "deadline": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "截止时间；同时是领取租约的到期点。"
     },
     "retention": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "保留策略；归档触发依据，口径见 docs/state-machine.md §5.1。"
     }
   },
@@ -208,7 +240,14 @@
     },
     "taskType": {
       "type": "string",
-      "enum": ["implementation", "review", "investigation", "documentation", "fix", "verification"],
+      "enum": [
+        "implementation",
+        "review",
+        "investigation",
+        "documentation",
+        "fix",
+        "verification"
+      ],
       "description": "任务类型；取值口径与 schemas/contract-enums.json 的 taskTypes 一致。"
     },
     "taskStatus": {
@@ -229,18 +268,35 @@
     },
     "role": {
       "type": "string",
-      "enum": ["orchestrator", "executor", "reviewer", "researcher", "critic"],
+      "enum": [
+        "orchestrator",
+        "executor",
+        "reviewer",
+        "researcher",
+        "critic"
+      ],
       "description": "可派发角色；取值口径与 schemas/contract-enums.json 的 roles 一致。human 不参与路由。"
     },
     "artifactKind": {
       "type": "string",
-      "enum": ["document", "dataset", "schema", "code", "report", "spec", "test", "other"],
+      "enum": [
+        "document",
+        "dataset",
+        "schema",
+        "code",
+        "report",
+        "spec",
+        "test",
+        "other"
+      ],
       "description": "工件类型；取值口径与 schemas/contract-enums.json 的 artifactKinds 一致。"
     },
     "reference": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["ref"],
+      "required": [
+        "ref"
+      ],
       "properties": {
         "ref": {
           "type": "string",
@@ -252,7 +308,10 @@
           "description": "引用类型。"
         },
         "note": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "为什么需要这条引用。"
         }
       }
@@ -293,7 +352,11 @@
     "artifactSpec": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["name", "path", "kind"],
+      "required": [
+        "name",
+        "path",
+        "kind"
+      ],
       "properties": {
         "name": {
           "type": "string",
@@ -314,7 +377,11 @@
     "gate": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["command", "check", "threshold"],
+      "required": [
+        "command",
+        "check",
+        "threshold"
+      ],
       "properties": {
         "command": {
           "type": "string",
@@ -327,7 +394,11 @@
           "description": "检查项：这个检查验证什么。"
         },
         "threshold": {
-          "type": ["string", "number", "null"],
+          "type": [
+            "string",
+            "number",
+            "null"
+          ],
           "description": "阈值：不适用时为 null。"
         }
       }

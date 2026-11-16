@@ -5,7 +5,17 @@
   "description": "工具调用审计事件契约。每次工具调用追加一条事件；只追加不修改，支持按任务标识 / 角色 / 时间检索与回放。审计记录不得写机密正文。",
   "type": "object",
   "additionalProperties": true,
-  "required": ["eventId", "actorRef", "correlationId", "toolId", "category", "sideEffect", "resources", "result", "recordedAt"],
+  "required": [
+    "eventId",
+    "actorRef",
+    "correlationId",
+    "toolId",
+    "category",
+    "sideEffect",
+    "resources",
+    "result",
+    "recordedAt"
+  ],
   "allOf": [
     {
       "if": {
@@ -16,7 +26,9 @@
         }
       },
       "then": {
-        "required": ["reason"],
+        "required": [
+          "reason"
+        ],
         "properties": {
           "reason": {
             "type": "string",
@@ -34,7 +46,9 @@
         }
       },
       "then": {
-        "required": ["approvalId"],
+        "required": [
+          "approvalId"
+        ],
         "properties": {
           "approvalId": {
             "type": "string",
@@ -61,7 +75,10 @@
       "description": "关联标识：可回放到任务 / 回执（推荐填 taskId）。"
     },
     "taskId": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "关联任务标识；无任务关联时为 null。"
     },
     "toolId": {
@@ -85,7 +102,11 @@
     },
     "sideEffect": {
       "type": "string",
-      "enum": ["read-only", "restricted-write", "sensitive"],
+      "enum": [
+        "read-only",
+        "restricted-write",
+        "sensitive"
+      ],
       "description": "本次调用的副作用级别。"
     },
     "resources": {
@@ -98,15 +119,24 @@
     },
     "result": {
       "type": "string",
-      "enum": ["allowed", "denied"],
+      "enum": [
+        "allowed",
+        "denied"
+      ],
       "description": "放行或拒绝。"
     },
     "reason": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "拒绝原因；denied 时必填。"
     },
     "approvalId": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "敏感操作对应的审批记录标识；未审批的敏感操作不得出现在审计链中。"
     },
     "recordedAt": {

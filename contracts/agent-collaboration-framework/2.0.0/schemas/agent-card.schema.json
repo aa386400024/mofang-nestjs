@@ -5,7 +5,11 @@
   "description": "代理能力声明契约（Agent Card）。编排者按能力声明而非代理名字路由任务；承载代理角色、能力标签、允许工具、资源范围、已知边界与可用性。字段可扩展、不删除既有字段；additionalProperties 允许附加字段。通用层不含项目取值、命令名与路径，具体取值由适配层声明。",
   "type": "object",
   "additionalProperties": true,
-  "required": ["agentId", "role", "availability"],
+  "required": [
+    "agentId",
+    "role",
+    "availability"
+  ],
   "properties": {
     "agentId": {
       "type": "string",
@@ -82,19 +86,33 @@
       "description": "当前是否可被派发。"
     },
     "note": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "补充说明；兼任事实与制衡手段在此声明。"
     }
   },
   "$defs": {
     "role": {
       "type": "string",
-      "enum": ["orchestrator", "executor", "reviewer", "researcher", "critic"],
+      "enum": [
+        "orchestrator",
+        "executor",
+        "reviewer",
+        "researcher",
+        "critic"
+      ],
       "description": "角色枚举；取值口径与 schemas/contract-enums.json 的 roles 一致。human 属非可派发角色（contract-enums.nonRoutableRoles），不出现在本枚举，也不接受派发。"
     },
     "availability": {
       "type": "string",
-      "enum": ["available", "busy", "offline", "unavailable"],
+      "enum": [
+        "available",
+        "busy",
+        "offline",
+        "unavailable"
+      ],
       "description": "可用性：可派发 / 占用中 / 离线 / 暂不可用。"
     }
   }

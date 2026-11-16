@@ -5,7 +5,12 @@
   "description": "协议视图契约。内部任务 / 状态 / 工件 / 归组标识到标准协议模型的只读投影；纯函数投影，不回写索引。statusMap 的键必须覆盖全部状态枚举，编排前置态取 null（表示无标准对应）。",
   "type": "object",
   "additionalProperties": true,
-  "required": ["contractRef", "tasks", "statusMap", "groupIds"],
+  "required": [
+    "contractRef",
+    "tasks",
+    "statusMap",
+    "groupIds"
+  ],
   "properties": {
     "contractRef": {
       "type": "string",
@@ -18,7 +23,15 @@
       "items": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["taskId", "title", "type", "status", "groupId", "agentRole", "artifactReferences"],
+        "required": [
+          "taskId",
+          "title",
+          "type",
+          "status",
+          "groupId",
+          "agentRole",
+          "artifactReferences"
+        ],
         "properties": {
           "taskId": {
             "type": "string",
@@ -32,13 +45,24 @@
           },
           "type": {
             "type": "string",
-            "enum": ["implementation", "review", "investigation", "documentation", "fix", "verification"],
+            "enum": [
+              "implementation",
+              "review",
+              "investigation",
+              "documentation",
+              "fix",
+              "verification"
+            ],
             "description": "任务类型。"
           },
           "status": {
             "type": "object",
             "additionalProperties": true,
-            "required": ["framework", "protocol", "stage"],
+            "required": [
+              "framework",
+              "protocol",
+              "stage"
+            ],
             "description": "状态三分投影：框架态、标准协议态、阶段。",
             "properties": {
               "framework": {
@@ -58,13 +82,31 @@
                 "description": "框架状态。"
               },
               "protocol": {
-                "type": ["string", "null"],
-                "enum": ["SUBMITTED", "WORKING", "INPUT_REQUIRED", "AUTH_REQUIRED", "COMPLETED", "FAILED", "CANCELED", "REJECTED", null],
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "SUBMITTED",
+                  "WORKING",
+                  "INPUT_REQUIRED",
+                  "AUTH_REQUIRED",
+                  "COMPLETED",
+                  "FAILED",
+                  "CANCELED",
+                  "REJECTED",
+                  null
+                ],
                 "description": "标准协议状态；编排前置态为 null。"
               },
               "stage": {
                 "type": "string",
-                "enum": ["orchestration", "active", "interrupted", "terminal"],
+                "enum": [
+                  "orchestration",
+                  "active",
+                  "interrupted",
+                  "terminal"
+                ],
                 "description": "阶段归类。"
               }
             }
@@ -93,7 +135,13 @@
           },
           "agentRole": {
             "type": "string",
-            "enum": ["orchestrator", "executor", "reviewer", "researcher", "critic"],
+            "enum": [
+              "orchestrator",
+              "executor",
+              "reviewer",
+              "researcher",
+              "critic"
+            ],
             "description": "承接角色。"
           },
           "artifactReferences": {
@@ -101,11 +149,19 @@
             "items": {
               "type": "object",
               "additionalProperties": true,
-              "required": ["kind", "ref"],
+              "required": [
+                "kind",
+                "ref"
+              ],
               "properties": {
                 "kind": {
                   "type": "string",
-                  "enum": ["taskSheet", "deliveryRecord", "reply", "other"],
+                  "enum": [
+                    "taskSheet",
+                    "deliveryRecord",
+                    "reply",
+                    "other"
+                  ],
                   "description": "工件种类。"
                 },
                 "ref": {
@@ -146,42 +202,58 @@
         },
         "submitted": {
           "type": "string",
-          "enum": ["SUBMITTED"],
+          "enum": [
+            "SUBMITTED"
+          ],
           "description": "标准值。"
         },
         "working": {
           "type": "string",
-          "enum": ["WORKING"],
+          "enum": [
+            "WORKING"
+          ],
           "description": "标准值。"
         },
         "input-required": {
           "type": "string",
-          "enum": ["INPUT_REQUIRED"],
+          "enum": [
+            "INPUT_REQUIRED"
+          ],
           "description": "标准值。"
         },
         "auth-required": {
           "type": "string",
-          "enum": ["AUTH_REQUIRED"],
+          "enum": [
+            "AUTH_REQUIRED"
+          ],
           "description": "标准值（该框架态当前冻结）。"
         },
         "completed": {
           "type": "string",
-          "enum": ["COMPLETED"],
+          "enum": [
+            "COMPLETED"
+          ],
           "description": "标准值。"
         },
         "failed": {
           "type": "string",
-          "enum": ["FAILED"],
+          "enum": [
+            "FAILED"
+          ],
           "description": "标准值。"
         },
         "canceled": {
           "type": "string",
-          "enum": ["CANCELED"],
+          "enum": [
+            "CANCELED"
+          ],
           "description": "标准值。"
         },
         "rejected": {
           "type": "string",
-          "enum": ["REJECTED"],
+          "enum": [
+            "REJECTED"
+          ],
           "description": "标准值。"
         }
       },
@@ -193,7 +265,11 @@
       "items": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["taskId", "kind", "ref"],
+        "required": [
+          "taskId",
+          "kind",
+          "ref"
+        ],
         "properties": {
           "taskId": {
             "type": "string",
@@ -214,7 +290,10 @@
       }
     },
     "groupId": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "当前聚焦的归组标识。"
     },
     "groupIds": {
@@ -231,7 +310,11 @@
       "items": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["agentId", "role", "availability"],
+        "required": [
+          "agentId",
+          "role",
+          "availability"
+        ],
         "properties": {
           "agentId": {
             "type": "string",
@@ -240,7 +323,13 @@
           },
           "role": {
             "type": "string",
-            "enum": ["orchestrator", "executor", "reviewer", "researcher", "critic"],
+            "enum": [
+              "orchestrator",
+              "executor",
+              "reviewer",
+              "researcher",
+              "critic"
+            ],
             "description": "角色。"
           },
           "skills": {
@@ -271,13 +360,21 @@
             "description": "资源范围。"
           },
           "limits": {
-            "type": ["object", "null"],
+            "type": [
+              "object",
+              "null"
+            ],
             "additionalProperties": true,
             "description": "已知边界。"
           },
           "availability": {
             "type": "string",
-            "enum": ["available", "busy", "offline", "unavailable"],
+            "enum": [
+              "available",
+              "busy",
+              "offline",
+              "unavailable"
+            ],
             "description": "可用性。"
           }
         }

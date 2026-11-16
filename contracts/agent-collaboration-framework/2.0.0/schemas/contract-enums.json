@@ -2,7 +2,14 @@
   "fileKind": "contract-enums",
   "schemaVersion": "2.0.0",
   "description": "跨契约复用的枚举取值、标识模式与状态迁移表单一真相源。各 schema 内的 enum / pattern / transitions 为自包含镜像，取值必须与本文件一致；一致性由 conformance/run.py 的 C4 检查兜底。本文件本身不是 JSON Schema，不用于直接校验对象。",
-  "taskTypes": ["implementation", "review", "investigation", "documentation", "fix", "verification"],
+  "taskTypes": [
+    "implementation",
+    "review",
+    "investigation",
+    "documentation",
+    "fix",
+    "verification"
+  ],
   "taskStatuses": [
     "backlog",
     "ready",
@@ -15,14 +22,51 @@
     "rejected",
     "auth-required"
   ],
-  "frozenStatuses": ["auth-required"],
-  "terminalStatuses": ["completed", "failed", "canceled", "rejected"],
-  "reviewVerdicts": ["passed", "conditional-pass", "rejected"],
-  "roles": ["orchestrator", "executor", "reviewer", "researcher", "critic"],
-  "nonRoutableRoles": ["human"],
-  "sideEffects": ["read-only", "restricted-write", "sensitive"],
-  "artifactKinds": ["document", "dataset", "schema", "code", "report", "spec", "test", "other"],
-  "availabilities": ["available", "busy", "offline", "unavailable"],
+  "frozenStatuses": [
+    "auth-required"
+  ],
+  "terminalStatuses": [
+    "completed",
+    "failed",
+    "canceled",
+    "rejected"
+  ],
+  "reviewVerdicts": [
+    "passed",
+    "conditional-pass",
+    "rejected"
+  ],
+  "roles": [
+    "orchestrator",
+    "executor",
+    "reviewer",
+    "researcher",
+    "critic"
+  ],
+  "nonRoutableRoles": [
+    "human"
+  ],
+  "sideEffects": [
+    "read-only",
+    "restricted-write",
+    "sensitive"
+  ],
+  "artifactKinds": [
+    "document",
+    "dataset",
+    "schema",
+    "code",
+    "report",
+    "spec",
+    "test",
+    "other"
+  ],
+  "availabilities": [
+    "available",
+    "busy",
+    "offline",
+    "unavailable"
+  ],
   "toolCategories": [
     "workspace-read",
     "workspace-write",
@@ -46,7 +90,11 @@
     "cancelled-by-human",
     "dead-lettered"
   ],
-  "failureClasses": ["deterministic-defect", "flaky-observation", "preexisting-debt"],
+  "failureClasses": [
+    "deterministic-defect",
+    "flaky-observation",
+    "preexisting-debt"
+  ],
   "approvalNodes": [
     "policy-exception",
     "sensitive-action",
@@ -55,7 +103,11 @@
     "verdict-arbitration",
     "external-release"
   ],
-  "approvalDecisions": ["approved", "approved-with-conditions", "rejected"],
+  "approvalDecisions": [
+    "approved",
+    "approved-with-conditions",
+    "rejected"
+  ],
   "eventTypes": [
     "created",
     "promoted",
@@ -73,11 +125,37 @@
     "archived"
   ],
   "transitions": {
-    "backlog": ["ready", "canceled"],
-    "ready": ["submitted", "backlog", "canceled"],
-    "submitted": ["working", "ready", "input-required", "completed", "rejected", "failed", "canceled"],
-    "working": ["submitted", "ready", "input-required", "failed", "canceled"],
-    "input-required": ["working", "ready", "failed", "canceled"],
+    "backlog": [
+      "ready",
+      "canceled"
+    ],
+    "ready": [
+      "submitted",
+      "backlog",
+      "canceled"
+    ],
+    "submitted": [
+      "working",
+      "ready",
+      "input-required",
+      "completed",
+      "rejected",
+      "failed",
+      "canceled"
+    ],
+    "working": [
+      "submitted",
+      "ready",
+      "input-required",
+      "failed",
+      "canceled"
+    ],
+    "input-required": [
+      "working",
+      "ready",
+      "failed",
+      "canceled"
+    ],
     "completed": [],
     "failed": [],
     "canceled": [],

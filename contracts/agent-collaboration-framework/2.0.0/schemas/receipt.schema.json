@@ -38,7 +38,9 @@
         }
       },
       "then": {
-        "required": ["cancellationReason"],
+        "required": [
+          "cancellationReason"
+        ],
         "properties": {
           "cancellationReason": {
             "type": "string",
@@ -51,12 +53,17 @@
       "if": {
         "properties": {
           "finalStatus": {
-            "enum": ["failed", "rejected"]
+            "enum": [
+              "failed",
+              "rejected"
+            ]
           }
         }
       },
       "then": {
-        "required": ["failureReasonCode"],
+        "required": [
+          "failureReasonCode"
+        ],
         "properties": {
           "failureReasonCode": {
             "type": "string"
@@ -94,7 +101,10 @@
       "description": "本回执遵循的契约引用（urn:...:receipt:X.Y.Z）；单一版本语义，替代旧 schemaVersion。"
     },
     "schemaVersion": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "已弃用：v2 起改用 contractRef。保留字段仅为向后兼容，填写时不得替代 contractRef。"
     },
     "taskId": {
@@ -109,11 +119,21 @@
     },
     "type": {
       "type": "string",
-      "enum": ["implementation", "review", "investigation", "documentation", "fix", "verification"],
+      "enum": [
+        "implementation",
+        "review",
+        "investigation",
+        "documentation",
+        "fix",
+        "verification"
+      ],
       "description": "任务类型；与任务单一致。"
     },
     "baselineRef": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "开工基线锚点；与任务单、索引三方一致，不填则显式为 null。"
     },
     "dependsOn": {
@@ -135,13 +155,22 @@
     },
     "finalStatus": {
       "type": "string",
-      "enum": ["completed", "failed", "rejected", "canceled"],
+      "enum": [
+        "completed",
+        "failed",
+        "rejected",
+        "canceled"
+      ],
       "description": "任务终态；四个终态之一（含 canceled）。取值口径与 schemas/contract-enums.json 的 terminalStatuses 一致。"
     },
     "changedFiles": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["added", "modified", "deleted"],
+      "required": [
+        "added",
+        "modified",
+        "deleted"
+      ],
       "description": "落地组：实际改动清单，按新增 / 修改 / 删除分列。",
       "properties": {
         "added": {
@@ -173,7 +202,10 @@
           "items": {
             "type": "object",
             "additionalProperties": true,
-            "required": ["path", "check"],
+            "required": [
+              "path",
+              "check"
+            ],
             "properties": {
               "path": {
                 "type": "string",
@@ -195,7 +227,10 @@
     "artifactRefs": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["taskSheet", "deliveryRecord"],
+      "required": [
+        "taskSheet",
+        "deliveryRecord"
+      ],
       "description": "落地组：工件指针，不复制正文。",
       "properties": {
         "taskSheet": {
@@ -209,7 +244,10 @@
           "description": "交付记录路径（本文件）。"
         },
         "reply": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "回执原文（机读本体）路径。"
         },
         "others": {
@@ -230,7 +268,12 @@
       "items": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["command", "exitCode", "errors", "warnings"],
+        "required": [
+          "command",
+          "exitCode",
+          "errors",
+          "warnings"
+        ],
         "properties": {
           "command": {
             "type": "string",
@@ -252,20 +295,32 @@
             "description": "警告数。"
           },
           "specFiles": {
-            "type": ["integer", "null"],
+            "type": [
+              "integer",
+              "null"
+            ],
             "minimum": 0,
             "description": "用例数或文件数；不适用时为 null。"
           },
           "machine": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "机器状态。"
           },
           "wallClock": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "墙钟耗时。"
           },
           "note": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "备注。"
           }
         }
@@ -278,7 +333,10 @@
     },
     "scopeCheck": {
       "type": "string",
-      "enum": ["in-scope", "deviated"],
+      "enum": [
+        "in-scope",
+        "deviated"
+      ],
       "description": "范围组：改动是否全部落在授权切片内。"
     },
     "parallelArtifactsExcluded": {
@@ -296,7 +354,10 @@
       "items": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["item", "result"],
+        "required": [
+          "item",
+          "result"
+        ],
         "properties": {
           "item": {
             "type": "string",
@@ -305,11 +366,18 @@
           },
           "result": {
             "type": "string",
-            "enum": ["pass", "fail", "not-applicable"],
+            "enum": [
+              "pass",
+              "fail",
+              "not-applicable"
+            ],
             "description": "比对结果。"
           },
           "note": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "说明。"
           }
         }
@@ -318,16 +386,24 @@
     "fieldAlignment": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["result"],
+      "required": [
+        "result"
+      ],
       "description": "契约组：共享字段对齐情况；真相源唯一，消费端不复算口径。",
       "properties": {
         "result": {
           "type": "string",
-          "enum": ["aligned", "misaligned"],
+          "enum": [
+            "aligned",
+            "misaligned"
+          ],
           "description": "对齐结论。"
         },
         "note": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "说明；misaligned 时必须写明差异字段与真相源。"
         }
       }
@@ -338,7 +414,10 @@
       "items": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["id", "impact"],
+        "required": [
+          "id",
+          "impact"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -351,7 +430,10 @@
             "description": "影响面。"
           },
           "schedule": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "排期。"
           }
         }
@@ -379,7 +461,12 @@
       "items": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["taskSays", "reality", "action", "why"],
+        "required": [
+          "taskSays",
+          "reality",
+          "action",
+          "why"
+        ],
         "properties": {
           "taskSays": {
             "type": "string",
@@ -409,8 +496,16 @@
       "description": "偏差组：无偏差时显式置 true，禁止留空。"
     },
     "reviewVerdict": {
-      "type": ["string", "null"],
-      "enum": ["passed", "conditional-pass", "rejected", null],
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "passed",
+        "conditional-pass",
+        "rejected",
+        null
+      ],
       "description": "结论组：三级结论；未经验收的 failed 任务允许为 null，但必须在 failureReasonCode 说明。"
     },
     "verdictRationale": {
@@ -419,7 +514,10 @@
       "description": "结论组：五类核对各条结果摘要；打回时写明原因与待补动作。"
     },
     "failureReasonCode": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "enum": [
         "contract-invalid",
         "input-invalid",
@@ -437,7 +535,10 @@
       "description": "finalStatus 非 completed 时必填；取值口径与 schemas/contract-enums.json 的 failureReasonCodes 一致。"
     },
     "cancellationReason": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "finalStatus 为 canceled 时必填：谁取消、依据是什么。"
     }
   }

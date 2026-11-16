@@ -5,7 +5,17 @@
   "description": "状态事件契约。状态索引的唯一写入面：每次状态迁移追加一条事件（JSON Lines 一行一条），索引由事件投影重建。事件不可修改、不可删除；重复投递靠 idempotencyKey 去重。",
   "type": "object",
   "additionalProperties": true,
-  "required": ["eventId", "eventSeq", "taskId", "type", "from", "to", "by", "at", "idempotencyKey"],
+  "required": [
+    "eventId",
+    "eventSeq",
+    "taskId",
+    "type",
+    "from",
+    "to",
+    "by",
+    "at",
+    "idempotencyKey"
+  ],
   "properties": {
     "eventId": {
       "type": "string",
@@ -90,7 +100,10 @@
       "description": "幂等键；重复投递同一键不产生第二条事件。推荐 <taskId>:<type>:<attempt>。"
     },
     "reason": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "事件原因；released / rejected / canceled / dead-lettered 时必填。"
     },
     "payload": {
@@ -99,33 +112,54 @@
       "description": "事件附载：仅承载该事件新引入、且投影需要落地的字段。",
       "properties": {
         "agent": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "claimed / released 时的执行方。"
         },
         "claimedAt": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date-time",
           "description": "claimed 时的领取时间。"
         },
         "waitingOn": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "interrupted 时的等待项。"
         },
         "triggerReason": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "interrupted 时的触发原因。"
         },
         "verdict": {
-          "type": ["object", "null"],
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": true,
           "description": "verified / rejected 时的验收结论对象（result / rationale / failureReasonCode）。"
         },
         "deadLetterReason": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "dead-lettered 时的死信原因。"
         },
         "baselineRef": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "created 时的基线锚点。"
         }
       }

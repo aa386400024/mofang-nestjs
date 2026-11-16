@@ -5,7 +5,16 @@
   "description": "审批记录契约。环内审批节点的结论必须落成记录并进入审计链；无记录视为未批准。审批是阻塞式的，记录必须带生效范围与有效期。",
   "type": "object",
   "additionalProperties": true,
-  "required": ["approvalId", "taskId", "node", "decision", "scope", "approvedBy", "approvedAt", "validUntil"],
+  "required": [
+    "approvalId",
+    "taskId",
+    "node",
+    "decision",
+    "scope",
+    "approvedBy",
+    "approvedAt",
+    "validUntil"
+  ],
   "allOf": [
     {
       "if": {
@@ -16,7 +25,9 @@
         }
       },
       "then": {
-        "required": ["conditions"],
+        "required": [
+          "conditions"
+        ],
         "properties": {
           "conditions": {
             "minItems": 1
@@ -38,12 +49,23 @@
     },
     "node": {
       "type": "string",
-      "enum": ["policy-exception", "sensitive-action", "route-selection", "cross-task-change", "verdict-arbitration", "external-release"],
+      "enum": [
+        "policy-exception",
+        "sensitive-action",
+        "route-selection",
+        "cross-task-change",
+        "verdict-arbitration",
+        "external-release"
+      ],
       "description": "审批节点；取值口径与 schemas/contract-enums.json 的 approvalNodes 一致。"
     },
     "decision": {
       "type": "string",
-      "enum": ["approved", "approved-with-conditions", "rejected"],
+      "enum": [
+        "approved",
+        "approved-with-conditions",
+        "rejected"
+      ],
       "description": "审批结论；取值口径与 schemas/contract-enums.json 的 approvalDecisions 一致。"
     },
     "scope": {
@@ -65,12 +87,18 @@
       "description": "附带条件；decision 为 approved-with-conditions 时不得为空。"
     },
     "validUntil": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "date-time",
       "description": "有效期终点；一次性审批可填动作发生时刻或 null 并配合 maxUses。"
     },
     "maxUses": {
-      "type": ["integer", "null"],
+      "type": [
+        "integer",
+        "null"
+      ],
       "minimum": 1,
       "description": "最大使用次数；一次性审批填 1。"
     },
@@ -85,7 +113,10 @@
       "description": "批准时间（ISO 8601 带时区）。"
     },
     "rationale": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "批准依据摘要。"
     }
   }

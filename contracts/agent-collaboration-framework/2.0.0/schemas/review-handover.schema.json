@@ -20,7 +20,9 @@
   "properties": {
     "handoverKind": {
       "type": "string",
-      "enum": ["review"],
+      "enum": [
+        "review"
+      ],
       "description": "交接件类别标识；协商轮意见交接件固定为 review。"
     },
     "schemaVersion": {
@@ -91,7 +93,9 @@
     "resolution": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["decision"],
+      "required": [
+        "decision"
+      ],
       "description": "编排者（或人）对意见的裁决；未裁决时整体省略。",
       "properties": {
         "decision": {
@@ -100,7 +104,10 @@
           "description": "裁决结论；取值口径由适配层声明，不套用验收三级结论枚举。"
         },
         "rationale": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "裁决依据摘要。"
         },
         "resolvedBy": {
@@ -126,7 +133,10 @@
       "description": "来源追溯：交接件构造时间（ISO 8601 带时区）。"
     },
     "note": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "补充说明。"
     }
   },
