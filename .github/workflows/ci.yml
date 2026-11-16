@@ -20,10 +20,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '26'
 
@@ -34,7 +34,7 @@ jobs:
         run: pnpm --version
 
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.pnpm-store
           key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -45,7 +45,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Cache ESLint results
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .eslintcache
           # T-2 (TD-9) 键口径: ESLint 自身的缓存键 = ESLint 版本 + Node 版本 + **解析后配置对象**哈希
@@ -122,10 +122,10 @@ jobs:
       SMS_ENABLED: 'false'
       METRICS_ENABLED: 'false'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '26'
 
@@ -136,7 +136,7 @@ jobs:
         run: pnpm --version
 
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.pnpm-store
           key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -147,7 +147,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Cache vitest transform cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: node_modules/.vite/vitest
           key: vitest-transform-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -221,10 +221,10 @@ jobs:
       MINIMAX_LLM_MODEL: stub-model
       MINIMAX_ASR_TOKEN_SECRET: stub-asr-token-secret
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '26'
 
@@ -235,7 +235,7 @@ jobs:
         run: pnpm --version
 
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.pnpm-store
           key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -308,10 +308,10 @@ jobs:
       SMS_ENABLED: 'false'
       METRICS_ENABLED: 'false'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '26'
 
@@ -322,7 +322,7 @@ jobs:
         run: pnpm --version
 
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.pnpm-store
           key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -333,7 +333,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Cache vitest transform cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: node_modules/.vite/vitest
           key: vitest-transform-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -350,7 +350,7 @@ jobs:
         run: pnpm run test:coverage
 
       - name: Upload coverage report (lcov)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-lcov
           path: coverage/
@@ -367,7 +367,7 @@ jobs:
     # TD-11 · T-E: unit 是 matrix, `needs: unit` 会等**所有**分片跑完; 再叠加 e2e.
     needs: [unit, e2e]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -388,10 +388,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '26'
 
@@ -402,7 +402,7 @@ jobs:
         run: pnpm --version
 
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.pnpm-store
           key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -418,7 +418,7 @@ jobs:
         run: pnpm audit --audit-level=high --prod --ignore-registry-errors
 
       - name: Run Trivy vulnerability scanner on Dockerfile
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'node:26-alpine'
           format: 'table'
