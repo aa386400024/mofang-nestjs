@@ -7,39 +7,37 @@
  *   review   —— 方案协商轮意见：executor 提第二意见，orchestrator 裁决回写结论。
  *
  * 口径真相源在框架仓：`schemas/task-sheet.schema.json`、`docs/task-contract.md`、
- * `docs/receipt-contract.md`。本模块只做适配层投影与结构 / 枚举 / 模式校验，
- * 不复制阈值口径，不回写索引，不做文件存在性检查（存在性归验收层）。
+ * `docs/receipt-contract.md`；枚举与标识模式真相源为框架仓 `schemas/contract-enums.json`，
+ * 本仓同目录 `contract-enums.json` 为其 vendored 投影。本模块只做适配层投影与结构 /
+ * 枚举 / 模式校验，不复制阈值口径，不回写索引，不做文件存在性检查（存在性归验收层）。
  * 契约字段只增不删；既有交接件行为保持不变。
  */
+
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+/** 同目录 vendored 枚举投影（框架仓 contract-enums.json 的本仓副本，护栏单测对账）。 */
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const CONTRACT_ENUMS = JSON.parse(readFileSync(join(__dirname, 'contract-enums.json'), 'utf8'));
 
 /** 交接件契约版本（随数据下发，消费端按版本分派解析）。 */
 export const HANDOVER_SCHEMA_VERSION = '1.0.0';
 
-/** 任务类型枚举（镜像框架 task-sheet.schema.json §type）。 */
-export const TASK_TYPES = ['implementation', 'review', 'investigation', 'documentation', 'fix', 'verification'];
+/** 任务类型枚举（派生自 vendored 契约枚举投影 contract-enums.json）。 */
+export const TASK_TYPES = [...CONTRACT_ENUMS.taskTypes];
 
-/** 任务状态枚举（镜像框架 state-machine.md §1，含编排前置态）。 */
-export const TASK_STATUSES = [
-  'backlog',
-  'ready',
-  'submitted',
-  'working',
-  'input-required',
-  'auth-required',
-  'completed',
-  'failed',
-  'canceled',
-  'rejected',
-];
+/** 任务状态枚举（派生自 vendored 契约枚举投影 contract-enums.json）。 */
+export const TASK_STATUSES = [...CONTRACT_ENUMS.taskStatuses];
 
-/** 回执终态枚举（框架 receipt-contract.md §2）。 */
-export const FINAL_STATUSES = ['completed', 'failed', 'rejected'];
+/** 回执终态枚举（派生自 vendored 契约枚举投影 contract-enums.json）。 */
+export const FINAL_STATUSES = [...CONTRACT_ENUMS.finalStatuses];
 
-/** 验收三级结论（框架 acceptance.md §4 / receipt-contract.md §1）。 */
-export const REVIEW_VERDICTS = ['passed', 'conditional-pass', 'rejected'];
+/** 验收三级结论（派生自 vendored 契约枚举投影 contract-enums.json）。 */
+export const REVIEW_VERDICTS = [...CONTRACT_ENUMS.reviewVerdicts];
 
-/** taskId 模式（镜像框架 task-sheet.schema.json）。 */
-const TASK_ID_PATTERN = /^[A-Z0-9]+-[0-9]+$/;
+/** taskId 模式（派生自 vendored 契约枚举投影 contract-enums.json）。 */
+const TASK_ID_PATTERN = new RegExp(CONTRACT_ENUMS.taskIdPattern);
 
 /** 回执七组字段（框架 receipt-contract.md §1，逐字同名）。 */
 export const RECEIPT_GROUPS = {

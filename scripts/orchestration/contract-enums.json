@@ -1,0 +1,21 @@
+{
+  "fileKind": "contract-enums",
+  "schemaVersion": "1.0.0",
+  "description": "跨契约复用的枚举取值与标识模式单一真相源，供适配层读取常量，避免在适配层手写镜像。各 schema 文件内的 enum 与 pattern 为自包含镜像，取值必须与本文件保持一致；本文件本身不是 JSON Schema，不用于直接校验对象。本文件为框架仓 schemas/contract-enums.json 的 vendored 投影（框架 1.4.0）；枚举取值以框架仓权威源为准，一致性由编排工具链护栏单测对账。",
+  "taskTypes": ["implementation", "review", "investigation", "documentation", "fix", "verification"],
+  "taskStatuses": [
+    "backlog",
+    "ready",
+    "submitted",
+    "working",
+    "input-required",
+    "completed",
+    "failed",
+    "canceled",
+    "rejected",
+    "auth-required"
+  ],
+  "finalStatuses": ["completed", "failed", "rejected"],
+  "reviewVerdicts": ["passed", "conditional-pass", "rejected"],
+  "taskIdPattern": "^[A-Z0-9]+-[0-9]+$"
+}

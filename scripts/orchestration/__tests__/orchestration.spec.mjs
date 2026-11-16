@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
-import { validateConfig, PATHS } from '../state-store.mjs';
+import { validateConfig, PATHS, REPO_ROOT } from '../state-store.mjs';
 import { validateAgentCard, validateTaskIndex, validateTaskSheet, validateToolManifest } from '../validator.mjs';
 import { buildRegistry, call as registryCall } from '../tool-registry.mjs';
 import { listAudits, recordAudit, summarizeAudits } from '../audit-log.mjs';
@@ -22,6 +22,10 @@ import {
   validateReviewHandover,
   buildTaskHandover,
   HANDOVER_SCHEMA_VERSION,
+  TASK_TYPES,
+  TASK_STATUSES,
+  FINAL_STATUSES,
+  REVIEW_VERDICTS,
 } from '../handover-contract.mjs';
 import { ARCHIVE_STATUSES, archiveTaskEntry, canTransition, shouldAdvance, buildSnapshot } from '../scheduler.mjs';
 import { dispatchTask, buildDispatchRecord, receiptFingerprint, isReceiptProcessed, markReceiptProcessed } from '../dispatch.mjs';
@@ -1505,5 +1509,39 @@ describe('AF-016 dispatchTask 能力路由接线', () => {
     expect(r.dispatched).toBe(true);
     expect(r.record.targetRole).toBe('executor');
     expect(r.route).toBeNull();
+  });
+});
+
+describe('契约枚举 vendored 投影对账（IM-005）', () => {
+  const enumsFile = join(__testDir, '..', 'contract-enums.json');
+  const enums = readJsonFile(enumsFile);
+
+  it('导出枚举与 vendored 投影取值与顺序一致', () => {
+    expect(TASK_TYPES).toEqual(enums.taskTypes);
+    expect(TASK_STATUSES).toEqual(enums.taskStatuses);
+    expect(FINAL_STATUSES).toEqual(enums.finalStatuses);
+    expect(REVIEW_VERDICTS).toEqual(enums.reviewVerdicts);
+  });
+
+  it('taskId 模式与投影一致，且正反例匹配正确', () => {
+    expect(new RegExp(enums.taskIdPattern).source).toBe(enums.taskIdPattern);
+    const good = ['TASK-001', 'AF-009', 'REVIEW-001'];
+    const bad = ['task-001', 'TASK-001-X', 'TASK', 'TASK-abc', ''];
+    for (const id of good) expect(new RegExp(enums.taskIdPattern).test(id)).toBe(true);
+    for (const id of bad) expect(new RegExp(enums.taskIdPattern).test(id)).toBe(false);
+  });
+
+  it('vendored 投影与框架仓权威枚举一致（框架仓不可达则跳过跨仓对账）', () => {
+    const fwDir = process.env.ORCH_FRAMEWORK_DIR
+      ? process.env.ORCH_FRAMEWORK_DIR
+      : join(REPO_ROOT, '..', '..', 'agent-collaboration-framework');
+    const fwFile = join(fwDir, 'schemas', 'contract-enums.json');
+    if (!existsSync(fwFile)) return;
+    const fw = readJsonFile(fwFile);
+    expect(fw.taskTypes).toEqual(enums.taskTypes);
+    expect(fw.taskStatuses).toEqual(enums.taskStatuses);
+    expect(fw.finalStatuses).toEqual(enums.finalStatuses);
+    expect(fw.reviewVerdicts).toEqual(enums.reviewVerdicts);
+    expect(fw.taskIdPattern).toBe(enums.taskIdPattern);
   });
 });

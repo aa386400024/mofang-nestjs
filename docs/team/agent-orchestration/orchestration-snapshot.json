@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T01:29:27.103Z",
+  "generatedAt": "2026-11-16T01:57:30.214Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -21,12 +21,12 @@
   "pendingApprovals": [],
   "improvements": {
     "total": 28,
-    "activeCount": 16,
+    "activeCount": 15,
     "byStatus": {
-      "candidate": 15,
+      "candidate": 14,
       "queued": 0,
       "accepted": 1,
-      "done": 12,
+      "done": 13,
       "wontfix": 0
     },
     "byType": {
@@ -129,7 +129,7 @@
       {
         "improvementId": "IM-005",
         "title": "交接契约校验枚举与 taskId 模式与框架 ajv schema 双源镜像",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "tech-debt",
         "layer": "adapter",
@@ -142,12 +142,12 @@
         ],
         "impact": "框架枚举或模式演进时两处需同步 存在口径漂移风险",
         "suggestion": "交接件校验复用框架 schema 同步封装消除手写镜像；框架侧真相源已就位(1.4.0)；剩余 adapter 接线：handover-contract.mjs 改读 contract-enums.json 消除手写 TASK_TYPES/TASK_STATUSES/TASK_ID_PATTERN 镜像（另批）",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T17:19:39.551Z",
-          "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "at": "2026-11-16T01:57:13.902Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "镜像消除:五组枚举与 taskId 模式改读 vendored contract-enums.json;119 用例绿,validate 5/5;本仓投影由护栏单测对账"
         }
       },
       {
