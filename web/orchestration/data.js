@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-16T12:03:32.123Z",
+  "generatedAt": "2026-11-16T12:27:03.130Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -709,10 +709,28 @@ window.ORCH_SNAPSHOT = {
     {
       "fileName": "pack-20261115-225603.json",
       "ref": "docs/team/agent-orchestration/delivery-packs/pack-20261115-225603.json",
+      "packageId": "PACK-20261115-225603",
       "generatedAt": "2026-11-15T14:56:03.135Z",
-      "taskResults": 0,
+      "cycle": {
+        "startedAt": "2026-11-15T14:56:03.135Z",
+        "endedAt": "2026-11-15T14:56:03.135Z",
+        "mode": "human-in-the-loop",
+        "queueSize": 4,
+        "stopReason": "human-stop"
+      },
+      "counts": {
+        "passed": 0,
+        "conditionalPass": 0,
+        "rejected": 0,
+        "failed": 0,
+        "deadLettered": 0
+      },
+      "leftovers": {
+        "backlogItems": 0,
+        "openQuestions": 0,
+        "manualReviewList": 0
+      },
       "deadLetters": 0,
-      "openItems": 0,
       "pendingApprovals": 0
     }
   ],
@@ -1045,20 +1063,16 @@ window.ORCH_SNAPSHOT = {
     }
   },
   "protocolView": {
-    "tasks": [
+    "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
+    "tasks": [],
+    "archivedTasks": [
       {
         "taskId": "TD-5",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1068,22 +1082,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-implementation-2026-11-13.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "TD-6",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1093,22 +1100,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-implementation-2026-11-13.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "TD-7",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1118,22 +1118,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/td7-contract-drift-remediation-implementation-2026-11-13.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "TD-8",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1143,22 +1136,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-implementation-2026-11-13.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "TD-9",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1168,22 +1154,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/td9-test-isolation-and-lint-hygiene-implementation-2026-11-13.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "TD-10",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1193,22 +1172,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/td10-test-structure-debt-reduction-implementation-2026-11-13.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "TD-11",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1218,22 +1190,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-implementation-2026-11-14.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "TD-12",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1243,22 +1208,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-implementation-2026-11-14.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "TD-13",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1268,22 +1226,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-implementation-2026-11-14.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "TD-14",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1293,22 +1244,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/td14-entity-typeorm-decoupling-assessment-implementation-2026-11-14.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "TD-15",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1318,22 +1262,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/td15-enum-extraction-cplus-implementation-2026-11-14.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "TD-16",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1347,22 +1284,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "reply",
             "ref": "docs/worklog/pending/archive/relay-response-20261114-1524.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "TD-17",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1376,22 +1306,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "reply",
             "ref": "docs/worklog/pending/archive/relay-response-20261114-1719.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "TD-18",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1405,22 +1328,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "reply",
             "ref": "docs/worklog/pending/archive/relay-response-20261114-1818.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "TD-19",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1434,22 +1350,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "reply",
             "ref": "docs/worklog/pending/archive/relay-response-20261115-0227.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "TD-20",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1463,22 +1372,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "reply",
             "ref": "docs/worklog/pending/archive/relay-response-20261115-0346.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "TD-21",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1492,22 +1394,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "reply",
             "ref": "docs/worklog/pending/archive/relay-response-20261115-1211.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-001",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1521,47 +1416,29 @@ window.ORCH_SNAPSHOT = {
             "kind": "reply",
             "ref": "docs/worklog/pending/archive/relay-response-af001-20261115.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-002",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": null
-          },
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af002-framework-adapter-decoupling-implementation-2026-11-15.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-003",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1575,22 +1452,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "reply",
             "ref": "docs/worklog/pending/archive/relay-response-20261115-1533.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-004",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1604,22 +1474,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "reply",
             "ref": "docs/worklog/pending/archive/relay-response-20261115-1616.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-005",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1629,22 +1492,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-006",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1654,22 +1510,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-007",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1679,22 +1528,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-008",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1704,22 +1546,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-009",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1728,27 +1563,16 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-implementation-2026-11-16.md"
-          },
-          {
-            "kind": "reply",
-            "ref": null
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-010",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1757,27 +1581,16 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-implementation-2026-11-16.md"
-          },
-          {
-            "kind": "reply",
-            "ref": null
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-011",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1786,27 +1599,16 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af011-file-scope-mutex-validation-implementation-2026-11-16.md"
-          },
-          {
-            "kind": "reply",
-            "ref": null
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-012",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1815,27 +1617,16 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-implementation-2026-11-16.md"
-          },
-          {
-            "kind": "reply",
-            "ref": null
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-013",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1849,22 +1640,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "reply",
             "ref": "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-014",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1873,27 +1657,16 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-implementation-2026-11-16.md"
-          },
-          {
-            "kind": "reply",
-            "ref": null
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-015",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1903,22 +1676,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-implementation-2026-11-16.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-016",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1928,22 +1694,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-implementation-2026-11-16.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-017",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1953,22 +1712,15 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-implementation-2026-11-16.md"
           }
-        ],
-        "archived": true
+        ]
       },
       {
         "taskId": "AF-018",
-        "title": null,
-        "type": null,
         "status": {
           "framework": "completed",
           "protocol": "COMPLETED",
           "stage": "terminal"
         },
-        "groupId": null,
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": null,
         "artifactReferences": [
           {
             "kind": "taskSheet",
@@ -1978,13 +1730,12 @@ window.ORCH_SNAPSHOT = {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-implementation-2026-11-16.md"
           }
-        ],
-        "archived": true
+        ]
       }
     ],
     "statusMap": {
-      "backlog": "DRAFT",
-      "ready": "QUEUED",
+      "backlog": null,
+      "ready": null,
       "submitted": "SUBMITTED",
       "working": "WORKING",
       "input-required": "INPUT_REQUIRED",
@@ -1994,433 +1745,7 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "TD-5",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-task-2026-11-13.md"
-      },
-      {
-        "taskId": "TD-5",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-implementation-2026-11-13.md"
-      },
-      {
-        "taskId": "TD-6",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-task-2026-11-13.md"
-      },
-      {
-        "taskId": "TD-6",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-implementation-2026-11-13.md"
-      },
-      {
-        "taskId": "TD-7",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/td7-contract-drift-remediation-task-2026-11-13.md"
-      },
-      {
-        "taskId": "TD-7",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/td7-contract-drift-remediation-implementation-2026-11-13.md"
-      },
-      {
-        "taskId": "TD-8",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-task-2026-11-13.md"
-      },
-      {
-        "taskId": "TD-8",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-implementation-2026-11-13.md"
-      },
-      {
-        "taskId": "TD-9",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/td9-test-isolation-and-lint-hygiene-task-2026-11-13.md"
-      },
-      {
-        "taskId": "TD-9",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/td9-test-isolation-and-lint-hygiene-implementation-2026-11-13.md"
-      },
-      {
-        "taskId": "TD-10",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/td10-test-structure-debt-reduction-task-2026-11-13.md"
-      },
-      {
-        "taskId": "TD-10",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/td10-test-structure-debt-reduction-implementation-2026-11-13.md"
-      },
-      {
-        "taskId": "TD-11",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-task-2026-11-14.md"
-      },
-      {
-        "taskId": "TD-11",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-implementation-2026-11-14.md"
-      },
-      {
-        "taskId": "TD-12",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-task-2026-11-14.md"
-      },
-      {
-        "taskId": "TD-12",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-implementation-2026-11-14.md"
-      },
-      {
-        "taskId": "TD-13",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-task-2026-11-14.md"
-      },
-      {
-        "taskId": "TD-13",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-implementation-2026-11-14.md"
-      },
-      {
-        "taskId": "TD-14",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/td14-entity-typeorm-decoupling-assessment-task-2026-11-14.md"
-      },
-      {
-        "taskId": "TD-14",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/td14-entity-typeorm-decoupling-assessment-implementation-2026-11-14.md"
-      },
-      {
-        "taskId": "TD-15",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/td15-enum-extraction-cplus-task-2026-11-14.md"
-      },
-      {
-        "taskId": "TD-15",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/td15-enum-extraction-cplus-implementation-2026-11-14.md"
-      },
-      {
-        "taskId": "TD-16",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/td16-life-map-port-pilot-c1-task-2026-11-14.md"
-      },
-      {
-        "taskId": "TD-16",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/td16-life-map-port-pilot-c1-implementation-2026-11-14.md"
-      },
-      {
-        "taskId": "TD-16",
-        "kind": "reply",
-        "ref": "docs/worklog/pending/archive/relay-response-20261114-1524.md"
-      },
-      {
-        "taskId": "TD-17",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/td17-consent-port-c2-batch1-task-2026-11-14.md"
-      },
-      {
-        "taskId": "TD-17",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/td17-consent-port-c2-batch1-implementation-2026-11-14.md"
-      },
-      {
-        "taskId": "TD-17",
-        "kind": "reply",
-        "ref": "docs/worklog/pending/archive/relay-response-20261114-1719.md"
-      },
-      {
-        "taskId": "TD-18",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/td18-good-state-diary-port-c2-batch2-task-2026-11-14.md"
-      },
-      {
-        "taskId": "TD-18",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/td18-good-state-diary-port-c2-batch2-implementation-2026-11-14.md"
-      },
-      {
-        "taskId": "TD-18",
-        "kind": "reply",
-        "ref": "docs/worklog/pending/archive/relay-response-20261114-1818.md"
-      },
-      {
-        "taskId": "TD-19",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/td19-emergency-port-c2-batch3-task-2026-11-15.md"
-      },
-      {
-        "taskId": "TD-19",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/td19-emergency-port-c2-batch3-implementation-2026-11-15.md"
-      },
-      {
-        "taskId": "TD-19",
-        "kind": "reply",
-        "ref": "docs/worklog/pending/archive/relay-response-20261115-0227.md"
-      },
-      {
-        "taskId": "TD-20",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/td20-home-messages-moodlog-port-c2-batch4-task-2026-11-15.md"
-      },
-      {
-        "taskId": "TD-20",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/td20-home-messages-moodlog-port-c2-batch4-implementation-2026-11-15.md"
-      },
-      {
-        "taskId": "TD-20",
-        "kind": "reply",
-        "ref": "docs/worklog/pending/archive/relay-response-20261115-0346.md"
-      },
-      {
-        "taskId": "TD-21",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/td21-counselor-quote-port-c2-batch5-task-2026-11-15.md"
-      },
-      {
-        "taskId": "TD-21",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/td21-counselor-quote-port-c2-batch5-implementation-2026-11-15.md"
-      },
-      {
-        "taskId": "TD-21",
-        "kind": "reply",
-        "ref": "docs/worklog/pending/archive/relay-response-20261115-1211.md"
-      },
-      {
-        "taskId": "AF-001",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/af001-framework-bootstrap-task-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-001",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af001-framework-bootstrap-implementation-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-001",
-        "kind": "reply",
-        "ref": "docs/worklog/pending/archive/relay-response-af001-20261115.md"
-      },
-      {
-        "taskId": "AF-002",
-        "kind": "taskSheet",
-        "ref": null
-      },
-      {
-        "taskId": "AF-002",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af002-framework-adapter-decoupling-implementation-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-003",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/af003-framework-finalization-task-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-003",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af003-framework-finalization-implementation-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-003",
-        "kind": "reply",
-        "ref": "docs/worklog/pending/archive/relay-response-20261115-1533.md"
-      },
-      {
-        "taskId": "AF-004",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/af004-framework-hardening-task-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-004",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af004-framework-hardening-implementation-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-004",
-        "kind": "reply",
-        "ref": "docs/worklog/pending/archive/relay-response-20261115-1616.md"
-      },
-      {
-        "taskId": "AF-005",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/af005-framework-evolution-watcher-state-machine-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-005",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-006",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/af006-framework-evolution-validation-scripts-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-006",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-007",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/af007-framework-evolution-tool-standardization-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-007",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-008",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/af008-framework-evolution-agent-protocol-mapping-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-008",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md"
-      },
-      {
-        "taskId": "AF-009",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-009",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-implementation-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-009",
-        "kind": "reply",
-        "ref": null
-      },
-      {
-        "taskId": "AF-010",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-010",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-implementation-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-010",
-        "kind": "reply",
-        "ref": null
-      },
-      {
-        "taskId": "AF-011",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/af011-file-scope-mutex-validation-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-011",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af011-file-scope-mutex-validation-implementation-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-011",
-        "kind": "reply",
-        "ref": null
-      },
-      {
-        "taskId": "AF-012",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-012",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-implementation-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-012",
-        "kind": "reply",
-        "ref": null
-      },
-      {
-        "taskId": "AF-013",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-013",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-implementation-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-013",
-        "kind": "reply",
-        "ref": "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md"
-      },
-      {
-        "taskId": "AF-014",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-014",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-implementation-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-014",
-        "kind": "reply",
-        "ref": null
-      },
-      {
-        "taskId": "AF-015",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-015",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-implementation-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-016",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-016",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-implementation-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-017",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-017",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-implementation-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-018",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-2026-11-16.md"
-      },
-      {
-        "taskId": "AF-018",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-implementation-2026-11-16.md"
-      }
-    ],
+    "artifacts": [],
     "groupId": null,
     "groupIds": [],
     "capabilityDeclarations": [

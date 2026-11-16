@@ -31,10 +31,8 @@ export const TASK_CONTRACT_REF = 'urn:agent-collaboration-framework:schema:task-
 export const RECEIPT_CONTRACT_REF = 'urn:agent-collaboration-framework:schema:receipt:1.0.0';
 export const REVIEW_CONTRACT_REF = 'urn:agent-collaboration-framework:schema:review-handover:1.1.0';
 
-/** 任务类型 / 状态 / 终态 / 验收结论枚举（共享投影派生；对外签名保持不变）。 */
+/** 任务类型 / 状态 / 终态 / 验收结论枚举（共享投影派生）。 */
 export { TASK_TYPES, TASK_STATUSES, TERMINAL_STATUSES, REVIEW_VERDICTS };
-/** 兼容别名（历史导入路径）：finalStatuses 在 2.0.0 已更名 terminalStatuses。 */
-export const FINAL_STATUSES = TERMINAL_STATUSES;
 
 /** 回执七组字段（框架 receipt-contract.md §1，逐字同名；契约版本以 contractRef 表达）。 */
 export const RECEIPT_GROUPS = {
@@ -161,8 +159,8 @@ export function validateReceiptHandover(input) {
     if (header === 'taskId') continue;
     if (input[header] === undefined) pushError(errors, header, '回执头部标识缺失');
   }
-  if (!FINAL_STATUSES.includes(input.finalStatus)) {
-    pushError(errors, 'finalStatus', `必须为枚举之一：${FINAL_STATUSES.join(' / ')}`);
+  if (!TERMINAL_STATUSES.includes(input.finalStatus)) {
+    pushError(errors, 'finalStatus', `必须为枚举之一：${TERMINAL_STATUSES.join(' / ')}`);
   }
   if (!REVIEW_VERDICTS.includes(input.reviewVerdict)) {
     pushError(errors, 'reviewVerdict', `必须为枚举之一：${REVIEW_VERDICTS.join(' / ')}`);

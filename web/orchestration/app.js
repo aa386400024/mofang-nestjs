@@ -243,11 +243,18 @@
       return;
     }
     box.innerHTML = packs
-      .map((p) => `<div class="list-item">
+      .map((p) => {
+        const c = p.counts ?? {};
+        const lo = p.leftovers ?? {};
+        const leftoversTotal =
+          (lo.backlogItems ?? 0) + (lo.openQuestions ?? 0) + (lo.manualReviewList ?? 0);
+        const head = p.packageId ? `${p.packageId} · ${p.generatedAt ?? '—'}` : (p.generatedAt ?? '—');
+        return `<div class="list-item">
         <div class="list-title"><code>${escapeHtml(p.fileName)}</code></div>
-        <div class="list-text">${escapeHtml(p.generatedAt ?? '—')}</div>
-        <div class="meta">结论 ${p.taskResults}　死信 ${p.deadLetters}　遗留 ${p.openItems}　待批 ${p.pendingApprovals}</div>
-      </div>`)
+        <div class="list-text">${escapeHtml(head)}</div>
+        <div class="meta">通过 ${c.passed ?? 0}　附条件 ${c.conditionalPass ?? 0}　打回 ${c.rejected ?? 0}　失败 ${c.failed ?? 0}　死信 ${p.deadLetters ?? 0}　遗留 ${leftoversTotal}　待批 ${p.pendingApprovals ?? 0}</div>
+      </div>`;
+      })
       .join('');
   }
 

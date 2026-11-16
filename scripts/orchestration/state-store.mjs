@@ -196,17 +196,27 @@ export function listDeliveryPacks(limit = 10) {
     const pack = safeReadJson(join(PATHS.deliveryPackDir, fileName));
     if (!pack) continue;
     const count = (arr) => (Array.isArray(arr) ? arr.length : 0);
-    const leftovers =
-      pack.leftovers && typeof pack.leftovers === 'object'
-        ? count(pack.leftovers.backlogItems) + count(pack.leftovers.openQuestions) + count(pack.leftovers.manualReviewList)
-        : count(pack.openItems);
+    const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+    const counts = pack.counts ?? {};
     packs.push({
       fileName,
       ref: `docs/team/agent-orchestration/delivery-packs/${fileName}`,
-      generatedAt: pack.cycle?.endedAt ?? pack.generatedAt ?? null,
-      taskResults: count(pack.tasks ?? pack.taskResults),
+      packageId: pack.packageId ?? null,
+      generatedAt: pack.cycle?.endedAt ?? pack.legacy?.generatedAt ?? null,
+      cycle: pack.cycle ?? null,
+      counts: {
+        passed: num(counts.passed),
+        conditionalPass: num(counts.conditionalPass),
+        rejected: num(counts.rejected),
+        failed: num(counts.failed),
+        deadLettered: num(counts.deadLettered),
+      },
+      leftovers: {
+        backlogItems: count(pack.leftovers?.backlogItems),
+        openQuestions: count(pack.leftovers?.openQuestions),
+        manualReviewList: count(pack.leftovers?.manualReviewList),
+      },
       deadLetters: count(pack.deadLetters),
-      openItems: leftovers,
       pendingApprovals: count(pack.pendingApprovals),
     });
   }

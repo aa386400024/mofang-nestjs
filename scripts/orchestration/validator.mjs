@@ -21,6 +21,7 @@ export const SCHEMA_FILES = {
   agentCard: 'agent-card.schema.json',
   reviewHandover: 'review-handover.schema.json',
   deliveryPackage: 'delivery-package.schema.json',
+  protocolView: 'protocol-view.schema.json',
 };
 
 /** 契约名 → schemaKey（版本对账用）。 */
@@ -31,6 +32,7 @@ const CONTRACT_SCHEMA_KEY = {
   'agent-card': 'agentCard',
   'review-handover': 'reviewHandover',
   'delivery-package': 'deliveryPackage',
+  'protocol-view': 'protocolView',
 };
 
 /** 框架仓根目录：env 优先；默认本仓上两级平级目录。 */
@@ -104,7 +106,7 @@ function normalizeErrors(validate) {
 
 /**
  * 通用对象校验。
- * @param {'taskSheet'|'taskIndex'|'toolContract'|'agentCard'|'reviewHandover'|'deliveryPackage'} schemaKey
+ * @param {'taskSheet'|'taskIndex'|'toolContract'|'agentCard'|'reviewHandover'|'deliveryPackage'|'protocolView'} schemaKey
  * @param {object} value 待校验对象
  * @returns {Promise<{ok:boolean,skipped:boolean,errors:object[],schemaId:string|null}>}
  */
@@ -152,38 +154,9 @@ export function validateDeliveryPackage(pack) {
   return validateObject('deliveryPackage', pack);
 }
 
-/**
- * 工具契约清单校验（**已弃用**：框架 2.0.0 为一工具一文件，请用 validateToolDir）。
- * 保留仅为兼容旧调用与历史清单；容器结构问题作为 errors 返回。
- */
-export async function validateToolManifest(manifest) {
-  const problems = [];
-  if (manifest === null || typeof manifest !== 'object' || Array.isArray(manifest)) {
-    problems.push('清单须为对象');
-    return result({ ok: false, errors: [{ instancePath: '', message: '清单须为对象', params: {} }] });
-  }
-  if (!manifest.schemaRef) problems.push('清单缺 schemaRef');
-  if (!Array.isArray(manifest.tools)) {
-    problems.push('tools 须为数组');
-  }
-  const tools = Array.isArray(manifest.tools) ? manifest.tools : [];
-  if (tools.length === 0) problems.push('工具清单为空');
-
-  const toolResults = await Promise.all(tools.map((tool) => validateTool(tool)));
-  const toolErrors = [];
-  toolResults.forEach((res, i) => {
-    if (res.skipped) return;
-    if (!res.ok) {
-      const label = tools[i]?.toolId ?? `条目 #${i + 1}`;
-      for (const err of res.errors) {
-        toolErrors.push({ instancePath: `/tools/${i}${err.instancePath}`, message: `[${label}] ${err.message}`, params: err.params });
-      }
-    }
-  });
-
-  const containerErrors = problems.map((message) => ({ instancePath: '', message, params: {} }));
-  const errors = [...containerErrors, ...toolErrors];
-  return result({ ok: errors.length === 0, errors, schemaId: loadSchema('toolContract')?.$id ?? null });
+/** 协议视图对象校验（框架 protocol-view.schema.json）。 */
+export function validateProtocolView(view) {
+  return validateObject('protocolView', view);
 }
 
 /**

@@ -17,12 +17,13 @@ import {
   validateTaskIndex,
   validateTaskSheet,
   validateToolDir,
+  validateProtocolView,
 } from '../validator.mjs';
 import { buildRegistry, call as registryCall } from '../tool-registry.mjs';
 import { listAudits, recordAudit, summarizeAudits } from '../audit-log.mjs';
 import { createStore } from '../store-port.mjs';
 import { dedupeEvents } from '../file-watcher.mjs';
-import { buildProtocolView, mapCapabilityDeclaration, mapStatus, mapTask } from '../protocol-mapper.mjs';
+import { PROTOCOL_CONTRACT_REF, buildProtocolView, mapCapabilityDeclaration, mapStatus, mapTask } from '../protocol-mapper.mjs';
 import { createFileTransport, createTransport } from '../transport.mjs';
 import {
   validateTaskHandover,
@@ -34,7 +35,6 @@ import {
   REVIEW_CONTRACT_REF,
   TASK_TYPES,
   TASK_STATUSES,
-  FINAL_STATUSES,
   REVIEW_VERDICTS,
 } from '../handover-contract.mjs';
 import {
@@ -710,12 +710,13 @@ describe('AF-005 file-watcher 事件聚合', () => {
 });
 
 describe('AF-008 协议映射层', () => {
-  it('状态映射：前置态 / 活跃态 / 终态归类正确', () => {
-    expect(mapStatus('backlog')).toMatchObject({ protocol: 'DRAFT', stage: 'prelude' });
-    expect(mapStatus('ready')).toMatchObject({ protocol: 'QUEUED', stage: 'prelude' });
+  it('状态映射：前置态 / 活跃态 / 中断态 / 终态归类正确', () => {
+    expect(mapStatus('backlog')).toMatchObject({ protocol: null, stage: 'orchestration' });
+    expect(mapStatus('ready')).toMatchObject({ protocol: null, stage: 'orchestration' });
     expect(mapStatus('working')).toMatchObject({ protocol: 'WORKING', stage: 'active' });
+    expect(mapStatus('input-required')).toMatchObject({ protocol: 'INPUT_REQUIRED', stage: 'interrupted' });
     expect(mapStatus('completed')).toMatchObject({ protocol: 'COMPLETED', stage: 'terminal' });
-    expect(mapStatus('unknown-x')).toMatchObject({ protocol: 'UNKNOWN', stage: 'unknown' });
+    expect(mapStatus('unknown-x')).toMatchObject({ protocol: null, stage: 'orchestration' });
   });
 
   it('任务与工件引用映射（对象 / 数组两种工件口径）', () => {
@@ -730,7 +731,8 @@ describe('AF-008 协议映射层', () => {
       artifacts: { deliveryRecord: 'docs/x.md' },
     });
     expect(task.groupId).toBe('g');
-    expect(task.status.protocol).toBe('QUEUED');
+    expect(task.status.protocol).toBeNull();
+    expect(task.status.stage).toBe('orchestration');
     expect(task.artifactReferences).toEqual([{ kind: 'deliveryRecord', ref: 'docs/x.md' }]);
     const arr = mapTask({ taskId: 'T-2', status: 'working', artifacts: ['docs/a.md'] });
     expect(arr.artifactReferences).toEqual([{ kind: null, ref: 'docs/a.md' }]);
@@ -750,18 +752,40 @@ describe('AF-008 协议映射层', () => {
     expect(decl.availability).toBe('available');
   });
 
-  it('协议视图聚合任务 / 工件 / 归组 / 能力声明，归档任务带 archived 标记', () => {
+  it('协议视图聚合任务 / 工件 / 归组 / 能力声明，归档任务单列轻量指针', () => {
     const view = buildProtocolView({
-      tasks: [{ taskId: 'T-1', contextId: 'g', status: 'working', artifacts: { doc: 'docs/a.md' } }],
+      tasks: [{ taskId: 'T-1', contextId: 'g', type: 'documentation', title: '样例', status: 'working', artifacts: { doc: 'docs/a.md' } }],
       archivedTasks: [{ taskId: 'T-0', status: 'completed', artifacts: {} }],
       agentCards: [{ agentId: 'orc', role: 'orchestrator', availability: 'available' }],
     });
-    expect(view.tasks).toHaveLength(2);
+    expect(view.contractRef).toBe(PROTOCOL_CONTRACT_REF);
+    expect(view.tasks).toHaveLength(1);
+    expect(view.archivedTasks).toHaveLength(1);
+    expect(view.archivedTasks[0]).toMatchObject({ taskId: 'T-0' });
     expect(view.artifacts).toEqual([{ taskId: 'T-1', kind: 'doc', ref: 'docs/a.md' }]);
     expect(view.groupIds).toEqual(['g']);
     expect(view.groupId).toBe('g');
     expect(view.capabilityDeclarations).toHaveLength(1);
-    expect(view.tasks.find((t) => t.taskId === 'T-0').archived).toBe(true);
+  });
+
+  it('协议视图符合框架 protocol-view schema（运行态任务 + 归档指针）', async () => {
+    const view = buildProtocolView({
+      tasks: [
+        {
+          taskId: 'T-1',
+          contextId: 'g',
+          type: 'documentation',
+          title: '样例',
+          status: 'working',
+          history: [{ by: 'executor' }],
+          artifacts: { deliveryRecord: 'docs/x.md' },
+        },
+      ],
+      archivedTasks: [{ taskId: 'T-0', status: 'completed', artifacts: { deliveryRecord: 'docs/y.md' } }],
+    });
+    const res = await validateProtocolView(view);
+    expect(res.skipped).toBe(false);
+    expect(res.ok).toBe(true);
   });
 
   it('tolerant 策略：未知状态值原样透传并列入 unknownStatuses，不猜造标准态', () => {
@@ -769,7 +793,8 @@ describe('AF-008 协议映射层', () => {
       tasks: [{ taskId: 'T-2', status: 'quarantined', artifacts: {} }],
       archivedTasks: [],
     });
-    expect(view.tasks[0].status.protocol).toBe('UNKNOWN');
+    expect(view.tasks[0].status.protocol).toBeNull();
+    expect(view.tasks[0].status.stage).toBe('orchestration');
     expect(view.unknownStatuses).toEqual(['quarantined']);
   });
 });
@@ -1396,7 +1421,7 @@ const routerCards = [
     agentId: 'AGENT-ORCH-001',
     role: 'orchestrator',
     skills: ['queue-management'],
-    tools: ['state-persistence'],
+    tools: ['TOOL-ORCH-CLI'],
     resources: ['docs/team/agent-orchestration/'],
     availability: 'available',
   },
@@ -1573,7 +1598,6 @@ describe('契约枚举 vendored 投影对账（IM-005）', () => {
     expect(TASK_TYPES).toEqual(enums.taskTypes);
     expect(TASK_STATUSES).toEqual(enums.taskStatuses);
     expect(TERMINAL_STATUSES).toEqual(enums.terminalStatuses);
-    expect(FINAL_STATUSES).toEqual(TERMINAL_STATUSES);
     expect(REVIEW_VERDICTS).toEqual(enums.reviewVerdicts);
     expect(ROLES).toEqual(enums.roles);
     expect(NON_ROUTABLE_ROLES).toEqual(enums.nonRoutableRoles);

@@ -20,7 +20,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { PATHS, REPO_ROOT } from './state-store.mjs';
 import { detectResidualFiles } from './scope-mutex.mjs';
-import { TASK_ID_PATTERN, TOOL_CATEGORIES } from './contract-enums.mjs';
+import { TASK_ID_PATTERN, TOOL_CATEGORIES, SIDE_EFFECTS, ROLES } from './contract-enums.mjs';
 
 function relToAbs(rel) {
   if (!rel) return null;
@@ -167,9 +167,6 @@ function checkEncoding(task) {
   }
   return { checks, manualReview: [] };
 }
-
-const SIDE_EFFECTS = ['read-only', 'restricted-write', 'sensitive'];
-const ROLES = ['orchestrator', 'executor', 'reviewer', 'researcher', 'critic'];
 
 /** V6 工具契约：遍历 `tools/*.json`（一工具一文件），断言字段、枚举与 contractRef；目录缺失记 skip。 */
 function checkToolContracts() {

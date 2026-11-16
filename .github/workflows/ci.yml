@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, integrate, develop]
+    branches: [master, integrate, development]
   pull_request:
-    branches: [main, integrate]
+    branches: [master, integrate]
 
 # 同一个 PR 取消之前的 run (节省 CI quota)
 concurrency:

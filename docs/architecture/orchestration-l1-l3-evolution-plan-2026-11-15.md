@@ -110,7 +110,7 @@ docs/team/agent-orchestration/
 
 - `protocol-mapper.mjs`（纯函数，零副作用）：
   - `taskSheet → task`：任务单字段 → 标准任务模型；
-  - `status → taskStatus`：复用 `state-machine.md` §2 映射（`backlog` / `ready` 为编排前置态，标准侧标 `DRAFT` / `QUEUED` 概念位，不另造标准状态值）；
+  - `status → taskStatus`：复用框架 `contract-enums.json` 的 `statusMap`（唯一真相源）：`backlog` / `ready` 为编排前置态，标准协议态为 `null`，禁止虚构 `DRAFT` / `QUEUED`；阶段 `stage` 按 `protocol-view.schema.json` 四值词汇归类（`orchestration` / `active` / `interrupted` / `terminal`）；未知状态原样透传并列入 `unknownStatuses`，协议态 `null`、阶段按 `orchestration` 占位；
   - `artifactRefs → artifactReferences`：工件指针 → 工件引用；
   - `contextId → groupId`；
   - `agentCard → capabilityDeclaration`：能力声明字段映射。
@@ -142,7 +142,7 @@ docs/team/agent-orchestration/
 
 - **审计记录**（`audit-log`）：`{ actorRef, correlationId, toolId, resources[], sideEffect, recordedAt }`；关联 `taskId` 贯穿任务单 / 交付记录 / 回执 / commit。
 - **Store 端口**：与既有 `state-store` 导出函数一一对应迁移；端口签名见 §4.3；后端切换对 scheduler 透明。
-- **协议视图**：`protocolView = { tasks[], statusMap, artifacts[], groupId, capabilityDeclarations[] }`；全部为映射只读投影，不回写索引。
+- **协议视图**：`protocolView = { contractRef, tasks[]（运行态）, archivedTasks[]（归档轻量指针扩展段）, statusMap, artifacts[], groupId, groupIds[], capabilityDeclarations[], unknownStatuses[] }`；全部为映射只读投影，不回写索引；`tasks` 只放运行态任务以符合框架 `protocol-view.schema.json` 必填面，归档条目不伪造缺失字段。
 
 ## 8. 闸门与验收
 

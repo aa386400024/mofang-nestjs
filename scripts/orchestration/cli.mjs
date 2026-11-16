@@ -10,7 +10,7 @@
  *   pack                   生成夜间交付包（JSON + MD 副本）
  *   archive <taskId>       显式归档活跃任务到 archivedTasks（补工件指针与终态）
  *   improvements           候选改进台账：list / extract / add / transition
- *   validate [--sheet f]   AF-006 框架 schema 机读校验（索引 / 工具契约目录 / Agent Card / Review 交接件 / 交付包）
+ *   validate [--sheet f]   AF-006 框架 schema 机读校验（索引 / 工具契约目录 / 协议视图 / Agent Card / Review 交接件 / 交付包）
  *   config --enable        开启自治模式（写回 config.json）
  *   config --disable       关闭自治模式
  *
@@ -23,6 +23,7 @@ import { advanceOnce, archiveTaskEntry, buildSnapshot, shouldAdvance } from './s
 import {
   validateAgentCard,
   validateDeliveryPackage,
+  validateProtocolView,
   validateReviewHandoverSchema,
   validateTaskIndex,
   validateTaskSheet,
@@ -430,6 +431,13 @@ async function cmdValidate(args) {
     sections.push(['工具契约目录', await validateToolDir(PATHS.toolsDir)]);
   } else {
     sections.push(['工具契约目录', SKIPPED]);
+  }
+
+  if (existsSync(PATHS.snapshot)) {
+    const snapshot = JSON.parse(readFileSync(PATHS.snapshot, 'utf8'));
+    sections.push(['协议视图', await validateProtocolView(snapshot.protocolView ?? {})]);
+  } else {
+    sections.push(['协议视图', SKIPPED]);
   }
 
   const packFiles = existsSync(PATHS.deliveryPackDir) ? readdirSync(PATHS.deliveryPackDir).filter((f) => f.endsWith('.json')) : [];

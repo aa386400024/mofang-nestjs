@@ -83,9 +83,3 @@ export const TASK_ID_PATTERN = new RegExp(CONTRACT_ENUMS.taskIdPattern);
 
 /** 契约引用（urn）模式。 */
 export const CONTRACT_REF_PATTERN = new RegExp(CONTRACT_ENUMS.contractRefPattern);
-
-/**
- * 兼容别名：2.0.0 把"回执终态"改名为 terminalStatuses（含 canceled）。
- * 既有导入签名保持不变，语义随框架升级。
- */
-export const FINAL_STATUSES = TERMINAL_STATUSES;
