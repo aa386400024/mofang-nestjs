@@ -32,7 +32,7 @@ AF-019 把适配层迁到框架 v2.0.0 并完成分支与 CI 收尾，但当时�
 **在范围内：**
 
 - P0：固化框架 2.0.0 全部 14 份 schema 与来源清单；新增契约包哈希校验；`validator.mjs` 增加 `state-event` 与硬模式；CI 新增 `Contracts` job，并用缺框架场景证明 fail-fast。
-- P1：新增手动触发的 `Release` workflow：校验同一 SHA 的 CI 绿灯 → fast-forward `master` → tag → GitHub Release → GHCR 镜像 → 可选生产部署。
+- P1：新增手动触发的 `Release` workflow：校验同一 SHA 的 CI 绿灯 → 将 `integrate` 合并进 `master`（已包含则跳过，合并后校验工作树一致）→ tag → GitHub Release → GHCR 镜像 → 可选生产部署。
 - P2：新增 append-only `state/journal.jsonl` 唯一写面、只读索引投影、SHA-256 哈希链、幂等键、单写者锁、重建与校验；回填 36 条历史归档。
 - 记录：AF-020 任务单/交付记录、改进台账 3 条、索引与说明侧车、快照/看板重生成、工作记录入口登记。
 
@@ -50,7 +50,7 @@ AF-019 把适配层迁到框架 v2.0.0 并完成分支与 CI 收尾，但当时�
 3. `validator.mjs` 硬模式：`ORCH_REQUIRE_FRAMEWORK=1` 时缺框架 / 缺 schema / 缺 `versions.json` 一律失败；CI `Contracts` job 使用 `ORCH_FRAMEWORK_DIR` 指向契约包。
 4. `scripts/orchestration/event-store.mjs`：日志追加、投影、哈希链、幂等、锁、回填、提交。
 5. `state/journal.jsonl`（74 条事件）+ `state/archived-notes.json`（12 条说明）+ 带 `projection` 的索引（37 条归档）。
-6. `.github/workflows/release.yml`：`workflow_dispatch` + `confirm=release` + `deploy` 布尔输入；仅允许 `integrate`；同 SHA CI 绿灯（15 分钟轮询）→ GHCR 镜像 → master fast-forward → tag → GitHub Release → 可选 production deploy。
+6. `.github/workflows/release.yml`：`workflow_dispatch` + `confirm=release` + `deploy` 布尔输入；仅允许 `integrate`；同 SHA CI 绿灯（15 分钟轮询）→ GHCR 镜像 → 将 `integrate` 合并进 master（已包含则跳过，校验树一致）→ tag → GitHub Release → 可选 production deploy。
 7. 事件溯源 6 个新单测（含迁移合法性与序号连续性）；`cli validate` 9/9；编排层 136 passed。
 8. AF-020 两份记录、IM-031/032/033、IM-034（并发 flake 债）、快照与看板。
 

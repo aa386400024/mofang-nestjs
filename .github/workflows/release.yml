@@ -119,15 +119,24 @@ jobs:
         env:
           SHA: ${{ github.sha }}
 
-      - name: Fast-forward master locally
+      - name: Merge integrate into master locally
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          SOURCE: ${{ steps.meta.outputs.sha }}
         run: |
-          SHA=$(git rev-parse HEAD)
+          set -euo pipefail
           git config user.name "aa386400024"
           git config user.email "41391477@qq.com"
           git fetch origin master integrate --tags
           git checkout -B master origin/master
-          git merge --ff-only origin/integrate
-          test "$(git rev-parse HEAD)" = "$SHA"
+          if git merge-base --is-ancestor "$SOURCE" HEAD; then
+            echo "master 已包含 $SOURCE，无需合并"
+          else
+            git merge --no-ff "$SOURCE" -m "chore(release): merge integrate into master for $TAG"
+          fi
+          git diff --quiet "$SOURCE" HEAD
+          test -z "$(git diff --name-only "$SOURCE" HEAD)"
+          echo "master 工作树与 integrate $SOURCE 完全一致"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
