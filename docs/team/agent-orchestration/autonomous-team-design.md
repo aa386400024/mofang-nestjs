@@ -81,7 +81,7 @@ GUI 会话只传递一句话：交接文件绝对路径 + 回执路径。任务�
 
 ### 3.5 派发审计
 
-每次派发记录通道、会话路径、尝试次数、结果、时间戳，落现有工具审计日志；回执轮询带超时与租约释放，超时不自动重派（`reliability.md` §3）。
+每次派发记录通道、会话路径、尝试次数、结果、失败原因（`reason`）、时间戳，落现有工具审计日志；回执轮询带超时与租约释放，超时不自动重派（`reliability.md` §3）。
 
 - **终态出口映射**：不可恢复 → `failed`；可恢复重试耗尽 → `held-ready`（升级 Human）；登录门 → `human-escalated`；成功 → `dispatched`。出口判定与不可恢复类别枚举见 `dispatch-channel.mjs`，通用规则锚定 `reliability.md` §4.1。
 - **失败定性（对齐 §4.2）**：每次通道失败按确定性缺陷 / 偶发波动 / 既有债三选一记录；既有债基线与本次改动分栏（`baseline.legacyDebt` / `baseline.changeIntroduced`），不混记。

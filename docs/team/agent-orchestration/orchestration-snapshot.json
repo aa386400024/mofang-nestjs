@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T00:50:43.751Z",
+  "generatedAt": "2026-11-16T00:56:38.304Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -21,12 +21,12 @@
   "pendingApprovals": [],
   "improvements": {
     "total": 28,
-    "activeCount": 18,
+    "activeCount": 17,
     "byStatus": {
-      "candidate": 17,
+      "candidate": 16,
       "queued": 0,
       "accepted": 1,
-      "done": 10,
+      "done": 11,
       "wontfix": 0
     },
     "byType": {
@@ -433,7 +433,7 @@
       {
         "improvementId": "IM-021",
         "title": "D-11 属备忘自身字段不自洽，可在下次改备忘 §3.5 时一并修。",
-        "status": "candidate",
+        "status": "done",
         "source": "acceptance",
         "type": "gap",
         "layer": "adapter",
@@ -441,12 +441,12 @@
         "evidence": ["receipt:relay-response-af013-drill-20261116.md", "backlogItem"],
         "impact": null,
         "suggestion": null,
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T19:38:37.045Z",
-          "by": "receipt-extract",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "at": "2026-11-16T00:56:38.287Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "备忘 §3.5 基础审计字段清单补顶层 reason（失败原因），与 dispatch-channel.mjs buildDispatchAudit 顶层 reason 字段对齐；baseline 分栏 legacyDebt/changeIntroduced 已由 AF-015 落地（§3.5 行 87），无需再改；纯文档修正，零代码改动。"
         }
       },
       {

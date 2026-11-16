@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-16T00:50:43.726Z",
+  "updatedAt": "2026-11-16T00:56:38.289Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -738,7 +738,7 @@
     },
     {
       "improvementId": "IM-021",
-      "status": "candidate",
+      "status": "done",
       "title": "D-11 属备忘自身字段不自洽，可在下次改备忘 §3.5 时一并修。",
       "source": "acceptance",
       "type": "gap",
@@ -749,7 +749,7 @@
       "suggestion": null,
       "createdBy": "receipt-extract",
       "createdAt": "2026-11-15T19:38:37.045Z",
-      "updatedAt": "2026-11-15T19:38:37.045Z",
+      "updatedAt": "2026-11-16T00:56:38.287Z",
       "history": [
         {
           "at": "2026-11-15T19:38:37.045Z",
@@ -757,8 +757,34 @@
           "to": "candidate",
           "by": "receipt-extract",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-16T00:56:37.930Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator",
+          "note": null
+        },
+        {
+          "at": "2026-11-16T00:56:38.104Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator",
+          "note": null
+        },
+        {
+          "at": "2026-11-16T00:56:38.287Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator",
+          "note": "备忘 §3.5 基础审计字段清单补顶层 reason（失败原因），与 dispatch-channel.mjs buildDispatchAudit 顶层 reason 字段对齐；baseline 分栏 legacyDebt/changeIntroduced 已由 AF-015 落地（§3.5 行 87），无需再改；纯文档修正，零代码改动。"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-16T00:56:38.287Z",
+        "resolutionNote": "备忘 §3.5 基础审计字段清单补顶层 reason（失败原因），与 dispatch-channel.mjs buildDispatchAudit 顶层 reason 字段对齐；baseline 分栏 legacyDebt/changeIntroduced 已由 AF-015 落地（§3.5 行 87），无需再改；纯文档修正，零代码改动。",
+        "linkedTaskId": null
+      }
     },
     {
       "improvementId": "IM-022",
