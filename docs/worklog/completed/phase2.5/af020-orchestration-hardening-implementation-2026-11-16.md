@@ -62,7 +62,7 @@
 | 事件日志                    | `pnpm orchestration:events verify`                                             | 74 条；schema、哈希链、索引投影一致                              |
 | 工作流 YAML                 | `python -c "yaml.safe_load(...)"`                                              | `ci.yml` 7 jobs、`release.yml` 2 jobs，结构合法                  |
 | 全量单测 / Lint / Typecheck | 见 §2.1                                                                        | 全部 exit 0                                                      |
-| 快照与看板                  | `pnpm orchestration:snapshot`                                                  | 归档 37 / 说明 12 / 改进台账 33 / 工具审计 13；快照与数据源同步  |
+| 快照与看板                  | `pnpm orchestration:snapshot`                                                  | 归档 37 / 说明 12 / 改进台账 34 / 工具审计 13；快照与数据源同步  |
 | 本批 CI                     | 待本轮 push 后回填                                                             | 待回填                                                           |
 
 ### 2.1 收尾闸门
@@ -72,6 +72,8 @@
 | 全量单测  | `pnpm test`      | `3509 passed / 8 skipped`（202 文件，1 skipped），exit 0 |
 | Lint      | `pnpm lint`      | exit 0（0 error / 0 warning）                            |
 | Typecheck | `pnpm typecheck` | exit 0                                                   |
+
+> 首轮“全量 + lint/typecheck 并发”时 `test/admin-debug/wp38-debug-session-resume.spec.ts` ③ 触发 30s 超时；该 spec 单独复跑 10/10、100ms 通过，随后独占全量重跑 `3509 passed / 8 skipped`，判定为并发负载 flake，与本批改动无因果关系。已登记 `IM-034`（候选、tech-debt）跟踪显式 timeout / 并发治理，不在本单就地修改。
 
 ## 3. 范围核对
 

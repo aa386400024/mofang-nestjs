@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-16T14:12:56.701Z",
+  "updatedAt": "2026-11-16T14:25:39.917Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -1312,6 +1312,32 @@
         "resolutionNote": "AF-020 验收：代码、契约、测试与流水线已落地",
         "linkedTaskId": "AF-020"
       }
+    },
+    {
+      "improvementId": "IM-034",
+      "status": "candidate",
+      "title": "WP38 调试会话恢复用例在并发全量测试下 30s 超时（单独复跑 100ms 通过）",
+      "source": "implementation",
+      "type": "tech-debt",
+      "layer": "adapter",
+      "relatedTaskId": null,
+      "evidence": [
+        "并发跑 lint/typecheck 时 pnpm test 中 wp38-debug-session-resume.spec.ts ③ 超时 30013ms；单独复跑 10/10 通过、100ms；独占全量 3509 passed"
+      ],
+      "impact": "全量闸门在并发负载下会出现与本批改动无关的红灯，误导交付判断",
+      "suggestion": "为该用例增加显式 timeout 或降低全量 worker 并发，并在闸门记录中固定区分并发 flake",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-16T14:25:39.916Z",
+      "updatedAt": "2026-11-16T14:25:39.916Z",
+      "history": [
+        {
+          "at": "2026-11-16T14:25:39.916Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
     }
   ]
 }

@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-16T14:22:28.363Z",
+  "generatedAt": "2026-11-16T14:25:39.922Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -21,10 +21,10 @@ window.ORCH_SNAPSHOT = {
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 33,
-    "activeCount": 14,
+    "total": 34,
+    "activeCount": 15,
     "byStatus": {
-      "candidate": 13,
+      "candidate": 14,
       "queued": 0,
       "accepted": 1,
       "done": 19,
@@ -36,10 +36,10 @@ window.ORCH_SNAPSHOT = {
       "tool": 0,
       "standard": 3,
       "performance": 0,
-      "tech-debt": 8
+      "tech-debt": 9
     },
     "bySource": {
-      "implementation": 17,
+      "implementation": 18,
       "acceptance": 8,
       "rework": 0,
       "dead-letter": 0,
@@ -764,6 +764,27 @@ window.ORCH_SNAPSHOT = {
           "by": "orchestrator",
           "to": "done",
           "note": "AF-020 验收：代码、契约、测试与流水线已落地"
+        }
+      },
+      {
+        "improvementId": "IM-034",
+        "title": "WP38 调试会话恢复用例在并发全量测试下 30s 超时（单独复跑 100ms 通过）",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": null,
+        "evidence": [
+          "并发跑 lint/typecheck 时 pnpm test 中 wp38-debug-session-resume.spec.ts ③ 超时 30013ms；单独复跑 10/10 通过、100ms；独占全量 3509 passed"
+        ],
+        "impact": "全量闸门在并发负载下会出现与本批改动无关的红灯，误导交付判断",
+        "suggestion": "为该用例增加显式 timeout 或降低全量 worker 并发，并在闸门记录中固定区分并发 flake",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-16T14:25:39.916Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
         }
       }
     ]

@@ -52,7 +52,7 @@ AF-019 把适配层迁到框架 v2.0.0 并完成分支与 CI 收尾，但当时�
 5. `state/journal.jsonl`（74 条事件）+ `state/archived-notes.json`（12 条说明）+ 带 `projection` 的索引（37 条归档）。
 6. `.github/workflows/release.yml`：`workflow_dispatch` + `confirm=release` + `deploy` 布尔输入；仅允许 `integrate`；同 SHA CI 绿灯（15 分钟轮询）→ GHCR 镜像 → master fast-forward → tag → GitHub Release → 可选 production deploy。
 7. 事件溯源 6 个新单测（含迁移合法性与序号连续性）；`cli validate` 9/9；编排层 136 passed。
-8. AF-020 两份记录、IM-031/032/033、快照与看板。
+8. AF-020 两份记录、IM-031/032/033、IM-034（并发 flake 债）、快照与看板。
 
 ## 4. 红线
 
@@ -69,6 +69,6 @@ AF-019 把适配层迁到框架 v2.0.0 并完成分支与 CI 收尾，但当时�
 - [x] P2 事件日志、只读投影、哈希链、幂等、单写者锁、回填
 - [x] 事件溯源单测与 `cli validate` 9/9
 - [x] AF-020 任务单与交付记录
-- [x] IM-031/032/033 流转 done 并关联 AF-020
+- [x] IM-031/032/033 流转 done 并关联 AF-020；IM-034 并发 flake 债登记候选
 - [x] 索引 37 条归档 / 12 条说明；快照 / 看板重生成
 - [x] 全量闸门与 CI 真实绿灯证据
