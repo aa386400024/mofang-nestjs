@@ -114,11 +114,21 @@ jobs:
           #   收益 (本机实测): 冷跑 183.6s → 命中 5.8s.
           key: eslint-${{ runner.os }}-${{ hashFiles('eslint.config.mjs', 'tsconfig.json', 'tsconfig.build.json', 'tsconfig.check.json') }}
 
+      - name: Cache TypeScript build info
+        uses: actions/cache@v5
+        with:
+          path: node_modules/.tmp/tcheck-full.tsbuildinfo
+          key: tsc-full-${{ runner.os }}-${{ hashFiles('tsconfig.json', 'tsconfig.build.json', 'tsconfig.check.json', 'pnpm-lock.yaml') }}
+          restore-keys: |
+            tsc-full-${{ runner.os }}-
+
       - name: Lint
         run: pnpm lint
 
       - name: Typecheck
-        run: pnpm exec tsc --noEmit -p tsconfig.json
+        run: |
+          mkdir -p node_modules/.tmp
+          pnpm exec tsc --noEmit -p tsconfig.json --incremental --tsBuildInfoFile node_modules/.tmp/tcheck-full.tsbuildinfo
 
   # ============================================================
   # 2. Unit tests (TD-11 · T-E: matrix 2 片, 仅 unit 进分片)
@@ -312,15 +322,19 @@ jobs:
           # E2E 需真实 HTTP server
           PORT: 3000
   # ============================================================
-  # 4. Coverage (TD-11 · T-D: 单进程全量跑 unit + 覆盖率采集, 不分片)
+  # 4. Coverage (TD-11 · T-D: 2 片采集 + 合并后统一阈值门禁)
+  #    单进程全量跑覆盖率约 124s，是并行化后的墙钟瓶颈；改为 2 片各自采集，
+  #    末尾 merge-reports 合并覆盖率并只在合并结果上执行阈值，保证口径仍是全量。
   # ============================================================
-  coverage:
-    name: Coverage
+  coverage-shards:
+    name: Coverage (shard ${{ matrix.shard }}/${{ matrix.count }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # 为什么单跑一遍而不复用 unit 分片: --shard 切的是「哪些 spec 文件归本片跑」,
-    #   每片只执行一部分测试 → 每片的覆盖率只反映本片, **不是全量口径**.
-    #   覆盖率阈值 (另案, 待首轮真实报告拍板) 不能建立在分片报告上, 故这里单进程跑全量.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+        count: [2]
     services:
       mysql:
         image: mysql:8.0
@@ -401,11 +415,71 @@ jobs:
       - name: Run migrations (建测试库 schema)
         run: pnpm migration:run
 
-      - name: Unit tests with coverage
-        # 独立 test:coverage 脚本内嵌 --coverage, 不经 `pnpm run test -- <flag>` 透传,
-        #    避免 --coverage 落在字面 `--` 之后被 vitest 当位置参数 (spec filter) 而非采集 flag.
-        #    本地 pnpm test 脚本不带 --coverage (日常闸门不插桩), 只有 CI 这条路径开采集.
-        run: pnpm run test:coverage
+      - name: Unit tests with coverage (shard)
+        # 分片阶段只采集数据，不执行阈值；阈值在 coverage-gate 的合并结果上执行，
+        # 避免用局部覆盖率误判全局门禁。
+        run: |
+          mkdir -p .vitest-reports
+          pnpm exec vitest run \
+            --coverage \
+            --coverage.reportsDirectory=coverage/shard-${{ matrix.shard }} \
+            --coverage.thresholds.statements=0 \
+            --coverage.thresholds.branches=0 \
+            --coverage.thresholds.functions=0 \
+            --coverage.thresholds.lines=0 \
+            --shard=${{ matrix.shard }}/${{ matrix.count }} \
+            --reporter=blob \
+            --outputFile=.vitest-reports/blob-${{ matrix.shard }}.json \
+            --exclude '**/e2e/**/*.ts'
+
+      - name: Upload coverage blob
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-blob-${{ matrix.shard }}
+          path: .vitest-reports
+          retention-days: 7
+          if-no-files-found: error
+
+  coverage-gate:
+    name: Coverage Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: coverage-shards
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Enable pnpm (corepack)
+        run: npm install -g corepack && corepack enable
+
+      - name: Resolve pnpm version
+        run: pnpm --version
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download coverage blobs
+        uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-blob-*
+          path: .vitest-reports
+          merge-multiple: true
+
+      - name: Merge coverage and enforce thresholds
+        run: pnpm exec vitest --merge-reports=.vitest-reports --coverage --reporter=default
 
       - name: Upload coverage report (lcov)
         uses: actions/upload-artifact@v6
@@ -429,7 +503,14 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Build Docker image
-        run: docker build -t mofang-nestjs:${{ github.sha }} .
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          load: true
+          tags: mofang-nestjs:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Image size check
         run: |
