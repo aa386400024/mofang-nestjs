@@ -37,7 +37,6 @@ jobs:
     name: Release (release branch + PR + tag + GHCR)
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    if: github.ref == 'refs/heads/integrate'
     outputs:
       tag: ${{ steps.meta.outputs.tag }}
       sha: ${{ steps.merge.outputs.merge_sha }}
@@ -56,6 +55,13 @@ jobs:
             echo "DRY RUN：只验证发布链路，不产生 master/tag/Release/GHCR 副作用"
           else
             echo "REAL RELEASE：将合并 PR、打 tag、发布 Release 与 GHCR"
+          fi
+
+      - name: Guard dispatch branch
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/integrate" ]; then
+            echo "Release 必须从 integrate 分支触发，当前为 ${GITHUB_REF}"
+            exit 1
           fi
 
       - uses: actions/checkout@v5
@@ -248,6 +254,10 @@ jobs:
           BRANCH: ${{ steps.prepare.outputs.branch }}
         run: |
           set +e
+          if [ -z "${BRANCH}" ]; then
+            echo "release 分支未创建，无可清理"
+            exit 0
+          fi
           PR_NUMBER=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
           if [ -n "$PR_NUMBER" ]; then
             gh pr close "$PR_NUMBER" --delete-branch
@@ -271,6 +281,10 @@ jobs:
             fi
             if [ "$STATE" = "DIRTY" ]; then
               echo "PR 存在冲突，终止发布"
+              exit 1
+            fi
+            if [ "$STATE" = "BEHIND" ]; then
+              echo "PR 落后 master，终止发布；请重新触发 Release 以合入最新 master"
               exit 1
             fi
             sleep 5
