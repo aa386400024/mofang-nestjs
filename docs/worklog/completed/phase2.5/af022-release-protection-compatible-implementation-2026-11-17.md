@@ -25,13 +25,14 @@ AF-021 给 `master` 开启 12 项必需检查并 `enforce_admins=true` 后，原
 ### 2.1 `release.yml`
 
 - 输入：`confirm`、`deploy`、`dry_run`（默认 `true`）。
+- 分支守卫：必须从 `integrate` 手动触发；其他分支直接失败，不再静默 skip。
 - 流程：
   1. 校验同一 `integrate` SHA 的 CI 绿灯；
   2. 建 release 分支并合并 `origin/master`；
   3. push release 分支；
   4. `gh workflow run ci.yml --ref <branch>`，轮询找到该 SHA 的 run，`gh run watch --exit-status`；
   5. 真实发布：构建并推 GHCR；创建 PR；等待 `mergeStateStatus=CLEAN` 后合并；校验 merge 提交与 release 提交 tree 一致；打 tag；建 Release；删 release 分支；
-  6. dry-run：创建 PR 后关闭并删分支，不发版。
+  6. dry-run：创建 PR 后关闭并删分支，不发版；release 分支未创建时不执行任何清理动作。
 - 权限：`contents: write`、`packages: write`、`actions: write`、`pull-requests: write`。
 
 ### 2.2 `ci.yml`
@@ -74,14 +75,23 @@ AF-021 给 `master` 开启 12 项必需检查并 `enforce_admins=true` 后，原
 - PR：`#7 chore(release): v2026.11.16-202ea06`，已关闭，未合并。
 - 分支已删除；当前无残留 `release/*`。
 
-### 3.3 检查证据
+### 3.3 守卫版最终 dry-run（成功）
 
-- release 分支 CI [`43927477978`](https://github.com/aa386400024/mofang-nestjs/actions/runs/43927477978)：**12/12 success**，head `47b342d4965ac4af523d32b361fd6feb474b6196`。
+- 为清理空分支风险，追加提交 `b4816a1`：非 `integrate` 触发显式失败、dry-run 清理增加空分支守卫、PR `BEHIND` 直接失败。
+- release run [`43929498385`](https://github.com/aa386400024/mofang-nestjs/actions/runs/43929498385)：**success**。
+- `Guard dispatch branch`、`Prepare release branch`、`Dispatch CI for release commit`、`Create release PR`、`Cleanup dry-run artifacts` 全部 success；Docker/tag/Release/merge 全部 skipped。
+- release 分支 `release/v2026.11.16-b4816a1-43929498385-1`，发布提交 `2b3d593635d585a3d3bc58631c0a62909fc1a125`。
+- PR `#8 chore(release): v2026.11.16-b4816a1` 已关闭、未合并；分支已删除，当前无残留 `release/*`。
+
+### 3.4 检查证据
+
+- release 分支 CI [`43929883733`](https://github.com/aa386400024/mofang-nestjs/actions/runs/43929883733)：**12/12 success**，head `2b3d593635d585a3d3bc58631c0a62909fc1a125`。
 - 该提交 check-runs：**12 项，全部 success**，名称与 `master` required contexts 完全一致。
+- 另有一次 `pull_request` 触发的 workflow run 为 `action_required`（`GITHUB_TOKEN` 创建 PR 的 GitHub 安全行为，jobs=0）；发布合并所需的 12 项 required contexts 由 `workflow_dispatch` 的 CI run 提供。
 
-### 3.4 无副作用核对
+### 3.5 无副作用核对
 
-- `master` 仍为 `2f8afd9a553faf2001a27bf2edb02b4219c18d4c`，dry-run 未改 master。
+- `master` 仍为 `2f8afd9a553faf2001a27bf2edb02b4219c18d4c`，两次 dry-run 均未改 master。
 - 无新 tag / 新 Release；仍只有 `v2026.11.16-6cfb46e`。
 - GHCR 未推新镜像（dry-run 跳过 Docker 步骤）。
 - `master` 保护恢复：12 contexts、strict=true、enforce_admins=true、禁 force/删、会话解决。
@@ -92,7 +102,8 @@ AF-021 给 `master` 开启 12 项必需检查并 `enforce_admins=true` 后，原
 2. **PR 合并提交是 GitHub 生成的新 SHA**：tag 指向该 merge commit；合并后校验其 tree 与 release 提交一致，避免内容漂移。
 3. **镜像在 PR 合并前推 GHCR**：若 PR 合并失败，镜像可能先行存在；换取了“master 更新后不会缺镜像”。首次真实发布需注意清理孤立 tag。
 4. **默认分支引导直推**：一次受控例外，只加触发器；已恢复保护并留证。
-5. **真实 merge/tag/GHCR 未执行**：按用户要求只做 dry-run；`gh pr merge` 权限与 tag 推送路径尚未实跑。
+5. **PR 触发的 workflow 为 `action_required`**：`GITHUB_TOKEN` 创建 PR 后，GitHub 不会自动批准该 `pull_request` run；本流程不依赖它，required contexts 由显式 dispatch 的 CI 提供。真实 `gh pr merge` 仍待首次发布验证。
+6. **真实 merge/tag/GHCR 未执行**：按用户要求只做 dry-run；`gh pr merge` 权限与 tag 推送路径尚未实跑。
 
 ## 5. 遗留
 

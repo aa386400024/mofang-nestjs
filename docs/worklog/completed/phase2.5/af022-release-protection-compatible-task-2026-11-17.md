@@ -49,7 +49,8 @@ AF-021 开启 `master` 12 项必需检查后，原 `release.yml` 的本地 `merg
 - [x] release 分支 + PR + dispatch CI 落地
 - [x] `dry_run` 默认 true 与清理逻辑
 - [x] dry-run 实测：`43927385743` success；PR #7 closed；分支删除
-- [x] release 分支 CI 实测：`43927477978` 12/12 success；check-runs 12/12
+- [x] 守卫版 dry-run 实测：`43929498385` success；PR #8 closed；分支删除
+- [x] release 分支 CI 实测：`43927477978` 12/12；`43929883733` 12/12；check-runs 12/12
 - [x] master 保护恢复：12 contexts / strict / enforce_admins
 - [ ] 真实合并、tag、Release、GHCR：按用户要求只做 dry-run，未执行
 - [ ] 生产部署：未执行
