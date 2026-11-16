@@ -253,10 +253,10 @@ describe('archiveTaskEntry 归档迁移', () => {
           contextId: 'framework-evolution',
           type: 'implementation',
           title: '单',
-          status: 'backlog',
+          status: 'completed',
           artifacts: { taskSheet: 'docs/team/af-005.md' },
         },
-        { taskId: 'AF-006', contextId: 'framework-evolution', type: 'implementation', title: '验收单', status: 'submitted', artifacts: {} },
+        { taskId: 'AF-006', contextId: 'framework-evolution', type: 'implementation', title: '验收单', status: 'completed', artifacts: {} },
       ],
       archivedTasks: [],
     };
@@ -298,11 +298,12 @@ describe('archiveTaskEntry 归档迁移', () => {
 
   it('非法归档终态抛错；合法终态对齐白名单', () => {
     const index = buildIndex();
-    expect(() => archiveTaskEntry(index, 'AF-005', { status: 'working' })).toThrow(/终态非法/);
+    expect(() => archiveTaskEntry(index, 'AF-005', { status: 'working' })).toThrow(/不得改写终态/);
     expect(ARCHIVE_STATUSES).toEqual(['completed', 'rejected', 'canceled']);
     for (const status of ['rejected', 'canceled']) {
       const ix = buildIndex();
-      expect(archiveTaskEntry(ix, 'AF-005', { status }).status).toBe(status);
+      ix.tasks.find((task) => task.taskId === 'AF-005').status = status;
+      expect(archiveTaskEntry(ix, 'AF-005').status).toBe(status);
     }
   });
 });
@@ -1831,12 +1832,26 @@ describe('事件溯源：日志投影 / 哈希链 / 派生', () => {
     expect(created[0].to).toBe('ready');
 
     const archived = deriveEvents(
-      { tasks: [{ taskId: 'AF-020', status: 'working', history: [] }], archivedTasks: [] },
+      { tasks: [{ taskId: 'AF-020', status: 'rejected', history: [] }], archivedTasks: [] },
       { tasks: [], archivedTasks: [{ taskId: 'AF-020', status: 'rejected', artifacts: { taskSheet: 'x.md' } }] },
       { at: '2026-11-16T00:00:02.000Z', actor: 'test' },
     );
     expect(archived).toHaveLength(1);
     expect(archived[0].type).toBe('archived');
+    expect(archived[0].from).toBe('rejected');
     expect(archived[0].to).toBe('rejected');
+
+    const closing = deriveEvents(
+      { tasks: [{ taskId: 'AF-021', status: 'working', history: [] }], archivedTasks: [] },
+      { tasks: [], archivedTasks: [{ taskId: 'AF-021', status: 'completed', artifacts: {} }] },
+      { at: '2026-11-16T00:00:03.000Z', actor: 'test' },
+    );
+    expect(closing.map((e) => e.type)).toEqual(['submitted', 'verified', 'archived']);
+    expect(closing[0].from).toBe('working');
+    expect(closing[0].to).toBe('submitted');
+    expect(closing[1].from).toBe('submitted');
+    expect(closing[1].to).toBe('completed');
+    expect(closing[2].from).toBe('completed');
+    expect(closing[2].to).toBe('completed');
   });
 });

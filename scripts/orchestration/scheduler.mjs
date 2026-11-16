@@ -31,6 +31,7 @@ import {
   writeJsonAtomic,
 } from './state-store.mjs';
 import { commitIndex } from './event-store.mjs';
+import { TERMINAL_STATUSES } from './contract-enums.mjs';
 import { runAcceptance } from './acceptance-runner.mjs';
 import { loadImprovementLog, summarizeLog } from './improvement-log.mjs';
 import { listAudits, loadAuditLog, summarizeAudits } from './audit-log.mjs';
@@ -46,7 +47,7 @@ const BY_ORCHESTRATOR = 'orchestrator-cli';
 const TRANSITIONS = {
   backlog: ['ready', 'canceled'],
   ready: ['submitted', 'backlog', 'canceled'],
-  submitted: ['working', 'ready', 'canceled', 'failed', 'input-required'],
+  submitted: ['working', 'ready', 'completed', 'rejected', 'canceled', 'failed', 'input-required'],
   working: ['submitted', 'input-required', 'failed', 'canceled'],
   'input-required': ['working', 'ready', 'failed', 'canceled'],
   completed: [],
@@ -141,7 +142,8 @@ export const ARCHIVE_STATUSES = ['completed', 'rejected', 'canceled'];
 
 /**
  * 把任务从活跃 tasks 迁移到 archivedTasks（纯函数，就地修改 index，不落盘）。
- * 校验：任务存在于活跃列表、未归档过、终态合法；返回归档条目。
+ * 校验：任务存在于活跃列表、未归档过、**当前已是终态**且不得改写终态；
+ * 返回归档条目。非终态任务须先经调度器闭合（见 archiveTask）。
  */
 export function archiveTaskEntry(index, taskId, opts = {}) {
   if (index.archivedTasks.some((t) => t.taskId === taskId)) {
@@ -149,20 +151,44 @@ export function archiveTaskEntry(index, taskId, opts = {}) {
   }
   const task = index.tasks.find((t) => t.taskId === taskId);
   if (!task) throw new Error(`归档失败：任务不在活跃列表：${taskId}`);
-  const status = opts.status ?? 'completed';
-  if (!ARCHIVE_STATUSES.includes(status)) {
-    throw new Error(`归档终态非法：${status}（允许 ${ARCHIVE_STATUSES.join('/')}）`);
+  if (!TERMINAL_STATUSES.includes(task.status)) {
+    throw new Error(`归档前置条件不满足：${taskId} 当前状态 ${task.status} 不是终态`);
+  }
+  if (opts.status !== undefined && opts.status !== task.status) {
+    throw new Error(`归档不得改写终态：${taskId} 当前 ${task.status}，请求 ${opts.status}`);
   }
   const artifacts = { ...(task.artifacts ?? {}), ...(opts.artifacts ?? {}) };
-  const entry = { taskId, status, artifacts };
+  const entry = { taskId, status: task.status, artifacts };
   if (opts.note) entry.note = opts.note;
   index.tasks = index.tasks.filter((t) => t.taskId !== taskId);
   index.archivedTasks.push(entry);
   return entry;
 }
 
-/** 归档终态任务（scheduler 内部调用，复用 archiveTaskEntry）。 */
+/** 非终态 → 目标终态的最短合法迁移路径（BFS）。 */
+function terminalPath(from, to) {
+  if (from === to) return [];
+  const queue = [[from, []]];
+  const seen = new Set([from]);
+  while (queue.length > 0) {
+    const [state, path] = queue.shift();
+    for (const next of TRANSITIONS[state] ?? []) {
+      if (seen.has(next)) continue;
+      const nextPath = [...path, next];
+      if (next === to) return nextPath;
+      seen.add(next);
+      queue.push([next, nextPath]);
+    }
+  }
+  throw new Error(`不存在从 ${from} 到 ${to} 的合法迁移路径`);
+}
+
+/** 归档终态任务（scheduler 内部调用）：先把非终态任务沿合法迁移链闭合，再归档。 */
 function archiveTask(index, task, status) {
+  if (!TERMINAL_STATUSES.includes(status)) throw new Error(`归档终态非法：${status}`);
+  for (const step of terminalPath(task.status, status)) {
+    pushHistory(task, step, BY_ORCHESTRATOR, '回执验收后闭合终态');
+  }
   archiveTaskEntry(index, task.taskId, { status });
 }
 

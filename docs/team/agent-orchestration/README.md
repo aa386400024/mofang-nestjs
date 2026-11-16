@@ -40,23 +40,23 @@
 
 ## 3. 目录映射（directories）
 
-| 映射项                             | 本项目落点                                                                                                                                                    |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `directories.taskSheets`           | `docs/worklog/pending/`（`ready / submitted / working` 任务单）                                                                                               |
-| `directories.deliveryRecords`      | `docs/worklog/completed/<phase>/`（任务单 + 交付记录成对归档，只读历史）                                                                                      |
-| `directories.replyArchive`         | `docs/worklog/pending/archive/`（回执原文、中间产物归档）                                                                                                     |
-| `directories.artifacts`            | 各任务单切片范围内的源码 / 测试 / 规格路径；工件正文留在各自文件                                                                                              |
-| `directories.stateIndex`           | `docs/team/agent-orchestration/task-state-index.json`（**只读投影**，带 `projection` 指向日志末条事件；禁止手改）                                             |
-| `directories.stateJournal`         | `docs/team/agent-orchestration/state/journal.jsonl`（**唯一写面**，append-only 事件日志；`state-event:1.0.0` + SHA-256 哈希链）                               |
-| `directories.stateArchivedNotes`   | `docs/team/agent-orchestration/state/archived-notes.json`（归档说明侧车，重建时合并进索引 `archivedNotes`）                                                   |
-| `directories.runtimeState`         | `docs/team/agent-orchestration/orchestration-state.json`（L2 运行态，首次 run-once 生成）                                                                     |
-| `directories.snapshot`             | `docs/team/agent-orchestration/orchestration-snapshot.json`（队列快照，网页数据源）                                                                           |
-| `directories.improvementLog`       | `docs/team/agent-orchestration/improvement-log.json`（候选改进台账；口径见 `improvement-loop.md`）                                                            |
-| `directories.deliveryPacks`        | `docs/team/agent-orchestration/delivery-packs/`（夜间交付包汇总目录）                                                                                         |
-| `directories.orchestrationScripts` | `scripts/orchestration/`（L2 工具链实现；工具契约声明见 `tools/<TOOL-ID>.json`，一工具一文件）                                                                |
-| `directories.tools`                | `docs/team/agent-orchestration/tools/`（工具契约声明目录，框架 2.0.0 单对象口径，目录即清单）                                                                 |
-| `directories.agentCards`           | `docs/team/agent-orchestration/agent-cards/`（本项目代理能力声明 JSON）                                                                                       |
-| `directories.handoverTransport`    | `docs/team/agent-orchestration/transport/`（运行态交接件：`tasks/` 任务契约、`receipts/` 回执、`reviews/` 协商轮意见、`artifacts/` 工件指针；gitignore 忽略） |
+| 映射项                             | 本项目落点                                                                                                                                                         |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `directories.taskSheets`           | `docs/worklog/pending/`（`ready / submitted / working` 任务单）                                                                                                    |
+| `directories.deliveryRecords`      | `docs/worklog/completed/<phase>/`（任务单 + 交付记录成对归档，只读历史）                                                                                           |
+| `directories.replyArchive`         | `docs/worklog/pending/archive/`（回执原文、中间产物归档）                                                                                                          |
+| `directories.artifacts`            | 各任务单切片范围内的源码 / 测试 / 规格路径；工件正文留在各自文件                                                                                                   |
+| `directories.stateIndex`           | `docs/team/agent-orchestration/task-state-index.json`（**只读投影**，带 `projection` 指向日志末条事件；禁止手改）                                                  |
+| `directories.stateJournal`         | `docs/team/agent-orchestration/state/journal.jsonl`（**唯一写面**，append-only 事件日志；`state-event:1.0.0` + SHA-256 哈希链）；历史段在 `state/journal-archive/` |
+| `directories.stateArchivedNotes`   | `docs/team/agent-orchestration/state/archived-notes.json`（归档说明侧车，重建时合并进索引 `archivedNotes`）                                                        |
+| `directories.runtimeState`         | `docs/team/agent-orchestration/orchestration-state.json`（L2 运行态，首次 run-once 生成）                                                                          |
+| `directories.snapshot`             | `docs/team/agent-orchestration/orchestration-snapshot.json`（队列快照，网页数据源）                                                                                |
+| `directories.improvementLog`       | `docs/team/agent-orchestration/improvement-log.json`（候选改进台账；口径见 `improvement-loop.md`）                                                                 |
+| `directories.deliveryPacks`        | `docs/team/agent-orchestration/delivery-packs/`（夜间交付包汇总目录）                                                                                              |
+| `directories.orchestrationScripts` | `scripts/orchestration/`（L2 工具链实现；工具契约声明见 `tools/<TOOL-ID>.json`，一工具一文件）                                                                     |
+| `directories.tools`                | `docs/team/agent-orchestration/tools/`（工具契约声明目录，框架 2.0.0 单对象口径，目录即清单）                                                                      |
+| `directories.agentCards`           | `docs/team/agent-orchestration/agent-cards/`（本项目代理能力声明 JSON）                                                                                            |
+| `directories.handoverTransport`    | `docs/team/agent-orchestration/transport/`（运行态交接件：`tasks/` 任务契约、`receipts/` 回执、`reviews/` 协商轮意见、`artifacts/` 工件指针；gitignore 忽略）      |
 
 四类落点互不重叠；任务单与交付记录成对归档；状态索引纳入 git 版本控制，保证崩溃后可重建。工件正文留在各自文件，状态索引只存**指针与状态**，不复制正文（见框架仓 `docs/task-contract.md` 工件模型）。运行态、快照、交付包与脚本目录为适配层扩展映射项，不进通用层 schema。
 
@@ -73,7 +73,16 @@
 | 前端闸门（仅授权前端任务） | 在 `admin-dashboard/` 目录跑 `pnpm type-check` / `pnpm build-only`，不套用后端 tsc / eslint                                                                                                                                                                                                                                                                                  |
 | 敏感操作                   | L4 冻结动作（master 合并、tag、release、对外部署、策略例外、路线选型、跨任务变更、验收分歧、新增未声明依赖）绑定 Human 批准；L1 任务分支提交、L2 推任务分支、L3 合并进 integrate 在闸门绿 + 验收五类通过等前置条件下由 orchestrator 自动（分层口径见 [设计备忘 §6.1](autonomous-team-design.md#61-发布分层自动化逐层收紧)，过渡口径 §6.2）；engine-core 例外改动仍需人工批准 |
 
-L2 编排工具链（状态存储、验收护栏、调度器、交付包、候选改进台账、CLI）的契约声明在 `tools/<TOOL-ID>.json`（一工具一文件，字段 `toolId / category / sideEffect / allowedRoles / resources / contractRef`），实现位于 `scripts/orchestration/`，注册与授权收口于 `tool-registry.mjs`。自治模式关闭时，`run-once` 只生成只读快照，不执行领单、验收归档与返修等状态迁移；开启须经 `pnpm orchestration:config --enable` 显式操作。改进台账命令：`pnpm orchestration:improvements`（list / `--extract` / `--add` / `--transition`），闭环口径见 `improvement-loop.md`。事件溯源命令：`pnpm orchestration:events`（`verify` / `rebuild` / `backfill` / `create`）；契约包校验：`pnpm orchestration:contracts`。所有状态写入必须经 `commitIndex` / `archiveTask` / `createTask`，不得直接改索引。
+L2 编排工具链（状态存储、验收护栏、调度器、交付包、候选改进台账、CLI）的契约声明在 `tools/<TOOL-ID>.json`（一工具一文件，字段 `toolId / category / sideEffect / allowedRoles / resources / contractRef`），实现位于 `scripts/orchestration/`，注册与授权收口于 `tool-registry.mjs`。自治模式关闭时，`run-once` 只生成只读快照，不执行领单、验收归档与返修等状态迁移；开启须经 `pnpm orchestration:config --enable` 显式操作。改进台账命令：`pnpm orchestration:improvements`（list / `--extract` / `--add` / `--transition`），闭环口径见 `improvement-loop.md`。事件溯源命令：`pnpm orchestration:events`（`verify` / `rebuild` / `backfill` / `create` / `rotate`）；契约包校验：`pnpm orchestration:contracts`。所有状态写入必须经 `commitIndex` / `archiveTask` / `createTask`，不得直接改索引。
+
+### 4.0 事件日志长期保留与分段归档
+
+- **唯一写面不变**：运行期仍只 append `state/journal.jsonl`；归档段只读，不参与写入。
+- **分段不删事件**：`events rotate --max-events N` 把当前日志整段移入 `state/journal-archive/journal-<首序号>-<末序号>.jsonl[.gz]`，再重建空的活动日志。事件正文逐字保留，`eventSeq` / `prevHash` / `hash` 跨段连续；`verify` 仍能检出篡改或断链。
+- **压缩**：`--compress`（别名 `--gzip`）对归档段做 gzip；读取端按首事件序号排序并透明解压。压缩只缩小体积，不改变任何事件字节语义。
+- **触发口径**：建议按事件量轮转（默认 `5000` 条）；当前仓首次归档 `journal-000001-000074.jsonl.gz`，之后 AF-021 追加 2 条到活动日志（总 76 条），跨段链已由 `events verify` 验证。
+- **保留策略**：归档段永久保留、不自动删除；审计需要时 `events verify` 会同时校验活动段与全部归档段。若未来要冷备到对象存储，必须保持文件字节与哈希链原样，不得重算事件。
+- **归档语义**：`archived` 是终态后的归档动作，投影落事件前 `rec.status`（框架 `state_projection.py` 口径），不得用 `to` 改写终态；非终态任务须先经合法迁移链闭合再归档。
 
 ### 4.1 工具类别映射（框架 8 值 `toolCategories` → 本项目工具）
 

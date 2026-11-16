@@ -38,6 +38,7 @@ import {
   journalIntegrity,
   loadJournal,
   rebuildIndex,
+  rotateJournal,
   validateJournalSchema,
   verifyProjection,
 } from './event-store.mjs';
@@ -343,7 +344,22 @@ async function cmdEvents(args = []) {
     return;
   }
 
-  throw new Error(`未知 events 动作：${action}（允许 verify / rebuild / backfill / create）`);
+  if (action === 'rotate') {
+    const maxEvents = Number(argValue(args, '--max-events') ?? 5000);
+    const force = args.includes('--force');
+    const compress = args.includes('--compress') || args.includes('--gzip');
+    const dryRun = args.includes('--dry-run');
+    const res = rotateJournal({ maxEvents, force, compress, dryRun });
+    if (!res.rotated) {
+      console.log(`未轮转：${res.reason}${res.segment ? `；候选段 ${res.segment}` : ''}`);
+      return;
+    }
+    console.log(`已轮转：${res.events} 条（EV-${res.firstSeq} → EV-${res.lastSeq}）→ ${res.segment}`);
+    console.log('当前 journal 已重建为空；事件总数与投影不变，请随后执行 events verify');
+    return;
+  }
+
+  throw new Error(`未知 events 动作：${action}（允许 verify / rebuild / backfill / create / rotate）`);
 }
 
 /**
@@ -720,6 +736,7 @@ function printHelp() {
   console.log('用法：cli.mjs <status|run-once|watch|protocol|snapshot|pack|archive|events|validate|config|improvements> [参数]');
   console.log('  archive <taskId> [--status ..] [--sheet ..] [--record ..] [--reply ..] [--note ..]');
   console.log('  events verify|rebuild|backfill             事件日志校验 / 重建索引 / 首次回填');
+  console.log('  events rotate [--max-events 5000] [--compress] [--force] [--dry-run]  归档当前日志段（不删事件）');
   console.log(
     '  events create --task-id <id> --title <标题> --type <类型> [--status backlog] [--context <id>] [--sheet <file>] [--record <file>]',
   );

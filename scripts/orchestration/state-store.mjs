@@ -22,6 +22,7 @@ export const REPO_ROOT = resolve(__dirname, '..', '..');
 export const PATHS = {
   index: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'task-state-index.json'),
   journal: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'state', 'journal.jsonl'),
+  journalArchiveDir: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'state', 'journal-archive'),
   journalLock: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'state', 'journal.lock'),
   archivedNotes: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'state', 'archived-notes.json'),
   runtimeState: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'orchestration-state.json'),

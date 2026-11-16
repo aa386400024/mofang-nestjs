@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-16T14:25:39.922Z",
+  "generatedAt": "2026-11-16T17:03:15.296Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -930,6 +930,23 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-014",
+      "recordedAt": "2026-11-16T17:02:58.194Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-021",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-013",
       "recordedAt": "2026-11-16T14:13:04.188Z",
       "actorRef": "orchestrator",
@@ -1149,18 +1166,18 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "auditSummary": {
-    "total": 13,
+    "total": 14,
     "byResult": {
-      "allowed": 13,
+      "allowed": 14,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 11
+      "TOOL-QUEUE-SCHEDULER": 12
     },
     "byActor": {
-      "orchestrator": 13
+      "orchestrator": 14
     }
   },
   "protocolView": {
@@ -1868,6 +1885,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af020-orchestration-hardening-implementation-2026-11-16.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-021",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af021-nonprod-finalization-task-2026-11-17.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af021-nonprod-finalization-implementation-2026-11-17.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -1944,5 +1979,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 37
+  "archivedCount": 38
 };
