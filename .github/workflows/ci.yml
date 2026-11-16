@@ -25,10 +25,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '26'
 
       - name: Enable pnpm (corepack)
-        run: corepack enable
+        run: npm install -g corepack && corepack enable
 
       - name: Resolve pnpm version
         run: pnpm --version
@@ -127,10 +127,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '26'
 
       - name: Enable pnpm (corepack)
-        run: corepack enable
+        run: npm install -g corepack && corepack enable
 
       - name: Resolve pnpm version
         run: pnpm --version
@@ -226,10 +226,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '26'
 
       - name: Enable pnpm (corepack)
-        run: corepack enable
+        run: npm install -g corepack && corepack enable
 
       - name: Resolve pnpm version
         run: pnpm --version
@@ -313,10 +313,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '26'
 
       - name: Enable pnpm (corepack)
-        run: corepack enable
+        run: npm install -g corepack && corepack enable
 
       - name: Resolve pnpm version
         run: pnpm --version
@@ -393,10 +393,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '26'
 
       - name: Enable pnpm (corepack)
-        run: corepack enable
+        run: npm install -g corepack && corepack enable
 
       - name: Resolve pnpm version
         run: pnpm --version
@@ -420,7 +420,7 @@ jobs:
       - name: Run Trivy vulnerability scanner on Dockerfile
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'node:24-alpine'
+          image-ref: 'node:26-alpine'
           format: 'table'
           exit-code: '0'
           ignore-unfixed: true
