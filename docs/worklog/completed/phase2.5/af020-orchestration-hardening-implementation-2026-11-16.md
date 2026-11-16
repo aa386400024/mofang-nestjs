@@ -71,6 +71,7 @@
 | 全量单测 / Lint / Typecheck | 见 §2.1                                                                                                        | 全部 exit 0                                                                             |
 | 快照与看板                  | `pnpm orchestration:snapshot`                                                                                  | 归档 37 / 说明 12 / 改进台账 34 / 工具审计 13；快照与数据源同步                         |
 | 本批 CI                     | push `integrate` → CI run [43885756756](https://github.com/aa386400024/mofang-nestjs/actions/runs/43885756756) | 8/8 success（含 Contracts）；0 warning / 0 error 注解，仅 GitHub `ubuntu-latest` notice |
+| CI 并行化后                 | push `integrate` → CI run [43908742889](https://github.com/aa386400024/mofang-nestjs/actions/runs/43908742889) | 8/8 success；墙钟 **129s（2 分 09 秒）**；各 job 同步 start +3~5s，最长 Coverage 124s   |
 | L4 首次发布失败             | Release run [43894869205](https://github.com/aa386400024/mofang-nestjs/actions/runs/43894869205)               | 步骤 11 `Fast-forward master locally` 失败；master 与 integrate 非 ff 关系              |
 | L4 卡队列                   | Release run [43895793062](https://github.com/aa386400024/mofang-nestjs/actions/runs/43895793062)               | 长期 queued；API cancel/force-cancel 均 409；重置 concurrency 组后解除                  |
 | L4 最终发布                 | Release run [43901276012](https://github.com/aa386400024/mofang-nestjs/actions/runs/43901276012)               | success；master `665b191`、tag `v2026.11.16-6cfb46e`、Release 已发布、GHCR public       |
@@ -103,7 +104,7 @@
 
 ## 5. 遗留与另案
 
-- **P1 真实发布未执行**：master 合并、tag、Release、GHCR push、生产部署均需人工 `workflow_dispatch`；本单只交付流水线。首次触发前需确认 `DEPLOY_HOST` / `DEPLOY_SSH_KEY` secret 与 `production` environment 已配置。
+- **P1 真实发布已执行一次**：2026-11-16 以 `deploy=false` 完成 master 合并、tag、Release、GHCR；生产部署仍未执行。首次生产部署前需确认 `DEPLOY_HOST` / `DEPLOY_SSH_KEY` secret 与 `production` environment 已配置，再人工 `deploy=true` 触发。
 - **框架官方投影与适配层归档语义差异**：见 §1.4；已留注释与记录，未强行改框架仓。
 - **`state/journal.jsonl` 体量**：当前 74 条可忽略；长期高频迁移后需按框架 retention 策略分片，不在本单范围。
 - **`master` 未受保护**：Release workflow 可直接 push master；这符合当前单人仓现实，但若后续多人协作，应先开分支保护并把 Release 改为 PR/审批流。
