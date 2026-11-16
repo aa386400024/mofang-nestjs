@@ -54,5 +54,5 @@ createdAt: 2026-11-17T01:00:00+08:00
 
 ## 5. 遗留风险
 
-- `release.yml` 的 `git push origin master` 在 `enforce_admins=true` + 12 项必需检查下预期被拒：本地 `merge --no-ff` 生成的新 SHA 没有检查记录。首次 Release 前必须改为 release 分支 + PR + `workflow_dispatch` 触发 CI 后合并，或提供可 bypass 的发布通道。
+- `release.yml` 的 `git push origin master` 在 `enforce_admins=true` + 12 项必需检查下预期被拒：本地 `merge --no-ff` 生成的新 SHA 没有检查记录。**已由 AF-022 改为 release 分支 + dispatch CI + PR 合并，并完成 dry-run。**
 - 生产部署按用户要求暂缓，未执行。
