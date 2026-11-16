@@ -28,7 +28,7 @@
 2. `gh run list --workflow ci.yml --branch integrate` 轮询当前 SHA 的 CI 结论（最长 15 分钟）：未出现 / `in_progress` 继续等待，失败立即拒绝，`completed/success` 才放行。
 3. `git fetch origin master integrate --tags` → `checkout -B master origin/master` → `merge --ff-only origin/integrate` → 校验 HEAD 仍是待发布 SHA；此时只在本地合并，不 push。
 4. `docker login ghcr.io` + `docker build/push`，镜像 `ghcr.io/<repo>:<tag>` 与 `:latest`；镜像成功后才 `git push origin master`，避免 master 先于制品推进。
-5. tag 采用 `vYYYY.MM.DD-<sha7>`；同 tag 已存在时只允许指向同一 commit，否则失败；GitHub Release 已存在则跳过。tag 与 Release 均排在镜像成功之后，失败重跑可幂等补完。
+5. tag 采用 `vYYYY.MM.DD-<sha7>`；同 tag 已存在时只允许指向同一 commit，否则失败；GitHub Release 已存在则跳过。tag 与 Release 均排在镜像成功之后，失败重跑可幂等补完。权限为 `contents: write` + `packages: write` + `actions: read`（`gh run list` 查询 CI 必需）。
 6. 可选 `deploy` job：`needs: release`、`if: inputs.deploy == true`、`environment: production`；ssh key 写入、`pnpm build`、`printf 'yes-deploy\n' | pnpm deploy:tested`。默认 `deploy=false`，不自动触发。
 
 **未执行的真实动作**：master fast-forward、tag、GitHub Release、GHCR push、生产部署均未在本轮执行。这是 L4 人工冻结边界；流水线已落地，等待人手动触发。不能把“workflow 文件存在”写成“已发布”。
