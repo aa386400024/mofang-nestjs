@@ -5,6 +5,7 @@ on:
     branches: [master, integrate]
   pull_request:
     branches: [master, integrate]
+  workflow_dispatch:
 
 # 同一个 PR 取消之前的 run (节省 CI quota)
 concurrency:
