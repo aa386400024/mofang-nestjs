@@ -12,6 +12,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # 所有 job 之间没有产物依赖：契约 / lint / 单测 / E2E / 覆盖率 / Docker build / 安全审计
+  # 均从同一 checkout 独立执行。并行跑可将墙钟从「lint→test→build」三段串行压到单段最长作业。
+  # 代价是 lint 失败时其它作业仍会跑完；以延迟优先，失败面由各 job 独立结论呈现。
   # ============================================================
   # 0. Contracts (跨仓契约硬门 · P0)
   #    框架仓为私有仓，CI 不能匿名 checkout；用仓内不可变契约包做真实 schema 校验。
@@ -124,7 +127,6 @@ jobs:
     name: Unit (shard ${{ matrix.shard }}/${{ matrix.count }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: lint-and-typecheck
     # TD-11 · T-E: --shard 只切「哪些 spec 文件归本片跑」, 不改测试集合 / 断言 / 用例数
     #   (本机实测: 1/2 = 97 文件 1608 例, 2/2 = 97 文件 1644 例, 合计 194 文件 3252 例, 与基线逐字一致).
     #   fail-fast: false: 一片挂了另一片照跑完, 一次能看到完整失败面 (不掩盖问题).
@@ -226,7 +228,6 @@ jobs:
     name: E2E
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: lint-and-typecheck
     services:
       mysql:
         image: mysql:8.0
@@ -317,7 +318,6 @@ jobs:
     name: Coverage
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: lint-and-typecheck
     # 为什么单跑一遍而不复用 unit 分片: --shard 切的是「哪些 spec 文件归本片跑」,
     #   每片只执行一部分测试 → 每片的覆盖率只反映本片, **不是全量口径**.
     #   覆盖率阈值 (另案, 待首轮真实报告拍板) 不能建立在分片报告上, 故这里单进程跑全量.
@@ -422,8 +422,6 @@ jobs:
     name: Build (Docker)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # TD-11 · T-E: unit 是 matrix, `needs: unit` 会等**所有**分片跑完; 再叠加 e2e.
-    needs: [unit, e2e]
     steps:
       - uses: actions/checkout@v5
 
