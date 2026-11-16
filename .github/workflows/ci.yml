@@ -4,7 +4,10 @@ on:
   push:
     branches: [master, integrate]
   pull_request:
-    branches: [master, integrate]
+    # master 只接收 Release workflow 生成的 release PR，CI 由 release.yml
+    # 对 release 分支显式 workflow_dispatch；避免 GITHUB_TOKEN 创建 PR 时
+    # 自动 pull_request run 进入 action_required/failure 并阻塞合并。
+    branches: [integrate]
   workflow_dispatch:
 
 # 同一个 PR 取消之前的 run (节省 CI quota)
