@@ -109,7 +109,7 @@
 - **P1 真实发布已执行一次**：2026-11-16 以 `deploy=false` 完成 master 合并、tag、Release、GHCR；生产部署仍未执行。首次生产部署前需确认 `DEPLOY_HOST` / `DEPLOY_SSH_KEY` secret 与 `production` environment 已配置，再人工 `deploy=true` 触发。
 - **框架官方投影与适配层归档语义已对齐（2026-11-17）**：见 §1.4；归档不再改写终态，非终态任务先补齐合法迁移链。
 - **`state/journal.jsonl` 长期保留已落地（2026-11-17）**：新增 `events rotate` 分段 + gzip 归档，事件逐字保留、跨段哈希链连续；当前 74 条已归档为 `state/journal-archive/journal-000001-000074.jsonl.gz`，活动日志重建为空。
-- **`master` 已受保护（2026-11-17）**：classic branch protection，10 项必需检查、strict、enforce_admins、禁 force push / 删除、要求会话解决；因 personal repo ruleset 不允许 GitHub Actions bypass，保留 Release `GITHUB_TOKEN` 直推通道，未强制 PR。
+- **`master` 已受保护（2026-11-17）**：classic branch protection，12 项必需检查、strict、enforce_admins、禁 force push / 删除、要求会话解决；因 personal repo ruleset 不允许 GitHub Actions bypass，保留 Release `GITHUB_TOKEN` 直推通道，未强制 PR。
 - **IM-034 已修复（2026-11-17）**：WP38 ③ 不再用 30s 轮询等 fire-and-forget 标题落盘，改为 `DebugSessionService.awaitPendingTitleGeneration()` 等待登记的异步任务；并发下不再与文件写竞态。
-- **CI 再提速（2026-11-17）**：Docker build 接 GHA 分层缓存；Coverage 改 2 片采集 + `Coverage Gate` 合并后统一阈值；TypeScript `--incremental` + buildinfo 缓存。
+- **CI 再提速（2026-11-17）**：Docker build 接 GHA 分层缓存；Coverage 改 3 片采集 + `Coverage Gate` 合并后统一阈值；TypeScript `--incremental` + buildinfo 缓存；ESLint `--cache-strategy content` + pnpm store 路径修正；稳态 CI 111s。
 - **生产部署仍未执行**：用户明确暂缓；首次生产部署前需确认 secrets / production environment。
