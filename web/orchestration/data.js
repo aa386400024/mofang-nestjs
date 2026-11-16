@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-16T17:03:15.296Z",
+  "generatedAt": "2026-11-16T19:07:14.318Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -930,6 +930,23 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-015",
+      "recordedAt": "2026-11-16T19:07:14.315Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-022",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-014",
       "recordedAt": "2026-11-16T17:02:58.194Z",
       "actorRef": "orchestrator",
@@ -1166,18 +1183,18 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "auditSummary": {
-    "total": 14,
+    "total": 15,
     "byResult": {
-      "allowed": 14,
+      "allowed": 15,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 12
+      "TOOL-QUEUE-SCHEDULER": 13
     },
     "byActor": {
-      "orchestrator": 14
+      "orchestrator": 15
     }
   },
   "protocolView": {
@@ -1903,6 +1920,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af021-nonprod-finalization-implementation-2026-11-17.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-022",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af022-release-protection-compatible-task-2026-11-17.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af022-release-protection-compatible-implementation-2026-11-17.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -1979,5 +2014,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 38
+  "archivedCount": 39
 };

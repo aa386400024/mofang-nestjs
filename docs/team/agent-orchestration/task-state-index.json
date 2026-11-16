@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 76,
+    "lastEventSeq": 78,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -327,6 +327,14 @@
         "taskSheet": "docs/worklog/completed/phase2.5/af021-nonprod-finalization-task-2026-11-17.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af021-nonprod-finalization-implementation-2026-11-17.md"
       }
+    },
+    {
+      "taskId": "AF-022",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af022-release-protection-compatible-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af022-release-protection-compatible-implementation-2026-11-17.md"
+      }
     }
   ],
   "archivedNotes": {
@@ -342,6 +350,7 @@
     "AF-018": "适配层迁移到框架 v2.0.0；契约 1.1.0 / 工具一文件 / 交付包 1.0.0；保留 34 条归档与 DR-001；129 passed",
     "AF-019": "适配层收尾：development 退役 + CI Actions 升级 + 记录闭环；36 条归档 / 11 条说明；7/7 PASS；130 passed",
     "AF-020": "P0-P2 闭环：CI 契约硬门/发布流水线/事件溯源；validate 9/9；编排 135 passed",
-    "AF-021": "AF-021 非生产收尾交付完成"
+    "AF-021": "AF-021 非生产收尾交付完成",
+    "AF-022": "AF-022 发布链路保护兼容交付完成"
   }
 }
