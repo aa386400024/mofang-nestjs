@@ -122,9 +122,9 @@ GUI 会话只传递一句话：交接文件绝对路径 + 回执路径。任务�
 - 冲突在任务分支内解决，不把 merge commit 带进 integrate。
 - 任务分支基线从 `integrate` 最新 HEAD 切出；合并前核对 `baselineRef` 与当前基线一致（`reliability.md` §6.3）。
 
-### 4.4 `development` 分支退役
+### 4.4 `development` 分支退役（已完成 2026-11-16）
 
-新流程长期分支只保留 `master` + `integrate`。退役前核对：`origin/development` 独有提交 4 条，均为历史 PR merge（integrate → development 合并记录），无独立变更；执行退役时以 `git diff integrate..development` 复核为空后，再删除本地与远端 `development`。
+新流程长期分支只保留 `master` + `integrate`。2026-11-16 已完成退役：`origin/development` 独有非 merge 提交 0 条，`git diff integrate...development` 为空；已删除本地与远端 `development`，CI push 触发同步收敛为 `master` / `integrate`（AF-019）。
 
 ## 5. 并发与文件域互斥
 
@@ -199,7 +199,7 @@ GUI 会话只传递一句话：交接文件绝对路径 + 回执路径。任务�
 1. relay 改「交接文件 + taskId」短指令；watcher 事件驱动替代 cron 轮询；
 2. 方案协商轮固化：决策点写回 `reviews/<taskId>.json`，orchestrator 裁决，分歧冻结；
 3. 任务分支自动合并进 integrate（本地闸门绿为前提）；回退脚本与 taskId → 提交映射台账；
-4. `development` 分支退役执行。
+4. `development` 分支退役（已完成 2026-11-16，见 §4.4）。
 
 ### P2 并行与远端联动
 

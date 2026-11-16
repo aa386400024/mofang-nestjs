@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-16T12:27:03.130Z",
+  "generatedAt": "2026-11-16T13:25:32.033Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -22,12 +22,12 @@ window.ORCH_SNAPSHOT = {
   "pendingApprovals": [],
   "improvements": {
     "total": 30,
-    "activeCount": 15,
+    "activeCount": 14,
     "byStatus": {
-      "candidate": 14,
+      "candidate": 13,
       "queued": 0,
       "accepted": 1,
-      "done": 15,
+      "done": 16,
       "wontfix": 0
     },
     "byType": {
@@ -442,7 +442,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-019",
         "title": "development分支退役执行待人工拍板",
-        "status": "candidate",
+        "status": "done",
         "source": "review",
         "type": "gap",
         "layer": "adapter",
@@ -452,12 +452,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "退役需删除本地与远端development分支;高风险不可逆动作,须人工确认git-diff为空后执行",
         "suggestion": "人工拍板后按§4.4流程复核integrate..development为空再删除;本批不执行分支删除",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T18:29:06.841Z",
+          "at": "2026-11-16T13:24:11.061Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "已删除本地与远端 development；CI 触发收敛 master/integrate"
         }
       },
       {
@@ -1731,6 +1731,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-implementation-2026-11-16.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-019",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af019-adapter-finalization-node26-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af019-adapter-finalization-node26-implementation-2026-11-16.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -1807,5 +1825,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 35
+  "archivedCount": 36
 };
