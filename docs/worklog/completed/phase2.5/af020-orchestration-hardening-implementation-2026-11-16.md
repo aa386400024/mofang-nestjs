@@ -31,6 +31,8 @@
 5. tag 采用 `vYYYY.MM.DD-<sha7>`（短 SHA 来自 `integrate` 发布源）；tag 对象指向 `master` 发布合并提交，该提交工作树与 CI 验证过的 `integrate` SHA 完全一致。同 tag 已存在时只允许指向同一发布提交，否则失败；GitHub Release 已存在则跳过。tag 与 Release 均排在镜像成功之后，失败重跑可幂等补完。权限为 `contents: write` + `packages: write` + `actions: read`（`gh run list` 查询 CI 必需）。
 6. 可选 `deploy` job：`needs: release`、`if: inputs.deploy == true`、`environment: production`；ssh key 写入、`pnpm build`、`printf 'yes-deploy\n' | pnpm deploy:tested`。默认 `deploy=false`，不自动触发。
 
+> **当前口径（AF-022 起）**：上述“本地 merge 后 `git push origin master`”已被替换为 release 分支 + dispatch CI + PR 合并；本节保留 L4 首次执行历史，不代表当前 `release.yml` 行为。现行流程见 [AF-022 交付记录](af022-release-protection-compatible-implementation-2026-11-17.md)。
+
 **L4 实际执行（2026-11-16）**：
 
 - 首次 run `43894869205` 在 `Fast-forward master locally` 步骤失败。根因：`master` 含 PR 合并提交，与 `integrate` 不是 fast-forward 关系，`merge --ff-only` 无法成立；流水线改为 `merge --no-ff` 并增加 `git diff --quiet` 树一致校验。

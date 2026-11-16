@@ -99,11 +99,11 @@ GUI 会话只传递一句话：交接文件绝对路径 + 回执路径。任务�
 
 ### 4.1 分支分层
 
-| 类型 | 分支                   | 职责                                  | 自动化口径                              |
-| ---- | ---------------------- | ------------------------------------- | --------------------------------------- |
-| 长期 | `master`               | 受保护对外基线                        | 只接受 integrate 合并 / tag；不自动推送 |
-| 长期 | `integrate`            | 集成分支，自动流水线落点，CI 在此运行 | 任务分支验收合并的落点                  |
-| 短期 | `task/<taskId>-<slug>` | 单任务实现切片                        | 一单一分支，合并后即删                  |
+| 类型 | 分支                   | 职责                                  | 自动化口径                                                              |
+| ---- | ---------------------- | ------------------------------------- | ----------------------------------------------------------------------- |
+| 长期 | `master`               | 受保护对外基线                        | 只接受 release PR（release 分支 + 12 项必需检查）合并与 tag；不接受直推 |
+| 长期 | `integrate`            | 集成分支，自动流水线落点，CI 在此运行 | 任务分支验收合并的落点                                                  |
+| 短期 | `task/<taskId>-<slug>` | 单任务实现切片                        | 一单一分支，合并后即删                                                  |
 
 **命名口径**：`task/<taskId>-<slug>`。任务类型前缀（feat / fix / docs）由 conventional commit message 承担，分支名不重复；分支名必须含 taskId，保证台账可反查与批量清理。
 
@@ -145,6 +145,8 @@ GUI 会话只传递一句话：交接文件绝对路径 + 回执路径。任务�
 | L3  | squash merge 进 integrate + 推送 integrate | 可自动                                              | 本地等价闸门全绿、无文件域冲突、提交可回退 |
 | L4  | master 合并、tag、release、对外部署        | **人工**                                            | 冻结动作，对齐 `autonomous-loop.md` §3.2   |
 
+L4 的当前执行载体是 `.github/workflows/release.yml`：只能从 `integrate` 手动触发，`dry_run` 默认 `true`；真实发布走 release 分支 → 合并 `master` → 对 release 分支显式 dispatch 完整 CI（12 项 required contexts）→ PR → 合并 → annotated tag / GitHub Release / GHCR。生产 `deploy` 需同时满足 `deploy=true`、`dry_run=false` 且 release job success，当前保持未启用。详见 [AF-022 交付记录](../../worklog/completed/phase2.5/af022-release-protection-compatible-implementation-2026-11-17.md)。
+
 ### 6.2 L3 过渡口径
 
 本机无 gh CLI、无 GITHUB_TOKEN，远端 CI 状态本机不可读。过渡方案：
@@ -159,7 +161,7 @@ GUI 会话只传递一句话：交接文件绝对路径 + 回执路径。任务�
 2. **标准回退**：按 taskId 定位提交；首选 `git revert <sha>`（保留历史、不改写已推记录）；未推送的才用 `git reset`；失败任务分支删除重来。
 3. **基线核对**：合并前核对 baselineRef 与当前基线一致，不一致不合并。
 4. **闸门门禁**：闸门红不合并；已合并后 CI 转红冻结后续派发。
-5. **冻结清单不自动**：push master、策略例外、路线选型、跨任务变更、验收分歧、新增未声明依赖 → 转 `input-required` 等 Human 决策。
+5. **冻结清单不自动**：release PR 合并、tag、release、对外部署、策略例外、路线选型、跨任务变更、验收分歧、新增未声明依赖 → 转 `input-required` 等 Human 决策。
 
 ### 6.4 既有口径同步记录
 

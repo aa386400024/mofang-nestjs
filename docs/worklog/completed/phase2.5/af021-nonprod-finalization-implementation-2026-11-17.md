@@ -87,7 +87,7 @@ pnpm exec vitest run test/admin-debug/wp38-debug-session-resume.spec.ts
 - `enforce_admins=true`
 - `allow_force_pushes=false`、`allow_deletions=false`
 - `required_conversation_resolution=true`
-- `required_pull_request_reviews=null`：保留 Release 直推通道，属于单人仓明确取舍
+- `required_pull_request_reviews=null`：保留 Release PR 无审批合并；AF-022 起发布已改为 release PR + 必需检查，不再保留 master 直推通道
 
 ## 3. 偏差与取舍
 
@@ -95,13 +95,13 @@ pnpm exec vitest run test/admin-debug/wp38-debug-session-resume.spec.ts
 2. **ESLint 缓存必须用 content 策略**：CI checkout 会重写所有文件 mtime，旧 mtime 缓存虽能 restore，但 ESLint 判定全部文件变更，仍全量扫描；`--cache-strategy content` 后 CI 热跑 Lint 3s。缓存键继续绑定 `tsconfig` 指纹，避免 type-aware 结论过期。
 3. **pnpm store 路径必须显式固定**：pnpm 9 在 Linux 实际 store 不是 `~/.pnpm-store`，旧缓存路径长期为空；固定后 CI 安装依赖 3-4s（此前 10-12s）。
 4. **TypeScript 未引入 composite 全量 tsconfig**：曾试 `tsconfig.check-all.json`，因 scripts 既有类型债 + `.mts` 导入报错放弃；保留原 `tsconfig.json` 口径，避免用“缩小检查面”换速度。
-5. **未强制 PR**：要强制 PR 必须解决 Release 的 bypass 方案（PAT / Deploy Key / 改 PR 流程）；当前优先不挡自动发布。
+5. **未强制 PR（已被 AF-022 取代）**：当时保留 Release 直推；AF-022 已改为 release 分支 + PR + dispatch CI，master 不再接受未检查直推。
 6. **journal 只分段不合并**：合并旧事件会破坏 append-only 与哈希链审计；gzip 只压缩字节，不重写事件。
 
 ## 4. 遗留
 
 - **CI 实测已收口**：`43915822192` 首轮修复后 10/10、130s；`43918327585` attempt 2 稳态 12/12、111s；Coverage Gate 合并阈值全过。
-- **Release 直推与保护冲突（已由 AF-022 修复）**：原 `release.yml` 本地 `merge --no-ff` 产生的新 SHA 没有必需检查，`enforce_admins=true` 下直推 master 预期被拒。AF-022 已改为 release 分支 + dispatch CI + PR 合并，并完成 dry-run [`43927385743`](https://github.com/aa386400024/mofang-nestjs/actions/runs/43927385743)；详见 [AF-022 交付记录](af022-release-protection-compatible-implementation-2026-11-17.md)。
+- **Release 直推与保护冲突（已由 AF-022 修复）**：原 `release.yml` 本地 `merge --no-ff` 产生的新 SHA 没有必需检查，`enforce_admins=true` 下直推 master 预期被拒。AF-022 已改为 release 分支 + dispatch CI + PR 合并，最终 dry-run [`43933759652`](https://github.com/aa386400024/mofang-nestjs/actions/runs/43933759652) success、PR #10 `mergeStateStatus=CLEAN`、release CI 12/12；详见 [AF-022 交付记录](af022-release-protection-compatible-implementation-2026-11-17.md)。
 - **生产部署未执行**：用户明确暂缓；首次生产前核对 `DEPLOY_HOST` / `DEPLOY_SSH_KEY` / production environment。
 - **PR-only 保护**：若后续多人协作，需为 Release 配 bot bypass 或改 PR 流程后再开启。
 - **归档段冷备**：当前永久留在仓内；若未来上传对象存储，必须保持文件字节与哈希链原样。
