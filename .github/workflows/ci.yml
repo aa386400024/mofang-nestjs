@@ -36,11 +36,14 @@ jobs:
           node-version: '26'
           package-manager-cache: false
 
-      - name: Enable pnpm (corepack)
-        run: npm install -g corepack && corepack enable
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
 
-      - name: Resolve pnpm version
-        run: pnpm --version
+      - name: Configure pnpm store path
+        run: pnpm config set store-dir ~/.pnpm-store
 
       - name: Cache pnpm store
         uses: actions/cache@v5
@@ -85,11 +88,14 @@ jobs:
           node-version: '26'
           package-manager-cache: false
 
-      - name: Enable pnpm (corepack)
-        run: npm install -g corepack && corepack enable
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
 
-      - name: Resolve pnpm version
-        run: pnpm --version
+      - name: Configure pnpm store path
+        run: pnpm config set store-dir ~/.pnpm-store
 
       - name: Cache pnpm store
         uses: actions/cache@v5
@@ -106,13 +112,12 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .eslintcache
-          # T-2 (TD-9) 键口径: ESLint 自身的缓存键 = ESLint 版本 + Node 版本 + **解析后配置对象**哈希
-          #   + 每个文件的 mtime/size —— **不含 tsconfig 内容**. 改过 tsconfig (类型收窄 / 规则开关)
-          #   之后旧缓存会给出**过期**的 type-aware 结论, 所以外层键必须把 eslint 配置与 tsconfig
-          #   指纹绑成一个不可分割的版本.
-          #   不用 restore-keys: 指纹不同就宁可冷跑, 也不拿旧类型配置的缓存充数.
-          #   收益 (本机实测): 冷跑 183.6s → 命中 5.8s.
-          key: eslint-${{ runner.os }}-${{ hashFiles('eslint.config.mjs', 'tsconfig.json', 'tsconfig.build.json', 'tsconfig.check.json') }}
+          # T-2 (TD-9) 键口径: ESLint 自身缓存键 = ESLint 版本 + Node 版本 + 解析后配置对象哈希 + 文件内容哈希
+          #   (使用 --cache-strategy content, 不依赖 checkout 后必然变化的 mtime).
+          #   改过 tsconfig 后旧缓存仍可能给出过期 type-aware 结论, 因此外层键继续绑定 tsconfig 指纹.
+          #   不用 restore-keys: 指纹不同宁可冷跑, 不拿旧类型配置缓存充数.
+          #   收益 (本机实测): 冷跑 183.6s → 命中 5.8s; CI 命中后 Lint 约 6s.
+          key: eslint-content-${{ runner.os }}-${{ hashFiles('eslint.config.mjs', 'tsconfig.json', 'tsconfig.build.json', 'tsconfig.check.json') }}
 
       - name: Cache TypeScript build info
         uses: actions/cache@v5
@@ -131,20 +136,19 @@ jobs:
           pnpm exec tsc --noEmit -p tsconfig.json --incremental --tsBuildInfoFile node_modules/.tmp/tcheck-full.tsbuildinfo
 
   # ============================================================
-  # 2. Unit tests (TD-11 · T-E: matrix 2 片, 仅 unit 进分片)
+  # 2. Unit tests (TD-11 · T-E: matrix 3 片, 仅 unit 进分片)
   # ============================================================
   unit:
     name: Unit (shard ${{ matrix.shard }}/${{ matrix.count }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # TD-11 · T-E: --shard 只切「哪些 spec 文件归本片跑」, 不改测试集合 / 断言 / 用例数
-    #   (本机实测: 1/2 = 97 文件 1608 例, 2/2 = 97 文件 1644 例, 合计 194 文件 3252 例, 与基线逐字一致).
+    # TD-11 · T-E: --shard 只切「哪些 spec 文件归本片跑」, 不改测试集合 / 断言 / 用例数.
     #   fail-fast: false: 一片挂了另一片照跑完, 一次能看到完整失败面 (不掩盖问题).
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
-        count: [2]
+        shard: [1, 2, 3]
+        count: [3]
     services:
       mysql:
         image: mysql:8.0
@@ -197,11 +201,14 @@ jobs:
           node-version: '26'
           package-manager-cache: false
 
-      - name: Enable pnpm (corepack)
-        run: npm install -g corepack && corepack enable
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
 
-      - name: Resolve pnpm version
-        run: pnpm --version
+      - name: Configure pnpm store path
+        run: pnpm config set store-dir ~/.pnpm-store
 
       - name: Cache pnpm store
         uses: actions/cache@v5
@@ -296,11 +303,14 @@ jobs:
           node-version: '26'
           package-manager-cache: false
 
-      - name: Enable pnpm (corepack)
-        run: npm install -g corepack && corepack enable
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
 
-      - name: Resolve pnpm version
-        run: pnpm --version
+      - name: Configure pnpm store path
+        run: pnpm config set store-dir ~/.pnpm-store
 
       - name: Cache pnpm store
         uses: actions/cache@v5
@@ -322,9 +332,9 @@ jobs:
           # E2E 需真实 HTTP server
           PORT: 3000
   # ============================================================
-  # 4. Coverage (TD-11 · T-D: 2 片采集 + 合并后统一阈值门禁)
-  #    单进程全量跑覆盖率约 124s，是并行化后的墙钟瓶颈；改为 2 片各自采集，
-  #    末尾 merge-reports 合并覆盖率并只在合并结果上执行阈值，保证口径仍是全量。
+  # 4. Coverage (TD-11 · T-D: 3 片采集 + 合并后统一阈值门禁)
+  #    单进程全量跑覆盖率约 124s；改为 3 片各自采集，末尾 merge-reports 合并覆盖率并只在合并结果上执行阈值，
+  #    保证口径仍是全量。3 片可把测试步骤压到约 20-30s，避免 2 片时 shard 1 成为长尾。
   # ============================================================
   coverage-shards:
     name: Coverage (shard ${{ matrix.shard }}/${{ matrix.count }})
@@ -333,8 +343,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
-        count: [2]
+        shard: [1, 2, 3]
+        count: [3]
     services:
       mysql:
         image: mysql:8.0
@@ -387,11 +397,14 @@ jobs:
           node-version: '26'
           package-manager-cache: false
 
-      - name: Enable pnpm (corepack)
-        run: npm install -g corepack && corepack enable
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
 
-      - name: Resolve pnpm version
-        run: pnpm --version
+      - name: Configure pnpm store path
+        run: pnpm config set store-dir ~/.pnpm-store
 
       - name: Cache pnpm store
         uses: actions/cache@v5
@@ -455,11 +468,14 @@ jobs:
           node-version: '26'
           package-manager-cache: false
 
-      - name: Enable pnpm (corepack)
-        run: npm install -g corepack && corepack enable
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
 
-      - name: Resolve pnpm version
-        run: pnpm --version
+      - name: Configure pnpm store path
+        run: pnpm config set store-dir ~/.pnpm-store
 
       - name: Cache pnpm store
         uses: actions/cache@v5
@@ -534,11 +550,14 @@ jobs:
           node-version: '26'
           package-manager-cache: false
 
-      - name: Enable pnpm (corepack)
-        run: npm install -g corepack && corepack enable
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
 
-      - name: Resolve pnpm version
-        run: pnpm --version
+      - name: Configure pnpm store path
+        run: pnpm config set store-dir ~/.pnpm-store
 
       - name: Cache pnpm store
         uses: actions/cache@v5

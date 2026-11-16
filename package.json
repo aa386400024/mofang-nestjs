@@ -20,8 +20,8 @@
   "packageManager": "pnpm@9.15.0",
   "engineStrict": true,
   "scripts": {
-    "lint": "eslint --cache \"{src,test,bin}/**/*.ts\"",
-    "lint:fix": "eslint --fix --cache \"{src,test,bin}/**/*.ts\"",
+    "lint": "eslint --cache --cache-strategy content \"{src,test,bin}/**/*.ts\"",
+    "lint:fix": "eslint --fix --cache --cache-strategy content \"{src,test,bin}/**/*.ts\"",
     "lint:fast": "oxlint src test bin",
     "lint:fast:fix": "oxlint --fix src test bin",
     "lint:deep": "oxlint --type-aware src test bin",
