@@ -53,17 +53,18 @@
 
 ## 2. 证据
 
-| 闸门                        | 命令                                                                           | 结果                                                             |
-| --------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| 契约包完整性                | `node scripts/orchestration/verify-framework-bundle.mjs`                       | `[PASS] 14 个文件哈希与版本一致`；exit 0                         |
-| 契约硬模式（缺框架）        | `ORCH_FRAMEWORK_DIR=...absent ORCH_REQUIRE_FRAMEWORK=1 node cli.mjs validate`  | exit 1，`[FAIL] 框架契约不可达`                                  |
-| 契约硬模式（仓内包）        | `ORCH_FRAMEWORK_DIR=contracts/.../2.0.0 ORCH_REQUIRE_FRAMEWORK=1 ... validate` | 9/9 PASS；exit 0                                                 |
-| 编排层单测                  | `pnpm test -- scripts/orchestration/__tests__/orchestration.spec.mjs`          | `136 passed / 0 failed`（原 130 + 事件溯源 5 + 迁移/序号校验 1） |
-| 事件日志                    | `pnpm orchestration:events verify`                                             | 74 条；schema、哈希链、索引投影一致                              |
-| 工作流 YAML                 | `python -c "yaml.safe_load(...)"`                                              | `ci.yml` 7 jobs、`release.yml` 2 jobs，结构合法                  |
-| 全量单测 / Lint / Typecheck | 见 §2.1                                                                        | 全部 exit 0                                                      |
-| 快照与看板                  | `pnpm orchestration:snapshot`                                                  | 归档 37 / 说明 12 / 改进台账 34 / 工具审计 13；快照与数据源同步  |
-| 本批 CI                     | 待本轮 push 后回填                                                             | 待回填                                                           |
+| 闸门                        | 命令                                                                                                           | 结果                                                                                    |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 契约包完整性                | `node scripts/orchestration/verify-framework-bundle.mjs`                                                       | `[PASS] 14 个文件哈希与版本一致`；exit 0                                                |
+| 契约硬模式（缺框架）        | `ORCH_FRAMEWORK_DIR=...absent ORCH_REQUIRE_FRAMEWORK=1 node cli.mjs validate`                                  | exit 1，`[FAIL] 框架契约不可达`                                                         |
+| 契约硬模式（仓内包）        | `ORCH_FRAMEWORK_DIR=contracts/.../2.0.0 ORCH_REQUIRE_FRAMEWORK=1 ... validate`                                 | 9/9 PASS；exit 0                                                                        |
+| 编排层单测                  | `pnpm test -- scripts/orchestration/__tests__/orchestration.spec.mjs`                                          | `136 passed / 0 failed`（原 130 + 事件溯源 5 + 迁移/序号校验 1）                        |
+| 事件日志                    | `pnpm orchestration:events verify`                                                                             | 74 条；schema、哈希链、索引投影一致                                                     |
+| 工作流 YAML                 | `python -c "yaml.safe_load(...)"`                                                                              | `ci.yml` 8 jobs、`release.yml` 2 jobs，结构合法                                         |
+| 全量单测 / Lint / Typecheck | 见 §2.1                                                                                                        | 全部 exit 0                                                                             |
+| 快照与看板                  | `pnpm orchestration:snapshot`                                                                                  | 归档 37 / 说明 12 / 改进台账 34 / 工具审计 13；快照与数据源同步                         |
+| 本批 CI                     | push `integrate` → CI run [43885756756](https://github.com/aa386400024/mofang-nestjs/actions/runs/43885756756) | 8/8 success（含 Contracts）；0 warning / 0 error 注解，仅 GitHub `ubuntu-latest` notice |
+| 本批 CI                     | 待本轮 push 后回填                                                                                             | 待回填                                                                                  |
 
 ### 2.1 收尾闸门
 
