@@ -18,9 +18,11 @@
  */
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { PATHS, REPO_ROOT, loadConfig, loadIndex, loadRuntimeState, saveConfigPatch, saveIndex, writeJsonAtomic } from './state-store.mjs';
-import { advanceOnce, archiveTaskEntry, buildSnapshot, shouldAdvance } from './scheduler.mjs';
+import { PATHS, REPO_ROOT, loadConfig, loadIndex, loadRuntimeState, saveConfigPatch, writeJsonAtomic } from './state-store.mjs';
+import { advanceOnce, buildSnapshot, shouldAdvance } from './scheduler.mjs';
 import {
+  frameworkDir,
+  requireFramework,
   validateAgentCard,
   validateDeliveryPackage,
   validateProtocolView,
@@ -29,6 +31,16 @@ import {
   validateTaskSheet,
   validateToolDir,
 } from './validator.mjs';
+import {
+  archiveTask as archiveTaskEvent,
+  backfillJournalFromIndex,
+  createTask,
+  journalIntegrity,
+  loadJournal,
+  rebuildIndex,
+  validateJournalSchema,
+  verifyProjection,
+} from './event-store.mjs';
 import { loadRegistry, call as registryCall } from './tool-registry.mjs';
 import { loadAuditLog, saveAuditLog } from './audit-log.mjs';
 import { createWatcher } from './file-watcher.mjs';
@@ -255,12 +267,83 @@ function cmdArchive(args) {
   }
   const note = argValue(args, '--note');
 
-  const index = loadIndex();
-  const entry = archiveTaskEntry(index, taskId, { status, artifacts, note });
-  saveIndex(index);
+  const entry = archiveTaskEvent(taskId, { status, artifacts, note, actor: 'orchestrator-cli' });
   auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: `archive:${taskId}` });
   refreshSnapshotArtifacts();
   console.log(`已归档：${entry.taskId} [${entry.status}]${note ? `｜${note}` : ''}`);
+}
+
+/**
+ * 事件溯源命令：verify / rebuild / backfill / create。
+ * `create` 只追加 created 事件；任务进入活跃列表后由 scheduler / archive 继续流转。
+ */
+async function cmdEvents(args = []) {
+  const action = args[0] ?? 'verify';
+
+  if (action === 'verify') {
+    const events = loadJournal();
+    const integrity = journalIntegrity(events);
+    const schema = await validateJournalSchema(events);
+    const projection = verifyProjection();
+    const errors = [...integrity.errors, ...schema.errors, ...projection.errors];
+    if (events.length === 0) errors.push('事件日志为空');
+    if (errors.length > 0) {
+      console.error(`事件日志校验失败：${errors.length} 项`);
+      for (const error of errors) console.error(`   - ${error}`);
+      process.exit(1);
+    }
+    console.log(`[PASS] 事件日志 ${events.length} 条；schema ${schema.schemaId ?? 'state-event'}；哈希链与索引投影一致`);
+    return;
+  }
+
+  if (action === 'rebuild') {
+    const index = rebuildIndex({ write: true });
+    console.log(`已重建索引：任务 ${index.tasks.length}、归档 ${index.archivedTasks.length}、末条事件 ${index.projection.lastEventSeq}`);
+    return;
+  }
+
+  if (action === 'backfill') {
+    const res = backfillJournalFromIndex();
+    if (!res.ok) throw new Error(res.errors.join('；'));
+    console.log(`已回填事件 ${res.appended} 条；索引已由日志重建`);
+    return;
+  }
+
+  if (action === 'create') {
+    const taskId = argValue(args, '--task-id');
+    if (!taskId)
+      throw new Error(
+        '用法：cli.mjs events create --task-id <id> --title <标题> --type <类型> [--status backlog] [--sheet <file>] [--record <file>]',
+      );
+    const artifacts = {};
+    for (const [key, flag] of [
+      ['taskSheet', '--sheet'],
+      ['deliveryRecord', '--record'],
+      ['reply', '--reply'],
+    ]) {
+      const relPath = argValue(args, flag);
+      if (!relPath) continue;
+      const abs = resolve(REPO_ROOT, relPath);
+      if (!existsSync(abs)) throw new Error(`创建失败：工件文件不存在（${key}）：${relPath}`);
+      artifacts[key] = relPath;
+    }
+    const index = createTask(
+      {
+        taskId,
+        contextId: argValue(args, '--context') ?? null,
+        type: argValue(args, '--type') ?? 'implementation',
+        title: argValue(args, '--title') ?? taskId,
+        status: argValue(args, '--status') ?? 'backlog',
+        artifacts,
+      },
+      { actor: 'orchestrator-cli' },
+    );
+    const task = index.tasks.find((item) => item.taskId === taskId);
+    console.log(`已创建：${taskId} [${task?.status ?? 'unknown'}]（事件已追加并重建索引）`);
+    return;
+  }
+
+  throw new Error(`未知 events 动作：${action}（允许 verify / rebuild / backfill / create）`);
 }
 
 /**
@@ -419,6 +502,10 @@ const SKIPPED = { ok: true, skipped: true, errors: [], schemaId: null };
 
 /** AF-006：框架 schema 机读校验（索引 / 工具契约 / Agent Card；可选任务单元 JSON）。 */
 async function cmdValidate(args) {
+  if (requireFramework() && !existsSync(join(frameworkDir(), 'schemas', 'versions.json'))) {
+    console.error(`[FAIL] 框架契约不可达：${join(frameworkDir(), 'schemas', 'versions.json')}（ORCH_REQUIRE_FRAMEWORK=1）`);
+    process.exit(1);
+  }
   const sections = [];
 
   if (existsSync(PATHS.index)) {
@@ -473,6 +560,27 @@ async function cmdValidate(args) {
     } else {
       console.log(`[SKIP] 任务单元：文件不存在：${sheetFile}`);
     }
+  }
+
+  const events = loadJournal();
+  if (events.length === 0) {
+    sections.push([
+      '状态事件日志',
+      { ok: false, skipped: false, schemaId: null, errors: [{ instancePath: '', message: '事件日志为空，事件溯源未生效', params: {} }] },
+    ]);
+  } else {
+    const journalSchema = await validateJournalSchema(events);
+    const integrity = journalIntegrity(events);
+    sections.push([
+      '状态事件日志（schema + 哈希链）',
+      {
+        ok: journalSchema.ok && integrity.ok,
+        skipped: false,
+        schemaId: journalSchema.schemaId,
+        errors: [...journalSchema.errors, ...integrity.errors],
+      },
+    ]);
+    sections.push(['索引投影一致', verifyProjection()]);
   }
 
   let failed = false;
@@ -609,8 +717,12 @@ function cmdImprovements(args) {
 }
 
 function printHelp() {
-  console.log('用法：cli.mjs <status|run-once|watch|protocol|snapshot|pack|archive|validate|config|improvements> [参数]');
+  console.log('用法：cli.mjs <status|run-once|watch|protocol|snapshot|pack|archive|events|validate|config|improvements> [参数]');
   console.log('  archive <taskId> [--status ..] [--sheet ..] [--record ..] [--reply ..] [--note ..]');
+  console.log('  events verify|rebuild|backfill             事件日志校验 / 重建索引 / 首次回填');
+  console.log(
+    '  events create --task-id <id> --title <标题> --type <类型> [--status backlog] [--context <id>] [--sheet <file>] [--record <file>]',
+  );
   console.log('  branch <list|plan|create|merge|cleanup> [--taskId <id>] [--slug <slug>] [--apply] [--stale-days n]');
   console.log('  channel <rules|queue> [--taskId <id>]   AF-013 派发通道规则只读视图');
   console.log('  watch                        监听任务单 / 回执目录，变更防抖后自动执行一轮 run-once');
@@ -666,6 +778,14 @@ switch (command) {
       cmdChannel(args);
     } catch (err) {
       console.error(`通道规则失败：${err.message}`);
+      process.exit(2);
+    }
+    break;
+  case 'events':
+    try {
+      await cmdEvents(args);
+    } catch (err) {
+      console.error(`事件日志操作失败：${err.message}`);
       process.exit(2);
     }
     break;

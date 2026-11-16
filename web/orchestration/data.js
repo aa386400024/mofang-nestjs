@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-16T13:25:32.033Z",
+  "generatedAt": "2026-11-16T14:22:28.363Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -21,17 +21,17 @@ window.ORCH_SNAPSHOT = {
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 30,
+    "total": 33,
     "activeCount": 14,
     "byStatus": {
       "candidate": 13,
       "queued": 0,
       "accepted": 1,
-      "done": 16,
+      "done": 19,
       "wontfix": 0
     },
     "byType": {
-      "gap": 18,
+      "gap": 21,
       "guardrail": 1,
       "tool": 0,
       "standard": 3,
@@ -39,7 +39,7 @@ window.ORCH_SNAPSHOT = {
       "tech-debt": 8
     },
     "bySource": {
-      "implementation": 14,
+      "implementation": 17,
       "acceptance": 8,
       "rework": 0,
       "dead-letter": 0,
@@ -702,6 +702,69 @@ window.ORCH_SNAPSHOT = {
           "to": "done",
           "note": "review 交接件接入框架 schema 机读校验;框架样例通过/缺字段被拒用例覆盖;122 用例绿"
         }
+      },
+      {
+        "improvementId": "IM-031",
+        "title": "CI 不校验跨仓契约，缺框架时 skipped 软通过",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-020",
+        "evidence": [
+          "ci.yml 无 Contracts job; validator.mjs 缺框架返回 skipped; 当时 validate 7/7、单测对 skipped 容错"
+        ],
+        "impact": "CI 绿灯不等于 7 项契约真实通过，框架契约漂移无法在流水线拦截",
+        "suggestion": "固化框架 2.0.0 契约包，CI 设 ORCH_REQUIRE_FRAMEWORK=1 硬校验并断言缺框架 fail-fast",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T14:12:53.531Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-020 验收：代码、契约、测试与流水线已落地"
+        }
+      },
+      {
+        "improvementId": "IM-032",
+        "title": "集成到发布未闭环，无 tag/Release/GHCR/部署流水线",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-020",
+        "evidence": [
+          "master 8ffb6a3 落后 integrate 84ed463; 无 tag; release.yml 不存在; deploy 仅本地交互脚本"
+        ],
+        "impact": "发布动作停在人工口头约定，镜像与部署不可复现，回滚缺少版本锚点",
+        "suggestion": "新增 workflow_dispatch Release：CI 同 SHA 绿灯门禁、master fast-forward、tag、GitHub Release、GHCR、可选 production deploy",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T14:12:55.135Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-020 验收：代码、契约、测试与流水线已落地"
+        }
+      },
+      {
+        "improvementId": "IM-033",
+        "title": "状态索引只有最终状态，缺事件溯源与可重建轨迹",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-020",
+        "evidence": [
+          "task-state-index.json 36 条归档仅轻量指针; note 明确未启用 event sourcing; 无 journal"
+        ],
+        "impact": "只能查最终状态，不能重建每次迁移/审批/归档轨迹，索引手改不可检出",
+        "suggestion": "journal.jsonl 唯一写面 + 索引只读投影 + SHA-256 哈希链 + 幂等键 + 单写者锁 + 回填 36 条归档",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-16T14:12:56.700Z",
+          "by": "orchestrator",
+          "to": "done",
+          "note": "AF-020 验收：代码、契约、测试与流水线已落地"
+        }
       }
     ]
   },
@@ -845,6 +908,23 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-013",
+      "recordedAt": "2026-11-16T14:13:04.188Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-020",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-012",
       "recordedAt": "2026-11-15T19:41:33.283Z",
@@ -1048,18 +1128,18 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "auditSummary": {
-    "total": 12,
+    "total": 13,
     "byResult": {
-      "allowed": 12,
+      "allowed": 13,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 10
+      "TOOL-QUEUE-SCHEDULER": 11
     },
     "byActor": {
-      "orchestrator": 12
+      "orchestrator": 13
     }
   },
   "protocolView": {
@@ -1749,6 +1829,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af019-adapter-finalization-node26-implementation-2026-11-16.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-020",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af020-orchestration-hardening-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af020-orchestration-hardening-implementation-2026-11-16.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -1825,5 +1923,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 36
+  "archivedCount": 37
 };

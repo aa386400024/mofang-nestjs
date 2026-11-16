@@ -38,6 +38,8 @@
     "orchestration:pack": "node scripts/orchestration/cli.mjs pack",
     "orchestration:archive": "node scripts/orchestration/cli.mjs archive",
     "orchestration:validate": "node scripts/orchestration/cli.mjs validate",
+    "orchestration:contracts": "node scripts/orchestration/verify-framework-bundle.mjs",
+    "orchestration:events": "node scripts/orchestration/cli.mjs events",
     "orchestration:config": "node scripts/orchestration/cli.mjs config",
     "orchestration:improvements": "node scripts/orchestration/cli.mjs improvements",
     "orchestration:web": "node scripts/orchestration/open-web.mjs",

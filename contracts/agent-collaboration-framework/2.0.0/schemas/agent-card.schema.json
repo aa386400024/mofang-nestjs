@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agent-collaboration-framework:schema:agent-card:1.1.0",
+  "title": "Agent Collaboration Framework - Agent Card Contract",
+  "description": "代理能力声明契约（Agent Card）。编排者按能力声明而非代理名字路由任务；承载代理角色、能力标签、允许工具、资源范围、已知边界与可用性。字段可扩展、不删除既有字段；additionalProperties 允许附加字段。通用层不含项目取值、命令名与路径，具体取值由适配层声明。",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["agentId", "role", "availability"],
+  "properties": {
+    "agentId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "代理稳定标识；中性标识，具体实现由适配层声明。"
+    },
+    "role": {
+      "$ref": "#/$defs/role",
+      "description": "代理承担的框架角色。"
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "能力标签，用于匹配任务的 requiredSkills。"
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "允许使用的工具类别标识，与工具契约规范对齐（见 docs/tools.md §2）。"
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "允许访问的资源范围（路径 / 模块 / 作用域标识）；取值由适配层声明。"
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "已知边界：能做、不能做、需要升级批准的事项。",
+      "properties": {
+        "canDo": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": [],
+          "description": "代理可独立完成的事项。"
+        },
+        "cannotDo": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": [],
+          "description": "代理明确不承担的事项。"
+        },
+        "requiresApproval": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": [],
+          "description": "必须经审批节点批准才能执行的事项。"
+        }
+      }
+    },
+    "availability": {
+      "$ref": "#/$defs/availability",
+      "description": "当前是否可被派发。"
+    },
+    "note": {
+      "type": ["string", "null"],
+      "description": "补充说明；兼任事实与制衡手段在此声明。"
+    }
+  },
+  "$defs": {
+    "role": {
+      "type": "string",
+      "enum": ["orchestrator", "executor", "reviewer", "researcher", "critic"],
+      "description": "角色枚举；取值口径与 schemas/contract-enums.json 的 roles 一致。human 属非可派发角色（contract-enums.nonRoutableRoles），不出现在本枚举，也不接受派发。"
+    },
+    "availability": {
+      "type": "string",
+      "enum": ["available", "busy", "offline", "unavailable"],
+      "description": "可用性：可派发 / 占用中 / 离线 / 暂不可用。"
+    }
+  }
+}

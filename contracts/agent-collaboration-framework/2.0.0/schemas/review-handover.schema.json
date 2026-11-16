@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agent-collaboration-framework:schema:review-handover:1.1.0",
+  "title": "Agent Collaboration Framework - Review Handover Contract",
+  "description": "协商轮意见交接件契约（Review Handover）。执行者或批评者就某任务提交方案意见、风险、备选与争议点；编排者经 resolution 字段回写裁决。字段可扩展、不删除既有字段；additionalProperties 允许附加字段。本契约承载方案意见与裁决，不替代验收三级结论（见 docs/acceptance.md）。通用层不含项目取值、命令名与路径，具体取值由适配层声明。",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "reviewId",
+    "taskId",
+    "contextId",
+    "proposal",
+    "risks",
+    "alternatives",
+    "disputes",
+    "recommendation",
+    "createdBy",
+    "createdAt"
+  ],
+  "properties": {
+    "handoverKind": {
+      "type": "string",
+      "enum": ["review"],
+      "description": "交接件类别标识；协商轮意见交接件固定为 review。"
+    },
+    "schemaVersion": {
+      "type": "string",
+      "description": "本次遵循的契约版本号；版本随数据下发。"
+    },
+    "reviewId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "意见交接件唯一标识；中性标识，具体规则由适配层声明。"
+    },
+    "taskId": {
+      "$ref": "#/$defs/taskId",
+      "description": "被评议任务的唯一标识。"
+    },
+    "contextId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "同主题归组标识；返修任务沿用。"
+    },
+    "proposal": {
+      "type": "string",
+      "minLength": 1,
+      "description": "建议方案概述：主张的做法与理由。"
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "识别到的风险与边界隐患清单。"
+    },
+    "alternatives": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "可行备选方案清单及其取舍。"
+    },
+    "disputes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "存在争议或需要裁决的分歧点清单。"
+    },
+    "recommendation": {
+      "type": "string",
+      "minLength": 1,
+      "description": "提交方建议的处置结论。"
+    },
+    "createdBy": {
+      "type": "string",
+      "minLength": 1,
+      "description": "意见提交方标识；与角色能力声明对齐。"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "意见生成时间（ISO 8601 带时区）。"
+    },
+    "resolution": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["decision"],
+      "description": "编排者（或人）对意见的裁决；未裁决时整体省略。",
+      "properties": {
+        "decision": {
+          "type": "string",
+          "minLength": 1,
+          "description": "裁决结论；取值口径由适配层声明，不套用验收三级结论枚举。"
+        },
+        "rationale": {
+          "type": ["string", "null"],
+          "description": "裁决依据摘要。"
+        },
+        "resolvedBy": {
+          "type": "string",
+          "minLength": 1,
+          "description": "裁决方标识。"
+        },
+        "resolvedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "裁决时间（ISO 8601 带时区）。"
+        }
+      }
+    },
+    "producedBy": {
+      "type": "string",
+      "minLength": 1,
+      "description": "来源追溯：交接件构造方。"
+    },
+    "producedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "来源追溯：交接件构造时间（ISO 8601 带时区）。"
+    },
+    "note": {
+      "type": ["string", "null"],
+      "description": "补充说明。"
+    }
+  },
+  "$defs": {
+    "taskId": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]+-[0-9]+$",
+      "description": "任务唯一标识模式；取值口径与 schemas/contract-enums.json 的 taskIdPattern 一致。"
+    }
+  }
+}

@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
-import { validateConfig, PATHS, REPO_ROOT } from '../state-store.mjs';
+import { validateConfig, PATHS, REPO_ROOT, loadIndex } from '../state-store.mjs';
 import {
   validateAgentCard,
   validateContractVersion,
@@ -47,6 +47,15 @@ import {
 } from '../contract-enums.mjs';
 import { ARCHIVE_STATUSES, archiveTaskEntry, canTransition, shouldAdvance, buildSnapshot } from '../scheduler.mjs';
 import { generateDeliveryPack } from '../delivery-pack.mjs';
+import {
+  deriveEvents,
+  eventTypeForTransition,
+  hashEvent,
+  journalIntegrity,
+  loadArchivedNotes,
+  loadJournal,
+  projectJournal,
+} from '../event-store.mjs';
 import { dispatchTask, buildDispatchRecord, receiptFingerprint, isReceiptProcessed, markReceiptProcessed } from '../dispatch.mjs';
 import { normalizeScope, findScopeConflicts, detectResidualFiles, scopeCovers } from '../scope-mutex.mjs';
 import {
@@ -1690,11 +1699,8 @@ describe('适配层实例 2.0.0 合规（仓内真实工件，只读）', () => 
   it('契约版本对账：声明版本与框架 versions.json 一致 / 漂移被拦', () => {
     const index = readJsonFile(PATHS.index);
     const base = validateContractVersion(index, 'task-state-index');
-    // 框架仓不可达（CI 无 sibling）时按设计 skipped，跳过对账断言。
-    if (base.skipped) {
-      expect(base.skipped).toBe(true);
-      return;
-    }
+    // 契约包已固化进仓，本地 / CI 都必须真实对账；skipped 属于硬失败。
+    expect(base.skipped).toBeFalsy();
     expect(base.ok).toBe(true);
     const drifted = { ...index, schemaRef: 'urn:agent-collaboration-framework:schema:task-state-index:1.0.0' };
     const res = validateContractVersion(drifted, 'task-state-index');
@@ -1728,5 +1734,109 @@ describe('适配层实例 2.0.0 合规（仓内真实工件，只读）', () => 
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }
+  });
+});
+
+/** 用固定内容封一条事件（仅测试用，不打真实日志）。 */
+function sealEvent(seq, prevHash, overrides = {}) {
+  const event = {
+    taskId: 'AF-020',
+    type: 'created',
+    from: 'backlog',
+    to: 'ready',
+    by: 'test',
+    at: '2026-11-16T00:00:00.000Z',
+    idempotencyKey: `AF-020:test:${seq}`,
+    reason: null,
+    payload: {},
+    eventSeq: seq,
+    eventId: `EV-${String(seq).padStart(4, '0')}`,
+    prevHash,
+    ...overrides,
+  };
+  delete event.hash;
+  event.hash = hashEvent(event, prevHash);
+  return event;
+}
+
+describe('事件溯源：日志投影 / 哈希链 / 派生', () => {
+  it('当前归档可由日志完整重建，且与索引逐字段一致', () => {
+    const current = loadIndex();
+    const journal = loadJournal();
+    expect(current.archivedTasks.length).toBeGreaterThan(0);
+    expect(Object.keys(current.archivedNotes || {}).length).toBeGreaterThan(0);
+    const rebuilt = projectJournal(journal, { archivedNotes: loadArchivedNotes() });
+    expect(rebuilt).toEqual(current);
+    expect(rebuilt.projection.rebuiltAt).toBeNull();
+    expect(rebuilt.projection.lastEventSeq).toBe(journal[journal.length - 1].eventSeq);
+  });
+
+  it('哈希链连续时通过，改写任一字段即被检出', () => {
+    const e1 = sealEvent(1, 'GENESIS');
+    const e2 = sealEvent(2, e1.hash, { type: 'promoted', from: 'ready', to: 'submitted' });
+    expect(journalIntegrity([e1, e2]).ok).toBe(true);
+    const tampered = { ...e2, to: 'working' };
+    const res = journalIntegrity([e1, tampered]);
+    expect(res.ok).toBe(false);
+    expect(res.errors.join(' ')).toMatch(/hash 不匹配/);
+  });
+
+  it('非法状态迁移与序号断裂被检出', () => {
+    const e1 = sealEvent(1, 'GENESIS');
+    const illegal = sealEvent(2, e1.hash, { type: 'promoted', from: 'working', to: 'completed' });
+    const badTransition = journalIntegrity([e1, illegal]);
+    expect(badTransition.ok).toBe(false);
+    expect(badTransition.errors.join(' ')).toMatch(/非法状态迁移 working → completed/);
+
+    const gap = sealEvent(3, e1.hash, { type: 'promoted', from: 'ready', to: 'submitted' });
+    const badSeq = journalIntegrity([e1, gap]);
+    expect(badSeq.ok).toBe(false);
+    expect(badSeq.errors.join(' ')).toMatch(/eventSeq 不连续/);
+  });
+
+  it('重复 idempotencyKey 在投影中只生效一次', () => {
+    const e1 = sealEvent(1, 'GENESIS');
+    const duplicate = { ...e1, eventSeq: 2, eventId: 'EV-0002', prevHash: e1.hash };
+    duplicate.hash = hashEvent(duplicate, duplicate.prevHash);
+    const index = projectJournal([e1, duplicate]);
+    expect(index.tasks).toHaveLength(1);
+    expect(index.tasks[0].taskId).toBe('AF-020');
+  });
+
+  it('迁移类型映射覆盖 promoted / claimed / interrupted / resumed / verified', () => {
+    expect(eventTypeForTransition('backlog', 'ready')).toBe('promoted');
+    expect(eventTypeForTransition('ready', 'submitted')).toBe('claimed');
+    expect(eventTypeForTransition('submitted', 'working')).toBe('started');
+    expect(eventTypeForTransition('working', 'input-required')).toBe('interrupted');
+    expect(eventTypeForTransition('input-required', 'working')).toBe('resumed');
+    expect(eventTypeForTransition('working', 'completed')).toBe('verified');
+  });
+
+  it('派生事件：新建任务生成 created + history，归档生成 archived 终态', () => {
+    const created = deriveEvents(
+      { tasks: [], archivedTasks: [] },
+      {
+        tasks: [
+          {
+            taskId: 'AF-020',
+            status: 'submitted',
+            history: [{ at: '2026-11-16T00:00:01.000Z', from: 'ready', to: 'submitted', by: 'test' }],
+          },
+        ],
+        archivedTasks: [],
+      },
+      { at: '2026-11-16T00:00:01.000Z', actor: 'test' },
+    );
+    expect(created.map((e) => e.type)).toEqual(['created', 'claimed']);
+    expect(created[0].to).toBe('ready');
+
+    const archived = deriveEvents(
+      { tasks: [{ taskId: 'AF-020', status: 'working', history: [] }], archivedTasks: [] },
+      { tasks: [], archivedTasks: [{ taskId: 'AF-020', status: 'rejected', artifacts: { taskSheet: 'x.md' } }] },
+      { at: '2026-11-16T00:00:02.000Z', actor: 'test' },
+    );
+    expect(archived).toHaveLength(1);
+    expect(archived[0].type).toBe('archived');
+    expect(archived[0].to).toBe('rejected');
   });
 });

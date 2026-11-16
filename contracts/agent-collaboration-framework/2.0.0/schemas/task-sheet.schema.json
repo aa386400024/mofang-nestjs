@@ -1,0 +1,336 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+  "title": "Agent Collaboration Framework - Task Sheet Contract",
+  "description": "任务单契约。承载一个工作单元的标识、目标、上下文、切片、能力要求、交付物、质量门禁、风险与调度信息。字段可扩展、不删除既有字段；additionalProperties 允许附加字段。v1.1.0 起 status 语义调整为「立项快照」，运行态以状态索引为唯一权威源；新增 contractRef 与 parentTaskId。",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["taskId", "contextId", "type", "title", "status", "createdAt"],
+  "properties": {
+    "contractRef": {
+      "$ref": "#/$defs/contractRef",
+      "description": "本任务单遵循的契约引用；未填时按适配层声明的默认版本解析。"
+    },
+    "taskId": {
+      "$ref": "#/$defs/taskId",
+      "description": "任务唯一标识，形如 XX-000。"
+    },
+    "parentTaskId": {
+      "$ref": "#/$defs/taskId",
+      "description": "父任务标识（嵌套委派时填写）；沿 parentTaskId 链可回溯到根任务。"
+    },
+    "contextId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "同主题多任务的归组标识；返修新任务沿用同一值。"
+    },
+    "type": {
+      "$ref": "#/$defs/taskType",
+      "description": "任务类型。"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "一句话标题。"
+    },
+    "status": {
+      "$ref": "#/$defs/taskStatus",
+      "description": "立项快照：任务单允许记录的状态。运行态以状态索引 tasks[].status 为唯一权威源；任务单不得在立项后被回写状态（见 docs/task-contract.md §6.3）。"
+    },
+    "baselineRef": {
+      "type": ["string", "null"],
+      "description": "版本锚点：开工基线的版本控制标识或等价版本标识，形式 <tag>@<commit> 或 <commit>。"
+    },
+    "dependsOn": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/taskId"
+      },
+      "default": [],
+      "description": "上游任务标识数组；上游全部完成才解锁本任务。"
+    },
+    "policyRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "策略规则锚点数组；具体指向由适配层定义。"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "创建时间，ISO 8601 日期时间，必须带时区偏移。"
+    },
+    "objective": {
+      "type": ["string", "null"],
+      "description": "做什么：一句话目标。"
+    },
+    "successCriteria": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "验收标准，逐条可判定。"
+    },
+    "outOfScope": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "明确排除项：目标层面的不做清单。"
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/reference"
+      },
+      "default": [],
+      "description": "引用工件列表。"
+    },
+    "priorTasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/taskId"
+      },
+      "default": [],
+      "description": "前置任务标识数组；返修任务必须指向被拒任务。"
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "硬约束，逐条可检查。"
+    },
+    "scope": {
+      "$ref": "#/$defs/scope",
+      "description": "纳入范围：文件、模块与接口清单。"
+    },
+    "exclusions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "排除项：切片层面的边界，与 outOfScope 互补。"
+    },
+    "requiredSkills": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "路由所需的能力标签。"
+    },
+    "requiredTools": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "所需工具类别；取值见 schemas/contract-enums.json 的 toolCategories。"
+    },
+    "agentRole": {
+      "$ref": "#/$defs/role",
+      "description": "承接角色；human 不是可派发角色，不出现在本枚举。"
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifactSpec"
+      },
+      "default": [],
+      "description": "产出清单。"
+    },
+    "artifactSchema": {
+      "type": ["string", "null"],
+      "description": "产出结构标识：结构化产出的字段契约名。"
+    },
+    "deliveryPath": {
+      "type": ["string", "null"],
+      "description": "交付落点；具体目录由适配层声明。"
+    },
+    "gates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/gate"
+      },
+      "default": [],
+      "description": "质量门禁检查项。"
+    },
+    "evidenceFormat": {
+      "type": ["string", "null"],
+      "description": "证据格式约定，例如命令加退出码加计数。"
+    },
+    "escalationTriggers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "升级触发条件，逐条可判定。"
+    },
+    "priority": {
+      "type": ["string", "number", "null"],
+      "description": "优先级。"
+    },
+    "deadline": {
+      "type": ["string", "null"],
+      "description": "截止时间；同时是领取租约的到期点。"
+    },
+    "retention": {
+      "type": ["string", "null"],
+      "description": "保留策略；归档触发依据，口径见 docs/state-machine.md §5.1。"
+    }
+  },
+  "$defs": {
+    "contractRef": {
+      "type": "string",
+      "pattern": "^urn:agent-collaboration-framework:schema:[a-z0-9-]+:[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "契约引用模式；与 schemas/contract-enums.json 的 contractRefPattern 一致。"
+    },
+    "taskId": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]+-[0-9]+$",
+      "description": "任务唯一标识模式；取值口径与 schemas/contract-enums.json 的 taskIdPattern 一致。"
+    },
+    "taskType": {
+      "type": "string",
+      "enum": ["implementation", "review", "investigation", "documentation", "fix", "verification"],
+      "description": "任务类型；取值口径与 schemas/contract-enums.json 的 taskTypes 一致。"
+    },
+    "taskStatus": {
+      "type": "string",
+      "enum": [
+        "backlog",
+        "ready",
+        "submitted",
+        "working",
+        "input-required",
+        "completed",
+        "failed",
+        "canceled",
+        "rejected",
+        "auth-required"
+      ],
+      "description": "状态枚举；取值口径与 schemas/contract-enums.json 的 taskStatuses 一致。auth-required 为冻结预留值，禁止进入。映射：submitted=SUBMITTED，working=WORKING，input-required=INPUT_REQUIRED，auth-required=AUTH_REQUIRED，completed=COMPLETED，failed=FAILED，canceled=CANCELED，rejected=REJECTED；backlog 与 ready 为编排前置态，无标准对应值。"
+    },
+    "role": {
+      "type": "string",
+      "enum": ["orchestrator", "executor", "reviewer", "researcher", "critic"],
+      "description": "可派发角色；取值口径与 schemas/contract-enums.json 的 roles 一致。human 不参与路由。"
+    },
+    "artifactKind": {
+      "type": "string",
+      "enum": ["document", "dataset", "schema", "code", "report", "spec", "test", "other"],
+      "description": "工件类型；取值口径与 schemas/contract-enums.json 的 artifactKinds 一致。"
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["ref"],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "引用工件的路径或标识。"
+        },
+        "kind": {
+          "$ref": "#/$defs/artifactKind",
+          "description": "引用类型。"
+        },
+        "note": {
+          "type": ["string", "null"],
+          "description": "为什么需要这条引用。"
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": [],
+          "description": "纳入的文件或路径模式。"
+        },
+        "modules": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": [],
+          "description": "纳入的模块。"
+        },
+        "interfaces": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": [],
+          "description": "纳入的接口。"
+        }
+      }
+    },
+    "artifactSpec": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["name", "path", "kind"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "产物名称。"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "产物落点路径；具体目录由适配层声明。"
+        },
+        "kind": {
+          "$ref": "#/$defs/artifactKind",
+          "description": "产物类型。"
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["command", "check", "threshold"],
+      "properties": {
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "description": "检查命令；具体命令由适配层声明。"
+        },
+        "check": {
+          "type": "string",
+          "minLength": 1,
+          "description": "检查项：这个检查验证什么。"
+        },
+        "threshold": {
+          "type": ["string", "number", "null"],
+          "description": "阈值：不适用时为 null。"
+        }
+      }
+    }
+  }
+}

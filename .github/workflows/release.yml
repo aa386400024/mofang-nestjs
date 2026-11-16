@@ -1,0 +1,226 @@
+name: Release
+
+# L4 人工冻结边界：发布只能由人手动触发，workflow 负责可复现执行。
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 输入 release 确认发布（其余值直接失败）
+        required: true
+        type: string
+      deploy:
+        description: 发布成功后是否部署到生产
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    name: Release (master + tag + GHCR)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.ref == 'refs/heads/integrate'
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      sha: ${{ steps.meta.outputs.sha }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CONFIRM: ${{ inputs.confirm }}
+    steps:
+      - name: Guard confirmation token
+        run: |
+          if [ "$CONFIRM" != "release" ]; then
+            echo "confirm 必须为 release，实际为: $CONFIRM"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+        with:
+          ref: integrate
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Enable pnpm (corepack)
+        run: npm install -g corepack && corepack enable
+
+      - name: Resolve pnpm version
+        run: pnpm --version
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Compute release tag
+        id: meta
+        run: |
+          SHA=$(git rev-parse HEAD)
+          TAG="v$(date -u +%Y.%m.%d)-${SHA:0:7}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Assert CI is green for this exact SHA
+        run: |
+          set -euo pipefail
+          SHA="${{ github.sha }}"
+          for i in $(seq 1 60); do
+            gh run list --workflow ci.yml --branch integrate --limit 50 \
+              --json databaseId,headSha,status,conclusion,event > runs.json
+            if OUT=$(node -e '
+              const fs = require("node:fs");
+              const runs = JSON.parse(fs.readFileSync("runs.json", "utf8"));
+              const sha = process.env.SHA;
+              const run = runs.find((item) => item.headSha === sha);
+              if (!run) { console.error("CI run 尚未出现"); process.exit(2); }
+              if (run.status !== "completed") {
+                console.error(`CI ${run.databaseId} 仍在 ${run.status}`);
+                process.exit(3);
+              }
+              if (run.conclusion !== "success") {
+                console.error(`CI ${run.databaseId} 结论为 ${run.conclusion}`);
+                process.exit(1);
+              }
+              console.log(`${run.databaseId} ${run.event}`);
+            '); then
+              echo "CI run: $OUT"
+              exit 0
+            else
+              CODE=$?
+              if [ "$CODE" -eq 2 ] || [ "$CODE" -eq 3 ]; then
+                echo "等待 CI（第 ${i}/60 次，15s 后重试）"
+                sleep 15
+              else
+                exit 1
+              fi
+            fi
+          done
+          echo "等待 CI 超时（15 分钟）"
+          exit 1
+        env:
+          SHA: ${{ github.sha }}
+
+      - name: Fast-forward master locally
+        run: |
+          SHA=$(git rev-parse HEAD)
+          git config user.name "aa386400024"
+          git config user.email "41391477@qq.com"
+          git fetch origin master integrate --tags
+          git checkout -B master origin/master
+          git merge --ff-only origin/integrate
+          test "$(git rev-parse HEAD)" = "$SHA"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build and push image
+        run: |
+          TAG="${{ steps.meta.outputs.tag }}"
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}:${TAG}"
+          LATEST="ghcr.io/${GITHUB_REPOSITORY,,}:latest"
+          docker build -t "$IMAGE" -t "$LATEST" .
+          docker push "$IMAGE"
+          docker push "$LATEST"
+
+      - name: Push master after image is published
+        run: git push origin master
+
+      - name: Create and push release tag
+        run: |
+          SHA="${{ steps.meta.outputs.sha }}"
+          TAG="${{ steps.meta.outputs.tag }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            EXISTING=$(git rev-list -n1 "$TAG")
+            if [ "$EXISTING" != "$SHA" ]; then
+              echo "tag $TAG 已指向 $EXISTING，与本次 $SHA 不一致"
+              exit 1
+            fi
+            echo "tag $TAG 已存在且指向同一提交，跳过创建"
+          else
+            git tag -a "$TAG" -m "Release $TAG ($SHA)"
+            git push origin "$TAG"
+          fi
+
+      - name: Create GitHub Release
+        run: |
+          TAG="${{ steps.meta.outputs.tag }}"
+          SHA="${{ steps.meta.outputs.sha }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "release $TAG 已存在，跳过"
+          else
+            gh release create "$TAG" --target "$SHA" --title "$TAG" --generate-notes
+          fi
+
+  deploy:
+    name: Deploy production (optional)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: release
+    if: inputs.deploy == true && needs.release.result == 'success'
+    environment: production
+    env:
+      DEPLOY_VERSION: ${{ needs.release.outputs.tag }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: master
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Enable pnpm (corepack)
+        run: npm install -g corepack && corepack enable
+
+      - name: Resolve pnpm version
+        run: pnpm --version
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          HOST="${DEPLOY_HOST#*@}"
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts
+
+      - name: Build production artifact
+        run: pnpm build
+
+      - name: Deploy (server-side docker build + health gate)
+        run: printf 'yes-deploy\n' | pnpm deploy:tested

@@ -1,7 +1,12 @@
 {
   "version": "1.1.0",
   "schemaRef": "urn:agent-collaboration-framework:schema:task-state-index:1.1.0",
-  "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。字段可扩展、不删除既有字段。本部署未启用事件溯源，故无 projection 块：索引为唯一写面，history 内嵌；若日后迁事件溯源，按框架 docs/state-machine.md 增加 journal + projection 并由重建 CLI 生成。归档条目只保留工件指针（taskId/status/artifacts）；逐条说明因 archivedTask 关闭附加字段，统一外移到 archivedNotes（按 taskId 索引），内容未做任何改写。",
+  "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
+  "projection": {
+    "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
+    "lastEventSeq": 74,
+    "rebuiltAt": null
+  },
   "tasks": [],
   "archivedTasks": [
     {
@@ -306,6 +311,14 @@
         "taskSheet": "docs/worklog/completed/phase2.5/af019-adapter-finalization-node26-2026-11-16.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af019-adapter-finalization-node26-implementation-2026-11-16.md"
       }
+    },
+    {
+      "taskId": "AF-020",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af020-orchestration-hardening-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af020-orchestration-hardening-implementation-2026-11-16.md"
+      }
     }
   ],
   "archivedNotes": {
@@ -319,6 +332,7 @@
     "AF-016": "编排护栏:能力路由/资源域校验/rebase巡检/V7采集接线;112 passed;零业务源码改动",
     "AF-017": "回执正文抽取双通道;116 passed;零业务源码改动",
     "AF-018": "适配层迁移到框架 v2.0.0；契约 1.1.0 / 工具一文件 / 交付包 1.0.0；保留 34 条归档与 DR-001；129 passed",
-    "AF-019": "适配层收尾：development 退役 + CI Actions 升级 + 记录闭环；36 条归档 / 11 条说明；7/7 PASS；130 passed"
+    "AF-019": "适配层收尾：development 退役 + CI Actions 升级 + 记录闭环；36 条归档 / 11 条说明；7/7 PASS；130 passed",
+    "AF-020": "P0-P2 闭环：CI 契约硬门/发布流水线/事件溯源；validate 9/9；编排 135 passed"
   }
 }

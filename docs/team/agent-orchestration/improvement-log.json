@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-16T13:24:11.061Z",
+  "updatedAt": "2026-11-16T14:12:56.701Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -1161,6 +1161,156 @@
         "resolvedAt": "2026-11-16T02:10:14.590Z",
         "resolutionNote": "review 交接件接入框架 schema 机读校验;框架样例通过/缺字段被拒用例覆盖;122 用例绿",
         "linkedTaskId": "AF-009"
+      }
+    },
+    {
+      "improvementId": "IM-031",
+      "status": "done",
+      "title": "CI 不校验跨仓契约，缺框架时 skipped 软通过",
+      "source": "implementation",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-020",
+      "evidence": ["ci.yml 无 Contracts job; validator.mjs 缺框架返回 skipped; 当时 validate 7/7、单测对 skipped 容错"],
+      "impact": "CI 绿灯不等于 7 项契约真实通过，框架契约漂移无法在流水线拦截",
+      "suggestion": "固化框架 2.0.0 契约包，CI 设 ORCH_REQUIRE_FRAMEWORK=1 硬校验并断言缺框架 fail-fast",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-16T14:12:44.955Z",
+      "updatedAt": "2026-11-16T14:12:53.531Z",
+      "history": [
+        {
+          "at": "2026-11-16T14:12:44.955Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-16T14:12:52.475Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator",
+          "note": "AF-020 立项：P0/P1/P2 一次性闭环"
+        },
+        {
+          "at": "2026-11-16T14:12:52.991Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator",
+          "note": "实现落地，待收尾闸门"
+        },
+        {
+          "at": "2026-11-16T14:12:53.531Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator",
+          "note": "AF-020 验收：代码、契约、测试与流水线已落地"
+        }
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-16T14:12:53.531Z",
+        "resolutionNote": "AF-020 验收：代码、契约、测试与流水线已落地",
+        "linkedTaskId": "AF-020"
+      }
+    },
+    {
+      "improvementId": "IM-032",
+      "status": "done",
+      "title": "集成到发布未闭环，无 tag/Release/GHCR/部署流水线",
+      "source": "implementation",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-020",
+      "evidence": ["master 8ffb6a3 落后 integrate 84ed463; 无 tag; release.yml 不存在; deploy 仅本地交互脚本"],
+      "impact": "发布动作停在人工口头约定，镜像与部署不可复现，回滚缺少版本锚点",
+      "suggestion": "新增 workflow_dispatch Release：CI 同 SHA 绿灯门禁、master fast-forward、tag、GitHub Release、GHCR、可选 production deploy",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-16T14:12:45.495Z",
+      "updatedAt": "2026-11-16T14:12:55.135Z",
+      "history": [
+        {
+          "at": "2026-11-16T14:12:45.495Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-16T14:12:54.060Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator",
+          "note": "AF-020 立项：P0/P1/P2 一次性闭环"
+        },
+        {
+          "at": "2026-11-16T14:12:54.570Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator",
+          "note": "实现落地，待收尾闸门"
+        },
+        {
+          "at": "2026-11-16T14:12:55.135Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator",
+          "note": "AF-020 验收：代码、契约、测试与流水线已落地"
+        }
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-16T14:12:55.135Z",
+        "resolutionNote": "AF-020 验收：代码、契约、测试与流水线已落地",
+        "linkedTaskId": "AF-020"
+      }
+    },
+    {
+      "improvementId": "IM-033",
+      "status": "done",
+      "title": "状态索引只有最终状态，缺事件溯源与可重建轨迹",
+      "source": "implementation",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-020",
+      "evidence": ["task-state-index.json 36 条归档仅轻量指针; note 明确未启用 event sourcing; 无 journal"],
+      "impact": "只能查最终状态，不能重建每次迁移/审批/归档轨迹，索引手改不可检出",
+      "suggestion": "journal.jsonl 唯一写面 + 索引只读投影 + SHA-256 哈希链 + 幂等键 + 单写者锁 + 回填 36 条归档",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-16T14:12:46.048Z",
+      "updatedAt": "2026-11-16T14:12:56.700Z",
+      "history": [
+        {
+          "at": "2026-11-16T14:12:46.048Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-16T14:12:55.661Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator",
+          "note": "AF-020 立项：P0/P1/P2 一次性闭环"
+        },
+        {
+          "at": "2026-11-16T14:12:56.197Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator",
+          "note": "实现落地，待收尾闸门"
+        },
+        {
+          "at": "2026-11-16T14:12:56.700Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator",
+          "note": "AF-020 验收：代码、契约、测试与流水线已落地"
+        }
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-16T14:12:56.700Z",
+        "resolutionNote": "AF-020 验收：代码、契约、测试与流水线已落地",
+        "linkedTaskId": "AF-020"
       }
     }
   ]

@@ -27,10 +27,10 @@ import {
   loadRuntimeState,
   loadToolContracts,
   nowIso,
-  saveIndex,
   saveRuntimeState,
   writeJsonAtomic,
 } from './state-store.mjs';
+import { commitIndex } from './event-store.mjs';
 import { runAcceptance } from './acceptance-runner.mjs';
 import { loadImprovementLog, summarizeLog } from './improvement-log.mjs';
 import { listAudits, loadAuditLog, summarizeAudits } from './audit-log.mjs';
@@ -335,7 +335,7 @@ export function advanceOnce(opts = {}) {
 
   if (opts.commit !== false) {
     if (shouldAdvance(config)) {
-      saveIndex(index);
+      commitIndex(index, { actor: BY_ORCHESTRATOR });
       saveRuntimeState(runtimeState);
     }
     // 快照为只读产物，关闭自治时同样落盘，供静态网页读取。

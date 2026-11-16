@@ -13,6 +13,60 @@ concurrency:
 
 jobs:
   # ============================================================
+  # 0. Contracts (跨仓契约硬门 · P0)
+  #    框架仓为私有仓，CI 不能匿名 checkout；用仓内不可变契约包做真实 schema 校验。
+  #    ORCH_REQUIRE_FRAMEWORK=1 表示框架不可达时禁止 skipped 软通过，必须 fail-fast。
+  # ============================================================
+  contracts:
+    name: Contracts (framework 2.0.0)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ORCH_FRAMEWORK_DIR: ${{ github.workspace }}/contracts/agent-collaboration-framework/2.0.0
+      ORCH_REQUIRE_FRAMEWORK: '1'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Enable pnpm (corepack)
+        run: npm install -g corepack && corepack enable
+
+      - name: Resolve pnpm version
+        run: pnpm --version
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify immutable framework bundle (hash + version)
+        run: pnpm orchestration:contracts
+
+      - name: Assert hard mode fails when framework is missing
+        run: |
+          set +e
+          ORCH_FRAMEWORK_DIR="$RUNNER_TEMP/absent-framework" ORCH_REQUIRE_FRAMEWORK=1 \
+            node scripts/orchestration/cli.mjs validate > "$RUNNER_TEMP/absent.log" 2>&1
+          code=$?
+          set -e
+          cat "$RUNNER_TEMP/absent.log"
+          test "$code" -ne 0
+
+      - name: Validate schemas + event journal + projection
+        run: pnpm orchestration:validate
+
+  # ============================================================
   # 1. Lint + Typecheck (最快, 先跑)
   # ============================================================
   lint-and-typecheck:

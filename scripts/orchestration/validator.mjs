@@ -17,6 +17,7 @@ import { REPO_ROOT, PATHS } from './state-store.mjs';
 export const SCHEMA_FILES = {
   taskSheet: 'task-sheet.schema.json',
   taskIndex: 'task-state-index.schema.json',
+  stateEvent: 'state-event.schema.json',
   toolContract: 'tool-contract.schema.json',
   agentCard: 'agent-card.schema.json',
   reviewHandover: 'review-handover.schema.json',
@@ -28,6 +29,7 @@ export const SCHEMA_FILES = {
 const CONTRACT_SCHEMA_KEY = {
   'task-sheet': 'taskSheet',
   'task-state-index': 'taskIndex',
+  'state-event': 'stateEvent',
   'tool-contract': 'toolContract',
   'agent-card': 'agentCard',
   'review-handover': 'reviewHandover',
@@ -35,11 +37,24 @@ const CONTRACT_SCHEMA_KEY = {
   'protocol-view': 'protocolView',
 };
 
-/** 框架仓根目录：env 优先；默认本仓上两级平级目录。 */
+/** 契约包固化目录（框架私仓在 CI 不可跨仓读取时的可复现来源）。 */
+const VENDOR_FRAMEWORK_DIR = resolve(REPO_ROOT, 'contracts', 'agent-collaboration-framework', '2.0.0');
+/** 本地兄弟仓（开发期优先，能第一时间发现框架 tag 漂移）。 */
+const SIBLING_FRAMEWORK_DIR = resolve(REPO_ROOT, '..', '..', 'agent-collaboration-framework');
+
+/** CI 硬模式：框架不可达时不允许把校验降级为 skipped。 */
+export function requireFramework() {
+  return process.env.ORCH_REQUIRE_FRAMEWORK === '1';
+}
+
+/**
+ * 框架仓根目录：env 优先；本地兄弟仓次之；最后回落到仓内固化契约包。
+ * CI 显式设 ORCH_FRAMEWORK_DIR 指向固化包，并置 ORCH_REQUIRE_FRAMEWORK=1。
+ */
 export function frameworkDir() {
-  return process.env.ORCH_FRAMEWORK_DIR
-    ? resolve(process.env.ORCH_FRAMEWORK_DIR)
-    : resolve(REPO_ROOT, '..', '..', 'agent-collaboration-framework');
+  if (process.env.ORCH_FRAMEWORK_DIR) return resolve(process.env.ORCH_FRAMEWORK_DIR);
+  if (existsSync(resolve(SIBLING_FRAMEWORK_DIR, 'schemas', 'versions.json'))) return SIBLING_FRAMEWORK_DIR;
+  return VENDOR_FRAMEWORK_DIR;
 }
 
 function schemaPath(schemaKey) {
@@ -114,6 +129,12 @@ export async function validateObject(schemaKey, value) {
   const validate = await getValidator(schemaKey);
   const schema = loadSchema(schemaKey);
   if (!validate || !schema) {
+    if (requireFramework()) {
+      return result({
+        ok: false,
+        errors: [{ instancePath: '', message: `框架契约不可达：${schemaPath(schemaKey)}（CI 硬模式禁止跳过）`, params: {} }],
+      });
+    }
     return result({ skipped: true, schemaId: null });
   }
   const ok = validate(value);
@@ -132,6 +153,11 @@ export function validateTaskSheet(meta) {
 /** 状态索引对象校验。 */
 export function validateTaskIndex(index) {
   return validateObject('taskIndex', index);
+}
+
+/** 单条状态事件校验（框架 state-event 1.0.0）。 */
+export function validateStateEvent(event) {
+  return validateObject('stateEvent', event);
 }
 
 /** 单条工具契约对象校验。 */
@@ -223,7 +249,15 @@ export function loadVersions() {
  */
 export function validateContractVersion(instance, contractName) {
   const versions = loadVersions();
-  if (!versions) return result({ skipped: true });
+  if (!versions) {
+    if (requireFramework()) {
+      return result({
+        ok: false,
+        errors: [{ instancePath: '', message: '框架 versions.json 不可达（CI 硬模式禁止跳过）', params: {} }],
+      });
+    }
+    return result({ skipped: true });
+  }
   const expected = versions.contracts?.[contractName]?.version;
   const declared = instance?.contractRef ?? instance?.schemaRef ?? null;
   const errors = [];

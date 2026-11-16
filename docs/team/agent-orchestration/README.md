@@ -11,19 +11,20 @@
 
 ## 1. 标识与框架版本依赖
 
-| 项                      | 值                                                                                                                                                                                                |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `projectId`             | `mofang-nestjs`（心塑 / XinSu 后端 NestJS 仓）                                                                                                                                                    |
-| `frameworkVersionRange` | `>=2.0.0 <3.0.0`                                                                                                                                                                                  |
-| 框架版本                | `2.0.0`（本地 git tag `v2.0.0` → commit `c507188`，releasedAt `2026-11-16`；版本轴见框架仓 `schemas/versions.json`）                                                                              |
-| 框架契约版本            | 任务单 `1.1.0` / 状态索引 `1.1.0` / 工具契约 `1.1.0` / Agent Card `1.1.0` / 交付包 `1.0.0` / 回执 `1.0.0` / review 交接件 `1.1.0`（逐项见框架仓 `schemas/versions.json`）                         |
-| 契约引用形式            | 实例内用 `contractRef` / `schemaRef` 的 urn 声明（`urn:agent-collaboration-framework:schema:<contract>:<version>`），不写裸版本号                                                                 |
-| `unknownEnumPolicy`     | `tolerant`（框架 2.0.0 兼容声明要求；未知枚举值按保留值透传并记人工复核，不静默丢弃、不擅自映射。状态轴由 `protocol-mapper.mjs` 列入 `unknownStatuses`，交付包落入 `leftovers.manualReviewList`） |
-| 枚举投影                | `scripts/orchestration/contract-enums.json` 为框架仓 `schemas/contract-enums.json`（2.0.0）的 vendored 投影，随本仓评审；一致性由 `orchestration.spec.mjs` 跨仓对账                               |
+| 项                      | 值                                                                                                                                                                                                                               |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `projectId`             | `mofang-nestjs`（心塑 / XinSu 后端 NestJS 仓）                                                                                                                                                                                   |
+| `frameworkVersionRange` | `>=2.0.0 <3.0.0`                                                                                                                                                                                                                 |
+| 框架版本                | `2.0.0`（本地 git tag `v2.0.0` → commit `c507188`，releasedAt `2026-11-16`；版本轴见框架仓 `schemas/versions.json`）                                                                                                             |
+| 框架契约版本            | 任务单 `1.1.0` / 状态索引 `1.1.0` / 工具契约 `1.1.0` / Agent Card `1.1.0` / 交付包 `1.0.0` / 回执 `1.0.0` / review 交接件 `1.1.0`（逐项见框架仓 `schemas/versions.json`）                                                        |
+| 契约引用形式            | 实例内用 `contractRef` / `schemaRef` 的 urn 声明（`urn:agent-collaboration-framework:schema:<contract>:<version>`），不写裸版本号                                                                                                |
+| `unknownEnumPolicy`     | `tolerant`（框架 2.0.0 兼容声明要求；未知枚举值按保留值透传并记人工复核，不静默丢弃、不擅自映射。状态轴由 `protocol-mapper.mjs` 列入 `unknownStatuses`，交付包落入 `leftovers.manualReviewList`）                                |
+| 枚举投影                | `scripts/orchestration/contract-enums.json` 为框架仓 `schemas/contract-enums.json`（2.0.0）的 vendored 投影，随本仓评审；一致性由 `orchestration.spec.mjs` 跨仓对账                                                              |
+| 契约供应链              | `contracts/agent-collaboration-framework/2.0.0/`（14 份框架 2.0.0 schema 的不可变副本 + `PROVENANCE.json` 逐文件 SHA-256）；CI `Contracts` job 以 `ORCH_REQUIRE_FRAMEWORK=1` 硬校验，缺框架直接 fail-fast，不允许 skipped 软通过 |
 
 > 2.0.0 与本适配层的历史差异已在本轮迁移中一次性收口：任务单 `status` 降级为立项快照、时间字段改带偏移 `date-time`、工具声明改**一工具一文件**、`human` 移出可派发角色、归档条目关闭附加字段（归档说明外移到 `archivedNotes`）、交付包改用 `delivery-package` 1.0.0 结构。破坏性变更（字段删除或语义改变）仍须先复核本表再升级；既有字段只增不删。
 >
-> `archivedNotes` 是**适配层扩展字段**（`task-state-index` schema 顶层 `additionalProperties: true` 允许），键为 `taskId`、值为 1.x 归档说明原文，只读保留、不做二次改写；框架未定义该字段，若后续框架定义归档说明槽位则以框架为准对齐。
+> `archivedNotes` 是**适配层扩展字段**（`task-state-index` schema 顶层 `additionalProperties: true` 允许），键为 `taskId`、值为 1.x 归档说明原文，只读保留、不做二次改写；框架未定义该字段，若后续框架定义归档说明槽位则以框架为准对齐。AF-020 起该字段外移到 `state/archived-notes.json`，索引中的 `archivedNotes` 只是从日志重建时的合并投影，禁止手改。
 
 ## 2. 角色绑定（roleBindings）
 
@@ -45,7 +46,9 @@
 | `directories.deliveryRecords`      | `docs/worklog/completed/<phase>/`（任务单 + 交付记录成对归档，只读历史）                                                                                      |
 | `directories.replyArchive`         | `docs/worklog/pending/archive/`（回执原文、中间产物归档）                                                                                                     |
 | `directories.artifacts`            | 各任务单切片范围内的源码 / 测试 / 规格路径；工件正文留在各自文件                                                                                              |
-| `directories.stateIndex`           | `docs/team/agent-orchestration/task-state-index.json`                                                                                                         |
+| `directories.stateIndex`           | `docs/team/agent-orchestration/task-state-index.json`（**只读投影**，带 `projection` 指向日志末条事件；禁止手改）                                             |
+| `directories.stateJournal`         | `docs/team/agent-orchestration/state/journal.jsonl`（**唯一写面**，append-only 事件日志；`state-event:1.0.0` + SHA-256 哈希链）                               |
+| `directories.stateArchivedNotes`   | `docs/team/agent-orchestration/state/archived-notes.json`（归档说明侧车，重建时合并进索引 `archivedNotes`）                                                   |
 | `directories.runtimeState`         | `docs/team/agent-orchestration/orchestration-state.json`（L2 运行态，首次 run-once 生成）                                                                     |
 | `directories.snapshot`             | `docs/team/agent-orchestration/orchestration-snapshot.json`（队列快照，网页数据源）                                                                           |
 | `directories.improvementLog`       | `docs/team/agent-orchestration/improvement-log.json`（候选改进台账；口径见 `improvement-loop.md`）                                                            |
@@ -70,7 +73,7 @@
 | 前端闸门（仅授权前端任务） | 在 `admin-dashboard/` 目录跑 `pnpm type-check` / `pnpm build-only`，不套用后端 tsc / eslint                                                                                                                                                                                                                                                                                  |
 | 敏感操作                   | L4 冻结动作（master 合并、tag、release、对外部署、策略例外、路线选型、跨任务变更、验收分歧、新增未声明依赖）绑定 Human 批准；L1 任务分支提交、L2 推任务分支、L3 合并进 integrate 在闸门绿 + 验收五类通过等前置条件下由 orchestrator 自动（分层口径见 [设计备忘 §6.1](autonomous-team-design.md#61-发布分层自动化逐层收紧)，过渡口径 §6.2）；engine-core 例外改动仍需人工批准 |
 
-L2 编排工具链（状态存储、验收护栏、调度器、交付包、候选改进台账、CLI）的契约声明在 `tools/<TOOL-ID>.json`（一工具一文件，字段 `toolId / category / sideEffect / allowedRoles / resources / contractRef`），实现位于 `scripts/orchestration/`，注册与授权收口于 `tool-registry.mjs`。自治模式关闭时，`run-once` 只生成只读快照，不执行领单、验收归档与返修等状态迁移；开启须经 `pnpm orchestration:config --enable` 显式操作。改进台账命令：`pnpm orchestration:improvements`（list / `--extract` / `--add` / `--transition`），闭环口径见 `improvement-loop.md`。
+L2 编排工具链（状态存储、验收护栏、调度器、交付包、候选改进台账、CLI）的契约声明在 `tools/<TOOL-ID>.json`（一工具一文件，字段 `toolId / category / sideEffect / allowedRoles / resources / contractRef`），实现位于 `scripts/orchestration/`，注册与授权收口于 `tool-registry.mjs`。自治模式关闭时，`run-once` 只生成只读快照，不执行领单、验收归档与返修等状态迁移；开启须经 `pnpm orchestration:config --enable` 显式操作。改进台账命令：`pnpm orchestration:improvements`（list / `--extract` / `--add` / `--transition`），闭环口径见 `improvement-loop.md`。事件溯源命令：`pnpm orchestration:events`（`verify` / `rebuild` / `backfill` / `create`）；契约包校验：`pnpm orchestration:contracts`。所有状态写入必须经 `commitIndex` / `archiveTask` / `createTask`，不得直接改索引。
 
 ### 4.1 工具类别映射（框架 8 值 `toolCategories` → 本项目工具）
 
@@ -150,6 +153,7 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 | 角色模型与隔离规则                                                     | `docs/roles.md`                                                                                                           |
 | 任务单字段组与工件模型                                                 | `docs/task-contract.md`；`schemas/task-sheet.schema.json`；`templates/task-sheet.template.md`                             |
 | 状态枚举与迁移规则                                                     | `docs/state-machine.md`                                                                                                   |
+| 状态事件日志与投影                                                     | `docs/state-machine.md` §8；`docs/reliability.md` §8；`schemas/state-event.schema.json`                                   |
 | 回执七组字段契约                                                       | `docs/receipt-contract.md`；`templates/receipt.template.md`                                                               |
 | 验收五类与三级结论                                                     | `docs/acceptance.md`                                                                                                      |
 | 可靠性（租约、超时释放、重试、崩溃恢复）                               | `docs/reliability.md`                                                                                                     |
