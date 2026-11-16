@@ -101,6 +101,7 @@ pnpm exec vitest run test/admin-debug/wp38-debug-session-resume.spec.ts
 ## 4. 遗留
 
 - **CI 实测已收口**：`43915822192` 首轮修复后 10/10、130s；`43918327585` attempt 2 稳态 12/12、111s；Coverage Gate 合并阈值全过。
+- **Release 直推与保护冲突（未修，首次发布前必须处理）**：`release.yml` 在本地 `git merge --no-ff` 产生新 SHA，该 SHA 没有 12 项必需检查；`enforce_admins=true` 下 `git push origin master` 预期被拒。生产暂缓掩盖了该问题。建议改为“release 分支 + PR + `workflow_dispatch` 触发 CI + 合并 PR”，或显式提供可 bypass 的发布通道；不要在未验证前直接跑 Release。
 - **生产部署未执行**：用户明确暂缓；首次生产前核对 `DEPLOY_HOST` / `DEPLOY_SSH_KEY` / production environment。
 - **PR-only 保护**：若后续多人协作，需为 Release 配 bot bypass 或改 PR 流程后再开启。
 - **归档段冷备**：当前永久留在仓内；若未来上传对象存储，必须保持文件字节与哈希链原样。

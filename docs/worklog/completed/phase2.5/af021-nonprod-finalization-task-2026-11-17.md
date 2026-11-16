@@ -51,3 +51,8 @@ createdAt: 2026-11-17T01:00:00+08:00
 - [x] 交付记录成对归档
 - [x] 阶段入口与 AF-020 遗留口径回写
 - [x] 新 CI run 实测数字：`43915822192` 10/10、130s；`43918327585` attempt 2 12/12、稳态 111s；Coverage Gate 合并 48.31/47.37/44.25/48.09 全过
+
+## 5. 遗留风险
+
+- `release.yml` 的 `git push origin master` 在 `enforce_admins=true` + 12 项必需检查下预期被拒：本地 `merge --no-ff` 生成的新 SHA 没有检查记录。首次 Release 前必须改为 release 分支 + PR + `workflow_dispatch` 触发 CI 后合并，或提供可 bypass 的发布通道。
+- 生产部署按用户要求暂缓，未执行。
