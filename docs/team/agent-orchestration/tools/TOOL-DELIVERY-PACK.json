@@ -1,0 +1,25 @@
+{
+  "toolId": "TOOL-DELIVERY-PACK",
+  "category": "artifact-archive",
+  "description": "汇总夜间交付包：验收结论、证据指针、死信任务、遗留项与待人工批准动作。",
+  "sideEffect": "restricted-write",
+  "allowedRoles": ["orchestrator"],
+  "resources": ["docs/team/agent-orchestration/delivery-packs/"],
+  "inputs": {
+    "description": "交付包时间窗口。",
+    "params": [
+      {
+        "name": "window",
+        "type": "string",
+        "required": false,
+        "description": "汇总窗口（日期或轮次）；缺省取最近一轮。"
+      }
+    ]
+  },
+  "outputs": {
+    "description": "返回交付包清单文件路径与摘要。",
+    "result": "对象：含 packRef、conclusions、evidenceRefs、deadLetters、backlogItems、pendingApprovals。",
+    "errors": ["窗口内无完成任务", "关键证据指针缺失"]
+  },
+  "contractRef": "urn:agent-collaboration-framework:schema:tool-contract:1.1.0"
+}

@@ -16,11 +16,11 @@
  * 结论：任一 fail → rejected；无 fail 且人工复核非空 → conditional-pass；
  * 无 fail 且人工复核为空 → passed。
  */
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { PATHS, REPO_ROOT } from './state-store.mjs';
 import { detectResidualFiles } from './scope-mutex.mjs';
-import { TASK_ID_PATTERN } from './contract-enums.mjs';
+import { TASK_ID_PATTERN, TOOL_CATEGORIES } from './contract-enums.mjs';
 
 function relToAbs(rel) {
   if (!rel) return null;
@@ -170,31 +170,36 @@ function checkEncoding(task) {
 
 const SIDE_EFFECTS = ['read-only', 'restricted-write', 'sensitive'];
 const ROLES = ['orchestrator', 'executor', 'reviewer', 'researcher', 'critic'];
-const TOOL_MANIFEST = join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'tools', 'orchestration-tools.json');
 
-/** V6 工具契约：读取工具声明清单，断言字段齐全与枚举合法；未登记时记 skip。 */
+/** V6 工具契约：遍历 `tools/*.json`（一工具一文件），断言字段、枚举与 contractRef；目录缺失记 skip。 */
 function checkToolContracts() {
   const checks = [];
-  if (!existsSync(TOOL_MANIFEST)) {
+  if (!existsSync(PATHS.toolsDir)) {
     record(checks, 'V6', '工具契约', 'skip', '未登记工具声明工件；工具契约 schema 合规由框架仓样例校验覆盖');
     return { checks, manualReview: [] };
   }
   const problems = [];
   let tools = [];
+  const files = readdirSync(PATHS.toolsDir).filter((f) => f.endsWith('.json'));
   try {
-    const manifest = JSON.parse(readFileSync(TOOL_MANIFEST, 'utf8'));
-    tools = Array.isArray(manifest.tools) ? manifest.tools : [];
-    if (!manifest.schemaRef) problems.push('清单缺 schemaRef');
+    for (const file of files) {
+      tools.push({ file, tool: JSON.parse(readFileSync(join(PATHS.toolsDir, file), 'utf8')) });
+    }
   } catch (err) {
     record(checks, 'V6', '工具契约', 'fail', `工具声明 JSON 解析失败：${err.message}`);
     return { checks, manualReview: [] };
   }
-  if (tools.length === 0) problems.push('工具清单为空');
-  for (const tool of tools) {
-    const id = tool.toolId ?? '未命名工具';
+  if (tools.length === 0) problems.push('工具目录为空');
+  for (const { file, tool } of tools) {
+    const id = tool.toolId ?? file;
     if (!tool.toolId) problems.push(`${id}：缺 toolId`);
+    else if (`${tool.toolId}.json` !== file) problems.push(`${id}：文件名须与 toolId 一致（${file}）`);
     if (!tool.category) problems.push(`${id}：缺 category`);
+    else if (!TOOL_CATEGORIES.includes(tool.category)) problems.push(`${id}：category 不在 8 值枚举内（${tool.category}）`);
     if (!SIDE_EFFECTS.includes(tool.sideEffect)) problems.push(`${id}：sideEffect 非法（${String(tool.sideEffect)}）`);
+    if (typeof tool.contractRef !== 'string' || !tool.contractRef.includes('tool-contract')) {
+      problems.push(`${id}：contractRef 缺失或非 tool-contract 契约`);
+    }
     if (!Array.isArray(tool.allowedRoles)) {
       problems.push(`${id}：allowedRoles 须为数组`);
     } else {
@@ -206,7 +211,7 @@ function checkToolContracts() {
   if (problems.length > 0) {
     record(checks, 'V6', '工具契约', 'fail', problems.join('；'));
   } else {
-    record(checks, 'V6', '工具契约', 'pass', `工具声明 ${tools.length} 件，字段与枚举合法`);
+    record(checks, 'V6', '工具契约', 'pass', `工具声明 ${tools.length} 件（一工具一文件），字段与枚举合法`);
   }
   return { checks, manualReview: [] };
 }

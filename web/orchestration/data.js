@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-16T02:10:35.516Z",
+  "generatedAt": "2026-11-16T12:03:32.123Z",
   "mode": {
     "autoLoopEnabled": false,
     "reworkLimit": 2
@@ -710,7 +710,7 @@ window.ORCH_SNAPSHOT = {
       "fileName": "pack-20261115-225603.json",
       "ref": "docs/team/agent-orchestration/delivery-packs/pack-20261115-225603.json",
       "generatedAt": "2026-11-15T14:56:03.135Z",
-      "taskResults": 4,
+      "taskResults": 0,
       "deadLetters": 0,
       "openItems": 0,
       "pendingApprovals": 0
@@ -740,23 +740,6 @@ window.ORCH_SNAPSHOT = {
       "note": "执行 AI（MiniMax Code）；researcher / critic 角色当前未启用，需要调研或独立评审任务时再绑定。本角色不进入分支与提交链路：L1 任务分支提交由验收后的 orchestrator 完成（设计备忘 §6.1）。"
     },
     {
-      "agentId": "AGENT-HUMAN-001",
-      "role": "human",
-      "availability": "available",
-      "skills": [
-        "goal-setting",
-        "policy-approval",
-        "arbitration",
-        "release-decision"
-      ],
-      "tools": [],
-      "resources": [
-        "docs/team/conventions.md",
-        "docs/team/agent-orchestration/"
-      ],
-      "note": "本项目唯一人类角色（用户 / 大炮）；是 L4 冻结动作的审批节点，本身不进入工具白名单。L1 任务分支提交、L2 推任务分支、L3 合并进 integrate 在前置条件满足下由 orchestrator 自动，不依赖本角色批准（设计备忘 §6.1）。"
-    },
-    {
       "agentId": "AGENT-ORCH-001",
       "role": "orchestrator",
       "availability": "available",
@@ -770,12 +753,12 @@ window.ORCH_SNAPSHOT = {
         "improvement-tracking"
       ],
       "tools": [
-        "state-persistence",
-        "queue-scheduler",
-        "acceptance-gate",
-        "delivery-packing",
-        "knowledge-capture",
-        "orchestration-cli"
+        "TOOL-STATE-STORE",
+        "TOOL-QUEUE-SCHEDULER",
+        "TOOL-ORCH-CLI",
+        "TOOL-IMPROVEMENT-LOG",
+        "TOOL-ACCEPTANCE-RUNNER",
+        "TOOL-DELIVERY-PACK"
       ],
       "resources": [
         "docs/worklog/pending/",
@@ -788,17 +771,8 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolContracts": [
     {
-      "toolId": "TOOL-STATE-STORE",
-      "category": "state-persistence",
-      "sideEffect": "restricted-write",
-      "allowedRoles": [
-        "orchestrator"
-      ],
-      "description": "状态索引与附加运行态的原子读写、租约字段管理；store 抽象隔离，后续可替换为 DB 持久化。"
-    },
-    {
       "toolId": "TOOL-ACCEPTANCE-RUNNER",
-      "category": "acceptance-gate",
+      "category": "gate-execution",
       "sideEffect": "read-only",
       "allowedRoles": [
         "orchestrator",
@@ -807,17 +781,8 @@ window.ORCH_SNAPSHOT = {
       "description": "V1–V6 机读护栏：工件存在性与非空、指针可达、链接可达、编码、结构断言；输出三级结论与人工复核清单。"
     },
     {
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "queue-scheduler",
-      "sideEffect": "restricted-write",
-      "allowedRoles": [
-        "orchestrator"
-      ],
-      "description": "队列扫描、领单租约、超时释放、验收驱动状态迁移、返修提案与限次、死信隔离、队列快照生成。"
-    },
-    {
       "toolId": "TOOL-DELIVERY-PACK",
-      "category": "delivery-packing",
+      "category": "artifact-archive",
       "sideEffect": "restricted-write",
       "allowedRoles": [
         "orchestrator"
@@ -826,7 +791,7 @@ window.ORCH_SNAPSHOT = {
     },
     {
       "toolId": "TOOL-IMPROVEMENT-LOG",
-      "category": "knowledge-capture",
+      "category": "state-store",
       "sideEffect": "restricted-write",
       "allowedRoles": [
         "orchestrator"
@@ -835,12 +800,30 @@ window.ORCH_SNAPSHOT = {
     },
     {
       "toolId": "TOOL-ORCH-CLI",
-      "category": "orchestration-cli",
+      "category": "state-store",
       "sideEffect": "restricted-write",
       "allowedRoles": [
         "orchestrator"
       ],
       "description": "编排工具链命令入口：status / run-once / snapshot / pack / config；不直接操作桌面 GUI，桌面派发与回执衔接由执行代理单元在调度间隙完成。"
+    },
+    {
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "allowedRoles": [
+        "orchestrator"
+      ],
+      "description": "队列扫描、领单租约、超时释放、验收驱动状态迁移、返修提案与限次、死信隔离、队列快照生成。"
+    },
+    {
+      "toolId": "TOOL-STATE-STORE",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "allowedRoles": [
+        "orchestrator"
+      ],
+      "description": "状态索引与附加运行态的原子读写、租约字段管理；store 抽象隔离，后续可替换为 DB 持久化。"
     }
   ],
   "toolAudits": [
@@ -850,7 +833,7 @@ window.ORCH_SNAPSHOT = {
       "actorRef": "orchestrator",
       "correlationId": "archive:AF-017",
       "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "queue-scheduler",
+      "category": "state-store",
       "sideEffect": "restricted-write",
       "taskId": null,
       "result": "allowed",
@@ -867,7 +850,7 @@ window.ORCH_SNAPSHOT = {
       "actorRef": "orchestrator",
       "correlationId": "archive:AF-016",
       "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "queue-scheduler",
+      "category": "state-store",
       "sideEffect": "restricted-write",
       "taskId": null,
       "result": "allowed",
@@ -884,7 +867,7 @@ window.ORCH_SNAPSHOT = {
       "actorRef": "orchestrator",
       "correlationId": "archive:AF-015",
       "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "queue-scheduler",
+      "category": "state-store",
       "sideEffect": "restricted-write",
       "taskId": null,
       "result": "allowed",
@@ -901,7 +884,7 @@ window.ORCH_SNAPSHOT = {
       "actorRef": "orchestrator",
       "correlationId": "archive:AF-014",
       "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "queue-scheduler",
+      "category": "state-store",
       "sideEffect": "restricted-write",
       "taskId": null,
       "result": "allowed",
@@ -918,7 +901,7 @@ window.ORCH_SNAPSHOT = {
       "actorRef": "orchestrator",
       "correlationId": "archive:AF-013",
       "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "queue-scheduler",
+      "category": "state-store",
       "sideEffect": "restricted-write",
       "taskId": null,
       "result": "allowed",
@@ -935,7 +918,7 @@ window.ORCH_SNAPSHOT = {
       "actorRef": "orchestrator",
       "correlationId": "archive:AF-012",
       "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "queue-scheduler",
+      "category": "state-store",
       "sideEffect": "restricted-write",
       "taskId": null,
       "result": "allowed",
@@ -952,7 +935,7 @@ window.ORCH_SNAPSHOT = {
       "actorRef": "orchestrator",
       "correlationId": "archive:AF-011",
       "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "queue-scheduler",
+      "category": "state-store",
       "sideEffect": "restricted-write",
       "taskId": null,
       "result": "allowed",
@@ -969,7 +952,7 @@ window.ORCH_SNAPSHOT = {
       "actorRef": "orchestrator",
       "correlationId": "archive:AF-010",
       "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "queue-scheduler",
+      "category": "state-store",
       "sideEffect": "restricted-write",
       "taskId": null,
       "result": "allowed",
@@ -986,7 +969,7 @@ window.ORCH_SNAPSHOT = {
       "actorRef": "orchestrator",
       "correlationId": "archive:AF-009",
       "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "queue-scheduler",
+      "category": "state-store",
       "sideEffect": "restricted-write",
       "taskId": null,
       "result": "allowed",
@@ -1003,7 +986,7 @@ window.ORCH_SNAPSHOT = {
       "actorRef": "orchestrator",
       "correlationId": "run-once",
       "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "queue-scheduler",
+      "category": "state-store",
       "sideEffect": "restricted-write",
       "taskId": null,
       "result": "allowed",
@@ -1020,7 +1003,7 @@ window.ORCH_SNAPSHOT = {
       "actorRef": "orchestrator",
       "correlationId": "pack",
       "toolId": "TOOL-DELIVERY-PACK",
-      "category": "delivery-packing",
+      "category": "artifact-archive",
       "sideEffect": "restricted-write",
       "taskId": null,
       "result": "allowed",
@@ -1035,7 +1018,7 @@ window.ORCH_SNAPSHOT = {
       "actorRef": "orchestrator",
       "correlationId": "snapshot",
       "toolId": "TOOL-STATE-STORE",
-      "category": "state-persistence",
+      "category": "state-store",
       "sideEffect": "restricted-write",
       "taskId": null,
       "result": "allowed",
@@ -1972,6 +1955,31 @@ window.ORCH_SNAPSHOT = {
           }
         ],
         "archived": true
+      },
+      {
+        "taskId": "AF-018",
+        "title": null,
+        "type": null,
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "groupId": null,
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": null,
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-2026-11-16.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-implementation-2026-11-16.md"
+          }
+        ],
+        "archived": true
       }
     ],
     "statusMap": {
@@ -2401,6 +2409,16 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-017",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-implementation-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-018",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-2026-11-16.md"
+      },
+      {
+        "taskId": "AF-018",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-implementation-2026-11-16.md"
       }
     ],
     "groupId": null,
@@ -2429,23 +2447,6 @@ window.ORCH_SNAPSHOT = {
         "availability": "available"
       },
       {
-        "agentId": "AGENT-HUMAN-001",
-        "role": "human",
-        "skills": [
-          "goal-setting",
-          "policy-approval",
-          "arbitration",
-          "release-decision"
-        ],
-        "tools": [],
-        "resources": [
-          "docs/team/conventions.md",
-          "docs/team/agent-orchestration/"
-        ],
-        "limits": null,
-        "availability": "available"
-      },
-      {
         "agentId": "AGENT-ORCH-001",
         "role": "orchestrator",
         "skills": [
@@ -2458,12 +2459,12 @@ window.ORCH_SNAPSHOT = {
           "improvement-tracking"
         ],
         "tools": [
-          "state-persistence",
-          "queue-scheduler",
-          "acceptance-gate",
-          "delivery-packing",
-          "knowledge-capture",
-          "orchestration-cli"
+          "TOOL-STATE-STORE",
+          "TOOL-QUEUE-SCHEDULER",
+          "TOOL-ORCH-CLI",
+          "TOOL-IMPROVEMENT-LOG",
+          "TOOL-ACCEPTANCE-RUNNER",
+          "TOOL-DELIVERY-PACK"
         ],
         "resources": [
           "docs/worklog/pending/",
@@ -2474,11 +2475,12 @@ window.ORCH_SNAPSHOT = {
         "limits": null,
         "availability": "available"
       }
-    ]
+    ],
+    "unknownStatuses": []
   },
   "webRefresh": {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 34
+  "archivedCount": 35
 };

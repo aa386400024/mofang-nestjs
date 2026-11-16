@@ -1,39 +1,47 @@
 /**
  * AF-007 · 标准工具注册表（adapter 层收口）。
  *
- * 职责：把工具契约声明（tools/orchestration-tools.json）构建为运行时注册表；
- * 调用收口于本模块——角色白名单校验、副作用级别核对、调用审计留痕。代理侧不
- * 直接持有底层凭据或内部句柄；未列入白名单的角色一律拒绝。
+ * 职责：把工具契约声明（`tools/*.json`，一工具一文件，框架 2.0.0 单对象口径）
+ * 构建为运行时注册表；调用收口于本模块——角色白名单校验、副作用级别核对、调用
+ * 审计留痕。代理侧不直接持有底层凭据或内部句柄；未列入白名单的角色一律拒绝。
  *
  * 边界：注册表不执行工具本体逻辑，只做授权判定与审计；工具实现仍在各编排模块。
- * 角色 / 副作用枚举与框架 tool-contract schema 一致。
+ * 角色 / 类别 / 副作用枚举一律来自共享投影 `contract-enums.mjs`，不在本模块手写镜像。
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { PATHS } from './state-store.mjs';
 import { recordAudit } from './audit-log.mjs';
+import { ROLES, SIDE_EFFECTS, TOOL_CATEGORIES } from './contract-enums.mjs';
 
-/** 角色枚举（对齐框架 schema role）。 */
-export const ROLES = ['orchestrator', 'executor', 'reviewer', 'researcher', 'critic'];
-/** 副作用分级（对齐框架 schema sideEffect）。 */
-export const SIDE_EFFECTS = ['read-only', 'restricted-write', 'sensitive'];
+/** 角色 / 副作用 / 类别枚举（对齐框架 contract-enums 2.0.0，对外签名保持）。 */
+export { ROLES, SIDE_EFFECTS, TOOL_CATEGORIES };
 
-function readManifest() {
-  if (!existsSync(PATHS.toolsContractFile)) return { tools: [] };
-  const raw = JSON.parse(readFileSync(PATHS.toolsContractFile, 'utf8'));
-  return Array.isArray(raw.tools) ? raw : { tools: [] };
+/** 读取工具目录下全部单工具声明；目录缺失返回空数组。 */
+function readToolDefs() {
+  if (!existsSync(PATHS.toolsDir)) return [];
+  const tools = [];
+  for (const fileName of readdirSync(PATHS.toolsDir).sort()) {
+    if (!fileName.endsWith('.json')) continue;
+    tools.push(JSON.parse(readFileSync(join(PATHS.toolsDir, fileName), 'utf8')));
+  }
+  return tools;
 }
 
 /** 校验单条工具契约字段；返回错误清单（空数组即合法）。 */
 function validateToolDef(tool) {
   const errors = [];
+  const label = tool?.toolId ?? '未命名工具';
   if (!tool.toolId) errors.push('缺 toolId');
-  if (!tool.category) errors.push(`${tool.toolId ?? '未命名工具'}：缺 category`);
-  if (!SIDE_EFFECTS.includes(tool.sideEffect)) errors.push(`${tool.toolId ?? '未命名工具'}：sideEffect 非法（${String(tool.sideEffect)}）`);
+  else if (!/^[A-Z0-9][A-Z0-9-]*$/.test(tool.toolId)) errors.push(`${label}：toolId 须形如 TOOL-XXX`);
+  if (!tool.category) errors.push(`${label}：缺 category`);
+  else if (!TOOL_CATEGORIES.includes(tool.category)) errors.push(`${label}：category 不在 8 值枚举内（${tool.category}）`);
+  if (!SIDE_EFFECTS.includes(tool.sideEffect)) errors.push(`${label}：sideEffect 非法（${String(tool.sideEffect)}）`);
   if (!Array.isArray(tool.allowedRoles)) {
-    errors.push(`${tool.toolId ?? '未命名工具'}：allowedRoles 须为数组`);
+    errors.push(`${label}：allowedRoles 须为数组`);
   } else {
     for (const role of tool.allowedRoles) {
-      if (!ROLES.includes(role)) errors.push(`${tool.toolId ?? '未命名工具'}：角色非法（${role}）`);
+      if (!ROLES.includes(role)) errors.push(`${label}：角色非法（${role}）`);
     }
   }
   return errors;
@@ -62,11 +70,10 @@ export function buildRegistry(tools) {
   return registry;
 }
 
-/** 从仓内工具契约清单加载注册表；文件缺失或损坏时返回空注册表（容错不阻断）。 */
+/** 从仓内工具契约目录加载注册表；目录缺失或损坏时返回空注册表（容错不阻断）。 */
 export function loadRegistry() {
   try {
-    const manifest = readManifest();
-    return buildRegistry(manifest.tools);
+    return buildRegistry(readToolDefs());
   } catch {
     return { tools: {} };
   }

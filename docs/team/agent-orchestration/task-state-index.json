@@ -1,7 +1,7 @@
 {
-  "version": "1.0.0",
-  "schemaRef": "urn:agent-collaboration-framework:schema:task-state-index:1.0.0",
-  "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。字段可扩展、不删除既有字段；未来迁 DB 时一一对应。历史任务仅登记工件指针，基线与 claim 字段待按需补录。 type 字段索引侧不做枚举约束（schema additionalProperties 放宽，兼容项目扩展）；归档条目只保留工件指针，运行态字段不回填；schemaRef 指向框架 schema URN。",
+  "version": "1.1.0",
+  "schemaRef": "urn:agent-collaboration-framework:schema:task-state-index:1.1.0",
+  "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。字段可扩展、不删除既有字段。本部署未启用事件溯源，故无 projection 块：索引为唯一写面，history 内嵌；若日后迁事件溯源，按框架 docs/state-machine.md 增加 journal + projection 并由重建 CLI 生成。归档条目只保留工件指针（taskId/status/artifacts）；逐条说明因 archivedTask 关闭附加字段，统一外移到 archivedNotes（按 taskId 索引），内容未做任何改写。",
   "tasks": [],
   "archivedTasks": [
     {
@@ -220,8 +220,7 @@
         "taskSheet": "docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-2026-11-16.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-implementation-2026-11-16.md",
         "reply": null
-      },
-      "note": "交接契约 schema 与 transport reviews 接线；编排层 61 passed"
+      }
     },
     {
       "taskId": "AF-010",
@@ -230,8 +229,7 @@
         "taskSheet": "docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-2026-11-16.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-implementation-2026-11-16.md",
         "reply": null
-      },
-      "note": "派发接线 + 回执 watcher 与两层幂等；编排层 68 passed"
+      }
     },
     {
       "taskId": "AF-011",
@@ -240,8 +238,7 @@
         "taskSheet": "docs/worklog/completed/phase2.5/af011-file-scope-mutex-validation-2026-11-16.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af011-file-scope-mutex-validation-implementation-2026-11-16.md",
         "reply": null
-      },
-      "note": "文件域互斥纯函数 + claim 拦截 + V7 残留护栏；76 passed"
+      }
     },
     {
       "taskId": "AF-012",
@@ -250,8 +247,7 @@
         "taskSheet": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-2026-11-16.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-implementation-2026-11-16.md",
         "reply": null
-      },
-      "note": "分支流程 CLI + 纯函数治理；82 passed"
+      }
     },
     {
       "taskId": "AF-013",
@@ -260,8 +256,7 @@
         "taskSheet": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-2026-11-16.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-implementation-2026-11-16.md",
         "reply": "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md"
-      },
-      "note": "GUI 通道规则纯函数模块 + CLI channel 只读视图；真实只读演练 DR-001 闭环；89 passed"
+      }
     },
     {
       "taskId": "AF-014",
@@ -270,8 +265,7 @@
         "taskSheet": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-2026-11-16.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-implementation-2026-11-16.md",
         "reply": null
-      },
-      "note": "README §2/§4 + 三份角色卡 limits + 任务单模板对齐 §6.1 L1–L4 分层；纯文档零源码改动；IM-016 登记 conventions/回执模板旧口径另案"
+      }
     },
     {
       "taskId": "AF-015",
@@ -279,8 +273,7 @@
       "artifacts": {
         "taskSheet": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-2026-11-16.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-implementation-2026-11-16.md"
-      },
-      "note": "通道可靠性锚定§4:任务级预算/退避/终态出口/定性三分法/逐次留痕;94 passed;零业务源码改动"
+      }
     },
     {
       "taskId": "AF-016",
@@ -288,8 +281,7 @@
       "artifacts": {
         "taskSheet": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-2026-11-16.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-implementation-2026-11-16.md"
-      },
-      "note": "编排护栏:能力路由/资源域校验/rebase巡检/V7采集接线;112 passed;零业务源码改动"
+      }
     },
     {
       "taskId": "AF-017",
@@ -297,8 +289,27 @@
       "artifacts": {
         "taskSheet": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-2026-11-16.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-implementation-2026-11-16.md"
-      },
-      "note": "回执正文抽取双通道;116 passed;零业务源码改动"
+      }
+    },
+    {
+      "taskId": "AF-018",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-2026-11-16.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-implementation-2026-11-16.md"
+      }
     }
-  ]
+  ],
+  "archivedNotes": {
+    "AF-009": "交接契约 schema 与 transport reviews 接线；编排层 61 passed",
+    "AF-010": "派发接线 + 回执 watcher 与两层幂等；编排层 68 passed",
+    "AF-011": "文件域互斥纯函数 + claim 拦截 + V7 残留护栏；76 passed",
+    "AF-012": "分支流程 CLI + 纯函数治理；82 passed",
+    "AF-013": "GUI 通道规则纯函数模块 + CLI channel 只读视图；真实只读演练 DR-001 闭环；89 passed",
+    "AF-014": "README §2/§4 + 三份角色卡 limits + 任务单模板对齐 §6.1 L1–L4 分层；纯文档零源码改动；IM-016 登记 conventions/回执模板旧口径另案",
+    "AF-015": "通道可靠性锚定§4:任务级预算/退避/终态出口/定性三分法/逐次留痕;94 passed;零业务源码改动",
+    "AF-016": "编排护栏:能力路由/资源域校验/rebase巡检/V7采集接线;112 passed;零业务源码改动",
+    "AF-017": "回执正文抽取双通道;116 passed;零业务源码改动",
+    "AF-018": "适配层迁移到框架 v2.0.0；契约 1.1.0 / 工具一文件 / 交付包 1.0.0；保留 34 条归档与 DR-001；129 passed"
+  }
 }

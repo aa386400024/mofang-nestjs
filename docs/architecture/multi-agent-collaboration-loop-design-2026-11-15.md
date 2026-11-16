@@ -4,7 +4,7 @@
 > 文档性质：**目标态参考架构** —— 按业界主流多 agent 系统的标准组件、协议模型与横切平面给出设计；不围绕现有 relay 交接模式做兼容或过渡设计。项目特定约束（红线、目录、命令规范）集中在附录 A，不作为架构迁就对象。本方案不改动任何 `src/` / `spec/`。
 > 依据：Anthropic 多 agent 编排模式与工件实践；A2A v1.0 任务模型；MCP 工具协议；主流编排框架通用能力（LangGraph / CrewAI / AutoGen / OpenAI Agents SDK 等）；公开资料见 §15。
 >
-> **框架归属（2026-11-15 标注）**：本文档为目标态参考架构的选型论证留档。标准任务模型（§4）、工件与版本治理（§8）、五类核对（§9.2）、可靠性（§10）、权限策略（§11）、人在环（§12）等通用概念，现行落地口径以通用框架仓 v1.0.0（`E:\Work\Project\agent-collaboration-framework`）为准；编排模式对照、DAG / 嵌套委派、可观测性、协议与框架选型维度等目标态论证未进入框架现行版本，作为本仓设计参考保留。附录 A 项目约束、附录 B 待决策项属适配层 / Human 决策，留在本仓。
+> **框架归属（2026-11-15 标注）**：本文档为目标态参考架构的选型论证留档。标准任务模型（§4）、工件与版本治理（§8）、五类核对（§9.2）、可靠性（§10）、权限策略（§11）、人在环（§12）等通用概念，现行落地口径以通用框架仓 v2.0.0（tag `v2.0.0`；`D:\work\Project\agent-collaboration-framework`）为准；编排模式对照、DAG / 嵌套委派、可观测性、协议与框架选型维度等目标态论证未进入框架现行版本，作为本仓设计参考保留。附录 A 项目约束、附录 B 待决策项属适配层 / Human 决策，留在本仓。
 
 ---
 
@@ -187,7 +187,7 @@
 | 落地   | changedFiles（added / modified / deleted）、artifactRefs                | 实际改动与工件引用 |
 | 证据   | gateResults（命令、exit、error / warning、用例数 / 文件数）、reproNotes | 可复现的闸门证据   |
 | 范围   | scopeCheck、parallelArtifactsExcluded、noOutscopeRefactor               | 隔离核对结果       |
-| 契约   | contractChecks、schemaVersion、fieldAlignment                           | 口径与类型对齐结果 |
+| 契约   | contractChecks、contractRef、fieldAlignment                             | 口径与类型对齐结果 |
 | 遗留   | backlogItems、openQuestions、manualReviewList                           | 既有债与待人工复核 |
 | 偏差   | deviationTable（任务单写法 / 代码现实 / 处理 / 理由）                   | 与任务单的出入说明 |
 | 状态   | finalStatus、reviewVerdict、verdictRationale                            | 终态与验收结论     |
@@ -276,7 +276,7 @@
 
 ### 8.1 工件模型
 
-- 工件含：内容、schemaVersion、provenance、版本号、依赖工件引用；
+- 工件含：内容、contractRef（契约 urn）、provenance、版本号、依赖工件引用；
 - 工件类型与结构由任务契约定义；结构化工件优先 DataPart，二进制 / 文档走 FilePart。
 
 ### 8.2 Provenance（来源追溯）

@@ -13,24 +13,46 @@
  * 索引，不做文件存在性检查（存在性归验收层）。契约字段只增不删；既有交接件行为保持不变。
  */
 
-import { TASK_ID_PATTERN, TASK_TYPES, TASK_STATUSES, FINAL_STATUSES, REVIEW_VERDICTS } from './contract-enums.mjs';
+import {
+  CONTRACT_REF_PATTERN,
+  ROLES,
+  TASK_ID_PATTERN,
+  TASK_TYPES,
+  TASK_STATUSES,
+  TERMINAL_STATUSES,
+  REVIEW_VERDICTS,
+} from './contract-enums.mjs';
 
-/** 交接件契约版本（随数据下发，消费端按版本分派解析）。 */
-export const HANDOVER_SCHEMA_VERSION = '1.0.0';
+/**
+ * 交接件契约引用（框架 2.0.0 用 `contractRef` urn 取代 `schemaVersion` 数字串，
+ * 消费端按 urn 分派解析；版本真相源为框架仓 `schemas/versions.json`）。
+ */
+export const TASK_CONTRACT_REF = 'urn:agent-collaboration-framework:schema:task-sheet:1.1.0';
+export const RECEIPT_CONTRACT_REF = 'urn:agent-collaboration-framework:schema:receipt:1.0.0';
+export const REVIEW_CONTRACT_REF = 'urn:agent-collaboration-framework:schema:review-handover:1.1.0';
 
 /** 任务类型 / 状态 / 终态 / 验收结论枚举（共享投影派生；对外签名保持不变）。 */
-export { TASK_TYPES, TASK_STATUSES, FINAL_STATUSES, REVIEW_VERDICTS };
+export { TASK_TYPES, TASK_STATUSES, TERMINAL_STATUSES, REVIEW_VERDICTS };
+/** 兼容别名（历史导入路径）：finalStatuses 在 2.0.0 已更名 terminalStatuses。 */
+export const FINAL_STATUSES = TERMINAL_STATUSES;
 
-/** 回执七组字段（框架 receipt-contract.md §1，逐字同名）。 */
+/** 回执七组字段（框架 receipt-contract.md §1，逐字同名；契约版本以 contractRef 表达）。 */
 export const RECEIPT_GROUPS = {
   landing: ['changedFiles', 'artifactRefs'],
   evidence: ['gateResults', 'reproNotes'],
   scope: ['scopeCheck', 'parallelArtifactsExcluded', 'noOutscopeRefactor'],
-  contract: ['contractChecks', 'schemaVersion', 'fieldAlignment'],
+  contract: ['contractChecks', 'contractRef', 'fieldAlignment'],
   legacy: ['backlogItems', 'openQuestions', 'manualReviewList'],
   deviation: ['deviationTable'],
   verdict: ['finalStatus', 'reviewVerdict', 'verdictRationale'],
 };
+
+/** date-time（必须带时区偏移或 Z；框架 2.0.0 时间字段口径）。 */
+const DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+
+function isDateTime(value) {
+  return typeof value === 'string' && DATE_TIME.test(value) && !Number.isNaN(Date.parse(value));
+}
 
 /** 回执头部标识字段（框架 receipt-contract.md §2）。 */
 const RECEIPT_HEADERS = ['taskId', 'contextId', 'type', 'baselineRef', 'dependsOn', 'policyRefs'];
@@ -81,8 +103,14 @@ export function validateTaskHandover(input) {
   if (!TASK_STATUSES.includes(status)) {
     pushError(errors, 'status', `必须为枚举之一：${TASK_STATUSES.join(' / ')}`);
   }
-  if (typeof createdAt !== 'string' || createdAt.length === 0) {
-    pushError(errors, 'createdAt', '缺失或为空（ISO 日期）');
+  if (!isDateTime(createdAt)) {
+    pushError(errors, 'createdAt', '缺失或非 date-time（须带时区偏移，如 2026-11-16T10:00:00+08:00 或 ...Z）');
+  }
+  if (input.contractRef !== undefined && !(typeof input.contractRef === 'string' && CONTRACT_REF_PATTERN.test(input.contractRef))) {
+    pushError(errors, 'contractRef', '必须为契约引用 urn（urn:<domain>:schema:<contract>:<version>）');
+  }
+  if (input.agentRole !== undefined && input.agentRole !== null && !ROLES.includes(input.agentRole)) {
+    pushError(errors, 'agentRole', `必须为可派发角色枚举之一：${ROLES.join(' / ')}（human 不可派发）`);
   }
   if (input.dependsOn !== undefined && !isStringArray(input.dependsOn)) {
     pushError(errors, 'dependsOn', '必须为非空字符串数组');
@@ -181,7 +209,9 @@ export function validateReviewHandover(input) {
     pushError(errors, 'createdBy', '缺失或为空');
   }
   if (typeof input.createdAt !== 'string' || input.createdAt.length === 0) {
-    pushError(errors, 'createdAt', '缺失或为空（ISO 日期）');
+    pushError(errors, 'createdAt', '缺失或为空');
+  } else if (!isDateTime(input.createdAt)) {
+    pushError(errors, 'createdAt', '非 date-time（须带时区偏移）');
   }
   if (input.resolution !== undefined) {
     if (!isObject(input.resolution)) {
@@ -222,9 +252,9 @@ export function buildTaskHandover(record, { producedBy = 'orchestrator' } = {}) 
     references,
     constraints,
   } = record ?? {};
-  return {
+  const handover = {
     handoverKind: 'task',
-    schemaVersion: HANDOVER_SCHEMA_VERSION,
+    contractRef: TASK_CONTRACT_REF,
     taskId,
     contextId,
     type,
@@ -242,7 +272,6 @@ export function buildTaskHandover(record, { producedBy = 'orchestrator' } = {}) 
     exclusions: exclusions ?? [],
     requiredSkills: requiredSkills ?? [],
     requiredTools: requiredTools ?? [],
-    agentRole: agentRole ?? null,
     artifacts: artifacts ?? [],
     gates: gates ?? [],
     priority: priority ?? null,
@@ -253,13 +282,16 @@ export function buildTaskHandover(record, { producedBy = 'orchestrator' } = {}) 
     producedBy,
     producedAt: new Date().toISOString(),
   };
+  // agentRole 为可选字段：未指派时省略（不写 null，避免与角色枚举冲突）。
+  if (agentRole) handover.agentRole = agentRole;
+  return handover;
 }
 
-/** 构造回执交接件：头部标识 + 七组字段原样携带，补契约版本与来源追溯字段。 */
+/** 构造回执交接件：头部标识 + 七组字段原样携带，补契约引用与来源追溯字段。 */
 export function buildReceiptHandover(receipt, { producedBy = 'executor' } = {}) {
   return {
     handoverKind: 'receipt',
-    schemaVersion: HANDOVER_SCHEMA_VERSION,
+    contractRef: RECEIPT_CONTRACT_REF,
     ...receipt,
     producedBy,
     producedAt: new Date().toISOString(),
@@ -270,7 +302,7 @@ export function buildReceiptHandover(receipt, { producedBy = 'executor' } = {}) 
 export function buildReviewHandover(review, { producedBy = 'executor' } = {}) {
   return {
     handoverKind: 'review',
-    schemaVersion: HANDOVER_SCHEMA_VERSION,
+    contractRef: REVIEW_CONTRACT_REF,
     ...review,
     producedBy,
     producedAt: new Date().toISOString(),

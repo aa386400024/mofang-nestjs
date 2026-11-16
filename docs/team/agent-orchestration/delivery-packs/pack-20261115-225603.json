@@ -1,6 +1,28 @@
 {
-  "schemaVersion": "1.0.0",
-  "generatedAt": "2026-11-15T14:56:03.135Z",
+  "packageId": "PACK-20261115-225603",
+  "cycle": {
+    "startedAt": "2026-11-15T14:56:03.135Z",
+    "endedAt": "2026-11-15T14:56:03.135Z",
+    "mode": "human-in-the-loop",
+    "queueSize": 4,
+    "stopReason": "human-stop"
+  },
+  "counts": {
+    "passed": 0,
+    "conditionalPass": 0,
+    "rejected": 0,
+    "failed": 0,
+    "deadLettered": 0
+  },
+  "tasks": [],
+  "deadLetters": [],
+  "leftovers": {
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": []
+  },
+  "pendingApprovals": [],
+  "queueSnapshot": [],
   "meta": {
     "mode": {
       "autoLoopEnabled": false,
@@ -107,66 +129,68 @@
       ]
     }
   },
-  "taskResults": [
-    {
-      "taskId": "AF-005",
-      "contextId": "framework-evolution",
-      "type": "implementation",
-      "status": "backlog",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "reworkOf": null,
-      "artifactRefs": {
-        "taskSheet": "docs/worklog/pending/af005-framework-evolution-watcher-state-machine-2026-11-15.md",
-        "deliveryRecord": null
+  "snapshotRef": "E:\\Work\\Project\\backend\\mofang-nestjs\\docs\\team\\agent-orchestration\\orchestration-snapshot.json",
+  "legacy": {
+    "schemaVersion": "1.0.0",
+    "generatedAt": "2026-11-15T14:56:03.135Z",
+    "taskResults": [
+      {
+        "taskId": "AF-005",
+        "contextId": "framework-evolution",
+        "type": "implementation",
+        "status": "backlog",
+        "verdict": null,
+        "verdictRationale": null,
+        "attemptCount": 0,
+        "reworkOf": null,
+        "artifactRefs": {
+          "taskSheet": "docs/worklog/pending/af005-framework-evolution-watcher-state-machine-2026-11-15.md",
+          "deliveryRecord": null
+        }
+      },
+      {
+        "taskId": "AF-006",
+        "contextId": "framework-evolution",
+        "type": "implementation",
+        "status": "backlog",
+        "verdict": null,
+        "verdictRationale": null,
+        "attemptCount": 0,
+        "reworkOf": null,
+        "artifactRefs": {
+          "taskSheet": "docs/worklog/pending/af006-framework-evolution-validation-scripts-2026-11-15.md",
+          "deliveryRecord": null
+        }
+      },
+      {
+        "taskId": "AF-007",
+        "contextId": "framework-evolution",
+        "type": "implementation",
+        "status": "backlog",
+        "verdict": null,
+        "verdictRationale": null,
+        "attemptCount": 0,
+        "reworkOf": null,
+        "artifactRefs": {
+          "taskSheet": "docs/worklog/pending/af007-framework-evolution-tool-standardization-2026-11-15.md",
+          "deliveryRecord": null
+        }
+      },
+      {
+        "taskId": "AF-008",
+        "contextId": "framework-evolution",
+        "type": "implementation",
+        "status": "backlog",
+        "verdict": null,
+        "verdictRationale": null,
+        "attemptCount": 0,
+        "reworkOf": null,
+        "artifactRefs": {
+          "taskSheet": "docs/worklog/pending/af008-framework-evolution-agent-protocol-mapping-2026-11-15.md",
+          "deliveryRecord": null
+        }
       }
-    },
-    {
-      "taskId": "AF-006",
-      "contextId": "framework-evolution",
-      "type": "implementation",
-      "status": "backlog",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "reworkOf": null,
-      "artifactRefs": {
-        "taskSheet": "docs/worklog/pending/af006-framework-evolution-validation-scripts-2026-11-15.md",
-        "deliveryRecord": null
-      }
-    },
-    {
-      "taskId": "AF-007",
-      "contextId": "framework-evolution",
-      "type": "implementation",
-      "status": "backlog",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "reworkOf": null,
-      "artifactRefs": {
-        "taskSheet": "docs/worklog/pending/af007-framework-evolution-tool-standardization-2026-11-15.md",
-        "deliveryRecord": null
-      }
-    },
-    {
-      "taskId": "AF-008",
-      "contextId": "framework-evolution",
-      "type": "implementation",
-      "status": "backlog",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "reworkOf": null,
-      "artifactRefs": {
-        "taskSheet": "docs/worklog/pending/af008-framework-evolution-agent-protocol-mapping-2026-11-15.md",
-        "deliveryRecord": null
-      }
-    }
-  ],
-  "deadLetters": [],
-  "openItems": [],
-  "pendingApprovals": [],
-  "snapshotRef": "E:\\Work\\Project\\backend\\mofang-nestjs\\docs\\team\\agent-orchestration\\orchestration-snapshot.json"
+    ],
+    "openItems": []
+  }
 }

@@ -4,7 +4,7 @@
 > 文档性质：**落地形态方案** —— 面向"单人 + 双桌面 agent（主控 / 执行）+ 文件交接"当前规模的标准实践裁剪版；与目标态参考架构 `multi-agent-collaboration-loop-design-2026-11-15.md` 配套：那份讲完整标准，这份讲当前怎么落地、哪些组件已实现、哪些留扩展点、以后如何平滑演进。本方案不改动任何 `src/` / `spec/`。
 > 适用前提：独立开发者；主控 agent（Doubao）负责规划 / 调度 / 验收 / 归档；执行 agent（MiniMax Code）在受控切片内实现；仓库为 mofang-nestjs（NestJS 后端）；交接面为本地文件系统 + 定时轮询。
 >
-> **框架归属（2026-11-15 标注）**：本文档的通用协作概念——角色模型（§3）、任务与工件标准模型（§4）、状态机（§6）、上下文与记忆（§9）、验收五类（§10）、可靠性规则（§11）、演进路线（§12）、人机边界（§13）——已由通用框架仓 v1.0.0 承载（`E:\Work\Project\agent-collaboration-framework`，对应 `docs/`、`schemas/`、`templates/`）。本文档作为本项目的设计决策留档保留；上述通用口径以框架仓为唯一真相源，本文档与框架仓不一致时以框架仓为准。项目特定约束（目录约定 §5.1、附录 B 仓库规范衔接）属适配层，留在本仓 `docs/team/agent-orchestration/`。
+> **框架归属（2026-11-15 标注）**：本文档的通用协作概念——角色模型（§3）、任务与工件标准模型（§4）、状态机（§6）、上下文与记忆（§9）、验收五类（§10）、可靠性规则（§11）、演进路线（§12）、人机边界（§13）——已由通用框架仓 v2.0.0（tag `v2.0.0`，commit `c507188`）承载（`D:\work\Project\agent-collaboration-framework`，对应 `docs/`、`schemas/`、`templates/`）。本文档作为本项目的设计决策留档保留；上述通用口径以框架仓为唯一真相源，本文档与框架仓不一致时以框架仓为准。项目特定约束（目录约定 §5.1、附录 B 仓库规范衔接）属适配层，留在本仓 `docs/team/agent-orchestration/`。
 
 ---
 
@@ -142,7 +142,7 @@ createdAt: 2026-11-15
 | 落地   | changedFiles（added / modified / deleted）、artifactRefs                |
 | 证据   | gateResults（命令、exit、error / warning、用例数 / 文件数）、reproNotes |
 | 范围   | scopeCheck、parallelArtifactsExcluded、noOutscopeRefactor               |
-| 契约   | contractChecks、schemaVersion、fieldAlignment                           |
+| 契约   | contractChecks、contractRef、fieldAlignment                             |
 | 遗留   | backlogItems、openQuestions、manualReviewList                           |
 | 偏差   | deviationTable（任务单写法 / 代码现实 / 处理 / 理由）                   |
 | 结论   | finalStatus、reviewVerdict、verdictRationale                            |

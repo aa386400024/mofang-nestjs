@@ -1,5 +1,4 @@
 {
-  "schemaRef": "urn:agent-collaboration-framework:schema:agent-card:1.0.0",
   "agentId": "AGENT-EXEC-001",
   "role": "executor",
   "skills": ["implementation", "gate-evidence", "deviation-reporting", "self-test"],
@@ -19,5 +18,6 @@
     ]
   },
   "availability": "available",
-  "note": "执行 AI（MiniMax Code）；researcher / critic 角色当前未启用，需要调研或独立评审任务时再绑定。本角色不进入分支与提交链路：L1 任务分支提交由验收后的 orchestrator 完成（设计备忘 §6.1）。"
+  "note": "执行 AI（MiniMax Code）；researcher / critic 角色当前未启用，需要调研或独立评审任务时再绑定。本角色不进入分支与提交链路：L1 任务分支提交由验收后的 orchestrator 完成（设计备忘 §6.1）。",
+  "contractRef": "urn:agent-collaboration-framework:schema:agent-card:1.1.0"
 }

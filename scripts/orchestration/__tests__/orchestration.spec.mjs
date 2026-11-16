@@ -3,7 +3,7 @@
  * 覆盖：配置校验、状态迁移合法性、自治守门、快照计数与人工复核回填、验收 rejected 结论。
  */
 import { describe, expect, it } from 'vitest';
-import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -11,10 +11,12 @@ import { fileURLToPath } from 'node:url';
 import { validateConfig, PATHS, REPO_ROOT } from '../state-store.mjs';
 import {
   validateAgentCard,
+  validateContractVersion,
+  validateDeliveryPackage,
   validateReviewHandoverSchema,
   validateTaskIndex,
   validateTaskSheet,
-  validateToolManifest,
+  validateToolDir,
 } from '../validator.mjs';
 import { buildRegistry, call as registryCall } from '../tool-registry.mjs';
 import { listAudits, recordAudit, summarizeAudits } from '../audit-log.mjs';
@@ -27,14 +29,24 @@ import {
   validateReceiptHandover,
   validateReviewHandover,
   buildTaskHandover,
-  HANDOVER_SCHEMA_VERSION,
+  TASK_CONTRACT_REF,
+  RECEIPT_CONTRACT_REF,
+  REVIEW_CONTRACT_REF,
   TASK_TYPES,
   TASK_STATUSES,
   FINAL_STATUSES,
   REVIEW_VERDICTS,
 } from '../handover-contract.mjs';
-import { TASK_ID_PATTERN as SHARED_TASK_ID_PATTERN } from '../contract-enums.mjs';
+import {
+  TASK_ID_PATTERN as SHARED_TASK_ID_PATTERN,
+  TERMINAL_STATUSES,
+  ROLES,
+  NON_ROUTABLE_ROLES,
+  TOOL_CATEGORIES,
+  ARTIFACT_KINDS,
+} from '../contract-enums.mjs';
 import { ARCHIVE_STATUSES, archiveTaskEntry, canTransition, shouldAdvance, buildSnapshot } from '../scheduler.mjs';
+import { generateDeliveryPack } from '../delivery-pack.mjs';
 import { dispatchTask, buildDispatchRecord, receiptFingerprint, isReceiptProcessed, markReceiptProcessed } from '../dispatch.mjs';
 import { normalizeScope, findScopeConflicts, detectResidualFiles, scopeCovers } from '../scope-mutex.mjs';
 import {
@@ -501,9 +513,8 @@ describe('validator AF-006 框架 schema 机读校验', () => {
     assertNotFailed(res);
   });
 
-  it('仓内现有工具契约清单通过 schema 校验', async () => {
-    const manifest = readJsonFile(PATHS.toolsContractFile);
-    const res = await validateToolManifest(manifest);
+  it('仓内现有工具契约目录通过 schema 校验', async () => {
+    const res = await validateToolDir(PATHS.toolsDir);
     assertNotFailed(res);
   });
 
@@ -752,6 +763,15 @@ describe('AF-008 协议映射层', () => {
     expect(view.capabilityDeclarations).toHaveLength(1);
     expect(view.tasks.find((t) => t.taskId === 'T-0').archived).toBe(true);
   });
+
+  it('tolerant 策略：未知状态值原样透传并列入 unknownStatuses，不猜造标准态', () => {
+    const view = buildProtocolView({
+      tasks: [{ taskId: 'T-2', status: 'quarantined', artifacts: {} }],
+      archivedTasks: [],
+    });
+    expect(view.tasks[0].status.protocol).toBe('UNKNOWN');
+    expect(view.unknownStatuses).toEqual(['quarantined']);
+  });
 });
 
 describe('AF-008 Transport 端口与文件实现', () => {
@@ -787,7 +807,7 @@ describe('AF-009 交接契约校验与构造器', () => {
     type: 'implementation',
     title: '交接契约 schema 与 transport 接线',
     status: 'backlog',
-    createdAt: '2026-11-16',
+    createdAt: '2026-11-16T08:00:00+08:00',
     scope: { files: ['scripts/orchestration/transport.mjs'], modules: [], interfaces: [] },
     dependsOn: [],
     policyRefs: ['framework/task-contract.md'],
@@ -809,7 +829,7 @@ describe('AF-009 交接契约校验与构造器', () => {
       parallelArtifactsExcluded: true,
       noOutscopeRefactor: true,
       contractChecks: [{ field: 'taskId', aligned: true }],
-      schemaVersion: HANDOVER_SCHEMA_VERSION,
+      contractRef: RECEIPT_CONTRACT_REF,
       fieldAlignment: { taskId: 'matched' },
       backlogItems: [],
       openQuestions: [],
@@ -838,11 +858,11 @@ describe('AF-009 交接契约校验与构造器', () => {
     };
   }
 
-  it('合法任务交接件通过校验；构造器补契约版本与追溯字段', () => {
+  it('合法任务交接件通过校验；构造器补契约引用与追溯字段', () => {
     expect(validateTaskHandover(validTask)).toMatchObject({ valid: true, errors: [] });
     const built = buildTaskHandover(validTask);
     expect(built.handoverKind).toBe('task');
-    expect(built.schemaVersion).toBe(HANDOVER_SCHEMA_VERSION);
+    expect(built.contractRef).toBe(TASK_CONTRACT_REF);
     expect(built.producedBy).toBe('orchestrator');
     expect(built.producedAt).toBeTruthy();
     expect(built.dependsOn).toEqual([]);
@@ -933,7 +953,7 @@ describe('AF-010 派发接线与回执幂等', () => {
     type: 'implementation',
     title: '派发接线与回执监听',
     status: 'ready',
-    createdAt: '2026-11-16',
+    createdAt: '2026-11-16T08:00:00+08:00',
     scope: { files: ['scripts/orchestration/scheduler.mjs'], modules: [], interfaces: [] },
     dependsOn: [],
     policyRefs: [],
@@ -1510,7 +1530,7 @@ describe('AF-016 dispatchTask 能力路由接线', () => {
       type: 'implementation',
       title: '能力路由与资源域护栏',
       status: 'ready',
-      createdAt: '2026-11-16',
+      createdAt: '2026-11-16T08:00:00+08:00',
       scope: { files: ['src/a.ts'] },
       dependsOn: [],
       policyRefs: [],
@@ -1552,8 +1572,13 @@ describe('契约枚举 vendored 投影对账（IM-005）', () => {
   it('导出枚举与 vendored 投影取值与顺序一致', () => {
     expect(TASK_TYPES).toEqual(enums.taskTypes);
     expect(TASK_STATUSES).toEqual(enums.taskStatuses);
-    expect(FINAL_STATUSES).toEqual(enums.finalStatuses);
+    expect(TERMINAL_STATUSES).toEqual(enums.terminalStatuses);
+    expect(FINAL_STATUSES).toEqual(TERMINAL_STATUSES);
     expect(REVIEW_VERDICTS).toEqual(enums.reviewVerdicts);
+    expect(ROLES).toEqual(enums.roles);
+    expect(NON_ROUTABLE_ROLES).toEqual(enums.nonRoutableRoles);
+    expect(TOOL_CATEGORIES).toEqual(enums.toolCategories);
+    expect(ARTIFACT_KINDS).toEqual(enums.artifactKinds);
   });
 
   it('taskId 模式与投影一致，且正反例匹配正确', () => {
@@ -1583,8 +1608,91 @@ describe('契约枚举 vendored 投影对账（IM-005）', () => {
     const fw = readJsonFile(fwFile);
     expect(fw.taskTypes).toEqual(enums.taskTypes);
     expect(fw.taskStatuses).toEqual(enums.taskStatuses);
-    expect(fw.finalStatuses).toEqual(enums.finalStatuses);
+    expect(fw.terminalStatuses).toEqual(enums.terminalStatuses);
     expect(fw.reviewVerdicts).toEqual(enums.reviewVerdicts);
+    expect(fw.roles).toEqual(enums.roles);
+    expect(fw.toolCategories).toEqual(enums.toolCategories);
     expect(fw.taskIdPattern).toBe(enums.taskIdPattern);
+  });
+});
+
+describe('适配层实例 2.0.0 合规（仓内真实工件，只读）', () => {
+  const packFile = join(PATHS.deliveryPackDir, 'pack-20261115-225603.json');
+
+  it('仓内状态索引通过 task-state-index 1.1.0 校验，且归档说明已外移', async () => {
+    const index = readJsonFile(PATHS.index);
+    const res = await validateTaskIndex(index);
+    assertNotFailed(res);
+    expect(index.version).toBe('1.1.0');
+    for (const entry of index.archivedTasks) expect(entry.note).toBeUndefined();
+    expect(Object.keys(index.archivedNotes ?? {}).length).toBeGreaterThan(0);
+  });
+
+  it('仓内 Agent Card 均通过 agent-card 1.1.0 校验，且无 human 卡', async () => {
+    const files = readdirSync(PATHS.agentCardsDir).filter((f) => f.endsWith('.json'));
+    expect(files).not.toContain('human.json');
+    for (const file of files) {
+      const card = readJsonFile(join(PATHS.agentCardsDir, file));
+      const res = await validateAgentCard(card);
+      assertNotFailed(res);
+      expect(ROLES).toContain(card.role);
+      expect(card.contractRef).toContain(':agent-card:1.1.0');
+    }
+  });
+
+  it('仓内交付包通过 delivery-package 1.0.0 校验', async () => {
+    if (!existsSync(packFile)) return;
+    const res = await validateDeliveryPackage(readJsonFile(packFile));
+    assertNotFailed(res);
+    const pack = readJsonFile(packFile);
+    expect(pack.leftovers).toBeTruthy();
+    expect(pack.legacy).toBeTruthy();
+  });
+
+  it('交付包生成器（write:false）产物通过 delivery-package 1.0.0 校验', async () => {
+    const { pack } = generateDeliveryPack({ write: false });
+    const res = await validateDeliveryPackage(pack);
+    assertNotFailed(res);
+    expect(pack.packageId).toMatch(/^PACK-\d{8}-\d{6}$/);
+    expect(['human-on-the-loop', 'human-in-the-loop']).toContain(pack.cycle.mode);
+    expect(['queue-empty', 'limit-reached', 'circuit-open', 'human-stop']).toContain(pack.cycle.stopReason);
+    expect(pack.counts.deadLettered).toBe(pack.deadLetters.length);
+  });
+
+  it('契约版本对账：声明版本与框架 versions.json 一致 / 漂移被拦', () => {
+    const index = readJsonFile(PATHS.index);
+    expect(validateContractVersion(index, 'task-state-index').ok).toBe(true);
+    const drifted = { ...index, schemaRef: 'urn:agent-collaboration-framework:schema:task-state-index:1.0.0' };
+    const res = validateContractVersion(drifted, 'task-state-index');
+    expect(res.ok).toBe(false);
+    expect(res.errors.map((e) => e.message).join(' ')).toMatch('版本');
+  });
+
+  it('工具目录缺 category 枚举外取值时被 validateToolDir 拦截', async () => {
+    const tmp = join(tmpdir(), `orch-tools-${Date.now()}`);
+    mkdirSync(tmp, { recursive: true });
+    try {
+      writeFileSync(
+        join(tmp, 'TOOL-BAD.json'),
+        JSON.stringify(
+          {
+            toolId: 'TOOL-BAD',
+            category: 'legacy-persistence',
+            sideEffect: 'restricted-write',
+            allowedRoles: ['orchestrator'],
+          },
+          null,
+          2,
+        ),
+        'utf8',
+      );
+      const res = await validateToolDir(tmp);
+      if (!res.skipped) {
+        expect(res.ok).toBe(false);
+        expect(res.errors.map((e) => e.message).join(' ')).toMatch('category');
+      }
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   });
 });

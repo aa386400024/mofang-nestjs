@@ -8,15 +8,15 @@
 
 ### 1.1 已具备机制
 
-| 机制                                                         | 落点                                                                                               |
-| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| 角色卡与能力声明                                             | `agent-cards/orchestrator.json`、`executor.json`、`human.json`                                     |
-| 九态状态机、任务租约、超时释放                               | `scripts/orchestration/scheduler.mjs`                                                              |
-| 验收五类与机读护栏 V1–V6                                     | `acceptance-runner.mjs`、`acceptance-checklist.md`                                                 |
-| 回执七字段、交付记录模板                                     | `relay-receipt-template.md`；框架仓 `docs/receipt-contract.md`                                     |
-| 改进台账、工具审计、Store 端口、文件 Transport、watcher 防抖 | `improvement-log.mjs`、`audit-log.mjs`、`store-port.mjs`、`transport.mjs`、`file-watcher.mjs`      |
-| 提交钩子                                                     | `.husky/pre-commit`（lint-staged：oxlint + prettier）、`.husky/commit-msg`（conventional 正则）    |
-| 远端 CI                                                      | `.github/workflows/ci.yml`：lint+typecheck、unit 分片、e2e、coverage、Docker build、security audit |
+| 机制                                                         | 落点                                                                                                                    |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| 角色卡与能力声明                                             | `agent-cards/orchestrator.json`、`executor.json`（human 属 `nonRoutableRoles`，不产卡，边界见 `agent-cards/README.md`） |
+| 九态状态机、任务租约、超时释放                               | `scripts/orchestration/scheduler.mjs`                                                                                   |
+| 验收五类与机读护栏 V1–V6                                     | `acceptance-runner.mjs`、`acceptance-checklist.md`                                                                      |
+| 回执七字段、交付记录模板                                     | `relay-receipt-template.md`；框架仓 `docs/receipt-contract.md`                                                          |
+| 改进台账、工具审计、Store 端口、文件 Transport、watcher 防抖 | `improvement-log.mjs`、`audit-log.mjs`、`store-port.mjs`、`transport.mjs`、`file-watcher.mjs`                           |
+| 提交钩子                                                     | `.husky/pre-commit`（lint-staged：oxlint + prettier）、`.husky/commit-msg`（conventional 正则）                         |
+| 远端 CI                                                      | `.github/workflows/ci.yml`：lint+typecheck、unit 分片、e2e、coverage、Docker build、security audit                      |
 
 ### 1.2 待补缺口
 

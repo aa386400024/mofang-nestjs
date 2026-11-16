@@ -3,6 +3,7 @@
 > 日期：2026-11-15　拟稿：主控 AI（Doubao）
 > 文档性质：四条 backlog 框架演进项的**实施契约**。本备忘定义模块边界、数据模型、接口端口、依赖顺序、闸门与红线；运行时落本仓 adapter，框架仓只补规范 / schema / 示例。
 > 与既有文档关系：`orchestration-l2-autonomous-pipeline-2026-11-15.md` 是当前 L2 承载现状；本备忘是其上的 L1 工具收口、L2 持久化 / watcher、L3 协议映射增量。
+> 通用口径边界（2026-11-16 复核）：任务契约 / 状态机 / 工具契约 / 能力声明 / 交付包的字段与枚举一律以框架仓 v2.0.0（tag `v2.0.0`，commit `c507188`）为准（版本轴 `schemas/versions.json`，schema 共 6 份：task-sheet / task-state-index / tool-contract / agent-card / review-handover / delivery-package）；本文档保留为实施决策留档，与框架仓不一致时以框架仓为准。
 
 ---
 
@@ -53,8 +54,8 @@ scripts/orchestration/
   audit-log.mjs          # 工具调用审计记录落盘（actorRef / correlationId / resources / sideEffect / recordedAt）
 
 docs/team/agent-orchestration/
-  tools/orchestration-tools.json   # 既有：6 条工具契约（本轮补 audit 样例字段对齐）
-  agent-cards/*.json                # 既有：3 份能力声明
+  tools/TOOL-*.json                # 一工具一文件（6 条工具契约，2.0.0 类别映射见适配层 README §4.1）
+  agent-cards/*.json                # 2 份可路由角色卡（human 属 nonRoutableRoles，不产卡）
 ```
 
 ## 4. 逐条交付物

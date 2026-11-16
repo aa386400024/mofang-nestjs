@@ -1,0 +1,31 @@
+{
+  "toolId": "TOOL-IMPROVEMENT-LOG",
+  "category": "state-store",
+  "description": "候选改进台账：实现 / 验收 / 返修 / 死信复盘 / 评审发现的缺口与架构提升点结构化登记、去重、状态流转与汇总；抽取只产生候选，立项与终态须人工闸门流转。",
+  "sideEffect": "restricted-write",
+  "allowedRoles": ["orchestrator"],
+  "resources": ["docs/team/agent-orchestration/improvement-log.json"],
+  "inputs": {
+    "description": "台账动作与候选条目字段。",
+    "params": [
+      {
+        "name": "action",
+        "type": "string",
+        "required": true,
+        "description": "list / extract / add / transition 之一。"
+      },
+      {
+        "name": "entry",
+        "type": "object",
+        "required": false,
+        "description": "候选字段：title、source、type、layer、relatedTaskId、evidence、impact、suggestion。"
+      }
+    ]
+  },
+  "outputs": {
+    "description": "返回台账条目、状态流转结果与按状态 / 类型 / 来源的汇总计数。",
+    "result": "对象：含 improvementId、status、history 与 summarize 计数。",
+    "errors": ["字段或枚举非法", "候选重复", "状态迁移非法", "台账条目不存在"]
+  },
+  "contractRef": "urn:agent-collaboration-framework:schema:tool-contract:1.1.0"
+}

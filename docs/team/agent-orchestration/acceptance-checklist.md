@@ -38,7 +38,7 @@ pnpm typecheck
 
 # 2.6 状态索引一致性（taskId 存在、终态 history 闭合、工件指针路径存在）
 # 机读护栏 V1–V6 由 scripts/orchestration/acceptance-runner.mjs 执行（只读，不改代码）；
-# 工具声明见 tools/orchestration-tools.json；框架口径 docs/tools.md、docs/acceptance.md
+# 工具契约声明见 tools/<TOOL-ID>.json（一工具一文件，框架 2.0.0 口径）；框架口径 docs/tools.md、docs/acceptance.md
 ```
 
 ## 3. 本仓库特定核对项

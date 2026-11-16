@@ -89,8 +89,10 @@ export function mapGroupId(contextId) {
 
 /**
  * 构建协议视图（只读投影，不回写索引）。
+ * `unknownStatuses` 落实适配层声明的 `unknownEnumPolicy: tolerant`：未知状态值原样透传并单列，
+ * 供人工复核，不静默丢弃、不猜造标准态。
  * @param {{tasks?: object[], archivedTasks?: object[], agentCards?: object[]}} input
- * @returns {{tasks: object[], statusMap: object, artifacts: object[], groupId: string|null, groupIds: string[], capabilityDeclarations: object[]}}
+ * @returns {{tasks: object[], statusMap: object, artifacts: object[], groupId: string|null, groupIds: string[], capabilityDeclarations: object[], unknownStatuses: string[]}}
  */
 export function buildProtocolView({ tasks = [], archivedTasks = [], agentCards = [] } = {}) {
   const active = tasks.map(mapTask);
@@ -98,6 +100,7 @@ export function buildProtocolView({ tasks = [], archivedTasks = [], agentCards =
   const allTasks = [...active, ...archived];
   const artifacts = allTasks.flatMap((task) => task.artifactReferences.map((ref) => ({ taskId: task.taskId, ...ref })));
   const groupIds = [...new Set(allTasks.map((task) => task.groupId).filter(Boolean))];
+  const unknownStatuses = [...new Set(allTasks.map((task) => task.status.framework).filter((s) => !(s in STATUS_MAP)))];
   return {
     tasks: allTasks,
     statusMap: { ...STATUS_MAP },
@@ -105,5 +108,6 @@ export function buildProtocolView({ tasks = [], archivedTasks = [], agentCards =
     groupId: groupIds[0] ?? null,
     groupIds,
     capabilityDeclarations: agentCards.map(mapCapabilityDeclaration),
+    unknownStatuses,
   };
 }

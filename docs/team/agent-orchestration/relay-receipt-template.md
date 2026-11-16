@@ -1,6 +1,7 @@
 # 回执 / 交付记录模板（mofang 适配层 · 路径约定与命令示例）
 
 > 七组字段骨架、字段定义与交付前自查清单以框架仓 `templates/receipt.template.md` 与 `docs/receipt-contract.md` 为准，本文件不复制字段定义。
+> 2.0.0 交接形态：**机读回执（JSON，`schemas/receipt.schema.json`）+ 人读交付记录（Markdown，`docs/worklog/completed/<phase>/*-implementation-*.md`）成对产出**，两者字段可互相追溯；契约版本用 `contractRef` urn 表达，不再写裸版本号。
 > 任务单契约：`docs/team/wp-task-template.md`；验收五类核对：`acceptance-checklist.md`。
 
 ---
@@ -23,8 +24,9 @@ type: implementation # 框架枚举：implementation / review / investigation / 
 baselineRef: 2b03756
 dependsOn: [TD-20]
 policyRefs: [conventions.md#1.1, conventions.md#1.3]
-finalStatus: completed # completed / failed / rejected
+finalStatus: completed # completed / failed / canceled / rejected（框架 2.0.0 terminalStatuses 四值）
 reviewVerdict: passed # passed / conditional-pass / rejected
+contractRef: urn:agent-collaboration-framework:schema:receipt:1.0.0 # 契约引用 urn
 ---
 ```
 
@@ -51,13 +53,14 @@ reviewVerdict: passed # passed / conditional-pass / rejected
 字段名与填写要求按框架模板 §1（落地）、§3（范围）、§4（契约）、§5（遗留）、§6（偏差）、§7（结论）；本项目注意：
 
 - **范围组**：`scopeCheck`（改动是否全部落在任务单切片）、`parallelArtifactsExcluded`（并行产物是否排除）、`noOutscopeRefactor`（是否无相邻重构）。
-- **契约组**：`contractChecks`（契约逐条比对）、`schemaVersion`（本任务遵循的框架 schema 版本，当前 1.0.0）、`fieldAlignment`（共享字段对齐；真相源唯一，消费端不复算口径）。
+- **契约组**：`contractChecks`（契约逐条比对）、`contractRef`（本任务遵循的契约引用 urn，如 `urn:agent-collaboration-framework:schema:task-sheet:1.1.0`；版本以框架仓 `schemas/versions.json` 为准）、`fieldAlignment`（共享字段对齐；真相源唯一，消费端不复算口径）。
 - **遗留组**：`backlogItems`（编号 / 影响面 / 排期）、`openQuestions`、`manualReviewList`。
 - **偏差组**：任务单写法 / 代码现实 / 实际处理 / 理由四列；先 grep 核实真实链路，不默默改、不降级质量；无偏差填「无」。
 
 ## 5. 交付前回写清单（项目操作）
 
 - [ ] 七组字段全部填写，无「待用户执行」占位；
+- [ ] 机读回执（JSON）与人读交付记录（Markdown）已成对产出，指针互相指向；
 - [ ] `taskId / contextId / baselineRef` 与任务单、状态索引一致；
 - [ ] 工件指针路径真实存在；
 - [ ] 闸门数字与现场可复现结果一致；

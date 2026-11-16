@@ -31,7 +31,7 @@ export const PATHS = {
   webDataJs: join(REPO_ROOT, 'web', 'orchestration', 'data.js'),
   deliveryPackDir: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'delivery-packs'),
   agentCardsDir: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'agent-cards'),
-  toolsContractFile: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'tools', 'orchestration-tools.json'),
+  toolsDir: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'tools'),
   config: join(__dirname, 'config.json'),
 };
 
@@ -196,13 +196,17 @@ export function listDeliveryPacks(limit = 10) {
     const pack = safeReadJson(join(PATHS.deliveryPackDir, fileName));
     if (!pack) continue;
     const count = (arr) => (Array.isArray(arr) ? arr.length : 0);
+    const leftovers =
+      pack.leftovers && typeof pack.leftovers === 'object'
+        ? count(pack.leftovers.backlogItems) + count(pack.leftovers.openQuestions) + count(pack.leftovers.manualReviewList)
+        : count(pack.openItems);
     packs.push({
       fileName,
       ref: `docs/team/agent-orchestration/delivery-packs/${fileName}`,
-      generatedAt: pack.generatedAt ?? null,
-      taskResults: count(pack.taskResults),
+      generatedAt: pack.cycle?.endedAt ?? pack.generatedAt ?? null,
+      taskResults: count(pack.tasks ?? pack.taskResults),
       deadLetters: count(pack.deadLetters),
-      openItems: count(pack.openItems),
+      openItems: leftovers,
       pendingApprovals: count(pack.pendingApprovals),
     });
   }
@@ -231,16 +235,21 @@ export function loadAgentCards() {
   return cards;
 }
 
-/** 工具契约声明只读投影；文件缺失或损坏时返回空数组，不阻断快照。 */
+/** 工具契约声明只读投影（一工具一文件；文件缺失或损坏时跳过该条，不阻断快照）。 */
 export function loadToolContracts() {
-  if (!existsSync(PATHS.toolsContractFile)) return [];
-  const raw = safeReadJson(PATHS.toolsContractFile);
-  if (!raw || !Array.isArray(raw.tools)) return [];
-  return raw.tools.map((tool) => ({
-    toolId: tool.toolId ?? null,
-    category: tool.category ?? null,
-    sideEffect: tool.sideEffect ?? null,
-    allowedRoles: Array.isArray(tool.allowedRoles) ? tool.allowedRoles : [],
-    description: tool.description ?? null,
-  }));
+  if (!existsSync(PATHS.toolsDir)) return [];
+  const tools = [];
+  for (const fileName of readdirSync(PATHS.toolsDir)) {
+    if (!fileName.endsWith('.json')) continue;
+    const tool = safeReadJson(join(PATHS.toolsDir, fileName));
+    if (!tool || typeof tool !== 'object' || Array.isArray(tool)) continue;
+    tools.push({
+      toolId: tool.toolId ?? null,
+      category: tool.category ?? null,
+      sideEffect: tool.sideEffect ?? null,
+      allowedRoles: Array.isArray(tool.allowedRoles) ? tool.allowedRoles : [],
+      description: tool.description ?? null,
+    });
+  }
+  return tools;
 }

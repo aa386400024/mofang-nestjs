@@ -9,9 +9,9 @@
  * 框架仓目录经环境变量 `ORCH_FRAMEWORK_DIR` 覆盖；缺失时对应校验记 skipped=true
  * （容错不阻断），与既有"未登记工具声明记 skip"口径一致。
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { REPO_ROOT } from './state-store.mjs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { REPO_ROOT, PATHS } from './state-store.mjs';
 
 /** 框架仓 schema 文件相对路径（schemaKey → 文件名）。 */
 export const SCHEMA_FILES = {
@@ -20,6 +20,17 @@ export const SCHEMA_FILES = {
   toolContract: 'tool-contract.schema.json',
   agentCard: 'agent-card.schema.json',
   reviewHandover: 'review-handover.schema.json',
+  deliveryPackage: 'delivery-package.schema.json',
+};
+
+/** 契约名 → schemaKey（版本对账用）。 */
+const CONTRACT_SCHEMA_KEY = {
+  'task-sheet': 'taskSheet',
+  'task-state-index': 'taskIndex',
+  'tool-contract': 'toolContract',
+  'agent-card': 'agentCard',
+  'review-handover': 'reviewHandover',
+  'delivery-package': 'deliveryPackage',
 };
 
 /** 框架仓根目录：env 优先；默认本仓上两级平级目录。 */
@@ -93,7 +104,7 @@ function normalizeErrors(validate) {
 
 /**
  * 通用对象校验。
- * @param {'taskSheet'|'taskIndex'|'toolContract'|'agentCard'|'reviewHandover'} schemaKey
+ * @param {'taskSheet'|'taskIndex'|'toolContract'|'agentCard'|'reviewHandover'|'deliveryPackage'} schemaKey
  * @param {object} value 待校验对象
  * @returns {Promise<{ok:boolean,skipped:boolean,errors:object[],schemaId:string|null}>}
  */
@@ -136,9 +147,14 @@ export function validateReviewHandoverSchema(review) {
   return validateObject('reviewHandover', review);
 }
 
+/** 夜间交付包对象校验（框架 delivery-package.schema.json）。 */
+export function validateDeliveryPackage(pack) {
+  return validateObject('deliveryPackage', pack);
+}
+
 /**
- * 工具契约清单校验：容器结构（schemaRef、tools 数组）+ 逐条工具 schema。
- * 容器结构问题作为 errors 返回；工具条目错误携带 toolId 定位。
+ * 工具契约清单校验（**已弃用**：框架 2.0.0 为一工具一文件，请用 validateToolDir）。
+ * 保留仅为兼容旧调用与历史清单；容器结构问题作为 errors 返回。
  */
 export async function validateToolManifest(manifest) {
   const problems = [];
@@ -167,7 +183,93 @@ export async function validateToolManifest(manifest) {
 
   const containerErrors = problems.map((message) => ({ instancePath: '', message, params: {} }));
   const errors = [...containerErrors, ...toolErrors];
-  return result({ ok: errors.length === 0, errors, schemaId: 'urn:agent-collaboration-framework:schema:tool-contract:1.0.0' });
+  return result({ ok: errors.length === 0, errors, schemaId: loadSchema('toolContract')?.$id ?? null });
+}
+
+/**
+ * 工具契约目录校验：`tools/*.json` 一工具一文件（框架 2.0.0 单对象口径），
+ * 逐文件做 schema 校验并携带文件名定位；目录缺失记 skipped。
+ */
+export async function validateToolDir(dir = PATHS.toolsDir) {
+  if (!existsSync(dir)) return result({ skipped: true });
+  const files = readdirSync(dir)
+    .filter((f) => f.endsWith('.json'))
+    .sort();
+  if (files.length === 0) {
+    return result({ ok: false, errors: [{ instancePath: '', message: '工具目录为空', params: {} }] });
+  }
+  const problems = [];
+  for (const fileName of files) {
+    const file = join(dir, fileName);
+    let tool;
+    try {
+      tool = JSON.parse(readFileSync(file, 'utf8'));
+    } catch (err) {
+      problems.push({ instancePath: fileName, message: `JSON 解析失败：${err.message}`, params: {} });
+      continue;
+    }
+    if (Array.isArray(tool) || typeof tool !== 'object' || tool === null) {
+      problems.push({ instancePath: fileName, message: '工具声明须为对象（一工具一文件）', params: {} });
+      continue;
+    }
+    const res = await validateTool(tool);
+    if (res.skipped) return res;
+    for (const err of res.errors) {
+      problems.push({
+        instancePath: `${fileName}${err.instancePath}`,
+        message: `[${tool.toolId ?? fileName}] ${err.instancePath || '(根)'}: ${err.message}`,
+        params: err.params,
+      });
+    }
+    if ((tool.contractRef ?? '').includes('tool-contract') === false && tool.contractRef) {
+      problems.push({ instancePath: fileName, message: 'contractRef 必须指向 tool-contract', params: {} });
+    }
+  }
+  const validate = await getValidator('toolContract');
+  const schema = loadSchema('toolContract');
+  return result({ ok: problems.length === 0, errors: problems, schemaId: validate ? (schema?.$id ?? null) : null });
+}
+
+/** 框架版本表（`schemas/versions.json`），不可达返回 null。 */
+export function loadVersions() {
+  const file = resolve(frameworkDir(), 'schemas', 'versions.json');
+  if (!existsSync(file)) return null;
+  try {
+    return JSON.parse(readFileSync(file, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 契约版本对账：实例声明的 contractRef / schemaRef 指向的 urn 版本必须与框架
+ * versions.json 中同名契约一致；缺失声明也记为错误（防止升级后静默漂移）。
+ *
+ * @param {object} instance 含 contractRef 或 schemaRef 的实例
+ * @param {string} contractName 契约名（task-sheet / task-state-index / tool-contract / agent-card / review-handover / delivery-package）
+ */
+export function validateContractVersion(instance, contractName) {
+  const versions = loadVersions();
+  if (!versions) return result({ skipped: true });
+  const expected = versions.contracts?.[contractName]?.version;
+  const declared = instance?.contractRef ?? instance?.schemaRef ?? null;
+  const errors = [];
+  if (!expected) {
+    errors.push({ instancePath: '', message: `框架 versions.json 未登记契约 ${contractName}`, params: {} });
+  }
+  if (!declared) {
+    errors.push({ instancePath: '', message: `缺少 contractRef / schemaRef（期望 ${contractName}:${expected}）`, params: {} });
+  } else if (expected) {
+    const okRef = new RegExp(`:${contractName.replace(/[-]/g, '[-]')}:${expected.replace(/[.]/g, '\\.')}$`).test(String(declared));
+    if (!okRef) {
+      errors.push({
+        instancePath: '',
+        message: `契约版本与框架不一致：声明 ${declared}，期望版本 ${expected}（框架 ${versions.framework?.version}）`,
+        params: {},
+      });
+    }
+  }
+  return result({ ok: errors.length === 0, errors, schemaId: null });
 }
 
 /** 复位编译缓存（测试隔离用）。 */

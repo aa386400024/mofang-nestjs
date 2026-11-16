@@ -1,7 +1,7 @@
 # L2 自治流水线落地设计（编排工具链 + 可视化）
 
 > 日期：2026-11-15　拟稿：主控 AI（Doubao）
-> 文档性质：**本仓 L2 承载落地设计**。框架规范件见框架仓 v1.3.0（`docs/autonomous-loop.md`、`schemas/agent-card.schema.json`）；本备忘只定义本仓工具链模块、数据模型、状态机衔接、围栏与网页结构，不改动业务代码。
+> 文档性质：**本仓 L2 承载落地设计**。框架规范件见框架仓 v2.0.0（tag `v2.0.0`；`docs/autonomous-loop.md`、`schemas/agent-card.schema.json`）；本备忘只定义本仓工具链模块、数据模型、状态机衔接、围栏与网页结构，不改动业务代码。
 > 与既有文档关系：`docs/architecture/multi-agent-collaboration-loop-design-2026-11-15.md` 是远期目标态参考架构论证留档，本备忘不修改它；本备忘是当前阶段 L2 承载的成型实现方案。
 
 ---

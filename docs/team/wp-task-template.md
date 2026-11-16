@@ -18,11 +18,12 @@ taskId: TD-XX # 唯一标识，贯穿任务单 / 回执 / 索引 / commit messag
 contextId: phase2.5-c2-ports # 归组标识；返修新任务沿用同一 contextId
 title: 任务一句话标题 # 必填；与正文 §B 标题一致
 type: implementation # implementation / review / investigation / documentation / fix / verification
-status: ready # backlog / ready / submitted / working / input-required / completed / failed / canceled / rejected（auth-required 预留）
+status: ready # backlog / ready / submitted / working / input-required / completed / failed / canceled / rejected / auth-required（auth-required 为冻结态：缺授权只入不出，缺授权一律转 input-required）
 baselineRef: 2b03756 # 版本锚点（commit ref）
 dependsOn: [TD-20] # 上游任务；上游 completed 才解锁下游
+contractRef: urn:agent-collaboration-framework:schema:task-sheet:1.1.0 # 可选；契约引用 urn，版本以框架仓 schemas/versions.json 为准
 policyRefs: [conventions.md#1.1, conventions.md#1.3] # 策略规则锚点，验收逐条核对
-createdAt: 2026-11-15
+createdAt: 2026-11-15T00:00:00+08:00 # date-time，必须带时区偏移（框架 2.0.0 口径）
 ---
 ```
 
@@ -37,7 +38,7 @@ createdAt: 2026-11-15
 
 > 状态：📋 待执行（{{YYYY-MM-DD}}）
 > 执行方：{{MiniMax Code / 自做}}
-> 仓库：E:\Work\Project\backend\mofang-nestjs，分支 {{integrate}}
+> 仓库：D:\work\Project\backend\mofang-nestjs，分支 {{integrate}}
 > 唯一事实源：{{相关研究文档 / spec 路径，没有就写"无"}}
 > 任务性质：{{新功能 / 数值标定落地 / bug 修复 / 纯验证 / 文档}}
 > 改动范围：{{仅后端 src/test/bin/scripts ｜ 含 admin-dashboard 前端 ｜ 纯文档}}
@@ -51,10 +52,10 @@ createdAt: 2026-11-15
 
 > 执行者：**先读完这些再写一行代码**。这是固定链路，每次任务都从这里进，不要直接改文件。
 
-1. `E:\Work\Project\backend\mofang-nestjs\README.md` —— 仓库总览
-2. `E:\Work\Project\backend\mofang-nestjs\docs\README.md` —— 文档导航（它会告诉你接任务单该看哪）
-3. `E:\Work\Project\backend\mofang-nestjs\docs\team\conventions.md` —— 代码红线 + 交付格式（**engine-core 分层归属边界、16 条硬约束全在这里**）
-4. 阶段工作入口：`E:\Work\Project\backend\mofang-nestjs\docs\worklog\README.md` → 当前阶段子入口（Phase2.5 任务读 `docs/worklog/pending/phase2.5-README.md` 和 `phase2.5-wp-list-2026-11-08.md`）
+1. `D:\work\Project\backend\mofang-nestjs\README.md` —— 仓库总览
+2. `D:\work\Project\backend\mofang-nestjs\docs\README.md` —— 文档导航（它会告诉你接任务单该看哪）
+3. `D:\work\Project\backend\mofang-nestjs\docs\team\conventions.md` —— 代码红线 + 交付格式（**engine-core 分层归属边界、16 条硬约束全在这里**）
+4. 阶段工作入口：`D:\work\Project\backend\mofang-nestjs\docs\worklog\README.md` → 当前阶段子入口（Phase2.5 任务读 `docs/worklog/pending/phase2.5-README.md` 和 `phase2.5-wp-list-2026-11-08.md`）
 5. 本任务唯一事实源：`{{研究文档 / spec / 上一份交付记录路径}}`
 6. 本任务单（就是你在读的这份）
 
@@ -186,7 +187,7 @@ createdAt: 2026-11-15
 1. 落地：本单做了什么（一句话总结）+ 改动文件清单（新建 / 修改 / 删除，逐个一句用途）+ 工件指针
 2. 证据：闸门表（命令 / exit code / 真实数字 error、warning、用例数）+ 复现说明
 3. 范围：scopeCheck / parallelArtifactsExcluded / noOutscopeRefactor
-4. 契约：契约核对、schemaVersion、字段对齐；口径真相源唯一
+4. 契约：契约核对（`contractRef` 与框架 `versions.json` 对账）、字段对齐；口径真相源唯一
 5. 遗留：backlogItems / openQuestions / manualReviewList（风险与回归、既有测试改动原因、未碰边界确认）
 6. 偏差：实际实现 vs 任务单方案，有偏差就写清原方案 / 实际方案 / 为什么（conventions §2.5），列偏差表
 7. 结论：finalStatus / reviewVerdict / verdictRationale

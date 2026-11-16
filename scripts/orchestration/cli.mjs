@@ -10,7 +10,7 @@
  *   pack                   生成夜间交付包（JSON + MD 副本）
  *   archive <taskId>       显式归档活跃任务到 archivedTasks（补工件指针与终态）
  *   improvements           候选改进台账：list / extract / add / transition
- *   validate [--sheet f]   AF-006 框架 schema 机读校验（索引 / 工具契约 / Agent Card / Review 交接件）
+ *   validate [--sheet f]   AF-006 框架 schema 机读校验（索引 / 工具契约目录 / Agent Card / Review 交接件 / 交付包）
  *   config --enable        开启自治模式（写回 config.json）
  *   config --disable       关闭自治模式
  *
@@ -22,10 +22,11 @@ import { PATHS, REPO_ROOT, loadConfig, loadIndex, loadRuntimeState, saveConfigPa
 import { advanceOnce, archiveTaskEntry, buildSnapshot, shouldAdvance } from './scheduler.mjs';
 import {
   validateAgentCard,
+  validateDeliveryPackage,
   validateReviewHandoverSchema,
   validateTaskIndex,
   validateTaskSheet,
-  validateToolManifest,
+  validateToolDir,
 } from './validator.mjs';
 import { loadRegistry, call as registryCall } from './tool-registry.mjs';
 import { loadAuditLog, saveAuditLog } from './audit-log.mjs';
@@ -220,7 +221,9 @@ function cmdPack() {
   console.log(`交付包 JSON：${jsonPath}`);
   console.log(`交付包 MD ：${mdPath}`);
   console.log(
-    `任务结论=${pack.taskResults.length} 死信=${pack.deadLetters.length} 遗留项=${pack.openItems.length} 待批=${pack.pendingApprovals.length}`,
+    `任务结论=${pack.tasks.length} 死信=${pack.deadLetters.length} 遗留项=${
+      pack.leftovers.backlogItems.length + pack.leftovers.openQuestions.length + pack.leftovers.manualReviewList.length
+    } 待批=${pack.pendingApprovals.length}`,
   );
 }
 
@@ -423,10 +426,15 @@ async function cmdValidate(args) {
     sections.push(['状态索引', SKIPPED]);
   }
 
-  if (existsSync(PATHS.toolsContractFile)) {
-    sections.push(['工具契约清单', await validateToolManifest(JSON.parse(readFileSync(PATHS.toolsContractFile, 'utf8')))]);
+  if (existsSync(PATHS.toolsDir)) {
+    sections.push(['工具契约目录', await validateToolDir(PATHS.toolsDir)]);
   } else {
-    sections.push(['工具契约清单', SKIPPED]);
+    sections.push(['工具契约目录', SKIPPED]);
+  }
+
+  const packFiles = existsSync(PATHS.deliveryPackDir) ? readdirSync(PATHS.deliveryPackDir).filter((f) => f.endsWith('.json')) : [];
+  for (const file of packFiles.sort()) {
+    sections.push([`交付包 ${file}`, await validateDeliveryPackage(JSON.parse(readFileSync(join(PATHS.deliveryPackDir, file), 'utf8')))]);
   }
 
   const cardFiles = existsSync(PATHS.agentCardsDir) ? readdirSync(PATHS.agentCardsDir).filter((f) => f.endsWith('.json')) : [];
@@ -441,6 +449,12 @@ async function cmdValidate(args) {
     const record = JSON.parse(readFileSync(join(reviewDir, file), 'utf8'));
     const review = record?.payload ?? record;
     sections.push([`Review 交接件 ${file}`, await validateReviewHandoverSchema(review)]);
+  }
+
+  const taskDir = join(PATHS.transportDir, 'tasks');
+  const taskFiles = existsSync(taskDir) ? readdirSync(taskDir).filter((f) => f.endsWith('.json')) : [];
+  for (const file of taskFiles.sort()) {
+    sections.push([`运行态任务单 ${file}`, await validateTaskSheet(JSON.parse(readFileSync(join(taskDir, file), 'utf8')))]);
   }
 
   const sheetFile = argValue(args, '--sheet');
