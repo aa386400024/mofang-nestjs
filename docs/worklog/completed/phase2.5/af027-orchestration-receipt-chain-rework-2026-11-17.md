@@ -57,11 +57,13 @@ proposalId: RW-AF-026-1，attemptCount=1
 
 | 命令                                                                                         | 结果                                |
 | -------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs --reporter=dot` | 152 passed / 0 failed               |
-| `ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate`                                       | 10 项 PASS / 0 FAIL                 |
+| `pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs --reporter=dot` | 152 passed / 0 failed（1.13s）      |
+| `ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate`                                       | 14 项 PASS / 0 FAIL（exit 0）       |
 | `pnpm orchestration:contracts`                                                               | 框架契约包 2.0.0 14 文件哈希一致    |
 | `node scripts/orchestration/cli.mjs events rebuild`                                          | 索引重建后 `validateTaskIndex` PASS |
+| `node scripts/orchestration/cli.mjs events verify`                                           | 事件 96 条，哈希链与索引投影一致    |
 | `pnpm lint` / `pnpm typecheck`                                                               | exit 0 / exit 0                     |
+| `pnpm test`（收尾全量）                                                                      | 3525 passed / 8 skipped（3533）     |
 
 ## 6. 回执（机读）
 
