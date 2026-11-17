@@ -57,6 +57,8 @@ jobs:
           if [ "$EVENT_NAME" = "pull_request" ]; then
             BASE="$PR_BASE"
             HEAD="$PR_HEAD"
+            echo "ORCH_REQUIRE_ACCEPTED=1" >> "$GITHUB_ENV"
+            echo "ORCH_TASK_REF=$HEAD_REF" >> "$GITHUB_ENV"
           elif [ "$EVENT_NAME" = "push" ]; then
             BASE="$EVENT_BEFORE"
             HEAD="$EVENT_AFTER"
@@ -74,11 +76,11 @@ jobs:
 
       - name: Validate every commit against its own task snapshot
         run: |
-          if [ "$EVENT_NAME" = "pull_request" ]; then
+          if [ "$ORCH_REQUIRE_ACCEPTED" = "1" ]; then
             # 防止绕过 pr-release，直接从 GitHub 页面合并未验收 PR。
             node scripts/orchestration/ci-task-gate.mjs \
               --base "$ORCH_BASE" --head "$ORCH_HEAD" \
-              --require-accepted --task-id "$HEAD_REF"
+              --require-accepted --task-id "$ORCH_TASK_REF"
           else
             node scripts/orchestration/ci-task-gate.mjs --base "$ORCH_BASE" --head "$ORCH_HEAD"
           fi
