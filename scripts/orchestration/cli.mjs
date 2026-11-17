@@ -80,9 +80,11 @@ import {
   branchAgeDays,
   createGitPort,
   collectChangedFiles,
+  finalizeSquashMerge,
   DEFAULT_STALE_DAYS,
 } from './branch-workflow.mjs';
 import { SESSION_PATHS, LOCATE_LAYERS, MAX_START_RETRIES, MAX_SEND_RETRIES, canDispatch } from './dispatch-channel.mjs';
+import { evaluateRemoteCiGate } from './ci-status.mjs';
 import { buildGuiBrief, writeGuiBrief, confirmDelivery, fallbackDelivery, isDeliveryStalled } from './gui-dispatch.mjs';
 import { registerTaskFromSheet, registerTaskFromHandover, parseTaskSheetFrontmatter } from './task-intake.mjs';
 
@@ -425,6 +427,10 @@ async function cmdEvents(args = []) {
  * 默认干跑校验；仅显式 --apply 调用变更型 git 端口。脚本不自动 commit / push，不触碰 master。
  */
 function cmdBranch(args) {
+  return runBranch(args);
+}
+
+async function runBranch(args) {
   const action = args[0] ?? 'list';
   const apply = args.includes('--apply');
   const git = createGitPort();
@@ -503,18 +509,45 @@ function cmdBranch(args) {
     const baseline = verifyBaseline(task, git.headRef());
     if (baseline.matches === false) throw new Error(baseline.reason);
     if (!git.worktreeClean()) throw new Error('工作区存在未归属改动，拒绝合并（先清理或归组）');
+    // IM-018：远端 CI 门禁。--require-ci 时先要一句远端结论，pending / unknown 一律不放行
+    // （本地闸门绿 ≠ 远端绿：E2E、Coverage Gate、Contracts、Security Audit、Build Docker 只在 CI 跑）。
+    if (args.includes('--require-ci')) {
+      const repo = argValue(args, '--repo') ?? 'aa386400024/mofang-nestjs';
+      const sha = argValue(args, '--sha') ?? git.headRef();
+      const gate = await evaluateRemoteCiGate({ repo, sha });
+      if (gate.verdict !== 'pass') {
+        const detail = gate.error ?? [...gate.failing, ...gate.pending].join('、');
+        throw new Error(`远端 CI 未通过（${gate.verdict}）：${detail}`);
+      }
+      console.log(`远端 CI 通过：${gate.total} 项 check 全非失败态（${sha.slice(0, 12)}）`);
+      performMerge();
+      return;
+    }
+    performMerge();
+    return;
+  }
+
+  function performMerge() {
+    const baseline = verifyBaseline(task, git.headRef());
     if (apply) {
-      git.squashMerge(branchName);
+      // IM-012：一次调用完成「squash 暂存 → 提交 → 删源分支」，不再把提交与清理留给人工。
+      const result = finalizeSquashMerge({
+        source: branchName,
+        taskId,
+        title: `squash merge into integrate（${task.title ?? taskId}）`,
+        remote: argValue(args, '--remote'),
+        gitPort: git,
+      });
       auditRegistryCall('TOOL-QUEUE-SCHEDULER', {
         actor: 'orchestrator',
         correlationId: `branch:merge:${taskId}`,
         resources: [branchName],
       });
-      console.log(`squash 暂存完成：${branchName}；提交归编排者闸门，脚本不自动 commit`);
+      console.log(`合并阶段：${result.stages.join(' → ') || '无'}；提交标题：${result.commitMessage}`);
+      if (result.errors.length > 0) throw new Error(`合并未完整收口：${result.errors.join('；')}`);
     } else {
-      console.log(`[干跑] 将 squash 合并 ${branchName} → integrate（基线：${baseline.reason ?? '一致'}；--apply 执行）`);
+      console.log(`[干跑] 将 squash 合并 ${branchName} → integrate 并补提交与清理（基线：${baseline.reason ?? '一致'}；--apply 执行）`);
     }
-    return;
   }
 
   if (action === 'cleanup') {
@@ -1115,12 +1148,15 @@ switch (command) {
     }
     break;
   case 'branch':
-    try {
-      cmdBranch(args);
-    } catch (err) {
-      console.error(`分支流程失败：${err.message}`);
-      process.exit(2);
-    }
+    // IM-018：合并门禁要读远端 CI 状态（异步），这里用 IIFE 承接，错误仍统一落到退出码 2。
+    (async () => {
+      try {
+        await cmdBranch(args);
+      } catch (err) {
+        console.error(`分支流程失败：${err.message}`);
+        process.exit(2);
+      }
+    })();
     break;
   case 'channel':
     try {

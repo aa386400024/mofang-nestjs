@@ -56,11 +56,49 @@ export const ACTIVE_DISPATCH_STATUSES = ['submitted', 'working'];
 /** 派发审计结果枚举。 */
 export const DISPATCH_RESULTS = ['dispatched', 'failed', 'held-ready', 'human-escalated'];
 
-/** 熔断预留位（框架 reliability.md §5）：本版本不实现逻辑，通道侧不独立计数，复用通用熔断扩展位。 */
+/** 熔断扩展位（框架 reliability.md §5.1）：复用通用熔断口径，通道侧不另立独立计数。 */
 export const CIRCUIT_BREAKER_RESERVED = {
-  reserved: true,
-  semantics: '某通道连续失败达通用阈值后快速失败并升级为可观察事件；阈值参数化归 P2',
+  reserved: false,
+  semantics: '同一通道连续失败达阈值后快速失败并升级为可观察事件；阈值与冷却期参数化，归任务级通用熔断',
 };
+
+/** 熔断默认参数（框架 §5.1 扩展位；可按仓在 config.circuitBreaker 覆盖）。 */
+export const CIRCUIT_BREAKER_DEFAULTS = {
+  consecutiveFailureThreshold: 3,
+  cooldownMinutes: 10,
+};
+
+/**
+ * IM-017 · 通道熔断判定（纯函数）。
+ *
+ * 口径：按**通道 + 连续失败次数**判定，不按任务累计重试次数——
+ * 任务级预算（`MAX_TOTAL_ATTEMPTS`）回答「这单还能不能试」，
+ * 熔断回答「这条通道现在还能不能用」。两者分开，避免一个坏通道把所有人的单都拖死，
+ * 也避免同一任务的多次尝试被误当成通道故障。
+ *
+ * 输入取自运行态 `delivery`（`consecutiveFailures` 由 `fallbackDelivery` 递增），
+ * 状态 `open` 表示该通道应快速失败、不再派发，需冷却期结束或人工复位。
+ *
+ * @param {{delivery?:object, channel?:string}} input
+ * @param {{circuitBreaker?:object}} [config]
+ * @returns {{state:'closed'|'open', channel:string|null, consecutiveFailures:number, threshold:number, reason:string|null}}
+ */
+export function evaluateCircuitBreaker(input = {}, config = {}) {
+  const settings = { ...CIRCUIT_BREAKER_DEFAULTS, ...(config?.circuitBreaker ?? {}) };
+  const threshold = Math.max(1, Number(settings.consecutiveFailureThreshold ?? 3));
+  const channel = input.channel ?? input.delivery?.lastAttempt?.channel ?? null;
+  const failures = Number(input.delivery?.consecutiveFailures ?? 0);
+  if (failures >= threshold) {
+    return {
+      state: 'open',
+      channel,
+      consecutiveFailures: failures,
+      threshold,
+      reason: `通道 ${channel ?? 'unknown'} 连续失败 ${failures} 次，达阈值 ${threshold}，快速失败待冷却`,
+    };
+  }
+  return { state: 'closed', channel, consecutiveFailures: failures, threshold, reason: null };
+}
 
 /** 死信预留位（框架 reliability.md §5）：本版本不实现隔离区，反复失败转人工并保留完整上下文。 */
 export const DEAD_LETTER_RESERVED = {

@@ -27,6 +27,7 @@ import {
   loadToolContracts,
   nowIso,
   PATHS,
+  REPO_ROOT,
   saveRuntimeState,
 } from './state-store.mjs';
 import { commitIndex } from './event-store.mjs';
@@ -38,7 +39,7 @@ import { buildProtocolView } from './protocol-mapper.mjs';
 import { createTransport } from './transport.mjs';
 import { dispatchTask, receiptFingerprint, isReceiptProcessed, markReceiptProcessed, resolveChannelSelection } from './dispatch.mjs';
 import { buildGuiBrief, writeGuiBrief, isDeliveryStalled } from './gui-dispatch.mjs';
-import { resolveDispatchDecision } from './dispatch-channel.mjs';
+import { evaluateCircuitBreaker, resolveDispatchDecision } from './dispatch-channel.mjs';
 import { findScopeConflicts } from './scope-mutex.mjs';
 import { validateScopeDomain } from './card-router.mjs';
 import { archiveTaskSheetFile, ingestReceipts } from './receipts.mjs';
@@ -242,6 +243,28 @@ export function releaseFailedDeliveries(index, runtimeState, config, actions) {
     entry.releasedAt = nowIso();
     entry.heldForHuman = true;
     entry.dispatchDecisionResult = { action: decision.action, reason: decision.reason, retries: decision.retries ?? null };
+    // IM-017：通道级熔断按「通道 + 连续失败次数」判定，独立于任务级预算；开闸即发可观察事件，
+    // 让看板与排障能一眼看出「不是这单有毛病，是这条通道现在不能派」。
+    const breaker = evaluateCircuitBreaker(
+      { channel: record.channel ?? record.delivery?.lastAttempt?.channel ?? null, delivery: record.delivery },
+      config,
+    );
+    if (breaker.state === 'open') {
+      entry.channelCircuit = {
+        state: 'open',
+        channel: breaker.channel,
+        consecutiveFailures: breaker.consecutiveFailures,
+        threshold: breaker.threshold,
+        at: nowIso(),
+      };
+      actions.push({
+        type: 'channel-circuit-open',
+        taskId: task.taskId,
+        channel: breaker.channel,
+        consecutiveFailures: breaker.consecutiveFailures,
+        threshold: breaker.threshold,
+      });
+    }
     entry.escalation = {
       waiting: 'GUI 投递未确认送达，任务已回滚 ready 并持单',
       decision: { action: decision.action, reason: decision.reason },
@@ -291,7 +314,8 @@ export function claimReadyTasks(index, runtimeState, config, actions, opts = {})
       actions.push({ type: 'held-for-human', taskId: task.taskId, reason: heldEntry?.releaseReason ?? 'held-for-human' });
       continue;
     }
-    const scopeConflicts = findScopeConflicts(task, index.tasks);
+    // IM-011：给出仓根时，scope 通配条目按真实目录展开后再求交集，避免「父目录前缀」粗判漏冲突。
+    const scopeConflicts = findScopeConflicts(task, index.tasks, { rootDir: REPO_ROOT });
     if (scopeConflicts.length > 0) {
       // 文件域与在办任务相交：拦截派发，任务留 ready，不登记租约、不投递交接件。
       actions.push({ type: 'scope-conflict', taskId: task.taskId, conflicts: scopeConflicts });

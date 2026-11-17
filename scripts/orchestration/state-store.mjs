@@ -108,6 +108,17 @@ export function validateConfig(raw) {
   if (!Number.isFinite(deliveryLeaseMinutes) || deliveryLeaseMinutes <= 0) {
     errors.push(`dispatch.deliveryLeaseMinutes 须为正数，实际 ${String(raw.dispatch?.deliveryLeaseMinutes)}`);
   }
+  // 熔断参数（IM-017）：阈值必须是正整数，冷却期必须是正数分钟。
+  const consecutiveFailureThreshold = Number(raw.circuitBreaker?.consecutiveFailureThreshold ?? 3);
+  if (!Number.isInteger(consecutiveFailureThreshold) || consecutiveFailureThreshold < 1) {
+    errors.push(
+      `circuitBreaker.consecutiveFailureThreshold 须为不小于 1 的整数，实际 ${String(raw.circuitBreaker?.consecutiveFailureThreshold)}`,
+    );
+  }
+  const cooldownMinutes = Number(raw.circuitBreaker?.cooldownMinutes ?? 10);
+  if (!Number.isFinite(cooldownMinutes) || cooldownMinutes <= 0) {
+    errors.push(`circuitBreaker.cooldownMinutes 须为正数，实际 ${String(raw.circuitBreaker?.cooldownMinutes)}`);
+  }
   const refreshEnabled = raw.web?.refresh?.enabled !== false;
   const refreshInterval = Number(raw.web?.refresh?.intervalMs ?? 3000);
   if (!Number.isInteger(refreshInterval) || refreshInterval < 1000) {
@@ -128,6 +139,12 @@ export function validateConfig(raw) {
       channel: dispatchChannel,
       fallbackToFile,
       deliveryLeaseMinutes,
+    },
+    // IM-017：熔断参数（框架 reliability.md §5.1 扩展位）。默认值与 dispatch-channel 保持一致口径，
+    // 这里显式归一，避免再次出现「配置写了但运行时读不到」的丢段问题。
+    circuitBreaker: {
+      consecutiveFailureThreshold,
+      cooldownMinutes,
     },
     web: { refresh: { enabled: refreshEnabled === true, intervalMs: refreshInterval } },
     notes: raw.notes ?? {},

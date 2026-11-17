@@ -132,6 +132,8 @@ export function buildDispatchRecord(task, opts = {}) {
       sessionPath: null,
       locateLayer: null,
       evidenceRef: null,
+      // IM-017：同一通道重新拿到一次干净派发，连续失败计数归零（熔断只计「连续」）。
+      consecutiveFailures: 0,
       history,
     };
   }
@@ -193,12 +195,21 @@ export function dispatchTask(task, entry, opts = {}) {
 }
 
 /**
- * 回执验收指纹：taskId + 工件指针；同一任务同一交付记录重复投递只触发一次验收。
+ * 回执验收指纹。
+ *
+ * IM-007：次级键优先用**工件版本号**（`task.artifacts.deliveryRevision` 或交接件 `revision`），
+ * 而不是交付记录路径。原因是同一路径可以被返修后重写：路径不变、内容变了，
+ * 以路径为键会把「第二次交付」误判成「已验收过的同一份」，重复回执静默丢弃。
+ * 工件版本号缺失时才退回路径指纹，兼容尚未补版本的存量任务。
+ *
  * @param {object} task 索引任务条目
  * @param {string} [deliveryRef] 交付记录指针；缺省取 task.artifacts.deliveryRecord
  * @returns {string} 指纹串
  */
 export function receiptFingerprint(task, deliveryRef) {
+  const revision = task?.artifacts?.deliveryRevision ?? task?.artifacts?.revision ?? null;
+  const normalized = typeof revision === 'number' ? String(revision) : (revision ?? '').trim();
+  if (normalized !== '') return `${task?.taskId ?? ''}@${normalized}`;
   const ref = deliveryRef ?? task?.artifacts?.deliveryRecord ?? '';
   return `${task?.taskId ?? ''}|${ref}`;
 }

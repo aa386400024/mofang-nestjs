@@ -83,7 +83,7 @@ import {
 import { buildGuiBrief, confirmDelivery, fallbackDelivery, isDeliveryStalled } from '../gui-dispatch.mjs';
 import { parseTaskSheetFrontmatter, buildTaskRecord } from '../task-intake.mjs';
 import { ingestReceipts } from '../receipts.mjs';
-import { normalizeScope, findScopeConflicts, detectResidualFiles, scopeCovers } from '../scope-mutex.mjs';
+import { normalizeScope, findScopeConflicts, detectResidualFiles, scopeCovers, expandScopePattern } from '../scope-mutex.mjs';
 import {
   buildBranchName,
   validateBranchName,
@@ -92,8 +92,10 @@ import {
   verifyBaseline,
   branchAgeDays,
   collectChangedFiles,
+  finalizeSquashMerge,
   LONG_LIVED_BRANCHES,
 } from '../branch-workflow.mjs';
+import { ciGateVerdict, resolveGithubToken, evaluateRemoteCiGate } from '../ci-status.mjs';
 import { matchAgentCard, selectTargetRole, validateScopeDomain } from '../card-router.mjs';
 import {
   SESSION_PATHS,
@@ -112,6 +114,8 @@ import {
   nextLocateLayer,
   canDispatch,
   resolveDispatchDecision,
+  evaluateCircuitBreaker,
+  CIRCUIT_BREAKER_DEFAULTS,
   buildDispatchAudit,
   summarizeChannelOutcomes,
   buildEscalationMessage,
@@ -1291,6 +1295,17 @@ describe('AF-010 派发接线与回执幂等', () => {
     expect(entry.leaseDeadline).toBe(leaseDeadline);
   });
 
+  it('IM-007 指纹优先用工件版本：同路径返修重写不再被误判为已验收', () => {
+    const base = { taskId: 'AF-010', artifacts: { deliveryRecord: 'docs/worklog/completed/af010.md' } };
+    const revision1 = receiptFingerprint({ ...base, artifacts: { ...base.artifacts, deliveryRevision: 1 } });
+    const revision2 = receiptFingerprint({ ...base, artifacts: { ...base.artifacts, deliveryRevision: 2 } });
+    expect(revision1).toBe('AF-010@1');
+    expect(revision2).toBe('AF-010@2');
+    expect(revision1).not.toBe(revision2);
+    // 未登记版本时退回路径指纹（兼容存量任务）
+    expect(receiptFingerprint(base, 'other-ref.md')).toBe('AF-010|other-ref.md');
+  });
+
   it('回执验收指纹按 taskId + 交付记录生成；重复指纹只标记一次', () => {
     const task = { taskId: 'AF-010', artifacts: { deliveryRecord: 'docs/worklog/completed/af010.md' } };
     const fp = receiptFingerprint(task);
@@ -1669,6 +1684,39 @@ describe('AF-011 文件域 scope 互斥校验', () => {
     };
   }
 
+  it('IM-011 通配展开：按真实目录枚举，不存在的段不产幽灵路径', () => {
+    const root = mkdtempSync(join(tmpdir(), 'orch-glob-'));
+    try {
+      mkdirSync(join(root, 'src', 'a'), { recursive: true });
+      mkdirSync(join(root, 'src', 'b'), { recursive: true });
+      mkdirSync(join(root, 'docs'), { recursive: true });
+      const matches = expandScopePattern('src/*', { rootDir: root });
+      expect(matches.sort()).toEqual(['src/a', 'src/b']);
+      expect(expandScopePattern('src/*/deep', { rootDir: root })).toEqual([]);
+      expect(expandScopePattern('docs/', { rootDir: root })).toEqual(['docs']);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('IM-011 通配展开消除前缀误报：src/*.ts 不再覆盖 src/shared/ 目录', () => {
+    const root = mkdtempSync(join(tmpdir(), 'orch-scope-'));
+    try {
+      mkdirSync(join(root, 'src', 'shared'), { recursive: true });
+      writeFileSync(join(root, 'src', 'main.ts'), 'export const x = 1;\n');
+      // 前缀语义（无 rootDir）会把 src/*.ts 降级成 src/，进而与 src/shared/ 误判冲突。
+      const prefixOnly = findScopeConflicts(task('T1', ['src/*.ts']), [{ ...task('T2', ['src/shared/']), status: 'submitted' }]);
+      expect(prefixOnly.map((item) => item.taskId)).toEqual(['T2']);
+      // 采集层给出 rootDir 后按真实文件展开：只命中 src/main.ts，与目录 src/shared/ 不冲突。
+      const expanded = findScopeConflicts(task('T1', ['src/*.ts']), [{ ...task('T2', ['src/shared/']), status: 'submitted' }], {
+        rootDir: root,
+      });
+      expect(expanded).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it('路径归一化：相对路径 / 目录前缀 / 反斜杠与 ./ 前缀；拒绝绝对路径与 .. 段', () => {
     const norm = normalizeScope(task('T1', ['./src/app.ts', 'src\\shared\\', '/abs/x.ts', 'src/../secret.ts']));
     expect(norm.errors).toHaveLength(2);
@@ -2035,7 +2083,9 @@ describe('AF-013 GUI 派发通道规则', () => {
     ]);
     const first = summary.find((s) => s.sessionPath === 'existing-session');
     expect(first).toMatchObject({ attempted: 2, dispatched: 1, failed: 1, successRate: 0.5 });
-    expect(CIRCUIT_BREAKER_RESERVED.reserved).toBe(true);
+    // IM-017 落地后熔断不再只是预留位；断言改为「语义 + 参数化默认值」。
+    expect(CIRCUIT_BREAKER_RESERVED.reserved).toBe(false);
+    expect(CIRCUIT_BREAKER_RESERVED.semantics).toMatch(/阈值/);
     expect(DEAD_LETTER_RESERVED.reserved).toBe(true);
     expect(FAILURE_CLASSIFICATIONS).toEqual(['deterministic', 'flaky', 'legacy-debt']);
   });
@@ -2812,5 +2862,130 @@ describe('AF-024 GUI 投递协议', () => {
     expect(runtimeState.tasks['AF-151'].heldForHuman).toBe(true);
     expect(runtimeState.tasks['AF-151'].releaseReason).toBe('gui-delivery-budget-exhausted');
     expect(runtimeState.tasks['AF-151'].dispatchDecisionResult.action).toBe('human-escalate');
+  });
+});
+
+describe('IM-017 通道熔断参数化与可观察事件', () => {
+  it('阈值来自配置；未达阈值不通开闸，达到阈值开闸并解释原因', () => {
+    const closed = evaluateCircuitBreaker({ channel: 'gui-relay', delivery: { consecutiveFailures: 1 } });
+    expect(closed.state).toBe('closed');
+    expect(closed.threshold).toBe(CIRCUIT_BREAKER_DEFAULTS.consecutiveFailureThreshold);
+    const open = evaluateCircuitBreaker(
+      { channel: 'gui-relay', delivery: { consecutiveFailures: 3 } },
+      { circuitBreaker: { consecutiveFailureThreshold: 3 } },
+    );
+    expect(open.state).toBe('open');
+    expect(open.reason).toMatch(/连续失败 3 次/);
+  });
+
+  it('回收环节开闸时发 channel-circuit-open 事件并写 channelCircuit', () => {
+    const task = { taskId: 'AF-160', contextId: 'c', type: 'verification', status: 'submitted', agentRole: 'executor' };
+    const index = { tasks: [task], archivedTasks: [] };
+    const runtimeState = {
+      tasks: {
+        'AF-160': {
+          leaseClaimedAt: '2026-11-16T00:00:00.000Z',
+          leaseDeadline: '2026-11-16T00:05:00.000Z',
+          dispatch: {
+            channel: 'gui-file-fallback',
+            attempt: 2,
+            delivery: {
+              state: 'failed',
+              history: [],
+              consecutiveFailures: 3,
+              lastAttempt: { cause: 'flaky', attemptCount: 2 },
+            },
+          },
+        },
+      },
+    };
+    const actions = [];
+    releaseFailedDeliveries(
+      index,
+      runtimeState,
+      { dispatch: { deliveryLeaseMinutes: 5 }, circuitBreaker: { consecutiveFailureThreshold: 3 } },
+      actions,
+    );
+    expect(task.status).toBe('ready');
+    expect(runtimeState.tasks['AF-160'].channelCircuit).toMatchObject({
+      state: 'open',
+      channel: 'gui-file-fallback',
+      consecutiveFailures: 3,
+    });
+    expect(actions.some((a) => a.type === 'channel-circuit-open' && a.threshold === 3)).toBe(true);
+  });
+});
+
+describe('IM-012 squash 合并收口', () => {
+  function fakeGit(overrides = {}) {
+    const calls = [];
+    const port = {
+      squashMerge: (name) => calls.push(['squashMerge', name]),
+      commitSquash: (message) => calls.push(['commitSquash', message]),
+      deleteLocal: (name) => calls.push(['deleteLocal', name]),
+      deleteRemote: (name, remote) => calls.push(['deleteRemote', name, remote]),
+      ...overrides,
+    };
+    return { port, calls };
+  }
+
+  it('一次调用完成 暂存 → 提交 → 删本地/远端，提交标题带 taskId', () => {
+    const { port, calls } = fakeGit();
+    const result = finalizeSquashMerge({ source: 'task/AF-160-x', taskId: 'AF-160', title: '合并标题', remote: 'origin', gitPort: port });
+    expect(result.stages).toEqual(['squash-merge', 'commit', 'delete-local', 'delete-remote']);
+    expect(result.errors).toEqual([]);
+    expect(calls[1][1]).toContain('AF-160');
+    expect(calls[3]).toEqual(['deleteRemote', 'task/AF-160-x', 'origin']);
+  });
+
+  it('提交阶段失败即停：不删分支、错误如实返回', () => {
+    const { port, calls } = fakeGit({
+      commitSquash: () => {
+        throw new Error('nothing to commit');
+      },
+    });
+    const result = finalizeSquashMerge({ source: 'task/AF-160-x', taskId: 'AF-160', gitPort: port });
+    expect(result.stages).toEqual(['squash-merge']);
+    expect(result.errors.join()).toMatch(/提交失败/);
+    expect(calls.some(([name]) => name === 'deleteLocal')).toBe(false);
+  });
+});
+
+describe('IM-018 远端 CI 合并门禁', () => {
+  it('判定：全 success/skipped 放行；失败态阻断；未完成判 pending；无 check 判 unknown', () => {
+    expect(
+      ciGateVerdict([
+        { status: 'completed', conclusion: 'success' },
+        { status: 'completed', conclusion: 'skipped' },
+      ]).verdict,
+    ).toBe('pass');
+    expect(ciGateVerdict([{ status: 'completed', conclusion: 'failure', name: 'Unit' }]).verdict).toBe('fail');
+    expect(ciGateVerdict([{ status: 'in_progress', conclusion: null, name: 'E2E' }]).verdict).toBe('pending');
+    expect(ciGateVerdict([]).verdict).toBe('unknown');
+  });
+
+  it('token 优先环境变量；取数失败不冒充通过', async () => {
+    expect(resolveGithubToken({ env: { GITHUB_TOKEN: ' t0ken ' } })).toBe('t0ken');
+    expect(resolveGithubToken({ env: {}, fillCredential: () => 'protocol=https\npassword=abc\n' })).toBe('abc');
+    const failed = await evaluateRemoteCiGate({
+      repo: 'o/r',
+      sha: 'deadbeef',
+      token: 't',
+      fetchImpl: async () => ({ ok: false, status: 403, json: async () => ({}) }),
+    });
+    expect(failed.verdict).toBe('unknown');
+    expect(failed.error).toMatch(/403/);
+    const passed = await evaluateRemoteCiGate({
+      repo: 'o/r',
+      sha: 'deadbeef',
+      token: 't',
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ check_runs: [{ status: 'completed', conclusion: 'success' }] }),
+      }),
+    });
+    expect(passed.verdict).toBe('pass');
+    expect(passed.total).toBe(1);
   });
 });

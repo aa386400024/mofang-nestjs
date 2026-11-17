@@ -246,6 +246,8 @@ export function fallbackDelivery(record, failure = {}) {
         failureReason: failure.reason,
         classification: failure.classification ?? 'deterministic',
         lastAttempt: failure.facts ? { ...failure.facts } : null,
+        // IM-017：按通道累计连续失败次数（成功后由 buildDispatchRecord 归零），供熔断判定读取。
+        consecutiveFailures: Number(record.delivery?.consecutiveFailures ?? 0) + 1,
         sessionPath: null,
         locateLayer: null,
         evidenceRef: null,

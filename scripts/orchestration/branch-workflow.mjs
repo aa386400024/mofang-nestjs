@@ -193,8 +193,12 @@ export function createGitPort() {
       return runGit(['checkout', '-b', name, from]);
     },
     squashMerge(name) {
-      // 仅执行 squash 暂存；提交动作归编排者闸门，脚本不自动 commit。
+      // 仅执行 squash 暂存；提交动作由 finalizeSquashMerge 在闸门全绿后补上（IM-012）。
       return runGit(['merge', '--squash', name]);
+    },
+    commitSquash(message) {
+      // IM-012：squash 暂存后的提交动作，标题必须带 taskId（由调用方组装 message）。
+      return runGit(['commit', '-m', message]);
     },
     deleteLocal(name) {
       return runGit(['branch', '-d', name]);
@@ -203,6 +207,62 @@ export function createGitPort() {
       return runGit(['push', remote, '--delete', name]);
     },
   };
+}
+
+/**
+ * IM-012 · squash 合并收口：暂存 → 闸门全绿后补提交 → 清理源分支。
+ *
+ * 为什么把提交与清理放在同一个函数：这两步在旧实现里都「留给人工」，结果是
+ * squash 暂存后没人提交，任务分支也留在原地越堆越多。企业级口径应当是
+ * **一次调用完成「合并即删」**，失败时按阶段返回，绝不在半途假装成功。
+ *
+ * 阶段顺序（任一阶段抛错即停，后续不执行）：
+ *   1. `squashMerge(source)` —— `git merge --squash`，只暂存不提交；
+ *   2. `commitSquash(message)` —— 提交，`message` 必须带 taskId（调用方组装）；
+ *   3. `deleteLocal(source)` / `deleteRemote(source, remote)` —— 合并已提交成功后才删，远端删除失败不回滚本地。
+ *
+ * @param {{source:string, remote?:string, taskId:string, title?:string, gitPort:object}} opts
+ * @returns {{stages:string[], branchName:string, commitMessage:string|null, errors:string[]}}
+ */
+export function finalizeSquashMerge(opts = {}) {
+  const { source, taskId, gitPort } = opts;
+  const stages = [];
+  const errors = [];
+  if (!source || !taskId) return { stages, branchName: source ?? null, commitMessage: null, errors: ['source / taskId 必填'] };
+  if (!gitPort || typeof gitPort.squashMerge !== 'function') {
+    return { stages, branchName: source, commitMessage: null, errors: ['缺少 git 端口或 squashMerge 能力'] };
+  }
+  const commitMessage = `${taskId} ${opts.title ?? 'squash merge into integrate'}`.trim();
+  try {
+    gitPort.squashMerge(source);
+    stages.push('squash-merge');
+  } catch (err) {
+    errors.push(`squash 暂存失败：${err.message}`);
+    return { stages, branchName: source, commitMessage, errors };
+  }
+  try {
+    if (typeof gitPort.commitSquash !== 'function') throw new Error('git 端口缺少 commitSquash 能力');
+    gitPort.commitSquash(commitMessage);
+    stages.push('commit');
+  } catch (err) {
+    errors.push(`squash 提交失败：${err.message}`);
+    return { stages, branchName: source, commitMessage, errors };
+  }
+  try {
+    gitPort.deleteLocal?.(source);
+    stages.push('delete-local');
+  } catch (err) {
+    errors.push(`本地分支删除失败：${err.message}`);
+  }
+  if (opts.remote) {
+    try {
+      gitPort.deleteRemote?.(source, opts.remote);
+      stages.push('delete-remote');
+    } catch (err) {
+      errors.push(`远端分支删除失败：${err.message}`);
+    }
+  }
+  return { stages, branchName: source, commitMessage, errors };
 }
 
 /**

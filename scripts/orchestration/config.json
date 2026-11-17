@@ -18,6 +18,10 @@
     "fallbackToFile": true,
     "deliveryLeaseMinutes": 5
   },
+  "circuitBreaker": {
+    "consecutiveFailureThreshold": 3,
+    "cooldownMinutes": 10
+  },
   "web": {
     "refresh": {
       "enabled": true,
@@ -44,6 +48,8 @@
     "dispatch.channel": "派发通道：gui-relay（默认，桌面 relay 投递，投递件落 transport/briefs/，须经 `channel confirm` 确认送达或 `channel fallback` 降级）或 file（只落交接件，不驱动桌面）。",
     "dispatch.fallbackToFile": "GUI 通道投递失败是否保留文件交接件并降级为 channel=gui-file-fallback；true 时任务不丢，降级事实写进派发记录。",
     "dispatch.deliveryLeaseMinutes": "GUI 投递租约（分钟，默认 5）：投递件生成后超时仍未 confirm / fallback，run-once 把任务回滚 ready 并置 heldForHuman；与 30 分钟任务租约分离，避免一条 pending 投递占满单任务队列。",
+    "circuitBreaker.consecutiveFailureThreshold": "通道级熔断阈值（连续失败次数，默认 3）：同一通道连续失败达该值即开闸，回收时发 channel-circuit-open 可观察事件；通道侧不另立独立计数，复用框架 reliability.md §5.1 通用熔断口径。",
+    "circuitBreaker.cooldownMinutes": "熔断冷却期（分钟，默认 10）：冷却期内该通道不再派发新任务，需冷却结束或人工复位。",
     "web.refresh.enabled": "编排看板前端轮询开关：true（默认）定时重载 data.js 并在快照变化后重渲染；false 关闭自动刷新，页面仅手动刷新。",
     "web.refresh.intervalMs": "看板轮询间隔（毫秒），须为不小于 1000 的整数；默认 3000。"
   }
