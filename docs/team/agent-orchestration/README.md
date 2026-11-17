@@ -305,7 +305,7 @@ node scripts/orchestration/branch-protection.mjs --repo aa386400024/mofang-nestj
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 提交范围          | PR 使用 `base.sha..head.sha`；integrate push 使用 `event.before..event.after`；不能只查最终 diff，否则坏提交可先混入再被后续提交掩盖                                                             |
 | 提交身份          | 标题必须含唯一任务编号；同编号重复允许，多编号、日期形态或缺失编号不会获得任务权限                                                                                                               |
-| 状态快照          | 同时读取当前提交与父提交的索引；active 提交用当前在办任务，归档 squash 用 `archived-transition`                                                                                                  |
+| 状态快照          | 同时读取当前提交与父提交的索引；active 提交用当前在办任务，归档提交与 squash 全生命周期用 `archived-transition`。父提交无任务时必须从当前任务单重建 scope，并要求 passed durable 回执            |
 | PR 验收（AF-057） | PR 最终 HEAD 必须 completed/archived，且 git tree 内 durable 回执同时满足 reviewVerdict=passed、scopeCheck=in-scope、finalStatus=completed；否则 Orchestration Gate failure，页面/API 也不能合并 |
 | 文件与任务单      | 非状态面文件必须落入 scope；任务单必须在该提交树中存在；canceled/rejected 不可借用                                                                                                               |
 | 检查放行          | 13 项 context 全部存在且完成；失败优先 fail，缺项/进行中/空 checks 均不放行                                                                                                                      |

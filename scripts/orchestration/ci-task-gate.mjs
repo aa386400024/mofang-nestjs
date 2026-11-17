@@ -6,13 +6,15 @@
  * 重新读取「该提交 / 其父提交」的任务索引，复用 task-entry-gate 的同一套状态机：
  *   - 在办任务提交：taskId + scope.files + 任务单存在性；
  *   - 纯状态面提交：沿用 state-plane-only；
- *   - squash 归档提交：沿用 archived-transition（父在办、当前 completed/archived）。
+ *   - squash 归档提交：沿用 archived-transition（父在办、当前 completed/archived）；
+ *   - squash 全生命周期：父无该任务、当前 completed/archived，且 passed durable 回执存在。
  *
  * 纯判定函数不碰 git；IO 适配层只读 git 对象，不改工作区、不写状态面。
  */
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { evaluateTaskEntry } from './task-entry-gate.mjs';
+import { buildTaskRecord, parseTaskSheetFrontmatter } from './task-intake.mjs';
 
 export const TASK_STATE_INDEX_PATH = 'docs/team/agent-orchestration/task-state-index.json';
 const TASK_ID_RE = /\b(?=[A-Z0-9]*[A-Z])[A-Z0-9]+-[0-9]+\b/g;
@@ -28,7 +30,15 @@ export function extractCommitTaskId(subject) {
  * 单提交快照纯判定。taskSheetExists 仅在解析到 taskId 且判定需要任务时强制 true。
  * @returns {{pass:boolean,reason:string,taskId:string|null,commitTaskId:string|null,errors:string[],files:string[],covered:string[]}}
  */
-export function evaluateCommitSnapshot({ subject, changedFiles, currentIndex, parentIndex, taskSheetExists, taskSheetPath = null }) {
+export function evaluateCommitSnapshot({
+  subject,
+  changedFiles,
+  currentIndex,
+  parentIndex,
+  taskSheetExists,
+  taskSheetPath = null,
+  receipts = [],
+}) {
   let commitTaskId = null;
   try {
     commitTaskId = extractCommitTaskId(subject);
@@ -43,11 +53,19 @@ export function evaluateCommitSnapshot({ subject, changedFiles, currentIndex, pa
       covered: [],
     };
   }
+  const parentTasks = parentIndex?.tasks ?? [];
+  const parentArchivedTasks = parentIndex?.archivedTasks ?? [];
+  const currentArchived = (currentIndex?.archivedTasks ?? []).find((task) => task?.taskId === commitTaskId && task?.status === 'completed');
+  const parentHasTask = [...parentTasks, ...parentArchivedTasks].some((task) => task?.taskId === commitTaskId);
+  // squash 会把 register → implement → receipt → archive 压成一个提交，parent 根本没有任务。
+  // 仅在 durable 回执证明已验收时，合成“父在办”快照复用 archived-transition；否则仍拒绝。
+  const squashLifecycle = Boolean(commitTaskId && currentArchived && !parentHasTask && passedDurableReceipts(receipts).length > 0);
+  const effectiveParentTasks = squashLifecycle ? [...parentTasks, { ...currentArchived, status: 'submitted' }] : parentTasks;
   const result = evaluateTaskEntry({
     changedFiles,
     tasks: currentIndex?.tasks ?? [],
     archivedTasks: currentIndex?.archivedTasks ?? [],
-    headTasks: parentIndex?.tasks ?? [],
+    headTasks: effectiveParentTasks,
     explicitTaskId: commitTaskId,
   });
   const output = {
@@ -70,6 +88,12 @@ export function evaluateCommitSnapshot({ subject, changedFiles, currentIndex, pa
   return output;
 }
 
+function passedDurableReceipts(receipts = []) {
+  return receipts.filter(
+    (receipt) => receipt.verdict === 'passed' && receipt.scopeCheck === 'in-scope' && receipt.finalStatus === 'completed',
+  );
+}
+
 /** PR 最终 HEAD 的验收硬门：防止绕开 pr-release，直接从 GitHub 页面合并。 */
 export function evaluateAcceptanceSnapshot({ taskId, currentIndex, receipts = [] }) {
   const archived = (currentIndex?.archivedTasks ?? []).find((task) => task?.taskId === taskId);
@@ -82,9 +106,7 @@ export function evaluateAcceptanceSnapshot({ taskId, currentIndex, receipts = []
       errors: [`任务 ${taskId} 在当前 HEAD 不是 completed/archived，禁止 PR 合并`],
     };
   }
-  const passed = receipts.filter(
-    (receipt) => receipt.verdict === 'passed' && receipt.scopeCheck === 'in-scope' && receipt.finalStatus === 'completed',
-  );
+  const passed = passedDurableReceipts(receipts);
   if (passed.length === 0) {
     return {
       pass: false,
@@ -173,6 +195,13 @@ function taskSheetPresence(sha, taskId, currentIndex, parentIndex) {
   return { exists, path: sheetPath };
 }
 
+function readTaskSheetAt(sha, sheetPath, status) {
+  if (!sheetPath) throw new Error('squash 归档投影缺任务单路径，无法重建 scope');
+  const text = git(['show', `${sha}:${sheetPath}`]);
+  const { meta } = parseTaskSheetFrontmatter(text);
+  return buildTaskRecord(meta, { taskSheetPath: sheetPath, status });
+}
+
 /** 读取一个真实 git 提交并执行快照判定（只读）。 */
 export function evaluateCommitAt(sha) {
   const subject = git(['show', '-s', '--format=%s', sha]);
@@ -203,14 +232,32 @@ export function evaluateCommitAt(sha) {
   } catch {
     // 多任务编号的权威错误由纯判定器返回。
   }
-  const sheet = taskSheetPresence(sha, commitTaskId, currentIndex, parentIndex);
+  let evaluatedCurrentIndex = currentIndex;
+  const parentHasTask = [...parentIndex.tasks, ...parentIndex.archivedTasks].some((task) => task?.taskId === commitTaskId);
+  const archived = currentIndex.archivedTasks.find((task) => task?.taskId === commitTaskId);
+  if (commitTaskId && archived && !parentHasTask) {
+    // archivedTasks 投影只保留 taskId/status/artifacts；squash 没有父任务可取 scope，
+    // 必须从当前提交的任务单恢复完整声明，再交给同一个 scope 判定器。
+    const fullTask = readTaskSheetAt(sha, archived.artifacts?.taskSheet, archived.status);
+    const hydrated = { ...fullTask, ...archived, scope: fullTask.scope };
+    evaluatedCurrentIndex = {
+      ...currentIndex,
+      archivedTasks: currentIndex.archivedTasks.map((task) => (task?.taskId === commitTaskId ? hydrated : task)),
+    };
+  }
+  const sheet = taskSheetPresence(sha, commitTaskId, evaluatedCurrentIndex, parentIndex);
+  const receipts =
+    commitTaskId && evaluatedCurrentIndex.archivedTasks.some((task) => task?.taskId === commitTaskId)
+      ? readAcceptanceReceiptsAt(sha, commitTaskId)
+      : [];
   const result = evaluateCommitSnapshot({
     subject,
     changedFiles,
-    currentIndex,
+    currentIndex: evaluatedCurrentIndex,
     parentIndex,
     taskSheetExists: sheet.exists,
     taskSheetPath: sheet.path,
+    receipts,
   });
   return { sha, subject, parent, ...result };
 }

@@ -85,3 +85,11 @@ AF-056 合并后 `branch-protection.mjs --apply` 返回 `verification.pass=true`
 - 数据库、Redis、环境启停不是 GitHub 可阻断的操作系统级动作，仍由任务、scope、回执和事件审计约束。
 - admin 理论上可后续修改保护设置；本单提供 apply/readback，不宣称阻止仓主关闭保护。
 - 无业务 `src/**`、数据库、Redis、migration、seed 或 LLM 批次改动；并行产物与 web/orchestration/data.js 未纳入。
+
+## 7. 最终合并与 AF-058 返修（补记）
+
+- 归档 HEAD `314376fe92912bcbb8a35b27298ac7df05b5790c` 的 GitHub Orchestration Gate 为 `completed/success`；日志 `ACCEPTANCE pass=true reason=accepted receipts=1`，5 个提交全过。
+- `pr-release.mjs merge` 读回 `checks=pass total=13 missing=0 pending=0 failing=0`。
+- PR #12 已 squash 合并：`04f6f9baa02f6f3f8a503780920e3562a42f511b`；本地 integrate 同步，任务分支本地/远端均删除。
+- AF-057 已验收归档，75 个归档、0 活跃；durable receipt 与 CLI 状态面入库，事件链 231 条一致。
+- merge 后 integrate push 回放又发现 squash 全生命周期缺口：parent 无该任务、archived 投影无 scope，旧门先报 no-active-task。该事实不计作 AF-057 的成功证据，转 AF-058 原因级返修；只有 AF-058 自身 merge 后 push 门转绿，才结束服务端闭环。
