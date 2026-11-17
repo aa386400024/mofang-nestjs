@@ -14,7 +14,6 @@
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { evaluateTaskEntry } from './task-entry-gate.mjs';
-import { buildTaskRecord, parseTaskSheetFrontmatter } from './task-intake.mjs';
 
 export const TASK_STATE_INDEX_PATH = 'docs/team/agent-orchestration/task-state-index.json';
 const TASK_ID_RE = /\b(?=[A-Z0-9]*[A-Z])[A-Z0-9]+-[0-9]+\b/g;
@@ -195,11 +194,75 @@ function taskSheetPresence(sha, taskId, currentIndex, parentIndex) {
   return { exists, path: sheetPath };
 }
 
-function readTaskSheetAt(sha, sheetPath, status) {
+function parseScalar(raw, label) {
+  const value = raw.trim();
+  if (!value) throw new Error(`${label} 为空`);
+  if (value.startsWith('"')) {
+    const parsed = JSON.parse(value);
+    if (typeof parsed !== 'string') throw new Error(`${label} 必须是字符串`);
+    return parsed;
+  }
+  if (value.startsWith("'")) {
+    if (!value.endsWith("'") || value.length < 2) throw new Error(`${label} 引号不完整`);
+    return value.slice(1, -1).replace(/''/g, "'");
+  }
+  if (/[\[\]{}]/.test(value)) throw new Error(`${label} 含不支持的 YAML 结构`);
+  return value;
+}
+
+/** 轻量门只解析 scope 所需字段；完整任务单 schema 仍由登记 CLI / Contracts 校验。 */
+export function parseTaskSheetScopeForGate(text, expectedTaskId) {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(text);
+  if (!match) throw new Error('任务单 frontmatter 缺失');
+  const lines = match[1].split(/\r?\n/);
+  const readTopLevel = (key) => {
+    const prefix = `${key}:`;
+    const line = lines.find((item) => item.startsWith(prefix));
+    return line ? parseScalar(line.slice(prefix.length), key) : null;
+  };
+  const taskId = readTopLevel('taskId');
+  if (!taskId || taskId !== expectedTaskId) throw new Error(`任务单 taskId 不匹配：${taskId ?? '(missing)'}`);
+
+  const scopeIndex = lines.findIndex((line) => line === 'scope:');
+  if (scopeIndex < 0) throw new Error('任务单 scope 缺失');
+  let filesIndex = -1;
+  for (let index = scopeIndex + 1; index < lines.length; index += 1) {
+    if (/^\S/.test(lines[index])) break;
+    if (/^  files:/.test(lines[index])) {
+      filesIndex = index;
+      break;
+    }
+  }
+  if (filesIndex < 0) throw new Error('任务单 scope.files 缺失');
+
+  const rawFiles = lines[filesIndex].slice(lines[filesIndex].indexOf(':') + 1).trim();
+  const files = [];
+  if (rawFiles) {
+    if (!rawFiles.startsWith('[') || !rawFiles.endsWith(']')) throw new Error('scope.files 行内值必须是数组');
+    const inner = rawFiles.slice(1, -1).trim();
+    if (inner) for (const item of inner.split(',')) files.push(parseScalar(item, 'scope.files'));
+  } else {
+    for (let index = filesIndex + 1; index < lines.length; index += 1) {
+      const line = lines[index];
+      if (!line.trim()) continue;
+      const item = /^\s{4,}-\s+(.+)$/.exec(line);
+      if (!item) break;
+      files.push(parseScalar(item[1], 'scope.files'));
+    }
+  }
+  if (files.length === 0) throw new Error('任务单 scope.files 为空');
+  return {
+    taskId,
+    type: readTopLevel('type') ?? 'implementation',
+    agentRole: readTopLevel('agentRole') ?? 'orchestrator',
+    scope: { files, modules: [], interfaces: [] },
+  };
+}
+
+function readTaskSheetAt(sha, sheetPath, status, expectedTaskId) {
   if (!sheetPath) throw new Error('squash 归档投影缺任务单路径，无法重建 scope');
   const text = git(['show', `${sha}:${sheetPath}`]);
-  const { meta } = parseTaskSheetFrontmatter(text);
-  return buildTaskRecord(meta, { taskSheetPath: sheetPath, status });
+  return { ...parseTaskSheetScopeForGate(text, expectedTaskId), status };
 }
 
 /** 读取一个真实 git 提交并执行快照判定（只读）。 */
@@ -238,7 +301,7 @@ export function evaluateCommitAt(sha) {
   if (commitTaskId && archived && !parentHasTask) {
     // archivedTasks 投影只保留 taskId/status/artifacts；squash 没有父任务可取 scope，
     // 必须从当前提交的任务单恢复完整声明，再交给同一个 scope 判定器。
-    const fullTask = readTaskSheetAt(sha, archived.artifacts?.taskSheet, archived.status);
+    const fullTask = readTaskSheetAt(sha, archived.artifacts?.taskSheet, archived.status, commitTaskId);
     const hydrated = { ...fullTask, ...archived, scope: fullTask.scope };
     evaluatedCurrentIndex = {
       ...currentIndex,

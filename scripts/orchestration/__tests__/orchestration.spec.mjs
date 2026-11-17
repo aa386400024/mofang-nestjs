@@ -103,6 +103,7 @@ import {
   LONG_LIVED_BRANCHES,
 } from '../branch-workflow.mjs';
 import { ciGateVerdict, resolveGithubToken, resolveGithubTokenDetail, fetchCheckRuns, evaluateRemoteCiGate } from '../ci-status.mjs';
+import { parseTaskSheetScopeForGate } from '../ci-task-gate.mjs';
 import { matchAgentCard, selectTargetRole, validateScopeDomain } from '../card-router.mjs';
 import {
   SESSION_PATHS,
@@ -3797,5 +3798,25 @@ describe('AF-056 integrate 保护与 PR 合并门', () => {
     const failed = successfulChecks();
     failed[2].conclusion = 'failure';
     expect(evaluateRequiredChecks(failed)).toMatchObject({ verdict: 'fail', failing: ['Lint + Typecheck（failure）'] });
+  });
+});
+
+describe('AF-059 零依赖任务单 scope 解析', () => {
+  it('支持块数组、行内数组与引号标量', () => {
+    const block = parseTaskSheetScopeForGate(
+      `---\ntaskId: AF-059\ntype: fix\nagentRole: orchestrator\nscope:\n  files:\n    - "scripts/orchestration/ci-task-gate.mjs"\n    - 'docs/worklog/'\n  modules: []\n---\n`,
+      'AF-059',
+    );
+    expect(block.scope.files).toEqual(['scripts/orchestration/ci-task-gate.mjs', 'docs/worklog/']);
+    const inline = parseTaskSheetScopeForGate(`---\ntaskId: AF-059\nscope:\n  files: [scripts/a.mjs, "docs/worklog/"]\n---\n`, 'AF-059');
+    expect(inline.scope.files).toEqual(['scripts/a.mjs', 'docs/worklog/']);
+  });
+
+  it('taskId 不符、scope 缺失或空 files 均 fail closed', () => {
+    expect(() => parseTaskSheetScopeForGate(`---\ntaskId: AF-058\nscope:\n  files: [scripts/a.mjs]\n---\n`, 'AF-059')).toThrow(
+      'taskId 不匹配',
+    );
+    expect(() => parseTaskSheetScopeForGate(`---\ntaskId: AF-059\ntype: fix\n---\n`, 'AF-059')).toThrow('scope 缺失');
+    expect(() => parseTaskSheetScopeForGate(`---\ntaskId: AF-059\nscope:\n  files: []\n---\n`, 'AF-059')).toThrow('scope.files 为空');
   });
 });

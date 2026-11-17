@@ -63,3 +63,10 @@ ok=true
 ## 5. 边界
 
 只改服务端判定、单测和编排文档；未改业务 src、数据库、Redis、master/tag/release/deploy。`scripts/*.mjs` 仍不在 ESLint 项目内，静态证据为 Node 语法检查、单测、真实回放与 GitHub job。
+
+## 6. PR #13 实际结果与 AF-059 承接（补记）
+
+- 归档 HEAD `090572de0f49fa7ed4854ab1d2119baa375e4bff` 本地 4 提交全过且 `ACCEPTANCE pass=true`。
+- GitHub PR #13 同 HEAD 的 Orchestration Gate 为 failure：`ERR_MODULE_NOT_FOUND: Cannot find package 'yaml'`，根因是静态引入 task-intake 连带依赖，而轻量门没有 node_modules。
+- 因此 PR #13 没有合并，已标记 superseded 并关闭；本地/远端 integrate 在 AF-059 开始前仍为 AF-057 的 `04f6f9ba`。
+- AF-058 原提交不改写，全部由 AF-059 stacked 分支承载；零依赖返修、最终 PR、merge SHA 与 merge 后 push 结论见 AF-059 交付记录。
