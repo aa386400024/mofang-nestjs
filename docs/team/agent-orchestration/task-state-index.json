@@ -4,104 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 281,
+    "lastEventSeq": 283,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-069",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-17T16:55:09.421Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "Relay Supervisor：事件驱动回执回收与按档位兜底",
-      "type": "implementation",
-      "baselineRef": "0749d153b795a14b38d738a3f30e6d208a11f360",
-      "dependsOn": [],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-17T16:54:56.997Z",
-      "deadline": null,
-      "agentRole": "orchestrator",
-      "scope": {
-        "files": [
-          "scripts/orchestration/",
-          "docs/team/agent-orchestration/",
-          "docs/worklog/pending/",
-          "docs/worklog/completed/phase2.5/",
-          "package.json"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af069-relay-supervisor-task-2026-11-18.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "node --check scripts/orchestration/relay-supervisor.mjs",
-          "check": "supervisor 入口语法检查",
-          "threshold": "exit 0"
-        },
-        {
-          "command": "pnpm exec vitest run scripts/orchestration/__tests__/relay-supervisor.spec.mjs",
-          "check": "回执 supervisor 定向单测全绿",
-          "threshold": "0 failed"
-        },
-        {
-          "command": "pnpm typecheck",
-          "check": "类型检查 0 error",
-          "threshold": "0 error"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "lint 0 error",
-          "threshold": "0 error"
-        },
-        {
-          "command": "pnpm orchestration:validate",
-          "check": "编排索引与契约校验通过",
-          "threshold": "exit 0"
-        },
-        {
-          "command": "pnpm orchestration:events verify",
-          "check": "事件日志哈希链与投影一致",
-          "threshold": "exit 0"
-        }
-      ],
-      "successCriteria": [
-        "新增 relay-supervisor 本地常驻工具，采用文件系统事件优先、按任务档位 10 至 15 分钟兜底扫描的回收方式",
-        "任务级账本记录 taskId、精确回执文件、profile、nextCheckAt、attempts、deadline、state 与处理历史，不使用全局通配扫描",
-        "单实例锁、原子写、文件稳定判定、命中后归档与通知、超时后报告并停止，均具备可复现单测",
-        "不创建永久 Doubao cron，不扫描无关 relay-response 文件，不修改业务代码与 engine-core",
-        "回写框架 §8.2、适配层 README §5 与 minimax-code-relay Skill，明确事件优先与兜底扫描口径",
-        "交付记录与机读回执六组字段齐全，闸门数字可复现"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af069-relay-supervisor-implementation-2026-11-18.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "priorTasks": []
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -842,6 +748,15 @@
         "taskSheet": "docs/worklog/pending/af068-af065-scenario-type-landing-task-2026-11-17.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af068-af065-scenario-type-landing-2026-11-17.md",
         "reply": "docs/worklog/pending/relay-response-20261117-2310.md"
+      }
+    },
+    {
+      "taskId": "AF-069",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af069-relay-supervisor-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af069-relay-supervisor-implementation-2026-11-18.md",
+        "reply": null
       }
     }
   ],
