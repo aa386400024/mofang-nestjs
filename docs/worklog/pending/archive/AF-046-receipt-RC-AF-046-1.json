@@ -64,7 +64,7 @@
       { "item": "taskId", "result": "pass", "note": "任务单 / 演练记录 / 回执一致（AF-046）" },
       { "item": "state-write", "result": "pass", "note": "状态迁移经 CLI；合并经 branch merge --apply，未手改索引" },
       { "item": "index-schema", "result": "pass", "note": "task-state-index 1.1.0 PASS" },
-      { "item": "event-chain", "result": "pass", "note": "176 事件 verify PASS" }
+      { "item": "event-chain", "result": "pass", "note": "184 条事件 verify PASS" }
     ],
     "fieldAlignment": {
       "result": "aligned",

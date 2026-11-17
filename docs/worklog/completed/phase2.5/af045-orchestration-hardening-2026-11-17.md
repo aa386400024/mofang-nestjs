@@ -33,7 +33,7 @@
 | `pnpm typecheck`                                                              | 0      | 0 error（`tsc -b tsconfig.check.json`）                                            | 增量     |
 | `ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate`                        | 0      | 全 PASS（含 AF-045 / AF-046 运行态任务单与事件日志投影一致）                       | 秒级     |
 | `pnpm orchestration:contracts`                                                | 0      | 框架契约包 2.0.0（v2.0.0 / c507188）14 文件哈希一致                                | 秒级     |
-| `node scripts/orchestration/cli.mjs events verify`                            | 0      | 176 事件；哈希链与索引投影一致                                                     | 秒级     |
+| `node scripts/orchestration/cli.mjs events verify`                            | 0      | 184 条事件；哈希链与索引投影一致                                                   | 秒级     |
 | 框架 `python conformance/run.py`                                              | 0      | 507 检查项 / 0 失败（含新增「规范正文条款锚点一致」8 项）                          | 秒级     |
 | 框架 `python -m unittest discover -s conformance/tests -v`                    | 0      | 16 tests OK（基线 13，+3）                                                         | 1.16s    |
 
