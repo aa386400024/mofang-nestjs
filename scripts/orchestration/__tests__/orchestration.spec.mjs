@@ -103,6 +103,7 @@ import {
   LONG_LIVED_BRANCHES,
 } from '../branch-workflow.mjs';
 import { ciGateVerdict, resolveGithubToken, resolveGithubTokenDetail, fetchCheckRuns, evaluateRemoteCiGate } from '../ci-status.mjs';
+import { parseTaskSheetScopeForGate } from '../ci-task-gate.mjs';
 import { matchAgentCard, selectTargetRole, validateScopeDomain } from '../card-router.mjs';
 import {
   SESSION_PATHS,
@@ -3693,6 +3694,63 @@ describe('AF-056 CI 逐提交编排门', () => {
   });
 });
 
+describe('AF-058 squash 全生命周期归档门', () => {
+  const lifecycleFiles = [
+    'docs/team/agent-orchestration/task-state-index.json',
+    'docs/worklog/pending/af058-squash-lifecycle-gate-task-2026-11-17.md',
+    'docs/worklog/pending/archive/AF-908-receipt.json',
+    'src/quality.ts',
+  ];
+  const passedReceipt = { verdict: 'passed', scopeCheck: 'in-scope', finalStatus: 'completed' };
+  const lifecycleTask = (taskId) => ({
+    taskId,
+    status: 'submitted',
+    type: 'implementation',
+    agentRole: 'orchestrator',
+    scope: { files: ['src/', 'docs/'] },
+    artifacts: { taskSheet: `docs/worklog/pending/${taskId.toLowerCase()}-task-2026-11-17.md` },
+  });
+
+  it('父提交无任务且当前归档有 passed 回执时允许 squash 全生命周期', () => {
+    const task = lifecycleTask('AF-908');
+    const result = evaluateCommitSnapshot({
+      subject: 'fix(orchestration): AF-908 squash lifecycle',
+      changedFiles: lifecycleFiles,
+      currentIndex: { tasks: [], archivedTasks: [{ ...task, status: 'completed' }] },
+      parentIndex: { tasks: [], archivedTasks: [] },
+      taskSheetExists: true,
+      receipts: [passedReceipt],
+    });
+    expect(result).toMatchObject({ pass: true, reason: 'archived-transition', taskId: 'AF-908' });
+  });
+
+  it('父提交无任务但缺 passed 回执时仍拒绝 squash', () => {
+    const task = lifecycleTask('AF-909');
+    const result = evaluateCommitSnapshot({
+      subject: 'fix(orchestration): AF-909 squash lifecycle',
+      changedFiles: lifecycleFiles,
+      currentIndex: { tasks: [], archivedTasks: [{ ...task, status: 'completed' }] },
+      parentIndex: { tasks: [], archivedTasks: [] },
+      taskSheetExists: true,
+      receipts: [],
+    });
+    expect(result).toMatchObject({ pass: false, reason: 'no-active-task' });
+  });
+
+  it('父任务已经归档时，passed 回执不能为后续追加写借道', () => {
+    const task = lifecycleTask('AF-910');
+    const result = evaluateCommitSnapshot({
+      subject: 'fix(orchestration): AF-910 post archive write',
+      changedFiles: lifecycleFiles,
+      currentIndex: { tasks: [], archivedTasks: [{ ...task, status: 'completed' }] },
+      parentIndex: { tasks: [], archivedTasks: [{ ...task, status: 'completed' }] },
+      taskSheetExists: true,
+      receipts: [passedReceipt],
+    });
+    expect(result).toMatchObject({ pass: false, reason: 'no-active-task' });
+  });
+});
+
 describe('AF-056 integrate 保护与 PR 合并门', () => {
   const successfulChecks = () => INTEGRATE_REQUIRED_CONTEXTS.map((name) => ({ name, status: 'completed', conclusion: 'success' }));
 
@@ -3740,5 +3798,25 @@ describe('AF-056 integrate 保护与 PR 合并门', () => {
     const failed = successfulChecks();
     failed[2].conclusion = 'failure';
     expect(evaluateRequiredChecks(failed)).toMatchObject({ verdict: 'fail', failing: ['Lint + Typecheck（failure）'] });
+  });
+});
+
+describe('AF-059 零依赖任务单 scope 解析', () => {
+  it('支持块数组、行内数组与引号标量', () => {
+    const block = parseTaskSheetScopeForGate(
+      `---\ntaskId: AF-059\ntype: fix\nagentRole: orchestrator\nscope:\n  files:\n    - "scripts/orchestration/ci-task-gate.mjs"\n    - 'docs/worklog/'\n  modules: []\n---\n`,
+      'AF-059',
+    );
+    expect(block.scope.files).toEqual(['scripts/orchestration/ci-task-gate.mjs', 'docs/worklog/']);
+    const inline = parseTaskSheetScopeForGate(`---\ntaskId: AF-059\nscope:\n  files: [scripts/a.mjs, "docs/worklog/"]\n---\n`, 'AF-059');
+    expect(inline.scope.files).toEqual(['scripts/a.mjs', 'docs/worklog/']);
+  });
+
+  it('taskId 不符、scope 缺失或空 files 均 fail closed', () => {
+    expect(() => parseTaskSheetScopeForGate(`---\ntaskId: AF-058\nscope:\n  files: [scripts/a.mjs]\n---\n`, 'AF-059')).toThrow(
+      'taskId 不匹配',
+    );
+    expect(() => parseTaskSheetScopeForGate(`---\ntaskId: AF-059\ntype: fix\n---\n`, 'AF-059')).toThrow('scope 缺失');
+    expect(() => parseTaskSheetScopeForGate(`---\ntaskId: AF-059\nscope:\n  files: []\n---\n`, 'AF-059')).toThrow('scope.files 为空');
   });
 });
