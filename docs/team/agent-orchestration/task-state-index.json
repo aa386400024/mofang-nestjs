@@ -4,113 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 229,
+    "lastEventSeq": 231,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-057",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-17T11:27:12.975Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-enforcement",
-      "title": "受保护 PR 验收门与全流程返修验证",
-      "type": "fix",
-      "baselineRef": null,
-      "dependsOn": [
-        "AF-056"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3",
-        "conventions.md#1.4",
-        "agent-orchestration/README.md#0",
-        "agent-orchestration/autonomous-team-design.md#6.2"
-      ],
-      "createdAt": "2026-11-17T11:25:00.000Z",
-      "deadline": null,
-      "agentRole": "orchestrator",
-      "scope": {
-        "files": [
-          ".github/workflows/ci.yml",
-          "scripts/orchestration/ci-task-gate.mjs",
-          "scripts/orchestration/pr-release.mjs",
-          "scripts/orchestration/branch-protection.mjs",
-          "scripts/orchestration/__tests__/orchestration.spec.mjs",
-          "AGENTS.md",
-          "docs/team/agent-orchestration/",
-          "docs/worklog/"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af057-protected-pr-acceptance-task-2026-11-17.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
-          "check": "编排单测与 PR 验收正反用例全绿",
-          "threshold": "failed=0"
-        },
-        {
-          "command": "node scripts/orchestration/ci-task-gate.mjs --base <integrate> --head <task-head> --require-accepted --task-id task/AF-057-protected-pr-acceptance",
-          "check": "归档前拒绝、归档后接受",
-          "threshold": "before=1 after=0"
-        },
-        {
-          "command": "pnpm typecheck",
-          "check": "类型检查通过",
-          "threshold": "errors=0"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "lint 无 error / warning",
-          "threshold": "errors=0 warnings=0"
-        },
-        {
-          "command": "ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate",
-          "check": "适配层机读校验全 PASS",
-          "threshold": "FAIL=0"
-        },
-        {
-          "command": "pnpm orchestration:contracts",
-          "check": "框架 2.0.0 契约包一致",
-          "threshold": "FAIL=0"
-        }
-      ],
-      "successCriteria": [
-        "PR 最终 HEAD 必须 completed/archived 且含 passed + in-scope + completed durable 回执，直接页面/API 合并也不能绕过",
-        "AF-057 登记提交只在任务分支；向 integrate 的直接 push 被 GitHub 保护拒绝",
-        "归档前 PR 的 Orchestration Gate 实弹失败，归档后同一 PR 转 success",
-        "最终 13 项 required checks 全绿，pr-release squash 合并并清理任务分支",
-        "AF-056 最终 merge SHA、保护读回、AF-057 直推负向证据全部入库",
-        "不使用 --no-verify，不改业务 src、数据库、Redis、master/tag/release/deploy"
-      ],
-      "evidenceFormat": "单测数 + 直推 rejected 原文 + 归档前远端 failure + 归档后远端 success + 13 项 pass + merge SHA + events/status",
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af057-protected-pr-acceptance-2026-11-17.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "priorTasks": []
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -751,6 +648,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/pending/af056-server-side-orchestration-gate-task-2026-11-17.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af056-server-side-orchestration-gate-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-057",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af057-protected-pr-acceptance-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af057-protected-pr-acceptance-2026-11-17.md",
         "reply": null
       }
     }

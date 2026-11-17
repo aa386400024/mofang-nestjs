@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-17T11:27:12.980Z",
+  "generatedAt": "2026-11-17T11:43:24.776Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,38 +15,7 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-057",
-      "contextId": "phase2.5-orchestration-enforcement",
-      "type": "fix",
-      "title": "受保护 PR 验收门与全流程返修验证",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af057-protected-pr-acceptance-task-2026-11-17.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-057",
-        "contextId": "phase2.5-orchestration-enforcement",
-        "channel": "file",
-        "targetRole": "orchestrator",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-17T11:27:12.978Z",
-        "leaseDeadline": "2026-11-17T11:57:12.975Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-057.json"
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1319,6 +1288,36 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-079",
+      "recordedAt": "2026-11-17T11:27:13.626Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-057",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-057-protected-pr-acceptance"
+      ]
+    },
+    {
+      "auditId": "AUD-078",
+      "recordedAt": "2026-11-17T11:27:13.026Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-057",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-057",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-057.json"
+      ]
+    },
+    {
       "auditId": "AUD-077",
       "recordedAt": "2026-11-17T10:53:34.694Z",
       "actorRef": "orchestrator",
@@ -1518,81 +1517,26 @@
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-050.json"
       ]
-    },
-    {
-      "auditId": "AUD-064",
-      "recordedAt": "2026-11-17T09:20:35.461Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-050",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-063",
-      "recordedAt": "2026-11-17T09:06:18.035Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-047",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-047",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-047.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 77,
+    "total": 79,
     "byResult": {
-      "allowed": 77,
+      "allowed": 79,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 75
+      "TOOL-QUEUE-SCHEDULER": 77
     },
     "byActor": {
-      "orchestrator": 77
+      "orchestrator": 79
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-057",
-        "title": "受保护 PR 验收门与全流程返修验证",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-enforcement",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-056"
-        ],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af057-protected-pr-acceptance-task-2026-11-17.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -2937,6 +2881,24 @@
             "ref": "docs/worklog/completed/phase2.5/af056-server-side-orchestration-gate-2026-11-17.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-057",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af057-protected-pr-acceptance-task-2026-11-17.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af057-protected-pr-acceptance-2026-11-17.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -2951,17 +2913,9 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-057",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af057-protected-pr-acceptance-task-2026-11-17.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-enforcement",
-    "groupIds": [
-      "phase2.5-orchestration-enforcement"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -3027,5 +2981,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 74
+  "archivedCount": 75
 }
