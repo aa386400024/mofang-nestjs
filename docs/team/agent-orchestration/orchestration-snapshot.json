@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-17T10:13:59.655Z",
+  "generatedAt": "2026-11-17T10:52:15.520Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,7 +15,38 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-056",
+      "contextId": "phase2.5-orchestration-enforcement",
+      "type": "implementation",
+      "title": "服务端编排门与 integrate 分支保护闭环",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af056-server-side-orchestration-gate-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-056",
+        "contextId": "phase2.5-orchestration-enforcement",
+        "channel": "file",
+        "targetRole": "orchestrator",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-17T10:52:15.518Z",
+        "leaseDeadline": "2026-11-17T11:22:15.515Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-056.json"
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1219,11 +1250,10 @@
         "AGENTS.md",
         "package.json",
         ".husky/",
+        ".github/",
         "docs/team/conventions.md",
         "docs/team/wp-task-template.md",
-        "docs/worklog/pending/",
-        "docs/worklog/completed/",
-        "docs/worklog/README.md",
+        "docs/worklog/",
         "docs/team/agent-orchestration/",
         "scripts/orchestration/"
       ],
@@ -1288,6 +1318,21 @@
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-075",
+      "recordedAt": "2026-11-17T10:14:51.985Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:merge:AF-055",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-055-merge-gate-snapshot"
+      ]
+    },
     {
       "auditId": "AUD-074",
       "recordedAt": "2026-11-17T10:06:21.369Z",
@@ -1507,41 +1552,49 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-060",
-      "recordedAt": "2026-11-17T09:03:18.219Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-048",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-048",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-048.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 74,
+    "total": 75,
     "byResult": {
-      "allowed": 74,
+      "allowed": 75,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 72
+      "TOOL-QUEUE-SCHEDULER": 73
     },
     "byActor": {
-      "orchestrator": 74
+      "orchestrator": 75
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-056",
+        "title": "服务端编排门与 integrate 分支保护闭环",
+        "type": "implementation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-enforcement",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-055"
+        ],
+        "agentRole": "orchestrator",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af056-server-side-orchestration-gate-task-2026-11-17.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -2882,9 +2935,17 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-056",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af056-server-side-orchestration-gate-task-2026-11-17.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-enforcement",
+    "groupIds": [
+      "phase2.5-orchestration-enforcement"
+    ],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -2933,11 +2994,10 @@
           "AGENTS.md",
           "package.json",
           ".husky/",
+          ".github/",
           "docs/team/conventions.md",
           "docs/team/wp-task-template.md",
-          "docs/worklog/pending/",
-          "docs/worklog/completed/",
-          "docs/worklog/README.md",
+          "docs/worklog/",
           "docs/team/agent-orchestration/",
           "scripts/orchestration/"
         ],

@@ -22,11 +22,10 @@
     "AGENTS.md",
     "package.json",
     ".husky/",
+    ".github/",
     "docs/team/conventions.md",
     "docs/team/wp-task-template.md",
-    "docs/worklog/pending/",
-    "docs/worklog/completed/",
-    "docs/worklog/README.md",
+    "docs/worklog/",
     "docs/team/agent-orchestration/",
     "scripts/orchestration/"
   ],
