@@ -106,7 +106,7 @@
 > - **Agent 协作强制门与发布闭环（2026-11-17）** ✅ → [`completed/phase2.5/af053-orchestration-delivery-release-2026-11-17.md`](completed/phase2.5/af053-orchestration-delivery-release-2026-11-17.md)（强制门交付、纯状态面提交与 integrate 发布）；squash 归档迁移快照修正由 AF-055 承接。
 > - **AF-055 合并边界交付** ✅ → [`completed/phase2.5/af055-merge-gate-snapshot-2026-11-17.md`](completed/phase2.5/af055-merge-gate-snapshot-2026-11-17.md)；**AF-056 服务端强门** ✅ → [`completed/phase2.5/af056-server-side-orchestration-gate-2026-11-17.md`](completed/phase2.5/af056-server-side-orchestration-gate-2026-11-17.md)；**AF-057 受保护 PR 验收门** ✅ → [`completed/phase2.5/af057-protected-pr-acceptance-2026-11-17.md`](completed/phase2.5/af057-protected-pr-acceptance-2026-11-17.md)；**AF-058 squash 生命周期门** 🔁 → [`pending/af058-squash-lifecycle-gate-task-2026-11-17.md`](pending/af058-squash-lifecycle-gate-task-2026-11-17.md)，[交付与回放证据](completed/phase2.5/af058-squash-lifecycle-gate-2026-11-17.md)。PR #13 因轻量门 yaml 依赖未合并，由 AF-059 承接。
 
-**AF-059 零依赖返修** 🚧 → [`pending/af059-dependency-free-squash-gate-task-2026-11-17.md`](pending/af059-dependency-free-squash-gate-task-2026-11-17.md)。
+**AF-059 零依赖返修** 🚧 → [`pending/af059-dependency-free-squash-gate-task-2026-11-17.md`](pending/af059-dependency-free-squash-gate-task-2026-11-17.md)，[交付与无依赖证据](completed/phase2.5/af059-dependency-free-squash-gate-2026-11-17.md)。
 
 ---
 
