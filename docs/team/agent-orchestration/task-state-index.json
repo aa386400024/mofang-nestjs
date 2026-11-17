@@ -4,96 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 272,
+    "lastEventSeq": 274,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-067",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-17T14:47:46.089Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "补 WP-K 四态边界测试"
-        },
-        {
-          "at": "2026-11-17T14:47:50.840Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "回归判定器四态边界回归测试补齐",
-      "type": "verification",
-      "baselineRef": "79a5ee2bf7d213bd74f9a92a44e86909176eec87",
-      "dependsOn": [],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-17T14:47:45.822Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "test/auto-practice/",
-          "docs/worklog/pending/",
-          "docs/worklog/completed/phase2.5/"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af067-regression-evaluator-boundary-tests-task-2026-11-17.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec vitest run test/auto-practice/regression-evaluator-boundary.spec.ts",
-          "check": "新增四态边界用例全绿",
-          "threshold": "0 failed"
-        },
-        {
-          "command": "pnpm typecheck",
-          "check": "类型检查 0 error",
-          "threshold": "0 error"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "lint 0 error",
-          "threshold": "0 error"
-        }
-      ],
-      "successCriteria": [
-        "只新增 test/auto-practice/ 下的回归测试，不修改 src/ 生产代码",
-        "覆盖 incomparable 四类原因：acceptance 不同、任一批覆盖率低于 0.9、counselorModeId 集合不同、characterSlug 集合不同",
-        "覆盖 combined=unknown 的不可比原因",
-        "覆盖 regressed 优先于 improved 的综合判定，以及 neutral 方向指标不参与好坏判定",
-        "覆盖 REGRESSION_TOL 边界：等于容差为 neutral，超过容差才判定 movement",
-        "回执含 gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict 六组机读字段",
-        "不修改 scope 之外的文件，不提交并行工作区里的其他产物"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af067-regression-evaluator-boundary-tests-2026-11-17.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "priorTasks": [],
-      "promotedAt": "2026-11-17T14:47:46.088Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -816,6 +730,15 @@
         "taskSheet": "docs/worklog/pending/af066-local-gate-archived-delivery-task-2026-11-17.md",
         "deliveryRecord": null,
         "reply": null
+      }
+    },
+    {
+      "taskId": "AF-067",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af067-regression-evaluator-boundary-tests-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af067-regression-evaluator-boundary-tests-2026-11-17.md",
+        "reply": "docs/worklog/pending/relay-response-20261117-2248.md"
       }
     }
   ],
