@@ -542,6 +542,7 @@ async function runBranch(args) {
       const result = finalizeSquashMerge({
         source: branchName,
         taskId,
+        taskType: task.type,
         title: `squash merge into integrate（${task.title ?? taskId}）`,
         remote: argValue(args, '--remote'),
         gitPort: git,

@@ -95,6 +95,7 @@ import {
   branchAgeDays,
   collectChangedFiles,
   finalizeSquashMerge,
+  buildSquashCommitMessage,
   LONG_LIVED_BRANCHES,
 } from '../branch-workflow.mjs';
 import { ciGateVerdict, resolveGithubToken, resolveGithubTokenDetail, fetchCheckRuns, evaluateRemoteCiGate } from '../ci-status.mjs';
@@ -3216,6 +3217,24 @@ describe('IM-012 squash 合并收口', () => {
     expect(result.errors).toEqual([]);
     expect(calls[1][1]).toContain('AF-160');
     expect(calls[3]).toEqual(['deleteRemote', 'task/AF-160-x', 'origin']);
+  });
+
+  // AF-046 实弹暴露：裸 `<taskId> <title>` 被仓内 commit-msg 钩子拒绝，squash 提交直接失败。
+  it('提交标题满足 conventional commit（钩子正则），并按任务类型选前缀', () => {
+    const HOOK = /^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\([^)]+\))?: .+/;
+    const cases = [
+      ['implementation', 'feat'],
+      ['fix', 'fix'],
+      ['documentation', 'docs'],
+      ['verification', 'chore'],
+      [undefined, 'chore'],
+    ];
+    for (const [taskType, expectedType] of cases) {
+      const message = buildSquashCommitMessage({ taskId: 'AF-046', taskType, title: '合并标题' });
+      expect(HOOK.test(message)).toBe(true);
+      expect(message.startsWith(`${expectedType}(orchestration): `)).toBe(true);
+      expect(message).toContain('AF-046');
+    }
   });
 
   it('提交阶段失败即停：不删分支、错误如实返回', () => {

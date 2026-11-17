@@ -222,6 +222,32 @@ export function createGitPort() {
 }
 
 /**
+ * 任务类型 → conventional commit 类型。合并提交的语义是「把一条任务分支落进主干」，
+ * 所以实现类是 feat、修复类是 fix、文档类是 docs，只读类（审阅 / 调查 / 验证）回到 chore。
+ */
+const SQUASH_TYPE_BY_TASK_TYPE = {
+  implementation: 'feat',
+  fix: 'fix',
+  documentation: 'docs',
+  investigation: 'chore',
+  review: 'chore',
+  verification: 'chore',
+};
+
+/**
+ * 组装 squash 合并提交标题：`<type>(orchestration): <taskId> <title>`。
+ * 必须满足仓内 commit-msg 钩子（`^(feat|fix|docs|...)(\(...\))?: .+`），否则合并会在
+ * 提交阶段被钩子拒绝——这条由 CI 门禁实弹（AF-046）实测暴露，假端口单测覆盖不到钩子。
+ * @param {{taskId:string, taskType?:string, title?:string}} opts
+ * @returns {string}
+ */
+export function buildSquashCommitMessage(opts = {}) {
+  const type = SQUASH_TYPE_BY_TASK_TYPE[opts.taskType] ?? 'chore';
+  const subject = `${opts.taskId ?? ''} ${opts.title ?? 'squash merge into integrate'}`.trim();
+  return `${type}(orchestration): ${subject}`.trim();
+}
+
+/**
  * IM-012 · squash 合并收口：暂存 → 闸门全绿后补提交 → 清理源分支。
  *
  * 为什么把提交与清理放在同一个函数：这两步在旧实现里都「留给人工」，结果是
@@ -230,10 +256,10 @@ export function createGitPort() {
  *
  * 阶段顺序（任一阶段抛错即停，后续不执行）：
  *   1. `squashMerge(source)` —— `git merge --squash`，只暂存不提交；
- *   2. `commitSquash(message)` —— 提交，`message` 必须带 taskId（调用方组装）；
+ *   2. `commitSquash(message)` —— 提交，`message` 由 `buildSquashCommitMessage` 组装（conventional + taskId）；
  *   3. `deleteLocal(source)` / `deleteRemote(source, remote)` —— 合并已提交成功后才删，远端删除失败不回滚本地。
  *
- * @param {{source:string, remote?:string, taskId:string, title?:string, gitPort:object}} opts
+ * @param {{source:string, remote?:string, taskId:string, taskType?:string, title?:string, gitPort:object}} opts
  * @returns {{stages:string[], branchName:string, commitMessage:string|null, errors:string[]}}
  */
 export function finalizeSquashMerge(opts = {}) {
@@ -244,7 +270,7 @@ export function finalizeSquashMerge(opts = {}) {
   if (!gitPort || typeof gitPort.squashMerge !== 'function') {
     return { stages, branchName: source, commitMessage: null, errors: ['缺少 git 端口或 squashMerge 能力'] };
   }
-  const commitMessage = `${taskId} ${opts.title ?? 'squash merge into integrate'}`.trim();
+  const commitMessage = buildSquashCommitMessage({ taskId, taskType: opts.taskType, title: opts.title });
   try {
     gitPort.squashMerge(source);
     stages.push('squash-merge');
