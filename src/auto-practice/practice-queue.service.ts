@@ -24,6 +24,7 @@ import { nanoid } from 'nanoid';
 import type { Repository } from 'typeorm';
 
 import { CounselorMode } from './entities/counselor-mode.entity.js';
+import type { ScenarioType } from './inference-fingerprint.service.js';
 import { PracticeBatchHealthService } from './practice-batch-health.service.js';
 import { PracticeRunnerService } from './practice-runner.service.js';
 import { QUEUE_NAMES } from '../shared/infra/redis/redis.constants.js';
@@ -41,6 +42,13 @@ export interface AutoPracticeJobData {
   readonly maxTurns: number;
   /** 批量批次 id. */
   readonly batchId: string;
+  /**
+   * 场景类型 (可选; `freeform` / `full_simulation` / `exam`).
+   *
+   * ⚠️ **缺省即缺省**: 入口没给时**不带**该字段 —— runner 侧缺省 `full_simulation`.
+   *   在队列层写死缺省 = 缺省语义散两处, 迟早漂移.
+   */
+  readonly scenarioType?: ScenarioType;
 }
 
 /**
@@ -179,6 +187,8 @@ export class PracticeQueueService implements OnModuleInit, OnModuleDestroy {
       counselorMode: mode,
       maxTurns: data.maxTurns,
       batchId: data.batchId,
+      // 场景类型原样透传 (缺省 = undefined → runner 缺省 `full_simulation`).
+      scenarioType: data.scenarioType,
     });
     // V2026-11-10 治本 (WP-H 改动 9 + 新增 12): 批次收尾时算有效性门禁 + 写逐字稿索引.
     //   只在"批次全部跑完"时才落库 (最后一场跑完的那次会命中) —— 中途不落, 免得刷 100 次.

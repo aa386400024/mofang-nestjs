@@ -22,6 +22,7 @@ import type { Repository } from 'typeorm';
 import { CounselorMode } from './entities/counselor-mode.entity.js';
 import { PracticeBatch } from './entities/practice-batch.entity.js';
 import { PracticeSession } from './entities/practice-session.entity.js';
+import type { ScenarioType } from './inference-fingerprint.service.js';
 import {
   INTAKE_ACCEPTANCE_VERSION,
   INTAKE_ACCEPTANCE_VERSION_HISTORY,
@@ -35,6 +36,7 @@ import { BATCH_INVALID_WARNING, PracticeBatchHealthService } from './practice-ba
 import { PracticeQueueService } from './practice-queue.service.js';
 import { PracticeRunnerService } from './practice-runner.service.js';
 import { AdminRoleGuard } from '../admin-debug/guards/admin-role.guard.js';
+import { DELIBERATION_SCENARIO_TYPES } from '../engine-adapters/deliberation/deliberation-mode.config.js';
 
 /** 启动单场对练的入参. */
 interface StartSessionBody {
@@ -56,6 +58,13 @@ interface BatchBody {
   readonly maxTurns?: number;
   /** 每个组合重复几场 (默认 1). */
   readonly repeats?: number;
+  /**
+   * 场景类型 (可选; 取值 `freeform` / `full_simulation` / `exam`).
+   *
+   * ⚠️ **缺省不写**: 不传时 job data 里**不带**该字段, 由 runner 缺省 `full_simulation`
+   *   —— 缺省语义只留一份 (在 runner 里), 入口再写一份就迟早漂移.
+   */
+  readonly scenarioType?: ScenarioType;
 }
 
 /** 模式 CRUD 的入参. */
@@ -142,6 +151,15 @@ export class AutoPracticeController {
     if (characterSlugs.length === 0 || counselorModeIds.length === 0) {
       return { error: 'characterSlugs 与 counselorModeIds 不能为空' };
     }
+    // 场景类型: 非法值**明确报错**, 不静默回落 `full_simulation` ——
+    //   考核场景走的是"锁版本 / 锁温度 / 逐字复现"红线 (审议恒 `rule_only`),
+    //   把拼错的 `exam` 悄悄跑成 `full_simulation` = 产出一批"看着像考核"的普通数据,
+    //   事后没人查得出来. 宁可当场报错, 也不让脏批次进队列.
+    //   (返回口径与本模块其它校验一致: body 里带 `error` 字段, 不改 HTTP 状态码语义.)
+    const scenario = parseBatchScenarioType(body?.scenarioType);
+    if (scenario.error) {
+      return { error: scenario.error };
+    }
     const batchId = nanoid();
     let enqueued = 0;
     for (const slug of characterSlugs) {
@@ -152,6 +170,8 @@ export class AutoPracticeController {
             counselorModeId: modeId,
             maxTurns: body?.maxTurns ?? 15,
             batchId,
+            // 只在**显式给了**场景时才写进 job data; 没给就整条省掉 (缺省由 runner 兜).
+            ...(scenario.value ? { scenarioType: scenario.value } : {}),
           });
           enqueued += 1;
         }
@@ -477,6 +497,30 @@ export class AutoPracticeController {
     await this.modeRepo.delete(id);
     return { deleted: true };
   }
+}
+
+/**
+ * 解析批次入口的 `scenarioType` (纯函数; 便于单测).
+ *
+ * ⚠️ **不静默降级**: 非法值直接判非法并给出可选项清单 —— 绝不回落 `full_simulation`.
+ *   考核场景 (`exam`) 恒走 `rule_only` (锁版本 / 锁温度 / 逐字复现), 把拼错的 `exam`
+ *   悄悄跑成普通全真模拟 = 产出一批"看着像考核"的普通数据, 事后没人查得出来.
+ *
+ * ⚠️ **取值清单只有一份**: 用审议侧的权威清单 `DELIBERATION_SCENARIO_TYPES`,
+ *   本文件**不复制第二份枚举** (加场景时只改那一处).
+ *
+ * @param raw 入口原值 (未传 = undefined)
+ * @returns `value` 为合法场景 (未传时**没有** value); 非法时给 `error`
+ */
+function parseBatchScenarioType(raw: unknown): { readonly value?: ScenarioType; readonly error?: string } {
+  if (raw === undefined || raw === null) return {};
+  const value = String(raw).trim();
+  if (!DELIBERATION_SCENARIO_TYPES.includes(value as ScenarioType)) {
+    return {
+      error: `scenarioType 非法：${value || '(空字符串)'}；可选值 ${DELIBERATION_SCENARIO_TYPES.join(' / ')}`,
+    };
+  }
+  return { value: value as ScenarioType };
 }
 
 /**

@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 274,
+    "lastEventSeq": 279,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -739,6 +739,15 @@
         "taskSheet": "docs/worklog/pending/af067-regression-evaluator-boundary-tests-task-2026-11-17.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af067-regression-evaluator-boundary-tests-2026-11-17.md",
         "reply": "docs/worklog/pending/relay-response-20261117-2248.md"
+      }
+    },
+    {
+      "taskId": "AF-068",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af068-af065-scenario-type-landing-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af068-af065-scenario-type-landing-2026-11-17.md",
+        "reply": "docs/worklog/pending/relay-response-20261117-2310.md"
       }
     }
   ],
