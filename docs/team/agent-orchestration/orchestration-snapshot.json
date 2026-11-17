@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-17T15:10:43.108Z",
+  "generatedAt": "2026-11-17T15:20:16.359Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,53 +15,7 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-068",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "AF-065 已验收场景透传改动落地",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af068-af065-scenario-type-landing-task-2026-11-17.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-068",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-17T15:09:09.053Z",
-        "leaseDeadline": "2026-11-17T15:39:09.050Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-068.json",
-        "delivery": {
-          "state": "delivered",
-          "preparedAt": "2026-11-17T15:09:09.053Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-068.brief.md",
-          "sessionPath": "new-task",
-          "locateLayer": "paste-verify",
-          "evidenceRef": "docs/team/agent-orchestration/transport/evidence/AF-068-delivered.png",
-          "consecutiveFailures": 0,
-          "history": [],
-          "deliveredAt": "2026-11-17T15:10:43.100Z",
-          "verifiedAt": "2026-11-17T15:10:43.100Z",
-          "failureReason": null,
-          "classification": null,
-          "circuitOpenedAt": null
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1613,28 +1567,7 @@
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-068",
-        "title": "AF-065 已验收场景透传改动落地",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af068-af065-scenario-type-landing-task-2026-11-17.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -3159,6 +3092,28 @@
             "ref": "docs/worklog/pending/relay-response-20261117-2248.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-068",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af068-af065-scenario-type-landing-task-2026-11-17.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af068-af065-scenario-type-landing-2026-11-17.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/relay-response-20261117-2310.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -3173,17 +3128,9 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-068",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af068-af065-scenario-type-landing-task-2026-11-17.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -3249,5 +3196,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 84
+  "archivedCount": 85
 }
