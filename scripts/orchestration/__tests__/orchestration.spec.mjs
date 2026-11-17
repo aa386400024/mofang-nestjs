@@ -3315,6 +3315,32 @@ describe('IM-012 squash 合并收口', () => {
     }
   });
 
+  it('squash 标题剥离外部任务号，只保留主任务号', () => {
+    const message = buildSquashCommitMessage({
+      taskId: 'AF-061',
+      taskType: 'verification',
+      title: 'Phase2.5 出口条件取证重定（AF-060 验收断链返修）',
+    });
+    expect(extractCommitTaskId(message)).toBe('AF-061');
+    expect(message).not.toContain('AF-060');
+
+    const ascii = buildSquashCommitMessage({
+      taskId: 'AF-061',
+      taskType: 'verification',
+      title: '出口取证 (AF-060 rework)',
+    });
+    expect(extractCommitTaskId(ascii)).toBe('AF-061');
+    expect(ascii).not.toContain('AF-060');
+
+    const bare = buildSquashCommitMessage({
+      taskId: 'AF-062',
+      taskType: 'fix',
+      title: '修复 AF-060 的 gate',
+    });
+    expect(extractCommitTaskId(bare)).toBe('AF-062');
+    expect(bare).not.toContain('AF-060');
+  });
+
   it('提交阶段失败即停：不删分支、错误如实返回', () => {
     const { port, calls } = fakeGit({
       commitSquash: () => {

@@ -112,6 +112,8 @@
 
 **AF-061 断链返修** ✅ → [交付记录](completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md)：修复 AF-060 两处相对链接，V4 断链归零，验收 `completed`。
 
+**AF-063 squash 标题去重返修（待验收）** → [交付记录](completed/phase2.5/af063-orchestration-squash-title-rework-2026-11-17.md)：修复 AF-061 合并后 push 门 `ambiguous-task-id`，提交标题只保留主任务号。
+
 ---
 
 ## 1. 当前有什么活（自己扫目录）
