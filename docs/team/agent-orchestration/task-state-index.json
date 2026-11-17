@@ -4,10 +4,107 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 235,
+    "lastEventSeq": 237,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-059",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-17T12:06:07.277Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-enforcement",
+      "title": "零依赖 squash 门返修与最终闭环",
+      "type": "fix",
+      "baselineRef": null,
+      "dependsOn": [
+        "AF-058"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3",
+        "agent-orchestration/README.md#0",
+        "agent-orchestration/autonomous-team-design.md#6.2"
+      ],
+      "createdAt": "2026-11-17T12:06:06.944Z",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "scope": {
+        "files": [
+          "scripts/orchestration/ci-task-gate.mjs",
+          "scripts/orchestration/__tests__/orchestration.spec.mjs",
+          "docs/team/agent-orchestration/",
+          "docs/worklog/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af059-dependency-free-squash-gate-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+          "check": "编排单测与零依赖 scope 解析正反用例全绿",
+          "threshold": "failed=0"
+        },
+        {
+          "command": "node scripts/orchestration/ci-task-gate.mjs --base 04f6f9baa02f6f3f8a503780920e3562a42f511b --head <af059-head> --require-accepted --task-id task/AF-059-dependency-free-gate",
+          "check": "AF-058+059 全部提交与最终验收通过",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm typecheck",
+          "check": "类型检查通过",
+          "threshold": "errors=0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "lint 无 error / warning",
+          "threshold": "errors=0 warnings=0"
+        },
+        {
+          "command": "ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate",
+          "check": "适配层校验 FAIL=0",
+          "threshold": "FAIL=0"
+        },
+        {
+          "command": "pnpm orchestration:contracts",
+          "check": "框架契约包一致",
+          "threshold": "FAIL=0"
+        }
+      ],
+      "successCriteria": [
+        "ci-task-gate 不再静态引入 task-intake/yaml；在未安装 node_modules 的 GitHub 轻量门中可运行",
+        "任务单 scope 支持块数组与行内数组，taskId 不符或 scope 缺失 fail closed",
+        "AF-058 未合入提交由 AF-059 承载，PR",
+        "AF-059 自身 PR、13 项 checks、squash 后 integrate push 的 Orchestration Gate 全部 success",
+        "本地/远端临时任务分支清理，事件链与索引投影一致"
+      ],
+      "evidenceFormat": "单测数 + 无依赖检查 + 真实历史回放 + GitHub PR/push 结论 + merge SHA",
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af059-dependency-free-squash-gate-2026-11-17.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": []
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
