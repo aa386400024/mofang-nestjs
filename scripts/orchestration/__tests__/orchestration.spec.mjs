@@ -52,6 +52,7 @@ import {
   shouldAdvance,
   buildSnapshot,
   claimReadyTasks,
+  cancelTask,
   processReceipts,
   releaseExpiredLeases,
 } from '../scheduler.mjs';
@@ -1148,7 +1149,9 @@ artifacts:
       const first = ingestReceipts(index, runtimeState, { dir, archiveDir: join(dir, 'archive'), actions });
       expect(first.ingested).toBe(1);
       expect(index.tasks[0].artifacts.deliveryRecord).toBe('docs/worklog/completed/phase2.5/af009.md');
-      expect(index.tasks[0].artifacts.receipt).toMatch(/AF-009-receipt-AF-009-R1\.json$/);
+      // 回执副本指针只能在 task.receipt / 运行态；索引 artifacts 不允许带 receipt 键。
+      expect(index.tasks[0].artifacts).not.toHaveProperty('receipt');
+      expect(index.tasks[0].receipt.archiveRef).toMatch(/AF-009-receipt-AF-009-R1\.json$/);
       expect(runtimeState.tasks['AF-009'].receiptArchiveRef).toMatch(/AF-009-receipt-AF-009-R1\.json$/);
       expect(index.tasks[0].receipt.finalStatus).toBe('completed');
       expect(runtimeState.tasks['AF-009'].receiptStatus).toBe('completed');
@@ -1491,6 +1494,89 @@ describe('AF-023 运行态调度闭环（领单 / 回滚 / 回执终态）', () 
       rmSync(receiptsDir, { recursive: true, force: true });
     }
   });
+
+  it('人工取消：非终态沿状态机闭合到 canceled 并清租约；终态拒绝取消', () => {
+    const open = task('AF-110');
+    open.status = 'ready';
+    const index = freshIndex(open);
+    const runtimeState = { tasks: { 'AF-110': { leaseClaimedAt: '2026-11-17T00:00:00.000Z', leaseDeadline: '2999-01-01T00:00:00.000Z' } } };
+    const cancelled = cancelTask(index, runtimeState, 'AF-110', { reason: 'scope 跨域' });
+    expect(cancelled.status).toBe('canceled');
+    expect(cancelled.cancelReason).toBe('scope 跨域');
+    expect(runtimeState.tasks['AF-110'].leaseDeadline).toBeNull();
+    expect(runtimeState.tasks['AF-110'].releaseReason).toBe('cancelled');
+    expect(cancelled.history.at(-1)).toMatchObject({ from: 'ready', to: 'canceled' });
+
+    const done = task('AF-111');
+    done.status = 'completed';
+    expect(() => cancelTask(freshIndex(done), { tasks: {} }, 'AF-111', {})).toThrow(/终态/);
+    expect(() => cancelTask(freshIndex(task('AF-112')), { tasks: {} }, 'AF-404', {})).toThrow(/不在活跃列表/);
+  });
+
+  it('整链：回执落盘 → 摄入 → 验收 → 归档，一轮内闭合 completed', () => {
+    const taskId = 'AF-109';
+    const only = task(taskId);
+    only.status = 'submitted';
+    only.artifacts = {
+      taskSheet: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-task-2026-11-17.md',
+      deliveryRecord: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-implementation-2026-11-17.md',
+    };
+    const index = freshIndex(only);
+    const runtimeState = {
+      tasks: {
+        [taskId]: { leaseClaimedAt: '2026-11-17T00:00:00.000Z', leaseDeadline: '2999-01-01T00:00:00.000Z' },
+      },
+    };
+    const receiptsDir = mkdtempSync(join(tmpdir(), 'orch-chain-'));
+    const archiveDir = mkdtempSync(join(tmpdir(), 'orch-archive-'));
+
+    const receipt = {
+      receiptId: `RC-${taskId}-1`,
+      taskId,
+      contextId: 'phase2.5-orchestration-closed-loop',
+      type: 'investigation',
+      baselineRef: '7311d01',
+      dependsOn: [],
+      policyRefs: [],
+      contractRef: RECEIPT_CONTRACT_REF,
+      artifactRefs: {
+        taskSheet: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-task-2026-11-17.md',
+        deliveryRecord: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-implementation-2026-11-17.md',
+        reply: null,
+        others: [],
+      },
+      changedFiles: { added: [], modified: [], deleted: [] },
+      gateResults: [{ command: 'pnpm test', exitCode: 0, errors: 0, warnings: 0, specFiles: 202 }],
+      reproNotes: '定向复核整链',
+      scopeCheck: 'in-scope',
+      parallelArtifactsExcluded: true,
+      noOutscopeRefactor: true,
+      contractChecks: [{ item: 'taskId', result: 'pass', note: '与任务单一致' }],
+      fieldAlignment: { result: 'aligned', note: '字段一致' },
+      backlogItems: [],
+      openQuestions: [],
+      manualReviewList: [],
+      deviationTable: [],
+      deviationAbsent: true,
+      finalStatus: 'completed',
+      reviewVerdict: 'passed',
+      verdictRationale: '机读全绿',
+    };
+    writeFileSync(join(receiptsDir, `${taskId}.json`), JSON.stringify({ deliveredAt: '2026-11-17T02:00:00.000Z', payload: receipt }));
+
+    const actions = [];
+    try {
+      processReceipts(index, runtimeState, config, actions, { receiptsDir, receiptArchiveDir: archiveDir, changedFiles: [] });
+      expect(actions.some((a) => a.type === 'receipt-ingested')).toBe(true);
+      expect(actions.some((a) => a.type === 'archive-completed')).toBe(true);
+      expect(index.tasks).toHaveLength(0);
+      expect(index.archivedTasks[0]).toMatchObject({ taskId, status: 'completed' });
+      expect(runtimeState.tasks[taskId].autoVerdict.verdict).toBe('passed');
+    } finally {
+      rmSync(receiptsDir, { recursive: true, force: true });
+      rmSync(archiveDir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('AF-011 文件域 scope 互斥校验', () => {
@@ -1558,6 +1644,37 @@ describe('AF-011 文件域 scope 互斥校验', () => {
     expect(residual).toEqual(['src/engine-core/secret.ts']);
     expect(scopeCovers(t, 'scripts/orchestration/cli.mjs')).toBe(true);
     expect(scopeCovers(t, 'README.md')).toBe(false);
+  });
+
+  it('验收 V7：编排状态面生成物不计残留，只比对交付文件', () => {
+    const t = task('AF-011A', ['scripts/orchestration/']);
+    t.artifacts = { deliveryRecord: 'docs/worklog/completed/af011.md' };
+    const withStatePlane = runAcceptance(
+      t,
+      { tasks: [t], archivedTasks: [] },
+      {
+        changedFiles: [
+          'scripts/orchestration/scheduler.mjs',
+          'docs/team/agent-orchestration/task-state-index.json',
+          'docs/team/agent-orchestration/state/journal.jsonl',
+          'docs/team/agent-orchestration/orchestration-snapshot.json',
+          'web/orchestration/data.js',
+          'docs/team/agent-orchestration/transport/tasks/AF-011A.json',
+        ],
+      },
+    );
+    expect(withStatePlane.checks.find((c) => c.code === 'V7').status).toBe('pass');
+    expect(withStatePlane.checks.find((c) => c.code === 'V7').detail).toMatch('均在 scope 文件域内');
+
+    const onlyStatePlane = runAcceptance(
+      t,
+      { tasks: [t], archivedTasks: [] },
+      {
+        changedFiles: ['docs/team/agent-orchestration/task-state-index.json', 'web/orchestration/data.js'],
+      },
+    );
+    expect(onlyStatePlane.checks.find((c) => c.code === 'V7').status).toBe('pass');
+    expect(onlyStatePlane.checks.find((c) => c.code === 'V7').detail).toMatch('仅含编排状态面生成物');
   });
 
   it('验收 V7：变更清单含 scope 外文件 → fail；全在域内 → pass；未传清单 → skip', () => {

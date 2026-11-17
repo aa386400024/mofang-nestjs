@@ -29,7 +29,7 @@ import {
   saveRuntimeState,
   writeJsonAtomic,
 } from './state-store.mjs';
-import { advanceOnce, buildSnapshot, shouldAdvance } from './scheduler.mjs';
+import { advanceOnce, buildSnapshot, cancelTask, shouldAdvance } from './scheduler.mjs';
 import {
   frameworkDir,
   requireFramework,
@@ -45,6 +45,7 @@ import {
 import {
   archiveTask as archiveTaskEvent,
   backfillJournalFromIndex,
+  commitIndex,
   createTask,
   journalIntegrity,
   loadJournal,
@@ -604,7 +605,24 @@ async function cmdTask(args) {
     console.log(`已恢复任务 ${taskId}：heldForHuman=false，releaseReason=manual-resume`);
     return;
   }
-  console.error(`未知 task 子命令：${sub}（支持 register / import / resume）`);
+  if (sub === 'cancel') {
+    const taskId = argValue(args, '--taskId');
+    if (!taskId) {
+      console.error('用法：task cancel --taskId <id> [--reason <text>]  按状态机把非终态任务闭合到 canceled，随后可 archive');
+      process.exit(2);
+    }
+    const index = loadIndex();
+    const runtimeState = loadRuntimeState();
+    const reason = argValue(args, '--reason') ?? '人工取消';
+    const task = cancelTask(index, runtimeState, taskId, { reason });
+    commitIndex(index, { actor: 'orchestrator-cli' });
+    saveRuntimeState(runtimeState);
+    refreshSnapshotArtifacts();
+    auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: `cancel:${taskId}` });
+    console.log(`已取消任务 ${taskId}：status=canceled，cancelReason=${reason}`);
+    return task;
+  }
+  console.error(`未知 task 子命令：${sub}（支持 register / import / resume / cancel）`);
   process.exit(2);
 }
 
@@ -851,6 +869,7 @@ function printHelp() {
   console.log('  task register --sheet <task.md> [--status ready]  解析 frontmatter 并登记进状态索引');
   console.log('  task import --handover <task.json> [--status ready]  补登 transport 已落交接件');
   console.log('  task resume --taskId <id> [--reason <text>]  解除租约超时的人工持单，允许重新领取');
+  console.log('  task cancel --taskId <id> [--reason <text>]  按状态机把非终态任务闭合到 canceled（随后可 archive）');
   console.log('  events verify|rebuild|backfill             事件日志校验 / 重建索引 / 首次回填');
   console.log('  events rotate [--max-events 5000] [--compress] [--force] [--dry-run]  归档当前日志段（不删事件）');
   console.log(

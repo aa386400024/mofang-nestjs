@@ -214,8 +214,35 @@ function checkToolContracts() {
 }
 
 /**
+ * 编排状态面生成物：由 CLI 在每轮推进时自动重写（快照 / 索引投影 / 事件日志 / transport）。
+ * 它们不属于任何单个任务的交付面，V7 必须排除，否则每次验收都会把编排自己的写入
+ * 判成任务越域，导致真实的合规任务永久 rejected。
+ */
+export const STATE_PLANE_ARTIFACTS = [
+  'docs/team/agent-orchestration/orchestration-state.json',
+  'docs/team/agent-orchestration/orchestration-snapshot.json',
+  'docs/team/agent-orchestration/task-state-index.json',
+  'docs/team/agent-orchestration/state/journal.jsonl',
+  'docs/team/agent-orchestration/state/archived-notes.json',
+  'web/orchestration/data.js',
+];
+
+/** transport 目录整体属运行态收件箱，不作为任务交付面。 */
+const STATE_PLANE_DIR_PREFIXES = ['docs/team/agent-orchestration/transport/'];
+
+/** 该变更文件是否属编排状态面（V7 排除）。 */
+export function isStatePlaneArtifact(file) {
+  const path = String(file ?? '')
+    .replace(/\\/g, '/')
+    .replace(/^\.\//, '');
+  if (STATE_PLANE_ARTIFACTS.includes(path)) return true;
+  return STATE_PLANE_DIR_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
+
+/**
  * V7 文件域残留：变更清单与 scope 比对，清单外文件判残留（只识别报告，不删除、不归集）。
  * changedFiles 由调用方采集 git diff 传入；未传入时记 skip（纯函数模块无 git IO）。
+ * 编排状态面生成物先剔除，再与任务 scope 比对。
  */
 function checkResidual(task, opts) {
   const checks = [];
@@ -230,11 +257,17 @@ function checkResidual(task, opts) {
     record(checks, 'V7', '文件域残留', 'skip', '未传入变更文件清单；残留比对需调用方采集 git diff');
     return { checks, manualReview: [] };
   }
-  const { covered, residual } = detectResidualFiles(changed, task);
+  const statePlane = changed.filter(isStatePlaneArtifact);
+  const deliverable = changed.filter((file) => !isStatePlaneArtifact(file));
+  if (deliverable.length === 0) {
+    record(checks, 'V7', '文件域残留', 'pass', `变更清单仅含编排状态面生成物 ${statePlane.length} 项，不纳入任务交付面比对`);
+    return { checks, manualReview: [] };
+  }
+  const { covered, residual } = detectResidualFiles(deliverable, task);
   if (residual.length > 0) {
     record(checks, 'V7', '文件域残留', 'fail', `scope 外变更文件（不进提交分组）：${residual.join('；')}`);
   } else {
-    record(checks, 'V7', '文件域残留', 'pass', `变更 ${changed.length} 个文件均在 scope 文件域内（覆盖 ${covered.length}）`);
+    record(checks, 'V7', '文件域残留', 'pass', `变更 ${deliverable.length} 个交付文件均在 scope 文件域内（覆盖 ${covered.length}）`);
   }
   return { checks, manualReview: [] };
 }

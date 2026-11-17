@@ -64,6 +64,37 @@ export function shouldAdvance(config) {
   return config?.autoLoop?.enabled === true;
 }
 
+/**
+ * 人工取消：把非终态任务沿合法迁移链闭合到 `canceled`。
+ * 框架状态机允许 ready / submitted / working / input-required → canceled，但此前没有
+ * 任何命令能执行它，误立项或域切错的任务只能靠改文件绕过状态机。这里补上唯一入口：
+ * 迁移写 history、清租约、记 `cancelReason`，随后可用 archive 归档。
+ * @param {{tasks:object[], archivedTasks:object[]}} index 状态索引（就地改写）
+ * @param {object} runtimeState 运行态（就地改写）
+ * @param {string} taskId 目标任务
+ * @param {{reason?:string}} opts 取消原因
+ * @returns {object} 取消后的任务条目
+ */
+export function cancelTask(index, runtimeState, taskId, opts = {}) {
+  const task = index.tasks.find((item) => item.taskId === taskId);
+  if (!task) throw new Error(`取消失败：任务不在活跃列表：${taskId}`);
+  if (TERMINAL_STATUSES.includes(task.status)) throw new Error(`取消失败：任务已是终态：${taskId}（${task.status}）`);
+  if (!canTransition(task.status, 'canceled')) throw new Error(`取消失败：${task.status} → canceled 不是合法迁移`);
+  const reason = opts.reason ?? '人工取消';
+  task.cancelReason = reason;
+  pushHistory(task, 'canceled', BY_ORCHESTRATOR, reason);
+  const entry = runtimeState.tasks?.[taskId];
+  if (entry) {
+    entry.leaseClaimedAt = null;
+    entry.leaseDeadline = null;
+    entry.releaseReason = 'cancelled';
+    entry.cancelReason = reason;
+    entry.heldForHuman = false;
+    entry.escalation = null;
+  }
+  return task;
+}
+
 function pushHistory(task, to, by, reason) {
   if (!Array.isArray(task.history)) task.history = [];
   task.history.push({ at: nowIso(), from: task.status, to, by, reason: reason ?? null });
@@ -263,7 +294,7 @@ function archiveTask(index, task, status) {
 /** 回执验收驱动：已落盘交付记录的任务跑护栏并归档 / 提案返修 / 死信。 */
 export function processReceipts(index, runtimeState, config, actions, opts = {}) {
   // 先把 transport/receipts 的机读回执投影进任务与运行态，再进入验收。
-  ingestReceipts(index, runtimeState, { actions, dir: opts.receiptsDir });
+  ingestReceipts(index, runtimeState, { actions, dir: opts.receiptsDir, archiveDir: opts.receiptArchiveDir });
 
   const remaining = [];
   for (const task of index.tasks) {

@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 85,
+    "lastEventSeq": 96,
     "rebuiltAt": null
   },
   "tasks": [
@@ -418,6 +418,33 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-implementation-2026-11-17.md",
         "reply": null
       }
+    },
+    {
+      "taskId": "AF-025",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af025-receipt-chain-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-026",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/archive/AF-026-task-sheet-2026-11-17.json",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af026-orchestration-receipt-chain-and-cancel-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-027",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/archive/AF-027-task-sheet-2026-11-17.json",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af027-orchestration-receipt-chain-rework-2026-11-17.md",
+        "reply": null
+      }
     }
   ],
   "archivedNotes": {
@@ -435,6 +462,7 @@
     "AF-020": "P0-P2 闭环：CI 契约硬门/发布流水线/事件溯源；validate 9/9；编排 135 passed",
     "AF-021": "AF-021 非生产收尾交付完成",
     "AF-022": "AF-022 发布链路保护兼容交付完成",
-    "AF-023": "AF-023 静态交付记录补登索引并归档"
+    "AF-023": "AF-023 静态交付记录补登索引并归档",
+    "AF-025": "跨资源域，按角色切片重开 AF-026"
   }
 }

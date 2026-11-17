@@ -156,8 +156,10 @@ export function ingestReceipts(index, runtimeState, opts = {}) {
     entry.ingestedReceiptFingerprint = fingerprint;
     entry.receiptRef = file;
     if (archiveRef) {
+      // 回执副本指针只留在 task.receipt 与运行态：索引 artifacts 在框架
+      // task-state-index 1.1.0 里只允许 taskSheet / deliveryRecord / reply / others，
+      // 往里塞 receipt 会让索引 schema 校验失败。
       entry.receiptArchiveRef = archiveRef;
-      task.artifacts = { ...(task.artifacts ?? {}), receipt: archiveRef };
     }
     entry.receiptStatus = receipt.finalStatus;
     entry.receiptIngestedAt = task.receipt.ingestedAt;

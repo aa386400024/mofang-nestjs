@@ -422,6 +422,23 @@ export function buildHistoryEvent(task, history, opts = {}) {
   };
 }
 
+/**
+ * 索引工件指针白名单：框架 task-state-index 1.1.0 的 `artifacts` 只允许
+ * `taskSheet / deliveryRecord / reply / others`。回执副本指针属运行态（`task.receipt`），
+ * 不得混入索引工件对象，否则索引 schema 校验直接失败。
+ * @param {object} artifacts 任意工件对象
+ * @returns {object} 仅含白名单键的工件对象
+ */
+export function pickArtifactPointers(artifacts) {
+  const allowed = ['taskSheet', 'deliveryRecord', 'reply', 'others'];
+  const out = {};
+  if (!artifacts || typeof artifacts !== 'object' || Array.isArray(artifacts)) return out;
+  for (const key of allowed) {
+    if (artifacts[key] !== undefined) out[key] = artifacts[key];
+  }
+  return out;
+}
+
 /** 构造归档事件；归档是终态之后的只读动作，不携带状态变更。 */
 export function buildArchivedEvent(task, status, artifacts, opts = {}) {
   if (!TERMINAL_STATUSES.includes(task.status)) {
@@ -440,8 +457,8 @@ export function buildArchivedEvent(task, status, artifacts, opts = {}) {
     idempotencyKey: `${task.taskId}:archived`,
     reason: opts.note ?? '归档终态',
     payload: {
-      artifacts: artifacts ?? task.artifacts ?? {},
-      task: { ...taskSnapshot(task), artifacts: artifacts ?? task.artifacts ?? {} },
+      artifacts: pickArtifactPointers(artifacts ?? task.artifacts ?? {}),
+      task: { ...taskSnapshot(task), artifacts: pickArtifactPointers(artifacts ?? task.artifacts ?? {}) },
     },
   };
 }
@@ -491,7 +508,7 @@ export function projectJournal(events, opts = {}) {
       if (!TERMINAL_STATUSES.includes(rec.status)) {
         throw new Error(`${taskId} 归档时状态 ${rec.status} 不是终态，拒绝归档投影`);
       }
-      if (payload.artifacts) rec.artifacts = payload.artifacts;
+      if (payload.artifacts) rec.artifacts = pickArtifactPointers(payload.artifacts);
       archived.push({ taskId, status: rec.status, artifacts: rec.artifacts ?? {} });
       records.delete(taskId);
       const idx = order.indexOf(taskId);
@@ -501,7 +518,7 @@ export function projectJournal(events, opts = {}) {
 
     rec.status = to;
     if (payload.task && typeof payload.task === 'object') Object.assign(rec, payload.task);
-    if (payload.artifacts) rec.artifacts = payload.artifacts;
+    if (payload.artifacts) rec.artifacts = pickArtifactPointers(payload.artifacts);
     if (payload.verdict) rec.verdict = payload.verdict;
     if (type === 'interrupted') {
       if (payload.waitingOn) rec.waitingOn = payload.waitingOn;
