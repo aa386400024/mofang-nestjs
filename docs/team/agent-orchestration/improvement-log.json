@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-17T03:47:18.278Z",
+  "updatedAt": "2026-11-17T03:53:17.646Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -1665,7 +1665,7 @@
     },
     {
       "improvementId": "IM-034",
-      "status": "candidate",
+      "status": "done",
       "title": "WP38 调试会话恢复用例在并发全量测试下 30s 超时（单独复跑 100ms 通过）",
       "source": "implementation",
       "type": "tech-debt",
@@ -1678,7 +1678,7 @@
       "suggestion": "为该用例增加显式 timeout 或降低全量 worker 并发，并在闸门记录中固定区分并发 flake",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-16T14:25:39.916Z",
-      "updatedAt": "2026-11-16T14:25:39.916Z",
+      "updatedAt": "2026-11-17T03:53:17.645Z",
       "history": [
         {
           "at": "2026-11-16T14:25:39.916Z",
@@ -1686,8 +1686,34 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T03:53:17.249Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "进入实现队列"
+        },
+        {
+          "at": "2026-11-17T03:53:17.446Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "用例预算已落地（commit c8632c6），转验收"
+        },
+        {
+          "at": "2026-11-17T03:53:17.645Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "③ 首个用例显式 60s 预算 + 判据注释（commit c8632c6）；AF-041 因 fallback 定性误判 failed（留痕），AF-042 复单验收未过因同树残留，最终由 AF-043 复核收口"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T03:53:17.645Z",
+        "resolutionNote": "③ 首个用例显式 60s 预算 + 判据注释（commit c8632c6）；AF-041 因 fallback 定性误判 failed（留痕），AF-042 复单验收未过因同树残留，最终由 AF-043 复核收口",
+        "linkedTaskId": "AF-043"
+      }
     }
   ]
 }

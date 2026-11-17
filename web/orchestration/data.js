@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-17T03:52:13.780Z",
+  "generatedAt": "2026-11-17T03:54:00.178Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -107,12 +107,12 @@ window.ORCH_SNAPSHOT = {
   "pendingApprovals": [],
   "improvements": {
     "total": 34,
-    "activeCount": 1,
+    "activeCount": 0,
     "byStatus": {
-      "candidate": 1,
+      "candidate": 0,
       "queued": 0,
       "accepted": 0,
-      "done": 32,
+      "done": 33,
       "wontfix": 1
     },
     "byType": {
@@ -854,7 +854,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-034",
         "title": "WP38 调试会话恢复用例在并发全量测试下 30s 超时（单独复跑 100ms 通过）",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "tech-debt",
         "layer": "adapter",
@@ -864,12 +864,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "全量闸门在并发负载下会出现与本批改动无关的红灯，误导交付判断",
         "suggestion": "为该用例增加显式 timeout 或降低全量 worker 并发，并在闸门记录中固定区分并发 flake",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-16T14:25:39.916Z",
+          "at": "2026-11-17T03:53:17.645Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "③ 首个用例显式 60s 预算 + 判据注释（commit c8632c6）；AF-041 因 fallback 定性误判 failed（留痕），AF-042 复单验收未过因同树残留，最终由 AF-043 复核收口"
         }
       }
     ]
@@ -1015,6 +1015,21 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-052",
+      "recordedAt": "2026-11-17T03:53:03.753Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-043",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-043",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-043.json"
+      ]
+    },
     {
       "auditId": "AUD-051",
       "recordedAt": "2026-11-17T03:51:48.994Z",
@@ -1238,38 +1253,21 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-037",
-      "recordedAt": "2026-11-17T03:11:38.060Z",
-      "actorRef": "orchestrator",
-      "correlationId": "archive:AF-033",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 51,
+    "total": 52,
     "byResult": {
-      "allowed": 51,
+      "allowed": 52,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 49
+      "TOOL-QUEUE-SCHEDULER": 50
     },
     "byActor": {
-      "orchestrator": 51
+      "orchestrator": 52
     }
   },
   "protocolView": {
@@ -2388,6 +2386,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af042-wp38-timeout-budget-rework-2026-11-17.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-043",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af043-improvement-closeout-rework-task-2026-11-17.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af043-improvement-closeout-rework-2026-11-17.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -2478,5 +2494,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 58
+  "archivedCount": 59
 };

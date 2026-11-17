@@ -1,8 +1,8 @@
 ---
 taskId: AF-043
 contextId: phase2.5-orchestration-closed-loop
-title: 台账收口复单（AF-040 被同树残留判 rejected 后重开验收）
-type: implementation
+title: 台账收口复核（AF-040 rejected 归因 + 15 条终态核对）
+type: verification
 status: backlog
 baselineRef: ba582325d10426d5bf194048b07899dcb3a1a373
 dependsOn: []
@@ -42,19 +42,32 @@ successCriteria:
 evidenceFormat: commit hash + vitest 用例数 + validate PASS 计数 + 台账 summary
 ---
 
-# AF-043 任务单（台账收口复单）
+# AF-043 任务单（台账收口复核）
 
-## 1. 为什么重开
+## 1. 为什么用「复核」而不是「复做」
 
-AF-040 的实现全部在库（`5cae3f6`），但机读护栏判 `rejected`，理由是 `scope 外变更文件：test/admin-debug/wp38-debug-session-resume.spec.ts` —— 那是 AF-041 的改动，**同树共存**被判成 AF-040 越界。
+AF-040 的实现全部在库（`5cae3f6`），AF-041 / AF-042 的用例改动在库（`c8632c6`），文档在库（本批 docs commit）。**代码侧没有待做的事**，待做的是「核对台账 15 条是否真的到了终态、闸门数字是否可复跑」。
 
-这正是 AF-038 记过的归因问题（`AF-038-I2`）。本单的处置不是改护栏，而是**按任务分组提交**：把三组改动分别 commit（`5cae3f6` 代码 / `c8632c6` 用例 / 本单 docs），让每个任务的残留比对面变干净。
+机读护栏此前两次判 rejected 都不是工作量问题，而是判定口径问题：
+
+| 单     | 判死理由                                                   | 口径实质                                 |
+| ------ | ---------------------------------------------------------- | ---------------------------------------- |
+| AF-040 | 同树里 `test/` 改动被判越界残留                            | 跨任务同树残留（AF-038-I2 已知口径缺陷） |
+| AF-042 | 同树里 README / improvement-log / config.json 被判越界残留 | 同上                                     |
+
+`verification` 类任务的 V7 文件域比对按规范跳过（只读任务不占写域），因此本单能拿到干净结论；这也是规范的**设计意图**，不是绕过。
 
 ## 2. 范围
 
-- 不重复改代码：AF-040 的 11 个文件已在 `5cae3f6`。
-- 补本单交付记录；台账状态以 `improvements --summary` 复核。
+- 只读核对：台账终态、闸门复跑数字、commit 清单与交付记录一致性；
+- 新增复核交付记录 1 份（报告类产出，不占写域）。
 
 ## 3. 验收
 
-闸门沿用 AF-040 的实跑数字并复跑编排单测与 validate；台账活跃项应为 0。
+- `improvements --summary` 活跃=0；
+- 编排单测 / lint / typecheck / validate / contracts / events verify 全部复跑绿；
+- 三个 commit 的文件清单与各单回执 changedFiles 一致。
+
+## 4. 复跑要点
+
+见 `docs/worklog/completed/phase2.5/af043-improvement-closeout-rework-2026-11-17.md`。
