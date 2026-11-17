@@ -141,3 +141,21 @@
 **工具层事实（供后续留意）**：在 `.skills` 根下用写文件工具直接创建**新目录**时，文件未落盘却回报成功（目录不存在、文件数为 0）；改为先 `New-Item -ItemType Directory` 建目录再写，落盘正常（复验 2 文件）。改**已存在**文件（`browser-use` / `browser-use-automation` 顶部插入）则正常生效。
 
 **副作用与回滚**：探查命令时误跑 `cli.mjs pack`，生成 `delivery-packs\pack-20261117-134630.json|md` 并刷新 `orchestration-snapshot.json` 与 `web/orchestration/data.js`；已删除两个生成件并 `git checkout` 还原两份派生文件，`git status` 回到只剩用户自有未跟踪稿 `docs\architecture\phase3-judge-layer-ai-review-design-2026-11-15.md`（不入库）。
+
+### 9.4 边界补强（回执可信度 / 单写者 / 运行健康）
+
+按「架构边界评审」列出的三条高风险边界落地，台账 `IM-049`～`IM-051` 已按 `candidate → queued → accepted → done` 流转闭合。
+
+| 边界                                 | 原状态                                                                        | 处置                                                                                                                                                                                                                                                                                                                              | 验证                                                                                                                                                                 |
+| ------------------------------------ | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 回执可伪造、不可追责                 | `transport/receipts/<id>.json` 只做 schema 校验，谁写的、有没有被改都没有留痕 | `receipts.mjs` 增 `receiptDigest`（整份回执文件 sha256）与 `receiptPublisher`（`publisher` → `agentRole` → `agentRef` → `unspecified`）；摄入时写入运行态 `receiptDigest` / `receiptPublisher`，并进 `receipt-ingested` 动作日志。**指纹与发布者只进运行态与事件日志，不进索引**——框架索引 1.1.0 无此字段位，硬塞会让索引校验失败 | `receipt-audit.spec.mjs` 2 例：同内容指纹稳定、改动后变化；发布者三级回退                                                                                            |
+| 文件 transport 无并发仲裁            | 多进程/多机同时 `run-once` 会重复领单、重复验收、互相覆盖快照                 | 新增 `run-lock.mjs`：`transport/.run-once.lock` 用 `openSync(..., 'wx')` 独占创建；持锁信息含 pid / host / token / actor / acquiredAt；超 `45min` 或内容损坏按陈旧锁自愈并留 `stolen` 事实；释放按 token 比对只删自己的锁。`run-once` 与 `watch` 每轮 tick 都走 `withRunLock`，抢不到只打印持锁方并跳过，不动状态面               | `run-lock.spec.mjs` 4 例：互斥、释放后可重抢、陈旧锁自愈、带 BOM 的新鲜锁不被误判；实弹：手工占锁后 `run-once` 打印 `[lock] 另一轮（manual-test）正在运行，本轮跳过` |
+| 可观测性只有「看得见」没有「叫得醒」 | 死信、人工持单、租约过期、回执失败只能翻 json                                 | `cli status` 增「运行健康」段：死信 / 人工持单 / 租约过期释放 / 回执校验失败（附前 5 条原因）/ 回执无指纹（旧数据计数）/ 单写者锁状态。纯只读投影，不参与状态迁移                                                                                                                                                                 | `status` 实测输出：`死信=0 人工持单=0 租约过期释放=0 回执校验失败=0 回执无指纹=18`、`单写者锁：空闲`                                                                 |
+
+**口径修正（上一轮口头结论有偏差，记录为准）**：租约到期**本来就会自动释放**回 `ready`（`scheduler.releaseExpiredLeases`），人工的只是「重新派发」——释放后置 `heldForHuman`，需 `task resume` 才再领。真正的缺口是「释放无人知道」与「重派无上限」，所以本轮补的是可见性与互斥，不是重写租约逻辑。
+
+**闸门**（本机，无长驻进程）：编排单测 195 + 新增 6 例全绿；全量 `pnpm test` 3574 passed / 8 skipped（204 spec，24.08s）；`pnpm lint` 0 error；`pnpm typecheck` 0 error；`ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate` 全 PASS（含索引投影一致）；`pnpm orchestration:contracts` 框架契约包 2.0.0 / 14 文件哈希一致；`events verify` 184 条一致。
+
+**未落地项（如实登记）**：跨机器时钟漂移（租约与熔断仍用本机墙钟）、回执密码学验签（当前只有指纹+发布者留痕，信任模型仍是本机可信）、生产部署方案（设计建议见对话，未实机落地）。
+
+**旁证**：`scripts/` 仍未进 ESLint 作用域（IM-043 queued），本轮新增代码由单测覆盖，未靠 lint 兜底。

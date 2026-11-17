@@ -87,6 +87,7 @@ import { SESSION_PATHS, LOCATE_LAYERS, MAX_START_RETRIES, MAX_SEND_RETRIES, canD
 import { evaluateRemoteCiGate } from './ci-status.mjs';
 import { buildGuiBrief, writeGuiBrief, confirmDelivery, fallbackDelivery, isDeliveryStalled } from './gui-dispatch.mjs';
 import { registerTaskFromSheet, registerTaskFromHandover, parseTaskSheetFrontmatter } from './task-intake.mjs';
+import { acquireRunLock, describeRunLock } from './run-lock.mjs';
 
 /** 快照双写：JSON（机读 / 存档）+ data.js（静态网页在 file:// 下读取，规避本地 fetch 限制）。 */
 function writeSnapshotArtifacts(snapshot, opts = {}) {
@@ -200,25 +201,78 @@ function readSnapshot() {
 function cmdStatus() {
   const snapshot = readSnapshot() ?? buildSnapshot(loadIndex(), loadRuntimeState(), loadConfig(), summarizeLog(loadImprovementLog()));
   printSnapshot(snapshot);
+  printOperationalHealth();
+}
+
+/**
+ * 可观测性最小集（只读投影，不参与状态迁移）：
+ * 死信、人工持单、租约过期释放、回执校验失败、回执无指纹（旧数据）、单写者锁。
+ * 这些计数以前只能翻 json 才看得到，出了事没人叫得醒；现在每次 status 一行带出。
+ */
+function printOperationalHealth() {
+  const index = loadIndex();
+  const runtime = loadRuntimeState();
+  const entryOf = (id) => runtime.tasks?.[id] ?? {};
+  const tasks = index.tasks ?? [];
+  const deadLetter = tasks.filter((t) => t.status === 'deadLetter').length;
+  const heldForHuman = tasks.filter((t) => entryOf(t.taskId).heldForHuman === true).length;
+  const leaseExpired = Object.values(runtime.tasks ?? {}).filter((e) => e.releaseReason === 'lease-expired').length;
+  const receiptErrors = Object.entries(runtime.tasks ?? {}).filter(([, e]) => Array.isArray(e.receiptErrors) && e.receiptErrors.length > 0);
+  const receiptNoDigest = Object.values(runtime.tasks ?? {}).filter((e) => e.receiptStatus && !e.receiptDigest).length;
+  const lock = describeRunLock();
+
+  console.log('=== 运行健康 ===');
+  console.log(
+    `死信=${deadLetter} 人工持单=${heldForHuman} 租约过期释放=${leaseExpired} 回执校验失败=${receiptErrors.length} 回执无指纹=${receiptNoDigest}`,
+  );
+  if (receiptErrors.length > 0) {
+    for (const [taskId, e] of receiptErrors.slice(0, 5)) console.log(`  ${taskId}：${e.receiptErrors[0]}`);
+  }
+  console.log(
+    lock
+      ? `单写者锁：运行中（pid=${lock.pid ?? '?'} host=${lock.host ?? '?'} 已持 ${lock.heldMinutes ?? '?'} 分钟${lock.stale ? '，已超陈旧阈值' : ''}）`
+      : '单写者锁：空闲',
+  );
+}
+
+/** 单写者保护：抢不到锁说明另一轮在跑，本轮直接跳过（只读打印持锁事实，不动状态面）。 */
+function withRunLock(label, fn) {
+  const lock = acquireRunLock({ actor: label });
+  if (!lock.acquired) {
+    const held = lock.holder ?? {};
+    console.log(
+      `[lock] 另一轮${held.actor ? `（${held.actor}）` : ''}正在运行，本轮跳过：pid=${held.pid ?? '?'} host=${held.host ?? '?'} 自 ${held.acquiredAt ?? '?'}`,
+    );
+    return null;
+  }
+  if (lock.stolen)
+    console.log(`[lock] 已清理陈旧锁：pid=${lock.stolen.pid ?? '?'} host=${lock.stolen.host ?? '?'} 自 ${lock.stolen.acquiredAt ?? '?'}`);
+  try {
+    return fn();
+  } finally {
+    lock.release();
+  }
 }
 
 function cmdRunOnce() {
-  const config = loadConfig();
-  if (!shouldAdvance(config)) {
-    console.log('自治模式关闭：本轮仅生成只读快照，不执行领单 / 验收归档 / 返修等状态迁移。');
-  }
-  auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: 'run-once' });
-  // IM-009：采集本次变更文件清单供 V7 文件域残留比对；空清单时 V7 记 skip。
-  const gitPort = createGitPort();
-  const changedFiles = collectChangedFiles(gitPort);
-  // AF-043-I1：回执声明了提交集合时，V7 按 commit 事实比对（不再拿工作树去套单个任务）。
-  const resolveCommitFiles = (sha) => gitPort.filesInCommit(sha);
-  const { snapshot, actions } = advanceOnce({ commit: true, changedFiles, resolveCommitFiles });
-  auditDispatchActions(actions);
-  writeSnapshotArtifacts(snapshot);
-  for (const action of actions) console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
-  console.log('');
-  printSnapshot(snapshot);
+  return withRunLock('run-once', () => {
+    const config = loadConfig();
+    if (!shouldAdvance(config)) {
+      console.log('自治模式关闭：本轮仅生成只读快照，不执行领单 / 验收归档 / 返修等状态迁移。');
+    }
+    auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: 'run-once' });
+    // IM-009：采集本次变更文件清单供 V7 文件域残留比对；空清单时 V7 记 skip。
+    const gitPort = createGitPort();
+    const changedFiles = collectChangedFiles(gitPort);
+    // AF-043-I1：回执声明了提交集合时，V7 按 commit 事实比对（不再拿工作树去套单个任务）。
+    const resolveCommitFiles = (sha) => gitPort.filesInCommit(sha);
+    const { snapshot, actions } = advanceOnce({ commit: true, changedFiles, resolveCommitFiles });
+    auditDispatchActions(actions);
+    writeSnapshotArtifacts(snapshot);
+    for (const action of actions) console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
+    console.log('');
+    printSnapshot(snapshot);
+  });
 }
 
 function cmdWatch() {
@@ -228,21 +282,23 @@ function cmdWatch() {
     join(PATHS.transportDir, 'tasks'),
     join(PATHS.transportDir, 'receipts'),
   ];
-  const tick = (label, events = []) => {
-    console.log(`[watch] ${label} ${events.length > 0 ? `变更 ${events.length} 项，` : ''}执行一轮 run-once`);
-    auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: 'watch' });
-    const gitPort = createGitPort();
-    const changedFiles = collectChangedFiles(gitPort);
-    const { snapshot, actions } = advanceOnce({
-      commit: true,
-      changedFiles,
-      resolveCommitFiles: (sha) => gitPort.filesInCommit(sha),
+  const tick = (label, events = []) =>
+    withRunLock('watch', () => {
+      console.log(`[watch] ${label} ${events.length > 0 ? `变更 ${events.length} 项，` : ''}执行一轮 run-once`);
+      auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: 'watch' });
+      const gitPort = createGitPort();
+      const changedFiles = collectChangedFiles(gitPort);
+      const { snapshot, actions } = advanceOnce({
+        commit: true,
+        changedFiles,
+        resolveCommitFiles: (sha) => gitPort.filesInCommit(sha),
+      });
+      auditDispatchActions(actions);
+      writeSnapshotArtifacts(snapshot);
+      for (const action of actions)
+        console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
+      printSnapshot(snapshot);
     });
-    auditDispatchActions(actions);
-    writeSnapshotArtifacts(snapshot);
-    for (const action of actions) console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
-    printSnapshot(snapshot);
-  };
   const watcher = createWatcher({
     dirs,
     debounceMs: 300,

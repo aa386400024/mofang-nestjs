@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-17T05:28:31.643Z",
+  "updatedAt": "2026-11-17T07:26:39.597Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -2321,6 +2321,156 @@
       "resolution": {
         "resolvedAt": "2026-11-17T05:28:31.642Z",
         "resolutionNote": "88839c6 已入库，远端 CI pass",
+        "linkedTaskId": "AF-045"
+      }
+    },
+    {
+      "improvementId": "IM-049",
+      "status": "done",
+      "title": "回执内容指纹与发布者留痕（可审计）",
+      "source": "review",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-045",
+      "evidence": ["transport 回执无身份/无指纹，任意进程可写"],
+      "impact": "验收结论不可追责、内容被改动无法发现",
+      "suggestion": "run-once 摄入时记录 sha256 指纹与 publisher 到运行态与动作日志",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T07:26:31.962Z",
+      "updatedAt": "2026-11-17T07:26:38.337Z",
+      "history": [
+        {
+          "at": "2026-11-17T07:26:31.962Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T07:26:37.919Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-17T07:26:38.135Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-17T07:26:38.337Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "已实现并过闸门（单测+validate+events verify）"
+        }
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T07:26:38.337Z",
+        "resolutionNote": "已实现并过闸门（单测+validate+events verify）",
+        "linkedTaskId": "AF-045"
+      }
+    },
+    {
+      "improvementId": "IM-050",
+      "status": "done",
+      "title": "run-once/watch 单写者锁，防重复领单与状态面覆盖",
+      "source": "review",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-045",
+      "evidence": ["文件 transport 无锁，多进程/多机并发会争同一任务单"],
+      "impact": "重复验收、事件链分叉、快照互相覆盖",
+      "suggestion": "O_EXCL 锁文件 + 陈旧阈值自愈 + token 归属释放",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T07:26:32.181Z",
+      "updatedAt": "2026-11-17T07:26:38.958Z",
+      "history": [
+        {
+          "at": "2026-11-17T07:26:32.181Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T07:26:38.550Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-17T07:26:38.741Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-17T07:26:38.958Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "已实现并过闸门（单测+validate+events verify）"
+        }
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T07:26:38.958Z",
+        "resolutionNote": "已实现并过闸门（单测+validate+events verify）",
+        "linkedTaskId": "AF-045"
+      }
+    },
+    {
+      "improvementId": "IM-051",
+      "status": "done",
+      "title": "status 运行健康最小集（死信/持单/租约/回执失败/锁）",
+      "source": "review",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-045",
+      "evidence": ["异常只能翻 json 才能看到"],
+      "impact": "出事无人自动发现",
+      "suggestion": "status 尾部输出运行健康计数与被阻塞原因摘要",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T07:26:32.402Z",
+      "updatedAt": "2026-11-17T07:26:39.596Z",
+      "history": [
+        {
+          "at": "2026-11-17T07:26:32.402Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T07:26:39.162Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-17T07:26:39.391Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-17T07:26:39.596Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "已实现并过闸门（单测+validate+events verify）"
+        }
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T07:26:39.596Z",
+        "resolutionNote": "已实现并过闸门（单测+validate+events verify）",
         "linkedTaskId": "AF-045"
       }
     }

@@ -11,9 +11,28 @@
  * 边界：只读写 transport 目录与运行态条目；不迁移状态、不归档、不改交付记录正文。
  */
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join, relative, resolve } from 'node:path';
 import { PATHS, REPO_ROOT, nowIso } from './state-store.mjs';
 import { validateReceiptHandover } from './handover-contract.mjs';
+
+/**
+ * 回执指纹：整份回执文件的 sha256（含包装层），用于「内容有没有被改」的审计。
+ * 只进运行态与动作日志，不进状态索引（框架 1.1.0 索引契约没有这个字段位）。
+ */
+export function receiptDigest(file) {
+  return createHash('sha256').update(readFileSync(file)).digest('hex');
+}
+
+/**
+ * 发布者标识：优先回执自报的 publisher，其次 agentRole，认不出来记 unspecified。
+ * 本机信任模型下不验签，只保证「谁写的」这一事实被留痕，可审计、可追责。
+ */
+export function receiptPublisher(receipt) {
+  const raw = receipt?.publisher ?? receipt?.agentRole ?? receipt?.agentRef;
+  const value = typeof raw === 'string' ? raw.trim() : '';
+  return value.length > 0 ? value : 'unspecified';
+}
 
 /** 回执终态：completed 进入验收；其余终态由 scheduler 走失败/取消/拒绝闭合。 */
 const RECEIPT_TERMINAL = ['completed', 'failed', 'rejected', 'canceled'];
@@ -163,10 +182,20 @@ export function ingestReceipts(index, runtimeState, opts = {}) {
     }
     entry.receiptStatus = receipt.finalStatus;
     entry.receiptIngestedAt = task.receipt.ingestedAt;
+    // 可信度留痕：内容指纹 + 发布者，写入运行态与动作日志（索引契约无此字段位）。
+    entry.receiptDigest = receiptDigest(file);
+    entry.receiptPublisher = receiptPublisher(receipt);
     delete entry.receiptErrors;
     ingested += 1;
     results.push({ taskId: task.taskId, receipt, file, artifacts });
-    actions.push({ type: 'receipt-ingested', taskId: task.taskId, finalStatus: receipt.finalStatus, file });
+    actions.push({
+      type: 'receipt-ingested',
+      taskId: task.taskId,
+      finalStatus: receipt.finalStatus,
+      publisher: entry.receiptPublisher,
+      digest: entry.receiptDigest,
+      file,
+    });
   }
   return { ingested, invalid, results };
 }

@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-17T05:28:31.650Z",
+  "generatedAt": "2026-11-17T07:26:39.605Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -21,17 +21,17 @@ window.ORCH_SNAPSHOT = {
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 48,
+    "total": 51,
     "activeCount": 5,
     "byStatus": {
       "candidate": 0,
       "queued": 5,
       "accepted": 0,
-      "done": 42,
+      "done": 45,
       "wontfix": 1
     },
     "byType": {
-      "gap": 32,
+      "gap": 35,
       "guardrail": 2,
       "tool": 0,
       "standard": 3,
@@ -43,7 +43,7 @@ window.ORCH_SNAPSHOT = {
       "acceptance": 8,
       "rework": 0,
       "dead-letter": 0,
-      "review": 14
+      "review": 17
     },
     "items": [
       {
@@ -1075,6 +1075,69 @@ window.ORCH_SNAPSHOT = {
           "by": "orchestrator-cli",
           "to": "done",
           "note": "88839c6 已入库，远端 CI pass"
+        }
+      },
+      {
+        "improvementId": "IM-049",
+        "title": "回执内容指纹与发布者留痕（可审计）",
+        "status": "done",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "transport 回执无身份/无指纹，任意进程可写"
+        ],
+        "impact": "验收结论不可追责、内容被改动无法发现",
+        "suggestion": "run-once 摄入时记录 sha256 指纹与 publisher 到运行态与动作日志",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T07:26:38.337Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "已实现并过闸门（单测+validate+events verify）"
+        }
+      },
+      {
+        "improvementId": "IM-050",
+        "title": "run-once/watch 单写者锁，防重复领单与状态面覆盖",
+        "status": "done",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "文件 transport 无锁，多进程/多机并发会争同一任务单"
+        ],
+        "impact": "重复验收、事件链分叉、快照互相覆盖",
+        "suggestion": "O_EXCL 锁文件 + 陈旧阈值自愈 + token 归属释放",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T07:26:38.958Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "已实现并过闸门（单测+validate+events verify）"
+        }
+      },
+      {
+        "improvementId": "IM-051",
+        "title": "status 运行健康最小集（死信/持单/租约/回执失败/锁）",
+        "status": "done",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "异常只能翻 json 才能看到"
+        ],
+        "impact": "出事无人自动发现",
+        "suggestion": "status 尾部输出运行健康计数与被阻塞原因摘要",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T07:26:39.596Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "已实现并过闸门（单测+validate+events verify）"
         }
       }
     ]
