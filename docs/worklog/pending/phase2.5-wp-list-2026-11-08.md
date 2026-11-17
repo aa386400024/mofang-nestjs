@@ -2,7 +2,7 @@
 
 > **路径**：`docs/worklog/pending/phase2.5-wp-list-2026-11-08.md`
 > **总览**：[§Phase2.5 总览](phase2.5-overview-2026-11-08.md)
-> **状态**：✅ WP-A/C/D/E/F/G/H 已交付（H 三波全）；WP-J 系列独立单（基线差异化 / P1b / P1c / P1d / P1e / verbal_voice / 标注工具）、WP-K、WP-L、WP-M、WP-N（后端）、WP-N-FE（前端）已交付；🚧 WP-B 部分完成（版本号已落库；考核场景纯规则的**构造保证已补齐** → G-1 修复，见 [交付记录](../completed/phase2.5/g123-p1e3-deliberation-scenario-fingerprint-semantic-batch-implementation-2026-11-11.md)）；剩余待办：按批标注（30 场锚点已判定为 debug 期数据、无校准价值，不重标）、100 场级验证批次。逐行进度见下表。
+> **状态**：✅ WP-A/C/D/E/F/G/H 已交付（H 三波全）；WP-J 系列独立单（基线差异化 / P1b / P1c / P1d / P1e / verbal_voice / 标注工具）、WP-K、WP-L、WP-M、WP-N（后端）、WP-N-FE（前端）已交付；🚧 WP-B 部分完成（版本号已落库；考核场景纯规则的**构造保证已补齐** → G-1 修复，见 [交付记录](../completed/phase2.5/g123-p1e3-deliberation-scenario-fingerprint-semantic-batch-implementation-2026-11-11.md)）；剩余待办：100 场级验证批次**已跑**（96 场 / `g3ONzlqSGMVJqkFMF9Lwh`，2026-11-12）待质量判读、出口 ③ 审议成本待取证、② exam 生产入口缺口；按批标注已判定无校准价值（debug 期数据），不重标。逐行进度见下表。
 > **最近核对**：2026-11-11（代码与数据库实查，不采信历史状态行）
 > **创建日期**：2026-11-08
 
