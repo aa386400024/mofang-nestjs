@@ -262,7 +262,10 @@ describe('WP38 补做 · 调试会话恢复', () => {
 
   // ── ③ 重启后恢复并继续发消息 ──────────────────────────────────────
   describe('③ 重启后恢复', () => {
-    it('重启后调 resume → 会话活过来, 能接着发消息 (轮次接着往下数)', async () => {
+    // IM-034：该用例要起两个服务实例 + 两轮 runTurn，并发跑 lint/typecheck 的机器负载下
+    // 曾出现 30s 默认超时（独占复跑约 100ms）。这里给显式 60s 预算，
+    // 区分「并发负载拖慢」与「真的回归」——超时预算只影响并发 flake，不掩盖断言失败。
+    it('重启后调 resume → 会话活过来, 能接着发消息 (轮次接着往下数)', { timeout: 60_000 }, async () => {
       // 第一个进程: 跑两轮.
       const first = buildService(dir);
       const created = await first.service.createSession(KNOWN_SLUG);
