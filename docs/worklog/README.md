@@ -103,6 +103,7 @@
 > - **R9 灰度切换开关（2026-11-08）** ✅ → [`completed/phase2/phase2-r9-grayscale-switch-implementation-2026-11-08.md`](completed/phase2/phase2-r9-grayscale-switch-implementation-2026-11-08.md) —— 审议从「旁路观察」升级为「可配置生效」：内核加纯类型审议钩子端口（同步 / 稀疏补丁 / 失败回退）+ 三态生效模式（shadow / rule_only / llm_active）+ 会话白名单灰度；两拍分离设计（异步产出 → 缓存 → 下一轮同步消费，建议滞后一轮，不阻塞热路径）；缺省仍纯规则（零回归）；闸门全绿（tsc **0 error** / 全量 **145 文件 · 2375 例 · 0 failed · 19 skip** / eslint **0** / boundary **12 用例全绿**）
 >
 > - **Phase2.5 灰度验证期（2026-11-08 开工）** 🚧 → [`pending/phase2.5-README.md`](pending/phase2.5-README.md) —— **验证阶段，不是功能开发**：把 LLM 审议从 PoC 推到真实验证，用自动化数据跑几千场对话，验证质量达标后再全量切。WP-A/B/C/D/E/F/G/H 与 WP-J 系列独立单、WP-K、WP-L、WP-M、WP-N（标注台批次维度后端）、WP-N-FE（前端）已交付；剩余待办（按批标注 —— 30 场锚点已判定 debug 期数据不可用、改按批标注；100 场级批次、WP-B 考核纯规则核实）见 [§WP 登记表](pending/phase2.5-wp-list-2026-11-08.md)；详细红线见 Phase2.5 README
+> - **Agent 协作强制门与发布闭环（2026-11-17）** ✅ → [`completed/phase2.5/af053-orchestration-delivery-release-2026-11-17.md`](completed/phase2.5/af053-orchestration-delivery-release-2026-11-17.md)（强制门交付、纯状态面提交与 integrate 发布）；squash 归档迁移快照修正由 AF-055 承接。
 
 ---
 

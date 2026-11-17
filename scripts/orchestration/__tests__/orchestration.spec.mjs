@@ -3508,4 +3508,49 @@ describe('task-entry-gate 开发任务强制编排门', () => {
       residual: ['docs/team/agent-orchestration/task-state-index.json', 'src/a.ts'],
     });
   });
+
+  it('completed 归档迁移提交可借用 HEAD 中同任务做 scope 校验', () => {
+    const headTask = gateTask('AF-G8', ['src/'], 'submitted');
+    const archivedTask = { ...headTask, status: 'completed' };
+    const result = evaluateTaskEntry({
+      changedFiles: ['docs/team/agent-orchestration/task-state-index.json', 'src/a.ts'],
+      tasks: [],
+      archivedTasks: [archivedTask],
+      headTasks: [headTask],
+    });
+    expect(result).toMatchObject({ ok: true, reason: 'archived-transition', taskId: 'AF-G8', covered: ['src/a.ts'] });
+  });
+
+  it('canceled 归档不能借用 HEAD 任务恢复写权限', () => {
+    const headTask = gateTask('AF-G9', ['src/'], 'submitted');
+    const result = evaluateTaskEntry({
+      changedFiles: ['docs/team/agent-orchestration/task-state-index.json', 'src/a.ts'],
+      tasks: [],
+      archivedTasks: [{ ...headTask, status: 'canceled' }],
+      headTasks: [headTask],
+    });
+    expect(result).toMatchObject({ ok: false, reason: 'no-active-task' });
+  });
+
+  it('未同次提交状态索引时不能借用 HEAD 任务', () => {
+    const headTask = gateTask('AF-G10', ['src/'], 'submitted');
+    const result = evaluateTaskEntry({
+      changedFiles: ['src/a.ts'],
+      tasks: [],
+      archivedTasks: [{ ...headTask, status: 'completed' }],
+      headTasks: [headTask],
+    });
+    expect(result).toMatchObject({ ok: false, reason: 'no-active-task' });
+  });
+
+  it('归档迁移快照不放宽 scope 越界检查', () => {
+    const headTask = gateTask('AF-G11', ['src/'], 'submitted');
+    const result = evaluateTaskEntry({
+      changedFiles: ['docs/team/agent-orchestration/task-state-index.json', 'docs/out-of-scope.md'],
+      tasks: [],
+      archivedTasks: [{ ...headTask, status: 'completed' }],
+      headTasks: [headTask],
+    });
+    expect(result).toMatchObject({ ok: false, reason: 'scope-residual', residual: ['docs/out-of-scope.md'] });
+  });
 });

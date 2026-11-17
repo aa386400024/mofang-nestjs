@@ -35,6 +35,8 @@ export const STATE_PLANE_PATHS = [
   'web/orchestration/data.js',
 ];
 
+const TASK_INDEX_PATH = STATE_PLANE_PATHS[0];
+
 /** 统一 git 路径分隔符，避免 Windows 反斜杠造成 scope 比对错位。 */
 function normalizeFile(file) {
   return String(file ?? '')
@@ -86,6 +88,8 @@ function statusAllowsWrite(status) {
  * @param {{
  *   changedFiles: string[],
  *   tasks: object[],
+ *   archivedTasks?: object[],
+ *   headTasks?: object[],
  *   explicitTaskId?: string|null
  * }} input
  * @returns {{
@@ -99,7 +103,7 @@ function statusAllowsWrite(status) {
  *   candidates: string[]
  * }}
  */
-export function evaluateTaskEntry({ changedFiles = [], tasks = [], explicitTaskId = null } = {}) {
+export function evaluateTaskEntry({ changedFiles = [], tasks = [], archivedTasks = [], headTasks = [], explicitTaskId = null } = {}) {
   const changed = normalizeFiles(changedFiles);
   if (changed.length === 0) {
     return {
@@ -129,7 +133,22 @@ export function evaluateTaskEntry({ changedFiles = [], tasks = [], explicitTaskI
     };
   }
 
-  const eligible = (tasks ?? []).filter((task) => task?.taskId && statusAllowsWrite(task.status) && hasTaskSheet(task));
+  const currentEligible = (tasks ?? []).filter((task) => task?.taskId && statusAllowsWrite(task.status) && hasTaskSheet(task));
+  const completedArchiveIds = new Set(
+    (archivedTasks ?? []).filter((task) => task?.taskId && task.status === 'completed').map((task) => task.taskId),
+  );
+
+  // squash 合并会把「HEAD 在办 → 当前 completed 归档」一次暂存。只有同次提交
+  // 携带状态索引、且 HEAD 与归档投影的 taskId 对得上，才借用 HEAD 任务做 scope
+  // 校验；canceled/rejected 或未携带索引都不能恢复写权限。
+  const archivedTransition =
+    changed.includes(TASK_INDEX_PATH) && currentEligible.length === 0
+      ? (headTasks ?? []).filter(
+          (task) => task?.taskId && statusAllowsWrite(task.status) && hasTaskSheet(task) && completedArchiveIds.has(task.taskId),
+        )
+      : [];
+  const taskPool = archivedTransition.length > 0 ? archivedTransition : tasks;
+  const eligible = (taskPool ?? []).filter((task) => task?.taskId && statusAllowsWrite(task.status) && hasTaskSheet(task));
   if (eligible.length === 0) {
     return {
       ok: false,
@@ -265,8 +284,8 @@ export function evaluateTaskEntry({ changedFiles = [], tasks = [], explicitTaskI
 
   return {
     ok: true,
-    reason: 'pass',
-    message: `任务 ${selected.taskId}（${selected.status}）覆盖 ${covered.length} 个暂存文件`,
+    reason: archivedTransition.length > 0 ? 'archived-transition' : 'pass',
+    message: `任务 ${selected.taskId}（${selected.status}）覆盖 ${covered.length} 个暂存文件${archivedTransition.length > 0 ? '；使用 HEAD→completed 归档迁移快照' : ''}`,
     taskId: selected.taskId,
     status: selected.status,
     covered,
@@ -290,6 +309,18 @@ function readIndex(rootDir) {
   const file = resolve(rootDir, 'docs', 'team', 'agent-orchestration', 'task-state-index.json');
   if (!existsSync(file)) throw new Error(`状态索引不存在：${file}`);
   return JSON.parse(readFileSync(file, 'utf8'));
+}
+
+function readHeadIndex(rootDir) {
+  try {
+    const raw = execFileSync('git', ['-C', rootDir, 'show', `HEAD:${TASK_INDEX_PATH}`], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }
 
 function argValue(args, flag) {
@@ -331,8 +362,18 @@ function main() {
 
   const index = readIndex(rootDir);
   const tasks = index.tasks ?? [];
-  const result = evaluateTaskEntry({ changedFiles, tasks, explicitTaskId });
-  if (result.taskId) assertTaskSheetsExist(rootDir, tasks, result.taskId);
+  const headIndex = changedFiles.includes(TASK_INDEX_PATH) ? readHeadIndex(rootDir) : null;
+  const result = evaluateTaskEntry({
+    changedFiles,
+    tasks,
+    archivedTasks: index.archivedTasks ?? [],
+    headTasks: headIndex?.tasks ?? [],
+    explicitTaskId,
+  });
+  if (result.taskId) {
+    const snapshotTasks = result.reason === 'archived-transition' ? (headIndex?.tasks ?? []) : tasks;
+    assertTaskSheetsExist(rootDir, snapshotTasks, result.taskId);
+  }
 
   if (result.ok) {
     if (argValue(args, '--json')) {
