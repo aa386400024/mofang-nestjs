@@ -39,7 +39,7 @@ import { buildProtocolView } from './protocol-mapper.mjs';
 import { createTransport } from './transport.mjs';
 import { dispatchTask, receiptFingerprint, isReceiptProcessed, markReceiptProcessed, resolveChannelSelection } from './dispatch.mjs';
 import { buildGuiBrief, writeGuiBrief, isDeliveryStalled } from './gui-dispatch.mjs';
-import { evaluateCircuitBreaker, resolveDispatchDecision } from './dispatch-channel.mjs';
+import { CIRCUIT_BREAKER_DEFAULTS, evaluateCircuitBreaker, resolveDispatchDecision } from './dispatch-channel.mjs';
 import { findScopeConflicts } from './scope-mutex.mjs';
 import { validateScopeDomain } from './card-router.mjs';
 import { archiveTaskSheetFile, ingestReceipts } from './receipts.mjs';
@@ -304,6 +304,52 @@ export function releaseFailedDeliveries(index, runtimeState, config, actions) {
   return handled;
 }
 
+/**
+ * 通道级熔断的**当前有效状态**（AF-044-O1 实证后落地）。
+ *
+ * 为什么按运行态扫描而不是读单个任务：熔断语义是通道级的（同一条通道上任何任务累计的连续失败），
+ * 但状态只落在触发它的那个任务条目上。只看当前任务会漏掉「A 单把通道熔断了，B 单照派」的场景。
+ * 扫描后取最新开闸事实，按当前时刻重算冷却：冷期内 `open`，期满 `half-open`。
+ *
+ * @param {{tasks?:object}} runtimeState 运行态
+ * @param {object} config 编排配置（`circuitBreaker`）
+ * @param {{now?:string}} [opts]
+ * @returns {{state:'closed'|'open'|'half-open', channel:string|null, consecutiveFailures:number,
+ *   threshold:number, openedAt:string|null, cooldownMinutes:number, probeAllowed:boolean, reason:string|null}}
+ */
+export function resolveChannelCircuit(runtimeState, config = {}, opts = {}) {
+  const entries = Object.values(runtimeState?.tasks ?? {});
+  let latest = null;
+  for (const entry of entries) {
+    const circuit = entry?.channelCircuit;
+    if (!circuit || (circuit.state !== 'open' && circuit.state !== 'half-open')) continue;
+    if (latest && String(circuit.openedAt ?? '') <= String(latest.openedAt ?? '')) continue;
+    latest = circuit;
+  }
+  if (!latest) {
+    const settings = { ...CIRCUIT_BREAKER_DEFAULTS, ...(config?.circuitBreaker ?? {}) };
+    return {
+      state: 'closed',
+      channel: null,
+      consecutiveFailures: 0,
+      threshold: Math.max(1, Number(settings.consecutiveFailureThreshold ?? 3)),
+      openedAt: null,
+      cooldownMinutes: Math.max(1, Number(settings.cooldownMinutes ?? 10)),
+      probeAllowed: false,
+      reason: null,
+    };
+  }
+  return evaluateCircuitBreaker(
+    {
+      channel: latest.channel ?? null,
+      delivery: { consecutiveFailures: latest.consecutiveFailures ?? 0 },
+      openedAt: latest.openedAt ?? null,
+    },
+    config,
+    opts,
+  );
+}
+
 /** 领单：ready 且依赖满足、类型在白名单 → submitted，登记租约并经 Transport 派发交接件。 */
 export function claimReadyTasks(index, runtimeState, config, actions, opts = {}) {
   const transport = opts.transport ?? createTransport(config);
@@ -314,9 +360,14 @@ export function claimReadyTasks(index, runtimeState, config, actions, opts = {})
     return;
   }
   const maxConcurrent = config.maxConcurrentTasks ?? 1;
+  // AF-044-O1：熔断开启即**快速失败**，不把新单再送进已知坏通道。
+  // 冷期内（open）整轮不派发；冷却期满（half-open）本轮只放一次试探。
+  const circuit = resolveChannelCircuit(runtimeState, config, { now: opts.now ?? nowIso() });
+  let probeIssued = false;
   let claimed = 0;
   for (const task of index.tasks) {
     if (task.status !== 'ready') continue;
+    if (claimed >= maxConcurrent) break;
     const dependency = dependencyState(task, index);
     if (!dependency.met) {
       // 依赖未满足：留 ready 等上游闭合；上游根本不存在时显性报出，避免静默死等。
@@ -338,6 +389,20 @@ export function claimReadyTasks(index, runtimeState, config, actions, opts = {})
       actions.push({ type: 'held-for-human', taskId: task.taskId, reason: heldEntry?.releaseReason ?? 'held-for-human' });
       continue;
     }
+    // AF-044-O1：熔断硬拦截。open 整轮不派发；half-open 只放一次试探，其余 ready 任务本轮留 ready。
+    if (circuit.state === 'open' || (circuit.state === 'half-open' && probeIssued)) {
+      actions.push({
+        type: 'channel-circuit-blocked',
+        taskId: task.taskId,
+        channel: circuit.channel,
+        state: circuit.state,
+        consecutiveFailures: circuit.consecutiveFailures,
+        threshold: circuit.threshold,
+        openedAt: circuit.openedAt,
+        cooldownMinutes: circuit.cooldownMinutes,
+      });
+      continue;
+    }
     // IM-011：给出仓根时，scope 通配条目按真实目录展开后再求交集，避免「父目录前缀」粗判漏冲突。
     const scopeConflicts = findScopeConflicts(task, index.tasks, { rootDir: REPO_ROOT });
     if (scopeConflicts.length > 0) {
@@ -352,6 +417,11 @@ export function claimReadyTasks(index, runtimeState, config, actions, opts = {})
       continue;
     }
     const entry = ensureRuntimeEntry(runtimeState, task.taskId);
+    if (circuit.state === 'half-open') {
+      probeIssued = true;
+      entry.circuitProbe = { channel: circuit.channel, at: nowIso(), openedAt: circuit.openedAt };
+      actions.push({ type: 'channel-circuit-probe', taskId: task.taskId, channel: circuit.channel, openedAt: circuit.openedAt });
+    }
     const previousStatus = task.status;
     const previousHistory = Array.isArray(task.history) ? [...task.history] : [];
     const deadline = new Date(Date.now() + config.leaseDefaultMinutes * 60_000).toISOString();

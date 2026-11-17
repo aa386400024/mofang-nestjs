@@ -58,6 +58,7 @@ import {
   processReceipts,
   releaseExpiredLeases,
   releaseFailedDeliveries,
+  resolveChannelCircuit,
 } from '../scheduler.mjs';
 import { generateDeliveryPack } from '../delivery-pack.mjs';
 import {
@@ -3109,6 +3110,89 @@ describe('AF-043-I2 非失败事实（通道旁路）', () => {
       ]),
     );
     expect(DELIVERY_CAUSES).not.toContain('executed_in_session');
+  });
+});
+
+describe('AF-044-O1 熔断派发侧硬拦截', () => {
+  const config = {
+    autoLoop: { enabled: true },
+    allowedTaskTypes: ['investigation'],
+    maxConcurrentTasks: 1,
+    leaseDefaultMinutes: 30,
+    reworkLimit: 2,
+    transport: { type: 'file' },
+    circuitBreaker: { consecutiveFailureThreshold: 3, cooldownMinutes: 10 },
+  };
+
+  function task(id) {
+    return {
+      taskId: id,
+      contextId: 'phase2.5-orchestration-closed-loop',
+      type: 'investigation',
+      title: `只读巡检 ${id}`,
+      status: 'ready',
+      createdAt: '2026-11-17T00:00:00+08:00',
+      scope: { files: ['docs/team/agent-orchestration/README.md'], modules: [], interfaces: [] },
+      dependsOn: [],
+      policyRefs: [],
+      agentRole: 'reviewer',
+      artifacts: { taskSheet: `docs/team/agent-orchestration/transport/tasks/${id}.json` },
+      history: [],
+    };
+  }
+
+  function openState(openedAt) {
+    return {
+      tasks: {
+        'AF-900': {
+          channelCircuit: {
+            state: 'open',
+            channel: 'gui-relay',
+            consecutiveFailures: 3,
+            threshold: 3,
+            cooldownMinutes: 10,
+            openedAt,
+            at: openedAt,
+          },
+        },
+      },
+    };
+  }
+
+  it('open 冷期内整轮不派发：任务留 ready 并发 channel-circuit-blocked', () => {
+    const index = { tasks: [task('AF-901')], archivedTasks: [] };
+    const runtimeState = openState('2026-11-17T04:00:00.000Z');
+    const actions = [];
+    claimReadyTasks(index, runtimeState, config, actions, {
+      transport: { submitTask: () => 'transport/tasks/x.json' },
+      cards: [],
+      now: '2026-11-17T04:05:00.000Z',
+    });
+    expect(index.tasks[0].status).toBe('ready');
+    expect(runtimeState.tasks['AF-901']).toBeUndefined();
+    const blocked = actions.find((a) => a.type === 'channel-circuit-blocked');
+    expect(blocked).toMatchObject({ state: 'open', channel: 'gui-relay', consecutiveFailures: 3 });
+    expect(actions.some((a) => a.type === 'claim')).toBe(false);
+  });
+
+  it('half-open 只放一次试探：首个领单并发 probe 事件', () => {
+    const index = { tasks: [task('AF-902'), task('AF-903')], archivedTasks: [] };
+    const runtimeState = openState('2026-11-17T03:50:00.000Z');
+    const actions = [];
+    claimReadyTasks(index, runtimeState, config, actions, {
+      transport: { submitTask: (h) => `transport/tasks/${h.taskId}.json` },
+      cards: [],
+      now: '2026-11-17T04:05:00.000Z',
+    });
+    expect(index.tasks[0].status).toBe('submitted');
+    expect(actions.filter((a) => a.type === 'channel-circuit-probe')).toHaveLength(1);
+    expect(runtimeState.tasks['AF-902'].circuitProbe).toMatchObject({ channel: 'gui-relay' });
+  });
+
+  it('无熔断事实时 resolveChannelCircuit 返回 closed，不误拦', () => {
+    const circuit = resolveChannelCircuit({ tasks: {} }, config, { now: '2026-11-17T04:05:00.000Z' });
+    expect(circuit.state).toBe('closed');
+    expect(circuit.probeAllowed).toBe(false);
   });
 });
 
