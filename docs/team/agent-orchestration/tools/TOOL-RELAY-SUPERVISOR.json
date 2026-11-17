@@ -1,0 +1,54 @@
+{
+  "toolId": "TOOL-RELAY-SUPERVISOR",
+  "category": "state-store",
+  "description": "本地 relay 回执回收器：文件系统事件优先，按任务 profile 的 10–15 分钟档位兜底；任务级账本、单实例锁、命中归档/通知、超时停止、审计 JSONL。不创建永久 cron，不扫描无关回执。",
+  "sideEffect": "restricted-write",
+  "allowedRoles": ["orchestrator"],
+  "resources": [
+    "scripts/orchestration/relay-supervisor.mjs",
+    "docs/team/agent-orchestration/transport/",
+    "docs/worklog/pending/",
+    "docs/worklog/pending/archive/"
+  ],
+  "inputs": {
+    "description": "子命令与任务级参数；回执文件必须是 relay-response-<任务号或短话题>.md 且位于 pending 目录。",
+    "params": [
+      {
+        "name": "subcommand",
+        "type": "string",
+        "required": true,
+        "description": "register / list / tick / watch / inbox / ack / cancel 之一。"
+      },
+      {
+        "name": "taskId",
+        "type": "string",
+        "required": false,
+        "description": "register / ack / cancel 必填；任务号。"
+      },
+      {
+        "name": "file",
+        "type": "string",
+        "required": false,
+        "description": "register 必填；精确回执文件路径。"
+      },
+      {
+        "name": "profile",
+        "type": "string",
+        "required": false,
+        "description": "register 可选；S / M / L / XL，默认 M。"
+      },
+      {
+        "name": "deadline",
+        "type": "string",
+        "required": false,
+        "description": "register 可选；ISO 时间，缺省按 profile 计算。"
+      }
+    ]
+  },
+  "outputs": {
+    "description": "返回注册/检查/通知结果；命中时写通知与审计，并把回执移入 archive。",
+    "result": "对象：含 taskId、state、nextCheckAt、deadlineAt、notified/archivedFile。",
+    "errors": ["回执文件名不合法", "回执文件不在 pending 目录", "任务号已有在途 job", "supervisor 单实例锁被占用", "账本解析失败"]
+  },
+  "contractRef": "urn:agent-collaboration-framework:schema:tool-contract:1.1.0"
+}

@@ -132,6 +132,7 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 | `TOOL-IMPROVEMENT-LOG`   | `knowledge-capture` | `state-store`      | 候选改进台账是带状态机的受控台账（candidate→queued→accepted→done），按状态面归类 |
 | `TOOL-ACCEPTANCE-RUNNER` | `acceptance-gate`   | `gate-execution`   | 执行验收闸门（V1–V6 机读项），只读判定，不改业务代码                             |
 | `TOOL-DELIVERY-PACK`     | `delivery-packing`  | `artifact-archive` | 生成并归档夜间交付包（工件汇总与指针），属工件归档类                             |
+| `TOOL-RELAY-SUPERVISOR`  | `state-persistence` | `state-store`      | 以任务级账本与文件检测回收 relay 回执，写运行态与通知，不改业务代码              |
 
 副作用级别保持原值（`restricted-write` / `read-only`）；角色白名单保持原值（仅 `orchestrator` 可调有副作用的工具，`TOOL-ACCEPTANCE-RUNNER` 另开放 `reviewer`）。
 
@@ -147,17 +148,22 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 
 ## 5. 轮询档位（relay 轮询节奏与兜底次数）
 
-轮询节奏按任务规模分三档。档位取值属**适配层编排口径**，不进通用层 schema。
+轮询节奏按任务规模分四档。档位取值属**适配层编排口径**，不进通用层 schema。
 
-| 档位 | 预估时长                          | deadline 缓冲 | 兜底检测次数 |
-| ---- | --------------------------------- | ------------- | ------------ |
-| S    | 10–15 min                         | +10–15 min    | 1            |
-| M    | 20–30 min                         | +20–30 min    | 2            |
-| L    | 40–60 min（类推缩短，不拉长窗口） | +30–45 min    | 2–3          |
+| 档位 | 预估时长   | 首次检测 | 兜底间隔序列（分钟）   | deadline | 兜底检测次数 |
+| ---- | ---------- | -------- | ---------------------- | -------- | ------------ |
+| S    | 10–15 min  | 10 min   | 10 / 10 / 15           | 45 min   | 3            |
+| M    | 20–30 min  | 10 min   | 10 / 15 / 15 / 20      | 90 min   | 4            |
+| L    | 40–60 min  | 15 min   | 15 / 15 / 20 / 30 / 30 | 180 min  | 5            |
+| XL   | 60–120 min | 15 min   | 15 / 20 / 30 / 45 / 60 | 240 min  | 5            |
 
-- 平台 cron 最小间隔为 1 小时；分钟级自适应间隔属本地常驻 watcher（框架演进 backlog），本形态不实现。
-- L 档的预估时长按同类任务类推缩短，不拉长观察窗口；缓冲与兜底次数一律取上表值，不另设分支。
+- **事件优先**：本地 `relay-supervisor` 用文件系统事件监听 `docs/worklog/pending/`，只对已注册任务的精确回执文件触发；正常落盘可秒级发现，不依赖分钟级轮询。
+- **兜底扫描**：每个 job 按上表 `nextCheckAt` 推进；事件丢失、进程重启或网络盘不触发时由兜底补漏。supervisor 的定时器只检查到期 job，不扫描目录。
+- **平台降级**：Doubao cron 最小间隔为 1 小时，只作为最后降级通道；分钟级节奏由本地 supervisor 承担，不再建永久通用 cron。
+- **无在途任务**：不保留永久扫描任务；`relay-supervisor` 无 job 时只保留低开销进程与空账本，命中或超时后 job 停止并由 `ack` 清理。
+- L / XL 档的预估时长按同类任务类推缩短，不拉长观察窗口；缓冲与兜底次数一律取上表值，不另设分支。
 - 本节是档位与阈值的唯一真相源：任务单模板与其他文档只引用，不复制数字。
+- 工具契约见 `tools/TOOL-RELAY-SUPERVISOR.json`；命令入口 `pnpm orchestration:relay`。
 
 ## 5.1 派发通道与投递协议（`dispatch`，AF-024）
 

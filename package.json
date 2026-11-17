@@ -41,6 +41,7 @@
     "orchestration:protection": "node scripts/orchestration/branch-protection.mjs",
     "orchestration:pr": "node scripts/orchestration/pr-release.mjs",
     "orchestration:run": "node scripts/orchestration/cli.mjs run-once",
+    "orchestration:relay": "node scripts/orchestration/relay-supervisor.mjs",
     "orchestration:watch": "node scripts/orchestration/cli.mjs watch",
     "orchestration:protocol": "node scripts/orchestration/cli.mjs protocol",
     "orchestration:snapshot": "node scripts/orchestration/cli.mjs snapshot",
