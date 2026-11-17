@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-17T04:23:03.123Z",
+  "updatedAt": "2026-11-17T04:40:27.213Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -1964,6 +1964,78 @@
         "resolutionNote": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS",
         "linkedTaskId": "AF-044"
       }
+    },
+    {
+      "improvementId": "IM-040",
+      "status": "candidate",
+      "title": "CI 门禁只有单测覆盖，没有一次真实远端结论决定过合并",
+      "source": "implementation",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-046",
+      "evidence": [],
+      "impact": "门禁是装饰还是决定无法区分",
+      "suggestion": "对临时分支跑阻断+放行双路径实弹：workflow_dispatch 补 check runs 后再合并",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T04:40:20.621Z",
+      "updatedAt": "2026-11-17T04:40:20.621Z",
+      "history": [
+        {
+          "at": "2026-11-17T04:40:20.621Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-041",
+      "status": "candidate",
+      "title": "框架 docs 条款只靠哈希锁机读契约，正文改写后 CI 仍全绿",
+      "source": "implementation",
+      "type": "gap",
+      "layer": "framework",
+      "relatedTaskId": "AF-045",
+      "evidence": [],
+      "impact": "规范与适配层实现漂移无人发现，验收无共同判据",
+      "suggestion": "conformance/normative-anchors.json + check_normative_docs：条款锚点缺失即 V7 失败，改条款必须同步改清单",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T04:40:27.002Z",
+      "updatedAt": "2026-11-17T04:40:27.002Z",
+      "history": [
+        {
+          "at": "2026-11-17T04:40:27.002Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-042",
+      "status": "candidate",
+      "title": "熔断开闸后派发侧仍把新单送进已知坏通道",
+      "source": "implementation",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-045",
+      "evidence": [],
+      "impact": "开闸只是可观察事件，没有阻断力",
+      "suggestion": "resolveChannelCircuit 扫运行态取最新开闸事实，claimReadyTasks 里 open 整轮停派、half-open 只放一次试探",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T04:40:27.212Z",
+      "updatedAt": "2026-11-17T04:40:27.212Z",
+      "history": [
+        {
+          "at": "2026-11-17T04:40:27.212Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
     }
   ]
 }

@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-17T04:39:07.860Z",
+  "generatedAt": "2026-11-17T04:40:27.219Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -41,17 +41,17 @@ window.ORCH_SNAPSHOT = {
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 39,
-    "activeCount": 0,
+    "total": 42,
+    "activeCount": 3,
     "byStatus": {
-      "candidate": 0,
+      "candidate": 3,
       "queued": 0,
       "accepted": 0,
       "done": 38,
       "wontfix": 1
     },
     "byType": {
-      "gap": 26,
+      "gap": 29,
       "guardrail": 1,
       "tool": 0,
       "standard": 3,
@@ -59,7 +59,7 @@ window.ORCH_SNAPSHOT = {
       "tech-debt": 9
     },
     "bySource": {
-      "implementation": 23,
+      "implementation": 26,
       "acceptance": 8,
       "rework": 0,
       "dead-letter": 0,
@@ -910,6 +910,63 @@ window.ORCH_SNAPSHOT = {
           "by": "orchestrator-cli",
           "to": "done",
           "note": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS"
+        }
+      },
+      {
+        "improvementId": "IM-040",
+        "title": "CI 门禁只有单测覆盖，没有一次真实远端结论决定过合并",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-046",
+        "evidence": [],
+        "impact": "门禁是装饰还是决定无法区分",
+        "suggestion": "对临时分支跑阻断+放行双路径实弹：workflow_dispatch 补 check runs 后再合并",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-17T04:40:20.621Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-041",
+        "title": "框架 docs 条款只靠哈希锁机读契约，正文改写后 CI 仍全绿",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "framework",
+        "relatedTaskId": "AF-045",
+        "evidence": [],
+        "impact": "规范与适配层实现漂移无人发现，验收无共同判据",
+        "suggestion": "conformance/normative-anchors.json + check_normative_docs：条款锚点缺失即 V7 失败，改条款必须同步改清单",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-17T04:40:27.002Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-042",
+        "title": "熔断开闸后派发侧仍把新单送进已知坏通道",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-045",
+        "evidence": [],
+        "impact": "开闸只是可观察事件，没有阻断力",
+        "suggestion": "resolveChannelCircuit 扫运行态取最新开闸事实，claimReadyTasks 里 open 整轮停派、half-open 只放一次试探",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-17T04:40:27.212Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
         }
       }
     ]
