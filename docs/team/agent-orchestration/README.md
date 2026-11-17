@@ -4,7 +4,7 @@
 > 通用规则（角色模型、任务契约、状态机、回执契约、验收口径、可靠性、上下文与记忆、安全策略、人在环、演进路线）的唯一真相源在框架仓，本文件**只声明本项目的特定取值**（目录映射、角色绑定、工具与闸门命令、策略锚点、框架版本依赖），不复制通用规则正文。
 >
 > - 框架仓本地路径：`D:\work\Project\agent-collaboration-framework`（本地独立 git 仓 + 版本 tag `v2.0.0`（commit `c507188`）；无包管理器分发，故以仓路径 + 契约 `contractRef` urn 双轨引用）
-> - 适配层声明规范：框架仓 `adapters/README.md`（六类映射项）
+> - 适配层声明规范：框架仓 `adapters/README.md`（八类映射项：`projectId / directories / tools-gates / policyAnchors / frameworkVersionRange / roleBindings / statePlane / conformance`）
 > - 代码红线、命令规范、分层归属：`docs/team/conventions.md`；任务单模板：`docs/team/wp-task-template.md`，不在此重复。
 
 ---
@@ -26,6 +26,26 @@
 >
 > `archivedNotes` 是**适配层扩展字段**（`task-state-index` schema 顶层 `additionalProperties: true` 允许），键为 `taskId`、值为 1.x 归档说明原文，只读保留、不做二次改写；框架未定义该字段，若后续框架定义归档说明槽位则以框架为准对齐。AF-020 起该字段外移到 `state/archived-notes.json`，索引中的 `archivedNotes` 只是从日志重建时的合并投影，禁止手改。
 
+### 1.1 状态日志与单写者（`statePlane`）
+
+| 字段                        | 本项目取值                                                                                                                                  |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `statePlane.journal`        | `docs/team/agent-orchestration/state/journal.jsonl`（append-only，`state-event:1.0.0` + SHA-256 哈希链；历史段在 `state/journal-archive/`） |
+| `statePlane.index`          | `docs/team/agent-orchestration/task-state-index.json`（只读投影，禁止手改）                                                                 |
+| `statePlane.lock`           | `file-lock`（`state/journal.lock`，CLI 进程内超时 30s；单写者 + 文件锁双保险）                                                              |
+| `statePlane.writer`         | `orchestrator-cli`（`scripts/orchestration/cli.mjs` / `scheduler.mjs`；同一时刻只允许一个 orchestrator 进程提交事件）                       |
+| `statePlane.rebuildCommand` | `pnpm orchestration:events rebuild`（从 `state/journal.jsonl` + 归档段重建索引；`rebuiltAt` 除外逐字节一致，INV-15 现场判据）               |
+
+> 状态写入顺序固定为「读日志 → 追加事件 → 重建投影」，全部在 `file-lock` 临界区内完成；多写者合并、事件重排一律禁止。运行态 `orchestration-state.json` 是 L2 扩展状态面，不替代事件日志的唯一写面。
+
+### 1.2 校验入口与容错策略（`conformance`）
+
+| 字段                            | 本项目取值                                                                                                                                                                                              |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `conformance.command`           | `pnpm orchestration:validate && pnpm orchestration:contracts`（前者校验索引 / 任务单 / 回执 / Review / Agent Card / 交付包 / 协议视图与事件链，后者校验 14 份框架 2.0.0 schema 的不可变副本与来源哈希） |
+| `conformance.ciHook`            | `.github/workflows/ci.yml` 的 `Contracts` job：`push` / `pull_request` 目标 `integrate` 时触发，`ORCH_REQUIRE_FRAMEWORK=1` 硬校验，缺框架 fail-fast，不允许 skipped 软通过                              |
+| `conformance.unknownEnumPolicy` | `tolerant`（未知枚举按保留值透传并记人工复核，不猜测、不静默丢弃；状态轴由 `protocol-mapper.mjs` 列入 `unknownStatuses`）                                                                               |
+
 ## 2. 角色绑定（roleBindings）
 
 框架角色枚举与隔离规则见框架仓 `docs/roles.md`；本表只声明本项目的执行方映射与兼任制衡。框架 2.0.0 的可派发角色为 `roles` 五值（`orchestrator / executor / reviewer / researcher / critic`），`human` 属 `nonRoutableRoles`——人工只作审批节点，不参与路由、不产出 Agent Card（故 `agent-cards/` 下无 `human.json`，人工边界声明见 `agent-cards/README.md`）。
@@ -44,7 +64,7 @@
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `directories.taskSheets`           | `docs/worklog/pending/`（`ready / submitted / working` 任务单）                                                                                                    |
 | `directories.deliveryRecords`      | `docs/worklog/completed/<phase>/`（任务单 + 交付记录成对归档，只读历史）                                                                                           |
-| `directories.replyArchive`         | `docs/worklog/pending/archive/`（回执原文、中间产物归档）                                                                                                          |
+| `directories.replyArchive`         | `docs/worklog/pending/archive/`（回执原文、机读回执副本 `<taskId>-receipt-*.json`、中间产物归档；transport 只作收件箱）                                            |
 | `directories.artifacts`            | 各任务单切片范围内的源码 / 测试 / 规格路径；工件正文留在各自文件                                                                                                   |
 | `directories.stateIndex`           | `docs/team/agent-orchestration/task-state-index.json`（**只读投影**，带 `projection` 指向日志末条事件；禁止手改）                                                  |
 | `directories.stateJournal`         | `docs/team/agent-orchestration/state/journal.jsonl`（**唯一写面**，append-only 事件日志；`state-event:1.0.0` + SHA-256 哈希链）；历史段在 `state/journal-archive/` |
@@ -73,7 +93,7 @@
 | 前端闸门（仅授权前端任务） | 在 `admin-dashboard/` 目录跑 `pnpm type-check` / `pnpm build-only`，不套用后端 tsc / eslint                                                                                                                                                                                                                                                                                  |
 | 敏感操作                   | L4 冻结动作（master 合并、tag、release、对外部署、策略例外、路线选型、跨任务变更、验收分歧、新增未声明依赖）绑定 Human 批准；L1 任务分支提交、L2 推任务分支、L3 合并进 integrate 在闸门绿 + 验收五类通过等前置条件下由 orchestrator 自动（分层口径见 [设计备忘 §6.1](autonomous-team-design.md#61-发布分层自动化逐层收紧)，过渡口径 §6.2）；engine-core 例外改动仍需人工批准 |
 
-L2 编排工具链（状态存储、验收护栏、调度器、交付包、候选改进台账、CLI）的契约声明在 `tools/<TOOL-ID>.json`（一工具一文件，字段 `toolId / category / sideEffect / allowedRoles / resources / contractRef`），实现位于 `scripts/orchestration/`，注册与授权收口于 `tool-registry.mjs`。自治模式关闭时，`run-once` 只生成只读快照，不执行领单、验收归档与返修等状态迁移；开启须经 `pnpm orchestration:config --enable` 显式操作。改进台账命令：`pnpm orchestration:improvements`（list / `--extract` / `--add` / `--transition`），闭环口径见 `improvement-loop.md`。事件溯源命令：`pnpm orchestration:events`（`verify` / `rebuild` / `backfill` / `create` / `rotate`）；契约包校验：`pnpm orchestration:contracts`。所有状态写入必须经 `commitIndex` / `archiveTask` / `createTask`，不得直接改索引。
+L2 编排工具链（状态存储、验收护栏、调度器、交付包、候选改进台账、CLI）的契约声明在 `tools/<TOOL-ID>.json`（一工具一文件，字段 `toolId / category / sideEffect / allowedRoles / resources / contractRef`），实现位于 `scripts/orchestration/`，注册与授权收口于 `tool-registry.mjs`。自治模式自 AF-023 起默认开启（`autoLoop.enabled=true`，`maxConcurrentTasks=1`）：`run-once` 执行扫描、领单、派发、回执摄入、验收与归档；如需只读快照，用 `pnpm orchestration:config --disable` 显式关闭。任务单立项用 `pnpm orchestration:task register --sheet <md>`（解析 frontmatter + schema 校验 + 事件登记）；历史 transport 交接件补登用 `pnpm orchestration:task import --handover <json>`。常驻自治用 `pnpm orchestration:watch`（启动先跑一轮，监听 pending / completed / transport tasks / transport receipts，防抖后推进）。改进台账命令：`pnpm orchestration:improvements`（list / `--extract` / `--add` / `--transition`），闭环口径见 `improvement-loop.md`。事件溯源命令：`pnpm orchestration:events`（`verify` / `rebuild` / `backfill` / `create` / `rotate`）；契约包校验：`pnpm orchestration:contracts`。所有状态写入必须经 `commitIndex` / `archiveTask` / `createTask`，不得直接改索引。
 
 ### 4.0 事件日志长期保留与分段归档
 

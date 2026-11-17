@@ -1,8 +1,8 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-16T19:07:14.318Z",
+  "generatedAt": "2026-11-17T00:51:03.051Z",
   "mode": {
-    "autoLoopEnabled": false,
+    "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
@@ -930,6 +930,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-016",
+      "recordedAt": "2026-11-17T00:49:38.451Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:DR-001",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "DR-001",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "D:\\work\\Project\\backend\\mofang-nestjs\\docs\\team\\agent-orchestration\\transport\\tasks\\DR-001.json"
+      ]
+    },
+    {
       "auditId": "AUD-015",
       "recordedAt": "2026-11-16T19:07:14.315Z",
       "actorRef": "orchestrator",
@@ -1164,37 +1179,21 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/delivery-packs/"
       ]
-    },
-    {
-      "auditId": "AUD-001",
-      "recordedAt": "2026-11-15T15:09:17.483Z",
-      "actorRef": "orchestrator",
-      "correlationId": "snapshot",
-      "toolId": "TOOL-STATE-STORE",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 15,
+    "total": 16,
     "byResult": {
-      "allowed": 15,
+      "allowed": 16,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 13
+      "TOOL-QUEUE-SCHEDULER": 14
     },
     "byActor": {
-      "orchestrator": 15
+      "orchestrator": 16
     }
   },
   "protocolView": {
@@ -1938,6 +1937,28 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af022-release-protection-compatible-implementation-2026-11-17.md"
           }
         ]
+      },
+      {
+        "taskId": "DR-001",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/team/agent-orchestration/transport/tasks/DR-001.json"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/dr001-af013-channel-drill-delivery-2026-11-17.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -2014,5 +2035,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 39
+  "archivedCount": 40
 };

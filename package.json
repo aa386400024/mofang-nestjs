@@ -37,6 +37,7 @@
     "orchestration:snapshot": "node scripts/orchestration/cli.mjs snapshot",
     "orchestration:pack": "node scripts/orchestration/cli.mjs pack",
     "orchestration:archive": "node scripts/orchestration/cli.mjs archive",
+    "orchestration:task": "node scripts/orchestration/cli.mjs task",
     "orchestration:validate": "node scripts/orchestration/cli.mjs validate",
     "orchestration:contracts": "node scripts/orchestration/verify-framework-bundle.mjs",
     "orchestration:events": "node scripts/orchestration/cli.mjs events",
@@ -137,7 +138,8 @@
     "rxjs": "^7.8.2",
     "socket.io": "^4.8.4",
     "typeorm": "^1.1.1",
-    "ws": "^8.21.3"
+    "ws": "^8.21.3",
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@compodoc/compodoc": "^2.0.0",

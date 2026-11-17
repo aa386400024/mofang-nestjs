@@ -139,6 +139,21 @@ export function validateTaskHandover(input) {
       if (unsafe) pushError(errors, 'scope.files', `路径 ${unsafe} 越界或非相对路径`);
     }
   }
+  // 任务单契约 artifacts 是产出清单数组；索引侧指针对象不得直接塞进交接件。
+  if (input.artifacts !== undefined && !Array.isArray(input.artifacts)) {
+    pushError(errors, 'artifacts', '必须为产出清单数组（索引指针请放 artifactPointers）');
+  } else if (Array.isArray(input.artifacts)) {
+    for (const [i, artifact] of input.artifacts.entries()) {
+      if (!isObject(artifact)) {
+        pushError(errors, `artifacts[${i}]`, '必须为对象');
+        continue;
+      }
+      if (typeof artifact.name !== 'string' || artifact.name.length === 0) pushError(errors, `artifacts[${i}].name`, '缺失或为空');
+      if (typeof artifact.path !== 'string' || !isSafeRelPath(artifact.path))
+        pushError(errors, `artifacts[${i}].path`, '缺失、越界或非相对路径');
+      if (typeof artifact.kind !== 'string' || artifact.kind.length === 0) pushError(errors, `artifacts[${i}].kind`, '缺失或为空');
+    }
+  }
   return { valid: errors.length === 0, errors };
 }
 
@@ -162,11 +177,91 @@ export function validateReceiptHandover(input) {
   if (!TERMINAL_STATUSES.includes(input.finalStatus)) {
     pushError(errors, 'finalStatus', `必须为枚举之一：${TERMINAL_STATUSES.join(' / ')}`);
   }
-  if (!REVIEW_VERDICTS.includes(input.reviewVerdict)) {
-    pushError(errors, 'reviewVerdict', `必须为枚举之一：${REVIEW_VERDICTS.join(' / ')}`);
+  // 未经验收的 failed 任务允许 reviewVerdict=null（框架 receipt.schema enum 含 null）。
+  if (input.reviewVerdict !== null && !REVIEW_VERDICTS.includes(input.reviewVerdict)) {
+    pushError(errors, 'reviewVerdict', `必须为 null 或枚举之一：${REVIEW_VERDICTS.join(' / ')}`);
   }
   if (typeof input.verdictRationale !== 'string' || input.verdictRationale.length === 0) {
     pushError(errors, 'verdictRationale', '缺失或为空');
+  }
+  // 以下形状对齐框架 receipt.schema.json：运行态摄入不得接受 CLI 会拒绝的宽松结构。
+  if (!['in-scope', 'deviated'].includes(input.scopeCheck)) {
+    pushError(errors, 'scopeCheck', '必须为 in-scope / deviated');
+  }
+  if (typeof input.reproNotes !== 'string' || input.reproNotes.length === 0) {
+    pushError(errors, 'reproNotes', '缺失或为空');
+  }
+  for (const flag of ['parallelArtifactsExcluded', 'noOutscopeRefactor']) {
+    if (typeof input[flag] !== 'boolean') pushError(errors, flag, '必须为 boolean');
+  }
+  if (!isObject(input.changedFiles) || !['added', 'modified', 'deleted'].every((key) => Array.isArray(input.changedFiles[key]))) {
+    pushError(errors, 'changedFiles', '必须为对象 {added[], modified[], deleted[]}');
+  }
+  if (!Array.isArray(input.gateResults) || input.gateResults.length === 0) {
+    pushError(errors, 'gateResults', '必须为非空数组');
+  } else {
+    for (const [i, gate] of input.gateResults.entries()) {
+      if (!isObject(gate)) {
+        pushError(errors, `gateResults[${i}]`, '必须为对象');
+        continue;
+      }
+      if (typeof gate.command !== 'string' || gate.command.length === 0) pushError(errors, `gateResults[${i}].command`, '缺失或为空');
+      for (const key of ['exitCode', 'errors', 'warnings']) {
+        if (!Number.isInteger(gate[key])) pushError(errors, `gateResults[${i}].${key}`, '必须为整数');
+      }
+    }
+  }
+  if (!Array.isArray(input.contractChecks) || input.contractChecks.length === 0) {
+    pushError(errors, 'contractChecks', '必须为非空数组');
+  } else {
+    for (const [i, check] of input.contractChecks.entries()) {
+      if (!isObject(check)) {
+        pushError(errors, `contractChecks[${i}]`, '必须为对象');
+        continue;
+      }
+      if (typeof check.item !== 'string' || check.item.length === 0) pushError(errors, `contractChecks[${i}].item`, '缺失或为空');
+      if (!['pass', 'fail', 'not-applicable'].includes(check.result)) {
+        pushError(errors, `contractChecks[${i}].result`, '必须为 pass / fail / not-applicable');
+      }
+    }
+  }
+  if (!isObject(input.fieldAlignment) || !['aligned', 'misaligned'].includes(input.fieldAlignment.result)) {
+    pushError(errors, 'fieldAlignment', '必须为对象且 result 为 aligned / misaligned');
+  }
+  if (!Array.isArray(input.backlogItems)) {
+    pushError(errors, 'backlogItems', '必须为数组');
+  } else {
+    for (const [i, item] of input.backlogItems.entries()) {
+      if (
+        !isObject(item) ||
+        typeof item.id !== 'string' ||
+        item.id.length === 0 ||
+        typeof item.impact !== 'string' ||
+        item.impact.length === 0
+      ) {
+        pushError(errors, `backlogItems[${i}]`, '必须为对象且 id / impact 非空');
+      }
+    }
+  }
+  for (const key of ['openQuestions', 'manualReviewList']) {
+    if (!Array.isArray(input[key]) || input[key].some((item) => typeof item !== 'string' || item.length === 0)) {
+      pushError(errors, key, '必须为字符串数组');
+    }
+  }
+  if (!Array.isArray(input.deviationTable)) {
+    pushError(errors, 'deviationTable', '必须为数组');
+  } else if (input.deviationTable.length === 0) {
+    if (input.deviationAbsent !== true) pushError(errors, 'deviationAbsent', '无偏差时须显式置 true');
+  } else {
+    for (const [i, row] of input.deviationTable.entries()) {
+      if (!isObject(row)) {
+        pushError(errors, `deviationTable[${i}]`, '必须为对象');
+        continue;
+      }
+      for (const key of ['taskSays', 'reality', 'action', 'why']) {
+        if (typeof row[key] !== 'string' || row[key].length === 0) pushError(errors, `deviationTable[${i}].${key}`, '缺失或为空');
+      }
+    }
   }
   for (const groupFields of Object.values(RECEIPT_GROUPS)) {
     for (const field of groupFields) {
@@ -174,10 +269,23 @@ export function validateReceiptHandover(input) {
       if (input[field] === undefined) pushError(errors, field, `回执七组字段缺失（${field}）`);
     }
   }
-  const unsafe = (input.artifactRefs ?? []).find((ref) =>
-    isObject(ref) ? !isSafeRelPath(ref.path ?? ref.ref ?? '') : !isSafeRelPath(ref),
-  );
-  if (unsafe) pushError(errors, 'artifactRefs', '存在越界或非相对路径工件指针');
+  // artifactRefs 是对象（taskSheet / deliveryRecord / reply / others），不是数组。
+  if (!isObject(input.artifactRefs)) {
+    pushError(errors, 'artifactRefs', '必须为对象 {taskSheet, deliveryRecord, reply?, others?}');
+  } else {
+    for (const key of ['taskSheet', 'deliveryRecord']) {
+      const value = input.artifactRefs[key];
+      if (!isSafeRelPath(value)) pushError(errors, `artifactRefs.${key}`, '缺失、越界或非相对路径');
+    }
+    if (input.artifactRefs.reply !== undefined && input.artifactRefs.reply !== null && !isSafeRelPath(input.artifactRefs.reply)) {
+      pushError(errors, 'artifactRefs.reply', '越界或非相对路径');
+    }
+    const unsafe = (input.artifactRefs.others ?? []).find((ref) => !isSafeRelPath(ref));
+    if (unsafe) pushError(errors, 'artifactRefs.others', `存在越界或非相对路径工件指针：${String(unsafe)}`);
+  }
+  if (input.contractRef !== undefined && !(typeof input.contractRef === 'string' && CONTRACT_REF_PATTERN.test(input.contractRef))) {
+    pushError(errors, 'contractRef', '必须为契约引用 urn');
+  }
   return { valid: errors.length === 0, errors };
 }
 
@@ -225,6 +333,7 @@ export function validateReviewHandover(input) {
 export function buildTaskHandover(record, { producedBy = 'orchestrator' } = {}) {
   const {
     taskId,
+    parentTaskId,
     contextId,
     type,
     title,
@@ -242,8 +351,13 @@ export function buildTaskHandover(record, { producedBy = 'orchestrator' } = {}) 
     requiredSkills,
     requiredTools,
     agentRole,
+    plannedArtifacts,
     artifacts,
+    artifactSchema,
+    deliveryPath,
     gates,
+    evidenceFormat,
+    escalationTriggers,
     priority,
     deadline,
     retention,
@@ -270,7 +384,10 @@ export function buildTaskHandover(record, { producedBy = 'orchestrator' } = {}) 
     exclusions: exclusions ?? [],
     requiredSkills: requiredSkills ?? [],
     requiredTools: requiredTools ?? [],
-    artifacts: artifacts ?? [],
+    // 契约字段 artifacts 是产出清单数组；索引侧的 {taskSheet, deliveryRecord, reply}
+    // 是运行态指针，放在扩展字段 artifactPointers，不能冒充产出清单。
+    artifacts: Array.isArray(plannedArtifacts) ? plannedArtifacts : [],
+    artifactPointers: artifacts ?? {},
     gates: gates ?? [],
     priority: priority ?? null,
     deadline: deadline ?? null,
@@ -280,6 +397,9 @@ export function buildTaskHandover(record, { producedBy = 'orchestrator' } = {}) 
     producedBy,
     producedAt: new Date().toISOString(),
   };
+  for (const key of ['parentTaskId', 'artifactSchema', 'deliveryPath', 'evidenceFormat', 'escalationTriggers']) {
+    if (record?.[key] !== undefined) handover[key] = record[key];
+  }
   // agentRole 为可选字段：未指派时省略（不写 null，避免与角色枚举冲突）。
   if (agentRole) handover.agentRole = agentRole;
   return handover;

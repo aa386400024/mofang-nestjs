@@ -18,16 +18,22 @@
 | 提交钩子                                                     | `.husky/pre-commit`（lint-staged：oxlint + prettier）、`.husky/commit-msg`（conventional 正则）                         |
 | 远端 CI                                                      | `.github/workflows/ci.yml`：lint+typecheck、unit 分片、e2e、coverage、Docker build、security audit                      |
 
-### 1.2 待补缺口
+### 1.2 缺口现状与闭环状态（AF-023 按代码现实重写）
 
-| #   | 缺口             | 现状                                                                                                                                                                                |
-| --- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| G1  | 派发通道半自动   | 主控写长简报 → 人工粘贴到 MiniMax → cron 轮询回执；人卡在粘贴与盯回执两步                                                                                                           |
-| G2  | 派发未接调度器   | `claimReadyTasks` 只登记租约，不产生派发记录；`transport.submitTask` 未被调度调用                                                                                                   |
-| G3  | 缺文件切片互斥   | 只有任务级租约，无可写文件域前置校验；双代理同改一个文件无拦截                                                                                                                      |
-| G4  | 方案协商轮未固化 | researcher / critic 为预留角色，双代理方案讨论无结构化轮次                                                                                                                          |
-| G5  | 自治循环关闭     | `config.autoLoop.enabled=false`，队列不自动推进                                                                                                                                     |
-| G6  | 发布口径未分层   | README §2/§4 现写「AI 不自动 commit / push」，未区分任务分支、集成分支与对外发布；**已闭环（AF-014，2026-11-16）**：README §2/§4、三份角色卡 limits、任务单模板已对齐 §6.1 分层口径 |
+> 本表不再沿用旧缺口表的“未补”判断，而是按 2026-11-17 代码与运行态重新对账；状态列是**证据判断**，不是计划口号。
+
+| #   | 缺口 / 能力      | 当前状态                                            | 证据与边界                                                                                                                                                                                                                                             |
+| --- | ---------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| G1  | 派发通道半自动   | 部分闭环（文件 Transport 闭环；GUI 自动投递未启用） | `transport.mjs` 已落任务 / 回执 / 协商件；`dispatch-channel.mjs` 只做 `canDispatch` 与 GUI 规则判定，不拉起 MiniMax、不定位输入框。CLI `channel` 是只读规则视图；真正自动 GUI 投递仍需浏览器 / 桌面自动化可用，当前不冒充已闭环                        |
+| G2  | 派发未接调度器   | 已闭环                                              | `scheduler.mjs` 的 `claimReadyTasks` 已调用 `dispatchTask`，生成 `{deliveredAt,payload}` 交接件；派发失败回滚 `ready`，不留下 `submitted` 空转任务                                                                                                     |
+| G3  | 缺文件切片互斥   | 已闭环                                              | `scope-mutex.mjs` 的 `findScopeConflicts` 在领单前做文件域前置校验；只读类型走 `READONLY_TASK_TYPES` 豁免；冲突任务留 `ready` 并记 `scope-conflict`                                                                                                    |
+| G4  | 方案协商轮未固化 | 保留能力（未启用）                                  | `transport/reviews` 目录、`review-handover` schema 与 `handover-contract` 已具备；当前无活跃 review 文件，不把“目录存在”当成“协商轮已跑”                                                                                                               |
+| G5  | 自治循环关闭     | 已闭环                                              | `scripts/orchestration/config.json` `autoLoop.enabled=true`、`allowedTaskTypes` 覆盖六类、`maxConcurrentTasks=1`；`advanceOnce` 已可领单 / 验收 / 归档；`pnpm orchestration:watch` 启动先跑一轮并监听 pending / completed / transport tasks / receipts |
+| G6  | 发布口径未分层   | 已闭环（AF-014）                                    | README §2/§4、三份角色卡 limits、任务单模板已对齐 §6.1 分层口径                                                                                                                                                                                        |
+| G7  | 回执未摄入       | 已闭环（AF-023）                                    | `receipts.mjs` 扫描 `transport/receipts/*.json`，兼容 `{deliveredAt,payload}` 包装，校验七组字段后把 `artifactRefs` 投影到任务 `artifacts`，并把回执副本落 `docs/worklog/pending/archive/`；`processReceipts` 消费回执触发验收                         |
+| G8  | 任务单未自动立项 | 已闭环（AF-023）                                    | `task-intake.mjs` 解析 Markdown frontmatter，经 `validateTaskSheet` 校验后 `createTask` 登记；CLI `task register --sheet` + `task import --handover` 可用                                                                                              |
+
+> 运行态证据（2026-11-17）：`DR-001` 经 `task import` 补登 → `run-once` claim + dispatch → 回执 `receipt-ingested` → `archive-completed`，索引归档状态 `completed`、`autoVerdict=conditional-pass`。G1 仍是文件 Transport 的闭环，GUI 自动投递未验证，不得把本次证据外推到 GUI 通道。
 
 ## 2. 目标闭环链路
 

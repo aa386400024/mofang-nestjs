@@ -40,6 +40,7 @@ import { createTransport } from './transport.mjs';
 import { dispatchTask, receiptFingerprint, isReceiptProcessed, markReceiptProcessed } from './dispatch.mjs';
 import { findScopeConflicts } from './scope-mutex.mjs';
 import { validateScopeDomain } from './card-router.mjs';
+import { ingestReceipts } from './receipts.mjs';
 
 const BY_ORCHESTRATOR = 'orchestrator-cli';
 
@@ -98,10 +99,22 @@ function releaseExpiredLeases(index, runtimeState, actions) {
 /** 领单：ready 且依赖满足、类型在白名单 → submitted，登记租约并经 Transport 派发交接件。 */
 function claimReadyTasks(index, runtimeState, config, actions, opts = {}) {
   const transport = opts.transport ?? createTransport(config);
+  // 单任务队列：在办数达到 maxConcurrentTasks 时不再领取下一个，避免通道并发。
+  const active = index.tasks.filter((t) => t.status === 'submitted' || t.status === 'working');
+  if (active.length >= (config.maxConcurrentTasks ?? 1)) {
+    actions.push({ type: 'queue-busy', blockers: active.map((t) => t.taskId) });
+    return;
+  }
+  const maxConcurrent = config.maxConcurrentTasks ?? 1;
+  let claimed = 0;
   for (const task of index.tasks) {
     if (task.status !== 'ready') continue;
     if (!dependenciesMet(task, index)) continue;
     if (!config.allowedTaskTypes.includes(task.type)) continue;
+    if (!task.artifacts?.taskSheet) {
+      actions.push({ type: 'task-sheet-missing', taskId: task.taskId });
+      continue;
+    }
     const scopeConflicts = findScopeConflicts(task, index.tasks);
     if (scopeConflicts.length > 0) {
       // 文件域与在办任务相交：拦截派发，任务留 ready，不登记租约、不投递交接件。
@@ -115,25 +128,51 @@ function claimReadyTasks(index, runtimeState, config, actions, opts = {}) {
       continue;
     }
     const entry = ensureRuntimeEntry(runtimeState, task.taskId);
+    const previousStatus = task.status;
+    const previousHistory = Array.isArray(task.history) ? [...task.history] : [];
     const deadline = new Date(Date.now() + config.leaseDefaultMinutes * 60_000).toISOString();
     pushHistory(task, 'submitted', BY_ORCHESTRATOR, '编排者领单（派发通道由 agent cu 衔接）');
     entry.leaseClaimedAt = nowIso();
     entry.leaseDeadline = deadline;
     entry.lastRunner = BY_ORCHESTRATOR;
     actions.push({ type: 'claim', taskId: task.taskId });
-    const dispatch = dispatchTask(task, entry, {
-      transport,
-      channel: config.transport?.type ?? 'file',
-      targetRole: task.agentRole ?? 'executor',
-      cards: opts.cards,
-    });
+    let dispatch;
+    try {
+      dispatch = dispatchTask(task, entry, {
+        transport,
+        channel: config.transport?.type ?? 'file',
+        targetRole: task.agentRole ?? 'executor',
+        cards: opts.cards,
+        force: true,
+      });
+    } catch (err) {
+      dispatch = { dispatched: false, record: null, handoverRef: null, errors: [err.message] };
+    }
+    if (!dispatch.dispatched) {
+      // 派发失败不得留下 submitted + 租约的空转任务；回到 ready，等待下一轮修复后重试。
+      task.status = previousStatus;
+      task.history = previousHistory;
+      entry.leaseClaimedAt = null;
+      entry.leaseDeadline = null;
+      entry.dispatch = null;
+      actions.push({
+        type: 'dispatch-rejected',
+        taskId: task.taskId,
+        channel: dispatch.record?.channel ?? 'file',
+        handoverRef: dispatch.handoverRef,
+        errors: dispatch.errors,
+      });
+      continue;
+    }
     actions.push({
-      type: dispatch.dispatched ? 'dispatch' : 'dispatch-rejected',
+      type: 'dispatch',
       taskId: task.taskId,
       channel: dispatch.record?.channel ?? 'file',
       handoverRef: dispatch.handoverRef,
       errors: dispatch.errors,
     });
+    claimed += 1;
+    if (active.length + claimed >= maxConcurrent) break;
   }
 }
 
@@ -194,18 +233,39 @@ function archiveTask(index, task, status) {
 
 /** 回执验收驱动：已落盘交付记录的任务跑护栏并归档 / 提案返修 / 死信。 */
 function processReceipts(index, runtimeState, config, actions, opts = {}) {
+  // 先把 transport/receipts 的机读回执投影进任务与运行态，再进入验收。
+  ingestReceipts(index, runtimeState, { actions, dir: opts.receiptsDir });
+
   const remaining = [];
   for (const task of index.tasks) {
     if (task.status !== 'submitted' && task.status !== 'working') {
       remaining.push(task);
       continue;
     }
+    const entry = ensureRuntimeEntry(runtimeState, task.taskId);
+    const receiptStatus = task.receipt?.finalStatus;
+    if (receiptStatus && receiptStatus !== 'completed') {
+      // 执行侧回执直接给出失败 / 取消 / 拒绝：不进入机读验收，按合法迁移链闭合后归档。
+      entry.terminalReceipt = { status: receiptStatus, at: nowIso(), sourceRef: task.receipt.sourceRef ?? null };
+      entry.frozen = receiptStatus === 'failed' || receiptStatus === 'rejected';
+      entry.escalation = {
+        waiting: `执行侧回执终态=${receiptStatus}，需人工裁决或按 contextId 重开`,
+        evidence: [task.receipt.sourceRef].filter(Boolean),
+        attemptedPaths: [],
+        suggestedDecision: '人工复核回执后决定关闭 / 返修 / 重开任务',
+      };
+      archiveTask(index, task, receiptStatus);
+      actions.push({ type: 'receipt-terminal', taskId: task.taskId, status: receiptStatus });
+      continue;
+    }
     const deliveryRef = task.artifacts?.deliveryRecord;
     if (!deliveryRef) {
+      if (receiptStatus === 'completed') {
+        actions.push({ type: 'receipt-delivery-missing', taskId: task.taskId, sourceRef: task.receipt?.sourceRef ?? null });
+      }
       remaining.push(task);
       continue;
     }
-    const entry = ensureRuntimeEntry(runtimeState, task.taskId);
     const fingerprint = receiptFingerprint(task, deliveryRef);
     if (isReceiptProcessed(entry, fingerprint)) {
       // 同一交付记录重复投递：只触发一次验收，不重复跑护栏。
@@ -348,7 +408,7 @@ export function advanceOnce(opts = {}) {
     releaseExpiredLeases(index, runtimeState, actions);
     const cards = opts.cards ?? loadAgentCards();
     claimReadyTasks(index, runtimeState, config, actions, { transport: opts.transport, cards });
-    processReceipts(index, runtimeState, config, actions, { changedFiles: opts.changedFiles });
+    processReceipts(index, runtimeState, config, actions, { changedFiles: opts.changedFiles, receiptsDir: opts.receiptsDir });
   } else {
     actions.push({
       type: 'readonly-snapshot',

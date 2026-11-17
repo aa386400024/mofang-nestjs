@@ -57,6 +57,8 @@ import {
   projectJournal,
 } from '../event-store.mjs';
 import { dispatchTask, buildDispatchRecord, receiptFingerprint, isReceiptProcessed, markReceiptProcessed } from '../dispatch.mjs';
+import { parseTaskSheetFrontmatter, buildTaskRecord } from '../task-intake.mjs';
+import { ingestReceipts } from '../receipts.mjs';
 import { normalizeScope, findScopeConflicts, detectResidualFiles, scopeCovers } from '../scope-mutex.mjs';
 import {
   buildBranchName,
@@ -860,20 +862,26 @@ describe('AF-009 交接契约校验与构造器', () => {
       baselineRef: '09df090',
       dependsOn: [],
       policyRefs: [],
-      changedFiles: [{ path: 'scripts/orchestration/transport.mjs', kind: 'modified' }],
-      artifactRefs: [{ path: 'docs/worklog/completed/af009.md', kind: 'document' }],
-      gateResults: [{ command: 'pnpm exec vitest run', exitCode: 0, errors: 0, warnings: 0, tests: 56 }],
+      changedFiles: { added: [], modified: ['scripts/orchestration/transport.mjs'], deleted: [] },
+      artifactRefs: {
+        taskSheet: 'docs/worklog/pending/af009-task.md',
+        deliveryRecord: 'docs/worklog/completed/af009.md',
+        reply: null,
+        others: [],
+      },
+      gateResults: [{ command: 'pnpm exec vitest run', exitCode: 0, errors: 0, warnings: 0, specFiles: 56 }],
       reproNotes: '定向运行编排层 spec',
-      scopeCheck: true,
+      scopeCheck: 'in-scope',
       parallelArtifactsExcluded: true,
       noOutscopeRefactor: true,
-      contractChecks: [{ field: 'taskId', aligned: true }],
+      contractChecks: [{ item: 'taskId', result: 'pass', note: '与任务单一致' }],
       contractRef: RECEIPT_CONTRACT_REF,
-      fieldAlignment: { taskId: 'matched' },
+      fieldAlignment: { result: 'aligned', note: '共享字段一致' },
       backlogItems: [],
       openQuestions: [],
       manualReviewList: [],
-      deviationTable: '无',
+      deviationTable: [],
+      deviationAbsent: true,
       finalStatus: 'completed',
       reviewVerdict: 'passed',
       verdictRationale: '五类核对全清',
@@ -937,6 +945,17 @@ describe('AF-009 交接契约校验与构造器', () => {
     const badVerdict = validReceipt({ reviewVerdict: 'maybe' });
     expect(validateReceiptHandover(badVerdict).errors.join(' ')).toMatch('reviewVerdict');
 
+    // 框架 receipt.schema 明确允许未验收的 failed 任务 reviewVerdict=null。
+    expect(validateReceiptHandover(validReceipt({ finalStatus: 'failed', reviewVerdict: null }))).toMatchObject({
+      valid: true,
+      errors: [],
+    });
+
+    // artifactRefs 必须是对象；数组是历史误用，必须拦截。
+    expect(validateReceiptHandover(validReceipt({ artifactRefs: [{ path: 'docs/x.md', kind: 'document' }] })).errors.join(' ')).toMatch(
+      'artifactRefs',
+    );
+
     const badFinal = validReceipt({ finalStatus: 'running' });
     expect(validateReceiptHandover(badFinal).errors.join(' ')).toMatch('finalStatus');
   });
@@ -982,6 +1001,133 @@ describe('快照协议视图段', () => {
       artifacts: expect.any(Array),
       capabilityDeclarations: expect.any(Array),
     });
+  });
+});
+
+describe('AF-023 任务单立项与回执摄取', () => {
+  it('frontmatter 解析为索引记录：产出清单与索引指针分离', () => {
+    const text = `---
+taskId: AF-023
+contextId: phase2.5-orchestration-closed-loop
+title: 编排运行态闭环自检
+type: verification
+status: ready
+baselineRef: 1ffcf0f
+dependsOn: []
+policyRefs: []
+createdAt: 2026-11-17T08:00:00+08:00
+scope:
+  files:
+    - scripts/orchestration/
+artifacts:
+  - name: 自检报告
+    path: docs/team/agent-orchestration/af023-runtime-closure-report-2026-11-17.md
+    kind: report
+---
+
+# 正文
+`;
+    const { meta, body } = parseTaskSheetFrontmatter(text);
+    expect(meta.taskId).toBe('AF-023');
+    expect(body).toContain('正文');
+    const record = buildTaskRecord(meta, {
+      taskSheetPath: 'docs/worklog/pending/af023-runtime-loop-task-2026-11-17.md',
+    });
+    expect(record.status).toBe('ready');
+    expect(record.agentRole).toBe('reviewer');
+    expect(Array.isArray(record.artifacts)).toBe(false);
+    expect(record.artifacts.taskSheet).toBe('docs/worklog/pending/af023-runtime-loop-task-2026-11-17.md');
+    expect(record.plannedArtifacts).toEqual([
+      {
+        name: '自检报告',
+        path: 'docs/team/agent-orchestration/af023-runtime-closure-report-2026-11-17.md',
+        kind: 'report',
+      },
+    ]);
+  });
+
+  it('transport 回执摄入：投影 artifactRefs 到任务、按指纹幂等、非法回执不落状态', () => {
+    const dir = join(tmpdir(), `orch-receipts-${Date.now()}-${Math.floor(Math.random() * 1e6)}`);
+    mkdirSync(dir, { recursive: true });
+    const makeReceipt = (overrides = {}) => ({
+      receiptId: 'AF-009-R1',
+      taskId: 'AF-009',
+      contextId: 'phase2.5-orchestration-closed-loop',
+      type: 'implementation',
+      baselineRef: '1ffcf0f',
+      dependsOn: [],
+      policyRefs: [],
+      changedFiles: { added: [], modified: [], deleted: [] },
+      artifactRefs: {
+        taskSheet: 'docs/worklog/pending/af009-task.md',
+        deliveryRecord: 'docs/worklog/completed/phase2.5/af009.md',
+        reply: null,
+        others: [],
+      },
+      gateResults: [{ command: 'pnpm test', exitCode: 0, errors: 0, warnings: 0, specFiles: null }],
+      reproNotes: '定向测试',
+      scopeCheck: 'in-scope',
+      parallelArtifactsExcluded: true,
+      noOutscopeRefactor: true,
+      contractChecks: [{ item: 'taskId', result: 'pass', note: '与交接件一致' }],
+      contractRef: RECEIPT_CONTRACT_REF,
+      fieldAlignment: { result: 'aligned', note: '字段一致' },
+      backlogItems: [{ id: 'AF-009-B1', impact: '无', schedule: null }],
+      openQuestions: [],
+      manualReviewList: [],
+      deviationTable: [],
+      deviationAbsent: true,
+      finalStatus: 'completed',
+      reviewVerdict: null,
+      verdictRationale: '待 orchestrator 验收',
+      ...overrides,
+    });
+    try {
+      writeFileSync(
+        join(dir, 'AF-009.json'),
+        `${JSON.stringify({ deliveredAt: '2026-11-17T08:00:00.000Z', payload: makeReceipt() }, null, 2)}\n`,
+        'utf8',
+      );
+      const index = {
+        tasks: [
+          {
+            taskId: 'AF-009',
+            status: 'submitted',
+            artifacts: { taskSheet: 'docs/worklog/pending/af009-task.md', deliveryRecord: null },
+          },
+        ],
+      };
+      const runtimeState = { tasks: { 'AF-009': { leaseDeadline: '2099-01-01T00:00:00.000Z' } } };
+      const actions = [];
+      const first = ingestReceipts(index, runtimeState, { dir, archiveDir: join(dir, 'archive'), actions });
+      expect(first.ingested).toBe(1);
+      expect(index.tasks[0].artifacts.deliveryRecord).toBe('docs/worklog/completed/phase2.5/af009.md');
+      expect(index.tasks[0].artifacts.receipt).toMatch(/AF-009-receipt-AF-009-R1\.json$/);
+      expect(runtimeState.tasks['AF-009'].receiptArchiveRef).toMatch(/AF-009-receipt-AF-009-R1\.json$/);
+      expect(index.tasks[0].receipt.finalStatus).toBe('completed');
+      expect(runtimeState.tasks['AF-009'].receiptStatus).toBe('completed');
+
+      const second = ingestReceipts(index, runtimeState, { dir, archiveDir: join(dir, 'archive'), actions });
+      expect(second.ingested).toBe(0);
+
+      writeFileSync(
+        join(dir, 'AF-009-bad.json'),
+        `${JSON.stringify(
+          {
+            deliveredAt: '2026-11-17T08:05:00.000Z',
+            payload: makeReceipt({ artifactRefs: [{ path: 'docs/x.md', kind: 'document' }] }),
+          },
+          null,
+          2,
+        )}\n`,
+        'utf8',
+      );
+      const third = ingestReceipts(index, runtimeState, { dir, actions });
+      expect(third.invalid).toBeGreaterThan(0);
+      expect(index.tasks[0].artifacts.deliveryRecord).toBe('docs/worklog/completed/phase2.5/af009.md');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

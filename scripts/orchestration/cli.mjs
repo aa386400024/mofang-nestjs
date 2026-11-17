@@ -27,6 +27,7 @@ import {
   validateDeliveryPackage,
   validateProtocolView,
   validateReviewHandoverSchema,
+  validateReceiptSchema,
   validateTaskIndex,
   validateTaskSheet,
   validateToolDir,
@@ -67,6 +68,7 @@ import {
   DEFAULT_STALE_DAYS,
 } from './branch-workflow.mjs';
 import { SESSION_PATHS, LOCATE_LAYERS, MAX_START_RETRIES, MAX_SEND_RETRIES, canDispatch } from './dispatch-channel.mjs';
+import { registerTaskFromSheet, registerTaskFromHandover, parseTaskSheetFrontmatter } from './task-intake.mjs';
 
 /** 快照双写：JSON（机读 / 存档）+ data.js（静态网页在 file:// 下读取，规避本地 fetch 限制）。 */
 function writeSnapshotArtifacts(snapshot) {
@@ -132,8 +134,9 @@ function printSnapshot(snapshot) {
   console.log(`生成时间：${snapshot.generatedAt}`);
   console.log(`自治模式：${snapshot.mode.autoLoopEnabled ? '开启' : '关闭'}；返修上限：${snapshot.mode.reworkLimit}`);
   console.log(
-    `计数：ready=${c.ready} submitted=${c.submitted} working=${c.working} completed=${c.completed} failed=${c.failed} canceled=${c.canceled} rejected=${c.rejected} input-required=${c['input-required']} deadLetter=${c.deadLetter}`,
+    `计数（活跃）：ready=${c.ready} submitted=${c.submitted} working=${c.working} completed=${c.completed} failed=${c.failed} canceled=${c.canceled} rejected=${c.rejected} input-required=${c['input-required']} deadLetter=${c.deadLetter}`,
   );
+  console.log(`归档任务：${snapshot.archivedCount ?? 0}`);
   console.log('');
   console.log('=== 任务列表 ===');
   if (snapshot.tasks.length === 0) {
@@ -187,27 +190,31 @@ function cmdWatch() {
   const dirs = [
     join(REPO_ROOT, 'docs', 'worklog', 'pending'),
     join(REPO_ROOT, 'docs', 'worklog', 'completed'),
+    join(PATHS.transportDir, 'tasks'),
     join(PATHS.transportDir, 'receipts'),
   ];
+  const tick = (label, events = []) => {
+    console.log(`[watch] ${label} ${events.length > 0 ? `变更 ${events.length} 项，` : ''}执行一轮 run-once`);
+    auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: 'watch' });
+    const changedFiles = collectChangedFiles(createGitPort());
+    const { snapshot, actions } = advanceOnce({ commit: true, changedFiles });
+    auditDispatchActions(actions);
+    writeSnapshotArtifacts(snapshot);
+    for (const action of actions) console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
+    printSnapshot(snapshot);
+  };
   const watcher = createWatcher({
     dirs,
     debounceMs: 300,
     onChange(events) {
-      console.log(`[watch] 检测到变更 ${events.length} 项，执行一轮 run-once`);
-      auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: 'watch' });
-      const changedFiles = collectChangedFiles(createGitPort());
-      const { snapshot, actions } = advanceOnce({ commit: true, changedFiles });
-      auditDispatchActions(actions);
-      writeSnapshotArtifacts(snapshot);
-      for (const action of actions)
-        console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
-      printSnapshot(snapshot);
+      tick('检测到', events);
     },
     onError(err) {
       console.error(`[watch] 监听错误：${err.message}`);
     },
   });
-  console.log(`[watch] 监听目录：${dirs.join('、')}；Ctrl+C 退出。`);
+  console.log(`[watch] 监听目录：${dirs.join('、')}；启动先跑一轮，Ctrl+C 退出。`);
+  tick('启动');
   const stop = () => {
     watcher.stop();
     process.exit(0);
@@ -516,6 +523,43 @@ function cmdChannel(args) {
 
 const SKIPPED = { ok: true, skipped: true, errors: [], schemaId: null };
 
+/** 任务单登记：`task register --sheet <md>` / `task import --handover <json>`。 */
+async function cmdTask(args) {
+  const sub = args[0] ?? 'register';
+  if (sub === 'register') {
+    const sheetPath = argValue(args, '--sheet');
+    if (!sheetPath) {
+      console.error('用法：task register --sheet docs/worklog/pending/<task>.md [--status ready]');
+      process.exit(2);
+    }
+    const task = await registerTaskFromSheet({
+      sheetPath,
+      status: argValue(args, '--status'),
+      actor: 'orchestrator-cli',
+    });
+    refreshSnapshotArtifacts();
+    console.log(`已登记任务 ${task.taskId}（${task.status}）→ ${task.artifacts.taskSheet}`);
+    return;
+  }
+  if (sub === 'import') {
+    const handoverPath = argValue(args, '--handover');
+    if (!handoverPath) {
+      console.error('用法：task import --handover docs/team/agent-orchestration/transport/tasks/<task>.json [--status ready]');
+      process.exit(2);
+    }
+    const task = await registerTaskFromHandover({
+      handoverPath,
+      status: argValue(args, '--status'),
+      actor: 'orchestrator-cli',
+    });
+    refreshSnapshotArtifacts();
+    console.log(`已补登任务 ${task.taskId}（${task.status}）→ ${task.artifacts.taskSheet}`);
+    return;
+  }
+  console.error(`未知 task 子命令：${sub}（支持 register / import）`);
+  process.exit(2);
+}
+
 /** AF-006：框架 schema 机读校验（索引 / 工具契约 / Agent Card；可选任务单元 JSON）。 */
 async function cmdValidate(args) {
   if (requireFramework() && !existsSync(join(frameworkDir(), 'schemas', 'versions.json'))) {
@@ -562,17 +606,38 @@ async function cmdValidate(args) {
     sections.push([`Review 交接件 ${file}`, await validateReviewHandoverSchema(review)]);
   }
 
+  const receiptDir = join(PATHS.transportDir, 'receipts');
+  const receiptFiles = existsSync(receiptDir) ? readdirSync(receiptDir).filter((f) => f.endsWith('.json')) : [];
+  for (const file of receiptFiles.sort()) {
+    const record = JSON.parse(readFileSync(join(receiptDir, file), 'utf8'));
+    const receipt = record?.payload ?? record;
+    sections.push([`回执 ${file}`, await validateReceiptSchema(receipt)]);
+  }
+
   const taskDir = join(PATHS.transportDir, 'tasks');
   const taskFiles = existsSync(taskDir) ? readdirSync(taskDir).filter((f) => f.endsWith('.json')) : [];
   for (const file of taskFiles.sort()) {
-    sections.push([`运行态任务单 ${file}`, await validateTaskSheet(JSON.parse(readFileSync(join(taskDir, file), 'utf8')))]);
+    const record = JSON.parse(readFileSync(join(taskDir, file), 'utf8'));
+    // transport 写入的是 {deliveredAt,payload} 包装；裸任务单也兼容。
+    const payload = record?.payload ?? record;
+    sections.push([`运行态任务单 ${file}`, await validateTaskSheet(payload)]);
   }
 
   const sheetFile = argValue(args, '--sheet');
   if (sheetFile) {
     const abs = resolve(REPO_ROOT, sheetFile);
     if (existsSync(abs)) {
-      sections.push(['任务单元', await validateTaskSheet(JSON.parse(readFileSync(abs, 'utf8')))]);
+      const text = readFileSync(abs, 'utf8');
+      let meta;
+      try {
+        meta = text.trimStart().startsWith('{') ? JSON.parse(text) : parseTaskSheetFrontmatter(text).meta;
+      } catch (err) {
+        sections.push([
+          '任务单元',
+          { ok: false, skipped: false, schemaId: null, errors: [{ instancePath: '', message: err.message, params: {} }] },
+        ]);
+      }
+      if (meta) sections.push(['任务单元', await validateTaskSheet(meta)]);
     } else {
       console.log(`[SKIP] 任务单元：文件不存在：${sheetFile}`);
     }
@@ -733,8 +798,10 @@ function cmdImprovements(args) {
 }
 
 function printHelp() {
-  console.log('用法：cli.mjs <status|run-once|watch|protocol|snapshot|pack|archive|events|validate|config|improvements> [参数]');
+  console.log('用法：cli.mjs <status|run-once|task|watch|protocol|snapshot|pack|archive|events|validate|config|improvements> [参数]');
   console.log('  archive <taskId> [--status ..] [--sheet ..] [--record ..] [--reply ..] [--note ..]');
+  console.log('  task register --sheet <task.md> [--status ready]  解析 frontmatter 并登记进状态索引');
+  console.log('  task import --handover <task.json> [--status ready]  补登 transport 已落交接件');
   console.log('  events verify|rebuild|backfill             事件日志校验 / 重建索引 / 首次回填');
   console.log('  events rotate [--max-events 5000] [--compress] [--force] [--dry-run]  归档当前日志段（不删事件）');
   console.log(
@@ -761,6 +828,14 @@ switch (command) {
     break;
   case 'run-once':
     cmdRunOnce();
+    break;
+  case 'task':
+    try {
+      await cmdTask(args);
+    } catch (err) {
+      console.error(`任务单登记失败：${err.message}`);
+      process.exit(2);
+    }
     break;
   case 'watch':
     cmdWatch();

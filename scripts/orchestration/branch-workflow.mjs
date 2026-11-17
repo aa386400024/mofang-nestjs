@@ -157,7 +157,8 @@ export function createGitPort() {
     },
     isMerged(name) {
       try {
-        runGit(['merge-base', '--is-merged', name, 'integrate']);
+        // Git 标准参数是 --is-ancestor：name 是 integrate 的祖先即已合并。
+        runGit(['merge-base', '--is-ancestor', name, 'integrate']);
         return true;
       } catch {
         return false;

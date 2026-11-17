@@ -21,6 +21,7 @@ export const SCHEMA_FILES = {
   toolContract: 'tool-contract.schema.json',
   agentCard: 'agent-card.schema.json',
   reviewHandover: 'review-handover.schema.json',
+  receipt: 'receipt.schema.json',
   deliveryPackage: 'delivery-package.schema.json',
   protocolView: 'protocol-view.schema.json',
 };
@@ -33,6 +34,7 @@ const CONTRACT_SCHEMA_KEY = {
   'tool-contract': 'toolContract',
   'agent-card': 'agentCard',
   'review-handover': 'reviewHandover',
+  receipt: 'receipt',
   'delivery-package': 'deliveryPackage',
   'protocol-view': 'protocolView',
 };
@@ -173,6 +175,11 @@ export function validateAgentCard(card) {
 /** 协商轮 review 交接件对象校验（框架 review-handover.schema.json）。 */
 export function validateReviewHandoverSchema(review) {
   return validateObject('reviewHandover', review);
+}
+
+/** 机读回执对象校验（框架 receipt.schema.json）。 */
+export function validateReceiptSchema(receipt) {
+  return validateObject('receipt', receipt);
 }
 
 /** 夜间交付包对象校验（框架 delivery-package.schema.json）。 */

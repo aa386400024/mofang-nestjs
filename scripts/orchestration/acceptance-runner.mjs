@@ -19,7 +19,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { PATHS, REPO_ROOT } from './state-store.mjs';
-import { detectResidualFiles } from './scope-mutex.mjs';
+import { detectResidualFiles, normalizeScope } from './scope-mutex.mjs';
 import { TASK_ID_PATTERN, TOOL_CATEGORIES, SIDE_EFFECTS, ROLES } from './contract-enums.mjs';
 
 function relToAbs(rel) {
@@ -219,6 +219,12 @@ function checkToolContracts() {
  */
 function checkResidual(task, opts) {
   const checks = [];
+  // 只读 / 调研 / 评审 / 验证类任务不占写域，产出报告不需要落进 scope.files；
+  // 否则每次只读调研都会被 V7 误判为残留。
+  if (normalizeScope(task).readOnly) {
+    record(checks, 'V7', '文件域残留', 'pass', '只读任务不占写域，报告类产出不纳入残留比对');
+    return { checks, manualReview: [] };
+  }
   const changed = Array.isArray(opts?.changedFiles) ? opts.changedFiles : null;
   if (!changed || changed.length === 0) {
     record(checks, 'V7', '文件域残留', 'skip', '未传入变更文件清单；残留比对需调用方采集 git diff');

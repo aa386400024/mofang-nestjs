@@ -81,6 +81,10 @@ export function validateConfig(raw) {
   if (raw.allowedTaskTypes !== undefined && !Array.isArray(raw.allowedTaskTypes)) {
     errors.push('allowedTaskTypes 须为数组');
   }
+  const maxConcurrentTasks = Number(raw.maxConcurrentTasks ?? 1);
+  if (!Number.isInteger(maxConcurrentTasks) || maxConcurrentTasks < 1) {
+    errors.push(`maxConcurrentTasks 须为正整数，实际 ${String(raw.maxConcurrentTasks)}`);
+  }
   if (raw.frozenActions !== undefined && !Array.isArray(raw.frozenActions)) {
     errors.push('frozenActions 须为数组');
   }
@@ -104,6 +108,7 @@ export function validateConfig(raw) {
     reworkLimit,
     leaseDefaultMinutes: lease,
     allowedTaskTypes: Array.isArray(raw.allowedTaskTypes) ? raw.allowedTaskTypes : [],
+    maxConcurrentTasks,
     frozenActions: Array.isArray(raw.frozenActions) ? raw.frozenActions : [],
     store: { backend },
     transport: { type: transportType },
