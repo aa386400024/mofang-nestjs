@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-16T14:25:39.917Z",
+  "updatedAt": "2026-11-17T03:47:18.278Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -55,7 +55,7 @@
     },
     {
       "improvementId": "IM-002",
-      "status": "accepted",
+      "status": "done",
       "title": "typeorm-model-generator 废弃工具链及其传递依赖存在未修复漏洞",
       "source": "review",
       "type": "tech-debt",
@@ -66,7 +66,7 @@
       "suggestion": "评估移除 typeorm-model-generator、bin/entity.ts、NamingStrategy.cjs 及样品 entity；移除前确认无 DB→装饰器反向生成需求",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T13:43:08.381Z",
-      "updatedAt": "2026-11-15T14:08:05.685Z",
+      "updatedAt": "2026-11-17T03:47:10.913Z",
       "history": [
         {
           "at": "2026-11-15T13:43:08.381Z",
@@ -88,12 +88,38 @@
           "to": "accepted",
           "by": "orchestrator",
           "note": "实现落地：移除 devDep typeorm-model-generator、bin/entity.ts、bin/NamingStrategy.cjs、entity:load 脚本；typecheck/lint/oxlint/21 例绿；待提交归档转 done"
+        },
+        {
+          "at": "2026-11-17T03:47:10.494Z",
+          "from": "accepted",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "进入实现队列"
+        },
+        {
+          "at": "2026-11-17T03:47:10.712Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "实现完成，转验收"
+        },
+        {
+          "at": "2026-11-17T03:47:10.913Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "typeorm-model-generator / bin/entity.ts / bin/NamingStrategy.cjs 实测已不在库（全仓命中 0），状态收口为 done"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T03:47:10.913Z",
+        "resolutionNote": "typeorm-model-generator / bin/entity.ts / bin/NamingStrategy.cjs 实测已不在库（全仓命中 0），状态收口为 done",
+        "linkedTaskId": "AF-040"
+      }
     },
     {
       "improvementId": "IM-003",
-      "status": "candidate",
+      "status": "wontfix",
       "title": "运行时传递依赖 uuid/glob/minimatch 存在版本告警，须随主依赖升级治理",
       "source": "review",
       "type": "tech-debt",
@@ -106,7 +132,7 @@
       "suggestion": "随 typeorm/sentry/rimraf/ts-morph 主依赖升级带动传递版本；按 P-DEBT-4 纪律，版本变动须附全量绿跑与墙钟数字",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T13:43:09.887Z",
-      "updatedAt": "2026-11-15T13:43:09.887Z",
+      "updatedAt": "2026-11-17T03:47:18.277Z",
       "history": [
         {
           "at": "2026-11-15T13:43:09.887Z",
@@ -114,8 +140,20 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T03:47:18.277Z",
+          "from": "candidate",
+          "to": "wontfix",
+          "by": "orchestrator-cli",
+          "note": "三条 moderate（uuid<11.1.1 / glob<14.0.2 / minimatch<11.0.1）均需跨大版本 overrides 才能修，uuid 11 为 ESM-only 与 gaxios CJS 冲突风险高；CI security-audit 以 high 为门禁故不阻断。触发条件：主依赖上游自行放宽范围或集群整体升级时重评"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T03:47:18.277Z",
+        "resolutionNote": "三条 moderate（uuid<11.1.1 / glob<14.0.2 / minimatch<11.0.1）均需跨大版本 overrides 才能修，uuid 11 为 ESM-only 与 gaxios CJS 冲突风险高；CI security-audit 以 high 为门禁故不阻断。触发条件：主依赖上游自行放宽范围或集群整体升级时重评",
+        "linkedTaskId": "AF-040"
+      }
     },
     {
       "improvementId": "IM-004",
@@ -277,7 +315,7 @@
     },
     {
       "improvementId": "IM-007",
-      "status": "candidate",
+      "status": "done",
       "title": "回执幂等次键以交付记录路径代替独立工件版本号",
       "source": "implementation",
       "type": "tech-debt",
@@ -288,7 +326,7 @@
       "suggestion": "后续在任务条目或交接件补独立工件版本号（revision/version），指纹以 taskId+version 为准",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T17:29:33.755Z",
-      "updatedAt": "2026-11-15T17:29:33.755Z",
+      "updatedAt": "2026-11-17T03:47:11.533Z",
       "history": [
         {
           "at": "2026-11-15T17:29:33.755Z",
@@ -296,8 +334,34 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T03:47:11.121Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "进入实现队列"
+        },
+        {
+          "at": "2026-11-17T03:47:11.317Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "实现完成，转验收"
+        },
+        {
+          "at": "2026-11-17T03:47:11.533Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "receiptFingerprint 优先 deliveryRevision/revision（taskId@rev）；同路径返修重写不再被误判已验收，单测 2 条覆盖"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T03:47:11.533Z",
+        "resolutionNote": "receiptFingerprint 优先 deliveryRevision/revision（taskId@rev）；同路径返修重写不再被误判已验收，单测 2 条覆盖",
+        "linkedTaskId": "AF-040"
+      }
     },
     {
       "improvementId": "IM-008",
@@ -451,7 +515,7 @@
     },
     {
       "improvementId": "IM-011",
-      "status": "candidate",
+      "status": "done",
       "title": "scope 通配路径仅降级目录前缀，未做真实目录枚举 glob 展开",
       "source": "implementation",
       "type": "tech-debt",
@@ -462,7 +526,7 @@
       "suggestion": "P2 并行文件锁升级时引入只读路径匹配器（读目录或框架 glob 工具），在纯函数之外的采集层做展开",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T17:41:35.976Z",
-      "updatedAt": "2026-11-15T17:41:35.976Z",
+      "updatedAt": "2026-11-17T03:47:12.110Z",
       "history": [
         {
           "at": "2026-11-15T17:41:35.976Z",
@@ -470,12 +534,38 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T03:47:11.716Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "进入实现队列"
+        },
+        {
+          "at": "2026-11-17T03:47:11.922Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "实现完成，转验收"
+        },
+        {
+          "at": "2026-11-17T03:47:12.110Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "expandScopePattern 按真实目录展开（rootDir）；消除 src/*.ts 对 src/shared/ 的前缀误报，单测 2 条覆盖"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T03:47:12.110Z",
+        "resolutionNote": "expandScopePattern 按真实目录展开（rootDir）；消除 src/*.ts 对 src/shared/ 的前缀误报，单测 2 条覆盖",
+        "linkedTaskId": "AF-040"
+      }
     },
     {
       "improvementId": "IM-012",
-      "status": "candidate",
+      "status": "done",
       "title": "squash 合并后的提交动作未自动化，脚本仅做 squash 暂存与删除端口",
       "source": "implementation",
       "type": "tech-debt",
@@ -486,7 +576,7 @@
       "suggestion": "L1 自动化阶段在闸门全绿后补提交动作（标题带 taskId），并在合并成功后串联本地/远端源分支清理",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T17:49:21.140Z",
-      "updatedAt": "2026-11-15T17:49:21.140Z",
+      "updatedAt": "2026-11-17T03:47:12.696Z",
       "history": [
         {
           "at": "2026-11-15T17:49:21.140Z",
@@ -494,8 +584,34 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T03:47:12.301Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "进入实现队列"
+        },
+        {
+          "at": "2026-11-17T03:47:12.504Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "实现完成，转验收"
+        },
+        {
+          "at": "2026-11-17T03:47:12.696Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "finalizeSquashMerge 四阶段（squash→commit→delete-local→delete-remote），任一阶段失败即停；CLI branch merge --apply 收口"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T03:47:12.696Z",
+        "resolutionNote": "finalizeSquashMerge 四阶段（squash→commit→delete-local→delete-remote），任一阶段失败即停；CLI branch merge --apply 收口",
+        "linkedTaskId": "AF-040"
+      }
     },
     {
       "improvementId": "IM-013",
@@ -699,7 +815,7 @@
     },
     {
       "improvementId": "IM-017",
-      "status": "candidate",
+      "status": "done",
       "title": "熔断阈值参数化与通道独立计数预留(P2)",
       "source": "review",
       "type": "guardrail",
@@ -710,7 +826,7 @@
       "suggestion": "P2复用框架熔断扩展位,落地连续失败阈值与快速失败事件;不另立通道独立熔断",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T18:29:06.350Z",
-      "updatedAt": "2026-11-16T01:29:03.790Z",
+      "updatedAt": "2026-11-17T03:47:13.302Z",
       "history": [
         {
           "at": "2026-11-15T18:29:06.350Z",
@@ -718,12 +834,38 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T03:47:12.896Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "进入实现队列"
+        },
+        {
+          "at": "2026-11-17T03:47:13.102Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "实现完成，转验收"
+        },
+        {
+          "at": "2026-11-17T03:47:13.302Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "熔断参数化（连续 3 次 / 冷却 10 分钟）+ 计数落盘 + channel-circuit-open 可观察事件 + config 校验归一"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T03:47:13.302Z",
+        "resolutionNote": "熔断参数化（连续 3 次 / 冷却 10 分钟）+ 计数落盘 + channel-circuit-open 可观察事件 + config 校验归一",
+        "linkedTaskId": "AF-040"
+      }
     },
     {
       "improvementId": "IM-018",
-      "status": "candidate",
+      "status": "done",
       "title": "L3合并接远端CI状态门禁(无gh/token,P2)",
       "source": "review",
       "type": "gap",
@@ -734,7 +876,7 @@
       "suggestion": "接入token/gh后改为以CI状态作为L3自动合并门禁;过渡口径标注目标态不固化为永久设计",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-15T18:29:06.582Z",
-      "updatedAt": "2026-11-15T18:29:06.582Z",
+      "updatedAt": "2026-11-17T03:47:13.883Z",
       "history": [
         {
           "at": "2026-11-15T18:29:06.582Z",
@@ -742,8 +884,34 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T03:47:13.491Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "进入实现队列"
+        },
+        {
+          "at": "2026-11-17T03:47:13.689Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "实现完成，转验收"
+        },
+        {
+          "at": "2026-11-17T03:47:13.883Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "新建 ci-status.mjs：check-runs 四态判定 + token 双源（env / git credential）+ 0 check 判 unknown；branch merge --require-ci 接线"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T03:47:13.883Z",
+        "resolutionNote": "新建 ci-status.mjs：check-runs 四态判定 + token 双源（env / git credential）+ 0 check 判 unknown；branch merge --require-ci 接线",
+        "linkedTaskId": "AF-040"
+      }
     },
     {
       "improvementId": "IM-019",
@@ -797,7 +965,7 @@
     },
     {
       "improvementId": "IM-020",
-      "status": "candidate",
+      "status": "done",
       "title": "12 条差异 / 缺口需在两仓文档修订时消化（备忘 §3 + framework reliability.md §4）；本单不就地修订（outOfScope）。",
       "source": "acceptance",
       "type": "gap",
@@ -808,7 +976,7 @@
       "suggestion": null,
       "createdBy": "receipt-extract",
       "createdAt": "2026-11-15T19:38:37.044Z",
-      "updatedAt": "2026-11-15T19:38:37.044Z",
+      "updatedAt": "2026-11-17T03:47:14.494Z",
       "history": [
         {
           "at": "2026-11-15T19:38:37.044Z",
@@ -816,8 +984,34 @@
           "to": "candidate",
           "by": "receipt-extract",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T03:47:14.085Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "进入实现队列"
+        },
+        {
+          "at": "2026-11-17T03:47:14.307Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "实现完成，转验收"
+        },
+        {
+          "at": "2026-11-17T03:47:14.494Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "12 条差异分三层落点（L1 代码已实现 / L2 跨仓修订 / L3 备忘修订），触发条件入裁定书 §2、§8"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T03:47:14.494Z",
+        "resolutionNote": "12 条差异分三层落点（L1 代码已实现 / L2 跨仓修订 / L3 备忘修订），触发条件入裁定书 §2、§8",
+        "linkedTaskId": "AF-040"
+      }
     },
     {
       "improvementId": "IM-021",
@@ -921,7 +1115,7 @@
     },
     {
       "improvementId": "IM-023",
-      "status": "candidate",
+      "status": "done",
       "title": "通道失败的权威终态出口以哪侧为准（ready vs failed）？§7「终态不重启」是否约束通道失败？",
       "source": "acceptance",
       "type": "gap",
@@ -932,7 +1126,7 @@
       "suggestion": null,
       "createdBy": "receipt-extract",
       "createdAt": "2026-11-15T19:38:37.045Z",
-      "updatedAt": "2026-11-15T19:38:37.045Z",
+      "updatedAt": "2026-11-17T03:47:15.075Z",
       "history": [
         {
           "at": "2026-11-15T19:38:37.045Z",
@@ -940,12 +1134,38 @@
           "to": "candidate",
           "by": "receipt-extract",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T03:47:14.680Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "进入实现队列"
+        },
+        {
+          "at": "2026-11-17T03:47:14.874Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "实现完成，转验收"
+        },
+        {
+          "at": "2026-11-17T03:47:15.075Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "裁定：通道失败权威出口为 ready（+heldForHuman），failed 仅给不可恢复类别；§7 终态不重启只约束任务终态"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T03:47:15.075Z",
+        "resolutionNote": "裁定：通道失败权威出口为 ready（+heldForHuman），failed 仅给不可恢复类别；§7 终态不重启只约束任务终态",
+        "linkedTaskId": "AF-040"
+      }
     },
     {
       "improvementId": "IM-024",
-      "status": "candidate",
+      "status": "done",
       "title": "通道级重试总预算归谁定义（备忘 §3 自定义 vs framework §4 任务级）？降级路径切换是否计一次重试？",
       "source": "acceptance",
       "type": "gap",
@@ -956,7 +1176,7 @@
       "suggestion": null,
       "createdBy": "receipt-extract",
       "createdAt": "2026-11-15T19:38:37.045Z",
-      "updatedAt": "2026-11-15T19:38:37.045Z",
+      "updatedAt": "2026-11-17T03:47:15.658Z",
       "history": [
         {
           "at": "2026-11-15T19:38:37.045Z",
@@ -964,12 +1184,38 @@
           "to": "candidate",
           "by": "receipt-extract",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T03:47:15.269Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "进入实现队列"
+        },
+        {
+          "at": "2026-11-17T03:47:15.462Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "实现完成，转验收"
+        },
+        {
+          "at": "2026-11-17T03:47:15.658Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "裁定：通道投递预算归通道侧（attempt + 熔断），与 reworkLimit 正交；降级切换计 attempt、不计原通道熔断"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T03:47:15.658Z",
+        "resolutionNote": "裁定：通道投递预算归通道侧（attempt + 熔断），与 reworkLimit 正交；降级切换计 attempt、不计原通道熔断",
+        "linkedTaskId": "AF-040"
+      }
     },
     {
       "improvementId": "IM-025",
-      "status": "candidate",
+      "status": "done",
       "title": "熔断阈值在通道侧复用通用熔断，还是独立计数？",
       "source": "acceptance",
       "type": "gap",
@@ -980,7 +1226,7 @@
       "suggestion": null,
       "createdBy": "receipt-extract",
       "createdAt": "2026-11-15T19:38:37.045Z",
-      "updatedAt": "2026-11-15T19:38:37.045Z",
+      "updatedAt": "2026-11-17T03:47:16.263Z",
       "history": [
         {
           "at": "2026-11-15T19:38:37.045Z",
@@ -988,12 +1234,38 @@
           "to": "candidate",
           "by": "receipt-extract",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T03:47:15.870Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "进入实现队列"
+        },
+        {
+          "at": "2026-11-17T03:47:16.064Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "实现完成，转验收"
+        },
+        {
+          "at": "2026-11-17T03:47:16.263Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "裁定：复用通用熔断，按通道（下游实例）连续失败计数，不另立任务级独立计数；half-open 仍为预留位"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T03:47:16.263Z",
+        "resolutionNote": "裁定：复用通用熔断，按通道（下游实例）连续失败计数，不另立任务级独立计数；half-open 仍为预留位",
+        "linkedTaskId": "AF-040"
+      }
     },
     {
       "improvementId": "IM-026",
-      "status": "candidate",
+      "status": "done",
       "title": "framework §4.2 的失败定性三分法是否正式豁免通道层失败，还是另立通道定性？",
       "source": "acceptance",
       "type": "gap",
@@ -1004,7 +1276,7 @@
       "suggestion": null,
       "createdBy": "receipt-extract",
       "createdAt": "2026-11-15T19:38:37.046Z",
-      "updatedAt": "2026-11-15T19:38:37.046Z",
+      "updatedAt": "2026-11-17T03:47:16.845Z",
       "history": [
         {
           "at": "2026-11-15T19:38:37.046Z",
@@ -1012,12 +1284,38 @@
           "to": "candidate",
           "by": "receipt-extract",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T03:47:16.451Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "进入实现队列"
+        },
+        {
+          "at": "2026-11-17T03:47:16.647Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "实现完成，转验收"
+        },
+        {
+          "at": "2026-11-17T03:47:16.845Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "裁定：§4.2 三分法不豁免通道层，定性对象为投递尝试（deterministic→failed，其余→ready）"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T03:47:16.845Z",
+        "resolutionNote": "裁定：§4.2 三分法不豁免通道层，定性对象为投递尝试（deterministic→failed，其余→ready）",
+        "linkedTaskId": "AF-040"
+      }
     },
     {
       "improvementId": "IM-027",
-      "status": "candidate",
+      "status": "done",
       "title": "通道演练的「可复核基线」具体取什么（稳定路径清单 / 当日成功率快照 / 两者）？",
       "source": "acceptance",
       "type": "gap",
@@ -1028,7 +1326,7 @@
       "suggestion": null,
       "createdBy": "receipt-extract",
       "createdAt": "2026-11-15T19:38:37.046Z",
-      "updatedAt": "2026-11-15T19:38:37.046Z",
+      "updatedAt": "2026-11-17T03:47:17.420Z",
       "history": [
         {
           "at": "2026-11-15T19:38:37.046Z",
@@ -1036,12 +1334,38 @@
           "to": "candidate",
           "by": "receipt-extract",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T03:47:17.042Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "进入实现队列"
+        },
+        {
+          "at": "2026-11-17T03:47:17.229Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "实现完成，转验收"
+        },
+        {
+          "at": "2026-11-17T03:47:17.420Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "裁定：结构基线（路径清单三件套）+ 数值基线（当次成功率快照）两层并用，数值当场复核"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T03:47:17.420Z",
+        "resolutionNote": "裁定：结构基线（路径清单三件套）+ 数值基线（当次成功率快照）两层并用，数值当场复核",
+        "linkedTaskId": "AF-040"
+      }
     },
     {
       "improvementId": "IM-028",
-      "status": "candidate",
+      "status": "done",
       "title": "派发决策链运行时接线：CLI/scheduler 接入 resolveDispatchDecision 与 buildDispatchAudit，审计结果映射回任务状态机",
       "source": "implementation",
       "type": "gap",
@@ -1052,7 +1376,7 @@
       "suggestion": "派发流程接 resolveDispatchDecision 分流终态、buildDispatchAudit 落逐次留痕；held-ready/human-escalated 映射回 TASK_STATUSES；退避等待交 relay 层执行；依赖真实桌面通道激活，排 P2",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-16T00:50:34.173Z",
-      "updatedAt": "2026-11-16T00:50:34.173Z",
+      "updatedAt": "2026-11-17T03:47:18.057Z",
       "history": [
         {
           "at": "2026-11-16T00:50:34.173Z",
@@ -1060,8 +1384,34 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T03:47:17.642Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "进入实现队列"
+        },
+        {
+          "at": "2026-11-17T03:47:17.835Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "实现完成，转验收"
+        },
+        {
+          "at": "2026-11-17T03:47:18.057Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "resolveChannelSelection 决策链已运行时接线（AF-032/034 闭环），决策结果入 dispatchDecision 与事件日志，转 done"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T03:47:18.057Z",
+        "resolutionNote": "resolveChannelSelection 决策链已运行时接线（AF-032/034 闭环），决策结果入 dispatchDecision 与事件日志，转 done",
+        "linkedTaskId": "AF-040"
+      }
     },
     {
       "improvementId": "IM-029",

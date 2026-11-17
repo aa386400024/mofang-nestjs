@@ -214,6 +214,54 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 - 投递件只含任务契约字段（契约 / 范围 / 闸门 / 验收 / 回执约定），不含编排内部状态与对话原文。
 - CLI 不冒充 GUI 能力：`channel dispatch` 只准备投递件与状态，不驱动桌面。
 
+## 5.2 通道熔断（IM-017）
+
+熔断初始以「扩展位」存在，本批起**参数化落地**：阈值由适配层声明，框架侧只固定语义槽位（框架 `docs/reliability.md` §5.1）。
+
+| 项       | 口径                                                                                                                       |
+| -------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 计数维度 | 按**通道**（下游实例）连续失败次数计数，跨任务复用同一平面；**不**按任务另立独立计数                                       |
+| 阈值参数 | `config.circuitBreaker.consecutiveFailureThreshold`（默认 3）、`cooldownMinutes`（默认 10）                                |
+| 判定函数 | `dispatch-channel.mjs#evaluateCircuitBreaker(task, config)` → `{state, channel, consecutiveFailures, threshold, reason}`   |
+| 计数写入 | `gui-dispatch.mjs#fallbackDelivery` 递增 `delivery.consecutiveFailures`；`dispatch.mjs#buildDispatchRecord` 干净派发归零   |
+| 开闸后果 | `entry.channelCircuit={state:'open',channel,consecutiveFailures,threshold,at}` + `channel-circuit-open` 动作（可观察事件） |
+| 状态位   | `closed` / `open` 已实现；`half-open`（冷却后恢复试探）**仍为预留**，冷却期到点需人工复位                                  |
+
+判定完整口径（含终态出口、预算归属、失败定性）见 `channel-failure-decisions-2026-11-17.md` §3–§6。
+
+## 5.3 合并收口与远端 CI 门禁（IM-012 / IM-018）
+
+`branch merge` 不再把提交与清理留给人工，且可选在合并前**读远端 CI 结论**。
+
+| 阶段            | 命令实现                           | 说明                                                                           |
+| --------------- | ---------------------------------- | ------------------------------------------------------------------------------ |
+| `squash-merge`  | `git.squashMerge(branch)`          | 暂存到 integrate（原行为）                                                     |
+| `commit`        | `git.commitSquash(message)`        | 提交标题 `` `${taskId} ${title}` ``，由 `finalizeSquashMerge` 在闸门全绿后补上 |
+| `delete-local`  | `git.deleteLocal(branch)`          | 删源分支                                                                       |
+| `delete-remote` | `git.deleteRemote(branch, remote)` | 传 `--remote` 才删远端；缺省只删本地                                           |
+
+任一阶段抛错即**停在该阶段**，返回 `{stages, branchName, commitMessage, errors}`，`errors` 非空时 CLI 以退出码 2 中止，绝不静默继续删分支。
+
+远端 CI 门禁（`--require-ci`）：
+
+| 项       | 口径                                                                                                                                                |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 数据源   | GitHub REST `GET /repos/<repo>/commits/<sha>/check-runs?per_page=100`（无 `gh`，也不依赖浏览器）                                                    |
+| token    | 先 `GITHUB_TOKEN` / `GH_TOKEN`，再 `git credential fill`（`host=github.com`）取 `password=`                                                         |
+| 判定     | `ciGateVerdict()` 四态：`pass`（全 `success`/`skipped`/`neutral`）、`fail`、`pending`（存在未 `completed`）、`unknown`（取数失败或 **0 项 check**） |
+| 放行规则 | 只有 `pass` 放行；`pending` / `unknown` **一律不放行**（空 check 不等于通过）                                                                       |
+| 参数     | `--repo`（默认 `aa386400024/mofang-nestjs`）、`--sha`（默认当前 HEAD）                                                                              |
+
+## 5.4 回执指纹与范围通配（IM-007 / IM-011）
+
+| 项         | 口径                                                                                                                                     |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| 回执指纹   | `dispatch.mjs#receiptFingerprint` 优先取 `task.artifacts.deliveryRevision ?? task.revision`，形如 `taskId@rev`；未登记版本才退回 `taskId | deliveryRef` |
+| 为什么     | 同一交付记录路径被返修重写时，纯路径指纹会把新回执判成「已验收」而跳收                                                                   |
+| 范围通配   | `scope-mutex.mjs#expandScopePattern` 按真实目录枚举（只读 `readdir`，逐段匹配 `*`，`maxDepth` 6 / `maxEntries` 500 兜底）                |
+| 展开时机   | 只有传 `rootDir`（调度的 `claimReadyTasks` 传 `REPO_ROOT`）才展开；展开为空回退原前缀条目，避免「无匹配=无冲突」的假放行                 |
+| 修掉的误报 | `src/*.ts` 旧口径降级成前缀 `src/`，会把 `src/shared/` 判成冲突；展开后只覆盖真实文件                                                    |
+
 ## 6. 策略锚点（policyAnchors）
 
 任务单 `policyRefs` 只引用锚点，不复制规则正文；规则唯一真相源是 `docs/team/conventions.md`。
@@ -229,20 +277,21 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 
 ## 7. 本目录文件
 
-| 文件                          | 角色                                                                | 通用层对应                                                                       |
-| ----------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `task-state-index.json`       | 本项目状态索引（真实任务记录与归档指针）                            | 框架仓 `schemas/task-state-index.schema.json`                                    |
-| `acceptance-checklist.md`     | 项目特定验收命令与仓库边界                                          | 五类核对口径见框架仓 `docs/acceptance.md`                                        |
-| `relay-receipt-template.md`   | 回执 / 交付记录的项目路径约定与命令示例                             | 七组字段骨架见框架仓 `templates/receipt.template.md`、`docs/receipt-contract.md` |
-| `agent-cards/*.json`          | 本项目代理能力声明（executor / orchestrator；human 不可派发故无卡） | 框架仓 `schemas/agent-card.schema.json`、`templates/agent-card.template.md`      |
-| `agent-cards/README.md`       | 能力声明边界说明（human 不产卡的依据、卡片字段口径）                | 框架仓 `docs/roles.md`、`schemas/agent-card.schema.json`                         |
-| `tools/<TOOL-ID>.json`        | L2 工具链工具声明（一工具一文件；类别、角色白名单、副作用级别）     | 框架仓 `schemas/tool-contract.schema.json`、`docs/tools.md`                      |
-| `orchestration-state.json`    | L2 运行态（租约、领单、超时等；首次 run-once 生成）                 | 框架仓 `docs/reliability.md`、`docs/autonomous-loop.md`                          |
-| `orchestration-snapshot.json` | 队列快照（网页与 CLI 只读数据源）                                   | 框架仓 `docs/autonomous-loop.md`                                                 |
-| `delivery-packs/`             | 夜间交付包汇总输出目录                                              | 框架仓 `docs/autonomous-loop.md` 交付包结构                                      |
-| `improvement-log.json`        | 候选改进台账（缺口 / 护栏 / 工具 / 规范 / 债的登记与闭环）          | 框架仓 `docs/context-and-memory.md` §2 共享记忆分层                              |
-| `improvement-loop.md`         | 改进闭环字段、状态机、闸门边界与命令口径（adapter 活文档）          | 框架仓 `docs/context-and-memory.md`、`docs/evolution.md`                         |
-| `autonomous-team-design.md`   | 双代理派发通道、分支治理、文件域互斥、分层发布与回退设计备忘        | 框架仓 `docs/roles.md`、`docs/autonomous-loop.md`、`docs/reliability.md`         |
+| 文件                                      | 角色                                                                                         | 通用层对应                                                                       |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `task-state-index.json`                   | 本项目状态索引（真实任务记录与归档指针）                                                     | 框架仓 `schemas/task-state-index.schema.json`                                    |
+| `acceptance-checklist.md`                 | 项目特定验收命令与仓库边界                                                                   | 五类核对口径见框架仓 `docs/acceptance.md`                                        |
+| `relay-receipt-template.md`               | 回执 / 交付记录的项目路径约定与命令示例                                                      | 七组字段骨架见框架仓 `templates/receipt.template.md`、`docs/receipt-contract.md` |
+| `agent-cards/*.json`                      | 本项目代理能力声明（executor / orchestrator；human 不可派发故无卡）                          | 框架仓 `schemas/agent-card.schema.json`、`templates/agent-card.template.md`      |
+| `agent-cards/README.md`                   | 能力声明边界说明（human 不产卡的依据、卡片字段口径）                                         | 框架仓 `docs/roles.md`、`schemas/agent-card.schema.json`                         |
+| `tools/<TOOL-ID>.json`                    | L2 工具链工具声明（一工具一文件；类别、角色白名单、副作用级别）                              | 框架仓 `schemas/tool-contract.schema.json`、`docs/tools.md`                      |
+| `orchestration-state.json`                | L2 运行态（租约、领单、超时等；首次 run-once 生成）                                          | 框架仓 `docs/reliability.md`、`docs/autonomous-loop.md`                          |
+| `orchestration-snapshot.json`             | 队列快照（网页与 CLI 只读数据源）                                                            | 框架仓 `docs/autonomous-loop.md`                                                 |
+| `delivery-packs/`                         | 夜间交付包汇总输出目录                                                                       | 框架仓 `docs/autonomous-loop.md` 交付包结构                                      |
+| `improvement-log.json`                    | 候选改进台账（缺口 / 护栏 / 工具 / 规范 / 债的登记与闭环）                                   | 框架仓 `docs/context-and-memory.md` §2 共享记忆分层                              |
+| `improvement-loop.md`                     | 改进闭环字段、状态机、闸门边界与命令口径（adapter 活文档）                                   | 框架仓 `docs/context-and-memory.md`、`docs/evolution.md`                         |
+| `autonomous-team-design.md`               | 双代理派发通道、分支治理、文件域互斥、分层发布与回退设计备忘                                 | 框架仓 `docs/roles.md`、`docs/autonomous-loop.md`、`docs/reliability.md`         |
+| `channel-failure-decisions-2026-11-17.md` | 通道失败权威口径裁定（终态出口 / 预算归属 / 熔断维度 / 定性范围 / 演练基线，IM-020·023–027） | 框架仓 `docs/reliability.md` §4 / §5.1 / §7                                      |
 
 ## 8. 通用层指针（规则真相源在框架仓）
 

@@ -14,7 +14,7 @@
     "type": "file"
   },
   "dispatch": {
-    "channel": "gui-relay",
+    "channel": "file",
     "fallbackToFile": true,
     "deliveryLeaseMinutes": 5
   },

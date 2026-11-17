@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-17T03:19:25.548Z",
+  "generatedAt": "2026-11-17T03:52:13.780Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -10,25 +10,110 @@ window.ORCH_SNAPSHOT = {
     "submitted": 0,
     "working": 0,
     "completed": 0,
-    "failed": 0,
-    "canceled": 0,
+    "failed": 1,
+    "canceled": 1,
     "rejected": 0,
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-039",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "改进台账未实现项全量收口（通道可靠性 / 分支收口 / 远端 CI 门禁 / 口径裁定）",
+      "status": "canceled",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af039-improvement-closeout-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": null
+    },
+    {
+      "taskId": "AF-041",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "fix",
+      "title": "WP38 调试会话恢复用例并发超时预算治理（IM-034）",
+      "status": "failed",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af041-wp38-timeout-budget-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-041",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-file-fallback",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-17T03:49:07.207Z",
+        "leaseDeadline": "2026-11-17T04:19:07.203Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-041.json",
+        "delivery": {
+          "state": "failed",
+          "preparedAt": "2026-11-17T03:49:07.207Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-041.brief.md",
+          "failedAt": "2026-11-17T03:50:49.930Z",
+          "failureReason": "本单由编排者（主控 AI）直接执行，未驱动桌面 relay；4 行改动的固定投递成本高于改动本身（见交付记录 §3 偏差表）",
+          "classification": "legacy-debt",
+          "lastAttempt": {
+            "cause": "deterministic-defect",
+            "loginGate": false,
+            "processRunning": false,
+            "windowReady": false,
+            "startRetries": 1,
+            "sendRetries": 1,
+            "sessionAttempted": [],
+            "locateAttempted": [],
+            "attemptCount": 1
+          },
+          "consecutiveFailures": 1,
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "history": [
+            {
+              "state": "pending",
+              "preparedAt": "2026-11-17T03:49:07.207Z",
+              "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-041.brief.md",
+              "sessionPath": null,
+              "locateLayer": null,
+              "evidenceRef": null,
+              "consecutiveFailures": 0,
+              "history": []
+            }
+          ]
+        }
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
     "total": 34,
-    "activeCount": 15,
+    "activeCount": 1,
     "byStatus": {
-      "candidate": 14,
+      "candidate": 1,
       "queued": 0,
-      "accepted": 1,
-      "done": 19,
-      "wontfix": 0
+      "accepted": 0,
+      "done": 32,
+      "wontfix": 1
     },
     "byType": {
       "gap": 21,
@@ -70,7 +155,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-002",
         "title": "typeorm-model-generator 废弃工具链及其传递依赖存在未修复漏洞",
-        "status": "accepted",
+        "status": "done",
         "source": "review",
         "type": "tech-debt",
         "layer": "adapter",
@@ -80,18 +165,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "该 dev 工具上游停更，拖入老 typeorm/mysql2/sqlite3/tar/tmp，贡献全部 4 条 critical 及多数 high/moderate 告警；仅开发期反向生成使用，不进生产运行时",
         "suggestion": "评估移除 typeorm-model-generator、bin/entity.ts、NamingStrategy.cjs 及样品 entity；移除前确认无 DB→装饰器反向生成需求",
-        "historyCount": 3,
+        "historyCount": 6,
         "lastTransition": {
-          "at": "2026-11-15T14:08:05.685Z",
-          "by": "orchestrator",
-          "to": "accepted",
-          "note": "实现落地：移除 devDep typeorm-model-generator、bin/entity.ts、bin/NamingStrategy.cjs、entity:load 脚本；typecheck/lint/oxlint/21 例绿；待提交归档转 done"
+          "at": "2026-11-17T03:47:10.913Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "typeorm-model-generator / bin/entity.ts / bin/NamingStrategy.cjs 实测已不在库（全仓命中 0），状态收口为 done"
         }
       },
       {
         "improvementId": "IM-003",
         "title": "运行时传递依赖 uuid/glob/minimatch 存在版本告警，须随主依赖升级治理",
-        "status": "candidate",
+        "status": "wontfix",
         "source": "review",
         "type": "tech-debt",
         "layer": "adapter",
@@ -101,12 +186,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "间接依赖告警，非运行时直连路径；typeorm 的 mssql/tedious 为可选方言打包，本仓实际使用 mysql2",
         "suggestion": "随 typeorm/sentry/rimraf/ts-morph 主依赖升级带动传递版本；按 P-DEBT-4 纪律，版本变动须附全量绿跑与墙钟数字",
-        "historyCount": 1,
+        "historyCount": 2,
         "lastTransition": {
-          "at": "2026-11-15T13:43:09.887Z",
+          "at": "2026-11-17T03:47:18.277Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "wontfix",
+          "note": "三条 moderate（uuid<11.1.1 / glob<14.0.2 / minimatch<11.0.1）均需跨大版本 overrides 才能修，uuid 11 为 ESM-only 与 gaxios CJS 冲突风险高；CI security-audit 以 high 为门禁故不阻断。触发条件：主依赖上游自行放宽范围或集群整体升级时重评"
         }
       },
       {
@@ -180,7 +265,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-007",
         "title": "回执幂等次键以交付记录路径代替独立工件版本号",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "tech-debt",
         "layer": "adapter",
@@ -191,12 +276,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "同一 taskId 若交付记录路径不变而内容被覆盖，指纹无法区分版本；当前交接件不可变口径下风险可控",
         "suggestion": "后续在任务条目或交接件补独立工件版本号（revision/version），指纹以 taskId+version 为准",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T17:29:33.755Z",
+          "at": "2026-11-17T03:47:11.533Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "receiptFingerprint 优先 deliveryRevision/revision（taskId@rev）；同路径返修重写不再被误判已验收，单测 2 条覆盖"
         }
       },
       {
@@ -266,7 +351,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-011",
         "title": "scope 通配路径仅降级目录前缀，未做真实目录枚举 glob 展开",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "tech-debt",
         "layer": "adapter",
@@ -276,18 +361,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "src/**/*.ts 类通配按 src/ 目录前缀近似判定；跨层通配与单段 * 的精确覆盖口径可能偏宽或偏窄",
         "suggestion": "P2 并行文件锁升级时引入只读路径匹配器（读目录或框架 glob 工具），在纯函数之外的采集层做展开",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T17:41:35.976Z",
+          "at": "2026-11-17T03:47:12.110Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "expandScopePattern 按真实目录展开（rootDir）；消除 src/*.ts 对 src/shared/ 的前缀误报，单测 2 条覆盖"
         }
       },
       {
         "improvementId": "IM-012",
         "title": "squash 合并后的提交动作未自动化，脚本仅做 squash 暂存与删除端口",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "tech-debt",
         "layer": "adapter",
@@ -297,12 +382,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "合并链路停在暂存阶段；提交标题（conventional + taskId）与合并后远端分支清理需编排者手工闭合，未形成自动 L1 合并闭环",
         "suggestion": "L1 自动化阶段在闸门全绿后补提交动作（标题带 taskId），并在合并成功后串联本地/远端源分支清理",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T17:49:21.140Z",
+          "at": "2026-11-17T03:47:12.696Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "finalizeSquashMerge 四阶段（squash→commit→delete-local→delete-remote），任一阶段失败即停；CLI branch merge --apply 收口"
         }
       },
       {
@@ -399,7 +484,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-017",
         "title": "熔断阈值参数化与通道独立计数预留(P2)",
-        "status": "candidate",
+        "status": "done",
         "source": "review",
         "type": "guardrail",
         "layer": "framework",
@@ -410,18 +495,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "框架§5熔断/死信为本版本预留位;通道侧不独立计数;接入通用阈值参数化归P2；框架侧扩展位参数语义与计数口径已固化(§5.1)；阈值数值与计数实现仍归适配层 P2",
         "suggestion": "P2复用框架熔断扩展位,落地连续失败阈值与快速失败事件;不另立通道独立熔断",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T18:29:06.350Z",
+          "at": "2026-11-17T03:47:13.302Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "熔断参数化（连续 3 次 / 冷却 10 分钟）+ 计数落盘 + channel-circuit-open 可观察事件 + config 校验归一"
         }
       },
       {
         "improvementId": "IM-018",
         "title": "L3合并接远端CI状态门禁(无gh/token,P2)",
-        "status": "candidate",
+        "status": "done",
         "source": "review",
         "type": "gap",
         "layer": "adapter",
@@ -431,12 +516,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "本机无gh CLI与GITHUB_TOKEN,CI状态本机不可读;当前以本地等价闸门替代远端CI门禁,属过渡方案",
         "suggestion": "接入token/gh后改为以CI状态作为L3自动合并门禁;过渡口径标注目标态不固化为永久设计",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T18:29:06.582Z",
+          "at": "2026-11-17T03:47:13.883Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "新建 ci-status.mjs：check-runs 四态判定 + token 双源（env / git credential）+ 0 check 判 unknown；branch merge --require-ci 接线"
         }
       },
       {
@@ -463,7 +548,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-020",
         "title": "12 条差异 / 缺口需在两仓文档修订时消化（备忘 §3 + framework reliability.md §4）；本单不就地修订（outOfScope）。",
-        "status": "candidate",
+        "status": "done",
         "source": "acceptance",
         "type": "gap",
         "layer": "adapter",
@@ -474,12 +559,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": null,
         "suggestion": null,
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T19:38:37.044Z",
-          "by": "receipt-extract",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "at": "2026-11-17T03:47:14.494Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "12 条差异分三层落点（L1 代码已实现 / L2 跨仓修订 / L3 备忘修订），触发条件入裁定书 §2、§8"
         }
       },
       {
@@ -529,7 +614,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-023",
         "title": "通道失败的权威终态出口以哪侧为准（ready vs failed）？§7「终态不重启」是否约束通道失败？",
-        "status": "candidate",
+        "status": "done",
         "source": "acceptance",
         "type": "gap",
         "layer": "adapter",
@@ -540,18 +625,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": null,
         "suggestion": null,
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T19:38:37.045Z",
-          "by": "receipt-extract",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "at": "2026-11-17T03:47:15.075Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "裁定：通道失败权威出口为 ready（+heldForHuman），failed 仅给不可恢复类别；§7 终态不重启只约束任务终态"
         }
       },
       {
         "improvementId": "IM-024",
         "title": "通道级重试总预算归谁定义（备忘 §3 自定义 vs framework §4 任务级）？降级路径切换是否计一次重试？",
-        "status": "candidate",
+        "status": "done",
         "source": "acceptance",
         "type": "gap",
         "layer": "adapter",
@@ -562,18 +647,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": null,
         "suggestion": null,
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T19:38:37.045Z",
-          "by": "receipt-extract",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "at": "2026-11-17T03:47:15.658Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "裁定：通道投递预算归通道侧（attempt + 熔断），与 reworkLimit 正交；降级切换计 attempt、不计原通道熔断"
         }
       },
       {
         "improvementId": "IM-025",
         "title": "熔断阈值在通道侧复用通用熔断，还是独立计数？",
-        "status": "candidate",
+        "status": "done",
         "source": "acceptance",
         "type": "gap",
         "layer": "adapter",
@@ -584,18 +669,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": null,
         "suggestion": null,
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T19:38:37.045Z",
-          "by": "receipt-extract",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "at": "2026-11-17T03:47:16.263Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "裁定：复用通用熔断，按通道（下游实例）连续失败计数，不另立任务级独立计数；half-open 仍为预留位"
         }
       },
       {
         "improvementId": "IM-026",
         "title": "framework §4.2 的失败定性三分法是否正式豁免通道层失败，还是另立通道定性？",
-        "status": "candidate",
+        "status": "done",
         "source": "acceptance",
         "type": "gap",
         "layer": "adapter",
@@ -606,18 +691,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": null,
         "suggestion": null,
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T19:38:37.046Z",
-          "by": "receipt-extract",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "at": "2026-11-17T03:47:16.845Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "裁定：§4.2 三分法不豁免通道层，定性对象为投递尝试（deterministic→failed，其余→ready）"
         }
       },
       {
         "improvementId": "IM-027",
         "title": "通道演练的「可复核基线」具体取什么（稳定路径清单 / 当日成功率快照 / 两者）？",
-        "status": "candidate",
+        "status": "done",
         "source": "acceptance",
         "type": "gap",
         "layer": "adapter",
@@ -628,18 +713,18 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": null,
         "suggestion": null,
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-15T19:38:37.046Z",
-          "by": "receipt-extract",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "at": "2026-11-17T03:47:17.420Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "裁定：结构基线（路径清单三件套）+ 数值基线（当次成功率快照）两层并用，数值当场复核"
         }
       },
       {
         "improvementId": "IM-028",
         "title": "派发决策链运行时接线：CLI/scheduler 接入 resolveDispatchDecision 与 buildDispatchAudit，审计结果映射回任务状态机",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "gap",
         "layer": "adapter",
@@ -651,12 +736,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "决策/审计规则当前仅被单测引用；CLI 只接 canDispatch 队列互斥，运行时未跑任务级预算、指数退避、终态分流、失败定性与逐次留痕",
         "suggestion": "派发流程接 resolveDispatchDecision 分流终态、buildDispatchAudit 落逐次留痕；held-ready/human-escalated 映射回 TASK_STATUSES；退避等待交 relay 层执行；依赖真实桌面通道激活，排 P2",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-16T00:50:34.173Z",
+          "at": "2026-11-17T03:47:18.057Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "resolveChannelSelection 决策链已运行时接线（AF-032/034 闭环），决策结果入 dispatchDecision 与事件日志，转 done"
         }
       },
       {
@@ -931,6 +1016,68 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-051",
+      "recordedAt": "2026-11-17T03:51:48.994Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-042",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-042",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-042.json"
+      ]
+    },
+    {
+      "auditId": "AUD-050",
+      "recordedAt": "2026-11-17T03:49:07.244Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-041",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-041",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-041.json"
+      ]
+    },
+    {
+      "auditId": "AUD-049",
+      "recordedAt": "2026-11-17T03:46:22.553Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-040",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-040",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-040.json"
+      ]
+    },
+    {
+      "auditId": "AUD-048",
+      "recordedAt": "2026-11-17T03:46:06.477Z",
+      "actorRef": "orchestrator",
+      "correlationId": "cancel:AF-039",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-047",
       "recordedAt": "2026-11-17T03:18:52.004Z",
       "actorRef": "orchestrator",
@@ -1108,90 +1255,67 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-036",
-      "recordedAt": "2026-11-17T03:11:37.867Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-033",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-035",
-      "recordedAt": "2026-11-17T03:10:14.911Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-033",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-033",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-033.json"
-      ]
-    },
-    {
-      "auditId": "AUD-034",
-      "recordedAt": "2026-11-17T03:10:14.604Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-033",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-033",
-      "recordedAt": "2026-11-17T03:08:17.939Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-032",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-032",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-032.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 47,
+    "total": 51,
     "byResult": {
-      "allowed": 47,
+      "allowed": 51,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 45
+      "TOOL-QUEUE-SCHEDULER": 49
     },
     "byActor": {
-      "orchestrator": 47
+      "orchestrator": 51
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-039",
+        "title": "改进台账未实现项全量收口（通道可靠性 / 分支收口 / 远端 CI 门禁 / 口径裁定）",
+        "type": "implementation",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "orchestrator",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af039-improvement-closeout-task-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-041",
+        "title": "WP38 调试会话恢复用例并发超时预算治理（IM-034）",
+        "type": "fix",
+        "status": {
+          "framework": "failed",
+          "protocol": "FAILED",
+          "stage": "terminal"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af041-wp38-timeout-budget-task-2026-11-17.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -2228,6 +2352,42 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af038-scope-attribution-recheck-2026-11-17.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-040",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af040-improvement-closeout-task-2026-11-17.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af040-improvement-closeout-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-042",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af042-wp38-timeout-budget-rework-task-2026-11-17.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af042-wp38-timeout-budget-rework-2026-11-17.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -2242,9 +2402,22 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-039",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af039-improvement-closeout-task-2026-11-17.md"
+      },
+      {
+        "taskId": "AF-041",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af041-wp38-timeout-budget-task-2026-11-17.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -2305,5 +2478,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 56
+  "archivedCount": 58
 };
