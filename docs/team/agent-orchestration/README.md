@@ -263,6 +263,8 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 | 参数      | `--repo`（默认 `aa386400024/mofang-nestjs`）、`--sha`（默认当前 HEAD）                                                                                                                        |
 | GHES      | 基址取 `GITHUB_API_URL`（去尾部斜杠），缺省 `https://api.github.com`；私有部署不硬编码公网地址                                                                                                |
 
+门禁的「该拦就拦」有实弹记录：`ci-gate-fire-drill-2026-11-17.md`（阻断路径判 `unknown`、放行路径判 `pass` 后完成 squash 合并）。读的是**该 SHA** 上的结论，不是仓库最近一次绿。
+
 ## 5.4 回执指纹与范围通配（IM-007 / IM-011）
 
 | 项         | 口径                                                                                                                                     |
