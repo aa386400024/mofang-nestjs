@@ -70,13 +70,22 @@ function pushHistory(task, to, by, reason) {
   task.status = to;
 }
 
-/** 依赖是否全部满足：无 dependsOn 视为满足；上游须全部 completed。 */
-function dependenciesMet(task, index) {
+/**
+ * 依赖是否全部满足：无 dependsOn 视为满足；上游须全部 completed。
+ * 上游既可能在活跃列表，也可能已归档（终态 completed 后迁入 archivedTasks），
+ * 两处都要查——否则依赖已归档任务的条目会永久卡在 ready（静默死等）。
+ * 完全不存在的上游按未满足处理，并由调用方记 `dependency-unresolved` 显性暴露。
+ */
+function dependencyState(task, index) {
   const deps = Array.isArray(task.dependsOn) ? task.dependsOn : [];
-  return deps.every((dep) => {
-    const upstream = findTask(index, dep);
-    return upstream?.status === 'completed';
-  });
+  const unmet = [];
+  for (const dep of deps) {
+    const upstream = findTask(index, dep) ?? index.archivedTasks?.find((item) => item.taskId === dep) ?? null;
+    if (upstream?.status !== 'completed') {
+      unmet.push({ taskId: dep, status: upstream?.status ?? 'unknown' });
+    }
+  }
+  return { met: unmet.length === 0, unmet };
 }
 
 /** 超时释放：租约过期的活跃任务回到 ready，必须写 releaseReason 并转人工确认，不在同一轮自动重派。 */
@@ -117,7 +126,14 @@ export function claimReadyTasks(index, runtimeState, config, actions, opts = {})
   let claimed = 0;
   for (const task of index.tasks) {
     if (task.status !== 'ready') continue;
-    if (!dependenciesMet(task, index)) continue;
+    const dependency = dependencyState(task, index);
+    if (!dependency.met) {
+      // 依赖未满足：留 ready 等上游闭合；上游根本不存在时显性报出，避免静默死等。
+      if (dependency.unmet.some((item) => item.status === 'unknown')) {
+        actions.push({ type: 'dependency-unresolved', taskId: task.taskId, unmet: dependency.unmet });
+      }
+      continue;
+    }
     if (!config.allowedTaskTypes.includes(task.type)) continue;
     if (!task.artifacts?.taskSheet) {
       actions.push({ type: 'task-sheet-missing', taskId: task.taskId });

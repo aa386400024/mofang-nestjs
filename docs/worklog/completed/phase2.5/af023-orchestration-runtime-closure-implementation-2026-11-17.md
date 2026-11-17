@@ -236,3 +236,9 @@ verdictRationale: 运行态闭环以 DR-001 实跑与 147 条编排单测为证�
 - 发现：`manualReviewItems` 固定返回 3 条样板项，导致无 fail 时结论恒为 `conditional-pass`，`passed` 实际不可达，违反框架 `docs/acceptance.md` §4「五类全清 → passed」。
 - 修复：人工复核项改为按证据触发——缺机读回执、偏差表 / 未决问题 / 执行侧自报复核项 / 遗留登记非空、交付记录缺字段标记才计入；无触发且机读全绿时判 `passed`。
 - 证据：新增「无遗留、无偏差 → passed」「偏差非空 → conditional-pass」两条单测，编排单测 147 passed。
+
+## 10. 补丁：依赖解析覆盖归档上游
+
+- 发现：`dependenciesMet` 只用 `findTask` 查活跃列表；上游完成后归档进 `archivedTasks`，依赖它的条目永久判为未满足、静默停在 `ready`（`AF-024` 依赖已归档的 `AF-013` 即命中）。
+- 修复：新增 `dependencyState`，活跃与归档两处查上游；上游完全不存在时推 `dependency-unresolved` 动作，把「静默死等」变成可观测阻塞。
+- 证据：新增「依赖已归档上游仍可领单」「依赖不存在报 `dependency-unresolved`」两条单测，编排 149 passed；`AF-023` 以 `completed` 补登索引并归档（`archivedTasks=41`），使 `AF-024` 依赖可解析。

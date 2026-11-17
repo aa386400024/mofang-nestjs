@@ -1354,6 +1354,34 @@ describe('AF-023 运行态调度闭环（领单 / 回滚 / 回执终态）', () 
     expect(actions.filter((a) => a.type === 'dispatch')).toHaveLength(1);
   });
 
+  it('依赖已归档（completed）的上游时仍可领单', () => {
+    const downstream = task('AF-107');
+    downstream.dependsOn = ['AF-013'];
+    const index = {
+      tasks: [downstream],
+      archivedTasks: [{ taskId: 'AF-013', status: 'completed', history: [] }],
+    };
+    const runtimeState = { tasks: {} };
+    const actions = [];
+    claimReadyTasks(index, runtimeState, config, actions, { transport: fakeTransport(), cards: [] });
+
+    expect(downstream.status).toBe('submitted');
+    expect(actions.some((a) => a.type === 'claim' && a.taskId === 'AF-107')).toBe(true);
+  });
+
+  it('依赖不存在的上游时不领单，并显性报 dependency-unresolved', () => {
+    const orphan = task('AF-108');
+    orphan.dependsOn = ['AF-999'];
+    const index = freshIndex(orphan);
+    const runtimeState = { tasks: {} };
+    const actions = [];
+    claimReadyTasks(index, runtimeState, config, actions, { transport: fakeTransport(), cards: [] });
+
+    expect(orphan.status).toBe('ready');
+    const report = actions.find((a) => a.type === 'dependency-unresolved');
+    expect(report?.unmet).toEqual([{ taskId: 'AF-999', status: 'unknown' }]);
+  });
+
   it('派发失败回滚到 ready，清空租约与派发记录且历史不变', () => {
     const only = task('AF-103');
     const originalHistory = [...only.history];

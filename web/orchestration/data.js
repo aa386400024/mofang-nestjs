@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-17T01:36:40.524Z",
+  "generatedAt": "2026-11-17T01:40:12.634Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -952,6 +952,23 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-018",
+      "recordedAt": "2026-11-17T01:40:12.630Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-023",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-017",
       "recordedAt": "2026-11-17T01:08:45.153Z",
       "actorRef": "orchestrator",
@@ -1186,38 +1203,21 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-003",
-      "recordedAt": "2026-11-15T16:06:25.786Z",
-      "actorRef": "orchestrator",
-      "correlationId": "run-once",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 17,
+    "total": 18,
     "byResult": {
-      "allowed": 17,
+      "allowed": 18,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 15
+      "TOOL-QUEUE-SCHEDULER": 16
     },
     "byActor": {
-      "orchestrator": 17
+      "orchestrator": 18
     }
   },
   "protocolView": {
@@ -2007,6 +2007,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-023",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-task-2026-11-17.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-implementation-2026-11-17.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -2092,5 +2110,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 40
+  "archivedCount": 41
 };
