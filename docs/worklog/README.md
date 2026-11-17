@@ -102,11 +102,13 @@
 >
 > - **R9 灰度切换开关（2026-11-08）** ✅ → [`completed/phase2/phase2-r9-grayscale-switch-implementation-2026-11-08.md`](completed/phase2/phase2-r9-grayscale-switch-implementation-2026-11-08.md) —— 审议从「旁路观察」升级为「可配置生效」：内核加纯类型审议钩子端口（同步 / 稀疏补丁 / 失败回退）+ 三态生效模式（shadow / rule_only / llm_active）+ 会话白名单灰度；两拍分离设计（异步产出 → 缓存 → 下一轮同步消费，建议滞后一轮，不阻塞热路径）；缺省仍纯规则（零回归）；闸门全绿（tsc **0 error** / 全量 **145 文件 · 2375 例 · 0 failed · 19 skip** / eslint **0** / boundary **12 用例全绿**）
 >
-> - **Phase2.5 灰度验证期（2026-11-08 开工）** 🚧 → [`pending/phase2.5-README.md`](pending/phase2.5-README.md) —— **验证阶段，不是功能开发**：把 LLM 审议从 PoC 推到真实验证，用自动化数据跑几千场对话，验证质量达标后再全量切。WP-A/B/C/D/E/F/G/H 与 WP-J 系列独立单、WP-K、WP-L、WP-M、WP-N（标注台批次维度后端）、WP-N-FE（前端）已交付；剩余待办（按批标注 —— 30 场锚点已判定 debug 期数据不可用、改按批标注；100 场级批次、WP-B 考核纯规则核实）见 [§WP 登记表](pending/phase2.5-wp-list-2026-11-08.md)；详细红线见 Phase2.5 README
+> - **Phase2.5 灰度验证期（2026-11-08 开工）** 🚧 → [`pending/phase2.5-README.md`](pending/phase2.5-README.md) —— **验证阶段，不是功能开发**。2026-11-17 环境重置后，旧 96 场批次已不在当前数据库；当前仅 8 场 smoke（intake FAIL）；出口 ②/③/④/⑤ 均未闭。出口取证重定见 [AF-060 交付记录](completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md)；逐行状态见 [§WP 登记表](pending/phase2.5-wp-list-2026-11-08.md)。
 > - **Agent 协作强制门与发布闭环（2026-11-17）** ✅ → [`completed/phase2.5/af053-orchestration-delivery-release-2026-11-17.md`](completed/phase2.5/af053-orchestration-delivery-release-2026-11-17.md)（强制门交付、纯状态面提交与 integrate 发布）；squash 归档迁移快照修正由 AF-055 承接。
 > - **AF-055 合并边界交付** ✅ → [`completed/phase2.5/af055-merge-gate-snapshot-2026-11-17.md`](completed/phase2.5/af055-merge-gate-snapshot-2026-11-17.md)；**AF-056 服务端强门** ✅ → [`completed/phase2.5/af056-server-side-orchestration-gate-2026-11-17.md`](completed/phase2.5/af056-server-side-orchestration-gate-2026-11-17.md)；**AF-057 受保护 PR 验收门** ✅ → [`completed/phase2.5/af057-protected-pr-acceptance-2026-11-17.md`](completed/phase2.5/af057-protected-pr-acceptance-2026-11-17.md)；**AF-058 squash 生命周期门** 🔁 → [`pending/af058-squash-lifecycle-gate-task-2026-11-17.md`](pending/af058-squash-lifecycle-gate-task-2026-11-17.md)，[交付与回放证据](completed/phase2.5/af058-squash-lifecycle-gate-2026-11-17.md)。PR #13 因轻量门 yaml 依赖未合并，由 AF-059 承接。
 
 **AF-059 零依赖返修** 🚧 → [`pending/af059-dependency-free-squash-gate-task-2026-11-17.md`](pending/af059-dependency-free-squash-gate-task-2026-11-17.md)，[交付与无依赖证据](completed/phase2.5/af059-dependency-free-squash-gate-2026-11-17.md)。
+
+**AF-060 出口取证重定** ✅ → [交付记录](completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md)：旧 96 批库内清空、当前 8 场 intake FAIL、跨批 `incomparable`，出口④未通过。
 
 ---
 
@@ -124,7 +126,7 @@
 > - `phase2.5-wp-list-2026-11-08.md` —— **Phase2.5 WP 登记表**，**每个 WP 交付后更新那一行**（状态 ✅ + 交付记录链接，§六 导航里就是这么定义的）；
 > - `phase4-backlog-2026-11-08.md` —— **Phase4 承接清单**（Phase2 移交的 5 条），Phase4 开工时才动。
 >
-> **Phase2.5 进行中** → WP A–H、WP-J 系列独立单、WP-K/L/M/N（+WP-N-FE 前端）已交付；当前在办：按批标注（30 场锚点已判定 debug 期数据不可用、不重标）+ 100 场级验证批次（WP-B 考核场景纯规则待核实）。逐行进度与待办见 [§WP 登记表](pending/phase2.5-wp-list-2026-11-08.md)。
+> **Phase2.5 进行中** → WP A–H、WP-J 系列、WP-K/L/M/N/N-FE 已交付；当前在办为出口取证重定：旧 96 批已清空、8 场 smoke FAIL，②/③/④/⑤ 未闭（详见 [AF-060 交付记录](completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md)）。逐行进度与待办见 [§WP 登记表](pending/phase2.5-wp-list-2026-11-08.md)。
 
 每个任务单文件里写了完整的：目标、改动点、验收标准、不做什么。**读全文再开工。**
 

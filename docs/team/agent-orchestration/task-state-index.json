@@ -4,10 +4,104 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 239,
+    "lastEventSeq": 247,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-061",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-17T12:52:25.579Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "AF-060 验收断链返修"
+        },
+        {
+          "at": "2026-11-17T12:52:30.560Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-export-evidence",
+      "title": "Phase2.5 出口条件取证重定（AF-060 验收断链返修）",
+      "type": "verification",
+      "baselineRef": "4c4f695d89ce697451c6136f95230341024b3a7e",
+      "dependsOn": [],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-17T12:52:25.322Z",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "scope": {
+        "files": [
+          "docs/worklog/completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md",
+          "docs/worklog/pending/af061-phase25-exit-evidence-rework-task-2026-11-17.md",
+          "docs/worklog/pending/phase2.5-README.md",
+          "docs/worklog/pending/phase2.5-wp-list-2026-11-08.md",
+          "docs/worklog/README.md",
+          "docs/worklog/pending/archive/",
+          "data/batch-reports/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af061-phase25-exit-evidence-rework-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm typecheck",
+          "check": "0 error",
+          "threshold": "0 error"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "0 error",
+          "threshold": "0 error"
+        },
+        {
+          "command": "pnpm exec vitest run test/engine-core/boundary.spec.ts",
+          "check": "boundary 全绿",
+          "threshold": "0 failed"
+        },
+        {
+          "command": "node scripts/orchestration/cli.mjs events verify",
+          "check": "事件链与索引投影一致",
+          "threshold": "exit 0"
+        }
+      ],
+      "successCriteria": [
+        "AF-060 交付记录内两处相对链接改为可解析路径，验收 V4 断链归零",
+        "AF-060 的取证内容、数字与结论不改写；本单只做链接返修与验收回放",
+        "交付记录、回执六组字段、durable 副本齐全；AF-061 completed 后归档",
+        "全程不新跑 LLM 批次、不改业务源码、不动并行产物",
+        "typecheck / lint / boundary / events verify 定向闸门全绿"
+      ],
+      "evidenceFormat": "链接解析结果 + 验收结论 + 闸门退出码 + 事件条数",
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": [],
+      "promotedAt": "2026-11-17T12:52:25.578Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -675,6 +769,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/pending/af059-dependency-free-squash-gate-task-2026-11-17.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af059-dependency-free-squash-gate-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-060",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af060-phase25-exit-evidence-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md",
         "reply": null
       }
     }
