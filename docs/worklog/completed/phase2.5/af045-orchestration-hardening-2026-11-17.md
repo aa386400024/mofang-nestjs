@@ -121,3 +121,23 @@
 | `cloud-pc-project-migration` | 工作区默认根与现场不符；framework 写成「无依赖纯规范仓」；pnpm 基线错写 12.21.0；HEAD 过期   | 显式标注本机 `D:\work\Project` 并提示换机传 `-WorkspaceRoot`；framework 补 Python + `jsonschema`/`pyyaml` 依赖与受保护分支说明；pnpm 基线改 9.15.0（现场 `pnpm --version` 复核）；HEAD 更新为 `1a64188` / `26d30bc`；验证步骤补 `ORCH_REQUIRE_FRAMEWORK=1` + `contracts` + `events verify`；脚本内旧盘符一并替换                                     |
 
 核对结果：13 个技能 frontmatter 全部可解析（`yaml.safe_load` 断言 `name`+`description` 齐全，0 失败）；新引用路径逐条 `Test-Path` 全为 True。
+
+### 9.3 同日第三轮：补齐三个技能缺口（企业级口径）
+
+上一轮盘点报出的三个真实缺口，本轮全部落盘并校验。技能不在仓库内（`workspace\.skills\` 与 `.user_skills\`），但缺口会让下次开工从错误前提出发。
+
+| 缺口                                                                        | 现状                                                                                                                                   | 处置                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 编排 CLI 无单一入口                                                         | 六步闭环拆在 `workspace-context-restore`（开工）、`ai-handoff-acceptance`（验收）、`docs-governance-hygiene`（归档）三处，换会话易漏步 | 新建 `orchestration-cli-runbook`（4 文件：`SKILL.md` + `references\closed-loop.md` / `gates.md` / `pitfalls.md`）：闭环节奏六步表、7 条铁律、命令速查；references 覆盖任务单 frontmatter、回执六组标记与 `changedFiles.commits` 只写本仓 SHA、熔断 `circuitProbe` 同时期探针判定、分支/squash/归档/台账流转、闸门矩阵与基线、CI 轮询一行式、10 条实测坑 |
+| `app_builder_agent` 要求先读 `doubao-app-builder`，但三个根目录都没有该技能 | 「生成可交互网页应用」这条路按前置规则走不通                                                                                           | 新建 `doubao-app-builder`（2 文件）：显式标注**本地兜底、非官方权威**（官方到位即作废）；三种调用形态（生成 / 编辑 / 读取问答）、`arch_type` 判定表（标注为兜底启发式）、Prompt 六段、修改迭代纪律、与 `html` 等技能的边界；`references\tool-contract.md` 给参数语义、调用前后检查、失败分类与重试边界，并声明「以工具 schema 为准」                    |
+| `browser-use` 与 `browser-use-automation` 描述几乎相同                      | 同后端两套工具名（`browser_use` vs `computer_use_tool` plane=bu），误选会拿不存在的工具名执行                                          | **不删任何技能文件**：在两个 `SKILL.md` 顶部加「入口选择」段，按会话实际工具名二选一（本机只有 `computer_use_tool` → 走 `browser-use-automation`），并写明本机 `bu` 平面不可用（`CDP session is disconnected` / `resync` 报 `no browser tab is available`），网页任务优先 REST/CLI 或 `cu` 桌面                                                         |
+
+**顺带修掉的失效路径**：`psych-study-notes`（描述行与示例两处）、`psych-corpus-to-worklog\references\corpus-map.md` 指向 `E:\BaiduNetdiskDownload\...`；实测本机只有 C/D/Temp，`Test-Path E:\` 为 False，`D:\BaiduNetdiskDownload` 也不存在。已改为 `<资料目录>` 示意 + 「开工先 `Test-Path`，不存在就向用户要实际路径」。
+
+**校验**：`.skills` 45 个 / `.user_skills` 14 个技能 `SKILL.md` 全部通过 `yaml.safe_load`（断言 `name`+`description` 齐全，0 失败）；新技能内部引用路径逐条 `Test-Path` 全为 True（`closed-loop.md` / `gates.md` / `pitfalls.md` / `tool-contract.md`）。
+
+**命令与枚举均现场取证，不靠记忆**：`cli.mjs` 子命令与参数取自 `node scripts/orchestration/cli.mjs` 的 usage 输出；台账枚举取自 `improvement-log.mjs` 常量（`source ∈ {implementation, acceptance, rework, dead-letter, review}`、`type ∈ {gap, guardrail, tool, standard, performance, tech-debt}`、`layer ∈ {adapter, framework}`、`status ∈ {candidate, queued, accepted, done, wontfix}`）；任务状态全集取自 `cli.mjs status` 的计数行。
+
+**工具层事实（供后续留意）**：在 `.skills` 根下用写文件工具直接创建**新目录**时，文件未落盘却回报成功（目录不存在、文件数为 0）；改为先 `New-Item -ItemType Directory` 建目录再写，落盘正常（复验 2 文件）。改**已存在**文件（`browser-use` / `browser-use-automation` 顶部插入）则正常生效。
+
+**副作用与回滚**：探查命令时误跑 `cli.mjs pack`，生成 `delivery-packs\pack-20261117-134630.json|md` 并刷新 `orchestration-snapshot.json` 与 `web/orchestration/data.js`；已删除两个生成件并 `git checkout` 还原两份派生文件，`git status` 回到只剩用户自有未跟踪稿 `docs\architecture\phase3-judge-layer-ai-review-design-2026-11-15.md`（不入库）。
