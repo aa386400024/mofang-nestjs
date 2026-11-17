@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-17T03:53:17.646Z",
+  "updatedAt": "2026-11-17T04:23:03.123Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -1713,6 +1713,256 @@
         "resolvedAt": "2026-11-17T03:53:17.645Z",
         "resolutionNote": "③ 首个用例显式 60s 预算 + 判据注释（commit c8632c6）；AF-041 因 fallback 定性误判 failed（留痕），AF-042 复单验收未过因同树残留，最终由 AF-043 复核收口",
         "linkedTaskId": "AF-043"
+      }
+    },
+    {
+      "improvementId": "IM-035",
+      "status": "done",
+      "title": "V7 文件域残留按 git 全树比对，同批次多任务共存必误判",
+      "source": "implementation",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-044",
+      "evidence": ["AF-040/AF-042 实现在库却判 rejected；AF-043-I1"],
+      "impact": "实现落地被误杀成越界，返修次数与审计成本虚增",
+      "suggestion": "回执可选声明 changedFiles.commits，V7 改按提交文件集比对；解析不到即 fail，无解析器 skip",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T04:22:46.659Z",
+      "updatedAt": "2026-11-17T04:23:00.617Z",
+      "history": [
+        {
+          "at": "2026-11-17T04:22:46.659Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T04:23:00.199Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "AF-044 立项：遗留待办五项"
+        },
+        {
+          "at": "2026-11-17T04:23:00.401Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "代码与文档落地，待收尾闸门"
+        },
+        {
+          "at": "2026-11-17T04:23:00.617Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS"
+        }
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T04:23:00.617Z",
+        "resolutionNote": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS",
+        "linkedTaskId": "AF-044"
+      }
+    },
+    {
+      "improvementId": "IM-036",
+      "status": "done",
+      "title": "channel fallback 的 --cause 缺省退化为确定性缺陷，把旁路误判为任务死",
+      "source": "implementation",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-044",
+      "evidence": ["AF-041 缺 --cause 被判 delivery-terminal 进 failed 终态；AF-043-I2 / AF-042-I1"],
+      "impact": "留痕动作变成判决动作，终态不可复活",
+      "suggestion": "--cause 改必填并校验枚举；新增非判决性 cause executed-in-session，旁路写 bypassed 且失败计数不递增",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T04:22:46.864Z",
+      "updatedAt": "2026-11-17T04:23:01.266Z",
+      "history": [
+        {
+          "at": "2026-11-17T04:22:46.864Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T04:23:00.824Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "AF-044 立项：遗留待办五项"
+        },
+        {
+          "at": "2026-11-17T04:23:01.033Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "代码与文档落地，待收尾闸门"
+        },
+        {
+          "at": "2026-11-17T04:23:01.266Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS"
+        }
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T04:23:01.266Z",
+        "resolutionNote": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS",
+        "linkedTaskId": "AF-044"
+      }
+    },
+    {
+      "improvementId": "IM-037",
+      "status": "done",
+      "title": "通道熔断只有 closed/open，冷却期满无法自动恢复",
+      "source": "implementation",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-044",
+      "evidence": ["evaluateCircuitBreaker 无 half-open；README 记为预留概念位"],
+      "impact": "熔断后只能人工复位或永久熔断，恢复路径不可收敛",
+      "suggestion": "冷却期满放一次试探 half-open，成功归零封闭、失败重新开闸；开闸时刻落 delivery.circuitOpenedAt 跨轮计冷却",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T04:22:54.513Z",
+      "updatedAt": "2026-11-17T04:23:01.912Z",
+      "history": [
+        {
+          "at": "2026-11-17T04:22:54.513Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T04:23:01.486Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "AF-044 立项：遗留待办五项"
+        },
+        {
+          "at": "2026-11-17T04:23:01.713Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "代码与文档落地，待收尾闸门"
+        },
+        {
+          "at": "2026-11-17T04:23:01.912Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS"
+        }
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T04:23:01.912Z",
+        "resolutionNote": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS",
+        "linkedTaskId": "AF-044"
+      }
+    },
+    {
+      "improvementId": "IM-038",
+      "status": "done",
+      "title": "--require-ci 在 CI 容器内无 git credential，token 来源不可用",
+      "source": "implementation",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-044",
+      "evidence": ["Actions 内无 credential helper，token 只能靠环境变量；AF-043-I4"],
+      "impact": "远端 CI 门禁在 CI 里取不到 token，只能 abort 或软放行",
+      "suggestion": "三来源优先级 + Actions 内无 token 直接给 secrets.GITHUB_TOKEN 注入提示；基址取 GITHUB_API_URL 兼容 GHES",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T04:22:54.715Z",
+      "updatedAt": "2026-11-17T04:23:02.521Z",
+      "history": [
+        {
+          "at": "2026-11-17T04:22:54.715Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T04:23:02.108Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "AF-044 立项：遗留待办五项"
+        },
+        {
+          "at": "2026-11-17T04:23:02.307Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "代码与文档落地，待收尾闸门"
+        },
+        {
+          "at": "2026-11-17T04:23:02.521Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS"
+        }
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T04:23:02.521Z",
+        "resolutionNote": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS",
+        "linkedTaskId": "AF-044"
+      }
+    },
+    {
+      "improvementId": "IM-039",
+      "status": "done",
+      "title": "框架 reliability.md §4.1/§5.1 与适配层实现漂移（非失败事实、half-open）",
+      "source": "implementation",
+      "type": "gap",
+      "layer": "framework",
+      "relatedTaskId": "AF-044",
+      "evidence": ["框架把 half-open 写作预留概念位；§4.1 只有可恢复/不可恢复两类"],
+      "impact": "规范与实现两套口径，跨仓验收无共同判据",
+      "suggestion": "§4.1 增非失败事实分类；§5.1 出 half-open 迁移表；receipt-contract §3.1 登记可选 commits 字段",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T04:22:54.912Z",
+      "updatedAt": "2026-11-17T04:23:03.122Z",
+      "history": [
+        {
+          "at": "2026-11-17T04:22:54.912Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T04:23:02.721Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "AF-044 立项：遗留待办五项"
+        },
+        {
+          "at": "2026-11-17T04:23:02.924Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "代码与文档落地，待收尾闸门"
+        },
+        {
+          "at": "2026-11-17T04:23:03.122Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS"
+        }
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T04:23:03.122Z",
+        "resolutionNote": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS",
+        "linkedTaskId": "AF-044"
       }
     }
   ]

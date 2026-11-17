@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-17T03:59:35.059Z",
+  "generatedAt": "2026-11-17T04:23:03.130Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -21,17 +21,17 @@ window.ORCH_SNAPSHOT = {
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 34,
+    "total": 39,
     "activeCount": 0,
     "byStatus": {
       "candidate": 0,
       "queued": 0,
       "accepted": 0,
-      "done": 33,
+      "done": 38,
       "wontfix": 1
     },
     "byType": {
-      "gap": 21,
+      "gap": 26,
       "guardrail": 1,
       "tool": 0,
       "standard": 3,
@@ -39,7 +39,7 @@ window.ORCH_SNAPSHOT = {
       "tech-debt": 9
     },
     "bySource": {
-      "implementation": 18,
+      "implementation": 23,
       "acceptance": 8,
       "rework": 0,
       "dead-letter": 0,
@@ -786,6 +786,111 @@ window.ORCH_SNAPSHOT = {
           "to": "done",
           "note": "③ 首个用例显式 60s 预算 + 判据注释（commit c8632c6）；AF-041 因 fallback 定性误判 failed（留痕），AF-042 复单验收未过因同树残留，最终由 AF-043 复核收口"
         }
+      },
+      {
+        "improvementId": "IM-035",
+        "title": "V7 文件域残留按 git 全树比对，同批次多任务共存必误判",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-044",
+        "evidence": [
+          "AF-040/AF-042 实现在库却判 rejected；AF-043-I1"
+        ],
+        "impact": "实现落地被误杀成越界，返修次数与审计成本虚增",
+        "suggestion": "回执可选声明 changedFiles.commits，V7 改按提交文件集比对；解析不到即 fail，无解析器 skip",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T04:23:00.617Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS"
+        }
+      },
+      {
+        "improvementId": "IM-036",
+        "title": "channel fallback 的 --cause 缺省退化为确定性缺陷，把旁路误判为任务死",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-044",
+        "evidence": [
+          "AF-041 缺 --cause 被判 delivery-terminal 进 failed 终态；AF-043-I2 / AF-042-I1"
+        ],
+        "impact": "留痕动作变成判决动作，终态不可复活",
+        "suggestion": "--cause 改必填并校验枚举；新增非判决性 cause executed-in-session，旁路写 bypassed 且失败计数不递增",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T04:23:01.266Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS"
+        }
+      },
+      {
+        "improvementId": "IM-037",
+        "title": "通道熔断只有 closed/open，冷却期满无法自动恢复",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-044",
+        "evidence": [
+          "evaluateCircuitBreaker 无 half-open；README 记为预留概念位"
+        ],
+        "impact": "熔断后只能人工复位或永久熔断，恢复路径不可收敛",
+        "suggestion": "冷却期满放一次试探 half-open，成功归零封闭、失败重新开闸；开闸时刻落 delivery.circuitOpenedAt 跨轮计冷却",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T04:23:01.912Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS"
+        }
+      },
+      {
+        "improvementId": "IM-038",
+        "title": "--require-ci 在 CI 容器内无 git credential，token 来源不可用",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-044",
+        "evidence": [
+          "Actions 内无 credential helper，token 只能靠环境变量；AF-043-I4"
+        ],
+        "impact": "远端 CI 门禁在 CI 里取不到 token，只能 abort 或软放行",
+        "suggestion": "三来源优先级 + Actions 内无 token 直接给 secrets.GITHUB_TOKEN 注入提示；基址取 GITHUB_API_URL 兼容 GHES",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T04:23:02.521Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS"
+        }
+      },
+      {
+        "improvementId": "IM-039",
+        "title": "框架 reliability.md §4.1/§5.1 与适配层实现漂移（非失败事实、half-open）",
+        "status": "done",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "framework",
+        "relatedTaskId": "AF-044",
+        "evidence": [
+          "框架把 half-open 写作预留概念位；§4.1 只有可恢复/不可恢复两类"
+        ],
+        "impact": "规范与实现两套口径，跨仓验收无共同判据",
+        "suggestion": "§4.1 增非失败事实分类；§5.1 出 half-open 迁移表；receipt-contract §3.1 登记可选 commits 字段",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T04:23:03.122Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "AF-044 验收：单测 189 passed / 全量 3562 / validate 42 PASS"
+        }
       }
     ]
   },
@@ -930,6 +1035,21 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-053",
+      "recordedAt": "2026-11-17T04:19:25.640Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-044",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-044",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-044.json"
+      ]
+    },
     {
       "auditId": "AUD-052",
       "recordedAt": "2026-11-17T03:53:03.753Z",
@@ -1151,38 +1271,21 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-034.json"
       ]
-    },
-    {
-      "auditId": "AUD-038",
-      "recordedAt": "2026-11-17T03:11:53.858Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-034",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 52,
+    "total": 53,
     "byResult": {
-      "allowed": 52,
+      "allowed": 53,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 50
+      "TOOL-QUEUE-SCHEDULER": 51
     },
     "byActor": {
-      "orchestrator": 52
+      "orchestrator": 53
     }
   },
   "protocolView": {
@@ -2306,6 +2409,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/pending/af041-wp38-timeout-budget-task-2026-11-17.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-044",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af044-leftover-backlog-closeout-task-2026-11-17.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af044-leftover-backlog-closeout-2026-11-17.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -2383,5 +2504,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 61
+  "archivedCount": 62
 };
