@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-17T13:09:53.263Z",
+  "generatedAt": "2026-11-17T13:11:14.696Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,38 +15,7 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-063",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "fix",
-      "title": "编排门 squash 标题去重返修",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af063-orchestration-squash-title-rework-task-2026-11-17.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-063",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "file",
-        "targetRole": "orchestrator",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-17T13:09:53.260Z",
-        "leaseDeadline": "2026-11-17T13:39:53.258Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-063.json"
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1319,6 +1288,21 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-092",
+      "recordedAt": "2026-11-17T13:09:53.303Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-063",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-063",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-063.json"
+      ]
+    },
+    {
       "auditId": "AUD-091",
       "recordedAt": "2026-11-17T13:09:48.443Z",
       "actorRef": "orchestrator",
@@ -1535,62 +1519,26 @@
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-057.json"
       ]
-    },
-    {
-      "auditId": "AUD-077",
-      "recordedAt": "2026-11-17T10:53:34.694Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-056",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-056-af-056"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 91,
+    "total": 92,
     "byResult": {
-      "allowed": 91,
+      "allowed": 92,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 89
+      "TOOL-QUEUE-SCHEDULER": 90
     },
     "byActor": {
-      "orchestrator": 91
+      "orchestrator": 92
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-063",
-        "title": "编排门 squash 标题去重返修",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af063-orchestration-squash-title-rework-task-2026-11-17.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -3025,6 +2973,24 @@
             "ref": "docs/worklog/completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-063",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af063-orchestration-squash-title-rework-task-2026-11-17.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af063-orchestration-squash-title-rework-2026-11-17.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -3039,17 +3005,9 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-063",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af063-orchestration-squash-title-rework-task-2026-11-17.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -3115,5 +3073,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 79
+  "archivedCount": 80
 }

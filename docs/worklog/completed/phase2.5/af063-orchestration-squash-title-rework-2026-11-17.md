@@ -97,3 +97,11 @@ AF-062 已实现生成侧修复并跑绿 233 项编排单测，但 `run-once` �
 - `finalStatus`: `completed`
 - `reviewVerdict`: `passed`
 - `verdictRationale`: 交付记录链接已修正为 `../../pending/`，六组机读标记齐全；生成器只输出主任务号，回归用例覆盖全角/半角/裸编号引用；编排单测 233 项、typecheck、lint、boundary、preflight 全绿，未跳钩、未改业务源码；AF-062 归档历史保持原样。
+
+## 10. 机读验收
+
+- `run-once`：`receipt-ingested AF-063`、`archive-completed AF-063`。
+- `autoVerdict`：`passed`；`manualReview=[]`。
+- V4：交付记录相对链接 `missing=[]`；六组机读标记齐全。
+- 归档：`docs/worklog/pending/archive/AF-063-receipt-RC-AF-063-1.json`，6785 B。
+- 事件链：`events verify` PASS，254 条，schema `urn:agent-collaboration-framework:schema:state-event:1.0.0`。

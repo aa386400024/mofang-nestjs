@@ -49,7 +49,7 @@ evidenceFormat: 链接检查 + 六组标记 + 单测用例数 + merge SHA + push
 
 # AF-063 · 编排门 squash 标题去重返修
 
-> 状态：进行中（已实现，待验收，2026-11-17）
+> 状态：✅ 已验收（2026-11-17，PR 待合并）
 > 执行方：自做
 > 仓库：`D:\work\Project\backend\mofang-nestjs`
 > 基线：`29a855b5122c86b4754b9d245f75babceb92de83`

@@ -4,103 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 252,
+    "lastEventSeq": 254,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-063",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-17T13:09:48.396Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "返修 AF-062 机读验收断链与标记"
-        },
-        {
-          "at": "2026-11-17T13:09:53.258Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "编排门 squash 标题去重返修",
-      "type": "fix",
-      "baselineRef": "29a855b5122c86b4754b9d245f75babceb92de83",
-      "dependsOn": [],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-17T13:09:48.155Z",
-      "deadline": null,
-      "agentRole": "orchestrator",
-      "scope": {
-        "files": [
-          "scripts/orchestration/branch-workflow.mjs",
-          "scripts/orchestration/__tests__/orchestration.spec.mjs",
-          "docs/worklog/completed/phase2.5/",
-          "docs/worklog/pending/",
-          "docs/worklog/README.md",
-          "docs/team/agent-orchestration/"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af063-orchestration-squash-title-rework-task-2026-11-17.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
-          "check": "编排单测全绿",
-          "threshold": "0 failed"
-        },
-        {
-          "command": "pnpm typecheck",
-          "check": "0 error",
-          "threshold": "0 error"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "0 error",
-          "threshold": "0 error"
-        },
-        {
-          "command": "node scripts/orchestration/cli.mjs events verify",
-          "check": "事件链与索引投影一致",
-          "threshold": "exit 0"
-        }
-      ],
-      "successCriteria": [
-        "交付记录任务单链接用 ../../pending/ 解析到真实文件，V4 断链归零",
-        "交付记录含 gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict 六组机读标记",
-        "保留 AF-062 已实测的 squash 标题去重代码与 233 项编排单测",
-        "AF-063 合并后 integrate 新 HEAD 的 Orchestration Gate 为 success",
-        "不改 AF-062 归档终态，不把 AF-062 rejected 提交带入 AF-063 PR"
-      ],
-      "evidenceFormat": "链接检查 + 六组标记 + 单测用例数 + merge SHA + push 门 conclusion",
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af063-orchestration-squash-title-rework-2026-11-17.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "priorTasks": [],
-      "promotedAt": "2026-11-17T13:09:48.395Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -786,6 +693,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/pending/af061-phase25-exit-evidence-rework-task-2026-11-17.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-063",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af063-orchestration-squash-title-rework-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af063-orchestration-squash-title-rework-2026-11-17.md",
         "reply": null
       }
     }
