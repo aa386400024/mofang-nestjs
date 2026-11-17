@@ -13,8 +13,8 @@
  *   V5 编码一致     文本工件无 BOM、无 CR（纯 LF）
  *   V6 工具契约     工具声明 JSON 字段与枚举合法；未登记工具声明时记 skip
  *
- * 结论：任一 fail → rejected；无 fail 且人工复核非空 → conditional-pass；
- * 无 fail 且人工复核为空 → passed。
+ * 结论：任一 fail → rejected；无 fail 且存在人工复核项 → conditional-pass；
+ * 无 fail 且无人工复核项 → passed（五类全清，见框架 docs/acceptance.md §4）。
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -239,19 +239,35 @@ function checkResidual(task, opts) {
   return { checks, manualReview: [] };
 }
 
-/** 人工复核项：脚本不可判定的语义 / 口径 / 偏差类核对。 */
+/**
+ * 人工复核项：只列**本次回执真实存在**的、脚本不可判定的项。
+ * 固定样板项会让 `passed` 永远不可达（五类全清也无法通过），因此逐项按证据触发：
+ * 遗留 / 偏差 / 未决问题非空、回执缺失、交付记录字段标记不全才计入。
+ */
 function manualReviewItems(task) {
-  const items = [
-    '回执七组字段完整性（落地 / 证据 / 范围 / 契约 / 遗留 / 偏差 / 结论）需人工逐条核对',
-    '契约语义对齐与字段可空性需人工确认；真相源唯一、消费端不复算口径',
-    '偏差表合理性与失败项定性（确定性缺陷 / 偶发波动）需人工复核',
-  ];
+  const items = [];
+  const receipt = task.receipt ?? null;
+  if (!receipt) {
+    items.push('缺机读回执：验收只有交付记录，未摄入 transport 回执');
+  }
+  if (Array.isArray(receipt?.deviationTable) && receipt.deviationTable.length > 0) {
+    items.push(`偏差表 ${receipt.deviationTable.length} 条：需人工确认每条偏差可接受且已缓解`);
+  }
+  if (Array.isArray(receipt?.openQuestions) && receipt.openQuestions.length > 0) {
+    items.push(`未决问题 ${receipt.openQuestions.length} 条：需人工裁决后回写`);
+  }
+  if (Array.isArray(receipt?.manualReviewList) && receipt.manualReviewList.length > 0) {
+    items.push(`执行侧自报复核项 ${receipt.manualReviewList.length} 条：需逐条确认`);
+  }
+  if (Array.isArray(receipt?.backlogItems) && receipt.backlogItems.length > 0) {
+    items.push(`遗留登记 ${receipt.backlogItems.length} 条：需确认影响面与排期`);
+  }
   const rel = task.artifacts?.deliveryRecord;
   if (rel) {
     const probe = probeTextFile(relToAbs(rel));
     if (probe.exists && probe.text) {
       for (const group of ['gateResults', 'scopeCheck', 'contractChecks', 'backlogItems', 'deviationTable', 'reviewVerdict']) {
-        if (!probe.text.includes(group)) items.push(`回执交付记录未出现字段标记：${group}`);
+        if (!probe.text.includes(group)) items.push(`交付记录未出现字段标记：${group}`);
       }
     }
   }

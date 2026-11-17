@@ -345,6 +345,43 @@ describe('runAcceptance 验收结论', () => {
     expect(result.verdict).toBe('rejected');
     expect(result.checks.find((c) => c.code === 'V2')?.status).toBe('fail');
   });
+
+  it('无遗留、无偏差、回执齐全时判 passed（五类全清）', () => {
+    const task = {
+      taskId: 'AF-020',
+      contextId: 'framework-evolution',
+      type: 'investigation',
+      artifacts: {
+        taskSheet: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-task-2026-11-17.md',
+        deliveryRecord: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-implementation-2026-11-17.md',
+      },
+      receipt: { deviationTable: [], openQuestions: [], manualReviewList: [], backlogItems: [] },
+    };
+    const result = runAcceptance(task, { tasks: [task], archivedTasks: [] });
+    expect(result.verdict).toBe('passed');
+    expect(result.manualReview).toHaveLength(0);
+  });
+
+  it('偏差非空时降为 conditional-pass，人工项按证据列出', () => {
+    const task = {
+      taskId: 'AF-021',
+      contextId: 'framework-evolution',
+      type: 'investigation',
+      artifacts: {
+        taskSheet: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-task-2026-11-17.md',
+        deliveryRecord: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-implementation-2026-11-17.md',
+      },
+      receipt: {
+        deviationTable: [{ id: 'D1', deviation: 'GUI 未启用', impact: '人工粘贴', mitigation: '文件 transport' }],
+        openQuestions: [],
+        manualReviewList: [],
+        backlogItems: [],
+      },
+    };
+    const result = runAcceptance(task, { tasks: [task], archivedTasks: [] });
+    expect(result.verdict).toBe('conditional-pass');
+    expect(result.manualReview.join(' ')).toMatch('偏差表');
+  });
 });
 
 const baseEntry = { title: '快照复核清单需机读化', source: 'implementation', type: 'gap', layer: 'adapter' };
