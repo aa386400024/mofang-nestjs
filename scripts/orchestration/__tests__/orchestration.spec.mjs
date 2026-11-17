@@ -3,7 +3,7 @@
  * 覆盖：配置校验、状态迁移合法性、自治守门、快照计数与人工复核回填、验收 rejected 结论。
  */
 import { describe, expect, it } from 'vitest';
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -45,7 +45,16 @@ import {
   TOOL_CATEGORIES,
   ARTIFACT_KINDS,
 } from '../contract-enums.mjs';
-import { ARCHIVE_STATUSES, archiveTaskEntry, canTransition, shouldAdvance, buildSnapshot } from '../scheduler.mjs';
+import {
+  ARCHIVE_STATUSES,
+  archiveTaskEntry,
+  canTransition,
+  shouldAdvance,
+  buildSnapshot,
+  claimReadyTasks,
+  processReceipts,
+  releaseExpiredLeases,
+} from '../scheduler.mjs';
 import { generateDeliveryPack } from '../delivery-pack.mjs';
 import {
   deriveEvents,
@@ -1110,6 +1119,21 @@ artifacts:
       const second = ingestReceipts(index, runtimeState, { dir, archiveDir: join(dir, 'archive'), actions });
       expect(second.ingested).toBe(0);
 
+      // 租约超时持单后回执才到达：ready + heldForHuman 仍应摄入，作为完成证据供恢复验收。
+      const heldIndex = {
+        tasks: [
+          {
+            taskId: 'AF-009',
+            status: 'ready',
+            artifacts: { taskSheet: 'docs/worklog/pending/af009-task.md', deliveryRecord: null },
+          },
+        ],
+      };
+      const heldState = { tasks: { 'AF-009': { heldForHuman: true } } };
+      const held = ingestReceipts(heldIndex, heldState, { dir, archiveDir: join(dir, 'archive'), actions: [] });
+      expect(held.ingested).toBe(1);
+      expect(heldIndex.tasks[0].receipt.finalStatus).toBe('completed');
+
       writeFileSync(
         join(dir, 'AF-009-bad.json'),
         `${JSON.stringify(
@@ -1235,6 +1259,172 @@ describe('AF-010 派发接线与回执幂等', () => {
     const deduped = dedupeEvents(events);
     expect(deduped).toHaveLength(2);
     expect(deduped.find((e) => e.path === 'AF-010.json').count).toBe(2);
+  });
+});
+
+describe('AF-023 运行态调度闭环（领单 / 回滚 / 回执终态）', () => {
+  const config = {
+    autoLoop: { enabled: true },
+    allowedTaskTypes: ['investigation'],
+    maxConcurrentTasks: 1,
+    leaseDefaultMinutes: 30,
+    reworkLimit: 2,
+    transport: { type: 'file' },
+  };
+
+  function task(id) {
+    return {
+      taskId: id,
+      contextId: 'phase2.5-orchestration-closed-loop',
+      type: 'investigation',
+      title: `只读巡检 ${id}`,
+      status: 'ready',
+      createdAt: '2026-11-17T00:00:00+08:00',
+      scope: { files: ['docs/team/agent-orchestration/README.md'], modules: [], interfaces: [] },
+      dependsOn: [],
+      policyRefs: [],
+      agentRole: 'reviewer',
+      artifacts: { taskSheet: `docs/team/agent-orchestration/transport/tasks/${id}.json` },
+      history: [],
+    };
+  }
+
+  function fakeTransport(handler = () => {}) {
+    const calls = [];
+    return {
+      calls,
+      submitTask(handover) {
+        calls.push(handover);
+        handler(handover);
+        return `transport/tasks/${handover.taskId}.json`;
+      },
+    };
+  }
+
+  function freshIndex(...tasks) {
+    return { tasks, archivedTasks: [] };
+  }
+
+  it('单任务队列：有在办任务时不再领取下一个 ready', () => {
+    const index = freshIndex(task('AF-101'), task('AF-102'));
+    const runtimeState = { tasks: {} };
+    const actions = [];
+    claimReadyTasks(index, runtimeState, config, actions, { transport: fakeTransport(), cards: [] });
+
+    expect(index.tasks.filter((t) => t.status === 'submitted')).toHaveLength(1);
+    expect(index.tasks.filter((t) => t.status === 'ready')).toHaveLength(1);
+    expect(actions.filter((a) => a.type === 'claim')).toHaveLength(1);
+    expect(actions.filter((a) => a.type === 'dispatch')).toHaveLength(1);
+  });
+
+  it('派发失败回滚到 ready，清空租约与派发记录且历史不变', () => {
+    const only = task('AF-103');
+    const originalHistory = [...only.history];
+    const index = freshIndex(only);
+    const runtimeState = { tasks: {} };
+    const actions = [];
+    const transport = fakeTransport(() => {
+      throw new Error('transport down');
+    });
+
+    claimReadyTasks(index, runtimeState, config, actions, { transport, cards: [] });
+
+    expect(only.status).toBe('ready');
+    expect(only.history).toEqual(originalHistory);
+    expect(runtimeState.tasks['AF-103'].leaseClaimedAt).toBeNull();
+    expect(runtimeState.tasks['AF-103'].leaseDeadline).toBeNull();
+    expect(runtimeState.tasks['AF-103'].dispatch).toBeNull();
+    expect(actions.some((a) => a.type === 'dispatch-rejected')).toBe(true);
+  });
+
+  it('租约超时释放：写 releaseReason 并持单待人工，不在同一轮自动重派', () => {
+    const only = task('AF-106');
+    only.status = 'submitted';
+    const index = freshIndex(only);
+    const runtimeState = {
+      tasks: {
+        'AF-106': {
+          leaseClaimedAt: '2026-11-16T00:00:00.000Z',
+          leaseDeadline: '2026-11-16T00:30:00.000Z',
+          dispatch: { channel: 'file', handoverRef: 'transport/tasks/AF-106.json' },
+        },
+      },
+    };
+    const actions = [];
+    releaseExpiredLeases(index, runtimeState, actions);
+
+    expect(only.status).toBe('ready');
+    expect(runtimeState.tasks['AF-106'].releaseReason).toBe('lease-expired');
+    expect(runtimeState.tasks['AF-106'].heldForHuman).toBe(true);
+    expect(actions.some((a) => a.type === 'release' && a.reason === 'lease-expired')).toBe(true);
+
+    claimReadyTasks(index, runtimeState, config, actions, { transport: fakeTransport(), cards: [] });
+    expect(only.status).toBe('ready');
+    expect(actions.some((a) => a.type === 'held-for-human')).toBe(true);
+  });
+
+  it('租约超时持单后回执到达：恢复领取并归档，不重新派发', () => {
+    const only = task('AF-107');
+    only.status = 'ready';
+    only.artifacts = { taskSheet: only.artifacts.taskSheet };
+    only.receipt = { finalStatus: 'failed', sourceRef: 'transport/receipts/AF-107.json' };
+    const index = freshIndex(only);
+    const runtimeState = { tasks: { 'AF-107': { heldForHuman: true, releaseReason: 'lease-expired' } } };
+    const actions = [];
+    const receiptsDir = mkdtempSync(join(tmpdir(), 'orch-receipts-'));
+
+    try {
+      processReceipts(index, runtimeState, config, actions, { receiptsDir });
+      expect(index.tasks).toHaveLength(0);
+      expect(index.archivedTasks[0].status).toBe('failed');
+      expect(actions.some((a) => a.type === 'late-receipt-recovered')).toBe(true);
+      expect(runtimeState.tasks['AF-107'].heldForHuman).toBe(false);
+      expect(runtimeState.tasks['AF-107'].releaseReason).toBe('receipt-after-timeout');
+    } finally {
+      rmSync(receiptsDir, { recursive: true, force: true });
+    }
+  });
+
+  it('回执终态非 completed：按合法迁移链闭合并归档，不进入机读验收', () => {
+    const only = task('AF-104');
+    only.status = 'submitted';
+    only.artifacts = { taskSheet: only.artifacts.taskSheet };
+    only.receipt = { finalStatus: 'failed', sourceRef: 'transport/receipts/AF-104.json' };
+    const index = freshIndex(only);
+    const runtimeState = { tasks: {} };
+    const actions = [];
+    const receiptsDir = mkdtempSync(join(tmpdir(), 'orch-receipts-'));
+
+    try {
+      processReceipts(index, runtimeState, config, actions, { receiptsDir });
+      expect(index.tasks).toHaveLength(0);
+      expect(index.archivedTasks).toHaveLength(1);
+      expect(index.archivedTasks[0].taskId).toBe('AF-104');
+      expect(index.archivedTasks[0].status).toBe('failed');
+      expect(actions.some((a) => a.type === 'receipt-terminal' && a.status === 'failed')).toBe(true);
+      expect(runtimeState.tasks['AF-104'].terminalReceipt).toMatchObject({ status: 'failed' });
+    } finally {
+      rmSync(receiptsDir, { recursive: true, force: true });
+    }
+  });
+
+  it('回执 completed 但缺交付记录：保留任务并报 receipt-delivery-missing', () => {
+    const only = task('AF-105');
+    only.status = 'submitted';
+    only.receipt = { finalStatus: 'completed', sourceRef: 'transport/receipts/AF-105.json' };
+    const index = freshIndex(only);
+    const runtimeState = { tasks: {} };
+    const actions = [];
+    const receiptsDir = mkdtempSync(join(tmpdir(), 'orch-receipts-'));
+
+    try {
+      processReceipts(index, runtimeState, config, actions, { receiptsDir });
+      expect(index.tasks).toHaveLength(1);
+      expect(index.tasks[0].status).toBe('submitted');
+      expect(actions.some((a) => a.type === 'receipt-delivery-missing')).toBe(true);
+    } finally {
+      rmSync(receiptsDir, { recursive: true, force: true });
+    }
   });
 });
 

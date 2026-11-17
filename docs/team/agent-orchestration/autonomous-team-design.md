@@ -30,10 +30,12 @@
 | G4  | 方案协商轮未固化 | 保留能力（未启用）                                  | `transport/reviews` 目录、`review-handover` schema 与 `handover-contract` 已具备；当前无活跃 review 文件，不把“目录存在”当成“协商轮已跑”                                                                                                               |
 | G5  | 自治循环关闭     | 已闭环                                              | `scripts/orchestration/config.json` `autoLoop.enabled=true`、`allowedTaskTypes` 覆盖六类、`maxConcurrentTasks=1`；`advanceOnce` 已可领单 / 验收 / 归档；`pnpm orchestration:watch` 启动先跑一轮并监听 pending / completed / transport tasks / receipts |
 | G6  | 发布口径未分层   | 已闭环（AF-014）                                    | README §2/§4、三份角色卡 limits、任务单模板已对齐 §6.1 分层口径                                                                                                                                                                                        |
-| G7  | 回执未摄入       | 已闭环（AF-023）                                    | `receipts.mjs` 扫描 `transport/receipts/*.json`，兼容 `{deliveredAt,payload}` 包装，校验七组字段后把 `artifactRefs` 投影到任务 `artifacts`，并把回执副本落 `docs/worklog/pending/archive/`；`processReceipts` 消费回执触发验收                         |
+| G7  | 回执未摄入       | 已闭环（AF-023）                                    | `receipts.mjs` 扫描 `transport/receipts/*.json`，兼容 `{deliveredAt,payload}` 包装，校验七组字段后把 `artifactRefs` 投影到任务 `artifacts`，并把回执副本与 transport 任务单副本落 `docs/worklog/pending/archive/`；`processReceipts` 消费回执触发验收  |
 | G8  | 任务单未自动立项 | 已闭环（AF-023）                                    | `task-intake.mjs` 解析 Markdown frontmatter，经 `validateTaskSheet` 校验后 `createTask` 登记；CLI `task register --sheet` + `task import --handover` 可用                                                                                              |
 
 > 运行态证据（2026-11-17）：`DR-001` 经 `task import` 补登 → `run-once` claim + dispatch → 回执 `receipt-ingested` → `archive-completed`，索引归档状态 `completed`、`autoVerdict=conditional-pass`。G1 仍是文件 Transport 的闭环，GUI 自动投递未验证，不得把本次证据外推到 GUI 通道。
+>
+> 租约与回收口径：`releaseExpiredLeases` 超时释放写 `releaseReason=lease-expired` 并置 `heldForHuman=true`，`claimReadyTasks` 跳过持单任务（`held-for-human`），人工 `task resume` 后才恢复；`advanceOnce` 先 `processReceipts` 再 `claimReadyTasks`，同一轮即可完成回执回收与下一单派发。`archiveTaskSheetFile` 在归档前把 transport 任务单副本落 `docs/worklog/pending/archive/`。
 
 ## 2. 目标闭环链路
 

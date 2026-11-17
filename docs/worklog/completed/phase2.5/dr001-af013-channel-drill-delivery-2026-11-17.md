@@ -1,7 +1,8 @@
 # DR-001 交付记录：AF-013 通道只读演练
 
 > 任务：`DR-001` ｜ contextId：`phase2.5-orchestration-closed-loop` ｜ 类型：`investigation`
-> 任务单指针：`docs/team/agent-orchestration/transport/tasks/DR-001.json`
+> 任务单指针：`docs/team/agent-orchestration/transport/tasks/DR-001.json`（运行态收件箱，默认 gitignore）
+> 任务单归档副本：`docs/worklog/pending/archive/DR-001-task-sheet-2026-11-17.json`（transport 交接件原样副本，供审计）
 > 机读回执：`docs/worklog/pending/archive/DR-001-receipt-2026-11-17.json`
 > 回执原文：`docs/worklog/pending/archive/relay-response-af013-drill-20261116.md`
 > 执行方：MiniMax Code（历史只读演练）｜ 编排 / 验收：orchestrator（Doubao）

@@ -18,7 +18,17 @@
  */
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { PATHS, REPO_ROOT, loadConfig, loadIndex, loadRuntimeState, saveConfigPatch, writeJsonAtomic } from './state-store.mjs';
+import {
+  PATHS,
+  REPO_ROOT,
+  loadConfig,
+  loadIndex,
+  loadRuntimeState,
+  nowIso,
+  saveConfigPatch,
+  saveRuntimeState,
+  writeJsonAtomic,
+} from './state-store.mjs';
 import { advanceOnce, buildSnapshot, shouldAdvance } from './scheduler.mjs';
 import {
   frameworkDir,
@@ -570,7 +580,31 @@ async function cmdTask(args) {
     console.log(`已补登任务 ${task.taskId}（${task.status}）→ ${task.artifacts.taskSheet}`);
     return;
   }
-  console.error(`未知 task 子命令：${sub}（支持 register / import）`);
+  if (sub === 'resume') {
+    const taskId = argValue(args, '--taskId');
+    if (!taskId) {
+      console.error('用法：task resume --taskId <id> [--reason <text>]  解除租约超时的人工持单，允许重新领取');
+      process.exit(2);
+    }
+    const index = loadIndex();
+    const task = index.tasks.find((item) => item.taskId === taskId);
+    if (!task) throw new Error(`任务不在活跃列表：${taskId}`);
+    if (task.status !== 'ready') throw new Error(`只能恢复 ready 任务：${taskId} 当前 ${task.status}`);
+    const runtimeState = loadRuntimeState();
+    const entry = runtimeState.tasks?.[taskId];
+    if (!entry) throw new Error(`任务缺运行态条目：${taskId}`);
+    if (entry.heldForHuman !== true) throw new Error(`任务未处于人工持单：${taskId}`);
+    entry.heldForHuman = false;
+    entry.releaseReason = 'manual-resume';
+    entry.resumedAt = nowIso();
+    entry.resumedBy = 'orchestrator-cli';
+    entry.escalation = null;
+    saveRuntimeState(runtimeState);
+    refreshSnapshotArtifacts();
+    console.log(`已恢复任务 ${taskId}：heldForHuman=false，releaseReason=manual-resume`);
+    return;
+  }
+  console.error(`未知 task 子命令：${sub}（支持 register / import / resume）`);
   process.exit(2);
 }
 
@@ -816,6 +850,7 @@ function printHelp() {
   console.log('  archive <taskId> [--status ..] [--sheet ..] [--record ..] [--reply ..] [--note ..]');
   console.log('  task register --sheet <task.md> [--status ready]  解析 frontmatter 并登记进状态索引');
   console.log('  task import --handover <task.json> [--status ready]  补登 transport 已落交接件');
+  console.log('  task resume --taskId <id> [--reason <text>]  解除租约超时的人工持单，允许重新领取');
   console.log('  events verify|rebuild|backfill             事件日志校验 / 重建索引 / 首次回填');
   console.log('  events rotate [--max-events 5000] [--compress] [--force] [--dry-run]  归档当前日志段（不删事件）');
   console.log(

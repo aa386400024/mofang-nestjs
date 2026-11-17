@@ -11,7 +11,7 @@
  * 边界：只读写 transport 目录与运行态条目；不迁移状态、不归档、不改交付记录正文。
  */
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { PATHS, REPO_ROOT, nowIso } from './state-store.mjs';
 import { validateReceiptHandover } from './handover-contract.mjs';
 
@@ -59,6 +59,26 @@ function archiveReceiptFile(file, receipt, taskId, archiveDir) {
 }
 
 /**
+ * transport 里的任务单是运行态收件箱（默认 gitignore），归档前复制一份到
+ * `docs/worklog/pending/archive/` 并回写指针，避免归档后任务单正文随 transport 丢失。
+ * @param {object} task 索引任务条目（就地改写 artifacts.taskSheet）
+ * @returns {string|null} 归档后的任务单指针
+ */
+export function archiveTaskSheetFile(task) {
+  const ref = task?.artifacts?.taskSheet;
+  if (typeof ref !== 'string' || !ref.startsWith('docs/team/agent-orchestration/transport/')) return ref ?? null;
+  const abs = resolve(REPO_ROOT, ref);
+  if (!existsSync(abs)) return ref;
+  const archiveDir = PATHS.receiptArchiveDir;
+  mkdirSync(archiveDir, { recursive: true });
+  const dest = join(archiveDir, `${task.taskId}-task-sheet-${nowIso().slice(0, 10)}.json`);
+  if (!existsSync(dest)) copyFileSync(abs, dest);
+  const archived = relative(REPO_ROOT, dest).split('\\').join('/');
+  task.artifacts = { ...(task.artifacts ?? {}), taskSheet: archived };
+  return archived;
+}
+
+/**
  * 扫描并摄取回执。每个 taskId 只取最新一份；返回按 taskId 的摄取结果。
  * @param {object} index 状态索引（就地写 task.artifacts / task.receipt）
  * @param {object} runtimeState 运行态（就地写 entry.receipt*）
@@ -95,7 +115,8 @@ export function ingestReceipts(index, runtimeState, opts = {}) {
   let invalid = 0;
   const results = [];
   for (const task of index.tasks ?? []) {
-    if (task.status !== 'submitted' && task.status !== 'working') continue;
+    const heldReady = task.status === 'ready' && runtimeState.tasks?.[task.taskId]?.heldForHuman === true;
+    if (task.status !== 'submitted' && task.status !== 'working' && !heldReady) continue;
     const candidate = latestByTask.get(task.taskId);
     if (!candidate) continue;
     const { receipt, file } = candidate;

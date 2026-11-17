@@ -38,7 +38,7 @@ import { createTransport } from './transport.mjs';
 import { dispatchTask, receiptFingerprint, isReceiptProcessed, markReceiptProcessed } from './dispatch.mjs';
 import { findScopeConflicts } from './scope-mutex.mjs';
 import { validateScopeDomain } from './card-router.mjs';
-import { ingestReceipts } from './receipts.mjs';
+import { archiveTaskSheetFile, ingestReceipts } from './receipts.mjs';
 
 const BY_ORCHESTRATOR = 'orchestrator-cli';
 
@@ -79,23 +79,33 @@ function dependenciesMet(task, index) {
   });
 }
 
-/** 超时释放：租约过期的活跃任务回到 ready。 */
-function releaseExpiredLeases(index, runtimeState, actions) {
+/** 超时释放：租约过期的活跃任务回到 ready，必须写 releaseReason 并转人工确认，不在同一轮自动重派。 */
+export function releaseExpiredLeases(index, runtimeState, actions) {
   for (const task of index.tasks) {
     if (task.status !== 'submitted' && task.status !== 'working') continue;
     const entry = getRuntimeEntry(runtimeState, task.taskId);
     if (isLeaseExpired(entry)) {
       if (!canTransition(task.status, 'ready')) continue;
-      pushHistory(task, 'ready', BY_ORCHESTRATOR, '租约超时释放');
+      const releasedAt = nowIso();
+      pushHistory(task, 'ready', BY_ORCHESTRATOR, '租约超时释放（持单待人工确认，不自动重派）');
       entry.leaseClaimedAt = null;
       entry.leaseDeadline = null;
-      actions.push({ type: 'release', taskId: task.taskId, reason: 'lease-expired' });
+      entry.releaseReason = 'lease-expired';
+      entry.releasedAt = releasedAt;
+      entry.heldForHuman = true;
+      entry.escalation = {
+        waiting: '租约超时，任务已释放回 ready；按 reliability.md §3 不自动重派，需人工确认后恢复',
+        evidence: entry.dispatch?.handoverRef ? [entry.dispatch.handoverRef] : [],
+        attemptedPaths: entry.dispatch?.channel ? [entry.dispatch.channel] : [],
+        suggestedDecision: '确认执行侧是否失联：恢复领取，或转 failed / 重开任务',
+      };
+      actions.push({ type: 'release', taskId: task.taskId, reason: 'lease-expired', heldForHuman: true });
     }
   }
 }
 
 /** 领单：ready 且依赖满足、类型在白名单 → submitted，登记租约并经 Transport 派发交接件。 */
-function claimReadyTasks(index, runtimeState, config, actions, opts = {}) {
+export function claimReadyTasks(index, runtimeState, config, actions, opts = {}) {
   const transport = opts.transport ?? createTransport(config);
   // 单任务队列：在办数达到 maxConcurrentTasks 时不再领取下一个，避免通道并发。
   const active = index.tasks.filter((t) => t.status === 'submitted' || t.status === 'working');
@@ -111,6 +121,11 @@ function claimReadyTasks(index, runtimeState, config, actions, opts = {}) {
     if (!config.allowedTaskTypes.includes(task.type)) continue;
     if (!task.artifacts?.taskSheet) {
       actions.push({ type: 'task-sheet-missing', taskId: task.taskId });
+      continue;
+    }
+    // 租约超时释放后持单待人工：按 reliability.md §3「超时不自动重派」，不得在本轮或后续空跑里自动领回。
+    if (getRuntimeEntry(runtimeState, task.taskId)?.heldForHuman === true) {
+      actions.push({ type: 'held-for-human', taskId: task.taskId, reason: 'lease-expired' });
       continue;
     }
     const scopeConflicts = findScopeConflicts(task, index.tasks);
@@ -230,17 +245,27 @@ function archiveTask(index, task, status) {
 }
 
 /** 回执验收驱动：已落盘交付记录的任务跑护栏并归档 / 提案返修 / 死信。 */
-function processReceipts(index, runtimeState, config, actions, opts = {}) {
+export function processReceipts(index, runtimeState, config, actions, opts = {}) {
   // 先把 transport/receipts 的机读回执投影进任务与运行态，再进入验收。
   ingestReceipts(index, runtimeState, { actions, dir: opts.receiptsDir });
 
   const remaining = [];
   for (const task of index.tasks) {
-    if (task.status !== 'submitted' && task.status !== 'working') {
+    // 租约超时转人工后回执才到达：回执即完成证据，恢复领取并走验收，不再重新派发。
+    const lateReceipt = task.status === 'ready' && runtimeState.tasks?.[task.taskId]?.heldForHuman === true && task.receipt;
+    if (!lateReceipt && task.status !== 'submitted' && task.status !== 'working') {
       remaining.push(task);
       continue;
     }
     const entry = ensureRuntimeEntry(runtimeState, task.taskId);
+    if (lateReceipt) {
+      pushHistory(task, 'submitted', BY_ORCHESTRATOR, '租约超时后回执到达：恢复领取并验收，不重新派发');
+      entry.heldForHuman = false;
+      entry.releaseReason = 'receipt-after-timeout';
+      entry.recoveredAt = nowIso();
+      entry.escalation = null;
+      actions.push({ type: 'late-receipt-recovered', taskId: task.taskId, sourceRef: task.receipt?.sourceRef ?? null });
+    }
     const receiptStatus = task.receipt?.finalStatus;
     if (receiptStatus && receiptStatus !== 'completed') {
       // 执行侧回执直接给出失败 / 取消 / 拒绝：不进入机读验收，按合法迁移链闭合后归档。
@@ -252,6 +277,7 @@ function processReceipts(index, runtimeState, config, actions, opts = {}) {
         attemptedPaths: [],
         suggestedDecision: '人工复核回执后决定关闭 / 返修 / 重开任务',
       };
+      archiveTaskSheetFile(task);
       archiveTask(index, task, receiptStatus);
       actions.push({ type: 'receipt-terminal', taskId: task.taskId, status: receiptStatus });
       continue;
@@ -275,6 +301,7 @@ function processReceipts(index, runtimeState, config, actions, opts = {}) {
     entry.autoVerdict = { verdict: result.verdict, rationale: result.rationale, at: nowIso() };
     entry.manualReview = result.manualReview;
 
+    archiveTaskSheetFile(task);
     if (result.verdict === 'rejected') {
       entry.attemptCount = Number(entry.attemptCount ?? 0);
       if (entry.attemptCount < config.reworkLimit) {
@@ -404,9 +431,11 @@ export function advanceOnce(opts = {}) {
 
   if (shouldAdvance(config)) {
     releaseExpiredLeases(index, runtimeState, actions);
+    // 先验收 / 归档回收在办任务，再领下一个：同一轮即可完成「回收 → 派发下一单」，
+    // 否则单任务队列会在回执已到的那一轮误报 queue-busy，并空转一轮。
     const cards = opts.cards ?? loadAgentCards();
-    claimReadyTasks(index, runtimeState, config, actions, { transport: opts.transport, cards });
     processReceipts(index, runtimeState, config, actions, { changedFiles: opts.changedFiles, receiptsDir: opts.receiptsDir });
+    claimReadyTasks(index, runtimeState, config, actions, { transport: opts.transport, cards });
   } else {
     actions.push({
       type: 'readonly-snapshot',
