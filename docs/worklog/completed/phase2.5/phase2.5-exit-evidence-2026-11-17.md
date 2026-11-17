@@ -29,21 +29,23 @@
 
 ### 0.1 验收返修记录
 
-AF-060 首轮 `run-once` 的机读验收为 `rejected`，原因不是取证内容失败，而是交付记录顶部两个相对链接按 `docs/worklog/completed/phase2.5/` 解析后指向不存在的 `phase2.5-README.md` 与 `phase2.5-wp-list-2026-11-08.md`。AF-061 以 stacked 任务承接，仅把两处链接改为 `../../pending/...` 并重新跑验收；AF-060 的数字、结论与 `rejected` 终态均不改写。
+AF-060 首轮 `run-once` 的机读验收为 `rejected`，原因不是取证内容失败，而是交付记录顶部两个相对链接按 `docs/worklog/completed/phase2.5/` 解析后指向不存在的 `phase2.5-README.md` 与 `phase2.5-wp-list-2026-11-08.md`。AF-061 以独立任务承接，仅把两处链接改为 `../../pending/...` 并重新跑验收：`run-once` 结论 `completed`（V4 断链归零、`autoVerdict=passed`），事件链 249 条；AF-060 的数字、结论与 `rejected` 终态均不改写。
 
 ---
 
 ## 1. 落地与改动文件
 
-| 文件                                                                   | 动作 | 用途                                                    |
-| ---------------------------------------------------------------------- | ---- | ------------------------------------------------------- |
-| `docs/worklog/pending/af060-phase25-exit-evidence-task-2026-11-17.md`  | 新增 | AF-060 任务单与验收边界                                 |
-| `docs/worklog/pending/phase2.5-README.md`                              | 修改 | 顶部状态行、§3.2 出口表与 3.2.1 取证数字、§3.3 历史边界 |
-| `docs/worklog/pending/phase2.5-wp-list-2026-11-08.md`                  | 修改 | 顶部状态、最近核对日期、§三 出口条件对照                |
-| `docs/worklog/README.md`                                               | 修改 | Phase2.5 导航与 AF-060 交付入口                         |
-| `docs/worklog/completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md` | 新增 | 本交付记录                                              |
-| `docs/team/agent-orchestration/transport/receipts/AF-060.json`         | 新增 | 机读回执（gitignored）                                  |
-| `docs/worklog/pending/archive/AF-060-receipt-RC-AF-060-1.json`         | 新增 | AF-060 回执 durable 副本（首轮 rejected）               |
+| 文件                                                                         | 动作 | 用途                                                    |
+| ---------------------------------------------------------------------------- | ---- | ------------------------------------------------------- |
+| `docs/worklog/pending/af060-phase25-exit-evidence-task-2026-11-17.md`        | 新增 | AF-060 任务单与验收边界                                 |
+| `docs/worklog/pending/phase2.5-README.md`                                    | 修改 | 顶部状态行、§3.2 出口表与 3.2.1 取证数字、§3.3 历史边界 |
+| `docs/worklog/pending/phase2.5-wp-list-2026-11-08.md`                        | 修改 | 顶部状态、最近核对日期、§三 出口条件对照                |
+| `docs/worklog/README.md`                                                     | 修改 | Phase2.5 导航与 AF-060 交付入口                         |
+| `docs/worklog/completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md`       | 新增 | 本交付记录                                              |
+| `docs/team/agent-orchestration/transport/receipts/AF-060.json`               | 新增 | 机读回执（gitignored）                                  |
+| `docs/worklog/pending/archive/AF-060-receipt-RC-AF-060-1.json`               | 新增 | AF-060 回执 durable 副本（首轮 rejected）               |
+| `docs/worklog/pending/af061-phase25-exit-evidence-rework-task-2026-11-17.md` | 新增 | AF-061 断链返修任务单                                   |
+| `docs/worklog/pending/archive/AF-061-receipt-RC-AF-061-1.json`               | 新增 | AF-061 回执 durable 副本（completed）                   |
 
 未修改：`src/`、`test/`、`scripts/`、`bin/`、数据库、`.env`、`admin-dashboard/`、`data/batch-reports/` 既有文件与并行产物。
 

@@ -110,6 +110,8 @@
 
 **AF-060 出口取证重定** ✅ → [交付记录](completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md)：旧 96 批库内清空、当前 8 场 intake FAIL、跨批 `incomparable`，出口④未通过。
 
+**AF-061 断链返修** ✅ → [交付记录](completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md)：修复 AF-060 两处相对链接，V4 断链归零，验收 `completed`。
+
 ---
 
 ## 1. 当前有什么活（自己扫目录）

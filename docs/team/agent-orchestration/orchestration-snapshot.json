@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-17T12:52:30.565Z",
+  "generatedAt": "2026-11-17T12:55:56.644Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,38 +15,7 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-061",
-      "contextId": "phase2.5-export-evidence",
-      "type": "verification",
-      "title": "Phase2.5 出口条件取证重定（AF-060 验收断链返修）",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af061-phase25-exit-evidence-rework-task-2026-11-17.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-061",
-        "contextId": "phase2.5-export-evidence",
-        "channel": "file",
-        "targetRole": "orchestrator",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-17T12:52:30.563Z",
-        "leaseDeadline": "2026-11-17T13:22:30.560Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-061.json"
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1319,6 +1288,21 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-087",
+      "recordedAt": "2026-11-17T12:52:30.610Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-061",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-061",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-061.json"
+      ]
+    },
+    {
       "auditId": "AUD-086",
       "recordedAt": "2026-11-17T12:52:25.625Z",
       "actorRef": "orchestrator",
@@ -1531,64 +1515,26 @@
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-055.json"
       ]
-    },
-    {
-      "auditId": "AUD-072",
-      "recordedAt": "2026-11-17T10:04:12.700Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-054",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 86,
+    "total": 87,
     "byResult": {
-      "allowed": 86,
+      "allowed": 87,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 84
+      "TOOL-QUEUE-SCHEDULER": 85
     },
     "byActor": {
-      "orchestrator": 86
+      "orchestrator": 87
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-061",
-        "title": "Phase2.5 出口条件取证重定（AF-060 验收断链返修）",
-        "type": "verification",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-export-evidence",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af061-phase25-exit-evidence-rework-task-2026-11-17.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -3005,6 +2951,24 @@
             "ref": "docs/worklog/completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-061",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af061-phase25-exit-evidence-rework-task-2026-11-17.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -3019,17 +2983,9 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-061",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af061-phase25-exit-evidence-rework-task-2026-11-17.md"
-      }
-    ],
-    "groupId": "phase2.5-export-evidence",
-    "groupIds": [
-      "phase2.5-export-evidence"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -3095,5 +3051,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 78
+  "archivedCount": 79
 }
