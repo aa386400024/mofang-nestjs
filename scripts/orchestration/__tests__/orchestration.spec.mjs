@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
-import { validateConfig, PATHS, REPO_ROOT, loadIndex } from '../state-store.mjs';
+import { validateConfig, PATHS, REPO_ROOT, loadAgentCards, loadIndex } from '../state-store.mjs';
 import {
   validateAgentCard,
   validateContractVersion,
@@ -1849,6 +1849,16 @@ describe('AF-016 IM-010 角色资源域越域校验', () => {
     const r = validateScopeDomain(baseTask, noRes);
     expect(r.valid).toBe(false);
     expect(r.errors.join(' ')).toMatch('resources');
+  });
+
+  it('真实 executor 卡资源域覆盖交付记录目录（切片收窄靠 scope，不靠目录白名单）', () => {
+    const task = {
+      ...baseTask,
+      scope: { files: ['docs/worklog/completed/phase2.5/x.md', 'docs/worklog/pending/y.md'] },
+    };
+    const r = validateScopeDomain(task, loadAgentCards());
+    expect(r.valid).toBe(true);
+    expect(r.outside).toHaveLength(0);
   });
 });
 

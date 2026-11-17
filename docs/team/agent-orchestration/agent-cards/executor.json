@@ -3,7 +3,7 @@
   "role": "executor",
   "skills": ["implementation", "gate-evidence", "deviation-reporting", "self-test"],
   "tools": ["workspace-read", "workspace-write", "gate-execution"],
-  "resources": ["src/", "test/", "docs/worklog/pending/（任务切片范围内）"],
+  "resources": ["src/", "test/", "docs/worklog/pending/", "docs/worklog/completed/"],
   "limits": {
     "canDo": ["按任务契约实现切片范围内的改动", "执行内循环自测与收尾闸门并采集真实证据", "写交付记录与偏差表，按约定回执"],
     "cannotDo": [
@@ -18,6 +18,6 @@
     ]
   },
   "availability": "available",
-  "note": "执行 AI（MiniMax Code）；researcher / critic 角色当前未启用，需要调研或独立评审任务时再绑定。本角色不进入分支与提交链路：L1 任务分支提交由验收后的 orchestrator 完成（设计备忘 §6.1）。",
+  "note": "执行 AI（MiniMax Code）；resources 为可写目录域，实际写入仍以任务单 scope 切片为准（父目录授权不等于全目录可写）。researcher / critic 角色当前未启用，需要调研或独立评审任务时再绑定。本角色不进入分支与提交链路：L1 任务分支提交由验收后的 orchestrator 完成（设计备忘 §6.1）。",
   "contractRef": "urn:agent-collaboration-framework:schema:agent-card:1.1.0"
 }

@@ -224,3 +224,9 @@ finalStatus: completed
 reviewVerdict: conditional-pass
 verdictRationale: 运行态闭环以 DR-001 实跑与 144 条编排单测为证；GUI 与协商轮按边界保留，不冒充闭环
 ```
+
+## 8. 补丁：executor 资源域
+
+- 发现：`executor.json` 的 `resources` 写作 `docs/worklog/pending/（任务切片范围内）`，路径带括号说明，`validateScopeDomain` 按前缀匹配永远判越域；且未覆盖 `docs/worklog/completed/`，执行侧写交付记录的任务会被路由拒绝。
+- 修复：`resources` 改为 `docs/worklog/pending/`、`docs/worklog/completed/`；切片收窄仍由任务单 `scope.files` 与 `limits.canDo` 约束，不靠目录白名单。
+- 证据：新增单测「真实 executor 卡资源域覆盖交付记录目录」，编排单测 145 passed。
