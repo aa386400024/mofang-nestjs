@@ -652,19 +652,44 @@ function cmdChannel(args) {
     const reason = argValue(args, '--reason');
     const classification = argValue(args, '--classification') ?? 'deterministic';
     if (!taskId || !reason) {
-      console.error('用法：channel fallback --taskId <id> --reason <原因> [--classification deterministic|flaky|legacy-debt]');
+      console.error(
+        '用法：channel fallback --taskId <id> --reason <原因> [--classification deterministic|flaky|legacy-debt] ' +
+          '[--cause <类别>] [--login-gate] [--start-retries N] [--send-retries N] [--attempt-count N] [--process-running] [--window-ready]',
+      );
       process.exit(2);
     }
     const runtimeState = loadRuntimeState();
     const entry = runtimeState.tasks?.[taskId];
     if (!entry?.dispatch) throw new Error(`降级失败：缺派发记录：${taskId}`);
-    const result = fallbackDelivery(entry.dispatch, { reason, classification, repoRoot: REPO_ROOT });
+    // IM-028：现场事实随降级一并落盘，回收环节的运行时决策链按它判「终态失败 / 升级人工 / 可重试」。
+    const list = (value) =>
+      value
+        ? String(value)
+            .split(',')
+            .map((x) => x.trim())
+            .filter(Boolean)
+        : [];
+    const facts = {
+      cause: argValue(args, '--cause') ?? 'deterministic-defect',
+      loginGate: args.includes('--login-gate'),
+      processRunning: args.includes('--process-running') ? true : false,
+      windowReady: args.includes('--window-ready') ? true : false,
+      startRetries: Number(argValue(args, '--start-retries') ?? 1),
+      sendRetries: Number(argValue(args, '--send-retries') ?? 1),
+      sessionAttempted: list(argValue(args, '--session-attempted')),
+      locateAttempted: list(argValue(args, '--locate-attempted')),
+      attemptCount: Number(argValue(args, '--attempt-count') ?? 1),
+    };
+    const result = fallbackDelivery(entry.dispatch, { reason, classification, repoRoot: REPO_ROOT, facts });
     if (!result.valid) throw new Error(result.errors.join('；'));
     entry.dispatch = result.record;
     saveRuntimeState(runtimeState);
     refreshSnapshotArtifacts();
     console.log(`已降级：${taskId}；channel=gui-file-fallback；原因=${reason}；定性=${classification}`);
-    console.log('下一步：run-once 会把该任务回滚 ready 并置 heldForHuman；修好桌面通道后 task resume 再重派。');
+    console.log(`现场事实：cause=${facts.cause} loginGate=${facts.loginGate} attemptCount=${facts.attemptCount}`);
+    console.log(
+      '下一步：run-once 会按运行时决策链处理该任务（不可恢复→failed；否则回滚 ready 并置 heldForHuman）；修好通道后 task resume 再重派。',
+    );
     return;
   }
   if (action === 'state') {

@@ -10,6 +10,7 @@
  */
 import { buildTaskHandover, validateTaskHandover } from './handover-contract.mjs';
 import { selectTargetRole } from './card-router.mjs';
+import { CHANNEL_GUI_FALLBACK } from './gui-dispatch.mjs';
 import { nowIso } from './state-store.mjs';
 
 /** 派发通道枚举（file / gui-relay 为本批实现；gui-file-fallback 为降级态；mcp / http 预留位）。 */
@@ -17,6 +18,85 @@ export const DISPATCH_CHANNELS = ['file', 'gui-relay', 'gui-file-fallback', 'mcp
 
 function normalizeChannel(channel) {
   return DISPATCH_CHANNELS.includes(channel) ? channel : 'file';
+}
+
+/**
+ * 派发决策原因枚举（IM-028：选路不得是散落的 if 表达式，必须是可审计的决策结果）。
+ * - `orchestrator-self-dispatch`：编排者给自己派活，写文件交接件即可，不走桌面 relay；
+ * - `configured-channel`：执行代理角色，按 `config.dispatch.channel` 选路；
+ * - `delivery-fallback-after-failure`：上一轮 GUI 投递已 failed 或已降级，本轮直接用文件降级通道；
+ * - `fallback-disabled-retry`：同上但 `fallbackToFile=false`，只能重试 gui-relay；
+ * - `channel-unavailable-coerced`：配置里的通道不在枚举内，收敛为 file 并留原因。
+ */
+export const DISPATCH_DECISION_REASONS = [
+  'orchestrator-self-dispatch',
+  'configured-channel',
+  'delivery-fallback-after-failure',
+  'fallback-disabled-retry',
+  'channel-unavailable-coerced',
+];
+
+/**
+ * 解析本轮派发通道选路（纯函数，无副作用；运行时决策链的降级判定见 dispatch-channel.mjs#resolveDispatchDecision）。
+ *
+ * 决策顺序对齐框架 `reliability.md` 的降级链：角色 → 上轮投递事实 → 配置通道 → 枚举收敛。
+ * 「上轮投递事实」必须读 `delivery.state` 与上轮 `channel`：调度层若对 delivery 零读取，
+ * 就等于把「已降级」当成「在正常执行」，任务会反复撞同一堵墙（AF-024 评审阻塞项）。
+ *
+ * @param {object} params {task, config, previousDispatch}
+ * @returns {{channel: string, targetRole: string, reason: string, attempt: number, configuredChannel: string, previousDeliveryState: string|null}}
+ */
+export function resolveChannelSelection({ task, config, previousDispatch = null } = {}) {
+  const targetRole = task?.agentRole ?? 'executor';
+  const configuredRaw = config?.dispatch?.channel ?? 'file';
+  const configuredChannel = normalizeChannel(configuredRaw);
+  const attempt = Number(previousDispatch?.attempt ?? 0) + 1;
+  const previousDeliveryState = previousDispatch?.delivery?.state ?? null;
+  const previousChannel = previousDispatch?.channel ?? null;
+
+  if (targetRole === 'orchestrator') {
+    return {
+      channel: 'file',
+      targetRole,
+      reason: 'orchestrator-self-dispatch',
+      attempt,
+      configuredChannel,
+      previousDeliveryState,
+    };
+  }
+
+  const needsFallback = previousDeliveryState === 'failed' || previousChannel === CHANNEL_GUI_FALLBACK;
+  if (needsFallback) {
+    const fallbackAllowed = config?.dispatch?.fallbackToFile !== false;
+    return {
+      channel: fallbackAllowed ? CHANNEL_GUI_FALLBACK : 'gui-relay',
+      targetRole,
+      reason: fallbackAllowed ? 'delivery-fallback-after-failure' : 'fallback-disabled-retry',
+      attempt,
+      configuredChannel,
+      previousDeliveryState,
+    };
+  }
+
+  if (!DISPATCH_CHANNELS.includes(configuredRaw)) {
+    return {
+      channel: 'file',
+      targetRole,
+      reason: 'channel-unavailable-coerced',
+      attempt,
+      configuredChannel,
+      previousDeliveryState,
+    };
+  }
+
+  return {
+    channel: configuredChannel,
+    targetRole,
+    reason: 'configured-channel',
+    attempt,
+    configuredChannel,
+    previousDeliveryState,
+  };
 }
 
 /**

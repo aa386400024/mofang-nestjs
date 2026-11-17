@@ -36,8 +36,9 @@ import { loadImprovementLog, summarizeLog } from './improvement-log.mjs';
 import { listAudits, loadAuditLog, summarizeAudits } from './audit-log.mjs';
 import { buildProtocolView } from './protocol-mapper.mjs';
 import { createTransport } from './transport.mjs';
-import { dispatchTask, receiptFingerprint, isReceiptProcessed, markReceiptProcessed } from './dispatch.mjs';
+import { dispatchTask, receiptFingerprint, isReceiptProcessed, markReceiptProcessed, resolveChannelSelection } from './dispatch.mjs';
 import { buildGuiBrief, writeGuiBrief, isDeliveryStalled } from './gui-dispatch.mjs';
+import { resolveDispatchDecision } from './dispatch-channel.mjs';
 import { findScopeConflicts } from './scope-mutex.mjs';
 import { validateScopeDomain } from './card-router.mjs';
 import { archiveTaskSheetFile, ingestReceipts } from './receipts.mjs';
@@ -191,16 +192,59 @@ export function releaseFailedDeliveries(index, runtimeState, config, actions) {
     if (!record?.delivery) continue;
     const stalled = isDeliveryStalled(record, { deliveryLeaseMinutes: leaseMinutes });
     if (!stalled) continue;
+    // IM-028：回收环节不再一律 held-for-human，而是把 relay 上报的现场事实喂给运行时决策链
+    // （dispatch-channel.mjs#resolveDispatchDecision），由它给出终态 / 升级人工 / 可重试三种动作，
+    // 调度层只负责把动作映射成状态迁移。facts 缺省时按「待人工」处理，行为与既有口径一致。
+    const delivery = record.delivery;
+    const facts = delivery.lastAttempt ?? {};
+    const decision = resolveDispatchDecision({
+      // cause 缺省留空：没有现场事实时不得假定「不可恢复」，否则会把可恢复的偶发故障直接判死。
+      cause: facts.cause,
+      loginGate: facts.loginGate === true,
+      processRunning: facts.processRunning,
+      windowReady: facts.windowReady,
+      startRetries: facts.startRetries ?? 0,
+      sendRetries: facts.sendRetries ?? 0,
+      sessionAttempted: facts.sessionAttempted ?? [],
+      locateAttempted: facts.locateAttempted ?? [],
+      attemptCount: facts.attemptCount ?? record.attempt ?? 1,
+    });
+    if (decision.action === 'fail-terminal' && canTransition(task.status, 'failed')) {
+      pushHistory(task, 'failed', BY_ORCHESTRATOR, `GUI 投递不可恢复（${decision.cause}）：直接置失败，不重试`);
+      entry.leaseClaimedAt = null;
+      entry.leaseDeadline = null;
+      entry.heldForHuman = false;
+      entry.releaseReason = 'gui-delivery-terminal';
+      entry.releasedAt = nowIso();
+      entry.dispatchDecisionResult = { action: decision.action, reason: decision.reason, cause: decision.cause };
+      actions.push({
+        type: 'delivery-terminal',
+        taskId: task.taskId,
+        cause: decision.cause,
+        reason: decision.reason,
+      });
+      handled += 1;
+      continue;
+    }
     if (!canTransition(task.status, 'ready')) continue;
-    const reason = record.delivery.state === 'failed' ? 'gui-delivery-failed' : 'gui-delivery-lease-expired';
+    // 只有决策链明确给出「任务级尝试预算耗尽」才记预算原因；其余 failed 保持既有的 gui-delivery-failed 口径。
+    const budgetExhausted = decision.action === 'human-escalate' && /预算耗尽/.test(String(decision.reason ?? ''));
+    const reason =
+      delivery.state === 'failed'
+        ? budgetExhausted
+          ? 'gui-delivery-budget-exhausted'
+          : 'gui-delivery-failed'
+        : 'gui-delivery-lease-expired';
     pushHistory(task, 'ready', BY_ORCHESTRATOR, 'GUI 投递未完成回收：回滚 ready 并持单待人工（不自动重派）');
     entry.leaseClaimedAt = null;
     entry.leaseDeadline = null;
     entry.releaseReason = reason;
     entry.releasedAt = nowIso();
     entry.heldForHuman = true;
+    entry.dispatchDecisionResult = { action: decision.action, reason: decision.reason, retries: decision.retries ?? null };
     entry.escalation = {
       waiting: 'GUI 投递未确认送达，任务已回滚 ready 并持单',
+      decision: { action: decision.action, reason: decision.reason },
       evidence: [record.delivery.briefRef, record.delivery.evidenceRef]
         .filter(Boolean)
         .concat(entry.dispatch?.handoverRef ? [entry.dispatch.handoverRef] : []),
@@ -241,7 +285,10 @@ export function claimReadyTasks(index, runtimeState, config, actions, opts = {})
     }
     // 租约超时释放后持单待人工：按 reliability.md §3「超时不自动重派」，不得在本轮或后续空跑里自动领回。
     if (getRuntimeEntry(runtimeState, task.taskId)?.heldForHuman === true) {
-      actions.push({ type: 'held-for-human', taskId: task.taskId, reason: 'lease-expired' });
+      // 持单原因取运行态真实释放原因（lease-expired / gui-delivery-failed / gui-delivery-budget-exhausted），
+      // 不再一律写成 lease-expired——否则事件流看不出任务为何持单（AF-035-B1）。
+      const heldEntry = getRuntimeEntry(runtimeState, task.taskId);
+      actions.push({ type: 'held-for-human', taskId: task.taskId, reason: heldEntry?.releaseReason ?? 'held-for-human' });
       continue;
     }
     const scopeConflicts = findScopeConflicts(task, index.tasks);
@@ -267,11 +314,20 @@ export function claimReadyTasks(index, runtimeState, config, actions, opts = {})
     actions.push({ type: 'claim', taskId: task.taskId });
     let dispatch;
     try {
-      // GUI 通道只对非编排者角色生效：编排者自己的任务投递给自己，走文件交接件即可，
-      // 桌面 relay 的价值在于把活送进执行代理会话（MiniMax Code 等），不是给自己贴便签。
-      const targetRole = task.agentRole ?? 'executor';
-      const configuredChannel = config.dispatch?.channel ?? 'file';
-      const channel = targetRole === 'orchestrator' ? 'file' : configuredChannel;
+      // IM-028：选路交给 resolveChannelSelection（可审计决策结果），不在调度层散落 if。
+      // 决策读取上一轮 dispatch 事实：GUI 投递已 failed / 已降级时，本轮直接走文件降级通道，
+      // 否则任务会反复把同一份投递件送进同一条死路（AF-024 评审阻塞项）。
+      const decision = resolveChannelSelection({ task, config, previousDispatch: entry.dispatch ?? null });
+      entry.dispatchDecision = { ...decision, decidedAt: nowIso() };
+      actions.push({
+        type: 'dispatch-decision',
+        taskId: task.taskId,
+        channel: decision.channel,
+        reason: decision.reason,
+        attempt: decision.attempt,
+        previousDeliveryState: decision.previousDeliveryState,
+      });
+      const channel = decision.channel;
       // GUI 通道在领单时就生成投递件：`delivery.state=pending` 的定义是「投递件已生成」，
       // 不能留给人工补跑 channel dispatch，否则任务空等租约。transportDir 由调用方注入，缺省不生成。
       let briefRef = null;
@@ -285,7 +341,7 @@ export function claimReadyTasks(index, runtimeState, config, actions, opts = {})
       dispatch = dispatchTask(task, entry, {
         transport,
         channel,
-        targetRole,
+        targetRole: decision.targetRole,
         cards: opts.cards,
         force: true,
         briefRef,

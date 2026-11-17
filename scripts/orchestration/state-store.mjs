@@ -96,6 +96,18 @@ export function validateConfig(raw) {
   if (!['file', 'mcp', 'http'].includes(transportType)) {
     errors.push(`transport.type 非法：${String(transportType)}（允许 file / mcp / http）`);
   }
+  // dispatch 段（AF-024 / IM-028）：此前未被归一返回，运行时永远读不到配置通道，
+  // GUI 通道「配了等于没配」（配置被静默丢段）。这里显式保留并做最小值校验。
+  const dispatchChannel = raw.dispatch?.channel ?? 'file';
+  const dispatchChannels = ['file', 'gui-relay', 'gui-file-fallback', 'mcp', 'http'];
+  if (!dispatchChannels.includes(dispatchChannel)) {
+    errors.push(`dispatch.channel 非法：${String(raw.dispatch?.channel)}（允许 ${dispatchChannels.join(' / ')}）`);
+  }
+  const fallbackToFile = raw.dispatch?.fallbackToFile !== false;
+  const deliveryLeaseMinutes = Number(raw.dispatch?.deliveryLeaseMinutes ?? 5);
+  if (!Number.isFinite(deliveryLeaseMinutes) || deliveryLeaseMinutes <= 0) {
+    errors.push(`dispatch.deliveryLeaseMinutes 须为正数，实际 ${String(raw.dispatch?.deliveryLeaseMinutes)}`);
+  }
   const refreshEnabled = raw.web?.refresh?.enabled !== false;
   const refreshInterval = Number(raw.web?.refresh?.intervalMs ?? 3000);
   if (!Number.isInteger(refreshInterval) || refreshInterval < 1000) {
@@ -112,6 +124,11 @@ export function validateConfig(raw) {
     frozenActions: Array.isArray(raw.frozenActions) ? raw.frozenActions : [],
     store: { backend },
     transport: { type: transportType },
+    dispatch: {
+      channel: dispatchChannel,
+      fallbackToFile,
+      deliveryLeaseMinutes,
+    },
     web: { refresh: { enabled: refreshEnabled === true, intervalMs: refreshInterval } },
     notes: raw.notes ?? {},
   };

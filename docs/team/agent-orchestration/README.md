@@ -156,7 +156,17 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 | `orchestrator` | `file`                                        | 编排者执行自己的任务，投给自己只产生噪声；交接件落 `transport/tasks/<taskId>.json` |
 | `executor`     | `config.dispatch.channel`（默认 `gui-relay`） | 需要把任务单送进执行代理（MiniMax Code 等）的桌面会话                              |
 
-选路在 `scheduler.mjs` 领单派发处按 `task.agentRole` 判定；配置在 `scripts/orchestration/config.json` 的 `dispatch` 段（`channel`、`fallbackToFile`）。
+选路由 `dispatch.mjs` 的 `resolveChannelSelection()` 决策（IM-028），调度层只消费结果，不在领单处散落 if。判定顺序：角色 → 上轮投递事实 → 配置通道 → 枚举收敛。
+
+| 决策原因                          | 触发条件                                                             | 结果通道                  |
+| --------------------------------- | -------------------------------------------------------------------- | ------------------------- |
+| `orchestrator-self-dispatch`      | `agentRole=orchestrator`                                             | `file`                    |
+| `configured-channel`              | 执行代理角色且上轮无失败事实                                         | `config.dispatch.channel` |
+| `delivery-fallback-after-failure` | 上轮 `delivery.state=failed` 或上轮已降级，且 `fallbackToFile≠false` | `gui-file-fallback`       |
+| `fallback-disabled-retry`         | 同上但 `fallbackToFile=false`                                        | `gui-relay`（重试）       |
+| `channel-unavailable-coerced`     | 配置通道不在 `DISPATCH_CHANNELS` 枚举内                              | `file`                    |
+
+决策结果随领单记入运行态 `entry.dispatchDecision`（含 `attempt` / `previousDeliveryState`），并作为 `dispatch-decision` 动作进事件日志。降级后**同一任务**固定在文件降级通道，不自动回升；新任务仍按配置通道试 GUI。
 
 ### 投递状态机（派发记录 `delivery`）
 
@@ -166,7 +176,17 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 | `delivered` | 桌面 relay 已送达并校验（会话路径 + 定位层 + 证据指针齐备，且原态必须是 `pending`） | `channel confirm`                                       |
 | `failed`    | 投递失败并降级，通道改 `gui-file-fallback`，文件交接件仍在                          | `channel fallback`                                      |
 
-`pending` 用**独立投递租约**（`config.dispatch.deliveryLeaseMinutes`，默认 5 分钟）计时，不占 30 分钟任务租约：超时未确认，`run-once` 的 `releaseFailedDeliveries` 把任务回滚 `ready` 并置 `heldForHuman`，`releaseReason=gui-delivery-lease-expired`；`failed` 同样回滚，`releaseReason=gui-delivery-failed`。两者都不自动重派，需人工修好桌面通道后 `task resume`。`channel state` 的 `stalled` 是该判定的只读视图。
+`pending` 用**独立投递租约**（`config.dispatch.deliveryLeaseMinutes`，默认 5 分钟）计时，不占 30 分钟任务租约：超时未确认，`run-once` 的 `releaseFailedDeliveries` 把任务回滚 `ready` 并置 `heldForHuman`，`releaseReason=gui-delivery-lease-expired`。
+
+`failed` 的回收不再一律持单，而是把 relay 上报的**现场事实**（`delivery.lastAttempt`：`cause` / `loginGate` / `startRetries` / `sendRetries` / `sessionAttempted` / `locateAttempted` / `attemptCount`）喂给运行时决策链 `dispatch-channel.mjs#resolveDispatchDecision`（IM-028），动作映射如下：
+
+| 决策动作                                          | 调度层结果                                                                   |
+| ------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `fail-terminal`（不可恢复类别）                   | 任务 `submitted → failed`，`releaseReason=gui-delivery-terminal`，不重试     |
+| `human-escalate`（任务级预算耗尽 / 进程拉不起来） | 回滚 `ready` + `heldForHuman`，`releaseReason=gui-delivery-budget-exhausted` |
+| 其余（有现场事实但可恢复）                        | 回滚 `ready` + `heldForHuman`，`releaseReason=gui-delivery-failed`           |
+
+没有现场事实时**不得假定不可恢复**（缺省 `cause` 为空，走持单待人工），否则会把偶发故障直接判死。持单后修好通道再 `task resume`。
 
 ### 校验守卫（AF-024 评审整改）
 
@@ -179,12 +199,12 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 
 ### 命令
 
-| 命令                                                                                                | 作用                                                                | 副作用           |
-| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ---------------- |
-| `channel rules` / `channel queue --taskId` / `channel state --taskId`                               | 规则、队列可派判定、投递状态与停滞标记                              | 只读             |
-| `channel dispatch --taskId <id> [--extra-file <md>]`                                                | 读交接件 → 生成 `transport/briefs/<taskId>.brief.md` → 置 `pending` | 写投递件与运行态 |
-| `channel confirm --taskId <id> --session-path <..> --locate-layer <..> --evidence <..>`             | 回写 `delivered`；缺任一项即拒                                      | 写运行态         |
-| `channel fallback --taskId <id> --reason <..> [--classification deterministic\|flaky\|legacy-debt]` | 回写 `failed` + 通道降级，缺原因或缺 `handoverRef` 即拒             | 写运行态         |
+| 命令                                                                                                                                                                                           | 作用                                                                                         | 副作用           |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------- |
+| `channel rules` / `channel queue --taskId` / `channel state --taskId`                                                                                                                          | 规则、队列可派判定、投递状态与停滞标记                                                       | 只读             |
+| `channel dispatch --taskId <id> [--extra-file <md>]`                                                                                                                                           | 读交接件 → 生成 `transport/briefs/<taskId>.brief.md` → 置 `pending`                          | 写投递件与运行态 |
+| `channel confirm --taskId <id> --session-path <..> --locate-layer <..> --evidence <..>`                                                                                                        | 回写 `delivered`；缺任一项即拒                                                               | 写运行态         |
+| `channel fallback --taskId <id> --reason <..> [--classification deterministic\|flaky\|legacy-debt] [--cause <类别>] [--login-gate] [--start-retries N] [--send-retries N] [--attempt-count N]` | 回写 `failed` + 通道降级 + 现场事实（`delivery.lastAttempt`），缺原因或缺 `handoverRef` 即拒 | 写运行态         |
 
 ### 分工与红线
 

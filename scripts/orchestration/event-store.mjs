@@ -828,7 +828,9 @@ export function createTask(task, opts = {}) {
   if ([...index.tasks, ...index.archivedTasks].some((item) => item.taskId === task.taskId)) {
     throw new Error(`任务已存在：${task.taskId}`);
   }
-  const at = opts.at ?? task.createdAt ?? nowIso();
+  // created 事件的时间取「登记写入时刻」，不取任务单的 createdAt：任务单由人写，常写成未来整点，
+  // 直接用会把 created 事件排到 promoted 之后（AF-032 实测）。createdAt 只作为任务属性保留。
+  const at = opts.at ?? nowIso();
   const next = {
     ...index,
     tasks: [...index.tasks, { ...task, status: task.status ?? 'backlog', history: task.history ?? [], createdAt: task.createdAt ?? at }],

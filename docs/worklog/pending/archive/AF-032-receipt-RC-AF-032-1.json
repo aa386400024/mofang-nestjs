@@ -1,0 +1,93 @@
+{
+  "deliveredAt": "2026-11-17T03:14:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-032-1",
+    "taskId": "AF-032",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "baselineRef": "306870288568ef12bf0c2218cd3f748d5c651bd6",
+    "dependsOn": ["AF-023"],
+    "policyRefs": ["conventions.md#1.3", "conventions.md#1.4"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af032-dispatch-decision-wiring-task-2026-11-17.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af032-dispatch-decision-wiring-2026-11-17.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/pending/af032-dispatch-decision-wiring-task-2026-11-17.md",
+        "docs/worklog/completed/phase2.5/af032-dispatch-decision-wiring-2026-11-17.md"
+      ],
+      "modified": [
+        "scripts/orchestration/dispatch.mjs",
+        "scripts/orchestration/scheduler.mjs",
+        "scripts/orchestration/gui-dispatch.mjs",
+        "scripts/orchestration/cli.mjs",
+        "scripts/orchestration/event-store.mjs",
+        "scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "docs/team/agent-orchestration/README.md",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "web/orchestration/data.js"
+      ],
+      "deleted": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs --reporter=dot",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "note": "167 passed / 0 failed（1.00s）"
+      },
+      {
+        "command": "ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "note": "23 PASS / 0 FAIL"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "note": "120 条事件，哈希链与索引投影一致"
+      }
+    ],
+    "reproNotes": "选路：resolveChannelSelection 用例覆盖 5 种原因（编排者 / 配置通道 / 上轮失败降级 / 关闭兜底重试 / 枚举收敛）。回收：lastAttempt.cause=deterministic-defect → 任务 failed（gui-delivery-terminal）；attemptCount=3 → human-escalate + gui-delivery-budget-exhausted；无 lastAttempt 时保持既有 gui-delivery-failed 持单口径（既有用例守住）。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "任务单 / 交付记录 / 回执一致" },
+      { "item": "state-write", "result": "pass", "note": "状态只经 commitIndex；本单两次 events rechain 均为显式切点纠偏" },
+      { "item": "decision-enum", "result": "pass", "note": "决策原因固定 5 值，运行时落 dispatchDecision 与事件" },
+      { "item": "index-schema", "result": "pass", "note": "task-state-index 1.1.0 PASS" },
+      { "item": "event-chain", "result": "pass", "note": "120 条事件 schema + 哈希链一致" }
+    ],
+    "fieldAlignment": { "result": "aligned", "note": "字段与框架 schema 一致" },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "createTask 事件时间",
+        "taskSays": "本单目标是决策链接线",
+        "reality": "登记 AF-032 时 created 事件取了任务单未来 createdAt，at 倒退导致 events verify 红",
+        "action": "createTask 改用写入时刻，并按 events rechain 从 EV-0118 重算 3 条",
+        "why": "同一类时间戳缺陷已在 AF-030/AF-031 踩过两次，本次是残留入口，必须一起堵住"
+      }
+    ],
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "IM-028 决策链接入运行时，选路与回收都有决策原因可审计；单测 167 全绿、validate 23 PASS、事件 120 条一致；顺带修掉 createTask 时间戳入口"
+  }
+}

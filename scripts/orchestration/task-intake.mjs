@@ -118,7 +118,7 @@ export async function registerTaskFromHandover(opts = {}) {
   const status = opts.status ?? payload.status ?? 'ready';
   if (!TASK_STATUSES.includes(status)) throw new Error(`任务状态非法：${String(status)}`);
   const task = buildTaskRecord(payload, { taskSheetPath, status });
-  const index = createTask(task, { actor: opts.actor ?? 'orchestrator-cli', at: task.createdAt });
+  const index = createTask(task, { actor: opts.actor ?? 'orchestrator-cli' });
   return index.tasks.find((item) => item.taskId === task.taskId) ?? task;
 }
 
@@ -145,6 +145,6 @@ export async function registerTaskFromSheet(opts = {}) {
   }
 
   const record = buildTaskRecord(meta, { taskSheetPath, status });
-  const index = createTask(record, { actor: opts.actor ?? 'orchestrator-cli', at: record.createdAt });
+  const index = createTask(record, { actor: opts.actor ?? 'orchestrator-cli' });
   return index.tasks.find((task) => task.taskId === record.taskId) ?? record;
 }

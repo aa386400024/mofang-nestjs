@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 117,
+    "lastEventSeq": 152,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -423,6 +423,69 @@
       "artifacts": {
         "taskSheet": "docs/worklog/pending/af031-task-sheet-encoding-closure-task-2026-11-17.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af031-task-sheet-encoding-closure-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-032",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af032-dispatch-decision-wiring-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af032-dispatch-decision-wiring-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-033",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af033-gui-delivery-failure-drill-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-034",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af034-dispatch-config-normalization-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af034-dispatch-config-normalization-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-035",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af035-gui-delivery-failure-drill-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af035-gui-delivery-failure-drill-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-036",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af036-held-reason-passthrough-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af036-held-reason-passthrough-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-037",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af037-scope-recheck-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-038",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af038-scope-attribution-recheck-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af038-scope-attribution-recheck-2026-11-17.md",
         "reply": null
       }
     }

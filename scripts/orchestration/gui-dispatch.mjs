@@ -206,7 +206,10 @@ export function confirmDelivery(record, evidence = {}) {
  * 守卫（AF-024 评审 P1 整改）：通道须为 gui-relay、交接件须真实存在、失败定性须在枚举内；
  * 降级清空上一次的定位痕迹，旧记录压入 `history` 保留审计。
  * @param {object|null} record 派发记录
- * @param {{reason:string, classification?:string, at?:string, attempted?:Array<object>, repoRoot?:string}} failure
+ * @param {{reason:string, classification?:string, at?:string, attempted?:Array<object>, repoRoot?:string, facts?:object}} failure
+ *   `facts` 是 relay 上报的现场事实（`cause` / `loginGate` / `startRetries` / `sendRetries` /
+ *   `sessionAttempted` / `locateAttempted` / `attemptCount` / `processRunning` / `windowReady`），
+ *   供 IM-028 运行时决策链（`dispatch-channel.mjs#resolveDispatchDecision`）在回收环节复用。
  * @returns {{valid:boolean, errors:string[], record:object|null}}
  */
 export function fallbackDelivery(record, failure = {}) {
@@ -242,6 +245,7 @@ export function fallbackDelivery(record, failure = {}) {
         failedAt: at,
         failureReason: failure.reason,
         classification: failure.classification ?? 'deterministic',
+        lastAttempt: failure.facts ? { ...failure.facts } : null,
         sessionPath: null,
         locateLayer: null,
         evidenceRef: null,

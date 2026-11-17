@@ -72,7 +72,14 @@ import {
   rechainEvents,
   toUtcIso,
 } from '../event-store.mjs';
-import { dispatchTask, buildDispatchRecord, receiptFingerprint, isReceiptProcessed, markReceiptProcessed } from '../dispatch.mjs';
+import {
+  dispatchTask,
+  buildDispatchRecord,
+  receiptFingerprint,
+  isReceiptProcessed,
+  markReceiptProcessed,
+  resolveChannelSelection,
+} from '../dispatch.mjs';
 import { buildGuiBrief, confirmDelivery, fallbackDelivery, isDeliveryStalled } from '../gui-dispatch.mjs';
 import { parseTaskSheetFrontmatter, buildTaskRecord } from '../task-intake.mjs';
 import { ingestReceipts } from '../receipts.mjs';
@@ -1455,7 +1462,20 @@ describe('AF-023 运行态调度闭环（领单 / 回滚 / 回执终态）', () 
 
     claimReadyTasks(index, runtimeState, config, actions, { transport: fakeTransport(), cards: [] });
     expect(only.status).toBe('ready');
-    expect(actions.some((a) => a.type === 'held-for-human')).toBe(true);
+    expect(actions.some((a) => a.type === 'held-for-human' && a.reason === 'lease-expired')).toBe(true);
+  });
+
+  it('持单原因随运行态：GUI 投递降级持单不再被写成租约超时（AF-035-B1）', () => {
+    const only = task('AF-108');
+    only.status = 'ready';
+    const index = freshIndex(only);
+    const runtimeState = { tasks: { 'AF-108': { heldForHuman: true, releaseReason: 'gui-delivery-failed' } } };
+    const actions = [];
+
+    claimReadyTasks(index, runtimeState, config, actions, { transport: fakeTransport(), cards: [] });
+    expect(only.status).toBe('ready');
+    const held = actions.find((a) => a.type === 'held-for-human');
+    expect(held?.reason).toBe('gui-delivery-failed');
   });
 
   it('租约超时持单后回执到达：恢复领取并归档，不重新派发', () => {
@@ -2704,5 +2724,93 @@ describe('AF-024 GUI 投递协议', () => {
     const okIndex = { tasks: [okTask], archivedTasks: [] };
     const okState = { tasks: { 'AF-132': { dispatch: { channel: 'gui-relay', delivery: { state: 'delivered' } } } } };
     expect(releaseFailedDeliveries(okIndex, okState, guiConfig, [])).toBe(0);
+  });
+
+  it('IM-028 选路决策：角色 → 上轮投递事实 → 配置通道 → 枚举收敛', () => {
+    const guiConfig = { dispatch: { channel: 'gui-relay', fallbackToFile: true } };
+    // 编排者：写文件交接件，不走桌面 relay
+    const own = resolveChannelSelection({ task: { taskId: 'AF-140', agentRole: 'orchestrator' }, config: guiConfig });
+    expect(own.channel).toBe('file');
+    expect(own.reason).toBe('orchestrator-self-dispatch');
+    // 执行代理 + 配置 gui-relay
+    const exec = resolveChannelSelection({ task: { taskId: 'AF-141', agentRole: 'executor' }, config: guiConfig });
+    expect(exec.channel).toBe('gui-relay');
+    expect(exec.reason).toBe('configured-channel');
+    // 上轮 failed → 直接降级文件通道，不再撞同一堵墙
+    const afterFail = resolveChannelSelection({
+      task: { taskId: 'AF-142', agentRole: 'executor' },
+      config: guiConfig,
+      previousDispatch: { channel: 'gui-file-fallback', attempt: 1, delivery: { state: 'failed' } },
+    });
+    expect(afterFail.channel).toBe('gui-file-fallback');
+    expect(afterFail.reason).toBe('delivery-fallback-after-failure');
+    expect(afterFail.attempt).toBe(2);
+    // 已降级但显式关闭文件兜底 → 只能重试 relay
+    const noFallback = resolveChannelSelection({
+      task: { taskId: 'AF-143', agentRole: 'executor' },
+      config: { dispatch: { channel: 'gui-relay', fallbackToFile: false } },
+      previousDispatch: { channel: 'gui-relay', attempt: 1, delivery: { state: 'failed' } },
+    });
+    expect(noFallback.channel).toBe('gui-relay');
+    expect(noFallback.reason).toBe('fallback-disabled-retry');
+    // 配置通道不在枚举内 → 收敛 file 并留原因
+    const coerced = resolveChannelSelection({
+      task: { taskId: 'AF-144', agentRole: 'executor' },
+      config: { dispatch: { channel: 'carrier-pigeon' } },
+    });
+    expect(coerced.channel).toBe('file');
+    expect(coerced.reason).toBe('channel-unavailable-coerced');
+  });
+
+  it('IM-028 配置归一保留 dispatch 段：GUI 通道配了必须读得到，非法值显式报错', () => {
+    const normalized = validateConfig({ dispatch: { channel: 'gui-relay', fallbackToFile: false, deliveryLeaseMinutes: 3 } });
+    expect(normalized.dispatch).toEqual({ channel: 'gui-relay', fallbackToFile: false, deliveryLeaseMinutes: 3 });
+    const defaults = validateConfig({});
+    expect(defaults.dispatch).toEqual({ channel: 'file', fallbackToFile: true, deliveryLeaseMinutes: 5 });
+    expect(() => validateConfig({ dispatch: { channel: 'carrier-pigeon' } })).toThrow(/dispatch\.channel 非法/);
+    expect(() => validateConfig({ dispatch: { deliveryLeaseMinutes: 0 } })).toThrow(/deliveryLeaseMinutes/);
+  });
+
+  it('IM-028 回收：现场事实驱动决策链，不可恢复类别直接 failed，预算耗尽才升级人工', () => {
+    const submitted = (taskId, extra = {}) => ({
+      taskId,
+      status: 'submitted',
+      history: [],
+      dependsOn: [],
+      type: 'implementation',
+      ...extra,
+    });
+    const terminalTask = submitted('AF-150');
+    const budgetTask = submitted('AF-151');
+    const index = { tasks: [terminalTask, budgetTask], archivedTasks: [] };
+    const runtimeState = {
+      tasks: {
+        'AF-150': {
+          dispatch: {
+            channel: 'gui-file-fallback',
+            attempt: 1,
+            delivery: { state: 'failed', failureReason: '会话输入框不存在', lastAttempt: { cause: 'deterministic-defect' } },
+          },
+        },
+        'AF-151': {
+          dispatch: {
+            channel: 'gui-file-fallback',
+            attempt: 3,
+            delivery: { state: 'failed', failureReason: '反复重试', lastAttempt: { cause: 'flaky', attemptCount: 3 } },
+          },
+        },
+      },
+    };
+    const actions = [];
+    const handled = releaseFailedDeliveries(index, runtimeState, { dispatch: { deliveryLeaseMinutes: 5 } }, actions);
+    expect(handled).toBe(2);
+    expect(terminalTask.status).toBe('failed');
+    expect(runtimeState.tasks['AF-150'].heldForHuman).toBe(false);
+    expect(runtimeState.tasks['AF-150'].releaseReason).toBe('gui-delivery-terminal');
+    expect(actions.find((a) => a.type === 'delivery-terminal')?.cause).toBe('deterministic-defect');
+    expect(budgetTask.status).toBe('ready');
+    expect(runtimeState.tasks['AF-151'].heldForHuman).toBe(true);
+    expect(runtimeState.tasks['AF-151'].releaseReason).toBe('gui-delivery-budget-exhausted');
+    expect(runtimeState.tasks['AF-151'].dispatchDecisionResult.action).toBe('human-escalate');
   });
 });
