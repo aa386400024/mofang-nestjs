@@ -241,16 +241,39 @@ const SQUASH_TYPE_BY_TASK_TYPE = {
   verification: 'chore',
 };
 
+const TASK_ID_TOKEN_RE = /(?:AF|WP)-\d+/g;
+
+/**
+ * 从标题中剥离任务编号，保证 squash 提交标题只有一个主任务号。
+ *
+ * 任务单标题常带历史任务引用（如「（AF-060 验收断链返修）」），直接拼进提交标题
+ * 会让 `ci-task-gate` 按「一个提交只能有一个任务号」判成 ambiguous-task-id。
+ * 这里先删掉含任务号的括号段，再删掉剩余编号；外部引用只保留在 PR 正文与交付记录。
+ * @param {string} title
+ * @returns {string}
+ */
+function stripTaskIdsFromSubject(title) {
+  let value = String(title ?? '').trim();
+  value = value.replace(/[（(][^）)]*(?:AF|WP)-\d+[^）)]*[）)]/g, ' ');
+  value = value.replace(TASK_ID_TOKEN_RE, ' ');
+  value = value
+    .replace(/[（(]\s*[）)]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return value || 'squash merge into integrate';
+}
+
 /**
  * 组装 squash 合并提交标题：`<type>(orchestration): <taskId> <title>`。
  * 必须满足仓内 commit-msg 钩子（`^(feat|fix|docs|...)(\(...\))?: .+`），否则合并会在
  * 提交阶段被钩子拒绝——这条由 CI 门禁实弹（AF-046）实测暴露，假端口单测覆盖不到钩子。
+ * `title` 里的任务编号会被剥离，避免 push 门判 `ambiguous-task-id`（AF-061 实测）。
  * @param {{taskId:string, taskType?:string, title?:string}} opts
  * @returns {string}
  */
 export function buildSquashCommitMessage(opts = {}) {
   const type = SQUASH_TYPE_BY_TASK_TYPE[opts.taskType] ?? 'chore';
-  const subject = `${opts.taskId ?? ''} ${opts.title ?? 'squash merge into integrate'}`.trim();
+  const subject = `${opts.taskId ?? ''} ${stripTaskIdsFromSubject(opts.title)}`.trim();
   return `${type}(orchestration): ${subject}`.trim();
 }
 
