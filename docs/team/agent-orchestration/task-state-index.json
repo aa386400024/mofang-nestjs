@@ -4,10 +4,110 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 216,
+    "lastEventSeq": 221,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-055",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-17T10:05:56.301Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-enforcement",
+      "title": "squash 合并门禁快照修正与发布记录闭环",
+      "type": "fix",
+      "baselineRef": null,
+      "dependsOn": [
+        "AF-053"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3",
+        "conventions.md#1.4",
+        "agent-orchestration/README.md#0",
+        "agent-orchestration/autonomous-team-design.md#6.1"
+      ],
+      "createdAt": "2026-11-17T10:04:45.870Z",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "scope": {
+        "files": [
+          "scripts/orchestration/",
+          "docs/team/agent-orchestration/",
+          "docs/worklog/pending/",
+          "docs/worklog/completed/",
+          "docs/worklog/README.md"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af055-merge-gate-snapshot-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+          "check": "编排单测与新增归档迁移快照用例全绿",
+          "threshold": "failed=0"
+        },
+        {
+          "command": "pnpm typecheck",
+          "check": "类型检查通过",
+          "threshold": "errors=0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "lint 无 error / warning",
+          "threshold": "errors=0 warnings=0"
+        },
+        {
+          "command": "pnpm orchestration:preflight",
+          "check": "正常任务提交与 squash 归档迁移均放行， canceled/rejected 不得借用 HEAD 权限",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate",
+          "check": "适配层机读校验全 PASS",
+          "threshold": "FAIL=0"
+        },
+        {
+          "command": "pnpm orchestration:contracts",
+          "check": "框架 2.0.0 契约包一致",
+          "threshold": "FAIL=0"
+        }
+      ],
+      "successCriteria": [
+        "preflight 在同次提交携带任务 active→completed 归档状态迁移时，可使用 HEAD 中该任务做 scope 校验",
+        "未提交状态索引、归档状态非 completed 或文件越出 scope 时仍阻断",
+        "AF-053 交付记录、回执 durable 副本与工作记录导航随本任务提交",
+        "AF-055 经登记、领单、实现提交、分支推送、机读验收、纯状态面提交、CLI squash 合并与 integrate 推送完成",
+        "合并 pre-commit 不再需要手工恢复 task-state-index，且不跳过任何 Git 钩子",
+        "admin-dashboard、data/batch-reports、未跟踪架构稿与 src/engine-core 不进入本任务提交"
+      ],
+      "evidenceFormat": "vitest 用例数 + 归档迁移正反用例 + 真实 pre-commit/branch merge 输出 + receipt autoVerdict + events/status + integrate 远端 SHA",
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af055-merge-gate-snapshot-2026-11-17.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": []
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -621,6 +721,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/pending/af053-orchestration-delivery-release-task-2026-11-17.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af053-orchestration-delivery-release-2026-11-17.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-054",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af054-merge-gate-snapshot-task-2026-11-17.md",
+        "deliveryRecord": null,
         "reply": null
       }
     }

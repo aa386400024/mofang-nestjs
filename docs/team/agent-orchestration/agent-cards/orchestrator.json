@@ -26,6 +26,7 @@
     "docs/team/wp-task-template.md",
     "docs/worklog/pending/",
     "docs/worklog/completed/",
+    "docs/worklog/README.md",
     "docs/team/agent-orchestration/",
     "scripts/orchestration/"
   ],
