@@ -31,6 +31,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "doctor:fs": "node scripts/fs-latency-check.mjs",
     "orchestration:status": "node scripts/orchestration/cli.mjs status",
+    "orchestration:preflight": "node scripts/orchestration/task-entry-gate.mjs",
     "orchestration:run": "node scripts/orchestration/cli.mjs run-once",
     "orchestration:watch": "node scripts/orchestration/cli.mjs watch",
     "orchestration:protocol": "node scripts/orchestration/cli.mjs protocol",

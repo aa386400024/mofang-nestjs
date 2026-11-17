@@ -168,6 +168,8 @@ export function ingestReceipts(index, runtimeState, opts = {}) {
       receiptId: receipt.receiptId ?? null,
       finalStatus: receipt.finalStatus,
       reviewVerdict: receipt.reviewVerdict ?? null,
+      changedFiles: receipt.changedFiles ?? null,
+      parallelArtifactsExcluded: receipt.parallelArtifactsExcluded === true,
       sourceRef: file,
       archiveRef,
       ingestedAt: nowIso(),

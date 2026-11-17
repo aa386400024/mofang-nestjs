@@ -9,6 +9,18 @@
 
 ---
 
+## 0. 开发任务强制准入（项目硬门）
+
+> 2026-11-17 起，`mofang-nestjs` 的任何写入型开发都必须先进入本适配层的任务闭环。此条是项目特定取值，通用框架规则仍以框架仓为准。
+
+1. **入口**：开工先 `pnpm orchestration:status`；有写入意图时落任务单，`task register` → `task promote` → `pnpm orchestration:run` 领单。没有 `submitted / working` 任务不得改代码、数据库、Redis、migration、seed、配置或运行态。
+2. **只读豁免**：阅读、搜索、解释、方案讨论、`status` / `events verify` / `git status` 等只读检查不建任务。只要会产生文件、数据或运行态变化，就不在豁免内。
+3. **禁止替代**：会话内待办、口头清单、“先做后补”、手改状态索引均不构成任务登记；状态面只能经 CLI 写。
+4. **提交门禁**：`.husky/pre-commit` 先调用 `scripts/orchestration/task-entry-gate.mjs`（`pnpm orchestration:preflight`）。无在办任务、任务仍在 `ready`、暂存文件越出任务 `scope.files` 一律阻断；状态面生成物按 V7 口径豁免。验收归档后若暂存区**只有**状态面生成物，门禁以 `state-plane-only` 放行；只要混入一个非状态面文件，就恢复在办任务与 scope 硬校验。
+5. **收尾**：交付记录 + 机读回执成对产出，`run-once` 摄入验收后按 CLI 归档；事件条数、归档数、台账数字以 CLI 输出为准。
+
+门禁脚本只读暂存区与状态索引，不自动 stage、不修改状态；任务与回执语义不变。
+
 ## 1. 标识与框架版本依赖
 
 | 项                      | 值                                                                                                                                                                                                                               |

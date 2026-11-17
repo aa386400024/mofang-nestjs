@@ -11,4 +11,9 @@
 #
 # 历史: 2026-10-15 曾因 e2e spec 有 100+ lint 错改为 `npm run lint:fix` 跳过 e2e;
 #   2026-11-11 实测 e2e 已 0 lint error, 故切回 lint-staged, 无需 ignore.
+
+# V2026-11-17 编排强制门: 无在办任务 / 任务仍在 ready / 暂存文件越出 scope
+# 一律在 lint-staged 之前阻断; 只读检查不受影响, 细节见 scripts/orchestration/task-entry-gate.mjs.
+pnpm orchestration:preflight || exit 1
+
 pnpm exec lint-staged

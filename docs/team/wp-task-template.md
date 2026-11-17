@@ -1,6 +1,7 @@
-# 后端任务单模板（WP-J / MiniMax Code 派单用）
+# 后端任务单模板（所有写入型开发任务通用）
 
-> **用途**：给后端 AI（尤其是 MiniMax Code）派任务时，一律按本模板写任务单，不要每次自由发挥。
+> **用途**：本仓**所有写入型开发任务**（代码、测试、脚本、配置、migration、seed、DB/Redis、批量数据、环境启停）一律按本模板写任务单，不只用于派给 MiniMax Code；主 AI 自己做同样必须先立项。
+> **强制门**：没有 `submitted / working` 编排任务不得开工；任务单登记用 `pnpm orchestration:task register --sheet <md>`，提交前由 `pnpm orchestration:preflight` 校验任务与 scope。只读问答/搜索/讨论不需要建任务。
 > **为什么有这个文件**：之前任务单结构不一、读完不知从何下手、做完忘回写索引。本模板固化三件事——
 > ① 开头固定「必读入口」，每次从同一条链路进；② 中间结构固定；③ 结尾有「交付回写清单」，做完逐项勾选，不许跳。
 > **怎么用**：复制本文件 → 另存为 `docs/worklog/pending/<wp-id>-<slug>-YYYY-MM-DD.md` → 填掉所有 `{{双花括号}}` 占位 → 红字提示保留在任务单里提醒执行者。
@@ -18,12 +19,13 @@ taskId: TD-XX # 唯一标识，贯穿任务单 / 回执 / 索引 / commit messag
 contextId: phase2.5-c2-ports # 归组标识；返修新任务沿用同一 contextId
 title: 任务一句话标题 # 必填；与正文 §B 标题一致
 type: implementation # implementation / review / investigation / documentation / fix / verification
-status: ready # backlog / ready / submitted / working / input-required / completed / failed / canceled / rejected / auth-required（auth-required 为冻结态：缺授权只入不出，缺授权一律转 input-required）
+status: backlog # backlog / ready / submitted / working / input-required / completed / failed / canceled / rejected / auth-required（auth-required 为冻结态：缺授权只入不出，缺授权一律转 input-required）
 baselineRef: 2b03756 # 版本锚点（commit ref）
 dependsOn: [TD-20] # 上游任务；上游 completed 才解锁下游
 contractRef: urn:agent-collaboration-framework:schema:task-sheet:1.1.0 # 可选；契约引用 urn，版本以框架仓 schemas/versions.json 为准
 policyRefs: [conventions.md#1.1, conventions.md#1.3] # 策略规则锚点，验收逐条核对
 createdAt: 2026-11-15T00:00:00+08:00 # date-time，必须带时区偏移（框架 2.0.0 口径）
+agentRole: orchestrator # 本任务目标角色；orchestrator / executor / reviewer
 ---
 ```
 

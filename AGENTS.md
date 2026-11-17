@@ -5,7 +5,21 @@
 
 ---
 
-## 0. 全局项目地图（你在哪、周围有什么）
+## 0. 强制编排门（先于任何写入，不可绕过）
+
+> 这一条不是建议，是硬门。**任何对本仓产生写入的工作**都必须走 `agent-collaboration-framework` 任务闭环——包括写业务代码、测试、脚本、配置、migration、seed、改数据库/Redis、启动或停止服务、批量数据处理、评测数据与环境状态变更。不是只有"派单给 MiniMax Code"才需要任务单。
+
+1. 开工先 `pnpm orchestration:status`，并读 `docs/team/agent-orchestration/README.md` 的强制准入节。
+2. 有写入意图 → 先落任务单 → `pnpm orchestration:task register --sheet <md>` → `task promote` → `pnpm orchestration:run` 领单；状态至少 `submitted` 才能开始实现。
+3. 没有匹配的在办任务，**停止**。不许先做后补、不许用会话内 task_create / 口头清单替代任务单、不许手改状态索引。
+4. 提交前由 Husky 强制执行 `pnpm orchestration:preflight`：无在办任务、任务仍在 ready、暂存文件越出任务 scope，一律阻断。
+5. 收尾写交付记录 + 机读回执 → `run-once` 验收 → `archive`；事件链与索引数字以 CLI 输出为准。
+
+**只读豁免**：代码/文档阅读、搜索、解释、方案讨论、`status` / `events verify` / `git status` 等只读检查不需要建任务。只要会产生文件、数据或运行态变化，就不在豁免内。
+
+---
+
+## 0.1 全局项目地图（你在哪、周围有什么）
 
 心塑是**四个仓库协同**的项目，不是单仓库。先认清自己在哪个目录：
 
@@ -64,7 +78,7 @@ src/
 
 | 你要做什么                   | 去读                                                                                                         |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| **开工第一步（必做）**       | `docs/worklog/README.md` — 后端 AI 开工自检，看 pending/ 里有什么任务单                                      |
+| **开工第一步（必做）**       | `pnpm orchestration:status` → `docs/worklog/README.md` — 先看编排状态面，再看 pending/ 里有什么任务单        |
 | **代码红线 + 交付格式**      | `docs/team/conventions.md` — engine-core 红线、16 条硬约束、零压红线、交付记录格式                           |
 | **多代理协作规范（适配层）** | `docs/team/agent-orchestration/README.md` — 角色绑定、目录映射、工具类别、闸门与交接契约（框架 v2.0.0 口径） |
 | 任务单模板                   | `docs/team/wp-task-template.md` — frontmatter 字段组、范围隔离、闸门、回写清单                               |
@@ -87,9 +101,9 @@ src/
 - **Phase1 已封版**：WP0-WP26 全交付，8 个 P1 + 34 个 P2 全修，1252 例测试全绿。backlog 已归档到 `docs/worklog/completed/phase1/phase1-backlog-archived-2026-11-03.md`。
 - **Phase2 / Phase2.5 进行中**：商业化准备与灰度验证期任务（TD / WP / AF / G / I / S 系列）交付记录见 `docs/worklog/completed/phase2.5/`；总览与 WP 清单见 `docs/worklog/pending/phase2-overview-2026-11-03.md`、`phase2.5-wp-list-2026-11-08.md`。
 - **协作适配层已对齐框架 2.0.0（2026-11-16）**：`docs/team/agent-orchestration/` 与 `scripts/orchestration/` 从 1.x 口径整体迁移到框架仓 tag `v2.0.0`（契约 urn、工具一工具一文件、human 非可路由、交付包 `delivery-package` 1.0.0、归档说明外移 `archivedNotes`）；既有任务、归档、台账与运行态全部保留，索引 `0 在途 / 34 归档` 未变。
-- **当前待开工任务单**：`docs/worklog/pending/` 内暂无后端业务任务单；运行态交接件在 `transport/tasks/`（gitignore 忽略）。
+- **当前待开工任务单**：以 `docs/worklog/pending/` 与 `pnpm orchestration:status` 为唯一现场，不在本文件写快照；运行态交接件在 `transport/tasks/`（gitignore 忽略）。
 
-**接任务前先 `ls docs/worklog/pending/`**——有任务单就从文件名排第一的开始做，没有就等大炮派新单，不要自己找事做。
+**接任务前先 `pnpm orchestration:status` + `ls docs/worklog/pending/`**——有任务按 CLI 领取并从第一份开始做；没有就等大炮派新单，不要自己找事做。**不要绕过任务单直接改文件。**
 
 ---
 

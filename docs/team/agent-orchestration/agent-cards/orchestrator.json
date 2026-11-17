@@ -18,7 +18,17 @@
     "TOOL-ACCEPTANCE-RUNNER",
     "TOOL-DELIVERY-PACK"
   ],
-  "resources": ["docs/worklog/pending/", "docs/worklog/completed/", "docs/team/agent-orchestration/", "scripts/orchestration/"],
+  "resources": [
+    "AGENTS.md",
+    "package.json",
+    ".husky/",
+    "docs/team/conventions.md",
+    "docs/team/wp-task-template.md",
+    "docs/worklog/pending/",
+    "docs/worklog/completed/",
+    "docs/team/agent-orchestration/",
+    "scripts/orchestration/"
+  ],
   "limits": {
     "canDo": [
       "维护 backlog、任务拆解与切片、优先级与依赖管理",

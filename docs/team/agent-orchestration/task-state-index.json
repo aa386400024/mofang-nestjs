@@ -4,114 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 214,
+    "lastEventSeq": 216,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-053",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-17T09:45:26.855Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-enforcement",
-      "title": "强制编排门交付发布与状态面提交修正",
-      "type": "fix",
-      "dependsOn": [
-        "AF-051"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3",
-        "conventions.md#1.4",
-        "agent-orchestration/README.md#0",
-        "agent-orchestration/autonomous-team-design.md#6.1"
-      ],
-      "createdAt": "2026-11-17T09:44:40.000Z",
-      "deadline": null,
-      "agentRole": "orchestrator",
-      "scope": {
-        "files": [
-          "AGENTS.md",
-          "package.json",
-          ".husky/",
-          "docs/team/conventions.md",
-          "docs/team/wp-task-template.md",
-          "docs/team/agent-orchestration/",
-          "docs/worklog/pending/",
-          "docs/worklog/completed/",
-          "scripts/orchestration/"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af053-orchestration-delivery-release-task-2026-11-17.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
-          "check": "编排单测与新增状态面提交用例全绿",
-          "threshold": "failed=0"
-        },
-        {
-          "command": "pnpm typecheck",
-          "check": "类型检查通过",
-          "threshold": "errors=0"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "lint 无 error / warning",
-          "threshold": "errors=0 warnings=0"
-        },
-        {
-          "command": "pnpm orchestration:preflight",
-          "check": "在办任务的交付集放行，纯状态面提交在归档后放行，业务文件无任务仍阻断",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate",
-          "check": "适配层机读校验全 PASS",
-          "threshold": "FAIL=0"
-        },
-        {
-          "command": "pnpm orchestration:contracts",
-          "check": "框架 2.0.0 契约包一致",
-          "threshold": "FAIL=0"
-        }
-      ],
-      "successCriteria": [
-        "AF-047、AF-048、AF-049、AF-050、AF-051 的强制门交付与机读记录经任务分支提交并推送",
-        "preflight 支持无活跃任务时的纯编排状态面提交；混入任何非状态面文件仍必须有在办任务",
-        "任务回执经 run-once 摄入并归档 completed，事件链与索引投影一致",
-        "任务分支经 CLI squash 合并进 integrate，并推送 origin/integrate",
-        "admin-dashboard/pnpm-lock.yaml、data/batch-reports/**、未跟踪架构稿不进入本任务提交",
-        "src/engine-core 零改动，不触发 L4 master/tag/release/deploy"
-      ],
-      "evidenceFormat": "vitest 用例数 + preflight 正反退出码 + typecheck/lint/validate/contracts + commit/branch/push SHA + receipt autoVerdict + events/status 数字",
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af053-orchestration-delivery-release-2026-11-17.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "priorTasks": [],
-      "baselineRef": null
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -716,6 +612,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/pending/af052-orchestration-delivery-release-task-2026-11-17.md",
         "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-053",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af053-orchestration-delivery-release-task-2026-11-17.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af053-orchestration-delivery-release-2026-11-17.md",
         "reply": null
       }
     }

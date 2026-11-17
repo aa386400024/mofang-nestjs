@@ -240,6 +240,29 @@ export function isStatePlaneArtifact(file) {
 }
 
 /**
+ * 回执声明的交付集。回执 `changedFiles` 是执行侧对“本任务改了哪些文件”的
+ * 机读声明；没有 commit 事实时，它是比整棵 `git diff --name-only HEAD` 更
+ * 准确的交付面——后者会把同批次其它任务、并行 AI、清库/迁移遗留一起算进来。
+ */
+function declaredReceiptFiles(task) {
+  const changed = task?.receipt?.changedFiles;
+  if (!changed || typeof changed !== 'object') return null;
+  const files = ['added', 'modified', 'deleted'].flatMap((key) => (Array.isArray(changed[key]) ? changed[key] : []));
+  const normalized = [
+    ...new Set(
+      files
+        .map((file) =>
+          String(file ?? '')
+            .replace(/\\/g, '/')
+            .replace(/^\.\//, ''),
+        )
+        .filter(Boolean),
+    ),
+  ];
+  return normalized.length > 0 ? normalized : null;
+}
+
+/**
  * 任务单本身也是编排状态面：登记 / 提级 / 提交 / 归档每一跳都会改写它的状态行与 §状态，
  * 把它算成交付残留会让任何走了正规流程的任务都必然 rejected。V7 因而按
  * 「本任务自己的任务单路径」精确排除，不按目录前缀排除（同目录的其它任务单仍是交付面）。
@@ -278,6 +301,58 @@ function checkResidual(task, opts) {
   if (declaredCommits.length > 0) {
     return checkResidualByCommits(task, opts, declaredCommits, changed);
   }
+
+  const declared = declaredReceiptFiles(task);
+  if (declared) {
+    const statePlane = declared.filter(isStatePlaneArtifact);
+    const sheet = declared.filter((file) => !isStatePlaneArtifact(file) && isTaskSheetArtifact(task, file));
+    const deliverable = declared.filter((file) => !isStatePlaneArtifact(file) && !isTaskSheetArtifact(task, file));
+    if (deliverable.length === 0) {
+      record(
+        checks,
+        'V7',
+        '文件域残留',
+        'pass',
+        `回执声明集仅含编排状态面生成物 ${statePlane.length} 项${sheet.length > 0 ? ` + 本任务任务单 ${sheet.length} 项` : ''}，不纳入任务交付面比对`,
+      );
+      return { checks, manualReview: [] };
+    }
+    const { covered, residual } = detectResidualFiles(deliverable, task);
+    if (residual.length > 0) {
+      record(checks, 'V7', '文件域残留', 'fail', `回执声明集含 scope 外文件：${residual.join('；')}`);
+      return { checks, manualReview: [] };
+    }
+    const undeclared = (changed ?? [])
+      .map((file) =>
+        String(file ?? '')
+          .replace(/\\/g, '/')
+          .replace(/^\.\//, ''),
+      )
+      .filter((file) => file && !isStatePlaneArtifact(file) && !isTaskSheetArtifact(task, file) && !declared.includes(file));
+    if (undeclared.length > 0 && task?.receipt?.parallelArtifactsExcluded !== true) {
+      record(
+        checks,
+        'V7',
+        '文件域残留',
+        'fail',
+        `工作树存在 ${undeclared.length} 个未声明脏文件，且回执未标记 parallelArtifactsExcluded=true：${undeclared.slice(0, 8).join('；')}${undeclared.length > 8 ? '；…' : ''}`,
+      );
+      return { checks, manualReview: [] };
+    }
+    const parallelNote =
+      undeclared.length > 0
+        ? `；工作树另有 ${undeclared.length} 个未声明脏文件按并行产物排除（${undeclared.slice(0, 3).join('、')}${undeclared.length > 3 ? '…' : ''}）`
+        : '';
+    record(
+      checks,
+      'V7',
+      '文件域残留',
+      'pass',
+      `回执声明 ${deliverable.length} 个交付文件均在 scope 文件域内（覆盖 ${covered.length}）${parallelNote}`,
+    );
+    return { checks, manualReview: [] };
+  }
+
   if (!changed || changed.length === 0) {
     record(checks, 'V7', '文件域残留', 'skip', '未传入变更文件清单；残留比对需调用方采集 git diff');
     return { checks, manualReview: [] };

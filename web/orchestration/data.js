@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-17T09:45:26.860Z",
+  "generatedAt": "2026-11-17T09:53:52.150Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,38 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-053",
-      "contextId": "phase2.5-orchestration-enforcement",
-      "type": "fix",
-      "title": "强制编排门交付发布与状态面提交修正",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af053-orchestration-delivery-release-task-2026-11-17.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-053",
-        "contextId": "phase2.5-orchestration-enforcement",
-        "channel": "file",
-        "targetRole": "orchestrator",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-17T09:45:26.857Z",
-        "leaseDeadline": "2026-11-17T10:15:26.855Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-053.json"
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1320,6 +1289,36 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-070",
+      "recordedAt": "2026-11-17T09:46:17.142Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-053",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-053-orchestration-delivery"
+      ]
+    },
+    {
+      "auditId": "AUD-069",
+      "recordedAt": "2026-11-17T09:45:26.897Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-053",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-053",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-053.json"
+      ]
+    },
+    {
       "auditId": "AUD-068",
       "recordedAt": "2026-11-17T09:44:40.669Z",
       "actorRef": "orchestrator",
@@ -1527,79 +1526,26 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-055",
-      "recordedAt": "2026-11-17T04:49:05.041Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-046",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-046",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-046.json"
-      ]
-    },
-    {
-      "auditId": "AUD-054",
-      "recordedAt": "2026-11-17T04:44:41.043Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:merge:AF-046",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-046-af-046"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 68,
+    "total": 70,
     "byResult": {
-      "allowed": 68,
+      "allowed": 70,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 66
+      "TOOL-QUEUE-SCHEDULER": 68
     },
     "byActor": {
-      "orchestrator": 68
+      "orchestrator": 70
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-053",
-        "title": "强制编排门交付发布与状态面提交修正",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-enforcement",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-051"
-        ],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af053-orchestration-delivery-release-task-2026-11-17.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -2876,6 +2822,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/pending/af052-orchestration-delivery-release-task-2026-11-17.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-053",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af053-orchestration-delivery-release-task-2026-11-17.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af053-orchestration-delivery-release-2026-11-17.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -2890,17 +2854,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-053",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af053-orchestration-delivery-release-task-2026-11-17.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-enforcement",
-    "groupIds": [
-      "phase2.5-orchestration-enforcement"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -2966,5 +2922,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 70
+  "archivedCount": 71
 };

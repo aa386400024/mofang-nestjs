@@ -86,6 +86,7 @@ import { buildGuiBrief, confirmDelivery, fallbackDelivery, isDeliveryStalled } f
 import { parseTaskSheetFrontmatter, buildTaskRecord } from '../task-intake.mjs';
 import { ingestReceipts } from '../receipts.mjs';
 import { normalizeScope, findScopeConflicts, detectResidualFiles, scopeCovers, expandScopePattern } from '../scope-mutex.mjs';
+import { evaluateTaskEntry, isStatePlanePath, GATE_ALLOWED_STATUSES } from '../task-entry-gate.mjs';
 import {
   buildBranchName,
   validateBranchName,
@@ -1870,6 +1871,48 @@ describe('AF-011 文件域 scope 互斥校验', () => {
     expect(otherSheet.checks.find((c) => c.code === 'V7').status).toBe('fail');
   });
 
+  it('AF-050：回执声明集优先于整棵工作树；未声明脏文件按并行产物留痕', () => {
+    const t = task('AF-050A', ['scripts/orchestration/', 'docs/worklog/']);
+    t.artifacts = {
+      taskSheet: 'docs/worklog/pending/af050a-task-2026-11-17.md',
+      deliveryRecord: 'docs/worklog/completed/phase2.5/af050a-record.md',
+    };
+    t.receipt = {
+      changedFiles: {
+        added: ['docs/worklog/completed/phase2.5/af050a-record.md'],
+        modified: ['scripts/orchestration/acceptance-runner.mjs'],
+        deleted: [],
+        commits: [],
+      },
+      parallelArtifactsExcluded: true,
+    };
+    const dirty = [
+      'docs/worklog/completed/phase2.5/af050a-record.md',
+      'scripts/orchestration/acceptance-runner.mjs',
+      'docs/worklog/pending/af050a-task-2026-11-17.md',
+      'data/batch-reports/g3ONzlqSGMVJqkFMF9Lwh.json',
+      'admin-dashboard/pnpm-lock.yaml',
+    ];
+    const ok = runAcceptance(t, { tasks: [t], archivedTasks: [] }, { changedFiles: dirty });
+    const v7 = ok.checks.find((c) => c.code === 'V7');
+    expect(v7.status).toBe('pass');
+    expect(v7.detail).toMatch('回执声明 2 个交付文件均在 scope 文件域内');
+    expect(v7.detail).toMatch('工作树另有 2 个未声明脏文件按并行产物排除');
+
+    const unmarked = { ...t, receipt: { ...t.receipt, parallelArtifactsExcluded: false } };
+    const rejected = runAcceptance(unmarked, { tasks: [unmarked], archivedTasks: [] }, { changedFiles: dirty });
+    expect(rejected.checks.find((c) => c.code === 'V7').status).toBe('fail');
+    expect(rejected.checks.find((c) => c.code === 'V7').detail).toMatch('未声明脏文件');
+
+    const outOfScope = {
+      ...t,
+      receipt: { ...t.receipt, changedFiles: { added: ['src/engine-core/bad.ts'], modified: [], deleted: [], commits: [] } },
+    };
+    const bad = runAcceptance(outOfScope, { tasks: [outOfScope], archivedTasks: [] }, { changedFiles: ['src/engine-core/bad.ts'] });
+    expect(bad.checks.find((c) => c.code === 'V7').status).toBe('fail');
+    expect(bad.checks.find((c) => c.code === 'V7').detail).toMatch('回执声明集含 scope 外文件');
+  });
+
   it('AF-043-I1：回执声明 commit 集合后按 commit 事实比对，工作树残留不误判', () => {
     const t = task('AF-050A', ['scripts/orchestration/']);
     t.artifacts = { deliveryRecord: 'docs/worklog/completed/phase2.5/af050a.md' };
@@ -3351,5 +3394,118 @@ describe('IM-018 远端 CI 合并门禁', () => {
     await fetchCheckRuns({ repo: 'o/r', sha: 'abc', token: 't', env: { GITHUB_API_URL: 'https://ghe.example.com/api/v3/' }, fetchImpl });
     expect(urls[0]).toMatch(/^https:\/\/api\.github\.com\/repos\/o\/r\//);
     expect(urls[1]).toMatch(/^https:\/\/ghe\.example\.com\/api\/v3\/repos\/o\/r\//);
+  });
+});
+
+describe('task-entry-gate 开发任务强制编排门', () => {
+  const gateTask = (taskId, files, status = 'submitted') => ({
+    taskId,
+    status,
+    type: 'implementation',
+    agentRole: 'orchestrator',
+    scope: { files },
+    artifacts: {
+      taskSheet: `docs/worklog/pending/${taskId.toLowerCase()}-task-2026-11-17.md`,
+    },
+  });
+
+  it('没有在办任务时阻断暂存提交', () => {
+    const result = evaluateTaskEntry({ changedFiles: ['src/a.ts'], tasks: [] });
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe('no-active-task');
+  });
+
+  it('在 scope 内的暂存文件放行', () => {
+    const task = gateTask('AF-G1', ['src/']);
+    const result = evaluateTaskEntry({ changedFiles: ['src/a.ts'], tasks: [task] });
+    expect(result).toMatchObject({ ok: true, taskId: 'AF-G1', covered: ['src/a.ts'] });
+  });
+
+  it('越出 scope 的暂存文件阻断并列出 residual', () => {
+    const task = gateTask('AF-G2', ['src/']);
+    const result = evaluateTaskEntry({ changedFiles: ['src/a.ts', 'docs/out-of-scope.md'], tasks: [task] });
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe('scope-residual');
+    expect(result.residual).toEqual(['docs/out-of-scope.md']);
+  });
+
+  it('编排状态面生成物豁免 scope 比对', () => {
+    const task = gateTask('AF-G3', ['src/']);
+    const result = evaluateTaskEntry({
+      changedFiles: [
+        'src/a.ts',
+        'docs/team/agent-orchestration/task-state-index.json',
+        'docs/team/agent-orchestration/state/journal.jsonl',
+      ],
+      tasks: [task],
+    });
+    expect(result.ok).toBe(true);
+    expect(isStatePlanePath('docs/team/agent-orchestration/state/journal.jsonl')).toBe(true);
+    expect(isStatePlanePath('src/a.ts')).toBe(false);
+  });
+
+  it('ready 任务未领单时不允许提交实现文件', () => {
+    const task = gateTask('AF-G4', ['src/'], 'ready');
+    const result = evaluateTaskEntry({ changedFiles: ['src/a.ts'], tasks: [task] });
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe('run-once-required');
+  });
+
+  it('ready 任务只提交自身任务单时放行', () => {
+    const task = gateTask('AF-G5', ['docs/worklog/pending/'], 'ready');
+    const result = evaluateTaskEntry({
+      changedFiles: [task.artifacts.taskSheet],
+      tasks: [task],
+    });
+    expect(result.ok).toBe(true);
+    expect(result.taskId).toBe('AF-G5');
+  });
+
+  it('completed 任务不允许再提交实现文件', () => {
+    const task = gateTask('AF-G6', ['src/'], 'completed');
+    const result = evaluateTaskEntry({ changedFiles: ['src/a.ts'], tasks: [task] });
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe('completed-write-blocked');
+  });
+
+  it('多个任务覆盖时用显式 taskId 消歧', () => {
+    const a = gateTask('AF-G7A', ['src/a/']);
+    const b = gateTask('AF-G7B', ['src/b/']);
+    const result = evaluateTaskEntry({
+      changedFiles: ['src/b/x.ts'],
+      tasks: [a, b],
+      explicitTaskId: 'AF-G7B',
+    });
+    expect(result).toMatchObject({ ok: true, taskId: 'AF-G7B' });
+  });
+
+  it('可提交状态集合覆盖 ready/submitted/working/input-required/completed', () => {
+    expect(GATE_ALLOWED_STATUSES).toEqual(['ready', 'submitted', 'working', 'input-required', 'completed']);
+  });
+
+  it('无在办任务时纯编排状态面提交放行', () => {
+    const result = evaluateTaskEntry({
+      changedFiles: [
+        'docs/team/agent-orchestration/task-state-index.json',
+        'docs/team/agent-orchestration/state/journal.jsonl',
+        'docs/team/agent-orchestration/orchestration-snapshot.json',
+        'web/orchestration/data.js',
+      ],
+      tasks: [],
+    });
+    expect(result).toMatchObject({ ok: true, reason: 'state-plane-only', taskId: null });
+    expect(result.covered).toHaveLength(4);
+  });
+
+  it('纯状态面混入一个业务文件仍要求有在办任务', () => {
+    const result = evaluateTaskEntry({
+      changedFiles: ['docs/team/agent-orchestration/task-state-index.json', 'src/a.ts'],
+      tasks: [],
+    });
+    expect(result).toMatchObject({
+      ok: false,
+      reason: 'no-active-task',
+      residual: ['docs/team/agent-orchestration/task-state-index.json', 'src/a.ts'],
+    });
   });
 });
