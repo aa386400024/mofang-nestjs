@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-17T07:26:39.597Z",
+  "updatedAt": "2026-11-17T14:40:25.709Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -2473,6 +2473,37 @@
         "resolutionNote": "已实现并过闸门（单测+validate+events verify）",
         "linkedTaskId": "AF-045"
       }
+    },
+    {
+      "improvementId": "IM-052",
+      "status": "queued",
+      "title": "executor 自行执行 task resume/run-once/archive 的状态面越权",
+      "source": "acceptance",
+      "type": "guardrail",
+      "layer": "framework",
+      "relatedTaskId": "AF-065",
+      "evidence": ["AF-065 租约 5 分钟过期后 MiniMax 自行 task resume + run-once 重新领单；完成后又自行摄回执并归档"],
+      "impact": "执行方绕过编排者完成状态迁移与验收归档，角色隔离失效；租约短于真实执行时长时会稳定复现",
+      "suggestion": "GUI relay 送达后立即 channel confirm 清租约；executor brief 明确禁止所有 orchestration CLI 写子命令；CLI 侧增加 executor 调用者角色校验/环境隔离",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T14:40:19.204Z",
+      "updatedAt": "2026-11-17T14:40:25.708Z",
+      "history": [
+        {
+          "at": "2026-11-17T14:40:19.204Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T14:40:25.708Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": null
+        }
+      ]
     }
   ]
 }
