@@ -189,6 +189,18 @@ export function createGitPort() {
       const raw = runGit(['diff', '--name-only', 'HEAD']);
       return raw ? raw.split('\n').filter(Boolean) : [];
     },
+    /**
+     * AF-043-I1：某提交改动的文件清单（V7 按 commit 事实比对的数据源）。
+     * 解析不到（提交不存在 / 非本仓对象）返回 null，由验收层判 fail，不静默当空集。
+     */
+    filesInCommit(sha) {
+      try {
+        const raw = runGit(['show', '--name-only', '--pretty=format:', String(sha)]);
+        return raw.split('\n').filter(Boolean);
+      } catch {
+        return null;
+      }
+    },
     createBranch(name, from) {
       return runGit(['checkout', '-b', name, from]);
     },

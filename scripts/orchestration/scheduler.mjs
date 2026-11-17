@@ -210,6 +210,15 @@ export function releaseFailedDeliveries(index, runtimeState, config, actions) {
       locateAttempted: facts.locateAttempted ?? [],
       attemptCount: facts.attemptCount ?? record.attempt ?? 1,
     });
+    if (decision.action === 'continue-in-session') {
+      // 非失败事实：通道被旁路，工作由会话内代执行完成。任务不动（仍在 submitted），
+      // 只留痕；后续按回执正常验收，不再走「失败回收 → 判终态」那条路。
+      entry.dispatchDecisionResult = { action: decision.action, reason: decision.reason, cause: decision.cause };
+      entry.deliveryBypassed = true;
+      actions.push({ type: 'delivery-bypassed', taskId: task.taskId, cause: decision.cause, reason: decision.reason });
+      handled += 1;
+      continue;
+    }
     if (decision.action === 'fail-terminal' && canTransition(task.status, 'failed')) {
       pushHistory(task, 'failed', BY_ORCHESTRATOR, `GUI 投递不可恢复（${decision.cause}）：直接置失败，不重试`);
       entry.leaseClaimedAt = null;
@@ -245,25 +254,40 @@ export function releaseFailedDeliveries(index, runtimeState, config, actions) {
     entry.dispatchDecisionResult = { action: decision.action, reason: decision.reason, retries: decision.retries ?? null };
     // IM-017：通道级熔断按「通道 + 连续失败次数」判定，独立于任务级预算；开闸即发可观察事件，
     // 让看板与排障能一眼看出「不是这单有毛病，是这条通道现在不能派」。
+    // half-open：冷却期满只放一次试探（成功由 confirmDelivery 归零并封闭，失败刷新开闸时刻）。
     const breaker = evaluateCircuitBreaker(
-      { channel: record.channel ?? record.delivery?.lastAttempt?.channel ?? null, delivery: record.delivery },
+      {
+        channel: record.channel ?? record.delivery?.lastAttempt?.channel ?? null,
+        delivery: record.delivery,
+        openedAt: entry.channelCircuit?.openedAt ?? record.delivery?.circuitOpenedAt ?? null,
+      },
       config,
     );
-    if (breaker.state === 'open') {
+    if (breaker.state === 'open' || breaker.state === 'half-open') {
       entry.channelCircuit = {
-        state: 'open',
+        state: breaker.state,
         channel: breaker.channel,
         consecutiveFailures: breaker.consecutiveFailures,
         threshold: breaker.threshold,
+        cooldownMinutes: breaker.cooldownMinutes,
+        openedAt: breaker.openedAt,
+        probeAllowed: breaker.probeAllowed === true,
         at: nowIso(),
       };
+      // 开闸时刻落到投递记录上，跨轮可算冷却期（运行态清理也不会丢）。
+      record.delivery = { ...record.delivery, circuitOpenedAt: breaker.openedAt };
       actions.push({
-        type: 'channel-circuit-open',
+        type: breaker.state === 'open' ? 'channel-circuit-open' : 'channel-circuit-half-open',
         taskId: task.taskId,
         channel: breaker.channel,
         consecutiveFailures: breaker.consecutiveFailures,
         threshold: breaker.threshold,
+        openedAt: breaker.openedAt,
       });
+    } else if (entry.channelCircuit?.state === 'half-open' || entry.channelCircuit?.state === 'open') {
+      // 计数已回落（投递成功过）：封闭熔断，留一条可观察事件。
+      entry.channelCircuit = { state: 'closed', channel: breaker.channel, consecutiveFailures: 0, at: nowIso() };
+      actions.push({ type: 'channel-circuit-closed', taskId: task.taskId, channel: breaker.channel });
     }
     entry.escalation = {
       waiting: 'GUI 投递未确认送达，任务已回滚 ready 并持单',
@@ -537,7 +561,7 @@ export function processReceipts(index, runtimeState, config, actions, opts = {})
       remaining.push(task);
       continue;
     }
-    const result = runAcceptance(task, index, { changedFiles: opts.changedFiles });
+    const result = runAcceptance(task, index, { changedFiles: opts.changedFiles, resolveCommitFiles: opts.resolveCommitFiles });
     markReceiptProcessed(entry, fingerprint);
     entry.autoVerdict = { verdict: result.verdict, rationale: result.rationale, at: nowIso() };
     entry.manualReview = result.manualReview;
@@ -678,7 +702,11 @@ export function advanceOnce(opts = {}) {
     // 先验收 / 归档回收在办任务，再领下一个：同一轮即可完成「回收 → 派发下一单」，
     // 否则单任务队列会在回执已到的那一轮误报 queue-busy，并空转一轮。
     const cards = opts.cards ?? loadAgentCards();
-    processReceipts(index, runtimeState, config, actions, { changedFiles: opts.changedFiles, receiptsDir: opts.receiptsDir });
+    processReceipts(index, runtimeState, config, actions, {
+      changedFiles: opts.changedFiles,
+      receiptsDir: opts.receiptsDir,
+      resolveCommitFiles: opts.resolveCommitFiles,
+    });
     // 取消 / 失败任务没有回执可等，靠扫档收尾；否则会永久占「活跃计数」并让队列概览虚高。
     sweepTerminalTasks(index, actions);
     // 投递件目录只在真实运行态（未注入 transport）时写入仓内 transport/briefs；

@@ -259,6 +259,11 @@ export function isTaskSheetArtifact(task, file) {
  * V7 文件域残留：变更清单与 scope 比对，清单外文件判残留（只识别报告，不删除、不归集）。
  * changedFiles 由调用方采集 git diff 传入；未传入时记 skip（纯函数模块无 git IO）。
  * 编排状态面生成物先剔除，再与任务 scope 比对。
+ *
+ * AF-043-I1：回执用 `changedFiles.commits` 声明提交集合后，**改按 commit 事实比对**。
+ * 原因：V7 原来按 `git diff` 全树比对，同批次多任务共存时必然互相误判——AF-040、AF-042
+ * 连续两次实现全部在库却判 `rejected`，都是把别人的未提交改动算成本单越界。
+ * 声明 commit 后，工作树里属同批次其它任务的在办改动不参与比对（只写进 detail 供人看）。
  */
 function checkResidual(task, opts) {
   const checks = [];
@@ -269,6 +274,10 @@ function checkResidual(task, opts) {
     return { checks, manualReview: [] };
   }
   const changed = Array.isArray(opts?.changedFiles) ? opts.changedFiles : null;
+  const declaredCommits = Array.isArray(task?.receipt?.changedFiles?.commits) ? task.receipt.changedFiles.commits : [];
+  if (declaredCommits.length > 0) {
+    return checkResidualByCommits(task, opts, declaredCommits, changed);
+  }
   if (!changed || changed.length === 0) {
     record(checks, 'V7', '文件域残留', 'skip', '未传入变更文件清单；残留比对需调用方采集 git diff');
     return { checks, manualReview: [] };
@@ -291,6 +300,58 @@ function checkResidual(task, opts) {
     record(checks, 'V7', '文件域残留', 'fail', `scope 外变更文件（不进提交分组）：${residual.join('；')}`);
   } else {
     record(checks, 'V7', '文件域残留', 'pass', `变更 ${deliverable.length} 个交付文件均在 scope 文件域内（覆盖 ${covered.length}）`);
+  }
+  return { checks, manualReview: [] };
+}
+
+/**
+ * 按回执声明的提交集合做残留比对（AF-043-I1）。
+ * 解析失败即 fail：声明了 commit 却给不出文件清单，等于没有证据。
+ */
+function checkResidualByCommits(task, opts, declaredCommits, changed) {
+  const checks = [];
+  const resolver = opts?.resolveCommitFiles;
+  if (typeof resolver !== 'function') {
+    record(checks, 'V7', '文件域残留', 'skip', '回执声明了 commit 集合，但调用方未注入 commit 解析器；残留比对按 commit 事实进行需 git');
+    return { checks, manualReview: [] };
+  }
+  const files = new Set();
+  const unresolved = [];
+  for (const sha of declaredCommits) {
+    const list = resolver(sha);
+    if (!Array.isArray(list)) {
+      unresolved.push(sha);
+      continue;
+    }
+    for (const file of list) files.add(String(file).replace(/\\/g, '/').replace(/^\.\//, ''));
+  }
+  if (unresolved.length > 0) {
+    record(checks, 'V7', '文件域残留', 'fail', `回执声明的 commit 无法解析（不存在或不在本仓）：${unresolved.join('；')}`);
+    return { checks, manualReview: [] };
+  }
+  const deliverable = [...files].filter((file) => !isStatePlaneArtifact(file) && !isTaskSheetArtifact(task, file));
+  const uncommitted = Array.isArray(changed) ? changed.length : 0;
+  if (deliverable.length === 0) {
+    record(
+      checks,
+      'V7',
+      '文件域残留',
+      'pass',
+      `声明的 ${declaredCommits.length} 个提交未改动任务交付面（工作树 ${uncommitted} 项未提交改动不参与比对）`,
+    );
+    return { checks, manualReview: [] };
+  }
+  const { covered, residual } = detectResidualFiles(deliverable, task);
+  if (residual.length > 0) {
+    record(checks, 'V7', '文件域残留', 'fail', `scope 外提交文件（已按 commit 事实比对）：${residual.join('；')}`);
+  } else {
+    record(
+      checks,
+      'V7',
+      '文件域残留',
+      'pass',
+      `按声明 commit 集合比对：${declaredCommits.length} 个提交 / ${deliverable.length} 个交付文件均在 scope 文件域内（覆盖 ${covered.length}）；工作树另有 ${uncommitted} 项未提交改动不参与比对`,
+    );
   }
   return { checks, manualReview: [] };
 }

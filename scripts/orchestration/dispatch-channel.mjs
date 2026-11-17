@@ -47,6 +47,23 @@ export const BACKOFF_MS = [0, 500, 1000];
 /** 不可恢复失败类别（对齐 reliability.md §4.1 框架四类；直接 `failed`，不重试）。 */
 export const IRRECOVERABLE_CAUSES = ['contract-invalid', 'input-invalid', 'permission-denied', 'deterministic-defect'];
 
+/**
+ * 非失败事实（不是失败类别，不判终态、不计通道失败）。
+ *
+ * `executed-in-session`：工作由编排者在会话内直接完成，没有经过 GUI 投递通道。
+ * 这正是 AF-041 判死的根因——那种情况被填成 `deterministic-defect`，决策链据此把任务
+ * 送进 `failed` 终态且不可复活。通道没被用上不等于通道坏了，必须与失败区分开。
+ */
+export const NON_FAILURE_CAUSES = ['executed-in-session'];
+
+/** 通道降级可接受的 cause 全集（CLI 必填校验用；跨类别但形态合法）。 */
+export const DELIVERY_CAUSES = [...IRRECOVERABLE_CAUSES, 'transient', ...NON_FAILURE_CAUSES];
+
+/** 是否非失败事实（通道旁路，既不重试也不判失败）。 */
+export function isNonFailureCause(cause) {
+  return NON_FAILURE_CAUSES.includes(cause);
+}
+
 /** 失败定性三分法（对齐 reliability.md §4.2；既有债基线与本次改动分开记录）。 */
 export const FAILURE_CLASSIFICATIONS = ['deterministic', 'flaky', 'legacy-debt'];
 
@@ -68,6 +85,9 @@ export const CIRCUIT_BREAKER_DEFAULTS = {
   cooldownMinutes: 10,
 };
 
+/** 熔断状态（框架 §5.1 三个状态概念位；`half-open` 由本适配层落地为「冷却期满、放一次试探」）。 */
+export const CIRCUIT_BREAKER_STATES = ['closed', 'open', 'half-open'];
+
 /**
  * IM-017 · 通道熔断判定（纯函数）。
  *
@@ -77,27 +97,61 @@ export const CIRCUIT_BREAKER_DEFAULTS = {
  * 也避免同一任务的多次尝试被误当成通道故障。
  *
  * 输入取自运行态 `delivery`（`consecutiveFailures` 由 `fallbackDelivery` 递增），
- * 状态 `open` 表示该通道应快速失败、不再派发，需冷却期结束或人工复位。
+ * 状态 `open` 表示该通道应快速失败、不再派发；冷却期满转 `half-open`，
+ * 只放**一次**试探（成功即 `closed` 归零，失败则刷新开闸时刻重新冷却）。
  *
- * @param {{delivery?:object, channel?:string}} input
+ * @param {{delivery?:object, channel?:string, openedAt?:string, now?:string}} input
  * @param {{circuitBreaker?:object}} [config]
- * @returns {{state:'closed'|'open', channel:string|null, consecutiveFailures:number, threshold:number, reason:string|null}}
+ * @param {{now?:string}} [opts]
+ * @returns {{state:'closed'|'open'|'half-open', channel:string|null, consecutiveFailures:number,
+ *   threshold:number, reason:string|null, openedAt:string|null, cooldownMinutes:number, probeAllowed:boolean}}
  */
-export function evaluateCircuitBreaker(input = {}, config = {}) {
+export function evaluateCircuitBreaker(input = {}, config = {}, opts = {}) {
   const settings = { ...CIRCUIT_BREAKER_DEFAULTS, ...(config?.circuitBreaker ?? {}) };
   const threshold = Math.max(1, Number(settings.consecutiveFailureThreshold ?? 3));
+  const cooldownMinutes = Math.max(1, Number(settings.cooldownMinutes ?? 10));
   const channel = input.channel ?? input.delivery?.lastAttempt?.channel ?? null;
   const failures = Number(input.delivery?.consecutiveFailures ?? 0);
-  if (failures >= threshold) {
+  const now = opts?.now ?? input?.now ?? new Date().toISOString();
+  if (failures < threshold) {
     return {
-      state: 'open',
+      state: 'closed',
       channel,
       consecutiveFailures: failures,
       threshold,
-      reason: `通道 ${channel ?? 'unknown'} 连续失败 ${failures} 次，达阈值 ${threshold}，快速失败待冷却`,
+      reason: null,
+      openedAt: null,
+      cooldownMinutes,
+      probeAllowed: false,
     };
   }
-  return { state: 'closed', channel, consecutiveFailures: failures, threshold, reason: null };
+  // 开闸时刻：优先运行态记录，缺省以本次判定时刻为准（本轮刚达阈值）。
+  const openedAt = input.openedAt ?? input.delivery?.circuitOpenedAt ?? now;
+  const openedMs = Date.parse(String(openedAt));
+  const nowMs = Date.parse(String(now));
+  const elapsedMs = Number.isNaN(openedMs) || Number.isNaN(nowMs) ? null : nowMs - openedMs;
+  if (elapsedMs !== null && elapsedMs >= cooldownMinutes * 60_000) {
+    return {
+      state: 'half-open',
+      channel,
+      consecutiveFailures: failures,
+      threshold,
+      reason: `通道 ${channel ?? 'unknown'} 冷却期满（${cooldownMinutes} 分钟），放行一次恢复试探`,
+      openedAt,
+      cooldownMinutes,
+      probeAllowed: true,
+    };
+  }
+  return {
+    state: 'open',
+    channel,
+    consecutiveFailures: failures,
+    threshold,
+    reason: `通道 ${channel ?? 'unknown'} 连续失败 ${failures} 次，达阈值 ${threshold}，快速失败待冷却`,
+    openedAt,
+    cooldownMinutes,
+    probeAllowed: false,
+  };
 }
 
 /** 死信预留位（框架 reliability.md §5）：本版本不实现隔离区，反复失败转人工并保留完整上下文。 */
@@ -167,6 +221,15 @@ export function resolveDispatchDecision(input) {
   // 登录门最高优先：认证未完成先交人工接管；登录解除后再按失败类别判定终态。
   if (input.loginGate === true) {
     return { action: 'human-login', result: 'human-escalated', reason: '登录门须人工接管完成认证；脚本不自行填账号密码或凭证' };
+  }
+  // 非失败事实优先于失败分类：通道被旁路（会话内代执行完成）既不该重试，也不该判死。
+  if (isNonFailureCause(input.cause)) {
+    return {
+      action: 'continue-in-session',
+      result: 'working',
+      cause: input.cause,
+      reason: '非失败事实：通道被旁路，工作由会话内代执行完成；不计通道失败、不判终态',
+    };
   }
   // 不可恢复类别短路：直接终态 failed，不进入重试 / 降级链。
   if (isIrrecoverable(input.cause)) {

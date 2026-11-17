@@ -96,7 +96,7 @@ import {
   finalizeSquashMerge,
   LONG_LIVED_BRANCHES,
 } from '../branch-workflow.mjs';
-import { ciGateVerdict, resolveGithubToken, evaluateRemoteCiGate } from '../ci-status.mjs';
+import { ciGateVerdict, resolveGithubToken, resolveGithubTokenDetail, fetchCheckRuns, evaluateRemoteCiGate } from '../ci-status.mjs';
 import { matchAgentCard, selectTargetRole, validateScopeDomain } from '../card-router.mjs';
 import {
   SESSION_PATHS,
@@ -108,6 +108,9 @@ import {
   IRRECOVERABLE_CAUSES,
   FAILURE_CLASSIFICATIONS,
   isIrrecoverable,
+  isNonFailureCause,
+  NON_FAILURE_CAUSES,
+  DELIVERY_CAUSES,
   nextBackoff,
   CIRCUIT_BREAKER_RESERVED,
   DEAD_LETTER_RESERVED,
@@ -1040,6 +1043,16 @@ describe('AF-009 交接契约校验与构造器', () => {
     expect(validateReceiptHandover(badFinal).errors.join(' ')).toMatch('finalStatus');
   });
 
+  it('AF-043-I1：回执 changedFiles.commits 合法通过；非法 SHA 被拦截', () => {
+    const withCommits = validReceipt();
+    withCommits.changedFiles = { added: [], modified: [], deleted: [], commits: ['c8632c6', '2a354ca01f150e18852ba11c3b2b1eba04f01b1b'] };
+    expect(validateReceiptHandover(withCommits)).toMatchObject({ valid: true, errors: [] });
+
+    const bad = validReceipt();
+    bad.changedFiles = { added: [], modified: [], deleted: [], commits: ['HEAD~1'] };
+    expect(validateReceiptHandover(bad).errors.join(' ')).toMatch('changedFiles.commits');
+  });
+
   it('合法协商轮意见通过；缺意见字段与裁决缺 decision 被拦截', () => {
     expect(validateReviewHandover(validReview())).toMatchObject({ valid: true, errors: [] });
 
@@ -1853,6 +1866,43 @@ describe('AF-011 文件域 scope 互斥校验', () => {
       { changedFiles: ['docs/worklog/pending/af024b-task-2026-11-17.md'] },
     );
     expect(otherSheet.checks.find((c) => c.code === 'V7').status).toBe('fail');
+  });
+
+  it('AF-043-I1：回执声明 commit 集合后按 commit 事实比对，工作树残留不误判', () => {
+    const t = task('AF-050A', ['scripts/orchestration/']);
+    t.artifacts = { deliveryRecord: 'docs/worklog/completed/phase2.5/af050a.md' };
+    t.receipt = {
+      changedFiles: { added: [], modified: [], deleted: [], commits: ['c8632c6'] },
+    };
+    const commits = { c8632c6: ['scripts/orchestration/scheduler.mjs'] };
+    const resolveCommitFiles = (sha) => commits[sha] ?? null;
+    // 工作树里还有别的任务的在办改动：按 commit 事实比对时不计本单残留。
+    const ok = runAcceptance(
+      t,
+      { tasks: [t], archivedTasks: [] },
+      { changedFiles: ['test/admin-debug/wp38-debug-session-resume.spec.ts'], resolveCommitFiles },
+    );
+    const v7 = ok.checks.find((c) => c.code === 'V7');
+    expect(v7.status).toBe('pass');
+    expect(v7.detail).toMatch('按声明 commit 集合比对');
+    expect(v7.detail).toMatch('不参与比对');
+
+    // 提交里确有 scope 外文件 → fail。
+    const bad = runAcceptance(
+      t,
+      { tasks: [t], archivedTasks: [] },
+      { changedFiles: [], resolveCommitFiles: () => ['src/engine-core/bad.ts'] },
+    );
+    expect(bad.checks.find((c) => c.code === 'V7').status).toBe('fail');
+
+    // 声明了 commit 却解析不到 → fail（声明即证据，给不出就是没证据）。
+    const unresolved = runAcceptance(t, { tasks: [t], archivedTasks: [] }, { changedFiles: [], resolveCommitFiles: () => null });
+    expect(unresolved.checks.find((c) => c.code === 'V7').status).toBe('fail');
+    expect(unresolved.checks.find((c) => c.code === 'V7').detail).toMatch('无法解析');
+
+    // 没有注入解析器 → skip，不冒充通过。
+    const noResolver = runAcceptance(t, { tasks: [t], archivedTasks: [] }, { changedFiles: [] });
+    expect(noResolver.checks.find((c) => c.code === 'V7').status).toBe('skip');
   });
 });
 
@@ -2929,6 +2979,137 @@ describe('IM-017 通道熔断参数化与可观察事件', () => {
     });
     expect(actions.some((a) => a.type === 'channel-circuit-open' && a.threshold === 3)).toBe(true);
   });
+
+  it('冷却期满转 half-open 只放一次试探；冷期内保持 open', () => {
+    const cfg = { circuitBreaker: { consecutiveFailureThreshold: 3, cooldownMinutes: 10 } };
+    const openedAt = '2026-11-17T00:00:00.000Z';
+    const inCooldown = evaluateCircuitBreaker({ channel: 'gui-relay', delivery: { consecutiveFailures: 3 }, openedAt }, cfg, {
+      now: '2026-11-17T00:05:00.000Z',
+    });
+    expect(inCooldown.state).toBe('open');
+    expect(inCooldown.probeAllowed).toBe(false);
+    expect(inCooldown.openedAt).toBe(openedAt);
+    const halfOpen = evaluateCircuitBreaker({ channel: 'gui-relay', delivery: { consecutiveFailures: 3 }, openedAt }, cfg, {
+      now: '2026-11-17T00:11:00.000Z',
+    });
+    expect(halfOpen.state).toBe('half-open');
+    expect(halfOpen.probeAllowed).toBe(true);
+    expect(halfOpen.reason).toMatch(/冷却期满/);
+  });
+
+  it('半开态回收写 channelCircuit=half-open 并放开闸事件；成功投递归零封闭', () => {
+    const task = { taskId: 'AF-161', contextId: 'c', type: 'verification', status: 'submitted', agentRole: 'executor' };
+    const index = { tasks: [task], archivedTasks: [] };
+    const runtimeState = {
+      tasks: {
+        'AF-161': {
+          leaseClaimedAt: '2026-11-16T00:00:00.000Z',
+          leaseDeadline: '2026-11-16T00:05:00.000Z',
+          channelCircuit: { state: 'open', openedAt: '2026-11-16T23:50:00.000Z', consecutiveFailures: 3 },
+          dispatch: {
+            channel: 'gui-file-fallback',
+            attempt: 3,
+            delivery: { state: 'failed', history: [], consecutiveFailures: 3, lastAttempt: { cause: 'transient' } },
+          },
+        },
+      },
+    };
+    const actions = [];
+    releaseFailedDeliveries(
+      index,
+      runtimeState,
+      { dispatch: { deliveryLeaseMinutes: 5 }, circuitBreaker: { consecutiveFailureThreshold: 3, cooldownMinutes: 10 } },
+      actions,
+    );
+    expect(runtimeState.tasks['AF-161'].channelCircuit).toMatchObject({ state: 'half-open', probeAllowed: true });
+    expect(actions.some((a) => a.type === 'channel-circuit-half-open')).toBe(true);
+
+    // 试探成功：confirmDelivery 把通道级连续失败计数归零并清开闸时刻。
+    const evidenceRoot = join(tmpdir(), `orch-confirm-${process.pid}`);
+    const evidenceRef = 'docs/evidence/shot.png';
+    mkdirSync(dirname(join(evidenceRoot, evidenceRef)), { recursive: true });
+    writeFileSync(join(evidenceRoot, evidenceRef), 'png', 'utf8');
+    const record = {
+      taskId: 'AF-161',
+      channel: 'gui-relay',
+      handoverRef: 'transport/briefs/AF-161.md',
+      delivery: { state: 'pending', consecutiveFailures: 3, circuitOpenedAt: '2026-11-16T23:50:00.000Z' },
+    };
+    const confirmed = confirmDelivery(record, {
+      sessionPath: 'existing-session',
+      locateLayer: 'element-tree',
+      evidenceRef,
+      repoRoot: evidenceRoot,
+      at: '2026-11-17T00:12:00.000Z',
+    });
+    expect(confirmed.valid).toBe(true);
+    expect(confirmed.record.delivery.consecutiveFailures).toBe(0);
+    expect(confirmed.record.delivery.circuitOpenedAt).toBeNull();
+  });
+});
+
+describe('AF-043-I2 非失败事实（通道旁路）', () => {
+  it('executed-in-session 不是不可恢复类别，决策链给 continue-in-session', () => {
+    expect(isNonFailureCause('executed-in-session')).toBe(true);
+    expect(isIrrecoverable('executed-in-session')).toBe(false);
+    const decision = resolveDispatchDecision({ processRunning: false, cause: 'executed-in-session', attemptCount: 2 });
+    expect(decision).toMatchObject({ action: 'continue-in-session', result: 'working' });
+  });
+
+  it('降级为旁路：状态 bypassed、通道失败计数不递增', () => {
+    const repoRoot = join(tmpdir(), `orch-bypass-${process.pid}`);
+    const handoverRef = 'transport/briefs/AF-170.md';
+    const abs = join(repoRoot, handoverRef);
+    mkdirSync(dirname(abs), { recursive: true });
+    writeFileSync(abs, '# brief\n', 'utf8');
+    const record = { taskId: 'AF-170', channel: 'gui-relay', handoverRef, delivery: { state: 'pending', consecutiveFailures: 2 } };
+    const result = fallbackDelivery(record, {
+      reason: '会话内直做，未走桌面 relay',
+      repoRoot,
+      facts: { cause: 'executed-in-session', attemptCount: 1 },
+    });
+    expect(result.valid).toBe(true);
+    expect(result.record.delivery.state).toBe('bypassed');
+    expect(result.record.delivery.consecutiveFailures).toBe(2);
+    expect(result.record.delivery.bypassCause).toBe('executed-in-session');
+  });
+
+  it('回收环节对旁路任务不动状态，只留痕', () => {
+    const task = { taskId: 'AF-171', contextId: 'c', type: 'verification', status: 'submitted', agentRole: 'executor' };
+    const index = { tasks: [task], archivedTasks: [] };
+    const runtimeState = {
+      tasks: {
+        'AF-171': {
+          leaseClaimedAt: '2026-11-16T00:00:00.000Z',
+          leaseDeadline: '2026-11-16T00:05:00.000Z',
+          dispatch: {
+            channel: 'gui-file-fallback',
+            attempt: 1,
+            delivery: { state: 'failed', history: [], lastAttempt: { cause: 'executed-in-session' } },
+          },
+        },
+      },
+    };
+    const actions = [];
+    releaseFailedDeliveries(index, runtimeState, { dispatch: { deliveryLeaseMinutes: 5 } }, actions);
+    expect(task.status).toBe('submitted');
+    expect(runtimeState.tasks['AF-171'].deliveryBypassed).toBe(true);
+    expect(actions.some((a) => a.type === 'delivery-bypassed')).toBe(true);
+  });
+
+  it('cause 全集含不可恢复四类、transient 与旁路事实', () => {
+    expect(DELIVERY_CAUSES).toEqual(
+      expect.arrayContaining([
+        'contract-invalid',
+        'input-invalid',
+        'permission-denied',
+        'deterministic-defect',
+        'transient',
+        'executed-in-session',
+      ]),
+    );
+    expect(DELIVERY_CAUSES).not.toContain('executed_in_session');
+  });
 });
 
 describe('IM-012 squash 合并收口', () => {
@@ -3002,5 +3183,39 @@ describe('IM-018 远端 CI 合并门禁', () => {
     });
     expect(passed.verdict).toBe('pass');
     expect(passed.total).toBe(1);
+  });
+
+  it('AF-043-I4：Actions 内无 token 不白跑 credential，直接给注入提示', async () => {
+    const inActions = resolveGithubTokenDetail({ env: { GITHUB_ACTIONS: 'true' } });
+    expect(inActions.token).toBeNull();
+    expect(inActions.hint).toMatch(/GITHUB_TOKEN/);
+
+    // Actions 里注入 secrets.GITHUB_TOKEN 即被识别，来源可追溯。
+    expect(resolveGithubTokenDetail({ env: { GITHUB_ACTIONS: 'true', GITHUB_TOKEN: 'ghs_1' } })).toMatchObject({
+      token: 'ghs_1',
+      source: 'GITHUB_TOKEN',
+    });
+    // 私有仓专用变量在本地/CI 都可用。
+    expect(resolveGithubTokenDetail({ env: { ORCH_GITHUB_TOKEN: 'x' } })).toMatchObject({ token: 'x', source: 'ORCH_GITHUB_TOKEN' });
+
+    const fetched = await fetchCheckRuns({
+      repo: 'o/r',
+      sha: 'deadbeef',
+      env: { GITHUB_TOKEN: 't', GITHUB_API_URL: 'https://ghe.example.com/api/v3' },
+      fetchImpl: async (url) => ({ ok: true, status: 200, json: async () => ({ check_runs: [], url }) }),
+    });
+    expect(fetched.ok).toBe(true);
+  });
+
+  it('GHES 基址取自 GITHUB_API_URL，缺省回落 api.github.com', async () => {
+    const urls = [];
+    const fetchImpl = async (url) => {
+      urls.push(String(url));
+      return { ok: true, status: 200, json: async () => ({ check_runs: [] }) };
+    };
+    await fetchCheckRuns({ repo: 'o/r', sha: 'abc', token: 't', env: {}, fetchImpl });
+    await fetchCheckRuns({ repo: 'o/r', sha: 'abc', token: 't', env: { GITHUB_API_URL: 'https://ghe.example.com/api/v3/' }, fetchImpl });
+    expect(urls[0]).toMatch(/^https:\/\/api\.github\.com\/repos\/o\/r\//);
+    expect(urls[1]).toMatch(/^https:\/\/ghe\.example\.com\/api\/v3\/repos\/o\/r\//);
   });
 });

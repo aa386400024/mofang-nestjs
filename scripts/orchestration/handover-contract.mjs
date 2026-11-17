@@ -197,6 +197,15 @@ export function validateReceiptHandover(input) {
   if (!isObject(input.changedFiles) || !['added', 'modified', 'deleted'].every((key) => Array.isArray(input.changedFiles[key]))) {
     pushError(errors, 'changedFiles', '必须为对象 {added[], modified[], deleted[]}');
   }
+  // 适配层扩展（AF-043-I1）：`changedFiles.commits` 声明本单的提交集合。
+  // 声明后 V7 改按 commit 事实比对，工作树里同批次其它任务的未提交改动不再算本单残留。
+  if (input.changedFiles?.commits !== undefined) {
+    if (!isStringArray(input.changedFiles.commits)) {
+      pushError(errors, 'changedFiles.commits', '必须为非空字符串数组');
+    } else if (input.changedFiles.commits.some((sha) => !/^[0-9a-f]{7,40}$/.test(sha))) {
+      pushError(errors, 'changedFiles.commits', '元素必须为 7–40 位小写十六进制提交 SHA');
+    }
+  }
   if (!Array.isArray(input.gateResults) || input.gateResults.length === 0) {
     pushError(errors, 'gateResults', '必须为非空数组');
   } else {

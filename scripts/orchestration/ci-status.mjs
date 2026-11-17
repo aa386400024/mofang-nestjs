@@ -48,14 +48,29 @@ export function ciGateVerdict(checkRuns) {
 }
 
 /**
- * 解析 GitHub token：环境变量优先，其次 `git credential fill`（仅当 credential helper 已登录）。
+ * 解析 GitHub token，按来源优先级：`GITHUB_TOKEN` → `GH_TOKEN` → `ORCH_GITHUB_TOKEN` → `git credential fill`。
+ *
+ * Actions 容器内没有本地 credential helper（`git credential fill` 无凭据可给），
+ * 唯一合法来源是 job 里注入的 `secrets.GITHUB_TOKEN`（映射到 env `GITHUB_TOKEN`）——
+ * 所以 Actions 上下文里取不到 token 时不再白跑 credential helper，直接把原因写进返回值，
+ * 由调用方判 `unknown` 并提示「把 token 注入 job env」，而不是当成 CI 红灯。
  * @param {{env?:object, fillCredential?:(host:string)=>string}} [opts]
- * @returns {string|null}
+ * @returns {{token:string|null, source:string|null, hint:string|null}}
  */
-export function resolveGithubToken(opts = {}) {
+export function resolveGithubTokenDetail(opts = {}) {
   const env = opts.env ?? process.env;
-  const fromEnv = env.GITHUB_TOKEN ?? env.GH_TOKEN ?? null;
-  if (fromEnv && String(fromEnv).trim() !== '') return String(fromEnv).trim();
+  for (const key of ['GITHUB_TOKEN', 'GH_TOKEN', 'ORCH_GITHUB_TOKEN']) {
+    const value = env[key];
+    if (value && String(value).trim() !== '') return { token: String(value).trim(), source: key, hint: null };
+  }
+  // Actions 运行时：没有注入 token 就没有别的合法来源（不读 Actions 内部 runtime token，它不是 API 凭据）。
+  if (String(env.GITHUB_ACTIONS ?? '').toLowerCase() === 'true') {
+    return {
+      token: null,
+      source: null,
+      hint: 'Actions 内无 GitHub token：请在 job 上注入 `env: GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}`（需 `permissions: checks: read`）',
+    };
+  }
   const fill = opts.fillCredential ?? defaultFillCredential;
   try {
     const output = fill('github.com');
@@ -63,10 +78,19 @@ export function resolveGithubToken(opts = {}) {
       .split(/\r?\n/)
       .find((item) => item.startsWith('password='));
     const token = line ? line.slice('password='.length).trim() : '';
-    return token || null;
+    return token ? { token, source: 'git-credential', hint: null } : { token: null, source: null, hint: null };
   } catch {
-    return null;
+    return { token: null, source: null, hint: null };
   }
+}
+
+/**
+ * 兼容既有调用方的精简版：只返回 token 字符串。
+ * @param {{env?:object, fillCredential?:(host:string)=>string}} [opts]
+ * @returns {string|null}
+ */
+export function resolveGithubToken(opts = {}) {
+  return resolveGithubTokenDetail(opts).token;
 }
 
 function defaultFillCredential(host) {
@@ -84,11 +108,24 @@ function defaultFillCredential(host) {
 export async function fetchCheckRuns(opts = {}) {
   const { repo, sha } = opts;
   if (!repo || !sha) return { ok: false, status: 0, checkRuns: [], error: 'repo / sha 必填' };
-  const token = opts.token ?? resolveGithubToken();
-  if (!token) return { ok: false, status: 0, checkRuns: [], error: '无 GitHub token（GITHUB_TOKEN / git credential 均不可用）' };
+  const env = opts.env ?? process.env;
+  const resolved = opts.token
+    ? { token: opts.token, source: 'explicit', hint: null }
+    : resolveGithubTokenDetail({ env, fillCredential: opts.fillCredential });
+  if (!resolved.token) {
+    return {
+      ok: false,
+      status: 0,
+      checkRuns: [],
+      error: `无 GitHub token（GITHUB_TOKEN / GH_TOKEN / ORCH_GITHUB_TOKEN / git credential 均不可用）${resolved.hint ? `；${resolved.hint}` : ''}`,
+    };
+  }
+  const token = resolved.token;
   const fetchImpl = opts.fetchImpl ?? globalThis.fetch;
   if (typeof fetchImpl !== 'function') return { ok: false, status: 0, checkRuns: [], error: '运行环境无 fetch' };
-  const url = `https://api.github.com/repos/${repo}/commits/${sha}/check-runs?per_page=${Number(opts.perPage ?? 100)}`;
+  // GHES / 企业自建 GitHub 用 GITHUB_API_URL 覆盖基址；缺省走公有云 api.github.com。
+  const apiBase = String(opts.apiBase ?? env.GITHUB_API_URL ?? 'https://api.github.com').replace(/\/+$/, '');
+  const url = `${apiBase}/repos/${repo}/commits/${sha}/check-runs?per_page=${Number(opts.perPage ?? 100)}`;
   try {
     const response = await fetchImpl(url, {
       headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'mofang-orchestration' },

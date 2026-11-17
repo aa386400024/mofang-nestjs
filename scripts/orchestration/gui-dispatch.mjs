@@ -11,6 +11,8 @@
  *   pending   投递件已生成（`briefRef` 非空），尚未确认送达
  *   delivered 桌面 relay 已确认送达（有证据 + 会话路径 + 定位层），且原状态必须是 pending
  *   failed    投递失败，已按降级链回退（channel=gui-file-fallback 时文件交接件仍在，任务不丢）
+ *   bypassed  非失败事实（AF-043-I2）：通道被旁路（会话内直做 / 已由既有进程执行），
+ *             既不计失败、也不判终态；`bypassCause` 记原因，任务继续按原状态推进
  *
  * 审计口径（AF-024 评审整改）：
  *   - 只有 `channel === 'gui-relay'` 的记录才能被 confirm / fallback，file 通道不得伪装成 GUI 送达；
@@ -20,10 +22,10 @@
  */
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
-import { LOCATE_LAYERS, SESSION_PATHS } from './dispatch-channel.mjs';
+import { LOCATE_LAYERS, SESSION_PATHS, isNonFailureCause } from './dispatch-channel.mjs';
 
 /** 投递状态枚举。 */
-export const DELIVERY_STATES = ['pending', 'delivered', 'failed'];
+export const DELIVERY_STATES = ['pending', 'delivered', 'failed', 'bypassed'];
 
 /** 投递失败定性（对齐 reliability.md §4.2 三分法）。 */
 export const DELIVERY_FAILURE_CLASSES = ['deterministic', 'flaky', 'legacy-debt'];
@@ -195,6 +197,9 @@ export function confirmDelivery(record, evidence = {}) {
         evidenceRef: evidence.evidenceRef,
         failureReason: null,
         classification: null,
+        // 熔断恢复：一次成功投递即封闭熔断并把通道级连续失败计数归零（含半开试探成功）。
+        consecutiveFailures: 0,
+        circuitOpenedAt: null,
         history,
       },
     },
@@ -232,27 +237,45 @@ export function fallbackDelivery(record, failure = {}) {
   const at = failure.at ?? new Date().toISOString();
   const previous = failure.attempted ?? (record.delivery?.state ? [{ ...record.delivery }] : []);
   const history = [...(Array.isArray(record.delivery?.history) ? record.delivery.history : []), ...previous];
+  // 非失败事实（会话内代执行）：通道没被用上，不等于通道坏了。
+  // 计数不递增、状态记 bypassed，让调度层既不算失败也不判终态（AF-041 的判死教训）。
+  const cause = failure.facts?.cause ?? null;
+  const bypass = isNonFailureCause(cause);
+  const baseDelivery = {
+    preparedAt: record.delivery?.preparedAt ?? null,
+    briefRef: record.delivery?.briefRef ?? null,
+    consecutiveFailures: Number(record.delivery?.consecutiveFailures ?? 0),
+    sessionPath: null,
+    locateLayer: null,
+    evidenceRef: null,
+    history,
+  };
   return {
     valid: true,
     errors: [],
     record: {
       ...record,
       channel: CHANNEL_GUI_FALLBACK,
-      delivery: {
-        state: 'failed',
-        preparedAt: record.delivery?.preparedAt ?? null,
-        briefRef: record.delivery?.briefRef ?? null,
-        failedAt: at,
-        failureReason: failure.reason,
-        classification: failure.classification ?? 'deterministic',
-        lastAttempt: failure.facts ? { ...failure.facts } : null,
-        // IM-017：按通道累计连续失败次数（成功后由 buildDispatchRecord 归零），供熔断判定读取。
-        consecutiveFailures: Number(record.delivery?.consecutiveFailures ?? 0) + 1,
-        sessionPath: null,
-        locateLayer: null,
-        evidenceRef: null,
-        history,
-      },
+      delivery: bypass
+        ? {
+            ...baseDelivery,
+            state: 'bypassed',
+            bypassedAt: at,
+            bypassCause: cause,
+            failureReason: failure.reason,
+            classification: null,
+            lastAttempt: failure.facts ? { ...failure.facts } : null,
+          }
+        : {
+            ...baseDelivery,
+            state: 'failed',
+            failedAt: at,
+            failureReason: failure.reason,
+            classification: failure.classification ?? 'deterministic',
+            lastAttempt: failure.facts ? { ...failure.facts } : null,
+            // IM-017：按通道累计连续失败次数（成功后由 buildDispatchRecord 归零），供熔断判定读取。
+            consecutiveFailures: baseDelivery.consecutiveFailures + 1,
+          },
     },
   };
 }

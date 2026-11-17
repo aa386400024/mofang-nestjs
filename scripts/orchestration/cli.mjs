@@ -83,7 +83,7 @@ import {
   finalizeSquashMerge,
   DEFAULT_STALE_DAYS,
 } from './branch-workflow.mjs';
-import { SESSION_PATHS, LOCATE_LAYERS, MAX_START_RETRIES, MAX_SEND_RETRIES, canDispatch } from './dispatch-channel.mjs';
+import { SESSION_PATHS, LOCATE_LAYERS, MAX_START_RETRIES, MAX_SEND_RETRIES, canDispatch, DELIVERY_CAUSES } from './dispatch-channel.mjs';
 import { evaluateRemoteCiGate } from './ci-status.mjs';
 import { buildGuiBrief, writeGuiBrief, confirmDelivery, fallbackDelivery, isDeliveryStalled } from './gui-dispatch.mjs';
 import { registerTaskFromSheet, registerTaskFromHandover, parseTaskSheetFrontmatter } from './task-intake.mjs';
@@ -209,8 +209,11 @@ function cmdRunOnce() {
   }
   auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: 'run-once' });
   // IM-009：采集本次变更文件清单供 V7 文件域残留比对；空清单时 V7 记 skip。
-  const changedFiles = collectChangedFiles(createGitPort());
-  const { snapshot, actions } = advanceOnce({ commit: true, changedFiles });
+  const gitPort = createGitPort();
+  const changedFiles = collectChangedFiles(gitPort);
+  // AF-043-I1：回执声明了提交集合时，V7 按 commit 事实比对（不再拿工作树去套单个任务）。
+  const resolveCommitFiles = (sha) => gitPort.filesInCommit(sha);
+  const { snapshot, actions } = advanceOnce({ commit: true, changedFiles, resolveCommitFiles });
   auditDispatchActions(actions);
   writeSnapshotArtifacts(snapshot);
   for (const action of actions) console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
@@ -228,8 +231,13 @@ function cmdWatch() {
   const tick = (label, events = []) => {
     console.log(`[watch] ${label} ${events.length > 0 ? `变更 ${events.length} 项，` : ''}执行一轮 run-once`);
     auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: 'watch' });
-    const changedFiles = collectChangedFiles(createGitPort());
-    const { snapshot, actions } = advanceOnce({ commit: true, changedFiles });
+    const gitPort = createGitPort();
+    const changedFiles = collectChangedFiles(gitPort);
+    const { snapshot, actions } = advanceOnce({
+      commit: true,
+      changedFiles,
+      resolveCommitFiles: (sha) => gitPort.filesInCommit(sha),
+    });
     auditDispatchActions(actions);
     writeSnapshotArtifacts(snapshot);
     for (const action of actions) console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
@@ -657,7 +665,9 @@ function cmdChannel(args) {
     console.log(
       `确认送达：cli.mjs channel confirm --taskId ${taskId} --session-path <${SESSION_PATHS.join('|')}> --locate-layer <${LOCATE_LAYERS.join('|')}> --evidence <仓内截图或时间戳文件>`,
     );
-    console.log(`降级回退：cli.mjs channel fallback --taskId ${taskId} --reason <原因> [--classification deterministic|flaky|legacy-debt]`);
+    console.log(
+      `降级回退：cli.mjs channel fallback --taskId ${taskId} --reason <原因> --cause <${DELIVERY_CAUSES.join('|')}> [--classification deterministic|flaky|legacy-debt]`,
+    );
     return;
   }
   if (action === 'confirm') {
@@ -684,11 +694,24 @@ function cmdChannel(args) {
     const taskId = argValue(args, '--taskId');
     const reason = argValue(args, '--reason');
     const classification = argValue(args, '--classification') ?? 'deterministic';
+    // AF-043-I2：cause 是**判决值**，不再允许缺省。
+    // 缺省时过去会落 deterministic-defect，决策链据此把任务判 failed 终态（AF-041 实测不可复活）。
+    const cause = argValue(args, '--cause');
+    const usage =
+      '用法：channel fallback --taskId <id> --reason <原因> --cause <' +
+      DELIVERY_CAUSES.join('|') +
+      '> [--classification deterministic|flaky|legacy-debt] [--login-gate] [--start-retries N] [--send-retries N] [--attempt-count N] [--process-running] [--window-ready]';
     if (!taskId || !reason) {
-      console.error(
-        '用法：channel fallback --taskId <id> --reason <原因> [--classification deterministic|flaky|legacy-debt] ' +
-          '[--cause <类别>] [--login-gate] [--start-retries N] [--send-retries N] [--attempt-count N] [--process-running] [--window-ready]',
-      );
+      console.error(usage);
+      process.exit(2);
+    }
+    if (!cause) {
+      console.error('降级失败：--cause 必填（它是决策链的判决值，缺省会把流程问题判成任务死）。');
+      console.error(usage);
+      process.exit(2);
+    }
+    if (!DELIVERY_CAUSES.includes(cause)) {
+      console.error(`降级失败：--cause 非法（${cause}）；可选 ${DELIVERY_CAUSES.join(' / ')}`);
       process.exit(2);
     }
     const runtimeState = loadRuntimeState();
@@ -703,7 +726,7 @@ function cmdChannel(args) {
             .filter(Boolean)
         : [];
     const facts = {
-      cause: argValue(args, '--cause') ?? 'deterministic-defect',
+      cause,
       loginGate: args.includes('--login-gate'),
       processRunning: args.includes('--process-running') ? true : false,
       windowReady: args.includes('--window-ready') ? true : false,
@@ -718,10 +741,16 @@ function cmdChannel(args) {
     entry.dispatch = result.record;
     saveRuntimeState(runtimeState);
     refreshSnapshotArtifacts();
-    console.log(`已降级：${taskId}；channel=gui-file-fallback；原因=${reason}；定性=${classification}`);
+    const bypassed = result.record.delivery?.state === 'bypassed';
+    console.log(
+      `已降级：${taskId}；channel=gui-file-fallback；原因=${reason}；cause=${cause}；` +
+        (bypassed ? '投递状态=bypassed（通道旁路，不计通道失败）' : `定性=${classification}`),
+    );
     console.log(`现场事实：cause=${facts.cause} loginGate=${facts.loginGate} attemptCount=${facts.attemptCount}`);
     console.log(
-      '下一步：run-once 会按运行时决策链处理该任务（不可恢复→failed；否则回滚 ready 并置 heldForHuman）；修好通道后 task resume 再重派。',
+      bypassed
+        ? '下一步：任务保持 submitted，写完回执后 run-once 正常验收（既不会重试派发，也不会判 failed）。'
+        : '下一步：run-once 会按运行时决策链处理该任务（不可恢复→failed；否则回滚 ready 并置 heldForHuman）；修好通道后 task resume 再重派。',
     );
     return;
   }
