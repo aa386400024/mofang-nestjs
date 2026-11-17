@@ -1,6 +1,6 @@
 # AF-056 · 服务端编排门与 integrate 分支保护闭环
 
-> 状态：实现与 PR 远端门已验证；合并后保护读回与独立任务实弹由 AF-057 续记。
+> 状态：已 squash 合入并完成 integrate 保护；AF-057 续记最终证据并返修 PR 直接合并的验收缺口。
 > 任务单：`docs/worklog/pending/af056-server-side-orchestration-gate-task-2026-11-17.md`
 > PR：`https://github.com/aa386400024/mofang-nestjs/pull/11`
 
@@ -88,7 +88,7 @@ AF-056 实现提交自身回放：`b391d1cb3da2 task=AF-056 reason=pass files=11
 - 同 HEAD 的 Contracts、Lint + Typecheck、Security Audit 均为 `completed / success`。
 - 在任务尚未 completed/archived 时执行 `pr-release.mjs merge --apply`，返回「任务 AF-056 尚未 completed/archived」，exit 1；未发起合并。
 
-最终归档 HEAD 的 13 项检查由 `pr-release.mjs merge` 再次强制核验；最终 merge SHA、保护 apply/读回和下一任务全流程证据由 AF-057 追加，不在本记录提前宣称完成。
+最终归档 HEAD 的 13 项检查由 `pr-release.mjs merge` 再次强制核验；最终 merge SHA、保护 apply/读回和下一任务全流程证据见 §6。
 
 ## 5. 偏差与边界
 
@@ -98,11 +98,16 @@ AF-056 实现提交自身回放：`b391d1cb3da2 task=AF-056 reason=pass files=11
 - admin 可通过后续 API 改保护设置，因此需要读回核验和变更审计；当前声明不配置个人/团队 bypass。
 - 本单只覆盖 `mofang-nestjs`，未声称其他仓库已接入。
 
-## 6. 交接
+## 6. 最终线上证据（AF-057 补记）
 
-AF-057 负责：
+- 归档 HEAD：`42acc8c7438f7164914517cb1c9591e4e8058214`；3 个 PR 提交本地回放全部通过。
+- `pr-release.mjs merge` 读回 13 项 checks：`pass total=13 missing=0 pending=0 failing=0`。
+- PR #11 已 squash 合并：`f3d6009e80d2c258ab1295fde140dc40e9b99e10`；本地 integrate 同步到同一 SHA，本地/远端任务分支均删除。
+- `branch-protection.mjs --apply` 读回 `pass=true`：13 项 context 无缺失/无额外项，strict、enforceAdmins、linearHistory、forcePushDisabled、deletionDisabled、conversationResolution、pullRequestRequired 全部为 true。
+- AF-057 直推实弹：`git push origin HEAD:integrate` 返回 `Changes must be made through a pull request` 与 `13 of 13 required status checks are expected`，exit 1；远端 integrate 仍为 `f3d6009e`。
 
-1. 记录 AF-056 最终 PR merge SHA 与分支清理结果；
-2. apply + 读回 integrate 保护；
-3. 实弹证明无任务提交和直接 push 被远端拒绝；
-4. 以「登记在任务分支 → PR → 验收归档 → squash」完成自身交付。
+## 7. 新发现与返修
+
+AF-056 原实现只在本地 `pr-release.mjs` 检查 completed + passed 回执。复核发现：拥有合并权限者可绕开该 CLI，直接从 GitHub 页面/API 合并一个仍在办的 PR。该路径不能靠本地工具自称「无法绕过」。
+
+AF-057 因此新增 PR 最终 HEAD 验收门：CI 直接读取 git tree 中的 archivedTasks 与 durable receipt，不满足 completed/archived + passed + in-scope + completed 时 `Orchestration Gate` 必须失败。AF-056 不重开、不改写历史；返修与完整实弹由 AF-057 承担。

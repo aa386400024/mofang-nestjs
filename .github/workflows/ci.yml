@@ -51,11 +51,14 @@ jobs:
           EVENT_AFTER: ${{ github.sha }}
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.head_ref }}
           REF_NAME: ${{ github.ref }}
         run: |
           if [ "$EVENT_NAME" = "pull_request" ]; then
             BASE="$PR_BASE"
             HEAD="$PR_HEAD"
+            echo "ORCH_REQUIRE_ACCEPTED=1" >> "$GITHUB_ENV"
+            echo "ORCH_TASK_REF=$HEAD_REF" >> "$GITHUB_ENV"
           elif [ "$EVENT_NAME" = "push" ]; then
             BASE="$EVENT_BEFORE"
             HEAD="$EVENT_AFTER"
@@ -72,7 +75,15 @@ jobs:
           echo "Validating $BASE..$HEAD"
 
       - name: Validate every commit against its own task snapshot
-        run: node scripts/orchestration/ci-task-gate.mjs --base "$ORCH_BASE" --head "$ORCH_HEAD"
+        run: |
+          if [ "$ORCH_REQUIRE_ACCEPTED" = "1" ]; then
+            # 防止绕过 pr-release，直接从 GitHub 页面合并未验收 PR。
+            node scripts/orchestration/ci-task-gate.mjs \
+              --base "$ORCH_BASE" --head "$ORCH_HEAD" \
+              --require-accepted --task-id "$ORCH_TASK_REF"
+          else
+            node scripts/orchestration/ci-task-gate.mjs --base "$ORCH_BASE" --head "$ORCH_HEAD"
+          fi
 
   # 所有 job 之间没有产物依赖：契约 / lint / 单测 / E2E / 覆盖率 / Docker build / 安全审计
   # 均从同一 checkout 独立执行。并行跑可将墙钟从「lint→test→build」三段串行压到单段最长作业。

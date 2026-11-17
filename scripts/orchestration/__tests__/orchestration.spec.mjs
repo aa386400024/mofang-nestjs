@@ -87,7 +87,7 @@ import { parseTaskSheetFrontmatter, buildTaskRecord } from '../task-intake.mjs';
 import { ingestReceipts } from '../receipts.mjs';
 import { normalizeScope, findScopeConflicts, detectResidualFiles, scopeCovers, expandScopePattern } from '../scope-mutex.mjs';
 import { evaluateTaskEntry, isStatePlanePath, GATE_ALLOWED_STATUSES } from '../task-entry-gate.mjs';
-import { evaluateCommitSnapshot, extractCommitTaskId } from '../ci-task-gate.mjs';
+import { evaluateAcceptanceSnapshot, evaluateCommitSnapshot, extractCommitTaskId } from '../ci-task-gate.mjs';
 import { INTEGRATE_REQUIRED_CONTEXTS, buildIntegrateProtection, verifyIntegrateProtection } from '../branch-protection.mjs';
 import { evaluateRequiredChecks } from '../pr-release.mjs';
 import {
@@ -3658,6 +3658,38 @@ describe('AF-056 CI 逐提交编排门', () => {
       taskSheetExists: true,
     });
     expect(result).toMatchObject({ pass: false, reason: 'scope-residual' });
+  });
+
+  it('PR 最终 HEAD 未 completed/archived 时禁止直接合并', () => {
+    const task = ciTask('AF-905');
+    const result = evaluateAcceptanceSnapshot({
+      taskId: 'AF-905',
+      currentIndex: { tasks: [task], archivedTasks: [] },
+      receipts: [{ verdict: 'passed', scopeCheck: 'in-scope', finalStatus: 'completed' }],
+    });
+    expect(result).toMatchObject({ pass: false, reason: 'task-not-archived-completed' });
+  });
+
+  it('PR 只有回执文件但不是 passed 时仍禁止合并', () => {
+    const task = ciTask('AF-906');
+    const result = evaluateAcceptanceSnapshot({
+      taskId: 'AF-906',
+      currentIndex: { tasks: [], archivedTasks: [{ ...task, status: 'completed' }] },
+      receipts: [{ verdict: 'conditional-pass', scopeCheck: 'in-scope', finalStatus: 'completed' }],
+    });
+    expect(result).toMatchObject({ pass: false, reason: 'passed-durable-receipt-missing' });
+  });
+
+  it('PR archived/completed 与 passed durable 回执同时满足才 accepted', () => {
+    const task = ciTask('AF-907');
+    const result = evaluateAcceptanceSnapshot({
+      taskId: 'AF-907',
+      currentIndex: { tasks: [], archivedTasks: [{ ...task, status: 'completed' }] },
+      receipts: [
+        { path: 'docs/worklog/pending/archive/AF-907-receipt.json', verdict: 'passed', scopeCheck: 'in-scope', finalStatus: 'completed' },
+      ],
+    });
+    expect(result).toMatchObject({ pass: true, reason: 'accepted', taskId: 'AF-907' });
   });
 });
 

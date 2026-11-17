@@ -70,6 +70,33 @@ export function evaluateCommitSnapshot({ subject, changedFiles, currentIndex, pa
   return output;
 }
 
+/** PR 最终 HEAD 的验收硬门：防止绕开 pr-release，直接从 GitHub 页面合并。 */
+export function evaluateAcceptanceSnapshot({ taskId, currentIndex, receipts = [] }) {
+  const archived = (currentIndex?.archivedTasks ?? []).find((task) => task?.taskId === taskId);
+  if (!archived || archived.status !== 'completed') {
+    return {
+      pass: false,
+      reason: 'task-not-archived-completed',
+      taskId,
+      receipts,
+      errors: [`任务 ${taskId} 在当前 HEAD 不是 completed/archived，禁止 PR 合并`],
+    };
+  }
+  const passed = receipts.filter(
+    (receipt) => receipt.verdict === 'passed' && receipt.scopeCheck === 'in-scope' && receipt.finalStatus === 'completed',
+  );
+  if (passed.length === 0) {
+    return {
+      pass: false,
+      reason: 'passed-durable-receipt-missing',
+      taskId,
+      receipts,
+      errors: [`任务 ${taskId} 缺少 reviewVerdict=passed + scopeCheck=in-scope + finalStatus=completed 的 durable 回执`],
+    };
+  }
+  return { pass: true, reason: 'accepted', taskId, receipts, errors: [] };
+}
+
 function git(args, { allowFailure = false } = {}) {
   try {
     return execFileSync('git', args, {
@@ -97,6 +124,36 @@ function readIndexAt(ref) {
   } catch (error) {
     throw new Error(`${ref} 的任务索引不是合法 JSON：${error.message}`);
   }
+}
+
+function readAcceptanceReceiptsAt(sha, taskId) {
+  const prefix = 'docs/worklog/pending/archive';
+  const files = git(['ls-tree', '-r', '--name-only', sha, '--', prefix])
+    .split(/\r?\n/)
+    .filter((path) => path.startsWith(`${prefix}/${taskId}-receipt-`) && path.endsWith('.json'));
+  return files.map((path) => {
+    try {
+      const receipt = JSON.parse(git(['show', `${sha}:${path}`]));
+      return {
+        path,
+        verdict: receipt.payload?.reviewVerdict ?? receipt.reviewVerdict ?? null,
+        scopeCheck: receipt.payload?.scopeCheck ?? receipt.scopeCheck ?? null,
+        finalStatus: receipt.payload?.finalStatus ?? receipt.finalStatus ?? null,
+      };
+    } catch {
+      return { path, verdict: 'invalid-json', scopeCheck: null, finalStatus: null };
+    }
+  });
+}
+
+export function evaluateAcceptanceAt(sha, taskIdOrBranch) {
+  const taskId = extractCommitTaskId(taskIdOrBranch);
+  if (!taskId) throw new Error(`无法从 ${taskIdOrBranch || '(空)'} 解析 PR 任务编号`);
+  return evaluateAcceptanceSnapshot({
+    taskId,
+    currentIndex: readIndexAt(sha),
+    receipts: readAcceptanceReceiptsAt(sha, taskId),
+  });
 }
 
 function taskRecordAt(taskId, currentIndex, parentIndex) {
@@ -159,19 +216,23 @@ export function evaluateCommitAt(sha) {
 }
 
 /** 校验 base..head 全部非 merge 提交，聚合所有失败而不是首错即停。 */
-export function runCiTaskGate({ base, head }) {
+export function runCiTaskGate({ base, head, requireAccepted = false, taskId = null }) {
   if (!base || !head) throw new Error('必须提供 --base 与 --head');
   if (/^0+$/.test(base)) throw new Error('base 不能是全零 SHA；新分支请显式传目标基线');
   const shas = git(['rev-list', '--reverse', `${base}..${head}`])
     .split(/\s+/)
     .filter(Boolean);
   const results = shas.map(evaluateCommitAt);
+  const failed = results.filter((result) => !result.pass).length;
+  const acceptance = requireAccepted ? evaluateAcceptanceAt(head, taskId) : null;
   return {
     base,
     head,
     total: results.length,
     passed: results.filter((result) => result.pass).length,
-    failed: results.filter((result) => !result.pass).length,
+    failed,
+    acceptance,
+    ok: failed === 0 && (!acceptance || acceptance.pass),
     results,
   };
 }
@@ -181,6 +242,8 @@ function parseArgs(argv) {
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--json') args.json = true;
+    else if (arg === '--require-accepted') args.requireAccepted = true;
+    else if (arg === '--task-id') args.taskId = argv[++index];
     else if (arg === '--base') args.base = argv[++index];
     else if (arg === '--head') args.head = argv[++index];
     else throw new Error(`未知参数：${arg}`);
@@ -200,8 +263,17 @@ function printHuman(summary) {
       for (const error of result.errors) console.error(`  - ${error}`);
     }
   }
+  if (summary.acceptance) {
+    const acceptance = summary.acceptance;
+    const line = `[ORCH-CI-GATE] ACCEPTANCE task=${acceptance.taskId} pass=${acceptance.pass} reason=${acceptance.reason} receipts=${acceptance.receipts.length}`;
+    if (acceptance.pass) console.log(line);
+    else {
+      console.error(line);
+      for (const error of acceptance.errors) console.error(`  - ${error}`);
+    }
+  }
   console.log(
-    `[ORCH-CI-GATE] total=${summary.total} passed=${summary.passed} failed=${summary.failed} base=${summary.base} head=${summary.head}`,
+    `[ORCH-CI-GATE] total=${summary.total} passed=${summary.passed} failed=${summary.failed} ok=${summary.ok} base=${summary.base} head=${summary.head}`,
   );
 }
 
@@ -212,7 +284,7 @@ if (isMain) {
     const summary = runCiTaskGate(args);
     if (args.json) console.log(JSON.stringify(summary, null, 2));
     else printHuman(summary);
-    if (summary.failed > 0) process.exitCode = 1;
+    if (!summary.ok) process.exitCode = 1;
   } catch (error) {
     console.error(`[ORCH-CI-GATE] ERROR ${error.message}`);
     process.exitCode = 1;

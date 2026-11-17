@@ -14,7 +14,7 @@
 3. 没有匹配的在办任务，**停止**。不许先做后补、不许用会话内 task_create / 口头清单替代任务单、不许手改状态索引。
 4. 提交前由 Husky 强制执行 `pnpm orchestration:preflight`：无在办任务、任务仍在 ready、暂存文件越出任务 scope，一律阻断。
 5. 收尾写交付记录 + 机读回执 → `run-once` 验收 → `archive`；事件链与索引数字以 CLI 输出为准。
-6. CI `Orchestration Gate` 逐提交复核 taskId / 状态 / scope / 任务单，`integrate` 由 required PR + 13 项检查 + enforce admins 保护；受保护后登记与实现都在任务分支，L3 用 `pr-release.mjs` squash 合并，禁止直推或靠 `--no-verify` 绕过。
+6. CI `Orchestration Gate` 逐提交复核 taskId / 状态 / scope / 任务单，并在 PR 最终 HEAD 强制 completed/archived + passed durable 回执；`integrate` 由 required PR + 13 项检查 + enforce admins 保护。受保护后登记与实现都在任务分支，L3 用 `pr-release.mjs` squash 合并，禁止直推或靠 `--no-verify` 绕过。
 
 **只读豁免**：代码/文档阅读、搜索、解释、方案讨论、`status` / `events verify` / `git status` 等只读检查不需要建任务。只要会产生文件、数据或运行态变化，就不在豁免内。
 

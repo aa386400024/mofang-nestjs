@@ -18,7 +18,7 @@
 3. **禁止替代**：会话内待办、口头清单、“先做后补”、手改状态索引均不构成任务登记；状态面只能经 CLI 写。
 4. **提交门禁**：`.husky/pre-commit` 先调用 `scripts/orchestration/task-entry-gate.mjs`（`pnpm orchestration:preflight`）。无在办任务、任务仍在 `ready`、暂存文件越出任务 `scope.files` 一律阻断；状态面生成物按 V7 口径豁免。验收归档后若暂存区**只有**状态面生成物，门禁以 `state-plane-only` 放行；只要混入一个非状态面文件，就恢复在办任务与 scope 硬校验。squash 合并若同次暂存携带 `task-state-index.json` 的 active→completed 归档迁移，门禁可用 HEAD 中同 taskId 的在办记录校验 scope（`archived-transition`）；canceled/rejected、未携带索引或越界文件仍阻断。
 5. **收尾**：交付记录 + 机读回执成对产出，`run-once` 摄入验收后按 CLI 归档；事件条数、归档数、台账数字以 CLI 输出为准。
-6. **服务端硬门（AF-056）**：CI `Orchestration Gate` 对 PR→integrate 与 integrate push 的每个新增提交重新执行同一状态机，校验提交标题 taskId、提交时刻任务状态、文件 scope、任务单存在性及归档迁移；本地 `--no-verify` 不能替代远端判定。`integrate` 保护要求 13 项检查、PR（审批数 0）、strict 最新分支、线性历史并 `enforce_admins`，禁止 force push / 删除。
+6. **服务端硬门（AF-056/057）**：CI `Orchestration Gate` 对 PR→integrate 与 integrate push 的每个新增提交重新执行同一状态机，校验提交标题 taskId、提交时刻任务状态、文件 scope、任务单存在性及归档迁移；PR 最终 HEAD 还必须是 completed/archived 并携带 passed + in-scope + completed durable 回执，防止绕开本地工具直接页面合并。本地 `--no-verify` 不能替代远端判定。`integrate` 保护要求 13 项检查、PR（审批数 0）、strict 最新分支、线性历史并 `enforce_admins`，禁止 force push / 删除。
 
 门禁脚本只读暂存区与状态索引，不自动 stage、不修改状态；任务与回执语义不变。
 
@@ -301,15 +301,16 @@ node scripts/orchestration/branch-protection.mjs --repo aa386400024/mofang-nestj
 node scripts/orchestration/branch-protection.mjs --repo aa386400024/mofang-nestjs --branch integrate --apply # 幂等 apply + 读回核验
 ```
 
-| 项           | 强制口径                                                                                                                             |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| 提交范围     | PR 使用 `base.sha..head.sha`；integrate push 使用 `event.before..event.after`；不能只查最终 diff，否则坏提交可先混入再被后续提交掩盖 |
-| 提交身份     | 标题必须含唯一任务编号；同编号重复允许，多编号、日期形态或缺失编号不会获得任务权限                                                   |
-| 状态快照     | 同时读取当前提交与父提交的索引；active 提交用当前在办任务，归档 squash 用 `archived-transition`                                      |
-| 文件与任务单 | 非状态面文件必须落入 scope；任务单必须在该提交树中存在；canceled/rejected 不可借用                                                   |
-| 检查放行     | 13 项 context 全部存在且完成；失败优先 fail，缺项/进行中/空 checks 均不放行                                                          |
-| 分支保护     | required PR（审批数 0）、strict、线性历史、enforce admins、禁止 force push/deletion；不设置人或团队 bypass                           |
-| 凭据         | 复用 `GITHUB_TOKEN` / `GH_TOKEN` / `ORCH_GITHUB_TOKEN` / Git credential helper；不安装 gh、不打印或入库 token                        |
+| 项                | 强制口径                                                                                                                                                                                         |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 提交范围          | PR 使用 `base.sha..head.sha`；integrate push 使用 `event.before..event.after`；不能只查最终 diff，否则坏提交可先混入再被后续提交掩盖                                                             |
+| 提交身份          | 标题必须含唯一任务编号；同编号重复允许，多编号、日期形态或缺失编号不会获得任务权限                                                                                                               |
+| 状态快照          | 同时读取当前提交与父提交的索引；active 提交用当前在办任务，归档 squash 用 `archived-transition`                                                                                                  |
+| PR 验收（AF-057） | PR 最终 HEAD 必须 completed/archived，且 git tree 内 durable 回执同时满足 reviewVerdict=passed、scopeCheck=in-scope、finalStatus=completed；否则 Orchestration Gate failure，页面/API 也不能合并 |
+| 文件与任务单      | 非状态面文件必须落入 scope；任务单必须在该提交树中存在；canceled/rejected 不可借用                                                                                                               |
+| 检查放行          | 13 项 context 全部存在且完成；失败优先 fail，缺项/进行中/空 checks 均不放行                                                                                                                      |
+| 分支保护          | required PR（审批数 0）、strict、线性历史、enforce admins、禁止 force push/deletion；不设置人或团队 bypass                                                                                       |
+| 凭据              | 复用 `GITHUB_TOKEN` / `GH_TOKEN` / `ORCH_GITHUB_TOKEN` / Git credential helper；不安装 gh、不打印或入库 token                                                                                    |
 
 边界：Git 与 GitHub 能硬阻断未授权提交和合并；数据库、Redis、环境启停仍由任务登记、scope、回执和事件审计约束，不能伪装成操作系统级沙箱。仓库 admin 理论上可通过后续 API 改保护规则，因此保护配置的读回核验与变更审计是长期必要项，而不是宣称「管理员也无法改设置」。
 
