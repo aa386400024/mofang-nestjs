@@ -1,12 +1,12 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-17T04:40:27.219Z",
+  "generatedAt": "2026-11-17T04:50:28.534Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
-    "ready": 1,
+    "ready": 0,
     "submitted": 0,
     "working": 0,
     "completed": 0,
@@ -16,38 +16,18 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-046",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "verification",
-      "title": "CI 门禁实弹演练（branch merge --require-ci 阻断与放行双路径）",
-      "status": "ready",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af046-ci-gate-fire-drill-task-2026-11-17.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": null
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
     "total": 42,
-    "activeCount": 3,
+    "activeCount": 0,
     "byStatus": {
-      "candidate": 3,
+      "candidate": 0,
       "queued": 0,
       "accepted": 0,
-      "done": 38,
+      "done": 41,
       "wontfix": 1
     },
     "byType": {
@@ -915,7 +895,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-040",
         "title": "CI 门禁只有单测覆盖，没有一次真实远端结论决定过合并",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "gap",
         "layer": "adapter",
@@ -923,18 +903,18 @@ window.ORCH_SNAPSHOT = {
         "evidence": [],
         "impact": "门禁是装饰还是决定无法区分",
         "suggestion": "对临时分支跑阻断+放行双路径实弹：workflow_dispatch 补 check runs 后再合并",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-17T04:40:20.621Z",
+          "at": "2026-11-17T04:50:27.368Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "本批落地并验证"
         }
       },
       {
         "improvementId": "IM-041",
         "title": "框架 docs 条款只靠哈希锁机读契约，正文改写后 CI 仍全绿",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "gap",
         "layer": "framework",
@@ -942,18 +922,18 @@ window.ORCH_SNAPSHOT = {
         "evidence": [],
         "impact": "规范与适配层实现漂移无人发现，验收无共同判据",
         "suggestion": "conformance/normative-anchors.json + check_normative_docs：条款锚点缺失即 V7 失败，改条款必须同步改清单",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-17T04:40:27.002Z",
+          "at": "2026-11-17T04:50:27.961Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "本批落地并验证"
         }
       },
       {
         "improvementId": "IM-042",
         "title": "熔断开闸后派发侧仍把新单送进已知坏通道",
-        "status": "candidate",
+        "status": "done",
         "source": "implementation",
         "type": "gap",
         "layer": "adapter",
@@ -961,12 +941,12 @@ window.ORCH_SNAPSHOT = {
         "evidence": [],
         "impact": "开闸只是可观察事件，没有阻断力",
         "suggestion": "resolveChannelCircuit 扫运行态取最新开闸事实，claimReadyTasks 里 open 整轮停派、half-open 只放一次试探",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-17T04:40:27.212Z",
+          "at": "2026-11-17T04:50:28.526Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "本批落地并验证"
         }
       }
     ]
@@ -1112,6 +1092,68 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-057",
+      "recordedAt": "2026-11-17T04:49:49.647Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-045",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-045",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-045.json"
+      ]
+    },
+    {
+      "auditId": "AUD-056",
+      "recordedAt": "2026-11-17T04:49:49.334Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-045",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-055",
+      "recordedAt": "2026-11-17T04:49:05.041Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-046",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-046",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-046.json"
+      ]
+    },
+    {
+      "auditId": "AUD-054",
+      "recordedAt": "2026-11-17T04:44:41.043Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:merge:AF-046",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-046-af-046"
+      ]
+    },
     {
       "auditId": "AUD-053",
       "recordedAt": "2026-11-17T04:19:25.640Z",
@@ -1284,111 +1326,26 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-036.json"
       ]
-    },
-    {
-      "auditId": "AUD-042",
-      "recordedAt": "2026-11-17T03:16:23.293Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-036",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-041",
-      "recordedAt": "2026-11-17T03:14:15.205Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-035",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-035",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-035.json"
-      ]
-    },
-    {
-      "auditId": "AUD-040",
-      "recordedAt": "2026-11-17T03:14:14.905Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-035",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-039",
-      "recordedAt": "2026-11-17T03:13:12.310Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-034",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-034",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-034.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 53,
+    "total": 57,
     "byResult": {
-      "allowed": 53,
+      "allowed": 57,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 51
+      "TOOL-QUEUE-SCHEDULER": 55
     },
     "byActor": {
-      "orchestrator": 53
+      "orchestrator": 57
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-046",
-        "title": "CI 门禁实弹演练（branch merge --require-ci 阻断与放行双路径）",
-        "type": "verification",
-        "status": {
-          "framework": "ready",
-          "protocol": null,
-          "stage": "orchestration"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af046-ci-gate-fire-drill-task-2026-11-17.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -2525,6 +2482,42 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af044-leftover-backlog-closeout-2026-11-17.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-046",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af046-ci-gate-fire-drill-task-2026-11-17.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af045-orchestration-hardening-2026-11-17.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-045",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af045-orchestration-hardening-task-2026-11-17.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af045-orchestration-hardening-2026-11-17.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -2539,17 +2532,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-046",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af046-ci-gate-fire-drill-task-2026-11-17.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -2610,5 +2595,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 62
+  "archivedCount": 64
 };
