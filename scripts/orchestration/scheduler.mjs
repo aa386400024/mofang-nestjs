@@ -15,7 +15,6 @@
  * 生成提案，避免擅自分配任务编号（任务标识模式见框架 task-sheet schema）。
  */
 import {
-  PATHS,
   ensureRuntimeEntry,
   findTask,
   getRuntimeEntry,
@@ -28,7 +27,6 @@ import {
   loadToolContracts,
   nowIso,
   saveRuntimeState,
-  writeJsonAtomic,
 } from './state-store.mjs';
 import { commitIndex } from './event-store.mjs';
 import { TERMINAL_STATUSES } from './contract-enums.mjs';
@@ -424,8 +422,7 @@ export function advanceOnce(opts = {}) {
       commitIndex(index, { actor: BY_ORCHESTRATOR });
       saveRuntimeState(runtimeState);
     }
-    // 快照为只读产物，关闭自治时同样落盘，供静态网页读取。
-    writeJsonAtomic(PATHS.snapshot, snapshot);
+    // 快照由 CLI 统一双写（JSON + data.js），此处只返回内存对象，避免重复落盘与时间戳抖动。
   }
   return { snapshot, actions };
 }

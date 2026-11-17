@@ -70,7 +70,7 @@
 | `directories.stateJournal`         | `docs/team/agent-orchestration/state/journal.jsonl`（**唯一写面**，append-only 事件日志；`state-event:1.0.0` + SHA-256 哈希链）；历史段在 `state/journal-archive/` |
 | `directories.stateArchivedNotes`   | `docs/team/agent-orchestration/state/archived-notes.json`（归档说明侧车，重建时合并进索引 `archivedNotes`）                                                        |
 | `directories.runtimeState`         | `docs/team/agent-orchestration/orchestration-state.json`（L2 运行态，首次 run-once 生成）                                                                          |
-| `directories.snapshot`             | `docs/team/agent-orchestration/orchestration-snapshot.json`（队列快照，网页数据源）                                                                                |
+| `directories.snapshot`             | `docs/team/agent-orchestration/orchestration-snapshot.json`（队列快照，网页数据源；空跑或仅时间戳变化不重写，避免脏 diff）                                         |
 | `directories.improvementLog`       | `docs/team/agent-orchestration/improvement-log.json`（候选改进台账；口径见 `improvement-loop.md`）                                                                 |
 | `directories.deliveryPacks`        | `docs/team/agent-orchestration/delivery-packs/`（夜间交付包汇总目录）                                                                                              |
 | `directories.orchestrationScripts` | `scripts/orchestration/`（L2 工具链实现；工具契约声明见 `tools/<TOOL-ID>.json`，一工具一文件）                                                                     |

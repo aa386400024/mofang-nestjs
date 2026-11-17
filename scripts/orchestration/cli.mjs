@@ -71,11 +71,25 @@ import { SESSION_PATHS, LOCATE_LAYERS, MAX_START_RETRIES, MAX_SEND_RETRIES, canD
 import { registerTaskFromSheet, registerTaskFromHandover, parseTaskSheetFrontmatter } from './task-intake.mjs';
 
 /** 快照双写：JSON（机读 / 存档）+ data.js（静态网页在 file:// 下读取，规避本地 fetch 限制）。 */
-function writeSnapshotArtifacts(snapshot) {
+function writeSnapshotArtifacts(snapshot, opts = {}) {
+  // 运行态快照是派生视图：空跑 / 仅时间戳变化时不重写，避免每次 watch tick 制造脏 diff。
+  if (!opts.force && existsSync(PATHS.snapshot)) {
+    try {
+      const previous = JSON.parse(readFileSync(PATHS.snapshot, 'utf8'));
+      const comparable = (value) => {
+        const { generatedAt: _generatedAt, ...rest } = value;
+        return JSON.stringify(rest);
+      };
+      if (comparable(previous) === comparable(snapshot)) return false;
+    } catch {
+      // 快照损坏时直接覆盖，交给后续校验兜底。
+    }
+  }
   writeJsonAtomic(PATHS.snapshot, snapshot);
   writeFileSync(PATHS.webDataJs, `// 由 orchestration CLI 生成，勿手改\nwindow.ORCH_SNAPSHOT = ${JSON.stringify(snapshot, null, 2)};\n`, {
     encoding: 'utf8',
   });
+  return true;
 }
 
 /**
@@ -83,11 +97,11 @@ function writeSnapshotArtifacts(snapshot) {
  * 索引缺失等读取异常时跳过刷新并告警，不阻断台账 / 交付包等已落盘产物。
  * @returns {object|null} 快照对象；跳过刷新时为 null。
  */
-function refreshSnapshotArtifacts() {
+function refreshSnapshotArtifacts(opts = {}) {
   try {
     const config = loadConfig();
     const snapshot = buildSnapshot(loadIndex(), loadRuntimeState(), config, summarizeLog(loadImprovementLog()));
-    writeSnapshotArtifacts(snapshot);
+    writeSnapshotArtifacts(snapshot, opts);
     return snapshot;
   } catch (err) {
     console.warn(`[snapshot] 跳过快照刷新：${err.message}`);
@@ -230,7 +244,7 @@ function cmdProtocol() {
 
 function cmdSnapshot() {
   auditRegistryCall('TOOL-STATE-STORE', { actor: 'orchestrator', correlationId: 'snapshot' });
-  const snapshot = refreshSnapshotArtifacts();
+  const snapshot = refreshSnapshotArtifacts({ force: true });
   console.log(`快照已写入：${PATHS.snapshot}`);
   if (snapshot) printSnapshot(snapshot);
 }

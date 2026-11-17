@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T00:51:03.051Z",
+  "generatedAt": "2026-11-17T01:10:56.274Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -53,7 +53,9 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": null,
-        "evidence": ["scripts/orchestration/improvement-log.mjs#extractFromSnapshot"],
+        "evidence": [
+          "scripts/orchestration/improvement-log.mjs#extractFromSnapshot"
+        ],
         "impact": "回执正文中未进入快照遗留区的缺口不会被台账捕获，存在漏登记风险",
         "suggestion": "抽取通道增加回执文件正文解析，与快照遗留项双通道合并去重",
         "historyCount": 4,
@@ -72,7 +74,9 @@
         "type": "tech-debt",
         "layer": "adapter",
         "relatedTaskId": null,
-        "evidence": ["pnpm audit: . > typeorm-model-generator@0.4.6-no-engines > typeorm@0.2.45 / mysql2@2.3.3 / sqlite3@5.1.7"],
+        "evidence": [
+          "pnpm audit: . > typeorm-model-generator@0.4.6-no-engines > typeorm@0.2.45 / mysql2@2.3.3 / sqlite3@5.1.7"
+        ],
         "impact": "该 dev 工具上游停更，拖入老 typeorm/mysql2/sqlite3/tar/tmp，贡献全部 4 条 critical 及多数 high/moderate 告警；仅开发期反向生成使用，不进生产运行时",
         "suggestion": "评估移除 typeorm-model-generator、bin/entity.ts、NamingStrategy.cjs 及样品 entity；移除前确认无 DB→装饰器反向生成需求",
         "historyCount": 3,
@@ -158,7 +162,10 @@
         "type": "standard",
         "layer": "framework",
         "relatedTaskId": "AF-009",
-        "evidence": ["autonomous-team-design.md 协商轮定义", "handover-contract.mjs review 字段为本仓适配层定义"],
+        "evidence": [
+          "autonomous-team-design.md 协商轮定义",
+          "handover-contract.mjs review 字段为本仓适配层定义"
+        ],
         "impact": "review 结构目前仅本仓定义 跨代理复用需框架层固化",
         "suggestion": "P1 评估将 review 交接件字段组上提框架仓 schema 与模板",
         "historyCount": 4,
@@ -177,7 +184,10 @@
         "type": "tech-debt",
         "layer": "adapter",
         "relatedTaskId": "AF-010",
-        "evidence": ["dispatch.mjs receiptFingerprint", "framework reliability.md §2"],
+        "evidence": [
+          "dispatch.mjs receiptFingerprint",
+          "framework reliability.md §2"
+        ],
         "impact": "同一 taskId 若交付记录路径不变而内容被覆盖，指纹无法区分版本；当前交接件不可变口径下风险可控",
         "suggestion": "后续在任务条目或交接件补独立工件版本号（revision/version），指纹以 taskId+version 为准",
         "historyCount": 1,
@@ -196,7 +206,10 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": "AF-010",
-        "evidence": ["dispatch.mjs targetRole 取 agentRole 兜底 executor", "framework autonomous-loop.md §100"],
+        "evidence": [
+          "dispatch.mjs targetRole 取 agentRole 兜底 executor",
+          "framework autonomous-loop.md §100"
+        ],
         "impact": "多执行代理并存时无法按能力与可用性路由；当前单 executor 角色无实际影响",
         "suggestion": "AF-013 演练阶段或 P1 接入 agent card 能力声明匹配，按 skills/tools/availability 选择目标代理",
         "historyCount": 4,
@@ -215,7 +228,9 @@
         "type": "tech-debt",
         "layer": "adapter",
         "relatedTaskId": "AF-011",
-        "evidence": ["acceptance-runner.mjs checkResidual opts.changedFiles scope-mutex.mjs detectResidualFiles"],
+        "evidence": [
+          "acceptance-runner.mjs checkResidual opts.changedFiles scope-mutex.mjs detectResidualFiles"
+        ],
         "impact": "纯函数模块无 git IO；变更清单须由调用方采集传入，未接入采集器前 V7 残留护栏记 skip，清单外文件不会被机读拦截",
         "suggestion": "后续在调度/验收入口采集 git diff --name-only（相对仓根）传入 runAcceptance opts.changedFiles，使 V7 残留比对生效",
         "historyCount": 4,
@@ -234,7 +249,9 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": "AF-011",
-        "evidence": ["scope-mutex.mjs findScopeConflicts 仅做任务间互斥 agent-cards resources 字段未投影进校验"],
+        "evidence": [
+          "scope-mutex.mjs findScopeConflicts 仅做任务间互斥 agent-cards resources 字段未投影进校验"
+        ],
         "impact": "本单只拦截在办任务间文件域冲突；任务 scope 越出角色声明资源域（如 executor 写编排目录）暂无前置机读校验",
         "suggestion": "P1 接入 Agent Card resources 投影，派发前校验任务 scope 落在目标角色资源域内；资源域真相源保持角色卡与框架 roles.md",
         "historyCount": 4,
@@ -253,7 +270,9 @@
         "type": "tech-debt",
         "layer": "adapter",
         "relatedTaskId": "AF-011",
-        "evidence": ["scope-mutex.mjs normalizePath wildcard 截断 纯函数无 fs 列目录能力"],
+        "evidence": [
+          "scope-mutex.mjs normalizePath wildcard 截断 纯函数无 fs 列目录能力"
+        ],
         "impact": "src/**/*.ts 类通配按 src/ 目录前缀近似判定；跨层通配与单段 * 的精确覆盖口径可能偏宽或偏窄",
         "suggestion": "P2 并行文件锁升级时引入只读路径匹配器（读目录或框架 glob 工具），在纯函数之外的采集层做展开",
         "historyCount": 1,
@@ -272,7 +291,9 @@
         "type": "tech-debt",
         "layer": "adapter",
         "relatedTaskId": "AF-012",
-        "evidence": ["branch-workflow.mjs squashMerge 仅执行 git merge --squash cli.mjs cmdBranch merge 注明提交归编排者闸门"],
+        "evidence": [
+          "branch-workflow.mjs squashMerge 仅执行 git merge --squash cli.mjs cmdBranch merge 注明提交归编排者闸门"
+        ],
         "impact": "合并链路停在暂存阶段；提交标题（conventional + taskId）与合并后远端分支清理需编排者手工闭合，未形成自动 L1 合并闭环",
         "suggestion": "L1 自动化阶段在闸门全绿后补提交动作（标题带 taskId），并在合并成功后串联本地/远端源分支清理",
         "historyCount": 1,
@@ -291,7 +312,9 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": "AF-012",
-        "evidence": ["branch-workflow.mjs classifyBranches 仅按 merged/ageDays 分类 cli.mjs collectBranches 未采集 ahead/behind"],
+        "evidence": [
+          "branch-workflow.mjs classifyBranches 仅按 merged/ageDays 分类 cli.mjs collectBranches 未采集 ahead/behind"
+        ],
         "impact": "未合并分支可能已落后基线但巡检只标注超期天数，无法识别需先 rebase 的陈旧分支",
         "suggestion": "巡检采集 git status --branch ahead/behind 或 merge-base 差量，未合并且落后基线的分支单独标注待 rebase",
         "historyCount": 4,
@@ -310,7 +333,13 @@
         "type": "gap",
         "layer": "framework",
         "relatedTaskId": "AF-013",
-        "evidence": ["docs/worklog/pending/archive/relay-response-af013-drill-20261116.md", "D-10", "D-2", "D-5", "D-7"],
+        "evidence": [
+          "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md",
+          "D-10",
+          "D-2",
+          "D-5",
+          "D-7"
+        ],
         "impact": "通道重试形态/数值（固定重试一次、无退避）与框架指数退避不一致；失败终态出口双轨（保持 ready+转人工 vs 直接 failed）；确定性缺陷在通道层缺终止规则。跨两仓文档修订时需统一权威终态出口与重试预算。",
         "suggestion": "在 design memo §3 补 framework §4 锚点；先定权威终态出口（ready vs failed），再统一任务级重试预算与退避；确定性缺陷直落 failed 不重试。",
         "historyCount": 4,
@@ -329,7 +358,11 @@
         "type": "gap",
         "layer": "framework",
         "relatedTaskId": "AF-013",
-        "evidence": ["docs/worklog/pending/archive/relay-response-af013-drill-20261116.md", "D-1", "D-3"],
+        "evidence": [
+          "docs/worklog/pending/archive/relay-response-af013-drill-20261116.md",
+          "D-1",
+          "D-3"
+        ],
         "impact": "审计只留尝试次数聚合值，丢失逐次尝试的失败原因/所在层/退避时长，无法复原重试链；通道失败未纳入确定性/偶发/既有债定性三分法，框架要求的基线分栏在通道侧无载体。",
         "suggestion": "审计记录扩为逐次尝试条目（层、原因、退避、结果）；任务/通道失败补定性字段与既有债-本次改动分栏；通道演练基线来源另立只读核对单确认。",
         "historyCount": 4,
@@ -348,7 +381,10 @@
         "type": "standard",
         "layer": "adapter",
         "relatedTaskId": "AF-014",
-        "evidence": ["docs/team/conventions.md#132", "docs/team/agent-orchestration/relay-receipt-template.md#68"],
+        "evidence": [
+          "docs/team/conventions.md#132",
+          "docs/team/agent-orchestration/relay-receipt-template.md#68"
+        ],
         "impact": "两处活规范仍写「提交推送等用户指令」，与 README/角色卡/模板已落地的 L1–L3 自动 + L4 冻结口径并存，消费方可能读到旧口径造成边界漂移",
         "suggestion": "另开规范同步单：conventions §1.4 提交纪律与回执模板 commit 草稿条目改为引用设计备忘 §6.1 分层口径；executor 不提交口径保留，L1–L3 自动前置条件与 L4 冻结清单指向 §6.1",
         "historyCount": 4,
@@ -389,7 +425,9 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": "AF-015",
-        "evidence": ["design-memo§6.2"],
+        "evidence": [
+          "design-memo§6.2"
+        ],
         "impact": "本机无gh CLI与GITHUB_TOKEN,CI状态本机不可读;当前以本地等价闸门替代远端CI门禁,属过渡方案",
         "suggestion": "接入token/gh后改为以CI状态作为L3自动合并门禁;过渡口径标注目标态不固化为永久设计",
         "historyCount": 1,
@@ -408,7 +446,9 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": "AF-015",
-        "evidence": ["design-memo§4.4"],
+        "evidence": [
+          "design-memo§4.4"
+        ],
         "impact": "退役需删除本地与远端development分支;高风险不可逆动作,须人工确认git-diff为空后执行",
         "suggestion": "人工拍板后按§4.4流程复核integrate..development为空再删除;本批不执行分支删除",
         "historyCount": 4,
@@ -427,7 +467,10 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": "DR-001",
-        "evidence": ["receipt:relay-response-af013-drill-20261116.md", "backlogItem"],
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "backlogItem"
+        ],
         "impact": null,
         "suggestion": null,
         "historyCount": 1,
@@ -446,7 +489,10 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": "DR-001",
-        "evidence": ["receipt:relay-response-af013-drill-20261116.md", "backlogItem"],
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "backlogItem"
+        ],
         "impact": null,
         "suggestion": null,
         "historyCount": 4,
@@ -465,7 +511,10 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": "DR-001",
-        "evidence": ["receipt:relay-response-af013-drill-20261116.md", "backlogItem"],
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "backlogItem"
+        ],
         "impact": null,
         "suggestion": null,
         "historyCount": 4,
@@ -484,7 +533,10 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": "DR-001",
-        "evidence": ["receipt:relay-response-af013-drill-20261116.md", "openQuestion"],
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "openQuestion"
+        ],
         "impact": null,
         "suggestion": null,
         "historyCount": 1,
@@ -503,7 +555,10 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": "DR-001",
-        "evidence": ["receipt:relay-response-af013-drill-20261116.md", "openQuestion"],
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "openQuestion"
+        ],
         "impact": null,
         "suggestion": null,
         "historyCount": 1,
@@ -522,7 +577,10 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": "DR-001",
-        "evidence": ["receipt:relay-response-af013-drill-20261116.md", "openQuestion"],
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "openQuestion"
+        ],
         "impact": null,
         "suggestion": null,
         "historyCount": 1,
@@ -541,7 +599,10 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": "DR-001",
-        "evidence": ["receipt:relay-response-af013-drill-20261116.md", "openQuestion"],
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "openQuestion"
+        ],
         "impact": null,
         "suggestion": null,
         "historyCount": 1,
@@ -560,7 +621,10 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": "DR-001",
-        "evidence": ["receipt:relay-response-af013-drill-20261116.md", "openQuestion"],
+        "evidence": [
+          "receipt:relay-response-af013-drill-20261116.md",
+          "openQuestion"
+        ],
         "impact": null,
         "suggestion": null,
         "historyCount": 1,
@@ -579,7 +643,11 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": "DR-001",
-        "evidence": ["dispatch-channel.mjs#resolveDispatchDecision", "dispatch-channel.mjs#buildDispatchAudit", "cli.mjs:48"],
+        "evidence": [
+          "dispatch-channel.mjs#resolveDispatchDecision",
+          "dispatch-channel.mjs#buildDispatchAudit",
+          "cli.mjs:48"
+        ],
         "impact": "决策/审计规则当前仅被单测引用；CLI 只接 canDispatch 队列互斥，运行时未跑任务级预算、指数退避、终态分流、失败定性与逐次留痕",
         "suggestion": "派发流程接 resolveDispatchDecision 分流终态、buildDispatchAudit 落逐次留痕；held-ready/human-escalated 映射回 TASK_STATUSES；退避等待交 relay 层执行；依赖真实桌面通道激活，排 P2",
         "historyCount": 1,
@@ -598,7 +666,11 @@
         "type": "tech-debt",
         "layer": "adapter",
         "relatedTaskId": "AF-009",
-        "evidence": ["branch-workflow.mjs", "acceptance-runner.mjs", "improvement-log.mjs 各自手写 taskId 校验正则"],
+        "evidence": [
+          "branch-workflow.mjs",
+          "acceptance-runner.mjs",
+          "improvement-log.mjs 各自手写 taskId 校验正则"
+        ],
         "impact": "taskId 模式演进时三处需同步,存在口径漂移风险",
         "suggestion": "枚举与模式收口到 contract-enums.mjs 共享投影,各消费方统一导入",
         "historyCount": 4,
@@ -617,7 +689,9 @@
         "type": "standard",
         "layer": "adapter",
         "relatedTaskId": "AF-009",
-        "evidence": ["validator.mjs 仅覆盖 taskSheet/taskIndex/toolContract/agentCard;CLI validate 未扫 transport/reviews"],
+        "evidence": [
+          "validator.mjs 仅覆盖 taskSheet/taskIndex/toolContract/agentCard;CLI validate 未扫 transport/reviews"
+        ],
         "impact": "review 交接件结构只经本仓轻量校验,未受框架 schema 机读约束",
         "suggestion": "validator 纳入 reviewHandover schema,CLI 扫 reviews 目录解包 payload 校验",
         "historyCount": 4,
@@ -636,7 +710,9 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": "AF-020",
-        "evidence": ["ci.yml 无 Contracts job; validator.mjs 缺框架返回 skipped; 当时 validate 7/7、单测对 skipped 容错"],
+        "evidence": [
+          "ci.yml 无 Contracts job; validator.mjs 缺框架返回 skipped; 当时 validate 7/7、单测对 skipped 容错"
+        ],
         "impact": "CI 绿灯不等于 7 项契约真实通过，框架契约漂移无法在流水线拦截",
         "suggestion": "固化框架 2.0.0 契约包，CI 设 ORCH_REQUIRE_FRAMEWORK=1 硬校验并断言缺框架 fail-fast",
         "historyCount": 4,
@@ -655,7 +731,9 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": "AF-020",
-        "evidence": ["master 8ffb6a3 落后 integrate 84ed463; 无 tag; release.yml 不存在; deploy 仅本地交互脚本"],
+        "evidence": [
+          "master 8ffb6a3 落后 integrate 84ed463; 无 tag; release.yml 不存在; deploy 仅本地交互脚本"
+        ],
         "impact": "发布动作停在人工口头约定，镜像与部署不可复现，回滚缺少版本锚点",
         "suggestion": "新增 workflow_dispatch Release：CI 同 SHA 绿灯门禁、master fast-forward、tag、GitHub Release、GHCR、可选 production deploy",
         "historyCount": 4,
@@ -674,7 +752,9 @@
         "type": "gap",
         "layer": "adapter",
         "relatedTaskId": "AF-020",
-        "evidence": ["task-state-index.json 36 条归档仅轻量指针; note 明确未启用 event sourcing; 无 journal"],
+        "evidence": [
+          "task-state-index.json 36 条归档仅轻量指针; note 明确未启用 event sourcing; 无 journal"
+        ],
         "impact": "只能查最终状态，不能重建每次迁移/审批/归档轨迹，索引手改不可检出",
         "suggestion": "journal.jsonl 唯一写面 + 索引只读投影 + SHA-256 哈希链 + 幂等键 + 单写者锁 + 回填 36 条归档",
         "historyCount": 4,
@@ -742,9 +822,22 @@
       "agentId": "AGENT-EXEC-001",
       "role": "executor",
       "availability": "available",
-      "skills": ["implementation", "gate-evidence", "deviation-reporting", "self-test"],
-      "tools": ["workspace-read", "workspace-write", "gate-execution"],
-      "resources": ["src/", "test/", "docs/worklog/pending/（任务切片范围内）"],
+      "skills": [
+        "implementation",
+        "gate-evidence",
+        "deviation-reporting",
+        "self-test"
+      ],
+      "tools": [
+        "workspace-read",
+        "workspace-write",
+        "gate-execution"
+      ],
+      "resources": [
+        "src/",
+        "test/",
+        "docs/worklog/pending/（任务切片范围内）"
+      ],
       "note": "执行 AI（MiniMax Code）；researcher / critic 角色当前未启用，需要调研或独立评审任务时再绑定。本角色不进入分支与提交链路：L1 任务分支提交由验收后的 orchestrator 完成（设计备忘 §6.1）。"
     },
     {
@@ -768,7 +861,12 @@
         "TOOL-ACCEPTANCE-RUNNER",
         "TOOL-DELIVERY-PACK"
       ],
-      "resources": ["docs/worklog/pending/", "docs/worklog/completed/", "docs/team/agent-orchestration/", "scripts/orchestration/"],
+      "resources": [
+        "docs/worklog/pending/",
+        "docs/worklog/completed/",
+        "docs/team/agent-orchestration/",
+        "scripts/orchestration/"
+      ],
       "note": "主控 AI（Doubao）；兼任 reviewer。制衡：验收结论只能基于工件证据与抽跑复现，不引用执行侧「已通过」的自述；验收与执行由不同执行方承担，兼任时以证据复核隔离。发布分层：L1–L3 在前置条件满足下由本角色自动，L4 转 Human 批准（设计备忘 §6.1）。"
     }
   ],
@@ -777,46 +875,76 @@
       "toolId": "TOOL-ACCEPTANCE-RUNNER",
       "category": "gate-execution",
       "sideEffect": "read-only",
-      "allowedRoles": ["orchestrator", "reviewer"],
+      "allowedRoles": [
+        "orchestrator",
+        "reviewer"
+      ],
       "description": "V1–V6 机读护栏：工件存在性与非空、指针可达、链接可达、编码、结构断言；输出三级结论与人工复核清单。"
     },
     {
       "toolId": "TOOL-DELIVERY-PACK",
       "category": "artifact-archive",
       "sideEffect": "restricted-write",
-      "allowedRoles": ["orchestrator"],
+      "allowedRoles": [
+        "orchestrator"
+      ],
       "description": "汇总夜间交付包：验收结论、证据指针、死信任务、遗留项与待人工批准动作。"
     },
     {
       "toolId": "TOOL-IMPROVEMENT-LOG",
       "category": "state-store",
       "sideEffect": "restricted-write",
-      "allowedRoles": ["orchestrator"],
+      "allowedRoles": [
+        "orchestrator"
+      ],
       "description": "候选改进台账：实现 / 验收 / 返修 / 死信复盘 / 评审发现的缺口与架构提升点结构化登记、去重、状态流转与汇总；抽取只产生候选，立项与终态须人工闸门流转。"
     },
     {
       "toolId": "TOOL-ORCH-CLI",
       "category": "state-store",
       "sideEffect": "restricted-write",
-      "allowedRoles": ["orchestrator"],
+      "allowedRoles": [
+        "orchestrator"
+      ],
       "description": "编排工具链命令入口：status / run-once / snapshot / pack / config；不直接操作桌面 GUI，桌面派发与回执衔接由执行代理单元在调度间隙完成。"
     },
     {
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
-      "allowedRoles": ["orchestrator"],
+      "allowedRoles": [
+        "orchestrator"
+      ],
       "description": "队列扫描、领单租约、超时释放、验收驱动状态迁移、返修提案与限次、死信隔离、队列快照生成。"
     },
     {
       "toolId": "TOOL-STATE-STORE",
       "category": "state-store",
       "sideEffect": "restricted-write",
-      "allowedRoles": ["orchestrator"],
+      "allowedRoles": [
+        "orchestrator"
+      ],
       "description": "状态索引与附加运行态的原子读写、租约字段管理；store 抽象隔离，后续可替换为 DB 持久化。"
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-017",
+      "recordedAt": "2026-11-17T01:08:45.153Z",
+      "actorRef": "orchestrator",
+      "correlationId": "watch",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-016",
       "recordedAt": "2026-11-17T00:49:38.451Z",
@@ -828,7 +956,9 @@
       "taskId": "DR-001",
       "result": "allowed",
       "reason": null,
-      "resources": ["D:\\work\\Project\\backend\\mofang-nestjs\\docs\\team\\agent-orchestration\\transport\\tasks\\DR-001.json"]
+      "resources": [
+        "D:\\work\\Project\\backend\\mofang-nestjs\\docs\\team\\agent-orchestration\\transport\\tasks\\DR-001.json"
+      ]
     },
     {
       "auditId": "AUD-015",
@@ -1050,34 +1180,21 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-002",
-      "recordedAt": "2026-11-15T16:06:21.674Z",
-      "actorRef": "orchestrator",
-      "correlationId": "pack",
-      "toolId": "TOOL-DELIVERY-PACK",
-      "category": "artifact-archive",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": ["docs/team/agent-orchestration/delivery-packs/"]
     }
   ],
   "auditSummary": {
-    "total": 16,
+    "total": 17,
     "byResult": {
-      "allowed": 16,
+      "allowed": 17,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 14
+      "TOOL-QUEUE-SCHEDULER": 15
     },
     "byActor": {
-      "orchestrator": 16
+      "orchestrator": 17
     }
   },
   "protocolView": {
@@ -1864,9 +1981,22 @@
       {
         "agentId": "AGENT-EXEC-001",
         "role": "executor",
-        "skills": ["implementation", "gate-evidence", "deviation-reporting", "self-test"],
-        "tools": ["workspace-read", "workspace-write", "gate-execution"],
-        "resources": ["src/", "test/", "docs/worklog/pending/（任务切片范围内）"],
+        "skills": [
+          "implementation",
+          "gate-evidence",
+          "deviation-reporting",
+          "self-test"
+        ],
+        "tools": [
+          "workspace-read",
+          "workspace-write",
+          "gate-execution"
+        ],
+        "resources": [
+          "src/",
+          "test/",
+          "docs/worklog/pending/（任务切片范围内）"
+        ],
         "limits": null,
         "availability": "available"
       },
@@ -1890,7 +2020,12 @@
           "TOOL-ACCEPTANCE-RUNNER",
           "TOOL-DELIVERY-PACK"
         ],
-        "resources": ["docs/worklog/pending/", "docs/worklog/completed/", "docs/team/agent-orchestration/", "scripts/orchestration/"],
+        "resources": [
+          "docs/worklog/pending/",
+          "docs/worklog/completed/",
+          "docs/team/agent-orchestration/",
+          "scripts/orchestration/"
+        ],
         "limits": null,
         "availability": "available"
       }

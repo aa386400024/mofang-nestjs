@@ -1,3 +1,9 @@
 # 框架契约包是不可变发布制品：PROVENANCE.json 固化了逐文件 SHA-256，
 # 任何格式化都会改变字节并触发 orchestration:contracts 失败。
 contracts/agent-collaboration-framework/
+
+# 运行态生成物：由 orchestration CLI 每次 run-once / watch 重写。
+# 格式化后生成器再写会制造整文件 diff，故排除在 prettier 之外。
+docs/team/agent-orchestration/orchestration-snapshot.json
+docs/team/agent-orchestration/task-state-index.json
+web/orchestration/data.js

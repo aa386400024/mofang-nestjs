@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-17T00:51:03.051Z",
+  "generatedAt": "2026-11-17T01:10:49.190Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -930,6 +930,23 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-017",
+      "recordedAt": "2026-11-17T01:08:45.153Z",
+      "actorRef": "orchestrator",
+      "correlationId": "watch",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-016",
       "recordedAt": "2026-11-17T00:49:38.451Z",
       "actorRef": "orchestrator",
@@ -1164,36 +1181,21 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-002",
-      "recordedAt": "2026-11-15T16:06:21.674Z",
-      "actorRef": "orchestrator",
-      "correlationId": "pack",
-      "toolId": "TOOL-DELIVERY-PACK",
-      "category": "artifact-archive",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/delivery-packs/"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 16,
+    "total": 17,
     "byResult": {
-      "allowed": 16,
+      "allowed": 17,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 14
+      "TOOL-QUEUE-SCHEDULER": 15
     },
     "byActor": {
-      "orchestrator": 16
+      "orchestrator": 17
     }
   },
   "protocolView": {
