@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-17T01:49:45.784Z",
+  "generatedAt": "2026-11-17T02:05:53.524Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -952,6 +952,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-023",
+      "recordedAt": "2026-11-17T02:05:11.684Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-028",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-028",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "D:\\work\\Project\\backend\\mofang-nestjs\\docs\\team\\agent-orchestration\\transport\\tasks\\AF-028.json"
+      ]
+    },
+    {
       "auditId": "AUD-022",
       "recordedAt": "2026-11-17T01:49:19.560Z",
       "actorRef": "orchestrator",
@@ -1182,38 +1197,21 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-008",
-      "recordedAt": "2026-11-15T18:08:26.377Z",
-      "actorRef": "orchestrator",
-      "correlationId": "archive:AF-013",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 22,
+    "total": 23,
     "byResult": {
-      "allowed": 22,
+      "allowed": 23,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 20
+      "TOOL-QUEUE-SCHEDULER": 21
     },
     "byActor": {
-      "orchestrator": 22
+      "orchestrator": 23
     }
   },
   "protocolView": {
@@ -2071,6 +2069,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af027-orchestration-receipt-chain-rework-2026-11-17.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-028",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/archive/AF-028-task-sheet-2026-11-17.json"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af028-task-promote-and-docs-2026-11-17.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -2156,5 +2172,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 44
+  "archivedCount": 45
 };

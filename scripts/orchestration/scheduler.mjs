@@ -102,6 +102,35 @@ function pushHistory(task, to, by, reason) {
 }
 
 /**
+ * 把编排前置态任务从 backlog 提到 ready（框架 docs/state-machine.md §4.1 允许 backlog ↔ ready）。
+ * ready 的前置条件按框架口径硬校验：契约齐全（任务单指针 + taskId/contextId/type）、
+ * 基线明确（baselineRef）、依赖满足。缺一即拒，不允许「先塞进队列再说」。
+ */
+export function promoteTask(index, runtimeState, taskId, opts = {}) {
+  const task = findTask(index, taskId);
+  if (!task) throw new Error(`提级失败：任务不在活跃列表：${taskId}`);
+  if (task.status === 'ready') throw new Error(`提级失败：任务已处于 ready：${taskId}`);
+  if (task.status !== 'backlog') throw new Error(`提级失败：只有 backlog 可提到 ready：${taskId} 当前 ${task.status}`);
+  if (!canTransition('backlog', 'ready')) throw new Error('提级失败：backlog → ready 不是合法迁移');
+  if (!task.artifacts?.taskSheet) throw new Error(`提级失败：任务单指针缺失：${taskId}`);
+  for (const key of ['taskId', 'contextId', 'type']) {
+    if (!task[key]) throw new Error(`提级失败：任务单缺字段 ${key}：${taskId}`);
+  }
+  if (!task.baselineRef) throw new Error(`提级失败：基线不明确（缺 baselineRef）：${taskId}`);
+  const deps = dependencyState(task, index);
+  if (!deps.met) {
+    const unmet = deps.unmet.map((item) => `${item.taskId}:${item.status}`).join('、');
+    throw new Error(`提级失败：依赖未满足：${unmet}`);
+  }
+  const reason = opts.reason ?? '人工提级';
+  task.promotedAt = nowIso();
+  pushHistory(task, 'ready', BY_ORCHESTRATOR, reason);
+  const entry = runtimeState.tasks?.[taskId];
+  if (entry) entry.promotedAt = task.promotedAt;
+  return task;
+}
+
+/**
  * 依赖是否全部满足：无 dependsOn 视为满足；上游须全部 completed。
  * 上游既可能在活跃列表，也可能已归档（终态 completed 后迁入 archivedTasks），
  * 两处都要查——否则依赖已归档任务的条目会永久卡在 ready（静默死等）。

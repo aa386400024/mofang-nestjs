@@ -53,6 +53,7 @@ import {
   buildSnapshot,
   claimReadyTasks,
   cancelTask,
+  promoteTask,
   processReceipts,
   releaseExpiredLeases,
 } from '../scheduler.mjs';
@@ -1511,6 +1512,37 @@ describe('AF-023 运行态调度闭环（领单 / 回滚 / 回执终态）', () 
     done.status = 'completed';
     expect(() => cancelTask(freshIndex(done), { tasks: {} }, 'AF-111', {})).toThrow(/终态/);
     expect(() => cancelTask(freshIndex(task('AF-112')), { tasks: {} }, 'AF-404', {})).toThrow(/不在活跃列表/);
+  });
+
+  it('人工提级：backlog → ready 校验任务单 / 基线 / 依赖；上游已归档算满足', () => {
+    const queued = {
+      ...task('AF-113'),
+      status: 'backlog',
+      baselineRef: '7dd3539',
+      dependsOn: ['AF-100'],
+    };
+    const archiveOk = { taskId: 'AF-100', status: 'completed', artifacts: {} };
+    const index = freshIndex(queued);
+    index.archivedTasks = [archiveOk];
+    const runtimeState = { tasks: { 'AF-113': {} } };
+    const promoted = promoteTask(index, runtimeState, 'AF-113', { reason: '依赖已闭环' });
+    expect(promoted.status).toBe('ready');
+    expect(promoted.history.at(-1)).toMatchObject({ from: 'backlog', to: 'ready', reason: '依赖已闭环' });
+    expect(runtimeState.tasks['AF-113'].promotedAt).toBe(promoted.promotedAt);
+
+    const unmet = { ...task('AF-114'), status: 'backlog', baselineRef: '7dd3539', dependsOn: ['AF-200'] };
+    expect(() => promoteTask(freshIndex(unmet), { tasks: {} }, 'AF-114', {})).toThrow(/依赖未满足：AF-200/);
+
+    const noBaseline = { ...task('AF-115'), status: 'backlog', baselineRef: null };
+    expect(() => promoteTask(freshIndex(noBaseline), { tasks: {} }, 'AF-115', {})).toThrow(/基线不明确/);
+
+    const noSheet = { ...task('AF-116'), status: 'backlog', baselineRef: '7dd3539', artifacts: {} };
+    expect(() => promoteTask(freshIndex(noSheet), { tasks: {} }, 'AF-116', {})).toThrow(/任务单指针缺失/);
+
+    expect(() => promoteTask(freshIndex(task('AF-117')), { tasks: {} }, 'AF-117', {})).toThrow(/已处于 ready/);
+    const done = { ...task('AF-118'), status: 'submitted' };
+    expect(() => promoteTask(freshIndex(done), { tasks: {} }, 'AF-118', {})).toThrow(/只有 backlog/);
+    expect(() => promoteTask(freshIndex(task('AF-119')), { tasks: {} }, 'AF-404', {})).toThrow(/不在活跃列表/);
   });
 
   it('整链：回执落盘 → 摄入 → 验收 → 归档，一轮内闭合 completed', () => {

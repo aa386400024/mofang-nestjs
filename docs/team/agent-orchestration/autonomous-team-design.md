@@ -37,6 +37,8 @@
 >
 > 返修与取消证据（2026-11-17）：`AF-026` 首轮 `rejected`（V7 把编排状态面判成越域）→ 产出 `RW-AF-026-1`、`attemptCount=1`；`AF-027` 同 `contextId` 按返修规则新开，走完 claim → dispatch → `receipt-ingested` → `archive-completed`，`autoVerdict=passed`、`manualReview=[]`。`AF-025` 因 scope 跨角色资源域被 `scope-domain-conflict` 拦下，`archive --status canceled` 被拒（归档不得改写终态），改由 `task cancel` 闭合后归档 `canceled`。
 >
+> 编排前置态口径（AF-028）：`backlog` 与 `ready` 可在两者间来回（`state-machine.md` §4.1）。`task register --status backlog` 只做立项，进队列须经 `task promote --taskId <id>`：提级前硬校验任务单指针、`taskId/contextId/type`、`baselineRef` 与依赖满足（活跃 + 归档双查），缺一即拒；成功走 `commitIndex` 落 `backlog → ready` 事件。没有这个入口时，`AF-024` 这类延后任务会被永久钉在 `backlog`，属「能立项、不能启用」的假闭环。
+>
 > 验收 V7 口径：变更清单先剔除编排状态面生成物（`task-state-index.json`、`state/journal.jsonl`、`orchestration-snapshot.json`、`state/archived-notes.json`、`web/orchestration/data.js`）与 `transport/` 目录，再与任务 `scope.files` 比对；清单仅含状态面时判 pass 并注明「不纳入任务交付面比对」。否则任何推进过状态的真实任务都会被永久判越域。
 >
 > 租约与回收口径：`releaseExpiredLeases` 超时释放写 `releaseReason=lease-expired` 并置 `heldForHuman=true`，`claimReadyTasks` 跳过持单任务（`held-for-human`），人工 `task resume` 后才恢复；`advanceOnce` 先 `processReceipts` 再 `claimReadyTasks`，同一轮即可完成回执回收与下一单派发。`archiveTaskSheetFile` 在归档前把 transport 任务单副本落 `docs/worklog/pending/archive/`。
