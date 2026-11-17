@@ -48,7 +48,7 @@ gates:
     check: 事件日志投影一致
     threshold: 'mismatch=0'
 successCriteria:
-  - `branch merge --require-ci` 实弹跑通阻断与放行两条路径，放行路径的合并提交真实落入 integrate
+  - branch merge --require-ci 实弹跑通阻断与放行两条路径，放行路径的合并提交真实落入 integrate
   - 框架仓规范正文条款有可执行锚点校验，删改条款即 CI 失败（反例单测覆盖）
   - 熔断在派发侧硬拦截：open 整轮不派发、half-open 只放一次试探，均有单测
   - 两仓提交并 push，远端 CI 全绿，台账登记到 done
