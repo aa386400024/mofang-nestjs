@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-17T12:06:07.281Z",
+  "generatedAt": "2026-11-17T12:13:56.189Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,38 +15,7 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-059",
-      "contextId": "phase2.5-orchestration-enforcement",
-      "type": "fix",
-      "title": "零依赖 squash 门返修与最终闭环",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af059-dependency-free-squash-gate-task-2026-11-17.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-059",
-        "contextId": "phase2.5-orchestration-enforcement",
-        "channel": "file",
-        "targetRole": "orchestrator",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-17T12:06:07.279Z",
-        "leaseDeadline": "2026-11-17T12:36:07.277Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-059.json"
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1319,6 +1288,21 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-082",
+      "recordedAt": "2026-11-17T12:06:07.320Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-059",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-059",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-059.json"
+      ]
+    },
+    {
       "auditId": "AUD-081",
       "recordedAt": "2026-11-17T11:49:52.062Z",
       "actorRef": "orchestrator",
@@ -1531,64 +1515,26 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-067",
-      "recordedAt": "2026-11-17T09:24:02.639Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-051",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-051",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-051.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 81,
+    "total": 82,
     "byResult": {
-      "allowed": 81,
+      "allowed": 82,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 79
+      "TOOL-QUEUE-SCHEDULER": 80
     },
     "byActor": {
-      "orchestrator": 81
+      "orchestrator": 82
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-059",
-        "title": "零依赖 squash 门返修与最终闭环",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-enforcement",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-058"
-        ],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af059-dependency-free-squash-gate-task-2026-11-17.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -2969,6 +2915,24 @@
             "ref": "docs/worklog/completed/phase2.5/af058-squash-lifecycle-gate-2026-11-17.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-059",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af059-dependency-free-squash-gate-task-2026-11-17.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af059-dependency-free-squash-gate-2026-11-17.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -2983,17 +2947,9 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-059",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af059-dependency-free-squash-gate-task-2026-11-17.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-enforcement",
-    "groupIds": [
-      "phase2.5-orchestration-enforcement"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -3059,5 +3015,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 76
+  "archivedCount": 77
 }
