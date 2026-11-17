@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-17T01:10:49.190Z",
+  "generatedAt": "2026-11-17T01:36:40.524Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -14,9 +14,30 @@ window.ORCH_SNAPSHOT = {
     "canceled": 0,
     "rejected": 0,
     "input-required": 0,
-    "deadLetter": 0
+    "deadLetter": 0,
+    "backlog": 1
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-024",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "GUI 派发通道接入（桌面 relay 承载 MiniMax Code）",
+      "status": "backlog",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af024-gui-dispatch-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": null
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -837,9 +858,10 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "src/",
         "test/",
-        "docs/worklog/pending/（任务切片范围内）"
+        "docs/worklog/pending/",
+        "docs/worklog/completed/"
       ],
-      "note": "执行 AI（MiniMax Code）；researcher / critic 角色当前未启用，需要调研或独立评审任务时再绑定。本角色不进入分支与提交链路：L1 任务分支提交由验收后的 orchestrator 完成（设计备忘 §6.1）。"
+      "note": "执行 AI（MiniMax Code）；resources 为可写目录域，实际写入仍以任务单 scope 切片为准（父目录授权不等于全目录可写）。researcher / critic 角色当前未启用，需要调研或独立评审任务时再绑定。本角色不进入分支与提交链路：L1 任务分支提交由验收后的 orchestrator 完成（设计备忘 §6.1）。"
     },
     {
       "agentId": "AGENT-ORCH-001",
@@ -1200,7 +1222,31 @@ window.ORCH_SNAPSHOT = {
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-024",
+        "title": "GUI 派发通道接入（桌面 relay 承载 MiniMax Code）",
+        "type": "implementation",
+        "status": {
+          "framework": "backlog",
+          "protocol": null,
+          "stage": "orchestration"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-023",
+          "AF-013"
+        ],
+        "agentRole": "orchestrator",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af024-gui-dispatch-task-2026-11-17.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -1975,9 +2021,17 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-024",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af024-gui-dispatch-task-2026-11-17.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -1996,7 +2050,8 @@ window.ORCH_SNAPSHOT = {
         "resources": [
           "src/",
           "test/",
-          "docs/worklog/pending/（任务切片范围内）"
+          "docs/worklog/pending/",
+          "docs/worklog/completed/"
         ],
         "limits": null,
         "availability": "available"

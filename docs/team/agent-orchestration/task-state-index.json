@@ -4,10 +4,75 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 82,
+    "lastEventSeq": 83,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-024",
+      "status": "backlog",
+      "history": [],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "GUI 派发通道接入（桌面 relay 承载 MiniMax Code）",
+      "type": "implementation",
+      "baselineRef": "04f6524",
+      "dependsOn": [
+        "AF-023",
+        "AF-013"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3",
+        "conventions.md#1.4"
+      ],
+      "createdAt": "2026-11-17T09:40:00+08:00",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "scope": {
+        "files": [
+          "scripts/orchestration/",
+          "docs/team/agent-orchestration/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af024-gui-dispatch-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+          "check": "通道决策与回执校验单测全绿",
+          "threshold": "failed=0"
+        },
+        {
+          "command": "ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate",
+          "check": "适配层框架 schema 校验全 PASS",
+          "threshold": "fail=0"
+        }
+      ],
+      "successCriteria": [
+        "dispatch-channel 不再是纯规则函数：GUI 承载方可被真实拉起、定位输入会话、投递任务单并回写 dispatch 记录",
+        "投递失败有明确失败原因与回滚，不把「已粘贴」当成「已送达」",
+        "桌面自动化不可用时降级到文件 Transport，并在 dispatch 记录标注 channel=gui-file-fallback"
+      ],
+      "evidenceFormat": "命令 + exit code + 用例数；GUI 证据取 dispatch 记录与回执文件时间戳",
+      "plannedArtifacts": [
+        {
+          "name": "GUI 派发通道实施记录",
+          "path": "docs/worklog/completed/phase2.5/af024-gui-dispatch-implementation-2026-11-17.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": []
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
