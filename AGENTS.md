@@ -14,6 +14,7 @@
 3. 没有匹配的在办任务，**停止**。不许先做后补、不许用会话内 task_create / 口头清单替代任务单、不许手改状态索引。
 4. 提交前由 Husky 强制执行 `pnpm orchestration:preflight`：无在办任务、任务仍在 ready、暂存文件越出任务 scope，一律阻断。
 5. 收尾写交付记录 + 机读回执 → `run-once` 验收 → `archive`；事件链与索引数字以 CLI 输出为准。
+6. CI `Orchestration Gate` 逐提交复核 taskId / 状态 / scope / 任务单，`integrate` 由 required PR + 13 项检查 + enforce admins 保护；受保护后登记与实现都在任务分支，L3 用 `pr-release.mjs` squash 合并，禁止直推或靠 `--no-verify` 绕过。
 
 **只读豁免**：代码/文档阅读、搜索、解释、方案讨论、`status` / `events verify` / `git status` 等只读检查不需要建任务。只要会产生文件、数据或运行态变化，就不在豁免内。
 
@@ -66,7 +67,7 @@ src/
 1. **engine-core 纯层一行不动**：`git diff --stat HEAD -- src/engine-core` 交付时必须为空。例外必须由大炮在任务单里明确批准，改完要过 `boundary.spec.ts` 的 11 条断言。新逻辑放 `engine-adapters/` 或业务层。
 2. **前端代码边界**：默认不碰 `admin-dashboard/` 与 Flutter；任务单明确授权时可在 `admin-dashboard/` 内实现与任务单不冲突的前端代码，Flutter 始终不碰。详见 `docs/team/conventions.md` §1.2。
 3. **命令边界**：不跑 `flutter` / `dart` / `pub`；后端 `eslint` / `tsc` / `vitest` 的内循环定向执行由 AI 按需跑，任务收尾全量闸门（`pnpm lint` / `pnpm typecheck` / `pnpm test`）在交付前跑一次并记录真实数字（分层与前置条件见 `docs/team/agent-orchestration/autonomous-team-design.md` §6.1）。授权前端任务可在 `admin-dashboard/` 目录跑其自带 `type-check` / `build-only` 脚本。
-4. **提交与推送按发布分层执行**：L1 任务分支提交、L2 推送任务分支、L3 squash merge 进 `integrate` 并推送，在前置条件满足时由 orchestrator 自动执行（前置条件与唯一真相源见 `autonomous-team-design.md` §6.1 / §6.2：闸门绿、验收五类通过、分支命名合规、无文件域冲突、提交可回退）；L4（master 合并、tag、release、对外部署）仍须大炮批准。executor 一律不提交。
+4. **提交与推送按发布分层执行**：L1 任务分支提交、L2 推送任务分支、L3 经受保护 PR squash 进 `integrate` 并同步本地，在前置条件满足时由 orchestrator 自动执行（前置条件与唯一真相源见 `autonomous-team-design.md` §6.1 / §6.2：闸门绿、验收五类通过、分支命名合规、无文件域冲突、提交可回退、远端 13 项检查通过）；L4（master 合并、tag、release、对外部署）仍须大炮批准。executor 一律不提交。
 5. **先讨论后实现**：涉及 engine-core 改动、跨模块重构、协议变更，先给方案和取舍，等大炮确认。
 6. **任务单与代码不符时**：先 grep 核实真实函数名/调用链/文件路径，找企业级最佳方案，在交付记录里写明偏差和理由。不要因为任务单写错就凑活做，也不要默默改了不提。
 

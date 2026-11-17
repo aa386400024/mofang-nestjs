@@ -18,6 +18,7 @@
 3. **禁止替代**：会话内待办、口头清单、“先做后补”、手改状态索引均不构成任务登记；状态面只能经 CLI 写。
 4. **提交门禁**：`.husky/pre-commit` 先调用 `scripts/orchestration/task-entry-gate.mjs`（`pnpm orchestration:preflight`）。无在办任务、任务仍在 `ready`、暂存文件越出任务 `scope.files` 一律阻断；状态面生成物按 V7 口径豁免。验收归档后若暂存区**只有**状态面生成物，门禁以 `state-plane-only` 放行；只要混入一个非状态面文件，就恢复在办任务与 scope 硬校验。squash 合并若同次暂存携带 `task-state-index.json` 的 active→completed 归档迁移，门禁可用 HEAD 中同 taskId 的在办记录校验 scope（`archived-transition`）；canceled/rejected、未携带索引或越界文件仍阻断。
 5. **收尾**：交付记录 + 机读回执成对产出，`run-once` 摄入验收后按 CLI 归档；事件条数、归档数、台账数字以 CLI 输出为准。
+6. **服务端硬门（AF-056）**：CI `Orchestration Gate` 对 PR→integrate 与 integrate push 的每个新增提交重新执行同一状态机，校验提交标题 taskId、提交时刻任务状态、文件 scope、任务单存在性及归档迁移；本地 `--no-verify` 不能替代远端判定。`integrate` 保护要求 13 项检查、PR（审批数 0）、strict 最新分支、线性历史并 `enforce_admins`，禁止 force push / 删除。
 
 门禁脚本只读暂存区与状态索引，不自动 stage、不修改状态；任务与回执语义不变。
 
@@ -255,6 +256,8 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 
 `branch merge` 不再把提交与清理留给人工，且可选在合并前**读远端 CI 结论**。
 
+> AF-056 起这是**未保护分支的过渡兼容路径**。`integrate` 保护启用后禁止本地 squash 后直推，统一使用 §5.3.1 的 `pr-release.mjs`；不得为了继续直推而关闭保护或降低必需检查。
+
 | 阶段            | 命令实现                           | 说明                                                                           |
 | --------------- | ---------------------------------- | ------------------------------------------------------------------------------ |
 | `squash-merge`  | `git.squashMerge(branch)`          | 暂存到 integrate（原行为）                                                     |
@@ -277,6 +280,38 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 | GHES      | 基址取 `GITHUB_API_URL`（去尾部斜杠），缺省 `https://api.github.com`；私有部署不硬编码公网地址                                                                                                       |
 
 门禁的「该拦就拦」有实弹记录：`ci-gate-fire-drill-2026-11-17.md`（阻断路径判 `unknown`、放行路径判 `pass` 后完成 squash 合并）。读的是**该 SHA** 上的结论，不是仓库最近一次绿。
+
+### 5.3.1 受保护 integrate 的服务端逐提交门与 PR 流（AF-056）
+
+**为什么调整旧 L3**：required status checks 不能验证一个刚在本机生成、从未跑过远端检查的新 squash SHA；若继续「先在 integrate 直推登记提交，再本地 squash 直推」，保护规则会把正常流程也拦掉。因此目标态把登记提交也放进任务分支，由 PR 承载全部提交与检查。
+
+标准闭环：
+
+1. 在 `integrate` 工作树落任务单并 `task register --status ready` → `run-once` 领单；此时登记产物**先不直接提交到 integrate**。
+2. `node scripts/orchestration/cli.mjs branch create --taskId AF-0xx --apply`，让未提交的任务单与 CLI 状态面随工作树切到任务分支；在任务分支提交登记，再实现并提交。
+3. `node scripts/orchestration/pr-release.mjs create --taskId AF-0xx --apply`：推送任务分支并创建/复用 PR。
+4. 完成交付记录、durable 回执、`run-once` 验收与 CLI 归档，提交纯状态面；再执行一次 `create` 推送最新 HEAD。
+5. `node scripts/orchestration/pr-release.mjs merge --taskId AF-0xx --apply`：要求 completed/archived、passed durable 回执、PR HEAD == 本地 HEAD、13 项检查全绿，随后 API squash 合并、fast-forward 本地 integrate，并在树一致后清理本地/远端任务分支。
+
+远端门：
+
+```powershell
+node scripts/orchestration/ci-task-gate.mjs --base <base-sha> --head <head-sha>
+node scripts/orchestration/branch-protection.mjs --repo aa386400024/mofang-nestjs --branch integrate          # dry-run
+node scripts/orchestration/branch-protection.mjs --repo aa386400024/mofang-nestjs --branch integrate --apply # 幂等 apply + 读回核验
+```
+
+| 项           | 强制口径                                                                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 提交范围     | PR 使用 `base.sha..head.sha`；integrate push 使用 `event.before..event.after`；不能只查最终 diff，否则坏提交可先混入再被后续提交掩盖 |
+| 提交身份     | 标题必须含唯一任务编号；同编号重复允许，多编号、日期形态或缺失编号不会获得任务权限                                                   |
+| 状态快照     | 同时读取当前提交与父提交的索引；active 提交用当前在办任务，归档 squash 用 `archived-transition`                                      |
+| 文件与任务单 | 非状态面文件必须落入 scope；任务单必须在该提交树中存在；canceled/rejected 不可借用                                                   |
+| 检查放行     | 13 项 context 全部存在且完成；失败优先 fail，缺项/进行中/空 checks 均不放行                                                          |
+| 分支保护     | required PR（审批数 0）、strict、线性历史、enforce admins、禁止 force push/deletion；不设置人或团队 bypass                           |
+| 凭据         | 复用 `GITHUB_TOKEN` / `GH_TOKEN` / `ORCH_GITHUB_TOKEN` / Git credential helper；不安装 gh、不打印或入库 token                        |
+
+边界：Git 与 GitHub 能硬阻断未授权提交和合并；数据库、Redis、环境启停仍由任务登记、scope、回执和事件审计约束，不能伪装成操作系统级沙箱。仓库 admin 理论上可通过后续 API 改保护规则，因此保护配置的读回核验与变更审计是长期必要项，而不是宣称「管理员也无法改设置」。
 
 ## 5.4 回执指纹与范围通配（IM-007 / IM-011）
 

@@ -116,7 +116,7 @@ GUI 会话只传递一句话：交接文件绝对路径 + 回执路径。任务�
 | 类型 | 分支                   | 职责                                  | 自动化口径                                                              |
 | ---- | ---------------------- | ------------------------------------- | ----------------------------------------------------------------------- |
 | 长期 | `master`               | 受保护对外基线                        | 只接受 release PR（release 分支 + 12 项必需检查）合并与 tag；不接受直推 |
-| 长期 | `integrate`            | 集成分支，自动流水线落点，CI 在此运行 | 任务分支验收合并的落点                                                  |
+| 长期 | `integrate`            | 集成分支，自动流水线落点，CI 在此运行 | 受保护：任务 PR + 13 项必需检查 + squash，不接受直推                    |
 | 短期 | `task/<taskId>-<slug>` | 单任务实现切片                        | 一单一分支，合并后即删                                                  |
 
 **命名口径**：`task/<taskId>-<slug>`。任务类型前缀（feat / fix / docs）由 conventional commit message 承担，分支名不重复；分支名必须含 taskId，保证台账可反查与批量清理。
@@ -135,6 +135,7 @@ GUI 会话只传递一句话：交接文件绝对路径 + 回执路径。任务�
 - executor 不建分支、不提交、不推送；分支由 orchestrator 在派发时创建、验收后合并清理。
 - 冲突在任务分支内解决，不把 merge commit 带进 integrate。
 - 任务分支基线从 `integrate` 最新 HEAD 切出；合并前核对 `baselineRef` 与当前基线一致（`reliability.md` §6.3）。
+- **AF-056 受保护流程**：登记提交也不能直推 integrate。先在工作树登记/领单，再切任务分支并提交登记、实现与归档状态；PR 逐提交门与 13 项检查全绿后由 `pr-release.mjs` squash 合并。required PR 审批数为 0，不增加人工审批，只禁止直推旁路。
 
 ### 4.4 `development` 分支退役（已完成 2026-11-16）
 
@@ -152,22 +153,24 @@ GUI 会话只传递一句话：交接文件绝对路径 + 回执路径。任务�
 
 ### 6.1 发布分层（自动化逐层收紧）
 
-| 层  | 动作                                       | 自动 / 人工                                         | 前置条件                                   |
-| --- | ------------------------------------------ | --------------------------------------------------- | ------------------------------------------ |
-| L1  | 任务分支提交                               | 自动（验收后由 orchestrator 提交，executor 不提交） | pre-commit 钩子 + 收尾闸门绿               |
-| L2  | 推送任务分支到 origin                      | 可自动                                              | 闸门绿、验收五类通过、分支命名合规         |
-| L3  | squash merge 进 integrate + 推送 integrate | 可自动                                              | 本地等价闸门全绿、无文件域冲突、提交可回退 |
-| L4  | master 合并、tag、release、对外部署        | **人工**                                            | 冻结动作，对齐 `autonomous-loop.md` §3.2   |
+| 层  | 动作                                         | 自动 / 人工                                         | 前置条件                                                 |
+| --- | -------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
+| L1  | 任务分支提交                                 | 自动（验收后由 orchestrator 提交，executor 不提交） | pre-commit 钩子 + 收尾闸门绿                             |
+| L2  | 推送任务分支到 origin                        | 可自动                                              | 闸门绿、验收五类通过、分支命名合规                       |
+| L3  | 受保护 PR squash 进 integrate + 本地 ff 同步 | 可自动（`pr-release.mjs`，executor 不合并）         | completed + passed 回执、PR HEAD 一致、13 项远端检查全绿 |
+| L4  | master 合并、tag、release、对外部署          | **人工**                                            | 冻结动作，对齐 `autonomous-loop.md` §3.2                 |
 
 L4 的当前执行载体是 `.github/workflows/release.yml`：只能从 `integrate` 手动触发，`dry_run` 默认 `true`；真实发布走 release 分支 → 合并 `master` → 对 release 分支显式 dispatch 完整 CI（12 项 required contexts）→ PR → 合并 → annotated tag / GitHub Release / GHCR。生产 `deploy` 需同时满足 `deploy=true`、`dry_run=false` 且 release job success，当前保持未启用。详见 [AF-022 交付记录](../../worklog/completed/phase2.5/af022-release-protection-compatible-implementation-2026-11-17.md)。
 
-### 6.2 L3 过渡口径
+### 6.2 L3 服务端强门口径（AF-056）
 
-本机无 gh CLI、无 GITHUB_TOKEN，远端 CI 状态本机不可读。过渡方案：
+旧「本机无 gh/token、远端 CI 只能事后复核」的过渡口径已退役。本机可直接复用 Git credential helper 调用 GitHub REST，**不需要安装 gh**：
 
-- 合并依据 = 本地等价闸门（typecheck + lint + vitest 定向 / 全量 + build）全绿 + 验收五类通过 + 无文件域冲突；
-- 远端 CI 作事后复核；CI 转红则冻结后续派发并告警，不继续合入；
-- P2 接入 token / gh 后，改为以 CI 状态作为自动合并门禁。
+- `Orchestration Gate` 在 PR 与 integrate push 上逐提交验证 taskId、任务状态、scope、任务单和归档迁移；本地 `--no-verify` 不能绕过服务端判定。
+- `integrate` 必需 13 项检查（原 12 项 + Orchestration Gate）、required PR（审批数 0）、strict 最新分支、线性历史、enforce admins，禁止 force push / 删除。
+- 合并前由 `pr-release.mjs` 复核 completed/archived、passed durable 回执、PR HEAD == 本地 HEAD；pending / unknown / 缺检查一律不合并。
+- 合并后 fast-forward 本地 integrate 并核对 merge SHA；任务分支树一致才删除。L4 master/tag/release/deploy 仍不在此自动路径内。
+- 保护配置使用 `branch-protection.mjs --apply` 幂等写入并读回核验；不得为恢复旧直推流程而降低保护。
 
 ### 6.3 回退五道保障
 
@@ -186,6 +189,8 @@ L4 的当前执行载体是 `.github/workflows/release.yml`：只能从 `integra
 **已同步（AF-016，2026-11-16）**：§3.6 落地角色能力路由（IM-008：availability 门槛 + skill/tool 评分 + 显式角色优先、不可用不改派）与角色资源域越域校验（IM-010：scope 落在 Card `resources` 前缀内，只读类豁免）；§4.2 巡检补 ahead/behind rebase 标注（IM-013）；§5 残留识别补 git diff 采集入口接线（IM-009：run-once / watch 采集清单传入 V7，空清单 skip）。纯函数落 `card-router.mjs` / `branch-workflow.mjs`，调度与 CLI 仅做注入接线，未碰业务 `src/`。
 
 **已同步（AF-017，2026-11-16）**：改进台账抽取通道补回执正文解析（IM-001）：`extractFromReceiptDoc` 解析回执 markdown 遗留组 `backlogItems` / `openQuestions` 列表项转候选草稿，与 `extractFromSnapshot` 快照结果按标题键 + 签名合并去重；`manualReviewList` 仍归快照通道，避免双源重复；CLI `--extract` 枚举归档回执 `relay-response-*.md` 接入双通道。纯函数落 `improvement-log.mjs`，文件 IO 归 CLI，未碰业务 `src/`。
+
+**已同步（AF-056，2026-11-17）**：§4.1/§4.3/§6.1/§6.2 从直推过渡口径升级为受保护 PR；README §0/§5.3.1 补服务端逐提交门、13 项检查与 PR CLI；orchestrator 资源域补 `.github/` 并合并 worklog 前缀。旧 `branch merge` 保留为未保护分支兼容工具，不再是 integrate 目标路径。
 
 ## 7. autoLoop 开启时机
 
@@ -220,7 +225,7 @@ L4 的当前执行载体是 `.github/workflows/release.yml`：只能从 `integra
 ### P2 并行与远端联动
 
 1. 文件域锁升级为可并行的版本号 / 文件锁；多 executor 并行；
-2. gh / token 接入，PR 流与 CI 状态门禁；
+2. ~~gh / token 接入，PR 流与 CI 状态门禁~~（AF-056 已完成：Git credential + REST，无 gh 依赖；逐提交门、13 项检查、PR squash 与保护读回）；
 3. mcp / http Transport 实现位落地；researcher / critic 角色按需绑定；熔断阈值参数化。
 
 ## 9. 冻结动作与升级消息
