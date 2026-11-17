@@ -74,4 +74,19 @@
 - 熔断开闸从「可观察事件」变成「派发硬拦截」：open 整轮停派、half-open 只放一次试探，任务留 `ready` 不丢。
 - 三仓闸门全绿，单测净增 4 例（189→193），框架单测 13→16、检查项含新增 8 项。
 
-未做实项：无。下一批可做方向（未登记台账、待用户拍板）：`branch merge` 的 `--require-ci` 目前按调用方传的 `--sha` 判定，可考虑在 `--apply` 时强制校验「`--sha` 必须是该分支 HEAD 且工作树干净」以防「拿旧绿的 SHA 合并新提交」。
+未做实项：无。
+
+## 9. 同日第二轮补修（收口自查发现的三处自身口子）
+
+上一节列出的「可做方向」与两处自查口子在用户放行后当天补完。**不新开任务单**：三处都是本批实现的自洽性缺陷（同 scope、同验收口径），补在 AF-045 记录内并保留原回执为历史事实（回执 `AF-046-O1` 保持 `open`，关闭证据在本节，不回写已归档回执）。
+
+| 口子                                                             | 事实                                                                               | 修法                                                                                                                                                                                                 | 证据                                                                                                                                                    |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| half-open「只放一次」实际每轮一次                                | `probeIssued` 是 `claimReadyTasks` 内局部 `let`，每轮 `run-once` 重置              | 探针事实改为从运行态推断：`resolveChannelCircuit` 扫全部条目的 `circuitProbe`，`openedAt` 与当前开闸周期相同即 `probeIssued=true`；`claimReadyTasks` 用它初始化；熔断封闭时随周期清空 `circuitProbe` | 单测 +2（跨轮已试探不再放行 / 旧周期探针不冒充），193→195                                                                                               |
+| 框架 CHANGELOG 漏记 `1b1e581` 新增校验项                         | 只改了 `conformance/` 与 `docs/tools.md`，未写 CHANGELOG                           | `CHANGELOG.md` `[Unreleased]` 增「校验器增强」小节，补记条款锚点校验与 push 闸门补面                                                                                                                 | 框架 `run.py` 507 项 0 失败                                                                                                                             |
+| push 到 main 不走 CHANGELOG 闸门                                 | `contracts.yml` 只在 `pull_request` 带 `--changelog-base`，push 路径跑全量结构闸门 | push 路径改为 `--changelog-base "${{ github.event.before }}"`；`before` 为全零（首推/强推）时回落全量并跳过比对                                                                                      | 反证：对 `1b1e581~1` 跑新闸门 → `V11 改动触及规范面但 CHANGELOG.md 未更新`，退出码 1（即该提交本身就会被拦）；修完 push `26d30bc`，CI 用新闸门判 `pass` |
+| `--require-ci --apply` 未校验 `--sha` 等于分支 HEAD（AF-046-O1） | `--sha` 缺省取当前工作 HEAD（在 `integrate` 上），显式传旧绿 SHA 也能放行          | 缺省改取**该任务分支 HEAD**（`gitPort.branchHead`，取不到才回落当前 HEAD）；`--apply` 且显式传 `--sha` 时，与分支 HEAD 不等即抛「拒绝用旧绿的提交给新提交放行」                                      | 调用口径与 README §5.3 同步；单测见上                                                                                                                   |
+
+第二轮闸门（补修后重跑，均在本机、无长驻 watch 进程）：编排单测 195 passed / 0 failed、`pnpm lint` 0 error、`pnpm typecheck` 0 error、全量 `pnpm test` 3566 passed / 8 skipped、`validate` / `contracts` / `events verify`（184 条）全 PASS、框架 `run.py` 507 项 0 失败、`unittest` 16 OK。
+
+已知未覆盖（登记在此、不改代码）：`pnpm lint` 的 ESLint 作用域是 `{src,test,bin}/**/*.ts`，**不含 `scripts/`**——直接对 `scripts/orchestration/*.mjs` 跑 eslint 会报 `was not found by the project service`（配置性错误，非代码缺陷）。脚本层目前只有单测兜底，要不要把 `scripts/` 纳入 lint 属于新决策。

@@ -190,6 +190,13 @@ export function createGitPort() {
       return raw ? raw.split('\n').filter(Boolean) : [];
     },
     /**
+     * 分支当前指向的提交（AF-046-O1：合并门禁要判「被合并的那条分支」，不是当前工作 HEAD）。
+     * 分支不存在抛错，由调用方判 null，不静默回退到别的 SHA。
+     */
+    branchHead(name) {
+      return runGit(['rev-parse', `${name}`]);
+    },
+    /**
      * AF-043-I1：某提交改动的文件清单（V7 按 commit 事实比对的数据源）。
      * 解析不到（提交不存在 / 非本仓对象）返回 null，由验收层判 fail，不静默当空集。
      */

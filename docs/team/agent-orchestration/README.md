@@ -233,8 +233,9 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 | 状态位     | `closed` / `open` / `half-open` **三态已实现**：达阈值且冷却期未满 → `open`；冷却期满放**一次**试探 → `half-open`（`probeAllowed=true`，`channel-circuit-half-open` 事件）；试探成功 `consecutiveFailures=0` + `circuitOpenedAt=null` 并封 `closed`（`channel-circuit-closed`），试探失败按新失败重新开闸                                                                                                                                                                                                                                      |
 | 跨轮计数   | 开闸时刻同步写 `record.delivery.circuitOpenedAt`，冷却期跨 `run-once` 计算，不靠内存                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | 派发侧拦截 | `scheduler.mjs#resolveChannelCircuit(runtimeState, config, {now})` 扫描运行态取**最新开闸事实**并按当前时刻重算冷却（冷期内 `open`、期满 `half-open`、无事实 `closed`）；`claimReadyTasks` 在持单判定之后、scope 冲突之前拦：`open` **整轮不派发**、`half-open` **只放一次试探**，其余 ready 任务留 `ready`，不登记租约、不生成投递件，并发 `channel-circuit-blocked` / `channel-circuit-probe` 动作（blocked 带 state/channel/consecutiveFailures/threshold/openedAt/cooldownMinutes），试探任务写 `entry.circuitProbe={channel,at,openedAt}` |
+| 探针跨轮   | 「只放一次」按**开闸周期**（`openedAt`）成立：`resolveChannelCircuit` 扫全部运行态条目里 `circuitProbe.openedAt` 相同的探针，已放过则 `probeIssued=true`，后续 `run-once` 一律拦截，不再每轮各放一次；熔断封闭时探针随周期清空，下一次开闸是新周期                                                                                                                                                                                                                                                                                             |
 
-拦截口径为什么按运行态扫描：熔断是**通道级**语义，但状态位只落在触发它的那个任务条目上；只看当前任务会漏掉「A 单熔断通道、B 单照派」的窗口。
+拦截口径为什么按运行态扫描：熔断是**通道级**语义，但状态位只落在触发它的那个任务条目上；只看当前任务会漏掉「A 单熔断通道、B 单照派」的窗口。探针同理必须从运行态读，否则「只放一次」退化成「每轮一次」。
 
 判定完整口径（含终态出口、预算归属、失败定性）见 `channel-failure-decisions-2026-11-17.md` §3–§6。
 
@@ -253,15 +254,15 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 
 远端 CI 门禁（`--require-ci`）：
 
-| 项        | 口径                                                                                                                                                                                          |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 数据源    | GitHub REST `GET /repos/<repo>/commits/<sha>/check-runs?per_page=100`（无 `gh`，也不依赖浏览器）                                                                                              |
-| token     | 按优先级 `GITHUB_TOKEN` → `GH_TOKEN` → `ORCH_GITHUB_TOKEN` → `git credential fill`（`host=github.com`）取 `password=`；`resolveGithubTokenDetail()` 返回 `{token, source, hint}` 便于核对来源 |
-| CI 容器内 | `GITHUB_ACTIONS=true` 且无 token 时**不再白跑 credential helper**，直接给注入提示（`env: GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}`，job 需 `permissions: checks: read`）；不冒充已配好       |
-| 判定      | `ciGateVerdict()` 四态：`pass`（全 `success`/`skipped`/`neutral`）、`fail`、`pending`（存在未 `completed`）、`unknown`（取数失败或 **0 项 check**）                                           |
-| 放行规则  | 只有 `pass` 放行；`pending` / `unknown` **一律不放行**（空 check 不等于通过）                                                                                                                 |
-| 参数      | `--repo`（默认 `aa386400024/mofang-nestjs`）、`--sha`（默认当前 HEAD）                                                                                                                        |
-| GHES      | 基址取 `GITHUB_API_URL`（去尾部斜杠），缺省 `https://api.github.com`；私有部署不硬编码公网地址                                                                                                |
+| 项        | 口径                                                                                                                                                                                                 |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 数据源    | GitHub REST `GET /repos/<repo>/commits/<sha>/check-runs?per_page=100`（无 `gh`，也不依赖浏览器）                                                                                                     |
+| token     | 按优先级 `GITHUB_TOKEN` → `GH_TOKEN` → `ORCH_GITHUB_TOKEN` → `git credential fill`（`host=github.com`）取 `password=`；`resolveGithubTokenDetail()` 返回 `{token, source, hint}` 便于核对来源        |
+| CI 容器内 | `GITHUB_ACTIONS=true` 且无 token 时**不再白跑 credential helper**，直接给注入提示（`env: GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}`，job 需 `permissions: checks: read`）；不冒充已配好              |
+| 判定      | `ciGateVerdict()` 四态：`pass`（全 `success`/`skipped`/`neutral`）、`fail`、`pending`（存在未 `completed`）、`unknown`（取数失败或 **0 项 check**）                                                  |
+| 放行规则  | 只有 `pass` 放行；`pending` / `unknown` **一律不放行**（空 check 不等于通过）                                                                                                                        |
+| 参数      | `--repo`（默认 `aa386400024/mofang-nestjs`）、`--sha`（缺省取**该任务分支 HEAD**，取不到才回落当前 HEAD；`--apply` 时显式 `--sha` 必须等于分支 HEAD，否则拒绝——防「拿旧绿 SHA 给已前进的分支放行」） |
+| GHES      | 基址取 `GITHUB_API_URL`（去尾部斜杠），缺省 `https://api.github.com`；私有部署不硬编码公网地址                                                                                                       |
 
 门禁的「该拦就拦」有实弹记录：`ci-gate-fire-drill-2026-11-17.md`（阻断路径判 `unknown`、放行路径判 `pass` 后完成 squash 合并）。读的是**该 SHA** 上的结论，不是仓库最近一次绿。
 

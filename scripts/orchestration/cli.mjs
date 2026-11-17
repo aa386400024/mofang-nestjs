@@ -487,6 +487,15 @@ async function runBranch(args) {
   const name = buildBranchName(taskId, slug);
   if (!name.valid) throw new Error(`分支名校验失败：${name.errors.join('；')}`);
   const branchName = name.branchName;
+  // 分支 HEAD：门禁判的必须是「被合并的那条分支」，缺能力或分支不存在时返回 null，由调用方决定口径。
+  function resolveBranchHead() {
+    if (typeof git.branchHead !== 'function') return null;
+    try {
+      return git.branchHead(branchName);
+    } catch {
+      return null;
+    }
+  }
 
   if (action === 'plan') {
     const baseline = verifyBaseline(task, git.headRef());
@@ -521,7 +530,14 @@ async function runBranch(args) {
     // （本地闸门绿 ≠ 远端绿：E2E、Coverage Gate、Contracts、Security Audit、Build Docker 只在 CI 跑）。
     if (args.includes('--require-ci')) {
       const repo = argValue(args, '--repo') ?? 'aa386400024/mofang-nestjs';
-      const sha = argValue(args, '--sha') ?? git.headRef();
+      const branchHead = resolveBranchHead();
+      // AF-046-O1：默认判「分支 HEAD」而不是当前工作 HEAD——工作 HEAD 在 integrate 上，
+      // 拿它的结论判一条待合并分支等于没判。显式传 --sha 时必须是该分支 HEAD，
+      // 否则可以用一个旧绿的 SHA 给已前进的分支放行。
+      const sha = argValue(args, '--sha') ?? branchHead ?? git.headRef();
+      if (apply && branchHead && sha !== branchHead) {
+        throw new Error(`--sha 与分支 HEAD 不一致：${sha} ≠ ${branchHead}（拒绝用旧绿的提交给新提交放行）`);
+      }
       const gate = await evaluateRemoteCiGate({ repo, sha });
       if (gate.verdict !== 'pass') {
         const detail = gate.error ?? [...gate.failing, ...gate.pending].join('、');

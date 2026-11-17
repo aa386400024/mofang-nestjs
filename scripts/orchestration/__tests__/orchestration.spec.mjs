@@ -3194,6 +3194,37 @@ describe('AF-044-O1 熔断派发侧硬拦截', () => {
     const circuit = resolveChannelCircuit({ tasks: {} }, config, { now: '2026-11-17T04:05:00.000Z' });
     expect(circuit.state).toBe('closed');
     expect(circuit.probeAllowed).toBe(false);
+    expect(circuit.probeIssued).toBe(false);
+  });
+
+  // 「只放一次试探」必须跨轮成立：上一轮已经把探针发出去，这一轮不能再发第二个。
+  it('同一开闸周期已发过探针：half-open 跨轮不再放行', () => {
+    const index = { tasks: [task('AF-904')], archivedTasks: [] };
+    const runtimeState = openState('2026-11-17T03:50:00.000Z');
+    runtimeState.tasks['AF-905'] = {
+      circuitProbe: { channel: 'gui-relay', at: '2026-11-17T04:02:00.000Z', openedAt: '2026-11-17T03:50:00.000Z' },
+    };
+    const actions = [];
+    claimReadyTasks(index, runtimeState, config, actions, {
+      transport: { submitTask: () => 'transport/tasks/x.json' },
+      cards: [],
+      now: '2026-11-17T04:05:00.000Z',
+    });
+    const circuit = resolveChannelCircuit(runtimeState, config, { now: '2026-11-17T04:05:00.000Z' });
+    expect(circuit.state).toBe('half-open');
+    expect(circuit.probeIssued).toBe(true);
+    expect(index.tasks[0].status).toBe('ready');
+    expect(actions.some((a) => a.type === 'channel-circuit-probe')).toBe(false);
+    expect(actions.find((a) => a.type === 'channel-circuit-blocked')?.state).toBe('half-open');
+  });
+
+  it('不同开闸周期的探针不冒充已试探：新周期可再放一次', () => {
+    const runtimeState = openState('2026-11-17T04:00:00.000Z');
+    runtimeState.tasks['AF-906'] = {
+      circuitProbe: { channel: 'gui-relay', at: '2026-11-17T03:00:00.000Z', openedAt: '2026-11-17T02:30:00.000Z' },
+    };
+    const circuit = resolveChannelCircuit(runtimeState, config, { now: '2026-11-17T04:05:00.000Z' });
+    expect(circuit.probeIssued).toBe(false);
   });
 });
 

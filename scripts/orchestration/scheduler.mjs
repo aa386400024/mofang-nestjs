@@ -287,6 +287,8 @@ export function releaseFailedDeliveries(index, runtimeState, config, actions) {
     } else if (entry.channelCircuit?.state === 'half-open' || entry.channelCircuit?.state === 'open') {
       // 计数已回落（投递成功过）：封闭熔断，留一条可观察事件。
       entry.channelCircuit = { state: 'closed', channel: breaker.channel, consecutiveFailures: 0, at: nowIso() };
+      // 探针事实随开闸周期一起清掉：closed 后再开闸是新周期，旧探针不应冒充「已试探过」。
+      if (entry.circuitProbe) entry.circuitProbe = null;
       actions.push({ type: 'channel-circuit-closed', taskId: task.taskId, channel: breaker.channel });
     }
     entry.escalation = {
@@ -336,10 +338,12 @@ export function resolveChannelCircuit(runtimeState, config = {}, opts = {}) {
       openedAt: null,
       cooldownMinutes: Math.max(1, Number(settings.cooldownMinutes ?? 10)),
       probeAllowed: false,
+      probeIssued: false,
+      probeAt: null,
       reason: null,
     };
   }
-  return evaluateCircuitBreaker(
+  const evaluated = evaluateCircuitBreaker(
     {
       channel: latest.channel ?? null,
       delivery: { consecutiveFailures: latest.consecutiveFailures ?? 0 },
@@ -348,6 +352,15 @@ export function resolveChannelCircuit(runtimeState, config = {}, opts = {}) {
     config,
     opts,
   );
+  // 「只放一次试探」必须跨轮成立：探针事实落在任务条目上（circuitProbe），
+  // 同一开闸周期（openedAt 相同）内只要放过一次，后续 run-once 不再放第二次。
+  const openedAt = String(latest.openedAt ?? '');
+  const probe =
+    entries
+      .map((entry) => entry?.circuitProbe)
+      .filter((item) => item && openedAt !== '' && String(item.openedAt ?? '') === openedAt)
+      .sort((a, b) => String(b.at ?? '').localeCompare(String(a.at ?? '')))[0] ?? null;
+  return { ...evaluated, probeIssued: Boolean(probe), probeAt: probe?.at ?? null };
 }
 
 /** 领单：ready 且依赖满足、类型在白名单 → submitted，登记租约并经 Transport 派发交接件。 */
@@ -363,7 +376,8 @@ export function claimReadyTasks(index, runtimeState, config, actions, opts = {})
   // AF-044-O1：熔断开启即**快速失败**，不把新单再送进已知坏通道。
   // 冷期内（open）整轮不派发；冷却期满（half-open）本轮只放一次试探。
   const circuit = resolveChannelCircuit(runtimeState, config, { now: opts.now ?? nowIso() });
-  let probeIssued = false;
+  // 探针是否已发由运行态决定（不是本轮局部变量），否则每轮 run-once 都会再放一次。
+  let probeIssued = circuit.probeIssued === true;
   let claimed = 0;
   for (const task of index.tasks) {
     if (task.status !== 'ready') continue;
