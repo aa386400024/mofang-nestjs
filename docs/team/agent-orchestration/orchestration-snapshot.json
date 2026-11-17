@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T04:50:28.534Z",
+  "generatedAt": "2026-11-17T05:28:31.650Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -20,29 +20,29 @@
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 42,
-    "activeCount": 0,
+    "total": 48,
+    "activeCount": 5,
     "byStatus": {
       "candidate": 0,
-      "queued": 0,
+      "queued": 5,
       "accepted": 0,
-      "done": 41,
+      "done": 42,
       "wontfix": 1
     },
     "byType": {
-      "gap": 29,
-      "guardrail": 1,
+      "gap": 32,
+      "guardrail": 2,
       "tool": 0,
       "standard": 3,
       "performance": 0,
-      "tech-debt": 9
+      "tech-debt": 11
     },
     "bySource": {
       "implementation": 26,
       "acceptance": 8,
       "rework": 0,
       "dead-letter": 0,
-      "review": 8
+      "review": 14
     },
     "items": [
       {
@@ -946,6 +946,134 @@
           "by": "orchestrator-cli",
           "to": "done",
           "note": "本批落地并验证"
+        }
+      },
+      {
+        "improvementId": "IM-043",
+        "title": "ESLint 作用域不含 scripts/，编排脚本只有单测兜底",
+        "status": "queued",
+        "source": "review",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "pnpm lint 覆盖 {src",
+          "test",
+          "bin}/**/*.ts；对 scripts/orchestration/*.mjs 直接 airbnb 报 was not found by the project service"
+        ],
+        "impact": "脚本层无静态检查，风格与潜在未使用变量只能靠单测和人工发现",
+        "suggestion": "在 eslint 配置加 allowDefaultProject 白名单或建 scripts 专用 tsconfig 项目，先纳入 scripts/orchestration/**/*.mjs",
+        "historyCount": 2,
+        "lastTransition": {
+          "at": "2026-11-17T05:28:30.415Z",
+          "by": "orchestrator-cli",
+          "to": "queued",
+          "note": "登记在案，待排期"
+        }
+      },
+      {
+        "improvementId": "IM-044",
+        "title": "mcp / http transport 仍是预留位，只有 file 通道可用",
+        "status": "queued",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "config.json transport.type=file，mcp/http 仅在 notes 标注预留"
+        ],
+        "impact": "跨机/常驻调度没有真实传输层，长跑派发仍依赖本机文件与人工确认",
+        "suggestion": "按 transport 接口补 http 实现（幂等 idempotencyKey + 重试预算），先在演练环境验证",
+        "historyCount": 2,
+        "lastTransition": {
+          "at": "2026-11-17T05:28:30.626Z",
+          "by": "orchestrator-cli",
+          "to": "queued",
+          "note": "登记在案，待排期"
+        }
+      },
+      {
+        "improvementId": "IM-045",
+        "title": "GUI 派发需人工 channel confirm，无人值守长跑未验证",
+        "status": "queued",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "reliability §4.1 旁路口径 + deliveryLeaseMinutes=5；实测均为人工确认送达"
+        ],
+        "impact": "夜间无人值守场景下投递确认缺失会按租约回滚 ready，吞吐取决于人在场",
+        "suggestion": "补自动送达判定（GUI 侧回执信号）+ 连续 N 单无人值守演练记录",
+        "historyCount": 2,
+        "lastTransition": {
+          "at": "2026-11-17T05:28:30.840Z",
+          "by": "orchestrator-cli",
+          "to": "queued",
+          "note": "登记在案，待排期"
+        }
+      },
+      {
+        "improvementId": "IM-046",
+        "title": "跨仓提交不能写入回执 changedFiles.commits",
+        "status": "queued",
+        "source": "review",
+        "type": "tech-debt",
+        "layer": "framework",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "filesInCommit 在后端仓解析，框架 SHA 必然解析失败；框架提交改放 artifactRefs.others"
+        ],
+        "impact": "跨仓批次只能靠 artifactRefs 人读，V7 的 commit 口径对另一仓不生效",
+        "suggestion": "回执 schema 增 repo 限定（commits 带仓库前缀），校验层按仓分流",
+        "historyCount": 2,
+        "lastTransition": {
+          "at": "2026-11-17T05:28:31.035Z",
+          "by": "orchestrator-cli",
+          "to": "queued",
+          "note": "登记在案，待排期"
+        }
+      },
+      {
+        "improvementId": "IM-047",
+        "title": "生产收口清单（部署/secrets/迁移/监控/回滚）未排期",
+        "status": "queued",
+        "source": "review",
+        "type": "gap",
+        "layer": "framework",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "用户明确暂缓生产；仓库内无生产部署与告警配置项"
+        ],
+        "impact": "除生产外已闭环，但上线前仍有五类工作无任务单、无演练记录",
+        "suggestion": "单独立项 AF-1xx 生产前 checklist，含 secrets 轮换、DB 迁移回滚演练、告警阈值与值班",
+        "historyCount": 2,
+        "lastTransition": {
+          "at": "2026-11-17T05:28:31.223Z",
+          "by": "orchestrator-cli",
+          "to": "queued",
+          "note": "登记在案，待排期"
+        }
+      },
+      {
+        "improvementId": "IM-048",
+        "title": "合并门禁 --sha 可传旧绿 SHA 给已前进分支放行",
+        "status": "done",
+        "source": "review",
+        "type": "guardrail",
+        "layer": "adapter",
+        "relatedTaskId": "AF-045",
+        "evidence": [
+          "88839c6：--require-ci 缺省改取分支 HEAD，--apply 时显式 --sha 与分支 HEAD 不等即抛错"
+        ],
+        "impact": "门禁可被合法参数绕过（拿历史绿 SHA 合并新提交）",
+        "suggestion": "已修复并入库；保留条目作为口径来源",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-17T05:28:31.642Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "88839c6 已入库，远端 CI pass"
         }
       }
     ]

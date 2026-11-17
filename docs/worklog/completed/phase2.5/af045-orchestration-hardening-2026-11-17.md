@@ -90,3 +90,18 @@
 第二轮闸门（补修后重跑，均在本机、无长驻 watch 进程）：编排单测 195 passed / 0 failed、`pnpm lint` 0 error、`pnpm typecheck` 0 error、全量 `pnpm test` 3566 passed / 8 skipped、`validate` / `contracts` / `events verify`（184 条）全 PASS、框架 `run.py` 507 项 0 失败、`unittest` 16 OK。
 
 已知未覆盖（登记在此、不改代码）：`pnpm lint` 的 ESLint 作用域是 `{src,test,bin}/**/*.ts`，**不含 `scripts/`**——直接对 `scripts/orchestration/*.mjs` 跑 eslint 会报 `was not found by the project service`（配置性错误，非代码缺陷）。脚本层目前只有单测兜底，要不要把 `scripts/` 纳入 lint 属于新决策。
+
+### 9.1 跟踪落点（台账 IM-043～IM-048）
+
+本轮全部疑似留白都进台账，不留在散文里：
+
+| 台账   | 状态                                           | 内容                                                                  |
+| ------ | ---------------------------------------------- | --------------------------------------------------------------------- |
+| IM-043 | queued                                         | ESLint 作用域不含 `scripts/`，编排脚本只有单测兜底                    |
+| IM-044 | queued                                         | `mcp` / `http` transport 仍是预留位，只有 `file` 通道可用             |
+| IM-045 | queued                                         | GUI 派发需人工 `channel confirm`，无人值守长跑未验证                  |
+| IM-046 | queued                                         | 跨仓提交不能写入回执 `changedFiles.commits`                           |
+| IM-047 | queued                                         | 生产收口清单（部署 / secrets / 迁移 / 监控 / 回滚）未排期             |
+| IM-048 | done（`--linked-task AF-045`，证据 `88839c6`） | 合并门禁 `--sha` 可传旧绿 SHA 给已前进分支放行（AF-046-O1，本轮修复） |
+
+台账概览：已完成 42 / 排队 5 / 不采纳 1，活跃 5 / 总 48；任务面活跃 0、归档 64。

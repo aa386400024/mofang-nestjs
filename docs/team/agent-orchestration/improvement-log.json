@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-17T04:50:28.527Z",
+  "updatedAt": "2026-11-17T05:28:31.643Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -2112,6 +2112,215 @@
       "resolution": {
         "resolvedAt": "2026-11-17T04:50:28.526Z",
         "resolutionNote": "本批落地并验证",
+        "linkedTaskId": "AF-045"
+      }
+    },
+    {
+      "improvementId": "IM-043",
+      "status": "queued",
+      "title": "ESLint 作用域不含 scripts/，编排脚本只有单测兜底",
+      "source": "review",
+      "type": "tech-debt",
+      "layer": "adapter",
+      "relatedTaskId": "AF-045",
+      "evidence": [
+        "pnpm lint 覆盖 {src",
+        "test",
+        "bin}/**/*.ts；对 scripts/orchestration/*.mjs 直接 airbnb 报 was not found by the project service"
+      ],
+      "impact": "脚本层无静态检查，风格与潜在未使用变量只能靠单测和人工发现",
+      "suggestion": "在 eslint 配置加 allowDefaultProject 白名单或建 scripts 专用 tsconfig 项目，先纳入 scripts/orchestration/**/*.mjs",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T05:28:05.721Z",
+      "updatedAt": "2026-11-17T05:28:30.415Z",
+      "history": [
+        {
+          "at": "2026-11-17T05:28:05.721Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T05:28:30.415Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "登记在案，待排期"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-044",
+      "status": "queued",
+      "title": "mcp / http transport 仍是预留位，只有 file 通道可用",
+      "source": "review",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-045",
+      "evidence": ["config.json transport.type=file，mcp/http 仅在 notes 标注预留"],
+      "impact": "跨机/常驻调度没有真实传输层，长跑派发仍依赖本机文件与人工确认",
+      "suggestion": "按 transport 接口补 http 实现（幂等 idempotencyKey + 重试预算），先在演练环境验证",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T05:28:12.079Z",
+      "updatedAt": "2026-11-17T05:28:30.626Z",
+      "history": [
+        {
+          "at": "2026-11-17T05:28:12.079Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T05:28:30.626Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "登记在案，待排期"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-045",
+      "status": "queued",
+      "title": "GUI 派发需人工 channel confirm，无人值守长跑未验证",
+      "source": "review",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-045",
+      "evidence": ["reliability §4.1 旁路口径 + deliveryLeaseMinutes=5；实测均为人工确认送达"],
+      "impact": "夜间无人值守场景下投递确认缺失会按租约回滚 ready，吞吐取决于人在场",
+      "suggestion": "补自动送达判定（GUI 侧回执信号）+ 连续 N 单无人值守演练记录",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T05:28:12.278Z",
+      "updatedAt": "2026-11-17T05:28:30.840Z",
+      "history": [
+        {
+          "at": "2026-11-17T05:28:12.278Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T05:28:30.840Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "登记在案，待排期"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-046",
+      "status": "queued",
+      "title": "跨仓提交不能写入回执 changedFiles.commits",
+      "source": "review",
+      "type": "tech-debt",
+      "layer": "framework",
+      "relatedTaskId": "AF-045",
+      "evidence": ["filesInCommit 在后端仓解析，框架 SHA 必然解析失败；框架提交改放 artifactRefs.others"],
+      "impact": "跨仓批次只能靠 artifactRefs 人读，V7 的 commit 口径对另一仓不生效",
+      "suggestion": "回执 schema 增 repo 限定（commits 带仓库前缀），校验层按仓分流",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T05:28:19.088Z",
+      "updatedAt": "2026-11-17T05:28:31.035Z",
+      "history": [
+        {
+          "at": "2026-11-17T05:28:19.088Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T05:28:31.035Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "登记在案，待排期"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-047",
+      "status": "queued",
+      "title": "生产收口清单（部署/secrets/迁移/监控/回滚）未排期",
+      "source": "review",
+      "type": "gap",
+      "layer": "framework",
+      "relatedTaskId": "AF-045",
+      "evidence": ["用户明确暂缓生产；仓库内无生产部署与告警配置项"],
+      "impact": "除生产外已闭环，但上线前仍有五类工作无任务单、无演练记录",
+      "suggestion": "单独立项 AF-1xx 生产前 checklist，含 secrets 轮换、DB 迁移回滚演练、告警阈值与值班",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T05:28:19.290Z",
+      "updatedAt": "2026-11-17T05:28:31.223Z",
+      "history": [
+        {
+          "at": "2026-11-17T05:28:19.290Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T05:28:31.223Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "登记在案，待排期"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-048",
+      "status": "done",
+      "title": "合并门禁 --sha 可传旧绿 SHA 给已前进分支放行",
+      "source": "review",
+      "type": "guardrail",
+      "layer": "adapter",
+      "relatedTaskId": "AF-045",
+      "evidence": ["88839c6：--require-ci 缺省改取分支 HEAD，--apply 时显式 --sha 与分支 HEAD 不等即抛错"],
+      "impact": "门禁可被合法参数绕过（拿历史绿 SHA 合并新提交）",
+      "suggestion": "已修复并入库；保留条目作为口径来源",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-17T05:28:25.297Z",
+      "updatedAt": "2026-11-17T05:28:31.642Z",
+      "history": [
+        {
+          "at": "2026-11-17T05:28:25.297Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-17T05:28:25.512Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "本轮已实现，走收口流转"
+        },
+        {
+          "at": "2026-11-17T05:28:31.447Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-17T05:28:31.642Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "88839c6 已入库，远端 CI pass"
+        }
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-17T05:28:31.642Z",
+        "resolutionNote": "88839c6 已入库，远端 CI pass",
         "linkedTaskId": "AF-045"
       }
     }
