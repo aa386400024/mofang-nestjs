@@ -87,6 +87,9 @@ import { parseTaskSheetFrontmatter, buildTaskRecord } from '../task-intake.mjs';
 import { ingestReceipts } from '../receipts.mjs';
 import { normalizeScope, findScopeConflicts, detectResidualFiles, scopeCovers, expandScopePattern } from '../scope-mutex.mjs';
 import { evaluateTaskEntry, isStatePlanePath, GATE_ALLOWED_STATUSES } from '../task-entry-gate.mjs';
+import { evaluateCommitSnapshot, extractCommitTaskId } from '../ci-task-gate.mjs';
+import { INTEGRATE_REQUIRED_CONTEXTS, buildIntegrateProtection, verifyIntegrateProtection } from '../branch-protection.mjs';
+import { evaluateRequiredChecks } from '../pr-release.mjs';
 import {
   buildBranchName,
   validateBranchName,
@@ -3552,5 +3555,158 @@ describe('task-entry-gate 开发任务强制编排门', () => {
       headTasks: [headTask],
     });
     expect(result).toMatchObject({ ok: false, reason: 'scope-residual', residual: ['docs/out-of-scope.md'] });
+  });
+});
+
+describe('AF-056 CI 逐提交编排门', () => {
+  const ciTask = (taskId, files = ['src/'], status = 'submitted') => ({
+    taskId,
+    status,
+    type: 'implementation',
+    agentRole: 'orchestrator',
+    scope: { files },
+    artifacts: { taskSheet: `docs/worklog/pending/${taskId.toLowerCase()}-task-2026-11-17.md` },
+  });
+
+  it('提交标题解析唯一任务编号，日期不误判，同编号重复不歧义', () => {
+    expect(extractCommitTaskId('docs: release 2026-11-17')).toBeNull();
+    expect(extractCommitTaskId('fix: AF-056 / AF-056 gate')).toBe('AF-056');
+    expect(extractCommitTaskId('feat: WP-123 quality gate')).toBe('WP-123');
+  });
+
+  it('提交标题含多个不同任务编号直接拒绝', () => {
+    expect(() => extractCommitTaskId('fix: AF-056 mixed with AF-055')).toThrow('多个任务编号');
+    const result = evaluateCommitSnapshot({ subject: 'AF-056 AF-055', changedFiles: ['src/a.ts'] });
+    expect(result).toMatchObject({ pass: false, reason: 'ambiguous-task-id' });
+  });
+
+  it('登记提交使用当前提交的在办任务并校验任务单存在', () => {
+    const task = ciTask('AF-900', ['docs/worklog/']);
+    const result = evaluateCommitSnapshot({
+      subject: 'docs: register AF-900',
+      changedFiles: ['docs/worklog/pending/af-900-task-2026-11-17.md'],
+      currentIndex: { tasks: [task], archivedTasks: [] },
+      parentIndex: { tasks: [], archivedTasks: [] },
+      taskSheetExists: true,
+    });
+    expect(result).toMatchObject({ pass: true, reason: 'pass', taskId: 'AF-900', commitTaskId: 'AF-900' });
+  });
+
+  it('无任务编号的非状态面提交在服务端阻断', () => {
+    const result = evaluateCommitSnapshot({
+      subject: 'fix: bypass hooks',
+      changedFiles: ['src/a.ts'],
+      currentIndex: { tasks: [], archivedTasks: [] },
+      parentIndex: { tasks: [], archivedTasks: [] },
+    });
+    expect(result).toMatchObject({ pass: false, reason: 'no-active-task' });
+  });
+
+  it('任务索引有记录但提交缺任务单时阻断', () => {
+    const task = ciTask('AF-901', ['src/']);
+    const result = evaluateCommitSnapshot({
+      subject: 'feat: AF-901 implementation',
+      changedFiles: ['src/a.ts'],
+      currentIndex: { tasks: [task], archivedTasks: [] },
+      parentIndex: { tasks: [task], archivedTasks: [] },
+      taskSheetExists: false,
+    });
+    expect(result).toMatchObject({ pass: false, reason: 'task-sheet-missing' });
+  });
+
+  it('纯状态面提交沿用 state-plane-only 豁免', () => {
+    const result = evaluateCommitSnapshot({
+      subject: 'chore: sync archived state',
+      changedFiles: ['docs/team/agent-orchestration/task-state-index.json'],
+      currentIndex: { tasks: [], archivedTasks: [] },
+      parentIndex: { tasks: [], archivedTasks: [] },
+    });
+    expect(result).toMatchObject({ pass: true, reason: 'state-plane-only' });
+  });
+
+  it('归档 squash 提交复用 archived-transition', () => {
+    const task = ciTask('AF-902', ['src/']);
+    const result = evaluateCommitSnapshot({
+      subject: 'fix(orchestration): AF-902 squash merge into integrate',
+      changedFiles: ['docs/team/agent-orchestration/task-state-index.json', 'src/a.ts'],
+      currentIndex: { tasks: [], archivedTasks: [{ ...task, status: 'completed' }] },
+      parentIndex: { tasks: [task], archivedTasks: [] },
+      taskSheetExists: true,
+    });
+    expect(result).toMatchObject({ pass: true, reason: 'archived-transition', taskId: 'AF-902' });
+  });
+
+  it('canceled 归档不能借父提交恢复写权限', () => {
+    const task = ciTask('AF-903', ['src/']);
+    const result = evaluateCommitSnapshot({
+      subject: 'fix: AF-903 canceled bypass',
+      changedFiles: ['docs/team/agent-orchestration/task-state-index.json', 'src/a.ts'],
+      currentIndex: { tasks: [], archivedTasks: [{ ...task, status: 'canceled' }] },
+      parentIndex: { tasks: [task], archivedTasks: [] },
+      taskSheetExists: true,
+    });
+    expect(result).toMatchObject({ pass: false, reason: 'no-active-task' });
+  });
+
+  it('服务端归档迁移仍阻断 scope 外文件', () => {
+    const task = ciTask('AF-904', ['src/']);
+    const result = evaluateCommitSnapshot({
+      subject: 'fix: AF-904 archive',
+      changedFiles: ['docs/team/agent-orchestration/task-state-index.json', 'docs/out-of-scope.md'],
+      currentIndex: { tasks: [], archivedTasks: [{ ...task, status: 'completed' }] },
+      parentIndex: { tasks: [task], archivedTasks: [] },
+      taskSheetExists: true,
+    });
+    expect(result).toMatchObject({ pass: false, reason: 'scope-residual' });
+  });
+});
+
+describe('AF-056 integrate 保护与 PR 合并门', () => {
+  const successfulChecks = () => INTEGRATE_REQUIRED_CONTEXTS.map((name) => ({ name, status: 'completed', conclusion: 'success' }));
+
+  it('保护声明保留 12 项检查并新增 Orchestration Gate，管理员同样受限', () => {
+    const payload = buildIntegrateProtection();
+    expect(payload.required_status_checks.contexts).toHaveLength(13);
+    expect(payload.required_status_checks.contexts[0]).toBe('Orchestration Gate');
+    expect(payload.required_status_checks.strict).toBe(true);
+    expect(payload.enforce_admins).toBe(true);
+    expect(payload.required_linear_history).toBe(true);
+    expect(payload.required_pull_request_reviews.required_approving_review_count).toBe(0);
+    expect(payload.allow_force_pushes).toBe(false);
+    expect(payload.allow_deletions).toBe(false);
+  });
+
+  it('保护读回校验识别缺项与管理员绕过风险', () => {
+    const actual = {
+      required_status_checks: { strict: true, contexts: INTEGRATE_REQUIRED_CONTEXTS },
+      enforce_admins: { enabled: true },
+      required_linear_history: { enabled: true },
+      allow_force_pushes: { enabled: false },
+      allow_deletions: { enabled: false },
+      required_conversation_resolution: { enabled: true },
+      required_pull_request_reviews: { required_approving_review_count: 0 },
+    };
+    expect(verifyIntegrateProtection(actual).pass).toBe(true);
+    actual.enforce_admins.enabled = false;
+    expect(verifyIntegrateProtection(actual).pass).toBe(false);
+    actual.enforce_admins.enabled = true;
+    actual.required_status_checks.contexts = actual.required_status_checks.contexts.slice(1);
+    expect(verifyIntegrateProtection(actual)).toMatchObject({ pass: false, missing: ['Orchestration Gate'] });
+  });
+
+  it('PR 必需检查全部存在且成功才 pass', () => {
+    expect(evaluateRequiredChecks(successfulChecks())).toMatchObject({ verdict: 'pass', total: 13, missing: [], failing: [], pending: [] });
+  });
+
+  it('缺检查、待完成与 unknown 不放行，失败优先返回 fail', () => {
+    expect(evaluateRequiredChecks([]).verdict).toBe('unknown');
+    expect(evaluateRequiredChecks(successfulChecks().slice(1))).toMatchObject({ verdict: 'pending', missing: ['Orchestration Gate'] });
+    const pending = successfulChecks();
+    pending[0].status = 'in_progress';
+    pending[0].conclusion = null;
+    expect(evaluateRequiredChecks(pending)).toMatchObject({ verdict: 'pending', pending: ['Orchestration Gate'] });
+    const failed = successfulChecks();
+    failed[2].conclusion = 'failure';
+    expect(evaluateRequiredChecks(failed)).toMatchObject({ verdict: 'fail', failing: ['Lint + Typecheck（failure）'] });
   });
 });

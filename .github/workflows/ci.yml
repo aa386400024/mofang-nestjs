@@ -16,6 +16,64 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # AF-056：服务端逐提交编排门。只保护 integrate 与任务 PR；
+  # master/release 的 L4 由 release.yml 独立授权，不在这里隐式扩权。
+  orchestration-gate:
+    name: Orchestration Gate
+    if: >-
+      ${{
+        github.event_name == 'pull_request' ||
+        (github.event_name == 'push' && github.ref == 'refs/heads/integrate') ||
+        (github.event_name == 'workflow_dispatch' &&
+          (github.ref == 'refs/heads/integrate' || startsWith(github.ref, 'refs/heads/task/')))
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
+      - name: Resolve commit range
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_AFTER: ${{ github.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          REF_NAME: ${{ github.ref }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            BASE="$PR_BASE"
+            HEAD="$PR_HEAD"
+          elif [ "$EVENT_NAME" = "push" ]; then
+            BASE="$EVENT_BEFORE"
+            HEAD="$EVENT_AFTER"
+          elif [[ "$REF_NAME" == refs/heads/task/* ]]; then
+            git fetch origin integrate --no-tags
+            BASE="origin/integrate"
+            HEAD="$EVENT_AFTER"
+          else
+            BASE="$EVENT_AFTER^"
+            HEAD="$EVENT_AFTER"
+          fi
+          echo "ORCH_BASE=$BASE" >> "$GITHUB_ENV"
+          echo "ORCH_HEAD=$HEAD" >> "$GITHUB_ENV"
+          echo "Validating $BASE..$HEAD"
+
+      - name: Validate every commit against its own task snapshot
+        run: node scripts/orchestration/ci-task-gate.mjs --base "$ORCH_BASE" --head "$ORCH_HEAD"
+
   # 所有 job 之间没有产物依赖：契约 / lint / 单测 / E2E / 覆盖率 / Docker build / 安全审计
   # 均从同一 checkout 独立执行。并行跑可将墙钟从「lint→test→build」三段串行压到单段最长作业。
   # 代价是 lint 失败时其它作业仍会跑完；以延迟优先，失败面由各 job 独立结论呈现。
