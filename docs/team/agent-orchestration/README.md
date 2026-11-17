@@ -176,16 +176,20 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 | `pending`   | 投递件已生成（`briefRef` 非空），尚未确认送达                                       | `run-once` 领单（领单即生成投递件）/ `channel dispatch` |
 | `delivered` | 桌面 relay 已送达并校验（会话路径 + 定位层 + 证据指针齐备，且原态必须是 `pending`） | `channel confirm`                                       |
 | `failed`    | 投递失败并降级，通道改 `gui-file-fallback`，文件交接件仍在                          | `channel fallback`                                      |
+| `bypassed`  | 非失败事实：通道被旁路（会话内直做 / 已由既有进程执行），不计失败、不判终态         | `channel fallback --cause executed-in-session`          |
 
 `pending` 用**独立投递租约**（`config.dispatch.deliveryLeaseMinutes`，默认 5 分钟）计时，不占 30 分钟任务租约：超时未确认，`run-once` 的 `releaseFailedDeliveries` 把任务回滚 `ready` 并置 `heldForHuman`，`releaseReason=gui-delivery-lease-expired`。
 
 `failed` 的回收不再一律持单，而是把 relay 上报的**现场事实**（`delivery.lastAttempt`：`cause` / `loginGate` / `startRetries` / `sendRetries` / `sessionAttempted` / `locateAttempted` / `attemptCount`）喂给运行时决策链 `dispatch-channel.mjs#resolveDispatchDecision`（IM-028），动作映射如下：
 
-| 决策动作                                          | 调度层结果                                                                   |
-| ------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `fail-terminal`（不可恢复类别）                   | 任务 `submitted → failed`，`releaseReason=gui-delivery-terminal`，不重试     |
-| `human-escalate`（任务级预算耗尽 / 进程拉不起来） | 回滚 `ready` + `heldForHuman`，`releaseReason=gui-delivery-budget-exhausted` |
-| 其余（有现场事实但可恢复）                        | 回滚 `ready` + `heldForHuman`，`releaseReason=gui-delivery-failed`           |
+| 决策动作                                                   | 调度层结果                                                                               |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `fail-terminal`（不可恢复类别）                            | 任务 `submitted → failed`，`releaseReason=gui-delivery-terminal`，不重试                 |
+| `continue-in-session`（非失败事实：`executed-in-session`） | 不动任务状态；`entry.deliveryBypassed=true` + `delivery-bypassed` 动作，任务按原状态推进 |
+| `human-escalate`（任务级预算耗尽 / 进程拉不起来）          | 回滚 `ready` + `heldForHuman`，`releaseReason=gui-delivery-budget-exhausted`             |
+
+`--cause` 是**必填**：它是决策链的判决值，缺省（旧行为）会退化成 `deterministic-defect` → 终态 `failed`，把"没走这条通道"误杀成"任务死"（AF-041 即此）。缺省或非法值 CLI 直接退出码 2，可选值见 `DELIVERY_CAUSES`。
+| 其余（有现场事实但可恢复） | 回滚 `ready` + `heldForHuman`，`releaseReason=gui-delivery-failed` |
 
 没有现场事实时**不得假定不可恢复**（缺省 `cause` 为空，走持单待人工），否则会把偶发故障直接判死。持单后修好通道再 `task resume`。
 
@@ -200,12 +204,12 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 
 ### 命令
 
-| 命令                                                                                                                                                                                           | 作用                                                                                         | 副作用           |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------- |
-| `channel rules` / `channel queue --taskId` / `channel state --taskId`                                                                                                                          | 规则、队列可派判定、投递状态与停滞标记                                                       | 只读             |
-| `channel dispatch --taskId <id> [--extra-file <md>]`                                                                                                                                           | 读交接件 → 生成 `transport/briefs/<taskId>.brief.md` → 置 `pending`                          | 写投递件与运行态 |
-| `channel confirm --taskId <id> --session-path <..> --locate-layer <..> --evidence <..>`                                                                                                        | 回写 `delivered`；缺任一项即拒                                                               | 写运行态         |
-| `channel fallback --taskId <id> --reason <..> [--classification deterministic\|flaky\|legacy-debt] [--cause <类别>] [--login-gate] [--start-retries N] [--send-retries N] [--attempt-count N]` | 回写 `failed` + 通道降级 + 现场事实（`delivery.lastAttempt`），缺原因或缺 `handoverRef` 即拒 | 写运行态         |
+| 命令                                                                                                                                                                                         | 作用                                                                                                                                                                | 副作用           |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `channel rules` / `channel queue --taskId` / `channel state --taskId`                                                                                                                        | 规则、队列可派判定、投递状态与停滞标记                                                                                                                              | 只读             |
+| `channel dispatch --taskId <id> [--extra-file <md>]`                                                                                                                                         | 读交接件 → 生成 `transport/briefs/<taskId>.brief.md` → 置 `pending`                                                                                                 | 写投递件与运行态 |
+| `channel confirm --taskId <id> --session-path <..> --locate-layer <..> --evidence <..>`                                                                                                      | 回写 `delivered`；缺任一项即拒                                                                                                                                      | 写运行态         |
+| `channel fallback --taskId <id> --reason <..> --cause <类别> [--classification deterministic\|flaky\|legacy-debt] [--login-gate] [--start-retries N] [--send-retries N] [--attempt-count N]` | 回写 `failed` + 通道降级 + 现场事实（`delivery.lastAttempt`）；`--cause` **必填**且须在 `DELIVERY_CAUSES` 内，缺原因 / 缺 `handoverRef` / 缺 `cause` 即拒（exit 2） | 写运行态         |
 
 ### 分工与红线
 
@@ -219,14 +223,15 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 
 熔断初始以「扩展位」存在，本批起**参数化落地**：阈值由适配层声明，框架侧只固定语义槽位（框架 `docs/reliability.md` §5.1）。
 
-| 项       | 口径                                                                                                                       |
-| -------- | -------------------------------------------------------------------------------------------------------------------------- |
-| 计数维度 | 按**通道**（下游实例）连续失败次数计数，跨任务复用同一平面；**不**按任务另立独立计数                                       |
-| 阈值参数 | `config.circuitBreaker.consecutiveFailureThreshold`（默认 3）、`cooldownMinutes`（默认 10）                                |
-| 判定函数 | `dispatch-channel.mjs#evaluateCircuitBreaker(task, config)` → `{state, channel, consecutiveFailures, threshold, reason}`   |
-| 计数写入 | `gui-dispatch.mjs#fallbackDelivery` 递增 `delivery.consecutiveFailures`；`dispatch.mjs#buildDispatchRecord` 干净派发归零   |
-| 开闸后果 | `entry.channelCircuit={state:'open',channel,consecutiveFailures,threshold,at}` + `channel-circuit-open` 动作（可观察事件） |
-| 状态位   | `closed` / `open` 已实现；`half-open`（冷却后恢复试探）**仍为预留**，冷却期到点需人工复位                                  |
+| 项       | 口径                                                                                                                                                                                                                                                                                                      |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 计数维度 | 按**通道**（下游实例）连续失败次数计数，跨任务复用同一平面；**不**按任务另立独立计数                                                                                                                                                                                                                      |
+| 阈值参数 | `config.circuitBreaker.consecutiveFailureThreshold`（默认 3）、`cooldownMinutes`（默认 10）                                                                                                                                                                                                               |
+| 判定函数 | `dispatch-channel.mjs#evaluateCircuitBreaker(task, config, { now })` → `{state, channel, consecutiveFailures, threshold, openedAt, cooldownMinutes, probeAllowed, reason}`                                                                                                                                |
+| 计数写入 | `gui-dispatch.mjs#fallbackDelivery` 递增 `delivery.consecutiveFailures`；`dispatch.mjs#buildDispatchRecord` 干净派发归零                                                                                                                                                                                  |
+| 开闸后果 | `entry.channelCircuit={state:'open',channel,consecutiveFailures,threshold,at}` + `channel-circuit-open` 动作（可观察事件）                                                                                                                                                                                |
+| 状态位   | `closed` / `open` / `half-open` **三态已实现**：达阈值且冷却期未满 → `open`；冷却期满放**一次**试探 → `half-open`（`probeAllowed=true`，`channel-circuit-half-open` 事件）；试探成功 `consecutiveFailures=0` + `circuitOpenedAt=null` 并封 `closed`（`channel-circuit-closed`），试探失败按新失败重新开闸 |
+| 跨轮计数 | 开闸时刻同步写 `record.delivery.circuitOpenedAt`，冷却期跨 `run-once` 计算，不靠内存                                                                                                                                                                                                                      |
 
 判定完整口径（含终态出口、预算归属、失败定性）见 `channel-failure-decisions-2026-11-17.md` §3–§6。
 
@@ -245,13 +250,15 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 
 远端 CI 门禁（`--require-ci`）：
 
-| 项       | 口径                                                                                                                                                |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 数据源   | GitHub REST `GET /repos/<repo>/commits/<sha>/check-runs?per_page=100`（无 `gh`，也不依赖浏览器）                                                    |
-| token    | 先 `GITHUB_TOKEN` / `GH_TOKEN`，再 `git credential fill`（`host=github.com`）取 `password=`                                                         |
-| 判定     | `ciGateVerdict()` 四态：`pass`（全 `success`/`skipped`/`neutral`）、`fail`、`pending`（存在未 `completed`）、`unknown`（取数失败或 **0 项 check**） |
-| 放行规则 | 只有 `pass` 放行；`pending` / `unknown` **一律不放行**（空 check 不等于通过）                                                                       |
-| 参数     | `--repo`（默认 `aa386400024/mofang-nestjs`）、`--sha`（默认当前 HEAD）                                                                              |
+| 项        | 口径                                                                                                                                                                                          |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 数据源    | GitHub REST `GET /repos/<repo>/commits/<sha>/check-runs?per_page=100`（无 `gh`，也不依赖浏览器）                                                                                              |
+| token     | 按优先级 `GITHUB_TOKEN` → `GH_TOKEN` → `ORCH_GITHUB_TOKEN` → `git credential fill`（`host=github.com`）取 `password=`；`resolveGithubTokenDetail()` 返回 `{token, source, hint}` 便于核对来源 |
+| CI 容器内 | `GITHUB_ACTIONS=true` 且无 token 时**不再白跑 credential helper**，直接给注入提示（`env: GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}`，job 需 `permissions: checks: read`）；不冒充已配好       |
+| 判定      | `ciGateVerdict()` 四态：`pass`（全 `success`/`skipped`/`neutral`）、`fail`、`pending`（存在未 `completed`）、`unknown`（取数失败或 **0 项 check**）                                           |
+| 放行规则  | 只有 `pass` 放行；`pending` / `unknown` **一律不放行**（空 check 不等于通过）                                                                                                                 |
+| 参数      | `--repo`（默认 `aa386400024/mofang-nestjs`）、`--sha`（默认当前 HEAD）                                                                                                                        |
+| GHES      | 基址取 `GITHUB_API_URL`（去尾部斜杠），缺省 `https://api.github.com`；私有部署不硬编码公网地址                                                                                                |
 
 ## 5.4 回执指纹与范围通配（IM-007 / IM-011）
 
@@ -262,6 +269,19 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 | 范围通配   | `scope-mutex.mjs#expandScopePattern` 按真实目录枚举（只读 `readdir`，逐段匹配 `*`，`maxDepth` 6 / `maxEntries` 500 兜底）                |
 | 展开时机   | 只有传 `rootDir`（调度的 `claimReadyTasks` 传 `REPO_ROOT`）才展开；展开为空回退原前缀条目，避免「无匹配=无冲突」的假放行                 |
 | 修掉的误报 | `src/*.ts` 旧口径降级成前缀 `src/`，会把 `src/shared/` 判成冲突；展开后只覆盖真实文件                                                    |
+
+## 5.5 验收残留比对两种口径（AF-043-I1）
+
+V7「文件域残留」有两条取证路径，按回执是否声明提交集合自动分流（`acceptance-runner.mjs#checkResidual`）：
+
+| 口径            | 触发条件                        | 比对对象                                                                   | 失败语义                                                          |
+| --------------- | ------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| 工作树比对      | 回执无 `changedFiles.commits`   | `git diff` 全树交付面（先剔除状态面生成物与本任务任务单）                  | 清单外文件即残留 → `rejected`                                     |
+| **commit 比对** | 回执声明 `changedFiles.commits` | 声明提交的文件集合（`git show --name-only`，经 `resolveCommitFiles` 注入） | 提交内 scope 外文件 → `fail`；提交解析不到 → `fail`（声明即证据） |
+
+- 声明 commit 后，工作树里**属同批次其它任务的在办改动不参与比对**，只写进 detail 供人看。修掉的正是 AF-040 / AF-042 连续被判 `rejected` 的根因：同树多任务，拿工作树套单个任务必然互相误判。
+- 未注入 `resolveCommitFiles`（如纯函数调用）→ 记 `skip`，**不冒充通过**。
+- 契约侧字段登记：后端回执校验 `handover-contract.mjs` 接受 `changedFiles.commits`（7–40 位小写十六进制），框架 `docs/receipt-contract.md` §3.1 已同步登记为可选扩展字段。
 
 ## 6. 策略锚点（policyAnchors）
 
