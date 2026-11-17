@@ -167,6 +167,7 @@ L4 的当前执行载体是 `.github/workflows/release.yml`：只能从 `integra
 旧「本机无 gh/token、远端 CI 只能事后复核」的过渡口径已退役。本机可直接复用 Git credential helper 调用 GitHub REST，**不需要安装 gh**：
 
 - `Orchestration Gate` 在 PR 与 integrate push 上逐提交验证 taskId、任务状态、scope、任务单和归档迁移；本地 `--no-verify` 不能绕过服务端判定。
+- AF-057 补充 PR 最终 HEAD 验收门：completed/archived 与 passed + in-scope + completed durable 回执由 CI 直接读取 git tree 核验，GitHub 页面/API 合并未验收 PR 也会被 required check 阻断。
 - `integrate` 必需 13 项检查（原 12 项 + Orchestration Gate）、required PR（审批数 0）、strict 最新分支、线性历史、enforce admins，禁止 force push / 删除。
 - 合并前由 `pr-release.mjs` 复核 completed/archived、passed durable 回执、PR HEAD == 本地 HEAD；pending / unknown / 缺检查一律不合并。
 - 合并后 fast-forward 本地 integrate 并核对 merge SHA；任务分支树一致才删除。L4 master/tag/release/deploy 仍不在此自动路径内。
