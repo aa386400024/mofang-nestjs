@@ -240,6 +240,22 @@ export function isStatePlaneArtifact(file) {
 }
 
 /**
+ * 任务单本身也是编排状态面：登记 / 提级 / 提交 / 归档每一跳都会改写它的状态行与 §状态，
+ * 把它算成交付残留会让任何走了正规流程的任务都必然 rejected。V7 因而按
+ * 「本任务自己的任务单路径」精确排除，不按目录前缀排除（同目录的其它任务单仍是交付面）。
+ */
+export function isTaskSheetArtifact(task, file) {
+  const normalize = (value) =>
+    String(value ?? '')
+      .replace(/\\/g, '/')
+      .replace(/^\.\//, '');
+  const sheet = normalize(task?.artifacts?.taskSheet);
+  if (!sheet) return false;
+  const path = normalize(file);
+  return path === sheet;
+}
+
+/**
  * V7 文件域残留：变更清单与 scope 比对，清单外文件判残留（只识别报告，不删除、不归集）。
  * changedFiles 由调用方采集 git diff 传入；未传入时记 skip（纯函数模块无 git IO）。
  * 编排状态面生成物先剔除，再与任务 scope 比对。
@@ -258,9 +274,16 @@ function checkResidual(task, opts) {
     return { checks, manualReview: [] };
   }
   const statePlane = changed.filter(isStatePlaneArtifact);
-  const deliverable = changed.filter((file) => !isStatePlaneArtifact(file));
+  const sheet = changed.filter((file) => !isStatePlaneArtifact(file) && isTaskSheetArtifact(task, file));
+  const deliverable = changed.filter((file) => !isStatePlaneArtifact(file) && !isTaskSheetArtifact(task, file));
   if (deliverable.length === 0) {
-    record(checks, 'V7', '文件域残留', 'pass', `变更清单仅含编排状态面生成物 ${statePlane.length} 项，不纳入任务交付面比对`);
+    record(
+      checks,
+      'V7',
+      '文件域残留',
+      'pass',
+      `变更清单仅含编排状态面生成物 ${statePlane.length} 项${sheet.length > 0 ? ` + 本任务任务单 ${sheet.length} 项` : ''}，不纳入任务交付面比对`,
+    );
     return { checks, manualReview: [] };
   }
   const { covered, residual } = detectResidualFiles(deliverable, task);

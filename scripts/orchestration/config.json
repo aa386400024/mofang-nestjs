@@ -13,6 +13,11 @@
   "transport": {
     "type": "file"
   },
+  "dispatch": {
+    "channel": "gui-relay",
+    "fallbackToFile": true,
+    "deliveryLeaseMinutes": 5
+  },
   "web": {
     "refresh": {
       "enabled": true,
@@ -36,6 +41,9 @@
     "frozenActions": "命中即冻结、转 input-required 并转人工，不阻塞队列其他任务；类别对齐框架仓 docs/autonomous-loop.md §3.2。",
     "store.backend": "状态持久化后端：json（默认，JSON 文件 + 原子写）或 sqlite（可选内置 node:sqlite）；SQLite 仅存指针 / 状态 / 历史，工件正文仍留文件，不进业务 MySQL。",
     "transport.type": "协议投递通道：file（默认，交接 JSON 文件）；mcp / http 为预留实现位，本批次不实现、不引协议栈依赖。",
+    "dispatch.channel": "派发通道：gui-relay（默认，桌面 relay 投递，投递件落 transport/briefs/，须经 `channel confirm` 确认送达或 `channel fallback` 降级）或 file（只落交接件，不驱动桌面）。",
+    "dispatch.fallbackToFile": "GUI 通道投递失败是否保留文件交接件并降级为 channel=gui-file-fallback；true 时任务不丢，降级事实写进派发记录。",
+    "dispatch.deliveryLeaseMinutes": "GUI 投递租约（分钟，默认 5）：投递件生成后超时仍未 confirm / fallback，run-once 把任务回滚 ready 并置 heldForHuman；与 30 分钟任务租约分离，避免一条 pending 投递占满单任务队列。",
     "web.refresh.enabled": "编排看板前端轮询开关：true（默认）定时重载 data.js 并在快照变化后重渲染；false 关闭自动刷新，页面仅手动刷新。",
     "web.refresh.intervalMs": "看板轮询间隔（毫秒），须为不小于 1000 的整数；默认 3000。"
   }

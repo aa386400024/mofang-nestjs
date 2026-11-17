@@ -26,6 +26,7 @@ import {
   loadRuntimeState,
   loadToolContracts,
   nowIso,
+  PATHS,
   saveRuntimeState,
 } from './state-store.mjs';
 import { commitIndex } from './event-store.mjs';
@@ -36,6 +37,7 @@ import { listAudits, loadAuditLog, summarizeAudits } from './audit-log.mjs';
 import { buildProtocolView } from './protocol-mapper.mjs';
 import { createTransport } from './transport.mjs';
 import { dispatchTask, receiptFingerprint, isReceiptProcessed, markReceiptProcessed } from './dispatch.mjs';
+import { buildGuiBrief, writeGuiBrief, isDeliveryStalled } from './gui-dispatch.mjs';
 import { findScopeConflicts } from './scope-mutex.mjs';
 import { validateScopeDomain } from './card-router.mjs';
 import { archiveTaskSheetFile, ingestReceipts } from './receipts.mjs';
@@ -173,6 +175,44 @@ export function releaseExpiredLeases(index, runtimeState, actions) {
   }
 }
 
+/**
+ * 投递失败 / 投递租约过期的回滚：把带 `delivery.state=failed` 或 pending 超投递租约的任务
+ * 从 submitted 释放回 ready 并置 `heldForHuman`（不自动重派，避免 GUI 反复失败空转）。
+ * 与任务租约（30 min）分离：桌面投递是分钟级动作，用 `config.dispatch.deliveryLeaseMinutes`（默认 5）。
+ * @returns {number} 处理条数
+ */
+export function releaseFailedDeliveries(index, runtimeState, config, actions) {
+  const leaseMinutes = config.dispatch?.deliveryLeaseMinutes;
+  let handled = 0;
+  for (const task of index.tasks) {
+    if (task.status !== 'submitted') continue;
+    const entry = getRuntimeEntry(runtimeState, task.taskId);
+    const record = entry?.dispatch ?? null;
+    if (!record?.delivery) continue;
+    const stalled = isDeliveryStalled(record, { deliveryLeaseMinutes: leaseMinutes });
+    if (!stalled) continue;
+    if (!canTransition(task.status, 'ready')) continue;
+    const reason = record.delivery.state === 'failed' ? 'gui-delivery-failed' : 'gui-delivery-lease-expired';
+    pushHistory(task, 'ready', BY_ORCHESTRATOR, 'GUI 投递未完成回收：回滚 ready 并持单待人工（不自动重派）');
+    entry.leaseClaimedAt = null;
+    entry.leaseDeadline = null;
+    entry.releaseReason = reason;
+    entry.releasedAt = nowIso();
+    entry.heldForHuman = true;
+    entry.escalation = {
+      waiting: 'GUI 投递未确认送达，任务已回滚 ready 并持单',
+      evidence: [record.delivery.briefRef, record.delivery.evidenceRef]
+        .filter(Boolean)
+        .concat(entry.dispatch?.handoverRef ? [entry.dispatch.handoverRef] : []),
+      attemptedPaths: record.delivery.history?.map((item) => item.sessionPath ?? item.state).filter(Boolean) ?? [],
+      suggestedDecision: '确认桌面投递通道（进程 / 会话 / 定位层）后 task resume，或改用文件通道重派',
+    };
+    actions.push({ type: 'delivery-released', taskId: task.taskId, reason, deliveryState: record.delivery.state });
+    handled += 1;
+  }
+  return handled;
+}
+
 /** 领单：ready 且依赖满足、类型在白名单 → submitted，登记租约并经 Transport 派发交接件。 */
 export function claimReadyTasks(index, runtimeState, config, actions, opts = {}) {
   const transport = opts.transport ?? createTransport(config);
@@ -227,12 +267,28 @@ export function claimReadyTasks(index, runtimeState, config, actions, opts = {})
     actions.push({ type: 'claim', taskId: task.taskId });
     let dispatch;
     try {
+      // GUI 通道只对非编排者角色生效：编排者自己的任务投递给自己，走文件交接件即可，
+      // 桌面 relay 的价值在于把活送进执行代理会话（MiniMax Code 等），不是给自己贴便签。
+      const targetRole = task.agentRole ?? 'executor';
+      const configuredChannel = config.dispatch?.channel ?? 'file';
+      const channel = targetRole === 'orchestrator' ? 'file' : configuredChannel;
+      // GUI 通道在领单时就生成投递件：`delivery.state=pending` 的定义是「投递件已生成」，
+      // 不能留给人工补跑 channel dispatch，否则任务空等租约。transportDir 由调用方注入，缺省不生成。
+      let briefRef = null;
+      if (channel === 'gui-relay' && opts.transportDir) {
+        briefRef = writeGuiBrief({
+          transportDir: opts.transportDir,
+          taskId: task.taskId,
+          text: buildGuiBrief(task, {}).text,
+        });
+      }
       dispatch = dispatchTask(task, entry, {
         transport,
-        channel: config.transport?.type ?? 'file',
-        targetRole: task.agentRole ?? 'executor',
+        channel,
+        targetRole,
         cards: opts.cards,
         force: true,
+        briefRef,
       });
     } catch (err) {
       dispatch = { dispatched: false, record: null, handoverRef: null, errors: [err.message] };
@@ -507,11 +563,21 @@ export function advanceOnce(opts = {}) {
 
   if (shouldAdvance(config)) {
     releaseExpiredLeases(index, runtimeState, actions);
+    // GUI 投递失败 / 投递租约过期也要回滚：否则任务带着 failed 投递继续占租约，
+    // 调度层对 delivery.state 零读取，等于把「已降级」当成「在正常执行」。
+    releaseFailedDeliveries(index, runtimeState, config, actions);
     // 先验收 / 归档回收在办任务，再领下一个：同一轮即可完成「回收 → 派发下一单」，
     // 否则单任务队列会在回执已到的那一轮误报 queue-busy，并空转一轮。
     const cards = opts.cards ?? loadAgentCards();
     processReceipts(index, runtimeState, config, actions, { changedFiles: opts.changedFiles, receiptsDir: opts.receiptsDir });
-    claimReadyTasks(index, runtimeState, config, actions, { transport: opts.transport, cards });
+    // 投递件目录只在真实运行态（未注入 transport）时写入仓内 transport/briefs；
+    // 单测注入 fake transport 时不写盘，避免测试污染工作区。
+    const transportDir = opts.transportDir ?? (opts.transport ? null : PATHS.transportDir);
+    claimReadyTasks(index, runtimeState, config, actions, {
+      transport: opts.transport,
+      cards,
+      transportDir,
+    });
   } else {
     actions.push({
       type: 'readonly-snapshot',

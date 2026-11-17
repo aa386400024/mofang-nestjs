@@ -12,8 +12,8 @@ import { buildTaskHandover, validateTaskHandover } from './handover-contract.mjs
 import { selectTargetRole } from './card-router.mjs';
 import { nowIso } from './state-store.mjs';
 
-/** 派发通道枚举（file 为本批实现；gui-relay / mcp / http 预留位）。 */
-export const DISPATCH_CHANNELS = ['file', 'gui-relay', 'mcp', 'http'];
+/** 派发通道枚举（file / gui-relay 为本批实现；gui-file-fallback 为降级态；mcp / http 预留位）。 */
+export const DISPATCH_CHANNELS = ['file', 'gui-relay', 'gui-file-fallback', 'mcp', 'http'];
 
 function normalizeChannel(channel) {
   return DISPATCH_CHANNELS.includes(channel) ? channel : 'file';
@@ -21,15 +21,19 @@ function normalizeChannel(channel) {
 
 /**
  * 构造派发记录（只留指针、通道与计数，不含对话原文）。
+ * gui-relay 通道额外带 `delivery` 段：投递状态机由 gui-dispatch.mjs 的 confirm / fallback 推进，
+ * 记录初始态 pending 表示「投递件已生成、尚未确认送达」。
+ * 重派（`opts.attempt > 1`）时把上一轮 delivery 压入 `history`，失败原因与定性不被覆盖。
  * @param {object} task 索引任务条目
- * @param {object} opts {channel, targetRole, sessionRef, leaseDeadline, attempt, handoverRef}
+ * @param {object} opts {channel, targetRole, sessionRef, leaseDeadline, attempt, handoverRef, briefRef, previousDelivery}
  * @returns {object} 派发记录
  */
 export function buildDispatchRecord(task, opts = {}) {
-  return {
+  const channel = normalizeChannel(opts.channel);
+  const record = {
     taskId: task.taskId,
     contextId: task.contextId ?? null,
-    channel: normalizeChannel(opts.channel),
+    channel,
     targetRole: opts.targetRole ?? task.agentRole ?? null,
     sessionRef: opts.sessionRef ?? null,
     dispatchedAt: nowIso(),
@@ -38,6 +42,20 @@ export function buildDispatchRecord(task, opts = {}) {
     status: 'submitted',
     handoverRef: opts.handoverRef ?? null,
   };
+  if (channel === 'gui-relay') {
+    const previous = opts.previousDelivery && opts.previousDelivery.state ? [{ ...opts.previousDelivery }] : [];
+    const history = previous.length > 0 ? previous : Array.isArray(opts.previousDelivery?.history) ? opts.previousDelivery.history : [];
+    record.delivery = {
+      state: 'pending',
+      preparedAt: record.dispatchedAt,
+      briefRef: opts.briefRef ?? null,
+      sessionPath: null,
+      locateLayer: null,
+      evidenceRef: null,
+      history,
+    };
+  }
+  return record;
 }
 
 /**
@@ -77,7 +95,9 @@ export function dispatchTask(task, entry, opts = {}) {
 
   const transport = opts.transport ?? null;
   const handoverRef = transport?.submitTask ? transport.submitTask(handover) : null;
-  const attempt = Number(opts.attempt ?? entry.dispatch?.attempt ?? 1);
+  // 逐次留痕（AF-015 D-3）：重派 attempt 递增，上一轮 delivery 进 history，不覆盖失败原因与定性。
+  const previousDispatch = entry.dispatch ?? null;
+  const attempt = Number(opts.attempt ?? (previousDispatch?.attempt ?? 0) + 1);
   const record = buildDispatchRecord(task, {
     channel: opts.channel,
     targetRole,
@@ -85,6 +105,8 @@ export function dispatchTask(task, entry, opts = {}) {
     leaseDeadline: entry.leaseDeadline ?? null,
     attempt,
     handoverRef,
+    briefRef: opts.briefRef ?? null,
+    previousDelivery: previousDispatch?.delivery ?? null,
   });
   entry.dispatch = record;
   return { dispatched: true, record, handoverRef, handover, errors: [], reason: null, route };

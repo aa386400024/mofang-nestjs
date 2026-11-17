@@ -103,6 +103,8 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 - **触发口径**：建议按事件量轮转（默认 `5000` 条）；当前仓首次归档 `journal-000001-000074.jsonl.gz`，之后 AF-021 追加 2 条到活动日志（总 76 条），跨段链已由 `events verify` 验证。
 - **保留策略**：归档段永久保留、不自动删除；审计需要时 `events verify` 会同时校验活动段与全部归档段。若未来要冷备到对象存储，必须保持文件字节与哈希链原样，不得重算事件。
 - **归档语义**：`archived` 是终态后的归档动作，投影落事件前 `rec.status`（框架 `state_projection.py` 口径），不得用 `to` 改写终态；非终态任务须先经合法迁移链闭合再归档。
+- **时间戳口径**：事件 `at` 一律 UTC `Z` 形态（框架 schema 按 RFC3339 校验）。任务单 frontmatter 允许写 `+08:00`，`buildCreatedEvent / buildHistoryEvent / buildArchivedEvent` 统一经 `toUtcIso()` 归一；「同一任务 `at` 单调递增」按时间值比较，混用偏移会被判倒退。`createdAt` 另经 `createdAtForEvent()` 把**未来时间夹到写入时刻**——任务单写成未来整点（AF-030 / AF-031 各踩一次）会让 created 事件晚于其 promoted/claimed。
+- **本地未发布段纠偏**：仅当事件内容有缺陷且尚未交付下游时，用 `events rechain --from <EV-xxxx> [--apply]` 从切点起重编号重算当前段哈希；切点前的字节逐字保留，段首切点必须带 `prevSeq/prevHash`（取自前一段末条事件），归档段永不重写。这是运维级例外通道，不是常规写入路径。
 
 ### 4.1 工具类别映射（框架 8 值 `toolCategories` → 本项目工具）
 
@@ -142,6 +144,55 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 - 平台 cron 最小间隔为 1 小时；分钟级自适应间隔属本地常驻 watcher（框架演进 backlog），本形态不实现。
 - L 档的预估时长按同类任务类推缩短，不拉长观察窗口；缓冲与兜底次数一律取上表值，不另设分支。
 - 本节是档位与阈值的唯一真相源：任务单模板与其他文档只引用，不复制数字。
+
+## 5.1 派发通道与投递协议（`dispatch`，AF-024）
+
+派发是「把活送进执行代理会话」的动作，不是一个打印函数。通道取值、投递状态、回写命令是本节唯一真相源，其他文档只引用。
+
+### 通道选路
+
+| 目标角色       | 通道                                          | 理由                                                                               |
+| -------------- | --------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `orchestrator` | `file`                                        | 编排者执行自己的任务，投给自己只产生噪声；交接件落 `transport/tasks/<taskId>.json` |
+| `executor`     | `config.dispatch.channel`（默认 `gui-relay`） | 需要把任务单送进执行代理（MiniMax Code 等）的桌面会话                              |
+
+选路在 `scheduler.mjs` 领单派发处按 `task.agentRole` 判定；配置在 `scripts/orchestration/config.json` 的 `dispatch` 段（`channel`、`fallbackToFile`）。
+
+### 投递状态机（派发记录 `delivery`）
+
+| 状态        | 含义                                                                                | 写入者                                                  |
+| ----------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `pending`   | 投递件已生成（`briefRef` 非空），尚未确认送达                                       | `run-once` 领单（领单即生成投递件）/ `channel dispatch` |
+| `delivered` | 桌面 relay 已送达并校验（会话路径 + 定位层 + 证据指针齐备，且原态必须是 `pending`） | `channel confirm`                                       |
+| `failed`    | 投递失败并降级，通道改 `gui-file-fallback`，文件交接件仍在                          | `channel fallback`                                      |
+
+`pending` 用**独立投递租约**（`config.dispatch.deliveryLeaseMinutes`，默认 5 分钟）计时，不占 30 分钟任务租约：超时未确认，`run-once` 的 `releaseFailedDeliveries` 把任务回滚 `ready` 并置 `heldForHuman`，`releaseReason=gui-delivery-lease-expired`；`failed` 同样回滚，`releaseReason=gui-delivery-failed`。两者都不自动重派，需人工修好桌面通道后 `task resume`。`channel state` 的 `stalled` 是该判定的只读视图。
+
+### 校验守卫（AF-024 评审整改）
+
+- **通道守卫**：只有 `channel=gui-relay` 的记录能被 confirm / fallback，file 通道不得伪装成已送达。
+- **状态守卫**：confirm 只接受 `pending → delivered`，`failed` 不得回退成 `delivered`。
+- **枚举守卫**：`sessionPath` 必须取自 `SESSION_PATHS`（`existing-session` / `mini-chat` / `new-task`），`locateLayer` 必须取自 `LOCATE_LAYERS`。
+- **文件守卫**：`evidenceRef` 与 `handoverRef` 必须能在仓内解析到真实文件。
+- **留痕守卫**：重派 `attempt` 递增，上一轮 `delivery` 压入 `history`；降级清空定位痕迹，但失败原因与定性保留。
+- **执行器标注**：`channel dispatch --executor <relay 标识>` 记录本次由谁驱动桌面（默认 `doubao-cu`），换 relay 只改标注。
+
+### 命令
+
+| 命令                                                                                                | 作用                                                                | 副作用           |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ---------------- |
+| `channel rules` / `channel queue --taskId` / `channel state --taskId`                               | 规则、队列可派判定、投递状态与停滞标记                              | 只读             |
+| `channel dispatch --taskId <id> [--extra-file <md>]`                                                | 读交接件 → 生成 `transport/briefs/<taskId>.brief.md` → 置 `pending` | 写投递件与运行态 |
+| `channel confirm --taskId <id> --session-path <..> --locate-layer <..> --evidence <..>`             | 回写 `delivered`；缺任一项即拒                                      | 写运行态         |
+| `channel fallback --taskId <id> --reason <..> [--classification deterministic\|flaky\|legacy-debt]` | 回写 `failed` + 通道降级，缺原因或缺 `handoverRef` 即拒             | 写运行态         |
+
+### 分工与红线
+
+- 规则判定在 `dispatch-channel.mjs`；投递件生成 / 确认 / 降级在 `gui-dispatch.mjs`；真实桌面动作（拉起、定位会话、粘贴、发送、校验）由 orchestrator 的桌面 relay（`computer_use_tool` + `seed_computer_use`）执行。
+- **不把「已粘贴」当「已送达」**：`confirm` 必须带会话路径、定位层与可指认的证据（截图或时间戳文件），并随派发记录留指针。
+- **不静默降级**：失败必须写原因与定性；降级后 `channel=gui-file-fallback`，但交接件不删、任务不丢。
+- 投递件只含任务契约字段（契约 / 范围 / 闸门 / 验收 / 回执约定），不含编排内部状态与对话原文。
+- CLI 不冒充 GUI 能力：`channel dispatch` 只准备投递件与状态，不驱动桌面。
 
 ## 6. 策略锚点（policyAnchors）
 

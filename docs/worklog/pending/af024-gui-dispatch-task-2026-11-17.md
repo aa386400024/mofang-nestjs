@@ -3,7 +3,7 @@ taskId: AF-024
 contextId: phase2.5-orchestration-closed-loop
 title: GUI 派发通道接入（桌面 relay 承载 MiniMax Code）
 type: implementation
-status: backlog
+status: submitted
 baselineRef: 04f6524
 dependsOn: [AF-023, AF-013]
 contractRef: urn:agent-collaboration-framework:schema:task-sheet:1.1.0
@@ -56,3 +56,7 @@ AF-013 已把派发通道规则固化为 `dispatch-channel.mjs`（`canDispatch`�
 - 单测覆盖：规则拒绝、执行器异常回滚、投递成功写 dispatch、GUI 不可用降级；
 - `orchestration:validate` 全 PASS；
 - 一次真实 GUI 投递（若桌面自动化可用）或明确的降级证据。
+
+## 5. 状态
+
+✅ 已交付（2026-11-17）。真实 GUI 投递已执行并经 `channel confirm` 回写 `delivered`（会话路径 `new-task`、定位层 `paste-verify`、证据 `AF-024.sent.png`）；executor 独立评审（`af024-channel-review-by-executor.md`）查出 5 处漏口已全部整改，协商轮交接件 `transport/reviews/AF-024-review.json` 通过 `review-handover 1.1.0` 校验。交付记录见 `docs/worklog/completed/phase2.5/af024-gui-dispatch-implementation-2026-11-17.md`。

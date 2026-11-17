@@ -51,6 +51,10 @@ import {
   loadJournal,
   rebuildIndex,
   rotateJournal,
+  loadJournalSegment,
+  rechainEvents,
+  saveJournalSegment,
+  segmentEntryPoint,
   validateJournalSchema,
   verifyProjection,
 } from './event-store.mjs';
@@ -79,6 +83,7 @@ import {
   DEFAULT_STALE_DAYS,
 } from './branch-workflow.mjs';
 import { SESSION_PATHS, LOCATE_LAYERS, MAX_START_RETRIES, MAX_SEND_RETRIES, canDispatch } from './dispatch-channel.mjs';
+import { buildGuiBrief, writeGuiBrief, confirmDelivery, fallbackDelivery, isDeliveryStalled } from './gui-dispatch.mjs';
 import { registerTaskFromSheet, registerTaskFromHandover, parseTaskSheetFrontmatter } from './task-intake.mjs';
 
 /** 快照双写：JSON（机读 / 存档）+ data.js（静态网页在 file:// 下读取，规避本地 fetch 限制）。 */
@@ -391,7 +396,28 @@ async function cmdEvents(args = []) {
     return;
   }
 
-  throw new Error(`未知 events 动作：${action}（允许 verify / rebuild / backfill / create / rotate）`);
+  if (action === 'rechain') {
+    const fromEventId = argValue(args, '--from');
+    if (!fromEventId) throw new Error('用法：cli.mjs events rechain --from <EV-xxxx> [--apply]  从切点起重算当前段哈希链');
+    const apply = args.includes('--apply');
+    const events = loadJournalSegment();
+    if (events.length === 0) throw new Error('当前 journal 段为空，无需重算');
+    const res = rechainEvents(events, {
+      fromEventId,
+      ...(segmentEntryPoint(events) ?? {}),
+    });
+    if (!apply) {
+      console.log(
+        `[干跑] 切点 ${fromEventId}（本段第 ${res.cutIndex + 1} 条）：其后 ${events.length - res.cutIndex} 条将重编号并重算哈希；未写盘`,
+      );
+      return;
+    }
+    saveJournalSegment(res.events);
+    console.log(`已重算：从 ${fromEventId} 起 ${events.length - res.cutIndex} 条（仅当前段）；请随后执行 events rebuild 与 verify`);
+    return;
+  }
+
+  throw new Error(`未知 events 动作：${action}（允许 verify / rebuild / backfill / create / rotate / rechain）`);
 }
 
 /**
@@ -517,8 +543,9 @@ function cmdBranch(args) {
 }
 
 /**
- * AF-013 派发通道规则只读视图：rules（降级链 / 定位层 / 重试上限）、queue（单任务队列可派判定）。
- * 纯只读；进程探测、窗口操作与发送由 relay 层在真实桌面执行，本命令不落审计、不触发变更。
+ * AF-013 派发通道规则视图（rules / queue）与 AF-024 GUI 投递协议（dispatch / confirm / fallback / state）。
+ * rules / queue / state 只读；dispatch 只落投递件与运行态 pending；confirm / fallback 由桌面 relay 执行后回写。
+ * 本命令不驱动桌面：真实拉起、粘贴、发送由 orchestrator 的桌面 relay 完成，避免 CLI 冒充 GUI 能力。
  */
 function cmdChannel(args) {
   const action = args[0] ?? 'rules';
@@ -542,11 +569,130 @@ function cmdChannel(args) {
     else console.log(`队列占用：${taskId} 暂不派发；在办阻塞 ${decision.blockers.join(', ')}`);
     return;
   }
-  console.error(`未知通道动作：${action}`);
+  if (action === 'dispatch') {
+    const taskId = argValue(args, '--taskId');
+    if (!taskId) {
+      console.error(
+        '用法：cli.mjs channel dispatch --taskId <id> [--extra-file <md>] [--executor <relay 标识>]  生成 GUI 投递件并置投递 pending',
+      );
+      process.exit(2);
+    }
+    const index = loadIndex();
+    const runtimeState = loadRuntimeState();
+    const task = index.tasks.find((item) => item.taskId === taskId);
+    if (!task) throw new Error(`投递准备失败：任务不在活跃列表：${taskId}`);
+    if (task.status !== 'submitted') throw new Error(`投递准备失败：任务须已领单（submitted）：${taskId} 当前 ${task.status}`);
+    const entry = runtimeState.tasks?.[taskId];
+    if (!entry?.dispatch) throw new Error(`投递准备失败：缺派发记录（先用 run-once 领单）：${taskId}`);
+    const handoverPath = join(PATHS.transportDir, 'tasks', `${taskId}.json`);
+    const handover = existsSync(handoverPath) ? (JSON.parse(readFileSync(handoverPath, 'utf8')).payload ?? {}) : {};
+    const extraFile = argValue(args, '--extra-file');
+    const extra = extraFile && existsSync(resolve(extraFile)) ? readFileSync(resolve(extraFile), 'utf8') : null;
+    // 执行器注入点：谁去驱动桌面要落进投递记录（可审计、可替换），
+    // 当前默认 doubao-cu（豆包桌面技能 seed_computer_use），换 relay 只需改这一处标注。
+    const executor = argValue(args, '--executor') ?? 'doubao-cu';
+    // 通道不在这里硬写：编排者任务投给自己只走文件交接件，GUI 通道只对执行代理角色生效（选路真相源在 scheduler）。
+    const targetRole = entry.dispatch.targetRole ?? task.agentRole ?? 'executor';
+    if (targetRole === 'orchestrator') {
+      throw new Error(`投递准备失败：${taskId} 的目标角色是编排者，走文件交接件，不驱动桌面（GUI 通道只对执行代理生效）`);
+    }
+    if (entry.dispatch.delivery?.state === 'delivered') {
+      throw new Error(`投递准备失败：${taskId} 已确认送达，重派请先走 fallback 或等回执验收后重开`);
+    }
+    const brief = buildGuiBrief(task, handover, {
+      receiptPath: pathToPosix(join(PATHS.transportDir, 'receipts', `${taskId}.json`)),
+      extra,
+    });
+    const briefPath = writeGuiBrief({ transportDir: PATHS.transportDir, taskId, text: brief.text });
+    const previous = entry.dispatch.delivery ?? null;
+    entry.dispatch.channel = 'gui-relay';
+    entry.dispatch.delivery = {
+      state: 'pending',
+      preparedAt: nowIso(),
+      briefRef: pathToPosix(briefPath),
+      executor,
+      sessionPath: null,
+      locateLayer: null,
+      evidenceRef: null,
+      history: previous?.state ? [...(previous.history ?? []), { ...previous }] : (previous?.history ?? []),
+    };
+    saveRuntimeState(runtimeState);
+    refreshSnapshotArtifacts();
+    console.log(`投递件已生成：${briefPath}`);
+    console.log(`通道：gui-relay；投递状态：pending；交接件：${pathToPosix(entry.dispatch.handoverRef ?? '') || '(缺)'}`);
+    console.log('桌面 relay 执行顺序：聚焦执行代理窗口 → 粘贴投递件 → 发送 → 校验输入框已清空且消息出现在会话中');
+    console.log(
+      `确认送达：cli.mjs channel confirm --taskId ${taskId} --session-path <${SESSION_PATHS.join('|')}> --locate-layer <${LOCATE_LAYERS.join('|')}> --evidence <仓内截图或时间戳文件>`,
+    );
+    console.log(`降级回退：cli.mjs channel fallback --taskId ${taskId} --reason <原因> [--classification deterministic|flaky|legacy-debt]`);
+    return;
+  }
+  if (action === 'confirm') {
+    const taskId = argValue(args, '--taskId');
+    const sessionPath = argValue(args, '--session-path');
+    const locateLayer = argValue(args, '--locate-layer');
+    const evidenceRef = argValue(args, '--evidence');
+    if (!taskId) {
+      console.error('用法：channel confirm --taskId <id> --session-path <..> --locate-layer <..> --evidence <..>');
+      process.exit(2);
+    }
+    const runtimeState = loadRuntimeState();
+    const entry = runtimeState.tasks?.[taskId];
+    if (!entry?.dispatch) throw new Error(`确认失败：缺派发记录：${taskId}`);
+    const result = confirmDelivery(entry.dispatch, { sessionPath, locateLayer, evidenceRef, repoRoot: REPO_ROOT });
+    if (!result.valid) throw new Error(result.errors.join('；'));
+    entry.dispatch = result.record;
+    saveRuntimeState(runtimeState);
+    refreshSnapshotArtifacts();
+    console.log(`已确认送达：${taskId}；会话路径=${sessionPath}；定位层=${locateLayer}；投递状态=delivered`);
+    return;
+  }
+  if (action === 'fallback') {
+    const taskId = argValue(args, '--taskId');
+    const reason = argValue(args, '--reason');
+    const classification = argValue(args, '--classification') ?? 'deterministic';
+    if (!taskId || !reason) {
+      console.error('用法：channel fallback --taskId <id> --reason <原因> [--classification deterministic|flaky|legacy-debt]');
+      process.exit(2);
+    }
+    const runtimeState = loadRuntimeState();
+    const entry = runtimeState.tasks?.[taskId];
+    if (!entry?.dispatch) throw new Error(`降级失败：缺派发记录：${taskId}`);
+    const result = fallbackDelivery(entry.dispatch, { reason, classification, repoRoot: REPO_ROOT });
+    if (!result.valid) throw new Error(result.errors.join('；'));
+    entry.dispatch = result.record;
+    saveRuntimeState(runtimeState);
+    refreshSnapshotArtifacts();
+    console.log(`已降级：${taskId}；channel=gui-file-fallback；原因=${reason}；定性=${classification}`);
+    console.log('下一步：run-once 会把该任务回滚 ready 并置 heldForHuman；修好桌面通道后 task resume 再重派。');
+    return;
+  }
+  if (action === 'state') {
+    const taskId = argValue(args, '--taskId');
+    if (!taskId) {
+      console.error('用法：cli.mjs channel state --taskId <id>');
+      process.exit(2);
+    }
+    const runtimeState = loadRuntimeState();
+    const record = runtimeState.tasks?.[taskId]?.dispatch ?? null;
+    if (!record) throw new Error(`缺派发记录：${taskId}`);
+    const stalled = isDeliveryStalled(record, { deliveryLeaseMinutes: loadConfig().dispatch?.deliveryLeaseMinutes });
+    console.log(JSON.stringify({ taskId, channel: record.channel, delivery: record.delivery ?? null, stalled }, null, 2));
+    return;
+  }
+  console.error(`未知通道动作：${action}（支持 rules / queue / dispatch / confirm / fallback / state）`);
   process.exit(2);
 }
 
 const SKIPPED = { ok: true, skipped: true, errors: [], schemaId: null };
+
+/** 仓库相对路径（正斜杠）：派发记录只存仓内指针，不落绝对路径。 */
+function pathToPosix(absPath) {
+  return absPath
+    .replace(REPO_ROOT, '')
+    .replace(/^[\\/]+/, '')
+    .replace(/\\/g, '/');
+}
 
 /** 任务单登记：`task register --sheet <md>` / `task import --handover <json>`。 */
 async function cmdTask(args) {

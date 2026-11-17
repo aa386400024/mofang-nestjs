@@ -56,9 +56,12 @@ import {
   promoteTask,
   processReceipts,
   releaseExpiredLeases,
+  releaseFailedDeliveries,
 } from '../scheduler.mjs';
 import { generateDeliveryPack } from '../delivery-pack.mjs';
 import {
+  buildCreatedEvent,
+  createdAtForEvent,
   deriveEvents,
   eventTypeForTransition,
   hashEvent,
@@ -66,8 +69,11 @@ import {
   loadArchivedNotes,
   loadJournal,
   projectJournal,
+  rechainEvents,
+  toUtcIso,
 } from '../event-store.mjs';
 import { dispatchTask, buildDispatchRecord, receiptFingerprint, isReceiptProcessed, markReceiptProcessed } from '../dispatch.mjs';
+import { buildGuiBrief, confirmDelivery, fallbackDelivery, isDeliveryStalled } from '../gui-dispatch.mjs';
 import { parseTaskSheetFrontmatter, buildTaskRecord } from '../task-intake.mjs';
 import { ingestReceipts } from '../receipts.mjs';
 import { normalizeScope, findScopeConflicts, detectResidualFiles, scopeCovers } from '../scope-mutex.mjs';
@@ -1386,6 +1392,26 @@ describe('AF-023 运行态调度闭环（领单 / 回滚 / 回执终态）', () 
     expect(report?.unmet).toEqual([{ taskId: 'AF-999', status: 'unknown' }]);
   });
 
+  it('派发通道按目标角色选：编排者任务走 file，执行代理任务走配置的 gui-relay 并置 pending', () => {
+    const guiConfig = { ...config, dispatch: { channel: 'gui-relay', fallbackToFile: true } };
+    const own = task('AF-120');
+    own.agentRole = 'orchestrator';
+    const ownIndex = freshIndex(own);
+    const ownState = { tasks: {} };
+    claimReadyTasks(ownIndex, ownState, guiConfig, [], { transport: fakeTransport(), cards: [] });
+    expect(ownState.tasks['AF-120'].dispatch.channel).toBe('file');
+    expect(ownState.tasks['AF-120'].dispatch.delivery).toBeUndefined();
+
+    const exec = task('AF-121');
+    exec.agentRole = 'executor';
+    const execIndex = freshIndex(exec);
+    const execState = { tasks: {} };
+    claimReadyTasks(execIndex, execState, guiConfig, [], { transport: fakeTransport(), cards: [] });
+    expect(execState.tasks['AF-121'].dispatch.channel).toBe('gui-relay');
+    expect(execState.tasks['AF-121'].dispatch.delivery.state).toBe('pending');
+    expect(execState.tasks['AF-121'].dispatch.handoverRef).toBeTruthy();
+  });
+
   it('派发失败回滚到 ready，清空租约与派发记录且历史不变', () => {
     const only = task('AF-103');
     const originalHistory = [...only.history];
@@ -1721,6 +1747,29 @@ describe('AF-011 文件域 scope 互斥校验', () => {
 
     const skipped = runAcceptance(t, { tasks: [t], archivedTasks: [] });
     expect(skipped.checks.find((c) => c.code === 'V7').status).toBe('skip');
+  });
+
+  it('验收 V7：本任务任务单的状态行改动不计残留，同目录其它任务单仍算交付面', () => {
+    const t = task('AF-024A', ['scripts/orchestration/', 'docs/team/agent-orchestration/']);
+    t.artifacts = {
+      taskSheet: 'docs/worklog/pending/af024a-task-2026-11-17.md',
+      deliveryRecord: 'docs/worklog/completed/phase2.5/af024a-record.md',
+    };
+    const sheetOnly = runAcceptance(
+      t,
+      { tasks: [t], archivedTasks: [] },
+      { changedFiles: ['docs/worklog/pending/af024a-task-2026-11-17.md', 'scripts/orchestration/cli.mjs'] },
+    );
+    const v7 = sheetOnly.checks.find((c) => c.code === 'V7');
+    expect(v7.status).toBe('pass');
+    expect(v7.detail).not.toMatch('af024a-task-2026-11-17.md');
+
+    const otherSheet = runAcceptance(
+      t,
+      { tasks: [t], archivedTasks: [] },
+      { changedFiles: ['docs/worklog/pending/af024b-task-2026-11-17.md'] },
+    );
+    expect(otherSheet.checks.find((c) => c.code === 'V7').status).toBe('fail');
   });
 });
 
@@ -2321,6 +2370,40 @@ function sealEvent(seq, prevHash, overrides = {}) {
 }
 
 describe('事件溯源：日志投影 / 哈希链 / 派生', () => {
+  it('时间戳归一：带偏移的 createdAt 落事件前转 UTC，畸形值原样留给 schema 报错', () => {
+    expect(toUtcIso('2026-11-17T10:44:00+08:00')).toBe('2026-11-17T02:44:00.000Z');
+    expect(toUtcIso('2026-11-17T02:44:00.000Z')).toBe('2026-11-17T02:44:00.000Z');
+    expect(toUtcIso('瞎写的时间')).toBe('瞎写的时间');
+    const task = { taskId: 'AF-999', contextId: 'ctx', type: 'implementation', status: 'backlog', createdAt: '2026-11-17T10:44:00+08:00' };
+    expect(buildCreatedEvent(task).at).toBe('2026-11-17T02:44:00.000Z');
+  });
+
+  it('createdAt 未来时间夹到写入时刻，避免 created 事件晚于其后迁移', () => {
+    const now = '2026-11-17T02:54:20.000Z';
+    expect(createdAtForEvent('2026-11-17T02:58:00.000Z', now)).toBe(now);
+    expect(createdAtForEvent('2026-11-17T02:44:00.000Z', now)).toBe('2026-11-17T02:44:00.000Z');
+    const future = {
+      taskId: 'AF-998',
+      contextId: 'ctx',
+      type: 'implementation',
+      status: 'backlog',
+      createdAt: '2026-11-17T10:58:00+08:00',
+    };
+    expect(buildCreatedEvent(future, { at: now }).at).toBe(now);
+  });
+
+  it('链纠偏：切点前逐字保留，切点起重编号重算，链仍可通过完整性校验', () => {
+    const e1 = sealEvent(1, 'GENESIS');
+    const e2 = sealEvent(2, e1.hash, { type: 'promoted', from: 'ready', to: 'submitted' });
+    const e3 = sealEvent(3, e2.hash, { type: 'verified', from: 'submitted', to: 'completed' });
+    const broken = { ...e3, at: '2026-11-17T02:00:00.000Z' };
+    const res = rechainEvents([e1, e2, broken], { fromEventId: e3.eventId });
+    expect(res.events[0]).toEqual(e1);
+    expect(res.events[1]).toEqual(e2);
+    expect(journalIntegrity(res.events).ok).toBe(true);
+    expect(() => rechainEvents([e1, e2], { fromEventId: 'EV-9999' })).toThrow('切点事件不存在');
+  });
+
   it('当前归档可由日志完整重建，且与索引逐字段一致', () => {
     const current = loadIndex();
     const journal = loadJournal();
@@ -2413,5 +2496,213 @@ describe('事件溯源：日志投影 / 哈希链 / 派生', () => {
     expect(closing[1].to).toBe('completed');
     expect(closing[2].from).toBe('completed');
     expect(closing[2].to).toBe('completed');
+  });
+});
+
+describe('AF-024 GUI 投递协议', () => {
+  const task = {
+    taskId: 'AF-901',
+    contextId: 'phase2.5-orchestration-closed-loop',
+    title: 'GUI 通道验收',
+    type: 'implementation',
+    baselineRef: '7dd3539',
+    dependsOn: ['AF-013'],
+    agentRole: 'orchestrator',
+    scope: { files: ['scripts/orchestration/'], modules: [], interfaces: [] },
+    artifacts: {
+      taskSheet: 'docs/worklog/pending/af901-task.md',
+      deliveryRecord: 'docs/worklog/completed/phase2.5/af901.md',
+    },
+  };
+
+  it('投递件：含任务契约 / 范围 / 闸门 / 验收 / 回执约定，不含编排内部状态', () => {
+    const brief = buildGuiBrief(
+      task,
+      { gates: [{ command: 'pnpm exec vitest run x', check: '单测全绿', threshold: 'failed=0' }], successCriteria: ['闭环可复现'] },
+      { receiptPath: 'docs/team/agent-orchestration/transport/receipts/AF-901.json' },
+    );
+    expect(brief.taskId).toBe('AF-901');
+    expect(brief.sections).toEqual(['任务契约', '改动范围', '闸门', '验收标准', '回执约定']);
+    expect(brief.text).toContain('pnpm exec vitest run x');
+    expect(brief.text).toContain('docs/team/agent-orchestration/transport/receipts/AF-901.json');
+    expect(brief.text).toContain('scripts/orchestration/');
+    expect(brief.text).not.toContain('orchestration-state.json');
+    expect(() => buildGuiBrief({}, {})).toThrow(/缺 taskId/);
+  });
+
+  it('投递确认：缺会话路径 / 定位层 / 证据一律拒绝，齐备才 delivered', () => {
+    const repoRoot = join(tmpdir(), `orch-gui-confirm-${Date.now()}-${Math.floor(Math.random() * 1e6)}`);
+    const evidenceDir = join(repoRoot, 'docs', 'team', 'agent-orchestration', 'transport', 'briefs');
+    mkdirSync(evidenceDir, { recursive: true });
+    writeFileSync(join(evidenceDir, 'AF-901.sent.png'), 'png', 'utf8');
+    const handoverDir = join(repoRoot, 'docs', 'team', 'agent-orchestration', 'transport', 'tasks');
+    mkdirSync(handoverDir, { recursive: true });
+    writeFileSync(join(handoverDir, 'AF-901.json'), '{"payload":{}}', 'utf8');
+    try {
+      const record = {
+        taskId: 'AF-901',
+        channel: 'gui-relay',
+        handoverRef: 'docs/team/agent-orchestration/transport/tasks/AF-901.json',
+        delivery: { state: 'pending' },
+      };
+      expect(confirmDelivery(record, { repoRoot }).valid).toBe(false);
+      expect(confirmDelivery(record, { sessionPath: 'existing-session', repoRoot }).errors.join()).toMatch(/定位层/);
+      expect(confirmDelivery(record, { sessionPath: 'existing-session', locateLayer: 'shortcut', repoRoot }).errors.join()).toMatch(
+        /证据指针/,
+      );
+      // 枚举守卫：瞎写的会话路径 / 定位层不再放行
+      expect(
+        confirmDelivery(record, {
+          sessionPath: '瞎写',
+          locateLayer: '瞎写',
+          evidenceRef: 'docs/team/agent-orchestration/transport/briefs/AF-901.sent.png',
+          repoRoot,
+        }).errors.join(),
+      ).toMatch(/会话路径非法/);
+      // 通道与状态守卫：file 通道 / 非 pending 状态都不得确认送达
+      expect(
+        confirmDelivery(
+          { taskId: 'AF-901', channel: 'file', handoverRef: record.handoverRef },
+          {
+            sessionPath: 'mini-chat',
+            locateLayer: 'paste-verify',
+            evidenceRef: 'docs/team/agent-orchestration/transport/briefs/AF-901.sent.png',
+            repoRoot,
+          },
+        ).errors.join(),
+      ).toMatch(/不是 gui-relay/);
+      expect(
+        confirmDelivery(
+          { ...record, delivery: { state: 'failed' } },
+          {
+            sessionPath: 'mini-chat',
+            locateLayer: 'paste-verify',
+            evidenceRef: 'docs/team/agent-orchestration/transport/briefs/AF-901.sent.png',
+            repoRoot,
+          },
+        ).errors.join(),
+      ).toMatch(/须为 pending/);
+      const ok = confirmDelivery(record, {
+        sessionPath: 'mini-chat',
+        locateLayer: 'paste-verify',
+        evidenceRef: 'docs/team/agent-orchestration/transport/briefs/AF-901.sent.png',
+        at: '2026-11-17T10:20:00.000Z',
+        repoRoot,
+      });
+      expect(ok.valid).toBe(true);
+      expect(ok.record.delivery.state).toBe('delivered');
+      expect(ok.record.delivery.sessionPath).toBe('mini-chat');
+      expect(ok.record.delivery.deliveredAt).toBe('2026-11-17T10:20:00.000Z');
+      expect(ok.record.channel).toBe('gui-relay');
+    } finally {
+      rmSync(repoRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('降级：缺原因 / 缺文件交接件 / 定性非法 / 非 GUI 通道都拒绝；成功清定位痕迹并保留 history', () => {
+    const repoRoot = join(tmpdir(), `orch-gui-fallback-${Date.now()}-${Math.floor(Math.random() * 1e6)}`);
+    const handoverDir = join(repoRoot, 'docs', 'team', 'agent-orchestration', 'transport', 'tasks');
+    mkdirSync(handoverDir, { recursive: true });
+    writeFileSync(join(handoverDir, 'AF-901.json'), '{"payload":{}}', 'utf8');
+    try {
+      const record = {
+        taskId: 'AF-901',
+        channel: 'gui-relay',
+        handoverRef: 'docs/team/agent-orchestration/transport/tasks/AF-901.json',
+        delivery: { state: 'pending', sessionPath: 'mini-chat', locateLayer: 'shortcut' },
+      };
+      expect(fallbackDelivery(record, { repoRoot }).valid).toBe(false);
+      expect(fallbackDelivery({ taskId: 'AF-901', channel: 'gui-relay' }, { reason: '桌面不可用', repoRoot }).errors.join()).toMatch(
+        /文件交接件/,
+      );
+      expect(fallbackDelivery(record, { reason: '桌面不可用', classification: 'weird', repoRoot }).errors.join()).toMatch(/定性非法/);
+      expect(fallbackDelivery({ ...record, channel: 'file' }, { reason: '没走 GUI', repoRoot }).errors.join()).toMatch(/不是 gui-relay/);
+      const ok = fallbackDelivery(record, { reason: '桌面自动化不可用（CDP disconnected）', classification: 'flaky', repoRoot });
+      expect(ok.valid).toBe(true);
+      expect(ok.record.channel).toBe('gui-file-fallback');
+      expect(ok.record.handoverRef).toBe('docs/team/agent-orchestration/transport/tasks/AF-901.json');
+      expect(ok.record.delivery.state).toBe('failed');
+      expect(ok.record.delivery.failureReason).toMatch(/CDP disconnected/);
+      // 降级清空上一次定位痕迹，旧记录进 history 保留审计
+      expect(ok.record.delivery.sessionPath).toBeNull();
+      expect(ok.record.delivery.locateLayer).toBeNull();
+      expect(ok.record.delivery.history.at(-1).state).toBe('pending');
+    } finally {
+      rmSync(repoRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('投递停滞判定：pending 超投递租约或 failed 才算停滞，delivered 不算', () => {
+    const base = {
+      taskId: 'AF-901',
+      dispatchedAt: '2026-11-17T10:00:00.000Z',
+      delivery: { state: 'pending', preparedAt: '2026-11-17T10:00:00.000Z' },
+    };
+    expect(isDeliveryStalled(base, { now: '2026-11-17T10:06:00.000Z', deliveryLeaseMinutes: 5 })).toBe(true);
+    expect(isDeliveryStalled(base, { now: '2026-11-17T10:04:00.000Z', deliveryLeaseMinutes: 5 })).toBe(false);
+    expect(
+      isDeliveryStalled({ ...base, delivery: { state: 'delivered' } }, { now: '2026-11-17T11:00:00.000Z', deliveryLeaseMinutes: 5 }),
+    ).toBe(false);
+    expect(isDeliveryStalled({ ...base, delivery: { state: 'failed' } }, { now: '2026-11-17T11:00:00.000Z' })).toBe(true);
+  });
+
+  it('派发记录：gui-relay 带 pending delivery，file 通道不带投递段', () => {
+    const gui = buildDispatchRecord(task, { channel: 'gui-relay', leaseDeadline: '2026-11-17T11:00:00.000Z' });
+    expect(gui.channel).toBe('gui-relay');
+    expect(gui.delivery.state).toBe('pending');
+    const file = buildDispatchRecord(task, { channel: 'file' });
+    expect(file.channel).toBe('file');
+    expect(file.delivery).toBeUndefined();
+  });
+
+  it('重派留痕：attempt 递增且上一轮 delivery 进 history，不覆盖失败原因', () => {
+    const entry = {
+      dispatch: {
+        taskId: 'AF-901',
+        channel: 'gui-file-fallback',
+        attempt: 1,
+        delivery: { state: 'failed', failureReason: 'CDP disconnected', classification: 'flaky' },
+      },
+    };
+    const record = buildDispatchRecord(task, {
+      channel: 'gui-relay',
+      attempt: Number(entry.dispatch.attempt ?? 0) + 1,
+      previousDelivery: entry.dispatch.delivery,
+    });
+    expect(record.attempt).toBe(2);
+    expect(record.delivery.state).toBe('pending');
+    expect(record.delivery.history).toHaveLength(1);
+    expect(record.delivery.history[0].failureReason).toMatch(/CDP disconnected/);
+    expect(record.delivery.history[0].classification).toBe('flaky');
+  });
+
+  it('投递回滚：failed 或 pending 超投递租约 → 回滚 ready 并 heldForHuman，不自动重派', () => {
+    const submitted = (taskId) => ({ taskId, status: 'submitted', history: [], dependsOn: [], type: 'implementation' });
+    const failedTask = submitted('AF-130');
+    const failedTask2 = submitted('AF-131');
+    const index = { tasks: [failedTask, failedTask2], archivedTasks: [] };
+    const runtimeState = {
+      tasks: {
+        'AF-130': { dispatch: { channel: 'gui-file-fallback', delivery: { state: 'failed', failureReason: 'CDP disconnected' } } },
+        'AF-131': {
+          dispatch: { channel: 'gui-relay', delivery: { state: 'pending', preparedAt: '2026-11-17T00:00:00.000Z' } },
+        },
+      },
+    };
+    const actions = [];
+    const guiConfig = { dispatch: { channel: 'gui-relay', deliveryLeaseMinutes: 5 } };
+    const handled = releaseFailedDeliveries(index, runtimeState, guiConfig, actions);
+    expect(handled).toBe(2);
+    expect(failedTask.status).toBe('ready');
+    expect(failedTask2.status).toBe('ready');
+    expect(runtimeState.tasks['AF-130'].heldForHuman).toBe(true);
+    expect(runtimeState.tasks['AF-130'].releaseReason).toBe('gui-delivery-failed');
+    expect(runtimeState.tasks['AF-131'].releaseReason).toBe('gui-delivery-lease-expired');
+    expect(actions.filter((a) => a.type === 'delivery-released')).toHaveLength(2);
+    // 已 delivered 的投递不参与回滚
+    const okTask = submitted('AF-132');
+    const okIndex = { tasks: [okTask], archivedTasks: [] };
+    const okState = { tasks: { 'AF-132': { dispatch: { channel: 'gui-relay', delivery: { state: 'delivered' } } } } };
+    expect(releaseFailedDeliveries(okIndex, okState, guiConfig, [])).toBe(0);
   });
 });
