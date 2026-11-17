@@ -4,10 +4,73 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 175,
+    "lastEventSeq": 176,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-046",
+      "status": "ready",
+      "history": [],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "CI 门禁实弹演练（branch merge --require-ci 阻断与放行双路径）",
+      "type": "verification",
+      "dependsOn": [],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3",
+        "conventions.md#1.4"
+      ],
+      "createdAt": "2026-11-17T04:39:07.837Z",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "scope": {
+        "files": [
+          "docs/team/agent-orchestration/",
+          "docs/worklog/pending/",
+          "docs/worklog/completed/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af046-ci-gate-fire-drill-task-2026-11-17.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "node scripts/orchestration/cli.mjs branch merge --taskId AF-046 --require-ci --sha <分支提交>",
+          "check": "阻断路径必须退非零并判 unknown",
+          "threshold": "exit=2"
+        },
+        {
+          "command": "node scripts/orchestration/cli.mjs branch merge --taskId AF-046 --require-ci --sha <CI 全绿提交> --apply",
+          "check": "放行路径判 pass 并完成 squash 合并",
+          "threshold": "exit=0"
+        }
+      ],
+      "successCriteria": [
+        "阻断路径用真实 REST 取数判 unknown 并中止，分支不被改写",
+        "放行路径在同一分支上判 pass 后完成 squash-merge → commit，合并提交真实落入 integrate",
+        "演练记录写清两次调用的 sha、verdict、check 数与合并提交 hash"
+      ],
+      "evidenceFormat": "两次 CLI 调用的 sha + verdict + check 数 + 合并提交 hash",
+      "plannedArtifacts": [
+        {
+          "name": "演练记录",
+          "path": "docs/team/agent-orchestration/ci-gate-fire-drill-2026-11-17.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": [],
+      "baselineRef": null
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
