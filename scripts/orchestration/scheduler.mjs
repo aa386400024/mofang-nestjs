@@ -401,8 +401,37 @@ export function claimReadyTasks(index, runtimeState, config, actions, opts = {})
   }
 }
 
-/** 归档终态白名单（终态任务从活跃列表迁入归档段）。 */
-export const ARCHIVE_STATUSES = ['completed', 'rejected', 'canceled'];
+/**
+ * 归档终态白名单（终态任务从活跃列表迁入归档段）。
+ *
+ * `failed` 必须在内：它是回执验收链之外的终态（投递定性失败、返修上限耗尽），
+ * 不经过 `processReceipts` 的归档分支，漏掉就会永久留在 `tasks[]`，
+ * 让 `status` 的「活跃计数」把已死任务算成在办（AF-039 / AF-041 实测）。
+ */
+export const ARCHIVE_STATUSES = ['completed', 'rejected', 'canceled', 'failed'];
+
+/**
+ * 扫档：把已闭合但尚未归档的终态任务迁入 `archivedTasks`（就地改写 index）。
+ *
+ * 与 `processReceipts` 里的归档互补——那条路径只处理「有回执且验收闭合」的任务，
+ * 取消 / 失败的任务没有任何回执可等，只能靠本函数收尾。
+ * @param {{tasks:object[], archivedTasks:object[]}} index 状态索引（就地改写）
+ * @param {object[]} actions 动作列表（就地追加）
+ * @returns {object[]} 本次归档的条目
+ */
+export function sweepTerminalTasks(index, actions = []) {
+  const swept = [];
+  for (const task of [...index.tasks]) {
+    if (!ARCHIVE_STATUSES.includes(task.status)) continue;
+    if (index.archivedTasks.some((item) => item.taskId === task.taskId)) continue;
+    const entry = archiveTaskEntry(index, task.taskId, {
+      note: `终态扫档：${task.status}`,
+    });
+    actions.push({ type: 'archive-terminal', taskId: task.taskId, status: task.status });
+    swept.push(entry);
+  }
+  return swept;
+}
 
 /**
  * 把任务从活跃 tasks 迁移到 archivedTasks（纯函数，就地修改 index，不落盘）。
@@ -650,6 +679,8 @@ export function advanceOnce(opts = {}) {
     // 否则单任务队列会在回执已到的那一轮误报 queue-busy，并空转一轮。
     const cards = opts.cards ?? loadAgentCards();
     processReceipts(index, runtimeState, config, actions, { changedFiles: opts.changedFiles, receiptsDir: opts.receiptsDir });
+    // 取消 / 失败任务没有回执可等，靠扫档收尾；否则会永久占「活跃计数」并让队列概览虚高。
+    sweepTerminalTasks(index, actions);
     // 投递件目录只在真实运行态（未注入 transport）时写入仓内 transport/briefs；
     // 单测注入 fake transport 时不写盘，避免测试污染工作区。
     const transportDir = opts.transportDir ?? (opts.transport ? null : PATHS.transportDir);

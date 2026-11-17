@@ -103,6 +103,7 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 - **触发口径**：建议按事件量轮转（默认 `5000` 条）；当前仓首次归档 `journal-000001-000074.jsonl.gz`，之后 AF-021 追加 2 条到活动日志（总 76 条），跨段链已由 `events verify` 验证。
 - **保留策略**：归档段永久保留、不自动删除；审计需要时 `events verify` 会同时校验活动段与全部归档段。若未来要冷备到对象存储，必须保持文件字节与哈希链原样，不得重算事件。
 - **归档语义**：`archived` 是终态后的归档动作，投影落事件前 `rec.status`（框架 `state_projection.py` 口径），不得用 `to` 改写终态；非终态任务须先经合法迁移链闭合再归档。
+- **终态扫档**：`ARCHIVE_STATUSES = [completed, rejected, canceled, failed]`，每轮 `run-once` 在回执验收之后调用 `sweepTerminalTasks`，把「已闭合但没走回执链」的任务（`canceled` / `failed`）搬进 `archivedTasks`。漏掉这一步，死任务会永久留在 `tasks[]`，让队列概览的「活跃计数」把已终态的任务算成在办（AF-039 / AF-041 实测：两单取消/失败后仍显示 `failed=1 canceled=1`）。
 - **时间戳口径**：事件 `at` 一律 UTC `Z` 形态（框架 schema 按 RFC3339 校验）。任务单 frontmatter 允许写 `+08:00`，`buildCreatedEvent / buildHistoryEvent / buildArchivedEvent` 统一经 `toUtcIso()` 归一；「同一任务 `at` 单调递增」按时间值比较，混用偏移会被判倒退。`createdAt` 另经 `createdAtForEvent()` 把**未来时间夹到写入时刻**——任务单写成未来整点（AF-030 / AF-031 各踩一次）会让 created 事件晚于其 promoted/claimed。
 - **本地未发布段纠偏**：仅当事件内容有缺陷且尚未交付下游时，用 `events rechain --from <EV-xxxx> [--apply]` 从切点起重编号重算当前段哈希；切点前的字节逐字保留，段首切点必须带 `prevSeq/prevHash`（取自前一段末条事件），归档段永不重写。这是运维级例外通道，不是常规写入路径。
 

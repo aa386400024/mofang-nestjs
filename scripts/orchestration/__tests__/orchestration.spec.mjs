@@ -48,6 +48,7 @@ import {
 import {
   ARCHIVE_STATUSES,
   archiveTaskEntry,
+  sweepTerminalTasks,
   canTransition,
   shouldAdvance,
   buildSnapshot,
@@ -329,12 +330,26 @@ describe('archiveTaskEntry 归档迁移', () => {
   it('非法归档终态抛错；合法终态对齐白名单', () => {
     const index = buildIndex();
     expect(() => archiveTaskEntry(index, 'AF-005', { status: 'working' })).toThrow(/不得改写终态/);
-    expect(ARCHIVE_STATUSES).toEqual(['completed', 'rejected', 'canceled']);
-    for (const status of ['rejected', 'canceled']) {
+    // failed 必须在内：它不经过回执归档分支，漏掉就会永久占「活跃计数」。
+    expect(ARCHIVE_STATUSES).toEqual(['completed', 'rejected', 'canceled', 'failed']);
+    for (const status of ['rejected', 'canceled', 'failed']) {
       const ix = buildIndex();
       ix.tasks.find((task) => task.taskId === 'AF-005').status = status;
       expect(archiveTaskEntry(ix, 'AF-005').status).toBe(status);
     }
+  });
+
+  it('扫档把 failed / canceled 的终态任务搬进归档段', () => {
+    const index = buildIndex();
+    index.tasks.find((task) => task.taskId === 'AF-005').status = 'failed';
+    index.tasks.find((task) => task.taskId === 'AF-006').status = 'canceled';
+    const actions = [];
+    const swept = sweepTerminalTasks(index, actions);
+    expect(swept.map((item) => `${item.taskId}:${item.status}`).sort()).toEqual(['AF-005:failed', 'AF-006:canceled']);
+    expect(actions.filter((a) => a.type === 'archive-terminal')).toHaveLength(2);
+    // 非终态任务不被误扫
+    expect(index.tasks.map((task) => task.taskId)).not.toContain('AF-005');
+    expect(index.tasks.map((task) => task.taskId)).not.toContain('AF-006');
   });
 });
 
