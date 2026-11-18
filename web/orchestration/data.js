@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T11:51:42.692Z",
+  "generatedAt": "2026-11-18T11:52:12.418Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,38 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-101",
-      "contextId": "phase2.5-exit4-proxy-quality",
-      "type": "fix",
-      "title": "验收器状态面豁免修复：improvement-log 不再判越域",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af101-state-plane-acceptance-fix-task-2026-11-18.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-101",
-        "contextId": "phase2.5-exit4-proxy-quality",
-        "channel": "file",
-        "targetRole": "orchestrator",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-18T11:51:42.690Z",
-        "leaseDeadline": "2026-11-18T12:21:42.687Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-101.json"
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1458,6 +1427,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-087",
+      "recordedAt": "2026-11-18T11:51:42.741Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-101",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-101",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-101.json"
+      ]
+    },
+    {
       "auditId": "AUD-086",
       "recordedAt": "2026-11-18T11:51:42.380Z",
       "actorRef": "orchestrator",
@@ -1686,62 +1670,24 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "task/AF-095-anchor-quality-audit"
       ]
-    },
-    {
-      "auditId": "AUD-072",
-      "recordedAt": "2026-11-18T10:50:32.419Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-095",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-095",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-095.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 86,
+    "total": 87,
     "byResult": {
-      "allowed": 86,
+      "allowed": 87,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 86
+      "TOOL-QUEUE-SCHEDULER": 87
     },
     "byActor": {
-      "orchestrator": 86
+      "orchestrator": 87
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-101",
-        "title": "验收器状态面豁免修复：improvement-log 不再判越域",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-exit4-proxy-quality",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-100"
-        ],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af101-state-plane-acceptance-fix-task-2026-11-18.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -3808,6 +3754,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af095-anchor-calibrated-quality-audit-2026-11-18.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-101",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af101-state-plane-acceptance-fix-task-2026-11-18.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af098-state-plane-acceptance-fix-2026-11-18.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -3822,17 +3786,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-101",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af101-state-plane-acceptance-fix-task-2026-11-18.md"
-      }
-    ],
-    "groupId": "phase2.5-exit4-proxy-quality",
-    "groupIds": [
-      "phase2.5-exit4-proxy-quality"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -3905,5 +3861,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 115
+  "archivedCount": 116
 };
