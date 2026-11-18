@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T01:18:27.344Z",
+  "generatedAt": "2026-11-18T01:29:16.885Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1302,6 +1302,15 @@ window.ORCH_SNAPSHOT = {
       "description": "队列扫描、领单租约、超时释放、验收驱动状态迁移、返修提案与限次、死信隔离、队列快照生成。"
     },
     {
+      "toolId": "TOOL-RELAY-SUPERVISOR",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "allowedRoles": [
+        "orchestrator"
+      ],
+      "description": "本地 relay 回执回收器：文件系统事件优先，按任务 profile 的 10–15 分钟档位兜底；任务级账本、单实例锁、命中归档/通知、超时停止、审计 JSONL。不创建永久 cron，不扫描无关回执。"
+    },
+    {
       "toolId": "TOOL-STATE-STORE",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1313,89 +1322,25 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
-      "auditId": "AUD-007",
-      "recordedAt": "2026-11-18T01:16:48.081Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-072",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-072",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-072.json"
-      ]
-    },
-    {
-      "auditId": "AUD-006",
-      "recordedAt": "2026-11-18T01:16:47.793Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-072",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-005",
-      "recordedAt": "2026-11-18T01:11:19.841Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-071",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-071",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-071.json"
-      ]
-    },
-    {
-      "auditId": "AUD-004",
-      "recordedAt": "2026-11-18T01:10:49.051Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-071",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
       "auditId": "AUD-003",
-      "recordedAt": "2026-11-18T00:54:53.151Z",
+      "recordedAt": "2026-11-18T01:28:33.977Z",
       "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-070",
+      "correlationId": "dispatch:AF-069",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
-      "taskId": "AF-070",
+      "taskId": "AF-069",
       "result": "allowed",
       "reason": null,
       "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-070.json"
+        "docs/team/agent-orchestration/transport/tasks/AF-069.json"
       ]
     },
     {
       "auditId": "AUD-002",
-      "recordedAt": "2026-11-18T00:52:52.947Z",
+      "recordedAt": "2026-11-18T01:28:33.857Z",
       "actorRef": "orchestrator",
-      "correlationId": "promote:AF-070",
+      "correlationId": "run-once",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1410,9 +1355,9 @@ window.ORCH_SNAPSHOT = {
     },
     {
       "auditId": "AUD-001",
-      "recordedAt": "2026-11-18T00:52:42.540Z",
+      "recordedAt": "2026-11-18T01:28:33.700Z",
       "actorRef": "orchestrator",
-      "correlationId": "run-once",
+      "correlationId": "promote:AF-069",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1427,16 +1372,16 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "auditSummary": {
-    "total": 7,
+    "total": 3,
     "byResult": {
-      "allowed": 7,
+      "allowed": 3,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 7
+      "TOOL-QUEUE-SCHEDULER": 3
     },
     "byActor": {
-      "orchestrator": 7
+      "orchestrator": 3
     }
   },
   "protocolView": {
@@ -3042,6 +2987,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af072-af071-ci-chain-rework-2026-11-18.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-069",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af069-relay-supervisor-task-2026-11-18.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af069-relay-supervisor-implementation-2026-11-18.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -3127,5 +3090,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 88
+  "archivedCount": 89
 };
