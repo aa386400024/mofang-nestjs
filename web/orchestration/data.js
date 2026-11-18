@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T14:45:26.781Z",
+  "generatedAt": "2026-11-18T14:45:55.870Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,38 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-107",
-      "contextId": "phase2.5-exit4-quality-remediation",
-      "type": "implementation",
-      "title": "扩展 executor Agent Card 资源域覆盖 bin",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af107-executor-card-resource-domain-task-2026-11-18.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-107",
-        "contextId": "phase2.5-exit4-quality-remediation",
-        "channel": "file",
-        "targetRole": "orchestrator",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-18T14:45:26.779Z",
-        "leaseDeadline": "2026-11-18T15:15:26.777Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-107.json"
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1606,6 +1575,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-105",
+      "recordedAt": "2026-11-18T14:45:26.828Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-107",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-107",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-107.json"
+      ]
+    },
+    {
       "auditId": "AUD-104",
       "recordedAt": "2026-11-18T14:45:13.856Z",
       "actorRef": "orchestrator",
@@ -1827,61 +1811,25 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-090",
-      "recordedAt": "2026-11-18T12:02:55.299Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-102",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-102-long-visible-output"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 104,
+    "total": 105,
     "byResult": {
-      "allowed": 104,
+      "allowed": 105,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 103,
+      "TOOL-QUEUE-SCHEDULER": 104,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 104
+      "orchestrator": 105
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-107",
-        "title": "扩展 executor Agent Card 资源域覆盖 bin",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-exit4-quality-remediation",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af107-executor-card-resource-domain-task-2026-11-18.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -4056,6 +4004,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/pending/af106-reasoning-leak-and-roster-task-2026-11-18.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-107",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af107-executor-card-resource-domain-task-2026-11-18.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af107-executor-card-resource-domain-2026-11-18.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4070,17 +4036,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-107",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af107-executor-card-resource-domain-task-2026-11-18.md"
-      }
-    ],
-    "groupId": "phase2.5-exit4-quality-remediation",
-    "groupIds": [
-      "phase2.5-exit4-quality-remediation"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -4154,5 +4112,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 121
+  "archivedCount": 122
 };

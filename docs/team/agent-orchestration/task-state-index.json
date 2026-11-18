@@ -4,84 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 459,
+    "lastEventSeq": 461,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-107",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-18T14:45:13.411Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "开始补卡片资源域"
-        },
-        {
-          "at": "2026-11-18T14:45:26.777Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-exit4-quality-remediation",
-      "title": "扩展 executor Agent Card 资源域覆盖 bin",
-      "type": "implementation",
-      "baselineRef": "c1bb8750f996faf74e1350c85e101d88967105d0",
-      "dependsOn": [],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-18T14:45:13.153Z",
-      "deadline": null,
-      "agentRole": "orchestrator",
-      "scope": {
-        "files": [
-          "docs/team/agent-orchestration/agent-cards/",
-          "docs/worklog/pending/",
-          "docs/worklog/completed/"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af107-executor-card-resource-domain-task-2026-11-18.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "node -e \"const c=JSON.parse(require('fs').readFileSync('docs/team/agent-orchestration/agent-cards/executor.json','utf8'));if(!c.resources.includes('bin/'))process.exit(1)\"",
-          "check": "executor card 资源域包含 bin/",
-          "threshold": "exitCode=0"
-        }
-      ],
-      "successCriteria": [
-        "executor Agent Card 的 resources 声明增加 bin/，与实际执行域一致",
-        "不改 cannotDo / requiresApproval 任何一条约束",
-        "不扩大 executor 的 src / test 授权（本任务只补漏掉的 bin/ 目录）",
-        "交付记录写明冲突现象与为什么必须在卡片层修",
-        "engine-core 零 diff"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af107-executor-card-resource-domain-2026-11-18.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "priorTasks": [],
-      "promotedAt": "2026-11-18T14:45:13.410Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -1145,6 +1071,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/pending/af106-reasoning-leak-and-roster-task-2026-11-18.md",
         "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-107",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af107-executor-card-resource-domain-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af107-executor-card-resource-domain-2026-11-18.md",
         "reply": null
       }
     }
