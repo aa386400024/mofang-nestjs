@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T17:56:53.676Z",
+  "generatedAt": "2026-11-18T18:30:44.588Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,48 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-116",
-      "contextId": "phase2.5-long-session-acceptance",
-      "type": "implementation",
-      "title": "AI 代理双盲评分与仲裁链路（可替换真人督导）",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af116-ai-double-blind-panel-task-2026-11-19.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-116",
-        "contextId": "phase2.5-long-session-acceptance",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-18T17:56:53.674Z",
-        "leaseDeadline": "2026-11-18T18:26:53.671Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-116.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-18T17:56:53.674Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-116.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1639,6 +1598,36 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-130",
+      "recordedAt": "2026-11-18T17:56:57.968Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-116",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-116-ai-double-blind"
+      ]
+    },
+    {
+      "auditId": "AUD-129",
+      "recordedAt": "2026-11-18T17:56:53.722Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-116",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-116",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-116.json"
+      ]
+    },
+    {
       "auditId": "AUD-128",
       "recordedAt": "2026-11-18T17:56:53.412Z",
       "actorRef": "orchestrator",
@@ -1846,76 +1835,25 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-115",
-      "recordedAt": "2026-11-18T16:39:01.285Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-111",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-111-long-session-acceptance"
-      ]
-    },
-    {
-      "auditId": "AUD-114",
-      "recordedAt": "2026-11-18T16:38:34.966Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-111",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-111",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-111.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 128,
+    "total": 130,
     "byResult": {
-      "allowed": 128,
+      "allowed": 130,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 127,
+      "TOOL-QUEUE-SCHEDULER": 129,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 128
+      "orchestrator": 130
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-116",
-        "title": "AI 代理双盲评分与仲裁链路（可替换真人督导）",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-long-session-acceptance",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af116-ai-double-blind-panel-task-2026-11-19.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -4240,6 +4178,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/pending/af115-ai-double-blind-panel-task-2026-11-19.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-116",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af116-ai-double-blind-panel-task-2026-11-19.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af116-ai-double-blind-panel-delivery-2026-11-19.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4254,17 +4210,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-116",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af116-ai-double-blind-panel-task-2026-11-19.md"
-      }
-    ],
-    "groupId": "phase2.5-long-session-acceptance",
-    "groupIds": [
-      "phase2.5-long-session-acceptance"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -4338,5 +4286,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 130
+  "archivedCount": 131
 };
