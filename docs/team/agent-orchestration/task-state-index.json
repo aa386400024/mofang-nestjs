@@ -4,10 +4,81 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 447,
+    "lastEventSeq": 449,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-105",
+      "status": "ready",
+      "history": [
+        {
+          "at": "2026-11-18T14:34:22.640Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "开始修复测试装配"
+        }
+      ],
+      "contextId": "phase2.5-exit4-quality-remediation",
+      "title": "修复 AF-103 引入的批次入口测试装配回归",
+      "type": "fix",
+      "baselineRef": "529ab0f3cad5eff8f8ba0894250a2e100eb5a942",
+      "dependsOn": [
+        "AF-103"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-18T14:34:00.834Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "test/auto-practice/batch-scenario-type.spec.ts",
+          "docs/worklog/pending/",
+          "docs/worklog/completed/"
+        ],
+        "modules": [
+          "auto-practice-intake"
+        ],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af105-ci-test-assembly-fix-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "corepack pnpm exec vitest run test/auto-practice/batch-scenario-type.spec.ts",
+          "check": "批次入口单测全绿",
+          "threshold": "failed=0"
+        }
+      ],
+      "successCriteria": [
+        "batch-scenario-type 的 Nest 测试模块补上 AF-103 新增的角色解析器依赖，测试可正常 init/close",
+        "只改测试装配，不改生产代码行为",
+        "单测 10 条全部通过",
+        "不引入新的测试替身真相源，直接复用现有 CHARACTER_PROFILE_RESOLVER token",
+        "engine-core 零 diff"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af105-ci-test-assembly-fix-2026-11-18.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": [],
+      "promotedAt": "2026-11-18T14:34:22.639Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",

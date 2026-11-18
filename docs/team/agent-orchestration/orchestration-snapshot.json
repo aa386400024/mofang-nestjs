@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-11-18T14:25:37.543Z",
+  "generatedAt": "2026-11-18T14:34:22.677Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
-    "ready": 0,
+    "ready": 1,
     "submitted": 0,
     "working": 0,
     "completed": 0,
@@ -15,7 +15,27 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-105",
+      "contextId": "phase2.5-exit4-quality-remediation",
+      "type": "fix",
+      "title": "修复 AF-103 引入的批次入口测试装配回归",
+      "status": "ready",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af105-ci-test-assembly-fix-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": null
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1827,7 +1847,30 @@
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-105",
+        "title": "修复 AF-103 引入的批次入口测试装配回归",
+        "type": "fix",
+        "status": {
+          "framework": "ready",
+          "protocol": null,
+          "stage": "orchestration"
+        },
+        "groupId": "phase2.5-exit4-quality-remediation",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-103"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af105-ci-test-assembly-fix-task-2026-11-18.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -3984,9 +4027,17 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-105",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af105-ci-test-assembly-fix-task-2026-11-18.md"
+      }
+    ],
+    "groupId": "phase2.5-exit4-quality-remediation",
+    "groupIds": [
+      "phase2.5-exit4-quality-remediation"
+    ],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
