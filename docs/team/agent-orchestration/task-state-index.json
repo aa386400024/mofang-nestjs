@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 402,
+    "lastEventSeq": 411,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -974,6 +974,24 @@
         "deliveryRecord": "docs/worklog/pending/phase2.5-README.md",
         "reply": null
       }
+    },
+    {
+      "taskId": "AF-096",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af096-af095-rework-quality-acceptance-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-097",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af097-af095-quality-rework-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af095-anchor-calibrated-quality-audit-2026-11-18.md",
+        "reply": null
+      }
     }
   ],
   "archivedNotes": {
@@ -1000,6 +1018,7 @@
     "AF-087": "scope 重签发 → AF-088",
     "AF-089": "角色域冲突，取消后重登记 AF-090",
     "AF-090": "资源域不匹配，取消后重登记 AF-091",
-    "AF-092": "提交闸门完成，取消归档"
+    "AF-092": "提交闸门完成，取消归档",
+    "AF-096": "改走拆分任务 AF-097/AF-098"
   }
 }
