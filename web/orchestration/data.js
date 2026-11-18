@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T17:10:05.478Z",
+  "generatedAt": "2026-11-18T17:15:19.930Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,38 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-113",
-      "contextId": "phase2.5-long-session-acceptance",
-      "type": "fix",
-      "title": "堵住多任务堆叠 PR 被 squash 后的 scope 折叠缺口",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af113-af112-stacked-squash-guard-task-2026-11-19.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-113",
-        "contextId": "phase2.5-long-session-acceptance",
-        "channel": "file",
-        "targetRole": "orchestrator",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-18T17:10:05.476Z",
-        "leaseDeadline": "2026-11-18T17:40:05.474Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-113.json"
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1629,6 +1598,36 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-121",
+      "recordedAt": "2026-11-18T17:10:10.491Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-113",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-113-af112-stacked-squash-guard"
+      ]
+    },
+    {
+      "auditId": "AUD-120",
+      "recordedAt": "2026-11-18T17:10:05.524Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-113",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-113",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-113.json"
+      ]
+    },
+    {
       "auditId": "AUD-119",
       "recordedAt": "2026-11-18T17:10:00.991Z",
       "actorRef": "orchestrator",
@@ -1832,78 +1831,25 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "task/AF-108-reasoning-leak-and-roster"
       ]
-    },
-    {
-      "auditId": "AUD-106",
-      "recordedAt": "2026-11-18T14:49:20.775Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-108",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-105",
-      "recordedAt": "2026-11-18T14:45:26.828Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-107",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-107",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-107.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 119,
+    "total": 121,
     "byResult": {
-      "allowed": 119,
+      "allowed": 121,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 118,
+      "TOOL-QUEUE-SCHEDULER": 120,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 119
+      "orchestrator": 121
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-113",
-        "title": "堵住多任务堆叠 PR 被 squash 后的 scope 折叠缺口",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-long-session-acceptance",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af113-af112-stacked-squash-guard-task-2026-11-19.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -4182,6 +4128,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af112-af111-acceptance-metadata-delivery-2026-11-19.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-113",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af113-af112-stacked-squash-guard-task-2026-11-19.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af113-af112-stacked-squash-guard-delivery-2026-11-19.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4196,17 +4160,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-113",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af113-af112-stacked-squash-guard-task-2026-11-19.md"
-      }
-    ],
-    "groupId": "phase2.5-long-session-acceptance",
-    "groupIds": [
-      "phase2.5-long-session-acceptance"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -4280,5 +4236,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 127
+  "archivedCount": 128
 };
