@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 370,
+    "lastEventSeq": 379,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -911,6 +911,24 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af086-phase25-exit2-real-exam-double-run-2026-11-18.md",
         "reply": null
       }
+    },
+    {
+      "taskId": "AF-087",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af087-phase25-exit345-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-088",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af088-phase25-exit345-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af088-phase25-exit345-evidence-2026-11-18.md",
+        "reply": "docs/worklog/pending/relay-response-AF088-20261118-1630.md"
+      }
     }
   ],
   "archivedNotes": {
@@ -933,6 +951,7 @@
     "AF-029": "依赖口径写错，改由 AF-030 承接",
     "AF-064": "scope 越 executor 资源域，改立项 AF-065",
     "AF-066": "资源域跨角色，改立项 AF-067",
-    "AF-079": "AF-079 scope 含 orchestrator 资源域外文档，取消后由 AF-080 重登记执行"
+    "AF-079": "AF-079 scope 含 orchestrator 资源域外文档，取消后由 AF-080 重登记执行",
+    "AF-087": "scope 重签发 → AF-088"
   }
 }

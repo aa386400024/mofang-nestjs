@@ -30,6 +30,10 @@
     "docs/team/agent-orchestration/",
     "docs/security/",
     "scripts/",
+    "data/phase25-exit/",
+    "data/eval-datasets/",
+    "data/eval-reports/",
+    "data/batch-reports/",
     "web/orchestration/"
   ],
   "limits": {
