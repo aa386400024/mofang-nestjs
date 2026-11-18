@@ -29,7 +29,8 @@
     "docs/worklog/",
     "docs/team/agent-orchestration/",
     "docs/security/",
-    "scripts/orchestration/"
+    "scripts/",
+    "web/orchestration/"
   ],
   "limits": {
     "canDo": [
