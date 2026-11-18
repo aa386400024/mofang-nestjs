@@ -20,8 +20,8 @@
  *   - 证据指针与交接件指针必须能在仓内解析到真实文件；
  *   - 降级清空上一次的定位痕迹，失败原因与定性进 `history`，不被后续确认覆盖。
  */
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { isAbsolute, join, resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { isAbsolute, join, relative, resolve } from 'node:path';
 import { LOCATE_LAYERS, SESSION_PATHS, isNonFailureCause } from './dispatch-channel.mjs';
 
 /** 投递状态枚举。 */
@@ -35,6 +35,12 @@ export const CHANNEL_GUI_FALLBACK = 'gui-file-fallback';
 
 /** 投递件目录（相对 transport 根）。 */
 export const BRIEF_DIR_NAME = 'briefs';
+
+/** 执行代理送达确认目录（相对 transport 根）：ack 只证明「收到了」，不是完成回执。 */
+export const ACK_DIR_NAME = 'acks';
+
+/** 桌面 relay 发送证据目录（相对 transport 根）：截图 / 哈希 / 窗口事实。 */
+export const GUI_SENT_DIR_NAME = 'gui-sent';
 
 /** 默认 GUI 投递租约（分钟）：桌面投递是分钟级动作，不应复用 30 分钟任务租约占满单任务队列。 */
 export const DEFAULT_DELIVERY_LEASE_MINUTES = 5;
@@ -51,6 +57,111 @@ function repoPath(ref, repoRoot) {
 /** 投递件文件名：`<taskId>.brief.md`。 */
 export function briefFileName(taskId) {
   return `${safeName(taskId)}.brief.md`;
+}
+
+/** 执行代理送达 ack 的相对路径（仓内指针；默认 transport 根为适配层固定目录）。 */
+export function ackRelativePath(taskId, transportRoot = 'docs/team/agent-orchestration/transport') {
+  return `${String(transportRoot).replaceAll('\\', '/').replace(/\/+$/, '')}/${ACK_DIR_NAME}/${safeName(taskId)}.json`;
+}
+
+/** 桌面 relay 发送证据的相对路径。 */
+export function guiSentRelativePath(taskId, transportRoot = 'docs/team/agent-orchestration/transport') {
+  return `${String(transportRoot).replaceAll('\\', '/').replace(/\/+$/, '')}/${GUI_SENT_DIR_NAME}/${safeName(taskId)}.json`;
+}
+
+function readJsonIfExists(path) {
+  if (!path || !existsSync(path)) return null;
+  try {
+    return JSON.parse(readFileSync(path, 'utf8').replace(/^\uFEFF/, ''));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 读取执行代理写的送达 ack。ack 是「已收到投递件」的弱事实，不是完成回执：
+ *   只要求 taskId / receivedAt；sessionPath / locateLayer 由桌面 relay 发送记录提供，
+ *   不让 executor 为编排内部枚举背锅。
+ * @returns {{path:string, relative:string, payload:object}|null}
+ */
+export function readDeliveryAck({ transportDir, taskId, repoRoot = process.cwd() }) {
+  if (!transportDir || !taskId) return null;
+  const abs = join(transportDir, ACK_DIR_NAME, `${safeName(taskId)}.json`);
+  const payload = readJsonIfExists(abs);
+  if (!payload || typeof payload !== 'object') return null;
+  const relativeRef = relative(repoRoot, abs).replaceAll('\\', '/');
+  return { path: abs, relative: relativeRef, payload };
+}
+
+/** 读取桌面 relay 发送记录；缺记录时自动确认仍可继续，但只能使用默认定位层。 */
+export function readGuiSentRecord({ transportDir, taskId }) {
+  if (!transportDir || !taskId) return null;
+  return readJsonIfExists(join(transportDir, GUI_SENT_DIR_NAME, `${safeName(taskId)}.json`));
+}
+
+/**
+ * 用执行代理 ack + 桌面 relay 发送记录确认送达。
+ * 守卫：
+ *   - 派发记录必须是 gui-relay / pending；
+ *   - ack 的 taskId 必须与任务一致，且 receivedAt 可解析；
+ *   - 证据必须是仓内真实 ack 文件；sessionPath / locateLayer 取发送记录，缺省用既有会话 + 粘贴校验。
+ * @returns {{valid:boolean, errors:string[], record:object|null, ack:object|null}}
+ */
+export function confirmDeliveryFromAck(record, ack, sentRecord = null, opts = {}) {
+  const errors = [];
+  if (!record || typeof record !== 'object') return { valid: false, errors: ['自动确认失败：缺派发记录'], record: null, ack: null };
+  if (record.channel !== 'gui-relay') errors.push(`自动确认失败：通道 ${String(record.channel)} 不是 gui-relay`);
+  if (record.delivery?.state !== 'pending') errors.push(`自动确认失败：投递状态须为 pending，当前 ${String(record.delivery?.state)}`);
+  const payload = ack?.payload ?? ack;
+  if (!payload || typeof payload !== 'object') errors.push('自动确认失败：缺执行代理 ack');
+  else {
+    if (String(payload.taskId ?? '') !== String(record.taskId ?? '')) {
+      errors.push(`自动确认失败：ack taskId=${String(payload.taskId)} 与任务 ${String(record.taskId)} 不一致`);
+    }
+    if (!payload.receivedAt || Number.isNaN(Date.parse(payload.receivedAt))) {
+      errors.push('自动确认失败：ack receivedAt 缺失或不可解析');
+    }
+    const preparedAt = record.delivery?.preparedAt ?? record.dispatchedAt ?? null;
+    if (preparedAt && !Number.isNaN(Date.parse(preparedAt)) && !Number.isNaN(Date.parse(payload.receivedAt))) {
+      if (Date.parse(payload.receivedAt) < Date.parse(preparedAt)) {
+        errors.push(`自动确认失败：ack receivedAt=${payload.receivedAt} 早于本次投递 preparedAt=${preparedAt}，疑似上一轮旧 ack`);
+      }
+    }
+  }
+  if (errors.length > 0) return { valid: false, errors, record: null, ack: payload ?? null };
+
+  const sessionPath = SESSION_PATHS.includes(sentRecord?.sessionPath) ? sentRecord.sessionPath : 'existing-session';
+  const locateLayer = LOCATE_LAYERS.includes(sentRecord?.locateLayer) ? sentRecord.locateLayer : 'paste-verify';
+  const evidenceRef = opts.evidenceRef ?? (ack?.relative || ackRelativePath(record.taskId));
+  const result = confirmDelivery(record, {
+    sessionPath,
+    locateLayer,
+    evidenceRef,
+    at: payload.receivedAt,
+    repoRoot: opts.repoRoot,
+  });
+  return { ...result, ack: payload };
+}
+
+/**
+ * 自动确认单任务：仅在 ack 文件存在且结构合法时生效；缺 ack 一律返回 confirmed=false，
+ * 由调度层继续按投递租约回滚，不把「脚本已粘贴」当成「已送达」。
+ * @returns {{confirmed:boolean, reason:string, record:object|null, ack:object|null}}
+ */
+export function autoConfirmDelivery({ record, taskId, transportDir, repoRoot = process.cwd() } = {}) {
+  if (!record || record.channel !== 'gui-relay' || record.delivery?.state !== 'pending') {
+    return { confirmed: false, reason: 'not-pending-gui-relay', record: null, ack: null };
+  }
+  const ack = readDeliveryAck({ transportDir, taskId, repoRoot });
+  if (!ack) return { confirmed: false, reason: 'ack-missing', record: null, ack: null };
+  const sent = readGuiSentRecord({ transportDir, taskId });
+  const result = confirmDeliveryFromAck(record, ack, sent, { repoRoot });
+  return {
+    confirmed: result.valid,
+    reason: result.valid ? 'ack-confirmed' : result.errors.join('；'),
+    record: result.record,
+    ack: result.ack,
+  };
 }
 
 /** 投递租约截止时间：`preparedAt + dispatch.deliveryLeaseMinutes`（缺省 5 分钟）。 */
@@ -114,11 +225,27 @@ export function buildGuiBrief(task, handover, opts = {}) {
   }
 
   lines.push('');
-  lines.push('## 5. 回执约定');
+  lines.push('## 5. 投递确认（收到后第一步执行）');
+  lines.push('');
+  const ackPath = opts.ackPath ?? ackRelativePath(task.taskId);
+  lines.push(`先写 \`${ackPath}\`，内容至少包含：`);
+  lines.push('');
+  lines.push('```json');
+  lines.push(`{ "schemaVersion": "1.0.0", "taskId": "${task.taskId}", "receivedAt": "<ISO-8601>", "executor": "<执行方>" }`);
+  lines.push('```');
+  lines.push('ack 只证明「收到了」，不是完成回执；没有 ack 时编排者按投递租约回滚，不把粘贴当送达。');
+  lines.push('**状态面红线**：禁止执行 task / run-once / archive / improvements transition 等编排写命令；状态迁移、验收与归档只由 orchestrator 做。');
+  sections.push('投递确认');
+
+  lines.push('');
+  lines.push('## 6. 回执约定');
   lines.push('');
   lines.push(
     `完成后把机读回执写到 \`${opts.receiptPath ?? `docs/team/agent-orchestration/transport/receipts/${safeName(task.taskId)}.json`}\`（` +
       '`receipt 1.0.0` 七组字段：artifactRefs / changedFiles / gateResults / contractChecks / fieldAlignment / backlogItems / openQuestions）。',
+  );
+  lines.push(
+    '交付记录还必须含六组机读字段标记：gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict（或对应中文块标题），缺一即进人工复核。',
   );
   lines.push('不要把「已写代码」当成「已交付」：闸门数字必须是真实执行结果，失败要写报错原因，不要静默跳过。');
   if (opts.reviewPath) {

@@ -194,6 +194,10 @@ agentRole: orchestrator # 本任务目标角色；orchestrator / executor / revi
 6. 偏差：实际实现 vs 任务单方案，有偏差就写清原方案 / 实际方案 / 为什么（conventions §2.5），列偏差表
 7. 结论：finalStatus / reviewVerdict / verdictRationale
 
+> **机读字段标记（硬要求）**：交付记录必须出现六组标记之一（英文键或中文块标题都认），否则验收器判「字段标记不全」进人工复核：
+> `gateResults`（闸门结果/闸门证据）、`scopeCheck`（范围核对/文件域核对）、`contractChecks`（契约核对/契约检查）、`backlogItems`（遗留登记/遗留项）、`deviationTable`（偏差表/偏差说明）、`reviewVerdict`（验收结论/复核结论）。
+> 机读只判断「字段是否出现」，内容是否可信仍由 reviewer 按证据复核。
+
 ---
 
 ## 7. 【交付回写清单】做完逐项勾选（之前总忘，这次不许跳）
@@ -206,6 +210,7 @@ agentRole: orchestrator # 本任务目标角色；orchestrator / executor / revi
 - [ ] 回写阶段入口：`docs/worklog/pending/phase2.5-README.md` §3「当前有什么活」表里挪走/改成本任务已完成
 - [ ] 回写 backlog（若任务单 §2 指定了母版）
 - [ ] 状态索引已更新：`docs/team/agent-orchestration/task-state-index.json` 中本任务状态迁移追加 `history`（时间 / from / to / by），工件指针（任务单 / 交付记录 / 回执）填全
+- [ ] 桌面派发任务：执行代理已在收到 brief 后写 `transport/acks/<taskId>.json`，并由 `channel auto-confirm` 确认 `delivered`；缺 ack 不得声称已送达
 - [ ] 审计链闭合：`taskId` 贯穿任务单 frontmatter、交付记录、回执、commit message 草稿与台账更新行
 - [ ] `policyRefs` 锚点在交付记录契约组逐条留痕核对结果
 - [ ] `git diff --stat HEAD -- src/engine-core` 为空

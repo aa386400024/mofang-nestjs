@@ -81,7 +81,15 @@ import {
   markReceiptProcessed,
   resolveChannelSelection,
 } from '../dispatch.mjs';
-import { buildGuiBrief, confirmDelivery, fallbackDelivery, isDeliveryStalled } from '../gui-dispatch.mjs';
+import {
+  buildGuiBrief,
+  confirmDelivery,
+  fallbackDelivery,
+  isDeliveryStalled,
+  autoConfirmDelivery,
+  readDeliveryAck,
+  ackRelativePath,
+} from '../gui-dispatch.mjs';
 import { parseTaskSheetFrontmatter, buildTaskRecord } from '../task-intake.mjs';
 import { ingestReceipts } from '../receipts.mjs';
 import { normalizeScope, findScopeConflicts, detectResidualFiles, scopeCovers, expandScopePattern } from '../scope-mutex.mjs';
@@ -129,7 +137,8 @@ import {
   summarizeChannelOutcomes,
   buildEscalationMessage,
 } from '../dispatch-channel.mjs';
-import { runAcceptance } from '../acceptance-runner.mjs';
+import { runAcceptance, findMissingDeliveryMarkers, DELIVERY_RECORD_MARKERS } from '../acceptance-runner.mjs';
+import { autoConfirmDeliveries } from '../scheduler.mjs';
 import {
   addCandidate,
   canTransitionImprovement,
@@ -2697,16 +2706,18 @@ describe('AF-024 GUI 投递协议', () => {
     },
   };
 
-  it('投递件：含任务契约 / 范围 / 闸门 / 验收 / 回执约定，不含编排内部状态', () => {
+  it('投递件：含任务契约 / 范围 / 闸门 / 验收 / 投递确认 / 回执约定，不含编排内部状态', () => {
     const brief = buildGuiBrief(
       task,
       { gates: [{ command: 'pnpm exec vitest run x', check: '单测全绿', threshold: 'failed=0' }], successCriteria: ['闭环可复现'] },
       { receiptPath: 'docs/team/agent-orchestration/transport/receipts/AF-901.json' },
     );
     expect(brief.taskId).toBe('AF-901');
-    expect(brief.sections).toEqual(['任务契约', '改动范围', '闸门', '验收标准', '回执约定']);
+    expect(brief.sections).toEqual(['任务契约', '改动范围', '闸门', '验收标准', '投递确认', '回执约定']);
     expect(brief.text).toContain('pnpm exec vitest run x');
     expect(brief.text).toContain('docs/team/agent-orchestration/transport/receipts/AF-901.json');
+    expect(brief.text).toContain('docs/team/agent-orchestration/transport/acks/AF-901.json');
+    expect(brief.text).toContain('禁止执行 task / run-once / archive');
     expect(brief.text).toContain('scripts/orchestration/');
     expect(brief.text).not.toContain('orchestration-state.json');
     expect(() => buildGuiBrief({}, {})).toThrow(/缺 taskId/);
@@ -2780,6 +2791,116 @@ describe('AF-024 GUI 投递协议', () => {
       rmSync(repoRoot, { recursive: true, force: true });
     }
   });
+
+  it('ack 自动确认：缺 ack 不伪造送达；ack 齐备才 delivered 并保留证据指针', () => {
+    const repoRoot = join(tmpdir(), `orch-gui-ack-${Date.now()}-${Math.floor(Math.random() * 1e6)}`);
+    const transport = join(repoRoot, 'docs', 'team', 'agent-orchestration', 'transport');
+    mkdirSync(join(transport, 'acks'), { recursive: true });
+    mkdirSync(join(transport, 'tasks'), { recursive: true });
+    writeFileSync(join(transport, 'tasks', 'AF-901.json'), '{"payload":{}}', 'utf8');
+    const record = {
+      taskId: 'AF-901',
+      channel: 'gui-relay',
+      handoverRef: 'docs/team/agent-orchestration/transport/tasks/AF-901.json',
+      delivery: { state: 'pending', preparedAt: '2026-11-17T10:00:00.000Z' },
+    };
+    try {
+      const missing = autoConfirmDelivery({ record, taskId: 'AF-901', transportDir: transport, repoRoot });
+      expect(missing.confirmed).toBe(false);
+      expect(missing.reason).toBe('ack-missing');
+
+      writeFileSync(
+        join(transport, 'acks', 'AF-901.json'),
+        JSON.stringify({ schemaVersion: '1.0.0', taskId: 'AF-901', receivedAt: '2026-11-17T10:03:00.000Z', executor: 'MiniMax Code' }),
+        'utf8',
+      );
+      expect(readDeliveryAck({ transportDir: transport, taskId: 'AF-901', repoRoot }).relative).toBe(
+        ackRelativePath('AF-901'),
+      );
+      const ok = autoConfirmDelivery({ record, taskId: 'AF-901', transportDir: transport, repoRoot });
+      expect(ok.confirmed).toBe(true);
+      expect(ok.record.delivery.state).toBe('delivered');
+      expect(ok.record.delivery.sessionPath).toBe('existing-session');
+      expect(ok.record.delivery.locateLayer).toBe('paste-verify');
+      expect(ok.record.delivery.evidenceRef).toBe(ackRelativePath('AF-901'));
+
+      // ack taskId 不一致：不得确认，避免别的任务 ack 误认领
+      writeFileSync(
+        join(transport, 'acks', 'AF-901.json'),
+        JSON.stringify({ schemaVersion: '1.0.0', taskId: 'AF-999', receivedAt: '2026-11-17T10:03:00.000Z' }),
+        'utf8',
+      );
+      const mismatch = autoConfirmDelivery({ record, taskId: 'AF-901', transportDir: transport, repoRoot });
+      expect(mismatch.confirmed).toBe(false);
+      expect(mismatch.reason).toMatch(/taskId/);
+
+      // 上一轮旧 ack 早于本次 preparedAt：不得拿来确认新投递
+      writeFileSync(
+        join(transport, 'acks', 'AF-901.json'),
+        JSON.stringify({ schemaVersion: '1.0.0', taskId: 'AF-901', receivedAt: '2026-11-17T09:00:00.000Z' }),
+        'utf8',
+      );
+      const stale = autoConfirmDelivery({ record, taskId: 'AF-901', transportDir: transport, repoRoot });
+      expect(stale.confirmed).toBe(false);
+      expect(stale.reason).toMatch(/早于本次投递/);
+    } finally {
+      rmSync(repoRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('调度轮自动确认：只对 submitted + gui-relay + pending 的任务读 ack，缺 ack 不动状态', () => {
+    const repoRoot = join(tmpdir(), `orch-sched-ack-${Date.now()}-${Math.floor(Math.random() * 1e6)}`);
+    const transport = join(repoRoot, 'docs', 'team', 'agent-orchestration', 'transport');
+    mkdirSync(join(transport, 'acks'), { recursive: true });
+    const index = { tasks: [{ taskId: 'AF-901', status: 'submitted' }, { taskId: 'AF-902', status: 'working' }] };
+    const runtimeState = {
+      tasks: {
+        'AF-901': {
+          dispatch: {
+            taskId: 'AF-901',
+            channel: 'gui-relay',
+            delivery: { state: 'pending', preparedAt: '2026-11-17T10:00:00.000Z' },
+          },
+        },
+      },
+    };
+    try {
+      const actions = [];
+      expect(autoConfirmDeliveries(index, runtimeState, actions, { transportDir: transport, repoRoot })).toBe(0);
+      expect(runtimeState.tasks['AF-901'].dispatch.delivery.state).toBe('pending');
+      writeFileSync(
+        join(transport, 'acks', 'AF-901.json'),
+        JSON.stringify({ schemaVersion: '1.0.0', taskId: 'AF-901', receivedAt: '2026-11-17T10:03:00.000Z' }),
+        'utf8',
+      );
+      const confirmed = autoConfirmDeliveries(index, runtimeState, actions, { transportDir: transport, repoRoot });
+      expect(confirmed).toBe(1);
+      expect(runtimeState.tasks['AF-901'].dispatch.delivery.state).toBe('delivered');
+      expect(actions.find((a) => a.type === 'delivery-auto-confirmed')?.taskId).toBe('AF-901');
+    } finally {
+      rmSync(repoRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('交付记录六组标记：英文键 / 中文块标题都认，缺一即报缺', () => {
+    expect(findMissingDeliveryMarkers('')).toEqual(DELIVERY_RECORD_MARKERS.map((marker) => marker.key));
+    const mixed = [
+      '## 1. gateResults',
+      '## 2. 范围核对',
+      '## 3. 契约核对',
+      '## 4. 遗留登记',
+      '## 5. 偏差说明',
+      '## 6. 验收结论',
+    ].join('\n');
+    expect(findMissingDeliveryMarkers(mixed)).toEqual([]);
+    expect(findMissingDeliveryMarkers('## gateResults\n## scopeCheck')).toEqual([
+      'contractChecks',
+      'backlogItems',
+      'deviationTable',
+      'reviewVerdict',
+    ]);
+  });
+
 
   it('降级：缺原因 / 缺文件交接件 / 定性非法 / 非 GUI 通道都拒绝；成功清定位痕迹并保留 history', () => {
     const repoRoot = join(tmpdir(), `orch-gui-fallback-${Date.now()}-${Math.floor(Math.random() * 1e6)}`);

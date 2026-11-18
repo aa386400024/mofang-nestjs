@@ -3,7 +3,7 @@
 > 本目录是接入通用 **agent-collaboration-framework** 的项目适配层。
 > 通用规则（角色模型、任务契约、状态机、回执契约、验收口径、可靠性、上下文与记忆、安全策略、人在环、演进路线）的唯一真相源在框架仓，本文件**只声明本项目的特定取值**（目录映射、角色绑定、工具与闸门命令、策略锚点、框架版本依赖），不复制通用规则正文。
 >
-> - 框架仓本地路径：`D:\work\Project\agent-collaboration-framework`（本地独立 git 仓 + 版本 tag `v2.0.0`（commit `c507188`）；无包管理器分发，故以仓路径 + 契约 `contractRef` urn 双轨引用）
+> - 框架仓本地路径：`D:\work\Project\agent-collaboration-framework`（本地独立 git 仓 + 版本 tag `v2.0.0`；tag 是 annotated object `c50718856aa752bac3d87e44b3f309b16fbcb051`，指向 commit `67d329054f12ead1a1072d4edbbbfbe924ed1c79`；当前 `main` HEAD `7395748` 尚未发版；无包管理器分发，故以仓路径 + 契约 `contractRef` urn 双轨引用。权威锚点见 [framework-version-anchor.md](framework-version-anchor.md)）
 > - 适配层声明规范：框架仓 `adapters/README.md`（八类映射项：`projectId / directories / tools-gates / policyAnchors / frameworkVersionRange / roleBindings / statePlane / conformance`）
 > - 代码红线、命令规范、分层归属：`docs/team/conventions.md`；任务单模板：`docs/team/wp-task-template.md`，不在此重复。
 
@@ -28,7 +28,7 @@
 | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `projectId`             | `mofang-nestjs`（心塑 / XinSu 后端 NestJS 仓）                                                                                                                                                                                   |
 | `frameworkVersionRange` | `>=2.0.0 <3.0.0`                                                                                                                                                                                                                 |
-| 框架版本                | `2.0.0`（本地 git tag `v2.0.0` → commit `c507188`，releasedAt `2026-11-16`；版本轴见框架仓 `schemas/versions.json`）                                                                                                             |
+| 框架版本                | `2.0.0`（本地 annotated tag `v2.0.0` object `c507188` → commit `67d3290`，releasedAt `2026-11-16`；tag 之后 `main` 另有 6 个未发版提交，HEAD `7395748`。版本轴见框架仓 `schemas/versions.json`，锚点见 [framework-version-anchor.md](framework-version-anchor.md)） |
 | 框架契约版本            | 任务单 `1.1.0` / 状态索引 `1.1.0` / 工具契约 `1.1.0` / Agent Card `1.1.0` / 交付包 `1.0.0` / 回执 `1.0.0` / review 交接件 `1.1.0`（逐项见框架仓 `schemas/versions.json`）                                                        |
 | 契约引用形式            | 实例内用 `contractRef` / `schemaRef` 的 urn 声明（`urn:agent-collaboration-framework:schema:<contract>:<version>`），不写裸版本号                                                                                                |
 | `unknownEnumPolicy`     | `tolerant`（框架 2.0.0 兼容声明要求；未知枚举值按保留值透传并记人工复核，不静默丢弃、不擅自映射。状态轴由 `protocol-mapper.mjs` 列入 `unknownStatuses`，交付包落入 `leftovers.manualReviewList`）                                |
@@ -193,9 +193,11 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 | 状态        | 含义                                                                                | 写入者                                                  |
 | ----------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------- |
 | `pending`   | 投递件已生成（`briefRef` 非空），尚未确认送达                                       | `run-once` 领单（领单即生成投递件）/ `channel dispatch` |
-| `delivered` | 桌面 relay 已送达并校验（会话路径 + 定位层 + 证据指针齐备，且原态必须是 `pending`） | `channel confirm`                                       |
+| `delivered` | 桌面 relay 已送达并校验（会话路径 + 定位层 + 证据指针齐备，且原态必须是 `pending`） | `channel auto-confirm`（ack 到达）/ `channel confirm`（人工兜底） |
 | `failed`    | 投递失败并降级，通道改 `gui-file-fallback`，文件交接件仍在                          | `channel fallback`                                      |
 | `bypassed`  | 非失败事实：通道被旁路（会话内直做 / 已由既有进程执行），不计失败、不判终态         | `channel fallback --cause executed-in-session`          |
+
+**送达 ack（AF-074）**：执行代理收到 brief 后，第一步写 `transport/acks/<taskId>.json`（`schemaVersion / taskId / receivedAt / executor`）。ack 只证明「收到了」，**不是完成回执**；`channel send` 写的 `transport/gui-sent/<taskId>.json` 是发送现场（窗口、时间、截图哈希），也不是送达证明。两者齐备后，`channel auto-confirm` / `run-once` 的 `autoConfirmDeliveries` 才把 `pending` 升为 `delivered`；缺 ack 保持 pending，交给投递租约回滚。
 
 `pending` 用**独立投递租约**（`config.dispatch.deliveryLeaseMinutes`，默认 5 分钟）计时，不占 30 分钟任务租约：超时未确认，`run-once` 的 `releaseFailedDeliveries` 把任务回滚 `ready` 并置 `heldForHuman`，`releaseReason=gui-delivery-lease-expired`。
 
@@ -214,7 +216,7 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 
 ### 校验守卫（AF-024 评审整改）
 
-- **通道守卫**：只有 `channel=gui-relay` 的记录能被 confirm / fallback，file 通道不得伪装成已送达。
+- **通道守卫**：只有 `channel=gui-relay` 的记录能被 confirm / auto-confirm / fallback，file 通道不得伪装成已送达。
 - **状态守卫**：confirm 只接受 `pending → delivered`，`failed` 不得回退成 `delivered`。
 - **枚举守卫**：`sessionPath` 必须取自 `SESSION_PATHS`（`existing-session` / `mini-chat` / `new-task`），`locateLayer` 必须取自 `LOCATE_LAYERS`。
 - **文件守卫**：`evidenceRef` 与 `handoverRef` 必须能在仓内解析到真实文件。
@@ -227,16 +229,18 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | `channel rules` / `channel queue --taskId` / `channel state --taskId`                                                                                                                        | 规则、队列可派判定、投递状态与停滞标记                                                                                                                              | 只读             |
 | `channel dispatch --taskId <id> [--extra-file <md>]`                                                                                                                                         | 读交接件 → 生成 `transport/briefs/<taskId>.brief.md` → 置 `pending`                                                                                                 | 写投递件与运行态 |
-| `channel confirm --taskId <id> --session-path <..> --locate-layer <..> --evidence <..>`                                                                                                      | 回写 `delivered`；缺任一项即拒                                                                                                                                      | 写运行态         |
+| `channel send --taskId <id> [--dry-run] [--wait-ack] [--ack-timeout 90] [--no-click-input] [--window-title <title>]`                                                                           | 主桌面聚焦执行代理窗口 → 定位输入框 → 剪贴板粘贴 brief → 发送 → 写 `transport/gui-sent/<taskId>.json` 与截图；**不**直接确认送达                                                        | 写发送证据       |
+| `channel auto-confirm [--taskId <id>]`                                                                                                                                                        | 读 `transport/acks/<taskId>.json` 与发送记录 → 回写 `delivered`；缺 ack / taskId 不一致一律不确认                                                                     | 写运行态         |
+| `channel confirm --taskId <id> --session-path <..> --locate-layer <..> --evidence <..>`                                                                                                      | 人工兜底：回写 `delivered`；缺任一项即拒                                                                                                                             | 写运行态         |
 | `channel fallback --taskId <id> --reason <..> --cause <类别> [--classification deterministic\|flaky\|legacy-debt] [--login-gate] [--start-retries N] [--send-retries N] [--attempt-count N]` | 回写 `failed` + 通道降级 + 现场事实（`delivery.lastAttempt`）；`--cause` **必填**且须在 `DELIVERY_CAUSES` 内，缺原因 / 缺 `handoverRef` / 缺 `cause` 即拒（exit 2） | 写运行态         |
 
 ### 分工与红线
 
-- 规则判定在 `dispatch-channel.mjs`；投递件生成 / 确认 / 降级在 `gui-dispatch.mjs`；真实桌面动作（拉起、定位会话、粘贴、发送、校验）由 orchestrator 的桌面 relay（`computer_use_tool` + `seed_computer_use`）执行。
-- **不把「已粘贴」当「已送达」**：`confirm` 必须带会话路径、定位层与可指认的证据（截图或时间戳文件），并随派发记录留指针。
+- 规则判定在 `dispatch-channel.mjs`；投递件生成 / 确认 / 降级在 `gui-dispatch.mjs`；真实桌面动作（聚焦、粘贴、发送、截图）由 `gui-relay-send.ps1` 在主桌面执行；送达确认由执行代理 ack + `channel auto-confirm` 完成。
+- **不把「已粘贴」当「已送达」**：发送器只写现场证据；`auto-confirm` 必须读执行代理 ack（taskId 一致、receivedAt 可解析），人工兜底 `confirm` 仍须带会话路径、定位层与可指认证据。
 - **不静默降级**：失败必须写原因与定性；降级后 `channel=gui-file-fallback`，但交接件不删、任务不丢。
-- 投递件只含任务契约字段（契约 / 范围 / 闸门 / 验收 / 回执约定），不含编排内部状态与对话原文。
-- CLI 不冒充 GUI 能力：`channel dispatch` 只准备投递件与状态，不驱动桌面。
+- 投递件只含任务契约字段（契约 / 范围 / 闸门 / 验收 / 投递确认 / 回执约定），不含编排内部状态与对话原文；brief 明确禁止执行代理自行执行 task / run-once / archive / improvements transition。
+- CLI 不冒充 GUI 能力：`channel dispatch` 只准备投递件与状态；`channel send` 才驱动桌面，且发送后立即把前台还给原窗口。
 
 ## 5.2 通道熔断（IM-017）
 
@@ -361,6 +365,7 @@ V7「文件域残留」有两条取证路径，按回执是否声明提交集合
 | 文件                                      | 角色                                                                                         | 通用层对应                                                                       |
 | ----------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | `task-state-index.json`                   | 本项目状态索引（真实任务记录与归档指针）                                                     | 框架仓 `schemas/task-state-index.schema.json`                                    |
+| `framework-version-anchor.md`             | 框架 tag / commit / 未发版 HEAD 的唯一锚点与引用规则                                         | 框架仓 `schemas/versions.json`                                                   |
 | `acceptance-checklist.md`                 | 项目特定验收命令与仓库边界                                                                   | 五类核对口径见框架仓 `docs/acceptance.md`                                        |
 | `relay-receipt-template.md`               | 回执 / 交付记录的项目路径约定与命令示例                                                      | 七组字段骨架见框架仓 `templates/receipt.template.md`、`docs/receipt-contract.md` |
 | `agent-cards/*.json`                      | 本项目代理能力声明（executor / orchestrator；human 不可派发故无卡）                          | 框架仓 `schemas/agent-card.schema.json`、`templates/agent-card.template.md`      |

@@ -432,6 +432,30 @@ function checkResidualByCommits(task, opts, declaredCommits, changed) {
 }
 
 /**
+ * 交付记录六组机读字段标记。
+ *
+ * 既接受英文键名（稳定机读锚点），也接受项目交付记录常用的中文块标题；
+ * 只做“字段是否出现”的机读判断，不判断内容语义（语义仍走人工复核）。
+ */
+export const DELIVERY_RECORD_MARKERS = Object.freeze([
+  { key: 'gateResults', patterns: [/\bgateResults\b/i, /闸门结果/, /闸门证据/] },
+  { key: 'scopeCheck', patterns: [/\bscopeCheck\b/i, /范围核对/, /文件域核对/, /改动范围核对/] },
+  { key: 'contractChecks', patterns: [/\bcontractChecks\b/i, /契约核对/, /契约检查/] },
+  { key: 'backlogItems', patterns: [/\bbacklogItems\b/i, /遗留登记/, /遗留项/] },
+  { key: 'deviationTable', patterns: [/\bdeviationTable\b/i, /偏差表/, /偏差说明/] },
+  { key: 'reviewVerdict', patterns: [/\breviewVerdict\b/i, /验收结论/, /复核结论/] },
+]);
+
+/** 返回交付记录缺失的机读标记 key 列表；空数组表示六组齐全。 */
+export function findMissingDeliveryMarkers(text) {
+  const source = String(text ?? '');
+  if (!source.trim()) return DELIVERY_RECORD_MARKERS.map((marker) => marker.key);
+  return DELIVERY_RECORD_MARKERS.filter((marker) => !marker.patterns.some((pattern) => pattern.test(source))).map(
+    (marker) => marker.key,
+  );
+}
+
+/**
  * 人工复核项：只列**本次回执真实存在**的、脚本不可判定的项。
  * 固定样板项会让 `passed` 永远不可达（五类全清也无法通过），因此逐项按证据触发：
  * 遗留 / 偏差 / 未决问题非空、回执缺失、交付记录字段标记不全才计入。
@@ -458,8 +482,8 @@ function manualReviewItems(task) {
   if (rel) {
     const probe = probeTextFile(relToAbs(rel));
     if (probe.exists && probe.text) {
-      for (const group of ['gateResults', 'scopeCheck', 'contractChecks', 'backlogItems', 'deviationTable', 'reviewVerdict']) {
-        if (!probe.text.includes(group)) items.push(`交付记录未出现字段标记：${group}`);
+      for (const group of findMissingDeliveryMarkers(probe.text)) {
+        items.push(`交付记录未出现字段标记：${group}`);
       }
     }
   }

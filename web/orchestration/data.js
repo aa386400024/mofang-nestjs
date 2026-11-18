@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T02:03:33.974Z",
+  "generatedAt": "2026-11-18T03:47:46.333Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -21,17 +21,17 @@ window.ORCH_SNAPSHOT = {
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 52,
-    "activeCount": 6,
+    "total": 53,
+    "activeCount": 5,
     "byStatus": {
-      "candidate": 0,
-      "queued": 6,
+      "candidate": 1,
+      "queued": 4,
       "accepted": 0,
-      "done": 45,
+      "done": 47,
       "wontfix": 1
     },
     "byType": {
-      "gap": 35,
+      "gap": 36,
       "guardrail": 3,
       "tool": 0,
       "standard": 3,
@@ -40,7 +40,7 @@ window.ORCH_SNAPSHOT = {
     },
     "bySource": {
       "implementation": 26,
-      "acceptance": 9,
+      "acceptance": 10,
       "rework": 0,
       "dead-letter": 0,
       "review": 17
@@ -952,7 +952,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-043",
         "title": "ESLint 作用域不含 scripts/，编排脚本只有单测兜底",
-        "status": "queued",
+        "status": "done",
         "source": "review",
         "type": "tech-debt",
         "layer": "adapter",
@@ -964,12 +964,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "脚本层无静态检查，风格与潜在未使用变量只能靠单测和人工发现",
         "suggestion": "在 eslint 配置加 allowDefaultProject 白名单或建 scripts 专用 tsconfig 项目，先纳入 scripts/orchestration/**/*.mjs",
-        "historyCount": 2,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-17T05:28:30.415Z",
+          "at": "2026-11-18T03:43:39.473Z",
           "by": "orchestrator-cli",
-          "to": "queued",
-          "note": "登记在案，待排期"
+          "to": "done",
+          "note": "复核 package.json lint 第二段已覆盖 scripts/**/*.mjs；AF-074 lint 实跑退出 0"
         }
       },
       {
@@ -996,7 +996,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-045",
         "title": "GUI 派发需人工 channel confirm，无人值守长跑未验证",
-        "status": "queued",
+        "status": "done",
         "source": "review",
         "type": "gap",
         "layer": "adapter",
@@ -1006,12 +1006,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "夜间无人值守场景下投递确认缺失会按租约回滚 ready，吞吐取决于人在场",
         "suggestion": "补自动送达判定（GUI 侧回执信号）+ 连续 N 单无人值守演练记录",
-        "historyCount": 2,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-17T05:28:30.840Z",
+          "at": "2026-11-18T03:43:55.584Z",
           "by": "orchestrator-cli",
-          "to": "queued",
-          "note": "登记在案，待排期"
+          "to": "done",
+          "note": "executor 收件写 ack；run-once/channel auto-confirm 只在 ack 合法时确认；真实发送已验证"
         }
       },
       {
@@ -1160,6 +1160,27 @@ window.ORCH_SNAPSHOT = {
           "to": "queued",
           "note": null
         }
+      },
+      {
+        "improvementId": "IM-053",
+        "title": "GUI relay ack 自动确认后的无人值守长跑与 stale-ack 实战演练未验证",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-074",
+        "evidence": [
+          "AF-074 真实发送仅验证到 MiniMax 窗口收到消息；未跑连续多任务长跑"
+        ],
+        "impact": "ack 自动确认已代码化，但连续派发/超时回收/旧 ack 隔离仍需实战回归",
+        "suggestion": "由 relay supervisor 在下一轮真实执行任务中记录连续 3 单的 send→ack→auto-confirm→receipt 延迟与回滚次数",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T03:43:48.936Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
       }
     ]
   },
@@ -1290,7 +1311,7 @@ window.ORCH_SNAPSHOT = {
       "allowedRoles": [
         "orchestrator"
       ],
-      "description": "编排工具链命令入口：status / run-once / snapshot / pack / config；不直接操作桌面 GUI，桌面派发与回执衔接由执行代理单元在调度间隙完成。"
+      "description": "编排工具链命令入口：status / run-once / snapshot / pack / config / channel（dispatch / send / auto-confirm / confirm / fallback）；channel send 驱动主桌面发送 brief 并写发送证据，送达确认只认执行代理 ack。"
     },
     {
       "toolId": "TOOL-QUEUE-SCHEDULER",
@@ -1299,7 +1320,7 @@ window.ORCH_SNAPSHOT = {
       "allowedRoles": [
         "orchestrator"
       ],
-      "description": "队列扫描、领单租约、超时释放、验收驱动状态迁移、返修提案与限次、死信隔离、队列快照生成。"
+      "description": "队列扫描、领单租约、超时释放、GUI 送达 ack 自动确认、验收驱动状态迁移、返修提案与限次、死信隔离、队列快照生成。"
     },
     {
       "toolId": "TOOL-RELAY-SUPERVISOR",
@@ -1321,6 +1342,85 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-015",
+      "recordedAt": "2026-11-18T03:46:46.932Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-075",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-075",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-075.json"
+      ]
+    },
+    {
+      "auditId": "AUD-014",
+      "recordedAt": "2026-11-18T03:46:42.110Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-075",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-013",
+      "recordedAt": "2026-11-18T03:26:43.003Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-074",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-074-framework-closeout"
+      ]
+    },
+    {
+      "auditId": "AUD-012",
+      "recordedAt": "2026-11-18T03:26:36.868Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-074",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-074",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-074.json"
+      ]
+    },
+    {
+      "auditId": "AUD-011",
+      "recordedAt": "2026-11-18T03:26:24.061Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-074",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-010",
       "recordedAt": "2026-11-18T01:55:15.134Z",
@@ -1483,16 +1583,16 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "auditSummary": {
-    "total": 10,
+    "total": 15,
     "byResult": {
-      "allowed": 10,
+      "allowed": 15,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 10
+      "TOOL-QUEUE-SCHEDULER": 15
     },
     "byActor": {
-      "orchestrator": 10
+      "orchestrator": 15
     }
   },
   "protocolView": {
@@ -3134,6 +3234,42 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af073-phase25-exit4-formal-verdict-2026-11-18.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-074",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af074-framework-closeout-task-2026-11-18.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af074-framework-closeout-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-075",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af075-framework-closeout-scope-task-2026-11-18.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af075-framework-closeout-rework-2026-11-18.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -3219,5 +3355,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 90
+  "archivedCount": 92
 };
