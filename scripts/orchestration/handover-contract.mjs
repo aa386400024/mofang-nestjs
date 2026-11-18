@@ -206,6 +206,26 @@ export function validateReceiptHandover(input) {
       pushError(errors, 'changedFiles.commits', '元素必须为 7–40 位小写十六进制提交 SHA');
     }
   }
+  // IM-046：跨仓提交不进本仓 `commits`，改由 `externalCommits` 显式声明仓与 SHA。
+  // 本仓 `commits` 仍只做本仓对象库解析；外部仓只做形状校验，不冒充本仓事实。
+  if (input.changedFiles?.externalCommits !== undefined) {
+    if (!Array.isArray(input.changedFiles.externalCommits) || input.changedFiles.externalCommits.length === 0) {
+      pushError(errors, 'changedFiles.externalCommits', '必须为非空数组');
+    } else {
+      for (const [i, item] of input.changedFiles.externalCommits.entries()) {
+        if (!isObject(item)) {
+          pushError(errors, `changedFiles.externalCommits[${i}]`, '必须为对象 {repo, commits}');
+          continue;
+        }
+        if (typeof item.repo !== 'string' || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(item.repo)) {
+          pushError(errors, `changedFiles.externalCommits[${i}].repo`, '必须为 owner/repo 形状');
+        }
+        if (!isStringArray(item.commits) || item.commits.some((sha) => !/^[0-9a-f]{7,40}$/.test(sha))) {
+          pushError(errors, `changedFiles.externalCommits[${i}].commits`, '必须为非空 7–40 位小写十六进制 SHA 数组');
+        }
+      }
+    }
+  }
   if (!Array.isArray(input.gateResults) || input.gateResults.length === 0) {
     pushError(errors, 'gateResults', '必须为非空数组');
   } else {

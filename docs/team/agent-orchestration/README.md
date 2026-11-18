@@ -346,6 +346,7 @@ V7「文件域残留」有两条取证路径，按回执是否声明提交集合
 - 声明 commit 后，工作树里**属同批次其它任务的在办改动不参与比对**，只写进 detail 供人看。修掉的正是 AF-040 / AF-042 连续被判 `rejected` 的根因：同树多任务，拿工作树套单个任务必然互相误判。
 - 未注入 `resolveCommitFiles`（如纯函数调用）→ 记 `skip`，**不冒充通过**。
 - 契约侧字段登记：后端回执校验 `handover-contract.mjs` 接受 `changedFiles.commits`（7–40 位小写十六进制），框架 `docs/receipt-contract.md` §3.1 已同步登记为可选扩展字段。
+- 跨仓提交（IM-046）：本仓 `changedFiles.commits` 只写本仓 SHA；他仓提交写 `changedFiles.externalCommits`，每项为 `{ repo: "owner/repo", commits: ["7–40 位小写十六进制"] }`。校验器只验形状，不拿外部 SHA 去本仓对象库解析，也不把它混入 V7 的本仓 commit 比对；`artifactRefs.others` 继续用于人读工件指针。
 
 ## 6. 策略锚点（policyAnchors）
 

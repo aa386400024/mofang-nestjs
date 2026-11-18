@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-18T03:43:55.585Z",
+  "updatedAt": "2026-11-18T04:25:35.063Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -2264,7 +2264,7 @@
     },
     {
       "improvementId": "IM-044",
-      "status": "queued",
+      "status": "wontfix",
       "title": "mcp / http transport 仍是预留位，只有 file 通道可用",
       "source": "review",
       "type": "gap",
@@ -2277,7 +2277,7 @@
       "suggestion": "按 transport 接口补 http 实现（幂等 idempotencyKey + 重试预算），先在演练环境验证",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-17T05:28:12.079Z",
-      "updatedAt": "2026-11-17T05:28:30.626Z",
+      "updatedAt": "2026-11-18T04:25:34.870Z",
       "history": [
         {
           "at": "2026-11-17T05:28:12.079Z",
@@ -2292,8 +2292,20 @@
           "to": "queued",
           "by": "orchestrator-cli",
           "note": "登记在案，待排期"
+        },
+        {
+          "at": "2026-11-18T04:25:34.870Z",
+          "from": "queued",
+          "to": "wontfix",
+          "by": "orchestrator-cli",
+          "note": "同步 transport 架构约束；重启条件见 improvement-dispositions-2026-11-18.md"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-18T04:25:34.870Z",
+        "resolutionNote": "同步 transport 架构约束；重启条件见 improvement-dispositions-2026-11-18.md",
+        "linkedTaskId": "AF-079"
+      }
     },
     {
       "improvementId": "IM-045",
@@ -2349,7 +2361,7 @@
     },
     {
       "improvementId": "IM-046",
-      "status": "queued",
+      "status": "done",
       "title": "跨仓提交不能写入回执 changedFiles.commits",
       "source": "review",
       "type": "tech-debt",
@@ -2362,7 +2374,7 @@
       "suggestion": "回执 schema 增 repo 限定（commits 带仓库前缀），校验层按仓分流",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-17T05:28:19.088Z",
-      "updatedAt": "2026-11-17T05:28:31.035Z",
+      "updatedAt": "2026-11-18T04:25:33.719Z",
       "history": [
         {
           "at": "2026-11-17T05:28:19.088Z",
@@ -2377,12 +2389,31 @@
           "to": "queued",
           "by": "orchestrator-cli",
           "note": "登记在案，待排期"
+        },
+        {
+          "at": "2026-11-18T04:25:33.518Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "AF-079 立项实现跨仓提交声明"
+        },
+        {
+          "at": "2026-11-18T04:25:33.719Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "externalCommits 校验 + 单测 + README 已落地"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-18T04:25:33.719Z",
+        "resolutionNote": "externalCommits 校验 + 单测 + README 已落地",
+        "linkedTaskId": "AF-079"
+      }
     },
     {
       "improvementId": "IM-047",
-      "status": "queued",
+      "status": "done",
       "title": "生产收口清单（部署/secrets/迁移/监控/回滚）未排期",
       "source": "review",
       "type": "gap",
@@ -2395,7 +2426,7 @@
       "suggestion": "单独立项 AF-1xx 生产前 checklist，含 secrets 轮换、DB 迁移回滚演练、告警阈值与值班",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-17T05:28:19.290Z",
-      "updatedAt": "2026-11-17T05:28:31.223Z",
+      "updatedAt": "2026-11-18T04:25:34.088Z",
       "history": [
         {
           "at": "2026-11-17T05:28:19.290Z",
@@ -2410,8 +2441,27 @@
           "to": "queued",
           "by": "orchestrator-cli",
           "note": "登记在案，待排期"
+        },
+        {
+          "at": "2026-11-18T04:25:33.897Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "AF-079 立项落地生产前 checklist"
+        },
+        {
+          "at": "2026-11-18T04:25:34.088Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "生产 checklist 已落 docs/team/production-readiness-checklist-2026-11-18.md；五类演练另行排期"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-18T04:25:34.088Z",
+        "resolutionNote": "生产 checklist 已落 docs/team/production-readiness-checklist-2026-11-18.md；五类演练另行排期",
+        "linkedTaskId": "AF-079"
+      }
     },
     {
       "improvementId": "IM-048",
@@ -2623,7 +2673,7 @@
     },
     {
       "improvementId": "IM-052",
-      "status": "queued",
+      "status": "wontfix",
       "title": "executor 自行执行 task resume/run-once/archive 的状态面越权",
       "source": "acceptance",
       "type": "guardrail",
@@ -2636,7 +2686,7 @@
       "suggestion": "GUI relay 送达后立即 channel confirm 清租约；executor brief 明确禁止所有 orchestration CLI 写子命令；CLI 侧增加 executor 调用者角色校验/环境隔离",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-17T14:40:19.204Z",
-      "updatedAt": "2026-11-17T14:40:25.708Z",
+      "updatedAt": "2026-11-18T04:25:35.062Z",
       "history": [
         {
           "at": "2026-11-17T14:40:19.204Z",
@@ -2651,12 +2701,24 @@
           "to": "queued",
           "by": "orchestrator-cli",
           "note": null
+        },
+        {
+          "at": "2026-11-18T04:25:35.062Z",
+          "from": "queued",
+          "to": "wontfix",
+          "by": "orchestrator-cli",
+          "note": "同用户进程无法可信隔离；补偿控制与重启条件见 improvement-dispositions-2026-11-18.md"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-18T04:25:35.062Z",
+        "resolutionNote": "同用户进程无法可信隔离；补偿控制与重启条件见 improvement-dispositions-2026-11-18.md",
+        "linkedTaskId": "AF-079"
+      }
     },
     {
       "improvementId": "IM-053",
-      "status": "candidate",
+      "status": "done",
       "title": "GUI relay ack 自动确认后的无人值守长跑与 stale-ack 实战演练未验证",
       "source": "acceptance",
       "type": "gap",
@@ -2669,7 +2731,7 @@
       "suggestion": "由 relay supervisor 在下一轮真实执行任务中记录连续 3 单的 send→ack→auto-confirm→receipt 延迟与回滚次数",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-18T03:43:48.936Z",
-      "updatedAt": "2026-11-18T03:43:48.936Z",
+      "updatedAt": "2026-11-18T04:25:34.664Z",
       "history": [
         {
           "at": "2026-11-18T03:43:48.936Z",
@@ -2677,8 +2739,34 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-18T04:25:34.278Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": "AF-079 立项三单 relay 回归"
+        },
+        {
+          "at": "2026-11-18T04:25:34.478Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": "三单序列回归实现"
+        },
+        {
+          "at": "2026-11-18T04:25:34.664Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "三单 send→ack→auto-confirm 与 stale-ack 自动化回归通过"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-18T04:25:34.664Z",
+        "resolutionNote": "三单 send→ack→auto-confirm 与 stale-ack 自动化回归通过",
+        "linkedTaskId": "AF-079"
+      }
     }
   ]
 }
