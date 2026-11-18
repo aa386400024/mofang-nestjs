@@ -14,7 +14,7 @@
 //
 //   鉴权: 与 debug-session.controller 同款 —— AdminRoleGuard (class 级).
 
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards, Logger } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Inject, Param, Post, Put, Query, UseGuards, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { nanoid } from 'nanoid';
 import type { Repository } from 'typeorm';
@@ -38,6 +38,10 @@ import { PracticeRunnerService } from './practice-runner.service.js';
 import { parseSessionProfile, resolveSessionProfile, type SessionProfileName } from './session-profile.js';
 import { AdminRoleGuard } from '../admin-debug/guards/admin-role.guard.js';
 import { DELIBERATION_SCENARIO_TYPES } from '../engine-adapters/deliberation/deliberation-mode.config.js';
+import {
+  CHARACTER_PROFILE_RESOLVER,
+  type CharacterProfileResolver,
+} from '../engine-adapters/wiring/character/character-profile.resolver.js';
 
 /** 启动单场对练的入参. */
 interface StartSessionBody {
@@ -102,6 +106,7 @@ export class AutoPracticeController {
     @InjectRepository(PracticeSession) private readonly sessionRepo: Repository<PracticeSession>,
     @InjectRepository(CounselorMode) private readonly modeRepo: Repository<CounselorMode>,
     @InjectRepository(PracticeBatch) private readonly batchRepo: Repository<PracticeBatch>,
+    @Inject(CHARACTER_PROFILE_RESOLVER) private readonly characterResolver: CharacterProfileResolver,
   ) {}
 
   /**
@@ -116,6 +121,12 @@ export class AutoPracticeController {
     const counselorModeId = (body?.counselorModeId ?? '').trim();
     if (!characterSlug || !counselorModeId) {
       return { error: 'characterSlug 与 counselorModeId 必填' };
+    }
+    // AF-103: 角色存在性前置校验 —— 不在 runner 里才发现「角色不存在」，
+    // 否则会先建场次再失败，留下半截数据与无效证据。
+    const characterCheck = await this.validateCharacterSlugs([characterSlug]);
+    if (characterCheck.error) {
+      return characterCheck;
     }
     // AF-091: 会话档案 (缺省 legacy; 非法值当场报错).
     const profile = this.resolveProfileForRequest(body?.sessionProfile, body?.maxTurns);
@@ -172,6 +183,11 @@ export class AutoPracticeController {
     if (characterSlugs.length === 0 || counselorModeIds.length === 0) {
       return { error: 'characterSlugs 与 counselorModeIds 不能为空' };
     }
+    // AF-103: 批量入队前逐条校验 —— 任何缺失角色整体拒绝，不产生半批任务。
+    const characterCheck = await this.validateCharacterSlugs(characterSlugs);
+    if (characterCheck.error) {
+      return characterCheck;
+    }
     // 场景类型: 非法值**明确报错**, 不静默回落 `full_simulation` ——
     //   考核场景走的是"锁版本 / 锁温度 / 逐字复现"红线 (审议恒 `rule_only`),
     //   把拼错的 `exam` 悄悄跑成 `full_simulation` = 产出一批"看着像考核"的普通数据,
@@ -200,6 +216,30 @@ export class AutoPracticeController {
       sessionProfile,
     });
     return { batchId, enqueued, sessionProfile };
+  }
+
+  /**
+   * 校验来访者 slug 是否可解析（AF-103）。
+   *
+   * 口径：复用 `CHARACTER_PROFILE_RESOLVER`，即「已审核 + 已上架」的同一真相源。
+   * 缺失角色一次性全部列出后整体拒绝；不做静默跳过，也不在队列里留下半批任务。
+   *
+   * @param slugs 入口传入的角色 slug（已 trim / 去空）
+   * @returns 全部可解析时为空对象；否则返回带缺失清单的 error
+   */
+  private async validateCharacterSlugs(slugs: readonly string[]): Promise<{ readonly error?: string }> {
+    const uniqueSlugs = [...new Set(slugs)];
+    const missing: string[] = [];
+    for (const slug of uniqueSlugs) {
+      const resolved = await this.characterResolver.resolve({ templateId: slug });
+      if (!resolved) {
+        missing.push(slug);
+      }
+    }
+    if (missing.length > 0) {
+      return { error: `来访者角色不存在或不可用: ${missing.join(', ')}` };
+    }
+    return {};
   }
 
   /**
