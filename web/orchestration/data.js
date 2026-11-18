@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T06:11:04.357Z",
+  "generatedAt": "2026-11-18T06:40:38.153Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,7 +16,38 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-086",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "verification",
+      "title": "Phase 2.5 出口条件②真实 exam 双批次取证",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af086-phase25-exit2-real-exam-double-run-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-086",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "file",
+        "targetRole": "orchestrator",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-18T06:40:38.150Z",
+        "leaseDeadline": "2026-11-18T07:10:38.148Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-086.json"
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1343,6 +1374,23 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-044",
+      "recordedAt": "2026-11-18T06:40:37.872Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-086",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-043",
       "recordedAt": "2026-11-18T06:08:03.136Z",
       "actorRef": "orchestrator",
@@ -1561,39 +1609,45 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-029",
-      "recordedAt": "2026-11-18T04:29:13.101Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-080",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-080-improvement-closeout-exec"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 43,
+    "total": 44,
     "byResult": {
-      "allowed": 43,
+      "allowed": 44,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 43
+      "TOOL-QUEUE-SCHEDULER": 44
     },
     "byActor": {
-      "orchestrator": 43
+      "orchestrator": 44
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-086",
+        "title": "Phase 2.5 出口条件②真实 exam 双批次取证",
+        "type": "verification",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "orchestrator",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af086-phase25-exit2-real-exam-double-run-task-2026-11-18.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -3456,9 +3510,17 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-086",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af086-phase25-exit2-real-exam-double-run-task-2026-11-18.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",

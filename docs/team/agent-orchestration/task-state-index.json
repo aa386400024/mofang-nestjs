@@ -4,10 +4,104 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 363,
+    "lastEventSeq": 366,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-086",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-18T06:40:37.820Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "开始真实 exam 双批次取证"
+        },
+        {
+          "at": "2026-11-18T06:40:38.148Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "Phase 2.5 出口条件②真实 exam 双批次取证",
+      "type": "verification",
+      "baselineRef": "772f250f17a2fc7856f1bd094b07646f946d1123",
+      "dependsOn": [],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-18T06:40:00.000Z",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "scope": {
+        "files": [
+          "scripts/ops/quality/af086-exam-double-run.ts",
+          "docs/worklog/pending/phase2.5-README.md",
+          "docs/worklog/pending/",
+          "docs/worklog/completed/phase2.5/",
+          "data/batch-reports/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af086-phase25-exit2-real-exam-double-run-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "corepack pnpm lint",
+          "check": "lint 全绿",
+          "threshold": "0 error 0 warning"
+        },
+        {
+          "command": "corepack pnpm typecheck",
+          "check": "类型检查全绿",
+          "threshold": "0 error"
+        },
+        {
+          "command": "corepack pnpm test",
+          "check": "全量单测全绿（收尾只跑一次）",
+          "threshold": "0 failed"
+        },
+        {
+          "command": "node scripts/orchestration/cli.mjs validate",
+          "check": "状态索引、任务单、回执与契约目录全部 PASS",
+          "threshold": "exit 0"
+        }
+      ],
+      "successCriteria": [
+        "用 bin/dev-up.ps1 的同一套本地 MySQL/Redis 连接起服务，不修改 .env 文件",
+        "通过生产 HTTP POST /admin/api/auto-practice/batch 连续创建两个同参数 exam 批次，每批 2 角色 × 2 模式 × 1 repeat / 12 轮",
+        "两批全部跑完；每个场次的逐字稿 JSON 均记录 scenarioType=exam",
+        "所有场次 deliberation_mode=rule_only；gate_decisions 仅 rule_only_skip，审议 LLM 调用 0 次、成本 0",
+        "两批 engineVersion / promptVersion / characterVersion 等指纹一致；规则层关键指标可对比且不出现 regressed",
+        "用 WP-K 正式 CLI 生成两批快照与对比结论，并把真实数字写回 README §3.2 出口②",
+        "不新跑非 exam 批次，不改 src/engine-core，不改 .env，不删除历史数据与队列任务",
+        "全程记录批次 id、场次 id、debugSessionId、命令、退出码与真实数字，不写推测结论"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af086-phase25-exit2-real-exam-double-run-2026-11-18.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": [],
+      "promotedAt": "2026-11-18T06:40:37.819Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
