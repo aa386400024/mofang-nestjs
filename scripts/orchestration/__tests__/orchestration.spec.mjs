@@ -3816,12 +3816,38 @@ describe('AF-056 CI 逐提交编排门', () => {
     expect(result).toMatchObject({ pass: false, reason: 'task-not-archived-completed' });
   });
 
-  it('PR 只有回执文件但不是 passed 时仍禁止合并', () => {
+  it('PR 的 conditional-pass 有已登记 backlog 且无人工复核项时可合并', () => {
     const task = ciTask('AF-906');
     const result = evaluateAcceptanceSnapshot({
       taskId: 'AF-906',
       currentIndex: { tasks: [], archivedTasks: [{ ...task, status: 'completed' }] },
-      receipts: [{ verdict: 'conditional-pass', scopeCheck: 'in-scope', finalStatus: 'completed' }],
+      receipts: [
+        {
+          verdict: 'conditional-pass',
+          scopeCheck: 'in-scope',
+          finalStatus: 'completed',
+          manualReviewList: [],
+          backlogItems: [{ id: 'IM-053', impact: 'long-run validation' }],
+        },
+      ],
+    });
+    expect(result).toMatchObject({ pass: true, reason: 'accepted', taskId: 'AF-906' });
+  });
+
+  it('PR 的 conditional-pass 存在人工复核项时仍禁止合并', () => {
+    const task = ciTask('AF-9061');
+    const result = evaluateAcceptanceSnapshot({
+      taskId: 'AF-9061',
+      currentIndex: { tasks: [], archivedTasks: [{ ...task, status: 'completed' }] },
+      receipts: [
+        {
+          verdict: 'conditional-pass',
+          scopeCheck: 'in-scope',
+          finalStatus: 'completed',
+          manualReviewList: ['回执字段缺失'],
+          backlogItems: [{ id: 'IM-053' }],
+        },
+      ],
     });
     expect(result).toMatchObject({ pass: false, reason: 'passed-durable-receipt-missing' });
   });
@@ -3867,6 +3893,48 @@ describe('AF-058 squash 全生命周期归档门', () => {
       receipts: [passedReceipt],
     });
     expect(result).toMatchObject({ pass: true, reason: 'archived-transition', taskId: 'AF-908' });
+  });
+
+  it('父提交无任务且 conditional-pass 无人工复核项时允许 squash 全生命周期', () => {
+    const task = lifecycleTask('AF-9081');
+    const result = evaluateCommitSnapshot({
+      subject: 'fix(orchestration): AF-9081 squash lifecycle conditional',
+      changedFiles: lifecycleFiles,
+      currentIndex: { tasks: [], archivedTasks: [{ ...task, status: 'completed' }] },
+      parentIndex: { tasks: [], archivedTasks: [] },
+      taskSheetExists: true,
+      receipts: [
+        {
+          verdict: 'conditional-pass',
+          scopeCheck: 'in-scope',
+          finalStatus: 'completed',
+          manualReviewList: [],
+          backlogItems: [{ id: 'IM-053' }],
+        },
+      ],
+    });
+    expect(result).toMatchObject({ pass: true, reason: 'archived-transition', taskId: 'AF-9081' });
+  });
+
+  it('父提交无任务且 conditional-pass 有未登记遗留时拒绝 squash', () => {
+    const task = lifecycleTask('AF-9082');
+    const result = evaluateCommitSnapshot({
+      subject: 'fix(orchestration): AF-9082 squash lifecycle bad backlog',
+      changedFiles: lifecycleFiles,
+      currentIndex: { tasks: [], archivedTasks: [{ ...task, status: 'completed' }] },
+      parentIndex: { tasks: [], archivedTasks: [] },
+      taskSheetExists: true,
+      receipts: [
+        {
+          verdict: 'conditional-pass',
+          scopeCheck: 'in-scope',
+          finalStatus: 'completed',
+          manualReviewList: [],
+          backlogItems: [{ impact: 'missing id' }],
+        },
+      ],
+    });
+    expect(result).toMatchObject({ pass: false, reason: 'no-active-task' });
   });
 
   it('父提交无任务但缺 passed 回执时仍拒绝 squash', () => {

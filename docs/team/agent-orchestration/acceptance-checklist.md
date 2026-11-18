@@ -61,6 +61,8 @@ pnpm typecheck
 | `conditional-pass` | 主体合格，遗留显式登记且不阻塞当前交付                          | `completed`，遗留入 backlog                   |
 | `rejected`         | 落地缺口 / 证据不实 / 越界改动 / 契约未对齐；写明原因与待补动作 | `rejected`，返修在同一 `contextId` 下新开任务 |
 
+**合并门细则**：`passed` 可直接合并；`conditional-pass` 必须同时满足 `scopeCheck=in-scope`、`finalStatus=completed`、`manualReviewList` 为空、`backlogItems` 每条都有非空编号（遗留已登记），才允许合并。存在人工复核项、遗留缺编号或 scope 越界时仍拒绝。
+
 ### 4.1 自治循环专项核对（框架 `docs/autonomous-loop.md`）
 
 | 核对项   | 口径                                                                                                                                                            |
