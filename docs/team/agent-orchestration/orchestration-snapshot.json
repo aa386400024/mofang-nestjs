@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-18T05:20:32.251Z",
+  "generatedAt": "2026-11-18T06:11:04.357Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1342,6 +1342,53 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-043",
+      "recordedAt": "2026-11-18T06:08:03.136Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-085",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-085-phase25-exit2-verification"
+      ]
+    },
+    {
+      "auditId": "AUD-042",
+      "recordedAt": "2026-11-18T06:07:57.818Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-085",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-085",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-085.json"
+      ]
+    },
+    {
+      "auditId": "AUD-041",
+      "recordedAt": "2026-11-18T06:07:57.504Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-085",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-040",
       "recordedAt": "2026-11-18T05:13:44.193Z",
       "actorRef": "orchestrator",
@@ -1528,68 +1575,19 @@
       "resources": [
         "task/AF-080-improvement-closeout-exec"
       ]
-    },
-    {
-      "auditId": "AUD-028",
-      "recordedAt": "2026-11-18T04:29:08.002Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-080",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-080",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-080.json"
-      ]
-    },
-    {
-      "auditId": "AUD-027",
-      "recordedAt": "2026-11-18T04:29:07.697Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-080",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-026",
-      "recordedAt": "2026-11-18T04:29:02.162Z",
-      "actorRef": "orchestrator",
-      "correlationId": "archive:AF-079",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 40,
+    "total": 43,
     "byResult": {
-      "allowed": 40,
+      "allowed": 43,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 40
+      "TOOL-QUEUE-SCHEDULER": 43
     },
     "byActor": {
-      "orchestrator": 40
+      "orchestrator": 43
     }
   },
   "protocolView": {
@@ -3425,6 +3423,24 @@
             "ref": "docs/worklog/completed/phase2.5/af084-orchestration-hardening-2026-11-18.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-085",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af085-phase25-exit2-verification-task-2026-11-18.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af085-phase25-exit2-verification-2026-11-18.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -3510,5 +3526,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 101
+  "archivedCount": 102
 }

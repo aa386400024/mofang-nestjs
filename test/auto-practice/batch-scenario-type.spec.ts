@@ -176,6 +176,34 @@ describe('AF-065 · 批次入口 scenarioType 透传', () => {
     }
   });
 
+  it('exam 双跑确定性: 同一请求连续两次 → payload 除 batchId 外逐字段一致', async () => {
+    const body: BatchRequestBody = {
+      characterSlugs: ['vpt_a'],
+      counselorModeIds: ['expert'],
+      maxTurns: 12,
+      repeats: 2,
+      scenarioType: 'exam',
+    };
+
+    const first = await postBatch(body);
+    const second = await postBatch(body);
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    expect(enqueued).toHaveLength(4);
+
+    const normalize = (job: AutoPracticeJobData) => {
+      const { batchId: _batchId, ...rest } = job;
+      return rest;
+    };
+    // 两次请求必然生成不同 batchId；除批次 id 外，入场参数必须逐字段一致，
+    // 否则“同一场考核跑两次”在入口层就已经不可比。
+    expect(normalize(enqueued[2])).toEqual(normalize(enqueued[0]));
+    expect(normalize(enqueued[3])).toEqual(normalize(enqueued[1]));
+    expect(enqueued[0]?.scenarioType).toBe('exam');
+    expect(enqueued[2]?.scenarioType).toBe('exam');
+  });
+
   it('缺省: 不传 scenarioType → job data 不带这个键 (缺省由 runner 兜 full_simulation)', async () => {
     const res = await postBatch({
       characterSlugs: ['vpt_a'],
