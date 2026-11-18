@@ -1,0 +1,181 @@
+{
+  "generatedAt": "2026-11-18T11:30:06.147Z",
+  "scope": "counselor-behavior-triage-only; not six-dim clinical acceptance",
+  "calibration": {
+    "totalTurns": 496,
+    "labeledTurns": 496,
+    "positiveTurns": 75,
+    "signals": [
+      {
+        "signal": "longTurn",
+        "threshold": 1,
+        "auc": 0.6800791765637372,
+        "precision": 0.5333333333333333,
+        "recall": 0.4266666666666667,
+        "tp": 32,
+        "fp": 28,
+        "fn": 43,
+        "tn": 393
+      },
+      {
+        "signal": "lengthRatio",
+        "threshold": 2,
+        "auc": 0.6865874901029295,
+        "precision": 0.2617801047120419,
+        "recall": 0.6666666666666666,
+        "tp": 50,
+        "fp": 141,
+        "fn": 25,
+        "tn": 280
+      },
+      {
+        "signal": "question",
+        "threshold": 1,
+        "auc": 0.49083135391923993,
+        "precision": 0.14782608695652175,
+        "recall": 0.68,
+        "tp": 51,
+        "fp": 294,
+        "fn": 24,
+        "tn": 127
+      },
+      {
+        "signal": "openQuestion",
+        "threshold": 1,
+        "auc": 0.49314330958036423,
+        "precision": 0.10526315789473684,
+        "recall": 0.02666666666666667,
+        "tp": 2,
+        "fp": 17,
+        "fn": 73,
+        "tn": 404
+      },
+      {
+        "signal": "reflection",
+        "threshold": 1,
+        "auc": 0.5313064133016627,
+        "precision": 0.22641509433962265,
+        "recall": 0.16,
+        "tp": 12,
+        "fp": 41,
+        "fn": 63,
+        "tn": 380
+      },
+      {
+        "signal": "advice",
+        "threshold": 1,
+        "auc": 0.5343309580364212,
+        "precision": 0.3333333333333333,
+        "recall": 0.10666666666666667,
+        "tp": 8,
+        "fp": 16,
+        "fn": 67,
+        "tn": 405
+      },
+      {
+        "signal": "negativeLanguage",
+        "threshold": 1,
+        "auc": 0.5314964370546318,
+        "precision": 0.2727272727272727,
+        "recall": 0.12,
+        "tp": 9,
+        "fp": 24,
+        "fn": 66,
+        "tn": 397
+      },
+      {
+        "signal": "safetyProbe",
+        "threshold": 1,
+        "auc": 0.5984323040380047,
+        "precision": 0.375,
+        "recall": 0.28,
+        "tp": 21,
+        "fp": 35,
+        "fn": 54,
+        "tn": 386
+      }
+    ],
+    "positiveDefinition": "positive = borderline 或 bad（督导案例质量标签）；gold/normal 为阴性"
+  },
+  "sessions": [
+    {
+      "sessionId": "debug_dAweb69s3KVzF3iYiaP0j",
+      "turns": 47,
+      "counselorChars": 3970,
+      "visitorChars": 33969,
+      "avgCounselorChars": 84.46808510638297,
+      "questionRate": 0.48936170212765956,
+      "openQuestionRate": 0.02127659574468085,
+      "reflectionRate": 0.23404255319148937,
+      "adviceRate": 0,
+      "negativeRate": 0,
+      "safetyProbeRate": 0.02127659574468085,
+      "longTurnRate": 0.0851063829787234,
+      "repetitionRate": 0.3617021276595745,
+      "emptyCounselorTurns": 18,
+      "emptyCounselorRate": 0.3829787234042553,
+      "riskDisclosures": 0,
+      "riskCovered": 0,
+      "flags": [
+        "repetition_high",
+        "empty_output_high"
+      ]
+    },
+    {
+      "sessionId": "debug_glnJxze2vDrTy8Boxxq6H",
+      "turns": 49,
+      "counselorChars": 5529,
+      "visitorChars": 12263,
+      "avgCounselorChars": 112.83673469387755,
+      "questionRate": 0.3673469387755102,
+      "openQuestionRate": 0,
+      "reflectionRate": 0.1836734693877551,
+      "adviceRate": 0,
+      "negativeRate": 0,
+      "safetyProbeRate": 0.02040816326530612,
+      "longTurnRate": 0.12244897959183673,
+      "repetitionRate": 0.2857142857142857,
+      "emptyCounselorTurns": 11,
+      "emptyCounselorRate": 0.22448979591836735,
+      "riskDisclosures": 0,
+      "riskCovered": 0,
+      "flags": [
+        "repetition_high",
+        "empty_output_high"
+      ]
+    },
+    {
+      "sessionId": "debug_p52X4Sth40tY_EnFHr1HM",
+      "turns": 50,
+      "counselorChars": 3884,
+      "visitorChars": 28348,
+      "avgCounselorChars": 77.68,
+      "questionRate": 0.44,
+      "openQuestionRate": 0.02,
+      "reflectionRate": 0.24,
+      "adviceRate": 0,
+      "negativeRate": 0.02,
+      "safetyProbeRate": 0.06,
+      "longTurnRate": 0.04,
+      "repetitionRate": 0.46,
+      "emptyCounselorTurns": 24,
+      "emptyCounselorRate": 0.48,
+      "riskDisclosures": 0,
+      "riskCovered": 0,
+      "flags": [
+        "repetition_high",
+        "empty_output_high"
+      ]
+    }
+  ],
+  "aggregate": {
+    "sessions": 3,
+    "turns": 146,
+    "riskDisclosures": 0,
+    "riskCovered": 0,
+    "flags": {
+      "repetition_high": 3,
+      "empty_output_high": 3
+    }
+  }
+}

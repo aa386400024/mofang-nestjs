@@ -4,10 +4,99 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 402,
+    "lastEventSeq": 423,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-100",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-18T11:50:07.923Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "线性化交付质量证据"
+        },
+        {
+          "at": "2026-11-18T11:50:08.298Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-exit4-proxy-quality",
+      "title": "质量证据线性化交付：执行侧代码与文档",
+      "type": "implementation",
+      "baselineRef": "6a52d7e62795bc427408d0cc7c6eb415b03363c5",
+      "dependsOn": [
+        "AF-091",
+        "AF-093"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-18T11:50:07.655Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "src/",
+          "test/",
+          "docs/worklog/pending/",
+          "docs/worklog/completed/"
+        ],
+        "modules": [
+          "auto-practice-metrics"
+        ],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af100-quality-linear-delivery-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "corepack pnpm exec tsc --noEmit -p tsconfig.json",
+          "check": "类型检查全绿",
+          "threshold": "error=0"
+        },
+        {
+          "command": "corepack pnpm exec vitest run test/auto-practice/counselor-quality.spec.ts",
+          "check": "质量审计单测全绿",
+          "threshold": "failed=0"
+        }
+      ],
+      "successCriteria": [
+        "质量审计代码、单测、证据 JSON 与 README 回写在单提交内交付",
+        "实现提交时状态索引含 AF-100 submitted，满足 PR 逐提交门",
+        "出口④仍判未达标 / 部分可判",
+        "engine-core 零 diff"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af095-anchor-calibrated-quality-audit-2026-11-18.md",
+          "kind": "report"
+        },
+        {
+          "name": "校准与审计证据",
+          "path": "docs/worklog/completed/phase2.5/af095-counselor-quality-evidence-2026-11-18.json",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": [],
+      "promotedAt": "2026-11-18T11:50:07.922Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -974,6 +1063,42 @@
         "deliveryRecord": "docs/worklog/pending/phase2.5-README.md",
         "reply": null
       }
+    },
+    {
+      "taskId": "AF-096",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af096-af095-rework-quality-acceptance-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-097",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af097-af095-quality-rework-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af095-anchor-calibrated-quality-audit-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-098",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af098-state-plane-acceptance-fix-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af098-state-plane-acceptance-fix-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-099",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af099-quality-linear-delivery-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
     }
   ],
   "archivedNotes": {
@@ -1000,6 +1125,8 @@
     "AF-087": "scope 重签发 → AF-088",
     "AF-089": "角色域冲突，取消后重登记 AF-090",
     "AF-090": "资源域不匹配，取消后重登记 AF-091",
-    "AF-092": "提交闸门完成，取消归档"
+    "AF-092": "提交闸门完成，取消归档",
+    "AF-096": "改走拆分任务 AF-097/AF-098",
+    "AF-099": "改走 AF-100 精确 scope"
   }
 }
