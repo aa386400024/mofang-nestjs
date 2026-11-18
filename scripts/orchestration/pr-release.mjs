@@ -17,7 +17,7 @@ import { githubRequest, unwrapGithub } from './github-api.mjs';
 import { FAILING_CONCLUSIONS, PASSING_CONCLUSIONS, fetchCheckRuns } from './ci-status.mjs';
 import { buildSquashCommitMessage } from './branch-workflow.mjs';
 import { INTEGRATE_REQUIRED_CONTEXTS } from './branch-protection.mjs';
-import { mergeableDurableReceipts } from './ci-task-gate.mjs';
+import { extractCommitTaskId, mergeableDurableReceipts } from './ci-task-gate.mjs';
 
 const INDEX_PATH = 'docs/team/agent-orchestration/task-state-index.json';
 const JOURNAL_PATH = 'docs/team/agent-orchestration/state/journal.jsonl';
@@ -124,6 +124,41 @@ async function findPullRequest(repo, branch, base = 'integrate') {
   return Array.isArray(body) ? (body[0] ?? null) : null;
 }
 
+/**
+ * 一个 PR 只能承载一个任务。逐提交门禁在 PR 阶段能按各自任务判定，但 squash 后
+ * 只剩标题主任务的 scope，其他任务的实现文件会被判越界。create 阶段先扫描
+ * base..branch 的提交标题，发现目标任务之外的编号就拒绝，避免把两个任务叠进
+ * 同一个 squash 提交。纯状态面提交没有任务号，直接放行。
+ */
+export function findForeignCommitTaskIds(subjects, taskId) {
+  const foreign = [];
+  for (const subject of subjects ?? []) {
+    let commitTaskId = null;
+    try {
+      commitTaskId = extractCommitTaskId(subject);
+    } catch (error) {
+      throw new Error(`${subject}：${error.message}`);
+    }
+    if (commitTaskId && commitTaskId !== taskId) foreign.push({ taskId: commitTaskId, subject });
+  }
+  return foreign;
+}
+
+function assertSingleTaskBranch({ branch, base, taskId }) {
+  const baseRef = git(['rev-parse', '--verify', base], { allowFailure: true }) ? base : `origin/${base}`;
+  const subjects = git(['log', '--format=%s', `${baseRef}..${branch}`])
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const foreign = findForeignCommitTaskIds(subjects, taskId);
+  if (foreign.length > 0) {
+    const detail = foreign.map((item) => `${item.taskId}（${item.subject}）`).join('、');
+    throw new Error(
+      `分支 ${branch} 混入其他任务提交：${detail}。一个 PR 只能承载 ${taskId}；请先把前置任务单独合并到 ${base}，再从最新 ${base} 重建本任务分支`,
+    );
+  }
+}
+
 function pullRequestTitle(task) {
   return buildSquashCommitMessage({ taskId: task.taskId, taskType: task.type, title: task.title });
 }
@@ -131,6 +166,7 @@ function pullRequestTitle(task) {
 async function createOrUpdatePullRequest({ repo, base, taskId, apply }) {
   const branch = currentTaskBranch(taskId);
   const task = taskInfo(taskId);
+  assertSingleTaskBranch({ branch, base, taskId });
   if (!apply) {
     console.log(JSON.stringify({ mode: 'dry-run', action: 'create', repo, base, branch, title: pullRequestTitle(task) }, null, 2));
     return;

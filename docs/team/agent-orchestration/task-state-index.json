@@ -4,10 +4,102 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 487,
+    "lastEventSeq": 490,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-113",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-18T17:10:00.938Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "开始实现堆叠 PR 守卫"
+        },
+        {
+          "at": "2026-11-18T17:10:05.474Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-long-session-acceptance",
+      "title": "堵住多任务堆叠 PR 被 squash 后的 scope 折叠缺口",
+      "type": "fix",
+      "baselineRef": "c8ad077b933192dfe800a53482974caac8d8aa9b",
+      "dependsOn": [],
+      "priorTasks": [
+        "AF-112"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-18T17:10:00.731Z",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "scope": {
+        "files": [
+          "scripts/orchestration/pr-release.mjs",
+          "scripts/orchestration/__tests__/orchestration.spec.mjs",
+          "docs/team/agent-orchestration/README.md",
+          "docs/worklog/pending/af113-af112-stacked-squash-guard-task-2026-11-19.md",
+          "docs/worklog/completed/phase2.5/af113-af112-stacked-squash-guard-delivery-2026-11-19.md"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af113-af112-stacked-squash-guard-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+          "check": "编排单测全绿（含新增堆叠 PR 守卫用例）",
+          "threshold": "exitCode=0"
+        },
+        {
+          "command": "node scripts/orchestration/cli.mjs validate --sheet docs/worklog/pending/af113-af112-stacked-squash-guard-task-2026-11-19.md",
+          "check": "任务单 schema 通过",
+          "threshold": "exitCode=0"
+        },
+        {
+          "command": "node scripts/orchestration/cli.mjs events verify",
+          "check": "事件链与索引投影一致",
+          "threshold": "exitCode=0"
+        },
+        {
+          "command": "git diff --check",
+          "check": "无空白错误与 CR",
+          "threshold": "exitCode=0"
+        }
+      ],
+      "successCriteria": [
+        "pr-release create 在推送前识别分支上是否混入目标任务之外的提交任务号，发现堆叠即拒绝并给出明确原因",
+        "纯状态面提交（无任务号）不误伤，单任务分支不受影响",
+        "新增单测覆盖“单任务通过 / 多任务堆叠拒绝 / 状态面豁免”三种场景",
+        "README 记录该守卫的触发条件与处置口径，避免再次出现 AF-112 的 scope 折叠"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af113-af112-stacked-squash-guard-delivery-2026-11-19.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-18T17:10:00.937Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
