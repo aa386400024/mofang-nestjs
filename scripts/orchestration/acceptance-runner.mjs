@@ -224,6 +224,7 @@ export const STATE_PLANE_ARTIFACTS = [
   'docs/team/agent-orchestration/task-state-index.json',
   'docs/team/agent-orchestration/state/journal.jsonl',
   'docs/team/agent-orchestration/state/archived-notes.json',
+  'docs/team/agent-orchestration/improvement-log.json',
   'web/orchestration/data.js',
 ];
 
