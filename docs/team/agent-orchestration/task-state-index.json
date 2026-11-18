@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 379,
+    "lastEventSeq": 397,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -929,6 +929,42 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af088-phase25-exit345-evidence-2026-11-18.md",
         "reply": "docs/worklog/pending/relay-response-AF088-20261118-1630.md"
       }
+    },
+    {
+      "taskId": "AF-089",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af089-phase25-session-realism-exit4-protocol-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-090",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af090-phase25-session-realism-exit4-protocol-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-091",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af091-phase25-session-realism-exit4-protocol-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af091-phase25-session-realism-2026-11-18.md",
+        "reply": "docs/worklog/pending/relay-response-AF091-20261118-1745.md"
+      }
+    },
+    {
+      "taskId": "AF-092",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af092-af091-implementation-commit-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
     }
   ],
   "archivedNotes": {
@@ -952,6 +988,9 @@
     "AF-064": "scope 越 executor 资源域，改立项 AF-065",
     "AF-066": "资源域跨角色，改立项 AF-067",
     "AF-079": "AF-079 scope 含 orchestrator 资源域外文档，取消后由 AF-080 重登记执行",
-    "AF-087": "scope 重签发 → AF-088"
+    "AF-087": "scope 重签发 → AF-088",
+    "AF-089": "角色域冲突，取消后重登记 AF-090",
+    "AF-090": "资源域不匹配，取消后重登记 AF-091",
+    "AF-092": "提交闸门完成，取消归档"
   }
 }

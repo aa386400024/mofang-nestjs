@@ -30,6 +30,11 @@
 //       · 只取**数字**, 不碰 prompt 全文 / 来访者原话 (隐私红线 AGENTS.md §5.4).
 //
 //   验证: test/auto-practice/practice-runner.spec.ts + practice-runner-cost.spec.ts
+//
+//   V2026-11-18 治本 (AF-091 · 长会话档案):
+//     结束条件里的四组阈值 (轮数上限 / 最早自然收尾 / 停滞判据 / 危机后置窗)
+//     改成由**会话档案** (session-profile.ts) 决定, 缺省 legacy = 与本文件改动前逐字一致.
+//     硬闸门: 自然收尾必须轮次 ≥ 档案的 minTurnsBeforeClose (legacy 5 / long 35).
 
 import { Inject, Injectable, Logger, Optional, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -45,6 +50,15 @@ import { PracticeSession, type PracticeSessionStatus } from './entities/practice
 import { InferenceFingerprintService, type InferenceFingerprint, type ScenarioType } from './inference-fingerprint.service.js';
 import { TURN_ENGINE_PORT, type EngineTurnResult, type TurnEnginePort } from './ports/turn-engine.port.js';
 import { SemanticTurnPersister } from './semantic/semantic-turn.persister.js';
+import {
+  LEGACY_SESSION_PROFILE,
+  LEGACY_SESSION_THRESHOLDS,
+  resolveSessionProfile,
+  sessionThresholdsOf,
+  type SessionProfile,
+  type SessionProfileName,
+  type SessionThresholds,
+} from './session-profile.js';
 import { resolveCostPricingFromEnv } from '../admin-debug/cost-pricing.js';
 import type { DebugTurnTrace } from '../admin-debug/debug-session.service.js';
 import {
@@ -67,8 +81,13 @@ interface PracticeUsage {
   reasoningTokens: number;
 }
 
-/** 默认最大轮数 (一场对练聊多少轮). */
-export const DEFAULT_MAX_TURNS = 15;
+/**
+ * 默认最大轮数 (一场对练聊多少轮).
+ *
+ * ⚠️ AF-091: 真正的真相源是**会话档案** (`session-profile.ts` 的 legacy 档);
+ *   这个常量只是对外暴露的老名字, 值仍然是 15 (逐字不变).
+ */
+export const DEFAULT_MAX_TURNS = LEGACY_SESSION_PROFILE.maxTurns;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // V2026-11-10 治本 (Phase2.5 WP-J · 改动 A): 停滞判定的**判据对象**换了.
@@ -94,10 +113,10 @@ export const DEFAULT_MAX_TURNS = 15;
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** 字面复读阈值: 连续 N 次判重即停 (N=2 → 第 3 轮说同样的话时终止). */
-export const STAGNANT_LITERAL_STREAK_LIMIT = 2;
+export const STAGNANT_LITERAL_STREAK_LIMIT = LEGACY_SESSION_PROFILE.stagnantLiteralStreakLimit;
 
 /** 无推进阈值: 来访者连续 N 轮没有带来新信息即判停滞. */
-export const STAGNANT_NO_PROGRESS_LIMIT = 3;
+export const STAGNANT_NO_PROGRESS_LIMIT = LEGACY_SESSION_PROFILE.stagnantNoProgressLimit;
 
 /** 无推进判定的相似度阈值: 与历史全部来访文本的最大相似度 ≥ 该值 = 没带新信息. */
 export const NO_PROGRESS_SIMILARITY_THRESHOLD = 0.8;
@@ -109,11 +128,11 @@ export const NO_PROGRESS_SIMILARITY_THRESHOLD = 0.8;
  *   - 少 1 轮走不完"安全确认 → 稳定化 → 下一步"三步;
  *   - 多 1 轮就会滑进"反复追问细节", 反而稀释训练目标.
  * 这是产品决策 (用户已拍板), 不是临床标定.
+ *
+ * ⚠️ AF-091: 这是 **legacy 档** 的取值 (长会话档是 6 轮);
+ *   实际生效的值由会话档案决定, 见 {@link decideTurn} 的 thresholds 入参.
  */
-export const CRISIS_PRACTICE_TURNS = 4;
-
-/** 允许"自然收尾"的最少轮数: 太早收尾等于没聊, 至少建立议题后再结束. */
-const MIN_TURNS_BEFORE_CLOSE = 5;
+export const CRISIS_PRACTICE_TURNS = LEGACY_SESSION_PROFILE.crisisPracticeTurns;
 
 /**
  * 跑一场对练的入参.
@@ -123,8 +142,14 @@ export interface RunPracticeInput {
   readonly characterSlug: string;
   /** 咨询师模式. */
   readonly counselorMode: CounselorMode;
-  /** 最大轮数 (缺省 DEFAULT_MAX_TURNS). */
+  /** 最大轮数 (缺省 = 档案的 maxTurns; legacy 档 = 15). */
   readonly maxTurns?: number;
+  /**
+   * 会话档案 (AF-091; 缺省 = legacy, 行为与 2026-11-18 之前逐字一致).
+   *
+   * 决定四组阈值: 轮数上限 / 最早自然收尾轮次 / 停滞阈值 / 危机后置窗.
+   */
+  readonly sessionProfile?: SessionProfileName;
   /** 批量批次 id (单场实时跑为 null). */
   readonly batchId?: string | null;
   /** 预生成的场次 id (controller 立即返回给前端用; 不传则 runner 自己生成). */
@@ -249,7 +274,16 @@ export class PracticeRunnerService implements OnModuleInit {
    * @returns 结果摘要
    */
   async run(input: RunPracticeInput): Promise<RunPracticeResult> {
-    const maxTurns = input.maxTurns ?? DEFAULT_MAX_TURNS;
+    // AF-091: 会话档案决定本场所有阈值 (缺省 = legacy, 逐字不变).
+    const profile = resolveSessionProfile(input.sessionProfile);
+    // 未知档名回落 legacy (不抛异常, 不让整场对练崩掉) —— 但要说出来, 别让人以为长会话生效了.
+    const requestedProfile = (input.sessionProfile ?? '').trim();
+    if (requestedProfile.length > 0 && requestedProfile !== profile.name) {
+      this.logger.warn(`[auto_practice] 未知会话档案 "${requestedProfile}", 回落 ${profile.name}`);
+    }
+    // ⚠️ 显式 maxTurns 只压**上限**, 不改档案阈值.
+    //   组合出"上限 < 最早收尾轮次"时自然收尾不可达 (会跑满上限) —— 入口层已经拦掉这种组合.
+    const maxTurns = input.maxTurns ?? profile.maxTurns;
     const practiceSessionId = input.practiceSessionId ?? nanoid();
     const scenarioType = input.scenarioType ?? 'full_simulation';
     let debugSessionId = '';
@@ -300,7 +334,7 @@ export class PracticeRunnerService implements OnModuleInit {
       metrics: PracticeRunMetrics;
     };
     try {
-      loopResult = await this.runConversationLoop(input, practiceSessionId, debugSessionId, maxTurns, history, usage);
+      loopResult = await this.runConversationLoop(input, practiceSessionId, debugSessionId, maxTurns, history, usage, profile);
     } catch (error) {
       loopResult = {
         status: 'failed',
@@ -440,6 +474,7 @@ export class PracticeRunnerService implements OnModuleInit {
     maxTurns: number,
     history: CounselorHistoryTurn[],
     usage: PracticeUsage,
+    profile: SessionProfile,
   ): Promise<{
     status: PracticeSessionStatus;
     exitReason: string;
@@ -485,13 +520,19 @@ export class PracticeRunnerService implements OnModuleInit {
     //   llmCallTurns        —— 访客侧**真调了 LLM** 的轮数 (兜底轮与阻断轮都不算).
     let renderFallbackTurns = 0;
     let llmCallTurns = 0;
+    // AF-091: 本场生效的判定阈值 (来自会话档案; legacy = 老常量, 逐字不变).
+    const thresholds = sessionThresholdsOf(profile);
 
     for (let i = 1; i <= maxTurns; i += 1) {
       // AI 咨询师生成台词.
       //   WP-J 改动 B: 危机后置练习窗内传 crisisMode —— 咨询师切到"稳定化"任务
       //   (安全确认 / 稳定化 / 下一步), 不再推进新议题.
+      //   AF-091: 同时传 sessionProfile (决定要不要加长会话收尾纪律) 与当前轮次
+      //   (长会话纪律块要写"当前是第 N 轮").
       const counselorReply = await this.counselorAgent.generate(input.counselorMode, history, {
         crisisMode: crisisWindow.active,
+        sessionProfile: profile.name,
+        turnIndex: i,
       });
       if (counselorReply.degraded) {
         degradedTurns += 1;
@@ -555,12 +596,13 @@ export class PracticeRunnerService implements OnModuleInit {
         },
         crisisWindow,
         stagnation,
+        thresholds,
       );
 
       if (crisisEntered) {
         // 只记轮次与档位数字 (隐私红线: 不记任何对话文本).
         this.logger.warn(
-          `[auto_practice] 危机披露 → 进入后置练习窗 turn=${result.turnIndex} level=${crisisWindow.peakLevel} (不终止, 续 ${CRISIS_PRACTICE_TURNS} 轮)`,
+          `[auto_practice] 危机披露 → 进入后置练习窗 turn=${result.turnIndex} level=${crisisWindow.peakLevel} (不终止, 续 ${thresholds.crisisPracticeTurns} 轮)`,
         );
       }
 
@@ -1123,20 +1165,29 @@ type TurnDecision =
  *
  * 优先级与旧实现一致, 但**每一条的理由都改了**:
  *   ① 危机: 首次披露**不终止**(开窗); 只有强度上升才终止.
- *   ② 危机窗计时: 披露之后满 CRISIS_PRACTICE_TURNS 轮 → 正常收尾.
+ *   ② 危机窗计时: 披露之后满 crisisPracticeTurns 轮 → 正常收尾.
  *   ③ 自然收尾: 危机窗内"披露当轮就收尾"挡一次 (不能把来访者留在危机里),
- *      之后咨询师再请求才认.
- *   ④ 停滞: **只认来访者侧**(字面复读连 2 / 无推进连 3); 咨询师语义回响只计数.
+ *      之后咨询师再请求才认; 且轮次必须 ≥ minTurnsBeforeClose.
+ *   ④ 停滞: **只认来访者侧**(字面复读连 N / 无推进连 M); 咨询师语义回响只计数.
  *
  * 之所以抽成纯函数: 判定逻辑要能被标定脚本按同一份代码回放
  * (scripts/ops/calibration/stagnation-calibration.ts), 不能在两条路径上各写一遍.
  *
+ * ⚠️ AF-091: 阈值**由调用方显式传入** (thresholds 入参), 函数体里不再读模块常量 ——
+ *   否则"这一场用的是哪一档阈值"就只能靠猜. 缺省 = legacy (与 2026-11-18 之前一致).
+ *
  * @param input 本轮事实
  * @param crisisWindow 危机窗状态 (会被就地更新)
  * @param stagnation 停滞计数 (会被就地更新)
+ * @param thresholds 本场生效的阈值 (缺省 = legacy 档)
  * @returns 判定结论
  */
-export function decideTurn(input: TurnJudgementInput, crisisWindow: CrisisWindowState, stagnation: StagnationState): TurnDecision {
+export function decideTurn(
+  input: TurnJudgementInput,
+  crisisWindow: CrisisWindowState,
+  stagnation: StagnationState,
+  thresholds: SessionThresholds = LEGACY_SESSION_THRESHOLDS,
+): TurnDecision {
   const crisisStartedThisTurn = input.crisisDetected && !crisisWindow.active;
 
   if (input.crisisDetected) {
@@ -1161,12 +1212,12 @@ export function decideTurn(input: TurnJudgementInput, crisisWindow: CrisisWindow
   // 危机窗计时: 只统计"披露之后"的轮次, 披露那一轮本身不算练习轮.
   if (crisisWindow.active && !crisisStartedThisTurn) {
     crisisWindow.postTurns += 1;
-    if (crisisWindow.postTurns >= CRISIS_PRACTICE_TURNS) {
+    if (crisisWindow.postTurns >= thresholds.crisisPracticeTurns) {
       return { kind: 'stop', reason: 'crisis_practice_max' };
     }
   }
 
-  const closeAllowed = input.closeRequested && input.turnIndex >= MIN_TURNS_BEFORE_CLOSE;
+  const closeAllowed = input.closeRequested && input.turnIndex >= thresholds.minTurnsBeforeClose;
   const closeBlocked = closeAllowed && crisisWindow.active && crisisWindow.postTurns === 0;
   if (closeAllowed && !closeBlocked) {
     return { kind: 'stop', reason: crisisWindow.active ? 'crisis_practice_close' : 'natural_close' };
@@ -1182,16 +1233,37 @@ export function decideTurn(input: TurnJudgementInput, crisisWindow: CrisisWindow
   if (probe.counselorSemanticEcho) stagnation.semanticEchoTurns += 1;
   stagnation.literalRepeatStreak = probe.literalRepeat ? stagnation.literalRepeatStreak + 1 : 0;
   stagnation.noProgressStreak = probe.noProgress ? stagnation.noProgressStreak + 1 : 0;
-  if (stagnation.literalRepeatStreak >= STAGNANT_LITERAL_STREAK_LIMIT || stagnation.noProgressStreak >= STAGNANT_NO_PROGRESS_LIMIT) {
-    return {
-      kind: 'stop',
-      reason: 'stagnant',
-      literalStreak: stagnation.literalRepeatStreak,
-      noProgressStreak: stagnation.noProgressStreak,
-      maxSimilarity: probe.maxSimilarity,
-    };
+  const stagnationStop = decideStagnationStop(stagnation, thresholds, probe.maxSimilarity);
+  if (stagnationStop) {
+    return stagnationStop;
   }
   return { kind: 'continue', closeBlocked };
+}
+
+/**
+ * 停滞终止判定 (从 decideTurn 里拆出来, 单独一个函数好过复杂度阈值).
+ *
+ * @param stagnation 累积的停滞计数
+ * @param thresholds 本场生效的阈值
+ * @param maxSimilarity 本轮与历史的最大相似度 (写进结论, 供日志排查)
+ * @returns 停滞终止结论, 或 null (继续)
+ */
+function decideStagnationStop(
+  stagnation: StagnationState,
+  thresholds: SessionThresholds,
+  maxSimilarity: number,
+): Extract<TurnDecision, { kind: 'stop'; reason: 'stagnant' }> | null {
+  const hit =
+    stagnation.literalRepeatStreak >= thresholds.stagnantLiteralStreakLimit ||
+    stagnation.noProgressStreak >= thresholds.stagnantNoProgressLimit;
+  if (!hit) return null;
+  return {
+    kind: 'stop',
+    reason: 'stagnant',
+    literalStreak: stagnation.literalRepeatStreak,
+    noProgressStreak: stagnation.noProgressStreak,
+    maxSimilarity,
+  };
 }
 
 /** 把终止结论映射成落库用的 status / exit_reason. */

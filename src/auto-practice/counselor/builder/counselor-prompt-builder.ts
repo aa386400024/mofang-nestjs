@@ -1,10 +1,11 @@
 import type { CounselorMode } from '../../entities/counselor-mode.entity.js';
 import type { PromptSection } from '../dto/counselor-types.js';
-import { CLOSE_DISCIPLINE } from './prompt-sections/close-discipline.js';
+import { CLOSE_DISCIPLINE, sessionCloseDisciplineSection } from './prompt-sections/close-discipline.js';
 import { CONSISTENCY_DISCIPLINE } from './prompt-sections/consistency-discipline.js';
 import { CRISIS_PROTOCOL } from './prompt-sections/crisis-protocol.js';
 import { crisisStabilizationSection } from './prompt-sections/crisis-stabilization.js';
 import { OUTPUT_DISCIPLINE } from './prompt-sections/output-discipline.js';
+import { LEGACY_SESSION_PROFILE, type SessionProfile } from '../../session-profile.js';
 
 /**
  * 咨询师 prompt 组装器 (纯函数, 不依赖 NestJS).
@@ -56,11 +57,18 @@ export class CounselorPromptBuilder {
    *
    * @param mode 咨询师模式 (system prompt 来源, 从 DB 来的)
    * @param crisisMode 是否处于危机后置练习窗 (动态加危机稳定化块)
+   * @param profile 会话档案 (决定要不要加长会话收尾纪律块; 缺省 = legacy)
+   * @param turnIndex 当前轮次 (长会话纪律块会写进 prompt; 缺省 = 未知)
    * @returns 完整的 system prompt 字符串
    */
-  build(mode: CounselorMode, crisisMode: boolean): string {
+  build(mode: CounselorMode, crisisMode: boolean, profile: SessionProfile = LEGACY_SESSION_PROFILE, turnIndex?: number): string {
     // 动态加危机稳定化块 (enabled 由 crisisMode 决定).
-    const dynamicSections: PromptSection[] = [...this.sections, crisisStabilizationSection(crisisMode)];
+    // 长会话收尾纪律块同理: enabled 由档案决定 (legacy 档 = false, 保持逐字不变).
+    const dynamicSections: PromptSection[] = [
+      ...this.sections,
+      crisisStabilizationSection(crisisMode),
+      sessionCloseDisciplineSection(profile, turnIndex),
+    ];
 
     // 按 order 排序, 过滤掉 disabled 的块.
     // toSorted 而不是 sort: 不改动 this.sections 原数组 (sort 是原地修改, 会污染实例状态).

@@ -23,6 +23,7 @@ import { sliceHistoryWindow } from './counselor/memory/history-window.js';
 import { FallbackPolicy } from './counselor/policy/fallback-policy.js';
 import { DEFAULT_GENERATION_POLICY } from './counselor/policy/generation-policy.js';
 import type { CounselorMode } from './entities/counselor-mode.entity.js';
+import { resolveSessionProfile, type SessionProfile } from './session-profile.js';
 import { LLMTier } from '../llm/common/enums/llm.enums.js';
 import type { ChatMessage } from '../llm/common/interfaces/chat-provider.interface.js';
 import { LlmRouterService } from '../llm/registry/llm-router.service.js';
@@ -71,7 +72,10 @@ export class CounselorAgentService {
     options?: CounselorGenerateOptions,
   ): Promise<CounselorReply> {
     const crisisMode = options?.crisisMode === true;
-    const messages = this.buildMessages(mode, history, crisisMode);
+    // AF-091: 会话档案决定 prompt 里要不要加"长会话收尾纪律"块.
+    //   ⚠️ 缺省 = legacy → prompt 与 2026-11-18 之前**逐字一致**.
+    const profile = resolveSessionProfile(options?.sessionProfile);
+    const messages = this.buildMessages(mode, history, crisisMode, profile, options?.turnIndex);
 
     try {
       const response = await this.router.chat({
@@ -131,9 +135,21 @@ export class CounselorAgentService {
    *   system  = 模式 systemPrompt + 所有纪律块 (由 builder 组装)
    *   历史    = assistant(咨询师旧话) / user(来访旧话) 交替, 最近 N 轮
    *   首轮    = 额外加一条 user(OPENING_HINT) 让模型开口
+   *
+   * @param mode 咨询师模式
+   * @param history 对话历史
+   * @param crisisMode 是否处于危机后置练习窗
+   * @param profile 会话档案 (AF-091: 决定要不要加长会话收尾纪律块)
+   * @param turnIndex 当前轮次 (长会话纪律块会写进 prompt)
    */
-  private buildMessages(mode: CounselorMode, history: readonly CounselorHistoryTurn[], crisisMode: boolean): ChatMessage[] {
-    const systemContent = this.promptBuilder.build(mode, crisisMode);
+  private buildMessages(
+    mode: CounselorMode,
+    history: readonly CounselorHistoryTurn[],
+    crisisMode: boolean,
+    profile: SessionProfile,
+    turnIndex?: number,
+  ): ChatMessage[] {
+    const systemContent = this.promptBuilder.build(mode, crisisMode, profile, turnIndex);
     const messages: ChatMessage[] = [{ role: 'system', content: systemContent }];
 
     // 裁剪历史窗口.

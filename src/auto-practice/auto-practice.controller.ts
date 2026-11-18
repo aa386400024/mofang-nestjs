@@ -35,6 +35,7 @@ import { evaluateRegression } from './metrics/regression-evaluator.js';
 import { BATCH_INVALID_WARNING, PracticeBatchHealthService } from './practice-batch-health.service.js';
 import { PracticeQueueService } from './practice-queue.service.js';
 import { PracticeRunnerService } from './practice-runner.service.js';
+import { parseSessionProfile, resolveSessionProfile, type SessionProfileName } from './session-profile.js';
 import { AdminRoleGuard } from '../admin-debug/guards/admin-role.guard.js';
 import { DELIBERATION_SCENARIO_TYPES } from '../engine-adapters/deliberation/deliberation-mode.config.js';
 
@@ -46,6 +47,13 @@ interface StartSessionBody {
   readonly counselorModeId?: string;
   /** 最大轮数 (缺省 15). */
   readonly maxTurns?: number;
+  /**
+   * 会话档案 (可选; `legacy` / `standard` / `long`; 缺省 legacy).
+   *
+   * ⚠️ 非法值**当场报错**, 不静默回落 legacy —— 拼错的档名会跑出一批
+   *   "看着像长会话"的普通数据, 事后没人查得出来 (与 scenarioType 同款纪律).
+   */
+  readonly sessionProfile?: string;
 }
 
 /** 批量入队的入参. */
@@ -56,6 +64,12 @@ interface BatchBody {
   readonly counselorModeIds?: readonly string[];
   /** 最大轮数. */
   readonly maxTurns?: number;
+  /**
+   * 会话档案 (可选; `legacy` / `standard` / `long`; 缺省 legacy).
+   *
+   * ⚠️ 非法值**当场报错**; 缺省 = legacy (逐字不变的老行为).
+   */
+  readonly sessionProfile?: string;
   /** 每个组合重复几场 (默认 1). */
   readonly repeats?: number;
   /**
@@ -103,6 +117,12 @@ export class AutoPracticeController {
     if (!characterSlug || !counselorModeId) {
       return { error: 'characterSlug 与 counselorModeId 必填' };
     }
+    // AF-091: 会话档案 (缺省 legacy; 非法值当场报错).
+    const profile = this.resolveProfileForRequest(body?.sessionProfile, body?.maxTurns);
+    if (profile.error) {
+      return { error: profile.error };
+    }
+    const sessionProfile = profile.value ?? 'legacy';
     const mode = await this.modeRepo.findOne({ where: { id: counselorModeId, enabled: 1 } });
     if (!mode) {
       return { error: `咨询师模式不存在或未启用: ${counselorModeId}` };
@@ -117,6 +137,7 @@ export class AutoPracticeController {
         characterSlug,
         counselorMode: mode,
         maxTurns: body?.maxTurns,
+        sessionProfile,
         batchId: null,
         practiceSessionId,
       })
@@ -160,24 +181,95 @@ export class AutoPracticeController {
     if (scenario.error) {
       return { error: scenario.error };
     }
+    // AF-091: 会话档案 (缺省 legacy; 非法值当场报错, 不静默回落).
+    const profile = this.resolveProfileForRequest(body?.sessionProfile, body?.maxTurns);
+    if (profile.error) {
+      return { error: profile.error };
+    }
+    const sessionProfile = profile.value ?? 'legacy';
+    const profileSpec = resolveSessionProfile(sessionProfile);
     const batchId = nanoid();
+    const enqueued = await this.enqueueCombinations({
+      characterSlugs,
+      counselorModeIds,
+      repeats,
+      batchId,
+      // ⚠️ 缺省轮数取自**档案** (legacy = 15, long = 50) —— 显式 maxTurns 优先.
+      maxTurns: body?.maxTurns ?? profileSpec.maxTurns,
+      scenarioType: scenario.value,
+      sessionProfile,
+    });
+    return { batchId, enqueued, sessionProfile };
+  }
+
+  /**
+   * 笛卡尔积入队 (每个角色 × 每个模式 × 重复次数).
+   *
+   * 抽出来是为了把 enqueueBatch 的圈复杂度压回阈值内 (eslint complexity ≤ 20).
+   *
+   * @param params 组合参数
+   * @returns 实际入队场次数
+   */
+  private async enqueueCombinations(params: {
+    readonly characterSlugs: readonly string[];
+    readonly counselorModeIds: readonly string[];
+    readonly repeats: number;
+    readonly batchId: string;
+    readonly maxTurns: number;
+    readonly scenarioType?: ScenarioType;
+    readonly sessionProfile: SessionProfileName;
+  }): Promise<number> {
     let enqueued = 0;
-    for (const slug of characterSlugs) {
-      for (const modeId of counselorModeIds) {
-        for (let r = 0; r < repeats; r += 1) {
+    for (const slug of params.characterSlugs) {
+      for (const modeId of params.counselorModeIds) {
+        for (let r = 0; r < params.repeats; r += 1) {
           await this.queue.enqueue({
             characterSlug: slug,
             counselorModeId: modeId,
-            maxTurns: body?.maxTurns ?? 15,
-            batchId,
+            maxTurns: params.maxTurns,
+            batchId: params.batchId,
             // 只在**显式给了**场景时才写进 job data; 没给就整条省掉 (缺省由 runner 兜).
-            ...(scenario.value ? { scenarioType: scenario.value } : {}),
+            ...(params.scenarioType ? { scenarioType: params.scenarioType } : {}),
+            // 同款: 档案只透传, 缺省由 runner 兜 (legacy).
+            ...(params.sessionProfile === 'legacy' ? {} : { sessionProfile: params.sessionProfile }),
           });
           enqueued += 1;
         }
       }
     }
-    return { batchId, enqueued };
+    return enqueued;
+  }
+
+  /**
+   * 解析入口传来的会话档案, 并校验它与 maxTurns 的组合 (AF-091).
+   *
+   * ⚠️ 为什么"显式 maxTurns 小于最早收尾轮次"要拦:
+   *   自然收尾的闸门是 `轮次 ≥ 档案的 minTurnsBeforeClose`. 若上限只有 15 而档案要 35,
+   *   这场**必然**跑满上限 —— 而调用方以为自己要的是"35 轮后自然收尾".
+   *   与其静默跑出一批 max_turns 结束的场次, 不如当场报错.
+   *
+   * ⚠️ legacy 档**不拦**: 它的缺省行为必须与改动前逐字一致 (老调用方常传 maxTurns=3 跑冒烟).
+   *
+   * @param raw 入口传来的原始档名
+   * @param maxTurns 入口传来的显式轮数上限
+   * @returns 成功时给档名, 失败时给错误信息
+   */
+  private resolveProfileForRequest(
+    raw: string | undefined,
+    maxTurns: number | undefined,
+  ): { readonly value?: SessionProfileName; readonly error?: string } {
+    const parsed = parseSessionProfile(raw);
+    if (parsed.error) {
+      return { error: parsed.error };
+    }
+    const sessionProfile = parsed.value ?? 'legacy';
+    const spec = resolveSessionProfile(sessionProfile);
+    if (sessionProfile !== 'legacy' && maxTurns !== undefined && maxTurns < spec.minTurnsBeforeClose) {
+      return {
+        error: `maxTurns (${maxTurns}) 小于 ${sessionProfile} 档的最早收尾轮次 (${spec.minTurnsBeforeClose}) —— 该组合下自然收尾不可达`,
+      };
+    }
+    return { value: sessionProfile };
   }
 
   /**

@@ -86,8 +86,16 @@ export const PROMPT_TEMPLATE_FILES: readonly string[] = [
   '../engine-adapters/rendering/turn-render-orchestrator',
   // 审议 prompt —— 审议开启时会影响模型看到的 system.
   '../engine-adapters/deliberation/deliberation-prompt',
-  // 咨询师 prompt 的代码部分 (输出纪律 / 收尾纪律 / 危机协议).
+  // 咨询师 prompt 的代码部分 (输出纪律 / 一致性 / 收尾纪律 / 危机协议 / 危机稳定化).
+  // ⚠️ AF-091: 这些纪律块其实住在 counselor/builder/prompt-sections/*.ts 里,
+  //   之前只登记了 counselor-agent.service (门面层) —— 纪律块文案改了指纹却不动,
+  //   指纹等于漏报. 现在把真正承载 prompt 文案的文件都登记进来.
   'counselor-agent.service',
+  'counselor/builder/prompt-sections/output-discipline',
+  'counselor/builder/prompt-sections/consistency-discipline',
+  'counselor/builder/prompt-sections/close-discipline',
+  'counselor/builder/prompt-sections/crisis-protocol',
+  'counselor/builder/prompt-sections/crisis-stabilization',
 ];
 
 /**
