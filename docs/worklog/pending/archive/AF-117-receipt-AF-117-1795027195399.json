@@ -1,0 +1,107 @@
+{
+  "taskId": "AF-117",
+  "contextId": "phase2.5-long-session-acceptance",
+  "type": "fix",
+  "baselineRef": "c5da9ab53aa43903241942ae8dd4b48f82a8f264",
+  "dependsOn": ["AF-116"],
+  "priorTasks": ["AF-116"],
+  "policyRefs": ["conventions.md#1.3"],
+  "changedFiles": {
+    "added": [
+      "docs/worklog/pending/af117-ci-fix-task-2026-11-19.md",
+      "docs/worklog/completed/phase2.5/af117-ci-fix-delivery-2026-11-19.md"
+    ],
+    "modified": [
+      "bin/ai-double-blind.ts",
+      "test/auto-practice/ai-double-blind.spec.ts",
+      "docs/team/agent-orchestration/task-state-index.json",
+      "docs/team/agent-orchestration/state/journal.jsonl",
+      "docs/team/agent-orchestration/orchestration-snapshot.json",
+      "web/orchestration/data.js"
+    ],
+    "deleted": [],
+    "commits": ["292c686", "eeecb06"]
+  },
+  "artifactRefs": {
+    "taskSheet": "docs/worklog/pending/af117-ci-fix-task-2026-11-19.md",
+    "deliveryRecord": "docs/worklog/completed/phase2.5/af117-ci-fix-delivery-2026-11-19.md",
+    "reply": null,
+    "others": []
+  },
+  "gateResults": [
+    {
+      "command": "pnpm exec tsc --noEmit -p tsconfig.json --incremental --tsBuildInfoFile node_modules/.tmp/tcheck-full.tsbuildinfo",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "note": "CI 同口径全量类型检查；修复前 18 处错误，修复后 0"
+    },
+    {
+      "command": "pnpm lint",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "note": "src/test/bin 与 scripts 两段均通过"
+    },
+    {
+      "command": "pnpm exec vitest run test/auto-practice/ai-double-blind.spec.ts test/engine-core/boundary.spec.ts",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "note": "2 files / 26 tests passed"
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "note": "无空白错误"
+    }
+  ],
+  "reproNotes": "在 D:\\work\\Project\\backend\\mofang-nestjs-af070 分支 task/AF-117-ci-fix 上执行。CI 失败命令取自 .github/workflows/ci.yml 的 Lint + Typecheck job。",
+  "scopeCheck": "in-scope",
+  "parallelArtifactsExcluded": true,
+  "noOutscopeRefactor": true,
+  "contractChecks": [
+    { "item": "taskId", "result": "pass", "note": "AF-117 任务单、索引、回执一致；AF-116 保持 archived 不变" },
+    { "item": "stateWrite", "result": "pass", "note": "register/run-once 经 CLI；stacked 分支手工创建并记录偏差" },
+    { "item": "indexSchema", "result": "pass", "note": "task-state-index 由 CLI 写入，validate 通过" },
+    { "item": "eventChain", "result": "pass", "note": "events verify 通过" }
+  ],
+  "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+  "fieldAlignment": {
+    "result": "aligned",
+    "note": "只修类型与 lint，不改 AiRaterOutput / AiFinalRating 结构与评分语义"
+  },
+  "backlogItems": [
+    {
+      "id": "OI-AF117-01",
+      "title": "PR #44 需在 AF-117 合并后关闭并标记 supersede",
+      "impact": "避免同一批改动双 PR",
+      "reason": "AF-116 已归档，按框架另立 AF-117 stacked 修复",
+      "owner": "orchestrator"
+    }
+  ],
+  "openQuestions": [],
+  "manualReviewList": [],
+  "deviationTable": [
+    {
+      "item": "分支创建",
+      "taskSays": "branch create 从 integrate 切出",
+      "reality": "AF-116 未合并且已归档，按框架从 AF-116 HEAD c5da9ab 手工切 stacked 分支 task/AF-117-ci-fix",
+      "action": "在回执记录 stacked 偏差；PR base 仍为 integrate",
+      "why": "不得继续写已归档任务，也不得把未合并提交直推 integrate"
+    },
+    {
+      "item": "任务单 schema",
+      "taskSays": "task register 一次通过",
+      "reality": "首次因 successCriteria 非数组、gates 缺 threshold 被拒",
+      "action": "补齐数组与 threshold 后重新登记",
+      "why": "按 schema 1.1.0 要求"
+    }
+  ],
+  "deviationAbsent": false,
+  "finalStatus": "completed",
+  "reviewVerdict": "passed",
+  "verdictRationale": "CI 同口径全量 tsc 0 error、lint 0 error、定向 26 测试通过、git diff --check 通过；修复只触及 bin/test 类型与 lint，不改评分/仲裁语义与 AF-116 归档证据。"
+}

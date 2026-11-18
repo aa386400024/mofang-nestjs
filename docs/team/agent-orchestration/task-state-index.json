@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 492,
+    "lastEventSeq": 530,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -1136,6 +1136,96 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af113-af112-stacked-squash-guard-delivery-2026-11-19.md",
         "reply": null
       }
+    },
+    {
+      "taskId": "AF-114",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af114-ai-double-blind-panel-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-115",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af115-ai-double-blind-panel-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-116",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af116-ai-double-blind-panel-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af116-ai-double-blind-panel-delivery-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-117",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af117-ci-fix-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af117-ci-fix-delivery-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-118",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af118-ci-fix-acceptance-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-119",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af119-ci-fix-acceptance-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af119-ci-fix-acceptance-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-120",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af120-ci-fix-scope-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af120-ci-fix-scope-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-121",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af121-single-release-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-122",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af122-single-release-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-123",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af123-single-release-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af123-single-release-2026-11-19.md",
+        "reply": null
+      }
     }
   ],
   "archivedNotes": {
@@ -1165,6 +1255,9 @@
     "AF-092": "提交闸门完成，取消归档",
     "AF-096": "改走拆分任务 AF-097/AF-098",
     "AF-099": "改走 AF-100 精确 scope",
-    "AF-110": "scope 重签发 → AF-111"
+    "AF-110": "scope 重签发 → AF-111",
+    "AF-118": "AF-118 依赖配错，取消后重签",
+    "AF-121": "AF-121 scope 越域，重签",
+    "AF-122": "AF-122 scope 仍越域，重签"
   }
 }
