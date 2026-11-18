@@ -191,7 +191,7 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 | ① 合规过线 | WP-A 入参零原文 + 三道风险闸门保持；本批 94 轮无 crisis 触发，未新增运行证据                                                                                                                                                                             | ✅ 代码口径保持            |
 | ② 考核公平 | AF-068 生产入口 + AF-085 入口确定性用例已通。AF-086 真实双批次：24/24 场 `scenarioType=exam`、24/24 `deliberation_mode=rule_only`、257/257 条 `gate_decisions` 全 `rule_only_skip`（审议 LLM 0 次），4/4 组角色×模式指纹一致；规则层路由达标。内容层策略序列/最终 BDI 不逐字一致（0/4、0/4），按 WP-B 口径不作失败判据。 | ✅ 规则层达标 / 内容层非确定 |
 | ③ 成本可控 | AF-088 真实审议取证（批次 `fztsntHxa5v6ikXrDsYgv`，4 场 / 92 轮，`maxTurns=50`，`deliberation_mode=shadow`）：审议调用本批增量 45 次 / 92 轮（`gate_decisions` 88 行 = run 43 / skip 45，skip 理由 `cooldown` 38 + `crisis_skip` 7）；全局累计 48 次中 45 成功 / 3 失败（均为 `fetch_error`），累计成功率 93.75%，本批增量可核 trace 43 条 = 41 成功 / 2 失败（增量 45 与 trace 43 差 2 已登记 OI-02），avg 10.59s、p95 30s（桶上界估计）；按仓库唯一定价表（输入 0.0015 / 输出 0.0045 元每千 token）+ 保守 token 假设（输入 3k / 输出 2048）折算：单次上界 0.013716 元 → **单场 50 轮上界 0.335446 元**，最坏情形 50 次全触发 **0.6858 元**，均 ≤ 1 元。⚠️ 审议 token 统计恒为 0（未开 `stream_options.include_usage`），结论口径为「按保守假设达标」 | ✅ 达标（保守上界口径） |
-| ④ 质量达标 | AF-109 8 角色 × expert+cold / long 50 轮真实批次 `q_35XnpvLWLr-Yocr8kJh`：16/16 组合 completed / 710 轮，来访者 `<think>` 0/710、咨询师空输出 0/710、重复 0；但 WP-K vs 96 基线为 `incomparable`（acceptance `f604…`→`4474…`），intake 为 12 轮口径套 50 轮（global FAIL、zero_motion=2），且无真实督导师双人盲标 → 不能给 improved / 达标 | ❌ 未通过 / 不可判定（清洁度与管道达标，临床质量仍不可判） |
+| ④ 质量达标 | AF-109 8 角色 × expert+cold / long 50 轮真实批次 `q_35XnpvLWLr-Yocr8kJh`：16/16 组合 completed / 710 轮，来访者 `<think>` 0/710、咨询师空输出 0/710、重复 0；但 WP-K vs 96 基线为 `incomparable`（acceptance `f604…`→`4474…`），intake 为 12 轮口径套 50 轮（global FAIL、zero_motion=2），且无真实督导师双人盲标 → 不能给 improved / 达标。**AF-111 已交付 long 三段候选口径 + 双人盲标 pack/ingest 工具（候选态、不接硬门、不改 intake 阈值）；真实督导师盲标尚未发生 → 仍不可判定。** | ❌ 未通过 / 不可判定（清洁度与管道达标；临床质量仍不可判；AF-111 只补口径与工具） |
 | ⑤ 数据积累 | 2026-11-18 23:45 复核：`ap_practice_sessions` **111 行 / 1877 轮**；completed **60 场 / 1496 轮**（本批 `q_35XnpvLWLr-Yocr8kJh` +16 场 / 710 轮）；stagnant 39 / failed 11 / crisis_ended 1；以 completed 计距 1000 场差 **940 场** → ⑤ 未达标 | ❌ 未达标 |
 
 #### 3.2.1 2026-11-18 正式判定关键数字
@@ -267,6 +267,20 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 - **临床真值缺口仍在**：没有真实督导师双人盲标 + 仲裁，六维 clinical accuracy / 80% 门槛无真值；`zero_motion=2` 与 `trust/bond` 全时段 delta 只能进人工复核，不能冒充临床验收。
 - **数据积累**：库内 `ap_practice_sessions` 累计 **111 行 / 1877 轮**（本批 +17 / +748），其中 `completed=60 场 / 1496 轮`、`stagnant=39 / 323`、`failed=11 / 38`、`crisis_ended=1 / 20`；以 completed 计距 1000 场差 **940 场**，出口⑤仍未达标。
 - **结论**：管道与逐字稿清洁度 **达标**；临床质量与出口④ **不可判定 / 未通过**。下一步需另立“long 会话验收口径”任务（按 40–50 轮临床阶段重定 anchor，而不是复用 12 轮 intake），并取得真实督导师盲标；在此之前任何“质量达标”的写法都属伪造。证据见 `data/phase25-exit/af109-exit4-evidence-2026-11-18.json` 与 [AF-109 交付记录](../completed/phase2.5/af109-exit4-quality-verdict-2026-11-18.md)。
+
+#### 3.2.8 2026-11-19 long 候选口径与双人盲标工具（AF-111）
+
+- **正式结论：仍未通过 / 不可判定；AF-111 只是把“怎么判”变成可执行，不产生“已达标”。** 本轮不新跑 LLM 批次，不接硬门，不改 `acceptance-thresholds.ts` 的 intake 阈值；真实督导师双人盲标尚未发生。
+- **候选口径**：`src/auto-practice/metrics/long-session-acceptance.ts` 按 engagement（1–12）/ working（13–40）/ closing（41+）三段定义 **9 条观察锚点**（联盟、框架与安全、深度推进、自主探索、阻抗修复、情绪调节、收束整合、风险收束、整体风格）；输出 `status=candidate`、`gateEligible=false`，只给阶段汇总与文字锚点，不产生 PASS/FAIL。
+- **为什么不套 12 轮 intake**：intake-v1/v2 是首次会谈约 12 轮的判据；50 轮长会话的 trust/bond 增长、阻抗与收尾整合无法用同一组全时段 delta 阈值判定。AF-109 已实测把 50 轮套 12 轮阈值会误判，本单只补 long 专用口径。
+- **双人盲标工具**：`bin/long-session-acceptance.ts`
+  - `pack --batch q_35XnpvLWLr-Yocr8kJh --limit 8`：从既有 16 场 long 批次按 expert/cold 均衡取样，生成匿名 `packets/*.md`、两份独立评分表 `ratings-rater-1.csv` / `ratings-rater-2.csv`、以及**只给 PI/仲裁人**的 `blind-map.json` 解盲映射；packet 不含 debugSessionId / title / characterSlug / characterLabel / counselorModeId。
+  - `ingest --rater1 ... --rater2 ...`：算逐维线性加权 kappa、exact / ±1 一致率，输出 `agreement.json` 与 `adjudication.csv`（任一维分差 >1 或评分人 `adjudicate=yes` 入仲裁）。
+  - `summarize --transcript ...`：把单场 `traces` 汇总成三段观测，内部复核用，不产生质量结论。
+- **实测证据（本单）**：定向单测 `vitest run test/auto-practice/af111-long-session-acceptance.spec.ts` **8/8 passed**；`pack --batch q_35XnpvLWLr-Yocr8kJh --limit 2` 生成 2 packet / 22KB + 28KB；`ingest` 2 packet / 12 评分对正常输出逐维 kappa；`summarize` 单场 50 轮正常输出三段汇总（详见交付记录）。
+- **一致性判读（试点参考，不是硬门）**：逐维 κ `<0.6` 先校准评分口径；`0.6–0.8` 对分歧 packet 仲裁；`>=0.8` 才可讨论是否升级为硬门。真实督导师未到齐前，不把任何 κ 数字写成临床准确率。
+- **升级条件（未满足）**：至少 100–200 轮真实督导师双人盲标 + 仲裁，六维 κ / MAE 与仲裁率达到 AF-091 协议门槛，才允许另立任务讨论升为硬门；本单不触发。
+- **遗留**：① 真实督导师人员 / 排期未定；② `docs/clinical/` 不在 executor 角色资源域，协议文档暂落 `docs/worklog/completed/phase2.5/`；③ packet 只做文本去标识，文本本身仍可能带角色线索，不能宣称完全匿名；④ 升硬门的临床阈值仍需真实样本标定。
 
 ### 3.3 下一步（严格按顺序）
 

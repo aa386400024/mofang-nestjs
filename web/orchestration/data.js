@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T15:47:35.853Z",
+  "generatedAt": "2026-11-18T16:53:24.813Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1598,6 +1598,117 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-118",
+      "recordedAt": "2026-11-18T16:53:19.569Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-112",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-112",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-112.json"
+      ]
+    },
+    {
+      "auditId": "AUD-117",
+      "recordedAt": "2026-11-18T16:52:01.459Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-112",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-112-af111-acceptance-metadata"
+      ]
+    },
+    {
+      "auditId": "AUD-116",
+      "recordedAt": "2026-11-18T16:51:50.232Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-112",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-115",
+      "recordedAt": "2026-11-18T16:39:01.285Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-111",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-111-long-session-acceptance"
+      ]
+    },
+    {
+      "auditId": "AUD-114",
+      "recordedAt": "2026-11-18T16:38:34.966Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-111",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-111",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-111.json"
+      ]
+    },
+    {
+      "auditId": "AUD-113",
+      "recordedAt": "2026-11-18T16:38:29.591Z",
+      "actorRef": "orchestrator",
+      "correlationId": "reissue:AF-110:AF-111",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-112",
+      "recordedAt": "2026-11-18T16:35:45.899Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-110",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-111",
       "recordedAt": "2026-11-18T14:58:55.059Z",
       "actorRef": "orchestrator",
@@ -1720,133 +1831,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "task/AF-107-executor-card-resource-domain"
       ]
-    },
-    {
-      "auditId": "AUD-103",
-      "recordedAt": "2026-11-18T14:45:13.480Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-107",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-102",
-      "recordedAt": "2026-11-18T14:43:43.480Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-106",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-101",
-      "recordedAt": "2026-11-18T14:40:48.354Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-106",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-106-reasoning-leak-and-roster"
-      ]
-    },
-    {
-      "auditId": "AUD-100",
-      "recordedAt": "2026-11-18T14:40:48.039Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-106",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-099",
-      "recordedAt": "2026-11-18T14:34:33.323Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-105",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-105",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-105.json"
-      ]
-    },
-    {
-      "auditId": "AUD-098",
-      "recordedAt": "2026-11-18T14:34:22.698Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-105",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-097",
-      "recordedAt": "2026-11-18T14:23:04.378Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-103",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-103",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-103.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 111,
+    "total": 118,
     "byResult": {
-      "allowed": 111,
+      "allowed": 118,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 110,
+      "TOOL-QUEUE-SCHEDULER": 117,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 111
+      "orchestrator": 118
     }
   },
   "protocolView": {
@@ -4080,6 +4078,56 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af109-exit4-quality-verdict-2026-11-18.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-110",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af110-long-session-acceptance-task-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-111",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af111-long-session-acceptance-task-2026-11-19.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af111-long-session-acceptance-delivery-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-112",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af112-af111-acceptance-metadata-task-2026-11-19.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af112-af111-acceptance-metadata-delivery-2026-11-19.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4170,5 +4218,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 124
+  "archivedCount": 127
 };
