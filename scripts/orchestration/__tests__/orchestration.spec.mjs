@@ -94,7 +94,7 @@ import { parseTaskSheetFrontmatter, buildTaskRecord } from '../task-intake.mjs';
 import { ingestReceipts } from '../receipts.mjs';
 import { normalizeScope, findScopeConflicts, detectResidualFiles, scopeCovers, expandScopePattern } from '../scope-mutex.mjs';
 import { evaluateTaskEntry, isStatePlanePath, GATE_ALLOWED_STATUSES } from '../task-entry-gate.mjs';
-import { evaluateAcceptanceSnapshot, evaluateCommitSnapshot, extractCommitTaskId } from '../ci-task-gate.mjs';
+import { evaluateAcceptanceSnapshot, evaluateCommitSnapshot, extractCommitTaskId, unionSquashScopeFiles } from '../ci-task-gate.mjs';
 import { INTEGRATE_REQUIRED_CONTEXTS, buildIntegrateProtection, verifyIntegrateProtection } from '../branch-protection.mjs';
 import { evaluateRequiredChecks, hasPassedDurableReceipt } from '../pr-release.mjs';
 import {
@@ -3935,6 +3935,16 @@ describe('AF-058 squash 全生命周期归档门', () => {
       ],
     });
     expect(result).toMatchObject({ pass: false, reason: 'no-active-task' });
+  });
+
+  it('squash 多任务 scope 取并集去重，无成员时回退主任务', () => {
+    expect(
+      unionSquashScopeFiles([
+        { scope: { files: ['scripts/a.mjs', 'scripts/b.mjs'] } },
+        { scope: { files: ['scripts/b.mjs', 'scripts/c.mjs'] } },
+      ]),
+    ).toEqual(['scripts/a.mjs', 'scripts/b.mjs', 'scripts/c.mjs']);
+    expect(unionSquashScopeFiles([], ['scripts/fallback.mjs'])).toEqual(['scripts/fallback.mjs']);
   });
 
   it('父提交无任务但缺 passed 回执时仍拒绝 squash', () => {

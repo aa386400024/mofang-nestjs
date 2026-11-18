@@ -281,6 +281,12 @@ function readTaskSheetAt(sha, sheetPath, status, expectedTaskId) {
   return { ...parseTaskSheetScopeForGate(text, expectedTaskId), status };
 }
 
+/** squash 多任务 scope 并集：只合并已通过验收筛选的任务，保持文件顺序去重。 */
+export function unionSquashScopeFiles(tasks = [], fallbackFiles = []) {
+  const files = [...new Set((tasks ?? []).flatMap((task) => task?.scope?.files ?? []).filter(Boolean))];
+  return files.length > 0 ? files : fallbackFiles;
+}
+
 /** 读取一个真实 git 提交并执行快照判定（只读）。 */
 export function evaluateCommitAt(sha) {
   const subject = git(['show', '-s', '--format=%s', sha]);
@@ -317,11 +323,28 @@ export function evaluateCommitAt(sha) {
   if (commitTaskId && archived && !parentHasTask) {
     // archivedTasks 投影只保留 taskId/status/artifacts；squash 没有父任务可取 scope，
     // 必须从当前提交的任务单恢复完整声明，再交给同一个 scope 判定器。
-    const fullTask = readTaskSheetAt(sha, archived.artifacts?.taskSheet, archived.status, commitTaskId);
-    const hydrated = { ...fullTask, ...archived, scope: fullTask.scope };
+    const hydratedTasks = [];
+    for (const task of currentIndex.archivedTasks) {
+      if (task?.status !== 'completed' || !task?.artifacts?.taskSheet) continue;
+      if (!changedFiles.includes(task.artifacts.taskSheet)) continue;
+      const taskReceipts = readAcceptanceReceiptsAt(sha, task.taskId);
+      if (mergeableDurableReceipts(taskReceipts).length === 0) continue;
+      const fullTask = readTaskSheetAt(sha, task.artifacts.taskSheet, task.status, task.taskId);
+      hydratedTasks.push({ ...fullTask, ...task, scope: fullTask.scope });
+    }
+    const primary = hydratedTasks.find((task) => task.taskId === commitTaskId)
+      ?? { ...readTaskSheetAt(sha, archived.artifacts?.taskSheet, archived.status, commitTaskId), ...archived };
+    // 一条任务分支可以叠加多个已完成任务；squash 后这些任务单会一起进入同一提交。
+    // 只按标题主任务的 scope 校验会把后续任务的合法改动误判越界，因此用本次提交
+    // 实际携带、且各自已验收的任务单 scope 并集。
+    const unionFiles = unionSquashScopeFiles(hydratedTasks, primary.scope?.files ?? []);
+    const primaryWithUnion = { ...primary, scope: { ...primary.scope, files: unionFiles.length > 0 ? unionFiles : primary.scope?.files ?? [] } };
     evaluatedCurrentIndex = {
       ...currentIndex,
-      archivedTasks: currentIndex.archivedTasks.map((task) => (task?.taskId === commitTaskId ? hydrated : task)),
+      archivedTasks: currentIndex.archivedTasks.map((task) => {
+        if (task?.taskId === commitTaskId) return primaryWithUnion;
+        return hydratedTasks.find((candidate) => candidate.taskId === task?.taskId) ?? task;
+      }),
     };
   }
   const sheet = taskSheetPresence(sha, commitTaskId, evaluatedCurrentIndex, parentIndex);
