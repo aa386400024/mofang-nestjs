@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T14:23:04.331Z",
+  "generatedAt": "2026-11-18T14:25:37.543Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,48 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-103",
-      "contextId": "phase2.5-exit4-quality-remediation",
-      "type": "fix",
-      "title": "批次入队前来访者角色存在性校验",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af103-visitor-role-preflight-task-2026-11-18.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-103",
-        "contextId": "phase2.5-exit4-quality-remediation",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-18T14:23:04.328Z",
-        "leaseDeadline": "2026-11-18T14:53:04.325Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-103.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-18T14:23:04.328Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-103.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1615,6 +1574,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-097",
+      "recordedAt": "2026-11-18T14:23:04.378Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-103",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-103",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-103.json"
+      ]
+    },
+    {
       "auditId": "AUD-096",
       "recordedAt": "2026-11-18T14:22:49.143Z",
       "actorRef": "orchestrator",
@@ -1836,65 +1810,25 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-082",
-      "recordedAt": "2026-11-18T11:49:52.115Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-099",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 96,
+    "total": 97,
     "byResult": {
-      "allowed": 96,
+      "allowed": 97,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 95,
+      "TOOL-QUEUE-SCHEDULER": 96,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 96
+      "orchestrator": 97
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-103",
-        "title": "批次入队前来访者角色存在性校验",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-exit4-quality-remediation",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-102"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af103-visitor-role-preflight-task-2026-11-18.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -4019,6 +3953,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af104-postfix-long-batch-quality-verdict-2026-11-18.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-103",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af103-visitor-role-preflight-task-2026-11-18.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af103-visitor-role-preflight-delivery-2026-11-18.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4033,17 +3985,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-103",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af103-visitor-role-preflight-task-2026-11-18.md"
-      }
-    ],
-    "groupId": "phase2.5-exit4-quality-remediation",
-    "groupIds": [
-      "phase2.5-exit4-quality-remediation"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -4116,5 +4060,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 118
+  "archivedCount": 119
 };
