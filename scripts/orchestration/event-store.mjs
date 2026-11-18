@@ -73,10 +73,6 @@ function taskSnapshot(task) {
   return snapshot;
 }
 
-function withPrefix(prefix, message) {
-  return `${prefix}${message}`;
-}
-
 /**
  * 读取事件日志；空文件返回 []，坏行直接抛错（不允许静默忽略）。
  *
@@ -714,7 +710,6 @@ export function backfillJournalFromIndex(opts = {}) {
   const by = opts.by ?? 'AF-020-backfill';
   const candidates = [];
   for (const entry of index.archivedTasks ?? []) {
-    const task = { taskId: entry.taskId, status: entry.status, artifacts: entry.artifacts ?? {} };
     candidates.push({
       taskId: entry.taskId,
       type: 'created',
@@ -750,7 +745,6 @@ export function deriveEvents(oldIndex, newIndex, opts = {}) {
   const events = [];
   const oldTasks = new Map((oldIndex.tasks ?? []).map((task) => [task.taskId, task]));
   const oldArchived = new Map((oldIndex.archivedTasks ?? []).map((task) => [task.taskId, task]));
-  const newTasks = new Map((newIndex.tasks ?? []).map((task) => [task.taskId, task]));
 
   for (const task of newIndex.tasks ?? []) {
     const old = oldTasks.get(task.taskId);

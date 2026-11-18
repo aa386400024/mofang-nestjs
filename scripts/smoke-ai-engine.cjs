@@ -80,8 +80,6 @@ function redisCommand(parts) {
     // 之前版本只 GET 时 AUTH + SELECT 并发写, Redis 收到后顺序错乱.
     let buf = '';
     let step = password ? 'AUTH' : 'SELECT'; // 没密码跳过 AUTH
-    let authenticated = !password;
-    let selected = false;
     const sock = net.createConnection({ host, port }, () => {
       // 1. AUTH (如果需要)
       if (password) {
@@ -94,7 +92,6 @@ function redisCommand(parts) {
           `*2\r\n$6\r\nSELECT\r\n$${Buffer.byteLength(String(db))}\r\n${db}\r\n`,
         );
         step = 'GET';
-        selected = true;
       }
     });
 
@@ -120,7 +117,6 @@ function redisCommand(parts) {
           }
         } else if (step === 'SELECT') {
           if (line.startsWith('+OK')) {
-            selected = true;
             // 发 GET
             const cmd = (writer) => {
               writer('*' + parts.length + '\r\n');
@@ -131,8 +127,6 @@ function redisCommand(parts) {
             cmd((line) => sock.write(line));
             step = 'GET';
             getResolver = { resolve, reject };
-            // 标记已认证
-            if (password) authenticated = true;
           } else if (line.startsWith('-')) {
             sock.destroy();
             return reject(new Error('Redis SELECT: ' + line));
