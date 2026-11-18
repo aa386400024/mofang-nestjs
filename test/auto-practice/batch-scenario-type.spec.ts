@@ -28,6 +28,7 @@ import { PracticeSession } from '../../src/auto-practice/entities/practice-sessi
 import { PracticeBatchHealthService } from '../../src/auto-practice/practice-batch-health.service.js';
 import { PracticeQueueService, type AutoPracticeJobData } from '../../src/auto-practice/practice-queue.service.js';
 import { PracticeRunnerService } from '../../src/auto-practice/practice-runner.service.js';
+import { CHARACTER_PROFILE_RESOLVER } from '../../src/engine-adapters/wiring/character/character-profile.resolver.js';
 
 // TD-10 · T-2: 真实 ioredis 不进 import 阶段 (适配层仍是真实现; 替身口径见 test/helpers/sdk-stubs.ts).
 vi.mock('ioredis', async () => {
@@ -124,6 +125,9 @@ describe('AF-065 · 批次入口 scenarioType 透传', () => {
         { provide: getRepositoryToken(PracticeSession), useValue: { findAndCount: vi.fn(async () => [[], 0]) } },
         { provide: getRepositoryToken(CounselorMode), useValue: { findOne: vi.fn(async () => null) } },
         { provide: getRepositoryToken(PracticeBatch), useValue: { findOne: vi.fn(async () => null) } },
+        // AF-103 起控制器注入角色解析器做入口前置校验；本用例只测 scenarioType 透传，
+        // 用恒可解析的替身放行（角色不存在路径由 visitor-role-preflight.spec.ts 钉住）。
+        { provide: CHARACTER_PROFILE_RESOLVER, useValue: { resolve: vi.fn(async () => ({ displayName: 'stub' })) } },
       ],
     })
       // 角色守卫本轮不测 (DB 真值判定另有用例): 这里只放行, 守住"路由 + body 解析 + 透传"这条链.
