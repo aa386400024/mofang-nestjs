@@ -4,107 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 356,
+    "lastEventSeq": 358,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-084",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-18T05:13:43.522Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "开始编排框架硬化"
-        },
-        {
-          "at": "2026-11-18T05:13:43.823Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "编排框架硬化：scope 重签发、回执预检、两阶段提交与 LF 规范化",
-      "type": "implementation",
-      "baselineRef": "32b287a921eba84eab34f8fa4320f3317f10761a",
-      "dependsOn": [],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-18T05:10:00.000Z",
-      "deadline": null,
-      "agentRole": "orchestrator",
-      "scope": {
-        "files": [
-          "scripts/orchestration/cli.mjs",
-          "scripts/orchestration/reissue.mjs",
-          "scripts/orchestration/receipt-lint.mjs",
-          "scripts/orchestration/text-normalize.mjs",
-          "scripts/orchestration/task-entry-gate.mjs",
-          "scripts/orchestration/__tests__/orchestration.spec.mjs",
-          "docs/team/agent-orchestration/README.md",
-          "docs/worklog/pending/",
-          "docs/worklog/completed/phase2.5/"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af084-orchestration-hardening-task-2026-11-18.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "corepack pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
-          "check": "编排单测全绿，覆盖重签发计划、回执预检、LF 规范化",
-          "threshold": "0 failed"
-        },
-        {
-          "command": "corepack pnpm lint",
-          "check": "lint 全绿且 scripts 段覆盖生效",
-          "threshold": "0 error 0 warning"
-        },
-        {
-          "command": "corepack pnpm test",
-          "check": "全量单测全绿（收尾只跑一次）",
-          "threshold": "0 failed"
-        },
-        {
-          "command": "node scripts/orchestration/cli.mjs validate",
-          "check": "状态索引、任务单、回执与契约目录全部 PASS",
-          "threshold": "exit 0"
-        }
-      ],
-      "successCriteria": [
-        "提供 task reissue / task rescope 受审计入口，scope 变更不在原任务上原地改写",
-        "重签发只允许 backlog / ready 任务，强制 priorTasks 指向原任务，新任务登记 + 提级 + 原任务取消在同一次显式操作内完成",
-        "提供 receipt lint 预检，覆盖七组字段、scope 外声明、状态面生成物、工件存在性与 CR 换行",
-        "提供 docs normalize 只读检查与 --apply 落盘，统一 UTF-8 无 BOM + LF",
-        "preflight 的 no-active-task 提示补充两阶段提交说明，不改既有硬门",
-        "README 增补 scope 重签发、两阶段提交、回执预检、LF 规范化的操作口径",
-        "全量测试只跑一次且记录真实数字，不新跑 LLM 批次、不改业务 src"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af084-orchestration-hardening-2026-11-18.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "priorTasks": [],
-      "promotedAt": "2026-11-18T05:13:43.521Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -979,6 +882,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/pending/af083-final-envelope-task-2026-11-18.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af083-final-envelope-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-084",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af084-orchestration-hardening-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af084-orchestration-hardening-2026-11-18.md",
         "reply": null
       }
     }
