@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T11:52:12.418Z",
+  "generatedAt": "2026-11-18T13:04:47.151Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -21,25 +21,25 @@ window.ORCH_SNAPSHOT = {
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 57,
-    "activeCount": 4,
+    "total": 64,
+    "activeCount": 11,
     "byStatus": {
-      "candidate": 4,
+      "candidate": 11,
       "queued": 0,
       "accepted": 0,
       "done": 50,
       "wontfix": 3
     },
     "byType": {
-      "gap": 38,
-      "guardrail": 4,
+      "gap": 40,
+      "guardrail": 5,
       "tool": 0,
-      "standard": 3,
-      "performance": 0,
-      "tech-debt": 12
+      "standard": 5,
+      "performance": 1,
+      "tech-debt": 13
     },
     "bySource": {
-      "implementation": 26,
+      "implementation": 33,
       "acceptance": 10,
       "rework": 3,
       "dead-letter": 0,
@@ -1261,6 +1261,153 @@ window.ORCH_SNAPSHOT = {
           "to": "candidate",
           "note": "登记候选改进"
         }
+      },
+      {
+        "improvementId": "IM-058",
+        "title": "批次有效性门禁不读咨询师侧降级计数",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "guardrail",
+        "layer": "adapter",
+        "relatedTaskId": "AF-102",
+        "evidence": [
+          "AF-102 交付记录 AF102-OI-01"
+        ],
+        "impact": "咨询师空输出/截断已计数但批次仍可能判 valid",
+        "suggestion": "下一单修 practice-batch-health 读取 counselor_degraded_turns",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T13:02:19.718Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-059",
+        "title": "审计 CLI 不再能识别空输出",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-102",
+        "evidence": [
+          "AF-102 交付记录 AF102-OI-02"
+        ],
+        "impact": "empty_output_high 不再触发，质量证据可能假性正常",
+        "suggestion": "审计 CLI 改读 DB 的 counselor_degraded_turns",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T13:02:19.931Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-060",
+        "title": "审计 CLI 与生成侧各有一份推理块剥离口径",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "tech-debt",
+        "layer": "adapter",
+        "relatedTaskId": "AF-102",
+        "evidence": [
+          "AF-102 交付记录 AF102-OI-03"
+        ],
+        "impact": "两份口径将来会漂移",
+        "suggestion": "统一到 visible-output 纯函数",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T13:02:20.135Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-061",
+        "title": "batch 复跑尚无真实证据",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-102",
+        "evidence": [
+          "AF-102 交付记录 AF102-OI-04"
+        ],
+        "impact": "long 2048 是否足够未实证",
+        "suggestion": "AF-102 合入后跑一轮 long 批次并重新取证",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T13:02:20.355Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-062",
+        "title": "空输出重试使失败轮次调用量翻倍",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "performance",
+        "layer": "adapter",
+        "relatedTaskId": "AF-102",
+        "evidence": [
+          "AF-102 交付记录 AF102-OI-05"
+        ],
+        "impact": "long 场次成本与时长上升",
+        "suggestion": "按真实批次统计重试率后再调预算",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T13:02:20.573Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-063",
+        "title": "逐字稿不再保留咨询师推理块",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "standard",
+        "layer": "adapter",
+        "relatedTaskId": "AF-102",
+        "evidence": [
+          "AF-102 交付记录 AF102-OI-06"
+        ],
+        "impact": "新旧批次逐字稿结构不同",
+        "suggestion": "跨批次比对时标注口径",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T13:02:20.783Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-064",
+        "title": "standard/重试预算未标定",
+        "status": "candidate",
+        "source": "implementation",
+        "type": "standard",
+        "layer": "adapter",
+        "relatedTaskId": "AF-102",
+        "evidence": [
+          "AF-102 交付记录 AF102-OI-07"
+        ],
+        "impact": "预算取值需要真实数据回校",
+        "suggestion": "long 批次后校准",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T13:02:21.058Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
       }
     ]
   },
@@ -1426,6 +1573,53 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-090",
+      "recordedAt": "2026-11-18T12:02:55.299Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-102",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-102-long-visible-output"
+      ]
+    },
+    {
+      "auditId": "AUD-089",
+      "recordedAt": "2026-11-18T12:02:54.935Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-102",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-102",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-102.json"
+      ]
+    },
+    {
+      "auditId": "AUD-088",
+      "recordedAt": "2026-11-18T12:02:54.549Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-102",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-087",
       "recordedAt": "2026-11-18T11:51:42.741Z",
@@ -1621,68 +1815,19 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-075",
-      "recordedAt": "2026-11-18T11:40:50.907Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-096",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-074",
-      "recordedAt": "2026-11-18T11:40:18.952Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-096",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-073",
-      "recordedAt": "2026-11-18T10:50:37.428Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-095",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-095-anchor-quality-audit"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 87,
+    "total": 90,
     "byResult": {
-      "allowed": 87,
+      "allowed": 90,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 87
+      "TOOL-QUEUE-SCHEDULER": 90
     },
     "byActor": {
-      "orchestrator": 87
+      "orchestrator": 90
     }
   },
   "protocolView": {
@@ -3772,6 +3917,28 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af098-state-plane-acceptance-fix-2026-11-18.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-102",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af102-long-session-visible-output-task-2026-11-18.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af102-long-session-visible-output-2026-11-18.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-AF102-20261118-2010.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -3861,5 +4028,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 116
+  "archivedCount": 117
 };

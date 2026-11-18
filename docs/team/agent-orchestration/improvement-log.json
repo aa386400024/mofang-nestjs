@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-18T11:44:38.223Z",
+  "updatedAt": "2026-11-18T13:02:21.060Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -2861,6 +2861,188 @@
       "history": [
         {
           "at": "2026-11-18T11:44:38.222Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-058",
+      "status": "candidate",
+      "title": "批次有效性门禁不读咨询师侧降级计数",
+      "source": "implementation",
+      "type": "guardrail",
+      "layer": "adapter",
+      "relatedTaskId": "AF-102",
+      "evidence": [
+        "AF-102 交付记录 AF102-OI-01"
+      ],
+      "impact": "咨询师空输出/截断已计数但批次仍可能判 valid",
+      "suggestion": "下一单修 practice-batch-health 读取 counselor_degraded_turns",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-18T13:02:19.718Z",
+      "updatedAt": "2026-11-18T13:02:19.718Z",
+      "history": [
+        {
+          "at": "2026-11-18T13:02:19.718Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-059",
+      "status": "candidate",
+      "title": "审计 CLI 不再能识别空输出",
+      "source": "implementation",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-102",
+      "evidence": [
+        "AF-102 交付记录 AF102-OI-02"
+      ],
+      "impact": "empty_output_high 不再触发，质量证据可能假性正常",
+      "suggestion": "审计 CLI 改读 DB 的 counselor_degraded_turns",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-18T13:02:19.931Z",
+      "updatedAt": "2026-11-18T13:02:19.931Z",
+      "history": [
+        {
+          "at": "2026-11-18T13:02:19.931Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-060",
+      "status": "candidate",
+      "title": "审计 CLI 与生成侧各有一份推理块剥离口径",
+      "source": "implementation",
+      "type": "tech-debt",
+      "layer": "adapter",
+      "relatedTaskId": "AF-102",
+      "evidence": [
+        "AF-102 交付记录 AF102-OI-03"
+      ],
+      "impact": "两份口径将来会漂移",
+      "suggestion": "统一到 visible-output 纯函数",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-18T13:02:20.135Z",
+      "updatedAt": "2026-11-18T13:02:20.135Z",
+      "history": [
+        {
+          "at": "2026-11-18T13:02:20.135Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-061",
+      "status": "candidate",
+      "title": "batch 复跑尚无真实证据",
+      "source": "implementation",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-102",
+      "evidence": [
+        "AF-102 交付记录 AF102-OI-04"
+      ],
+      "impact": "long 2048 是否足够未实证",
+      "suggestion": "AF-102 合入后跑一轮 long 批次并重新取证",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-18T13:02:20.355Z",
+      "updatedAt": "2026-11-18T13:02:20.355Z",
+      "history": [
+        {
+          "at": "2026-11-18T13:02:20.355Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-062",
+      "status": "candidate",
+      "title": "空输出重试使失败轮次调用量翻倍",
+      "source": "implementation",
+      "type": "performance",
+      "layer": "adapter",
+      "relatedTaskId": "AF-102",
+      "evidence": [
+        "AF-102 交付记录 AF102-OI-05"
+      ],
+      "impact": "long 场次成本与时长上升",
+      "suggestion": "按真实批次统计重试率后再调预算",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-18T13:02:20.573Z",
+      "updatedAt": "2026-11-18T13:02:20.573Z",
+      "history": [
+        {
+          "at": "2026-11-18T13:02:20.573Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-063",
+      "status": "candidate",
+      "title": "逐字稿不再保留咨询师推理块",
+      "source": "implementation",
+      "type": "standard",
+      "layer": "adapter",
+      "relatedTaskId": "AF-102",
+      "evidence": [
+        "AF-102 交付记录 AF102-OI-06"
+      ],
+      "impact": "新旧批次逐字稿结构不同",
+      "suggestion": "跨批次比对时标注口径",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-18T13:02:20.783Z",
+      "updatedAt": "2026-11-18T13:02:20.783Z",
+      "history": [
+        {
+          "at": "2026-11-18T13:02:20.783Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-064",
+      "status": "candidate",
+      "title": "standard/重试预算未标定",
+      "source": "implementation",
+      "type": "standard",
+      "layer": "adapter",
+      "relatedTaskId": "AF-102",
+      "evidence": [
+        "AF-102 交付记录 AF102-OI-07"
+      ],
+      "impact": "预算取值需要真实数据回校",
+      "suggestion": "long 批次后校准",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-18T13:02:21.058Z",
+      "updatedAt": "2026-11-18T13:02:21.058Z",
+      "history": [
+        {
+          "at": "2026-11-18T13:02:21.058Z",
           "from": null,
           "to": "candidate",
           "by": "orchestrator-cli",

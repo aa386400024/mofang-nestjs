@@ -35,6 +35,21 @@ function firstRequest(chat: ReturnType<typeof vi.fn>): { messages: { role: strin
   return calls[0][0];
 }
 
+/** chat 每次调用的请求体 (AF-102: 要断言"每次调用的预算不一样"). */
+interface ChatRequestRecord {
+  readonly model: string;
+  readonly messages: { role: string; content: string }[];
+  readonly temperature?: number;
+  readonly maxCompletionTokens?: number;
+  readonly reasoningEffort?: string;
+}
+
+/** 取全部 chat 调用记录. */
+function chatRequests(chat: ReturnType<typeof vi.fn>): ChatRequestRecord[] {
+  const calls: ChatRequestRecord[][] = chat.mock.calls;
+  return calls.map((call) => call[0]);
+}
+
 /** 造一个只关心 chat 的假 router. */
 function makeService(chat: ReturnType<typeof vi.fn>): CounselorAgentService {
   const router = {
@@ -225,7 +240,7 @@ describe('CounselorAgentService · AF-091 长会话收尾纪律', () => {
     expect(system).not.toContain('40-50 轮');
   });
 
-  it('长会话纪律块排在收尾纪律之后 (标记先定义, 再引用)', async () => {
+  it('长会话纪律块排在收尾纪律**之后** (标记先定义, 再引用)', async () => {
     const chat = vi.fn(() => Promise.resolve({ content: '我在听。\n\n[[STATE:MORE]]', finishReason: 'stop' }));
     const service = makeService(chat);
 
@@ -235,5 +250,154 @@ describe('CounselorAgentService · AF-091 长会话收尾纪律', () => {
     const system = request.messages[0]?.content ?? '';
 
     expect(system.indexOf('## 收尾纪律')).toBeLessThan(system.indexOf('## 长会话收尾纪律'));
+  });
+});
+
+/**
+ * V2026-11-18 建立 (AF-102 · 长会话咨询师可见输出治本 · 单测).
+ *
+ * 覆盖任务单 §目标 1~4:
+ *   ① long 档用独立生成预算 (≥ 2048, reasoningEffort 仍 low), legacy 默认参数不变;
+ *   ② 可见 content 为空 / finishReason=length → 提高预算 (≥ 4096) **重试一次**;
+ *   ③ 重试成功 → 返回重试内容, 不降级;
+ *   ④ 重试仍失败 → 才兜底并 degraded;
+ *   ⑤ 截断但非空 → **不静默当正常回复** (degraded=true, 不认收尾);
+ *   ⑥ 推理块不进台词 (那是模型内部思考, 不是咨询师说的话).
+ *
+ * 全 mock: router.chat 是替身, 不发网络.
+ */
+describe('CounselorAgentService · AF-102 可见输出治本', () => {
+  it('① long 档用独立预算 (≥ 2048, reasoningEffort 仍 low)', async () => {
+    const chat = vi.fn(() => Promise.resolve({ content: '测试可见输出。', finishReason: 'stop' }));
+    const service = makeService(chat);
+
+    await service.generate(MODE, [], { sessionProfile: 'long' });
+
+    const [request] = chatRequests(chat);
+    expect(request.maxCompletionTokens).toBeGreaterThanOrEqual(2048);
+    expect(request.reasoningEffort).toBe('low');
+  });
+
+  it('① legacy 档默认参数不变 (500 / low)', async () => {
+    const chat = vi.fn(() => Promise.resolve({ content: '测试可见输出。', finishReason: 'stop' }));
+    const service = makeService(chat);
+
+    await service.generate(MODE, []);
+
+    const [request] = chatRequests(chat);
+    expect(request.maxCompletionTokens).toBe(500);
+    expect(request.reasoningEffort).toBe('low');
+  });
+
+  it('② 空 content → 提高预算重试一次 (≥ 4096)', async () => {
+    const chat = vi
+      .fn()
+      .mockResolvedValueOnce({ content: ' '.repeat(3), finishReason: 'stop' })
+      .mockResolvedValueOnce({ content: '测试可见输出。', finishReason: 'stop' });
+    const service = makeService(chat);
+
+    const reply = await service.generate(MODE, []);
+
+    expect(chat).toHaveBeenCalledTimes(2);
+    const requests = chatRequests(chat);
+    expect(requests[1]?.maxCompletionTokens).toBeGreaterThanOrEqual(4096);
+    expect(reply.text).toBe('测试可见输出。');
+    expect(reply.degraded).toBe(false);
+  });
+
+  it('② 只有推理块 (可见输出为空) → 同样触发重试, 推理块不进台词', async () => {
+    const chat = vi
+      .fn()
+      .mockResolvedValueOnce({ content: '<think>模型内部思考，没有输出台词。</think>', finishReason: 'stop' })
+      .mockResolvedValueOnce({ content: '测试可见输出。', finishReason: 'stop' });
+    const service = makeService(chat);
+
+    const reply = await service.generate(MODE, []);
+
+    expect(chat).toHaveBeenCalledTimes(2);
+    expect(reply.text).toBe('测试可见输出。');
+    expect(reply.text).not.toContain('<think>');
+    expect(reply.degraded).toBe(false);
+  });
+
+  it('② finishReason=length (非空) → 重试一次, 重试成功则不降级', async () => {
+    const chat = vi
+      .fn()
+      .mockResolvedValueOnce({ content: '第一次被截断的半句话', finishReason: 'length' })
+      .mockResolvedValueOnce({ content: '重试后的完整输出。', finishReason: 'stop' });
+    const service = makeService(chat);
+
+    const reply = await service.generate(MODE, []);
+
+    expect(chat).toHaveBeenCalledTimes(2);
+    expect(reply.text).toBe('重试后的完整输出。');
+    expect(reply.degraded).toBe(false);
+  });
+
+  it('④ 重试后仍无可见输出 → 才兜底并 degraded', async () => {
+    const chat = vi
+      .fn()
+      .mockResolvedValueOnce({ content: '', finishReason: 'stop' })
+      .mockResolvedValueOnce({ content: '<think>还是只有推理。</think>', finishReason: 'stop' });
+    const service = makeService(chat);
+
+    const reply = await service.generate(MODE, []);
+
+    expect(chat).toHaveBeenCalledTimes(2);
+    expect(reply.degraded).toBe(true);
+    expect(reply.closeRequested).toBe(false);
+    expect(reply.text.length).toBeGreaterThan(0);
+    expect(reply.text).not.toContain('<think>');
+  });
+
+  it('⑤ 重试后仍被截断 (非空) → 不静默当正常回复: degraded=true', async () => {
+    const chat = vi
+      .fn()
+      .mockResolvedValueOnce({ content: '第一次被截断', finishReason: 'length' })
+      .mockResolvedValueOnce({ content: '第二次仍然被截断', finishReason: 'length' });
+    const service = makeService(chat);
+
+    const reply = await service.generate(MODE, []);
+
+    expect(chat).toHaveBeenCalledTimes(2);
+    expect(reply.degraded).toBe(true);
+    expect(reply.text).toBe('第二次仍然被截断');
+  });
+
+  it('⑤ 被截断的回复不认收尾 (closeRequested 必须 false)', async () => {
+    const chat = vi
+      .fn()
+      .mockResolvedValueOnce({ content: '第一次被截断', finishReason: 'length' })
+      .mockResolvedValueOnce({ content: '收尾了。\n\n[[STATE:END]]', finishReason: 'length' });
+    const service = makeService(chat);
+
+    const reply = await service.generate(MODE, []);
+
+    expect(reply.closeRequested).toBe(false);
+    expect(reply.degraded).toBe(true);
+    expect(reply.text).toBe('收尾了。');
+  });
+
+  it('⑥ 正常回复不触发重试 (只调一次)', async () => {
+    const chat = vi.fn(() => Promise.resolve({ content: '测试可见输出。\n\n[[STATE:MORE]]', finishReason: 'stop' }));
+    const service = makeService(chat);
+
+    const reply = await service.generate(MODE, []);
+
+    expect(chat).toHaveBeenCalledTimes(1);
+    expect(reply.degraded).toBe(false);
+    expect(reply.closeRequested).toBe(false);
+    expect(reply.text).toBe('测试可见输出。');
+  });
+
+  it('上游异常 → 直接兜底 (不重试, provider 层已有退避重试链)', async () => {
+    const chat = vi.fn(() => Promise.reject(new Error('upstream 429')));
+    const service = makeService(chat);
+
+    const reply = await service.generate(MODE, []);
+
+    expect(chat).toHaveBeenCalledTimes(1);
+    expect(reply.degraded).toBe(true);
+    expect(reply.text.length).toBeGreaterThan(0);
   });
 });
