@@ -38,7 +38,7 @@ import { listAudits, loadAuditLog, summarizeAudits } from './audit-log.mjs';
 import { buildProtocolView } from './protocol-mapper.mjs';
 import { createTransport } from './transport.mjs';
 import { dispatchTask, receiptFingerprint, isReceiptProcessed, markReceiptProcessed, resolveChannelSelection } from './dispatch.mjs';
-import { buildGuiBrief, writeGuiBrief, isDeliveryStalled } from './gui-dispatch.mjs';
+import { buildGuiBrief, writeGuiBrief, isDeliveryStalled, autoConfirmDelivery } from './gui-dispatch.mjs';
 import { CIRCUIT_BREAKER_DEFAULTS, evaluateCircuitBreaker, resolveDispatchDecision } from './dispatch-channel.mjs';
 import { findScopeConflicts } from './scope-mutex.mjs';
 import { validateScopeDomain } from './card-router.mjs';
@@ -175,6 +175,41 @@ export function releaseExpiredLeases(index, runtimeState, actions) {
       actions.push({ type: 'release', taskId: task.taskId, reason: 'lease-expired', heldForHuman: true });
     }
   }
+}
+
+/**
+ * AF-074 · 执行代理送达 ack 自动确认。
+ *
+ * `channel send` 只负责把投递件送进桌面会话；它写的 `gui-sent/<taskId>.json` 是发送现场，
+ * 不是送达证明。只有执行代理按 brief 写出 `acks/<taskId>.json` 后，才把 `delivery.state`
+ * 从 pending 升到 delivered。缺失 ack 时保持 pending，交给 `releaseFailedDeliveries`
+ * 按投递租约回滚，避免把「已粘贴」当成「已送达」。
+ * @returns {number} 本轮确认条数
+ */
+export function autoConfirmDeliveries(index, runtimeState, actions, opts = {}) {
+  let confirmed = 0;
+  for (const task of index.tasks) {
+    if (task.status !== 'submitted') continue;
+    const entry = getRuntimeEntry(runtimeState, task.taskId);
+    const record = entry?.dispatch ?? null;
+    if (!record || record.channel !== 'gui-relay' || record.delivery?.state !== 'pending') continue;
+    const result = autoConfirmDelivery({
+      record,
+      taskId: task.taskId,
+      transportDir: opts.transportDir ?? PATHS.transportDir,
+      repoRoot: opts.repoRoot ?? REPO_ROOT,
+    });
+    if (!result.confirmed) continue;
+    entry.dispatch = result.record;
+    actions.push({
+      type: 'delivery-auto-confirmed',
+      taskId: task.taskId,
+      sourceRef: result.ack?.receivedAt ?? null,
+      evidenceRef: result.record?.delivery?.evidenceRef ?? null,
+    });
+    confirmed += 1;
+  }
+  return confirmed;
 }
 
 /**
@@ -780,6 +815,8 @@ export function advanceOnce(opts = {}) {
 
   if (shouldAdvance(config)) {
     releaseExpiredLeases(index, runtimeState, actions);
+    // 先认执行代理的送达 ack：ack 是唯一能证明「已送达」的弱事实；缺 ack 才进入租约回滚。
+    autoConfirmDeliveries(index, runtimeState, actions);
     // GUI 投递失败 / 投递租约过期也要回滚：否则任务带着 failed 投递继续占租约，
     // 调度层对 delivery.state 零读取，等于把「已降级」当成「在正常执行」。
     releaseFailedDeliveries(index, runtimeState, config, actions);

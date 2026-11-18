@@ -17,6 +17,7 @@
  * 用法（pnpm，禁裸 npx）：`pnpm orchestration:<subcommand>`，入口在 package.json。
  */
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import {
   PATHS,
@@ -85,7 +86,14 @@ import {
 } from './branch-workflow.mjs';
 import { SESSION_PATHS, LOCATE_LAYERS, MAX_START_RETRIES, MAX_SEND_RETRIES, canDispatch, DELIVERY_CAUSES } from './dispatch-channel.mjs';
 import { evaluateRemoteCiGate } from './ci-status.mjs';
-import { buildGuiBrief, writeGuiBrief, confirmDelivery, fallbackDelivery, isDeliveryStalled } from './gui-dispatch.mjs';
+import {
+  buildGuiBrief,
+  writeGuiBrief,
+  confirmDelivery,
+  fallbackDelivery,
+  isDeliveryStalled,
+  autoConfirmDelivery,
+} from './gui-dispatch.mjs';
 import { registerTaskFromSheet, registerTaskFromHandover, parseTaskSheetFrontmatter } from './task-intake.mjs';
 import { acquireRunLock, describeRunLock } from './run-lock.mjs';
 
@@ -669,6 +677,7 @@ function cmdChannel(args) {
     console.log(`定位四层：${LOCATE_LAYERS.join(' → ')}`);
     console.log(`进程 / 窗口启动重试上限：${MAX_START_RETRIES}；发送换路径重试上限：${MAX_SEND_RETRIES}`);
     console.log('登录门交人工接管；审计与回执不含对话原文；单任务队列，在办未回收不发下一个');
+    console.log('送达确认协议：执行代理收到 brief 后写 transport/acks/<taskId>.json；ack 到达才 auto-confirm，缺 ack 按投递租约回滚');
     return;
   }
   if (action === 'queue') {
@@ -736,11 +745,135 @@ function cmdChannel(args) {
     console.log(`通道：gui-relay；投递状态：pending；交接件：${pathToPosix(entry.dispatch.handoverRef ?? '') || '(缺)'}`);
     console.log('桌面 relay 执行顺序：聚焦执行代理窗口 → 粘贴投递件 → 发送 → 校验输入框已清空且消息出现在会话中');
     console.log(
-      `确认送达：cli.mjs channel confirm --taskId ${taskId} --session-path <${SESSION_PATHS.join('|')}> --locate-layer <${LOCATE_LAYERS.join('|')}> --evidence <仓内截图或时间戳文件>`,
+      `发送接管（主桌面焦点窗口，发送后释放）：cli.mjs channel send --taskId ${taskId} [--dry-run] [--wait-ack]`,
+    );
+    console.log(
+      `确认送达（ack 自动）：cli.mjs channel auto-confirm --taskId ${taskId}；手工兜底：cli.mjs channel confirm --taskId ${taskId} --session-path <${SESSION_PATHS.join('|')}> --locate-layer <${LOCATE_LAYERS.join('|')}> --evidence <仓内截图或时间戳文件>`,
     );
     console.log(
       `降级回退：cli.mjs channel fallback --taskId ${taskId} --reason <原因> --cause <${DELIVERY_CAUSES.join('|')}> [--classification deterministic|flaky|legacy-debt]`,
     );
+    return;
+  }
+  if (action === 'send') {
+    const taskId = argValue(args, '--taskId');
+    if (!taskId) {
+      console.error('用法：channel send --taskId <id> [--dry-run] [--wait-ack] [--ack-timeout 90] [--window-title "MiniMax Code"]');
+      process.exit(2);
+    }
+    const index = loadIndex();
+    const runtimeState = loadRuntimeState();
+    const task = index.tasks.find((item) => item.taskId === taskId);
+    if (!task) throw new Error(`发送失败：任务不在活跃列表：${taskId}`);
+    if (task.status !== 'submitted') throw new Error(`发送失败：任务须已领单（submitted）：${taskId} 当前 ${task.status}`);
+    const entry = runtimeState.tasks?.[taskId];
+    if (!entry?.dispatch) throw new Error(`发送失败：缺派发记录（先用 run-once 领单）：${taskId}`);
+    if (entry.dispatch.channel !== 'gui-relay') throw new Error(`发送失败：通道 ${String(entry.dispatch.channel)} 不是 gui-relay`);
+    if (entry.dispatch.delivery?.state !== 'pending') {
+      throw new Error(`发送失败：投递状态须为 pending，当前 ${String(entry.dispatch.delivery?.state)}`);
+    }
+    const targetRole = entry.dispatch.targetRole ?? task.agentRole ?? 'executor';
+    if (targetRole === 'orchestrator') throw new Error(`发送失败：${taskId} 是编排者任务，不驱动桌面`);
+
+    let briefPath = entry.dispatch.delivery?.briefRef ? resolve(REPO_ROOT, entry.dispatch.delivery.briefRef) : null;
+    if (!briefPath || !existsSync(briefPath)) {
+      const handoverPath = join(PATHS.transportDir, 'tasks', `${taskId}.json`);
+      const handover = existsSync(handoverPath) ? (JSON.parse(readFileSync(handoverPath, 'utf8')).payload ?? {}) : {};
+      const brief = buildGuiBrief(task, handover, {
+        receiptPath: pathToPosix(join(PATHS.transportDir, 'receipts', `${taskId}.json`)),
+      });
+      briefPath = writeGuiBrief({ transportDir: PATHS.transportDir, taskId, text: brief.text });
+      entry.dispatch.delivery.briefRef = pathToPosix(briefPath);
+      saveRuntimeState(runtimeState);
+    }
+
+    const scriptPath = join(REPO_ROOT, 'scripts', 'orchestration', 'gui-relay-send.ps1');
+    if (!existsSync(scriptPath)) throw new Error(`发送失败：缺桌面 relay 脚本：${scriptPath}`);
+    const powershell = join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+    if (!existsSync(powershell)) throw new Error(`发送失败：找不到 Windows PowerShell：${powershell}`);
+    const dryRun = args.includes('--dry-run');
+    const windowTitle = argValue(args, '--window-title') ?? 'MiniMax Code';
+    const psArgs = [
+      '-NoProfile',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-File',
+      scriptPath,
+      '-TaskId',
+      taskId,
+      '-BriefPath',
+      briefPath,
+      '-RepoRoot',
+      REPO_ROOT,
+      '-EvidenceDir',
+      join(PATHS.transportDir, 'gui-sent'),
+      '-WindowTitle',
+      windowTitle,
+    ];
+    if (dryRun) psArgs.push('-DryRun');
+    if (args.includes('--no-click-input')) psArgs.push('-NoClickInput');
+    const result = spawnSync(powershell, psArgs, { encoding: 'utf8', timeout: 60_000, maxBuffer: 8 * 1024 * 1024 });
+    if (result.stdout) process.stdout.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+    if (result.error) throw new Error(`发送失败：${result.error.message}`);
+    if (result.status !== 0) throw new Error(`发送失败：桌面 relay 退出码 ${result.status}`);
+    if (dryRun) {
+      console.log('干跑完成：只验证窗口定位与证据链，未发送任何内容。');
+      return;
+    }
+    if (args.includes('--wait-ack')) {
+      const timeoutSeconds = Number(argValue(args, '--ack-timeout') ?? 90);
+      const deadline = Date.now() + Math.max(5, timeoutSeconds) * 1000;
+      while (Date.now() < deadline) {
+        const ackResult = autoConfirmDelivery({
+          record: entry.dispatch,
+          taskId,
+          transportDir: PATHS.transportDir,
+          repoRoot: REPO_ROOT,
+        });
+        if (ackResult.confirmed) {
+          entry.dispatch = ackResult.record;
+          saveRuntimeState(runtimeState);
+          refreshSnapshotArtifacts();
+          console.log(`已收到执行代理 ack 并确认送达：${taskId}；证据=${ackResult.record.delivery.evidenceRef}`);
+          return;
+        }
+        const waitMs = Math.min(2000, deadline - Date.now());
+        if (waitMs > 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, waitMs);
+      }
+      throw new Error(`发送后 ${timeoutSeconds}s 未收到 ack：${taskId}；任务保持 pending，按租约回滚`);
+    }
+    console.log(`发送动作已完成：${taskId}；下一步在 ack 到达后执行 channel auto-confirm --taskId ${taskId}`);
+    return;
+  }
+  if (action === 'auto-confirm') {
+    const taskId = argValue(args, '--taskId');
+    const runtimeState = loadRuntimeState();
+    const index = loadIndex();
+    let confirmed = 0;
+    const targets = taskId ? [taskId] : index.tasks.filter((task) => task.status === 'submitted').map((task) => task.taskId);
+    for (const id of targets) {
+      const entry = runtimeState.tasks?.[id];
+      if (!entry?.dispatch) continue;
+      const result = autoConfirmDelivery({
+        record: entry.dispatch,
+        taskId: id,
+        transportDir: PATHS.transportDir,
+        repoRoot: REPO_ROOT,
+      });
+      if (!result.confirmed) {
+        if (taskId) console.log(`未确认：${id}；原因=${result.reason}`);
+        continue;
+      }
+      entry.dispatch = result.record;
+      confirmed += 1;
+      console.log(`已确认送达：${id}；证据=${result.record.delivery.evidenceRef}`);
+    }
+    if (confirmed > 0) {
+      saveRuntimeState(runtimeState);
+      refreshSnapshotArtifacts();
+    }
+    console.log(`自动确认完成：${confirmed} 条`);
     return;
   }
   if (action === 'confirm') {
@@ -840,7 +973,7 @@ function cmdChannel(args) {
     console.log(JSON.stringify({ taskId, channel: record.channel, delivery: record.delivery ?? null, stalled }, null, 2));
     return;
   }
-  console.error(`未知通道动作：${action}（支持 rules / queue / dispatch / confirm / fallback / state）`);
+  console.error(`未知通道动作：${action}（支持 rules / queue / dispatch / send / auto-confirm / confirm / fallback / state）`);
   process.exit(2);
 }
 

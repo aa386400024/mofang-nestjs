@@ -7,7 +7,8 @@
  *   - 在办任务提交：taskId + scope.files + 任务单存在性；
  *   - 纯状态面提交：沿用 state-plane-only；
  *   - squash 归档提交：沿用 archived-transition（父在办、当前 completed/archived）；
- *   - squash 全生命周期：父无该任务、当前 completed/archived，且 passed durable 回执存在。
+ *   - squash 全生命周期：父无该任务、当前 completed/archived，且存在可合并 durable 回执
+ *     （passed，或已登记 backlog 且无人工复核项的 conditional-pass）。
  *
  * 纯判定函数不碰 git；IO 适配层只读 git 对象，不改工作区、不写状态面。
  */
@@ -57,8 +58,8 @@ export function evaluateCommitSnapshot({
   const currentArchived = (currentIndex?.archivedTasks ?? []).find((task) => task?.taskId === commitTaskId && task?.status === 'completed');
   const parentHasTask = [...parentTasks, ...parentArchivedTasks].some((task) => task?.taskId === commitTaskId);
   // squash 会把 register → implement → receipt → archive 压成一个提交，parent 根本没有任务。
-  // 仅在 durable 回执证明已验收时，合成“父在办”快照复用 archived-transition；否则仍拒绝。
-  const squashLifecycle = Boolean(commitTaskId && currentArchived && !parentHasTask && passedDurableReceipts(receipts).length > 0);
+  // 仅在可合并 durable 回执证明已验收时，合成“父在办”快照复用 archived-transition；否则仍拒绝。
+  const squashLifecycle = Boolean(commitTaskId && currentArchived && !parentHasTask && mergeableDurableReceipts(receipts).length > 0);
   const effectiveParentTasks = squashLifecycle ? [...parentTasks, { ...currentArchived, status: 'submitted' }] : parentTasks;
   const result = evaluateTaskEntry({
     changedFiles,
@@ -87,10 +88,21 @@ export function evaluateCommitSnapshot({
   return output;
 }
 
-function passedDurableReceipts(receipts = []) {
-  return receipts.filter(
-    (receipt) => receipt.verdict === 'passed' && receipt.scopeCheck === 'in-scope' && receipt.finalStatus === 'completed',
-  );
+/**
+ * 可合并的 durable 回执：
+ *   - passed：scopeCheck=in-scope 且 finalStatus=completed；
+ *   - conditional-pass：在 passed 基础上，manualReviewList 必须为空，且每条 backlogItems
+ *     都有非空编号——遗留已登记，才能作为非阻塞项合入。人工复核项存在时仍拒绝。
+ */
+export function mergeableDurableReceipts(receipts = []) {
+  return receipts.filter((receipt) => {
+    if (receipt.scopeCheck !== 'in-scope' || receipt.finalStatus !== 'completed') return false;
+    if (receipt.verdict === 'passed') return true;
+    if (receipt.verdict !== 'conditional-pass') return false;
+    if (Array.isArray(receipt.manualReviewList) && receipt.manualReviewList.length > 0) return false;
+    const backlog = Array.isArray(receipt.backlogItems) ? receipt.backlogItems : [];
+    return backlog.every((item) => item && typeof item.id === 'string' && item.id.trim() !== '');
+  });
 }
 
 /** PR 最终 HEAD 的验收硬门：防止绕开 pr-release，直接从 GitHub 页面合并。 */
@@ -105,14 +117,16 @@ export function evaluateAcceptanceSnapshot({ taskId, currentIndex, receipts = []
       errors: [`任务 ${taskId} 在当前 HEAD 不是 completed/archived，禁止 PR 合并`],
     };
   }
-  const passed = passedDurableReceipts(receipts);
+  const passed = mergeableDurableReceipts(receipts);
   if (passed.length === 0) {
     return {
       pass: false,
       reason: 'passed-durable-receipt-missing',
       taskId,
       receipts,
-      errors: [`任务 ${taskId} 缺少 reviewVerdict=passed + scopeCheck=in-scope + finalStatus=completed 的 durable 回执`],
+      errors: [
+        `任务 ${taskId} 缺少可合并的 durable 回执：reviewVerdict=passed 或已登记 backlog 且无人工复核项的 conditional-pass，scopeCheck=in-scope，finalStatus=completed`,
+      ],
     };
   }
   return { pass: true, reason: 'accepted', taskId, receipts, errors: [] };
@@ -160,6 +174,8 @@ function readAcceptanceReceiptsAt(sha, taskId) {
         verdict: receipt.payload?.reviewVerdict ?? receipt.reviewVerdict ?? null,
         scopeCheck: receipt.payload?.scopeCheck ?? receipt.scopeCheck ?? null,
         finalStatus: receipt.payload?.finalStatus ?? receipt.finalStatus ?? null,
+        manualReviewList: receipt.payload?.manualReviewList ?? receipt.manualReviewList ?? null,
+        backlogItems: receipt.payload?.backlogItems ?? receipt.backlogItems ?? null,
       };
     } catch {
       return { path, verdict: 'invalid-json', scopeCheck: null, finalStatus: null };
