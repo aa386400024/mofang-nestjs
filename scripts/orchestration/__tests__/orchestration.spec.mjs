@@ -1067,6 +1067,30 @@ describe('AF-009 交接契约校验与构造器', () => {
     expect(validateReceiptHandover(bad).errors.join(' ')).toMatch('changedFiles.commits');
   });
 
+  it('IM-046：跨仓提交走 externalCommits，repo 与 SHA 形状校验；本仓 commits 仍独立', () => {
+    const crossRepo = validReceipt();
+    crossRepo.changedFiles = {
+      added: [],
+      modified: [],
+      deleted: [],
+      commits: ['c8632c6'],
+      externalCommits: [{ repo: 'aa386400024/agent-collaboration-framework', commits: ['67d3290'] }],
+    };
+    expect(validateReceiptHandover(crossRepo)).toMatchObject({ valid: true, errors: [] });
+
+    const badRepo = validReceipt();
+    badRepo.changedFiles = { added: [], modified: [], deleted: [], externalCommits: [{ repo: 'not-a-repo', commits: ['67d3290'] }] };
+    expect(validateReceiptHandover(badRepo).errors.join(' ')).toMatch('externalCommits[0].repo');
+
+    const badSha = validReceipt();
+    badSha.changedFiles = { added: [], modified: [], deleted: [], externalCommits: [{ repo: 'aa386400024/agent-collaboration-framework', commits: ['HEAD'] }] };
+    expect(validateReceiptHandover(badSha).errors.join(' ')).toMatch('externalCommits[0].commits');
+
+    const empty = validReceipt();
+    empty.changedFiles = { added: [], modified: [], deleted: [], externalCommits: [] };
+    expect(validateReceiptHandover(empty).errors.join(' ')).toMatch('externalCommits');
+  });
+
   it('合法协商轮意见通过；缺意见字段与裁决缺 decision 被拦截', () => {
     expect(validateReviewHandover(validReview())).toMatchObject({ valid: true, errors: [] });
 
@@ -2877,6 +2901,68 @@ describe('AF-024 GUI 投递协议', () => {
       expect(confirmed).toBe(1);
       expect(runtimeState.tasks['AF-901'].dispatch.delivery.state).toBe('delivered');
       expect(actions.find((a) => a.type === 'delivery-auto-confirmed')?.taskId).toBe('AF-901');
+    } finally {
+      rmSync(repoRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('IM-053：三单连续 send→ack→auto-confirm 不串单；重派后旧 ack 被拒', () => {
+    const repoRoot = join(tmpdir(), `orch-sched-ack-seq-${Date.now()}-${Math.floor(Math.random() * 1e6)}`);
+    const transport = join(repoRoot, 'docs', 'team', 'agent-orchestration', 'transport');
+    mkdirSync(join(transport, 'acks'), { recursive: true });
+    const taskIds = ['AF-951', 'AF-952', 'AF-953'];
+    const index = { tasks: taskIds.map((taskId) => ({ taskId, status: 'submitted' })) };
+    const runtimeState = {
+      tasks: Object.fromEntries(
+        taskIds.map((taskId, i) => [
+          taskId,
+          {
+            dispatch: {
+              taskId,
+              channel: 'gui-relay',
+              delivery: { state: 'pending', preparedAt: `2026-11-18T10:0${i}:00.000Z` },
+            },
+          },
+        ]),
+      ),
+    };
+    try {
+      const actions = [];
+      for (const [i, taskId] of taskIds.entries()) {
+        writeFileSync(
+          join(transport, 'acks', `${taskId}.json`),
+          JSON.stringify({
+            schemaVersion: '1.0.0',
+            taskId,
+            receivedAt: `2026-11-18T10:0${i}:30.000Z`,
+            executor: 'MiniMax Code',
+          }),
+          'utf8',
+        );
+        expect(autoConfirmDeliveries(index, runtimeState, actions, { transportDir: transport, repoRoot })).toBe(1);
+        expect(runtimeState.tasks[taskId].dispatch.delivery.state).toBe('delivered');
+      }
+      expect(actions.filter((a) => a.type === 'delivery-auto-confirmed')).toHaveLength(3);
+      expect(actions.map((a) => a.taskId)).toEqual(taskIds);
+
+      // 第三次重派：旧 ack 早于本轮 preparedAt，必须拒绝，状态留 pending 等新 ack / 租约回滚。
+      runtimeState.tasks['AF-953'].dispatch.delivery = { state: 'pending', preparedAt: '2026-11-18T11:00:00.000Z' };
+      writeFileSync(
+        join(transport, 'acks', 'AF-953.json'),
+        JSON.stringify({ schemaVersion: '1.0.0', taskId: 'AF-953', receivedAt: '2026-11-18T10:02:30.000Z' }),
+        'utf8',
+      );
+      expect(autoConfirmDeliveries(index, runtimeState, actions, { transportDir: transport, repoRoot })).toBe(0);
+      expect(runtimeState.tasks['AF-953'].dispatch.delivery.state).toBe('pending');
+
+      writeFileSync(
+        join(transport, 'acks', 'AF-953.json'),
+        JSON.stringify({ schemaVersion: '1.0.0', taskId: 'AF-953', receivedAt: '2026-11-18T11:05:00.000Z' }),
+        'utf8',
+      );
+      expect(autoConfirmDeliveries(index, runtimeState, actions, { transportDir: transport, repoRoot })).toBe(1);
+      expect(runtimeState.tasks['AF-953'].dispatch.delivery.state).toBe('delivered');
+      expect(actions.filter((a) => a.type === 'delivery-auto-confirmed')).toHaveLength(4);
     } finally {
       rmSync(repoRoot, { recursive: true, force: true });
     }

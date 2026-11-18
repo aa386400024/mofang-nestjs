@@ -1,0 +1,209 @@
+{
+  "deliveredAt": "2026-11-18T04:33:00Z",
+  "payload": {
+    "receiptId": "RC-AF-081-1",
+    "taskId": "AF-081",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "orchestrator",
+    "baselineRef": "845d20d8b2e3b376bd32ab7280a6872b58a72cd8",
+    "dependsOn": [],
+    "policyRefs": [
+      "conventions.md#1.3"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af081-improvement-closeout-task-2026-11-18.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af081-improvement-closeout-2026-11-18.md",
+      "reply": null,
+      "others": [
+        "docs/team/agent-orchestration/improvement-dispositions-2026-11-18.md",
+        "docs/team/agent-orchestration/production-readiness-checklist-2026-11-18.md",
+        "AF-079 因 scope-domain-conflict 取消归档；AF-080 因回执声明含状态面越界文件被拒；本单为返修执行"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/pending/af079-improvement-closeout-task-2026-11-18.md",
+        "docs/worklog/pending/af080-improvement-closeout-task-2026-11-18.md",
+        "docs/worklog/pending/af081-improvement-closeout-task-2026-11-18.md",
+        "docs/worklog/pending/archive/AF-080-receipt-RC-AF-080-1.json",
+        "docs/worklog/completed/phase2.5/af080-improvement-closeout-2026-11-18.md",
+        "docs/worklog/completed/phase2.5/af081-improvement-closeout-2026-11-18.md",
+        "docs/team/agent-orchestration/improvement-dispositions-2026-11-18.md",
+        "docs/team/agent-orchestration/production-readiness-checklist-2026-11-18.md"
+      ],
+      "modified": [
+        "scripts/orchestration/handover-contract.mjs",
+        "scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "docs/team/agent-orchestration/README.md"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": []
+    },
+    "gateResults": [
+      {
+        "command": "corepack pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "1.28s",
+        "note": "244 tests passed / 0 failed"
+      },
+      {
+        "command": "corepack pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 208,
+        "machine": "同上",
+        "wallClock": "21.54s",
+        "note": "207 files passed / 1 skipped；3675 tests passed / 8 skipped"
+      },
+      {
+        "command": "corepack pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30s",
+        "note": "tsc -b tsconfig.check.json 0 error"
+      },
+      {
+        "command": "corepack pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 25s（缓存开启）",
+        "note": "0 error / 0 warning；scripts 段覆盖生效；仅 pnpm engine WARN"
+      },
+      {
+        "command": "corepack pnpm exec vitest run test/engine-core/boundary.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "1.59s",
+        "note": "12 tests passed / 0 failed"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "空输出，内核零改动"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "27 项 PASS"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "即时",
+        "note": "336 条事件；schema + 哈希链 + 索引投影一致（回执摄入前）"
+      }
+    ],
+    "reproNotes": "先跑定向编排单测，再一次性跑全量 test；typecheck/lint/boundary 分别独立执行。IM-053 用临时 transport 目录 + 三单 ack 序列复现，不依赖 MiniMax 窗口。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "任务单、交付记录、回执均为 AF-081；AF-079 取消、AF-080 被拒，均未声称完成"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register → promote → run-once → branch create；未手改索引/日志"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 scope 覆盖脚本、单测、编排文档、工作记录"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "回执摄入后由 CLI 归档；events verify 见闸门；状态面生成物不列入 changedFiles"
+      },
+      {
+        "item": "external-commits",
+        "result": "pass",
+        "note": "IM-046 新增 changedFiles.externalCommits，校验 repo/SHA 形状；本仓 commits 口径未放宽"
+      },
+      {
+        "item": "relay-three-task",
+        "result": "pass",
+        "note": "IM-053 三单连续确认 + 旧 ack 拒绝用例通过"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "六组机读字段标记均在交付记录出现；reviewVerdict=passed"
+    },
+    "backlogItems": [],
+    "openQuestions": [
+      "任务登记后 scope 无原地修订入口；本次以取消 AF-079 + 重登记 AF-080 处理。是否新增 rescope 能力，需评估事件 schema 与审计成本。"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "任务号",
+        "taskSays": "AF-079",
+        "reality": "AF-079 scope 含 orchestrator Agent Card 资源域外路径，run-once 报 scope-domain-conflict；登记后无法原地修订 scope",
+        "action": "取消并归档 AF-079，按授权目录修正清单并以 AF-080 重登记执行",
+        "why": "不绕过资源域门禁，不用 --no-verify，不手改状态索引"
+      },
+      {
+        "item": "生产清单位置",
+        "taskSays": "docs/team/production-readiness-checklist-2026-11-18.md",
+        "reality": "orchestrator 资源域仅覆盖 docs/team/agent-orchestration/",
+        "action": "移至 docs/team/agent-orchestration/production-readiness-checklist-2026-11-18.md",
+        "why": "满足 Agent Card 资源域，内容不变"
+      },
+      {
+        "item": "IM-053 验证方式",
+        "taskSays": "真实 3 单窗口长跑记录延迟",
+        "reality": "真实窗口长跑依赖 MiniMax 在线并占用桌面",
+        "action": "用三单状态机自动化回归覆盖 ack 自动确认与 stale-ack 拒绝",
+        "why": "不阻塞交付、不占桌面；真实延迟由 relay supervisor 后续观测"
+      },
+      {
+        "item": "回执声明",
+        "taskSays": "AF-080 回执声明 modified 含 improvement-log",
+        "reality": "机读护栏判为 scope 外文件，AF-080 被拒",
+        "action": "AF-081 删除该声明，只声明实现文件与工件",
+        "why": "状态面生成物由 CLI 写，不属于实现改动"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "返修单：删除 AF-080 回执中的状态面越界声明；编排单测 244 项全绿，全量 3675 项通过 / 0 failed，typecheck、lint、boundary 全绿，validate 27 项 PASS、事件链一致。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
