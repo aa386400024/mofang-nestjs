@@ -4,7 +4,7 @@ contextId: phase2.5-orchestration-closed-loop
 title: Relay Supervisor：事件驱动回执回收与按档位兜底
 type: implementation
 status: backlog
-baselineRef: 741c3fe30c59ecae72455dc27a1612f34f25798f
+baselineRef: 6736a6bca6b76c681aaa438120d469cda00ce4ce
 dependsOn: []
 contractRef: urn:agent-collaboration-framework:schema:task-sheet:1.1.0
 policyRefs: [conventions.md#1.3]
