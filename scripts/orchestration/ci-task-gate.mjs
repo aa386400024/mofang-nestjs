@@ -206,7 +206,7 @@ function parseScalar(raw, label) {
     if (!value.endsWith("'") || value.length < 2) throw new Error(`${label} 引号不完整`);
     return value.slice(1, -1).replace(/''/g, "'");
   }
-  if (/[\[\]{}]/.test(value)) throw new Error(`${label} 含不支持的 YAML 结构`);
+  if (/[{}[\]]/.test(value)) throw new Error(`${label} 含不支持的 YAML 结构`);
   return value;
 }
 
@@ -228,7 +228,7 @@ export function parseTaskSheetScopeForGate(text, expectedTaskId) {
   let filesIndex = -1;
   for (let index = scopeIndex + 1; index < lines.length; index += 1) {
     if (/^\S/.test(lines[index])) break;
-    if (/^  files:/.test(lines[index])) {
+    if (/^ {2}files:/.test(lines[index])) {
       filesIndex = index;
       break;
     }

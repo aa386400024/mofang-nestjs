@@ -26,19 +26,6 @@ export const SCHEMA_FILES = {
   protocolView: 'protocol-view.schema.json',
 };
 
-/** 契约名 → schemaKey（版本对账用）。 */
-const CONTRACT_SCHEMA_KEY = {
-  'task-sheet': 'taskSheet',
-  'task-state-index': 'taskIndex',
-  'state-event': 'stateEvent',
-  'tool-contract': 'toolContract',
-  'agent-card': 'agentCard',
-  'review-handover': 'reviewHandover',
-  receipt: 'receipt',
-  'delivery-package': 'deliveryPackage',
-  'protocol-view': 'protocolView',
-};
-
 /** 契约包固化目录（框架私仓在 CI 不可跨仓读取时的可复现来源）。 */
 const VENDOR_FRAMEWORK_DIR = resolve(REPO_ROOT, 'contracts', 'agent-collaboration-framework', '2.0.0');
 /** 本地兄弟仓（开发期优先，能第一时间发现框架 tag 漂移）。 */

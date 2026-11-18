@@ -21,13 +21,16 @@
   "resources": [
     "AGENTS.md",
     "package.json",
+    "eslint.config.mjs",
     ".husky/",
     ".github/",
     "docs/team/conventions.md",
     "docs/team/wp-task-template.md",
     "docs/worklog/",
     "docs/team/agent-orchestration/",
-    "scripts/orchestration/"
+    "docs/security/",
+    "scripts/",
+    "web/orchestration/"
   ],
   "limits": {
     "canDo": [

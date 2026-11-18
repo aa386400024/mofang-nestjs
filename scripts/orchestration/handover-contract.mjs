@@ -342,7 +342,6 @@ export function validateReviewHandover(input) {
 export function buildTaskHandover(record, { producedBy = 'orchestrator' } = {}) {
   const {
     taskId,
-    parentTaskId,
     contextId,
     type,
     title,
@@ -362,11 +361,7 @@ export function buildTaskHandover(record, { producedBy = 'orchestrator' } = {}) 
     agentRole,
     plannedArtifacts,
     artifacts,
-    artifactSchema,
-    deliveryPath,
     gates,
-    evidenceFormat,
-    escalationTriggers,
     priority,
     deadline,
     retention,
