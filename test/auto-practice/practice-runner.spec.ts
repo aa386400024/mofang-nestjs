@@ -9,7 +9,7 @@
 //
 //   验证: npx vitest run test/auto-practice/practice-runner.spec.ts
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import type { CounselorGenerateOptions, CounselorHistoryTurn, CounselorReply } from '../../src/auto-practice/counselor-agent.service.js';
 import { CounselorMode } from '../../src/auto-practice/entities/counselor-mode.entity.js';
@@ -37,6 +37,15 @@ type CounselorGenerateSignature = (
   history: readonly CounselorHistoryTurn[],
   options?: CounselorGenerateOptions,
 ) => Promise<CounselorReply>;
+
+/**
+ * 引擎 turn 的真实签名 (显式标注给 vi.fn).
+ *
+ * ⚠️ 为什么必须标注: 不标注时 vi.fn 的实现体签名退化成"返回 void",
+ *   mockImplementation 里返回 Promise 会被 no-misused-promises 判错
+ *   (Promise returned in function argument where a void return was expected).
+ */
+type EngineTurnSignature = (debugSessionId: string, counselorText: string) => Promise<EngineTurnResult>;
 
 /** 造一个 CounselorMode 替身. */
 function makeMode(): CounselorMode {
@@ -380,5 +389,163 @@ describe('RESID-1 · runner 状态接口类型导出', () => {
 
   it('decideTurn 仍是导出的纯函数 (入参形状未变)', () => {
     expect(typeof decideTurn).toBe('function');
+  });
+});
+
+/**
+ * V2026-11-18 建立 (AF-091 · 长会话档案 · runner 层).
+ *
+ * 覆盖任务单要求的四条:
+ *   ① legacy 缺省路径**逐字不变** (不传档案 = 老行为: 第 5 轮就能收尾);
+ *   ② long 档: 35 轮前 closeRequested **不生效**, 第 35 轮才生效;
+ *   ③ long 档的停滞阈值比 legacy **宽** (同样 4 轮复读: legacy 第 3 轮停, long 不停);
+ *   ④ sessionProfile **全链路透传** (runner → 咨询师 options).
+ */
+describe('PracticeRunnerService · AF-091 长会话档案', () => {
+  let counselorTurn: number;
+  let engine: { open: Mock; turn: Mock<EngineTurnSignature>; close: Mock };
+  let counselor: { generate: ReturnType<typeof vi.fn<CounselorGenerateSignature>> };
+  let repo: ReturnType<typeof stubRepo>;
+  let runner: PracticeRunnerService;
+
+  /** 让引擎按调用序号返回不同内容 (避免误触发复读/停滞判据). */
+  function mockDistinctTurns(): void {
+    let index = 0;
+    engine.turn.mockImplementation(async () => {
+      index += 1;
+      return makeTurn(index, `来访本轮的第${index}种不同说法`);
+    });
+  }
+
+  beforeEach(() => {
+    counselorTurn = 0;
+    engine = { open: vi.fn(), turn: vi.fn<EngineTurnSignature>(), close: vi.fn() };
+    counselor = { generate: vi.fn<CounselorGenerateSignature>() };
+    repo = stubRepo();
+    const fingerprint = {
+      build: vi.fn(async () => ({
+        model: 'MiniMax-M3.1-Flash',
+        characterSlug: 'vpt_test',
+        characterVersion: '1.0.0',
+        counselorModeId: 'expert',
+        deliberationMode: 'rule_only',
+        scenarioType: 'full_simulation',
+        engineVersion: 'test',
+        sessionSeed: 'single/test',
+      })),
+    };
+    runner = new PracticeRunnerService(engine, counselor as never, fingerprint as never, repo as never, undefined);
+    engine.open.mockResolvedValue({ debugSessionId: 'ds_test' });
+    // 咨询师每轮都**请求收尾** —— 用来测"最早收尾轮次"这道闸门.
+    counselor.generate.mockImplementation(() => {
+      counselorTurn += 1;
+      return Promise.resolve({
+        text: `咨询师第${counselorTurn}轮说的话`,
+        model: 'test-model',
+        degraded: false,
+        closeRequested: true,
+      } as CounselorReply);
+    });
+  });
+
+  it('① 缺省 (不传档案) = legacy: 第 5 轮就能自然收尾 (老行为逐字不变)', async () => {
+    mockDistinctTurns();
+
+    const result = await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: makeMode(),
+      maxTurns: 15,
+    });
+
+    expect(result.status).toBe('completed');
+    expect(result.exitReason).toBe('natural_close');
+    expect(result.turnCount).toBe(5);
+    expect(engine.turn).toHaveBeenCalledTimes(5);
+  });
+
+  it('① 缺省时传给咨询师的档案是 legacy (prompt 与改动前逐字一致)', async () => {
+    mockDistinctTurns();
+
+    await runner.run({ characterSlug: 'vpt_test', counselorMode: makeMode(), maxTurns: 3 });
+
+    const options = counselor.generate.mock.calls[0]?.[2];
+    expect(options?.sessionProfile).toBe('legacy');
+  });
+
+  it('② long 档: 35 轮前 closeRequested 不生效, 第 35 轮才 natural_close', async () => {
+    mockDistinctTurns();
+
+    const result = await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: makeMode(),
+      sessionProfile: 'long',
+    });
+
+    expect(result.status).toBe('completed');
+    expect(result.exitReason).toBe('natural_close');
+    // 前 34 轮的收尾请求全部被闸门挡下, 第 35 轮才生效.
+    expect(result.turnCount).toBe(35);
+    expect(engine.turn).toHaveBeenCalledTimes(35);
+  });
+
+  it('② long 档: 缺省轮数上限 = 50 (来自档案)', async () => {
+    // 咨询师**不**请求收尾 → 只能跑满上限.
+    counselor.generate.mockImplementation(() => {
+      counselorTurn += 1;
+      return Promise.resolve({
+        text: `咨询师第${counselorTurn}轮说的话`,
+        model: 'test-model',
+        degraded: false,
+        closeRequested: false,
+      } as CounselorReply);
+    });
+    mockDistinctTurns();
+
+    const result = await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: makeMode(),
+      sessionProfile: 'long',
+    });
+
+    expect(result.exitReason).toBe('max_turns');
+    expect(result.turnCount).toBe(50);
+    expect(engine.turn).toHaveBeenCalledTimes(50);
+  });
+
+  it('③ long 档的停滞阈值比 legacy 宽: 4 轮复读 legacy 第 3 轮停, long 不停', async () => {
+    engine.turn
+      .mockResolvedValueOnce(makeTurn(1, '嗯'))
+      .mockResolvedValueOnce(makeTurn(2, '嗯'))
+      .mockResolvedValueOnce(makeTurn(3, '嗯'))
+      .mockResolvedValueOnce(makeTurn(4, '嗯'))
+      .mockResolvedValueOnce(makeTurn(5, '嗯'));
+
+    const result = await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: makeMode(),
+      sessionProfile: 'long',
+      maxTurns: 10,
+    });
+
+    // long 档的字面复读阈值 = 4 → 第 5 轮 (streak=4) 才判停滞.
+    expect(result.exitReason).toBe('stagnant');
+    expect(result.turnCount).toBe(5);
+  });
+
+  it('④ sessionProfile 全链路透传: runner → 咨询师 options (档案名 + 当前轮次)', async () => {
+    mockDistinctTurns();
+
+    await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: makeMode(),
+      sessionProfile: 'standard',
+      maxTurns: 4,
+    });
+
+    const first = counselor.generate.mock.calls[0]?.[2];
+    expect(first?.sessionProfile).toBe('standard');
+    expect(first?.turnIndex).toBe(1);
+    const second = counselor.generate.mock.calls[1]?.[2];
+    expect(second?.turnIndex).toBe(2);
   });
 });

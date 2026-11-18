@@ -5,6 +5,8 @@
  *   以后微服务化时, 这些类型可以直接搬到独立服务, 不用从 NestJS 代码里捞.
  */
 
+import type { SessionProfileName } from '../../session-profile.js';
+
 /** 一段对话历史 (一侧发言). */
 export interface CounselorHistoryTurn {
   /** 谁说的. */
@@ -33,6 +35,21 @@ export interface CounselorGenerateOptions {
    * true 时追加"危机已披露 → 稳定化"阶段任务.
    */
   readonly crisisMode?: boolean;
+  /**
+   * 会话档案 (AF-091).
+   *
+   * 决定要不要加"长会话收尾纪律"块 —— legacy 档不加 (保持 prompt 逐字不变),
+   * standard / long 档加 (告诉模型这一场要多长、第几轮之前不许收尾).
+   *
+   * ⚠️ 缺省 = legacy: 不传就是老行为.
+   */
+  readonly sessionProfile?: SessionProfileName;
+  /**
+   * 当前轮次 (咨询师即将说出的这一轮).
+   *
+   * 只有长会话纪律块会用到它 (写"当前是第 N 轮"); legacy 档忽略.
+   */
+  readonly turnIndex?: number;
 }
 
 /** Prompt 纪律块的接口 (开闭原则: 加新块只要实现这个接口). */
