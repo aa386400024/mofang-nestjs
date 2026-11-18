@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-18T07:15:09.769Z",
+  "generatedAt": "2026-11-18T08:00:50.014Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,7 +15,38 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-088",
+      "contextId": "phase2.5-exit-condition-3-4-5",
+      "type": "implementation",
+      "title": "Phase2.5 出口条件③④⑤可执行项全量收口（审议成本 / 督导评测 / 1000 场数据）",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af088-phase25-exit345-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-088",
+        "contextId": "phase2.5-exit-condition-3-4-5",
+        "channel": "file",
+        "targetRole": "orchestrator",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-18T08:00:50.011Z",
+        "leaseDeadline": "2026-11-18T08:30:50.009Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-088.json"
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1292,6 +1323,10 @@
         "docs/team/agent-orchestration/",
         "docs/security/",
         "scripts/",
+        "data/phase25-exit/",
+        "data/eval-datasets/",
+        "data/eval-reports/",
+        "data/batch-reports/",
         "web/orchestration/"
       ],
       "note": "主控 AI（Doubao）；兼任 reviewer。制衡：验收结论只能基于工件证据与抽跑复现，不引用执行侧「已通过」的自述；验收与执行由不同执行方承担，兼任时以证据复核隔离。发布分层：L1–L3 在前置条件满足下由本角色自动，L4 转 Human 批准（设计备忘 §6.1）。"
@@ -1364,6 +1399,55 @@
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-049",
+      "recordedAt": "2026-11-18T08:00:33.553Z",
+      "actorRef": "orchestrator",
+      "correlationId": "reissue:AF-087:AF-088",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-048",
+      "recordedAt": "2026-11-18T07:59:26.090Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-087",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-087-phase25-exit345"
+      ]
+    },
+    {
+      "auditId": "AUD-047",
+      "recordedAt": "2026-11-18T07:59:20.564Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-087",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-046",
       "recordedAt": "2026-11-18T06:40:58.095Z",
@@ -1551,71 +1635,45 @@
       "resources": [
         "task/AF-082-improvement-closeout-envelope"
       ]
-    },
-    {
-      "auditId": "AUD-034",
-      "recordedAt": "2026-11-18T04:33:50.691Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-082",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-082",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-082.json"
-      ]
-    },
-    {
-      "auditId": "AUD-033",
-      "recordedAt": "2026-11-18T04:33:50.392Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-082",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-032",
-      "recordedAt": "2026-11-18T04:32:08.235Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-081",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-081-improvement-closeout-rework"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 46,
+    "total": 49,
     "byResult": {
-      "allowed": 46,
+      "allowed": 49,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 46
+      "TOOL-QUEUE-SCHEDULER": 49
     },
     "byActor": {
-      "orchestrator": 46
+      "orchestrator": 49
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-088",
+        "title": "Phase2.5 出口条件③④⑤可执行项全量收口（审议成本 / 督导评测 / 1000 场数据）",
+        "type": "implementation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-exit-condition-3-4-5",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "orchestrator",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af088-phase25-exit345-task-2026-11-18.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -3482,6 +3540,20 @@
             "ref": "docs/worklog/completed/phase2.5/af086-phase25-exit2-real-exam-double-run-2026-11-18.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-087",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af087-phase25-exit345-task-2026-11-18.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -3496,9 +3568,17 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-088",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af088-phase25-exit345-task-2026-11-18.md"
+      }
+    ],
+    "groupId": "phase2.5-exit-condition-3-4-5",
+    "groupIds": [
+      "phase2.5-exit-condition-3-4-5"
+    ],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -3555,6 +3635,10 @@
           "docs/team/agent-orchestration/",
           "docs/security/",
           "scripts/",
+          "data/phase25-exit/",
+          "data/eval-datasets/",
+          "data/eval-reports/",
+          "data/batch-reports/",
           "web/orchestration/"
         ],
         "limits": null,
@@ -3567,5 +3651,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 103
+  "archivedCount": 104
 }
