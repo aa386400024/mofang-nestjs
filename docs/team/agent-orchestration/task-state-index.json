@@ -4,103 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 351,
+    "lastEventSeq": 353,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-083",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-18T04:35:02.968Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "AF-082 记录含 CR 返修"
-        },
-        {
-          "at": "2026-11-18T04:35:03.280Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "改进项处置最终封套（LF 返修）",
-      "type": "implementation",
-      "baselineRef": "845d20d8b2e3b376bd32ab7280a6872b58a72cd8",
-      "dependsOn": [],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-18T04:35:02.729Z",
-      "deadline": null,
-      "agentRole": "orchestrator",
-      "scope": {
-        "files": [
-          "scripts/orchestration/handover-contract.mjs",
-          "scripts/orchestration/__tests__/orchestration.spec.mjs",
-          "docs/team/agent-orchestration/README.md",
-          "docs/team/agent-orchestration/improvement-dispositions-2026-11-18.md",
-          "docs/team/agent-orchestration/production-readiness-checklist-2026-11-18.md",
-          "docs/worklog/pending/",
-          "docs/worklog/completed/phase2.5/"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af083-final-envelope-task-2026-11-18.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "corepack pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
-          "check": "编排单测全绿，覆盖跨仓提交声明与三单 relay 回归",
-          "threshold": "0 failed"
-        },
-        {
-          "command": "corepack pnpm lint",
-          "check": "lint 全绿且 scripts 覆盖生效",
-          "threshold": "0 error 0 warning"
-        },
-        {
-          "command": "corepack pnpm test",
-          "check": "全量单测全绿（收尾只跑一次）",
-          "threshold": "0 failed"
-        },
-        {
-          "command": "node scripts/orchestration/cli.mjs validate",
-          "check": "状态索引、任务单、回执与契约目录全部 PASS",
-          "threshold": "exit 0"
-        }
-      ],
-      "successCriteria": [
-        "IM-046 回执支持外部仓提交声明，校验 repo + SHA 形状，不混入本仓 commits 比对",
-        "IM-047 产出生产前 checklist（部署 / secrets / 迁移 / 监控 / 回滚五类）",
-        "IM-053 用三单序列自动化回归覆盖 send→ack→auto-confirm 与 stale-ack 拒绝",
-        "IM-044 / IM-052 给出书面处置结论（当前架构下不实施的理由与重启条件）",
-        "全量测试只跑一次且记录真实数字，不新跑 LLM 批次、不改业务 src"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af083-final-envelope-2026-11-18.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "priorTasks": [],
-      "promotedAt": "2026-11-18T04:35:02.967Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -966,6 +873,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/pending/af082-commit-envelope-task-2026-11-18.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af082-commit-envelope-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-083",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af083-final-envelope-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af083-final-envelope-2026-11-18.md",
         "reply": null
       }
     }
