@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T14:36:00.341Z",
+  "generatedAt": "2026-11-18T14:45:55.870Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1458,6 +1458,7 @@ window.ORCH_SNAPSHOT = {
       ],
       "resources": [
         "src/",
+        "bin/",
         "test/",
         "docs/worklog/pending/",
         "docs/worklog/completed/"
@@ -1573,6 +1574,102 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-105",
+      "recordedAt": "2026-11-18T14:45:26.828Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-107",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-107",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-107.json"
+      ]
+    },
+    {
+      "auditId": "AUD-104",
+      "recordedAt": "2026-11-18T14:45:13.856Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-107",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-107-executor-card-resource-domain"
+      ]
+    },
+    {
+      "auditId": "AUD-103",
+      "recordedAt": "2026-11-18T14:45:13.480Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-107",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-102",
+      "recordedAt": "2026-11-18T14:43:43.480Z",
+      "actorRef": "orchestrator",
+      "correlationId": "cancel:AF-106",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-101",
+      "recordedAt": "2026-11-18T14:40:48.354Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-106",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-106-reasoning-leak-and-roster"
+      ]
+    },
+    {
+      "auditId": "AUD-100",
+      "recordedAt": "2026-11-18T14:40:48.039Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-106",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-099",
       "recordedAt": "2026-11-18T14:34:33.323Z",
@@ -1714,114 +1811,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-090",
-      "recordedAt": "2026-11-18T12:02:55.299Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-102",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-102-long-visible-output"
-      ]
-    },
-    {
-      "auditId": "AUD-089",
-      "recordedAt": "2026-11-18T12:02:54.935Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-102",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-102",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-102.json"
-      ]
-    },
-    {
-      "auditId": "AUD-088",
-      "recordedAt": "2026-11-18T12:02:54.549Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-102",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-087",
-      "recordedAt": "2026-11-18T11:51:42.741Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-101",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-101",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-101.json"
-      ]
-    },
-    {
-      "auditId": "AUD-086",
-      "recordedAt": "2026-11-18T11:51:42.380Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-101",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-085",
-      "recordedAt": "2026-11-18T11:50:08.353Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-100",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-100",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-100.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 99,
+    "total": 105,
     "byResult": {
-      "allowed": 99,
+      "allowed": 105,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 98,
+      "TOOL-QUEUE-SCHEDULER": 104,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 99
+      "orchestrator": 105
     }
   },
   "protocolView": {
@@ -3987,6 +3990,38 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af105-ci-test-assembly-fix-2026-11-18.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-106",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af106-reasoning-leak-and-roster-task-2026-11-18.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-107",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af107-executor-card-resource-domain-task-2026-11-18.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af107-executor-card-resource-domain-2026-11-18.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4021,6 +4056,7 @@ window.ORCH_SNAPSHOT = {
         ],
         "resources": [
           "src/",
+          "bin/",
           "test/",
           "docs/worklog/pending/",
           "docs/worklog/completed/"
@@ -4076,5 +4112,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 120
+  "archivedCount": 122
 };

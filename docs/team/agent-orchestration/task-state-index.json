@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 452,
+    "lastEventSeq": 461,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -1062,6 +1062,24 @@
       "artifacts": {
         "taskSheet": "docs/worklog/pending/af105-ci-test-assembly-fix-task-2026-11-18.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af105-ci-test-assembly-fix-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-106",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af106-reasoning-leak-and-roster-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-107",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af107-executor-card-resource-domain-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af107-executor-card-resource-domain-2026-11-18.md",
         "reply": null
       }
     }
