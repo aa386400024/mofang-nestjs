@@ -96,7 +96,7 @@ import { normalizeScope, findScopeConflicts, detectResidualFiles, scopeCovers, e
 import { evaluateTaskEntry, isStatePlanePath, GATE_ALLOWED_STATUSES } from '../task-entry-gate.mjs';
 import { evaluateAcceptanceSnapshot, evaluateCommitSnapshot, extractCommitTaskId } from '../ci-task-gate.mjs';
 import { INTEGRATE_REQUIRED_CONTEXTS, buildIntegrateProtection, verifyIntegrateProtection } from '../branch-protection.mjs';
-import { evaluateRequiredChecks } from '../pr-release.mjs';
+import { evaluateRequiredChecks, hasPassedDurableReceipt } from '../pr-release.mjs';
 import {
   buildBranchName,
   validateBranchName,
@@ -4011,6 +4011,46 @@ describe('AF-056 integrate 保护与 PR 合并门', () => {
     const failed = successfulChecks();
     failed[2].conclusion = 'failure';
     expect(evaluateRequiredChecks(failed)).toMatchObject({ verdict: 'fail', failing: ['Lint + Typecheck（failure）'] });
+  });
+});
+
+describe('AF-077 pr-release 本地合并门口径', () => {
+  const receiptDir = (root) => join(root, 'docs/worklog/pending/archive');
+  const withReceipt = (taskId, payload) => {
+    const root = mkdtempSync(join(tmpdir(), 'af077-'));
+    mkdirSync(receiptDir(root), { recursive: true });
+    writeFileSync(join(receiptDir(root), `${taskId}-receipt-RC-${taskId}-1.json`), JSON.stringify({ payload }));
+    return root;
+  };
+
+  it('conditional-pass 有已登记 backlog 且无人工复核项时本地合并门放行', () => {
+    const root = withReceipt('AF-977', {
+      reviewVerdict: 'conditional-pass',
+      scopeCheck: 'in-scope',
+      finalStatus: 'completed',
+      manualReviewList: [],
+      backlogItems: [{ id: 'IM-053' }],
+    });
+    try {
+      expect(hasPassedDurableReceipt('AF-977', root)).toMatchObject({ pass: true });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('conditional-pass 有 manualReviewList 时本地合并门拒绝', () => {
+    const root = withReceipt('AF-978', {
+      reviewVerdict: 'conditional-pass',
+      scopeCheck: 'in-scope',
+      finalStatus: 'completed',
+      manualReviewList: ['回执字段缺失'],
+      backlogItems: [{ id: 'IM-053' }],
+    });
+    try {
+      expect(hasPassedDurableReceipt('AF-978', root)).toMatchObject({ pass: false });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 

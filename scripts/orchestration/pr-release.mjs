@@ -6,7 +6,7 @@
  *   node scripts/orchestration/pr-release.mjs status --taskId AF-0xx
  *   node scripts/orchestration/pr-release.mjs merge  --taskId AF-0xx --apply
  *
- * create 可重复执行并推送当前任务分支；merge 只在 completed + passed 回执 +
+ * create 可重复执行并推送当前任务分支；merge 只在 completed + 可合并 durable 回执 +
  * PR HEAD == 本地 HEAD + 必需 checks 全绿时 squash 合并，随后同步本地并清理分支。
  */
 import { execFileSync } from 'node:child_process';
@@ -17,6 +17,7 @@ import { githubRequest, unwrapGithub } from './github-api.mjs';
 import { FAILING_CONCLUSIONS, PASSING_CONCLUSIONS, fetchCheckRuns } from './ci-status.mjs';
 import { buildSquashCommitMessage } from './branch-workflow.mjs';
 import { INTEGRATE_REQUIRED_CONTEXTS } from './branch-protection.mjs';
+import { mergeableDurableReceipts } from './ci-task-gate.mjs';
 
 const INDEX_PATH = 'docs/team/agent-orchestration/task-state-index.json';
 const JOURNAL_PATH = 'docs/team/agent-orchestration/state/journal.jsonl';
@@ -65,12 +66,19 @@ export function hasPassedDurableReceipt(taskId, rootDir = process.cwd()) {
     if (!name.startsWith(`${taskId}-receipt-`) || !name.endsWith('.json')) continue;
     try {
       const receipt = readJson(join(directory, name));
-      receipts.push({ path: `${RECEIPT_DIR}/${name}`, verdict: receipt.payload?.reviewVerdict ?? receipt.reviewVerdict ?? null });
+      receipts.push({
+        path: `${RECEIPT_DIR}/${name}`,
+        verdict: receipt.payload?.reviewVerdict ?? receipt.reviewVerdict ?? null,
+        scopeCheck: receipt.payload?.scopeCheck ?? receipt.scopeCheck ?? null,
+        finalStatus: receipt.payload?.finalStatus ?? receipt.finalStatus ?? null,
+        manualReviewList: receipt.payload?.manualReviewList ?? receipt.manualReviewList ?? null,
+        backlogItems: receipt.payload?.backlogItems ?? receipt.backlogItems ?? null,
+      });
     } catch {
       receipts.push({ path: `${RECEIPT_DIR}/${name}`, verdict: 'invalid-json' });
     }
   }
-  return { pass: receipts.some((receipt) => receipt.verdict === 'passed'), receipts };
+  return { pass: mergeableDurableReceipts(receipts).length > 0, receipts };
 }
 
 /** 必需检查必须全部存在且完成；任何实际失败 check 都优先判 fail。 */
@@ -202,7 +210,7 @@ async function mergePullRequest({ repo, base, taskId, apply, timeoutMinutes, int
     return;
   }
   if (!task.archived || task.status !== 'completed') throw new Error(`任务 ${taskId} 尚未 completed/archived`);
-  if (!receipt.pass) throw new Error(`任务 ${taskId} 没有 passed 的 durable 回执`);
+  if (!receipt.pass) throw new Error(`任务 ${taskId} 没有可合并的 durable 回执（passed，或已登记 backlog 且无人工复核项的 conditional-pass）`);
   if (!pr) throw new Error(`未找到 ${branch} → ${base} 的开放 PR`);
   if (pr.head.sha !== plan.localHead) throw new Error(`PR HEAD ${pr.head.sha} 不等于本地 HEAD ${plan.localHead}；请先推送最新状态`);
   await waitForRequiredChecks({ repo, sha: pr.head.sha, timeoutMinutes, intervalSeconds });
