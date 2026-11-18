@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T13:04:47.151Z",
+  "generatedAt": "2026-11-18T13:59:11.471Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1574,6 +1574,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-093",
+      "recordedAt": "2026-11-18T13:29:04.154Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-104",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-104-postfix-long-batch"
+      ]
+    },
+    {
+      "auditId": "AUD-092",
+      "recordedAt": "2026-11-18T13:28:59.250Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-104",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-104",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-104.json"
+      ]
+    },
+    {
+      "auditId": "AUD-091",
+      "recordedAt": "2026-11-18T13:28:54.694Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-104",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-090",
       "recordedAt": "2026-11-18T12:02:55.299Z",
       "actorRef": "orchestrator",
@@ -1766,68 +1813,19 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-078",
-      "recordedAt": "2026-11-18T11:41:15.728Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-097",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-097",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-097.json"
-      ]
-    },
-    {
-      "auditId": "AUD-077",
-      "recordedAt": "2026-11-18T11:41:15.363Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-097",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-076",
-      "recordedAt": "2026-11-18T11:40:51.135Z",
-      "actorRef": "orchestrator",
-      "correlationId": "archive:AF-096",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 90,
+    "total": 93,
     "byResult": {
-      "allowed": 90,
+      "allowed": 93,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 90
+      "TOOL-QUEUE-SCHEDULER": 93
     },
     "byActor": {
-      "orchestrator": 90
+      "orchestrator": 93
     }
   },
   "protocolView": {
@@ -3939,6 +3937,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/pending/archive/relay-response-AF102-20261118-2010.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-104",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af104-postfix-long-batch-quality-verdict-task-2026-11-18.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af104-postfix-long-batch-quality-verdict-2026-11-18.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4028,5 +4044,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 117
+  "archivedCount": 118
 };

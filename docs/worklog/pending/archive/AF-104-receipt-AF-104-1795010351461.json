@@ -1,0 +1,103 @@
+{
+  "taskId": "AF-104",
+  "contextId": "phase2.5-exit4-quality-remediation",
+  "type": "verification",
+  "baselineRef": "d7b477baf9b7bf05c44599a0d87cec4c6740c485",
+  "dependsOn": ["AF-102"],
+  "policyRefs": ["conventions.md#1.3"],
+  "changedFiles": {
+    "added": [
+      "docs/worklog/completed/phase2.5/af104-postfix-long-batch-quality-verdict-2026-11-18.md",
+      "docs/worklog/pending/af104-postfix-long-batch-quality-verdict-task-2026-11-18.md",
+      "data/batch-reports/bpCkaFlA3YGI95qlJZ9Yn.json",
+      "data/batch-reports/bpCkaFlA3YGI95qlJZ9Yn.md"
+    ],
+    "modified": [
+      "docs/worklog/pending/phase2.5-README.md",
+      "data/batch-reports/index.md"
+    ],
+    "deleted": [],
+    "commits": ["a0c745b"]
+  },
+  "artifactRefs": {
+    "taskSheet": "docs/worklog/pending/af104-postfix-long-batch-quality-verdict-task-2026-11-18.md",
+    "deliveryRecord": "docs/worklog/completed/phase2.5/af104-postfix-long-batch-quality-verdict-2026-11-18.md",
+    "reply": null,
+    "others": [
+      "batch:bpCkaFlA3YGI95qlJZ9Yn",
+      "data/batch-reports/bpCkaFlA3YGI95qlJZ9Yn.json",
+      "data/batch-reports/g3ONzlqSGMVJqkFMF9Lwh.json"
+    ]
+  },
+  "gateResults": [
+    { "command": "corepack pnpm exec vitest run test/auto-practice/af073-batch-report-cli.spec.ts", "exitCode": 0, "errors": 0, "warnings": 0, "note": "1 file / 4 tests passed, 7.83s" },
+    { "command": "corepack pnpm exec tsc --noEmit -p tsconfig.json", "exitCode": 0, "errors": 0, "warnings": 0, "note": "0 error" },
+    { "command": "git diff --stat HEAD -- src/engine-core", "exitCode": 0, "errors": 0, "warnings": 0, "note": "输出为空，零 diff" },
+    { "command": "corepack pnpm exec tsx bin/batch-report.ts --batch bpCkaFlA3YGI95qlJZ9Yn --baseline-snapshot data/batch-reports/g3ONzlqSGMVJqkFMF9Lwh.json --format both --fail-on-incomparable", "exitCode": 2, "errors": 0, "warnings": 0, "note": "正式四态 incomparable（acceptance/counselorModeId/characterSlug 三集合不同）；exit 2 为 --fail-on-incomparable 的预期码" }
+  ],
+  "reproNotes": "1) 本地 node dist/app.js（PORT 3100）+ 远程 MySQL/Redis，生产 POST /admin/api/auto-practice/batch 发起 4 角色 × expert × 1 次 / maxTurns=50；2) 批次 bpCkaFlA3YGI95qlJZ9Yn 4/4 completed、173 轮；3) 读取 4 份 debug_*.json 逐条数咨询师空输出 / <think> / visitor / counselor；4) WP-K CLI 对 96 场归档快照比较，exit 2 incomparable；5) 回写 README §3.2 与 §3.2.6，未伪造达标。",
+  "scopeCheck": "in-scope",
+  "parallelArtifactsExcluded": true,
+  "noOutscopeRefactor": true,
+  "contractChecks": [
+    { "item": "taskId", "result": "pass", "note": "AF-104，与任务单 frontmatter 一致" },
+    { "item": "contextId", "result": "pass", "note": "phase2.5-exit4-quality-remediation" },
+    { "item": "baselineRef", "result": "pass", "note": "d7b477b，与任务单一致" },
+    { "item": "receipt-contract", "result": "pass", "note": "六组必填字段与 changedFiles 齐备" },
+    { "item": "artifactRefs-exist", "result": "pass", "note": "任务单 / 交付记录 / 批次快照均真实存在且非空" },
+    { "item": "state-write", "result": "pass", "note": "任务状态经 CLI；事件链后续以 events verify 复核" },
+    { "item": "engine-core-boundary", "result": "pass", "note": "src/engine-core 零 diff" },
+    { "item": "no-fabricated-data", "result": "pass", "note": "WP-K 正式 CLI 结论 incomparable；未把 4 场验证冒充 80% 质量达标；未伪造督导师标注" },
+    { "item": "private-content", "result": "pass", "note": "交付记录只含轮数 / 比率 / 计数 / 角色 slug，不含对话原文" }
+  ],
+  "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+  "fieldAlignment": {
+    "result": "aligned",
+    "note": "任务单 / 回执 / 交付记录 / README §3.2.6 的 batchId、4 场、173 轮、0/173 空输出、102/173 <think>、incomparable 一致"
+  },
+  "backlogItems": [
+    {
+      "id": "OI-01",
+      "title": "来访者逐字稿 <think> 推理块泄漏（102/173，59.0%）",
+      "impact": "逐字稿与后续对话历史被模型内部推理污染；临床验收不能通过",
+      "detail": "workplace 17/47、self_worth 50/50、grief 8/26、intimate 27/50；render 最终文本未剥离 <think>，history 直接 push 原文。",
+      "status": "candidate"
+    },
+    {
+      "id": "OI-02",
+      "title": "迁移后仅 4 个已审核角色，WP-K 无法与 96 场 8 角色基线可比",
+      "impact": "出口④正式四态只能 incomparable，不能给 improved/neutral/regressed",
+      "detail": "g3 基线 8 角色 × expert/cold；当前库内仅 4 角色 × expert；角色 / 模式 / acceptance 三集合不同。",
+      "status": "candidate"
+    },
+    {
+      "id": "OI-03",
+      "title": "候选批 trust Δ=0.243 快速理想化",
+      "impact": "intake 全局 FAIL 的唯一未达标项；内容层 exploration=0、neutral=92.49%",
+      "detail": "非本单修复；纳入真实督导师六维标注试点复核。",
+      "status": "candidate"
+    }
+  ],
+  "openQuestions": [],
+  "manualReviewList": [],
+  "deviationTable": [
+    {
+      "item": "总轮次",
+      "taskSays": "总轮次不少于 180",
+      "reality": "173 轮（47/50/26/50）",
+      "action": "保留 grief 场 crisis_practice_max 的 26 轮真实结束态，登记差额 7 轮",
+      "why": "强制拉满 50 轮会违反危机后置练习窗安全协议"
+    },
+    {
+      "item": "WP-K 单测路径",
+      "taskSays": "test/auto-practice/batch-report-cli.spec.ts",
+      "reality": "实际为 test/auto-practice/af073-batch-report-cli.spec.ts",
+      "action": "按实际文件执行，4/4 passed",
+      "why": "任务单路径笔误，不伪造不存在的文件"
+    }
+  ],
+  "deviationAbsent": false,
+  "finalStatus": "completed",
+  "reviewVerdict": "passed",
+  "verdictRationale": "批次 4/4 完成、173 轮、valid=true，AF-102 修复项 0/173 空输出达标；WP-K 正式 incomparable 与 intake FAIL 均如实记录；来访者推理块泄漏与角色不可比已登记 OI，未把修复项达标冒充出口④达标。"
+}
