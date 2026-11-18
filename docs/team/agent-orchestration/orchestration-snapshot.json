@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-18T10:15:20.943Z",
+  "generatedAt": "2026-11-18T10:27:41.294Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1369,6 +1369,53 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-067",
+      "recordedAt": "2026-11-18T10:27:01.162Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-093",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-093-phase25-exit4-readme"
+      ]
+    },
+    {
+      "auditId": "AUD-066",
+      "recordedAt": "2026-11-18T10:26:29.885Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-093",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-093",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-093.json"
+      ]
+    },
+    {
+      "auditId": "AUD-065",
+      "recordedAt": "2026-11-18T10:26:29.555Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-093",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-064",
       "recordedAt": "2026-11-18T10:15:20.938Z",
       "actorRef": "orchestrator",
@@ -1565,66 +1612,19 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-052",
-      "recordedAt": "2026-11-18T09:43:07.329Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-089",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-051",
-      "recordedAt": "2026-11-18T08:00:54.982Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-088",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-088-phase25-exit345"
-      ]
-    },
-    {
-      "auditId": "AUD-050",
-      "recordedAt": "2026-11-18T08:00:50.075Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-088",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-088",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-088.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 64,
+    "total": 67,
     "byResult": {
-      "allowed": 64,
+      "allowed": 67,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 64
+      "TOOL-QUEUE-SCHEDULER": 67
     },
     "byActor": {
-      "orchestrator": 64
+      "orchestrator": 67
     }
   },
   "protocolView": {
@@ -3596,6 +3596,24 @@
             "ref": "docs/worklog/pending/af092-af091-implementation-commit-task-2026-11-18.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-093",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af093-phase25-exit4-readme-task-2026-11-18.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/pending/phase2.5-README.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -3685,5 +3703,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 109
+  "archivedCount": 110
 }
