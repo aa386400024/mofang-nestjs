@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T14:49:21.363Z",
+  "generatedAt": "2026-11-18T14:53:08.072Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,48 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-108",
-      "contextId": "phase2.5-exit4-quality-remediation",
-      "type": "implementation",
-      "title": "推理块零泄漏与 8 角色池扩展",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af108-reasoning-leak-and-roster-task-2026-11-18.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-108",
-        "contextId": "phase2.5-exit4-quality-remediation",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-18T14:49:21.360Z",
-        "leaseDeadline": "2026-11-18T15:19:21.358Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-108.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-18T14:49:21.360Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-108.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1616,6 +1575,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-108",
+      "recordedAt": "2026-11-18T14:49:21.409Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-108",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-108",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-108.json"
+      ]
+    },
+    {
       "auditId": "AUD-107",
       "recordedAt": "2026-11-18T14:49:21.074Z",
       "actorRef": "orchestrator",
@@ -1837,66 +1811,25 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/task-state-index.json",
         "docs/team/agent-orchestration/orchestration-state.json"
       ]
-    },
-    {
-      "auditId": "AUD-093",
-      "recordedAt": "2026-11-18T13:29:04.154Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-104",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-104-postfix-long-batch"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 107,
+    "total": 108,
     "byResult": {
-      "allowed": 107,
+      "allowed": 108,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 106,
+      "TOOL-QUEUE-SCHEDULER": 107,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 107
+      "orchestrator": 108
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-108",
-        "title": "推理块零泄漏与 8 角色池扩展",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-exit4-quality-remediation",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-102",
-          "AF-103",
-          "AF-105",
-          "AF-107"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af108-reasoning-leak-and-roster-task-2026-11-18.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -4089,6 +4022,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af107-executor-card-resource-domain-2026-11-18.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-108",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af108-reasoning-leak-and-roster-task-2026-11-18.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af108-reasoning-leak-and-roster-delivery-2026-11-18.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4103,17 +4054,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-108",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af108-reasoning-leak-and-roster-task-2026-11-18.md"
-      }
-    ],
-    "groupId": "phase2.5-exit4-quality-remediation",
-    "groupIds": [
-      "phase2.5-exit4-quality-remediation"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -4187,5 +4130,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 122
+  "archivedCount": 123
 };

@@ -4,102 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 464,
+    "lastEventSeq": 466,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-108",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-18T14:49:20.716Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "开始实现推理清洗与角色池"
-        },
-        {
-          "at": "2026-11-18T14:49:21.358Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-exit4-quality-remediation",
-      "title": "推理块零泄漏与 8 角色池扩展",
-      "type": "implementation",
-      "baselineRef": "dcd3ebd2345c504ee57e0ec8b69b362c09085115",
-      "dependsOn": [
-        "AF-102",
-        "AF-103",
-        "AF-105",
-        "AF-107"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-18T14:49:20.457Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "src/shared/llm/",
-          "src/auto-practice/counselor/policy/visible-output.ts",
-          "src/engine-adapters/rendering/llm-render.adapter.ts",
-          "src/engine-adapters/wiring/character/",
-          "bin/seed-character-profiles.ts",
-          "test/shared/",
-          "test/engine-adapters/",
-          "docs/worklog/pending/",
-          "docs/worklog/completed/"
-        ],
-        "modules": [
-          "engine-adapters-rendering",
-          "engine-adapters-character",
-          "auto-practice-counselor-policy"
-        ],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af108-reasoning-leak-and-roster-task-2026-11-18.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "corepack pnpm exec vitest run test/shared/af106-reasoning-text.spec.ts test/engine-adapters/af106-character-pool.spec.ts test/engine-adapters/wp6-llm-render.spec.ts test/engine-adapters/wp8b-stream-render.spec.ts",
-          "check": "推理清洗与角色池定向单测全绿",
-          "threshold": "failed=0"
-        }
-      ],
-      "successCriteria": [
-        "聚合输出与流式输出中的 `<think>` 推理块在渲染层统一剥离，逐字稿/历史/来访者引擎上下文零泄漏",
-        "流式切分标签时不把半截 `<think>` 或推理内容下发给 TTS/字幕",
-        "只有推理块或截断后无完整句时按候选失败切备，不静默返回成功",
-        "B 类 4 个 DB-only 角色具备内容种子，与 A 类合计 8 个 approved profile",
-        "角色池单测证明 8 个 profile id 互不重复、核心信念无 unspecified 占位、基线数值与标定表一致",
-        "生产 seed 脚本先灌 B 类内容再执行基线校准",
-        "tsc 0 error，定向 eslint 0 error / 0 warning，engine-core 零 diff",
-        "不新造第二份推理正则/角色数值真相源"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af108-reasoning-leak-and-roster-delivery-2026-11-18.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "priorTasks": [],
-      "promotedAt": "2026-11-18T14:49:20.715Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -1172,6 +1080,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/pending/af107-executor-card-resource-domain-task-2026-11-18.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af107-executor-card-resource-domain-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-108",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af108-reasoning-leak-and-roster-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af108-reasoning-leak-and-roster-delivery-2026-11-18.md",
         "reply": null
       }
     }
