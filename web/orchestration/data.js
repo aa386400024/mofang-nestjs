@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T14:34:22.677Z",
+  "generatedAt": "2026-11-18T14:34:33.274Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
-    "ready": 1,
-    "submitted": 0,
+    "ready": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -22,7 +22,7 @@ window.ORCH_SNAPSHOT = {
       "contextId": "phase2.5-exit4-quality-remediation",
       "type": "fix",
       "title": "修复 AF-103 引入的批次入口测试装配回归",
-      "status": "ready",
+      "status": "submitted",
       "verdict": null,
       "verdictRationale": null,
       "attemptCount": 0,
@@ -34,7 +34,28 @@ window.ORCH_SNAPSHOT = {
         "reply": null
       },
       "manualReview": [],
-      "dispatch": null
+      "dispatch": {
+        "taskId": "AF-105",
+        "contextId": "phase2.5-exit4-quality-remediation",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-18T14:34:33.272Z",
+        "leaseDeadline": "2026-11-18T15:04:33.268Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-105.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-18T14:34:33.272Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-105.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
     }
   ],
   "deadLetters": [],
@@ -1594,6 +1615,23 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-098",
+      "recordedAt": "2026-11-18T14:34:22.698Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-105",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-097",
       "recordedAt": "2026-11-18T14:23:04.378Z",
       "actorRef": "orchestrator",
@@ -1813,37 +1851,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-083",
-      "recordedAt": "2026-11-18T11:49:52.338Z",
-      "actorRef": "orchestrator",
-      "correlationId": "archive:AF-099",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 97,
+    "total": 98,
     "byResult": {
-      "allowed": 97,
+      "allowed": 98,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 96,
+      "TOOL-QUEUE-SCHEDULER": 97,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 97
+      "orchestrator": 98
     }
   },
   "protocolView": {
@@ -1854,9 +1875,9 @@ window.ORCH_SNAPSHOT = {
         "title": "修复 AF-103 引入的批次入口测试装配回归",
         "type": "fix",
         "status": {
-          "framework": "ready",
-          "protocol": null,
-          "stage": "orchestration"
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
         },
         "groupId": "phase2.5-exit4-quality-remediation",
         "requiredSkills": [],

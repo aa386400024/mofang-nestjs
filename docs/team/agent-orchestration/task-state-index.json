@@ -4,13 +4,13 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 449,
+    "lastEventSeq": 450,
     "rebuiltAt": null
   },
   "tasks": [
     {
       "taskId": "AF-105",
-      "status": "ready",
+      "status": "submitted",
       "history": [
         {
           "at": "2026-11-18T14:34:22.640Z",
@@ -18,6 +18,13 @@
           "to": "ready",
           "by": "orchestrator-cli",
           "reason": "开始修复测试装配"
+        },
+        {
+          "at": "2026-11-18T14:34:33.268Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
         }
       ],
       "contextId": "phase2.5-exit4-quality-remediation",
