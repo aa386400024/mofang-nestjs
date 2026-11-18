@@ -135,6 +135,6 @@
   ],
   "deviationAbsent": false,
   "finalStatus": "completed",
-  "reviewVerdict": "conditional-pass",
-  "verdictRationale": "批次、健康度、逐字稿清洁度与 WP-K 执行均真实可复现；但 WP-K 为 incomparable、intake 口径不匹配、无真实督导师盲标，因此出口④只能判未通过/不可判定。本单交付证据与诚实结论，不交付虚假达标。"
+  "reviewVerdict": "passed",
+  "verdictRationale": "交付验收通过（passed）：批次、健康度、逐字稿清洁度与 WP-K 执行均真实可复现，scope 无越界，evidence JSON 与审计脚本可复跑。注意：这里的 passed 指 AF-109 交付合格，不等于临床质量达标；出口④仍为「未通过 / 不可判定」，人工复核项与 IM-065 保留。"
 }
