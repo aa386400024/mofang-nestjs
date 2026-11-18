@@ -159,6 +159,13 @@ export interface CharacterProfileSeedSpec {
   readonly attachmentStyle: AttachmentStyle;
   /** 核心信念的结构信息 (与来访池 coreBeliefs **按下标**一一对应). */
   readonly beliefMeta: readonly CharacterBeliefMeta[];
+  /**
+   * 内容自带的信念陈述 (AF-106 · DB-only 角色扩展).
+   *
+   * A 类角色从来访池模板抽取，不填此字段；B 类（DB-only）没有来访池模板，
+   * 必须把陈述随种子一起声明，否则内容 seed 无法把角色灌进库。
+   */
+  readonly coreBeliefStatements?: readonly string[];
   /** 初始信任 [0,1]. */
   readonly trust: number;
   /** 三维阻抗基线 [0,1]. */
@@ -536,38 +543,52 @@ export function buildCharacterProfileSeeds(sources: readonly VisitorTemplateBeli
   return CHARACTER_PROFILE_SEED_SPECS.map((spec) => {
     const source = sourceById.get(spec.templateId);
     const statements = source?.script.innerWorkingModel.coreBeliefs ?? [];
-    return {
-      id: deriveCharacterProfileId(spec.templateId),
-      templateId: spec.templateId,
-      displayName: spec.displayName,
-      attachmentStyle: spec.attachmentStyle,
-      fivePs: spec.fivePs,
-      trust: spec.trust,
-      resistance: spec.resistance,
-      emotion: spec.emotion,
-      // WP51: 同盟三维基线两列 —— 只在基线**明确表态**时才带上 (没表态 = 不出现 = 走 DB DEFAULT).
-      ...(spec.safety === undefined ? {} : { safety: spec.safety }),
-      ...(spec.bond === undefined ? {} : { bond: spec.bond }),
-      // statement 从来访池抽取 (按声明顺序一一对应), theme/标签来自基线声明.
-      coreBeliefs: statements.map((statement, index) => {
-        const meta = spec.beliefMeta[index];
-        return {
-          theme: meta?.theme ?? 'unspecified',
-          statement,
-          activationTags: [...(meta?.activationTags ?? [])],
-        };
-      }),
-      underlyingDesires: spec.underlyingDesires.map((desire) => ({ ...desire })),
-      forbiddenBehaviors: [...spec.forbiddenBehaviors],
-      sensitiveTopics: [...spec.sensitiveTopics],
-      // 表达风格三列: 只在基线**明确表态**时才带上 (没表态 = 不出现 = 走 DB DEFAULT).
-      ...(spec.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: spec.speechVolumeBaseline }),
-      ...(spec.narrativeStyle === undefined ? {} : { narrativeStyle: spec.narrativeStyle }),
-      ...(spec.expressionTone === undefined ? {} : { expressionTone: spec.expressionTone }),
-      // WP-J P2: 台词指纹 —— 同样只在规格表态时带上 (A 类四个角色由 baselineOf 装配, 都有值).
-      ...(spec.verbalVoice === undefined ? {} : { verbalVoice: spec.verbalVoice }),
-    };
+    return assembleCharacterProfileSeed(spec, statements);
   });
+}
+
+/**
+ * 内容规格 + 信念陈述 → 一条完整灌库行.
+ *
+ * 抽成独立函数：A 类（来访池来源）与 B 类（内容自带陈述）必须走**同一份**装配逻辑，
+ * 否则两边的默认列 / 可空列处理迟早分叉。
+ *
+ * @param spec 角色内容规格
+ * @param statements 核心信念陈述（按声明顺序与 beliefMeta 对齐）
+ * @returns 完整灌库行
+ */
+export function assembleCharacterProfileSeed(spec: CharacterProfileSeedSpec, statements: readonly string[]): CharacterProfileSeed {
+  return {
+    id: deriveCharacterProfileId(spec.templateId),
+    templateId: spec.templateId,
+    displayName: spec.displayName,
+    attachmentStyle: spec.attachmentStyle,
+    fivePs: spec.fivePs,
+    trust: spec.trust,
+    resistance: spec.resistance,
+    emotion: spec.emotion,
+    // WP51: 同盟三维基线两列 —— 只在基线**明确表态**时才带上 (没表态 = 不出现 = 走 DB DEFAULT).
+    ...(spec.safety === undefined ? {} : { safety: spec.safety }),
+    ...(spec.bond === undefined ? {} : { bond: spec.bond }),
+    // statement 从来访池抽取 (按声明顺序一一对应), theme/标签来自基线声明.
+    coreBeliefs: statements.map((statement, index) => {
+      const meta = spec.beliefMeta[index];
+      return {
+        theme: meta?.theme ?? 'unspecified',
+        statement,
+        activationTags: [...(meta?.activationTags ?? [])],
+      };
+    }),
+    underlyingDesires: spec.underlyingDesires.map((desire) => ({ ...desire })),
+    forbiddenBehaviors: [...spec.forbiddenBehaviors],
+    sensitiveTopics: [...spec.sensitiveTopics],
+    // 表达风格三列: 只在基线**明确表态**时才带上 (没表态 = 不出现 = 走 DB DEFAULT).
+    ...(spec.speechVolumeBaseline === undefined ? {} : { speechVolumeBaseline: spec.speechVolumeBaseline }),
+    ...(spec.narrativeStyle === undefined ? {} : { narrativeStyle: spec.narrativeStyle }),
+    ...(spec.expressionTone === undefined ? {} : { expressionTone: spec.expressionTone }),
+    // WP-J P2: 台词指纹 —— 同样只在规格表态时带上 (A 类四个角色由 baselineOf 装配, 都有值).
+    ...(spec.verbalVoice === undefined ? {} : { verbalVoice: spec.verbalVoice }),
+  };
 }
 
 /**

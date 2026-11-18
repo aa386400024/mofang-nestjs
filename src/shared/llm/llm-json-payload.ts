@@ -33,6 +33,8 @@
 //     1. npx tsc -p tsconfig.build.json --noEmit 0 错
 //     2. test/shared/wp18-llm-json-payload.spec.ts 覆盖围栏 / 废话 / 思考块 / 空 / 截断
 
+import { removeReasoningBlocks } from './reasoning-text.js';
+
 /**
  * 剥掉内联的 `<think>...</think>` 思考块.
  *
@@ -44,7 +46,8 @@
  * @returns 去掉思考块后的文本
  */
 export function stripThinkingTags(raw: string): string {
-  return raw.replaceAll(/<think>[\s\S]*?<\/think>/gi, '').replace(/<think>[\s\S]*$/i, '');
+  // AF-106: 正则唯一真相收口到 `reasoning-text.ts`，这里只保留历史 API 名。
+  return removeReasoningBlocks(raw);
 }
 
 /**
