@@ -8,7 +8,7 @@
 //
 //   隐私: 本脚本只输出计数 / 指标 / 结论, 不打印任何对话文本或 prompt.
 
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 import { join } from 'node:path';
 import { DataSource, Repository } from 'typeorm';
@@ -28,22 +28,28 @@ import { evaluateRegression } from '../src/auto-practice/metrics/regression-eval
 
 interface CliArgs {
   readonly batches: readonly string[];
+  readonly snapshots: readonly string[];
   readonly all: boolean;
   readonly since: string | null;
   readonly outDir: string;
   readonly baseline: string | null;
+  readonly baselineSnapshot: string | null;
   readonly failOnRegression: boolean;
+  readonly failOnIncomparable: boolean;
   readonly strict: boolean;
   readonly format: 'json' | 'md' | 'both';
 }
 
 function parseArgs(argv: readonly string[]): CliArgs {
   const batches: string[] = [];
+  const snapshots: string[] = [];
   let all = false;
   let since: string | null = null;
   let outDir = 'data/batch-reports';
   let baseline: string | null = null;
+  let baselineSnapshot: string | null = null;
   let failOnRegression = false;
+  let failOnIncomparable = false;
   let strict = false;
   let format: CliArgs['format'] = 'both';
 
@@ -58,6 +64,10 @@ function parseArgs(argv: readonly string[]): CliArgs {
     switch (arg) {
       case '--batch': {
         batches.push(next());
+        break;
+      }
+      case '--snapshot': {
+        snapshots.push(next());
         break;
       }
       case '--all': {
@@ -76,8 +86,16 @@ function parseArgs(argv: readonly string[]): CliArgs {
         baseline = next();
         break;
       }
+      case '--baseline-snapshot': {
+        baselineSnapshot = next();
+        break;
+      }
       case '--fail-on-regression': {
         failOnRegression = true;
+        break;
+      }
+      case '--fail-on-incomparable': {
+        failOnIncomparable = true;
         break;
       }
       case '--strict': {
@@ -103,9 +121,25 @@ function parseArgs(argv: readonly string[]): CliArgs {
       }
     }
   }
-  if (!all && batches.length === 0) throw new Error('必须指定 --batch <id> 或 --all');
+  const hasDbSelection = all || batches.length > 0;
+  const hasSnapshotSelection = snapshots.length > 0;
+  if (!hasDbSelection && !hasSnapshotSelection) throw new Error('必须指定 --batch <id>、--all 或 --snapshot <file>');
+  if (hasDbSelection && hasSnapshotSelection) throw new Error('--batch/--all 与 --snapshot 互斥');
   if (all && batches.length > 0) throw new Error('--batch 与 --all 互斥');
-  return { batches, all, since, outDir, baseline, failOnRegression, strict, format };
+  if (baseline && baselineSnapshot) throw new Error('--baseline 与 --baseline-snapshot 互斥');
+  return {
+    batches,
+    snapshots,
+    all,
+    since,
+    outDir,
+    baseline,
+    baselineSnapshot,
+    failOnRegression,
+    failOnIncomparable,
+    strict,
+    format,
+  };
 }
 
 function printHelp(): void {
@@ -113,17 +147,33 @@ function printHelp(): void {
     'batch-report — 批次回归报告',
     '',
     '--batch <id>            可重复; 与 --all 互斥',
+    '--snapshot <file>       可重复; 读取归档 BatchMetricsV1 JSON, 与 --batch/--all 互斥',
     '--all                   全部批次',
     '--since <YYYY-MM-DD>    按创建时间过滤',
     '--out <dir>             缺省 data/batch-reports',
     '--baseline <id>         对比基准 (缺省 = 时间上前一批)',
+    '--baseline-snapshot <file> 以归档快照为对比基准',
     '--fail-on-regression    出现 regressed 时退出码 1',
+    '--fail-on-incomparable  出现 incomparable 时退出码 2',
     '--strict                覆盖率 < 0.9 即退出码 2',
     '--format json|md|both   缺省 both',
     '',
-    '退出码: 0 OK | 1 回归 | 2 数据不可用 | 3 参数错误',
+    '退出码: 0 OK | 1 回归 | 2 数据不可用/不可比 | 3 参数错误',
   ];
   console.log(lines.join('\n'));
+}
+
+/** 读取并校验归档快照；文件不可读 / JSON 非法 / schema 不符均按数据不可用处理。 */
+async function loadSnapshotFile(filePath: string): Promise<BatchMetricsV1> {
+  const raw = await readFile(filePath, 'utf8');
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    throw new Error(`快照 ${filePath} JSON 解析失败: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  assertBatchMetricsV1(parsed, `snapshot:${filePath}`);
+  return parsed;
 }
 
 /** 单个模式切片的判分结果 (报告用). */
@@ -240,33 +290,52 @@ async function buildSnapshots(
   return { snapshots, coverageBlocked };
 }
 
-async function writeReports(snapshots: BatchMetricsV1[], args: CliArgs): Promise<void> {
+async function writeReports(snapshots: readonly BatchMetricsV1[], args: CliArgs, verdicts: ReadonlyMap<string, string>): Promise<void> {
   for (const snapshot of snapshots) {
     if (args.format !== 'md') {
       await writeFile(join(args.outDir, `${snapshot.batchId}.json`), `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
     }
     if (args.format !== 'json') {
-      await writeFile(join(args.outDir, `${snapshot.batchId}.md`), renderMarkdown(snapshot, null), 'utf8');
+      await writeFile(
+        join(args.outDir, `${snapshot.batchId}.md`),
+        renderMarkdown(snapshot, verdicts.get(snapshot.batchId) ?? null),
+        'utf8',
+      );
     }
   }
 }
 
-function runComparisons(ordered: BatchMetricsV1[], args: CliArgs): number {
+interface ComparisonOutcome {
+  readonly exitCode: number;
+  readonly verdicts: ReadonlyMap<string, string>;
+}
+
+function runComparisons(ordered: readonly BatchMetricsV1[], args: CliArgs, baselineSnapshot: BatchMetricsV1 | null): ComparisonOutcome {
+  const verdicts = new Map<string, string>();
   let verdictExit = 0;
-  for (let i = 1; i < ordered.length; i += 1) {
-    const base = args.baseline ? (ordered.find((s) => s.batchId === args.baseline) ?? ordered[i - 1]) : ordered[i - 1];
-    const report = evaluateRegression({ base, candidate: ordered[i] });
-    if (report.verdict === 'regressed' && args.failOnRegression) verdictExit = 1;
+  for (let i = 0; i < ordered.length; i += 1) {
+    const candidate = ordered[i];
+    const base =
+      baselineSnapshot ?? (args.baseline ? (ordered.find((s) => s.batchId === args.baseline) ?? null) : i > 0 ? ordered[i - 1] : null);
+    if (!base) continue;
+    const report = evaluateRegression({ base, candidate });
+    const verdictLine =
+      report.verdict === 'incomparable'
+        ? `incomparable — ${report.reasons.join('; ')}`
+        : `${report.verdict} (changed: ${report.changedSegments.join(',') || 'none'})`;
+    verdicts.set(candidate.batchId, verdictLine);
     if (report.verdict === 'incomparable') {
-      console.warn(`[${ordered[i].batchId}] incomparable: ${report.reasons.join('; ')}`);
+      console.warn(`[${candidate.batchId}] ${verdictLine}`);
+      if (args.failOnIncomparable) verdictExit = 2;
     } else {
-      console.log(`[${ordered[i].batchId}] ${report.verdict} (changed: ${report.changedSegments.join(',') || 'none'})`);
+      console.log(`[${candidate.batchId}] ${verdictLine}`);
+      if (report.verdict === 'regressed' && args.failOnRegression) verdictExit = 1;
     }
   }
-  return verdictExit;
+  return { exitCode: verdictExit, verdicts };
 }
 
-async function writeIndex(ordered: BatchMetricsV1[], outDir: string): Promise<void> {
+async function writeIndex(ordered: readonly BatchMetricsV1[], outDir: string): Promise<void> {
   const indexLines = ['# 批次时间轴', '', '| 批次 | 计算时间 | 纳入/期望 | 探索率 | 深度变化 | 指纹 |', '|---|---|---|---|---|---|'];
   for (const snapshot of ordered) {
     indexLines.push(
@@ -285,32 +354,64 @@ async function main(): Promise<number> {
     return 3;
   }
 
-  // ormconfig 默认导出已 new 好的 DataSource 实例 (未 initialize); 基于其 options
-  // 重建并显式补上 auto-practice 实体 (原 entities glob 只扫 src/entity).
-  const base = await ormconfig;
-  const dataSource = new DataSource({ ...base.options, entities: [PracticeBatch, PracticeSession] });
-  await dataSource.initialize();
+  const useDb = args.all || args.batches.length > 0;
+  let dataSource: DataSource | null = null;
+  const snapshots: BatchMetricsV1[] = [];
+  let coverageBlocked = false;
 
   try {
-    const batchRepo = dataSource.getRepository(PracticeBatch);
-    const sessionRepo = dataSource.getRepository(PracticeSession);
-    const batchRows = await selectBatchRows(args, batchRepo);
+    if (useDb) {
+      // ormconfig 默认导出已 new 好的 DataSource 实例 (未 initialize); 基于其 options
+      // 重建并显式补上 auto-practice 实体 (原 entities glob 只扫 src/entity).
+      const base = await ormconfig;
+      dataSource = new DataSource({ ...base.options, entities: [PracticeBatch, PracticeSession] });
+      await dataSource.initialize();
 
-    const configStub = { get: (key: string): string | undefined => process.env[key] };
-    const metricsService = new BatchMetricsService(configStub as never, sessionRepo);
+      const batchRepo = dataSource.getRepository(PracticeBatch);
+      const sessionRepo = dataSource.getRepository(PracticeSession);
+      const batchRows = await selectBatchRows(args, batchRepo);
+      const foundIds = new Set(batchRows.map((row) => row.batchId));
+      const missing = args.batches.filter((id) => !foundIds.has(id));
+      if (missing.length > 0) {
+        console.error(`数据不可用: 库内无批次 ${missing.join(', ')}`);
+        return 2;
+      }
+      if (args.all && batchRows.length === 0) {
+        console.error('数据不可用: 库内没有任何批次');
+        return 2;
+      }
+
+      const configStub = { get: (key: string): string | undefined => process.env[key] };
+      const metricsService = new BatchMetricsService(configStub as never, sessionRepo);
+      const built = await buildSnapshots(batchRows, metricsService);
+      snapshots.push(...built.snapshots);
+      coverageBlocked = built.coverageBlocked;
+    }
+
+    for (const filePath of args.snapshots) {
+      const snapshot = await loadSnapshotFile(filePath);
+      snapshots.push(snapshot);
+      if (snapshot.coverage.includedSessions / Math.max(snapshot.coverage.expectedSessions, 1) < 0.9) {
+        coverageBlocked = true;
+      }
+    }
+
+    if (snapshots.length === 0) {
+      console.error('数据不可用: 没有可报告的快照');
+      return 2;
+    }
+
     await mkdir(args.outDir, { recursive: true });
-
-    const { snapshots, coverageBlocked } = await buildSnapshots(batchRows, metricsService);
-    await writeReports(snapshots, args);
-
     const ordered = [...snapshots].sort((a, b) => a.computedAt.localeCompare(b.computedAt));
-    const verdictExit = runComparisons(ordered, args);
+    const baselineSnapshot = args.baselineSnapshot ? await loadSnapshotFile(args.baselineSnapshot) : null;
+    const comparison = runComparisons(ordered, args, baselineSnapshot);
+    await writeReports(ordered, args, comparison.verdicts);
     await writeIndex(ordered, args.outDir);
 
     if (args.strict && coverageBlocked) return 2;
-    return verdictExit;
+    return comparison.exitCode;
   } finally {
-    await dataSource.destroy();
+    if (dataSource) await dataSource.destroy();
   }
 }
 
