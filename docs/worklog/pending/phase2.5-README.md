@@ -175,28 +175,28 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 
 完整证据链见：[数据链路体检记录](../completed/phase2.5/phase2.5-data-pipeline-audit-2026-11-09.md)
 
-### 3.2 出口条件当前状态（2026-11-17 取证重定）
+### 3.2 出口条件当前状态（2026-11-18 正式 CLI 判定）
 
-> 本节以 2026-11-17 环境重置后的真实数据为准。2026-11-12 的 96 场批次 `g3ONzlqSGMVJqkFMF9Lwh` 已不在当前数据库（`ap_practice_sessions` 计数 0），只能作历史记录，不能再作为当前出口证据。
-> 取证任务：AF-060（首轮验收断链，AF-061 已完成返修；V4 断链归零）；交付记录：[phase2.5-exit-evidence-2026-11-17.md](../completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md)。
-> **正式判定：出口 ④ 未通过；当前也不能给出“质量达标”结论。** 96 场历史记录本身是“管道门禁 3/3 过、intake 6/8 未全过”，不是“待判读”；当前唯一 8 场批次 intake 全局 FAIL；两批诊断对比为 `incomparable`；80% 准确率仍缺真实结构化验收集。
+> 本节以 2026-11-18 AF-073 的正式 WP-K CLI 判定为准。2026-11-12 的 96 场批次 `g3ONzlqSGMVJqkFMF9Lwh` 已不在当前数据库（`ap_practice_sessions` 计数 0），只能作历史记录；当前 8 场批次 `uJHgP8uQGeM8Z6HbZY7M5` 的逐字稿也已随环境迁移清理，WP-K 从库内重算为 0/8（`file_missing`），因此正式四态改用两份归档快照（96 场 96/96、当前 8 场 8/8 / 94 轮）比较，不新跑 LLM 批次。
+> 取证任务：AF-073（工具修复 + 正式判读）；前序取证：[phase2.5-exit-evidence-2026-11-17.md](../completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md)。
+> **正式判定：出口 ④ 未通过；当前不能给出“质量达标”结论。** 96 场历史记录本身是“管道门禁 3/3 过、intake 6/8 未全过”，不是“待判读”；当前 8 场归档快照 intake 全局 FAIL；正式 CLI 四态为 `incomparable`，不存在 improved/neutral/regressed；80% 准确率仍缺真实督导结构化验收集。
 
 | 出口条件   | 当前状态（2026-11-17）                                                                                                                                                                                                                                   | 判定                       |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
 | ① 合规过线 | WP-A 入参零原文 + 三道风险闸门保持；本批 94 轮无 crisis 触发，未新增运行证据                                                                                                                                                                             | ✅ 代码口径保持            |
 | ② 考核公平 | G-1 已保证 `exam` 恒 `rule_only`；但 `BatchBody` 仍只有 `characterSlugs/counselorModeIds/maxTurns/repeats`，`enqueueBatch()` 未把 `scenarioType` 传给队列，生产 HTTP 仍无法创建 exam 批次                                                                | 🚧 部分达标                |
 | ③ 成本可控 | 当前 8 场 / 94 轮 `deliberation_mode` 全为 `rule_only`（8/8）；`gate_decisions` 该批 94 行全部 `rule_only_skip`，审议 LLM 调用 0 次；渲染侧 116,033 tokens / 0.182277 元（`cost_basis=full`）；`ENGINE_DELIBERATION_ENABLED` 未配，50 分钟长会成本无证据 | ❌ 无审议成本证据          |
-| ④ 质量达标 | 96 场批次库内已清空；当前 8 场 intake 全局 FAIL（`safety Δ=0.0065` < 0.015，`zero_motion=1/idle`）；96 场历史记录为 intake 6/8 未全过；强制跨批诊断结论 `incomparable`；真实督导结构化 `dataset.json` 不存在，80% 准确率无法正式评测                     | ❌ 未通过 / 核心指标不可判 |
+| ④ 质量达标 | 正式 CLI：归档 96 快照为基线、当前 8 场快照为候选，`--fail-on-incomparable` exit 2；结论 `incomparable`（验收判据不同、characterSlug 集合不同），无 improved/neutral/regressed。当前 8 场快照 intake 全局 FAIL（`safety Δ=0.0065` < 0.015，`zero_motion=1/idle`）；96 场历史记录为 intake 6/8 未全过；真实督导结构化 `dataset.json` 不存在，80% 准确率无法正式评测。 | ❌ 未通过 / 核心指标不可判 |
 | ⑤ 数据积累 | 当前库仅 8 场 / 94 轮（4 角色 × 2 模式 × 1 次），距 1000+ 场差两个数量级；旧 96 场不在库，不能计入当前积累                                                                                                                                               | ❌ 未达标                  |
 
-#### 3.2.1 2026-11-17 取证关键数字
+#### 3.2.1 2026-11-18 正式判定关键数字
 
-- **旧 96 场**：数据库行 0；HEAD 中的历史报告仍为 96 场 / 1112 轮（`safety Δ=0.012365`、`zero_motion=38`、`trust Δ=0.084125`）；历史交付记录明确“管道门禁 3/3 全过、intake 6/8 未全过，只可作渲染链路证据”。
-- **当前 8 场**：`uJHgP8uQGeM8Z6HbZY7M5`，8 场 / 94 轮，`engine_version=v2026.11.16-6cfb46e-59-ga27aba5-dirty`（比当前 HEAD `g66c186f` 落后 8 个提交），`intake` 全局 FAIL；`expert` 4 场 safety Δ=0.0095，`cold` 4 场 Δ=0.0035。
+- **旧 96 场**：当前数据库 `ap_practice_sessions` 行 0；归档快照 `data/batch-reports/g3ONzlqSGMVJqkFMF9Lwh.json` 仍为 96/96 场、1112 轮（`safety Δ=0.012365`、`zero_motion=38`、`trust Δ=0.084125`）；历史交付记录明确“管道门禁 3/3 全过、intake 6/8 未全过，只可作渲染链路证据”。
+- **当前 8 场**：归档快照 `data/batch-reports/uJHgP8uQGeM8Z6HbZY7M5.json` 为 8/8 场、94 轮，`engine_version=v2026.11.16-6cfb46e-59-ga27aba5-dirty`（比当前 HEAD `g66c186f` 落后 8 个提交），`intake` 全局 FAIL；`expert` 4 场 safety Δ=0.0095，`cold` 4 场 Δ=0.0035。库内逐字稿已随环境迁移清理，WP-K 从库内重算为 0/8（`file_missing=8`），不能作为当前有效快照。
 - **expert 逐场**：0.010（grief）/ 0.004（self_worth）/ 0.010（workplace）/ 0.014（intimate），四场均低于 0.015；不是单场离群，而是全档位偏弱。
 - **zero_motion**：`debug_1392qCzzcGuyOM_laopxB`（workplace / cold / 12 轮）12/12 轮 `strategy=resistance`、`eventTags=neutral`、BDI 八维首末完全不变；`closure=0 / idle=1`，属纯 neutral 空转，不是合理封闭。
-- **WP-K**：`--batch uJ...` exit 0，8/8、94 轮、fingerprint 与既有快照逐项一致；`--batch g3...` 因无库内行，CLI 却 exit 0 且只生成空 `index.md`（应报数据不可用，已登记为遗留缺陷）。
-- **四态**：无正式 CLI 四态；用归档 96 快照与当前 8 场做诊断比较，结果为 `incomparable`（acceptance 不同、characterSlug 集合不同；7 个指纹段变化），不存在 improved/neutral/regressed。
+- **WP-K 正式四态**：`--snapshot data/batch-reports/uJ…json --baseline-snapshot data/batch-reports/g3…json --format both` exit 0，结论 `incomparable`；加 `--fail-on-incomparable` 后 exit 2。CLI 给出的不可比原因为“两批验收判据（acceptance）不同；两批 characterSlug 集合不同”，不存在 improved/neutral/regressed。AF-060 旧诊断记录的 7 个指纹段变化仍可查，但正式判定以本次 CLI 输出为准。
+- **缺批退出码**：`--batch g3ONzlqSGMVJqkFMF9Lwh` 已由 AF-073 修为 exit 2（`数据不可用: 库内无批次 g3ONzlqSGMVJqkFMF9Lwh`），不再 exit 0 生成空报告；定向单测覆盖归档快照比较、`incomparable` 退出码与参数互斥。
 
 ### 3.3 下一步（严格按顺序）
 
