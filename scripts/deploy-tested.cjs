@@ -39,7 +39,7 @@
  */
 
 const readline = require('node:readline');
-const { execSync, spawnSync } = require('node:child_process');
+const { execSync } = require('node:child_process');
 const path = require('node:path');
 const fs = require('node:fs');
 
@@ -49,7 +49,6 @@ const PKG = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8')
 const VERSION = process.env.DEPLOY_VERSION || `v${PKG.version}-${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '')}`;
 const IMAGE_NAME = 'mofang-nestjs-api';
 const REMOTE_HOST = process.env.DEPLOY_HOST || 'root@117.72.30.78';
-const REMOTE_DIR = '/opt/mofang-nestjs';
 const REMOTE_BUILD_CTX = '/tmp/mofang-nestjs-build';
 const REMOTE_DEPLOY_DIR = '/opt/mofang-nestjs';
 

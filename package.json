@@ -15,13 +15,18 @@
     "overrides": {
       "axios": "^1.21.1",
       "undici": "^7.30.1"
+    },
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-fc5q-39xc-vjpf"
+      ]
     }
   },
   "packageManager": "pnpm@9.15.0",
   "engineStrict": true,
   "scripts": {
-    "lint": "eslint --cache --cache-strategy content \"{src,test,bin}/**/*.ts\"",
-    "lint:fix": "eslint --fix --cache --cache-strategy content \"{src,test,bin}/**/*.ts\"",
+    "lint": "eslint --cache --cache-strategy content \"{src,test,bin}/**/*.ts\" && eslint --cache --cache-strategy content --config scripts/orchestration/eslint-scripts.config.mjs \"scripts/**/*.{mjs,cjs}\"",
+    "lint:fix": "eslint --fix --cache --cache-strategy content \"{src,test,bin}/**/*.ts\" && eslint --fix --cache --cache-strategy content --config scripts/orchestration/eslint-scripts.config.mjs \"scripts/**/*.{mjs,cjs}\"",
     "lint:fast": "oxlint src test bin",
     "lint:fast:fix": "oxlint --fix src test bin",
     "lint:deep": "oxlint --type-aware src test bin",

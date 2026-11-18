@@ -21,12 +21,14 @@
   "resources": [
     "AGENTS.md",
     "package.json",
+    "eslint.config.mjs",
     ".husky/",
     ".github/",
     "docs/team/conventions.md",
     "docs/team/wp-task-template.md",
     "docs/worklog/",
     "docs/team/agent-orchestration/",
+    "docs/security/",
     "scripts/orchestration/"
   ],
   "limits": {

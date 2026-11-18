@@ -14,7 +14,7 @@ import { closeSync, existsSync, mkdirSync, openSync, readFileSync, unlinkSync, w
 import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { PATHS, nowIso } from './state-store.mjs';
+import { PATHS } from './state-store.mjs';
 
 /** 默认陈旧阈值：比默认任务租约（30 min）略宽，避免正常长跑被判陈旧。 */
 export const DEFAULT_STALE_MS = 45 * 60 * 1000;
