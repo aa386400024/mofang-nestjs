@@ -44,6 +44,9 @@ import {
   TOOL_CATEGORIES,
   ARTIFACT_KINDS,
 } from '../contract-enums.mjs';
+import { planReissue } from '../reissue.mjs';
+import { lintReceiptPayload } from '../receipt-lint.mjs';
+import { inspectTextFile, normalizeLf, normalizeTextFile } from '../text-normalize.mjs';
 import {
   ARCHIVE_STATUSES,
   archiveTaskEntry,
@@ -4167,5 +4170,149 @@ describe('AF-059 零依赖任务单 scope 解析', () => {
     );
     expect(() => parseTaskSheetScopeForGate(`---\ntaskId: AF-059\ntype: fix\n---\n`, 'AF-059')).toThrow('scope 缺失');
     expect(() => parseTaskSheetScopeForGate(`---\ntaskId: AF-059\nscope:\n  files: []\n---\n`, 'AF-059')).toThrow('scope.files 为空');
+  });
+});
+
+describe('AF-084 scope 重签发计划', () => {
+  const oldTask = {
+    taskId: 'AF-079',
+    status: 'ready',
+    artifacts: { taskSheet: 'docs/worklog/pending/af079.md' },
+  };
+  const newTask = {
+    taskId: 'AF-080',
+    priorTasks: ['AF-079'],
+    artifacts: { taskSheet: 'docs/worklog/pending/af080.md' },
+  };
+  const index = { tasks: [oldTask], archivedTasks: [] };
+
+  it('backlog / ready 任务可重签发，强制 priorTasks 与新 taskId', () => {
+    expect(planReissue(index, { fromTaskId: 'AF-079', newTask })).toMatchObject({ ok: true, errors: [] });
+    expect(planReissue({ tasks: [{ ...oldTask, status: 'backlog' }], archivedTasks: [] }, { fromTaskId: 'AF-079', newTask }).ok).toBe(true);
+  });
+
+  it('原任务不存在 / 已进入实现 / 新任务缺 priorTasks / taskId 冲突均拒绝', () => {
+    expect(planReissue(index, { fromTaskId: 'AF-999', newTask }).errors.join(' ')).toMatch(/不在活跃列表/);
+    const submitted = { tasks: [{ ...oldTask, status: 'working' }], archivedTasks: [] };
+    expect(planReissue(submitted, { fromTaskId: 'AF-079', newTask }).errors.join(' ')).toMatch(/已进入实现/);
+    expect(planReissue(index, { fromTaskId: 'AF-079', newTask: { ...newTask, priorTasks: [] } }).errors.join(' ')).toMatch(/priorTasks/);
+    expect(planReissue(index, { fromTaskId: 'AF-079', newTask: { ...newTask, taskId: 'AF-079' } }).errors.join(' ')).toMatch(/新 taskId/);
+    expect(
+      planReissue({ tasks: [oldTask, { taskId: 'AF-080', status: 'backlog' }], archivedTasks: [] }, { fromTaskId: 'AF-079', newTask })
+        .errors.join(' '),
+    ).toMatch(/任务已存在/);
+  });
+});
+
+describe('AF-084 回执预检', () => {
+  function buildFixture() {
+    const root = mkdtempSync(join(tmpdir(), 'orch-receipt-lint-'));
+    mkdirSync(join(root, 'docs', 'worklog', 'completed'), { recursive: true });
+    mkdirSync(join(root, 'docs', 'worklog', 'pending'), { recursive: true });
+    writeFileSync(join(root, 'docs', 'worklog', 'completed', 'af084.md'), '# AF-084\n', 'utf8');
+    const task = {
+      taskId: 'AF-084',
+      scope: { files: ['scripts/orchestration/', 'docs/worklog/'], modules: [], interfaces: [] },
+      artifacts: { taskSheet: 'docs/worklog/pending/af084.md', deliveryRecord: 'docs/worklog/completed/af084.md' },
+    };
+    const payload = {
+      taskId: 'AF-084',
+      contextId: 'phase2.5-orchestration-closed-loop',
+      type: 'implementation',
+      baselineRef: '32b287a',
+      dependsOn: [],
+      policyRefs: [],
+      changedFiles: { added: [], modified: ['scripts/orchestration/cli.mjs'], deleted: [] },
+      artifactRefs: {
+        taskSheet: 'docs/worklog/pending/af084.md',
+        deliveryRecord: 'docs/worklog/completed/af084.md',
+        reply: null,
+        others: [],
+      },
+      gateResults: [{ command: 'pnpm exec vitest run', exitCode: 0, errors: 0, warnings: 0, specFiles: 1 }],
+      reproNotes: '定向运行',
+      scopeCheck: 'in-scope',
+      parallelArtifactsExcluded: true,
+      noOutscopeRefactor: true,
+      contractChecks: [{ item: 'taskId', result: 'pass', note: '一致' }],
+      contractRef: RECEIPT_CONTRACT_REF,
+      fieldAlignment: { result: 'aligned', note: '一致' },
+      backlogItems: [],
+      openQuestions: [],
+      manualReviewList: [],
+      deviationTable: [],
+      deviationAbsent: true,
+      finalStatus: 'completed',
+      reviewVerdict: 'passed',
+      verdictRationale: '通过',
+    };
+    writeFileSync(join(root, 'docs', 'worklog', 'pending', 'af084.md'), '# sheet\n', 'utf8');
+    return { root, task, payload };
+  }
+
+  it('合法回执通过七组字段、scope、工件与换行检查', () => {
+    const { root, task, payload } = buildFixture();
+    try {
+      expect(lintReceiptPayload(payload, task, { repoRoot: root })).toMatchObject({ ok: true, errors: [] });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('状态面生成物、scope 外声明、CR 换行、工件缺失均拦截', () => {
+    const { root, task, payload } = buildFixture();
+    try {
+      const statePlane = structuredClone(payload);
+      statePlane.changedFiles.modified.push('docs/team/agent-orchestration/task-state-index.json');
+      expect(lintReceiptPayload(statePlane, task, { repoRoot: root }).errors.join(' ')).toMatch(/状态面生成物/);
+
+      const residual = structuredClone(payload);
+      residual.changedFiles.modified.push('src/app.module.ts');
+      expect(lintReceiptPayload(residual, task, { repoRoot: root }).errors.join(' ')).toMatch(/超出任务 scope/);
+
+      const missing = structuredClone(payload);
+      missing.artifactRefs.deliveryRecord = 'docs/worklog/completed/missing.md';
+      expect(lintReceiptPayload(missing, task, { repoRoot: root }).errors.join(' ')).toMatch(/文件不存在/);
+
+      writeFileSync(join(root, 'docs', 'worklog', 'completed', 'af084.md'), '# AF-084\r\n\r\nbody\r\n', 'utf8');
+      expect(lintReceiptPayload(payload, task, { repoRoot: root }).errors.join(' ')).toMatch(/CR/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('七组字段缺失由框架校验拦截', () => {
+    const { root, task, payload } = buildFixture();
+    try {
+      const broken = structuredClone(payload);
+      delete broken.gateResults;
+      expect(lintReceiptPayload(broken, task, { repoRoot: root }).errors.join(' ')).toMatch(/gateResults/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('AF-084 文本 LF / BOM 规范化', () => {
+  it('normalizeLf 去 BOM 与 CRLF，已 LF 文本不变', () => {
+    expect(normalizeLf('\uFEFFa\r\nb\rc\n')).toBe('a\nb\nc\n');
+    expect(normalizeLf('a\nb\n')).toBe('a\nb\n');
+  });
+
+  it('默认只读检查，--apply 才写盘并保留内容', () => {
+    const root = mkdtempSync(join(tmpdir(), 'orch-text-normalize-'));
+    const file = join(root, 'doc.md');
+    try {
+      writeFileSync(file, '\uFEFF# title\r\n\r\nbody\r\n', 'utf8');
+      expect(inspectTextFile(file)).toMatchObject({ hasBom: true, crCount: 3, needsNormalize: true });
+      const dry = normalizeTextFile(file, { apply: false });
+      expect(dry).toMatchObject({ changed: true, applied: false });
+      expect(readFileSync(file, 'utf8')).toBe('\uFEFF# title\r\n\r\nbody\r\n');
+      const applied = normalizeTextFile(file, { apply: true });
+      expect(applied.applied).toBe(true);
+      expect(readFileSync(file, 'utf8')).toBe('# title\n\nbody\n');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

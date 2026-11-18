@@ -153,7 +153,10 @@ export function evaluateTaskEntry({ changedFiles = [], tasks = [], archivedTasks
     return {
       ok: false,
       reason: 'no-active-task',
-      message: '没有处于 ready/submitted/working/input-required/completed 的编排任务',
+      message:
+        completedArchiveIds.size > 0
+          ? '没有处于 ready/submitted/working/input-required/completed 的编排任务；本仓已有 completed 归档任务，若实现提交发生在 run-once 之后，请按两阶段提交：先提交实现（任务仍为 submitted），回执摄入与 completed/archived 状态面单独提交'
+          : '没有处于 ready/submitted/working/input-required/completed 的编排任务',
       taskId: null,
       status: null,
       covered: [],
