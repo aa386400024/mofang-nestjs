@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T15:47:35.853Z",
+  "generatedAt": "2026-11-18T16:38:34.926Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,7 +16,48 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-111",
+      "contextId": "phase2.5-long-session-acceptance",
+      "type": "implementation",
+      "title": "long 50 轮候选验收口径与双人盲标工具（不冒充临床硬门）",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af111-long-session-acceptance-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-111",
+        "contextId": "phase2.5-long-session-acceptance",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-18T16:38:34.924Z",
+        "leaseDeadline": "2026-11-18T17:08:34.921Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-111.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-18T16:38:34.924Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-111.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1598,6 +1639,40 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-113",
+      "recordedAt": "2026-11-18T16:38:29.591Z",
+      "actorRef": "orchestrator",
+      "correlationId": "reissue:AF-110:AF-111",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-112",
+      "recordedAt": "2026-11-18T16:35:45.899Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-110",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-111",
       "recordedAt": "2026-11-18T14:58:55.059Z",
       "actorRef": "orchestrator",
@@ -1801,57 +1876,48 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-105.json"
       ]
-    },
-    {
-      "auditId": "AUD-098",
-      "recordedAt": "2026-11-18T14:34:22.698Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-105",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-097",
-      "recordedAt": "2026-11-18T14:23:04.378Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-103",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-103",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-103.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 111,
+    "total": 113,
     "byResult": {
-      "allowed": 111,
+      "allowed": 113,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 110,
+      "TOOL-QUEUE-SCHEDULER": 112,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 111
+      "orchestrator": 113
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-111",
+        "title": "long 50 轮候选验收口径与双人盲标工具（不冒充临床硬门）",
+        "type": "implementation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-long-session-acceptance",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-109"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af111-long-session-acceptance-task-2026-11-19.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -4080,6 +4146,20 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af109-exit4-quality-verdict-2026-11-18.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-110",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af110-long-session-acceptance-task-2026-11-19.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4094,9 +4174,17 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-111",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af111-long-session-acceptance-task-2026-11-19.md"
+      }
+    ],
+    "groupId": "phase2.5-long-session-acceptance",
+    "groupIds": [
+      "phase2.5-long-session-acceptance"
+    ],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -4170,5 +4258,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 124
+  "archivedCount": 125
 };
