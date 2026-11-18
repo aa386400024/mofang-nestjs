@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T14:53:08.072Z",
+  "generatedAt": "2026-11-18T15:47:35.853Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -21,17 +21,17 @@ window.ORCH_SNAPSHOT = {
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 64,
-    "activeCount": 11,
+    "total": 65,
+    "activeCount": 12,
     "byStatus": {
-      "candidate": 11,
+      "candidate": 12,
       "queued": 0,
       "accepted": 0,
       "done": 50,
       "wontfix": 3
     },
     "byType": {
-      "gap": 40,
+      "gap": 41,
       "guardrail": 5,
       "tool": 0,
       "standard": 5,
@@ -40,7 +40,7 @@ window.ORCH_SNAPSHOT = {
     },
     "bySource": {
       "implementation": 33,
-      "acceptance": 10,
+      "acceptance": 11,
       "rework": 3,
       "dead-letter": 0,
       "review": 18
@@ -1408,6 +1408,29 @@ window.ORCH_SNAPSHOT = {
           "to": "candidate",
           "note": "登记候选改进"
         }
+      },
+      {
+        "improvementId": "IM-065",
+        "title": "long 50 轮批次缺少匹配的临床验收口径（12 轮 intake 被全时段套用）",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "framework",
+        "relatedTaskId": "AF-109",
+        "evidence": [
+          "AF-109: q_35XnpvLWLr-Yocr8kJh 16 场 long/50 轮",
+          "intake global FAIL zero_motion=2",
+          "expert trust Δ=0.38925/bond Δ=0.049 超 intake-v1 12 轮上限"
+        ],
+        "impact": "long 批次无法给出有临床意义的 PASS/FAIL；出口④只能 incomparable/不可判定",
+        "suggestion": "另立 long-session-acceptance-profile：按 40–50 轮阶段重定 anchor，先做 100–200 轮人工复核试点，不直接改硬阈值",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T15:46:33.239Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
       }
     ]
   },
@@ -1574,6 +1597,53 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-111",
+      "recordedAt": "2026-11-18T14:58:55.059Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-109",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-109",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-109.json"
+      ]
+    },
+    {
+      "auditId": "AUD-110",
+      "recordedAt": "2026-11-18T14:58:54.750Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-109",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-109-exit4-quality-verdict"
+      ]
+    },
+    {
+      "auditId": "AUD-109",
+      "recordedAt": "2026-11-18T14:58:54.446Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-109",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-108",
       "recordedAt": "2026-11-18T14:49:21.409Z",
@@ -1763,68 +1833,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-103.json"
       ]
-    },
-    {
-      "auditId": "AUD-096",
-      "recordedAt": "2026-11-18T14:22:49.143Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-103",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-103-visitor-role-preflight"
-      ]
-    },
-    {
-      "auditId": "AUD-095",
-      "recordedAt": "2026-11-18T14:20:02.763Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-103",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-094",
-      "recordedAt": "2026-11-18T14:01:50.179Z",
-      "actorRef": "orchestrator",
-      "correlationId": "snapshot",
-      "toolId": "TOOL-STATE-STORE",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 108,
+    "total": 111,
     "byResult": {
-      "allowed": 108,
+      "allowed": 111,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 107,
+      "TOOL-QUEUE-SCHEDULER": 110,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 108
+      "orchestrator": 111
     }
   },
   "protocolView": {
@@ -4040,6 +4062,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af108-reasoning-leak-and-roster-delivery-2026-11-18.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-109",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af109-exit4-quality-verdict-task-2026-11-18.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af109-exit4-quality-verdict-2026-11-18.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4130,5 +4170,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 123
+  "archivedCount": 124
 };

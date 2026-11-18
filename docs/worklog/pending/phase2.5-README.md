@@ -191,8 +191,8 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 | ① 合规过线 | WP-A 入参零原文 + 三道风险闸门保持；本批 94 轮无 crisis 触发，未新增运行证据                                                                                                                                                                             | ✅ 代码口径保持            |
 | ② 考核公平 | AF-068 生产入口 + AF-085 入口确定性用例已通。AF-086 真实双批次：24/24 场 `scenarioType=exam`、24/24 `deliberation_mode=rule_only`、257/257 条 `gate_decisions` 全 `rule_only_skip`（审议 LLM 0 次），4/4 组角色×模式指纹一致；规则层路由达标。内容层策略序列/最终 BDI 不逐字一致（0/4、0/4），按 WP-B 口径不作失败判据。 | ✅ 规则层达标 / 内容层非确定 |
 | ③ 成本可控 | AF-088 真实审议取证（批次 `fztsntHxa5v6ikXrDsYgv`，4 场 / 92 轮，`maxTurns=50`，`deliberation_mode=shadow`）：审议调用本批增量 45 次 / 92 轮（`gate_decisions` 88 行 = run 43 / skip 45，skip 理由 `cooldown` 38 + `crisis_skip` 7）；全局累计 48 次中 45 成功 / 3 失败（均为 `fetch_error`），累计成功率 93.75%，本批增量可核 trace 43 条 = 41 成功 / 2 失败（增量 45 与 trace 43 差 2 已登记 OI-02），avg 10.59s、p95 30s（桶上界估计）；按仓库唯一定价表（输入 0.0015 / 输出 0.0045 元每千 token）+ 保守 token 假设（输入 3k / 输出 2048）折算：单次上界 0.013716 元 → **单场 50 轮上界 0.335446 元**，最坏情形 50 次全触发 **0.6858 元**，均 ≤ 1 元。⚠️ 审议 token 统计恒为 0（未开 `stream_options.include_usage`），结论口径为「按保守假设达标」 | ✅ 达标（保守上界口径） |
-| ④ 质量达标 | AF-086 12×2 正式 WP-K：候选 `UAK…` vs 基线 `Sh4B…` 为 `regressed`（changed: none）；唯一回归项 `dim.trust.first_avg` 0.245→0.235（-0.010，落在 `REGRESSION_TOL=0.01` 的浮点边界），同时 `trust Δ`、`valence Δ`、`zero_motion` 改善。两批 intake 仍全局 FAIL（`Sh4B` safety Δ=0.01375 < 0.015、zero_motion=5；`UAK` zero_motion=2、cold `trust Δ=0.09` > 0.08）。历史 96/8 场快照对比仍为 `incomparable`。**AF-088 离线督导评测**（`eval-af088-offline.json`）：trigger F1 **0.640**，建议六维宏平均 **0.833**（基线 0.762 → 0.833，+0.071），有效样本 **4/8**（丢弃 4：too_short / has_error / bdi_anomaly / missing_gate_trace 各 1）；但数据集 `synthetic=true`，报告自带告警「指标只验证链路可用, 不能作为验收结论」→ 仓库内无真实督导标注，合成分数不得冒充 80% 验收。**AF-095 锚定审计**：真人标签校准最强信号 AUC 0.687（长回合 0.680），真实长会话 3 场跑满 50 轮但空输出 53/146（36.3%）。**AF-104 修复后验证**：真实 long 批次 4 场 / 173 轮，咨询师空输出 **0/173（0.0%）**、`fallback=0`、`valid=true`，AF-102 修复项达标；但 WP-K 对 96 场基线为 `incomparable`（acceptance / counselorModeId / characterSlug 不同），候选批 intake 全局 FAIL（`trust Δ=0.243` 快速理想化），来访者 `<think>` 泄漏 102/173（59.0%），故出口④仍不达标 | ❌ 未通过 / 部分可判（AF-091 协议已交付，AF-095 锚定审计仍不达标；AF-104 仅修复项达标） |
-| ⑤ 数据积累 | 库内累计（2026-11-18 21:54 复核）**78 场 / 977 轮**（17 个批次，含本批 `bpCka…` 4 场 / 173 轮、AF-104 前的 74 场 / 804 轮）；距 1000+ 场差 **922 场**；**1000 场批次未启动**（本轮只跑 4 场验证批次）→ ⑤ 无达成路径 | ❌ 未达标 |
+| ④ 质量达标 | AF-109 8 角色 × expert+cold / long 50 轮真实批次 `q_35XnpvLWLr-Yocr8kJh`：16/16 组合 completed / 710 轮，来访者 `<think>` 0/710、咨询师空输出 0/710、重复 0；但 WP-K vs 96 基线为 `incomparable`（acceptance `f604…`→`4474…`），intake 为 12 轮口径套 50 轮（global FAIL、zero_motion=2），且无真实督导师双人盲标 → 不能给 improved / 达标 | ❌ 未通过 / 不可判定（清洁度与管道达标，临床质量仍不可判） |
+| ⑤ 数据积累 | 2026-11-18 23:45 复核：`ap_practice_sessions` **111 行 / 1877 轮**；completed **60 场 / 1496 轮**（本批 `q_35XnpvLWLr-Yocr8kJh` +16 场 / 710 轮）；stagnant 39 / failed 11 / crisis_ended 1；以 completed 计距 1000 场差 **940 场** → ⑤ 未达标 | ❌ 未达标 |
 
 #### 3.2.1 2026-11-18 正式判定关键数字
 
@@ -254,6 +254,19 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 - **候选批自身 intake**：全局 **FAIL**，唯一未达标项 `dim.trust.delta_avg=0.243`（“首次会谈信任温和上升；焦虑型快速理想化”）；`session.zero_motion=0`，但 `exploration.rate=0`、`event.neutral.rate=92.49%`、`strategy.recounting.rate=62.43%`、`strategy.resistance.rate=27.17%`，内容层仍以复述 / 阻抗 / 中性为主。
 - **新增 P1 缺陷**：来访者逐字稿 **102/173 轮（59.0%）** 带 `<think>` 推理块（workplace 17/47、self_worth 50/50、grief 8/26、intimate 27/50）；推理块同时进入 `history`，会被下一轮咨询师读到。逐字稿不洁，临床验收不能通过；另开 AF-105 修复后重跑小批验证。
 - **偏差**：总轮次 173 < 任务单 180，差额来自 grief 场按 `crisis_practice_max` 安全协议在 26 轮收尾；不强制拉满，保留真实结束态。证据见 [AF-104 交付记录](../completed/phase2.5/af104-postfix-long-batch-quality-verdict-2026-11-18.md)。
+
+#### 3.2.7 2026-11-18 8 角色 50 轮复测与出口④正式判定（AF-109）
+
+- **正式结论：❌ 出口④仍「未通过 / 不可判定」，不能写质量达标。** 本轮交付的是同口径真实批次与清洁度证据，不是临床质量达标结论。
+- **批次**：`q_35XnpvLWLr-Yocr8kJh`，8 个 approved 角色（A 类 4 + B 类 4）× `expert` + `cold` × 1 次，`sessionProfile=long`、`maxTurns=50`；16/16 个角色×模式组合 completed，0 个独立组合失败。因服务进程在 workplace/cold 第 38 轮退出，BullMQ 重跑产生 1 个 `failed` 旧会话；该 38 轮不计入质量样本。库内该批 17 行 / 748 轮，有效样本 **16 场 / 710 轮**。
+- **管道健康**：`batchHealth.valid=true`、`flags=[]`、`fallbackRatio=0`、`counterConsistent=true`、`llmCallRatio=0.9412`（16/17，分母含失败旧会话）；指纹 `combined=e1d4b3118bf55fa2`、`acceptance=4474dd5be381d905`、`promptVersion=6c264f4395c53c07`。
+- **清洁度（修复项）**：16 场 completed 逐字稿来访者消息 **710** 条、咨询师消息 **710** 条；来访者 `<think>` 泄漏 **0/710**、咨询师 `<think>` 泄漏 **0/710**、咨询师空输出 **0/710**、剥离推理块后可见空输出 **0/710**、咨询师完全重复 **0**。AF-108 的推理清洗与 AF-102 的空输出修复在 8 角色 long 批次上均成立。
+- **轮次分布**：10 场跑满 50 轮；1 场 `natural_close` 44 轮；3 场按 `crisis_practice_max` 安全协议分别 30 / 21 / 15 轮；另 1 场 interrupted 38 轮不计入。50 分钟会谈的“有效轮次”不再被空输出或推理块虚增/虚减。
+- **WP-K 四态**：`corepack pnpm exec tsx bin/batch-report.ts --batch q_35XnpvLWLr-Yocr8kJh --baseline-snapshot data/batch-reports/g3ONzlqSGMVJqkFMF9Lwh.json --format both --fail-on-incomparable` → **exit 2，`incomparable`**，唯一不可比原因「两批验收判据 (acceptance) 不同」：基线 `f604fdaca19e87b5` vs 当前 `4474dd5be381d905`；角色集合与模式集合本轮已与 96 场基线对齐（8 角色 / expert+cold）。不存在 improved / neutral / regressed 的正式四态。
+- **intake 口径缺陷**：候选批全局 **FAIL**，唯一项 `session.zero_motion=2`；`expert` 8 场另报 `trust Δ=0.38925`、`bond Δ=0.049` 超 intake-v1 上限。但 intake-v1/v2 是**首次会谈约 12 轮**判据，本批是 **long 50 轮**，把全时段 delta 直接套 12 轮阈值属口径不匹配，**不能作为 50 轮质量硬门**；这是本轮新发现的验收口径缺口，不得反过来写成“来访者质量不合格”。
+- **临床真值缺口仍在**：没有真实督导师双人盲标 + 仲裁，六维 clinical accuracy / 80% 门槛无真值；`zero_motion=2` 与 `trust/bond` 全时段 delta 只能进人工复核，不能冒充临床验收。
+- **数据积累**：库内 `ap_practice_sessions` 累计 **111 行 / 1877 轮**（本批 +17 / +748），其中 `completed=60 场 / 1496 轮`、`stagnant=39 / 323`、`failed=11 / 38`、`crisis_ended=1 / 20`；以 completed 计距 1000 场差 **940 场**，出口⑤仍未达标。
+- **结论**：管道与逐字稿清洁度 **达标**；临床质量与出口④ **不可判定 / 未通过**。下一步需另立“long 会话验收口径”任务（按 40–50 轮临床阶段重定 anchor，而不是复用 12 轮 intake），并取得真实督导师盲标；在此之前任何“质量达标”的写法都属伪造。证据见 `data/phase25-exit/af109-exit4-evidence-2026-11-18.json` 与 [AF-109 交付记录](../completed/phase2.5/af109-exit4-quality-verdict-2026-11-18.md)。
 
 ### 3.3 下一步（严格按顺序）
 

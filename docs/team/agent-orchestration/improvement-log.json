@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-18T13:02:21.060Z",
+  "updatedAt": "2026-11-18T15:46:33.240Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -3043,6 +3043,34 @@
       "history": [
         {
           "at": "2026-11-18T13:02:21.058Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-065",
+      "status": "candidate",
+      "title": "long 50 轮批次缺少匹配的临床验收口径（12 轮 intake 被全时段套用）",
+      "source": "acceptance",
+      "type": "gap",
+      "layer": "framework",
+      "relatedTaskId": "AF-109",
+      "evidence": [
+        "AF-109: q_35XnpvLWLr-Yocr8kJh 16 场 long/50 轮",
+        "intake global FAIL zero_motion=2",
+        "expert trust Δ=0.38925/bond Δ=0.049 超 intake-v1 12 轮上限"
+      ],
+      "impact": "long 批次无法给出有临床意义的 PASS/FAIL；出口④只能 incomparable/不可判定",
+      "suggestion": "另立 long-session-acceptance-profile：按 40–50 轮阶段重定 anchor，先做 100–200 轮人工复核试点，不直接改硬阈值",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-18T15:46:33.239Z",
+      "updatedAt": "2026-11-18T15:46:33.239Z",
+      "history": [
+        {
+          "at": "2026-11-18T15:46:33.239Z",
           "from": null,
           "to": "candidate",
           "by": "orchestrator-cli",
