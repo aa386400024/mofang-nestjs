@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-18T06:11:04.357Z",
+  "generatedAt": "2026-11-18T07:15:09.769Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -20,10 +20,10 @@
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 53,
-    "activeCount": 0,
+    "total": 54,
+    "activeCount": 1,
     "byStatus": {
-      "candidate": 0,
+      "candidate": 1,
       "queued": 0,
       "accepted": 0,
       "done": 50,
@@ -35,14 +35,14 @@
       "tool": 0,
       "standard": 3,
       "performance": 0,
-      "tech-debt": 11
+      "tech-debt": 12
     },
     "bySource": {
       "implementation": 26,
       "acceptance": 10,
       "rework": 0,
       "dead-letter": 0,
-      "review": 17
+      "review": 18
     },
     "items": [
       {
@@ -1180,6 +1180,29 @@
           "to": "done",
           "note": "三单 send→ack→auto-confirm 与 stale-ack 自动化回归通过"
         }
+      },
+      {
+        "improvementId": "IM-054",
+        "title": "WP-K 容差边界按二进制差值判定，十进制恰好 0.01 会被判 movement",
+        "status": "candidate",
+        "source": "review",
+        "type": "tech-debt",
+        "layer": "framework",
+        "relatedTaskId": "AF-086",
+        "evidence": [
+          "data/batch-reports/UAKjJfAx5Iso9f4-054OJ.md",
+          "dim.trust.first_avg 0.245->0.235",
+          "-0.010"
+        ],
+        "impact": "小样本批次可能因边界抖动被判 regressed；出口④质量判读出现假阳性",
+        "suggestion": "评估改为带 epsilon 的容差比较，或对边界差值单独标注；需产品/质量口径拍板，AF-067 已锁定当前行为",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T07:13:20.010Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
       }
     ]
   },
@@ -1341,6 +1364,53 @@
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-046",
+      "recordedAt": "2026-11-18T06:40:58.095Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-086",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-086-af-086"
+      ]
+    },
+    {
+      "auditId": "AUD-045",
+      "recordedAt": "2026-11-18T06:40:38.195Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-086",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-086",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-086.json"
+      ]
+    },
+    {
+      "auditId": "AUD-044",
+      "recordedAt": "2026-11-18T06:40:37.872Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-086",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-043",
       "recordedAt": "2026-11-18T06:08:03.136Z",
@@ -1528,66 +1598,19 @@
       "resources": [
         "task/AF-081-improvement-closeout-rework"
       ]
-    },
-    {
-      "auditId": "AUD-031",
-      "recordedAt": "2026-11-18T04:32:07.932Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-081",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-081",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-081.json"
-      ]
-    },
-    {
-      "auditId": "AUD-030",
-      "recordedAt": "2026-11-18T04:32:07.641Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-081",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-029",
-      "recordedAt": "2026-11-18T04:29:13.101Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-080",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-080-improvement-closeout-exec"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 43,
+    "total": 46,
     "byResult": {
-      "allowed": 43,
+      "allowed": 46,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 43
+      "TOOL-QUEUE-SCHEDULER": 46
     },
     "byActor": {
-      "orchestrator": 43
+      "orchestrator": 46
     }
   },
   "protocolView": {
@@ -3441,6 +3464,24 @@
             "ref": "docs/worklog/completed/phase2.5/af085-phase25-exit2-verification-2026-11-18.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-086",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af086-phase25-exit2-real-exam-double-run-task-2026-11-18.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af086-phase25-exit2-real-exam-double-run-2026-11-18.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -3526,5 +3567,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 102
+  "archivedCount": 103
 }

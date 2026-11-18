@@ -179,15 +179,15 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 
 > 本节以 2026-11-18 AF-073 的正式 WP-K CLI 判定为准。2026-11-12 的 96 场批次 `g3ONzlqSGMVJqkFMF9Lwh` 已不在当前数据库（`ap_practice_sessions` 计数 0），只能作历史记录；当前 8 场批次 `uJHgP8uQGeM8Z6HbZY7M5` 的逐字稿也已随环境迁移清理，WP-K 从库内重算为 0/8（`file_missing`），因此正式四态改用两份归档快照（96 场 96/96、当前 8 场 8/8 / 94 轮）比较，不新跑 LLM 批次。
 > 取证任务：AF-073（工具修复 + 正式判读）；前序取证：[phase2.5-exit-evidence-2026-11-17.md](../completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md)。
-> 出口②复核：AF-085（AF-068 生产入口链路复核 + exam 双跑入口确定性用例 + 本节旧口径纠正）；真实 exam 批次双跑仍未执行，另单取证。
-> **正式判定：出口 ④ 未通过；当前不能给出“质量达标”结论。** 96 场历史记录本身是“管道门禁 3/3 过、intake 6/8 未全过”，不是“待判读”；当前 8 场归档快照 intake 全局 FAIL；正式 CLI 四态为 `incomparable`，不存在 improved/neutral/regressed；80% 准确率仍缺真实督导结构化验收集。
+> 出口②复核：AF-085（AF-068 生产入口链路复核 + exam 双跑入口确定性用例 + 本节旧口径纠正）；AF-086 已完成真实 exam 双批次取证（每批 2 角色 × 2 模式 × 3 次 / 12 场，共 24 场），结果见 3.2.2。
+> **正式判定：出口 ② 规则层达标；出口 ④ 仍未通过，当前不能给出“质量达标”结论。** 96 场历史记录本身是“管道门禁 3/3 过、intake 6/8 未全过”，不是“待判读”；当前 8 场归档快照 intake 全局 FAIL；AF-086 的 12×2 真实批次 WP-K 原始结论为 `regressed`，且两批 intake 全局 FAIL；80% 准确率仍缺真实督导结构化验收集。
 
 | 出口条件   | 当前状态（2026-11-18）                                                                                                                                                                                                                                   | 判定                       |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
 | ① 合规过线 | WP-A 入参零原文 + 三道风险闸门保持；本批 94 轮无 crisis 触发，未新增运行证据                                                                                                                                                                             | ✅ 代码口径保持            |
-| ② 考核公平 | AF-068 已通生产入口：`BatchBody.scenarioType` + `parseBatchScenarioType()` + `enqueueBatch()` 校验/透传；队列 → worker → runner 四段闭合。AF-085 补“同一 exam 请求连续两次”入口确定性用例（payload 除 `batchId` 外逐字段一致），并复核 `exam` 恒 `rule_only` 的定向用例（3 文件 89 例全绿）。真实 exam 批次双跑尚未执行。 | 🚧 入口与单测达标 / 真实双跑待取证 |
+| ② 考核公平 | AF-068 生产入口 + AF-085 入口确定性用例已通。AF-086 真实双批次：24/24 场 `scenarioType=exam`、24/24 `deliberation_mode=rule_only`、257/257 条 `gate_decisions` 全 `rule_only_skip`（审议 LLM 0 次），4/4 组角色×模式指纹一致；规则层路由达标。内容层策略序列/最终 BDI 不逐字一致（0/4、0/4），按 WP-B 口径不作失败判据。 | ✅ 规则层达标 / 内容层非确定 |
 | ③ 成本可控 | 当前 8 场 / 94 轮 `deliberation_mode` 全为 `rule_only`（8/8）；`gate_decisions` 该批 94 行全部 `rule_only_skip`，审议 LLM 调用 0 次；渲染侧 116,033 tokens / 0.182277 元（`cost_basis=full`）；`ENGINE_DELIBERATION_ENABLED` 未配，50 分钟长会成本无证据 | ❌ 无审议成本证据          |
-| ④ 质量达标 | 正式 CLI：归档 96 快照为基线、当前 8 场快照为候选，`--fail-on-incomparable` exit 2；结论 `incomparable`（验收判据不同、characterSlug 集合不同），无 improved/neutral/regressed。当前 8 场快照 intake 全局 FAIL（`safety Δ=0.0065` < 0.015，`zero_motion=1/idle`）；96 场历史记录为 intake 6/8 未全过；真实督导结构化 `dataset.json` 不存在，80% 准确率无法正式评测。 | ❌ 未通过 / 核心指标不可判 |
+| ④ 质量达标 | AF-086 12×2 正式 WP-K：候选 `UAK…` vs 基线 `Sh4B…` 为 `regressed`（changed: none）；唯一回归项 `dim.trust.first_avg` 0.245→0.235（-0.010，落在 `REGRESSION_TOL=0.01` 的浮点边界），同时 `trust Δ`、`valence Δ`、`zero_motion` 改善。两批 intake 仍全局 FAIL（`Sh4B` safety Δ=0.01375 < 0.015、zero_motion=5；`UAK` zero_motion=2、cold `trust Δ=0.09` > 0.08）。历史 96/8 场快照对比仍为 `incomparable`。 | ❌ 未通过 / 核心指标未达标 |
 | ⑤ 数据积累 | 当前库仅 8 场 / 94 轮（4 角色 × 2 模式 × 1 次），距 1000+ 场差两个数量级；旧 96 场不在库，不能计入当前积累                                                                                                                                               | ❌ 未达标                  |
 
 #### 3.2.1 2026-11-18 正式判定关键数字
@@ -198,6 +198,18 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 - **zero_motion**：`debug_1392qCzzcGuyOM_laopxB`（workplace / cold / 12 轮）12/12 轮 `strategy=resistance`、`eventTags=neutral`、BDI 八维首末完全不变；`closure=0 / idle=1`，属纯 neutral 空转，不是合理封闭。
 - **WP-K 正式四态**：`--snapshot data/batch-reports/uJ…json --baseline-snapshot data/batch-reports/g3…json --format both` exit 0，结论 `incomparable`；加 `--fail-on-incomparable` 后 exit 2。CLI 给出的不可比原因为“两批验收判据（acceptance）不同；两批 characterSlug 集合不同”，不存在 improved/neutral/regressed。AF-060 旧诊断记录的 7 个指纹段变化仍可查，但正式判定以本次 CLI 输出为准。
 - **缺批退出码**：`--batch g3ONzlqSGMVJqkFMF9Lwh` 已由 AF-073 修为 exit 2（`数据不可用: 库内无批次 g3ONzlqSGMVJqkFMF9Lwh`），不再 exit 0 生成空报告；定向单测覆盖归档快照比较、`incomparable` 退出码与参数互斥。
+
+#### 3.2.2 2026-11-18 真实 exam 双批次取证（AF-086）
+
+- **运行方式**：本地服务 `node dist/app.js`（PORT 3100）+ 远程 MySQL/Redis + 真实 BullMQ worker，通过生产 `POST /admin/api/auto-practice/batch` 连续创建两个同参数 `exam` 批次；每批 `2 角色 × 2 模式 × 3 次 = 12 场`，`maxTurns=12`。不新跑非 exam 批次，不改 `.env`，不改 `src/engine-core`。
+- **批次**：基线 `Sh4B_wbjF11IqFTcSqXYw`（12/12，129 轮，10 completed + 2 stagnant）；候选 `UAKjJfAx5Iso9f4-054OJ`（12/12，128 轮，10 completed + 2 stagnant）；两批 0 failed。
+- **场景/审议门禁**：24/24 场逐字稿 `scenarioType=exam`；24/24 `deliberation_mode=rule_only`；257/257 条 `gate_decisions` 为 `mode=rule_only / decision=skip / reason=rule_only_skip`；审议 LLM 调用 0 次。85/257 次 `llm_call_turns` 均为咨询师/来访者渲染调用，不是审议。
+- **指纹一致**：两批 `combined=1caeea117101e8d9`，4/4 组（角色 × 模式）`engineVersion/promptVersion/characterVersion/deliberationMode` 一致。
+- **WP-K 正式 CLI**：`--batch Sh4B… --batch UAK… --baseline Sh4B… --format both --fail-on-regression`，exit 1；结论 `[Sh4B…] neutral`、`[UAK…] regressed (changed: none)`。回归项只有 `dim.trust.first_avg` 0.245→0.235（Δ=-0.010，十进制恰好落在 `REGRESSION_TOL=0.01` 边界，二进制差值略大于容差，属 AF-067 已锁定的保守判定）；同时 `dim.trust.delta_avg` 0.09→0.104、`dim.valence.delta_avg` 0.025→0.0525、`session.zero_motion` 5→2 为 improved。
+- **intake**：两批全局均 FAIL。`Sh4B`：`dim.safety.delta_avg=0.01375`（<0.015）、`session.zero_motion=5`（cold 6 场 total 4 / closure 0 / idle 4，expert 6 场 total 1 / closure 1 / idle 0）；`UAK`：`session.zero_motion=2`（expert 2/0/2）、`cold` 切片 `dim.trust.delta_avg=0.09`（候选阈值上限 0.08）。`cold` 切片 `Sh4B` PASS、`UAK` FAIL；`expert` 两批均 FAIL。
+- **内容层非确定**：同角色/同模式的策略序列一致 0/4、最终 BDI 一致 0/4；按 WP-B「不追求逐字复现，只保证规则层确定性」，记为 informational，不作为出口②失败判据。
+- **正式判读**：出口②按「exam 强制 rule_only + 入口/审议门禁」的规则层口径 **达标**；出口④按 WP-K 原始四态 **未通过**，不能给「质量达标」结论。4 场小样本预跑（`sb_3bAy219pm8QALJWhIY` vs `n1K9jbjSNPjbiEYF4aG2E`）为 `regressed`（仅 `dim.valence` 两项回归、`trust` improved），已由 12×2 正式样本取代。
+
 
 ### 3.3 下一步（严格按顺序）
 
