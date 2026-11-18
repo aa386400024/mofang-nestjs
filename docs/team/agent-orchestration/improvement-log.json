@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-18T07:13:20.011Z",
+  "updatedAt": "2026-11-18T11:44:38.223Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -2789,6 +2789,78 @@
       "history": [
         {
           "at": "2026-11-18T07:13:20.010Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-055",
+      "status": "candidate",
+      "title": "长会话咨询师空输出未计数（36.3%）",
+      "source": "rework",
+      "type": "guardrail",
+      "layer": "adapter",
+      "relatedTaskId": "AF-097",
+      "evidence": [],
+      "impact": "render_fallback_turns=0、batchHealth=true，空输出污染质量证据",
+      "suggestion": "预算/重试/降级/计数修复后再跑 long 批次",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-18T11:44:37.773Z",
+      "updatedAt": "2026-11-18T11:44:37.773Z",
+      "history": [
+        {
+          "at": "2026-11-18T11:44:37.773Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-056",
+      "status": "candidate",
+      "title": "来访者角色缺失导致批次失败",
+      "source": "rework",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-097",
+      "evidence": [],
+      "impact": "long 批次 4 场只完成 3 场",
+      "suggestion": "入队前校验 characterSlug 存在性",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-18T11:44:38.000Z",
+      "updatedAt": "2026-11-18T11:44:38.000Z",
+      "history": [
+        {
+          "at": "2026-11-18T11:44:38.000Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-057",
+      "status": "candidate",
+      "title": "来访者角色库覆盖不足",
+      "source": "rework",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-097",
+      "evidence": [],
+      "impact": "无法覆盖 50 分钟咨询的常见主诉与阻抗组合",
+      "suggestion": "角色扩充与 1000 场数据积累另立任务",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-18T11:44:38.222Z",
+      "updatedAt": "2026-11-18T11:44:38.222Z",
+      "history": [
+        {
+          "at": "2026-11-18T11:44:38.222Z",
           "from": null,
           "to": "candidate",
           "by": "orchestrator-cli",

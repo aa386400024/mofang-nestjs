@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T11:42:49.813Z",
+  "generatedAt": "2026-11-18T11:44:38.232Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,23 +16,54 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-098",
+      "contextId": "phase2.5-exit4-proxy-quality",
+      "type": "fix",
+      "title": "验收器状态面豁免修复：improvement-log 不再判越域",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af098-state-plane-acceptance-fix-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-098",
+        "contextId": "phase2.5-exit4-proxy-quality",
+        "channel": "file",
+        "targetRole": "orchestrator",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-18T11:43:31.389Z",
+        "leaseDeadline": "2026-11-18T12:13:31.387Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-098.json"
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 54,
-    "activeCount": 1,
+    "total": 57,
+    "activeCount": 4,
     "byStatus": {
-      "candidate": 1,
+      "candidate": 4,
       "queued": 0,
       "accepted": 0,
       "done": 50,
       "wontfix": 3
     },
     "byType": {
-      "gap": 36,
-      "guardrail": 3,
+      "gap": 38,
+      "guardrail": 4,
       "tool": 0,
       "standard": 3,
       "performance": 0,
@@ -41,7 +72,7 @@ window.ORCH_SNAPSHOT = {
     "bySource": {
       "implementation": 26,
       "acceptance": 10,
-      "rework": 0,
+      "rework": 3,
       "dead-letter": 0,
       "review": 18
     },
@@ -1204,6 +1235,63 @@ window.ORCH_SNAPSHOT = {
           "to": "candidate",
           "note": "登记候选改进"
         }
+      },
+      {
+        "improvementId": "IM-055",
+        "title": "长会话咨询师空输出未计数（36.3%）",
+        "status": "candidate",
+        "source": "rework",
+        "type": "guardrail",
+        "layer": "adapter",
+        "relatedTaskId": "AF-097",
+        "evidence": [],
+        "impact": "render_fallback_turns=0、batchHealth=true，空输出污染质量证据",
+        "suggestion": "预算/重试/降级/计数修复后再跑 long 批次",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T11:44:37.773Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-056",
+        "title": "来访者角色缺失导致批次失败",
+        "status": "candidate",
+        "source": "rework",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-097",
+        "evidence": [],
+        "impact": "long 批次 4 场只完成 3 场",
+        "suggestion": "入队前校验 characterSlug 存在性",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T11:44:38.000Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-057",
+        "title": "来访者角色库覆盖不足",
+        "status": "candidate",
+        "source": "rework",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-097",
+        "evidence": [],
+        "impact": "无法覆盖 50 分钟咨询的常见主诉与阻抗组合",
+        "suggestion": "角色扩充与 1000 场数据积累另立任务",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-18T11:44:38.222Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
       }
     ]
   },
@@ -1369,6 +1457,38 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-080",
+      "recordedAt": "2026-11-18T11:43:31.437Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-098",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-098",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-098.json"
+      ]
+    },
+    {
+      "auditId": "AUD-079",
+      "recordedAt": "2026-11-18T11:43:31.115Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-098",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-078",
       "recordedAt": "2026-11-18T11:41:15.728Z",
@@ -1579,58 +1699,47 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-093.json"
       ]
-    },
-    {
-      "auditId": "AUD-065",
-      "recordedAt": "2026-11-18T10:26:29.555Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-093",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-064",
-      "recordedAt": "2026-11-18T10:15:20.938Z",
-      "actorRef": "orchestrator",
-      "correlationId": "archive:AF-092",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 78,
+    "total": 80,
     "byResult": {
-      "allowed": 78,
+      "allowed": 80,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 78
+      "TOOL-QUEUE-SCHEDULER": 80
     },
     "byActor": {
-      "orchestrator": 78
+      "orchestrator": 80
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-098",
+        "title": "验收器状态面豁免修复：improvement-log 不再判越域",
+        "type": "fix",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-exit4-proxy-quality",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-097"
+        ],
+        "agentRole": "orchestrator",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af098-state-plane-acceptance-fix-task-2026-11-18.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -3661,9 +3770,17 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-098",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af098-state-plane-acceptance-fix-task-2026-11-18.md"
+      }
+    ],
+    "groupId": "phase2.5-exit4-proxy-quality",
+    "groupIds": [
+      "phase2.5-exit4-proxy-quality"
+    ],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
