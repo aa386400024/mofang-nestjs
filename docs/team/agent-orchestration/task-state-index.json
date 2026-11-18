@@ -4,23 +4,23 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 346,
+    "lastEventSeq": 351,
     "rebuiltAt": null
   },
   "tasks": [
     {
-      "taskId": "AF-082",
+      "taskId": "AF-083",
       "status": "submitted",
       "history": [
         {
-          "at": "2026-11-18T04:33:50.341Z",
+          "at": "2026-11-18T04:35:02.968Z",
           "from": "backlog",
           "to": "ready",
           "by": "orchestrator-cli",
-          "reason": "提交封套：承接 AF-081 已完成实现"
+          "reason": "AF-082 记录含 CR 返修"
         },
         {
-          "at": "2026-11-18T04:33:50.646Z",
+          "at": "2026-11-18T04:35:03.280Z",
           "from": "ready",
           "to": "submitted",
           "by": "orchestrator-cli",
@@ -28,7 +28,7 @@
         }
       ],
       "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "改进项处置提交封套（承接 AF-081 已完成实现）",
+      "title": "改进项处置最终封套（LF 返修）",
       "type": "implementation",
       "baselineRef": "845d20d8b2e3b376bd32ab7280a6872b58a72cd8",
       "dependsOn": [],
@@ -36,7 +36,7 @@
       "policyRefs": [
         "conventions.md#1.3"
       ],
-      "createdAt": "2026-11-18T04:33:50.117Z",
+      "createdAt": "2026-11-18T04:35:02.729Z",
       "deadline": null,
       "agentRole": "orchestrator",
       "scope": {
@@ -53,7 +53,7 @@
         "interfaces": []
       },
       "artifacts": {
-        "taskSheet": "docs/worklog/pending/af082-commit-envelope-task-2026-11-18.md",
+        "taskSheet": "docs/worklog/pending/af083-final-envelope-task-2026-11-18.md",
         "deliveryRecord": null,
         "reply": null
       },
@@ -89,7 +89,7 @@
       "plannedArtifacts": [
         {
           "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af082-commit-envelope-2026-11-18.md",
+          "path": "docs/worklog/completed/phase2.5/af083-final-envelope-2026-11-18.md",
           "kind": "report"
         }
       ],
@@ -98,7 +98,7 @@
       "outOfScope": [],
       "constraints": [],
       "priorTasks": [],
-      "promotedAt": "2026-11-18T04:33:50.340Z"
+      "promotedAt": "2026-11-18T04:35:02.967Z"
     }
   ],
   "archivedTasks": [
@@ -957,6 +957,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/pending/af081-improvement-closeout-task-2026-11-18.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af081-improvement-closeout-2026-11-18.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-082",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af082-commit-envelope-task-2026-11-18.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af082-commit-envelope-2026-11-18.md",
         "reply": null
       }
     }
