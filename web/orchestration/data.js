@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T16:53:24.813Z",
+  "generatedAt": "2026-11-18T17:15:19.930Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1598,6 +1598,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-121",
+      "recordedAt": "2026-11-18T17:10:10.491Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-113",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-113-af112-stacked-squash-guard"
+      ]
+    },
+    {
+      "auditId": "AUD-120",
+      "recordedAt": "2026-11-18T17:10:05.524Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-113",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-113",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-113.json"
+      ]
+    },
+    {
+      "auditId": "AUD-119",
+      "recordedAt": "2026-11-18T17:10:00.991Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-113",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-118",
       "recordedAt": "2026-11-18T16:53:19.569Z",
       "actorRef": "orchestrator",
@@ -1784,67 +1831,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "task/AF-108-reasoning-leak-and-roster"
       ]
-    },
-    {
-      "auditId": "AUD-106",
-      "recordedAt": "2026-11-18T14:49:20.775Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-108",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-105",
-      "recordedAt": "2026-11-18T14:45:26.828Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-107",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-107",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-107.json"
-      ]
-    },
-    {
-      "auditId": "AUD-104",
-      "recordedAt": "2026-11-18T14:45:13.856Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-107",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-107-executor-card-resource-domain"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 118,
+    "total": 121,
     "byResult": {
-      "allowed": 118,
+      "allowed": 121,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 117,
+      "TOOL-QUEUE-SCHEDULER": 120,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 118
+      "orchestrator": 121
     }
   },
   "protocolView": {
@@ -4128,6 +4128,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af112-af111-acceptance-metadata-delivery-2026-11-19.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-113",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af113-af112-stacked-squash-guard-task-2026-11-19.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af113-af112-stacked-squash-guard-delivery-2026-11-19.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4218,5 +4236,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 127
+  "archivedCount": 128
 };

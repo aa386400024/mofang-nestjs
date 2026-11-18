@@ -99,7 +99,7 @@ import { normalizeScope, findScopeConflicts, detectResidualFiles, scopeCovers, e
 import { evaluateTaskEntry, isStatePlanePath, GATE_ALLOWED_STATUSES } from '../task-entry-gate.mjs';
 import { evaluateAcceptanceSnapshot, evaluateCommitSnapshot, extractCommitTaskId, unionSquashScopeFiles } from '../ci-task-gate.mjs';
 import { INTEGRATE_REQUIRED_CONTEXTS, buildIntegrateProtection, verifyIntegrateProtection } from '../branch-protection.mjs';
-import { evaluateRequiredChecks, hasPassedDurableReceipt } from '../pr-release.mjs';
+import { evaluateRequiredChecks, findForeignCommitTaskIds, hasPassedDurableReceipt } from '../pr-release.mjs';
 import {
   buildBranchName,
   validateBranchName,
@@ -4150,6 +4150,31 @@ describe('AF-077 pr-release 本地合并门口径', () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe('AF-113 单任务分支守卫', () => {
+  it('单任务与纯状态面提交放行', () => {
+    expect(
+      findForeignCommitTaskIds(
+        [
+          'chore(AF-113): claim task',
+          'chore(orchestration): refresh state plane',
+          'docs(AF-113): delivery record',
+        ],
+        'AF-113',
+      ),
+    ).toEqual([]);
+  });
+
+  it('混入其他任务提交时拒绝并列明任务号', () => {
+    expect(
+      findForeignCommitTaskIds(['feat(AF-111): implementation', 'docs(AF-113): delivery record'], 'AF-113'),
+    ).toEqual([{ taskId: 'AF-111', subject: 'feat(AF-111): implementation' }]);
+  });
+
+  it('提交标题含多个任务号时 fail closed', () => {
+    expect(() => findForeignCommitTaskIds(['docs(AF-111): mention AF-112'], 'AF-113')).toThrow('多个任务编号');
   });
 });
 
