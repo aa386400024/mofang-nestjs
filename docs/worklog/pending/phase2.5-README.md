@@ -179,12 +179,13 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 
 > 本节以 2026-11-18 AF-073 的正式 WP-K CLI 判定为准。2026-11-12 的 96 场批次 `g3ONzlqSGMVJqkFMF9Lwh` 已不在当前数据库（`ap_practice_sessions` 计数 0），只能作历史记录；当前 8 场批次 `uJHgP8uQGeM8Z6HbZY7M5` 的逐字稿也已随环境迁移清理，WP-K 从库内重算为 0/8（`file_missing`），因此正式四态改用两份归档快照（96 场 96/96、当前 8 场 8/8 / 94 轮）比较，不新跑 LLM 批次。
 > 取证任务：AF-073（工具修复 + 正式判读）；前序取证：[phase2.5-exit-evidence-2026-11-17.md](../completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md)。
+> 出口②复核：AF-085（AF-068 生产入口链路复核 + exam 双跑入口确定性用例 + 本节旧口径纠正）；真实 exam 批次双跑仍未执行，另单取证。
 > **正式判定：出口 ④ 未通过；当前不能给出“质量达标”结论。** 96 场历史记录本身是“管道门禁 3/3 过、intake 6/8 未全过”，不是“待判读”；当前 8 场归档快照 intake 全局 FAIL；正式 CLI 四态为 `incomparable`，不存在 improved/neutral/regressed；80% 准确率仍缺真实督导结构化验收集。
 
-| 出口条件   | 当前状态（2026-11-17）                                                                                                                                                                                                                                   | 判定                       |
+| 出口条件   | 当前状态（2026-11-18）                                                                                                                                                                                                                                   | 判定                       |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
 | ① 合规过线 | WP-A 入参零原文 + 三道风险闸门保持；本批 94 轮无 crisis 触发，未新增运行证据                                                                                                                                                                             | ✅ 代码口径保持            |
-| ② 考核公平 | G-1 已保证 `exam` 恒 `rule_only`；但 `BatchBody` 仍只有 `characterSlugs/counselorModeIds/maxTurns/repeats`，`enqueueBatch()` 未把 `scenarioType` 传给队列，生产 HTTP 仍无法创建 exam 批次                                                                | 🚧 部分达标                |
+| ② 考核公平 | AF-068 已通生产入口：`BatchBody.scenarioType` + `parseBatchScenarioType()` + `enqueueBatch()` 校验/透传；队列 → worker → runner 四段闭合。AF-085 补“同一 exam 请求连续两次”入口确定性用例（payload 除 `batchId` 外逐字段一致），并复核 `exam` 恒 `rule_only` 的定向用例（3 文件 89 例全绿）。真实 exam 批次双跑尚未执行。 | 🚧 入口与单测达标 / 真实双跑待取证 |
 | ③ 成本可控 | 当前 8 场 / 94 轮 `deliberation_mode` 全为 `rule_only`（8/8）；`gate_decisions` 该批 94 行全部 `rule_only_skip`，审议 LLM 调用 0 次；渲染侧 116,033 tokens / 0.182277 元（`cost_basis=full`）；`ENGINE_DELIBERATION_ENABLED` 未配，50 分钟长会成本无证据 | ❌ 无审议成本证据          |
 | ④ 质量达标 | 正式 CLI：归档 96 快照为基线、当前 8 场快照为候选，`--fail-on-incomparable` exit 2；结论 `incomparable`（验收判据不同、characterSlug 集合不同），无 improved/neutral/regressed。当前 8 场快照 intake 全局 FAIL（`safety Δ=0.0065` < 0.015，`zero_motion=1/idle`）；96 场历史记录为 intake 6/8 未全过；真实督导结构化 `dataset.json` 不存在，80% 准确率无法正式评测。 | ❌ 未通过 / 核心指标不可判 |
 | ⑤ 数据积累 | 当前库仅 8 场 / 94 轮（4 角色 × 2 模式 × 1 次），距 1000+ 场差两个数量级；旧 96 场不在库，不能计入当前积累                                                                                                                                               | ❌ 未达标                  |
