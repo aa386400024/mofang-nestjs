@@ -20,22 +20,9 @@
 //   - 纯函数, 零 IO / 零 env / 零 NestJS;
 //   - 不做内容改写 (只删推理块), 不润色、不补全 —— 那是模型的事.
 
-/**
- * 去掉模型推理块 (`<think>...</think>`).
- *
- * ⚠️ 为什么要处理**未闭合**的推理块:
- *   输出被长度上限截断时, 推理块往往只开了头没结尾 (`<think>...` 就没了).
- *   只处理闭合块的话, 截断的推理会**留在**台词里 —— 正是最该被清掉的那种.
- *
- * @param text 原始 content
- * @returns 去掉推理块后的可见文本 (已 trim)
- */
-export function stripReasoningBlocks(text: string): string {
-  const withoutClosed = text.replaceAll(/<think>[\s\S]*?<\/think>/gi, '');
-  // 未闭合的推理块: 从 `<think>` 一直删到结尾 (它后面本来就没有别的内容了).
-  const withoutOpenTail = withoutClosed.replace(/<think>[\s\S]*$/i, '');
-  return withoutOpenTail.trim();
-}
+import { stripReasoningBlocks } from '../../../shared/llm/reasoning-text.js';
+
+export { stripReasoningBlocks };
 
 /**
  * 一次生成的"可见输出"判定结果.

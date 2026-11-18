@@ -47,6 +47,7 @@ import {
   CHARACTER_BASELINE_CALIBRATION,
   validateBaselineCalibration,
 } from '../src/engine-adapters/wiring/character/character-baseline-calibration.js';
+import { buildDbOnlyCharacterProfileSeeds } from '../src/engine-adapters/wiring/character/character-profile.db-only.seed.js';
 import { CharacterProfileEntity } from '../src/engine-adapters/wiring/character/character-profile.entity.js';
 import {
   buildCharacterProfileSeeds,
@@ -138,7 +139,23 @@ async function main(): Promise<void> {
         '）\n',
     );
 
-    // ② B 类 (DB-only): 只更新已存在且未软删行的 8 个基线列 + 台词指纹 —— 不 INSERT、不碰内容与状态字段.
+    // ② B 类 (DB-only): 先灌内容（此前只有基线没有内容行，角色池实际只跑到 4 位）,
+    //   再走基线校准 —— 校准只 UPDATE 已存在行，所以内容 seed 必须在它之前。
+    const dbOnlySeeds = buildDbOnlyCharacterProfileSeeds();
+    const dbOnlyResult = await seedCharacterProfiles(dataSource, dbOnlySeeds);
+    process.stdout.write(
+      '[seed:character-profiles] 内容 seed (B 类 ' +
+        dbOnlySeeds.length +
+        ' 个) → 新增 ' +
+        dbOnlyResult.inserted +
+        ' / 更新 ' +
+        dbOnlyResult.updated +
+        ' / 未变 ' +
+        dbOnlyResult.unchanged +
+        '\n',
+    );
+
+    // ③ 基线校准: 只更新已存在且未软删行的 8 个基线列 + 台词指纹 —— 不 INSERT、不碰内容与状态字段.
     const calibrationResult = await applyBaselineCalibration(repo, DB_ONLY_BASELINE_CALIBRATION);
     process.stdout.write(
       '[seed:character-profiles] 基线校准 (B 类 ' +

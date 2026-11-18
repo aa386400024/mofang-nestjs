@@ -167,6 +167,37 @@ describe('WP6 · RenderPort LLM 适配 + 主备执行', () => {
     });
   });
 
+  describe('①A AF-106 · 聚合输出推理块零泄漏', () => {
+    it('`<think>` 块被剥离, 只返回可见台词', async () => {
+      const caller = new StubChatCaller([{ ok: true, content: '<think>她在试探我，别接太深。</think>我最近有点累。' }]);
+      const adapter = new LlmRenderAdapter({
+        caller,
+        config: buildConfig([{ id: 'primary' }]),
+        guard: async () => ({ level: 'pass' }),
+      });
+
+      const result = await adapter.render(buildSpec('chat'));
+
+      expect(result.text).toBe('我最近有点累。');
+      expect(result.text).not.toContain('<think>');
+      expect(result.text).not.toContain('试探');
+    });
+
+    it('只有推理块 → 视为空内容切备, 最终走兜底句', async () => {
+      const caller = new StubChatCaller([{ ok: true, content: '<think>全是推理，没有台词。</think>' }]);
+      const adapter = new LlmRenderAdapter({
+        caller,
+        config: buildConfig([{ id: 'primary' }]),
+        guard: async () => ({ level: 'pass' }),
+      });
+
+      const result = await adapter.render(buildSpec('chat'));
+
+      expect(result.fallbackUsed).toBe(true);
+      expect(result.text).toBe(FALLBACK_UTTERANCE);
+    });
+  });
+
   describe('② 主失败切备', () => {
     it('主 reject → 备成功 → fallbackUsed=true / providerHint=备id', async () => {
       const caller = new StubChatCaller([
