@@ -4,10 +4,100 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 425,
+    "lastEventSeq": 428,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-101",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-18T11:51:42.308Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "修复验收状态面豁免"
+        },
+        {
+          "at": "2026-11-18T11:51:42.687Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-exit4-proxy-quality",
+      "title": "验收器状态面豁免修复：improvement-log 不再判越域",
+      "type": "fix",
+      "baselineRef": "6873f0692b116fc2ae7ccc73ed07b8cb49a5175d",
+      "dependsOn": [
+        "AF-100"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-18T11:51:42.039Z",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "scope": {
+        "files": [
+          "scripts/orchestration/",
+          "docs/team/agent-orchestration/",
+          "docs/worklog/pending/",
+          "docs/worklog/completed/",
+          "web/orchestration/"
+        ],
+        "modules": [
+          "orchestration-acceptance"
+        ],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af101-state-plane-acceptance-fix-task-2026-11-18.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "corepack pnpm exec vitest run scripts/orchestration/__tests__/acceptance-state-plane.spec.mjs",
+          "check": "状态面豁免回归单测全绿",
+          "threshold": "failed=0"
+        },
+        {
+          "command": "corepack pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+          "check": "编排既有单测无回归",
+          "threshold": "failed=0"
+        }
+      ],
+      "successCriteria": [
+        "improvement-log.json 纳入 STATE_PLANE_ARTIFACTS",
+        "回归单测覆盖状态面与普通交付文件边界",
+        "不扩大豁免到 src/test/docs 普通交付面",
+        "提交树保留 AF-101 submitted，满足逐提交门",
+        "engine-core 零 diff"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af098-state-plane-acceptance-fix-2026-11-18.md",
+          "kind": "report"
+        },
+        {
+          "name": "回归单测",
+          "path": "scripts/orchestration/__tests__/acceptance-state-plane.spec.mjs",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": [],
+      "promotedAt": "2026-11-18T11:51:42.307Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
