@@ -348,6 +348,73 @@ V7「文件域残留」有两条取证路径，按回执是否声明提交集合
 - 契约侧字段登记：后端回执校验 `handover-contract.mjs` 接受 `changedFiles.commits`（7–40 位小写十六进制），框架 `docs/receipt-contract.md` §3.1 已同步登记为可选扩展字段。
 - 跨仓提交（IM-046）：本仓 `changedFiles.commits` 只写本仓 SHA；他仓提交写 `changedFiles.externalCommits`，每项为 `{ repo: "owner/repo", commits: ["7–40 位小写十六进制"] }`。校验器只验形状，不拿外部 SHA 去本仓对象库解析，也不把它混入 V7 的本仓 commit 比对；`artifactRefs.others` 继续用于人读工件指针。
 
+## 5.6 scope 重签发、回执预检与两阶段提交（AF-084）
+
+### 5.6.1 scope 不在原任务上原地改写
+
+任务登记后，`scope` 属于任务契约本体，**没有原地修订入口**：`createTask` 拒绝复用任何已存在或已归档的 taskId，手改 `task-state-index.json` 会破坏哈希链，新增 `amended / rescoped` 事件类型又需要跨仓同步框架 `state-event.schema.json`、`contract-enums.json` 与 `versions.json`。
+
+需要修正 scope 时走**任务版本化重签发**：
+
+```powershell
+node scripts/orchestration/cli.mjs task reissue --from AF-079 --sheet docs/worklog/pending/af080-xxx-task-YYYY-MM-DD.md
+node scripts/orchestration/cli.mjs task reissue --from AF-079 --sheet docs/worklog/pending/af080-xxx-task-YYYY-MM-DD.md --apply --archive-old
+```
+
+| 规则 | 口径 |
+| --- | --- |
+| 可重签发状态 | 只允许 `backlog / ready`；已进入 `submitted / working` 的任务表示实现已开始，换契约必须走返修任务 |
+| 新任务标识 | 必须是新 taskId，且不在活跃或归档集合中 |
+| 审计链路 | 新任务 `priorTasks` 必须显式包含原 taskId |
+| 原子性 | `--apply` 内完成「登记新任务 → backlog 提级 ready → 原任务取消 canceled」；`--archive-old` 再归档原任务 |
+| 默认行为 | 不带 `--apply` 只打印 dry-run 计划，不写状态面 |
+| 同义入口 | `task rescope` 与 `task reissue` 等价；命令名表示「重签发」，不是原地改字段 |
+
+新任务必须是一份完整任务单（可复用原任务单内容，改 taskId、scope、createdAt 与 `priorTasks`），不得只写一份 scope 补丁。
+
+### 5.6.2 回执预检（run-once 之前）
+
+```powershell
+node scripts/orchestration/cli.mjs receipt lint --taskId AF-084
+node scripts/orchestration/cli.mjs receipt lint --taskId AF-084 --path docs/team/agent-orchestration/transport/receipts/AF-084.json
+```
+
+预检把验收阶段才暴露的格式问题前移，覆盖：
+
+- 框架七组字段（`gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict` + `verdictRationale`）；
+- `changedFiles` 不得声明编排状态面生成物（`STATE_PLANE_PATHS`）与 scope 外文件；
+- `artifactRefs.taskSheet / deliveryRecord / reply / others` 必须存在、在仓内且是文件；
+- 交付记录必须 UTF-8 无 BOM + LF；
+- `completed` 回执的 `reviewVerdict` 必须是 `passed / conditional-pass / rejected`；
+- `gateResults` 占位命令给 warning，不阻断。
+
+预检是**独立命令**，不改变 `run-once` 的既有摄入行为；`[FAIL]` 时退出码 1，修正后再摄入。
+
+### 5.6.3 两阶段提交
+
+实现提交与完成归档提交分开，避免 squash / preflight 阶段出现「任务已归档但实现提交还没落」的空档：
+
+| 阶段 | 时机 | 提交内容 | 任务状态 |
+| --- | --- | --- | --- |
+| 阶段一 · 实现提交 | `run-once` 领单之后、回执摄入之前 | 代码、测试、任务单、交付记录（LF） | `submitted`（可提交） |
+| 阶段二 · 完成归档提交 | 回执摄入 → 验收通过 → 归档之后 | 状态索引、事件日志、快照、看板数据等状态面生成物 | `completed` / 已归档 |
+
+- 实现提交必须在 `run-once` 之前或任务仍为 `submitted / working` 时完成；不要等 `run-once` 把任务推到 `completed` 再回头提交实现。
+- 状态面生成物只由 CLI 产出并单独提交，不写进回执 `changedFiles`。
+- `task-entry-gate` 的 `no-active-task` 提示会在存在 completed 归档任务时明确给出这条两阶段说明；硬门本身不放宽。
+
+### 5.6.4 文档 LF / BOM 规范化
+
+```powershell
+node scripts/orchestration/cli.mjs docs normalize --path docs/worklog/completed/phase2.5/af084-xxx.md
+node scripts/orchestration/cli.mjs docs normalize --path docs/worklog/completed/phase2.5/af084-xxx.md --apply
+```
+
+- 默认只读：打印 `BOM / CR 数量 / 字节变化`，不写盘。
+- `--apply` 才写回，统一为 UTF-8 无 BOM + LF。
+- 只允许 `docs/` 下的文本文件，避免误改源码。
+- 交付记录写完先跑一次只读检查，再进回执预检。
+
 ## 6. 策略锚点（policyAnchors）
 
 任务单 `policyRefs` 只引用锚点，不复制规则正文；规则唯一真相源是 `docs/team/conventions.md`。

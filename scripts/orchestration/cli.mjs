@@ -94,8 +94,17 @@ import {
   isDeliveryStalled,
   autoConfirmDelivery,
 } from './gui-dispatch.mjs';
-import { registerTaskFromSheet, registerTaskFromHandover, parseTaskSheetFrontmatter } from './task-intake.mjs';
+import {
+  registerTaskFromSheet,
+  registerTaskFromHandover,
+  parseTaskSheetFrontmatter,
+  buildTaskRecord,
+  repoRelativePath,
+} from './task-intake.mjs';
 import { acquireRunLock, describeRunLock } from './run-lock.mjs';
+import { planReissue } from './reissue.mjs';
+import { lintReceiptFile } from './receipt-lint.mjs';
+import { inspectTextFile, normalizeTextFile } from './text-normalize.mjs';
 
 /** 快照双写：JSON（机读 / 存档）+ data.js（静态网页在 file:// 下读取，规避本地 fetch 限制）。 */
 function writeSnapshotArtifacts(snapshot, opts = {}) {
@@ -1078,7 +1087,59 @@ async function cmdTask(args) {
     console.log(`已取消任务 ${taskId}：status=canceled，cancelReason=${reason}`);
     return task;
   }
-  console.error(`未知 task 子命令：${sub}（支持 register / import / resume / promote / cancel）`);
+  if (sub === 'reissue' || sub === 'rescope') {
+    // AF-084：scope 不原地改写。重签发 = 登记新任务 + 提级 + 取消原任务，一次显式操作。
+    const fromTaskId = argValue(args, '--from') ?? argValue(args, '--fromTaskId');
+    const sheetPath = argValue(args, '--sheet');
+    const apply = args.includes('--apply');
+    const archiveOld = args.includes('--archive-old');
+    if (!fromTaskId || !sheetPath) {
+      console.error(
+        '用法：task reissue --from <oldTaskId> --sheet docs/worklog/pending/<newTask>.md [--apply] [--archive-old]\n' +
+          '      task rescope 为同义入口；scope 不原地修改，而是重签发一个新任务并在 priorTasks 指向原任务。',
+      );
+      process.exit(2);
+    }
+    const absSheet = resolve(REPO_ROOT, sheetPath);
+    if (!existsSync(absSheet)) throw new Error(`任务单不存在：${sheetPath}`);
+    const relSheet = repoRelativePath(absSheet);
+    if (!relSheet.startsWith('docs/worklog/pending/')) {
+      throw new Error(`重签发任务单必须位于 docs/worklog/pending/：${relSheet}`);
+    }
+    const { meta } = parseTaskSheetFrontmatter(readFileSync(absSheet, 'utf8'));
+    const newTask = buildTaskRecord(meta, { taskSheetPath: relSheet, status: 'backlog' });
+    const index = loadIndex();
+    const plan = planReissue(index, { fromTaskId, newTask });
+    if (!plan.ok) {
+      console.error(`[FAIL] 重签发计划不成立：${fromTaskId} → ${String(meta?.taskId)}`);
+      for (const error of plan.errors) console.error(`  - ${error}`);
+      process.exit(1);
+    }
+    if (!apply) {
+      console.log(`[DRY-RUN] 重签发 ${fromTaskId} → ${newTask.taskId}`);
+      console.log(`  - 新任务单：${relSheet}`);
+      console.log(`  - 原任务：status=${plan.oldTask.status} → canceled${archiveOld ? ' → archived' : ''}`);
+      console.log('  - 正式执行请追加 --apply；scope 不会在原任务上原地修改。');
+      return;
+    }
+    const created = await registerTaskFromSheet({ sheetPath: relSheet, status: 'backlog', actor: 'orchestrator-cli' });
+    const next = loadIndex();
+    const runtimeState = loadRuntimeState();
+    const reason = `scope 重签发自 ${fromTaskId}`;
+    promoteTask(next, runtimeState, created.taskId, { reason });
+    cancelTask(next, runtimeState, fromTaskId, { reason: `scope 重签发 → ${created.taskId}（原任务不再执行）` });
+    commitIndex(next, { actor: 'orchestrator-cli' });
+    saveRuntimeState(runtimeState);
+    if (archiveOld) {
+      archiveTaskEvent(fromTaskId, { status: 'canceled', note: `scope 重签发 → ${created.taskId}` });
+    }
+    refreshSnapshotArtifacts();
+    auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: `reissue:${fromTaskId}:${created.taskId}` });
+    console.log(`已重签发：${fromTaskId} → ${created.taskId}（${created.status}）`);
+    console.log(`原任务 status=canceled${archiveOld ? ' 并已归档' : ''}；scope 未原地修改，审计链路见 newTask.priorTasks。`);
+    return;
+  }
+  console.error(`未知 task 子命令：${sub}（支持 register / import / resume / promote / cancel / reissue / rescope）`);
   process.exit(2);
 }
 
@@ -1319,14 +1380,83 @@ function cmdImprovements(args) {
   }
 }
 
+/** AF-084：回执预检，在 run-once 之前暴露格式与 scope 问题。 */
+function cmdReceipt(args) {
+  const sub = args[0];
+  if (sub !== 'lint') {
+    console.error('用法：receipt lint --taskId <id> [--path <receipt.json>]');
+    process.exit(2);
+  }
+  const taskId = argValue(args, '--taskId');
+  if (!taskId) {
+    console.error('用法：receipt lint --taskId <id> [--path <receipt.json>]');
+    process.exit(2);
+  }
+  const index = loadIndex();
+  const task = index.tasks.find((item) => item.taskId === taskId) ?? index.archivedTasks.find((item) => item.taskId === taskId);
+  if (!task) throw new Error(`任务不存在：${taskId}`);
+  const pathArg = argValue(args, '--path');
+  const receiptFile = pathArg ? resolve(REPO_ROOT, pathArg) : join(PATHS.transportDir, 'receipts', `${taskId}.json`);
+  if (!existsSync(receiptFile)) throw new Error(`回执文件不存在：${relativePath(receiptFile)}`);
+  const result = lintReceiptFile(receiptFile, task, { repoRoot: REPO_ROOT });
+  console.log(`回执预检 ${taskId} ← ${relativePath(receiptFile)}`);
+  for (const warning of result.warnings) console.log(`[WARN] ${warning}`);
+  if (result.ok) {
+    console.log(`[PASS] 七组字段、scope、工件与换行检查通过${result.warnings.length > 0 ? `（${result.warnings.length} 条警告）` : ''}`);
+    return;
+  }
+  for (const error of result.errors) console.log(`[FAIL] ${error}`);
+  console.log(`[FAIL] 共 ${result.errors.length} 项错误；修正后再执行 run-once。`);
+  process.exit(1);
+}
+
+/** 仓根相对路径展示（只读命令用）。 */
+function relativePath(absPath) {
+  return String(absPath).replace(REPO_ROOT, '').replace(/^[\\/]+/, '').replace(/\\/g, '/');
+}
+
+/** AF-084：docs 文本 LF / BOM 规范化，默认只读检查，--apply 才写盘。 */
+function cmdDocs(args) {
+  const sub = args[0];
+  if (sub !== 'normalize') {
+    console.error('用法：docs normalize --path docs/<file>.md [--apply]');
+    process.exit(2);
+  }
+  const pathArg = argValue(args, '--path');
+  if (!pathArg) {
+    console.error('用法：docs normalize --path docs/<file>.md [--apply]');
+    process.exit(2);
+  }
+  const absPath = resolve(REPO_ROOT, pathArg);
+  if (!existsSync(absPath)) throw new Error(`文件不存在：${pathArg}`);
+  const rel = repoRelativePath(absPath);
+  if (!rel.startsWith('docs/')) throw new Error(`只允许规范化 docs/ 下的文本文件：${rel}`);
+  const apply = args.includes('--apply');
+  const before = inspectTextFile(absPath);
+  if (!before.needsNormalize) {
+    console.log(`[PASS] ${rel} 已是 UTF-8 无 BOM + LF（${before.bytes} bytes）`);
+    return;
+  }
+  const result = normalizeTextFile(absPath, { apply });
+  const summary = `BOM=${result.hasBom} CR=${result.crCount} ${result.bytesBefore} → ${result.bytesAfter} bytes`;
+  if (apply) {
+    console.log(`[APPLIED] ${rel} 已规范化为 UTF-8 无 BOM + LF（${summary}）`);
+    return;
+  }
+  console.log(`[DRY-RUN] ${rel} 需要规范化（${summary}）；追加 --apply 落盘。`);
+}
+
 function printHelp() {
-  console.log('用法：cli.mjs <status|run-once|task|watch|protocol|snapshot|pack|archive|events|validate|config|improvements> [参数]');
+  console.log('用法：cli.mjs <status|run-once|task|receipt|docs|watch|protocol|snapshot|pack|archive|events|validate|config|improvements> [参数]');
   console.log('  archive <taskId> [--status ..] [--sheet ..] [--record ..] [--reply ..] [--note ..]');
   console.log('  task register --sheet <task.md> [--status ready]  解析 frontmatter 并登记进状态索引');
   console.log('  task import --handover <task.json> [--status ready]  补登 transport 已落交接件');
   console.log('  task resume --taskId <id> [--reason <text>]  解除租约超时的人工持单，允许重新领取');
   console.log('  task promote --taskId <id> [--reason <text>]  backlog → ready（校验任务单 / 基线 / 依赖满足）');
   console.log('  task cancel --taskId <id> [--reason <text>]  按状态机把非终态任务闭合到 canceled（随后可 archive）');
+  console.log('  task reissue|rescope --from <oldId> --sheet <new.md> [--apply] [--archive-old]  受审计的 scope 重签发');
+  console.log('  receipt lint --taskId <id> [--path <receipt.json>]  回执摄入前预检（七组字段 / scope / 工件 / 换行）');
+  console.log('  docs normalize --path docs/<file>.md [--apply]  UTF-8 无 BOM + LF 规范化（默认只读）');
   console.log('  events verify|rebuild|backfill             事件日志校验 / 重建索引 / 首次回填');
   console.log('  events rotate [--max-events 5000] [--compress] [--force] [--dry-run]  归档当前日志段（不删事件）');
   console.log(
@@ -1425,6 +1555,22 @@ switch (command) {
       cmdImprovements(args);
     } catch (err) {
       console.error(`台账操作失败：${err.message}`);
+      process.exit(2);
+    }
+    break;
+  case 'receipt':
+    try {
+      cmdReceipt(args);
+    } catch (err) {
+      console.error(`回执预检失败：${err.message}`);
+      process.exit(2);
+    }
+    break;
+  case 'docs':
+    try {
+      cmdDocs(args);
+    } catch (err) {
+      console.error(`文档规范化失败：${err.message}`);
       process.exit(2);
     }
     break;
