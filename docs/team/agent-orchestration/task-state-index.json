@@ -4,10 +4,121 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 492,
+    "lastEventSeq": 503,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-116",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-18T17:56:53.357Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "开始实现"
+        },
+        {
+          "at": "2026-11-18T17:56:53.671Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-long-session-acceptance",
+      "title": "AI 代理双盲评分与仲裁链路（可替换真人督导）",
+      "type": "implementation",
+      "baselineRef": "93dd8dbcf62c20d5fa0295fc29fc3f7814aac724",
+      "dependsOn": [],
+      "priorTasks": [
+        "AF-115"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-18T17:56:53.087Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "src/auto-practice/metrics/ai-double-blind.ts",
+          "bin/ai-double-blind.ts",
+          "test/auto-practice/ai-double-blind.spec.ts",
+          "docs/worklog/pending/af116-ai-double-blind-panel-task-2026-11-19.md",
+          "docs/worklog/completed/phase2.5/af116-ai-double-blind-panel-protocol-2026-11-19.md",
+          "docs/worklog/completed/phase2.5/af116-ai-double-blind-panel-delivery-2026-11-19.md",
+          "docs/worklog/pending/phase2.5-README.md"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af116-ai-double-blind-panel-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run test/auto-practice/ai-double-blind.spec.ts",
+          "check": "定向单测全绿",
+          "threshold": "exitCode=0"
+        },
+        {
+          "command": "pnpm typecheck",
+          "check": "类型检查通过",
+          "threshold": "exitCode=0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "lint 0 error / 0 warning",
+          "threshold": "exitCode=0"
+        },
+        {
+          "command": "node scripts/orchestration/cli.mjs validate --sheet docs/worklog/pending/af116-ai-double-blind-panel-task-2026-11-19.md",
+          "check": "任务单 schema 通过",
+          "threshold": "exitCode=0"
+        },
+        {
+          "command": "node scripts/orchestration/cli.mjs events verify",
+          "check": "事件链与索引投影一致",
+          "threshold": "exitCode=0"
+        },
+        {
+          "command": "git diff --check",
+          "check": "无空白错误与 CR",
+          "threshold": "exitCode=0"
+        }
+      ],
+      "successCriteria": [
+        "提供 AI 代理双盲评分链路：R1 证据优先、R2 整体叙事、独立上下文与独立评分表",
+        "对分差 >1 或低置信度的维度触发 R3 AI 仲裁，输出最终评分与仲裁理由",
+        "结果明确标记 ai_proxy_candidate / humanSupervision=false / clinicalAcceptanceEligible=false，不得冒充真人督导或质量达标",
+        "5 轮与 50 轮均可用：packet 只读匿名逐字稿，不依赖库内会话",
+        "真实运行至少 8 个 packet，产出 agreement / final ratings / provenance / limitations",
+        "后续接真人时可直接替换 R1/R2/R3 适配器，不重写评分与一致性逻辑"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af116-ai-double-blind-panel-delivery-2026-11-19.md",
+          "kind": "report"
+        },
+        {
+          "name": "协议",
+          "path": "docs/worklog/completed/phase2.5/af116-ai-double-blind-panel-protocol-2026-11-19.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-18T17:56:53.356Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -1134,6 +1245,24 @@
       "artifacts": {
         "taskSheet": "docs/worklog/pending/af113-af112-stacked-squash-guard-task-2026-11-19.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af113-af112-stacked-squash-guard-delivery-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-114",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af114-ai-double-blind-panel-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-115",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af115-ai-double-blind-panel-task-2026-11-19.md",
+        "deliveryRecord": null,
         "reply": null
       }
     }
