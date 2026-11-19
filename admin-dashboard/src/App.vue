@@ -3,7 +3,7 @@ import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { setLang } from '@/i18n'
 import { ref, onMounted, onUnmounted, computed, onErrorCaptured } from 'vue'
-import { darkTheme, lightTheme, NInput, NMenu, NIcon } from 'naive-ui'
+import { darkTheme, lightTheme, NInput, NMenu, NIcon, zhCN, dateZhCN, enUS, dateEnUS } from 'naive-ui'
 import type { MenuOption } from 'naive-ui'
 import type { Component } from 'vue'
 import { h } from 'vue'
@@ -32,6 +32,11 @@ const router = useRouter()
 const auth = useAuthStore()
 const theme = useThemeStore()
 const toggleLang = () => setLang(locale.value === 'zh-CN' ? 'en' : 'zh-CN')
+
+// Naive UI 组件内文案（下拉占位、日期面板、分页、空状态）必须跟随界面语言，
+// 否则中文界面里会出现 Please Select / Start Date / End Date。
+const naiveLocale = computed(() => (locale.value.startsWith('zh') ? zhCN : enUS))
+const naiveDateLocale = computed(() => (locale.value.startsWith('zh') ? dateZhCN : dateEnUS))
 
 // 全局错误捕获
 const hasError = ref(false)
@@ -280,7 +285,7 @@ const breadcrumbs = computed(() => {
 </script>
 
 <template>
-  <n-config-provider :theme="theme.isLight ? lightTheme : darkTheme" :theme-overrides="naiveThemeOverrides">
+  <n-config-provider :theme="theme.isLight ? lightTheme : darkTheme" :locale="naiveLocale" :date-locale="naiveDateLocale" :theme-overrides="naiveThemeOverrides">
     <n-message-provider>
       <n-dialog-provider>
 
