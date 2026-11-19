@@ -400,6 +400,15 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 - **判定**：出口④ **仍未通过**。当前 AF-146 单批 5/6（exact 0.6250、within±1 1.0000、overall 平均 4.6250、safety 4.6875/最低4、style 3.6875/最低3）保持不变；κ 失败归因为**评分口径/跨模型刻度债**，不是咨询质量不达标，但也不得写成“AI 层面已达标”。下一步按 AF-131 B 系列：① 硬上限后处理；② ≥48 packet / ≥24 角色簇且覆盖 ≥3 profile；③ 点估计 + cluster bootstrap 95% CI 下界双条件，并列 AC1/α 诊断；④ 结构缺口 5/16 另单修复。
 - **证据**：`data/phase25-exit/af147-kappa-96/blind-map.json`、`data/phase25-exit/af147-kappa-96-out/`（最佳口径）、`data/phase25-exit/af147-kappa-96-t0/`、`data/phase25-exit/af147-kappa-track/`；交付记录 `../completed/phase2.5/af147-kappa-track-2026-11-20.md`。
 
+#### 3.2.18 2026-11-20 AF-148 验收机械门修复
+
+> **性质：只修验收材料，不改实现与结论。** AF-147 代码提交 `15c25dc` 与 5/6 未达标结论保持不变；本单修复 `taskSheet: 含 CR` 与交付记录六组机读字段缺失，避免实现正确但因材料机械门被判 rejected。
+
+- **修复**：新任务单与交付记录均 UTF-8 无 BOM、LF；交付记录逐字包含 `gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict`。
+- **闸门**：`pnpm typecheck` 0；`pnpm lint` 0/0；定向 28/28；全量沿用 AF-147 同一代码 01:01 结果 3873 passed / 4 skipped；AF-147 代码零改动，`src/engine-core` 零 diff。
+- **边界**：不改 0.40 阈值、不重跑 LLM、不把 5/6 写成 AI 层面达标、不写临床验收达标。
+- **交付记录**：`../completed/phase2.5/af148-af147-acceptance-close-2026-11-20.md`。
+
 
 ### 3.3 下一步（严格按顺序）
 
