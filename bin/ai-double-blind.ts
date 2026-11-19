@@ -43,6 +43,7 @@ import {
   type AiRaterId,
   type AiRaterOutput,
   type AiScoreVector,
+  type AiScoringTrack,
 } from '../src/auto-practice/metrics/ai-double-blind.js';
 import {
   LONG_SESSION_DIMENSIONS,
@@ -330,8 +331,9 @@ async function rateOnce(input: {
   timeoutMs: number;
   maxCompletionTokens: number;
   maxParseRetries: number;
+  track: AiScoringTrack;
 }): Promise<{ output: AiRaterOutput; provenance: AiCallProvenance }> {
-  const prompt = buildRaterPrompt({ raterId: input.raterId, packet: input.packet });
+  const prompt = buildRaterPrompt({ raterId: input.raterId, packet: input.packet, track: input.track });
   let lastContent = '';
   for (let attempt = 0; attempt <= input.maxParseRetries; attempt += 1) {
     const user =
@@ -491,6 +493,7 @@ function buildReport(input: {
   agreement: ReturnType<typeof summarizeAiAgreement>;
   raterConfigs: readonly RaterConfig[];
   arbiterModel: string;
+  scoringTrack: AiScoringTrack;
 }): string {
   const lines: string[] = [
     '# AI 代理双盲评分与仲裁报告',
@@ -498,6 +501,7 @@ function buildReport(input: {
     `> ${AI_DOUBLE_BLIND_DISCLAIMER}`,
     '',
     `- 版本：${AI_DOUBLE_BLIND_VERSION}`,
+    `- 赛道：${input.scoringTrack}`,
     `- 批次：${input.batchId}`,
     `- packet 数：${input.packetResults.length}`,
     `- R1：${input.raterConfigs[0].model} / temperature=${input.raterConfigs[0].temperature}`,
@@ -639,6 +643,11 @@ async function commandRun(): Promise<void> {
   const maxParseRetries = parseRetryCount();
   const concurrency = Number(arg('--concurrency', '3'));
   if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 8) fail('--concurrency 必须是 1–8 的整数');
+  const trackRaw = arg('--track', 'method-probe');
+  if (trackRaw !== 'method-probe' && trackRaw !== 'kappa') fail('--track 只能是 method-probe 或 kappa');
+  const scoringTrack: AiScoringTrack = trackRaw;
+  const maxGap = Number(arg('--arbitrate-gap', '1'));
+  if (!Number.isInteger(maxGap) || maxGap < 0 || maxGap > 4) fail('--arbitrate-gap 必须是 0–4 的整数');
 
   const rater1Temperature = Number(arg('--rater1-temperature', '0.1'));
   const rater2Temperature = Number(arg('--rater2-temperature', '0.7'));
@@ -664,6 +673,7 @@ async function commandRun(): Promise<void> {
     const is50 = sample.turns.length >= 80;
     console.log(`[dry-run] batch=${map.batchId} packets=${entries.length} turns(sample)=${sample.turns.length} isLong=${is50}`);
     console.log(`[dry-run] R1=${rater1Model} temp=${rater1Temperature} / R2=${rater2Model} temp=${rater2Temperature} / R3=${arbiterModel}`);
+    console.log(`[dry-run] track=${scoringTrack} arbitrateGap=${maxGap}`);
     console.log(`[dry-run] ${AI_DOUBLE_BLIND_DISCLAIMER}`);
     return;
   }
@@ -691,6 +701,7 @@ async function commandRun(): Promise<void> {
         timeoutMs,
         maxCompletionTokens,
         maxParseRetries,
+        track: scoringTrack,
       }),
       rateOnce({
         provider,
@@ -702,10 +713,11 @@ async function commandRun(): Promise<void> {
         timeoutMs,
         maxCompletionTokens,
         maxParseRetries,
+        track: scoringTrack,
       }),
     ]);
     const provenanceItems = [r1.provenance, r2.provenance];
-    const disputes = findAiDisputes(r1.output, r2.output);
+    const disputes = findAiDisputes(r1.output, r2.output, { maxGap });
     let arbitration: ArbitrationResult | null = null;
     if (disputes.length > 0) {
       console.log(`[R3] ${entry.packetId} disputes=${disputes.map((item) => item.dimension).join('|')}`);
@@ -771,6 +783,8 @@ async function commandRun(): Promise<void> {
     batchId: map.batchId,
     packetCount: packetResults.length,
     sameModelForBothRaters: rater1Model === rater2Model,
+    scoringTrack,
+    arbitrateGap: maxGap,
     raterConfigs,
     arbiterModel,
     limitations: AI_DOUBLE_BLIND_LIMITATIONS,
@@ -779,13 +793,15 @@ async function commandRun(): Promise<void> {
   });
   writeFileSync(
     join(outDir, 'ai-report.md'),
-    buildReport({ batchId: map.batchId, packetResults, agreement, raterConfigs, arbiterModel }),
+    buildReport({ batchId: map.batchId, packetResults, agreement, raterConfigs, arbiterModel, scoringTrack }),
     'utf8',
   );
 
   const disputed = packetResults.filter((result) => result.disputes.length > 0).length;
   console.log(`[OK] ${packetResults.length} packet → ${outDir}`);
-  console.log(`[OK] R1/R2 原始 overall κ=${agreement.rawOverall.linearWeightedKappa ?? 'null'}`);
+  console.log(
+    `[OK] track=${scoringTrack} arbitrateGap=${maxGap} R1/R2 原始 overall κ=${agreement.rawOverall.linearWeightedKappa ?? 'null'}`,
+  );
   console.log(`[OK] 进入仲裁 packet=${disputed}`);
   console.log(`[提示] ${AI_DOUBLE_BLIND_DISCLAIMER}`);
 }

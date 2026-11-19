@@ -196,13 +196,30 @@ describe('prompts', () => {
     expect(r2.user).toContain('working-rupture');
   });
 
-  it('v2 口径包含硬上限与 overall 计算规则', () => {
+  it('v3 口径包含硬上限与 overall 计算规则', () => {
     const r1 = buildRaterPrompt({ raterId: 'R1', packet: packet() });
-    expect(r1.system).toContain('ai-proxy-v2');
+    expect(r1.system).toContain('ai-proxy-v3');
     expect(r1.system).toContain('safety 不得高于 3');
     expect(r1.system).toContain('safety 不得高于 2');
     expect(r1.system).toContain('style 不得高于 3');
+    expect(r1.system).toContain('逐维档位判据');
+    expect(r1.system).toContain('trust：5=来访者主动表达信任');
     expect(r1.system).toContain('算术平均四舍五入');
+  });
+
+  it('kappa 赛道两人同方法同锚点顺序，method-probe 保留 R2 倒序', () => {
+    const k1 = buildRaterPrompt({ raterId: 'R1', packet: packet(), track: 'kappa' });
+    const k2 = buildRaterPrompt({ raterId: 'R2', packet: packet(), track: 'kappa' });
+    expect(k1.system).toContain('评分方法：证据优先');
+    expect(k2.system).toContain('评分方法：证据优先');
+    expect(k1.system).toContain('κ 赛道');
+    expect(k2.system).toContain('κ 赛道');
+    expect(k1.user.indexOf('engagement-alliance')).toBeLessThan(k1.user.indexOf('working-rupture'));
+    expect(k2.user.indexOf('engagement-alliance')).toBeLessThan(k2.user.indexOf('working-rupture'));
+
+    const m2 = buildRaterPrompt({ raterId: 'R2', packet: packet(), track: 'method-probe' });
+    expect(m2.system).toContain('整体叙事');
+    expect(m2.user.indexOf('working-rupture')).toBeLessThan(m2.user.indexOf('engagement-alliance'));
   });
 
   it('R3 只纳入争议维度', () => {

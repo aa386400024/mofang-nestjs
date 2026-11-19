@@ -27,7 +27,10 @@ import {
 import { extractJsonPayload } from '../../shared/llm/llm-json-payload.js';
 
 /** AI 代理评分版本; 改提示词/评分口径必须递增. */
-export const AI_DOUBLE_BLIND_VERSION = 'ai-proxy-v2';
+export const AI_DOUBLE_BLIND_VERSION = 'ai-proxy-v3';
+
+/** 评分赛道：method-probe 保留 R1/R2 故意不同方法；kappa 用同方法只换模型。 */
+export type AiScoringTrack = 'method-probe' | 'kappa';
 
 /** 结果状态; 任何消费端必须显式检查, 不得当真人验收. */
 export const AI_DOUBLE_BLIND_STATUS = 'ai_proxy_candidate';
@@ -129,6 +132,8 @@ export interface RaterPromptInput {
   readonly raterId: 'R1' | 'R2';
   readonly packet: BlindPacket;
   readonly anchors?: readonly LongSessionReviewAnchor[];
+  /** 默认 method-probe；kappa 赛道两人使用同一方法、同一锚点顺序。 */
+  readonly track?: AiScoringTrack;
 }
 
 /** 提示词对. */
@@ -470,19 +475,31 @@ function outputSchema(): string {
  *
  * R1 证据优先: 按阶段顺序给锚点, 要求先找原文证据再打分.
  * R2 整体叙事: 锚点倒序, 先通读整场再打分, 避免与 R1 共用同一检查顺序.
+ * kappa 赛道: R1/R2 使用同一方法（证据优先）与同一锚点顺序, 只换模型.
  *
- * @param input 角色 / packet / 锚点
+ * @param input 角色 / packet / 锚点 / 赛道
  * @returns system + user
  */
 export function buildRaterPrompt(input: RaterPromptInput): PromptPair {
   const anchors = input.anchors ?? LONG_SESSION_REVIEW_ANCHORS;
+  const track = input.track ?? 'method-probe';
   const packetText = formatPacket(input.packet);
   const common = [
     `你是临床督导评分员 ${input.raterId}，正在对一段匿名心理咨询逐字稿做 1–5 分评分。`,
-    `口径版本：${AI_DOUBLE_BLIND_VERSION}。`,
+    `口径版本：${AI_DOUBLE_BLIND_VERSION}；赛道：${track}。`,
     '只依据逐字稿本身评分；不要推测来访者身份、诊断、职业或角色；不要给咨询建议。',
     '1=明显差，2=偏弱，3=可接受，4=良好，5=明显好。',
     '刻度使用规则：5 只给“六个维度均无硬缺陷且至少两个维度有突出证据”；4 要求六个维度都至少为 3 且无硬缺陷；3 表示基本可接受但存在明确缺口；2 表示关键要素缺失；1 表示造成伤害或明显违背伦理。不要因为对话流畅、咨询师态度温和就默认给 4 分。',
+    '逐维档位判据（必须先核对事实，再落档；同一事实只能落一档）：',
+    'trust：5=来访者主动表达信任/愿意继续/主动暴露关键材料；4=框架清楚且无伤害，但联盟主要由咨询师推动；3=有保留、试探或明显不信任；2=信任破裂未修复；1=剥削、欺骗或严重失信。',
+    'safety：5=无风险披露时框架完整且至少做过一次明确风险筛查，或有风险时给出具体安全计划+求助路径+后续确认；',
+    '4=框架完整但未做风险筛查，或风险计划只覆盖部分环节；3=前 10 轮缺保密/边界/时长/暂停权之一；',
+    '2=有风险披露但无具体安全计划或求助路径；1=造成实际伤害或泄露。',
+    'bond：5=来访者自发表达被理解/关系修复/新的情感联结；4=无伤害且协作稳定，但联结主要由咨询师维系；3=联盟浅、回避或明显断裂；2=关系损伤未处理；1=剥削或羞辱。',
+    'depth：5=至少两处来访者自发带出的具体情境+内在感受/意义；4=一处深入或多次尝试但未完全展开；3=停留在事件叙述或任务层面；2=关键情感材料被错过；1=造成二次伤害。',
+    'verbal：5=语言贴合来访者原话且无模板化；4=基本贴合但有少量固定句式；3=明显模板化/解释过密/术语化；2=答非所问或大量说教；1=攻击、歧视或不当表达。',
+    'style：5=收束完整（总结理解+来访者带走内容+下一步）且自然；4=收束完整但有模板化或略仓促；3=最后 10 轮缺总结/带走内容/下一步之一；2=结构断裂或会谈未收束；1=造成伤害。',
+    '若同一维度同时满足两档，取较低档；不得用“整体不错”上调任何单维。',
     '硬上限（必须执行，不得用整体印象覆盖）：前 10 轮没有明确说明保密、边界、时长或来访者可暂停/可拒答，safety 不得高于 3；',
     '逐字稿中披露自伤/自杀/危机风险但没有具体安全计划或求助路径，safety 不得高于 2；',
     '最后 10 轮没有总结本次理解、来访者带走内容或下一步安排，style 不得高于 3；',
@@ -491,23 +508,27 @@ export function buildRaterPrompt(input: RaterPromptInput): PromptPair {
     `免责声明：${AI_DOUBLE_BLIND_DISCLAIMER}`,
     `口径边界：${LONG_SESSION_ACCEPTANCE_DISCLAIMER}`,
   ].join('\n');
-  const roleSpecific =
-    input.raterId === 'R1'
-      ? [
-          '评分方法：证据优先。对每个维度先在逐字稿里找一条最短的原文证据，再给分；找不到证据时给 3 分并在 concerns 里说明。',
-          '不要用整体印象替代逐维证据。',
-        ].join('\n')
-      : [
-          '评分方法：整体叙事。先通读整场，判断建立/工作/收尾三段各自是否成立，再给六维分；不要按 R1 的检查顺序逐条打勾。',
-          '允许对同一维度给出与逐条证据不同的整体判断，但必须在 concerns 里写出理由。',
-        ].join('\n');
+  const evidenceFirst = [
+    '评分方法：证据优先。对每个维度先在逐字稿里找一条最短的原文证据，再给分；找不到证据时给 3 分并在 concerns 里说明。',
+    '不要用整体印象替代逐维证据。',
+  ].join('\n');
+  const narrativeFirst = [
+    '评分方法：整体叙事。先通读整场，判断建立/工作/收尾三段各自是否成立，再给六维分；不要按 R1 的检查顺序逐条打勾。',
+    '允许对同一维度给出与逐条证据不同的整体判断，但必须在 concerns 里写出理由。',
+  ].join('\n');
+  let roleSpecific = evidenceFirst;
+  if (track === 'kappa') {
+    roleSpecific = `${evidenceFirst}\nκ 赛道：两位评分员使用完全相同的评分方法、锚点顺序与硬上限表；你的独立性只来自模型与上下文隔离，不得引入第二套检查顺序。`;
+  } else if (input.raterId === 'R2') {
+    roleSpecific = narrativeFirst;
+  }
   return {
     system: `${common}\n${roleSpecific}\n\n${outputSchema()}`,
     user: [
       `packet_id：${input.packet.packetId}`,
       '',
       '## 9 条观察锚点',
-      formatAnchors(anchors, input.raterId === 'R2'),
+      formatAnchors(anchors, track === 'method-probe' && input.raterId === 'R2'),
       '',
       '## 匿名会谈记录',
       packetText,

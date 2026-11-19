@@ -388,7 +388,17 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 - **判定**：出口④ **未完全达标**。剩余两项：① overall κ 0.351 < 0.40（评分口径债，按 AF-131 B 系列校准，不调阈值）；② 结构缺口 5/16（4 场 risk-incomplete + 1 场 none）。style 已过线，不再列为失败项。
 - **证据**：`data/phase25-exit/af144-long-pack/`、`data/phase25-exit/af144-structure-audit/`、`data/phase25-exit/af144-ai-double-blind/`、`data/batch-reports/-O6D-lCqS2CGb7uS3aJI4.json|md`；交付记录 `../completed/phase2.5/af146-final-closing-quality-close-2026-11-19.md`。
 
+#### 3.2.17 2026-11-20 AF-147 评分双轨与 96 场 κ 校准
 
+> **正式结论：❌ AI 层面质量门仍为 5/6，未达标。** 唯一失败项仍是 overall 跨模型 κ；96 场校准把点估计从 **0.351351** 提升到 **0.365854**，一致率 86.46%、within±1 100%，但仍 **< 0.40**。本结论只作 `ai_proxy_candidate / humanSupervision=false / clinicalAcceptanceEligible=false`，不是临床验收结论。**不得下调 0.40。**
+
+- **代码口径（AF-147）**：`ai-double-blind.ts` 新增 `AiScoringTrack`；`buildRaterPrompt` 支持 `track='kappa'`，R1/R2 使用同一证据优先方法、同一锚点顺序、同一硬上限表，只换模型；默认 `method-probe` 原行为逐字保留。`bin/ai-double-blind.ts` 新增 `--track method-probe|kappa`、`--arbitrate-gap 0–4`，provenance 记录 `scoringTrack/arbitrateGap`；版本递增 `ai-proxy-v3`。单测 16/16。
+- **16 场首轮**：κ 赛道 overall κ **0.188406**；低于方法探针 0.351351，说明“同方法”不足以消除跨模型刻度差。AF-146 复核已指出：16 场近满分样本存在 prevalence 崩塌，κ 门在 n=16 上接近掷硬币。
+- **96 场校准**（`data/phase25-exit/af147-kappa-96-out`，6 个独立既有批次 96 个唯一 session，不新跑对练）：R1=`MiniMax-M2.7` / R2=`MiniMax-M3.1-Flash` / R3=`MiniMax-M3`，同方法、同锚点序、`arbitrate-gap=0`、温度 0.1。overall exact **83/96 = 0.864583**、within±1 **96/96 = 1.0000**、**overall κ 0.365854（<0.40，仍未过）**；分维 κ：trust 0.194508、safety 0.659675、bond 0.536842、depth 0.641457、verbal 0.078891、style 0.565779。overall 分布 4×81、5×15，无 ≤2；该 96 场跨版本校准集 style 均值 3.2708，**不得拿来替代 AF-146 单批质量结论**。
+- **稳定性复跑**：同 96 场温度 0 得 κ **0.341176**；收紧 trust/verbal 规则后得 κ **-0.018868**，已按证据回退到最佳口径，不拿更差结果凑过门。三次结果一致指向：剩余变量是跨模型刻度差与近满分 prevalence，不是样本量单因素。
+- **MiniMax 独立复核**（`docs/worklog/pending/relay-response-AF147-20261120-0015.md`，40 KB）：协议层验证 κ 赛道 R1/R2 的 user prompt 逐字节相同、锚点同序、method-probe R2 仍倒序；指出 16 场只有 8 个独立簇、cluster bootstrap 95% CI [-0.125, 0.692]、n=16 上 P(κ≥0.40)=37.1%；建议把口径准确命名为“跨模型同协议可复现性”，不构成真人督导可互换性证据；P0 把硬上限搬出 prompt，P1 扩独立簇，P2 加 CI/AC1/Krippendorff α 诊断。**这些是后续任务，不在本单偷改阈值。**
+- **判定**：出口④ **仍未通过**。当前 AF-146 单批 5/6（exact 0.6250、within±1 1.0000、overall 平均 4.6250、safety 4.6875/最低4、style 3.6875/最低3）保持不变；κ 失败归因为**评分口径/跨模型刻度债**，不是咨询质量不达标，但也不得写成“AI 层面已达标”。下一步按 AF-131 B 系列：① 硬上限后处理；② ≥48 packet / ≥24 角色簇且覆盖 ≥3 profile；③ 点估计 + cluster bootstrap 95% CI 下界双条件，并列 AC1/α 诊断；④ 结构缺口 5/16 另单修复。
+- **证据**：`data/phase25-exit/af147-kappa-96/blind-map.json`、`data/phase25-exit/af147-kappa-96-out/`（最佳口径）、`data/phase25-exit/af147-kappa-96-t0/`、`data/phase25-exit/af147-kappa-track/`；交付记录 `../completed/phase2.5/af147-kappa-track-2026-11-20.md`。
 
 
 ### 3.3 下一步（严格按顺序）
