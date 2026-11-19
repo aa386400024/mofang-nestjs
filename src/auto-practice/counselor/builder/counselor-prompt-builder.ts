@@ -4,6 +4,7 @@ import { CLOSE_DISCIPLINE, sessionCloseDisciplineSection } from './prompt-sectio
 import { CONSISTENCY_DISCIPLINE } from './prompt-sections/consistency-discipline.js';
 import { CRISIS_PROTOCOL } from './prompt-sections/crisis-protocol.js';
 import { crisisStabilizationSection } from './prompt-sections/crisis-stabilization.js';
+import { sessionOpeningFrameworkSection } from './prompt-sections/opening-framework.js';
 import { OUTPUT_DISCIPLINE } from './prompt-sections/output-discipline.js';
 import { LEGACY_SESSION_PROFILE, type SessionProfile } from '../../session-profile.js';
 
@@ -66,6 +67,7 @@ export class CounselorPromptBuilder {
     // 长会话收尾纪律块同理: enabled 由档案决定 (legacy 档 = false, 保持逐字不变).
     const dynamicSections: PromptSection[] = [
       ...this.sections,
+      sessionOpeningFrameworkSection(profile),
       crisisStabilizationSection(crisisMode),
       sessionCloseDisciplineSection(profile, turnIndex),
     ];
