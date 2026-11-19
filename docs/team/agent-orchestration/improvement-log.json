@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-19T10:04:06.775Z",
+  "updatedAt": "2026-11-19T19:10:07.481Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -3292,6 +3292,39 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-073",
+      "status": "queued",
+      "title": "临床级 AI 评分门缺真人双标与仲裁，96 场 cluster 仅 8 个角色簇",
+      "source": "acceptance",
+      "type": "gap",
+      "layer": "framework",
+      "relatedTaskId": "AF-152",
+      "evidence": [
+        "data/phase25-exit/af147-kappa-96-final/;docs/worklog/completed/phase2.5/af152-quality-admin-2026-11-20.md"
+      ],
+      "impact": "κ 0.365854 与 safety 4/6 无法判定为模型能力上限还是标注口径缺陷；继续调 AI 评分器会变成自证",
+      "suggestion": "补 ≥24 角色簇或真人双标+仲裁，再复评 κ 与 safety；在此之前质量门保持不通过",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-19T19:10:00.712Z",
+      "updatedAt": "2026-11-19T19:10:07.481Z",
+      "history": [
+        {
+          "at": "2026-11-19T19:10:00.712Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-19T19:10:07.481Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": null
         }
       ]
     }

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-19T19:08:01.351Z",
+  "generatedAt": "2026-11-19T19:10:07.489Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -20,17 +20,17 @@
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 72,
-    "activeCount": 18,
+    "total": 73,
+    "activeCount": 19,
     "byStatus": {
       "candidate": 18,
-      "queued": 0,
+      "queued": 1,
       "accepted": 0,
       "done": 51,
       "wontfix": 3
     },
     "byType": {
-      "gap": 45,
+      "gap": 46,
       "guardrail": 5,
       "tool": 2,
       "standard": 6,
@@ -39,7 +39,7 @@
     },
     "bySource": {
       "implementation": 33,
-      "acceptance": 16,
+      "acceptance": 17,
       "rework": 3,
       "dead-letter": 0,
       "review": 20
@@ -1585,6 +1585,27 @@
           "by": "orchestrator-cli",
           "to": "candidate",
           "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-073",
+        "title": "临床级 AI 评分门缺真人双标与仲裁，96 场 cluster 仅 8 个角色簇",
+        "status": "queued",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "framework",
+        "relatedTaskId": "AF-152",
+        "evidence": [
+          "data/phase25-exit/af147-kappa-96-final/;docs/worklog/completed/phase2.5/af152-quality-admin-2026-11-20.md"
+        ],
+        "impact": "κ 0.365854 与 safety 4/6 无法判定为模型能力上限还是标注口径缺陷；继续调 AI 评分器会变成自证",
+        "suggestion": "补 ≥24 角色簇或真人双标+仲裁，再复评 κ 与 safety；在此之前质量门保持不通过",
+        "historyCount": 2,
+        "lastTransition": {
+          "at": "2026-11-19T19:10:07.481Z",
+          "by": "orchestrator-cli",
+          "to": "queued",
+          "note": null
         }
       }
     ]
