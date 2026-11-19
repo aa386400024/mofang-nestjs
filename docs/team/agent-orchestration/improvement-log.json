@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-18T15:46:33.240Z",
+  "updatedAt": "2026-11-19T01:12:23.815Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -3071,6 +3071,33 @@
       "history": [
         {
           "at": "2026-11-18T15:46:33.239Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-066",
+      "status": "candidate",
+      "title": "长会话咨询师开场框架与收束缺失导致 AI 质量门 safety/style 系统性不足",
+      "source": "acceptance",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-125",
+      "evidence": [
+        "af125-ai-16-v2/ai-final-ratings.csv",
+        "af125-ai-16-v2/ai-agreement.json"
+      ],
+      "impact": "16 场中 safety 平均 3.0、最低 2；style 平均 3.125；overall 平均 3.938，AI 质量门未达标",
+      "suggestion": "在咨询师系统提示词中加入开场知情框架（保密/边界/时长/可暂停/可拒答）与结束收束（总结/带走/下一步），并用新批次复评",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-19T01:12:23.814Z",
+      "updatedAt": "2026-11-19T01:12:23.814Z",
+      "history": [
+        {
+          "at": "2026-11-19T01:12:23.814Z",
           "from": null,
           "to": "candidate",
           "by": "orchestrator-cli",

@@ -1,0 +1,134 @@
+{
+  "deliveredAt": "2026-11-19T09:20:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-125-1",
+    "taskId": "AF-125",
+    "contextId": "phase2.5-ai-proxy-acceptance",
+    "type": "verification",
+    "agentRole": "orchestrator",
+    "baselineRef": "fc8b9471b8444d3086245ada86c8eea76b230886",
+    "dependsOn": ["AF-124"],
+    "priorTasks": ["AF-116"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "changedFiles": {
+      "added": [
+        "docs/worklog/pending/af125-ai-proxy-cross-model-task-2026-11-19.md",
+        "docs/worklog/completed/phase2.5/af125-ai-proxy-cross-model-2026-11-19.md"
+      ],
+      "modified": [
+        "src/auto-practice/metrics/ai-double-blind.ts",
+        "test/auto-practice/ai-double-blind.spec.ts",
+        "docs/worklog/pending/phase2.5-README.md",
+        "docs/team/agent-orchestration/improvement-log.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "commits": [
+        "6d17ea4",
+        "67e30b5",
+        "a87d271",
+        "d5a153a"
+      ]
+    },
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af125-ai-proxy-cross-model-task-2026-11-19.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af125-ai-proxy-cross-model-2026-11-19.md",
+      "reply": null,
+      "others": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/ai-double-blind.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "1 file / 15 tests passed"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm exec tsx bin/ai-double-blind.ts run --pack-dir $env:TEMP\\af125-pack16 --out $env:TEMP\\af125-ai-16-v2 --max-packets 16 --rater1-model MiniMax-M2.7 --rater2-model MiniMax-M3.1-Flash --arbiter-model MiniMax-M3",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "16/16 packet valid；1 个争议 packet 已仲裁；AI 层面质量门未达标"
+      }
+    ],
+    "reproNotes": "branch task/AF-125-ai-proxy-cross-model 自 integrate fc8b947。登记 6d17ea4；v2 实现 67e30b5；交付记录 a87d271；台账/快照 d5a153a。未新跑练习批次，只复用 AF-109 批次 q_35XnpvLWLr-Yocr8kJh 冻结 long packet。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-125 任务单、索引、回执、PR 一致" },
+      { "item": "stateWrite", "result": "pass", "note": "register/run-once/improvements 经 CLI" },
+      { "item": "indexSchema", "result": "pass", "note": "task-state-index 由 CLI 写入" },
+      { "item": "eventChain", "result": "pass", "note": "events verify 通过" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "ai-proxy-v2 版本与报告一致；humanSupervision=false / clinicalAcceptanceEligible=false 未被改写；clinical 不因 AI 结果升格"
+    },
+    "backlogItems": [
+      {
+        "id": "IM-066",
+        "title": "长会话咨询师开场框架与收束缺失导致 AI 质量门 safety/style 系统性不足",
+        "impact": "16 场 safety 平均 3.0、最低 2；style 平均 3.125；overall 平均 3.938，AI 质量门未达标",
+        "reason": "开场未说明保密/边界/时长/可暂停；结束未总结/带走/下一步",
+        "owner": "adapter"
+      },
+      {
+        "id": "OI-AF125-01",
+        "title": "跨模型仍同属 MiniMax provider",
+        "impact": "评分独立性低于跨厂商",
+        "reason": "当前无第二家 provider key；用户计划后续接入另一模型",
+        "owner": "orchestrator"
+      },
+      {
+        "id": "OI-AF125-02",
+        "title": "16 packet 仍来自同一批次",
+        "impact": "样本量与角色覆盖有限",
+        "reason": "本轮不新跑练习批次；需 AF-126 修复后用新批次复评",
+        "owner": "clinical"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [
+      "packet-14：被动死亡意念，R2 safety=2，最终 safety=3；需真人优先复核安全性",
+      "packet-01：最终 overall=3，为 16 场中唯一低于 4 的场次"
+    ],
+    "deviationTable": [
+      {
+        "item": "packet 数",
+        "taskSays": "8 packet",
+        "reality": "实际 16 packet",
+        "action": "同一批次平衡抽 16 个 long packet，不新跑批次",
+        "why": "8 packet 的 κ 点估计不稳；扩样降低抽样噪声"
+      },
+      {
+        "item": "评分口径",
+        "taskSays": "ai-proxy-v1",
+        "reality": "实际 ai-proxy-v2",
+        "action": "新增硬上限：无会谈框架 → safety≤3；无收束 → style≤3；overall 必须六维均分四舍五入",
+        "why": "v1 下 R1 系统性偏松（overall 几乎全 4）；v2 把缺失框架/收束变成可复核判据，不是放宽阈值"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "任务完成：跨模型 16 packet 真实评分、AI 层面阈值与判定、出口条件表回写、IM-066 登记均有证据；闸门 15 tests / tsc 0 / lint 0。质量判定本身为未达标，不是交付失败。"
+  }
+}
