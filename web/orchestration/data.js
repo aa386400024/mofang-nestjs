@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-19T18:49:12.263Z",
+  "generatedAt": "2026-11-19T18:51:50.870Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -14,30 +14,9 @@ window.ORCH_SNAPSHOT = {
     "canceled": 0,
     "rejected": 0,
     "input-required": 0,
-    "deadLetter": 0,
-    "backlog": 1
+    "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-128",
-      "contextId": "phase2.5-ai-proxy-acceptance",
-      "type": "fix",
-      "title": "可见输出推理标签泄漏的命名空间与孤立闭合清洗",
-      "status": "backlog",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": null
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1776,6 +1755,38 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-196",
+      "recordedAt": "2026-11-19T18:50:05.756Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-128",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-128",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-128.json"
+      ]
+    },
+    {
+      "auditId": "AUD-195",
+      "recordedAt": "2026-11-19T18:50:00.010Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-128",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-194",
       "recordedAt": "2026-11-19T18:08:31.288Z",
       "actorRef": "orchestrator",
@@ -1985,80 +1996,25 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-147.json"
       ]
-    },
-    {
-      "auditId": "AUD-181",
-      "recordedAt": "2026-11-19T15:41:26.827Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-146",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-146",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-146.json"
-      ]
-    },
-    {
-      "auditId": "AUD-180",
-      "recordedAt": "2026-11-19T15:41:07.186Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-145",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 194,
+    "total": 196,
     "byResult": {
-      "allowed": 194,
+      "allowed": 196,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 193,
+      "TOOL-QUEUE-SCHEDULER": 195,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 194
+      "orchestrator": 196
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-128",
-        "title": "可见输出推理标签泄漏的命名空间与孤立闭合清洗",
-        "type": "fix",
-        "status": {
-          "framework": "backlog",
-          "protocol": null,
-          "stage": "orchestration"
-        },
-        "groupId": "phase2.5-ai-proxy-acceptance",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-127"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -5025,6 +4981,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af155-admin-runtime-smoke-2026-11-20.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-128",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af128-visible-output-think-leak-2026-11-19.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -5039,17 +5013,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-128",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md"
-      }
-    ],
-    "groupId": "phase2.5-ai-proxy-acceptance",
-    "groupIds": [
-      "phase2.5-ai-proxy-acceptance"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -5124,5 +5090,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 169
+  "archivedCount": 170
 };
