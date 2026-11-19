@@ -32,6 +32,22 @@ const eventTagList = computed(() => {
 
 const latestBdi = computed(() => props.bdiHistory[props.bdiHistory.length - 1] ?? null)
 
+// 进度条口径与卡片保持一致：
+//   - 普通 BDI 维度 0..1 → 0..100%
+//   - valence 是 -1..1 → 先归一化到 0..1，否则负值会让进度条直接空白
+// 显示值保留原始刻度 (0.88 / -0.64)，不把归一化后的 0.18 冒充效价。
+const snapshotRows = computed(() => {
+  const latest = latestBdi.value
+  if (!latest) return []
+  return Object.entries(latest)
+    .filter(([key]) => key !== 'turnIndex')
+    .map(([key, value]) => {
+      const n = typeof value === 'number' ? value : Number(value)
+      const percent = key === 'valence' ? ((n + 1) / 2) * 100 : n * 100
+      return { key, value: n, percent: Number.isFinite(percent) ? percent : 0 }
+    })
+})
+
 function copyTraceJson() {
   navigator.clipboard.writeText(JSON.stringify({ turnIndex: props.turnIndex, bdiSnapshot: latestBdi.value, trace: props.trace }, null, 2))
 }
@@ -98,11 +114,11 @@ const visitorMessages = computed(() => {
           <div>
             <div class="text-xs text-muted mb-2">当前快照（第 {{ turnIndex }} 轮）</div>
             <div class="space-y-2">
-              <div v-for="dim in latestBdi ? Object.keys(latestBdi).filter(k => k !== 'turnIndex') : []" :key="dim"
+              <div v-for="row in snapshotRows" :key="row.key"
                    class="flex items-center gap-2 text-xs">
-                <span class="w-20 text-muted">{{ dim }}</span>
-                <NProgress type="line" :percentage="((latestBdi as any)?.[dim] ?? 0) * 100" :show-text="false" class="flex-1" />
-                <span class="w-12 text-right font-mono">{{ ((latestBdi as any)?.[dim] ?? 0).toFixed(2) }}</span>
+                <span class="w-20 text-muted">{{ row.key }}</span>
+                <NProgress type="line" :percentage="row.percent" :show-text="false" :show-indicator="false" class="flex-1" />
+                <span class="w-12 text-right font-mono">{{ row.value.toFixed(2) }}</span>
               </div>
             </div>
           </div>

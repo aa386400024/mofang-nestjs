@@ -79,6 +79,16 @@ function avatarInitial(slug: string): string {
   return slug.slice(0, 1).toUpperCase()
 }
 
+/**
+ * 会话列表标题：历史脏标题已被后端投影成「未命名会话 - 时间」，
+ * 列表里补上角色名，否则 80+ 条同名条目完全分不清是谁的会话。
+ * 有真实标题时原样使用，不做任何改写。
+ */
+function sessionDisplayTitle(s: { title: string; characterSlug: string }): string {
+  if (!s.title.startsWith('未命名会话 - ')) return s.title || '未命名会话'
+  return `${characterNameBySlug(s.characterSlug)} · ${s.title.slice('未命名会话 - '.length)}`
+}
+
 // 一轮对练的完整记录
 interface TurnRecord {
   turnIndex: number
@@ -347,7 +357,7 @@ async function endManualSession() {
 }
 
 // ─── 手动调试模式：加载历史调试会话 ───
-async function loadDebugSession(s: { id: string; title: string }) {
+async function loadDebugSession(s: { id: string; title: string; characterSlug: string }) {
   manualDebugSessionId.value = s.id
   turns.clear()
   messages.value = []
@@ -360,19 +370,19 @@ async function loadDebugSession(s: { id: string; title: string }) {
       text: m.text,
       trace: m.trace,
     })))
-    message.success(`已加载会话: ${s.title || s.id}`)
+    message.success(`已加载会话: ${sessionDisplayTitle(s)}`)
   } catch (e) {
     message.error('加载会话失败')
   }
 }
 
 // ─── 手动模式：恢复调试会话 (后端重启后继续聊) ───
-async function resumeDebugSession(s: { id: string; title: string }) {
+async function resumeDebugSession(s: { id: string; title: string; characterSlug: string }) {
   if (resumingSessionId.value) return
   resumingSessionId.value = s.id
   try {
     await api.debugSession.resume(s.id)
-    message.success(`会话已恢复: ${s.title || s.id}`)
+    message.success(`会话已恢复: ${sessionDisplayTitle(s)}`)
     // 刷新列表, active 应该变成 true 了
     debugSessions.value = await api.debugSession.list()
     // 加载会话内容
@@ -911,6 +921,7 @@ onUnmounted(() => {
             type="line"
             :percentage="batchProgress.total > 0 ? (Object.entries(batchProgress.byStatus).filter(([k]) => k !== 'running').reduce((s, [, v]) => s + v, 0) / batchProgress.total) * 100 : 0"
             :show-text="false"
+            :show-indicator="false"
           />
           <div class="flex flex-wrap gap-1 mt-2">
             <NTag v-for="(count, status) in batchProgress.byStatus" :key="status" size="tiny" round
@@ -1027,7 +1038,7 @@ onUnmounted(() => {
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="text-sm truncate font-medium leading-6 flex items-center gap-1.5">
-                    <span class="truncate">{{ s.title || '未命名会话' }}</span>
+                    <span class="truncate" :title="s.title">{{ sessionDisplayTitle(s) }}</span>
                     <NTag v-if="!s.active" size="tiny" :bordered="false" type="warning">已离线</NTag>
                   </div>
                   <div class="text-xs text-muted mt-0.5 flex items-center gap-1.5">

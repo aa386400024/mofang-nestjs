@@ -86,6 +86,19 @@ export class AdminRoleGuard implements CanActivate {
       return true;
     }
 
+    // ①-b 本地开发裸奔 (没配 basic 凭据 + 非 production) → 放行.
+    //
+    // 为什么必须在这里也放行: 中间件在 dev 分支已经 `next()`, 但本守卫如果只认
+    // `adminBasicAuth` / `userId`, 同一请求会立刻被 403 —— 表现为"本地 SPA 永远
+    // 打不开调试接口". 该标记只由中间件在**非 production** 的匿名分支写入,
+    // 生产请求在中间件就已经 401, 不会走到这里; 这里再做一次 NODE_ENV 防御.
+    //
+    // 审计: 这是"本地无鉴权"不是"管理员 basic 身份", 不设置 adminBasicAuth, 不影响
+    // ownerFilter 的语义.
+    if (request.adminAnonymousDev === true && process.env.NODE_ENV !== 'production') {
+      return true;
+    }
+
     // ② 学员身份 → 必须查 DB 真值 (理由见文件头).
     const userId = (request.user?.userId ?? '').trim();
     if (userId.length === 0) {

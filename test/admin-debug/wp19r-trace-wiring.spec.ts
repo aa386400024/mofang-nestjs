@@ -385,13 +385,50 @@ describe('WP19-R · 留痕链接通 + admin/api 收口', () => {
     it('只配了一个 env → 按"未开启鉴权"处理 (不半开半关)', async () => {
       const middleware = new AdminBasicAuthMiddleware(stubConfig({ ADMIN_BASIC_AUTH_USER: 'ops' }) as never, jwtStub() as never);
       const { res } = buildResponse();
+      const request = buildRequest();
       let nextCalled = false;
 
-      await middleware.use(buildRequest() as never, res, () => {
+      await middleware.use(request as never, res, () => {
         nextCalled = true;
       });
 
       expect(nextCalled).toBe(true);
+      expect((request as { adminAnonymousDev?: boolean }).adminAnonymousDev).toBe(true);
+    });
+
+    it('没配凭据 + SPA 登录页带任意 basic 头 → dev 放行并标匿名, 不按"凭据错误"401', async () => {
+      const middleware = new AdminBasicAuthMiddleware(stubConfig({}) as never, jwtStub() as never);
+      const { res, state } = buildResponse();
+      const request = buildRequest(basicHeader('any-user', 'any-pass'));
+      let nextCalled = false;
+
+      await middleware.use(request as never, res, () => {
+        nextCalled = true;
+      });
+
+      expect(nextCalled).toBe(true);
+      expect(state.statusCode).toBe(0);
+      expect((request as { adminAnonymousDev?: boolean }).adminAnonymousDev).toBe(true);
+      expect((request as { adminBasicAuth?: boolean }).adminBasicAuth).toBeUndefined();
+    });
+
+    it('production + 没配凭据 + 任意 basic 头 → 401 (不能靠 SPA 登录页绕过)', async () => {
+      const middleware = new AdminBasicAuthMiddleware(stubConfig({}) as never, jwtStub() as never);
+      const { res, state } = buildResponse();
+      const request = buildRequest(basicHeader('any-user', 'any-pass'));
+      let nextCalled = false;
+      const previous = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      try {
+        await middleware.use(request as never, res, () => {
+          nextCalled = true;
+        });
+      } finally {
+        process.env.NODE_ENV = previous;
+      }
+
+      expect(nextCalled).toBe(false);
+      expect(state.statusCode).toBe(401);
     });
 
     it('带 token 但 token 无效 → 401 (不把已登录样子的请求当匿名放行)', async () => {

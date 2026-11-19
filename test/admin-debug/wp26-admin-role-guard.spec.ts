@@ -212,7 +212,7 @@ describe('WP26 §1 P2-4 · admin-debug 命名空间加角色校验', () => {
       });
     });
 
-    it('匿名请求 (没有身份) → 403 (fail-close, 不当匿名放行)', async () => {
+    it('匿名请求 (没有身份, 也没有本地裸奔标记) → 403 (fail-close, 不当匿名放行)', async () => {
       const repo = new StubUserRepo();
       const guard = new AdminRoleGuard(repo as never);
 
@@ -220,6 +220,30 @@ describe('WP26 §1 P2-4 · admin-debug 命名空间加角色校验', () => {
         code: BizCode.Forbidden,
         status: 403,
       });
+    });
+
+    it('本地开发裸奔标记 (非 production) → 放行, 且不查 DB', async () => {
+      const repo = new StubUserRepo();
+      const guard = new AdminRoleGuard(repo as never);
+
+      await expect(guard.canActivate(buildContext({ adminAnonymousDev: true }))).resolves.toBe(true);
+
+      expect(repo.findOneCalls).toHaveLength(0);
+    });
+
+    it('production 即使被写入裸奔标记 → 仍 403 (防御层, 不靠中间件单点)', async () => {
+      const repo = new StubUserRepo();
+      const guard = new AdminRoleGuard(repo as never);
+      const previous = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      try {
+        await expect(guard.canActivate(buildContext({ adminAnonymousDev: true }))).rejects.toMatchObject({
+          code: BizCode.Forbidden,
+          status: 403,
+        });
+      } finally {
+        process.env.NODE_ENV = previous;
+      }
     });
   });
 
