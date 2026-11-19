@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-19T19:10:07.489Z",
+  "generatedAt": "2026-11-19T19:15:31.299Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1776,6 +1776,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-203",
+      "recordedAt": "2026-11-19T19:12:43.682Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-159",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-159",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-159.json"
+      ]
+    },
+    {
       "auditId": "AUD-202",
       "recordedAt": "2026-11-19T19:06:46.539Z",
       "actorRef": "orchestrator",
@@ -1998,37 +2013,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-152.json"
       ]
-    },
-    {
-      "auditId": "AUD-188",
-      "recordedAt": "2026-11-19T17:27:44.294Z",
-      "actorRef": "orchestrator",
-      "correlationId": "reissue:AF-151:AF-152",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 202,
+    "total": 203,
     "byResult": {
-      "allowed": 202,
+      "allowed": 203,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 201,
+      "TOOL-QUEUE-SCHEDULER": 202,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 202
+      "orchestrator": 203
     }
   },
   "protocolView": {
@@ -5072,6 +5070,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af158-annotation-warning-ux-2026-11-20.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-159",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af159-admin-health-auth-watch-task-2026-11-20.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af159-admin-health-auth-watch-2026-11-20.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -5163,5 +5179,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 173
+  "archivedCount": 174
 };
