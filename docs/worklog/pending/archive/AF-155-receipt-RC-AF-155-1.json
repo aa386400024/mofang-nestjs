@@ -1,0 +1,178 @@
+{
+  "deliveredAt": "2026-11-20T02:47:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-155-1",
+    "taskId": "AF-155",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "dd179bd942d423eb04d47bd8bc6607790f5d794d",
+    "dependsOn": [],
+    "priorTasks": [
+      "AF-154",
+      "AF-152",
+      "AF-147",
+      "AF-146"
+    ],
+    "policyRefs": [
+      "conventions.md#1.3"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af155-admin-runtime-smoke-2026-11-20.md",
+        "docs/worklog/pending/af155-admin-runtime-smoke-task-2026-11-20.md"
+      ],
+      "modified": [
+        "admin-dashboard/src/components/DebugTracePanel.vue",
+        "admin-dashboard/src/views/AutoPractice.vue",
+        "admin-dashboard/src/views/Dashboard.vue",
+        "src/admin-debug/admin-basic-auth.middleware.ts",
+        "src/admin-debug/debug-session-title.generator.ts",
+        "src/admin-debug/debug-session.service.ts",
+        "src/admin-debug/guards/admin-role.guard.ts",
+        "test/admin-debug/debug-session-persistence.spec.ts",
+        "test/admin-debug/wp19r-trace-wiring.spec.ts",
+        "test/admin-debug/wp26-admin-role-guard.spec.ts"
+      ],
+      "deleted": [],
+      "commits": [
+        "8b7247b"
+      ]
+    },
+    "gateResults": [
+      {
+        "exitCode": 0,
+        "command": "pnpm exec vitest run test/admin-debug",
+        "errors": 0,
+        "warnings": 0,
+        "note": "14 passed / 1 skipped；admin-debug 用例全绿"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm exec vitest run test/admin-debug/debug-session-persistence.spec.ts",
+        "errors": 0,
+        "warnings": 0,
+        "note": "1 file / 28 tests passed"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm lint",
+        "errors": 0,
+        "warnings": 0,
+        "note": "src/test/bin + scripts；0 error / 0 warning"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm typecheck",
+        "errors": 0,
+        "warnings": 0,
+        "note": "tsc -b tsconfig.check.json，exit 0"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm --dir admin-dashboard build",
+        "errors": 0,
+        "warnings": 0,
+        "note": "含 vue-tsc；vite build 2.56s，exit 0"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm build",
+        "errors": 0,
+        "warnings": 0,
+        "note": "后端 dist/app.js 构建并重启"
+      }
+    ],
+    "scopeCheck": "in-scope",
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "任务单 / 交付记录 / 回执 / commit 一致"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "任务状态经 CLI 登记与领取，未直接改索引"
+      },
+      {
+        "item": "receipt-shape",
+        "result": "pass",
+        "note": "receipt 1.0.0 六组字段齐全"
+      },
+      {
+        "item": "runtime-evidence",
+        "result": "pass",
+        "note": "真实 3000 后端 + 5174 Vite + MySQL/Qdrant/PsyGuard；创建/发轮/关闭/删除闭环；257 条标题 think 命中 0"
+      }
+    ],
+    "backlogItems": [
+      {
+        "id": "OI-AF155-01",
+        "title": "历史调试会话标题不可还原",
+        "owner": "framework",
+        "reason": "原始 title 已被推理块覆盖，只能投影为“角色·时间”",
+        "improvement": "如需语义标题，需新任务从逐字稿重新生成，不伪造历史",
+        "impact": "历史会话只能显示角色+时间，无法恢复语义标题"
+      },
+      {
+        "id": "OI-AF155-02",
+        "title": "仪表盘训练会话统计为 0",
+        "owner": "framework",
+        "reason": "当前库无对应训练会话数据，不是前端写死",
+        "improvement": "有真实训练数据后复核 /admin/api/dashboard 口径",
+        "impact": "仪表盘总会话/平均轮次显示 0，需真实训练数据后复核"
+      },
+      {
+        "id": "OI-AF155-03",
+        "title": "本地后端进程需独立托管",
+        "owner": "adapter",
+        "reason": "旧进程被 Nest shutdown 钩子带走导致一次 502",
+        "improvement": "本地冒烟用独立进程/守护启动，避免父 shell 生命周期影响",
+        "impact": "本地冒烟可能因父进程退出出现一次 502"
+      }
+    ],
+    "deviationTable": [
+      {
+        "item": "任务范围",
+        "taskSays": "admin-dashboard/src/ 与 src/admin-debug/",
+        "reality": "额外修复 shared/llm/reasoning-text.ts 的标题清洗依赖，属必要前置",
+        "why": "标题脏数据根因在推理块清洗；不改则生成器仍会泄漏",
+        "action": "纳入任务范围并补回归测试"
+      },
+      {
+        "item": "评分质量",
+        "taskSays": "admin 冒烟",
+        "reality": "未尝试修复 AF-152 的 safety 4/6 与 κ 0.365854",
+        "why": "样本结构/真人督导缺位，不是本单可解",
+        "action": "在交付记录中显式保留，不粉饰"
+      },
+      {
+        "item": "测试数据",
+        "taskSays": "可创建会话冒烟",
+        "reality": "创建并发送 1 轮后已删除",
+        "why": "避免污染真实调试会话库",
+        "action": "DELETE 接口确认 deleted=true，复查列表为 0"
+      }
+    ],
+    "reviewVerdict": "passed",
+    "finalStatus": "completed",
+    "verdictRationale": "admin 真实后端运行时闭环已完成：登录、仪表盘、自动对练、手动调试创建/发轮/关闭/删除、批量回归、参数标定均走真实接口；5 类缺陷修复且三门禁全绿。历史标题与训练统计为 0 属数据边界，已显式登记。",
+    "reproNotes": "Windows 本机；后端 dist/app.js 127.0.0.1:3000，Vite 127.0.0.1:5174；MySQL/Qdrant/PsyGuard 同机。真实创建“安然”会话 1 轮后关闭并 DELETE，列表复查为 0；257 条历史标题 recheck think 命中 0。",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "admin 运行时缺陷修复，未改评分口径与 engine-core"
+    },
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationAbsent": false,
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af155-admin-runtime-smoke-task-2026-11-20.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af155-admin-runtime-smoke-2026-11-20.md",
+      "others": []
+    }
+  }
+}
