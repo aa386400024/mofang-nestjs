@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-19T01:15:04.275Z",
+  "generatedAt": "2026-11-19T01:36:28.436Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -14,9 +14,30 @@ window.ORCH_SNAPSHOT = {
     "canceled": 0,
     "rejected": 0,
     "input-required": 0,
-    "deadLetter": 0
+    "deadLetter": 0,
+    "backlog": 1
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-126",
+      "contextId": "phase2.5-ai-proxy-acceptance",
+      "type": "implementation",
+      "title": "长会谈开场知情框架与结束收束纪律",
+      "status": "backlog",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af126-opening-framework-closeout-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": null
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1873,7 +1894,30 @@ window.ORCH_SNAPSHOT = {
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-126",
+        "title": "长会谈开场知情框架与结束收束纪律",
+        "type": "implementation",
+        "status": {
+          "framework": "backlog",
+          "protocol": null,
+          "stage": "orchestration"
+        },
+        "groupId": "phase2.5-ai-proxy-acceptance",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-125"
+        ],
+        "agentRole": "orchestrator",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af126-opening-framework-closeout-task-2026-11-19.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -4380,9 +4424,17 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-126",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af126-opening-framework-closeout-task-2026-11-19.md"
+      }
+    ],
+    "groupId": "phase2.5-ai-proxy-acceptance",
+    "groupIds": [
+      "phase2.5-ai-proxy-acceptance"
+    ],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
