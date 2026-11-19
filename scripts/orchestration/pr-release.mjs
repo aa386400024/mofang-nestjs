@@ -125,12 +125,12 @@ async function findPullRequest(repo, branch, base = 'integrate') {
 }
 
 /**
- * 一个 PR 只能承载一个任务。逐提交门禁在 PR 阶段能按各自任务判定，但 squash 后
- * 只剩标题主任务的 scope，其他任务的实现文件会被判越界。create 阶段先扫描
- * base..branch 的提交标题，发现目标任务之外的编号就拒绝，避免把两个任务叠进
- * 同一个 squash 提交。纯状态面提交没有任务号，直接放行。
+ * 一个 PR 只能承载一个主任务，但允许携带任务单 `priorTasks` 声明的返修链。
+ * 逐提交门禁仍按各自任务判定；squash 后按任务链 scope 并集校验。create 阶段扫描
+ * base..branch 的提交标题，只有链外任务编号才拒绝。纯状态面提交没有任务号，直接放行。
  */
-export function findForeignCommitTaskIds(subjects, taskId) {
+export function findForeignCommitTaskIds(subjects, taskId, allowedTaskIds = []) {
+  const allowed = new Set([taskId, ...(allowedTaskIds ?? [])].filter(Boolean));
   const foreign = [];
   for (const subject of subjects ?? []) {
     let commitTaskId = null;
@@ -139,22 +139,22 @@ export function findForeignCommitTaskIds(subjects, taskId) {
     } catch (error) {
       throw new Error(`${subject}：${error.message}`);
     }
-    if (commitTaskId && commitTaskId !== taskId) foreign.push({ taskId: commitTaskId, subject });
+    if (commitTaskId && !allowed.has(commitTaskId)) foreign.push({ taskId: commitTaskId, subject });
   }
   return foreign;
 }
 
-function assertSingleTaskBranch({ branch, base, taskId }) {
+function assertSingleTaskBranch({ branch, base, taskId, allowedTaskIds = [] }) {
   const baseRef = git(['rev-parse', '--verify', base], { allowFailure: true }) ? base : `origin/${base}`;
   const subjects = git(['log', '--format=%s', `${baseRef}..${branch}`])
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
-  const foreign = findForeignCommitTaskIds(subjects, taskId);
+  const foreign = findForeignCommitTaskIds(subjects, taskId, allowedTaskIds);
   if (foreign.length > 0) {
     const detail = foreign.map((item) => `${item.taskId}（${item.subject}）`).join('、');
     throw new Error(
-      `分支 ${branch} 混入其他任务提交：${detail}。一个 PR 只能承载 ${taskId}；请先把前置任务单独合并到 ${base}，再从最新 ${base} 重建本任务分支`,
+      `分支 ${branch} 混入任务链之外的任务提交：${detail}。一个 PR 只能承载 ${taskId} 及其 priorTasks 链；请先把链外任务单独合并到 ${base}`,
     );
   }
 }
@@ -166,7 +166,7 @@ function pullRequestTitle(task) {
 async function createOrUpdatePullRequest({ repo, base, taskId, apply }) {
   const branch = currentTaskBranch(taskId);
   const task = taskInfo(taskId);
-  assertSingleTaskBranch({ branch, base, taskId });
+  assertSingleTaskBranch({ branch, base, taskId, allowedTaskIds: task.priorTasks ?? [] });
   if (!apply) {
     console.log(JSON.stringify({ mode: 'dry-run', action: 'create', repo, base, branch, title: pullRequestTitle(task) }, null, 2));
     return;

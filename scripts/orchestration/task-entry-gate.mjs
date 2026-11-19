@@ -32,6 +32,7 @@ export const STATE_PLANE_PATHS = [
   'docs/team/agent-orchestration/state/',
   'docs/team/agent-orchestration/transport/',
   'docs/team/agent-orchestration/delivery-packs/',
+  'docs/worklog/pending/archive/',
   'web/orchestration/data.js',
 ];
 

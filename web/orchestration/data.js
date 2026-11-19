@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-18T18:47:08.382Z",
+  "generatedAt": "2026-11-19T00:42:40.855Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1598,6 +1598,36 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-142",
+      "recordedAt": "2026-11-19T00:36:54.128Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-124",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-124-repair-chain-gate"
+      ]
+    },
+    {
+      "auditId": "AUD-141",
+      "recordedAt": "2026-11-19T00:36:49.511Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-124",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-124",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-124.json"
+      ]
+    },
+    {
       "auditId": "AUD-140",
       "recordedAt": "2026-11-18T18:46:20.148Z",
       "actorRef": "orchestrator",
@@ -1805,52 +1835,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-127",
-      "recordedAt": "2026-11-18T17:56:52.667Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-115",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-126",
-      "recordedAt": "2026-11-18T17:56:24.954Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-115",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-115-ai-double-blind"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 140,
+    "total": 142,
     "byResult": {
-      "allowed": 140,
+      "allowed": 142,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 139,
+      "TOOL-QUEUE-SCHEDULER": 141,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 140
+      "orchestrator": 142
     }
   },
   "protocolView": {
@@ -4312,6 +4310,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af123-single-release-2026-11-19.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-124",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af124-repair-chain-gate-task-2026-11-19.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af124-repair-chain-gate-2026-11-19.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4402,5 +4418,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 138
+  "archivedCount": 139
 };
