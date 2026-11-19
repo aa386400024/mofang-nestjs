@@ -18,6 +18,12 @@ describe('AF-106 · reasoning-text', () => {
     expect(stripReasoningBlocks('前文<THINK>内部</THINK>后文')).toBe('前文后文');
   });
 
+  it('删除命名空间 `<mm:think>` 与孤立 `</mm:think>`', () => {
+    expect(stripReasoningBlocks('<mm:think>内部推理</mm:think>可见台词')).toBe('可见台词');
+    expect(stripReasoningBlocks('可见台词</mm:think>')).toBe('可见台词');
+    expect(stripReasoningBlocks('可见台词<mm:think>被截断的推理')).toBe('可见台词');
+  });
+
   it('删除未闭合的 `<think>` 尾块 (截断场景)', () => {
     expect(stripReasoningBlocks('可见台词<think>被截断的推理')).toBe('可见台词');
   });
@@ -33,8 +39,17 @@ describe('AF-106 · reasoning-text', () => {
     expect(safeVisiblePrefix('你好<think>推理</think>再见')).toBe('你好再见');
   });
 
+  it('safeVisiblePrefix 扣住半截命名空间标签与孤立闭合标签', () => {
+    expect(safeVisiblePrefix('你好<mm:thi')).toBe('你好');
+    expect(safeVisiblePrefix('你好<mm:think>推理')).toBe('你好');
+    expect(safeVisiblePrefix('你好<mm:think>推理</mm:think>再见')).toBe('你好再见');
+    expect(safeVisiblePrefix('你好</mm:think>再见')).toBe('你好再见');
+  });
+
   it('safeVisiblePrefix 对普通文本不扣字', () => {
     expect(safeVisiblePrefix('我最近有点累。')).toBe('我最近有点累。');
     expect(safeVisiblePrefix('小于号<不是标签')).toBe('小于号<不是标签');
+    // 回归：`<5` 是正常文本，不能被当成半截标签扣住（否则流结束时永远发不出去）。
+    expect(safeVisiblePrefix('价格<5')).toBe('价格<5');
   });
 });
