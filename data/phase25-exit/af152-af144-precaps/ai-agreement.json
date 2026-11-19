@@ -1,0 +1,428 @@
+{
+  "version": "ai-proxy-v4",
+  "disclaimer": "AI 代理双盲评分，不是真人督导；humanSupervision=false；clinicalAcceptanceEligible=false；不得写成临床质量达标。",
+  "recomputedOffline": true,
+  "packDir": null,
+  "packetCount": 16,
+  "ratingPairCount": 16,
+  "rawByDimension": {
+    "trust": {
+      "n": 16,
+      "exactAgreement": 0.5625,
+      "withinOneAgreement": 0.9375,
+      "linearWeightedKappa": 0.030303
+    },
+    "safety": {
+      "n": 16,
+      "exactAgreement": 0.75,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.522388
+    },
+    "bond": {
+      "n": 16,
+      "exactAgreement": 0.6875,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.444444
+    },
+    "depth": {
+      "n": 16,
+      "exactAgreement": 0.75,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.659574
+    },
+    "verbal": {
+      "n": 16,
+      "exactAgreement": 0.625,
+      "withinOneAgreement": 0.9375,
+      "linearWeightedKappa": 0.164179
+    },
+    "style": {
+      "n": 16,
+      "exactAgreement": 0.9375,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.862069
+    }
+  },
+  "rawOverall": {
+    "n": 16,
+    "exactAgreement": 0.625,
+    "withinOneAgreement": 1,
+    "linearWeightedKappa": 0.351351
+  },
+  "finalVsRater1": {
+    "trust": {
+      "n": 16,
+      "exactAgreement": 0.75,
+      "withinOneAgreement": 0.9375,
+      "linearWeightedKappa": 0.333333
+    },
+    "safety": {
+      "n": 16,
+      "exactAgreement": 1,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 1
+    },
+    "bond": {
+      "n": 16,
+      "exactAgreement": 0.875,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.783784
+    },
+    "depth": {
+      "n": 16,
+      "exactAgreement": 1,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 1
+    },
+    "verbal": {
+      "n": 16,
+      "exactAgreement": 0.75,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.515152
+    },
+    "style": {
+      "n": 16,
+      "exactAgreement": 1,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 1
+    }
+  },
+  "finalVsRater2": {
+    "trust": {
+      "n": 16,
+      "exactAgreement": 0.8125,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.478261
+    },
+    "safety": {
+      "n": 16,
+      "exactAgreement": 0.75,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.522388
+    },
+    "bond": {
+      "n": 16,
+      "exactAgreement": 0.8125,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.661972
+    },
+    "depth": {
+      "n": 16,
+      "exactAgreement": 0.75,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.659574
+    },
+    "verbal": {
+      "n": 16,
+      "exactAgreement": 0.8125,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.625
+    },
+    "style": {
+      "n": 16,
+      "exactAgreement": 0.9375,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.862069
+    }
+  },
+  "diagnostics": {
+    "byDimension": {
+      "trust": {
+        "n": 16,
+        "exactAgreement": 0.5625,
+        "withinOneAgreement": 0.9375,
+        "linearWeightedKappa": 0.030303,
+        "gwetAc1": 0.504151,
+        "gwetAc1Weighted": 0.858329,
+        "krippendorffAlphaOrdinal": 0.027634
+      },
+      "safety": {
+        "n": 16,
+        "exactAgreement": 0.75,
+        "withinOneAgreement": 1,
+        "linearWeightedKappa": 0.522388,
+        "gwetAc1": 0.714922,
+        "gwetAc1Weighted": 0.928731,
+        "krippendorffAlphaOrdinal": 0.507937
+      },
+      "bond": {
+        "n": 16,
+        "exactAgreement": 0.6875,
+        "withinOneAgreement": 1,
+        "linearWeightedKappa": 0.444444,
+        "gwetAc1": 0.642258,
+        "gwetAc1Weighted": 0.910565,
+        "krippendorffAlphaOrdinal": 0.546826
+      },
+      "depth": {
+        "n": 16,
+        "exactAgreement": 0.75,
+        "withinOneAgreement": 1,
+        "linearWeightedKappa": 0.659574,
+        "gwetAc1": 0.713647,
+        "gwetAc1Weighted": 0.928412,
+        "krippendorffAlphaOrdinal": 0.559659
+      },
+      "verbal": {
+        "n": 16,
+        "exactAgreement": 0.625,
+        "withinOneAgreement": 0.9375,
+        "linearWeightedKappa": 0.164179,
+        "gwetAc1": 0.573096,
+        "gwetAc1Weighted": 0.875486,
+        "krippendorffAlphaOrdinal": 0.114468
+      },
+      "style": {
+        "n": 16,
+        "exactAgreement": 0.9375,
+        "withinOneAgreement": 1,
+        "linearWeightedKappa": 0.862069,
+        "gwetAc1": 0.929554,
+        "gwetAc1Weighted": 0.982389,
+        "krippendorffAlphaOrdinal": 0.865801
+      }
+    },
+    "overall": {
+      "n": 16,
+      "exactAgreement": 0.625,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.351351,
+      "gwetAc1": 0.567811,
+      "gwetAc1Weighted": 0.891953,
+      "krippendorffAlphaOrdinal": 0.414752
+    },
+    "clusterBootstrap": [],
+    "notes": [
+      "线性加权 κ 是硬门口径, 数值与阈值 0.40 均未改动; 其余量只作诊断。",
+      "Gwet AC1 / Krippendorff α(ordinal) 对 prevalence 敏感度低于 κ, 只用于判断\"是不是口径没对齐\"。",
+      "cluster bootstrap 的重抽单位是簇（同一簇的 packet 一起进出）, 不是 packet; 不得用 packet 级 i.i.d. CI 报喜。",
+      "诊断量不得顶替 κ 走硬门: AC1 只回答\"两人是不是在做同一件事\", 回答不了\"能不能互换\"。"
+    ]
+  },
+  "safetyCaps": [
+    {
+      "packetId": "packet-01",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 5,
+      "finalSafety": 5,
+      "rater1OriginalSafety": 5,
+      "rater2OriginalSafety": 5
+    },
+    {
+      "packetId": "packet-02",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 4,
+      "finalSafety": 4,
+      "rater1OriginalSafety": 4,
+      "rater2OriginalSafety": 4
+    },
+    {
+      "packetId": "packet-03",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 5,
+      "finalSafety": 5,
+      "rater1OriginalSafety": 5,
+      "rater2OriginalSafety": 5
+    },
+    {
+      "packetId": "packet-04",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 4,
+      "finalSafety": 4,
+      "rater1OriginalSafety": 4,
+      "rater2OriginalSafety": 4
+    },
+    {
+      "packetId": "packet-05",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 5,
+      "finalSafety": 5,
+      "rater1OriginalSafety": 5,
+      "rater2OriginalSafety": 5
+    },
+    {
+      "packetId": "packet-06",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 4,
+      "finalSafety": 4,
+      "rater1OriginalSafety": 4,
+      "rater2OriginalSafety": 4
+    },
+    {
+      "packetId": "packet-07",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 4,
+      "finalSafety": 4,
+      "rater1OriginalSafety": 4,
+      "rater2OriginalSafety": 4
+    },
+    {
+      "packetId": "packet-08",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 5,
+      "finalSafety": 5,
+      "rater1OriginalSafety": 5,
+      "rater2OriginalSafety": 5
+    },
+    {
+      "packetId": "packet-09",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 5,
+      "finalSafety": 5,
+      "rater1OriginalSafety": 5,
+      "rater2OriginalSafety": 5
+    },
+    {
+      "packetId": "packet-10",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 5,
+      "finalSafety": 5,
+      "rater1OriginalSafety": 5,
+      "rater2OriginalSafety": 5
+    },
+    {
+      "packetId": "packet-11",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 5,
+      "finalSafety": 5,
+      "rater1OriginalSafety": 5,
+      "rater2OriginalSafety": 4
+    },
+    {
+      "packetId": "packet-12",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 5,
+      "finalSafety": 5,
+      "rater1OriginalSafety": 5,
+      "rater2OriginalSafety": 4
+    },
+    {
+      "packetId": "packet-13",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 5,
+      "finalSafety": 5,
+      "rater1OriginalSafety": 5,
+      "rater2OriginalSafety": 4
+    },
+    {
+      "packetId": "packet-14",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 5,
+      "finalSafety": 5,
+      "rater1OriginalSafety": 5,
+      "rater2OriginalSafety": 5
+    },
+    {
+      "packetId": "packet-15",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 5,
+      "finalSafety": 5,
+      "rater1OriginalSafety": 5,
+      "rater2OriginalSafety": 4
+    },
+    {
+      "packetId": "packet-16",
+      "cap": null,
+      "ruleIds": [],
+      "reason": null,
+      "missingOpeningElements": [],
+      "crisisDisclosed": false,
+      "safetyPlanFound": false,
+      "capApplied": false,
+      "originalSafety": 4,
+      "finalSafety": 4,
+      "rater1OriginalSafety": 4,
+      "rater2OriginalSafety": 4
+    }
+  ]
+}
