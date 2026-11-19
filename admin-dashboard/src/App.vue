@@ -2,7 +2,7 @@
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { setLang } from '@/i18n'
-import { ref, onMounted, onUnmounted, computed, onErrorCaptured } from 'vue'
+import { ref, onMounted, onUnmounted, computed, onErrorCaptured, watch } from 'vue'
 import { darkTheme, lightTheme, NInput, NMenu, NIcon, zhCN, dateZhCN, enUS, dateEnUS } from 'naive-ui'
 import type { MenuOption } from 'naive-ui'
 import type { Component } from 'vue'
@@ -188,6 +188,19 @@ onMounted(() => {
   void probeEngineHealth()
   healthTimer = setInterval(() => void probeEngineHealth(), HEALTH_POLL_MS)
 })
+
+// 登录页阶段的探活无凭据，会被 401 判成离线；登录成功后必须立刻重探，
+// 否则顶栏会沿用旧结论最长一个轮询周期。登出则回到“未探测”。
+watch(
+  () => auth.isAuthenticated,
+  (authenticated) => {
+    if (authenticated) {
+      void probeEngineHealth()
+    } else {
+      engineOnline.value = null
+    }
+  },
+)
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
