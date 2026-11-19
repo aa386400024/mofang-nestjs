@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-11-19T06:31:22.644Z",
+  "generatedAt": "2026-11-19T06:58:50.876Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
-    "ready": 0,
+    "ready": 1,
     "submitted": 0,
     "working": 0,
     "completed": 0,
@@ -30,6 +30,25 @@
       "reworkOf": null,
       "artifacts": {
         "taskSheet": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": null
+    },
+    {
+      "taskId": "AF-132",
+      "contextId": "phase2.5-ai-proxy-acceptance",
+      "type": "implementation",
+      "title": "长会话开场/收尾硬模板与结构化依从（AF-130 未达标项修复）",
+      "status": "ready",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af132-prompt-hard-template-task-2026-11-19.md",
         "deliveryRecord": null,
         "reply": null
       },
@@ -1640,6 +1659,21 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-153",
+      "recordedAt": "2026-11-19T06:36:56.359Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-131",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-131",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-131.json"
+      ]
+    },
+    {
       "auditId": "AUD-152",
       "recordedAt": "2026-11-19T05:36:41.444Z",
       "actorRef": "orchestrator",
@@ -1858,37 +1892,20 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-138",
-      "recordedAt": "2026-11-18T18:46:04.532Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-122",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 152,
+    "total": 153,
     "byResult": {
-      "allowed": 152,
+      "allowed": 153,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 151,
+      "TOOL-QUEUE-SCHEDULER": 152,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 152
+      "orchestrator": 153
     }
   },
   "protocolView": {
@@ -1913,6 +1930,28 @@
           {
             "kind": "taskSheet",
             "ref": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-132",
+        "title": "长会话开场/收尾硬模板与结构化依从（AF-130 未达标项修复）",
+        "type": "implementation",
+        "status": {
+          "framework": "ready",
+          "protocol": null,
+          "stage": "orchestration"
+        },
+        "groupId": "phase2.5-ai-proxy-acceptance",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-130"
+        ],
+        "agentRole": "orchestrator",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af132-prompt-hard-template-task-2026-11-19.md"
           }
         ]
       }
@@ -4477,6 +4516,24 @@
             "ref": "docs/worklog/completed/phase2.5/af130-long-batch-reevaluation-2026-11-19.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-131",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af131-independent-review-task-2026-11-19.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af131-independent-review-2026-11-19.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4496,6 +4553,11 @@
         "taskId": "AF-128",
         "kind": "taskSheet",
         "ref": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md"
+      },
+      {
+        "taskId": "AF-132",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af132-prompt-hard-template-task-2026-11-19.md"
       }
     ],
     "groupId": "phase2.5-ai-proxy-acceptance",
@@ -4575,5 +4637,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 144
+  "archivedCount": 145
 }

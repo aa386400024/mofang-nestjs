@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 562,
+    "lastEventSeq": 569,
     "rebuiltAt": null
   },
   "tasks": [
@@ -76,6 +76,84 @@
       "outOfScope": [],
       "constraints": [],
       "priorTasks": []
+    },
+    {
+      "taskId": "AF-132",
+      "status": "ready",
+      "history": [],
+      "contextId": "phase2.5-ai-proxy-acceptance",
+      "title": "长会话开场/收尾硬模板与结构化依从（AF-130 未达标项修复）",
+      "type": "implementation",
+      "baselineRef": "86a7c8580302c018047c900bc91d6beef9ce339a",
+      "dependsOn": [
+        "AF-130"
+      ],
+      "priorTasks": [
+        "AF-127",
+        "AF-129",
+        "AF-130"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-19T06:41:35.816Z",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "scope": {
+        "files": [
+          "src/auto-practice/counselor/builder/prompt-sections/",
+          "src/auto-practice/counselor/builder/counselor-prompt-builder.ts",
+          "test/auto-practice/counselor-prompt-builder.spec.ts"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af132-prompt-hard-template-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm typecheck",
+          "check": "类型检查 0 error",
+          "threshold": "exitCode=0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "lint 0 error 0 warning",
+          "threshold": "exitCode=0"
+        },
+        {
+          "command": "pnpm exec vitest run test/auto-practice/counselor-prompt-builder.spec.ts",
+          "check": "prompt 单测全绿",
+          "threshold": "exitCode=0"
+        },
+        {
+          "command": "pnpm exec vitest run test/engine-core/boundary.spec.ts",
+          "check": "边界单测全绿",
+          "threshold": "exitCode=0"
+        }
+      ],
+      "successCriteria": [
+        "开场五要素改为首轮/前 3 轮可命中的硬模板，保留危机优先",
+        "常规收束三件套给出可直接照做的句式，不伪造来访者发言",
+        "危机收束五项独立成块，仅在危机/风险收尾时启用",
+        "legacy 档 prompt 字节不变；long/standard 档才启用",
+        "定向单测覆盖硬模板关键词与启用边界"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af132-prompt-hard-template-2026-11-19.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": []
     }
   ],
   "archivedTasks": [
@@ -1348,6 +1426,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/pending/af130-long-batch-reevaluation-task-2026-11-19.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af130-long-batch-reevaluation-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-131",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af131-independent-review-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af131-independent-review-2026-11-19.md",
         "reply": null
       }
     }
