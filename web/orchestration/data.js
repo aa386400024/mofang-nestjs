@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-19T14:07:27.970Z",
+  "generatedAt": "2026-11-19T14:09:58.596Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -11,7 +11,7 @@ window.ORCH_SNAPSHOT = {
     "working": 0,
     "completed": 0,
     "failed": 0,
-    "canceled": 0,
+    "canceled": 1,
     "rejected": 0,
     "input-required": 0,
     "deadLetter": 0,
@@ -36,6 +36,46 @@ window.ORCH_SNAPSHOT = {
       },
       "manualReview": [],
       "dispatch": null
+    },
+    {
+      "taskId": "AF-142",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "documentation",
+      "title": "AF-140 交付记录闸门数字订正",
+      "status": "canceled",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af142-readme-gate-number-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-142",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-19T14:09:35.692Z",
+        "leaseDeadline": "2026-11-19T14:39:35.689Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-142.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-19T14:09:35.692Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-142.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
     }
   ],
   "deadLetters": [],
@@ -1775,6 +1815,38 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-171",
+      "recordedAt": "2026-11-19T14:09:35.756Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-142",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-142",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-142.json"
+      ]
+    },
+    {
+      "auditId": "AUD-170",
+      "recordedAt": "2026-11-19T14:09:35.402Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-142",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-169",
       "recordedAt": "2026-11-19T14:06:46.169Z",
       "actorRef": "orchestrator",
@@ -1984,52 +2056,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-156",
-      "recordedAt": "2026-11-19T07:01:45.192Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-133",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-133",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-133.json"
-      ]
-    },
-    {
-      "auditId": "AUD-155",
-      "recordedAt": "2026-11-19T07:01:35.531Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-133",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 169,
+    "total": 171,
     "byResult": {
-      "allowed": 169,
+      "allowed": 171,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 168,
+      "TOOL-QUEUE-SCHEDULER": 170,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 169
+      "orchestrator": 171
     }
   },
   "protocolView": {
@@ -2054,6 +2094,29 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "taskSheet",
             "ref": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-142",
+        "title": "AF-140 交付记录闸门数字订正",
+        "type": "documentation",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-140",
+          "AF-141"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af142-readme-gate-number-task-2026-11-19.md"
           }
         ]
       }
@@ -4823,11 +4886,17 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-128",
         "kind": "taskSheet",
         "ref": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md"
+      },
+      {
+        "taskId": "AF-142",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af142-readme-gate-number-task-2026-11-19.md"
       }
     ],
     "groupId": "phase2.5-ai-proxy-acceptance",
     "groupIds": [
-      "phase2.5-ai-proxy-acceptance"
+      "phase2.5-ai-proxy-acceptance",
+      "phase2.5-orchestration-closed-loop"
     ],
     "capabilityDeclarations": [
       {

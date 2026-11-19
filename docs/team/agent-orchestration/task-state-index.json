@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 615,
+    "lastEventSeq": 619,
     "rebuiltAt": null
   },
   "tasks": [
@@ -76,6 +76,82 @@
       "outOfScope": [],
       "constraints": [],
       "priorTasks": []
+    },
+    {
+      "taskId": "AF-142",
+      "status": "canceled",
+      "history": [
+        {
+          "at": "2026-11-19T14:09:35.332Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "README 闸门数字订正"
+        },
+        {
+          "at": "2026-11-19T14:09:35.690Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        },
+        {
+          "at": "2026-11-19T14:09:58.546Z",
+          "from": "submitted",
+          "to": "canceled",
+          "by": "orchestrator-cli",
+          "reason": "放弃：README 3864 为 AF-140 当时口径，无需为最终口径另起任务"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "AF-140 交付记录闸门数字订正",
+      "type": "documentation",
+      "baselineRef": "aa191f1a6b20dfc4d072c504e915d548f2d92925",
+      "dependsOn": [
+        "AF-140",
+        "AF-141"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-19T14:09:35.087Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "priorTasks": [
+        "AF-140",
+        "AF-141"
+      ],
+      "scope": {
+        "files": [
+          "docs/worklog/pending/phase2.5-README.md"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af142-readme-gate-number-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "Select-String -LiteralPath docs/worklog/pending/phase2.5-README.md -Pattern \"3865 tests passed\"",
+          "check": "README §3.2.15 闸门数字与最终全量日志一致",
+          "threshold": "exit=0"
+        }
+      ],
+      "successCriteria": [
+        "README §3.2.15 的 AF-140 全量测试数字订正为 219 files / 3865 tests passed（AF-141 后最终口径）",
+        "不改判定、不改阈值、不改任何代码"
+      ],
+      "plannedArtifacts": [],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-19T14:09:35.332Z",
+      "cancelReason": "放弃：README 3864 为 AF-140 当时口径，无需为最终口径另起任务"
     }
   ],
   "archivedTasks": [
