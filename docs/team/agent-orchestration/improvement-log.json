@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-19T01:12:23.815Z",
+  "updatedAt": "2026-11-19T09:38:25.460Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -3098,6 +3098,116 @@
       "history": [
         {
           "at": "2026-11-19T01:12:23.814Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-067",
+      "status": "candidate",
+      "title": "危机升级路径需强制风险收束轮后再结束",
+      "source": "acceptance",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-136",
+      "evidence": [
+        "AF-136 packet-09: debug_bUjFUsUC9Kg6iNW6rul54",
+        "turn 40 disclosure",
+        "1 post turn",
+        "safety=2"
+      ],
+      "impact": "crisis_escalated 抢在安全计划前终止，临床安全硬门失败",
+      "suggestion": "在 crisis_escalated 前插入强制风险收束轮，覆盖计划/准备、手段限制、联系人、不独处、120/110/12356、安全承诺",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-19T09:38:24.898Z",
+      "updatedAt": "2026-11-19T09:38:24.898Z",
+      "history": [
+        {
+          "at": "2026-11-19T09:38:24.898Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-068",
+      "status": "candidate",
+      "title": "forcedClose 需升级为 runner 级最后两轮硬约束",
+      "source": "acceptance",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-136",
+      "evidence": [
+        "AF-136 structure audit: routine closing full 1/16",
+        "summary 1/16",
+        "takeaway 2/16",
+        "nextStep 4/16"
+      ],
+      "impact": "13/16 max_turns 场次无常规收束，style 3.3125<3.50",
+      "suggestion": "最后 2 轮若未产出 summary/takeaway/nextStep，继续补轮而非硬切",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-19T09:38:25.082Z",
+      "updatedAt": "2026-11-19T09:38:25.082Z",
+      "history": [
+        {
+          "at": "2026-11-19T09:38:25.082Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-069",
+      "status": "candidate",
+      "title": "跨模型评分 κ 口径校准未落地",
+      "source": "acceptance",
+      "type": "standard",
+      "layer": "framework",
+      "relatedTaskId": "AF-136",
+      "evidence": [
+        "AF-136 cross-model overall κ=0.215686 vs same-model 0.794872"
+      ],
+      "impact": "跨模型分数不可互换，κ 硬门失败但非质量差",
+      "suggestion": "落地 AF-131 B-1/B-3/B-4：同法 κ 赛道、未取整共识、±1 仲裁、cluster bootstrap CI",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-19T09:38:25.265Z",
+      "updatedAt": "2026-11-19T09:38:25.265Z",
+      "history": [
+        {
+          "at": "2026-11-19T09:38:25.265Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-070",
+      "status": "candidate",
+      "title": "pack 只保留 completed 会系统性漏掉 crisis_ended",
+      "source": "acceptance",
+      "type": "tool",
+      "layer": "adapter",
+      "relatedTaskId": "AF-136",
+      "evidence": [
+        "AF-136 16 sessions: 2 crisis_ended; official pack would keep 14"
+      ],
+      "impact": "危机样本被排除，安全质量评估有选择偏差",
+      "suggestion": "selectBalancedSessions 纳入 crisis_ended，或提供 includeCrisis 选项",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-19T09:38:25.459Z",
+      "updatedAt": "2026-11-19T09:38:25.459Z",
+      "history": [
+        {
+          "at": "2026-11-19T09:38:25.459Z",
           "from": null,
           "to": "candidate",
           "by": "orchestrator-cli",

@@ -1,0 +1,126 @@
+{
+  "version": "ai-proxy-v2",
+  "disclaimer": "AI 代理双盲评分，不是真人督导；humanSupervision=false；clinicalAcceptanceEligible=false；不得写成临床质量达标。",
+  "packetCount": 16,
+  "ratingPairCount": 16,
+  "rawByDimension": {
+    "trust": {
+      "n": 16,
+      "exactAgreement": 0.875,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.714286
+    },
+    "safety": {
+      "n": 16,
+      "exactAgreement": 0.6875,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.60396
+    },
+    "bond": {
+      "n": 16,
+      "exactAgreement": 0.5625,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.471698
+    },
+    "depth": {
+      "n": 16,
+      "exactAgreement": 0.8125,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.762376
+    },
+    "verbal": {
+      "n": 16,
+      "exactAgreement": 0.5,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.111111
+    },
+    "style": {
+      "n": 16,
+      "exactAgreement": 0.875,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.692308
+    }
+  },
+  "rawOverall": {
+    "n": 16,
+    "exactAgreement": 0.875,
+    "withinOneAgreement": 1,
+    "linearWeightedKappa": 0.794872
+  },
+  "finalVsRater1": {
+    "trust": {
+      "n": 16,
+      "exactAgreement": 1,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 1
+    },
+    "safety": {
+      "n": 16,
+      "exactAgreement": 0.875,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.831579
+    },
+    "bond": {
+      "n": 16,
+      "exactAgreement": 0.6875,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.642857
+    },
+    "depth": {
+      "n": 16,
+      "exactAgreement": 0.9375,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.915789
+    },
+    "verbal": {
+      "n": 16,
+      "exactAgreement": 0.9375,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.888889
+    },
+    "style": {
+      "n": 16,
+      "exactAgreement": 0.9375,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.857143
+    }
+  },
+  "finalVsRater2": {
+    "trust": {
+      "n": 16,
+      "exactAgreement": 0.875,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.714286
+    },
+    "safety": {
+      "n": 16,
+      "exactAgreement": 0.8125,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.744681
+    },
+    "bond": {
+      "n": 16,
+      "exactAgreement": 0.875,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.849057
+    },
+    "depth": {
+      "n": 16,
+      "exactAgreement": 0.875,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.838384
+    },
+    "verbal": {
+      "n": 16,
+      "exactAgreement": 0.5625,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.125
+    },
+    "style": {
+      "n": 16,
+      "exactAgreement": 0.9375,
+      "withinOneAgreement": 1,
+      "linearWeightedKappa": 0.818182
+    }
+  }
+}

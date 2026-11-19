@@ -1,11 +1,32 @@
 import type { CounselorMode } from '../../entities/counselor-mode.entity.js';
 import type { PromptSection } from '../dto/counselor-types.js';
-import { CLOSE_DISCIPLINE, sessionCloseDisciplineSection } from './prompt-sections/close-discipline.js';
+import {
+  CLOSE_DISCIPLINE,
+  forcedCloseSection,
+  sessionCloseDisciplineSection,
+  type ClosingCue,
+} from './prompt-sections/close-discipline.js';
 import { CONSISTENCY_DISCIPLINE } from './prompt-sections/consistency-discipline.js';
 import { CRISIS_PROTOCOL } from './prompt-sections/crisis-protocol.js';
-import { crisisStabilizationSection } from './prompt-sections/crisis-stabilization.js';
+import { crisisRiskClosingSection, crisisStabilizationSection } from './prompt-sections/crisis-stabilization.js';
+import { sessionOpeningFrameworkSection } from './prompt-sections/opening-framework.js';
 import { OUTPUT_DISCIPLINE } from './prompt-sections/output-discipline.js';
 import { LEGACY_SESSION_PROFILE, type SessionProfile } from '../../session-profile.js';
+
+/**
+ * AF-133 · prompt 组装时的动态开关 (由 runner 判定后传进来).
+ *
+ * ⚠️ 这两个开关**只影响 standard / long 档**: legacy 档的 prompt 必须与
+ *   2026-11-18 之前逐字一致, 所以所有 AF-133 新增的块都按档案判定开/关.
+ */
+export interface PromptBuildCue {
+  /** 强制收束 cue: 本场即将结束 (runner 在 maxTurns 前 2 轮注入). */
+  readonly closingCue?: ClosingCue;
+  /** 强制收束时从本轮起还剩几轮 (含本轮); 让 prompt 能说准数字. */
+  readonly remainingTurns?: number;
+  /** 这一轮是不是风险收束轮 (五项逐项落地). */
+  readonly crisisClosing?: boolean;
+}
 
 /**
  * 咨询师 prompt 组装器 (纯函数, 不依赖 NestJS).
@@ -59,15 +80,27 @@ export class CounselorPromptBuilder {
    * @param crisisMode 是否处于危机后置练习窗 (动态加危机稳定化块)
    * @param profile 会话档案 (决定要不要加长会话收尾纪律块; 缺省 = legacy)
    * @param turnIndex 当前轮次 (长会话纪律块会写进 prompt; 缺省 = 未知)
+   * @param cue AF-133 动态开关 (强制收束 cue / 风险收束轮; 缺省 = 都没有)
    * @returns 完整的 system prompt 字符串
    */
-  build(mode: CounselorMode, crisisMode: boolean, profile: SessionProfile = LEGACY_SESSION_PROFILE, turnIndex?: number): string {
+  build(
+    mode: CounselorMode,
+    crisisMode: boolean,
+    profile: SessionProfile = LEGACY_SESSION_PROFILE,
+    turnIndex?: number,
+    cue?: PromptBuildCue,
+  ): string {
     // 动态加危机稳定化块 (enabled 由 crisisMode 决定).
     // 长会话收尾纪律块同理: enabled 由档案决定 (legacy 档 = false, 保持逐字不变).
+    // AF-133: 再加强制收束块 (最后 2 轮) 与风险收束块 (危机窗 / 收束轮) ——
+    //   两者都按档案判定, legacy 档永远关闭 (prompt 逐字不变).
     const dynamicSections: PromptSection[] = [
       ...this.sections,
+      sessionOpeningFrameworkSection(profile),
       crisisStabilizationSection(crisisMode),
       sessionCloseDisciplineSection(profile, turnIndex),
+      forcedCloseSection(profile, cue?.closingCue === 'forced', cue?.remainingTurns),
+      crisisRiskClosingSection(profile, crisisMode, cue?.crisisClosing === true),
     ];
 
     // 按 order 排序, 过滤掉 disabled 的块.

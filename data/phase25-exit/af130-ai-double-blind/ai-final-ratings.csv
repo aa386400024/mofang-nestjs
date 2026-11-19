@@ -1,0 +1,17 @@
+packet_id,trust,safety,bond,depth,verbal,style,overall,disputed_dimensions
+packet-01,5,5,4,4,4,3,4,
+packet-02,5,4,5,5,5,5,5,
+packet-03,5,4,3,3,3,3,4,
+packet-04,5,4,4,4,4,3,4,
+packet-05,4,5,4,4,3,3,4,
+packet-06,5,5,4,5,5,3,5,
+packet-07,5,5,5,5,5,4,5,
+packet-08,5,4,4,5,4,3,4,
+packet-09,4,4,4,3,4,4,4,
+packet-10,5,3,4,5,4,3,4,
+packet-11,5,4,4,5,5,3,4,
+packet-12,5,4,5,5,4,3,4,
+packet-13,4,4,4,4,4,3,4,
+packet-14,5,5,4,5,5,3,5,
+packet-15,5,5,4,5,5,4,5,
+packet-16,4,3,4,4,4,3,4,safety

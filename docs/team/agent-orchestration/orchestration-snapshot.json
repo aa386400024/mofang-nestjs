@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-19T01:15:04.275Z",
+  "generatedAt": "2026-11-19T09:39:57.572Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -13,33 +13,54 @@
     "canceled": 0,
     "rejected": 0,
     "input-required": 0,
-    "deadLetter": 0
+    "deadLetter": 0,
+    "backlog": 1
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-128",
+      "contextId": "phase2.5-ai-proxy-acceptance",
+      "type": "fix",
+      "title": "可见输出推理标签泄漏的命名空间与孤立闭合清洗",
+      "status": "backlog",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": null
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 66,
-    "activeCount": 13,
+    "total": 70,
+    "activeCount": 17,
     "byStatus": {
-      "candidate": 13,
+      "candidate": 17,
       "queued": 0,
       "accepted": 0,
       "done": 50,
       "wontfix": 3
     },
     "byType": {
-      "gap": 42,
+      "gap": 44,
       "guardrail": 5,
-      "tool": 0,
-      "standard": 5,
+      "tool": 1,
+      "standard": 6,
       "performance": 1,
       "tech-debt": 13
     },
     "bySource": {
       "implementation": 33,
-      "acceptance": 12,
+      "acceptance": 16,
       "rework": 3,
       "dead-letter": 0,
       "review": 18
@@ -1452,6 +1473,96 @@
           "to": "candidate",
           "note": "登记候选改进"
         }
+      },
+      {
+        "improvementId": "IM-067",
+        "title": "危机升级路径需强制风险收束轮后再结束",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-136",
+        "evidence": [
+          "AF-136 packet-09: debug_bUjFUsUC9Kg6iNW6rul54",
+          "turn 40 disclosure",
+          "1 post turn",
+          "safety=2"
+        ],
+        "impact": "crisis_escalated 抢在安全计划前终止，临床安全硬门失败",
+        "suggestion": "在 crisis_escalated 前插入强制风险收束轮，覆盖计划/准备、手段限制、联系人、不独处、120/110/12356、安全承诺",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T09:38:24.898Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-068",
+        "title": "forcedClose 需升级为 runner 级最后两轮硬约束",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-136",
+        "evidence": [
+          "AF-136 structure audit: routine closing full 1/16",
+          "summary 1/16",
+          "takeaway 2/16",
+          "nextStep 4/16"
+        ],
+        "impact": "13/16 max_turns 场次无常规收束，style 3.3125<3.50",
+        "suggestion": "最后 2 轮若未产出 summary/takeaway/nextStep，继续补轮而非硬切",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T09:38:25.082Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-069",
+        "title": "跨模型评分 κ 口径校准未落地",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "standard",
+        "layer": "framework",
+        "relatedTaskId": "AF-136",
+        "evidence": [
+          "AF-136 cross-model overall κ=0.215686 vs same-model 0.794872"
+        ],
+        "impact": "跨模型分数不可互换，κ 硬门失败但非质量差",
+        "suggestion": "落地 AF-131 B-1/B-3/B-4：同法 κ 赛道、未取整共识、±1 仲裁、cluster bootstrap CI",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T09:38:25.265Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-070",
+        "title": "pack 只保留 completed 会系统性漏掉 crisis_ended",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "tool",
+        "layer": "adapter",
+        "relatedTaskId": "AF-136",
+        "evidence": [
+          "AF-136 16 sessions: 2 crisis_ended; official pack would keep 14"
+        ],
+        "impact": "危机样本被排除，安全质量评估有选择偏差",
+        "suggestion": "selectBalancedSessions 纳入 crisis_ended，或提供 includeCrisis 选项",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T09:38:25.459Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
       }
     ]
   },
@@ -1619,85 +1730,25 @@
   ],
   "toolAudits": [
     {
-      "auditId": "AUD-144",
-      "recordedAt": "2026-11-19T00:58:58.028Z",
+      "auditId": "AUD-162",
+      "recordedAt": "2026-11-19T08:14:38.579Z",
       "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-125",
+      "correlationId": "dispatch:AF-136",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
-      "taskId": null,
+      "taskId": "AF-136",
       "result": "allowed",
       "reason": null,
       "resources": [
-        "task/AF-125-ai-proxy-cross-model"
+        "docs/team/agent-orchestration/transport/tasks/AF-136.json"
       ]
     },
     {
-      "auditId": "AUD-143",
-      "recordedAt": "2026-11-19T00:58:57.725Z",
+      "auditId": "AUD-161",
+      "recordedAt": "2026-11-19T08:14:38.232Z",
       "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-125",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-125",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-125.json"
-      ]
-    },
-    {
-      "auditId": "AUD-142",
-      "recordedAt": "2026-11-19T00:36:54.128Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-124",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-124-repair-chain-gate"
-      ]
-    },
-    {
-      "auditId": "AUD-141",
-      "recordedAt": "2026-11-19T00:36:49.511Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-124",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-124",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-124.json"
-      ]
-    },
-    {
-      "auditId": "AUD-140",
-      "recordedAt": "2026-11-18T18:46:20.148Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-123",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-123",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-123.json"
-      ]
-    },
-    {
-      "auditId": "AUD-139",
-      "recordedAt": "2026-11-18T18:46:04.729Z",
-      "actorRef": "orchestrator",
-      "correlationId": "archive:AF-122",
+      "correlationId": "promote:AF-136",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1711,10 +1762,25 @@
       ]
     },
     {
-      "auditId": "AUD-138",
-      "recordedAt": "2026-11-18T18:46:04.532Z",
+      "auditId": "AUD-160",
+      "recordedAt": "2026-11-19T07:38:36.480Z",
       "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-122",
+      "correlationId": "dispatch:AF-135",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-135",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-135.json"
+      ]
+    },
+    {
+      "auditId": "AUD-159",
+      "recordedAt": "2026-11-19T07:38:19.159Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-135",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1728,10 +1794,10 @@
       ]
     },
     {
-      "auditId": "AUD-137",
-      "recordedAt": "2026-11-18T18:45:41.377Z",
+      "auditId": "AUD-158",
+      "recordedAt": "2026-11-19T07:37:57.963Z",
       "actorRef": "orchestrator",
-      "correlationId": "archive:AF-121",
+      "correlationId": "cancel:AF-134",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1745,10 +1811,10 @@
       ]
     },
     {
-      "auditId": "AUD-136",
-      "recordedAt": "2026-11-18T18:45:41.194Z",
+      "auditId": "AUD-157",
+      "recordedAt": "2026-11-19T07:37:35.440Z",
       "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-121",
+      "correlationId": "cancel:AF-133",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1762,40 +1828,25 @@
       ]
     },
     {
-      "auditId": "AUD-135",
-      "recordedAt": "2026-11-18T18:42:51.071Z",
+      "auditId": "AUD-156",
+      "recordedAt": "2026-11-19T07:01:45.192Z",
       "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-120",
+      "correlationId": "dispatch:AF-133",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
-      "taskId": "AF-120",
+      "taskId": "AF-133",
       "result": "allowed",
       "reason": null,
       "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-120.json"
+        "docs/team/agent-orchestration/transport/tasks/AF-133.json"
       ]
     },
     {
-      "auditId": "AUD-134",
-      "recordedAt": "2026-11-18T18:41:26.156Z",
+      "auditId": "AUD-155",
+      "recordedAt": "2026-11-19T07:01:35.531Z",
       "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-119",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-119",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-119.json"
-      ]
-    },
-    {
-      "auditId": "AUD-133",
-      "recordedAt": "2026-11-18T18:41:12.621Z",
-      "actorRef": "orchestrator",
-      "correlationId": "archive:AF-118",
+      "correlationId": "promote:AF-133",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1809,10 +1860,10 @@
       ]
     },
     {
-      "auditId": "AUD-132",
-      "recordedAt": "2026-11-18T18:41:12.448Z",
+      "auditId": "AUD-154",
+      "recordedAt": "2026-11-19T07:00:16.059Z",
       "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-118",
+      "correlationId": "cancel:AF-132",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1826,25 +1877,40 @@
       ]
     },
     {
-      "auditId": "AUD-131",
-      "recordedAt": "2026-11-18T18:39:11.304Z",
+      "auditId": "AUD-153",
+      "recordedAt": "2026-11-19T06:36:56.359Z",
       "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-117",
+      "correlationId": "dispatch:AF-131",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
-      "taskId": "AF-117",
+      "taskId": "AF-131",
       "result": "allowed",
       "reason": null,
       "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-117.json"
+        "docs/team/agent-orchestration/transport/tasks/AF-131.json"
       ]
     },
     {
-      "auditId": "AUD-130",
-      "recordedAt": "2026-11-18T17:56:57.968Z",
+      "auditId": "AUD-152",
+      "recordedAt": "2026-11-19T05:36:41.444Z",
       "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-116",
+      "correlationId": "dispatch:AF-130",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-130",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-130.json"
+      ]
+    },
+    {
+      "auditId": "AUD-151",
+      "recordedAt": "2026-11-19T05:36:36.093Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-130",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1852,27 +1918,101 @@
       "result": "allowed",
       "reason": null,
       "resources": [
-        "task/AF-116-ai-double-blind"
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-150",
+      "recordedAt": "2026-11-19T05:27:01.885Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-129",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-129",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-129.json"
+      ]
+    },
+    {
+      "auditId": "AUD-149",
+      "recordedAt": "2026-11-19T05:26:54.832Z",
+      "actorRef": "orchestrator",
+      "correlationId": "reissue:AF-126:AF-129",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-148",
+      "recordedAt": "2026-11-19T05:25:11.449Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-126",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
     }
   ],
   "auditSummary": {
-    "total": 144,
+    "total": 162,
     "byResult": {
-      "allowed": 144,
+      "allowed": 162,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 143,
+      "TOOL-QUEUE-SCHEDULER": 161,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 144
+      "orchestrator": 162
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-128",
+        "title": "可见输出推理标签泄漏的命名空间与孤立闭合清洗",
+        "type": "fix",
+        "status": {
+          "framework": "backlog",
+          "protocol": null,
+          "stage": "orchestration"
+        },
+        "groupId": "phase2.5-ai-proxy-acceptance",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-127"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -4365,6 +4505,174 @@
             "ref": "docs/worklog/completed/phase2.5/af125-ai-proxy-cross-model-2026-11-19.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-126",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af126-opening-framework-closeout-task-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-129",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af129-opening-framework-closeout-task-2026-11-19.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af129-opening-framework-closeout-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-127",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af127-session-structure-audit-task-2026-11-19.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af127-session-structure-audit-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-130",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af130-long-batch-reevaluation-task-2026-11-19.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af130-long-batch-reevaluation-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-131",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af131-independent-review-task-2026-11-19.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af131-independent-review-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-132",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af132-prompt-hard-template-task-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-133",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af133-long-session-closure-task-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-134",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af134-scope-rescope-task-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-135",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af135-af133-acceptance-task-2026-11-19.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af135-af133-acceptance-2026-11-19.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-AF133-20261119-1505.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-136",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af136-post-af133-quality-recheck-task-2026-11-19.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af136-post-af133-quality-recheck-2026-11-19.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4379,9 +4687,17 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-128",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md"
+      }
+    ],
+    "groupId": "phase2.5-ai-proxy-acceptance",
+    "groupIds": [
+      "phase2.5-ai-proxy-acceptance"
+    ],
     "capabilityDeclarations": [
       {
         "agentId": "AGENT-EXEC-001",
@@ -4455,5 +4771,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 140
+  "archivedCount": 150
 }

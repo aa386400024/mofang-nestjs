@@ -1,0 +1,120 @@
+{
+  "warning": "解盲映射：只给 PI / 仲裁人；不得发给两位评分人，评分完成并回传前不要打开。",
+  "batchId": "2YZx85Xekk4QxKH_K_m02",
+  "version": "long-v0-candidate",
+  "generatedAt": "2026-11-19T06:17:03.970Z",
+  "packets": [
+    {
+      "packetId": "packet-01",
+      "debugSessionId": "debug_SI3oaUO_QLkxhigkp4Ssi",
+      "characterSlug": "vpt_trauma_disorganized_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-02",
+      "debugSessionId": "debug_BgLaxD6wlxalBwgKp5Kyz",
+      "characterSlug": "vpt_self_worth_intellectualization_l1",
+      "counselorModeId": "expert",
+      "turnCount": 40
+    },
+    {
+      "packetId": "packet-03",
+      "debugSessionId": "debug_JV2_PNgsZUuYBJUhpgbvl",
+      "characterSlug": "vpt_depression_avoidant_l1",
+      "counselorModeId": "cold",
+      "turnCount": 14
+    },
+    {
+      "packetId": "packet-04",
+      "debugSessionId": "debug_ipU2LY-VmtxEZ4zc2rx17",
+      "characterSlug": "vpt_general_secure_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-05",
+      "debugSessionId": "debug_keD_SuHbawVjOl4g_kY-s",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "cold",
+      "turnCount": 28
+    },
+    {
+      "packetId": "packet-06",
+      "debugSessionId": "debug_r2SzbIrn2uUWkg4CcNPIS",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-07",
+      "debugSessionId": "debug_y8oCD1t_z0qiPITTKKue2",
+      "characterSlug": "vpt_self_worth_intellectualization_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-08",
+      "debugSessionId": "debug__CU5OfiJfDZ7ppPQgvEb6",
+      "characterSlug": "vpt_workplace_intellectualization_l1",
+      "counselorModeId": "expert",
+      "turnCount": 30
+    },
+    {
+      "packetId": "packet-09",
+      "debugSessionId": "debug_IGVbMZ3xnafNr75ujvtxo",
+      "characterSlug": "vpt_workplace_intellectualization_l1",
+      "counselorModeId": "cold",
+      "turnCount": 46
+    },
+    {
+      "packetId": "packet-10",
+      "debugSessionId": "debug_VR2xw3YOMStmbrpmCENHM",
+      "characterSlug": "vpt_depression_avoidant_l1",
+      "counselorModeId": "expert",
+      "turnCount": 21
+    },
+    {
+      "packetId": "packet-11",
+      "debugSessionId": "debug__XuehrpG_ro2-2sAtBSTE",
+      "characterSlug": "vpt_social_anxious_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-12",
+      "debugSessionId": "debug_Hnf1RbUxNcEwtSXEIYA6E",
+      "characterSlug": "vpt_social_anxious_l1",
+      "counselorModeId": "expert",
+      "turnCount": 45
+    },
+    {
+      "packetId": "packet-13",
+      "debugSessionId": "debug_k5E7s0Aag6TAnsqJVpst2",
+      "characterSlug": "vpt_intimate_avoidance_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-14",
+      "debugSessionId": "debug_HQXJqA_47-Qz9eGyO8TJK",
+      "characterSlug": "vpt_intimate_avoidance_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-15",
+      "debugSessionId": "debug_oryXKM8YKgY_C9-oMeZty",
+      "characterSlug": "vpt_general_secure_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-16",
+      "debugSessionId": "debug_P12SrU03D8dkfD2fScbXP",
+      "characterSlug": "vpt_trauma_disorganized_l1",
+      "counselorModeId": "expert",
+      "turnCount": 23
+    }
+  ]
+}

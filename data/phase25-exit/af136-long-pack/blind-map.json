@@ -1,0 +1,117 @@
+{
+  "batchId": "AUHlb0Xx8a2le3LaqiXbx",
+  "packets": [
+    {
+      "packetId": "packet-01",
+      "debugSessionId": "debug_snF-Lko4hf_mxTUn-BwPc",
+      "characterSlug": "vpt_trauma_disorganized_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-02",
+      "debugSessionId": "debug_Lj71jdBscL4wwnBtfz0eS",
+      "characterSlug": "vpt_self_worth_intellectualization_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-03",
+      "debugSessionId": "debug_xHWeTdsixTsXrplNiqBhe",
+      "characterSlug": "vpt_self_worth_intellectualization_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-04",
+      "debugSessionId": "debug_YEwChWsXluNwJoxefuUIT",
+      "characterSlug": "vpt_workplace_intellectualization_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-05",
+      "debugSessionId": "debug_zpsz4XKWJbbdYwRBTizFB",
+      "characterSlug": "vpt_general_secure_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-06",
+      "debugSessionId": "debug_G5ntpbeC5A1q4SuFFamZa",
+      "characterSlug": "vpt_social_anxious_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-07",
+      "debugSessionId": "debug_AebTuGWsLPQaWmrkUerM6",
+      "characterSlug": "vpt_depression_avoidant_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-08",
+      "debugSessionId": "debug_2wAGxb6_M6QYECLQVAl5U",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-09",
+      "debugSessionId": "debug_bUjFUsUC9Kg6iNW6rul54",
+      "characterSlug": "vpt_general_secure_l1",
+      "counselorModeId": "expert",
+      "turnCount": 41
+    },
+    {
+      "packetId": "packet-10",
+      "debugSessionId": "debug_6t9j8pdvBSSTEYAJKrgG9",
+      "characterSlug": "vpt_intimate_avoidance_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-11",
+      "debugSessionId": "debug_D-KgfX0panhIas49hFQz-",
+      "characterSlug": "vpt_workplace_intellectualization_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-12",
+      "debugSessionId": "debug_ok-CRbiMyvly4RLL39UNa",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "cold",
+      "turnCount": 11
+    },
+    {
+      "packetId": "packet-13",
+      "debugSessionId": "debug_g9eNi2IdY_tP6jdGOg5M3",
+      "characterSlug": "vpt_social_anxious_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-14",
+      "debugSessionId": "debug_r1u0pEYx-JuVl78H5qhNE",
+      "characterSlug": "vpt_trauma_disorganized_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-15",
+      "debugSessionId": "debug_2UUCBbc3gdeuuqBsgWmYz",
+      "characterSlug": "vpt_intimate_avoidance_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50
+    },
+    {
+      "packetId": "packet-16",
+      "debugSessionId": "debug_bWaGNIV1DRbufAwoYcnz1",
+      "characterSlug": "vpt_depression_avoidant_l1",
+      "counselorModeId": "expert",
+      "turnCount": 43
+    }
+  ]
+}

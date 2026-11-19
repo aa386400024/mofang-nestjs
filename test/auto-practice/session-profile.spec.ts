@@ -121,13 +121,16 @@ describe('AF-091 · 会话档案 (纯函数)', () => {
     expect(isSessionProfileName(42)).toBe(false);
   });
 
-  it('阈值子集只带判定用的四个数', () => {
+  it('阈值子集只带判定用的五个数（AF-133 多了"风险收束轮"开关）', () => {
     expect(sessionThresholdsOf(LONG_SESSION_PROFILE)).toEqual({
       minTurnsBeforeClose: 35,
       stagnantLiteralStreakLimit: 4,
       stagnantNoProgressLimit: 5,
       crisisPracticeTurns: 6,
+      crisisRiskClosingRound: true,
     });
+    // ⚠️ legacy 档: 档案契约"危机窗 4"不变, 也没有"多留 1 轮风险收束".
+    expect(sessionThresholdsOf(LEGACY_SESSION_PROFILE).crisisRiskClosingRound).toBe(false);
   });
 });
 
@@ -266,7 +269,7 @@ describe('AF-091 · decideTurn 的阈值入参', () => {
     expect(fifth.kind).toBe('stop');
   });
 
-  it('long 档的危机后置窗 = 6 轮 (legacy 是 4 轮)', () => {
+  it('long 档的危机后置窗 = 6 轮练习 + 1 轮风险收束（legacy 仍是 4 轮）', () => {
     const long = freshState();
     const thresholds = sessionThresholdsOf(LONG_SESSION_PROFILE);
     // 第 1 轮披露 → 开窗 (postTurns = 0).
@@ -285,8 +288,9 @@ describe('AF-091 · decideTurn 的阈值入参', () => {
       long.stagnation,
       thresholds,
     );
-    // 披露之后每轮 postTurns +1: 第 4 轮 legacy 已停, long 继续.
-    for (let postTurn = 1; postTurn <= 5; postTurn += 1) {
+    // 披露之后的 6 轮练习 (long 的危机窗 = 6 轮): 每一轮都继续.
+    //   ⚠️ AF-133: 第 6 轮 (计数到上限) **不再硬切** —— 收束还没发生, 继续.
+    for (let postTurn = 1; postTurn <= 6; postTurn += 1) {
       const decision = decideTurn(
         {
           turnIndex: 1 + postTurn,
@@ -304,23 +308,23 @@ describe('AF-091 · decideTurn 的阈值入参', () => {
       );
       expect(decision.kind).toBe('continue');
     }
-    expect(long.crisisWindow.postTurns).toBe(5);
-    // 第 6 轮 → 停 (long 的危机窗 = 6 轮).
-    const sixth = decideTurn(
+    expect(long.crisisWindow.postTurns).toBe(6);
+    // 第 7 轮 = 风险收束轮 (这一轮 prompt 带 crisisClosing), 收束轮之后才停.
+    const seventh = decideTurn(
       {
-        turnIndex: 7,
+        turnIndex: 8,
         closeRequested: false,
         crisisDetected: false,
         crisisCategory: null,
-        visitorText: '明天我打算去找医生聊一聊',
+        visitorText: '我今晚先找姐姐过来陪我',
         visitorHistory: [],
-        counselorText: '我们把下一步定下来。',
+        counselorText: '我们把安全计划写下来。',
         lastCounselorText: '',
       },
       long.crisisWindow,
       long.stagnation,
       thresholds,
     );
-    expect(sixth).toEqual({ kind: 'stop', reason: 'crisis_practice_max' });
+    expect(seventh).toEqual({ kind: 'stop', reason: 'crisis_practice_max' });
   });
 });
