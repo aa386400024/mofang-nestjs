@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-19T10:04:06.783Z",
+  "generatedAt": "2026-11-19T10:05:58.837Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -36,46 +36,6 @@ window.ORCH_SNAPSHOT = {
       },
       "manualReview": [],
       "dispatch": null
-    },
-    {
-      "taskId": "AF-137",
-      "contextId": "phase2.5-ai-proxy-acceptance",
-      "type": "fix",
-      "title": "危机升级路径强制风险收束轮后再终止（P0 安全缺口）",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af137-crisis-risk-close-task-2026-11-19.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-137",
-        "contextId": "phase2.5-ai-proxy-acceptance",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-19T09:49:41.601Z",
-        "leaseDeadline": "2026-11-19T10:19:41.599Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-137.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-19T09:49:41.601Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-137.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
     }
   ],
   "deadLetters": [],
@@ -2092,28 +2052,6 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "taskSheet",
             "ref": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-137",
-        "title": "危机升级路径强制风险收束轮后再终止（P0 安全缺口）",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-ai-proxy-acceptance",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-136"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af137-crisis-risk-close-task-2026-11-19.md"
           }
         ]
       }
@@ -4778,6 +4716,28 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af136-post-af133-quality-recheck-2026-11-19.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-137",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af137-crisis-risk-close-task-2026-11-19.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af137-crisis-risk-close-2026-11-19.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-AF137-REVIEW-20261119-1750.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4797,11 +4757,6 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-128",
         "kind": "taskSheet",
         "ref": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md"
-      },
-      {
-        "taskId": "AF-137",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af137-crisis-risk-close-task-2026-11-19.md"
       }
     ],
     "groupId": "phase2.5-ai-proxy-acceptance",
@@ -4881,5 +4836,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 150
+  "archivedCount": 151
 };

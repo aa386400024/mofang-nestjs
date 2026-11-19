@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 592,
+    "lastEventSeq": 596,
     "rebuiltAt": null
   },
   "tasks": [
@@ -76,105 +76,6 @@
       "outOfScope": [],
       "constraints": [],
       "priorTasks": []
-    },
-    {
-      "taskId": "AF-137",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-19T09:49:37.195Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "开始 P0 危机收束实现"
-        },
-        {
-          "at": "2026-11-19T09:49:41.599Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-ai-proxy-acceptance",
-      "title": "危机升级路径强制风险收束轮后再终止（P0 安全缺口）",
-      "type": "fix",
-      "baselineRef": "76f466134e2e0dc7eb28e0fead693b7198b5a902",
-      "dependsOn": [
-        "AF-136"
-      ],
-      "priorTasks": [
-        "AF-136",
-        "AF-133",
-        "AF-131",
-        "AF-130"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-19T09:49:02.000Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "src/auto-practice/practice-runner.service.ts",
-          "src/auto-practice/counselor/builder/prompt-sections/crisis-stabilization.ts",
-          "test/auto-practice/practice-runner-decide-turn.spec.ts",
-          "docs/worklog/pending/",
-          "docs/worklog/completed/phase2.5/"
-        ],
-        "modules": [
-          "auto-practice"
-        ],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af137-crisis-risk-close-task-2026-11-19.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm typecheck",
-          "check": "类型检查 0 error",
-          "threshold": "exitCode=0"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "0 error / 0 warning",
-          "threshold": "exitCode=0"
-        },
-        {
-          "command": "pnpm exec vitest run test/auto-practice/practice-runner-decide-turn.spec.ts",
-          "check": "定向单测全绿",
-          "threshold": "exitCode=0"
-        },
-        {
-          "command": "pnpm exec vitest run test/engine-core/boundary.spec.ts",
-          "check": "engine-core 边界 12 例全绿",
-          "threshold": "exitCode=0"
-        }
-      ],
-      "successCriteria": [
-        "危机强度上升（crisis_escalated）当轮不再立即终止；runner 必须至少再完成 1 个风险收束轮后才允许结束。",
-        "风险收束轮的咨询师 prompt 必须启用 crisisClosing=true，要求 means/channel/contact/noAlone/commitment 五项逐项落地。",
-        "升级发生在 maxTurns 最后一轮时允许追加 1 轮安全收束，不允许因硬上限跳过。",
-        "legacy 档行为逐字不变；不修改 src/engine-core、评分器、阈值、migration。",
-        "单测覆盖升级当轮继续、收束轮 cue、收束轮后终止、最后一轮升级追加轮。"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af137-crisis-risk-close-2026-11-19.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "promotedAt": "2026-11-19T09:49:37.195Z"
     }
   ],
   "archivedTasks": [
@@ -1502,6 +1403,15 @@
         "taskSheet": "docs/worklog/pending/af136-post-af133-quality-recheck-task-2026-11-19.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af136-post-af133-quality-recheck-2026-11-19.md",
         "reply": null
+      }
+    },
+    {
+      "taskId": "AF-137",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af137-crisis-risk-close-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af137-crisis-risk-close-2026-11-19.md",
+        "reply": "docs/worklog/pending/archive/relay-response-AF137-REVIEW-20261119-1750.md"
       }
     }
   ],
