@@ -4,184 +4,70 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 542,
+    "lastEventSeq": 557,
     "rebuiltAt": null
   },
   "tasks": [
     {
-      "taskId": "AF-126",
+      "taskId": "AF-128",
       "status": "backlog",
       "history": [],
       "contextId": "phase2.5-ai-proxy-acceptance",
-      "title": "长会谈开场知情框架与结束收束纪律",
-      "type": "implementation",
-      "baselineRef": "bb46bf48d9658b2deb4b893ca8aca6117f6673c3",
+      "title": "可见输出推理标签泄漏的命名空间与孤立闭合清洗",
+      "type": "fix",
+      "baselineRef": "edcae81f46115cfed4cbe374045eb1b1b5dd44ec",
       "dependsOn": [
-        "AF-125"
-      ],
-      "priorTasks": [
-        "AF-125"
+        "AF-127"
       ],
       "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
       "policyRefs": [
         "conventions.md#1.3"
       ],
-      "createdAt": "2026-11-19T01:30:00.000Z",
-      "deadline": null,
-      "agentRole": "orchestrator",
-      "scope": {
-        "files": [
-          "src/auto-practice/counselor/builder/prompt-sections/opening-framework.ts",
-          "src/auto-practice/counselor/builder/prompt-sections/close-discipline.ts",
-          "src/auto-practice/counselor/builder/counselor-prompt-builder.ts",
-          "test/auto-practice/counselor-prompt-builder.spec.ts",
-          "docs/worklog/pending/af126-opening-framework-closeout-task-2026-11-19.md",
-          "docs/worklog/completed/phase2.5/af126-opening-framework-closeout-2026-11-19.md",
-          "docs/worklog/pending/phase2.5-README.md"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af126-opening-framework-closeout-task-2026-11-19.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec vitest run test/auto-practice/counselor-prompt-builder.spec.ts",
-          "check": "定向单测全绿",
-          "threshold": "exitCode=0"
-        },
-        {
-          "command": "pnpm exec tsc --noEmit",
-          "check": "类型检查 0 error",
-          "threshold": "exitCode=0"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "lint 0 error / 0 warning",
-          "threshold": "exitCode=0"
-        },
-        {
-          "command": "node scripts/orchestration/cli.mjs validate --sheet docs/worklog/pending/af126-opening-framework-closeout-task-2026-11-19.md",
-          "check": "任务单 schema 通过",
-          "threshold": "exitCode=0"
-        }
-      ],
-      "successCriteria": [
-        "长会话档案（long/standard）下，咨询师 system prompt 新增开场知情框架块，至少覆盖保密与保密例外、设置边界、时长/频率、可暂停与可拒答",
-        "开场框架只在长会话档案启用；legacy 档 prompt 逐字不变",
-        "长会话收尾纪律新增结构化收束要求：总结本次理解、来访者带走的内容、下一步安排；不得只输出 END 标记",
-        "收束要求不强迫拖轮次，不伪造来访者发言，不早于 minTurnsBeforeClose",
-        "定向单测覆盖 legacy 不变、long 启用、开场要素齐全、收束三要素齐全",
-        "不新跑练习批次，不改 ai-proxy 阈值，不写临床质量达标"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af126-opening-framework-closeout-2026-11-19.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": []
-    },
-    {
-      "taskId": "AF-127",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-19T01:36:52.603Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "AF-125 缺口修复：先做规则化结构审计"
-        },
-        {
-          "at": "2026-11-19T01:36:52.917Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-ai-proxy-acceptance",
-      "title": "长会谈开场框架与收束的规则化结构审计",
-      "type": "implementation",
-      "baselineRef": "c48cb96c63ae061186dc9576b82ddb3709fddecf",
-      "dependsOn": [
-        "AF-125"
-      ],
-      "priorTasks": [
-        "AF-125"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-19T01:35:00.000Z",
+      "createdAt": "2026-11-19T03:14:35.000Z",
       "deadline": null,
       "agentRole": "executor",
       "scope": {
         "files": [
-          "src/auto-practice/metrics/session-structure-audit.ts",
-          "bin/session-structure-audit.ts",
-          "test/auto-practice/session-structure-audit.spec.ts",
-          "docs/worklog/pending/af127-session-structure-audit-task-2026-11-19.md",
-          "docs/worklog/completed/phase2.5/af127-session-structure-audit-2026-11-19.md"
+          "src/shared/llm/reasoning-text.ts",
+          "test/shared/af106-reasoning-text.spec.ts",
+          "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md",
+          "docs/worklog/completed/phase2.5/af128-visible-output-think-leak-2026-11-19.md"
         ],
         "modules": [],
         "interfaces": []
       },
       "artifacts": {
-        "taskSheet": "docs/worklog/pending/af127-session-structure-audit-task-2026-11-19.md",
+        "taskSheet": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md",
         "deliveryRecord": null,
         "reply": null
       },
       "gates": [
         {
-          "command": "pnpm exec vitest run test/auto-practice/session-structure-audit.spec.ts",
-          "check": "定向单测全绿",
-          "threshold": "exitCode=0"
+          "command": "pnpm exec vitest run test/shared/af106-reasoning-text.spec.ts",
+          "check": "推理标签清洗定向单测全绿",
+          "threshold": "exit 0；7 tests passed"
         },
         {
           "command": "pnpm exec tsc --noEmit",
           "check": "类型检查 0 error",
-          "threshold": "exitCode=0"
+          "threshold": "exit 0；0 error"
         },
         {
           "command": "pnpm lint",
-          "check": "lint 0 error / 0 warning",
-          "threshold": "exitCode=0"
-        },
-        {
-          "command": "pnpm exec tsx bin/session-structure-audit.ts run --pack-dir %TEMP%\\af125-pack16 --out %TEMP%\\af127-audit",
-          "check": "16 packet 全部产出审计行",
-          "threshold": "exitCode=0"
-        },
-        {
-          "command": "node scripts/orchestration/cli.mjs validate --sheet docs/worklog/pending/af127-session-structure-audit-task-2026-11-19.md",
-          "check": "任务单 schema 通过",
-          "threshold": "exitCode=0"
+          "check": "lint 0 error 0 warning",
+          "threshold": "exit 0；0 error / 0 warning"
         }
       ],
       "successCriteria": [
-        "纯函数模块解析 long packet Markdown，提取咨询师/来访者轮次与轮号，不依赖数据库或 LLM",
-        "开场框架在前 10 轮内逐项检测保密与例外、设置边界、时长/频率、可暂停/可拒答、录音/知情同意",
-        "收束在最后 10 轮内逐项检测总结本次理解、来访者带走内容、下一步安排",
-        "每个 packet 输出布尔证据与命中原文短句，缺失项明确标 false，不猜测、不用整场关键词代替位置判断",
-        "聚合输出各要素覆盖率、完全覆盖 packet 数、部分覆盖 packet 数；状态固定 candidate，gateEligible=false，附免责声明",
-        "CLI 只读 pack 目录，输出 JSON 与 Markdown 到 --out，不写仓库数据",
-        "定向单测覆盖正例、反例、边界轮次、缺咨询师文本、只有部分要素",
-        "不调用 LLM、不新跑练习批次、不改 ai-proxy 阈值、不把结构命中当成临床达标"
+        "清洗标准 think 标签同时覆盖命名空间 mm think 与孤立闭合标签",
+        "流式安全前缀不泄漏半截命名空间标签",
+        "原有 AF-106 契约与测试保持通过",
+        "不调用 LLM、不新跑练习批次、不改咨询师 prompt 与阈值"
       ],
       "plannedArtifacts": [
         {
           "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af127-session-structure-audit-2026-11-19.md",
+          "path": "docs/worklog/completed/phase2.5/af128-visible-output-think-leak-2026-11-19.md",
           "kind": "report"
         }
       ],
@@ -189,7 +75,7 @@
       "requiredTools": [],
       "outOfScope": [],
       "constraints": [],
-      "promotedAt": "2026-11-19T01:36:52.602Z"
+      "priorTasks": []
     }
   ],
   "archivedTasks": [
@@ -1426,6 +1312,33 @@
       "artifacts": {
         "taskSheet": "docs/worklog/pending/af125-ai-proxy-cross-model-task-2026-11-19.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af125-ai-proxy-cross-model-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-126",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af126-opening-framework-closeout-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-129",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af129-opening-framework-closeout-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af129-opening-framework-closeout-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-127",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af127-session-structure-audit-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af127-session-structure-audit-2026-11-19.md",
         "reply": null
       }
     }
