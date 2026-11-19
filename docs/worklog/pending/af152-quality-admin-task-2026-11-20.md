@@ -15,10 +15,20 @@ priorTasks: [AF-151, AF-150, AF-149, AF-148, AF-147, AF-146, AF-131]
 scope:
   files:
     - admin-dashboard/src/
+    - admin-dashboard/README.md
+    - admin-dashboard/pnpm-lock.yaml
     - src/admin-debug/
     - src/auto-practice/metrics/ai-double-blind.ts
     - bin/ai-double-blind.ts
     - test/auto-practice/ai-double-blind.spec.ts
+    - test/admin-debug/wp26-admin-role-guard.spec.ts
+    - data/phase25-exit/af152-cal96-out/
+    - data/phase25-exit/af152-cal96-pack/
+    - data/phase25-exit/af152-cal96-precaps/
+    - data/phase25-exit/af152-af144-out/
+    - data/phase25-exit/af152-af144-pack/
+    - data/phase25-exit/af152-af144-precaps/
+    - docs/worklog/pending/relay-response-AF152-20261120-0149.md
     - docs/worklog/pending/af152-quality-admin-task-2026-11-20.md
     - docs/worklog/completed/phase2.5/af152-quality-admin-2026-11-20.md
     - docs/worklog/pending/phase2.5-README.md
