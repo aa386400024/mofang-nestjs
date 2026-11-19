@@ -30,6 +30,28 @@ export function crisisStabilizationSection(crisisMode: boolean): PromptSection {
   };
 }
 
+function buildPhaseLine(closingRoundIndex?: number): string {
+  if (closingRoundIndex === 1) {
+    return [
+      '',
+      '⚠️ **这是升级后的第 1 轮（评估轮）**：先接住披露，不要惊慌或说教；',
+      '这一轮必须完成**评估三问**（意图 / 计划 / 准备与时间点），问清家里有没有可用的东西，',
+      '并给出**求助渠道**（心理援助热线、120、急诊、110）；告诉来访者**下一轮一起把安全计划写下来**。',
+      '这一轮不要把五项清单一次性念完 —— 没有评估结论的安全计划是空的。',
+    ].join('\n');
+  }
+  if (closingRoundIndex !== undefined && closingRoundIndex >= 2) {
+    return [
+      '',
+      '⚠️ **这是升级后的第 2 轮（计划轮）**：基于上一轮评估到的真实回答做**安全计划**，',
+      '逐项落地可联系的人、不要独处、双向安全承诺、后续随访与恶化时的行动顺序；',
+      '如果上一轮评估确认是低强度（明确否认意图/计划/准备），不要机械逐条压五项，',
+      '改为接住 + 澄清频率与强度 + 安全网 + 预警信号 + 缩短随访间隔。',
+    ].join('\n');
+  }
+  return '';
+}
+
 /**
  * AF-133 · 风险收束块 (危机后置练习窗里的**五项**, 独立成块).
  *
@@ -49,9 +71,15 @@ export function crisisStabilizationSection(crisisMode: boolean): PromptSection {
  * @param profile 会话档案 (判 legacy / 长会话档)
  * @param crisisMode 危机窗是否激活
  * @param closingRound 这一轮是不是风险收束轮
+ * @param closingRoundIndex AF-137: 升级后第几个收束轮 (1 = 评估轮, 2 = 计划轮); 普通收束轮不传
  * @returns prompt 纪律块 (legacy 档时 enabled=false)
  */
-export function crisisRiskClosingSection(profile: SessionProfile, crisisMode: boolean, closingRound: boolean): PromptSection {
+export function crisisRiskClosingSection(
+  profile: SessionProfile,
+  crisisMode: boolean,
+  closingRound: boolean,
+  closingRoundIndex?: number,
+): PromptSection {
   const enabled = targetTurnsBandText(profile) !== null && (crisisMode || closingRound);
   const closingRoundLine = closingRound
     ? [
@@ -60,10 +88,13 @@ export function crisisRiskClosingSection(profile: SessionProfile, crisisMode: bo
         '先把它补上（可以先确认安全、再逐项落地），五项齐了才收尾。',
       ].join('\n')
     : ['', '本阶段仍按上面的稳定化任务推进；**系统会在最后一轮明确告诉你那是风险收束轮**，', '那一轮五项必须齐全才允许 END。'].join('\n');
+  const phaseLine = buildPhaseLine(closingRoundIndex);
   const content = [
     '',
     '## 风险收束（五项 · 缺一不可）',
     '只做共情、只做 grounding（锚定当下、呼吸、回到此刻）**不算**风险收束。',
+    '**先评估，再计划**：下面的五项是风险管理包，不能替代「意图 / 计划 / 准备与时间点」的安全评估；',
+    '评估没做完之前，不要为了凑齐五项而跳过评估。',
     '下面五件事**一项都不能少**，而且每项都要有**具体的动作和具体的对象**；',
     '用自然中文口语说出来，不要念编号，也不要把英文标签读给来访者听：',
     '',
@@ -76,6 +107,11 @@ export function crisisRiskClosingSection(profile: SessionProfile, crisisMode: bo
     '4. **不要独处**：明确说**不要一个人**待着、**不要独处**，今晚要有人**陪着**。',
     '5. **安全承诺 / 安全计划**：和来访者一起做一个**安全计划** —— 包括他答应你的部分',
     '   （**答应我**今晚不伤害自己）和你答应他的部分（我**保证**会一直在线、随时能联系到你）。',
+    '6. **后续随访**（AF-137 新增）：明确下一次什么时候再聊、间隔是否缩短、必要时转介；',
+    '   并约定**预警信号**（哪些念头/行为意味着要立刻求助）与恶化时的行动顺序（先找谁 → 再打热线 → 急诊）。',
+    '7. **否认分支**：来访者明确否认意图/计划/准备时，不要机械逐条压五项；',
+    '   改为接住 + 澄清这个念头出现的频率与强度 + 给安全网与求助路径 + 约定预警信号 + 缩短随访。',
+    phaseLine,
     closingRoundLine,
     '⚠️ 来访者此刻还不安全时，优先做安全确认与稳定化，**不要为了凑齐五项而跳过安全评估**。',
   ].join('\n');

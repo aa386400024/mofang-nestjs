@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-19T09:39:57.572Z",
+  "generatedAt": "2026-11-19T10:04:06.783Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -36,25 +36,65 @@ window.ORCH_SNAPSHOT = {
       },
       "manualReview": [],
       "dispatch": null
+    },
+    {
+      "taskId": "AF-137",
+      "contextId": "phase2.5-ai-proxy-acceptance",
+      "type": "fix",
+      "title": "危机升级路径强制风险收束轮后再终止（P0 安全缺口）",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af137-crisis-risk-close-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-137",
+        "contextId": "phase2.5-ai-proxy-acceptance",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-19T09:49:41.601Z",
+        "leaseDeadline": "2026-11-19T10:19:41.599Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-137.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-19T09:49:41.601Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-137.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
     }
   ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 70,
-    "activeCount": 17,
+    "total": 72,
+    "activeCount": 18,
     "byStatus": {
-      "candidate": 17,
+      "candidate": 18,
       "queued": 0,
       "accepted": 0,
-      "done": 50,
+      "done": 51,
       "wontfix": 3
     },
     "byType": {
-      "gap": 44,
+      "gap": 45,
       "guardrail": 5,
-      "tool": 1,
+      "tool": 2,
       "standard": 6,
       "performance": 1,
       "tech-debt": 13
@@ -64,7 +104,7 @@ window.ORCH_SNAPSHOT = {
       "acceptance": 16,
       "rework": 3,
       "dead-letter": 0,
-      "review": 18
+      "review": 20
     },
     "items": [
       {
@@ -1478,7 +1518,7 @@ window.ORCH_SNAPSHOT = {
       {
         "improvementId": "IM-067",
         "title": "危机升级路径需强制风险收束轮后再结束",
-        "status": "candidate",
+        "status": "done",
         "source": "acceptance",
         "type": "gap",
         "layer": "adapter",
@@ -1491,12 +1531,12 @@ window.ORCH_SNAPSHOT = {
         ],
         "impact": "crisis_escalated 抢在安全计划前终止，临床安全硬门失败",
         "suggestion": "在 crisis_escalated 前插入强制风险收束轮，覆盖计划/准备、手段限制、联系人、不独处、120/110/12356、安全承诺",
-        "historyCount": 1,
+        "historyCount": 4,
         "lastTransition": {
-          "at": "2026-11-19T09:38:24.898Z",
+          "at": "2026-11-19T10:03:59.040Z",
           "by": "orchestrator-cli",
-          "to": "candidate",
-          "note": "登记候选改进"
+          "to": "done",
+          "note": "AF-137 两轮安全序列 + 定向闸门通过"
         }
       },
       {
@@ -1560,6 +1600,50 @@ window.ORCH_SNAPSHOT = {
         "historyCount": 1,
         "lastTransition": {
           "at": "2026-11-19T09:38:25.459Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-071",
+        "title": "升级后的风险收束缺少内容级强制校验",
+        "status": "candidate",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-137",
+        "evidence": [
+          "MiniMax H1",
+          "AF-136 packet-09 risk-incomplete"
+        ],
+        "impact": "轮次到了但模型可能仍漏评估/计划要素，exit reason 无法区分",
+        "suggestion": "复用 AF-127 结构审计五组正则，新增 crisis_safety_incomplete exit reason，不改 af127-v1 口径",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T10:04:06.563Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-072",
+        "title": "long-session-acceptance 只取 completed 会漏 crisis_ended",
+        "status": "candidate",
+        "source": "review",
+        "type": "tool",
+        "layer": "adapter",
+        "relatedTaskId": "AF-137",
+        "evidence": [
+          "MiniMax H4",
+          "AF-136 2 crisis_ended"
+        ],
+        "impact": "官方 pack 系统性排除危机样本，安全评估样本失真",
+        "suggestion": "把 crisis_ended 纳入 selectBalancedSessions 与 pack 过滤条件",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T10:04:06.774Z",
           "by": "orchestrator-cli",
           "to": "candidate",
           "note": "登记候选改进"
@@ -1730,6 +1814,38 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-164",
+      "recordedAt": "2026-11-19T09:49:41.654Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-137",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-137",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-137.json"
+      ]
+    },
+    {
+      "auditId": "AUD-163",
+      "recordedAt": "2026-11-19T09:49:37.254Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-137",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-162",
       "recordedAt": "2026-11-19T08:14:38.579Z",
@@ -1938,54 +2054,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-129.json"
       ]
-    },
-    {
-      "auditId": "AUD-149",
-      "recordedAt": "2026-11-19T05:26:54.832Z",
-      "actorRef": "orchestrator",
-      "correlationId": "reissue:AF-126:AF-129",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-148",
-      "recordedAt": "2026-11-19T05:25:11.449Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-126",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 162,
+    "total": 164,
     "byResult": {
-      "allowed": 162,
+      "allowed": 164,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 161,
+      "TOOL-QUEUE-SCHEDULER": 163,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 162
+      "orchestrator": 164
     }
   },
   "protocolView": {
@@ -2010,6 +2092,28 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "taskSheet",
             "ref": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-137",
+        "title": "危机升级路径强制风险收束轮后再终止（P0 安全缺口）",
+        "type": "fix",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-ai-proxy-acceptance",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-136"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af137-crisis-risk-close-task-2026-11-19.md"
           }
         ]
       }
@@ -4693,6 +4797,11 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-128",
         "kind": "taskSheet",
         "ref": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md"
+      },
+      {
+        "taskId": "AF-137",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/pending/af137-crisis-risk-close-task-2026-11-19.md"
       }
     ],
     "groupId": "phase2.5-ai-proxy-acceptance",

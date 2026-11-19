@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-19T09:38:25.460Z",
+  "updatedAt": "2026-11-19T10:04:06.775Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -3107,7 +3107,7 @@
     },
     {
       "improvementId": "IM-067",
-      "status": "candidate",
+      "status": "done",
       "title": "危机升级路径需强制风险收束轮后再结束",
       "source": "acceptance",
       "type": "gap",
@@ -3123,7 +3123,7 @@
       "suggestion": "在 crisis_escalated 前插入强制风险收束轮，覆盖计划/准备、手段限制、联系人、不独处、120/110/12356、安全承诺",
       "createdBy": "orchestrator-cli",
       "createdAt": "2026-11-19T09:38:24.898Z",
-      "updatedAt": "2026-11-19T09:38:24.898Z",
+      "updatedAt": "2026-11-19T10:03:59.040Z",
       "history": [
         {
           "at": "2026-11-19T09:38:24.898Z",
@@ -3131,8 +3131,34 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-19T10:03:58.608Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-19T10:03:58.829Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-19T10:03:59.040Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "AF-137 两轮安全序列 + 定向闸门通过"
         }
-      ]
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-19T10:03:59.040Z",
+        "resolutionNote": "AF-137 两轮安全序列 + 定向闸门通过",
+        "linkedTaskId": "AF-137"
+      }
     },
     {
       "improvementId": "IM-068",
@@ -3208,6 +3234,60 @@
       "history": [
         {
           "at": "2026-11-19T09:38:25.459Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-071",
+      "status": "candidate",
+      "title": "升级后的风险收束缺少内容级强制校验",
+      "source": "review",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-137",
+      "evidence": [
+        "MiniMax H1",
+        "AF-136 packet-09 risk-incomplete"
+      ],
+      "impact": "轮次到了但模型可能仍漏评估/计划要素，exit reason 无法区分",
+      "suggestion": "复用 AF-127 结构审计五组正则，新增 crisis_safety_incomplete exit reason，不改 af127-v1 口径",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-19T10:04:06.563Z",
+      "updatedAt": "2026-11-19T10:04:06.563Z",
+      "history": [
+        {
+          "at": "2026-11-19T10:04:06.563Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-072",
+      "status": "candidate",
+      "title": "long-session-acceptance 只取 completed 会漏 crisis_ended",
+      "source": "review",
+      "type": "tool",
+      "layer": "adapter",
+      "relatedTaskId": "AF-137",
+      "evidence": [
+        "MiniMax H4",
+        "AF-136 2 crisis_ended"
+      ],
+      "impact": "官方 pack 系统性排除危机样本，安全评估样本失真",
+      "suggestion": "把 crisis_ended 纳入 selectBalancedSessions 与 pack 过滤条件",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-19T10:04:06.774Z",
+      "updatedAt": "2026-11-19T10:04:06.774Z",
+      "history": [
+        {
+          "at": "2026-11-19T10:04:06.774Z",
           "from": null,
           "to": "candidate",
           "by": "orchestrator-cli",

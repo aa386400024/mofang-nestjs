@@ -8,7 +8,8 @@
 //       ② 判断什么时候该停 (maxTurns / crisis / 来访复读).
 //
 //   结束条件 (按优先级):
-//     ① crisisDetected —— 来访者说了自伤/自杀相关 → 立刻停, 标记 crisis_ended;
+//     ① crisisDetected —— 来访者说了自伤/自杀相关 → 进入后置危机窗 (标记 crisis_ended);
+//        强度上升 (crisis_escalated) 在 standard/long 档先补 1 轮风险收束再结束 (AF-137);
 //     ② 咨询师判断可自然收尾 (输出 [[END]] 标记, 且已过最小轮数) → status=completed, exitReason=natural_close;
 //     ③ 来访复读 —— 连续 3 轮来访回复几乎一样 → 停 (对话僵住了, 再跑没意义);
 //     ④ maxTurns —— 跑满轮数 (此时它退化成"上限保护", 不是正常的结束方式);
@@ -200,6 +201,12 @@ export interface CrisisWindowState {
   category: string | null;
   /** 是否发生强度上升型二次升级. */
   escalated: boolean;
+  /**
+   * AF-137: 首次发生强度上升的轮次.
+   * 非升级路径为 null; standard / long 档用它把"升级后必须先做的风险收束轮"钉住,
+   * 避免 crisis_escalated 在披露当轮直接终止 (AF-136 packet-09 的 P0).
+   */
+  escalationTurn?: number | null;
 }
 
 /**
@@ -508,6 +515,7 @@ export class PracticeRunnerService implements OnModuleInit {
       peakLevel: 0,
       category: null,
       escalated: false,
+      escalationTurn: null,
     };
     let degradedTurns = 0;
     // WP-J P1d: 两侧降级**分开**计数 —— `degraded_turns` 仍是两侧合计 (口径不变),
@@ -523,7 +531,9 @@ export class PracticeRunnerService implements OnModuleInit {
     // AF-091: 本场生效的判定阈值 (来自会话档案; legacy = 老常量, 逐字不变).
     const thresholds = sessionThresholdsOf(profile);
 
-    for (let i = 1; i <= maxTurns; i += 1) {
+    // AF-137: 升级若恰好撞上 maxTurns 最后一轮, 允许额外 1 轮做风险收束;
+    //   只放行 maxTurns + 1 这一轮, 不会无限延长.
+    for (let i = 1; shouldRunNextTurn(crisisWindow, i, maxTurns); i += 1) {
       // AF-133: 本轮的动态开关 (强制收束 cue / 风险收束轮).
       //   抽成独立纯函数是为了把 runConversationLoop 的认知复杂度压回阈值内.
       const cue = decideTurnCue({
@@ -532,6 +542,8 @@ export class PracticeRunnerService implements OnModuleInit {
         crisisActive: crisisWindow.active,
         crisisPostTurns: crisisWindow.postTurns,
         crisisPracticeTurns: thresholds.crisisPracticeTurns,
+        crisisEscalated: crisisWindow.escalated,
+        crisisEscalationTurn: crisisWindow.escalationTurn ?? null,
       });
       // AI 咨询师生成台词.
       //   WP-J 改动 B: 危机后置练习窗内传 crisisMode —— 咨询师切到"稳定化"任务
@@ -1188,7 +1200,12 @@ type TurnDecision =
 function buildCounselorOptions(
   profile: SessionProfile,
   turnIndex: number,
-  cue: { readonly forcedClose: boolean; readonly remainingTurns: number; readonly crisisClosing: boolean },
+  cue: {
+    readonly forcedClose: boolean;
+    readonly remainingTurns: number;
+    readonly crisisClosing: boolean;
+    readonly crisisClosingRound?: number;
+  },
   crisisActive: boolean,
 ): CounselorGenerateContext {
   return {
@@ -1198,6 +1215,7 @@ function buildCounselorOptions(
     closingCue: cue.forcedClose ? 'forced' : undefined,
     remainingTurns: cue.forcedClose ? cue.remainingTurns : undefined,
     crisisClosing: cue.crisisClosing,
+    crisisClosingRound: cue.crisisClosingRound,
   };
 }
 
@@ -1225,15 +1243,88 @@ export function decideTurnCue(input: {
   readonly crisisActive: boolean;
   readonly crisisPostTurns: number;
   readonly crisisPracticeTurns: number;
+  /** AF-137: 危机强度是否已经上升 —— 上升后的下一轮必须先做风险收束. */
+  readonly crisisEscalated?: boolean;
+  /** AF-137: 升级轮次, 用来算当前是升级后第几个收束轮. */
+  readonly crisisEscalationTurn?: number | null;
 }): {
   readonly forcedClose: boolean;
   readonly remainingTurns: number;
   readonly crisisClosing: boolean;
+  /** AF-137: 升级后第几个收束轮 (1 = 评估轮, 2 = 计划轮); 非升级路径不传. */
+  readonly crisisClosingRound?: number;
 } {
   const remaining = input.maxTurns - input.turnIndex;
   const forcedClose = remaining <= 2;
-  const crisisClosing = input.crisisActive && (input.crisisPostTurns >= input.crisisPracticeTurns || forcedClose);
-  return { forcedClose, remainingTurns: remaining + 1, crisisClosing };
+  const crisisClosing =
+    input.crisisActive && (input.crisisEscalated === true || input.crisisPostTurns >= input.crisisPracticeTurns || forcedClose);
+  const crisisClosingRound =
+    input.crisisEscalated === true && input.crisisEscalationTurn != null
+      ? Math.max(1, input.turnIndex - input.crisisEscalationTurn)
+      : undefined;
+  return { forcedClose, remainingTurns: remaining + 1, crisisClosing, crisisClosingRound };
+}
+
+/**
+ * AF-137 · 危机强度上升的判定与出口.
+ *
+ * 只有**强度真的上升**才算二次升级; 同等或更低强度的"又说了一次"正是稳定化过程.
+ * standard / long 档不在升级当轮终止, 记下 escalationTurn 让下一轮做风险收束;
+ * legacy 档保持档案契约的"升级即终止".
+ *
+ * @returns 需要立即返回的判定; null 表示强度未上升, 继续常规流程
+ */
+function applyCrisisEscalation(
+  input: TurnJudgementInput,
+  crisisWindow: CrisisWindowState,
+  thresholds: SessionThresholds,
+): TurnDecision | null {
+  const level = crisisLevelOf(input.crisisCategory);
+  if (level <= crisisWindow.peakLevel) return null;
+  crisisWindow.peakLevel = level;
+  crisisWindow.category = input.crisisCategory ?? crisisWindow.category;
+  // 升级这一轮本身也是练过的一轮, 计入练习轮数, 否则指标会少算 1.
+  crisisWindow.postTurns += 1;
+  crisisWindow.escalated = true;
+  if (!thresholds.crisisRiskClosingRound) {
+    return { kind: 'stop', reason: 'crisis_escalated' };
+  }
+  crisisWindow.escalationTurn = input.turnIndex;
+  return { kind: 'continue', closeBlocked: false };
+}
+
+/**
+ * AF-137 · 是否还要跑下一轮.
+ * 升级撞上 maxTurns 最后一轮时只额外放行 1 轮, 不会无限延长.
+ */
+function shouldRunNextTurn(crisisWindow: CrisisWindowState, turnIndex: number, maxTurns: number): boolean {
+  return turnIndex <= maxTurns || (crisisWindow.escalated && turnIndex <= maxTurns + 2);
+}
+
+/**
+ * AF-137 · 升级后的风险收束轮是否已经跑完.
+ * 只在 standard / long 档生效; 升级当轮在 decideTurn 里提前 return, 走不到这里.
+ */
+function shouldStopAfterEscalation(input: TurnJudgementInput, crisisWindow: CrisisWindowState, thresholds: SessionThresholds): boolean {
+  return (
+    thresholds.crisisRiskClosingRound &&
+    crisisWindow.escalated &&
+    crisisWindow.escalationTurn != null &&
+    input.turnIndex >= crisisWindow.escalationTurn + 2
+  );
+}
+
+/**
+ * AF-137 · 是否还处在升级后的两轮安全序列里 (评估轮 / 计划轮).
+ * 这两轮里模型的 END 请求也要被忽略, 先把评估与计划做完.
+ */
+function isEscalationSafetyWindow(input: TurnJudgementInput, crisisWindow: CrisisWindowState, thresholds: SessionThresholds): boolean {
+  return (
+    thresholds.crisisRiskClosingRound &&
+    crisisWindow.escalated &&
+    crisisWindow.escalationTurn != null &&
+    input.turnIndex < crisisWindow.escalationTurn + 2
+  );
 }
 
 /**
@@ -1289,15 +1380,9 @@ export function decideTurn(
       crisisWindow.firstTurn = input.turnIndex;
       crisisWindow.peakLevel = level;
       crisisWindow.category = input.crisisCategory;
-    } else if (level > crisisWindow.peakLevel) {
-      // 只有**强度真的上升**才算二次升级. 同等或更低强度的"又说了一次"
-      // 正是需要练的稳定化过程, 不是失败.
-      crisisWindow.peakLevel = level;
-      crisisWindow.category = input.crisisCategory ?? crisisWindow.category;
-      // 升级这一轮本身也是练过的一轮, 计入练习轮数, 否则指标会少算 1.
-      crisisWindow.postTurns += 1;
-      crisisWindow.escalated = true;
-      return { kind: 'stop', reason: 'crisis_escalated' };
+    } else {
+      const escalationDecision = applyCrisisEscalation(input, crisisWindow, thresholds);
+      if (escalationDecision) return escalationDecision;
     }
   }
 
@@ -1366,7 +1451,18 @@ function decideCrisisWindowStop(
   thresholds: SessionThresholds,
   crisisStartedThisTurn: boolean,
 ): Extract<TurnDecision, { kind: 'stop' }> | null {
-  if (thresholds.crisisRiskClosingRound && input.closeRequested && crisisWindow.active && crisisWindow.postTurns >= 1) {
+  if (shouldStopAfterEscalation(input, crisisWindow, thresholds)) {
+    // AF-137: 升级后的风险收束轮已经完成 (五项由 crisisClosing prompt 强制),
+    //   到这里才允许以 crisis_escalated 结束.
+    return { kind: 'stop', reason: 'crisis_escalated' };
+  }
+  if (
+    thresholds.crisisRiskClosingRound &&
+    input.closeRequested &&
+    crisisWindow.active &&
+    crisisWindow.postTurns >= 1 &&
+    !isEscalationSafetyWindow(input, crisisWindow, thresholds)
+  ) {
     return { kind: 'stop', reason: 'crisis_practice_close' };
   }
   if (!crisisWindow.active || crisisStartedThisTurn) return null;
