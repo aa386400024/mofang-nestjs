@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 596,
+    "lastEventSeq": 615,
     "rebuiltAt": null
   },
   "tasks": [
@@ -1413,6 +1413,42 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af137-crisis-risk-close-2026-11-19.md",
         "reply": "docs/worklog/pending/archive/relay-response-AF137-REVIEW-20261119-1750.md"
       }
+    },
+    {
+      "taskId": "AF-138",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af138-ai-quality-close-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-139",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af139-ai-quality-close-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-140",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af140-ai-quality-close-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af140-ai-quality-close-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-141",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af141-af140-test-scope-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af141-af140-test-scope-2026-11-19.md",
+        "reply": null
+      }
     }
   ],
   "archivedNotes": {
@@ -1445,6 +1481,8 @@
     "AF-110": "scope 重签发 → AF-111",
     "AF-118": "AF-118 依赖配错，取消后重签",
     "AF-121": "AF-121 scope 越域，重签",
-    "AF-122": "AF-122 scope 仍越域，重签"
+    "AF-122": "AF-122 scope 仍越域，重签",
+    "AF-138": "scope 重签发 → AF-139",
+    "AF-139": "scope 重签发 → AF-140"
   }
 }

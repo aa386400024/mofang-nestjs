@@ -1,0 +1,100 @@
+{
+  "deliveredAt": "2026-11-19T22:10:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-141-1",
+    "taskId": "AF-141",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "1daecfb6bacc7e3a80c916bf815c36f2115366cf",
+    "dependsOn": ["AF-140"],
+    "priorTasks": ["AF-140"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "changedFiles": {
+      "added": [
+        "docs/worklog/pending/af141-af140-test-scope-task-2026-11-19.md",
+        "docs/worklog/completed/phase2.5/af141-af140-test-scope-2026-11-19.md"
+      ],
+      "modified": [
+        "test/auto-practice/practice-runner.spec.ts"
+      ],
+      "deleted": [],
+      "commits": ["5fccf5a819fe99d8bc1f0ef255af4ba06114c960"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/practice-runner.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "19/19 passed"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "219 files passed + 1 skipped；3865 tests passed + 4 skipped"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "事件日志 609 条；schema、哈希链与索引投影一致"
+      }
+    ],
+    "scopeCheck": "in-scope",
+    "contractChecks": [
+      {"item": "taskId", "result": "pass", "note": "AF-141 任务单、索引、回执、交付记录一致"},
+      {"item": "stateWrite", "result": "pass", "note": "register / promote / run-once 经 CLI"},
+      {"item": "indexSchema", "result": "pass", "note": "task-state-index 由 CLI 写入"},
+      {"item": "eventChain", "result": "pass", "note": "events verify 609 条通过"}
+    ],
+    "backlogItems": [
+      {
+        "id": "OI-AF141-01",
+        "title": "任务分支与 AF-140 共用",
+        "impact": "AF-141 提交位于 task/AF-140 分支，而非独立 task/AF-141 分支",
+        "reason": "AF-140 父提交未合并 integrate，独立切分会丢父修复",
+        "owner": "framework",
+        "improvement": "IM-075"
+      }
+    ],
+    "deviationTable": [
+      {
+        "item": "分支",
+        "taskSays": "task/AF-141-<slug> 独立分支",
+        "reality": "stacked 在 task/AF-140-ai-quality-close",
+        "action": "按 stacked 分支处理，PR 以 AF-140 为 base",
+        "why": "AF-140 未合入 integrate；从 integrate 切会丢父修复"
+      },
+      {
+        "item": "scope 补登",
+        "taskSays": "AF-140 原 scope 不含 practice-runner.spec.ts",
+        "reality": "另立 AF-141 单独提交",
+        "action": "AF-140 回执登记 OI-AF140-04，AF-141 收口",
+        "why": "不用 --no-verify、不手改索引、不越 scope"
+      }
+    ],
+    "reviewVerdict": "passed",
+    "finalStatus": "completed",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af141-af140-test-scope-task-2026-11-19.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af141-af140-test-scope-2026-11-19.md",
+      "others": ["AF-140", "IM-075"]
+    },
+    "reproNotes": "基线 1daecfb；提交 5fccf5a；分支 task/AF-140-ai-quality-close（stacked）。定向 19/19、全量 3865 passed。",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "不改变 AF-140 的 ai_proxy_candidate / clinicalAcceptanceEligible=false 判定"
+    },
+    "openQuestions": ["AF-140 与 AF-141 是否同 PR 合并？"],
+    "manualReviewList": [],
+    "deviationAbsent": false,
+    "verdictRationale": "AF-141 只把 AF-140 行为变化导致的 stale 断言从 50 对齐到 52，定向与全量测试均绿；scope、提交、证据完整，故通过。"
+  }
+}
