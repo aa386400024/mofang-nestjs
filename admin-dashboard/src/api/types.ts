@@ -329,6 +329,47 @@ export interface HealthStatus {
   uptimeSec: number
 }
 
+// ─── 引擎真实生效参数（只读快照） ───
+export interface EffectiveCapBounds {
+  up: number
+  down: number
+}
+
+export interface EffectiveAttachmentModulation {
+  trustScale: number
+  resistanceScale: number
+  safetyScale: number
+  bondScale: number
+  valenceScale: number
+  arousalScale: number
+}
+
+export interface EffectiveEngineConfig {
+  capturedAt: string
+  engineVersion: string
+  deltaCap: Record<
+    'trust' | 'safety' | 'bond' | 'valence' | 'arousal' | 'verbal' |
+    'depth' | 'style' | 'positive' | 'negative' | 'dependency',
+    EffectiveCapBounds
+  >
+  sessionDecay: {
+    emotionHalfLifeMs: number
+    resistanceHalfLifeMs: number
+    allianceHalfLifeMs: number
+    ruptureResistanceFloor?: number
+  }
+  personalityModulator: {
+    attachment: Record<'secure' | 'anxious' | 'avoidant' | 'disorganized', EffectiveAttachmentModulation>
+    agreeableness: {
+      trustScale: number
+      highThreshold: number
+    }
+  }
+  flags: {
+    engineVoiceEnabled: boolean
+  }
+}
+
 // ─── PsyGUARD 趋势 ───
 export interface PsyGuardTrendPoint {
   ts: string

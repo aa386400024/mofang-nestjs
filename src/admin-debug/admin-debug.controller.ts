@@ -97,6 +97,9 @@ import {
 } from '../engine-adapters/deliberation/deliberation-stats.js';
 import type { SessionCostPricing } from '../engine-adapters/observability/session-cost.js';
 import { CharacterProfileEntity } from '../engine-adapters/wiring/character/character-profile.entity.js';
+import { resolveDeltaCapConfig } from '../engine-adapters/wiring/delta-cap.config.js';
+import { resolvePersonalityModulatorConfig } from '../engine-adapters/wiring/personality-modulator.config.js';
+import { resolveSessionDecayConfig } from '../engine-adapters/wiring/session-decay.config.js';
 import { RedisService } from '../shared/infra/redis/redis.service.js';
 import { safeString } from '../shared/infra/string-utils/index.js';
 
@@ -675,6 +678,30 @@ export class AdminDebugController {
    */
   private resolveCostPricing(): SessionCostPricing {
     return resolveCostPricingFromEnv((key) => this.config.get<string>(key));
+  }
+
+  /**
+   * 引擎**真实生效**参数快照 (只读, 供 admin 参数校准页做对照).
+   *
+   * 口径: 直接调用引擎启动时同一组 `resolve*Config(config)` 装配函数, 因此返回的
+   * 是 env 解析 + 非法值回退后的最终值, 不是前端种子表. 不返回任何密钥 / endpoint /
+   * 心理内容; 只含数值型工程参数与开关.
+   *
+   * 边界: 纯读, 不写 env、不写引擎运行态. 参数校准页的模拟沙盘不得把这份值当作
+   * 可写回配置 —— 它只是"当前真实生效值"的对照基线.
+   */
+  @Get('debug/effective-config')
+  effectiveEngineConfig() {
+    return {
+      capturedAt: new Date().toISOString(),
+      engineVersion: this.config.get<string>('ENGINE_VERSION') ?? 'unknown',
+      deltaCap: resolveDeltaCapConfig(this.config),
+      sessionDecay: resolveSessionDecayConfig(this.config),
+      personalityModulator: resolvePersonalityModulatorConfig(this.config),
+      flags: {
+        engineVoiceEnabled: this.config.get<string>('ENGINE_VOICE_ENABLED') === 'true',
+      },
+    };
   }
 
   /** 引擎健康状态. */

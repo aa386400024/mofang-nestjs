@@ -339,6 +339,7 @@ describe('WP26 §1 P2-4 · admin-debug 命名空间加角色校验', () => {
       // 这里把端点清单一起列出来, 免得将来加端点时"忘了挂 guard"却没人发现.
       // V2026-11-05 (WP31): 再加 2 个成本看板端点.
       // V2026-11-07 (影子模式数据统计面板): 再加 1 个审议统计端点.
+      // V2026-11-20 (AF-152): 再加 1 个引擎真实生效参数只读端点.
       // 清单用 "METHOD path" 表述 —— 同路径不同 method 才分得开.
       // (以前只列 path: Phase2.5 加了 POST characters 之后, GET/POST 同路径
       //  在清单里长得一模一样, 看不出是哪一条.)
@@ -348,6 +349,7 @@ describe('WP26 §1 P2-4 · admin-debug 命名空间加角色校验', () => {
         'GET characters/:slug/sessions',
         'GET cost/sessions',
         'GET cost/trend',
+        'GET debug/effective-config',
         'GET deliberation/stats',
         'GET health',
         'GET sessions',

@@ -10,6 +10,8 @@ import {
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import VChart from 'vue-echarts'
+import { api } from '../api/client'
+import type { EffectiveEngineConfig } from '../api/types'
 
 use([
   LineChart, HeatmapChart, BarChart,
@@ -164,6 +166,73 @@ const deltaTableCollapsed = ref(false)
 const capCollapsed = ref(false)
 const heatmapModalVisible = ref(false)
 const personalityCollapsed = ref(false)
+
+// ========== 引擎真实生效参数（只读对照） ==========
+const effectiveConfig = ref<EffectiveEngineConfig | null>(null)
+const effectiveLoading = ref(false)
+const effectiveError = ref('')
+
+const CAP_DIMENSIONS: Array<{ key: keyof EffectiveEngineConfig['deltaCap']; label: string }> = [
+  { key: 'trust', label: 'trust 信任' },
+  { key: 'safety', label: 'safety 安全' },
+  { key: 'bond', label: 'bond 同盟' },
+  { key: 'valence', label: 'valence 情绪效价' },
+  { key: 'arousal', label: 'arousal 情绪唤醒' },
+  { key: 'verbal', label: 'verbal 言语' },
+  { key: 'depth', label: 'depth 深度' },
+  { key: 'style', label: 'style 风格' },
+  { key: 'positive', label: 'positive 正性' },
+  { key: 'negative', label: 'negative 负性' },
+  { key: 'dependency', label: 'dependency 依赖' },
+]
+
+const effectiveCapRows = computed(() => {
+  if (!effectiveConfig.value) return []
+  return CAP_DIMENSIONS.map(({ key, label }) => ({
+    key,
+    label,
+    up: effectiveConfig.value!.deltaCap[key].up,
+    down: effectiveConfig.value!.deltaCap[key].down,
+  }))
+})
+
+const effectiveDecayRows = computed(() => {
+  if (!effectiveConfig.value) return []
+  const d = effectiveConfig.value.sessionDecay
+  return [
+    { label: '情绪 valence/arousal', hours: d.emotionHalfLifeMs / 3_600_000 },
+    { label: '阻抗 verbal/depth/style', hours: d.resistanceHalfLifeMs / 3_600_000 },
+    { label: '同盟 trust/safety/bond', hours: d.allianceHalfLifeMs / 3_600_000 },
+  ]
+})
+
+const effectiveAttachmentRows = computed(() => {
+  if (!effectiveConfig.value) return []
+  const labels: Record<AttachmentStyle, string> = {
+    secure: '安全型',
+    anxious: '焦虑型',
+    avoidant: '回避型',
+    disorganized: '混乱型',
+  }
+  return (['secure', 'anxious', 'avoidant', 'disorganized'] as AttachmentStyle[]).map((key) => ({
+    key,
+    label: labels[key],
+    ...effectiveConfig.value!.personalityModulator.attachment[key],
+  }))
+})
+
+async function loadEffectiveConfig() {
+  effectiveLoading.value = true
+  effectiveError.value = ''
+  try {
+    effectiveConfig.value = await api.effectiveEngineConfig()
+  } catch (err) {
+    effectiveConfig.value = null
+    effectiveError.value = err instanceof Error ? err.message : String(err)
+  } finally {
+    effectiveLoading.value = false
+  }
+}
 
 // 阈值参数（内核种子值）
 const thresholds = reactive({
@@ -516,7 +585,7 @@ function onParamChange() {
 // 监听参数变化，自动 pushHistory（简化版：在滑块 change 时手动调）
 
 onMounted(() => {
-  // 初始化
+  void loadEffectiveConfig()
 })
 </script>
 
@@ -572,8 +641,89 @@ onMounted(() => {
 
     <!-- 边界声明：这是沙盘，不是引擎实时配置 -->
     <div class="mb-3 px-3 py-2 rounded border border-warn/40 bg-warn/10 text-xs text-warn flex-shrink-0">
-      <strong>模拟沙盘</strong>：下方 delta 表 / cap / 人格倍率均为前端工程种子值，仅用于离线推演与导出候选配置；
-      不读取引擎运行态，也不会写回引擎。真实生效参数以引擎启动时的 env / 部署配置为准。
+      <strong>模拟沙盘 + 真实只读对照</strong>：下方 delta 表 / cap / 人格倍率是前端工程种子值，仅用于离线推演与导出候选配置，不写回引擎；
+      上方的“引擎真实生效参数”来自后端 env 解析后的只读快照，只作对照基线，不参与沙盘推演。
+    </div>
+
+    <!-- 真实生效参数（只读） -->
+    <div class="mb-3 rounded border border-base bg-card flex-shrink-0">
+      <div class="px-3 py-2 flex items-center justify-between border-b border-base">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-medium">引擎真实生效参数</span>
+          <n-tag size="tiny" type="info" :bordered="false">只读</n-tag>
+          <span v-if="effectiveConfig" class="text-[11px] text-muted">
+            engineVersion {{ effectiveConfig.engineVersion }} · 抓取于 {{ new Date(effectiveConfig.capturedAt).toLocaleString() }}
+          </span>
+        </div>
+        <n-button size="tiny" :loading="effectiveLoading" @click="loadEffectiveConfig">刷新</n-button>
+      </div>
+      <div class="px-3 py-2 text-xs">
+        <div v-if="effectiveLoading" class="text-muted">正在读取后端生效配置…</div>
+        <div v-else-if="effectiveError" class="text-danger">
+          读取失败：{{ effectiveError }}。下方沙盘仍可用，但真实值不可见。
+        </div>
+        <div v-else-if="effectiveConfig" class="grid gap-4 lg:grid-cols-2">
+          <div>
+            <div class="font-medium mb-1">单回合 delta cap（env 解析后）</div>
+            <table class="w-full text-[11px] border-collapse">
+              <thead>
+                <tr class="text-muted">
+                  <th class="text-left font-normal py-1">维度</th>
+                  <th class="text-right font-normal py-1">上向 up</th>
+                  <th class="text-right font-normal py-1">下向 down</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in effectiveCapRows" :key="row.key" class="border-t border-base">
+                  <td class="py-0.5">{{ row.label }}</td>
+                  <td class="text-right tabular-nums">{{ row.up.toFixed(3) }}</td>
+                  <td class="text-right tabular-nums">{{ row.down.toFixed(3) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="space-y-3">
+            <div>
+              <div class="font-medium mb-1">跨会话衰减半衰期</div>
+              <table class="w-full text-[11px] border-collapse">
+                <tbody>
+                  <tr v-for="row in effectiveDecayRows" :key="row.label" class="border-t border-base">
+                    <td class="py-0.5">{{ row.label }}</td>
+                    <td class="text-right tabular-nums">{{ row.hours.toFixed(1) }} h</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <div class="font-medium mb-1">依恋人格调节系数（只读）</div>
+              <table class="w-full text-[11px] border-collapse">
+                <thead>
+                  <tr class="text-muted">
+                    <th class="text-left font-normal py-1">依恋</th>
+                    <th class="text-right font-normal py-1">trust</th>
+                    <th class="text-right font-normal py-1">resist</th>
+                    <th class="text-right font-normal py-1">safety</th>
+                    <th class="text-right font-normal py-1">bond</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in effectiveAttachmentRows" :key="row.key" class="border-t border-base">
+                    <td class="py-0.5">{{ row.label }}</td>
+                    <td class="text-right tabular-nums">{{ row.trustScale.toFixed(2) }}</td>
+                    <td class="text-right tabular-nums">{{ row.resistanceScale.toFixed(2) }}</td>
+                    <td class="text-right tabular-nums">{{ row.safetyScale.toFixed(2) }}</td>
+                    <td class="text-right tabular-nums">{{ row.bondScale.toFixed(2) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="text-[11px] text-muted mt-1">
+                宜人性 trustScale {{ effectiveConfig.personalityModulator.agreeableness.trustScale.toFixed(2) }} ·
+                阈值 {{ effectiveConfig.personalityModulator.agreeableness.highThreshold.toFixed(2) }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 自定义事件输入行 -->

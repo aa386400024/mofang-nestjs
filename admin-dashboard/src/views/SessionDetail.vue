@@ -328,6 +328,14 @@ const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2
 
           <!-- BDI 快照 -->
           <n-card v-if="turn" :title="t('sessionDetail.bdiSnapshot')" size="small">
+            <template #header-extra>
+              <div class="flex items-center gap-1">
+                <n-tag v-if="turn.crisis?.detected" size="tiny" :bordered="false" type="error">
+                  危机{{ turn.crisis.category ? ` · ${turn.crisis.category}` : '' }}
+                </n-tag>
+                <n-tag v-if="turn.degraded" size="tiny" :bordered="false" type="warning">降级</n-tag>
+              </div>
+            </template>
             <!-- 关系组 -->
             <div class="mb-3">
               <div class="text-[10px] uppercase tracking-wider text-muted mb-2">{{ t('sessionDetail.relationship') }}</div>
@@ -383,6 +391,14 @@ const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2
                 <template v-else>{{ turn.bdiSnapshot.anxiousSecure ?? '—' }}</template>
               </n-tag>
             </div>
+          </n-card>
+
+          <!-- 审议 trace（仅当后端返回真实 deliberationTrace 时展示） -->
+          <n-card v-if="turn?.deliberationTrace" size="small" :title="t('sessionDetail.turnTrace') + ' · deliberation'">
+            <template #header-extra>
+              <n-tag size="tiny" :bordered="false" type="success">后端真值</n-tag>
+            </template>
+            <pre class="text-[11px] font-mono whitespace-pre-wrap break-all max-h-72 overflow-y-auto">{{ JSON.stringify(turn.deliberationTrace, null, 2) }}</pre>
           </n-card>
 
           <!-- 调试面板：Delta 明细 -->

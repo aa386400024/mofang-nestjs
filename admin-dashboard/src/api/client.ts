@@ -2,7 +2,7 @@ import type {
   SessionSummary, SessionDetail, CharacterBaseline, CharacterDetail,
   MemoryEntry, MemoryListResponse, PsyGuardStats, DashboardStats,
   TrajectoryState, PsyGuardTrend, CostTrendPoint, SessionCost,
-  CharacterSession, HealthStatus, DeliberationStats,
+  CharacterSession, HealthStatus, DeliberationStats, EffectiveEngineConfig,
   CounselorMode, PracticeSession, BatchProgress,
   EvalReportListResponse, EvalReportDetail, GateTraceListResponse, GateStatsResponse,
   AnnotationListResponse, AnnotationDetail, AnnotationSaveBody, AnnotationReveal,
@@ -89,6 +89,11 @@ export const api = {
   // ─── 引擎健康状态 ───
   health: async (): Promise<HealthStatus> => {
     return get<HealthStatus>('/health')
+  },
+
+  // ─── 引擎真实生效参数（只读，供参数校准页对照） ───
+  effectiveEngineConfig: async (): Promise<EffectiveEngineConfig> => {
+    return get<EffectiveEngineConfig>('/debug/effective-config')
   },
 
   // ─── 调试会话（WP58） ───
