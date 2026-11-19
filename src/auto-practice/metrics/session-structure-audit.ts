@@ -763,6 +763,59 @@ function buildRiskClosing(turns: readonly SessionStructureTurn[]): Record<RiskCl
   return result;
 }
 
+/** 常规收束文本判定结果（供 runner 在收尾轮做内容门）。 */
+export interface ClosingTextEvaluation {
+  /** 三项是否全部覆盖。 */
+  readonly complete: boolean;
+  /** 未覆盖的要素键。 */
+  readonly missing: readonly ClosingElementKey[];
+  /** 逐要素结果。 */
+  readonly elements: ClosingStructureAudit;
+}
+
+/** 危机收束文本判定结果（供 runner 在升级安全序列做内容门）。 */
+export interface RiskClosingTextEvaluation {
+  /** 五组是否全部覆盖（比审计口径的“至少 2 组”更严，用于安全修复轮）。 */
+  readonly complete: boolean;
+  /** 未覆盖的要素键。 */
+  readonly missing: readonly RiskClosingElementKey[];
+  /** 逐要素结果。 */
+  readonly elements: Record<RiskClosingElementKey, StructureElementResult>;
+}
+
+/**
+ * 判定一段咨询师正文的常规收束三件套。
+ *
+ * ⚠️ 只用于 runner 的**内容门**：收尾轮里模型输出 END 时，若三项不齐则挡回继续；
+ * 不改变 `af127-v1` 审计口径，也不产出临床结论。
+ *
+ * @param text 收尾窗口内咨询师正文（多轮用换行拼接）
+ * @returns 三项覆盖结果与缺失键
+ */
+export function evaluateRoutineClosingText(text: string): ClosingTextEvaluation {
+  const turns: SessionStructureTurn[] = [{ turnIndex: 1, counselor: text, visitor: '' }];
+  const map = auditWindow(turns, 'closing');
+  const elements = buildClosing(map);
+  const missing = CLOSING_ELEMENT_KEYS.filter((key) => !elements[key].covered);
+  return { complete: missing.length === 0, missing, elements };
+}
+
+/**
+ * 判定一段咨询师正文的危机收束五组。
+ *
+ * ⚠️ `complete` 要求**五组全部命中**；这与审计聚合里的 `riskClosingComplete`
+ * （至少 2 组且含 means/channel/contact 之一）不是同一口径，后者保持 `af127-v1` 不变。
+ *
+ * @param text 升级后安全序列内咨询师正文（评估轮 + 计划轮/修复轮用换行拼接）
+ * @returns 五组覆盖结果与缺失键
+ */
+export function evaluateRiskClosingText(text: string): RiskClosingTextEvaluation {
+  const turns: SessionStructureTurn[] = [{ turnIndex: 1, counselor: text, visitor: '' }];
+  const elements = buildRiskClosing(turns);
+  const missing = RISK_CLOSING_ELEMENT_KEYS.filter((key) => !elements[key].covered);
+  return { complete: missing.length === 0, missing, elements };
+}
+
 /**
  * 全稿扫描危机信号（咨询师与来访者台词都算）。
  *

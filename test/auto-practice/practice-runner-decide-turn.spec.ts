@@ -65,6 +65,10 @@ const TURN = {
   closeRequested: false,
 } as const;
 
+/** 五组齐全的安全收束文本 (AF-138 内容门用). */
+const COMPLETE_SAFETY_TEXT =
+  '我们一起把药收起来放到够不着的地方；心理援助热线 12356、120、急诊都可以打；现在就联系家人，让朋友过来陪着你；不要独处；我们一起做安全计划，你答应我今晚不伤害自己。';
+
 /** 危机披露那一轮的事实. */
 const CRISIS_TURN = {
   ...TURN,
@@ -196,7 +200,12 @@ describe('AF-137 · decideTurn · 危机强度上升不再当轮终止', () => {
     expect(state.crisisWindow.postTurns).toBe(2);
 
     // 第 4 轮 = 计划轮: 这一轮跑完才允许结束.
-    const plan = decideTurn({ ...TURN, turnIndex: 4 }, state.crisisWindow, state.stagnation, thresholds);
+    const plan = decideTurn(
+      { ...TURN, turnIndex: 4, crisisSafetyText: COMPLETE_SAFETY_TEXT },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
     expect(plan).toEqual({ kind: 'stop', reason: 'crisis_escalated' });
     expect(state.crisisWindow.postTurns).toBe(3);
   });
@@ -212,7 +221,12 @@ describe('AF-137 · decideTurn · 危机强度上升不再当轮终止', () => {
     );
     const assessment = decideTurn({ ...TURN, turnIndex: 3, closeRequested: true }, state.crisisWindow, state.stagnation, thresholds);
     expect(assessment).toEqual({ kind: 'continue', closeBlocked: false });
-    const plan = decideTurn({ ...TURN, turnIndex: 4, closeRequested: true }, state.crisisWindow, state.stagnation, thresholds);
+    const plan = decideTurn(
+      { ...TURN, turnIndex: 4, closeRequested: true, crisisSafetyText: COMPLETE_SAFETY_TEXT },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
     expect(plan).toEqual({ kind: 'stop', reason: 'crisis_escalated' });
   });
 
@@ -254,6 +268,99 @@ describe('AF-137 · decideTurn · 危机强度上升不再当轮终止', () => {
     });
     expect(second.crisisClosingRound).toBe(2);
   });
+
+  it('AF-138: 计划轮五项不齐 → 追加修复轮；修复轮补齐才 crisis_escalated', () => {
+    const state = freshState();
+    decideTurn({ ...CRISIS_TURN, turnIndex: 1 }, state.crisisWindow, state.stagnation, thresholds);
+    decideTurn(
+      { ...TURN, turnIndex: 2, crisisDetected: true, crisisCategory: 'active_ideation' },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
+    // 评估轮：只给渠道，五项远未齐.
+    const assessment = decideTurn(
+      { ...TURN, turnIndex: 3, crisisSafetyText: '心理援助热线 12356 可以打。' },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
+    expect(assessment.kind).toBe('continue');
+    // 计划轮：仍缺 means/contact/noAlone/commitment → 内容门追加修复轮.
+    const plan = decideTurn(
+      { ...TURN, turnIndex: 4, crisisSafetyText: '心理援助热线 12356 可以打。' },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
+    expect(plan).toEqual({ kind: 'continue', closeBlocked: false });
+    expect(state.crisisWindow.safetyRepairPending).toBe(true);
+    expect(state.crisisWindow.missingSafetyElements?.length).toBeGreaterThan(0);
+    // 修复轮：五项补齐 → 结束（不再是 crisis_safety_incomplete）.
+    const repair = decideTurn(
+      { ...TURN, turnIndex: 5, crisisSafetyText: COMPLETE_SAFETY_TEXT },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
+    expect(repair).toEqual({ kind: 'stop', reason: 'crisis_escalated' });
+  });
+
+  it('AF-138: 修复轮仍不齐 → crisis_safety_incomplete（status 仍 crisis_ended）', () => {
+    const state = freshState();
+    decideTurn({ ...CRISIS_TURN, turnIndex: 1 }, state.crisisWindow, state.stagnation, thresholds);
+    decideTurn(
+      { ...TURN, turnIndex: 2, crisisDetected: true, crisisCategory: 'active_ideation' },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
+    decideTurn(
+      { ...TURN, turnIndex: 3, crisisSafetyText: '心理援助热线 12356 可以打。' },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
+    decideTurn(
+      { ...TURN, turnIndex: 4, crisisSafetyText: '心理援助热线 12356 可以打。' },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
+    expect(state.crisisWindow.safetyRepairPending).toBe(true);
+    const repair = decideTurn(
+      { ...TURN, turnIndex: 5, crisisSafetyText: '心理援助热线 12356 可以打。' },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
+    expect(repair).toEqual({ kind: 'stop', reason: 'crisis_safety_incomplete' });
+  });
+
+  it('AF-138: 常规收束窗内三件套不齐 → 挡回继续；齐了才 natural_close', () => {
+    const state = freshState();
+    const incomplete = decideTurn(
+      { ...TURN, turnIndex: 48, forcedClose: true, closeRequested: true, closingText: '我们今天先到这里。' },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
+    expect(incomplete).toEqual({ kind: 'continue', closeBlocked: true });
+
+    const complete = decideTurn(
+      {
+        ...TURN,
+        turnIndex: 49,
+        forcedClose: true,
+        closeRequested: true,
+        closingText: '我总结一下今天的对话，我的理解是你最近压力很大。你可以带走一句话：先照顾好自己。下次我们再见，继续聊。',
+      },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
+    expect(complete).toEqual({ kind: 'stop', reason: 'natural_close' });
+  });
 });
 
 describe('AF-133 · runner · forced-close cue 与风险收束轮', () => {
@@ -287,10 +394,11 @@ describe('AF-133 · runner · forced-close cue 与风险收束轮', () => {
     );
     engine.open.mockResolvedValue({ debugSessionId: 'ds_test' });
     // 咨询师逐轮换话 (避免误触发复读停滞).
-    counselor.generate.mockImplementation(() => {
+    counselor.generate.mockImplementation((_mode, _history, options) => {
       counselorTurn += 1;
       return Promise.resolve({
-        text: `咨询师第${counselorTurn}轮的话`,
+        // AF-138: 模拟"计划轮五项齐全"，避免内容门额外追加修复轮影响旧断言。
+        text: options?.crisisClosingRound === 2 ? COMPLETE_SAFETY_TEXT : `咨询师第${counselorTurn}轮的话`,
         model: 'test-model',
         degraded: false,
         closeRequested: false,
@@ -310,8 +418,8 @@ describe('AF-133 · runner · forced-close cue 与风险收束轮', () => {
     };
   }
 
-  it('最后 2 轮一定有 closingCue="forced"，更早的轮次没有', async () => {
-    for (let i = 1; i <= 5; i += 1) {
+  it('最后 2 轮一定有 closingCue="forced"，更早的轮次没有；AF-140 额外 2 轮补齐收束', async () => {
+    for (let i = 1; i <= 7; i += 1) {
       engine.turn.mockResolvedValueOnce(makeTurn(i, `来访第${i}句不同内容`));
     }
 
@@ -323,7 +431,7 @@ describe('AF-133 · runner · forced-close cue 与风险收束轮', () => {
     });
 
     const calls = counselor.generate.mock.calls;
-    expect(calls).toHaveLength(5);
+    expect(calls).toHaveLength(7);
     const cues = calls.map((call) => call[2]?.closingCue);
     const remaining = calls.map((call) => call[2]?.remainingTurns);
     // 任务单口径: remaining = maxTurns - i, remaining ≤ 2 就注入 → 最后 3 轮.
@@ -332,11 +440,40 @@ describe('AF-133 · runner · forced-close cue 与风险收束轮', () => {
     expect(cues[2]).toBe('forced');
     expect(cues[3]).toBe('forced');
     expect(cues[4]).toBe('forced');
-    // 最后 2 轮一定带 cue (硬要求), 并且带上准确的剩余轮数.
-    expect(cues.slice(3)).toEqual(['forced', 'forced']);
+    // AF-140: long 档允许 maxTurns 之后额外 2 轮补齐常规收束.
+    expect(cues.slice(5)).toEqual(['forced', 'forced']);
+    // AF-140: 从 maxTurns+1 起就触发最终收束, +1 失败 +2 再补一次.
+    expect(calls[5]?.[2]?.finalClosing).toBe(true);
+    expect(calls[6]?.[2]?.finalClosing).toBe(true);
     expect(remaining[2]).toBe(3);
     expect(remaining[3]).toBe(2);
     expect(remaining[4]).toBe(1);
+  });
+
+  it('AF-140: 强制收束窗内三件套齐全即停，不再多跑补齐轮', async () => {
+    const completeClosing =
+      '我总结一下今天的谈话。我听到你提到最近压力很大，也一直在硬撑。你可以带走一句话：先照顾好自己。下次我们再见面之前，你可以试试每天散步十分钟。';
+    counselor.generate.mockImplementation((_mode, _history, options) =>
+      Promise.resolve({
+        text: options?.turnIndex != null && options.turnIndex >= 4 ? completeClosing : `咨询师第${options?.turnIndex ?? 0}轮的话`,
+        model: 'test-model',
+        degraded: false,
+        closeRequested: false,
+      } satisfies CounselorReply),
+    );
+    for (let i = 1; i <= 5; i += 1) {
+      engine.turn.mockResolvedValueOnce(makeTurn(i, `来访第${i}句不同内容`));
+    }
+
+    const result = await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: { systemPrompt: '你是专家' } as CounselorMode,
+      maxTurns: 5,
+      sessionProfile: 'long',
+    });
+
+    expect(counselor.generate.mock.calls).toHaveLength(4);
+    expect(result.exitReason).toBe('natural_close');
   });
 
   it('危机窗用满后的那一轮传 crisisClosing=true（风险收束轮）', async () => {

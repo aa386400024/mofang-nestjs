@@ -244,6 +244,21 @@ describe('AF-133 · 强制收束 cue（runner 在 maxTurns 前 2 轮注入）', 
     const withCue = builder.build(MODE, false, LONG_SESSION_PROFILE, 49, { closingCue: 'forced' });
     expect(withCue).toContain('## 本场即将结束（强制收束）');
 
+    const withMissing = builder.build(MODE, false, LONG_SESSION_PROFILE, 51, {
+      closingCue: 'forced',
+      closingMissing: ['总结 / 回顾', '下次 / 回去可以试'],
+    });
+    expect(withMissing).toContain('## 本轮必须补齐的收束要素');
+    expect(withMissing).toContain('总结 / 回顾、下次 / 回去可以试');
+
+    const finalClosing = builder.build(MODE, false, LONG_SESSION_PROFILE, 52, {
+      closingCue: 'forced',
+      finalClosing: true,
+      closingMissing: ['总结 / 回顾'],
+    });
+    expect(finalClosing).toContain('## 最终收束（本场最后一次发言，最高优先级）');
+    expect(finalClosing).toContain('我总结一下今天的谈话');
+
     const withoutCue = builder.build(MODE, false, LONG_SESSION_PROFILE, 49);
     expect(withoutCue).not.toContain('## 本场即将结束（强制收束）');
 

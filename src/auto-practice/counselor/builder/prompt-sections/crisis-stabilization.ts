@@ -30,7 +30,7 @@ export function crisisStabilizationSection(crisisMode: boolean): PromptSection {
   };
 }
 
-function buildPhaseLine(closingRoundIndex?: number): string {
+function buildPhaseLine(closingRoundIndex?: number, missing?: readonly string[]): string {
   if (closingRoundIndex === 1) {
     return [
       '',
@@ -38,6 +38,16 @@ function buildPhaseLine(closingRoundIndex?: number): string {
       '这一轮必须完成**评估三问**（意图 / 计划 / 准备与时间点），问清家里有没有可用的东西，',
       '并给出**求助渠道**（心理援助热线、120、急诊、110）；告诉来访者**下一轮一起把安全计划写下来**。',
       '这一轮不要把五项清单一次性念完 —— 没有评估结论的安全计划是空的。',
+    ].join('\n');
+  }
+  if (closingRoundIndex === 3) {
+    const list = missing && missing.length > 0 ? missing.map((item) => `- ${item}`).join('\n') : '- 五项安全要素';
+    return [
+      '',
+      '⚠️ **这是升级后的第 3 轮（修复轮）**：上一轮的安全计划仍缺下面这些要素，',
+      '这一轮**只做补齐**，不要重新评估、不要开新议题：',
+      list,
+      '逐项说清具体动作与具体对象；补齐后输出 END。',
     ].join('\n');
   }
   if (closingRoundIndex !== undefined && closingRoundIndex >= 2) {
@@ -71,7 +81,8 @@ function buildPhaseLine(closingRoundIndex?: number): string {
  * @param profile 会话档案 (判 legacy / 长会话档)
  * @param crisisMode 危机窗是否激活
  * @param closingRound 这一轮是不是风险收束轮
- * @param closingRoundIndex AF-137: 升级后第几个收束轮 (1 = 评估轮, 2 = 计划轮); 普通收束轮不传
+ * @param closingRoundIndex AF-137: 升级后第几个收束轮 (1 = 评估轮, 2 = 计划轮, 3 = 修复轮); 普通收束轮不传
+ * @param missing AF-138: 修复轮要逐项补齐的缺失要素
  * @returns prompt 纪律块 (legacy 档时 enabled=false)
  */
 export function crisisRiskClosingSection(
@@ -79,6 +90,7 @@ export function crisisRiskClosingSection(
   crisisMode: boolean,
   closingRound: boolean,
   closingRoundIndex?: number,
+  missing?: readonly string[],
 ): PromptSection {
   const enabled = targetTurnsBandText(profile) !== null && (crisisMode || closingRound);
   const closingRoundLine = closingRound
@@ -88,7 +100,7 @@ export function crisisRiskClosingSection(
         '先把它补上（可以先确认安全、再逐项落地），五项齐了才收尾。',
       ].join('\n')
     : ['', '本阶段仍按上面的稳定化任务推进；**系统会在最后一轮明确告诉你那是风险收束轮**，', '那一轮五项必须齐全才允许 END。'].join('\n');
-  const phaseLine = buildPhaseLine(closingRoundIndex);
+  const phaseLine = buildPhaseLine(closingRoundIndex, missing);
   const content = [
     '',
     '## 风险收束（五项 · 缺一不可）',

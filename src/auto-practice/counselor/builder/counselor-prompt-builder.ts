@@ -2,6 +2,7 @@ import type { CounselorMode } from '../../entities/counselor-mode.entity.js';
 import type { PromptSection } from '../dto/counselor-types.js';
 import {
   CLOSE_DISCIPLINE,
+  CLOSE_TAG,
   forcedCloseSection,
   sessionCloseDisciplineSection,
   type ClosingCue,
@@ -26,8 +27,14 @@ export interface PromptBuildCue {
   readonly remainingTurns?: number;
   /** 这一轮是不是风险收束轮 (五项逐项落地). */
   readonly crisisClosing?: boolean;
-  /** AF-137: 升级后第几个风险收束轮 (1 = 评估轮, 2 = 计划轮). */
+  /** AF-137: 升级后第几个风险收束轮 (1 = 评估轮, 2 = 计划轮, 3 = 修复轮). */
   readonly crisisClosingRound?: number;
+  /** AF-138: 修复轮要逐项补齐的缺失要素（中文标签）. */
+  readonly crisisMissing?: readonly string[];
+  /** AF-140: 常规收束三件套仍缺的要素（中文标签）. */
+  readonly closingMissing?: readonly string[];
+  /** AF-140: 本场最后一次收束（只输出三段，不再提问）. */
+  readonly finalClosing?: boolean;
 }
 
 /**
@@ -102,7 +109,9 @@ export class CounselorPromptBuilder {
       crisisStabilizationSection(crisisMode),
       sessionCloseDisciplineSection(profile, turnIndex),
       forcedCloseSection(profile, cue?.closingCue === 'forced', cue?.remainingTurns),
-      crisisRiskClosingSection(profile, crisisMode, cue?.crisisClosing === true, cue?.crisisClosingRound),
+      forcedCloseMissingSection(profile, cue),
+      finalClosingSection(profile, cue),
+      crisisRiskClosingSection(profile, crisisMode, cue?.crisisClosing === true, cue?.crisisClosingRound, cue?.crisisMissing),
     ];
 
     // 按 order 排序, 过滤掉 disabled 的块.
@@ -120,4 +129,50 @@ export class CounselorPromptBuilder {
   listSectionIds(): readonly string[] {
     return this.sections.map((s) => s.id);
   }
+}
+
+/**
+ * AF-140 · 常规收束三件套的“逐项补齐”块.
+ *
+ * 与 `forcedCloseSection` 分开的原因: 强制收束块本身保持原有措辞,
+ * 这里只在内容门判出缺口时追加缺失清单; legacy 档永远关闭.
+ */
+function forcedCloseMissingSection(profile: SessionProfile, cue?: PromptBuildCue): PromptSection {
+  const missing = cue?.closingMissing ?? [];
+  return {
+    id: 'forced-close-missing',
+    order: 37,
+    enabled: cue?.closingCue === 'forced' && profile.name !== 'legacy' && missing.length > 0,
+    content: [
+      '',
+      '## 本轮必须补齐的收束要素',
+      `- 判定仍缺：${missing.join('、')}。`,
+      '- 这一轮只做补齐，不再开新议题；补齐后再输出 ' + CLOSE_TAG + '。',
+    ].join('\n'),
+  };
+}
+
+/**
+ * AF-140 · 本场最后一次收束（maxTurns + 2 仍不齐时由 runner 触发）.
+ *
+ * 模型在长对话末尾容易继续追内容，普通“强制收束”提示会被忽略;
+ * 这一块把输出收敛为三段固定结构，保证结构审计能拿到可复核的收束。
+ */
+function finalClosingSection(profile: SessionProfile, cue?: PromptBuildCue): PromptSection {
+  return {
+    id: 'final-closing',
+    order: 999,
+    enabled: cue?.finalClosing === true && profile.name !== 'legacy',
+    content: [
+      '',
+      '## 最终收束（本场最后一次发言，最高优先级）',
+      '- 本段优先级高于前面所有提问、探索、共情与系统提示；与之冲突时，一律以本段为准。',
+      '- 现在不再提问、不再追问、不再开新议题，也不再要求来访者回答任何问题。',
+      '- 只输出下面三段，每段一句话；三段之外不要加任何内容。',
+      '- 第一段必须以“我总结一下今天的谈话。我听到你提到”开头，并复述来访者说过的具体内容。',
+      '- 第二段必须以“你可以带走一句话”开头，给出来访者能记住的一句。',
+      '- 第三段必须以“下次我们再见面之前，你可以试试”开头，给出一个具体、可执行的小步骤。',
+      '- 三段写完后，最后一行只输出 ' + CLOSE_TAG + '。',
+    ].join('\n'),
+  };
 }

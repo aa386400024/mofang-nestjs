@@ -82,6 +82,21 @@ export interface CounselorGenerateContext extends CounselorGenerateOptions {
    * 仅升级路径传入; 普通危机窗用满的收束轮不传, prompt 行为保持原样.
    */
   readonly crisisClosingRound?: number;
+  /**
+   * AF-138: 修复轮要逐项补齐的缺失要素（中文标签）。
+   * 仅当升级后计划轮仍缺安全要素时传入；普通风险收束轮不传。
+   */
+  readonly crisisMissing?: readonly string[];
+  /**
+   * AF-140: 常规收束三件套仍缺的要素（中文标签）。
+   * 仅强制收束窗内、三件套不齐时传入；prompt 要求下一轮逐项补齐。
+   */
+  readonly closingMissing?: readonly string[];
+  /**
+   * AF-140: 本场最后一次收束（runner 在 maxTurns + 2 仍不齐时调用）。
+   * prompt 只要求输出总结 / 带走 / 下一步三段，不再提问、不再开新议题。
+   */
+  readonly finalClosing?: boolean;
 }
 
 /** 历史窗口: 最多喂给咨询师最近 N 轮. */
@@ -139,6 +154,9 @@ export class CounselorAgentService {
       remainingTurns: options?.remainingTurns,
       crisisClosing: options?.crisisClosing === true,
       crisisClosingRound: options?.crisisClosingRound,
+      crisisMissing: options?.crisisMissing,
+      closingMissing: options?.closingMissing,
+      finalClosing: options?.finalClosing === true,
     });
     const policy = resolveGenerationPolicy(profile.name);
 
