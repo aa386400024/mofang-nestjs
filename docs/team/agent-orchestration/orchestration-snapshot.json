@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-19T14:09:58.596Z",
+  "generatedAt": "2026-11-19T14:10:21.085Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -10,7 +10,7 @@
     "working": 0,
     "completed": 0,
     "failed": 0,
-    "canceled": 1,
+    "canceled": 0,
     "rejected": 0,
     "input-required": 0,
     "deadLetter": 0,
@@ -35,46 +35,6 @@
       },
       "manualReview": [],
       "dispatch": null
-    },
-    {
-      "taskId": "AF-142",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "documentation",
-      "title": "AF-140 交付记录闸门数字订正",
-      "status": "canceled",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af142-readme-gate-number-task-2026-11-19.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-142",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-19T14:09:35.692Z",
-        "leaseDeadline": "2026-11-19T14:39:35.689Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-142.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-19T14:09:35.692Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-142.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
     }
   ],
   "deadLetters": [],
@@ -1814,6 +1774,40 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-173",
+      "recordedAt": "2026-11-19T14:10:21.076Z",
+      "actorRef": "orchestrator",
+      "correlationId": "archive:AF-142",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-172",
+      "recordedAt": "2026-11-19T14:09:58.619Z",
+      "actorRef": "orchestrator",
+      "correlationId": "cancel:AF-142",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-171",
       "recordedAt": "2026-11-19T14:09:35.756Z",
       "actorRef": "orchestrator",
@@ -2021,54 +2015,20 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-158",
-      "recordedAt": "2026-11-19T07:37:57.963Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-134",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-157",
-      "recordedAt": "2026-11-19T07:37:35.440Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-133",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 171,
+    "total": 173,
     "byResult": {
-      "allowed": 171,
+      "allowed": 173,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 170,
+      "TOOL-QUEUE-SCHEDULER": 172,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 171
+      "orchestrator": 173
     }
   },
   "protocolView": {
@@ -2093,29 +2053,6 @@
           {
             "kind": "taskSheet",
             "ref": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-142",
-        "title": "AF-140 交付记录闸门数字订正",
-        "type": "documentation",
-        "status": {
-          "framework": "canceled",
-          "protocol": "CANCELED",
-          "stage": "terminal"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-140",
-          "AF-141"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af142-readme-gate-number-task-2026-11-19.md"
           }
         ]
       }
@@ -4866,6 +4803,20 @@
             "ref": "docs/worklog/completed/phase2.5/af141-af140-test-scope-2026-11-19.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-142",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af142-readme-gate-number-task-2026-11-19.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4885,17 +4836,11 @@
         "taskId": "AF-128",
         "kind": "taskSheet",
         "ref": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md"
-      },
-      {
-        "taskId": "AF-142",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af142-readme-gate-number-task-2026-11-19.md"
       }
     ],
     "groupId": "phase2.5-ai-proxy-acceptance",
     "groupIds": [
-      "phase2.5-ai-proxy-acceptance",
-      "phase2.5-orchestration-closed-loop"
+      "phase2.5-ai-proxy-acceptance"
     ],
     "capabilityDeclarations": [
       {
@@ -4970,5 +4915,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 155
+  "archivedCount": 156
 }
