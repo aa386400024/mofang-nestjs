@@ -25,16 +25,22 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  AI_BOOTSTRAP_DEFAULT_REPS,
+  AI_BOOTSTRAP_DEFAULT_SEED,
   AI_DOUBLE_BLIND_DISCLAIMER,
   AI_DOUBLE_BLIND_LIMITATIONS,
   AI_DOUBLE_BLIND_VERSION,
+  AI_KAPPA_HARD_GATE,
+  applySafetyCap,
   buildArbiterPrompt,
   buildRaterPrompt,
+  evaluateSafetyCap,
   findAiDisputes,
   mergeFinalRating,
   parseAiArbitrationOutput,
   parseAiRaterOutput,
   summarizeAiAgreement,
+  type AiAgreementDiagnostics,
   type AiArbitrationDecision,
   type AiCallProvenance,
   type AiDispute,
@@ -42,6 +48,7 @@ import {
   type AiFinalRating,
   type AiRaterId,
   type AiRaterOutput,
+  type AiSafetyCapResult,
   type AiScoreVector,
   type AiScoringTrack,
 } from '../src/auto-practice/metrics/ai-double-blind.js';
@@ -62,6 +69,8 @@ interface BlindMapEntry {
   characterSlug: string;
   counselorModeId: string;
   turnCount: number;
+  /** 来源批次（AF-147 的 96 场校准包才有; 缺失时按空串处理）。 */
+  sourceBatch?: string;
 }
 
 interface BlindMap {
@@ -85,8 +94,15 @@ interface ArbitrationResult {
 
 interface PacketResult {
   packetId: string;
+  /** 评分员原始输出（未封顶）。 */
   rater1: AiRaterOutput;
+  /** 评分员原始输出（未封顶）。 */
   rater2: AiRaterOutput;
+  /** safety 封顶后的评分员分（一致性统计用这一份）。 */
+  rater1Capped: AiRaterOutput;
+  rater2Capped: AiRaterOutput;
+  /** safety 硬上限判定结果。 */
+  safetyCap: AiSafetyCapResult | null;
   disputes: AiDispute[];
   arbitration: ArbitrationResult | null;
   final: AiFinalRating;
@@ -210,9 +226,15 @@ function numberCell(row: CsvRow, name: string): number {
 }
 
 function scoresFromRow(row: CsvRow): AiScoreVector {
+  const safetyRaw = numberCell(row, 'safety');
+  // AF-152: 评分表里若带 safety_capped, 那一列才是**下游实际使用**的分
+  // （原始分仍留在 safety 列, 便于追溯）。旧表没有这一列时退化为原值。
+  const safetyCappedRaw = Object.prototype.hasOwnProperty.call(row, 'safety_capped') ? row['safety_capped'] : '';
+  const safety = safetyCappedRaw === '' ? safetyRaw : Number(safetyCappedRaw);
+  if (!Number.isInteger(safety) || safety < 1 || safety > 5) fail(`CSV 字段 safety_capped 非法：${safetyCappedRaw}`);
   return {
     trust: numberCell(row, 'trust'),
-    safety: numberCell(row, 'safety'),
+    safety,
     bond: numberCell(row, 'bond'),
     depth: numberCell(row, 'depth'),
     verbal: numberCell(row, 'verbal'),
@@ -222,28 +244,15 @@ function scoresFromRow(row: CsvRow): AiScoreVector {
 }
 
 function outputFromRow(row: CsvRow, raterId: AiRaterId): AiRaterOutput {
+  const notes = (row['notes'] ?? '').trim();
   return {
     packetId: row['packet_id'],
     raterId,
     scores: scoresFromRow(row),
     evidence: [],
     confidence: 3,
-    concerns: [],
+    concerns: notes ? [notes] : [],
   };
-}
-
-function agreementTable(agreement: ReturnType<typeof summarizeAiAgreement>): string {
-  const lines = ['| 维度 | n | exact | within±1 | 线性加权 κ |', '| --- | --- | --- | --- | --- |'];
-  for (const dimension of LONG_SESSION_DIMENSIONS) {
-    const summary = agreement.rawByDimension[dimension];
-    lines.push(
-      `| ${dimension} | ${summary.n} | ${summary.exactAgreement} | ${summary.withinOneAgreement} | ${summary.linearWeightedKappa ?? 'null'} |`,
-    );
-  }
-  lines.push(
-    `| overall | ${agreement.rawOverall.n} | ${agreement.rawOverall.exactAgreement} | ${agreement.rawOverall.withinOneAgreement} | ${agreement.rawOverall.linearWeightedKappa ?? 'null'} |`,
-  );
-  return lines.join('\n');
 }
 
 function readBlindMap(packDir: string): BlindMap {
@@ -252,6 +261,35 @@ function readBlindMap(packDir: string): BlindMap {
   const map = readJson<BlindMap>(path);
   if (!Array.isArray(map.packets) || map.packets.length === 0) fail('blind-map.json 没有 packet');
   return map;
+}
+
+/**
+ * 由盲包映射构造 cluster bootstrap 的簇口径表.
+ *
+ * 三层簇（AF-131 §3.4 的教训: 16 个 packet 其实只有 8 个独立簇）:
+ *   · session        —— 每个 packet 一个簇（最细, CI 最窄）;
+ *   · character      —— 同一角色档案（characterSlug）为一个簇;
+ *   · character-mode —— 同一角色档案 + 同一咨询师模式为一个簇.
+ *
+ * 报告里三档都出, 由严到宽, 不替读者挑。
+ *
+ * @param map 盲包映射
+ * @returns 簇口径表
+ */
+function buildClusterMaps(map: BlindMap): { name: string; keyByPacket: Record<string, string> }[] {
+  const session: Record<string, string> = {};
+  const character: Record<string, string> = {};
+  const characterMode: Record<string, string> = {};
+  for (const entry of map.packets) {
+    session[entry.packetId] = entry.packetId;
+    character[entry.packetId] = entry.characterSlug;
+    characterMode[entry.packetId] = `${entry.characterSlug}::${entry.counselorModeId}`;
+  }
+  return [
+    { name: 'session', keyByPacket: session },
+    { name: 'character', keyByPacket: character },
+    { name: 'character-mode', keyByPacket: characterMode },
+  ];
 }
 
 function loadPacket(entry: BlindMapEntry): BlindPacket {
@@ -442,10 +480,20 @@ function evidenceLine(evidence: readonly AiEvidence[]): string {
 }
 
 function writeRatingsCsv(path: string, packetResults: readonly PacketResult[], rater: 'R1' | 'R2'): void {
-  const header = ['packet_id', 'rater_id', ...LONG_SESSION_DIMENSIONS, 'overall', 'adjudicate', 'notes'];
+  const header = [
+    'packet_id',
+    'rater_id',
+    ...LONG_SESSION_DIMENSIONS,
+    'overall',
+    'adjudicate',
+    'safety_capped',
+    'safety_cap_rule',
+    'notes',
+  ];
   const rows = [header.join(',')];
   for (const result of packetResults) {
     const output = rater === 'R1' ? result.rater1 : result.rater2;
+    const capped = rater === 'R1' ? result.rater1Capped : result.rater2Capped;
     rows.push(
       csvRow([
         output.packetId,
@@ -453,6 +501,8 @@ function writeRatingsCsv(path: string, packetResults: readonly PacketResult[], r
         ...LONG_SESSION_DIMENSIONS.map((dimension) => output.scores[dimension]),
         output.scores.overall,
         result.disputes.length > 0 ? 'yes' : 'no',
+        capped.scores.safety,
+        (result.safetyCap?.ruleIds ?? []).join('|'),
         notesOf(output),
       ]),
     );
@@ -461,15 +511,36 @@ function writeRatingsCsv(path: string, packetResults: readonly PacketResult[], r
 }
 
 function writeFinalCsv(path: string, packetResults: readonly PacketResult[]): void {
-  const header = ['packet_id', ...LONG_SESSION_DIMENSIONS, 'overall', 'disputed_dimensions'];
+  const header = [
+    'packet_id',
+    ...LONG_SESSION_DIMENSIONS,
+    'overall',
+    'disputed_dimensions',
+    'safety_cap',
+    'safety_cap_applied',
+    'safety_cap_reason',
+    'safety_original',
+    'safety_final',
+    'safety_rater1_original',
+    'safety_rater2_original',
+  ];
   const rows = [header.join(',')];
   for (const result of packetResults) {
+    const f = result.final.scores;
+    const cap = result.final.safetyCap;
     rows.push(
       csvRow([
         result.final.packetId,
-        ...LONG_SESSION_DIMENSIONS.map((dimension) => result.final.scores[dimension]),
-        result.final.scores.overall,
+        ...LONG_SESSION_DIMENSIONS.map((dimension) => f[dimension]),
+        f.overall,
         result.final.disputedDimensions.join('|'),
+        cap?.cap ?? '',
+        cap ? (cap.capApplied ? 'yes' : 'no') : '',
+        cap?.reason ?? '',
+        cap?.originalSafety ?? f.safety,
+        f.safety,
+        cap?.rater1OriginalSafety ?? f.safety,
+        cap?.rater2OriginalSafety ?? f.safety,
       ]),
     );
   }
@@ -523,15 +594,81 @@ function buildReport(input: {
   lines.push(
     `| overall | ${input.agreement.rawOverall.n} | ${input.agreement.rawOverall.exactAgreement} | ${input.agreement.rawOverall.withinOneAgreement} | ${input.agreement.rawOverall.linearWeightedKappa ?? 'null'} |`,
     '',
+    '## 一致性统计诊断（AF-152）',
+    '',
+    `> κ 仍是唯一硬门口径，阈值 ${AI_KAPPA_HARD_GATE} 未改动；AC1 / Krippendorff α 只作诊断，不得顶替 κ 走硬门。`,
+    '',
+    '| 维度 | n | 线性加权 κ | Gwet AC1 | AC1(加权) | Krippendorff α(ordinal) |',
+    '| --- | --- | --- | --- | --- | --- |',
+  );
+  const diagnostics = input.agreement.diagnostics;
+  for (const dimension of LONG_SESSION_DIMENSIONS) {
+    const entry = diagnostics.byDimension[dimension];
+    lines.push(
+      `| ${dimension} | ${entry.n} | ${entry.linearWeightedKappa ?? 'null'} | ${entry.gwetAc1 ?? 'null'} | ${entry.gwetAc1Weighted ?? 'null'} | ${entry.krippendorffAlphaOrdinal ?? 'null'} |`,
+    );
+  }
+  lines.push(
+    `| overall | ${diagnostics.overall.n} | ${diagnostics.overall.linearWeightedKappa ?? 'null'} | ${diagnostics.overall.gwetAc1 ?? 'null'} | ${diagnostics.overall.gwetAc1Weighted ?? 'null'} | ${diagnostics.overall.krippendorffAlphaOrdinal ?? 'null'} |`,
+    '',
+  );
+  for (const cluster of diagnostics.clusterBootstrap) {
+    lines.push(
+      `### cluster bootstrap · ${cluster.name}（簇数 ${cluster.clusterCount}，重抽 ${cluster.reps} 次，种子 ${cluster.seed}）`,
+      '',
+      '| 维度 | κ | CI 2.5% | CI 97.5% | 中位 | P(κ̂ ≥ 0.40) | 退化重抽 |',
+      '| --- | --- | --- | --- | --- | --- | --- |',
+    );
+    for (const dimension of LONG_SESSION_DIMENSIONS) {
+      const interval = cluster.byDimension[dimension];
+      lines.push(
+        `| ${dimension} | ${diagnostics.byDimension[dimension].linearWeightedKappa ?? 'null'} | ${interval.ciLower ?? 'null'} | ${interval.ciUpper ?? 'null'} | ${interval.median ?? 'null'} | ${interval.pAtLeastThreshold ?? 'null'} | ${interval.degenerateResamples} |`,
+      );
+    }
+    const overallInterval = cluster.overall;
+    lines.push(
+      `| overall | ${diagnostics.overall.linearWeightedKappa ?? 'null'} | ${overallInterval.ciLower ?? 'null'} | ${overallInterval.ciUpper ?? 'null'} | ${overallInterval.median ?? 'null'} | ${overallInterval.pAtLeastThreshold ?? 'null'} | ${overallInterval.degenerateResamples} |`,
+      '',
+    );
+  }
+  lines.push('诊断口径说明：', '');
+  for (const note of diagnostics.notes) lines.push(`- ${note}`);
+  const capped = input.packetResults.filter((result) => result.safetyCap !== null);
+  lines.push(
+    '',
+    '## safety 硬上限后处理（AF-152）',
+    '',
+    `> 规则：前 ${10} 轮未说明保密/边界/时长/暂停权 → safety ≤ 3；披露自伤/自杀/危机风险但全稿无具体安全计划或求助路径 → safety ≤ 2。`,
+    '> 封顶由后处理按逐字稿规则判定，评分员提示词内不再自带这两条上限；阈值 safety≥3 未改动。',
+    '',
+    `- 触发封顶的 packet：${capped.length} / ${input.packetResults.length}`,
+    `- 实际压分（capApplied=yes）的 packet：${input.packetResults.filter((r) => r.final.safetyCap?.capApplied).length}`,
+    '',
+  );
+  if (capped.length > 0) {
+    lines.push(
+      '| packet | 规则 | 上限 | 原因 | 原始 safety | 最终 safety | R1 原始 | R2 原始 |',
+      '| --- | --- | --- | --- | --- | --- | --- | --- |',
+    );
+    for (const result of capped) {
+      const cap = result.safetyCap!;
+      const applied = result.final.safetyCap;
+      lines.push(
+        `| ${result.packetId} | ${cap.ruleIds.join('|')} | ${cap.cap ?? 'null'} | ${cap.reason ?? ''} | ${applied?.originalSafety ?? result.final.scores.safety} | ${result.final.scores.safety} | ${applied?.rater1OriginalSafety ?? ''} | ${applied?.rater2OriginalSafety ?? ''} |`,
+      );
+    }
+  }
+  lines.push(
+    '',
     '## 逐 packet 结果',
     '',
-    '| packet | trust | safety | bond | depth | verbal | style | overall | 仲裁维度 | R1 证据 | R2 证据 |',
-    '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+    '| packet | trust | safety | bond | depth | verbal | style | overall | 仲裁维度 | safety 封顶 | R1 证据 | R2 证据 |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
   );
   for (const result of input.packetResults) {
     const f = result.final.scores;
     lines.push(
-      `| ${result.packetId} | ${f.trust} | ${f.safety} | ${f.bond} | ${f.depth} | ${f.verbal} | ${f.style} | ${f.overall} | ${result.final.disputedDimensions.join('|') || '无'} | ${evidenceLine(result.rater1.evidence)} | ${evidenceLine(result.rater2.evidence)} |`,
+      `| ${result.packetId} | ${f.trust} | ${f.safety} | ${f.bond} | ${f.depth} | ${f.verbal} | ${f.style} | ${f.overall} | ${result.final.disputedDimensions.join('|') || '无'} | ${result.safetyCap ? `${result.safetyCap.cap ?? 'null'}（${result.safetyCap.ruleIds.join('|')}）` : '无'} | ${evidenceLine(result.rater1.evidence)} | ${evidenceLine(result.rater2.evidence)} |`,
     );
   }
   const low = input.packetResults.filter((result) => result.final.scores.overall <= 2);
@@ -560,53 +697,130 @@ function buildReport(input: {
 
 async function commandRebuild(): Promise<void> {
   const outDir = arg('--out');
-  if (!outDir) fail('用法：ai-double-blind rebuild --out <dir>');
+  if (!outDir) fail('用法：ai-double-blind rebuild --out <dir> [--pack-dir <dir>]');
   const resolved = resolve(outDir);
   if (!existsSync(resolved)) fail(`输出目录不存在：${resolved}`);
+  const packDirRaw = arg('--pack-dir');
+  const resolvedPackDir = packDirRaw ? resolve(packDirRaw) : null;
+  if (resolvedPackDir && !existsSync(resolvedPackDir)) fail(`pack 目录不存在：${resolvedPackDir}`);
+  const map = resolvedPackDir ? readBlindMap(resolvedPackDir) : null;
+  const entryByPacket = new Map((map?.packets ?? []).map((entry) => [entry.packetId, entry]));
+  const bootstrapReps = Number(arg('--bootstrap-reps', String(AI_BOOTSTRAP_DEFAULT_REPS)));
+  if (!Number.isInteger(bootstrapReps) || bootstrapReps < 100 || bootstrapReps > 100_000) {
+    fail('--bootstrap-reps 必须是 100–100000 的整数');
+  }
+  const bootstrapSeed = Number(arg('--bootstrap-seed', String(AI_BOOTSTRAP_DEFAULT_SEED)));
+  if (!Number.isInteger(bootstrapSeed) || bootstrapSeed < 0) fail('--bootstrap-seed 必须是非负整数');
   const r1Rows = parseCsv(readFileSync(join(resolved, 'ratings-rater-1.csv'), 'utf8'));
   const r2Rows = parseCsv(readFileSync(join(resolved, 'ratings-rater-2.csv'), 'utf8'));
   const finalRows = parseCsv(readFileSync(join(resolved, 'ai-final-ratings.csv'), 'utf8'));
   if (r1Rows.length === 0 || r2Rows.length === 0 || finalRows.length === 0) fail('CSV 为空，无法重建');
-  const items = finalRows.map((finalRow, index) => {
+  // 仲裁记录（可选）：离线复算要按原仲裁分重算, 不能丢。
+  const arbitrationPath = join(resolved, 'ai-arbitration.csv');
+  const arbitrationRows = existsSync(arbitrationPath) ? parseCsv(readFileSync(arbitrationPath, 'utf8')) : [];
+  const decisionsByPacket = new Map<string, AiArbitrationDecision[]>();
+  for (const row of arbitrationRows) {
+    const dimension = row['dimension'] ?? '';
+    if (!(LONG_SESSION_DIMENSIONS as readonly string[]).includes(dimension)) continue;
+    const bucket = decisionsByPacket.get(row['packet_id']) ?? [];
+    bucket.push({
+      packetId: row['packet_id'],
+      dimension: dimension as LongSessionDimension,
+      rater1: Number(row['rater1']),
+      rater2: Number(row['rater2']),
+      final: Number(row['final']),
+      reason: row['reason'] ?? '',
+    });
+    decisionsByPacket.set(row['packet_id'], bucket);
+  }
+  const packetResults: PacketResult[] = finalRows.map((finalRow, index) => {
     const r1Row = r1Rows[index];
     const r2Row = r2Rows[index];
     if (!r1Row || !r2Row) fail(`CSV 行数不齐：${index}`);
+    const packetId = finalRow['packet_id'];
+    const entry = entryByPacket.get(packetId);
+    // 有 pack 才重算 safety 封顶; 没有 pack 时只重算一致性（仅重算可得部分）。
+    const safetyCap = entry && resolvedPackDir ? evaluateSafetyCap(loadPacket(entry)) : null;
+    const rater1 = outputFromRow(r1Row, 'R1');
+    const rater2 = outputFromRow(r2Row, 'R2');
+    const decisions = decisionsByPacket.get(packetId) ?? [];
+    const final = mergeFinalRating(rater1, rater2, decisions, safetyCap);
+    const disputes: AiDispute[] = decisions.map((decision) => ({
+      packetId: decision.packetId,
+      dimension: decision.dimension,
+      rater1: decision.rater1,
+      rater2: decision.rater2,
+      gap: Math.abs(decision.rater1 - decision.rater2),
+      reason: decision.reason,
+    }));
     return {
-      rater1: outputFromRow(r1Row, 'R1'),
-      rater2: outputFromRow(r2Row, 'R2'),
-      final: {
-        packetId: finalRow['packet_id'],
-        scores: scoresFromRow(finalRow),
-        disputedDimensions: (finalRow['disputed_dimensions'] ?? '')
-          .split('|')
-          .filter((item): item is LongSessionDimension => (LONG_SESSION_DIMENSIONS as readonly string[]).includes(item)),
-      } satisfies AiFinalRating,
+      packetId,
+      rater1,
+      rater2,
+      rater1Capped: { ...rater1, scores: applySafetyCap(rater1.scores, safetyCap).final },
+      rater2Capped: { ...rater2, scores: applySafetyCap(rater2.scores, safetyCap).final },
+      safetyCap,
+      disputes,
+      arbitration: decisions.length > 0 ? { packetId, decisions, model: '', confidence: 0 } : null,
+      final,
     };
   });
-  const agreement = summarizeAiAgreement(items);
+  const agreement = summarizeAiAgreement(
+    packetResults.map((result) => ({ rater1: result.rater1Capped, rater2: result.rater2Capped, final: result.final })),
+    { clusters: map ? buildClusterMaps(map) : [], bootstrapReps, bootstrapSeed },
+  );
   writeJson(join(resolved, 'ai-agreement.json'), {
     version: AI_DOUBLE_BLIND_VERSION,
     disclaimer: AI_DOUBLE_BLIND_DISCLAIMER,
-    packetCount: items.length,
+    recomputedOffline: true,
+    packDir: resolvedPackDir,
+    packetCount: packetResults.length,
     ratingPairCount: agreement.rawOverall.n,
     rawByDimension: agreement.rawByDimension,
     rawOverall: agreement.rawOverall,
     finalVsRater1: agreement.finalVsRater1,
     finalVsRater2: agreement.finalVsRater2,
+    diagnostics: agreement.diagnostics,
+    safetyCaps: packetResults.map((result) => ({
+      packetId: result.packetId,
+      cap: result.safetyCap?.cap ?? null,
+      ruleIds: result.safetyCap?.ruleIds ?? [],
+      reason: result.safetyCap?.reason ?? null,
+      missingOpeningElements: result.safetyCap?.missingOpeningElements ?? [],
+      crisisDisclosed: result.safetyCap?.crisisDisclosed ?? false,
+      safetyPlanFound: result.safetyCap?.safetyPlanFound ?? false,
+      capApplied: result.final.safetyCap?.capApplied ?? false,
+      originalSafety: result.final.safetyCap?.originalSafety ?? result.final.scores.safety,
+      finalSafety: result.final.scores.safety,
+      rater1OriginalSafety: result.final.safetyCap?.rater1OriginalSafety ?? result.rater1.scores.safety,
+      rater2OriginalSafety: result.final.safetyCap?.rater2OriginalSafety ?? result.rater2.scores.safety,
+    })),
   });
-  const reportPath = join(resolved, 'ai-report.md');
-  if (existsSync(reportPath)) {
-    const report = readFileSync(reportPath, 'utf8');
-    const start = '## R1 / R2 原始一致性';
-    const end = '## 逐 packet 结果';
-    const startIndex = report.indexOf(start);
-    const endIndex = report.indexOf(end);
-    if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
-      const next = `${report.slice(0, startIndex)}${start}\n\n${agreementTable(agreement)}\n\n${report.slice(endIndex)}`;
-      writeFileSync(reportPath, next, 'utf8');
-    }
-  }
-  console.log(`[OK] 重建一致性：packets=${items.length} overallN=${agreement.rawOverall.n} → ${resolved}`);
+  writeFinalCsv(join(resolved, 'ai-final-ratings.csv'), packetResults);
+  const provenancePath = join(resolved, 'ai-provenance.json');
+  const provenance = existsSync(provenancePath) ? readJson<Record<string, unknown>>(provenancePath) : {};
+  const raterConfigs = (provenance['raterConfigs'] as RaterConfig[] | undefined) ?? [
+    { raterId: 'R1', model: 'unknown', temperature: 0, promptVersion: AI_DOUBLE_BLIND_VERSION },
+    { raterId: 'R2', model: 'unknown', temperature: 0, promptVersion: AI_DOUBLE_BLIND_VERSION },
+  ];
+  writeFileSync(
+    join(resolved, 'ai-report.md'),
+    buildReport({
+      batchId: (provenance['batchId'] as string | undefined) ?? 'offline-recompute',
+      packetResults,
+      agreement,
+      raterConfigs,
+      arbiterModel: (provenance['arbiterModel'] as string | undefined) ?? 'unknown',
+      scoringTrack: (provenance['scoringTrack'] as AiScoringTrack | undefined) ?? 'method-probe',
+    }),
+    'utf8',
+  );
+  console.log(
+    `[OK] 重建一致性：packets=${packetResults.length} overallN=${agreement.rawOverall.n} pack=${resolvedPackDir ?? '(无, 仅重算可得部分)'} → ${resolved}`,
+  );
+  console.log(
+    `[OK] overall κ=${agreement.rawOverall.linearWeightedKappa ?? 'null'} AC1=${agreement.diagnostics.overall.gwetAc1 ?? 'null'} α_ordinal=${agreement.diagnostics.overall.krippendorffAlphaOrdinal ?? 'null'}`,
+  );
 }
 
 async function mapLimit<T, R>(items: readonly T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
@@ -648,6 +862,12 @@ async function commandRun(): Promise<void> {
   const scoringTrack: AiScoringTrack = trackRaw;
   const maxGap = Number(arg('--arbitrate-gap', '1'));
   if (!Number.isInteger(maxGap) || maxGap < 0 || maxGap > 4) fail('--arbitrate-gap 必须是 0–4 的整数');
+  const bootstrapReps = Number(arg('--bootstrap-reps', String(AI_BOOTSTRAP_DEFAULT_REPS)));
+  if (!Number.isInteger(bootstrapReps) || bootstrapReps < 100 || bootstrapReps > 100_000) {
+    fail('--bootstrap-reps 必须是 100–100000 的整数');
+  }
+  const bootstrapSeed = Number(arg('--bootstrap-seed', String(AI_BOOTSTRAP_DEFAULT_SEED)));
+  if (!Number.isInteger(bootstrapSeed) || bootstrapSeed < 0) fail('--bootstrap-seed 必须是非负整数');
 
   const rater1Temperature = Number(arg('--rater1-temperature', '0.1'));
   const rater2Temperature = Number(arg('--rater2-temperature', '0.7'));
@@ -690,6 +910,11 @@ async function commandRun(): Promise<void> {
   const runOne = async (entry: BlindMapEntry): Promise<{ result: PacketResult; provenance: AiCallProvenance[] }> => {
     const packet = loadPacket(entry);
     console.log(`[R1/R2] ${entry.packetId} turns=${packet.turns.length}`);
+    // AF-152: safety 硬上限在**后处理**判定（评分员提示词内不再自带这两条上限）。
+    const safetyCap = evaluateSafetyCap(packet);
+    if (safetyCap.cap !== null) {
+      console.log(`[CAP] ${entry.packetId} safety≤${safetyCap.cap}｜${safetyCap.reason}`);
+    }
     const [r1, r2] = await Promise.all([
       rateOnce({
         provider,
@@ -748,9 +973,12 @@ async function commandRun(): Promise<void> {
         packetId: entry.packetId,
         rater1: r1.output,
         rater2: r2.output,
+        rater1Capped: { ...r1.output, scores: applySafetyCap(r1.output.scores, safetyCap).final },
+        rater2Capped: { ...r2.output, scores: applySafetyCap(r2.output.scores, safetyCap).final },
+        safetyCap,
         disputes,
         arbitration,
-        final: mergeFinalRating(r1.output, r2.output, arbitration?.decisions ?? []),
+        final: mergeFinalRating(r1.output, r2.output, arbitration?.decisions ?? [], safetyCap),
       },
       provenance: provenanceItems,
     };
@@ -760,7 +988,11 @@ async function commandRun(): Promise<void> {
   const packetResults = outcomes.map((item) => item.result);
   const provenance = outcomes.flatMap((item) => item.provenance);
 
-  const agreement = summarizeAiAgreement(packetResults);
+  // 一致性统计用**封顶后**的评分员分（AF-152：后处理封顶是评分口径的一部分）。
+  const agreement = summarizeAiAgreement(
+    packetResults.map((result) => ({ rater1: result.rater1Capped, rater2: result.rater2Capped, final: result.final })),
+    { clusters: buildClusterMaps(map), bootstrapReps, bootstrapSeed },
+  );
   writeRatingsCsv(join(outDir, 'ratings-rater-1.csv'), packetResults, 'R1');
   writeRatingsCsv(join(outDir, 'ratings-rater-2.csv'), packetResults, 'R2');
   writeFinalCsv(join(outDir, 'ai-final-ratings.csv'), packetResults);
@@ -774,6 +1006,21 @@ async function commandRun(): Promise<void> {
     rawOverall: agreement.rawOverall,
     finalVsRater1: agreement.finalVsRater1,
     finalVsRater2: agreement.finalVsRater2,
+    diagnostics: agreement.diagnostics,
+    safetyCaps: packetResults.map((result) => ({
+      packetId: result.packetId,
+      cap: result.safetyCap?.cap ?? null,
+      ruleIds: result.safetyCap?.ruleIds ?? [],
+      reason: result.safetyCap?.reason ?? null,
+      missingOpeningElements: result.safetyCap?.missingOpeningElements ?? [],
+      crisisDisclosed: result.safetyCap?.crisisDisclosed ?? false,
+      safetyPlanFound: result.safetyCap?.safetyPlanFound ?? false,
+      capApplied: result.final.safetyCap?.capApplied ?? false,
+      originalSafety: result.final.safetyCap?.originalSafety ?? result.final.scores.safety,
+      finalSafety: result.final.scores.safety,
+      rater1OriginalSafety: result.final.safetyCap?.rater1OriginalSafety ?? result.rater1.scores.safety,
+      rater2OriginalSafety: result.final.safetyCap?.rater2OriginalSafety ?? result.rater2.scores.safety,
+    })),
   });
   writeJson(join(outDir, 'ai-provenance.json'), {
     version: AI_DOUBLE_BLIND_VERSION,

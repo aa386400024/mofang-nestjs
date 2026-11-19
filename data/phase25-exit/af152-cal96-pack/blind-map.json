@@ -1,0 +1,872 @@
+{
+  "warning": "96 场跨批次校准盲包；只用于评分员可互换性校准，不与单批质量结论混用。",
+  "batchId": "AF147-96-calibration",
+  "version": "af147-calibration-v1",
+  "generatedAt": "2026-11-20T00:23:34.5318381+08:00",
+  "packets": [
+    {
+      "packetId": "cal-01",
+      "debugSessionId": "debug_SI3oaUO_QLkxhigkp4Ssi",
+      "characterSlug": "vpt_trauma_disorganized_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "2YZx85Xekk4QxKH_K_m02",
+      "sourcePack": "af130-long-pack"
+    },
+    {
+      "packetId": "cal-02",
+      "debugSessionId": "debug_BgLaxD6wlxalBwgKp5Kyz",
+      "characterSlug": "vpt_self_worth_intellectualization_l1",
+      "counselorModeId": "expert",
+      "turnCount": 40,
+      "sourceBatch": "2YZx85Xekk4QxKH_K_m02",
+      "sourcePack": "af130-long-pack"
+    },
+    {
+      "packetId": "cal-03",
+      "debugSessionId": "debug_JV2_PNgsZUuYBJUhpgbvl",
+      "characterSlug": "vpt_depression_avoidant_l1",
+      "counselorModeId": "cold",
+      "turnCount": 14,
+      "sourceBatch": "2YZx85Xekk4QxKH_K_m02",
+      "sourcePack": "af130-long-pack"
+    },
+    {
+      "packetId": "cal-04",
+      "debugSessionId": "debug_ipU2LY-VmtxEZ4zc2rx17",
+      "characterSlug": "vpt_general_secure_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "2YZx85Xekk4QxKH_K_m02",
+      "sourcePack": "af130-long-pack"
+    },
+    {
+      "packetId": "cal-05",
+      "debugSessionId": "debug_keD_SuHbawVjOl4g_kY-s",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "cold",
+      "turnCount": 28,
+      "sourceBatch": "2YZx85Xekk4QxKH_K_m02",
+      "sourcePack": "af130-long-pack"
+    },
+    {
+      "packetId": "cal-06",
+      "debugSessionId": "debug_r2SzbIrn2uUWkg4CcNPIS",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "2YZx85Xekk4QxKH_K_m02",
+      "sourcePack": "af130-long-pack"
+    },
+    {
+      "packetId": "cal-07",
+      "debugSessionId": "debug_y8oCD1t_z0qiPITTKKue2",
+      "characterSlug": "vpt_self_worth_intellectualization_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "2YZx85Xekk4QxKH_K_m02",
+      "sourcePack": "af130-long-pack"
+    },
+    {
+      "packetId": "cal-08",
+      "debugSessionId": "debug__CU5OfiJfDZ7ppPQgvEb6",
+      "characterSlug": "vpt_workplace_intellectualization_l1",
+      "counselorModeId": "expert",
+      "turnCount": 30,
+      "sourceBatch": "2YZx85Xekk4QxKH_K_m02",
+      "sourcePack": "af130-long-pack"
+    },
+    {
+      "packetId": "cal-09",
+      "debugSessionId": "debug_IGVbMZ3xnafNr75ujvtxo",
+      "characterSlug": "vpt_workplace_intellectualization_l1",
+      "counselorModeId": "cold",
+      "turnCount": 46,
+      "sourceBatch": "2YZx85Xekk4QxKH_K_m02",
+      "sourcePack": "af130-long-pack"
+    },
+    {
+      "packetId": "cal-10",
+      "debugSessionId": "debug_VR2xw3YOMStmbrpmCENHM",
+      "characterSlug": "vpt_depression_avoidant_l1",
+      "counselorModeId": "expert",
+      "turnCount": 21,
+      "sourceBatch": "2YZx85Xekk4QxKH_K_m02",
+      "sourcePack": "af130-long-pack"
+    },
+    {
+      "packetId": "cal-11",
+      "debugSessionId": "debug__XuehrpG_ro2-2sAtBSTE",
+      "characterSlug": "vpt_social_anxious_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "2YZx85Xekk4QxKH_K_m02",
+      "sourcePack": "af130-long-pack"
+    },
+    {
+      "packetId": "cal-12",
+      "debugSessionId": "debug_Hnf1RbUxNcEwtSXEIYA6E",
+      "characterSlug": "vpt_social_anxious_l1",
+      "counselorModeId": "expert",
+      "turnCount": 45,
+      "sourceBatch": "2YZx85Xekk4QxKH_K_m02",
+      "sourcePack": "af130-long-pack"
+    },
+    {
+      "packetId": "cal-13",
+      "debugSessionId": "debug_k5E7s0Aag6TAnsqJVpst2",
+      "characterSlug": "vpt_intimate_avoidance_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "2YZx85Xekk4QxKH_K_m02",
+      "sourcePack": "af130-long-pack"
+    },
+    {
+      "packetId": "cal-14",
+      "debugSessionId": "debug_HQXJqA_47-Qz9eGyO8TJK",
+      "characterSlug": "vpt_intimate_avoidance_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "2YZx85Xekk4QxKH_K_m02",
+      "sourcePack": "af130-long-pack"
+    },
+    {
+      "packetId": "cal-15",
+      "debugSessionId": "debug_oryXKM8YKgY_C9-oMeZty",
+      "characterSlug": "vpt_general_secure_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "2YZx85Xekk4QxKH_K_m02",
+      "sourcePack": "af130-long-pack"
+    },
+    {
+      "packetId": "cal-16",
+      "debugSessionId": "debug_P12SrU03D8dkfD2fScbXP",
+      "characterSlug": "vpt_trauma_disorganized_l1",
+      "counselorModeId": "expert",
+      "turnCount": 23,
+      "sourceBatch": "2YZx85Xekk4QxKH_K_m02",
+      "sourcePack": "af130-long-pack"
+    },
+    {
+      "packetId": "cal-17",
+      "debugSessionId": "debug_snF-Lko4hf_mxTUn-BwPc",
+      "characterSlug": "vpt_trauma_disorganized_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "AUHlb0Xx8a2le3LaqiXbx",
+      "sourcePack": "af136-long-pack"
+    },
+    {
+      "packetId": "cal-18",
+      "debugSessionId": "debug_Lj71jdBscL4wwnBtfz0eS",
+      "characterSlug": "vpt_self_worth_intellectualization_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "AUHlb0Xx8a2le3LaqiXbx",
+      "sourcePack": "af136-long-pack"
+    },
+    {
+      "packetId": "cal-19",
+      "debugSessionId": "debug_xHWeTdsixTsXrplNiqBhe",
+      "characterSlug": "vpt_self_worth_intellectualization_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "AUHlb0Xx8a2le3LaqiXbx",
+      "sourcePack": "af136-long-pack"
+    },
+    {
+      "packetId": "cal-20",
+      "debugSessionId": "debug_YEwChWsXluNwJoxefuUIT",
+      "characterSlug": "vpt_workplace_intellectualization_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "AUHlb0Xx8a2le3LaqiXbx",
+      "sourcePack": "af136-long-pack"
+    },
+    {
+      "packetId": "cal-21",
+      "debugSessionId": "debug_zpsz4XKWJbbdYwRBTizFB",
+      "characterSlug": "vpt_general_secure_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "AUHlb0Xx8a2le3LaqiXbx",
+      "sourcePack": "af136-long-pack"
+    },
+    {
+      "packetId": "cal-22",
+      "debugSessionId": "debug_G5ntpbeC5A1q4SuFFamZa",
+      "characterSlug": "vpt_social_anxious_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "AUHlb0Xx8a2le3LaqiXbx",
+      "sourcePack": "af136-long-pack"
+    },
+    {
+      "packetId": "cal-23",
+      "debugSessionId": "debug_AebTuGWsLPQaWmrkUerM6",
+      "characterSlug": "vpt_depression_avoidant_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "AUHlb0Xx8a2le3LaqiXbx",
+      "sourcePack": "af136-long-pack"
+    },
+    {
+      "packetId": "cal-24",
+      "debugSessionId": "debug_2wAGxb6_M6QYECLQVAl5U",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "AUHlb0Xx8a2le3LaqiXbx",
+      "sourcePack": "af136-long-pack"
+    },
+    {
+      "packetId": "cal-25",
+      "debugSessionId": "debug_bUjFUsUC9Kg6iNW6rul54",
+      "characterSlug": "vpt_general_secure_l1",
+      "counselorModeId": "expert",
+      "turnCount": 41,
+      "sourceBatch": "AUHlb0Xx8a2le3LaqiXbx",
+      "sourcePack": "af136-long-pack"
+    },
+    {
+      "packetId": "cal-26",
+      "debugSessionId": "debug_6t9j8pdvBSSTEYAJKrgG9",
+      "characterSlug": "vpt_intimate_avoidance_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "AUHlb0Xx8a2le3LaqiXbx",
+      "sourcePack": "af136-long-pack"
+    },
+    {
+      "packetId": "cal-27",
+      "debugSessionId": "debug_D-KgfX0panhIas49hFQz-",
+      "characterSlug": "vpt_workplace_intellectualization_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "AUHlb0Xx8a2le3LaqiXbx",
+      "sourcePack": "af136-long-pack"
+    },
+    {
+      "packetId": "cal-28",
+      "debugSessionId": "debug_ok-CRbiMyvly4RLL39UNa",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "cold",
+      "turnCount": 11,
+      "sourceBatch": "AUHlb0Xx8a2le3LaqiXbx",
+      "sourcePack": "af136-long-pack"
+    },
+    {
+      "packetId": "cal-29",
+      "debugSessionId": "debug_g9eNi2IdY_tP6jdGOg5M3",
+      "characterSlug": "vpt_social_anxious_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "AUHlb0Xx8a2le3LaqiXbx",
+      "sourcePack": "af136-long-pack"
+    },
+    {
+      "packetId": "cal-30",
+      "debugSessionId": "debug_r1u0pEYx-JuVl78H5qhNE",
+      "characterSlug": "vpt_trauma_disorganized_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "AUHlb0Xx8a2le3LaqiXbx",
+      "sourcePack": "af136-long-pack"
+    },
+    {
+      "packetId": "cal-31",
+      "debugSessionId": "debug_2UUCBbc3gdeuuqBsgWmYz",
+      "characterSlug": "vpt_intimate_avoidance_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "AUHlb0Xx8a2le3LaqiXbx",
+      "sourcePack": "af136-long-pack"
+    },
+    {
+      "packetId": "cal-32",
+      "debugSessionId": "debug_bWaGNIV1DRbufAwoYcnz1",
+      "characterSlug": "vpt_depression_avoidant_l1",
+      "counselorModeId": "expert",
+      "turnCount": 43,
+      "sourceBatch": "AUHlb0Xx8a2le3LaqiXbx",
+      "sourcePack": "af136-long-pack"
+    },
+    {
+      "packetId": "cal-33",
+      "debugSessionId": "debug_d6LTVEkaYXDO9MUVLx4xV",
+      "characterSlug": "vpt_social_anxious_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "aQkPvqCxGXlSQ3Zx3fkbd",
+      "sourcePack": "af140-long-pack"
+    },
+    {
+      "packetId": "cal-34",
+      "debugSessionId": "debug_lwirKd59qVGmVj5meHzgs",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "expert",
+      "turnCount": 15,
+      "sourceBatch": "aQkPvqCxGXlSQ3Zx3fkbd",
+      "sourcePack": "af140-long-pack"
+    },
+    {
+      "packetId": "cal-35",
+      "debugSessionId": "debug_iebWOveLUuNzxiBvuogPJ",
+      "characterSlug": "vpt_workplace_intellectualization_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "aQkPvqCxGXlSQ3Zx3fkbd",
+      "sourcePack": "af140-long-pack"
+    },
+    {
+      "packetId": "cal-36",
+      "debugSessionId": "debug_8tEZ76EfK4iLE2CXiPWkL",
+      "characterSlug": "vpt_social_anxious_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "aQkPvqCxGXlSQ3Zx3fkbd",
+      "sourcePack": "af140-long-pack"
+    },
+    {
+      "packetId": "cal-37",
+      "debugSessionId": "debug_adWutkiMQndgFpjHOmVVT",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "aQkPvqCxGXlSQ3Zx3fkbd",
+      "sourcePack": "af140-long-pack"
+    },
+    {
+      "packetId": "cal-38",
+      "debugSessionId": "debug_1nhq-XPVHcoaENq_68syK",
+      "characterSlug": "vpt_trauma_disorganized_l1",
+      "counselorModeId": "expert",
+      "turnCount": 47,
+      "sourceBatch": "aQkPvqCxGXlSQ3Zx3fkbd",
+      "sourcePack": "af140-long-pack"
+    },
+    {
+      "packetId": "cal-39",
+      "debugSessionId": "debug_Cze4Ygu2xFR8ktPjWLVR7",
+      "characterSlug": "vpt_trauma_disorganized_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "aQkPvqCxGXlSQ3Zx3fkbd",
+      "sourcePack": "af140-long-pack"
+    },
+    {
+      "packetId": "cal-40",
+      "debugSessionId": "debug_BjlpK9Vrb279Vl-igfOhl",
+      "characterSlug": "vpt_intimate_avoidance_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "aQkPvqCxGXlSQ3Zx3fkbd",
+      "sourcePack": "af140-long-pack"
+    },
+    {
+      "packetId": "cal-41",
+      "debugSessionId": "debug_Bir5rtAL71cAt2e2gHRYt",
+      "characterSlug": "vpt_intimate_avoidance_l1",
+      "counselorModeId": "cold",
+      "turnCount": 28,
+      "sourceBatch": "aQkPvqCxGXlSQ3Zx3fkbd",
+      "sourcePack": "af140-long-pack"
+    },
+    {
+      "packetId": "cal-42",
+      "debugSessionId": "debug_2UAIrTmCKK6ESuHJKbeDP",
+      "characterSlug": "vpt_depression_avoidant_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "aQkPvqCxGXlSQ3Zx3fkbd",
+      "sourcePack": "af140-long-pack"
+    },
+    {
+      "packetId": "cal-43",
+      "debugSessionId": "debug_uj_-22EWyj6_KLuY9pLeq",
+      "characterSlug": "vpt_depression_avoidant_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "aQkPvqCxGXlSQ3Zx3fkbd",
+      "sourcePack": "af140-long-pack"
+    },
+    {
+      "packetId": "cal-44",
+      "debugSessionId": "debug_3QNYFS6a2KYEwlGQVAWXe",
+      "characterSlug": "vpt_self_worth_intellectualization_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "aQkPvqCxGXlSQ3Zx3fkbd",
+      "sourcePack": "af140-long-pack"
+    },
+    {
+      "packetId": "cal-45",
+      "debugSessionId": "debug_Ims7Mg6DrBbV6W_ERP5EU",
+      "characterSlug": "vpt_self_worth_intellectualization_l1",
+      "counselorModeId": "cold",
+      "turnCount": 19,
+      "sourceBatch": "aQkPvqCxGXlSQ3Zx3fkbd",
+      "sourcePack": "af140-long-pack"
+    },
+    {
+      "packetId": "cal-46",
+      "debugSessionId": "debug_rki3x8o1j__zgIoeqS9SF",
+      "characterSlug": "vpt_general_secure_l1",
+      "counselorModeId": "expert",
+      "turnCount": 45,
+      "sourceBatch": "aQkPvqCxGXlSQ3Zx3fkbd",
+      "sourcePack": "af140-long-pack"
+    },
+    {
+      "packetId": "cal-47",
+      "debugSessionId": "debug_-7tMLpqd3s0rvDZH0JMkQ",
+      "characterSlug": "vpt_general_secure_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "aQkPvqCxGXlSQ3Zx3fkbd",
+      "sourcePack": "af140-long-pack"
+    },
+    {
+      "packetId": "cal-48",
+      "debugSessionId": "debug_n5P4kIE0vY59ynAYvj0KM",
+      "characterSlug": "vpt_workplace_intellectualization_l1",
+      "counselorModeId": "expert",
+      "turnCount": 49,
+      "sourceBatch": "aQkPvqCxGXlSQ3Zx3fkbd",
+      "sourcePack": "af140-long-pack"
+    },
+    {
+      "packetId": "cal-49",
+      "debugSessionId": "debug_aOkDwO0y8VUUAcJQhQDu7",
+      "characterSlug": "vpt_social_anxious_l1",
+      "counselorModeId": "cold",
+      "turnCount": 11,
+      "sourceBatch": "FHMKaR8Xa3YKd43Hjlf-f",
+      "sourcePack": "af140-long-pack-fhm"
+    },
+    {
+      "packetId": "cal-50",
+      "debugSessionId": "debug_5fROxU23YcsAsIq5gfQzO",
+      "characterSlug": "vpt_workplace_intellectualization_l1",
+      "counselorModeId": "expert",
+      "turnCount": 52,
+      "sourceBatch": "FHMKaR8Xa3YKd43Hjlf-f",
+      "sourcePack": "af140-long-pack-fhm"
+    },
+    {
+      "packetId": "cal-51",
+      "debugSessionId": "debug_wkE03v4M76F9quhxpjdVQ",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "cold",
+      "turnCount": 52,
+      "sourceBatch": "FHMKaR8Xa3YKd43Hjlf-f",
+      "sourcePack": "af140-long-pack-fhm"
+    },
+    {
+      "packetId": "cal-52",
+      "debugSessionId": "debug__XmNz1Af-bH6xmT6wyYX9",
+      "characterSlug": "vpt_depression_avoidant_l1",
+      "counselorModeId": "expert",
+      "turnCount": 20,
+      "sourceBatch": "FHMKaR8Xa3YKd43Hjlf-f",
+      "sourcePack": "af140-long-pack-fhm"
+    },
+    {
+      "packetId": "cal-53",
+      "debugSessionId": "debug_rAAkajpkz0-p3xu25J4uT",
+      "characterSlug": "vpt_trauma_disorganized_l1",
+      "counselorModeId": "cold",
+      "turnCount": 52,
+      "sourceBatch": "FHMKaR8Xa3YKd43Hjlf-f",
+      "sourcePack": "af140-long-pack-fhm"
+    },
+    {
+      "packetId": "cal-54",
+      "debugSessionId": "debug_8JSjEpD16AVBd_Hmzo-QD",
+      "characterSlug": "vpt_trauma_disorganized_l1",
+      "counselorModeId": "expert",
+      "turnCount": 25,
+      "sourceBatch": "FHMKaR8Xa3YKd43Hjlf-f",
+      "sourcePack": "af140-long-pack-fhm"
+    },
+    {
+      "packetId": "cal-55",
+      "debugSessionId": "debug_vqx40PdYbvr9BREg0iE6Z",
+      "characterSlug": "vpt_intimate_avoidance_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "FHMKaR8Xa3YKd43Hjlf-f",
+      "sourcePack": "af140-long-pack-fhm"
+    },
+    {
+      "packetId": "cal-56",
+      "debugSessionId": "debug_wI7KeFBkM75pGp5gR31Ey",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "expert",
+      "turnCount": 22,
+      "sourceBatch": "FHMKaR8Xa3YKd43Hjlf-f",
+      "sourcePack": "af140-long-pack-fhm"
+    },
+    {
+      "packetId": "cal-57",
+      "debugSessionId": "debug_px3N2wKOuIitqvkDY11_r",
+      "characterSlug": "vpt_self_worth_intellectualization_l1",
+      "counselorModeId": "cold",
+      "turnCount": 52,
+      "sourceBatch": "FHMKaR8Xa3YKd43Hjlf-f",
+      "sourcePack": "af140-long-pack-fhm"
+    },
+    {
+      "packetId": "cal-58",
+      "debugSessionId": "debug_Y8voRsHKx0GSUeNwDcI5E",
+      "characterSlug": "vpt_intimate_avoidance_l1",
+      "counselorModeId": "expert",
+      "turnCount": 52,
+      "sourceBatch": "FHMKaR8Xa3YKd43Hjlf-f",
+      "sourcePack": "af140-long-pack-fhm"
+    },
+    {
+      "packetId": "cal-59",
+      "debugSessionId": "debug_GnmdAjrGaskUTaJKeVdL9",
+      "characterSlug": "vpt_workplace_intellectualization_l1",
+      "counselorModeId": "cold",
+      "turnCount": 40,
+      "sourceBatch": "FHMKaR8Xa3YKd43Hjlf-f",
+      "sourcePack": "af140-long-pack-fhm"
+    },
+    {
+      "packetId": "cal-60",
+      "debugSessionId": "debug_RGaP3yzaZ2ezZJSjXSHRO",
+      "characterSlug": "vpt_social_anxious_l1",
+      "counselorModeId": "expert",
+      "turnCount": 28,
+      "sourceBatch": "FHMKaR8Xa3YKd43Hjlf-f",
+      "sourcePack": "af140-long-pack-fhm"
+    },
+    {
+      "packetId": "cal-61",
+      "debugSessionId": "debug_S65cXYJMIGgiD8-UF7Ksx",
+      "characterSlug": "vpt_depression_avoidant_l1",
+      "counselorModeId": "cold",
+      "turnCount": 9,
+      "sourceBatch": "FHMKaR8Xa3YKd43Hjlf-f",
+      "sourcePack": "af140-long-pack-fhm"
+    },
+    {
+      "packetId": "cal-62",
+      "debugSessionId": "debug_HfRbkrCq-lpzghi8Yn-e7",
+      "characterSlug": "vpt_self_worth_intellectualization_l1",
+      "counselorModeId": "expert",
+      "turnCount": 52,
+      "sourceBatch": "FHMKaR8Xa3YKd43Hjlf-f",
+      "sourcePack": "af140-long-pack-fhm"
+    },
+    {
+      "packetId": "cal-63",
+      "debugSessionId": "debug_totBJ9JG96ny85MXXTT8q",
+      "characterSlug": "vpt_general_secure_l1",
+      "counselorModeId": "cold",
+      "turnCount": 52,
+      "sourceBatch": "FHMKaR8Xa3YKd43Hjlf-f",
+      "sourcePack": "af140-long-pack-fhm"
+    },
+    {
+      "packetId": "cal-64",
+      "debugSessionId": "debug_TOUVzA0z-HiXpEMtGrVyx",
+      "characterSlug": "vpt_general_secure_l1",
+      "counselorModeId": "expert",
+      "turnCount": 52,
+      "sourceBatch": "FHMKaR8Xa3YKd43Hjlf-f",
+      "sourcePack": "af140-long-pack-fhm"
+    },
+    {
+      "packetId": "cal-65",
+      "debugSessionId": "debug_8R9jqC-Ozg4BfodotdPie",
+      "characterSlug": "vpt_depression_avoidant_l1",
+      "counselorModeId": "cold",
+      "turnCount": 10,
+      "sourceBatch": "-PS1HjDeon46QWqGa5mMO",
+      "sourcePack": "af140-long-pack-final"
+    },
+    {
+      "packetId": "cal-66",
+      "debugSessionId": "debug_mCVE79MYMdEv-VA1Yipes",
+      "characterSlug": "vpt_trauma_disorganized_l1",
+      "counselorModeId": "expert",
+      "turnCount": 52,
+      "sourceBatch": "-PS1HjDeon46QWqGa5mMO",
+      "sourcePack": "af140-long-pack-final"
+    },
+    {
+      "packetId": "cal-67",
+      "debugSessionId": "debug_kEXx3asyIYzUe8whB2ioi",
+      "characterSlug": "vpt_social_anxious_l1",
+      "counselorModeId": "cold",
+      "turnCount": 52,
+      "sourceBatch": "-PS1HjDeon46QWqGa5mMO",
+      "sourcePack": "af140-long-pack-final"
+    },
+    {
+      "packetId": "cal-68",
+      "debugSessionId": "debug_9QJGPg7vjsaFeP2pDZXzS",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "expert",
+      "turnCount": 48,
+      "sourceBatch": "-PS1HjDeon46QWqGa5mMO",
+      "sourcePack": "af140-long-pack-final"
+    },
+    {
+      "packetId": "cal-69",
+      "debugSessionId": "debug_dvPpz10EfxrrooE1Y4EBV",
+      "characterSlug": "vpt_intimate_avoidance_l1",
+      "counselorModeId": "cold",
+      "turnCount": 52,
+      "sourceBatch": "-PS1HjDeon46QWqGa5mMO",
+      "sourcePack": "af140-long-pack-final"
+    },
+    {
+      "packetId": "cal-70",
+      "debugSessionId": "debug_MqUN17sXbaIHeSJy96vNs",
+      "characterSlug": "vpt_intimate_avoidance_l1",
+      "counselorModeId": "expert",
+      "turnCount": 39,
+      "sourceBatch": "-PS1HjDeon46QWqGa5mMO",
+      "sourcePack": "af140-long-pack-final"
+    },
+    {
+      "packetId": "cal-71",
+      "debugSessionId": "debug_FBOQOXoXV4mNODb83Yod6",
+      "characterSlug": "vpt_self_worth_intellectualization_l1",
+      "counselorModeId": "cold",
+      "turnCount": 52,
+      "sourceBatch": "-PS1HjDeon46QWqGa5mMO",
+      "sourcePack": "af140-long-pack-final"
+    },
+    {
+      "packetId": "cal-72",
+      "debugSessionId": "debug_zYGNJ8tlhNz_6GdKSCLNt",
+      "characterSlug": "vpt_depression_avoidant_l1",
+      "counselorModeId": "expert",
+      "turnCount": 52,
+      "sourceBatch": "-PS1HjDeon46QWqGa5mMO",
+      "sourcePack": "af140-long-pack-final"
+    },
+    {
+      "packetId": "cal-73",
+      "debugSessionId": "debug_u1RomCHFl5NmbkQK1TRt-",
+      "characterSlug": "vpt_general_secure_l1",
+      "counselorModeId": "cold",
+      "turnCount": 52,
+      "sourceBatch": "-PS1HjDeon46QWqGa5mMO",
+      "sourcePack": "af140-long-pack-final"
+    },
+    {
+      "packetId": "cal-74",
+      "debugSessionId": "debug_hOIWy6iK9whCdTZrzniOI",
+      "characterSlug": "vpt_general_secure_l1",
+      "counselorModeId": "expert",
+      "turnCount": 52,
+      "sourceBatch": "-PS1HjDeon46QWqGa5mMO",
+      "sourcePack": "af140-long-pack-final"
+    },
+    {
+      "packetId": "cal-75",
+      "debugSessionId": "debug_cSBybGbRePyb0Lc8BPtPV",
+      "characterSlug": "vpt_workplace_intellectualization_l1",
+      "counselorModeId": "cold",
+      "turnCount": 46,
+      "sourceBatch": "-PS1HjDeon46QWqGa5mMO",
+      "sourcePack": "af140-long-pack-final"
+    },
+    {
+      "packetId": "cal-76",
+      "debugSessionId": "debug_VxW7s8C93SelypB3_mw_k",
+      "characterSlug": "vpt_social_anxious_l1",
+      "counselorModeId": "expert",
+      "turnCount": 49,
+      "sourceBatch": "-PS1HjDeon46QWqGa5mMO",
+      "sourcePack": "af140-long-pack-final"
+    },
+    {
+      "packetId": "cal-77",
+      "debugSessionId": "debug_n_x-inziDC_k0P4flmq3F",
+      "characterSlug": "vpt_trauma_disorganized_l1",
+      "counselorModeId": "cold",
+      "turnCount": 14,
+      "sourceBatch": "-PS1HjDeon46QWqGa5mMO",
+      "sourcePack": "af140-long-pack-final"
+    },
+    {
+      "packetId": "cal-78",
+      "debugSessionId": "debug_viOJK5CKhYnJeWI3pF7ef",
+      "characterSlug": "vpt_workplace_intellectualization_l1",
+      "counselorModeId": "expert",
+      "turnCount": 27,
+      "sourceBatch": "-PS1HjDeon46QWqGa5mMO",
+      "sourcePack": "af140-long-pack-final"
+    },
+    {
+      "packetId": "cal-79",
+      "debugSessionId": "debug_L3U07eWpSa8RHr1sHev5D",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "cold",
+      "turnCount": 52,
+      "sourceBatch": "-PS1HjDeon46QWqGa5mMO",
+      "sourcePack": "af140-long-pack-final"
+    },
+    {
+      "packetId": "cal-80",
+      "debugSessionId": "debug_WLRUmqP6EByIuqO9fbWJT",
+      "characterSlug": "vpt_self_worth_intellectualization_l1",
+      "counselorModeId": "expert",
+      "turnCount": 44,
+      "sourceBatch": "-PS1HjDeon46QWqGa5mMO",
+      "sourcePack": "af140-long-pack-final"
+    },
+    {
+      "packetId": "cal-81",
+      "debugSessionId": "debug_L5AL109HTopy6Ugwj5d4I",
+      "characterSlug": "vpt_workplace_intellectualization_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "-O6D-lCqS2CGb7uS3aJI4",
+      "sourcePack": "af144-long-pack"
+    },
+    {
+      "packetId": "cal-82",
+      "debugSessionId": "debug_pefzxHWl9yOMdKvA7I556",
+      "characterSlug": "vpt_workplace_intellectualization_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "-O6D-lCqS2CGb7uS3aJI4",
+      "sourcePack": "af144-long-pack"
+    },
+    {
+      "packetId": "cal-83",
+      "debugSessionId": "debug_xet6MOg7LjDrtQQpbI-00",
+      "characterSlug": "vpt_self_worth_intellectualization_l1",
+      "counselorModeId": "cold",
+      "turnCount": 37,
+      "sourceBatch": "-O6D-lCqS2CGb7uS3aJI4",
+      "sourcePack": "af144-long-pack"
+    },
+    {
+      "packetId": "cal-84",
+      "debugSessionId": "debug_N2B6dfB7Dmx8F3lPxaXC2",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "expert",
+      "turnCount": 17,
+      "sourceBatch": "-O6D-lCqS2CGb7uS3aJI4",
+      "sourcePack": "af144-long-pack"
+    },
+    {
+      "packetId": "cal-85",
+      "debugSessionId": "debug_XKmix4J8n5FpmXWJ3hFJF",
+      "characterSlug": "vpt_grief_avoidance_l1",
+      "counselorModeId": "cold",
+      "turnCount": 34,
+      "sourceBatch": "-O6D-lCqS2CGb7uS3aJI4",
+      "sourcePack": "af144-long-pack"
+    },
+    {
+      "packetId": "cal-86",
+      "debugSessionId": "debug__IDmTc5oU3EmFD8e3gjUU",
+      "characterSlug": "vpt_depression_avoidant_l1",
+      "counselorModeId": "expert",
+      "turnCount": 38,
+      "sourceBatch": "-O6D-lCqS2CGb7uS3aJI4",
+      "sourcePack": "af144-long-pack"
+    },
+    {
+      "packetId": "cal-87",
+      "debugSessionId": "debug_ezFEA-NdMpENaZwvSRL-C",
+      "characterSlug": "vpt_depression_avoidant_l1",
+      "counselorModeId": "cold",
+      "turnCount": 25,
+      "sourceBatch": "-O6D-lCqS2CGb7uS3aJI4",
+      "sourcePack": "af144-long-pack"
+    },
+    {
+      "packetId": "cal-88",
+      "debugSessionId": "debug_fWDqihwhvgw3VYiyvP6wq",
+      "characterSlug": "vpt_trauma_disorganized_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "-O6D-lCqS2CGb7uS3aJI4",
+      "sourcePack": "af144-long-pack"
+    },
+    {
+      "packetId": "cal-89",
+      "debugSessionId": "debug_vApzCYxphrdcw1VKEAWj2",
+      "characterSlug": "vpt_trauma_disorganized_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "-O6D-lCqS2CGb7uS3aJI4",
+      "sourcePack": "af144-long-pack"
+    },
+    {
+      "packetId": "cal-90",
+      "debugSessionId": "debug_0VWRzHMKpv5p1owbgjqPX",
+      "characterSlug": "vpt_general_secure_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "-O6D-lCqS2CGb7uS3aJI4",
+      "sourcePack": "af144-long-pack"
+    },
+    {
+      "packetId": "cal-91",
+      "debugSessionId": "debug_OgZhG_ixMbWIfuOrQR3U2",
+      "characterSlug": "vpt_general_secure_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "-O6D-lCqS2CGb7uS3aJI4",
+      "sourcePack": "af144-long-pack"
+    },
+    {
+      "packetId": "cal-92",
+      "debugSessionId": "debug_vSUDDTqYDbu5RG_oiGsuD",
+      "characterSlug": "vpt_intimate_avoidance_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "-O6D-lCqS2CGb7uS3aJI4",
+      "sourcePack": "af144-long-pack"
+    },
+    {
+      "packetId": "cal-93",
+      "debugSessionId": "debug_INdjxEn66sDZoZ5Otc7wN",
+      "characterSlug": "vpt_social_anxious_l1",
+      "counselorModeId": "cold",
+      "turnCount": 50,
+      "sourceBatch": "-O6D-lCqS2CGb7uS3aJI4",
+      "sourcePack": "af144-long-pack"
+    },
+    {
+      "packetId": "cal-94",
+      "debugSessionId": "debug_7POwuCWexhE0v0JViAIeF",
+      "characterSlug": "vpt_self_worth_intellectualization_l1",
+      "counselorModeId": "expert",
+      "turnCount": 50,
+      "sourceBatch": "-O6D-lCqS2CGb7uS3aJI4",
+      "sourcePack": "af144-long-pack"
+    },
+    {
+      "packetId": "cal-95",
+      "debugSessionId": "debug_Dk7MP80JFh38F7DWf30zN",
+      "characterSlug": "vpt_intimate_avoidance_l1",
+      "counselorModeId": "cold",
+      "turnCount": 41,
+      "sourceBatch": "-O6D-lCqS2CGb7uS3aJI4",
+      "sourcePack": "af144-long-pack"
+    },
+    {
+      "packetId": "cal-96",
+      "debugSessionId": "debug_dqCNXw0aVPkHv6mmu7s7k",
+      "characterSlug": "vpt_social_anxious_l1",
+      "counselorModeId": "expert",
+      "turnCount": 43,
+      "sourceBatch": "-O6D-lCqS2CGb7uS3aJI4",
+      "sourcePack": "af144-long-pack"
+    }
+  ]
+}
