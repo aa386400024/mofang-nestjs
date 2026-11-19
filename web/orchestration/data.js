@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-19T05:33:39.571Z",
+  "generatedAt": "2026-11-19T06:31:22.644Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1641,6 +1641,38 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-152",
+      "recordedAt": "2026-11-19T05:36:41.444Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-130",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-130",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-130.json"
+      ]
+    },
+    {
+      "auditId": "AUD-151",
+      "recordedAt": "2026-11-19T05:36:36.093Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-130",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-150",
       "recordedAt": "2026-11-19T05:27:01.885Z",
       "actorRef": "orchestrator",
@@ -1844,54 +1876,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-137",
-      "recordedAt": "2026-11-18T18:45:41.377Z",
-      "actorRef": "orchestrator",
-      "correlationId": "archive:AF-121",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-136",
-      "recordedAt": "2026-11-18T18:45:41.194Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-121",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 150,
+    "total": 152,
     "byResult": {
-      "allowed": 150,
+      "allowed": 152,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 149,
+      "TOOL-QUEUE-SCHEDULER": 151,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 150
+      "orchestrator": 152
     }
   },
   "protocolView": {
@@ -4462,6 +4460,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af127-session-structure-audit-2026-11-19.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-130",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af130-long-batch-reevaluation-task-2026-11-19.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af130-long-batch-reevaluation-2026-11-19.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4560,5 +4576,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 143
+  "archivedCount": 144
 };
