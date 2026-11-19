@@ -257,6 +257,9 @@ function stripTaskIdsFromSubject(title) {
   value = value.replace(/[（(][^）)]*(?:AF|WP)-\d+[^）)]*[）)]/g, ' ');
   value = value.replace(TASK_ID_TOKEN_RE, ' ');
   value = value
+    .replace(/(?:[/、,，|]\s*){2,}/g, ' ')
+    .replace(/^[/、,，|\s]+/, '')
+    .replace(/[/、,，|\s]+$/, '')
     .replace(/[（(]\s*[）)]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();

@@ -1565,15 +1565,16 @@ describe('AF-023 运行态调度闭环（领单 / 回滚 / 回执终态）', () 
   it('租约超时持单后回执到达：恢复领取并归档，不重新派发', () => {
     const only = task('AF-107');
     only.status = 'ready';
-    only.artifacts = { taskSheet: only.artifacts.taskSheet };
+    only.artifacts = { taskSheet: 'docs/worklog/pending/AF-107-task-sheet.md' };
     only.receipt = { finalStatus: 'failed', sourceRef: 'transport/receipts/AF-107.json' };
     const index = freshIndex(only);
     const runtimeState = { tasks: { 'AF-107': { heldForHuman: true, releaseReason: 'lease-expired' } } };
     const actions = [];
     const receiptsDir = mkdtempSync(join(tmpdir(), 'orch-receipts-'));
+    const receiptArchiveDir = mkdtempSync(join(tmpdir(), 'orch-receipt-archive-'));
 
     try {
-      processReceipts(index, runtimeState, config, actions, { receiptsDir });
+      processReceipts(index, runtimeState, config, actions, { receiptsDir, receiptArchiveDir });
       expect(index.tasks).toHaveLength(0);
       expect(index.archivedTasks[0].status).toBe('failed');
       expect(actions.some((a) => a.type === 'late-receipt-recovered')).toBe(true);
@@ -1581,21 +1582,23 @@ describe('AF-023 运行态调度闭环（领单 / 回滚 / 回执终态）', () 
       expect(runtimeState.tasks['AF-107'].releaseReason).toBe('receipt-after-timeout');
     } finally {
       rmSync(receiptsDir, { recursive: true, force: true });
+      rmSync(receiptArchiveDir, { recursive: true, force: true });
     }
   });
 
   it('回执终态非 completed：按合法迁移链闭合并归档，不进入机读验收', () => {
     const only = task('AF-104');
     only.status = 'submitted';
-    only.artifacts = { taskSheet: only.artifacts.taskSheet };
+    only.artifacts = { taskSheet: 'docs/worklog/pending/AF-104-task-sheet.md' };
     only.receipt = { finalStatus: 'failed', sourceRef: 'transport/receipts/AF-104.json' };
     const index = freshIndex(only);
     const runtimeState = { tasks: {} };
     const actions = [];
     const receiptsDir = mkdtempSync(join(tmpdir(), 'orch-receipts-'));
+    const receiptArchiveDir = mkdtempSync(join(tmpdir(), 'orch-receipt-archive-'));
 
     try {
-      processReceipts(index, runtimeState, config, actions, { receiptsDir });
+      processReceipts(index, runtimeState, config, actions, { receiptsDir, receiptArchiveDir });
       expect(index.tasks).toHaveLength(0);
       expect(index.archivedTasks).toHaveLength(1);
       expect(index.archivedTasks[0].taskId).toBe('AF-104');
@@ -1604,6 +1607,7 @@ describe('AF-023 运行态调度闭环（领单 / 回滚 / 回执终态）', () 
       expect(runtimeState.tasks['AF-104'].terminalReceipt).toMatchObject({ status: 'failed' });
     } finally {
       rmSync(receiptsDir, { recursive: true, force: true });
+      rmSync(receiptArchiveDir, { recursive: true, force: true });
     }
   });
 
@@ -3549,6 +3553,19 @@ describe('IM-012 squash 合并收口', () => {
     expect(bare).not.toContain('AF-060');
   });
 
+  // AF-123 实弹暴露：任务标题用 / 串联多个历史任务号，剥离编号后残留 `/ / /`。
+  it('squash 标题剥离多任务号后不残留斜杠分隔符', () => {
+    const message = buildSquashCommitMessage({
+      taskId: 'AF-123',
+      taskType: 'fix',
+      title: 'AF-116/AF-117/AF-119/AF-120 单任务整合发布',
+    });
+    expect(extractCommitTaskId(message)).toBe('AF-123');
+    expect(message).not.toMatch(/\/\s*\//);
+    expect(message).not.toMatch(/AF-116|AF-117|AF-119|AF-120/);
+    expect(message.startsWith('fix(orchestration): AF-123 单任务整合发布')).toBe(true);
+  });
+
   it('提交阶段失败即停：不删分支、错误如实返回', () => {
     const { port, calls } = fakeGit({
       commitSquash: () => {
@@ -4173,8 +4190,31 @@ describe('AF-113 单任务分支守卫', () => {
     ).toEqual([{ taskId: 'AF-111', subject: 'feat(AF-111): implementation' }]);
   });
 
+  it('priorTasks 返修链内任务提交放行，链外仍拒绝', () => {
+    expect(
+      findForeignCommitTaskIds(
+        ['feat(AF-116): implementation', 'fix(AF-117): ci fix', 'docs(AF-123): release'],
+        'AF-123',
+        ['AF-116', 'AF-117'],
+      ),
+    ).toEqual([]);
+    expect(
+      findForeignCommitTaskIds(
+        ['feat(AF-116): implementation', 'feat(AF-124): unrelated'],
+        'AF-123',
+        ['AF-116'],
+      ),
+    ).toEqual([{ taskId: 'AF-124', subject: 'feat(AF-124): unrelated' }]);
+  });
+
   it('提交标题含多个任务号时 fail closed', () => {
     expect(() => findForeignCommitTaskIds(['docs(AF-111): mention AF-112'], 'AF-113')).toThrow('多个任务编号');
+  });
+
+  it('归档 durable receipt 更新按编排状态面放行', () => {
+    expect(isStatePlanePath('docs/worklog/pending/archive/AF-123-receipt-AF-123-1795027628266.json')).toBe(true);
+    expect(isStatePlanePath('docs/worklog/pending/archive/README.md')).toBe(true);
+    expect(isStatePlanePath('docs/worklog/pending/af124-task.md')).toBe(false);
   });
 });
 
