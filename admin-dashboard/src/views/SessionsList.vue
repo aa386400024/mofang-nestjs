@@ -20,11 +20,15 @@ const statusFilter = ref<string>('all')
 const page = ref(1)
 const pageSize = 10
 
-onMounted(async () => {
+async function loadRows() {
+  loading.value = true
+  err.value = ''
   try { rows.value = await api.sessions(100) }
   catch (e) { err.value = String(e) }
   finally { loading.value = false }
-})
+}
+
+onMounted(loadRows)
 
 const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 const fmtTime = (iso: string | null) => iso ? new Date(iso).toLocaleString('zh-CN', {
@@ -99,7 +103,7 @@ function resetPage() {
 
     <!-- 三态：加载 / 错误 / 空 -->
     <Skeleton v-if="loading" type="card-list" :count="5" />
-    <EmptyState v-else-if="err" icon="warning" title="加载失败" :description="err" retry-text="重试" @retry="onMounted" />
+    <EmptyState v-else-if="err" icon="warning" title="加载失败" :description="err" retry-text="重试" @retry="loadRows" />
     <EmptyState
       v-else-if="!rows.length"
       icon="list"

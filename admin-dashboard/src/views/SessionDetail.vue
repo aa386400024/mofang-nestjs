@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api } from '@/api/client'
-import type { SessionDetail, TurnTrace, MemoryEntry, MemorySource, DeltaDetail, CapReport } from '@/api/types'
+import type { SessionDetail, TurnTrace, MemoryEntry, MemorySource, DeltaDetail } from '@/api/types'
 import InfoTooltip from '@/components/InfoTooltip.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BdiTrajectoryChart from '@/components/BdiTrajectoryChart.vue'
@@ -49,7 +49,14 @@ const emotionLabels: Record<string, { zh: string; en: string }> = {
   avoidant: { zh: '回避型', en: 'avoidant' },
 }
 
-onMounted(async () => {
+function emotionLabel(key?: string | null): { zh: string; en: string } | null {
+  if (!key) return null
+  return emotionLabels[key] ?? null
+}
+
+async function loadSession() {
+  loading.value = true
+  err.value = ''
   try {
     data.value = await api.session(props.id)
     if (data.value.traces.length) selectedTurn.value = data.value.traces[0]?.turnIndex ?? 0
@@ -58,7 +65,9 @@ onMounted(async () => {
     // delta 审计: 懒加载, 用户点开才拉 (不是每场都有数据, 避免空请求)
   } catch (e) { err.value = String(e) }
   finally { loading.value = false }
-})
+}
+
+onMounted(loadSession)
 
 // 懒加载 delta 审计 (用户点"展开"才请求)
 async function loadDeltaAudit() {
@@ -104,63 +113,16 @@ function gateReasonLabel(reason: string): string {
   return gateReasonLabels[reason] || reason
 }
 
-// ─── 调试面板：delta 明细（mock，后端补真实数据后替换） ───
-// 从前后两轮快照差值推算 delta，作为前端 UI 的 mock 数据
-const deltaDetail = computed<DeltaDetail | null>(() => {
-  if (!data.value || !turn.value) return null
-  const idx = turn.value.turnIndex
-  if (idx === 0) return null // 第一轮没有前值
+// ─── 调试面板：delta 明细（直接使用后端 DebugTurnTrace.deltaDetail） ───
+// 后端 deltaDetail 是 DeltaVector 的投影：8 个数值维度 + events 全部来自内核真值。
+// 前端不再从前后 BDI 快照反推，也不再给 safety/bond/verbal/depth/style 填 0。
+const deltaDetail = computed<DeltaDetail | null>(() => turn.value?.deltaDetail ?? null)
 
-  const prev = data.value.traces.find(t => t.turnIndex === idx - 1)?.bdiSnapshot
-  const curr = turn.value.bdiSnapshot
-  if (!prev || !curr) return null
-
-  return {
-    trust: curr.trust - prev.trust,
-    safety: 0, // mock，后端补
-    bond: 0,   // mock，后端补
-    valence: curr.valence - prev.valence,
-    arousal: curr.arousal - prev.arousal,
-    verbal: 0, // mock，后端补
-    depth: 0,  // mock，后端补
-    style: 0,  // mock，后端补
-    events: ['empathy'], // mock，后端补
-  }
-})
-
-// ─── 调试面板：cap 砍幅报告（mock） ───
-const capReport = computed<CapReport | null>(() => {
-  if (!deltaDetail.value) return null
-  const dims: (keyof DeltaDetail)[] = ['trust', 'valence', 'arousal']
-  const capped: CapReport['capped'] = []
-
-  // 假设 cap 阈值是 ±0.2，超过就模拟被砍了
-  dims.forEach(dim => {
-    const val = deltaDetail.value![dim] as number
-    if (Math.abs(val) > 0.2) {
-      capped.push({
-        dimension: dim,
-        rawDelta: val,
-        cappedDelta: val > 0 ? 0.2 : -0.2,
-        capLimit: val > 0 ? 0.2 : -0.2,
-      })
-    }
-  })
-
-  return { capped, hasCapped: capped.length > 0 }
-})
-
-// ─── 调试面板：信念激活状态（mock，WP57 做完后接入真实数据） ───
-const beliefActivation = computed<Record<string, number>>(() => {
-  if (!turn.value) return {}
-  // mock：根据 trust 和 resistance 模拟信念激活
-  const trust = turn.value.bdiSnapshot.trust
-  const resistance = turn.value.bdiSnapshot.resistance
-  return {
-    '我不值得被爱': resistance * 0.8,
-    '别人会伤害我': resistance * 0.6,
-    '我必须完美': 0.3, // mock
-  }
+// 后端事件标签与中文标签同序返回；前端只做 zip，不维护第二套映射。
+const turnEventTags = computed<{ key: string; label: string }[]>(() => {
+  const keys = turn.value?.eventTags ?? []
+  const labels = turn.value?.eventTagLabels ?? []
+  return keys.map((key, i) => ({ key, label: labels[i] ?? key }))
 })
 
 // ─── BDI 快照分组指标（大厂级 UI） ───
@@ -259,7 +221,10 @@ const deltaResistance = computed(() => {
 // ─── 页面顶部统计 ───
 const sessionStats = computed(() => {
   if (!data.value) return null
-  const totalTokens = data.value.traces.reduce((a, t) => a + (t.llmTokens || 0), 0)
+  const totalTokens = data.value.traces.reduce(
+    (a, t) => a + ((t.llmUsage?.promptTokens ?? 0) + (t.llmUsage?.completionTokens ?? 0)),
+    0,
+  )
   const durationMin = Math.round((data.value.durationSec || 0) / 60)
   return {
     turns: data.value.traces.length,
@@ -291,7 +256,7 @@ const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2
       title="加载失败"
       :description="err"
       retry-text="重试"
-      @retry="onMounted"
+      @retry="loadSession"
     />
 
     <template v-else-if="data">
@@ -411,9 +376,9 @@ const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2
             <div class="mt-3 pt-3 border-t border-bg-border flex items-center justify-between">
               <span class="text-[10px] uppercase tracking-wider text-muted">{{ t('sessionDetail.emotionLabel') }}</span>
               <n-tag size="small" :bordered="false" type="primary">
-                <template v-if="turn.bdiSnapshot.anxiousSecure && emotionLabels[turn.bdiSnapshot.anxiousSecure]">
-                  {{ emotionLabels[turn.bdiSnapshot.anxiousSecure].zh }}
-                  <span class="text-muted ml-1">({{ emotionLabels[turn.bdiSnapshot.anxiousSecure].en }})</span>
+                <template v-if="emotionLabel(turn.bdiSnapshot.anxiousSecure)">
+                  {{ emotionLabel(turn.bdiSnapshot.anxiousSecure)!.zh }}
+                  <span class="text-muted ml-1">({{ emotionLabel(turn.bdiSnapshot.anxiousSecure)!.en }})</span>
                 </template>
                 <template v-else>{{ turn.bdiSnapshot.anxiousSecure ?? '—' }}</template>
               </n-tag>
@@ -423,7 +388,7 @@ const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2
           <!-- 调试面板：Delta 明细 -->
           <n-card v-if="deltaDetail" size="small" :title="t('calibrator.deltaDetail')">
             <template #header-extra>
-              <n-tag size="tiny" :bordered="false" type="warning">{{ t('sessionDetail.pendingBackend') }}</n-tag>
+              <n-tag size="tiny" :bordered="false" type="success">后端真值</n-tag>
             </template>
             <!-- 关系 delta -->
             <div class="mb-2.5">
@@ -461,43 +426,13 @@ const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2
                 </div>
               </div>
             </div>
-            <!-- 触发事件 -->
-            <div v-if="deltaDetail.events.length" class="mt-2 pt-2 border-t border-bg-border">
+            <!-- 触发事件（后端 eventTags + eventTagLabels 同序真值） -->
+            <div v-if="turnEventTags.length" class="mt-2 pt-2 border-t border-bg-border">
               <div class="text-[10px] uppercase tracking-wider text-muted mb-1.5">{{ t('sessionDetail.triggerEvent') }}</div>
               <div class="flex flex-wrap gap-1">
-                <n-tag v-for="ev in deltaDetail.events" :key="ev" size="tiny" :bordered="false" type="info">
-                  {{ ev }}
+                <n-tag v-for="ev in turnEventTags" :key="ev.key" size="tiny" :bordered="false" type="info">
+                  {{ ev.label }}
                 </n-tag>
-              </div>
-            </div>
-          </n-card>
-
-          <!-- 调试面板：Cap 砍幅 -->
-          <n-card v-if="capReport?.hasCapped" size="small" :title="t('calibrator.capCapped')" :bordered="false" class="border-l-2 border-l-warn">
-            <template #header-extra>
-              <n-tag size="tiny" :bordered="false" type="warning">{{ t('sessionDetail.pendingBackend') }}</n-tag>
-            </template>
-            <div class="space-y-1 text-xs">
-              <div v-for="c in capReport.capped" :key="c.dimension" class="font-mono">
-                <span class="text-muted">{{ c.dimension }}</span>
-                <span class="text-danger line-through ml-2">{{ c.rawDelta.toFixed(3) }}</span>
-                <span class="text-warn ml-2">→ {{ c.cappedDelta.toFixed(3) }}</span>
-              </div>
-            </div>
-          </n-card>
-
-          <!-- 调试面板：信念激活状态 -->
-          <n-card v-if="Object.keys(beliefActivation).length" size="small" :title="t('calibrator.beliefActivation')">
-            <template #header-extra>
-              <n-tag size="tiny" :bordered="false" type="warning">{{ t('sessionDetail.pendingBackend') }}</n-tag>
-            </template>
-            <div class="space-y-2">
-              <div v-for="(level, theme) in beliefActivation" :key="theme">
-                <div class="flex items-center justify-between text-xs mb-1">
-                  <span>{{ theme }}</span>
-                  <span class="font-mono text-muted">{{ level.toFixed(2) }}</span>
-                </div>
-                <n-progress type="line" :percentage="level * 100" :show-text="false" />
               </div>
             </div>
           </n-card>
@@ -570,7 +505,7 @@ const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2
       <n-card size="small" class="mt-4">
         <template #header>
           <span class="text-sm font-medium">Delta 审计</span>
-          <n-tag size="tiny" :bordered="false" type="info" class="ml-2">调试</n-tag>
+          <n-tag size="tiny" :bordered="false" type="info" class="ml-2">后端真值</n-tag>
         </template>
         <template #header-extra>
           <n-button

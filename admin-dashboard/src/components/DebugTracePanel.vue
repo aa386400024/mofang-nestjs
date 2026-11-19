@@ -24,45 +24,23 @@ const activeTab = ref('bdi')
 const showFullPrompt = ref(false)
 const showBasicInfo = ref(false)
 
-// 事件标签中英映射
-const eventTagMap: Record<string, string> = {
-  empathy: '共情回应',
-  open_probe: '开放提问',
-  micro_expression: '微表情分析',
-  emotion_reflection: '情感反映',
-  normalization: '正常化',
-  open_discussion: '开放讨论',
-  resistance: '抵抗',
-  empty: '空情绪',
-}
-
-const strategyMap: Record<string, string> = {
-  resistance: '抵抗',
-  empathy: '共情回应',
-  open_probe: '开放提问',
-  emotion_reflection: '情感反映',
-}
-
 const eventTagList = computed(() => {
-  const trace = props.trace as any
-  const raw = trace?.eventTags ?? trace?.operatorTags ?? trace?.intention
-  if (Array.isArray(raw)) {
-    return raw.map(key => ({ key, label: eventTagMap[key] ?? key }))
-  }
-  if (raw && typeof raw === 'object') {
-    const tags: { key: string; label: string }[] = []
-    if (raw.strategy) tags.push({ key: 'strategy', label: strategyMap[raw.strategy] ?? raw.strategy })
-    if (raw.emotion?.label) tags.push({ key: 'emotion', label: eventTagMap[raw.emotion.label] ?? raw.emotion.label })
-    return tags
-  }
-  return [{ key: 'empathy', label: '共情回应' }, { key: 'open_probe', label: '开放提问' }]
+  const keys = props.trace?.eventTags ?? []
+  const labels = props.trace?.eventTagLabels ?? []
+  return keys.map((key, i) => ({ key, label: labels[i] ?? key }))
 })
 
+const latestBdi = computed(() => props.bdiHistory[props.bdiHistory.length - 1] ?? null)
+
+function copyTraceJson() {
+  navigator.clipboard.writeText(JSON.stringify({ turnIndex: props.turnIndex, bdiSnapshot: latestBdi.value, trace: props.trace }, null, 2))
+}
+
 const promptParagraphs = computed(() => {
-  const text = props.trace?.renderSpec?.promptFull
+  const text = props.trace?.renderSpec?.promptPreview
   if (!text) return []
-  const paras = text.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0)
-  return paras.map(para => {
+  const paras = text.split(/\n\s*\n/).map((p: string) => p.trim()).filter((p: string) => p.length > 0)
+  return paras.map((para: string) => {
     let type = 'default'
     let title = ''
     if (para.includes('你正在扮演') && para.includes('来访者')) { type = 'role'; title = '角色设定' }
@@ -74,7 +52,7 @@ const promptParagraphs = computed(() => {
 })
 
 const innerStateCards = computed(() => {
-  const trace = props.trace as any
+  const trace = props.trace
   if (!trace) return []
   const cards: { label: string; value: number | null; display: string }[] = []
   if (trace.bdiSnapshot?.trust != null) cards.push({ label: '信任度', value: trace.bdiSnapshot.trust, display: trace.bdiSnapshot.trust.toFixed(2) })
@@ -82,7 +60,7 @@ const innerStateCards = computed(() => {
   if (trace.bdiSnapshot?.bond != null) cards.push({ label: '联结感', value: trace.bdiSnapshot.bond, display: trace.bdiSnapshot.bond.toFixed(2) })
   if (trace.bdiSnapshot?.valence != null) cards.push({ label: '效价', value: (trace.bdiSnapshot.valence + 1) / 2, display: trace.bdiSnapshot.valence.toFixed(2) })
   if (trace.bdiSnapshot?.arousal != null) cards.push({ label: '唤醒度', value: trace.bdiSnapshot.arousal, display: trace.bdiSnapshot.arousal.toFixed(2) })
-  if (trace.eventTags?.resistance?.verbal != null) cards.push({ label: '阻抗·话量', value: trace.eventTags.resistance.verbal, display: trace.eventTags.resistance.verbal.toFixed(2) })
+  if (trace.bdiSnapshot?.resistanceVerbal != null) cards.push({ label: '阻抗·话量', value: trace.bdiSnapshot.resistanceVerbal, display: trace.bdiSnapshot.resistanceVerbal.toFixed(2) })
   return cards
 })
 
@@ -120,11 +98,11 @@ const visitorMessages = computed(() => {
           <div>
             <div class="text-xs text-muted mb-2">当前快照（第 {{ turnIndex }} 轮）</div>
             <div class="space-y-2">
-              <div v-for="dim in bdiHistory[bdiHistory.length - 1] ? Object.keys(bdiHistory[bdiHistory.length - 1]).filter(k => k !== 'turnIndex') : []" :key="dim"
+              <div v-for="dim in latestBdi ? Object.keys(latestBdi).filter(k => k !== 'turnIndex') : []" :key="dim"
                    class="flex items-center gap-2 text-xs">
                 <span class="w-20 text-muted">{{ dim }}</span>
-                <NProgress type="line" :percentage="((bdiHistory[bdiHistory.length - 1] as any)[dim] ?? 0) * 100" :show-text="false" class="flex-1" />
-                <span class="w-12 text-right font-mono">{{ ((bdiHistory[bdiHistory.length - 1] as any)[dim] ?? 0).toFixed(2) }}</span>
+                <NProgress type="line" :percentage="((latestBdi as any)?.[dim] ?? 0) * 100" :show-text="false" class="flex-1" />
+                <span class="w-12 text-right font-mono">{{ ((latestBdi as any)?.[dim] ?? 0).toFixed(2) }}</span>
               </div>
             </div>
           </div>
@@ -137,17 +115,10 @@ const visitorMessages = computed(() => {
       <div class="p-3">
         <div v-if="!trace" class="text-xs text-muted text-center py-8">发送一轮后显示</div>
         <div v-else class="space-y-3">
-          <div class="flex flex-wrap gap-1.5">
+          <div v-if="eventTagList.length" class="flex flex-wrap gap-1.5">
             <NTag size="tiny" v-for="evt in eventTagList" :key="evt.key" type="info" round>{{ evt.label }}</NTag>
           </div>
-          <div v-if="(trace as any).eventTags && typeof (trace as any).eventTags === 'object'"
-               class="text-xs space-y-2 bg-bg-elevated rounded p-2.5 border border-bg-border">
-            <div v-if="(trace as any).eventTags.rationale" class="text-muted leading-relaxed">{{ (trace as any).eventTags.rationale }}</div>
-            <div v-if="(trace as any).eventTags.forbiddenBehaviors?.length" class="space-y-1">
-              <div class="text-muted text-[10px]">禁止行为：</div>
-              <div v-for="fb in (trace as any).eventTags.forbiddenBehaviors" :key="fb" class="text-red-400 text-[11px]">• {{ fb }}</div>
-            </div>
-          </div>
+          <div v-else class="text-xs text-muted text-center py-8">本轮无事件标签（后端 eventTags 为空）</div>
         </div>
       </div>
     </NTabPane>
@@ -166,7 +137,7 @@ const visitorMessages = computed(() => {
     <!-- Tab 4: 渲染 prompt -->
     <NTabPane name="prompt" tab="渲染 prompt" class="flex-1 overflow-auto">
       <div class="p-3 space-y-3">
-        <div v-if="!trace?.renderSpec?.promptFull" class="text-xs text-muted text-center py-8">发送一轮后显示</div>
+        <div v-if="!trace?.renderSpec?.promptPreview" class="text-xs text-muted text-center py-8">发送一轮后显示</div>
         <div v-else :key="trace.turnIndex">
           <div class="flex flex-wrap gap-1.5 mb-3">
             <NTag size="tiny" v-for="evt in eventTagList" :key="evt.key" type="info" round>{{ evt.label }}</NTag>
@@ -182,22 +153,18 @@ const visitorMessages = computed(() => {
                 </div>
               </div>
             </div>
-            <div v-if="(trace as any).eventTags?.forbiddenBehaviors?.length" class="mt-2">
-              <div class="text-[10px] text-muted mb-1">禁止行为</div>
-              <div v-for="fb in (trace as any).eventTags.forbiddenBehaviors" :key="fb" class="text-red-400 text-[11px]">• {{ fb }}</div>
-            </div>
           </div>
           <div class="mb-3">
             <button class="text-xs text-accent hover:underline flex items-center gap-1 mb-1.5" @click="showBasicInfo = !showBasicInfo">
               {{ showBasicInfo ? '▾' : '▸' }} {{ showBasicInfo ? '收起基础设定' : '展开基础设定（角色 / 说话方式）' }}
             </button>
             <div v-if="showBasicInfo" class="space-y-2">
-              <div v-for="(item, i) in promptParagraphs.filter(p => p.type === 'role' || p.type === 'speech')" :key="i"
+              <div v-for="(item, i) in promptParagraphs.filter((p: any) => p.type === 'role' || p.type === 'speech')" :key="i"
                    class="text-xs leading-relaxed bg-bg-elevated rounded-lg p-2.5 border border-bg-border border-l-2"
                    :class="{ 'border-l-blue-400': item.type === 'role', 'border-l-cyan-400': item.type === 'speech' }">
                 <div v-if="item.title" class="text-[10px] text-muted font-medium mb-1.5">{{ item.title }}</div>
                 <div class="space-y-1.5">
-                  <div v-for="(line, j) in item.para.split('\n').filter(l => l.trim())" :key="j" class="flex gap-1.5">
+                  <div v-for="(line, j) in item.para.split('\n').filter((l: string) => l.trim())" :key="j" class="flex gap-1.5">
                     <span class="text-muted mt-0.5">•</span>
                     <span class="flex-1">{{ line.trim() }}</span>
                   </div>
@@ -205,11 +172,11 @@ const visitorMessages = computed(() => {
               </div>
             </div>
           </div>
-          <div v-for="(item, i) in promptParagraphs.filter(p => p.type === 'turn')" :key="'turn-' + i"
+          <div v-for="(item, i) in promptParagraphs.filter((p: any) => p.type === 'turn')" :key="'turn-' + i"
                class="text-xs leading-relaxed bg-bg-elevated rounded-lg p-2.5 border border-bg-border border-l-green-400 mb-3">
             <div class="text-[10px] text-muted font-medium mb-1.5">{{ item.title }}</div>
             <div class="space-y-1.5">
-              <div v-for="(line, j) in item.para.split('\n').filter(l => l.trim())" :key="j" class="flex gap-1.5">
+              <div v-for="(line, j) in item.para.split('\n').filter((l: string) => l.trim())" :key="j" class="flex gap-1.5">
                 <span class="text-accent mt-0.5">•</span>
                 <span class="flex-1">{{ line.trim() }}</span>
               </div>
@@ -217,10 +184,10 @@ const visitorMessages = computed(() => {
           </div>
           <div>
             <button class="text-xs text-accent hover:underline flex items-center gap-1" @click="showFullPrompt = !showFullPrompt">
-              {{ showFullPrompt ? '▾' : '▸' }} {{ showFullPrompt ? '收起完整 Prompt' : '展开完整 Prompt（原始字符串）' }}
+              {{ showFullPrompt ? '▾' : '▸' }} {{ showFullPrompt ? '收起提示词预览' : '展开提示词预览（后端 500 字截断）' }}
             </button>
             <div v-if="showFullPrompt" class="whitespace-pre-wrap break-word font-mono text-xs leading-relaxed bg-bg-elevated rounded-lg p-3 border border-bg-border mt-2">
-              {{ trace.renderSpec!.promptFull }}
+              {{ trace.renderSpec!.promptPreview }}
             </div>
           </div>
         </div>
@@ -247,9 +214,9 @@ const visitorMessages = computed(() => {
         <template v-else>
           <div class="flex justify-between items-center mb-2">
             <span class="text-xs text-muted">第 {{ turnIndex }} 轮 trace</span>
-            <NButton size="tiny" quaternary @click="navigator.clipboard.writeText(JSON.stringify({ turnIndex, bdiSnapshot: bdiHistory[bdiHistory.length - 1], trace }, null, 2))">复制 JSON</NButton>
+            <NButton size="tiny" quaternary @click="copyTraceJson">复制 JSON</NButton>
           </div>
-          <pre class="text-xs font-mono bg-bg-elevated rounded p-2 overflow-auto max-h-96">{{ JSON.stringify({ turnIndex, bdiSnapshot: bdiHistory[bdiHistory.length - 1], trace }, null, 2) }}</pre>
+          <pre class="text-xs font-mono bg-bg-elevated rounded p-2 overflow-auto max-h-96">{{ JSON.stringify({ turnIndex, bdiSnapshot: latestBdi, trace }, null, 2) }}</pre>
         </template>
       </div>
     </NTabPane>

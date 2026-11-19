@@ -233,10 +233,12 @@ export const api = {
 
   // ─── 自动评测报告（WP-E） ───
   evalReports: async (params?: { page?: number; pageSize?: number; status?: string }): Promise<EvalReportListResponse> => {
-    const q = new URLSearchParams(
-      Object.entries(params ?? {}).filter(([, v]) => v !== undefined && v !== '') as Record<string, string>,
-    ).toString()
-    return get<EvalReportListResponse>(`/eval/reports${q ? `?${q}` : ''}`)
+    const q = new URLSearchParams()
+    Object.entries(params ?? {}).forEach(([k, v]) => {
+      if (v !== undefined && v !== '') q.set(k, String(v))
+    })
+    const qs = q.toString()
+    return get<EvalReportListResponse>(`/eval/reports${qs ? `?${qs}` : ''}`)
   },
   evalReportDetail: async (id: string): Promise<EvalReportDetail> => {
     return get<EvalReportDetail>(`/eval/reports/${id}`)
@@ -254,10 +256,12 @@ export const api = {
     startDate?: string
     endDate?: string
   }): Promise<GateTraceListResponse> => {
-    const q = new URLSearchParams(
-      Object.entries(params ?? {}).filter(([, v]) => v !== undefined && v !== '') as Record<string, string>,
-    ).toString()
-    return get<GateTraceListResponse>(`/gate/traces${q ? `?${q}` : ''}`)
+    const q = new URLSearchParams()
+    Object.entries(params ?? {}).forEach(([k, v]) => {
+      if (v !== undefined && v !== '') q.set(k, String(v))
+    })
+    const qs = q.toString()
+    return get<GateTraceListResponse>(`/gate/traces${qs ? `?${qs}` : ''}`)
   },
   gateStats: async (days = 7): Promise<GateStatsResponse> => {
     return get<GateStatsResponse>(`/gate/stats?days=${days}`)

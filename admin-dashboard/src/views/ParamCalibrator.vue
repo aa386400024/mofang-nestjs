@@ -394,6 +394,7 @@ const heatmapOption = computed(() => ({
     formatter: (params: any) => {
       const row = deltaTable.value[params.value[1]]
       const dim = heatmapDimensions[params.value[0]]
+      if (!row || !dim) return ''
       return `${row.label} · ${heatmapLabels[dim]}<br/>${t('calibrator.heatmapDelta')}: <b>${params.value[2].toFixed(3)}</b>`
     },
   },
@@ -474,7 +475,7 @@ const detailColumns = [
       neutral: { text: '中性', color: '#999' },
       resistance: { text: '抗拒', color: '#d03050' },
     }
-    const m = map[row.phase]
+    const m = map[row.phase] ?? map.neutral!
     return h('span', { style: { color: m.color, fontSize: '12px' } }, m.text)
   }},
   { title: '信任', key: 'trust', align: 'right' as const, render: (row: any) => row.trust.toFixed(3) },
@@ -526,7 +527,7 @@ onMounted(() => {
       <div class="flex items-center gap-4">
         <div>
           <h1 class="text-xl font-semibold whitespace-nowrap">参数校准</h1>
-          <p class="text-xs text-muted mt-0.5">可视化调节 BDI 引擎参数，实时预览效果</p>
+          <p class="text-xs text-muted mt-0.5">沙盘推演工程种子参数，导出候选配置；不读取也不写引擎运行态</p>
         </div>
         <!-- 场景选择 -->
         <NRadioGroup v-model:value="activeScenario" size="small" class="ml-4">
@@ -567,6 +568,12 @@ onMounted(() => {
         </n-dropdown>
         <n-button size="tiny" type="primary" @click="exportConfig">{{ t('calibrator.export') }}</n-button>
       </div>
+    </div>
+
+    <!-- 边界声明：这是沙盘，不是引擎实时配置 -->
+    <div class="mb-3 px-3 py-2 rounded border border-warn/40 bg-warn/10 text-xs text-warn flex-shrink-0">
+      <strong>模拟沙盘</strong>：下方 delta 表 / cap / 人格倍率均为前端工程种子值，仅用于离线推演与导出候选配置；
+      不读取引擎运行态，也不会写回引擎。真实生效参数以引擎启动时的 env / 部署配置为准。
     </div>
 
     <!-- 自定义事件输入行 -->

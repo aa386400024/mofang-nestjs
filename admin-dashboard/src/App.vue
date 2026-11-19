@@ -127,8 +127,8 @@ const allPages = computed(() => [
 
 const filteredPages = computed(() => {
   const q = searchQuery.value.toLowerCase().trim()
-  if (!q) return allPages
-  return allPages.filter(p =>
+  if (!q) return allPages.value
+  return allPages.value.filter((p: { name: string; path: string; keywords: string }) =>
     p.name.toLowerCase().includes(q) ||
     p.keywords.toLowerCase().includes(q) ||
     p.path.includes(q)

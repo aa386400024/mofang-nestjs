@@ -21,7 +21,7 @@ const loading = ref(true)
 
 // Phase2.5 灰度指标
 const autoPracticeCount = ref(0)
-const gateStats = ref<{ totalGateDecisions?: number; triggerRate?: number }>({})
+const gateStats = ref<{ totalGateDecisions: number; triggerRate: number }>({ totalGateDecisions: 0, triggerRate: 0 })
 const evalReportCount = ref(0)
 
 onMounted(async () => {
@@ -33,11 +33,17 @@ onMounted(async () => {
     // 并行加载 Phase2.5 指标（失败不阻塞主页面）
     try {
       const practiceSessions = await api.autoPractice.listSessions({})
-      autoPracticeCount.value = practiceSessions.length
+      autoPracticeCount.value = practiceSessions.items.length
     } catch { /* 忽略 */ }
 
     try {
-      gateStats.value = await api.deliberationStats()
+      const gs = await api.gateStats()
+      const total = gs.totalDecisions.reduce((a, n) => a + n, 0)
+      const skipped = gs.skipDecisions.reduce((a, n) => a + n, 0)
+      gateStats.value = {
+        totalGateDecisions: total,
+        triggerRate: total > 0 ? skipped / total : 0,
+      }
     } catch { /* 忽略 */ }
 
     try {
