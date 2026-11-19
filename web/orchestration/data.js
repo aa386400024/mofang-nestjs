@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-19T19:05:26.179Z",
+  "generatedAt": "2026-11-19T19:08:01.351Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1755,6 +1755,38 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-202",
+      "recordedAt": "2026-11-19T19:06:46.539Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-158",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-158",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-158.json"
+      ]
+    },
+    {
+      "auditId": "AUD-201",
+      "recordedAt": "2026-11-19T19:06:46.203Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-158",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-200",
       "recordedAt": "2026-11-19T19:03:36.563Z",
       "actorRef": "orchestrator",
@@ -1962,54 +1994,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-187",
-      "recordedAt": "2026-11-19T17:27:28.947Z",
-      "actorRef": "orchestrator",
-      "correlationId": "reissue:AF-150:AF-151",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-186",
-      "recordedAt": "2026-11-19T17:27:09.922Z",
-      "actorRef": "orchestrator",
-      "correlationId": "reissue:AF-149:AF-150",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 200,
+    "total": 202,
     "byResult": {
-      "allowed": 200,
+      "allowed": 202,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 199,
+      "TOOL-QUEUE-SCHEDULER": 201,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 200
+      "orchestrator": 202
     }
   },
   "protocolView": {
@@ -5035,6 +5033,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af157-admin-naive-locale-2026-11-20.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-158",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af158-annotation-warning-ux-task-2026-11-20.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af158-annotation-warning-ux-2026-11-20.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -5126,5 +5142,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 172
+  "archivedCount": 173
 };
