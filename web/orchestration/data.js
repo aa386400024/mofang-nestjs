@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-19T18:04:00.106Z",
+  "generatedAt": "2026-11-19T18:05:58.326Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -36,46 +36,6 @@ window.ORCH_SNAPSHOT = {
       },
       "manualReview": [],
       "dispatch": null
-    },
-    {
-      "taskId": "AF-154",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "fix",
-      "title": "AF-152 验收最终收口（无代码变更）",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af154-quality-admin-close-task-2026-11-20.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-154",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-19T18:04:00.102Z",
-        "leaseDeadline": "2026-11-19T18:34:00.099Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-154.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-19T18:04:00.102Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-154.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
     }
   ],
   "deadLetters": [],
@@ -1816,6 +1776,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-192",
+      "recordedAt": "2026-11-19T18:04:00.200Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-154",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-154",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-154.json"
+      ]
+    },
+    {
       "auditId": "AUD-191",
       "recordedAt": "2026-11-19T18:03:55.042Z",
       "actorRef": "orchestrator",
@@ -2042,37 +2017,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-144.json"
       ]
-    },
-    {
-      "auditId": "AUD-177",
-      "recordedAt": "2026-11-19T14:46:14.830Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-144",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 191,
+    "total": 192,
     "byResult": {
-      "allowed": 191,
+      "allowed": 192,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 190,
+      "TOOL-QUEUE-SCHEDULER": 191,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 191
+      "orchestrator": 192
     }
   },
   "protocolView": {
@@ -2097,26 +2055,6 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "taskSheet",
             "ref": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-154",
-        "title": "AF-152 验收最终收口（无代码变更）",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af154-quality-admin-close-task-2026-11-20.md"
           }
         ]
       }
@@ -5051,6 +4989,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/pending/af153-quality-admin-close-task-2026-11-20.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-154",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af154-quality-admin-close-task-2026-11-20.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af154-quality-admin-close-2026-11-20.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -5070,17 +5026,11 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-128",
         "kind": "taskSheet",
         "ref": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md"
-      },
-      {
-        "taskId": "AF-154",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/pending/af154-quality-admin-close-task-2026-11-20.md"
       }
     ],
     "groupId": "phase2.5-ai-proxy-acceptance",
     "groupIds": [
-      "phase2.5-ai-proxy-acceptance",
-      "phase2.5-orchestration-closed-loop"
+      "phase2.5-ai-proxy-acceptance"
     ],
     "capabilityDeclarations": [
       {
@@ -5156,5 +5106,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 167
+  "archivedCount": 168
 };

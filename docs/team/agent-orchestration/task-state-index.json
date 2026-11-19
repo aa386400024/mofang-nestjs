@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 670,
+    "lastEventSeq": 672,
     "rebuiltAt": null
   },
   "tasks": [
@@ -76,108 +76,6 @@
       "outOfScope": [],
       "constraints": [],
       "priorTasks": []
-    },
-    {
-      "taskId": "AF-154",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-19T18:03:54.897Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "scope 重签发自 AF-153"
-        },
-        {
-          "at": "2026-11-19T18:04:00.099Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "AF-152 验收最终收口（无代码变更）",
-      "type": "fix",
-      "baselineRef": "e4ffb6dd0f3681c07248fa72d6c4cacbcb263338",
-      "dependsOn": [],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-19T18:03:54.846Z",
-      "deadline": "2026-11-20T08:00:00+08:00",
-      "agentRole": "executor",
-      "priorTasks": [
-        "AF-153",
-        "AF-152",
-        "AF-151",
-        "AF-150",
-        "AF-149",
-        "AF-148",
-        "AF-147",
-        "AF-146",
-        "AF-131"
-      ],
-      "scope": {
-        "files": [
-          "docs/worklog/pending/af154-quality-admin-close-task-2026-11-20.md",
-          "docs/worklog/completed/phase2.5/af154-quality-admin-close-2026-11-20.md"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/pending/af154-quality-admin-close-task-2026-11-20.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm typecheck",
-          "check": "类型检查零错误",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "lint 零错误",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm exec vitest run test/auto-practice/ai-double-blind.spec.ts test/engine-core/boundary.spec.ts",
-          "check": "评分口径与 engine-core 边界全绿",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm --dir admin-dashboard build",
-          "check": "admin-dashboard 生产构建通过",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm test",
-          "check": "全量测试全绿",
-          "threshold": "exit=0"
-        }
-      ],
-      "successCriteria": [
-        "本任务不改任何代码；AF-152 实现已全部落在基线 e4ffb6d",
-        "只补 AF-152 的最终验收记录，证明 scope/回执契约已满足",
-        "不把 4/6 或未达标写成 AI 层面达标或临床达标",
-        "回执声明只含本任务 docs 提交；实现提交归 priorTasks，不混入 changedFiles.commits",
-        "conditional-pass 不设人工复核阻塞项；剩余全部登记 backlog"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af154-quality-admin-close-2026-11-20.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [],
-      "constraints": [],
-      "promotedAt": "2026-11-19T18:03:54.897Z"
     }
   ],
   "archivedTasks": [
@@ -1657,6 +1555,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/pending/af153-quality-admin-close-task-2026-11-20.md",
         "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-154",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af154-quality-admin-close-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af154-quality-admin-close-2026-11-20.md",
         "reply": null
       }
     }
