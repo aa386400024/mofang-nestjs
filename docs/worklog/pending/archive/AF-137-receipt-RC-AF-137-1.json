@@ -46,7 +46,9 @@
       "commits": [
         "6c569c6029e52ab80b5e50a68572707b92ba1cc9",
         "e90ec43687b0d43f98f1f65910db00a17fc7d0db",
-        "e500c24a899bb3dae8c2520998f51288bf1129a4"
+        "e500c24a899bb3dae8c2520998f51288bf1129a4",
+        "209ab5a30bde7534f2bffefc55d88c67eda959a0",
+        "e3440253405520c596f386429330dd64e53fe987"
       ]
     },
     "gateResults": [
@@ -192,7 +194,7 @@
         "IM-072"
       ]
     },
-    "reproNotes": "分支 task/AF-137-crisis-risk-close；基线 76f4661；交付提交 6c569c6, e90ec43, e500c24。定向闸门：typecheck 0 / lint 0 / runner+prompt 41 tests / boundary 12 tests；未跑全量测试、未新跑 LLM 批次、未改 src/engine-core。",
+    "reproNotes": "分支 task/AF-137-crisis-risk-close；基线 76f4661；交付提交 6c569c6, e90ec43, e500c24, 209ab5a, e344025。定向闸门：typecheck 0 / lint 0 / runner+prompt 41 tests / boundary 12 tests；未跑全量测试、未新跑 LLM 批次、未改 src/engine-core。",
     "parallelArtifactsExcluded": true,
     "noOutscopeRefactor": true,
     "fieldAlignment": {
