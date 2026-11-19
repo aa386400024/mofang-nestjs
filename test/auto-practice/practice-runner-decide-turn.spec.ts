@@ -418,7 +418,7 @@ describe('AF-133 · runner · forced-close cue 与风险收束轮', () => {
     };
   }
 
-  it('最后 2 轮一定有 closingCue="forced"，更早的轮次没有；AF-140 额外 2 轮补齐收束', async () => {
+  it('最后 2 轮一定有 closingCue="forced"，AF-144 在 maxTurns 当轮触发最终收束并收尾', async () => {
     for (let i = 1; i <= 7; i += 1) {
       engine.turn.mockResolvedValueOnce(makeTurn(i, `来访第${i}句不同内容`));
     }
@@ -431,7 +431,9 @@ describe('AF-133 · runner · forced-close cue 与风险收束轮', () => {
     });
 
     const calls = counselor.generate.mock.calls;
-    expect(calls).toHaveLength(7);
+    // AF-144: 最终收束通道在 maxTurns 当轮生成后由确定性补全补齐，直接请求 END，
+    // 不再依赖 maxTurns+1/+2 的补齐轮。
+    expect(calls).toHaveLength(5);
     const cues = calls.map((call) => call[2]?.closingCue);
     const remaining = calls.map((call) => call[2]?.remainingTurns);
     // 任务单口径: remaining = maxTurns - i, remaining ≤ 2 就注入 → 最后 3 轮.
@@ -440,11 +442,8 @@ describe('AF-133 · runner · forced-close cue 与风险收束轮', () => {
     expect(cues[2]).toBe('forced');
     expect(cues[3]).toBe('forced');
     expect(cues[4]).toBe('forced');
-    // AF-140: long 档允许 maxTurns 之后额外 2 轮补齐常规收束.
-    expect(cues.slice(5)).toEqual(['forced', 'forced']);
-    // AF-140: 从 maxTurns+1 起就触发最终收束, +1 失败 +2 再补一次.
-    expect(calls[5]?.[2]?.finalClosing).toBe(true);
-    expect(calls[6]?.[2]?.finalClosing).toBe(true);
+    // AF-144: 到 maxTurns 必触发最终收束.
+    expect(calls[4]?.[2]?.finalClosing).toBe(true);
     expect(remaining[2]).toBe(3);
     expect(remaining[3]).toBe(2);
     expect(remaining[4]).toBe(1);

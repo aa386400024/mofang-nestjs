@@ -374,6 +374,21 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 - **判定**：出口④ **未通过**。剩余唯一缺口是 style：7/16 packet 被 v2 硬上限压在 3 分（最后 10 轮无常规三件套）；其中危机场次的安全收束已有具体计划，但常规摘要/带走句/下一步仍不齐。**不得下调 3.50 阈值、不得把 AI 分写成临床达标**；下一步需把“最终收束”从提示词依赖改为确定性生成/校验（或补危机场次的等价收束定义并经独立复核），再跑一批复评。
 - **证据**：`data/phase25-exit/af140-long-pack-final/`、`data/phase25-exit/af140-structure-audit-final/`、`data/phase25-exit/af140-ai-double-blind-final/`、`data/batch-reports/-PS1HjDeon46QWqGa5mMO.json|md`；交付记录 `../completed/phase2.5/af140-ai-quality-close-2026-11-19.md`。
 
+#### 3.2.16 2026-11-19 AF-144 最终收束独立通道后 long 批次复评（AF-146）
+
+> **正式结论：❌ AI 层面质量门仍未完全达标；6 项硬门 5 项通过，唯一失败项为 overall 跨模型加权 κ = 0.351351（< 0.40）。** AF-140 的唯一失败项 style 已修复（3.4375 → **3.6875**，≥3.50）；开场结构 10/16、收束完整 11/16。本结论只作 `ai_proxy_candidate / humanSupervision=false / clinicalAcceptanceEligible=false`，不是临床验收结论。
+
+- **候选批次**：`-O6D-lCqS2CGb7uS3aJI4`，8 角色 × `cold`/`expert` × 1，`sessionProfile=long`、`maxTurns=50`；**16/16 completed**（11 `natural_close` + 5 `crisis_practice_max`），**685 轮**，`batchHealth.valid=true`、`llmCallRatio=1`、`renderFallbackRatio=0`、`counterConsistent=true`、failed=0。逐场轮次 25/50/43/37/50/50/50/34/50/50/50/17/38/50/41/50。
+- **代码修复（AF-144）**：① `shouldForceFinalClosing` 改为 `turnIndex >= maxTurns` 必触发，不再拼接多轮文本误判；② 最终收束走独立通道，只喂最近 6 条消息（3 轮）并明确“不再对话、不提问”；③ 输出后 `completeFinalClosingReply` 确定性补 summary/takeaway/nextStep；④ `practice-runner.spec.ts` 的 long 档断言从 AF-140 的 `52/max_turns` 改为 `50/natural_close`。
+- **结构审计**（`data/phase25-exit/af144-structure-audit`）：开场 confidentiality 16/16、boundary 16/16、duration 11/16、pauseRefusal 15/16、recording 15/16，开场全项 **10/16**；7 场 routine 常规三项全覆盖，4 场 risk 风险五要素完整（closingComplete=true，但 routine summary 缺 summaryAction），4 场 risk-incomplete（packet-02/03/11/13），1 场 closingMode=none（packet-16）；收束全项 **11/16**。
+- **AI 双盲**（`data/phase25-exit/af144-ai-double-blind`，R1=`MiniMax-M2.7` / R2=`MiniMax-M3.1-Flash` / R3=`MiniMax-M3`，AF-125 v2 口径，16 packet，仲裁 2 个）：overall exact **0.6250（≥0.50）**、within±1 **1.0000（≥0.875）**、**overall κ 0.351351（<0.40，唯一失败）**、overall 平均 **4.6250（≥4.00）**、safety 平均 **4.6875 / 最低 4（无 <3）**、style 平均 **3.6875 / 最低 3（≥3.50，首次过线）**。六维均值：trust 4.875、safety 4.6875、bond 4.25、depth 4.625、verbal 4.375、style 3.6875；overall 分布 5×10、4×6，无 ≤2。
+- **κ 解读**：分维 κ safety 0.522 / style 0.862 / depth 0.660 已对齐，trust 0.030 / verbal 0.164 / overall 0.351 仍是跨模型刻度差；按硬门判失败，**不调低 0.40**。本批是跨模型，不是同模型校准批，不能拿同模型高 κ 替代。
+- **WP-K**：本批未重跑四态；96 场基线库内已清空，只能得 `incomparable`，不得用四态冒充。
+- **闸门**：`pnpm typecheck` 0；`pnpm lint` 0/0；`boundary.spec.ts` **12/12**；定向 4 files **47/47**；全量 `pnpm test` **221 files passed / 1 skipped，3872 tests passed / 4 skipped**（首次全量暴露 `practice-runner.spec.ts` 旧 52 轮断言，已按 AF-144 修为 50 轮并复跑通过）；`src/engine-core` 零 diff。
+- **判定**：出口④ **未完全达标**。剩余两项：① overall κ 0.351 < 0.40（评分口径债，按 AF-131 B 系列校准，不调阈值）；② 结构缺口 5/16（4 场 risk-incomplete + 1 场 none）。style 已过线，不再列为失败项。
+- **证据**：`data/phase25-exit/af144-long-pack/`、`data/phase25-exit/af144-structure-audit/`、`data/phase25-exit/af144-ai-double-blind/`、`data/batch-reports/-O6D-lCqS2CGb7uS3aJI4.json|md`；交付记录 `../completed/phase2.5/af146-final-closing-quality-close-2026-11-19.md`。
+
+
 
 
 ### 3.3 下一步（严格按顺序）

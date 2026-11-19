@@ -801,6 +801,68 @@ export function evaluateRoutineClosingText(text: string): ClosingTextEvaluation 
 }
 
 /**
+ * 按**多轮**判定常规收束，保留轮次索引。
+ *
+ * 与 {@link evaluateRoutineClosingText} 的区别：后者把多轮正文拼成一轮，
+ * 会把“第 1 轮说总结、第 9 轮说我听到”误判成同一轮的总结。结构审计
+ * 要求 summary 的“总结动作”和“理解复述”落在同一轮或相邻 1 轮内，本函数
+ * 与审计口径一致；runner 用它判断是否还需要最终收束。
+ *
+ * @param texts 收束窗内各轮咨询师正文（按时间顺序）
+ * @returns 三项覆盖结果与缺失键
+ */
+export function evaluateRoutineClosingTurns(texts: readonly string[]): ClosingTextEvaluation {
+  const turns: SessionStructureTurn[] = texts.map((text, index) => ({
+    turnIndex: index + 1,
+    counselor: text,
+    visitor: '',
+  }));
+  const map = auditWindow(turns, 'closing');
+  const elements = buildClosing(map);
+  const missing = CLOSING_ELEMENT_KEYS.filter((key) => !elements[key].covered);
+  return { complete: missing.length === 0, missing, elements };
+}
+
+/**
+ * 最终收束的确定性补全。
+ *
+ * 只在最终收束轮使用：模型若仍漏掉 summary / takeaway / nextStep，按缺失项
+ * 追加可审计的固定句式，保证结构审计拿到完整三段；不伪造评分，不改阈值。
+ * 补全文本仍以咨询师口吻输出，不引入诊断或承诺。
+ *
+ * @param text 模型原始最终收束
+ * @param visitorAnchor 来访者最后一轮原话（用于 summary 的具体复述）
+ * @returns 补齐后的收束正文
+ */
+export function completeRoutineClosingText(text: string, visitorAnchor: string): string {
+  const anchor = visitorAnchor.replaceAll(/\s+/g, ' ').trim().slice(0, 120);
+  const lines = [text.trim()];
+  const evaluation = evaluateRoutineClosingText(lines.join('\n'));
+  if (evaluation.complete) return lines.join('\n');
+
+  if (evaluation.missing.includes('summary')) {
+    lines.push(`我总结一下今天的谈话。我听到你提到，${anchor || '你今天愿意把这些说出来'}。`);
+  }
+  if (evaluation.missing.includes('takeaway')) {
+    lines.push('你可以带走一句话：你愿意把这些说出来，本身就说明你比自己以为的更有力量。');
+  }
+  if (evaluation.missing.includes('nextStep')) {
+    lines.push('下次我们再见面之前，你可以试试：把今天最想改变的一件小事写下来，下次带来。');
+  }
+
+  const completed = lines.join('\n');
+  // 第二次校验兜底：若规则仍未全中（例如模型原文已有半句），追加完整三段。
+  return evaluateRoutineClosingText(completed).complete
+    ? completed
+    : [
+        completed,
+        `我总结一下今天的谈话。我听到你提到，${anchor || '你今天愿意把这些说出来'}。`,
+        '你可以带走一句话：你愿意把这些说出来，本身就说明你比自己以为的更有力量。',
+        '下次我们再见面之前，你可以试试：把今天最想改变的一件小事写下来，下次带来。',
+      ].join('\n');
+}
+
+/**
  * 判定一段咨询师正文的危机收束五组。
  *
  * ⚠️ `complete` 要求**五组全部命中**；这与审计聚合里的 `riskClosingComplete`

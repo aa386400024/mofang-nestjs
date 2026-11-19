@@ -45,11 +45,17 @@ import type { Repository } from 'typeorm';
 
 import { AUTO_PRACTICE_EVENTS, type AutoPracticeSessionEndPayload, type AutoPracticeSessionStartPayload } from './auto-practice.events.js';
 import { AutoPracticeGateway } from './auto-practice.gateway.js';
-import { CounselorAgentService, type CounselorGenerateContext, type CounselorHistoryTurn } from './counselor-agent.service.js';
+import {
+  CounselorAgentService,
+  type CounselorGenerateContext,
+  type CounselorHistoryTurn,
+  type CounselorReply,
+} from './counselor-agent.service.js';
 import { CounselorMode } from './entities/counselor-mode.entity.js';
 import { PracticeSession, type PracticeSessionStatus } from './entities/practice-session.entity.js';
 import { InferenceFingerprintService, type InferenceFingerprint, type ScenarioType } from './inference-fingerprint.service.js';
 import {
+  completeRoutineClosingText,
   evaluateRiskClosingText,
   evaluateRoutineClosingText,
   type ClosingElementKey,
@@ -572,13 +578,15 @@ export class PracticeRunnerService implements OnModuleInit {
       //   (安全确认 / 稳定化 / 下一步), 不再推进新议题.
       //   AF-091: 同时传 sessionProfile (决定要不要加长会话收尾纪律) 与当前轮次
       //   (长会话纪律块要写"当前是第 N 轮").
-      //   AF-133: 再传 closingCue (最后 2 轮的强制收束) 与 crisisClosing (风险收束轮).
-      const finalClosingTurn = shouldForceFinalClosing(profile, i, maxTurns, crisisWindow.active, closingTexts);
-      const counselorReply = await this.counselorAgent.generate(
+      //   AF-144: maxTurns 起必走最终收束，且走独立单轮通道（只喂最近 6 条消息摘要），
+      //   不再把最后 10 轮历史当连续对话续写。生成后仍缺三件套时做确定性补全。
+      const finalClosingTurn = shouldForceFinalClosing(profile, i, maxTurns, crisisWindow.active);
+      const rawCounselorReply = await this.counselorAgent.generate(
         input.counselorMode,
         history,
         buildCounselorOptions(profile, i, cue, crisisWindow.active, finalClosingTurn),
       );
+      const counselorReply = finalClosingTurn ? completeFinalClosingReply(rawCounselorReply, history) : rawCounselorReply;
       if (counselorReply.degraded) {
         degradedTurns += 1;
         counselorDegradedTurns += 1;
@@ -1256,19 +1264,16 @@ function recordClosingTexts(
  * @returns 传给咨询师生成接口的上下文
  */
 /**
- * AF-140: 是否触发“本场最后一次收束”。
- * 从 `maxTurns + 1` 起就触发（+1 先试一次，+2 仍不齐再补一次），
- * 而不是只在 +2 触发；这样能给模型两次机会把收束落在末轮。
+ * AF-144: 是否触发“本场最后一次收束”。
+ * 到 `maxTurns` 当轮就触发，不再等待 +1/+2；最终通道生成后由确定性补全兜底，
+ * 避免模型在额外补齐轮继续开新议题。
  */
-function shouldForceFinalClosing(
-  profile: SessionProfile,
-  turnIndex: number,
-  maxTurns: number,
-  crisisActive: boolean,
-  closingTexts: readonly string[],
-): boolean {
-  if (profile.name === 'legacy' || crisisActive || turnIndex < maxTurns + 1) return false;
-  return !evaluateRoutineClosingText(closingTexts.join('\n')).complete;
+export function shouldForceFinalClosing(profile: SessionProfile, turnIndex: number, maxTurns: number, crisisActive: boolean): boolean {
+  if (profile.name === 'legacy' || crisisActive) return false;
+  // 到点必触发：不再依赖“把收束窗拼成一段”的 complete 判定。
+  // 那个判定会把不同轮次的“总结”和“我听到”拼成同一轮，误判为已收束，
+  // 于是 maxTurns+1/+2 的最终通道根本没有跑（AF-143 根因）。
+  return turnIndex >= maxTurns;
 }
 
 /**
@@ -1281,6 +1286,23 @@ function shouldStopAfterRoutineClosing(
   closingTexts: readonly string[],
 ): boolean {
   return cue.forcedClose && !crisisWindow.active && evaluateRoutineClosingText(closingTexts.join('\n')).complete;
+}
+
+/**
+ * AF-143 · 最终收束的确定性兜底。
+ *
+ * 模型即使走独立通道仍可能只写两段或漏掉 summary；这里按缺失项补齐，
+ * 并把本轮标成“请求 END”，保证最终收束真正落在末轮。
+ * 只补结构句式，不编造来访者没说过的具体事实。
+ */
+function completeFinalClosingReply(reply: CounselorReply, history: readonly CounselorHistoryTurn[]): CounselorReply {
+  const lastVisitorText = [...history].reverse().find((turn) => turn.role === 'visitor')?.text ?? '';
+  const completed = completeRoutineClosingText(reply.text, lastVisitorText);
+  return {
+    ...reply,
+    text: completed,
+    closeRequested: true,
+  };
 }
 
 function buildCounselorOptions(

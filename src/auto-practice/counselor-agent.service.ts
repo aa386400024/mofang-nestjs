@@ -102,6 +102,9 @@ export interface CounselorGenerateContext extends CounselorGenerateOptions {
 /** 历史窗口: 最多喂给咨询师最近 N 轮. */
 const HISTORY_WINDOW_TURNS = 10;
 
+/** 最终收束通道只喂最近 6 条消息（3 轮）摘要，避免模型把长历史当成继续对话。 */
+const FINAL_CLOSING_WINDOW_MESSAGES = 6;
+
 /** 首轮用户提示 (让模型知道这是开场). */
 const OPENING_HINT = '（咨询室场景，来访者刚坐下。请说你的开场第一句。）';
 
@@ -149,17 +152,88 @@ export class CounselorAgentService {
     // AF-091: 会话档案决定 prompt 里要不要加"长会话收尾纪律"块.
     //   ⚠️ 缺省 = legacy → prompt 与 2026-11-18 之前**逐字一致**.
     const profile = resolveSessionProfile(options?.sessionProfile);
-    const messages = this.buildMessages(mode, history, crisisMode, profile, options?.turnIndex, {
-      closingCue: options?.closingCue,
-      remainingTurns: options?.remainingTurns,
+    const messages =
+      options?.finalClosing === true
+        ? this.buildFinalClosingMessages(mode, history, profile, options)
+        : this.buildMessages(mode, history, crisisMode, profile, options?.turnIndex, {
+            closingCue: options?.closingCue,
+            remainingTurns: options?.remainingTurns,
+            crisisClosing: options?.crisisClosing === true,
+            crisisClosingRound: options?.crisisClosingRound,
+            crisisMissing: options?.crisisMissing,
+            closingMissing: options?.closingMissing,
+            finalClosing: false,
+          });
+    const policy = resolveGenerationPolicy(profile.name);
+    return this.generateWithMessages(messages, policy);
+  }
+
+  /**
+   * 最终收束的独立单轮通道。
+   *
+   * 为什么不复用 {@link generate}：最后 10 轮历史会被模型当成“继续聊”的上下文，
+   * 即使 system 末尾有最高优先级的最终收束块，模型仍会接着提问（AF-140 实测
+   * 13/16 场次在 maxTurns+1/+2 仍在探索）。这里只喂最近 6 轮的**摘要记录**，
+   * 作为一次性指令，不构成连续对话，模型只能执行三段收束。
+   *
+   * @param mode 咨询模式
+   * @param history 会话历史
+   * @param options 生成上下文（finalClosing 强制为 true）
+   * @returns 咨询师回复
+   */
+  async generateFinalClosing(
+    mode: CounselorMode,
+    history: readonly CounselorHistoryTurn[],
+    options?: CounselorGenerateContext,
+  ): Promise<CounselorReply> {
+    return this.generate(mode, history, { ...options, finalClosing: true });
+  }
+
+  /**
+   * 最终收束通道的 messages：system 走最高优先级收束块，user 只放最近 6 条
+   * 消息摘要，明确声明“不要继续对话”，避免模型按连续会话续写。
+   */
+  private buildFinalClosingMessages(
+    mode: CounselorMode,
+    history: readonly CounselorHistoryTurn[],
+    profile: SessionProfile,
+    options?: CounselorGenerateContext,
+  ): ChatMessage[] {
+    const cue: PromptBuildCue = {
+      closingCue: 'forced',
+      remainingTurns: 1,
       crisisClosing: options?.crisisClosing === true,
       crisisClosingRound: options?.crisisClosingRound,
       crisisMissing: options?.crisisMissing,
       closingMissing: options?.closingMissing,
-      finalClosing: options?.finalClosing === true,
-    });
-    const policy = resolveGenerationPolicy(profile.name);
+      finalClosing: true,
+    };
+    const systemContent = this.promptBuilder.build(mode, false, profile, options?.turnIndex, cue);
+    const windowed = history.slice(-FINAL_CLOSING_WINDOW_MESSAGES);
+    const recap = windowed.length
+      ? windowed.map((turn) => `${turn.role === 'counselor' ? '咨询师' : '来访者'}：${turn.text.trim().slice(0, 240)}`).join('\n')
+      : '（本次会谈没有可用的最近记录）';
+    return [
+      { role: 'system', content: systemContent },
+      {
+        role: 'user',
+        content: [
+          '以下是本次会谈最后几轮的记录，只用于写最终收束，不要继续对话，也不要提问：',
+          recap,
+          '',
+          `请直接输出三段收束，并在最后一行输出 ${CLOSE_TAG}。`,
+        ].join('\n'),
+      },
+    ];
+  }
 
+  /**
+   * 对给定 messages 做一次生成 + 可见输出校验 + 一次预算重试。
+   *
+   * 抽出来是为了让普通轮与最终收束轮共用同一套空输出/截断处理，
+   * 不在两条路径上各写一遍（AF-140 的收束失败有一半来自“只出推理块”）。
+   */
+  private async generateWithMessages(messages: ChatMessage[], policy: CounselorGenerationPolicy): Promise<CounselorReply> {
     const first = await this.callModel(messages, policy);
     if (!first) {
       // 上游异常 → 直接兜底 (不重试: provider 层已有自己的退避重试链).
