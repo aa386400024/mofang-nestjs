@@ -1,0 +1,2714 @@
+{
+  "version": "af127-v1",
+  "generatedAt": "2026-11-19T06:17:09.636Z",
+  "status": "candidate",
+  "gateEligible": false,
+  "disclaimer": "结构审计只回答\"逐字稿里有没有这些结构\", 不做临床质量判断; 命中结构不等于质量达标, 缺失结构也不等于咨询失败; 未接入 batch-report / CI, 状态固定 candidate。",
+  "packDir": "data/phase25-exit/af130-long-pack",
+  "packets": [
+    {
+      "packetId": "packet-01",
+      "turnCount": 50,
+      "counselorTurns": 50,
+      "openingWindow": {
+        "from": 1,
+        "to": 10
+      },
+      "closingWindow": {
+        "from": 41,
+        "to": 50
+      },
+      "opening": {
+        "confidentiality": {
+          "covered": true,
+          "evidence": "先说明基本设置：这里谈到的内容我会保密，不会告诉别人 ｜ 但如果出现自伤、自杀、生命危险，或法律要求，我需要联系相关的人或机构来保护你",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "secrecy",
+            "exception"
+          ],
+          "missingGroups": []
+        },
+        "boundary": {
+          "covered": true,
+          "evidence": "先说明基本设置：这里谈到的内容我会保密，不会告诉别人 ｜ 我们只做咨询，不评判、不指责，也不能替你决定",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "setting",
+            "limit"
+          ],
+          "missingGroups": []
+        },
+        "duration": {
+          "covered": true,
+          "evidence": "每次约五十分钟，通常每周一次，时间和频率需要调整时可以商量 ｜ 每次约五十分钟，通常每周一次，时间和频率需要调整时可以商量",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "length",
+            "cadence"
+          ],
+          "missingGroups": []
+        },
+        "pauseRefusal": {
+          "covered": true,
+          "evidence": "随时可以喊停、暂停 ｜ 不想说的话题可以拒绝或跳过，不用勉强自己",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "pause",
+            "refuse"
+          ],
+          "missingGroups": []
+        },
+        "recording": {
+          "covered": true,
+          "evidence": "这次不录音 ｜ 以后如果需要录音或录像，我会先征得你的同意",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "recording",
+            "consent"
+          ],
+          "missingGroups": []
+        }
+      },
+      "closing": {
+        "summary": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "summaryAction",
+            "understanding"
+          ]
+        },
+        "takeaway": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "carry"
+          ]
+        },
+        "nextStep": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "arrangement"
+          ]
+        }
+      },
+      "crisisDetected": true,
+      "riskClosing": {
+        "means": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "means"
+          ]
+        },
+        "channel": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "channel"
+          ]
+        },
+        "contact": {
+          "covered": true,
+          "evidence": "你不去找朋友或者打电话的时候，一般还能撑多久 ｜ 如果超过五分钟没缓解、胸痛加重，或出现呼吸困难、头晕、冒冷汗，立刻告诉电话里的朋友，拨打急救电话 ｜ 如果突然疼得更厉害、疼痛扩散到手臂或下颌、开始出汗、恶心、呼吸困难或头晕，立刻告诉朋友并拨打急救电话，不要自己开车",
+          "evidenceTurns": [
+            41,
+            46,
+            47,
+            48
+          ],
+          "matchedGroups": [
+            "contact"
+          ],
+          "missingGroups": []
+        },
+        "noAlone": {
+          "covered": true,
+          "evidence": "保持电话开着，先不要挂 ｜ 手机放在手边，不要静音，不要一个人待着",
+          "evidenceTurns": [
+            47,
+            50
+          ],
+          "matchedGroups": [
+            "noAlone"
+          ],
+          "missingGroups": []
+        },
+        "commitment": {
+          "covered": true,
+          "evidence": "先把今晚的安全安排具体一点：今晚必须一直保持和某个人的联系，可以是语音通话，不用挂断",
+          "evidenceTurns": [
+            43
+          ],
+          "matchedGroups": [
+            "commitment"
+          ],
+          "missingGroups": []
+        }
+      },
+      "closingMode": "risk",
+      "riskClosingComplete": true,
+      "openingComplete": true,
+      "closingComplete": true
+    },
+    {
+      "packetId": "packet-02",
+      "turnCount": 40,
+      "counselorTurns": 40,
+      "openingWindow": {
+        "from": 1,
+        "to": 10
+      },
+      "closingWindow": {
+        "from": 31,
+        "to": 40
+      },
+      "opening": {
+        "confidentiality": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "secrecy",
+            "exception"
+          ]
+        },
+        "boundary": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "setting",
+            "limit"
+          ]
+        },
+        "duration": {
+          "covered": false,
+          "evidence": "这听起来像是一种长期、严格的自我评价方式：你先关注“还不够”，而不是允许自己看见“已经做得还不错”",
+          "evidenceTurns": [
+            7
+          ],
+          "matchedGroups": [
+            "cadence"
+          ],
+          "missingGroups": [
+            "length"
+          ]
+        },
+        "pauseRefusal": {
+          "covered": true,
+          "evidence": "如果有不舒服的地方，你随时可以喊停、暂停或跳过 ｜ 如果有不舒服的地方，你随时可以喊停、暂停或跳过",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "pause",
+            "refuse"
+          ],
+          "missingGroups": []
+        },
+        "recording": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "recording",
+            "consent"
+          ]
+        }
+      },
+      "closing": {
+        "summary": {
+          "covered": false,
+          "evidence": "这听起来不是给自己找退路，而是你更信任“投入使用后能得到真实反馈”这件事 ｜ 你担心的那部分我听到了：“不行”这两个字在你心里，很快就会从“这个方案需要修改”，滑向“我这个人没有能力” ｜ 我听到了",
+          "evidenceTurns": [
+            32,
+            34,
+            38
+          ],
+          "matchedGroups": [
+            "understanding"
+          ],
+          "missingGroups": [
+            "summaryAction"
+          ]
+        },
+        "takeaway": {
+          "covered": true,
+          "evidence": "带走这一句：“今晚先不继续证明什么，先让自己休息",
+          "evidenceTurns": [
+            40
+          ],
+          "matchedGroups": [
+            "carry"
+          ],
+          "missingGroups": []
+        },
+        "nextStep": {
+          "covered": true,
+          "evidence": "我们下次见",
+          "evidenceTurns": [
+            40
+          ],
+          "matchedGroups": [
+            "arrangement"
+          ],
+          "missingGroups": []
+        }
+      },
+      "crisisDetected": true,
+      "riskClosing": {
+        "means": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "means"
+          ]
+        },
+        "channel": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "channel"
+          ]
+        },
+        "contact": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "contact"
+          ]
+        },
+        "noAlone": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "noAlone"
+          ]
+        },
+        "commitment": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "commitment"
+          ]
+        }
+      },
+      "closingMode": "risk-incomplete",
+      "riskClosingComplete": false,
+      "openingComplete": false,
+      "closingComplete": false
+    },
+    {
+      "packetId": "packet-03",
+      "turnCount": 14,
+      "counselorTurns": 14,
+      "openingWindow": {
+        "from": 1,
+        "to": 10
+      },
+      "closingWindow": {
+        "from": 5,
+        "to": 14
+      },
+      "opening": {
+        "confidentiality": {
+          "covered": true,
+          "evidence": "你说的内容会保密，我不会告诉别人 ｜ 但如果涉及自伤、自杀、有人身生命危险，或法律要求，我需要联系相关人员或机构来保护你",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "secrecy",
+            "exception"
+          ],
+          "missingGroups": []
+        },
+        "boundary": {
+          "covered": true,
+          "evidence": "你好，先说明一下设置 ｜ 这里只做咨询，我不评判、不指责，也不能替你作决定",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "setting",
+            "limit"
+          ],
+          "missingGroups": []
+        },
+        "duration": {
+          "covered": true,
+          "evidence": "每次大约50分钟，通常每周一次，时间和频率可以商量 ｜ 每次大约50分钟，通常每周一次，时间和频率可以商量",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "length",
+            "cadence"
+          ],
+          "missingGroups": []
+        },
+        "pauseRefusal": {
+          "covered": true,
+          "evidence": "过程中你随时可以喊停或暂停，不想说的可以拒绝或跳过，不用勉强自己 ｜ 过程中你随时可以喊停或暂停，不想说的可以拒绝或跳过，不用勉强自己",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "pause",
+            "refuse"
+          ],
+          "missingGroups": []
+        },
+        "recording": {
+          "covered": true,
+          "evidence": "这次不录音 ｜ 以后如果需要录音或录像，我会先征得你的同意",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "recording",
+            "consent"
+          ],
+          "missingGroups": []
+        }
+      },
+      "closing": {
+        "summary": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "summaryAction",
+            "understanding"
+          ]
+        },
+        "takeaway": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "carry"
+          ]
+        },
+        "nextStep": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "arrangement"
+          ]
+        }
+      },
+      "crisisDetected": true,
+      "riskClosing": {
+        "means": {
+          "covered": true,
+          "evidence": "把厨房的刀收进抽屉并锁好，或者装进盒子放到自己拿不到的地方 ｜ 先收刀",
+          "evidenceTurns": [
+            12,
+            13
+          ],
+          "matchedGroups": [
+            "means"
+          ],
+          "missingGroups": []
+        },
+        "channel": {
+          "covered": true,
+          "evidence": "先把联系方式留一个：当地的心理援助热线或急救电话 ｜ 今晚把援助热线和一个人的联系方式写进手机备忘录 ｜ ”如果不愿意打电话，也可以先去有人的地方坐着，比如楼下、咖啡店或医院急诊",
+          "evidenceTurns": [
+            8,
+            9,
+            12,
+            13,
+            14
+          ],
+          "matchedGroups": [
+            "channel"
+          ],
+          "missingGroups": []
+        },
+        "contact": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "contact"
+          ]
+        },
+        "noAlone": {
+          "covered": true,
+          "evidence": "另外，你平时身边有没有可以随时联系、陪着你的人 ｜ 今天不要独处太久，先去楼下的咖啡店、便利店、图书馆，或者医院急诊坐着",
+          "evidenceTurns": [
+            7,
+            13
+          ],
+          "matchedGroups": [
+            "noAlone"
+          ],
+          "missingGroups": []
+        },
+        "commitment": {
+          "covered": true,
+          "evidence": "独处前先发一条消息，约好如果念头加重、出现计划或你无法保证安全，对方就联系你，并陪你联系专业帮助",
+          "evidenceTurns": [
+            9
+          ],
+          "matchedGroups": [
+            "commitment"
+          ],
+          "missingGroups": []
+        }
+      },
+      "closingMode": "risk",
+      "riskClosingComplete": true,
+      "openingComplete": true,
+      "closingComplete": true
+    },
+    {
+      "packetId": "packet-04",
+      "turnCount": 50,
+      "counselorTurns": 50,
+      "openingWindow": {
+        "from": 1,
+        "to": 10
+      },
+      "closingWindow": {
+        "from": 41,
+        "to": 50
+      },
+      "opening": {
+        "confidentiality": {
+          "covered": true,
+          "evidence": "我先说明一下保密：咨询内容我不会告诉别人 ｜ 我们也简单约定一下：这里的内容保密，我不会告诉别人 ｜ 但如果涉及自伤、自杀、生命危险或法律要求，为了保护你，我会联系相关的人或机构",
+          "evidenceTurns": [
+            1,
+            2
+          ],
+          "matchedGroups": [
+            "secrecy",
+            "exception"
+          ],
+          "missingGroups": []
+        },
+        "boundary": {
+          "covered": true,
+          "evidence": "我们也简单约定一下：这里的内容保密，我不会告诉别人 ｜ 这里只做咨询，我不评判、不指责，也不能替你决定",
+          "evidenceTurns": [
+            2
+          ],
+          "matchedGroups": [
+            "setting",
+            "limit"
+          ],
+          "missingGroups": []
+        },
+        "duration": {
+          "covered": true,
+          "evidence": "每次大约50分钟、每周一次，时间和频率可以商量 ｜ 每次大约50分钟、每周一次，时间和频率可以商量",
+          "evidenceTurns": [
+            2
+          ],
+          "matchedGroups": [
+            "length",
+            "cadence"
+          ],
+          "missingGroups": []
+        },
+        "pauseRefusal": {
+          "covered": true,
+          "evidence": "你可以随时喊停，也可以跳过不想说的话题 ｜ 你可以随时喊停，也可以跳过不想说的话题",
+          "evidenceTurns": [
+            2
+          ],
+          "matchedGroups": [
+            "pause",
+            "refuse"
+          ],
+          "missingGroups": []
+        },
+        "recording": {
+          "covered": true,
+          "evidence": "这次不录音 ｜ 以后如果需要录音或录像，我会先征求你的同意",
+          "evidenceTurns": [
+            2
+          ],
+          "matchedGroups": [
+            "recording",
+            "consent"
+          ],
+          "missingGroups": []
+        }
+      },
+      "closing": {
+        "summary": {
+          "covered": false,
+          "evidence": "嗯，我听到你留一点余地，不是因为你不想要信任，而是因为你怕自己一旦完全相信，连同那份希望一起被拿走 ｜ 我听到了，这并不是你不愿意信任，而是目前他给到的回应还没有累积成那种“即使反复确认，关系也不会突然撤走”的安全感 ｜ 我听到的是，你需要的不只是一句“我不会了”，而是他愿意亲口承认那几次退开确实伤到了你，把没有说清的部分补上",
+          "evidenceTurns": [
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50
+          ],
+          "matchedGroups": [
+            "understanding"
+          ],
+          "missingGroups": [
+            "summaryAction"
+          ]
+        },
+        "takeaway": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "carry"
+          ]
+        },
+        "nextStep": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "arrangement"
+          ]
+        }
+      },
+      "crisisDetected": true,
+      "riskClosing": {
+        "means": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "means"
+          ]
+        },
+        "channel": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "channel"
+          ]
+        },
+        "contact": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "contact"
+          ]
+        },
+        "noAlone": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "noAlone"
+          ]
+        },
+        "commitment": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "commitment"
+          ]
+        }
+      },
+      "closingMode": "risk-incomplete",
+      "riskClosingComplete": false,
+      "openingComplete": true,
+      "closingComplete": false
+    },
+    {
+      "packetId": "packet-05",
+      "turnCount": 28,
+      "counselorTurns": 28,
+      "openingWindow": {
+        "from": 1,
+        "to": 10
+      },
+      "closingWindow": {
+        "from": 19,
+        "to": 28
+      },
+      "opening": {
+        "confidentiality": {
+          "covered": true,
+          "evidence": "在开始前先说明保密原则：你在这里说的事，我不会告诉别人 ｜ 若涉及自伤、自杀、生命危险或法律要求，我会联系相关人员或机构来保护你",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "secrecy",
+            "exception"
+          ],
+          "missingGroups": []
+        },
+        "boundary": {
+          "covered": false,
+          "evidence": "这里不评判、不指责，也不能替你做决定",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "limit"
+          ],
+          "missingGroups": [
+            "setting"
+          ]
+        },
+        "duration": {
+          "covered": true,
+          "evidence": "我们每次大约50分钟，通常每周一次 ｜ 六个月总时长不算少，但反复醒来、多梦会让睡眠恢复不足 ｜ 我们每次大约50分钟，通常每周一次",
+          "evidenceTurns": [
+            1,
+            4,
+            5
+          ],
+          "matchedGroups": [
+            "length",
+            "cadence"
+          ],
+          "missingGroups": []
+        },
+        "pauseRefusal": {
+          "covered": true,
+          "evidence": "你随时可以喊停或暂停，不想说的可以拒绝或跳过，不用勉强自己 ｜ 你随时可以喊停或暂停，不想说的可以拒绝或跳过，不用勉强自己 ｜ 这部分你不想展开，可以先跳过",
+          "evidenceTurns": [
+            1,
+            10
+          ],
+          "matchedGroups": [
+            "pause",
+            "refuse"
+          ],
+          "missingGroups": []
+        },
+        "recording": {
+          "covered": true,
+          "evidence": "这次不录音 ｜ 以后如果需要录音或录像，我会先征求你的同意",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "recording",
+            "consent"
+          ],
+          "missingGroups": []
+        }
+      },
+      "closing": {
+        "summary": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "summaryAction",
+            "understanding"
+          ]
+        },
+        "takeaway": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "carry"
+          ]
+        },
+        "nextStep": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "arrangement"
+          ]
+        }
+      },
+      "crisisDetected": true,
+      "riskClosing": {
+        "means": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "means"
+          ]
+        },
+        "channel": {
+          "covered": true,
+          "evidence": "如果那种感觉加重，或者出现伤害自己的念头，请立刻联系心理援助热线，或者去最近的急诊，也可以联系一个可信任的人陪着你 ｜ 若那种“撑不住”的感觉加重，或出现自伤念头，立刻拨打全国心理援助热线12356，必要时拨120或去急诊",
+          "evidenceTurns": [
+            26,
+            27
+          ],
+          "matchedGroups": [
+            "channel"
+          ],
+          "missingGroups": []
+        },
+        "contact": {
+          "covered": true,
+          "evidence": "家里人看不出来的话，能不能找一个可信任的人，知道你这段时间很累，也知道你明天会去做检查 ｜ 如果那种感觉加重，或者出现伤害自己的念头，请立刻联系心理援助热线，或者去最近的急诊，也可以联系一个可信任的人陪着你",
+          "evidenceTurns": [
+            25,
+            26
+          ],
+          "matchedGroups": [
+            "contact"
+          ],
+          "missingGroups": []
+        },
+        "noAlone": {
+          "covered": true,
+          "evidence": "如果那种感觉加重，或者出现伤害自己的念头，请立刻联系心理援助热线，或者去最近的急诊，也可以联系一个可信任的人陪着你",
+          "evidenceTurns": [
+            26
+          ],
+          "matchedGroups": [
+            "noAlone"
+          ],
+          "missingGroups": []
+        },
+        "commitment": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "commitment"
+          ]
+        }
+      },
+      "closingMode": "risk",
+      "riskClosingComplete": true,
+      "openingComplete": false,
+      "closingComplete": true
+    },
+    {
+      "packetId": "packet-06",
+      "turnCount": 50,
+      "counselorTurns": 50,
+      "openingWindow": {
+        "from": 1,
+        "to": 10
+      },
+      "closingWindow": {
+        "from": 41,
+        "to": 50
+      },
+      "opening": {
+        "confidentiality": {
+          "covered": true,
+          "evidence": "我先简单说明一下，这里的内容我会保密，不会告诉别人 ｜ 但如果涉及自伤、自杀、生命危险或法律要求，我会联系相关的人或机构来保护你",
+          "evidenceTurns": [
+            2
+          ],
+          "matchedGroups": [
+            "secrecy",
+            "exception"
+          ],
+          "missingGroups": []
+        },
+        "boundary": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "setting",
+            "limit"
+          ]
+        },
+        "duration": {
+          "covered": true,
+          "evidence": "我们每次大约聊50分钟，通常每周一次，时间和频率都可以再商量 ｜ 我们每次大约聊50分钟，通常每周一次，时间和频率都可以再商量",
+          "evidenceTurns": [
+            2
+          ],
+          "matchedGroups": [
+            "length",
+            "cadence"
+          ],
+          "missingGroups": []
+        },
+        "pauseRefusal": {
+          "covered": true,
+          "evidence": "过程中你随时可以喊停、暂停，不想说的话题可以跳过，不用勉强自己 ｜ 过程中你随时可以喊停、暂停，不想说的话题可以跳过，不用勉强自己",
+          "evidenceTurns": [
+            2
+          ],
+          "matchedGroups": [
+            "pause",
+            "refuse"
+          ],
+          "missingGroups": []
+        },
+        "recording": {
+          "covered": true,
+          "evidence": "这次不录音 ｜ 以后如果需要录音或录像，我会先征得你的同意",
+          "evidenceTurns": [
+            2
+          ],
+          "matchedGroups": [
+            "recording",
+            "consent"
+          ],
+          "missingGroups": []
+        }
+      },
+      "closing": {
+        "summary": {
+          "covered": false,
+          "evidence": "我听到的是，你并不是没有感情，而是太习惯先把自己藏起来，好让对方一直觉得被爱着 ｜ 我听到你的担心，也听到里面有委屈——你已经真的很努力了，却连说一声累，都像是会给他添麻烦 ｜ 我听到你总是先把他安顿好，确认“这不是他的错”",
+          "evidenceTurns": [
+            41,
+            42,
+            43,
+            44,
+            45,
+            47,
+            48,
+            49,
+            50
+          ],
+          "matchedGroups": [
+            "understanding"
+          ],
+          "missingGroups": [
+            "summaryAction"
+          ]
+        },
+        "takeaway": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "carry"
+          ]
+        },
+        "nextStep": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "arrangement"
+          ]
+        }
+      },
+      "crisisDetected": true,
+      "riskClosing": {
+        "means": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "means"
+          ]
+        },
+        "channel": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "channel"
+          ]
+        },
+        "contact": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "contact"
+          ]
+        },
+        "noAlone": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "noAlone"
+          ]
+        },
+        "commitment": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "commitment"
+          ]
+        }
+      },
+      "closingMode": "risk-incomplete",
+      "riskClosingComplete": false,
+      "openingComplete": false,
+      "closingComplete": false
+    },
+    {
+      "packetId": "packet-07",
+      "turnCount": 50,
+      "counselorTurns": 50,
+      "openingWindow": {
+        "from": 1,
+        "to": 10
+      },
+      "closingWindow": {
+        "from": 41,
+        "to": 50
+      },
+      "opening": {
+        "confidentiality": {
+          "covered": true,
+          "evidence": "咨询内容会保密，我不会告诉别人 ｜ 如果涉及自伤、自杀、他人伤害或法律要求，我需要联系相关人员或机构来保护你",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "secrecy",
+            "exception"
+          ],
+          "missingGroups": []
+        },
+        "boundary": {
+          "covered": false,
+          "evidence": "你担心同事的具体反应，还是主要在评估自己那晚的工作方式",
+          "evidenceTurns": [
+            3
+          ],
+          "matchedGroups": [
+            "setting"
+          ],
+          "missingGroups": [
+            "limit"
+          ]
+        },
+        "duration": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "length",
+            "cadence"
+          ]
+        },
+        "pauseRefusal": {
+          "covered": true,
+          "evidence": "你随时可以喊停、暂停，也可以拒绝或跳过不想说的话题，不用勉强自己 ｜ 你随时可以喊停、暂停，也可以拒绝或跳过不想说的话题，不用勉强自己 ｜ 先聊近况，其他部分先跳过",
+          "evidenceTurns": [
+            1,
+            2
+          ],
+          "matchedGroups": [
+            "pause",
+            "refuse"
+          ],
+          "missingGroups": []
+        },
+        "recording": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "recording",
+            "consent"
+          ]
+        }
+      },
+      "closing": {
+        "summary": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "summaryAction",
+            "understanding"
+          ]
+        },
+        "takeaway": {
+          "covered": true,
+          "evidence": "如果进场前又冒出“没记住”的念头，可以提醒自己：模板本来就在本子里，不靠记忆临场生成",
+          "evidenceTurns": [
+            41
+          ],
+          "matchedGroups": [
+            "carry"
+          ],
+          "missingGroups": []
+        },
+        "nextStep": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "arrangement"
+          ]
+        }
+      },
+      "crisisDetected": true,
+      "riskClosing": {
+        "means": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "means"
+          ]
+        },
+        "channel": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "channel"
+          ]
+        },
+        "contact": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "contact"
+          ]
+        },
+        "noAlone": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "noAlone"
+          ]
+        },
+        "commitment": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "commitment"
+          ]
+        }
+      },
+      "closingMode": "risk-incomplete",
+      "riskClosingComplete": false,
+      "openingComplete": false,
+      "closingComplete": false
+    },
+    {
+      "packetId": "packet-08",
+      "turnCount": 30,
+      "counselorTurns": 30,
+      "openingWindow": {
+        "from": 1,
+        "to": 10
+      },
+      "closingWindow": {
+        "from": 21,
+        "to": 30
+      },
+      "opening": {
+        "confidentiality": {
+          "covered": true,
+          "evidence": "你在这里说的话我会保密，不会告诉别人 ｜ 只有出现自伤、自杀、生命危险，或法律要求时，我才会联系相关的人或机构来保护你",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "secrecy",
+            "exception"
+          ],
+          "missingGroups": []
+        },
+        "boundary": {
+          "covered": true,
+          "evidence": "这很合理，连边界在哪都还没看清，确实很难贸然开口 ｜ 既然内容已经理顺，说明你并没有被整件事卡住，只是卡在框架上，而且重做的时间成本让你不敢轻易动 ｜ 既然内容已经理顺，框架其实不需要全部推倒重来",
+          "evidenceTurns": [
+            1,
+            8,
+            9,
+            10
+          ],
+          "matchedGroups": [
+            "setting",
+            "limit"
+          ],
+          "missingGroups": []
+        },
+        "duration": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "length",
+            "cadence"
+          ]
+        },
+        "pauseRefusal": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "pause",
+            "refuse"
+          ]
+        },
+        "recording": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "recording",
+            "consent"
+          ]
+        }
+      },
+      "closing": {
+        "summary": {
+          "covered": false,
+          "evidence": "我听到了，流程是必要的，但如果你一直被要求“为了大局”默默接受，这种话本身就会变成另一种压力 ｜ 我听到了，你真正卡住的点在于：流程上你知道“定方案后、推进前”是最合理的时间窗口，但把这层需求说出来，又怕对方会觉得你是… ｜ 我听到你其实特别不想让这次沟通看起来像一场“争夺主导权”的较量",
+          "evidenceTurns": [
+            24,
+            28,
+            30
+          ],
+          "matchedGroups": [
+            "understanding"
+          ],
+          "missingGroups": [
+            "summaryAction"
+          ]
+        },
+        "takeaway": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "carry"
+          ]
+        },
+        "nextStep": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "arrangement"
+          ]
+        }
+      },
+      "crisisDetected": true,
+      "riskClosing": {
+        "means": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "means"
+          ]
+        },
+        "channel": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "channel"
+          ]
+        },
+        "contact": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "contact"
+          ]
+        },
+        "noAlone": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "noAlone"
+          ]
+        },
+        "commitment": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "commitment"
+          ]
+        }
+      },
+      "closingMode": "risk-incomplete",
+      "riskClosingComplete": false,
+      "openingComplete": false,
+      "closingComplete": false
+    },
+    {
+      "packetId": "packet-09",
+      "turnCount": 46,
+      "counselorTurns": 46,
+      "openingWindow": {
+        "from": 1,
+        "to": 10
+      },
+      "closingWindow": {
+        "from": 37,
+        "to": 46
+      },
+      "opening": {
+        "confidentiality": {
+          "covered": true,
+          "evidence": "咨询内容我会保密，不告诉别人 ｜ 但涉及自伤、自杀、他人生命危险或法律要求时，我会联系相关人员或机构以确保安全",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "secrecy",
+            "exception"
+          ],
+          "missingGroups": []
+        },
+        "boundary": {
+          "covered": false,
+          "evidence": "我会按咨询的方式回应，不评判、不指责，也不能替你作决定",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "limit"
+          ],
+          "missingGroups": [
+            "setting"
+          ]
+        },
+        "duration": {
+          "covered": true,
+          "evidence": "九点多开始，先刷约半小时 ｜ 明天晚上离开前，用十分钟只回答三件事：旧数据有哪些核心模块、迁移顺序是什么、第一版最小可跑通流程是什么 ｜ 另外，每天咨询大约50分钟、每周一次",
+          "evidenceTurns": [
+            4,
+            7,
+            10
+          ],
+          "matchedGroups": [
+            "length",
+            "cadence"
+          ],
+          "missingGroups": []
+        },
+        "pauseRefusal": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "pause",
+            "refuse"
+          ]
+        },
+        "recording": {
+          "covered": true,
+          "evidence": "这次不录音，之后如需录音或录像会先征得你同意 ｜ 这次不录音，之后如需录音或录像会先征得你同意",
+          "evidenceTurns": [
+            10
+          ],
+          "matchedGroups": [
+            "recording",
+            "consent"
+          ],
+          "missingGroups": []
+        }
+      },
+      "closing": {
+        "summary": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "summaryAction",
+            "understanding"
+          ]
+        },
+        "takeaway": {
+          "covered": true,
+          "evidence": "可以带走的一句话：已确认的按结论记录，未确认的明确标注，不从具体数据反推规则",
+          "evidenceTurns": [
+            46
+          ],
+          "matchedGroups": [
+            "carry"
+          ],
+          "missingGroups": []
+        },
+        "nextStep": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "arrangement"
+          ]
+        }
+      },
+      "crisisDetected": true,
+      "riskClosing": {
+        "means": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "means"
+          ]
+        },
+        "channel": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "channel"
+          ]
+        },
+        "contact": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "contact"
+          ]
+        },
+        "noAlone": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "noAlone"
+          ]
+        },
+        "commitment": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "commitment"
+          ]
+        }
+      },
+      "closingMode": "risk-incomplete",
+      "riskClosingComplete": false,
+      "openingComplete": false,
+      "closingComplete": false
+    },
+    {
+      "packetId": "packet-10",
+      "turnCount": 21,
+      "counselorTurns": 21,
+      "openingWindow": {
+        "from": 1,
+        "to": 10
+      },
+      "closingWindow": {
+        "from": 12,
+        "to": 21
+      },
+      "opening": {
+        "confidentiality": {
+          "covered": true,
+          "evidence": "今天这里谈到的内容我会为你保密，不会告诉别人 ｜ 只有在你有自伤、自杀、面临生命危险，或法律要求的情况下，我才会联系相关的人或机构来保护你 ｜ 我会在意你的安全，但现在还能坚持对话，也是一种保护",
+          "evidenceTurns": [
+            1,
+            10
+          ],
+          "matchedGroups": [
+            "secrecy",
+            "exception"
+          ],
+          "missingGroups": []
+        },
+        "boundary": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "setting",
+            "limit"
+          ]
+        },
+        "duration": {
+          "covered": true,
+          "evidence": "还有两点先让你安心：每次大约50分钟，通常每周一次 ｜ 还有两点先让你安心：每次大约50分钟，通常每周一次",
+          "evidenceTurns": [
+            2
+          ],
+          "matchedGroups": [
+            "length",
+            "cadence"
+          ],
+          "missingGroups": []
+        },
+        "pauseRefusal": {
+          "covered": true,
+          "evidence": "你随时可以喊停或暂停，不想说的话题也可以拒绝或跳过，不用勉强自己 ｜ 你随时可以喊停或暂停，不想说的话题也可以拒绝或跳过，不用勉强自己",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "pause",
+            "refuse"
+          ],
+          "missingGroups": []
+        },
+        "recording": {
+          "covered": true,
+          "evidence": "这次不录音，以后如果需要录音或录像，我会先征求你的同意 ｜ 这次不录音，以后如果需要录音或录像，我会先征求你的同意",
+          "evidenceTurns": [
+            2
+          ],
+          "matchedGroups": [
+            "recording",
+            "consent"
+          ],
+          "missingGroups": []
+        }
+      },
+      "closing": {
+        "summary": {
+          "covered": false,
+          "evidence": "我听到的是，你不是只想留在原地，你是怕自己鼓起勇气去了以后，还是一样的空虚 ｜ 那句“没人真的会来”，听起来很孤单，也很绝对 ｜ 我听到了，你最难受的不是哪一件具体的事，而是心里空着，像隔着一层，怎么用力都碰不到自己",
+          "evidenceTurns": [
+            12,
+            13,
+            16,
+            20
+          ],
+          "matchedGroups": [
+            "understanding"
+          ],
+          "missingGroups": [
+            "summaryAction"
+          ]
+        },
+        "takeaway": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "carry"
+          ]
+        },
+        "nextStep": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "arrangement"
+          ]
+        }
+      },
+      "crisisDetected": true,
+      "riskClosing": {
+        "means": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "means"
+          ]
+        },
+        "channel": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "channel"
+          ]
+        },
+        "contact": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "contact"
+          ]
+        },
+        "noAlone": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "noAlone"
+          ]
+        },
+        "commitment": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "commitment"
+          ]
+        }
+      },
+      "closingMode": "risk-incomplete",
+      "riskClosingComplete": false,
+      "openingComplete": false,
+      "closingComplete": false
+    },
+    {
+      "packetId": "packet-11",
+      "turnCount": 50,
+      "counselorTurns": 50,
+      "openingWindow": {
+        "from": 1,
+        "to": 10
+      },
+      "closingWindow": {
+        "from": 41,
+        "to": 50
+      },
+      "opening": {
+        "confidentiality": {
+          "covered": true,
+          "evidence": "这里谈到的内容会保密，我不会告诉别人 ｜ 这里谈的内容仍然保密 ｜ 如果涉及自伤、自杀、生命危险或法律要求，我会联系相关的人或机构来保护你",
+          "evidenceTurns": [
+            1,
+            9,
+            10
+          ],
+          "matchedGroups": [
+            "secrecy",
+            "exception"
+          ],
+          "missingGroups": []
+        },
+        "boundary": {
+          "covered": false,
+          "evidence": "咨询中我们只做咨询，不评判、不指责，也不能替你作决定",
+          "evidenceTurns": [
+            4
+          ],
+          "matchedGroups": [
+            "limit"
+          ],
+          "missingGroups": [
+            "setting"
+          ]
+        },
+        "duration": {
+          "covered": true,
+          "evidence": "每次大约50分钟、每周一次，时间或频率需要调整可以商量 ｜ 每次大约50分钟、每周一次，时间或频率需要调整可以商量",
+          "evidenceTurns": [
+            4
+          ],
+          "matchedGroups": [
+            "length",
+            "cadence"
+          ],
+          "missingGroups": []
+        },
+        "pauseRefusal": {
+          "covered": true,
+          "evidence": "另外，你随时可以喊停或跳过某个话题 ｜ 另外，你随时可以喊停或跳过某个话题",
+          "evidenceTurns": [
+            7
+          ],
+          "matchedGroups": [
+            "pause",
+            "refuse"
+          ],
+          "missingGroups": []
+        },
+        "recording": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "recording",
+            "consent"
+          ]
+        }
+      },
+      "closing": {
+        "summary": {
+          "covered": false,
+          "evidence": "比如，我理解你当时想表达的是，这个方案在推进前有没考虑到的一些潜在风险，对吗",
+          "evidenceTurns": [
+            42
+          ],
+          "matchedGroups": [
+            "understanding"
+          ],
+          "missingGroups": [
+            "summaryAction"
+          ]
+        },
+        "takeaway": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "carry"
+          ]
+        },
+        "nextStep": {
+          "covered": true,
+          "evidence": "下次再碰到类似的情况，你可以试着把重点放在感受和动机上",
+          "evidenceTurns": [
+            42
+          ],
+          "matchedGroups": [
+            "arrangement"
+          ],
+          "missingGroups": []
+        }
+      },
+      "crisisDetected": true,
+      "riskClosing": {
+        "means": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "means"
+          ]
+        },
+        "channel": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "channel"
+          ]
+        },
+        "contact": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "contact"
+          ]
+        },
+        "noAlone": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "noAlone"
+          ]
+        },
+        "commitment": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "commitment"
+          ]
+        }
+      },
+      "closingMode": "risk-incomplete",
+      "riskClosingComplete": false,
+      "openingComplete": false,
+      "closingComplete": false
+    },
+    {
+      "packetId": "packet-12",
+      "turnCount": 45,
+      "counselorTurns": 45,
+      "openingWindow": {
+        "from": 1,
+        "to": 10
+      },
+      "closingWindow": {
+        "from": 36,
+        "to": 45
+      },
+      "opening": {
+        "confidentiality": {
+          "covered": true,
+          "evidence": "我先让你知道一件事：你在这里说的话，我会保密，不会告诉别人 ｜ 不过，如果出现自伤或自杀的念头、现实中的生命危险，或者法律要求，我会联系相关的人或机构来保护你",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "secrecy",
+            "exception"
+          ],
+          "missingGroups": []
+        },
+        "boundary": {
+          "covered": false,
+          "evidence": "在这里我不会评判或指责你，也不能替你做决定 ｜ 最难受的地方，可能不只是怕被嫌弃，而是连真实的反应都不能表现出来",
+          "evidenceTurns": [
+            1,
+            6
+          ],
+          "matchedGroups": [
+            "limit"
+          ],
+          "missingGroups": [
+            "setting"
+          ]
+        },
+        "duration": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "length",
+            "cadence"
+          ]
+        },
+        "pauseRefusal": {
+          "covered": true,
+          "evidence": "你随时可以喊停、暂停，也可以跳过不想说的部分，不用勉强自己 ｜ 你随时可以喊停、暂停，也可以跳过不想说的部分，不用勉强自己",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "pause",
+            "refuse"
+          ],
+          "missingGroups": []
+        },
+        "recording": {
+          "covered": false,
+          "evidence": "这次不录音",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "recording"
+          ],
+          "missingGroups": [
+            "consent"
+          ]
+        }
+      },
+      "closing": {
+        "summary": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "summaryAction",
+            "understanding"
+          ]
+        },
+        "takeaway": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "carry"
+          ]
+        },
+        "nextStep": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "arrangement"
+          ]
+        }
+      },
+      "crisisDetected": true,
+      "riskClosing": {
+        "means": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "means"
+          ]
+        },
+        "channel": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "channel"
+          ]
+        },
+        "contact": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "contact"
+          ]
+        },
+        "noAlone": {
+          "covered": true,
+          "evidence": "另外，此刻身边有人可以陪你，还是你更想自己先待一会儿",
+          "evidenceTurns": [
+            39
+          ],
+          "matchedGroups": [
+            "noAlone"
+          ],
+          "missingGroups": []
+        },
+        "commitment": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "commitment"
+          ]
+        }
+      },
+      "closingMode": "risk-incomplete",
+      "riskClosingComplete": false,
+      "openingComplete": false,
+      "closingComplete": false
+    },
+    {
+      "packetId": "packet-13",
+      "turnCount": 50,
+      "counselorTurns": 50,
+      "openingWindow": {
+        "from": 1,
+        "to": 10
+      },
+      "closingWindow": {
+        "from": 41,
+        "to": 50
+      },
+      "opening": {
+        "confidentiality": {
+          "covered": true,
+          "evidence": "这里谈的内容我会保密，不会告诉别人 ｜ 但如果涉及自伤、自杀、生命危险，或法律要求，我会联系相关的人或机构来保护你",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "secrecy",
+            "exception"
+          ],
+          "missingGroups": []
+        },
+        "boundary": {
+          "covered": true,
+          "evidence": "你刚坐下，先说明一下这里的设置 ｜ 这里只做咨询，不评判、不指责，也不能替你决定",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "setting",
+            "limit"
+          ],
+          "missingGroups": []
+        },
+        "duration": {
+          "covered": true,
+          "evidence": "每次大约50分钟，通常每周一次，时间和频率需要调整可以一起商量 ｜ 每次大约50分钟，通常每周一次，时间和频率需要调整可以一起商量",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "length",
+            "cadence"
+          ],
+          "missingGroups": []
+        },
+        "pauseRefusal": {
+          "covered": false,
+          "evidence": "你随时可以说出不舒服的地方，也可以拒绝回答或跳过某个话题",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "refuse"
+          ],
+          "missingGroups": [
+            "pause"
+          ]
+        },
+        "recording": {
+          "covered": true,
+          "evidence": "这次不录音 ｜ 以后如果需要录音或录像，我会先征得你的同意",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "recording",
+            "consent"
+          ],
+          "missingGroups": []
+        }
+      },
+      "closing": {
+        "summary": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "summaryAction",
+            "understanding"
+          ]
+        },
+        "takeaway": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "carry"
+          ]
+        },
+        "nextStep": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "arrangement"
+          ]
+        }
+      },
+      "crisisDetected": true,
+      "riskClosing": {
+        "means": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "means"
+          ]
+        },
+        "channel": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "channel"
+          ]
+        },
+        "contact": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "contact"
+          ]
+        },
+        "noAlone": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "noAlone"
+          ]
+        },
+        "commitment": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "commitment"
+          ]
+        }
+      },
+      "closingMode": "risk-incomplete",
+      "riskClosingComplete": false,
+      "openingComplete": false,
+      "closingComplete": false
+    },
+    {
+      "packetId": "packet-14",
+      "turnCount": 50,
+      "counselorTurns": 50,
+      "openingWindow": {
+        "from": 1,
+        "to": 10
+      },
+      "closingWindow": {
+        "from": 41,
+        "to": 50
+      },
+      "opening": {
+        "confidentiality": {
+          "covered": true,
+          "evidence": "你在这里说的内容我会保密，不会告诉别人 ｜ 只有涉及自伤、自杀、生命危险或法律要求时，我才会联系相关的人或机构来保护你",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "secrecy",
+            "exception"
+          ],
+          "missingGroups": []
+        },
+        "boundary": {
+          "covered": false,
+          "evidence": "在这里我不会评判或指责你，也没法替你作决定",
+          "evidenceTurns": [
+            2
+          ],
+          "matchedGroups": [
+            "limit"
+          ],
+          "missingGroups": [
+            "setting"
+          ]
+        },
+        "duration": {
+          "covered": false,
+          "evidence": "这次咨询大约每次 50 分钟、每周一次，时间或频率我们可以商量",
+          "evidenceTurns": [
+            2
+          ],
+          "matchedGroups": [
+            "cadence"
+          ],
+          "missingGroups": [
+            "length"
+          ]
+        },
+        "pauseRefusal": {
+          "covered": true,
+          "evidence": "你随时可以喊停、暂停，不想说的也可以跳过 ｜ 你随时可以喊停、暂停，不想说的也可以跳过",
+          "evidenceTurns": [
+            2
+          ],
+          "matchedGroups": [
+            "pause",
+            "refuse"
+          ],
+          "missingGroups": []
+        },
+        "recording": {
+          "covered": false,
+          "evidence": "这次不录音",
+          "evidenceTurns": [
+            2
+          ],
+          "matchedGroups": [
+            "recording"
+          ],
+          "missingGroups": [
+            "consent"
+          ]
+        }
+      },
+      "closing": {
+        "summary": {
+          "covered": false,
+          "evidence": "我听到你不只是需要他听见“我生气了”，还需要他不要急着用道歉结束这件事，而是陪你把话听完 ｜ 我听到，你不是想逼他，你只是想让这次生气真正被看见 ｜ 我听到，那一刻你连提出“我还想说完”都做不到",
+          "evidenceTurns": [
+            43,
+            44,
+            45,
+            46,
+            48,
+            50
+          ],
+          "matchedGroups": [
+            "understanding"
+          ],
+          "missingGroups": [
+            "summaryAction"
+          ]
+        },
+        "takeaway": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "carry"
+          ]
+        },
+        "nextStep": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "arrangement"
+          ]
+        }
+      },
+      "crisisDetected": true,
+      "riskClosing": {
+        "means": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "means"
+          ]
+        },
+        "channel": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "channel"
+          ]
+        },
+        "contact": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "contact"
+          ]
+        },
+        "noAlone": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "noAlone"
+          ]
+        },
+        "commitment": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "commitment"
+          ]
+        }
+      },
+      "closingMode": "risk-incomplete",
+      "riskClosingComplete": false,
+      "openingComplete": false,
+      "closingComplete": false
+    },
+    {
+      "packetId": "packet-15",
+      "turnCount": 50,
+      "counselorTurns": 50,
+      "openingWindow": {
+        "from": 1,
+        "to": 10
+      },
+      "closingWindow": {
+        "from": 41,
+        "to": 50
+      },
+      "opening": {
+        "confidentiality": {
+          "covered": true,
+          "evidence": "咨询内容会保密，我不会告诉别人 ｜ 但如果涉及自伤、自杀、他人生命危险或法律要求，我需要联系相关的人或机构来保护你",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "secrecy",
+            "exception"
+          ],
+          "missingGroups": []
+        },
+        "boundary": {
+          "covered": true,
+          "evidence": "你不是不敢设边界，更像是不相信明确要求会被认真对待 ｜ 这里只做咨询，不评判、不指责，也不能替你决定",
+          "evidenceTurns": [
+            1,
+            7
+          ],
+          "matchedGroups": [
+            "setting",
+            "limit"
+          ],
+          "missingGroups": []
+        },
+        "duration": {
+          "covered": true,
+          "evidence": "每次咨询约50分钟，每周一次，时间或频率可以一起调整 ｜ 每次咨询约50分钟，每周一次，时间或频率可以一起调整",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "length",
+            "cadence"
+          ],
+          "missingGroups": []
+        },
+        "pauseRefusal": {
+          "covered": true,
+          "evidence": "不想说的话题可以拒绝或跳过，也可以随时喊停、暂停 ｜ 这句话不算逼他，因为它说明你愿意暂停，但保留了继续谈的入口 ｜ 不想说的话题可以拒绝或跳过，也可以随时喊停、暂停",
+          "evidenceTurns": [
+            1,
+            5
+          ],
+          "matchedGroups": [
+            "pause",
+            "refuse"
+          ],
+          "missingGroups": []
+        },
+        "recording": {
+          "covered": true,
+          "evidence": "这次不录音 ｜ 以后如需录音或录像，我会先征求你的同意",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "recording",
+            "consent"
+          ],
+          "missingGroups": []
+        }
+      },
+      "closing": {
+        "summary": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "summaryAction",
+            "understanding"
+          ]
+        },
+        "takeaway": {
+          "covered": true,
+          "evidence": "等这次结束前，我帮你整理一个今天可以带走的应对方法 ｜ ”你愿意现在写下来吗",
+          "evidenceTurns": [
+            42,
+            47
+          ],
+          "matchedGroups": [
+            "carry"
+          ],
+          "missingGroups": []
+        },
+        "nextStep": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "arrangement"
+          ]
+        }
+      },
+      "crisisDetected": true,
+      "riskClosing": {
+        "means": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "means"
+          ]
+        },
+        "channel": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "channel"
+          ]
+        },
+        "contact": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "contact"
+          ]
+        },
+        "noAlone": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "noAlone"
+          ]
+        },
+        "commitment": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "commitment"
+          ]
+        }
+      },
+      "closingMode": "risk-incomplete",
+      "riskClosingComplete": false,
+      "openingComplete": true,
+      "closingComplete": false
+    },
+    {
+      "packetId": "packet-16",
+      "turnCount": 23,
+      "counselorTurns": 23,
+      "openingWindow": {
+        "from": 1,
+        "to": 10
+      },
+      "closingWindow": {
+        "from": 14,
+        "to": 23
+      },
+      "opening": {
+        "confidentiality": {
+          "covered": true,
+          "evidence": "你告诉我的内容我会保密，只有涉及自伤、自杀、生命危险或法律要求时，我才会联系相关的人或机构来保护你 ｜ 你告诉我的内容我会保密，只有涉及自伤、自杀、生命危险或法律要求时，我才会联系相关的人或机构来保护你",
+          "evidenceTurns": [
+            1
+          ],
+          "matchedGroups": [
+            "secrecy",
+            "exception"
+          ],
+          "missingGroups": []
+        },
+        "boundary": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "setting",
+            "limit"
+          ]
+        },
+        "duration": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "length",
+            "cadence"
+          ]
+        },
+        "pauseRefusal": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "pause",
+            "refuse"
+          ]
+        },
+        "recording": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "recording",
+            "consent"
+          ]
+        }
+      },
+      "closing": {
+        "summary": {
+          "covered": false,
+          "evidence": "我听到你卡住的地方了 ｜ 我听到了：你现在不会伤害自己，也不觉得门外真的有人 ｜ 我理解你怕麻烦别人，更不想在被追问时不知道该怎么开口",
+          "evidenceTurns": [
+            15,
+            18,
+            19
+          ],
+          "matchedGroups": [
+            "understanding"
+          ],
+          "missingGroups": [
+            "summaryAction"
+          ]
+        },
+        "takeaway": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "carry"
+          ]
+        },
+        "nextStep": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "arrangement"
+          ]
+        }
+      },
+      "crisisDetected": true,
+      "riskClosing": {
+        "means": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "means"
+          ]
+        },
+        "channel": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "channel"
+          ]
+        },
+        "contact": {
+          "covered": true,
+          "evidence": "今晚能不能联系一个可信任的人来陪你，或者至少通话、开视频让你有人在",
+          "evidenceTurns": [
+            18
+          ],
+          "matchedGroups": [
+            "contact"
+          ],
+          "missingGroups": []
+        },
+        "noAlone": {
+          "covered": true,
+          "evidence": "身边现在有人可以陪着你吗 ｜ 先不要一个人硬撑 ｜ 你不需要把整件事讲清楚，可以只说：“我今晚状态不太好，有人在旁边陪着，我会安心一点",
+          "evidenceTurns": [
+            17,
+            18,
+            19,
+            21
+          ],
+          "matchedGroups": [
+            "noAlone"
+          ],
+          "missingGroups": []
+        },
+        "commitment": {
+          "covered": false,
+          "evidence": "",
+          "evidenceTurns": [],
+          "matchedGroups": [],
+          "missingGroups": [
+            "commitment"
+          ]
+        }
+      },
+      "closingMode": "risk",
+      "riskClosingComplete": true,
+      "openingComplete": false,
+      "closingComplete": true
+    }
+  ],
+  "aggregate": {
+    "packetCount": 16,
+    "openingCoverage": {
+      "confidentiality": {
+        "covered": 15,
+        "total": 16,
+        "rate": 0.9375
+      },
+      "boundary": {
+        "covered": 6,
+        "total": 16,
+        "rate": 0.375
+      },
+      "duration": {
+        "covered": 10,
+        "total": 16,
+        "rate": 0.625
+      },
+      "pauseRefusal": {
+        "covered": 12,
+        "total": 16,
+        "rate": 0.75
+      },
+      "recording": {
+        "covered": 9,
+        "total": 16,
+        "rate": 0.5625
+      }
+    },
+    "closingCoverage": {
+      "summary": {
+        "covered": 0,
+        "total": 16,
+        "rate": 0
+      },
+      "takeaway": {
+        "covered": 4,
+        "total": 16,
+        "rate": 0.25
+      },
+      "nextStep": {
+        "covered": 2,
+        "total": 16,
+        "rate": 0.125
+      }
+    },
+    "riskClosingCoverage": {
+      "means": {
+        "covered": 1,
+        "total": 16,
+        "rate": 0.0625
+      },
+      "channel": {
+        "covered": 2,
+        "total": 16,
+        "rate": 0.125
+      },
+      "contact": {
+        "covered": 3,
+        "total": 16,
+        "rate": 0.1875
+      },
+      "noAlone": {
+        "covered": 5,
+        "total": 16,
+        "rate": 0.3125
+      },
+      "commitment": {
+        "covered": 2,
+        "total": 16,
+        "rate": 0.125
+      }
+    },
+    "riskDetectedPackets": 16,
+    "riskClosingCompletePackets": 4,
+    "routineClosingCompletePackets": 0,
+    "closingModeCounts": {
+      "risk": 4,
+      "routine": 0,
+      "risk-incomplete": 12,
+      "none": 0
+    },
+    "openingCompletePackets": 4,
+    "closingCompletePackets": 4,
+    "fullyCoveredPackets": 2,
+    "partiallyCoveredPackets": 14,
+    "status": "candidate",
+    "gateEligible": false,
+    "disclaimer": "结构审计只回答\"逐字稿里有没有这些结构\", 不做临床质量判断; 命中结构不等于质量达标, 缺失结构也不等于咨询失败; 未接入 batch-report / CI, 状态固定 candidate。"
+  }
+}
