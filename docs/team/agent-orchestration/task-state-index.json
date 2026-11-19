@@ -4,10 +4,81 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 534,
+    "lastEventSeq": 536,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-125",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-19T00:58:57.658Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-ai-proxy-acceptance",
+      "title": "AI 代理跨模型预评审与 AI 层面达标判定",
+      "type": "verification",
+      "baselineRef": "fc8b9471b8444d3086245ada86c8eea76b230886",
+      "dependsOn": [
+        "AF-124"
+      ],
+      "priorTasks": [
+        "AF-116"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-19T00:58:57.267Z",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "scope": {
+        "files": [
+          "docs/worklog/pending/",
+          "docs/worklog/completed/",
+          "bin/ai-double-blind.ts",
+          "src/auto-practice/metrics/ai-double-blind.ts",
+          "test/auto-practice/ai-double-blind.spec.ts"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af125-ai-proxy-cross-model-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run test/auto-practice/ai-double-blind.spec.ts",
+          "check": "AI 双盲定向单测全绿",
+          "threshold": "0 failed"
+        }
+      ],
+      "successCriteria": [
+        "用不同模型版本分别担任 R1/R2，R3 使用独立模型，8 packet 全部有效",
+        "给出 AI 层面达标的可复现阈值与判定，不冒充临床验收",
+        "若未达标，明确差在一致性、区分度还是证据覆盖，并给出下一次可执行修正",
+        "不新跑练习批次，只读既有 AF-109 冻结 long packet"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af125-ai-proxy-cross-model-2026-11-19.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": []
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
