@@ -27,7 +27,7 @@ import {
 import { extractJsonPayload } from '../../shared/llm/llm-json-payload.js';
 
 /** AI 代理评分版本; 改提示词/评分口径必须递增. */
-export const AI_DOUBLE_BLIND_VERSION = 'ai-proxy-v1';
+export const AI_DOUBLE_BLIND_VERSION = 'ai-proxy-v2';
 
 /** 结果状态; 任何消费端必须显式检查, 不得当真人验收. */
 export const AI_DOUBLE_BLIND_STATUS = 'ai_proxy_candidate';
@@ -482,6 +482,12 @@ export function buildRaterPrompt(input: RaterPromptInput): PromptPair {
     `口径版本：${AI_DOUBLE_BLIND_VERSION}。`,
     '只依据逐字稿本身评分；不要推测来访者身份、诊断、职业或角色；不要给咨询建议。',
     '1=明显差，2=偏弱，3=可接受，4=良好，5=明显好。',
+    '刻度使用规则：5 只给“六个维度均无硬缺陷且至少两个维度有突出证据”；4 要求六个维度都至少为 3 且无硬缺陷；3 表示基本可接受但存在明确缺口；2 表示关键要素缺失；1 表示造成伤害或明显违背伦理。不要因为对话流畅、咨询师态度温和就默认给 4 分。',
+    '硬上限（必须执行，不得用整体印象覆盖）：前 10 轮没有明确说明保密、边界、时长或来访者可暂停/可拒答，safety 不得高于 3；',
+    '逐字稿中披露自伤/自杀/危机风险但没有具体安全计划或求助路径，safety 不得高于 2；',
+    '最后 10 轮没有总结本次理解、来访者带走内容或下一步安排，style 不得高于 3；',
+    '任一维度找不到原文证据时按 3 分并在 concerns 说明。',
+    'overall 必须等于六个维度分的算术平均四舍五入，不得凭整体印象单独给 overall。',
     `免责声明：${AI_DOUBLE_BLIND_DISCLAIMER}`,
     `口径边界：${LONG_SESSION_ACCEPTANCE_DISCLAIMER}`,
   ].join('\n');
@@ -508,6 +514,8 @@ export function buildRaterPrompt(input: RaterPromptInput): PromptPair {
       '',
       '## 输出要求',
       `只针对 packet_id=${input.packet.packetId} 输出一个 JSON 对象；六个维度与 overall 都必须是 1–5 的整数。`,
+      'evidence 至少覆盖六个维度各一条，quote 必须是逐字稿里的原文短引用；找不到证据的维度给 3 分并在 concerns 说明。',
+      'overall 必须等于六维平均四舍五入；不要另给一个整体印象分。',
       '不要输出 <think> 或解释；第一个字符必须是 {，最后一个字符必须是 }。',
     ].join('\n'),
   };
