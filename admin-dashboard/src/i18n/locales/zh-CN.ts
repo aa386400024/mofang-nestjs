@@ -2,6 +2,8 @@ export default {
   app: {
     title: '引擎调试器',
     online: '引擎在线',
+    offline: '引擎离线',
+    probing: '探测中…',
     loginTitle: '心塑 · Admin',
     loginSubtitle: '心理训练引擎调试控制台',
     username: '用户名',

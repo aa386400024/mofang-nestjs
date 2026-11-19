@@ -2,6 +2,8 @@ export default {
   app: {
     title: 'Engine Debugger',
     online: 'Engine Online',
+    offline: 'Engine Offline',
+    probing: 'Probing…',
     loginTitle: 'XinSu · Admin',
     loginSubtitle: 'Psychology Training Engine Debug Console',
     username: 'Username',

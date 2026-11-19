@@ -20,6 +20,7 @@ import {
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
+import { getAuthHeader } from '@/api/client'
 
 function renderIcon(icon: Component) {
   return () => h(NIcon, null, { default: () => h(icon) })
@@ -155,13 +156,37 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
+const HEALTH_POLL_MS = 30_000
+/** null = 尚未探测；true/false = 最近一次真实探活结果。 */
+const engineOnline = ref<boolean | null>(null)
+let healthTimer: ReturnType<typeof setInterval> | undefined
+
+/**
+ * 静默探活：直接 fetch，不经过 api.health —— 后者在 401 时会弹 Basic 凭据框，
+ * 每 30 秒弹一次会打断使用者。这里只关心后端可达性，不触发任何登录交互。
+ */
+async function probeEngineHealth(): Promise<void> {
+  try {
+    const auth = getAuthHeader()
+    const res = await fetch('/admin/api/health', {
+      headers: auth ? { Authorization: auth } : {},
+    })
+    engineOnline.value = res.ok
+  } catch {
+    engineOnline.value = false
+  }
+}
+
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
   theme.init()
+  void probeEngineHealth()
+  healthTimer = setInterval(() => void probeEngineHealth(), HEALTH_POLL_MS)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
+  if (healthTimer !== undefined) clearInterval(healthTimer)
 })
 
 // Naive UI 主题覆盖
@@ -313,8 +338,8 @@ const breadcrumbs = computed(() => {
           <button @click="handleLogout" class="px-2 py-1 rounded border border-bg-border hover:bg-bg-elevated text-muted" :title="t('app.logout')">
             <n-icon size="16"><log-out-outline /></n-icon>
           </button>
-          <span class="w-1.5 h-1.5 rounded-full bg-ok"></span>
-          <span class="text-muted">{{ t('app.online') }}</span>
+          <span class="w-1.5 h-1.5 rounded-full" :class="engineOnline === false ? 'bg-error' : engineOnline === null ? 'bg-warn' : 'bg-ok'"></span>
+          <span class="text-muted">{{ engineOnline === false ? t('app.offline') : engineOnline === null ? t('app.probing') : t('app.online') }}</span>
         </div>
       </header>
 

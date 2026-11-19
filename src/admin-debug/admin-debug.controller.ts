@@ -79,6 +79,7 @@ import { buildMergedCostTrend, buildMergedSessionList, readTraces, shanghaiDaySt
 import { AdminRoleGuard } from './guards/admin-role.guard.js';
 import type { TurnTrace } from './trace-recorder.service.js';
 import { buildAdminTrajectoryState } from './trajectory-view.js';
+import { gitDescribeDirty, resolveEngineVersion } from '../auto-practice/inference-fingerprint.service.js';
 import { BizCode } from '../common/exceptions/biz-code.enum.js';
 import { BizException } from '../common/exceptions/biz.exception.js';
 import { TrainingSession } from '../counselor/entities/training-session.entity.js';
@@ -694,7 +695,8 @@ export class AdminDebugController {
   effectiveEngineConfig() {
     return {
       capturedAt: new Date().toISOString(),
-      engineVersion: this.config.get<string>('ENGINE_VERSION') ?? 'unknown',
+      // 与推理指纹同一口径：env 显式配置优先，缺省回退 git describe。
+      engineVersion: resolveEngineVersion(this.config.get<string>('ENGINE_VERSION'), gitDescribeDirty),
       deltaCap: resolveDeltaCapConfig(this.config),
       sessionDecay: resolveSessionDecayConfig(this.config),
       personalityModulator: resolvePersonalityModulatorConfig(this.config),
