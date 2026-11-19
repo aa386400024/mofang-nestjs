@@ -1,0 +1,12 @@
+=== 队列概览 ===
+生成时间：2026-11-19T08:14:38.523Z
+自治模式：开启；返修上限：2
+计数（活跃）：ready=0 submitted=1 working=0 completed=0 failed=0 canceled=0 rejected=0 input-required=0 deadLetter=0
+归档任务：149
+
+=== 任务列表 ===
+AF-128 [backlog] fix｜可见输出推理标签泄漏的命名空间与孤立闭合清洗｜结论=—｜返修=0
+AF-136 [submitted] verification｜AF-133 收束修复后的 long 批次质量复评（结构审计 + AI 双盲）｜结论=—｜返修=0
+=== 运行健康 ===
+死信=0 人工持单=0 租约过期释放=0 回执校验失败=0 回执无指纹=0
+单写者锁：空闲
