@@ -24,6 +24,7 @@ import type { EngineTurnResult, TurnEnginePort } from '../../src/auto-practice/p
 import {
   PracticeRunnerService,
   decideTurn,
+  decideTurnCue,
   type CrisisWindowState,
   type StagnationState,
 } from '../../src/auto-practice/practice-runner.service.js';
@@ -48,7 +49,7 @@ type EngineTurnSignature = (debugSessionId: string, counselorText: string) => Pr
 /** 造一份空的危机窗 / 停滞计数状态. */
 function freshState(): { crisisWindow: CrisisWindowState; stagnation: StagnationState } {
   return {
-    crisisWindow: { active: false, firstTurn: 0, postTurns: 0, peakLevel: 0, category: null, escalated: false },
+    crisisWindow: { active: false, firstTurn: 0, postTurns: 0, peakLevel: 0, category: null, escalated: false, escalationTurn: null },
     stagnation: { literalRepeatStreak: 0, noProgressStreak: 0, semanticEchoTurns: 0 },
   };
 }
@@ -169,6 +170,92 @@ describe('AF-133 · decideTurn · 模型的收尾请求优先于危机计数器'
   });
 });
 
+describe('AF-137 · decideTurn · 危机强度上升不再当轮终止', () => {
+  const thresholds = sessionThresholdsOf(LONG_SESSION_PROFILE);
+
+  it('升级当轮继续；下一轮完成风险收束后才 crisis_escalated', () => {
+    const state = freshState();
+    decideTurn({ ...CRISIS_TURN, turnIndex: 1 }, state.crisisWindow, state.stagnation, thresholds);
+    expect(state.crisisWindow.postTurns).toBe(0);
+
+    // 第 2 轮强度从 passive(1) 升到 active(2): 只标记升级, 不终止.
+    const escalation = decideTurn(
+      { ...TURN, turnIndex: 2, crisisDetected: true, crisisCategory: 'active_ideation' },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
+    expect(escalation).toEqual({ kind: 'continue', closeBlocked: false });
+    expect(state.crisisWindow.escalated).toBe(true);
+    expect(state.crisisWindow.escalationTurn).toBe(2);
+    expect(state.crisisWindow.postTurns).toBe(1);
+
+    // 第 3 轮 = 升级后的评估轮: 只做评估与渠道, 不终止.
+    const assessment = decideTurn({ ...TURN, turnIndex: 3 }, state.crisisWindow, state.stagnation, thresholds);
+    expect(assessment).toEqual({ kind: 'continue', closeBlocked: false });
+    expect(state.crisisWindow.postTurns).toBe(2);
+
+    // 第 4 轮 = 计划轮: 这一轮跑完才允许结束.
+    const plan = decideTurn({ ...TURN, turnIndex: 4 }, state.crisisWindow, state.stagnation, thresholds);
+    expect(plan).toEqual({ kind: 'stop', reason: 'crisis_escalated' });
+    expect(state.crisisWindow.postTurns).toBe(3);
+  });
+
+  it('升级后的两轮安全序列里 closeRequested 也不能提前结束（必须先把评估与计划做完）', () => {
+    const state = freshState();
+    decideTurn({ ...CRISIS_TURN, turnIndex: 1 }, state.crisisWindow, state.stagnation, thresholds);
+    decideTurn(
+      { ...TURN, turnIndex: 2, crisisDetected: true, crisisCategory: 'active_ideation' },
+      state.crisisWindow,
+      state.stagnation,
+      thresholds,
+    );
+    const assessment = decideTurn({ ...TURN, turnIndex: 3, closeRequested: true }, state.crisisWindow, state.stagnation, thresholds);
+    expect(assessment).toEqual({ kind: 'continue', closeBlocked: false });
+    const plan = decideTurn({ ...TURN, turnIndex: 4, closeRequested: true }, state.crisisWindow, state.stagnation, thresholds);
+    expect(plan).toEqual({ kind: 'stop', reason: 'crisis_escalated' });
+  });
+
+  it('legacy 档升级仍当轮终止（档案契约逐字不变）', () => {
+    const state = freshState();
+    const legacyThresholds = sessionThresholdsOf(LEGACY_SESSION_PROFILE);
+    decideTurn({ ...CRISIS_TURN, turnIndex: 1 }, state.crisisWindow, state.stagnation, legacyThresholds);
+    const escalation = decideTurn(
+      { ...TURN, turnIndex: 2, crisisDetected: true, crisisCategory: 'active_ideation' },
+      state.crisisWindow,
+      state.stagnation,
+      legacyThresholds,
+    );
+    expect(escalation).toEqual({ kind: 'stop', reason: 'crisis_escalated' });
+    expect(state.crisisWindow.escalationTurn ?? null).toBeNull();
+  });
+
+  it('crisisEscalated=true 时 crisisClosing cue 立即为真，并给出收束轮序号', () => {
+    const first = decideTurnCue({
+      turnIndex: 4,
+      maxTurns: 40,
+      crisisActive: true,
+      crisisPostTurns: 1,
+      crisisPracticeTurns: 6,
+      crisisEscalated: true,
+      crisisEscalationTurn: 3,
+    });
+    expect(first.crisisClosing).toBe(true);
+    expect(first.crisisClosingRound).toBe(1);
+
+    const second = decideTurnCue({
+      turnIndex: 5,
+      maxTurns: 40,
+      crisisActive: true,
+      crisisPostTurns: 2,
+      crisisPracticeTurns: 6,
+      crisisEscalated: true,
+      crisisEscalationTurn: 3,
+    });
+    expect(second.crisisClosingRound).toBe(2);
+  });
+});
+
 describe('AF-133 · runner · forced-close cue 与风险收束轮', () => {
   let counselorTurn = 0;
   let engine: { open: Mock; turn: Mock; close: Mock };
@@ -284,6 +371,57 @@ describe('AF-133 · runner · forced-close cue 与风险收束轮', () => {
     expect(result.exitReason).toBe('crisis_practice_max');
     expect(result.metrics.crisisPostTurns).toBe(7);
     expect(engine.turn).toHaveBeenCalledTimes(9);
+  });
+
+  it('AF-137: 升级后先跑评估轮 + 计划轮，再以 crisis_escalated 结束', async () => {
+    engine.turn
+      .mockResolvedValueOnce(makeTurn(1, '我最近状态还算稳'))
+      .mockResolvedValueOnce(makeTurn(2, '有时候真的觉得活着没意思', 'passive_ideation'))
+      .mockResolvedValueOnce(makeTurn(3, '我这两天一直在想要不要消失', 'active_ideation'))
+      .mockResolvedValueOnce(makeTurn(4, '最近没有具体计划，家里还有一些安眠药'))
+      .mockResolvedValueOnce(makeTurn(5, '我把药交给我姐了，今晚她来陪我，下周复诊'));
+
+    const result = await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: { systemPrompt: '你是专家' } as CounselorMode,
+      maxTurns: 8,
+      sessionProfile: 'long',
+    });
+
+    const calls = counselor.generate.mock.calls;
+    const crisisFlags = calls.map((call) => call[2]?.crisisClosing === true);
+    const closingRounds = calls.map((call) => call[2]?.crisisClosingRound);
+    expect(calls).toHaveLength(5);
+    expect(crisisFlags[2]).toBe(false); // 升级当轮: cue 在检测前算, 这一轮不要求评估
+    expect(crisisFlags[3]).toBe(true); // 评估轮
+    expect(crisisFlags[4]).toBe(true); // 计划轮
+    expect(closingRounds.slice(3)).toEqual([1, 2]);
+    expect(result.exitReason).toBe('crisis_escalated');
+    expect(result.status).toBe('crisis_ended');
+    expect(result.metrics.crisisPostTurns).toBe(3);
+  });
+
+  it('AF-137: 升级撞上 maxTurns 最后一轮时追加 2 轮安全序列', async () => {
+    engine.turn
+      .mockResolvedValueOnce(makeTurn(1, '我最近状态还算稳'))
+      .mockResolvedValueOnce(makeTurn(2, '有时候真的觉得活着没意思', 'passive_ideation'))
+      .mockResolvedValueOnce(makeTurn(3, '我这两天一直在想要不要消失', 'active_ideation'))
+      .mockResolvedValueOnce(makeTurn(4, '最近没有具体计划，家里还有一些安眠药'))
+      .mockResolvedValueOnce(makeTurn(5, '我把药交给我姐了，今晚她来陪我，下周复诊'));
+
+    const result = await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: { systemPrompt: '你是专家' } as CounselorMode,
+      maxTurns: 3,
+      sessionProfile: 'long',
+    });
+
+    const calls = counselor.generate.mock.calls;
+    expect(calls).toHaveLength(5);
+    expect(calls[3]?.[2]?.crisisClosingRound).toBe(1);
+    expect(calls[4]?.[2]?.crisisClosingRound).toBe(2);
+    expect(result.turnCount).toBe(5);
+    expect(result.exitReason).toBe('crisis_escalated');
   });
 
   it('危机窗里模型请求收尾 → crisis_practice_close（不再被计数器抢走）', async () => {

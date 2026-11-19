@@ -292,6 +292,18 @@ describe('AF-133 · 危机收束五项（独立成块）', () => {
     expect(windowOnly.content).toContain('系统会在最后一轮明确告诉你那是风险收束轮');
   });
 
+  it('AF-137: 升级后评估轮先做评估三问与渠道，计划轮做安全计划与随访', () => {
+    const assessment = crisisRiskClosingSection(LONG_SESSION_PROFILE, true, true, 1);
+    expect(assessment.content).toContain('这是升级后的第 1 轮（评估轮）');
+    expect(assessment.content).toContain('意图 / 计划 / 准备与时间点');
+    expect(assessment.content).toContain('下一轮一起把安全计划写下来');
+
+    const plan = crisisRiskClosingSection(LONG_SESSION_PROFILE, true, true, 2);
+    expect(plan.content).toContain('这是升级后的第 2 轮（计划轮）');
+    expect(plan.content).toContain('后续随访');
+    expect(plan.content).toContain('否认意图/计划/准备');
+  });
+
   it('prompt 组装：危机窗里带上五项块', () => {
     const windowPrompt = builder.build(MODE, true, LONG_SESSION_PROFILE, 12);
     expect(windowPrompt).toContain('## 风险收束（五项 · 缺一不可）');

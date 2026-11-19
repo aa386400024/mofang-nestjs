@@ -77,6 +77,11 @@ export interface CounselorGenerateContext extends CounselorGenerateOptions {
    * 不要独处 / 安全承诺) 逐项落地, 而不是只做 grounding.
    */
   readonly crisisClosing?: boolean;
+  /**
+   * AF-137: 升级后第几个风险收束轮 (1 = 评估轮, 2 = 计划轮).
+   * 仅升级路径传入; 普通危机窗用满的收束轮不传, prompt 行为保持原样.
+   */
+  readonly crisisClosingRound?: number;
 }
 
 /** 历史窗口: 最多喂给咨询师最近 N 轮. */
@@ -133,6 +138,7 @@ export class CounselorAgentService {
       closingCue: options?.closingCue,
       remainingTurns: options?.remainingTurns,
       crisisClosing: options?.crisisClosing === true,
+      crisisClosingRound: options?.crisisClosingRound,
     });
     const policy = resolveGenerationPolicy(profile.name);
 

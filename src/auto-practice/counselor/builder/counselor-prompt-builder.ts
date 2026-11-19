@@ -26,6 +26,8 @@ export interface PromptBuildCue {
   readonly remainingTurns?: number;
   /** 这一轮是不是风险收束轮 (五项逐项落地). */
   readonly crisisClosing?: boolean;
+  /** AF-137: 升级后第几个风险收束轮 (1 = 评估轮, 2 = 计划轮). */
+  readonly crisisClosingRound?: number;
 }
 
 /**
@@ -100,7 +102,7 @@ export class CounselorPromptBuilder {
       crisisStabilizationSection(crisisMode),
       sessionCloseDisciplineSection(profile, turnIndex),
       forcedCloseSection(profile, cue?.closingCue === 'forced', cue?.remainingTurns),
-      crisisRiskClosingSection(profile, crisisMode, cue?.crisisClosing === true),
+      crisisRiskClosingSection(profile, crisisMode, cue?.crisisClosing === true, cue?.crisisClosingRound),
     ];
 
     // 按 order 排序, 过滤掉 disabled 的块.
