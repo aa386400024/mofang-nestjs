@@ -22,8 +22,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { CounselorPromptBuilder } from './counselor/builder/counselor-prompt-builder.js';
-import { CLOSE_TAG, CONTINUE_TAG } from './counselor/builder/prompt-sections/close-discipline.js';
+import { CounselorPromptBuilder, type PromptBuildCue } from './counselor/builder/counselor-prompt-builder.js';
+import { CLOSE_TAG, CONTINUE_TAG, type ClosingCue } from './counselor/builder/prompt-sections/close-discipline.js';
 import { sliceHistoryWindow } from './counselor/memory/history-window.js';
 import { FallbackPolicy } from './counselor/policy/fallback-policy.js';
 import { RETRY_GENERATION_POLICY, resolveGenerationPolicy } from './counselor/policy/generation-policy.js';
@@ -43,6 +43,41 @@ import type {
 
 // 向后兼容: 原来从这个文件直接 import 类型的地方不用改.
 export type { CounselorHistoryTurn, CounselorReply, CounselorGenerateOptions };
+export type { ClosingCue };
+
+/**
+ * AF-133 · 生成上下文的扩展项.
+ *
+ * ⚠️ 为什么用扩展接口而不是直接改 `CounselorGenerateOptions` (dto/counselor-types.ts):
+ *   AF-133 的任务单 scope 只放开了 counselor-agent.service.ts / prompt builder /
+ *   prompt-sections / runner 四个源码面, DTO 文件不在 scope 内. 这里按
+ *   "最小增量 + 不越 scope" 处理: 用扩展接口挂两个**可选**开关,
+ *   老调用方 (只传 dto 里那三个字段) 的行为与 prompt 逐字不变.
+ */
+export interface CounselorGenerateContext extends CounselorGenerateOptions {
+  /**
+   * AF-133: 强制收束 cue.
+   *
+   * runner 在 maxTurns 之前最后 2 轮传 'forced' —— prompt 会明确告诉模型
+   * "本场即将结束, 这两轮内完成收束三件套并输出 END" (AF-131 §2.2:
+   * 8/16 场次被 max_turns 硬切, 而模型**无从知道**自己会被切).
+   */
+  readonly closingCue?: ClosingCue;
+  /**
+   * AF-133: 强制收束时从本轮起还剩几轮 (含本轮).
+   *
+   * 让 prompt 能说准数字 —— 显式 maxTurns 可以小于档案上限, 所以这个数只能
+   * 由 runner 算, 不能由 prompt builder 从档案反推.
+   */
+  readonly remainingTurns?: number;
+  /**
+   * AF-133: 这一轮是不是**风险收束轮**.
+   *
+   * true 时 prompt 要求模型把风险收束五项 (移除危险物 / 求助渠道 / 可联系的人 /
+   * 不要独处 / 安全承诺) 逐项落地, 而不是只做 grounding.
+   */
+  readonly crisisClosing?: boolean;
+}
 
 /** 历史窗口: 最多喂给咨询师最近 N 轮. */
 const HISTORY_WINDOW_TURNS = 10;
@@ -88,13 +123,17 @@ export class CounselorAgentService {
   async generate(
     mode: CounselorMode,
     history: readonly CounselorHistoryTurn[],
-    options?: CounselorGenerateOptions,
+    options?: CounselorGenerateContext,
   ): Promise<CounselorReply> {
     const crisisMode = options?.crisisMode === true;
     // AF-091: 会话档案决定 prompt 里要不要加"长会话收尾纪律"块.
     //   ⚠️ 缺省 = legacy → prompt 与 2026-11-18 之前**逐字一致**.
     const profile = resolveSessionProfile(options?.sessionProfile);
-    const messages = this.buildMessages(mode, history, crisisMode, profile, options?.turnIndex);
+    const messages = this.buildMessages(mode, history, crisisMode, profile, options?.turnIndex, {
+      closingCue: options?.closingCue,
+      remainingTurns: options?.remainingTurns,
+      crisisClosing: options?.crisisClosing === true,
+    });
     const policy = resolveGenerationPolicy(profile.name);
 
     const first = await this.callModel(messages, policy);
@@ -202,6 +241,7 @@ export class CounselorAgentService {
    * @param crisisMode 是否处于危机后置练习窗
    * @param profile 会话档案 (AF-091: 决定要不要加长会话收尾纪律块)
    * @param turnIndex 当前轮次 (长会话纪律块会写进 prompt)
+   * @param cue AF-133 动态开关 (强制收束 cue / 风险收束轮)
    */
   private buildMessages(
     mode: CounselorMode,
@@ -209,8 +249,9 @@ export class CounselorAgentService {
     crisisMode: boolean,
     profile: SessionProfile,
     turnIndex?: number,
+    cue?: PromptBuildCue,
   ): ChatMessage[] {
-    const systemContent = this.promptBuilder.build(mode, crisisMode, profile, turnIndex);
+    const systemContent = this.promptBuilder.build(mode, crisisMode, profile, turnIndex, cue);
     const messages: ChatMessage[] = [{ role: 'system', content: systemContent }];
 
     // 裁剪历史窗口.
