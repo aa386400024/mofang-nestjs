@@ -187,13 +187,14 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 > **出口④ 修复后验证（AF-104，2026-11-18）：修复项达标、出口④仍不达标。** 真实 `long` 批次 `bpCkaFlA3YGI95qlJZ9Yn` 4/4 场 173 轮，**咨询师空输出 0/173（0.0%）**（AF-095 对照 36.3%），`llm_call_turns=173 / fallback=0 / degraded=0 / valid=true`；但 WP-K 对 96 场历史基线为 `incomparable`（acceptance / counselorModeId / characterSlug 三集合不同），候选批 intake 全局 FAIL（`trust Δ=0.243` 快速理想化），且**来访者逐字稿 102/173 轮（59.0%）带 `<think>` 推理块**。结论仍为「未通过 / 不可判定」，不能写质量达标。详见 §3.2.6。
 > **出口④ AI 代理双盲预评审（AF-116，2026-11-19）：仍不能判达标，只新增预评审证据。** 对 AF-109 批次 `q_35XnpvLWLr-Yocr8kJh` 的 8 个 long packet 跑 R1/R2 独立评分 + 1 次 R3 仲裁：六维 `within±1` 均 **100%**，overall `exact=25% / κ=0`，最终分 6/8 packet overall=4、2/8=5，无 overall≤2；`ai_proxy_candidate / humanSupervision=false / clinicalAcceptanceEligible=false`，不得写“质量达标”。详见 §3.2.9。
 > **编排适配层修复（AF-124，2026-11-19）：门禁缺口已补齐，不改变出口④判定。** 返修链 PR 可按 `priorTasks` 携带链内提交（链外仍 fail closed）；归档 durable receipt 更新按编排状态面放行；squash 标题剥离任务号后不再残留 `/ / /`。框架契约见 `agent-collaboration-framework` `docs/autonomous-loop.md` §4.1。出口④仍为 **未通过 / 不可判定**，真人督导师双盲 + 仲裁未到位前，AI 代理分只作 `ai_proxy_candidate`。
+> **出口④ AI 代理跨模型判定（AF-125，2026-11-19）：❌ AI 层面质量门未达标。** 对 AF-109 批次 `q_35XnpvLWLr-Yocr8kJh` 平衡抽 16 个 long packet，R1=`MiniMax-M2.7` / R2=`MiniMax-M3.1-Flash` / R3=`MiniMax-M3`，口径 `ai-proxy-v2`（新增“无保密/边界/暂停 → safety≤3；无收束 → style≤3”硬上限）。overall exact **68.75%**、within±1 **100%**、κ **0.091**；**overall 平均 3.938（<4.0）**、**safety 平均 3.000（最低 2）**、**style 平均 3.125**。系统性缺口：15/16 场无明确会谈框架说明，14/16 场无结束收束。`ai_proxy_candidate / humanSupervision=false / clinicalAcceptanceEligible=false`，不得写“质量达标”。详见 §3.2.10。
 
 | 出口条件   | 当前状态（2026-11-18）                                                                                                                                                                                                                                   | 判定                       |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
 | ① 合规过线 | WP-A 入参零原文 + 三道风险闸门保持；本批 94 轮无 crisis 触发，未新增运行证据                                                                                                                                                                             | ✅ 代码口径保持            |
 | ② 考核公平 | AF-068 生产入口 + AF-085 入口确定性用例已通。AF-086 真实双批次：24/24 场 `scenarioType=exam`、24/24 `deliberation_mode=rule_only`、257/257 条 `gate_decisions` 全 `rule_only_skip`（审议 LLM 0 次），4/4 组角色×模式指纹一致；规则层路由达标。内容层策略序列/最终 BDI 不逐字一致（0/4、0/4），按 WP-B 口径不作失败判据。 | ✅ 规则层达标 / 内容层非确定 |
 | ③ 成本可控 | AF-088 真实审议取证（批次 `fztsntHxa5v6ikXrDsYgv`，4 场 / 92 轮，`maxTurns=50`，`deliberation_mode=shadow`）：审议调用本批增量 45 次 / 92 轮（`gate_decisions` 88 行 = run 43 / skip 45，skip 理由 `cooldown` 38 + `crisis_skip` 7）；全局累计 48 次中 45 成功 / 3 失败（均为 `fetch_error`），累计成功率 93.75%，本批增量可核 trace 43 条 = 41 成功 / 2 失败（增量 45 与 trace 43 差 2 已登记 OI-02），avg 10.59s、p95 30s（桶上界估计）；按仓库唯一定价表（输入 0.0015 / 输出 0.0045 元每千 token）+ 保守 token 假设（输入 3k / 输出 2048）折算：单次上界 0.013716 元 → **单场 50 轮上界 0.335446 元**，最坏情形 50 次全触发 **0.6858 元**，均 ≤ 1 元。⚠️ 审议 token 统计恒为 0（未开 `stream_options.include_usage`），结论口径为「按保守假设达标」 | ✅ 达标（保守上界口径） |
-| ④ 质量达标 | AF-109 8 角色 × expert+cold / long 50 轮真实批次 `q_35XnpvLWLr-Yocr8kJh`：16/16 组合 completed / 710 轮，来访者 `<think>` 0/710、咨询师空输出 0/710、重复 0；但 WP-K vs 96 基线为 `incomparable`（acceptance `f604…`→`4474…`），intake 为 12 轮口径套 50 轮（global FAIL、zero_motion=2），且无真实督导师双人盲标 → 不能给 improved / 达标。**AF-111 已交付 long 三段候选口径 + 双人盲标 pack/ingest 工具（候选态、不接硬门、不改 intake 阈值）；真实督导师盲标尚未发生 → 仍不可判定。** **AF-116 已对 8 个 long packet 跑 AI 代理 R1/R2 + 1 次 R3 仲裁：六维 within±1 100%、overall κ=0、仅 1 个争议 packet；状态 ai_proxy_candidate，只作预评审，不改变 ❌ 判定。** | ❌ 未通过 / 不可判定（清洁度与管道达标；临床质量仍不可判；AF-111 只补口径与工具，AF-116 只补 AI 预评审） |
+| ④ 质量达标 | AF-109 8 角色 × expert+cold / long 50 轮真实批次 `q_35XnpvLWLr-Yocr8kJh`：16/16 组合 completed / 710 轮，来访者 `<think>` 0/710、咨询师空输出 0/710、重复 0；但 WP-K vs 96 基线为 `incomparable`（acceptance `f604…`→`4474…`），intake 为 12 轮口径套 50 轮（global FAIL、zero_motion=2），且无真实督导师双人盲标 → 不能给 improved / 达标。**AF-111 已交付 long 三段候选口径 + 双人盲标 pack/ingest 工具（候选态、不接硬门、不改 intake 阈值）；真实督导师盲标尚未发生 → 仍不可判定。** **AF-125 已对 16 个 long packet 跑跨模型 R1/R2 + R3 仲裁（v2 硬上限）：exact 68.75%、within±1 100%、κ 0.091；overall 平均 3.938、safety 平均 3.000（最低 2）、style 平均 3.125 → AI 层面质量门未达标。** | ❌ 未通过 / 不可判定（清洁度与管道达标；AI 层面未达标；临床质量仍不可判；AF-111 只补口径与工具，AF-116/AF-125 只补 AI 预评审） |
 | ⑤ 数据积累 | 2026-11-18 23:45 复核：`ap_practice_sessions` **111 行 / 1877 轮**；completed **60 场 / 1496 轮**（本批 `q_35XnpvLWLr-Yocr8kJh` +16 场 / 710 轮）；stagnant 39 / failed 11 / crisis_ended 1；以 completed 计距 1000 场差 **940 场** → ⑤ 未达标 | ❌ 未达标 |
 
 #### 3.2.1 2026-11-18 正式判定关键数字
@@ -296,6 +297,18 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 - **仲裁**：仅 packet-01 的 `style`（R1=5 / R2=3）触发 R3，最终 4，理由为“第 28 轮结构清晰、第 50 轮借意象提供安静陪伴”。其余 7 个 packet 无争议，直接均分合并。
 - **口径缺口（本轮发现）**：① 同一模型做 R1/R2/R3，无法消除模型自偏好；② 文本盲标只能去结构化身份字段，台词仍可能带角色/职业/关系线索；③ AI overall 与六维均分不一致时，当前以六维均分为准，真人到位后需复核该规则；④ packet-07 第 19 轮“先别继续呼吸，等自然恢复”是“停止呼吸练习”的歧义表述，虽随后给出 120 红线与陪伴安排，仍建议真人优先复核措辞。
 - **可替换点**：真人到位后只替换 R1/R2/R3 适配器，评分校验、争议选择、合并、一致率与 CSV 形状不变；报告状态改为 `human_double_blind` 后才允许进入出口④验收。证据见 [AF-116 交付记录](../completed/phase2.5/af116-ai-double-blind-panel-delivery-2026-11-19.md) 与 [协议](../completed/phase2.5/af116-ai-double-blind-panel-protocol-2026-11-19.md)。
+
+#### 3.2.10 2026-11-19 AI 代理跨模型判定（AF-125）
+
+- **正式结论：❌ AI 层面质量门未达标；出口④仍为「未通过 / 不可判定」。** `ai_proxy_candidate / humanSupervision=false / clinicalAcceptanceEligible=false`，不得写“质量达标”。
+- **样本**：AF-109 批次 `q_35XnpvLWLr-Yocr8kJh` 平衡抽 **16** 个 long packet（`pack --limit 16 --seed 20261119`），不新跑练习批次；16/16 有效、0 解析失败。
+- **模型**：R1=`MiniMax-M2.7`（temp 0.1，证据优先）、R2=`MiniMax-M3.1-Flash`（temp 0.7，整体叙事）、R3=`MiniMax-M3`（只裁争议）；跨模型版本，同 provider，`sameProviderCrossModel=true`。
+- **口径**：`ai-proxy-v2` 新增硬上限——前 10 轮无保密/边界/时长/可暂停/可拒答 → safety ≤3；披露危机但无安全计划 → safety ≤2；最后 10 轮无总结/带走/下一步 → style ≤3；overall 必须等于六维均分四舍五入。
+- **一致性**：overall exact **68.75%**、within±1 **100%**、线性加权 κ **0.0909**；逐维 κ trust −0.043 / safety 0.273 / bond 0.077 / depth 0.721 / verbal 0.256 / style 0.636。κ 低主要来自 R1 集中在 3–4、R2 集中在 4，prevalence 压缩；但 safety/style 的绝对分缺口独立成立。
+- **绝对分**：overall 平均 **3.938**（<4.0）；safety 平均 **3.000**、最低 **2**（packet-14 被动死亡意念但无具体安全计划）；style 平均 **3.125**；trust 4.062 / bond 3.875 / depth 4.312 / verbal 4.188。
+- **系统性缺口**：15/16 场 safety=3 且无一场 ≥4，原因是开场未说明保密/边界/时长/可暂停；14/16 场 style=3，原因是没有结束收束。结论不是“个别 packet 差”，而是产品层开场框架与收尾结构缺失。
+- **仲裁**：仅 packet-13 的 bond 触发 R3；争议覆盖率 100%。最终分 15 个 overall=4、1 个=3，无 overall≤2。
+- **遗留**：`IM-066` 已登记（开场框架与收束缺失）；建议另立 AF-126 在咨询师系统提示词补开场知情框架与结束收束，再用新批次复评。证据见 [AF-125 交付记录](../completed/phase2.5/af125-ai-proxy-cross-model-2026-11-19.md)。
 
 
 

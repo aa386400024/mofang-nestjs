@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-19T00:42:40.855Z",
+  "generatedAt": "2026-11-19T01:15:04.275Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -20,17 +20,17 @@
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 65,
-    "activeCount": 12,
+    "total": 66,
+    "activeCount": 13,
     "byStatus": {
-      "candidate": 12,
+      "candidate": 13,
       "queued": 0,
       "accepted": 0,
       "done": 50,
       "wontfix": 3
     },
     "byType": {
-      "gap": 41,
+      "gap": 42,
       "guardrail": 5,
       "tool": 0,
       "standard": 5,
@@ -39,7 +39,7 @@
     },
     "bySource": {
       "implementation": 33,
-      "acceptance": 11,
+      "acceptance": 12,
       "rework": 3,
       "dead-letter": 0,
       "review": 18
@@ -1430,6 +1430,28 @@
           "to": "candidate",
           "note": "登记候选改进"
         }
+      },
+      {
+        "improvementId": "IM-066",
+        "title": "长会话咨询师开场框架与收束缺失导致 AI 质量门 safety/style 系统性不足",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-125",
+        "evidence": [
+          "af125-ai-16-v2/ai-final-ratings.csv",
+          "af125-ai-16-v2/ai-agreement.json"
+        ],
+        "impact": "16 场中 safety 平均 3.0、最低 2；style 平均 3.125；overall 平均 3.938，AI 质量门未达标",
+        "suggestion": "在咨询师系统提示词中加入开场知情框架（保密/边界/时长/可暂停/可拒答）与结束收束（总结/带走/下一步），并用新批次复评",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T01:12:23.814Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
       }
     ]
   },
@@ -1596,6 +1618,36 @@
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-144",
+      "recordedAt": "2026-11-19T00:58:58.028Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-125",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-125-ai-proxy-cross-model"
+      ]
+    },
+    {
+      "auditId": "AUD-143",
+      "recordedAt": "2026-11-19T00:58:57.725Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-125",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-125",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-125.json"
+      ]
+    },
     {
       "auditId": "AUD-142",
       "recordedAt": "2026-11-19T00:36:54.128Z",
@@ -1802,52 +1854,20 @@
       "resources": [
         "task/AF-116-ai-double-blind"
       ]
-    },
-    {
-      "auditId": "AUD-129",
-      "recordedAt": "2026-11-18T17:56:53.722Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-116",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-116",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-116.json"
-      ]
-    },
-    {
-      "auditId": "AUD-128",
-      "recordedAt": "2026-11-18T17:56:53.412Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-116",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 142,
+    "total": 144,
     "byResult": {
-      "allowed": 142,
+      "allowed": 144,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 141,
+      "TOOL-QUEUE-SCHEDULER": 143,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 142
+      "orchestrator": 144
     }
   },
   "protocolView": {
@@ -4327,6 +4347,24 @@
             "ref": "docs/worklog/completed/phase2.5/af124-repair-chain-gate-2026-11-19.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-125",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/pending/af125-ai-proxy-cross-model-task-2026-11-19.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af125-ai-proxy-cross-model-2026-11-19.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -4417,5 +4455,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 139
+  "archivedCount": 140
 }

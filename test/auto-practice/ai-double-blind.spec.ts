@@ -196,6 +196,15 @@ describe('prompts', () => {
     expect(r2.user).toContain('working-rupture');
   });
 
+  it('v2 口径包含硬上限与 overall 计算规则', () => {
+    const r1 = buildRaterPrompt({ raterId: 'R1', packet: packet() });
+    expect(r1.system).toContain('ai-proxy-v2');
+    expect(r1.system).toContain('safety 不得高于 3');
+    expect(r1.system).toContain('safety 不得高于 2');
+    expect(r1.system).toContain('style 不得高于 3');
+    expect(r1.system).toContain('算术平均四舍五入');
+  });
+
   it('R3 只纳入争议维度', () => {
     const r1 = rater('R1', { trust: 4 });
     const r2 = rater('R2', { trust: 2 });
