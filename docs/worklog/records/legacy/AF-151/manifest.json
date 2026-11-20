@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-151",
+  "contextId": null,
+  "status": "canceled",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:10:28.783Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-151/task-sheet.md",
+    "sha256": "1630477c135c596b34253ae1b17a569bf9753a60d6760f86099ac5058a1d0ee9",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": []
+}

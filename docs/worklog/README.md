@@ -104,9 +104,9 @@
 >
 > - **Phase2.5 灰度验证期（2026-11-08 开工）** 🚧 → [`pending/phase2.5-README.md`](pending/phase2.5-README.md) —— **验证阶段，不是功能开发**。2026-11-17 环境重置后，旧 96 场批次已不在当前数据库；当前仅 8 场 smoke（intake FAIL）；出口 ②/③/④/⑤ 均未闭。出口取证重定见 [AF-060 交付记录](completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md)；逐行状态见 [§WP 登记表](pending/phase2.5-wp-list-2026-11-08.md)。
 > - **Agent 协作强制门与发布闭环（2026-11-17）** ✅ → [`completed/phase2.5/af053-orchestration-delivery-release-2026-11-17.md`](completed/phase2.5/af053-orchestration-delivery-release-2026-11-17.md)（强制门交付、纯状态面提交与 integrate 发布）；squash 归档迁移快照修正由 AF-055 承接。
-> - **AF-055 合并边界交付** ✅ → [`completed/phase2.5/af055-merge-gate-snapshot-2026-11-17.md`](completed/phase2.5/af055-merge-gate-snapshot-2026-11-17.md)；**AF-056 服务端强门** ✅ → [`completed/phase2.5/af056-server-side-orchestration-gate-2026-11-17.md`](completed/phase2.5/af056-server-side-orchestration-gate-2026-11-17.md)；**AF-057 受保护 PR 验收门** ✅ → [`completed/phase2.5/af057-protected-pr-acceptance-2026-11-17.md`](completed/phase2.5/af057-protected-pr-acceptance-2026-11-17.md)；**AF-058 squash 生命周期门** 🔁 → [`pending/af058-squash-lifecycle-gate-task-2026-11-17.md`](pending/af058-squash-lifecycle-gate-task-2026-11-17.md)，[交付与回放证据](completed/phase2.5/af058-squash-lifecycle-gate-2026-11-17.md)。PR #13 因轻量门 yaml 依赖未合并，由 AF-059 承接。
+> - **AF-055 合并边界交付** ✅ → [`completed/phase2.5/af055-merge-gate-snapshot-2026-11-17.md`](completed/phase2.5/af055-merge-gate-snapshot-2026-11-17.md)；**AF-056 服务端强门** ✅ → [`completed/phase2.5/af056-server-side-orchestration-gate-2026-11-17.md`](completed/phase2.5/af056-server-side-orchestration-gate-2026-11-17.md)；**AF-057 受保护 PR 验收门** ✅ → [`completed/phase2.5/af057-protected-pr-acceptance-2026-11-17.md`](completed/phase2.5/af057-protected-pr-acceptance-2026-11-17.md)；**AF-058 squash 生命周期门** 🔁 → [`records/legacy/AF-058/task-sheet.md`](records/legacy/AF-058/task-sheet.md)，[交付与回放证据](completed/phase2.5/af058-squash-lifecycle-gate-2026-11-17.md)。PR #13 因轻量门 yaml 依赖未合并，由 AF-059 承接。
 
-**AF-059 零依赖返修** 🚧 → [`pending/af059-dependency-free-squash-gate-task-2026-11-17.md`](pending/af059-dependency-free-squash-gate-task-2026-11-17.md)，[交付与无依赖证据](completed/phase2.5/af059-dependency-free-squash-gate-2026-11-17.md)。
+**AF-059 零依赖返修** 🚧 → [`records/legacy/AF-059/task-sheet.md`](records/legacy/AF-059/task-sheet.md)，[交付与无依赖证据](completed/phase2.5/af059-dependency-free-squash-gate-2026-11-17.md)。
 
 **AF-060 出口取证重定** ✅ → [交付记录](completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md)：旧 96 批库内清空、当前 8 场 intake FAIL、跨批 `incomparable`，出口④未通过。
 
@@ -118,19 +118,20 @@
 
 ## 1. 当前有什么活（自己扫目录）
 
-**第一步：`ls pending/` 看里面有几个 .md 文件。**
+**第一步：`ls inbox/` 看里面有几个待登记草稿。**
 
-- 有文件 = 每个文件就是一个完整任务，从文件名排第一的开始做
-- 没有文件 = 没有新活，不要自己找事做，等用户派新任务单
+- 有文件 = 每个文件都是一张任务单，按文件名顺序登记后开工
+- 没有文件 = 看 `records/` 里是否有已登记未闭环任务；都没有就等用户派新任务单
 
-> ℹ️ **pending/ 里的文件分类**（2026-11-08 起）：
+> ℹ️ **2026-11-20（AF-161）起 worklog 生命周期**：
 >
-> - `phase2-overview-2026-11-03.md` / `phase2-wp-list-2026-11-03.md` —— **常驻母版**（Phase2 总览 + 登记表），只读不改；
-> - `phase2.5-overview-2026-11-08.md` —— **Phase2.5 总览**，只读；
-> - `phase2.5-wp-list-2026-11-08.md` —— **Phase2.5 WP 登记表**，**每个 WP 交付后更新那一行**（状态 ✅ + 交付记录链接，§六 导航里就是这么定义的）；
-> - `phase4-backlog-2026-11-08.md` —— **Phase4 承接清单**（Phase2 移交的 5 条），Phase4 开工时才动。
+> - `inbox/` —— 只放未登记草稿；`task register` 成功后文件移入记录包；
+> - `records/<contextId>/<taskId>/` —— 一任务一个不可变记录包（`manifest.json` + `task-sheet.md` + 回执副本）；
+> - `pending/` —— **历史参考目录**，只留 Phase2/2.5 常驻母版、backlog、relay 回交记录，不再放 AF 任务单；
+> - `completed/` —— 交付记录；
+> - `pending/archive/` —— 旧回执路径，只读兼容。
 >
-> **Phase2.5 进行中** → WP A–H、WP-J 系列、WP-K/L/M/N/N-FE 已交付；当前在办为出口取证重定：旧 96 批已清空、8 场 smoke FAIL，②/③/④/⑤ 未闭（详见 [AF-060 交付记录](completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md)）。逐行进度与待办见 [§WP 登记表](pending/phase2.5-wp-list-2026-11-08.md)。
+> 完整性闸门：`node scripts/orchestration/cli.mjs worklog verify`。
 
 每个任务单文件里写了完整的：目标、改动点、验收标准、不做什么。**读全文再开工。**
 
@@ -183,7 +184,9 @@
 ```
 docs/worklog/
 ├── README.md          ← 你现在读的这个文件
-├── pending/          ← 待开工任务单（Phase2.5 的总览与 WP 清单常驻这里）
+├── inbox/            ← 未登记任务单草稿（登记后清空）
+├── records/          ← 一任务一个不可变记录包（manifest + 任务单 + 回执）
+├── pending/          ← 历史参考（Phase2/2.5 母版、backlog、relay），不再放 AF 任务单
 ├── completed/         ← 已交付（按阶段分）
 │   ├── phase1/       ← Phase1 全部交付（26 WP + 2 轮审查）
 │   │   ├── wp0-wp5-core/
@@ -221,11 +224,11 @@ docs/worklog/
 ## 6. 开工前自检清单
 
 ```
-□ 我读完了 pending/ 里的任务单全文
+□ 我读完了 inbox/ 里待登记任务单全文（或 records/ 里已登记的当前任务单）
 □ 我确认遵守 engine-core 分层边界（纯计算/纯出口归内核；NestJS/IO/网络/prompt 不进内核；boundary.spec.ts 不改；要动算子逻辑走例外批准）
 □ 我已核对改动范围（后端目录 / admin-dashboard 契约层 / 纯文档）与对应闸门（前端目录不走后端 lint 与 tsconfig）
 □ 我知道交付记录要写什么格式（见 team/conventions.md）
-□ 我知道交付后要移文件
+□ 我知道任务单登记后自动进入 records/，不需要手工搬文件
 ```
 
 全勾了再动手。

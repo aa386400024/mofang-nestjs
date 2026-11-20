@@ -406,7 +406,7 @@ describe('runAcceptance 验收结论', () => {
       contextId: 'framework-evolution',
       type: 'investigation',
       artifacts: {
-        taskSheet: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-task-2026-11-17.md',
+        taskSheet: 'docs/worklog/records/legacy/AF-023/task-sheet.md',
         deliveryRecord: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-implementation-2026-11-17.md',
       },
       receipt: { deviationTable: [], openQuestions: [], manualReviewList: [], backlogItems: [] },
@@ -422,7 +422,7 @@ describe('runAcceptance 验收结论', () => {
       contextId: 'framework-evolution',
       type: 'investigation',
       artifacts: {
-        taskSheet: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-task-2026-11-17.md',
+        taskSheet: 'docs/worklog/records/legacy/AF-023/task-sheet.md',
         deliveryRecord: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-implementation-2026-11-17.md',
       },
       receipt: {
@@ -1086,7 +1086,12 @@ describe('AF-009 交接契约校验与构造器', () => {
     expect(validateReceiptHandover(badRepo).errors.join(' ')).toMatch('externalCommits[0].repo');
 
     const badSha = validReceipt();
-    badSha.changedFiles = { added: [], modified: [], deleted: [], externalCommits: [{ repo: 'aa386400024/agent-collaboration-framework', commits: ['HEAD'] }] };
+    badSha.changedFiles = {
+      added: [],
+      modified: [],
+      deleted: [],
+      externalCommits: [{ repo: 'aa386400024/agent-collaboration-framework', commits: ['HEAD'] }],
+    };
     expect(validateReceiptHandover(badSha).errors.join(' ')).toMatch('externalCommits[0].commits');
 
     const empty = validReceipt();
@@ -1684,7 +1689,7 @@ describe('AF-023 运行态调度闭环（领单 / 回滚 / 回执终态）', () 
     const only = task(taskId);
     only.status = 'submitted';
     only.artifacts = {
-      taskSheet: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-task-2026-11-17.md',
+      taskSheet: 'docs/worklog/records/legacy/AF-023/task-sheet.md',
       deliveryRecord: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-implementation-2026-11-17.md',
     };
     const index = freshIndex(only);
@@ -1706,7 +1711,7 @@ describe('AF-023 运行态调度闭环（领单 / 回滚 / 回执终态）', () 
       policyRefs: [],
       contractRef: RECEIPT_CONTRACT_REF,
       artifactRefs: {
-        taskSheet: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-task-2026-11-17.md',
+        taskSheet: 'docs/worklog/records/legacy/AF-023/task-sheet.md',
         deliveryRecord: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-implementation-2026-11-17.md',
         reply: null,
         others: [],
@@ -2845,9 +2850,7 @@ describe('AF-024 GUI 投递协议', () => {
         JSON.stringify({ schemaVersion: '1.0.0', taskId: 'AF-901', receivedAt: '2026-11-17T10:03:00.000Z', executor: 'MiniMax Code' }),
         'utf8',
       );
-      expect(readDeliveryAck({ transportDir: transport, taskId: 'AF-901', repoRoot }).relative).toBe(
-        ackRelativePath('AF-901'),
-      );
+      expect(readDeliveryAck({ transportDir: transport, taskId: 'AF-901', repoRoot }).relative).toBe(ackRelativePath('AF-901'));
       const ok = autoConfirmDelivery({ record, taskId: 'AF-901', transportDir: transport, repoRoot });
       expect(ok.confirmed).toBe(true);
       expect(ok.record.delivery.state).toBe('delivered');
@@ -2883,7 +2886,12 @@ describe('AF-024 GUI 投递协议', () => {
     const repoRoot = join(tmpdir(), `orch-sched-ack-${Date.now()}-${Math.floor(Math.random() * 1e6)}`);
     const transport = join(repoRoot, 'docs', 'team', 'agent-orchestration', 'transport');
     mkdirSync(join(transport, 'acks'), { recursive: true });
-    const index = { tasks: [{ taskId: 'AF-901', status: 'submitted' }, { taskId: 'AF-902', status: 'working' }] };
+    const index = {
+      tasks: [
+        { taskId: 'AF-901', status: 'submitted' },
+        { taskId: 'AF-902', status: 'working' },
+      ],
+    };
     const runtimeState = {
       tasks: {
         'AF-901': {
@@ -2977,14 +2985,9 @@ describe('AF-024 GUI 投递协议', () => {
 
   it('交付记录六组标记：英文键 / 中文块标题都认，缺一即报缺', () => {
     expect(findMissingDeliveryMarkers('')).toEqual(DELIVERY_RECORD_MARKERS.map((marker) => marker.key));
-    const mixed = [
-      '## 1. gateResults',
-      '## 2. 范围核对',
-      '## 3. 契约核对',
-      '## 4. 遗留登记',
-      '## 5. 偏差说明',
-      '## 6. 验收结论',
-    ].join('\n');
+    const mixed = ['## 1. gateResults', '## 2. 范围核对', '## 3. 契约核对', '## 4. 遗留登记', '## 5. 偏差说明', '## 6. 验收结论'].join(
+      '\n',
+    );
     expect(findMissingDeliveryMarkers(mixed)).toEqual([]);
     expect(findMissingDeliveryMarkers('## gateResults\n## scopeCheck')).toEqual([
       'contractChecks',
@@ -2993,7 +2996,6 @@ describe('AF-024 GUI 投递协议', () => {
       'reviewVerdict',
     ]);
   });
-
 
   it('降级：缺原因 / 缺文件交接件 / 定性非法 / 非 GUI 通道都拒绝；成功清定位痕迹并保留 history', () => {
     const repoRoot = join(tmpdir(), `orch-gui-fallback-${Date.now()}-${Math.floor(Math.random() * 1e6)}`);
@@ -4174,37 +4176,28 @@ describe('AF-113 单任务分支守卫', () => {
   it('单任务与纯状态面提交放行', () => {
     expect(
       findForeignCommitTaskIds(
-        [
-          'chore(AF-113): claim task',
-          'chore(orchestration): refresh state plane',
-          'docs(AF-113): delivery record',
-        ],
+        ['chore(AF-113): claim task', 'chore(orchestration): refresh state plane', 'docs(AF-113): delivery record'],
         'AF-113',
       ),
     ).toEqual([]);
   });
 
   it('混入其他任务提交时拒绝并列明任务号', () => {
-    expect(
-      findForeignCommitTaskIds(['feat(AF-111): implementation', 'docs(AF-113): delivery record'], 'AF-113'),
-    ).toEqual([{ taskId: 'AF-111', subject: 'feat(AF-111): implementation' }]);
+    expect(findForeignCommitTaskIds(['feat(AF-111): implementation', 'docs(AF-113): delivery record'], 'AF-113')).toEqual([
+      { taskId: 'AF-111', subject: 'feat(AF-111): implementation' },
+    ]);
   });
 
   it('priorTasks 返修链内任务提交放行，链外仍拒绝', () => {
     expect(
-      findForeignCommitTaskIds(
-        ['feat(AF-116): implementation', 'fix(AF-117): ci fix', 'docs(AF-123): release'],
-        'AF-123',
-        ['AF-116', 'AF-117'],
-      ),
+      findForeignCommitTaskIds(['feat(AF-116): implementation', 'fix(AF-117): ci fix', 'docs(AF-123): release'], 'AF-123', [
+        'AF-116',
+        'AF-117',
+      ]),
     ).toEqual([]);
-    expect(
-      findForeignCommitTaskIds(
-        ['feat(AF-116): implementation', 'feat(AF-124): unrelated'],
-        'AF-123',
-        ['AF-116'],
-      ),
-    ).toEqual([{ taskId: 'AF-124', subject: 'feat(AF-124): unrelated' }]);
+    expect(findForeignCommitTaskIds(['feat(AF-116): implementation', 'feat(AF-124): unrelated'], 'AF-123', ['AF-116'])).toEqual([
+      { taskId: 'AF-124', subject: 'feat(AF-124): unrelated' },
+    ]);
   });
 
   it('提交标题含多个任务号时 fail closed', () => {
@@ -4263,8 +4256,10 @@ describe('AF-084 scope 重签发计划', () => {
     expect(planReissue(index, { fromTaskId: 'AF-079', newTask: { ...newTask, priorTasks: [] } }).errors.join(' ')).toMatch(/priorTasks/);
     expect(planReissue(index, { fromTaskId: 'AF-079', newTask: { ...newTask, taskId: 'AF-079' } }).errors.join(' ')).toMatch(/新 taskId/);
     expect(
-      planReissue({ tasks: [oldTask, { taskId: 'AF-080', status: 'backlog' }], archivedTasks: [] }, { fromTaskId: 'AF-079', newTask })
-        .errors.join(' '),
+      planReissue(
+        { tasks: [oldTask, { taskId: 'AF-080', status: 'backlog' }], archivedTasks: [] },
+        { fromTaskId: 'AF-079', newTask },
+      ).errors.join(' '),
     ).toMatch(/任务已存在/);
   });
 });

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-050",
+  "contextId": null,
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:10:28.688Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-050/task-sheet.md",
+    "sha256": "cc0e078bd945b9c0c84cbf0db966bd26fa5ab1b8665a9599782116c861032743",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": []
+}

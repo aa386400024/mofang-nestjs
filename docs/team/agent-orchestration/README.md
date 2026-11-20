@@ -24,16 +24,16 @@
 
 ## 1. 标识与框架版本依赖
 
-| 项                      | 值                                                                                                                                                                                                                               |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `projectId`             | `mofang-nestjs`（心塑 / XinSu 后端 NestJS 仓）                                                                                                                                                                                   |
-| `frameworkVersionRange` | `>=2.0.0 <3.0.0`                                                                                                                                                                                                                 |
+| 项                      | 值                                                                                                                                                                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `projectId`             | `mofang-nestjs`（心塑 / XinSu 后端 NestJS 仓）                                                                                                                                                                                                                      |
+| `frameworkVersionRange` | `>=2.0.0 <3.0.0`                                                                                                                                                                                                                                                    |
 | 框架版本                | `2.0.0`（本地 annotated tag `v2.0.0` object `c507188` → commit `67d3290`，releasedAt `2026-11-16`；tag 之后 `main` 另有 6 个未发版提交，HEAD `7395748`。版本轴见框架仓 `schemas/versions.json`，锚点见 [framework-version-anchor.md](framework-version-anchor.md)） |
-| 框架契约版本            | 任务单 `1.1.0` / 状态索引 `1.1.0` / 工具契约 `1.1.0` / Agent Card `1.1.0` / 交付包 `1.0.0` / 回执 `1.0.0` / review 交接件 `1.1.0`（逐项见框架仓 `schemas/versions.json`）                                                        |
-| 契约引用形式            | 实例内用 `contractRef` / `schemaRef` 的 urn 声明（`urn:agent-collaboration-framework:schema:<contract>:<version>`），不写裸版本号                                                                                                |
-| `unknownEnumPolicy`     | `tolerant`（框架 2.0.0 兼容声明要求；未知枚举值按保留值透传并记人工复核，不静默丢弃、不擅自映射。状态轴由 `protocol-mapper.mjs` 列入 `unknownStatuses`，交付包落入 `leftovers.manualReviewList`）                                |
-| 枚举投影                | `scripts/orchestration/contract-enums.json` 为框架仓 `schemas/contract-enums.json`（2.0.0）的 vendored 投影，随本仓评审；一致性由 `orchestration.spec.mjs` 跨仓对账                                                              |
-| 契约供应链              | `contracts/agent-collaboration-framework/2.0.0/`（14 份框架 2.0.0 schema 的不可变副本 + `PROVENANCE.json` 逐文件 SHA-256）；CI `Contracts` job 以 `ORCH_REQUIRE_FRAMEWORK=1` 硬校验，缺框架直接 fail-fast，不允许 skipped 软通过 |
+| 框架契约版本            | 任务单 `1.1.0` / 状态索引 `1.1.0` / 工具契约 `1.1.0` / Agent Card `1.1.0` / 交付包 `1.0.0` / 回执 `1.0.0` / review 交接件 `1.1.0`（逐项见框架仓 `schemas/versions.json`）                                                                                           |
+| 契约引用形式            | 实例内用 `contractRef` / `schemaRef` 的 urn 声明（`urn:agent-collaboration-framework:schema:<contract>:<version>`），不写裸版本号                                                                                                                                   |
+| `unknownEnumPolicy`     | `tolerant`（框架 2.0.0 兼容声明要求；未知枚举值按保留值透传并记人工复核，不静默丢弃、不擅自映射。状态轴由 `protocol-mapper.mjs` 列入 `unknownStatuses`，交付包落入 `leftovers.manualReviewList`）                                                                   |
+| 枚举投影                | `scripts/orchestration/contract-enums.json` 为框架仓 `schemas/contract-enums.json`（2.0.0）的 vendored 投影，随本仓评审；一致性由 `orchestration.spec.mjs` 跨仓对账                                                                                                 |
+| 契约供应链              | `contracts/agent-collaboration-framework/2.0.0/`（14 份框架 2.0.0 schema 的不可变副本 + `PROVENANCE.json` 逐文件 SHA-256）；CI `Contracts` job 以 `ORCH_REQUIRE_FRAMEWORK=1` 硬校验，缺框架直接 fail-fast，不允许 skipped 软通过                                    |
 
 > 2.0.0 与本适配层的历史差异已在本轮迁移中一次性收口：任务单 `status` 降级为立项快照、时间字段改带偏移 `date-time`、工具声明改**一工具一文件**、`human` 移出可派发角色、归档条目关闭附加字段（归档说明外移到 `archivedNotes`）、交付包改用 `delivery-package` 1.0.0 结构。破坏性变更（字段删除或语义改变）仍须先复核本表再升级；既有字段只增不删。
 >
@@ -190,12 +190,12 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 
 ### 投递状态机（派发记录 `delivery`）
 
-| 状态        | 含义                                                                                | 写入者                                                  |
-| ----------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `pending`   | 投递件已生成（`briefRef` 非空），尚未确认送达                                       | `run-once` 领单（领单即生成投递件）/ `channel dispatch` |
+| 状态        | 含义                                                                                | 写入者                                                            |
+| ----------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `pending`   | 投递件已生成（`briefRef` 非空），尚未确认送达                                       | `run-once` 领单（领单即生成投递件）/ `channel dispatch`           |
 | `delivered` | 桌面 relay 已送达并校验（会话路径 + 定位层 + 证据指针齐备，且原态必须是 `pending`） | `channel auto-confirm`（ack 到达）/ `channel confirm`（人工兜底） |
-| `failed`    | 投递失败并降级，通道改 `gui-file-fallback`，文件交接件仍在                          | `channel fallback`                                      |
-| `bypassed`  | 非失败事实：通道被旁路（会话内直做 / 已由既有进程执行），不计失败、不判终态         | `channel fallback --cause executed-in-session`          |
+| `failed`    | 投递失败并降级，通道改 `gui-file-fallback`，文件交接件仍在                          | `channel fallback`                                                |
+| `bypassed`  | 非失败事实：通道被旁路（会话内直做 / 已由既有进程执行），不计失败、不判终态         | `channel fallback --cause executed-in-session`                    |
 
 **送达 ack（AF-074）**：执行代理收到 brief 后，第一步写 `transport/acks/<taskId>.json`（`schemaVersion / taskId / receivedAt / executor`）。ack 只证明「收到了」，**不是完成回执**；`channel send` 写的 `transport/gui-sent/<taskId>.json` 是发送现场（窗口、时间、截图哈希），也不是送达证明。两者齐备后，`channel auto-confirm` / `run-once` 的 `autoConfirmDeliveries` 才把 `pending` 升为 `delivered`；缺 ack 保持 pending，交给投递租约回滚。
 
@@ -229,9 +229,9 @@ L2 编排工具链（状态存储、验收护栏、调度器、交付包、候�
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | `channel rules` / `channel queue --taskId` / `channel state --taskId`                                                                                                                        | 规则、队列可派判定、投递状态与停滞标记                                                                                                                              | 只读             |
 | `channel dispatch --taskId <id> [--extra-file <md>]`                                                                                                                                         | 读交接件 → 生成 `transport/briefs/<taskId>.brief.md` → 置 `pending`                                                                                                 | 写投递件与运行态 |
-| `channel send --taskId <id> [--dry-run] [--wait-ack] [--ack-timeout 90] [--no-click-input] [--window-title <title>]`                                                                           | 主桌面聚焦执行代理窗口 → 定位输入框 → 剪贴板粘贴 brief → 发送 → 写 `transport/gui-sent/<taskId>.json` 与截图；**不**直接确认送达                                                        | 写发送证据       |
-| `channel auto-confirm [--taskId <id>]`                                                                                                                                                        | 读 `transport/acks/<taskId>.json` 与发送记录 → 回写 `delivered`；缺 ack / taskId 不一致一律不确认                                                                     | 写运行态         |
-| `channel confirm --taskId <id> --session-path <..> --locate-layer <..> --evidence <..>`                                                                                                      | 人工兜底：回写 `delivered`；缺任一项即拒                                                                                                                             | 写运行态         |
+| `channel send --taskId <id> [--dry-run] [--wait-ack] [--ack-timeout 90] [--no-click-input] [--window-title <title>]`                                                                         | 主桌面聚焦执行代理窗口 → 定位输入框 → 剪贴板粘贴 brief → 发送 → 写 `transport/gui-sent/<taskId>.json` 与截图；**不**直接确认送达                                    | 写发送证据       |
+| `channel auto-confirm [--taskId <id>]`                                                                                                                                                       | 读 `transport/acks/<taskId>.json` 与发送记录 → 回写 `delivered`；缺 ack / taskId 不一致一律不确认                                                                   | 写运行态         |
+| `channel confirm --taskId <id> --session-path <..> --locate-layer <..> --evidence <..>`                                                                                                      | 人工兜底：回写 `delivered`；缺任一项即拒                                                                                                                            | 写运行态         |
 | `channel fallback --taskId <id> --reason <..> --cause <类别> [--classification deterministic\|flaky\|legacy-debt] [--login-gate] [--start-retries N] [--send-retries N] [--attempt-count N]` | 回写 `failed` + 通道降级 + 现场事实（`delivery.lastAttempt`）；`--cause` **必填**且须在 `DELIVERY_CAUSES` 内，缺原因 / 缺 `handoverRef` / 缺 `cause` 即拒（exit 2） | 写运行态         |
 
 ### 分工与红线
@@ -311,17 +311,17 @@ node scripts/orchestration/branch-protection.mjs --repo aa386400024/mofang-nestj
 node scripts/orchestration/branch-protection.mjs --repo aa386400024/mofang-nestjs --branch integrate --apply # 幂等 apply + 读回核验
 ```
 
-| 项                | 强制口径                                                                                                                                                                                          |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 提交范围          | PR 使用 `base.sha..head.sha`；integrate push 使用 `event.before..event.after`；不能只查最终 diff，否则坏提交可先混入再被后续提交掩盖                                                              |
-| 提交身份          | 标题必须含唯一任务编号；同编号重复允许，多编号、日期形态或缺失编号不会获得任务权限                                                                                                                |
-| 单任务 PR         | `pr-release create` 扫描 `base..branch` 的提交标题；出现目标任务编号以外的任务号即拒绝，要求先单独合并前置任务并从最新 base 重建分支。纯状态面提交（无任务号）不阻断，避免多任务堆叠 squash 后按单一 scope 误判越界 |
+| 项                | 强制口径                                                                                                                                                                                                                                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 提交范围          | PR 使用 `base.sha..head.sha`；integrate push 使用 `event.before..event.after`；不能只查最终 diff，否则坏提交可先混入再被后续提交掩盖                                                                                                                                                                         |
+| 提交身份          | 标题必须含唯一任务编号；同编号重复允许，多编号、日期形态或缺失编号不会获得任务权限                                                                                                                                                                                                                           |
+| 单任务 PR         | `pr-release create` 扫描 `base..branch` 的提交标题；出现目标任务编号以外的任务号即拒绝，要求先单独合并前置任务并从最新 base 重建分支。纯状态面提交（无任务号）不阻断，避免多任务堆叠 squash 后按单一 scope 误判越界                                                                                          |
 | 状态快照          | 同时读取当前提交与父提交的索引；active 提交用当前在办任务，归档提交与 squash 全生命周期用 `archived-transition`。父提交无任务时必须以零依赖解析从当前任务单重建 scope，并要求可合并 durable 回执；一条分支叠加多个已完成任务时，squash 提交按本次携带且各自已验收的任务单 scope 并集校验，不再只看标题主任务 |
-| PR 验收（AF-057） | PR 最终 HEAD 必须 completed/archived，且 git tree 内 durable 回执满足 reviewVerdict=passed 或已登记 backlog 且无人工复核项的 conditional-pass、scopeCheck=in-scope、finalStatus=completed；否则 Orchestration Gate failure，页面/API 也不能合并  |
-| 文件与任务单      | 非状态面文件必须落入 scope；任务单必须在该提交树中存在；canceled/rejected 不可借用                                                                                                                |
-| 检查放行          | 13 项 context 全部存在且完成；失败优先 fail，缺项/进行中/空 checks 均不放行                                                                                                                       |
-| 分支保护          | required PR（审批数 0）、strict、线性历史、enforce admins、禁止 force push/deletion；不设置人或团队 bypass                                                                                        |
-| 凭据              | 复用 `GITHUB_TOKEN` / `GH_TOKEN` / `ORCH_GITHUB_TOKEN` / Git credential helper；不安装 gh、不打印或入库 token                                                                                     |
+| PR 验收（AF-057） | PR 最终 HEAD 必须 completed/archived，且 git tree 内 durable 回执满足 reviewVerdict=passed 或已登记 backlog 且无人工复核项的 conditional-pass、scopeCheck=in-scope、finalStatus=completed；否则 Orchestration Gate failure，页面/API 也不能合并                                                              |
+| 文件与任务单      | 非状态面文件必须落入 scope；任务单必须在该提交树中存在；canceled/rejected 不可借用                                                                                                                                                                                                                           |
+| 检查放行          | 13 项 context 全部存在且完成；失败优先 fail，缺项/进行中/空 checks 均不放行                                                                                                                                                                                                                                  |
+| 分支保护          | required PR（审批数 0）、strict、线性历史、enforce admins、禁止 force push/deletion；不设置人或团队 bypass                                                                                                                                                                                                   |
+| 凭据              | 复用 `GITHUB_TOKEN` / `GH_TOKEN` / `ORCH_GITHUB_TOKEN` / Git credential helper；不安装 gh、不打印或入库 token                                                                                                                                                                                                |
 
 边界：Git 与 GitHub 能硬阻断未授权提交和合并；数据库、Redis、环境启停仍由任务登记、scope、回执和事件审计约束，不能伪装成操作系统级沙箱。仓库 admin 理论上可通过后续 API 改保护规则，因此保护配置的读回核验与变更审计是长期必要项，而不是宣称「管理员也无法改设置」。
 
@@ -358,18 +358,18 @@ V7「文件域残留」有两条取证路径，按回执是否声明提交集合
 需要修正 scope 时走**任务版本化重签发**：
 
 ```powershell
-node scripts/orchestration/cli.mjs task reissue --from AF-079 --sheet docs/worklog/pending/af080-xxx-task-YYYY-MM-DD.md
-node scripts/orchestration/cli.mjs task reissue --from AF-079 --sheet docs/worklog/pending/af080-xxx-task-YYYY-MM-DD.md --apply --archive-old
+node scripts/orchestration/cli.mjs task reissue --from AF-079 --sheet docs/worklog/inbox/af080-xxx-task-YYYY-MM-DD.md
+node scripts/orchestration/cli.mjs task reissue --from AF-079 --sheet docs/worklog/inbox/af080-xxx-task-YYYY-MM-DD.md --apply --archive-old
 ```
 
-| 规则 | 口径 |
-| --- | --- |
-| 可重签发状态 | 只允许 `backlog / ready`；已进入 `submitted / working` 的任务表示实现已开始，换契约必须走返修任务 |
-| 新任务标识 | 必须是新 taskId，且不在活跃或归档集合中 |
-| 审计链路 | 新任务 `priorTasks` 必须显式包含原 taskId |
-| 原子性 | `--apply` 内完成「登记新任务 → backlog 提级 ready → 原任务取消 canceled」；`--archive-old` 再归档原任务 |
-| 默认行为 | 不带 `--apply` 只打印 dry-run 计划，不写状态面 |
-| 同义入口 | `task rescope` 与 `task reissue` 等价；命令名表示「重签发」，不是原地改字段 |
+| 规则         | 口径                                                                                                    |
+| ------------ | ------------------------------------------------------------------------------------------------------- |
+| 可重签发状态 | 只允许 `backlog / ready`；已进入 `submitted / working` 的任务表示实现已开始，换契约必须走返修任务       |
+| 新任务标识   | 必须是新 taskId，且不在活跃或归档集合中                                                                 |
+| 审计链路     | 新任务 `priorTasks` 必须显式包含原 taskId                                                               |
+| 原子性       | `--apply` 内完成「登记新任务 → backlog 提级 ready → 原任务取消 canceled」；`--archive-old` 再归档原任务 |
+| 默认行为     | 不带 `--apply` 只打印 dry-run 计划，不写状态面                                                          |
+| 同义入口     | `task rescope` 与 `task reissue` 等价；命令名表示「重签发」，不是原地改字段                             |
 
 新任务必须是一份完整任务单（可复用原任务单内容，改 taskId、scope、createdAt 与 `priorTasks`），不得只写一份 scope 补丁。
 
@@ -395,10 +395,10 @@ node scripts/orchestration/cli.mjs receipt lint --taskId AF-084 --path docs/team
 
 实现提交与完成归档提交分开，避免 squash / preflight 阶段出现「任务已归档但实现提交还没落」的空档：
 
-| 阶段 | 时机 | 提交内容 | 任务状态 |
-| --- | --- | --- | --- |
-| 阶段一 · 实现提交 | `run-once` 领单之后、回执摄入之前 | 代码、测试、任务单、交付记录（LF） | `submitted`（可提交） |
-| 阶段二 · 完成归档提交 | 回执摄入 → 验收通过 → 归档之后 | 状态索引、事件日志、快照、看板数据等状态面生成物 | `completed` / 已归档 |
+| 阶段                  | 时机                              | 提交内容                                         | 任务状态              |
+| --------------------- | --------------------------------- | ------------------------------------------------ | --------------------- |
+| 阶段一 · 实现提交     | `run-once` 领单之后、回执摄入之前 | 代码、测试、任务单、交付记录（LF）               | `submitted`（可提交） |
+| 阶段二 · 完成归档提交 | 回执摄入 → 验收通过 → 归档之后    | 状态索引、事件日志、快照、看板数据等状态面生成物 | `completed` / 已归档  |
 
 - 实现提交必须在 `run-once` 之前或任务仍为 `submitted / working` 时完成；不要等 `run-once` 把任务推到 `completed` 再回头提交实现。
 - 状态面生成物只由 CLI 产出并单独提交，不写进回执 `changedFiles`。
@@ -415,6 +415,25 @@ node scripts/orchestration/cli.mjs docs normalize --path docs/worklog/completed/
 - `--apply` 才写回，统一为 UTF-8 无 BOM + LF。
 - 只允许 `docs/` 下的文本文件，避免误改源码。
 - 交付记录写完先跑一次只读检查，再进回执预检。
+
+## 5.7 worklog 记录包（inbox / records，AF-161）
+
+`docs/worklog` 的生命周期从「pending 混放」切成三段：
+
+| 目录                               | 只放什么                                              | 谁写                                     |
+| ---------------------------------- | ----------------------------------------------------- | ---------------------------------------- |
+| `docs/worklog/inbox/`              | 未登记任务单草稿                                      | 人 / 编排者                              |
+| `docs/worklog/records/<ctx>/<id>/` | `manifest.json`、不可变任务单、回执副本、交付记录副本 | `task register` / `ingestReceipts` / CLI |
+| `docs/worklog/pending/`            | Phase2/2.5 母版、backlog、relay 等历史参考            | 只读                                     |
+
+规则：
+
+- `task register` 成功后任务单立即移入 records 并写 SHA-256，inbox 不留副本；登记失败先做重复 taskId 检查，不留半包；
+- 任务单登记后不可变；要改 scope 走 `task reissue`，不原地改记录包；
+- 回执优先写 `records/.../receipt-*.json`，旧 `pending/archive/` 只做 dual-read 兼容；
+- 历史任务单迁移不重写已归档索引指针（事件投影不可变），读取侧 `resolveTaskSheet` 先索引、再 manifest、最后 canonical，并校验哈希；
+- 完整性闸门：`node scripts/orchestration/cli.mjs worklog verify`（CI Orchestration Gate 与 Husky pre-commit 都跑）；迁移幂等：`worklog migrate --apply`；
+- 迁移报告：`docs/worklog/records/migration-report-2026-11-20.json`；终态任务单确实在历史中缺失时写 `taskSheet: null` 墓碑，不伪造内容，`verify` 以 `无任务单` 计数透明呈现。
 
 ## 6. 策略锚点（policyAnchors）
 

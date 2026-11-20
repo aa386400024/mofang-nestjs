@@ -11,9 +11,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { createTask } from './event-store.mjs';
-import { REPO_ROOT } from './state-store.mjs';
+import { loadIndex, REPO_ROOT } from './state-store.mjs';
 import { TASK_STATUSES, TASK_TYPES } from './contract-enums.mjs';
 import { validateTaskSheet } from './validator.mjs';
+import { ensureTaskRecordBundle } from './worklog.mjs';
 
 /** 可派发角色默认映射：review / verification / investigation 只读，其余写实现。 */
 const READONLY_TYPES = ['review', 'verification', 'investigation'];
@@ -145,6 +146,12 @@ export async function registerTaskFromSheet(opts = {}) {
   }
 
   const record = buildTaskRecord(meta, { taskSheetPath, status });
+  const current = loadIndex();
+  if ([...(current.tasks ?? []), ...(current.archivedTasks ?? [])].some((task) => task.taskId === record.taskId)) {
+    throw new Error(`任务已登记，拒绝重复登记：${record.taskId}`);
+  }
+  const bundle = ensureTaskRecordBundle(record, { sourceSheetPath: abs, status });
+  record.artifacts.taskSheet = bundle.taskSheetPath;
   const index = createTask(record, { actor: opts.actor ?? 'orchestrator-cli' });
   return index.tasks.find((task) => task.taskId === record.taskId) ?? record;
 }

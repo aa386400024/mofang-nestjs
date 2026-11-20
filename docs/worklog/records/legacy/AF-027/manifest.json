@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-027",
+  "contextId": null,
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:10:28.663Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-027/task-sheet.json",
+    "sha256": "666f2e2a78d8cd31e6ad28670542d372a7c96b010297594b608cff5ad0d70a17",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/records/legacy/AF-027/legacy/af027-orchestration-receipt-chain-rework-task-2026-11-17.md"
+  ]
+}

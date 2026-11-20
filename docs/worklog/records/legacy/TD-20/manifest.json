@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "TD-20",
+  "contextId": null,
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:10:28.626Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/TD-20/task-sheet.md",
+    "sha256": "02e6d82a63e83482c793d2c85b159e24011b45d2167d3798f2880ed5853e9c9a",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": []
+}

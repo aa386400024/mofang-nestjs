@@ -1,0 +1,928 @@
+{
+  "schemaVersion": "worklog-migration-report:1.0.0",
+  "generatedAt": "2026-11-20T01:10:28.793Z",
+  "apply": true,
+  "totals": {
+    "tasks": 176,
+    "movedSheets": 1,
+    "movedReceipts": 0,
+    "orphanSheets": 0,
+    "errors": 0
+  },
+  "entries": [
+    {
+      "taskId": "AF-161",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "status": "submitted"
+    },
+    {
+      "taskId": "TD-5",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "TD-6",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "TD-7",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "TD-8",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "TD-9",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "TD-10",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "TD-11",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "TD-12",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "TD-13",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "TD-14",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "TD-15",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "TD-16",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "TD-17",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "TD-18",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "TD-19",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "TD-20",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "TD-21",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-001",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-002",
+      "contextId": null,
+      "status": "completed",
+      "taskSheet": null,
+      "note": "task-sheet-missing:tombstone"
+    },
+    {
+      "taskId": "AF-003",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-004",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-005",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-006",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-007",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-008",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-009",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-010",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-011",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-012",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-013",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-014",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-015",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-016",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-017",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-018",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-019",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-020",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-021",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-022",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "DR-001",
+      "contextId": null,
+      "status": "completed",
+      "from": "docs/worklog/pending/archive/DR-001-task-sheet-2026-11-17.json",
+      "to": "docs/worklog/records/legacy/DR-001/task-sheet.json"
+    },
+    {
+      "taskId": "AF-023",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-025",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-026",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-027",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-028",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-024",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-029",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-030",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-031",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-032",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-033",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-034",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-035",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-036",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-037",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-038",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-040",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-042",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-043",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-039",
+      "contextId": null,
+      "status": "canceled",
+      "taskSheet": null,
+      "note": "task-sheet-missing:tombstone"
+    },
+    {
+      "taskId": "AF-041",
+      "contextId": null,
+      "status": "failed"
+    },
+    {
+      "taskId": "AF-044",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-046",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-045",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-048",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-049",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-047",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-050",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-051",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-052",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-053",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-054",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-055",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-056",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-057",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-058",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-059",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-060",
+      "contextId": null,
+      "status": "rejected",
+      "taskSheet": null,
+      "note": "task-sheet-missing:tombstone"
+    },
+    {
+      "taskId": "AF-061",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-063",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-064",
+      "contextId": null,
+      "status": "canceled",
+      "taskSheet": null,
+      "note": "task-sheet-missing:tombstone"
+    },
+    {
+      "taskId": "AF-065",
+      "contextId": null,
+      "status": "completed",
+      "taskSheet": null,
+      "note": "task-sheet-missing:tombstone"
+    },
+    {
+      "taskId": "AF-066",
+      "contextId": null,
+      "status": "canceled",
+      "taskSheet": null,
+      "note": "task-sheet-missing:tombstone"
+    },
+    {
+      "taskId": "AF-067",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-068",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-070",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-071",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-072",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-069",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-073",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-074",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-075",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-076",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-077",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-078",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-079",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-080",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-081",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-082",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-083",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-084",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-085",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-086",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-087",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-088",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-089",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-090",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-091",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-092",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-093",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-096",
+      "contextId": null,
+      "status": "canceled",
+      "taskSheet": null,
+      "note": "task-sheet-missing:tombstone"
+    },
+    {
+      "taskId": "AF-097",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-098",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-099",
+      "contextId": null,
+      "status": "canceled",
+      "taskSheet": null,
+      "note": "task-sheet-missing:tombstone"
+    },
+    {
+      "taskId": "AF-100",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-101",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-102",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-104",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-103",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-105",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-106",
+      "contextId": null,
+      "status": "canceled",
+      "taskSheet": null,
+      "note": "task-sheet-missing:tombstone"
+    },
+    {
+      "taskId": "AF-107",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-108",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-109",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-110",
+      "contextId": null,
+      "status": "canceled",
+      "taskSheet": null,
+      "note": "task-sheet-missing:tombstone"
+    },
+    {
+      "taskId": "AF-111",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-112",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-113",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-114",
+      "contextId": null,
+      "status": "canceled",
+      "taskSheet": null,
+      "note": "task-sheet-missing:tombstone"
+    },
+    {
+      "taskId": "AF-115",
+      "contextId": null,
+      "status": "canceled",
+      "taskSheet": null,
+      "note": "task-sheet-missing:tombstone"
+    },
+    {
+      "taskId": "AF-116",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-117",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-118",
+      "contextId": null,
+      "status": "canceled",
+      "taskSheet": null,
+      "note": "task-sheet-missing:tombstone"
+    },
+    {
+      "taskId": "AF-119",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-120",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-121",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-122",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-123",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-124",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-125",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-126",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-129",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-127",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-130",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-131",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-132",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-133",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-134",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-135",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-136",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-137",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-138",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-139",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-140",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-141",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-142",
+      "contextId": null,
+      "status": "canceled",
+      "taskSheet": null,
+      "note": "task-sheet-missing:tombstone"
+    },
+    {
+      "taskId": "AF-143",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-144",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-145",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-146",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-147",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-148",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-149",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-150",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-151",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-152",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-153",
+      "contextId": null,
+      "status": "canceled"
+    },
+    {
+      "taskId": "AF-154",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-155",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-128",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-156",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-157",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-158",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-159",
+      "contextId": null,
+      "status": "completed"
+    },
+    {
+      "taskId": "AF-160",
+      "contextId": null,
+      "status": "canceled",
+      "taskSheet": null,
+      "note": "task-sheet-missing:tombstone"
+    }
+  ],
+  "warnings": [],
+  "errors": []
+}

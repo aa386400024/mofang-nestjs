@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-028",
+  "contextId": null,
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:10:28.664Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-028/task-sheet.json",
+    "sha256": "c17a408939bffbbaa70a4fe4284e13e715dd755b9674cf61424525d55299434d",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/records/legacy/AF-028/legacy/af028-task-promote-and-docs-task-2026-11-17.md"
+  ]
+}

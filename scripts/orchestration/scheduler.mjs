@@ -43,8 +43,28 @@ import { CIRCUIT_BREAKER_DEFAULTS, evaluateCircuitBreaker, resolveDispatchDecisi
 import { findScopeConflicts } from './scope-mutex.mjs';
 import { validateScopeDomain } from './card-router.mjs';
 import { archiveTaskSheetFile, ingestReceipts } from './receipts.mjs';
+import { ensureTaskRecordBundle, resolveTaskSheet, resolveWorklogArtifact } from './worklog.mjs';
+import { relative } from 'node:path';
 
 const BY_ORCHESTRATOR = 'orchestrator-cli';
+
+/** 快照/看板只读投影：把已迁移任务单的旧索引指针解析成记录包规范路径。 */
+function withResolvedTaskSheet(task) {
+  const sheet = resolveTaskSheet(task);
+  const artifacts =
+    task.artifacts && typeof task.artifacts === 'object' && !Array.isArray(task.artifacts)
+      ? Object.fromEntries(Object.entries(task.artifacts).map(([key, value]) => [key, resolveWorklogArtifact(task, value)]))
+      : task.artifacts;
+  if (!sheet) {
+    // 终态墓碑任务可能确实没有任务单；不把失效指针渲染成看板死链。
+    if (typeof task.artifacts?.taskSheet !== 'string') return { ...task, artifacts };
+    return { ...task, artifacts: { ...(artifacts ?? {}), taskSheet: null } };
+  }
+  return {
+    ...task,
+    artifacts: { ...(artifacts ?? {}), taskSheet: relative(REPO_ROOT, sheet.path).split('\\').join('/') },
+  };
+}
 
 /** 有效迁移表（docs/state-machine.md §4.1）。 */
 const TRANSITIONS = {
@@ -626,6 +646,13 @@ function archiveTask(index, task, status) {
     pushHistory(task, step, BY_ORCHESTRATOR, '回执验收后闭合终态');
   }
   archiveTaskEntry(index, task.taskId, { status });
+  if (resolveTaskSheet(task)) {
+    try {
+      ensureTaskRecordBundle(task, { status });
+    } catch {
+      // 历史/错误指针不应阻断归档；记录包完整性由 worklog verify 事后判。
+    }
+  }
 }
 
 /** 回执验收驱动：已落盘交付记录的任务跑护栏并归档 / 提案返修 / 死信。 */
@@ -752,8 +779,10 @@ export function buildSnapshot(index, runtimeState, config, improvementSummary) {
   const deadLetters = [];
   const reworkProposals = [];
   const pendingApprovals = [];
+  const activeTasks = index.tasks.map(withResolvedTaskSheet);
+  const archivedTasks = index.archivedTasks.map(withResolvedTaskSheet);
 
-  for (const task of index.tasks) {
+  for (const task of activeTasks) {
     const entry = getRuntimeEntry(runtimeState, task.taskId);
     counts[task.status] = (counts[task.status] ?? 0) + 1;
     if (entry.deadLetter) counts.deadLetter += 1;
@@ -795,9 +824,9 @@ export function buildSnapshot(index, runtimeState, config, improvementSummary) {
     toolContracts: loadToolContracts(),
     toolAudits: listAudits(auditLog, { limit: 15 }),
     auditSummary: summarizeAudits(auditLog),
-    protocolView: buildProtocolView({ tasks: index.tasks, archivedTasks: index.archivedTasks, agentCards }),
+    protocolView: buildProtocolView({ tasks: activeTasks, archivedTasks }),
     webRefresh: { enabled: config.web.refresh.enabled, intervalMs: config.web.refresh.intervalMs },
-    archivedCount: index.archivedTasks.length,
+    archivedCount: archivedTasks.length,
   };
 }
 
