@@ -655,6 +655,20 @@ function archiveTask(index, task, status) {
   }
 }
 
+/**
+ * AF-217：归档前置取数（纯函数，便于单测）。
+ * 未注入探测函数返回空清单（向后兼容）；注入结果做去重与空值清洗，避免把空串当成「有未提交改动」。
+ * @param {object} task
+ * @param {(task:object)=>string[]} [checkUncommitted]
+ * @returns {string[]}
+ */
+export function archiveUncommittedFiles(task, checkUncommitted) {
+  if (typeof checkUncommitted !== 'function') return [];
+  const list = checkUncommitted(task);
+  if (!Array.isArray(list)) return [];
+  return [...new Set(list.map((file) => String(file ?? '').trim()).filter(Boolean))];
+}
+
 /** 回执验收驱动：已落盘交付记录的任务跑护栏并归档 / 提案返修 / 死信。 */
 export function processReceipts(index, runtimeState, config, actions, opts = {}) {
   // 先把 transport/receipts 的机读回执投影进任务与运行态，再进入验收。
@@ -749,6 +763,22 @@ export function processReceipts(index, runtimeState, config, actions, opts = {})
         archiveTask(index, task, 'rejected');
         actions.push({ type: 'dead-letter', taskId: task.taskId });
       }
+      continue;
+    }
+
+    // AF-217 · 归档前置：实现必须已进版本库。
+    // 「先归档后提交」会被 preflight 以 no-active-task 拒绝，只能补开任务单返工；
+    // 这里在归档瞬间阻断，不让「实现还在工作区」的任务被判定为验收通过并归档。
+    const uncommitted = archiveUncommittedFiles(task, opts.checkUncommitted);
+    if (uncommitted.length > 0) {
+      entry.escalation = {
+        waiting: '任务 scope 内仍有未提交改动，归档已阻断：先提交实现，再跑 pnpm orchestration:run',
+        evidence: uncommitted.slice(0, 10),
+        attemptedPaths: [],
+        suggestedDecision: '提交实现文件后重跑 run-once；回执与交付记录无需重出',
+      };
+      actions.push({ type: 'archive-blocked-uncommitted', taskId: task.taskId, files: uncommitted });
+      remaining.push(task);
       continue;
     }
 
@@ -856,6 +886,8 @@ export function advanceOnce(opts = {}) {
       changedFiles: opts.changedFiles,
       receiptsDir: opts.receiptsDir,
       resolveCommitFiles: opts.resolveCommitFiles,
+      // AF-217：注入「scope 内未提交改动」探测，未注入时行为与既有单测一致。
+      checkUncommitted: opts.checkUncommitted,
     });
     // 取消 / 失败任务没有回执可等，靠扫档收尾；否则会永久占「活跃计数」并让队列概览虚高。
     sweepTerminalTasks(index, actions);

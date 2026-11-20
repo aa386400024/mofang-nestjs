@@ -58,11 +58,25 @@ export function isStatePlanePath(file) {
   return STATE_PLANE_PATHS.some((entry) => (entry.endsWith('/') ? target.startsWith(entry) : target === entry));
 }
 
+/** 剔除编排状态面生成物：run-once 本轮自写的文件不算「实现未提交」。 */
+export function excludeStatePlane(files) {
+  return (files ?? []).filter((file) => !isStatePlanePath(file));
+}
+
 /** 任务自身声明的工件文件（任务单 / 交付记录 / 回执）。 */
 function isTaskArtifact(file, task) {
   const target = normalizeFile(file);
   const artifacts = task?.artifacts ?? {};
-  return [artifacts.taskSheet, artifacts.deliveryRecord, artifacts.reply, task?.receipt?.archiveRef]
+  const declared = [
+    artifacts.taskSheet,
+    artifacts.deliveryRecord,
+    artifacts.reply,
+    task?.receipt?.archiveRef,
+    // 索引里的运行态指针可能缺 deliveryRecord（历史登记只写了 taskSheet），
+    // 此时回落到任务单声明的 plannedArtifacts，避免交付记录被误判越域。
+    ...(Array.isArray(task?.plannedArtifacts) ? task.plannedArtifacts.map((item) => item?.path) : []),
+  ];
+  return declared
     .filter((value) => typeof value === 'string' && value.trim())
     .map(normalizeFile)
     .includes(target);
