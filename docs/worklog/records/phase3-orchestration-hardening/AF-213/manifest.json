@@ -2,16 +2,22 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-213",
   "contextId": "phase3-orchestration-hardening",
-  "status": "ready",
+  "status": "completed",
   "createdAt": "2026-11-21T09:10:00+08:00",
-  "updatedAt": "2026-11-20T17:19:13.768Z",
+  "updatedAt": "2026-11-20T17:23:25.672Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase3-orchestration-hardening/AF-213/task-sheet.md",
     "sha256": "2762b4eafc69619542b4621e08ed17d0842cbb6cc951ed266be8206aa4cf8963",
     "immutable": true
   },
-  "receipts": [],
-  "deliveryRecord": null,
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase3-orchestration-hardening/AF-213/receipt-RC-AF-213-1.json",
+      "sha256": "1811c7627d807a2e0a7762d45ec7ba07da3e406c6fae977f8ba945ce8cb14cd9",
+      "receiptId": "RC-AF-213-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af213-cross-machine-hardening-2026-11-21.md",
   "legacyPaths": ["docs/worklog/pending/af213-cross-machine-hardening-2026-11-21.md"],
   "tombstone": null
 }

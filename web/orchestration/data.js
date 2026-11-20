@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-20T16:33:32.024Z",
+  "generatedAt": "2026-11-20T17:23:25.878Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1693,6 +1693,7 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "AGENTS.md",
         "package.json",
+        ".prettierignore",
         "eslint.config.mjs",
         ".husky/",
         ".github/",
@@ -1778,6 +1779,21 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-017",
+      "recordedAt": "2026-11-20T16:59:06.619Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-213",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-213",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-213.json"
+      ]
+    },
     {
       "auditId": "AUD-016",
       "recordedAt": "2026-11-20T16:31:22.651Z",
@@ -2009,36 +2025,21 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-002",
-      "recordedAt": "2026-11-15T16:06:21.674Z",
-      "actorRef": "orchestrator",
-      "correlationId": "pack",
-      "toolId": "TOOL-DELIVERY-PACK",
-      "category": "delivery-packing",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/delivery-packs/"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 16,
+    "total": 17,
     "byResult": {
-      "allowed": 16,
+      "allowed": 17,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 14
+      "TOOL-QUEUE-SCHEDULER": 15
     },
     "byActor": {
-      "orchestrator": 16
+      "orchestrator": 17
     }
   },
   "protocolView": {
@@ -5880,6 +5881,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af210-doubao-fallback-provider-2026-11-21.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-213",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase3-orchestration-hardening/AF-213/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase3-orchestration/af213-cross-machine-hardening-2026-11-21.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -5904,5 +5923,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 224
+  "archivedCount": 225
 };
