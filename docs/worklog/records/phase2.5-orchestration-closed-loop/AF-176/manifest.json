@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-176",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-20T05:12:00Z",
+  "updatedAt": "2026-11-20T06:32:21.548Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-176/task-sheet.md",
+    "sha256": "ca68f9d63b488ebb37947b5fa74349f5c73a0613387ae693b04347e40c3f87a2",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-176/receipt-RC-AF-176-1.json",
+      "sha256": "be35f9ece719729626963395c05cfd326fc923a924b7a22a0cf9bac6b7319c02",
+      "receiptId": "RC-AF-176-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af176-deterministic-structure-close-2026-11-20.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af176-deterministic-structure-task-2026-11-20.md"
+  ],
+  "tombstone": null
+}

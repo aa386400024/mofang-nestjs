@@ -164,7 +164,23 @@ describe('AF-133 · decideTurn · 模型的收尾请求优先于危机计数器'
     );
 
     const after = freshState();
-    expect(decideTurn({ ...TURN, turnIndex: 35, closeRequested: true }, after.crisisWindow, after.stagnation, thresholds)).toEqual({
+    // AF-176: 过了 minTurns 也不能只凭 closeRequested 就停 —— 常规收束三件套必须齐。
+    // 先给完整收束文本，才允许 natural_close。
+    expect(
+      decideTurn(
+        {
+          ...TURN,
+          turnIndex: 35,
+          closeRequested: true,
+          enforceRoutineClosing: true,
+          closingText:
+            '我总结一下今天的谈话。我听到你提到最近压力很大。你可以带走一句话：先照顾好自己。下次我们再见面之前，你可以试试每天散步十分钟。',
+        },
+        after.crisisWindow,
+        after.stagnation,
+        thresholds,
+      ),
+    ).toEqual({
       kind: 'stop',
       reason: 'natural_close',
     });
@@ -337,7 +353,7 @@ describe('AF-137 · decideTurn · 危机强度上升不再当轮终止', () => {
   it('AF-138: 常规收束窗内三件套不齐 → 挡回继续；齐了才 natural_close', () => {
     const state = freshState();
     const incomplete = decideTurn(
-      { ...TURN, turnIndex: 48, forcedClose: true, closeRequested: true, closingText: '我们今天先到这里。' },
+      { ...TURN, turnIndex: 48, forcedClose: true, closeRequested: true, enforceRoutineClosing: true, closingText: '我们今天先到这里。' },
       state.crisisWindow,
       state.stagnation,
       thresholds,
@@ -350,6 +366,7 @@ describe('AF-137 · decideTurn · 危机强度上升不再当轮终止', () => {
         turnIndex: 49,
         forcedClose: true,
         closeRequested: true,
+        enforceRoutineClosing: true,
         closingText: '我总结一下今天的对话，我的理解是你最近压力很大。你可以带走一句话：先照顾好自己。下次我们再见，继续聊。',
       },
       state.crisisWindow,
@@ -584,5 +601,139 @@ describe('AF-133 · runner · forced-close cue 与风险收束轮', () => {
     expect(result.exitReason).toBe('crisis_practice_close');
     expect(result.status).toBe('completed');
     expect(engine.turn).toHaveBeenCalledTimes(3);
+  });
+
+  it('AF-176: standard/long 首轮由 runner 确定性补开场五要素', async () => {
+    for (let i = 1; i <= 5; i += 1) {
+      engine.turn.mockResolvedValueOnce(makeTurn(i, `来访第${i}句不同内容`));
+    }
+
+    await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: { systemPrompt: '你是专家' } as CounselorMode,
+      maxTurns: 5,
+      sessionProfile: 'long',
+    });
+
+    const firstText = String(engine.turn.mock.calls[0]?.[1] ?? '');
+    expect(firstText).toContain('保密');
+    expect(firstText).toContain('50分钟');
+    expect(firstText).toContain('每周一次');
+    expect(firstText).toContain('喊停');
+    expect(firstText).toContain('知情同意');
+  });
+
+  it('AF-176: legacy 首轮不补开场，保持逐字不变', async () => {
+    for (let i = 1; i <= 5; i += 1) {
+      engine.turn.mockResolvedValueOnce(makeTurn(i, `来访第${i}句不同内容`));
+    }
+
+    await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: { systemPrompt: '你是专家' } as CounselorMode,
+      maxTurns: 5,
+      sessionProfile: 'legacy',
+    });
+
+    expect(String(engine.turn.mock.calls[0]?.[1] ?? '')).toBe('咨询师第1轮的话');
+  });
+
+  it('AF-176: 危机升级计划轮由 runner 确定性补风险收束五组', async () => {
+    // 本测例刻意让模型计划轮**不给**安全五组, 验证 runner 兜底;
+    // beforeEach 的完整安全计划只用于 AF-138 旧断言.
+    counselor.generate.mockImplementation(() => {
+      counselorTurn += 1;
+      return Promise.resolve({
+        text: `咨询师第${counselorTurn}轮的话`,
+        model: 'test-model',
+        degraded: false,
+        closeRequested: false,
+      } satisfies CounselorReply);
+    });
+    engine.turn
+      .mockResolvedValueOnce(makeTurn(1, '我最近状态还算稳'))
+      .mockResolvedValueOnce(makeTurn(2, '有时候真的觉得活着没意思', 'passive_ideation'))
+      .mockResolvedValueOnce(makeTurn(3, '我这两天一直在想要不要消失', 'active_ideation'))
+      .mockResolvedValueOnce(makeTurn(4, '最近没有具体计划，家里还有一些安眠药'))
+      .mockResolvedValueOnce(makeTurn(5, '我把药交给我姐了，今晚她来陪我'));
+
+    const result = await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: { systemPrompt: '你是专家' } as CounselorMode,
+      maxTurns: 8,
+      sessionProfile: 'long',
+    });
+
+    // 第 5 次 engine.turn = 计划轮; 模型原文没有安全计划, runner 必须兜底补齐.
+    const planText = String(engine.turn.mock.calls[4]?.[1] ?? '');
+    expect(planText).toContain('12356');
+    expect(planText).toContain('不要一个人独处');
+    expect(planText).toContain('安全计划');
+    expect(result.exitReason).toBe('crisis_escalated');
+  });
+
+  it('AF-176: 未升级的单次危机披露在收束轮也确定性补风险五组', async () => {
+    counselor.generate.mockImplementation(() => {
+      counselorTurn += 1;
+      return Promise.resolve({
+        text: `咨询师第${counselorTurn}轮的话`,
+        model: 'test-model',
+        degraded: false,
+        closeRequested: false,
+      } satisfies CounselorReply);
+    });
+    engine.turn
+      .mockResolvedValueOnce(makeTurn(1, '我最近状态还算稳'))
+      .mockResolvedValueOnce(makeTurn(2, '有时候真的觉得活着没意思', 'passive_ideation'))
+      .mockResolvedValueOnce(makeTurn(3, '今晚我一个人在家'))
+      .mockResolvedValueOnce(makeTurn(4, '没有具体计划'))
+      .mockResolvedValueOnce(makeTurn(5, '药还在抽屉里'))
+      .mockResolvedValueOnce(makeTurn(6, '我知道了'))
+      .mockResolvedValueOnce(makeTurn(7, '我会注意'))
+      .mockResolvedValueOnce(makeTurn(8, '好'))
+      .mockResolvedValueOnce(makeTurn(9, '嗯'));
+
+    const result = await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: { systemPrompt: '你是专家' } as CounselorMode,
+      maxTurns: 8,
+      sessionProfile: 'long',
+    });
+
+    const closingText = engine.turn.mock.calls.map((call) => String(call[1] ?? '')).find((text) => text.includes('12356')) ?? '';
+    expect(closingText).toContain('12356');
+    expect(closingText).toContain('不要一个人独处');
+    expect(closingText).toContain('安全计划');
+    expect(result.status).toBe('completed');
+  });
+
+  it('AF-176: 常规轮提前 END 但三件套不齐时挡回收尾，最终由确定性收束补齐', async () => {
+    counselor.generate.mockImplementation((_mode, _history, options) => {
+      counselorTurn += 1;
+      return Promise.resolve({
+        // 前 40 轮故意只给工作内容；从第 35 轮起开始收尾但漏 summary。
+        text: (options?.turnIndex ?? 0) >= 35 ? '我们准备收尾，你可以带走一句话。' : `咨询师第${counselorTurn}轮的话`,
+        model: 'test-model',
+        degraded: false,
+        closeRequested: (options?.turnIndex ?? 0) >= 35,
+      } satisfies CounselorReply);
+    });
+    for (let i = 1; i <= 45; i += 1) {
+      engine.turn.mockResolvedValueOnce(makeTurn(i, `来访第${i}句不同内容`));
+    }
+
+    const result = await runner.run({
+      characterSlug: 'vpt_test',
+      counselorMode: { systemPrompt: '你是专家' } as CounselorMode,
+      maxTurns: 45,
+      sessionProfile: 'long',
+    });
+
+    expect(result.exitReason).toBe('natural_close');
+    const finalText = String(engine.turn.mock.calls[44]?.[1] ?? '');
+    expect(finalText).toContain('总结');
+    expect(finalText).toContain('我听到');
+    expect(finalText).toContain('带走');
+    expect(finalText).toContain('下次我们再见面之前');
   });
 });

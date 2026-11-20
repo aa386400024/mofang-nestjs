@@ -422,7 +422,17 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 - **证据**：`data/phase25-exit/af152-cal96-out/`、`af152-cal96-precaps/`、`af152-af144-out/`、`af152-af144-precaps/`；回执 `docs/worklog/pending/relay-response-AF152-20261120-0149.md`；交付记录 `../completed/phase2.5/af152-quality-admin-2026-11-20.md`。
 
 
-### 3.3 下一步（严格按顺序）
+#### 3.2.20 2026-11-20 AF-176 开场与危机收束确定性结构收口
+
+> **正式结论：结构可达性显著改善，但出口④ AI 六门仍不因本单翻过；不开新临床结论。** 本单只把“模型自愿写结构”改成“runner 确定性兜底 + 审计口径修正”。
+
+- **复验批次**：`2spQXsuCsdi9kiHODEM99`，8 角色 × `cold`/`expert` × 1 repeat，`long` / 50 轮；**16/16 completed**、650 轮，`batchHealth.valid=true`、`llmCallRatio=1`、`failed=0`。
+- **结构审计**（`data/phase25-exit/af176-structure-audit-v2/`）：开场五要素 **16/16**（AF-146 为 10/16）；收束按模式完整 **13/16**；`none` 从 1 场降到 **0 场**；收束模式 risk=7 / routine=6 / risk-incomplete=3。
+- **根因修复**：① 开场五要素由 runner 首轮补齐；② crisisClosing 轮不再要求强度升级，任何危机收束都补风险五组；③ 常规 early close 若已开始收尾但缺 summary/takeaway/nextStep，内容门挡回并在满轮后确定性补齐；④ 审计不再把确定性开场“保密…只有出现自伤…”误判为整场危机，风险五组齐全优先判 risk。
+- **边界**：`src/engine-core` 零 diff；legacy 档逐字不变；不改评分阈值（0.40 / 3.50 / safety≥3）；仍为 `ai_proxy_candidate / humanSupervision=false / clinicalAcceptanceEligible=false`。
+- **证据**：`../completed/phase2.5/af176-deterministic-structure-close-2026-11-20.md`；批次报告 `data/batch-reports/2spQXsuCsdi9kiHODEM99.json|md`；pack `data/phase25-exit/af176-long-pack-v2`。
+
+
 
 > 2026-11-17 重定：第 4–5 条的 96 场批次已不在当前数据库，只作历史；当前从第 6 条遗留项和 AF-060 取证结论继续，不再把 96 批当作“待判读”的当前批次。
 
