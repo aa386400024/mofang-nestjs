@@ -7,6 +7,7 @@
 //     ③ 所有配额都是"上限"，不是"必须发生" —— 避免模型为了达标机械塞语气词。
 
 import { buildRealismEventPlan, buildRealismEventPromptLine, type RealismEventPlan } from './realism-event-plan.js';
+import { resolveRealismEventRhythm, type RealismEventRhythm } from './realism-event-rhythm.js';
 import {
   resolveRealismScene,
   resolveRealismStateBand,
@@ -54,6 +55,8 @@ export interface VisitorRealismProfile {
   readonly quotas: RealismQuotas;
   /** R2：具体口语事件候选与上限；off/audit 仍计算，但不注入。 */
   readonly eventPlan: RealismEventPlan;
+  /** R6：状态化节奏（停顿形态、改口位置、短答偏置）；off/audit 仍计算，但不注入。 */
+  readonly rhythm: RealismEventRhythm;
   /** active 才非空；off / audit 为空数组。 */
   readonly directives: readonly string[];
 }
@@ -96,10 +99,6 @@ const SCENE_INSTRUCTION: Record<RealismScene, string> = {
 const REGISTER_INSTRUCTION =
   '语域层：只用来访者能直接说出口的口语；不用咨询或诊断术语、书面连接词、助手口吻或旁白式总结，也不要把动作写进括号或星号里。';
 
-function maxOf(...values: readonly number[]): number {
-  return Math.max(0, ...values);
-}
-
 /**
  * 配额按角色/状态/场景收紧或放宽，但所有值都是"上限"。
  * 风险轮一律归零：安全信息必须清楚，真人感不能压过可听性。
@@ -118,25 +117,38 @@ function buildQuotas(role: VisitorVoiceRole, state: RealismStateBand): RealismQu
     elongation: role === 'emotional' || role === 'chaotic_disorganized' ? 1 : 0,
   };
 
-  const stateBoost = state === 'flooded' ? 1 : 0;
-  const guardedTrim = state === 'guarded' ? 1 : 0;
+  // R6: 状态不再只是“加一/减一”，而是明确分布：
+  //   · guarded 只留一次短停顿与一次半截话，短答优先，不硬加填充/改口；
+  //   · flooded 允许两个停顿 span、句中改口、重复与拖长；
+  //   · steady 保持角色底色，但合计最多两处，避免每轮都像“按配额塞痕迹”。
+  if (state === 'guarded') {
+    return {
+      filler: 0,
+      pause: 1,
+      repair: 0,
+      trailoff: 1,
+      repetition: 0,
+      elongation: 0,
+      maxEvents: 1,
+    };
+  }
 
-  const filler = maxOf(base.filler - guardedTrim);
-  const pause = maxOf(base.pause + stateBoost);
-  const repair = maxOf(base.repair - guardedTrim);
-  const trailoff = maxOf(base.trailoff + stateBoost);
-  const repetition = maxOf(base.repetition + stateBoost);
-  const elongation = maxOf(base.elongation);
+  if (state === 'flooded') {
+    return {
+      filler: base.filler,
+      pause: 2,
+      repair: base.repair,
+      trailoff: base.trailoff,
+      repetition: base.repetition,
+      elongation: base.elongation,
+      maxEvents: 3,
+    };
+  }
 
-  const sum = filler + pause + repair + trailoff + repetition + elongation;
+  const sum = base.filler + base.pause + base.repair + base.trailoff + base.repetition + base.elongation;
   return {
-    filler,
-    pause,
-    repair,
-    trailoff,
-    repetition,
-    elongation,
-    maxEvents: Math.min(3, sum),
+    ...base,
+    maxEvents: Math.min(2, sum),
   };
 }
 
@@ -162,8 +174,9 @@ function buildDirectives(
   shape: VisitorTurnShape,
   quotas: RealismQuotas,
   eventPlan: RealismEventPlan,
+  rhythm: RealismEventRhythm,
 ): readonly string[] {
-  const eventLine = buildRealismEventPromptLine(eventPlan);
+  const eventLine = buildRealismEventPromptLine(eventPlan, rhythm);
   return [
     '优先级：安全约束 > 本场接触方式 > 角色声音 > 话轮形态 > 不流利配额。冲突时，前面的压过后面的。',
     `场景层：${SCENE_INSTRUCTION[scene]}`,
@@ -189,6 +202,7 @@ export function buildVisitorRealismProfile(context: VisitorRealismContext, mode:
   const shape = selectTurnShape({ ...context, scene });
   const quotas = buildQuotas(role, state);
   const eventPlan = buildRealismEventPlan({ role, state, scene, quotas });
+  const rhythm = resolveRealismEventRhythm({ role, state, scene });
 
   return {
     mode,
@@ -198,7 +212,8 @@ export function buildVisitorRealismProfile(context: VisitorRealismContext, mode:
     shape,
     quotas,
     eventPlan,
-    directives: mode === 'active' ? buildDirectives(scene, role, state, shape, quotas, eventPlan) : [],
+    rhythm,
+    directives: mode === 'active' ? buildDirectives(scene, role, state, shape, quotas, eventPlan, rhythm) : [],
   };
 }
 

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-215",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "canceled",
+  "createdAt": "2026-11-21T02:33:22+08:00",
+  "updatedAt": "2026-11-20T18:34:34.279Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-215/task-sheet.md",
+    "sha256": "efd4a593da70c4b7109f6645a946fc89df8193c8c65509be6141988131230534",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/pending/af215-realism-r6-event-conditioning-2026-11-21.md"
+  ],
+  "tombstone": null
+}

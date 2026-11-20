@@ -38,12 +38,24 @@ export {
 } from './realism-event-plan.js';
 
 export {
+  resolveRealismEventRhythm,
+  type RealismEventRhythm,
+  type RealismPauseStyle,
+  type RealismRepairPosition,
+  type RealismShortAnswerBias,
+} from './realism-event-rhythm.js';
+
+export {
   buildRealismRetryInstruction,
   countRealismEvents,
+  inspectRealismEventDistribution,
   inspectVisitorRealism,
   measureVisitorTurnLength,
   type RealismAuditProfile,
   type RealismAuditResult,
+  type RealismEventDistribution,
+  type RealismPauseSpanClass,
+  type RealismRepairPositionClass,
   type RealismSignal,
   type RealismViolation,
 } from './visitor-realism-audit.js';
