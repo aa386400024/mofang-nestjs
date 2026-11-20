@@ -23,6 +23,7 @@
 //     2. test/engine-adapters/wp9c-render-risk.spec.ts 覆盖等级映射与思考强度升级
 
 import type { RenderSpec, SafetyLevel, VisitorRiskCategory } from '../../engine-core/index.js';
+import type { EncounterInput } from '../../shared/encounter/encounter-scene.js';
 
 /**
  * 渲染路由用的风险等级 (适配层口径).
@@ -61,6 +62,12 @@ export interface AdaptiveRenderSpec extends RenderSpec {
   readonly characterLabel?: string;
   /** 台词指纹 (WP-J P2): 自由文本, 渲染层 prompt 用, 不进内核. */
   readonly verbalVoice?: string;
+  /**
+   * 本场接触方式 (AF-187): 面对面 / 线上（video/voice/text）.
+   *
+   * ⚠️ 缺省 = 不登记 = 渲染层不追加场景块, prompt 逐字不变（legacy 零回归）.
+   */
+  readonly encounter?: EncounterInput;
 }
 
 /**

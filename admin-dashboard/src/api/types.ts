@@ -466,6 +466,10 @@ export interface PracticeSession {
   maxTurns: number
   turnCount: number
   crisisEnded: number
+  // AF-187: 接触方式与危机收尾结论（新增列；历史行为 NULL/默认，故可选）。
+  encounterMode?: 'in_person' | 'online'
+  encounterChannel?: 'video' | 'voice' | 'text' | null
+  crisisOutcome?: 'none' | 'safety_plan_completed' | 'escalated' | 'incomplete' | null
   // P1b 危机练习窗 6 列 (ap_practice_sessions).
   // 列表接口默认不返回这 6 列, 需 ?include=crisis 才带 (后端 B6), 故全部可选.
   // 两个 tinyint 后端用 number(0/1) 而非 boolean (B1/B5: mysql 驱动读回来就是数字).
@@ -528,6 +532,8 @@ export interface ApSessionEnd {
   exitReason: string
   turnCount: number
   crisisEnded: boolean
+  /** AF-187: 可读危机收尾结论（旧服务不带则为 undefined）. */
+  crisisOutcome?: 'none' | 'safety_plan_completed' | 'escalated' | 'incomplete'
 }
 
 // ─── 闸门决策 trace (GateDecisions) ───

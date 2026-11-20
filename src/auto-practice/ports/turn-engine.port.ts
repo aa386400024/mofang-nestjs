@@ -15,6 +15,7 @@
 //     - 端口只说"给我一轮输入, 我给你来访口语 + 危机标记", 不说"怎么落盘 / 怎么存内存".
 
 import type { DebugTurnTrace } from '../../admin-debug/debug-session.service.js';
+import type { EncounterInput } from '../../shared/encounter/encounter-scene.js';
 import type { ScenarioType } from '../inference-fingerprint.service.js';
 
 /**
@@ -48,9 +49,10 @@ export interface TurnEnginePort {
    *
    * @param characterSlug 来访者角色 slug
    * @param scenarioType 场景类型 (考核场景硬隔离 rule_only; 缺省 full_simulation)
+   * @param encounter 接触方式 (AF-187; 缺省 = 不登记 = prompt 逐字不变)
    * @returns 调试会话 id (后续 turn/close 用它)
    */
-  open(characterSlug: string, scenarioType?: ScenarioType): Promise<{ readonly debugSessionId: string }>;
+  open(characterSlug: string, scenarioType?: ScenarioType, encounter?: EncounterInput): Promise<{ readonly debugSessionId: string }>;
 
   /**
    * 跑一轮 (咨询师说一句话 → 来访者回一句话).
