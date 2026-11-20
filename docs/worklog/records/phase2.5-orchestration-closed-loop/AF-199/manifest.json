@@ -2,16 +2,22 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-199",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-20T19:40:00+08:00",
-  "updatedAt": "2026-11-20T11:14:50.215Z",
+  "updatedAt": "2026-11-20T11:15:19.172Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-199/task-sheet.md",
     "sha256": "60d0d23fdc50124c676d09170cfc93728fa82f6ef8f29411c24021de0f93916d",
     "immutable": true
   },
-  "receipts": [],
-  "deliveryRecord": null,
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-199/receipt-RC-AF-199-1.json",
+      "sha256": "7239deb78cfb52aedef9e5093ae36b5f39619073e052980d831e312946628ed5",
+      "receiptId": "RC-AF-199-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af199-executor-card-records-2026-11-20.md",
   "legacyPaths": [
     "docs/worklog/pending/af199-executor-card-records-task-2026-11-20.md"
   ],
