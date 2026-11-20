@@ -1,0 +1,200 @@
+{
+  "deliveredAt": "2026-11-21T01:56:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-214-1",
+    "taskId": "AF-214",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "f32b62b4d290f4b0b9a382e762e593b4b04f906a",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-214/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af214-realism-ai-double-blind-2026-11-21.md",
+      "reply": null,
+      "others": [
+        "data/phase25-exit/af214-realism-ai-double-blind/report.json",
+        "data/phase25-exit/af214-realism-ai-double-blind/summary.md"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "src/auto-practice/metrics/visitor-realism-rating.ts",
+        "src/auto-practice/metrics/visitor-realism-blind-pack.ts",
+        "bin/visitor-realism-blind.ts",
+        "test/auto-practice/af214-realism-rating.spec.ts",
+        "test/auto-practice/af214-realism-blind-pack.spec.ts",
+        "docs/worklog/completed/phase2.5/af214-realism-ai-double-blind-2026-11-21.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/af213-register-scene.spec.ts test/auto-practice/af213-realism-baseline.spec.ts test/auto-practice/af214-realism-rating.spec.ts test/auto-practice/af214-realism-blind-pack.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 4,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "0.36s",
+        "note": "41 tests passed（R4 回归 + R5 评分协议与盲评包）"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "本次实测 exit 0",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "本次实测 exit 0",
+        "note": "全量带缓存 lint；0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 239,
+        "machine": "同上",
+        "wallClock": "23.99s",
+        "note": "239 passed + 1 skipped files；4106 passed + 4 skipped tests"
+      },
+      {
+        "command": "node --env-file=.env --import tsx bin/visitor-realism-blind.ts --target-scored 8 --max-packets 16 --max-messages 24 --timeout-ms 180000 --max-parse-retries 1",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 8 分钟",
+        "note": "8 有效 packet / 9 attempted；总体 3.4625、自然度 2.75、exact 0.625、±1 1.0、κ 0.5；1 个 packet R1 解析失败进失败表"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "代码、测试、交付记录与回执在同一 AF-214 任务分支完成；评分 CLI 只读 data/debug-sessions，不启动服务、不写数据库；模型密钥只从 .env 读取，未写进任何报告或日志；报告不含台词原文，只含 packetId、分数、计数与失败原因。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-214 贯穿任务单、分支、提交、交付记录与回执"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / archive 全部经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-214 登记、领单、验收、归档事件连续，不改历史事件"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "deploy-contract",
+        "result": "pass",
+        "note": "不新增 env 键，不修改 provider 配置与 scripts/orchestration/"
+      },
+      {
+        "item": "text-privacy",
+        "result": "pass",
+        "note": "报告与 CLI 日志不输出台词原文；密钥不落盘"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单、交付记录、回执同源；baselineRef 为 f32b62b4"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF214-01",
+        "impact": "既有 360 场全部无场景字段，online_voice / online_text 切片为 0；场景一致高分只代表面对面",
+        "severity": "medium",
+        "schedule": "R6 新批次带场景标签后复算"
+      },
+      {
+        "id": "BL-AF214-02",
+        "impact": "1/9 packet 因模型输出解析失败进失败表；行协议已降低失败率但未压到 0，不能直接做灰度门禁",
+        "severity": "medium",
+        "schedule": "R6 评分稳定性专项"
+      },
+      {
+        "id": "BL-AF214-03",
+        "impact": "自然度仅 2.75/5，是五维最低；当前口语事件计划只做到“有事件”，未做到“事件随状态变化”",
+        "severity": "high",
+        "schedule": "R6 自然度专项"
+      },
+      {
+        "id": "BL-AF214-04",
+        "impact": "AI 评分员同模型，独立性来自提示词/温度差异；真人督导师双标与仲裁未做，clinicalAcceptanceEligible 保持 false",
+        "severity": "high",
+        "schedule": "真人督导师到位后"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "评分输出协议",
+        "taskSays": "评分员输出结构化 JSON",
+        "reality": "MiniMax-M3 把 <think> 内联进 content，JSON 被长度上限截断或不再输出；改为行协议优先、JSON 兼容回退",
+        "action": "parseRealismRating 先 JSON 后行协议，证据校验与仲裁规则共用；交付记录显式登记",
+        "why": "实跑 9 包中 1 包 JSON 完全失败、多包重试；行协议是实测可用且不降低证据强度的最短契约"
+      },
+      {
+        "item": "packet 数量",
+        "taskSays": "至少 8 个 packet",
+        "reality": "实际跑 9 个候选，8 有效、1 失败保留在失败表，由候选回填达标",
+        "action": "报告输出 packetCount=9、scored=8、failed=1，不静默替换失败包",
+        "why": "失败必须可追溯，不能只报成功数"
+      },
+      {
+        "item": "场景字段",
+        "taskSays": "盲评包去身份",
+        "reality": "保留 scene，去 sessionId / characterSlug / characterLabel / 档位",
+        "action": "交付记录说明 scene 是评分锚点必需信息",
+        "why": "去掉场景会让“场景一致”维度无法评分"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "五维评分协议与行为锚点落地，证据必须可回指 packet 原文；盲评包去 session id / 角色 slug / 档位并按场景分层稳定抽样；含 R4 硬违约会话整场剔除；真实 AI 双盲跑出 8 有效 packet，总体 3.4625、自然度 2.75、±1 一致率 100%、κ 0.5，并用候选回填保留失败包；定向 41 tests、全量 4106 tests、lint/typecheck 全绿；engine-core 零 diff；报告不泄漏台词原文。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
