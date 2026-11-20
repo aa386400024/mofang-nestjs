@@ -16,6 +16,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { detectResidualFiles } from './scope-mutex.mjs';
+import { resolveTaskSheet } from './worklog.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -33,6 +34,7 @@ export const STATE_PLANE_PATHS = [
   'docs/team/agent-orchestration/transport/',
   'docs/team/agent-orchestration/delivery-packs/',
   'docs/worklog/pending/archive/',
+  'docs/worklog/records/',
   'web/orchestration/data.js',
 ];
 
@@ -68,7 +70,8 @@ function isTaskArtifact(file, task) {
 
 /** 回执归档副本属于交付产物，允许在任务 completed 后提交。 */
 function isReceiptArchive(file) {
-  return normalizeFile(file).startsWith('docs/worklog/pending/archive/');
+  const target = normalizeFile(file);
+  return target.startsWith('docs/worklog/pending/archive/') || target.startsWith('docs/worklog/records/');
 }
 
 function isExemptForTask(file, task) {
@@ -335,8 +338,8 @@ function argValue(args, flag) {
 function assertTaskSheetsExist(rootDir, tasks, taskId) {
   const task = tasks.find((item) => item.taskId === taskId);
   if (!task) return;
-  const sheet = resolve(rootDir, task.artifacts.taskSheet);
-  if (!existsSync(sheet)) throw new Error(`任务单不存在：${task.artifacts.taskSheet}`);
+  const sheet = resolveTaskSheet(task, { rootDir });
+  if (!sheet) throw new Error(`任务单不可解析：${task.artifacts?.taskSheet ?? '(missing)'}`);
 }
 
 function printFailure(result) {

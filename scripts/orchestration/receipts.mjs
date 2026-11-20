@@ -15,6 +15,7 @@ import { createHash } from 'node:crypto';
 import { join, relative, resolve } from 'node:path';
 import { PATHS, REPO_ROOT, nowIso } from './state-store.mjs';
 import { validateReceiptHandover } from './handover-contract.mjs';
+import { copyReceiptToBundle, ensureTaskRecordBundle } from './worklog.mjs';
 
 /**
  * 回执指纹：整份回执文件的 sha256（含包装层），用于「内容有没有被改」的审计。
@@ -79,22 +80,38 @@ function archiveReceiptFile(file, receipt, taskId, archiveDir) {
 
 /**
  * transport 里的任务单是运行态收件箱（默认 gitignore），归档前复制一份到
- * `docs/worklog/pending/archive/` 并回写指针，避免归档后任务单正文随 transport 丢失。
+ * `docs/worklog/records/<context>/<taskId>/task-sheet.md`，并把索引指针切到规范路径。
+ * 已经是记录包的任务只补 manifest，不重复搬运。
  * @param {object} task 索引任务条目（就地改写 artifacts.taskSheet）
  * @returns {string|null} 归档后的任务单指针
  */
 export function archiveTaskSheetFile(task) {
   const ref = task?.artifacts?.taskSheet;
-  if (typeof ref !== 'string' || !ref.startsWith('docs/team/agent-orchestration/transport/')) return ref ?? null;
+  if (typeof ref !== 'string' || ref.length === 0) return ref ?? null;
   const abs = resolve(REPO_ROOT, ref);
+  if (ref.startsWith('docs/worklog/records/')) {
+    if (existsSync(abs)) {
+      try {
+        ensureTaskRecordBundle(task, { status: task.status });
+      } catch {
+        // 指针可能来自错误回执（指向别的任务单）；归档不被记录包同步阻断。
+      }
+    }
+    return ref;
+  }
   if (!existsSync(abs)) return ref;
-  const archiveDir = PATHS.receiptArchiveDir;
-  mkdirSync(archiveDir, { recursive: true });
-  const dest = join(archiveDir, `${task.taskId}-task-sheet-${nowIso().slice(0, 10)}.json`);
-  if (!existsSync(dest)) copyFileSync(abs, dest);
-  const archived = relative(REPO_ROOT, dest).split('\\').join('/');
-  task.artifacts = { ...(task.artifacts ?? {}), taskSheet: archived };
-  return archived;
+  const lifecycle =
+    ref.startsWith('docs/team/agent-orchestration/transport/') ||
+    ref.startsWith('docs/worklog/inbox/') ||
+    ref.startsWith('docs/worklog/pending/');
+  if (!lifecycle) return ref;
+  try {
+    const bundle = ensureTaskRecordBundle(task, { sourceSheetPath: abs, status: task.status });
+    task.artifacts = { ...(task.artifacts ?? {}), taskSheet: bundle.taskSheetPath };
+    return bundle.taskSheetPath;
+  } catch {
+    return ref;
+  }
 }
 
 /**
@@ -162,8 +179,10 @@ export function ingestReceipts(index, runtimeState, opts = {}) {
     // 机读回执与交付记录成对：索引只存指针，正文留在 worklog。
     const artifacts = receiptArtifacts(receipt);
     task.artifacts = { ...(task.artifacts ?? {}), ...artifacts };
-    // 长期审计：回执副本落 archive，transport 目录只作收件箱（可能被派发覆写、且默认 gitignore）。
-    const archiveRef = archiveReceiptFile(file, receipt, task.taskId, opts.archiveDir ?? PATHS.receiptArchiveDir);
+    // 长期审计：回执副本进任务记录包；显式传 archiveDir 的测试/兼容路径仍走旧 archive。
+    const archiveRef = opts.archiveDir
+      ? archiveReceiptFile(file, receipt, task.taskId, opts.archiveDir)
+      : copyReceiptToBundle(task, file, receipt).ref;
     task.receipt = {
       receiptId: receipt.receiptId ?? null,
       finalStatus: receipt.finalStatus,

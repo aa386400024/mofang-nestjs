@@ -22,6 +22,7 @@ import { extractCommitTaskId, mergeableDurableReceipts } from './ci-task-gate.mj
 const INDEX_PATH = 'docs/team/agent-orchestration/task-state-index.json';
 const JOURNAL_PATH = 'docs/team/agent-orchestration/state/journal.jsonl';
 const RECEIPT_DIR = 'docs/worklog/pending/archive';
+const RECORDS_DIR = 'docs/worklog/records';
 
 function git(args, { allowFailure = false } = {}) {
   try {
@@ -58,16 +59,43 @@ function taskInfo(taskId) {
   };
 }
 
+function collectRecordReceipts(directory, taskId) {
+  if (!existsSync(directory)) return [];
+  const found = [];
+  const stack = [directory];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const path = join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(path);
+        continue;
+      }
+      if (current.replace(/\\/g, '/').endsWith(`/${taskId}`) && entry.name.startsWith('receipt-') && entry.name.endsWith('.json'))
+        found.push(path);
+    }
+  }
+  return found;
+}
+
 export function hasPassedDurableReceipt(taskId, rootDir = process.cwd()) {
   const directory = join(rootDir, RECEIPT_DIR);
-  if (!existsSync(directory)) return { pass: false, receipts: [] };
+  const legacy = existsSync(directory)
+    ? readdirSync(directory)
+        .filter((name) => name.startsWith(`${taskId}-receipt-`) && name.endsWith('.json'))
+        .map((name) => join(directory, name))
+    : [];
+  const bundled = collectRecordReceipts(join(rootDir, RECORDS_DIR), taskId);
   const receipts = [];
-  for (const name of readdirSync(directory)) {
-    if (!name.startsWith(`${taskId}-receipt-`) || !name.endsWith('.json')) continue;
+  for (const file of [...legacy, ...bundled]) {
+    const display = file
+      .slice(rootDir.length + 1)
+      .split('\\')
+      .join('/');
     try {
-      const receipt = readJson(join(directory, name));
+      const receipt = readJson(file);
       receipts.push({
-        path: `${RECEIPT_DIR}/${name}`,
+        path: display,
         verdict: receipt.payload?.reviewVerdict ?? receipt.reviewVerdict ?? null,
         scopeCheck: receipt.payload?.scopeCheck ?? receipt.scopeCheck ?? null,
         finalStatus: receipt.payload?.finalStatus ?? receipt.finalStatus ?? null,
@@ -75,7 +103,7 @@ export function hasPassedDurableReceipt(taskId, rootDir = process.cwd()) {
         backlogItems: receipt.payload?.backlogItems ?? receipt.backlogItems ?? null,
       });
     } catch {
-      receipts.push({ path: `${RECEIPT_DIR}/${name}`, verdict: 'invalid-json' });
+      receipts.push({ path: display, verdict: 'invalid-json' });
     }
   }
   return { pass: mergeableDurableReceipts(receipts).length > 0, receipts };
@@ -246,7 +274,8 @@ async function mergePullRequest({ repo, base, taskId, apply, timeoutMinutes, int
     return;
   }
   if (!task.archived || task.status !== 'completed') throw new Error(`任务 ${taskId} 尚未 completed/archived`);
-  if (!receipt.pass) throw new Error(`任务 ${taskId} 没有可合并的 durable 回执（passed，或已登记 backlog 且无人工复核项的 conditional-pass）`);
+  if (!receipt.pass)
+    throw new Error(`任务 ${taskId} 没有可合并的 durable 回执（passed，或已登记 backlog 且无人工复核项的 conditional-pass）`);
   if (!pr) throw new Error(`未找到 ${branch} → ${base} 的开放 PR`);
   if (pr.head.sha !== plan.localHead) throw new Error(`PR HEAD ${pr.head.sha} 不等于本地 HEAD ${plan.localHead}；请先推送最新状态`);
   await waitForRequiredChecks({ repo, sha: pr.head.sha, timeoutMinutes, intervalSeconds });

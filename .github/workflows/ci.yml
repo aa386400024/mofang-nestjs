@@ -85,6 +85,9 @@ jobs:
             node scripts/orchestration/ci-task-gate.mjs --base "$ORCH_BASE" --head "$ORCH_HEAD"
           fi
 
+      - name: Validate worklog record bundles
+        run: node scripts/orchestration/cli.mjs worklog verify --strict
+
   # 所有 job 之间没有产物依赖：契约 / lint / 单测 / E2E / 覆盖率 / Docker build / 安全审计
   # 均从同一 checkout 独立执行。并行跑可将墙钟从「lint→test→build」三段串行压到单段最长作业。
   # 代价是 lint 失败时其它作业仍会跑完；以延迟优先，失败面由各 job 独立结论呈现。

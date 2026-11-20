@@ -105,6 +105,7 @@ import { acquireRunLock, describeRunLock } from './run-lock.mjs';
 import { planReissue } from './reissue.mjs';
 import { lintReceiptFile } from './receipt-lint.mjs';
 import { inspectTextFile, normalizeTextFile } from './text-normalize.mjs';
+import { ensureTaskRecordBundle, migrateWorklog, resolveTaskSheet, statsWorklog, verifyWorklog } from './worklog.mjs';
 
 /** 快照双写：JSON（机读 / 存档）+ data.js（静态网页在 file:// 下读取，规避本地 fetch 限制）。 */
 function writeSnapshotArtifacts(snapshot, opts = {}) {
@@ -388,10 +389,68 @@ function cmdArchive(args) {
   }
   const note = argValue(args, '--note');
 
+  const index = loadIndex();
+  const current = [...(index.tasks ?? []), ...(index.archivedTasks ?? [])].find((task) => task.taskId === taskId);
+  if (current) {
+    // 记录包可能已迁移过；以 resolver 为准，避免把失效的旧指针写进归档事件。
+    const resolved = resolveTaskSheet(current);
+    if (resolved?.path) {
+      const bundle = ensureTaskRecordBundle(current, { sourceSheetPath: resolved.path, status });
+      artifacts.taskSheet = bundle.taskSheetPath;
+    }
+  }
+
   const entry = archiveTaskEvent(taskId, { status, artifacts, note, actor: 'orchestrator-cli' });
   auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: `archive:${taskId}` });
   refreshSnapshotArtifacts();
   console.log(`已归档：${entry.taskId} [${entry.status}]${note ? `｜${note}` : ''}`);
+}
+
+function cmdWorklog(args = []) {
+  const action = args[0] ?? 'stats';
+  const json = args.includes('--json');
+  const index = loadIndex();
+  if (action === 'verify') {
+    const strict = args.includes('--strict');
+    const result = verifyWorklog(index);
+    const failed = !result.ok || (strict && result.warnings.length > 0);
+    if (json) {
+      console.log(JSON.stringify({ ...result, strict, ok: !failed }, null, 2));
+    } else {
+      console.log(
+        `[worklog verify] ${failed ? 'FAIL' : 'PASS'}${strict ? ' (strict)' : ''} 活跃=${result.stats.activeTasks} 归档=${result.stats.archivedTasks} 记录包=${result.stats.bundles} inbox=${result.stats.inboxFiles} legacy指针=${result.stats.legacyPointers} 无任务单=${result.stats.missingTaskSheets}`,
+      );
+      for (const warning of result.warnings) console.warn(`  ! ${warning}`);
+      for (const error of result.errors) console.error(`  - ${error}`);
+    }
+    if (failed) process.exitCode = 1;
+    return { ...result, strict, ok: !failed };
+  }
+  if (action === 'stats') {
+    const stats = statsWorklog(index);
+    if (json) console.log(JSON.stringify(stats, null, 2));
+    else {
+      console.log(
+        `[worklog stats] 活跃=${stats.activeTasks} 归档=${stats.archivedTasks} 记录包=${stats.bundles} 墓碑=${stats.tombstones} pending=${stats.pendingFiles} inbox=${stats.inboxFiles} 记录体积=${(stats.recordBytes / 1024).toFixed(1)}KB`,
+      );
+    }
+    return stats;
+  }
+  if (action === 'migrate') {
+    const apply = args.includes('--apply');
+    const report = migrateWorklog(index, { apply });
+    if (json) console.log(JSON.stringify(report, null, 2));
+    else {
+      console.log(
+        `[worklog migrate] ${apply ? 'APPLY' : 'DRY-RUN'} 任务=${report.totals.tasks} 任务单=${report.totals.movedSheets} 回执=${report.totals.movedReceipts} pending清尾=${report.totals.orphanSheets} 错误=${report.totals.errors}`,
+      );
+      for (const error of report.errors) console.error(`  - ${error}`);
+      if (!apply) console.log('  - 正式执行请追加 --apply（先跑一次 dry-run 核对计数）。');
+    }
+    if (report.totals.errors > 0) process.exitCode = 1;
+    return report;
+  }
+  throw new Error(`未知 worklog 子命令：${action}（可选 migrate / verify / stats）`);
 }
 
 /**
@@ -753,9 +812,7 @@ function cmdChannel(args) {
     console.log(`投递件已生成：${briefPath}`);
     console.log(`通道：gui-relay；投递状态：pending；交接件：${pathToPosix(entry.dispatch.handoverRef ?? '') || '(缺)'}`);
     console.log('桌面 relay 执行顺序：聚焦执行代理窗口 → 粘贴投递件 → 发送 → 校验输入框已清空且消息出现在会话中');
-    console.log(
-      `发送接管（主桌面焦点窗口，发送后释放）：cli.mjs channel send --taskId ${taskId} [--dry-run] [--wait-ack]`,
-    );
+    console.log(`发送接管（主桌面焦点窗口，发送后释放）：cli.mjs channel send --taskId ${taskId} [--dry-run] [--wait-ack]`);
     console.log(
       `确认送达（ack 自动）：cli.mjs channel auto-confirm --taskId ${taskId}；手工兜底：cli.mjs channel confirm --taskId ${taskId} --session-path <${SESSION_PATHS.join('|')}> --locate-layer <${LOCATE_LAYERS.join('|')}> --evidence <仓内截图或时间戳文件>`,
     );
@@ -1002,7 +1059,7 @@ async function cmdTask(args) {
   if (sub === 'register') {
     const sheetPath = argValue(args, '--sheet');
     if (!sheetPath) {
-      console.error('用法：task register --sheet docs/worklog/pending/<task>.md [--status ready]');
+      console.error('用法：task register --sheet docs/worklog/inbox/<task>.md [--status ready]');
       process.exit(2);
     }
     const task = await registerTaskFromSheet({
@@ -1095,7 +1152,7 @@ async function cmdTask(args) {
     const archiveOld = args.includes('--archive-old');
     if (!fromTaskId || !sheetPath) {
       console.error(
-        '用法：task reissue --from <oldTaskId> --sheet docs/worklog/pending/<newTask>.md [--apply] [--archive-old]\n' +
+        '用法：task reissue --from <oldTaskId> --sheet docs/worklog/inbox/<newTask>.md [--apply] [--archive-old]\n' +
           '      task rescope 为同义入口；scope 不原地修改，而是重签发一个新任务并在 priorTasks 指向原任务。',
       );
       process.exit(2);
@@ -1103,8 +1160,8 @@ async function cmdTask(args) {
     const absSheet = resolve(REPO_ROOT, sheetPath);
     if (!existsSync(absSheet)) throw new Error(`任务单不存在：${sheetPath}`);
     const relSheet = repoRelativePath(absSheet);
-    if (!relSheet.startsWith('docs/worklog/pending/')) {
-      throw new Error(`重签发任务单必须位于 docs/worklog/pending/：${relSheet}`);
+    if (!relSheet.startsWith('docs/worklog/inbox/') && !relSheet.startsWith('docs/worklog/pending/')) {
+      throw new Error(`重签发任务单必须位于 docs/worklog/inbox/：${relSheet}`);
     }
     const { meta } = parseTaskSheetFrontmatter(readFileSync(absSheet, 'utf8'));
     const newTask = buildTaskRecord(meta, { taskSheetPath: relSheet, status: 'backlog' });
@@ -1412,7 +1469,10 @@ function cmdReceipt(args) {
 
 /** 仓根相对路径展示（只读命令用）。 */
 function relativePath(absPath) {
-  return String(absPath).replace(REPO_ROOT, '').replace(/^[\\/]+/, '').replace(/\\/g, '/');
+  return String(absPath)
+    .replace(REPO_ROOT, '')
+    .replace(/^[\\/]+/, '')
+    .replace(/\\/g, '/');
 }
 
 /** AF-084：docs 文本 LF / BOM 规范化，默认只读检查，--apply 才写盘。 */
@@ -1447,7 +1507,9 @@ function cmdDocs(args) {
 }
 
 function printHelp() {
-  console.log('用法：cli.mjs <status|run-once|task|receipt|docs|watch|protocol|snapshot|pack|archive|events|validate|config|improvements> [参数]');
+  console.log(
+    '用法：cli.mjs <status|run-once|task|receipt|docs|watch|protocol|snapshot|pack|archive|events|validate|config|improvements> [参数]',
+  );
   console.log('  archive <taskId> [--status ..] [--sheet ..] [--record ..] [--reply ..] [--note ..]');
   console.log('  task register --sheet <task.md> [--status ready]  解析 frontmatter 并登记进状态索引');
   console.log('  task import --handover <task.json> [--status ready]  补登 transport 已落交接件');
@@ -1458,6 +1520,7 @@ function printHelp() {
   console.log('  receipt lint --taskId <id> [--path <receipt.json>]  回执摄入前预检（七组字段 / scope / 工件 / 换行）');
   console.log('  docs normalize --path docs/<file>.md [--apply]  UTF-8 无 BOM + LF 规范化（默认只读）');
   console.log('  events verify|rebuild|backfill             事件日志校验 / 重建索引 / 首次回填');
+  console.log('  worklog <migrate|verify|stats> [--apply|--json]  记录包迁移 / 完整性校验 / 统计');
   console.log('  events rotate [--max-events 5000] [--compress] [--force] [--dry-run]  归档当前日志段（不删事件）');
   console.log(
     '  events create --task-id <id> --title <标题> --type <类型> [--status backlog] [--context <id>] [--sheet <file>] [--record <file>]',
@@ -1536,6 +1599,14 @@ switch (command) {
       await cmdEvents(args);
     } catch (err) {
       console.error(`事件日志操作失败：${err.message}`);
+      process.exit(2);
+    }
+    break;
+  case 'worklog':
+    try {
+      cmdWorklog(args);
+    } catch (err) {
+      console.error(`worklog 操作失败：${err.message}`);
       process.exit(2);
     }
     break;
