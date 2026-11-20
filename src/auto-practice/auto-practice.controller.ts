@@ -68,10 +68,10 @@ interface StartSessionBody {
   /**
    * 接触方式（AF-187）：`in_person`（默认）/ `online`.
    *
-   * 不传 = 面对面咨询室；线上必须再给 `encounterChannel`.
+   * 不传 = 面对面咨询室；线上未给 `encounterChannel` 时按语音处理.
    */
   readonly encounterMode?: string;
-  /** 线上子通道：`video` / `voice` / `text`；面对面忽略. */
+  /** 线上子通道：`video` / `voice` / `text`；面对面忽略，线上缺省 `voice`. */
   readonly encounterChannel?: string;
 }
 
@@ -100,7 +100,7 @@ interface BatchBody {
   readonly scenarioType?: ScenarioType;
   /** 接触方式（AF-187）：`in_person`（默认）/ `online`. */
   readonly encounterMode?: string;
-  /** 线上子通道：`video` / `voice` / `text`；面对面忽略. */
+  /** 线上子通道：`video` / `voice` / `text`；面对面忽略，线上缺省 `voice`. */
   readonly encounterChannel?: string;
 }
 
@@ -337,7 +337,7 @@ export class AutoPracticeController {
    *
    * 口径:
    *   · 缺省 = `in_person`（业务默认, 咨询室面对面）;
-   *   · `online` 必须给合法子通道, 缺省 video;
+   *   · `online` 未给子通道时缺省 `voice`;
    *   · 非法值当场报错, 不静默回落 —— 与 scenarioType / sessionProfile 同款纪律.
    *
    * @param rawMode 请求里的 encounterMode
@@ -359,7 +359,7 @@ export class AutoPracticeController {
     if (channelRaw.length > 0 && !isSupportedEncounterChannel(channelRaw)) {
       return { error: `encounterChannel 非法: ${channelRaw}（可选 ${ENCOUNTER_ONLINE_CHANNELS.join(' / ')}）` };
     }
-    return { value: { mode, channel: channelRaw.length > 0 ? channelRaw : 'video' } };
+    return { value: { mode, channel: channelRaw.length > 0 ? channelRaw : 'voice' } };
   }
 
   /**
