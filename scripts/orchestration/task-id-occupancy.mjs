@@ -1,14 +1,20 @@
 /**
- * AF-217 · 任务编号占用检查（三源合并）。
+ * AF-217 · 任务编号占用检查（三源合并）；AF-223 扩展为「三源 + 远端占号」。
  *
  * 背景：两台机器在同一 integrate 上并行时，编号靠人肉避让。2026-11-20/21 已连撞两次：
  *   - AF-209：本机 provider 接入单与远端已合入的真人度 R3 同号；
  *   - AF-211：本机补提交单与另一台机器在开发的 `task/AF-211-realism-r4` 同号。
  *
- * 三源检查口径（任一命中即视为占用）：
+ * 检查口径（任一命中即视为占用）：
  *   1. 远端任务分支名（`task/AF-NNN-*`）——覆盖「对方正在开发、尚未合并」；
  *   2. 远端 integrate 的任务索引——覆盖「对方已合入」；
- *   3. 本地状态索引 + `docs/worklog/records/**` 目录——覆盖「本机历史与归档」。
+ *   3. 本地状态索引 + `docs/worklog/records/**` 目录——覆盖「本机历史与归档」；
+ *   4. 远端占号 ref（`orchestration-task-ids/AF-NNN`）——覆盖「已 CAS 预约、尚未登记」。
+ *
+ * AF-223 追加两条口径：
+ *   - `excludeRefs`：重建同一任务时排除本机已推送的同名任务分支（否则重建被自己挡住）；
+ *     被排除的编号单列在 `selfOnlyIds`，仅当它没出现在其它任何源时才允许放行，并在输出中明示。
+ *   - 远端占号 ref 是真正的仲裁面：三源只能「事后发现」，占号是「事前抢下」。
  *
  * 边界：只读；远端不可达时跳过对应源并产出 warning，不阻塞离线登记。
  */
@@ -16,6 +22,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { REPO_ROOT } from './state-store.mjs';
+import { remoteReservationIds } from './task-id-reservation.mjs';
 
 const TASK_ID_RE = /\b(?=[A-Z0-9]*[A-Z])[A-Z0-9]+-[0-9]+\b/g;
 const INDEX_PATH = 'docs/team/agent-orchestration/task-state-index.json';
@@ -92,9 +99,9 @@ export function remoteIndexIds({ runGit = defaultRunGit, cwd = REPO_ROOT, branch
 }
 
 /**
- * 三源合并占用清单。
- * @param {{rootDir?:string, runGit?:Function, cwd?:string, remote?:string, branch?:string}} opts
- * @returns {{ids:Set<string>, sources:object, warnings:string[]}}
+ * 三源合并占用清单；AF-223 追加远端占号源与「排除自身分支」口径。
+ * @param {{rootDir?:string, runGit?:Function, cwd?:string, remote?:string, branch?:string, excludeRefs?:string[]}} opts
+ * @returns {{ids:Set<string>, sources:object, selfOnlyIds:string[], warnings:string[]}}
  */
 export function collectOccupiedTaskIds(opts = {}) {
   const rootDir = opts.rootDir ?? REPO_ROOT;
@@ -102,6 +109,7 @@ export function collectOccupiedTaskIds(opts = {}) {
   const cwd = opts.cwd ?? rootDir;
   const remote = opts.remote ?? 'origin';
   const branch = opts.branch ?? 'origin/integrate';
+  const excludeRefs = new Set(opts.excludeRefs ?? []);
   const warnings = [];
 
   const local = {
@@ -111,12 +119,34 @@ export function collectOccupiedTaskIds(opts = {}) {
 
   const lsRemote = runGit(['ls-remote', '--heads', remote, 'task/*'], { cwd, allowFailure: true });
   if (lsRemote === null) warnings.push(`远端 ${remote} 不可达：跳过任务分支占用检查（仅按本地口径登记）`);
-  const remoteBranches = lsRemote === null ? [] : remoteTaskBranchIds(lsRemote);
+  const excludedBranchIds = [];
+  const keptLines = [];
+  for (const line of String(lsRemote ?? '').split(/\r?\n/)) {
+    const ref = line.split('\t')[1]?.trim();
+    if (!ref) continue;
+    if (excludeRefs.has(ref)) {
+      excludedBranchIds.push(...extractTaskIds(ref));
+      continue;
+    }
+    keptLines.push(line);
+  }
+  const remoteBranches = lsRemote === null ? [] : remoteTaskBranchIds(keptLines.join('\n'));
+  if (excludedBranchIds.length > 0) {
+    warnings.push(`已按重建口径排除本机同名分支：${[...new Set(excludedBranchIds)].join('、')}`);
+  }
 
   const remoteIndex = remoteIndexIds({ runGit, cwd, branch });
   if (remoteIndex === null) warnings.push(`读不到 ${branch} 的任务索引：跳过远端索引占用检查`);
 
-  const ids = new Set([...local.index, ...local.records, ...remoteBranches, ...(remoteIndex ?? [])]);
+  const lsReservations = runGit(['ls-remote', '--heads', remote, 'orchestration-task-ids/*'], { cwd, allowFailure: true });
+  if (lsReservations === null) warnings.push(`远端 ${remote} 不可达：跳过占号 ref 检查`);
+  const remoteReservations = lsReservations === null ? [] : remoteReservationIds(lsReservations);
+
+  const ids = new Set([...local.index, ...local.records, ...remoteBranches, ...(remoteIndex ?? []), ...remoteReservations]);
+  // 只被「自己已推送的同名分支」占用的编号：允许重建，但仍要过远端占号 CAS。
+  const excludedSet = new Set(excludedBranchIds);
+  const selfOnlyIds = [...excludedSet].filter((id) => !ids.has(id));
+
   return {
     ids,
     sources: {
@@ -124,7 +154,10 @@ export function collectOccupiedTaskIds(opts = {}) {
       localRecords: local.records,
       remoteBranches,
       remoteIndex: remoteIndex ?? [],
+      remoteReservations,
+      excludedRemoteBranches: [...excludedSet],
     },
+    selfOnlyIds,
     warnings,
   };
 }
@@ -143,13 +176,25 @@ export function nextTaskId(ids, prefix = 'AF') {
 
 /**
  * 登记前断言：编号未被任何来源占用。
+ *
+ * AF-223：若编号只出现在「被排除的本机同名分支」里（`selfOnlyIds`），按重建放行并返回 warning，
+ * 而不是直接拒绝——重建被自己推送的分支挡住是纯摩擦，真正的并发由远端占号 ref 仲裁。
+ *
  * @param {string} taskId
  * @param {{rootDir?:string, runGit?:Function, cwd?:string, occupancy?:object}} opts
- * @returns {{ok:boolean, warnings:string[]}}
+ * @returns {{ok:boolean, warnings:string[], reason?:string}}
  */
 export function assertTaskIdAvailable(taskId, opts = {}) {
   const occupancy = opts.occupancy ?? collectOccupiedTaskIds(opts);
-  if (!occupancy.ids.has(taskId)) return { ok: true, warnings: occupancy.warnings ?? [] };
+  const baseWarnings = occupancy.warnings ?? [];
+  if (occupancy.selfOnlyIds?.includes(taskId)) {
+    return {
+      ok: true,
+      warnings: [...baseWarnings, `${taskId} 仅被本机已推送的同名分支占用，按重建放行（并发由远端占号 ref 仲裁）`],
+      reason: 'self-branch-only',
+    };
+  }
+  if (!occupancy.ids.has(taskId)) return { ok: true, warnings: baseWarnings };
   const sources = occupancy.sources ?? {};
   const hits = Object.entries(sources)
     .filter(([, list]) => Array.isArray(list) && list.includes(taskId))

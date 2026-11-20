@@ -157,10 +157,11 @@ export async function registerTaskFromSheet(opts = {}) {
   }
   // AF-217：编号三源占用检查（远端任务分支 / 远端索引 / 本地 records），
   // 防止两台机器并行时再次撞号；远端不可达时只告警不阻塞。
+  // AF-223：追加远端占号 ref 源；excludeRefs 让重建场景不再被本机同名分支挡住。
   if (opts.checkTaskId !== false) {
-    const occupancy = opts.occupancy ?? collectOccupiedTaskIds({ runGit: opts.runGit });
-    for (const warning of occupancy.warnings ?? []) console.warn(`[task-id] ${warning}`);
-    assertTaskIdAvailable(record.taskId, { occupancy });
+    const occupancy = opts.occupancy ?? collectOccupiedTaskIds({ runGit: opts.runGit, excludeRefs: opts.excludeRefs ?? [] });
+    const verdict = assertTaskIdAvailable(record.taskId, { occupancy });
+    for (const warning of verdict.warnings ?? []) console.warn(`[task-id] ${warning}`);
   }
   const bundle = ensureTaskRecordBundle(record, { sourceSheetPath: abs, status });
   record.artifacts.taskSheet = bundle.taskSheetPath;

@@ -85,7 +85,8 @@ describe('task-id-occupancy', () => {
       throw new Error('offline');
     };
     const occupancy = collectOccupiedTaskIds({ rootDir: root, runGit });
-    expect(occupancy.warnings.length).toBe(2);
+    // AF-223 追加占号 ref 检查，离线时三路远端读取各产出一条 warning。
+    expect(occupancy.warnings.length).toBe(3);
     expect(nextTaskId(occupancy.ids)).toBe('AF-101');
     expect(assertTaskIdAvailable('AF-101', { occupancy }).ok).toBe(true);
   });

@@ -133,4 +133,8 @@ data/quality/*.csv
 docs/team/agent-orchestration/orchestration-state.json
 docs/team/agent-orchestration/tool-audit-log.json
 docs/team/agent-orchestration/orchestration-store.sqlite
+
+# V2026-11-21 — 根级 transport/ 是编排跨机交接的运行态（回执 / 派单 / 确认件）,
+#   每次 run-once 都会变; 只在单机可见, 不进版本库 (远端可验证工件走 records 与占号 ref).
+/transport/
 docs/team/agent-orchestration/transport/
