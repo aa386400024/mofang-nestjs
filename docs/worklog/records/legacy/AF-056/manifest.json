@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-056",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.633Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-056/task-sheet.md",
+    "sha256": "cbc64f0ba7b4865ff5d23aeae6f2ea77e61fffb9b442f71c9db1db34cdb85fff",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af056-server-side-orchestration-gate-2026-11-17.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

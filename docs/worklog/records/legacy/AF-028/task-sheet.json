@@ -1,0 +1,63 @@
+{
+  "deliveredAt": "2026-11-17T02:05:11.655Z",
+  "payload": {
+    "handoverKind": "task",
+    "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+    "taskId": "AF-028",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "title": "backlog → ready 提级入口与文档口径对齐",
+    "status": "submitted",
+    "baselineRef": "976b833",
+    "dependsOn": ["AF-027"],
+    "priorTasks": [],
+    "policyRefs": ["conventions.md#1.3", "conventions.md#1.4"],
+    "createdAt": "2026-11-17T10:05:00+08:00",
+    "objective": null,
+    "successCriteria": [
+      "backlog 任务有 CLI 入口提到 ready，且提级前硬校验任务单指针 / 基线 / 依赖",
+      "提级走事件写入（commitIndex），不直接改索引",
+      "README 与设计稿口径同步，不留下「只能注册不能启用」的死状态"
+    ],
+    "outOfScope": [],
+    "scope": {
+      "files": ["scripts/orchestration/", "docs/team/agent-orchestration/", "docs/worklog/completed/phase2.5/"]
+    },
+    "exclusions": [],
+    "requiredSkills": [],
+    "requiredTools": [],
+    "artifacts": [
+      {
+        "name": "提级入口实施记录",
+        "path": "docs/worklog/completed/phase2.5/af028-task-promote-and-docs-2026-11-17.md",
+        "kind": "report"
+      }
+    ],
+    "artifactPointers": {
+      "taskSheet": "docs/worklog/pending/af028-task-promote-and-docs-task-2026-11-17.md",
+      "deliveryRecord": null,
+      "reply": null
+    },
+    "gates": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs --reporter=dot",
+        "check": "编排单测全绿",
+        "threshold": "failed=0"
+      },
+      {
+        "command": "ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate",
+        "check": "适配层 schema 校验全 PASS",
+        "threshold": "fail=0"
+      }
+    ],
+    "priority": null,
+    "deadline": "2026-11-17T11:05:00+08:00",
+    "retention": null,
+    "references": [],
+    "constraints": [],
+    "producedBy": "orchestrator",
+    "producedAt": "2026-11-17T02:05:11.654Z",
+    "evidenceFormat": "命令 + exit code + 用例数",
+    "agentRole": "orchestrator"
+  }
+}

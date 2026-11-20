@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-018",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.590Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-018/task-sheet.md",
+    "sha256": "59d39ae83597173a2de03ad04069a4bb60fc98fcc2985b93787590d1bbc30aa2",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-implementation-2026-11-16.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

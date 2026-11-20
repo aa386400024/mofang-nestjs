@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "TD-12",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.558Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/TD-12/task-sheet.md",
+    "sha256": "5b0a0a3fc8de6a6f8ee895927e245a66ced7a61e34cd9fb8c2d5bed98c626d84",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-implementation-2026-11-14.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

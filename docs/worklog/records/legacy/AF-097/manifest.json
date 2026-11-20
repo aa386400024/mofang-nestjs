@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-097",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.673Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-097/task-sheet.md",
+    "sha256": "efe64b06c7a33b4bcb244cb21a9d2f05a3a438f792700d4911c7b02e469ad732",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af095-anchor-calibrated-quality-audit-2026-11-18.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

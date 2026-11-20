@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-078",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.656Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-078/task-sheet.md",
+    "sha256": "cde7a16d92385ed27847658e2770bc6e551170fa42724584aa1b1c681de40918",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af078-squash-scope-union-2026-11-18.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

@@ -1,0 +1,106 @@
+{
+  "deliveredAt": "2026-11-17T04:58:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-046-1",
+    "taskId": "AF-046",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "baselineRef": null,
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.3", "conventions.md#1.4"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af046-ci-gate-fire-drill-task-2026-11-17.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af045-orchestration-hardening-2026-11-17.md",
+      "reply": null,
+      "others": ["docs/team/agent-orchestration/ci-gate-fire-drill-2026-11-17.md"]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/pending/af046-ci-gate-fire-drill-task-2026-11-17.md",
+        "docs/team/agent-orchestration/ci-gate-fire-drill-2026-11-17.md"
+      ],
+      "modified": ["docs/team/agent-orchestration/README.md"],
+      "deleted": [],
+      "commits": ["1f40d3b"]
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs branch merge --taskId AF-046 --require-ci --sha 2a820c576369a5635b0c1e74e840c0a0c828ba61",
+        "exitCode": 2,
+        "errors": 1,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / node v22.23.2；GitHub REST 实时取数",
+        "wallClock": "秒级",
+        "note": "阻断路径按预期失败：远端 CI 未通过（unknown），0 项 check；分支未被改写（非失败断言）"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs branch merge --taskId AF-046 --require-ci --sha 2a820c576369a5635b0c1e74e840c0a0c828ba61 --apply",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上；workflow_dispatch 补 12 项 check 后调用",
+        "wallClock": "秒级（CI 等待约 4 分钟，不计入本命令）",
+        "note": "放行路径：远端 CI 通过 12 项；squash-merge → commit → delete-local；合并提交 1f40d3b"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 202,
+        "machine": "同上，无长驻进程",
+        "wallClock": "25.9s",
+        "note": "3566 passed / 8 skipped（合并后全量复跑）"
+      }
+    ],
+    "reproNotes": "复跑：先推一条无 CI 的分支提交并执行不带 --apply 的 branch merge --require-ci（应 exit 2 + unknown），再 POST /repos/aa386400024/mofang-nestjs/actions/workflows/ci.yml/dispatches {\"ref\":\"<分支>\"} 补 check runs，最后同命令加 --apply。合并提交 1f40d3b 为 squash 结果，分支已本地删除、远端已删除。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "任务单 / 演练记录 / 回执一致（AF-046）" },
+      { "item": "state-write", "result": "pass", "note": "状态迁移经 CLI；合并经 branch merge --apply，未手改索引" },
+      { "item": "index-schema", "result": "pass", "note": "task-state-index 1.1.0 PASS" },
+      { "item": "event-chain", "result": "pass", "note": "184 条事件 verify PASS" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 显式留空：verifyBaseline 会打印「任务记录未登记 baselineRef」，演练对象是 CI 门禁，不伪造刚好对上的 SHA"
+    },
+    "backlogItems": [
+      {
+        "id": "AF-046-O1",
+        "title": "--apply 时未强制校验 --sha 是否为分支 HEAD",
+        "detail": "门禁按调用方传入的 --sha 判定；若传入一个旧的绿 SHA 而分支 HEAD 已前进，仍会放行",
+        "impact": "需要调用方自律；本轮实弹未踩到，但属可被误用的口子"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [
+      "抽查阻断路径的退出码与文案（unknown / 0 check）",
+      "抽查放行路径的 check 数（12）与合并提交 1f40d3b 的标题是否匹配钩子正则"
+    ],
+    "deviationTable": [
+      {
+        "item": "基线登记",
+        "taskSays": "任务单应登记 baselineRef",
+        "reality": "任务单落库本身推进 HEAD，任何固定 SHA 都会在合并前一刻漂移",
+        "action": "不登记 baselineRef，口令显式打印未登记原因",
+        "why": "不伪造基线；演练目标是 CI 门禁，不是基线面"
+      },
+      {
+        "item": "合并后远端分支",
+        "taskSays": "一次调用完成合并即删",
+        "reality": "首次调用未传 --remote，只删本地；远端分支随后手动删除",
+        "action": "合并成功后 git push origin --delete task/AF-046-af-046",
+        "why": "--remote 为显式开关，避免误删远端；远端清理用等价的显式命令补齐"
+      }
+    ],
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "两条路径都在真实远端数据上跑通：阻断路径 0 项 check 判 unknown 并 exit 2，分支未被改写；放行路径在 workflow_dispatch 补齐 12 项 check 后判 pass，完成 squash-merge → commit → delete-local，合并提交 1f40d3b 落入 integrate。同一 SHA 上「先拦后放」是门禁为决定而非装饰的直接证据；顺带暴露并修正了 squash 提交标题被 commit-msg 钩子拒绝的确定性缺陷（记入 AF-045 交付）。"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-137",
+  "contextId": "legacy",
+  "status": "rejected",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.715Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-137/task-sheet.md",
+    "sha256": "82bc86bc43cfcdd52d49d3c739c177b5fd43709485e78f3918216587af77acc5",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af137-crisis-risk-close-2026-11-19.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

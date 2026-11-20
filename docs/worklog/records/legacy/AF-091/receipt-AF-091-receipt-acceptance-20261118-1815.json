@@ -1,0 +1,29 @@
+{
+  "taskId": "AF-091",
+  "contextId": "phase2.5-exit-remediation",
+  "type": "implementation",
+  "acceptanceAt": "2026-11-18T18:07:00+08:00",
+  "acceptanceBy": "MainAgent independent acceptance",
+  "scopeCheck": "in-scope",
+  "finalStatus": "completed",
+  "reviewVerdict": "passed",
+  "verdictRationale": "AF-091 交付本身通过：MiniMax 回复 9735 字节；session-profile 三档与全链路透传落地；出口④临床标注协议（六维 schema / 双人盲标 / 仲裁 / 门槛 / 覆盖率 / 补齐路径）落地；主控独立复跑 typecheck 0 error、lint 0 error 0 warning、boundary 12 例 + session-profile 17 例、定向 30 例；engine-core 零 diff；12 案 496 轮 delta 计数独立复现为 trust 461 / bond 22 / safety 32 / resistance 16 / emotionValence 5。出口④仍为『未通过 / 部分可判』、出口⑤仍为 62/1000，二者不作为本单 passed 的依据，也不冒充通过。",
+  "gateResults": [
+    { "command": "corepack pnpm typecheck", "exitCode": 0, "errors": 0, "warnings": 0 },
+    { "command": "corepack pnpm lint", "exitCode": 0, "errors": 0, "warnings": 0 },
+    { "command": "corepack pnpm exec vitest run test/engine-core/boundary.spec.ts test/auto-practice/session-profile.spec.ts", "exitCode": 0, "specFiles": 2, "tests": 29 },
+    { "command": "corepack pnpm exec vitest run test/auto-practice/practice-runner.spec.ts test/auto-practice/counselor-agent.spec.ts", "exitCode": 0, "specFiles": 2, "tests": 30 },
+    { "command": "corepack pnpm exec tsc --noEmit -p tsconfig.json", "exitCode": 0, "errors": 0, "warnings": 0 },
+    { "command": "git diff --stat HEAD -- src/engine-core", "exitCode": 0, "output": "" }
+  ],
+  "backlogItems": [
+    { "id": "AF091-OI-01", "title": "long 档真实轮数未实证", "status": "candidate" },
+    { "id": "AF091-OI-02", "title": "session_profile 未落库", "status": "candidate" },
+    { "id": "AF091-OI-03", "title": "prompt 指纹口径扩充", "status": "candidate" },
+    { "id": "AF091-OI-04", "title": "出口④六维真值仍缺", "status": "candidate" },
+    { "id": "AF091-OI-05", "title": "rubric 缺 couples-01", "status": "candidate" },
+    { "id": "AF091-OI-06", "title": "历史窗口 10 轮", "status": "candidate" },
+    { "id": "AF091-OI-07", "title": "档案数值非临床标定", "status": "candidate" }
+  ],
+  "manualReviewList": []
+}

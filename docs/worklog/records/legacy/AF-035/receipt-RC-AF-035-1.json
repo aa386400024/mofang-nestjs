@@ -1,0 +1,92 @@
+{
+  "deliveredAt": "2026-11-17T03:18:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-035-1",
+    "taskId": "AF-035",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "baselineRef": "306870288568ef12bf0c2218cd3f748d5c651bd6",
+    "dependsOn": ["AF-034"],
+    "policyRefs": ["conventions.md#1.3", "conventions.md#1.4"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af035-gui-delivery-failure-drill-task-2026-11-17.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af035-gui-delivery-failure-drill-2026-11-17.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/pending/af035-gui-delivery-failure-drill-task-2026-11-17.md",
+        "docs/worklog/completed/phase2.5/af035-gui-delivery-failure-drill-2026-11-17.md"
+      ],
+      "modified": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "web/orchestration/data.js"
+      ],
+      "deleted": []
+    },
+    "gateResults": [
+      {
+        "command": "node scripts/orchestration/cli.mjs channel state --taskId AF-035",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "note": "降级后 channel=gui-file-fallback、delivery.state=failed、stalled=true"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "note": "129 条事件，哈希链与索引投影一致"
+      },
+      {
+        "command": "ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "note": "27 PASS / 0 FAIL"
+      }
+    ],
+    "reproNotes": "六步命令与输出见交付记录 §2：claim(gui-relay, pending) → channel fallback(cause=flaky, attemptCount=2) → run-once(delivery-released gui-delivery-failed, heldForHuman=true) → task resume → run-once(dispatch-decision=delivery-fallback-after-failure, attempt=2, channel=gui-file-fallback)。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "任务单 / 交付记录 / 回执一致" },
+      { "item": "state-write", "result": "pass", "note": "演练全程只经 CLI，未手改索引或运行态" },
+      { "item": "index-schema", "result": "pass", "note": "task-state-index 1.1.0 PASS" },
+      { "item": "event-chain", "result": "pass", "note": "129 条事件 schema + 哈希链一致" }
+    ],
+    "fieldAlignment": { "result": "aligned", "note": "字段与框架 schema 一致" },
+    "backlogItems": [
+      {
+        "id": "AF-035-B1",
+        "title": "回收动作标签与真实释放原因不一致",
+        "detail": "claimReadyTasks 的 held-for-human 动作把 reason 固定写成 lease-expired，运行态真实原因为 gui-delivery-failed / gui-delivery-budget-exhausted",
+        "impact": "可观测性：事件日志与动作流里看不出任务为何持单，排障要多跳一层查运行态；不影响状态机正确性"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "演练任务编号",
+        "taskSays": "AF-033 承接 AF-024-R2 演练",
+        "reality": "AF-033 领单落到 file 通道，根源是 validateConfig 丢 dispatch 段，演练无法进行",
+        "action": "AF-033 取消归档（canceled，原因留痕）；AF-034 修配置归一；AF-035 重做演练",
+        "why": "演练对象依赖真实 GUI 通道，配置不通时不能降级成「文件通道演练」而谎称闭环"
+      }
+    ],
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "六步真实跑通并留证：pending → failed 降级 → 持单 → resume → 降级通道重派（attempt=2），证明 AF-024-R2 的回收与恢复路径成立；一条文案级遗留已登记"
+  }
+}

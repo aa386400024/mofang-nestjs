@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-069",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.649Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-069/task-sheet.md",
+    "sha256": "effe885c4bf29570c0e93a1bcb0f88b34dfe6df40dcacabb96444ba3894574c3",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af069-relay-supervisor-implementation-2026-11-18.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

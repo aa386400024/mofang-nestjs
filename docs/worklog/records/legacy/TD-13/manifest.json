@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "TD-13",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.560Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/TD-13/task-sheet.md",
+    "sha256": "591188719e13b743173b3cfee0c50f21d24820203fee0ba94a31866cc910d379",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-implementation-2026-11-14.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

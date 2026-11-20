@@ -1,0 +1,184 @@
+{
+  "deliveredAt": "2026-11-20T01:12:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-148-1",
+    "taskId": "AF-148",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "15c25dc2e12c5d5455c27abbafe89351c680904e",
+    "dependsOn": [],
+    "priorTasks": ["AF-147", "AF-146", "AF-131"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "changedFiles": {
+      "added": [
+        "docs/worklog/pending/af148-af147-acceptance-rework-task-2026-11-20.md",
+        "docs/worklog/completed/phase2.5/af148-af147-acceptance-close-2026-11-20.md"
+      ],
+      "modified": [
+        "docs/worklog/pending/phase2.5-README.md"
+      ],
+      "deleted": [],
+      "commits": ["2a8645092392b33fc352d7bb4545f0fcfc755611"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "tsc -b tsconfig.check.json；01:06 复跑通过"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "src/test/bin + scripts；0 error / 0 warning"
+      },
+      {
+        "command": "pnpm exec vitest run test/auto-practice/ai-double-blind.spec.ts test/engine-core/boundary.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "2 files / 28 tests passed（16 + 12）"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "AF-147 同一代码 01:01 全量：221 files passed + 1 skipped；3873 tests passed + 4 skipped"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "ORCH-GATE PASS task=AF-148 files=3 covered=2"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "事件日志 644 条；schema、哈希链与索引投影一致"
+      },
+      {
+        "command": "git diff --stat 15c25dc2e12c5d5455c27abbafe89351c680904e..HEAD -- src bin test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "AF-148 提交只含 docs；src/bin/test 相对 AF-147 实现提交零 diff"
+      }
+    ],
+    "scopeCheck": "in-scope",
+    "contractChecks": [
+      {"item": "taskId", "result": "pass", "note": "AF-148 任务单、索引、回执、交付记录一致"},
+      {"item": "stateWrite", "result": "pass", "note": "register / promote / run-once 均经 CLI；状态面未手改"},
+      {"item": "indexSchema", "result": "pass", "note": "task-state-index 由 CLI 写入"},
+      {"item": "eventChain", "result": "pass", "note": "events verify 644 条通过"}
+    ],
+    "backlogItems": [
+      {
+        "id": "OI-AF148-01",
+        "title": "AI 六项硬门仍 5/6，overall 跨模型 κ 0.365854 < 0.40",
+        "impact": "Phase 2.5 出口④ AI 层面质量门未达标",
+        "reason": "分数挤在 4/5 导致 prevalence 崩塌，trust/verbal 跨模型刻度差未消",
+        "owner": "framework",
+        "improvement": "AF-131 B 系列后续评分口径与扩簇任务"
+      },
+      {
+        "id": "OI-AF148-02",
+        "title": "硬上限仍在评分员 prompt",
+        "impact": "style/safety 被钉档，压低方差",
+        "reason": "本单只修验收材料",
+        "owner": "framework",
+        "improvement": "后处理硬上限"
+      },
+      {
+        "id": "OI-AF148-03",
+        "title": "96 场为跨版本校准集",
+        "impact": "不能替代 AF-146 单批质量结论",
+        "reason": "复用 6 个既有盲包",
+        "owner": "framework",
+        "improvement": "扩 ≥24 独立角色簇 / ≥48 packet"
+      },
+      {
+        "id": "OI-AF148-04",
+        "title": "κ 门缺 cluster bootstrap 95% CI 下界与 AC1/α",
+        "impact": "单点 κ 不稳定",
+        "reason": "本单不改统计口径",
+        "owner": "framework",
+        "improvement": "点估计 + CI 下界双条件"
+      },
+      {
+        "id": "OI-AF148-05",
+        "title": "结构缺口 5/16",
+        "impact": "4 场 risk-incomplete + 1 场 none",
+        "reason": "不属于验收材料修复",
+        "owner": "adapter",
+        "improvement": "另单修风险/收束结构"
+      }
+    ],
+    "deviationTable": [
+      {
+        "item": "任务编号",
+        "taskSays": "AF-147 返修",
+        "reality": "AF-147 已被机读门 rejected 并归档，终态不可复活",
+        "action": "新登记 AF-148 承接验收修复，priorTasks 保留 AF-147",
+        "why": "不改写已归档证据，不手改状态面"
+      },
+      {
+        "item": "代码范围",
+        "taskSays": "只修验收材料",
+        "reality": "工作区存在历史 AF-128 的 reasoning-text 改动",
+        "action": "AF-148 只提交 docs；AF-128 不纳入",
+        "why": "避免并行产物混入"
+      },
+      {
+        "item": "质量结论",
+        "taskSays": "AI 层面尽量达标",
+        "reality": "κ 0.365854 < 0.40，5/6",
+        "action": "如实判未达标",
+        "why": "不调阈值、不扩样本冒充达标"
+      },
+      {
+        "item": "全量测试",
+        "taskSays": "收尾一次",
+        "reality": "全量在 AF-147 同一代码通过；AF-148 仅 docs 改动",
+        "action": "复用同代码全量，复跑 typecheck/lint/定向",
+        "why": "docs 改动不影响测试结果"
+      }
+    ],
+    "reviewVerdict": "conditional-pass",
+    "finalStatus": "completed",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af148-af147-acceptance-rework-task-2026-11-20.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af148-af147-acceptance-close-2026-11-20.md",
+      "others": [
+        "docs/worklog/completed/phase2.5/af147-kappa-track-2026-11-20.md",
+        "data/phase25-exit/af147-kappa-96-out/",
+        "docs/worklog/pending/relay-response-AF147-20261120-0015.md"
+      ]
+    },
+    "reproNotes": "分支 task/AF-148-af147-acceptance-rework；基线 15c25dc；修复提交 2a86450。AF-147 实现与 5/6 结论不变；本单只修 taskSheet CR 与交付记录六组标记。96 场口径不变：R1 MiniMax-M2.7 / R2 MiniMax-M3.1-Flash / R3 MiniMax-M3，温度 0.1、arbitrate-gap=0、并发 6；exact 83/96、within±1 96/96、κ 0.365854。",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "ai_proxy_candidate / humanSupervision=false / clinicalAcceptanceEligible=false"
+    },
+    "openQuestions": [
+      "0.40 阈值出处与 CI 下界口径需在后续任务固定",
+      "硬上限是否改为后处理以恢复 style/safety 方差"
+    ],
+    "manualReviewList": [
+      "AF-147 原交付记录保留 rejected 审计链，不回溯修改",
+      "96 场跨版本校准集需与 AF-146 单批严格分区"
+    ],
+    "deviationAbsent": false,
+    "verdictRationale": "AF-147 实现提交 15c25dc 已通过 typecheck/lint/定向 28/全量 3873，但机读验收因 taskSheet 含 CR 与交付记录缺六组字段标记被判 rejected。AF-148 仅补验收材料：任务单与记录 LF、无 BOM，六组标记齐全，代码零改动；质量结论仍是 5/6、κ 0.365854 < 0.40，故条件通过并保留未达标结论。"
+  }
+}

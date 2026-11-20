@@ -1,0 +1,181 @@
+{
+  "deliveredAt": "2026-11-17T09:25:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-050-1",
+    "taskId": "AF-050",
+    "contextId": "phase2.5-orchestration-enforcement",
+    "type": "fix",
+    "baselineRef": "a27aba504b48b245f59a8f6ef1791310b68f94a9",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.3", "conventions.md#1.4", "agent-orchestration/README.md#0"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af050-v7-parallel-artifact-acceptance-fix-task-2026-11-17.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af050-v7-parallel-artifact-acceptance-fix-2026-11-17.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/pending/af050-v7-parallel-artifact-acceptance-fix-task-2026-11-17.md",
+        "docs/worklog/completed/phase2.5/af050-v7-parallel-artifact-acceptance-fix-2026-11-17.md",
+        "docs/worklog/pending/archive/AF-050-receipt-RC-AF-050-1.json"
+      ],
+      "modified": [
+        "scripts/orchestration/acceptance-runner.mjs",
+        "scripts/orchestration/receipts.mjs",
+        "scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "docs/worklog/completed/phase2.5/af047-dev-orchestration-mandatory-2026-11-17.md"
+      ],
+      "deleted": [],
+      "commits": []
+    },
+    "gateResults": [
+      {
+        "command": "node --check scripts/orchestration/acceptance-runner.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / node v22.23.2",
+        "wallClock": "秒级",
+        "note": "语法通过"
+      },
+      {
+        "command": "node --check scripts/orchestration/receipts.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "语法通过"
+      },
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "1.16s",
+        "note": "205 passed / 0 failed；新增 AF-050 V7 三组用例"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 20s",
+        "note": "tsc -b tsconfig.check.json 通过"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 10s",
+        "note": "eslint cache 命中；仅覆盖 {src,test,bin}/**/*.ts"
+      },
+      {
+        "command": "$env:ORCH_REQUIRE_FRAMEWORK='1'; pnpm orchestration:validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "55 项 PASS，含 AF-050 运行态任务单、事件日志 schema/哈希链、索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "202 条事件；schema + 哈希链 + 索引投影一致（回执摄入前）"
+      }
+    ],
+    "reproNotes": "V7 用例：task.receipt.changedFiles 声明 2 个交付文件且 parallelArtifactsExcluded=true，工作树另含 data/batch-reports 与 admin-dashboard 锁文件 → pass 并留痕；把 parallelArtifactsExcluded 改为 false → fail；把声明集换成 src/engine-core/bad.ts → fail。真实执行可用 node scripts/orchestration/cli.mjs run-once 复核。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "任务单 / 交付记录 / 回执一致（AF-050）" },
+      { "item": "state-write", "result": "pass", "note": "登记、提级、领单、回执摄入、归档均经 CLI；未手改索引或事件日志" },
+      { "item": "index-schema", "result": "pass", "note": "task-state-index 1.1.0 PASS，索引投影一致" },
+      { "item": "event-chain", "result": "pass", "note": "events verify 202 条（摄入前），哈希链与投影一致" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "AF-050 baselineRef 与当前 HEAD 一致；改动全在 scripts/orchestration 与 docs/worklog；engine-core 零改动"
+    },
+    "backlogItems": [
+      {
+        "id": "AF-050-O1",
+        "title": "AF-047 / 048 / 049 历史终态无法改写",
+        "detail": "三单已被验收器误判为 rejected 并归档；框架 archiveTask 明确禁止改写终态",
+        "impact": "历史索引仍显示 rejected；AF-050 已修复误判根因并留痕，不伪造 completed"
+      },
+      {
+        "id": "AF-050-O2",
+        "title": "未跟踪文件不在 git diff --name-only HEAD",
+        "detail": "V7 的并行留痕只覆盖已跟踪改动；未跟踪并行稿既不进声明集，也不进未声明清单",
+        "impact": "未跟踪并行稿仍依赖回执 parallelArtifactsExcluded 与人工复核；可考虑改用 git status --porcelain 扩展"
+      },
+      {
+        "id": "AF-050-O3",
+        "title": "scripts/*.mjs 不在 ESLint 项目",
+        "detail": "pnpm lint 仅覆盖 {src,test,bin}/**/*.ts，编排脚本只有 node --check 与 vitest",
+        "impact": "该层无静态类型/lint 检查，已显式登记；后续可加专用 tsconfig 或 ESLint 白名单"
+      },
+      {
+        "id": "AF-050-O4",
+        "title": "其他仓仍未接入同一门禁",
+        "detail": "Flutter、psyguard、agent-collaboration-framework 仓没有等价的提交前任务/scope 校验",
+        "impact": "强制范围只在 mofang-nestjs 后端仓生效"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": ["抽查一次真实 run-once，确认回执声明集优先路径在真实索引上生效", "确认是否把未跟踪文件纳入 V7 的并行留痕"],
+    "deviationTable": [
+      {
+        "item": "复核范围",
+        "taskSays": "只修复 V7 误判",
+        "reality": "AF-048 / AF-049 同样被误判 rejected",
+        "action": "在交付记录扩展复核结论，不改历史终态",
+        "why": "终态不可改写，误判事实必须留痕"
+      },
+      {
+        "item": "AF-047 记录",
+        "taskSays": "AF-047 记录已完成",
+        "reality": "机读验收 rejected，交付记录未说明",
+        "action": "追加 §9 验收后记，记录根因与 AF-050 修复",
+        "why": "不覆盖历史结论，同时让审计看到真实终态"
+      },
+      {
+        "item": "lint 覆盖",
+        "taskSays": "任务闸门含 pnpm lint",
+        "reality": "scripts/*.mjs 不在 ESLint 项目",
+        "action": "node --check + 205 例 vitest 兜底，并登记缺口",
+        "why": "不把 lint 绿当成全仓覆盖"
+      },
+      {
+        "item": "提交与分支",
+        "taskSays": "任务分支提交",
+        "reality": "工作区含清库与并行产物",
+        "action": "不切分支、不提交，等待统一收尾",
+        "why": "避免污染并行产物"
+      }
+    ],
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "V7 误判根因已复现并修复；205 例单测、typecheck、lint、55 项适配层校验与 202 条事件链全部通过；声明集越界、未标记并行、commit 事实三条路径均有负向用例锁定；历史任务终态未被篡改。"
+  }
+}

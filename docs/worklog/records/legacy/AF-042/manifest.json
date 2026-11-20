@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-042",
+  "contextId": "legacy",
+  "status": "rejected",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.615Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-042/task-sheet.md",
+    "sha256": "f0ce47c84e1249c5a813edd34ca084a82ead365d7f535932a6300229761ecb54",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af042-wp38-timeout-budget-rework-2026-11-17.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

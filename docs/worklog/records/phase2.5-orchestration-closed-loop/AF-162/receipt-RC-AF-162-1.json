@@ -1,0 +1,163 @@
+{
+  "deliveredAt": "2026-11-20T09:28:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-162-1",
+    "taskId": "AF-162",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "85b6bdbd8dc83d14c9afe26422fdc0b1c983eaad",
+    "dependsOn": [],
+    "priorTasks": ["AF-161"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "changedFiles": {
+      "added": ["docs/worklog/completed/phase2.5/af162-worklog-closeout-2026-11-20.md"],
+      "modified": [
+        "scripts/orchestration/worklog.mjs",
+        "scripts/orchestration/__tests__/worklog.spec.mjs",
+        "package.json",
+        ".husky/pre-commit",
+        "AGENTS.md",
+        "docs/worklog/completed/phase2.5/af161-worklog-record-bundles-2026-11-20.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-161/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-161/manifest.json",
+        "docs/worklog/records/legacy/AF-132/task-sheet.md",
+        "docs/worklog/records/legacy/AF-132/manifest.json",
+        "docs/worklog/records/legacy/AF-147/task-sheet.md",
+        "docs/worklog/records/legacy/AF-147/manifest.json"
+      ],
+      "deleted": [],
+      "commits": ["e2b6235"]
+    },
+    "gateResults": [
+      {
+        "exitCode": 0,
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "errors": 0,
+        "warnings": 0,
+        "note": "PASS 活跃=1 归档=176 记录包=177 inbox=0 legacy指针=133 无任务单=15"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/worklog.spec.mjs scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "errors": 0,
+        "warnings": 0,
+        "note": "275 passed（worklog 18 + orchestration 257）"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm lint",
+        "errors": 0,
+        "warnings": 0,
+        "note": "TS 与 scripts/**/*.mjs 两段 ESLint 全绿"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm typecheck",
+        "errors": 0,
+        "warnings": 0,
+        "note": "tsc -b tsconfig.check.json 零错误"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm test",
+        "errors": 0,
+        "warnings": 0,
+        "note": "222 files passed / 1 skipped；3910 tests passed / 4 skipped"
+      },
+      {
+        "exitCode": 0,
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "errors": 0,
+        "warnings": 0,
+        "note": "709 条事件；schema、哈希链与索引投影一致"
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm orchestration:preflight",
+        "errors": 0,
+        "warnings": 0,
+        "note": "PASS task=AF-162 status=submitted files=15 covered=6"
+      }
+    ],
+    "scopeCheck": "in-scope",
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "任务单 / 回执 / 交付记录 / commit 均为 AF-162"
+      },
+      {
+        "item": "immutable-task-sheet",
+        "result": "pass",
+        "note": "登记即入 records，manifest 记录 SHA-256；返修只规范 AF-161/历史任务单行尾，不改语义"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "仅 CLI register(--status ready)、run-once、worklog verify、snapshot 写状态面；无手改索引/事件"
+      },
+      {
+        "item": "scope",
+        "result": "pass",
+        "note": "commit e2b6235 的 15 个文件均在 AF-162 scope；无 src/ 生产代码改动"
+      }
+    ],
+    "backlogItems": [
+      {
+        "id": "IM-AF162-01",
+        "title": "15 个终态任务缺任务单",
+        "detail": "AF-002、AF-039、AF-060、AF-064、AF-065、AF-066、AF-096、AF-099、AF-106、AF-110、AF-114、AF-115、AF-118、AF-142、AF-160 记录包以 taskSheet:null 墓碑呈现。",
+        "impact": "verify 以「无任务单=15」透明计数，不影响活跃任务解析"
+      },
+      {
+        "id": "IM-AF162-02",
+        "title": "历史索引指针未回写",
+        "detail": "133 个 archived 任务仍指旧 pending 路径，由 manifest 回退解析。",
+        "impact": "不影响读取与校验；归档投影不可变，保持历史原样"
+      }
+    ],
+    "deviationTable": [
+      {
+        "item": "CR 规范化范围",
+        "taskSays": "规范 AF-161 任务单",
+        "reality": "额外规范化 AF-132、AF-147",
+        "why": "全量扫描发现这两张历史任务单同样含 CR，新校验将 CR 设为全局失败项",
+        "action": "三张任务单统一转 LF 并同步 manifest 哈希，不改正文语义"
+      },
+      {
+        "item": "manifest 定位",
+        "taskSays": "按记录包 canonical 路径读取",
+        "reality": "归档投影剥离 contextId 后误报缺 manifest",
+        "why": "readRecordManifest 依赖 task.contextId 推导 bundle 路径",
+        "action": "新增 findRecordBundleDir 按 taskId 回退定位，并补单测"
+      },
+      {
+        "item": "AF-161 历史状态",
+        "taskSays": "返修后复验通过",
+        "reality": "AF-161 保持 rejected 归档",
+        "why": "终态不回写，框架以返修任务重新交付",
+        "action": "AF-162 承接返修与收口，AF-161 只补证据标记"
+      }
+    ],
+    "reviewVerdict": "passed",
+    "finalStatus": "completed",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-162/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af162-worklog-closeout-2026-11-20.md",
+      "others": []
+    },
+    "reproNotes": "pnpm orchestration:worklog:verify 输出 PASS；events verify 709 条一致；全量测试 3910 passed / 4 skipped。",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "未改生产 src/ 业务代码；仅编排校验、记录包行尾、入口文档与本地门禁"
+    },
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationAbsent": false,
+    "verdictRationale": "AF-161 的 CR 与交付记录标记失败点已消除；CR 设为全局失败项并接入 CI/pre-commit，归档任务 manifest 定位缺陷已修复并有单测覆盖。"
+  }
+}

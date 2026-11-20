@@ -1,0 +1,140 @@
+{
+  "taskId": "AF-109",
+  "contextId": "phase2.5-exit4-quality-verdict",
+  "type": "documentation",
+  "baselineRef": "b739b6a821a15260fdc93c74382f17f5cc852428",
+  "dependsOn": ["AF-108", "AF-104"],
+  "policyRefs": ["conventions.md#1.3"],
+  "changedFiles": {
+    "added": [
+      "data/phase25-exit/af109-batch-audit.mjs",
+      "data/phase25-exit/af109-exit4-evidence-2026-11-18.json",
+      "data/batch-reports/q_35XnpvLWLr-Yocr8kJh.json",
+      "data/batch-reports/q_35XnpvLWLr-Yocr8kJh.md",
+      "docs/worklog/completed/phase2.5/af109-exit4-quality-verdict-2026-11-18.md"
+    ],
+    "modified": [
+      "docs/worklog/pending/phase2.5-README.md",
+      "data/batch-reports/index.md",
+      "docs/team/agent-orchestration/improvement-log.json",
+      "docs/team/agent-orchestration/orchestration-snapshot.json",
+      "docs/team/agent-orchestration/state/journal.jsonl",
+      "docs/team/agent-orchestration/task-state-index.json",
+      "web/orchestration/data.js"
+    ],
+    "deleted": []
+  },
+  "artifactRefs": {
+    "taskSheet": "docs/worklog/pending/af109-exit4-quality-verdict-task-2026-11-18.md",
+    "deliveryRecord": "docs/worklog/completed/phase2.5/af109-exit4-quality-verdict-2026-11-18.md",
+    "reply": null,
+    "others": [
+      "data/phase25-exit/af109-exit4-evidence-2026-11-18.json"
+    ]
+  },
+  "gateResults": [
+    {
+      "command": "GET http://127.0.0.1:3100/admin/api/auto-practice/batches/q_35XnpvLWLr-Yocr8kJh",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "note": "batchHealth.valid=true, flags=[], llmCallRatio=0.9412, fallbackRatio=0, counterConsistent=true, totalSessions=17；16 completed + 1 failed(interrupted)"
+    },
+    {
+      "command": "corepack pnpm exec tsx bin/batch-report.ts --batch q_35XnpvLWLr-Yocr8kJh --baseline-snapshot data/batch-reports/g3ONzlqSGMVJqkFMF9Lwh.json --format both --fail-on-incomparable",
+      "exitCode": 2,
+      "errors": 1,
+      "warnings": 0,
+      "note": "WP-K 正式 fail-closed：incomparable — 两批验收判据 (acceptance) 不同；基线 f604fdaca19e87b5 vs 候选 4474dd5be381d905；不是工具失败"
+    },
+    {
+      "command": "node data/phase25-exit/af109-batch-audit.mjs q_35XnpvLWLr-Yocr8kJh",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "note": "16 completed / 710 轮；visitor <think>=0、counselor <think>=0、counselorEmpty=0、visibleEmptyAfterStrip=0、duplicate=0"
+    },
+    {
+      "command": "MySQL SELECT status, COUNT(*) FROM ap_practice_sessions",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "note": "total 111 行 / 1877 轮；completed 60/1496、stagnant 39/323、failed 11/38、crisis_ended 1/20；本批 17/748"
+    },
+    {
+      "command": "git diff --stat HEAD -- src/engine-core",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "note": "输出为空，engine-core 零 diff"
+    }
+  ],
+  "reproNotes": "1) bin/dev-up.ps1 起 MySQL/Redis；2) 真实服务跑 8 角色 × expert/cold、long/50 轮；3) 16 场 completed 后审计逐字稿；4) WP-K CLI 对 96 基线出四态；5) intake 结果按 12 轮口径限制解读；6) 回写 README 表与 §3.2.7。",
+  "scopeCheck": "in-scope",
+  "parallelArtifactsExcluded": true,
+  "noOutscopeRefactor": true,
+  "contractChecks": [
+    { "item": "taskId", "result": "pass", "note": "AF-109，与任务单一致" },
+    { "item": "contextId", "result": "pass", "note": "phase2.5-exit4-quality-verdict" },
+    { "item": "baselineRef", "result": "pass", "note": "b739b6a，与登记时 HEAD 一致" },
+    { "item": "receipt-contract", "result": "pass", "note": "六组必填字段齐备" },
+    { "item": "artifactRefs-exist", "result": "pass", "note": "任务单 / 交付记录 / 证据 JSON 均存在且非空" },
+    { "item": "state-write", "result": "pass", "note": "登记 / 提级 / 回执均经 CLI" },
+    { "item": "engine-core-boundary", "result": "pass", "note": "src/engine-core 零 diff" },
+    { "item": "no-fabricated-evidence", "result": "pass", "note": "batches、WP-K exit 2、710 轮审计、DB 111/1877 均来自实跑/实查" },
+    { "item": "clinical-claim-boundary", "result": "pass", "note": "未把 incomparable / intake 12 轮口径写成质量达标或来访者不合格" }
+  ],
+  "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+  "fieldAlignment": {
+    "result": "aligned",
+    "note": "任务单 / 回执 / 交付记录 / README 中的 batchId、16 场 710 轮、WP-K incomparable、出口④不可判定一致"
+  },
+  "backlogItems": [
+    {
+      "id": "IM-065",
+      "title": "long 50 轮批次缺少匹配的临床验收口径（12 轮 intake 被全时段套用）",
+      "impact": "long 批次无法给出有临床意义的 PASS/FAIL；出口④只能 incomparable/不可判定",
+      "reason": "intake-v1/v2 判据为首次会谈约 12 轮，本批 50 轮全时段 delta 直接套用",
+      "owner": "next-long-session-acceptance-profile"
+    },
+    {
+      "id": "OI-AF109-01",
+      "title": "真实督导师双人盲标 + 仲裁未取得",
+      "impact": "80% 临床准确率无真值，出口④不能正式通过",
+      "reason": "无真实督导师标注资源",
+      "owner": "clinical-supervisor"
+    }
+  ],
+  "openQuestions": [],
+  "manualReviewList": [
+    "cold 负向极端档 zero_motion=2 需人工逐场复核（本批含 1 个 failed/interrupted 旧会话）",
+    "expert trust Δ=0.38925 / bond Δ=0.049 属 50 轮全时段，不可直接对照 12 轮 intake-v1 上限"
+  ],
+  "deviationTable": [
+    {
+      "item": "质量结论",
+      "taskSays": "WP-K 四态 improved/neutral/regressed/incomparable 并给出质量是否达标",
+      "reality": "WP-K 为 incomparable（acceptance 判据漂移）；无可比四态",
+      "action": "如实写「不可判定 / 未通过」，不伪造 improved 或达标",
+      "why": "fail-closed 与临床真实性优先"
+    },
+    {
+      "item": "场次",
+      "taskSays": "8 角色 × 2 模式 × 50 轮 = 16 场",
+      "reality": "16 个组合 completed；另有 1 个 failed/interrupted 旧会话（38 轮）因服务进程退出，BullMQ 重跑同组合后完成",
+      "action": "质量样本按 16 completed / 710 轮；旧 38 轮不计入，库内保留 17 行可审计",
+      "why": "不隐去失败尝试，也不让失败轮次污染质量样本"
+    },
+    {
+      "item": "intake",
+      "taskSays": "WP-K intake 作为质量判据之一",
+      "reality": "intake global FAIL，但为 12 轮口径套 50 轮 long",
+      "action": "登记 IM-065，intake 只进人工复核，不作为 50 轮硬门",
+      "why": "口径不匹配，不能反推来访者质量不合格"
+    }
+  ],
+  "deviationAbsent": false,
+  "finalStatus": "completed",
+  "reviewVerdict": "passed",
+  "verdictRationale": "交付验收通过（passed）：批次、健康度、逐字稿清洁度与 WP-K 执行均真实可复现，scope 无越界，evidence JSON 与审计脚本可复跑。注意：这里的 passed 指 AF-109 交付合格，不等于临床质量达标；出口④仍为「未通过 / 不可判定」，人工复核项与 IM-065 保留。"
+}

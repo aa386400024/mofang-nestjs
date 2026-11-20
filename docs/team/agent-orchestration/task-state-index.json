@@ -4,10 +4,101 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 748,
+    "lastEventSeq": 751,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-172",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-20T02:32:19.965Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "PR52 记录包未入库"
+        },
+        {
+          "at": "2026-11-20T02:32:20.341Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "发布树记录包与墓碑证据补齐",
+      "type": "documentation",
+      "baselineRef": "926406d4945ae5767de4aa79cf9d5d1bbb52d361",
+      "dependsOn": [
+        "AF-171"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#2"
+      ],
+      "createdAt": "2026-11-20T02:32:19.657Z",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "priorTasks": [
+        "AF-171",
+        "AF-170",
+        "AF-169",
+        "AF-168",
+        "AF-164",
+        "AF-163"
+      ],
+      "scope": {
+        "files": [
+          "docs/worklog/records/",
+          "docs/worklog/completed/",
+          "docs/team/agent-orchestration/"
+        ],
+        "modules": [
+          "orchestration",
+          "release"
+        ],
+        "interfaces": [
+          "node scripts/orchestration/cli.mjs worklog verify --strict"
+        ]
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-172/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+          "check": "记录包严格校验",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "node scripts/orchestration/cli.mjs events verify",
+          "check": "事件链一致",
+          "threshold": "exit=0"
+        }
+      ],
+      "successCriteria": [
+        "所有已归档任务的 record bundle manifest / task-sheet / receipt 进入发布树",
+        "不改变任何已完成任务的证据内容，只补齐未入库文件",
+        "发布树在干净 checkout 下 worklog verify --strict 通过"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af172-record-bundle-packaging-2026-11-20.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-20T02:32:19.964Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",

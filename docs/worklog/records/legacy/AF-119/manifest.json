@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-119",
+  "contextId": "legacy",
+  "status": "rejected",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.696Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-119/task-sheet.md",
+    "sha256": "e21627547e88ff96a834abb7e091c0feb4f60075a686e4bc51990588cee8bd3b",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af119-ci-fix-acceptance-2026-11-19.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

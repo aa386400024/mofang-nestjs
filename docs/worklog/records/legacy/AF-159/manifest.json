@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-159",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.740Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-159/task-sheet.md",
+    "sha256": "42250b6f2ae60b0e659ab8dc93f417f63d1b573f3c800bb4de9d10ce77c82fc0",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af159-admin-health-auth-watch-2026-11-20.md",
+  "legacyPaths": [],
+  "tombstone": null
+}
