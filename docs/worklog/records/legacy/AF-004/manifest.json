@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-004",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "completed",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.633Z",
+  "updatedAt": "2026-11-20T01:36:29.575Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-004/task-sheet.md",
     "sha256": "7106df19adfe08f9107336ebdc3331810ffd1f0f9e49ad742a2ced2b96ab81df",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af004-framework-hardening-implementation-2026-11-15.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

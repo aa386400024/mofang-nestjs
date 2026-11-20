@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-043",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "completed",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.677Z",
+  "updatedAt": "2026-11-20T01:36:29.616Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-043/task-sheet.md",
     "sha256": "ac8a38ce5a974cd6d51a23374e350348695d78db93c129b3e940e5dc4bcdd997",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af043-improvement-closeout-rework-2026-11-17.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

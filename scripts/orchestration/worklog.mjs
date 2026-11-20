@@ -114,6 +114,7 @@ function emptyManifest(task) {
     receipts: [],
     deliveryRecord: null,
     legacyPaths: [],
+    tombstone: null,
   };
 }
 
@@ -127,6 +128,31 @@ export function normalizeTaskSheetLineEndings(path) {
   if (!text.includes('\r')) return false;
   writeFileSync(path, text.replace(/\r\n/g, '\n').replace(/\r/g, '\n'), 'utf8');
   return true;
+}
+
+/**
+ * 记录包是交付指针的规范位置：索引指针失效时保留 manifest 已核验的路径，
+ * 不把坏指针覆盖进 manifest。任务单缺失的终态任务写 tombstone 证据块。
+ */
+function applyTaskArtifacts(task, manifest, { rootDir, taskSheetPath }) {
+  const delivery = task?.artifacts?.deliveryRecord;
+  if (typeof delivery === 'string' && delivery && existsSync(resolve(rootDir, delivery))) {
+    manifest.deliveryRecord = delivery;
+  } else if (!manifest.deliveryRecord && typeof delivery === 'string') {
+    manifest.deliveryRecord = delivery;
+  }
+  if (taskSheetPath) {
+    manifest.tombstone = null;
+    return;
+  }
+  if (!manifest.tombstone) {
+    manifest.tombstone = {
+      status: 'missing',
+      reason: 'task-sheet-not-found-in-git-history',
+      recordedAt: nowIso(),
+      deliveryRecord: manifest.deliveryRecord ?? null,
+    };
+  }
 }
 
 /**
@@ -168,9 +194,10 @@ export function ensureTaskRecordBundle(task, opts = {}) {
   const manifest = readRecordManifest(task, { rootDir }) ?? emptyManifest(task);
   normalizeTaskSheetLineEndings(target);
   manifest.taskId = task.taskId;
-  manifest.contextId = task.contextId ?? manifest.contextId ?? null;
+  manifest.contextId = task.contextId ?? manifest.contextId ?? 'legacy';
   manifest.status = opts.status ?? task.status ?? manifest.status ?? null;
   manifest.createdAt = manifest.createdAt ?? task.createdAt ?? null;
+  applyTaskArtifacts(task, manifest, { rootDir, taskSheetPath: target });
   const legacy = source && !samePath(source, target) ? repoRelative(rootDir, source) : null;
   manifest.taskSheet = {
     path: repoRelative(rootDir, target),
@@ -178,6 +205,7 @@ export function ensureTaskRecordBundle(task, opts = {}) {
     immutable: true,
   };
   if (legacy && !manifest.legacyPaths.includes(legacy)) manifest.legacyPaths.push(legacy);
+  if (opts.recoveredFrom) manifest.recoveredFrom = opts.recoveredFrom;
   if (manifest.receipts.length === 0) manifest.receipts = [];
   writeManifest(task, manifest, { rootDir });
   return { bundleDir: taskBundleDir(task, { rootDir }), taskSheetPath: repoRelative(rootDir, target), manifest };
@@ -282,6 +310,7 @@ export function verifyWorklog(index, opts = {}) {
   const errors = [];
   const warnings = [];
   const missingSheets = [];
+  const missingDeliveries = [];
   const bundles = listRecordBundles({ rootDir });
   const indexIds = new Set(allTasks(index).map((task) => task.taskId));
   const duplicates = duplicateTaskIds(index);
@@ -300,10 +329,22 @@ export function verifyWorklog(index, opts = {}) {
       continue;
     }
     if (manifest.taskId !== task.taskId) errors.push(`manifest taskId 不匹配：${task.taskId} → ${manifest.taskId}`);
+    const terminal = ['completed', 'failed', 'canceled', 'rejected'].includes(task.status);
+    const delivery = manifest.deliveryRecord ?? task?.artifacts?.deliveryRecord ?? null;
+    if (typeof delivery === 'string' && delivery) {
+      if (!existsSync(resolve(rootDir, delivery))) {
+        errors.push(`交付记录缺文件：${task.taskId} → ${delivery}`);
+      }
+    } else if (task.status === 'completed') {
+      missingDeliveries.push(task.taskId);
+      errors.push(`completed 任务缺交付记录：${task.taskId}`);
+    }
     if (!manifest.taskSheet?.path) {
       missingSheets.push(task.taskId);
-      if (!['completed', 'failed', 'canceled', 'rejected'].includes(task.status)) {
+      if (!terminal) {
         errors.push(`非终态任务缺任务单：${task.taskId}（status=${task.status ?? 'unknown'}）`);
+      } else if (!manifest.tombstone) {
+        errors.push(`墓碑缺证据块：${task.taskId}`);
       }
       continue;
     }
@@ -357,6 +398,9 @@ export function verifyWorklog(index, opts = {}) {
     legacyPointers,
     missingTaskSheets: missingSheets.length,
     missingTaskSheetIds: missingSheets,
+    tombstones: missingSheets.length,
+    missingDeliveryRecords: missingDeliveries.length,
+    missingDeliveryRecordIds: missingDeliveries,
   };
   return { ok: errors.length === 0, errors, warnings, stats };
 }
@@ -405,6 +449,7 @@ export function migrateWorklog(index, opts = {}) {
   let movedSheets = 0;
   let movedReceipts = 0;
   let orphanSheets = 0;
+  const existingBundles = new Map(listRecordBundles({ rootDir }).map((bundle) => [bundle.taskId, bundle]));
 
   const adoptLegacyTaskSheet = (task, entry) => {
     const source = findLegacyTaskSheet(task.taskId, rootDir);
@@ -467,13 +512,15 @@ export function migrateWorklog(index, opts = {}) {
         }
       }
     } else {
-      const target = bundleSheetTarget(task, null, rootDir);
-      if (existsSync(target)) {
-        if (apply) ensureBundleManifest(task, target, rootDir);
-      } else if (adoptLegacyTaskSheet(task, entry)) {
-        // 旧 archive 里尚有任务单副本，收养进记录包。
-      } else if (task.taskId === 'AF-002' || ['completed', 'failed', 'canceled', 'rejected'].includes(task.status)) {
-        if (apply) ensureBundleManifest(task, null, rootDir);
+      const bundle = existingBundles.get(task.taskId);
+      const sheet = bundle?.manifest?.taskSheet?.path;
+      const bundleScopedTask = bundle ? { ...task, contextId: bundle.contextId } : task;
+      if (sheet) {
+        if (apply) ensureBundleManifest(bundleScopedTask, resolve(rootDir, sheet), rootDir);
+      } else if (adoptLegacyTaskSheet(bundleScopedTask, entry)) {
+        // 旧 archive 里尚有任务单副本，收养进记录包，不写墓碑。
+      } else if (['completed', 'failed', 'canceled', 'rejected'].includes(task.status)) {
+        if (apply) ensureBundleManifest(bundleScopedTask, null, rootDir);
         entry.taskSheet = null;
         entry.note = 'task-sheet-missing:tombstone';
       } else {
@@ -565,9 +612,10 @@ export function migrateWorklog(index, opts = {}) {
 function ensureBundleManifest(task, taskSheetAbs, rootDir) {
   const manifest = readRecordManifest(task, { rootDir }) ?? emptyManifest(task);
   manifest.taskId = task.taskId;
-  manifest.contextId = task.contextId ?? manifest.contextId ?? null;
+  manifest.contextId = task.contextId ?? manifest.contextId ?? 'legacy';
   manifest.status = task.status ?? manifest.status ?? null;
   manifest.createdAt = manifest.createdAt ?? task.createdAt ?? null;
+  applyTaskArtifacts(task, manifest, { rootDir, taskSheetPath: taskSheetAbs });
   if (taskSheetAbs) {
     manifest.taskSheet = {
       path: repoRelative(rootDir, taskSheetAbs),
@@ -608,6 +656,11 @@ export function worklogStats(index, opts = {}) {
     inboxFiles: existsSync(inboxDir)
       ? readdirSync(inboxDir).filter((name) => name.endsWith('.md') && name.toLowerCase() !== 'readme.md').length
       : 0,
+    tombstones: bundles.filter(
+      (bundle) =>
+        !bundle.manifest?.taskSheet?.path &&
+        ['completed', 'failed', 'canceled', 'rejected'].includes(bundle.manifest?.status),
+    ).length,
     recordBytes: bundles.reduce((sum, bundle) => sum + directorySize(bundle.dir), 0),
   };
 }

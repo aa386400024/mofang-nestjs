@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-008",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "completed",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.637Z",
+  "updatedAt": "2026-11-20T01:36:29.579Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-008/task-sheet.md",
     "sha256": "a18119997b912b7d44e4f0bdbc85a15d1e373f7ae24283e2e54f6dea67b36574",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af005-008-framework-evolution-implementation-2026-11-15.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

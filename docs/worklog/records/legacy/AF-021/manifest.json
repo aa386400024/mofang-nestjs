@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-021",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "completed",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.655Z",
+  "updatedAt": "2026-11-20T01:36:29.593Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-021/task-sheet.md",
     "sha256": "fbabf6f05f754a49cf581c20f6142ac5bd1aad029f1a2065cc619f24a245e939",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af021-nonprod-finalization-implementation-2026-11-17.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

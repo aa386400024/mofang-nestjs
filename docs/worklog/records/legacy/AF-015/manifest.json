@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-015",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "completed",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.645Z",
+  "updatedAt": "2026-11-20T01:36:29.586Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-015/task-sheet.md",
     "sha256": "c3994e79aec3a8a80f4250cb4401de0fb0c97fac7f6b3441dfd72317a50a2a4c",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-implementation-2026-11-16.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

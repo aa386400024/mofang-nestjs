@@ -4,10 +4,90 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 711,
+    "lastEventSeq": 713,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-163",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-20T01:32:22.491Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "worklog 历史证据收口与最终形态",
+      "type": "fix",
+      "baselineRef": "3c8a859b855189848fb99056b59fe9135f7bfb1c",
+      "dependsOn": [],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-20T01:32:21.664Z",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "scope": {
+        "files": [
+          "scripts/orchestration/",
+          "docs/worklog/",
+          "docs/team/agent-orchestration/"
+        ],
+        "modules": [
+          "orchestration"
+        ],
+        "interfaces": [
+          "node scripts/orchestration/cli.mjs"
+        ]
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-163/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm lint",
+          "check": "lint 零错误",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm typecheck",
+          "check": "类型检查零错误",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm test",
+          "check": "全量测试通过",
+          "threshold": "exit=0"
+        }
+      ],
+      "successCriteria": [
+        "AF-060 历史任务单从 git 历史收养进记录包，无任务单计数从 15 降到 14",
+        "14 个墓碑 manifest 带可审计的缺失证据，并生成 TOMBSTONES.md 台账",
+        "全部 manifest 的 deliveryRecord 从索引事实补齐；AF-065 交付指针指向实际合并交付记录",
+        "worklog verify --strict 检查 completed 任务的交付记录存在性并通过",
+        "编排 README 的目录映射、relay 监听、回执归档口径与 records 生命周期一致"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af163-worklog-final-closeout-2026-11-20.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": []
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",

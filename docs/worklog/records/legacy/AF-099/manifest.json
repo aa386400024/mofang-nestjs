@@ -1,12 +1,18 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-099",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "canceled",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.736Z",
+  "updatedAt": "2026-11-20T01:36:29.675Z",
   "taskSheet": null,
   "receipts": [],
   "deliveryRecord": null,
-  "legacyPaths": []
+  "legacyPaths": [],
+  "tombstone": {
+    "status": "missing",
+    "reason": "task-sheet-not-found-in-git-history",
+    "recordedAt": "2026-11-20T01:34:42.053Z",
+    "deliveryRecord": null
+  }
 }

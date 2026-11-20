@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-154",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "completed",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.786Z",
+  "updatedAt": "2026-11-20T01:36:29.734Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-154/task-sheet.md",
     "sha256": "4731cddd5dbbf0913dcc1e1fb944c75c5d7bc8134685aefed6569e666b5b1ff9",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af154-quality-admin-close-2026-11-20.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

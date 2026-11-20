@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "TD-5",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "completed",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.604Z",
+  "updatedAt": "2026-11-20T01:36:29.549Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/TD-5/task-sheet.md",
     "sha256": "1d3489022e7a6016830128b14318b5b328d4879cd7cd3d9002de6ea91a27a0ae",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-implementation-2026-11-13.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

@@ -1,10 +1,10 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-079",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "canceled",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.718Z",
+  "updatedAt": "2026-11-20T01:36:29.657Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-079/task-sheet.md",
     "sha256": "593a374240820da94189c26ead64fa4fade6ce134a4bb4757717b39f2c14803b",
@@ -12,5 +12,6 @@
   },
   "receipts": [],
   "deliveryRecord": null,
-  "legacyPaths": []
+  "legacyPaths": [],
+  "tombstone": null
 }

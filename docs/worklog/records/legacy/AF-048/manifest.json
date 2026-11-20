@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-048",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "rejected",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.684Z",
+  "updatedAt": "2026-11-20T01:36:29.623Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-048/task-sheet.md",
     "sha256": "5a447957545f3677ccf02ea3fbbad60de7fa37fd2d7f7fbdd48ac2ec4ebec857",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af048-orchestrator-resource-domain-2026-11-17.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

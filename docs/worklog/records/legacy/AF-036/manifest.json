@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-036",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "rejected",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.672Z",
+  "updatedAt": "2026-11-20T01:36:29.611Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-036/task-sheet.md",
     "sha256": "c2b44f019ab67b402abd510cda69aa272407ea6d91916affd2941f100e93988b",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af036-held-reason-passthrough-2026-11-17.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

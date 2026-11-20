@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-152",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "rejected",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.784Z",
+  "updatedAt": "2026-11-20T01:36:29.732Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-152/task-sheet.md",
     "sha256": "b98cf34fcfa3042d276615acebcd814752859b1704e6a1df6e3f72133ed28d67",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af152-quality-admin-2026-11-20.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

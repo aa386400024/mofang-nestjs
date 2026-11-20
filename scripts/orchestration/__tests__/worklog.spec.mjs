@@ -97,6 +97,22 @@ describe('记录包登记', () => {
     expect(readRecordManifest(archived, { rootDir: root })?.taskId).toBe('AF-900');
   });
 
+  it('记录包 manifest 写入已核验的交付记录指针', () => {
+    const root = makeRoot();
+    const delivery = join(root, 'docs', 'worklog', 'completed', 'af900-delivery.md');
+    mkdirSync(resolve(delivery, '..'), { recursive: true });
+    writeFileSync(delivery, '# AF-900 交付记录\n', 'utf8');
+    const t = task({
+      status: 'completed',
+      artifacts: { taskSheet: 'docs/worklog/inbox/af900-test-task.md', deliveryRecord: 'docs/worklog/completed/af900-delivery.md' },
+    });
+    const source = writeSheet(root);
+    const result = ensureTaskRecordBundle(t, { rootDir: root, sourceSheetPath: source, status: 'completed' });
+
+    expect(result.manifest.deliveryRecord).toBe('docs/worklog/completed/af900-delivery.md');
+    expect(result.manifest.tombstone).toBeNull();
+  });
+
   it('JSON 任务单保留 .json 扩展，不伪装成 Markdown', () => {
     const root = makeRoot();
     const t = task({ taskId: 'AF-901', artifacts: { taskSheet: 'docs/worklog/pending/archive/AF-901-task-sheet.json' } });
@@ -238,7 +254,24 @@ describe('迁移', () => {
     expect(report.errors).toEqual([]);
     const manifest = readRecordManifest(index.archivedTasks[0], { rootDir: root });
     expect(manifest.taskSheet).toBeNull();
+    expect(manifest.tombstone).toMatchObject({ status: 'missing', reason: 'task-sheet-not-found-in-git-history' });
     expect(report.entries[0].note).toBe('task-sheet-missing:tombstone');
+  });
+
+  it('归档投影缺 contextId 时不重复建 legacy 记录包', () => {
+    const root = makeRoot();
+    const t = task({
+      status: 'completed',
+      contextId: 'phase2.5-test',
+      artifacts: { taskSheet: 'docs/worklog/records/phase2.5-test/AF-900/task-sheet.md' },
+    });
+    const source = writeSheet(root);
+    ensureTaskRecordBundle(t, { rootDir: root, sourceSheetPath: source, status: 'completed' });
+    const archived = { ...t, contextId: undefined };
+
+    migrateWorklog({ tasks: [], archivedTasks: [archived] }, { rootDir: root, apply: true });
+    expect(existsSync(join(root, 'docs', 'worklog', 'records', 'legacy', 'AF-900', 'manifest.json'))).toBe(false);
+    expect(existsSync(join(root, 'docs', 'worklog', 'records', 'phase2.5-test', 'AF-900', 'manifest.json'))).toBe(true);
   });
 
   it('指针指向交付记录而非任务单时拒绝搬运', () => {
@@ -285,6 +318,39 @@ describe('verify', () => {
     writeFileSync(join(root, 'docs', 'worklog', 'inbox', 'af901-old-task.md'), '# AF-901\n', 'utf8');
     const result = verifyWorklog({ tasks: [{ ...task({ taskId: 'AF-901', status: 'completed' }) }], archivedTasks: [] }, { rootDir: root });
     expect(result.errors.join('\n')).toContain('终态任务单仍在 inbox');
+  });
+
+  it('completed 任务交付记录缺失判失败', () => {
+    const root = makeRoot();
+    const t = task({
+      status: 'completed',
+      artifacts: { taskSheet: 'docs/worklog/inbox/af900-test-task.md', deliveryRecord: 'docs/worklog/completed/af900-missing.md' },
+    });
+    const source = writeSheet(root);
+    ensureTaskRecordBundle(t, { rootDir: root, sourceSheetPath: source, status: 'completed' });
+    const result = verifyWorklog({ tasks: [], archivedTasks: [t] }, { rootDir: root });
+    expect(result.ok).toBe(false);
+    expect(result.errors.join('\n')).toContain('交付记录缺文件：AF-900');
+  });
+
+  it('索引交付指针失效时以 manifest 规范位置为准', () => {
+    const root = makeRoot();
+    const delivery = join(root, 'docs', 'worklog', 'completed', 'af900-merged-delivery.md');
+    mkdirSync(resolve(delivery, '..'), { recursive: true });
+    writeFileSync(delivery, '# AF-900 合并交付记录\n', 'utf8');
+    const dangling = 'docs/worklog/completed/af900-old-delivery.md';
+    const t = task({
+      status: 'completed',
+      artifacts: { taskSheet: 'docs/worklog/inbox/af900-test-task.md', deliveryRecord: dangling },
+    });
+    const source = writeSheet(root);
+    ensureTaskRecordBundle(t, { rootDir: root, sourceSheetPath: source, status: 'completed' });
+    const manifest = readRecordManifest(t, { rootDir: root });
+    manifest.deliveryRecord = 'docs/worklog/completed/af900-merged-delivery.md';
+    writeFileSync(join(taskBundleDir(t, { rootDir: root }), 'manifest.json'), JSON.stringify(manifest), 'utf8');
+
+    const result = verifyWorklog({ tasks: [], archivedTasks: [t] }, { rootDir: root });
+    expect(result.errors.join('\n')).not.toContain('交付记录缺文件');
   });
 
   it('非终态任务缺任务单判失败，墓碑只允许终态任务', () => {

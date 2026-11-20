@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-057",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "completed",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.694Z",
+  "updatedAt": "2026-11-20T01:36:29.634Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-057/task-sheet.md",
     "sha256": "20481b532f7f9e2dd3486554d2fc274770e28336bce372d114fdb09aecde7a54",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af057-protected-pr-acceptance-2026-11-17.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-125",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "completed",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.760Z",
+  "updatedAt": "2026-11-20T01:36:29.703Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-125/task-sheet.md",
     "sha256": "4026288a72c21bb9db255ce27f36b026a680bfe01dad68dfe2cc57290af33dcb",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af125-ai-proxy-cross-model-2026-11-19.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

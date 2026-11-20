@@ -431,7 +431,7 @@ function cmdWorklog(args = []) {
     if (json) console.log(JSON.stringify(stats, null, 2));
     else {
       console.log(
-        `[worklog stats] 活跃=${stats.activeTasks} 归档=${stats.archivedTasks} 记录包=${stats.bundles} pending=${stats.pendingFiles} inbox=${stats.inboxFiles} 记录体积=${(stats.recordBytes / 1024).toFixed(1)}KB`,
+        `[worklog stats] 活跃=${stats.activeTasks} 归档=${stats.archivedTasks} 记录包=${stats.bundles} 墓碑=${stats.tombstones} pending=${stats.pendingFiles} inbox=${stats.inboxFiles} 记录体积=${(stats.recordBytes / 1024).toFixed(1)}KB`,
       );
     }
     return stats;

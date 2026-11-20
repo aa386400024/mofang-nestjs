@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-130",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "completed",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.764Z",
+  "updatedAt": "2026-11-20T01:36:29.708Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-130/task-sheet.md",
     "sha256": "c7071369625a2c17951a73da85636876d5064e864c98c9dfa6b999b8d20d235d",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af130-long-batch-reevaluation-2026-11-19.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

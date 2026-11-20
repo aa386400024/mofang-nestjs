@@ -1,12 +1,22 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-060",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "rejected",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.697Z",
-  "taskSheet": null,
+  "updatedAt": "2026-11-20T01:36:29.637Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-060/task-sheet.md",
+    "sha256": "a58e7105c7d7c7873d4d0eec9820130c135c5eb1f282b3754be51c53c03621fc",
+    "immutable": true
+  },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md",
+  "legacyPaths": [],
+  "tombstone": null,
+  "recoveredFrom": {
+    "commit": "82e4a733992ea7c137ea881bd45498300d16e1fd",
+    "path": "docs/worklog/pending/af060-phase25-exit-evidence-task-2026-11-17.md",
+    "sourceContextId": "phase2.5-export-evidence"
+  }
 }

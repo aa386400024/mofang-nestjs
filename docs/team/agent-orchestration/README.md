@@ -75,9 +75,9 @@
 
 | 映射项                             | 本项目落点                                                                                                                                                         |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `directories.taskSheets`           | `docs/worklog/pending/`（`ready / submitted / working` 任务单）                                                                                                    |
+| `directories.taskSheets`           | `docs/worklog/inbox/`（待登记草稿）；登记成功即进入 `docs/worklog/records/<contextId>/<taskId>/task-sheet.md`，登记后不可变                                   |
 | `directories.deliveryRecords`      | `docs/worklog/completed/<phase>/`（任务单 + 交付记录成对归档，只读历史）                                                                                           |
-| `directories.replyArchive`         | `docs/worklog/pending/archive/`（回执原文、机读回执副本 `<taskId>-receipt-*.json`、中间产物归档；transport 只作收件箱）                                            |
+| `directories.replyArchive`         | `docs/worklog/records/<contextId>/<taskId>/receipt-*.json`（durable 回执规范落点）；`docs/worklog/pending/archive/` 仅保留历史回执与 relay 回交文件           |
 | `directories.artifacts`            | 各任务单切片范围内的源码 / 测试 / 规格路径；工件正文留在各自文件                                                                                                   |
 | `directories.stateIndex`           | `docs/team/agent-orchestration/task-state-index.json`（**只读投影**，带 `projection` 指向日志末条事件；禁止手改）                                                  |
 | `directories.stateJournal`         | `docs/team/agent-orchestration/state/journal.jsonl`（**唯一写面**，append-only 事件日志；`state-event:1.0.0` + SHA-256 哈希链）；历史段在 `state/journal-archive/` |
@@ -498,4 +498,4 @@ node scripts/orchestration/cli.mjs docs normalize --path docs/worklog/completed/
 | 交付记录归档约定                                   | `docs/worklog/completed/<phase>/*-implementation-*.md`                     |
 | 台账与 backlog                                     | `docs/team/gate-performance-remediation-2026-11-11.md` 及阶段 wp-list      |
 | 架构设计留档                                       | `docs/architecture/`（通用概念以框架仓为准；项目约束与待决策见各文档附录） |
-| 回执归档                                           | `docs/worklog/pending/archive/relay-response-*`                            |
+| 回执归档                                           | `docs/worklog/records/<contextId>/<taskId>/receipt-*.json`（durable）；历史 relay 回交在 `docs/worklog/pending/archive/relay-response-*` |

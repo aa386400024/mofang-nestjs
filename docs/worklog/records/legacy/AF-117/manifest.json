@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-117",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "rejected",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.752Z",
+  "updatedAt": "2026-11-20T01:36:29.694Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-117/task-sheet.md",
     "sha256": "68e88305e58397cc1f37bb3afb477ad95c7b63dadc013fd2a2e8285730eae407",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af117-ci-fix-delivery-2026-11-19.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

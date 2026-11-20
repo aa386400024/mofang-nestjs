@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "DR-001",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "completed",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.659Z",
+  "updatedAt": "2026-11-20T01:36:29.596Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/DR-001/task-sheet.json",
     "sha256": "5a6114ba857ada6625a66e1372c25c81faf71790755b9b2841a7faf1d8e5f8f1",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/dr001-af013-channel-drill-delivery-2026-11-17.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

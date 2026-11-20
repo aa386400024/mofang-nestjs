@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-009",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "completed",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.638Z",
+  "updatedAt": "2026-11-20T01:36:29.580Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-009/task-sheet.md",
     "sha256": "e3a88d3a0073dffe6c82c078a7b39b220f9580a8c2f16a78ac097fb266dc53ad",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-implementation-2026-11-16.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

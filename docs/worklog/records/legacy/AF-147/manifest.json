@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-147",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "rejected",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:18:22.351Z",
+  "updatedAt": "2026-11-20T01:36:29.726Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-147/task-sheet.md",
     "sha256": "6267114127459f8a6e8e4ea74a024508f5d22da44282c5f8bb800ee2a4713fe4",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af147-kappa-track-2026-11-20.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-146",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "completed",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.779Z",
+  "updatedAt": "2026-11-20T01:36:29.725Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-146/task-sheet.md",
     "sha256": "ef52f1400c5625e395a889d415d3ca9c2a243af24ea799d3f9b39a0abc2d11c3",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af146-final-closing-quality-close-2026-11-19.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "TD-6",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "completed",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.606Z",
+  "updatedAt": "2026-11-20T01:36:29.551Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/TD-6/task-sheet.md",
     "sha256": "9c7236ae7280aa7061844bc9807a3d6cdeab94c9d14581281e3e308a02100383",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-implementation-2026-11-13.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

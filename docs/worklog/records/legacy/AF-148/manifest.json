@@ -1,16 +1,17 @@
 {
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-148",
-  "contextId": null,
+  "contextId": "legacy",
   "status": "completed",
   "createdAt": null,
-  "updatedAt": "2026-11-20T01:10:28.781Z",
+  "updatedAt": "2026-11-20T01:36:29.727Z",
   "taskSheet": {
     "path": "docs/worklog/records/legacy/AF-148/task-sheet.md",
     "sha256": "4d08ec79b7412bfe02732352fc14ac83d27d676ee21b78d3ab251323f86a436e",
     "immutable": true
   },
   "receipts": [],
-  "deliveryRecord": null,
-  "legacyPaths": []
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af148-af147-acceptance-close-2026-11-20.md",
+  "legacyPaths": [],
+  "tombstone": null
 }

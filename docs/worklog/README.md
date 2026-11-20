@@ -131,7 +131,7 @@
 > - `completed/` —— 交付记录；
 > - `pending/archive/` —— 旧回执路径，只读兼容。
 >
-> 完整性闸门：`node scripts/orchestration/cli.mjs worklog verify`。
+> 完整性闸门：`node scripts/orchestration/cli.mjs worklog verify --strict`（含 completed 交付记录存在性、终态任务墓碑检查）；墓碑清册见 [`records/TOMBSTONES.md`](records/TOMBSTONES.md)。
 
 每个任务单文件里写了完整的：目标、改动点、验收标准、不做什么。**读全文再开工。**
 
