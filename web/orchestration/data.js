@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-20T18:46:12.738Z",
+  "generatedAt": "2026-11-20T19:15:11.894Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1694,6 +1694,7 @@ window.ORCH_SNAPSHOT = {
         "AGENTS.md",
         "package.json",
         ".prettierignore",
+        ".gitignore",
         ".env.example",
         "eslint.config.mjs",
         ".husky/",
@@ -1780,6 +1781,38 @@ window.ORCH_SNAPSHOT = {
     }
   ],
   "toolAudits": [
+    {
+      "auditId": "AUD-037",
+      "recordedAt": "2026-11-20T19:08:05.766Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-223",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-223",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-223.json"
+      ]
+    },
+    {
+      "auditId": "AUD-036",
+      "recordedAt": "2026-11-20T19:07:49.104Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-223",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
     {
       "auditId": "AUD-035",
       "recordedAt": "2026-11-20T18:42:49.174Z",
@@ -1986,53 +2019,21 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-216.json"
       ]
-    },
-    {
-      "auditId": "AUD-022",
-      "recordedAt": "2026-11-20T17:45:51.768Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-216",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-021",
-      "recordedAt": "2026-11-20T17:39:23.994Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-215",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-215",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-215.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 35,
+    "total": 37,
     "byResult": {
-      "allowed": 35,
+      "allowed": 37,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 33
+      "TOOL-QUEUE-SCHEDULER": 35
     },
     "byActor": {
-      "orchestrator": 35
+      "orchestrator": 37
     }
   },
   "protocolView": {
@@ -5928,6 +5929,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase3-orchestration/af222-01-cross-machine-hardening-2026-11-21.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-223",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase3-orchestration-hardening/AF-223/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase3-orchestration/af223-task-id-reservation-2026-11-21.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -5952,5 +5971,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 227
+  "archivedCount": 228
 };
