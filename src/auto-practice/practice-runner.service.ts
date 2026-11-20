@@ -55,6 +55,8 @@ import { CounselorMode } from './entities/counselor-mode.entity.js';
 import { PracticeSession, type PracticeSessionStatus } from './entities/practice-session.entity.js';
 import { InferenceFingerprintService, type InferenceFingerprint, type ScenarioType } from './inference-fingerprint.service.js';
 import {
+  completeOpeningText,
+  completeRiskClosingText,
   completeRoutineClosingText,
   evaluateRiskClosingText,
   evaluateRoutineClosingText,
@@ -586,13 +588,21 @@ export class PracticeRunnerService implements OnModuleInit {
         history,
         buildCounselorOptions(profile, i, cue, crisisWindow.active, finalClosingTurn),
       );
-      const counselorReply = finalClosingTurn ? completeFinalClosingReply(rawCounselorReply, history) : rawCounselorReply;
+      // AF-176: 结构收口统一抽成纯函数，避免主循环复杂度越界。
+      const counselorReply = applyDeterministicStructure(rawCounselorReply, {
+        profile,
+        turnIndex: i,
+        crisisWindow,
+        cue,
+        finalClosingTurn,
+        history,
+      });
       if (counselorReply.degraded) {
         degradedTurns += 1;
         counselorDegradedTurns += 1;
       }
       history.push({ role: 'counselor', text: counselorReply.text });
-      recordClosingTexts(cue, crisisWindow, counselorReply.text, closingTexts, crisisSafetyTexts);
+      recordClosingTexts(cue, crisisWindow, counselorReply.text, closingTexts, crisisSafetyTexts, counselorReply.closeRequested === true);
 
       // 引擎跑一轮.
       const result = await this.engine.turn(debugSessionId, counselorReply.text);
@@ -648,6 +658,7 @@ export class PracticeRunnerService implements OnModuleInit {
           forcedClose: cue.forcedClose,
           closingText: closingTexts.join('\n'),
           crisisSafetyText: crisisSafetyTexts.join('\n'),
+          enforceRoutineClosing: profile.name !== 'legacy',
         },
         crisisWindow,
         stagnation,
@@ -1220,6 +1231,12 @@ interface TurnJudgementInput {
   readonly closingText?: string;
   /** AF-138: 升级后安全序列内咨询师正文 (评估轮 + 计划轮/修复轮). */
   readonly crisisSafetyText?: string;
+  /**
+   * AF-176: 是否启用“常规收束内容门”的全程版本.
+   *
+   * legacy 档必须逐字不变, 所以由 runner 按档案显式打开; 缺省 false.
+   */
+  readonly enforceRoutineClosing?: boolean;
 }
 
 /** 单轮结束判定的结论. */
@@ -1243,8 +1260,11 @@ function recordClosingTexts(
   text: string,
   closingTexts: string[],
   crisisSafetyTexts: string[],
+  closeRequested = false,
 ): void {
-  if (cue.forcedClose) closingTexts.push(text);
+  // AF-176: 模型在常规轮主动请求 END 时也要把正文纳入内容门, 否则 early close
+  //   永远看不到自己的 summary/takeaway/nextStep, 内容门只能误判为空。
+  if (cue.forcedClose || closeRequested) closingTexts.push(text);
   if (cue.crisisClosing && crisisWindow.escalated) crisisSafetyTexts.push(text);
 }
 
@@ -1303,6 +1323,42 @@ function completeFinalClosingReply(reply: CounselorReply, history: readonly Coun
     text: completed,
     closeRequested: true,
   };
+}
+
+/**
+ * AF-176 · 咨询师回复的结构收口（从主循环抽出，压住认知复杂度）。
+ *
+ * 只做三件事，且都不改评分/不改阈值：
+ *   ① standard/long 首轮补开场五要素；legacy 不补；
+ *   ② 最终收束轮补常规三件套（AF-144 既有逻辑）；
+ *   ③ 危机升级后的计划/修复轮补风险五组（评估轮不补）。
+ *
+ * @param reply 咨询师原始回复
+ * @param input 本轮结构上下文
+ * @returns 补结构后的回复
+ */
+function applyDeterministicStructure(
+  reply: CounselorReply,
+  input: {
+    readonly profile: SessionProfile;
+    readonly turnIndex: number;
+    readonly crisisWindow: CrisisWindowState;
+    readonly cue: ReturnType<typeof decideTurnCue>;
+    readonly finalClosingTurn: boolean;
+    readonly history: readonly CounselorHistoryTurn[];
+  },
+): CounselorReply {
+  let result =
+    input.turnIndex === 1 && input.profile.name !== 'legacy' && !input.crisisWindow.active
+      ? { ...reply, text: completeOpeningText(reply.text) }
+      : reply;
+  if (input.finalClosingTurn) result = completeFinalClosingReply(result, input.history);
+  // AF-176: 风险收束五组不绑定“强度升级”. 只披露一次、未升级的危机同样可能在
+  //   crisisClosing 轮结束; 旧条件要求 escalated 才补齐, 导致 risk-incomplete 漏项.
+  if (input.crisisWindow.active && input.cue.crisisClosing) {
+    result = { ...result, text: completeRiskClosingText(result.text) };
+  }
+  return result;
 }
 
 function buildCounselorOptions(
@@ -1491,9 +1547,14 @@ function isEscalationSafetyWindow(input: TurnJudgementInput, crisisWindow: Crisi
 }
 
 function isRoutineClosingBlocked(input: TurnJudgementInput, crisisWindow: CrisisWindowState, closeAllowed: boolean): boolean {
-  return (
-    closeAllowed && !crisisWindow.active && input.forcedClose === true && !evaluateRoutineClosingText(input.closingText ?? '').complete
-  );
+  // AF-176: 收束内容门不再只对“强制收束窗”生效.
+  //   模型在常规轮次主动 END 时经常只写 takeaway/nextStep、漏 summary；
+  //   旧实现只在 forcedClose=true 时挡回，early close 会绕过内容门，审计直接记 none。
+  //   只在“确实开始收尾”（forcedClose 或正文含收尾信号）时挡，避免把普通工作轮的
+  //   END 也无限拖到 maxTurns；legacy 档由 runner 显式关闭该门。
+  const closing = evaluateRoutineClosingText(input.closingText ?? '');
+  const closingAttempt = input.forcedClose === true || /(总结|带走|下次|下一步|我听到)/.test(input.closingText ?? '');
+  return closeAllowed && !crisisWindow.active && input.enforceRoutineClosing === true && closingAttempt && !closing.complete;
 }
 
 function isCrisisExitReason(reason: string): boolean {

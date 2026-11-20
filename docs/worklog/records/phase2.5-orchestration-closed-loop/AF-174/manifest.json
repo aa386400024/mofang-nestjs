@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-174",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-20T04:25:00Z",
+  "updatedAt": "2026-11-20T05:09:43.087Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-174/task-sheet.md",
+    "sha256": "a5f9c37aa0c6a85d418134292052002cb9c9b57b483e710c6d3f7c7d272dd2a6",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/pending/af174-deterministic-structure-task-2026-11-20.md"
+  ],
+  "tombstone": null
+}

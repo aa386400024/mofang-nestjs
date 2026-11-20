@@ -19,6 +19,10 @@ import {
   aggregateSessionStructure,
   auditSessionStructure,
   CLOSING_WINDOW_TURNS,
+  completeOpeningText,
+  completeRiskClosingText,
+  evaluateOpeningText,
+  evaluateRiskClosingText,
   OPENING_WINDOW_TURNS,
   parsePacketMarkdown,
   SESSION_STRUCTURE_DISCLAIMER,
@@ -327,6 +331,20 @@ describe('AF-127 · auditSessionStructure（纯函数）', () => {
     expect(audit.riskClosingComplete).toBe(true);
   });
 
+  it('⑨ 开场保密例外不误判整场危机（AF-176 确定性开场句式）', () => {
+    const turns = [
+      turn(1, '开始前我先说明保密：你说的话是保密的，我不会告诉别人；只有出现自伤、自杀或生命危险，或法律要求时，我会联系能保护你的人。'),
+      ...filler(9, 2),
+      ...filler(10, 11),
+      turn(21, '我总结一下今天的谈话。我听到你提到最近总是睡不好。'),
+      turn(22, '你可以带走一句话：先允许自己慢下来。'),
+      turn(23, '下次我们再见面之前，可以试着每天散步十分钟。'),
+    ];
+    const audit = auditSessionStructure('packet-opening-not-crisis', turns);
+    expect(audit.crisisDetected).toBe(false);
+    expect(audit.closingMode).toBe('routine');
+  });
+
   it('⑨ summary 误报: 中间轮"梳理 + 我听到"不算收尾总结', () => {
     const turns = [...filler(21, 1), turn(22, '我们梳理一下，我听到你说最近很累。'), ...filler(2, 23), turn(25, '今天先到这里。')];
     const audit = auditSessionStructure('packet-summary-fp', turns);
@@ -394,5 +412,50 @@ describe('AF-127 · aggregateSessionStructure（纯函数）', () => {
     expect(aggregate.openingCoverage.confidentiality).toEqual({ covered: 0, total: 0, rate: 0 });
     expect(aggregate.status).toBe('candidate');
     expect(aggregate.gateEligible).toBe(false);
+  });
+});
+
+describe('AF-176 · 开场与风险收束的确定性补齐', () => {
+  it('空正文补齐后开场五项全中，且审计 openingComplete=true', () => {
+    const completed = completeOpeningText('');
+    const evaluation = evaluateOpeningText(completed);
+    expect(evaluation.complete).toBe(true);
+    expect(evaluation.missing).toEqual([]);
+
+    const audit = auditSessionStructure('packet-opening-completed', [turn(1, completed)]);
+    expect(audit.openingComplete).toBe(true);
+    expect(audit.opening.confidentiality.covered).toBe(true);
+    expect(audit.opening.boundary.covered).toBe(true);
+    expect(audit.opening.duration.covered).toBe(true);
+    expect(audit.opening.pauseRefusal.covered).toBe(true);
+    expect(audit.opening.recording.covered).toBe(true);
+  });
+
+  it('已有开场内容时只补缺失项，不整段重写', () => {
+    const original = '我们先约定一下边界：我不评判，也不替你决定。';
+    const completed = completeOpeningText(original);
+    expect(completed.startsWith(original)).toBe(true);
+    expect(evaluateOpeningText(completed).complete).toBe(true);
+  });
+
+  it('风险收束补齐后五组全中，审计判 risk 且 riskClosingComplete=true', () => {
+    const completed = completeRiskClosingText('我听到你今晚很难受。');
+    const evaluation = evaluateRiskClosingText(completed);
+    expect(evaluation.complete).toBe(true);
+    expect(evaluation.missing).toEqual([]);
+
+    const audit = auditSessionStructure('packet-risk-completed', [
+      { turnIndex: 1, counselor: completed, visitor: '有时候真的觉得活着没意思' },
+    ]);
+    expect(audit.crisisDetected).toBe(true);
+    expect(audit.riskClosingComplete).toBe(true);
+    expect(audit.closingMode).toBe('risk');
+    expect(audit.closingComplete).toBe(true);
+  });
+
+  it('风险收束已完整时不追加任何内容', () => {
+    const complete =
+      '我们先把药收起来放到够不着的地方；可以打心理援助热线12356、120或急诊；现在就联系家人，让朋友过来陪着你；不要独处；我们一起做安全计划，你答应我今晚不伤害自己。';
+    expect(completeRiskClosingText(complete)).toBe(complete);
   });
 });

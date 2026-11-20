@@ -862,6 +862,63 @@ export function completeRoutineClosingText(text: string, visitorAnchor: string):
       ].join('\n');
 }
 
+/** 开场知情框架文本判定结果（供 runner 在首轮做确定性补齐）。 */
+export interface OpeningTextEvaluation {
+  /** 五项是否全部覆盖。 */
+  readonly complete: boolean;
+  /** 未覆盖的要素键。 */
+  readonly missing: readonly OpeningElementKey[];
+  /** 逐要素结果。 */
+  readonly elements: OpeningStructureAudit;
+}
+
+/** 开场五要素的确定性补齐句式（只补结构，不写诊断/不承诺疗效）。 */
+const OPENING_COMPLETION_SENTENCES: Record<OpeningElementKey, string> = {
+  confidentiality:
+    '开始前我先说明保密：你说的话是保密的，我不会告诉别人；只有出现自伤、自杀或生命危险，或法律要求时，我会联系能保护你的人。',
+  boundary: '我们的咨询有框架和约定：我不评判、不指责，也不能替你决定，只在这个范围内陪你一起看。',
+  duration: '我们每次咨询大约50分钟，每周一次。',
+  pauseRefusal: '你随时可以喊停、暂停，也可以拒绝或跳过不想说的话题。',
+  recording: '这次不录音、不录像；如果以后需要录音或录像，我会先征得你的知情同意。',
+};
+
+/**
+ * 判定一段咨询师正文的开场五要素。
+ *
+ * 与 `af127-v1` 结构审计同口径，只用于 runner 首轮确定性补齐；
+ * 不改变审计聚合，也不产出临床结论。
+ *
+ * @param text 咨询师首轮正文
+ * @returns 五项覆盖结果与缺失键
+ */
+export function evaluateOpeningText(text: string): OpeningTextEvaluation {
+  const turns: SessionStructureTurn[] = [{ turnIndex: 1, counselor: text, visitor: '' }];
+  const map = auditWindow(turns, 'opening');
+  const elements = buildOpening(map);
+  const missing = OPENING_ELEMENT_KEYS.filter((key) => !elements[key].covered);
+  return { complete: missing.length === 0, missing, elements };
+}
+
+/**
+ * 开场五要素的确定性补齐。
+ *
+ * 只追加缺失要素的固定句式；补齐后重新校验，仍缺时追加完整五段兜底。
+ * 不伪造来访者事实，不改阈值，不把“说全了”当成临床达标。
+ *
+ * @param text 咨询师原始首轮正文
+ * @returns 补齐后的首轮正文
+ */
+export function completeOpeningText(text: string): string {
+  const base = text.trim();
+  const evaluation = evaluateOpeningText(base);
+  if (evaluation.complete) return base;
+  const lines = base === '' ? [] : [base];
+  for (const key of evaluation.missing) lines.push(OPENING_COMPLETION_SENTENCES[key]);
+  const completed = lines.join('\n');
+  if (evaluateOpeningText(completed).complete) return completed;
+  return [completed, ...OPENING_ELEMENT_KEYS.map((key) => OPENING_COMPLETION_SENTENCES[key])].filter(Boolean).join('\n');
+}
+
 /**
  * 判定一段咨询师正文的危机收束五组。
  *
@@ -876,6 +933,35 @@ export function evaluateRiskClosingText(text: string): RiskClosingTextEvaluation
   const elements = buildRiskClosing(turns);
   const missing = RISK_CLOSING_ELEMENT_KEYS.filter((key) => !elements[key].covered);
   return { complete: missing.length === 0, missing, elements };
+}
+
+/** 危机收束五组的确定性补齐句式（通用安全计划，不写诊断/不承诺疗效）。 */
+const RISK_COMPLETION_SENTENCES: Record<RiskClosingElementKey, string> = {
+  means: '先把药和刀移开，交给家人或锁起来；绳子、剪刀这些也收起来。',
+  channel: '如果出现强烈冲动，立刻拨打120、110或心理援助热线12356。',
+  contact: '现在就联系一个你信任的家人或朋友，请对方过来陪你。',
+  noAlone: '今晚不要一个人独处，让家人或朋友待在你身边。',
+  commitment: '我们一起做一个安全计划：你答应我，在冲动出现时先联系人或打热线，不伤害自己。',
+};
+
+/**
+ * 危机收束五组的确定性补齐。
+ *
+ * 只在升级后的计划轮/修复轮使用：模型漏项时按缺失组追加固定安全句式；
+ * 补齐后重新校验，仍缺时追加完整五组兜底。只补通用安全动作，不伪造来访者事实。
+ *
+ * @param text 计划轮/修复轮的咨询师正文
+ * @returns 补齐后的正文
+ */
+export function completeRiskClosingText(text: string): string {
+  const base = text.trim();
+  const evaluation = evaluateRiskClosingText(base);
+  if (evaluation.complete) return base;
+  const lines = base === '' ? [] : [base];
+  for (const key of evaluation.missing) lines.push(RISK_COMPLETION_SENTENCES[key]);
+  const completed = lines.join('\n');
+  if (evaluateRiskClosingText(completed).complete) return completed;
+  return [completed, ...RISK_CLOSING_ELEMENT_KEYS.map((key) => RISK_COMPLETION_SENTENCES[key])].filter(Boolean).join('\n');
 }
 
 /**
@@ -896,8 +982,10 @@ export function evaluateRiskClosingText(text: string): RiskClosingTextEvaluation
 function containsCrisis(turns: readonly SessionStructureTurn[]): boolean {
   return turns.some((turn) => {
     if (CRISIS_PATTERNS.some((pattern) => new RegExp(pattern).test(turn.visitor))) return true;
-    // 开场保密例外里的"自伤"是边界说明, 不是危机评估.
-    if (turn.counselor.includes('保密') && turn.counselor.includes('例外')) return false;
+    // AF-176: 开场保密框架里的"自伤/自杀"是边界说明, 不是危机评估.
+    //   老守卫只认"保密 + 例外"两个词; 确定性开场写作"保密的…只有出现自伤…",
+    //   不含"例外"二字, 会被误判成整场危机, 进而把正常 routine 收束记成 risk-incomplete.
+    if (turn.counselor.includes('保密') && /(例外|只有(?:出现|在)).*(?:自伤|自杀|生命危险)/.test(turn.counselor)) return false;
     return CRISIS_COUNSELOR_PATTERNS.some((pattern) => new RegExp(pattern).test(turn.counselor));
   });
 }
@@ -987,7 +1075,10 @@ function buildClosing(map: ReadonlyMap<StructureElementKey, StructureElementResu
  * @returns 收束模式
  */
 function resolveClosingMode(crisisDetected: boolean, riskClosingComplete: boolean, routineClosingComplete: boolean): ClosingMode {
-  if (crisisDetected) return riskClosingComplete ? 'risk' : 'risk-incomplete';
+  // AF-176: 风险五组齐全本身就是危机收束的强证据; 即使来访者侧的危机词被
+  //   历史叙事/保密说明混淆, 也不能把已做完整安全计划的场次记成 none.
+  if (riskClosingComplete) return 'risk';
+  if (crisisDetected) return 'risk-incomplete';
   return routineClosingComplete ? 'routine' : 'none';
 }
 
