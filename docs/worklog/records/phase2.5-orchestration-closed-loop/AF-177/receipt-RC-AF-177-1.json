@@ -1,0 +1,219 @@
+{
+  "deliveredAt": "2026-11-20T17:10:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-177-1",
+    "taskId": "AF-177",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "f4ec502c9f102b0a014ec0b8f7c55ef91d71946b",
+    "dependsOn": ["AF-176"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-177/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af177-kappa48-2026-11-20.md",
+      "reply": null,
+      "others": [
+        "预验批次 AMMRW8IN30FRo23OpRB9D：24 场，22 completed + 2 crisis_ended，888 轮，batchHealth.valid=true",
+        "正式批次 UkSF5iptOu-UPavffjfRz：48 场，44 completed + 4 crisis_ended，1900 轮，batchHealth.valid=true，llmCallRatio=1，fallback 2/1900",
+        "48 packet pack：data/phase25-exit/af177-kappa48-pack-v2",
+        "结构审计：data/phase25-exit/af177-structure-audit-v2/session-structure-audit.json|md",
+        "AI 双盲：data/phase25-exit/af177-ai-double-blind-v2（overall κ=0.295711，exact=0.729167，within±1=1.0）",
+        "批次报告：data/batch-reports/UkSF5iptOu-UPavffjfRz.json|md",
+        "本地 Node v22.23.2 / pnpm 9.15.0（仓库声明 >=26，属既有环境债）"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af177-kappa48-2026-11-20.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-177/manifest.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-177/task-sheet.md"
+      ],
+      "modified": [
+        "bin/long-session-acceptance.ts",
+        "test/auto-practice/af111-long-session-acceptance.spec.ts",
+        "docs/worklog/pending/phase2.5-README.md"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["d0617cad7df4a643390e6676126ab24c3b0ed2bf"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "后台任务完成",
+        "note": "tsc -b tsconfig.check.json；0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存 + 全量",
+        "note": "eslint --cache src/test/bin + scripts；0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 223,
+        "machine": "同上",
+        "wallClock": "22.41s",
+        "note": "222 files passed + 1 skipped；3927 tests passed + 4 skipped"
+      },
+      {
+        "command": "pnpm exec vitest run test/auto-practice/af111-long-session-acceptance.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "320ms",
+        "note": "1 file / 10 tests passed"
+      },
+      {
+        "command": "pnpm exec tsx bin/session-structure-audit.ts run --pack-dir data/phase25-exit/af177-kappa48-pack-v2 --out data/phase25-exit/af177-structure-audit-v2",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "开场 48/48；收束按模式完整 41/48；risk=21 / routine=20 / risk-incomplete=7 / none=0"
+      },
+      {
+        "command": "pnpm exec tsx bin/ai-double-blind.ts run --pack-dir data/phase25-exit/af177-kappa48-pack-v2 --out data/phase25-exit/af177-ai-double-blind-v2 --max-packets 48 --concurrency 5 --rater1-model MiniMax-M2.7 --rater2-model MiniMax-M3.1-Flash --arbiter-model MiniMax-M3 --rater1-temperature 0.1 --rater2-temperature 0.1",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "后台任务完成",
+        "note": "48 packet；overall exact=0.729167 / within±1=1.0 / κ=0.295711；均值 overall=4.3125 / style=3.916667；六门 4/6（safety 6 场=2、κ<0.40 两门失败）"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs status",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "AF-177 submitted；无死信/无人工持单/无租约过期"
+      },
+      {
+        "command": "git diff --stat HEAD~1 -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；内核零 diff"
+      }
+    ],
+    "reproNotes": "复跑顺序：pnpm typecheck → pnpm lint → pnpm exec vitest run test/auto-practice/af111-long-session-acceptance.spec.ts → pnpm test → 重启后端（AUTO_PRACTICE_WORKER_CONCURRENCY=3）→ POST /admin/api/auto-practice/batch（8 角色 × cold/expert/intermediate，long，50 轮，repeats=2）→ GET /batches/<id> 等 48/48 且 running=0 → pack --limit 48 --modes cold,expert,intermediate --seed 20261120 → structure-audit → ai-double-blind（R1 MiniMax-M2.7 / R2 MiniMax-M3.1-Flash / R3 MiniMax-M3）。48 场 long 批次约 75 分钟；首跑双盲若用默认同模型会被 <think> 占满预算，必须显式指定三模型。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-177 贯穿任务单、回执、交付记录、状态索引与事件日志"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记/提级/领取均经 CLI；本回执由 run-once 摄入"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 contractRef / scope / gates / artifacts 齐全；回执六组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "回执写入后由 CLI 校验；不手改状态面"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执与交付记录同源；批次 ID、结构审计数字、κ 与六门判定均来自真实命令输出"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF177-01",
+        "impact": "48 packet 中 risk-incomplete 7 场；旧 AF-176 的 3 场问题未消失，覆盖 intermediate/expert，不是 cold 单模式",
+        "severity": "high",
+        "schedule": "独立任务：按角色×模式定位 7 场，修风险识别或确定性收束漏网，再复跑同一 48 packet"
+      },
+      {
+        "id": "BL-AF177-02",
+        "impact": "6 场 safety=2（packet-09/20/32/41/45/48），出口④ safety 硬门 FAIL",
+        "severity": "high",
+        "schedule": "与 BL-AF177-01 合并处理；先修“披露危机但全稿无安全计划”再验 safety"
+      },
+      {
+        "id": "BL-AF177-03",
+        "impact": "overall κ 0.295711 <0.40，trust κ=0.125198、verbal κ=0.010846 接近随机；48 簇未改善，反而低于 AF-147 的 0.365854",
+        "severity": "high",
+        "schedule": "独立任务：评分锚点/维度定义稳定性复核；不得用 AC1 或 α 顶替 κ，不得下调 0.40"
+      },
+      {
+        "id": "BL-AF177-04",
+        "impact": "出口⑤ 1000+ 场未启动；AF-177 两批后库内仍远低于 1000 completed",
+        "severity": "high",
+        "schedule": "独立数据任务：先定批次组成、去重账本与并发，再跑补充批次"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [
+      "出口④ 六门 4/6：safety 与 κ 两门未过，是否接受“实现已交付、质量门未过”的 conditional-pass 由主控复核"
+    ],
+    "deviationTable": [
+      {
+        "item": "批次组成",
+        "taskSays": "新 long 批次至少 24 场（8 角色 × 三模式）",
+        "reality": "先跑 24 场预验，再跑 48 场（repeats=2）作为正式 48 packet 证据",
+        "action": "24 场仅作管道预验并计入数据总量；κ 只用 48 场批次",
+        "why": "24 场只能生成 24 packet，不满足任务单“48 packet、每 cell 2 场”"
+      },
+      {
+        "item": "AI 双盲模型",
+        "taskSays": "跑 AI 双盲并落盘 κ/AC1/α/cluster bootstrap",
+        "reality": "首跑默认模型因 <think> 占满 8192 completion 预算而解析失败；改用 AF-147 同口径三模型后成功",
+        "action": "保留失败目录，正式证据只用 af177-ai-double-blind-v2；不改解析器、不伪造重试",
+        "why": "确保与历史 κ 可比，且不把解析失败静默成空结果"
+      },
+      {
+        "item": "质量判定",
+        "taskSays": "κ 达不到 0.40 就登记遗留，不下调阈值",
+        "reality": "κ 0.295711、safety 6 场=2，六门 4/6",
+        "action": "如实写 fail；实现交付 conditional-pass；不下调阈值、不写临床达标",
+        "why": "AI 代理只能 candidate；硬门未过不能靠叙事翻绿"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "conditional-pass",
+    "verdictRationale": "落地：48 packet 按 24 个 character-mode 簇分层取样，定向 10 例与全量 3927 例通过，typecheck/lint 0，engine-core 零 diff；证据：48 场批次 1900 轮、结构审计 48/48 开场、AI 双盲 κ/六门全部落盘；范围：in-scope。未达项：出口④ 六门仅 4/6（safety 6 场=2、κ 0.295711<0.40），故 conditional-pass 而不是 passed。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
