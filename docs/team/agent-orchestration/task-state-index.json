@@ -4,10 +4,102 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 753,
+    "lastEventSeq": 756,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-173",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-20T02:47:56.970Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "integrate push 门失败"
+        },
+        {
+          "at": "2026-11-20T02:47:57.534Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "integrate 编排门历史任务单容错",
+      "type": "fix",
+      "baselineRef": "cb262d69c37bae93febf2ab95ff4ddee524c1441",
+      "dependsOn": [
+        "AF-172"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-20T02:47:56.663Z",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "priorTasks": [
+        "AF-172",
+        "AF-171",
+        "AF-169",
+        "AF-168",
+        "AF-164",
+        "AF-163"
+      ],
+      "scope": {
+        "files": [
+          "scripts/orchestration/",
+          "docs/worklog/",
+          "docs/team/agent-orchestration/"
+        ],
+        "modules": [
+          "orchestration",
+          "release"
+        ],
+        "interfaces": [
+          "node scripts/orchestration/ci-task-gate.mjs"
+        ]
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-173/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+          "check": "编排单测全绿",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "node scripts/orchestration/ci-task-gate.mjs --base bb46bf48d9658b2deb4b893ca8aca6117f6673c3 --head cb262d69c37bae93febf2ab95ff4ddee524c1441",
+          "check": "integrate squash 提交门通过",
+          "threshold": "exit=0"
+        }
+      ],
+      "successCriteria": [
+        "integrate push 门不再因历史任务单缺 frontmatter 失败",
+        "主任务任务单仍严格解析，缺失即阻断",
+        "新增单测覆盖历史任务单容错分支",
+        "新 PR 13 项检查全绿后 squash 合并"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af173-integrate-gate-hydration-2026-11-20.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-20T02:47:56.969Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",

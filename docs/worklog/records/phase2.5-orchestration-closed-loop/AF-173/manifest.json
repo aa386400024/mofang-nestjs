@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-173",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-20T11:10:00+08:00",
+  "updatedAt": "2026-11-20T02:47:56.660Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-173/task-sheet.md",
+    "sha256": "29c3d926b3beb54bf61e5cc61ce27e6222560bd0280572bee58d30adb9245074",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/inbox/af173-integrate-gate-hydration-2026-11-20.md"
+  ],
+  "tombstone": null
+}
