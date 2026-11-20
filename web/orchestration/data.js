@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-20T15:16:16.565Z",
+  "generatedAt": "2026-11-20T15:20:02.009Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,66 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-208",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "来访者真人度 R2：口语事件计划、话轮形态审计与生成侧重试",
-      "status": "submitted",
-      "verdict": "conditional-pass",
-      "verdictRationale": "机读护栏全绿，存在需人工复核的语义 / 口径项",
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-208/task-sheet.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [
-        "交付记录未出现字段标记：gateResults",
-        "交付记录未出现字段标记：scopeCheck",
-        "交付记录未出现字段标记：contractChecks",
-        "交付记录未出现字段标记：backlogItems",
-        "交付记录未出现字段标记：deviationTable",
-        "交付记录未出现字段标记：reviewVerdict"
-      ],
-      "dispatch": {
-        "taskId": "AF-208",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-20T15:16:16.506Z",
-        "leaseDeadline": "2026-11-20T15:46:16.503Z",
-        "attempt": 2,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-208.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-20T15:16:16.506Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-208.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": [
-            {
-              "state": "pending",
-              "preparedAt": "2026-11-20T14:44:50.946Z",
-              "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-208.brief.md",
-              "sessionPath": null,
-              "locateLayer": null,
-              "evidenceRef": null,
-              "consecutiveFailures": 0,
-              "history": []
-            }
-          ]
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -2095,28 +2036,7 @@ window.ORCH_SNAPSHOT = {
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-208",
-        "title": "来访者真人度 R2：口语事件计划、话轮形态审计与生成侧重试",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-208/task-sheet.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -5867,6 +5787,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af207-visitor-realism-r0-r1-2026-11-20.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-208",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-208/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af208-visitor-realism-r2-2026-11-20.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -5881,17 +5819,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-208",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-208/task-sheet.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -5899,5 +5829,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 219
+  "archivedCount": 220
 };

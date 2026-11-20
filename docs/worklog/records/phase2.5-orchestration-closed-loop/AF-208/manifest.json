@@ -2,16 +2,22 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-208",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-20T22:40:00+08:00",
-  "updatedAt": "2026-11-20T15:16:15.761Z",
+  "updatedAt": "2026-11-20T15:20:01.951Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-208/task-sheet.md",
     "sha256": "b1591c6e25af567d715ff40e9a9ea45a0fc5ba678155f0e316228741edaa2644",
     "immutable": true
   },
-  "receipts": [],
-  "deliveryRecord": null,
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-208/receipt-RC-AF-208-2.json",
+      "sha256": "5813ca0b503ac51c3c39f867762399f7826c492f339416e09689d17893b82e24",
+      "receiptId": "RC-AF-208-2"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af208-visitor-realism-r2-2026-11-20.md",
   "legacyPaths": [
     "docs/worklog/inbox/AF-208-visitor-realism-r2-task-2026-11-20.md"
   ],
