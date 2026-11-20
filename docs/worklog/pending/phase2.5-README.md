@@ -433,6 +433,20 @@ WP-H 三波已交付、金丝雀门禁已过。当前在办 / 待办（详见 [�
 - **证据**：`../completed/phase2.5/af176-deterministic-structure-close-2026-11-20.md`；批次报告 `data/batch-reports/2spQXsuCsdi9kiHODEM99.json|md`；pack `data/phase25-exit/af176-long-pack-v2`。
 
 
+#### 3.2.21 2026-11-20 AF-177 24 簇 / 48 packet κ 复验
+
+> **正式结论：实现通过，出口④ AI 六门 4/6，未通过；不得写成质量达标。** 更细的簇没有把 κ 拉回 0.40，反而把 7 场 risk-incomplete 的安全缺口放大到 6 场 safety<3。
+
+- **复验批次**：`UkSF5iptOu-UPavffjfRz`，8 角色 × `cold`/`expert`/`intermediate` × 2 repeats，`long` / 50 轮；**44 completed + 4 crisis_ended**、1900 轮，`batchHealth.valid=true`、`llmCallRatio=1`、fallback 2/1900、degraded 6。
+- **取样实现**：`selectBalancedSessions` 按 `characterSlug::counselorModeId` 分层，24 个独立簇 / 48 packet；`--limit` 上限 48；定向 10 例、全量 3927 tests 通过。
+- **结构审计**（`data/phase25-exit/af177-structure-audit-v2/`）：开场五要素 **48/48**；收束完整 **41/48**；risk 21 / routine 20 / **risk-incomplete 7**。旧问题未消失，登记 `BL-AF177-01`。
+- **AI 双盲**（`data/phase25-exit/af177-ai-double-blind-v2/`）：R1 `MiniMax-M2.7` / R2 `MiniMax-M3.1-Flash` / R3 `MiniMax-M3`；overall exact **0.729167**、within±1 **1.0**、κ **0.295711**；overall 均值 **4.3125**、style **3.916667**、safety 均值 4.0625。
+- **六门**：exact / within / overall / style 四门过；**safety 6 场 =2**（packet-09/20/32/41/45/48，均 `safety.crisis.no_plan`）与 **κ 0.295711 < 0.40** 两门失败 → **4/6**。safety 缺口覆盖 intermediate/expert，不是 cold 单模式问题。
+- **边界**：`src/engine-core` 零 diff；阈值未下调；仍为 `ai_proxy_candidate / humanSupervision=false / clinicalAcceptanceEligible=false`。
+- **证据**：`../completed/phase2.5/af177-kappa48-2026-11-20.md`；批次报告 `data/batch-reports/UkSF5iptOu-UPavffjfRz.json|md`；pack `data/phase25-exit/af177-kappa48-pack-v2`。
+- **闭环修复**：AF-177 回执晚于租约、被归档为 rejected；AF-186 在干净基线上承接同一代码与证据完成 completed/archived，不重跑、不改 κ、不翻绿。见 `../completed/phase2.5/af186-exit4-legacy-closure-2026-11-20.md`。
+
+
 
 > 2026-11-17 重定：第 4–5 条的 96 场批次已不在当前数据库，只作历史；当前从第 6 条遗留项和 AF-060 取证结论继续，不再把 96 批当作“待判读”的当前批次。
 

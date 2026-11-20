@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable unicorn/no-exports-in-scripts -- AF-177: pack 分层取样纯函数需被单测直接导入；主流程已用 isDirectRun 守卫 */
 // V2026-11-19 Phase2.5 AF-111 (long 50 轮候选口径 + 双人盲标 pack/ingest CLI):
 //   pack   从批次里按角色×咨询师模式均衡取样, 生成匿名 packet / 评分表 / 解盲映射;
 //   ingest 回收两位评分人的 CSV, 算逐维一致性 (线性加权 kappa / ±1 一致率) 与仲裁清单;
@@ -11,7 +12,7 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import {
   LONG_SESSION_ACCEPTANCE_DISCLAIMER,
@@ -116,20 +117,51 @@ function loadTranscript(debugSessionId: string): Transcript {
   return readJson<Transcript>(path);
 }
 
-/** 均衡取样: expert / cold 两档各洗牌后交替取, 保证样本不偏一档. */
-function selectBalancedSessions(batch: BatchIndex, limit: number, seed: number): BatchIndex['sessions'] {
+/** 解析 --modes；AF-177 起支持 cold/expert/intermediate 三档。 */
+export function parseModes(raw: string | null): string[] {
+  const value = (raw ?? 'expert,cold').trim();
+  if (value === '') throw new Error('--modes 不能为空');
+  const modes = [
+    ...new Set(
+      value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ];
+  const allowed = new Set(['expert', 'cold', 'intermediate']);
+  const unknown = modes.filter((mode) => !allowed.has(mode));
+  if (unknown.length > 0) throw new Error(`--modes 含未支持模式：${unknown.join(',')}`);
+  if (modes.length === 0) throw new Error('--modes 至少一档');
+  return modes;
+}
+
+/**
+ * 均衡取样：按 characterSlug×counselorModeId 分层，cell 排序后逐轮轮转。
+ *
+ * AF-177: 48 packet 时 24 个 character-mode cell 各取 2 场；不再只按模式分两档，
+ * 避免某角色被同档其他角色挤掉。
+ */
+export function selectBalancedSessions(
+  batch: BatchIndex,
+  limit: number,
+  seed: number,
+  modes: readonly string[] = ['expert', 'cold'],
+): BatchIndex['sessions'] {
   const random = mulberry32(seed);
-  const byMode = new Map<string, BatchIndex['sessions']>();
+  const allowedModes = new Set(modes);
+  const byCell = new Map<string, BatchIndex['sessions']>();
   for (const session of batch.sessions) {
     if (session.status !== 'completed' && session.status !== 'crisis_ended') continue;
-    if (!['expert', 'cold'].includes(session.counselorModeId)) continue;
-    const list = byMode.get(session.counselorModeId) ?? [];
+    if (!allowedModes.has(session.counselorModeId)) continue;
+    const cell = `${session.characterSlug}::${session.counselorModeId}`;
+    const list = byCell.get(cell) ?? [];
     list.push(session);
-    byMode.set(session.counselorModeId, list);
+    byCell.set(cell, list);
   }
-  const queues = [...byMode.entries()]
+  const queues = [...byCell.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([mode, sessions]) => ({ mode, sessions: shuffle(sessions, random) }));
+    .map(([cell, sessions]) => ({ cell, sessions: shuffle(sessions, random) }));
   const picked: BatchIndex['sessions'] = [];
   while (picked.length < limit && queues.some((queue) => queue.sessions.length > 0)) {
     for (const queue of queues) {
@@ -242,10 +274,19 @@ function parseScore(value: string, packetId: string, dimension: string): number 
 
 function commandPack(): void {
   const batchId = arg('--batch');
-  if (!batchId) fail('用法：long-session-acceptance pack --batch <batchId> [--limit 8] [--seed 20261119] [--out <dir>] [--force]');
+  if (!batchId)
+    fail(
+      '用法：long-session-acceptance pack --batch <batchId> [--limit 8] [--modes expert,cold] [--seed 20261119] [--out <dir>] [--force]',
+    );
   const limit = Number(arg('--limit', '8'));
   const seed = Number(arg('--seed', '20261119'));
-  if (!Number.isInteger(limit) || limit < 2) fail('--limit 必须是 >=2 的整数');
+  let modes: string[];
+  try {
+    modes = parseModes(arg('--modes'));
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
+  if (!Number.isInteger(limit) || limit < 2 || limit > 48) fail('--limit 必须是 2–48 的整数');
   const outDir = arg('--out', join(REPO_ROOT, 'data', 'phase25-exit', 'long-session-blind', String(batchId)))!;
   if (readFileSyncSafe(join(outDir, 'README.md')) && !has('--force')) {
     fail(`输出目录已存在：${outDir}；确认覆盖请加 --force`);
@@ -254,7 +295,7 @@ function commandPack(): void {
   mkdirSync(join(outDir, 'packets'), { recursive: true });
 
   const batch = loadBatch(batchId);
-  const selected = selectBalancedSessions(batch, Math.min(limit, 16), seed);
+  const selected = selectBalancedSessions(batch, limit, seed, modes);
   if (selected.length < 2) fail(`可取样 completed/crisis_ended 会话不足：${selected.length}`);
 
   const packets: { packetId: string; debugSessionId: string; characterSlug: string; counselorModeId: string; turnCount: number }[] = [];
@@ -427,22 +468,25 @@ function commandSummarize(): void {
   console.log(JSON.stringify(evaluation, null, 2));
 }
 
-const sub = process.argv[2];
-switch (sub) {
-  case 'pack': {
-    commandPack();
-    break;
-  }
-  case 'ingest': {
-    commandIngest();
-    break;
-  }
-  case 'summarize': {
-    commandSummarize();
-    break;
-  }
-  default: {
-    console.error('用法：long-session-acceptance <pack|ingest|summarize> [参数]');
-    process.exit(2);
+const isDirectRun = process.argv[1] !== undefined && pathToFileURL(process.argv[1]).href === import.meta.url;
+if (isDirectRun) {
+  const sub = process.argv[2];
+  switch (sub) {
+    case 'pack': {
+      commandPack();
+      break;
+    }
+    case 'ingest': {
+      commandIngest();
+      break;
+    }
+    case 'summarize': {
+      commandSummarize();
+      break;
+    }
+    default: {
+      console.error('用法：long-session-acceptance <pack|ingest|summarize> [参数]');
+      process.exit(2);
+    }
   }
 }
