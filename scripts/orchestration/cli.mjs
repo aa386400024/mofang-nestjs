@@ -94,11 +94,24 @@ import {
   isDeliveryStalled,
   autoConfirmDelivery,
 } from './gui-dispatch.mjs';
-import { acquireRunLock, describeRunLock } from './run-lock.mjs';
+import { acquireClusterRunLock, describeRunLock } from './run-lock.mjs';
+import { createGitRemoteLock, describeRemoteRunLock } from './remote-lock.mjs';
+import { collectOccupiedTaskIds, nextTaskId } from './task-id-occupancy.mjs';
 import { planReissue } from './reissue.mjs';
 import { lintReceiptFile } from './receipt-lint.mjs';
+import { excludeStatePlane } from './task-entry-gate.mjs';
 import { inspectTextFile, normalizeTextFile } from './text-normalize.mjs';
 import { ensureTaskRecordBundle, migrateWorklog, resolveTaskSheet, statsWorklog, verifyWorklog } from './worklog.mjs';
+
+/**
+ * AF-217 归档前置：scope 内是否还有「实现」未进版本库。
+ *
+ * 状态面生成物（索引 / 事件 / 快照 / 回执 records）由 run-once 本轮自己写入，
+ * 把它们算作「未提交实现」会让归档永远被自己阻断，因此必须先剔除。
+ */
+function uncommittedImplementation(gitPort, task) {
+  return excludeStatePlane(gitPort.uncommittedWithin(task.scope?.files ?? []));
+}
 
 /** 快照双写：JSON（机读 / 存档）+ data.js（静态网页在 file:// 下读取，规避本地 fetch 限制）。 */
 function writeSnapshotArtifacts(snapshot, opts = {}) {
@@ -244,24 +257,74 @@ function printOperationalHealth() {
       ? `单写者锁：运行中（pid=${lock.pid ?? '?'} host=${lock.host ?? '?'} 已持 ${lock.heldMinutes ?? '?'} 分钟${lock.stale ? '，已超陈旧阈值' : ''}）`
       : '单写者锁：空闲',
   );
+  // AF-217：跨机层单独一行。远端不可读不抛错，而是明确写成「不可读」，避免把网络问题伪装成空闲。
+  const mode = remoteLockMode();
+  if (!mode) {
+    console.log('远端单写者锁：未启用（ORCH_REMOTE_LOCK=0）');
+    return;
+  }
+  let remoteLock = null;
+  try {
+    remoteLock = describeRemoteRunLock({ rootDir: REPO_ROOT });
+  } catch (error) {
+    remoteLock = { unavailable: true, error: error.message };
+  }
+  console.log(
+    remoteLock === null
+      ? '远端单写者锁：空闲'
+      : remoteLock.unavailable
+        ? `远端单写者锁：不可读（${remoteLock.error ?? '远端不可达，跨机无保护'}）`
+        : `远端单写者锁：运行中（host=${remoteLock.host ?? '?'} actor=${remoteLock.actor ?? '?'} 已持 ${remoteLock.heldMinutes ?? '?'} 分钟${remoteLock.stale ? '，已超陈旧阈值' : ''}）`,
+  );
 }
 
-/** 单写者保护：抢不到锁说明另一轮在跑，本轮直接跳过（只读打印持锁事实，不动状态面）。 */
+/** AF-217：远端单写者模式（required / optional / 关闭）。 */
+function remoteLockMode() {
+  const raw = String(process.env.ORCH_REMOTE_LOCK ?? 'optional')
+    .trim()
+    .toLowerCase();
+  if (raw === '0' || raw === 'off' || raw === 'false') return null;
+  return raw === 'required' ? 'required' : 'optional';
+}
+
+/**
+ * 单写者保护：本机文件锁 + 远端 ref CAS（AF-217）。
+ * 远端不可达时的处置由 ORCH_REMOTE_LOCK 决定：required 拒绝执行；optional 降级并打印告警。
+ */
 function withRunLock(label, fn) {
-  const lock = acquireRunLock({ actor: label });
+  const mode = remoteLockMode();
+  const remote = mode ? createGitRemoteLock({ rootDir: REPO_ROOT }) : null;
+  const lock = acquireClusterRunLock({ actor: label, remote, mode: mode ?? 'optional' });
   if (!lock.acquired) {
-    const held = lock.holder ?? {};
+    const held = lock.holder ?? lock.remote?.holder ?? {};
     console.log(
       `[lock] 另一轮${held.actor ? `（${held.actor}）` : ''}正在运行，本轮跳过：pid=${held.pid ?? '?'} host=${held.host ?? '?'} 自 ${held.acquiredAt ?? '?'}`,
     );
+    if (lock.remote?.required)
+      console.error(`[lock] 远端单写者锁不可用且 ORCH_REMOTE_LOCK=required：拒绝执行本轮（${lock.remote.error ?? '-'}）`);
     return null;
   }
+  if (lock.remote?.degraded) {
+    console.warn(
+      `[lock] 远端单写者锁降级：${lock.remote.error ?? lock.remote.reason ?? '未配置'}；` +
+        '本轮仅有本机互斥，跨机同时执行 run-once 仍可能覆盖状态面',
+    );
+  }
   if (lock.stolen)
-    console.log(`[lock] 已清理陈旧锁：pid=${lock.stolen.pid ?? '?'} host=${lock.stolen.host ?? '?'} 自 ${lock.stolen.acquiredAt ?? '?'}`);
+    console.log(
+      `[lock] 已清理本机陈旧锁：pid=${lock.stolen.pid ?? '?'} host=${lock.stolen.host ?? '?'} 自 ${lock.stolen.acquiredAt ?? '?'}`,
+    );
+  if (lock.remote?.stolen)
+    console.log(`[lock] 已清理远端陈旧锁：host=${lock.remote.stolen.host ?? '?'} 自 ${lock.remote.stolen.acquiredAt ?? '?'}`);
   try {
     return fn();
   } finally {
-    lock.release();
+    const released = lock.release();
+    if (lock.remote?.acquired && released === false) {
+      console.warn(
+        '[lock] 远端锁 ref 释放失败；下一轮会在 45 分钟陈旧阈值后自愈，或手动 git push origin --delete refs/orchestration/locks/run-once',
+      );
+    }
   }
 }
 
@@ -277,7 +340,13 @@ function cmdRunOnce() {
     const changedFiles = collectChangedFiles(gitPort);
     // AF-043-I1：回执声明了提交集合时，V7 按 commit 事实比对（不再拿工作树去套单个任务）。
     const resolveCommitFiles = (sha) => gitPort.filesInCommit(sha);
-    const { snapshot, actions } = advanceOnce({ commit: true, changedFiles, resolveCommitFiles });
+    const { snapshot, actions } = advanceOnce({
+      commit: true,
+      changedFiles,
+      resolveCommitFiles,
+      // AF-217：归档前置——scope 内实现还在工作区就不许归档。
+      checkUncommitted: (task) => uncommittedImplementation(gitPort, task),
+    });
     auditDispatchActions(actions);
     writeSnapshotArtifacts(snapshot);
     for (const action of actions) console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
@@ -303,6 +372,7 @@ function cmdWatch() {
         commit: true,
         changedFiles,
         resolveCommitFiles: (sha) => gitPort.filesInCommit(sha),
+        checkUncommitted: (task) => uncommittedImplementation(gitPort, task),
       });
       auditDispatchActions(actions);
       writeSnapshotArtifacts(snapshot);
@@ -1052,6 +1122,13 @@ async function cmdTask(args) {
   // `task` 子命令需要 YAML frontmatter 解析（yaml 为可选运行时依赖），延迟到实际使用时加载，
   // 避免 `worklog verify` 等零依赖命令把 yaml 带进 Orchestration Gate 的模块图。
   const intake = await import('./task-intake.mjs');
+  if (sub === 'next-id') {
+    // AF-217：三源占用合并后给出下一个可用编号，供跨机登记前先问一句。
+    const occupancy = collectOccupiedTaskIds({ rootDir: REPO_ROOT });
+    for (const warning of occupancy.warnings ?? []) console.error(`[task-id] ${warning}`);
+    console.log(nextTaskId(occupancy.ids, argValue(args, '--prefix') ?? 'AF'));
+    return;
+  }
   if (sub === 'register') {
     const sheetPath = argValue(args, '--sheet');
     if (!sheetPath) {
