@@ -1,17 +1,17 @@
 {
   "schemaVersion": "worklog-migration-report:1.0.0",
-  "generatedAt": "2026-11-20T01:10:28.793Z",
+  "generatedAt": "2026-11-20T01:36:29.746Z",
   "apply": true,
   "totals": {
-    "tasks": 176,
-    "movedSheets": 1,
+    "tasks": 178,
+    "movedSheets": 0,
     "movedReceipts": 0,
     "orphanSheets": 0,
     "errors": 0
   },
   "entries": [
     {
-      "taskId": "AF-161",
+      "taskId": "AF-163",
       "contextId": "phase2.5-orchestration-closed-loop",
       "status": "submitted"
     },
@@ -215,9 +215,7 @@
     {
       "taskId": "DR-001",
       "contextId": null,
-      "status": "completed",
-      "from": "docs/worklog/pending/archive/DR-001-task-sheet-2026-11-17.json",
-      "to": "docs/worklog/records/legacy/DR-001/task-sheet.json"
+      "status": "completed"
     },
     {
       "taskId": "AF-023",
@@ -409,9 +407,7 @@
     {
       "taskId": "AF-060",
       "contextId": null,
-      "status": "rejected",
-      "taskSheet": null,
-      "note": "task-sheet-missing:tombstone"
+      "status": "rejected"
     },
     {
       "taskId": "AF-061",
@@ -921,6 +917,16 @@
       "status": "canceled",
       "taskSheet": null,
       "note": "task-sheet-missing:tombstone"
+    },
+    {
+      "taskId": "AF-161",
+      "contextId": null,
+      "status": "rejected"
+    },
+    {
+      "taskId": "AF-162",
+      "contextId": null,
+      "status": "completed"
     }
   ],
   "warnings": [],

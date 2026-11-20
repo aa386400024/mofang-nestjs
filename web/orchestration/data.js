@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-20T01:32:22.550Z",
+  "generatedAt": "2026-11-20T01:41:45.808Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,38 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-163",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "fix",
-      "title": "worklog 历史证据收口与最终形态",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-163/task-sheet.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-163",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "file",
-        "targetRole": "orchestrator",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-20T01:32:22.493Z",
-        "leaseDeadline": "2026-11-20T02:02:22.491Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-163.json"
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1807,6 +1776,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-207",
+      "recordedAt": "2026-11-20T01:32:22.615Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-163",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-163",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-163.json"
+      ]
+    },
+    {
       "auditId": "AUD-206",
       "recordedAt": "2026-11-20T01:15:55.906Z",
       "actorRef": "orchestrator",
@@ -2027,61 +2011,25 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-192",
-      "recordedAt": "2026-11-19T18:04:00.200Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-154",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-154",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-154.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 206,
+    "total": 207,
     "byResult": {
-      "allowed": 206,
+      "allowed": 207,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 205,
+      "TOOL-QUEUE-SCHEDULER": 206,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 206
+      "orchestrator": 207
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-163",
-        "title": "worklog 历史证据收口与最终形态",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "orchestrator",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-163/task-sheet.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -3484,6 +3432,10 @@ window.ORCH_SNAPSHOT = {
           "stage": "terminal"
         },
         "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-060/task-sheet.md"
+          },
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md"
@@ -5120,6 +5072,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af162-worklog-closeout-2026-11-20.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-163",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-163/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af163-worklog-final-closeout-2026-11-20.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -5134,17 +5104,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-163",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-163/task-sheet.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -5152,5 +5114,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 177
+  "archivedCount": 178
 };
