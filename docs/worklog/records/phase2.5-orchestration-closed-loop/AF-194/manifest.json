@@ -2,16 +2,22 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-194",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-20T19:18:00+08:00",
-  "updatedAt": "2026-11-20T10:54:26.306Z",
+  "updatedAt": "2026-11-20T11:04:41.684Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-194/task-sheet.md",
     "sha256": "ebe215f82e66eec882a2bc0f71d7d0de43d69e661ecc8fe6b2ed39184e382a08",
     "immutable": true
   },
-  "receipts": [],
-  "deliveryRecord": null,
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-194/receipt-RC-AF-194-1.json",
+      "sha256": "26217ddf9f0a3c3ef14cb0d43e3b5ec03752d999cf889272fb39d48415e872ef",
+      "receiptId": "RC-AF-194-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af194-encounter-delivery-2026-11-20.md",
   "legacyPaths": [
     "docs/worklog/pending/af194-encounter-delivery-task-2026-11-20.md"
   ],
