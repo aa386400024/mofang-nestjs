@@ -1,0 +1,262 @@
+{
+  "deliveredAt": "2026-11-18T03:55:00Z",
+  "payload": {
+    "receiptId": "RC-AF-075-1",
+    "taskId": "AF-075",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "orchestrator",
+    "baselineRef": "fbe2470ff9c421c84232d3f317636bbd49c71afc",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af075-framework-closeout-scope-task-2026-11-18.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af075-framework-closeout-rework-2026-11-18.md",
+      "reply": null,
+      "others": [
+        "返修来源：RW-AF-074-1（AF-074 因 scope 漏列工具契约 JSON 被 rejected）",
+        "AF-074 历史记录：docs/worklog/completed/phase2.5/af074-framework-closeout-2026-11-18.md",
+        "GUI 发送证据：docs/team/agent-orchestration/transport/gui-sent/AF-074-TEST.sent.json（运行态，gitignored）",
+        "GUI 发送截图：docs/team/agent-orchestration/transport/gui-sent/AF-074-TEST.before.png / AF-074-TEST.after.png"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "scripts/orchestration/gui-relay-send.ps1",
+        "scripts/orchestration/README.md",
+        "docs/team/agent-orchestration/framework-version-anchor.md",
+        "docs/worklog/pending/af074-framework-closeout-task-2026-11-18.md",
+        "docs/worklog/pending/af075-framework-closeout-scope-task-2026-11-18.md",
+        "docs/worklog/completed/phase2.5/af074-framework-closeout-2026-11-18.md",
+        "docs/worklog/completed/phase2.5/af075-framework-closeout-rework-2026-11-18.md"
+      ],
+      "modified": [
+        "scripts/orchestration/gui-dispatch.mjs",
+        "scripts/orchestration/acceptance-runner.mjs",
+        "scripts/orchestration/scheduler.mjs",
+        "scripts/orchestration/cli.mjs",
+        "scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "package.json",
+        "docs/team/wp-task-template.md",
+        "docs/team/agent-orchestration/README.md",
+        "docs/team/agent-orchestration/acceptance-checklist.md",
+        "docs/team/agent-orchestration/tools/TOOL-ORCH-CLI.json",
+        "docs/team/agent-orchestration/tools/TOOL-QUEUE-SCHEDULER.json"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": []
+    },
+    "gateResults": [
+      {
+        "command": "corepack pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "570ms",
+        "note": "236 tests passed / 0 failed"
+      },
+      {
+        "command": "corepack pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 100s（缓存开启）",
+        "note": "0 error / 0 warning；脚本段已覆盖 scripts/**/*.{mjs,cjs}；仅 pnpm engine WARN（node v22.23.2 vs 仓库 >=26）"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "17 项 PASS；含 AF-075 运行态任务单与索引投影"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1s",
+        "note": "事件日志超过 307 条；schema + 哈希链 + 索引投影一致"
+      },
+      {
+        "command": "node --check scripts/orchestration/{gui-dispatch,acceptance-runner,scheduler,cli}.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1s",
+        "note": "四个改动脚本语法通过"
+      },
+      {
+        "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/orchestration/gui-relay-send.ps1 -TaskId AF-074 -BriefPath <TEMP> -RepoRoot <repo> -EvidenceDir <transport/gui-sent> -WindowTitle 'MiniMax Code' -DryRun",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "窗口 PID 12444；code=dry-run-ok；写 before/after 截图与 sent.json"
+      },
+      {
+        "command": "powershell.exe ... gui-relay-send.ps1 -TaskId AF-074-TEST（真实发送，消息明确要求忽略）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 4s",
+        "note": "MiniMax 窗口收到并显示测试消息；beforeHash != afterHash；clipboardRestored=true；不产生任务 ack"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs channel send --taskId AF-074 --dry-run",
+        "exitCode": 2,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1s",
+        "note": "守卫生效：file 通道不得驱动桌面"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs channel auto-confirm --taskId AF-074",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1s",
+        "note": "未确认 1 条，原因 not-pending-gui-relay；不伪造送达"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "<1s",
+        "note": "空输出；未触碰 engine-core"
+      }
+    ],
+    "reproNotes": "本单为 AF-074 的返修承接：实现与证据沿用，仅补任务单 scope 与交付记录，重跑同一批定向闸门；AF-074 的 rejected 事件保留。GUI 发送器首次用 SendKeys 未落地，改 Win32 keybd_event 后真实发送成功；真实发送测试不写任务 ack。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "任务单、交付记录、回执均为 AF-075；AF-074 拒绝事实保留"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register → promote → run-once 领单；未手改索引/日志"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 scope 已包含 tools/TOOL-ORCH-CLI.json、TOOL-QUEUE-SCHEDULER.json；validate 17 项 PASS"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "events verify schema + 哈希链 + 投影一致；AF-074 rejected 与 AF-075 created 同链可审计"
+      },
+      {
+        "item": "framework-version",
+        "result": "pass",
+        "note": "v2.0.0 annotated tag object c507188 → commit 67d3290；main HEAD 7395748 未发版；README 与 anchor 一致"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "六组机读字段标记 gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict 均在交付记录出现；brief 与验收器口径统一"
+    },
+    "backlogItems": [
+      {
+        "id": "IM-053",
+        "impact": "ack 自动确认已代码化，但连续多任务长跑、超时回滚、stale-ack 实战未验证",
+        "severity": "medium",
+        "schedule": "下一轮真实执行任务由 relay supervisor 记录连续 3 单的 send→ack→auto-confirm→receipt 延迟与回滚次数"
+      },
+      {
+        "id": "IM-044",
+        "impact": "mcp / http transport 仍为预留位",
+        "severity": "low",
+        "schedule": "不在本单；需框架契约版本与跨机长跑设计"
+      },
+      {
+        "id": "IM-046",
+        "impact": "跨仓提交不能写入回执 changedFiles.commits",
+        "severity": "low",
+        "schedule": "不在本单；涉及框架 schema 与 vendoring"
+      },
+      {
+        "id": "IM-047",
+        "impact": "生产收口清单未排期",
+        "severity": "medium",
+        "schedule": "用户已明确暂缓生产"
+      },
+      {
+        "id": "IM-052",
+        "impact": "executor 自行执行状态写命令的越权面",
+        "severity": "medium",
+        "schedule": "brief 红线 + ack 已降低；CLI 角色硬隔离需独立契约，保留 queued"
+      }
+    ],
+    "openQuestions": [
+      "连续长跑与 stale-ack 实战的观测阈值（延迟上限、回滚次数上限）需在下一轮真实任务中定标",
+      "IM-052 的 CLI 角色硬隔离是否进入框架 2.1 契约，需 Human 与框架维护方拍板"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "发送按键通道",
+        "taskSays": "PowerShell SendKeys 粘贴",
+        "reality": "SendKeys 在 Electron 窗口不落地，输入框仍为空",
+        "action": "改 Win32 keybd_event Ctrl+V / Enter，真实发送成功",
+        "why": "实测 SendKeys 不可靠；键盘队列通道可复现"
+      },
+      {
+        "item": "输入框定位",
+        "taskSays": "仅聚焦窗口，不点坐标",
+        "reality": "首次 y=0.64 点到下方工具条，未聚焦输入框",
+        "action": "改为窗口相对坐标 x=0.55 / y=0.45，并提供 --no-click-input 关闭",
+        "why": "按实际窗口布局修正，避免盲点"
+      },
+      {
+        "item": "ack 自动确认",
+        "taskSays": "收到 ack 即 confirm",
+        "reality": "旧 ack 可能让重派任务被误确认",
+        "action": "增加 preparedAt 时间下界，ack 早于本次投递即拒绝",
+        "why": "防止 stale ack 误认领"
+      },
+      {
+        "item": "版本发布",
+        "taskSays": "版本口径只做适配层文档锚定",
+        "reality": "框架 main 有 6 个未发版提交",
+        "action": "新增 framework-version-anchor.md，不新增 tag/release",
+        "why": "L4 冻结动作需 Human 批准"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "conditional-pass",
+    "verdictRationale": "AF-075 补齐 scope 后重跑，GUI 发送、ack 自动确认、六组字段标记、版本锚点与 lint 覆盖均有可复现证据；IM-053 连续长跑/旧 ack 实战为非阻塞验证项，按验收规则判 conditional-pass。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

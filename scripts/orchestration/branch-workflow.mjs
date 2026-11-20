@@ -157,7 +157,8 @@ export function createGitPort() {
     },
     isMerged(name) {
       try {
-        runGit(['merge-base', '--is-merged', name, 'integrate']);
+        // Git 标准参数是 --is-ancestor：name 是 integrate 的祖先即已合并。
+        runGit(['merge-base', '--is-ancestor', name, 'integrate']);
         return true;
       } catch {
         return false;
@@ -188,12 +189,35 @@ export function createGitPort() {
       const raw = runGit(['diff', '--name-only', 'HEAD']);
       return raw ? raw.split('\n').filter(Boolean) : [];
     },
+    /**
+     * 分支当前指向的提交（AF-046-O1：合并门禁要判「被合并的那条分支」，不是当前工作 HEAD）。
+     * 分支不存在抛错，由调用方判 null，不静默回退到别的 SHA。
+     */
+    branchHead(name) {
+      return runGit(['rev-parse', `${name}`]);
+    },
+    /**
+     * AF-043-I1：某提交改动的文件清单（V7 按 commit 事实比对的数据源）。
+     * 解析不到（提交不存在 / 非本仓对象）返回 null，由验收层判 fail，不静默当空集。
+     */
+    filesInCommit(sha) {
+      try {
+        const raw = runGit(['show', '--name-only', '--pretty=format:', String(sha)]);
+        return raw.split('\n').filter(Boolean);
+      } catch {
+        return null;
+      }
+    },
     createBranch(name, from) {
       return runGit(['checkout', '-b', name, from]);
     },
     squashMerge(name) {
-      // 仅执行 squash 暂存；提交动作归编排者闸门，脚本不自动 commit。
+      // 仅执行 squash 暂存；提交动作由 finalizeSquashMerge 在闸门全绿后补上（IM-012）。
       return runGit(['merge', '--squash', name]);
+    },
+    commitSquash(message) {
+      // IM-012：squash 暂存后的提交动作，标题必须带 taskId（由调用方组装 message）。
+      return runGit(['commit', '-m', message]);
     },
     deleteLocal(name) {
       return runGit(['branch', '-d', name]);
@@ -202,6 +226,114 @@ export function createGitPort() {
       return runGit(['push', remote, '--delete', name]);
     },
   };
+}
+
+/**
+ * 任务类型 → conventional commit 类型。合并提交的语义是「把一条任务分支落进主干」，
+ * 所以实现类是 feat、修复类是 fix、文档类是 docs，只读类（审阅 / 调查 / 验证）回到 chore。
+ */
+const SQUASH_TYPE_BY_TASK_TYPE = {
+  implementation: 'feat',
+  fix: 'fix',
+  documentation: 'docs',
+  investigation: 'chore',
+  review: 'chore',
+  verification: 'chore',
+};
+
+const TASK_ID_TOKEN_RE = /(?:AF|WP)-\d+/g;
+
+/**
+ * 从标题中剥离任务编号，保证 squash 提交标题只有一个主任务号。
+ *
+ * 任务单标题常带历史任务引用（如「（AF-060 验收断链返修）」），直接拼进提交标题
+ * 会让 `ci-task-gate` 按「一个提交只能有一个任务号」判成 ambiguous-task-id。
+ * 这里先删掉含任务号的括号段，再删掉剩余编号；外部引用只保留在 PR 正文与交付记录。
+ * @param {string} title
+ * @returns {string}
+ */
+function stripTaskIdsFromSubject(title) {
+  let value = String(title ?? '').trim();
+  value = value.replace(/[（(][^）)]*(?:AF|WP)-\d+[^）)]*[）)]/g, ' ');
+  value = value.replace(TASK_ID_TOKEN_RE, ' ');
+  value = value
+    .replace(/(?:[/、,，|]\s*){2,}/g, ' ')
+    .replace(/^[/、,，|\s]+/, '')
+    .replace(/[/、,，|\s]+$/, '')
+    .replace(/[（(]\s*[）)]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return value || 'squash merge into integrate';
+}
+
+/**
+ * 组装 squash 合并提交标题：`<type>(orchestration): <taskId> <title>`。
+ * 必须满足仓内 commit-msg 钩子（`^(feat|fix|docs|...)(\(...\))?: .+`），否则合并会在
+ * 提交阶段被钩子拒绝——这条由 CI 门禁实弹（AF-046）实测暴露，假端口单测覆盖不到钩子。
+ * `title` 里的任务编号会被剥离，避免 push 门判 `ambiguous-task-id`（AF-061 实测）。
+ * @param {{taskId:string, taskType?:string, title?:string}} opts
+ * @returns {string}
+ */
+export function buildSquashCommitMessage(opts = {}) {
+  const type = SQUASH_TYPE_BY_TASK_TYPE[opts.taskType] ?? 'chore';
+  const subject = `${opts.taskId ?? ''} ${stripTaskIdsFromSubject(opts.title)}`.trim();
+  return `${type}(orchestration): ${subject}`.trim();
+}
+
+/**
+ * IM-012 · squash 合并收口：暂存 → 闸门全绿后补提交 → 清理源分支。
+ *
+ * 为什么把提交与清理放在同一个函数：这两步在旧实现里都「留给人工」，结果是
+ * squash 暂存后没人提交，任务分支也留在原地越堆越多。企业级口径应当是
+ * **一次调用完成「合并即删」**，失败时按阶段返回，绝不在半途假装成功。
+ *
+ * 阶段顺序（任一阶段抛错即停，后续不执行）：
+ *   1. `squashMerge(source)` —— `git merge --squash`，只暂存不提交；
+ *   2. `commitSquash(message)` —— 提交，`message` 由 `buildSquashCommitMessage` 组装（conventional + taskId）；
+ *   3. `deleteLocal(source)` / `deleteRemote(source, remote)` —— 合并已提交成功后才删，远端删除失败不回滚本地。
+ *
+ * @param {{source:string, remote?:string, taskId:string, taskType?:string, title?:string, gitPort:object}} opts
+ * @returns {{stages:string[], branchName:string, commitMessage:string|null, errors:string[]}}
+ */
+export function finalizeSquashMerge(opts = {}) {
+  const { source, taskId, gitPort } = opts;
+  const stages = [];
+  const errors = [];
+  if (!source || !taskId) return { stages, branchName: source ?? null, commitMessage: null, errors: ['source / taskId 必填'] };
+  if (!gitPort || typeof gitPort.squashMerge !== 'function') {
+    return { stages, branchName: source, commitMessage: null, errors: ['缺少 git 端口或 squashMerge 能力'] };
+  }
+  const commitMessage = buildSquashCommitMessage({ taskId, taskType: opts.taskType, title: opts.title });
+  try {
+    gitPort.squashMerge(source);
+    stages.push('squash-merge');
+  } catch (err) {
+    errors.push(`squash 暂存失败：${err.message}`);
+    return { stages, branchName: source, commitMessage, errors };
+  }
+  try {
+    if (typeof gitPort.commitSquash !== 'function') throw new Error('git 端口缺少 commitSquash 能力');
+    gitPort.commitSquash(commitMessage);
+    stages.push('commit');
+  } catch (err) {
+    errors.push(`squash 提交失败：${err.message}`);
+    return { stages, branchName: source, commitMessage, errors };
+  }
+  try {
+    gitPort.deleteLocal?.(source);
+    stages.push('delete-local');
+  } catch (err) {
+    errors.push(`本地分支删除失败：${err.message}`);
+  }
+  if (opts.remote) {
+    try {
+      gitPort.deleteRemote?.(source, opts.remote);
+      stages.push('delete-remote');
+    } catch (err) {
+      errors.push(`远端分支删除失败：${err.message}`);
+    }
+  }
+  return { stages, branchName: source, commitMessage, errors };
 }
 
 /**

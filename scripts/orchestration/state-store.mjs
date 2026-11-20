@@ -22,6 +22,7 @@ export const REPO_ROOT = resolve(__dirname, '..', '..');
 export const PATHS = {
   index: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'task-state-index.json'),
   journal: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'state', 'journal.jsonl'),
+  journalArchiveDir: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'state', 'journal-archive'),
   journalLock: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'state', 'journal.lock'),
   archivedNotes: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'state', 'archived-notes.json'),
   runtimeState: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'orchestration-state.json'),
@@ -30,6 +31,9 @@ export const PATHS = {
   auditLog: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'tool-audit-log.json'),
   sqliteDb: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'orchestration-store.sqlite'),
   transportDir: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'transport'),
+  worklogInbox: join(REPO_ROOT, 'docs', 'worklog', 'inbox'),
+  worklogRecords: join(REPO_ROOT, 'docs', 'worklog', 'records'),
+  legacyReceiptArchiveDir: join(REPO_ROOT, 'docs', 'worklog', 'pending', 'archive'),
   receiptArchiveDir: join(REPO_ROOT, 'docs', 'worklog', 'pending', 'archive'),
   webDataJs: join(REPO_ROOT, 'web', 'orchestration', 'data.js'),
   deliveryPackDir: join(REPO_ROOT, 'docs', 'team', 'agent-orchestration', 'delivery-packs'),
@@ -80,6 +84,10 @@ export function validateConfig(raw) {
   if (raw.allowedTaskTypes !== undefined && !Array.isArray(raw.allowedTaskTypes)) {
     errors.push('allowedTaskTypes 须为数组');
   }
+  const maxConcurrentTasks = Number(raw.maxConcurrentTasks ?? 1);
+  if (!Number.isInteger(maxConcurrentTasks) || maxConcurrentTasks < 1) {
+    errors.push(`maxConcurrentTasks 须为正整数，实际 ${String(raw.maxConcurrentTasks)}`);
+  }
   if (raw.frozenActions !== undefined && !Array.isArray(raw.frozenActions)) {
     errors.push('frozenActions 须为数组');
   }
@@ -90,6 +98,29 @@ export function validateConfig(raw) {
   const transportType = raw.transport?.type ?? 'file';
   if (!['file', 'mcp', 'http'].includes(transportType)) {
     errors.push(`transport.type 非法：${String(transportType)}（允许 file / mcp / http）`);
+  }
+  // dispatch 段（AF-024 / IM-028）：此前未被归一返回，运行时永远读不到配置通道，
+  // GUI 通道「配了等于没配」（配置被静默丢段）。这里显式保留并做最小值校验。
+  const dispatchChannel = raw.dispatch?.channel ?? 'file';
+  const dispatchChannels = ['file', 'gui-relay', 'gui-file-fallback', 'mcp', 'http'];
+  if (!dispatchChannels.includes(dispatchChannel)) {
+    errors.push(`dispatch.channel 非法：${String(raw.dispatch?.channel)}（允许 ${dispatchChannels.join(' / ')}）`);
+  }
+  const fallbackToFile = raw.dispatch?.fallbackToFile !== false;
+  const deliveryLeaseMinutes = Number(raw.dispatch?.deliveryLeaseMinutes ?? 5);
+  if (!Number.isFinite(deliveryLeaseMinutes) || deliveryLeaseMinutes <= 0) {
+    errors.push(`dispatch.deliveryLeaseMinutes 须为正数，实际 ${String(raw.dispatch?.deliveryLeaseMinutes)}`);
+  }
+  // 熔断参数（IM-017）：阈值必须是正整数，冷却期必须是正数分钟。
+  const consecutiveFailureThreshold = Number(raw.circuitBreaker?.consecutiveFailureThreshold ?? 3);
+  if (!Number.isInteger(consecutiveFailureThreshold) || consecutiveFailureThreshold < 1) {
+    errors.push(
+      `circuitBreaker.consecutiveFailureThreshold 须为不小于 1 的整数，实际 ${String(raw.circuitBreaker?.consecutiveFailureThreshold)}`,
+    );
+  }
+  const cooldownMinutes = Number(raw.circuitBreaker?.cooldownMinutes ?? 10);
+  if (!Number.isFinite(cooldownMinutes) || cooldownMinutes <= 0) {
+    errors.push(`circuitBreaker.cooldownMinutes 须为正数，实际 ${String(raw.circuitBreaker?.cooldownMinutes)}`);
   }
   const refreshEnabled = raw.web?.refresh?.enabled !== false;
   const refreshInterval = Number(raw.web?.refresh?.intervalMs ?? 3000);
@@ -103,9 +134,21 @@ export function validateConfig(raw) {
     reworkLimit,
     leaseDefaultMinutes: lease,
     allowedTaskTypes: Array.isArray(raw.allowedTaskTypes) ? raw.allowedTaskTypes : [],
+    maxConcurrentTasks,
     frozenActions: Array.isArray(raw.frozenActions) ? raw.frozenActions : [],
     store: { backend },
     transport: { type: transportType },
+    dispatch: {
+      channel: dispatchChannel,
+      fallbackToFile,
+      deliveryLeaseMinutes,
+    },
+    // IM-017：熔断参数（框架 reliability.md §5.1 扩展位）。默认值与 dispatch-channel 保持一致口径，
+    // 这里显式归一，避免再次出现「配置写了但运行时读不到」的丢段问题。
+    circuitBreaker: {
+      consecutiveFailureThreshold,
+      cooldownMinutes,
+    },
     web: { refresh: { enabled: refreshEnabled === true, intervalMs: refreshInterval } },
     notes: raw.notes ?? {},
   };

@@ -10,26 +10,110 @@
  */
 import { buildTaskHandover, validateTaskHandover } from './handover-contract.mjs';
 import { selectTargetRole } from './card-router.mjs';
+import { CHANNEL_GUI_FALLBACK } from './gui-dispatch.mjs';
 import { nowIso } from './state-store.mjs';
 
-/** 派发通道枚举（file 为本批实现；gui-relay / mcp / http 预留位）。 */
-export const DISPATCH_CHANNELS = ['file', 'gui-relay', 'mcp', 'http'];
+/** 派发通道枚举（file / gui-relay 为本批实现；gui-file-fallback 为降级态；mcp / http 预留位）。 */
+export const DISPATCH_CHANNELS = ['file', 'gui-relay', 'gui-file-fallback', 'mcp', 'http'];
 
 function normalizeChannel(channel) {
   return DISPATCH_CHANNELS.includes(channel) ? channel : 'file';
 }
 
 /**
+ * 派发决策原因枚举（IM-028：选路不得是散落的 if 表达式，必须是可审计的决策结果）。
+ * - `orchestrator-self-dispatch`：编排者给自己派活，写文件交接件即可，不走桌面 relay；
+ * - `configured-channel`：执行代理角色，按 `config.dispatch.channel` 选路；
+ * - `delivery-fallback-after-failure`：上一轮 GUI 投递已 failed 或已降级，本轮直接用文件降级通道；
+ * - `fallback-disabled-retry`：同上但 `fallbackToFile=false`，只能重试 gui-relay；
+ * - `channel-unavailable-coerced`：配置里的通道不在枚举内，收敛为 file 并留原因。
+ */
+export const DISPATCH_DECISION_REASONS = [
+  'orchestrator-self-dispatch',
+  'configured-channel',
+  'delivery-fallback-after-failure',
+  'fallback-disabled-retry',
+  'channel-unavailable-coerced',
+];
+
+/**
+ * 解析本轮派发通道选路（纯函数，无副作用；运行时决策链的降级判定见 dispatch-channel.mjs#resolveDispatchDecision）。
+ *
+ * 决策顺序对齐框架 `reliability.md` 的降级链：角色 → 上轮投递事实 → 配置通道 → 枚举收敛。
+ * 「上轮投递事实」必须读 `delivery.state` 与上轮 `channel`：调度层若对 delivery 零读取，
+ * 就等于把「已降级」当成「在正常执行」，任务会反复撞同一堵墙（AF-024 评审阻塞项）。
+ *
+ * @param {object} params {task, config, previousDispatch}
+ * @returns {{channel: string, targetRole: string, reason: string, attempt: number, configuredChannel: string, previousDeliveryState: string|null}}
+ */
+export function resolveChannelSelection({ task, config, previousDispatch = null } = {}) {
+  const targetRole = task?.agentRole ?? 'executor';
+  const configuredRaw = config?.dispatch?.channel ?? 'file';
+  const configuredChannel = normalizeChannel(configuredRaw);
+  const attempt = Number(previousDispatch?.attempt ?? 0) + 1;
+  const previousDeliveryState = previousDispatch?.delivery?.state ?? null;
+  const previousChannel = previousDispatch?.channel ?? null;
+
+  if (targetRole === 'orchestrator') {
+    return {
+      channel: 'file',
+      targetRole,
+      reason: 'orchestrator-self-dispatch',
+      attempt,
+      configuredChannel,
+      previousDeliveryState,
+    };
+  }
+
+  const needsFallback = previousDeliveryState === 'failed' || previousChannel === CHANNEL_GUI_FALLBACK;
+  if (needsFallback) {
+    const fallbackAllowed = config?.dispatch?.fallbackToFile !== false;
+    return {
+      channel: fallbackAllowed ? CHANNEL_GUI_FALLBACK : 'gui-relay',
+      targetRole,
+      reason: fallbackAllowed ? 'delivery-fallback-after-failure' : 'fallback-disabled-retry',
+      attempt,
+      configuredChannel,
+      previousDeliveryState,
+    };
+  }
+
+  if (!DISPATCH_CHANNELS.includes(configuredRaw)) {
+    return {
+      channel: 'file',
+      targetRole,
+      reason: 'channel-unavailable-coerced',
+      attempt,
+      configuredChannel,
+      previousDeliveryState,
+    };
+  }
+
+  return {
+    channel: configuredChannel,
+    targetRole,
+    reason: 'configured-channel',
+    attempt,
+    configuredChannel,
+    previousDeliveryState,
+  };
+}
+
+/**
  * 构造派发记录（只留指针、通道与计数，不含对话原文）。
+ * gui-relay 通道额外带 `delivery` 段：投递状态机由 gui-dispatch.mjs 的 confirm / fallback 推进，
+ * 记录初始态 pending 表示「投递件已生成、尚未确认送达」。
+ * 重派（`opts.attempt > 1`）时把上一轮 delivery 压入 `history`，失败原因与定性不被覆盖。
  * @param {object} task 索引任务条目
- * @param {object} opts {channel, targetRole, sessionRef, leaseDeadline, attempt, handoverRef}
+ * @param {object} opts {channel, targetRole, sessionRef, leaseDeadline, attempt, handoverRef, briefRef, previousDelivery}
  * @returns {object} 派发记录
  */
 export function buildDispatchRecord(task, opts = {}) {
-  return {
+  const channel = normalizeChannel(opts.channel);
+  const record = {
     taskId: task.taskId,
     contextId: task.contextId ?? null,
-    channel: normalizeChannel(opts.channel),
+    channel,
     targetRole: opts.targetRole ?? task.agentRole ?? null,
     sessionRef: opts.sessionRef ?? null,
     dispatchedAt: nowIso(),
@@ -38,6 +122,22 @@ export function buildDispatchRecord(task, opts = {}) {
     status: 'submitted',
     handoverRef: opts.handoverRef ?? null,
   };
+  if (channel === 'gui-relay') {
+    const previous = opts.previousDelivery && opts.previousDelivery.state ? [{ ...opts.previousDelivery }] : [];
+    const history = previous.length > 0 ? previous : Array.isArray(opts.previousDelivery?.history) ? opts.previousDelivery.history : [];
+    record.delivery = {
+      state: 'pending',
+      preparedAt: record.dispatchedAt,
+      briefRef: opts.briefRef ?? null,
+      sessionPath: null,
+      locateLayer: null,
+      evidenceRef: null,
+      // IM-017：同一通道重新拿到一次干净派发，连续失败计数归零（熔断只计「连续」）。
+      consecutiveFailures: 0,
+      history,
+    };
+  }
+  return record;
 }
 
 /**
@@ -77,7 +177,9 @@ export function dispatchTask(task, entry, opts = {}) {
 
   const transport = opts.transport ?? null;
   const handoverRef = transport?.submitTask ? transport.submitTask(handover) : null;
-  const attempt = Number(opts.attempt ?? entry.dispatch?.attempt ?? 1);
+  // 逐次留痕（AF-015 D-3）：重派 attempt 递增，上一轮 delivery 进 history，不覆盖失败原因与定性。
+  const previousDispatch = entry.dispatch ?? null;
+  const attempt = Number(opts.attempt ?? (previousDispatch?.attempt ?? 0) + 1);
   const record = buildDispatchRecord(task, {
     channel: opts.channel,
     targetRole,
@@ -85,18 +187,29 @@ export function dispatchTask(task, entry, opts = {}) {
     leaseDeadline: entry.leaseDeadline ?? null,
     attempt,
     handoverRef,
+    briefRef: opts.briefRef ?? null,
+    previousDelivery: previousDispatch?.delivery ?? null,
   });
   entry.dispatch = record;
   return { dispatched: true, record, handoverRef, handover, errors: [], reason: null, route };
 }
 
 /**
- * 回执验收指纹：taskId + 工件指针；同一任务同一交付记录重复投递只触发一次验收。
+ * 回执验收指纹。
+ *
+ * IM-007：次级键优先用**工件版本号**（`task.artifacts.deliveryRevision` 或交接件 `revision`），
+ * 而不是交付记录路径。原因是同一路径可以被返修后重写：路径不变、内容变了，
+ * 以路径为键会把「第二次交付」误判成「已验收过的同一份」，重复回执静默丢弃。
+ * 工件版本号缺失时才退回路径指纹，兼容尚未补版本的存量任务。
+ *
  * @param {object} task 索引任务条目
  * @param {string} [deliveryRef] 交付记录指针；缺省取 task.artifacts.deliveryRecord
  * @returns {string} 指纹串
  */
 export function receiptFingerprint(task, deliveryRef) {
+  const revision = task?.artifacts?.deliveryRevision ?? task?.artifacts?.revision ?? null;
+  const normalized = typeof revision === 'number' ? String(revision) : (revision ?? '').trim();
+  if (normalized !== '') return `${task?.taskId ?? ''}@${normalized}`;
   const ref = deliveryRef ?? task?.artifacts?.deliveryRecord ?? '';
   return `${task?.taskId ?? ''}|${ref}`;
 }

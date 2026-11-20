@@ -12,22 +12,36 @@
 | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
 | 角色卡与能力声明                                             | `agent-cards/orchestrator.json`、`executor.json`（human 属 `nonRoutableRoles`，不产卡，边界见 `agent-cards/README.md`） |
 | 九态状态机、任务租约、超时释放                               | `scripts/orchestration/scheduler.mjs`                                                                                   |
-| 验收五类与机读护栏 V1–V6                                     | `acceptance-runner.mjs`、`acceptance-checklist.md`                                                                      |
+| 验收五类与机读护栏 V1–V7                                     | `acceptance-runner.mjs`、`acceptance-checklist.md`                                                                      |
 | 回执七字段、交付记录模板                                     | `relay-receipt-template.md`；框架仓 `docs/receipt-contract.md`                                                          |
 | 改进台账、工具审计、Store 端口、文件 Transport、watcher 防抖 | `improvement-log.mjs`、`audit-log.mjs`、`store-port.mjs`、`transport.mjs`、`file-watcher.mjs`                           |
 | 提交钩子                                                     | `.husky/pre-commit`（lint-staged：oxlint + prettier）、`.husky/commit-msg`（conventional 正则）                         |
 | 远端 CI                                                      | `.github/workflows/ci.yml`：lint+typecheck、unit 分片、e2e、coverage、Docker build、security audit                      |
 
-### 1.2 待补缺口
+### 1.2 缺口现状与闭环状态（AF-023 按代码现实重写）
 
-| #   | 缺口             | 现状                                                                                                                                                                                |
-| --- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| G1  | 派发通道半自动   | 主控写长简报 → 人工粘贴到 MiniMax → cron 轮询回执；人卡在粘贴与盯回执两步                                                                                                           |
-| G2  | 派发未接调度器   | `claimReadyTasks` 只登记租约，不产生派发记录；`transport.submitTask` 未被调度调用                                                                                                   |
-| G3  | 缺文件切片互斥   | 只有任务级租约，无可写文件域前置校验；双代理同改一个文件无拦截                                                                                                                      |
-| G4  | 方案协商轮未固化 | researcher / critic 为预留角色，双代理方案讨论无结构化轮次                                                                                                                          |
-| G5  | 自治循环关闭     | `config.autoLoop.enabled=false`，队列不自动推进                                                                                                                                     |
-| G6  | 发布口径未分层   | README §2/§4 现写「AI 不自动 commit / push」，未区分任务分支、集成分支与对外发布；**已闭环（AF-014，2026-11-16）**：README §2/§4、三份角色卡 limits、任务单模板已对齐 §6.1 分层口径 |
+> 本表不再沿用旧缺口表的“未补”判断，而是按 2026-11-17 代码与运行态重新对账；状态列是**证据判断**，不是计划口号。
+
+| #   | 缺口 / 能力      | 当前状态                                            | 证据与边界                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| --- | ---------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| G1  | 派发通道半自动   | 部分闭环（文件 Transport 闭环；GUI 自动投递未启用） | `transport.mjs` 已落任务 / 回执 / 协商件；`dispatch-channel.mjs` 只做 `canDispatch` 与 GUI 规则判定，不拉起 MiniMax、不定位输入框。CLI `channel` 是只读规则视图；真正自动 GUI 投递仍需浏览器 / 桌面自动化可用，当前不冒充已闭环                                                                                                                                                                                                      |
+| G2  | 派发未接调度器   | 已闭环                                              | `scheduler.mjs` 的 `claimReadyTasks` 已调用 `dispatchTask`，生成 `{deliveredAt,payload}` 交接件；派发失败回滚 `ready`，不留下 `submitted` 空转任务                                                                                                                                                                                                                                                                                   |
+| G3  | 缺文件切片互斥   | 已闭环                                              | `scope-mutex.mjs` 的 `findScopeConflicts` 在领单前做文件域前置校验；只读类型走 `READONLY_TASK_TYPES` 豁免；冲突任务留 `ready` 并记 `scope-conflict`                                                                                                                                                                                                                                                                                  |
+| G4  | 方案协商轮未固化 | 保留能力（未启用）                                  | `transport/reviews` 目录、`review-handover` schema 与 `handover-contract` 已具备；当前无活跃 review 文件，不把“目录存在”当成“协商轮已跑”                                                                                                                                                                                                                                                                                             |
+| G5  | 自治循环关闭     | 已闭环                                              | `scripts/orchestration/config.json` `autoLoop.enabled=true`、`allowedTaskTypes` 覆盖六类、`maxConcurrentTasks=1`；`advanceOnce` 已可领单 / 验收 / 归档；`pnpm orchestration:watch` 启动先跑一轮并监听 pending / completed / transport tasks / receipts                                                                                                                                                                               |
+| G6  | 发布口径未分层   | 已闭环（AF-014）                                    | README §2/§4、三份角色卡 limits、任务单模板已对齐 §6.1 分层口径                                                                                                                                                                                                                                                                                                                                                                      |
+| G7  | 回执未摄入       | 已闭环（AF-023，AF-027 加固）                       | `receipts.mjs` 扫描 `transport/receipts/*.json`，兼容 `{deliveredAt,payload}` 包装，校验七组字段后把 `artifactRefs` 投影到任务 `artifacts`（仅 `taskSheet / deliveryRecord / reply / others` 四键），回执副本指针落 `task.receipt.archiveRef` 与运行态 `entry.receiptArchiveRef`，并把回执副本与 transport 任务单副本落 `docs/worklog/pending/archive/`；`processReceipts` 消费回执触发验收，透传 `receiptArchiveDir` 供整链用例隔离 |
+| G8  | 任务单未自动立项 | 已闭环（AF-023）                                    | `task-intake.mjs` 解析 Markdown frontmatter，经 `validateTaskSheet` 校验后 `createTask` 登记；CLI `task register --sheet` + `task import --handover` 可用                                                                                                                                                                                                                                                                            |
+
+> 运行态证据（2026-11-17）：`DR-001` 经 `task import` 补登 → `run-once` claim + dispatch → 回执 `receipt-ingested` → `archive-completed`，索引归档状态 `completed`、`autoVerdict=conditional-pass`。G1 仍是文件 Transport 的闭环，GUI 自动投递未验证，不得把本次证据外推到 GUI 通道。
+>
+> 返修与取消证据（2026-11-17）：`AF-026` 首轮 `rejected`（V7 把编排状态面判成越域）→ 产出 `RW-AF-026-1`、`attemptCount=1`；`AF-027` 同 `contextId` 按返修规则新开，走完 claim → dispatch → `receipt-ingested` → `archive-completed`，`autoVerdict=passed`、`manualReview=[]`。`AF-025` 因 scope 跨角色资源域被 `scope-domain-conflict` 拦下，`archive --status canceled` 被拒（归档不得改写终态），改由 `task cancel` 闭合后归档 `canceled`。
+>
+> 编排前置态口径（AF-028）：`backlog` 与 `ready` 可在两者间来回（`state-machine.md` §4.1）。`task register --status backlog` 只做立项，进队列须经 `task promote --taskId <id>`：提级前硬校验任务单指针、`taskId/contextId/type`、`baselineRef` 与依赖满足（活跃 + 归档双查），缺一即拒；成功走 `commitIndex` 落 `backlog → ready` 事件。没有这个入口时，`AF-024` 这类延后任务会被永久钉在 `backlog`，属「能立项、不能启用」的假闭环。
+>
+> 验收 V7 口径：变更清单先剔除编排状态面生成物（`task-state-index.json`、`state/journal.jsonl`、`orchestration-snapshot.json`、`state/archived-notes.json`、`web/orchestration/data.js`）与 `transport/` 目录，再与任务 `scope.files` 比对；清单仅含状态面时判 pass 并注明「不纳入任务交付面比对」。否则任何推进过状态的真实任务都会被永久判越域。
+>
+> 租约与回收口径：`releaseExpiredLeases` 超时释放写 `releaseReason=lease-expired` 并置 `heldForHuman=true`，`claimReadyTasks` 跳过持单任务（`held-for-human`），人工 `task resume` 后才恢复；`advanceOnce` 先 `processReceipts` 再 `claimReadyTasks`，同一轮即可完成回执回收与下一单派发。`archiveTaskSheetFile` 在归档前把 transport 任务单副本落 `docs/worklog/pending/archive/`。
 
 ## 2. 目标闭环链路
 
@@ -99,11 +113,11 @@ GUI 会话只传递一句话：交接文件绝对路径 + 回执路径。任务�
 
 ### 4.1 分支分层
 
-| 类型 | 分支                   | 职责                                  | 自动化口径                              |
-| ---- | ---------------------- | ------------------------------------- | --------------------------------------- |
-| 长期 | `master`               | 受保护对外基线                        | 只接受 integrate 合并 / tag；不自动推送 |
-| 长期 | `integrate`            | 集成分支，自动流水线落点，CI 在此运行 | 任务分支验收合并的落点                  |
-| 短期 | `task/<taskId>-<slug>` | 单任务实现切片                        | 一单一分支，合并后即删                  |
+| 类型 | 分支                   | 职责                                  | 自动化口径                                                              |
+| ---- | ---------------------- | ------------------------------------- | ----------------------------------------------------------------------- |
+| 长期 | `master`               | 受保护对外基线                        | 只接受 release PR（release 分支 + 12 项必需检查）合并与 tag；不接受直推 |
+| 长期 | `integrate`            | 集成分支，自动流水线落点，CI 在此运行 | 受保护：任务 PR + 13 项必需检查 + squash，不接受直推                    |
+| 短期 | `task/<taskId>-<slug>` | 单任务实现切片                        | 一单一分支，合并后即删                                                  |
 
 **命名口径**：`task/<taskId>-<slug>`。任务类型前缀（feat / fix / docs）由 conventional commit message 承担，分支名不重复；分支名必须含 taskId，保证台账可反查与批量清理。
 
@@ -121,6 +135,7 @@ GUI 会话只传递一句话：交接文件绝对路径 + 回执路径。任务�
 - executor 不建分支、不提交、不推送；分支由 orchestrator 在派发时创建、验收后合并清理。
 - 冲突在任务分支内解决，不把 merge commit 带进 integrate。
 - 任务分支基线从 `integrate` 最新 HEAD 切出；合并前核对 `baselineRef` 与当前基线一致（`reliability.md` §6.3）。
+- **AF-056 受保护流程**：登记提交也不能直推 integrate。先在工作树登记/领单，再切任务分支并提交登记、实现与归档状态；PR 逐提交门与 13 项检查全绿后由 `pr-release.mjs` squash 合并。required PR 审批数为 0，不增加人工审批，只禁止直推旁路。
 
 ### 4.4 `development` 分支退役（已完成 2026-11-16）
 
@@ -130,7 +145,7 @@ GUI 会话只传递一句话：交接文件绝对路径 + 回执路径。任务�
 
 1. **文件域前置声明**：任务单 `scope.files` 列出可写文件 / 目录；派发前与在办任务的文件域做交集校验，有交集 → 排队或冻结，不并行派发。
 2. **任务级租约**：沿用现有机制；同 `contextId` 串行；租约期内其他方不得领取。
-3. **残留文件识别**：验收 / 提交前比对 git diff 文件清单与任务 scope；清单外文件判残留，不进提交分组（`reliability.md` §6.5）；发现他人未提交改动交叉 → 暂停转人工。变更清单由 run-once / watch 入口经 git 端口采集 `git diff --name-only HEAD` 传入验收护栏（V7）；清单为空时 V7 记 skip，不阻断。
+3. **残留文件识别**：验收 / 提交前比对 git diff 文件清单与任务 scope；清单外文件判残留，不进提交分组（`reliability.md` §6.5）；发现他人未提交改动交叉 → 暂停转人工。变更清单由 run-once / watch 入口经 git 端口采集 `git diff --name-only HEAD` 传入验收护栏（V7）；比对前先剔除编排状态面生成物（快照 / 索引 / 事件日志 / `archived-notes.json` / `web/orchestration/data.js`）与 `transport/` 目录——它们是编排自身写入，属交付面之外的观测面；清单为空或仅含状态面时 V7 记 pass 并注明原因，不阻断。
 4. **写幂等**：taskId + 工件版本；重复派发回执「在办 / 已完成」，不重复执行。
 5. **并行维度**：起步单 executor 串行队列；只读调研（researcher）与实现（executor）可并行；实现任务之间仅当文件域无交集时并行。多代理并行属 P2，前置为文件域锁升级与分支隔离跑通。
 
@@ -138,20 +153,27 @@ GUI 会话只传递一句话：交接文件绝对路径 + 回执路径。任务�
 
 ### 6.1 发布分层（自动化逐层收紧）
 
-| 层  | 动作                                       | 自动 / 人工                                         | 前置条件                                   |
-| --- | ------------------------------------------ | --------------------------------------------------- | ------------------------------------------ |
-| L1  | 任务分支提交                               | 自动（验收后由 orchestrator 提交，executor 不提交） | pre-commit 钩子 + 收尾闸门绿               |
-| L2  | 推送任务分支到 origin                      | 可自动                                              | 闸门绿、验收五类通过、分支命名合规         |
-| L3  | squash merge 进 integrate + 推送 integrate | 可自动                                              | 本地等价闸门全绿、无文件域冲突、提交可回退 |
-| L4  | master 合并、tag、release、对外部署        | **人工**                                            | 冻结动作，对齐 `autonomous-loop.md` §3.2   |
+| 层  | 动作                                         | 自动 / 人工                                         | 前置条件                                                 |
+| --- | -------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
+| L1  | 任务分支提交                                 | 自动（验收后由 orchestrator 提交，executor 不提交） | pre-commit 钩子 + 收尾闸门绿                             |
+| L2  | 推送任务分支到 origin                        | 可自动                                              | 闸门绿、验收五类通过、分支命名合规                       |
+| L3  | 受保护 PR squash 进 integrate + 本地 ff 同步 | 可自动（`pr-release.mjs`，executor 不合并）         | completed + passed 回执、PR HEAD 一致、13 项远端检查全绿 |
+| L4  | master 合并、tag、release、对外部署          | **人工**                                            | 冻结动作，对齐 `autonomous-loop.md` §3.2                 |
 
-### 6.2 L3 过渡口径
+L4 的当前执行载体是 `.github/workflows/release.yml`：只能从 `integrate` 手动触发，`dry_run` 默认 `true`；真实发布走 release 分支 → 合并 `master` → 对 release 分支显式 dispatch 完整 CI（12 项 required contexts）→ PR → 合并 → annotated tag / GitHub Release / GHCR。生产 `deploy` 需同时满足 `deploy=true`、`dry_run=false` 且 release job success，当前保持未启用。详见 [AF-022 交付记录](../../worklog/completed/phase2.5/af022-release-protection-compatible-implementation-2026-11-17.md)。
 
-本机无 gh CLI、无 GITHUB_TOKEN，远端 CI 状态本机不可读。过渡方案：
+### 6.2 L3 服务端强门口径（AF-056）
 
-- 合并依据 = 本地等价闸门（typecheck + lint + vitest 定向 / 全量 + build）全绿 + 验收五类通过 + 无文件域冲突；
-- 远端 CI 作事后复核；CI 转红则冻结后续派发并告警，不继续合入；
-- P2 接入 token / gh 后，改为以 CI 状态作为自动合并门禁。
+旧「本机无 gh/token、远端 CI 只能事后复核」的过渡口径已退役。本机可直接复用 Git credential helper 调用 GitHub REST，**不需要安装 gh**：
+
+- `Orchestration Gate` 在 PR 与 integrate push 上逐提交验证 taskId、任务状态、scope、任务单和归档迁移；本地 `--no-verify` 不能绕过服务端判定。
+- AF-057 补充 PR 最终 HEAD 验收门：completed/archived 与 passed + in-scope + completed durable 回执由 CI 直接读取 git tree 核验，GitHub 页面/API 合并未验收 PR 也会被 required check 阻断。
+- AF-058 补齐 squash 全生命周期：parent 无该任务、current 直接 archived/completed 时，从当前任务单恢复 scope；只有 passed durable 回执存在才复用 archived-transition，缺回执与归档后追加写仍拒绝。
+- AF-059 保持 Orchestration Gate 零安装依赖：不静态引入 task-intake/yaml；只严格解析 scope 所需字段，完整 schema 仍由登记 CLI 与 Contracts 校验。
+- `integrate` 必需 13 项检查（原 12 项 + Orchestration Gate）、required PR（审批数 0）、strict 最新分支、线性历史、enforce admins，禁止 force push / 删除。
+- 合并前由 `pr-release.mjs` 复核 completed/archived、passed durable 回执、PR HEAD == 本地 HEAD；pending / unknown / 缺检查一律不合并。
+- 合并后 fast-forward 本地 integrate 并核对 merge SHA；任务分支树一致才删除。L4 master/tag/release/deploy 仍不在此自动路径内。
+- 保护配置使用 `branch-protection.mjs --apply` 幂等写入并读回核验；不得为恢复旧直推流程而降低保护。
 
 ### 6.3 回退五道保障
 
@@ -159,7 +181,7 @@ GUI 会话只传递一句话：交接文件绝对路径 + 回执路径。任务�
 2. **标准回退**：按 taskId 定位提交；首选 `git revert <sha>`（保留历史、不改写已推记录）；未推送的才用 `git reset`；失败任务分支删除重来。
 3. **基线核对**：合并前核对 baselineRef 与当前基线一致，不一致不合并。
 4. **闸门门禁**：闸门红不合并；已合并后 CI 转红冻结后续派发。
-5. **冻结清单不自动**：push master、策略例外、路线选型、跨任务变更、验收分歧、新增未声明依赖 → 转 `input-required` 等 Human 决策。
+5. **冻结清单不自动**：release PR 合并、tag、release、对外部署、策略例外、路线选型、跨任务变更、验收分歧、新增未声明依赖 → 转 `input-required` 等 Human 决策。
 
 ### 6.4 既有口径同步记录
 
@@ -170,6 +192,8 @@ GUI 会话只传递一句话：交接文件绝对路径 + 回执路径。任务�
 **已同步（AF-016，2026-11-16）**：§3.6 落地角色能力路由（IM-008：availability 门槛 + skill/tool 评分 + 显式角色优先、不可用不改派）与角色资源域越域校验（IM-010：scope 落在 Card `resources` 前缀内，只读类豁免）；§4.2 巡检补 ahead/behind rebase 标注（IM-013）；§5 残留识别补 git diff 采集入口接线（IM-009：run-once / watch 采集清单传入 V7，空清单 skip）。纯函数落 `card-router.mjs` / `branch-workflow.mjs`，调度与 CLI 仅做注入接线，未碰业务 `src/`。
 
 **已同步（AF-017，2026-11-16）**：改进台账抽取通道补回执正文解析（IM-001）：`extractFromReceiptDoc` 解析回执 markdown 遗留组 `backlogItems` / `openQuestions` 列表项转候选草稿，与 `extractFromSnapshot` 快照结果按标题键 + 签名合并去重；`manualReviewList` 仍归快照通道，避免双源重复；CLI `--extract` 枚举归档回执 `relay-response-*.md` 接入双通道。纯函数落 `improvement-log.mjs`，文件 IO 归 CLI，未碰业务 `src/`。
+
+**已同步（AF-056，2026-11-17）**：§4.1/§4.3/§6.1/§6.2 从直推过渡口径升级为受保护 PR；README §0/§5.3.1 补服务端逐提交门、13 项检查与 PR CLI；orchestrator 资源域补 `.github/` 并合并 worklog 前缀。旧 `branch merge` 保留为未保护分支兼容工具，不再是 integrate 目标路径。
 
 ## 7. autoLoop 开启时机
 
@@ -204,7 +228,7 @@ GUI 会话只传递一句话：交接文件绝对路径 + 回执路径。任务�
 ### P2 并行与远端联动
 
 1. 文件域锁升级为可并行的版本号 / 文件锁；多 executor 并行；
-2. gh / token 接入，PR 流与 CI 状态门禁；
+2. ~~gh / token 接入，PR 流与 CI 状态门禁~~（AF-056 已完成：Git credential + REST，无 gh 依赖；逐提交门、13 项检查、PR squash 与保护读回）；
 3. mcp / http Transport 实现位落地；researcher / critic 角色按需绑定；熔断阈值参数化。
 
 ## 9. 冻结动作与升级消息

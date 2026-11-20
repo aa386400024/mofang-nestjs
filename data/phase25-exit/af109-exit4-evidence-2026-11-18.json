@@ -1,0 +1,92 @@
+{
+  "taskId": "AF-109",
+  "generatedAt": "2026-11-18T23:45:00+08:00",
+  "batch": {
+    "batchId": "q_35XnpvLWLr-Yocr8kJh",
+    "requestedSessions": 16,
+    "sessionProfile": "long",
+    "maxTurns": 50,
+    "characterSlugs": [
+      "vpt_general_secure_l1",
+      "vpt_social_anxious_l1",
+      "vpt_depression_avoidant_l1",
+      "vpt_trauma_disorganized_l1",
+      "vpt_grief_avoidance_l1",
+      "vpt_intimate_avoidance_l1",
+      "vpt_self_worth_intellectualization_l1",
+      "vpt_workplace_intellectualization_l1"
+    ],
+    "counselorModeIds": ["expert", "cold"],
+    "repeats": 1,
+    "engineVersion": "v2026.11.16-6cfb46e-89-gb739b6a-dirty",
+    "promptVersion": "6c264f4395c53c07",
+    "completedSessions": 16,
+    "failedSessions": 1,
+    "failedDetail": "workplace/cold 第 38 轮服务进程退出，BullMQ 重跑为同角色同模式新会话；失败场次 38 轮不计入质量样本",
+    "completedTurns": 710,
+    "dbRows": 17,
+    "dbTurns": 748,
+    "batchHealth": {
+      "valid": true,
+      "flags": [],
+      "llmCallRatio": 0.9411764705882353,
+      "fallbackRatio": 0,
+      "counterConsistent": true,
+      "totalSessions": 17
+    }
+  },
+  "transcriptAudit": {
+    "scope": "16 completed sessions / 710 counselor + visitor turns",
+    "visitorMessages": 710,
+    "counselorMessages": 710,
+    "visitorThinkLeak": 0,
+    "counselorThinkLeak": 0,
+    "counselorEmpty": 0,
+    "visibleEmptyAfterStrip": 0,
+    "duplicateCounselorExact": 0,
+    "byMode": {
+      "expert": { "sessions": 8, "turns": 339, "visitorThinkLeak": 0, "counselorEmpty": 0 },
+      "cold": { "sessions": 8, "turns": 371, "visitorThinkLeak": 0, "counselorEmpty": 0 }
+    },
+    "turnDistribution": {
+      "50": 10,
+      "44": 1,
+      "30": 1,
+      "21": 1,
+      "15": 1,
+      "38(failed/interrupted/excluded)": 1
+    }
+  },
+  "wpk": {
+    "command": "corepack pnpm exec tsx bin/batch-report.ts --batch q_35XnpvLWLr-Yocr8kJh --baseline-snapshot data/batch-reports/g3ONzlqSGMVJqkFMF9Lwh.json --format both --fail-on-incomparable",
+    "exitCode": 2,
+    "verdict": "incomparable",
+    "reason": "两批验收判据 (acceptance) 不同",
+    "baselineAcceptance": "f604fdaca19e87b5",
+    "candidateAcceptance": "4474dd5be381d905",
+    "baselineCombined": "491558624aeafdb3",
+    "candidateCombined": "e1d4b3118bf55fa2",
+    "coverage": {
+      "expectedSessions": 17,
+      "includedSessions": 17,
+      "skippedSessions": 0,
+      "totalTurns": 748
+    },
+    "intake": {
+      "global": "FAIL",
+      "failedMetric": "session.zero_motion",
+      "actual": 2,
+      "expertFailures": [
+        "dim.trust.delta_avg 0.38925 > intake 上限",
+        "dim.bond.delta_avg 0.049 > intake 上限"
+      ],
+      "coldFailures": ["session.zero_motion 2/9"],
+      "caveat": "intake-v1/v2 的判据是首次会谈约 12 轮口径；本批是 long 50 轮，全时段 delta 直接套用属口径不匹配，不能作为 50 轮临床质量硬门。"
+    }
+  },
+  "conclusion": {
+    "pipelineQuality": "达标：16/16 个角色×模式组合 completed，fallback=0，<think>=0，空输出=0，重复=0",
+    "clinicalQuality": "不可判定：WP-K 对 96 场基线为 incomparable（acceptance 判据漂移），且无真实督导师双人盲标 + 仲裁；不能写 improved / 达标",
+    "exit4": "未通过 / 不可判定"
+  }
+}

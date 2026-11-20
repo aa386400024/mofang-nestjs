@@ -1,0 +1,65 @@
+{
+  "deliveredAt": "2026-11-17T02:20:22.301Z",
+  "payload": {
+    "handoverKind": "task",
+    "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+    "taskId": "AF-024",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "title": "GUI 派发通道接入（桌面 relay 承载 MiniMax Code）",
+    "status": "submitted",
+    "baselineRef": "04f6524",
+    "dependsOn": ["AF-023", "AF-013"],
+    "priorTasks": [],
+    "policyRefs": ["conventions.md#1.3", "conventions.md#1.4"],
+    "createdAt": "2026-11-17T09:40:00+08:00",
+    "objective": null,
+    "successCriteria": [
+      "dispatch-channel 不再是纯规则函数：GUI 承载方可被真实拉起、定位输入会话、投递任务单并回写 dispatch 记录",
+      "投递失败有明确失败原因与回滚，不把「已粘贴」当成「已送达」",
+      "桌面自动化不可用时降级到文件 Transport，并在 dispatch 记录标注 channel=gui-file-fallback"
+    ],
+    "outOfScope": [],
+    "scope": {
+      "files": ["scripts/orchestration/", "docs/team/agent-orchestration/"],
+      "modules": [],
+      "interfaces": []
+    },
+    "exclusions": [],
+    "requiredSkills": [],
+    "requiredTools": [],
+    "artifacts": [
+      {
+        "name": "GUI 派发通道实施记录",
+        "path": "docs/worklog/completed/phase2.5/af024-gui-dispatch-implementation-2026-11-17.md",
+        "kind": "report"
+      }
+    ],
+    "artifactPointers": {
+      "taskSheet": "docs/worklog/pending/af024-gui-dispatch-task-2026-11-17.md",
+      "deliveryRecord": null,
+      "reply": null
+    },
+    "gates": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "check": "通道决策与回执校验单测全绿",
+        "threshold": "failed=0"
+      },
+      {
+        "command": "ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate",
+        "check": "适配层框架 schema 校验全 PASS",
+        "threshold": "fail=0"
+      }
+    ],
+    "priority": null,
+    "deadline": null,
+    "retention": null,
+    "references": [],
+    "constraints": [],
+    "producedBy": "orchestrator",
+    "producedAt": "2026-11-17T02:20:22.301Z",
+    "evidenceFormat": "命令 + exit code + 用例数；GUI 证据取 dispatch 记录与回执文件时间戳",
+    "agentRole": "orchestrator"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "TD-16",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.563Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/TD-16/task-sheet.md",
+    "sha256": "97c5bc30d8ab0c6b215abfdac706549230e6a0d2ae10f372f07ea032a08ae099",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/td16-life-map-port-pilot-c1-implementation-2026-11-14.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

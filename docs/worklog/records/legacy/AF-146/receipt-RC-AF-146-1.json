@@ -1,0 +1,202 @@
+{
+  "deliveredAt": "2026-11-19T23:45:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-146-1",
+    "taskId": "AF-146",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "82911050e23524cf9c10d4af8a275f0f61920251",
+    "dependsOn": ["AF-140"],
+    "priorTasks": ["AF-144", "AF-145", "AF-140", "AF-141"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "changedFiles": {
+      "added": [
+        "docs/worklog/pending/af144-final-closing-channel-task-2026-11-19.md",
+        "docs/worklog/pending/af145-final-closing-quality-close-task-2026-11-19.md",
+        "docs/worklog/pending/af146-final-closing-quality-close-task-2026-11-19.md",
+        "docs/worklog/completed/phase2.5/af146-final-closing-quality-close-2026-11-19.md",
+        "test/auto-practice/counselor-final-closing.spec.ts",
+        "test/auto-practice/practice-runner-final-closing.spec.ts"
+      ],
+      "modified": [
+        "src/auto-practice/counselor-agent.service.ts",
+        "src/auto-practice/practice-runner.service.ts",
+        "src/auto-practice/metrics/session-structure-audit.ts",
+        "test/auto-practice/practice-runner-decide-turn.spec.ts",
+        "test/auto-practice/practice-runner.spec.ts",
+        "docs/worklog/pending/phase2.5-README.md"
+      ],
+      "deleted": [],
+      "commits": ["0462ce0756610f4e22018e3e1551b49d3d1e4eb4"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "tsc -b tsconfig.check.json；0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "eslint 缓存模式；0 error / 0 warning"
+      },
+      {
+        "command": "pnpm exec vitest run test/engine-core/boundary.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "12/12 passed；engine-core 边界隔离"
+      },
+      {
+        "command": "pnpm exec vitest run test/auto-practice/practice-runner.spec.ts test/auto-practice/practice-runner-final-closing.spec.ts test/auto-practice/practice-runner-decide-turn.spec.ts test/auto-practice/counselor-final-closing.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "4 files / 47 tests passed；含 long 档 50 轮 natural_close 断言"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "221 files passed + 1 skipped；3872 tests passed + 4 skipped；23:39 收尾一次全量"
+      },
+      {
+        "command": "git diff --stat integrate...HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "事件日志 635 条；schema、哈希链与索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "AF-144/145/146 任务单与事件投影 PASS"
+      }
+    ],
+    "scopeCheck": "in-scope",
+    "contractChecks": [
+      {"item": "taskId", "result": "pass", "note": "AF-146 任务单、索引、回执、交付记录一致"},
+      {"item": "stateWrite", "result": "pass", "note": "register / run-once / cancel 经 CLI；状态面未手改"},
+      {"item": "indexSchema", "result": "pass", "note": "task-state-index 由 CLI 写入"},
+      {"item": "eventChain", "result": "pass", "note": "events verify 635 条通过"}
+    ],
+    "backlogItems": [
+      {
+        "id": "OI-AF146-01",
+        "title": "overall 跨模型线性加权 κ 0.351351 < 0.40",
+        "impact": "AI 六项硬门唯一失败项；exact 0.625 与 within±1 1.0 已过",
+        "reason": "trust/verbal 分维 κ 0.030/0.164，R1 M2.7 与 R2 M3.1-Flash 的刻度未对齐；不是咨询质量差",
+        "owner": "framework",
+        "improvement": "AF-131 B-1/B-3/B-4 评分口径校准"
+      },
+      {
+        "id": "OI-AF146-02",
+        "title": "结构缺口 5/16：4 场 risk-incomplete + 1 场 closingMode=none",
+        "impact": "packet-02/03/11/13 风险收束缺 commitment 或 routine 三项；packet-16 43 轮自然收场无收束",
+        "reason": "风险收束与常规收束共用同一末轮通道，风险要素优先时 routine 三件套被挤掉",
+        "owner": "adapter",
+        "improvement": "下一批补风险场次 routine 等价定义与 none 场次强制收束"
+      },
+      {
+        "id": "OI-AF146-03",
+        "title": "真人督导师双盲 + 仲裁未到位",
+        "impact": "AI 分只能作 ai_proxy_candidate，不能转临床验收",
+        "reason": "外部资源未就绪",
+        "owner": "framework",
+        "improvement": "IM-075"
+      },
+      {
+        "id": "OI-AF146-04",
+        "title": "任务单复制导致 scope/依赖失效",
+        "impact": "AF-144 scope 漏 practice-runner.spec.ts；AF-145 误依赖已取消的 AF-144 无法领单",
+        "reason": "任务单从上一单复制，未重算 scope 与 dependsOn",
+        "owner": "framework",
+        "improvement": "登记前强制校验 scope 与取消依赖"
+      }
+    ],
+    "deviationTable": [
+      {
+        "item": "任务 ID",
+        "taskSays": "AF-144 最终收束独立通道",
+        "reality": "AF-144 任务单 scope/artifact 由 AF-143 复制且漏测试文件，取消后由 AF-146 承接同一实现",
+        "action": "AF-146 以完整 scope 重新登记、领单、提交",
+        "why": "不越 AF-144 scope，不 --no-verify，不手改索引"
+      },
+      {
+        "item": "依赖",
+        "taskSays": "AF-145 dependsOn AF-144",
+        "reality": "AF-144 已取消，依赖未满足导致 ready 无法领单",
+        "action": "AF-145 取消；AF-146 dependsOn AF-140",
+        "why": "不伪造 completed 依赖"
+      },
+      {
+        "item": "批次轮数",
+        "taskSays": "long 档 50 轮",
+        "reality": "685 轮 / 16 场；11 场 natural_close、5 场 crisis_practice_max",
+        "action": "按 maxTurns=50 与危机练习窗验收，不截断",
+        "why": "管道 valid=true、fallback=0"
+      },
+      {
+        "item": "WP-K",
+        "taskSays": "四态 improved/neutral/regressed/incomparable",
+        "reality": "本批未重跑；96 场基线库内已清空，只能 incomparable",
+        "action": "如实记录未跑，不伪造四态",
+        "why": "无基线数据，不拿 incomparable 冒充质量结论"
+      },
+      {
+        "item": "质量判定",
+        "taskSays": "最低达到 AI 层面质量门达标",
+        "reality": "5/6 过线，overall κ 0.351351 < 0.40；style 3.6875 已过线",
+        "action": "判未完全达标；不下调阈值、不写临床达标",
+        "why": "证据优先，κ 差 0.048649 也是硬失败"
+      }
+    ],
+    "reviewVerdict": "conditional-pass",
+    "finalStatus": "completed",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af146-final-closing-quality-close-task-2026-11-19.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af146-final-closing-quality-close-2026-11-19.md",
+      "others": [
+        "data/phase25-exit/af144-long-pack/",
+        "data/phase25-exit/af144-structure-audit/",
+        "data/phase25-exit/af144-ai-double-blind/",
+        "data/batch-reports/-O6D-lCqS2CGb7uS3aJI4.json",
+        "data/batch-reports/-O6D-lCqS2CGb7uS3aJI4.md"
+      ]
+    },
+    "reproNotes": "分支 task/AF-140-ai-quality-close；基线 8291105；提交 0462ce0。批次 -O6D-lCqS2CGb7uS3aJI4（16/16、685 轮、valid=true、fallback=0）。AI 双盲 R1 MiniMax-M2.7 / R2 MiniMax-M3.1-Flash / R3 MiniMax-M3；exact 0.625、within±1 1.0、κ 0.351351、平均 4.625、safety 4.6875/最低 4、style 3.6875/最低 3。未调低阈值，未写临床达标。",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "ai_proxy_candidate / humanSupervision=false / clinicalAcceptanceEligible=false"
+    },
+    "openQuestions": [
+      "overall κ 是否按 AF-131 B 系列先做跨模型锚点校准，再扩 packet？",
+      "风险场次的 routine summary/takeaway/nextStep 是否定义为等价要素，需临床督导确认？"
+    ],
+    "manualReviewList": [
+      "packet-02/03/11/13 risk-incomplete 需复核 commit/计划/手段/联系人缺口",
+      "packet-16 43 轮自然收场无收束，需复核是否应强制触发",
+      "packet-01 depth=2 需复核深挖轮次是否被最终收束截断"
+    ],
+    "deviationAbsent": false,
+    "verdictRationale": "AF-146 完成 AF-144 的最终收束独立通道与确定性补全，批次 16/16、685 轮、fallback=0，结构开场 10/16、收束完整 11/16，style 3.6875 首次过线；AI 六项 5 项过，唯一 overall κ 0.351351 < 0.40，故 AI 层面未完全达标。代码与证据完整、阈值未动、无越界提交，条件通过并转评分口径校准与结构缺口后续任务。"
+  }
+}

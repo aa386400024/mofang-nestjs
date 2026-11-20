@@ -86,8 +86,17 @@ export const PROMPT_TEMPLATE_FILES: readonly string[] = [
   '../engine-adapters/rendering/turn-render-orchestrator',
   // 审议 prompt —— 审议开启时会影响模型看到的 system.
   '../engine-adapters/deliberation/deliberation-prompt',
-  // 咨询师 prompt 的代码部分 (输出纪律 / 收尾纪律 / 危机协议).
+  // 咨询师 prompt 的代码部分 (输出纪律 / 一致性 / 收尾纪律 / 危机协议 / 危机稳定化).
+  // ⚠️ AF-091: 这些纪律块其实住在 counselor/builder/prompt-sections/*.ts 里,
+  //   之前只登记了 counselor-agent.service (门面层) —— 纪律块文案改了指纹却不动,
+  //   指纹等于漏报. 现在把真正承载 prompt 文案的文件都登记进来.
   'counselor-agent.service',
+  'counselor/builder/prompt-sections/output-discipline',
+  'counselor/builder/prompt-sections/consistency-discipline',
+  'counselor/builder/prompt-sections/opening-framework',
+  'counselor/builder/prompt-sections/close-discipline',
+  'counselor/builder/prompt-sections/crisis-protocol',
+  'counselor/builder/prompt-sections/crisis-stabilization',
 ];
 
 /**
@@ -164,14 +173,19 @@ export function resolveDistArtifactPath(sourcePath: string, packageRoot: string)
  *   dist/app.js) 读 .js, 两侧**按设计永不相等**; 指纹要回答的是"这批数据是在
  *   **哪份构建产物**的配置下跑的", 因此两侧都读 dist.
  *
- * 回退条件 (唯一): 包根下**没有**构建产物 —— 按当前进程源码口径算 (本地只跑
- *   nest start 没 build 的场景). 服务端本来就跑 dist, 不会进这条分支;
- *   两侧的判断依据是同一个 (dist 产物在不在), 所以不会各走各的.
+ * 回退条件 (唯一): 包根下**没有**构建产物，或构建产物**不完整**（例如新增了
+ *   prompt 模板但还没 build）—— 按当前进程源码口径算 (本地只跑 nest start
+ *   没 build 的场景). 服务端本来就跑 dist, 不会进这条分支;
+ *   两侧的判断依据是同一个 (dist 产物在不在、清单全不全), 所以不会各走各的.
  *
  * @param currentModulePath 当前模块自身路径 (单测可注入)
+ * @param templateFiles 模板清单 (缺省 = PROMPT_TEMPLATE_FILES)
  * @returns 读取口径
  */
-export function resolveFingerprintSource(currentModulePath: string = fileURLToPath(import.meta.url)): FingerprintSourceTarget {
+export function resolveFingerprintSource(
+  currentModulePath: string = fileURLToPath(import.meta.url),
+  templateFiles: readonly string[] = PROMPT_TEMPLATE_FILES,
+): FingerprintSourceTarget {
   const currentDir = dirname(currentModulePath);
   const currentExtension = extname(currentModulePath);
   const packageRoot = findPackageRoot(currentDir);
@@ -179,7 +193,10 @@ export function resolveFingerprintSource(currentModulePath: string = fileURLToPa
     const distDir = resolveDistArtifactPath(currentDir, packageRoot);
     if (distDir) {
       const distSelf = join(distDir, `${basename(currentModulePath, currentExtension)}.js`);
-      if (existsSync(distSelf)) {
+      // dist 必须**完整覆盖当前清单**：新增模板还没 build 时，缺一个文件就整体
+      // 回退源码口径，避免 computePromptVersion 直接 unknown（开发期无法验证）。
+      const distComplete = templateFiles.every((name) => existsSync(join(distDir, `${name}.js`)));
+      if (existsSync(distSelf) && distComplete) {
         return { baseDir: distDir, extension: '.js', mode: 'dist' };
       }
     }

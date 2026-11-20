@@ -14,18 +14,30 @@
  */
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { PATHS } from './state-store.mjs';
+import { PATHS, REPO_ROOT } from './state-store.mjs';
 
 /** 文件名安全化：去除路径分隔符与控制字符。 */
 function safeName(value) {
   return String(value ?? 'unnamed').replace(/[\\/:*?"<>|\s]+/g, '-');
 }
 
+/**
+ * 交接件指针统一为仓内相对路径（AF-024 评审 §25）：落盘仍在绝对路径，
+ * 但记录里只存仓内正斜杠相对指针，避免把本机目录布局带进快照与看板数据。
+ */
+function toRepoPointer(absPath) {
+  const posixAbs = absPath.replace(/\\/g, '/');
+  const posixRoot = REPO_ROOT.replace(/\\/g, '/');
+  if (posixAbs.startsWith(`${posixRoot}/`)) return posixAbs.slice(posixRoot.length + 1);
+  return posixAbs;
+}
+
 function writeHandover(dir, fileName, payload) {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   const record = { deliveredAt: new Date().toISOString(), payload };
-  writeFileSync(join(dir, fileName), `${JSON.stringify(record, null, 2)}\n`, 'utf8');
-  return join(dir, fileName);
+  const absPath = join(dir, fileName);
+  writeFileSync(absPath, `${JSON.stringify(record, null, 2)}\n`, 'utf8');
+  return toRepoPointer(absPath);
 }
 
 /**

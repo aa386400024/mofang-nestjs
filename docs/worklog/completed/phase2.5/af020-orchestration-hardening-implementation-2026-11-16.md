@@ -28,10 +28,19 @@
 2. `gh run list --workflow ci.yml --branch integrate` 轮询当前 SHA 的 CI 结论（最长 15 分钟）：未出现 / `in_progress` 继续等待，失败立即拒绝，`completed/success` 才放行。
 3. `git fetch origin master integrate --tags` → `checkout -B master origin/master` → 若 `master` 尚未包含 `integrate`，执行 `merge --no-ff` → 校验 `master` 工作树与 `integrate` 完全一致（`git diff --quiet`）；此时只在本地合并，不 push。
 4. `docker login ghcr.io` + `docker build/push`，镜像 `ghcr.io/<repo>:<tag>` 与 `:latest`；镜像成功后才 `git push origin master`，避免 master 先于制品推进。
-5. tag 采用 `vYYYY.MM.DD-<sha7>`；同 tag 已存在时只允许指向同一 commit，否则失败；GitHub Release 已存在则跳过。tag 与 Release 均排在镜像成功之后，失败重跑可幂等补完。权限为 `contents: write` + `packages: write` + `actions: read`（`gh run list` 查询 CI 必需）。
+5. tag 采用 `vYYYY.MM.DD-<sha7>`（短 SHA 来自 `integrate` 发布源）；tag 对象指向 `master` 发布合并提交，该提交工作树与 CI 验证过的 `integrate` SHA 完全一致。同 tag 已存在时只允许指向同一发布提交，否则失败；GitHub Release 已存在则跳过。tag 与 Release 均排在镜像成功之后，失败重跑可幂等补完。权限为 `contents: write` + `packages: write` + `actions: read`（`gh run list` 查询 CI 必需）。
 6. 可选 `deploy` job：`needs: release`、`if: inputs.deploy == true`、`environment: production`；ssh key 写入、`pnpm build`、`printf 'yes-deploy\n' | pnpm deploy:tested`。默认 `deploy=false`，不自动触发。
 
-**未执行的真实动作**：master fast-forward、tag、GitHub Release、GHCR push、生产部署均未在本轮执行。这是 L4 人工冻结边界；流水线已落地，等待人手动触发。不能把“workflow 文件存在”写成“已发布”。
+> **当前口径（AF-022 起）**：上述“本地 merge 后 `git push origin master`”已被替换为 release 分支 + dispatch CI + PR 合并；本节保留 L4 首次执行历史，不代表当前 `release.yml` 行为。现行流程见 [AF-022 交付记录](af022-release-protection-compatible-implementation-2026-11-17.md)。
+
+**L4 实际执行（2026-11-16）**：
+
+- 首次 run `43894869205` 在 `Fast-forward master locally` 步骤失败。根因：`master` 含 PR 合并提交，与 `integrate` 不是 fast-forward 关系，`merge --ff-only` 无法成立；流水线改为 `merge --no-ff` 并增加 `git diff --quiet` 树一致校验。
+- 第二次 run `43895793062` 长期 `queued` 且 API 取消返回 409；同窗口 CI 能正常执行，判定为旧 concurrency 组卡死。保留“同 ref 串行”语义，将组名重置为 `release-publish-${{ github.ref }}`。
+- 最终 run [`43901276012`](https://github.com/aa386400024/mofang-nestjs/actions/runs/43901276012) 全步骤 success：CI 门禁 → 本地合并 → GHCR 双 tag 推送 → master 推送 → annotated tag → GitHub Release。
+- 发布结果：`master` = `665b19176066155c16a51950bf57482c9329beae`；tag `v2026.11.16-6cfb46e` 指向该 master 发布提交；GitHub Release 已发布；GHCR package `mofang-nestjs` 为 public。
+- GitHub 的 `workflow_dispatch` 要求 workflow 文件存在于默认分支。发布前临时把默认分支切到 `integrate` 以暴露工作流，发布成功后已恢复 `master`。
+- `deploy=false`，生产部署未执行；需要时再以 `deploy=true` 人工触发。
 
 ### 1.3 P2 · 状态索引事件溯源
 
@@ -47,9 +56,11 @@
 - 回填：36 条归档 ×（created + archived）= 72 条基线事件，固定 `at=2026-11-16T00:00:00.000Z`、`by=AF-020-backfill`；日志非空时拒绝重复回填。
 - AF-020 自身经 `events create` + `events archive` 追加 2 条事件，最终日志 74 条、归档 37 条、说明 12 条。
 
-### 1.4 适配层语义取舍
+### 1.4 适配层语义取舍（2026-11-17 已对齐框架）
 
-框架官方投影在 `archived` 事件上只保留 `rec.status`；本适配层允许 scheduler 把非终态任务（如 `working`）直接归档为 `rejected`，因此归档事件携带 `to=rejected`，投影以事件 `to` 落终态。该取舍保证“归档后的最终状态”可读，且 `archived` 在框架 schema 中本就豁免迁移合法性校验；已在 `event-store.mjs` 顶部注释与本记录留痕，后续若框架定义统一归档投影口径，再对齐。
+~~框架官方投影在 `archived` 事件上只保留 `rec.status`；本适配层允许 scheduler 把非终态任务（如 `working`）直接归档为 `rejected`，因此归档事件携带 `to=rejected`，投影以事件 `to` 落终态。~~
+
+**2026-11-17 收口**：已按框架 `state_projection.py` 口径改为「归档动作不改写状态」——投影落事件前 `rec.status`（必须终态），`to` 仅供 schema 表达且必须等于当前终态。scheduler 归档前先沿 `TRANSITIONS` BFS 补齐合法迁移链（如 `working → submitted → completed`），`deriveEvents` 同步合成闭合事件；`archiveTaskEntry` / `archiveTask` / `buildArchivedEvent` 均拒绝非终态或改写终态。对应测试新增「归档非终态任务先补迁移链」断言。
 
 ## 2. 证据
 
@@ -64,7 +75,10 @@
 | 全量单测 / Lint / Typecheck | 见 §2.1                                                                                                        | 全部 exit 0                                                                             |
 | 快照与看板                  | `pnpm orchestration:snapshot`                                                                                  | 归档 37 / 说明 12 / 改进台账 34 / 工具审计 13；快照与数据源同步                         |
 | 本批 CI                     | push `integrate` → CI run [43885756756](https://github.com/aa386400024/mofang-nestjs/actions/runs/43885756756) | 8/8 success（含 Contracts）；0 warning / 0 error 注解，仅 GitHub `ubuntu-latest` notice |
-| 本批 CI                     | 待本轮 push 后回填                                                                                             | 待回填                                                                                  |
+| CI 并行化后                 | push `integrate` → CI run [43908742889](https://github.com/aa386400024/mofang-nestjs/actions/runs/43908742889) | 8/8 success；墙钟 **129s（2 分 09 秒）**；各 job 同步 start +3~5s，最长 Coverage 124s   |
+| L4 首次发布失败             | Release run [43894869205](https://github.com/aa386400024/mofang-nestjs/actions/runs/43894869205)               | 步骤 11 `Fast-forward master locally` 失败；master 与 integrate 非 ff 关系              |
+| L4 卡队列                   | Release run [43895793062](https://github.com/aa386400024/mofang-nestjs/actions/runs/43895793062)               | 长期 queued；API cancel/force-cancel 均 409；重置 concurrency 组后解除                  |
+| L4 最终发布                 | Release run [43901276012](https://github.com/aa386400024/mofang-nestjs/actions/runs/43901276012)               | success；master `665b191`、tag `v2026.11.16-6cfb46e`、Release 已发布、GHCR public       |
 
 ### 2.1 收尾闸门
 
@@ -74,7 +88,7 @@
 | Lint      | `pnpm lint`      | exit 0（0 error / 0 warning）                            |
 | Typecheck | `pnpm typecheck` | exit 0                                                   |
 
-> 首轮“全量 + lint/typecheck 并发”时 `test/admin-debug/wp38-debug-session-resume.spec.ts` ③ 触发 30s 超时；该 spec 单独复跑 10/10、100ms 通过，随后独占全量重跑 `3509 passed / 8 skipped`，判定为并发负载 flake，与本批改动无因果关系。已登记 `IM-034`（候选、tech-debt）跟踪显式 timeout / 并发治理，不在本单就地修改。
+> 首轮“全量 + lint/typecheck 并发”时 `test/admin-debug/wp38-debug-session-resume.spec.ts` ③ 触发 30s 超时；该 spec 单独复跑 10/10、100ms 通过，判定为并发负载 flake。2026-11-17 已按 IM-034 根治：改为 `awaitPendingTitleGeneration()` 等待服务登记的异步标题任务，删除固定 30s 轮询；全量收尾闸门 `3509 passed / 8 skipped`、23.79s，无超时。
 
 ## 3. 范围核对
 
@@ -94,8 +108,10 @@
 
 ## 5. 遗留与另案
 
-- **P1 真实发布未执行**：master 合并、tag、Release、GHCR push、生产部署均需人工 `workflow_dispatch`；本单只交付流水线。首次触发前需确认 `DEPLOY_HOST` / `DEPLOY_SSH_KEY` secret 与 `production` environment 已配置。
-- **框架官方投影与适配层归档语义差异**：见 §1.4；已留注释与记录，未强行改框架仓。
-- **`state/journal.jsonl` 体量**：当前 74 条可忽略；长期高频迁移后需按框架 retention 策略分片，不在本单范围。
-- **`master` 未受保护**：Release workflow 可直接 push master；这符合当前单人仓现实，但若后续多人协作，应先开分支保护并把 Release 改为 PR/审批流。
-- 无 AF-020 范围内未闭环事项。
+- **P1 真实发布已执行一次**：2026-11-16 以 `deploy=false` 完成 master 合并、tag、Release、GHCR；生产部署仍未执行。首次生产部署前需确认 `DEPLOY_HOST` / `DEPLOY_SSH_KEY` secret 与 `production` environment 已配置，再人工 `deploy=true` 触发。
+- **框架官方投影与适配层归档语义已对齐（2026-11-17）**：见 §1.4；归档不再改写终态，非终态任务先补齐合法迁移链。
+- **`state/journal.jsonl` 长期保留已落地（2026-11-17）**：新增 `events rotate` 分段 + gzip 归档，事件逐字保留、跨段哈希链连续；当前 74 条已归档为 `state/journal-archive/journal-000001-000074.jsonl.gz`，活动日志重建为空。
+- **`master` 已受保护（2026-11-17）**：classic branch protection，12 项必需检查、strict、enforce_admins、禁 force push / 删除、要求会话解决；因 personal repo ruleset 不允许 GitHub Actions bypass，保留 Release `GITHUB_TOKEN` 直推通道，未强制 PR。
+- **IM-034 已修复（2026-11-17）**：WP38 ③ 不再用 30s 轮询等 fire-and-forget 标题落盘，改为 `DebugSessionService.awaitPendingTitleGeneration()` 等待登记的异步任务；并发下不再与文件写竞态。
+- **CI 再提速（2026-11-17）**：Docker build 接 GHA 分层缓存；Coverage 改 3 片采集 + `Coverage Gate` 合并后统一阈值；TypeScript `--incremental` + buildinfo 缓存；ESLint `--cache-strategy content` + pnpm store 路径修正；稳态 CI 111s。
+- **生产部署仍未执行**：用户明确暂缓；首次生产部署前需确认 secrets / production environment。

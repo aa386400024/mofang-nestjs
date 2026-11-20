@@ -434,4 +434,37 @@ describe('WP8-B · 流式渲染状态机 (单一实现)', () => {
       expect(adapter.health()['backup']?.consecutiveFailures).toBe(0);
     });
   });
+
+  describe('AF-106 · 推理块零泄漏', () => {
+    it('`<think>` 标签被拆到多个 chunk 时, 推理内容不进 onDelta / 最终文本', async () => {
+      const caller = new StubStreamCaller([
+        {
+          kind: 'chunks',
+          deltas: ['<thi', 'nk>我在想她为什么离开', '，还是别说。', '</thi', 'nk>我最近', '有点累。'],
+        },
+      ]);
+      const adapter = new LlmRenderAdapter({ caller, config: buildConfig([{ id: 'primary' }]) });
+      const { deltas, onDelta } = collector();
+
+      const outcome = await adapter.streamRender(buildSpec(), { onDelta });
+
+      expect(outcome.degraded).toBe(false);
+      expect(outcome.text).toBe('我最近有点累。');
+      expect(deltas.join('')).toBe('我最近有点累。');
+      expect(deltas.join('')).not.toContain('我在想');
+    });
+
+    it('整轮只有推理块 → 没有可见台词, 按失败切备并走兜底句', async () => {
+      const caller = new StubStreamCaller([{ kind: 'chunks', deltas: ['<think>全是推理', '没有台词。</think>'] }]);
+      const adapter = new LlmRenderAdapter({ caller, config: buildConfig([{ id: 'primary' }]) });
+      const { deltas, onDelta } = collector();
+
+      const outcome = await adapter.streamRender(buildSpec(), { onDelta });
+
+      expect(outcome.degraded).toBe(true);
+      expect(outcome.text).toBe(FALLBACK_UTTERANCE);
+      expect(deltas).toEqual([]);
+      expect(adapter.health()['primary']?.consecutiveFailures).toBe(1);
+    });
+  });
 });

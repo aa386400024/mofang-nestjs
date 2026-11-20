@@ -1,0 +1,147 @@
+{
+  "deliveredAt": "2026-11-18T04:08:00Z",
+  "payload": {
+    "receiptId": "RC-AF-077-1",
+    "taskId": "AF-077",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "e381112b05ccf31988aa8316c30330b3d059e8b3",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af077-pr-release-conditional-task-2026-11-18.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af077-pr-release-conditional-2026-11-18.md",
+      "reply": null,
+      "others": [
+        "AF-076 CI 门口径修正：docs/worklog/completed/phase2.5/af076-gate-conditional-merge-2026-11-18.md",
+        "AF-075 conditional-pass durable 回执：docs/worklog/pending/archive/AF-075-receipt-RC-AF-075-1.json"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/pending/af077-pr-release-conditional-task-2026-11-18.md",
+        "docs/worklog/completed/phase2.5/af077-pr-release-conditional-2026-11-18.md"
+      ],
+      "modified": [
+        "scripts/orchestration/pr-release.mjs",
+        "scripts/orchestration/__tests__/orchestration.spec.mjs"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": []
+    },
+    "gateResults": [
+      {
+        "command": "corepack pnpm exec vitest run scripts/orchestration/__tests__/orchestration.spec.mjs",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "566ms",
+        "note": "241 tests passed / 0 failed"
+      },
+      {
+        "command": "corepack pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 100s（缓存开启）",
+        "note": "0 error / 0 warning；scripts 段覆盖生效；仅 pnpm engine WARN"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "待交付后复核",
+        "note": "交付后复核"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "待交付后复核",
+        "note": "交付后复核"
+      }
+    ],
+    "reproNotes": "AF-077 修复的是本地 pr-release 与 CI 门的口径漂移：两者现在都调用 ci-task-gate.mjs 的 mergeableDurableReceipts；conditional-pass 仍需无人工复核项且 backlog 每条有编号。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "任务单、交付记录、回执均为 AF-077"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register → promote → run-once；未手改索引/日志"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 scope 覆盖 pr-release、单测与交付记录"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "回执摄入后由 CLI 归档；events verify 见复核"
+      },
+      {
+        "item": "merge-gate-single-source",
+        "result": "pass",
+        "note": "本地合并门复用 ci-task-gate 的 mergeableDurableReceipts，消除第二份实现"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "六组机读字段标记均在交付记录出现；reviewVerdict=passed"
+    },
+    "backlogItems": [],
+    "openQuestions": [
+      "AF-075 的 IM-053（连续长跑 / stale-ack 实战）仍需下一轮真实执行任务验证，本单不代签"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "复用范围",
+        "taskSays": "只换判定函数",
+        "reality": "不补齐字段判不出人工复核项与遗留编号",
+        "action": "同时补齐回执五字段读取",
+        "why": "让共用判定真正可用"
+      },
+      {
+        "item": "测试构造",
+        "taskSays": "直接构造内存回执",
+        "reality": "需要覆盖 readdirSync / JSON 解析路径",
+        "action": "临时目录落盘 durable 回执再调用",
+        "why": "贴近真实合并门"
+      },
+      {
+        "item": "错误文案",
+        "taskSays": "保留旧文案",
+        "reality": "旧文案误导演示必须 passed",
+        "action": "改为两种合法形态并列",
+        "why": "运维可读"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "单测 241 项全绿，lint 0 error / 0 warning；本地合并门与 CI 门共用同一判定，conditional-pass 仍受人工复核项与遗留编号约束；无新增遗留。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

@@ -1,0 +1,348 @@
+{
+  "deliveredAt": "2026-11-20T02:02:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-152-1",
+    "taskId": "AF-152",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "f5e08a8b572f08286430cab80971509a9d81dcd5",
+    "dependsOn": [],
+    "priorTasks": [
+      "AF-151",
+      "AF-150",
+      "AF-149",
+      "AF-148",
+      "AF-147",
+      "AF-146",
+      "AF-131"
+    ],
+    "policyRefs": [
+      "conventions.md#1.3"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "changedFiles": {
+      "added": [
+        "data/phase25-exit/af152-af144-out/ai-agreement.json",
+        "data/phase25-exit/af152-af144-out/ai-arbitration.csv",
+        "data/phase25-exit/af152-af144-out/ai-final-ratings.csv",
+        "data/phase25-exit/af152-af144-out/ai-provenance.json",
+        "data/phase25-exit/af152-af144-out/ai-report.md",
+        "data/phase25-exit/af152-af144-out/ratings-rater-1.csv",
+        "data/phase25-exit/af152-af144-out/ratings-rater-2.csv",
+        "data/phase25-exit/af152-af144-pack/blind-map.json",
+        "data/phase25-exit/af152-af144-precaps/ai-agreement.json",
+        "data/phase25-exit/af152-af144-precaps/ai-arbitration.csv",
+        "data/phase25-exit/af152-af144-precaps/ai-final-ratings.csv",
+        "data/phase25-exit/af152-af144-precaps/ai-provenance.json",
+        "data/phase25-exit/af152-af144-precaps/ai-report.md",
+        "data/phase25-exit/af152-af144-precaps/ratings-rater-1.csv",
+        "data/phase25-exit/af152-af144-precaps/ratings-rater-2.csv",
+        "data/phase25-exit/af152-cal96-out/ai-agreement.json",
+        "data/phase25-exit/af152-cal96-out/ai-arbitration.csv",
+        "data/phase25-exit/af152-cal96-out/ai-final-ratings.csv",
+        "data/phase25-exit/af152-cal96-out/ai-report.md",
+        "data/phase25-exit/af152-cal96-out/ratings-rater-1.csv",
+        "data/phase25-exit/af152-cal96-out/ratings-rater-2.csv",
+        "data/phase25-exit/af152-cal96-pack/blind-map.json",
+        "data/phase25-exit/af152-cal96-precaps/ai-agreement.json",
+        "data/phase25-exit/af152-cal96-precaps/ai-arbitration.csv",
+        "data/phase25-exit/af152-cal96-precaps/ai-final-ratings.csv",
+        "data/phase25-exit/af152-cal96-precaps/ai-provenance.json",
+        "data/phase25-exit/af152-cal96-precaps/ai-report.md",
+        "data/phase25-exit/af152-cal96-precaps/ratings-rater-1.csv",
+        "data/phase25-exit/af152-cal96-precaps/ratings-rater-2.csv",
+        "docs/worklog/completed/phase2.5/af152-quality-admin-2026-11-20.md",
+        "docs/worklog/pending/relay-response-AF152-20261120-0149.md"
+      ],
+      "modified": [
+        "admin-dashboard/pnpm-lock.yaml",
+        "admin-dashboard/README.md",
+        "admin-dashboard/src/api/client.ts",
+        "admin-dashboard/src/api/types.ts",
+        "admin-dashboard/src/App.vue",
+        "admin-dashboard/src/components/DebugTracePanel.vue",
+        "admin-dashboard/src/i18n/locales/en.ts",
+        "admin-dashboard/src/i18n/locales/zh-CN.ts",
+        "admin-dashboard/src/views/AutoPractice.vue",
+        "admin-dashboard/src/views/CharacterDetail.vue",
+        "admin-dashboard/src/views/CharactersList.vue",
+        "admin-dashboard/src/views/CostBoard.vue",
+        "admin-dashboard/src/views/Dashboard.vue",
+        "admin-dashboard/src/views/EvalReports.vue",
+        "admin-dashboard/src/views/GateDecisions.vue",
+        "admin-dashboard/src/views/ParamCalibrator.vue",
+        "admin-dashboard/src/views/SessionDetail.vue",
+        "admin-dashboard/src/views/SessionsList.vue",
+        "bin/ai-double-blind.ts",
+        "docs/worklog/pending/af152-quality-admin-task-2026-11-20.md",
+        "docs/worklog/pending/phase2.5-README.md",
+        "src/admin-debug/admin-debug.controller.ts",
+        "src/auto-practice/metrics/ai-double-blind.ts",
+        "test/admin-debug/wp26-admin-role-guard.spec.ts",
+        "test/auto-practice/ai-double-blind.spec.ts"
+      ],
+      "deleted": [],
+      "commits": [
+        "500d633b37c7186871c6e00671c0ce825b180067",
+        "70f80281bcb31eca75b792811db738487d8cb238",
+        "526ebb80c55053f717ea6d808266644711576eaf",
+        "2cfa96abb7b22bce5bb5c9f1263a54f79e50053d",
+        "e4ffb6dd0f3681c07248fa72d6c4cacbcb263338"
+      ]
+    },
+    "gateResults": [
+      {
+        "exitCode": 0,
+        "command": "pnpm typecheck",
+        "errors": 0,
+        "note": "tsc -b tsconfig.check.json；01:56 通过",
+        "warnings": 0
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm lint",
+        "errors": 0,
+        "note": "src/test/bin + scripts；0 error / 0 warning",
+        "warnings": 0
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm exec vitest run test/auto-practice/ai-double-blind.spec.ts test/engine-core/boundary.spec.ts",
+        "errors": 0,
+        "note": "2 files / 41 tests passed（29 + 12）",
+        "warnings": 0
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm --dir admin-dashboard build",
+        "errors": 0,
+        "note": "含 vue-tsc；vite build 2.41s，exit 0",
+        "warnings": 0
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm test",
+        "errors": 0,
+        "note": "221 files passed + 1 skipped；3886 tests passed + 4 skipped；23.58s；首轮 1 个并行超时，单跑与复跑通过，登记 flaky",
+        "warnings": 0
+      },
+      {
+        "exitCode": 0,
+        "command": "pnpm orchestration:preflight",
+        "errors": 0,
+        "note": "ORCH-GATE PASS task=- files=0 covered=0（提交钩子已过；收尾复核）",
+        "warnings": 0
+      },
+      {
+        "exitCode": 0,
+        "command": "node scripts/orchestration/cli.mjs validate --sheet docs/worklog/pending/af152-quality-admin-task-2026-11-20.md",
+        "errors": 0,
+        "note": "AF-152 任务单 PASS；运行时任务单与事件链全 PASS",
+        "warnings": 0
+      },
+      {
+        "exitCode": 0,
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "errors": 0,
+        "note": "事件日志 661 条；schema、哈希链与索引投影一致",
+        "warnings": 0
+      },
+      {
+        "exitCode": 0,
+        "command": "git diff --name-only f5e08a8 -- src/engine-core",
+        "errors": 0,
+        "note": "0 行，src/engine-core 零 diff",
+        "warnings": 0
+      }
+    ],
+    "scopeCheck": "in-scope",
+    "contractChecks": [
+      {
+        "result": "pass",
+        "item": "taskId",
+        "note": "AF-152 任务单、索引、回执、交付记录一致"
+      },
+      {
+        "result": "pass",
+        "item": "stateWrite",
+        "note": "register / promote / run-once 均经 CLI；状态面未手改"
+      },
+      {
+        "result": "pass",
+        "item": "indexSchema",
+        "note": "task-state-index 由 CLI 写入"
+      },
+      {
+        "result": "pass",
+        "item": "eventChain",
+        "note": "events verify 661 条通过"
+      },
+      {
+        "result": "pass",
+        "item": "taskSheetEncoding",
+        "note": "UTF-8 无 BOM、LF；六组机读标记逐字出现"
+      },
+      {
+        "result": "pass",
+        "item": "thresholdFreeze",
+        "note": "0.40 / 3.50 / safety≥3 未下调"
+      },
+      {
+        "result": "pass",
+        "item": "engineCoreBoundary",
+        "note": "src/engine-core 零 diff"
+      }
+    ],
+    "backlogItems": [
+      {
+        "reason": "开场缺项 7 / 危机无计划 5 / 两条同命中 2；词面规则显式化暴露隐性不一致",
+        "owner": "framework",
+        "title": "AF-146 safety 硬门封顶后失败（3 个 packet <3）",
+        "improvement": "内容级开场/危机计划校验 + 新批次复评；不下调 safety≥3",
+        "id": "OI-AF152-01",
+        "impact": "Phase 2.5 出口④ AI 质量门 4/6，未达标"
+      },
+      {
+        "reason": "仅 8 个 characterSlug，未满足 ≥24 独立簇；跨模型刻度差",
+        "owner": "framework",
+        "title": "96 场 overall κ 0.365854 < 0.40",
+        "improvement": "扩 ≥24 独立角色簇 / ≥48 packet 且覆盖 ≥3 profile；不重复 session 凑 n",
+        "id": "OI-AF152-02",
+        "impact": "P(κ̂≥0.40) 约 38%，点估计未过门"
+      },
+      {
+        "reason": "逐维锚点与评分员刻度未对齐",
+        "owner": "framework",
+        "title": "trust κ 0.194508、verbal κ 0.078891",
+        "improvement": "逐维锚点校准与刻度对齐；0.40 不动",
+        "id": "OI-AF152-03",
+        "impact": "overall 两个主要拖累项"
+      },
+      {
+        "reason": "封顶压缩方差",
+        "owner": "framework",
+        "title": "safety 封顶后 κ 机械升高",
+        "improvement": "报告与看板成对展示封顶前/后 κ",
+        "id": "OI-AF152-04",
+        "impact": "易被误读为 safety 评分可靠"
+      },
+      {
+        "reason": "只有 AI proxy",
+        "owner": "framework",
+        "title": "真人督导师双盲 + 仲裁缺位",
+        "improvement": "真人到位后替换 R1/R2/R3 适配器",
+        "id": "OI-AF152-05",
+        "impact": "不能进入临床验收"
+      },
+      {
+        "reason": "本机无完整后端环境",
+        "owner": "framework",
+        "title": "admin 未在真实后端 + DB 环境人工冒烟",
+        "improvement": "部署环境走创建→发轮→恢复→重命名→关闭→删除→校准页读快照",
+        "id": "OI-AF152-06",
+        "impact": "页面级运行态未验"
+      },
+      {
+        "reason": "222 worker 并行下 10s 写文件超时",
+        "owner": "framework",
+        "title": "debug-session-persistence 全量并行偶发超时",
+        "improvement": "单跑稳定；登记测试基础设施 flaky，不放宽业务断言",
+        "id": "OI-AF152-07",
+        "impact": "全量首轮 1 次失败"
+      },
+      {
+        "reason": "candidate 级结构证据",
+        "owner": "adapter",
+        "title": "safety 封顶只做词面规则",
+        "improvement": "后续加内容级校验，不把承诺词当安全计划",
+        "id": "OI-AF152-08",
+        "impact": "不能语义判定安全计划质量"
+      }
+    ],
+    "deviationTable": [
+      {
+        "why": "不改写已归档终态，不手改状态面",
+        "item": "任务编号",
+        "action": "AF-152 以 executor 承接；priorTasks 保留链",
+        "taskSays": "AF-149 直接做",
+        "reality": "AF-149/150/151 因 scope-domain-conflict 连续 reissue"
+      },
+      {
+        "why": "路由测试必须跟随新端点；证据必须可追溯",
+        "item": "范围",
+        "action": "任务单 scope 显式补齐",
+        "taskSays": "评分三文件 + admin",
+        "reality": "增加路由清单测试、六组 data、回执、README/锁文件"
+      },
+      {
+        "why": "不把口径显式化粉饰成质量变好",
+        "item": "safety 结论",
+        "action": "如实判失败并写入 README/记录",
+        "taskSays": "硬上限改后处理",
+        "reality": "AF-146 safety 硬门翻为不通过，整体 4/6"
+      },
+      {
+        "why": "不调阈值、不重复 session 凑簇",
+        "item": "κ 结论",
+        "action": "如实判未达标；诊断量只作诊断",
+        "taskSays": "补 CI / AC1 / α",
+        "reality": "κ 仍 0.365854 <0.40；只有 8 个 characterSlug"
+      },
+      {
+        "why": "原页面只有前端种子值",
+        "item": "admin 参数页",
+        "action": "沙盘与真实值分区，不写回",
+        "taskSays": "读取真实生效配置作只读参考",
+        "reality": "新增后端只读端点 + 前端只读面板"
+      },
+      {
+        "why": "不隐瞒首轮失败",
+        "item": "全量测试",
+        "action": "记录 flaky 与复跑结果",
+        "taskSays": "收尾一次",
+        "reality": "首轮 1 个测试并行超时；单跑与二次全量通过"
+      },
+      {
+        "why": "环境限制，不伪称版本满足",
+        "item": "Node 版本",
+        "action": "记录 WARN，命令全部 exit 0",
+        "taskSays": "仓库要求 >=26",
+        "reality": "当前 v22.23.2，pnpm WARN"
+      }
+    ],
+    "reviewVerdict": "conditional-pass",
+    "finalStatus": "completed",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af152-quality-admin-task-2026-11-20.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af152-quality-admin-2026-11-20.md",
+      "others": [
+        "docs/worklog/pending/relay-response-AF152-20261120-0149.md",
+        "data/phase25-exit/af152-cal96-out/",
+        "data/phase25-exit/af152-cal96-precaps/",
+        "data/phase25-exit/af152-af144-out/",
+        "data/phase25-exit/af152-af144-precaps/",
+        "docs/team/agent-orchestration/agent-cards/executor.json"
+      ]
+    },
+    "reproNotes": "分支 task/AF-152-quality-admin；基线 f5e08a8；实现提交 500d633/70f8028/526ebb8/2cfa96a；文档 e4ffb6d。评分：ai-proxy-v4，safety 封顶后处理，96 场 overall κ 0.365854、16 场 safety 最低 2（硬门失败）。admin：SessionDetail/DebugTracePanel/AutoPractice 实数据化，ParamCalibrator 新增只读 effective-config。",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "ai_proxy_candidate / humanSupervision=false / clinicalAcceptanceEligible=false"
+    },
+    "openQuestions": [
+      "0.40 阈值与 cluster CI 下界是否作为双条件长期口径",
+      "safety 封顶后 3 个 packet <3 是否需要内容级修复后再复评",
+      "96 场仅 8 个 characterSlug，扩簇数据从何而来"
+    ],
+    "manualReviewList": [
+      "AF-146 5/6 -> 4/6 的 safety 翻转必须保留在出口④判读中",
+      "admin 参数页只读快照不得被误当可写回配置",
+      "AF-128 未提交改动不得混入 AF-152"
+    ],
+    "deviationAbsent": false,
+    "verdictRationale": "实现类验收项全部落地：admin 前端实数据化并新增真实生效参数只读端点；评分硬上限后处理、CI/AC1/α、96 场与 16 场复算可复现；闸门全绿、engine-core 零 diff。但 AI 质量门仍 4/6：safety 封顶后 3 个 packet <3、overall κ 0.365854 <0.40；故条件通过，只归档实现与取证，不归档质量达标。"
+  }
+}

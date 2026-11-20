@@ -1,0 +1,50 @@
+// V2026-11-18 治本 (AF-106 · 8 角色池扩展):
+//   钉死 B 类（DB-only）角色的三条契约:
+//     1. 4 条内容行都能装配出来，且与 A 类 4 条一起构成 8 个互不重复的 profile；
+//     2. 每行核心信念带真实陈述与主题，不出现 `unspecified` 占位；
+//     3. 数值 / 台词指纹与本仓权威标定表逐列相等，没有复制第二份基线真相。
+
+import { describe, expect, it } from 'vitest';
+
+import { getBaselineCalibration } from '../../src/engine-adapters/wiring/character/character-baseline-calibration.js';
+import { buildDbOnlyCharacterProfileSeeds } from '../../src/engine-adapters/wiring/character/character-profile.db-only.seed.js';
+import {
+  CHARACTER_PROFILE_SEED_SPECS,
+  deriveCharacterProfileId,
+} from '../../src/engine-adapters/wiring/character/character-profile.seed.js';
+
+describe('AF-106 · 8 角色池', () => {
+  const dbOnly = buildDbOnlyCharacterProfileSeeds();
+
+  it('B 类 4 条与 A 类 4 条合并后是 8 个互不重复的 profile', () => {
+    const aIds = CHARACTER_PROFILE_SEED_SPECS.map((spec) => deriveCharacterProfileId(spec.templateId));
+    const allIds = [...aIds, ...dbOnly.map((seed) => seed.id)];
+
+    expect(dbOnly).toHaveLength(4);
+    expect(allIds).toHaveLength(8);
+    expect(new Set(allIds).size).toBe(8);
+    expect(allIds.every((id) => id.length >= 32)).toBe(true);
+  });
+
+  it('每行核心信念都带真实陈述与主题, 不出现 unspecified 占位', () => {
+    for (const seed of dbOnly) {
+      expect(seed.displayName.length).toBeGreaterThan(0);
+      expect(seed.coreBeliefs.length).toBeGreaterThanOrEqual(2);
+      expect(seed.coreBeliefs.every((belief) => belief.statement.length > 0)).toBe(true);
+      expect(seed.coreBeliefs.every((belief) => belief.theme !== 'unspecified')).toBe(true);
+      expect(seed.underlyingDesires.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it('数值与台词指纹与权威标定表逐列相等', () => {
+    for (const seed of dbOnly) {
+      const row = getBaselineCalibration(seed.templateId);
+      expect(seed.trust).toBe(row.trust);
+      expect(seed.resistance).toBe(row.resistance);
+      expect(seed.emotion).toBe(row.emotion);
+      expect(seed.safety).toBe(row.safety);
+      expect(seed.bond).toBe(row.bond);
+      expect(seed.verbalVoice).toEqual(row.verbalVoice);
+    }
+  });
+});

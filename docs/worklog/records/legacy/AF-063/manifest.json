@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-063",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.639Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-063/task-sheet.md",
+    "sha256": "30893e4afbad4fadf8ba0155254eeb7fbf80f6f009da781d7b505a4c8f5e01e4",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af063-orchestration-squash-title-rework-2026-11-17.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

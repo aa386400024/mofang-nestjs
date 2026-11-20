@@ -1,0 +1,222 @@
+{
+  "deliveredAt": "2026-11-17T12:52:00.000Z",
+  "payload": {
+    "receiptId": "RC-AF-060-1",
+    "taskId": "AF-060",
+    "contextId": "phase2.5-export-evidence",
+    "type": "verification",
+    "baselineRef": "66c186f7176ffaac010113eabdaae50566bd7566",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af060-phase25-exit-evidence-task-2026-11-17.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md",
+      "reply": null,
+      "others": [
+        "旧 96 场报告仅存在于 git HEAD:data/batch-reports/g3ONzlqSGMVJqkFMF9Lwh.json；库内 ap_practice_sessions 计数 0，不作当前证据",
+        "当前唯一批次 uJHgP8uQGeM8Z6HbZY7M5: 8 场 / 94 轮；已有 data/batch-reports/uJHgP8uQGeM8Z6HbZY7M5.json/.md",
+        "WP-K 缺失批次 --batch g3... 实跑 exit 0 + 空 index.md，false-green 已登记 backlog"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/pending/af060-phase25-exit-evidence-task-2026-11-17.md",
+        "docs/worklog/completed/phase2.5/phase2.5-exit-evidence-2026-11-17.md"
+      ],
+      "modified": [
+        "docs/worklog/README.md",
+        "docs/worklog/pending/phase2.5-README.md",
+        "docs/worklog/pending/phase2.5-wp-list-2026-11-08.md"
+      ],
+      "deleted": [],
+      "commits": ["82e4a733992ea7c137ea881bd45498300d16e1fd", "4c4f695d89ce697451c6136f95230341024b3a7e"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / node v22.23.2 / PowerShell",
+        "wallClock": "增量",
+        "note": "tsc -b tsconfig.check.json；0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存",
+        "note": "eslint --cache --cache-strategy content {src,test,bin}/**/*.ts；0 error / 0 warning"
+      },
+      {
+        "command": "pnpm exec vitest run test/engine-core/boundary.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "1.65s",
+        "note": "1 file passed / 12 tests passed / 0 failed"
+      },
+      {
+        "command": "pnpm exec tsx bin/batch-report.ts --batch uJHgP8uQGeM8Z6HbZY7M5 --format both --out %TEMP%\\af060-batch-report-20261117-2040",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "8/8 覆盖 / 94 轮；与仓库既有 uJ 快照 metrics、fingerprint、coverage、zeroMotionBreakdown、lineage 完全一致"
+      },
+      {
+        "command": "pnpm exec tsx bin/batch-report.ts --batch g3ONzlqSGMVJqkFMF9Lwh --format both --out %TEMP%\\af060-batch-report-g3-20261117",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "DEFECT：无库内行时 exit 0 且仅写 123 B index.md，无批次快照；与数据不可用退出契约不符，已登记 AF-060-B1"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "事件日志 242 条；schema urn:agent-collaboration-framework:schema:state-event:1.0.0；哈希链与索引投影一致"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "ORCH-GATE PASS task=AF-060 status=submitted；提交两次均真实过钩，未 --no-verify"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "空；本单未动内核/引擎边界"
+      }
+    ],
+    "reproNotes": "复跑顺序：pnpm typecheck -> pnpm lint -> pnpm exec vitest run test/engine-core/boundary.spec.ts -> WP-K uJ/g3（输出均放 %TEMP%）-> events verify。四态诊断用当前源码 evaluateRegression，base 为 git HEAD:data/batch-reports/g3...json，candidate 为 %TEMP% 的 uJ 快照；结果为 incomparable，不是质量达标。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-060 贯穿任务单、两次提交、交付记录、回执与归档副本"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "任务登记/领单/事件状态均经 scripts/orchestration/cli.mjs；未手改状态面"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 frontmatter 含 contractRef 与 4 条 gates threshold；events verify schema 通过"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "242 条事件哈希链与索引投影一致；本回执摄入后另跑 events verify"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "本仓 commits 只列本单 2 个提交；旧 96 证据与并行产物写 artifactRefs.others/未暂存说明，不冒充本仓提交"
+    },
+    "backlogItems": [
+      {
+        "id": "AF-060-B1",
+        "title": "WP-K 缺失批次 false-green（高）",
+        "detail": "bin/batch-report.ts 对 --batch <id> 无库内行时 exit 0 且输出空 index.md，应按数据不可用 exit 2 或显式失败；补负向用例",
+        "impact": "CI/人工若只看退出码会误判已有报告；必须先修再作为出口取证工具"
+      },
+      {
+        "id": "AF-060-B2",
+        "title": "出口② scenarioType 生产入口未透传（高）",
+        "detail": "BatchBody 无 scenarioType；enqueueBatch 未传入队列；下游 runner/port 已支持可选参数，需补入口与端到端 exam 两次跑一致性",
+        "impact": "生产 HTTP 无法创建 exam 批次，出口②只能停留在单测层"
+      },
+      {
+        "id": "AF-060-B3",
+        "title": "真实督导案例卡转 WP-E dataset（高）",
+        "detail": "psych-cases 12 份 Markdown 与 README 11 份口径漂移；需先对齐，再转成 loadEvalDatasetFromDirectory 需要的 dataset.json / 结构化 supervisor case",
+        "impact": "没有真实结构化验收集，80% 准确率无法正式评测"
+      },
+      {
+        "id": "AF-060-B4",
+        "title": "审议成本小批取证（中）",
+        "detail": "配置 ENGINE_DELIBERATION_ENABLED=true + ENGINE_DELIBERATION_EFFECTIVE_MODE=shadow，跑触发频次/单场审议成本；50 分钟长会单独取样",
+        "impact": "当前 8 场 100% rule_only，出口③无审议成本证据"
+      },
+      {
+        "id": "AF-060-B5",
+        "title": "可比批次与四态基线（中）",
+        "detail": "当前 8 场 engine_version 落后 HEAD 8 个提交、4 角色×2模式×1次；需固定 HEAD、补 96 场或批准新口径，且 baseline+candidate 同时存在",
+        "impact": "单批无四态；旧 96 已清空；不补基线则出口④只能停在不可判"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "本地 MySQL/Redis 启动",
+        "taskSays": "先 bin/dev-up.ps1 起本地 MySQL/Redis",
+        "reality": "脚本真实行为是检查远程 MySQL/Redis、交互式 migration、npm run start:dev；本地 3306/6379 未监听",
+        "action": "未执行脚本；直接对已可达远程 117.72.30.78 做只读取证",
+        "why": "执行脚本不会启动本地库，反而可能触发 migration/重启进程，偏离纯验证边界"
+      },
+      {
+        "item": "96 场四态",
+        "taskSays": "对 96 场批次跑 improved/neutral/regressed/incomparable",
+        "reality": "库内该批次场次 0；WP-K 只输出单批；无 baseline",
+        "action": "只跑单批快照 + 归档快照诊断比较，得 incomparable；不伪造四态",
+        "why": "数据不可复算，硬造结论会违反 WP-K incomparable 纪律"
+      },
+      {
+        "item": "出口④判据",
+        "taskSays": "以 96 场作为出口④质量判读",
+        "reality": "历史记录本身 intake 6/8 未全过；当前 8 场 intake FAIL；真实结构化验收集不存在",
+        "action": "正式判定出口④未通过/核心指标不可判；96 场降级为历史引用",
+        "why": "管道门禁 3/3 不等于临床质量达标"
+      },
+      {
+        "item": "回写范围",
+        "taskSays": "回写 §3.2 出口条件表",
+        "reality": "顶部状态、§3.3、wp-list、worklog 导航仍写 96 场待判读",
+        "action": "一并回写四处，避免与 §3.2 自相矛盾",
+        "why": "单一真相源必须同步，不能只改一张表"
+      },
+      {
+        "item": "闸门范围",
+        "taskSays": "闸门只跑定向 tsc/lint/boundary",
+        "reality": "另跑 events verify 与 preflight 以满足编排交付",
+        "action": "已跑；未跑全量测试",
+        "why": "状态链与提交门是框架强制项，不属于业务全量测试"
+      }
+    ],
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "取证链完整：数据库双源、WP-K 单批复算、8 场逐场/zero_motion 归因、旧 96 历史记录、四态 incomparable 与 WP-E 数据集缺口均有可复现证据；文档四处已按事实回写，历史记录未被改写。两次提交均过 preflight 与 Husky，未跳钩；改动只在 docs/worklog scope。WP-K 缺失批次 false-green 作为高优先级 backlog 另立任务修复，不影响本单取证结论。"
+  }
+}

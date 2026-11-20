@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-058",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.635Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-058/task-sheet.md",
+    "sha256": "ba19dcbddf676f552060bdfdd8b022a0ca17b28bc65e5c33ee14d853ac058a4a",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af058-squash-lifecycle-gate-2026-11-17.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

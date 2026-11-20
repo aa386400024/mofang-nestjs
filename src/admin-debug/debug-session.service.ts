@@ -85,6 +85,7 @@ import {
 } from './debug-session-store.js';
 import {
   buildFallbackTitle,
+  sanitizeDebugSessionTitle,
   DEBUG_SESSION_TITLE_GENERATOR,
   type DebugSessionTitleGenerator,
   type DebugSessionTitleTurn,
@@ -414,6 +415,8 @@ export class DebugSessionService {
   private readonly deliberationWaitMs: number;
   /** 影子审议是否开着 (关着就不必等 —— 等也等不到). */
   private readonly deliberationEnabled: boolean;
+  /** 进程内异步标题生成任务（按 sessionId）；供优雅停机/测试等待副作用落定，不阻塞正常轮次. */
+  private readonly titleTasks = new Map<string, Promise<void>>();
 
   constructor(
     private readonly engine: EngineTurnService,
@@ -586,7 +589,7 @@ export class DebugSessionService {
     const persisted = await this.persistTurn(debugSessionId, text, result.reply, trace, kernelState);
     // 跑满阈值 → 异步起标题 (不阻塞本轮响应).
     if (persisted && persisted.turnCount === DEBUG_SESSION_TITLE_TRIGGER_TURN) {
-      void this.generateTitle(debugSessionId);
+      this.scheduleTitle(debugSessionId);
     }
 
     return { reply: result.reply, trace };
@@ -779,7 +782,12 @@ export class DebugSessionService {
    */
   async listPersistedSessions(): Promise<DebugSessionListItem[]> {
     const summaries = await this.store.list();
-    return summaries.map((summary) => ({ ...summary, active: this.sessions.has(summary.id) }));
+    return summaries.map((summary) => ({
+      ...summary,
+      // 历史脏标题只在投影层清洗，不回写库（AF-155 实测：85 条标题被 <think> 截断）。
+      title: sanitizeDebugSessionTitle(summary.title, summary.createdAt),
+      active: this.sessions.has(summary.id),
+    }));
   }
 
   /**
@@ -837,6 +845,43 @@ export class DebugSessionService {
   /** 当前调试会话数 (观测用). */
   size(): number {
     return this.sessions.size;
+  }
+
+  /**
+   * 等待异步标题生成落定（graceful shutdown / 测试同步副作用用）.
+   *
+   * 为什么需要: 标题生成是 fire-and-forget，生产不应阻塞轮次；但停机或测试若
+   *   直接删临时目录/断言文件，会与后台写文件竞态。把待办任务登记在进程内，
+   *   需要时一次性 drain，避免用固定 sleep 或超时轮询掩盖真实时序。
+   *
+   * @param debugSessionId 只等指定会话；缺省等待当前进程全部标题任务
+   */
+  async awaitPendingTitleGeneration(debugSessionId?: string): Promise<void> {
+    for (;;) {
+      const pending = debugSessionId
+        ? [this.titleTasks.get(debugSessionId)].filter((task): task is Promise<void> => task !== undefined)
+        : [...this.titleTasks.values()];
+      if (pending.length === 0) return;
+      await Promise.all(pending);
+    }
+  }
+
+  /**
+   * 登记一次异步标题生成；同会话已有任务时串行，避免后一轮覆盖前一轮.
+   *
+   * @param debugSessionId 调试会话 id
+   */
+  private scheduleTitle(debugSessionId: string): void {
+    const previous = this.titleTasks.get(debugSessionId) ?? Promise.resolve();
+    const task = previous
+      .then(() => this.generateTitle(debugSessionId))
+      .catch(() => {
+        // generateTitle 内部已兜底并只记 warn；这里兜住串行链，避免 unhandled rejection.
+      });
+    this.titleTasks.set(debugSessionId, task);
+    void task.finally(() => {
+      if (this.titleTasks.get(debugSessionId) === task) this.titleTasks.delete(debugSessionId);
+    });
   }
 
   /**
@@ -1253,7 +1298,7 @@ export function projectDebugSessionDetail(record: DebugSessionRecord): DebugSess
   }
   return {
     id: record.id,
-    title: record.title,
+    title: sanitizeDebugSessionTitle(record.title, record.createdAt),
     titleSource: record.titleSource,
     characterSlug: record.characterSlug,
     characterLabel: record.characterLabel,

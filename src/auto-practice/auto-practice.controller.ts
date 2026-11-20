@@ -14,7 +14,7 @@
 //
 //   鉴权: 与 debug-session.controller 同款 —— AdminRoleGuard (class 级).
 
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards, Logger } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Inject, Param, Post, Put, Query, UseGuards, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { nanoid } from 'nanoid';
 import type { Repository } from 'typeorm';
@@ -22,6 +22,7 @@ import type { Repository } from 'typeorm';
 import { CounselorMode } from './entities/counselor-mode.entity.js';
 import { PracticeBatch } from './entities/practice-batch.entity.js';
 import { PracticeSession } from './entities/practice-session.entity.js';
+import type { ScenarioType } from './inference-fingerprint.service.js';
 import {
   INTAKE_ACCEPTANCE_VERSION,
   INTAKE_ACCEPTANCE_VERSION_HISTORY,
@@ -34,7 +35,13 @@ import { evaluateRegression } from './metrics/regression-evaluator.js';
 import { BATCH_INVALID_WARNING, PracticeBatchHealthService } from './practice-batch-health.service.js';
 import { PracticeQueueService } from './practice-queue.service.js';
 import { PracticeRunnerService } from './practice-runner.service.js';
+import { parseSessionProfile, resolveSessionProfile, type SessionProfileName } from './session-profile.js';
 import { AdminRoleGuard } from '../admin-debug/guards/admin-role.guard.js';
+import { DELIBERATION_SCENARIO_TYPES } from '../engine-adapters/deliberation/deliberation-mode.config.js';
+import {
+  CHARACTER_PROFILE_RESOLVER,
+  type CharacterProfileResolver,
+} from '../engine-adapters/wiring/character/character-profile.resolver.js';
 
 /** 启动单场对练的入参. */
 interface StartSessionBody {
@@ -44,6 +51,13 @@ interface StartSessionBody {
   readonly counselorModeId?: string;
   /** 最大轮数 (缺省 15). */
   readonly maxTurns?: number;
+  /**
+   * 会话档案 (可选; `legacy` / `standard` / `long`; 缺省 legacy).
+   *
+   * ⚠️ 非法值**当场报错**, 不静默回落 legacy —— 拼错的档名会跑出一批
+   *   "看着像长会话"的普通数据, 事后没人查得出来 (与 scenarioType 同款纪律).
+   */
+  readonly sessionProfile?: string;
 }
 
 /** 批量入队的入参. */
@@ -54,8 +68,21 @@ interface BatchBody {
   readonly counselorModeIds?: readonly string[];
   /** 最大轮数. */
   readonly maxTurns?: number;
+  /**
+   * 会话档案 (可选; `legacy` / `standard` / `long`; 缺省 legacy).
+   *
+   * ⚠️ 非法值**当场报错**; 缺省 = legacy (逐字不变的老行为).
+   */
+  readonly sessionProfile?: string;
   /** 每个组合重复几场 (默认 1). */
   readonly repeats?: number;
+  /**
+   * 场景类型 (可选; 取值 `freeform` / `full_simulation` / `exam`).
+   *
+   * ⚠️ **缺省不写**: 不传时 job data 里**不带**该字段, 由 runner 缺省 `full_simulation`
+   *   —— 缺省语义只留一份 (在 runner 里), 入口再写一份就迟早漂移.
+   */
+  readonly scenarioType?: ScenarioType;
 }
 
 /** 模式 CRUD 的入参. */
@@ -79,6 +106,7 @@ export class AutoPracticeController {
     @InjectRepository(PracticeSession) private readonly sessionRepo: Repository<PracticeSession>,
     @InjectRepository(CounselorMode) private readonly modeRepo: Repository<CounselorMode>,
     @InjectRepository(PracticeBatch) private readonly batchRepo: Repository<PracticeBatch>,
+    @Inject(CHARACTER_PROFILE_RESOLVER) private readonly characterResolver: CharacterProfileResolver,
   ) {}
 
   /**
@@ -94,6 +122,18 @@ export class AutoPracticeController {
     if (!characterSlug || !counselorModeId) {
       return { error: 'characterSlug 与 counselorModeId 必填' };
     }
+    // AF-103: 角色存在性前置校验 —— 不在 runner 里才发现「角色不存在」，
+    // 否则会先建场次再失败，留下半截数据与无效证据。
+    const characterCheck = await this.validateCharacterSlugs([characterSlug]);
+    if (characterCheck.error) {
+      return characterCheck;
+    }
+    // AF-091: 会话档案 (缺省 legacy; 非法值当场报错).
+    const profile = this.resolveProfileForRequest(body?.sessionProfile, body?.maxTurns);
+    if (profile.error) {
+      return { error: profile.error };
+    }
+    const sessionProfile = profile.value ?? 'legacy';
     const mode = await this.modeRepo.findOne({ where: { id: counselorModeId, enabled: 1 } });
     if (!mode) {
       return { error: `咨询师模式不存在或未启用: ${counselorModeId}` };
@@ -108,6 +148,7 @@ export class AutoPracticeController {
         characterSlug,
         counselorMode: mode,
         maxTurns: body?.maxTurns,
+        sessionProfile,
         batchId: null,
         practiceSessionId,
       })
@@ -142,22 +183,133 @@ export class AutoPracticeController {
     if (characterSlugs.length === 0 || counselorModeIds.length === 0) {
       return { error: 'characterSlugs 与 counselorModeIds 不能为空' };
     }
+    // AF-103: 批量入队前逐条校验 —— 任何缺失角色整体拒绝，不产生半批任务。
+    const characterCheck = await this.validateCharacterSlugs(characterSlugs);
+    if (characterCheck.error) {
+      return characterCheck;
+    }
+    // 场景类型: 非法值**明确报错**, 不静默回落 `full_simulation` ——
+    //   考核场景走的是"锁版本 / 锁温度 / 逐字复现"红线 (审议恒 `rule_only`),
+    //   把拼错的 `exam` 悄悄跑成 `full_simulation` = 产出一批"看着像考核"的普通数据,
+    //   事后没人查得出来. 宁可当场报错, 也不让脏批次进队列.
+    //   (返回口径与本模块其它校验一致: body 里带 `error` 字段, 不改 HTTP 状态码语义.)
+    const scenario = parseBatchScenarioType(body?.scenarioType);
+    if (scenario.error) {
+      return { error: scenario.error };
+    }
+    // AF-091: 会话档案 (缺省 legacy; 非法值当场报错, 不静默回落).
+    const profile = this.resolveProfileForRequest(body?.sessionProfile, body?.maxTurns);
+    if (profile.error) {
+      return { error: profile.error };
+    }
+    const sessionProfile = profile.value ?? 'legacy';
+    const profileSpec = resolveSessionProfile(sessionProfile);
     const batchId = nanoid();
+    const enqueued = await this.enqueueCombinations({
+      characterSlugs,
+      counselorModeIds,
+      repeats,
+      batchId,
+      // ⚠️ 缺省轮数取自**档案** (legacy = 15, long = 50) —— 显式 maxTurns 优先.
+      maxTurns: body?.maxTurns ?? profileSpec.maxTurns,
+      scenarioType: scenario.value,
+      sessionProfile,
+    });
+    return { batchId, enqueued, sessionProfile };
+  }
+
+  /**
+   * 校验来访者 slug 是否可解析（AF-103）。
+   *
+   * 口径：复用 `CHARACTER_PROFILE_RESOLVER`，即「已审核 + 已上架」的同一真相源。
+   * 缺失角色一次性全部列出后整体拒绝；不做静默跳过，也不在队列里留下半批任务。
+   *
+   * @param slugs 入口传入的角色 slug（已 trim / 去空）
+   * @returns 全部可解析时为空对象；否则返回带缺失清单的 error
+   */
+  private async validateCharacterSlugs(slugs: readonly string[]): Promise<{ readonly error?: string }> {
+    const uniqueSlugs = [...new Set(slugs)];
+    const missing: string[] = [];
+    for (const slug of uniqueSlugs) {
+      const resolved = await this.characterResolver.resolve({ templateId: slug });
+      if (!resolved) {
+        missing.push(slug);
+      }
+    }
+    if (missing.length > 0) {
+      return { error: `来访者角色不存在或不可用: ${missing.join(', ')}` };
+    }
+    return {};
+  }
+
+  /**
+   * 笛卡尔积入队 (每个角色 × 每个模式 × 重复次数).
+   *
+   * 抽出来是为了把 enqueueBatch 的圈复杂度压回阈值内 (eslint complexity ≤ 20).
+   *
+   * @param params 组合参数
+   * @returns 实际入队场次数
+   */
+  private async enqueueCombinations(params: {
+    readonly characterSlugs: readonly string[];
+    readonly counselorModeIds: readonly string[];
+    readonly repeats: number;
+    readonly batchId: string;
+    readonly maxTurns: number;
+    readonly scenarioType?: ScenarioType;
+    readonly sessionProfile: SessionProfileName;
+  }): Promise<number> {
     let enqueued = 0;
-    for (const slug of characterSlugs) {
-      for (const modeId of counselorModeIds) {
-        for (let r = 0; r < repeats; r += 1) {
+    for (const slug of params.characterSlugs) {
+      for (const modeId of params.counselorModeIds) {
+        for (let r = 0; r < params.repeats; r += 1) {
           await this.queue.enqueue({
             characterSlug: slug,
             counselorModeId: modeId,
-            maxTurns: body?.maxTurns ?? 15,
-            batchId,
+            maxTurns: params.maxTurns,
+            batchId: params.batchId,
+            // 只在**显式给了**场景时才写进 job data; 没给就整条省掉 (缺省由 runner 兜).
+            ...(params.scenarioType ? { scenarioType: params.scenarioType } : {}),
+            // 同款: 档案只透传, 缺省由 runner 兜 (legacy).
+            ...(params.sessionProfile === 'legacy' ? {} : { sessionProfile: params.sessionProfile }),
           });
           enqueued += 1;
         }
       }
     }
-    return { batchId, enqueued };
+    return enqueued;
+  }
+
+  /**
+   * 解析入口传来的会话档案, 并校验它与 maxTurns 的组合 (AF-091).
+   *
+   * ⚠️ 为什么"显式 maxTurns 小于最早收尾轮次"要拦:
+   *   自然收尾的闸门是 `轮次 ≥ 档案的 minTurnsBeforeClose`. 若上限只有 15 而档案要 35,
+   *   这场**必然**跑满上限 —— 而调用方以为自己要的是"35 轮后自然收尾".
+   *   与其静默跑出一批 max_turns 结束的场次, 不如当场报错.
+   *
+   * ⚠️ legacy 档**不拦**: 它的缺省行为必须与改动前逐字一致 (老调用方常传 maxTurns=3 跑冒烟).
+   *
+   * @param raw 入口传来的原始档名
+   * @param maxTurns 入口传来的显式轮数上限
+   * @returns 成功时给档名, 失败时给错误信息
+   */
+  private resolveProfileForRequest(
+    raw: string | undefined,
+    maxTurns: number | undefined,
+  ): { readonly value?: SessionProfileName; readonly error?: string } {
+    const parsed = parseSessionProfile(raw);
+    if (parsed.error) {
+      return { error: parsed.error };
+    }
+    const sessionProfile = parsed.value ?? 'legacy';
+    const spec = resolveSessionProfile(sessionProfile);
+    if (sessionProfile !== 'legacy' && maxTurns !== undefined && maxTurns < spec.minTurnsBeforeClose) {
+      return {
+        error: `maxTurns (${maxTurns}) 小于 ${sessionProfile} 档的最早收尾轮次 (${spec.minTurnsBeforeClose}) —— 该组合下自然收尾不可达`,
+      };
+    }
+    return { value: sessionProfile };
   }
 
   /**
@@ -477,6 +629,30 @@ export class AutoPracticeController {
     await this.modeRepo.delete(id);
     return { deleted: true };
   }
+}
+
+/**
+ * 解析批次入口的 `scenarioType` (纯函数; 便于单测).
+ *
+ * ⚠️ **不静默降级**: 非法值直接判非法并给出可选项清单 —— 绝不回落 `full_simulation`.
+ *   考核场景 (`exam`) 恒走 `rule_only` (锁版本 / 锁温度 / 逐字复现), 把拼错的 `exam`
+ *   悄悄跑成普通全真模拟 = 产出一批"看着像考核"的普通数据, 事后没人查得出来.
+ *
+ * ⚠️ **取值清单只有一份**: 用审议侧的权威清单 `DELIBERATION_SCENARIO_TYPES`,
+ *   本文件**不复制第二份枚举** (加场景时只改那一处).
+ *
+ * @param raw 入口原值 (未传 = undefined)
+ * @returns `value` 为合法场景 (未传时**没有** value); 非法时给 `error`
+ */
+function parseBatchScenarioType(raw: unknown): { readonly value?: ScenarioType; readonly error?: string } {
+  if (raw === undefined || raw === null) return {};
+  const value = String(raw).trim();
+  if (!DELIBERATION_SCENARIO_TYPES.includes(value as ScenarioType)) {
+    return {
+      error: `scenarioType 非法：${value || '(空字符串)'}；可选值 ${DELIBERATION_SCENARIO_TYPES.join(' / ')}`,
+    };
+  }
+  return { value: value as ScenarioType };
 }
 
 /**

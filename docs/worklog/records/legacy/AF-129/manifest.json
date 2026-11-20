@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-129",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.705Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-129/task-sheet.md",
+    "sha256": "61a83206f8d65712bb88c658c2db650239444e3720236e9add7fc025d0e66df6",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af129-opening-framework-closeout-2026-11-19.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

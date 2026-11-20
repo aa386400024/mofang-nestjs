@@ -21,20 +21,9 @@ export const SCHEMA_FILES = {
   toolContract: 'tool-contract.schema.json',
   agentCard: 'agent-card.schema.json',
   reviewHandover: 'review-handover.schema.json',
+  receipt: 'receipt.schema.json',
   deliveryPackage: 'delivery-package.schema.json',
   protocolView: 'protocol-view.schema.json',
-};
-
-/** 契约名 → schemaKey（版本对账用）。 */
-const CONTRACT_SCHEMA_KEY = {
-  'task-sheet': 'taskSheet',
-  'task-state-index': 'taskIndex',
-  'state-event': 'stateEvent',
-  'tool-contract': 'toolContract',
-  'agent-card': 'agentCard',
-  'review-handover': 'reviewHandover',
-  'delivery-package': 'deliveryPackage',
-  'protocol-view': 'protocolView',
 };
 
 /** 契约包固化目录（框架私仓在 CI 不可跨仓读取时的可复现来源）。 */
@@ -173,6 +162,11 @@ export function validateAgentCard(card) {
 /** 协商轮 review 交接件对象校验（框架 review-handover.schema.json）。 */
 export function validateReviewHandoverSchema(review) {
   return validateObject('reviewHandover', review);
+}
+
+/** 机读回执对象校验（框架 receipt.schema.json）。 */
+export function validateReceiptSchema(receipt) {
+  return validateObject('receipt', receipt);
 }
 
 /** 夜间交付包对象校验（框架 delivery-package.schema.json）。 */

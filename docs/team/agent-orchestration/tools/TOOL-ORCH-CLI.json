@@ -1,7 +1,7 @@
 {
   "toolId": "TOOL-ORCH-CLI",
   "category": "state-store",
-  "description": "编排工具链命令入口：status / run-once / snapshot / pack / config；不直接操作桌面 GUI，桌面派发与回执衔接由执行代理单元在调度间隙完成。",
+  "description": "编排工具链命令入口：status / run-once / snapshot / pack / config / channel（dispatch / send / auto-confirm / confirm / fallback）；channel send 驱动主桌面发送 brief 并写发送证据，送达确认只认执行代理 ack。",
   "sideEffect": "restricted-write",
   "allowedRoles": ["orchestrator"],
   "resources": ["scripts/orchestration/", "docs/team/agent-orchestration/"],
@@ -12,7 +12,7 @@
         "name": "subcommand",
         "type": "string",
         "required": true,
-        "description": "status / run-once / snapshot / pack / config 之一。"
+        "description": "status / run-once / snapshot / pack / config / channel 等子命令；channel 下含 dispatch / send / auto-confirm / confirm / fallback / rules / queue / state。"
       },
       {
         "name": "args",

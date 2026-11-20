@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-158",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.739Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-158/task-sheet.md",
+    "sha256": "71808503b0ebb2254201e5da1d52de7527c0470ccc5026f07bcbe32bf1e57ee3",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af158-annotation-warning-ux-2026-11-20.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

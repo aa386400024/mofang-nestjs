@@ -1,0 +1,450 @@
+{
+  "evidenceId": "af088-exit345-evidence-2026-11-18",
+  "taskId": "AF-088",
+  "contextId": "phase2.5-exit-condition-3-4-5",
+  "title": "Phase2.5 出口条件③④⑤ 证据快照",
+  "generatedAt": "2026-11-18T16:55:00+08:00",
+  "branch": "task/AF-088-phase25-exit345",
+  "baselineRef": "55c171f",
+  "evidenceMode": "只读复核已完成的真实运行（MySQL / Redis / 仓库内既有评测报告）；本轮未新跑 LLM 批次，未改 src，未改 .env，未改状态面",
+  "sources": [
+    {
+      "kind": "mysql",
+      "locator": "ap_practice_batches / ap_practice_sessions / gate_decisions",
+      "access": "只读 SELECT",
+      "readAt": "2026-11-18T16:45:00+08:00"
+    },
+    {
+      "kind": "redis",
+      "locator": "mofang:dev:deliberation_stats:global(+:2026-11-18) / mofang:dev:deliberation_trace:* / mofang:dev:deliberation:gate:trace:*",
+      "access": "只读 HGETALL / SCAN / GET",
+      "readAt": "2026-11-18T16:47:00+08:00"
+    },
+    {
+      "kind": "file",
+      "locator": "data/eval-reports/synthetic-supervisor-v1/eval-af088-offline.json",
+      "access": "只读（该路径被 .gitignore 命中：data/eval-reports/，属运行态产物；关键数字已镜像进本文件）",
+      "readAt": "2026-11-18T16:42:00+08:00"
+    },
+    {
+      "kind": "repo-code",
+      "locator": "src/engine-adapters/observability/session-cost.ts:58-61 / src/engine-adapters/deliberation/llm-deliberation.service.ts:248 / src/engine-adapters/deliberation/deliberation-stats.ts:640-652 / src/engine-adapters/deliberation-gate/deliberation-gate.types.ts:87-99",
+      "access": "定价表 / 生成长度上限 / 分位数口径 / 闸门 reason 语义的仓库出处",
+      "readAt": "2026-11-18T16:50:00+08:00"
+    }
+  ],
+  "exit3": {
+    "name": "出口③ 成本可控",
+    "criterion": "单场（50 分钟）审议成本 ≤ 1 元",
+    "verdict": "达标（保守上界口径）",
+    "batch": {
+      "batchId": "fztsntHxa5v6ikXrDsYgv",
+      "createdAt": "2026-11-18T08:10:36.000Z",
+      "finishedAt": "2026-11-18T08:22:00.000Z",
+      "totalSessions": 4,
+      "totalTurns": 92,
+      "maxTurnsPerSession": 50,
+      "deliberationMode": "shadow",
+      "llmCallRatio": 1,
+      "fallbackRatio": 0,
+      "counterConsistent": true,
+      "valid": true,
+      "validityFlags": null,
+      "engineVersion": "unknown",
+      "promptVersion": "6eac9ac361d55741",
+      "configFingerprintCombined": "1caeea117101e8d9",
+      "byStatus": {
+        "completed": 2,
+        "crisis_ended": 1,
+        "stagnant": 1
+      }
+    },
+    "sessions": [
+      {
+        "id": "2Y2qTViCXAv0EAsvgZ09f",
+        "debugSessionId": "debug_X0f_QMDA7Iowbe7YkJn0_",
+        "characterSlug": "vpt_grief_avoidance_l1",
+        "counselorModeId": "cold",
+        "status": "completed",
+        "turnCount": 24,
+        "exitReason": "crisis_practice_max",
+        "deliberationMode": "shadow",
+        "renderTokens": 36871,
+        "renderPromptTokens": 29169,
+        "renderCompletionTokens": 7702,
+        "renderCostCny": 0.078413,
+        "costBasis": "full",
+        "deliberationRuns": 11
+      },
+      {
+        "id": "98T8GFKtafFoyffpM4wZO",
+        "debugSessionId": "debug_j1OiKNW04kkb7luVTD3XM",
+        "characterSlug": "vpt_grief_avoidance_l1",
+        "counselorModeId": "preachy",
+        "status": "crisis_ended",
+        "turnCount": 20,
+        "exitReason": "crisis_escalated",
+        "crisisEnded": 1,
+        "deliberationMode": "shadow",
+        "renderTokens": 33985,
+        "renderPromptTokens": 24808,
+        "renderCompletionTokens": 9177,
+        "renderCostCny": 0.078509,
+        "costBasis": "full",
+        "deliberationRuns": 9
+      },
+      {
+        "id": "iNiEuHCvGa5D9PZmSUiUr",
+        "debugSessionId": "debug_1PLAcFKs6bvWHDdvIAQwR",
+        "characterSlug": "vpt_grief_avoidance_l1",
+        "counselorModeId": "nonsense",
+        "status": "stagnant",
+        "turnCount": 11,
+        "exitReason": "stagnant",
+        "deliberationMode": "shadow",
+        "renderTokens": 16538,
+        "renderPromptTokens": 11855,
+        "renderCompletionTokens": 4683,
+        "renderCostCny": 0.038856,
+        "costBasis": "full",
+        "deliberationRuns": 5
+      },
+      {
+        "id": "S8UcQEk-eO7oLCY4tM-Wi",
+        "debugSessionId": "debug_4_tbdvoZBY-jtZcvkjCn5",
+        "characterSlug": "vpt_grief_avoidance_l1",
+        "counselorModeId": "chatty",
+        "status": "completed",
+        "turnCount": 37,
+        "exitReason": "crisis_practice_max",
+        "deliberationMode": "shadow",
+        "renderTokens": 73178,
+        "renderPromptTokens": 48276,
+        "renderCompletionTokens": 24902,
+        "renderCostCny": 0.184473,
+        "costBasis": "full",
+        "deliberationRuns": 18
+      }
+    ],
+    "renderSideCost": {
+      "note": "渲染侧（来访者/咨询师）成本，与审议成本分开记账；出口③ 只考核审议成本",
+      "totalCostCny": 0.380251,
+      "totalTokens": 160572,
+      "costBasis": "full"
+    },
+    "deliberationStats": {
+      "source": "redis mofang:dev:deliberation_stats:global 与 :global:2026-11-18（两者取值一致）",
+      "window": "global（全局累计，不传 days/range）",
+      "beforeBatch": {
+        "totalTurns": 3
+      },
+      "afterBatch": {
+        "totalTurns": 48,
+        "successTurns": 45,
+        "failureTurns": 3,
+        "successRate": 0.9375,
+        "successRateNote": "全局累计 48 次的成功率（45/48），不是本批增量 45 次的成功率；本批增量成功/失败需按 trace 口径 41/2 读，差 2 已登记 OI-02",
+        "failureByErrorCode": {
+          "fetch_error": 3
+        },
+        "riskSkippedTurns": 0,
+        "totalDurationMs": 508318,
+        "avgDurationMs": 10589.958,
+        "maxDurationMs": 90842,
+        "p50DurationMs": 5000,
+        "p95DurationMs": 30000,
+        "p95Note": "桶上界估计（deliberation-stats.ts:640-652）：命中 latency_b12 = [30s, ∞)，返回上界 30000ms，方向保守（真实 p95 ≥ 30s）",
+        "staleTurns": 8,
+        "staleRate": 0.177778,
+        "avgDeltaDiffAbs": 0.000075289,
+        "maxDeltaDiffAbs": 0.000385,
+        "avgRetryCount": 0,
+        "avgPromptTokens": 0,
+        "avgCompletionTokens": 0,
+        "tokenStatNote": "审议链未开 stream_options.include_usage → token 字段全为 0（非实测 token），成本只能按定价表 + 保守 token 假设折算"
+      },
+      "deltaTurns": 45,
+      "deltaTurnsNote": "批前 3 → 批后 48，delta 45 次审议轮次（本批 92 轮中约 48.9% 的轮次触发审议）",
+      "batchDelta": {
+        "totalTurns": 45,
+        "traceCount": 43,
+        "traceOk": 41,
+        "traceFail": 2,
+        "note": "本批增量 45 与全局累计 48 分离：45 成功 / 3 失败为全局累计分布，不能直接当成本批增量成功/失败；可核 trace 43 = 41 ok / 2 fail，差 2 已登记 OI-02"
+      }
+    },
+    "traceLevelCrossCheck": {
+      "note": "按本批 4 个 debugSessionId 逐键回读 Redis trace（与 gate_decisions 的 decision=run 行一一对应）",
+      "traceCount": 43,
+      "ok": 41,
+      "fail": 2,
+      "failErrorCodes": {
+        "fetch_error": 2
+      },
+      "avgDurationMs": 10472.047,
+      "p95DurationMs": 37157,
+      "maxDurationMs": 90842,
+      "withTokenUsage": 0,
+      "perSession": {
+        "debug_X0f_QMDA7Iowbe7YkJn0_": 11,
+        "debug_j1OiKNW04kkb7luVTD3XM": 9,
+        "debug_1PLAcFKs6bvWHDdvIAQwR": 5,
+        "debug_4_tbdvoZBY-jtZcvkjCn5": 18
+      },
+      "discrepancy": "统计增量 45 > 可核 trace 43，差 2 轮；原因未定位（同一 (会话, 轮次) trace key 覆盖 / 重复入队），记为遗留，不臆断"
+    },
+    "gateDecisions": {
+      "source": "mysql gate_decisions（本批 4 场）",
+      "rows": 88,
+      "modeAll": "shadow",
+      "byDecision": {
+        "run": 43,
+        "skip": 45
+      },
+      "byReason": {
+        "run": {
+          "unknown_event_type": 37,
+          "alliance_delta_high": 5,
+          "key_event": 1
+        },
+        "skip": {
+          "cooldown": 38,
+          "crisis_skip": 7
+        }
+      },
+      "reasonSemantics": "unknown_event_type = 出现规则算不准的 LLM 专属事件标签（deliberation-gate.types.ts:92-93）"
+    },
+    "costModel": {
+      "pricingSource": "src/engine-adapters/observability/session-cost.ts:58-61（DEFAULT_SESSION_COST_PRICING，MiniMax Token Plan 口径，元/千 token；工程默认值，非厂商合同报价）",
+      "inputPer1kCny": 0.0015,
+      "outputPer1kCny": 0.0045,
+      "assumedInputTokensPerCall": 3000,
+      "assumedInputTokensNote": "保守取值（非实测）：审议入参按 WP-A 只传结构化数据，3k 明显高于实际体量；因 token 统计为 0，无法用实测值替代",
+      "assumedOutputTokensPerCall": 2048,
+      "assumedOutputTokensNote": "取 DELIBERATION_MAX_COMPLETION_TOKENS = 2048（llm-deliberation.service.ts:248），即生成长度上限，是输出侧的保守上界",
+      "costPerCallCny": 0.013716,
+      "costPerCallFormula": "3 × 0.0015 + 2.048 × 0.0045 = 0.013716 元",
+      "measuredTriggerRate": {
+        "statsBasis": {
+          "calls": 45,
+          "turns": 92,
+          "callsPerTurn": 0.489130,
+          "callsPer50TurnSession": 24.456522,
+          "costPer50TurnSessionCny": 0.335446,
+          "note": "统计口径（delta 45）偏保守，作为主判据"
+        },
+        "traceBasis": {
+          "calls": 43,
+          "turns": 92,
+          "callsPerTurn": 0.467391,
+          "callsPer50TurnSession": 23.369565,
+          "costPer50TurnSessionCny": 0.320536,
+          "note": "逐条 trace 可核口径，数值更低，与主判据同向"
+        }
+      },
+      "worstCase": {
+        "assumption": "每一轮都触发审议（50 轮全部 run）",
+        "calls": 50,
+        "costCny": 0.6858
+      },
+      "budgetCny": 1,
+      "conclusion": "保守上界 0.335446 元/场（50 轮）≤ 1 元；最坏情形 0.6858 元 ≤ 1 元 → 达标"
+    }
+  },
+  "exit4": {
+    "name": "出口④ 质量达标",
+    "criterion": "审议建议准确率 ≥ 80%（用督导解析当 ground truth 自动评测）",
+    "verdict": "未通过 / 不可判定",
+    "verdictReason": "评测数据集 synthetic=true，评测报告自带告警「数据集为合成数据: 指标只验证链路可用, 不能作为验收结论」；仓库内无真实督导标注数据集，不能用合成分数冒充 80% 验收",
+    "report": {
+      "path": "data/eval-reports/synthetic-supervisor-v1/eval-af088-offline.json",
+      "pathNote": "该路径被 .gitignore 命中（data/eval-reports/），属运行态产物；本文件已镜像其关键数字",
+      "reportId": "eval-20261118-160749-503c3018",
+      "createdAt": "2026-11-18T08:07:49.846Z",
+      "config": {
+        "model": "MiniMax-M3",
+        "promptVersion": "af088",
+        "datasetVersion": "synthetic-supervisor-v1",
+        "mode": "offline",
+        "runs": 3,
+        "split": "validation",
+        "groundTruthKind": "supervisor",
+        "synthetic": true
+      }
+    },
+    "dataQuality": {
+      "totalSessions": 8,
+      "validSessions": 4,
+      "droppedSessions": 4,
+      "dropReasons": {
+        "too_short": 1,
+        "has_error": 1,
+        "bdi_anomaly": 1,
+        "missing_gate_trace": 1
+      },
+      "turnsWithMissingGateTrace": 8
+    },
+    "triggerQuality": {
+      "precision": 0.615385,
+      "recall": 0.666667,
+      "f1": 0.64,
+      "tp": 24,
+      "fp": 15,
+      "fn": 12,
+      "tn": 45,
+      "support": 96
+    },
+    "suggestionQuality": {
+      "available": true,
+      "macroAverage": 0.833379,
+      "macroAverageNote": "六维方向准确率宏平均（trust/safety/bond/verbal/depth/style）",
+      "perDimensionDirectionAccuracy": {
+        "trust": 0.854545,
+        "safety": 1,
+        "bond": 0.9,
+        "verbal": 0.717949,
+        "depth": 0.777778,
+        "style": 0.75
+      },
+      "amplitudeMAE": 0.005855,
+      "comparedTurns": 27
+    },
+    "baselineComparison": {
+      "baselineDirectionAccuracy": 0.762302,
+      "subjectDirectionAccuracy": 0.833379,
+      "directionAccuracyDelta": 0.071077,
+      "baselineAmplitudeMAE": 0.005006,
+      "subjectAmplitudeMAE": 0.005855,
+      "amplitudeMAEDelta": 0.000849
+    },
+    "cost": {
+      "totalTokens": 30729,
+      "estimatedCostCny": 0.184374
+    },
+    "warnings": [
+      "数据集为合成数据: 指标只验证链路可用, 不能作为验收结论"
+    ],
+    "note": "0.833 > 0.8 但不可作验收：分子分母都来自合成集（4/8 有效样本）"
+  },
+  "exit5": {
+    "name": "出口⑤ 数据积累",
+    "criterion": "1000+ 场自动对练数据",
+    "verdict": "未达标",
+    "libraryTotals": {
+      "sessions": 62,
+      "turns": 592,
+      "readAt": "2026-11-18T16:45:00+08:00",
+      "source": "mysql SELECT COUNT(*) / SUM(turn_count) FROM ap_practice_sessions"
+    },
+    "gap": {
+      "targetSessions": 1000,
+      "missingSessions": 938,
+      "missingTurnsNote": "按本批 92 轮/4 场 ≈ 23 轮/场估算，缺口约 21,574 轮；仅作量级参考，不作承诺"
+    },
+    "batch1000": {
+      "started": false,
+      "note": "1000 场批次未启动（本轮不跑新批次）；因此⑤ 无达成路径，只能如实记未达标"
+    },
+    "byBatch": [
+      { "batchId": "uJHgP8uQGeM8Z6HbZY7M5", "sessions": 8, "turns": 94, "llmCallTurns": 94, "renderFallbackTurns": 0, "degradedTurns": 0 },
+      { "batchId": "akWwkbRTHVjjgglVZ1VGE", "sessions": 4, "turns": 0, "llmCallTurns": 0, "renderFallbackTurns": 0, "degradedTurns": 0 },
+      { "batchId": "4qsxavAsxpXpYDbXoM4ii", "sessions": 4, "turns": 0, "llmCallTurns": 0, "renderFallbackTurns": 0, "degradedTurns": 0 },
+      { "batchId": "0ZTYa6vgx2WhTP59GL3tZ", "sessions": 4, "turns": 26, "llmCallTurns": 0, "renderFallbackTurns": 26, "degradedTurns": 52 },
+      { "batchId": "WAyxuGWmfSQYpG_XwHr6K", "sessions": 4, "turns": 27, "llmCallTurns": 0, "renderFallbackTurns": 27, "degradedTurns": 54 },
+      { "batchId": "sb_3bAy219pm8QALJWhIY", "sessions": 4, "turns": 48, "llmCallTurns": 48, "renderFallbackTurns": 0, "degradedTurns": 0 },
+      { "batchId": "n1K9jbjSNPjbiEYF4aG2E", "sessions": 4, "turns": 37, "llmCallTurns": 37, "renderFallbackTurns": 0, "degradedTurns": 0 },
+      { "batchId": "Sh4B_wbjF11IqFTcSqXYw", "sessions": 12, "turns": 129, "llmCallTurns": 129, "renderFallbackTurns": 0, "degradedTurns": 0 },
+      { "batchId": "UAKjJfAx5Iso9f4-054OJ", "sessions": 12, "turns": 128, "llmCallTurns": 128, "renderFallbackTurns": 0, "degradedTurns": 0 },
+      { "batchId": "dvwJtlXgB3FV_0jfIALQP", "sessions": 1, "turns": 3, "llmCallTurns": 3, "renderFallbackTurns": 0, "degradedTurns": 0 },
+      { "batchId": "MGMaHvuzh-WxZ8BlcgZhf", "sessions": 1, "turns": 8, "llmCallTurns": 8, "renderFallbackTurns": 0, "degradedTurns": 0 },
+      { "batchId": "fztsntHxa5v6ikXrDsYgv", "sessions": 4, "turns": 92, "llmCallTurns": 92, "renderFallbackTurns": 0, "degradedTurns": 0 }
+    ]
+  },
+  "verdicts": {
+    "exit3": { "result": "pass", "label": "✅ 达标（保守上界）", "headline": "单场 50 轮审议成本上界 0.335446 元 ≤ 1 元；最坏情形 50 次全触发 0.6858 元 ≤ 1 元" },
+    "exit4": { "result": "fail", "label": "❌ 未通过 / 不可判定", "headline": "合成数据集 trigger F1 0.64、建议宏平均 0.833（0.762→0.833），4/8 有效样本；synthetic=true 不能作 80% 验收" },
+    "exit5": { "result": "fail", "label": "❌ 未达标", "headline": "库内累计 62 场 / 592 轮，距 1000+ 场差 938 场；1000 场批次未启动" },
+    "summary": "①② 已由 AF-085 / AF-086 收口；本单补齐③⑤④：③ 达标（保守上界口径），④ 未通过 / 不可判定，⑤ 未达标"
+  },
+  "openItems": [
+    {
+      "id": "AF088-OI-01",
+      "title": "审议 token 统计恒为 0，审议成本无法用实测 token 直接核算",
+      "detail": "审议链未开启 stream_options.include_usage → deliberation_stats 的 total_prompt_tokens / total_completion_tokens 恒为 0，本单成本只能按定价表 + 保守 token 假设折算（输入 3k / 输出 2048）。",
+      "impact": "出口③ 当前结论是「按保守假设达标」，不是「按实测 token 达标」；若真实输入远超 3k，上界需要重算。",
+      "status": "candidate"
+    },
+    {
+      "id": "AF088-OI-02",
+      "title": "审议统计增量（45）比可核 trace 条数（43）多 2 轮",
+      "detail": "本批 4 场在 Redis 可逐条回读到 43 条 deliberation_trace（41 ok / 2 fetch_error），与 gate_decisions 的 43 条 decision=run 一一对应；但全局计数器 total_turns 由 3 增至 48（delta 45）。差 2 轮的原因（同一 (会话, 轮次) trace key 覆盖 / 重复入队）未定位。",
+      "impact": "不影响成本结论方向（两种口径都 ≤ 1 元），但计数口径不自洽，切灰度前需要查清，否则看板上的「审议调用次数」不可信。",
+      "status": "candidate"
+    },
+    {
+      "id": "AF088-OI-03",
+      "title": "43 次 run 中 37 次触发理由为 unknown_event_type",
+      "detail": "闸门层 88 行决策：run 43（unknown_event_type 37 / alliance_delta_high 5 / key_event 1）、skip 45（cooldown 38 / crisis_skip 7）。unknown_event_type 的语义是「出现规则算不准的 LLM 专属事件标签」。",
+      "impact": "触发闸门确实拦掉了 45/88 轮（冷却与危机闸），但多数 run 由「规则没把握」而非「状态变化大」触发；与出口③「只有状态变化大才跑」的初衷存在口径落差，需产品/临床口径复核触发理由分布是否合理。",
+      "status": "candidate"
+    },
+    {
+      "id": "AF088-OI-04",
+      "title": "出口④ 缺真实督导标注数据集",
+      "detail": "仓库内只有 synthetic-supervisor-v1 合成集；评测链路本身可用（4/8 有效样本、trigger F1 0.64、建议宏平均 0.833），但没有真实督导解析作 ground truth。",
+      "impact": "出口④ 只能判「不可判定 / 未通过」，80% 准确率无法验收；需要真实督导标注集才能收敛。",
+      "status": "candidate"
+    },
+    {
+      "id": "AF088-OI-05",
+      "title": "出口⑤ 1000 场批次未启动",
+      "detail": "库内累计 62 场 / 592 轮，距 1000+ 场差 938 场；本轮不跑新批次。",
+      "impact": "⑤ 未达标；缺口需要后台长跑批次补齐，且需先解决单批耗时与失败率的批次治理问题。",
+      "status": "candidate"
+    },
+    {
+      "id": "AF088-OI-06",
+      "title": "engine_version 记为 unknown",
+      "detail": "本批 4 场 engine_version=unknown（AF-086 两批同因）；批次指纹 combined=1caeea117101e8d9 与 AF-086 两批一致。",
+      "impact": "不影响本单判定，但版本可追溯性有缺口（git describe 未取到）。",
+      "status": "candidate"
+    }
+  ],
+  "deviations": [
+    {
+      "item": "出口⑤ 的 1000 场批次投递与轮询",
+      "taskSays": "通过生产入口 POST /admin/api/auto-practice/batch 投递 1000 场 12 轮批次，轮询到完成",
+      "reality": "本轮只做证据落盘 + 交付记录 + README 回写，不跑新批次；1000 场批次未启动",
+      "action": "⑤ 如实判未达标（62 场 / 592 轮，距 1000 差 938 场），缺口登记为 OI-05，不预支「已达标」",
+      "why": "用户明确约束不跑新批次；出口⑤ 只能给未达标结论，不能伪造达成"
+    },
+    {
+      "item": "出口④ 的真实督导标注",
+      "taskSays": "记录 synthetic-supervisor-v1 的触发质量与建议质量；若仓库内无真实督导标注数据集，正式结论必须是「不可判定 / 未通过」",
+      "reality": "仓库内无真实督导标注数据集，评测集 synthetic=true",
+      "action": "按任务单预设红线给出「未通过 / 不可判定」，同时落盘链路可用性证据（0.762→0.833）",
+      "why": "不用合成分数冒充 80% 验收"
+    },
+    {
+      "item": "出口③ 的成本核算方式",
+      "taskSays": "用 deliberation_trace 取证真实审议调用次数、token、耗时，按仓库同一定价表折算单场成本",
+      "reality": "审议 token 统计恒为 0（未开 stream_options.include_usage），无法取到真实 token；审议耗时可取（Redis 计数器 + trace 逐条）",
+      "action": "token 侧改用保守假设（输入 3k / 输出 2048 = 生成长度上限）并显式标注为假设；只写保守上界（0.335446 元/50 轮场；最坏 0.6858 元），不用乐观值",
+      "why": "真实 token 取不到时，用上界而非均值；同时把缺口登记为 OI-01"
+    },
+    {
+      "item": "交付形态与编排闭环",
+      "taskSays": "全程走编排 CLI：登记 → promote → run-once → 任务分支 → 实现 → 定向闸门 → 回执 → 归档 → PR → squash 合并",
+      "reality": "本轮不跑编排 CLI、不 commit/push、不改状态面、不跑新批次；只做证据落盘 + 交付记录 + README §3.2 回写 + 回执写入 transport 收件箱",
+      "action": "回执写入 docs/team/agent-orchestration/transport/receipts/AF-088.json 交编排摄取；归档 / PR / squash / 任务单移入 completed/ 留给编排步骤处理",
+      "why": "用户明确约束；且归档与状态面变更应由编排器做，不手改"
+    },
+    {
+      "item": "任务单与交付记录同移 completed/",
+      "taskSays": "conventions.md §六：任务单 + 交付记录从 pending/ 移到 completed/phase2.5/",
+      "reality": "本轮未移动任务单（af088-phase25-exit345-task-2026-11-18.md 仍在 docs/worklog/pending/）",
+      "action": "保持现状，交付记录落 docs/worklog/completed/phase2.5/，由编排归档步骤统一搬运任务单",
+      "why": "本轮允许改动的文件集合不含 docs/worklog/pending/（回执投递文件除外），避免与编排器的归档动作抢写同一目录"
+    }
+  ]
+}

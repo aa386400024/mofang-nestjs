@@ -10,10 +10,11 @@
  *   - 事件载荷 `payload.task` 保留框架投影未覆盖的适配层字段（agentRole / groupId 等）。
  */
 import { createHash } from 'node:crypto';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { gzipSync, gunzipSync } from 'node:zlib';
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { PATHS, loadIndex, nowIso, writeJsonAtomic } from './state-store.mjs';
-import { TRANSITIONS } from './contract-enums.mjs';
+import { TERMINAL_STATUSES, TRANSITIONS } from './contract-enums.mjs';
 import { validateStateEvent } from './validator.mjs';
 
 export const JOURNAL_POINTER = 'docs/team/agent-orchestration/state/journal.jsonl';
@@ -68,19 +69,58 @@ function taskSnapshot(task) {
   const snapshot = { ...task };
   delete snapshot.status;
   delete snapshot.history;
+  if (snapshot.createdAt) snapshot.createdAt = toUtcIso(snapshot.createdAt);
   return snapshot;
-}
-
-function withPrefix(prefix, message) {
-  return `${prefix}${message}`;
 }
 
 /**
  * 读取事件日志；空文件返回 []，坏行直接抛错（不允许静默忽略）。
+ *
+ * 分段归档后，日志由「归档段（按首事件序号升序）」+「当前 journal.jsonl」组成。
+ * 段文件支持 `.jsonl` 与 `.jsonl.gz`；读取顺序不依赖文件名时间戳，而是按段内
+ * 首条 `eventSeq` 排序，保证跨段 `eventSeq` 连续、`prevHash` 链可验证。
  */
 export function loadJournal() {
-  if (!existsSync(PATHS.journal)) return [];
-  const text = readFileSync(PATHS.journal, 'utf8');
+  const files = [...listJournalSegments(), PATHS.journal].filter((file) => existsSync(file));
+  const events = [];
+  for (const file of files) {
+    events.push(...readJournalFile(file));
+  }
+  return events;
+}
+
+/** 归档段文件（不含当前 journal），按首事件序号升序。 */
+export function listJournalSegments() {
+  if (!existsSync(PATHS.journalArchiveDir)) return [];
+  const names = readdirSync(PATHS.journalArchiveDir).filter((name) => /^journal-\d{6}-\d{6}\.jsonl(?:\.gz)?$/.test(name));
+  const segments = names.map((name) => {
+    const file = `${PATHS.journalArchiveDir}/${name}`;
+    const match = /^journal-(\d{6})-(\d{6})\.jsonl/.exec(name);
+    return { file, name, firstSeq: Number(match?.[1] ?? Number.MAX_SAFE_INTEGER) };
+  });
+  segments.sort((a, b) => a.firstSeq - b.firstSeq || a.name.localeCompare(b.name));
+  return segments.map((segment) => segment.file);
+}
+
+/** 当前 journal 段（不含已轮转的归档段；归档段只读）。 */
+export function loadJournalSegment() {
+  return existsSync(PATHS.journal) ? readJournalFile(PATHS.journal) : [];
+}
+
+/**
+ * 覆写当前 journal 段：仅用于「本地未发布段」的链纠偏，归档段永不重写。
+ * 纠偏必须先在内存里用 rechainEvents 重算，再由调用方显式 --apply 落盘。
+ */
+export function saveJournalSegment(events) {
+  const dir = dirname(PATHS.journal);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  const body = events.map((event) => JSON.stringify(event)).join('\n');
+  writeFileSync(PATHS.journal, body.length > 0 ? `${body}\n` : '', { encoding: 'utf8' });
+}
+
+function readJournalFile(file) {
+  const raw = readFileSync(file);
+  const text = file.endsWith('.gz') ? gunzipSync(raw).toString('utf8') : raw.toString('utf8');
   const events = [];
   let lineNo = 0;
   for (const line of text.split(/\r?\n/)) {
@@ -89,10 +129,78 @@ export function loadJournal() {
     try {
       events.push(JSON.parse(line));
     } catch (err) {
-      throw new Error(`事件日志第 ${lineNo} 行不是合法 JSON：${err.message}`);
+      throw new Error(`事件日志 ${file} 第 ${lineNo} 行不是合法 JSON：${err.message}`);
     }
   }
   return events;
+}
+
+/**
+ * 将当前 journal 切成不可变归档段，并重建空的活动日志。
+ *
+ * 为什么不是「压缩重写」：append-only 是审计前提，删改历史会让哈希链失去意义。
+ * 本实现只做**分段 + 可选 gzip**，事件本身逐字保留，`eventSeq` / `prevHash` /
+ * `hash` 跨段连续，因此 `verify` 仍能检出任何篡改。归档段永不删除，长期保留。
+ *
+ * @param {{maxEvents?:number, force?:boolean, compress?:boolean, dryRun?:boolean}} opts
+ * @returns {{rotated:boolean, reason?:string, segment?:string, events?:number, firstSeq?:number, lastSeq?:number}}
+ */
+export function rotateJournal(opts = {}) {
+  const maxEvents = Number(opts.maxEvents ?? 5000);
+  if (!Number.isInteger(maxEvents) || maxEvents <= 0) throw new Error(`maxEvents 须为正整数，实际 ${opts.maxEvents}`);
+  if (!existsSync(PATHS.journal)) return { rotated: false, reason: '当前 journal 不存在' };
+  const active = readJournalFile(PATHS.journal);
+  if (active.length === 0) return { rotated: false, reason: '当前 journal 为空' };
+  if (!opts.force && active.length < maxEvents) {
+    return {
+      rotated: false,
+      reason: `当前 ${active.length} 条，未达阈值 ${maxEvents}（需要强制轮转请加 --force）`,
+    };
+  }
+  const firstSeq = active[0].eventSeq;
+  const lastSeq = active[active.length - 1].eventSeq;
+  const baseName = `journal-${String(firstSeq).padStart(6, '0')}-${String(lastSeq).padStart(6, '0')}.jsonl`;
+  const segmentName = opts.compress ? `${baseName}.gz` : baseName;
+  const target = `${PATHS.journalArchiveDir}/${segmentName}`;
+  if (existsSync(target)) throw new Error(`归档段已存在，拒绝覆盖：${target}`);
+  if (opts.dryRun) {
+    return { rotated: false, reason: 'dry-run', segment: target, events: active.length, firstSeq, lastSeq };
+  }
+
+  const lock = acquireLock();
+  try {
+    // 双重检查：锁内重新读一次，避免与并发 append 交错。
+    const locked = readJournalFile(PATHS.journal);
+    if (locked.length === 0) return { rotated: false, reason: '锁内发现 journal 为空' };
+    const lockedFirst = locked[0].eventSeq;
+    const lockedLast = locked[locked.length - 1].eventSeq;
+    const lockedBase = `journal-${String(lockedFirst).padStart(6, '0')}-${String(lockedLast).padStart(6, '0')}.jsonl`;
+    const lockedSegmentName = opts.compress ? `${lockedBase}.gz` : lockedBase;
+    const lockedTarget = `${PATHS.journalArchiveDir}/${lockedSegmentName}`;
+    if (existsSync(lockedTarget)) throw new Error(`归档段已存在，拒绝覆盖：${lockedTarget}`);
+    if (!existsSync(PATHS.journalArchiveDir)) mkdirSync(PATHS.journalArchiveDir, { recursive: true });
+
+    const text = readFileSync(PATHS.journal, 'utf8');
+    if (opts.compress) {
+      const tmp = `${lockedTarget}.tmp`;
+      writeFileSync(tmp, gzipSync(Buffer.from(text, 'utf8')), { flag: 'wx' });
+      renameSync(tmp, lockedTarget);
+      unlinkSync(PATHS.journal);
+    } else {
+      renameSync(PATHS.journal, lockedTarget);
+    }
+    // 重建空活动日志：后续 append 从 lastSeq + 1 继续，prevHash 指向段尾。
+    writeFileSync(PATHS.journal, '', { encoding: 'utf8', flag: 'wx' });
+    return {
+      rotated: true,
+      segment: lockedTarget,
+      events: locked.length,
+      firstSeq: lockedFirst,
+      lastSeq: lockedLast,
+    };
+  } finally {
+    releaseLock(lock);
+  }
 }
 
 /** 事件日志完整性：序号 / ID / 幂等键 / 哈希链 / 同任务时间单调。 */
@@ -134,6 +242,55 @@ export function journalIntegrity(events) {
     idems.add(event.idempotencyKey);
   }
   return { ok: errors.length === 0, errors };
+}
+
+/**
+ * 本地未发布段的哈希链纠偏：切点之前的事件逐字保留，切点起重新编号并重算 prevHash/hash。
+ * 只用于「事件内容有缺陷、但尚未交付给任何下游」的本地段（例如时间戳形态非法），
+ * 调用方必须显式给出切点事件 id，避免整段静默重算把历史篡改洗白。
+ * @param {object[]} events 全量事件（按 eventSeq 升序）
+ * @param {{fromEventId:string}} opts 切点：从该事件起重算
+ * @returns {{events:object[], cutIndex:number}}
+ */
+export function rechainEvents(events, opts = {}) {
+  const fromEventId = String(opts.fromEventId ?? '');
+  if (!fromEventId) throw new Error('rechainEvents 需要显式切点 fromEventId');
+  const cutIndex = events.findIndex((event) => event.eventId === fromEventId);
+  if (cutIndex < 0) throw new Error(`切点事件不存在：${fromEventId}`);
+  let prevSeq;
+  let prevHash;
+  if (cutIndex === 0) {
+    // 切点是当前段首条：链接前一段的末位序号与哈希，必须由调用方显式给出，不猜。
+    if (opts.prevHash === undefined || opts.prevSeq === undefined) {
+      throw new Error('切点为段首时必须提供 prevSeq 与 prevHash（从前一段末条事件取）');
+    }
+    prevSeq = opts.prevSeq;
+    prevHash = opts.prevHash;
+  }
+  const kept = cutIndex === 0 ? [] : events.slice(0, cutIndex).map((event) => ({ ...event }));
+  if (cutIndex > 0) {
+    prevSeq = kept[kept.length - 1].eventSeq;
+    prevHash = kept[kept.length - 1].hash;
+  }
+  let seq = prevSeq;
+  let chain = prevHash;
+  const rechained = [];
+  for (const source of events.slice(cutIndex)) {
+    seq += 1;
+    const event = { ...source, eventSeq: seq, eventId: `EV-${String(seq).padStart(4, '0')}`, prevHash: chain };
+    delete event.hash;
+    event.hash = hashEvent(event, chain);
+    chain = event.hash;
+    rechained.push(event);
+  }
+  return { events: [...kept, ...rechained], cutIndex };
+}
+
+/** 当前段首条事件所声明的 prevHash，其来源是前一段末条事件。 */
+export function segmentEntryPoint(segmentEvents) {
+  const first = segmentEvents[0];
+  if (!first) return null;
+  return { prevSeq: first.eventSeq - 1, prevHash: first.prevHash };
 }
 
 /** 逐条做框架 state-event schema 校验。 */
@@ -232,6 +389,40 @@ function releaseLock(lock) {
   }
 }
 
+/** 最短合法迁移路径（BFS）；用于把非终态任务在归档前显式闭合到终态。 */
+function transitionPath(from, to) {
+  if (from === to) return [];
+  const queue = [[from, []]];
+  const seen = new Set([from]);
+  while (queue.length > 0) {
+    const [state, path] = queue.shift();
+    for (const next of TRANSITIONS[state] ?? []) {
+      if (seen.has(next)) continue;
+      const nextPath = [...path, next];
+      if (next === to) return nextPath;
+      seen.add(next);
+      queue.push([next, nextPath]);
+    }
+  }
+  throw new Error(`不存在从 ${from} 到 ${to} 的合法迁移路径`);
+}
+
+/** 返回一个「已闭合到终态」的任务副本，附带补齐的 history（不修改入参）。 */
+function closeTaskForArchive(task, to, opts = {}) {
+  const copy = { ...task, history: [...(task.history ?? [])] };
+  for (const next of transitionPath(task.status, to)) {
+    copy.history.push({
+      at: opts.at ?? nowIso(),
+      from: copy.status,
+      to: next,
+      by: opts.by ?? 'orchestrator-cli',
+      reason: opts.reason ?? '归档前闭合终态',
+    });
+    copy.status = next;
+  }
+  return copy;
+}
+
 function eventTypeForTransition(from, to) {
   if (to === 'ready') return from === 'backlog' ? 'promoted' : 'released';
   if (to === 'submitted') return from === 'ready' ? 'claimed' : 'submitted';
@@ -242,6 +433,34 @@ function eventTypeForTransition(from, to) {
   if (to === 'failed') return 'failed';
   if (to === 'canceled') return 'canceled';
   return 'submitted';
+}
+
+/**
+ * 时间戳归一：任务单 frontmatter 允许写带偏移的本地时间（`+08:00`），但事件日志的 `at`
+ * 必须是 UTC `Z` 形态——否则 schema 校验按 RFC3339 拒绝，且「同一任务 at 单调递增」按
+ * 字符串比较会把 `10:55:00+08:00` 判成早于 `02:48:57Z`（AF-030 登记时实测踩到）。
+ * 无法解析的值原样返回，交给 schema 报错而不是静默改写成 now。
+ */
+export function toUtcIso(value) {
+  if (value === null || value === undefined) return value;
+  const raw = String(value);
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return raw;
+  return parsed.toISOString();
+}
+
+/**
+ * 任务创建时间口径：归一为 UTC，且**不得晚于写入时刻**。
+ * 任务单 frontmatter 的 `createdAt` 由人写，常见「写成未来的整点」（AF-030/AF-031 各踩一次），
+ * 会让 created 事件的 `at` 晚于其 promoted/claimed，触发「同一任务 at 倒退」。
+ * 未来时间一律夹到写入时刻，既往时间保持原值，便于历史任务单保真。
+ */
+export function createdAtForEvent(value, now = nowIso()) {
+  const normalized = toUtcIso(value ?? now);
+  const parsed = new Date(normalized);
+  const nowParsed = new Date(now);
+  if (Number.isNaN(parsed.getTime())) return now;
+  return parsed.getTime() > nowParsed.getTime() ? nowParsed.toISOString() : normalized;
 }
 
 /** 构造 created 事件（to 取首条 history 的起点；无 history 时取当前状态）。 */
@@ -256,7 +475,7 @@ export function buildCreatedEvent(task, opts = {}) {
     from,
     to,
     by: opts.by ?? 'orchestrator-cli',
-    at: task.createdAt ?? first?.at ?? opts.at ?? nowIso(),
+    at: createdAtForEvent(task.createdAt ?? first?.at ?? opts.at, opts.at ?? nowIso()),
     idempotencyKey: `${task.taskId}:created`,
     reason: null,
     payload: {
@@ -282,7 +501,7 @@ export function buildHistoryEvent(task, history, opts = {}) {
     from,
     to,
     by: history.by ?? opts.by ?? 'orchestrator-cli',
-    at: history.at ?? opts.at ?? nowIso(),
+    at: toUtcIso(history.at ?? opts.at ?? nowIso()),
     idempotencyKey: `${task.taskId}:${from}:${to}:${opts.index ?? 0}`,
     reason: history.reason ?? null,
     payload: {
@@ -293,21 +512,44 @@ export function buildHistoryEvent(task, history, opts = {}) {
   };
 }
 
-/** 构造归档事件；归档终态由本事件携带，供投影落 status。 */
+/**
+ * 索引工件指针白名单：框架 task-state-index 1.1.0 的 `artifacts` 只允许
+ * `taskSheet / deliveryRecord / reply` 三键（schema 里 additionalProperties=false）。
+ * 回执 `artifactRefs.others` 属运行态证据，落 `task.receipt`，不得混入索引工件对象，
+ * 否则索引 schema 校验直接失败（AF-024 归档实测踩到：others 被投影进归档条目）。
+ * @param {object} artifacts 任意工件对象
+ * @returns {object} 仅含白名单键的工件对象
+ */
+export function pickArtifactPointers(artifacts) {
+  const allowed = ['taskSheet', 'deliveryRecord', 'reply'];
+  const out = {};
+  if (!artifacts || typeof artifacts !== 'object' || Array.isArray(artifacts)) return out;
+  for (const key of allowed) {
+    if (artifacts[key] !== undefined) out[key] = artifacts[key];
+  }
+  return out;
+}
+
+/** 构造归档事件；归档是终态之后的只读动作，不携带状态变更。 */
 export function buildArchivedEvent(task, status, artifacts, opts = {}) {
-  if (!['completed', 'failed', 'canceled', 'rejected'].includes(status)) throw new Error(`归档终态非法：${status}`);
+  if (!TERMINAL_STATUSES.includes(task.status)) {
+    throw new Error(`归档前置条件不满足：${task.taskId} 当前状态 ${task.status} 不是终态`);
+  }
+  if (status !== task.status) {
+    throw new Error(`归档不得改写终态：${task.taskId} 当前 ${task.status}，请求 ${status}`);
+  }
   return {
     taskId: task.taskId,
     type: 'archived',
     from: task.status,
     to: status,
     by: opts.by ?? 'orchestrator-cli',
-    at: opts.at ?? nowIso(),
+    at: toUtcIso(opts.at ?? nowIso()),
     idempotencyKey: `${task.taskId}:archived`,
     reason: opts.note ?? '归档终态',
     payload: {
-      artifacts: artifacts ?? task.artifacts ?? {},
-      task: { ...taskSnapshot(task), artifacts: artifacts ?? task.artifacts ?? {} },
+      artifacts: pickArtifactPointers(artifacts ?? task.artifacts ?? {}),
+      task: { ...taskSnapshot(task), artifacts: pickArtifactPointers(artifacts ?? task.artifacts ?? {}) },
     },
   };
 }
@@ -352,9 +594,13 @@ export function projectJournal(events, opts = {}) {
     if (!rec) throw new Error(`${taskId} 的 ${type} 事件早于 created`);
 
     if (type === 'archived') {
-      if (payload.artifacts) rec.artifacts = payload.artifacts;
-      rec.status = to;
-      archived.push({ taskId, status: to, artifacts: rec.artifacts ?? {} });
+      // 框架 state_projection 口径：archived 是「归档动作」，不携带状态变更；
+      // 归档条目落的是事件发生前 rec.status（必须是终态），不是 event.to。
+      if (!TERMINAL_STATUSES.includes(rec.status)) {
+        throw new Error(`${taskId} 归档时状态 ${rec.status} 不是终态，拒绝归档投影`);
+      }
+      if (payload.artifacts) rec.artifacts = pickArtifactPointers(payload.artifacts);
+      archived.push({ taskId, status: rec.status, artifacts: pickArtifactPointers(rec.artifacts) });
       records.delete(taskId);
       const idx = order.indexOf(taskId);
       if (idx >= 0) order.splice(idx, 1);
@@ -363,7 +609,7 @@ export function projectJournal(events, opts = {}) {
 
     rec.status = to;
     if (payload.task && typeof payload.task === 'object') Object.assign(rec, payload.task);
-    if (payload.artifacts) rec.artifacts = payload.artifacts;
+    if (payload.artifacts) rec.artifacts = pickArtifactPointers(payload.artifacts);
     if (payload.verdict) rec.verdict = payload.verdict;
     if (type === 'interrupted') {
       if (payload.waitingOn) rec.waitingOn = payload.waitingOn;
@@ -464,7 +710,6 @@ export function backfillJournalFromIndex(opts = {}) {
   const by = opts.by ?? 'AF-020-backfill';
   const candidates = [];
   for (const entry of index.archivedTasks ?? []) {
-    const task = { taskId: entry.taskId, status: entry.status, artifacts: entry.artifacts ?? {} };
     candidates.push({
       taskId: entry.taskId,
       type: 'created',
@@ -500,7 +745,6 @@ export function deriveEvents(oldIndex, newIndex, opts = {}) {
   const events = [];
   const oldTasks = new Map((oldIndex.tasks ?? []).map((task) => [task.taskId, task]));
   const oldArchived = new Map((oldIndex.archivedTasks ?? []).map((task) => [task.taskId, task]));
-  const newTasks = new Map((newIndex.tasks ?? []).map((task) => [task.taskId, task]));
 
   for (const task of newIndex.tasks ?? []) {
     const old = oldTasks.get(task.taskId);
@@ -533,13 +777,15 @@ export function deriveEvents(oldIndex, newIndex, opts = {}) {
     const oldActive = oldTasks.get(entry.taskId);
     if (oldActive) {
       const oldHistory = oldActive.history ?? [];
-      const newHistory = oldActive.history ?? [];
-      if (newHistory.length > oldHistory.length) {
-        for (let index = oldHistory.length; index < newHistory.length; index += 1) {
-          events.push(buildHistoryEvent(oldActive, newHistory[index], { at, by, index }));
-        }
+      const closed = closeTaskForArchive(oldActive, entry.status, {
+        at,
+        by,
+        reason: '归档前闭合终态',
+      });
+      for (let index = oldHistory.length; index < closed.history.length; index += 1) {
+        events.push(buildHistoryEvent(closed, closed.history[index], { at, by, index }));
       }
-      events.push(buildArchivedEvent(oldActive, entry.status, entry.artifacts, { at, by, note: opts.archiveNote ?? opts.note }));
+      events.push(buildArchivedEvent(closed, entry.status, entry.artifacts, { at, by, note: opts.archiveNote ?? opts.note }));
     } else {
       events.push(buildCreatedEvent({ ...entry, history: [] }, { at, by }));
       events.push(
@@ -576,7 +822,9 @@ export function createTask(task, opts = {}) {
   if ([...index.tasks, ...index.archivedTasks].some((item) => item.taskId === task.taskId)) {
     throw new Error(`任务已存在：${task.taskId}`);
   }
-  const at = opts.at ?? task.createdAt ?? nowIso();
+  // created 事件的时间取「登记写入时刻」，不取任务单的 createdAt：任务单由人写，常写成未来整点，
+  // 直接用会把 created 事件排到 promoted 之后（AF-032 实测）。createdAt 只作为任务属性保留。
+  const at = opts.at ?? nowIso();
   const next = {
     ...index,
     tasks: [...index.tasks, { ...task, status: task.status ?? 'backlog', history: task.history ?? [], createdAt: task.createdAt ?? at }],
@@ -590,8 +838,11 @@ export function archiveTask(taskId, opts = {}) {
   if (index.archivedTasks.some((item) => item.taskId === taskId)) throw new Error(`任务已归档：${taskId}`);
   const task = index.tasks.find((item) => item.taskId === taskId);
   if (!task) throw new Error(`归档失败：任务不在活跃列表：${taskId}`);
-  const status = opts.status ?? 'completed';
-  if (!['completed', 'failed', 'canceled', 'rejected'].includes(status)) throw new Error(`归档终态非法：${status}`);
+  const status = opts.status ?? task.status;
+  if (!TERMINAL_STATUSES.includes(status)) throw new Error(`归档终态非法：${status}`);
+  if (status !== task.status) {
+    throw new Error(`归档不得改写终态：${taskId} 当前 ${task.status}，请求 ${status}；请先完成终态迁移`);
+  }
   const artifacts = { ...(task.artifacts ?? {}), ...(opts.artifacts ?? {}) };
   const notes = { ...(index.archivedNotes ?? loadArchivedNotes()) };
   if (opts.note) notes[taskId] = opts.note;

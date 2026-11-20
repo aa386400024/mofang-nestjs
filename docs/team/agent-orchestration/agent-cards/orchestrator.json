@@ -18,7 +18,24 @@
     "TOOL-ACCEPTANCE-RUNNER",
     "TOOL-DELIVERY-PACK"
   ],
-  "resources": ["docs/worklog/pending/", "docs/worklog/completed/", "docs/team/agent-orchestration/", "scripts/orchestration/"],
+  "resources": [
+    "AGENTS.md",
+    "package.json",
+    "eslint.config.mjs",
+    ".husky/",
+    ".github/",
+    "docs/team/conventions.md",
+    "docs/team/wp-task-template.md",
+    "docs/worklog/",
+    "docs/team/agent-orchestration/",
+    "docs/security/",
+    "scripts/",
+    "data/phase25-exit/",
+    "data/eval-datasets/",
+    "data/eval-reports/",
+    "data/batch-reports/",
+    "web/orchestration/"
+  ],
   "limits": {
     "canDo": [
       "维护 backlog、任务拆解与切片、优先级与依赖管理",
@@ -26,7 +43,7 @@
       "组织验收、归档与状态索引回写、升级判定",
       "基于工件证据与抽跑复现给出验收结论",
       "维护候选改进台账；候选立项与终态流转经人工闸门，不自动立项或落地",
-      "验收后执行 L1 任务分支提交、L2 推送任务分支、L3 squash 合并进 integrate（前置条件：收尾闸门绿、验收五类通过、分支命名合规、无文件域冲突、提交可回退；分层口径见设计备忘 §6.1，过渡口径 §6.2）"
+      "验收后执行 L1 任务分支提交、L2 推送任务分支、L3 经受保护 PR squash 合并进 integrate（前置条件：收尾闸门绿、验收五类通过、分支命名合规、无文件域冲突、远端 13 项检查通过、提交可回退；分层口径见设计备忘 §6.1/§6.2）"
     ],
     "cannotDo": [
       "不写业务实现代码",

@@ -48,6 +48,8 @@ pnpm typecheck
 - **并行产物排除**：变更集不含其他 AI / 脚本的未提交产物；后端目录、前端文件、文档各自成组，不混进同一提交。
 - **命令口径**：pnpm，禁裸 npx；前端既有类型债基线与本单新增改动分开记录，不把既有债误记为本单引入，也不在本单清理。
 - **既有债基线**：性能基线与既有技术债口径见 `docs/team/gate-performance-remediation-2026-11-11.md`。
+- **GUI 投递**：桌面派发任务的 `delivery.state=delivered` 必须同时有 `transport/acks/<taskId>.json`（taskId 一致、`receivedAt` 可解析）与 `transport/gui-sent/<taskId>.json`；只有发送截图没有 ack 时，按「未送达」处理，进投递租约回滚，不接受执行侧口头声称。
+- **交付记录字段标记**：`gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict`（或中文块标题）缺一即进人工复核；机读只判存在性，内容可信度仍按五类核对。
 
 ## 4. 结论分级（框架口径）
 
@@ -58,6 +60,8 @@ pnpm typecheck
 | `passed`           | 五类全清                                                        | `completed`                                   |
 | `conditional-pass` | 主体合格，遗留显式登记且不阻塞当前交付                          | `completed`，遗留入 backlog                   |
 | `rejected`         | 落地缺口 / 证据不实 / 越界改动 / 契约未对齐；写明原因与待补动作 | `rejected`，返修在同一 `contextId` 下新开任务 |
+
+**合并门细则**：`passed` 可直接合并；`conditional-pass` 必须同时满足 `scopeCheck=in-scope`、`finalStatus=completed`、`manualReviewList` 为空、`backlogItems` 每条都有非空编号（遗留已登记），才允许合并。存在人工复核项、遗留缺编号或 scope 越界时仍拒绝。
 
 ### 4.1 自治循环专项核对（框架 `docs/autonomous-loop.md`）
 

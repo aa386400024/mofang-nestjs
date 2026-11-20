@@ -321,10 +321,10 @@ function formatDelta(delta: Record<string, number> | null): string {
       >
         <!-- 头部行 -->
         <div class="flex items-center gap-3 px-4 py-3">
-          <NTag :type="decisionTagType(trace.decision)" size="small" bordered="false">
+          <NTag :type="decisionTagType(trace.decision)" size="small" :bordered="false">
             {{ trace.decision === 'run' ? '跑审议' : '跳过' }}
           </NTag>
-          <NTag :type="modeTagType(trace.mode)" size="small" bordered="false">
+          <NTag :type="modeTagType(trace.mode)" size="small" :bordered="false">
             {{ trace.mode === 'shadow' ? '影子' : '生效' }}
           </NTag>
           <span class="text-xs text-muted">轮次 {{ trace.turnIndex }}</span>

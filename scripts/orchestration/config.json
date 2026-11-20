@@ -1,16 +1,26 @@
 {
   "schemaVersion": "1.0.0",
   "autoLoop": {
-    "enabled": false
+    "enabled": true
   },
   "reworkLimit": 2,
   "leaseDefaultMinutes": 30,
-  "allowedTaskTypes": ["implementation", "fix", "documentation"],
+  "maxConcurrentTasks": 1,
+  "allowedTaskTypes": ["implementation", "fix", "documentation", "investigation", "review", "verification"],
   "store": {
     "backend": "json"
   },
   "transport": {
     "type": "file"
+  },
+  "dispatch": {
+    "channel": "gui-relay",
+    "fallbackToFile": true,
+    "deliveryLeaseMinutes": 5
+  },
+  "circuitBreaker": {
+    "consecutiveFailureThreshold": 3,
+    "cooldownMinutes": 10
   },
   "web": {
     "refresh": {
@@ -27,13 +37,19 @@
     "dependency-change"
   ],
   "notes": {
-    "enabled": "自治模式总开关，默认关闭；经 CLI `pnpm orchestration:config --enable` 显式开启，静态网页只读展示，不直接写本地文件。",
+    "enabled": "自治模式总开关；AF-023 起默认开启，经 CLI `pnpm orchestration:config --disable` 可显式关闭。静态网页只读展示，不直接写本地文件。",
     "reworkLimit": "同一 contextId 下返修次数上限，超限进死信隔离。",
     "leaseDefaultMinutes": "任务未声明 deadline 时的默认租约时长（分钟）。",
-    "allowedTaskTypes": "允许自动执行的任务类型；investigation / review 等只读产出类型不在白名单，不自动改实现。",
+    "maxConcurrentTasks": "同时在办任务上限；默认 1（单任务队列），与文件 / GUI 通道的“在办未回收不发下一个”规则对齐。",
+    "allowedTaskTypes": "允许自动执行的任务类型；六类全部纳入。只读类型（investigation / review / verification）仍按 scope-mutex 的 READONLY_TASK_TYPES 走只读互斥。",
     "frozenActions": "命中即冻结、转 input-required 并转人工，不阻塞队列其他任务；类别对齐框架仓 docs/autonomous-loop.md §3.2。",
     "store.backend": "状态持久化后端：json（默认，JSON 文件 + 原子写）或 sqlite（可选内置 node:sqlite）；SQLite 仅存指针 / 状态 / 历史，工件正文仍留文件，不进业务 MySQL。",
     "transport.type": "协议投递通道：file（默认，交接 JSON 文件）；mcp / http 为预留实现位，本批次不实现、不引协议栈依赖。",
+    "dispatch.channel": "派发通道：gui-relay（默认，桌面 relay 投递，投递件落 transport/briefs/，须经 `channel confirm` 确认送达或 `channel fallback` 降级）或 file（只落交接件，不驱动桌面）。",
+    "dispatch.fallbackToFile": "GUI 通道投递失败是否保留文件交接件并降级为 channel=gui-file-fallback；true 时任务不丢，降级事实写进派发记录。",
+    "dispatch.deliveryLeaseMinutes": "GUI 投递租约（分钟，默认 5）：投递件生成后超时仍未 confirm / fallback，run-once 把任务回滚 ready 并置 heldForHuman；与 30 分钟任务租约分离，避免一条 pending 投递占满单任务队列。",
+    "circuitBreaker.consecutiveFailureThreshold": "通道级熔断阈值（连续失败次数，默认 3）：同一通道连续失败达该值即开闸，回收时发 channel-circuit-open 可观察事件；通道侧不另立独立计数，复用框架 reliability.md §5.1 通用熔断口径。",
+    "circuitBreaker.cooldownMinutes": "熔断冷却期（分钟，默认 10）：冷却期内该通道不再派发新任务，需冷却结束或人工复位。",
     "web.refresh.enabled": "编排看板前端轮询开关：true（默认）定时重载 data.js 并在快照变化后重渲染；false 关闭自动刷新，页面仅手动刷新。",
     "web.refresh.intervalMs": "看板轮询间隔（毫秒），须为不小于 1000 的整数；默认 3000。"
   }

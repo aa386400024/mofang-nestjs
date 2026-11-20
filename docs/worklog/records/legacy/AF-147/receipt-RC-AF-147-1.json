@@ -1,0 +1,196 @@
+{
+  "deliveredAt": "2026-11-20T01:06:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-147-1",
+    "taskId": "AF-147",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "a2e3a7ed7d4ae68c21b2dc4f3ff204c6b43da0b2",
+    "dependsOn": ["AF-146"],
+    "priorTasks": ["AF-146", "AF-131", "AF-125"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "changedFiles": {
+      "added": [
+        "docs/worklog/pending/af147-kappa-track-task-2026-11-20.md",
+        "docs/worklog/completed/phase2.5/af147-kappa-track-2026-11-20.md"
+      ],
+      "modified": [
+        "src/auto-practice/metrics/ai-double-blind.ts",
+        "bin/ai-double-blind.ts",
+        "test/auto-practice/ai-double-blind.spec.ts",
+        "docs/worklog/pending/phase2.5-README.md"
+      ],
+      "deleted": [],
+      "commits": ["15c25dc2e12c5d5455c27abbafe89351c680904e"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "tsc -b tsconfig.check.json；0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "eslint 缓存模式；src/test/bin + scripts，0 error / 0 warning"
+      },
+      {
+        "command": "pnpm exec vitest run test/auto-practice/ai-double-blind.spec.ts test/engine-core/boundary.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "2 files / 28 tests passed；双盲 16 + engine-core 边界 12"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "221 files passed + 1 skipped；3873 tests passed + 4 skipped；25.99s；收尾一次全量"
+      },
+      {
+        "command": "git diff --stat a2e3a7ed...HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "ORCH-GATE PASS"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "事件日志 639 条；schema、哈希链与索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "AF-147 任务单与状态事件日志 PASS"
+      }
+    ],
+    "scopeCheck": "in-scope",
+    "contractChecks": [
+      {"item": "taskId", "result": "pass", "note": "AF-147 任务单、索引、回执、交付记录一致"},
+      {"item": "stateWrite", "result": "pass", "note": "register / promote / run-once / archive 均经 CLI；状态面未手改"},
+      {"item": "indexSchema", "result": "pass", "note": "task-state-index 由 CLI 写入"},
+      {"item": "eventChain", "result": "pass", "note": "events verify 639 条通过"}
+    ],
+    "backlogItems": [
+      {
+        "id": "OI-AF147-01",
+        "title": "overall 跨模型 κ 0.365854 < 0.40，AI 六项硬门仍 5/6",
+        "impact": "Phase 2.5 出口④ AI 层面质量门未达标",
+        "reason": "分数挤在 4/5 导致 prevalence 崩塌；trust/verbal 分维 κ 0.194508/0.078891，跨模型刻度差未消",
+        "owner": "framework",
+        "improvement": "AF-131 B-2/B-4 与后续扩簇任务"
+      },
+      {
+        "id": "OI-AF147-02",
+        "title": "硬上限仍写在评分员 prompt，style/safety 被钉档",
+        "impact": "上限与评分同处一个 prompt，模型可能先看上限再找证据，压低方差",
+        "reason": "为保持旧口径兼容，本单未搬移",
+        "owner": "framework",
+        "improvement": "后处理硬上限，prompt 只做纯评分"
+      },
+      {
+        "id": "OI-AF147-03",
+        "title": "96 场校准集是跨版本拼包，不是 AF-146 单批",
+        "impact": "只能用于评分口径校准，不能替代单批质量结论",
+        "reason": "复用 6 个既有盲包，未新跑对练",
+        "owner": "framework",
+        "improvement": "扩 ≥24 独立角色簇 / ≥48 packet 且覆盖 ≥3 profile"
+      },
+      {
+        "id": "OI-AF147-04",
+        "title": "κ 门缺 cluster bootstrap 95% CI 下界与 AC1/Krippendorff α 诊断",
+        "impact": "单点 κ 在 n=16 上抽样波动大，无法判稳定通过",
+        "reason": "本单只补赛道，不改统计口径",
+        "owner": "framework",
+        "improvement": "点估计 + CI 下界双条件，并列 AC1/α"
+      },
+      {
+        "id": "OI-AF147-05",
+        "title": "结构缺口 5/16 未修",
+        "impact": "4 场 risk-incomplete + 1 场 closingMode=none",
+        "reason": "不属于评分口径单",
+        "owner": "adapter",
+        "improvement": "风险场次 routine 等价定义与 none 场次强制收束"
+      }
+    ],
+    "deviationTable": [
+      {
+        "item": "任务分支",
+        "taskSays": "自最新 integrate 切出",
+        "reality": "本地 integrate 落后当前 AF-146 基线 28 个提交，直接切分会丢失 AF-146 依赖并覆盖脏状态面",
+        "action": "从 baselineRef a2e3a7e 建 stacked 分支 task/AF-147-kappa-track",
+        "why": "dependsOn AF-146 必须可见；不伪造依赖完成，不丢已有提交"
+      },
+      {
+        "item": "校准集口径",
+        "taskSays": "现有 16 packet 可直接用 --track kappa 复跑",
+        "reality": "16 packet 仅 8 个独立簇，κ 点估计波动极大；另复用 6 个既有批次组成 96 个唯一 session",
+        "action": "16 场与 96 场分别报告；96 场明确标注跨版本校准，不替代 AF-146 单批",
+        "why": "避免用扩样本伪装单批质量提升"
+      },
+      {
+        "item": "全量测试工作区",
+        "taskSays": "只改评分口径与 CLI",
+        "reality": "工作区存在历史 AF-128 的 reasoning-text 改动，未提交但参与全量运行",
+        "action": "AF-147 提交严格限定 6 个 scope 文件；AF-128 改动不纳入",
+        "why": "不把并行/历史产物混入本单"
+      },
+      {
+        "item": "质量判定",
+        "taskSays": "AI 层面质量达标",
+        "reality": "实现与闸门全过，但 overall κ 0.365854 < 0.40，5/6 未达标",
+        "action": "判 conditional-pass；不调低 0.40、不写临床达标",
+        "why": "证据优先，功能完成不等于质量门通过"
+      }
+    ],
+    "reviewVerdict": "conditional-pass",
+    "finalStatus": "completed",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af147-kappa-track-task-2026-11-20.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af147-kappa-track-2026-11-20.md",
+      "others": [
+        "data/phase25-exit/af147-kappa-96/blind-map.json",
+        "data/phase25-exit/af147-kappa-96-out/",
+        "data/phase25-exit/af147-kappa-96-t0/",
+        "data/phase25-exit/af147-kappa-track/",
+        "docs/worklog/pending/relay-response-AF147-20261120-0015.md"
+      ]
+    },
+    "reproNotes": "分支 task/AF-147-kappa-track；基线 a2e3a7e；实现提交 15c25dc。kappa 赛道 R1/R2 同方法、同锚点序，仅换模型；默认 method-probe 保持原行为。96 场：R1 MiniMax-M2.7 / R2 MiniMax-M3.1-Flash / R3 MiniMax-M3，温度 0.1、arbitrate-gap=0、并发 6；exact 83/96=0.864583、within±1 96/96=1.0000、overall κ 0.365854。温度 0 复跑 κ 0.341176；规则收紧复跑 κ -0.018868 已回退。阈值未动，结论为 ai_proxy_candidate / humanSupervision=false / clinicalAcceptanceEligible=false。",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "ai_proxy_candidate / humanSupervision=false / clinicalAcceptanceEligible=false"
+    },
+    "openQuestions": [
+      "0.40 阈值出处与统计口径需在下一单固定为点估计 + cluster bootstrap 95% CI 下界双条件",
+      "是否将硬上限改为后处理，以恢复 style/safety 的评分方差"
+    ],
+    "manualReviewList": [
+      "96 场跨版本校准集含旧收束版本，需在报告中与 AF-146 单批严格分区",
+      "M3 vs M3.1-Flash 因 M3 输出 think 标签 fail-closed，未形成有效批次，需补解析重试"
+    ],
+    "deviationAbsent": false,
+    "verdictRationale": "AF-147 完成评分双轨：method-probe 原行为逐字保留，kappa 赛道 R1/R2 同方法同锚点序仅换模型；typecheck、lint、定向 28/28、全量 3873、engine-core 零 diff 全过。96 场校准把 overall κ 从 0.351351 提到 0.365854、一致率 86.46%、within±1 100%，但仍低于 0.40。实现目标完成、质量门未过，故条件通过，剩余问题转后续任务，不以扩样本或调阈值冒充达标。"
+   }
+}

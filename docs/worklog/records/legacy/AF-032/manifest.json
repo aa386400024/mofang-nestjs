@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-032",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.606Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-032/task-sheet.md",
+    "sha256": "a36ffb82560ad24716aa3b17f0fee1996a213d67bd92dd4cc33cad4336c55418",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af032-dispatch-decision-wiring-2026-11-17.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

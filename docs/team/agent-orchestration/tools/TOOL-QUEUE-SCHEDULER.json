@@ -1,7 +1,7 @@
 {
   "toolId": "TOOL-QUEUE-SCHEDULER",
   "category": "state-store",
-  "description": "队列扫描、领单租约、超时释放、验收驱动状态迁移、返修提案与限次、死信隔离、队列快照生成。",
+  "description": "队列扫描、领单租约、超时释放、GUI 送达 ack 自动确认、验收驱动状态迁移、返修提案与限次、死信隔离、队列快照生成。",
   "sideEffect": "restricted-write",
   "allowedRoles": ["orchestrator"],
   "resources": [

@@ -60,7 +60,7 @@ try {
       }
     }
   }
-} catch (e) {
+} catch {
   // .env 加载失败不阻塞 smoke (dev 可能用其他 env 注入方式)
 }
 
@@ -88,15 +88,12 @@ function redisCommand(parts) {
 
     let buf = '';
     let step = password ? 'AUTH' : 'SELECT';
-    let authenticated = !password;
-    let selected = false;
     const sock = net.createConnection({ host, port }, () => {
       if (password) {
         sock.write(`*2\r\n$4\r\nAUTH\r\n$${Buffer.byteLength(password)}\r\n${password}\r\n`);
       } else {
         sock.write(`*2\r\n$6\r\nSELECT\r\n$${Buffer.byteLength(String(db))}\r\n${db}\r\n`);
         step = 'GET';
-        selected = true;
       }
     });
 
@@ -118,7 +115,6 @@ function redisCommand(parts) {
           }
         } else if (step === 'SELECT') {
           if (line.startsWith('+OK')) {
-            selected = true;
             const cmd = (writer) => {
               writer('*' + parts.length + '\r\n');
               for (const p of parts) writer('$' + Buffer.byteLength(p) + '\r\n' + p + '\r\n');
@@ -126,7 +122,6 @@ function redisCommand(parts) {
             cmd((line) => sock.write(line));
             step = 'GET';
             getResolver = { resolve, reject };
-            if (password) authenticated = true;
           } else if (line.startsWith('-')) {
             sock.destroy();
             return reject(new Error('Redis SELECT: ' + line));

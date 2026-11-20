@@ -32,7 +32,7 @@ const { execSync } = require('node:child_process');
 if (process.platform === 'win32') {
   try {
     execSync('chcp 65001 >NUL', { stdio: 'ignore', shell: 'cmd.exe' });
-  } catch (err) {
+  } catch {
     // PowerShell / Git Bash / WSL 桥接环境下 shell 不是 cmd.exe, 静默跳过
     // 提示用户手动设置
     process.stderr.write(

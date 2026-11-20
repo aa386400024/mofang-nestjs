@@ -15,13 +15,18 @@
     "overrides": {
       "axios": "^1.21.1",
       "undici": "^7.30.1"
+    },
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-fc5q-39xc-vjpf"
+      ]
     }
   },
   "packageManager": "pnpm@9.15.0",
   "engineStrict": true,
   "scripts": {
-    "lint": "eslint --cache \"{src,test,bin}/**/*.ts\"",
-    "lint:fix": "eslint --fix --cache \"{src,test,bin}/**/*.ts\"",
+    "lint": "eslint --cache --cache-strategy content \"{src,test,bin}/**/*.ts\" && eslint --cache --cache-strategy content --config scripts/orchestration/eslint-scripts.config.mjs \"scripts/**/*.{mjs,cjs}\"",
+    "lint:fix": "eslint --fix --cache --cache-strategy content \"{src,test,bin}/**/*.ts\" && eslint --fix --cache --cache-strategy content --config scripts/orchestration/eslint-scripts.config.mjs \"scripts/**/*.{mjs,cjs}\"",
     "lint:fast": "oxlint src test bin",
     "lint:fast:fix": "oxlint --fix src test bin",
     "lint:deep": "oxlint --type-aware src test bin",
@@ -31,15 +36,24 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "doctor:fs": "node scripts/fs-latency-check.mjs",
     "orchestration:status": "node scripts/orchestration/cli.mjs status",
+    "orchestration:preflight": "node scripts/orchestration/task-entry-gate.mjs",
+    "orchestration:ci-gate": "node scripts/orchestration/ci-task-gate.mjs",
+    "orchestration:protection": "node scripts/orchestration/branch-protection.mjs",
+    "orchestration:pr": "node scripts/orchestration/pr-release.mjs",
     "orchestration:run": "node scripts/orchestration/cli.mjs run-once",
+    "orchestration:channel": "node scripts/orchestration/cli.mjs channel",
+    "orchestration:relay": "node scripts/orchestration/relay-supervisor.mjs",
     "orchestration:watch": "node scripts/orchestration/cli.mjs watch",
     "orchestration:protocol": "node scripts/orchestration/cli.mjs protocol",
     "orchestration:snapshot": "node scripts/orchestration/cli.mjs snapshot",
     "orchestration:pack": "node scripts/orchestration/cli.mjs pack",
     "orchestration:archive": "node scripts/orchestration/cli.mjs archive",
+    "orchestration:task": "node scripts/orchestration/cli.mjs task",
     "orchestration:validate": "node scripts/orchestration/cli.mjs validate",
     "orchestration:contracts": "node scripts/orchestration/verify-framework-bundle.mjs",
     "orchestration:events": "node scripts/orchestration/cli.mjs events",
+    "orchestration:worklog": "node scripts/orchestration/cli.mjs worklog",
+    "orchestration:worklog:verify": "node scripts/orchestration/cli.mjs worklog verify --strict",
     "orchestration:config": "node scripts/orchestration/cli.mjs config",
     "orchestration:improvements": "node scripts/orchestration/cli.mjs improvements",
     "orchestration:web": "node scripts/orchestration/open-web.mjs",
@@ -137,7 +151,8 @@
     "rxjs": "^7.8.2",
     "socket.io": "^4.8.4",
     "typeorm": "^1.1.1",
-    "ws": "^8.21.3"
+    "ws": "^8.21.3",
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@compodoc/compodoc": "^2.0.0",

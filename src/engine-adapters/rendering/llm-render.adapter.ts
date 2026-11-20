@@ -99,6 +99,7 @@ import type {
   ChatMessageContentPart,
   ChatReasoningEffort,
 } from '../../llm/common/interfaces/chat-provider.interface.js';
+import { safeVisiblePrefix, stripReasoningBlocks } from '../../shared/llm/reasoning-text.js';
 
 /**
  * 流式调用选项 (窄面).
@@ -459,7 +460,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       return call.retryable ? { kind: 'retry', reason: call.reason } : { kind: 'degrade', reason: call.reason };
     }
 
-    const rawText = (call.response.content ?? '').trim();
+    // AF-106: 推理块既不是可见台词，也不能进逐字稿 / 历史 / 来访者引擎上下文。
+    //   必须在空内容判定与截断保护之前剥掉：只有推理块 = 没有可用输出，按失败切备。
+    const rawText = stripReasoningBlocks(call.response.content ?? '');
     if (!rawText) {
       // 空内容 = 没有可用输出, 与失败同等处理 (切备), 不把空串当"成功"返回.
       this.runtime.markFailure(candidate.id, this.config);
@@ -552,7 +555,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       return call.retryable ? { kind: 'retry', reason: call.reason } : { kind: 'degrade', reason: call.reason };
     }
 
-    const rawText = (call.response.content ?? '').trim();
+    // AF-106: 推理块既不是可见台词，也不能进逐字稿 / 历史 / 来访者引擎上下文。
+    //   必须在空内容判定与截断保护之前剥掉：只有推理块 = 没有可用输出，按失败切备。
+    const rawText = stripReasoningBlocks(call.response.content ?? '');
     if (!rawText) {
       this.runtime.markFailure(candidate.id, this.config);
       return { kind: 'retry', reason: `候选 ${candidate.id} 重生成返回空内容` };
@@ -647,12 +652,10 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     if (!opened.ok) {
       return opened.retryable ? { kind: 'retry', reason: opened.reason } : { kind: 'degrade', reason: opened.reason };
     }
-    // 首个增量已到达 → 本轮 TTFT 定了 (开头的预检/切备耗时算在上游等待里).
-    const ttftMs = Date.now() - streamStartedAt;
-
-    // 阶段 2: 锁定 —— 首个非空 delta 到达即证明该候选健康.
-    // 此后无论中途发生什么, 都不再切备 (已出声无法撤回).
-    this.runtime.markSuccess(candidate.id);
+    // 首个**可见**增量已到达 → 本轮 TTFT 定了 (开头的预检/切备耗时算在上游等待里).
+    // AF-106: 推理块不是可见台词，不能拿它当"已出声"锁定候选。
+    let ttftMs = 0;
+    let locked = false;
 
     // V2026-10-29 治本 (WP9-C · 句边界缓冲): 只有**已闭合**的句子才往下游发.
     //   为什么: 流被上游截断 (`finish_reason=length`) 时, 半截句子一旦发出去, 就已经
@@ -661,20 +664,43 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     //   代价: 未闭合句的字幕会晚到 (闭合才发) —— 但 TTS 本来也是按句合成,
     //   字幕与语音对齐反而更准.
     let pending = '';
-    let text = '';
+    /** 已真正下发给消费方的可见台词 (不含推理块 / 未闭合尾巴). */
+    let spoken = '';
 
-    const emit = async (chunk: string): Promise<void> => {
+    const emitSpoken = async (chunk: string): Promise<void> => {
       if (chunk.length === 0) return;
-      text += chunk;
+      spoken += chunk;
+      if (!locked) {
+        this.runtime.markSuccess(candidate.id);
+        locked = true;
+        ttftMs = Date.now() - streamStartedAt;
+      }
       await handlers.onDelta(chunk);
     };
 
-    pending += opened.firstDelta;
-    {
+    /**
+     * 喂入原始增量：先过滤推理块，再把新增的可见文本推进句边界缓冲。
+     *
+     * 为什么不能逐 chunk 直接 `stripReasoningBlocks`: `<think>` / `</think>` 会被拆到
+     * 不同 chunk，逐块替换会把半截标签漏进 TTS / 字幕。`safeVisiblePrefix` 负责扣住
+     * 未闭合推理块与末尾可能的标签前缀，等后续 chunk 到齐再判断。
+     */
+    let raw = '';
+    let visible = '';
+    const feed = async (chunk: string): Promise<void> => {
+      if (chunk.length === 0) return;
+      raw += chunk;
+      const safe = safeVisiblePrefix(raw);
+      if (safe.length <= visible.length) return;
+      const delta = safe.slice(visible.length);
+      visible = safe;
+      pending += delta;
       const split = splitClosedPrefix(pending);
       pending = split.pending;
-      await emit(split.closed);
-    }
+      await emitSpoken(split.closed);
+    };
+
+    await feed(opened.firstDelta);
 
     // 阶段 3: 边吐边累计.
     const usage: StreamUsageAccumulator = {
@@ -692,15 +718,19 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         LlmRenderAdapter.applyChunkFacts(usage, chunk);
         const delta = chunk.delta ?? '';
         if (delta.length === 0) continue;
-        pending += delta;
-        const split = splitClosedPrefix(pending);
-        pending = split.pending;
-        await emit(split.closed);
+        await feed(delta);
       }
     } catch (error) {
       // 已锁定 → 不切备, 收尾降级 (残句当"这一轮不完整"处理).
       this.logger.warn(`[streamRender] 候选 ${candidate.id} 锁定后中断, 收尾降级: ${errorMessage(error)}`);
       return { kind: 'degrade', reason: `候选 ${candidate.id} 锁定后中断: ${errorMessage(error)}` };
+    }
+
+    // 收尾：把 safeVisiblePrefix 扣住的"末尾非推理块"放出来（未闭合 `<think>` 不会放）。
+    const finalVisible = stripReasoningBlocks(raw);
+    if (finalVisible.length > visible.length) {
+      pending += finalVisible.slice(visible.length);
+      visible = finalVisible;
     }
 
     // 收尾: 未闭合尾巴的去向.
@@ -712,19 +742,27 @@ export class LlmRenderAdapter implements StreamingRenderPort {
           `[streamRender] 候选 ${candidate.id} 被上游按长度截断 (finish_reason=length), 丢弃未闭合尾句: ${pending.slice(0, 60)}`,
         );
       } else {
-        await emit(pending);
+        await emitSpoken(pending);
       }
+      pending = '';
+    }
+
+    // AF-106: 整轮只有推理块 / 截断后无完整句 → 没有可见台词，按失败切备，不能静默成功。
+    if (spoken.length === 0) {
+      this.runtime.markFailure(candidate.id, this.config);
+      this.logger.warn(`[streamRender] 候选 ${candidate.id} 没有可见台词 (仅推理块或被截断), 视为失败并切备`);
+      return { kind: 'retry', reason: `候选 ${candidate.id} 没有可见台词` };
     }
 
     // 阶段 4: 收尾 —— 后置全文 guard 只记信号 (不 regen / 不撤回).
-    const verdict = await this.evaluate(text);
-    this.reportSignal(text, verdict);
+    const verdict = await this.evaluate(spoken);
+    this.reportSignal(spoken, verdict);
 
     return {
       kind: 'success',
       candidateId: candidate.id,
       value: this.buildStreamOutcome({
-        text,
+        text: spoken,
         taskKind: spec.taskKind,
         tokenCount: usage.tokenCount,
         reasoningTokens: usage.reasoningTokens,

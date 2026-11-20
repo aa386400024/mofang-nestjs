@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-167",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-20T10:25:00+08:00",
+  "updatedAt": "2026-11-20T02:10:48.697Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-167/task-sheet.md",
+    "sha256": "57a36c40bf7434457d402b12b976922ffb2bf3dbd60c9be48198ba30834a4820",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/inbox/af167-release-docs-snapshot-2026-11-20.md"
+  ],
+  "tombstone": null
+}

@@ -40,7 +40,7 @@ AF-019 把适配层迁到框架 v2.0.0 并完成分支与 CI 收尾，但当时�
 
 - 不改 `src/` 业务源码、依赖、migration、`admin-dashboard/`。
 - 不改框架仓；不重写历史交付记录；不把 `phase3` 设计稿入库。
-- 不实际执行 `Release` 的 master 合并、tag、GHCR 发布或生产部署；这些是 L4 人工冻结动作，本单只交付可复现流水线。
+- L4 动作由人手动触发；本单不自动发布。2026-11-16 已按人工指令执行一次 Release（`deploy=false`），发布结果与失败/重试证据见交付记录 §1.2。
 - 不引入 `FRAMEWORK_REPO_TOKEN` 或私仓匿名访问兜底；契约包是 CI 的权威供应链。
 
 ## 3. 交付物
@@ -50,7 +50,7 @@ AF-019 把适配层迁到框架 v2.0.0 并完成分支与 CI 收尾，但当时�
 3. `validator.mjs` 硬模式：`ORCH_REQUIRE_FRAMEWORK=1` 时缺框架 / 缺 schema / 缺 `versions.json` 一律失败；CI `Contracts` job 使用 `ORCH_FRAMEWORK_DIR` 指向契约包。
 4. `scripts/orchestration/event-store.mjs`：日志追加、投影、哈希链、幂等、锁、回填、提交。
 5. `state/journal.jsonl`（74 条事件）+ `state/archived-notes.json`（12 条说明）+ 带 `projection` 的索引（37 条归档）。
-6. `.github/workflows/release.yml`：`workflow_dispatch` + `confirm=release` + `deploy` 布尔输入；仅允许 `integrate`；同 SHA CI 绿灯（15 分钟轮询）→ GHCR 镜像 → 将 `integrate` 合并进 master（已包含则跳过，校验树一致）→ tag → GitHub Release → 可选 production deploy。
+6. `.github/workflows/release.yml`：`workflow_dispatch` + `confirm=release` + `deploy` 布尔输入；仅允许 `integrate`；同 SHA CI 绿灯（15 分钟轮询）→ GHCR 镜像 → 将 `integrate` 合并进 master（已包含则跳过，校验树一致）→ tag → GitHub Release → 可选 production deploy。**（AF-022 已替换为 release 分支 + dispatch CI + PR 合并，不再直推 master；本节为 AF-020 当次交付历史。）**
 7. 事件溯源 6 个新单测（含迁移合法性与序号连续性）；`cli validate` 9/9；编排层 136 passed。
 8. AF-020 两份记录、IM-031/032/033、IM-034（并发 flake 债）、快照与看板。
 

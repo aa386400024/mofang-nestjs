@@ -17,7 +17,6 @@
 
 import { Logger, RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
-import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -177,25 +176,6 @@ function buildService(
 }
 
 /**
- * 轮询直到条件成立 (超时抛错).
- *
- * 为什么需要: 会话标题是**异步**生成的 (fire-and-forget) —— 那一轮跑完时,
- *   文件可能还在被后台任务改写. 清理临时目录前必须等它落定, 否则会撞上
- *   "删目录时文件又被写回来" (Windows 上表现为 ENOTEMPTY).
- *
- * @param condition 条件判定
- * @param timeoutMs 超时上限
- */
-async function waitFor(condition: () => boolean | Promise<boolean>, timeoutMs = 10_000): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  for (;;) {
-    if (await condition()) return;
-    if (Date.now() > deadline) throw new Error(`waitFor 超时: 条件在 ${timeoutMs}ms 内没成立`);
-    await new Promise((resolve) => setTimeout(resolve, 10));
-  }
-}
-
-/**
  * 读会话文件里的内核状态快照 (读不到 → null).
  */
 function readKernelState(raw: unknown): {
@@ -282,7 +262,10 @@ describe('WP38 补做 · 调试会话恢复', () => {
 
   // ── ③ 重启后恢复并继续发消息 ──────────────────────────────────────
   describe('③ 重启后恢复', () => {
-    it('重启后调 resume → 会话活过来, 能接着发消息 (轮次接着往下数)', async () => {
+    // IM-034：该用例要起两个服务实例 + 两轮 runTurn，并发跑 lint/typecheck 的机器负载下
+    // 曾出现 30s 默认超时（独占复跑约 100ms）。这里给显式 60s 预算，
+    // 区分「并发负载拖慢」与「真的回归」——超时预算只影响并发 flake，不掩盖断言失败。
+    it('重启后调 resume → 会话活过来, 能接着发消息 (轮次接着往下数)', { timeout: 60_000 }, async () => {
       // 第一个进程: 跑两轮.
       const first = buildService(dir);
       const created = await first.service.createSession(KNOWN_SLUG);
@@ -319,40 +302,11 @@ describe('WP38 补做 · 调试会话恢复', () => {
         expect(second.engine.restored[0]?.turns).toHaveLength(4);
         expect(second.engine.restored[0]?.turns[0]?.text).toBe('第一轮');
 
-        // 这一轮把轮次推到 3 → 触发**异步**标题生成; 等它落定 (否则清理临时目录会撞上后台写文件).
-        //
-        // ⚠️ 等待上限 **30s** (只改这一处, `waitFor` 的默认值留给其它调用点):
-        //   这里等的是**异步副作用落盘**, 不是业务逻辑 —— 142 个 worker 并行时
-        //   文件写 + rename 会被拖慢, 10s 偶发不够 (单跑该文件必绿, 并行才偶发红).
-        await waitFor(async () => {
-          const raw = JSON.parse(await readFile(join(dir, `${created.sessionId}.json`), 'utf8')) as { readonly title?: string };
-          return raw.title === '兜底标题';
-        }, 30_000);
-      } catch (error) {
-        // 只给"等待超时"补现场; 断言失败原样抛 (别把真失败盖成诊断信息).
-        const isTimeout = error instanceof Error && error.message.includes('waitFor 超时');
-        if (!isTimeout) throw error;
-        const file = join(dir, `${created.sessionId}.json`);
-        const fileExists = existsSync(file);
-        let title: string | undefined;
-        let titleSource: string | undefined;
-        if (fileExists) {
-          const raw = JSON.parse(await readFile(file, 'utf8')) as { readonly title?: string; readonly titleSource?: string };
-          title = raw.title;
-          titleSource = raw.titleSource;
-        }
-        const warnTexts = warnSpy.mock.calls.map((call) => String(call[0]));
-        throw new Error(
-          [
-            'waitFor 超时: 异步标题未落定',
-            `session=${created.sessionId}`,
-            `fileExists=${String(fileExists)}`,
-            `title=${title ?? '(无)'}`,
-            `titleSource=${titleSource ?? '(无)'}`,
-            `warns=${warnTexts.length > 0 ? warnTexts.join(' | ') : '(无)'}`,
-            `cause=${error instanceof Error ? error.message : String(error)}`,
-          ].join(' '),
-        );
+        // 等待异步标题生成落定（IM-034）：不再用固定 30s 轮询与并发负载赛跑，
+        // 改为 await 服务登记的标题任务，时序由被测对象决定。
+        await second.service.awaitPendingTitleGeneration(created.sessionId);
+        const raw = JSON.parse(await readFile(join(dir, `${created.sessionId}.json`), 'utf8')) as { readonly title?: string };
+        expect(raw.title).toBe('兜底标题');
       } finally {
         warnSpy.mockRestore();
       }

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-045",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.622Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-045/task-sheet.md",
+    "sha256": "607d746b64798be9355ad66cd19f76536f0a88c6351fab822972d615e611c2d8",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af045-orchestration-hardening-2026-11-17.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

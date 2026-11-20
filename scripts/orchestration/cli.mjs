@@ -17,9 +17,20 @@
  * 用法（pnpm，禁裸 npx）：`pnpm orchestration:<subcommand>`，入口在 package.json。
  */
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
-import { PATHS, REPO_ROOT, loadConfig, loadIndex, loadRuntimeState, saveConfigPatch, writeJsonAtomic } from './state-store.mjs';
-import { advanceOnce, buildSnapshot, shouldAdvance } from './scheduler.mjs';
+import {
+  PATHS,
+  REPO_ROOT,
+  loadConfig,
+  loadIndex,
+  loadRuntimeState,
+  nowIso,
+  saveConfigPatch,
+  saveRuntimeState,
+  writeJsonAtomic,
+} from './state-store.mjs';
+import { advanceOnce, buildSnapshot, cancelTask, promoteTask, shouldAdvance } from './scheduler.mjs';
 import {
   frameworkDir,
   requireFramework,
@@ -27,6 +38,7 @@ import {
   validateDeliveryPackage,
   validateProtocolView,
   validateReviewHandoverSchema,
+  validateReceiptSchema,
   validateTaskIndex,
   validateTaskSheet,
   validateToolDir,
@@ -34,10 +46,16 @@ import {
 import {
   archiveTask as archiveTaskEvent,
   backfillJournalFromIndex,
+  commitIndex,
   createTask,
   journalIntegrity,
   loadJournal,
   rebuildIndex,
+  rotateJournal,
+  loadJournalSegment,
+  rechainEvents,
+  saveJournalSegment,
+  segmentEntryPoint,
   validateJournalSchema,
   verifyProjection,
 } from './event-store.mjs';
@@ -63,16 +81,45 @@ import {
   branchAgeDays,
   createGitPort,
   collectChangedFiles,
+  finalizeSquashMerge,
   DEFAULT_STALE_DAYS,
 } from './branch-workflow.mjs';
-import { SESSION_PATHS, LOCATE_LAYERS, MAX_START_RETRIES, MAX_SEND_RETRIES, canDispatch } from './dispatch-channel.mjs';
+import { SESSION_PATHS, LOCATE_LAYERS, MAX_START_RETRIES, MAX_SEND_RETRIES, canDispatch, DELIVERY_CAUSES } from './dispatch-channel.mjs';
+import { evaluateRemoteCiGate } from './ci-status.mjs';
+import {
+  buildGuiBrief,
+  writeGuiBrief,
+  confirmDelivery,
+  fallbackDelivery,
+  isDeliveryStalled,
+  autoConfirmDelivery,
+} from './gui-dispatch.mjs';
+import { acquireRunLock, describeRunLock } from './run-lock.mjs';
+import { planReissue } from './reissue.mjs';
+import { lintReceiptFile } from './receipt-lint.mjs';
+import { inspectTextFile, normalizeTextFile } from './text-normalize.mjs';
+import { ensureTaskRecordBundle, migrateWorklog, resolveTaskSheet, statsWorklog, verifyWorklog } from './worklog.mjs';
 
 /** 快照双写：JSON（机读 / 存档）+ data.js（静态网页在 file:// 下读取，规避本地 fetch 限制）。 */
-function writeSnapshotArtifacts(snapshot) {
+function writeSnapshotArtifacts(snapshot, opts = {}) {
+  // 运行态快照是派生视图：空跑 / 仅时间戳变化时不重写，避免每次 watch tick 制造脏 diff。
+  if (!opts.force && existsSync(PATHS.snapshot)) {
+    try {
+      const previous = JSON.parse(readFileSync(PATHS.snapshot, 'utf8'));
+      const comparable = (value) => {
+        const { generatedAt: _generatedAt, ...rest } = value;
+        return JSON.stringify(rest);
+      };
+      if (comparable(previous) === comparable(snapshot)) return false;
+    } catch {
+      // 快照损坏时直接覆盖，交给后续校验兜底。
+    }
+  }
   writeJsonAtomic(PATHS.snapshot, snapshot);
   writeFileSync(PATHS.webDataJs, `// 由 orchestration CLI 生成，勿手改\nwindow.ORCH_SNAPSHOT = ${JSON.stringify(snapshot, null, 2)};\n`, {
     encoding: 'utf8',
   });
+  return true;
 }
 
 /**
@@ -80,11 +127,11 @@ function writeSnapshotArtifacts(snapshot) {
  * 索引缺失等读取异常时跳过刷新并告警，不阻断台账 / 交付包等已落盘产物。
  * @returns {object|null} 快照对象；跳过刷新时为 null。
  */
-function refreshSnapshotArtifacts() {
+function refreshSnapshotArtifacts(opts = {}) {
   try {
     const config = loadConfig();
     const snapshot = buildSnapshot(loadIndex(), loadRuntimeState(), config, summarizeLog(loadImprovementLog()));
-    writeSnapshotArtifacts(snapshot);
+    writeSnapshotArtifacts(snapshot, opts);
     return snapshot;
   } catch (err) {
     console.warn(`[snapshot] 跳过快照刷新：${err.message}`);
@@ -131,8 +178,9 @@ function printSnapshot(snapshot) {
   console.log(`生成时间：${snapshot.generatedAt}`);
   console.log(`自治模式：${snapshot.mode.autoLoopEnabled ? '开启' : '关闭'}；返修上限：${snapshot.mode.reworkLimit}`);
   console.log(
-    `计数：ready=${c.ready} submitted=${c.submitted} working=${c.working} completed=${c.completed} failed=${c.failed} canceled=${c.canceled} rejected=${c.rejected} input-required=${c['input-required']} deadLetter=${c.deadLetter}`,
+    `计数（活跃）：ready=${c.ready} submitted=${c.submitted} working=${c.working} completed=${c.completed} failed=${c.failed} canceled=${c.canceled} rejected=${c.rejected} input-required=${c['input-required']} deadLetter=${c.deadLetter}`,
   );
+  console.log(`归档任务：${snapshot.archivedCount ?? 0}`);
   console.log('');
   console.log('=== 任务列表 ===');
   if (snapshot.tasks.length === 0) {
@@ -164,49 +212,116 @@ function readSnapshot() {
 function cmdStatus() {
   const snapshot = readSnapshot() ?? buildSnapshot(loadIndex(), loadRuntimeState(), loadConfig(), summarizeLog(loadImprovementLog()));
   printSnapshot(snapshot);
+  printOperationalHealth();
+}
+
+/**
+ * 可观测性最小集（只读投影，不参与状态迁移）：
+ * 死信、人工持单、租约过期释放、回执校验失败、回执无指纹（旧数据）、单写者锁。
+ * 这些计数以前只能翻 json 才看得到，出了事没人叫得醒；现在每次 status 一行带出。
+ */
+function printOperationalHealth() {
+  const index = loadIndex();
+  const runtime = loadRuntimeState();
+  const entryOf = (id) => runtime.tasks?.[id] ?? {};
+  const tasks = index.tasks ?? [];
+  const deadLetter = tasks.filter((t) => t.status === 'deadLetter').length;
+  const heldForHuman = tasks.filter((t) => entryOf(t.taskId).heldForHuman === true).length;
+  const leaseExpired = Object.values(runtime.tasks ?? {}).filter((e) => e.releaseReason === 'lease-expired').length;
+  const receiptErrors = Object.entries(runtime.tasks ?? {}).filter(([, e]) => Array.isArray(e.receiptErrors) && e.receiptErrors.length > 0);
+  const receiptNoDigest = Object.values(runtime.tasks ?? {}).filter((e) => e.receiptStatus && !e.receiptDigest).length;
+  const lock = describeRunLock();
+
+  console.log('=== 运行健康 ===');
+  console.log(
+    `死信=${deadLetter} 人工持单=${heldForHuman} 租约过期释放=${leaseExpired} 回执校验失败=${receiptErrors.length} 回执无指纹=${receiptNoDigest}`,
+  );
+  if (receiptErrors.length > 0) {
+    for (const [taskId, e] of receiptErrors.slice(0, 5)) console.log(`  ${taskId}：${e.receiptErrors[0]}`);
+  }
+  console.log(
+    lock
+      ? `单写者锁：运行中（pid=${lock.pid ?? '?'} host=${lock.host ?? '?'} 已持 ${lock.heldMinutes ?? '?'} 分钟${lock.stale ? '，已超陈旧阈值' : ''}）`
+      : '单写者锁：空闲',
+  );
+}
+
+/** 单写者保护：抢不到锁说明另一轮在跑，本轮直接跳过（只读打印持锁事实，不动状态面）。 */
+function withRunLock(label, fn) {
+  const lock = acquireRunLock({ actor: label });
+  if (!lock.acquired) {
+    const held = lock.holder ?? {};
+    console.log(
+      `[lock] 另一轮${held.actor ? `（${held.actor}）` : ''}正在运行，本轮跳过：pid=${held.pid ?? '?'} host=${held.host ?? '?'} 自 ${held.acquiredAt ?? '?'}`,
+    );
+    return null;
+  }
+  if (lock.stolen)
+    console.log(`[lock] 已清理陈旧锁：pid=${lock.stolen.pid ?? '?'} host=${lock.stolen.host ?? '?'} 自 ${lock.stolen.acquiredAt ?? '?'}`);
+  try {
+    return fn();
+  } finally {
+    lock.release();
+  }
 }
 
 function cmdRunOnce() {
-  const config = loadConfig();
-  if (!shouldAdvance(config)) {
-    console.log('自治模式关闭：本轮仅生成只读快照，不执行领单 / 验收归档 / 返修等状态迁移。');
-  }
-  auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: 'run-once' });
-  // IM-009：采集本次变更文件清单供 V7 文件域残留比对；空清单时 V7 记 skip。
-  const changedFiles = collectChangedFiles(createGitPort());
-  const { snapshot, actions } = advanceOnce({ commit: true, changedFiles });
-  auditDispatchActions(actions);
-  writeSnapshotArtifacts(snapshot);
-  for (const action of actions) console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
-  console.log('');
-  printSnapshot(snapshot);
+  return withRunLock('run-once', () => {
+    const config = loadConfig();
+    if (!shouldAdvance(config)) {
+      console.log('自治模式关闭：本轮仅生成只读快照，不执行领单 / 验收归档 / 返修等状态迁移。');
+    }
+    auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: 'run-once' });
+    // IM-009：采集本次变更文件清单供 V7 文件域残留比对；空清单时 V7 记 skip。
+    const gitPort = createGitPort();
+    const changedFiles = collectChangedFiles(gitPort);
+    // AF-043-I1：回执声明了提交集合时，V7 按 commit 事实比对（不再拿工作树去套单个任务）。
+    const resolveCommitFiles = (sha) => gitPort.filesInCommit(sha);
+    const { snapshot, actions } = advanceOnce({ commit: true, changedFiles, resolveCommitFiles });
+    auditDispatchActions(actions);
+    writeSnapshotArtifacts(snapshot);
+    for (const action of actions) console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
+    console.log('');
+    printSnapshot(snapshot);
+  });
 }
 
 function cmdWatch() {
   const dirs = [
     join(REPO_ROOT, 'docs', 'worklog', 'pending'),
     join(REPO_ROOT, 'docs', 'worklog', 'completed'),
+    join(PATHS.transportDir, 'tasks'),
     join(PATHS.transportDir, 'receipts'),
   ];
-  const watcher = createWatcher({
-    dirs,
-    debounceMs: 300,
-    onChange(events) {
-      console.log(`[watch] 检测到变更 ${events.length} 项，执行一轮 run-once`);
+  const tick = (label, events = []) =>
+    withRunLock('watch', () => {
+      console.log(`[watch] ${label} ${events.length > 0 ? `变更 ${events.length} 项，` : ''}执行一轮 run-once`);
       auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: 'watch' });
-      const changedFiles = collectChangedFiles(createGitPort());
-      const { snapshot, actions } = advanceOnce({ commit: true, changedFiles });
+      const gitPort = createGitPort();
+      const changedFiles = collectChangedFiles(gitPort);
+      const { snapshot, actions } = advanceOnce({
+        commit: true,
+        changedFiles,
+        resolveCommitFiles: (sha) => gitPort.filesInCommit(sha),
+      });
       auditDispatchActions(actions);
       writeSnapshotArtifacts(snapshot);
       for (const action of actions)
         console.log(`[动作] ${action.type} ${action.taskId ?? ''}${action.reason ? `（${action.reason}）` : ''}`);
       printSnapshot(snapshot);
+    });
+  const watcher = createWatcher({
+    dirs,
+    debounceMs: 300,
+    onChange(events) {
+      tick('检测到', events);
     },
     onError(err) {
       console.error(`[watch] 监听错误：${err.message}`);
     },
   });
-  console.log(`[watch] 监听目录：${dirs.join('、')}；Ctrl+C 退出。`);
+  console.log(`[watch] 监听目录：${dirs.join('、')}；启动先跑一轮，Ctrl+C 退出。`);
+  tick('启动');
   const stop = () => {
     watcher.stop();
     process.exit(0);
@@ -222,7 +337,7 @@ function cmdProtocol() {
 
 function cmdSnapshot() {
   auditRegistryCall('TOOL-STATE-STORE', { actor: 'orchestrator', correlationId: 'snapshot' });
-  const snapshot = refreshSnapshotArtifacts();
+  const snapshot = refreshSnapshotArtifacts({ force: true });
   console.log(`快照已写入：${PATHS.snapshot}`);
   if (snapshot) printSnapshot(snapshot);
 }
@@ -267,10 +382,68 @@ function cmdArchive(args) {
   }
   const note = argValue(args, '--note');
 
+  const index = loadIndex();
+  const current = [...(index.tasks ?? []), ...(index.archivedTasks ?? [])].find((task) => task.taskId === taskId);
+  if (current) {
+    // 记录包可能已迁移过；以 resolver 为准，避免把失效的旧指针写进归档事件。
+    const resolved = resolveTaskSheet(current);
+    if (resolved?.path) {
+      const bundle = ensureTaskRecordBundle(current, { sourceSheetPath: resolved.path, status });
+      artifacts.taskSheet = bundle.taskSheetPath;
+    }
+  }
+
   const entry = archiveTaskEvent(taskId, { status, artifacts, note, actor: 'orchestrator-cli' });
   auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: `archive:${taskId}` });
   refreshSnapshotArtifacts();
   console.log(`已归档：${entry.taskId} [${entry.status}]${note ? `｜${note}` : ''}`);
+}
+
+function cmdWorklog(args = []) {
+  const action = args[0] ?? 'stats';
+  const json = args.includes('--json');
+  const index = loadIndex();
+  if (action === 'verify') {
+    const strict = args.includes('--strict');
+    const result = verifyWorklog(index);
+    const failed = !result.ok || (strict && result.warnings.length > 0);
+    if (json) {
+      console.log(JSON.stringify({ ...result, strict, ok: !failed }, null, 2));
+    } else {
+      console.log(
+        `[worklog verify] ${failed ? 'FAIL' : 'PASS'}${strict ? ' (strict)' : ''} 活跃=${result.stats.activeTasks} 归档=${result.stats.archivedTasks} 记录包=${result.stats.bundles} inbox=${result.stats.inboxFiles} legacy指针=${result.stats.legacyPointers} 无任务单=${result.stats.missingTaskSheets}`,
+      );
+      for (const warning of result.warnings) console.warn(`  ! ${warning}`);
+      for (const error of result.errors) console.error(`  - ${error}`);
+    }
+    if (failed) process.exitCode = 1;
+    return { ...result, strict, ok: !failed };
+  }
+  if (action === 'stats') {
+    const stats = statsWorklog(index);
+    if (json) console.log(JSON.stringify(stats, null, 2));
+    else {
+      console.log(
+        `[worklog stats] 活跃=${stats.activeTasks} 归档=${stats.archivedTasks} 记录包=${stats.bundles} 墓碑=${stats.tombstones} pending=${stats.pendingFiles} inbox=${stats.inboxFiles} 记录体积=${(stats.recordBytes / 1024).toFixed(1)}KB`,
+      );
+    }
+    return stats;
+  }
+  if (action === 'migrate') {
+    const apply = args.includes('--apply');
+    const report = migrateWorklog(index, { apply });
+    if (json) console.log(JSON.stringify(report, null, 2));
+    else {
+      console.log(
+        `[worklog migrate] ${apply ? 'APPLY' : 'DRY-RUN'} 任务=${report.totals.tasks} 任务单=${report.totals.movedSheets} 回执=${report.totals.movedReceipts} pending清尾=${report.totals.orphanSheets} 错误=${report.totals.errors}`,
+      );
+      for (const error of report.errors) console.error(`  - ${error}`);
+      if (!apply) console.log('  - 正式执行请追加 --apply（先跑一次 dry-run 核对计数）。');
+    }
+    if (report.totals.errors > 0) process.exitCode = 1;
+    return report;
+  }
+  throw new Error(`未知 worklog 子命令：${action}（可选 migrate / verify / stats）`);
 }
 
 /**
@@ -343,7 +516,43 @@ async function cmdEvents(args = []) {
     return;
   }
 
-  throw new Error(`未知 events 动作：${action}（允许 verify / rebuild / backfill / create）`);
+  if (action === 'rotate') {
+    const maxEvents = Number(argValue(args, '--max-events') ?? 5000);
+    const force = args.includes('--force');
+    const compress = args.includes('--compress') || args.includes('--gzip');
+    const dryRun = args.includes('--dry-run');
+    const res = rotateJournal({ maxEvents, force, compress, dryRun });
+    if (!res.rotated) {
+      console.log(`未轮转：${res.reason}${res.segment ? `；候选段 ${res.segment}` : ''}`);
+      return;
+    }
+    console.log(`已轮转：${res.events} 条（EV-${res.firstSeq} → EV-${res.lastSeq}）→ ${res.segment}`);
+    console.log('当前 journal 已重建为空；事件总数与投影不变，请随后执行 events verify');
+    return;
+  }
+
+  if (action === 'rechain') {
+    const fromEventId = argValue(args, '--from');
+    if (!fromEventId) throw new Error('用法：cli.mjs events rechain --from <EV-xxxx> [--apply]  从切点起重算当前段哈希链');
+    const apply = args.includes('--apply');
+    const events = loadJournalSegment();
+    if (events.length === 0) throw new Error('当前 journal 段为空，无需重算');
+    const res = rechainEvents(events, {
+      fromEventId,
+      ...(segmentEntryPoint(events) ?? {}),
+    });
+    if (!apply) {
+      console.log(
+        `[干跑] 切点 ${fromEventId}（本段第 ${res.cutIndex + 1} 条）：其后 ${events.length - res.cutIndex} 条将重编号并重算哈希；未写盘`,
+      );
+      return;
+    }
+    saveJournalSegment(res.events);
+    console.log(`已重算：从 ${fromEventId} 起 ${events.length - res.cutIndex} 条（仅当前段）；请随后执行 events rebuild 与 verify`);
+    return;
+  }
+
+  throw new Error(`未知 events 动作：${action}（允许 verify / rebuild / backfill / create / rotate / rechain）`);
 }
 
 /**
@@ -351,6 +560,10 @@ async function cmdEvents(args = []) {
  * 默认干跑校验；仅显式 --apply 调用变更型 git 端口。脚本不自动 commit / push，不触碰 master。
  */
 function cmdBranch(args) {
+  return runBranch(args);
+}
+
+async function runBranch(args) {
   const action = args[0] ?? 'list';
   const apply = args.includes('--apply');
   const git = createGitPort();
@@ -399,6 +612,15 @@ function cmdBranch(args) {
   const name = buildBranchName(taskId, slug);
   if (!name.valid) throw new Error(`分支名校验失败：${name.errors.join('；')}`);
   const branchName = name.branchName;
+  // 分支 HEAD：门禁判的必须是「被合并的那条分支」，缺能力或分支不存在时返回 null，由调用方决定口径。
+  function resolveBranchHead() {
+    if (typeof git.branchHead !== 'function') return null;
+    try {
+      return git.branchHead(branchName);
+    } catch {
+      return null;
+    }
+  }
 
   if (action === 'plan') {
     const baseline = verifyBaseline(task, git.headRef());
@@ -429,18 +651,53 @@ function cmdBranch(args) {
     const baseline = verifyBaseline(task, git.headRef());
     if (baseline.matches === false) throw new Error(baseline.reason);
     if (!git.worktreeClean()) throw new Error('工作区存在未归属改动，拒绝合并（先清理或归组）');
+    // IM-018：远端 CI 门禁。--require-ci 时先要一句远端结论，pending / unknown 一律不放行
+    // （本地闸门绿 ≠ 远端绿：E2E、Coverage Gate、Contracts、Security Audit、Build Docker 只在 CI 跑）。
+    if (args.includes('--require-ci')) {
+      const repo = argValue(args, '--repo') ?? 'aa386400024/mofang-nestjs';
+      const branchHead = resolveBranchHead();
+      // AF-046-O1：默认判「分支 HEAD」而不是当前工作 HEAD——工作 HEAD 在 integrate 上，
+      // 拿它的结论判一条待合并分支等于没判。显式传 --sha 时必须是该分支 HEAD，
+      // 否则可以用一个旧绿的 SHA 给已前进的分支放行。
+      const sha = argValue(args, '--sha') ?? branchHead ?? git.headRef();
+      if (apply && branchHead && sha !== branchHead) {
+        throw new Error(`--sha 与分支 HEAD 不一致：${sha} ≠ ${branchHead}（拒绝用旧绿的提交给新提交放行）`);
+      }
+      const gate = await evaluateRemoteCiGate({ repo, sha });
+      if (gate.verdict !== 'pass') {
+        const detail = gate.error ?? [...gate.failing, ...gate.pending].join('、');
+        throw new Error(`远端 CI 未通过（${gate.verdict}）：${detail}`);
+      }
+      console.log(`远端 CI 通过：${gate.total} 项 check 全非失败态（${sha.slice(0, 12)}）`);
+      performMerge();
+      return;
+    }
+    performMerge();
+    return;
+  }
+
+  function performMerge() {
+    const baseline = verifyBaseline(task, git.headRef());
     if (apply) {
-      git.squashMerge(branchName);
+      // IM-012：一次调用完成「squash 暂存 → 提交 → 删源分支」，不再把提交与清理留给人工。
+      const result = finalizeSquashMerge({
+        source: branchName,
+        taskId,
+        taskType: task.type,
+        title: `squash merge into integrate（${task.title ?? taskId}）`,
+        remote: argValue(args, '--remote'),
+        gitPort: git,
+      });
       auditRegistryCall('TOOL-QUEUE-SCHEDULER', {
         actor: 'orchestrator',
         correlationId: `branch:merge:${taskId}`,
         resources: [branchName],
       });
-      console.log(`squash 暂存完成：${branchName}；提交归编排者闸门，脚本不自动 commit`);
+      console.log(`合并阶段：${result.stages.join(' → ') || '无'}；提交标题：${result.commitMessage}`);
+      if (result.errors.length > 0) throw new Error(`合并未完整收口：${result.errors.join('；')}`);
     } else {
-      console.log(`[干跑] 将 squash 合并 ${branchName} → integrate（基线：${baseline.reason ?? '一致'}；--apply 执行）`);
+      console.log(`[干跑] 将 squash 合并 ${branchName} → integrate 并补提交与清理（基线：${baseline.reason ?? '一致'}；--apply 执行）`);
     }
-    return;
   }
 
   if (action === 'cleanup') {
@@ -469,8 +726,9 @@ function cmdBranch(args) {
 }
 
 /**
- * AF-013 派发通道规则只读视图：rules（降级链 / 定位层 / 重试上限）、queue（单任务队列可派判定）。
- * 纯只读；进程探测、窗口操作与发送由 relay 层在真实桌面执行，本命令不落审计、不触发变更。
+ * AF-013 派发通道规则视图（rules / queue）与 AF-024 GUI 投递协议（dispatch / confirm / fallback / state）。
+ * rules / queue / state 只读；dispatch 只落投递件与运行态 pending；confirm / fallback 由桌面 relay 执行后回写。
+ * 本命令不驱动桌面：真实拉起、粘贴、发送由 orchestrator 的桌面 relay 完成，避免 CLI 冒充 GUI 能力。
  */
 function cmdChannel(args) {
   const action = args[0] ?? 'rules';
@@ -480,6 +738,7 @@ function cmdChannel(args) {
     console.log(`定位四层：${LOCATE_LAYERS.join(' → ')}`);
     console.log(`进程 / 窗口启动重试上限：${MAX_START_RETRIES}；发送换路径重试上限：${MAX_SEND_RETRIES}`);
     console.log('登录门交人工接管；审计与回执不含对话原文；单任务队列，在办未回收不发下一个');
+    console.log('送达确认协议：执行代理收到 brief 后写 transport/acks/<taskId>.json；ack 到达才 auto-confirm，缺 ack 按投递租约回滚');
     return;
   }
   if (action === 'queue') {
@@ -494,11 +753,448 @@ function cmdChannel(args) {
     else console.log(`队列占用：${taskId} 暂不派发；在办阻塞 ${decision.blockers.join(', ')}`);
     return;
   }
-  console.error(`未知通道动作：${action}`);
+  if (action === 'dispatch') {
+    const taskId = argValue(args, '--taskId');
+    if (!taskId) {
+      console.error(
+        '用法：cli.mjs channel dispatch --taskId <id> [--extra-file <md>] [--executor <relay 标识>]  生成 GUI 投递件并置投递 pending',
+      );
+      process.exit(2);
+    }
+    const index = loadIndex();
+    const runtimeState = loadRuntimeState();
+    const task = index.tasks.find((item) => item.taskId === taskId);
+    if (!task) throw new Error(`投递准备失败：任务不在活跃列表：${taskId}`);
+    if (task.status !== 'submitted') throw new Error(`投递准备失败：任务须已领单（submitted）：${taskId} 当前 ${task.status}`);
+    const entry = runtimeState.tasks?.[taskId];
+    if (!entry?.dispatch) throw new Error(`投递准备失败：缺派发记录（先用 run-once 领单）：${taskId}`);
+    const handoverPath = join(PATHS.transportDir, 'tasks', `${taskId}.json`);
+    const handover = existsSync(handoverPath) ? (JSON.parse(readFileSync(handoverPath, 'utf8')).payload ?? {}) : {};
+    const extraFile = argValue(args, '--extra-file');
+    const extra = extraFile && existsSync(resolve(extraFile)) ? readFileSync(resolve(extraFile), 'utf8') : null;
+    // 执行器注入点：谁去驱动桌面要落进投递记录（可审计、可替换），
+    // 当前默认 doubao-cu（豆包桌面技能 seed_computer_use），换 relay 只需改这一处标注。
+    const executor = argValue(args, '--executor') ?? 'doubao-cu';
+    // 通道不在这里硬写：编排者任务投给自己只走文件交接件，GUI 通道只对执行代理角色生效（选路真相源在 scheduler）。
+    const targetRole = entry.dispatch.targetRole ?? task.agentRole ?? 'executor';
+    if (targetRole === 'orchestrator') {
+      throw new Error(`投递准备失败：${taskId} 的目标角色是编排者，走文件交接件，不驱动桌面（GUI 通道只对执行代理生效）`);
+    }
+    if (entry.dispatch.delivery?.state === 'delivered') {
+      throw new Error(`投递准备失败：${taskId} 已确认送达，重派请先走 fallback 或等回执验收后重开`);
+    }
+    const brief = buildGuiBrief(task, handover, {
+      receiptPath: pathToPosix(join(PATHS.transportDir, 'receipts', `${taskId}.json`)),
+      extra,
+    });
+    const briefPath = writeGuiBrief({ transportDir: PATHS.transportDir, taskId, text: brief.text });
+    const previous = entry.dispatch.delivery ?? null;
+    entry.dispatch.channel = 'gui-relay';
+    entry.dispatch.delivery = {
+      state: 'pending',
+      preparedAt: nowIso(),
+      briefRef: pathToPosix(briefPath),
+      executor,
+      sessionPath: null,
+      locateLayer: null,
+      evidenceRef: null,
+      history: previous?.state ? [...(previous.history ?? []), { ...previous }] : (previous?.history ?? []),
+    };
+    saveRuntimeState(runtimeState);
+    refreshSnapshotArtifacts();
+    console.log(`投递件已生成：${briefPath}`);
+    console.log(`通道：gui-relay；投递状态：pending；交接件：${pathToPosix(entry.dispatch.handoverRef ?? '') || '(缺)'}`);
+    console.log('桌面 relay 执行顺序：聚焦执行代理窗口 → 粘贴投递件 → 发送 → 校验输入框已清空且消息出现在会话中');
+    console.log(`发送接管（主桌面焦点窗口，发送后释放）：cli.mjs channel send --taskId ${taskId} [--dry-run] [--wait-ack]`);
+    console.log(
+      `确认送达（ack 自动）：cli.mjs channel auto-confirm --taskId ${taskId}；手工兜底：cli.mjs channel confirm --taskId ${taskId} --session-path <${SESSION_PATHS.join('|')}> --locate-layer <${LOCATE_LAYERS.join('|')}> --evidence <仓内截图或时间戳文件>`,
+    );
+    console.log(
+      `降级回退：cli.mjs channel fallback --taskId ${taskId} --reason <原因> --cause <${DELIVERY_CAUSES.join('|')}> [--classification deterministic|flaky|legacy-debt]`,
+    );
+    return;
+  }
+  if (action === 'send') {
+    const taskId = argValue(args, '--taskId');
+    if (!taskId) {
+      console.error('用法：channel send --taskId <id> [--dry-run] [--wait-ack] [--ack-timeout 90] [--window-title "MiniMax Code"]');
+      process.exit(2);
+    }
+    const index = loadIndex();
+    const runtimeState = loadRuntimeState();
+    const task = index.tasks.find((item) => item.taskId === taskId);
+    if (!task) throw new Error(`发送失败：任务不在活跃列表：${taskId}`);
+    if (task.status !== 'submitted') throw new Error(`发送失败：任务须已领单（submitted）：${taskId} 当前 ${task.status}`);
+    const entry = runtimeState.tasks?.[taskId];
+    if (!entry?.dispatch) throw new Error(`发送失败：缺派发记录（先用 run-once 领单）：${taskId}`);
+    if (entry.dispatch.channel !== 'gui-relay') throw new Error(`发送失败：通道 ${String(entry.dispatch.channel)} 不是 gui-relay`);
+    if (entry.dispatch.delivery?.state !== 'pending') {
+      throw new Error(`发送失败：投递状态须为 pending，当前 ${String(entry.dispatch.delivery?.state)}`);
+    }
+    const targetRole = entry.dispatch.targetRole ?? task.agentRole ?? 'executor';
+    if (targetRole === 'orchestrator') throw new Error(`发送失败：${taskId} 是编排者任务，不驱动桌面`);
+
+    let briefPath = entry.dispatch.delivery?.briefRef ? resolve(REPO_ROOT, entry.dispatch.delivery.briefRef) : null;
+    if (!briefPath || !existsSync(briefPath)) {
+      const handoverPath = join(PATHS.transportDir, 'tasks', `${taskId}.json`);
+      const handover = existsSync(handoverPath) ? (JSON.parse(readFileSync(handoverPath, 'utf8')).payload ?? {}) : {};
+      const brief = buildGuiBrief(task, handover, {
+        receiptPath: pathToPosix(join(PATHS.transportDir, 'receipts', `${taskId}.json`)),
+      });
+      briefPath = writeGuiBrief({ transportDir: PATHS.transportDir, taskId, text: brief.text });
+      entry.dispatch.delivery.briefRef = pathToPosix(briefPath);
+      saveRuntimeState(runtimeState);
+    }
+
+    const scriptPath = join(REPO_ROOT, 'scripts', 'orchestration', 'gui-relay-send.ps1');
+    if (!existsSync(scriptPath)) throw new Error(`发送失败：缺桌面 relay 脚本：${scriptPath}`);
+    const powershell = join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+    if (!existsSync(powershell)) throw new Error(`发送失败：找不到 Windows PowerShell：${powershell}`);
+    const dryRun = args.includes('--dry-run');
+    const windowTitle = argValue(args, '--window-title') ?? 'MiniMax Code';
+    const psArgs = [
+      '-NoProfile',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-File',
+      scriptPath,
+      '-TaskId',
+      taskId,
+      '-BriefPath',
+      briefPath,
+      '-RepoRoot',
+      REPO_ROOT,
+      '-EvidenceDir',
+      join(PATHS.transportDir, 'gui-sent'),
+      '-WindowTitle',
+      windowTitle,
+    ];
+    if (dryRun) psArgs.push('-DryRun');
+    if (args.includes('--no-click-input')) psArgs.push('-NoClickInput');
+    const result = spawnSync(powershell, psArgs, { encoding: 'utf8', timeout: 60_000, maxBuffer: 8 * 1024 * 1024 });
+    if (result.stdout) process.stdout.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+    if (result.error) throw new Error(`发送失败：${result.error.message}`);
+    if (result.status !== 0) throw new Error(`发送失败：桌面 relay 退出码 ${result.status}`);
+    if (dryRun) {
+      console.log('干跑完成：只验证窗口定位与证据链，未发送任何内容。');
+      return;
+    }
+    if (args.includes('--wait-ack')) {
+      const timeoutSeconds = Number(argValue(args, '--ack-timeout') ?? 90);
+      const deadline = Date.now() + Math.max(5, timeoutSeconds) * 1000;
+      while (Date.now() < deadline) {
+        const ackResult = autoConfirmDelivery({
+          record: entry.dispatch,
+          taskId,
+          transportDir: PATHS.transportDir,
+          repoRoot: REPO_ROOT,
+        });
+        if (ackResult.confirmed) {
+          entry.dispatch = ackResult.record;
+          saveRuntimeState(runtimeState);
+          refreshSnapshotArtifacts();
+          console.log(`已收到执行代理 ack 并确认送达：${taskId}；证据=${ackResult.record.delivery.evidenceRef}`);
+          return;
+        }
+        const waitMs = Math.min(2000, deadline - Date.now());
+        if (waitMs > 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, waitMs);
+      }
+      throw new Error(`发送后 ${timeoutSeconds}s 未收到 ack：${taskId}；任务保持 pending，按租约回滚`);
+    }
+    console.log(`发送动作已完成：${taskId}；下一步在 ack 到达后执行 channel auto-confirm --taskId ${taskId}`);
+    return;
+  }
+  if (action === 'auto-confirm') {
+    const taskId = argValue(args, '--taskId');
+    const runtimeState = loadRuntimeState();
+    const index = loadIndex();
+    let confirmed = 0;
+    const targets = taskId ? [taskId] : index.tasks.filter((task) => task.status === 'submitted').map((task) => task.taskId);
+    for (const id of targets) {
+      const entry = runtimeState.tasks?.[id];
+      if (!entry?.dispatch) continue;
+      const result = autoConfirmDelivery({
+        record: entry.dispatch,
+        taskId: id,
+        transportDir: PATHS.transportDir,
+        repoRoot: REPO_ROOT,
+      });
+      if (!result.confirmed) {
+        if (taskId) console.log(`未确认：${id}；原因=${result.reason}`);
+        continue;
+      }
+      entry.dispatch = result.record;
+      confirmed += 1;
+      console.log(`已确认送达：${id}；证据=${result.record.delivery.evidenceRef}`);
+    }
+    if (confirmed > 0) {
+      saveRuntimeState(runtimeState);
+      refreshSnapshotArtifacts();
+    }
+    console.log(`自动确认完成：${confirmed} 条`);
+    return;
+  }
+  if (action === 'confirm') {
+    const taskId = argValue(args, '--taskId');
+    const sessionPath = argValue(args, '--session-path');
+    const locateLayer = argValue(args, '--locate-layer');
+    const evidenceRef = argValue(args, '--evidence');
+    if (!taskId) {
+      console.error('用法：channel confirm --taskId <id> --session-path <..> --locate-layer <..> --evidence <..>');
+      process.exit(2);
+    }
+    const runtimeState = loadRuntimeState();
+    const entry = runtimeState.tasks?.[taskId];
+    if (!entry?.dispatch) throw new Error(`确认失败：缺派发记录：${taskId}`);
+    const result = confirmDelivery(entry.dispatch, { sessionPath, locateLayer, evidenceRef, repoRoot: REPO_ROOT });
+    if (!result.valid) throw new Error(result.errors.join('；'));
+    entry.dispatch = result.record;
+    saveRuntimeState(runtimeState);
+    refreshSnapshotArtifacts();
+    console.log(`已确认送达：${taskId}；会话路径=${sessionPath}；定位层=${locateLayer}；投递状态=delivered`);
+    return;
+  }
+  if (action === 'fallback') {
+    const taskId = argValue(args, '--taskId');
+    const reason = argValue(args, '--reason');
+    const classification = argValue(args, '--classification') ?? 'deterministic';
+    // AF-043-I2：cause 是**判决值**，不再允许缺省。
+    // 缺省时过去会落 deterministic-defect，决策链据此把任务判 failed 终态（AF-041 实测不可复活）。
+    const cause = argValue(args, '--cause');
+    const usage =
+      '用法：channel fallback --taskId <id> --reason <原因> --cause <' +
+      DELIVERY_CAUSES.join('|') +
+      '> [--classification deterministic|flaky|legacy-debt] [--login-gate] [--start-retries N] [--send-retries N] [--attempt-count N] [--process-running] [--window-ready]';
+    if (!taskId || !reason) {
+      console.error(usage);
+      process.exit(2);
+    }
+    if (!cause) {
+      console.error('降级失败：--cause 必填（它是决策链的判决值，缺省会把流程问题判成任务死）。');
+      console.error(usage);
+      process.exit(2);
+    }
+    if (!DELIVERY_CAUSES.includes(cause)) {
+      console.error(`降级失败：--cause 非法（${cause}）；可选 ${DELIVERY_CAUSES.join(' / ')}`);
+      process.exit(2);
+    }
+    const runtimeState = loadRuntimeState();
+    const entry = runtimeState.tasks?.[taskId];
+    if (!entry?.dispatch) throw new Error(`降级失败：缺派发记录：${taskId}`);
+    // IM-028：现场事实随降级一并落盘，回收环节的运行时决策链按它判「终态失败 / 升级人工 / 可重试」。
+    const list = (value) =>
+      value
+        ? String(value)
+            .split(',')
+            .map((x) => x.trim())
+            .filter(Boolean)
+        : [];
+    const facts = {
+      cause,
+      loginGate: args.includes('--login-gate'),
+      processRunning: args.includes('--process-running') ? true : false,
+      windowReady: args.includes('--window-ready') ? true : false,
+      startRetries: Number(argValue(args, '--start-retries') ?? 1),
+      sendRetries: Number(argValue(args, '--send-retries') ?? 1),
+      sessionAttempted: list(argValue(args, '--session-attempted')),
+      locateAttempted: list(argValue(args, '--locate-attempted')),
+      attemptCount: Number(argValue(args, '--attempt-count') ?? 1),
+    };
+    const result = fallbackDelivery(entry.dispatch, { reason, classification, repoRoot: REPO_ROOT, facts });
+    if (!result.valid) throw new Error(result.errors.join('；'));
+    entry.dispatch = result.record;
+    saveRuntimeState(runtimeState);
+    refreshSnapshotArtifacts();
+    const bypassed = result.record.delivery?.state === 'bypassed';
+    console.log(
+      `已降级：${taskId}；channel=gui-file-fallback；原因=${reason}；cause=${cause}；` +
+        (bypassed ? '投递状态=bypassed（通道旁路，不计通道失败）' : `定性=${classification}`),
+    );
+    console.log(`现场事实：cause=${facts.cause} loginGate=${facts.loginGate} attemptCount=${facts.attemptCount}`);
+    console.log(
+      bypassed
+        ? '下一步：任务保持 submitted，写完回执后 run-once 正常验收（既不会重试派发，也不会判 failed）。'
+        : '下一步：run-once 会按运行时决策链处理该任务（不可恢复→failed；否则回滚 ready 并置 heldForHuman）；修好通道后 task resume 再重派。',
+    );
+    return;
+  }
+  if (action === 'state') {
+    const taskId = argValue(args, '--taskId');
+    if (!taskId) {
+      console.error('用法：cli.mjs channel state --taskId <id>');
+      process.exit(2);
+    }
+    const runtimeState = loadRuntimeState();
+    const record = runtimeState.tasks?.[taskId]?.dispatch ?? null;
+    if (!record) throw new Error(`缺派发记录：${taskId}`);
+    const stalled = isDeliveryStalled(record, { deliveryLeaseMinutes: loadConfig().dispatch?.deliveryLeaseMinutes });
+    console.log(JSON.stringify({ taskId, channel: record.channel, delivery: record.delivery ?? null, stalled }, null, 2));
+    return;
+  }
+  console.error(`未知通道动作：${action}（支持 rules / queue / dispatch / send / auto-confirm / confirm / fallback / state）`);
   process.exit(2);
 }
 
 const SKIPPED = { ok: true, skipped: true, errors: [], schemaId: null };
+
+/** 仓库相对路径（正斜杠）：派发记录只存仓内指针，不落绝对路径。 */
+function pathToPosix(absPath) {
+  return absPath
+    .replace(REPO_ROOT, '')
+    .replace(/^[\\/]+/, '')
+    .replace(/\\/g, '/');
+}
+
+/** 任务单登记：`task register --sheet <md>` / `task import --handover <json>`。 */
+async function cmdTask(args) {
+  const sub = args[0] ?? 'register';
+  // `task` 子命令需要 YAML frontmatter 解析（yaml 为可选运行时依赖），延迟到实际使用时加载，
+  // 避免 `worklog verify` 等零依赖命令把 yaml 带进 Orchestration Gate 的模块图。
+  const intake = await import('./task-intake.mjs');
+  if (sub === 'register') {
+    const sheetPath = argValue(args, '--sheet');
+    if (!sheetPath) {
+      console.error('用法：task register --sheet docs/worklog/inbox/<task>.md [--status ready]');
+      process.exit(2);
+    }
+    const task = await intake.registerTaskFromSheet({
+      sheetPath,
+      status: argValue(args, '--status'),
+      actor: 'orchestrator-cli',
+    });
+    refreshSnapshotArtifacts();
+    console.log(`已登记任务 ${task.taskId}（${task.status}）→ ${task.artifacts.taskSheet}`);
+    return;
+  }
+  if (sub === 'import') {
+    const handoverPath = argValue(args, '--handover');
+    if (!handoverPath) {
+      console.error('用法：task import --handover docs/team/agent-orchestration/transport/tasks/<task>.json [--status ready]');
+      process.exit(2);
+    }
+    const task = await intake.registerTaskFromHandover({
+      handoverPath,
+      status: argValue(args, '--status'),
+      actor: 'orchestrator-cli',
+    });
+    refreshSnapshotArtifacts();
+    console.log(`已补登任务 ${task.taskId}（${task.status}）→ ${task.artifacts.taskSheet}`);
+    return;
+  }
+  if (sub === 'resume') {
+    const taskId = argValue(args, '--taskId');
+    if (!taskId) {
+      console.error('用法：task resume --taskId <id> [--reason <text>]  解除租约超时的人工持单，允许重新领取');
+      process.exit(2);
+    }
+    const index = loadIndex();
+    const task = index.tasks.find((item) => item.taskId === taskId);
+    if (!task) throw new Error(`任务不在活跃列表：${taskId}`);
+    if (task.status !== 'ready') throw new Error(`只能恢复 ready 任务：${taskId} 当前 ${task.status}`);
+    const runtimeState = loadRuntimeState();
+    const entry = runtimeState.tasks?.[taskId];
+    if (!entry) throw new Error(`任务缺运行态条目：${taskId}`);
+    if (entry.heldForHuman !== true) throw new Error(`任务未处于人工持单：${taskId}`);
+    entry.heldForHuman = false;
+    entry.releaseReason = 'manual-resume';
+    entry.resumedAt = nowIso();
+    entry.resumedBy = 'orchestrator-cli';
+    entry.escalation = null;
+    saveRuntimeState(runtimeState);
+    refreshSnapshotArtifacts();
+    console.log(`已恢复任务 ${taskId}：heldForHuman=false，releaseReason=manual-resume`);
+    return;
+  }
+  if (sub === 'promote') {
+    const taskId = argValue(args, '--taskId');
+    if (!taskId) {
+      console.error('用法：task promote --taskId <id> [--reason <text>]  把 backlog 提到 ready（校验契约 / 基线 / 依赖）');
+      process.exit(2);
+    }
+    const index = loadIndex();
+    const runtimeState = loadRuntimeState();
+    const reason = argValue(args, '--reason') ?? '人工提级';
+    const task = promoteTask(index, runtimeState, taskId, { reason });
+    commitIndex(index, { actor: 'orchestrator-cli' });
+    saveRuntimeState(runtimeState);
+    refreshSnapshotArtifacts();
+    auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: `promote:${taskId}` });
+    console.log(`已提级任务 ${taskId}：status=${task.status}，promotedAt=${task.promotedAt}`);
+    return task;
+  }
+  if (sub === 'cancel') {
+    const taskId = argValue(args, '--taskId');
+    if (!taskId) {
+      console.error('用法：task cancel --taskId <id> [--reason <text>]  按状态机把非终态任务闭合到 canceled，随后可 archive');
+      process.exit(2);
+    }
+    const index = loadIndex();
+    const runtimeState = loadRuntimeState();
+    const reason = argValue(args, '--reason') ?? '人工取消';
+    const task = cancelTask(index, runtimeState, taskId, { reason });
+    commitIndex(index, { actor: 'orchestrator-cli' });
+    saveRuntimeState(runtimeState);
+    refreshSnapshotArtifacts();
+    auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: `cancel:${taskId}` });
+    console.log(`已取消任务 ${taskId}：status=canceled，cancelReason=${reason}`);
+    return task;
+  }
+  if (sub === 'reissue' || sub === 'rescope') {
+    // AF-084：scope 不原地改写。重签发 = 登记新任务 + 提级 + 取消原任务，一次显式操作。
+    const fromTaskId = argValue(args, '--from') ?? argValue(args, '--fromTaskId');
+    const sheetPath = argValue(args, '--sheet');
+    const apply = args.includes('--apply');
+    const archiveOld = args.includes('--archive-old');
+    if (!fromTaskId || !sheetPath) {
+      console.error(
+        '用法：task reissue --from <oldTaskId> --sheet docs/worklog/inbox/<newTask>.md [--apply] [--archive-old]\n' +
+          '      task rescope 为同义入口；scope 不原地修改，而是重签发一个新任务并在 priorTasks 指向原任务。',
+      );
+      process.exit(2);
+    }
+    const absSheet = resolve(REPO_ROOT, sheetPath);
+    if (!existsSync(absSheet)) throw new Error(`任务单不存在：${sheetPath}`);
+    const relSheet = pathToPosix(absSheet);
+    if (!relSheet.startsWith('docs/worklog/inbox/') && !relSheet.startsWith('docs/worklog/pending/')) {
+      throw new Error(`重签发任务单必须位于 docs/worklog/inbox/：${relSheet}`);
+    }
+    const { meta } = intake.parseTaskSheetFrontmatter(readFileSync(absSheet, 'utf8'));
+    const newTask = intake.buildTaskRecord(meta, { taskSheetPath: relSheet, status: 'backlog' });
+    const index = loadIndex();
+    const plan = planReissue(index, { fromTaskId, newTask });
+    if (!plan.ok) {
+      console.error(`[FAIL] 重签发计划不成立：${fromTaskId} → ${String(meta?.taskId)}`);
+      for (const error of plan.errors) console.error(`  - ${error}`);
+      process.exit(1);
+    }
+    if (!apply) {
+      console.log(`[DRY-RUN] 重签发 ${fromTaskId} → ${newTask.taskId}`);
+      console.log(`  - 新任务单：${relSheet}`);
+      console.log(`  - 原任务：status=${plan.oldTask.status} → canceled${archiveOld ? ' → archived' : ''}`);
+      console.log('  - 正式执行请追加 --apply；scope 不会在原任务上原地修改。');
+      return;
+    }
+    const created = await intake.registerTaskFromSheet({ sheetPath: relSheet, status: 'backlog', actor: 'orchestrator-cli' });
+    const next = loadIndex();
+    const runtimeState = loadRuntimeState();
+    const reason = `scope 重签发自 ${fromTaskId}`;
+    promoteTask(next, runtimeState, created.taskId, { reason });
+    cancelTask(next, runtimeState, fromTaskId, { reason: `scope 重签发 → ${created.taskId}（原任务不再执行）` });
+    commitIndex(next, { actor: 'orchestrator-cli' });
+    saveRuntimeState(runtimeState);
+    if (archiveOld) {
+      archiveTaskEvent(fromTaskId, { status: 'canceled', note: `scope 重签发 → ${created.taskId}` });
+    }
+    refreshSnapshotArtifacts();
+    auditRegistryCall('TOOL-QUEUE-SCHEDULER', { actor: 'orchestrator', correlationId: `reissue:${fromTaskId}:${created.taskId}` });
+    console.log(`已重签发：${fromTaskId} → ${created.taskId}（${created.status}）`);
+    console.log(`原任务 status=canceled${archiveOld ? ' 并已归档' : ''}；scope 未原地修改，审计链路见 newTask.priorTasks。`);
+    return;
+  }
+  console.error(`未知 task 子命令：${sub}（支持 register / import / resume / promote / cancel / reissue / rescope）`);
+  process.exit(2);
+}
 
 /** AF-006：框架 schema 机读校验（索引 / 工具契约 / Agent Card；可选任务单元 JSON）。 */
 async function cmdValidate(args) {
@@ -546,17 +1242,40 @@ async function cmdValidate(args) {
     sections.push([`Review 交接件 ${file}`, await validateReviewHandoverSchema(review)]);
   }
 
+  const receiptDir = join(PATHS.transportDir, 'receipts');
+  const receiptFiles = existsSync(receiptDir) ? readdirSync(receiptDir).filter((f) => f.endsWith('.json')) : [];
+  for (const file of receiptFiles.sort()) {
+    const record = JSON.parse(readFileSync(join(receiptDir, file), 'utf8'));
+    const receipt = record?.payload ?? record;
+    sections.push([`回执 ${file}`, await validateReceiptSchema(receipt)]);
+  }
+
   const taskDir = join(PATHS.transportDir, 'tasks');
   const taskFiles = existsSync(taskDir) ? readdirSync(taskDir).filter((f) => f.endsWith('.json')) : [];
   for (const file of taskFiles.sort()) {
-    sections.push([`运行态任务单 ${file}`, await validateTaskSheet(JSON.parse(readFileSync(join(taskDir, file), 'utf8')))]);
+    const record = JSON.parse(readFileSync(join(taskDir, file), 'utf8'));
+    // transport 写入的是 {deliveredAt,payload} 包装；裸任务单也兼容。
+    const payload = record?.payload ?? record;
+    sections.push([`运行态任务单 ${file}`, await validateTaskSheet(payload)]);
   }
 
   const sheetFile = argValue(args, '--sheet');
   if (sheetFile) {
     const abs = resolve(REPO_ROOT, sheetFile);
     if (existsSync(abs)) {
-      sections.push(['任务单元', await validateTaskSheet(JSON.parse(readFileSync(abs, 'utf8')))]);
+      const text = readFileSync(abs, 'utf8');
+      let meta;
+      try {
+        meta = text.trimStart().startsWith('{')
+          ? JSON.parse(text)
+          : (await import('./task-intake.mjs')).parseTaskSheetFrontmatter(text).meta;
+      } catch (err) {
+        sections.push([
+          '任务单元',
+          { ok: false, skipped: false, schemaId: null, errors: [{ instancePath: '', message: err.message, params: {} }] },
+        ]);
+      }
+      if (meta) sections.push(['任务单元', await validateTaskSheet(meta)]);
     } else {
       console.log(`[SKIP] 任务单元：文件不存在：${sheetFile}`);
     }
@@ -716,10 +1435,91 @@ function cmdImprovements(args) {
   }
 }
 
+/** AF-084：回执预检，在 run-once 之前暴露格式与 scope 问题。 */
+function cmdReceipt(args) {
+  const sub = args[0];
+  if (sub !== 'lint') {
+    console.error('用法：receipt lint --taskId <id> [--path <receipt.json>]');
+    process.exit(2);
+  }
+  const taskId = argValue(args, '--taskId');
+  if (!taskId) {
+    console.error('用法：receipt lint --taskId <id> [--path <receipt.json>]');
+    process.exit(2);
+  }
+  const index = loadIndex();
+  const task = index.tasks.find((item) => item.taskId === taskId) ?? index.archivedTasks.find((item) => item.taskId === taskId);
+  if (!task) throw new Error(`任务不存在：${taskId}`);
+  const pathArg = argValue(args, '--path');
+  const receiptFile = pathArg ? resolve(REPO_ROOT, pathArg) : join(PATHS.transportDir, 'receipts', `${taskId}.json`);
+  if (!existsSync(receiptFile)) throw new Error(`回执文件不存在：${relativePath(receiptFile)}`);
+  const result = lintReceiptFile(receiptFile, task, { repoRoot: REPO_ROOT });
+  console.log(`回执预检 ${taskId} ← ${relativePath(receiptFile)}`);
+  for (const warning of result.warnings) console.log(`[WARN] ${warning}`);
+  if (result.ok) {
+    console.log(`[PASS] 七组字段、scope、工件与换行检查通过${result.warnings.length > 0 ? `（${result.warnings.length} 条警告）` : ''}`);
+    return;
+  }
+  for (const error of result.errors) console.log(`[FAIL] ${error}`);
+  console.log(`[FAIL] 共 ${result.errors.length} 项错误；修正后再执行 run-once。`);
+  process.exit(1);
+}
+
+/** 仓根相对路径展示（只读命令用）。 */
+function relativePath(absPath) {
+  return String(absPath)
+    .replace(REPO_ROOT, '')
+    .replace(/^[\\/]+/, '')
+    .replace(/\\/g, '/');
+}
+
+/** AF-084：docs 文本 LF / BOM 规范化，默认只读检查，--apply 才写盘。 */
+function cmdDocs(args) {
+  const sub = args[0];
+  if (sub !== 'normalize') {
+    console.error('用法：docs normalize --path docs/<file>.md [--apply]');
+    process.exit(2);
+  }
+  const pathArg = argValue(args, '--path');
+  if (!pathArg) {
+    console.error('用法：docs normalize --path docs/<file>.md [--apply]');
+    process.exit(2);
+  }
+  const absPath = resolve(REPO_ROOT, pathArg);
+  if (!existsSync(absPath)) throw new Error(`文件不存在：${pathArg}`);
+  const rel = pathToPosix(absPath);
+  if (!rel.startsWith('docs/')) throw new Error(`只允许规范化 docs/ 下的文本文件：${rel}`);
+  const apply = args.includes('--apply');
+  const before = inspectTextFile(absPath);
+  if (!before.needsNormalize) {
+    console.log(`[PASS] ${rel} 已是 UTF-8 无 BOM + LF（${before.bytes} bytes）`);
+    return;
+  }
+  const result = normalizeTextFile(absPath, { apply });
+  const summary = `BOM=${result.hasBom} CR=${result.crCount} ${result.bytesBefore} → ${result.bytesAfter} bytes`;
+  if (apply) {
+    console.log(`[APPLIED] ${rel} 已规范化为 UTF-8 无 BOM + LF（${summary}）`);
+    return;
+  }
+  console.log(`[DRY-RUN] ${rel} 需要规范化（${summary}）；追加 --apply 落盘。`);
+}
+
 function printHelp() {
-  console.log('用法：cli.mjs <status|run-once|watch|protocol|snapshot|pack|archive|events|validate|config|improvements> [参数]');
+  console.log(
+    '用法：cli.mjs <status|run-once|task|receipt|docs|watch|protocol|snapshot|pack|archive|events|validate|config|improvements> [参数]',
+  );
   console.log('  archive <taskId> [--status ..] [--sheet ..] [--record ..] [--reply ..] [--note ..]');
+  console.log('  task register --sheet <task.md> [--status ready]  解析 frontmatter 并登记进状态索引');
+  console.log('  task import --handover <task.json> [--status ready]  补登 transport 已落交接件');
+  console.log('  task resume --taskId <id> [--reason <text>]  解除租约超时的人工持单，允许重新领取');
+  console.log('  task promote --taskId <id> [--reason <text>]  backlog → ready（校验任务单 / 基线 / 依赖满足）');
+  console.log('  task cancel --taskId <id> [--reason <text>]  按状态机把非终态任务闭合到 canceled（随后可 archive）');
+  console.log('  task reissue|rescope --from <oldId> --sheet <new.md> [--apply] [--archive-old]  受审计的 scope 重签发');
+  console.log('  receipt lint --taskId <id> [--path <receipt.json>]  回执摄入前预检（七组字段 / scope / 工件 / 换行）');
+  console.log('  docs normalize --path docs/<file>.md [--apply]  UTF-8 无 BOM + LF 规范化（默认只读）');
   console.log('  events verify|rebuild|backfill             事件日志校验 / 重建索引 / 首次回填');
+  console.log('  worklog <migrate|verify|stats> [--apply|--json]  记录包迁移 / 完整性校验 / 统计');
+  console.log('  events rotate [--max-events 5000] [--compress] [--force] [--dry-run]  归档当前日志段（不删事件）');
   console.log(
     '  events create --task-id <id> --title <标题> --type <类型> [--status backlog] [--context <id>] [--sheet <file>] [--record <file>]',
   );
@@ -745,6 +1545,14 @@ switch (command) {
   case 'run-once':
     cmdRunOnce();
     break;
+  case 'task':
+    try {
+      await cmdTask(args);
+    } catch (err) {
+      console.error(`任务操作失败：${err.message}`);
+      process.exit(2);
+    }
+    break;
   case 'watch':
     cmdWatch();
     break;
@@ -766,12 +1574,15 @@ switch (command) {
     }
     break;
   case 'branch':
-    try {
-      cmdBranch(args);
-    } catch (err) {
-      console.error(`分支流程失败：${err.message}`);
-      process.exit(2);
-    }
+    // IM-018：合并门禁要读远端 CI 状态（异步），这里用 IIFE 承接，错误仍统一落到退出码 2。
+    (async () => {
+      try {
+        await cmdBranch(args);
+      } catch (err) {
+        console.error(`分支流程失败：${err.message}`);
+        process.exit(2);
+      }
+    })();
     break;
   case 'channel':
     try {
@@ -786,6 +1597,14 @@ switch (command) {
       await cmdEvents(args);
     } catch (err) {
       console.error(`事件日志操作失败：${err.message}`);
+      process.exit(2);
+    }
+    break;
+  case 'worklog':
+    try {
+      cmdWorklog(args);
+    } catch (err) {
+      console.error(`worklog 操作失败：${err.message}`);
       process.exit(2);
     }
     break;
@@ -805,6 +1624,22 @@ switch (command) {
       cmdImprovements(args);
     } catch (err) {
       console.error(`台账操作失败：${err.message}`);
+      process.exit(2);
+    }
+    break;
+  case 'receipt':
+    try {
+      cmdReceipt(args);
+    } catch (err) {
+      console.error(`回执预检失败：${err.message}`);
+      process.exit(2);
+    }
+    break;
+  case 'docs':
+    try {
+      cmdDocs(args);
+    } catch (err) {
+      console.error(`文档规范化失败：${err.message}`);
       process.exit(2);
     }
     break;
