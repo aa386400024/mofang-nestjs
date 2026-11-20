@@ -4,123 +4,10 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 841,
+    "lastEventSeq": 843,
     "rebuiltAt": null
   },
-  "tasks": [
-    {
-      "taskId": "AF-191",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-20T10:45:01.307Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "修正入账"
-        },
-        {
-          "at": "2026-11-20T10:45:01.712Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "自动对练场景与输出完整性入账（修正版）",
-      "type": "fix",
-      "baselineRef": "4ca4dbe5c772bccc9bf1a3c73ad0dbc4a0e49866",
-      "dependsOn": [],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.2",
-        "conventions.md#1.3",
-        "conventions.md#5"
-      ],
-      "createdAt": "2026-11-20T10:45:00.949Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "src/shared/encounter/",
-          "src/shared/text/",
-          "src/engine-adapters/rendering/",
-          "src/engine-adapters/wiring/",
-          "src/auto-practice/",
-          "src/admin-debug/",
-          "src/migration/",
-          "bin/ormconfig.ts",
-          "admin-dashboard/src/",
-          "test/",
-          "docs/worklog/completed/phase2.5/af187-encounter-scene-output-integrity-2026-11-20.md",
-          "docs/worklog/completed/phase2.5/af189-af187-encounter-delivery-2026-11-20.md",
-          "docs/worklog/completed/phase2.5/af190-encounter-delivery-final-2026-11-20.md",
-          "docs/worklog/completed/phase2.5/af191-encounter-delivery-2026-11-20.md"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-191/task-sheet.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm lint",
-          "check": "0 error 0 warning",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm typecheck",
-          "check": "0 error",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm test -- test/auto-practice/af187-encounter-output-integrity.spec.ts",
-          "check": "定向回归全绿",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm test",
-          "check": "全量全绿",
-          "threshold": "exit=0"
-        }
-      ],
-      "successCriteria": [
-        "场景一级配置、输出完整性闸门、风险收束会话级账本、crisisOutcome 与导出字段全部入账，不回退",
-        "单一执行提交不含 records，提交标题只含 AF-191",
-        "交付记录六组机读字段齐全、UTF-8 无 BOM + LF，回执仅引用真实存在的工件",
-        "全量 3949 例、lint、typecheck、前端 vue-tsc、preflight 真实通过，engine-core 零 diff"
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af191-encounter-delivery-2026-11-20.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "outOfScope": [
-        "src/engine-core/ 任何文件",
-        "Flutter 客户端代码",
-        "docs/worklog/records/（归档阶段单独提交）"
-      ],
-      "constraints": [
-        "不手改 journal / task-state-index",
-        "AF-187/AF-188/AF-189/AF-190 历史原样保留"
-      ],
-      "priorTasks": [
-        "AF-187",
-        "AF-188",
-        "AF-189",
-        "AF-190"
-      ],
-      "promotedAt": "2026-11-20T10:45:01.306Z"
-    }
-  ],
+  "tasks": [],
   "archivedTasks": [
     {
       "taskId": "TD-5",
@@ -1931,6 +1818,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-190/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af190-encounter-delivery-final-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-191",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-191/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af191-encounter-delivery-2026-11-20.md",
         "reply": null
       }
     }
