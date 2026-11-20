@@ -26,3 +26,23 @@ export {
   type VisitorRealismContext,
   type VisitorRealismProfile,
 } from './visitor-realism-profile.js';
+
+export {
+  REALISM_EVENT_KINDS,
+  buildRealismEventPlan,
+  buildRealismEventPromptLine,
+  type RealismEventKind,
+  type RealismEventOption,
+  type RealismEventPlan,
+  type RealismEventQuotaSource,
+} from './realism-event-plan.js';
+
+export {
+  buildRealismRetryInstruction,
+  countRealismEvents,
+  inspectVisitorRealism,
+  type RealismAuditProfile,
+  type RealismAuditResult,
+  type RealismSignal,
+  type RealismViolation,
+} from './visitor-realism-audit.js';

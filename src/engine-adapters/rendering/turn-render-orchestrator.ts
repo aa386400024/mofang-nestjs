@@ -112,6 +112,7 @@ import {
   type StudentRiskDecision,
   type StudentRiskGate,
 } from './student-risk-disposal.js';
+import { resolveVisitorRealismRuntime } from './visitor-realism-runtime.js';
 import {
   MemorySource,
   MemoryTier,
@@ -136,12 +137,7 @@ import {
 } from '../../engine-core/index.js';
 import type { ChatMessage } from '../../llm/common/interfaces/chat-provider.interface.js';
 import { buildEncounterVisitorBlock, resolveEncounter, type EncounterInput } from '../../shared/encounter/encounter-scene.js';
-import {
-  buildVisitorRealismProfile,
-  buildVisitorRealismPromptBlock,
-  parseRealismMode,
-  type VisitorRealismProfile,
-} from '../../shared/realism/index.js';
+import { buildVisitorRealismPromptBlock, type VisitorRealismProfile } from '../../shared/realism/index.js';
 import type { ModelClassifierContextPort } from '../cognition/model-event-classifier.js';
 import { buildDeliberationInput } from '../deliberation/deliberation-input.js';
 import type { DeliberationScenarioType } from '../deliberation/deliberation-mode.config.js';
@@ -1985,7 +1981,8 @@ function logRealismProfile(profile: VisitorRealismProfile, injected: boolean): v
   if (profile.mode === 'off' || process.env.NODE_ENV === 'production') return;
   console.log(
     `[TurnRenderOrchestrator] 真人度 profile: mode=${profile.mode} scene=${profile.scene} role=${profile.role} ` +
-      `state=${profile.state} shape=${profile.shape} maxEvents=${profile.quotas.maxEvents} injected=${injected}`,
+      `state=${profile.state} shape=${profile.shape} maxEvents=${profile.quotas.maxEvents} ` +
+      `eventPlan=${profile.eventPlan.maxEvents}/${profile.eventPlan.options.length} injected=${injected}`,
   );
 }
 
@@ -2048,24 +2045,9 @@ function buildVisitorSystemPrompt(spec: AdaptiveRenderSpec): string {
   const effectiveEncounter: EncounterInput = spec.encounter ?? { mode: 'in_person' };
   const encounterBlock = buildEncounterVisitorBlock(effectiveEncounter);
 
-  // AF-204 · R1: 真人度 profile 是纯计算；只有 RENDER_REALISM_MODE=active 才注入 prompt。
-  // 默认 off，保证灰度关闭时与现状逐字一致；audit 只算不注入，供后续度量核对。
-  const realismProfile = buildVisitorRealismProfile(
-    {
-      attachmentStyle: spec.attachmentStyle,
-      narrativeStyle: spec.narrativeStyle,
-      expressionTone: spec.expressionTone,
-      trust: spec.trust,
-      arousal: spec.emotion.arousal,
-      verbalResistance: spec.resistance.verbal,
-      depthResistance: spec.resistance.depth,
-      styleResistance: spec.resistance.style,
-      bond: spec.bond,
-      riskLevel: spec.riskSignal?.level,
-      encounter: effectiveEncounter,
-    },
-    parseRealismMode(process.env['RENDER_REALISM_MODE']),
-  );
+  // AF-204 · R1 / AF-208 · R2: 真人度 profile 与事件计划是纯计算；
+  //   只有 RENDER_REALISM_MODE=active 才注入 prompt。默认 off，保证灰度关闭时逐字不变。
+  const realismProfile = resolveVisitorRealismRuntime(spec).profile;
   const realismBlock = buildVisitorRealismPromptBlock(realismProfile);
   logRealismProfile(realismProfile, realismBlock.length > 0);
 

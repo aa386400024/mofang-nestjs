@@ -6,6 +6,7 @@
 //     ② active 才注入，且优先级写死: 安全 > 场景 > 角色声音 > 话轮形态 > 不流利配额；
 //     ③ 所有配额都是"上限"，不是"必须发生" —— 避免模型为了达标机械塞语气词。
 
+import { buildRealismEventPlan, buildRealismEventPromptLine, type RealismEventPlan } from './realism-event-plan.js';
 import {
   resolveRealismScene,
   resolveRealismStateBand,
@@ -51,6 +52,8 @@ export interface VisitorRealismProfile {
   readonly state: RealismStateBand;
   readonly shape: VisitorTurnShape;
   readonly quotas: RealismQuotas;
+  /** R2：具体口语事件候选与上限；off/audit 仍计算，但不注入。 */
+  readonly eventPlan: RealismEventPlan;
   /** active 才非空；off / audit 为空数组。 */
   readonly directives: readonly string[];
 }
@@ -151,13 +154,16 @@ function buildDirectives(
   state: RealismStateBand,
   shape: VisitorTurnShape,
   quotas: RealismQuotas,
+  eventPlan: RealismEventPlan,
 ): readonly string[] {
+  const eventLine = buildRealismEventPromptLine(eventPlan);
   return [
     '优先级：安全约束 > 本场接触方式 > 角色声音 > 话轮形态 > 不流利配额。冲突时，前面的压过后面的。',
     `场景层：${SCENE_INSTRUCTION[scene]}`,
     `角色声音层：${ROLE_INSTRUCTION[role]}`,
     `话轮形态层：${SHAPE_INSTRUCTION[shape]}`,
     buildQuotaDirective(quotas, state),
+    ...(eventLine === '' ? [] : [`事件层：${eventLine}`]),
     '如果角色声音或状态要求你突然跳开（例如失组织状态下的联想），允许一次短促的偏移；如果角色是讨好/焦虑型，允许一次试探性反问。两者都只允许一次，且不得展开成对咨询师私人经历的盘问。',
     '不要解释自己为什么这样说话，也不要把“停顿/改口/配额/话轮形态”这些词说出来。',
     '无论咨询师说得专业、家常、跑题还是胡言乱语，你都按本场场景和自己的角色声音回应；不要模仿对方的措辞，不要替对方解释，也不要跟着跑题。',
@@ -174,6 +180,7 @@ export function buildVisitorRealismProfile(context: VisitorRealismContext, mode:
   const state = resolveRealismStateBand(context);
   const shape = selectTurnShape({ ...context, scene });
   const quotas = buildQuotas(role, state);
+  const eventPlan = buildRealismEventPlan({ role, state, scene, quotas });
 
   return {
     mode,
@@ -182,7 +189,8 @@ export function buildVisitorRealismProfile(context: VisitorRealismContext, mode:
     state,
     shape,
     quotas,
-    directives: mode === 'active' ? buildDirectives(scene, role, state, shape, quotas) : [],
+    eventPlan,
+    directives: mode === 'active' ? buildDirectives(scene, role, state, shape, quotas, eventPlan) : [],
   };
 }
 

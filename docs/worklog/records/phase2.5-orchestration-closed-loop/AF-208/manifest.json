@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-208",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-20T22:40:00+08:00",
+  "updatedAt": "2026-11-20T15:16:15.761Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-208/task-sheet.md",
+    "sha256": "b1591c6e25af567d715ff40e9a9ea45a0fc5ba678155f0e316228741edaa2644",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-208-visitor-realism-r2-task-2026-11-20.md"
+  ],
+  "tombstone": null
+}

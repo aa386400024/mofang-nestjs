@@ -82,6 +82,7 @@ import {
   type StreamRenderOutcome,
   type StreamingRenderPort,
 } from './streaming-render.port.js';
+import { resolveVisitorRealismRuntime, type VisitorRealismRuntime } from './visitor-realism-runtime.js';
 import {
   evaluateSafety,
   guardVisitorOutput,
@@ -100,6 +101,7 @@ import type {
   ChatReasoningEffort,
 } from '../../llm/common/interfaces/chat-provider.interface.js';
 import { safeVisiblePrefix, stripReasoningBlocks } from '../../shared/llm/reasoning-text.js';
+import { buildRealismRetryInstruction, inspectVisitorRealism, type RealismAuditResult } from '../../shared/realism/index.js';
 import { inspectGeneratedOutput } from '../../shared/text/output-integrity.js';
 
 /**
@@ -254,8 +256,11 @@ interface StreamUsageAccumulator {
 interface RenderCallContext {
   readonly spec: RenderSpec;
   readonly messages: readonly ChatMessage[];
+  readonly realism: VisitorRealismRuntime;
   regenBudget: number;
+  realismRegenBudget: number;
   usedRegen: boolean;
+  usedRealismRegen: boolean;
 }
 
 /**
@@ -299,8 +304,11 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     const ctx: RenderCallContext = {
       spec,
       messages,
+      realism: resolveVisitorRealismRuntime(spec),
       regenBudget: Math.max(0, this.config.maxBlockRegen),
+      realismRegenBudget: 1,
       usedRegen: false,
+      usedRealismRegen: false,
     };
 
     const { outcome, attempted } = await this.runCandidateLoop((candidate) => this.attempt(ctx, candidate));
@@ -323,8 +331,8 @@ export class LlmRenderAdapter implements StreamingRenderPort {
           //  可能压根没填 —— typeof 判的是"真有这个数", 两种情况都判得对.)
           ...(typeof outcome.value.usage.promptTokens === 'number' ? { promptTokens: outcome.value.usage.promptTokens } : {}),
         },
-        // fallbackUsed = 切过备 / 走过 block 重生成 (降级路径恒为 true).
-        fallbackUsed: ctx.usedRegen || attempted.length > 1,
+        // fallbackUsed = 切过备 / 走过 block 重生成 / 走过真人度重试 (降级路径恒为 true).
+        fallbackUsed: ctx.usedRegen || ctx.usedRealismRegen || attempted.length > 1,
         providerHint: outcome.value.providerHint,
         model: outcome.value.model,
       };
@@ -521,7 +529,7 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     if (verdict.level !== 'block') {
       // pass / warn 都放行: warn 是"值得注意", 不是"不该说" —— 拦下 warn 等于
       // 让适配层替专业督导做判断, 越权. 只记信号, 不改写文本.
-      return { kind: 'success', candidateId: candidate.id, value: { text, usage, providerHint: candidate.id, model: params.model } };
+      return await this.settleRealism(ctx, candidate, params, text, usage);
     }
 
     if (ctx.regenBudget <= 0) {
@@ -530,6 +538,108 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     ctx.regenBudget -= 1;
     ctx.usedRegen = true;
     return await this.regenerate(ctx, candidate, params);
+  }
+
+  /**
+   * R2: 安全闸门放行后，再做一次真人度审计。
+   *
+   * 只有 active 模式会重试；audit 只记计数；off 完全不碰。
+   * 重试仍违约时**接受**可读文本，不降级成兜底句 —— 真人度不是安全红线，
+   * 用“……嗯。”把一轮正常咨询换掉，比轻微书面腔更伤体验。
+   */
+  private async settleRealism(
+    ctx: RenderCallContext,
+    candidate: RenderCandidate,
+    params: ResolvedRenderParams,
+    text: string,
+    usage: ChatCompletionResponse['usage'],
+  ): Promise<AttemptOutcome<AggregateRender>> {
+    const audit = this.auditRealism(ctx.realism, text);
+    if (!audit) {
+      return { kind: 'success', candidateId: candidate.id, value: { text, usage, providerHint: candidate.id, model: params.model } };
+    }
+
+    if (ctx.realism.mode === 'audit') {
+      this.logRealismAudit(ctx.realism, audit, 'observed', false);
+      return { kind: 'success', candidateId: candidate.id, value: { text, usage, providerHint: candidate.id, model: params.model } };
+    }
+
+    if (audit.ok || ctx.realismRegenBudget <= 0) {
+      this.logRealismAudit(ctx.realism, audit, audit.ok ? 'pass' : 'accept-after-retry', false);
+      return { kind: 'success', candidateId: candidate.id, value: { text, usage, providerHint: candidate.id, model: params.model } };
+    }
+
+    ctx.realismRegenBudget -= 1;
+    ctx.usedRealismRegen = true;
+    this.logRealismAudit(ctx.realism, audit, 'retry', true);
+
+    const instruction = buildRealismRetryInstruction(audit.reasons, ctx.realism.eventPlan, ctx.realism.profile.shape);
+    const call = await this.callOnce(candidate, params, this.withRealismInstruction(ctx.messages, instruction));
+    if (!call.ok) {
+      return call.retryable ? { kind: 'retry', reason: call.reason } : { kind: 'degrade', reason: call.reason };
+    }
+
+    const rawText = stripReasoningBlocks(call.response.content ?? '');
+    if (!rawText) {
+      this.runtime.markFailure(candidate.id, this.config);
+      return { kind: 'retry', reason: `候选 ${candidate.id} 真人度重试返回空内容` };
+    }
+    const retryText = this.applyTruncationGuard(rawText, call.response.finishReason).text;
+    if (!retryText) {
+      this.runtime.markFailure(candidate.id, this.config);
+      return { kind: 'retry', reason: `候选 ${candidate.id} 真人度重试内容被截断且无完整句` };
+    }
+
+    const verdict = await this.evaluate(retryText);
+    this.reportSignal(retryText, verdict);
+    if (verdict.level === 'block') {
+      return { kind: 'degrade', reason: '真人度重试后输出仍命中 block' };
+    }
+
+    const secondAudit = this.auditRealism(ctx.realism, retryText);
+    if (secondAudit) this.logRealismAudit(ctx.realism, secondAudit, secondAudit.ok ? 'retry-pass' : 'retry-accept', true);
+
+    return {
+      kind: 'success',
+      candidateId: candidate.id,
+      value: {
+        text: retryText,
+        usage: this.mergeUsage(usage, call.response.usage),
+        providerHint: candidate.id,
+        model: params.model,
+      },
+    };
+  }
+
+  /** 只审计、不碰原文；off 返回 null。 */
+  private auditRealism(runtime: VisitorRealismRuntime, text: string): RealismAuditResult | null {
+    if (runtime.mode === 'off') return null;
+    return inspectVisitorRealism(text, { state: runtime.profile.state, shape: runtime.profile.shape }, runtime.eventPlan);
+  }
+
+  /** 日志只打枚举与计数，不打印台词。 */
+  private logRealismAudit(runtime: VisitorRealismRuntime, audit: RealismAuditResult, phase: string, retried: boolean): void {
+    this.logger.debug(
+      `[realism] phase=${phase} mode=${runtime.mode} scene=${runtime.profile.scene} role=${runtime.profile.role} state=${runtime.profile.state} shape=${runtime.profile.shape} ok=${audit.ok} violations=${audit.reasons.join(',') || 'none'} signals=${audit.signals.join(',') || 'none'} events=${audit.totalEvents} retried=${retried}`,
+    );
+  }
+
+  private withRealismInstruction(messages: readonly ChatMessage[], instruction: string): readonly ChatMessage[] {
+    if (!instruction) return messages;
+    const first = messages[0];
+    if (first?.role === 'system' && typeof first.content === 'string') {
+      return [{ ...first, content: `${first.content}\n\n【本轮重说要求】\n${instruction}` }, ...messages.slice(1)];
+    }
+    return [{ role: 'system', content: `【本轮重说要求】\n${instruction}` }, ...messages];
+  }
+
+  /** 重试调用要把两次 usage 合并，否则成本只记最后一轮。 */
+  private mergeUsage(first: ChatCompletionResponse['usage'], second: ChatCompletionResponse['usage']): ChatCompletionResponse['usage'] {
+    return {
+      promptTokens: (first.promptTokens ?? 0) + (second.promptTokens ?? 0),
+      completionTokens: (first.completionTokens ?? 0) + (second.completionTokens ?? 0),
+      totalTokens: (first.totalTokens ?? 0) + (second.totalTokens ?? 0),
+    };
   }
 
   /**
@@ -575,11 +685,9 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     if (verdict.level === 'block') {
       return { kind: 'degrade', reason: '重生成后输出仍命中 block' };
     }
-    return {
-      kind: 'success',
-      candidateId: candidate.id,
-      value: { text, usage: call.response.usage, providerHint: candidate.id, model: params.model },
-    };
+    // 安全重生成也要过真人度审计：block 重生成不是绕过 R2 的后门。
+    // 用降温后的 params 继续，避免重试又把温度抽回去。
+    return await this.settleRealism(ctx, candidate, regenParams, text, call.response.usage);
   }
 
   /**
@@ -637,6 +745,8 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       this.logger.error(`[streamRender] 候选 ${candidate.id} 未配置模型名 (taskKind=${spec.taskKind}), 无法建流`);
       return { kind: 'degrade', reason: `候选 ${candidate.id} 未配置模型名` };
     }
+    // R2: 流式已经出声，不重试；只在收尾审计一次，供灰度观察。
+    const realism = resolveVisitorRealismRuntime(spec);
 
     const request: ChatCompletionRequest = {
       model: params.model,
@@ -758,6 +868,8 @@ export class LlmRenderAdapter implements StreamingRenderPort {
     // 阶段 4: 收尾 —— 后置全文 guard 只记信号 (不 regen / 不撤回).
     const verdict = await this.evaluate(spoken);
     this.reportSignal(spoken, verdict);
+    const realismAudit = this.auditRealism(realism, spoken);
+    if (realismAudit) this.logRealismAudit(realism, realismAudit, 'stream-observed', false);
 
     return {
       kind: 'success',
