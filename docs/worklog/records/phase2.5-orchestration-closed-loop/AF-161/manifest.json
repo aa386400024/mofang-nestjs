@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-161",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "submitted",
+  "status": "rejected",
   "createdAt": "2026-11-19T19:25:00.000Z",
-  "updatedAt": "2026-11-20T01:10:28.602Z",
+  "updatedAt": "2026-11-20T01:17:10.707Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-161/task-sheet.md",
-    "sha256": "7994037b290564a7f57198ddc225f19225c05337ae7d49bf3d89094739293256",
+    "sha256": "864886695241af1ad055b1901499b877338047536beb206213938b89c9e88058",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-161/receipt-RC-AF-161-1.json",
+      "sha256": "6ccda67df6e9de53bc1ab03c72061f04e231e658ac6d953d5b16f5e1010633f3",
+      "receiptId": "RC-AF-161-1"
+    }
+  ],
   "deliveryRecord": null,
   "legacyPaths": []
 }

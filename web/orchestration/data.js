@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-20T01:11:51.952Z",
+  "generatedAt": "2026-11-20T01:15:55.845Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -18,10 +18,10 @@ window.ORCH_SNAPSHOT = {
   },
   "tasks": [
     {
-      "taskId": "AF-161",
+      "taskId": "AF-162",
       "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "worklog 记录包化：inbox/records 生命周期与历史迁移",
+      "type": "fix",
+      "title": "AF-161 验收返修与编排入口收口",
       "status": "submitted",
       "verdict": null,
       "verdictRationale": null,
@@ -29,22 +29,22 @@ window.ORCH_SNAPSHOT = {
       "frozen": false,
       "reworkOf": null,
       "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-161/task-sheet.md",
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-162/task-sheet.md",
         "deliveryRecord": null,
         "reply": null
       },
       "manualReview": [],
       "dispatch": {
-        "taskId": "AF-161",
+        "taskId": "AF-162",
         "contextId": "phase2.5-orchestration-closed-loop",
         "channel": "file",
         "targetRole": "orchestrator",
         "sessionRef": null,
-        "dispatchedAt": "2026-11-20T00:39:00.510Z",
-        "leaseDeadline": "2026-11-20T01:09:00.508Z",
+        "dispatchedAt": "2026-11-20T01:15:55.791Z",
+        "leaseDeadline": "2026-11-20T01:45:55.789Z",
         "attempt": 1,
         "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-161.json"
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-162.json"
       }
     }
   ],
@@ -2064,9 +2064,9 @@ window.ORCH_SNAPSHOT = {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
     "tasks": [
       {
-        "taskId": "AF-161",
-        "title": "worklog 记录包化：inbox/records 生命周期与历史迁移",
-        "type": "implementation",
+        "taskId": "AF-162",
+        "title": "AF-161 验收返修与编排入口收口",
+        "type": "fix",
         "status": {
           "framework": "submitted",
           "protocol": "SUBMITTED",
@@ -2079,7 +2079,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-161/task-sheet.md"
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-162/task-sheet.md"
           }
         ]
       }
@@ -5086,6 +5086,24 @@ window.ORCH_SNAPSHOT = {
           "stage": "terminal"
         },
         "artifactReferences": []
+      },
+      {
+        "taskId": "AF-161",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-161/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af161-worklog-record-bundles-2026-11-20.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -5102,9 +5120,9 @@ window.ORCH_SNAPSHOT = {
     },
     "artifacts": [
       {
-        "taskId": "AF-161",
+        "taskId": "AF-162",
         "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-161/task-sheet.md"
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-162/task-sheet.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -5118,5 +5136,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 175
+  "archivedCount": 176
 };

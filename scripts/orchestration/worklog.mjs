@@ -65,6 +65,25 @@ export function recordManifestPath(task, { rootDir = REPO_ROOT } = {}) {
   return join(taskBundleDir(task, { rootDir }), 'manifest.json');
 }
 
+/** 归档投影会剥离 contextId，按 taskId 在 records 下回退定位记录包。 */
+export function findRecordBundleDir(taskId, { rootDir = REPO_ROOT } = {}) {
+  const records = join(rootDir, 'docs', 'worklog', 'records');
+  if (!existsSync(records)) return null;
+  for (const context of readdirSync(records, { withFileTypes: true })) {
+    if (!context.isDirectory()) continue;
+    const bundle = join(records, context.name, safeSegment(taskId));
+    const manifestFile = join(bundle, 'manifest.json');
+    if (!existsSync(manifestFile)) continue;
+    try {
+      const manifest = JSON.parse(readFileSync(manifestFile, 'utf8'));
+      if (manifest.taskId === taskId) return bundle;
+    } catch {
+      // manifest 非法时由 verify 统一报错，这里只做定位。
+    }
+  }
+  return null;
+}
+
 export function sha256Text(text) {
   return createHash('sha256').update(text, 'utf8').digest('hex');
 }
@@ -74,8 +93,12 @@ export function sha256File(file) {
 }
 
 export function readRecordManifest(task, { rootDir = REPO_ROOT } = {}) {
-  const file = recordManifestPath(task, { rootDir });
-  if (!existsSync(file)) return null;
+  let file = recordManifestPath(task, { rootDir });
+  if (!existsSync(file)) {
+    const fallback = findRecordBundleDir(task?.taskId, { rootDir });
+    if (!fallback) return null;
+    file = join(fallback, 'manifest.json');
+  }
   return JSON.parse(readFileSync(file, 'utf8'));
 }
 
@@ -97,6 +120,13 @@ function emptyManifest(task) {
 function writeManifest(task, manifest, { rootDir }) {
   manifest.updatedAt = nowIso();
   writeJsonAtomic(recordManifestPath(task, { rootDir }), manifest);
+}
+
+export function normalizeTaskSheetLineEndings(path) {
+  const text = readFileSync(path, 'utf8');
+  if (!text.includes('\r')) return false;
+  writeFileSync(path, text.replace(/\r\n/g, '\n').replace(/\r/g, '\n'), 'utf8');
+  return true;
 }
 
 /**
@@ -136,6 +166,7 @@ export function ensureTaskRecordBundle(task, opts = {}) {
   }
 
   const manifest = readRecordManifest(task, { rootDir }) ?? emptyManifest(task);
+  normalizeTaskSheetLineEndings(target);
   manifest.taskId = task.taskId;
   manifest.contextId = task.contextId ?? manifest.contextId ?? null;
   manifest.status = opts.status ?? task.status ?? manifest.status ?? null;
@@ -281,6 +312,8 @@ export function verifyWorklog(index, opts = {}) {
       errors.push(`任务单不可解析：${task.taskId}（manifest=${manifest.taskSheet.path}）`);
     } else if (sha256File(sheet.path) !== manifest.taskSheet.sha256) {
       errors.push(`任务单哈希不匹配：${task.taskId}`);
+    } else if (readFileSync(sheet.path, 'utf8').includes('\r')) {
+      errors.push(`任务单含 CR 行尾：${task.taskId}（${repoRelative(rootDir, sheet.path)}）`);
     }
     for (const receipt of manifest.receipts ?? []) {
       const abs = resolve(rootDir, receipt.path);

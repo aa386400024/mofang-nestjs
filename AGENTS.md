@@ -77,23 +77,23 @@ src/
 
 **不要一上来把 docs/ 全读了——context 会爆。** README + 当前任务单 = 99% 够用。遇到生字再翻字典。
 
-| 你要做什么                   | 去读                                                                                                         |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| **开工第一步（必做）**       | `pnpm orchestration:status` → `docs/worklog/README.md` — 先看编排状态面，再看 pending/ 里有什么任务单        |
-| **代码红线 + 交付格式**      | `docs/team/conventions.md` — engine-core 红线、16 条硬约束、零压红线、交付记录格式                           |
-| **多代理协作规范（适配层）** | `docs/team/agent-orchestration/README.md` — 角色绑定、目录映射、工具类别、闸门与交接契约（框架 v2.0.0 口径） |
-| 任务单模板                   | `docs/team/wp-task-template.md` — frontmatter 字段组、范围隔离、闸门、回写清单                               |
-| 文档总入口                   | `docs/README.md`                                                                                             |
-| 引擎路线图 / 为什么这么设计  | `docs/architecture/ai-engine-roadmap-v1.1.md`                                                                |
-| V6.0 引擎架构                | `docs/architecture/v6.0-ai-engine.md`                                                                        |
-| BDI 认知引擎设计原则         | `docs/reference/bdi-cognitive-engine-principles-v1.0.md`                                                     |
-| AI 模拟来访蓝图              | `docs/reference/ai-simulation-blueprint-v1.1.md`                                                             |
-| 伦理/安全/兜底               | `docs/reference/architecture-blindspot-fill-v1.0.md`                                                         |
-| 微服务演进边界（5 条规则）   | `docs/architecture/microservices-evolution-plan.md`                                                          |
-| 活跃技术契约（spec）         | `docs/specs/active/`（6 份：语音训练 v0.3 / 全真执业 v1.2 / 自由练习 v1.3 / 来访池 / ASR-LLM / 语音 BIDI）   |
-| 架构决策记录                 | `docs/adr/`（JWT vs Cookie / 异步审计 / TypeORM Migration）                                                  |
-| 本地环境 / 部署              | `docs/runbooks/local-setup.md` / `docs/runbooks/docker-deploy.md`                                            |
-| Phase1 已交付速查            | `docs/worklog/completed/phase1/`（按 wp0-wp5-core / wp6-wp12-wiring / wp14-wp24-augment 分目录）             |
+| 你要做什么                   | 去读                                                                                                           |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **开工第一步（必做）**       | `pnpm orchestration:status` → `docs/worklog/README.md` — 先看编排状态面，再看 inbox 草稿与 records 任务单/回执 |
+| **代码红线 + 交付格式**      | `docs/team/conventions.md` — engine-core 红线、16 条硬约束、零压红线、交付记录格式                             |
+| **多代理协作规范（适配层）** | `docs/team/agent-orchestration/README.md` — 角色绑定、目录映射、工具类别、闸门与交接契约（框架 v2.0.0 口径）   |
+| 任务单模板                   | `docs/team/wp-task-template.md` — frontmatter 字段组、范围隔离、闸门、回写清单                                 |
+| 文档总入口                   | `docs/README.md`                                                                                               |
+| 引擎路线图 / 为什么这么设计  | `docs/architecture/ai-engine-roadmap-v1.1.md`                                                                  |
+| V6.0 引擎架构                | `docs/architecture/v6.0-ai-engine.md`                                                                          |
+| BDI 认知引擎设计原则         | `docs/reference/bdi-cognitive-engine-principles-v1.0.md`                                                       |
+| AI 模拟来访蓝图              | `docs/reference/ai-simulation-blueprint-v1.1.md`                                                               |
+| 伦理/安全/兜底               | `docs/reference/architecture-blindspot-fill-v1.0.md`                                                           |
+| 微服务演进边界（5 条规则）   | `docs/architecture/microservices-evolution-plan.md`                                                            |
+| 活跃技术契约（spec）         | `docs/specs/active/`（6 份：语音训练 v0.3 / 全真执业 v1.2 / 自由练习 v1.3 / 来访池 / ASR-LLM / 语音 BIDI）     |
+| 架构决策记录                 | `docs/adr/`（JWT vs Cookie / 异步审计 / TypeORM Migration）                                                    |
+| 本地环境 / 部署              | `docs/runbooks/local-setup.md` / `docs/runbooks/docker-deploy.md`                                              |
+| Phase1 已交付速查            | `docs/worklog/completed/phase1/`（按 wp0-wp5-core / wp6-wp12-wiring / wp14-wp24-augment 分目录）               |
 
 ---
 
@@ -102,9 +102,9 @@ src/
 - **Phase1 已封版**：WP0-WP26 全交付，8 个 P1 + 34 个 P2 全修，1252 例测试全绿。backlog 已归档到 `docs/worklog/completed/phase1/phase1-backlog-archived-2026-11-03.md`。
 - **Phase2 / Phase2.5 进行中**：商业化准备与灰度验证期任务（TD / WP / AF / G / I / S 系列）交付记录见 `docs/worklog/completed/phase2.5/`；总览与 WP 清单见 `docs/worklog/pending/phase2-overview-2026-11-03.md`、`phase2.5-wp-list-2026-11-08.md`。
 - **协作适配层已对齐框架 2.0.0（2026-11-16）**：`docs/team/agent-orchestration/` 与 `scripts/orchestration/` 从 1.x 口径整体迁移到框架仓 tag `v2.0.0`（契约 urn、工具一工具一文件、human 非可路由、交付包 `delivery-package` 1.0.0、归档说明外移 `archivedNotes`）；既有任务、归档、台账与运行态全部保留，索引 `0 在途 / 34 归档` 未变。
-- **当前待开工任务单**：以 `docs/worklog/pending/` 与 `pnpm orchestration:status` 为唯一现场，不在本文件写快照；运行态交接件在 `transport/tasks/`（gitignore 忽略）。
+- **当前待开工任务单**：以 `pnpm orchestration:status` 为唯一状态现场；未登记草稿在 `docs/worklog/inbox/`，登记成功即不可变迁入 `docs/worklog/records/<context>/<taskId>/`，不在本文件写快照；运行态交接件在 `transport/tasks/`（gitignore 忽略）。
 
-**接任务前先 `pnpm orchestration:status` + `ls docs/worklog/pending/`**——有任务按 CLI 领取并从第一份开始做；没有就等大炮派新单，不要自己找事做。**不要绕过任务单直接改文件。**
+**接任务前先 `pnpm orchestration:status` + `ls docs/worklog/inbox/`**——有 ready 任务按 CLI 领取并从第一份开始做；没有就等大炮派新单，不要自己找事做。**不要绕过任务单直接改文件。**
 
 ---
 
@@ -145,8 +145,8 @@ src/
 ## 6. 交付格式（每个任务做完必做）
 
 1. 在同目录写 `*-implementation-YYYY-MM-DD.md`：改了哪些文件、关键设计决策（跟任务单有出入要说明）、闸门数字（`pnpm lint` 0 error / `pnpm typecheck` 0 error / `pnpm test` 全绿 / `git diff --stat HEAD -- src/engine-core` 为空）。
-2. 任务单 + 交付记录从 `pending/` 移到 `completed/phase2/` 对应子目录。
-3. 任务单顶部状态行从 `📋 待开工` 改成 `✅`，指向交付记录文件名。
+2. 任务单登记时已不可变入 `docs/worklog/records/<context>/<taskId>/`，交付时不再移动；交付记录写 `docs/worklog/completed/<phase>/` 对应子目录，回执经 CLI 归档进记录包。
+3. 任务单正文不可改写，状态只在 `task-state-index.json` 与事件链；不要把任务单顶部状态行手工改成 `✅`。
 4. 给一行 commit message：`feat(wpXX): 一句话说清做了什么`。
 5. 回写 backlog 母版。
 

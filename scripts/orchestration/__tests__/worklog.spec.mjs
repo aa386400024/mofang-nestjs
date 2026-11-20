@@ -5,7 +5,7 @@
  * 迁移幂等与墓碑、verify 的重复/孤儿/哈希/终态 inbox 检出。
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -69,6 +69,32 @@ describe('记录包登记', () => {
     expect(result.manifest.taskSheet.sha256).toBe(sha256File(target));
     expect(result.manifest.status).toBe('submitted');
     expect(result.manifest.legacyPaths).toEqual(['docs/worklog/inbox/af900-test-task.md']);
+  });
+
+  it('登记时把 CRLF 任务单规范为 LF，并同步 manifest 哈希', () => {
+    const root = makeRoot();
+    const t = task({ taskId: 'AF-902', artifacts: { taskSheet: 'docs/worklog/inbox/af902-crlf-task.md' } });
+    const source = join(root, 'docs/worklog/inbox/af902-crlf-task.md');
+    writeFileSync(source, '---\r\ntaskId: AF-902\r\ncontextId: ctx-test\r\nstatus: ready\r\n---\r\n\r\n# AF-902 测试\r\n', 'utf8');
+    const result = ensureTaskRecordBundle(t, { rootDir: root, sourceSheetPath: source });
+    const target = join(taskBundleDir(t, { rootDir: root }), 'task-sheet.md');
+
+    expect(readFileSync(target, 'utf8').includes('\r')).toBe(false);
+    expect(result.manifest.taskSheet.sha256).toBe(sha256File(target));
+  });
+
+  it('归档投影丢失 contextId 时按 taskId 回退定位 manifest', () => {
+    const root = makeRoot();
+    const t = task();
+    const source = writeSheet(root);
+    ensureTaskRecordBundle(t, { rootDir: root, sourceSheetPath: source, status: 'completed' });
+    const archived = {
+      taskId: 'AF-900',
+      status: 'completed',
+      artifacts: { taskSheet: 'docs/worklog/records/ctx-test/AF-900/task-sheet.md' },
+    };
+
+    expect(readRecordManifest(archived, { rootDir: root })?.taskId).toBe('AF-900');
   });
 
   it('JSON 任务单保留 .json 扩展，不伪装成 Markdown', () => {
