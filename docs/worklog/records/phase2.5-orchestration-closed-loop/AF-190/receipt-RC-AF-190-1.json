@@ -1,0 +1,107 @@
+{
+  "deliveredAt": "2026-11-20T18:51:40+08:00",
+  "payload": {
+    "receiptId": "RC-AF-190-1",
+    "taskId": "AF-190",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "4ca4dbe5c772bccc9bf1a3c73ad0dbc4a0e49866",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.2", "conventions.md#1.3", "conventions.md#5"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-190/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af190-encounter-delivery-final-2026-11-20.md",
+      "reply": null,
+      "others": [
+        "AF-187 技术证据 docs/worklog/completed/phase2.5/af187-encounter-scene-output-integrity-2026-11-20.md",
+        "AF-189 技术交付记录 docs/worklog/completed/phase2.5/af189-af187-encounter-delivery-2026-11-20.md",
+        "AF-187 / AF-188 / AF-189 流程历史原样保留",
+        "迁移 1714900000048-AddEncounterAndCrisisOutcome 已执行成功",
+        "engine-core 零 diff"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "src/shared/encounter/encounter-scene.ts",
+        "src/shared/text/output-integrity.ts",
+        "src/migration/1714900000048-AddEncounterAndCrisisOutcome.ts",
+        "test/auto-practice/af187-encounter-output-integrity.spec.ts",
+        "docs/worklog/completed/phase2.5/af187-encounter-scene-output-integrity-2026-11-20.md",
+        "docs/worklog/completed/phase2.5/af189-af187-encounter-delivery-2026-11-20.md",
+        "docs/worklog/completed/phase2.5/af190-encounter-delivery-final-2026-11-20.md"
+      ],
+      "modified": [
+        "bin/ormconfig.ts",
+        "src/engine-adapters/rendering/turn-render-orchestrator.ts",
+        "src/engine-adapters/rendering/render-risk.ts",
+        "src/engine-adapters/rendering/spec-assembler.ts",
+        "src/engine-adapters/rendering/llm-render.adapter.ts",
+        "src/engine-adapters/wiring/engine-turn.service.ts",
+        "src/auto-practice/practice-runner.service.ts",
+        "src/auto-practice/counselor-agent.service.ts",
+        "src/auto-practice/counselor/builder/counselor-prompt-builder.ts",
+        "src/auto-practice/counselor/dto/counselor-types.ts",
+        "src/auto-practice/metrics/session-structure-audit.ts",
+        "src/auto-practice/auto-practice.controller.ts",
+        "src/auto-practice/practice-queue.service.ts",
+        "src/auto-practice/entities/practice-session.entity.ts",
+        "src/auto-practice/ports/turn-engine.port.ts",
+        "src/auto-practice/adapters/debug-turn-engine.adapter.ts",
+        "src/auto-practice/auto-practice.events.ts",
+        "src/admin-debug/debug-session.service.ts",
+        "src/admin-debug/debug-session-store.ts",
+        "test/auto-practice/practice-runner-decide-turn.spec.ts",
+        "admin-dashboard/src/api/client.ts",
+        "admin-dashboard/src/api/types.ts",
+        "admin-dashboard/src/views/AutoPractice.vue"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["899060f4e00bddfd65826a85e0460ba4fea31f05"]
+    },
+    "gateResults": [
+      { "command": "pnpm lint", "exitCode": 0, "errors": 0, "warnings": 0, "specFiles": null, "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0", "wallClock": "约 35s", "note": "0 error / 0 warning" },
+      { "command": "pnpm typecheck", "exitCode": 0, "errors": 0, "warnings": 0, "specFiles": null, "machine": "同上", "wallClock": "约 25s", "note": "0 error" },
+      { "command": "pnpm exec vitest run test/auto-practice/af187-encounter-output-integrity.spec.ts", "exitCode": 0, "errors": 0, "warnings": 0, "specFiles": 1, "machine": "同上", "wallClock": "1.79s", "note": "22 tests passed" },
+      { "command": "pnpm test", "exitCode": 0, "errors": 0, "warnings": 0, "specFiles": 223, "machine": "同上", "wallClock": "25.43s", "note": "3949 tests passed + 4 skipped" },
+      { "command": "cd admin-dashboard && pnpm type-check", "exitCode": 0, "errors": 0, "warnings": 0, "specFiles": null, "machine": "同上", "wallClock": "约 20s", "note": "vue-tsc --build 无输出" },
+      { "command": "pnpm migration:run", "exitCode": 0, "errors": 0, "warnings": 0, "specFiles": null, "machine": "同上", "wallClock": "承接执行结果", "note": "AddEncounterAndCrisisOutcome1714900000048 executed" },
+      { "command": "git diff --stat HEAD -- src/engine-core", "exitCode": 0, "errors": 0, "warnings": 0, "specFiles": null, "machine": "同上", "wallClock": "秒级", "note": "输出为空" },
+      { "command": "pnpm orchestration:preflight", "exitCode": 0, "errors": 0, "warnings": 0, "specFiles": null, "machine": "同上", "wallClock": "秒级", "note": "PASS task=AF-190 status=submitted files=34 covered=30" }
+    ],
+    "reproNotes": "技术实现与 AF-187/189 完全一致；AF-190 只重做入账，提交标题只含 AF-190，records 不在执行侧提交。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-190 贯穿任务单、回执、交付记录、索引与事件" },
+      { "item": "state-write", "result": "pass", "note": "状态只经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "回执六组齐全" },
+      { "item": "event-chain", "result": "pass", "note": "前序 rejected 事件原样保留" },
+      { "item": "engine-boundary", "result": "pass", "note": "engine-core 零 diff" }
+    ],
+    "fieldAlignment": { "result": "aligned", "note": "回执、交付记录、任务单同源" },
+    "backlogItems": [
+      { "id": "BL-AF190-01", "impact": "线上默认子通道固定 video", "severity": "low", "schedule": "灰度前拍板" },
+      { "id": "BL-AF190-02", "impact": "第三场景只留扩展位", "severity": "low", "schedule": "有使用方再加" },
+      { "id": "BL-AF190-03", "impact": "流式已吐 token 不撤回", "severity": "medium", "schedule": "独立任务做展示侧过滤" },
+      { "id": "BL-AF190-04", "impact": "迁移列级 SQL 未复验", "severity": "medium", "schedule": "用 bin/ormconfig 复验" }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      { "item": "入账次数", "taskSays": "一次入账", "reality": "前序三单被流程拦截", "action": "AF-190 干净执行面重新入账", "why": "不伪造历史、不绕过校验" },
+      { "item": "线上默认", "taskSays": "三通道", "reality": "缺省 video", "action": "注册表集中管理", "why": "用户未拍板" },
+      { "item": "第三场景", "taskSays": "预留", "reality": "未开放条目", "action": "结构预留", "why": "无真实使用方" },
+      { "item": "前端验证", "taskSays": "可配置", "reality": "只跑 vue-tsc", "action": "类型通过", "why": "留灰度点选" }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "实现完整、22 例定向与 3949 例全量全绿、lint/typecheck/前端 type-check/迁移/preflight 真实通过、engine-core 零 diff；执行侧提交不含 records，提交标题只含 AF-190。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

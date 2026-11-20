@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-20T11:10:40.504Z",
+  "generatedAt": "2026-11-20T11:11:12.121Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,48 +15,7 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-198",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "fix",
-      "title": "自动对练交付与记录包最终合并",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-198/task-sheet.md",
-        "deliveryRecord": null,
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-198",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-20T11:10:40.444Z",
-        "leaseDeadline": "2026-11-20T11:40:40.441Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-198.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-20T11:10:40.444Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-198.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1817,6 +1776,21 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-276",
+      "recordedAt": "2026-11-20T11:10:40.600Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-198",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-198",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-198.json"
+      ]
+    },
+    {
       "auditId": "AUD-275",
       "recordedAt": "2026-11-20T11:10:40.194Z",
       "actorRef": "orchestrator",
@@ -2041,61 +2015,25 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-261",
-      "recordedAt": "2026-11-20T10:40:42.834Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-189",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-189",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-189.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 275,
+    "total": 276,
     "byResult": {
-      "allowed": 275,
+      "allowed": 276,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 274,
+      "TOOL-QUEUE-SCHEDULER": 275,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 275
+      "orchestrator": 276
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-198",
-        "title": "自动对练交付与记录包最终合并",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-198/task-sheet.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -5686,6 +5624,24 @@
             "ref": "docs/worklog/completed/phase2.5/af197-encounter-delivery-2026-11-20.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-198",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-198/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af198-encounter-delivery-2026-11-20.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -5700,17 +5656,9 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-198",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-198/task-sheet.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -5718,5 +5666,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 209
+  "archivedCount": 210
 }
