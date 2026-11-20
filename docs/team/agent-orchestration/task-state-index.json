@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 910,
+    "lastEventSeq": 915,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -1953,6 +1953,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-207/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af207-visitor-realism-r0-r1-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-208",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-208/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af208-visitor-realism-r2-2026-11-20.md",
         "reply": null
       }
     }
