@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-20T17:43:30.743Z",
+  "generatedAt": "2026-11-20T17:57:34.001Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1780,6 +1780,38 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-023",
+      "recordedAt": "2026-11-20T17:46:09.698Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-216",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-216",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-216.json"
+      ]
+    },
+    {
+      "auditId": "AUD-022",
+      "recordedAt": "2026-11-20T17:45:51.768Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-216",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-021",
       "recordedAt": "2026-11-20T17:39:23.994Z",
       "actorRef": "orchestrator",
@@ -1987,55 +2019,21 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-008",
-      "recordedAt": "2026-11-15T18:08:26.377Z",
-      "actorRef": "orchestrator",
-      "correlationId": "archive:AF-013",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "queue-scheduler",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-007",
-      "recordedAt": "2026-11-15T17:50:02.805Z",
-      "actorRef": "orchestrator",
-      "correlationId": "archive:AF-012",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "queue-scheduler",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 21,
+    "total": 23,
     "byResult": {
-      "allowed": 21,
+      "allowed": 23,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 19
+      "TOOL-QUEUE-SCHEDULER": 21
     },
     "byActor": {
-      "orchestrator": 21
+      "orchestrator": 23
     }
   },
   "protocolView": {
@@ -5931,6 +5929,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase3-orchestration/af215-doubao-env-discoverability-2026-11-21.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-216",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase3-orchestration-hardening/AF-216/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase3-orchestration/af216-ci-gate-two-phase-commit-2026-11-21.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -5955,5 +5971,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 227
+  "archivedCount": 228
 };
