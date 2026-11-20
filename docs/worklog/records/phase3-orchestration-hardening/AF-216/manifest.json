@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-216",
+  "contextId": "phase3-orchestration-hardening",
+  "status": "backlog",
+  "createdAt": "2026-11-21T02:40:00+08:00",
+  "updatedAt": "2026-11-20T17:45:51.069Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase3-orchestration-hardening/AF-216/task-sheet.md",
+    "sha256": "f56642398a4ec0bec47e07ff4f2cfef264db9d4905dcaca18517a285ad902b16",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af216-ci-gate-two-phase-commit-2026-11-21.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af216-ci-gate-two-phase-commit-2026-11-21.md"
+  ],
+  "tombstone": null
+}

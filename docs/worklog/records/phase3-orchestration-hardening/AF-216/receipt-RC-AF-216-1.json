@@ -1,0 +1,137 @@
+{
+  "deliveredAt": "2026-11-21T03:10:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-216-1",
+    "taskId": "AF-216",
+    "contextId": "phase3-orchestration-hardening",
+    "type": "fix",
+    "agentRole": "orchestrator",
+    "baselineRef": "82e19c7",
+    "dependsOn": ["AF-213", "AF-214", "AF-215"],
+    "priorTasks": ["AF-213", "AF-214", "AF-215"],
+    "policyRefs": ["conventions.md#1.1", "agent-orchestration/README.md#强制准入", "agent-orchestration/cross-machine-single-writer.md#4.1"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase3-orchestration-hardening/AF-216/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af216-ci-gate-two-phase-commit-2026-11-21.md",
+      "reply": null,
+      "others": ["docs/team/agent-orchestration/cross-machine-single-writer.md", "docs/worklog/records/phase3-orchestration-hardening/AF-216/manifest.json"]
+    },
+    "changedFiles": {
+      "added": ["scripts/orchestration/__tests__/ci-task-gate-impl-entry.spec.mjs"],
+      "modified": ["scripts/orchestration/ci-task-gate.mjs", "docs/team/agent-orchestration/cross-machine-single-writer.md"],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 10,
+        "machine": "DESKTOP-6U804B0 / Windows / PowerShell 7.6.4 / node v26.13.0 / pnpm 9.15.0",
+        "wallClock": "2.67s",
+        "note": "328 tests passed，含新增 10 例；既有 squash / 多编号 / scope 判定用例全部保持绿"
+      },
+      {
+        "command": "node scripts/orchestration/ci-task-gate.mjs --base 01c3ce8 --head 82e19c7",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "total=6 passed=6 failed=0：AF-213/214/215 三个实现提交由 no-active-task 转 pass，两条状态面提交保持 state-plane-only"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "带缓存通过",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 20s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 239,
+        "machine": "同上",
+        "wallClock": "82.39s",
+        "note": "4093 passed + 7 skipped（4100）；较 AF-215 收尾 +10 例"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "真实历史复现：改动前 `--base 01c3ce8 --head 46179e7` 报 no-active-task（另两单同为 no-active-task），改动后同一命令 6/6 pass；越界反向取证在单测中固化（把 src/engine-core/foo.ts 塞进 AF-900 提交 → scope-residual 红）。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-216 贯穿任务单、交付记录、回执、提交" },
+      { "item": "state-write", "result": "pass", "note": "register / promote / claim 经 CLI；索引未手改" },
+      { "item": "index-schema", "result": "pass", "note": "回执符合 schema 1.0.0" },
+      { "item": "event-chain", "result": "pass", "note": "AF-216 在 AF-215 归档后登记，next-id 校验生效" },
+      { "item": "engine-boundary", "result": "pass", "note": "src/engine-core 零 diff" },
+      { "item": "gate-integrity", "result": "pass", "note": "只加受限入场：验收门、scope 判定、state-plane / archived-transition 路径均未放宽" },
+      { "item": "text-privacy", "result": "pass", "note": "无密钥值，文档只描述机制" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 successCriteria 五条对应交付记录 §2-§6"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF216-01",
+        "impact": "本机本地 integrate 已有 7 个未推送提交（三单实现 + 三单状态面 + 本单），PR 的 13 项 required checks 尚未在远端跑过一次；跨机协作的机制前提（远端有锁/编号/两阶段门）仍只在本地",
+        "severity": "high",
+        "schedule": "本轮发布：建任务分支 → pr-release create/status/merge"
+      },
+      {
+        "id": "BL-AF216-02",
+        "impact": "已经提交的历史标题里大小写混用（docs(af215)），新门虽已兼容，但提交规范应统一为大写 AF-NNN，否则后续排查按字符串比对会漏",
+        "severity": "low",
+        "schedule": "Phase3 提交规范补一句（cross-machine-single-writer.md §5.4 已写大小写均可，是否强制统一待定）"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "标题解析策略",
+        "taskSays": "大小写不敏感 + scope 段优先",
+        "reality": "scope 段优先会破坏既有 squash 标题语义（fix(orchestration): AF-123 的 scope 段无编号），5 例既有单测红",
+        "action": "改为全文扫描 + canonicalTaskId 形态约束（连字符任意前缀 / 无连字符小写 2–3 字母），技术串返回 null",
+        "why": "口径必须与既有 328 例单测一致，不能为了让新功能好用而改既有语义"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "问题有三次实证（三个实现提交全红），修法只在判定层加受限入场、验收门未动，328 例编排单测全绿、真实历史 6/6 转绿、越界反向用例固化；全量 4093 例绿、engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
