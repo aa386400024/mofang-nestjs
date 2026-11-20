@@ -1,0 +1,154 @@
+{
+  "deliveredAt": "2026-11-21T02:25:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-215-1",
+    "taskId": "AF-215",
+    "contextId": "phase3-orchestration-hardening",
+    "type": "documentation",
+    "agentRole": "executor",
+    "baselineRef": "792e76f",
+    "dependsOn": ["AF-210", "AF-214"],
+    "priorTasks": ["AF-213", "AF-214"],
+    "policyRefs": ["conventions.md#1.1", "agent-orchestration/README.md#强制准入"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase3-orchestration-hardening/AF-215/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af215-doubao-env-discoverability-2026-11-21.md",
+      "reply": null,
+      "others": ["docs/worklog/records/phase3-orchestration-hardening/AF-215/manifest.json"]
+    },
+    "changedFiles": {
+      "added": [],
+      "modified": [".env.example"],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/config/wp25-env-example-coverage.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-6U804B0 / Windows / PowerShell 7.6.4 / node v26.13.0 / pnpm 9.15.0",
+        "wallClock": "7.30s",
+        "note": "11 tests passed：模板生效行↔代码读取点双向一致，注释行不参与断言"
+      },
+      {
+        "command": "node -e \"parseEnvKeys(HEAD:.env.example) vs parseEnvKeys(.env.example)\"",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "before 278 / after 278，missing=[] extra=[]，生效键集零漂移"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "带缓存通过",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 20s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 238,
+        "machine": "同上",
+        "wallClock": "81.41s",
+        "note": "4083 passed + 7 skipped（4090）；收尾全量一次"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空"
+      },
+      {
+        "command": "ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 5s",
+        "note": "任务单 / 事件链 / 索引投影全 PASS"
+      }
+    ],
+    "reproNotes": "模板改动为纯注释：git diff --stat 显示 1 file changed, 15 insertions(+), 0 deletions(-)，逐行核对新增行均以 # 开头。键集取证用 ENV_DOCTOR 的 parseEnvKeys 对 HEAD 版本与工作区版本做对称差，结果 before 278 / after 278、missing=[] extra=[]。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-215 贯穿任务单、交付记录、回执、提交" },
+      { "item": "state-write", "result": "pass", "note": "register / promote / claim 经 CLI；状态索引未手改" },
+      { "item": "index-schema", "result": "pass", "note": "回执字段符合 schema 1.0.0" },
+      { "item": "event-chain", "result": "pass", "note": "AF-215 在 AF-214 归档后登记，next-id 校验通过" },
+      { "item": "engine-boundary", "result": "pass", "note": "src/engine-core 零 diff" },
+      { "item": "deploy-contract", "result": "pass", "note": "仅注释增补；无新增键、无默认值变更；wp25 守卫绿" },
+      { "item": "text-privacy", "result": "pass", "note": "注释不含任何密钥值，只提键名与 endpoint" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 successCriteria 与交付记录 §2-§4 一一对应；前提偏差记于 §5"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF215-01",
+        "impact": "AF-214 回执里的 BL-AF214-02（\"模板未声明 doubao 两键\"）经核实为误判：两键生效行早在模板内，缺口只在注释层。台账若保留该条会重复触发后续任务",
+        "severity": "low",
+        "schedule": "Phase3 台账清理：按「已核实不成立」关闭 BL-AF214-02"
+      },
+      {
+        "id": "BL-AF215-02",
+        "impact": "ENGINE_RENDER_<KIND>_MODEL_<PROVIDER> 因键名为模板字符串而无法进入部署契约（wp25 AST 看不见），模板只能写注释；若未来希望它成为可声明键，需把读取点改为 export const 常量并同步守卫",
+        "severity": "low",
+        "schedule": "Phase3 引擎渲染覆盖能力治理（可选）"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "任务前提",
+        "taskSays": ".env.example 未补 LLM_DOUBAO_API_KEY / ENGINE_RENDER_FALLBACK_PROVIDERS 两个新键",
+        "reality": "两键生效行早已在模板内（约 L182 / L838）；真实缺口只在注释层（endpoint / 有效模型 ID / 下线别名 / 覆盖键用法 / 交接指引）",
+        "action": "范围收敛为补注释，不新增键、不改默认值，键集经对称差验证零漂移",
+        "why": "凑着错误前提落键会制造重复键或改变部署契约，属实质变更有害"
+      },
+      {
+        "item": "覆盖键声明方式",
+        "taskSays": "把 ENGINE_RENDER_<KIND>_MODEL_<PROVIDER> 补进模板",
+        "reality": "写成生效行会被 wp25 守卫判 orphan（键名是模板字符串，AST 抽不到读取点）",
+        "action": "写成注释，并在注释内说明\"为什么不是生效行\"",
+        "why": "守卫必须保持零红；同时避免下一个人好心改成生效行再踩一次"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "改动面最小（15 行纯注释、1 文件），键集对称差取证为零漂移，wp25 守卫 11 例绿证明部署契约未被削弱，全量 4083 例绿，engine-core 零 diff；两处偏差均为核实驱动的收敛并写入交付记录 §5。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
