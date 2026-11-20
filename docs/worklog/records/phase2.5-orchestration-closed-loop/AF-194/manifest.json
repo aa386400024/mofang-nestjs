@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-194",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-20T19:18:00+08:00",
+  "updatedAt": "2026-11-20T10:54:26.306Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-194/task-sheet.md",
+    "sha256": "ebe215f82e66eec882a2bc0f71d7d0de43d69e661ecc8fe6b2ed39184e382a08",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/pending/af194-encounter-delivery-task-2026-11-20.md"
+  ],
+  "tombstone": null
+}

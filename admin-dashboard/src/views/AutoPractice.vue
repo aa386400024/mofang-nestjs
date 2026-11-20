@@ -17,6 +17,19 @@ const selectedCharacterSlug = ref<string | null>(null)
 const selectedModeId = ref<string | null>(null)
 const maxTurns = ref(15)
 
+// AF-187: 接触方式 —— 默认面对面；线上再选子通道.
+const encounterMode = ref<'in_person' | 'online'>('in_person')
+const encounterChannel = ref<'video' | 'voice' | 'text'>('video')
+const encounterModeOptions = [
+  { label: '面对面咨询室', value: 'in_person' },
+  { label: '线上咨询', value: 'online' },
+]
+const encounterChannelOptions = [
+  { label: '视频', value: 'video' },
+  { label: '语音', value: 'voice' },
+  { label: '文字', value: 'text' },
+]
+
 // 当前运行中的场次
 const runningSessionId = ref<string | null>(null)
 const running = ref(false)
@@ -106,7 +119,25 @@ const messages = ref<Array<{ role: 'counselor' | 'visitor'; text: string; trace?
 const sessionStatus = ref<string>('')
 const exitReason = ref<string>('')
 const crisisDetected = ref(false)
+const crisisOutcome = ref<string>('')
 const finalTurnCount = ref(0)
+
+/** 当前正在查看的场次行（含场景与危机结论；运行中可能还是乐观行）. */
+const currentSessionRow = computed(() => recentSessions.value.find((s) => s.id === runningSessionId.value))
+
+/** 危机收尾结论的中文标签（旧场次无该字段 → 空串）. */
+const crisisOutcomeLabel = computed(() => {
+  switch (crisisOutcome.value) {
+    case 'safety_plan_completed':
+      return '安全计划已完成'
+    case 'escalated':
+      return '已升级求助'
+    case 'incomplete':
+      return '安全计划未完成'
+    default:
+      return ''
+  }
+})
 
 /** 结束原因的展示文案（自然收尾 / 轮数上限 / 危机 / 停滞 / 异常）. */
 const endReasonLabel = computed(() => {
@@ -117,6 +148,14 @@ const endReasonLabel = computed(() => {
       return '达到轮数上限'
     case 'crisis':
       return '触发危机保护'
+    case 'crisis_practice_max':
+      return '危机稳定化练习完成'
+    case 'crisis_practice_close':
+      return '危机稳定化后收尾'
+    case 'crisis_escalated':
+      return '危机升级终止'
+    case 'crisis_safety_incomplete':
+      return '危机收束缺项'
     case 'stagnant':
       return '对话停滞'
     case 'interrupted':
@@ -154,6 +193,8 @@ const batchSelectedCharacters = ref<string[]>([])
 const batchSelectedModes = ref<string[]>([])
 const batchMaxTurns = ref(15)
 const batchRepeats = ref(1)
+const batchEncounterMode = ref<'in_person' | 'online'>('in_person')
+const batchEncounterChannel = ref<'video' | 'voice' | 'text'>('video')
 const activeBatchId = ref<string | null>(null)
 const batchProgress = ref<BatchProgress | null>(null)
 let batchPollTimer: ReturnType<typeof setInterval> | null = null
@@ -169,6 +210,13 @@ const modeOptions = computed(() => modes.value.filter(m => m.enabled === 1).map(
 function modeNameById(id: string): string {
   const m = modes.value.find(x => x.id === id)
   return m?.name ?? id
+}
+
+/** AF-187: 场次接触方式的人读标签（缺省按面对面，兼容历史行）。 */
+function encounterLabel(s: PracticeSession): string {
+  if (s.encounterMode !== 'online') return '面对面'
+  const channel = s.encounterChannel === 'voice' ? '语音' : s.encounterChannel === 'text' ? '文字' : '视频'
+  return `线上${channel}`
 }
 
 // 根据 slug 查角色名称（codename）
@@ -466,7 +514,7 @@ async function syncSessions() {  try {
       await hydrateFromRest()
     }
     if (cur.status !== 'running' && running.value) {
-      applySessionEnd(cur.status, cur.exitReason ?? '', cur.crisisEnded === 1, cur.turnCount)
+      applySessionEnd(cur.status, cur.exitReason ?? '', cur.crisisEnded === 1, cur.turnCount, cur.crisisOutcome ?? '')
     }
   } catch (e) {
     console.warn('[auto-practice] 场次列表同步失败', e)
@@ -474,11 +522,12 @@ async function syncSessions() {  try {
 }
 
 /** 统一处理"这一场结束了". */
-function applySessionEnd(status: string, reason: string, crisis: boolean, turnCount: number) {
+function applySessionEnd(status: string, reason: string, crisis: boolean, turnCount: number, outcome = '') {
   running.value = false
   sessionStatus.value = status
   exitReason.value = reason
   crisisDetected.value = crisis
+  crisisOutcome.value = outcome
   finalTurnCount.value = turnCount
   pendingRow.value = null
   void syncSessions()
@@ -587,7 +636,7 @@ function connectWS(sessionId: string) {
   socket.on('ap:session_end', (p: ApSessionEnd) => {
     lastWsEventTime = Date.now()
     console.log('[auto-practice] session_end', p)
-    applySessionEnd(p.status, p.exitReason, p.crisisEnded, p.turnCount)
+    applySessionEnd(p.status, p.exitReason, p.crisisEnded, p.turnCount, p.crisisOutcome ?? '')
     message.success(`对练结束: ${p.status} (${p.turnCount} 轮)`)
   })
 
@@ -610,6 +659,7 @@ async function startPractice() {
   sessionStatus.value = ''
   exitReason.value = ''
   crisisDetected.value = false
+  crisisOutcome.value = ''
   finalTurnCount.value = 0
   bdiHistory.value = []
   currentTrace.value = null
@@ -623,6 +673,8 @@ async function startPractice() {
       characterSlug: charSlug,
       counselorModeId: modeId,
       maxTurns: maxTurns.value,
+      encounterMode: encounterMode.value,
+      ...(encounterMode.value === 'online' ? { encounterChannel: encounterChannel.value } : {}),
     })
     runningSessionId.value = res.practiceSessionId
     sessionMeta.value = {
@@ -688,6 +740,8 @@ async function startBatch() {
       counselorModeIds: batchSelectedModes.value,
       maxTurns: batchMaxTurns.value,
       repeats: batchRepeats.value,
+      encounterMode: batchEncounterMode.value,
+      ...(batchEncounterMode.value === 'online' ? { encounterChannel: batchEncounterChannel.value } : {}),
     })
     activeBatchId.value = res.batchId
     showBatchModal.value = false
@@ -724,6 +778,9 @@ function scrollToBottom() {
 }
 
 function exportJSON() {
+  const row = currentSessionRow.value
+  const sceneMode = row?.encounterMode ?? encounterMode.value
+  const sceneChannel = row?.encounterChannel ?? (sceneMode === 'online' ? encounterChannel.value : null)
   const data = {
     exportedAt: new Date().toISOString(),
     session: {
@@ -732,8 +789,16 @@ function exportJSON() {
       counselorModeId: sessionMeta.value?.counselorModeId ?? selectedModeId.value,
       status: running.value ? 'running' : sessionStatus.value,
       turnCount: finalTurnCount.value || turns.size,
+      encounterMode: sceneMode,
+      encounterChannel: sceneChannel,
+      encounterLabel: sceneMode === 'online'
+        ? (sceneChannel === 'voice' ? '线上语音' : sceneChannel === 'text' ? '线上文字' : '线上视频')
+        : '面对面',
       exitReason: exitReason.value,
+      exitReasonLabel: endReasonLabel.value,
       crisisEnded: crisisDetected.value,
+      crisisOutcome: crisisOutcome.value || null,
+      crisisOutcomeLabel: crisisOutcomeLabel.value || null,
     },
     bdiHistory: bdiHistory.value,
     messages: messages.value.map((m, i) => ({
@@ -768,6 +833,7 @@ async function loadSession(s: PracticeSession) {
     sessionStatus.value = s.status
     exitReason.value = s.exitReason ?? ''
     crisisDetected.value = s.crisisEnded === 1
+    crisisOutcome.value = s.crisisOutcome ?? ''
     finalTurnCount.value = s.turnCount
 
     turns.clear()
@@ -880,6 +946,24 @@ onUnmounted(() => {
           :options="modeOptions"
           placeholder="选择模式"
           style="width: 160px"
+          size="small"
+          :disabled="running"
+        />
+      </div>
+      <div v-if="mode === 'auto'" class="flex items-center gap-2">
+        <span class="text-sm text-muted">场景</span>
+        <NSelect
+          v-model:value="encounterMode"
+          :options="encounterModeOptions"
+          style="width: 130px"
+          size="small"
+          :disabled="running"
+        />
+        <NSelect
+          v-if="encounterMode === 'online'"
+          v-model:value="encounterChannel"
+          :options="encounterChannelOptions"
+          style="width: 90px"
           size="small"
           :disabled="running"
         />
@@ -1010,6 +1094,14 @@ onUnmounted(() => {
                     <span>{{ s.id === runningSessionId && turns.size ? turns.size : s.turnCount }} 轮</span>
                     <span>·</span>
                     <span>{{ modeNameById(s.counselorModeId) }}</span>
+                    <span>·</span>
+                    <span>{{ encounterLabel(s) }}</span>
+                    <template v-if="s.crisisOutcome && s.crisisOutcome !== 'none'">
+                      <span>·</span>
+                      <span :class="s.crisisOutcome === 'incomplete' ? 'text-warning' : 'text-ok'">
+                        {{ s.crisisOutcome === 'safety_plan_completed' ? '安全计划已完成' : s.crisisOutcome === 'escalated' ? '已升级求助' : '安全计划未完成' }}
+                      </span>
+                    </template>
                   </div>
                 </div>
 
@@ -1236,6 +1328,19 @@ onUnmounted(() => {
               </NCheckbox>
             </NSpace>
           </NCheckbox.Group>
+        </div>
+        <div>
+          <div class="text-xs text-muted mb-2">接触方式</div>
+          <NSpace>
+            <NSelect v-model:value="batchEncounterMode" :options="encounterModeOptions" size="small" style="width: 140px" />
+            <NSelect
+              v-if="batchEncounterMode === 'online'"
+              v-model:value="batchEncounterChannel"
+              :options="encounterChannelOptions"
+              size="small"
+              style="width: 100px"
+            />
+          </NSpace>
         </div>
         <div class="flex gap-4">
           <div>

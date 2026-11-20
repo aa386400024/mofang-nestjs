@@ -49,6 +49,13 @@ export interface AutoPracticeSessionEndPayload {
   readonly turnCount: number;
   readonly crisisEnded: boolean;
   /**
+   * AF-187: 危机收尾可读结论.
+   *
+   * `crisisEnded` 只表达"因危机终止"（坏结果）；本字段表达完整收尾语义：
+   * none / safety_plan_completed / escalated / incomplete.
+   */
+  readonly crisisOutcome?: 'none' | 'safety_plan_completed' | 'escalated' | 'incomplete';
+  /**
    * WP-J: 是否经历过后置危机练习窗.
    *
    * 与 `crisisEnded` 是两个维度: `crisisEnded` = 场次因危机**终止**;

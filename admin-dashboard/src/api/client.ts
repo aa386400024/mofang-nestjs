@@ -201,10 +201,10 @@ export const api = {
 
   // ─── 自动对练（WP-D） ───
   autoPractice: {
-    startSession: async (body: { characterSlug: string; counselorModeId: string; maxTurns?: number }): Promise<{ practiceSessionId: string; characterSlug: string; counselorModeId: string }> => {
+    startSession: async (body: { characterSlug: string; counselorModeId: string; maxTurns?: number; encounterMode?: 'in_person' | 'online'; encounterChannel?: 'video' | 'voice' | 'text' }): Promise<{ practiceSessionId: string; characterSlug: string; counselorModeId: string }> => {
       return post('/auto-practice/sessions', body)
     },
-    enqueueBatch: async (body: { characterSlugs: string[]; counselorModeIds: string[]; maxTurns?: number; repeats?: number }): Promise<{ batchId: string; enqueued: number }> => {
+    enqueueBatch: async (body: { characterSlugs: string[]; counselorModeIds: string[]; maxTurns?: number; repeats?: number; encounterMode?: 'in_person' | 'online'; encounterChannel?: 'video' | 'voice' | 'text' }): Promise<{ batchId: string; enqueued: number }> => {
       return post('/auto-practice/batch', body)
     },
     listSessions: async (params?: { batchId?: string; status?: string; page?: number; pageSize?: number }): Promise<{ items: PracticeSession[]; total: number; page: number; pageSize: number }> => {

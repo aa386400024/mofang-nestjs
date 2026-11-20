@@ -62,6 +62,7 @@ import {
   type RenderTokenBudget,
 } from '../../engine-core/index.js';
 import type { AttachmentStyle } from '../../engine-core/index.js';
+import type { EncounterInput } from '../../shared/encounter/encounter-scene.js';
 
 /**
  * 规格组装入参.
@@ -106,6 +107,12 @@ export interface SpecAssemblyInput {
   readonly narrativeStyle?: AdaptiveRenderSpec['narrativeStyle'];
   readonly expressionTone?: AdaptiveRenderSpec['expressionTone'];
   readonly verbalVoice?: AdaptiveRenderSpec['verbalVoice'];
+  /**
+   * 本场接触方式 (AF-187): 面对面 / 线上（video/voice/text）.
+   *
+   * 缺省 = 不传 = 规格里没有该字段 → 渲染层不追加场景块（legacy 零回归）.
+   */
+  readonly encounter?: EncounterInput;
 }
 
 /**
@@ -161,6 +168,8 @@ export function buildRenderSpec(input: SpecAssemblyInput): AdaptiveRenderSpec {
     ...(input.narrativeStyle === undefined ? {} : { narrativeStyle: input.narrativeStyle }),
     ...(input.expressionTone === undefined ? {} : { expressionTone: input.expressionTone }),
     ...(input.verbalVoice === undefined ? {} : { verbalVoice: input.verbalVoice }),
+    // AF-187: 场景契约（缺省 = 不带这个键 → 规格与之前逐字一致）.
+    ...(input.encounter === undefined ? {} : { encounter: input.encounter }),
   };
 }
 

@@ -186,6 +186,12 @@ export interface EngineTurnOpenOptions {
    *   即无场景限制) —— 与接入前逐字一致 (零回归).
    */
   readonly scenarioType?: DeliberationScenarioType;
+  /**
+   * 本场接触方式 (AF-187): 面对面 / 线上（video/voice/text）.
+   *
+   * ⚠️ 缺省 = 不登记 = 渲染层不追加场景块, prompt 逐字不变（legacy 零回归）.
+   */
+  readonly encounter?: TurnSessionContext['encounter'];
 }
 
 /**
@@ -281,6 +287,7 @@ export class EngineTurnService {
       readonly characterBrief?: string;
       readonly dbSessionId?: string;
       readonly scenarioType?: DeliberationScenarioType;
+      readonly encounter?: TurnSessionContext['encounter'];
     },
   ): TurnSessionContext {
     return {
@@ -318,6 +325,8 @@ export class EngineTurnService {
       ...(options?.attachmentStyle === undefined ? {} : { attachmentStyle: options.attachmentStyle }),
       // WP-J P2: 台词指纹登记 —— 条件展开, 缺省不登记 (零回归: prompt 逐字不变).
       ...(options?.verbalVoice === undefined ? {} : { verbalVoice: options.verbalVoice }),
+      // AF-187: 接触方式登记 —— 条件展开, 缺省不登记 (零回归: prompt 逐字不变).
+      ...(options?.encounter === undefined ? {} : { encounter: options.encounter }),
     };
   }
 

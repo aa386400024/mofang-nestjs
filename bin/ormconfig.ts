@@ -277,6 +277,10 @@ import { AddBatchMetricsColumns1714900000045 } from '../src/migration/1714900000
 //   character_version + 轮级三列 (first_bad_turn / bad_turns / turn_note).
 //   部署顺序: **必须先 migration:run 再起服务** —— 标注台读写前表得先有这些列.
 import { AddQualityAnnotationBatchColumns1714900000047 } from '../src/migration/1714900000047-AddQualityAnnotationBatchColumns.js';
+// V2026-11-20 治本 (AF-187 · 自动对练场景与危机收尾结论):
+//   encounter_mode / encounter_channel / crisis_outcome 三列.
+//   部署顺序: **必须先 migration:run 再起服务**.
+import { AddEncounterAndCrisisOutcome1714900000048 } from '../src/migration/1714900000048-AddEncounterAndCrisisOutcome.js';
 // V2026-10-14 治本 (VS-life-merge P0-治本 — life_map_drift_bottles migration 缺失):
 //   DriftBottleEntry entity 早声明 (@Entity('life_map_drift_bottles')), 但 V3.0 dash
 //   版 module 写完后 migration 漏写. 跟前序 3 张 V3.0 表 (life_stage_progress +
@@ -470,6 +474,7 @@ const ormconfig = async (): Promise<DataSource> => {
       // V2026-11-11 治本 (WP-N · 标注台批次化 — quality_annotation 加 9 列 + 1 索引):
       //   部署顺序: **必须先 migration:run 再起服务** —— 标注台读写前表得先有这些列.
       AddQualityAnnotationBatchColumns1714900000047,
+      AddEncounterAndCrisisOutcome1714900000048,
       // V2026-10-14 治本 (VS-life-merge) — 创 life_map_drift_bottles 表 + 3 索引, 跟前序 3 张 V3.0 表同段
       AddDriftBottles1700000010005,
       // V2026-09-04 — V6.0 AI 引擎 (§3) + 急救闭环 (§4.2) + Inner World 游戏化解锁 (§6)

@@ -42,6 +42,7 @@ import { isAbsolute, join, resolve } from 'node:path';
 
 import { parseDebugKernelState, type DebugKernelState } from './debug-kernel-state.js';
 import type { DeliberationScenarioType } from '../engine-adapters/deliberation/deliberation-mode.config.js';
+import type { EncounterInput } from '../shared/encounter/encounter-scene.js';
 
 /**
  * 调试会话的标题来源.
@@ -117,6 +118,12 @@ export interface DebugSessionRecord {
    *   (文件存储不是 schema, 加字段不需要改表).
    */
   readonly scenarioType?: DeliberationScenarioType;
+  /**
+   * 本场接触方式 (AF-187) —— 恢复会话时保持同一场景契约.
+   *
+   * 缺省 = 老记录没有该字段 → 渲染层不追加场景块, prompt 与升级前逐字一致。
+   */
+  readonly encounter?: EncounterInput;
 }
 
 /**
@@ -518,6 +525,7 @@ function parseRecord(raw: string): DebugSessionRecord | null {
   const id = readString(record['id']);
   if (id === null) return null;
   const createdAt = readString(record['createdAt']) ?? new Date().toISOString();
+  const encounter = readEncounter(record['encounter']);
   return {
     id,
     title: readString(record['title']) ?? '',
@@ -534,6 +542,8 @@ function parseRecord(raw: string): DebugSessionRecord | null {
     kernelState: parseDebugKernelState(record['kernelState']),
     // 场景类型: 老文件没这个键 → undefined (恢复时回落 full_simulation).
     scenarioType: readScenarioType(record['scenarioType']),
+    // AF-187: 接触方式: 老文件没这个键 → undefined (prompt 逐字不变).
+    ...(encounter === undefined ? {} : { encounter }),
   };
 }
 
@@ -546,6 +556,20 @@ function parseRecord(raw: string): DebugSessionRecord | null {
 function readScenarioType(value: unknown): DeliberationScenarioType | undefined {
   if (value === 'freeform' || value === 'full_simulation' || value === 'exam') return value;
   return undefined;
+}
+
+/**
+ * 读接触方式 (缺失/非法 → undefined, prompt 逐字不变).
+ */
+function readEncounter(value: unknown): EncounterInput | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const mode = (value as { mode?: unknown }).mode;
+  const channel = (value as { channel?: unknown }).channel;
+  if (typeof mode !== 'string' || mode.length === 0) return undefined;
+  return {
+    mode,
+    ...(typeof channel === 'string' && channel.length > 0 ? { channel } : {}),
+  };
 }
 
 /**

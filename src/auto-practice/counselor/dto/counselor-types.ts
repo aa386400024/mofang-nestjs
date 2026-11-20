@@ -5,6 +5,7 @@
  *   以后微服务化时, 这些类型可以直接搬到独立服务, 不用从 NestJS 代码里捞.
  */
 
+import type { EncounterInput } from '../../../shared/encounter/encounter-scene.js';
 import type { SessionProfileName } from '../../session-profile.js';
 
 /** 一段对话历史 (一侧发言). */
@@ -50,6 +51,12 @@ export interface CounselorGenerateOptions {
    * 只有长会话纪律块会用到它 (写"当前是第 N 轮"); legacy 档忽略.
    */
   readonly turnIndex?: number;
+  /**
+   * 本场接触方式 (AF-187): 面对面 / 线上（video/voice/text）.
+   *
+   * 缺省 = 不传 → prompt 不追加场景块（legacy 逐字不变）.
+   */
+  readonly encounter?: EncounterInput;
 }
 
 /** Prompt 纪律块的接口 (开闭原则: 加新块只要实现这个接口). */

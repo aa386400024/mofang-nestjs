@@ -12,6 +12,7 @@ import { CRISIS_PROTOCOL } from './prompt-sections/crisis-protocol.js';
 import { crisisRiskClosingSection, crisisStabilizationSection } from './prompt-sections/crisis-stabilization.js';
 import { sessionOpeningFrameworkSection } from './prompt-sections/opening-framework.js';
 import { OUTPUT_DISCIPLINE } from './prompt-sections/output-discipline.js';
+import { buildEncounterCounselorBlock, type EncounterInput } from '../../../shared/encounter/encounter-scene.js';
 import { LEGACY_SESSION_PROFILE, type SessionProfile } from '../../session-profile.js';
 
 /**
@@ -35,6 +36,8 @@ export interface PromptBuildCue {
   readonly closingMissing?: readonly string[];
   /** AF-140: 本场最后一次收束（只输出三段，不再提问）. */
   readonly finalClosing?: boolean;
+  /** AF-187: 本场接触方式（面对面 / 线上）. */
+  readonly encounter?: EncounterInput;
 }
 
 /**
@@ -112,6 +115,7 @@ export class CounselorPromptBuilder {
       forcedCloseMissingSection(profile, cue),
       finalClosingSection(profile, cue),
       crisisRiskClosingSection(profile, crisisMode, cue?.crisisClosing === true, cue?.crisisClosingRound, cue?.crisisMissing),
+      encounterSceneSection(cue?.encounter),
     ];
 
     // 按 order 排序, 过滤掉 disabled 的块.
@@ -129,6 +133,21 @@ export class CounselorPromptBuilder {
   listSectionIds(): readonly string[] {
     return this.sections.map((s) => s.id);
   }
+}
+
+/**
+ * AF-187 · 接触方式契约块.
+ *
+ * 只在显式登记场景时启用；未登记 = 不出现，prompt 与升级前逐字一致。
+ */
+function encounterSceneSection(encounter?: EncounterInput): PromptSection {
+  const content = encounter === undefined ? '' : buildEncounterCounselorBlock(encounter);
+  return {
+    id: 'encounter-scene',
+    order: 12,
+    enabled: content.length > 0,
+    content: content.length === 0 ? '' : `\n${content}`,
+  };
 }
 
 /**

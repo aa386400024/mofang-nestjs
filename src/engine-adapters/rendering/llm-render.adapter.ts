@@ -100,6 +100,7 @@ import type {
   ChatReasoningEffort,
 } from '../../llm/common/interfaces/chat-provider.interface.js';
 import { safeVisiblePrefix, stripReasoningBlocks } from '../../shared/llm/reasoning-text.js';
+import { inspectGeneratedOutput } from '../../shared/text/output-integrity.js';
 
 /**
  * 流式调用选项 (窄面).
@@ -1135,6 +1136,12 @@ export function createVisitorOutputGuard(opts?: {
   readonly timeoutMs?: number;
 }): (text: string) => Promise<RenderGuardVerdict> {
   return async (text: string): Promise<RenderGuardVerdict> => {
+    // AF-187: 先过输出完整性闸门 —— prompt 复述 / 无标签推理 / 异常外语
+    //   一律按 block 处理, 交给候选重生成路径; 不与安全判定混成同一类原因.
+    const integrity = inspectGeneratedOutput(text, 'visitor');
+    if (integrity.invalid) {
+      return { level: 'block', categories: integrity.reasons };
+    }
     const verdict = await guardVisitorOutput(text, opts);
     return { level: verdict.level, categories: verdict.categories };
   };

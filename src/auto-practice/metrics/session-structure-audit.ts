@@ -950,18 +950,25 @@ const RISK_COMPLETION_SENTENCES: Record<RiskClosingElementKey, string> = {
  * 只在升级后的计划轮/修复轮使用：模型漏项时按缺失组追加固定安全句式；
  * 补齐后重新校验，仍缺时追加完整五组兜底。只补通用安全动作，不伪造来访者事实。
  *
+ * AF-187: `alreadyCovered` 是**会话级覆盖账本** —— 历史轮次已落地的组不再重复追加。
+ *   用途：连续风险收束轮里，模型漏了 1 组时只补那 1 组, 不把整套五句再贴一遍。
+ *
  * @param text 计划轮/修复轮的咨询师正文
+ * @param alreadyCovered 本场此前已经落地的风险组
  * @returns 补齐后的正文
  */
-export function completeRiskClosingText(text: string): string {
+export function completeRiskClosingText(text: string, alreadyCovered: readonly RiskClosingElementKey[] = []): string {
   const base = text.trim();
   const evaluation = evaluateRiskClosingText(base);
-  if (evaluation.complete) return base;
+  const missing = evaluation.missing.filter((key) => !alreadyCovered.includes(key));
+  if (missing.length === 0) return base;
   const lines = base === '' ? [] : [base];
-  for (const key of evaluation.missing) lines.push(RISK_COMPLETION_SENTENCES[key]);
+  for (const key of missing) lines.push(RISK_COMPLETION_SENTENCES[key]);
   const completed = lines.join('\n');
-  if (evaluateRiskClosingText(completed).complete) return completed;
-  return [completed, ...RISK_CLOSING_ELEMENT_KEYS.map((key) => RISK_COMPLETION_SENTENCES[key])].filter(Boolean).join('\n');
+  const completedEvaluation = evaluateRiskClosingText(completed);
+  const stillMissing = completedEvaluation.missing.filter((key) => !alreadyCovered.includes(key));
+  if (stillMissing.length === 0) return completed;
+  return [completed, ...stillMissing.map((key) => RISK_COMPLETION_SENTENCES[key])].filter(Boolean).join('\n');
 }
 
 /**

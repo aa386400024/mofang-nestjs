@@ -107,6 +107,7 @@ import {
 } from '../engine-adapters/wiring/character/character-profile.resolver.js';
 import { EngineTurnService } from '../engine-adapters/wiring/engine-turn.service.js';
 import type { BdiSnapshot, CharacterProfile, DeltaVector, Intention } from '../engine-core/index.js';
+import type { EncounterInput } from '../shared/encounter/encounter-scene.js';
 import { RedisService } from '../shared/infra/redis/redis.service.js';
 
 /**
@@ -446,7 +447,11 @@ export class DebugSessionService {
    * @returns 调试会话信息
    * @throws BizException 开关关闭 (403) / 角色代号为空 (400) / 角色不存在 (400)
    */
-  async createSession(characterSlug: string | undefined, scenarioType?: DeliberationScenarioType): Promise<DebugSessionCreated> {
+  async createSession(
+    characterSlug: string | undefined,
+    scenarioType?: DeliberationScenarioType,
+    encounter?: EncounterInput,
+  ): Promise<DebugSessionCreated> {
     this.assertEnabled();
     const slug = (characterSlug ?? '').trim();
     if (slug.length === 0) {
@@ -479,6 +484,8 @@ export class DebugSessionService {
         ...(resolved.verbalVoice === undefined ? {} : { verbalVoice: resolved.verbalVoice }),
         // 场景类型登记 —— 条件展开 (缺省 = 不登记 = 审议侧不施加场景红线).
         ...(scenarioType === undefined ? {} : { scenarioType }),
+        // AF-187: 接触方式登记 —— 条件展开 (缺省 = 不登记 = prompt 逐字不变).
+        ...(encounter === undefined ? {} : { encounter }),
       },
     );
 
@@ -498,7 +505,7 @@ export class DebugSessionService {
     // 这样"刚开一场就跑崩了"也能在列表里看到这场会话存在过.
     // 落盘失败**不阻断**开会话 (引擎句柄已经开出来了, 那是更要紧的);
     // 只记 warn —— 调试工具不该因为磁盘问题就开不出会话.
-    await this.persistCreate(debugSessionId, slug, resolved.displayName, createdAt, scenarioType);
+    await this.persistCreate(debugSessionId, slug, resolved.displayName, createdAt, scenarioType, encounter);
     // 日志只出定位信息 (隐私红线): 会话 id + 角色代号, 不打角色基线内容.
     this.logger.log(`[debug_chat] 调试会话已开启 session=${debugSessionId} character=${slug}`);
     return {
@@ -713,6 +720,8 @@ export class DebugSessionService {
           // 场景类型登记 (恢复路径与新建路径同口径) —— 从落盘记录读:
           //   旧记录没有这个字段 → full_simulation (不施加考核红线, 与恢复前逐字一致).
           scenarioType: record.scenarioType ?? 'full_simulation',
+          // AF-187: 接触方式从落盘记录读；旧记录没有 → 不登记 (prompt 逐字不变).
+          ...(record.encounter === undefined ? {} : { encounter: record.encounter }),
         },
       );
       handleId = opened.handleId;
@@ -914,6 +923,7 @@ export class DebugSessionService {
     characterLabel: string,
     createdAt: string,
     scenarioType?: DeliberationScenarioType,
+    encounter?: EncounterInput,
   ): Promise<void> {
     try {
       await this.store.create({
@@ -934,6 +944,8 @@ export class DebugSessionService {
         kernelState: null,
         // 场景类型 —— 条件展开 (缺省 = 不写 = 旧记录同款, 恢复时回落 full_simulation).
         ...(scenarioType === undefined ? {} : { scenarioType }),
+        // AF-187: 接触方式 —— 条件展开（缺省 = 旧记录同款，恢复后 prompt 逐字不变）.
+        ...(encounter === undefined ? {} : { encounter }),
       });
     } catch (error) {
       this.logger.warn(`[debug_chat] 调试会话建档失败 session=${debugSessionId}: ${errorName(error)}`);
@@ -1276,6 +1288,10 @@ export interface DebugSessionDetail {
    */
   readonly resumable: boolean;
   readonly messages: readonly DebugSessionDetailMessage[];
+  /** 场景类型（新记录有；旧记录缺省）—— 供导出与排查核对. */
+  readonly scenarioType?: DeliberationScenarioType;
+  /** 接触方式（AF-187；旧记录缺省）—— 供导出与排查核对. */
+  readonly encounter?: EncounterInput;
 }
 
 /**
@@ -1308,6 +1324,8 @@ export function projectDebugSessionDetail(record: DebugSessionRecord): DebugSess
     turnCount: record.turnCount,
     // 能不能恢复 = 有没有内核状态快照.
     resumable: record.kernelState !== null,
+    ...(record.scenarioType === undefined ? {} : { scenarioType: record.scenarioType }),
+    ...(record.encounter === undefined ? {} : { encounter: record.encounter }),
     messages: record.messages.map((message) => ({
       role: message.role,
       text: message.text,

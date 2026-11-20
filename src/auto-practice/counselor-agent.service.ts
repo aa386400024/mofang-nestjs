@@ -24,6 +24,12 @@ import { ConfigService } from '@nestjs/config';
 
 import { CounselorPromptBuilder, type PromptBuildCue } from './counselor/builder/counselor-prompt-builder.js';
 import { CLOSE_TAG, CONTINUE_TAG, type ClosingCue } from './counselor/builder/prompt-sections/close-discipline.js';
+import type {
+  CounselorGenerateOptions,
+  CounselorGenerationPolicy,
+  CounselorHistoryTurn,
+  CounselorReply,
+} from './counselor/dto/counselor-types.js';
 import { sliceHistoryWindow } from './counselor/memory/history-window.js';
 import { FallbackPolicy } from './counselor/policy/fallback-policy.js';
 import { RETRY_GENERATION_POLICY, resolveGenerationPolicy } from './counselor/policy/generation-policy.js';
@@ -33,13 +39,8 @@ import { resolveSessionProfile, type SessionProfile } from './session-profile.js
 import { LLMTier } from '../llm/common/enums/llm.enums.js';
 import type { ChatCompletionRequest, ChatCompletionResponse, ChatMessage } from '../llm/common/interfaces/chat-provider.interface.js';
 import { LlmRouterService } from '../llm/registry/llm-router.service.js';
-
-import type {
-  CounselorGenerateOptions,
-  CounselorGenerationPolicy,
-  CounselorHistoryTurn,
-  CounselorReply,
-} from './counselor/dto/counselor-types.js';
+import { buildEncounterOpeningHint, type EncounterInput } from '../shared/encounter/encounter-scene.js';
+import { inspectGeneratedOutput } from '../shared/text/output-integrity.js';
 
 // 向后兼容: 原来从这个文件直接 import 类型的地方不用改.
 export type { CounselorHistoryTurn, CounselorReply, CounselorGenerateOptions };
@@ -163,9 +164,10 @@ export class CounselorAgentService {
             crisisMissing: options?.crisisMissing,
             closingMissing: options?.closingMissing,
             finalClosing: false,
+            encounter: options?.encounter,
           });
     const policy = resolveGenerationPolicy(profile.name);
-    return this.generateWithMessages(messages, policy);
+    return this.generateWithMessages(messages, policy, options?.encounter);
   }
 
   /**
@@ -207,6 +209,7 @@ export class CounselorAgentService {
       crisisMissing: options?.crisisMissing,
       closingMissing: options?.closingMissing,
       finalClosing: true,
+      encounter: options?.encounter,
     };
     const systemContent = this.promptBuilder.build(mode, false, profile, options?.turnIndex, cue);
     const windowed = history.slice(-FINAL_CLOSING_WINDOW_MESSAGES);
@@ -233,7 +236,11 @@ export class CounselorAgentService {
    * 抽出来是为了让普通轮与最终收束轮共用同一套空输出/截断处理，
    * 不在两条路径上各写一遍（AF-140 的收束失败有一半来自“只出推理块”）。
    */
-  private async generateWithMessages(messages: ChatMessage[], policy: CounselorGenerationPolicy): Promise<CounselorReply> {
+  private async generateWithMessages(
+    messages: ChatMessage[],
+    policy: CounselorGenerationPolicy,
+    encounter?: EncounterInput,
+  ): Promise<CounselorReply> {
     const first = await this.callModel(messages, policy);
     if (!first) {
       // 上游异常 → 直接兜底 (不重试: provider 层已有自己的退避重试链).
@@ -241,14 +248,15 @@ export class CounselorAgentService {
     }
 
     const firstJudgement = judgeVisibleOutput(first.content, first.finishReason);
-    if (!firstJudgement.empty && !firstJudgement.truncated) {
+    const firstLeak = inspectGeneratedOutput(firstJudgement.visible, 'counselor', encounter);
+    if (!firstJudgement.empty && !firstJudgement.truncated && !firstLeak.invalid) {
       return this.toReply(firstJudgement.visible, false);
     }
 
-    // 可见输出为空 (只有推理块) 或被长度截断 → 用更高预算重试一次.
+    // 可见输出为空 (只有推理块)、被长度截断或命中输出泄漏 → 用更高预算重试一次.
     //   ⚠️ 日志只记布尔与长度, 不记任何台词 (隐私红线 AGENTS.md §5.4).
     this.logger.warn(
-      `[counselor_agent] 可见输出异常 → 提高预算重试 empty=${firstJudgement.empty} truncated=${firstJudgement.truncated} raw_len=${first.content.length}`,
+      `[counselor_agent] 可见输出异常 → 提高预算重试 empty=${firstJudgement.empty} truncated=${firstJudgement.truncated} leak=${firstLeak.invalid} raw_len=${first.content.length}`,
     );
 
     const retry = await this.callModel(messages, RETRY_GENERATION_POLICY);
@@ -256,9 +264,10 @@ export class CounselorAgentService {
       return this.fallbackReply();
     }
     const retryJudgement = judgeVisibleOutput(retry.content, retry.finishReason);
-    if (retryJudgement.empty) {
-      // 重试后仍然只有推理块 → 兜底 + 降级 (这一轮会被 runner 记成降级轮).
-      this.logger.warn(`[counselor_agent] 重试后仍无可见输出 → 兜底 raw_len=${retry.content.length}`);
+    const retryLeak = inspectGeneratedOutput(retryJudgement.visible, 'counselor', encounter);
+    if (retryJudgement.empty || retryLeak.invalid) {
+      // 重试后仍然只有推理块 / 仍然泄漏 → 兜底 + 降级 (这一轮会被 runner 记成降级轮).
+      this.logger.warn(`[counselor_agent] 重试后仍无可用输出 → 兜底 raw_len=${retry.content.length} leak=${retryLeak.invalid}`);
       return this.fallbackReply();
     }
     // 截断但非空 → 保留文本, 但**标降级**: 不许静默当正常回复.
@@ -357,7 +366,11 @@ export class CounselorAgentService {
 
     if (windowed.length === 0) {
       // 首轮: 没有历史, 给一个开场提示.
-      messages.push({ role: 'user', content: OPENING_HINT });
+      // AF-187: 登记场景后按场景给提示；未登记保持旧文案（legacy 逐字不变）.
+      messages.push({
+        role: 'user',
+        content: cue?.encounter === undefined ? OPENING_HINT : buildEncounterOpeningHint(cue.encounter),
+      });
       return messages;
     }
 
