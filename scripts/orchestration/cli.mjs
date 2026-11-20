@@ -97,6 +97,7 @@ import {
 import { acquireClusterRunLock, describeRunLock } from './run-lock.mjs';
 import { createGitRemoteLock, describeRemoteRunLock } from './remote-lock.mjs';
 import { collectOccupiedTaskIds, nextTaskId } from './task-id-occupancy.mjs';
+import { createGitTaskIdReservation, pickReservedTaskId, reservationRef } from './task-id-reservation.mjs';
 import { planReissue } from './reissue.mjs';
 import { lintReceiptFile } from './receipt-lint.mjs';
 import { excludeStatePlane } from './task-entry-gate.mjs';
@@ -1124,9 +1125,67 @@ async function cmdTask(args) {
   const intake = await import('./task-intake.mjs');
   if (sub === 'next-id') {
     // AF-217：三源占用合并后给出下一个可用编号，供跨机登记前先问一句。
+    // AF-223：--reserve 时先在远端创建占号 ref 做 CAS，抢不到自动顺延，
+    // 输出的是「已经抢下」的编号，两台机器同时取号不会再拿到同一个号。
     const occupancy = collectOccupiedTaskIds({ rootDir: REPO_ROOT });
     for (const warning of occupancy.warnings ?? []) console.error(`[task-id] ${warning}`);
-    console.log(nextTaskId(occupancy.ids, argValue(args, '--prefix') ?? 'AF'));
+    const prefix = argValue(args, '--prefix') ?? 'AF';
+    if (!args.includes('--reserve')) {
+      console.log(nextTaskId(occupancy.ids, prefix));
+      return;
+    }
+    const reservation = createGitTaskIdReservation({ rootDir: REPO_ROOT, actor: 'orchestrator-cli' });
+    const picked = pickReservedTaskId({
+      occupiedIds: occupancy.ids,
+      prefix,
+      nextIdFn: nextTaskId,
+      reserve: (taskId) => reservation.reserve(taskId),
+    });
+    for (const attempt of picked.attempts) {
+      if (!attempt.reserved) {
+        const holder = attempt.holder;
+        const why = attempt.unavailable ? '远端不可达' : `已被 ${holder?.host ?? 'unknown'} 于 ${holder?.reservedAt ?? '?'} 占号`;
+        console.error(`[task-id] ${attempt.taskId} 抢号失败：${why}`);
+      }
+    }
+    if (picked.unavailable) {
+      console.error('[task-id] 远端不可达，无法完成占号 CAS；本次只给只读建议，请勿据此登记');
+      console.log(nextTaskId(occupancy.ids, prefix));
+      process.exitCode = 1;
+      return;
+    }
+    if (!picked.taskId) {
+      console.error(`[task-id] 连续 ${picked.attempts.length} 次抢号失败，请检查远端 occupation（orchestration-task-ids/*）`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log(picked.taskId);
+    return;
+  }
+  if (sub === 'reserve') {
+    const taskId = argValue(args, '--taskId');
+    if (!taskId) {
+      console.error('用法：task reserve --taskId AF-NNN   显式在远端占号（refs/heads/orchestration-task-ids/<id>）');
+      process.exit(2);
+    }
+    const reservation = createGitTaskIdReservation({ rootDir: REPO_ROOT, actor: 'orchestrator-cli' });
+    const result = reservation.reserve(taskId);
+    if (result.reserved) {
+      console.log(`已占号 ${taskId} → ${reservationRef(taskId)}`);
+      return;
+    }
+    if (result.unavailable) throw new Error(`占号失败：${result.error ?? '远端不可达'}`);
+    throw new Error(`占号失败：${taskId} 已被 ${result.holder?.host ?? 'unknown'} 占用（${result.holder?.reservedAt ?? '?'}）`);
+  }
+  if (sub === 'release-id') {
+    const taskId = argValue(args, '--taskId');
+    if (!taskId) {
+      console.error('用法：task release-id --taskId AF-NNN   释放远端占号 ref（归档后清理，避免远端 ref 无界增长）');
+      process.exit(2);
+    }
+    const reservation = createGitTaskIdReservation({ rootDir: REPO_ROOT, actor: 'orchestrator-cli' });
+    const released = reservation.release(taskId);
+    console.log(released ? `已释放占号 ${taskId}` : `释放占号失败 ${taskId}（ref 不存在、被他人占用或远端不可达）`);
     return;
   }
   if (sub === 'register') {
@@ -1135,10 +1194,17 @@ async function cmdTask(args) {
       console.error('用法：task register --sheet docs/worklog/inbox/<task>.md [--status ready]');
       process.exit(2);
     }
+    // AF-223：重建同一任务时，本机已推送的同名任务分支不再挡自己；
+    // 真正防并发的是远端占号 ref，三源占用只做事后校验。
+    const taskIdHint = argValue(args, '--taskId');
+    const branch = createGitPort().currentBranch();
+    const excludeRefs =
+      !taskIdHint && branch?.startsWith('task/') && /^task\/([A-Z0-9]+-[0-9]+)-/.test(branch) ? [`refs/heads/${branch}`] : [];
     const task = await intake.registerTaskFromSheet({
       sheetPath,
       status: argValue(args, '--status'),
       actor: 'orchestrator-cli',
+      excludeRefs,
     });
     refreshSnapshotArtifacts();
     console.log(`已登记任务 ${task.taskId}（${task.status}）→ ${task.artifacts.taskSheet}`);
