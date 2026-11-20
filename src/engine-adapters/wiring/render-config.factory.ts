@@ -193,6 +193,11 @@ export class RenderConfigFactory {
 
   /**
    * 该候选该分层的模型名: env 优先, 否则问 router 自己的 tier→model 映射.
+   *
+   * AF-210: 加 provider 维度覆盖 `ENGINE_RENDER_<KIND>_MODEL_<PROVIDER>`.
+   *   原实现只有全局键, 主备两家不同厂商时会共用一个模型名 —— 主候选是
+   *   MiniMax 时要覆盖豆包, 全局键会把 MiniMax 也改掉. 优先级保持:
+   *   全局显式键 (既有语义) > provider 维度键 > 档位表.
    */
   private modelFor(kind: RenderTaskKind, providerId: string): string | undefined {
     const explicit = this.text(`ENGINE_RENDER_${KIND_ENV_SUFFIX[kind]}_MODEL`);
@@ -201,6 +206,12 @@ export class RenderConfigFactory {
     if (kind === 'advanced') {
       const chatModel = this.text(`ENGINE_RENDER_${KIND_ENV_SUFFIX.chat}_MODEL`);
       if (chatModel) return chatModel;
+    }
+    const providerExplicit = this.text(`ENGINE_RENDER_${KIND_ENV_SUFFIX[kind]}_MODEL_${providerId.toUpperCase()}`);
+    if (providerExplicit) return providerExplicit;
+    if (kind === 'advanced') {
+      const providerChatModel = this.text(`ENGINE_RENDER_${KIND_ENV_SUFFIX.chat}_MODEL_${providerId.toUpperCase()}`);
+      if (providerChatModel) return providerChatModel;
     }
     return this.router.getDefaultModelForTier(LLMTier.RAG, providerId as AIProviderId);
   }

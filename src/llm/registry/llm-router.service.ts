@@ -198,22 +198,26 @@ export class LlmRouterService {
    */
   public getDefaultModelForTier(tier: LLMTier, providerId?: AIProviderId): string {
     const id = providerId ?? this.defaultChatProviderId;
+    // AF-210: 豆包型号按方舟控制台账口径维护 —— 旧别名 doubao-lite /
+    //   doubao-pro-32k / doubao-pro-128k 在 2026-11-20 实测全部 404, 备候选
+    //   切过去会每次都失败. 型号带日期后缀才是有效 ID; 换型号优先用
+    //   env `ENGINE_RENDER_<KIND>_MODEL_DOUBAO` 覆盖, 不必改这张表.
     const TIER_MODELS: Record<LLMTier, Partial<Record<AIProviderId, string>>> = {
       [LLMTier.BASIC]: {
         [AIProviderId.DEEPSEEK]: 'deepseek-chat',
-        [AIProviderId.DOUBAO]: 'doubao-lite',
+        [AIProviderId.DOUBAO]: 'doubao-seed-2-1-lite-260915',
         [AIProviderId.QWEN]: 'qwen-turbo',
         [AIProviderId.OPENAI]: 'gpt-4o-mini',
       },
       [LLMTier.RAG]: {
         [AIProviderId.DEEPSEEK]: 'deepseek-chat',
-        [AIProviderId.DOUBAO]: 'doubao-pro-32k',
+        [AIProviderId.DOUBAO]: 'doubao-seed-2-1-pro-260628',
         [AIProviderId.QWEN]: 'qwen-plus',
         [AIProviderId.OPENAI]: 'gpt-4o',
       },
       [LLMTier.ADVANCED]: {
         [AIProviderId.DEEPSEEK]: 'deepseek-reasoner',
-        [AIProviderId.DOUBAO]: 'doubao-pro-128k',
+        [AIProviderId.DOUBAO]: 'doubao-seed-2-1-pro-260628',
         [AIProviderId.QWEN]: 'qwen-max',
         [AIProviderId.OPENAI]: 'gpt-4o',
       },

@@ -36,7 +36,9 @@ export class DoubaoChatProvider extends OpenAICompatibleChatProvider {
       id: AIProviderId.DOUBAO,
       name: '豆包 (火山方舟)',
       baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
-      defaultChatModel: 'doubao-pro-32k',
+      // AF-210: 旧默认 doubao-pro-32k 已被方舟下线 (实测 404); 方舟现在接受
+      //   带日期后缀的模型 ID 直传, 不再强制走 endpoint id 映射.
+      defaultChatModel: 'doubao-seed-2-1-pro-260628',
       customHeaders: {
         // 方舟可选标识, 方便运营追踪调用来源.
         'X-Client-Platform': 'xin-su-app',
