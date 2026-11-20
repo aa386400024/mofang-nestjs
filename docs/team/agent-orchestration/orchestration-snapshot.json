@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-20T11:11:12.121Z",
+  "generatedAt": "2026-11-20T11:14:51.066Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,7 +15,38 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-199",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "fix",
+      "title": "收口 executor 记录目录资源域",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-199/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-199",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "file",
+        "targetRole": "orchestrator",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-20T11:14:50.991Z",
+        "leaseDeadline": "2026-11-20T11:44:50.987Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-199.json"
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1776,6 +1807,23 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-277",
+      "recordedAt": "2026-11-20T11:14:50.730Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-199",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-276",
       "recordedAt": "2026-11-20T11:10:40.600Z",
       "actorRef": "orchestrator",
@@ -1998,42 +2046,46 @@
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-190.json"
       ]
-    },
-    {
-      "auditId": "AUD-262",
-      "recordedAt": "2026-11-20T10:42:46.219Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-190",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 276,
+    "total": 277,
     "byResult": {
-      "allowed": 276,
+      "allowed": 277,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 275,
+      "TOOL-QUEUE-SCHEDULER": 276,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 276
+      "orchestrator": 277
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-199",
+        "title": "收口 executor 记录目录资源域",
+        "type": "fix",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "orchestrator",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-199/task-sheet.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -5656,9 +5708,17 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-199",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-199/task-sheet.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
