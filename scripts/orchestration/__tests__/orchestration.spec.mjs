@@ -406,8 +406,8 @@ describe('runAcceptance 验收结论', () => {
       contextId: 'framework-evolution',
       type: 'investigation',
       artifacts: {
-        taskSheet: 'docs/worklog/records/legacy/AF-023/task-sheet.md',
-        deliveryRecord: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-implementation-2026-11-17.md',
+        taskSheet: 'scripts/orchestration/__tests__/fixtures/task-sheet.md',
+        deliveryRecord: 'scripts/orchestration/__tests__/fixtures/delivery-record.md',
       },
       receipt: { deviationTable: [], openQuestions: [], manualReviewList: [], backlogItems: [] },
     };
@@ -422,8 +422,8 @@ describe('runAcceptance 验收结论', () => {
       contextId: 'framework-evolution',
       type: 'investigation',
       artifacts: {
-        taskSheet: 'docs/worklog/records/legacy/AF-023/task-sheet.md',
-        deliveryRecord: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-implementation-2026-11-17.md',
+        taskSheet: 'scripts/orchestration/__tests__/fixtures/task-sheet.md',
+        deliveryRecord: 'scripts/orchestration/__tests__/fixtures/delivery-record.md',
       },
       receipt: {
         deviationTable: [{ id: 'D1', deviation: 'GUI 未启用', impact: '人工粘贴', mitigation: '文件 transport' }],
@@ -1689,8 +1689,8 @@ describe('AF-023 运行态调度闭环（领单 / 回滚 / 回执终态）', () 
     const only = task(taskId);
     only.status = 'submitted';
     only.artifacts = {
-      taskSheet: 'docs/worklog/records/legacy/AF-023/task-sheet.md',
-      deliveryRecord: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-implementation-2026-11-17.md',
+      taskSheet: 'scripts/orchestration/__tests__/fixtures/task-sheet.md',
+      deliveryRecord: 'scripts/orchestration/__tests__/fixtures/delivery-record.md',
     };
     const index = freshIndex(only);
     const runtimeState = {
@@ -1711,8 +1711,8 @@ describe('AF-023 运行态调度闭环（领单 / 回滚 / 回执终态）', () 
       policyRefs: [],
       contractRef: RECEIPT_CONTRACT_REF,
       artifactRefs: {
-        taskSheet: 'docs/worklog/records/legacy/AF-023/task-sheet.md',
-        deliveryRecord: 'docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-implementation-2026-11-17.md',
+        taskSheet: 'scripts/orchestration/__tests__/fixtures/task-sheet.md',
+        deliveryRecord: 'scripts/orchestration/__tests__/fixtures/delivery-record.md',
         reply: null,
         others: [],
       },

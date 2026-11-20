@@ -94,13 +94,6 @@ import {
   isDeliveryStalled,
   autoConfirmDelivery,
 } from './gui-dispatch.mjs';
-import {
-  registerTaskFromSheet,
-  registerTaskFromHandover,
-  parseTaskSheetFrontmatter,
-  buildTaskRecord,
-  repoRelativePath,
-} from './task-intake.mjs';
 import { acquireRunLock, describeRunLock } from './run-lock.mjs';
 import { planReissue } from './reissue.mjs';
 import { lintReceiptFile } from './receipt-lint.mjs';
@@ -1056,13 +1049,16 @@ function pathToPosix(absPath) {
 /** 任务单登记：`task register --sheet <md>` / `task import --handover <json>`。 */
 async function cmdTask(args) {
   const sub = args[0] ?? 'register';
+  // `task` 子命令需要 YAML frontmatter 解析（yaml 为可选运行时依赖），延迟到实际使用时加载，
+  // 避免 `worklog verify` 等零依赖命令把 yaml 带进 Orchestration Gate 的模块图。
+  const intake = await import('./task-intake.mjs');
   if (sub === 'register') {
     const sheetPath = argValue(args, '--sheet');
     if (!sheetPath) {
       console.error('用法：task register --sheet docs/worklog/inbox/<task>.md [--status ready]');
       process.exit(2);
     }
-    const task = await registerTaskFromSheet({
+    const task = await intake.registerTaskFromSheet({
       sheetPath,
       status: argValue(args, '--status'),
       actor: 'orchestrator-cli',
@@ -1077,7 +1073,7 @@ async function cmdTask(args) {
       console.error('用法：task import --handover docs/team/agent-orchestration/transport/tasks/<task>.json [--status ready]');
       process.exit(2);
     }
-    const task = await registerTaskFromHandover({
+    const task = await intake.registerTaskFromHandover({
       handoverPath,
       status: argValue(args, '--status'),
       actor: 'orchestrator-cli',
@@ -1159,12 +1155,12 @@ async function cmdTask(args) {
     }
     const absSheet = resolve(REPO_ROOT, sheetPath);
     if (!existsSync(absSheet)) throw new Error(`任务单不存在：${sheetPath}`);
-    const relSheet = repoRelativePath(absSheet);
+    const relSheet = pathToPosix(absSheet);
     if (!relSheet.startsWith('docs/worklog/inbox/') && !relSheet.startsWith('docs/worklog/pending/')) {
       throw new Error(`重签发任务单必须位于 docs/worklog/inbox/：${relSheet}`);
     }
-    const { meta } = parseTaskSheetFrontmatter(readFileSync(absSheet, 'utf8'));
-    const newTask = buildTaskRecord(meta, { taskSheetPath: relSheet, status: 'backlog' });
+    const { meta } = intake.parseTaskSheetFrontmatter(readFileSync(absSheet, 'utf8'));
+    const newTask = intake.buildTaskRecord(meta, { taskSheetPath: relSheet, status: 'backlog' });
     const index = loadIndex();
     const plan = planReissue(index, { fromTaskId, newTask });
     if (!plan.ok) {
@@ -1179,7 +1175,7 @@ async function cmdTask(args) {
       console.log('  - 正式执行请追加 --apply；scope 不会在原任务上原地修改。');
       return;
     }
-    const created = await registerTaskFromSheet({ sheetPath: relSheet, status: 'backlog', actor: 'orchestrator-cli' });
+    const created = await intake.registerTaskFromSheet({ sheetPath: relSheet, status: 'backlog', actor: 'orchestrator-cli' });
     const next = loadIndex();
     const runtimeState = loadRuntimeState();
     const reason = `scope 重签发自 ${fromTaskId}`;
@@ -1270,7 +1266,9 @@ async function cmdValidate(args) {
       const text = readFileSync(abs, 'utf8');
       let meta;
       try {
-        meta = text.trimStart().startsWith('{') ? JSON.parse(text) : parseTaskSheetFrontmatter(text).meta;
+        meta = text.trimStart().startsWith('{')
+          ? JSON.parse(text)
+          : (await import('./task-intake.mjs')).parseTaskSheetFrontmatter(text).meta;
       } catch (err) {
         sections.push([
           '任务单元',
@@ -1489,7 +1487,7 @@ function cmdDocs(args) {
   }
   const absPath = resolve(REPO_ROOT, pathArg);
   if (!existsSync(absPath)) throw new Error(`文件不存在：${pathArg}`);
-  const rel = repoRelativePath(absPath);
+  const rel = pathToPosix(absPath);
   if (!rel.startsWith('docs/')) throw new Error(`只允许规范化 docs/ 下的文本文件：${rel}`);
   const apply = args.includes('--apply');
   const before = inspectTextFile(absPath);

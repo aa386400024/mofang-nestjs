@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-171",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-20T10:40:00+08:00",
+  "updatedAt": "2026-11-20T02:25:52.861Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-171/task-sheet.md",
+    "sha256": "a4f339032012a16cff4ffced941943622f5c4b5de554c615a62241fd10947d79",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/inbox/af171-release-gate-dependency-fix-2026-11-20.md"
+  ],
+  "tombstone": null
+}
