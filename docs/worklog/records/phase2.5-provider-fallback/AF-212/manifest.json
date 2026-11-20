@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-212",
+  "contextId": "phase2.5-provider-fallback",
+  "status": "completed",
+  "createdAt": "2026-11-21T00:38:00+08:00",
+  "updatedAt": "2026-11-20T16:33:31.915Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-provider-fallback/AF-212/task-sheet.md",
+    "sha256": "654f18ed495d831f965a942fc6e1981add75d0f6f6e58e2802db4f260e1a6a75",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-provider-fallback/AF-212/receipt-RC-AF-212-1.json",
+      "sha256": "a6a9ed4eca52e7f84e22256386a84e8e59cef57b419497ff010dd6c9f62f6455",
+      "receiptId": "RC-AF-212-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af210-doubao-fallback-provider-2026-11-21.md",
+  "legacyPaths": ["docs/worklog/pending/af212-af210-commit-backfill-2026-11-21.md"],
+  "tombstone": null
+}

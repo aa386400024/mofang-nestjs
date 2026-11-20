@@ -1,0 +1,179 @@
+{
+  "deliveredAt": "2026-11-21T00:45:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-212-1",
+    "taskId": "AF-212",
+    "contextId": "phase2.5-provider-fallback",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "e54012bfc3f7f01c36bf60695df7bfa775558dca",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#2.1"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-provider-fallback/AF-212/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af210-doubao-fallback-provider-2026-11-21.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/records/phase2.5-provider-fallback/AF-212/manifest.json",
+        "docs/worklog/records/phase2.5-provider-fallback/AF-210/receipt-RC-AF-210-1.json"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "test/llm/af210-doubao-tier-mapping.spec.ts",
+        "test/engine-adapters/af210-render-model-override.spec.ts",
+        "docs/worklog/completed/phase2.5/af210-doubao-fallback-provider-2026-11-21.md",
+        "docs/worklog/records/phase2.5-provider-fallback/AF-210/",
+        "docs/worklog/records/phase2.5-provider-fallback/AF-211/",
+        "docs/worklog/records/phase2.5-provider-fallback/AF-212/"
+      ],
+      "modified": [
+        "src/llm/registry/llm-router.service.ts",
+        "src/llm/providers/doubao.provider.ts",
+        "src/engine-adapters/wiring/render-config.factory.ts",
+        "docs/worklog/records/phase2.5-provider-fallback/AF-210/manifest.json"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/llm/af210-doubao-tier-mapping.spec.ts test/engine-adapters/af210-render-model-override.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-6U804B0 / Windows / PowerShell 7.6.4 / node v26.13.0 / pnpm 9.15.0",
+        "wallClock": "1.54s",
+        "note": "8 tests passed；AF-210 实测，本单代码字节未变"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 20s",
+        "note": "0 error；AF-210 实测，本单未再重跑"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "带缓存通过",
+        "note": "0 error / 0 warning；AF-210 实测，本单未再重跑"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 235,
+        "machine": "同上",
+        "wallClock": "78.67s",
+        "note": "4049 passed + 7 skipped；AF-210 实测（基线 e54012b + 本实现），本单代码字节未变"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空"
+      },
+      {
+        "command": "ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 5s",
+        "note": "AF-210 时 9 项全 PASS；本单提交后 pre-commit 的 preflight 与 worklog verify --strict 同样通过"
+      }
+    ],
+    "reproNotes": "本单是提交时序补票：实现与验收在 AF-210 完成，AF-211 因 scope 写入 docs/team/agent-orchestration/ 触发 executor 资源域拦截，按 IM-010 rescope 为 AF-212。提交 38f320a 为 AF-210 实现，7c2a8ab 为状态面与 AF-210 回执哈希对齐。AF-210 的 records 副本在 lint-staged prettier 下字节变化导致 manifest 哈希失配，已按实际文件重算并提交。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-212 贯穿任务单、提交、回执；AF-210 为实际实现与验收任务，AF-211 为越域废单已 canceled"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / rescope / claim / auto-confirm / receipt-ingested / archive 全部经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "e54012b 上 AF-210 completed/archived → AF-211 canceled → AF-212 created，编号无重复"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "deploy-contract",
+        "result": "pass",
+        "note": "无新增依赖；env 键同 AF-210"
+      },
+      {
+        "item": "text-privacy",
+        "result": "pass",
+        "note": "key 只在本机 .env，未入任何提交"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单、交付记录（复用 AF-210）、回执同源；baselineRef e54012b"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF212-01",
+        "impact": "正常流程应为「领单 → 提交 → 回执 → 归档」；本次顺序颠倒后靠 rescope 补偿，说明 orchestrator 侧缺少提交时序前置检查",
+        "severity": "medium",
+        "schedule": "编排工具链改进台账"
+      },
+      {
+        "id": "BL-AF212-02",
+        "impact": "lint-staged 的 `*.{json,md,...}` 会改写 records 下的回执字节，导致 manifest 哈希失配；本次手工重算，长期应让 prettier 忽略 records 或让哈希按规范化文本计算",
+        "severity": "medium",
+        "schedule": "编排工具链改进台账"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "提交时序",
+        "taskSays": "先提交实现，再摄入回执与归档",
+        "reality": "AF-210 先归档后提交，被 preflight 以 no-active-task 拒绝",
+        "action": "登记本单补票，在 submitted 状态下提交实现与状态面",
+        "why": "禁止 --no-verify 绕过；已归档任务无法 resume"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-210 实现与验收证据复用并入库（38f320a），状态面与回执哈希对齐单独提交（7c2a8ab）；engine-core 零 diff，preflight 与 worklog verify --strict 均通过；编号链路 AF-210→AF-211(canceled)→AF-212 清晰可审计。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

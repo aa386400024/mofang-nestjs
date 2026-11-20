@@ -1,0 +1,198 @@
+{
+  "deliveredAt": "2026-11-21T00:35:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-210-1",
+    "taskId": "AF-210",
+    "contextId": "phase2.5-provider-fallback",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "e54012bfc3f7f01c36bf60695df7bfa775558dca",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#1.4"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-provider-fallback/AF-210/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af210-doubao-fallback-provider-2026-11-21.md",
+      "reply": null,
+      "others": ["docs/worklog/records/phase2.5-provider-fallback/AF-210/manifest.json"]
+    },
+    "changedFiles": {
+      "added": [
+        "test/llm/af210-doubao-tier-mapping.spec.ts",
+        "test/engine-adapters/af210-render-model-override.spec.ts",
+        "docs/worklog/completed/phase2.5/af210-doubao-fallback-provider-2026-11-21.md"
+      ],
+      "modified": [
+        "src/llm/registry/llm-router.service.ts",
+        "src/llm/providers/doubao.provider.ts",
+        "src/engine-adapters/wiring/render-config.factory.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/llm/af210-doubao-tier-mapping.spec.ts test/engine-adapters/af210-render-model-override.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-6U804B0 / Windows / PowerShell 7.6.4 / node v26.13.0 / pnpm 9.15.0",
+        "wallClock": "1.54s",
+        "note": "8 tests passed（档位映射 3 / 候选模型覆盖 5）"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 20s（未精确计时）",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "带缓存通过",
+        "note": "首轮抓出 CRLF 与文末空行，eslint --fix 后 0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 235,
+        "machine": "同上",
+        "wallClock": "78.67s",
+        "note": "234 passed + 1 skipped files；4049 passed + 7 skipped tests；新基线 e54012b 首轮全绿"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空"
+      },
+      {
+        "command": "ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 5s",
+        "note": "9 项全 PASS（状态索引 / 工具契约 / 协议视图 / 交付包 / 两张 Agent Card / AF-210 运行态任务单 / 事件日志哈希链 / 索引投影一致）"
+      }
+    ],
+    "reproNotes": "代码、测试、交付记录在同一工作树完成；`.env` 属本机运行配置（.gitignore 第 74 行命中），未进 changedFiles，key 明文未写入任何入库工件。连通取证为直接对 https://ark.cn-beijing.volces.com/api/v3 发 models / chat 请求，结果见交付记录 §3。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-210 贯穿任务单、提交、交付记录与回执；原 AF-209 编号让给并行机器的 R3 任务"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / claim / auto-confirm / receipt-ingested / archive 全部经 CLI，未手改索引"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "在 e54012b 上 created → promoted → claimed 连续，编号不与 AF-209（R3）冲突"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "deploy-contract",
+        "result": "pass",
+        "note": "只新增可选 env 键 ENGINE_RENDER_<KIND>_MODEL_<PROVIDER>，未改既有默认与 .env.example"
+      },
+      {
+        "item": "text-privacy",
+        "result": "pass",
+        "note": "key 只在本机 .env；交付记录仅记长度与后四位指纹"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单、交付记录、回执同源；baselineRef 为 e54012b"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF210-01",
+        "impact": "96 场同口径 shadow（主 MiniMax vs 备豆包）未做，豆包真实渲染质量与单价尚无批次数据",
+        "severity": "medium",
+        "schedule": "单独任务单 + 预算"
+      },
+      {
+        "id": "BL-AF210-02",
+        "impact": "新 env 键未写入 .env.example；部署方需要从代码注释/交付记录才能发现覆盖能力",
+        "severity": "low",
+        "schedule": "下次动 .env.example 的任务里补注释"
+      },
+      {
+        "id": "BL-AF210-03",
+        "impact": "跨机器 key 分发无机制：key 只在本机 .env，另一台机器需人工配置",
+        "severity": "medium",
+        "schedule": "多机接入方案任务"
+      },
+      {
+        "id": "BL-AF210-04",
+        "impact": "两台机器在同一 integrate 分支并行提交导致 AF-209 编号撞车，当前 run-lock 锁文件本地化，跨机无仲裁",
+        "severity": "high",
+        "schedule": "多机单写者机制任务（远端 CAS 或固定一台常驻编排）"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "零代码接入前提",
+        "taskSays": "2026-11-14 结论：豆包备候选代码零改动，只差采购 key",
+        "reality": "方舟三个旧型号名全部 404，必须改档位映射",
+        "action": "本单把映射换为有效型号，并加 provider 维度 env 覆盖",
+        "why": "否则熔断切备候选必 404，备候选等于未接且持续打满失败计数"
+      },
+      {
+        "item": "任务编号",
+        "taskSays": "AF-210",
+        "reality": "最初登记为 AF-209，与并行机器合入的「真人度 R3」撞号",
+        "action": "推送前整体改号为 AF-210，基线更新为 e54012b，交付记录/测试/注释同步改名",
+        "why": "同一 taskId 两个 context 会让索引与 CI Orchestration Gate 直接冲突"
+      },
+      {
+        "item": ".env.example",
+        "taskSays": "任务单要求不改 .env.example",
+        "reality": "新键不在既有键位，也未列入 scope.files",
+        "action": "不改 .env.example，键名口径落在代码注释与交付记录",
+        "why": "遵守 scope 边界；该键为可选覆盖，不入模板不影响运行"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "豆包三档改为方舟当前有效型号，旧别名不再出现在任何映射；渲染候选支持 provider 维度模型覆盖且全局键优先级不变，主候选 MiniMax 行为未变；本机 key 与 fallback 开关落地，models 与三档 chat 全部 200；定向 8 例、全量 4049 例、typecheck/lint/validate 全绿；engine-core 零 diff；编号撞车已在推送前让位为 AF-210；shadow、跨机分发与跨机单写者已登记 backlog。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
