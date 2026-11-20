@@ -9,6 +9,7 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { parseModes, selectBalancedSessions } from '../../bin/long-session-acceptance.js';
 import {
   LONG_SESSION_ACCEPTANCE_STATUS,
   LONG_SESSION_ACCEPTANCE_VERSION,
@@ -151,5 +152,39 @@ describe('Phase2.5 · 双人盲标数据形状', () => {
       if (anchor.dimension === 'process' || anchor.dimension === 'arousal') continue;
       expect(LONG_SESSION_DIMENSIONS).toContain(anchor.dimension);
     }
+  });
+});
+
+describe('AF-177 · pack 取样分层（纯函数）', () => {
+  it('parseModes：缺省 expert,cold；支持三档；拒绝未知档与空串', () => {
+    expect(parseModes(null)).toEqual(['expert', 'cold']);
+    expect(parseModes('cold,expert,intermediate')).toEqual(['cold', 'expert', 'intermediate']);
+    expect(() => parseModes('cold,unknown')).toThrow('未支持');
+    expect(() => parseModes('')).toThrow('不能为空');
+  });
+
+  it('48 packet：8 角色 × cold/expert/intermediate × 2 场，24 个 cell 各 2 场', () => {
+    const roles = Array.from({ length: 8 }, (_, index) => `role-${index + 1}`);
+    const modes = ['cold', 'expert', 'intermediate'];
+    const sessions = roles.flatMap((characterSlug) =>
+      modes.flatMap((counselorModeId) =>
+        [1, 2].map((repeat) => ({
+          debugSessionId: `${characterSlug}-${counselorModeId}-${repeat}`,
+          characterSlug,
+          counselorModeId,
+          status: 'completed',
+          turnCount: 50,
+        })),
+      ),
+    );
+    const picked = selectBalancedSessions({ batchId: 'synthetic', sessions }, 48, 20_261_120, modes);
+    expect(picked).toHaveLength(48);
+    const counts = new Map<string, number>();
+    for (const session of picked) {
+      const cell = `${session.characterSlug}::${session.counselorModeId}`;
+      counts.set(cell, (counts.get(cell) ?? 0) + 1);
+    }
+    expect(counts.size).toBe(24);
+    for (const count of counts.values()) expect(count).toBe(2);
   });
 });
