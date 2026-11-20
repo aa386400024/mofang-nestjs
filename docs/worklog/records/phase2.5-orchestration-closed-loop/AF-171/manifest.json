@@ -2,16 +2,22 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-171",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-20T10:40:00+08:00",
-  "updatedAt": "2026-11-20T02:25:52.861Z",
+  "updatedAt": "2026-11-20T02:26:28.918Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-171/task-sheet.md",
     "sha256": "a4f339032012a16cff4ffced941943622f5c4b5de554c615a62241fd10947d79",
     "immutable": true
   },
-  "receipts": [],
-  "deliveryRecord": null,
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-171/receipt-RC-AF-171-1.json",
+      "sha256": "5a67374f51d70537377698da2201dcf7fd42c6f2da5ae025ab8c2d6e27ee70e7",
+      "receiptId": "RC-AF-171-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af171-release-gate-dependency-fix-2026-11-20.md",
   "legacyPaths": [
     "docs/worklog/inbox/af171-release-gate-dependency-fix-2026-11-20.md"
   ],
