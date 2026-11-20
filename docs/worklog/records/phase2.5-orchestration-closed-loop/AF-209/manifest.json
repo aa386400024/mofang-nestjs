@@ -2,16 +2,22 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-209",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-20T23:36:35+08:00",
-  "updatedAt": "2026-11-20T15:36:53.168Z",
+  "updatedAt": "2026-11-20T16:06:24.158Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-209/task-sheet.md",
     "sha256": "38ae287e8b7665b4041c66d895802fb0d981b859fac15eb761ed7ad3ce838494",
     "immutable": true
   },
-  "receipts": [],
-  "deliveryRecord": null,
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-209/receipt-RC-AF-209-1.json",
+      "sha256": "e95b1f6c847927438c827609a01687daf6bbb14855b85536f07b2074b3f4ad73",
+      "receiptId": "RC-AF-209-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af209-realism-r3-register-2026-11-20.md",
   "legacyPaths": [
     "docs/worklog/pending/AF-209-task-sheet.md"
   ],
