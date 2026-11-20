@@ -21,6 +21,7 @@
   "resources": [
     "AGENTS.md",
     "package.json",
+    ".prettierignore",
     "eslint.config.mjs",
     ".husky/",
     ".github/",

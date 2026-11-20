@@ -1,0 +1,211 @@
+{
+  "deliveredAt": "2026-11-21T01:20:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-213-1",
+    "taskId": "AF-213",
+    "contextId": "phase3-orchestration-hardening",
+    "type": "implementation",
+    "agentRole": "orchestrator",
+    "baselineRef": "01c3ce8dafbdfe42ed14504729c9f2236dc4cd39",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.1", "agent-orchestration/README.md#强制准入"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase3-orchestration-hardening/AF-213/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af213-cross-machine-hardening-2026-11-21.md",
+      "reply": null,
+      "others": [
+        "docs/team/agent-orchestration/cross-machine-single-writer.md",
+        "docs/worklog/records/phase3-orchestration-hardening/AF-213/manifest.json"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "scripts/orchestration/remote-lock.mjs",
+        "scripts/orchestration/task-id-occupancy.mjs",
+        "scripts/orchestration/__tests__/remote-lock.spec.mjs",
+        "scripts/orchestration/__tests__/task-id-occupancy.spec.mjs",
+        "scripts/orchestration/__tests__/archive-guard.spec.mjs",
+        "docs/team/agent-orchestration/cross-machine-single-writer.md"
+      ],
+      "modified": [
+        "scripts/orchestration/run-lock.mjs",
+        "scripts/orchestration/cli.mjs",
+        "scripts/orchestration/scheduler.mjs",
+        "scripts/orchestration/task-intake.mjs",
+        "scripts/orchestration/branch-workflow.mjs",
+        "docs/team/agent-orchestration/agent-cards/orchestrator.json"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/orchestration/__tests__/",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 9,
+        "machine": "DESKTOP-6U804B0 / Windows / PowerShell 7.6.4 / node v26.13.0 / pnpm 9.15.0",
+        "wallClock": "2.82s",
+        "note": "317 tests passed；含新增 remote-lock 6 / task-id-occupancy 5 / archive-guard 4 例"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 20s",
+        "note": "tsc -b tsconfig.check.json，0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "带缓存通过",
+        "note": "eslint 含 scripts 专用配置，0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 237,
+        "machine": "同上",
+        "wallClock": "99.21s",
+        "note": "4065 passed + 7 skipped；收尾全量一次"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空"
+      },
+      {
+        "command": "ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 5s",
+        "note": "任务单 / 事件链哈希 / 索引投影全部 PASS"
+      },
+      {
+        "command": "pnpm orchestration:contracts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 3s",
+        "note": "框架契约包 2.0.0 / c507188，14 文件哈希一致"
+      }
+    ],
+    "reproNotes": "远端锁现场三次取证真实跑通：① 推入他人 fresh payload 后 run-once 打印「另一轮正在运行」并跳过，ref sha 未变；② 推入 90 分钟前 stale payload 后 run-once 打印「已清理远端陈旧锁」并继续；③ 正常轮次结束 git ls-remote 该 ref 为空。任务单设计中的 refs/orchestration/locks/run-once 与 parents=[baseSha] 因实测 fetch 不可靠与历史洁癖改为 refs/heads/orchestration-lock + root commit，偏差已记入交付记录 §3。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-213 贯穿任务单、交付记录、回执、提交信息"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / claim / run-once 全部经 CLI，未手改索引"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执字段与 schema 1.0.0 对齐，receipt lint 通过"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-213 created → submitted → completed/archived 链路无编号重复（next-id 现场返回 AF-214）"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "deploy-contract",
+        "result": "pass",
+        "note": "无新增依赖；仅复用 git 命令与既有凭据解析"
+      },
+      {
+        "item": "text-privacy",
+        "result": "pass",
+        "note": "无密钥、无心理内容；锁 payload 只含 host/pid/token/actor/时间"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 successCriteria 五条与交付记录 §2-§5 一一对应；baselineRef 同 01c3ce8"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF213-01",
+        "impact": "ORCH_REMOTE_LOCK 仓库默认仍为 optional（降级告警），有并行机器时需人工置 required，容易漏配导致跨机无保护",
+        "severity": "medium",
+        "schedule": "AF-214 文档与脚本入口一并对齐"
+      },
+      {
+        "id": "BL-AF213-02",
+        "impact": "lint-staged 的 prettier 仍会改写 docs/worklog/records/** 下的回执字节，导致 manifest 哈希失配（AF-212 已实证）",
+        "severity": "medium",
+        "schedule": "AF-214（.prettierignore 隔离）"
+      },
+      {
+        "id": "BL-AF213-03",
+        "impact": "锁释放「读—比对—删」存在极窄竞态，需服务端条件删除才能闭环",
+        "severity": "low",
+        "schedule": "上游能力具备后再评估"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "锁 ref 位置",
+        "taskSays": "refs/orchestration/locks/run-once（非 heads，避免污染分支列表）",
+        "reality": "该 ref 在 git fetch 时报 couldn't find remote ref，读不到 payload 会导致锁永不释放",
+        "action": "改用 refs/heads/orchestration-lock 短命分支",
+        "why": "释放依赖读 payload，可靠性优先于分支列表洁癖"
+      },
+      {
+        "item": "锁 commit 形态",
+        "taskSays": "tree 取 base、parents=[baseSha]",
+        "reality": "root commit 已满足推送与读回，且不依赖 base 对象本地存在",
+        "action": "用 git commit-tree 造 root commit",
+        "why": "避免把锁 commit 挂进真实历史"
+      },
+      {
+        "item": "payload 读取",
+        "taskSays": "git fetch origin <ref> + FETCH_HEAD",
+        "reality": "单一读法现场偶发失败，退化为 corrupt 判定导致不释放",
+        "action": "本地 cat-file → 映射缓存 ref → 按 sha fetch 三路兜底",
+        "why": "同机释放零网络，跨机读取有网络兜底"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "三条缺口各有确定性单测与真实远端取证；定向 317 与全量 4065 全绿，engine-core 零 diff，validate / contracts 全 PASS；偏差三项均因实测证据调整并记入交付记录，无越域。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

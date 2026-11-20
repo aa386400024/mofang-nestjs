@@ -15,6 +15,7 @@ import { loadIndex, REPO_ROOT } from './state-store.mjs';
 import { TASK_STATUSES, TASK_TYPES } from './contract-enums.mjs';
 import { validateTaskSheet } from './validator.mjs';
 import { ensureTaskRecordBundle } from './worklog.mjs';
+import { assertTaskIdAvailable, collectOccupiedTaskIds } from './task-id-occupancy.mjs';
 
 /** 可派发角色默认映射：review / verification / investigation 只读，其余写实现。 */
 const READONLY_TYPES = ['review', 'verification', 'investigation'];
@@ -48,8 +49,12 @@ export function parseTaskSheetFrontmatter(text) {
   return { meta, body: normalized.slice(end + 4).replace(/^\n/, '') };
 }
 
-function artifactPointer(taskSheetPath) {
-  return { taskSheet: taskSheetPath, deliveryRecord: null, reply: null };
+function artifactPointer(taskSheetPath, plannedArtifacts = []) {
+  const delivery =
+    plannedArtifacts.find((item) => item?.path && String(item.name ?? '').includes('交付记录')) ??
+    plannedArtifacts.find((item) => item?.path && String(item.path).startsWith('docs/worklog/completed/')) ??
+    null;
+  return { taskSheet: taskSheetPath, deliveryRecord: delivery?.path ?? null, reply: null };
 }
 
 function defaultAgentRole(type) {
@@ -77,7 +82,7 @@ export function buildTaskRecord(meta, opts) {
     status,
     history: [],
     createdAt: meta.createdAt,
-    artifacts: artifactPointer(taskSheetPath),
+    artifacts: artifactPointer(taskSheetPath, plannedArtifacts),
     plannedArtifacts,
     agentRole: meta.agentRole ?? defaultAgentRole(type),
     requiredSkills: Array.isArray(meta.requiredSkills) ? meta.requiredSkills : [],
@@ -149,6 +154,13 @@ export async function registerTaskFromSheet(opts = {}) {
   const current = loadIndex();
   if ([...(current.tasks ?? []), ...(current.archivedTasks ?? [])].some((task) => task.taskId === record.taskId)) {
     throw new Error(`任务已登记，拒绝重复登记：${record.taskId}`);
+  }
+  // AF-213：编号三源占用检查（远端任务分支 / 远端索引 / 本地 records），
+  // 防止两台机器并行时再次撞号；远端不可达时只告警不阻塞。
+  if (opts.checkTaskId !== false) {
+    const occupancy = opts.occupancy ?? collectOccupiedTaskIds({ runGit: opts.runGit });
+    for (const warning of occupancy.warnings ?? []) console.warn(`[task-id] ${warning}`);
+    assertTaskIdAvailable(record.taskId, { occupancy });
   }
   const bundle = ensureTaskRecordBundle(record, { sourceSheetPath: abs, status });
   record.artifacts.taskSheet = bundle.taskSheetPath;

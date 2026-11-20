@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-213",
+  "contextId": "phase3-orchestration-hardening",
+  "status": "ready",
+  "createdAt": "2026-11-21T09:10:00+08:00",
+  "updatedAt": "2026-11-20T17:19:13.768Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase3-orchestration-hardening/AF-213/task-sheet.md",
+    "sha256": "2762b4eafc69619542b4621e08ed17d0842cbb6cc951ed266be8206aa4cf8963",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": ["docs/worklog/pending/af213-cross-machine-hardening-2026-11-21.md"],
+  "tombstone": null
+}

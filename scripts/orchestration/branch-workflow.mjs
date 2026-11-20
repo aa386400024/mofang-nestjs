@@ -185,6 +185,21 @@ export function createGitPort() {
         return false;
       }
     },
+    /**
+     * AF-213：给定 scope 路径下仍未提交的改动（含暂存，不含未跟踪文件）。
+     * 供 run-once 的归档前置使用：实现还在工作区就不许把任务判成验收通过并归档。
+     */
+    uncommittedWithin(paths) {
+      const list = (paths ?? []).map((item) => String(item ?? '').trim()).filter(Boolean);
+      if (list.length === 0) return [];
+      const raw = runGit(['diff', '--name-only', 'HEAD', '--', ...list]);
+      return raw
+        ? raw
+            .split('\n')
+            .map((line) => line.trim())
+            .filter(Boolean)
+        : [];
+    },
     changedFiles() {
       const raw = runGit(['diff', '--name-only', 'HEAD']);
       return raw ? raw.split('\n').filter(Boolean) : [];
