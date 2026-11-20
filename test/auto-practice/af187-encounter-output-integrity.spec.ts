@@ -111,9 +111,9 @@ function turnEvent(gateway: { publishToSession: ReturnType<typeof vi.fn> }): {
 }
 
 describe('AF-187 · 场景契约', () => {
-  it('缺省 = 面对面；线上缺省视频；文字通道可显式选', () => {
+  it('缺省 = 面对面；线上缺省语音；文字通道可显式选', () => {
     expect(resolveEncounter()).toEqual({ mode: 'in_person', label: '面对面咨询' });
-    expect(resolveEncounter({ mode: 'online' })).toMatchObject({ mode: 'online', channel: 'video' });
+    expect(resolveEncounter({ mode: 'online' })).toMatchObject({ mode: 'online', channel: 'voice' });
     expect(resolveEncounter({ mode: 'online', channel: 'text' })).toMatchObject({
       mode: 'online',
       channel: 'text',
@@ -133,7 +133,7 @@ describe('AF-187 · 场景契约', () => {
     });
     expect(toEncounterColumns({ mode: 'online', channel: 'fax' })).toEqual({
       encounterMode: 'online',
-      encounterChannel: 'video',
+      encounterChannel: 'voice',
     });
   });
 

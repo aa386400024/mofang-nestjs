@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-201",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "rejected",
+  "createdAt": "2026-11-20T20:48:00+08:00",
+  "updatedAt": "2026-11-20T12:47:29.028Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-201/task-sheet.md",
+    "sha256": "10e5b9be1746043c7d4a2f8221ab2d228d568b8bed6ffb352e6343ee5d5d7bac",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-201/receipt-RC-AF-201-1.json",
+      "sha256": "e577c75ade2d56d64fbd2ebdee3c97ee2032a84428215efa25901f3bb84c3647",
+      "receiptId": "RC-AF-201-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af201-scene-default-voice-boundary-matrix-2026-11-20.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af201-scene-default-voice-boundary-matrix-task-2026-11-20.md"
+  ],
+  "tombstone": null
+}

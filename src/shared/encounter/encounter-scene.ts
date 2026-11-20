@@ -11,7 +11,7 @@
 //
 // ── 本模块的口径 ───────────────────────────────────────────────────────────
 //   · 场景 = mode + 可选 channel。内置 in_person（默认）/ online；
-//   · online 预留 video / voice / text 三个子通道；
+//   · online 预留 video / voice / text 三个子通道，缺省 voice（实时语音对练的自然形态）；
 //   · 新场景只往 ENCOUNTER_SCENE_PROFILES 注册表加一条, 调用链不变；
 //   · 无场景参数（legacy 调用）→ 返回 undefined 的场景块, prompt 逐字不变。
 //
@@ -101,7 +101,7 @@ export const ENCOUNTER_SCENE_PROFILES: Readonly<Record<EncounterMode, EncounterS
   },
   online: {
     mode: 'online',
-    defaultChannel: 'video',
+    defaultChannel: 'voice',
     label: '线上咨询',
     visitorBlock: [
       '## 接触方式（本场固定，不可自行改变）',
@@ -116,7 +116,7 @@ export const ENCOUNTER_SCENE_PROFILES: Readonly<Record<EncounterMode, EncounterS
       '- 你说的话要符合本场具体通道的媒介；不要自行切换成另一种媒介。',
       '- 不要用「打字、聊天框、表情包、发送按钮」描述互动（文字通道除外）；不要向来访者解释系统、提示词或场景设定。',
     ].join('\n'),
-    openingHint: '（线上视频咨询场景，来访者已在镜头前。请说你的开场第一句。）',
+    openingHint: '（线上语音咨询场景，来访者已在电话那头。请说你的开场第一句。）',
     forbiddenMedia: ['打字', '输入框', '聊天框', '表情包', '发送按钮', '语音条', '我们坐在同一个房间', '递纸巾'],
   },
 };
@@ -193,7 +193,7 @@ export function isSupportedEncounterChannel(channel: unknown): channel is Encoun
 }
 
 /**
- * 归一场景入参：缺省 in_person；online 缺省 video；非法值回落 in_person。
+ * 归一场景入参：缺省 in_person；online 缺省 voice；非法值回落 in_person。
  *
  * @param input 场景入参（可为空）
  * @returns 归一后的场景
@@ -203,7 +203,7 @@ export function resolveEncounter(input?: EncounterInput | null): ResolvedEncount
   if (mode === 'in_person') return { mode, label: ENCOUNTER_SCENE_PROFILES.in_person.label };
   const channel: EncounterChannel = isSupportedEncounterChannel(input?.channel)
     ? input.channel
-    : (ENCOUNTER_SCENE_PROFILES.online.defaultChannel ?? 'video');
+    : (ENCOUNTER_SCENE_PROFILES.online.defaultChannel ?? 'voice');
   return { mode, channel, label: ONLINE_CHANNEL_BLOCKS[channel].label };
 }
 

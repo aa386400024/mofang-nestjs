@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-202",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-20T20:58:00+08:00",
+  "updatedAt": "2026-11-20T12:49:21.799Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-202/task-sheet.md",
+    "sha256": "a3a14ab9efd603ccbd37e8da365a044a572e3be695ebb08368e460f7b15b5cf6",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/pending/af202-scene-default-voice-boundary-matrix-task-2026-11-20.md"
+  ],
+  "tombstone": null
+}

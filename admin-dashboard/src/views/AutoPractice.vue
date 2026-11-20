@@ -19,7 +19,7 @@ const maxTurns = ref(15)
 
 // AF-187: 接触方式 —— 默认面对面；线上再选子通道.
 const encounterMode = ref<'in_person' | 'online'>('in_person')
-const encounterChannel = ref<'video' | 'voice' | 'text'>('video')
+const encounterChannel = ref<'video' | 'voice' | 'text'>('voice')
 const encounterModeOptions = [
   { label: '面对面咨询室', value: 'in_person' },
   { label: '线上咨询', value: 'online' },
@@ -194,7 +194,7 @@ const batchSelectedModes = ref<string[]>([])
 const batchMaxTurns = ref(15)
 const batchRepeats = ref(1)
 const batchEncounterMode = ref<'in_person' | 'online'>('in_person')
-const batchEncounterChannel = ref<'video' | 'voice' | 'text'>('video')
+const batchEncounterChannel = ref<'video' | 'voice' | 'text'>('voice')
 const activeBatchId = ref<string | null>(null)
 const batchProgress = ref<BatchProgress | null>(null)
 let batchPollTimer: ReturnType<typeof setInterval> | null = null
@@ -215,7 +215,7 @@ function modeNameById(id: string): string {
 /** AF-187: 场次接触方式的人读标签（缺省按面对面，兼容历史行）。 */
 function encounterLabel(s: PracticeSession): string {
   if (s.encounterMode !== 'online') return '面对面'
-  const channel = s.encounterChannel === 'voice' ? '语音' : s.encounterChannel === 'text' ? '文字' : '视频'
+  const channel = s.encounterChannel === 'video' ? '视频' : s.encounterChannel === 'text' ? '文字' : '语音'
   return `线上${channel}`
 }
 
