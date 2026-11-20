@@ -4,10 +4,114 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 715,
+    "lastEventSeq": 718,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-164",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-20T01:55:27.070Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "批次发布开工"
+        },
+        {
+          "at": "2026-11-20T01:55:30.730Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "Phase2.5 待合并任务链的受保护 PR 批次发布",
+      "type": "verification",
+      "baselineRef": "b7ebc6195e5fa5f61ac4037f01bab8511eb6b41d",
+      "dependsOn": [],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-20T01:55:26.757Z",
+      "deadline": null,
+      "agentRole": "orchestrator",
+      "priorTasks": [
+        "AF-126",
+        "AF-127",
+        "AF-128",
+        "AF-133",
+        "AF-136",
+        "AF-137",
+        "AF-140",
+        "AF-141",
+        "AF-142",
+        "AF-146",
+        "AF-147",
+        "AF-152",
+        "AF-154",
+        "AF-155",
+        "AF-156",
+        "AF-157",
+        "AF-158",
+        "AF-159",
+        "AF-161",
+        "AF-162",
+        "AF-163",
+        "IM-073"
+      ],
+      "scope": {
+        "files": [
+          "docs/worklog/",
+          "docs/team/agent-orchestration/"
+        ],
+        "modules": [
+          "orchestration"
+        ],
+        "interfaces": [
+          "node scripts/orchestration/pr-release.mjs"
+        ]
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-164/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+          "check": "worklog 严格校验通过",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "node scripts/orchestration/cli.mjs events verify",
+          "check": "事件链一致",
+          "threshold": "exit=0"
+        }
+      ],
+      "successCriteria": [
+        "从 task/AF-164-release-integrate 向 integrate 创建单一受保护 PR",
+        "PR 承载 origin/integrate..release 分支上 59 个已验收提交，任务链 22 个任务号全部在 priorTasks 显式声明",
+        "13 项远端必需检查全绿后由 pr-release.mjs squash 合并",
+        "合并后 integrate 快进同步，worklog verify 与 events verify 保持通过"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af164-release-integrate-2026-11-20.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-20T01:55:27.070Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
