@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-215",
   "contextId": "phase3-orchestration-hardening",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-21T02:10:00+08:00",
-  "updatedAt": "2026-11-20T17:39:04.421Z",
+  "updatedAt": "2026-11-20T17:43:30.651Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase3-orchestration-hardening/AF-215/task-sheet.md",
     "sha256": "4a878a0fccb51b9aae2d3bfd0916fb9b77322ba9cf20f50d073ae5c7eb1dcba8",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase3-orchestration-hardening/AF-215/receipt-RC-AF-215-1.json",
+      "sha256": "2461817877c39af04845593019d82a46550afcfa2b322978df410c7f50aabcd3",
+      "receiptId": "RC-AF-215-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af215-doubao-env-discoverability-2026-11-21.md",
   "legacyPaths": [
     "docs/worklog/pending/af215-doubao-env-discoverability-2026-11-21.md"

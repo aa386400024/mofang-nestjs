@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-20T17:36:45.752Z",
+  "generatedAt": "2026-11-20T17:43:30.743Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1780,6 +1780,38 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-021",
+      "recordedAt": "2026-11-20T17:39:23.994Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-215",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-215",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-215.json"
+      ]
+    },
+    {
+      "auditId": "AUD-020",
+      "recordedAt": "2026-11-20T17:39:05.420Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-215",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-019",
       "recordedAt": "2026-11-20T17:25:24.192Z",
       "actorRef": "orchestrator",
@@ -1989,55 +2021,21 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-006",
-      "recordedAt": "2026-11-15T17:42:18.346Z",
-      "actorRef": "orchestrator",
-      "correlationId": "archive:AF-011",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "queue-scheduler",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-005",
-      "recordedAt": "2026-11-15T17:31:16.686Z",
-      "actorRef": "orchestrator",
-      "correlationId": "archive:AF-010",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "queue-scheduler",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 19,
+    "total": 21,
     "byResult": {
-      "allowed": 19,
+      "allowed": 21,
       "denied": 0
     },
     "byTool": {
       "TOOL-STATE-STORE": 1,
       "TOOL-DELIVERY-PACK": 1,
-      "TOOL-QUEUE-SCHEDULER": 17
+      "TOOL-QUEUE-SCHEDULER": 19
     },
     "byActor": {
-      "orchestrator": 19
+      "orchestrator": 21
     }
   },
   "protocolView": {
@@ -5915,6 +5913,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase3-orchestration/af214-record-integrity-and-secret-hygiene-2026-11-21.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-215",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase3-orchestration-hardening/AF-215/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase3-orchestration/af215-doubao-env-discoverability-2026-11-21.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -5939,5 +5955,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 226
+  "archivedCount": 227
 };
