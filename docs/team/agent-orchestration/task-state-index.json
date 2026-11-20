@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 771,
+    "lastEventSeq": 808,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -1692,6 +1692,78 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-176/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af176-deterministic-structure-close-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-177",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-177/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af177-kappa48-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-178",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-178/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-179",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-179/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af179-af177-late-receipt-repair-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-180",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-180/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af180-af177-late-receipt-closure-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-181",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-181/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af181-af177-late-receipt-final-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-182",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-182/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af182-af177-late-receipt-clean-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-183",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-183/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-184",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-184/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af184-af177-late-receipt-two-stage-2026-11-20.md",
         "reply": null
       }
     }
