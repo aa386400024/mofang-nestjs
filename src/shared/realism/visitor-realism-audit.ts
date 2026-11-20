@@ -9,6 +9,7 @@
 
 import type { RealismEventKind, RealismEventPlan } from './realism-event-plan.js';
 import type { VisitorTurnShape } from './turn-shape-selector.js';
+import { inspectVisitorRegister, type RegisterSignal, type RegisterViolation } from './visitor-register-audit.js';
 
 /** 审计用的 profile 面（避免把整个 profile 类型耦合进来）。 */
 export interface RealismAuditProfile {
@@ -26,8 +27,8 @@ export interface RealismAuditResult {
   readonly totalEvents: number;
 }
 
-export type RealismViolation = 'too_long' | 'missing_question_back' | 'missing_repair' | 'over_quota';
-export type RealismSignal = 'missing_deflection';
+export type RealismViolation = 'too_long' | 'missing_question_back' | 'missing_repair' | 'over_quota' | RegisterViolation;
+export type RealismSignal = 'missing_deflection' | RegisterSignal;
 
 interface Span {
   readonly start: number;
@@ -251,17 +252,30 @@ function collectShapeSignals(trimmed: string, shape: VisitorTurnShape): RealismS
 export function inspectVisitorRealism(text: string, profile: RealismAuditProfile, plan: RealismEventPlan): RealismAuditResult {
   const trimmed = text.trim();
   const { counts, totalEvents } = countRealismEvents(trimmed);
+  const register = inspectVisitorRegister(trimmed);
 
+  // 不可朗读文本在任何状态带都是硬违约；风险轮也不接受括号动作或界面词。
   if (trimmed.length === 0 || profile.state === 'risk') {
-    return { ok: true, reasons: [], signals: [], counts, totalEvents };
+    return {
+      ok: register.violations.length === 0,
+      reasons: register.violations,
+      signals: register.signals,
+      counts,
+      totalEvents,
+    };
   }
 
-  const reasons = [...collectShapeViolations(trimmed, profile.shape, counts), ...collectQuotaViolations(counts, totalEvents, plan)];
+  const reasons = [
+    ...register.violations,
+    ...collectShapeViolations(trimmed, profile.shape, counts),
+    ...collectQuotaViolations(counts, totalEvents, plan),
+  ];
+  const signals = [...collectShapeSignals(trimmed, profile.shape), ...register.signals];
 
   return {
     ok: reasons.length === 0,
     reasons: [...new Set(reasons)],
-    signals: collectShapeSignals(trimmed, profile.shape),
+    signals: [...new Set(signals)],
     counts,
     totalEvents,
   };
@@ -295,6 +309,12 @@ export function buildRealismRetryInstruction(
         break;
       case 'over_quota':
         lines.push(`不流利痕迹超了，六类合计控制在 ${plan.maxEvents} 处以内；没有自然发生的地方就删掉。`);
+        break;
+      case 'non_spoken_text':
+        lines.push('去掉括号动作、星号动作和任何界面词，只输出能直接朗读的台词；不要写旁白或软件操作。');
+        break;
+      case 'prompt_echo':
+        lines.push('只输出来访者的这一句台词，不要把设定、规则、状态词或上一轮提示带出来。');
         break;
       default:
         break;

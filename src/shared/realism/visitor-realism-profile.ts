@@ -79,15 +79,22 @@ const SHAPE_INSTRUCTION: Record<VisitorTurnShape, string> = {
   emotional_detail: '说一个让你有情绪的瞬间，别总结成道理；句子可以短，但不要喊。',
   indirect_barb: '表面顺着对方，话尾带一点刺；只说一句，不追着讽刺。',
   grounded_short: '先落在当下（此刻、呼吸、房间），说一句短的；不展开，也不做技术解释。',
-  text_short: '像文字咨询里的短消息，最多两句；不要写“消息/发送/对方正在输入”这些界面词。',
+  text_short: '像文字咨询里的短消息，最多两句；不要写任何界面词、软件操作或旁白。',
   text_fragmented: '像文字咨询里连着发了两三条短句，中间有断裂；不要写成一段完整长文。',
 };
 
 const SCENE_INSTRUCTION: Record<RealismScene, string> = {
-  in_person: '保持面对面的现场感：像坐在同一间咨询室里说话；不写“消息/发送/屏幕/语音条”这类线上界面词。',
-  online_voice: '保持同步语音感：像在电话或视频里说话，句子偏短；可以确认一次对方在听，但不要每轮都问。',
-  online_text: '保持文字咨询感：可以像两条短消息，但不写“消息/发送/对方正在输入”这些界面词。',
+  in_person: '保持面对面的现场感：像坐在同一间咨询室里说话；不要写任何线上界面词、软件操作或旁白。',
+  online_voice: '保持同步语音感：像在电话或视频里说话，句子偏短；可以确认一次对方在听，但不要每轮都问；不要写任何界面词或软件操作。',
+  online_text: '保持文字咨询感：可以像两条短消息，但不写任何界面词、软件操作或旁白。',
 };
+
+/**
+ * 语域层：来访者说出口的话不能带咨询师术语、书面腔、助手口吻或不可朗读标记。
+ * 这里只给正向边界，不列举禁用词，避免 prompt 自身成为台词泄漏源。
+ */
+const REGISTER_INSTRUCTION =
+  '语域层：只用来访者能直接说出口的口语；不用咨询或诊断术语、书面连接词、助手口吻或旁白式总结，也不要把动作写进括号或星号里。';
 
 function maxOf(...values: readonly number[]): number {
   return Math.max(0, ...values);
@@ -160,6 +167,7 @@ function buildDirectives(
   return [
     '优先级：安全约束 > 本场接触方式 > 角色声音 > 话轮形态 > 不流利配额。冲突时，前面的压过后面的。',
     `场景层：${SCENE_INSTRUCTION[scene]}`,
+    REGISTER_INSTRUCTION,
     `角色声音层：${ROLE_INSTRUCTION[role]}`,
     `话轮形态层：${SHAPE_INSTRUCTION[shape]}`,
     buildQuotaDirective(quotas, state),

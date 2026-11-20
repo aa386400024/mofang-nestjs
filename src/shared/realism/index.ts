@@ -46,3 +46,5 @@ export {
   type RealismSignal,
   type RealismViolation,
 } from './visitor-realism-audit.js';
+
+export { inspectVisitorRegister, type RegisterAuditResult, type RegisterSignal, type RegisterViolation } from './visitor-register-audit.js';
