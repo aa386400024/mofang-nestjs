@@ -41,10 +41,18 @@ export {
   buildRealismRetryInstruction,
   countRealismEvents,
   inspectVisitorRealism,
+  measureVisitorTurnLength,
   type RealismAuditProfile,
   type RealismAuditResult,
   type RealismSignal,
   type RealismViolation,
 } from './visitor-realism-audit.js';
 
-export { inspectVisitorRegister, type RegisterAuditResult, type RegisterSignal, type RegisterViolation } from './visitor-register-audit.js';
+export {
+  PROMPT_ECHO_MARKERS,
+  inspectVisitorRegister,
+  type RegisterAuditProfile,
+  type RegisterAuditResult,
+  type RegisterSignal,
+  type RegisterViolation,
+} from './visitor-register-audit.js';

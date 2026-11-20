@@ -8,13 +8,15 @@
 //     · 不返回原文，只返回原因与计数，调用方日志不会带台词。
 
 import type { RealismEventKind, RealismEventPlan } from './realism-event-plan.js';
-import type { VisitorTurnShape } from './turn-shape-selector.js';
+import type { RealismScene, VisitorTurnShape } from './turn-shape-selector.js';
 import { inspectVisitorRegister, type RegisterSignal, type RegisterViolation } from './visitor-register-audit.js';
 
 /** 审计用的 profile 面（避免把整个 profile 类型耦合进来）。 */
 export interface RealismAuditProfile {
   readonly state: 'steady' | 'guarded' | 'flooded' | 'risk';
   readonly shape: VisitorTurnShape;
+  /** 本场接触方式；缺省按面对面咨询室处理。 */
+  readonly scene?: RealismScene;
 }
 
 /** 审计结果。 */
@@ -217,7 +219,7 @@ function collectShapeViolations(
   }
 
   // 全局上限：超过三句或明显长段，已经不符合"来访者一次说一到三句"的硬规则。
-  if (countSentences(trimmed) > 3 || visibleLength(trimmed) > 260) reasons.push('too_long');
+  if (measureVisitorTurnLength(trimmed).overGlobalLimit) reasons.push('too_long');
   return reasons;
 }
 
@@ -244,6 +246,24 @@ function collectShapeSignals(trimmed: string, shape: VisitorTurnShape): RealismS
 }
 
 /**
+ * 用量口径：批次基线与运行时审计共用同一份“过长”定义，避免两套阈值分叉。
+ */
+export function measureVisitorTurnLength(text: string): {
+  readonly sentences: number;
+  readonly visibleChars: number;
+  readonly overGlobalLimit: boolean;
+} {
+  const trimmed = text.trim();
+  const sentences = countSentences(trimmed);
+  const visibleChars = visibleLength(trimmed);
+  return {
+    sentences,
+    visibleChars,
+    overGlobalLimit: sentences > 3 || visibleChars > 260,
+  };
+}
+
+/**
  * 审计一段来访者台词是否明显违背本轮话轮形态 / 配额。
  *
  * 只审计明确可判的违约；concrete_detail / emotional_detail / indirect_barb 这类
@@ -252,7 +272,7 @@ function collectShapeSignals(trimmed: string, shape: VisitorTurnShape): RealismS
 export function inspectVisitorRealism(text: string, profile: RealismAuditProfile, plan: RealismEventPlan): RealismAuditResult {
   const trimmed = text.trim();
   const { counts, totalEvents } = countRealismEvents(trimmed);
-  const register = inspectVisitorRegister(trimmed);
+  const register = inspectVisitorRegister(trimmed, { scene: profile.scene });
 
   // 不可朗读文本在任何状态带都是硬违约；风险轮也不接受括号动作或界面词。
   if (trimmed.length === 0 || profile.state === 'risk') {
