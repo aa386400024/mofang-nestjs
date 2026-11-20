@@ -664,11 +664,13 @@ describe('AF-133 · runner · forced-close cue 与风险收束轮', () => {
       sessionProfile: 'long',
     });
 
-    // 第 5 次 engine.turn = 计划轮; 模型原文没有安全计划, runner 必须兜底补齐.
-    const planText = String(engine.turn.mock.calls[4]?.[1] ?? '');
-    expect(planText).toContain('12356');
-    expect(planText).toContain('不要一个人独处');
-    expect(planText).toContain('安全计划');
+    // AF-187: 风险五组改为**会话级账本** —— 第一次收束轮补齐后，后续收束轮不再整套重贴。
+    //   因此这里断言"整场至少补过一次 + 只补一次"，而不是钉死第 5 次 engine.turn。
+    const counselorTexts = engine.turn.mock.calls.map((call) => String(call[1] ?? ''));
+    const planTexts = counselorTexts.filter((text) => text.includes('12356'));
+    expect(planTexts).toHaveLength(1);
+    expect(planTexts[0]).toContain('不要一个人独处');
+    expect(planTexts[0]).toContain('安全计划');
     expect(result.exitReason).toBe('crisis_escalated');
   });
 

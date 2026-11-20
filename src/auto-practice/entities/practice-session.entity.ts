@@ -110,6 +110,31 @@ export class PracticeSession {
   @Column({ type: 'varchar', length: 64, name: 'counselor_mode_id' })
   counselorModeId!: string;
 
+  /**
+   * 本场接触方式 (AF-187): `in_person` / `online`.
+   *
+   * ⚠️ 缺省 `in_person` 是**业务默认**: 新场次不指定就是面对面咨询室.
+   *   历史行由 migration 回填 `in_person`（它们的 prompt 实际也是按"聊天"跑的,
+   *   回填只用于统计口径, 不反推历史内容）.
+   */
+  @Column({ type: 'varchar', length: 16, default: 'in_person', name: 'encounter_mode' })
+  encounterMode!: string;
+
+  /** 线上子通道 `video` / `voice` / `text`；面对面为 NULL. */
+  @Column({ type: 'varchar', length: 16, nullable: true, name: 'encounter_channel' })
+  encounterChannel!: string | null;
+
+  /**
+   * 危机收尾结论 (AF-187): `none` / `safety_plan_completed` / `escalated` / `incomplete`.
+   *
+   * 为什么与 `crisisEnded` 分开:
+   *   `crisisEnded` 的既有语义是"因危机**终止**"（坏结果），
+   *   而"安全收束完成"（热线、联系人、移除危险物都落地）是**好结果**。
+   *   一个 0/1 列表达不了两种语义, 所以新增可读结论列, 保留旧列不动。
+   */
+  @Column({ type: 'varchar', length: 32, nullable: true, name: 'crisis_outcome' })
+  crisisOutcome!: string | null;
+
   /** 场次状态 (见 PracticeSessionStatus). */
   @Column({ type: 'varchar', length: 32, default: 'running' })
   status!: PracticeSessionStatus;

@@ -60,6 +60,7 @@ import {
   completeRoutineClosingText,
   evaluateRiskClosingText,
   evaluateRoutineClosingText,
+  RISK_CLOSING_ELEMENT_KEYS,
   type ClosingElementKey,
   type RiskClosingElementKey,
 } from './metrics/session-structure-audit.js';
@@ -82,6 +83,8 @@ import {
   type SessionCostPricing,
   type SessionUsageTotals,
 } from '../engine-adapters/observability/session-cost.js';
+import { toEncounterColumns, type EncounterInput } from '../shared/encounter/encounter-scene.js';
+import { inspectGeneratedOutput, safeOutputFallback } from '../shared/text/output-integrity.js';
 
 /**
  * 本场累计 LLM 用量 (WP-F Step 0 · 结算时落库到 ap_practice_sessions).
@@ -171,6 +174,12 @@ export interface RunPracticeInput {
   readonly practiceSessionId?: string;
   /** 场景类型 (WP-B: 考核场景硬隔离 rule_only; 缺省 full_simulation). */
   readonly scenarioType?: ScenarioType;
+  /**
+   * 接触方式 (AF-187): 面对面 / 线上（video/voice/text）.
+   *
+   * 缺省 = 面对面由 controller 显式解析后注入；runner 内部不猜场景。
+   */
+  readonly encounter?: EncounterInput;
 }
 
 /**
@@ -179,10 +188,19 @@ export interface RunPracticeInput {
  * ⚠️ 全部是数字 / 枚举 / 轮次 —— **不含任何对话文本**(隐私红线),
  *   可以安全进日志、进库、进看板.
  */
+/**
+ * AF-187 · 危机收尾结论（与旧 `crisisEnded` 分开的可读枚举）.
+ *
+ * - `none`：本场没有进入危机窗；
+ * - `safety_plan_completed`：危机窗内五组安全动作全部落地后正常收尾；
+ * - `escalated`：强度二次升级, 按升级通道终止；
+ * - `incomplete`：走了危机路径但五组未齐 / 修复失败。
+ */
+export type PracticeCrisisOutcome = 'none' | 'safety_plan_completed' | 'escalated' | 'incomplete';
+
 export interface PracticeRunMetrics {
   /** 咨询师语义回响轮数 (反映式复述的计数, 不参与终止). */
-  readonly counselorSemanticEchoTurns: number;
-  /** 是否经历过后置危机练习窗. */
+  readonly counselorSemanticEchoTurns: number; /** 是否经历过后置危机练习窗. */
   readonly crisisPracticed: boolean;
   /** 危机首次披露的轮次 (未披露为 null). */
   readonly crisisFirstTurn: number | null;
@@ -240,6 +258,8 @@ export interface RunPracticeResult {
   readonly exitReason: string;
   readonly turnCount: number;
   readonly crisisEnded: boolean;
+  /** AF-187: 危机收尾可读结论. */
+  readonly crisisOutcome: PracticeCrisisOutcome;
   /** WP-J: 可观测指标 (无对话文本). */
   readonly metrics: PracticeRunMetrics;
 }
@@ -318,6 +338,7 @@ export class PracticeRunnerService implements OnModuleInit {
     let status: PracticeSessionStatus = 'running';
     let exitReason = 'max_turns';
     let crisisEnded = 0;
+    let crisisOutcome: PracticeCrisisOutcome = 'none';
     let turnCount = 0;
     let degradedTurns = 0;
     let counselorDegradedTurns = 0;
@@ -353,6 +374,7 @@ export class PracticeRunnerService implements OnModuleInit {
       status: PracticeSessionStatus;
       exitReason: string;
       crisisEnded: number;
+      crisisOutcome: PracticeCrisisOutcome;
       turnCount: number;
       degradedTurns: number;
       counselorDegradedTurns: number;
@@ -368,6 +390,7 @@ export class PracticeRunnerService implements OnModuleInit {
         status: 'failed',
         exitReason: 'error',
         crisisEnded: 0,
+        crisisOutcome: 'none',
         turnCount: 0,
         degradedTurns: 0,
         counselorDegradedTurns: 0,
@@ -391,6 +414,7 @@ export class PracticeRunnerService implements OnModuleInit {
     status = loopResult.status;
     exitReason = loopResult.exitReason;
     crisisEnded = loopResult.crisisEnded;
+    crisisOutcome = loopResult.crisisOutcome;
     turnCount = loopResult.turnCount;
     degradedTurns = loopResult.degradedTurns;
     counselorDegradedTurns = loopResult.counselorDegradedTurns;
@@ -422,6 +446,7 @@ export class PracticeRunnerService implements OnModuleInit {
       exitReason,
       turnCount,
       crisisEnded,
+      crisisOutcome,
       errorMessage,
       degradedTurns,
       promptTokens: usageTotals.promptTokens,
@@ -457,6 +482,7 @@ export class PracticeRunnerService implements OnModuleInit {
       exitReason,
       turnCount,
       crisisEnded: crisisEnded === 1,
+      crisisOutcome,
       // WP-J: 危机练习窗与语义回响指标 (纯数字/枚举).
       //   ⚠️ WS 契约里这两个是 **boolean** (跟库里那两列的 0/1 不是一回事):
       //   WS 面向前端实时渲染, 库里面向查询与统计 —— 两套载体, 两套表示.
@@ -482,6 +508,7 @@ export class PracticeRunnerService implements OnModuleInit {
       exitReason,
       turnCount,
       crisisEnded: crisisEnded === 1,
+      crisisOutcome,
       metrics,
     };
   }
@@ -507,6 +534,7 @@ export class PracticeRunnerService implements OnModuleInit {
     status: PracticeSessionStatus;
     exitReason: string;
     crisisEnded: number;
+    crisisOutcome: PracticeCrisisOutcome;
     turnCount: number;
     degradedTurns: number;
     /** WP-J P1d: 咨询师侧降级轮数 (两侧拆分, WP-H 改动 5 的列此前无人写). */
@@ -522,6 +550,7 @@ export class PracticeRunnerService implements OnModuleInit {
     let status: PracticeSessionStatus = 'running';
     let exitReason = 'max_turns';
     let crisisEnded = 0;
+    let crisisOutcome: PracticeCrisisOutcome = 'none';
     let turnCount = 0;
     /** 来访者已经说过的话 —— 判"无推进"要跟**全部历史**比, 不是只跟上一轮比. */
     const visitorHistory: string[] = [];
@@ -586,10 +615,10 @@ export class PracticeRunnerService implements OnModuleInit {
       const rawCounselorReply = await this.counselorAgent.generate(
         input.counselorMode,
         history,
-        buildCounselorOptions(profile, i, cue, crisisWindow.active, finalClosingTurn),
+        buildCounselorOptions(profile, i, cue, crisisWindow.active, finalClosingTurn, input.encounter),
       );
       // AF-176: 结构收口统一抽成纯函数，避免主循环复杂度越界。
-      const counselorReply = applyDeterministicStructure(rawCounselorReply, {
+      const structuredCounselorReply = applyDeterministicStructure(rawCounselorReply, {
         profile,
         turnIndex: i,
         crisisWindow,
@@ -597,15 +626,18 @@ export class PracticeRunnerService implements OnModuleInit {
         finalClosingTurn,
         history,
       });
-      if (counselorReply.degraded) {
-        degradedTurns += 1;
-        counselorDegradedTurns += 1;
-      }
+      // AF-187: 咨询师台词落历史前过完整性闸门 —— 推理泄漏/复述 prompt/外语混入
+      //   一律不进 transcript, 用安全短句兜底并计降级轮.
+      const counselorReply = applyCounselorOutputGate(structuredCounselorReply, input.encounter);
+      degradedTurns += boolToInt(counselorReply.degraded);
+      counselorDegradedTurns += boolToInt(counselorReply.degraded);
       history.push({ role: 'counselor', text: counselorReply.text });
       recordClosingTexts(cue, crisisWindow, counselorReply.text, closingTexts, crisisSafetyTexts, counselorReply.closeRequested === true);
 
       // 引擎跑一轮.
-      const result = await this.engine.turn(debugSessionId, counselorReply.text);
+      const rawResult = await this.engine.turn(debugSessionId, counselorReply.text);
+      // AF-187: 来访者台词落历史前过完整性闸门 —— 复述 prompt/推理/外语一律替换.
+      const result = applyVisitorOutputGate(rawResult, input.encounter);
       turnCount = result.turnIndex;
       // WP-F Step 0: 累加本轮 LLM 用量 (只取数字, 不碰任何心理内容).
       this.accumulateUsage(usage, result.trace);
@@ -669,6 +701,7 @@ export class PracticeRunnerService implements OnModuleInit {
 
       if (decision.kind === 'stop') {
         ({ status, exitReason } = resolveStopOutcome(decision));
+        crisisOutcome = resolveCrisisOutcome(decision.reason, crisisWindow.active, history, crisisWindow.firstTurn);
         if (decision.reason === 'stagnant') {
           this.logger.warn(
             `[auto_practice] 判停滞 turn=${result.turnIndex} literal=${decision.literalStreak} no_progress=${decision.noProgressStreak} max_sim=${decision.maxSimilarity.toFixed(2)}`,
@@ -701,6 +734,10 @@ export class PracticeRunnerService implements OnModuleInit {
       status = 'completed';
       exitReason = 'max_turns';
     }
+    // AF-187: 危机收尾结论统一收口 —— 跑满 / 自然收尾也要给出可读完成态.
+    if (crisisOutcome === 'none' && crisisWindow.active) {
+      crisisOutcome = resolveCrisisOutcome(exitReason, true, history, crisisWindow.firstTurn);
+    }
 
     // 降级比 ≥ 50% 加重度降级后缀.
     if (degradedTurns > 0 && turnCount > 0 && degradedTurns / turnCount >= 0.5) {
@@ -721,6 +758,7 @@ export class PracticeRunnerService implements OnModuleInit {
       status,
       exitReason,
       crisisEnded,
+      crisisOutcome,
       turnCount,
       degradedTurns,
       counselorDegradedTurns,
@@ -781,7 +819,7 @@ export class PracticeRunnerService implements OnModuleInit {
     maxTurns: number,
   ): Promise<{ failed: false; debugSessionId: string } | { failed: true; result: RunPracticeResult }> {
     try {
-      const opened = await this.engine.open(input.characterSlug, scenarioType);
+      const opened = await this.engine.open(input.characterSlug, scenarioType, input.encounter);
       return { failed: false, debugSessionId: opened.debugSessionId };
     } catch (error) {
       const errorMessage = errorName(error);
@@ -792,6 +830,7 @@ export class PracticeRunnerService implements OnModuleInit {
         counselorModeId: input.counselorMode.id,
         status: 'failed',
         maxTurns,
+        ...toEncounterColumns(input.encounter),
         turnCount: 0,
         crisisEnded: 0,
         exitReason: 'error',
@@ -813,6 +852,7 @@ export class PracticeRunnerService implements OnModuleInit {
           exitReason: 'error',
           turnCount: 0,
           crisisEnded: false,
+          crisisOutcome: 'none',
           metrics: emptyMetrics(),
         },
       };
@@ -848,6 +888,7 @@ export class PracticeRunnerService implements OnModuleInit {
       counselorModeId: input.counselorMode.id,
       status: 'running',
       maxTurns,
+      ...toEncounterColumns(input.encounter),
       turnCount: 0,
       crisisEnded: 0,
       exitReason: 'max_turns',
@@ -888,6 +929,8 @@ export class PracticeRunnerService implements OnModuleInit {
       exitReason: string;
       turnCount: number;
       crisisEnded: number;
+      /** AF-187: 危机收尾可读结论（none / safety_plan_completed / escalated / incomplete）. */
+      crisisOutcome: PracticeCrisisOutcome;
       errorMessage: string | null;
       degradedTurns: number;
       /** WP-F Step 0: 结算落库的用量与成本. */
@@ -1355,10 +1398,111 @@ function applyDeterministicStructure(
   if (input.finalClosingTurn) result = completeFinalClosingReply(result, input.history);
   // AF-176: 风险收束五组不绑定“强度升级”. 只披露一次、未升级的危机同样可能在
   //   crisisClosing 轮结束; 旧条件要求 escalated 才补齐, 导致 risk-incomplete 漏项.
+  // AF-187: 按**会话级覆盖账本**补齐 —— 历史轮次已落地的组不再重复追加,
+  //   连续风险收束轮最多只补真正缺的那几组.
   if (input.crisisWindow.active && input.cue.crisisClosing) {
-    result = { ...result, text: completeRiskClosingText(result.text) };
+    const coveredBefore = riskGroupsCoveredByHistory(input.history, input.crisisWindow.firstTurn);
+    result = { ...result, text: completeRiskClosingText(result.text, coveredBefore) };
   }
   return result;
+}
+
+/**
+ * AF-187 · 把退出原因 + 历史覆盖折算成可读的危机收尾结论.
+ *
+ * @param reason 终止原因（或跑满时的 exitReason）
+ * @param crisisActive 本场是否进过危机窗
+ * @param history 会话历史
+ * @returns 危机收尾结论
+ */
+function resolveCrisisOutcome(
+  reason: string,
+  crisisActive: boolean,
+  history: readonly CounselorHistoryTurn[],
+  crisisFirstTurn = 1,
+): PracticeCrisisOutcome {
+  if (!crisisActive) return 'none';
+  if (reason.startsWith('crisis_escalated')) return 'escalated';
+  if (reason.startsWith('crisis_safety_incomplete')) return 'incomplete';
+  const covered = riskGroupsCoveredByHistory(history, crisisFirstTurn);
+  return covered.length >= RISK_CLOSING_ELEMENT_KEYS.length ? 'safety_plan_completed' : 'incomplete';
+}
+
+/**
+ * AF-187 · 从会话历史算出**已经落地**的风险收束组.
+ *
+ * 只扫咨询师台词，且只扫危机披露之后的部分：来访者提"热线"不等于咨询师做过风险收束，
+ * 披露前聊到别人的安全计划也不能充数。
+ *
+ * @param history 会话历史（咨询师/来访者交替，从第 1 轮开始）
+ * @param crisisFirstTurn 危机首次披露轮次（1-based）
+ * @returns 已覆盖的风险组
+ */
+function riskGroupsCoveredByHistory(history: readonly CounselorHistoryTurn[], crisisFirstTurn = 1): readonly RiskClosingElementKey[] {
+  // 历史按「咨询师 → 来访者」成对推进。危机是在来访者第 N 轮披露的，因此披露轮的
+  // 咨询师台词（同一轮的前半段）必须排除，从下一轮咨询师开始算：
+  //   (firstTurn - 1) * 2 = 披露轮咨询师；再 + 2 = 披露后的第一句咨询师。
+  const fromIndex = Math.max(0, (crisisFirstTurn - 1) * 2 + 2);
+  const counselorText = history
+    .slice(fromIndex)
+    .filter((turn) => turn.role === 'counselor')
+    .map((turn) => turn.text)
+    .join('\n');
+  if (counselorText.length === 0) return [];
+  const evaluation = evaluateRiskClosingText(counselorText);
+  return RISK_CLOSING_ELEMENT_KEYS.filter((key) => evaluation.elements[key].covered);
+}
+
+/**
+ * AF-187 · 布尔值转 0/1（用于在不增加主循环分支的前提下累加降级计数）.
+ *
+ * @param value 可能缺省的布尔标记
+ * @returns true → 1；其余 → 0
+ */
+function boolToInt(value: boolean | undefined): number {
+  return value === true ? 1 : 0;
+}
+
+/**
+ * AF-187 · 咨询师台词输出完整性闸门.
+ *
+ * 命中提示词复述 / 无标签推理 / 异常外语 / 场景漂移 → 换成安全短句并标降级；
+ * 未命中则原样返回（不润色、不改写）。
+ */
+function applyCounselorOutputGate(reply: CounselorReply, encounter?: EncounterInput): CounselorReply {
+  const verdict = inspectGeneratedOutput(reply.text, 'counselor', encounter);
+  if (!verdict.invalid) {
+    // 合法但含**已闭合**的推理块：落历史前用剥离后的干净文本，不让推理过程进逐字稿。
+    return verdict.clean === reply.text ? reply : { ...reply, text: verdict.clean };
+  }
+  return {
+    ...reply,
+    text: safeOutputFallback('counselor'),
+    degraded: true,
+    closeRequested: false,
+  };
+}
+
+/**
+ * AF-187 · 来访者台词输出完整性闸门.
+ *
+ * 命中复述 prompt / 推理 / 外语 / 场景漂移 → 替换为安全短句并把 trace 标降级，
+ * 坏文本绝不进入 history 或逐字稿。
+ */
+function applyVisitorOutputGate(result: EngineTurnResult, encounter?: EncounterInput): EngineTurnResult {
+  // 空回复 = 上游阻断/没生成（不是坏台词），保持原样，否则会把"没出声"改写成"出声了"，
+  // 让阻断轮统计和来访者行为同时失真。
+  if (result.reply.trim().length === 0) return result;
+  const verdict = inspectGeneratedOutput(result.reply, 'visitor', encounter);
+  if (!verdict.invalid) {
+    // 合法但含已闭合推理块 → 用剥离后的文本落库，推理过程不得进逐字稿/后续上下文。
+    return verdict.clean === result.reply ? result : { ...result, reply: verdict.clean };
+  }
+  return {
+    ...result,
+    reply: safeOutputFallback('visitor'),
+    trace: { ...result.trace, degraded: true },
+  };
 }
 
 function buildCounselorOptions(
@@ -1374,11 +1518,13 @@ function buildCounselorOptions(
   },
   crisisActive: boolean,
   finalClosing = false,
+  encounter?: EncounterInput,
 ): CounselorGenerateContext {
   return {
     crisisMode: crisisActive,
     sessionProfile: profile.name,
     turnIndex,
+    encounter,
     closingCue: cue.forcedClose ? 'forced' : undefined,
     remainingTurns: cue.forcedClose ? cue.remainingTurns : undefined,
     crisisClosing: cue.crisisClosing,
