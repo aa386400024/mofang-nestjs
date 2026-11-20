@@ -1,0 +1,213 @@
+{
+  "deliveredAt": "2026-11-20T21:00:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-202-1",
+    "taskId": "AF-202",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "7b16f69654c500df1ea9807f0f35ea6a90f312a7",
+    "dependsOn": [],
+    "policyRefs": [
+      "conventions.md#1.2",
+      "conventions.md#1.3",
+      "conventions.md#5"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-202/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af202-scene-default-voice-boundary-matrix-2026-11-20.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "test/auto-practice/af200-scene-boundary-matrix.spec.ts",
+        "docs/worklog/completed/phase2.5/af201-scene-default-voice-boundary-matrix-2026-11-20.md",
+        "docs/worklog/completed/phase2.5/af202-scene-default-voice-boundary-matrix-2026-11-20.md"
+      ],
+      "modified": [
+        "src/shared/encounter/encounter-scene.ts",
+        "src/auto-practice/auto-practice.controller.ts",
+        "admin-dashboard/src/views/AutoPractice.vue",
+        "test/auto-practice/af187-encounter-output-integrity.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": [
+        "85888fa414655af739cd44d8338353467dfd50fd"
+      ]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec eslint --no-cache \"{src,test,bin}/**/*.ts\"",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 40s",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 25s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm --dir admin-dashboard type-check",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 20s",
+        "note": "vue-tsc --build 无输出"
+      },
+      {
+        "command": "pnpm test -- test/auto-practice/af187-encounter-output-integrity.spec.ts test/auto-practice/af200-scene-boundary-matrix.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "同上",
+        "wallClock": "1.68s",
+        "note": "29 tests passed（22 场景/完整性 + 7 边界矩阵）"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 224,
+        "machine": "同上",
+        "wallClock": "23.92s",
+        "note": "224 passed + 1 skipped files；3956 passed + 4 skipped tests"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs worklog verify --strict",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "PASS 活跃=1 归档=213 记录包=213"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "执行提交 85888fa4 同时包含实现、AF-200/AF-201 历史记录、AF-202 任务单、交付记录与 submitted 状态面；提交标题只含 AF-202。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-202 贯穿任务单、回执、交付记录与状态面"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记/提级/领取/取消/归档只经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-200 canceled、AF-201 rejected 原样保留"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "engine-core 零 diff"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执、交付记录、任务单同源"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF202-01",
+        "impact": "真实模型 24 场边界批次未执行，AI rubric 阈值未校准",
+        "severity": "medium",
+        "schedule": "下一任务单接入"
+      },
+      {
+        "id": "BL-AF202-02",
+        "impact": "流式已吐 token 不撤回，展示侧过滤未做",
+        "severity": "medium",
+        "schedule": "独立任务做展示侧过滤"
+      },
+      {
+        "id": "BL-AF202-03",
+        "impact": "第三场景（家庭走访/电话）只留注册表扩展位",
+        "severity": "low",
+        "schedule": "有真实使用方再开放"
+      },
+      {
+        "id": "BL-AF202-04",
+        "impact": "迁移 AddEncounterAndCrisisOutcome1714900000048 列级 SQL 未人工复验",
+        "severity": "medium",
+        "schedule": "用 bin/ormconfig 复验"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "任务标识",
+        "taskSays": "AF-201",
+        "reality": "AF-202",
+        "action": "重签发并显式纳入 AF-200/AF-201 记录目录",
+        "why": "AF-201 执行提交带入 AF-200 记录，V7 判 scope 外"
+      },
+      {
+        "item": "边界矩阵文件",
+        "taskSays": "AF-202 新测试",
+        "reality": "文件名保留 af200- 前缀",
+        "action": "内容归属 AF-202",
+        "why": "矩阵在 AF-200 首次建立，保留前缀作为审计链"
+      },
+      {
+        "item": "真实模型批次",
+        "taskSays": "建议 24 场起跑",
+        "reality": "只落确定性矩阵",
+        "action": "登记 BL-AF202-01",
+        "why": "需要 LLM 配额与 rubric 任务单，不在本单伪造"
+      },
+      {
+        "item": "前端验证",
+        "taskSays": "默认语音",
+        "reality": "只跑 vue-tsc",
+        "action": "类型通过，留灰度点选",
+        "why": "未做浏览器交互验收"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "控制器、注册表、前端三处统一为语音缺省；7 模式 × 3 场景 21 组合；29 例定向与 3956 例全量通过；lint/typecheck/前端类型检查/worklog strict 全绿；engine-core 零 diff；AF-200/AF-201 记录目录已显式纳入 scope。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
