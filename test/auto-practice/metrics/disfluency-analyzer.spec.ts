@@ -2,10 +2,13 @@
 //   覆盖蓝图 §6 P0 与本单 §5.6: 六类识别 / 消歧优先级 / 叠词白名单 / 连接词排除 /
 //   聚合口径 / 边界 (空文本 · 纯标点 · 超长句) / 确定性.
 //   纯函数测试: 不起 Nest, 不连 DB, 不读任何真实逐字稿.
+//
+//   AF-204 扩充: repair 严格口径 (否定判断「是不是」「我不是本地人」不再误计,
+//   真正的改口「不对，我是……」「应该是……」「换个说法」仍然计一次) + 严格/宽松口径对照.
 
 import { describe, expect, it } from 'vitest';
 
-import { analyzeDisfluency } from '../../../src/auto-practice/metrics/disfluency-analyzer.js';
+import { analyzeDisfluency, countLooseRepairs, countStrictRepairs } from '../../../src/auto-practice/metrics/disfluency-analyzer.js';
 import {
   aggregateDisfluency,
   EMPTY_DISFLUENCY_METRICS,
@@ -156,5 +159,47 @@ describe('Phase3 P0 · 归一化口径', () => {
   it('识别口径: 连续省略号合并为一个, 破折号统一', () => {
     expect(normalizeForDetection('等等……')).toBe('等等…');
     expect(normalizeForDetection('嗯——')).toBe('嗯——');
+  });
+});
+
+describe('AF-204 · repair 严格口径 (否定判断不再误计)', () => {
+  it.each([
+    ['疑问句「是不是」', '我是不是该问问他'],
+    ['否定判断「我不是本地人」', '我不是本地人，是外地来这边工作的'],
+    ['普通否定「这不是什么大事」', '这其实不是什么大事'],
+    ['评价「你说得不对」', '你说得不对'],
+  ])('%s 不计自我修正', (_name, text) => {
+    expect(analyzeDisfluency(text).counts.repair).toBe(0);
+  });
+
+  it.each([
+    ['真正改口「不对，我是……」', '不对，我是他的同事'],
+    ['真正改口「应该是……」', '我应该是他的同事'],
+    ['真正改口「换个说法」', '换个说法，我不太好形容'],
+    ['「其实不是这样」', '其实不是这样'],
+  ])('%s 计一次', (_name, text) => {
+    expect(analyzeDisfluency(text).counts.repair).toBe(1);
+  });
+
+  it('等待标记「等等」本身不算改口, 接上改述才算', () => {
+    expect(analyzeDisfluency('等等').counts.repair).toBe(0);
+    expect(analyzeDisfluency('等等，我刚说错了').counts.repair).toBe(1);
+  });
+
+  it('严格口径与宽松口径的差值可审计 (假阳性被消掉, 真改口不被削)', () => {
+    // 假阳性样本: 宽松口径误计, 严格口径不误计.
+    expect(countLooseRepairs('我是不是该问问他')).toBe(1);
+    expect(countStrictRepairs('我是不是该问问他')).toBe(0);
+    expect(countLooseRepairs('我不是本地人')).toBe(1);
+    expect(countStrictRepairs('我不是本地人')).toBe(0);
+    // 真改口样本: 两套口径都认.
+    expect(countStrictRepairs('不对，我是他的同事')).toBe(1);
+    expect(countLooseRepairs('不对，我是他的同事')).toBe(1);
+    expect(countStrictRepairs('换个说法，我不太好形容')).toBe(1);
+  });
+
+  it('严格口径计数是纯函数 (同输入两次结果相同)', () => {
+    const text = '不对，我不是本地人……等等，我刚说错了';
+    expect(countStrictRepairs(text)).toBe(countStrictRepairs(text));
   });
 });
