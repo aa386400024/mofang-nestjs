@@ -28,6 +28,7 @@ import type { ScenarioType } from './inference-fingerprint.service.js';
 import { PracticeBatchHealthService } from './practice-batch-health.service.js';
 import { PracticeRunnerService } from './practice-runner.service.js';
 import type { SessionProfileName } from './session-profile.js';
+import type { EncounterInput } from '../shared/encounter/encounter-scene.js';
 import { QUEUE_NAMES } from '../shared/infra/redis/redis.constants.js';
 import { RedisService } from '../shared/infra/redis/redis.service.js';
 
@@ -57,6 +58,12 @@ export interface AutoPracticeJobData {
    *   与 scenarioType 同款纪律: 队列层不写死缺省, 只透传.
    */
   readonly sessionProfile?: SessionProfileName;
+  /**
+   * 接触方式（AF-187）.
+   *
+   * 缺省 = 队列层不写死, 由入口显式解析后注入；runner 不猜场景。
+   */
+  readonly encounter?: EncounterInput;
 }
 
 /**
@@ -199,6 +206,8 @@ export class PracticeQueueService implements OnModuleInit, OnModuleDestroy {
       scenarioType: data.scenarioType,
       // 会话档案原样透传 (缺省 = undefined → runner 缺省 `legacy`).
       sessionProfile: data.sessionProfile,
+      // AF-187: 接触方式原样透传 (入口已解析, 队列不猜).
+      encounter: data.encounter,
     });
     // V2026-11-10 治本 (WP-H 改动 9 + 新增 12): 批次收尾时算有效性门禁 + 写逐字稿索引.
     //   只在"批次全部跑完"时才落库 (最后一场跑完的那次会命中) —— 中途不落, 免得刷 100 次.

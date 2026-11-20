@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-198",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-20T19:30:00+08:00",
+  "updatedAt": "2026-11-20T11:11:12.058Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-198/task-sheet.md",
+    "sha256": "df4b64222255bc54ba8712f1d04c766320e36a4327d283e17fae8a42e20c246c",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-198/receipt-RC-AF-198-1.json",
+      "sha256": "1efe6b9cb32203d856dfe766b63f8fa4183faefdbf8926c89e5b5937eb51280c",
+      "receiptId": "RC-AF-198-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af198-encounter-delivery-2026-11-20.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af198-encounter-delivery-task-2026-11-20.md"
+  ],
+  "tombstone": null
+}

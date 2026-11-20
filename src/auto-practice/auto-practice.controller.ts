@@ -42,6 +42,13 @@ import {
   CHARACTER_PROFILE_RESOLVER,
   type CharacterProfileResolver,
 } from '../engine-adapters/wiring/character/character-profile.resolver.js';
+import {
+  ENCOUNTER_MODES,
+  ENCOUNTER_ONLINE_CHANNELS,
+  isSupportedEncounterChannel,
+  isSupportedEncounterMode,
+  type EncounterInput,
+} from '../shared/encounter/encounter-scene.js';
 
 /** 启动单场对练的入参. */
 interface StartSessionBody {
@@ -58,6 +65,14 @@ interface StartSessionBody {
    *   "看着像长会话"的普通数据, 事后没人查得出来 (与 scenarioType 同款纪律).
    */
   readonly sessionProfile?: string;
+  /**
+   * 接触方式（AF-187）：`in_person`（默认）/ `online`.
+   *
+   * 不传 = 面对面咨询室；线上必须再给 `encounterChannel`.
+   */
+  readonly encounterMode?: string;
+  /** 线上子通道：`video` / `voice` / `text`；面对面忽略. */
+  readonly encounterChannel?: string;
 }
 
 /** 批量入队的入参. */
@@ -83,6 +98,10 @@ interface BatchBody {
    *   —— 缺省语义只留一份 (在 runner 里), 入口再写一份就迟早漂移.
    */
   readonly scenarioType?: ScenarioType;
+  /** 接触方式（AF-187）：`in_person`（默认）/ `online`. */
+  readonly encounterMode?: string;
+  /** 线上子通道：`video` / `voice` / `text`；面对面忽略. */
+  readonly encounterChannel?: string;
 }
 
 /** 模式 CRUD 的入参. */
@@ -134,6 +153,10 @@ export class AutoPracticeController {
       return { error: profile.error };
     }
     const sessionProfile = profile.value ?? 'legacy';
+    const encounter = this.resolveEncounterForRequest(body?.encounterMode, body?.encounterChannel);
+    if (encounter.error) {
+      return { error: encounter.error };
+    }
     const mode = await this.modeRepo.findOne({ where: { id: counselorModeId, enabled: 1 } });
     if (!mode) {
       return { error: `咨询师模式不存在或未启用: ${counselorModeId}` };
@@ -149,6 +172,7 @@ export class AutoPracticeController {
         counselorMode: mode,
         maxTurns: body?.maxTurns,
         sessionProfile,
+        encounter: encounter.value!,
         batchId: null,
         practiceSessionId,
       })
@@ -188,21 +212,12 @@ export class AutoPracticeController {
     if (characterCheck.error) {
       return characterCheck;
     }
-    // 场景类型: 非法值**明确报错**, 不静默回落 `full_simulation` ——
-    //   考核场景走的是"锁版本 / 锁温度 / 逐字复现"红线 (审议恒 `rule_only`),
-    //   把拼错的 `exam` 悄悄跑成 `full_simulation` = 产出一批"看着像考核"的普通数据,
-    //   事后没人查得出来. 宁可当场报错, 也不让脏批次进队列.
-    //   (返回口径与本模块其它校验一致: body 里带 `error` 字段, 不改 HTTP 状态码语义.)
-    const scenario = parseBatchScenarioType(body?.scenarioType);
-    if (scenario.error) {
-      return { error: scenario.error };
+    // 场景类型 / 会话档案 / 接触方式三项校验统一收口，压住端点复杂度。
+    const context = this.resolveBatchContext(body);
+    if ('error' in context) {
+      return { error: context.error };
     }
-    // AF-091: 会话档案 (缺省 legacy; 非法值当场报错, 不静默回落).
-    const profile = this.resolveProfileForRequest(body?.sessionProfile, body?.maxTurns);
-    if (profile.error) {
-      return { error: profile.error };
-    }
-    const sessionProfile = profile.value ?? 'legacy';
+    const { scenarioType, sessionProfile, encounter } = context.value;
     const profileSpec = resolveSessionProfile(sessionProfile);
     const batchId = nanoid();
     const enqueued = await this.enqueueCombinations({
@@ -212,10 +227,11 @@ export class AutoPracticeController {
       batchId,
       // ⚠️ 缺省轮数取自**档案** (legacy = 15, long = 50) —— 显式 maxTurns 优先.
       maxTurns: body?.maxTurns ?? profileSpec.maxTurns,
-      scenarioType: scenario.value,
+      scenarioType,
       sessionProfile,
+      encounter,
     });
-    return { batchId, enqueued, sessionProfile };
+    return { batchId, enqueued, sessionProfile, encounter };
   }
 
   /**
@@ -258,6 +274,7 @@ export class AutoPracticeController {
     readonly maxTurns: number;
     readonly scenarioType?: ScenarioType;
     readonly sessionProfile: SessionProfileName;
+    readonly encounter: EncounterInput;
   }): Promise<number> {
     let enqueued = 0;
     for (const slug of params.characterSlugs) {
@@ -272,12 +289,77 @@ export class AutoPracticeController {
             ...(params.scenarioType ? { scenarioType: params.scenarioType } : {}),
             // 同款: 档案只透传, 缺省由 runner 兜 (legacy).
             ...(params.sessionProfile === 'legacy' ? {} : { sessionProfile: params.sessionProfile }),
+            encounter: params.encounter,
           });
           enqueued += 1;
         }
       }
     }
     return enqueued;
+  }
+
+  /**
+   * 批量入队的场景 / 档案 / 接触方式三项校验（AF-187 抽出，压住端点复杂度）。
+   *
+   * @param body 批量请求体
+   * @returns 成功时给三项归一结果；失败时给可直接回给调用方的 error
+   */
+  private resolveBatchContext(body: BatchBody):
+    | { readonly error: string }
+    | {
+        readonly value: {
+          readonly scenarioType: ScenarioType | undefined;
+          readonly sessionProfile: SessionProfileName;
+          readonly encounter: EncounterInput;
+        };
+      } {
+    // 场景类型: 非法值**明确报错**, 不静默回落 `full_simulation` ——
+    //   考核场景走"锁版本 / 锁温度 / 逐字复现"红线, 拼错的 `exam` 会被跑成
+    //   一批"看着像考核"的普通数据, 事后没人查得出来.
+    const scenario = parseBatchScenarioType(body?.scenarioType);
+    if (scenario.error) return { error: scenario.error };
+    // AF-091: 会话档案 (缺省 legacy; 非法值当场报错).
+    const profile = this.resolveProfileForRequest(body?.sessionProfile, body?.maxTurns);
+    if (profile.error) return { error: profile.error };
+    const encounter = this.resolveEncounterForRequest(body?.encounterMode, body?.encounterChannel);
+    if (encounter.error) return { error: encounter.error };
+    return {
+      value: {
+        scenarioType: scenario.value,
+        sessionProfile: profile.value ?? 'legacy',
+        encounter: encounter.value ?? { mode: 'in_person' },
+      },
+    };
+  }
+
+  /**
+   * 解析接触方式（AF-187）.
+   *
+   * 口径:
+   *   · 缺省 = `in_person`（业务默认, 咨询室面对面）;
+   *   · `online` 必须给合法子通道, 缺省 video;
+   *   · 非法值当场报错, 不静默回落 —— 与 scenarioType / sessionProfile 同款纪律.
+   *
+   * @param rawMode 请求里的 encounterMode
+   * @param rawChannel 请求里的 encounterChannel
+   * @returns 成功时给归一场景, 失败时给错误信息
+   */
+  private resolveEncounterForRequest(
+    rawMode: string | undefined,
+    rawChannel: string | undefined,
+  ): { readonly value?: EncounterInput; readonly error?: string } {
+    const mode = (rawMode ?? 'in_person').trim();
+    if (!isSupportedEncounterMode(mode)) {
+      return { error: `encounterMode 非法: ${mode}（可选 ${ENCOUNTER_MODES.join(' / ')}）` };
+    }
+    if (mode === 'in_person') {
+      return { value: { mode } };
+    }
+    const channelRaw = (rawChannel ?? '').trim();
+    if (channelRaw.length > 0 && !isSupportedEncounterChannel(channelRaw)) {
+      return { error: `encounterChannel 非法: ${channelRaw}（可选 ${ENCOUNTER_ONLINE_CHANNELS.join(' / ')}）` };
+    }
+    return { value: { mode, channel: channelRaw.length > 0 ? channelRaw : 'video' } };
   }
 
   /**

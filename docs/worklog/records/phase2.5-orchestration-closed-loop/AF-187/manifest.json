@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-187",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "rejected",
+  "createdAt": "2026-11-20T17:20:00Z",
+  "updatedAt": "2026-11-20T10:37:27.410Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-187/task-sheet.md",
+    "sha256": "1bdab4bedc554e84899092c5d24c2933b9e64321f1b2c56f961c3ab99b4833c7",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-187/receipt-RC-AF-187-1.json",
+      "sha256": "57ec9dc9c72c928e8f11d2eaf188dcab4a615eef5baa4e68a375fb840949b913",
+      "receiptId": "RC-AF-187-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af187-encounter-scene-output-integrity-2026-11-20.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af187-encounter-scene-output-integrity-task-2026-11-20.md"
+  ],
+  "tombstone": null
+}

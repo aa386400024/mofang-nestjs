@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 818,
+    "lastEventSeq": 868,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -1782,6 +1782,96 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-186/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af186-exit4-legacy-closure-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-187",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-187/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af187-encounter-scene-output-integrity-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-188",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-188/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af188-af187-encounter-closure-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-189",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-189/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af189-af187-encounter-delivery-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-190",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-190/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af190-encounter-delivery-final-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-191",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-191/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af191-encounter-delivery-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-193",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-193/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af193-executor-card-records-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-192",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-192/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-194",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-194/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af194-encounter-delivery-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-197",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-197/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af197-encounter-delivery-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-198",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-198/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af198-encounter-delivery-2026-11-20.md",
         "reply": null
       }
     }
