@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-214",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-21T01:35:00+08:00",
+  "updatedAt": "2026-11-20T18:05:47.835Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-214/task-sheet.md",
+    "sha256": "481dd69afe21b3df47fa226fc98d424b30a97332eb9b145d1de4d44f9420a84a",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-214/receipt-RC-AF-214-1.json",
+      "sha256": "609829a60563dfced7a456765b736daef7e4ebd8ffdb693a1c80791e25ae420a",
+      "receiptId": "RC-AF-214-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af214-realism-ai-double-blind-2026-11-21.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af214-visitor-realism-ai-double-blind-task-2026-11-21.md"
+  ],
+  "tombstone": null
+}
