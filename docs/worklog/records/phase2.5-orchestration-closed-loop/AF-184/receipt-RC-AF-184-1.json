@@ -1,0 +1,169 @@
+{
+  "deliveredAt": "2026-11-20T18:00:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-184-1",
+    "taskId": "AF-184",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "6319b46802506dc3b9b3e2e79e9b72c0506fa6f3",
+    "dependsOn": [],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-184/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af184-af177-late-receipt-two-stage-2026-11-20.md",
+      "reply": null,
+      "others": [
+        "AF-177 代码提交 d0617cad7df4a643390e6676126ab24c3b0ed2bf（历史承接，不纳入本任务文件域比对）",
+        "正式批次 UkSF5iptOu-UPavffjfRz：48 场 / 44 completed + 4 crisis_ended / 1900 轮",
+        "48 packet / 结构审计 / AI 双盲 均在 data/phase25-exit/af177-*",
+        "本单不重跑批次、不重算 κ"
+      ]
+    },
+    "changedFiles": {
+      "added": ["docs/worklog/completed/phase2.5/af184-af177-late-receipt-two-stage-2026-11-20.md"],
+      "modified": ["docs/worklog/pending/phase2.5-README.md"],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["1d6bfdbeea6aa17e90cc11f546a8cf2a3671f42a"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "承接 AF-177 同期结果",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "承接 AF-177 同期结果",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm exec vitest run test/auto-practice/af111-long-session-acceptance.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "承接 AF-177 同期结果",
+        "note": "1 file / 10 tests passed"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 223,
+        "machine": "同上",
+        "wallClock": "承接 AF-177 同期结果",
+        "note": "222 files passed + 1 skipped；3927 tests passed + 4 skipped"
+      },
+      {
+        "command": "git diff --stat HEAD~6 -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空；内核零 diff"
+      }
+    ],
+    "reproNotes": "AF-177 证据复跑见其交付记录；本单只补闭环，不重跑 48 场 long 批次。两段提交：验收提交 1d6bfdb 只含交付文档；记录包与归档状态在第二提交。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-184 贯穿任务单、回执、交付记录、状态索引与事件日志"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "登记/提级/领取均经 CLI；本回执由 run-once 摄入"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "任务单 contractRef / scope / gates / artifacts 齐全；回执六组标记齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "未手改 journal / index；AF-177/AF-179/AF-180/AF-181/AF-182 rejected、AF-183 canceled 保持原样"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "回执与 AF-184 交付记录同源；AF-177 证据数字原样引用"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF184-01",
+        "impact": "7 场 risk-incomplete / 6 场 safety=2；出口④ safety 硬门 FAIL",
+        "severity": "high",
+        "schedule": "独立任务：修风险识别或确定性收束，再复跑同一 48 packet"
+      },
+      {
+        "id": "BL-AF184-02",
+        "impact": "overall κ 0.295711 <0.40；trust κ=0.125198、verbal κ=0.010846",
+        "severity": "high",
+        "schedule": "独立任务：评分锚点/维度定义稳定性复核；不下调 0.40"
+      },
+      {
+        "id": "BL-AF184-03",
+        "impact": "出口⑤ 1000+ 场未启动",
+        "severity": "high",
+        "schedule": "独立数据任务：定批次组成、去重账本与并发"
+      },
+      {
+        "id": "BL-AF184-04",
+        "impact": "records 目录不在状态面，记录包提交触发 V7/域冲突，需要两段式绕行",
+        "severity": "medium",
+        "schedule": "编排层：把 records 纳入状态面或明确排除"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "任务承接",
+        "taskSays": "AF-184 终态承接 AF-177",
+        "reality": "AF-177/179/180/181/182 rejected、AF-183 canceled，CLI 无 reopen",
+        "action": "保留原事件链，AF-184 完成闭环",
+        "why": "不手改 journal / index；伪造 completed 会破坏哈希链"
+      },
+      {
+        "item": "两段提交",
+        "taskSays": "验收提交只含交付文档",
+        "reality": "记录包 manifest 不在 scope 且 records 属编排域",
+        "action": "验收提交 1d6bfdb 不含 records；第二提交补记录包与归档状态",
+        "why": "避免 V7 scope 外与 executor 域冲突"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "conditional-pass",
+    "verdictRationale": "落地：AF-177 代码与 48 packet 证据原样承接，AF-184 完成回执与归档；证据：批次/结构审计/双盲数字与原提交一致，engine-core 零 diff；范围：验收提交 in-scope；未达项：出口④ 六门 4/6（safety、κ 两门 FAIL），已在交付记录显式登记。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
