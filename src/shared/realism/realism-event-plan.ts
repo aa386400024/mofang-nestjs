@@ -7,6 +7,7 @@
 //     ③ 风险轮计划为空：安全信息优先清楚，真人感不压过可听性；
 //     ④ 纯函数，不读 env、不写日志、不落库。
 
+import type { RealismEventRhythm } from './realism-event-rhythm.js';
 import type { RealismScene, RealismStateBand, VisitorVoiceRole } from './turn-shape-selector.js';
 
 /** 六类文字层口语事件（与 Phase3 不流利度量同一组类型）。 */
@@ -140,11 +141,16 @@ export function buildRealismEventPlan(input: {
 /**
  * 把事件计划拼成 prompt 里的一行。
  *
+ * R6: 传入 rhythm 时追加“停顿在哪里、有多长、改口在句中还是句缝、分句上限”的条件指令；
+ * 不传 rhythm 时保持 R2 的原文案，供旧调用与回归逐字比对。
+ *
  * @param plan 事件计划
- * @returns 空计划返回空串；否则返回候选词表与合计上限
+ * @param rhythm 状态化节奏（可选）
+ * @returns 空计划返回空串
  */
-export function buildRealismEventPromptLine(plan: RealismEventPlan): string {
+export function buildRealismEventPromptLine(plan: RealismEventPlan, rhythm?: RealismEventRhythm): string {
   if (plan.maxEvents <= 0 || plan.options.length === 0) return '';
   const options = plan.options.map((option) => `${option.hint}（「${option.token}」，最多 ${option.maxCount} 处）`).join('；');
-  return `这一轮的口语痕迹候选：${options}。六类合计最多 ${plan.maxEvents} 处，按需取用，不必全用。`;
+  const base = `这一轮的口语痕迹候选：${options}。六类合计最多 ${plan.maxEvents} 处，按需取用，不必全用。`;
+  return rhythm === undefined ? base : `${base}${rhythm.conditionDirective}`;
 }

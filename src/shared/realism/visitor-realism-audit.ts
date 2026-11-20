@@ -175,6 +175,90 @@ export function countRealismEvents(text: string): {
   };
 }
 
+/** 停顿 span 长度分类：一组省略号 / 两组省略号 / 更长或连续断裂。 */
+export type RealismPauseSpanClass = 'brief' | 'held' | 'broken';
+
+/** 改口位置分类：句首 / 句缝（逗号、分号、句号后）/ 句中。 */
+export type RealismRepairPositionClass = 'start' | 'clause_boundary' | 'mid_sentence';
+
+/**
+ * 事件分布审计：只做可观察的计数与分类，不返回台词原文。
+ *
+ * 与 countRealismEvents 的差别：这里额外保留停顿 span 长度、改口位置、句子/分句数与
+ * 短答/碎片形态，供 R6 条件分布对比与报告使用；总事件计数仍以 countRealismEvents 为准。
+ */
+export interface RealismEventDistribution {
+  readonly counts: Readonly<Record<RealismEventKind, number>>;
+  readonly totalEvents: number;
+  readonly pauseSpans: number;
+  readonly pauseSpanClasses: Readonly<Record<RealismPauseSpanClass, number>>;
+  readonly repairPositions: Readonly<Record<RealismRepairPositionClass, number>>;
+  readonly sentences: number;
+  readonly clauses: number;
+  readonly visibleChars: number;
+  readonly shortAnswer: boolean;
+  readonly fragmented: boolean;
+}
+
+const REPAIR_PATTERN = /不对[，,]\s*我是说|我是说|应该是|换个说法|不是[，,]\s*(?:我是说|而是)|不是.{0,10}而是/g;
+const PAUSE_SPAN_PATTERN = /…+|—+|\.{3,}/g;
+
+function classifyPauseSpan(length: number): RealismPauseSpanClass {
+  if (length >= 5) return 'broken';
+  if (length >= 3) return 'held';
+  return 'brief';
+}
+
+function classifyRepairStart(text: string, start: number): RealismRepairPositionClass {
+  const prefix = text.slice(0, start).trimEnd();
+  if (prefix.length === 0) return 'start';
+  const last = prefix.at(-1);
+  return last !== undefined && '，,；;。！？!?'.includes(last) ? 'clause_boundary' : 'mid_sentence';
+}
+
+/**
+ * 统计事件分布。
+ *
+ * @param text 已生成的来访者台词
+ * @returns 计数与分类；不含原文
+ */
+export function inspectRealismEventDistribution(text: string): RealismEventDistribution {
+  const trimmed = text.trim();
+  const { counts, totalEvents } = countRealismEvents(trimmed);
+  const pauseSpanClasses: Record<RealismPauseSpanClass, number> = { brief: 0, held: 0, broken: 0 };
+  let pauseSpans = 0;
+  for (const match of trimmed.matchAll(PAUSE_SPAN_PATTERN)) {
+    const length = match[0].length;
+    pauseSpanClasses[classifyPauseSpan(length)] += 1;
+    pauseSpans += 1;
+  }
+
+  const repairPositions: Record<RealismRepairPositionClass, number> = {
+    start: 0,
+    clause_boundary: 0,
+    mid_sentence: 0,
+  };
+  for (const match of trimmed.matchAll(REPAIR_PATTERN)) {
+    repairPositions[classifyRepairStart(trimmed, match.index ?? 0)] += 1;
+  }
+
+  const sentences = countSentences(trimmed);
+  const clauses = countClauses(trimmed);
+  const visibleChars = visibleLength(trimmed);
+  return {
+    counts,
+    totalEvents,
+    pauseSpans,
+    pauseSpanClasses,
+    repairPositions,
+    sentences,
+    clauses,
+    visibleChars,
+    shortAnswer: sentences <= 2 && clauses <= 2 && visibleChars <= 70,
+    fragmented: counts.trailoff > 0 || pauseSpans > 0,
+  };
+}
+
 function isShortAnswerTooLong(trimmed: string): boolean {
   return countSentences(trimmed) > 2 || countClauses(trimmed) > 4 || visibleLength(trimmed) > 100;
 }
