@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-213",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-21T01:15:00+08:00",
+  "updatedAt": "2026-11-20T17:09:03.573Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-213/task-sheet.md",
+    "sha256": "986192a5af6f116ea8af8ba66966182415aee2141f56d8981e4a41ab9f734dfe",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-213/receipt-RC-AF-213-1.json",
+      "sha256": "6eb6a7fc3553cc72b0953f02d60271f1111e307282f00689174819bd9cbc6e00",
+      "receiptId": "RC-AF-213-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af213-realism-r4-prompt-echo-2026-11-21.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af213-visitor-realism-r4-task-2026-11-21.md"
+  ],
+  "tombstone": null
+}

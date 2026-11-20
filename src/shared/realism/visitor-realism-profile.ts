@@ -86,7 +86,7 @@ const SHAPE_INSTRUCTION: Record<VisitorTurnShape, string> = {
 const SCENE_INSTRUCTION: Record<RealismScene, string> = {
   in_person: '保持面对面的现场感：像坐在同一间咨询室里说话；不要写任何线上界面词、软件操作或旁白。',
   online_voice: '保持同步语音感：像在电话或视频里说话，句子偏短；可以确认一次对方在听，但不要每轮都问；不要写任何界面词或软件操作。',
-  online_text: '保持文字咨询感：可以像两条短消息，但不写任何界面词、软件操作或旁白。',
+  online_text: '保持文字咨询感：像两条短消息，允许提到正在看对话、等回复这类真实动作；但不要把界面操作写成旁白或说明文字。',
 };
 
 /**

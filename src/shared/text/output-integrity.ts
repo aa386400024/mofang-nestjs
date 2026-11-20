@@ -25,6 +25,7 @@
 
 import { detectEncounterDrift, type EncounterInput } from '../encounter/encounter-scene.js';
 import { stripReasoningBlocks } from '../llm/reasoning-text.js';
+import { PROMPT_ECHO_MARKERS } from '../realism/visitor-register-audit.js';
 
 /** 台词所属角色。 */
 export type OutputRole = 'visitor' | 'counselor';
@@ -62,6 +63,8 @@ const PROMPT_MARKERS: readonly string[] = [
   '<instructions',
   '### 指令',
   '## 硬规则',
+  // AF-213：R3 模板标记并入常开闸门，避免 realism 关闭时 prompt 回显漏过。
+  ...PROMPT_ECHO_MARKERS,
 ];
 
 /** 无标签推理的开头（英文居多；中文只认不会被正常台词使用的强标记）。 */
