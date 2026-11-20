@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-055",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.631Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-055/task-sheet.md",
+    "sha256": "9c562346eeeb50de01badcd6b1aa9b7f7f480272fed91496216ce1d5f9db749d",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af055-merge-gate-snapshot-2026-11-17.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

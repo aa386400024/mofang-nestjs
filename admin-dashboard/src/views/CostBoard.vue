@@ -21,14 +21,18 @@ const sessions = ref<SessionCost[]>([])
 const loading = ref(true)
 const err = ref('')
 
-onMounted(async () => {
+async function loadData() {
+  loading.value = true
+  err.value = ''
   try {
     const [tr, s] = await Promise.all([api.costTrend(), api.sessionCosts()])
     trend.value = tr
     sessions.value = s
   } catch (e) { err.value = String(e) }
   finally { loading.value = false }
-})
+}
+
+onMounted(loadData)
 
 // ─── 汇总卡片 ───
 const totalTokens = computed(() => trend.value.reduce((a, tr) => a + tr.tokens, 0))

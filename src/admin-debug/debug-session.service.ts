@@ -85,6 +85,7 @@ import {
 } from './debug-session-store.js';
 import {
   buildFallbackTitle,
+  sanitizeDebugSessionTitle,
   DEBUG_SESSION_TITLE_GENERATOR,
   type DebugSessionTitleGenerator,
   type DebugSessionTitleTurn,
@@ -781,7 +782,12 @@ export class DebugSessionService {
    */
   async listPersistedSessions(): Promise<DebugSessionListItem[]> {
     const summaries = await this.store.list();
-    return summaries.map((summary) => ({ ...summary, active: this.sessions.has(summary.id) }));
+    return summaries.map((summary) => ({
+      ...summary,
+      // 历史脏标题只在投影层清洗，不回写库（AF-155 实测：85 条标题被 <think> 截断）。
+      title: sanitizeDebugSessionTitle(summary.title, summary.createdAt),
+      active: this.sessions.has(summary.id),
+    }));
   }
 
   /**
@@ -1292,7 +1298,7 @@ export function projectDebugSessionDetail(record: DebugSessionRecord): DebugSess
   }
   return {
     id: record.id,
-    title: record.title,
+    title: sanitizeDebugSessionTitle(record.title, record.createdAt),
     titleSource: record.titleSource,
     characterSlug: record.characterSlug,
     characterLabel: record.characterLabel,

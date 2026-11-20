@@ -12,8 +12,17 @@
 //
 // ── 三档 (数值是**产品决策**, 不是临床标定) ────────────────────────────────
 //   legacy  : 既有行为 (15 轮 / 最早 5 轮收尾 / 停滞 2·3 / 危机窗 4) —— 缺省, 逐字不变;
-//   standard: 30 轮档 (最早 20 轮收尾 / 停滞 3·4 / 危机窗 4);
-//   long    : 50 分钟档 (上限 50 / 目标 40-50 / 最早 35 轮收尾 / 停滞 4·5 / 危机窗 6).
+//   standard: 30 轮档 (最早 20 轮收尾 / 停滞 3·4 / 危机窗 4 + 1 轮风险收束);
+//   long    : 50 分钟档 (上限 50 / 目标 40-50 / 最早 35 轮收尾 / 停滞 4·5 / 危机窗 6 + 1 轮风险收束).
+//
+// ── AF-133 · 危机窗的"多留 1 轮" ─────────────────────────────────────────────
+//   AF-131 复核发现: 6/16 场次在危机窗计数满点时被 runner **硬切**, 模型根本没机会
+//   把风险收束五项说出来 —— 收束在结构上不可达.
+//   修法在 runner 侧: 危机窗用满时**不再直接结束**, 而是多留 1 轮做风险收束,
+//   收束轮之后才结束 (见 decideTurn).
+//   ⚠️ 这个开关**只对 standard / long 开**: legacy 档的档案契约把危机窗钉死在 4 轮
+//     ("缺省即 legacy, 行为逐字不变"), 且 legacy 是 15 轮短对练, 不存在 AF-131 那种
+//     "收尾不可达"的问题 —— 为修 long 档而改动 legacy 契约是不该有的副作用.
 //
 // ── 反双胞胎 ───────────────────────────────────────────────────────────────
 //   - **纯函数, 零 IO / 零 env / 零 NestJS**: 档案是配置, 不是运行时状态.
@@ -51,10 +60,16 @@ export interface SessionProfile {
   readonly stagnantNoProgressLimit: number;
   /** 危机后置练习窗轮数 (披露后继续练多少轮). */
   readonly crisisPracticeTurns: number;
+  /**
+   * AF-133: 危机窗用满时是否**多留 1 轮风险收束** (而不是直接硬切).
+   *
+   * ⚠️ legacy = false (档案契约里的"危机窗 4"不变); standard / long = true.
+   */
+  readonly crisisRiskClosingRound: boolean;
 }
 
 /**
- * 判定用的阈值子集 (decideTurn 只关心这四个).
+ * 判定用的阈值子集 (decideTurn 只关心这五个).
  *
  * 为什么要单独切出来: `decideTurn` 是纯函数, 它的判据**必须由调用方显式传入**,
  *   不能在函数体里读模块常量 —— 否则"哪一档阈值在生效"就永远只能靠猜.
@@ -68,6 +83,12 @@ export interface SessionThresholds {
   readonly stagnantNoProgressLimit: number;
   /** 危机后置练习窗轮数. */
   readonly crisisPracticeTurns: number;
+  /**
+   * AF-133: 危机窗用满时是否**多留 1 轮风险收束** (而不是直接硬切).
+   *
+   * ⚠️ 缺省 false = legacy 档老行为 (危机窗计数一到就结束).
+   */
+  readonly crisisRiskClosingRound: boolean;
 }
 
 /** legacy 档: 与 2026-11-18 之前的生产行为**逐字一致**. */
@@ -80,6 +101,7 @@ export const LEGACY_SESSION_PROFILE: SessionProfile = {
   stagnantLiteralStreakLimit: 2,
   stagnantNoProgressLimit: 3,
   crisisPracticeTurns: 4,
+  crisisRiskClosingRound: false,
 };
 
 /** standard 档: 30 轮常规长度的对练. */
@@ -92,6 +114,7 @@ export const STANDARD_SESSION_PROFILE: SessionProfile = {
   stagnantLiteralStreakLimit: 3,
   stagnantNoProgressLimit: 4,
   crisisPracticeTurns: 4,
+  crisisRiskClosingRound: true,
 };
 
 /** long 档: 50 分钟咨询 (目标 40-50 轮). */
@@ -104,6 +127,7 @@ export const LONG_SESSION_PROFILE: SessionProfile = {
   stagnantLiteralStreakLimit: 4,
   stagnantNoProgressLimit: 5,
   crisisPracticeTurns: 6,
+  crisisRiskClosingRound: true,
 };
 
 /** 全部档案 (按档位顺序). */
@@ -115,6 +139,7 @@ export const LEGACY_SESSION_THRESHOLDS: SessionThresholds = {
   stagnantLiteralStreakLimit: LEGACY_SESSION_PROFILE.stagnantLiteralStreakLimit,
   stagnantNoProgressLimit: LEGACY_SESSION_PROFILE.stagnantNoProgressLimit,
   crisisPracticeTurns: LEGACY_SESSION_PROFILE.crisisPracticeTurns,
+  crisisRiskClosingRound: LEGACY_SESSION_PROFILE.crisisRiskClosingRound,
 };
 
 /**
@@ -177,6 +202,7 @@ export function sessionThresholdsOf(profile: SessionProfile): SessionThresholds 
     stagnantLiteralStreakLimit: profile.stagnantLiteralStreakLimit,
     stagnantNoProgressLimit: profile.stagnantNoProgressLimit,
     crisisPracticeTurns: profile.crisisPracticeTurns,
+    crisisRiskClosingRound: profile.crisisRiskClosingRound,
   };
 }
 

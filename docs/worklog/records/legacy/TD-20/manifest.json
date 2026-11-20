@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "TD-20",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.568Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/TD-20/task-sheet.md",
+    "sha256": "02e6d82a63e83482c793d2c85b159e24011b45d2167d3798f2880ed5853e9c9a",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/td20-home-messages-moodlog-port-c2-batch4-implementation-2026-11-15.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

@@ -2,8 +2,8 @@
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { setLang } from '@/i18n'
-import { ref, onMounted, onUnmounted, computed, onErrorCaptured } from 'vue'
-import { darkTheme, lightTheme, NInput, NMenu, NIcon } from 'naive-ui'
+import { ref, onMounted, onUnmounted, computed, onErrorCaptured, watch } from 'vue'
+import { darkTheme, lightTheme, NInput, NMenu, NIcon, zhCN, dateZhCN, enUS, dateEnUS } from 'naive-ui'
 import type { MenuOption } from 'naive-ui'
 import type { Component } from 'vue'
 import { h } from 'vue'
@@ -20,6 +20,7 @@ import {
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
+import { getAuthHeader } from '@/api/client'
 
 function renderIcon(icon: Component) {
   return () => h(NIcon, null, { default: () => h(icon) })
@@ -31,6 +32,11 @@ const router = useRouter()
 const auth = useAuthStore()
 const theme = useThemeStore()
 const toggleLang = () => setLang(locale.value === 'zh-CN' ? 'en' : 'zh-CN')
+
+// Naive UI 组件内文案（下拉占位、日期面板、分页、空状态）必须跟随界面语言，
+// 否则中文界面里会出现 Please Select / Start Date / End Date。
+const naiveLocale = computed(() => (locale.value.startsWith('zh') ? zhCN : enUS))
+const naiveDateLocale = computed(() => (locale.value.startsWith('zh') ? dateZhCN : dateEnUS))
 
 // 全局错误捕获
 const hasError = ref(false)
@@ -127,8 +133,8 @@ const allPages = computed(() => [
 
 const filteredPages = computed(() => {
   const q = searchQuery.value.toLowerCase().trim()
-  if (!q) return allPages
-  return allPages.filter(p =>
+  if (!q) return allPages.value
+  return allPages.value.filter((p: { name: string; path: string; keywords: string }) =>
     p.name.toLowerCase().includes(q) ||
     p.keywords.toLowerCase().includes(q) ||
     p.path.includes(q)
@@ -155,13 +161,50 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
+const HEALTH_POLL_MS = 30_000
+/** null = 尚未探测；true/false = 最近一次真实探活结果。 */
+const engineOnline = ref<boolean | null>(null)
+let healthTimer: ReturnType<typeof setInterval> | undefined
+
+/**
+ * 静默探活：直接 fetch，不经过 api.health —— 后者在 401 时会弹 Basic 凭据框，
+ * 每 30 秒弹一次会打断使用者。这里只关心后端可达性，不触发任何登录交互。
+ */
+async function probeEngineHealth(): Promise<void> {
+  try {
+    const auth = getAuthHeader()
+    const res = await fetch('/admin/api/health', {
+      headers: auth ? { Authorization: auth } : {},
+    })
+    engineOnline.value = res.ok
+  } catch {
+    engineOnline.value = false
+  }
+}
+
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
   theme.init()
+  void probeEngineHealth()
+  healthTimer = setInterval(() => void probeEngineHealth(), HEALTH_POLL_MS)
 })
+
+// 登录页阶段的探活无凭据，会被 401 判成离线；登录成功后必须立刻重探，
+// 否则顶栏会沿用旧结论最长一个轮询周期。登出则回到“未探测”。
+watch(
+  () => auth.isAuthenticated,
+  (authenticated) => {
+    if (authenticated) {
+      void probeEngineHealth()
+    } else {
+      engineOnline.value = null
+    }
+  },
+)
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
+  if (healthTimer !== undefined) clearInterval(healthTimer)
 })
 
 // Naive UI 主题覆盖
@@ -255,7 +298,7 @@ const breadcrumbs = computed(() => {
 </script>
 
 <template>
-  <n-config-provider :theme="theme.isLight ? lightTheme : darkTheme" :theme-overrides="naiveThemeOverrides">
+  <n-config-provider :theme="theme.isLight ? lightTheme : darkTheme" :locale="naiveLocale" :date-locale="naiveDateLocale" :theme-overrides="naiveThemeOverrides">
     <n-message-provider>
       <n-dialog-provider>
 
@@ -313,8 +356,8 @@ const breadcrumbs = computed(() => {
           <button @click="handleLogout" class="px-2 py-1 rounded border border-bg-border hover:bg-bg-elevated text-muted" :title="t('app.logout')">
             <n-icon size="16"><log-out-outline /></n-icon>
           </button>
-          <span class="w-1.5 h-1.5 rounded-full bg-ok"></span>
-          <span class="text-muted">{{ t('app.online') }}</span>
+          <span class="w-1.5 h-1.5 rounded-full" :class="engineOnline === false ? 'bg-error' : engineOnline === null ? 'bg-warn' : 'bg-ok'"></span>
+          <span class="text-muted">{{ engineOnline === false ? t('app.offline') : engineOnline === null ? t('app.probing') : t('app.online') }}</span>
         </div>
       </header>
 

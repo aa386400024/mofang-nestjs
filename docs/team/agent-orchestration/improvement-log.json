@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "note": "候选改进台账（经验沉淀闭环 · adapter 层扩展）。闭环：发现 → 登记(candidate) → 评审立项(queued) → 实现(accepted) → 落地(done) / 不采纳(wontfix)。抽取通道与 CLI 登记只产生 candidate；立项与终态须人工 / 编排者闸门流转；layer=framework 的条目仅作通用层候选，不自动改动框架仓。字段与状态口径见 improvement-loop.md。",
-  "updatedAt": "2026-11-19T01:12:23.815Z",
+  "updatedAt": "2026-11-19T19:10:07.481Z",
   "improvements": [
     {
       "improvementId": "IM-001",
@@ -3102,6 +3102,229 @@
           "to": "candidate",
           "by": "orchestrator-cli",
           "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-067",
+      "status": "done",
+      "title": "危机升级路径需强制风险收束轮后再结束",
+      "source": "acceptance",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-136",
+      "evidence": [
+        "AF-136 packet-09: debug_bUjFUsUC9Kg6iNW6rul54",
+        "turn 40 disclosure",
+        "1 post turn",
+        "safety=2"
+      ],
+      "impact": "crisis_escalated 抢在安全计划前终止，临床安全硬门失败",
+      "suggestion": "在 crisis_escalated 前插入强制风险收束轮，覆盖计划/准备、手段限制、联系人、不独处、120/110/12356、安全承诺",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-19T09:38:24.898Z",
+      "updatedAt": "2026-11-19T10:03:59.040Z",
+      "history": [
+        {
+          "at": "2026-11-19T09:38:24.898Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-19T10:03:58.608Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-19T10:03:58.829Z",
+          "from": "queued",
+          "to": "accepted",
+          "by": "orchestrator-cli",
+          "note": null
+        },
+        {
+          "at": "2026-11-19T10:03:59.040Z",
+          "from": "accepted",
+          "to": "done",
+          "by": "orchestrator-cli",
+          "note": "AF-137 两轮安全序列 + 定向闸门通过"
+        }
+      ],
+      "resolution": {
+        "resolvedAt": "2026-11-19T10:03:59.040Z",
+        "resolutionNote": "AF-137 两轮安全序列 + 定向闸门通过",
+        "linkedTaskId": "AF-137"
+      }
+    },
+    {
+      "improvementId": "IM-068",
+      "status": "candidate",
+      "title": "forcedClose 需升级为 runner 级最后两轮硬约束",
+      "source": "acceptance",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-136",
+      "evidence": [
+        "AF-136 structure audit: routine closing full 1/16",
+        "summary 1/16",
+        "takeaway 2/16",
+        "nextStep 4/16"
+      ],
+      "impact": "13/16 max_turns 场次无常规收束，style 3.3125<3.50",
+      "suggestion": "最后 2 轮若未产出 summary/takeaway/nextStep，继续补轮而非硬切",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-19T09:38:25.082Z",
+      "updatedAt": "2026-11-19T09:38:25.082Z",
+      "history": [
+        {
+          "at": "2026-11-19T09:38:25.082Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-069",
+      "status": "candidate",
+      "title": "跨模型评分 κ 口径校准未落地",
+      "source": "acceptance",
+      "type": "standard",
+      "layer": "framework",
+      "relatedTaskId": "AF-136",
+      "evidence": [
+        "AF-136 cross-model overall κ=0.215686 vs same-model 0.794872"
+      ],
+      "impact": "跨模型分数不可互换，κ 硬门失败但非质量差",
+      "suggestion": "落地 AF-131 B-1/B-3/B-4：同法 κ 赛道、未取整共识、±1 仲裁、cluster bootstrap CI",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-19T09:38:25.265Z",
+      "updatedAt": "2026-11-19T09:38:25.265Z",
+      "history": [
+        {
+          "at": "2026-11-19T09:38:25.265Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-070",
+      "status": "candidate",
+      "title": "pack 只保留 completed 会系统性漏掉 crisis_ended",
+      "source": "acceptance",
+      "type": "tool",
+      "layer": "adapter",
+      "relatedTaskId": "AF-136",
+      "evidence": [
+        "AF-136 16 sessions: 2 crisis_ended; official pack would keep 14"
+      ],
+      "impact": "危机样本被排除，安全质量评估有选择偏差",
+      "suggestion": "selectBalancedSessions 纳入 crisis_ended，或提供 includeCrisis 选项",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-19T09:38:25.459Z",
+      "updatedAt": "2026-11-19T09:38:25.459Z",
+      "history": [
+        {
+          "at": "2026-11-19T09:38:25.459Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-071",
+      "status": "candidate",
+      "title": "升级后的风险收束缺少内容级强制校验",
+      "source": "review",
+      "type": "gap",
+      "layer": "adapter",
+      "relatedTaskId": "AF-137",
+      "evidence": [
+        "MiniMax H1",
+        "AF-136 packet-09 risk-incomplete"
+      ],
+      "impact": "轮次到了但模型可能仍漏评估/计划要素，exit reason 无法区分",
+      "suggestion": "复用 AF-127 结构审计五组正则，新增 crisis_safety_incomplete exit reason，不改 af127-v1 口径",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-19T10:04:06.563Z",
+      "updatedAt": "2026-11-19T10:04:06.563Z",
+      "history": [
+        {
+          "at": "2026-11-19T10:04:06.563Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-072",
+      "status": "candidate",
+      "title": "long-session-acceptance 只取 completed 会漏 crisis_ended",
+      "source": "review",
+      "type": "tool",
+      "layer": "adapter",
+      "relatedTaskId": "AF-137",
+      "evidence": [
+        "MiniMax H4",
+        "AF-136 2 crisis_ended"
+      ],
+      "impact": "官方 pack 系统性排除危机样本，安全评估样本失真",
+      "suggestion": "把 crisis_ended 纳入 selectBalancedSessions 与 pack 过滤条件",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-19T10:04:06.774Z",
+      "updatedAt": "2026-11-19T10:04:06.774Z",
+      "history": [
+        {
+          "at": "2026-11-19T10:04:06.774Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        }
+      ]
+    },
+    {
+      "improvementId": "IM-073",
+      "status": "queued",
+      "title": "临床级 AI 评分门缺真人双标与仲裁，96 场 cluster 仅 8 个角色簇",
+      "source": "acceptance",
+      "type": "gap",
+      "layer": "framework",
+      "relatedTaskId": "AF-152",
+      "evidence": [
+        "data/phase25-exit/af147-kappa-96-final/;docs/worklog/completed/phase2.5/af152-quality-admin-2026-11-20.md"
+      ],
+      "impact": "κ 0.365854 与 safety 4/6 无法判定为模型能力上限还是标注口径缺陷；继续调 AI 评分器会变成自证",
+      "suggestion": "补 ≥24 角色簇或真人双标+仲裁，再复评 κ 与 safety；在此之前质量门保持不通过",
+      "createdBy": "orchestrator-cli",
+      "createdAt": "2026-11-19T19:10:00.712Z",
+      "updatedAt": "2026-11-19T19:10:07.481Z",
+      "history": [
+        {
+          "at": "2026-11-19T19:10:00.712Z",
+          "from": null,
+          "to": "candidate",
+          "by": "orchestrator-cli",
+          "note": "登记候选改进"
+        },
+        {
+          "at": "2026-11-19T19:10:07.481Z",
+          "from": "candidate",
+          "to": "queued",
+          "by": "orchestrator-cli",
+          "note": null
         }
       ]
     }

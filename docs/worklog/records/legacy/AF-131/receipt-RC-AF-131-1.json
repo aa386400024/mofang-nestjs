@@ -1,0 +1,112 @@
+{
+  "deliveredAt": "2026-11-19T14:55:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-131-1",
+    "taskId": "AF-131",
+    "contextId": "phase2.5-ai-proxy-acceptance",
+    "type": "review",
+    "agentRole": "executor",
+    "baselineRef": "86a7c8580302c018047c900bc91d6beef9ce339a",
+    "dependsOn": ["AF-130"],
+    "priorTasks": ["AF-125", "AF-127", "AF-130"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "changedFiles": {
+      "added": [
+        "docs/worklog/pending/af131-independent-review-task-2026-11-19.md",
+        "docs/worklog/completed/phase2.5/af131-independent-review-2026-11-19.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "commits": ["1dec6dd"]
+    },
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af131-independent-review-task-2026-11-19.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af131-independent-review-2026-11-19.md",
+      "reply": null,
+      "others": []
+    },
+    "gateResults": [
+      {
+        "command": "review-only (no src/test/bin/data changed)",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "未跑代码闸门；改为独立复算：κ 7 系列逐位吻合、结构审计 16/16 packet 0 处不一致、192 条引用落地核验。"
+      }
+    ],
+    "reproNotes": "MiniMax Code 只读复核 AF-130 的 pack / 结构审计 / AI 双盲 / 交付记录；报告与 relay 回复均为 Markdown；未跑 LLM 批次，未改阈值，未改 src/test/bin/data。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-131 任务单、索引、回执、交付记录一致" },
+      { "item": "stateWrite", "result": "pass", "note": "register/run-once/archive 经 CLI" },
+      { "item": "indexSchema", "result": "pass", "note": "task-state-index 由 CLI 写入" },
+      { "item": "eventChain", "result": "pass", "note": "events verify 通过" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "humanSupervision=false / clinicalAcceptanceEligible=false；AI 分只作代理候选，未升格为临床达标"
+    },
+    "backlogItems": [
+      {
+        "id": "OI-AF131-01",
+        "title": "收束不可达：14/16 场次走不到收尾路径",
+        "impact": "6/16 危机窗计数硬切、8/16 max_turns 硬切；AF-129 prompt 块在可达路径上 2/2 有效",
+        "reason": "decideTurn 中 crisis_practice_max 先于 closeAllowed；long 档缺 forced-close cue",
+        "owner": "adapter"
+      },
+      {
+        "id": "OI-AF131-02",
+        "title": "style 与结构审计 takeaway 同源，不能当两条独立硬门",
+        "impact": "12/12 无 takeaway 的 packet style=3、4/4 有 takeaway 的 packet style=4–5；style≥3.50 是刀刃阈值",
+        "reason": "硬上限写在评分员 prompt，未搬到后处理",
+        "owner": "framework"
+      },
+      {
+        "id": "OI-AF131-03",
+        "title": "overall κ 0.138 的正解是评分口径未对齐",
+        "impact": "R1 系统性高 R2 约 0.3125；41 处分歧中 33 处 R1 更高；prevalence 崩塌、n=16 只有 8 个角色簇",
+        "reason": "R1 证据优先 / R2 整体叙事是故意不同方法，却用同一 κ 硬门考核",
+        "owner": "framework"
+      },
+      {
+        "id": "OI-AF131-04",
+        "title": "结构审计字面量口径有双向失真",
+        "impact": "boundary 6/16 中 2 个假阳性、5 个近失配；summary 1 个假阴性；nextStep 假阳假阴并存",
+        "reason": "正则只认字面词，真实语义改写不命中",
+        "owner": "adapter"
+      }
+    ],
+    "openQuestions": [
+      "κ 阈值 0.40 在本仓找不到出处；盲包 README 写的是 <0.6 先校准、≥0.8 才谈硬门；是否保持 0.40 但补出处，或改用 0.60 校准线，需要任务单明确。",
+      "16 packet 只有 8 个角色簇，κ 硬门是否要加 cluster bootstrap CI 下界条件，需要框架层决定。"
+    ],
+    "manualReviewList": [
+      "packet-12 第 45 轮被 crisis_practice_max 抢走，需临床确认是否应优先走收束路径",
+      "packet-16 23 轮危机场：四项开场框架从未出现，需确认危机稳定化与开场框架的优先级",
+      "p09 第 46 轮真实总结被 summary 正则判 0，需人工复核审计口径"
+    ],
+    "deviationTable": [
+      {
+        "item": "执行分支",
+        "taskSays": "任务单写在当前任务分支",
+        "reality": "MiniMax 写入时工作区已切到 AF-132 分支；报告随后提交回 AF-127 分支",
+        "action": "在 AF-127 分支提交 ebfe095，报告文件与任务单同分支",
+        "why": "MiniMax 只读复核不依赖分支，但需登记分支错位，避免误读"
+      },
+      {
+        "item": "闸门",
+        "taskSays": "gates 为空（review）",
+        "reality": "未跑代码闸门，改为复算一致性",
+        "action": "在 gateResults 记录 review-only 与三项复算",
+        "why": "review 任务不应改源码；结构审计/κ 复算才是本单证据"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "独立复核交付完成：复算 κ、结构审计与引用落地全部可复现；报告给出 style/κ 的正确解读、prompt 硬模板与 runner 侧修复建议；未改源码、未跑批次、未调阈值。"
+  }
+}

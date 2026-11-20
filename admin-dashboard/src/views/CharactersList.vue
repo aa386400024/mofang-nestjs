@@ -52,7 +52,7 @@ const avatarColors = ['#7c8db5', '#7ab59e', '#b59e7c', '#9e7cb5', '#7cb5b5', '#b
 function avatarColor(slug: string): string {
   let hash = 0
   for (let i = 0; i < slug.length; i++) hash = (hash * 31 + slug.charCodeAt(i)) & 0xffff
-  return avatarColors[hash % avatarColors.length]
+  return avatarColors[hash % avatarColors.length]!
 }
 
 // BDI 指标的迷你进度条 (0-1 范围)
@@ -263,8 +263,8 @@ function openDetail(slug: string) {
           v-model:page="page"
           :page-size="pageSize"
           :item-count="rows.length"
-          show-size-picker={false}
-          show-quick-jumper={false}
+          :show-size-picker="false"
+          :show-quick-jumper="false"
         />
       </div>
     </template>

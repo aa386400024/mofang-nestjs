@@ -162,11 +162,14 @@ function readIndexAt(ref) {
 }
 
 function readAcceptanceReceiptsAt(sha, taskId) {
-  const prefix = 'docs/worklog/pending/archive';
-  const files = git(['ls-tree', '-r', '--name-only', sha, '--', prefix])
+  const legacyPrefix = 'docs/worklog/pending/archive';
+  const legacyFiles = git(['ls-tree', '-r', '--name-only', sha, '--', legacyPrefix])
     .split(/\r?\n/)
-    .filter((path) => path.startsWith(`${prefix}/${taskId}-receipt-`) && path.endsWith('.json'));
-  return files.map((path) => {
+    .filter((path) => path.startsWith(`${legacyPrefix}/${taskId}-receipt-`) && path.endsWith('.json'));
+  const recordFiles = git(['ls-tree', '-r', '--name-only', sha, '--', 'docs/worklog/records'])
+    .split(/\r?\n/)
+    .filter((path) => path.includes(`/${taskId}/receipt-`) && path.endsWith('.json'));
+  return [...new Set([...legacyFiles, ...recordFiles])].map((path) => {
     try {
       const receipt = JSON.parse(git(['show', `${sha}:${path}`]));
       return {
@@ -202,12 +205,34 @@ function taskRecordAt(taskId, currentIndex, parentIndex) {
   );
 }
 
+function readRecordManifestAt(sha, taskId) {
+  const files = git(['ls-tree', '-r', '--name-only', sha, '--', 'docs/worklog/records'])
+    .split(/\r?\n/)
+    .filter((path) => path.endsWith(`/${taskId}/manifest.json`));
+  if (files.length === 0) return null;
+  try {
+    return JSON.parse(git(['show', `${sha}:${files[0]}`]));
+  } catch {
+    return null;
+  }
+}
+
+function sheetPathAt(sha, task) {
+  const pointer = task?.artifacts?.taskSheet ?? null;
+  if (pointer && git(['cat-file', '-e', `${sha}:${pointer}`], { allowFailure: true }) !== null) return pointer;
+  const manifestPath = readRecordManifestAt(sha, task?.taskId)?.taskSheet?.path ?? null;
+  if (manifestPath && git(['cat-file', '-e', `${sha}:${manifestPath}`], { allowFailure: true }) !== null) return manifestPath;
+  return pointer;
+}
+
 function taskSheetPresence(sha, taskId, currentIndex, parentIndex) {
   if (!taskId) return { exists: undefined, path: null };
-  const sheetPath = taskRecordAt(taskId, currentIndex, parentIndex)?.artifacts?.taskSheet ?? null;
-  if (!sheetPath) return { exists: false, path: null };
-  const exists = git(['cat-file', '-e', `${sha}:${sheetPath}`], { allowFailure: true }) !== null;
-  return { exists, path: sheetPath };
+  const task = taskRecordAt(taskId, currentIndex, parentIndex);
+  const pointer = task?.artifacts?.taskSheet ?? null;
+  const resolved = task ? sheetPathAt(sha, task) : pointer;
+  if (!resolved) return { exists: false, path: null };
+  const exists = git(['cat-file', '-e', `${sha}:${resolved}`], { allowFailure: true }) !== null;
+  return { exists, path: resolved };
 }
 
 function parseScalar(raw, label) {
@@ -326,19 +351,26 @@ export function evaluateCommitAt(sha) {
     const hydratedTasks = [];
     for (const task of currentIndex.archivedTasks) {
       if (task?.status !== 'completed' || !task?.artifacts?.taskSheet) continue;
-      if (!changedFiles.includes(task.artifacts.taskSheet)) continue;
+      const sheetPath = sheetPathAt(sha, task);
+      if (!sheetPath || !changedFiles.includes(sheetPath)) continue;
       const taskReceipts = readAcceptanceReceiptsAt(sha, task.taskId);
       if (mergeableDurableReceipts(taskReceipts).length === 0) continue;
-      const fullTask = readTaskSheetAt(sha, task.artifacts.taskSheet, task.status, task.taskId);
+      const fullTask = readTaskSheetAt(sha, sheetPath, task.status, task.taskId);
       hydratedTasks.push({ ...fullTask, ...task, scope: fullTask.scope });
     }
-    const primary = hydratedTasks.find((task) => task.taskId === commitTaskId)
-      ?? { ...readTaskSheetAt(sha, archived.artifacts?.taskSheet, archived.status, commitTaskId), ...archived };
+    const primarySheet = sheetPathAt(sha, archived);
+    const primary = hydratedTasks.find((task) => task.taskId === commitTaskId) ?? {
+      ...readTaskSheetAt(sha, primarySheet, archived.status, commitTaskId),
+      ...archived,
+    };
     // 一条任务分支可以叠加多个已完成任务；squash 后这些任务单会一起进入同一提交。
     // 只按标题主任务的 scope 校验会把后续任务的合法改动误判越界，因此用本次提交
     // 实际携带、且各自已验收的任务单 scope 并集。
     const unionFiles = unionSquashScopeFiles(hydratedTasks, primary.scope?.files ?? []);
-    const primaryWithUnion = { ...primary, scope: { ...primary.scope, files: unionFiles.length > 0 ? unionFiles : primary.scope?.files ?? [] } };
+    const primaryWithUnion = {
+      ...primary,
+      scope: { ...primary.scope, files: unionFiles.length > 0 ? unionFiles : (primary.scope?.files ?? []) },
+    };
     evaluatedCurrentIndex = {
       ...currentIndex,
       archivedTasks: currentIndex.archivedTasks.map((task) => {

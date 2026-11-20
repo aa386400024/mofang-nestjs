@@ -1,0 +1,194 @@
+{
+  "deliveredAt": "2026-11-19T22:08:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-140-1",
+    "taskId": "AF-140",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "ae624f90f4ee3f616416b9994beceadf3e5a3ed7",
+    "dependsOn": [],
+    "priorTasks": ["AF-138", "AF-139"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "changedFiles": {
+      "added": [
+        "docs/worklog/pending/af140-ai-quality-close-task-2026-11-19.md",
+        "docs/worklog/completed/phase2.5/af140-ai-quality-close-2026-11-19.md"
+      ],
+      "modified": [
+        "src/auto-practice/metrics/session-structure-audit.ts",
+        "src/auto-practice/practice-runner.service.ts",
+        "src/auto-practice/counselor-agent.service.ts",
+        "src/auto-practice/counselor/builder/counselor-prompt-builder.ts",
+        "src/auto-practice/counselor/builder/prompt-sections/crisis-stabilization.ts",
+        "bin/long-session-acceptance.ts",
+        "test/auto-practice/practice-runner-decide-turn.spec.ts",
+        "test/auto-practice/counselor-prompt-builder.spec.ts",
+        "docs/worklog/pending/phase2.5-README.md"
+      ],
+      "deleted": [],
+      "commits": ["1daecfb6bacc7e3a80c916bf815c36f2115366cf"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "tsc -b tsconfig.check.json；0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "eslint 缓存模式；0 error / 0 warning；runConversationLoop 复杂度 21→19、认知 27→25 内"
+      },
+      {
+        "command": "pnpm exec vitest run test/auto-practice/practice-runner.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "19/19 passed；stale 断言 50→52 由 AF-141 单独收口，本单代码已使该用例实际为 52"
+      },
+      {
+        "command": "pnpm exec vitest run test/auto-practice/practice-runner-decide-turn.spec.ts test/auto-practice/counselor-prompt-builder.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "2 files / 45 tests passed"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "219 files passed + 1 skipped；3865 tests passed + 4 skipped；22:05 收尾一次全量"
+      },
+      {
+        "command": "git diff --stat integrate...HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "事件日志 609 条；schema、哈希链与索引投影一致"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "AF-137 / AF-140 任务单、状态事件与索引投影 PASS"
+      }
+    ],
+    "scopeCheck": "in-scope",
+    "contractChecks": [
+      {"item": "taskId", "result": "pass", "note": "AF-140 任务单、索引、回执、交付记录一致"},
+      {"item": "stateWrite", "result": "pass", "note": "register / promote / resume / run-once 经 CLI；状态面未手改"},
+      {"item": "indexSchema", "result": "pass", "note": "task-state-index 由 CLI 写入"},
+      {"item": "eventChain", "result": "pass", "note": "events verify 609 条通过"}
+    ],
+    "backlogItems": [
+      {
+        "id": "OI-AF140-01",
+        "title": "style 平均 3.4375 < 3.50",
+        "impact": "AI 层面 6 项中唯一失败项；7/16 packet 被“最后 10 轮无常规三件套”硬上限压到 3",
+        "reason": "最终收束仍依赖 prompt 纪律；模型在末轮仍可能漏 summary/takeaway/nextStep",
+        "owner": "adapter",
+        "improvement": "IM-073"
+      },
+      {
+        "id": "OI-AF140-02",
+        "title": "常规收束三项仅 3/16",
+        "impact": "开场全项 9/16、按模式完整 7/16；结构依从性仍不足",
+        "reason": "收束与探索共用同一长上下文，最终块被历史稀释",
+        "owner": "adapter",
+        "improvement": "IM-074"
+      },
+      {
+        "id": "OI-AF140-03",
+        "title": "真人督导师双盲 + 仲裁未到位",
+        "impact": "AI 分只能作 ai_proxy_candidate，不能转临床验收",
+        "reason": "外部资源未就绪",
+        "owner": "framework",
+        "improvement": "IM-075"
+      },
+      {
+        "id": "OI-AF140-04",
+        "title": "stale 测试不在 AF-140 scope",
+        "impact": "AF-091 旧用例 50 轮断言与 maxTurns+2 冲突",
+        "reason": "任务单 scope 未含 practice-runner.spec.ts",
+        "owner": "adapter",
+        "improvement": "AF-141"
+      }
+    ],
+    "deviationTable": [
+      {
+        "item": "测试文件 scope",
+        "taskSays": "scope 只含 decide-turn 与 prompt-builder 两个 spec",
+        "reality": "AF-140 使 practice-runner.spec.ts 的 50 轮断言失效，需改 52",
+        "action": "AF-140 提交不含该文件；另立 AF-141 单独收口并登记依赖",
+        "why": "不越 AF-140 scope，不用 --no-verify 或手改索引"
+      },
+      {
+        "item": "批次轮数",
+        "taskSays": "long 档 50 轮",
+        "reality": "693 轮 / 16 场，含 52 轮收束延长与危机场次",
+        "action": "按 maxTurns+2 预期行为验收，不截断",
+        "why": "为让最终收束落地；管道 valid=true、fallback=0"
+      },
+      {
+        "item": "WP-K",
+        "taskSays": "四态 improved/neutral/regressed/incomparable",
+        "reality": "incomparable（acceptance 不同）",
+        "action": "如实记录，不伪造四态",
+        "why": "两批验收判据不同；intake 全局 FAIL"
+      },
+      {
+        "item": "质量判定",
+        "taskSays": "最低达到 AI 层面质量门达标",
+        "reality": "5/6 过线，style 3.4375 < 3.50",
+        "action": "判未达标；不下调阈值、不写临床达标",
+        "why": "证据优先，差 0.0625 也是硬失败"
+      }
+    ],
+    "reviewVerdict": "conditional-pass",
+    "finalStatus": "completed",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af140-ai-quality-close-task-2026-11-19.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af140-ai-quality-close-2026-11-19.md",
+      "others": [
+        "data/phase25-exit/af140-long-pack-final/",
+        "data/phase25-exit/af140-structure-audit-final/",
+        "data/phase25-exit/af140-ai-double-blind-final/",
+        "data/batch-reports/-PS1HjDeon46QWqGa5mMO.json",
+        "data/batch-reports/-PS1HjDeon46QWqGa5mMO.md",
+        "AF-141"
+      ]
+    },
+    "reproNotes": "分支 task/AF-140-ai-quality-close；基线 ae624f9；提交 1daecfb。候选批次 -PS1HjDeon46QWqGa5mMO（16/16，693 轮）。AI 双盲：R1 MiniMax-M2.7 / R2 MiniMax-M3.1-Flash / R3 MiniMax-M3；overall exact 0.875、within±1 1.0、κ 0.733333、平均 4.4375、safety 4.625/最低 3、style 3.4375。WP-K incomparable。未调低阈值，未写临床达标。",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "ai_proxy_candidate / humanSupervision=false / clinicalAcceptanceEligible=false"
+    },
+    "openQuestions": [
+      "style 3.4375 是否下一批用确定性末轮生成通道解决？",
+      "AF-141 测试断言修正是否随 AF-140 同 PR 合并？"
+    ],
+    "manualReviewList": [
+      "7/16 packet 的 style=3 需真人复核确认是否确因末轮缺常规三件套",
+      "危机场次安全收束是否可定义等价收束，需临床督导确认"
+    ],
+    "deviationAbsent": false,
+    "verdictRationale": "AF-140 完成收束内容门、危机安全修复轮、maxTurns+2、最终收束 order 999、pack 纳 crisis_ended；新批次 16/16、693 轮、fallback=0，AI 双盲 6 项中 5 项过线，style 3.4375 仍低于 3.50，故 AI 层面未达标。代码与证据完整、阈值未动、无越界提交，条件通过并转 AF-141 收口 stale 测试断言。"
+  }
+}

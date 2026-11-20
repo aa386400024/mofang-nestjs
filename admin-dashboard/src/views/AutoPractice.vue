@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NSelect, NInputNumber, NButton, NEmpty, NTag, NProgress, NModal, NCheckbox, NSpace, NStatistic, NDivider, NBadge, useMessage } from 'naive-ui'
 import { io, type Socket } from 'socket.io-client'
@@ -48,16 +48,11 @@ const manualDeletingSessionId = ref<string | null>(null)
 const manualDeletingSessionTitle = ref('')
 const manualDeleteLoading = ref(false)
 
-// 自动对练：删除确认弹窗
-const practiceDeleteConfirmVisible = ref(false)
-const practiceDeletingSession = ref<PracticeSession | null>(null)
-const practiceDeleteLoading = ref(false)
-
 // 切换模式时加载对应的会话列表
-watch(mode, async (newMode) => {
+watch(mode, async (newMode: 'manual' | 'auto') => {
   // 切换模式时清空中间对话窗口
   messages.value = []
-  turns.value = new Map()
+  turns.clear()
   sessionMeta.value = null
   runningSessionId.value = null
   manualDebugSessionId.value = null
@@ -78,10 +73,20 @@ const avatarColors = ['#7c8db5', '#7ab59e', '#b59e7c', '#9e7cb5', '#7cb5b5', '#b
 function avatarColor(slug: string): string {
   let hash = 0
   for (let i = 0; i < slug.length; i++) hash = (hash * 31 + slug.charCodeAt(i)) & 0xffff
-  return avatarColors[hash % avatarColors.length]
+  return avatarColors[hash % avatarColors.length]!
 }
 function avatarInitial(slug: string): string {
   return slug.slice(0, 1).toUpperCase()
+}
+
+/**
+ * 会话列表标题：历史脏标题已被后端投影成「未命名会话 - 时间」，
+ * 列表里补上角色名，否则 80+ 条同名条目完全分不清是谁的会话。
+ * 有真实标题时原样使用，不做任何改写。
+ */
+function sessionDisplayTitle(s: { title: string; characterSlug: string }): string {
+  if (!s.title.startsWith('未命名会话 - ')) return s.title || '未命名会话'
+  return `${characterNameBySlug(s.characterSlug)} · ${s.title.slice('未命名会话 - '.length)}`
 }
 
 // 一轮对练的完整记录
@@ -284,52 +289,9 @@ function onSessionListScroll(e: Event) {
   }
 }
 
-// ─── 编辑标题弹窗 ───
-const editDialogVisible = ref(false)
-const editTitleValue = ref('')
-const editingSession = ref<PracticeSession | null>(null)
-
-function openEditSessionDialog(s: PracticeSession) {
-  editingSession.value = s
-  editTitleValue.value = (s as any).title || ''
-  editDialogVisible.value = true
-}
-
-async function submitEditTitle() {
-  if (!editingSession.value) return
-  // TODO: 后端补 PATCH /admin/api/auto-practice/sessions/:id 接口
-  message.success('标题已保存（后端接口待补）')
-  editDialogVisible.value = false
-}
-
-// ─── 删除场次 ───
-function openPracticeDeleteConfirm(s: PracticeSession) {
-  practiceDeletingSession.value = s
-  practiceDeleteConfirmVisible.value = true
-}
-
-async function confirmPracticeDelete() {
-  const s = practiceDeletingSession.value
-  if (!s || practiceDeleteLoading.value) return
-  practiceDeleteLoading.value = true
-  try {
-    // TODO: 后端补 DELETE /admin/api/auto-practice/sessions/:id 接口
-    // await api.autoPractice.deleteSession(s.id)
-    message.info('删除接口待后端上线')
-    practiceDeleteConfirmVisible.value = false
-    practiceDeletingSession.value = null
-  } catch (e) {
-    message.error('删除场次失败')
-  } finally {
-    practiceDeleteLoading.value = false
-  }
-}
-
-// ─── AI 重命名 ───
-function renameByLlm(s: PracticeSession) {
-  // TODO: 后端补 POST /admin/api/auto-practice/sessions/:id/rename-ai 接口
-  message.info('AI 重命名待后端接口（后端补 POST /auto-practice/sessions/:id/rename-ai）')
-}
+// ─── 自动对练场次不提供重命名 / 删除 / AI 重命名 ───
+// 后端 ap_practice_sessions 是审计表：无 title 列，且设计明确“不做软删”。
+// 在没有后端契约前不摆假按钮；手动调试会话的重命名 / 删除走 debug-session 真接口。
 
 // ─── 气泡小工具 ───
 function copyMessage(text: string) {
@@ -347,16 +309,15 @@ async function sendManualTurn() {
   const text = manualInput.value.trim()
   manualInput.value = ''
 
-  // 先把咨询师消息加到列表
-  messages.value.push({ role: 'counselor', text })
-
   try {
     const res = await api.debugSession.turn(manualDebugSessionId.value, text)
-    // 来访者回复加到列表
-    messages.value.push({
-      role: 'visitor',
-      text: res.reply,
-      trace: res.trace as TurnTrace,
+    const trace = res.trace as TurnTrace
+    mergeTurn({
+      turnIndex: res.turnIndex,
+      counselorText: text,
+      visitorText: res.reply,
+      trace,
+      crisis: trace?.crisis?.detected === true,
     })
   } catch (e) {
     message.error('发送失败')
@@ -369,7 +330,10 @@ async function startManualSession() {
   try {
     const res = await api.debugSession.create(selectedCharacterSlug.value)
     manualDebugSessionId.value = res.debugSessionId
+    turns.clear()
     messages.value = []
+    bdiHistory.value = []
+    currentTrace.value = null
     message.success(`调试会话已开启: ${res.debugSessionId}`)
   } catch (e) {
     message.error('开启调试会话失败')
@@ -382,7 +346,10 @@ async function endManualSession() {
   try {
     await api.debugSession.close(manualDebugSessionId.value)
     manualDebugSessionId.value = null
+    turns.clear()
     messages.value = []
+    bdiHistory.value = []
+    currentTrace.value = null
     message.success('会话已结束')
   } catch (e) {
     message.error('结束会话失败')
@@ -390,29 +357,32 @@ async function endManualSession() {
 }
 
 // ─── 手动调试模式：加载历史调试会话 ───
-async function loadDebugSession(s: { id: string; title: string }) {
+async function loadDebugSession(s: { id: string; title: string; characterSlug: string }) {
   manualDebugSessionId.value = s.id
+  turns.clear()
   messages.value = []
+  bdiHistory.value = []
+  currentTrace.value = null
   try {
     const data = await api.debugSession.get(s.id)
-    messages.value = data.messages.map((m: any) => ({
+    hydrateSnapshot(data.messages.map((m: any) => ({
       role: m.role,
       text: m.text,
       trace: m.trace,
-    }))
-    message.success(`已加载会话: ${s.title || s.id}`)
+    })))
+    message.success(`已加载会话: ${sessionDisplayTitle(s)}`)
   } catch (e) {
     message.error('加载会话失败')
   }
 }
 
 // ─── 手动模式：恢复调试会话 (后端重启后继续聊) ───
-async function resumeDebugSession(s: { id: string; title: string }) {
+async function resumeDebugSession(s: { id: string; title: string; characterSlug: string }) {
   if (resumingSessionId.value) return
   resumingSessionId.value = s.id
   try {
     await api.debugSession.resume(s.id)
-    message.success(`会话已恢复: ${s.title || s.id}`)
+    message.success(`会话已恢复: ${sessionDisplayTitle(s)}`)
     // 刷新列表, active 应该变成 true 了
     debugSessions.value = await api.debugSession.list()
     // 加载会话内容
@@ -658,12 +628,12 @@ async function startPractice() {
     sessionMeta.value = {
       characterSlug: charSlug,
       counselorModeId: modeId,
-      debugSessionId: res.debugSessionId ?? '',
+      debugSessionId: '',
     }
     // 乐观插入：后端 fire-and-forget 落库有延迟，先占一行，左栏立刻有条目
     pendingRow.value = {
       id: res.practiceSessionId,
-      debugSessionId: res.debugSessionId ?? '',
+      debugSessionId: '',
       characterSlug: charSlug,
       counselorModeId: modeId,
       status: 'running',
@@ -951,6 +921,7 @@ onUnmounted(() => {
             type="line"
             :percentage="batchProgress.total > 0 ? (Object.entries(batchProgress.byStatus).filter(([k]) => k !== 'running').reduce((s, [, v]) => s + v, 0) / batchProgress.total) * 100 : 0"
             :show-text="false"
+            :show-indicator="false"
           />
           <div class="flex flex-wrap gap-1 mt-2">
             <NTag v-for="(count, status) in batchProgress.byStatus" :key="status" size="tiny" round
@@ -1032,7 +1003,7 @@ onUnmounted(() => {
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="text-sm truncate font-medium leading-6 flex items-center gap-1.5">
-                    <span class="truncate">{{ (s as any).title || characterNameBySlug(s.characterSlug) }}</span>
+                    <span class="truncate">{{ characterNameBySlug(s.characterSlug) }}</span>
                     <NTag size="tiny" :type="s.status === 'completed' ? 'success' : s.status === 'failed' ? 'error' : 'info'">{{ s.status }}</NTag>
                   </div>
                   <div class="text-xs text-muted mt-0.5 flex items-center gap-1.5">
@@ -1042,29 +1013,6 @@ onUnmounted(() => {
                   </div>
                 </div>
 
-                <!-- hover 操作按钮 -->
-                <div class="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 pt-0.5">
-                  <button
-                    class="w-6 h-6 flex items-center justify-center rounded text-muted hover:text-accent hover:bg-bg-surface transition-colors"
-                    title="重命名"
-                    @click.stop="openEditSessionDialog(s)"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-                    </svg>
-                  </button>
-                  <button
-                    class="w-6 h-6 flex items-center justify-center rounded text-muted hover:text-danger hover:bg-bg-surface transition-colors"
-                    title="删除"
-                    @click.stop="openPracticeDeleteConfirm(s)"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M3 6h18"/>
-                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                    </svg>
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -1090,7 +1038,7 @@ onUnmounted(() => {
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="text-sm truncate font-medium leading-6 flex items-center gap-1.5">
-                    <span class="truncate">{{ s.title || '未命名会话' }}</span>
+                    <span class="truncate" :title="s.title">{{ sessionDisplayTitle(s) }}</span>
                     <NTag v-if="!s.active" size="tiny" :bordered="false" type="warning">已离线</NTag>
                   </div>
                   <div class="text-xs text-muted mt-0.5 flex items-center gap-1.5">
@@ -1306,28 +1254,6 @@ onUnmounted(() => {
       </div>
     </NModal>
 
-    <!-- 编辑场次标题弹窗（自动对练，后端接口待补） -->
-    <NModal
-      v-model:show="editDialogVisible"
-      preset="card"
-      title="编辑场次标题"
-      style="width: 400px"
-      :bordered="false"
-    >
-      <NInput
-        v-model:value="editTitleValue"
-        placeholder="输入场次标题"
-        @keyup.enter="submitEditTitle"
-        autofocus
-      />
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <NButton size="small" @click="editDialogVisible = false">取消</NButton>
-          <NButton size="small" type="primary" @click="submitEditTitle">保存</NButton>
-        </div>
-      </template>
-    </NModal>
-
     <!-- 手动模式：重命名调试会话弹窗 -->
     <NModal
       v-model:show="manualEditDialogVisible"
@@ -1371,28 +1297,6 @@ onUnmounted(() => {
         <div class="flex justify-end gap-2">
           <NButton size="small" :disabled="manualDeleteLoading" @click="manualDeleteConfirmVisible = false">取消</NButton>
           <NButton size="small" type="error" :loading="manualDeleteLoading" @click="confirmManualDelete">确认删除</NButton>
-        </div>
-      </template>
-    </NModal>
-
-    <!-- 自动对练：删除场次确认弹窗 -->
-    <NModal
-      v-model:show="practiceDeleteConfirmVisible"
-      preset="card"
-      title="删除对练场次"
-      style="width: 400px"
-      :bordered="false"
-    >
-      <p class="text-sm text-text-secondary leading-relaxed mb-3">
-        确定要删除这个对练场次吗？删除后对话记录和评测数据将无法恢复。
-      </p>
-      <div v-if="practiceDeletingSession" class="p-3 rounded bg-error/10 border border-error/20 text-sm text-error mb-2">
-        {{ characterNameBySlug(practiceDeletingSession.characterSlug) }} · {{ modeNameById(practiceDeletingSession.counselorModeId) }}
-      </div>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <NButton size="small" :disabled="practiceDeleteLoading" @click="practiceDeleteConfirmVisible = false">取消</NButton>
-          <NButton size="small" type="error" :loading="practiceDeleteLoading" @click="confirmPracticeDelete">确认删除</NButton>
         </div>
       </template>
     </NModal>

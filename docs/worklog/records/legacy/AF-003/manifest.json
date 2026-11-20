@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-003",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.573Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-003/task-sheet.md",
+    "sha256": "c192770c84fd5d60ef58b295492862fc8d0b56b06546a7524d99e235729c7741",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af003-framework-finalization-implementation-2026-11-15.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

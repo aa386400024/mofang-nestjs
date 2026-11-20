@@ -14,6 +14,10 @@
 | 记忆浏览器 | `/memories` | 长时记忆召回、冲突标记 supersededBy |
 | PsyGUARD 监控 | `/psyguard` | 服务状态、p50/p90 延迟趋势、请求量分布、风险类别分布 |
 | 成本看板 | `/cost` | 近 7 天 token/成本趋势、单场平均、会话成本排行 |
+| 自动对练 | `/auto-practice` | 批量对练、场次进度、手动调试会话（创建/发轮/恢复/重命名/关闭/删除） |
+| 质量标注 | `/quality` | 批次标注、盲标揭示、一致性统计（API 真数据） |
+| 批次回归 | `/batch-regression` | 批次历史、指标快照、回归对比（API 真数据） |
+| 参数校准 | `/calibrator` | 工程种子参数的离线沙盘与候选配置导出；顶部读取后端 `GET /admin/api/debug/effective-config` 只读快照作对照，不写回引擎 |
 
 ## 技术栈
 
@@ -26,26 +30,20 @@
 ## 开发
 
 ```sh
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 API base 为 `/admin/api`，由 NestJS 后端的 AdminDebugModule 提供。
 
-## Mock 说明
+## 数据边界
 
-以下视图当前使用 mock 数据（在 `src/api/client.ts` 中），后端补 API 后切换为 `get<T>()`：
-
-- 概览仪表盘（`api.dashboard`）
-- 角色详情（`api.character`）
-- 记忆浏览器（`api.memories`）
-- 剧本轨迹（`api.trajectory`）
-- PsyGUARD 监控（`api.psyguard` / `api.psyguardTrend`）
-- 成本看板（`api.costTrend` / `api.sessionCosts`）
-- 会话详情中的安全判定（`TurnTrace.safety`）和报告详情（`ReportDetail.dimensions/annotations`）
+- 会话详情、调试 trace、delta 审计、事件标签、成本、记忆、PsyGUARD、质量标注、批次回归均直接使用后端字段；后端未返回的字段显示空态，不再由前端造数。
+- 自动对练场次表 `ap_practice_sessions` 无 `title` 列且设计为审计表，页面不提供重命名/删除/AI 重命名入口；手动调试会话的重命名与删除走 `debug/sessions/:id` 真接口。
+- 参数校准页是**离线沙盘 + 真实只读对照**：沙盘使用前端工程种子值推演并导出候选配置，不写回引擎；顶部“引擎真实生效参数”由后端 `GET /admin/api/debug/effective-config` 返回 env 解析后的 cap / 衰减半衰期 / 人格系数快照，仅作对照基线，不参与推演。
 
 ## 构建
 
 ```sh
-npm run build
+pnpm build
 ```

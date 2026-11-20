@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-088",
+  "contextId": "legacy",
+  "status": "completed",
+  "createdAt": null,
+  "updatedAt": "2026-11-20T01:36:29.666Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/legacy/AF-088/task-sheet.md",
+    "sha256": "4e01af427136c4c7e8e55eeaf9874dc1d1c1b489a4745f0f4e05b51b1ee294cd",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af088-phase25-exit345-evidence-2026-11-18.md",
+  "legacyPaths": [],
+  "tombstone": null
+}

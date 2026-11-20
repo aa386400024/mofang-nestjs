@@ -15,5 +15,6 @@
 # V2026-11-17 编排强制门: 无在办任务 / 任务仍在 ready / 暂存文件越出 scope
 # 一律在 lint-staged 之前阻断; 只读检查不受影响, 细节见 scripts/orchestration/task-entry-gate.mjs.
 pnpm orchestration:preflight || exit 1
+pnpm orchestration:worklog:verify || exit 1
 
 pnpm exec lint-staged

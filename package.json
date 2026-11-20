@@ -52,6 +52,8 @@
     "orchestration:validate": "node scripts/orchestration/cli.mjs validate",
     "orchestration:contracts": "node scripts/orchestration/verify-framework-bundle.mjs",
     "orchestration:events": "node scripts/orchestration/cli.mjs events",
+    "orchestration:worklog": "node scripts/orchestration/cli.mjs worklog",
+    "orchestration:worklog:verify": "node scripts/orchestration/cli.mjs worklog verify --strict",
     "orchestration:config": "node scripts/orchestration/cli.mjs config",
     "orchestration:improvements": "node scripts/orchestration/cli.mjs improvements",
     "orchestration:web": "node scripts/orchestration/open-web.mjs",

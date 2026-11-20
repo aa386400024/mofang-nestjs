@@ -20,7 +20,7 @@ const page = ref(1)
 const pageSize = 20
 
 // ─── 状态标签 ───
-function statusTagType(status: EvalReportStatus): 'success' | 'warning' | 'error' {
+function statusTagType(status: EvalReportStatus): 'success' | 'warning' | 'error' | 'default' {
   switch (status) {
     case 'ok': return 'success'
     case 'degraded': return 'warning'
@@ -186,11 +186,11 @@ function f1Color(f1: number | null): string {
       >
         <!-- 头部行 -->
         <div class="flex items-center gap-3 px-4 py-3">
-          <NTag :type="statusTagType(report.status)" size="small" bordered="false">
+          <NTag :type="statusTagType(report.status)" size="small" :bordered="false">
             {{ statusLabel(report.status) }}
           </NTag>
           <span class="text-xs text-muted">{{ report.datasetVersion }}</span>
-          <NTag v-if="report.mode === 'full'" size="tiny" bordered="false" type="info">full</NTag>
+          <NTag v-if="report.mode === 'full'" size="tiny" :bordered="false" type="info">full</NTag>
           <span class="text-sm text-gray-300">
             触发 F1 <span :class="f1Color(report.triggerF1)">{{ report.triggerF1?.toFixed(3) ?? '—' }}</span>
           </span>

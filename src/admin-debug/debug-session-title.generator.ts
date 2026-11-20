@@ -28,6 +28,7 @@
 import { LLMTier } from '../llm/common/enums/llm.enums.js';
 import type { ChatCompletionRequest } from '../llm/common/interfaces/chat-provider.interface.js';
 import { LlmRouterService } from '../llm/registry/llm-router.service.js';
+import { stripReasoningBlocks } from '../shared/llm/reasoning-text.js';
 
 /**
  * 标题生成的输入轮次 (一侧发言).
@@ -278,7 +279,10 @@ function stripWrappingQuotes(text: string): string {
  * @returns 标题 (可能为空串)
  */
 export function parseDebugSessionTitle(raw: string): string {
-  let text = raw.trim();
+  // 先删推理块。MiniMax-M3 这类推理模型会把 <think>...</think> **内联在 content 里**；
+  // 直接按第一行取标题时，列表里就会出现 85 条 `<think>We need output ti…`（AF-155 实测）。
+  // 未闭合块也由 stripReasoningBlocks 处理，避免被 max token 截断的思考残留进标题。
+  let text = stripReasoningBlocks(raw).trim();
   // 剥代码块围栏 (模型偶尔包一层 ```).
   text = text
     .replace(/^```[a-zA-Z]*\n?/, '')
@@ -294,4 +298,21 @@ export function parseDebugSessionTitle(raw: string): string {
     text = text.slice(0, MAX_DEBUG_SESSION_TITLE_LENGTH);
   }
   return text;
+}
+
+/**
+ * 标题投影口径：把历史脏标题（推理块开头 / 截断后只剩 `<think>`）落回可读兜底标题。
+ *
+ * 为什么在**读路径**也做一次，而不是只修生成器：
+ *   - 生成器只保证以后不再脏；已经有 200+ 条历史记录标题被 `<think>` 截断；
+ *   - 直接改库会丢失原始记录，不适合作为验收修复；
+ *   - 读路径只做**投影**，不写库，既能立刻让列表可读，又保留原始数据可追溯。
+ *
+ * @param raw 落盘原始标题
+ * @param createdAt 会话创建时刻（兜底标题要用）
+ * @returns 可展示标题
+ */
+export function sanitizeDebugSessionTitle(raw: string, createdAt: string): string {
+  const parsed = parseDebugSessionTitle(raw);
+  return parsed.length > 0 ? parsed : buildFallbackTitle(createdAt);
 }

@@ -1,0 +1,113 @@
+{
+  "deliveredAt": "2026-11-19T13:35:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-129-1",
+    "taskId": "AF-129",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "873f3f9660e6eea021f9fbe8553b672604cabbeb",
+    "dependsOn": ["AF-125"],
+    "priorTasks": ["AF-126", "AF-125"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "changedFiles": {
+      "added": [
+        "src/auto-practice/counselor/builder/prompt-sections/opening-framework.ts",
+        "test/auto-practice/counselor-prompt-builder.spec.ts",
+        "docs/worklog/pending/af129-opening-framework-closeout-task-2026-11-19.md",
+        "docs/worklog/completed/phase2.5/af129-opening-framework-closeout-2026-11-19.md"
+      ],
+      "modified": [
+        "src/auto-practice/counselor/builder/prompt-sections/close-discipline.ts",
+        "src/auto-practice/counselor/builder/counselor-prompt-builder.ts",
+        "src/auto-practice/prompt-fingerprint.ts",
+        "docs/worklog/pending/phase2.5-README.md"
+      ],
+      "deleted": [],
+      "commits": ["423acdd"]
+    },
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/pending/af129-opening-framework-closeout-task-2026-11-19.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af129-opening-framework-closeout-2026-11-19.md",
+      "reply": null,
+      "others": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/counselor-prompt-builder.spec.ts test/auto-practice/prompt-version.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "2 files / 19 tests passed"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "git diff --stat -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "note": "空输出，engine-core 零 diff"
+      }
+    ],
+    "reproNotes": "branch task/AF-127-session-structure-audit 承接 873f3f9；AF-126 因 agentRole=orchestrator 与 src scope 冲突，经 task reissue 生成 AF-129 executor 任务单；实现提交 423acdd。未新跑 LLM 批次，未实际发送 MiniMax。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-129 任务单、索引、回执一致" },
+      { "item": "stateWrite", "result": "pass", "note": "register / reissue / run-once 经 CLI" },
+      { "item": "indexSchema", "result": "pass", "note": "task-state-index 由 CLI 写入" },
+      { "item": "eventChain", "result": "pass", "note": "events verify 通过" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "prompt 结构已补齐；humanSupervision=false / clinicalAcceptanceEligible=false 未改写；不因结构单测把 AI/临床质量升格"
+    },
+    "backlogItems": [],
+    "openQuestions": [
+      "OI-AF129-01 新 prompt 尚未用新 long 批次复评：AF-130 用 sessionProfile=long 生成 16 场新批次，跑 AF-127 结构审计 + AF-125 ai-proxy-v2 评分"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "任务编号",
+        "taskSays": "AF-126",
+        "reality": "AF-129",
+        "action": "task reissue 重签发为 executor",
+        "why": "AF-126 agentRole=orchestrator，Agent Card resources 不含 src/，run-once 会 scope-domain-conflict"
+      },
+      {
+        "item": "指纹修复",
+        "taskSays": "opening-framework 纳入 PROMPT_TEMPLATE_FILES",
+        "reality": "另加 dist 完整性检查，缺模板时整体回退源码口径",
+        "action": "resolveFingerprintSource 校验 dist 是否完整覆盖清单",
+        "why": "新增模板未 build 时 computePromptVersion 会静默 unknown，单测无法验证"
+      },
+      {
+        "item": "批次复评",
+        "taskSays": "本单不新跑批次",
+        "reality": "本单未跑批次",
+        "action": "新批次复评另立 AF-130",
+        "why": "遵守任务边界，结构单测与真实生成分离"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "交付完成：开场知情框架与收尾三要素已接线并纳入指纹，19 例定向单测、tsc 0、lint 0、engine-core 零 diff 均有真实证据；本单只声明结构补齐，不声明 AI/临床质量达标。"
+  }
+}

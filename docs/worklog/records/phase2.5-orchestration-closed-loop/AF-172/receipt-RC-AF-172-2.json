@@ -1,0 +1,64 @@
+{
+  "deliveredAt": "2026-11-20T10:58:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-172-2",
+    "taskId": "AF-172",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "documentation",
+    "agentRole": "orchestrator",
+    "baselineRef": "926406d4945ae5767de4aa79cf9d5d1bbb52d361",
+    "dependsOn": ["AF-171"],
+    "priorTasks": ["AF-171", "AF-170", "AF-169", "AF-168", "AF-164", "AF-163"],
+    "policyRefs": ["conventions.md#2"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "changedFiles": {
+      "added": [
+        "docs/worklog/records/README.md",
+        "docs/worklog/records/TOMBSTONES.md",
+        "docs/worklog/records/migration-report-2026-11-20.json",
+        "docs/worklog/records/legacy/",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-161 … AF-172 的 manifest/task-sheet/receipt",
+        "docs/worklog/completed/phase2.5/af172-record-bundle-packaging-2026-11-20.md"
+      ],
+      "modified": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "web/orchestration/data.js"
+      ],
+      "deleted": [],
+      "commits": ["9968b4c0430171b4bf8d86a8eb02f077e6e485b9"]
+    },
+    "gateResults": [
+      { "exitCode": 0, "command": "node scripts/orchestration/cli.mjs worklog verify --strict", "errors": 0, "warnings": 0, "note": "PASS 活跃=1 归档=185 记录包=186" },
+      { "exitCode": 0, "command": "node scripts/orchestration/cli.mjs events verify", "errors": 0, "warnings": 0, "note": "哈希链与索引投影一致" },
+      { "exitCode": 0, "command": "git status --short docs/worklog/records", "errors": 0, "warnings": 0, "note": "仅 AF-170 孤儿目录未入库" }
+    ],
+    "scopeCheck": "in-scope",
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "任务单 / 提交 / 回执 / 交付记录均为 AF-172" },
+      { "item": "records", "result": "pass", "note": "record bundle 完整入库，manifest 与 task-sheet 一一对应" },
+      { "item": "evidence-immutability", "result": "pass", "note": "仅新增文件，无历史内容改写" },
+      { "item": "engine-core", "result": "pass", "note": "零改动" }
+    ],
+    "backlogItems": [],
+    "deviationTable": [
+      { "item": "record count", "taskSays": "117 份 manifest 补齐", "reality": "182 份 record bundle 入库", "why": "AF-163 迁移时全部记录包均未入库，不止 manifest", "action": "按同一根因完整收敛" }
+    ],
+    "reviewVerdict": "passed",
+    "finalStatus": "completed",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-172/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af172-record-bundle-packaging-2026-11-20.md",
+      "others": []
+    },
+    "reproNotes": "AF-172 提交 e6515d409d0a30a9d8314ff0de75a70bfafaf842；记录包完整入库。",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "fieldAlignment": { "result": "aligned", "note": "task-sheet 1.1.0 / receipt 1.0.0" },
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationAbsent": false,
+    "verdictRationale": "记录包证据完整入库，历史内容未改写，严格校验通过。"
+  }
+}

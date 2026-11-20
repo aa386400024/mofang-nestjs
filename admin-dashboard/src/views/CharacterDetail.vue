@@ -40,6 +40,9 @@ const bdiLabels: Record<string, { zh: string; en: string }> = {
   arousal: { zh: '唤醒度', en: 'arousal' },
   resist: { zh: '阻抗', en: 'resist' },
 }
+// 角色基线契约目前只交付 trust / resist / valence / arousal 四维；
+// safety / bond 没有基线数据，雷达图不补 0 假点，等契约扩展后再加。
+const radarKeys = ['trust', 'resist', 'valence', 'arousal'] as const
 const auditLabels: Record<string, { zh: string; en: string }> = {
   draft: { zh: '草稿', en: 'draft' },
   approved: { zh: '已通过', en: 'approved' },
@@ -73,17 +76,17 @@ const avatarColor = computed(() => {
   ]
   let hash = 0
   for (let i = 0; i < slug.length; i++) hash = (hash * 31 + slug.charCodeAt(i)) >>> 0
-  return colors[hash % colors.length]
+  return colors[hash % colors.length]!
 })
 
 // ─── 雷达图配置 ───
 const radarOption = computed(() => {
   if (!data.value) return {}
-  const indicators = Object.keys(bdiLabels).map(k => ({
-    name: bdiLabels[k].zh,
+  const indicators = radarKeys.map(k => ({
+    name: bdiLabels[k]!.zh,
     max: 1,
   }))
-  const values = Object.keys(bdiLabels).map(k => data.value?.baseline[k] ?? 0)
+  const values = radarKeys.map(k => data.value!.baseline[k])
   return {
     tooltip: { trigger: 'item', backgroundColor: '#1e222d', borderColor: '#2a2f3d', textStyle: { color: '#e5e7eb', fontSize: 12 } },
     radar: {
@@ -144,17 +147,17 @@ const fivePLabels: Record<string, { zh: string; en: string }> = {
               <span class="text-xl font-semibold text-gray-100">{{ data.codename }}</span>
               <n-tag size="small" :bordered="false">
                 <template v-if="attachmentLabels[data.attachmentStyle ?? '']">
-                  {{ attachmentLabels[data.attachmentStyle ?? ''].zh }}
-                  <span class="text-muted ml-1">({{ attachmentLabels[data.attachmentStyle ?? ''].en }})</span>
+                  {{ attachmentLabels[data.attachmentStyle ?? '']!.zh }}
+                  <span class="text-muted ml-1">({{ attachmentLabels[data.attachmentStyle ?? '']!.en }})</span>
                 </template>
                 <template v-else>{{ data.attachmentStyle ?? '—' }}</template>
               </n-tag>
               <n-tag size="small" :bordered="false" :type="data.enabled ? 'success' : 'error'">
-                {{ enabledLabels[data.enabled ? 'enabled' : 'disabled'].zh }}
+                {{ enabledLabels[data.enabled ? 'enabled' : 'disabled']!.zh }}
               </n-tag>
               <n-tag size="small" :bordered="false" :type="auditStatus === 'approved' ? 'success' : auditStatus === 'rejected' ? 'error' : 'warning'">
                 <template v-if="auditLabels[auditStatus]">
-                  {{ auditLabels[auditStatus].zh }}
+                  {{ auditLabels[auditStatus]!.zh }}
                 </template>
                 <template v-else>{{ auditStatus }}</template>
               </n-tag>
@@ -178,7 +181,7 @@ const fivePLabels: Record<string, { zh: string; en: string }> = {
           <div class="space-y-3 py-2">
             <div v-for="(val, key) in data.baseline" :key="key" class="flex items-center gap-3">
               <span class="text-xs w-20 text-gray-300">
-                <template v-if="bdiLabels[key]">{{ bdiLabels[key].zh }}</template>
+                <template v-if="bdiLabels[key]">{{ bdiLabels[key]!.zh }}</template>
                 <template v-else>{{ key }}</template>
               </span>
               <n-progress
@@ -244,7 +247,7 @@ const fivePLabels: Record<string, { zh: string; en: string }> = {
               <span class="text-sm font-medium text-gray-200">{{ s.visitorAlias }}</span>
               <n-tag size="tiny" :bordered="false" :type="s.status === 'completed' ? 'success' : 'warning'">
                 <template v-if="sessionStatusLabels[s.status]">
-                  {{ sessionStatusLabels[s.status].zh }}
+                  {{ sessionStatusLabels[s.status]!.zh }}
                 </template>
                 <template v-else>{{ s.status }}</template>
               </n-tag>

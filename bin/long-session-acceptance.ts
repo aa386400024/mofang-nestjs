@@ -121,7 +121,7 @@ function selectBalancedSessions(batch: BatchIndex, limit: number, seed: number):
   const random = mulberry32(seed);
   const byMode = new Map<string, BatchIndex['sessions']>();
   for (const session of batch.sessions) {
-    if (session.status !== 'completed') continue;
+    if (session.status !== 'completed' && session.status !== 'crisis_ended') continue;
     if (!['expert', 'cold'].includes(session.counselorModeId)) continue;
     const list = byMode.get(session.counselorModeId) ?? [];
     list.push(session);
@@ -255,7 +255,7 @@ function commandPack(): void {
 
   const batch = loadBatch(batchId);
   const selected = selectBalancedSessions(batch, Math.min(limit, 16), seed);
-  if (selected.length < 2) fail(`可取样 completed 会话不足：${selected.length}`);
+  if (selected.length < 2) fail(`可取样 completed/crisis_ended 会话不足：${selected.length}`);
 
   const packets: { packetId: string; debugSessionId: string; characterSlug: string; counselorModeId: string; turnCount: number }[] = [];
   for (const [index, session] of selected.entries()) {

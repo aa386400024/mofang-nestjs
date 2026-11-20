@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 538,
+    "lastEventSeq": 753,
     "rebuiltAt": null
   },
   "tasks": [],
@@ -1244,6 +1244,420 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af125-ai-proxy-cross-model-2026-11-19.md",
         "reply": null
       }
+    },
+    {
+      "taskId": "AF-126",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af126-opening-framework-closeout-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-129",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af129-opening-framework-closeout-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af129-opening-framework-closeout-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-127",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af127-session-structure-audit-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af127-session-structure-audit-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-130",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af130-long-batch-reevaluation-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af130-long-batch-reevaluation-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-131",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af131-independent-review-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af131-independent-review-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-132",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af132-prompt-hard-template-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-133",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af133-long-session-closure-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-134",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af134-scope-rescope-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-135",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af135-af133-acceptance-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af135-af133-acceptance-2026-11-19.md",
+        "reply": "docs/worklog/pending/archive/relay-response-AF133-20261119-1505.md"
+      }
+    },
+    {
+      "taskId": "AF-136",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af136-post-af133-quality-recheck-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af136-post-af133-quality-recheck-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-137",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af137-crisis-risk-close-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af137-crisis-risk-close-2026-11-19.md",
+        "reply": "docs/worklog/pending/archive/relay-response-AF137-REVIEW-20261119-1750.md"
+      }
+    },
+    {
+      "taskId": "AF-138",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af138-ai-quality-close-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-139",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af139-ai-quality-close-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-140",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af140-ai-quality-close-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af140-ai-quality-close-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-141",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af141-af140-test-scope-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af141-af140-test-scope-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-142",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af142-readme-gate-number-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-143",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af143-final-closing-channel-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-144",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af144-final-closing-channel-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-145",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af145-final-closing-quality-close-task-2026-11-19.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-146",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af146-final-closing-quality-close-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af146-final-closing-quality-close-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-147",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af147-kappa-track-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af147-kappa-track-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-148",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af148-af147-acceptance-rework-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af148-af147-acceptance-close-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-149",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af149-quality-admin-task-2026-11-20.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-150",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af150-quality-admin-task-2026-11-20.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-151",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af151-quality-admin-task-2026-11-20.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-152",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af152-quality-admin-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af152-quality-admin-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-153",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af153-quality-admin-close-task-2026-11-20.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-154",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af154-quality-admin-close-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af154-quality-admin-close-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-155",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af155-admin-runtime-smoke-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af155-admin-runtime-smoke-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-128",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af128-visible-output-think-leak-task-2026-11-19.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af128-visible-output-think-leak-2026-11-19.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-156",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af156-admin-audit-version-health-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af156-admin-audit-version-health-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-157",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af157-admin-naive-locale-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af157-admin-naive-locale-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-158",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af158-annotation-warning-ux-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af158-annotation-warning-ux-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-159",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/pending/af159-admin-health-auth-watch-task-2026-11-20.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af159-admin-health-auth-watch-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-160",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/inbox/af160-worklog-record-bundles-task-2026-11-20.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-161",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-161/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af161-worklog-record-bundles-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-162",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-162/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af162-worklog-closeout-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-163",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-163/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af163-worklog-final-closeout-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-164",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-164/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af164-release-integrate-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-165",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-165/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-166",
+      "status": "rejected",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-166/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af166-release-code-snapshot-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-168",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-168/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af168-release-code-snapshot-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-167",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-167/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-169",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-169/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af169-release-docs-snapshot-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-171",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-171/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af171-release-gate-dependency-fix-2026-11-20.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-172",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-172/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af172-record-bundle-packaging-2026-11-20.md",
+        "reply": null
+      }
     }
   ],
   "archivedNotes": {
@@ -1276,6 +1690,13 @@
     "AF-110": "scope 重签发 → AF-111",
     "AF-118": "AF-118 依赖配错，取消后重签",
     "AF-121": "AF-121 scope 越域，重签",
-    "AF-122": "AF-122 scope 仍越域，重签"
+    "AF-122": "AF-122 scope 仍越域，重签",
+    "AF-138": "scope 重签发 → AF-139",
+    "AF-139": "scope 重签发 → AF-140",
+    "AF-142": "取消并归档：README 3864 为 AF-140 当时口径",
+    "AF-149": "scope 重签发 → AF-150",
+    "AF-150": "scope 重签发 → AF-151",
+    "AF-151": "scope 重签发 → AF-152",
+    "AF-153": "scope 重签发 → AF-154"
   }
 }
