@@ -90,6 +90,17 @@ function codeText(map: Record<string, string>, code: string): string {
   return map[code] ?? code
 }
 
+/**
+ * 批次维度告警码 → 中文。
+ * `INVALID_BATCHES_HIDDEN:<n>` 是带动态后缀的码（契约要求必须显式报出隐藏数量），
+ * 不能丢给 codeText 当未知码原样渲染，否则界面暴露内部协议串。
+ */
+function batchWarningText(code: string): string {
+  const hidden = /^INVALID_BATCHES_HIDDEN:(\d+)$/.exec(code)
+  if (hidden) return `另有 ${hidden[1]} 个批次未通过有效性门禁，已隐藏`
+  return WARNING_CN[code] ?? code
+}
+
 const loading = ref(true)
 const saving = ref(false)
 const list = ref<AnnotationRow[]>([])
@@ -339,7 +350,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           size="small"
           @update:value="onBatchChange"
         />
-        <div v-for="w in batchWarnings" :key="w" class="text-[10px] text-amber-400 mt-1">{{ w }}</div>
+        <div v-for="w in batchWarnings" :key="w" class="text-[10px] text-amber-400 mt-1">{{ batchWarningText(w) }}</div>
       </div>
 
       <div class="p-3 rounded-lg bg-white/5 border border-white/10">
@@ -413,7 +424,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
     <!-- 中栏: 逐字稿 -->
     <main class="flex-1 flex flex-col gap-3 rounded-lg bg-white/5 border border-white/10 p-4 overflow-auto">
-      <div v-if="!current" class="m-auto text-gray-500">没有待标注场次</div>
+      <div v-if="!current" class="m-auto text-gray-500">{{ list.length === 0 ? '没有待标注场次' : '从左侧选择一场开始标注' }}</div>
       <template v-else>
         <div class="flex items-center justify-between px-2 py-1 border-b border-white/10 text-xs text-gray-400">
           <div>

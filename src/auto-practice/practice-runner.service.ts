@@ -8,7 +8,8 @@
 //       ② 判断什么时候该停 (maxTurns / crisis / 来访复读).
 //
 //   结束条件 (按优先级):
-//     ① crisisDetected —— 来访者说了自伤/自杀相关 → 立刻停, 标记 crisis_ended;
+//     ① crisisDetected —— 来访者说了自伤/自杀相关 → 进入后置危机窗 (标记 crisis_ended);
+//        强度上升 (crisis_escalated) 在 standard/long 档先补 1 轮风险收束再结束 (AF-137);
 //     ② 咨询师判断可自然收尾 (输出 [[END]] 标记, 且已过最小轮数) → status=completed, exitReason=natural_close;
 //     ③ 来访复读 —— 连续 3 轮来访回复几乎一样 → 停 (对话僵住了, 再跑没意义);
 //     ④ maxTurns —— 跑满轮数 (此时它退化成"上限保护", 不是正常的结束方式);
@@ -44,10 +45,22 @@ import type { Repository } from 'typeorm';
 
 import { AUTO_PRACTICE_EVENTS, type AutoPracticeSessionEndPayload, type AutoPracticeSessionStartPayload } from './auto-practice.events.js';
 import { AutoPracticeGateway } from './auto-practice.gateway.js';
-import { CounselorAgentService, type CounselorHistoryTurn } from './counselor-agent.service.js';
+import {
+  CounselorAgentService,
+  type CounselorGenerateContext,
+  type CounselorHistoryTurn,
+  type CounselorReply,
+} from './counselor-agent.service.js';
 import { CounselorMode } from './entities/counselor-mode.entity.js';
 import { PracticeSession, type PracticeSessionStatus } from './entities/practice-session.entity.js';
 import { InferenceFingerprintService, type InferenceFingerprint, type ScenarioType } from './inference-fingerprint.service.js';
+import {
+  completeRoutineClosingText,
+  evaluateRiskClosingText,
+  evaluateRoutineClosingText,
+  type ClosingElementKey,
+  type RiskClosingElementKey,
+} from './metrics/session-structure-audit.js';
 import { TURN_ENGINE_PORT, type EngineTurnResult, type TurnEnginePort } from './ports/turn-engine.port.js';
 import { SemanticTurnPersister } from './semantic/semantic-turn.persister.js';
 import {
@@ -200,6 +213,19 @@ export interface CrisisWindowState {
   category: string | null;
   /** 是否发生强度上升型二次升级. */
   escalated: boolean;
+  /**
+   * AF-137: 首次发生强度上升的轮次.
+   * 非升级路径为 null; standard / long 档用它把"升级后必须先做的风险收束轮"钉住,
+   * 避免 crisis_escalated 在披露当轮直接终止 (AF-136 packet-09 的 P0).
+   */
+  escalationTurn?: number | null;
+  /**
+   * AF-138: 升级后的计划轮是否仍缺安全要素.
+   * true 时 runner 追加 1 个修复轮; 修复轮后仍缺则以 crisis_safety_incomplete 结束.
+   */
+  safetyRepairPending?: boolean;
+  /** AF-138: 上一次内容门判出的缺失要素, 供修复轮 prompt 逐项补齐. */
+  missingSafetyElements?: readonly RiskClosingElementKey[];
 }
 
 /**
@@ -508,7 +534,14 @@ export class PracticeRunnerService implements OnModuleInit {
       peakLevel: 0,
       category: null,
       escalated: false,
+      escalationTurn: null,
+      safetyRepairPending: false,
+      missingSafetyElements: [],
     };
+    /** AF-138: 强制收束窗内咨询师正文（用于常规收束三项内容门）。 */
+    const closingTexts: string[] = [];
+    /** AF-138: 升级后安全序列内咨询师正文（用于风险收束五组内容门）。 */
+    const crisisSafetyTexts: string[] = [];
     let degradedTurns = 0;
     // WP-J P1d: 两侧降级**分开**计数 —— `degraded_turns` 仍是两侧合计 (口径不变),
     //   但 `counselor_degraded_turns` / `visitor_degraded_turns` 这两列 WP-H 就建好了,
@@ -523,32 +556,49 @@ export class PracticeRunnerService implements OnModuleInit {
     // AF-091: 本场生效的判定阈值 (来自会话档案; legacy = 老常量, 逐字不变).
     const thresholds = sessionThresholdsOf(profile);
 
-    for (let i = 1; i <= maxTurns; i += 1) {
+    // AF-137: 升级若恰好撞上 maxTurns 最后一轮, 允许额外 1 轮做风险收束;
+    //   只放行 maxTurns + 1 这一轮, 不会无限延长.
+    for (let i = 1; shouldRunNextTurn(crisisWindow, i, maxTurns, profile.name !== 'legacy'); i += 1) {
+      // AF-133: 本轮的动态开关 (强制收束 cue / 风险收束轮).
+      //   抽成独立纯函数是为了把 runConversationLoop 的认知复杂度压回阈值内.
+      const cue = decideTurnCue({
+        turnIndex: i,
+        maxTurns,
+        crisisActive: crisisWindow.active,
+        crisisPostTurns: crisisWindow.postTurns,
+        crisisPracticeTurns: thresholds.crisisPracticeTurns,
+        crisisEscalated: crisisWindow.escalated,
+        crisisEscalationTurn: crisisWindow.escalationTurn ?? null,
+        crisisRepairPending: crisisWindow.safetyRepairPending === true,
+        crisisMissing: crisisWindow.missingSafetyElements,
+        closingText: closingTexts.join('\n'),
+      });
       // AI 咨询师生成台词.
       //   WP-J 改动 B: 危机后置练习窗内传 crisisMode —— 咨询师切到"稳定化"任务
       //   (安全确认 / 稳定化 / 下一步), 不再推进新议题.
       //   AF-091: 同时传 sessionProfile (决定要不要加长会话收尾纪律) 与当前轮次
       //   (长会话纪律块要写"当前是第 N 轮").
-      const counselorReply = await this.counselorAgent.generate(input.counselorMode, history, {
-        crisisMode: crisisWindow.active,
-        sessionProfile: profile.name,
-        turnIndex: i,
-      });
+      //   AF-144: maxTurns 起必走最终收束，且走独立单轮通道（只喂最近 6 条消息摘要），
+      //   不再把最后 10 轮历史当连续对话续写。生成后仍缺三件套时做确定性补全。
+      const finalClosingTurn = shouldForceFinalClosing(profile, i, maxTurns, crisisWindow.active);
+      const rawCounselorReply = await this.counselorAgent.generate(
+        input.counselorMode,
+        history,
+        buildCounselorOptions(profile, i, cue, crisisWindow.active, finalClosingTurn),
+      );
+      const counselorReply = finalClosingTurn ? completeFinalClosingReply(rawCounselorReply, history) : rawCounselorReply;
       if (counselorReply.degraded) {
         degradedTurns += 1;
         counselorDegradedTurns += 1;
       }
       history.push({ role: 'counselor', text: counselorReply.text });
+      recordClosingTexts(cue, crisisWindow, counselorReply.text, closingTexts, crisisSafetyTexts);
 
       // 引擎跑一轮.
       const result = await this.engine.turn(debugSessionId, counselorReply.text);
       turnCount = result.turnIndex;
       // WP-F Step 0: 累加本轮 LLM 用量 (只取数字, 不碰任何心理内容).
       this.accumulateUsage(usage, result.trace);
-      if (result.trace.degraded) {
-        degradedTurns += 1;
-        visitorDegradedTurns += 1;
-      }
       // WP-J P1d: 访客侧口径分账 ——
       //   ① 兜底轮 (trace.degraded): 渲染层吐的是系统兜底句, **没调成 LLM**;
       //   ② 阻断轮 (disposal=block): 来访者一个字都没说 (reply 为空), 也没调 LLM;
@@ -556,6 +606,8 @@ export class PracticeRunnerService implements OnModuleInit {
       //   ⚠️ "回复非空"是判据 (不是 token 数): token 可能是 0 而调用是真的,
       //     反过来兜底轮回复非空但根本没调用 —— 只有"有内容且没降级"才等于真调用.
       if (result.trace.degraded) {
+        degradedTurns += 1;
+        visitorDegradedTurns += 1;
         renderFallbackTurns += 1;
       } else if (result.reply.trim().length > 0) {
         llmCallTurns += 1;
@@ -593,18 +645,16 @@ export class PracticeRunnerService implements OnModuleInit {
           visitorHistory,
           counselorText: counselorReply.text,
           lastCounselorText,
+          forcedClose: cue.forcedClose,
+          closingText: closingTexts.join('\n'),
+          crisisSafetyText: crisisSafetyTexts.join('\n'),
         },
         crisisWindow,
         stagnation,
         thresholds,
       );
 
-      if (crisisEntered) {
-        // 只记轮次与档位数字 (隐私红线: 不记任何对话文本).
-        this.logger.warn(
-          `[auto_practice] 危机披露 → 进入后置练习窗 turn=${result.turnIndex} level=${crisisWindow.peakLevel} (不终止, 续 ${thresholds.crisisPracticeTurns} 轮)`,
-        );
-      }
+      this.logCrisisEntered(crisisEntered, result.turnIndex, crisisWindow.peakLevel, thresholds.crisisPracticeTurns);
 
       if (decision.kind === 'stop') {
         ({ status, exitReason } = resolveStopOutcome(decision));
@@ -613,7 +663,7 @@ export class PracticeRunnerService implements OnModuleInit {
             `[auto_practice] 判停滞 turn=${result.turnIndex} literal=${decision.literalStreak} no_progress=${decision.noProgressStreak} max_sim=${decision.maxSimilarity.toFixed(2)}`,
           );
         }
-        if (decision.reason === 'crisis_escalated') crisisEnded = 1;
+        if (isCrisisExitReason(decision.reason)) crisisEnded = 1;
         break;
       }
       if (decision.closeBlocked) {
@@ -623,6 +673,16 @@ export class PracticeRunnerService implements OnModuleInit {
 
       lastCounselorText = counselorReply.text;
       visitorHistory.push(result.reply);
+
+      // AF-140: 常规收束一旦在强制收束窗内齐全, 立即收尾.
+      // 之前只靠模型输出 END, 模型常在收束后又开新议题; 在 50 轮长会话里
+      // 这会制造“收束被埋在中段、最后几轮又在工作”的结构假象, 评分员按
+      // “最后 10 轮无收束”上限压到 3. 收束齐全即停, 让收束真正落在末轮.
+      if (shouldStopAfterRoutineClosing(cue, crisisWindow, closingTexts)) {
+        status = 'completed';
+        exitReason = 'natural_close';
+        break;
+      }
     }
 
     // 跑满 maxTurns.
@@ -675,6 +735,14 @@ export class PracticeRunnerService implements OnModuleInit {
    * 抽成独立方法是为了把 runConversationLoop 的圈复杂度压回阈值内
    * (eslint complexity ≤ 20 / sonarjs cognitive-complexity ≤ 25).
    */
+  /**
+   * 记录危机窗口首次进入（只记轮次/档位数字，不记对话文本）。
+   */
+  private logCrisisEntered(entered: boolean, turnIndex: number, peakLevel: number, practiceTurns: number): void {
+    if (!entered) return;
+    this.logger.warn(`[auto_practice] 危机披露 → 进入后置练习窗 turn=${turnIndex} level=${peakLevel} (不终止, 续 ${practiceTurns} 轮)`);
+  }
+
   private async persistVisitorSemantic(practiceSessionId: string, result: EngineTurnResult): Promise<void> {
     if (result.trace.degraded || result.reply.trim().length === 0) {
       return;
@@ -1146,12 +1214,21 @@ interface TurnJudgementInput {
   readonly counselorText: string;
   /** 咨询师上一轮台词. */
   readonly lastCounselorText: string;
+  /** AF-138: 本场是否已进入强制收束窗 (最后 3 轮). */
+  readonly forcedClose?: boolean;
+  /** AF-138: 强制收束窗内咨询师正文 (多轮换行拼接). */
+  readonly closingText?: string;
+  /** AF-138: 升级后安全序列内咨询师正文 (评估轮 + 计划轮/修复轮). */
+  readonly crisisSafetyText?: string;
 }
 
 /** 单轮结束判定的结论. */
 type TurnDecision =
   | { readonly kind: 'continue'; readonly closeBlocked: boolean }
-  | { readonly kind: 'stop'; readonly reason: 'crisis_escalated' | 'crisis_practice_max' | 'crisis_practice_close' | 'natural_close' }
+  | {
+      readonly kind: 'stop';
+      readonly reason: 'crisis_escalated' | 'crisis_safety_incomplete' | 'crisis_practice_max' | 'crisis_practice_close' | 'natural_close';
+    }
   | {
       readonly kind: 'stop';
       readonly reason: 'stagnant';
@@ -1159,6 +1236,269 @@ type TurnDecision =
       readonly noProgressStreak: number;
       readonly maxSimilarity: number;
     };
+
+function recordClosingTexts(
+  cue: { readonly forcedClose: boolean; readonly crisisClosing: boolean },
+  crisisWindow: CrisisWindowState,
+  text: string,
+  closingTexts: string[],
+  crisisSafetyTexts: string[],
+): void {
+  if (cue.forcedClose) closingTexts.push(text);
+  if (cue.crisisClosing && crisisWindow.escalated) crisisSafetyTexts.push(text);
+}
+
+/**
+ * AF-133 · 组装咨询师生成上下文.
+ *
+ * 抽成独立函数有两个理由:
+ *   ① **复杂度**: 三个开关 (强制收束 cue / 剩余轮数 / 风险收束轮) 的三元表达式
+ *      放在 runConversationLoop 里会把它顶过 eslint 阈值 (≤20 / ≤25).
+ *   ② **口径单一**: "什么时候给什么信号"只有这一处定义, prompt 侧不会收到
+ *      互相矛盾的组合 (例如有 closingCue 却说"还剩 5 轮").
+ *
+ * @param profile 会话档案
+ * @param turnIndex 当前轮次
+ * @param cue 本轮的动态开关 (见 {@link decideTurnCue})
+ * @param crisisActive 危机后置练习窗是否激活
+ * @returns 传给咨询师生成接口的上下文
+ */
+/**
+ * AF-144: 是否触发“本场最后一次收束”。
+ * 到 `maxTurns` 当轮就触发，不再等待 +1/+2；最终通道生成后由确定性补全兜底，
+ * 避免模型在额外补齐轮继续开新议题。
+ */
+export function shouldForceFinalClosing(profile: SessionProfile, turnIndex: number, maxTurns: number, crisisActive: boolean): boolean {
+  if (profile.name === 'legacy' || crisisActive) return false;
+  // 到点必触发：不再依赖“把收束窗拼成一段”的 complete 判定。
+  // 那个判定会把不同轮次的“总结”和“我听到”拼成同一轮，误判为已收束，
+  // 于是 maxTurns+1/+2 的最终通道根本没有跑（AF-143 根因）。
+  return turnIndex >= maxTurns;
+}
+
+/**
+ * AF-140: 强制收束窗内常规三件套齐全后是否立即收尾。
+ * 抽成纯函数是为了压住 `runConversationLoop` 的圈/认知复杂度。
+ */
+function shouldStopAfterRoutineClosing(
+  cue: { readonly forcedClose: boolean },
+  crisisWindow: CrisisWindowState,
+  closingTexts: readonly string[],
+): boolean {
+  return cue.forcedClose && !crisisWindow.active && evaluateRoutineClosingText(closingTexts.join('\n')).complete;
+}
+
+/**
+ * AF-143 · 最终收束的确定性兜底。
+ *
+ * 模型即使走独立通道仍可能只写两段或漏掉 summary；这里按缺失项补齐，
+ * 并把本轮标成“请求 END”，保证最终收束真正落在末轮。
+ * 只补结构句式，不编造来访者没说过的具体事实。
+ */
+function completeFinalClosingReply(reply: CounselorReply, history: readonly CounselorHistoryTurn[]): CounselorReply {
+  const lastVisitorText = [...history].reverse().find((turn) => turn.role === 'visitor')?.text ?? '';
+  const completed = completeRoutineClosingText(reply.text, lastVisitorText);
+  return {
+    ...reply,
+    text: completed,
+    closeRequested: true,
+  };
+}
+
+function buildCounselorOptions(
+  profile: SessionProfile,
+  turnIndex: number,
+  cue: {
+    readonly forcedClose: boolean;
+    readonly remainingTurns: number;
+    readonly crisisClosing: boolean;
+    readonly crisisClosingRound?: number;
+    readonly crisisMissing?: readonly string[];
+    readonly closingMissing?: readonly string[];
+  },
+  crisisActive: boolean,
+  finalClosing = false,
+): CounselorGenerateContext {
+  return {
+    crisisMode: crisisActive,
+    sessionProfile: profile.name,
+    turnIndex,
+    closingCue: cue.forcedClose ? 'forced' : undefined,
+    remainingTurns: cue.forcedClose ? cue.remainingTurns : undefined,
+    crisisClosing: cue.crisisClosing,
+    crisisClosingRound: cue.crisisClosingRound,
+    crisisMissing: cue.crisisMissing,
+    closingMissing: cue.closingMissing,
+    finalClosing,
+  };
+}
+
+const RISK_ELEMENT_LABELS: Record<RiskClosingElementKey, string> = {
+  means: '移除危险物 / 开放安全空间',
+  channel: '求助渠道（热线 / 120 / 急诊 / 110）',
+  contact: '可联系的人',
+  noAlone: '不要独处',
+  commitment: '安全承诺 / 安全计划',
+};
+
+/** 常规收束三件套的中文标签（修复轮逐项补齐用）。 */
+const ROUTINE_ELEMENT_LABELS: Record<ClosingElementKey, string> = {
+  summary: '总结 / 回顾',
+  takeaway: '带走 / 记住',
+  nextStep: '下次 / 回去可以试',
+};
+
+function resolveCrisisClosingRound(input: {
+  readonly crisisEscalated?: boolean;
+  readonly crisisEscalationTurn?: number | null;
+  readonly crisisRepairPending?: boolean;
+  readonly turnIndex: number;
+}): number | undefined {
+  if (input.crisisRepairPending === true) return 3;
+  if (input.crisisEscalated !== true || input.crisisEscalationTurn == null) return undefined;
+  return Math.max(1, input.turnIndex - input.crisisEscalationTurn);
+}
+
+/**
+ * AF-133 · 本轮的动态开关 (强制收束 cue / 风险收束轮).
+ *
+ * ── forcedClose ───────────────────────────────────────────────────────────
+ *   `remaining = maxTurns - turnIndex` (本轮之后还剩几轮), `remaining <= 2` 就注入
+ *   强制收束 cue —— 也就是**最后 3 轮**都会收到"本场即将结束"的信号 (最后 2 轮
+ *   必然在内). 背景见 AF-131 §2.2: 8/16 场次被 max_turns 硬切, 而模型**无从知道**
+ *   自己会被切, 于是永远不请求 END, 收束三件套没有机会说出来.
+ *   ⚠️ 提前 1 轮注入是刻意的: 多给模型一轮把三件套做完的机会.
+ *
+ * ── crisisClosing ─────────────────────────────────────────────────────────
+ *   ① 危机窗用满 (postTurns ≥ crisisPracticeTurns) 之后的**那一轮** = 风险收束轮;
+ *   ② 危机窗里撞上限的最后 2 轮 (否则会带着没收收束的风险被 max_turns 切掉).
+ *   这一轮 prompt 会要求模型把风险收束五项逐项落地, 而不是只做 grounding.
+ *
+ * @param input 本轮事实
+ * @returns 本轮的动态开关
+ */
+export function decideTurnCue(input: {
+  readonly turnIndex: number;
+  readonly maxTurns: number;
+  readonly crisisActive: boolean;
+  readonly crisisPostTurns: number;
+  readonly crisisPracticeTurns: number;
+  /** AF-137: 危机强度是否已经上升 —— 上升后的下一轮必须先做风险收束. */
+  readonly crisisEscalated?: boolean;
+  /** AF-137: 升级轮次, 用来算当前是升级后第几个收束轮. */
+  readonly crisisEscalationTurn?: number | null;
+  /** AF-138: 升级后的计划轮是否仍缺安全要素 (缺则追加修复轮). */
+  readonly crisisRepairPending?: boolean;
+  /** AF-138: 内容门判出的缺失要素. */
+  readonly crisisMissing?: readonly RiskClosingElementKey[];
+  /** AF-140: 强制收束窗内已累积的咨询师正文（判断常规三件套是否齐）. */
+  readonly closingText?: string;
+}): {
+  readonly forcedClose: boolean;
+  readonly remainingTurns: number;
+  readonly crisisClosing: boolean;
+  /** AF-137: 升级后第几个收束轮 (1 = 评估轮, 2 = 计划轮, 3 = 修复轮); 非升级路径不传. */
+  readonly crisisClosingRound?: number;
+  /** AF-138: 修复轮要逐项补齐的缺失要素. */
+  readonly crisisMissing?: readonly string[];
+  /** AF-140: 常规收束三件套仍缺的要素（中文标签）. */
+  readonly closingMissing?: readonly string[];
+} {
+  const remaining = input.maxTurns - input.turnIndex;
+  const forcedClose = remaining <= 2;
+  const repairPending = input.crisisRepairPending === true;
+  const crisisClosing =
+    input.crisisActive &&
+    (input.crisisEscalated === true || repairPending || input.crisisPostTurns >= input.crisisPracticeTurns || forcedClose);
+  const crisisClosingRound = resolveCrisisClosingRound(input);
+  // AF-140: 常规收束窗内，三件套不齐时把缺失项带给 prompt（下一轮逐项补齐）。
+  const routineClosing = forcedClose && !input.crisisActive ? evaluateRoutineClosingText(input.closingText ?? '') : null;
+  const closingMissing =
+    routineClosing !== null && !routineClosing.complete ? routineClosing.missing.map((key) => ROUTINE_ELEMENT_LABELS[key]) : undefined;
+  return {
+    forcedClose,
+    remainingTurns: remaining + 1,
+    crisisClosing,
+    crisisClosingRound,
+    crisisMissing: repairPending ? (input.crisisMissing ?? []).map((key) => RISK_ELEMENT_LABELS[key]) : undefined,
+    closingMissing,
+  };
+}
+
+/**
+ * AF-137 · 危机强度上升的判定与出口.
+ *
+ * 只有**强度真的上升**才算二次升级; 同等或更低强度的"又说了一次"正是稳定化过程.
+ * standard / long 档不在升级当轮终止, 记下 escalationTurn 让下一轮做风险收束;
+ * legacy 档保持档案契约的"升级即终止".
+ *
+ * @returns 需要立即返回的判定; null 表示强度未上升, 继续常规流程
+ */
+function applyCrisisEscalation(
+  input: TurnJudgementInput,
+  crisisWindow: CrisisWindowState,
+  thresholds: SessionThresholds,
+): TurnDecision | null {
+  const level = crisisLevelOf(input.crisisCategory);
+  if (level <= crisisWindow.peakLevel) return null;
+  crisisWindow.peakLevel = level;
+  crisisWindow.category = input.crisisCategory ?? crisisWindow.category;
+  // 升级这一轮本身也是练过的一轮, 计入练习轮数, 否则指标会少算 1.
+  crisisWindow.postTurns += 1;
+  crisisWindow.escalated = true;
+  if (!thresholds.crisisRiskClosingRound) {
+    return { kind: 'stop', reason: 'crisis_escalated' };
+  }
+  crisisWindow.escalationTurn = input.turnIndex;
+  return { kind: 'continue', closeBlocked: false };
+}
+
+/**
+ * AF-137 · 是否还要跑下一轮.
+ * 升级撞上 maxTurns 最后一轮时只额外放行 1 轮, 不会无限延长.
+ * AF-140: standard / long 档允许额外 2 轮补齐常规收束三件套（legacy 逐字不变）.
+ */
+function shouldRunNextTurn(crisisWindow: CrisisWindowState, turnIndex: number, maxTurns: number, allowClosingExtension: boolean): boolean {
+  const routineExtension = allowClosingExtension ? 2 : 0;
+  return turnIndex <= maxTurns + routineExtension || (crisisWindow.escalated && turnIndex <= maxTurns + 3);
+}
+
+/**
+ * AF-137 · 升级后的风险收束轮是否已经跑完.
+ * 只在 standard / long 档生效; 升级当轮在 decideTurn 里提前 return, 走不到这里.
+ */
+function shouldStopAfterEscalation(input: TurnJudgementInput, crisisWindow: CrisisWindowState, thresholds: SessionThresholds): boolean {
+  return (
+    thresholds.crisisRiskClosingRound &&
+    crisisWindow.escalated &&
+    crisisWindow.escalationTurn != null &&
+    input.turnIndex >= crisisWindow.escalationTurn + 2
+  );
+}
+
+/**
+ * AF-137 · 是否还处在升级后的两轮安全序列里 (评估轮 / 计划轮).
+ * 这两轮里模型的 END 请求也要被忽略, 先把评估与计划做完.
+ */
+function isEscalationSafetyWindow(input: TurnJudgementInput, crisisWindow: CrisisWindowState, thresholds: SessionThresholds): boolean {
+  const extraRounds = crisisWindow.safetyRepairPending === true ? 3 : 2;
+  return (
+    thresholds.crisisRiskClosingRound &&
+    crisisWindow.escalated &&
+    crisisWindow.escalationTurn != null &&
+    input.turnIndex < crisisWindow.escalationTurn + extraRounds
+  );
+}
+
+function isRoutineClosingBlocked(input: TurnJudgementInput, crisisWindow: CrisisWindowState, closeAllowed: boolean): boolean {
+  return (
+    closeAllowed && !crisisWindow.active && input.forcedClose === true && !evaluateRoutineClosingText(input.closingText ?? '').complete
+  );
+}
+
+function isCrisisExitReason(reason: string): boolean {
+  return reason === 'crisis_escalated' || reason === 'crisis_safety_incomplete';
+}
 
 /**
  * 单轮结束判定 (纯函数, WP-J 改动 A+B 的全部判据都收敛在这里).
@@ -1169,6 +1509,22 @@ type TurnDecision =
  *   ③ 自然收尾: 危机窗内"披露当轮就收尾"挡一次 (不能把来访者留在危机里),
  *      之后咨询师再请求才认; 且轮次必须 ≥ minTurnsBeforeClose.
  *   ④ 停滞: **只认来访者侧**(字面复读连 N / 无推进连 M); 咨询师语义回响只计数.
+ *
+ * ── AF-133 · 收束可达性 (改的是 ② 和 ③ 的**顺序**, 不是阈值) ──────────────
+ *   AF-131 复核 (§2.2) 判定: 16 场 long packet 里 14 场**结构上走不到收尾** ——
+ *   6 场被危机窗计数器硬切, 8 场被 max_turns 硬切; 唯二走到收尾路径的 2 场都产出了
+ *   takeaway. 也就是说 AF-129 的收束纪律在**可达路径上 2/2 有效**, 病根在 runner 出口.
+ *   本单改两处:
+ *   ① **危机窗用满不再硬切**: 计数到 crisisPracticeTurns 时**先继续**, 多留 1 轮做
+ *      风险收束 (五项), 收束轮之后才结束 —— 那一轮由 runner 传 crisisClosing cue,
+ *      prompt 才会让模型把 means/channel/contact/noAlone/commitment 逐项落地.
+ *      ⚠️ 只对 standard / long 生效 (thresholds.crisisRiskClosingRound): legacy 档
+ *        的档案契约把危机窗钉在 4 轮, 且 15 轮短对练不存在这个问题.
+ *   ② **模型的收尾请求优先于计数器**: 危机窗已过披露轮 (postTurns ≥ 1) 且咨询师
+ *      请求 END 时, 走 crisis_practice_close, **不再被 crisis_practice_max 覆盖**
+ *      (AF-131 §2.2 的 packet-12: 第 45 轮本该收尾, 被计数器抢走).
+ *      同时在危机窗里**动态放开 minTurnsBeforeClose** —— 危机窗本身是有界的短协议,
+ *      收束是安全动作, 不能被会话级门槛 (long = 35 轮) 卡住, 否则风险收束又不可达.
  *
  * 之所以抽成纯函数: 判定逻辑要能被标定脚本按同一份代码回放
  * (scripts/ops/calibration/stagnation-calibration.ts), 不能在两条路径上各写一遍.
@@ -1197,28 +1553,35 @@ export function decideTurn(
       crisisWindow.firstTurn = input.turnIndex;
       crisisWindow.peakLevel = level;
       crisisWindow.category = input.crisisCategory;
-    } else if (level > crisisWindow.peakLevel) {
-      // 只有**强度真的上升**才算二次升级. 同等或更低强度的"又说了一次"
-      // 正是需要练的稳定化过程, 不是失败.
-      crisisWindow.peakLevel = level;
-      crisisWindow.category = input.crisisCategory ?? crisisWindow.category;
-      // 升级这一轮本身也是练过的一轮, 计入练习轮数, 否则指标会少算 1.
-      crisisWindow.postTurns += 1;
-      crisisWindow.escalated = true;
-      return { kind: 'stop', reason: 'crisis_escalated' };
+    } else {
+      const escalationDecision = applyCrisisEscalation(input, crisisWindow, thresholds);
+      if (escalationDecision) return escalationDecision;
     }
   }
 
   // 危机窗计时: 只统计"披露之后"的轮次, 披露那一轮本身不算练习轮.
+  //   ⚠️ 这里只**计数**, 不再决定结束 —— 结束判定挪到下面 (AF-133: 计数先于关闭判定
+  //     会让模型的收尾请求被计数器抢走).
   if (crisisWindow.active && !crisisStartedThisTurn) {
     crisisWindow.postTurns += 1;
-    if (crisisWindow.postTurns >= thresholds.crisisPracticeTurns) {
-      return { kind: 'stop', reason: 'crisis_practice_max' };
-    }
+  }
+
+  // AF-133 ①: 危机窗已过披露轮 + 咨询师请求收尾 → 优先走危机收束路径,
+  //   不被 crisis_practice_max 覆盖 (危机窗里动态放开 minTurnsBeforeClose).
+  // AF-133 ②: 危机窗用满 (postTurns ≥ crisisPracticeTurns) 时的出口 ——
+  //   legacy 档硬切; standard / long 档多留 1 轮风险收束, 收束轮之后才结束.
+  //   (两条判据都抽到 decideCrisisWindowStop 里 —— 单独一个函数好过复杂度阈值.)
+  const crisisStop = decideCrisisWindowStop(input, crisisWindow, thresholds, crisisStartedThisTurn);
+  if (crisisStop) {
+    return crisisStop;
   }
 
   const closeAllowed = input.closeRequested && input.turnIndex >= thresholds.minTurnsBeforeClose;
-  const closeBlocked = closeAllowed && crisisWindow.active && crisisWindow.postTurns === 0;
+  const crisisCloseBlocked = closeAllowed && crisisWindow.active && crisisWindow.postTurns === 0;
+  // AF-138: 常规收束内容门 —— 强制收束窗内模型请求 END，但三件套不齐时挡回继续，
+  //   让模型用满最后几轮把 summary / takeaway / nextStep 补出来（不改变审计口径）。
+  const routineCloseBlocked = isRoutineClosingBlocked(input, crisisWindow, closeAllowed);
+  const closeBlocked = crisisCloseBlocked || routineCloseBlocked;
   if (closeAllowed && !closeBlocked) {
     return { kind: 'stop', reason: crisisWindow.active ? 'crisis_practice_close' : 'natural_close' };
   }
@@ -1238,6 +1601,66 @@ export function decideTurn(
     return stagnationStop;
   }
   return { kind: 'continue', closeBlocked };
+}
+
+/**
+ * 危机窗出口判定 (从 decideTurn 里拆出来, 单独一个函数好过复杂度阈值).
+ *
+ * ⚠️ 顺序很重要 (AF-131 §2.2 指出老实现的顺序问题):
+ *   ① **模型的收尾请求优先于计数器** —— 危机窗已过披露轮且咨询师请求 END 时,
+ *      走 crisis_practice_close, 不被 crisis_practice_max 覆盖 (packet-12:
+ *      第 45 轮本该收尾, 被计数器抢走); 危机窗里同时**动态放开** minTurnsBeforeClose,
+ *      因为危机窗本身是有界的短协议, 收束是安全动作, 不能被会话级门槛卡住.
+ *   ② **危机窗用满时的出口**:
+ *      · legacy 档 (crisisRiskClosingRound = false): 计数一到就硬切 (档案契约"危机窗 4");
+ *      · standard / long 档: 计数到上限的那一轮**继续** (下一轮 = 风险收束轮),
+ *        收束轮之后 (postTurns 超过上限) 才结束 —— 收束在结构上必须可达.
+ *
+ * @param input 本轮事实
+ * @param crisisWindow 危机窗状态 (已被就地更新)
+ * @param thresholds 本场生效的阈值
+ * @param crisisStartedThisTurn 本轮是不是危机披露当轮
+ * @returns 终止结论, 或 null (继续)
+ */
+function decideCrisisWindowStop(
+  input: TurnJudgementInput,
+  crisisWindow: CrisisWindowState,
+  thresholds: SessionThresholds,
+  crisisStartedThisTurn: boolean,
+): Extract<TurnDecision, { kind: 'stop' }> | null {
+  if (shouldStopAfterEscalation(input, crisisWindow, thresholds)) {
+    // AF-137: 升级后的风险收束轮已经完成 (五项由 crisisClosing prompt 强制);
+    //   AF-138: 但"轮次到了"不等于"内容齐了" —— 计划轮仍缺安全要素时追加 1 个修复轮,
+    //   修复轮后仍缺才以 crisis_safety_incomplete 结束 (status 仍是 crisis_ended).
+    const safety = evaluateRiskClosingText(input.crisisSafetyText ?? '');
+    if (!safety.complete) {
+      if (crisisWindow.safetyRepairPending !== true) {
+        crisisWindow.safetyRepairPending = true;
+        crisisWindow.missingSafetyElements = safety.missing;
+        return null;
+      }
+      return { kind: 'stop', reason: 'crisis_safety_incomplete' };
+    }
+    return { kind: 'stop', reason: 'crisis_escalated' };
+  }
+  if (
+    thresholds.crisisRiskClosingRound &&
+    input.closeRequested &&
+    crisisWindow.active &&
+    crisisWindow.postTurns >= 1 &&
+    !isEscalationSafetyWindow(input, crisisWindow, thresholds)
+  ) {
+    return { kind: 'stop', reason: 'crisis_practice_close' };
+  }
+  if (!crisisWindow.active || crisisStartedThisTurn) return null;
+  if (crisisWindow.postTurns < thresholds.crisisPracticeTurns) return null;
+  if (!thresholds.crisisRiskClosingRound) {
+    return { kind: 'stop', reason: 'crisis_practice_max' };
+  }
+  if (crisisWindow.postTurns > thresholds.crisisPracticeTurns) {
+    return { kind: 'stop', reason: 'crisis_practice_max' };
+  }
+  return null;
 }
 
 /**
@@ -1272,7 +1695,9 @@ function resolveStopOutcome(decision: Extract<TurnDecision, { kind: 'stop' }>): 
   exitReason: string;
 } {
   if (decision.reason === 'stagnant') return { status: 'stagnant', exitReason: 'stagnant' };
-  if (decision.reason === 'crisis_escalated') return { status: 'crisis_ended', exitReason: 'crisis_escalated' };
+  if (decision.reason === 'crisis_escalated' || decision.reason === 'crisis_safety_incomplete') {
+    return { status: 'crisis_ended', exitReason: decision.reason };
+  }
   return { status: 'completed', exitReason: decision.reason };
 }
 

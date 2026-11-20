@@ -44,12 +44,18 @@ export interface TurnTrace {
   llmUsage?: LlmUsage
   crisis: { detected: boolean; category?: string | null }
   ts: string
-  /** 本轮 delta 明细（后端补，前端先 mock） */
-  deltaDetail?: DeltaDetail
-  /** 本轮 cap 砍幅报告（后端补，前端先 mock） */
-  capReport?: CapReport
-  /** 本轮信念激活状态（WP57 做完后接入，前端先 mock） */
-  beliefActivation?: Record<string, number>
+  /** 本轮 delta 明细：后端 DebugTurnTrace.deltaDetail 的真值。 */
+  deltaDetail?: DeltaDetail | null
+  /** 本轮咨询师事件分类（后端内核真值）。 */
+  eventTags?: string[]
+  /** 与 eventTags 同序的中文标签；后端 event-tag-labels 唯一真相。 */
+  eventTagLabels?: string[]
+  /** 本轮意图（后端可选字段）。 */
+  intention?: Record<string, unknown>
+  /** 本轮审议 trace（后端可选字段）。 */
+  deliberationTrace?: Record<string, unknown>
+  /** 本轮是否降级。 */
+  degraded?: boolean
   /** 本轮审议闸门决策（WP-C 做完后接入） */
   gateDecision?: {
     decision: 'run' | 'skip'
@@ -70,19 +76,6 @@ export interface DeltaDetail {
   style: number
   /** 触发的事件类型 */
   events: string[]
-}
-
-/** 单轮 cap 砍幅报告：哪些维度被砍了、砍了多少 */
-export interface CapReport {
-  /** 被砍的维度列表 */
-  capped: {
-    dimension: string
-    rawDelta: number
-    cappedDelta: number
-    capLimit: number
-  }[]
-  /** 是否有维度被砍 */
-  hasCapped: boolean
 }
 
 export interface TranscriptEntry { role: string; text: string }
@@ -334,6 +327,47 @@ export interface HealthStatus {
   status: string
   engineVoiceEnabled: boolean
   uptimeSec: number
+}
+
+// ─── 引擎真实生效参数（只读快照） ───
+export interface EffectiveCapBounds {
+  up: number
+  down: number
+}
+
+export interface EffectiveAttachmentModulation {
+  trustScale: number
+  resistanceScale: number
+  safetyScale: number
+  bondScale: number
+  valenceScale: number
+  arousalScale: number
+}
+
+export interface EffectiveEngineConfig {
+  capturedAt: string
+  engineVersion: string
+  deltaCap: Record<
+    'trust' | 'safety' | 'bond' | 'valence' | 'arousal' | 'verbal' |
+    'depth' | 'style' | 'positive' | 'negative' | 'dependency',
+    EffectiveCapBounds
+  >
+  sessionDecay: {
+    emotionHalfLifeMs: number
+    resistanceHalfLifeMs: number
+    allianceHalfLifeMs: number
+    ruptureResistanceFloor?: number
+  }
+  personalityModulator: {
+    attachment: Record<'secure' | 'anxious' | 'avoidant' | 'disorganized', EffectiveAttachmentModulation>
+    agreeableness: {
+      trustScale: number
+      highThreshold: number
+    }
+  }
+  flags: {
+    engineVoiceEnabled: boolean
+  }
 }
 
 // ─── PsyGUARD 趋势 ───

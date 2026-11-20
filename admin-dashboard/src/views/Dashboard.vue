@@ -21,7 +21,7 @@ const loading = ref(true)
 
 // Phase2.5 灰度指标
 const autoPracticeCount = ref(0)
-const gateStats = ref<{ totalGateDecisions?: number; triggerRate?: number }>({})
+const gateStats = ref<{ totalGateDecisions: number; triggerRate: number }>({ totalGateDecisions: 0, triggerRate: 0 })
 const evalReportCount = ref(0)
 
 onMounted(async () => {
@@ -33,11 +33,20 @@ onMounted(async () => {
     // 并行加载 Phase2.5 指标（失败不阻塞主页面）
     try {
       const practiceSessions = await api.autoPractice.listSessions({})
-      autoPracticeCount.value = practiceSessions.length
+      // 用后端分页的 total，不是当前页 items.length —— 否则场次超过一页就把总数报小。
+      autoPracticeCount.value = practiceSessions.total
     } catch { /* 忽略 */ }
 
     try {
-      gateStats.value = await api.deliberationStats()
+      const gs = await api.gateStats()
+      const total = gs.totalDecisions.reduce((a, n) => a + n, 0)
+      // 与 GateDecisions 页同一口径：触发率 = run / total。
+      // skip 是“跳过审议”，拿它算触发率会把语义算反。
+      const run = gs.runDecisions.reduce((a, n) => a + n, 0)
+      gateStats.value = {
+        totalGateDecisions: total,
+        triggerRate: total > 0 ? run / total : 0,
+      }
     } catch { /* 忽略 */ }
 
     try {

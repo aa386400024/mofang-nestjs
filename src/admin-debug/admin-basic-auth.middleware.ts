@@ -55,6 +55,15 @@ import { JwtAuthGuard } from '../user/guards/jwt-auth.guard.js';
 export type AdminDebugRequest = Omit<Request, 'user'> & {
   /** 请求带的是**管理员** basic 凭据 (true = 不过滤会话列表). */
   adminBasicAuth?: boolean;
+  /**
+   * 本地开发"裸奔"标记 (true = 没有配置 basic 凭据, 也不是 production).
+   *
+   * 为什么单独一个字段, 不复用 `adminBasicAuth`:
+   *   `adminBasicAuth` 表示"运维 basic 身份", 会被审计与 ownerFilter 当成真实管理员;
+   *   匿名 dev 只是"本地没有鉴权", 不能伪装成 basic 身份.
+   *   控制器侧的 AdminRoleGuard 看到这个标记才放行, 生产分支不会设置它.
+   */
+  adminAnonymousDev?: boolean;
   /** 学员身份 (由仓库既有 JwtAuthGuard 注入). */
   user?: { userId?: string; username?: string; roles?: string[] };
 };
@@ -93,14 +102,28 @@ export class AdminBasicAuthMiddleware implements NestMiddleware {
     const configured = this.readConfiguredCredentials();
     const provided = extractBasicCredentials(req);
 
-    // ① 带了 basic 头 → 只按 basic 判 (凭据错就是错, 不再回落到学员身份).
+    // ① 带了 basic 头 → 先按 basic 判.
+    //
+    // 但有个本地开发现场: 没配 ADMIN_BASIC_AUTH_USER/PASS, 而 SPA 登录页仍会
+    // 把用户随便填的账号口令编码成 Basic 头发过来. 此时 `configured` 为空,
+    // 没有"正确凭据"可比 —— 不能按"凭据错误"打 401 (那会让本地登录页永远进不去),
+    // 应落到 dev 裸奔分支. 生产前一行已经会 401, 不会走到这里.
     if (provided) {
-      if (configured && matchesCredentials(provided, configured)) {
-        request.adminBasicAuth = true;
-        next();
+      if (configured) {
+        if (matchesCredentials(provided, configured)) {
+          request.adminBasicAuth = true;
+          next();
+          return;
+        }
+        unauthorized(res, 'basic auth 凭据错误');
         return;
       }
-      unauthorized(res, 'basic auth 凭据错误');
+      if (process.env.NODE_ENV === 'production') {
+        unauthorized(res, '调试接口未启用访问控制');
+        return;
+      }
+      request.adminAnonymousDev = true;
+      next();
       return;
     }
 
@@ -134,6 +157,9 @@ export class AdminBasicAuthMiddleware implements NestMiddleware {
       unauthorized(res, '调试接口未启用访问控制');
       return;
     }
+    // 显式打标: 后续 AdminRoleGuard 靠这个字段区分"本地裸奔"与"匿名生产请求",
+    // 避免中间件放行、守卫又按"没有 userId"一律 403 的自相矛盾 (AF-155 实测发现).
+    request.adminAnonymousDev = true;
     next();
   }
 

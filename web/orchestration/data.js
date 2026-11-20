@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-19T01:15:04.275Z",
+  "generatedAt": "2026-11-20T02:09:03.493Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,34 +16,75 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-168",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "fix",
+      "title": "Phase2.5 发布快照代码侧整合（AF-166 范围修正重开）",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-168/task-sheet.md",
+        "deliveryRecord": null,
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-168",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-20T02:09:03.437Z",
+        "leaseDeadline": "2026-11-20T02:39:03.435Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-168.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-20T02:09:03.437Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-168.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
   "improvements": {
-    "total": 66,
-    "activeCount": 13,
+    "total": 73,
+    "activeCount": 19,
     "byStatus": {
-      "candidate": 13,
-      "queued": 0,
+      "candidate": 18,
+      "queued": 1,
       "accepted": 0,
-      "done": 50,
+      "done": 51,
       "wontfix": 3
     },
     "byType": {
-      "gap": 42,
+      "gap": 46,
       "guardrail": 5,
-      "tool": 0,
-      "standard": 5,
+      "tool": 2,
+      "standard": 6,
       "performance": 1,
       "tech-debt": 13
     },
     "bySource": {
       "implementation": 33,
-      "acceptance": 12,
+      "acceptance": 17,
       "rework": 3,
       "dead-letter": 0,
-      "review": 18
+      "review": 20
     },
     "items": [
       {
@@ -1453,6 +1494,161 @@ window.ORCH_SNAPSHOT = {
           "to": "candidate",
           "note": "登记候选改进"
         }
+      },
+      {
+        "improvementId": "IM-067",
+        "title": "危机升级路径需强制风险收束轮后再结束",
+        "status": "done",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-136",
+        "evidence": [
+          "AF-136 packet-09: debug_bUjFUsUC9Kg6iNW6rul54",
+          "turn 40 disclosure",
+          "1 post turn",
+          "safety=2"
+        ],
+        "impact": "crisis_escalated 抢在安全计划前终止，临床安全硬门失败",
+        "suggestion": "在 crisis_escalated 前插入强制风险收束轮，覆盖计划/准备、手段限制、联系人、不独处、120/110/12356、安全承诺",
+        "historyCount": 4,
+        "lastTransition": {
+          "at": "2026-11-19T10:03:59.040Z",
+          "by": "orchestrator-cli",
+          "to": "done",
+          "note": "AF-137 两轮安全序列 + 定向闸门通过"
+        }
+      },
+      {
+        "improvementId": "IM-068",
+        "title": "forcedClose 需升级为 runner 级最后两轮硬约束",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-136",
+        "evidence": [
+          "AF-136 structure audit: routine closing full 1/16",
+          "summary 1/16",
+          "takeaway 2/16",
+          "nextStep 4/16"
+        ],
+        "impact": "13/16 max_turns 场次无常规收束，style 3.3125<3.50",
+        "suggestion": "最后 2 轮若未产出 summary/takeaway/nextStep，继续补轮而非硬切",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T09:38:25.082Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-069",
+        "title": "跨模型评分 κ 口径校准未落地",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "standard",
+        "layer": "framework",
+        "relatedTaskId": "AF-136",
+        "evidence": [
+          "AF-136 cross-model overall κ=0.215686 vs same-model 0.794872"
+        ],
+        "impact": "跨模型分数不可互换，κ 硬门失败但非质量差",
+        "suggestion": "落地 AF-131 B-1/B-3/B-4：同法 κ 赛道、未取整共识、±1 仲裁、cluster bootstrap CI",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T09:38:25.265Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-070",
+        "title": "pack 只保留 completed 会系统性漏掉 crisis_ended",
+        "status": "candidate",
+        "source": "acceptance",
+        "type": "tool",
+        "layer": "adapter",
+        "relatedTaskId": "AF-136",
+        "evidence": [
+          "AF-136 16 sessions: 2 crisis_ended; official pack would keep 14"
+        ],
+        "impact": "危机样本被排除，安全质量评估有选择偏差",
+        "suggestion": "selectBalancedSessions 纳入 crisis_ended，或提供 includeCrisis 选项",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T09:38:25.459Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-071",
+        "title": "升级后的风险收束缺少内容级强制校验",
+        "status": "candidate",
+        "source": "review",
+        "type": "gap",
+        "layer": "adapter",
+        "relatedTaskId": "AF-137",
+        "evidence": [
+          "MiniMax H1",
+          "AF-136 packet-09 risk-incomplete"
+        ],
+        "impact": "轮次到了但模型可能仍漏评估/计划要素，exit reason 无法区分",
+        "suggestion": "复用 AF-127 结构审计五组正则，新增 crisis_safety_incomplete exit reason，不改 af127-v1 口径",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T10:04:06.563Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-072",
+        "title": "long-session-acceptance 只取 completed 会漏 crisis_ended",
+        "status": "candidate",
+        "source": "review",
+        "type": "tool",
+        "layer": "adapter",
+        "relatedTaskId": "AF-137",
+        "evidence": [
+          "MiniMax H4",
+          "AF-136 2 crisis_ended"
+        ],
+        "impact": "官方 pack 系统性排除危机样本，安全评估样本失真",
+        "suggestion": "把 crisis_ended 纳入 selectBalancedSessions 与 pack 过滤条件",
+        "historyCount": 1,
+        "lastTransition": {
+          "at": "2026-11-19T10:04:06.774Z",
+          "by": "orchestrator-cli",
+          "to": "candidate",
+          "note": "登记候选改进"
+        }
+      },
+      {
+        "improvementId": "IM-073",
+        "title": "临床级 AI 评分门缺真人双标与仲裁，96 场 cluster 仅 8 个角色簇",
+        "status": "queued",
+        "source": "acceptance",
+        "type": "gap",
+        "layer": "framework",
+        "relatedTaskId": "AF-152",
+        "evidence": [
+          "data/phase25-exit/af147-kappa-96-final/;docs/worklog/completed/phase2.5/af152-quality-admin-2026-11-20.md"
+        ],
+        "impact": "κ 0.365854 与 safety 4/6 无法判定为模型能力上限还是标注口径缺陷；继续调 AI 评分器会变成自证",
+        "suggestion": "补 ≥24 角色簇或真人双标+仲裁，再复评 κ 与 safety；在此之前质量门保持不通过",
+        "historyCount": 2,
+        "lastTransition": {
+          "at": "2026-11-19T19:10:07.481Z",
+          "by": "orchestrator-cli",
+          "to": "queued",
+          "note": null
+        }
       }
     ]
   },
@@ -1505,6 +1701,7 @@ window.ORCH_SNAPSHOT = {
         "src/",
         "bin/",
         "test/",
+        "admin-dashboard/",
         "docs/worklog/pending/",
         "docs/worklog/completed/"
       ],
@@ -1620,85 +1817,10 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
-      "auditId": "AUD-144",
-      "recordedAt": "2026-11-19T00:58:58.028Z",
+      "auditId": "AUD-214",
+      "recordedAt": "2026-11-20T02:09:03.127Z",
       "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-125",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-125-ai-proxy-cross-model"
-      ]
-    },
-    {
-      "auditId": "AUD-143",
-      "recordedAt": "2026-11-19T00:58:57.725Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-125",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-125",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-125.json"
-      ]
-    },
-    {
-      "auditId": "AUD-142",
-      "recordedAt": "2026-11-19T00:36:54.128Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-124",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-124-repair-chain-gate"
-      ]
-    },
-    {
-      "auditId": "AUD-141",
-      "recordedAt": "2026-11-19T00:36:49.511Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-124",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-124",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-124.json"
-      ]
-    },
-    {
-      "auditId": "AUD-140",
-      "recordedAt": "2026-11-18T18:46:20.148Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-123",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-123",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-123.json"
-      ]
-    },
-    {
-      "auditId": "AUD-139",
-      "recordedAt": "2026-11-18T18:46:04.729Z",
-      "actorRef": "orchestrator",
-      "correlationId": "archive:AF-122",
+      "correlationId": "promote:AF-168",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1712,10 +1834,25 @@ window.ORCH_SNAPSHOT = {
       ]
     },
     {
-      "auditId": "AUD-138",
-      "recordedAt": "2026-11-18T18:46:04.532Z",
+      "auditId": "AUD-213",
+      "recordedAt": "2026-11-20T02:04:42.863Z",
       "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-122",
+      "correlationId": "dispatch:AF-166",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-166",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-166.json"
+      ]
+    },
+    {
+      "auditId": "AUD-212",
+      "recordedAt": "2026-11-20T02:04:42.425Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-166",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1729,10 +1866,10 @@ window.ORCH_SNAPSHOT = {
       ]
     },
     {
-      "auditId": "AUD-137",
-      "recordedAt": "2026-11-18T18:45:41.377Z",
+      "auditId": "AUD-211",
+      "recordedAt": "2026-11-20T02:04:25.271Z",
       "actorRef": "orchestrator",
-      "correlationId": "archive:AF-121",
+      "correlationId": "cancel:AF-165",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1746,10 +1883,10 @@ window.ORCH_SNAPSHOT = {
       ]
     },
     {
-      "auditId": "AUD-136",
-      "recordedAt": "2026-11-18T18:45:41.194Z",
+      "auditId": "AUD-210",
+      "recordedAt": "2026-11-20T02:03:21.971Z",
       "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-121",
+      "correlationId": "promote:AF-165",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1763,40 +1900,25 @@ window.ORCH_SNAPSHOT = {
       ]
     },
     {
-      "auditId": "AUD-135",
-      "recordedAt": "2026-11-18T18:42:51.071Z",
+      "auditId": "AUD-209",
+      "recordedAt": "2026-11-20T01:55:30.863Z",
       "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-120",
+      "correlationId": "dispatch:AF-164",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
-      "taskId": "AF-120",
+      "taskId": "AF-164",
       "result": "allowed",
       "reason": null,
       "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-120.json"
+        "docs/team/agent-orchestration/transport/tasks/AF-164.json"
       ]
     },
     {
-      "auditId": "AUD-134",
-      "recordedAt": "2026-11-18T18:41:26.156Z",
+      "auditId": "AUD-208",
+      "recordedAt": "2026-11-20T01:55:27.213Z",
       "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-119",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-119",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-119.json"
-      ]
-    },
-    {
-      "auditId": "AUD-133",
-      "recordedAt": "2026-11-18T18:41:12.621Z",
-      "actorRef": "orchestrator",
-      "correlationId": "archive:AF-118",
+      "correlationId": "promote:AF-164",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1810,10 +1932,55 @@ window.ORCH_SNAPSHOT = {
       ]
     },
     {
-      "auditId": "AUD-132",
-      "recordedAt": "2026-11-18T18:41:12.448Z",
+      "auditId": "AUD-207",
+      "recordedAt": "2026-11-20T01:32:22.615Z",
       "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-118",
+      "correlationId": "dispatch:AF-163",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-163",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-163.json"
+      ]
+    },
+    {
+      "auditId": "AUD-206",
+      "recordedAt": "2026-11-20T01:15:55.906Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-162",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-162",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-162.json"
+      ]
+    },
+    {
+      "auditId": "AUD-205",
+      "recordedAt": "2026-11-20T00:39:00.584Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-161",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-161",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-161.json"
+      ]
+    },
+    {
+      "auditId": "AUD-204",
+      "recordedAt": "2026-11-20T00:38:59.731Z",
+      "actorRef": "orchestrator",
+      "correlationId": "cancel:AF-160",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1827,25 +1994,40 @@ window.ORCH_SNAPSHOT = {
       ]
     },
     {
-      "auditId": "AUD-131",
-      "recordedAt": "2026-11-18T18:39:11.304Z",
+      "auditId": "AUD-203",
+      "recordedAt": "2026-11-19T19:12:43.682Z",
       "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-117",
+      "correlationId": "dispatch:AF-159",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
-      "taskId": "AF-117",
+      "taskId": "AF-159",
       "result": "allowed",
       "reason": null,
       "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-117.json"
+        "docs/team/agent-orchestration/transport/tasks/AF-159.json"
       ]
     },
     {
-      "auditId": "AUD-130",
-      "recordedAt": "2026-11-18T17:56:57.968Z",
+      "auditId": "AUD-202",
+      "recordedAt": "2026-11-19T19:06:46.539Z",
       "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-116",
+      "correlationId": "dispatch:AF-158",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-158",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-158.json"
+      ]
+    },
+    {
+      "auditId": "AUD-201",
+      "recordedAt": "2026-11-19T19:06:46.203Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-158",
       "toolId": "TOOL-QUEUE-SCHEDULER",
       "category": "state-store",
       "sideEffect": "restricted-write",
@@ -1853,27 +2035,65 @@ window.ORCH_SNAPSHOT = {
       "result": "allowed",
       "reason": null,
       "resources": [
-        "task/AF-116-ai-double-blind"
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-200",
+      "recordedAt": "2026-11-19T19:03:36.563Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-157",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-157",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-157.json"
       ]
     }
   ],
   "auditSummary": {
-    "total": 144,
+    "total": 214,
     "byResult": {
-      "allowed": 144,
+      "allowed": 214,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 143,
+      "TOOL-QUEUE-SCHEDULER": 213,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 144
+      "orchestrator": 214
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-168",
+        "title": "Phase2.5 发布快照代码侧整合（AF-166 范围修正重开）",
+        "type": "fix",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-168/task-sheet.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -1885,7 +2105,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/td5-type-debt-clearing-task-2026-11-13.md"
+            "ref": "docs/worklog/records/legacy/TD-5/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -1903,7 +2123,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/td6-contract-evolution-review-task-2026-11-13.md"
+            "ref": "docs/worklog/records/legacy/TD-6/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -1921,7 +2141,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/td7-contract-drift-remediation-task-2026-11-13.md"
+            "ref": "docs/worklog/records/legacy/TD-7/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -1939,7 +2159,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/td8-ci-pnpm-parity-and-caching-task-2026-11-13.md"
+            "ref": "docs/worklog/records/legacy/TD-8/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -1957,7 +2177,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/td9-test-isolation-and-lint-hygiene-task-2026-11-13.md"
+            "ref": "docs/worklog/records/legacy/TD-9/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -1975,7 +2195,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/td10-test-structure-debt-reduction-task-2026-11-13.md"
+            "ref": "docs/worklog/records/legacy/TD-10/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -1993,7 +2213,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/td11-ci-tooling-and-typeorm-type-import-task-2026-11-14.md"
+            "ref": "docs/worklog/records/legacy/TD-11/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2011,7 +2231,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/td12-coverage-threshold-gate-task-2026-11-14.md"
+            "ref": "docs/worklog/records/legacy/TD-12/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2029,7 +2249,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/td13-repository-port-analytics-pilot-task-2026-11-14.md"
+            "ref": "docs/worklog/records/legacy/TD-13/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2047,7 +2267,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/td14-entity-typeorm-decoupling-assessment-task-2026-11-14.md"
+            "ref": "docs/worklog/records/legacy/TD-14/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2065,7 +2285,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/td15-enum-extraction-cplus-task-2026-11-14.md"
+            "ref": "docs/worklog/records/legacy/TD-15/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2083,7 +2303,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/td16-life-map-port-pilot-c1-task-2026-11-14.md"
+            "ref": "docs/worklog/records/legacy/TD-16/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2105,7 +2325,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/td17-consent-port-c2-batch1-task-2026-11-14.md"
+            "ref": "docs/worklog/records/legacy/TD-17/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2127,7 +2347,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/td18-good-state-diary-port-c2-batch2-task-2026-11-14.md"
+            "ref": "docs/worklog/records/legacy/TD-18/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2149,7 +2369,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/td19-emergency-port-c2-batch3-task-2026-11-15.md"
+            "ref": "docs/worklog/records/legacy/TD-19/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2171,7 +2391,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/td20-home-messages-moodlog-port-c2-batch4-task-2026-11-15.md"
+            "ref": "docs/worklog/records/legacy/TD-20/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2193,7 +2413,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/td21-counselor-quote-port-c2-batch5-task-2026-11-15.md"
+            "ref": "docs/worklog/records/legacy/TD-21/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2215,7 +2435,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af001-framework-bootstrap-task-2026-11-15.md"
+            "ref": "docs/worklog/records/legacy/AF-001/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2251,7 +2471,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af003-framework-finalization-task-2026-11-15.md"
+            "ref": "docs/worklog/records/legacy/AF-003/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2273,7 +2493,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af004-framework-hardening-task-2026-11-15.md"
+            "ref": "docs/worklog/records/legacy/AF-004/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2295,7 +2515,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af005-framework-evolution-watcher-state-machine-2026-11-15.md"
+            "ref": "docs/worklog/records/legacy/AF-005/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2313,7 +2533,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af006-framework-evolution-validation-scripts-2026-11-15.md"
+            "ref": "docs/worklog/records/legacy/AF-006/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2331,7 +2551,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af007-framework-evolution-tool-standardization-2026-11-15.md"
+            "ref": "docs/worklog/records/legacy/AF-007/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2349,7 +2569,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af008-framework-evolution-agent-protocol-mapping-2026-11-15.md"
+            "ref": "docs/worklog/records/legacy/AF-008/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2367,7 +2587,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af009-handover-contract-schema-transport-2026-11-16.md"
+            "ref": "docs/worklog/records/legacy/AF-009/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2385,7 +2605,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af010-dispatch-wiring-receipt-watcher-2026-11-16.md"
+            "ref": "docs/worklog/records/legacy/AF-010/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2403,7 +2623,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af011-file-scope-mutex-validation-2026-11-16.md"
+            "ref": "docs/worklog/records/legacy/AF-011/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2421,7 +2641,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af012-task-branch-workflow-scripts-2026-11-16.md"
+            "ref": "docs/worklog/records/legacy/AF-012/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2439,7 +2659,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af013-gui-dispatch-readonly-drill-2026-11-16.md"
+            "ref": "docs/worklog/records/legacy/AF-013/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2461,7 +2681,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af014-release-layer-policy-doc-sync-2026-11-16.md"
+            "ref": "docs/worklog/records/legacy/AF-014/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2479,7 +2699,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af015-channel-reliability-policy-anchor-2026-11-16.md"
+            "ref": "docs/worklog/records/legacy/AF-015/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2497,7 +2717,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af016-agent-card-routing-scope-domain-rebase-residual-2026-11-16.md"
+            "ref": "docs/worklog/records/legacy/AF-016/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2515,7 +2735,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af017-receipt-body-extraction-dual-channel-2026-11-16.md"
+            "ref": "docs/worklog/records/legacy/AF-017/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2533,7 +2753,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af018-framework-v2-adapter-migration-2026-11-16.md"
+            "ref": "docs/worklog/records/legacy/AF-018/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2551,7 +2771,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af019-adapter-finalization-node26-2026-11-16.md"
+            "ref": "docs/worklog/records/legacy/AF-019/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2569,7 +2789,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af020-orchestration-hardening-2026-11-16.md"
+            "ref": "docs/worklog/records/legacy/AF-020/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2587,7 +2807,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af021-nonprod-finalization-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-021/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2605,7 +2825,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af022-release-protection-compatible-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-022/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2623,7 +2843,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/team/agent-orchestration/transport/tasks/DR-001.json"
+            "ref": "docs/worklog/records/legacy/DR-001/task-sheet.json"
           },
           {
             "kind": "deliveryRecord",
@@ -2645,7 +2865,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/completed/phase2.5/af023-orchestration-runtime-closure-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-023/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2663,7 +2883,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af025-receipt-chain-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-025/task-sheet.md"
           }
         ]
       },
@@ -2677,7 +2897,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/archive/AF-026-task-sheet-2026-11-17.json"
+            "ref": "docs/worklog/records/legacy/AF-026/task-sheet.json"
           },
           {
             "kind": "deliveryRecord",
@@ -2695,7 +2915,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/archive/AF-027-task-sheet-2026-11-17.json"
+            "ref": "docs/worklog/records/legacy/AF-027/task-sheet.json"
           },
           {
             "kind": "deliveryRecord",
@@ -2713,7 +2933,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/archive/AF-028-task-sheet-2026-11-17.json"
+            "ref": "docs/worklog/records/legacy/AF-028/task-sheet.json"
           },
           {
             "kind": "deliveryRecord",
@@ -2731,7 +2951,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/archive/AF-024-task-sheet-2026-11-17.json"
+            "ref": "docs/worklog/records/legacy/AF-024/task-sheet.json"
           },
           {
             "kind": "deliveryRecord",
@@ -2739,7 +2959,7 @@ window.ORCH_SNAPSHOT = {
           },
           {
             "kind": "reply",
-            "ref": "docs/worklog/pending/af024-channel-review-by-executor.md"
+            "ref": "docs/worklog/records/legacy/AF-024/legacy/af024-channel-review-by-executor.md"
           }
         ]
       },
@@ -2753,7 +2973,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af029-acceptance-guard-closure-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-029/task-sheet.md"
           }
         ]
       },
@@ -2767,7 +2987,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af030-acceptance-guard-closure-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-030/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2785,7 +3005,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af031-task-sheet-encoding-closure-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-031/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2803,7 +3023,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af032-dispatch-decision-wiring-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-032/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2821,7 +3041,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af033-gui-delivery-failure-drill-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-033/task-sheet.md"
           }
         ]
       },
@@ -2835,7 +3055,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af034-dispatch-config-normalization-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-034/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2853,7 +3073,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af035-gui-delivery-failure-drill-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-035/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2871,7 +3091,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af036-held-reason-passthrough-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-036/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2889,7 +3109,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af037-scope-recheck-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-037/task-sheet.md"
           }
         ]
       },
@@ -2903,7 +3123,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af038-scope-attribution-recheck-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-038/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2921,7 +3141,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af040-improvement-closeout-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-040/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2939,7 +3159,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af042-wp38-timeout-budget-rework-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-042/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2957,7 +3177,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af043-improvement-closeout-rework-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-043/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -2972,12 +3192,7 @@ window.ORCH_SNAPSHOT = {
           "protocol": "CANCELED",
           "stage": "terminal"
         },
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af039-improvement-closeout-task-2026-11-17.md"
-          }
-        ]
+        "artifactReferences": []
       },
       {
         "taskId": "AF-041",
@@ -2989,7 +3204,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af041-wp38-timeout-budget-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-041/task-sheet.md"
           }
         ]
       },
@@ -3003,7 +3218,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af044-leftover-backlog-closeout-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-044/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3021,7 +3236,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af046-ci-gate-fire-drill-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-046/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3039,7 +3254,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af045-orchestration-hardening-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-045/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3057,7 +3272,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af048-orchestrator-resource-domain-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-048/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3075,7 +3290,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af049-orchestrator-governance-docs-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-049/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3093,7 +3308,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af047-dev-orchestration-mandatory-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-047/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3111,7 +3326,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af050-v7-parallel-artifact-acceptance-fix-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-050/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3129,7 +3344,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af051-af047-rework-verification-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-051/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3147,7 +3362,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af052-orchestration-delivery-release-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-052/task-sheet.md"
           }
         ]
       },
@@ -3161,7 +3376,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af053-orchestration-delivery-release-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-053/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3179,7 +3394,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af054-merge-gate-snapshot-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-054/task-sheet.md"
           }
         ]
       },
@@ -3193,7 +3408,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af055-merge-gate-snapshot-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-055/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3211,7 +3426,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af056-server-side-orchestration-gate-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-056/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3229,7 +3444,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af057-protected-pr-acceptance-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-057/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3247,7 +3462,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af058-squash-lifecycle-gate-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-058/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3265,7 +3480,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af059-dependency-free-squash-gate-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-059/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3283,7 +3498,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af060-phase25-exit-evidence-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-060/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3301,7 +3516,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af061-phase25-exit-evidence-rework-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-061/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3319,7 +3534,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af063-orchestration-squash-title-rework-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-063/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3334,12 +3549,7 @@ window.ORCH_SNAPSHOT = {
           "protocol": "CANCELED",
           "stage": "terminal"
         },
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af064-wp-k-missing-batch-exit-task-2026-11-17.md"
-          }
-        ]
+        "artifactReferences": []
       },
       {
         "taskId": "AF-065",
@@ -3349,10 +3559,6 @@ window.ORCH_SNAPSHOT = {
           "stage": "terminal"
         },
         "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af065-batch-scenario-type-passthrough-task-2026-11-17.md"
-          },
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af065-batch-scenario-type-passthrough-2026-11-17.md"
@@ -3370,12 +3576,7 @@ window.ORCH_SNAPSHOT = {
           "protocol": "CANCELED",
           "stage": "terminal"
         },
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af066-local-gate-archived-delivery-task-2026-11-17.md"
-          }
-        ]
+        "artifactReferences": []
       },
       {
         "taskId": "AF-067",
@@ -3387,7 +3588,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af067-regression-evaluator-boundary-tests-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-067/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3409,7 +3610,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af068-af065-scenario-type-landing-task-2026-11-17.md"
+            "ref": "docs/worklog/records/legacy/AF-068/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3431,7 +3632,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af070-security-debt-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-070/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3449,7 +3650,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af071-af070-rework-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-071/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3467,7 +3668,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af072-af071-ci-chain-rework-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-072/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3485,7 +3686,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af069-relay-supervisor-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-069/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3503,7 +3704,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af073-phase25-exit4-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-073/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3521,7 +3722,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af074-framework-closeout-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-074/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3539,7 +3740,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af075-framework-closeout-scope-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-075/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3557,7 +3758,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af076-gate-conditional-merge-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-076/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3575,7 +3776,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af077-pr-release-conditional-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-077/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3593,7 +3794,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af078-squash-scope-union-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-078/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3611,7 +3812,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af079-improvement-closeout-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-079/task-sheet.md"
           }
         ]
       },
@@ -3625,7 +3826,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af080-improvement-closeout-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-080/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3643,7 +3844,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af081-improvement-closeout-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-081/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3661,7 +3862,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af082-commit-envelope-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-082/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3679,7 +3880,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af083-final-envelope-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-083/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3697,7 +3898,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af084-orchestration-hardening-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-084/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3715,7 +3916,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af085-phase25-exit2-verification-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-085/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3733,7 +3934,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af086-phase25-exit2-real-exam-double-run-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-086/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3751,7 +3952,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af087-phase25-exit345-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-087/task-sheet.md"
           }
         ]
       },
@@ -3765,7 +3966,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af088-phase25-exit345-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-088/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3787,7 +3988,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af089-phase25-session-realism-exit4-protocol-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-089/task-sheet.md"
           }
         ]
       },
@@ -3801,7 +4002,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af090-phase25-session-realism-exit4-protocol-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-090/task-sheet.md"
           }
         ]
       },
@@ -3815,7 +4016,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af091-phase25-session-realism-exit4-protocol-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-091/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3837,7 +4038,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af092-af091-implementation-commit-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-092/task-sheet.md"
           }
         ]
       },
@@ -3851,7 +4052,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af093-phase25-exit4-readme-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-093/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3866,12 +4067,7 @@ window.ORCH_SNAPSHOT = {
           "protocol": "CANCELED",
           "stage": "terminal"
         },
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af096-af095-rework-quality-acceptance-task-2026-11-18.md"
-          }
-        ]
+        "artifactReferences": []
       },
       {
         "taskId": "AF-097",
@@ -3883,7 +4079,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af097-af095-quality-rework-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-097/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3901,7 +4097,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af098-state-plane-acceptance-fix-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-098/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3916,12 +4112,7 @@ window.ORCH_SNAPSHOT = {
           "protocol": "CANCELED",
           "stage": "terminal"
         },
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af099-quality-linear-delivery-task-2026-11-18.md"
-          }
-        ]
+        "artifactReferences": []
       },
       {
         "taskId": "AF-100",
@@ -3933,7 +4124,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af100-quality-linear-delivery-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-100/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3951,7 +4142,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af101-state-plane-acceptance-fix-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-101/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3969,7 +4160,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af102-long-session-visible-output-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-102/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -3991,7 +4182,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af104-postfix-long-batch-quality-verdict-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-104/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -4009,7 +4200,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af103-visitor-role-preflight-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-103/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -4027,7 +4218,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af105-ci-test-assembly-fix-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-105/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -4042,12 +4233,7 @@ window.ORCH_SNAPSHOT = {
           "protocol": "CANCELED",
           "stage": "terminal"
         },
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af106-reasoning-leak-and-roster-task-2026-11-18.md"
-          }
-        ]
+        "artifactReferences": []
       },
       {
         "taskId": "AF-107",
@@ -4059,7 +4245,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af107-executor-card-resource-domain-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-107/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -4077,7 +4263,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af108-reasoning-leak-and-roster-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-108/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -4095,7 +4281,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af109-exit4-quality-verdict-task-2026-11-18.md"
+            "ref": "docs/worklog/records/legacy/AF-109/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -4110,12 +4296,7 @@ window.ORCH_SNAPSHOT = {
           "protocol": "CANCELED",
           "stage": "terminal"
         },
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af110-long-session-acceptance-task-2026-11-19.md"
-          }
-        ]
+        "artifactReferences": []
       },
       {
         "taskId": "AF-111",
@@ -4127,7 +4308,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af111-long-session-acceptance-task-2026-11-19.md"
+            "ref": "docs/worklog/records/legacy/AF-111/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -4145,7 +4326,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af112-af111-acceptance-metadata-task-2026-11-19.md"
+            "ref": "docs/worklog/records/legacy/AF-112/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -4163,7 +4344,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af113-af112-stacked-squash-guard-task-2026-11-19.md"
+            "ref": "docs/worklog/records/legacy/AF-113/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -4178,12 +4359,7 @@ window.ORCH_SNAPSHOT = {
           "protocol": "CANCELED",
           "stage": "terminal"
         },
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af114-ai-double-blind-panel-task-2026-11-19.md"
-          }
-        ]
+        "artifactReferences": []
       },
       {
         "taskId": "AF-115",
@@ -4192,12 +4368,7 @@ window.ORCH_SNAPSHOT = {
           "protocol": "CANCELED",
           "stage": "terminal"
         },
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af115-ai-double-blind-panel-task-2026-11-19.md"
-          }
-        ]
+        "artifactReferences": []
       },
       {
         "taskId": "AF-116",
@@ -4209,7 +4380,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af116-ai-double-blind-panel-task-2026-11-19.md"
+            "ref": "docs/worklog/records/legacy/AF-116/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -4227,7 +4398,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af117-ci-fix-task-2026-11-19.md"
+            "ref": "docs/worklog/records/legacy/AF-117/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -4242,12 +4413,7 @@ window.ORCH_SNAPSHOT = {
           "protocol": "CANCELED",
           "stage": "terminal"
         },
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af118-ci-fix-acceptance-task-2026-11-19.md"
-          }
-        ]
+        "artifactReferences": []
       },
       {
         "taskId": "AF-119",
@@ -4259,7 +4425,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af119-ci-fix-acceptance-task-2026-11-19.md"
+            "ref": "docs/worklog/records/legacy/AF-119/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -4277,7 +4443,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af120-ci-fix-scope-task-2026-11-19.md"
+            "ref": "docs/worklog/records/legacy/AF-120/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -4295,7 +4461,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af121-single-release-task-2026-11-19.md"
+            "ref": "docs/worklog/records/legacy/AF-121/task-sheet.md"
           }
         ]
       },
@@ -4309,7 +4475,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af122-single-release-task-2026-11-19.md"
+            "ref": "docs/worklog/records/legacy/AF-122/task-sheet.md"
           }
         ]
       },
@@ -4323,7 +4489,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af123-single-release-task-2026-11-19.md"
+            "ref": "docs/worklog/records/legacy/AF-123/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -4341,7 +4507,7 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af124-repair-chain-gate-task-2026-11-19.md"
+            "ref": "docs/worklog/records/legacy/AF-124/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
@@ -4359,11 +4525,683 @@ window.ORCH_SNAPSHOT = {
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/pending/af125-ai-proxy-cross-model-task-2026-11-19.md"
+            "ref": "docs/worklog/records/legacy/AF-125/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af125-ai-proxy-cross-model-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-126",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-126/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-129",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-129/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af129-opening-framework-closeout-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-127",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-127/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af127-session-structure-audit-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-130",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-130/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af130-long-batch-reevaluation-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-131",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-131/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af131-independent-review-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-132",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-132/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-133",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-133/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-134",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-134/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-135",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-135/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af135-af133-acceptance-2026-11-19.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-AF133-20261119-1505.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-136",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-136/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af136-post-af133-quality-recheck-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-137",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-137/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af137-crisis-risk-close-2026-11-19.md"
+          },
+          {
+            "kind": "reply",
+            "ref": "docs/worklog/pending/archive/relay-response-AF137-REVIEW-20261119-1750.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-138",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-138/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-139",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-139/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-140",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-140/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af140-ai-quality-close-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-141",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-141/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af141-af140-test-scope-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-142",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": []
+      },
+      {
+        "taskId": "AF-143",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-143/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-144",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-144/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-145",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-145/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-146",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-146/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af146-final-closing-quality-close-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-147",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-147/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af147-kappa-track-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-148",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-148/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af148-af147-acceptance-close-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-149",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-149/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-150",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-150/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-151",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-151/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-152",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-152/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af152-quality-admin-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-153",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-153/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-154",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-154/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af154-quality-admin-close-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-155",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-155/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af155-admin-runtime-smoke-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-128",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-128/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af128-visible-output-think-leak-2026-11-19.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-156",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-156/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af156-admin-audit-version-health-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-157",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-157/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af157-admin-naive-locale-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-158",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-158/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af158-annotation-warning-ux-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-159",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/legacy/AF-159/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af159-admin-health-auth-watch-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-160",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": []
+      },
+      {
+        "taskId": "AF-161",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-161/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af161-worklog-record-bundles-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-162",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-162/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af162-worklog-closeout-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-163",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-163/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af163-worklog-final-closeout-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-164",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-164/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af164-release-integrate-2026-11-20.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-165",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-165/task-sheet.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-166",
+        "status": {
+          "framework": "rejected",
+          "protocol": "REJECTED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-166/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af166-release-code-snapshot-2026-11-20.md"
           }
         ]
       }
@@ -4380,81 +5218,23 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
-    "capabilityDeclarations": [
+    "artifacts": [
       {
-        "agentId": "AGENT-EXEC-001",
-        "role": "executor",
-        "skills": [
-          "implementation",
-          "gate-evidence",
-          "deviation-reporting",
-          "self-test"
-        ],
-        "tools": [
-          "workspace-read",
-          "workspace-write",
-          "gate-execution"
-        ],
-        "resources": [
-          "src/",
-          "bin/",
-          "test/",
-          "docs/worklog/pending/",
-          "docs/worklog/completed/"
-        ],
-        "limits": null,
-        "availability": "available"
-      },
-      {
-        "agentId": "AGENT-ORCH-001",
-        "role": "orchestrator",
-        "skills": [
-          "queue-management",
-          "task-decomposition",
-          "claim-management",
-          "acceptance-organization",
-          "index-maintenance",
-          "evidence-review",
-          "improvement-tracking"
-        ],
-        "tools": [
-          "TOOL-STATE-STORE",
-          "TOOL-QUEUE-SCHEDULER",
-          "TOOL-ORCH-CLI",
-          "TOOL-IMPROVEMENT-LOG",
-          "TOOL-ACCEPTANCE-RUNNER",
-          "TOOL-DELIVERY-PACK"
-        ],
-        "resources": [
-          "AGENTS.md",
-          "package.json",
-          "eslint.config.mjs",
-          ".husky/",
-          ".github/",
-          "docs/team/conventions.md",
-          "docs/team/wp-task-template.md",
-          "docs/worklog/",
-          "docs/team/agent-orchestration/",
-          "docs/security/",
-          "scripts/",
-          "data/phase25-exit/",
-          "data/eval-datasets/",
-          "data/eval-reports/",
-          "data/batch-reports/",
-          "web/orchestration/"
-        ],
-        "limits": null,
-        "availability": "available"
+        "taskId": "AF-168",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-168/task-sheet.md"
       }
     ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
+    "capabilityDeclarations": [],
     "unknownStatuses": []
   },
   "webRefresh": {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 140
+  "archivedCount": 181
 };

@@ -30,6 +30,7 @@ import {
   formatShanghaiMinute,
   MAX_DEBUG_SESSION_TITLE_LENGTH,
   parseDebugSessionTitle,
+  sanitizeDebugSessionTitle,
 } from '../../src/admin-debug/debug-session-title.generator.js';
 import { DebugSessionService, projectDebugSessionDetail } from '../../src/admin-debug/debug-session.service.js';
 import { BizCode } from '../../src/common/exceptions/biz-code.enum.js';
@@ -418,6 +419,27 @@ describe('V2026-11-05 · 调试会话持久化', () => {
       expect(parseDebugSessionTitle('x'.repeat(80))).toHaveLength(MAX_DEBUG_SESSION_TITLE_LENGTH);
       // 模型没给出可用内容 → 空串 (**不编一个**).
       expect(parseDebugSessionTitle(' '.repeat(3))).toBe('');
+    });
+
+    it('剥推理块 → `<think>` 不进标题；只剩思考时落回兜底标题', () => {
+      expect(parseDebugSessionTitle('<think>We need output title only</think>职场边界感')).toBe('职场边界感');
+      expect(parseDebugSessionTitle('正常标题<think>内部推理</think>')).toBe('正常标题');
+      // 被 max token 截断、没有闭合标签的思考块 → 全部删除.
+      expect(parseDebugSessionTitle('<think>We need output ti')).toBe('');
+      expect(sanitizeDebugSessionTitle('<think>We need output ti', '2026-11-05T12:00:00.000Z')).toBe('未命名会话 - 2026-11-05 20:00');
+      expect(sanitizeDebugSessionTitle('职场边界感', '2026-11-05T12:00:00.000Z')).toBe('职场边界感');
+    });
+
+    it('详情投影 → 历史脏标题不端给前端，落回兜底标题', () => {
+      const record = buildRecord('debug_a', {
+        title: '<think>We need output title only',
+        titleSource: 'llm',
+        createdAt: '2026-11-05T12:00:00.000Z',
+      });
+
+      const detail = projectDebugSessionDetail(record);
+      expect(detail.title).toBe('未命名会话 - 2026-11-05 20:00');
+      expect(detail.titleSource).toBe('llm');
     });
 
     it('详情视图 → trace 挂在**来访者**那条消息上 (与前端实时路径同款)', () => {

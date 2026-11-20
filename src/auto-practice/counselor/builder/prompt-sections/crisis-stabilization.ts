@@ -1,4 +1,5 @@
 import { CONTINUE_TAG } from './close-discipline.js';
+import { targetTurnsBandText, type SessionProfile } from '../../../session-profile.js';
 import type { PromptSection } from '../../dto/counselor-types.js';
 
 /**
@@ -26,5 +27,111 @@ export function crisisStabilizationSection(crisisMode: boolean): PromptSection {
       '这一阶段**不**推进新议题、**不**深挖创伤细节、**不**做解释性诠释；没有完成安全确认之前不要收尾。',
       `每一轮仍然按上面的收尾纪律标注状态，但这一阶段通常应输出 ${CONTINUE_TAG}。`,
     ].join('\n'),
+  };
+}
+
+function buildPhaseLine(closingRoundIndex?: number, missing?: readonly string[]): string {
+  if (closingRoundIndex === 1) {
+    return [
+      '',
+      '⚠️ **这是升级后的第 1 轮（评估轮）**：先接住披露，不要惊慌或说教；',
+      '这一轮必须完成**评估三问**（意图 / 计划 / 准备与时间点），问清家里有没有可用的东西，',
+      '并给出**求助渠道**（心理援助热线、120、急诊、110）；告诉来访者**下一轮一起把安全计划写下来**。',
+      '这一轮不要把五项清单一次性念完 —— 没有评估结论的安全计划是空的。',
+    ].join('\n');
+  }
+  if (closingRoundIndex === 3) {
+    const list = missing && missing.length > 0 ? missing.map((item) => `- ${item}`).join('\n') : '- 五项安全要素';
+    return [
+      '',
+      '⚠️ **这是升级后的第 3 轮（修复轮）**：上一轮的安全计划仍缺下面这些要素，',
+      '这一轮**只做补齐**，不要重新评估、不要开新议题：',
+      list,
+      '逐项说清具体动作与具体对象；补齐后输出 END。',
+    ].join('\n');
+  }
+  if (closingRoundIndex !== undefined && closingRoundIndex >= 2) {
+    return [
+      '',
+      '⚠️ **这是升级后的第 2 轮（计划轮）**：基于上一轮评估到的真实回答做**安全计划**，',
+      '逐项落地可联系的人、不要独处、双向安全承诺、后续随访与恶化时的行动顺序；',
+      '如果上一轮评估确认是低强度（明确否认意图/计划/准备），不要机械逐条压五项，',
+      '改为接住 + 澄清频率与强度 + 安全网 + 预警信号 + 缩短随访间隔。',
+    ].join('\n');
+  }
+  return '';
+}
+
+/**
+ * AF-133 · 风险收束块 (危机后置练习窗里的**五项**, 独立成块).
+ *
+ * ── 为什么必须是独立的一块 ────────────────────────────────────────────────
+ *   AF-131 §2.2 / §2.3: 16 场里 6 场被危机窗计数器硬切, 停在**危机处置的中途**;
+ *   结构审计里危机收束五组 (means / channel / contact / noAlone / commitment)
+ *   覆盖率也最低. 原因不是模型不会说, 是它只被要求"做 grounding" ——
+ *   共情 + 锚定当下 ≠ 风险收束. 五项必须**逐项落地**, 所以独立成块.
+ *
+ * ── 什么时候启用 ──────────────────────────────────────────────────────────
+ *   ① 危机窗激活 (crisisMode=true) —— 整个危机窗里都要**逐步**把五项做出来;
+ *   ② runner 判定"这一轮是风险收束轮" (closingRound=true) —— 那一轮五项必须齐全,
+ *      齐全之后才允许输出 END.
+ *   ⚠️ legacy 档关闭: legacy 的 prompt 必须逐字不变, 而且 15 轮短对练
+ *      不存在"危机窗收束不可达"的问题 (AF-131 的 16 场全是 long 档).
+ *
+ * @param profile 会话档案 (判 legacy / 长会话档)
+ * @param crisisMode 危机窗是否激活
+ * @param closingRound 这一轮是不是风险收束轮
+ * @param closingRoundIndex AF-137: 升级后第几个收束轮 (1 = 评估轮, 2 = 计划轮, 3 = 修复轮); 普通收束轮不传
+ * @param missing AF-138: 修复轮要逐项补齐的缺失要素
+ * @returns prompt 纪律块 (legacy 档时 enabled=false)
+ */
+export function crisisRiskClosingSection(
+  profile: SessionProfile,
+  crisisMode: boolean,
+  closingRound: boolean,
+  closingRoundIndex?: number,
+  missing?: readonly string[],
+): PromptSection {
+  const enabled = targetTurnsBandText(profile) !== null && (crisisMode || closingRound);
+  const closingRoundLine = closingRound
+    ? [
+        '',
+        '⚠️ **这一轮就是风险收束轮**：上面五项必须**齐全** —— 缺一项就不许输出 END，',
+        '先把它补上（可以先确认安全、再逐项落地），五项齐了才收尾。',
+      ].join('\n')
+    : ['', '本阶段仍按上面的稳定化任务推进；**系统会在最后一轮明确告诉你那是风险收束轮**，', '那一轮五项必须齐全才允许 END。'].join('\n');
+  const phaseLine = buildPhaseLine(closingRoundIndex, missing);
+  const content = [
+    '',
+    '## 风险收束（五项 · 缺一不可）',
+    '只做共情、只做 grounding（锚定当下、呼吸、回到此刻）**不算**风险收束。',
+    '**先评估，再计划**：下面的五项是风险管理包，不能替代「意图 / 计划 / 准备与时间点」的安全评估；',
+    '评估没做完之前，不要为了凑齐五项而跳过评估。',
+    '下面五件风险管理动作，加上**评估三问**与**后续随访**，一项都不能少；而且每项都要有**具体的动作和具体的对象**；',
+    '用自然中文口语说出来，不要念编号，也不要把英文标签读给来访者听：',
+    '',
+    '1. **移除危险物 / 开放安全空间**：把可能用来伤害自己的东西**收起来 / 放远 / 拿走** ——',
+    '   比如药物、剪刀、绳子、锐器**放到**他够不着的地方；或者把门打开，离开那个封闭的空间。',
+    '2. **求助渠道**：给出**具体**的渠道和号码 —— **心理援助热线**、**120**、**急诊**、**110**，',
+    '   并说清什么情况下打、现在能不能打通。',
+    '3. **可联系的人**：指名**具体的人** —— 今晚**联系**一位**家人**、**朋友**、**邻居**或**同事**，',
+    '   不是“想想有没有人”，而是“我现在帮你确认今晚谁能过来”。',
+    '4. **不要独处**：明确说**不要一个人**待着、**不要独处**，今晚要有人**陪着**。',
+    '5. **安全承诺 / 安全计划**：和来访者一起做一个**安全计划** —— 包括他答应你的部分',
+    '   （**答应我**今晚不伤害自己）和你答应他的部分（我**保证**会一直在线、随时能联系到你）。',
+    '6. **后续随访**（AF-137 新增）：明确下一次什么时候再聊、间隔是否缩短、必要时转介；',
+    '   并约定**预警信号**（哪些念头/行为意味着要立刻求助）与恶化时的行动顺序（先找谁 → 再打热线 → 急诊）。',
+    '7. **否认分支**：来访者明确否认意图/计划/准备时，不要机械逐条压五项；',
+    '   改为接住 + 澄清这个念头出现的频率与强度 + 给安全网与求助路径 + 约定预警信号 + 缩短随访。',
+    phaseLine,
+    closingRoundLine,
+    '⚠️ 来访者此刻还不安全时，优先做安全确认与稳定化，**不要为了凑齐五项而跳过安全评估**。',
+  ].join('\n');
+
+  return {
+    id: 'crisis-risk-closing',
+    order: 55,
+    enabled,
+    content,
   };
 }

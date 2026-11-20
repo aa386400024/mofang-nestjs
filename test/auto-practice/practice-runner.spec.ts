@@ -488,7 +488,7 @@ describe('PracticeRunnerService · AF-091 长会话档案', () => {
     expect(engine.turn).toHaveBeenCalledTimes(35);
   });
 
-  it('② long 档: 缺省轮数上限 = 50 (来自档案)', async () => {
+  it('② long 档: 缺省软上限 50, 第 50 轮当轮强制收束并自然收尾 (AF-144)', async () => {
     // 咨询师**不**请求收尾 → 只能跑满上限.
     counselor.generate.mockImplementation(() => {
       counselorTurn += 1;
@@ -507,7 +507,7 @@ describe('PracticeRunnerService · AF-091 长会话档案', () => {
       sessionProfile: 'long',
     });
 
-    expect(result.exitReason).toBe('max_turns');
+    expect(result.exitReason).toBe('natural_close');
     expect(result.turnCount).toBe(50);
     expect(engine.turn).toHaveBeenCalledTimes(50);
   });
