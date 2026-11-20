@@ -11,6 +11,13 @@
 //
 //   词表性质: **工程种子值, 非临床标定** (与 visitor-quality-lexicon.ts 同款纪律);
 //   P1 跑完基线批次后再校准 (见蓝图 §6 P1).
+//
+// ── AF-204 · 自我修正 (repair) 口径纠偏 ────────────────────────────────────
+//   旧口径 (REPAIR_TRIGGERS 子串命中) 把「是不是」「我不是本地人」这类**否定判断**
+//   误计为自我修正, 导致 repair_per_turn 系统性虚高. 现拆成两套:
+//     · 严格口径 (主口径): STRICT_REPAIR_* + REPAIR_NEGATION_* 规则集,
+//       只有真正的改口/重述才计 (「不对，我是……」「应该是……」「换个说法」);
+//     · 宽松口径 (仅审计): REPAIR_TRIGGERS 原样保留, 供口径对照.
 
 import { round6 } from './round.js';
 
@@ -51,8 +58,73 @@ export const EMPTY_DISFLUENCY_METRICS: DisfluencyMetrics = {
  */
 export const FILLER_WORDS: readonly string[] = ['嗯', '呃', '那个', '就是', '然后', '其实', '怎么说', '你让我想想', '我想想', '怎么讲'];
 
-/** 自我修正触发词 (⚠️ 工程种子值). */
+/**
+ * 自我修正触发词 (宽松口径 · 历史遗留, ⚠️ 不再用于主口径).
+ *
+ * AF-204 之前的口径是**子串命中即计一次**自我修正, 已知假阳性:
+ *   · 「是不是」       → 疑问句被当成改口;
+ *   · 「我不是本地人」 → 普通否定判断被当成改口;
+ *   · 「不是什么 / 否定判断」类表达 → 同上.
+ *
+ * 本词表**保留导出**仅供口径审计对照 (见 disfluency-analyzer 的 countLooseRepairs),
+ * 主口径改用下面的严格规则集 (STRICT_REPAIR_* / REPAIR_NEGATION_*).
+ */
 export const REPAIR_TRIGGERS: readonly string[] = ['不对', '等等', '不是', '应该是', '换个说法', '算了', '其实也不是'];
+
+/**
+ * 严格改口标记 (无条件计) —— 自我修正的**显式**标记.
+ *
+ * 「应该是 / 换个说法」只可能是说话人在改口, 不会被正常口语占用.
+ */
+export const STRICT_REPAIR_MARKERS: readonly string[] = ['应该是', '换个说法'];
+
+/**
+ * 严格改口标记 (子句开头 **或** 后接纠正线索时才计) —— 「不对 / 算了」.
+ *
+ * 「你说得不对」「这不对」是评价而不是改口, 所以只在
+ *   ① 位于子句开头 (文本起点或紧跟标点), 或
+ *   ② 同一子句后文出现纠正线索 ("这不对，应该是这样")
+ * 时才计.
+ */
+export const STRICT_REPAIR_BOUNDARY_MARKERS: readonly string[] = ['不对', '算了'];
+
+/**
+ * 等待型标记 (必须后接纠正线索才计) —— 「等等」.
+ *
+ * 「等等」本身是话语标记 ("等一下"), 只有后面接了改述才构成自我修正
+ * ("等等，我刚说错了").
+ */
+export const STRICT_REPAIR_WAIT_MARKERS: readonly string[] = ['等等'];
+
+/**
+ * 纠正线索: 出现在改口标记之后、同一子句内 → 该标记构成真正的改口.
+ */
+export const REPAIR_FOLLOWUP_CUES: readonly string[] = ['不对', '不是', '其实', '应该', '说错', '搞错', '改成', '重来', '我是说', '或者说'];
+
+/**
+ * 否定词「不是」后接这些引导词时算自我修正 (不限位置) —— 「不是 A 而是 B」.
+ */
+export const REPAIR_NEGATION_STRONG_FOLLOWERS: readonly string[] = ['而是'];
+
+/**
+ * 否定词「不是」后接这些引导词时, **还必须**位于子句开头才算自我修正 —— 「不是这样」.
+ */
+export const REPAIR_NEGATION_WEAK_FOLLOWERS: readonly string[] = ['这样', '那样'];
+
+/**
+ * 否定词「不是」后接这些标点时算自我修正 —— 「不是，其实……」.
+ *
+ * ⚠️ 不含句号与问号: 「不是。」是独立否定回答, 「不是？」是反问, 都不是改口.
+ */
+export const REPAIR_NEGATION_PUNCTUATION: ReadonlySet<string> = new Set(['，', ',', '、', '；', ';', '：', ':', '…']);
+
+/**
+ * 前瞻边界 (找「后接纠正线索」时遇到这些字符就停) —— 句末标点 + 省略号.
+ *
+ * 与 SENTENCE_END_PUNCTUATION 的区别: 后者只用于「句首」判定; 本表服务于
+ * 「改口标记后面同一子句里还有没有纠正线索」的前瞻搜索.
+ */
+export const LOOKAHEAD_STOP_CHARS: ReadonlySet<string> = new Set(['。', '！', '？', '；', '…', '.', '!', '?', ';']);
 
 /**
  * 叠词白名单 (不计 repetition) —— ⚠️ 工程种子值.

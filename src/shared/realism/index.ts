@@ -1,0 +1,28 @@
+export {
+  REALISM_SCENES,
+  REALISM_STATE_BANDS,
+  VISITOR_TURN_SHAPES,
+  VISITOR_VOICE_ROLES,
+  resolveRealismScene,
+  resolveRealismStateBand,
+  resolveVisitorVoiceRole,
+  selectTurnShape,
+  type RealismScene,
+  type RealismStateBand,
+  type SceneSource,
+  type StateSource,
+  type TurnShapeInput,
+  type VisitorTurnShape,
+  type VisitorVoiceRole,
+  type VoiceSource,
+} from './turn-shape-selector.js';
+
+export {
+  buildVisitorRealismProfile,
+  buildVisitorRealismPromptBlock,
+  parseRealismMode,
+  type RealismMode,
+  type RealismQuotas,
+  type VisitorRealismContext,
+  type VisitorRealismProfile,
+} from './visitor-realism-profile.js';

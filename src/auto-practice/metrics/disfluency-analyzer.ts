@@ -15,6 +15,11 @@
 //   ④ 拖音保守识别 (只认显式「词干 + 破折号」);
 //   ⑤ 连续标点合并为一次停顿.
 //
+// ── AF-204 · repair 口径纠偏 ────────────────────────────────────────────────
+//   repair 从「REPAIR_TRIGGERS 子串命中」改成严格规则集: 只有真正的改口/重述
+//   才计一次; 「是不是」「我不是本地人」这类否定判断不再误计.
+//   旧口径保留在 countLooseRepairs 里, 只供口径审计对照.
+//
 //   验证: pnpm exec vitest run test/auto-practice/metrics/disfluency-analyzer.spec.ts
 
 import {
@@ -22,13 +27,21 @@ import {
   ELONGATION_PATTERN,
   EMPTY_DISFLUENCY_METRICS,
   FILLER_WORDS,
+  LOOKAHEAD_STOP_CHARS,
   normalizeForDetection,
   normalizeForLength,
   PUNCTUATION_SET,
+  REPAIR_FOLLOWUP_CUES,
+  REPAIR_NEGATION_PUNCTUATION,
+  REPAIR_NEGATION_STRONG_FOLLOWERS,
+  REPAIR_NEGATION_WEAK_FOLLOWERS,
   REPAIR_TRIGGERS,
   REPETITION_PATTERN,
   REPETITION_WHITELIST,
   SENTENCE_END_PUNCTUATION,
+  STRICT_REPAIR_BOUNDARY_MARKERS,
+  STRICT_REPAIR_MARKERS,
+  STRICT_REPAIR_WAIT_MARKERS,
   TRAILOFF_MIN_CHARS,
   type DisfluencyCounts,
   type DisfluencyMetrics,
@@ -96,7 +109,16 @@ function trailingFragmentLength(text: string, pauseIndex: number): number {
 }
 
 /**
- * ① repair: 修正触发词命中 (最高优先级).
+ * ① repair: 自我修正命中 (最高优先级).
+ *
+ * ── AF-204 口径纠偏 ────────────────────────────────────────────────────────
+ *   旧口径 = REPAIR_TRIGGERS 子串命中, 把「是不是」「我不是本地人」这类
+ *   **否定判断**误计为自我修正 (repair_per_turn 系统性虚高).
+ *   现口径 = 四类严格规则:
+ *     ① 无条件显式改口标记 ("应该是" / "换个说法");
+ *     ② 子句开头 **或** 后接纠正线索的改口标记 ("不对" / "算了");
+ *     ③ 必须后接纠正线索的等待型标记 ("等等，我刚说错了");
+ *     ④ 否定词「不是」只在真正的改口上下文里计 (见 countNegationRepairs).
  *
  * @param normalized 识别用归一化文本
  * @param claimed 已占用区间 (原地追加)
@@ -104,18 +126,172 @@ function trailingFragmentLength(text: string, pauseIndex: number): number {
  */
 function countRepairs(normalized: string, claimed: Span[]): number {
   let count = 0;
-  for (const trigger of REPAIR_TRIGGERS) {
-    let from = 0;
-    for (;;) {
-      const at = normalized.indexOf(trigger, from);
-      if (at === -1) break;
-      const end = at + trigger.length;
-      if (!overlaps(claimed, at, end)) {
+  // ① 无条件显式改口标记.
+  for (const marker of STRICT_REPAIR_MARKERS) {
+    count += claimOccurrences(normalized, marker, claimed);
+  }
+  // ② 子句开头 **或** 后接纠正线索才计.
+  for (const marker of STRICT_REPAIR_BOUNDARY_MARKERS) {
+    count += claimConditional(normalized, marker, claimed, (at, end) => isClauseStart(normalized, at) || hasFollowupCue(normalized, end));
+  }
+  // ③ 等待型标记: 必须后接纠正线索.
+  for (const marker of STRICT_REPAIR_WAIT_MARKERS) {
+    count += claimConditional(normalized, marker, claimed, (_at, end) => hasFollowupCue(normalized, end));
+  }
+  // ④ 否定词「不是」: 只在真正的改口上下文里计.
+  count += countNegationRepairs(normalized, claimed);
+  return count;
+}
+
+/**
+ * ④ 否定词「不是」: 只在真正的自我修正上下文里计一次.
+ *
+ * 不计 (旧口径的假阳性):
+ *   · 「是不是」       → 疑问句;
+ *   · 「我不是本地人」 → 普通否定判断 (不在子句开头, 后面也不是纠正引导);
+ *   · 「不是什么」     → 普通否定.
+ * 计:
+ *   · 「不是 A 而是 B」        (强引导, 不限位置);
+ *   · 「其实不是这样」          (「其实」+ 弱引导);
+ *   · 「不是，其实……」         (子句开头 + 纠正引导).
+ *
+ * @param normalized 识别用归一化文本
+ * @param claimed 已占用区间 (原地追加)
+ * @returns 命中次数
+ */
+function countNegationRepairs(normalized: string, claimed: Span[]): number {
+  let count = 0;
+  let from = 0;
+  for (;;) {
+    const at = normalized.indexOf('不是', from);
+    if (at === -1) break;
+    from = at + 1;
+    const end = at + 2;
+    if (overlaps(claimed, at, end)) continue;
+    // 疑问句「是不是」→ 不是改口.
+    if (normalized[end] === '是') continue;
+    const clauseStart = isClauseStart(normalized, at);
+    const weak = REPAIR_NEGATION_WEAK_FOLLOWERS.some((follower) => normalized.startsWith(follower, end));
+    const punctuated = REPAIR_NEGATION_PUNCTUATION.has(normalized[end] ?? '');
+    // 相邻的「不是 A 而是 B」→ 明确的改口 (不限位置).
+    const adjacentContrast = REPAIR_NEGATION_STRONG_FOLLOWERS.some((follower) => normalized.startsWith(follower, end));
+    // 「不是……而是……」: 否定词必须在子句开头 (否则是事实对比, 不是改口).
+    const clauseContrast = hasFollowupToken(normalized, end, '而是');
+    if (adjacentContrast) {
+      claimed.push({ start: at, end });
+      count += 1;
+      continue;
+    }
+    // 「其实不是这样 / 其实不是，……」: 前面有「其实」且后面是纠正引导.
+    if (at >= 2 && normalized.startsWith('其实', at - 2)) {
+      if (weak || punctuated) {
         claimed.push({ start: at, end });
         count += 1;
       }
-      from = at + 1;
+      continue;
     }
+    // 子句开头的「不是」+ 纠正引导.
+    if (clauseStart && (weak || punctuated || clauseContrast)) {
+      claimed.push({ start: at, end });
+      count += 1;
+    }
+  }
+  return count;
+}
+
+/**
+ * 是否位于子句开头 (文本起点, 或紧跟任意标点).
+ *
+ * @param normalized 识别用归一化文本
+ * @param at 命中起点
+ * @returns 是子句开头即 true
+ */
+function isClauseStart(normalized: string, at: number): boolean {
+  if (at <= 0) return true;
+  return PUNCTUATION_SET.has(normalized[at - 1] ?? '');
+}
+
+/**
+ * 从 `from` 起、同一子句内的文本切片 (前瞻边界 = 句末标点 + 省略号).
+ *
+ * @param normalized 识别用归一化文本
+ * @param from 起点 (不含)
+ * @returns 子句切片
+ */
+function clauseSlice(normalized: string, from: number): string {
+  let end = from;
+  while (end < normalized.length && !LOOKAHEAD_STOP_CHARS.has(normalized[end])) end += 1;
+  return normalized.slice(from, end);
+}
+
+/**
+ * 从 `from` 起、同一子句内有没有纠正线索.
+ *
+ * @param normalized 识别用归一化文本
+ * @param from 起点 (不含)
+ * @returns 有纠正线索即 true
+ */
+function hasFollowupCue(normalized: string, from: number): boolean {
+  const clause = clauseSlice(normalized, from);
+  return REPAIR_FOLLOWUP_CUES.some((cue) => clause.includes(cue));
+}
+
+/**
+ * 从 `from` 起、同一子句内有没有指定引导词.
+ *
+ * @param normalized 识别用归一化文本
+ * @param from 起点 (不含)
+ * @param token 引导词
+ * @returns 有该引导词即 true
+ */
+function hasFollowupToken(normalized: string, from: number, token: string): boolean {
+  return clauseSlice(normalized, from).includes(token);
+}
+
+/**
+ * 找出某个标记的全部出现位置, 占用命中区间并计数 (原地追加到 claimed).
+ *
+ * @param normalized 识别用归一化文本
+ * @param marker 标记
+ * @param claimed 已占用区间 (原地追加)
+ * @returns 未与已占用区间重叠的命中次数
+ */
+function claimOccurrences(normalized: string, marker: string, claimed: Span[]): number {
+  let count = 0;
+  let from = 0;
+  for (;;) {
+    const at = normalized.indexOf(marker, from);
+    if (at === -1) break;
+    from = at + 1;
+    const end = at + marker.length;
+    if (overlaps(claimed, at, end)) continue;
+    claimed.push({ start: at, end });
+    count += 1;
+  }
+  return count;
+}
+
+/**
+ * 只在满足判定条件时才占用的标记命中.
+ *
+ * @param normalized 识别用归一化文本
+ * @param marker 标记
+ * @param claimed 已占用区间 (原地追加)
+ * @param accept 命中判定 (位置 + 终点)
+ * @returns 命中次数
+ */
+function claimConditional(normalized: string, marker: string, claimed: Span[], accept: (at: number, end: number) => boolean): number {
+  let count = 0;
+  let from = 0;
+  for (;;) {
+    const at = normalized.indexOf(marker, from);
+    if (at === -1) break;
+    from = at + 1;
+    const end = at + marker.length;
+    if (overlaps(claimed, at, end)) continue;
+    if (!accept(at, end)) continue;
+    claimed.push({ start: at, end });
+    count += 1;
   }
   return count;
 }
@@ -259,4 +435,42 @@ export function analyzeDisfluency(text: string): DisfluencyMetrics {
   const counts: DisfluencyCounts = { filler, pause, repetition, repair, trailoff, elongation };
   const events = filler + pause + repetition + repair + trailoff + elongation;
   return { counts, events, hasEvent: events > 0, normalizedLength };
+}
+
+/**
+ * 严格口径的自我修正计数 (AF-204 主口径 · 可审计).
+ *
+ * 与 analyzeDisfluency 里 counts.repair 同源同口径, 单独暴露成纯函数,
+ * 便于审计脚本 / 回归测试直接对一句台词求值 (不构造完整度量对象).
+ *
+ * @param text 原始台词
+ * @returns 严格口径的改口次数
+ */
+export function countStrictRepairs(text: string): number {
+  const source = typeof text === 'string' ? text : '';
+  const normalized = normalizeForDetection(source);
+  if (normalized.length === 0) return 0;
+  return countRepairs(normalized, []);
+}
+
+/**
+ * 宽松口径的自我修正计数 (历史遗留 · ⚠️ 含已知假阳性).
+ *
+ * AF-204 之前的口径: `REPAIR_TRIGGERS` 子串命中即计一次.
+ * 「是不是」「我不是本地人」这类否定判断会被误计 —— 本函数**只用于口径审计对照**,
+ * 业务指标一律走 countStrictRepairs / analyzeDisfluency.
+ *
+ * @param text 原始台词
+ * @returns 宽松口径的改口次数
+ */
+export function countLooseRepairs(text: string): number {
+  const source = typeof text === 'string' ? text : '';
+  const normalized = normalizeForDetection(source);
+  if (normalized.length === 0) return 0;
+  const claimed: Span[] = [];
+  let count = 0;
+  for (const trigger of REPAIR_TRIGGERS) {
+    count += claimOccurrences(normalized, trigger, claimed);
+  }
+  return count;
 }
