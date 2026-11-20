@@ -1,0 +1,168 @@
+{
+  "deliveredAt": "2026-11-21T01:55:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-214-1",
+    "taskId": "AF-214",
+    "contextId": "phase3-orchestration-hardening",
+    "type": "implementation",
+    "agentRole": "orchestrator",
+    "baselineRef": "df4c772",
+    "dependsOn": [],
+    "priorTasks": ["AF-213"],
+    "policyRefs": ["conventions.md#1.1", "agent-orchestration/README.md#强制准入"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase3-orchestration-hardening/AF-214/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af214-record-integrity-and-secret-hygiene-2026-11-21.md",
+      "reply": null,
+      "others": [
+        "docs/security/secret-handoff.md",
+        "docs/worklog/records/phase3-orchestration-hardening/AF-214/manifest.json"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "scripts/security/env-doctor.mjs",
+        "scripts/security/__tests__/env-doctor.spec.mjs",
+        "docs/security/secret-handoff.md"
+      ],
+      "modified": [".prettierignore", "package.json"],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run scripts/security/__tests__/",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-6U804B0 / Windows / PowerShell 7.6.4 / node v26.13.0 / pnpm 9.15.0",
+        "wallClock": "727ms",
+        "note": "17 tests passed（解析 / 差集 / 判定 / 关键键子集 / 不打印值）"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 20s",
+        "note": "tsc -b tsconfig.check.json，0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "带缓存通过",
+        "note": "含 scripts 专用配置，0 error"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 238,
+        "machine": "同上",
+        "wallClock": "93.21s",
+        "note": "4083 passed + 7 skipped；收尾全量一次"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空"
+      },
+      {
+        "command": "ORCH_REQUIRE_FRAMEWORK=1 pnpm orchestration:validate",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 5s",
+        "note": "任务单 / 事件链 / 索引投影全 PASS"
+      },
+      {
+        "command": "pnpm orchestration:worklog:verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "strict 通过（提交后复核）"
+      }
+    ],
+    "reproNotes": "记录包字节隔离取证：对 docs/worklog/records/** 全部 578 个文件逐个跑 prettier --write，前后 SHA-256 完全一致（字节变化 0）。env-doctor 现场：模板 278 键 / 实配 104 键，error=0；缺键 183（折叠一行）、空值 11（密钥键 5）、模板占位值 2。关键键验收 --keys LLM_DOUBAO_API_KEY,ENGINE_RENDER_FALLBACK_PROVIDERS → PASS。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-214 贯穿任务单、交付记录、回执、提交" },
+      { "item": "state-write", "result": "pass", "note": "register / promote / claim 经 CLI；状态索引未手改" },
+      { "item": "index-schema", "result": "pass", "note": "回执字段符合 schema 1.0.0" },
+      { "item": "event-chain", "result": "pass", "note": "AF-213 归档后 AF-214 登记（next-id 校验生效）" },
+      { "item": "engine-boundary", "result": "pass", "note": "src/engine-core 零 diff" },
+      { "item": "deploy-contract", "result": "pass", "note": "无新增依赖；新增 env:doctor 入口" },
+      { "item": "text-privacy", "result": "pass", "note": "体检输出只含键名；文档不含任何密钥值" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 successCriteria 四条与交付记录 §2-§5 对应"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF214-01",
+        "impact": "本机 .env 实配 104 键、模板 278 键，183 个生效键缺失（大量能力走默认值）。是真实状态而非缺陷，但需要一次性补齐盘点",
+        "severity": "medium",
+        "schedule": "Phase3 环境治理"
+      },
+      {
+        "id": "BL-AF214-02",
+        "impact": ".env.example 尚未声明 LLM_DOUBAO_API_KEY 与 ENGINE_RENDER_FALLBACK_PROVIDERS，交接关键键不在部署契约内",
+        "severity": "medium",
+        "schedule": "AF-215"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "密钥判定算法",
+        "taskSays": "输出不打印值，键名命中即按密钥对待",
+        "reality": "首版只用键名正则，现场 13 个 error 全是误报（PASSWORD_MAX_FAILED_ATTEMPTS、ENGINE_SUPERVISION_MAX_TOKENS、REDIS_KEY_PREFIX、APPLE_KEY_ID 等）",
+        "action": "改为键名语义 + 值形态双判，并排除数值/标识后缀；模板明确占位值降为 info",
+        "why": "误报会让体检失去可信度，等于没有体检"
+      },
+      {
+        "item": "输出形态",
+        "taskSays": "逐条输出 findings",
+        "reality": "全量逐条会打印 200 行（缺键 183 + 空值 11）",
+        "action": "批量类 finding 默认折叠为一行计数 + 5 个样例，--verbose 展开",
+        "why": "日常可用性优先，关键错误仍逐条"
+      },
+      {
+        "item": "交接验收口径",
+        "taskSays": "体检 .env 是否配齐",
+        "reality": "全量对比无法回答「另一台机器配没配这一把 key」",
+        "action": "新增 --keys 关键键子集，缺失/留空一律 error",
+        "why": "交接回执需要一个可复现的单点校验命令"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "字节隔离有 578 文件零变化取证，env-doctor 有 17 例单测与真机实跑，交接规程可执行（含校验命令与回执模板）；三项偏差均为实测驱动的增强并已记入交付记录；engine-core 零 diff。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
