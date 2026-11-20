@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-214",
   "contextId": "phase3-orchestration-hardening",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-21T01:35:00+08:00",
-  "updatedAt": "2026-11-20T17:24:52.479Z",
+  "updatedAt": "2026-11-20T17:36:45.653Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase3-orchestration-hardening/AF-214/task-sheet.md",
     "sha256": "8623881fec87a138c034c429e1032a0919091a108f588eb392369a44d3abf96b",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase3-orchestration-hardening/AF-214/receipt-RC-AF-214-1.json",
+      "sha256": "f3a8f5dbfbfaa7ef355ced44bcd4f969b6cd44bd55168e0427360228301895a1",
+      "receiptId": "RC-AF-214-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase3-orchestration/af214-record-integrity-and-secret-hygiene-2026-11-21.md",
   "legacyPaths": [
     "docs/worklog/pending/af214-record-integrity-and-secret-hygiene-2026-11-21.md"
