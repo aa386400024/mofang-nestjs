@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-20T02:35:11.888Z",
+  "generatedAt": "2026-11-20T02:49:03.946Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -1776,6 +1776,38 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-227",
+      "recordedAt": "2026-11-20T02:47:57.665Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-173",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-173",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-173.json"
+      ]
+    },
+    {
+      "auditId": "AUD-226",
+      "recordedAt": "2026-11-20T02:47:57.110Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-173",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-225",
       "recordedAt": "2026-11-20T02:32:20.466Z",
       "actorRef": "orchestrator",
@@ -1983,54 +2015,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-166.json"
       ]
-    },
-    {
-      "auditId": "AUD-212",
-      "recordedAt": "2026-11-20T02:04:42.425Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-166",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-211",
-      "recordedAt": "2026-11-20T02:04:25.271Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-165",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 225,
+    "total": 227,
     "byResult": {
-      "allowed": 225,
+      "allowed": 227,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 224,
+      "TOOL-QUEUE-SCHEDULER": 226,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 225
+      "orchestrator": 227
     }
   },
   "protocolView": {
@@ -5232,6 +5230,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af172-record-bundle-packaging-2026-11-20.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-173",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-173/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af173-integrate-gate-hydration-2026-11-20.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -5256,5 +5272,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 186
+  "archivedCount": 187
 };

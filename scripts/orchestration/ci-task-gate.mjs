@@ -300,6 +300,19 @@ export function parseTaskSheetScopeForGate(text, expectedTaskId) {
   };
 }
 
+/**
+ * 非主任务（stacked squash 的次要任务）容错解析：历史任务单可能早于 1.1.0 契约、
+ * 缺少 frontmatter，不能让它把整条发布门打挂；无法解析的任务不贡献 scope。
+ * 主任务仍走 parseTaskSheetScopeForGate 严格解析。
+ */
+export function tryParseTaskSheetScopeForGate(text, expectedTaskId) {
+  try {
+    return parseTaskSheetScopeForGate(text, expectedTaskId);
+  } catch {
+    return null;
+  }
+}
+
 function readTaskSheetAt(sha, sheetPath, status, expectedTaskId) {
   if (!sheetPath) throw new Error('squash 归档投影缺任务单路径，无法重建 scope');
   const text = git(['show', `${sha}:${sheetPath}`]);
@@ -355,8 +368,14 @@ export function evaluateCommitAt(sha) {
       if (!sheetPath || !changedFiles.includes(sheetPath)) continue;
       const taskReceipts = readAcceptanceReceiptsAt(sha, task.taskId);
       if (mergeableDurableReceipts(taskReceipts).length === 0) continue;
-      const fullTask = readTaskSheetAt(sha, sheetPath, task.status, task.taskId);
-      hydratedTasks.push({ ...fullTask, ...task, scope: fullTask.scope });
+      // 发布批次会把大量历史 record bundle 一起入库；其中早于 1.1.0 契约、
+      // 缺少 frontmatter 的任务单无法提供 scope，跳过即可，不能让整条门失败。
+      const text = git(['show', `${sha}:${sheetPath}`], { allowFailure: true });
+      if (text === null) continue;
+      const fullScope = tryParseTaskSheetScopeForGate(text, task.taskId);
+      if (!fullScope) continue;
+      const fullTask = { ...fullScope, ...task, scope: fullScope.scope };
+      hydratedTasks.push(fullTask);
     }
     const primarySheet = sheetPathAt(sha, archived);
     const primary = hydratedTasks.find((task) => task.taskId === commitTaskId) ?? {

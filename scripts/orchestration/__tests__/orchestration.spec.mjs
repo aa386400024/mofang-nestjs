@@ -113,7 +113,7 @@ import {
   LONG_LIVED_BRANCHES,
 } from '../branch-workflow.mjs';
 import { ciGateVerdict, resolveGithubToken, resolveGithubTokenDetail, fetchCheckRuns, evaluateRemoteCiGate } from '../ci-status.mjs';
-import { parseTaskSheetScopeForGate } from '../ci-task-gate.mjs';
+import { parseTaskSheetScopeForGate, tryParseTaskSheetScopeForGate } from '../ci-task-gate.mjs';
 import { matchAgentCard, selectTargetRole, validateScopeDomain } from '../card-router.mjs';
 import {
   SESSION_PATHS,
@@ -4228,6 +4228,14 @@ describe('AF-059 零依赖任务单 scope 解析', () => {
     );
     expect(() => parseTaskSheetScopeForGate(`---\ntaskId: AF-059\ntype: fix\n---\n`, 'AF-059')).toThrow('scope 缺失');
     expect(() => parseTaskSheetScopeForGate(`---\ntaskId: AF-059\nscope:\n  files: []\n---\n`, 'AF-059')).toThrow('scope.files 为空');
+  });
+
+  it('AF-173 次要任务历史任务单容错：缺 frontmatter 返回 null，合法任务单正常解析', () => {
+    expect(tryParseTaskSheetScopeForGate('# 历史任务单\n无 frontmatter\n', 'TD-5')).toBeNull();
+    expect(tryParseTaskSheetScopeForGate(`---\ntaskId: AF-058\nscope:\n  files: [scripts/a.mjs]\n---\n`, 'AF-059')).toBeNull();
+    expect(
+      tryParseTaskSheetScopeForGate(`---\ntaskId: AF-059\nscope:\n  files: [scripts/a.mjs]\n---\n`, 'AF-059')?.scope.files,
+    ).toEqual(['scripts/a.mjs']);
   });
 });
 
