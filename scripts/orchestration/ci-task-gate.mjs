@@ -17,11 +17,32 @@ import { pathToFileURL } from 'node:url';
 import { evaluateTaskEntry } from './task-entry-gate.mjs';
 
 export const TASK_STATE_INDEX_PATH = 'docs/team/agent-orchestration/task-state-index.json';
-const TASK_ID_RE = /\b(?=[A-Z0-9]*[A-Z])[A-Z0-9]+-[0-9]+\b/g;
+/** 提交标题里的任务编号 token：字母前缀（≥2）可选连字符 + 数字，全文扫描但排除技术串。 */
+const TASK_ID_TOKEN_RE = /(?<![A-Za-z0-9])[A-Za-z]{2,}-?\d+/g;
+/** 常见技术串归一后形似任务编号，显式排除，避免 `fix(utf-8)` 被当成任务。 */
+const NON_TASK_PREFIXES = new Set(['UTF', 'UTF8', 'ISO', 'SHA', 'MD', 'IPV', 'HTTP', 'TLS', 'CSS', 'JS', 'TS', 'V2', 'BASE64']);
 
-/** 从提交标题解析唯一 AF 编号；同编号重复出现允许，多编号拒绝。 */
+/**
+ * `AF-219` / `af219` 统一归一为 `AF-219`；不合形态（如 `Phase2`、`utf-8`）返回 null。
+ * 无连字符的紧凑写法只接受全小写 2–3 字母前缀（`af219` / `wp12`），避免把正文里的
+ * `Phase2`、`base64` 之类技术串当成任务编号。
+ */
+export function canonicalTaskId(token) {
+  const raw = String(token ?? '').trim();
+  if (!raw) return null;
+  const match = /^([A-Za-z]{1,})-(\d+)$/.exec(raw) ?? /^([a-z]{2,3})(\d+)$/.exec(raw);
+  if (!match) return null;
+  const prefix = match[1].toUpperCase();
+  if (NON_TASK_PREFIXES.has(prefix)) return null;
+  return `${prefix}-${match[2]}`;
+}
+
+/**
+ * 从提交标题解析唯一任务编号；同编号重复出现允许，多编号拒绝。
+ * 大小写不敏感（`docs(af219):` 与 `feat(AF-219):` 等价）；技术串（utf-8 / sha-1 等）不计为任务编号。
+ */
 export function extractCommitTaskId(subject) {
-  const ids = [...new Set(String(subject ?? '').match(TASK_ID_RE) ?? [])];
+  const ids = [...new Set((String(subject ?? '').match(TASK_ID_TOKEN_RE) ?? []).map(canonicalTaskId).filter(Boolean))];
   if (ids.length > 1) throw new Error(`提交标题含多个任务编号：${ids.join('、')}`);
   return ids[0] ?? null;
 }
@@ -105,8 +126,84 @@ export function mergeableDurableReceipts(receipts = []) {
   });
 }
 
-/** PR 最终 HEAD 的验收硬门：防止绕开 pr-release，直接从 GitHub 页面合并。 */
-export function evaluateAcceptanceSnapshot({ taskId, currentIndex, receipts = [] }) {
+/**
+ * 轻量解析任务单 frontmatter 的 artifacts 路径。入场任务必须带上自己声明的工件
+ * （尤其交付记录），否则 scope 判定会把交付记录当成越界文件。
+ */
+export function parseTaskSheetArtifactPathsForGate(text) {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(String(text ?? ''));
+  if (!match) return [];
+  const lines = match[1].split(/\r?\n/);
+  const start = lines.findIndex((line) => line === 'artifacts:' || line.startsWith('artifacts:'));
+  if (start < 0) return [];
+  const paths = [];
+  for (let index = start + 1; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (!line.trim()) continue;
+    if (/^\S/.test(line)) break;
+    const item = /^\s+(?:-\s+)?path:\s*(.+)$/.exec(line);
+    if (!item) continue;
+    const raw = item[1].trim();
+    let value = raw;
+    if (raw.startsWith('"')) {
+      try {
+        value = JSON.parse(raw);
+      } catch {
+        continue;
+      }
+    }
+    if (typeof value === 'string' && value.trim()) paths.push(value.trim());
+  }
+  return paths;
+}
+
+/**
+ * AF-220 · 两阶段提交对账：实现提交只带业务文件与记录包任务单，claim 写入的索引在
+ * 后续状态面提交才入库，因此实现提交的树内索引里根本还没有这个任务 —— 逐提交门
+ * 会把合法历史判成 no-active-task。
+ *
+ * 这里给出一条受限入场：标题含唯一任务编号、提交 diff 内新增该任务的 records 任务单、
+ * 且提交索引与父索引都没有这个任务时，用任务单文本重建 scope 并以 submitted 入场。
+ * 受限条件缺任意一项即返回 task=null，调用方仍走原有判定（no-active-task 不会因此放宽）。
+ *
+ * @returns {{task: object|null, sheetPath: string|null, reason: string}}
+ */
+export function deriveImplementationTaskFromCommitSheet({
+  commitTaskId,
+  changedFiles = [],
+  currentIndex = {},
+  parentIndex = {},
+  sheetText = null,
+} = {}) {
+  if (!commitTaskId) return { task: null, sheetPath: null, reason: 'no-commit-task-id' };
+  const known = [
+    ...(currentIndex.tasks ?? []),
+    ...(currentIndex.archivedTasks ?? []),
+    ...(parentIndex.tasks ?? []),
+    ...(parentIndex.archivedTasks ?? []),
+  ].some((task) => task?.taskId === commitTaskId);
+  if (known) return { task: null, sheetPath: null, reason: 'task-known' };
+  const sheetPath =
+    (changedFiles ?? []).find(
+      (path) => /^docs\/worklog\/records\/[^/]+\/[^/]+\/task-sheet\.md$/.test(path) && path.includes(`/${commitTaskId}/`),
+    ) ?? null;
+  if (!sheetPath) return { task: null, sheetPath: null, reason: 'sheet-not-in-commit' };
+  if (typeof sheetText !== 'string' || sheetText.trim() === '') return { task: null, sheetPath, reason: 'sheet-unreadable' };
+  const parsed = tryParseTaskSheetScopeForGate(sheetText, commitTaskId);
+  if (!parsed) return { task: null, sheetPath, reason: 'sheet-unparsable' };
+  const plannedArtifacts = parseTaskSheetArtifactPathsForGate(sheetText).map((path) => ({ path }));
+  return {
+    sheetPath,
+    reason: 'impl-entry-from-commit-sheet',
+    task: { ...parsed, status: 'submitted', artifacts: { taskSheet: sheetPath }, plannedArtifacts },
+  };
+}
+
+/** PR 最终 HEAD 的验收硬门：防止绕开 pr-release，直接从 GitHub 页面合并。 */ export function evaluateAcceptanceSnapshot({
+  taskId,
+  currentIndex,
+  receipts = [],
+}) {
   const archived = (currentIndex?.archivedTasks ?? []).find((task) => task?.taskId === taskId);
   if (!archived || archived.status !== 'completed') {
     return {
@@ -398,6 +495,29 @@ export function evaluateCommitAt(sha) {
       }),
     };
   }
+  let implEntrySource = null;
+  if (commitTaskId && !archived) {
+    const probe = deriveImplementationTaskFromCommitSheet({
+      commitTaskId,
+      changedFiles,
+      currentIndex: evaluatedCurrentIndex,
+      parentIndex,
+    });
+    if (probe.sheetPath) {
+      const sheetText = git(['show', `${sha}:${probe.sheetPath}`], { allowFailure: true });
+      const derived = deriveImplementationTaskFromCommitSheet({
+        commitTaskId,
+        changedFiles,
+        currentIndex: evaluatedCurrentIndex,
+        parentIndex,
+        sheetText,
+      });
+      if (derived.task) {
+        implEntrySource = derived.reason;
+        evaluatedCurrentIndex = { ...evaluatedCurrentIndex, tasks: [...(evaluatedCurrentIndex.tasks ?? []), derived.task] };
+      }
+    }
+  }
   const sheet = taskSheetPresence(sha, commitTaskId, evaluatedCurrentIndex, parentIndex);
   const receipts =
     commitTaskId && evaluatedCurrentIndex.archivedTasks.some((task) => task?.taskId === commitTaskId)
@@ -412,7 +532,7 @@ export function evaluateCommitAt(sha) {
     taskSheetPath: sheet.path,
     receipts,
   });
-  return { sha, subject, parent, ...result };
+  return { sha, subject, parent, ...result, implEntrySource };
 }
 
 /** 校验 base..head 全部非 merge 提交，聚合所有失败而不是首错即停。 */

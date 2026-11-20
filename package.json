@@ -35,6 +35,7 @@
     "typecheck:build": "tsc -p tsconfig.build.json --noEmit",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "doctor:fs": "node scripts/fs-latency-check.mjs",
+    "env:doctor": "node scripts/security/env-doctor.mjs",
     "orchestration:status": "node scripts/orchestration/cli.mjs status",
     "orchestration:preflight": "node scripts/orchestration/task-entry-gate.mjs",
     "orchestration:ci-gate": "node scripts/orchestration/ci-task-gate.mjs",

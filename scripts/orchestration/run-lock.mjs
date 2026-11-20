@@ -62,13 +62,14 @@ export function acquireRunLock(opts = {}) {
   const staleMs = opts.staleMs ?? DEFAULT_STALE_MS;
   const now = opts.now ?? Date.now();
   const actor = opts.actor ?? 'run-once';
+  const token = opts.token ?? randomBytes(8).toString('hex');
   const file = runLockPath(dir);
   mkdirSync(dir, { recursive: true });
 
   const payload = {
     pid: process.pid,
     host: hostname(),
-    token: randomBytes(8).toString('hex'),
+    token,
     actor,
     acquiredAt: new Date(now).toISOString(),
   };
@@ -81,6 +82,7 @@ export function acquireRunLock(opts = {}) {
         acquired: true,
         path: file,
         stolen,
+        token,
         release: () => {
           const held = readRunLock(dir);
           if (held && held.token === payload.token) unlinkSync(file);
@@ -113,5 +115,71 @@ export function describeRunLock(dir = PATHS.transportDir, now = Date.now(), stal
     ...holder,
     heldMinutes: acquiredMs ? Math.round((now - acquiredMs) / 60000) : null,
     stale: holder.corrupt === true || !acquiredMs || now - acquiredMs > staleMs,
+  };
+}
+
+/**
+ * AF-217 · 本机 + 跨机双层单写者。
+ *
+ * 顺序固定为「先本机、后远端」：
+ *   1. 本机抢不到 → 直接返回（同机并发不打扰远端，也不产生无意义的 push）；
+ *   2. 远端锁注入缺失（未配置 / 离线调试）→ 只回本机结果，并标记 degraded；
+ *   3. 远端抢不到（另一台机器持锁）→ 立刻释放本机锁，返回持有者事实；
+ *   4. 远端不可达（网络 / 无推送凭据）→ `mode='required'` 时拒绝执行，否则降级为仅本机
+ *      互斥并标记 degraded —— 降级必须被调用方打印，不允许静默放行。
+ *
+ * @param {{dir?:string, staleMs?:number, actor?:string, token?:string, remote?:object|null, mode?:'optional'|'required', now?:number}} opts
+ * @returns {object} 与 acquireRunLock 同形，额外带 `remote` 段描述远端结果
+ */
+export function acquireClusterRunLock(opts = {}) {
+  const token = opts.token ?? randomBytes(8).toString('hex');
+  const local = acquireRunLock({ ...opts, token });
+  if (!local.acquired) {
+    return { ...local, token, remote: { skipped: 'local-lock-busy' } };
+  }
+
+  const remote = opts.remote ?? null;
+  if (!remote) {
+    return { ...local, token, remote: { degraded: true, reason: 'remote-lock-not-configured' } };
+  }
+
+  const result = remote.acquire({ pid: process.pid, host: hostname(), token, actor: opts.actor ?? 'run-once' });
+  if (result.unavailable) {
+    if ((opts.mode ?? 'optional') === 'required') {
+      local.release();
+      return {
+        acquired: false,
+        token,
+        holder: null,
+        remote: { unavailable: true, required: true, error: result.error ?? '远端不可达' },
+        release: () => {},
+      };
+    }
+    return {
+      ...local,
+      token,
+      remote: { degraded: true, unavailable: true, error: result.error ?? '远端不可达' },
+    };
+  }
+  if (!result.acquired) {
+    local.release();
+    return {
+      acquired: false,
+      token,
+      holder: result.holder ?? null,
+      path: local.path,
+      remote: { acquired: false, conflict: result.conflict === true, holder: result.holder ?? null },
+      release: () => {},
+    };
+  }
+  return {
+    ...local,
+    token,
+    remote: { acquired: true, sha: result.sha, stolen: result.stolen ?? null },
+    release: () => {
+      const released = result.release();
+      local.release();
+      return released;
+    },
   };
 }
