@@ -7,8 +7,20 @@
 //     · 咨询术语、书面连接词、助手口吻、元话语是软信号，只观察，不逼模型改台词；
 //     · 不返回原文，只返回分类。
 
+// V2026-11-21 扩充 (AF-211 · R4 场景化语域):
+//   · prompt 回显词表导出为单一真相源，供常开输出闸门复用，避免两套口径；
+//   · 界面词按场景判定：线上文字咨询里“看聊天框/等回复”是台词内容，不是旁白；
+//     面对面与语音里仍按不可朗读硬拦。
+
+import type { RealismScene } from './turn-shape-selector.js';
+
 export type RegisterViolation = 'non_spoken_text' | 'prompt_echo';
 export type RegisterSignal = 'clinical_jargon' | 'bookish_connective' | 'assistant_tone' | 'meta_speech';
+
+export interface RegisterAuditProfile {
+  /** 本场接触方式；缺省按项目默认的面对面咨询室处理。 */
+  readonly scene?: RealismScene;
+}
 
 export interface RegisterAuditResult {
   readonly violations: readonly RegisterViolation[];
@@ -83,8 +95,11 @@ const INTERFACE_MARKERS: readonly string[] = [
 /**
  * 设定 / prompt 回显：这是比“语气不对”严重得多的失败。
  * 只认明确的模板标题与内部字段名，不认“规则”“设定”这类生活词。
+ *
+ * AF-211：导出给 `shared/text/output-integrity.ts` 做常开拦截，
+ * 这里保持唯一词表，R3 审计与输出闸门不允许各维护一份。
  */
-const PROMPT_ECHO_MARKERS: readonly string[] = [
+export const PROMPT_ECHO_MARKERS: readonly string[] = [
   '关键事件：',
   '你心里坚信',
   '你绝不会做的事',
@@ -171,15 +186,21 @@ function firstMatched(text: string, markers: readonly string[]): string | undefi
  *
  * 软信号不升级为硬违约：临床上“边界感”“原生家庭”这类词的确可能从来访者嘴里说出来，
  * 机械拦截会误伤真实表达；这里只用于观察 prompt 是否把台词带成了咨询师报告。
+ *
+ * 场景口径（AF-211）：
+ *   · prompt 回显与舞台动作在所有场景都是硬违约；
+ *   · 线上文字咨询允许“看聊天框/等回复”这类界面内容；
+ *   · 面对面与语音仍把界面 chrome 视为不可朗读文本。
  */
-export function inspectVisitorRegister(text: string): RegisterAuditResult {
+export function inspectVisitorRegister(text: string, profile: RegisterAuditProfile = {}): RegisterAuditResult {
   const trimmed = text.trim();
   if (trimmed.length === 0) return { violations: [], signals: [] };
 
+  const scene = profile.scene ?? 'in_person';
   const violations: RegisterViolation[] = [];
   if (firstMatched(trimmed, PROMPT_ECHO_MARKERS)) {
     violations.push('prompt_echo');
-  } else if (hasStageDirection(trimmed) || firstMatched(trimmed, INTERFACE_MARKERS)) {
+  } else if (hasStageDirection(trimmed) || (scene !== 'online_text' && firstMatched(trimmed, INTERFACE_MARKERS))) {
     violations.push('non_spoken_text');
   }
 

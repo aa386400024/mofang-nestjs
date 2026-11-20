@@ -614,7 +614,11 @@ export class LlmRenderAdapter implements StreamingRenderPort {
   /** 只审计、不碰原文；off 返回 null。 */
   private auditRealism(runtime: VisitorRealismRuntime, text: string): RealismAuditResult | null {
     if (runtime.mode === 'off') return null;
-    return inspectVisitorRealism(text, { state: runtime.profile.state, shape: runtime.profile.shape }, runtime.eventPlan);
+    return inspectVisitorRealism(
+      text,
+      { state: runtime.profile.state, shape: runtime.profile.shape, scene: runtime.profile.scene },
+      runtime.eventPlan,
+    );
   }
 
   /** 日志只打枚举与计数，不打印台词。 */

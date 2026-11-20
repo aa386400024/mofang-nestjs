@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-210",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "canceled",
+  "createdAt": "2026-11-21T00:22:12+08:00",
+  "updatedAt": "2026-11-20T16:22:57.666Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-210/task-sheet.md",
+    "sha256": "f09a4ca7a8047f223ec8e41e67c52a629cebd962e7edafce868fed8a0fca78ed",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": null,
+  "legacyPaths": [
+    "docs/worklog/pending/AF-210-task-sheet.md"
+  ],
+  "tombstone": null
+}

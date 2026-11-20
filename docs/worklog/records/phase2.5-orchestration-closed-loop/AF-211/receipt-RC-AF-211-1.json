@@ -1,0 +1,214 @@
+{
+  "deliveredAt": "2026-11-21T00:41:44+08:00",
+  "payload": {
+    "receiptId": "RC-AF-211-1",
+    "taskId": "AF-211",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "e54012bfc3f7f01c36bf60695df7bfa775558dca",
+    "dependsOn": [],
+    "policyRefs": [
+      "conventions.md#1.3"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-211/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af211-realism-r4-prompt-echo-2026-11-21.md",
+      "reply": null,
+      "others": [
+        "data/phase25-exit/af211-realism-baseline/report.json"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "src/auto-practice/metrics/visitor-realism-baseline.ts",
+        "bin/visitor-realism-baseline.ts",
+        "test/auto-practice/af211-prompt-echo-guard.spec.ts",
+        "test/auto-practice/af211-register-scene.spec.ts",
+        "test/auto-practice/af211-realism-baseline.spec.ts",
+        "docs/worklog/completed/phase2.5/af211-realism-r4-prompt-echo-2026-11-21.md"
+      ],
+      "modified": [
+        "src/shared/realism/visitor-register-audit.ts",
+        "src/shared/realism/visitor-realism-audit.ts",
+        "src/shared/realism/visitor-realism-profile.ts",
+        "src/shared/realism/index.ts",
+        "src/shared/text/output-integrity.ts",
+        "src/engine-adapters/rendering/llm-render.adapter.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/af209-register-audit.spec.ts test/auto-practice/af209-realism-matrix.spec.ts test/engine-adapters/af209-register-retry.spec.ts test/auto-practice/af204-output-integrity-shape.spec.ts test/auto-practice/af187-encounter-output-integrity.spec.ts test/auto-practice/af211-prompt-echo-guard.spec.ts test/auto-practice/af211-register-scene.spec.ts test/auto-practice/af211-realism-baseline.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 8,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "1.72s",
+        "note": "97 tests passed（R3 回归 + R4 常开回显 / 场景化语域 / 批次基线）"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 25s",
+        "note": "0 error"
+      },
+      {
+        "command": "pnpm exec eslint --no-cache \"src/**/*.ts\" \"test/**/*.ts\" \"bin/**/*.ts\"",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2min",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 235,
+        "machine": "同上",
+        "wallClock": "23.85s",
+        "note": "235 passed + 1 skipped files；4075 passed + 4 skipped tests"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-realism-baseline.ts --dir data/debug-sessions --out data/phase25-exit/af211-realism-baseline/report.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "360 场 / 11298 条 visitor 台词；可朗读硬违约 15（prompt_echo 10、non_spoken_text 5），原始口径 39；过长 317，口语事件 3963"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "代码、测试、交付记录与回执在同一任务分支完成；历史 360 场复算用 bin/visitor-realism-baseline.ts 只读扫描，报告在 gitignore 覆盖的 data/ 下，不含台词原文；临时分析脚本已删除未入库。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-211 贯穿任务单、分支、交付记录与回执；AF-210 因资源域越界已取消归档"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once 全部经 CLI；AF-210 cancel / archive 经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-209 合并后接 AF-210 取消与 AF-211，事件链连续"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "deploy-contract",
+        "result": "pass",
+        "note": "不新增 env 键；RENDER_REALISM_MODE 仍为 off/audit/active，默认 off"
+      },
+      {
+        "item": "text-privacy",
+        "result": "pass",
+        "note": "基线只输出数字与分类计数，不输出台词原文；审计日志仍不打印台词"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单、交付记录、回执同源；baselineRef 为 e54012bf"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF211-01",
+        "impact": "360 场旧批次没有场景层，基线只能落 in_person；online_voice / online_text 切片仍为空",
+        "severity": "medium",
+        "schedule": "R5 新批次产生后复算"
+      },
+      {
+        "id": "BL-AF211-02",
+        "impact": "常开闸门仍有 121 条 invalid，主要是 foreign_word 104 / foreign_latin 43 / english_reasoning 40 / structured_output 19",
+        "severity": "medium",
+        "schedule": "R5 生成质量专项"
+      },
+      {
+        "id": "BL-AF211-03",
+        "impact": "可朗读文本仍有 10 条 prompt 回显；R4 已能常开拦截，但生成侧 prompt 仍会诱导回显，active 重试率待测",
+        "severity": "medium",
+        "schedule": "R5 active 灰度批次"
+      },
+      {
+        "id": "BL-AF211-04",
+        "impact": "可朗读文本过长 317 条（2.81/100 轮），集中在旧批次的长段；话轮形态阈值可能需要按角色标定",
+        "severity": "medium",
+        "schedule": "R5 批次标定"
+      },
+      {
+        "id": "BL-AF211-05",
+        "impact": "未接入 AI 双盲评分与真实督导双标；R4 不宣称临床有效性",
+        "severity": "medium",
+        "schedule": "R5"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "任务切片迁址",
+        "taskSays": "AF-210 scope 含 scripts/ops/quality/",
+        "reality": "scripts/ 不在 executor 资源域，任务被取消",
+        "action": "重签 AF-211，把基线 CLI 收到 bin/；功能与验收不变",
+        "why": "不拓宽角色资源域，保持资源域门禁有效"
+      },
+      {
+        "item": "基线双口径",
+        "taskSays": "扫描 data/debug-sessions，输出违约/信号/事件密度",
+        "reality": "增加 rawAudit 与 outputIntegrity；主口径改为剥掉推理块后的可朗读文本",
+        "action": "在交付记录与回执中显式登记，并补测试防泄漏台词",
+        "why": "34 条原始 prompt 回显里 32 条在 <think> 内，不是可见台词；只用原始口径会得出错误结论"
+      },
+      {
+        "item": "回显净增判断",
+        "taskSays": "R3 识别 34、常开闸门只命中 9，约 25 条漏过",
+        "reality": "可朗读回显实际 10 条；常开闸门 R4 后命中 10 条，净增约 1 条",
+        "action": "交付记录明确纠偏，后续以双口径报告为准",
+        "why": "32 条是推理块抬高计数；不能把推理块里的设定复述算成说出口的故障"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "prompt 回显词表收成单一真相源并接入常开闸门；场景化语域区分 online_text 与 in_person/online_voice；批次基线双口径可复算且不泄漏台词；定向 97 tests、全量 4075 tests、lint/typecheck 全绿；engine-core 零 diff；360 场复算给出可朗读硬违约 15、原始口径 39，并纠正 34 条回显的口径误判。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
