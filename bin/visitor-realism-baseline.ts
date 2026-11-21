@@ -6,11 +6,8 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import {
-  aggregateRealismBaseline,
-  inferRealismSceneFromPrompt,
-  type BaselineSession,
-} from '../src/auto-practice/metrics/visitor-realism-baseline.js';
+import { resolveDebugRealismScene } from './realism-scene-loader.js';
+import { aggregateRealismBaseline, type BaselineSession } from '../src/auto-practice/metrics/visitor-realism-baseline.js';
 
 interface DebugMessage {
   readonly role?: string;
@@ -27,6 +24,9 @@ interface DebugSessionFile {
   readonly id?: string;
   readonly messages?: readonly DebugMessage[];
   readonly traces?: readonly DebugTrace[];
+  readonly scene?: unknown;
+  readonly realismScene?: unknown;
+  readonly encounter?: unknown;
 }
 
 interface CliOptions {
@@ -65,7 +65,7 @@ function readSession(filePath: string): BaselineSession | null {
 
   return {
     sessionId: raw.id ?? filePath,
-    scene: inferRealismSceneFromPrompt(raw.traces?.[0]?.renderSpec?.promptFull),
+    scene: resolveDebugRealismScene(raw),
     visitorTurns,
   };
 }
@@ -95,7 +95,7 @@ function main(): void {
       files: files.length,
       sessions: sessions.length,
       skippedFiles: skipped,
-      sceneInference: 'prompt_scene_layer_else_in_person',
+      sceneInference: 'explicit_scene_or_encounter_else_prompt_scene_layer_else_in_person',
     },
     ...baseline,
   };

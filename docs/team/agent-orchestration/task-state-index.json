@@ -4,10 +4,151 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 979,
+    "lastEventSeq": 984,
     "rebuiltAt": null
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-226",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-21T05:09:52.495Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "人工提级"
+        },
+        {
+          "at": "2026-11-21T05:10:21.527Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        },
+        {
+          "at": "2026-11-21T07:40:32.633Z",
+          "from": "submitted",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "租约超时释放（持单待人工确认，不自动重派）"
+        },
+        {
+          "at": "2026-11-21T07:41:31.451Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "来访者真人度 R6-C：线上 voice/text 场景补样本与切片基线",
+      "type": "implementation",
+      "baselineRef": "2cbfd7a96244d114ddbe139ad20a98e4656c09a3",
+      "dependsOn": [
+        "AF-225"
+      ],
+      "priorTasks": [
+        "AF-207",
+        "AF-208",
+        "AF-209",
+        "AF-213",
+        "AF-214",
+        "AF-216",
+        "AF-225"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-21T05:09:10.143Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "bin/",
+          "test/auto-practice/",
+          "docs/worklog/completed/phase2.5/",
+          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-226/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af226-realism-r6c-online-scenes-2026-11-21.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run test/auto-practice/af226-online-scene-loader.spec.ts test/auto-practice/af225-realism-stability.spec.ts test/auto-practice/af214-realism-blind-pack.spec.ts test/auto-practice/af214-realism-rating.spec.ts",
+          "check": "线上场景归一化 + R5/R6-B 回归全绿",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm typecheck",
+          "check": "后端类型检查 0 error",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "lint 0 error / 0 warning",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm test",
+          "check": "全量测试 0 failed",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "POST /admin/api/auto-practice/batch（online/voice 与 online/text 各 48 场：8 角色 × 3 模式 × repeats=2，maxTurns=20）",
+          "check": "两个批次各 48 场，单通道可用会话（status≠failed 且 visitor 轮次 ≥8）≥40",
+          "threshold": "voice_usable >= 40 且 text_usable >= 40"
+        },
+        {
+          "command": "node --env-file=.env --import tsx bin/visitor-realism-blind.ts --source data/debug-sessions --packets 24 --out data/phase25-exit/af226-online-scenes/blind",
+          "check": "24 packet 覆盖 in_person / online_voice / online_text 三场景，每场景 ≥8，全部完成五维评分",
+          "threshold": "exit=0 且 completed=24、failed=0、每场景 packet ≥8"
+        },
+        {
+          "command": "git diff --stat HEAD -- src/engine-core",
+          "check": "engine-core 零改动",
+          "threshold": "empty"
+        }
+      ],
+      "successCriteria": [
+        "线上样本必须由真实对练产生，不能用改字段、复制 in_person 会话或伪造 encounter 的方式凑数。",
+        "每个线上批次 48 场，角色 × 模式 × repeats 组合固定为 8 × 3 × 2，maxTurns=20，批次之间只差 encounter channel。",
+        "盲评加载器优先读取 debug JSON 里的显式 `encounter`，再回落到 prompt 场景层、最后缺省 in_person；老 360 场行为不变。",
+        "生成 24 个盲评 packet，in_person / online_voice / online_text 每个场景至少 8 个；评分链路 24/24 完成，不允许 dimension_missing 整包失败。",
+        "报告按场景给出五维均值、样本量、剔除计数与硬违约计数；线上切片不足或分数更低时如实登记，不改模型、不改 provider、不改 `.env` 去“调好”。",
+        "不修改 R6-A 节奏、R6-B compact 重试、R5 评分协议；engine-core 零改动；临床达标标记保持 false。",
+        "不修改 provider 选择、模型、`.env`、`scripts/orchestration/`；不触碰 admin-dashboard 与 Flutter。"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af226-realism-r6c-online-scenes-2026-11-21.md",
+          "kind": "report"
+        },
+        {
+          "name": "线上样本批次与切片报告",
+          "path": "data/phase25-exit/af226-online-scenes/report.json",
+          "kind": "report"
+        },
+        {
+          "name": "线上切片 AI 盲评报告",
+          "path": "data/phase25-exit/af226-online-scenes/blind/report.json",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "promotedAt": "2026-11-21T05:09:52.494Z"
+    }
+  ],
   "archivedTasks": [
     {
       "taskId": "TD-5",
