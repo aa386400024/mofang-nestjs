@@ -224,6 +224,21 @@ describe('AF-232 客观指标', () => {
     expect(objective.overall.rawStageDirectionRate).toBe(1);
   });
 
+  it('plot 只认剧本旁白，不把口语里的“突然”误判为剧情推进', () => {
+    const spoken = analyzeArmObjective([
+      makeSession('C', [
+        makeTurn('她走得很突然，我到现在都没能好好跟她告别。', { turnIndex: 1 }),
+        makeTurn('[pause:0.3]没什么，就觉得你问得有点突然，我一时不知道怎么答。', { turnIndex: 2 }),
+      ]),
+    ]);
+    expect(spoken.overall.plotCount).toBe(0);
+
+    const narrated = analyzeArmObjective([
+      makeSession('C', [makeTurn('镜头切到窗外，雨还在下。', { turnIndex: 1 }), makeTurn('旁白：她一直没回头。', { turnIndex: 2 })]),
+    ]);
+    expect(narrated.overall.plotCount).toBe(2);
+  });
+
   it('分难度指标独立聚合，L3 短答率可按 baseline 比较', () => {
     const l3 = makeSession('C', normalTurns(12), { sessionId: 's_l3', difficulty: 'L3' });
     const l1 = makeSession('C', normalTurns(12), { sessionId: 's_l1', difficulty: 'L1' });

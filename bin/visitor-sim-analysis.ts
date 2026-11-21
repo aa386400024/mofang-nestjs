@@ -161,7 +161,12 @@ const ADVICE_PATTERNS: readonly RegExp[] = [/你应该/u, /建议你/u, /你可�
 
 const SUMMARY_PATTERNS: readonly RegExp[] = [/你刚才说/u, /你前面说/u, /听起来你/u, /我总结一下/u, /你的意思是/u];
 
-const PLOT_PATTERNS: readonly RegExp[] = [/^[（(*]/u, /突然，/u, /接着，/u, /于是，/u, /镜头/u, /旁白/u, /舞台/u];
+const PLOT_PATTERNS: readonly RegExp[] = [
+  /^[（(*]/u,
+  /^【[^】]{1,20}】/u,
+  /^(?:镜头|旁白|画外音|舞台|场景|字幕)/u,
+  /^(?:突然|接着|于是)，/u,
+];
 
 const AVOIDANCE_PATTERNS: readonly RegExp[] = [/不知道/u, /还行/u, /没什么/u, /没事/u, /不想说/u, /说不清/u, /嗯/u, /\.\.\./u];
 const STAGE_DIRECTION_PATTERN = /(?:^|[\s])(?:（[^）]{1,30}）|\([^)]{1,30}\)|【[^】]{1,30}】|\*[^*]{1,30}\*)/u;
