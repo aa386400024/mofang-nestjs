@@ -69,6 +69,8 @@ export type SemanticDiagnosticSeverity = 'warning' | 'error';
  */
 export type SemanticDiagnosticCode =
   | 'TAG_FUZZY_CORRECTED'
+  | 'EMOTION_ALIAS_MAPPED'
+  | 'EMOTION_VALUE_DROPPED'
   | 'TAG_UNKNOWN'
   | 'TAG_UNCLOSED'
   | 'TAG_UNCLOSED_RECOVERED'
@@ -210,6 +212,70 @@ export const SEMANTIC_PRE_SPEECH_TAGS: readonly SemanticPreSpeech[] = ['sigh', '
 
 /** 已知情绪标签 (顺序即模糊匹配的优先级). */
 export const SEMANTIC_EMOTION_TAGS: readonly SemanticEmotion[] = ['sad', 'calm', 'fearful', 'angry', 'happy'];
+
+/**
+ * 常见自由情绪词 → 语义层 5 值的**有限别名表**.
+ *
+ * 为什么需要: Seed Character 会按语境自然产出 `[emotion:anxiety]` 这类词,
+ * 而语义层只有 5 个合法值. AF-244 已实测否决"在 prompt 里硬枚举情绪" (会把
+ * 自然度打回去), 所以归一化必须落在投影层: 能映射的映射, 映射不了的安全丢弃,
+ * 绝不把内部标记漏到 displayText, 也不猜一个错误的情绪.
+ *
+ * 只收录**语义无歧义**的同族词; 强度词 (如 `overwhelmed`) 归到最接近的基础情绪,
+ * 而不是新增枚举 —— 新增枚举会穿透 TTS 官方白名单与下游契约.
+ */
+export const SEMANTIC_EMOTION_ALIASES: ReadonlyMap<string, SemanticEmotion> = new Map([
+  // ── 焦虑 / 恐惧族 → fearful ────────────────────────────────────────────────
+  ['anxiety', 'fearful'],
+  ['anxious', 'fearful'],
+  ['nervous', 'fearful'],
+  ['worried', 'fearful'],
+  ['worry', 'fearful'],
+  ['panic', 'fearful'],
+  ['panicked', 'fearful'],
+  ['scared', 'fearful'],
+  ['afraid', 'fearful'],
+  ['fear', 'fearful'],
+  ['tense', 'fearful'],
+  ['uneasy', 'fearful'],
+  ['overwhelmed', 'fearful'],
+  // ── 悲伤 / 低落族 → sad ───────────────────────────────────────────────────
+  ['sadness', 'sad'],
+  ['depressed', 'sad'],
+  ['depression', 'sad'],
+  ['down', 'sad'],
+  ['unhappy', 'sad'],
+  ['lonely', 'sad'],
+  ['hopeless', 'sad'],
+  ['hurt', 'sad'],
+  ['melancholy', 'sad'],
+  ['grief', 'sad'],
+  // ── 愤怒 / 烦躁族 → angry ─────────────────────────────────────────────────
+  ['anger', 'angry'],
+  ['mad', 'angry'],
+  ['annoyed', 'angry'],
+  ['irritated', 'angry'],
+  ['frustrated', 'angry'],
+  ['furious', 'angry'],
+  ['resentful', 'angry'],
+  // ── 喜悦 / 积极族 → happy ─────────────────────────────────────────────────
+  ['joy', 'happy'],
+  ['joyful', 'happy'],
+  ['glad', 'happy'],
+  ['cheerful', 'happy'],
+  ['excited', 'happy'],
+  ['content', 'happy'],
+  ['pleased', 'happy'],
+  ['grateful', 'happy'],
+  ['hopeful', 'happy'],
+  // ── 平静 / 中性族 → calm ──────────────────────────────────────────────────
+  ['neutral', 'calm'],
+  ['peaceful', 'calm'],
+  ['relaxed', 'calm'],
+  ['relieved', 'calm'],
+  ['quiet', 'calm'],
+  ['gentle', 'calm'],
+]);
 
 /** 已知控制标记. */
 export const SEMANTIC_CONTROL_TAGS: readonly SemanticControlTag[] = ['END', 'MORE'];
@@ -585,7 +651,7 @@ function keepUnknownMarkup(ctx: ScanContext, text: string, start: number, end: n
 export type SemanticTagClassification =
   | { readonly kind: 'preSpeech'; readonly value: SemanticPreSpeech; readonly corrected: boolean }
   | { readonly kind: 'pause'; readonly value: number | null; readonly rawValue: string | null; readonly corrected: boolean }
-  | { readonly kind: 'emotion'; readonly value: SemanticEmotion | null; readonly corrected: boolean }
+  | { readonly kind: 'emotion'; readonly value: SemanticEmotion | null; readonly corrected: boolean; readonly viaAlias: boolean }
   | { readonly kind: 'control'; readonly value: SemanticControlTag; readonly corrected: boolean }
   | { readonly kind: 'unknown'; readonly corrected: boolean };
 
@@ -603,6 +669,36 @@ function clampPauseDuration(duration: number): number {
     return SEMANTIC_PAUSE_MAX_SEC;
   }
   return duration;
+}
+
+/**
+ * 归一化一个情绪值 (exact → 别名 → 模糊纠错).
+ *
+ * 抽成独立函数是为了把 `classifySemanticTag` 的复杂度留在 lint 门槛内,
+ * 同时让"值怎么归一"只有这一份逻辑.
+ *
+ * @param rawValue 原始情绪值
+ * @returns 归一化结果 (映射不了时 value=null)
+ */
+function classifyEmotionValue(rawValue: string | null): {
+  readonly value: SemanticEmotion | null;
+  readonly corrected: boolean;
+  readonly viaAlias: boolean;
+} {
+  const value = (rawValue ?? '').trim().toLowerCase();
+  const exact = SEMANTIC_EMOTION_TAGS.find((item) => item === value);
+  if (exact) {
+    return { value: exact, corrected: false, viaAlias: false };
+  }
+  const alias = SEMANTIC_EMOTION_ALIASES.get(value);
+  if (alias) {
+    return { value: alias, corrected: false, viaAlias: true };
+  }
+  const fuzzy = fuzzyMatchTag(value, [...SEMANTIC_EMOTION_TAGS]);
+  if (fuzzy === null) {
+    return { value: null, corrected: false, viaAlias: false };
+  }
+  return { value: fuzzy as SemanticEmotion, corrected: true, viaAlias: false };
 }
 
 /**
@@ -631,16 +727,7 @@ export function classifySemanticTag(inner: string, isControl: boolean): Semantic
     return { kind: 'pause', value: parseNumericValue(rawValue ?? ''), rawValue, corrected: false };
   }
   if (name === TAG_NAME_EMOTION) {
-    const value = (rawValue ?? '').trim().toLowerCase();
-    const exact = SEMANTIC_EMOTION_TAGS.find((item) => item === value);
-    if (exact) {
-      return { kind: 'emotion', value: exact, corrected: false };
-    }
-    const fuzzy = fuzzyMatchTag(value, [...SEMANTIC_EMOTION_TAGS]);
-    if (fuzzy === null) {
-      return { kind: 'emotion', value: null, corrected: false };
-    }
-    return { kind: 'emotion', value: fuzzy as SemanticEmotion, corrected: true };
+    return { kind: 'emotion', ...classifyEmotionValue(rawValue) };
   }
   const exact = SEMANTIC_PRE_SPEECH_TAGS.find((item) => item === name);
   if (exact) {
@@ -651,12 +738,8 @@ export function classifySemanticTag(inner: string, isControl: boolean): Semantic
     return { kind: 'pause', value: parseNumericValue(rawValue ?? ''), rawValue, corrected: true };
   }
   if (fuzzy === TAG_NAME_EMOTION) {
-    const value = (rawValue ?? '').trim().toLowerCase();
-    const fuzzyValue = fuzzyMatchTag(value, [...SEMANTIC_EMOTION_TAGS]);
-    if (fuzzyValue === null) {
-      return { kind: 'emotion', value: null, corrected: true };
-    }
-    return { kind: 'emotion', value: fuzzyValue as SemanticEmotion, corrected: true };
+    const emotion = classifyEmotionValue(rawValue);
+    return { kind: 'emotion', value: emotion.value, viaAlias: emotion.viaAlias, corrected: true };
   }
   if (fuzzy) {
     return { kind: 'preSpeech', value: fuzzy as SemanticPreSpeech, corrected: true };
@@ -693,7 +776,7 @@ function applySemanticTag(ctx: ScanContext, inner: string, isControl: boolean): 
       return applyPauseTag(ctx, classification.rawValue, classification.value);
     }
     case 'emotion': {
-      return applyEmotionTag(ctx, classification.value);
+      return applyEmotionTag(ctx, classification.value, classification.viaAlias);
     }
     default: {
       return 'unknown';
@@ -729,13 +812,24 @@ function applyPauseTag(ctx: ScanContext, rawValue: string | null, parsed: number
 /**
  * 处理情绪标记.
  *
+ * 三种结局:
+ *   · 合法值 / 别名映射值 → 落情绪, 消费标记;
+ *   · 已知容器但值映射不了 → **安全消费标记** + warning (不让内部标记漏进 displayText,
+ *     也不猜一个错误情绪; 这一轮语音无情绪, 但展示与诊断干净);
+ *   · 只有 non-emotion 的未知标签才走"当正文保留 + TAG_UNKNOWN".
+ *
  * @param ctx 扫描上下文
- * @param rawValue 情绪原文
+ * @param value 归一化后的情绪 (null = 映射不了)
+ * @param viaAlias 是否由别名表映射得到
  */
-function applyEmotionTag(ctx: ScanContext, value: SemanticEmotion | null): TagOutcome {
+function applyEmotionTag(ctx: ScanContext, value: SemanticEmotion | null, viaAlias: boolean): TagOutcome {
   ctx.emotionTags++;
   if (value === null) {
-    return 'unknown';
+    report(ctx, 'EMOTION_VALUE_DROPPED', 'warning', { tag: TAG_NAME_EMOTION, count: ctx.emotionTags });
+    return 'consumed';
+  }
+  if (viaAlias) {
+    report(ctx, 'EMOTION_ALIAS_MAPPED', 'warning', { tag: TAG_NAME_EMOTION, count: ctx.emotionTags });
   }
   applyEmotionValue(ctx, value);
   return 'consumed';
