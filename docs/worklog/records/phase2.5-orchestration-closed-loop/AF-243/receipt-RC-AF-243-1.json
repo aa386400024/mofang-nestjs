@@ -1,0 +1,146 @@
+{
+  "deliveredAt": "2026-11-22T06:05:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-243-1",
+    "taskId": "AF-243",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "843c7a899ae85f5154bd96f1cf65cdbac9c03b0c",
+    "dependsOn": ["AF-242"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-243/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af243-seed-v5-contact-defense-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": ["docs/worklog/completed/phase2.5/af243-seed-v5-contact-defense-2026-11-22.md"],
+      "modified": [
+        "bin/visitor-sim-prompts.ts",
+        "bin/visitor-sim-runtime.ts",
+        "bin/visitor-sim-analysis.ts",
+        "bin/visitor-sim-shadow.ts",
+        "test/auto-practice/af232-visitor-shadow.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/af232-visitor-shadow.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1 秒",
+        "note": "23/23 通过"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30 秒",
+        "note": "tsc -b tsconfig.check.json"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 252,
+        "machine": "同上",
+        "wallClock": "约 22 秒",
+        "note": "252 files passed + 1 skipped；4219 tests passed + 4 skipped"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-sim-shadow.ts --mode generate --arms H --out data/phase25-exit/af243-seed-v5/r1|r2|r3 --concurrency 2 --resume",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "每轮约 1 分钟",
+        "note": "36/36 场、432 轮，0 失败"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-sim-shadow.ts --mode score --arms 'A,C,E,F,G,H' --out .../r1|r2|r3 --max-packets 72 --concurrency 2 --resume",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 2,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "每轮约 2 分钟",
+        "note": "72 场/轮；H 新增 12 packet/轮，E/G 复用缓存；三轮均 72 份评分"
+      }
+    ],
+    "reproNotes": "只新生成 H 臂；E/G 复制 AF-241 同 persona×难度会话与 ratings-cache 后统一评分。数据在 data/phase25-exit/af243-seed-v5/，不入库。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-243 贯穿任务单、分支、记录与回执" },
+      { "item": "state-write", "result": "pass", "note": "register / promote / run-once / branch create 经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "回执七组字段齐全" },
+      { "item": "event-chain", "result": "pass", "note": "AF-243 事件连续" },
+      { "item": "engine-boundary", "result": "pass", "note": "未触碰 src/engine-core，diff 为空" },
+      { "item": "text-privacy", "result": "pass", "note": "记录不含完整台词与密钥" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 baselineRef 与分支基线均为 843c7a89"
+    },
+    "backlogItems": [
+      {
+        "id": "seed-v5-emotion-tag",
+        "impact": "H 每轮 1 条 [emotion:anxious] 非法标记；生产前需在 V5 prompt 显式枚举合法 emotion 标签并复跑确认"
+      },
+      {
+        "id": "seed-v5-production-route",
+        "impact": "V5 已优于 V2，但生产 visitor 路由/feature flag 未实现；需独立任务完成默认关闭的灰度开关"
+      }
+    ],
+    "openQuestions": [
+      "V5 是否直接接主候选，还是先做 V5.1 格式修复与第四轮确认"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "补第三轮",
+        "taskSays": "两轮都满足硬门槛、均值不低于 E、合作不高于 E 才补第三轮",
+        "reality": "r1/r2 均满足，已补 r3",
+        "action": "三轮全部达标",
+        "why": "按预登记规则执行，没有提前宣布"
+      },
+      {
+        "item": "主候选",
+        "taskSays": "不改主候选",
+        "reality": "V5 三轮优于 V2",
+        "action": "只写建议，不接生产",
+        "why": "生产切换需要独立任务与真人双标前置"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "三轮 36 场 0 失败；H 硬门槛 3/3，盲评均值高 0.166667、合作指数低 0.053241、four-rate 低 0.111111，关系在场显著改善；格式瑕疵在阈值内但已登记。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

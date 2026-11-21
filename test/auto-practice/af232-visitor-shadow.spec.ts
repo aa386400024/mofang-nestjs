@@ -22,12 +22,14 @@ import {
   buildSeedV3Constraints,
   buildSeedV3VisitorPrompt,
   buildSeedV4VisitorPrompt,
+  buildSeedV5VisitorPrompt,
   buildSeedVisitorPrompt,
   buildSharedVisitorPrompt,
   buildVisitorPrompt,
   COUNSELOR_SCRIPT,
   SEED_V2_VISITOR_CONSTRAINTS,
   SEED_V4_VISITOR_CONSTRAINTS,
+  SEED_V5_VISITOR_CONSTRAINTS,
   SEED_VISITOR_CONSTRAINTS,
 } from '../../bin/visitor-sim-prompts.js';
 import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed.js';
@@ -362,6 +364,18 @@ describe('AF-232 prompt 变体', () => {
     expect(v4).toContain('不设计治疗性弧线');
     expect(buildVisitorPrompt(seed, 'L1', 'seed-v4')).toBe(v4);
     expect(buildVisitorPrompt(seed, 'L1', 'seed-v2')).toBe(v2);
+  });
+
+  it('seed-v5 在 seed-v4 之后加零抽象标签与接触防御', () => {
+    const v4 = buildSeedV4VisitorPrompt(seed, 'L2');
+    const v5 = buildSeedV5VisitorPrompt(seed, 'L2');
+    expect(v5.startsWith(v4)).toBe(true);
+    expect(v5).toContain(SEED_V5_VISITOR_CONSTRAINTS);
+    expect(v5).toContain('V4 的“允许一次抽象心理词”在本场作废');
+    expect(v5).toContain('每 2 轮至少 1 轮回应咨询师这句话给你当下的反应');
+    expect(v5).toContain('胸口闷');
+    expect(buildVisitorPrompt(seed, 'L2', 'seed-v5')).toBe(v5);
+    expect(buildVisitorPrompt(seed, 'L2', 'seed-v4')).toBe(v4);
   });
 
   it('抽象心理词审计按 arm 统计场次与次数，同场多次只计一次场次', () => {

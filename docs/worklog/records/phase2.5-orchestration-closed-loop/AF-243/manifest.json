@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-243",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-22T06:00:00+08:00",
+  "updatedAt": "2026-11-21T21:58:02.707Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-243/task-sheet.md",
+    "sha256": "d7e7fd9ffb681819f3259c6f9ae5bec32dd472a19562d9ae35ac7ce80e259a35",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-243/receipt-RC-AF-243-1.json",
+      "sha256": "0aa7989e413b832b46a7490ae206f71cad8248962d428ca2b34058f02542af28",
+      "receiptId": "RC-AF-243-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af243-seed-v5-contact-defense-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af243-seed-v5-contact-defense-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}

@@ -114,7 +114,7 @@ function resolveDifficulty(value: string): SimDifficulty {
   fail(`未知难度：${value}`);
 }
 
-const PROMPT_VARIANTS: readonly SimPromptVariant[] = ['shared', 'seed-v1', 'seed-v2', 'seed-v3', 'seed-v4'];
+const PROMPT_VARIANTS: readonly SimPromptVariant[] = ['shared', 'seed-v1', 'seed-v2', 'seed-v3', 'seed-v4', 'seed-v5'];
 
 function resolvePromptVariant(value: unknown): SimPromptVariant {
   if (typeof value === 'string' && (PROMPT_VARIANTS as readonly string[]).includes(value)) {
