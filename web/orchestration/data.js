@@ -1,6 +1,6 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-21T22:13:47.850Z",
+  "generatedAt": "2026-11-21T22:34:18.891Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
@@ -109,10 +109,10 @@ window.ORCH_SNAPSHOT = {
       }
     },
     {
-      "taskId": "AF-245",
+      "taskId": "AF-247",
       "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "V5 逐 persona 差异审计工具与过拟合检查",
+      "type": "fix",
+      "title": "AF-245 CI 全量 typecheck 修复（AF-246 重签发）",
       "status": "submitted",
       "verdict": null,
       "verdictRationale": null,
@@ -120,26 +120,26 @@ window.ORCH_SNAPSHOT = {
       "frozen": false,
       "reworkOf": null,
       "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-245/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af245-persona-delta-2026-11-22.md",
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-247/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af247-ci-typecheck-fix-2026-11-22.md",
         "reply": null
       },
       "manualReview": [],
       "dispatch": {
-        "taskId": "AF-245",
+        "taskId": "AF-247",
         "contextId": "phase2.5-orchestration-closed-loop",
         "channel": "gui-relay",
         "targetRole": "executor",
         "sessionRef": null,
-        "dispatchedAt": "2026-11-21T22:13:47.788Z",
-        "leaseDeadline": "2026-11-21T22:43:47.785Z",
+        "dispatchedAt": "2026-11-21T22:34:18.827Z",
+        "leaseDeadline": "2026-11-21T23:04:18.823Z",
         "attempt": 1,
         "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-245.json",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-247.json",
         "delivery": {
           "state": "pending",
-          "preparedAt": "2026-11-21T22:13:47.788Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-245.brief.md",
+          "preparedAt": "2026-11-21T22:34:18.827Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-247.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1915,6 +1915,85 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-379",
+      "recordedAt": "2026-11-21T22:34:12.146Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-247",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-378",
+      "recordedAt": "2026-11-21T22:25:16.068Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-246",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-246",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-246.json"
+      ]
+    },
+    {
+      "auditId": "AUD-377",
+      "recordedAt": "2026-11-21T22:25:09.082Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-246",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-376",
+      "recordedAt": "2026-11-21T22:13:51.538Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-245",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-245-af245-persona-delta"
+      ]
+    },
+    {
+      "auditId": "AUD-375",
+      "recordedAt": "2026-11-21T22:13:47.944Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-245",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-245",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-245.json"
+      ]
+    },
+    {
       "auditId": "AUD-374",
       "recordedAt": "2026-11-21T22:13:41.017Z",
       "actorRef": "orchestrator",
@@ -2071,97 +2150,20 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-364",
-      "recordedAt": "2026-11-21T21:19:56.811Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-241",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-241-af-241"
-      ]
-    },
-    {
-      "auditId": "AUD-363",
-      "recordedAt": "2026-11-21T21:19:51.455Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-241",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-241",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-241.json"
-      ]
-    },
-    {
-      "auditId": "AUD-362",
-      "recordedAt": "2026-11-21T21:19:44.521Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-241",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-361",
-      "recordedAt": "2026-11-21T21:00:21.723Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-240",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-240-af-240"
-      ]
-    },
-    {
-      "auditId": "AUD-360",
-      "recordedAt": "2026-11-21T20:58:39.697Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-240",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-240",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-240.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 374,
+    "total": 379,
     "byResult": {
-      "allowed": 374,
+      "allowed": 379,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 373,
+      "TOOL-QUEUE-SCHEDULER": 378,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 374
+      "orchestrator": 379
     }
   },
   "protocolView": {
@@ -2220,9 +2222,9 @@ window.ORCH_SNAPSHOT = {
         ]
       },
       {
-        "taskId": "AF-245",
-        "title": "V5 逐 persona 差异审计工具与过拟合检查",
-        "type": "implementation",
+        "taskId": "AF-247",
+        "title": "AF-245 CI 全量 typecheck 修复（AF-246 重签发）",
+        "type": "fix",
         "status": {
           "framework": "submitted",
           "protocol": "SUBMITTED",
@@ -2231,17 +2233,17 @@ window.ORCH_SNAPSHOT = {
         "groupId": "phase2.5-orchestration-closed-loop",
         "requiredSkills": [],
         "dependsOn": [
-          "AF-243"
+          "AF-245"
         ],
         "agentRole": "executor",
         "artifactReferences": [
           {
             "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-245/task-sheet.md"
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-247/task-sheet.md"
           },
           {
             "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af245-persona-delta-2026-11-22.md"
+            "ref": "docs/worklog/completed/phase2.5/af247-ci-typecheck-fix-2026-11-22.md"
           }
         ]
       }
@@ -6528,6 +6530,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af244-seed-v51-emotion-tags-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-245",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-245/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af245-persona-delta-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -6564,14 +6584,14 @@ window.ORCH_SNAPSHOT = {
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
       },
       {
-        "taskId": "AF-245",
+        "taskId": "AF-247",
         "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-245/task-sheet.md"
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-247/task-sheet.md"
       },
       {
-        "taskId": "AF-245",
+        "taskId": "AF-247",
         "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af245-persona-delta-2026-11-22.md"
+        "ref": "docs/worklog/completed/phase2.5/af247-ci-typecheck-fix-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -6585,5 +6605,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 249
+  "archivedCount": 250
 };
