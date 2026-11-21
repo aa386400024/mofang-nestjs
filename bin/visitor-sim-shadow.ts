@@ -172,7 +172,7 @@ function loadGeneratedSessions(dir: string): readonly GeneratedSession[] {
       arm: String(meta['arm'] ?? '?'),
       provider: meta['provider'] === 'doubao' ? 'doubao' : 'minimax',
       model: String(meta['model'] ?? '?'),
-      promptVariant: meta['promptVariant'] === 'seed-v1' ? 'seed-v1' : 'shared',
+      promptVariant: meta['promptVariant'] === 'seed-v2' ? 'seed-v2' : meta['promptVariant'] === 'seed-v1' ? 'seed-v1' : 'shared',
       personaId: String(parsed['characterSlug'] ?? '?'),
       personaLabel: String(parsed['characterLabel'] ?? '?'),
       difficulty: meta['difficulty'] === 'L1' || meta['difficulty'] === 'L2' || meta['difficulty'] === 'L3' ? meta['difficulty'] : 'L1',
@@ -495,7 +495,7 @@ function renderSummary(input: {
   readonly blindCounts: Record<string, unknown>;
 }): string {
   const lines = [
-    '# AF-232 · 来访者模拟器 Seed Character 2×2 影子对照',
+    '# 来访者模拟器 Seed Character 影子对照',
     '',
     '> AI 影子对照，不是真人督导双标，不声称临床达标。本任务只验证来访者生成方向，不接生产。',
     '',

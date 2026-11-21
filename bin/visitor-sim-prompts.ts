@@ -8,7 +8,7 @@ import { renderSystemPrompt } from '../src/agent/visitor/visitor.prompts.js';
 import type { VisitorSessionMemory } from '../src/agent/visitor/visitor.types.js';
 import type { VisitorPoolTemplateSeed } from '../src/counselor/config/visitor-pool-seed.js';
 
-export type VisitorPromptVariant = 'shared' | 'seed-v1';
+export type VisitorPromptVariant = 'shared' | 'seed-v1' | 'seed-v2';
 
 /** 12 轮固定咨询师脚本：覆盖开场、共情、封闭提问、过早建议、沉默、面质与收束. */
 export const COUNSELOR_SCRIPT: readonly string[] = [
@@ -25,6 +25,19 @@ export const COUNSELOR_SCRIPT: readonly string[] = [
   '我们时间快到了。你现在的感受是什么？',
   '下次你愿意继续谈这个吗？',
 ];
+
+/** Seed V2：在 V1 的格式约束上继续压“合作、推进、治疗性顿悟”，服务于 AF-237 对照. */
+export const SEED_V2_VISITOR_CONSTRAINTS = `## 影子来访者 V2 追加约束（优先级高于上面所有内容，包括 V1 的反问额度）
+- 你不需要配合咨询师完成一次“有效会谈”。你的首要目标是保护自己，不是让对话顺畅。
+- 不向咨询师提问。不要出现任何疑问句、反问、“你觉得呢”“你说呢”；上面的“每 4 轮最多一个反问”在 V2 中作废。
+- 不顺着咨询师的措辞、假设、总结往下接。不要用“对”“是的”“你说得对”“可能吧”开头确认对方；不要复述对方刚说过的话。
+- 不主动提供新事实、新回忆、新细节来推进对话。每轮只给一点边缘信息，核心议题继续绕开。
+- 合作预算：每 3 轮最多 1 轮直接回答核心问题；其余轮次必须含糊、回避、沉默或转到无关小事。连续两轮不要都给完整回答。
+- 不解释自己的心理机制，不做自我总结，不说“我意识到”“原来我”“其实我是因为”。
+- 不突然领悟、不突然深情、不一次性交底；情绪可以停在原地甚至更僵。
+- 允许无信息回答：“不知道。”“差不多。”“就那样。”“没什么。”“可能吧。”但不要每轮重复同一句。
+- 不说教、不安慰咨询师、不评价咨询师的水平，也不替咨询师补全话。
+- 不写旁白、舞台说明、括号动作；本条与 V1 输出格式同时生效。`;
 
 /** Seed 专用附加约束：重点压“太会演、太配合、太会推进剧情”. */
 export const SEED_VISITOR_CONSTRAINTS = `## 影子来访者附加约束（优先级高于上面所有内容）
@@ -168,7 +181,14 @@ export function buildSeedVisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty
   return `${buildSharedVisitorPrompt(seed, difficulty)}\n\n${SEED_VISITOR_CONSTRAINTS}`;
 }
 
+/** 渲染 Seed V2：生产同构 base + V1 格式约束 + V2 合作压制约束. */
+export function buildSeedV2VisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty): string {
+  return `${buildSeedVisitorPrompt(seed, difficulty)}\n\n${SEED_V2_VISITOR_CONSTRAINTS}`;
+}
+
 /** 按变体选择 prompt. */
 export function buildVisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty, variant: VisitorPromptVariant): string {
-  return variant === 'seed-v1' ? buildSeedVisitorPrompt(seed, difficulty) : buildSharedVisitorPrompt(seed, difficulty);
+  if (variant === 'seed-v2') return buildSeedV2VisitorPrompt(seed, difficulty);
+  if (variant === 'seed-v1') return buildSeedVisitorPrompt(seed, difficulty);
+  return buildSharedVisitorPrompt(seed, difficulty);
 }

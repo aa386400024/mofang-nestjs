@@ -17,10 +17,12 @@ import {
   type SimTurnRecord,
 } from '../../bin/visitor-sim-analysis.js';
 import {
+  buildSeedV2VisitorPrompt,
   buildSeedVisitorPrompt,
   buildSharedVisitorPrompt,
   buildVisitorPrompt,
   COUNSELOR_SCRIPT,
+  SEED_V2_VISITOR_CONSTRAINTS,
   SEED_VISITOR_CONSTRAINTS,
 } from '../../bin/visitor-sim-prompts.js';
 import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed.js';
@@ -49,7 +51,7 @@ function makeSession(arm: string, turns: readonly SimTurnRecord[], overrides: Pa
     arm,
     provider: arm === 'A' || arm === 'D' ? 'minimax' : 'doubao',
     model: arm === 'A' || arm === 'D' ? 'MiniMax-M3' : 'doubao-seed-character-260628',
-    promptVariant: arm === 'C' || arm === 'D' ? 'seed-v1' : 'shared',
+    promptVariant: arm === 'C' || arm === 'D' ? 'seed-v1' : arm === 'E' ? 'seed-v2' : 'shared',
     personaId: 'vpt_grief_avoidance_l1',
     personaLabel: '念安',
     difficulty: 'L3',
@@ -283,5 +285,17 @@ describe('AF-232 prompt 变体', () => {
     expect(seeded).toContain('不主动激活对话');
     expect(seeded).toContain('输出格式（硬约束');
     expect(buildVisitorPrompt(seed, 'L3', 'shared')).toBe(shared);
+  });
+
+  it('seed-v2 在 seed-v1 之后追加合作压制约束，并覆盖 V1 反问额度', () => {
+    const seeded = buildSeedVisitorPrompt(seed, 'L3');
+    const v2 = buildSeedV2VisitorPrompt(seed, 'L3');
+    expect(v2.startsWith(seeded)).toBe(true);
+    expect(v2).toContain(SEED_V2_VISITOR_CONSTRAINTS);
+    expect(v2).toContain('不向咨询师提问');
+    expect(v2).toContain('上面的“每 4 轮最多一个反问”在 V2 中作废');
+    expect(v2).toContain('每 3 轮最多 1 轮直接回答核心问题');
+    expect(buildVisitorPrompt(seed, 'L3', 'seed-v2')).toBe(v2);
+    expect(buildVisitorPrompt(seed, 'L3', 'seed-v1')).toBe(seeded);
   });
 });
