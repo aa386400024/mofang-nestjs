@@ -13,7 +13,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { join, resolve } from 'node:path';
 
 import { buildRealismBlindPackets } from '../src/auto-practice/metrics/visitor-realism-blind-pack.js';
-import { filterPacketsByIds } from '../src/auto-practice/metrics/visitor-realism-packet-filter.js';
+import { filterPacketsByIds, type PacketFilterResult } from '../src/auto-practice/metrics/visitor-realism-packet-filter.js';
 import {
   AI_REALISM_DISCLAIMER,
   AI_REALISM_LIMITATIONS,
@@ -411,16 +411,18 @@ async function main(): Promise<void> {
 
   const sessions = loadSessions(sourceDir);
   const built = buildRealismBlindPackets(sessions, { maxPackets, seed, maxMessages });
-  const selected = packetIds === null ? built.packets : filterPacketsByIds(built.packets, packetIds);
-  if (packetIds !== null && selected.missing.length > 0) {
-    fail(`以下 packetId 未被本次盲评包收录：${selected.missing.join(',')}`);
+  const selection: PacketFilterResult =
+    packetIds === null ? { selected: built.packets, missing: [] } : filterPacketsByIds(built.packets, packetIds);
+  const selectedPackets = selection.selected;
+  if (selection.missing.length > 0) {
+    fail(`以下 packetId 未被本次盲评包收录：${selection.missing.join(',')}`);
   }
   console.log(
-    `[PACK] candidates=${built.candidateSessions} packets=${built.packets.length} selected=${selected.selected.length} excluded=${JSON.stringify(built.excluded)} scenes=${JSON.stringify(built.eligibleByScene)}`,
+    `[PACK] candidates=${built.candidateSessions} packets=${built.packets.length} selected=${selectedPackets.length} excluded=${JSON.stringify(built.excluded)} scenes=${JSON.stringify(built.eligibleByScene)}`,
   );
 
   if (dryRun) {
-    const sizes = selected.selected.map((packet) => ({
+    const sizes = selectedPackets.map((packet) => ({
       packetId: packet.packetId,
       scene: packet.scene,
       turns: packet.turns.length,
@@ -442,7 +444,7 @@ async function main(): Promise<void> {
   const outcomes: PacketOutcome[] = [];
   const failed: { packetId: string; stage: string; error: string }[] = [];
   let attempted = 0;
-  for (const packet of selected.selected) {
+  for (const packet of selectedPackets) {
     if (outcomes.length >= targetScored) break;
     attempted += 1;
     console.log(`[R1/R2] ${packet.packetId} scene=${packet.scene} turns=${packet.turns.length}`);
@@ -541,7 +543,7 @@ async function main(): Promise<void> {
     targetScored,
     targetMet: outcomes.length >= targetScored,
     candidatePackets: built.packets.length,
-    selectedPackets: selected.selected.length,
+    selectedPackets: selectedPackets.length,
     packetFilter: packetIds,
     maxOutputTokens,
     packetCount: attempted,
