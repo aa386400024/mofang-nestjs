@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-249",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-22T06:58:00+08:00",
+  "updatedAt": "2026-11-21T22:58:58.203Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-249/task-sheet.md",
+    "sha256": "b504dd847a25b59c7d392265d4b3335c6a56cd384080eaebe4836389ccf924ce",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af249-doubao-prod-smoke-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af249-doubao-prod-smoke-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}
