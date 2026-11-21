@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1095,
+    "lastEventSeq": 1099,
     "rebuiltAt": null
   },
   "tasks": [
@@ -264,94 +264,6 @@
       "outOfScope": [],
       "constraints": [],
       "promotedAt": "2026-11-21T17:22:09.016Z"
-    },
-    {
-      "taskId": "AF-248",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-21T22:40:54.779Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "生产 visitor 路由与 V5 开关"
-        },
-        {
-          "at": "2026-11-21T22:41:01.637Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "生产 visitor 豆包 Seed Character 路由与 V5 prompt 开关（默认关闭）",
-      "type": "implementation",
-      "baselineRef": "7bfe4c98c5207e1242c20c6ad3abf1f9ac88d235",
-      "dependsOn": [
-        "AF-243",
-        "AF-247"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-21T22:40:54.399Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          ".env.example",
-          "src/agent/visitor/",
-          "src/agent/llm/",
-          "test/agent/",
-          "docs/worklog/completed/phase2.5/",
-          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-248/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af248-visitor-provider-2026-11-22.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec vitest run test/agent/visitor-runtime-config.spec.ts test/agent/visitor-prompt-v5.spec.ts test/agent/llm-endpoint.spec.ts",
-          "check": "定向单测全绿",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "0 error",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm exec tsc --noEmit -p tsconfig.json",
-          "check": "CI 全量 typecheck 0 error",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm test",
-          "check": "全量单测全绿",
-          "threshold": "exit=0"
-        }
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af248-visitor-provider-2026-11-22.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "successCriteria": [],
-      "outOfScope": [],
-      "constraints": [],
-      "priorTasks": [],
-      "promotedAt": "2026-11-21T22:40:54.778Z"
     }
   ],
   "archivedTasks": [
@@ -2587,6 +2499,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-247/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af247-ci-typecheck-fix-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-248",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-248/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af248-visitor-provider-2026-11-22.md",
         "reply": null
       }
     }
