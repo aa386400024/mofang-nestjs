@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-239",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-22T04:48:00+08:00",
+  "updatedAt": "2026-11-21T20:46:34.102Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-239/task-sheet.md",
+    "sha256": "3cbcbb45a479089db1ed5a5fb41cb7160fb89b0f88bfd466802fab8b34ef11e7",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af239-p95-aggregation-fix-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/AF-239-p95-aggregation-fix-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}
