@@ -13,6 +13,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { join, resolve } from 'node:path';
 
 import { buildRealismBlindPackets } from '../src/auto-practice/metrics/visitor-realism-blind-pack.js';
+import { filterPacketsByIds } from '../src/auto-practice/metrics/visitor-realism-packet-filter.js';
 import {
   AI_REALISM_DISCLAIMER,
   AI_REALISM_LIMITATIONS,
@@ -21,6 +22,7 @@ import {
   REALISM_DIMENSION_LABELS,
   REALISM_DIMENSIONS,
   buildRealismArbiterPrompt,
+  buildRealismRaterCompactPrompt,
   buildRealismRaterPrompt,
   findRealismDisputes,
   mergeRealismRating,
@@ -145,6 +147,7 @@ async function callModel(input: {
   readonly system: string;
   readonly user: string;
   readonly timeoutMs: number;
+  readonly maxOutputTokens: number;
 }): Promise<CallResult> {
   const response = await input.provider.chat(
     {
@@ -154,7 +157,7 @@ async function callModel(input: {
         { role: 'user', content: input.user },
       ],
       temperature: input.temperature,
-      maxCompletionTokens: 3000,
+      maxCompletionTokens: input.maxOutputTokens,
       reasoningEffort: 'low',
     },
     input.apiKey,
@@ -203,34 +206,42 @@ async function ratePacket(input: {
   readonly packet: RealismBlindPacket;
   readonly timeoutMs: number;
   readonly maxParseRetries: number;
+  readonly maxOutputTokens: number;
 }): Promise<PacketOutcome> {
   const rate = async (raterId: 'R1' | 'R2', temperature: number): Promise<RealismRating> => {
     const prompt = buildRealismRaterPrompt(input.packet, raterId);
     let lastError = '';
     for (let attempt = 0; attempt <= input.maxParseRetries; attempt += 1) {
+      // 首次保持 R5 主协议；后续切 compact 行协议，明确禁止思考块与 JSON，
+      // 避免重试继续把 3000+ 预算耗在推理上却没有一行维度。
+      const activePrompt = attempt === 0 ? prompt : buildRealismRaterCompactPrompt(input.packet, raterId, lastError);
+      if (attempt > 0) {
+        console.warn(`[PROTOCOL] ${input.packet.packetId} ${raterId} 第 ${attempt + 1} 次切 compact 行协议，原因=${lastError}`);
+      }
       const retrySuffix =
         attempt === 0
           ? ''
-          : `\n\n上一次输出不可解析（${lastError}）。现在只输出一个 JSON 对象，第一个字符必须是 {，不要任何解释、不要 markdown 代码块。`;
+          : '\n\n上一次输出不可用。现在直接从 naturalness= 开始按行输出，五维齐全，不要思考、不要解释、不要 JSON、不要 markdown。';
       const result = await callWithRetry({
         provider: input.provider,
         apiKey: input.apiKey,
         model: input.model,
         temperature: attempt === 0 ? temperature : 0.2,
-        system: prompt.system,
-        user: `${prompt.user}${retrySuffix}`,
+        system: activePrompt.system,
+        user: `${activePrompt.user}${retrySuffix}`,
         timeoutMs: input.timeoutMs,
+        maxOutputTokens: input.maxOutputTokens,
       });
       const parsed = parseRealismRating(result.content, input.packet);
       if (!parsed.ok && attempt === 0) {
         const trimmed = result.content.trim();
         console.warn(
-          `[SHAPE] ${input.packet.packetId} len=${trimmed.length} start=${JSON.stringify(trimmed.slice(0, 1))} end=${JSON.stringify(trimmed.slice(-1))} open=${(trimmed.match(/\{/g) ?? []).length} close=${(trimmed.match(/\}/g) ?? []).length} dims=${trimmed.includes('"dimensions"')}`,
+          `[SHAPE] ${input.packet.packetId} len=${trimmed.length} start=${JSON.stringify(trimmed.slice(0, 1))} end=${JSON.stringify(trimmed.slice(-1))} think=${trimmed.includes('<think>')} dimLines=${(trimmed.match(/^(naturalness|emotional_continuity|turn_shape|scene_congruence|relational_presence)\s*=/gm) ?? []).length}`,
         );
       }
       if (parsed.ok) return parsed.rating;
-      lastError = parsed.error;
-      console.warn(`[WARN] ${input.packet.packetId} ${raterId} 解析失败：${parsed.error}（第 ${attempt + 1} 次）`);
+      lastError = result.finishReason === 'length' ? `truncated:${parsed.error}` : parsed.error;
+      console.warn(`[WARN] ${input.packet.packetId} ${raterId} 解析失败：${lastError}（第 ${attempt + 1} 次）`);
     }
     throw new Error(`${raterId}_parse_failed:${lastError}`);
   };
@@ -252,6 +263,7 @@ async function ratePacket(input: {
         system: prompt.system,
         user: `${prompt.user}${retrySuffix}`,
         timeoutMs: input.timeoutMs,
+        maxOutputTokens: input.maxOutputTokens,
       });
       const parsed = parseRealismArbitration(result.content, disputes);
       if (parsed.ok) {
@@ -314,22 +326,25 @@ function renderAgreementCaveats(caveats: readonly string[]): string[] {
   return caveats.length > 0 ? ['## 一致性解读', '', ...caveats.map((item) => `- ${item}`), ''] : [];
 }
 
-function buildMarkdown(report: {
-  readonly packetCount: number;
-  readonly ratedPackets: number;
-  readonly failedPackets: number;
-  readonly exclusions: Readonly<Record<string, number>>;
-  readonly eligibleByScene: Readonly<Record<string, number>>;
-  readonly distribution: { readonly overallMean: number | null; readonly dimensions: Readonly<Record<string, number | null>> };
-  readonly agreement: {
-    readonly overall: ReturnType<typeof summarizeRealismAgreement>;
-    readonly dimensions: Readonly<Record<string, ReturnType<typeof summarizeRealismAgreement>>>;
-    readonly caveats: readonly string[];
-  };
-  readonly sceneSlices: Readonly<Record<string, { readonly n: number; readonly overallMean: number | null }>>;
-}): string {
+function buildMarkdown(
+  report: {
+    readonly packetCount: number;
+    readonly ratedPackets: number;
+    readonly failedPackets: number;
+    readonly exclusions: Readonly<Record<string, number>>;
+    readonly eligibleByScene: Readonly<Record<string, number>>;
+    readonly distribution: { readonly overallMean: number | null; readonly dimensions: Readonly<Record<string, number | null>> };
+    readonly agreement: {
+      readonly overall: ReturnType<typeof summarizeRealismAgreement>;
+      readonly dimensions: Readonly<Record<string, ReturnType<typeof summarizeRealismAgreement>>>;
+      readonly caveats: readonly string[];
+    };
+    readonly sceneSlices: Readonly<Record<string, { readonly n: number; readonly overallMean: number | null }>>;
+  },
+  title: string,
+): string {
   const lines = [
-    '# AF-214 · AI 双盲真人度基线',
+    `# ${title}`,
     '',
     `- 协议版本：${AI_REALISM_VERSION}`,
     `- 状态：${AI_REALISM_STATUS}`,
@@ -382,16 +397,30 @@ async function main(): Promise<void> {
   const seed = Math.floor(numberArg('--seed', 20_261_121));
   const timeoutMs = Math.floor(numberArg('--timeout-ms', 180_000));
   const maxParseRetries = Math.max(0, Math.floor(numberArg('--max-parse-retries', 1)));
+  const maxOutputTokens = Math.max(1000, Math.floor(numberArg('--max-output-tokens', 5000)));
+  const reportTitle = arg('--report-title', 'AF-214 · AI 双盲真人度基线')!;
+  const packetIdsRaw = arg('--packet-ids');
+  const packetIds =
+    packetIdsRaw === null
+      ? null
+      : packetIdsRaw
+          .split(',')
+          .map((id) => id.trim())
+          .filter((id) => id.length > 0);
   const dryRun = process.argv.includes('--dry-run');
 
   const sessions = loadSessions(sourceDir);
   const built = buildRealismBlindPackets(sessions, { maxPackets, seed, maxMessages });
+  const selected = packetIds === null ? built.packets : filterPacketsByIds(built.packets, packetIds);
+  if (packetIds !== null && selected.missing.length > 0) {
+    fail(`以下 packetId 未被本次盲评包收录：${selected.missing.join(',')}`);
+  }
   console.log(
-    `[PACK] candidates=${built.candidateSessions} packets=${built.packets.length} excluded=${JSON.stringify(built.excluded)} scenes=${JSON.stringify(built.eligibleByScene)}`,
+    `[PACK] candidates=${built.candidateSessions} packets=${built.packets.length} selected=${selected.selected.length} excluded=${JSON.stringify(built.excluded)} scenes=${JSON.stringify(built.eligibleByScene)}`,
   );
 
   if (dryRun) {
-    const sizes = built.packets.map((packet) => ({
+    const sizes = selected.selected.map((packet) => ({
       packetId: packet.packetId,
       scene: packet.scene,
       turns: packet.turns.length,
@@ -413,7 +442,7 @@ async function main(): Promise<void> {
   const outcomes: PacketOutcome[] = [];
   const failed: { packetId: string; stage: string; error: string }[] = [];
   let attempted = 0;
-  for (const packet of built.packets) {
+  for (const packet of selected.selected) {
     if (outcomes.length >= targetScored) break;
     attempted += 1;
     console.log(`[R1/R2] ${packet.packetId} scene=${packet.scene} turns=${packet.turns.length}`);
@@ -425,6 +454,7 @@ async function main(): Promise<void> {
         packet,
         timeoutMs,
         maxParseRetries,
+        maxOutputTokens,
       });
       outcomes.push(outcome);
       console.log(
@@ -511,6 +541,9 @@ async function main(): Promise<void> {
     targetScored,
     targetMet: outcomes.length >= targetScored,
     candidatePackets: built.packets.length,
+    selectedPackets: selected.selected.length,
+    packetFilter: packetIds,
+    maxOutputTokens,
     packetCount: attempted,
     ratedPackets: outcomes.length,
     scoredPackets: scoredOutcomes.length,
@@ -536,7 +569,7 @@ async function main(): Promise<void> {
     failed,
   };
 
-  writeReport(outDir, report, buildMarkdown(report));
+  writeReport(outDir, report, buildMarkdown(report, reportTitle));
   console.log(`[DONE] ${outDir}`);
   if (failed.length > 0) console.log(`[WARN] ${failed.length} 个 packet 评分失败，已计入失败表`);
 }

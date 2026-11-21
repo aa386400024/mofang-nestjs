@@ -162,7 +162,7 @@ const RATING_DISCIPLINE = [
   '你只评**来访者**的台词，不评咨询师技术、不评诊断、不评疗效。',
   '五维各给 1–5 的整数分；1 是最差，5 是最像真实来访者，3 是“能看出在演但不算出戏”。',
   '每一维必须给一条 evidence：从**来访者**台词里原样摘一句，quote 不得改写、不得拼接。',
-  'evidence 的 turnIndex 必须是该句所在的轮次编号。找不到可引用原句就说明该维无法评分，不要编造。',
+  'evidence 的 turnIndex 必须是该句所在的轮次编号；即使该维没有明显证据，也必须选最接近的一轮来访者原句，不得省略该维，也不得编造。',
   '不要因为“咨询师说得不好”而压低来访者分数；也不要因为剧情感人而抬高。',
   '总体分是五维的整体印象，允许与单维均值不同，但必须给理由（notes 里一句话）。',
   '按行协议输出；不要解释评分理由，不要复述对话，不要输出分析过程。',
@@ -182,6 +182,51 @@ const OUTPUT_CONTRACT = [
   'overall=4',
   'notes=整体能接住咨询师的话。',
 ].join('\n');
+
+/** compact 重试的硬约束：用于首次输出被思考块吃满预算、协议没开始的情况。 */
+const COMPACT_OUTPUT_CONTRACT = [
+  '这是截断后的 compact 重试。不要思考、不要解释、不要输出 <think>、不要 JSON、不要 markdown。',
+  '第一行必须是 naturalness=分数|轮次编号|原文短句，然后按下面顺序每个维度一行：',
+  'naturalness',
+  'emotional_continuity',
+  'turn_shape',
+  'scene_congruence',
+  'relational_presence',
+  '最后一行 overall=分数；不要写 notes、不要写评语、不要复述对话。',
+  '五个维度必须全部输出，一行都不能省。',
+  'quote 最多 12 个汉字或字符，必须原样来自该轮来访者台词；该维没有明显证据时，选最接近的一轮原句，不得编造，也不得省略该维。',
+].join('\n');
+
+function renderCompactAnchors(): string {
+  return REALISM_DIMENSIONS.map((dimension) => {
+    const anchors = REALISM_ANCHORS[dimension];
+    return `${dimension}：1=${anchors[1]}；3=${anchors[3]}；5=${anchors[5]}`;
+  }).join('\n');
+}
+
+/**
+ * 构造 compact 重试提示词：只保留评分必需信息，压缩锚点与输出契约，
+ * 避免二次重试再把预算花在长篇推理上。证据校验规则与主协议一致。
+ */
+export function buildRealismRaterCompactPrompt(
+  packet: RealismBlindPacket,
+  raterId: 'R1' | 'R2',
+  failureReason: string,
+): RealismRaterPrompt {
+  const system = [
+    `你是心塑 AI 来访者真人度评测的 AI 评分员 ${raterId}（compact 重试）。`,
+    AI_REALISM_DISCLAIMER,
+    `上一次输出不可用：${failureReason}。`,
+    '只评来访者台词，不评咨询师、不评诊断、不评疗效；每维 1–5 整数分。',
+    '每一维证据必须原样引用来访者台词，quote 必须能在指定轮次定位；不得编造。',
+    COMPACT_OUTPUT_CONTRACT,
+    '',
+    '## 压缩锚点（1 / 3 / 5 分）',
+    renderCompactAnchors(),
+  ].join('\n');
+  const user = ['请直接按 compact 行协议给下面的来访者打分。', '', renderPacket(packet)].join('\n');
+  return { system, user };
+}
 
 function renderAnchors(): string {
   return REALISM_DIMENSIONS.map((dimension) => {
@@ -319,6 +364,7 @@ export function parseRealismRatingLines(raw: string, packet: RealismBlindPacket)
     const dimension = match[1].toLowerCase() as RealismDimension;
     if (!lineByDimension.has(dimension)) lineByDimension.set(dimension, match[2]);
   }
+  if (lineByDimension.size === 0) return { ok: false, error: 'no_protocol_lines' };
   const visitorTextByTurn = visitorTextByTurnOf(packet);
   const ratings = {} as Record<RealismDimension, RealismDimensionRating>;
   for (const dimension of REALISM_DIMENSIONS) {
