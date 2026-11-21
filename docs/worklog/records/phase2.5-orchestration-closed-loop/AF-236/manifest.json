@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-236",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-22T03:50:00+08:00",
-  "updatedAt": "2026-11-21T19:42:40.535Z",
+  "updatedAt": "2026-11-21T19:46:45.549Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-236/task-sheet.md",
     "sha256": "33fd09826840c26daf15e069508a33155f288a6c1690acf0c600d47728a8ff98",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-236/receipt-RC-AF-236-1.json",
+      "sha256": "955ae2c20f13acaf14a4d18efe0a973eacedccf1158884164709bf98b101c93d",
+      "receiptId": "RC-AF-236-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af236-squash-gate-active-task-fix-2026-11-22.md",
   "legacyPaths": [
     "docs/worklog/pending/AF-236-squash-gate-active-task-fix-task-2026-11-22.md"
