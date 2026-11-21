@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-242",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-22T05:50:00+08:00",
+  "updatedAt": "2026-11-21T21:41:05.268Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-242/task-sheet.md",
+    "sha256": "c43641afb92cd40283330932015cdd2a1275997fc695d654f374b669c7f2bfe3",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af242-plot-zero-fix-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af242-plot-zero-fix-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}
