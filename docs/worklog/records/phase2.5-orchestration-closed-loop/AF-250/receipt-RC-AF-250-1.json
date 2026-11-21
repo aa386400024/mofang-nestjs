@@ -1,0 +1,123 @@
+{
+  "deliveredAt": "2026-11-22T07:17:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-250-1",
+    "taskId": "AF-250",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "f88579f8807dbaaea961d86abc2049e30bfabecb",
+    "dependsOn": ["AF-249"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-250/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af250-doubao-stream-usage-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "test/agent/llm-doubao-usage.spec.ts",
+        "docs/worklog/completed/phase2.5/af250-doubao-stream-usage-2026-11-22.md"
+      ],
+      "modified": ["src/agent/llm/llm.service.ts"],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["c7ae7f53", "126b3f2c"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/agent/llm-doubao-usage.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1 秒",
+        "note": "3/3 通过：doubao 带 stream_options、末尾 usage 解析、minimax 不带"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-doubao-smoke.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 秒（elapsedMs=848）",
+        "note": "真实豆包 usage 从全 0 变为 93/24/117，finishReason=stop，无 error chunk"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2 分钟",
+        "note": "CI 同口径全量 typecheck，日志 data/af250-tsc.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 258,
+        "machine": "同上",
+        "wallClock": "约 23 秒",
+        "note": "257 files passed + 1 skipped；4238 tests passed + 4 skipped"
+      }
+    ],
+    "reproNotes": "真实复验复用 AF-249 的 bin/visitor-doubao-smoke.ts，日志 data/af250-smoke.log 为 untracked 证据。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-250 贯穿任务单、分支、记录与回执" },
+      { "item": "state-write", "result": "pass", "note": "register / promote / run-once 经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "回执六组字段齐全" },
+      { "item": "event-chain", "result": "pass", "note": "AF-249 → AF-250 链连续，基线为 AF-249 合并 SHA" },
+      { "item": "engine-boundary", "result": "pass", "note": "未触碰 src/engine-core" },
+      { "item": "text-privacy", "result": "pass", "note": "记录只保留合成预览；真实 smoke 输出不含用户隐私" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与任务单、分支起点均为 f88579f8"
+    },
+    "backlogItems": [
+      {
+        "id": "doubao-cost-per-provider",
+        "impact": "usage 已回传，但 session cost 仍按 token 汇总；豆包与 MiniMax 单价不同，需按 provider 分账，否则成本看板仍失真"
+      },
+      {
+        "id": "unknown-emotion-tag-projection",
+        "impact": "真实输出出现 [emotion:anxiety]，生产语义层只认 5 个值，会被剥离并记 TAG_UNKNOWN；需在投影层归一化或明确剥离策略"
+      },
+      {
+        "id": "doubao-multi-turn-usage",
+        "impact": "单轮 usage 已验证；多轮长对话与截断场景下的 usage 累计尚未验证"
+      }
+    ],
+    "openQuestions": [
+      "session cost 的模型单价来源是否需要为 doubao 单独建表，还是复用现有定价字典"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "根因是请求侧缺 include_usage，修复只影响 doubao 分支；单测证明请求体与末尾 usage 解析，真实 smoke 证明 token 计量恢复；MiniMax 请求体逐字不变；全量闸门全绿。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
