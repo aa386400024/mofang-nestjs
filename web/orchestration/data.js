@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-21T22:34:18.891Z",
+  "generatedAt": "2026-11-21T22:36:51.690Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 2,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -100,46 +100,6 @@ window.ORCH_SNAPSHOT = {
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    },
-    {
-      "taskId": "AF-247",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "fix",
-      "title": "AF-245 CI 全量 typecheck 修复（AF-246 重签发）",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-247/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af247-ci-typecheck-fix-2026-11-22.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-247",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-21T22:34:18.827Z",
-        "leaseDeadline": "2026-11-21T23:04:18.823Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-247.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-21T22:34:18.827Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-247.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1915,6 +1875,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-380",
+      "recordedAt": "2026-11-21T22:34:19.003Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-247",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-247",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-247.json"
+      ]
+    },
+    {
       "auditId": "AUD-379",
       "recordedAt": "2026-11-21T22:34:12.146Z",
       "actorRef": "orchestrator",
@@ -2133,37 +2108,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-242.json"
       ]
-    },
-    {
-      "auditId": "AUD-365",
-      "recordedAt": "2026-11-21T21:41:09.214Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-242",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 379,
+    "total": 380,
     "byResult": {
-      "allowed": 379,
+      "allowed": 380,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 378,
+      "TOOL-QUEUE-SCHEDULER": 379,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 379
+      "orchestrator": 380
     }
   },
   "protocolView": {
@@ -2218,32 +2176,6 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-247",
-        "title": "AF-245 CI 全量 typecheck 修复（AF-246 重签发）",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-245"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-247/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af247-ci-typecheck-fix-2026-11-22.md"
           }
         ]
       }
@@ -6548,6 +6480,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af245-persona-delta-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-247",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-247/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af247-ci-typecheck-fix-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -6582,16 +6532,6 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-      },
-      {
-        "taskId": "AF-247",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-247/task-sheet.md"
-      },
-      {
-        "taskId": "AF-247",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af247-ci-typecheck-fix-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -6605,5 +6545,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 250
+  "archivedCount": 251
 };

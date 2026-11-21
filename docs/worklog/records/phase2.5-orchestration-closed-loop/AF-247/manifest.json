@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-247",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-22T06:40:00+08:00",
-  "updatedAt": "2026-11-21T22:34:11.567Z",
+  "updatedAt": "2026-11-21T22:36:51.623Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-247/task-sheet.md",
     "sha256": "f7c1f4349fed61a778529b1a9db116a96afe3fd23fa094e79b71c2a3a1bb6a22",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-247/receipt-RC-AF-247-1.json",
+      "sha256": "a3fd701435601500dea3403c8ed84ecc9eb678c882f77ebfa78e2751a6765fa7",
+      "receiptId": "RC-AF-247-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af247-ci-typecheck-fix-2026-11-22.md",
   "legacyPaths": [
     "docs/worklog/pending/af247-ci-typecheck-fix-2026-11-22.md"
