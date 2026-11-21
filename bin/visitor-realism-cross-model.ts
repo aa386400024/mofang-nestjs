@@ -64,6 +64,7 @@ interface RuntimeStat {
   provider: 'minimax' | 'doubao';
   model: string;
   thinking: RaterThinkingMode;
+  promptVariant: 'shared' | 'lite-v1';
   temperature: number;
   calls: number;
   promptTokens: number;
@@ -79,6 +80,7 @@ function emptyRuntimeStat(endpoint: RaterEndpoint): RuntimeStat {
     provider: endpoint.provider,
     model: endpoint.model,
     thinking: endpoint.thinking,
+    promptVariant: endpoint.promptVariant,
     temperature: endpoint.temperature,
     calls: 0,
     promptTokens: 0,
@@ -174,7 +176,12 @@ function buildMarkdown(input: {
     readonly ratedPackets: number;
     readonly failedPackets: number;
     readonly analysis: CrossModelAnalysis;
-    readonly models: Readonly<Record<'minimax' | 'doubao', { readonly model: string; readonly thinking: RaterThinkingMode }>>;
+    readonly models: Readonly<
+      Record<
+        'minimax' | 'doubao',
+        { readonly model: string; readonly thinking: RaterThinkingMode; readonly promptVariant: 'shared' | 'lite-v1' }
+      >
+    >;
     readonly runtime: Readonly<Record<RaterKey, RuntimeStat>>;
   };
   readonly title: string;
@@ -189,7 +196,7 @@ function buildMarkdown(input: {
   ];
   const runtimeRows = RATER_KEYS.map((key) => {
     const stat = input.report.runtime[key];
-    return `| ${key} | ${stat.provider} | ${stat.model} | ${stat.thinking} | ${stat.temperature} | ${stat.packets} | ${stat.calls} | ${stat.reasoningTokens} | ${stat.truncations} | ${stat.parseRetries} |`;
+    return `| ${key} | ${stat.provider} | ${stat.model} | ${stat.thinking} | ${stat.promptVariant} | ${stat.temperature} | ${stat.packets} | ${stat.calls} | ${stat.reasoningTokens} | ${stat.truncations} | ${stat.parseRetries} |`;
   });
   const lines = [
     `# ${input.title}`,
@@ -200,7 +207,7 @@ function buildMarkdown(input: {
     `- 生成时间：${input.report.generatedAt}`,
     `- 源：${input.report.source}`,
     `- packet：选中 ${input.report.selectedPackets}；完成 ${input.report.ratedPackets}；失败 ${input.report.failedPackets}`,
-    `- 模型：MiniMax=${input.report.models.minimax.model}；豆包=${input.report.models.doubao.model}（thinking=${input.report.models.doubao.thinking}）`,
+    `- 模型：MiniMax=${input.report.models.minimax.model}；豆包=${input.report.models.doubao.model}（thinking=${input.report.models.doubao.thinking}，prompt=${input.report.models.doubao.promptVariant}）`,
     `- 预登记阈值：跨模型总体 κ ≥ ${CROSS_MODEL_THRESHOLDS.overallKappa}；五维 within±1 ≥ ${CROSS_MODEL_THRESHOLDS.dimensionWithinOne}；总体绝对差均值 ≤ ${CROSS_MODEL_THRESHOLDS.overallMeanAbsDelta}；总体场景方向不得翻转。`,
     '',
     '## 判定',
@@ -226,8 +233,8 @@ function buildMarkdown(input: {
     '',
     '## 评分运行时',
     '',
-    '| 评分员 | provider | model | thinking | T | packets | calls | reasoningTokens | truncations | parseRetries |',
-    '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+    '| 评分员 | provider | model | thinking | prompt | T | packets | calls | reasoningTokens | truncations | parseRetries |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
     ...runtimeRows,
     '',
     '## 逐 packet 分数',
@@ -260,6 +267,11 @@ async function main(): Promise<void> {
     fail('--doubao-thinking 只能是 auto / disabled / enabled');
   }
   const doubaoThinking = doubaoThinkingRaw;
+  const doubaoPromptRaw = arg('--doubao-prompt', 'shared');
+  if (doubaoPromptRaw !== 'shared' && doubaoPromptRaw !== 'lite-v1') {
+    fail('--doubao-prompt 只能是 shared / lite-v1');
+  }
+  const doubaoPrompt = doubaoPromptRaw;
   const minimaxModel = arg('--minimax-model') ?? undefined;
   const doubaoModel = arg('--doubao-model') ?? undefined;
   const packetIdsRaw = arg('--packet-ids');
@@ -312,6 +324,7 @@ async function main(): Promise<void> {
         ...(doubaoModel === undefined ? {} : { model: doubaoModel }),
         temperature: primaryTemperature,
         thinking: doubaoThinking,
+        promptVariant: doubaoPrompt,
       },
       { timeoutMs },
     ),
@@ -321,6 +334,7 @@ async function main(): Promise<void> {
         ...(doubaoModel === undefined ? {} : { model: doubaoModel }),
         temperature: secondaryTemperature,
         thinking: doubaoThinking,
+        promptVariant: doubaoPrompt,
       },
       { timeoutMs },
     ),
@@ -398,8 +412,12 @@ async function main(): Promise<void> {
     ratedPackets: rows.length,
     failedPackets: failed.length,
     models: {
-      minimax: { model: endpoints.minimax_t01.model, thinking: 'auto' as const },
-      doubao: { model: endpoints.doubao_t01.model, thinking: endpoints.doubao_t01.thinking },
+      minimax: { model: endpoints.minimax_t01.model, thinking: 'auto' as const, promptVariant: 'shared' as const },
+      doubao: {
+        model: endpoints.doubao_t01.model,
+        thinking: endpoints.doubao_t01.thinking,
+        promptVariant: endpoints.doubao_t01.promptVariant,
+      },
     },
     temperatures: { primary: primaryTemperature, secondary: secondaryTemperature },
     maxOutputTokens,

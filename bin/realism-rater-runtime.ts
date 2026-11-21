@@ -2,6 +2,7 @@
 //   职责: 把 provider/model/温度/thinking 组合成评分端点，并执行单次评分员调用。
 //   边界: 只做离线评分；不启动服务、不写库；日志不输出台词原文。
 
+import { buildLiteRaterPrompt } from './realism-rater-lite-prompt.js';
 import {
   buildRealismRaterCompactPrompt,
   buildRealismRaterPrompt,
@@ -29,6 +30,8 @@ export interface RaterSpec {
   readonly reasoningEffort?: ChatReasoningEffort;
   /** 仅豆包：透传上游额外字段，例如 `service_tier: 'flex'` 走低优半价档。 */
   readonly modelKwargs?: Readonly<Record<string, unknown>>;
+  /** 评分 prompt 变体；缺省 shared，Lite 实验显式传 lite-v1。 */
+  readonly promptVariant?: 'shared' | 'lite-v1';
 }
 
 export interface RaterResolvedConfig {
@@ -42,6 +45,7 @@ export interface RaterResolvedConfig {
   readonly thinking: RaterThinkingMode;
   readonly reasoningEffort?: ChatReasoningEffort;
   readonly modelKwargs?: Readonly<Record<string, unknown>>;
+  readonly promptVariant: 'shared' | 'lite-v1';
 }
 
 export interface RaterEndpoint extends RaterResolvedConfig {
@@ -86,6 +90,10 @@ export function resolveRaterConfig(spec: RaterSpec, env: Readonly<Record<string,
   if (spec.provider !== 'doubao' && spec.modelKwargs !== undefined) {
     throw new Error(`modelKwargs 仅支持 doubao，${spec.provider} 不支持`);
   }
+  const promptVariant = spec.promptVariant ?? 'shared';
+  if (promptVariant === 'lite-v1' && spec.provider !== 'doubao') {
+    throw new Error(`lite-v1 prompt 仅支持 doubao，${spec.provider} 不支持`);
+  }
 
   let model: string;
   let baseUrl: string | undefined;
@@ -100,7 +108,7 @@ export function resolveRaterConfig(spec: RaterSpec, env: Readonly<Record<string,
     baseUrl = provider.baseUrl;
   } else {
     const mergedKwargs: Record<string, unknown> = { ...spec.modelKwargs };
-    if (thinking !== 'auto') mergedKwargs.thinking = { type: thinking };
+    if (thinking !== 'auto') mergedKwargs['thinking'] = { type: thinking };
     const provider = new DoubaoChatProvider({
       defaultChatModel: spec.model ?? env['LLM_DOUBAO_MODEL'],
       ...(Object.keys(mergedKwargs).length === 0 ? {} : { modelKwargs: mergedKwargs }),
@@ -122,6 +130,7 @@ export function resolveRaterConfig(spec: RaterSpec, env: Readonly<Record<string,
     // 豆包关闭思考时不再下发 reasoning_effort；MiniMax 保持既有 low 以压首字延迟。
     ...(thinking === 'disabled' ? {} : { reasoningEffort: spec.reasoningEffort ?? 'low' }),
     ...(modelKwargs === undefined ? {} : { modelKwargs }),
+    promptVariant,
   };
 }
 
@@ -178,7 +187,7 @@ async function callOnce(input: {
   const content = response.content;
   const tags = [...content.matchAll(/<([a-zA-Z\u4E00-\u9FA5][a-zA-Z0-9_:.\u4E00-\u9FA5-]{0,20})>/g)].map((match) => match[1]).slice(0, 6);
   console.log(
-    `[CALL] provider=${providerLabel(input.endpoint.provider)} model=${input.endpoint.model} finish=${response.finishReason} chars=${content.length} promptTokens=${response.usage.promptTokens} completionTokens=${response.usage.completionTokens} reasoningTokens=${response.usage.reasoningTokens ?? 0} tags=${JSON.stringify(tags)}`,
+    `[CALL] provider=${providerLabel(input.endpoint.provider)} model=${input.endpoint.model} promptVariant=${input.endpoint.promptVariant} finish=${response.finishReason} chars=${content.length} promptTokens=${response.usage.promptTokens} completionTokens=${response.usage.completionTokens} reasoningTokens=${response.usage.reasoningTokens ?? 0} tags=${JSON.stringify(tags)}`,
   );
   return {
     content,
@@ -215,13 +224,16 @@ export async function ratePacketWithRater(input: {
   readonly maxParseRetries: number;
   readonly maxOutputTokens: number;
 }): Promise<RaterAttemptResult> {
-  const prompt = buildRealismRaterPrompt(input.packet, input.raterId);
+  const useLitePrompt = input.endpoint.promptVariant === 'lite-v1';
+  const prompt = useLitePrompt ? buildLiteRaterPrompt(input.packet, input.raterId) : buildRealismRaterPrompt(input.packet, input.raterId);
   const calls: RaterCallResult[] = [];
   let lastError = '';
   for (let attempt = 0; attempt <= input.maxParseRetries; attempt += 1) {
-    const activePrompt = attempt === 0 ? prompt : buildRealismRaterCompactPrompt(input.packet, input.raterId, lastError);
+    const activePrompt = attempt === 0 || useLitePrompt ? prompt : buildRealismRaterCompactPrompt(input.packet, input.raterId, lastError);
     if (attempt > 0) {
-      console.warn(`[PROTOCOL] ${input.packet.packetId} ${input.raterId} 第 ${attempt + 1} 次切 compact 行协议，原因=${lastError}`);
+      console.warn(
+        `[PROTOCOL] ${input.packet.packetId} ${input.raterId} 第 ${attempt + 1} 次${useLitePrompt ? '沿用 lite-v1 prompt 重试' : '切 compact 行协议'}，原因=${lastError}`,
+      );
     }
     const retrySuffix =
       attempt === 0

@@ -193,4 +193,15 @@ describe('AF-229 · 评分端点透传', () => {
       createRaterEndpoint({ provider: 'minimax', temperature: 0.1, modelKwargs: { service_tier: 'flex' } }, { timeoutMs: 1000, env }),
     ).toThrow('modelKwargs 仅支持 doubao');
   });
+
+  it('promptVariant 默认 shared，豆包可显式切 lite-v1，MiniMax 拒绝 lite-v1', () => {
+    const env = { LLM_DOUBAO_API_KEY: 'test-key', MINIMAX_API_KEY: 'test-key' };
+    expect(createRaterEndpoint({ provider: 'doubao', temperature: 0.1 }, { timeoutMs: 1000, env }).promptVariant).toBe('shared');
+    expect(
+      createRaterEndpoint({ provider: 'doubao', temperature: 0.1, promptVariant: 'lite-v1' }, { timeoutMs: 1000, env }).promptVariant,
+    ).toBe('lite-v1');
+    expect(() =>
+      createRaterEndpoint({ provider: 'minimax', temperature: 0.1, promptVariant: 'lite-v1' }, { timeoutMs: 1000, env }),
+    ).toThrow('lite-v1 prompt 仅支持 doubao');
+  });
 });
