@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1040,
+    "lastEventSeq": 1043,
     "rebuiltAt": null
   },
   "tasks": [
@@ -264,6 +264,93 @@
       "outOfScope": [],
       "constraints": [],
       "promotedAt": "2026-11-21T17:22:09.016Z"
+    },
+    {
+      "taskId": "AF-237",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-21T20:02:41.492Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "开始 Seed Character prompt V2 对照"
+        },
+        {
+          "at": "2026-11-21T20:02:48.620Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "Seed Character prompt V2 协作度压制 12 packet 对照",
+      "type": "implementation",
+      "baselineRef": "0b499141e21b80cca68d2c572753810fa68cd1ec",
+      "dependsOn": [
+        "AF-232",
+        "AF-236"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-21T20:02:41.117Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "bin/",
+          "test/auto-practice/",
+          "docs/worklog/completed/phase2.5/",
+          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-237/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af237-seed-character-prompt-v2-2026-11-22.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec vitest run test/auto-practice/af232-visitor-shadow.spec.ts",
+          "check": "影子实验单测全绿",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "0 error / 0 warning",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm typecheck",
+          "check": "0 error",
+          "threshold": "exit=0"
+        }
+      ],
+      "successCriteria": [
+        "新增 seed-v2 prompt 变体与独立 arm，不覆盖 seed-v1 证据。",
+        "seed-v2 明确压制：向咨询师提问、顺着咨询师措辞/总结、主动提供新事实、突然领悟。",
+        "12 packet（4 persona × L1/L2/L3）× A/C/E 三臂生成与双轨评分完成。",
+        "报告给出合作指数、回避率、问句轮、平均分与盲评分数，并与 seed-v1 对比给出 conditional/fail 判断。",
+        "不接生产，不改生产 visitor 链路。"
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af237-seed-character-prompt-v2-2026-11-22.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": [],
+      "promotedAt": "2026-11-21T20:02:41.491Z"
     }
   ],
   "archivedTasks": [
