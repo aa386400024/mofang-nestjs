@@ -9,10 +9,10 @@
 //     · 没有 API key 时只能 dry-run，显式报错，不伪造分数；
 //     · 明确标注 AI 代理，不是真人督导，不写临床达标。
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-import { resolveDebugRealismScene } from './realism-scene-loader.js';
+import { loadRealismSessions } from './realism-session-loader.js';
 import { buildRealismBlindPackets } from '../src/auto-practice/metrics/visitor-realism-blind-pack.js';
 import { filterPacketsByIds, type PacketFilterResult } from '../src/auto-practice/metrics/visitor-realism-packet-filter.js';
 import {
@@ -68,56 +68,6 @@ function round(value: number, digits = 6): number {
 function average(values: readonly number[]): number | null {
   if (values.length === 0) return null;
   return round(values.reduce((sum, value) => sum + value, 0) / values.length);
-}
-
-interface LoadedSession {
-  readonly sessionId: string;
-  readonly scene?: RealismScene;
-  readonly prompt?: string | null;
-  readonly messages: readonly { readonly role: 'counselor' | 'visitor'; readonly text: string }[];
-}
-
-function normalizeRole(raw: unknown): 'counselor' | 'visitor' | null {
-  if (typeof raw !== 'string') return null;
-  if (['visitor', 'client', '来访者', '来访'].includes(raw)) return 'visitor';
-  if (['counselor', 'therapist', '咨询师', '咨询者'].includes(raw)) return 'counselor';
-  return null;
-}
-
-function loadSessions(dir: string): readonly LoadedSession[] {
-  if (!existsSync(dir)) fail(`源目录不存在：${dir}`);
-  const files = readdirSync(dir).filter((file) => file.endsWith('.json'));
-  const sessions: LoadedSession[] = [];
-  for (const file of files) {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(readFileSync(join(dir, file), 'utf8'));
-    } catch {
-      continue;
-    }
-    if (typeof parsed !== 'object' || parsed === null) continue;
-    const root = parsed as Record<string, unknown>;
-    const messagesRaw = root['messages'];
-    if (!Array.isArray(messagesRaw)) continue;
-    const messages: { role: 'counselor' | 'visitor'; text: string }[] = [];
-    for (const item of messagesRaw) {
-      if (typeof item !== 'object' || item === null) continue;
-      const record = item as Record<string, unknown>;
-      const role = normalizeRole(record['role']);
-      const text = typeof record['text'] === 'string' ? record['text'] : '';
-      if (role === null || text.trim().length === 0) continue;
-      messages.push({ role, text });
-    }
-    const scene = resolveDebugRealismScene(root);
-    const sessionId = String(root['id'] ?? file.replace(/\.json$/, ''));
-    sessions.push({
-      sessionId,
-      scene,
-      prompt: typeof root['prompt'] === 'string' ? root['prompt'] : null,
-      messages,
-    });
-  }
-  return sessions;
 }
 
 function modelArg(): string {
@@ -427,7 +377,7 @@ async function main(): Promise<void> {
           .filter((id) => id.length > 0);
   const dryRun = process.argv.includes('--dry-run');
 
-  const sessions = loadSessions(sourceDir);
+  const sessions = loadRealismSessions(sourceDir);
   const built = buildRealismBlindPackets(sessions, { maxPackets, seed, maxMessages });
   const selection: PacketFilterResult =
     packetIds === null ? { selected: built.packets, missing: [] } : filterPacketsByIds(built.packets, packetIds);

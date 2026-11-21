@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-21T07:47:39.971Z",
+  "generatedAt": "2026-11-21T09:11:21.986Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,7 +16,55 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-227",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "来访者真人度 R6-D：MiniMax × 豆包 Seed 2.1 Pro 跨模型评分校验",
+      "status": "submitted",
+      "verdict": "passed",
+      "verdictRationale": "机读护栏全绿且无人工复核项",
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-227/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af227-realism-r6d-cross-model-2026-21.md",
+        "reply": null,
+        "others": [
+          "data/phase25-exit/af227-realism-cross-model/report.json",
+          "data/phase25-exit/af227-realism-cross-model/summary.md",
+          "data/phase25-exit/af227-realism-cross-model/sensitivity.md",
+          "data/phase25-exit/af227-realism-cross-model/packet-ids.txt",
+          "data/phase25-exit/af227-realism-cross-model/run.log"
+        ]
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-227",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-21T08:36:09.722Z",
+        "leaseDeadline": "2026-11-21T09:06:09.718Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-227.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-21T08:36:09.722Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-227.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1783,6 +1831,53 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-329",
+      "recordedAt": "2026-11-21T08:36:21.971Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-227",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-227-realism-r6d-cross-model"
+      ]
+    },
+    {
+      "auditId": "AUD-328",
+      "recordedAt": "2026-11-21T08:36:09.877Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-227",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-227",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-227.json"
+      ]
+    },
+    {
+      "auditId": "AUD-327",
+      "recordedAt": "2026-11-21T08:35:50.325Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-227",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-326",
       "recordedAt": "2026-11-21T05:10:21.674Z",
       "actorRef": "orchestrator",
@@ -1973,72 +2068,52 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "task/AF-214-realism-ai-double-blind"
       ]
-    },
-    {
-      "auditId": "AUD-314",
-      "recordedAt": "2026-11-20T17:22:16.260Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-214",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-214",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-214.json"
-      ]
-    },
-    {
-      "auditId": "AUD-313",
-      "recordedAt": "2026-11-20T17:22:15.872Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-214",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-312",
-      "recordedAt": "2026-11-20T17:03:08.065Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-213",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-213",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-213.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 326,
+    "total": 329,
     "byResult": {
-      "allowed": 326,
+      "allowed": 329,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 325,
+      "TOOL-QUEUE-SCHEDULER": 328,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 326
+      "orchestrator": 329
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-227",
+        "title": "来访者真人度 R6-D：MiniMax × 豆包 Seed 2.1 Pro 跨模型评分校验",
+        "type": "implementation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-226"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-227/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af227-realism-r6d-cross-model-2026-21.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -6047,9 +6122,22 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-227",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-227/task-sheet.md"
+      },
+      {
+        "taskId": "AF-227",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af227-realism-r6d-cross-model-2026-21.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },

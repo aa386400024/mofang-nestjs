@@ -52,7 +52,7 @@
 //       不去改别人读到的值.
 //
 //   如何验证:
-//     1. npx tsc -p tsconfig.build.json --noEmit 0 错
+//     1. pnpm typecheck 0 错
 //     2. test/llm/minimax-provider.spec.ts 覆盖 id / 模型名 / 基址归一 / 注册分支
 //        + 上游字段映射 (只下发 max_completion_tokens / reasoning_effort)
 
@@ -105,7 +105,7 @@ export class MinimaxChatProvider extends OpenAICompatibleChatProvider {
     readonly modelKwargs?: Record<string, unknown>;
   } {
     const limit = request.maxCompletionTokens ?? request.maxTokens;
-    const modelKwargs: Record<string, unknown> = {};
+    const modelKwargs: Record<string, unknown> = { ...this.defaultModelKwargs };
     if (limit !== undefined) {
       modelKwargs['max_completion_tokens'] = limit;
     }

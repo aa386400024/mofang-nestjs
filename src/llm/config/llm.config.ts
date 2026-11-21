@@ -45,10 +45,13 @@ export function registerDefaultProviders(registry: ProviderRegistryService, conf
 
   // ─── 豆包 (火山方舟) ───
   if (config.get<string>('LLM_DOUBAO_API_KEY')) {
-    registry.registerChat(
-      new DoubaoChatProvider(runtime),
-      buildEnvConfig(config, AIProviderId.DOUBAO, '豆包 (火山方舟)', 'https://ark.cn-beijing.volces.com/api/v3', 'doubao-pro-32k'),
-    );
+    const doubao = new DoubaoChatProvider({
+      ...runtime,
+      // AF-227: 模型随方舟版本迭代（旧别名会 404），由 LLM_DOUBAO_MODEL 单一来源解析；
+      //   provider 的兜底模型与启动注册的 defaultChatModel 必须同源。
+      defaultChatModel: config.get<string>('LLM_DOUBAO_MODEL'),
+    });
+    registry.registerChat(doubao, buildEnvConfig(config, AIProviderId.DOUBAO, '豆包 (火山方舟)', doubao.baseUrl, doubao.defaultChatModel));
     registry.registerEmbedding(new DoubaoEmbeddingProvider());
   }
 

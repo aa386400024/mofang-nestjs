@@ -22,7 +22,7 @@
 //       由 env 给; 路由层只负责"这个 provider 没指定时用哪个".
 //
 //   如何验证:
-//     1. npx tsc -p tsconfig.build.json --noEmit 0 错
+//     1. pnpm typecheck 0 错
 //     2. test/llm/minimax-provider.spec.ts 覆盖键名映射与基址归一
 
 import { AIProviderId } from '../common/enums/llm.enums.js';
@@ -43,10 +43,13 @@ const PROVIDER_API_KEY_ENV_KEYS: Partial<Record<AIProviderId, string>> = {
  * provider → 默认 chat 模型的 env 键名 (缺省 = 模型名写死在 provider 类里).
  *
  * 只有**模型名随部署变**的厂商才需要登记 —— MiniMax 的模型取决于订阅买了哪个
- * (本机是 MiniMax-M3.1-Flash), 写死在路由表里等于替用户决定了订阅内容.
+ * (订阅取决于部署环境; 当前缺省为 MiniMax-M3), 写死在路由表里等于替用户决定了订阅内容.
  */
 const PROVIDER_CHAT_MODEL_ENV_KEYS: Partial<Record<AIProviderId, string>> = {
   [AIProviderId.MINIMAX]: 'MINIMAX_LLM_MODEL',
+  // AF-227: 豆包模型随方舟产品迭代（旧别名会 404），默认模型必须是部署事实，
+  // 不能焊在 provider 或启动注册里各写一份。
+  [AIProviderId.DOUBAO]: 'LLM_DOUBAO_MODEL',
 };
 
 /**
@@ -87,6 +90,12 @@ export const DEFAULT_MINIMAX_BASE_URL = 'https://api.minimax.cn';
 
 /** MiniMax 缺省 chat 模型 (订阅可用的模型由 env 指定, 这里只是兜底). */
 export const DEFAULT_MINIMAX_CHAT_MODEL = 'MiniMax-M3';
+
+/** 豆包缺省 chat 模型 (AF-227 实测方舟可用; 旧 doubao-pro-32k 已 404). */
+export const DEFAULT_DOUBAO_CHAT_MODEL = 'doubao-seed-2-1-pro-260915';
+
+/** 豆包缺省方舟基址 (与 OpenAI 兼容 `/v1` 归一逻辑不同, 方舟路径是 `/api/v3`). */
+export const DEFAULT_DOUBAO_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3';
 
 /** OpenAI 兼容完整端点的尾段 (基址里误填了它就剥掉). */
 const CHAT_COMPLETIONS_SUFFIX = '/chat/completions';
@@ -138,4 +147,33 @@ export function resolveMinimaxBaseUrl(raw?: string): string {
 export function resolveMinimaxChatModel(raw?: string): string {
   const trimmed = (raw ?? '').trim();
   return trimmed.length > 0 ? trimmed : DEFAULT_MINIMAX_CHAT_MODEL;
+}
+
+/**
+ * 解析豆包默认 chat 模型 (env 优先, 缺省走种子值).
+ *
+ * 方舟模型 ID 带日期后缀, 旧别名会 404; 因此不允许调用点自行写死默认.
+ *
+ * @param raw env 原值 (缺省 / 空白 = 用默认)
+ * @returns 模型名
+ */
+export function resolveDoubaoChatModel(raw?: string): string {
+  const trimmed = (raw ?? '').trim();
+  return trimmed.length > 0 ? trimmed : DEFAULT_DOUBAO_CHAT_MODEL;
+}
+
+/**
+ * 解析豆包方舟基址 (只去尾部斜杠; 不套 OpenAI `/v1` 归一).
+ *
+ * 方舟 chat 端点是 `/api/v3/chat/completions`, 若误用通用归一会拼成
+ * `/api/v3/v1/chat/completions`, 直接 404.
+ *
+ * @param raw env 原值 (缺省 / 空白 = 用默认)
+ * @returns 基址
+ */
+export function resolveDoubaoBaseUrl(raw?: string): string {
+  let base = (raw ?? '').trim();
+  if (base.length === 0) base = DEFAULT_DOUBAO_BASE_URL;
+  while (base.endsWith('/')) base = base.slice(0, -1);
+  return base;
 }

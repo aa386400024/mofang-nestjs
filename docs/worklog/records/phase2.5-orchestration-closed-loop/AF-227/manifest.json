@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-227",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "submitted",
+  "createdAt": "2026-11-21T16:05:00+08:00",
+  "updatedAt": "2026-11-21T09:11:21.859Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-227/task-sheet.md",
+    "sha256": "66e2fa9ab2aab50a2a4bbaffcbde147f1b46de6e2c3436a136fae81bd4757b27",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-227/receipt-RC-AF-227-1.json",
+      "sha256": "e86180dd77578d9be198cabe736ac3d71f43f339e7edbec8e70bf181b43a6880",
+      "receiptId": "RC-AF-227-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af227-realism-r6d-cross-model-2026-21.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/af227-realism-r6d-cross-model-task-2026-11-21.md"
+  ],
+  "tombstone": null
+}
