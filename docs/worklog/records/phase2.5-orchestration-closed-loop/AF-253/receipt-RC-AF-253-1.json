@@ -1,0 +1,172 @@
+{
+  "deliveredAt": "2026-11-22T07:55:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-253-1",
+    "taskId": "AF-253",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "1e84b267",
+    "dependsOn": [],
+    "policyRefs": [
+      "conventions.md#1.3"
+    ],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-253/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af253-af252-rework-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af253-af252-rework-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-253/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-253/manifest.json"
+      ],
+      "modified": [
+        ".env.example",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-252/manifest.json"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": [
+        "b27d238e",
+        "32106c18",
+        "1e4ed5e9"
+      ]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/af252-visitor-render-provider.spec.ts test/engine-adapters/af210-render-model-override.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1 秒",
+        "note": "11/11 通过：AF-252 6 + AF-210 5；日志 data/af253-targeted.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "0 error / 0 warning；日志 data/af253-lint.log"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "CI 同口径全量 typecheck 0 error；日志 data/af253-tsc.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 259,
+        "machine": "同上",
+        "wallClock": "约 23 秒",
+        "note": "259 files passed + 1 skipped；4254 tests passed + 4 skipped；日志 data/af253-fulltest.log"
+      },
+      {
+        "command": "git diff HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "AF-253 不改 AF-252 实现；所有闸门在 stacked 分支 HEAD 上重跑。生产 .env 未改，仍为 ENGINE_RENDER_PRIMARY_PROVIDER=minimax；web/orchestration/data.js 并行本地改动未提交。 AF-252 实现提交重建时移出 .env.example，改由 AF-253 提交接管，以满足逐提交 scope 门。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-253 贯穿任务单、分支、记录与回执"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-253 从 AF-252 HEAD 1e84b267 切出，priorTasks 指向 AF-252"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core"
+      },
+      {
+        "item": "scope-env-example",
+        "result": "pass",
+        "note": ".env.example 已显式写入 task-sheet scope，不再判为越界"
+      },
+      {
+        "item": "text-privacy",
+        "result": "pass",
+        "note": "只补流程契约与记录，无对话原文进入日志"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与 AF-253 分支起点均为 1e84b267；AF-252 提交链 186dddef/10d15733/1e84b267 原样保留"
+    },
+    "backlogItems": [
+      {
+        "id": "doubao-cost-per-provider",
+        "impact": "usage 已回传，但 session cost 仍按 token 汇总；豆包与 MiniMax 单价不同，需按 provider 分账"
+      },
+      {
+        "id": "visitor-render-e2e-smoke",
+        "impact": "只验证装配期候选/模型解析；引擎渲染 router 路径的真实豆包端到端 smoke 仍缺"
+      },
+      {
+        "id": "doubao-multi-turn-usage",
+        "impact": "单轮 usage 已验证；多轮长对话、并发与 429/5xx/超时行为尚未验证"
+      }
+    ],
+    "openQuestions": [
+      "生产切换顺序：先改 VISITOR_LLM_PROVIDER=doubao 再做端到端 smoke，还是先 smoke 再改 env"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "返修不改 AF-252 实现",
+        "reality": "AF-252 三个提交原样保留，AF-253 只新增登记与交付记录提交",
+        "action": "stacked 分支承载原提交，不 cherry-pick、不重写",
+        "why": "AF-252 已归档 rejected，规则禁止追加提交"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "scope 已覆盖 .env.example；交付记录含六个机读字段标记；定向 11 例、lint、CI 同口径 tsc、全量 4254 例全绿；engine-core 零改动；AF-252 候选切换语义未被修改。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
