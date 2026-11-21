@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-21T19:05:57.580Z",
+  "generatedAt": "2026-11-21T19:15:02.067Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 2,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -100,6 +100,46 @@ window.ORCH_SNAPSHOT = {
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    },
+    {
+      "taskId": "AF-234",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "fix",
+      "title": "修复 AF-232 CI 全量类型检查暴露的类型错误并补齐发布门",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-234/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af234-af232-ci-tsc-fix-2026-11-22.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-234",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-21T19:15:02.002Z",
+        "leaseDeadline": "2026-11-21T19:45:01.999Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-234.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-21T19:15:02.002Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-234.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1875,6 +1915,57 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-343",
+      "recordedAt": "2026-11-21T19:14:55.316Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-234",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-342",
+      "recordedAt": "2026-11-21T19:14:40.016Z",
+      "actorRef": "orchestrator",
+      "correlationId": "cancel:AF-233",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-341",
+      "recordedAt": "2026-11-21T19:14:04.839Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-233",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-340",
       "recordedAt": "2026-11-21T18:16:50.917Z",
       "actorRef": "orchestrator",
@@ -2063,67 +2154,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "task/AF-227-realism-r6d-cross-model"
       ]
-    },
-    {
-      "auditId": "AUD-328",
-      "recordedAt": "2026-11-21T08:36:09.877Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-227",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-227",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-227.json"
-      ]
-    },
-    {
-      "auditId": "AUD-327",
-      "recordedAt": "2026-11-21T08:35:50.325Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-227",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-326",
-      "recordedAt": "2026-11-21T05:10:21.674Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-226",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-226",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-226.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 340,
+    "total": 343,
     "byResult": {
-      "allowed": 340,
+      "allowed": 343,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 339,
+      "TOOL-QUEUE-SCHEDULER": 342,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 340
+      "orchestrator": 343
     }
   },
   "protocolView": {
@@ -2174,6 +2218,32 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-234",
+        "title": "修复 AF-232 CI 全量类型检查暴露的类型错误并补齐发布门",
+        "type": "fix",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-232"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-234/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af234-af232-ci-tsc-fix-2026-11-22.md"
           }
         ]
       }
@@ -6244,6 +6314,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af232-seed-character-visitor-shadow-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-233",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-233/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af233-af232-ci-tsc-fix-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -6273,6 +6361,16 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+      },
+      {
+        "taskId": "AF-234",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-234/task-sheet.md"
+      },
+      {
+        "taskId": "AF-234",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af234-af232-ci-tsc-fix-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -6286,5 +6384,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 237
+  "archivedCount": 238
 };
