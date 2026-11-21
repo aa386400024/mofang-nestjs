@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-245",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-22T06:30:00+08:00",
-  "updatedAt": "2026-11-21T22:13:40.457Z",
+  "updatedAt": "2026-11-21T22:22:08.117Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-245/task-sheet.md",
     "sha256": "bfe6ec51da27b0c84d1a76fa99aa0cd90b22df483e0e4785f96b193a1f85635b",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-245/receipt-RC-AF-245-1.json",
+      "sha256": "c4394e44765e7188efb05ec7d1df3ee1558aa657de0310a9c3d6ce6c54c2c810",
+      "receiptId": "RC-AF-245-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af245-persona-delta-2026-11-22.md",
   "legacyPaths": [
     "docs/worklog/pending/af245-persona-delta-task-2026-11-22.md"
