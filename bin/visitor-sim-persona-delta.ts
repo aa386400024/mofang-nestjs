@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs';
 
 import type { SimScoredSession } from './visitor-sim-analysis.js';
-import type { RealismDimension } from '../src/auto-practice/metrics/visitor-realism-blind-pack.js';
+import type { RealismDimension } from '../src/auto-practice/metrics/visitor-realism-rating.js';
 
 const DIMENSIONS: readonly RealismDimension[] = [
   'naturalness',
@@ -35,8 +35,12 @@ export interface PersonaDeltaSummary {
   readonly regressed: number;
 }
 
+function emptyNumericDimensions(): Record<RealismDimension, number> {
+  return { naturalness: 0, emotional_continuity: 0, turn_shape: 0, scene_congruence: 0, relational_presence: 0 };
+}
+
 function sessionMean(scores: SimScoredSession['scores']): { overall: number; dimensions: Record<RealismDimension, number> } {
-  const dimensions = Object.fromEntries(DIMENSIONS.map((dimension) => [dimension, 0])) as Record<RealismDimension, number>;
+  const dimensions = emptyNumericDimensions();
   if (scores.length === 0) return { overall: 0, dimensions };
   for (const score of scores) {
     for (const dimension of DIMENSIONS) dimensions[dimension] += score.dimensions[dimension];
@@ -64,7 +68,15 @@ interface Bucket {
 }
 
 function emptyDimensions(): Record<RealismDimension, number[]> {
-  return Object.fromEntries(DIMENSIONS.map((dimension) => [dimension, []])) as Record<RealismDimension, number[]>;
+  return { naturalness: [], emotional_continuity: [], turn_shape: [], scene_congruence: [], relational_presence: [] };
+}
+
+function computeDimensionDeltas(bucket: Bucket, mean: (values: readonly number[]) => number): Record<RealismDimension, number> {
+  const deltas = emptyNumericDimensions();
+  for (const dimension of DIMENSIONS) {
+    deltas[dimension] = mean(bucket.candidateDimensions[dimension]) - mean(bucket.baselineDimensions[dimension]);
+  }
+  return deltas;
 }
 
 /** 按 persona × difficulty 聚合 baseline/candidate，返回按 delta 升序的行（回落最大在前）. */
@@ -109,12 +121,7 @@ export function auditPersonaDeltas(sessions: readonly SimScoredSession[], baseli
       baselineMean,
       candidateMean,
       delta: candidateMean - baselineMean,
-      dimensionDeltas: Object.fromEntries(
-        DIMENSIONS.map((dimension) => [
-          dimension,
-          mean(bucket.candidateDimensions[dimension]) - mean(bucket.baselineDimensions[dimension]),
-        ]),
-      ) as Record<RealismDimension, number>,
+      dimensionDeltas: computeDimensionDeltas(bucket, mean),
     };
   });
 

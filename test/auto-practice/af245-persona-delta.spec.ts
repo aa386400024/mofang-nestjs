@@ -73,7 +73,8 @@ describe('AF-245 逐 persona 差异审计', () => {
     expect(summary.tied).toBe(1);
     const first = summary.rows[0];
     expect(first).toMatchObject({ personaId: 'vpt_worth', difficulty: 'L2', baselineMean: 4, candidateMean: 3, delta: -1 });
-    expect(first?.dimensionDeltas.relational_presence).toBe(-2);
+    // eslint-disable-next-line @typescript-eslint/dot-notation -- noPropertyAccessFromIndexSignature 要求索引访问
+    expect(first?.dimensionDeltas['relational_presence']).toBe(-2);
     expect(summary.rows.at(-1)).toMatchObject({ personaId: 'vpt_grief', delta: 1 });
   });
 
