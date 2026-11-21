@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-226",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "submitted",
+  "status": "completed",
   "createdAt": "2026-11-21T13:20:00+08:00",
-  "updatedAt": "2026-11-21T07:41:58.876Z",
+  "updatedAt": "2026-11-21T07:47:39.908Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-226/task-sheet.md",
     "sha256": "67127932530946842394012153d04cb276e6e232f4040a7ea15ed9a2124ba7ed",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-226/receipt-RC-AF-226-2.json",
+      "sha256": "32898d96045e4e23397f2e29f3493820764e2a3bb2340a15c1c8008c237711d5",
+      "receiptId": "RC-AF-226-2"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af226-realism-r6c-online-scenes-2026-11-21.md",
   "legacyPaths": [
     "docs/worklog/pending/af226-realism-r6c-online-scenes-2026-11-21.md"

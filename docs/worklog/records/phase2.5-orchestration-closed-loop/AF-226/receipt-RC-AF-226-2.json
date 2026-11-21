@@ -1,0 +1,214 @@
+{
+  "deliveredAt": "2026-11-21T15:45:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-226-2",
+    "taskId": "AF-226",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "2cbfd7a96244d114ddbe139ad20a98e4656c09a3",
+    "dependsOn": ["AF-225"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-226/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af226-realism-r6c-online-scenes-2026-11-21.md",
+      "reply": null,
+      "others": [
+        "data/phase25-exit/af226-online-scenes/report.json",
+        "data/phase25-exit/af226-online-scenes/blind/report.json",
+        "data/phase25-exit/af226-online-scenes/blind/summary.md"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "bin/realism-scene-loader.ts",
+        "test/auto-practice/af226-online-scene-loader.spec.ts",
+        "docs/worklog/completed/phase2.5/af226-realism-r6c-online-scenes-2026-11-21.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-226/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-226/receipt-RC-AF-226-1.json"
+      ],
+      "modified": [
+        "bin/visitor-realism-baseline.ts",
+        "bin/visitor-realism-blind.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/af226-online-scene-loader.spec.ts test/auto-practice/af225-realism-stability.spec.ts test/auto-practice/af214-realism-blind-pack.spec.ts test/auto-practice/af214-realism-rating.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 4,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "0.32s",
+        "note": "36 tests passed（AF-226 6 + AF-225 7 + AF-214 评分 17 + 盲评包 6）"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "增量检查，秒级",
+        "note": "根 tsconfig.json 全量类型检查 0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "带缓存全量，数十秒",
+        "note": "0 error / 0 warning；首次 lint 报 4 个改动文件 prettier 格式，pnpm exec eslint --fix 后复跑全量通过"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 249,
+        "machine": "同上",
+        "wallClock": "22.86s",
+        "note": "248 passed + 1 skipped files；4181 passed + 4 skipped tests"
+      },
+      {
+        "command": "POST /admin/api/auto-practice/batch（voice 与 text 各 48 场；8 角色 × 3 模式 × repeats=2；maxTurns=20）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "voice 约 40 分钟；text 约 40 分钟",
+        "note": "voice batch=3L5EyPpaLJFGbVjC179cg，可用 47（completed 47 / crisis_ended 1 / failed 4）；text batch=hRW4V44-t43yyty_EyLke，可用 46（completed 47 / crisis_ended 1）；两个批次场景误判均为 0；当前咨询媒介越界 0"
+      },
+      {
+        "command": "node --env-file=.env --import tsx bin/visitor-realism-blind.ts --source data/debug-sessions --target-scored 24 --max-packets 48 --max-parse-retries 2 --out data/phase25-exit/af226-online-scenes/blind",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 20 分钟",
+        "note": "24/24 完成、0 失败、三场景各 8、0 未仲裁分歧；总体 3.683333，自然度 3.291667，κ总体 0.614973"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "代码、测试、交付记录与回执在同一 AF-226 任务分支完成；两个线上批次由本地 dev 服务调用既有 auto-practice 队列真实生成，未改 provider / 模型 / .env；生成期间一次 nest watch 重启打断 4 场 voice，已改用非 watch node dist/app.js，后续无新增失败；盲评 CLI 只读 data/debug-sessions 并调用模型，不启动服务、不写数据库；报告只含 packetId、分数、计数与失败原因，不含台词原文；密钥只从 .env 读取，未落盘。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-226 贯穿任务单、分支、批次、交付记录与回执"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / archive 全部经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组齐全"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-226 登记、领单、验收、归档事件连续，不改历史事件"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "deploy-contract",
+        "result": "pass",
+        "note": "不新增 env 键，不修改 provider 选择、模型配置、.env 与 scripts/orchestration/"
+      },
+      {
+        "item": "text-privacy",
+        "result": "pass",
+        "note": "报告、日志与回执不输出台词原文；密钥不落盘"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单、交付记录、回执同源；baselineRef 为 2cbfd7a9"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF226-01",
+        "impact": "线上每通道只有 48 场、每场景 8 packet，仍不足以给出批次级“线上不劣于面对面”的稳定结论",
+        "severity": "medium",
+        "schedule": "需要线上批次级门禁时扩到与 in_person 同量级"
+      },
+      {
+        "id": "BL-AF226-02",
+        "impact": "自然度维度 κ=0.36、场景一致 κ=0.333333，24 packet 小样本下维度一致性偏弱",
+        "severity": "medium",
+        "schedule": "扩大 packet 数或更换独立评分模型后复评"
+      },
+      {
+        "id": "BL-AF226-03",
+        "impact": "真人督导师双标与仲裁仍未做，clinicalAcceptanceEligible 保持 false",
+        "severity": "high",
+        "schedule": "真人督导师到位后"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "盲评命令参数",
+        "taskSays": "闸门写 --packets 24",
+        "reality": "CLI 实际参数是 --target-scored 24 --max-packets 48",
+        "action": "按实际参数执行，48 个分层候选、评到 24 即停，三场景各 8",
+        "why": "CLI 没有 --packets 参数；目标语义仍是 24 个完成评分"
+      },
+      {
+        "item": "首轮 1 个线上 text packet 失败",
+        "taskSays": "24/24 完成、0 失败",
+        "reality": "首轮 038c3eb2dfa088c7 在 compact 后仍 evidence_not_in_turn，分布 9/8/7",
+        "action": "不放宽证据校验，按既有 --max-parse-retries 把解析重试从 1 提到 2 重跑，24/24、每场景 8",
+        "why": "失败是模型输出证据定位问题，不是样本不足；提高重试次数属于 CLI 既有能力"
+      },
+      {
+        "item": "voice 批次 DB 行数 52",
+        "taskSays": "每通道 48 场",
+        "reality": "入队 48，DB 52 行，其中 4 条 failed 由 nest watch 在 13:29 被并行文件变更触发重启打断",
+        "action": "改用非 watch node dist/app.js 重启，队列继续消费；可用 voice 47 场，满足 ≥40",
+        "why": "watch 重启会打断在途会话并留下 failed 记录；非 watch 运行避免同类中断"
+      },
+      {
+        "item": "场景五维输出",
+        "taskSays": "按场景给出五维均值",
+        "reality": "原 CLI sceneSlices 只有总体均值",
+        "action": "在 bin/visitor-realism-blind.ts 的 sceneSlices 与 Markdown 场景表增加五维",
+        "why": "不增加字段无法满足切片验收；未改评分协议、prompt、provider 或 .env"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "线上 voice/text 各 48 场真实入队，可用 47/46，场景误判 0、当前媒介越界 0；24 packet 盲评 24/24 完成、0 失败、每场景 8；三场景五维已落报告；定向 36 例、全量 4181 例、lint/typecheck 全绿，engine-core 零 diff。线上样本规模、维度 κ 偏低与首轮单 packet 失败已如实登记，未宣称线上优于面对面或临床达标。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
