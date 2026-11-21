@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-232",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-22T02:20:00+08:00",
+  "updatedAt": "2026-11-21T18:16:16.080Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-232/task-sheet.md",
+    "sha256": "38ec6a5eb8347c9dc56efdc56d8d02b683af2986904d7d1dec6fae4f01cfade3",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af232-seed-character-visitor-shadow-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af232-seed-character-visitor-shadow-2026-11-22.md"
+  ],
+  "tombstone": null
+}

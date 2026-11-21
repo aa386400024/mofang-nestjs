@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-21T09:28:42.047Z",
+  "generatedAt": "2026-11-21T18:16:30.743Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
-    "ready": 0,
-    "submitted": 0,
+    "ready": 2,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,7 +16,139 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-229",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "R6-D2 AI 层面锚点校准与豆包 thinking 对照",
+      "status": "ready",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-229/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af229-ai-calibration-thinking-2026-11-21.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-229",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-21T17:31:39.753Z",
+        "leaseDeadline": "2026-11-21T18:01:39.749Z",
+        "attempt": 2,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-229.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-21T17:31:39.753Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-229.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": [
+            {
+              "state": "pending",
+              "preparedAt": "2026-11-21T10:02:46.187Z",
+              "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-229.brief.md",
+              "sessionPath": null,
+              "locateLayer": null,
+              "evidenceRef": null,
+              "consecutiveFailures": 0,
+              "history": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "taskId": "AF-231",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "R6-D3 Lite 原生评分 prompt V1 与 12 packet 开发集",
+      "status": "ready",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": null,
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-231",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-21T17:22:20.674Z",
+        "leaseDeadline": "2026-11-21T17:52:20.671Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-231.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-21T17:22:20.674Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    },
+    {
+      "taskId": "AF-232",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "R6-D4 来访者模拟器 Seed Character 2×2 影子对照",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-232/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af232-seed-character-visitor-shadow-2026-11-22.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-232",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-21T18:16:30.680Z",
+        "leaseDeadline": "2026-11-21T18:46:30.677Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-232.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-21T18:16:30.680Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-232.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1783,6 +1915,119 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-338",
+      "recordedAt": "2026-11-21T18:16:20.378Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-232",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-337",
+      "recordedAt": "2026-11-21T17:22:20.828Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-231",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-231",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-231.json"
+      ]
+    },
+    {
+      "auditId": "AUD-336",
+      "recordedAt": "2026-11-21T17:22:09.187Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-231",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-335",
+      "recordedAt": "2026-11-21T17:21:45.296Z",
+      "actorRef": "orchestrator",
+      "correlationId": "cancel:AF-230",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
+      "auditId": "AUD-334",
+      "recordedAt": "2026-11-21T10:02:54.334Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-229",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-229-ai-calibration-thinking"
+      ]
+    },
+    {
+      "auditId": "AUD-333",
+      "recordedAt": "2026-11-21T10:02:46.344Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-229",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-229",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-229.json"
+      ]
+    },
+    {
+      "auditId": "AUD-332",
+      "recordedAt": "2026-11-21T10:02:33.331Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-229",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-331",
       "recordedAt": "2026-11-21T09:26:25.821Z",
       "actorRef": "orchestrator",
@@ -1907,138 +2152,100 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "task/AF-225-realism-r6b-scoring-stability"
       ]
-    },
-    {
-      "auditId": "AUD-323",
-      "recordedAt": "2026-11-21T04:27:07.146Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-225",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-225",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-225.json"
-      ]
-    },
-    {
-      "auditId": "AUD-322",
-      "recordedAt": "2026-11-21T04:26:31.576Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-225",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-321",
-      "recordedAt": "2026-11-20T18:35:04.032Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-216",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-216-realism-r6-event-conditioning"
-      ]
-    },
-    {
-      "auditId": "AUD-320",
-      "recordedAt": "2026-11-20T18:34:54.403Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-216",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-216",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-216.json"
-      ]
-    },
-    {
-      "auditId": "AUD-319",
-      "recordedAt": "2026-11-20T18:34:54.047Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-216",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-318",
-      "recordedAt": "2026-11-20T18:34:34.342Z",
-      "actorRef": "orchestrator",
-      "correlationId": "archive:AF-215",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-317",
-      "recordedAt": "2026-11-20T18:34:25.371Z",
-      "actorRef": "orchestrator",
-      "correlationId": "cancel:AF-215",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 331,
+    "total": 338,
     "byResult": {
-      "allowed": 331,
+      "allowed": 338,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 330,
+      "TOOL-QUEUE-SCHEDULER": 337,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 331
+      "orchestrator": 338
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-229",
+        "title": "R6-D2 AI 层面锚点校准与豆包 thinking 对照",
+        "type": "implementation",
+        "status": {
+          "framework": "ready",
+          "protocol": null,
+          "stage": "orchestration"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-227"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-229/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af229-ai-calibration-thinking-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-231",
+        "title": "R6-D3 Lite 原生评分 prompt V1 与 12 packet 开发集",
+        "type": "implementation",
+        "status": {
+          "framework": "ready",
+          "protocol": null,
+          "stage": "orchestration"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-227"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-232",
+        "title": "R6-D4 来访者模拟器 Seed Character 2×2 影子对照",
+        "type": "implementation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-227"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-232/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af232-seed-character-visitor-shadow-2026-11-22.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -6069,6 +6276,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af228-ci-typecheck-fix-2026-11-21.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-230",
+        "status": {
+          "framework": "canceled",
+          "protocol": "CANCELED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-230/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -6083,9 +6308,37 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-229",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-229/task-sheet.md"
+      },
+      {
+        "taskId": "AF-229",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af229-ai-calibration-thinking-2026-11-21.md"
+      },
+      {
+        "taskId": "AF-231",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+      },
+      {
+        "taskId": "AF-232",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-232/task-sheet.md"
+      },
+      {
+        "taskId": "AF-232",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af232-seed-character-visitor-shadow-2026-11-22.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -6093,5 +6346,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 235
+  "archivedCount": 236
 };
