@@ -1,0 +1,142 @@
+{
+  "deliveredAt": "2026-11-22T06:20:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-244-1",
+    "taskId": "AF-244",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "bfdad49dc20580557d3a40ef72c0b5baf7104b96",
+    "dependsOn": ["AF-243"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-244/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af244-seed-v51-emotion-tags-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": ["docs/worklog/completed/phase2.5/af244-seed-v51-emotion-tags-2026-11-22.md"],
+      "modified": [
+        "bin/visitor-sim-prompts.ts",
+        "bin/visitor-sim-runtime.ts",
+        "bin/visitor-sim-analysis.ts",
+        "bin/visitor-sim-shadow.ts",
+        "test/auto-practice/af232-visitor-shadow.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/af232-visitor-shadow.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1 秒",
+        "note": "24/24 通过"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30 秒",
+        "note": "tsc -b tsconfig.check.json"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 252,
+        "machine": "同上",
+        "wallClock": "约 23 秒",
+        "note": "252 files passed + 1 skipped；4220 tests passed + 4 skipped"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-sim-shadow.ts --mode generate --arms I --out data/phase25-exit/af244-seed-v51/r1|r2 --concurrency 2 --resume",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "每轮约 1 分钟",
+        "note": "24/24 场、288 轮，0 失败"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-sim-shadow.ts --mode score --arms 'A,C,E,F,G,H,I' --out .../r1|r2 --max-packets 84 --concurrency 2 --resume",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 2,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "每轮约 3 分钟",
+        "note": "84 场/轮；I 12/12 完整评分"
+      }
+    ],
+    "reproNotes": "只新生成 I 臂；E/H 复制 AF-243 同轮会话与 ratings-cache。首轮 max-packets=36 只选中 6 个 I packet，已用 84 全量补齐；记录只采用补齐后数据。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-244 贯穿任务单、分支、记录与回执" },
+      { "item": "state-write", "result": "pass", "note": "register / promote / run-once / branch create 经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "回执七组字段齐全" },
+      { "item": "event-chain", "result": "pass", "note": "AF-244 事件连续" },
+      { "item": "engine-boundary", "result": "pass", "note": "未触碰 src/engine-core，diff 为空" },
+      { "item": "text-privacy", "result": "pass", "note": "记录不含完整台词与密钥" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 baselineRef 与分支基线均为 bfdad49d"
+    },
+    "backlogItems": [
+      {
+        "id": "emotion-tag-projection",
+        "impact": "V5 的 [emotion:anxious] 应在投影层归一化/剥离，而不是用 prompt 硬枚举换自然度；需独立任务实现并复算 3 轮"
+      }
+    ],
+    "openQuestions": [
+      "未知 emotion 标签是映射到 fearful 还是直接剥离，需看生产 TTS 与客户端解析口径"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "验收条件",
+        "taskSays": "I 两轮均值不低于 H 对应轮次 0.05 内",
+        "reality": "r1 低 0.375、r2 低 0.166667",
+        "action": "判定 V5.1 不采纳",
+        "why": "tag-error=0 不能以自然度下降为代价"
+      },
+      {
+        "item": "数据补齐",
+        "taskSays": "两轮 12 场完整",
+        "reality": "首轮只选中 6 个 I packet",
+        "action": "用 max-packets 84 全量重跑，最终 12/12",
+        "why": "max-packets 截断发生在盲评包层，不是失败"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "V5.1 格式修复有效但盲评显著回落，明确不采纳；结论与数据一致，且把正确修复方向指向投影层归一化。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

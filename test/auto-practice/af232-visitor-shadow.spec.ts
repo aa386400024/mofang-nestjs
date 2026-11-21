@@ -23,6 +23,7 @@ import {
   buildSeedV3VisitorPrompt,
   buildSeedV4VisitorPrompt,
   buildSeedV5VisitorPrompt,
+  buildSeedV51VisitorPrompt,
   buildSeedVisitorPrompt,
   buildSharedVisitorPrompt,
   buildVisitorPrompt,
@@ -30,6 +31,7 @@ import {
   SEED_V2_VISITOR_CONSTRAINTS,
   SEED_V4_VISITOR_CONSTRAINTS,
   SEED_V5_VISITOR_CONSTRAINTS,
+  SEED_V51_TAG_ENUM_CONSTRAINTS,
   SEED_VISITOR_CONSTRAINTS,
 } from '../../bin/visitor-sim-prompts.js';
 import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed.js';
@@ -376,6 +378,17 @@ describe('AF-232 prompt 变体', () => {
     expect(v5).toContain('胸口闷');
     expect(buildVisitorPrompt(seed, 'L2', 'seed-v5')).toBe(v5);
     expect(buildVisitorPrompt(seed, 'L2', 'seed-v4')).toBe(v4);
+  });
+
+  it('seed-v51 在 seed-v5 之后只加合法标签硬枚举', () => {
+    const v5 = buildSeedV5VisitorPrompt(seed, 'L2');
+    const v51 = buildSeedV51VisitorPrompt(seed, 'L2');
+    expect(v51.startsWith(v5)).toBe(true);
+    expect(v51).toContain(SEED_V51_TAG_ENUM_CONSTRAINTS);
+    expect(v51).toContain('[emotion:happy|sad|angry|fearful|disgusted|surprised|calm]');
+    expect(v51).toContain('禁止输出 [emotion:anxious]');
+    expect(buildVisitorPrompt(seed, 'L2', 'seed-v51')).toBe(v51);
+    expect(buildVisitorPrompt(seed, 'L2', 'seed-v5')).toBe(v5);
   });
 
   it('抽象心理词审计按 arm 统计场次与次数，同场多次只计一次场次', () => {

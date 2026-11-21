@@ -29,6 +29,7 @@ export const SHADOW_ARMS: readonly ShadowArm[] = [
   { key: 'F', label: 'Seed-Character/seed-v3', provider: 'doubao', model: 'doubao-seed-character-260628', promptVariant: 'seed-v3' },
   { key: 'G', label: 'Seed-Character/seed-v4', provider: 'doubao', model: 'doubao-seed-character-260628', promptVariant: 'seed-v4' },
   { key: 'H', label: 'Seed-Character/seed-v5', provider: 'doubao', model: 'doubao-seed-character-260628', promptVariant: 'seed-v5' },
+  { key: 'I', label: 'Seed-Character/seed-v51', provider: 'doubao', model: 'doubao-seed-character-260628', promptVariant: 'seed-v51' },
 ];
 
 export interface StreamChatInput {

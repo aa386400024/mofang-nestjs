@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-244",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-22T06:10:00+08:00",
+  "updatedAt": "2026-11-21T22:08:25.754Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-244/task-sheet.md",
+    "sha256": "8c8e4062215da1adf33f05286c7371f73bb0d0ce68de58e2b9025fc1c9c22179",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-244/receipt-RC-AF-244-1.json",
+      "sha256": "154ed70f5765d21a298031ef7fa5e002793611f82d4639ed1d5be527bcf0b9ee",
+      "receiptId": "RC-AF-244-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af244-seed-v51-emotion-tags-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af244-seed-v51-emotion-tags-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}
