@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-237",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-22T04:10:00+08:00",
-  "updatedAt": "2026-11-21T20:02:41.114Z",
+  "updatedAt": "2026-11-21T20:20:28.284Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-237/task-sheet.md",
     "sha256": "726ba0d0944319b08c67ce8e7e6f81ad9152fb6d0cfd60efd4dd72e1b616ca16",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-237/receipt-RC-AF-237-1.json",
+      "sha256": "eaf1ea0354843af0167e4cf7f142042fd2366ecd5e11ce6a71e2bf51f10e65f4",
+      "receiptId": "RC-AF-237-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af237-seed-character-prompt-v2-2026-11-22.md",
   "legacyPaths": [
     "docs/worklog/pending/AF-237-seed-character-prompt-v2-task-2026-11-22.md"

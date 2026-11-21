@@ -1,0 +1,155 @@
+{
+  "deliveredAt": "2026-11-22T04:22:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-237-1",
+    "taskId": "AF-237",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "0b499141e21b80cca68d2c572753810fa68cd1ec",
+    "dependsOn": ["AF-232", "AF-236"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-237/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af237-seed-character-prompt-v2-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": ["docs/worklog/completed/phase2.5/af237-seed-character-prompt-v2-2026-11-22.md"],
+      "modified": [
+        "bin/visitor-sim-prompts.ts",
+        "bin/visitor-sim-analysis.ts",
+        "bin/visitor-sim-runtime.ts",
+        "bin/visitor-sim-shadow.ts",
+        "test/auto-practice/af232-visitor-shadow.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec tsx bin/visitor-sim-shadow.ts --mode generate --arms C,E --out data/phase25-exit/af237-seed-v2 --concurrency 6",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 2 分钟",
+        "note": "24/24 场、288 轮，0 截断、0 失败"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-sim-shadow.ts --mode score --arms A,C,E --max-packets 36 --concurrency 2",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 3 分钟",
+        "note": "36/36 场、72 份评分，cacheEntries=36，0 failure"
+      },
+      {
+        "command": "pnpm exec vitest run test/auto-practice/af232-visitor-shadow.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "22ms",
+        "note": "17/17 passed"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "带缓存全量",
+        "note": "0 error / 0 warning"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "tsc -b tsconfig.check.json",
+        "note": "exit 0"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json --incremental --tsBuildInfoFile node_modules/.tmp/tcheck-full.tsbuildinfo",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "增量",
+        "note": "CI 同款全量类型检查 exit 0"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 253,
+        "machine": "同上",
+        "wallClock": "23.98s",
+        "note": "252 passed + 1 skipped files；4213 passed + 4 skipped tests"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "离线影子实验，不启动服务、不写库、不接生产。A 臂复用 AF-232 同内容 12 场，C/E 新生成 24 场，评分阶段三臂统一重评。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-237 贯穿任务单、分支、交付记录与回执" },
+      { "item": "state-write", "result": "pass", "note": "register / promote / run-once / branch create 经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "回执六组标记齐全" },
+      { "item": "event-chain", "result": "pass", "note": "AF-237 登记、提级、领单事件连续" },
+      { "item": "engine-boundary", "result": "pass", "note": "src/engine-core 零 diff" },
+      { "item": "text-privacy", "result": "pass", "note": "报告不含台词原文与密钥" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 baselineRef、分支基线、交付记录与回执均为 0b499141"
+    },
+    "backlogItems": [],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "A 臂来源",
+        "taskSays": "三臂生成与评分完成",
+        "reality": "MiniMax 生成侧触发 429 Token Plan 速率限制，无法现场生成 A 臂",
+        "action": "复用 AF-232 同内容 12 场 A 臂会话，评分阶段三臂统一重评",
+        "why": "A prompt/model/persona 组合未变；复用生成内容不改变基线语义，评分仍按本轮统一盲评口径"
+      },
+      {
+        "item": "环境变量",
+        "taskSays": "直接运行实验 CLI",
+        "reality": "首次运行缺少 MINIMAX_API_KEY，脚本不自动加载 .env",
+        "action": "命令内解析 .env 注入四个密钥变量，未打印密钥",
+        "why": "保持仓库现有 env 读取边界，不为实验增加 dotenv 依赖"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "seed-v2 将合作指数从 0.243056 压到 0.097222，与 A 基线 0.104167 持平；提问率降到 0.097222，与 A 相同；盲评均分 3.875 高于 C 3.833333，绝对差从 1 降到 0.583333；硬门槛 10/10 全过。E 仍为 conditional，但相对 C 的实质性失败项已完成修复。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
