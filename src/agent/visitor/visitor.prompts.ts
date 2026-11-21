@@ -147,6 +147,25 @@ const EMOTION_DYNAMICS = `情绪动态规则 (重要):
 - 情绪变化要渐进, 不要突然跳变 (上一句还哭, 下一句突然笑)
 - 同一回复内可以有情绪转折, 但要合理 (如先压抑 → 共情后松动 → 自我察觉)`;
 
+/** 来访者 prompt 变体 — shared 是旧链路，seed-v5 只在灰度 env 开启时使用. */
+export type VisitorPromptVariant = 'shared' | 'seed-v5';
+
+/**
+ * V2026-11-22 建立 (AF-248 · V5 生产约束):
+ *   来源是 AF-243 影子实验的 `SEED_V5_VISITOR_CONSTRAINTS`，但去掉 V1/V2/V4 实验术语，
+ *   只保留对生产可执行的三条：零抽象标签、接触防御、具体情绪。
+ *
+ *   为什么不在 prompt 里硬枚举 emotion（AF-244 教训）:
+ *     V5.1 把标签写成硬枚举后盲评从 4.0/4.0417 掉到 3.625/3.875；格式修复应放投影层，
+ *     prompt 只约束"说什么"，不约束"标签怎么写".
+ */
+const SEED_V5_VISITOR_CONSTRAINTS = `## 接触防御与具体情绪 (V5 · 优先级高于上面的行为与情绪段落，低于硬规则)
+- 全场禁止出现这些抽象心理词：不配得感、回避、依恋、防御、创伤、投射、边界、自我价值、内在小孩、共情、压抑、理智化。说出任意一个即视为本轮无效。
+- 接触防御：每 2 轮至少 1 轮回应咨询师这句话给你当下的反应（身体、态度或动作），但不确认对方的假设，也不接成自我总结。可以说“你这么一问，我有点烦。”“你别老盯着我，我不习惯。”
+- 情绪具体化：只写身体感受或行为冲动，例如胸口闷、手心出汗、想抽烟、想笑、脑子空白、想走；不命名心理机制，不解释为什么。
+- 不把咨询师的话翻译成“我意识到”“原来我”“其实我是因为”；可以只说“你这么说我更乱”。
+- 允许重复同一个具体细节，像真人卡住；不新增重大事实、不推进剧情、不设计“防御—领悟—松动”的治疗性弧线。`;
+
 /** 硬规则 — 任何难度都适用, 列在最前. */
 const HARD_RULES = `硬规则 (优先级最高):
 1. 严格保持"来访者"角色, 不替咨询师做决定
@@ -162,7 +181,12 @@ const HARD_RULES = `硬规则 (优先级最高):
  * @param persona 已加载的 persona 实体
  * @param memory per-session 记忆 (含 currentEmotion / turnCount)
  */
-export function renderSystemPrompt(persona: Persona, memory: VisitorSessionMemory, blocks: readonly VisitorContextBlock[] = []): string {
+export function renderSystemPrompt(
+  persona: Persona,
+  memory: VisitorSessionMemory,
+  blocks: readonly VisitorContextBlock[] = [],
+  variant: VisitorPromptVariant = 'shared',
+): string {
   const baseline = EMOTION_BASELINE_LABEL[persona.emotionBaseline] ?? persona.emotionBaseline;
 
   // V2026-10-21 治本 (V1.2 VS-B2 — 会话级上下文插槽):
@@ -214,6 +238,10 @@ export function renderSystemPrompt(persona: Persona, memory: VisitorSessionMemor
     '',
     '## ' + HARD_RULES,
   );
+
+  if (variant === 'seed-v5') {
+    lines.push('', SEED_V5_VISITOR_CONSTRAINTS);
+  }
 
   if (blocks.length > 0) {
     lines.push('', '## 本次会话的来访者设定', '★ 本节优先级高于上面的人格画像; 两者冲突时**以本节为准**.');
