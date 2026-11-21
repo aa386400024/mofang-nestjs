@@ -4003,6 +4003,23 @@ describe('AF-058 squash 全生命周期归档门', () => {
     expect(result).toMatchObject({ pass: true, reason: 'archived-transition', taskId: 'AF-908' });
   });
 
+  it('显式任务号的归档 squash 不被无关在办任务阻断', () => {
+    const archived = lifecycleTask('AF-911');
+    const active = lifecycleTask('AF-912');
+    const result = evaluateCommitSnapshot({
+      subject: 'fix(orchestration): AF-911 squash lifecycle',
+      changedFiles: lifecycleFiles,
+      currentIndex: {
+        tasks: [active],
+        archivedTasks: [{ ...archived, status: 'completed' }],
+      },
+      parentIndex: { tasks: [], archivedTasks: [] },
+      taskSheetExists: true,
+      receipts: [passedReceipt],
+    });
+    expect(result).toMatchObject({ pass: true, reason: 'archived-transition', taskId: 'AF-911' });
+  });
+
   it('父提交无任务且 conditional-pass 无人工复核项时允许 squash 全生命周期', () => {
     const task = lifecycleTask('AF-9081');
     const result = evaluateCommitSnapshot({

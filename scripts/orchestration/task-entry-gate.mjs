@@ -159,12 +159,19 @@ export function evaluateTaskEntry({ changedFiles = [], tasks = [], archivedTasks
   // squash 合并会把「HEAD 在办 → 当前 completed 归档」一次暂存。只有同次提交
   // 携带状态索引、且 HEAD 与归档投影的 taskId 对得上，才借用 HEAD 任务做 scope
   // 校验；canceled/rejected 或未携带索引都不能恢复写权限。
-  const archivedTransition =
-    changed.includes(TASK_INDEX_PATH) && currentEligible.length === 0
-      ? (headTasks ?? []).filter(
-          (task) => task?.taskId && statusAllowsWrite(task.status) && hasTaskSheet(task) && completedArchiveIds.has(task.taskId),
-        )
-      : [];
+  // 提交标题显式点了某个已归档任务时，直接按该任务借用投影，不受其他无关在办
+  // 任务影响（AF-234 实弹：PR 合并后因 AF-229/AF-231 仍在 ready 被判 task-not-found）。
+  // 未显式点任务号时保留原保守逻辑：有在办任务就不借归档投影，避免 scope 歧义。
+  const archivedTransition = changed.includes(TASK_INDEX_PATH)
+    ? (headTasks ?? []).filter(
+        (task) =>
+          task?.taskId &&
+          statusAllowsWrite(task.status) &&
+          hasTaskSheet(task) &&
+          completedArchiveIds.has(task.taskId) &&
+          (explicitTaskId ? task.taskId === explicitTaskId : currentEligible.length === 0),
+      )
+    : [];
   const taskPool = archivedTransition.length > 0 ? archivedTransition : tasks;
   const eligible = (taskPool ?? []).filter((task) => task?.taskId && statusAllowsWrite(task.status) && hasTaskSheet(task));
   if (eligible.length === 0) {
