@@ -150,6 +150,24 @@ describe('AF-232 客观指标', () => {
     expect(objective.overall.firstTokenP95Ms).toBe(100 + 11 * 20);
   });
 
+  it('整体首 token P95 按全部轮次样本计算，不被单场慢轮取 max 抬升', () => {
+    const sampleTurns = (sessionId: string, withSlowTurn: boolean): SimSessionRecord =>
+      makeSession(
+        'C',
+        Array.from({ length: 20 }, (_, index) =>
+          makeTurn('嗯。', {
+            turnIndex: index + 1,
+            firstTokenMs: withSlowTurn && index === 19 ? 3000 : 100 + index,
+            totalMs: withSlowTurn && index === 19 ? 6000 : 200 + index,
+          }),
+        ),
+        { sessionId, difficulty: 'L3' },
+      );
+    const objective = analyzeArmObjective([sampleTurns('s1', true), sampleTurns('s2', true), sampleTurns('s3', false)]);
+    expect(objective.overall.firstTokenP95Ms).toBeLessThan(1000);
+    expect(objective.overall.totalP95Ms).toBeLessThan(1000);
+  });
+
   it('过度配合会同时抬高建议、提问、超长与配合指数', () => {
     const text =
       '我觉得你应该先记录一下情绪，这样你会更清楚，而且你也可以试着每天写一点，最好现在就试试看，不然你会一直拖着，最后越来越难受，你说是不是？';
