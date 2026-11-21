@@ -124,6 +124,14 @@ R5 的 4 个失败不是“模型漏评自然度”，而是评分员把预算�
 - 真人督导师双标与仲裁未做，`clinicalAcceptanceEligible` 保持 false。
 - 工作区存在并行任务与历史取证文件（`data/batch-reports/*`、`data/phase25-exit/af13*`、`.af214-check.mjs` 等），本单不清理、不纳入提交。
 
+## 机读字段标记
+
+- `scopeCheck`：in-scope（仅改 `src/auto-practice/metrics/`、`bin/`、`test/auto-practice/`、任务记录与交付记录；未碰 engine-core、provider、`.env`、scripts/orchestration、admin-dashboard、Flutter）
+- `contractChecks`：taskId / state-write / index-schema / event-chain / engine-boundary / deploy-contract / text-privacy 全部 pass
+- `backlogItems`：BL-AF225-01 完整 12 packet 批次稳定性未验证；BL-AF225-02 R6-C 线上样本为零；BL-AF225-03 真人督导师双标未做
+- `deviationTable`：4 条（主协议证据纪律、恢复探针落点、输出预算默认值、compact 证据要求），均已在“与任务单的偏差”逐条说明
+- `reviewVerdict`：passed（机器闸门全绿；4/4 恢复；仅 4-packet 范围与评分随机波动已如实登记）
+
 ## commit message
 
 `fix(af225): 来访者真人度评分截断恢复与 compact 行协议重试`
