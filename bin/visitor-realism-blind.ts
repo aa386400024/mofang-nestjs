@@ -12,6 +12,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
+import { resolveDebugRealismScene } from './realism-scene-loader.js';
 import { buildRealismBlindPackets } from '../src/auto-practice/metrics/visitor-realism-blind-pack.js';
 import { filterPacketsByIds, type PacketFilterResult } from '../src/auto-practice/metrics/visitor-realism-packet-filter.js';
 import {
@@ -107,8 +108,7 @@ function loadSessions(dir: string): readonly LoadedSession[] {
       if (role === null || text.trim().length === 0) continue;
       messages.push({ role, text });
     }
-    const sceneRaw = root['scene'] ?? root['realismScene'];
-    const scene = sceneRaw === 'in_person' || sceneRaw === 'online_voice' || sceneRaw === 'online_text' ? sceneRaw : undefined;
+    const scene = resolveDebugRealismScene(root);
     const sessionId = String(root['id'] ?? file.replace(/\.json$/, ''));
     sessions.push({
       sessionId,
@@ -318,8 +318,21 @@ function renderAgreementRows(agreement: {
   return rows;
 }
 
-function renderSceneRows(sceneSlices: Readonly<Record<string, { readonly n: number; readonly overallMean: number | null }>>): string[] {
-  return Object.entries(sceneSlices).map(([scene, slice]) => `| ${scene} | ${slice.n} | ${slice.overallMean ?? '—'} |`);
+function renderSceneRows(
+  sceneSlices: Readonly<
+    Record<
+      string,
+      { readonly n: number; readonly overallMean: number | null; readonly dimensions: Readonly<Record<string, number | null>> }
+    >
+  >,
+): string[] {
+  const dimensionCells = REALISM_DIMENSIONS.map((dimension) => `${REALISM_DIMENSION_LABELS[dimension]} |`).join(' ');
+  const rows = [`| 场景 | n | 总体 | ${dimensionCells}`];
+  for (const [scene, slice] of Object.entries(sceneSlices)) {
+    const cells = REALISM_DIMENSIONS.map((dimension) => `${slice.dimensions[dimension] ?? '—'} |`).join(' ');
+    rows.push(`| ${scene} | ${slice.n} | ${slice.overallMean ?? '—'} | ${cells}`);
+  }
+  return rows;
 }
 
 function renderAgreementCaveats(caveats: readonly string[]): string[] {
@@ -339,7 +352,12 @@ function buildMarkdown(
       readonly dimensions: Readonly<Record<string, ReturnType<typeof summarizeRealismAgreement>>>;
       readonly caveats: readonly string[];
     };
-    readonly sceneSlices: Readonly<Record<string, { readonly n: number; readonly overallMean: number | null }>>;
+    readonly sceneSlices: Readonly<
+      Record<
+        string,
+        { readonly n: number; readonly overallMean: number | null; readonly dimensions: Readonly<Record<string, number | null>> }
+      >
+    >;
   },
   title: string,
 ): string {
@@ -374,8 +392,8 @@ function buildMarkdown(
     ...renderAgreementCaveats(report.agreement.caveats),
     '## 场景切片',
     '',
-    '| 场景 | n | 总体均值 |',
-    '| --- | --- | --- |',
+    '| 场景 | n | 总体 | 自然度 | 情绪连续性 | 话轮形态 | 场景一致 | 关系在场 |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- |',
     ...renderSceneRows(report.sceneSlices),
     '',
     '## 已知限制',
@@ -508,10 +526,15 @@ async function main(): Promise<void> {
     dimensionsAgreement[dimension] = summarizeRealismAgreement(r1Scores[dimension], r2Scores[dimension]);
   }
 
-  const sceneSlices: Record<string, { n: number; overallMean: number | null }> = {};
+  const sceneSlices: Record<string, { n: number; overallMean: number | null; dimensions: Record<RealismDimension, number | null> }> = {};
   for (const scene of ['in_person', 'online_voice', 'online_text'] as const) {
-    const values = scoredOutcomes.filter((outcome) => outcome.scene === scene).map((outcome) => outcome.final.overall);
-    sceneSlices[scene] = { n: values.length, overallMean: average(values) };
+    const sceneOutcomes = scoredOutcomes.filter((outcome) => outcome.scene === scene);
+    const values = sceneOutcomes.map((outcome) => outcome.final.overall);
+    const dimensions = {} as Record<RealismDimension, number | null>;
+    for (const dimension of REALISM_DIMENSIONS) {
+      dimensions[dimension] = average(sceneOutcomes.map((outcome) => outcome.final.dimensions[dimension]));
+    }
+    sceneSlices[scene] = { n: values.length, overallMean: average(values), dimensions };
   }
 
   const agreementCaveats: string[] = [];
