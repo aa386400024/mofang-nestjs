@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-250",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-22T07:10:00+08:00",
+  "updatedAt": "2026-11-21T23:11:10.561Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-250/task-sheet.md",
+    "sha256": "fafa28f2868171e0682af71f0be5c141737469ce3509e7216956321e586aa897",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af250-doubao-stream-usage-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af250-doubao-stream-usage-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}
