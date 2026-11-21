@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-251",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-22T07:32:00+08:00",
+  "updatedAt": "2026-11-21T23:32:41.345Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-251/task-sheet.md",
+    "sha256": "d4967e7f3ddf18236859a14ae9b3eee6ab95373405cf49bf1691cd7e689488a2",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-251/receipt-RC-AF-251-1.json",
+      "sha256": "e63be4e903bedd67a44fea1d217b051bc77c58e17e12b88933e598b972add03b",
+      "receiptId": "RC-AF-251-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af251-unknown-emotion-projection-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af251-unknown-emotion-projection-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}
