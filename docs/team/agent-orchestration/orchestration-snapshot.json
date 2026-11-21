@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-21T21:41:15.997Z",
+  "generatedAt": "2026-11-21T21:45:20.031Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 2,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -99,46 +99,6 @@
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    },
-    {
-      "taskId": "AF-242",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "fix",
-      "title": "修复 plot-zero 误判并复评 AF-241 V4 硬门槛",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-242/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af242-plot-zero-fix-2026-11-22.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-242",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-21T21:41:15.928Z",
-        "leaseDeadline": "2026-11-21T22:11:15.925Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-242.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-21T21:41:15.928Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-242.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1914,6 +1874,36 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-367",
+      "recordedAt": "2026-11-21T21:41:24.485Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-242",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-242-af242-plot-zero-fix"
+      ]
+    },
+    {
+      "auditId": "AUD-366",
+      "recordedAt": "2026-11-21T21:41:16.092Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-242",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-242",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-242.json"
+      ]
+    },
+    {
       "auditId": "AUD-365",
       "recordedAt": "2026-11-21T21:41:09.214Z",
       "actorRef": "orchestrator",
@@ -2117,50 +2107,20 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-352",
-      "recordedAt": "2026-11-21T20:02:56.833Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-237",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-237-seed-character-prompt-v2"
-      ]
-    },
-    {
-      "auditId": "AUD-351",
-      "recordedAt": "2026-11-21T20:02:48.772Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-237",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-237",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-237.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 365,
+    "total": 367,
     "byResult": {
-      "allowed": 365,
+      "allowed": 367,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 364,
+      "TOOL-QUEUE-SCHEDULER": 366,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 365
+      "orchestrator": 367
     }
   },
   "protocolView": {
@@ -2215,32 +2175,6 @@
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-242",
-        "title": "修复 plot-zero 误判并复评 AF-241 V4 硬门槛",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-241"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-242/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af242-plot-zero-fix-2026-11-22.md"
           }
         ]
       }
@@ -6473,6 +6407,24 @@
             "ref": "docs/worklog/completed/phase2.5/af241-seed-v4-insight-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-242",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-242/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af242-plot-zero-fix-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -6507,16 +6459,6 @@
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-      },
-      {
-        "taskId": "AF-242",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-242/task-sheet.md"
-      },
-      {
-        "taskId": "AF-242",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af242-plot-zero-fix-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -6530,5 +6472,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 246
+  "archivedCount": 247
 }

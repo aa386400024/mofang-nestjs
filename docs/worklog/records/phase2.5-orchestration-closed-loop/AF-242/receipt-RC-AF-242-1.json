@@ -1,0 +1,129 @@
+{
+  "deliveredAt": "2026-11-22T05:58:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-242-1",
+    "taskId": "AF-242",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "4c0321039132d5e4bc77441e51f23806c43d2d48",
+    "dependsOn": ["AF-241"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-242/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af242-plot-zero-fix-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": ["docs/worklog/completed/phase2.5/af242-plot-zero-fix-2026-11-22.md"],
+      "modified": [
+        "bin/visitor-sim-analysis.ts",
+        "test/auto-practice/af232-visitor-shadow.spec.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/auto-practice/af232-visitor-shadow.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1 秒",
+        "note": "22/22 通过"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "首轮 1 个 prettier 错误，格式化后 0 error"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 30 秒",
+        "note": "tsc -b tsconfig.check.json"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 252,
+        "machine": "同上",
+        "wallClock": "约 22 秒",
+        "note": "252 files passed + 1 skipped；4218 tests passed + 4 skipped"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-sim-shadow.ts --mode score --arms 'A,C,E,F,G' --out data/phase25-exit/af241-seed-v4/r1|r2|r3 --max-packets 60 --concurrency 2 --resume",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "三轮合计约 3 分钟",
+        "note": "命中 ratings-cache，未重新调用生成/评分模型；仅重算客观指标与门槛"
+      }
+    ],
+    "reproNotes": "修正 PLOT_PATTERNS 后对 AF-241 既有 sessions 与 ratings-cache 复算；G r2 plot-zero 由 1 变 0，G 三轮硬门槛全过。数据仍在 data/phase25-exit/af241-seed-v4/，未改历史 scores。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-242 贯穿任务单、分支、记录与回执" },
+      { "item": "state-write", "result": "pass", "note": "register / promote / run-once / branch create 经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "回执七组字段齐全" },
+      { "item": "event-chain", "result": "pass", "note": "AF-242 事件连续" },
+      { "item": "engine-boundary", "result": "pass", "note": "未触碰 src/engine-core，diff 为空" },
+      { "item": "text-privacy", "result": "pass", "note": "记录只引用短语，不含完整会话与密钥" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 baselineRef 与分支基线均为 4c032103"
+    },
+    "backlogItems": [
+      {
+        "id": "historical-plot-rescore",
+        "impact": "AF-237/AF-238/AF-240 报告仍用旧 PLOT_PATTERNS，历史 plot-zero 失败可能同为误报，引用前应重算"
+      }
+    ],
+    "openQuestions": [
+      "修正后 V4 硬门槛稳定但盲评仍低 0.020202，是否值得做 V4.1 还是在情绪粒度/防御类型上开新方向"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "AF-241 结论修正",
+        "taskSays": "复核 V4 r2 硬失败",
+        "reality": "5 条 plot 命中全部是口语误报，G r2 硬失败不成立",
+        "action": "AF-241 正文不改，修正写在本记录；引用时须同时读 AF-242",
+        "why": "已归档任务不可追加改写证据"
+      },
+      {
+        "item": "复评范围",
+        "taskSays": "只复评 AF-241",
+        "reality": "A/C/E/F/G 同轮全部重算",
+        "action": "记录各臂 plot 计数变化",
+        "why": "检测器是共享的，只改 G 会留下同轮不可比"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "误报根因明确、回归覆盖口语与真实旁白、全量闸门通过；修正后 V4 硬门槛稳定，但仍未优于 V2，结论没有被夸大。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
