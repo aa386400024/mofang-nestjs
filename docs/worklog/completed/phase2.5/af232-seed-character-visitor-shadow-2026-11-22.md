@@ -127,6 +127,7 @@ C 臂：
 - `pnpm vitest run test/auto-practice/af232-visitor-shadow.spec.ts`：16/16 通过。
 - `pnpm test`：252 文件通过 + 1 skipped；4211 tests 通过 + 4 skipped；23.92s。
 - `git diff --stat HEAD -- src/engine-core`：空。
+- **补充复核（2026-11-22 03:10）**：CI 同款全量 `tsc --noEmit -p tsconfig.json` 在归档后首次运行 exit 2，暴露 5 类 `tsconfig.check.json` 未覆盖的类型错误（`mergeMetrics` 索引签名、`personaFromSeed` 缺时间字段、shadow 未使用符号、`mapLimit`/`ScoreCache` 类型、点访问 env）。已修复并复跑：全量 tsc exit 0；`pnpm lint` exit 0；定向 16/16；`pnpm test` 252 文件 + 4211 tests 全绿。修复提交位于同分支，未改写已归档的任务单与回执。
 - 真实运行：48/48 场生成；48/48 盲评包；96/96 评分；0 failure、0 截断；报告 `report.json` + `summary.md` 已落盘。
 
 ## 遗留与下一步
