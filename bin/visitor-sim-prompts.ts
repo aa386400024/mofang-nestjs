@@ -8,7 +8,7 @@ import { renderSystemPrompt } from '../src/agent/visitor/visitor.prompts.js';
 import type { VisitorSessionMemory } from '../src/agent/visitor/visitor.types.js';
 import type { VisitorPoolTemplateSeed } from '../src/counselor/config/visitor-pool-seed.js';
 
-export type VisitorPromptVariant = 'shared' | 'seed-v1' | 'seed-v2' | 'seed-v3' | 'seed-v4' | 'seed-v5';
+export type VisitorPromptVariant = 'shared' | 'seed-v1' | 'seed-v2' | 'seed-v3' | 'seed-v4' | 'seed-v5' | 'seed-v51';
 
 /** 12 轮固定咨询师脚本：覆盖开场、共情、封闭提问、过早建议、沉默、面质与收束. */
 export const COUNSELOR_SCRIPT: readonly string[] = [
@@ -76,6 +76,13 @@ export const SEED_V5_VISITOR_CONSTRAINTS = `## 影子来访者 V5 接触防御�
 - 允许重复同一个具体细节，像真人卡住；不新增重大事实、不推进剧情、不设计“防御—领悟—松动”的治疗性弧线。
 - 不把咨询师的话翻译成“我意识到”“原来我”“其实我是因为”；可以只说“你这么说我更乱”。
 - V1 输出格式、V2 不提问与不配合、V4 无完整因果链继续生效。`;
+/** Seed V5.1：V5 行为约束不变，只把允许的语义标记写成硬枚举. */
+export const SEED_V51_TAG_ENUM_CONSTRAINTS = `## 影子来访者 V5.1 输出标签硬枚举（优先级最高）
+- 只允许这些语义标记：[sigh]、[breath]、[laugh]、[emm]、[pause:秒数]、[emotion:happy|sad|angry|fearful|disgusted|surprised|calm]。
+- 禁止输出 [emotion:anxious]、[emotion:nervous] 或其他未列出的情绪标签；焦虑只能写成具体感受，例如“有点慌”“胸口紧”“坐不住”“手心出汗”。
+- 每轮最多 1 个 emotion 标签、1 个 pause 标签；可以完全不用标签。
+- 除标签外只写台词；不写括号动作、星号动作、旁白、场景说明。`;
+
 /** Seed 专用附加约束：重点压“太会演、太配合、太会推进剧情”. */
 export const SEED_VISITOR_CONSTRAINTS = `## 影子来访者附加约束（优先级高于上面所有内容）
 - 你是来访者，不是叙事者、助手、咨询师或旁白。只输出来访者自己会说出口的话。
@@ -238,8 +245,14 @@ export function buildSeedV5VisitorPrompt(seed: VisitorPoolTemplateSeed, difficul
   return `${buildSeedV4VisitorPrompt(seed, difficulty)}\n\n${SEED_V5_VISITOR_CONSTRAINTS}`;
 }
 
+/** 渲染 Seed V5.1：V5 行为约束 + 合法标签硬枚举. */
+export function buildSeedV51VisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty): string {
+  return `${buildSeedV5VisitorPrompt(seed, difficulty)}\n\n${SEED_V51_TAG_ENUM_CONSTRAINTS}`;
+}
+
 /** 按变体选择 prompt. */
 export function buildVisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty, variant: VisitorPromptVariant): string {
+  if (variant === 'seed-v51') return buildSeedV51VisitorPrompt(seed, difficulty);
   if (variant === 'seed-v5') return buildSeedV5VisitorPrompt(seed, difficulty);
   if (variant === 'seed-v4') return buildSeedV4VisitorPrompt(seed, difficulty);
   if (variant === 'seed-v3') return buildSeedV3VisitorPrompt(seed, difficulty);
