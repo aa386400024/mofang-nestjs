@@ -398,7 +398,7 @@ async function main(): Promise<void> {
     ratedPackets: rows.length,
     failedPackets: failed.length,
     models: {
-      minimax: { model: endpoints.minimax_t01.model, thinking: 'auto' },
+      minimax: { model: endpoints.minimax_t01.model, thinking: 'auto' as const },
       doubao: { model: endpoints.doubao_t01.model, thinking: endpoints.doubao_t01.thinking },
     },
     temperatures: { primary: primaryTemperature, secondary: secondaryTemperature },

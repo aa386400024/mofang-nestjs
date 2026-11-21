@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-21T09:15:58.790Z",
+  "generatedAt": "2026-11-21T09:26:25.726Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,7 +16,48 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-228",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "fix",
+      "title": "修复 AF-227 CI 类型检查：跨模型报告评分员 thinking 字面量收窄",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-228/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af228-ci-typecheck-fix-2026-11-21.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-228",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-21T09:26:25.661Z",
+        "leaseDeadline": "2026-11-21T09:56:25.658Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-228.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-21T09:26:25.661Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-228.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1783,6 +1824,23 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-330",
+      "recordedAt": "2026-11-21T09:26:10.422Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-228",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-329",
       "recordedAt": "2026-11-21T08:36:21.971Z",
       "actorRef": "orchestrator",
@@ -2005,40 +2063,52 @@ window.ORCH_SNAPSHOT = {
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-315",
-      "recordedAt": "2026-11-20T17:22:21.223Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-214",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-214-realism-ai-double-blind"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 329,
+    "total": 330,
     "byResult": {
-      "allowed": 329,
+      "allowed": 330,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 328,
+      "TOOL-QUEUE-SCHEDULER": 329,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 329
+      "orchestrator": 330
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-228",
+        "title": "修复 AF-227 CI 类型检查：跨模型报告评分员 thinking 字面量收窄",
+        "type": "fix",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-227"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-228/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af228-ci-typecheck-fix-2026-11-21.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -6065,9 +6135,22 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-228",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-228/task-sheet.md"
+      },
+      {
+        "taskId": "AF-228",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af228-ci-typecheck-fix-2026-11-21.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-228",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-21T17:25:00+08:00",
+  "updatedAt": "2026-11-21T09:26:05.878Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-228/task-sheet.md",
+    "sha256": "91256026a8d1f2897142d49c081b8aba6db2b1766d310ad827b44cdeb99e694c",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af228-ci-typecheck-fix-2026-11-21.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/af228-ci-typecheck-fix-task-2026-11-21.md"
+  ],
+  "tombstone": null
+}
