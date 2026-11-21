@@ -1,0 +1,234 @@
+{
+  "deliveredAt": "2026-11-22T03:10:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-232-1",
+    "taskId": "AF-232",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "a99032327c7adc70011d7e2bd18e5932172a2b50",
+    "dependsOn": ["AF-227"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-232/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af232-seed-character-visitor-shadow-2026-11-22.md",
+      "reply": null,
+      "others": [
+        "data/phase25-exit/af232-seed-character-visitor/report.json",
+        "data/phase25-exit/af232-seed-character-visitor/summary.md",
+        "data/phase25-exit/af232-seed-character-visitor/sessions/",
+        "data/phase25-exit/af232-seed-character-visitor/blind-map.json",
+        "data/phase25-exit/af232-seed-character-visitor/ratings-cache.json",
+        "data/phase25-exit/af232-seed-character-visitor/scores.json",
+        "data/phase25-exit/af232-seed-character-visitor/generation-manifest.json"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "bin/visitor-sim-prompts.ts",
+        "bin/visitor-sim-analysis.ts",
+        "bin/visitor-sim-runtime.ts",
+        "bin/visitor-sim-shadow.ts",
+        "test/auto-practice/af232-visitor-shadow.spec.ts",
+        "docs/worklog/completed/phase2.5/af232-seed-character-visitor-shadow-2026-11-22.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "增量检查，秒级",
+        "note": "tsc -b tsconfig.check.json 0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "带缓存全量，数十秒",
+        "note": "0 error / 0 warning；首次 92 个新文件风格错误，eslint --fix 后手修 12 项"
+      },
+      {
+        "command": "pnpm vitest run test/auto-practice/af232-visitor-shadow.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "385ms",
+        "note": "16 tests passed"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 253,
+        "machine": "同上",
+        "wallClock": "23.92s",
+        "note": "252 passed + 1 skipped files；4211 passed + 4 skipped tests"
+      },
+      {
+        "command": "node --env-file=.env --import tsx bin/visitor-sim-shadow.ts --mode score --out data/phase25-exit/af232-seed-character-visitor --concurrency 1 --max-output-tokens 400 --thinking disabled --resume",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "多轮，累计约 20 分钟",
+        "note": "48/48 sessions、48/48 blind packets、96/96 ratings、0 unrecovered failures、0 truncated；C=conditional，B=fail"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "输出为空"
+      }
+    ],
+    "reproNotes": "真实运行只读 data/phase25-exit/af232-seed-character-visitor/sessions 与官方 persona 模板，调用 MiniMax-M3、doubao-seed-character-260628、MiniMax-M3.1-Flash、doubao-seed-2-1-lite-260915；不启动服务、不写库、不接生产。报告只含 packetId、分数、计数、token、延迟与失败原因，不含台词原文；密钥仅从 .env 读取，未打印。48 场由 4 个官方 persona × L1/L2/L3 组成；C 臂首 token 慢的 1 场已按 400 max tokens 重生成，评分缓存随后重评；2 个 C 包因咨询师/来访者同为“……”导致 R2 证据轮次定位失败，评分侧移除咨询师空沉默轮后重评，最终 0 failure。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-232 贯穿任务单、分支、报告、交付记录与回执"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 经 CLI；归档经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组标记齐全：gateResults / scopeCheck / contractChecks / backlogItems / deviationTable / reviewVerdict"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "AF-232 登记、领单、交付事件连续；不改历史事件"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "src/engine-core 零 diff"
+      },
+      {
+        "item": "text-privacy",
+        "result": "pass",
+        "note": "报告和回执不含台词原文；日志不含密钥"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单、交付记录、报告与回执同源；实际分支基线 a9903232，任务单 baselineRef 1b4762a1 的偏差已登记"
+    },
+    "backlogItems": [
+      {
+        "id": "BL-AF232-01",
+        "impact": "C 臂过度配合指数 0.236111，为 baseline A 0.104167 的 2.27 倍；Seed Character 在受约束 prompt 下仍主动提问/解释/推进",
+        "severity": "high",
+        "schedule": "进入下一轮 prompt V2 前"
+      },
+      {
+        "id": "BL-AF232-02",
+        "impact": "R1 MiniMax-M3.1-Flash 与 R2 豆包 Seed 2.1 Lite 存在系统性 0.667–1.0 分偏移，跨评分员 κ 全臂为 0；现有 cross-rater-kappa/mean-abs-delta 门槛不能直接用于双轨原始分",
+        "severity": "high",
+        "schedule": "下一轮评估协议修订时"
+      },
+      {
+        "id": "BL-AF232-03",
+        "impact": "B 臂原始括号动作 74 处、非法标签率 7.64%；共享 prompt 直接接 Seed Character 不可行",
+        "severity": "medium",
+        "schedule": "已由 C 专用 prompt 替代；B 不再复跑"
+      },
+      {
+        "id": "BL-AF232-04",
+        "impact": "真人督导师双标仍未做；本轮只是 AI 影子对照，不能替代临床验收",
+        "severity": "high",
+        "schedule": "真人督导师到位后"
+      },
+      {
+        "id": "BL-AF232-05",
+        "impact": "生产 visitor 链路硬读 MiniMax env，不能仅改 env 切 Seed Character；需独立 provider 路由与 feature flag",
+        "severity": "high",
+        "schedule": "生产接入任务"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "分支基线",
+        "taskSays": "baselineRef 1b4762a1（AF-229 HEAD）",
+        "reality": "branch create 从 integrate HEAD a9903232 切出",
+        "action": "实现基于 a9903232；交付记录与回执登记偏差，不回写任务单",
+        "why": "branch create 的基线由 CLI 决定，不能为匹配任务单而 rebase 改写历史"
+      },
+      {
+        "item": "输出上限",
+        "taskSays": "未固定 max_tokens",
+        "reality": "首轮 200 导致 A 臂 3 场各 1 轮 finish=length；重生成 A 3 场与 C 1 场使用 400",
+        "action": "报告中 run-config 记录 400；最终 48 场截断 0",
+        "why": "200 对 MiniMax thinking 输出偏紧；400 只用于修正截断与慢首 token 会话"
+      },
+      {
+        "item": "C 慢会话重生成",
+        "taskSays": "12 场一次生成",
+        "reality": "C intimate L2 单轮 1639ms 触发首 token P95 硬 fail",
+        "action": "删除并按 400 重生成，P95 降至 839ms，重新评分",
+        "why": "1.6s 是单轮长尾；重生成后仍保持同一会话/packetId 与同一评分协议"
+      },
+      {
+        "item": "评分证据修复",
+        "taskSays": "双评分员原样评分",
+        "reality": "2 个 C 包的咨询师沉默轮与来访者沉默轮都是“……”；R2 反复把咨询师轮当来访者证据",
+        "action": "仅在这 2 个包重评时移除咨询师空沉默轮，保留来访者台词与证据校验不变",
+        "why": "不削弱证据必须来自来访者的协议，只消除同文重复轮次造成的指代歧义"
+      },
+      {
+        "item": "原始括号",
+        "taskSays": "stage-direction-zero 硬门槛",
+        "reality": "B 原始 74 处、C 原始 1 处；语音投影后可朗读文本为 0",
+        "action": "硬门槛按投影后判；原始计数单列诊断",
+        "why": "Seed Character 原生 screenplay 倾向必须保留为质量缺陷证据，但硬门槛评的是可朗读台词"
+      },
+      {
+        "item": "跨评分员门槛",
+        "taskSays": "κ>=0.4 且绝对差<=0.3",
+        "reality": "R1 系统性高于 R2 0.667–1.0 分；κ 全臂 0",
+        "action": "不改门槛、不改分数；在交付记录中判定该门槛对双轨原始分不可直接使用",
+        "why": "这是评分尺零点问题，不是 C 臂独有；擅自改阈值会破坏预登记"
+      },
+      {
+        "item": "生产接入",
+        "taskSays": "只做离线影子",
+        "reality": "生产 visitor → llm.service 硬读 MINIMAX_*，不支持 baseUrl/apiKey 覆盖",
+        "action": "本轮不接生产；provider 路由另立任务",
+        "why": "最小风险方案需要独立 provider 路由/feature flag，不能在本次影子任务里偷接"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "conditional-pass",
+    "verdictRationale": "技术闸门全绿：typecheck/lint/定向 16 例/全量 4211 例/engine-core 零 diff；真实运行 48/48 场、48/48 盲评包、96/96 评分、0 failure。C 臂全部硬门槛通过，软门槛因过度配合与评分员系统性偏移为 conditional；B 臂因非法标签率与过度配合 fail。未改门槛、未接生产、未宣称临床达标。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
