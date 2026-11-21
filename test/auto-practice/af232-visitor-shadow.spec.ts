@@ -18,6 +18,8 @@ import {
 } from '../../bin/visitor-sim-analysis.js';
 import {
   buildSeedV2VisitorPrompt,
+  buildSeedV3Constraints,
+  buildSeedV3VisitorPrompt,
   buildSeedVisitorPrompt,
   buildSharedVisitorPrompt,
   buildVisitorPrompt,
@@ -315,5 +317,20 @@ describe('AF-232 prompt 变体', () => {
     expect(v2).toContain('每 3 轮最多 1 轮直接回答核心问题');
     expect(buildVisitorPrompt(seed, 'L3', 'seed-v2')).toBe(v2);
     expect(buildVisitorPrompt(seed, 'L3', 'seed-v1')).toBe(seeded);
+  });
+
+  it('seed-v3 在 seed-v2 之后按难度追加预算，且 L1/L3 预算可区分', () => {
+    const v2 = buildSeedV2VisitorPrompt(seed, 'L1');
+    const l1 = buildSeedV3VisitorPrompt(seed, 'L1');
+    const l3 = buildSeedV3VisitorPrompt(seed, 'L3');
+    expect(l1.startsWith(v2)).toBe(true);
+    expect(l1).toContain(buildSeedV3Constraints('L1'));
+    expect(l1).toContain('每 2 轮最多 1 轮直接回答核心问题');
+    expect(l1).toContain('不超过 1 轮');
+    expect(l3).toContain('每 4 轮最多 1 轮直接回答核心问题');
+    expect(l3).toContain('不超过 2 轮');
+    expect(l1).not.toBe(l3);
+    expect(buildVisitorPrompt(seed, 'L1', 'seed-v3')).toBe(l1);
+    expect(buildVisitorPrompt(seed, 'L3', 'seed-v3')).toBe(l3);
   });
 });

@@ -8,7 +8,7 @@ import { renderSystemPrompt } from '../src/agent/visitor/visitor.prompts.js';
 import type { VisitorSessionMemory } from '../src/agent/visitor/visitor.types.js';
 import type { VisitorPoolTemplateSeed } from '../src/counselor/config/visitor-pool-seed.js';
 
-export type VisitorPromptVariant = 'shared' | 'seed-v1' | 'seed-v2';
+export type VisitorPromptVariant = 'shared' | 'seed-v1' | 'seed-v2' | 'seed-v3';
 
 /** 12 轮固定咨询师脚本：覆盖开场、共情、封闭提问、过早建议、沉默、面质与收束. */
 export const COUNSELOR_SCRIPT: readonly string[] = [
@@ -38,6 +38,25 @@ export const SEED_V2_VISITOR_CONSTRAINTS = `## 影子来访者 V2 追加约束�
 - 允许无信息回答：“不知道。”“差不多。”“就那样。”“没什么。”“可能吧。”但不要每轮重复同一句。
 - 不说教、不安慰咨询师、不评价咨询师的水平，也不替咨询师补全话。
 - 不写旁白、舞台说明、括号动作；本条与 V1 输出格式同时生效。`;
+
+/** Seed V3：在 V2 的非合作约束上按难度分档，避免 L1 过度防御、L3 只剩短句. */
+const SEED_V3_BUDGETS: Readonly<Record<PersonaDifficulty, { directEvery: number; detailEvery: number; shortRun: number }>> = {
+  L1: { directEvery: 2, detailEvery: 3, shortRun: 1 },
+  L2: { directEvery: 3, detailEvery: 4, shortRun: 2 },
+  L3: { directEvery: 4, detailEvery: 5, shortRun: 2 },
+};
+
+export function buildSeedV3Constraints(difficulty: PersonaDifficulty): string {
+  const budget = SEED_V3_BUDGETS[difficulty];
+  return `## 影子来访者 V3 追加约束（在 V2 之后按难度调节，优先级最高）
+- 继续遵守 V2 的非合作约束：不向咨询师提问、不顺对方措辞/假设/总结、不主动推进剧情、不自我总结心理机制、不突然领悟。
+- 本场难度：${difficulty}。
+- 直接回答预算：每 ${budget.directEvery} 轮最多 1 轮直接回答核心问题；其余轮次仍含糊、回避、沉默或转到无关小事。连续两轮不要都给完整回答。
+- 具体细节预算：每 ${budget.detailEvery} 轮最多给 1 个具体细节（不超过 30 字）；给完细节后下一轮必须收回、含糊或转移。
+- 短句节流：连续只说短句/沉默不超过 ${budget.shortRun} 轮；超过时，下一轮必须给一个带一点信息量的句子（10–30 字），但不解释原因。
+- 防御要有变化：在“含糊—短句—转移—一次具体回忆”之间切换，不把同一种回避重复到底；但不要变得配合、温暖或治疗性。
+- 不提供治疗性收获，不替咨询师完成会谈目标；可以停在原地，也可以比开场更僵。`;
+}
 
 /** Seed 专用附加约束：重点压“太会演、太配合、太会推进剧情”. */
 export const SEED_VISITOR_CONSTRAINTS = `## 影子来访者附加约束（优先级高于上面所有内容）
@@ -186,8 +205,14 @@ export function buildSeedV2VisitorPrompt(seed: VisitorPoolTemplateSeed, difficul
   return `${buildSeedVisitorPrompt(seed, difficulty)}\n\n${SEED_V2_VISITOR_CONSTRAINTS}`;
 }
 
+/** 渲染 Seed V3：生产同构 base + V1 格式约束 + V2 合作压制 + V3 难度预算. */
+export function buildSeedV3VisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty): string {
+  return `${buildSeedV2VisitorPrompt(seed, difficulty)}\n\n${buildSeedV3Constraints(difficulty)}`;
+}
+
 /** 按变体选择 prompt. */
 export function buildVisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty, variant: VisitorPromptVariant): string {
+  if (variant === 'seed-v3') return buildSeedV3VisitorPrompt(seed, difficulty);
   if (variant === 'seed-v2') return buildSeedV2VisitorPrompt(seed, difficulty);
   if (variant === 'seed-v1') return buildSeedVisitorPrompt(seed, difficulty);
   return buildSharedVisitorPrompt(seed, difficulty);
