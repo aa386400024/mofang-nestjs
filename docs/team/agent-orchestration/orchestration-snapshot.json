@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-21T22:36:51.690Z",
+  "generatedAt": "2026-11-21T22:41:01.708Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 2,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -99,6 +99,46 @@
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    },
+    {
+      "taskId": "AF-248",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "生产 visitor 豆包 Seed Character 路由与 V5 prompt 开关（默认关闭）",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-248/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af248-visitor-provider-2026-11-22.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-248",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-21T22:41:01.640Z",
+        "leaseDeadline": "2026-11-21T23:11:01.637Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-248.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-21T22:41:01.640Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-248.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1874,6 +1914,23 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-381",
+      "recordedAt": "2026-11-21T22:40:54.960Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-248",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-380",
       "recordedAt": "2026-11-21T22:34:19.003Z",
       "actorRef": "orchestrator",
@@ -2092,35 +2149,20 @@
       "resources": [
         "task/AF-242-af242-plot-zero-fix"
       ]
-    },
-    {
-      "auditId": "AUD-366",
-      "recordedAt": "2026-11-21T21:41:16.092Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-242",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-242",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-242.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 380,
+    "total": 381,
     "byResult": {
-      "allowed": 380,
+      "allowed": 381,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 379,
+      "TOOL-QUEUE-SCHEDULER": 380,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 380
+      "orchestrator": 381
     }
   },
   "protocolView": {
@@ -2175,6 +2217,33 @@
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-248",
+        "title": "生产 visitor 豆包 Seed Character 路由与 V5 prompt 开关（默认关闭）",
+        "type": "implementation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-243",
+          "AF-247"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-248/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af248-visitor-provider-2026-11-22.md"
           }
         ]
       }
@@ -6531,6 +6600,16 @@
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+      },
+      {
+        "taskId": "AF-248",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-248/task-sheet.md"
+      },
+      {
+        "taskId": "AF-248",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af248-visitor-provider-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",

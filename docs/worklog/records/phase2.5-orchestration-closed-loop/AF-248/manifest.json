@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-248",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-22T06:55:00+08:00",
+  "updatedAt": "2026-11-21T22:40:54.396Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-248/task-sheet.md",
+    "sha256": "d0c02cb5069cc27d229ced846cb3cb2557c56c2a2923ef056f6d23ab398643da",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af248-visitor-provider-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af248-visitor-provider-2026-11-22.md"
+  ],
+  "tombstone": null
+}
