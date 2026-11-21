@@ -25,7 +25,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { buildChatEndpoint } from './llm.endpoint.js';
 import type { LlmError, LlmMessage, LlmReasoningEffort, LlmStream, LlmStreamChunk, LlmStreamOptions, LlmUsage } from './llm.types.js';
+import { DEFAULT_DOUBAO_BASE_URL } from '../../llm/config/provider-env.js';
 
 interface MiniMaxChatRequest {
   model: string;
@@ -110,6 +112,13 @@ export class LlmService {
   private readonly baseUrl: string;
   private readonly apiKey: string;
   private readonly model: string;
+  /**
+   * V2026-11-22 建立 (AF-248): 豆包路由是 per-call 可选分支，构造时只读 env，
+   *   不改全局 MINIMAX_*；未开启豆包时不校验 key，旧部署零影响.
+   */
+  private readonly doubaoBaseUrl: string;
+  private readonly doubaoApiKey: string;
+  private readonly doubaoModel: string;
   private readonly timeoutMs: number;
   private readonly maxRetries: number;
 
@@ -117,6 +126,9 @@ export class LlmService {
     this.baseUrl = this.configMust(config, 'MINIMAX_BASE_URL');
     this.apiKey = this.configMust(config, 'MINIMAX_API_KEY');
     this.model = this.configMust(config, 'MINIMAX_LLM_MODEL');
+    this.doubaoBaseUrl = config.get<string>('LLM_DOUBAO_BASE_URL') ?? DEFAULT_DOUBAO_BASE_URL;
+    this.doubaoApiKey = config.get<string>('LLM_DOUBAO_API_KEY') ?? '';
+    this.doubaoModel = config.get<string>('LLM_DOUBAO_MODEL') ?? '';
     // V2026-10-29 治本 (WP9-B 启动验证时挖出): 这两个数值**不能**用 `config.get<number>('MINIMAX_*')`
     //   读**裸 env 键** —— ConfigService 不做类型转换, 拿到的是**字符串** ('60000'),
     //   一路传到 `AbortSignal.timeout(timeoutMs)` 就会抛
@@ -247,8 +259,17 @@ export class LlmService {
     //     - 不同时下发 max_tokens 与 max_completion_tokens: 语义歧义, 上游可能按旧字段截断
     //   验证: 1. tsc 0 错  2. 老 endpoint /agent/llm/stream 请求体与改前一致 (除 model 可选覆盖外)
     //   时间戳: 2026-10-21
+    const provider = opts.provider ?? 'minimax';
+    const apiKey = provider === 'doubao' ? this.doubaoApiKey : this.apiKey;
+    if (apiKey.trim().length === 0) {
+      throw new Error(
+        `LlmService.executeStream: provider=${provider} 缺少 API key；` +
+          `请配置 ${provider === 'doubao' ? 'LLM_DOUBAO_API_KEY' : 'MINIMAX_API_KEY'}`,
+      );
+    }
+    const fallbackModel = provider === 'doubao' && this.doubaoModel.trim().length > 0 ? this.doubaoModel : this.model;
     const request: MiniMaxChatRequest = {
-      model: opts.model ?? this.model,
+      model: opts.model ?? fallbackModel,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
       stream: true,
       temperature: opts.temperature ?? 0.7,
@@ -259,10 +280,11 @@ export class LlmService {
       ...(opts.reasoningEffort ? { reasoning_effort: opts.reasoningEffort } : {}),
     };
 
-    const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+    const baseUrl = provider === 'doubao' ? this.doubaoBaseUrl : this.baseUrl;
+    const response = await fetch(buildChatEndpoint(provider, baseUrl), {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
       },

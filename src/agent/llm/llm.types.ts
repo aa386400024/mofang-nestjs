@@ -13,6 +13,7 @@
 //     更 idiomatic, for-of 即可消费.
 //   - 不用 LlmResponse 单类型 — 流式天然多事件, union type 强制 type 判别.
 
+import type { LlmProvider } from './llm.endpoint.js';
 import type { ChatReasoningEffort } from '../../llm/common/interfaces/chat-provider.interface.js';
 
 /** OpenAI 风格 message. */
@@ -39,6 +40,12 @@ export type LlmReasoningEffort = ChatReasoningEffort;
 
 /** 流式选项. tenantId / userId 必传 (V2026-10-08 多租户治本). */
 export interface LlmStreamOptions {
+  /**
+   * V2026-11-22 建立 (AF-248 · per-call provider 路由):
+   *   默认 minimax，保持旧链路；visitor 灰度可显式切 doubao。
+   *   只改本次请求的基址 / key / 模型，不动全局 MINIMAX_* env.
+   */
+  readonly provider?: LlmProvider;
   readonly temperature?: number;
   readonly maxTokens?: number;
   readonly topP?: number;

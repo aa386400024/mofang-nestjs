@@ -25,9 +25,11 @@
 //     5. closeSession 后 memory 清理, 同 sessionId 再 openSession 创建新对象
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import { VisitorContextRegistry } from './visitor-context.js';
 import { renderSystemPrompt, VISITOR_HISTORY_SLICE_TURNS } from './visitor.prompts.js';
+import { resolveVisitorRuntime, type VisitorRuntimeConfig } from './visitor.runtime.js';
 import type {
   VisitorCloseResult,
   VisitorMessage,
@@ -50,12 +52,23 @@ export class VisitorService {
   private readonly logger = new Logger(VisitorService.name);
   /** sessionId → memory. V0.x 内存, V1.x 接 Redis (session 共享 + 持久化). */
   private readonly memories = new Map<string, VisitorSessionMemory>();
+  private readonly runtime: VisitorRuntimeConfig;
 
   constructor(
     private readonly llm: LlmService,
     @Inject(PERSONA_REPOSITORY) private readonly personas: PersonaRepository,
     private readonly contextRegistry: VisitorContextRegistry,
-  ) {}
+    config: ConfigService,
+  ) {
+    // V2026-11-22 建立 (AF-248): 启动时解析一次开关；非法取值直接启动失败，
+    //   不允许运行期静默回退到旧链路 —— 否则灰度开关看起来开了、实际没生效.
+    this.runtime = resolveVisitorRuntime({
+      provider: config.get<string>('VISITOR_LLM_PROVIDER'),
+      promptVariant: config.get<string>('VISITOR_PROMPT_VARIANT'),
+      doubaoApiKey: config.get<string>('LLM_DOUBAO_API_KEY'),
+      doubaoModel: config.get<string>('VISITOR_DOUBAO_MODEL'),
+    });
+  }
 
   /**
    * 启动 visitor session — 加载 persona, 创建 memory.
@@ -133,6 +146,8 @@ export class VisitorService {
       userId: opts.userId,
       traceId: opts.traceId,
       signal: opts.signal,
+      provider: this.runtime.llmProvider,
+      ...(this.runtime.doubaoModel === undefined ? {} : { model: this.runtime.doubaoModel }),
       temperature: 0.7,
       // V2026-10-29 治本 (WP9-C): 旧字段 `maxTokens` → 新字段 `maxCompletionTokens`.
       //   理由与引擎渲染路径同源: MiniMax-M3.1-Flash 是推理模型, **思考 token 计入
@@ -220,7 +235,7 @@ export class VisitorService {
       userId: opts.userId,
       tenantId: opts.tenantId,
     });
-    const systemPrompt = renderSystemPrompt(memory.persona, memory, blocks);
+    const systemPrompt = renderSystemPrompt(memory.persona, memory, blocks, this.runtime.promptVariant);
     const recentMessages = memory.messages.slice(-MAX_HISTORY_MESSAGES);
     return [{ role: 'system', content: systemPrompt }, ...recentMessages.map((m): LlmMessage => ({ role: m.role, content: m.content }))];
   }

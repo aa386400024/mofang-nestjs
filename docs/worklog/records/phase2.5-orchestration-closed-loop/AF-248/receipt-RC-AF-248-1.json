@@ -1,0 +1,139 @@
+{
+  "deliveredAt": "2026-11-22T06:56:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-248-1",
+    "taskId": "AF-248",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "7bfe4c98c5207e1242c20c6ad3abf1f9ac88d235",
+    "dependsOn": ["AF-243", "AF-247"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-248/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af248-visitor-provider-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "src/agent/llm/llm.endpoint.ts",
+        "src/agent/visitor/visitor.runtime.ts",
+        "test/agent/llm-endpoint.spec.ts",
+        "test/agent/visitor-prompt-v5.spec.ts",
+        "test/agent/visitor-runtime-config.spec.ts",
+        "docs/worklog/completed/phase2.5/af248-visitor-provider-2026-11-22.md"
+      ],
+      "modified": [
+        ".env.example",
+        "src/agent/llm/llm.service.ts",
+        "src/agent/llm/llm.types.ts",
+        "src/agent/visitor/visitor.prompts.ts",
+        "src/agent/visitor/visitor.service.ts"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["0ac14ad8", "63778b05"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/agent/visitor-runtime-config.spec.ts test/agent/visitor-prompt-v5.spec.ts test/agent/llm-endpoint.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 3,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1 秒",
+        "note": "13/13 通过；含旧 visitor prompt 语义标签回归时 4 files / 25 tests 全通过"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "0 error / 0 warning；定向 eslint 首轮 4 prettier + 2 import/order，eslint --fix 后复跑 0"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2 分钟",
+        "note": "CI 同口径全量 typecheck，日志 data/af248-tsc-full.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 257,
+        "machine": "同上",
+        "wallClock": "约 24 秒",
+        "note": "256 files passed + 1 skipped；4235 tests passed + 4 skipped；首轮曾 2 例 WP25 env 覆盖失败，修复后复跑全绿"
+      }
+    ],
+    "reproNotes": "首轮全量测试暴露 WP25 AST 断言看不到 runtime 回调里的 env 键，且 LLM_DOUBAO_BASE_URL 只有注释行；改为 env 快照入参 + 生产端字面量 config.get，并在 .env.example 补生效行后复跑通过。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-248 贯穿任务单、分支、交付记录与回执" },
+      { "item": "state-write", "result": "pass", "note": "register / promote / run-once 经 CLI；状态面未手改" },
+      { "item": "index-schema", "result": "pass", "note": "回执六组字段齐全，backlogItems 为 {id, impact} 对象" },
+      { "item": "event-chain", "result": "pass", "note": "AF-243 → AF-247 → AF-248 链连续，基线为 AF-247 合并 SHA" },
+      { "item": "engine-boundary", "result": "pass", "note": "未触碰 src/engine-core，diff 为空" },
+      { "item": "text-privacy", "result": "pass", "note": "记录与回执不含台词、密钥或个人信息" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与任务单、actual branch start 均为 7bfe4c98"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-production-smoke",
+        "impact": "本单只保证开关与 prompt 变体可控，未用真实 LLM_DOUBAO_API_KEY 跑端到端对练；开灰度前必须补豆包 Seed Character 生产 smoke，否则不能证明生产可用"
+      },
+      {
+        "id": "unknown-emotion-tag-projection",
+        "impact": "生产语义层只认 sad|calm|fearful|angry|happy，未知 emotion（如 anxious）会被剥离并记 warning；AF-244 已否决 prompt 硬枚举，需在 semantic-tag-parser 或 TTS 投影层归一化"
+      },
+      {
+        "id": "visitor-v5-gray-policy",
+        "impact": "V5 生产默认关闭，但灰度量级、观察指标（自然度/关系在场/合作度/失败率）与停止条件尚未定义，无法安全放量"
+      }
+    ],
+    "openQuestions": [
+      "未知 emotion 标签应映射到 fearful 还是直接剥离，尚未定稿",
+      "V5 灰度首批放量场次与回滚阈值需结合真实督导计划确定"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "runtime 解析入参",
+        "taskSays": "未指定入参形态",
+        "reality": "初版用 read(key) 回调，WP25 AST 断言看不到 env 键，全量测试 2 例失败",
+        "action": "改为 VisitorRuntimeSource 原子值快照，生产端逐键字面量 config.get('KEY')",
+        "why": "只有字面量读取点才能被 env 覆盖断言守住；回调形式会让部署契约静默漂移"
+      },
+      {
+        "item": ".env.example 范围",
+        "taskSays": "记录三个 visitor 开关",
+        "reality": "LLM_DOUBAO_BASE_URL 被 LlmService 真实读取，但模板里只有注释行",
+        "action": "补一条生效的 LLM_DOUBAO_BASE_URL 默认值行",
+        "why": "注释行不算部署契约；不补则部署方照抄模板配不上该键"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-248 的默认关闭、per-call 豆包路由、V5 prompt 变体与部署契约均按任务单落地；定向 13/13、lint 0、CI 同口径 tsc 0、全量 4235 passed 全绿；engine-core 零改动；偏差仅两处且都有机器断言与部署正确性理由。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
