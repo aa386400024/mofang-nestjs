@@ -14,6 +14,7 @@ import {
   type CalibrationRow,
 } from '../../bin/realism-calibration-analysis.js';
 import { analyzeCrossModel, type RaterScoreSet } from '../../bin/realism-cross-model-analysis.js';
+import { createRaterEndpoint } from '../../bin/realism-rater-runtime.js';
 import { REALISM_DIMENSIONS, type RealismDimension } from '../../src/auto-practice/metrics/visitor-realism-rating.js';
 import type { RealismScene } from '../../src/shared/realism/turn-shape-selector.js';
 
@@ -177,5 +178,19 @@ describe('AF-229 thinking 对照', () => {
     const comparison = compareThinkingArms(disabled, auto, rows);
     expect(comparison.recommendation).toBe('keep-disabled');
     expect(comparison.auto.meanAbsDelta).toBeGreaterThan(0.4);
+  });
+});
+
+describe('AF-229 · 评分端点透传', () => {
+  it('豆包把 service_tier 与 thinking 合并进 modelKwargs，MiniMax 拒绝越界字段', () => {
+    const env = { LLM_DOUBAO_API_KEY: 'test-key', MINIMAX_API_KEY: 'test-key' };
+    const endpoint = createRaterEndpoint(
+      { provider: 'doubao', temperature: 0.1, thinking: 'disabled', modelKwargs: { service_tier: 'flex' } },
+      { timeoutMs: 1000, env },
+    );
+    expect(endpoint.modelKwargs).toEqual({ service_tier: 'flex', thinking: { type: 'disabled' } });
+    expect(() =>
+      createRaterEndpoint({ provider: 'minimax', temperature: 0.1, modelKwargs: { service_tier: 'flex' } }, { timeoutMs: 1000, env }),
+    ).toThrow('modelKwargs 仅支持 doubao');
   });
 });

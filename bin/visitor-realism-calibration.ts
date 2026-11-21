@@ -8,8 +8,8 @@
 //     · 报告只含 packetId / 分数 / 计数 / token 统计，不含台词原文；
 //     · 不修改 R6-D 阈值、不放宽证据校验、不合并模型分数、不做真人达标声明。
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { join, relative, resolve, dirname } from 'node:path';
 
 import {
   CALIBRATION_THRESHOLDS,
@@ -133,6 +133,101 @@ function readEvalIds(path: string, expected: number): string[] {
   return ids;
 }
 
+interface RatingCacheMeta {
+  readonly protocolVersion: string;
+  readonly minimaxModel: string;
+  readonly doubaoModel: string;
+  readonly primaryTemperature: number;
+  readonly secondaryTemperature: number;
+  readonly maxOutputTokens: number;
+  readonly doubaoServiceTier: string;
+}
+
+interface RatingCacheFile {
+  readonly meta: RatingCacheMeta;
+  readonly rows: CalibrationRow[];
+}
+
+function buildCacheMeta(
+  endpoints: Readonly<Record<RaterKey, RaterEndpoint>>,
+  primaryTemperature: number,
+  secondaryTemperature: number,
+  maxOutputTokens: number,
+  doubaoServiceTier: string,
+): RatingCacheMeta {
+  return {
+    protocolVersion: PROTOCOL_VERSION,
+    minimaxModel: endpoints.minimax_t01.model,
+    doubaoModel: endpoints.doubao_disabled_t01.model,
+    primaryTemperature,
+    secondaryTemperature,
+    maxOutputTokens,
+    doubaoServiceTier,
+  };
+}
+
+function cacheKey(row: Pick<CalibrationRow, 'packetId' | 'split'>): string {
+  return `${row.split}:${row.packetId}`;
+}
+
+function sameCacheMeta(left: RatingCacheMeta, right: RatingCacheMeta): boolean {
+  return (
+    left.protocolVersion === right.protocolVersion &&
+    left.minimaxModel === right.minimaxModel &&
+    left.doubaoModel === right.doubaoModel &&
+    left.primaryTemperature === right.primaryTemperature &&
+    left.secondaryTemperature === right.secondaryTemperature &&
+    left.maxOutputTokens === right.maxOutputTokens &&
+    left.doubaoServiceTier === right.doubaoServiceTier
+  );
+}
+
+function loadRatingCache(path: string, expectedMeta: RatingCacheMeta): Map<string, CalibrationRow> {
+  if (!existsSync(path)) return new Map();
+  const parsed = JSON.parse(readFileSync(path, 'utf8')) as Partial<RatingCacheFile>;
+  if (parsed.meta === undefined || !sameCacheMeta(parsed.meta, expectedMeta)) {
+    fail(`断点评分缓存与当前协议/模型不一致：${path}。请删除该缓存或改用新的 --cache-file`);
+  }
+  if (!Array.isArray(parsed.rows)) fail(`断点评分缓存格式非法：${path}`);
+  const rows = new Map<string, CalibrationRow>();
+  for (const row of parsed.rows) {
+    if (typeof row.packetId !== 'string' || (row.split !== 'eval' && row.split !== 'anchor')) {
+      fail(`断点评分缓存包含非法行：${path}`);
+    }
+    rows.set(cacheKey(row), row);
+  }
+  return rows;
+}
+
+function writeRatingCache(path: string, meta: RatingCacheMeta, rows: Iterable<CalibrationRow>): void {
+  const dir = dirname(path);
+  mkdirSync(dir, { recursive: true });
+  const payload: RatingCacheFile = { meta, rows: [...rows] };
+  const tempPath = `${path}.tmp`;
+  writeFileSync(tempPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+  renameSync(tempPath, path);
+}
+
+async function preflightProviders(endpoints: Readonly<Record<RaterKey, RaterEndpoint>>, timeoutMs: number): Promise<void> {
+  for (const key of ['minimax_t01', 'doubao_disabled_t01'] as const) {
+    const endpoint = endpoints[key];
+    try {
+      const response = await endpoint.providerInstance.chat(
+        {
+          model: endpoint.model,
+          messages: [{ role: 'user', content: 'ok' }],
+          maxCompletionTokens: 8,
+          ...(endpoint.reasoningEffort === undefined ? {} : { reasoningEffort: endpoint.reasoningEffort }),
+        },
+        endpoint.apiKey,
+        AbortSignal.timeout(Math.min(timeoutMs, 300_000)),
+      );
+      console.log(`[PREFLIGHT] provider=${endpoint.provider} model=${endpoint.model} ok promptTokens=${response.usage.promptTokens}`);
+    } catch (error) {
+      fail(`预检 ${endpoint.provider}/${endpoint.model} 失败，未开始评分：${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+}
 function writeReport(outDir: string, report: unknown, markdown: string, sensitivity: string): void {
   mkdirSync(outDir, { recursive: true });
   writeFileSync(join(outDir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`, 'utf8');
@@ -297,6 +392,11 @@ function buildMarkdown(input: {
   readonly runtime: Readonly<Record<RaterKey, RuntimeStat>>;
   readonly totalCalls: number;
   readonly truncatedCalls: number;
+  readonly cacheEnabled: boolean;
+  readonly cachePath: string | null;
+  readonly cacheHits: number;
+  readonly doubaoModel: string;
+  readonly doubaoServiceTier: string;
 }): string {
   const lines = [
     '# AF-229 · R6-D2 AI 层面锚点校准与豆包 thinking 对照',
@@ -306,7 +406,9 @@ function buildMarkdown(input: {
     `- 声明：${AI_REALISM_DISCLAIMER}`,
     `- 生成时间：${input.generatedAt}`,
     `- 源：${input.source}`,
+    `- 豆包评分模型：${input.doubaoModel}；服务档：${input.doubaoServiceTier}${input.doubaoServiceTier === 'flex' ? '（在线推理低优，单价约为常规 50%）' : '（在线推理常规）'}`,
     `- 评分：完成 ${input.ratedPackets} / 48 packet；失败 ${input.failedPackets}；总调用 ${input.totalCalls}；截断 ${input.truncatedCalls}`,
+    `- 断点缓存：${input.cacheEnabled ? '开启' : '关闭'}；路径 ${input.cachePath ?? '-'}；命中 ${input.cacheHits} packet`,
     `- 留出锚点：${input.anchorN} packet（${input.anchorIds.join(', ')}）`,
     `- 评测集：${input.evalN} packet（${input.evalIds.join(', ')}）`,
     `- 校准判据：校准后总体绝对差 ≤ ${CALIBRATION_THRESHOLDS.overallMeanAbsDelta}；跨模型 κ ≥ ${CALIBRATION_THRESHOLDS.overallKappa}；五维 within±1 ≥ ${CALIBRATION_THRESHOLDS.dimensionWithinOne}；锚点留一法 MAE ≤ ${CALIBRATION_THRESHOLDS.looMeanAbsError}；总体校准斜率 ∈ [${CALIBRATION_THRESHOLDS.minOverallSlope}, ${CALIBRATION_THRESHOLDS.maxOverallSlope}]；区分度保留 ≥ ${CALIBRATION_THRESHOLDS.minDiscriminationRetention}；场景方向不得翻转。`,
@@ -471,6 +573,8 @@ interface RateGroupsInput {
   readonly maxParseRetries: number;
   readonly maxPacketRetries: number;
   readonly maxOutputTokens: number;
+  readonly cache?: Map<string, CalibrationRow>;
+  readonly onRated?: (row: CalibrationRow) => void;
 }
 
 interface RateFailure {
@@ -484,6 +588,7 @@ interface RateGroupsResult {
   readonly runtime: Record<RaterKey, RuntimeStat>;
   readonly rows: CalibrationRow[];
   readonly failed: RateFailure[];
+  readonly cacheHits: number;
 }
 
 interface PacketRating {
@@ -577,13 +682,23 @@ async function rateGroups(input: RateGroupsInput): Promise<RateGroupsResult> {
   >;
   const rows: CalibrationRow[] = [];
   const failed: RateFailure[] = [];
+  let cacheHits = 0;
 
   for (const group of input.groups) {
     for (const packet of group.packets) {
+      const cached = input.cache?.get(cacheKey({ packetId: packet.packetId, split: group.split }));
+      if (cached) {
+        cacheHits += 1;
+        rows.push(cached);
+        console.log(`[CACHE] ${packet.packetId} split=${group.split} 复用已完成评分，跳过六臂调用`);
+        continue;
+      }
       console.log(`[PACKET] ${packet.packetId} split=${group.split} scene=${packet.scene} turns=${packet.turns.length}`);
       const result = await ratePacketWithRetries(input, runtime, packet, group.split);
       if ('row' in result) {
         rows.push(result.row);
+        input.cache?.set(cacheKey(result.row), result.row);
+        input.onRated?.(result.row);
       } else {
         failed.push(result);
         console.error(`[FAIL] ${packet.packetId} split=${group.split} 评分失败：${result.error}`);
@@ -591,10 +706,32 @@ async function rateGroups(input: RateGroupsInput): Promise<RateGroupsResult> {
     }
   }
 
-  return { runtime, rows, failed };
+  return { runtime, rows, failed, cacheHits };
 }
 
-async function main(): Promise<void> {
+interface CliConfig {
+  readonly sourceDir: string;
+  readonly outDir: string;
+  readonly evalIdsFile: string;
+  readonly seed: number;
+  readonly maxMessages: number;
+  readonly targetEval: number;
+  readonly targetAnchor: number;
+  readonly doubaoServiceTier: 'flex' | 'default';
+  readonly timeoutMs: number;
+  readonly maxParseRetries: number;
+  readonly maxPacketRetries: number;
+  readonly maxOutputTokens: number;
+  readonly primaryTemperature: number;
+  readonly secondaryTemperature: number;
+  readonly minimaxModel: string | undefined;
+  readonly doubaoModel: string | undefined;
+  readonly cacheFile: string;
+  readonly cacheEnabled: boolean;
+  readonly dryRun: boolean;
+}
+
+function parseCliConfig(): CliConfig {
   const sourceDir = resolve(arg('--source', DEFAULT_SOURCE)!);
   const outDir = resolve(arg('--out', DEFAULT_OUT)!);
   const evalIdsFile = resolve(arg('--eval-ids-file', DEFAULT_EVAL_IDS)!);
@@ -602,15 +739,98 @@ async function main(): Promise<void> {
   const maxMessages = Math.max(4, Math.floor(numberArg('--max-messages', 32)));
   const targetEval = Math.floor(numberArg('--target-eval', GROUP_SIZE));
   const targetAnchor = Math.floor(numberArg('--target-anchor', GROUP_SIZE));
-  const timeoutMs = Math.floor(numberArg('--timeout-ms', 180_000));
-  const maxParseRetries = Math.max(0, Math.floor(numberArg('--max-parse-retries', 1)));
-  const maxPacketRetries = Math.max(0, Math.floor(numberArg('--max-packet-retries', 2)));
-  const maxOutputTokens = Math.max(1000, Math.floor(numberArg('--max-output-tokens', 8000)));
-  const primaryTemperature = numberArg('--primary-temp', 0.1);
-  const secondaryTemperature = numberArg('--secondary-temp', 0.5);
-  const minimaxModel = arg('--minimax-model') ?? undefined;
-  const doubaoModel = arg('--doubao-model') ?? undefined;
-  const dryRun = process.argv.includes('--dry-run');
+  const serviceTierArg = arg('--doubao-service-tier', 'flex')!;
+  if (serviceTierArg !== 'flex' && serviceTierArg !== 'default') {
+    fail('--doubao-service-tier 只支持 flex 或 default');
+  }
+  const doubaoServiceTier = serviceTierArg;
+  const defaultTimeoutMs = doubaoServiceTier === 'flex' ? 1_800_000 : 180_000;
+  const timeoutMs = Math.floor(numberArg('--timeout-ms', defaultTimeoutMs));
+  return {
+    sourceDir,
+    outDir,
+    evalIdsFile,
+    seed,
+    maxMessages,
+    targetEval,
+    targetAnchor,
+    doubaoServiceTier,
+    timeoutMs,
+    maxParseRetries: Math.max(0, Math.floor(numberArg('--max-parse-retries', 1))),
+    maxPacketRetries: Math.max(0, Math.floor(numberArg('--max-packet-retries', 2))),
+    maxOutputTokens: Math.max(1000, Math.floor(numberArg('--max-output-tokens', 8000))),
+    primaryTemperature: numberArg('--primary-temp', 0.1),
+    secondaryTemperature: numberArg('--secondary-temp', 0.5),
+    minimaxModel: arg('--minimax-model') ?? undefined,
+    doubaoModel: arg('--doubao-model') ?? undefined,
+    cacheFile: resolve(arg('--cache-file', join(outDir, 'ratings-cache.json'))!),
+    cacheEnabled: !process.argv.includes('--no-cache'),
+    dryRun: process.argv.includes('--dry-run'),
+  };
+}
+
+function buildEndpoints(input: {
+  readonly timeoutMs: number;
+  readonly primaryTemperature: number;
+  readonly secondaryTemperature: number;
+  readonly minimaxModel: string | undefined;
+  readonly doubaoModel: string | undefined;
+  readonly doubaoServiceTier: 'flex' | 'default';
+}): Readonly<Record<RaterKey, RaterEndpoint>> {
+  const doubaoExtra = input.doubaoServiceTier === 'flex' ? { modelKwargs: { service_tier: 'flex' } } : {};
+  const minimaxBase = {
+    provider: 'minimax' as const,
+    ...(input.minimaxModel === undefined ? {} : { model: input.minimaxModel }),
+  };
+  const doubaoBase = {
+    provider: 'doubao' as const,
+    ...(input.doubaoModel === undefined ? {} : { model: input.doubaoModel }),
+    ...doubaoExtra,
+  };
+  return {
+    minimax_t01: createRaterEndpoint({ ...minimaxBase, temperature: input.primaryTemperature }, { timeoutMs: input.timeoutMs }),
+    minimax_t05: createRaterEndpoint({ ...minimaxBase, temperature: input.secondaryTemperature }, { timeoutMs: input.timeoutMs }),
+    doubao_disabled_t01: createRaterEndpoint(
+      { ...doubaoBase, temperature: input.primaryTemperature, thinking: 'disabled' },
+      { timeoutMs: input.timeoutMs },
+    ),
+    doubao_disabled_t05: createRaterEndpoint(
+      { ...doubaoBase, temperature: input.secondaryTemperature, thinking: 'disabled' },
+      { timeoutMs: input.timeoutMs },
+    ),
+    doubao_auto_t01: createRaterEndpoint(
+      { ...doubaoBase, temperature: input.primaryTemperature, thinking: 'auto' },
+      { timeoutMs: input.timeoutMs },
+    ),
+    doubao_auto_t05: createRaterEndpoint(
+      { ...doubaoBase, temperature: input.secondaryTemperature, thinking: 'auto' },
+      { timeoutMs: input.timeoutMs },
+    ),
+  } as const;
+}
+
+async function main(): Promise<void> {
+  const {
+    sourceDir,
+    outDir,
+    evalIdsFile,
+    seed,
+    maxMessages,
+    targetEval,
+    targetAnchor,
+    doubaoServiceTier,
+    timeoutMs,
+    maxParseRetries,
+    maxPacketRetries,
+    maxOutputTokens,
+    primaryTemperature,
+    secondaryTemperature,
+    minimaxModel,
+    doubaoModel,
+    cacheFile,
+    cacheEnabled,
+    dryRun,
+  } = parseCliConfig();
 
   const evalIds = readEvalIds(evalIdsFile, targetEval);
   if (targetAnchor !== GROUP_SIZE) fail(`留出锚点固定为 ${GROUP_SIZE} 个，当前参数 ${targetAnchor}`);
@@ -638,64 +858,44 @@ async function main(): Promise<void> {
     return;
   }
 
-  const endpoints = {
-    minimax_t01: createRaterEndpoint(
-      { provider: 'minimax', ...(minimaxModel === undefined ? {} : { model: minimaxModel }), temperature: primaryTemperature },
-      { timeoutMs },
-    ),
-    minimax_t05: createRaterEndpoint(
-      { provider: 'minimax', ...(minimaxModel === undefined ? {} : { model: minimaxModel }), temperature: secondaryTemperature },
-      { timeoutMs },
-    ),
-    doubao_disabled_t01: createRaterEndpoint(
-      {
-        provider: 'doubao',
-        ...(doubaoModel === undefined ? {} : { model: doubaoModel }),
-        temperature: primaryTemperature,
-        thinking: 'disabled',
-      },
-      { timeoutMs },
-    ),
-    doubao_disabled_t05: createRaterEndpoint(
-      {
-        provider: 'doubao',
-        ...(doubaoModel === undefined ? {} : { model: doubaoModel }),
-        temperature: secondaryTemperature,
-        thinking: 'disabled',
-      },
-      { timeoutMs },
-    ),
-    doubao_auto_t01: createRaterEndpoint(
-      {
-        provider: 'doubao',
-        ...(doubaoModel === undefined ? {} : { model: doubaoModel }),
-        temperature: primaryTemperature,
-        thinking: 'auto',
-      },
-      { timeoutMs },
-    ),
-    doubao_auto_t05: createRaterEndpoint(
-      {
-        provider: 'doubao',
-        ...(doubaoModel === undefined ? {} : { model: doubaoModel }),
-        temperature: secondaryTemperature,
-        thinking: 'auto',
-      },
-      { timeoutMs },
-    ),
-  } as const;
+  const endpoints = buildEndpoints({
+    timeoutMs,
+    primaryTemperature,
+    secondaryTemperature,
+    minimaxModel,
+    doubaoModel,
+    doubaoServiceTier,
+  });
 
   const groups = [
     { split: 'eval' as const, packets: evalPackets },
     { split: 'anchor' as const, packets: anchorPackets },
   ];
-  const { runtime, rows, failed } = await rateGroups({
+  const cacheMeta = buildCacheMeta(endpoints, primaryTemperature, secondaryTemperature, maxOutputTokens, doubaoServiceTier);
+  const cache = cacheEnabled ? loadRatingCache(cacheFile, cacheMeta) : undefined;
+  const expectedRows = evalPackets.length + anchorPackets.length;
+  const cachedRows =
+    cache === undefined
+      ? 0
+      : groups.reduce(
+          (sum, group) =>
+            sum + group.packets.filter((packet) => cache.has(cacheKey({ packetId: packet.packetId, split: group.split }))).length,
+          0,
+        );
+  console.log(
+    `[CACHE] enabled=${cacheEnabled} file=${cacheEnabled ? relative(process.cwd(), cacheFile) : '-'} hit=${cachedRows}/${expectedRows}`,
+  );
+  if (cachedRows < expectedRows) await preflightProviders(endpoints, timeoutMs);
+  const onRated = cache === undefined ? undefined : () => writeRatingCache(cacheFile, cacheMeta, cache.values());
+  const { runtime, rows, failed, cacheHits } = await rateGroups({
     groups,
     endpoints,
     timeoutMs,
     maxParseRetries,
     maxPacketRetries,
     maxOutputTokens,
+    ...(cache === undefined ? {} : { cache }),
+    ...(onRated === undefined ? {} : { onRated }),
   });
 
   const evalRows = rows.filter((row) => row.split === 'eval');
@@ -736,10 +936,15 @@ async function main(): Promise<void> {
     failedPackets: failed.length,
     models: {
       minimax: { model: endpoints.minimax_t01.model, thinking: 'auto' as const },
-      doubao: { model: endpoints.doubao_disabled_t01.model },
+      doubao: { model: endpoints.doubao_disabled_t01.model, serviceTier: doubaoServiceTier },
     },
     temperatures: { primary: primaryTemperature, secondary: secondaryTemperature },
     maxOutputTokens,
+    cache: {
+      enabled: cacheEnabled,
+      path: cacheEnabled ? relative(process.cwd(), cacheFile) : null,
+      hits: cacheHits,
+    },
     thresholds: {
       calibration: CALIBRATION_THRESHOLDS,
       thinking: THINKING_THRESHOLDS,
@@ -783,6 +988,11 @@ async function main(): Promise<void> {
       runtime,
       totalCalls,
       truncatedCalls,
+      cacheEnabled,
+      cachePath: cacheEnabled ? relative(process.cwd(), cacheFile) : null,
+      cacheHits,
+      doubaoModel: endpoints.doubao_disabled_t01.model,
+      doubaoServiceTier,
     }),
     buildSensitivity({ calibration, bootstrap }),
   );

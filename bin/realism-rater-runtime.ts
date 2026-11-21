@@ -27,6 +27,8 @@ export interface RaterSpec {
   readonly thinking?: RaterThinkingMode;
   /** MiniMax 缺省 low；豆包关闭思考时不传，避免与 thinking 冲突。 */
   readonly reasoningEffort?: ChatReasoningEffort;
+  /** 仅豆包：透传上游额外字段，例如 `service_tier: 'flex'` 走低优半价档。 */
+  readonly modelKwargs?: Readonly<Record<string, unknown>>;
 }
 
 export interface RaterResolvedConfig {
@@ -81,6 +83,9 @@ export function resolveRaterConfig(spec: RaterSpec, env: Readonly<Record<string,
   if (spec.provider !== 'doubao' && thinking !== 'auto') {
     throw new Error(`thinking=${thinking} 仅支持 doubao，${spec.provider} 不支持`);
   }
+  if (spec.provider !== 'doubao' && spec.modelKwargs !== undefined) {
+    throw new Error(`modelKwargs 仅支持 doubao，${spec.provider} 不支持`);
+  }
 
   let model: string;
   let baseUrl: string | undefined;
@@ -94,13 +99,15 @@ export function resolveRaterConfig(spec: RaterSpec, env: Readonly<Record<string,
     model = provider.defaultChatModel;
     baseUrl = provider.baseUrl;
   } else {
+    const mergedKwargs: Record<string, unknown> = { ...spec.modelKwargs };
+    if (thinking !== 'auto') mergedKwargs.thinking = { type: thinking };
     const provider = new DoubaoChatProvider({
       defaultChatModel: spec.model ?? env['LLM_DOUBAO_MODEL'],
-      ...(thinking === 'auto' ? {} : { modelKwargs: { thinking: { type: thinking } } }),
+      ...(Object.keys(mergedKwargs).length === 0 ? {} : { modelKwargs: mergedKwargs }),
     });
     model = provider.defaultChatModel;
     baseUrl = provider.baseUrl;
-    if (thinking !== 'auto') modelKwargs = { thinking: { type: thinking } };
+    if (Object.keys(mergedKwargs).length > 0) modelKwargs = mergedKwargs;
   }
 
   return {
