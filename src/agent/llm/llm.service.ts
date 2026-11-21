@@ -41,6 +41,13 @@ interface MiniMaxChatRequest {
   max_completion_tokens?: number;
   /** M3.1-Flash 思考深度. 仅 M3.1-Flash 生效, 其他模型传了可能被上游拒. */
   reasoning_effort?: LlmReasoningEffort;
+  /**
+   * V2026-11-22 建立 (AF-250 · 豆包流式 usage):
+   *   火山方舟默认不在流式响应里回 token 用量；true 时会在 [DONE] 前额外返回
+   *   一个 choices=[]、usage 非空的 chunk，LlmService 的 parseSseLine 已能接住.
+   *   仅 doubao 分支下发；MiniMax 请求体保持逐字不变.
+   */
+  stream_options?: { include_usage: boolean };
 }
 
 interface MiniMaxStreamDelta {
@@ -278,6 +285,8 @@ export class LlmService {
         ? { max_tokens: opts.maxTokens ?? 2048 }
         : { max_completion_tokens: opts.maxCompletionTokens }),
       ...(opts.reasoningEffort ? { reasoning_effort: opts.reasoningEffort } : {}),
+      // AF-250: 豆包流式默认不计量；显式要求末尾 usage chunk，MiniMax 不受影响.
+      ...(provider === 'doubao' ? { stream_options: { include_usage: true } } : {}),
     };
 
     const baseUrl = provider === 'doubao' ? this.doubaoBaseUrl : this.baseUrl;
