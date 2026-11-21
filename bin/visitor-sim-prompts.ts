@@ -8,7 +8,7 @@ import { renderSystemPrompt } from '../src/agent/visitor/visitor.prompts.js';
 import type { VisitorSessionMemory } from '../src/agent/visitor/visitor.types.js';
 import type { VisitorPoolTemplateSeed } from '../src/counselor/config/visitor-pool-seed.js';
 
-export type VisitorPromptVariant = 'shared' | 'seed-v1' | 'seed-v2' | 'seed-v3';
+export type VisitorPromptVariant = 'shared' | 'seed-v1' | 'seed-v2' | 'seed-v3' | 'seed-v4';
 
 /** 12 轮固定咨询师脚本：覆盖开场、共情、封闭提问、过早建议、沉默、面质与收束. */
 export const COUNSELOR_SCRIPT: readonly string[] = [
@@ -38,6 +38,16 @@ export const SEED_V2_VISITOR_CONSTRAINTS = `## 影子来访者 V2 追加约束�
 - 允许无信息回答：“不知道。”“差不多。”“就那样。”“没什么。”“可能吧。”但不要每轮重复同一句。
 - 不说教、不安慰咨询师、不评价咨询师的水平，也不替咨询师补全话。
 - 不写旁白、舞台说明、括号动作；本条与 V1 输出格式同时生效。`;
+
+/** Seed V4：V2 基础上只加“洞察收敛”，允许一次抽象词但必须立刻收回. */
+export const SEED_V4_VISITOR_CONSTRAINTS = `## 影子来访者 V4 洞察收敛（在 V2 之后，优先级最高）
+- 允许整场最多一次接近抽象心理词的表达，例如“不配得感”“回避”“依恋”“防御”。说出后必须立刻收回、自嘲或转移，不能顺着它展开解释。
+- 抽象心理词全场最多出现一次；第二次出现即视为本轮无效。
+- 禁止完整因果链：不说“因为我小时候……所以我……”，也不说“我意识到”“原来我”“其实我是因为”。
+- 不把咨询师的假设接成自我总结；可以只说“可能吧，我也说不清”，然后停。
+- 不设计治疗性弧线：不开场防御—中间领悟—结尾松动。可以一直防御，也可以只松一次又收回。
+- 具体细节只在被追问到具体事件时给一个，不超过 30 字；给完不解释它的意义。
+- 其余 V1 输出格式与 V2 非合作约束继续生效。`;
 
 /** Seed V3：在 V2 的非合作约束上按难度分档，避免 L1 过度防御、L3 只剩短句. */
 const SEED_V3_BUDGETS: Readonly<Record<PersonaDifficulty, { directEvery: number; detailEvery: number; shortRun: number }>> = {
@@ -210,8 +220,14 @@ export function buildSeedV3VisitorPrompt(seed: VisitorPoolTemplateSeed, difficul
   return `${buildSeedV2VisitorPrompt(seed, difficulty)}\n\n${buildSeedV3Constraints(difficulty)}`;
 }
 
+/** 渲染 Seed V4：生产同构 base + V1 格式 + V2 合作压制 + V4 洞察收敛. */
+export function buildSeedV4VisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty): string {
+  return `${buildSeedV2VisitorPrompt(seed, difficulty)}\n\n${SEED_V4_VISITOR_CONSTRAINTS}`;
+}
+
 /** 按变体选择 prompt. */
 export function buildVisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty, variant: VisitorPromptVariant): string {
+  if (variant === 'seed-v4') return buildSeedV4VisitorPrompt(seed, difficulty);
   if (variant === 'seed-v3') return buildSeedV3VisitorPrompt(seed, difficulty);
   if (variant === 'seed-v2') return buildSeedV2VisitorPrompt(seed, difficulty);
   if (variant === 'seed-v1') return buildSeedVisitorPrompt(seed, difficulty);

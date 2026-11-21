@@ -10,7 +10,7 @@ import {
 } from '../src/auto-practice/metrics/visitor-realism-rating.js';
 
 export type SimProvider = 'minimax' | 'doubao';
-export type SimPromptVariant = 'shared' | 'seed-v1' | 'seed-v2' | 'seed-v3';
+export type SimPromptVariant = 'shared' | 'seed-v1' | 'seed-v2' | 'seed-v3' | 'seed-v4';
 export type SimDifficulty = 'L1' | 'L2' | 'L3';
 
 export interface SimTurnRecord {
@@ -594,4 +594,53 @@ export function evaluateGates(input: {
     };
   });
   return { gates, verdicts };
+}
+
+/** 抽象心理词/洞察弧审计的固定词表；只做离线统计，不参与评分。 */
+export const INSIGHT_LABEL_PATTERNS: readonly { label: string; pattern: RegExp }[] = [
+  { label: '不配得感', pattern: /不配得感/g },
+  { label: '意识到', pattern: /意识到/g },
+  { label: '原来我', pattern: /原来我/g },
+  { label: '其实我', pattern: /其实我/g },
+  { label: '我值得', pattern: /我值得/g },
+  { label: '相信自己', pattern: /相信自己/g },
+  { label: '创伤', pattern: /创伤/g },
+  { label: '依恋', pattern: /依恋/g },
+  { label: '防御机制', pattern: /防御机制/g },
+  { label: '回避型', pattern: /回避型/g },
+  { label: '不安全感', pattern: /不安全感/g },
+  { label: '自我价值', pattern: /自我价值/g },
+];
+
+export interface InsightAuditRow {
+  readonly arm: string;
+  readonly sessions: number;
+  readonly sessionsWithLabel: number;
+  readonly occurrences: number;
+  readonly byLabel: Readonly<Record<string, number>>;
+}
+
+/** 按 arm 统计抽象心理词出现场次与次数；同场多次只记一次 sessionWithLabel。 */
+export function auditInsightLabels(sessions: readonly SimSessionRecord[]): readonly InsightAuditRow[] {
+  const arms = [...new Set(sessions.map((session) => session.arm))].sort();
+  return arms.map((arm) => {
+    const armSessions = sessions.filter((session) => session.arm === arm);
+    const byLabel: Record<string, number> = {};
+    let sessionsWithLabel = 0;
+    let occurrences = 0;
+    for (const session of armSessions) {
+      let sessionHit = false;
+      for (const turn of session.turns) {
+        for (const item of INSIGHT_LABEL_PATTERNS) {
+          const matches = turn.visitor.match(item.pattern);
+          if (matches === null) continue;
+          byLabel[item.label] = (byLabel[item.label] ?? 0) + matches.length;
+          occurrences += matches.length;
+          sessionHit = true;
+        }
+      }
+      if (sessionHit) sessionsWithLabel += 1;
+    }
+    return { arm, sessions: armSessions.length, sessionsWithLabel, occurrences, byLabel };
+  });
 }

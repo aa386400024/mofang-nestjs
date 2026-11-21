@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   analyzeArmObjective,
   analyzeArmScores,
+  auditInsightLabels,
   evaluateGates,
   hasAgeConflict,
   invalidSemanticTags,
@@ -20,11 +21,13 @@ import {
   buildSeedV2VisitorPrompt,
   buildSeedV3Constraints,
   buildSeedV3VisitorPrompt,
+  buildSeedV4VisitorPrompt,
   buildSeedVisitorPrompt,
   buildSharedVisitorPrompt,
   buildVisitorPrompt,
   COUNSELOR_SCRIPT,
   SEED_V2_VISITOR_CONSTRAINTS,
+  SEED_V4_VISITOR_CONSTRAINTS,
   SEED_VISITOR_CONSTRAINTS,
 } from '../../bin/visitor-sim-prompts.js';
 import { VISITOR_POOL_TEMPLATE_SEEDS } from '../../src/counselor/config/visitor-pool-seed.js';
@@ -332,5 +335,33 @@ describe('AF-232 prompt 变体', () => {
     expect(l1).not.toBe(l3);
     expect(buildVisitorPrompt(seed, 'L1', 'seed-v3')).toBe(l1);
     expect(buildVisitorPrompt(seed, 'L3', 'seed-v3')).toBe(l3);
+  });
+
+  it('seed-v4 在 seed-v2 之后只加洞察收敛约束', () => {
+    const v2 = buildSeedV2VisitorPrompt(seed, 'L1');
+    const v4 = buildSeedV4VisitorPrompt(seed, 'L1');
+    expect(v4.startsWith(v2)).toBe(true);
+    expect(v4).toContain(SEED_V4_VISITOR_CONSTRAINTS);
+    expect(v4).toContain('抽象心理词全场最多出现一次');
+    expect(v4).toContain('必须立刻收回、自嘲或转移');
+    expect(v4).toContain('不设计治疗性弧线');
+    expect(buildVisitorPrompt(seed, 'L1', 'seed-v4')).toBe(v4);
+    expect(buildVisitorPrompt(seed, 'L1', 'seed-v2')).toBe(v2);
+  });
+
+  it('抽象心理词审计按 arm 统计场次与次数，同场多次只计一次场次', () => {
+    const sessions = [
+      makeSession('E', [makeTurn('可能是……不配得感？'), makeTurn('不配得感，不配得感。')]),
+      makeSession('E', [makeTurn('就是有点空。')]),
+      makeSession('G', [makeTurn('我意识到，其实我是因为怕被否定。')]),
+    ];
+    const rows = auditInsightLabels(sessions);
+    const e = rows.find((row) => row.arm === 'E');
+    const g = rows.find((row) => row.arm === 'G');
+    expect(e).toMatchObject({ sessions: 2, sessionsWithLabel: 1, occurrences: 3 });
+    expect(e?.byLabel['不配得感']).toBe(3);
+    expect(g).toMatchObject({ sessions: 1, sessionsWithLabel: 1, occurrences: 2 });
+    expect(g?.byLabel['意识到']).toBe(1);
+    expect(g?.byLabel['其实我']).toBe(1);
   });
 });

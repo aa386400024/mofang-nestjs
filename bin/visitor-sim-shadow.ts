@@ -15,6 +15,7 @@ import {
   type SimArmObjective,
   type SimArmScores,
   type SimDifficulty,
+  type SimPromptVariant,
   type SimScoredSession,
   type SimTurnRecord,
   type SimVerdict,
@@ -113,6 +114,15 @@ function resolveDifficulty(value: string): SimDifficulty {
   fail(`未知难度：${value}`);
 }
 
+const PROMPT_VARIANTS: readonly SimPromptVariant[] = ['shared', 'seed-v1', 'seed-v2', 'seed-v3', 'seed-v4'];
+
+function resolvePromptVariant(value: unknown): SimPromptVariant {
+  if (typeof value === 'string' && (PROMPT_VARIANTS as readonly string[]).includes(value)) {
+    return value as SimPromptVariant;
+  }
+  return 'shared';
+}
+
 function providerConfig(arm: ShadowArm): { baseUrl: string; apiKey: string } {
   if (arm.provider === 'doubao') {
     const baseUrl = process.env['LLM_DOUBAO_BASE_URL']?.trim();
@@ -172,14 +182,7 @@ function loadGeneratedSessions(dir: string): readonly GeneratedSession[] {
       arm: String(meta['arm'] ?? '?'),
       provider: meta['provider'] === 'doubao' ? 'doubao' : 'minimax',
       model: String(meta['model'] ?? '?'),
-      promptVariant:
-        meta['promptVariant'] === 'seed-v3'
-          ? 'seed-v3'
-          : meta['promptVariant'] === 'seed-v2'
-            ? 'seed-v2'
-            : meta['promptVariant'] === 'seed-v1'
-              ? 'seed-v1'
-              : 'shared',
+      promptVariant: resolvePromptVariant(meta['promptVariant']),
       personaId: String(parsed['characterSlug'] ?? '?'),
       personaLabel: String(parsed['characterLabel'] ?? '?'),
       difficulty: meta['difficulty'] === 'L1' || meta['difficulty'] === 'L2' || meta['difficulty'] === 'L3' ? meta['difficulty'] : 'L1',
