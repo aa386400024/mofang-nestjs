@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-21T18:16:30.743Z",
+  "generatedAt": "2026-11-21T19:05:57.580Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 2,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -100,46 +100,6 @@ window.ORCH_SNAPSHOT = {
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    },
-    {
-      "taskId": "AF-232",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "R6-D4 来访者模拟器 Seed Character 2×2 影子对照",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-232/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af232-seed-character-visitor-shadow-2026-11-22.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-232",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-21T18:16:30.680Z",
-        "leaseDeadline": "2026-11-21T18:46:30.677Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-232.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-21T18:16:30.680Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-232.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1915,6 +1875,36 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-340",
+      "recordedAt": "2026-11-21T18:16:50.917Z",
+      "actorRef": "orchestrator",
+      "correlationId": "branch:create:AF-232",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "task/AF-232-seed-character-visitor-shadow"
+      ]
+    },
+    {
+      "auditId": "AUD-339",
+      "recordedAt": "2026-11-21T18:16:30.845Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-232",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-232",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-232.json"
+      ]
+    },
+    {
       "auditId": "AUD-338",
       "recordedAt": "2026-11-21T18:16:20.378Z",
       "actorRef": "orchestrator",
@@ -2120,52 +2110,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-226.json"
       ]
-    },
-    {
-      "auditId": "AUD-325",
-      "recordedAt": "2026-11-21T05:09:52.653Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-226",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
-    },
-    {
-      "auditId": "AUD-324",
-      "recordedAt": "2026-11-21T04:27:11.247Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-225",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-225-realism-r6b-scoring-stability"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 338,
+    "total": 340,
     "byResult": {
-      "allowed": 338,
+      "allowed": 340,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 337,
+      "TOOL-QUEUE-SCHEDULER": 339,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 338
+      "orchestrator": 340
     }
   },
   "protocolView": {
@@ -2216,32 +2174,6 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-232",
-        "title": "R6-D4 来访者模拟器 Seed Character 2×2 影子对照",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-227"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-232/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af232-seed-character-visitor-shadow-2026-11-22.md"
           }
         ]
       }
@@ -6294,6 +6226,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-232",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-232/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af232-seed-character-visitor-shadow-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -6323,16 +6273,6 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-      },
-      {
-        "taskId": "AF-232",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-232/task-sheet.md"
-      },
-      {
-        "taskId": "AF-232",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af232-seed-character-visitor-shadow-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -6346,5 +6286,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 236
+  "archivedCount": 237
 };
