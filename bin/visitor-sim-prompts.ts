@@ -8,7 +8,7 @@ import { renderSystemPrompt } from '../src/agent/visitor/visitor.prompts.js';
 import type { VisitorSessionMemory } from '../src/agent/visitor/visitor.types.js';
 import type { VisitorPoolTemplateSeed } from '../src/counselor/config/visitor-pool-seed.js';
 
-export type VisitorPromptVariant = 'shared' | 'seed-v1' | 'seed-v2' | 'seed-v3' | 'seed-v4';
+export type VisitorPromptVariant = 'shared' | 'seed-v1' | 'seed-v2' | 'seed-v3' | 'seed-v4' | 'seed-v5';
 
 /** 12 轮固定咨询师脚本：覆盖开场、共情、封闭提问、过早建议、沉默、面质与收束. */
 export const COUNSELOR_SCRIPT: readonly string[] = [
@@ -68,6 +68,14 @@ export function buildSeedV3Constraints(difficulty: PersonaDifficulty): string {
 - 不提供治疗性收获，不替咨询师完成会谈目标；可以停在原地，也可以比开场更僵。`;
 }
 
+/** Seed V5：在 V4 的洞察抑制上改为“零抽象标签 + 接触防御”，补关系在场. */
+export const SEED_V5_VISITOR_CONSTRAINTS = `## 影子来访者 V5 接触防御（优先级最高，覆盖 V4 的抽象词额度）
+- V4 的“允许一次抽象心理词”在本场作废。全场禁止出现这些词：不配得感、回避、依恋、防御、创伤、投射、边界、自我价值、内在小孩、共情、压抑、理智化；说出任意一个即视为本轮无效。
+- 接触防御：每 2 轮至少 1 轮回应咨询师这句话给你当下的反应（身体、态度或动作），但不确认对方的假设，也不接成自我总结。可以说“你这么一问，我有点烦。”“你刚才说慢慢来，我反倒更想快点说完。”“你别老盯着我，我不习惯。”
+- 情绪具体化：只写身体感受或行为冲动，例如胸口闷、手心出汗、想抽烟、想笑、脑子空白、想走；不命名心理机制，不解释为什么。
+- 允许重复同一个具体细节，像真人卡住；不新增重大事实、不推进剧情、不设计“防御—领悟—松动”的治疗性弧线。
+- 不把咨询师的话翻译成“我意识到”“原来我”“其实我是因为”；可以只说“你这么说我更乱”。
+- V1 输出格式、V2 不提问与不配合、V4 无完整因果链继续生效。`;
 /** Seed 专用附加约束：重点压“太会演、太配合、太会推进剧情”. */
 export const SEED_VISITOR_CONSTRAINTS = `## 影子来访者附加约束（优先级高于上面所有内容）
 - 你是来访者，不是叙事者、助手、咨询师或旁白。只输出来访者自己会说出口的话。
@@ -225,8 +233,14 @@ export function buildSeedV4VisitorPrompt(seed: VisitorPoolTemplateSeed, difficul
   return `${buildSeedV2VisitorPrompt(seed, difficulty)}\n\n${SEED_V4_VISITOR_CONSTRAINTS}`;
 }
 
+/** 渲染 Seed V5：生产同构 base + V1 格式 + V2 合作压制 + V4 洞察收敛 + V5 接触防御. */
+export function buildSeedV5VisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty): string {
+  return `${buildSeedV4VisitorPrompt(seed, difficulty)}\n\n${SEED_V5_VISITOR_CONSTRAINTS}`;
+}
+
 /** 按变体选择 prompt. */
 export function buildVisitorPrompt(seed: VisitorPoolTemplateSeed, difficulty: PersonaDifficulty, variant: VisitorPromptVariant): string {
+  if (variant === 'seed-v5') return buildSeedV5VisitorPrompt(seed, difficulty);
   if (variant === 'seed-v4') return buildSeedV4VisitorPrompt(seed, difficulty);
   if (variant === 'seed-v3') return buildSeedV3VisitorPrompt(seed, difficulty);
   if (variant === 'seed-v2') return buildSeedV2VisitorPrompt(seed, difficulty);

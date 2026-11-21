@@ -10,7 +10,7 @@ import {
 } from '../src/auto-practice/metrics/visitor-realism-rating.js';
 
 export type SimProvider = 'minimax' | 'doubao';
-export type SimPromptVariant = 'shared' | 'seed-v1' | 'seed-v2' | 'seed-v3' | 'seed-v4';
+export type SimPromptVariant = 'shared' | 'seed-v1' | 'seed-v2' | 'seed-v3' | 'seed-v4' | 'seed-v5';
 export type SimDifficulty = 'L1' | 'L2' | 'L3';
 
 export interface SimTurnRecord {
