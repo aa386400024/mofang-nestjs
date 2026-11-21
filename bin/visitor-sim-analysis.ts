@@ -370,7 +370,10 @@ function mergeMetrics(items: readonly SimObjectiveMetrics[]): SimObjectiveMetric
     'completionTokens',
     'reasoningTokens',
   ] as const;
-  const summed = Object.fromEntries(sumFields.map((field) => [field, items.reduce((sum, item) => sum + item[field], 0)]));
+  const summed = Object.fromEntries(sumFields.map((field) => [field, items.reduce((sum, item) => sum + item[field], 0)])) as Record<
+    (typeof sumFields)[number],
+    number
+  >;
   const sessions = Number(summed.sessions ?? 0);
   const turns = Number(summed.turns ?? 0);
   const weightedMean = (field: 'meanVisibleChars' | 'visibleCharsStd'): number => round6(mean(items.map((item) => item[field])));

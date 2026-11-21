@@ -16,7 +16,6 @@ import {
   type SimArmScores,
   type SimDifficulty,
   type SimScoredSession,
-  type SimSessionRecord,
   type SimTurnRecord,
   type SimVerdict,
   type SimRaterScore,
@@ -40,7 +39,6 @@ const DEFAULT_PERSONAS = [
   'vpt_grief_avoidance_l1',
 ] as const;
 const DEFAULT_DIFFICULTIES: readonly SimDifficulty[] = ['L1', 'L2', 'L3'];
-const DIFFICULTY_LABELS: Readonly<Record<SimDifficulty, string>> = { L1: '入门', L2: '进阶', L3: '专家' };
 
 function arg(name: string, fallback: string | null = null): string | null {
   const index = process.argv.indexOf(name);
@@ -83,19 +81,8 @@ function writeJson(file: string, value: unknown): void {
   writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
 
-function round(value: number): number {
-  return Math.round(value * 1_000_000) / 1_000_000;
-}
-
-function percentile(values: readonly number[], p: number): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((left, right) => left - right);
-  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1));
-  return sorted[index] ?? 0;
-}
-
 async function mapLimit<T, R>(items: readonly T[], limit: number, task: (item: T, index: number) => Promise<R>): Promise<R[]> {
-  const results = Array.from({ length: items.length });
+  const results: R[] = Array.from({ length: items.length }, () => null as unknown as R);
   let next = 0;
   async function worker(): Promise<void> {
     while (true) {
@@ -128,7 +115,7 @@ function resolveDifficulty(value: string): SimDifficulty {
 
 function providerConfig(arm: ShadowArm): { baseUrl: string; apiKey: string } {
   if (arm.provider === 'doubao') {
-    const baseUrl = process.env.LLM_DOUBAO_BASE_URL?.trim();
+    const baseUrl = process.env['LLM_DOUBAO_BASE_URL']?.trim();
     return {
       baseUrl: baseUrl === undefined || baseUrl.length === 0 ? 'https://ark.cn-beijing.volces.com/api/v3' : baseUrl,
       apiKey: envRequired('LLM_DOUBAO_API_KEY'),
@@ -295,15 +282,13 @@ async function generateAll(input: {
   });
 }
 
-type ScoreCache = Readonly<
-  Record<
-    string,
-    | {
-        readonly r1: SimRaterScore;
-        readonly r2: SimRaterScore;
-      }
-    | undefined
-  >
+type ScoreCache = Record<
+  string,
+  | {
+      readonly r1: SimRaterScore;
+      readonly r2: SimRaterScore;
+    }
+  | undefined
 >;
 
 function scoreFromAttempt(
@@ -441,19 +426,18 @@ async function scoreAll(input: {
   });
   writeJson(failuresFile, failures);
 
-  const scoredSessions: SimScoredSession[] = sessions
-    .map((session) => {
-      const packetId = deriveRealismPacketId(session.sessionId, input.seed);
-      const entry = cache[packetId];
-      if (entry === undefined) return null;
-      return {
-        sessionId: session.sessionId,
-        arm: session.arm,
-        difficulty: session.difficulty,
-        scores: [entry.r1, entry.r2],
-      } satisfies SimScoredSession;
-    })
-    .filter((item): item is SimScoredSession => item !== null);
+  const scoredSessions: SimScoredSession[] = [];
+  for (const session of sessions) {
+    const packetId = deriveRealismPacketId(session.sessionId, input.seed);
+    const entry = cache[packetId];
+    if (entry === undefined) continue;
+    scoredSessions.push({
+      sessionId: session.sessionId,
+      arm: session.arm,
+      difficulty: session.difficulty,
+      scores: [entry.r1, entry.r2],
+    });
+  }
   writeJson(join(input.outDir, 'scores.json'), {
     packetId: 'derived-from-session-id',
     sessions: scoredSessions,

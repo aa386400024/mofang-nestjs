@@ -123,6 +123,8 @@ export function personaFromSeed(seed: VisitorPoolTemplateSeed, difficulty: Perso
     voiceId: 'mandarin_female_001',
     knowledgeRefs: [],
     isActive: true,
+    createdAt: new Date(0),
+    updatedAt: new Date(0),
   } as Persona;
   return persona;
 }
