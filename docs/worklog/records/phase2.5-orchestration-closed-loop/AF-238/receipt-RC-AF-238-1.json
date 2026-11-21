@@ -1,0 +1,114 @@
+{
+  "deliveredAt": "2026-11-22T04:42:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-238-1",
+    "taskId": "AF-238",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "1788df71f7d206430ab4dbeb1ecb559707f0c7e2",
+    "dependsOn": ["AF-237"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-238/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af238-seed-v2-stability-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": ["docs/worklog/completed/phase2.5/af238-seed-v2-stability-2026-11-22.md"],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec tsx bin/visitor-sim-shadow.ts --mode generate --arms C,E --out data/phase25-exit/af238-seed-v2-stability/r2",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 2 分钟",
+        "note": "24/24 场，0 失败"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-sim-shadow.ts --mode generate --arms C,E --out data/phase25-exit/af238-seed-v2-stability/r3",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2 分钟",
+        "note": "24/24 场，0 失败"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-sim-shadow.ts --mode score --arms A,C,E --out .../r2 --max-packets 36 --concurrency 2",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 1,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 3 分钟",
+        "note": "36 场，35 份评分；1 份 R2 解析失败"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-sim-shadow.ts --mode score --arms A,C,E --out .../r3 --max-packets 36 --concurrency 2",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 3 分钟",
+        "note": "36/36 场、36 份评分，0 failure"
+      },
+      {
+        "command": "pnpm orchestration:worklog:verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "秒级",
+        "note": "PASS strict"
+      }
+    ],
+    "reproNotes": "只跑离线实验与写记录，不改代码。C/E 各新增 2 轮生成；A 复用 AF-232 同内容。三轮独立评分。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      { "item": "taskId", "result": "pass", "note": "AF-238 贯穿任务单、分支、交付记录与回执" },
+      { "item": "state-write", "result": "pass", "note": "register / promote / run-once / branch create 经 CLI" },
+      { "item": "index-schema", "result": "pass", "note": "回执六组标记齐全" },
+      { "item": "event-chain", "result": "pass", "note": "AF-238 事件连续" },
+      { "item": "engine-boundary", "result": "pass", "note": "未触碰 src/engine-core" },
+      { "item": "text-privacy", "result": "pass", "note": "记录不含台词原文与密钥" }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "任务单 baselineRef、分支基线、交付记录与回执均为 1788df71"
+    },
+    "backlogItems": [],
+    "openQuestions": [
+      "firstTokenP95 聚合是否应从 max(单场 P95) 改为全局 turn 样本 P95；已建议另开 AF-239"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "item": "硬门槛 r2 失败解释",
+        "taskSays": "判断 seed-v2 是否稳定",
+        "reality": "r2 E 的 first-token-p95 报告 2981ms，但按 144 轮全局重算是 900ms，聚合取 max 导致虚高",
+        "action": "在交付记录中单列指标聚合缺陷，并建议 AF-239 修复；本任务不改代码",
+        "why": "AF-238 任务范围限定只跑实验与写记录，代码修复需另开任务"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "E 合作指数三轮 0.0972/0.0903/0.1111，全部低于 C 与 0.12 阈值；均分三轮均值 3.986 高于 C 3.904。发现 firstTokenP95 聚合取 max 的缺陷并已登记后续任务。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
