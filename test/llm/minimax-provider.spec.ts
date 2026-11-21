@@ -199,12 +199,23 @@ describe('MiniMax · chat provider 接入', () => {
       const doubao = registry.resolveChat(AIProviderId.DOUBAO);
       expect(doubao?.config.apiKey).toBe(FAKE_DOUBAO_KEY);
       expect(doubao?.config.baseUrl).toBe('https://ark.cn-beijing.volces.com/api/v3');
-      expect(doubao?.config.defaultChatModel).toBe('doubao-pro-32k');
+      expect(doubao?.config.defaultChatModel).toBe('doubao-seed-2-1-pro-260915');
 
       const qwen = registry.resolveChat(AIProviderId.QWEN);
       expect(qwen?.config.apiKey).toBe(FAKE_QWEN_KEY);
       expect(qwen?.config.baseUrl).toBe('https://dashscope.aliyuncs.com/compatible-mode/v1');
       expect(qwen?.config.defaultChatModel).toBe('qwen-plus');
+    });
+
+    it('豆包默认模型由 LLM_DOUBAO_MODEL 覆盖，空白回落当前可用型号', () => {
+      const overridden = register({
+        LLM_DOUBAO_API_KEY: FAKE_DOUBAO_KEY,
+        LLM_DOUBAO_MODEL: 'doubao-seed-2-1-pro-260915',
+      });
+      expect(overridden.resolveChat(AIProviderId.DOUBAO)?.config.defaultChatModel).toBe('doubao-seed-2-1-pro-260915');
+
+      const blank = register({ LLM_DOUBAO_API_KEY: FAKE_DOUBAO_KEY, LLM_DOUBAO_MODEL: ' '.repeat(3) });
+      expect(blank.resolveChat(AIProviderId.DOUBAO)?.config.defaultChatModel).toBe('doubao-seed-2-1-pro-260915');
     });
 
     it('tier 映射表既有条目不受影响', () => {

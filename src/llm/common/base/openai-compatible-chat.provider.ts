@@ -82,6 +82,13 @@ export interface OpenAICompatibleConfig {
    * 后者已被显式置 0 (见 buildLLM), 否则会有两层重试相乘.
    */
   readonly maxRetries?: number;
+  /**
+   * provider 级额外上游请求字段 (原样展开进请求体).
+   *
+   * 用途: 厂商专有开关, 如豆包 `thinking: { type: 'disabled' }`.
+   * 边界: 只放**部署/实例级固定值**; 单次调用的差异仍走 ChatCompletionRequest.
+   */
+  readonly modelKwargs?: Readonly<Record<string, unknown>>;
 }
 
 /**
@@ -95,6 +102,8 @@ export interface OpenAICompatibleChatOptions {
   readonly requestTimeoutMs?: number;
   /** 显式退避层的最大重试次数 (缺省 = `DEFAULT_LLM_MAX_RETRIES`). */
   readonly maxRetries?: number;
+  /** provider 级额外上游请求字段 (如豆包 thinking 开关). */
+  readonly modelKwargs?: Readonly<Record<string, unknown>>;
 }
 
 /**
@@ -120,6 +129,8 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
   protected readonly requestTimeoutMs?: number;
   /** 显式退避层的最大重试次数. */
   protected readonly maxRetries: number;
+  /** provider 级额外上游请求字段；每次 buildLLM 时与子类字段映射合并. */
+  protected readonly defaultModelKwargs?: Readonly<Record<string, unknown>>;
   /** 重试观测日志 (只打状态码/错误类型名, 不打内容). */
   private readonly logger = new Logger(this.constructor.name);
 
@@ -131,6 +142,7 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
     this.customHeaders = cfg.customHeaders;
     this.requestTimeoutMs = cfg.requestTimeoutMs;
     this.maxRetries = cfg.maxRetries ?? DEFAULT_LLM_MAX_RETRIES;
+    this.defaultModelKwargs = cfg.modelKwargs;
   }
 
   /**
@@ -385,6 +397,7 @@ export abstract class OpenAICompatibleChatProvider implements ChatProvider {
     return {
       ...(limit === undefined ? {} : { maxTokens: limit }),
       ...(request.reasoningEffort === undefined ? {} : { reasoningEffort: request.reasoningEffort }),
+      ...(this.defaultModelKwargs === undefined ? {} : { modelKwargs: { ...this.defaultModelKwargs } }),
     };
   }
 }
