@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-21T09:11:21.986Z",
+  "generatedAt": "2026-11-21T09:15:58.790Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,55 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-227",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "来访者真人度 R6-D：MiniMax × 豆包 Seed 2.1 Pro 跨模型评分校验",
-      "status": "submitted",
-      "verdict": "passed",
-      "verdictRationale": "机读护栏全绿且无人工复核项",
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-227/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af227-realism-r6d-cross-model-2026-21.md",
-        "reply": null,
-        "others": [
-          "data/phase25-exit/af227-realism-cross-model/report.json",
-          "data/phase25-exit/af227-realism-cross-model/summary.md",
-          "data/phase25-exit/af227-realism-cross-model/sensitivity.md",
-          "data/phase25-exit/af227-realism-cross-model/packet-ids.txt",
-          "data/phase25-exit/af227-realism-cross-model/run.log"
-        ]
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-227",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-21T08:36:09.722Z",
-        "leaseDeadline": "2026-11-21T09:06:09.718Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-227.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-21T08:36:09.722Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-227.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -2086,34 +2038,7 @@ window.ORCH_SNAPSHOT = {
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-227",
-        "title": "来访者真人度 R6-D：MiniMax × 豆包 Seed 2.1 Pro 跨模型评分校验",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-226"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-227/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af227-realism-r6d-cross-model-2026-21.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -6108,6 +6033,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af226-realism-r6c-online-scenes-2026-11-21.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-227",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-227/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af227-realism-r6d-cross-model-2026-21.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -6122,22 +6065,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-227",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-227/task-sheet.md"
-      },
-      {
-        "taskId": "AF-227",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af227-realism-r6d-cross-model-2026-21.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -6145,5 +6075,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 233
+  "archivedCount": 234
 };
