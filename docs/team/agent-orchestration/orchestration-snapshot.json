@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-21T20:53:35.461Z",
+  "generatedAt": "2026-11-21T20:58:39.608Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 2,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -99,6 +99,46 @@
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    },
+    {
+      "taskId": "AF-240",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "Seed Character 来访者 prompt V3 难度分档与三轮对照",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-240/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af240-seed-v3-difficulty-2026-11-22.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-240",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-21T20:58:39.549Z",
+        "leaseDeadline": "2026-11-21T21:28:39.546Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-240.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-21T20:58:39.549Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-240.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1874,6 +1914,23 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-359",
+      "recordedAt": "2026-11-21T20:58:33.065Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-240",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-358",
       "recordedAt": "2026-11-21T20:46:45.336Z",
       "actorRef": "orchestrator",
@@ -2094,35 +2151,20 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-344",
-      "recordedAt": "2026-11-21T19:15:02.157Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-234",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-234",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-234.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 358,
+    "total": 359,
     "byResult": {
-      "allowed": 358,
+      "allowed": 359,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 357,
+      "TOOL-QUEUE-SCHEDULER": 358,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 358
+      "orchestrator": 359
     }
   },
   "protocolView": {
@@ -2177,6 +2219,32 @@
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-240",
+        "title": "Seed Character 来访者 prompt V3 难度分档与三轮对照",
+        "type": "implementation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-239"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-240/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af240-seed-v3-difficulty-2026-11-22.md"
           }
         ]
       }
@@ -6407,6 +6475,16 @@
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+      },
+      {
+        "taskId": "AF-240",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-240/task-sheet.md"
+      },
+      {
+        "taskId": "AF-240",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af240-seed-v3-difficulty-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",

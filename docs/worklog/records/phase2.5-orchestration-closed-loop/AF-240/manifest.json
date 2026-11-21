@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-240",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-22T05:00:00+08:00",
+  "updatedAt": "2026-11-21T20:58:32.553Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-240/task-sheet.md",
+    "sha256": "297b15367f93140f38133c70a54cd507ef1f9fa356a718ad16bae9ae8ed8abbe",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af240-seed-v3-difficulty-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af240-seed-v3-difficulty-task.md"
+  ],
+  "tombstone": null
+}
