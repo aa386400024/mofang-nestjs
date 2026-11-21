@@ -172,7 +172,14 @@ function loadGeneratedSessions(dir: string): readonly GeneratedSession[] {
       arm: String(meta['arm'] ?? '?'),
       provider: meta['provider'] === 'doubao' ? 'doubao' : 'minimax',
       model: String(meta['model'] ?? '?'),
-      promptVariant: meta['promptVariant'] === 'seed-v2' ? 'seed-v2' : meta['promptVariant'] === 'seed-v1' ? 'seed-v1' : 'shared',
+      promptVariant:
+        meta['promptVariant'] === 'seed-v3'
+          ? 'seed-v3'
+          : meta['promptVariant'] === 'seed-v2'
+            ? 'seed-v2'
+            : meta['promptVariant'] === 'seed-v1'
+              ? 'seed-v1'
+              : 'shared',
       personaId: String(parsed['characterSlug'] ?? '?'),
       personaLabel: String(parsed['characterLabel'] ?? '?'),
       difficulty: meta['difficulty'] === 'L1' || meta['difficulty'] === 'L2' || meta['difficulty'] === 'L3' ? meta['difficulty'] : 'L1',
