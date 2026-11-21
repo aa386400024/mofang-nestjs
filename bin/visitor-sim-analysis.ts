@@ -344,7 +344,10 @@ function metricsFor(turns: readonly SimTurnRecord[], ageRange: string): SimObjec
   };
 }
 
-function mergeMetrics(items: readonly SimObjectiveMetrics[]): SimObjectiveMetrics {
+function mergeMetrics(
+  items: readonly SimObjectiveMetrics[],
+  turnDurations: readonly Pick<SimTurnRecord, 'firstTokenMs' | 'totalMs'>[] = [],
+): SimObjectiveMetrics {
   if (items.length === 0) {
     return metricsFor([], '0-0');
   }
@@ -377,10 +380,15 @@ function mergeMetrics(items: readonly SimObjectiveMetrics[]): SimObjectiveMetric
   const sessions = Number(summed.sessions ?? 0);
   const turns = Number(summed.turns ?? 0);
   const weightedMean = (field: 'meanVisibleChars' | 'visibleCharsStd'): number => round6(mean(items.map((item) => item[field])));
-  const p50 = Math.round(mean(items.map((item) => item.firstTokenP50Ms)));
-  const p95 = Math.round(Math.max(...items.map((item) => item.firstTokenP95Ms)));
-  const totalP50 = Math.round(mean(items.map((item) => item.totalP50Ms)));
-  const totalP95 = Math.round(Math.max(...items.map((item) => item.totalP95Ms)));
+  const firstTokens = turnDurations.map((turn) => turn.firstTokenMs);
+  const totalDurations = turnDurations.map((turn) => turn.totalMs);
+  const sampleLength = firstTokens.length;
+  const p50 = sampleLength > 0 ? Math.round(percentile(firstTokens, 50)) : Math.round(mean(items.map((item) => item.firstTokenP50Ms)));
+  const p95 =
+    sampleLength > 0 ? Math.round(percentile(firstTokens, 95)) : Math.round(Math.max(...items.map((item) => item.firstTokenP95Ms)));
+  const totalP50 = sampleLength > 0 ? Math.round(percentile(totalDurations, 50)) : Math.round(mean(items.map((item) => item.totalP50Ms)));
+  const totalP95 =
+    sampleLength > 0 ? Math.round(percentile(totalDurations, 95)) : Math.round(Math.max(...items.map((item) => item.totalP95Ms)));
   return {
     ...(summed as unknown as SimObjectiveMetrics),
     sessions,
@@ -421,10 +429,19 @@ export function analyzeArmObjective(sessions: readonly SimSessionRecord[]): SimA
     session,
     metrics: metricsFor(session.turns, ageRangeForPersona(session.personaId)),
   }));
-  const overall = mergeMetrics(perSession.map((item) => item.metrics));
+  const overall = mergeMetrics(
+    perSession.map((item) => item.metrics),
+    perSession.flatMap((item) => item.session.turns),
+  );
   const byDifficulty: SimDifficultyObjective[] = (['L1', 'L2', 'L3'] as const).map((difficulty) => {
     const subset = perSession.filter((item) => item.session.difficulty === difficulty);
-    return { difficulty, ...mergeMetrics(subset.map((item) => item.metrics)) };
+    return {
+      difficulty,
+      ...mergeMetrics(
+        subset.map((item) => item.metrics),
+        subset.flatMap((item) => item.session.turns),
+      ),
+    };
   });
   return {
     arm: first.arm,
