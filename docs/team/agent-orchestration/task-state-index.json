@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1124,
+    "lastEventSeq": 1126,
     "rebuiltAt": null
   },
   "tasks": [
@@ -264,87 +264,6 @@
       "outOfScope": [],
       "constraints": [],
       "promotedAt": "2026-11-21T17:22:09.016Z"
-    },
-    {
-      "taskId": "AF-253",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-21T23:46:07.805Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "AF-252 返修：scope 与记录护栏"
-        },
-        {
-          "at": "2026-11-21T23:46:15.349Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "AF-252 返修：补齐 .env.example scope 与交付记录护栏字段",
-      "type": "fix",
-      "baselineRef": "1e84b267",
-      "dependsOn": [],
-      "priorTasks": [
-        "AF-252"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-21T23:46:07.449Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          ".env.example",
-          "src/engine-adapters/wiring/",
-          "test/engine-adapters/",
-          "docs/worklog/completed/phase2.5/",
-          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-253/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af253-af252-rework-2026-11-22.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec vitest run test/engine-adapters/af252-visitor-render-provider.spec.ts test/engine-adapters/af210-render-model-override.spec.ts",
-          "check": "AF-252 候选切换与旧行为回归仍全绿",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "0 error",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm exec tsc --noEmit -p tsconfig.json",
-          "check": "CI 全量 typecheck 0 error",
-          "threshold": "exit=0"
-        }
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af253-af252-rework-2026-11-22.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "successCriteria": [],
-      "outOfScope": [],
-      "constraints": [],
-      "promotedAt": "2026-11-21T23:46:07.804Z"
     }
   ],
   "archivedTasks": [
@@ -2625,6 +2544,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-252/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af252-visitor-render-provider-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-253",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-253/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af253-af252-rework-2026-11-22.md",
         "reply": null
       }
     }
