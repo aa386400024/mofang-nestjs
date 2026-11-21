@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-21T22:08:25.822Z",
+  "generatedAt": "2026-11-21T22:13:47.850Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 2,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -100,6 +100,46 @@ window.ORCH_SNAPSHOT = {
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    },
+    {
+      "taskId": "AF-245",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "V5 逐 persona 差异审计工具与过拟合检查",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-245/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af245-persona-delta-2026-11-22.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-245",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-21T22:13:47.788Z",
+        "leaseDeadline": "2026-11-21T22:43:47.785Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-245.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-21T22:13:47.788Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-245.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1875,6 +1915,23 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-374",
+      "recordedAt": "2026-11-21T22:13:41.017Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-245",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-373",
       "recordedAt": "2026-11-21T22:02:10.407Z",
       "actorRef": "orchestrator",
@@ -2091,37 +2148,20 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-240.json"
       ]
-    },
-    {
-      "auditId": "AUD-359",
-      "recordedAt": "2026-11-21T20:58:33.065Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-240",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 373,
+    "total": 374,
     "byResult": {
-      "allowed": 373,
+      "allowed": 374,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 372,
+      "TOOL-QUEUE-SCHEDULER": 373,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 373
+      "orchestrator": 374
     }
   },
   "protocolView": {
@@ -2176,6 +2216,32 @@ window.ORCH_SNAPSHOT = {
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+          }
+        ]
+      },
+      {
+        "taskId": "AF-245",
+        "title": "V5 逐 persona 差异审计工具与过拟合检查",
+        "type": "implementation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-243"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-245/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af245-persona-delta-2026-11-22.md"
           }
         ]
       }
@@ -6496,6 +6562,16 @@ window.ORCH_SNAPSHOT = {
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
+      },
+      {
+        "taskId": "AF-245",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-245/task-sheet.md"
+      },
+      {
+        "taskId": "AF-245",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af245-persona-delta-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
