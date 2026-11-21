@@ -27,6 +27,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { DEFAULT_VISITOR_DOUBAO_MODEL } from '../../agent/visitor/visitor.runtime.js';
 import type { RenderTaskKind, RiskProbePort } from '../../engine-core/index.js';
 import { AIProviderId, LLMTier } from '../../llm/common/enums/llm.enums.js';
 import type { ChatReasoningEffort } from '../../llm/common/interfaces/chat-provider.interface.js';
@@ -139,12 +140,22 @@ export class RenderConfigFactory {
    * 候选序列: 主候选 + 逗号分隔的备候选 (顺序即优先级, 去重).
    */
   private buildCandidates(): RenderCandidate[] {
-    const primary = this.text('ENGINE_RENDER_PRIMARY_PROVIDER') ?? this.text('LLM_DEFAULT_CHAT_PROVIDER') ?? AIProviderId.DEEPSEEK;
+    const visitorProvider = this.visitorProviderOverride();
+    const configuredPrimary =
+      this.text('ENGINE_RENDER_PRIMARY_PROVIDER') ?? this.text('LLM_DEFAULT_CHAT_PROVIDER') ?? AIProviderId.DEEPSEEK;
+    // AF-252: `VISITOR_LLM_PROVIDER=doubao` 是**来访者总开关** —— 旧 VisitorService 与
+    // 引擎渲染必须一起切，否则同一个开关只覆盖一条链路，生产主候选仍是 MiniMax。
+    const primary = visitorProvider ?? configuredPrimary;
     const fallbackRaw = this.normalizeEnvText(this.config.get<string>(ENGINE_RENDER_FALLBACK_PROVIDERS_ENV_KEY));
     const fallbacks = (fallbackRaw ?? '')
       .split(',')
       .map((id) => id.trim())
       .filter((id) => id.length > 0);
+
+    // 切到豆包时若没有显式备候选，自动补 MiniMax：单候选一熔断就是整场兜底句。
+    if (visitorProvider === AIProviderId.DOUBAO && fallbacks.length === 0) {
+      fallbacks.push(AIProviderId.MINIMAX);
+    }
 
     const ids = [...new Set([primary, ...fallbacks])];
     return ids.map((id) => ({
@@ -155,6 +166,23 @@ export class RenderConfigFactory {
         advanced: { model: this.modelFor('advanced', id) },
       },
     }));
+  }
+
+  /**
+   * 来访者总开关 `VISITOR_LLM_PROVIDER` (缺省 / minimax = 不覆盖).
+   *
+   * 只允许两个值，非法值启动期抛错 —— 与 `resolveVisitorRuntime()` 同一口径，
+   * 不静默回落（否则部署方以为切了豆包，实际还在 MiniMax）。
+   *
+   * @returns doubao = 强制主候选豆包；null = 保持既有候选配置
+   */
+  private visitorProviderOverride(): AIProviderId.DOUBAO | null {
+    const raw = this.text('VISITOR_LLM_PROVIDER');
+    if (!raw) return null;
+    const normalized = raw.toLowerCase();
+    if (normalized === AIProviderId.DOUBAO) return AIProviderId.DOUBAO;
+    if (normalized === AIProviderId.MINIMAX) return null;
+    throw new Error(`VISITOR_LLM_PROVIDER=${raw} 非法，只允许 minimax / doubao`);
   }
 
   /**
@@ -212,6 +240,12 @@ export class RenderConfigFactory {
     if (kind === 'advanced') {
       const providerChatModel = this.text(`ENGINE_RENDER_${KIND_ENV_SUFFIX.chat}_MODEL_${providerId.toUpperCase()}`);
       if (providerChatModel) return providerChatModel;
+    }
+    // AF-252: visitor 总开关切豆包时，模型默认走 Seed Character，而不是渲染档位表里的
+    // 通用豆包型号；`VISITOR_DOUBAO_MODEL` 与 `ENGINE_RENDER_<KIND>_MODEL_DOUBAO`
+    // 都显式配置时前者先让位（provider 维度键优先）。
+    if (providerId === AIProviderId.DOUBAO && this.visitorProviderOverride() === AIProviderId.DOUBAO) {
+      return this.text('VISITOR_DOUBAO_MODEL') ?? DEFAULT_VISITOR_DOUBAO_MODEL;
     }
     return this.router.getDefaultModelForTier(LLMTier.RAG, providerId as AIProviderId);
   }
