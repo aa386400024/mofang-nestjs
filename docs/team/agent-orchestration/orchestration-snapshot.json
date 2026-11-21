@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-21T19:15:02.067Z",
+  "generatedAt": "2026-11-21T19:16:13.172Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 2,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -99,46 +99,6 @@
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    },
-    {
-      "taskId": "AF-234",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "fix",
-      "title": "修复 AF-232 CI 全量类型检查暴露的类型错误并补齐发布门",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-234/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af234-af232-ci-tsc-fix-2026-11-22.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-234",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-21T19:15:02.002Z",
-        "leaseDeadline": "2026-11-21T19:45:01.999Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-234.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-21T19:15:02.002Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-234.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -1914,6 +1874,21 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-344",
+      "recordedAt": "2026-11-21T19:15:02.157Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-234",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-234",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-234.json"
+      ]
+    },
+    {
       "auditId": "AUD-343",
       "recordedAt": "2026-11-21T19:14:55.316Z",
       "actorRef": "orchestrator",
@@ -2138,35 +2113,20 @@
         "docs/team/agent-orchestration/orchestration-state.json",
         "docs/team/agent-orchestration/orchestration-snapshot.json"
       ]
-    },
-    {
-      "auditId": "AUD-329",
-      "recordedAt": "2026-11-21T08:36:21.971Z",
-      "actorRef": "orchestrator",
-      "correlationId": "branch:create:AF-227",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "task/AF-227-realism-r6d-cross-model"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 343,
+    "total": 344,
     "byResult": {
-      "allowed": 343,
+      "allowed": 344,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 342,
+      "TOOL-QUEUE-SCHEDULER": 343,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 343
+      "orchestrator": 344
     }
   },
   "protocolView": {
@@ -2217,32 +2177,6 @@
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-234",
-        "title": "修复 AF-232 CI 全量类型检查暴露的类型错误并补齐发布门",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-232"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-234/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af234-af232-ci-tsc-fix-2026-11-22.md"
           }
         ]
       }
@@ -6331,6 +6265,24 @@
             "ref": "docs/worklog/completed/phase2.5/af233-af232-ci-tsc-fix-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-234",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-234/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af234-af232-ci-tsc-fix-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -6360,16 +6312,6 @@
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-      },
-      {
-        "taskId": "AF-234",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-234/task-sheet.md"
-      },
-      {
-        "taskId": "AF-234",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af234-af232-ci-tsc-fix-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -6383,5 +6325,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 238
+  "archivedCount": 239
 }
