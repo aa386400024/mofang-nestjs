@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-258",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-22T08:35:00+08:00",
+  "updatedAt": "2026-11-22T00:30:33.123Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-258/task-sheet.md",
+    "sha256": "85ca3a66d2c2bd586476e2543aaca3e170e93477d1cab96936c66c9ead69dfad",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-258/receipt-RC-AF-258-1.json",
+      "sha256": "bedcffd61d198c61bcfd96a36c156aa4f0f975727bb95e0a2e389107deae3c15",
+      "receiptId": "RC-AF-258-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af258-render-doubao-smoke-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af258-render-doubao-smoke-task-2026-11-22.md"
+  ],
+  "tombstone": null
+}
