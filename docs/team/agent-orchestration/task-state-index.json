@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1156,
+    "lastEventSeq": 1163,
     "rebuiltAt": null
   },
   "tasks": [
@@ -264,6 +264,95 @@
       "outOfScope": [],
       "constraints": [],
       "promotedAt": "2026-11-21T17:22:09.016Z"
+    },
+    {
+      "taskId": "AF-263",
+      "status": "submitted",
+      "history": [
+        {
+          "at": "2026-11-22T01:16:30.007Z",
+          "from": "backlog",
+          "to": "ready",
+          "by": "orchestrator-cli",
+          "reason": "本地切流与回滚预案"
+        },
+        {
+          "at": "2026-11-22T01:16:37.225Z",
+          "from": "ready",
+          "to": "submitted",
+          "by": "orchestrator-cli",
+          "reason": "编排者领单（派发通道由 agent cu 衔接）"
+        }
+      ],
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "title": "豆包来访者本地切流与回滚预案",
+      "type": "implementation",
+      "baselineRef": "377c7ffc5ff32f83d2b4a5cc1867ee6181cd9189",
+      "dependsOn": [
+        "AF-261"
+      ],
+      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
+      "policyRefs": [
+        "conventions.md#1.3"
+      ],
+      "createdAt": "2026-11-22T01:16:29.648Z",
+      "deadline": null,
+      "agentRole": "executor",
+      "scope": {
+        "files": [
+          "bin/",
+          "docs/worklog/completed/phase2.5/",
+          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
+        ],
+        "modules": [],
+        "interfaces": []
+      },
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-263/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af263-visitor-cutover-local-2026-11-22.md",
+        "reply": null
+      },
+      "gates": [
+        {
+          "command": "pnpm exec tsx bin/visitor-switch-check.ts",
+          "check": "真实 .env 解析出来访者 doubao、引擎主候选 doubao、备候选 minimax",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm exec tsx bin/visitor-render-smoke.ts --caller router --provider doubao --turns 20 --max-tokens 160 --timeout-ms 45000",
+          "check": "20 轮真实生产路由全轮命中豆包",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm lint",
+          "check": "0 error",
+          "threshold": "exit=0"
+        },
+        {
+          "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+          "check": "CI 全量 typecheck 0 error",
+          "threshold": "exit=0"
+        }
+      ],
+      "plannedArtifacts": [
+        {
+          "name": "交付记录",
+          "path": "docs/worklog/completed/phase2.5/af263-visitor-cutover-local-2026-11-22.md",
+          "kind": "report"
+        },
+        {
+          "name": "切流预案",
+          "path": "docs/worklog/completed/phase2.5/doubao-visitor-cutover-runbook-2026-11-22.md",
+          "kind": "report"
+        }
+      ],
+      "requiredSkills": [],
+      "requiredTools": [],
+      "successCriteria": [],
+      "outOfScope": [],
+      "constraints": [],
+      "priorTasks": [],
+      "promotedAt": "2026-11-22T01:16:30.006Z"
     }
   ],
   "archivedTasks": [
@@ -2609,6 +2698,15 @@
         "deliveryRecord": "docs/worklog/completed/phase2.5/af261-provider-cost-breakdown-2026-11-22.md",
         "reply": null
       }
+    },
+    {
+      "taskId": "AF-262",
+      "status": "canceled",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-262/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af262-visitor-cutover-local-2026-11-22.md",
+        "reply": null
+      }
     }
   ],
   "archivedNotes": {
@@ -2653,6 +2751,7 @@
     "AF-203": "scope 重签发 → AF-204",
     "AF-205": "scope 重签发 → AF-206",
     "AF-206": "scope 重签发 → AF-207",
-    "AF-215": "角色域不匹配取消，改由 AF-216 执行"
+    "AF-215": "角色域不匹配取消，改由 AF-216 执行",
+    "AF-262": "scope-domain-conflict；AF-263 承接"
   }
 }
