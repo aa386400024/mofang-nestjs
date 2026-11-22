@@ -1008,21 +1008,47 @@ export class LlmRenderAdapter implements StreamingRenderPort {
       }
     | { readonly ok: false; readonly retryable: boolean; readonly reason: string }
   > {
-    const stream = this.deps.caller.stream?.(request, {
-      providerId: candidate.id,
-      ...(this.deps.uid ? { uid: this.deps.uid } : {}),
-      ...(handlers.signal ? { signal: handlers.signal } : {}),
-    });
-    if (!stream) {
-      return { ok: false, retryable: true, reason: '调用出口无流式能力' };
+    // AF-270 治本：流式 SDK 的 headersTimeout 约 300s，上游「接受连接但不回首包」时
+    // 主候选会挂死，备候选永远轮不到。这里用 config.timeoutMs 建首包超时并主动 abort
+    // 上游流；首 delta 一到就清定时器，正常长回复不受影响。
+    const timeoutMs = Math.max(1, this.config.timeoutMs);
+    const controller = new AbortController();
+    const externalSignal = handlers.signal;
+    const abortFromExternal = (): void => controller.abort();
+    if (externalSignal?.aborted === true) {
+      controller.abort();
+    } else {
+      externalSignal?.addEventListener('abort', abortFromExternal, { once: true });
     }
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
+    timer.unref();
+    let cleaned = false;
+    const cleanup = (): void => {
+      if (cleaned) return;
+      cleaned = true;
+      clearTimeout(timer);
+      externalSignal?.removeEventListener('abort', abortFromExternal);
+    };
 
-    const iterator = stream[Symbol.asyncIterator]();
-    let tokenCount = 0;
-    // V2026-11-10 (WP-H 改动 7): 首 chunk 也可能带用量 (上游有时第一块就报) —— 带着走.
-    let promptTokens: number | undefined;
-    let completionTokens: number | undefined;
     try {
+      const stream = this.deps.caller.stream?.(request, {
+        providerId: candidate.id,
+        ...(this.deps.uid ? { uid: this.deps.uid } : {}),
+        signal: controller.signal,
+      });
+      if (!stream) {
+        return { ok: false, retryable: true, reason: '调用出口无流式能力' };
+      }
+
+      const iterator = stream[Symbol.asyncIterator]();
+      let tokenCount = 0;
+      // V2026-11-10 (WP-H 改动 7): 首 chunk 也可能带用量 (上游有时第一块就报) —— 带着走.
+      let promptTokens: number | undefined;
+      let completionTokens: number | undefined;
       for (;;) {
         const next = await iterator.next();
         if (next.done) break;
@@ -1042,8 +1068,15 @@ export class LlmRenderAdapter implements StreamingRenderPort {
         }
       }
     } catch (error) {
+      if (timedOut) {
+        this.runtime.markFailure(candidate.id, this.config);
+        this.logger.warn(`[streamRender] 候选 ${candidate.id} 流式首包超时 (${timeoutMs}ms), 切下一个候选`);
+        return { ok: false, retryable: true, reason: `流式首包超时 (${timeoutMs}ms)` };
+      }
       const failure = this.classifyFailure(candidate, error);
       return { ok: false, retryable: failure.retryable, reason: failure.reason };
+    } finally {
+      cleanup();
     }
 
     // 空流: 首个 delta 前没有任何内容 → 与聚合路径"空内容"同口径, 切备.

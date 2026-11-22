@@ -583,6 +583,7 @@ interface SmokeReport {
   readonly orchestrated: boolean;
   readonly summaryAfter: number;
   readonly historyLimitTurns: number;
+  readonly expectFallbackWithinMs: number | null;
   readonly faults: FaultFlags;
   readonly primaryProbe: { ok: false; model: string; error: string; elapsedMs: number } | null;
   readonly turns: number;
@@ -605,6 +606,7 @@ function printReport(report: SmokeReport): void {
         orchestrated: report.orchestrated,
         summaryAfter: report.summaryAfter,
         historyLimitTurns: report.historyLimitTurns,
+        expectFallbackWithinMs: report.expectFallbackWithinMs,
         failPrimary: report.faults.failPrimary,
         failPrimaryMode: report.faults.failPrimary ? report.faults.mode : null,
         expectFallback: report.faults.expectFallback,
@@ -724,6 +726,7 @@ interface RunOptions {
   readonly summaryAfter: number;
   readonly contextTokens: number;
   readonly promptOverride: string | null;
+  readonly expectFallbackWithinMs: number | null;
   readonly faults: FaultFlags;
 }
 
@@ -741,10 +744,18 @@ function resolveRunOptions(): RunOptions {
   const summaryAfter = Math.floor(numberArg('--summary-after', 0));
   const contextTokens = Math.floor(numberArg('--context-tokens', 512));
   const promptOverride = arg('--prompt');
+  const rawWithin = arg('--expect-fallback-within-ms');
+  const expectFallbackWithinMs = rawWithin === null ? null : Math.floor(numberArg('--expect-fallback-within-ms', 0));
   const faults = resolveFaultFlags(callerPath, provider);
   // MiniMax M3 的 reasoning token 计入 completion 上限；回退 smoke 用 300 会在思考和
   // 正文之间被截断，出现「有 finish_reason=length、无完整句」的假降级。回退场景默认放宽。
   const maxTokens = numberArg('--max-tokens', faults.expectFallback ? 800 : DEFAULT_MAX_TOKENS);
+  if (expectFallbackWithinMs !== null && !faults.expectFallback) {
+    fail('--expect-fallback-within-ms 必须配合 --expect-fallback 使用');
+  }
+  if (expectFallbackWithinMs !== null && expectFallbackWithinMs <= 0) {
+    fail('--expect-fallback-within-ms 必须是正整数');
+  }
 
   if (concurrency > 1 && turns !== 1) fail('--concurrency 与 --turns 互斥：并发模式固定单轮');
   if (concurrency > 1 && (faults.failPrimary || faults.expectFallback || faults.expectDegraded)) {
@@ -766,6 +777,7 @@ function resolveRunOptions(): RunOptions {
     summaryAfter,
     contextTokens,
     promptOverride,
+    expectFallbackWithinMs,
     faults,
   };
 }
@@ -783,6 +795,7 @@ async function main(): Promise<void> {
     summaryAfter,
     contextTokens,
     promptOverride,
+    expectFallbackWithinMs,
     faults,
   } = resolveRunOptions();
 
@@ -874,6 +887,7 @@ async function main(): Promise<void> {
     orchestrated,
     summaryAfter,
     historyLimitTurns: MAX_HISTORY_TURNS,
+    expectFallbackWithinMs,
     faults,
     primaryProbe,
     turns,
@@ -890,6 +904,9 @@ async function main(): Promise<void> {
       totalTokens: batch.totalTokens,
     },
   });
+  if (expectFallbackWithinMs !== null && batch.wallElapsedMs > expectFallbackWithinMs) {
+    fail(`回退耗时 ${String(batch.wallElapsedMs)}ms 超过上限 ${String(expectFallbackWithinMs)}ms`, 2);
+  }
   await faultServer?.close();
 }
 
