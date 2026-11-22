@@ -44,6 +44,11 @@ export class RenderMetricsTelemetry implements RenderTelemetryPort {
     this.safe(() => this.metrics.incVisitorRenderCooldownServed());
   }
 
+  onCandidateCooldown(candidateId: string, model: string, cause: RenderFailureCause, cooldownMs: number): void {
+    if (cooldownMs < 0 || !Number.isFinite(cooldownMs)) return;
+    this.safe(() => this.metrics.observeVisitorRenderCandidateCooldown(candidateId, model, cause, cooldownMs / 1000));
+  }
+
   onFallback(from: string, to: string, cause: RenderFailureCause): void {
     this.safe(() => this.metrics.incVisitorRenderFallback(from, to, cause));
   }

@@ -67,6 +67,7 @@ export class MetricsService implements OnModuleInit {
   private visitorRenderFailure!: Counter<string>;
   private visitorRenderCancelled!: Counter<string>;
   private visitorRenderCooldownServed!: Counter<string>;
+  private visitorRenderCandidateCooldown!: Histogram<string>;
   private visitorRenderFallback!: Counter<string>;
   private visitorRenderDegraded!: Counter<string>;
 
@@ -201,6 +202,14 @@ export class MetricsService implements OnModuleInit {
     this.visitorRenderCooldownServed = new Counter({
       name: 'visitor_render_cooldown_served_total',
       help: '整轮无候选可用 (全员冷却且未到半开时点) 的全损次数',
+      registers: [this.registry],
+    });
+    this.visitorRenderCandidateCooldown = new Histogram({
+      name: 'visitor_render_candidate_cooldown_seconds',
+      help: '候选进入冷却或冷却延长时的生效时长 (秒, 按 candidate/model/cause 标签); _count 即进入冷却次数',
+      labelNames: ['candidate', 'model', 'cause'],
+      // 冷却从 cooldownBaseMs 起步, 按指数退避封顶 cooldownMaxMs; 桶覆盖秒级到 30 分钟.
+      buckets: [1, 2, 5, 10, 20, 30, 60, 120, 300, 600, 1200, 1800],
       registers: [this.registry],
     });
     this.visitorRenderFallback = new Counter({
@@ -348,6 +357,13 @@ export class MetricsService implements OnModuleInit {
       return;
     }
     this.visitorRenderCooldownServed.inc();
+  }
+
+  observeVisitorRenderCandidateCooldown(candidate: string, model: string, cause: string, seconds: number): void {
+    if (!this.config.get('metrics').enabled) {
+      return;
+    }
+    this.visitorRenderCandidateCooldown.observe({ candidate, model, cause }, seconds);
   }
 
   incVisitorRenderFallback(from: string, to: string, cause: string): void {
