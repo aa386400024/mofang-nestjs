@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T11:20:48.548Z",
+  "generatedAt": "2026-11-22T11:24:21.822Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,55 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-301",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "fix",
-      "title": "突发告警按故障生命周期分窗",
-      "status": "submitted",
-      "verdict": "conditional-pass",
-      "verdictRationale": "机读护栏全绿，存在需人工复核的语义 / 口径项",
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-301/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af301-alert-lifecycle-window-2026-11-22.md",
-        "reply": null
-      },
-      "manualReview": [
-        "交付记录未出现字段标记：gateResults",
-        "交付记录未出现字段标记：scopeCheck",
-        "交付记录未出现字段标记：contractChecks",
-        "交付记录未出现字段标记：backlogItems",
-        "交付记录未出现字段标记：deviationTable",
-        "交付记录未出现字段标记：reviewVerdict"
-      ],
-      "dispatch": {
-        "taskId": "AF-301",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-22T11:06:33.916Z",
-        "leaseDeadline": "2026-11-22T11:36:33.913Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-301.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-22T11:06:33.916Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-301.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -2086,32 +2038,7 @@ window.ORCH_SNAPSHOT = {
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-301",
-        "title": "突发告警按故障生命周期分窗",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-301/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af301-alert-lifecycle-window-2026-11-22.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -7330,6 +7257,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af311-lite-prompt-v2-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-301",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-301/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af301-alert-lifecycle-window-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7344,22 +7289,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-301",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-301/task-sheet.md"
-      },
-      {
-        "taskId": "AF-301",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af301-alert-lifecycle-window-2026-11-22.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -7367,5 +7299,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 301
+  "archivedCount": 302
 };
