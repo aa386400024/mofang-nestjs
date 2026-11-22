@@ -78,6 +78,48 @@ const SCENARIOS: readonly Scenario[] = [
     ],
   },
   {
+    id: 'single-fallback',
+    title: '主候选 5xx → 备候选成功（回退成功路径）',
+    args: [...BASE_ARGS, '--fail-primary', '--fail-primary-mode', 'server-error', '--expect-fallback'],
+    expectations: [
+      { metric: 'visitor_render_rounds_total', labels: { outcome: 'success' }, equals: 1, description: '回退后用户仍拿到完整内容' },
+      { metric: 'visitor_render_rounds_total', labels: { outcome: 'degrade' }, equals: 0, description: '回退成功不计降级轮次' },
+      { metric: 'visitor_render_rounds_total', labels: { outcome: 'exhausted' }, equals: 0, description: '回退成功不计全损轮次' },
+      {
+        metric: 'visitor_render_attempts_total',
+        labels: { candidate: 'doubao', outcome: 'retry' },
+        equals: 1,
+        description: '主候选记一次重试',
+      },
+      {
+        metric: 'visitor_render_attempts_total',
+        labels: { candidate: 'minimax', outcome: 'success' },
+        equals: 1,
+        description: '备候选记一次成功',
+      },
+      {
+        metric: 'visitor_render_failure_total',
+        labels: { candidate: 'doubao', cause: 'server' },
+        equals: 1,
+        description: '失败归因落到主候选',
+      },
+      {
+        metric: 'visitor_render_failure_total',
+        labels: { candidate: 'minimax' },
+        equals: 0,
+        description: '备候选不应记失败',
+      },
+      {
+        metric: 'visitor_render_fallback_total',
+        labels: { from: 'doubao', to: 'minimax', cause: 'server' },
+        equals: 1,
+        description: '回退方向与归因正确',
+      },
+      { metric: 'visitor_render_degraded_total', equals: 0, description: '健康路径不得记任何降级' },
+      { metric: 'visitor_render_cooldown_served_total', equals: 0, description: '回退成功不产生冷却期服务' },
+    ],
+  },
+  {
     id: 'single-midstream',
     title: '单候选首包后停摆',
     args: [...BASE_ARGS, '--fail-primary', '--fail-primary-mode', 'midstream-stall', '--expect-degraded'],

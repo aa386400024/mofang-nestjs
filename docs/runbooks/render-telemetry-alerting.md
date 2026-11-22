@@ -179,12 +179,13 @@ sum(increase(visitor_render_cancelled_total[10m]))
 | 双候选 401 | `--fail-primary --fail-backup --fail-primary-mode auth --expect-exhausted` | `rounds{exhausted}=1`、`degraded{exhausted}=1`、两候选 `auth_failure_total=1`、两候选 `failure{auth}=1`、`fallback{cause=auth}=1` | 无 |
 | 双候选连接失败 | `--fail-primary --fail-backup --fail-primary-mode network --expect-exhausted` | `rounds{exhausted}=1`、`degraded{exhausted}=1`、两候选 `failure{network}=1`、`fallback{cause=network}=1`、`auth_failure`/`stream_timeout` 空 | 连接层错误独立归 `network`（AF-300）；与 `timeout` 分开：连接没建立/被断开才是 network，连接已建立但等不到响应是 timeout |
 | 单候选首包后停摆 | `--fail-primary --fail-primary-mode midstream-stall --expect-degraded` | `rounds{degrade}=1`、`degraded{idle}=1`、`stream_timeout{phase=idle}=1`、`failure{idle}=1`、`attempts{degrade}=1`、`fallback_total` 空、wall ≈ 30s（idle 预算） | 已有首包（TTFT ≈ 53ms，`first_delta_seconds_count=1`）；不走候选切换，直接收尾降级 |
+| 主候选 5xx → 备候选成功 | `--fail-primary --fail-primary-mode server-error --expect-fallback` | `rounds{success}=1`、`attempts{doubao,retry}=1`、`attempts{minimax,success}=1`、`failure{doubao,server}=1`、`fallback{from=doubao,to=minimax,cause=server}=1`、`degraded_total=0`、`cooldown_served_total=0`、wall ≈ 2s | 健康路径：用户仍拿到完整内容（实测 31 字）；`degraded_total` 不注册该标签即视为 0，不要误判为「指标丢了」 |
 
 回放记录归档在 `data/af299-{server-error,timeout,auth,network,midstream}.log`；`eval` 只看 `ok=true` 不够，必须核对上表至少两条相互独立的指标（例如 `rounds` 结局 + `failure` cause），避免单一指标误判。
 
-### 5.2 一键自证（AF-302）
+### 5.2 一键自证（AF-302 / AF-303）
 
-上表已经固化成验收器，一条命令跑完五条场景并自动判定：
+上表已经固化成验收器（AF-303 补入「主候选失败→备候选成功」的健康路径），一条命令跑完六条场景并自动判定：
 
 ```powershell
 pnpm exec tsx bin/visitor-render-acceptance.ts
@@ -195,10 +196,10 @@ pnpm exec tsx bin/visitor-render-acceptance.ts --keep-going
 判读纪律：
 
 - 每条场景先要求 smoke 退出码 0、报告 `ok=true`，再逐条比对指标；任一不符打印「期望 X=值，实际 Y」并使进程退出码为 1，可直接接 CI 或发布前门禁。
-- `--only <id,id>` 只跑子集（id 见输出首列：`double-server` / `double-timeout` / `double-auth` / `double-network` / `single-midstream`）；未知 id 直接报错。
+- `--only <id,id>` 只跑子集（id 见输出首列：`double-server` / `double-timeout` / `double-auth` / `double-network` / `single-midstream` / `single-fallback`）；未知 id 直接报错。
 - 默认遇错即停；`--keep-going` 跑完全部再汇总，适合排障时一次看全貌。
 - 指标仍是**本轮进程内增量**（`--dump-render-metrics` 的 JSON 报告），不是线上累计值；不要拿它和 Prometheus 的 `increase()` 结果做等值比较。
-- 单场景耗时：4 条秒级，首包超时约 16s，首包后停摆约 30s；全跑约 50–60s，不含进程启动。
+- 单场景耗时：5 条秒级（含回退成功约 2s），首包超时约 16s，首包后停摆约 30s；全跑约 50–60s，不含进程启动。
 
 ---
 

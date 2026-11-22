@@ -58,6 +58,33 @@ describe('AF-302 渲染故障矩阵自证断言', () => {
     expect(result.failures[0]).toContain('实际 1');
   });
 
+  it('回退成功路径：主候选失败、备候选成功，降级与全损必须为 0', () => {
+    const fallbackSamples = [
+      sample('visitor_render_rounds_total', { outcome: 'success' }, 1),
+      sample('visitor_render_attempts_total', { candidate: 'doubao', outcome: 'retry' }, 1),
+      sample('visitor_render_attempts_total', { candidate: 'minimax', outcome: 'success' }, 1),
+      sample('visitor_render_failure_total', { candidate: 'doubao', cause: 'server' }, 1),
+      sample('visitor_render_fallback_total', { from: 'doubao', to: 'minimax', cause: 'server' }, 1),
+      sample('visitor_render_cooldown_served_total', {}, 0),
+    ];
+    const probe = buildMetricProbe(fallbackSamples);
+    const expectations = [
+      { metric: 'visitor_render_rounds_total', labels: { outcome: 'success' }, equals: 1, description: '成功轮次' },
+      { metric: 'visitor_render_rounds_total', labels: { outcome: 'degrade' }, equals: 0, description: '不计降级' },
+      { metric: 'visitor_render_rounds_total', labels: { outcome: 'exhausted' }, equals: 0, description: '不计全损' },
+      { metric: 'visitor_render_failure_total', labels: { candidate: 'minimax' }, equals: 0, description: '备候选不记失败' },
+      { metric: 'visitor_render_degraded_total', equals: 0, description: '健康路径零降级' },
+    ];
+    expect(checkExpectations(probe, expectations).passed).toBe(true);
+
+    const leaked = checkExpectations(
+      buildMetricProbe([...fallbackSamples, sample('visitor_render_degraded_total', { cause: 'degrade' }, 1)]),
+      expectations,
+    );
+    expect(leaked.passed).toBe(false);
+    expect(leaked.failures[0]).toContain('visitor_render_degraded_total=0，实际 1');
+  });
+
   it('atLeast / atMost 边界', () => {
     const probe = buildMetricProbe(SAMPLES);
     expect(
