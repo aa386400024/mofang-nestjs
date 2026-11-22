@@ -236,4 +236,9 @@ export { AddQualityAnnotationBatchColumns1714900000047 } from './1714900000047-A
 //   跟 bin/ormconfig.ts 严格 1:1, 防 migration:run "No migrations are pending" 漏建.
 export { CreateAdminDebugSessions1714900000049 } from './1714900000049-CreateAdminDebugSessions.js';
 
+// V2026-11-22 治本 (AF-314 · 自动对练场次模型可观测):
+//   ap_practice_sessions 增加 visitor_model_provider / visitor_model / counselor_model.
+//   历史行保持 NULL；前端回退既有 model_version，不伪造历史模型.
+export { AddPracticeSessionModelColumns1714900000050 } from './1714900000050-AddPracticeSessionModelColumns.js';
+
 // V3 migration 列表直接加到 bin/ormconfig.ts (V2 pattern, 显式列出避免 glob 扫描时序坑).

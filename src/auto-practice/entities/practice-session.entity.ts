@@ -245,6 +245,30 @@ export class PracticeSession {
   modelVersion!: string | null;
 
   /**
+   * AF-314: 本场来访者侧实际采用的渲染主候选 provider（如 doubao / minimax）.
+   *
+   * 与 `modelVersion` 的分工:
+   *   - `modelVersion` 是推理指纹里的全局 LLM 模型（`MINIMAX_LLM_MODEL`），用于版本对比；
+   *   - `visitorModelProvider` + `visitorModel` 才是这场来访者真正走的主候选。
+   * 历史行没有这两列（NULL），前端回退展示 `modelVersion` 并明确标为引擎模型。
+   */
+  @Column({ type: 'varchar', length: 32, nullable: true, name: 'visitor_model_provider' })
+  visitorModelProvider!: string | null;
+
+  /** AF-314: 本场来访者侧主候选模型 id（如 doubao-seed-character-260628）. */
+  @Column({ type: 'varchar', length: 128, nullable: true, name: 'visitor_model' })
+  visitorModel!: string | null;
+
+  /**
+   * AF-314: 本场咨询师生成模型 id.
+   *
+   * 来自 `AUTO_PRACTICE_COUNSELOR_MODEL` 或 LLM router 的 ADVANCED 档默认模型；
+   * 与来访者模型分列落库，避免把「咨询师用的 MiniMax」误读成「来访者用的 MiniMax」。
+   */
+  @Column({ type: 'varchar', length: 128, nullable: true, name: 'counselor_model' })
+  counselorModel!: string | null;
+
+  /**
    * WP-B 预留: 本场用的随机种子 (可复现性).
    *
    * 本期只写不读 —— 引擎会话开的时候 character resolver 给了 seed, 记下来.

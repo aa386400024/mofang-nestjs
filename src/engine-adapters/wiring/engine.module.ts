@@ -728,6 +728,9 @@ function isModelTrackWired(mode: ModelClassifierEffectiveMode): boolean {
     ENGINE_SESSION_PORT,
     ENGINE_RENDER_PORT,
     VOICE_TURN_BACKEND,
+    // AF-314: 会话级可观测要读「来访者渲染主候选」的真实 provider/model。
+    //   只读出口，不暴露渲染端口内部状态；自动对练把它落库，避免用全局模型冒充来访者模型。
+    RenderConfigFactory,
     // V2026-11-06 (WP38 补做 · 调试会话恢复): 记忆仓储与 BDI 状态仓储对外暴露 ——
     //   调试恢复器要**回灌**内核状态 (BDI 快照 → 状态仓储; 记忆条目 → 记忆仓储).
     //   ⚠️ 这两个都是**本模块自己 providers 里声明的** provider (不是从别的模块转出),

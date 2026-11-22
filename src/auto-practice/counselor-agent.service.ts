@@ -134,6 +134,16 @@ export class CounselorAgentService {
   }
 
   /**
+   * 本场咨询师生成使用的模型 id（只读）.
+   *
+   * AF-314: 自动对练可观测层要把「咨询师模型」和「来访者模型」分开落库，
+   *   不允许两者共用一个 `modelVersion`；这里暴露构造期已经解析好的唯一真值。
+   */
+  get modelId(): string {
+    return this.model;
+  }
+
+  /**
    * 生成咨询师这一轮的台词.
    *
    * V2026-11-18 治本 (AF-102 · 可见输出治本):

@@ -83,6 +83,7 @@ import {
   type SessionCostPricing,
   type SessionUsageTotals,
 } from '../engine-adapters/observability/session-cost.js';
+import { RenderConfigFactory } from '../engine-adapters/wiring/render-config.factory.js';
 import { toEncounterColumns, type EncounterInput } from '../shared/encounter/encounter-scene.js';
 import { inspectGeneratedOutput, safeOutputFallback } from '../shared/text/output-integrity.js';
 
@@ -286,6 +287,10 @@ export class PracticeRunnerService implements OnModuleInit {
     //   为什么 optional: 既有单测直接 new runner (不注入这个服务) —— 缺它时跳过语义落库,
     //   不能让"没注入"变成"跑不起来". 生产环境 AutoPracticeModule 一定注册了它.
     @Optional() private readonly semanticPersister?: SemanticTurnPersister,
+    // AF-314: 来访者渲染主候选的真实 provider/model（只读出口，供会话级落库）.
+    //   为什么 optional: 既有单测直接 new runner，不注入装配层；缺它时模型列写 NULL,
+    //   但绝不能因为"可观测字段取不到"就让对练本身开不起来.
+    @Optional() private readonly renderConfigFactory?: RenderConfigFactory,
   ) {}
 
   /**
@@ -895,6 +900,8 @@ export class PracticeRunnerService implements OnModuleInit {
       batchId: input.batchId ?? null,
       errorMessage: null,
       modelVersion: fingerprint.model,
+      // AF-314: 模型可观测分列 —— 来访者主候选与咨询师模型不能共用全局指纹.
+      ...this.resolveAppliedModelColumns(),
       seedValue: fingerprint.sessionSeed,
       characterVersion: fingerprint.characterVersion,
       deliberationMode: fingerprint.deliberationMode,
@@ -903,6 +910,36 @@ export class PracticeRunnerService implements OnModuleInit {
       promptVersion: fingerprint.promptVersion,
     });
     return fingerprint;
+  }
+
+  /**
+   * 解析本场「来访者主候选 + 咨询师模型」并映射成实体列.
+   *
+   * AF-314: 可观测字段必须来自**会话启动时的真实装配**，不能读当前 env 现算 ——
+   *   配置在会话跑完后被改掉时，历史场次仍应回答「当时用的什么模型」。
+   *   visitor 取渲染候选链第 0 位（实际主候选），counselor 取 CounselorAgentService
+   *   构造期解析出的唯一模型。
+   *
+   * 取不到时写 NULL 而不是猜：上游没记录 = 不可得，不能拿全局 `modelVersion` 冒充.
+   */
+  private resolveAppliedModelColumns(): Pick<PracticeSession, 'visitorModelProvider' | 'visitorModel' | 'counselorModel'> {
+    let visitorProvider: string | null = null;
+    let visitorModel: string | null = null;
+    try {
+      const route = this.renderConfigFactory?.primaryVisitorRoute() ?? null;
+      visitorProvider = route?.provider.trim() ?? null;
+      visitorModel = route?.model.trim() ?? null;
+    } catch (error) {
+      // 模型不可观测不能阻断对练：只告警，列写 NULL.
+      this.logger.warn(`[auto_practice] 解析来访者模型失败，模型列将写 NULL: ${errorName(error)}`);
+    }
+    const rawCounselorModel = this.counselorAgent.modelId;
+    const counselorModel = typeof rawCounselorModel === 'string' ? rawCounselorModel.trim() : '';
+    return {
+      visitorModelProvider: visitorProvider,
+      visitorModel,
+      counselorModel: counselorModel.length > 0 ? counselorModel : null,
+    };
   }
 
   /** 建/更新一行场次记录. */

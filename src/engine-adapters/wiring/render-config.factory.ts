@@ -157,6 +157,27 @@ export class RenderConfigFactory {
   }
 
   /**
+   * 来访者渲染主候选的 provider 与模型（只读出口，供可观测层落库）.
+   *
+   * 为什么不能直接复用 `modelVersion`:
+   *   `modelVersion` 来自 `InferenceFingerprint.model`（即 `MINIMAX_LLM_MODEL`），
+   *   它回答的是「引擎指纹的全局模型」；来访者真正走哪家、哪个模型，由
+   *   `VISITOR_LLM_PROVIDER` + 候选链决定。两者在灰度切豆包时必然不一致，
+   *   直接拿 `modelVersion` 展示会把 MiniMax 误标成整场来访者模型。
+   *
+   * 本方法只构造候选链，不触发凭据校验 / 熔断告警 —— 那是启动期 `build()` 的职责；
+   * 会话级可观测只取配置事实，不能因为一次展示取样把启动校验重复打一遍。
+   *
+   * @returns 主候选项；链路为空或该候选没有 chat 模型时返回 null
+   */
+  primaryVisitorRoute(): { readonly provider: string; readonly model: string } | null {
+    const primary = this.buildCandidates().candidates[0];
+    const model = primary?.overrides?.chat?.model ?? primary?.overrides?.advanced?.model;
+    if (!primary || model === undefined || model.trim().length === 0) return null;
+    return { provider: primary.id, model: model.trim() };
+  }
+
+  /**
    * 来访者 prompt 变体（AF-281）.
    *
    * 为什么在这里读、而不是在 buildVisitorSystemPrompt 里读 env:
