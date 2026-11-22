@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-273",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "backlog",
+  "createdAt": "2026-11-22T12:10:00+08:00",
+  "updatedAt": "2026-11-22T04:01:30.935Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-273/task-sheet.md",
+    "sha256": "cf640fb6f30affb367cfa1a1e9baeb3801727a67c6b473defe6b69a122edf68f",
+    "immutable": true
+  },
+  "receipts": [],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af273-rollback-failover-guard-2026-11-22.md",
+  "legacyPaths": [
+    "docs/worklog/inbox/AF-273-rollback-failover-guard-2026-11-22.md"
+  ],
+  "tombstone": null
+}
