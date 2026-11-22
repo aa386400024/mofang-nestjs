@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-22T02:42:02.137Z",
+  "generatedAt": "2026-11-22T02:44:37.136Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 2,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -99,53 +99,6 @@
           "state": "pending",
           "preparedAt": "2026-11-21T17:22:20.674Z",
           "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-231.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    },
-    {
-      "taskId": "AF-268",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "implementation",
-      "title": "来访者长上下文 40 轮真实路由 smoke",
-      "status": "submitted",
-      "verdict": "conditional-pass",
-      "verdictRationale": "机读护栏全绿，存在需人工复核的语义 / 口径项",
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-268/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af268-long-context-40-turn-smoke-2026-11-22.md",
-        "reply": null
-      },
-      "manualReview": [
-        "交付记录未出现字段标记：gateResults",
-        "交付记录未出现字段标记：scopeCheck",
-        "交付记录未出现字段标记：contractChecks",
-        "交付记录未出现字段标记：backlogItems",
-        "交付记录未出现字段标记：deviationTable",
-        "交付记录未出现字段标记：reviewVerdict"
-      ],
-      "dispatch": {
-        "taskId": "AF-268",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-22T02:29:51.941Z",
-        "leaseDeadline": "2026-11-22T02:59:51.938Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-268.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-22T02:29:51.941Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-268.brief.md",
           "sessionPath": null,
           "locateLayer": null,
           "evidenceRef": null,
@@ -2222,32 +2175,6 @@
           {
             "kind": "deliveryRecord",
             "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-          }
-        ]
-      },
-      {
-        "taskId": "AF-268",
-        "title": "来访者长上下文 40 轮真实路由 smoke",
-        "type": "implementation",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [
-          "AF-267"
-        ],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-268/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af268-long-context-40-turn-smoke-2026-11-22.md"
           }
         ]
       }
@@ -6894,6 +6821,24 @@
             "ref": "docs/worklog/completed/phase2.5/af267-model-price-env-wiring-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-268",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-268/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af268-long-context-40-turn-smoke-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -6928,16 +6873,6 @@
         "taskId": "AF-231",
         "kind": "deliveryRecord",
         "ref": "docs/worklog/completed/phase2.5/af230-lite-prompt-v1-2026-11-21.md"
-      },
-      {
-        "taskId": "AF-268",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-268/task-sheet.md"
-      },
-      {
-        "taskId": "AF-268",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af268-long-context-40-turn-smoke-2026-11-22.md"
       }
     ],
     "groupId": "phase2.5-orchestration-closed-loop",
@@ -6951,5 +6886,5 @@
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 269
+  "archivedCount": 270
 }

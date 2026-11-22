@@ -4,7 +4,7 @@
   "note": "L0 轻量 State Store：工件正文留在文件，本索引只存指针与状态。已启用事件溯源：state/journal.jsonl 为唯一写面，本索引是只读投影（projection 指向日志末条事件），禁止手改；归档条目只保留工件指针，逐条说明外移到 state/archived-notes.json 并在重建时合并。",
   "projection": {
     "journalPointer": "docs/team/agent-orchestration/state/journal.jsonl",
-    "lastEventSeq": 1200,
+    "lastEventSeq": 1204,
     "rebuiltAt": null
   },
   "tasks": [
@@ -264,152 +264,6 @@
       "outOfScope": [],
       "constraints": [],
       "promotedAt": "2026-11-21T17:22:09.016Z"
-    },
-    {
-      "taskId": "AF-268",
-      "status": "submitted",
-      "history": [
-        {
-          "at": "2026-11-22T02:29:44.849Z",
-          "from": "backlog",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "长上下文生产证据"
-        },
-        {
-          "at": "2026-11-22T02:29:51.938Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "编排者领单（派发通道由 agent cu 衔接）"
-        },
-        {
-          "at": "2026-11-22T02:42:01.978Z",
-          "from": "submitted",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "GUI 投递未完成回收：回滚 ready 并持单待人工（不自动重派）"
-        },
-        {
-          "at": "2026-11-22T02:42:02.004Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "租约超时后回执到达：恢复领取并验收，不重新派发"
-        },
-        {
-          "at": "2026-11-22T02:42:41.569Z",
-          "from": "submitted",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "GUI 投递未完成回收：回滚 ready 并持单待人工（不自动重派）"
-        },
-        {
-          "at": "2026-11-22T02:42:41.595Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "租约超时后回执到达：恢复领取并验收，不重新派发"
-        },
-        {
-          "at": "2026-11-22T02:43:10.999Z",
-          "from": "submitted",
-          "to": "ready",
-          "by": "orchestrator-cli",
-          "reason": "GUI 投递未完成回收：回滚 ready 并持单待人工（不自动重派）"
-        },
-        {
-          "at": "2026-11-22T02:43:11.025Z",
-          "from": "ready",
-          "to": "submitted",
-          "by": "orchestrator-cli",
-          "reason": "租约超时后回执到达：恢复领取并验收，不重新派发"
-        }
-      ],
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "title": "来访者长上下文 40 轮真实路由 smoke",
-      "type": "implementation",
-      "baselineRef": "0453068e35367bfcd7f75cbbe2a06cbf1ad84c96",
-      "dependsOn": [
-        "AF-267"
-      ],
-      "contractRef": "urn:agent-collaboration-framework:schema:task-sheet:1.1.0",
-      "policyRefs": [
-        "conventions.md#1.3"
-      ],
-      "createdAt": "2026-11-22T02:29:44.408Z",
-      "deadline": null,
-      "agentRole": "executor",
-      "scope": {
-        "files": [
-          "bin/",
-          "test/engine-adapters/",
-          "docs/worklog/completed/phase2.5/",
-          "docs/worklog/records/phase2.5-orchestration-closed-loop/"
-        ],
-        "modules": [],
-        "interfaces": []
-      },
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-268/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af268-long-context-40-turn-smoke-2026-11-22.md",
-        "reply": null
-      },
-      "gates": [
-        {
-          "command": "pnpm exec tsc --noEmit -p tsconfig.json",
-          "check": "新增 orchestrated 模式的类型闭合",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm lint",
-          "check": "0 error",
-          "threshold": "exit=0"
-        },
-        {
-          "command": "pnpm exec tsx bin/visitor-render-smoke.ts --orchestrated --turns 40 --summary-after 20 --max-tokens 120 --timeout-ms 60000",
-          "check": "40 轮真实豆包渲染不降级，prompt 在窗口处封顶，摘要注入生效",
-          "threshold": "exit=0"
-        }
-      ],
-      "plannedArtifacts": [
-        {
-          "name": "交付记录",
-          "path": "docs/worklog/completed/phase2.5/af268-long-context-40-turn-smoke-2026-11-22.md",
-          "kind": "report"
-        }
-      ],
-      "requiredSkills": [],
-      "requiredTools": [],
-      "successCriteria": [],
-      "outOfScope": [],
-      "constraints": [],
-      "priorTasks": [],
-      "promotedAt": "2026-11-22T02:29:44.848Z",
-      "receipt": {
-        "receiptId": "RC-AF-268-1",
-        "finalStatus": "completed",
-        "reviewVerdict": "passed",
-        "changedFiles": {
-          "added": [
-            "docs/worklog/completed/phase2.5/af268-long-context-40-turn-smoke-2026-11-22.md",
-            "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-268/task-sheet.md",
-            "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-268/manifest.json"
-          ],
-          "modified": [
-            "bin/visitor-render-smoke.ts",
-            "docs/team/agent-orchestration/orchestration-snapshot.json",
-            "docs/team/agent-orchestration/state/journal.jsonl",
-            "docs/team/agent-orchestration/task-state-index.json"
-          ],
-          "deleted": [],
-          "deletionChecks": []
-        },
-        "parallelArtifactsExcluded": true,
-        "sourceRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\receipts\\AF-268.json",
-        "archiveRef": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-268/receipt-RC-AF-268-1.json",
-        "ingestedAt": "2026-11-22T02:42:02.004Z"
-      }
     }
   ],
   "archivedTasks": [
@@ -2807,6 +2661,15 @@
       "artifacts": {
         "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-267/task-sheet.md",
         "deliveryRecord": "docs/worklog/completed/phase2.5/af267-model-price-env-wiring-2026-11-22.md",
+        "reply": null
+      }
+    },
+    {
+      "taskId": "AF-268",
+      "status": "completed",
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-268/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af268-long-context-40-turn-smoke-2026-11-22.md",
         "reply": null
       }
     }
