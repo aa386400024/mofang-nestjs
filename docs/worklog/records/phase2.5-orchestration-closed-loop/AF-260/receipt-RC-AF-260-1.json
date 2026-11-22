@@ -1,0 +1,174 @@
+{
+  "deliveredAt": "2026-11-22T09:05:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-260-1",
+    "taskId": "AF-260",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "implementation",
+    "agentRole": "executor",
+    "baselineRef": "766aca7fab4aef95b967d196db35f07aa24b958a",
+    "dependsOn": ["AF-259"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-260/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af260-render-multi-turn-smoke-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af260-render-multi-turn-smoke-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-260/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-260/manifest.json"
+      ],
+      "modified": [
+        "bin/visitor-render-smoke.ts",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["a4b54b13"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/engine-adapters/af258-llm-service-chat-caller.spec.ts test/engine-adapters/af252-visitor-render-provider.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 1 秒",
+        "note": "10/10 通过：AF-258 4 + AF-252 6；日志 data/af260-vitest.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "0 error / 0 warning；日志 data/af260-lint.log"
+      },
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1 分钟",
+        "note": "CI 同口径全量 typecheck 0 error；日志 data/af260-tsc.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 260,
+        "machine": "同上",
+        "wallClock": "约 24 秒",
+        "note": "260 files passed + 1 skipped；4258 tests passed + 4 skipped；日志 data/af260-test.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --caller router --provider doubao --turns 6 --max-tokens 160 --timeout-ms 45000",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 4 秒（6 轮合计）",
+        "note": "6 轮全部 providerHint=doubao、model=doubao-seed-character-260628、finishReason=stop、guardLevel=pass；chars=4/17/11/11/7/11；promptTokens=745/768/800/826/852/879；totalUsage=4870/49/4919；fallbackUsed=false；degraded=false；日志 data/af260-smoke.log"
+      },
+      {
+        "command": "git diff HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-260-render-multi-turn-smoke 自 integrate 766aca7f 切出；多轮历史第 N 轮把上一轮 counselor/visitor 追加进 recentTurns；固定 6 条咨询师台词保证可复跑；smoke 只在进程内覆写 env，不写回 .env；未打印 key 与完整 prompt；web/orchestration/data.js 并行本地改动未暂存。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支名与提交标题只含 AF-260"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "multi-turn-evidence",
+        "result": "pass",
+        "note": "6 轮真实生产路由全轮命中主候选，promptTokens 逐轮递增，历史承接可见"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core"
+      },
+      {
+        "item": "env-boundary",
+        "result": "pass",
+        "note": "未改生产 .env；只在 smoke 进程内覆写开关"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 766aca7f；依赖 AF-259 已归档并合并"
+    },
+    "backlogItems": [
+      {
+        "id": "doubao-cost-per-provider",
+        "impact": "usage 已逐轮回传，但 session cost 仍按统一 token 汇总；豆包与 MiniMax 单价不同，需按 provider 分账"
+      },
+      {
+        "id": "visitor-render-router-retry-smoke",
+        "impact": "只覆盖路由成功分支，未覆盖主候选失败后切 MiniMax 回退的真实网络分支"
+      },
+      {
+        "id": "visitor-render-concurrency-smoke",
+        "impact": "6 轮是串行；并发多会话、429/5xx、超时与重试尚未验证"
+      },
+      {
+        "id": "visitor-render-long-context-smoke",
+        "impact": "6 轮 prompt 仅到 879 token；长对话摘要 sessionSummary 触发点与窗口裁剪尚未验证"
+      }
+    ],
+    "openQuestions": [
+      "多轮 smoke 是否需要扩到 20 轮以覆盖 sessionSummary 与窗口裁剪触发点"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "6 轮可用固定咨询师台词",
+        "reality": "CLI 内置 6 条按时序递进的台词；--prompt 只覆盖第 1 轮",
+        "action": "在任务说明与记录中固定台词序列",
+        "why": "固定序列让 prompt 增长与历史承接可比较、可复跑"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "scope 与提交事实一致；六组机读字段齐全；定向 10 例、lint、CI 同口径 tsc、全量 4258 例全绿；6 轮真实生产路由豆包 smoke 全轮命中主候选、历史承接可见、无空输出无降级无回退；engine-core 零改动。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
