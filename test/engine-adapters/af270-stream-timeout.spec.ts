@@ -97,6 +97,9 @@ function buildConfig(candidates: readonly RenderCandidate[]) {
       advanced: { temperature: 0.85, model: 'advanced-model' },
     },
     timeoutMs: TIMEOUT_MS,
+    // AF-276: 首包等待与聚合超时解耦；本组用例只测首包治理，显式把首包预算压到测试值。
+    streamFirstDeltaTimeoutMs: TIMEOUT_MS,
+    streamIdleTimeoutMs: TIMEOUT_MS,
     failureThreshold: 2,
     cooldownBaseMs: 1000,
     cooldownMaxMs: 8000,
@@ -106,7 +109,7 @@ function buildConfig(candidates: readonly RenderCandidate[]) {
 }
 
 describe('AF-270 · 流式首包超时', () => {
-  it('主候选首包挂起 → 配置超时内 abort 并切备', async () => {
+  it('主候选首包挂起 → 首包预算内 abort 并切备', async () => {
     const caller = new SignalAwareCaller(['hang', 'reply']);
     const adapter = new LlmRenderAdapter({ caller, config: buildConfig([{ id: 'primary' }, { id: 'backup' }]) });
     const deltas: string[] = [];
@@ -124,7 +127,8 @@ describe('AF-270 · 流式首包超时', () => {
     expect(outcome.degraded).toBe(false);
     expect(outcome.text).toBe('备选回复。');
     expect(deltas).toEqual(['备选回复。']);
-    expect(elapsed).toBeLessThan(TIMEOUT_MS * 4);
+    // AF-276: 首包预算 = max(配置下限 100ms, maxCompletionTokens 160 × 8 = 1280ms)。
+    expect(elapsed).toBeLessThan(1600);
     expect(caller.streamCalls[0]?.opts?.signal).toBeDefined();
     expect(adapter.health()['primary']?.consecutiveFailures).toBe(1);
   });

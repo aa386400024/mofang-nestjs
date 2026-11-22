@@ -38,6 +38,8 @@ import {
   DEFAULT_RENDER_COOLDOWN_MAX_MS,
   DEFAULT_RENDER_HALF_OPEN_AFTER_MS,
   DEFAULT_RENDER_FAILURE_THRESHOLD,
+  DEFAULT_RENDER_STREAM_FIRST_DELTA_TIMEOUT_MS,
+  DEFAULT_RENDER_STREAM_IDLE_TIMEOUT_MS,
   DEFAULT_RENDER_TIMEOUT_MS,
   type RenderAdapterConfig,
 } from '../../src/engine-adapters/rendering/render-adapter.config.js';
@@ -255,6 +257,8 @@ function stubRenderConfig(): RenderAdapterConfig {
       advanced: { temperature: 0.85 },
     },
     timeoutMs: DEFAULT_RENDER_TIMEOUT_MS,
+    streamIdleTimeoutMs: DEFAULT_RENDER_STREAM_IDLE_TIMEOUT_MS,
+    streamFirstDeltaTimeoutMs: DEFAULT_RENDER_STREAM_FIRST_DELTA_TIMEOUT_MS,
     failureThreshold: DEFAULT_RENDER_FAILURE_THRESHOLD,
     cooldownBaseMs: DEFAULT_RENDER_COOLDOWN_BASE_MS,
     cooldownMaxMs: DEFAULT_RENDER_COOLDOWN_MAX_MS,

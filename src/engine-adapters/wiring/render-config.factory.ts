@@ -46,6 +46,8 @@ import {
   DEFAULT_RENDER_FAILURE_THRESHOLD,
   DEFAULT_RENDER_HALF_OPEN_AFTER_MS,
   DEFAULT_RENDER_REASONING_EFFORT,
+  DEFAULT_RENDER_STREAM_FIRST_DELTA_TIMEOUT_MS,
+  DEFAULT_RENDER_STREAM_IDLE_TIMEOUT_MS,
   DEFAULT_RENDER_TASK_DEFAULTS,
   DEFAULT_RENDER_TIMEOUT_MS,
   createRenderAdapterConfig,
@@ -128,6 +130,17 @@ export class RenderConfigFactory {
         advanced: { temperature: chatTemperature, maxCompletionTokens, reasoningEffort },
       },
       timeoutMs: this.positiveNumber('ENGINE_RENDER_TIMEOUT_MS', DEFAULT_RENDER_TIMEOUT_MS),
+      // AF-276: 流式超时与聚合总超时解耦。块间空闲只约束「多久没新块」，首包下限按输出上限放大。
+      // 这里走 `config.get` 直读（而不是 `positiveNumber` 的变量入参），
+      // 让 wp25 的 AST 守卫能看见读取点，模板里的生效行才不会被判成 orphan。
+      streamIdleTimeoutMs: this.positiveNumberFromRaw(
+        this.config.get<string>('ENGINE_RENDER_STREAM_IDLE_TIMEOUT_MS'),
+        DEFAULT_RENDER_STREAM_IDLE_TIMEOUT_MS,
+      ),
+      streamFirstDeltaTimeoutMs: this.positiveNumberFromRaw(
+        this.config.get<string>('ENGINE_RENDER_STREAM_FIRST_DELTA_TIMEOUT_MS'),
+        DEFAULT_RENDER_STREAM_FIRST_DELTA_TIMEOUT_MS,
+      ),
       failureThreshold: this.positiveNumber('ENGINE_RENDER_FAILURE_THRESHOLD', DEFAULT_RENDER_FAILURE_THRESHOLD),
       cooldownBaseMs: this.positiveNumber('ENGINE_RENDER_COOLDOWN_BASE_MS', DEFAULT_RENDER_COOLDOWN_BASE_MS),
       cooldownMaxMs: this.positiveNumber('ENGINE_RENDER_COOLDOWN_MAX_MS', DEFAULT_RENDER_COOLDOWN_MAX_MS),

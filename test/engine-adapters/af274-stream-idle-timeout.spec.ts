@@ -103,6 +103,9 @@ function buildConfig(timeoutMs = TIMEOUT_MS) {
       advanced: { temperature: 0.85, model: 'advanced-model' },
     },
     timeoutMs,
+    // AF-276: 首包与块间空闲改为独立键；本组用例按原语义把两者都压到测试值。
+    streamFirstDeltaTimeoutMs: timeoutMs,
+    streamIdleTimeoutMs: timeoutMs,
     failureThreshold: 2,
     cooldownBaseMs: 1000,
     cooldownMaxMs: 8000,
