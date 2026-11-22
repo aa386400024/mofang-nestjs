@@ -1,0 +1,155 @@
+{
+  "deliveredAt": "2026-11-22T18:12:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-296-1",
+    "taskId": "AF-296",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "fix",
+    "agentRole": "executor",
+    "baselineRef": "bbc48ee44a804151b740b4e12a1f3ed22b698763",
+    "dependsOn": [],
+    "priorTasks": ["AF-292", "AF-295"],
+    "policyRefs": ["conventions.md#1.1", "conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-296/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af296-grafana-round-ratio-2026-11-22.md",
+      "reply": null,
+      "others": [
+        "data/af296-target4.log",
+        "data/af296-guard-negative2.log",
+        "data/af296-typecheck.log",
+        "data/af296-lint-full.log",
+        "data/af296-test-full.log",
+        "data/af296-preflight2.log"
+      ]
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af296-grafana-round-ratio-2026-11-22.md"
+      ],
+      "modified": [
+        "docker/grafana/dashboards/mofang-overview.json",
+        "test/config/af283-render-alerting.spec.ts",
+        "docs/runbooks/render-telemetry-alerting.md"
+      ],
+      "deleted": [],
+      "deletionChecks": [],
+      "commits": ["98034ccf", "9784424c"]
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/config/af283-render-alerting.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "262ms",
+        "note": "8 passed；日志 data/af296-target4.log"
+      },
+      {
+        "command": "同一测试 + 临时把回退率分母改回 attempts_total",
+        "exitCode": 1,
+        "errors": 1,
+        "warnings": 0,
+        "specFiles": 1,
+        "machine": "同上",
+        "wallClock": "242ms",
+        "note": "守卫按面板标题报出“分母缺 rounds_total / 仍用 attempts”，证明不是全局子串漏检；日志 data/af296-guard-negative2.log"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2s",
+        "note": "日志 data/af296-typecheck.log"
+      },
+      {
+        "command": "pnpm lint（全量）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40s",
+        "note": "日志 data/af296-lint-full.log"
+      },
+      {
+        "command": "pnpm test（全量）",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 0,
+        "machine": "同上",
+        "wallClock": "23.42s",
+        "note": "279 passed / 1 skipped files，4358 passed / 4 skipped tests；日志 data/af296-test-full.log"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 1s",
+        "note": "PASS task=AF-296 files=4 covered=3；日志 data/af296-preflight2.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "空，内核零改动"
+      }
+    ],
+    "reproNotes": "看板 id 10 与 id 13 的三条比率 expr 改为 rounds 分母，降级分子排除 guard；新增逐面板守卫；反向改动一次分母验证守卫确实失败后再恢复。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {"item": "taskId", "result": "pass", "note": "AF-296 任务单、分支、提交标题一致"},
+      {"item": "state-write", "result": "pass", "note": "register / promote / run-once 均经 CLI"},
+      {"item": "receipt-groups", "result": "pass", "note": "六组机读字段齐全"},
+      {"item": "engine-boundary", "result": "pass", "note": "src/engine-core 零改动"},
+      {"item": "alert-consistency", "result": "pass", "note": "看板降级率/回退率与 alerts.yml 同口径"},
+      {"item": "privacy", "result": "pass", "note": "未新增日志与指标标签"}
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef=bbc48ee4 为 AF-295 合并后的 integrate HEAD"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-render-provider-health-split",
+        "impact": "cancelled 进统一分母会稀释 provider 降级信号；外审建议拆 provider 健康度/用户可感知失败/取消率三条口径",
+        "suggestion": "独立任务定义三条口径、阈值与面板，并补灰度基线"
+      },
+      {
+        "id": "visitor-render-round-invariant-guard",
+        "impact": "rounds_total 与各 outcome / degraded_total 的恒等式无机械守卫",
+        "suggestion": "用 Prometheus recording rule 或运行期断言校验 identity"
+      },
+      {
+        "id": "visitor-auth-rollback-threshold",
+        "impact": "Runbook 与告警均为单次 401 即回滚，可能过严",
+        "suggestion": "按 ≥2 次/5m 校准告警与回滚线，需真实鉴权故障样本"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [],
+    "deviationAbsent": true,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "三条比率面板与告警口径一致；逐面板守卫经反向注入证明可拦截旧分母；定向测试、typecheck、全量 lint/test 全绿；未改阈值与生产代码。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}

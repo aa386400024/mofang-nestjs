@@ -1,13 +1,13 @@
 // 由 orchestration CLI 生成，勿手改
 window.ORCH_SNAPSHOT = {
-  "generatedAt": "2026-11-22T10:01:00.993Z",
+  "generatedAt": "2026-11-22T10:05:14.913Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 1,
+    "submitted": 0,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -16,48 +16,7 @@ window.ORCH_SNAPSHOT = {
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [
-    {
-      "taskId": "AF-296",
-      "contextId": "phase2.5-orchestration-closed-loop",
-      "type": "fix",
-      "title": "Grafana 比率面板回合口径对齐与逐面板守卫",
-      "status": "submitted",
-      "verdict": null,
-      "verdictRationale": null,
-      "attemptCount": 0,
-      "frozen": false,
-      "reworkOf": null,
-      "artifacts": {
-        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-296/task-sheet.md",
-        "deliveryRecord": "docs/worklog/completed/phase2.5/af296-grafana-round-ratio-2026-11-22.md",
-        "reply": null
-      },
-      "manualReview": [],
-      "dispatch": {
-        "taskId": "AF-296",
-        "contextId": "phase2.5-orchestration-closed-loop",
-        "channel": "gui-relay",
-        "targetRole": "executor",
-        "sessionRef": null,
-        "dispatchedAt": "2026-11-22T10:01:00.921Z",
-        "leaseDeadline": "2026-11-22T10:31:00.918Z",
-        "attempt": 1,
-        "status": "submitted",
-        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-296.json",
-        "delivery": {
-          "state": "pending",
-          "preparedAt": "2026-11-22T10:01:00.921Z",
-          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af070\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-296.brief.md",
-          "sessionPath": null,
-          "locateLayer": null,
-          "evidenceRef": null,
-          "consecutiveFailures": 0,
-          "history": []
-        }
-      }
-    }
-  ],
+  "tasks": [],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1826,6 +1785,21 @@ window.ORCH_SNAPSHOT = {
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-513",
+      "recordedAt": "2026-11-22T10:01:01.103Z",
+      "actorRef": "orchestrator",
+      "correlationId": "dispatch:AF-296",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": "AF-296",
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/transport/tasks/AF-296.json"
+      ]
+    },
+    {
       "auditId": "AUD-512",
       "recordedAt": "2026-11-22T10:00:36.457Z",
       "actorRef": "orchestrator",
@@ -2048,65 +2022,25 @@ window.ORCH_SNAPSHOT = {
       "resources": [
         "task/AF-289-af-289"
       ]
-    },
-    {
-      "auditId": "AUD-498",
-      "recordedAt": "2026-11-22T08:21:20.727Z",
-      "actorRef": "orchestrator",
-      "correlationId": "dispatch:AF-289",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": "AF-289",
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/transport/tasks/AF-289.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 512,
+    "total": 513,
     "byResult": {
-      "allowed": 512,
+      "allowed": 513,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 511,
+      "TOOL-QUEUE-SCHEDULER": 512,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 512
+      "orchestrator": 513
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [
-      {
-        "taskId": "AF-296",
-        "title": "Grafana 比率面板回合口径对齐与逐面板守卫",
-        "type": "fix",
-        "status": {
-          "framework": "submitted",
-          "protocol": "SUBMITTED",
-          "stage": "active"
-        },
-        "groupId": "phase2.5-orchestration-closed-loop",
-        "requiredSkills": [],
-        "dependsOn": [],
-        "agentRole": "executor",
-        "artifactReferences": [
-          {
-            "kind": "taskSheet",
-            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-296/task-sheet.md"
-          },
-          {
-            "kind": "deliveryRecord",
-            "ref": "docs/worklog/completed/phase2.5/af296-grafana-round-ratio-2026-11-22.md"
-          }
-        ]
-      }
-    ],
+    "tasks": [],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -7217,6 +7151,24 @@ window.ORCH_SNAPSHOT = {
             "ref": "docs/worklog/completed/phase2.5/af295-smoke-fail-backup-2026-11-22.md"
           }
         ]
+      },
+      {
+        "taskId": "AF-296",
+        "status": {
+          "framework": "completed",
+          "protocol": "COMPLETED",
+          "stage": "terminal"
+        },
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-296/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af296-grafana-round-ratio-2026-11-22.md"
+          }
+        ]
       }
     ],
     "statusMap": {
@@ -7231,22 +7183,9 @@ window.ORCH_SNAPSHOT = {
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [
-      {
-        "taskId": "AF-296",
-        "kind": "taskSheet",
-        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-296/task-sheet.md"
-      },
-      {
-        "taskId": "AF-296",
-        "kind": "deliveryRecord",
-        "ref": "docs/worklog/completed/phase2.5/af296-grafana-round-ratio-2026-11-22.md"
-      }
-    ],
-    "groupId": "phase2.5-orchestration-closed-loop",
-    "groupIds": [
-      "phase2.5-orchestration-closed-loop"
-    ],
+    "artifacts": [],
+    "groupId": null,
+    "groupIds": [],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
@@ -7254,5 +7193,5 @@ window.ORCH_SNAPSHOT = {
     "enabled": true,
     "intervalMs": 3000
   },
-  "archivedCount": 295
+  "archivedCount": 296
 };

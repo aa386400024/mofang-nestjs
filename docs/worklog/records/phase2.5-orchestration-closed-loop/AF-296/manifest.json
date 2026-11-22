@@ -2,15 +2,21 @@
   "schemaVersion": "worklog-record-manifest:1.0.0",
   "taskId": "AF-296",
   "contextId": "phase2.5-orchestration-closed-loop",
-  "status": "backlog",
+  "status": "completed",
   "createdAt": "2026-11-22T18:10:00+08:00",
-  "updatedAt": "2026-11-22T10:00:35.904Z",
+  "updatedAt": "2026-11-22T10:05:14.848Z",
   "taskSheet": {
     "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-296/task-sheet.md",
     "sha256": "96314c176b93dfe7ced22cc90255b9db4e897fb6c0b4fdad35f4ad19ca167c9b",
     "immutable": true
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-296/receipt-RC-AF-296-1.json",
+      "sha256": "c3c745adf9f472778b8597b12c6bf60ca5d2e9120229e2469799a4c1315ebb81",
+      "receiptId": "RC-AF-296-1"
+    }
+  ],
   "deliveryRecord": "docs/worklog/completed/phase2.5/af296-grafana-round-ratio-2026-11-22.md",
   "legacyPaths": [
     "docs/worklog/pending/af296-grafana-round-ratio-task-2026-11-22.md"
