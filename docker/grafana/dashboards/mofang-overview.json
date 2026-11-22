@@ -130,12 +130,12 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
       "targets": [
         {
-          "expr": "sum(increase(visitor_render_degraded_total[10m])) / clamp_min(sum(increase(visitor_render_attempts_total{outcome=~\"success|degrade\"}[10m])), 0.001)",
-          "legendFormat": "降级率 (排除 barge-in)",
+          "expr": "sum(increase(visitor_render_degraded_total{cause!=\"guard\"}[10m])) / clamp_min(sum(increase(visitor_render_rounds_total[10m])), 0.001)",
+          "legendFormat": "降级率 (排除 guard)",
           "refId": "A"
         },
         {
-          "expr": "sum(increase(visitor_render_cancelled_total[10m])) / clamp_min(sum(increase(visitor_render_attempts_total{outcome=~\"success|degrade\"}[10m])) + sum(increase(visitor_render_cancelled_total[10m])), 0.001)",
+          "expr": "sum(increase(visitor_render_cancelled_total[10m])) / clamp_min(sum(increase(visitor_render_rounds_total[10m])), 0.001)",
           "legendFormat": "取消率 (barge-in/暂停)",
           "refId": "B"
         }
@@ -179,7 +179,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
       "targets": [
         {
-          "expr": "sum(increase(visitor_render_fallback_total[10m])) / clamp_min(sum(increase(visitor_render_attempts_total{outcome=~\"success|degrade\"}[10m])), 0.001)",
+          "expr": "sum(increase(visitor_render_fallback_total[10m])) / clamp_min(sum(increase(visitor_render_rounds_total[10m])), 0.001)",
           "legendFormat": "回退率",
           "refId": "A"
         }
