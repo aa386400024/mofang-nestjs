@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-22T20:42:36.920Z",
+  "generatedAt": "2026-11-22T20:48:00.191Z",
   "mode": {
     "autoLoopEnabled": true,
     "reworkLimit": 2
   },
   "counts": {
     "ready": 0,
-    "submitted": 0,
+    "submitted": 1,
     "working": 0,
     "completed": 0,
     "failed": 0,
@@ -15,7 +15,48 @@
     "input-required": 0,
     "deadLetter": 0
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "taskId": "AF-335",
+      "contextId": "phase2.5-orchestration-closed-loop",
+      "type": "implementation",
+      "title": "真人度基线分离度与阈值敏感性",
+      "status": "submitted",
+      "verdict": null,
+      "verdictRationale": null,
+      "attemptCount": 0,
+      "frozen": false,
+      "reworkOf": null,
+      "artifacts": {
+        "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-335/task-sheet.md",
+        "deliveryRecord": "docs/worklog/completed/phase2.5/af335-realism-threshold-sensitivity-2026-11-23.md",
+        "reply": null
+      },
+      "manualReview": [],
+      "dispatch": {
+        "taskId": "AF-335",
+        "contextId": "phase2.5-orchestration-closed-loop",
+        "channel": "gui-relay",
+        "targetRole": "executor",
+        "sessionRef": null,
+        "dispatchedAt": "2026-11-22T20:48:00.120Z",
+        "leaseDeadline": "2026-11-22T21:18:00.118Z",
+        "attempt": 1,
+        "status": "submitted",
+        "handoverRef": "docs/team/agent-orchestration/transport/tasks/AF-335.json",
+        "delivery": {
+          "state": "pending",
+          "preparedAt": "2026-11-22T20:48:00.120Z",
+          "briefRef": "D:\\work\\Project\\backend\\mofang-nestjs-af281r\\docs\\team\\agent-orchestration\\transport\\briefs\\AF-335.brief.md",
+          "sessionPath": null,
+          "locateLayer": null,
+          "evidenceRef": null,
+          "consecutiveFailures": 0,
+          "history": []
+        }
+      }
+    }
+  ],
   "deadLetters": [],
   "reworkProposals": [],
   "pendingApprovals": [],
@@ -1784,6 +1825,23 @@
   ],
   "toolAudits": [
     {
+      "auditId": "AUD-072",
+      "recordedAt": "2026-11-22T20:47:53.219Z",
+      "actorRef": "orchestrator",
+      "correlationId": "promote:AF-335",
+      "toolId": "TOOL-QUEUE-SCHEDULER",
+      "category": "state-store",
+      "sideEffect": "restricted-write",
+      "taskId": null,
+      "result": "allowed",
+      "reason": null,
+      "resources": [
+        "docs/team/agent-orchestration/task-state-index.json",
+        "docs/team/agent-orchestration/orchestration-state.json",
+        "docs/team/agent-orchestration/orchestration-snapshot.json"
+      ]
+    },
+    {
       "auditId": "AUD-071",
       "recordedAt": "2026-11-22T20:31:46.550Z",
       "actorRef": "orchestrator",
@@ -2000,42 +2058,52 @@
       "resources": [
         "docs/team/agent-orchestration/transport/tasks/AF-330.json"
       ]
-    },
-    {
-      "auditId": "AUD-057",
-      "recordedAt": "2026-11-22T19:15:36.519Z",
-      "actorRef": "orchestrator",
-      "correlationId": "promote:AF-330",
-      "toolId": "TOOL-QUEUE-SCHEDULER",
-      "category": "state-store",
-      "sideEffect": "restricted-write",
-      "taskId": null,
-      "result": "allowed",
-      "reason": null,
-      "resources": [
-        "docs/team/agent-orchestration/task-state-index.json",
-        "docs/team/agent-orchestration/orchestration-state.json",
-        "docs/team/agent-orchestration/orchestration-snapshot.json"
-      ]
     }
   ],
   "auditSummary": {
-    "total": 71,
+    "total": 72,
     "byResult": {
-      "allowed": 71,
+      "allowed": 72,
       "denied": 0
     },
     "byTool": {
-      "TOOL-QUEUE-SCHEDULER": 70,
+      "TOOL-QUEUE-SCHEDULER": 71,
       "TOOL-STATE-STORE": 1
     },
     "byActor": {
-      "orchestrator": 71
+      "orchestrator": 72
     }
   },
   "protocolView": {
     "contractRef": "urn:agent-collaboration-framework:schema:protocol-view:1.0.0",
-    "tasks": [],
+    "tasks": [
+      {
+        "taskId": "AF-335",
+        "title": "真人度基线分离度与阈值敏感性",
+        "type": "implementation",
+        "status": {
+          "framework": "submitted",
+          "protocol": "SUBMITTED",
+          "stage": "active"
+        },
+        "groupId": "phase2.5-orchestration-closed-loop",
+        "requiredSkills": [],
+        "dependsOn": [
+          "AF-334"
+        ],
+        "agentRole": "executor",
+        "artifactReferences": [
+          {
+            "kind": "taskSheet",
+            "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-335/task-sheet.md"
+          },
+          {
+            "kind": "deliveryRecord",
+            "ref": "docs/worklog/completed/phase2.5/af335-realism-threshold-sensitivity-2026-11-23.md"
+          }
+        ]
+      }
+    ],
     "archivedTasks": [
       {
         "taskId": "TD-5",
@@ -7682,9 +7750,22 @@
       "canceled": "CANCELED",
       "rejected": "REJECTED"
     },
-    "artifacts": [],
-    "groupId": null,
-    "groupIds": [],
+    "artifacts": [
+      {
+        "taskId": "AF-335",
+        "kind": "taskSheet",
+        "ref": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-335/task-sheet.md"
+      },
+      {
+        "taskId": "AF-335",
+        "kind": "deliveryRecord",
+        "ref": "docs/worklog/completed/phase2.5/af335-realism-threshold-sensitivity-2026-11-23.md"
+      }
+    ],
+    "groupId": "phase2.5-orchestration-closed-loop",
+    "groupIds": [
+      "phase2.5-orchestration-closed-loop"
+    ],
     "capabilityDeclarations": [],
     "unknownStatuses": []
   },
