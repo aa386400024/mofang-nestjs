@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "worklog-record-manifest:1.0.0",
+  "taskId": "AF-330",
+  "contextId": "phase2.5-orchestration-closed-loop",
+  "status": "completed",
+  "createdAt": "2026-11-23T03:20:00+08:00",
+  "updatedAt": "2026-11-22T19:25:38.567Z",
+  "taskSheet": {
+    "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-330/task-sheet.md",
+    "sha256": "5482c9ec85f67aa7c9f601efefb780f34fc5a0d334a3e547356d04d77e95612b",
+    "immutable": true
+  },
+  "receipts": [
+    {
+      "path": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-330/receipt-RC-AF-330-1.json",
+      "sha256": "639f078caa8b1a59a0b87ed7c44cc2a29858850491a9fff649a32326b439401e",
+      "receiptId": "RC-AF-330-1"
+    }
+  ],
+  "deliveryRecord": "docs/worklog/completed/phase2.5/af330-realism-prompt-ablation-2026-11-23.md",
+  "legacyPaths": [
+    "docs/worklog/pending/af330-realism-prompt-ablation-task-2026-11-23.md"
+  ],
+  "tombstone": null
+}

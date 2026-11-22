@@ -1,0 +1,240 @@
+{
+  "deliveredAt": "2026-11-23T03:26:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-330-1",
+    "taskId": "AF-330",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "agentRole": "executor",
+    "baselineRef": "3835953bf0cc98f3c17d658b309ad6263db8c25a",
+    "dependsOn": ["AF-329"],
+    "priorTasks": ["AF-329", "AF-328"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-330/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af330-realism-prompt-ablation-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af330-realism-prompt-ablation-report-2026-11-23.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["61c6f9dd0804dd6e0b7c25e5ba2e3eefaa2745cc"],
+      "added": [
+        "src/shared/realism/realism-prompt-ablation.ts",
+        "bin/visitor-realism-prompt-ablation.ts",
+        "test/shared/realism/realism-prompt-ablation.spec.ts",
+        "docs/worklog/completed/phase2.5/af330-realism-prompt-ablation-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af330-realism-prompt-ablation-report-2026-11-23.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/shared/realism/realism-prompt-ablation.spec.ts test/shared/realism/realism-prompt-ab.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "tests": 21,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "0.54s",
+        "note": "消融 13 例 + AF-329 A/B 8 例，21/21 通过；覆盖 5 分支构造、人设差异、off 空块、full 等于生产块、逐字子集与顺序、未知人设抛错"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 8s",
+        "note": "tsc -p tsconfig.json --noEmit --incremental，0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中",
+        "note": "src/test/bin 与 scripts 两段 ESLint 均 0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 291,
+        "tests": 4477,
+        "machine": "同上",
+        "wallClock": "19.06s",
+        "note": "291 文件通过 / 1 跳过（292）；4477 例通过 / 4 跳过（4481）"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-realism-prompt-ablation.ts --reps 2 --out data/phase25-exit/af330-realism-ablation/report.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 2 分钟",
+        "note": "2 人设 × 5 分支 × 6 轮 × 2 重复，共 120 次真实调用、0 失败；full 密度 6.805556 / 7.657080，event 8.374672 / 7.880501，quota 4.109397 / 3.006737，context 4.170918 / 6.076105"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；engine-core 零改动"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-330 status=submitted files=11 covered=3"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "回执摄入前事件链一致；归档后复跑"
+      }
+    ],
+    "reproNotes": "复现顺序：pnpm exec vitest run test/shared/realism/realism-prompt-ablation.spec.ts test/shared/realism/realism-prompt-ab.spec.ts；pnpm typecheck；pnpm lint；pnpm test；pnpm exec tsx bin/visitor-realism-prompt-ablation.ts --reps 2 --out data/phase25-exit/af330-realism-ablation/report.json；git diff --stat HEAD -- src/engine-core。消融只走生产 LlmService.streamChat 的 doubao provider，不写库、不启服务；原始 JSON 含合成台词，留在 gitignored 取证目录，不入库。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-330 经 CLI register / promote / run-once 领单；分支名与提交标题只含一个任务号"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态索引、事件链、快照、web 数据均由 CLI 生成；未手改状态面"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "events verify 通过；索引投影一致"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "回执摄入前 events verify 通过"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "本单不涉及 engine-core；git diff --stat HEAD -- src/engine-core 为空"
+      },
+      {
+        "item": "prompt-subset",
+        "result": "pass",
+        "note": "单测锁定 off 为空、full 逐字等于生产 buildVisitorRealismPromptBlock、quota/event/context 为生产块逐字行子集且顺序不变"
+      },
+      {
+        "item": "steady-context",
+        "result": "pass",
+        "note": "焦虑人设显式 riskLevel='none'、trust=0.45 / arousal=0.55 解析为 steady；回避人设 trust=0.32 / verbalResistance=0.68 解析为 guarded；AF-329 的 riskLevel='low' 被解析为 risk 的偏差已在报告与交付记录写明"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "CLI 与报告只输出数字与合成 id；完整合成台词只在 gitignored JSON 中，未入库"
+      },
+      {
+        "item": "clinical-boundary",
+        "result": "pass",
+        "note": "两人设两次重复的文本分布事实；无真实咨询语料、无真人督导；不宣称临床真人度、疗效或统计显著性"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 3835953b 为切出点；任务单 submitted；回执 finalStatus completed；实现提交 61c6f9dd 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF330-B1",
+        "impact": "AF-329 归档报告仍把 risk 路径结果表述为 active 抑制；需单独 errata 或在后续任务中更正，避免被当作 steady 结论引用。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF330-B2",
+        "impact": "生产块的话轮形态是每轮命令式、事件层列四类候选，导致 steady 下密度 6-8；需要另立任务做单变量 prompt 收紧，而不是继续加配额。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF330-B3",
+        "impact": "仅 2 人设 × 2 重复，不足以做统计显著性；结论只能作方向性证据。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF330-B4",
+        "impact": "guarded + quota 两次重复一次 failed 一次 passed，说明短文本下配额层仍不稳定；需要更多配对或按整场设配额。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF330-B5",
+        "impact": "humanization-v1 密度门槛在 6 轮短文本上对单个事件敏感；需长会话与配对中位数校准，不能靠放宽门槛解决过量生产。",
+        "owner": "ai-engine",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "话轮形态层应改成「本轮最多一次、与配额冲突时让位」，还是彻底从每轮指令移到低频事件池",
+      "事件层是否只保留一个最自然候选，并明确「没有就不加」",
+      "配额应按连续多轮/整场设上限，还是继续按单轮但提高密度分母",
+      "是否单独给 AF-329 补 errata 文档，避免旧报告继续被引用为 steady 证据"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "用 AF-329 的生产同款块构造 5 个分支",
+        "reality": "AF-329 的上下文 riskLevel 为 'low'，resolveRealismStateBand 判为 risk，active 分支配额全 0",
+        "action": "复用生产块与基础人设，但把焦虑人设显式改为 riskLevel='none'，使消融落在 steady",
+        "why": "不修就无法回答 steady 下各层的作用；该偏差已在报告与交付记录单列"
+      },
+      {
+        "taskSays": "输出只含数字，不输出完整台词",
+        "reality": "原始 JSON 需要保留响应文本才能复算指标",
+        "action": "JSON 只落 gitignored data 取证目录；仓库报告与回执只保留数字，归因处仅引用生产 prompt 指令文本",
+        "why": "复跑需要原文，但仓库交付不夹带合成台词"
+      },
+      {
+        "taskSays": "单测至少 10 例",
+        "reality": "实际 13 例",
+        "action": "保持 13 例，覆盖分支枚举、两人设、off/full、逐字子集、顺序与异常",
+        "why": "多出的 3 例锁定 AF-329 口径偏差相关的边界，不删减"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-330 交付可复跑的 5 分支消融模块、CLI 与 13 例单测，真实 120 次调用 0 失败，并给出明确方向：steady 下生产块过度生成，full/event/context 密度 6-8，quota 仍高于 2.5 上限；同时定位并写明 AF-329 的 riskLevel='low' 被解析为 risk 的口径偏差。定向 21 例、全量 4477 例、lint 0/0、typecheck exit 0、engine-core 零 diff。没有启用 active，没有放宽判据，也没有把工程数字包装成临床有效性。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
