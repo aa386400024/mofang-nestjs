@@ -167,6 +167,7 @@ interface RunTurnOptions {
   provider: string;
   expectFallback: boolean;
   expectDegraded: boolean;
+  expectExhausted: boolean;
 }
 
 interface OutcomeView {
@@ -183,12 +184,25 @@ function assertSmokeOutcome(
   provider: string,
   expectFallback: boolean,
   expectDegraded: boolean,
+  expectExhausted = false,
 ): void {
   if (view.text.trim().length === 0) {
     fail(`${turnLabel}渲染输出为空（degraded=${String(view.degraded)} provider=${view.providerHint ?? '-'}）`, 2);
   }
-  if (view.degraded && !expectDegraded) {
+  if (view.degraded && !expectDegraded && !expectExhausted) {
     fail(`${turnLabel}走了降级路径：provider=${view.providerHint ?? '-'}`, 2);
+  }
+  if (expectExhausted) {
+    if (!view.degraded || view.providerHint !== 'degraded') {
+      fail(
+        `${turnLabel}期望候选耗尽（provider=degraded），实际 providerHint=${view.providerHint ?? '-'} degraded=${String(view.degraded)}`,
+        2,
+      );
+    }
+    if (!view.fallbackUsed) {
+      fail(`${turnLabel}期望候选耗尽时 fallbackUsed=true，实际 false`, 2);
+    }
+    return;
   }
   if (expectDegraded) {
     if (!view.degraded || view.providerHint !== 'degraded') {
@@ -217,7 +231,7 @@ function assertSmokeOutcome(
 
 /** 跑一轮真实渲染并校验边界；任一条不满足直接非 0 退出。 */
 async function runTurn(options: RunTurnOptions): Promise<{ summary: TurnSummary; text: string }> {
-  const { port, counselorText, history, turn, turns, maxTokens, provider, expectFallback, expectDegraded } = options;
+  const { port, counselorText, history, turn, turns, maxTokens, provider, expectFallback, expectDegraded, expectExhausted } = options;
   if (port.streamRender === undefined) fail('渲染端口没有 streamRender，无法做端到端 smoke');
   const startedAt = Date.now();
   let firstDeltaAt: number | undefined;
@@ -242,6 +256,7 @@ async function runTurn(options: RunTurnOptions): Promise<{ summary: TurnSummary;
     provider,
     expectFallback,
     expectDegraded,
+    expectExhausted,
   );
 
   const summary: TurnSummary = {
@@ -430,45 +445,80 @@ type ProviderChoice = 'doubao' | 'minimax';
 
 interface FaultFlags {
   readonly failPrimary: boolean;
+  readonly failBackup: boolean;
   readonly mode: FaultMode;
   readonly expectFallback: boolean;
   readonly expectDegraded: boolean;
+  readonly expectExhausted: boolean;
 }
 
 const FALLBACK_FAULT_MODES = new Set<FaultMode>(['auth', 'network', 'rate-limit', 'server-error', 'timeout']);
 const DEGRADED_FAULT_MODES = new Set<FaultMode>(['midstream-stall']);
 
+/** 备候选故障与期望的组合校验；拆出以降低单函数分支密度。 */
+function assertBackupExpectation(faults: FaultFlags): void {
+  if (faults.expectExhausted && !faults.failBackup) {
+    fail('--expect-exhausted 必须同时开启 --fail-primary 与 --fail-backup');
+  }
+  if (faults.expectFallback && faults.failBackup) {
+    fail('--fail-backup 与 --expect-fallback 冲突：备候选也被注入故障时不可能成功回退');
+  }
+  if (faults.expectDegraded && faults.failBackup) {
+    fail('--fail-backup 与 --expect-degraded 冲突：两候选同时失败应记为 exhausted');
+  }
+}
+
+/** 故障注入与期望的组合校验；独立成函数以控制 resolveFaultFlags 的认知复杂度。 */
+function assertFaultScope(callerPath: string, provider: string, faults: FaultFlags): void {
+  const expectFlags = [faults.expectFallback, faults.expectDegraded, faults.expectExhausted];
+  if (expectFlags.some(Boolean) && (callerPath !== 'router' || (provider !== 'doubao' && provider !== 'minimax'))) {
+    fail('--expect-fallback / --expect-degraded / --expect-exhausted 只适用于 --caller router 的 doubao / minimax 主候选');
+  }
+  if (faults.failPrimary && callerPath !== 'router') {
+    fail('--fail-primary 只适用于 --caller router：故障注入目标是生产路由链的主候选');
+  }
+  if (faults.failBackup && callerPath !== 'router') {
+    fail('--fail-backup 只适用于 --caller router：故障注入目标是生产路由链的备候选');
+  }
+  if ((faults.failPrimary || faults.failBackup) && provider !== 'doubao' && provider !== 'minimax') {
+    fail('--fail-primary / --fail-backup 只适用于 --provider doubao / minimax');
+  }
+  if (faults.failBackup && !faults.failPrimary) {
+    fail('--fail-backup 必须与 --fail-primary 同用：只断备候选无法证明轮次耗尽');
+  }
+  if (expectFlags.filter(Boolean).length > 1) {
+    fail('--expect-fallback / --expect-degraded / --expect-exhausted 三者互斥');
+  }
+  if ((faults.failPrimary || faults.failBackup) && !expectFlags.some(Boolean)) {
+    fail('故障注入必须配合 --expect-fallback / --expect-degraded / --expect-exhausted 之一');
+  }
+  assertBackupExpectation(faults);
+  if (DEGRADED_FAULT_MODES.has(faults.mode) && faults.expectFallback) {
+    fail('首包后停摆已经出声，不能再切候选；验证收尾降级请用 --expect-degraded');
+  }
+  if (DEGRADED_FAULT_MODES.has(faults.mode) && faults.expectExhausted) {
+    fail('首包后停摆会在主候选内收尾降级，不会走到备候选；验证 exhausted 请用可切换故障模式');
+  }
+  if (FALLBACK_FAULT_MODES.has(faults.mode) && faults.expectDegraded) {
+    fail('鉴权 / 限流 / 服务端错误 / 超时均为可切备故障；验证降级请用 --fail-primary-mode midstream-stall');
+  }
+}
+
 /** 解析并校验故障注入开关；语义互斥的组合同步拒绝，避免 smoke 自相矛盾。 */
 function resolveFaultFlags(callerPath: string, provider: string): FaultFlags {
   const failPrimary = hasFlag('--fail-primary');
+  const failBackup = hasFlag('--fail-backup');
   const expectFallback = hasFlag('--expect-fallback');
   const expectDegraded = hasFlag('--expect-degraded');
+  const expectExhausted = hasFlag('--expect-exhausted');
   const rawMode = (arg('--fail-primary-mode', 'auth') ?? 'auth').toLowerCase();
   if (!['auth', 'network', 'rate-limit', 'server-error', 'timeout', 'midstream-stall'].includes(rawMode)) {
     fail('--fail-primary-mode 只允许 auth / network / rate-limit / server-error / timeout / midstream-stall');
   }
   const mode = rawMode as FaultMode;
-
-  if ((expectFallback || expectDegraded) && (callerPath !== 'router' || (provider !== 'doubao' && provider !== 'minimax'))) {
-    fail('--expect-fallback / --expect-degraded 只适用于 --caller router 的 doubao / minimax 主候选');
-  }
-  if (failPrimary && callerPath !== 'router') {
-    fail('--fail-primary 只适用于 --caller router：故障注入目标是生产路由链的主候选');
-  }
-  if (failPrimary && provider !== 'doubao' && provider !== 'minimax') {
-    fail('--fail-primary 只适用于 --provider doubao / minimax');
-  }
-  if (expectFallback && expectDegraded) fail('--expect-fallback 与 --expect-degraded 不能同时使用');
-  if (failPrimary && !expectFallback && !expectDegraded) {
-    fail('--fail-primary 必须配合 --expect-fallback 或 --expect-degraded');
-  }
-  if (DEGRADED_FAULT_MODES.has(mode) && expectFallback) {
-    fail('首包后停摆已经出声，不能再切候选；验证收尾降级请用 --expect-degraded');
-  }
-  if (FALLBACK_FAULT_MODES.has(mode) && expectDegraded) {
-    fail('鉴权 / 限流 / 服务端错误 / 超时均为可切备故障；验证降级请用 --fail-primary-mode midstream-stall');
-  }
-  return { failPrimary, mode, expectFallback, expectDegraded };
+  const faults: FaultFlags = { failPrimary, failBackup, mode, expectFallback, expectDegraded, expectExhausted };
+  assertFaultScope(callerPath, provider, faults);
+  return faults;
 }
 
 function envText(key: string): string | undefined {
@@ -539,12 +589,13 @@ function buildRouterChain(
   failPrimary: boolean,
   faultBaseUrl?: string,
   primaryProvider: 'doubao' | 'minimax' = 'doubao',
+  failBackup = false,
 ): { router: LlmRouterService; caller: ChatCaller } {
   process.env['LLM_DEFAULT_CHAT_PROVIDER'] = primaryProvider;
   const configuredModel = envText('LLM_DOUBAO_MODEL')?.trim();
   const doubaoModel = configuredModel === undefined || configuredModel.length === 0 ? 'doubao-seed-2-1-pro-260915' : configuredModel;
-  const faultOptions: { baseUrl?: string; maxRetries?: number; requestTimeoutMs?: number } =
-    failPrimary && (faultMode === 'network' || faultBaseUrl !== undefined)
+  const faultOptionsFor = (enabled: boolean): { baseUrl?: string; maxRetries?: number; requestTimeoutMs?: number } =>
+    enabled && (faultMode === 'network' || faultBaseUrl !== undefined)
       ? {
           baseUrl: faultBaseUrl ?? 'http://127.0.0.1:9/v1',
           maxRetries: 0,
@@ -553,7 +604,7 @@ function buildRouterChain(
       : {};
   const providerClient = new DoubaoChatProvider({
     defaultChatModel: doubaoModel,
-    ...(primaryProvider === 'doubao' ? faultOptions : {}),
+    ...(primaryProvider === 'doubao' ? faultOptionsFor(failPrimary) : faultOptionsFor(failBackup)),
   });
   const registry = new ProviderRegistryService();
   registry.registerChat(providerClient, {
@@ -570,15 +621,12 @@ function buildRouterChain(
   // 备候选必须真实注册，否则 router 会按"未注册 → 回落默认"把 minimax 请求转回豆包，
   // 回退 smoke 就只能看到一次假回退。
   const minimaxModel = process.env.MINIMAX_LLM_MODEL?.trim() ?? 'MiniMax-M3';
+  const minimaxFaultOptions = primaryProvider === 'minimax' ? faultOptionsFor(failPrimary) : faultOptionsFor(failBackup);
   const minimaxClient = new MinimaxChatProvider({
-    baseUrl: primaryProvider === 'minimax' && faultOptions.baseUrl !== undefined ? faultOptions.baseUrl : process.env.MINIMAX_BASE_URL,
+    baseUrl: minimaxFaultOptions.baseUrl ?? process.env.MINIMAX_BASE_URL,
     defaultChatModel: minimaxModel,
-    ...(primaryProvider === 'minimax'
-      ? {
-          ...(faultOptions.maxRetries === undefined ? {} : { maxRetries: faultOptions.maxRetries }),
-          ...(faultOptions.requestTimeoutMs === undefined ? {} : { requestTimeoutMs: faultOptions.requestTimeoutMs }),
-        }
-      : {}),
+    ...(minimaxFaultOptions.maxRetries === undefined ? {} : { maxRetries: minimaxFaultOptions.maxRetries }),
+    ...(minimaxFaultOptions.requestTimeoutMs === undefined ? {} : { requestTimeoutMs: minimaxFaultOptions.requestTimeoutMs }),
   });
   registry.registerChat(minimaxClient, {
     id: AIProviderId.MINIMAX,
@@ -636,6 +684,7 @@ interface SmokeReport {
   readonly expectDegradedWithinMs: number | null;
   readonly faults: FaultFlags;
   readonly primaryProbe: { ok: false; model: string; error: string; elapsedMs: number } | null;
+  readonly backupProbe: { ok: false; model: string; error: string; elapsedMs: number } | null;
   readonly turns: number;
   readonly concurrency: number;
   readonly wallElapsedMs: number;
@@ -663,9 +712,12 @@ function printReport(report: SmokeReport): void {
         expectDegradedWithinMs: report.expectDegradedWithinMs,
         failPrimary: report.faults.failPrimary,
         failPrimaryMode: report.faults.failPrimary ? report.faults.mode : null,
+        failBackup: report.faults.failBackup,
         expectFallback: report.faults.expectFallback,
         expectDegraded: report.faults.expectDegraded,
+        expectExhausted: report.faults.expectExhausted,
         primaryProbe: report.primaryProbe,
+        backupProbe: report.backupProbe,
         turns: report.turns,
         concurrency: report.concurrency,
         wallElapsedMs: report.wallElapsedMs,
@@ -742,6 +794,7 @@ async function executeSessions(options: BatchOptions): Promise<SessionBatch> {
           provider,
           expectFallback: false,
           expectDegraded: false,
+          expectExhausted: false,
         }),
       ),
     );
@@ -761,6 +814,7 @@ async function executeSessions(options: BatchOptions): Promise<SessionBatch> {
         provider,
         expectFallback: faults.expectFallback,
         expectDegraded: faults.expectDegraded,
+        expectExhausted: faults.expectExhausted,
       });
       record(result.summary);
       // 下一轮把本轮来访回复带入历史，形成 counselor/visitor 交替上下文。
@@ -824,12 +878,18 @@ function resolveRunOptions(): RunOptions {
   }
 
   if (concurrency > 1 && turns !== 1) fail('--concurrency 与 --turns 互斥：并发模式固定单轮');
-  if (concurrency > 1 && (faults.failPrimary || faults.expectFallback || faults.expectDegraded)) {
+  if (
+    concurrency > 1 &&
+    (faults.failPrimary || faults.failBackup || faults.expectFallback || faults.expectDegraded || faults.expectExhausted)
+  ) {
     fail('--concurrency 不与故障注入开关同时使用');
   }
   if (concurrency > 1 && promptOverride !== null) fail('--concurrency 模式不接受 --prompt 固定开场');
   if (orchestrated && concurrency > 1) fail('--orchestrated 与 --concurrency 互斥');
-  if (orchestrated && (faults.failPrimary || faults.expectFallback || faults.expectDegraded)) {
+  if (
+    orchestrated &&
+    (faults.failPrimary || faults.failBackup || faults.expectFallback || faults.expectDegraded || faults.expectExhausted)
+  ) {
     fail('--orchestrated 暂不与故障注入开关同时使用');
   }
   return {
@@ -857,7 +917,7 @@ function injectAuthFailure(provider: 'doubao' | 'minimax'): void {
 }
 
 function needsFaultServer(faults: FaultFlags): boolean {
-  if (!faults.failPrimary) return false;
+  if (!faults.failPrimary && !faults.failBackup) return false;
   return faults.mode === 'rate-limit' || faults.mode === 'server-error' || faults.mode === 'timeout' || faults.mode === 'midstream-stall';
 }
 
@@ -865,10 +925,10 @@ function assertCandidateChain(renderConfig: RenderAdapterConfig, provider: Provi
   if (renderConfig.candidates[0]?.id !== provider) {
     fail(`候选装配异常：期望主候选=${provider}，实际=${renderConfig.candidates[0]?.id ?? '(空)'}`);
   }
-  if (!faults.expectFallback) return;
+  if (!faults.expectFallback && !faults.expectExhausted) return;
   const expectedFallback = provider === 'doubao' ? 'minimax' : 'doubao';
   if (renderConfig.candidates[1]?.id !== expectedFallback) {
-    fail(`回退 smoke 需要备候选 ${expectedFallback}，实际=${renderConfig.candidates[1]?.id ?? '(空)'}`);
+    fail(`故障 smoke 需要备候选 ${expectedFallback}，实际=${renderConfig.candidates[1]?.id ?? '(空)'}`);
   }
 }
 
@@ -885,6 +945,22 @@ async function probePrimary(
     router,
     renderConfig.candidates[0]?.overrides?.chat?.model ?? (provider === 'doubao' ? 'doubao-seed-character-260628' : 'MiniMax-M3'),
     provider === 'doubao' ? AIProviderId.DOUBAO : AIProviderId.MINIMAX,
+  );
+}
+
+/** 备候选故障探针：只证明配好的备份链路也被指向故障上游，不替代轮次终局证据。 */
+async function probeBackup(
+  router: LlmRouterService,
+  renderConfig: RenderAdapterConfig,
+  provider: ProviderChoice,
+  faults: FaultFlags,
+): Promise<{ ok: false; model: string; error: string; elapsedMs: number } | null> {
+  if (!faults.failBackup || faults.mode === 'midstream-stall') return null;
+  const backup: ProviderChoice = provider === 'doubao' ? 'minimax' : 'doubao';
+  return probePrimaryFailure(
+    router,
+    renderConfig.candidates[1]?.overrides?.chat?.model ?? (backup === 'doubao' ? 'doubao-seed-character-260628' : 'MiniMax-M3'),
+    backup === 'doubao' ? AIProviderId.DOUBAO : AIProviderId.MINIMAX,
   );
 }
 
@@ -920,6 +996,7 @@ async function main(): Promise<void> {
   if (provider === 'doubao') envRequired('LLM_DOUBAO_API_KEY');
   // 只在本进程注入故障，不写 .env、不打印原 key：auth 用无效 key，network 用不可达基址。
   if (faults.failPrimary && faults.mode === 'auth') injectAuthFailure(provider);
+  if (faults.failBackup && faults.mode === 'auth') injectAuthFailure(provider === 'doubao' ? 'minimax' : 'doubao');
 
   const config = {
     get: <T>(key: string): T | undefined => process.env[key] as T | undefined,
@@ -932,7 +1009,7 @@ async function main(): Promise<void> {
   const faultServer = needsFaultServer(faults) ? await startFaultServer(faults.mode) : null;
 
   if (callerPath === 'router') {
-    ({ router, caller } = buildRouterChain(config, faults.mode, faults.failPrimary, faultServer?.baseUrl, provider));
+    ({ router, caller } = buildRouterChain(config, faults.mode, faults.failPrimary, faultServer?.baseUrl, provider, faults.failBackup));
   } else {
     const llm = new LlmService(config);
     router = {
@@ -951,6 +1028,7 @@ async function main(): Promise<void> {
   const renderConfig = configFactory.build();
   assertCandidateChain(renderConfig, provider, faults);
   const primaryProbe = await probePrimary(router, renderConfig, provider, faults);
+  const backupProbe = await probeBackup(router, renderConfig, provider, faults);
 
   // 只有显式 --dump-render-metrics 才接遥测；默认路径保持原样，不为 smoke 改生产装配.
   let renderMetrics: MetricsService | undefined;
@@ -1011,6 +1089,7 @@ async function main(): Promise<void> {
     expectDegradedWithinMs,
     faults,
     primaryProbe,
+    backupProbe,
     turns,
     concurrency,
     wallElapsedMs: batch.wallElapsedMs,
