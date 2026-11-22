@@ -182,6 +182,24 @@ sum(increase(visitor_render_cancelled_total[10m]))
 
 回放记录归档在 `data/af299-{server-error,timeout,auth,network,midstream}.log`；`eval` 只看 `ok=true` 不够，必须核对上表至少两条相互独立的指标（例如 `rounds` 结局 + `failure` cause），避免单一指标误判。
 
+### 5.2 一键自证（AF-302）
+
+上表已经固化成验收器，一条命令跑完五条场景并自动判定：
+
+```powershell
+pnpm exec tsx bin/visitor-render-acceptance.ts
+pnpm exec tsx bin/visitor-render-acceptance.ts --only double-auth
+pnpm exec tsx bin/visitor-render-acceptance.ts --keep-going
+```
+
+判读纪律：
+
+- 每条场景先要求 smoke 退出码 0、报告 `ok=true`，再逐条比对指标；任一不符打印「期望 X=值，实际 Y」并使进程退出码为 1，可直接接 CI 或发布前门禁。
+- `--only <id,id>` 只跑子集（id 见输出首列：`double-server` / `double-timeout` / `double-auth` / `double-network` / `single-midstream`）；未知 id 直接报错。
+- 默认遇错即停；`--keep-going` 跑完全部再汇总，适合排障时一次看全貌。
+- 指标仍是**本轮进程内增量**（`--dump-render-metrics` 的 JSON 报告），不是线上累计值；不要拿它和 Prometheus 的 `increase()` 结果做等值比较。
+- 单场景耗时：4 条秒级，首包超时约 16s，首包后停摆约 30s；全跑约 50–60s，不含进程启动。
+
 ---
 
 ## 6. 看板
