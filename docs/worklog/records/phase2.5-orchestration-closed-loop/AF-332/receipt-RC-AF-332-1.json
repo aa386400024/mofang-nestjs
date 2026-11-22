@@ -1,0 +1,256 @@
+{
+  "deliveredAt": "2026-11-23T04:09:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-332-1",
+    "taskId": "AF-332",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "agentRole": "executor",
+    "baselineRef": "3d608aaf6251924564374cfaede56f184edaca07",
+    "dependsOn": ["AF-331"],
+    "priorTasks": ["AF-331", "AF-330"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-332/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af332-realism-baseline-variance-2026-11-23.md",
+      "reply": null,
+      "others": [
+        "docs/worklog/completed/phase2.5/af332-realism-baseline-variance-report-2026-11-23.md"
+      ]
+    },
+    "changedFiles": {
+      "commits": ["9558811e482c718a9158a16ce0520682d6e3c8c8"],
+      "added": [
+        "src/shared/realism/realism-metric-distribution.ts",
+        "bin/visitor-realism-baseline-variance.ts",
+        "test/shared/realism/realism-metric-distribution.spec.ts",
+        "docs/worklog/completed/phase2.5/af332-realism-baseline-variance-2026-11-23.md",
+        "docs/worklog/completed/phase2.5/af332-realism-baseline-variance-report-2026-11-23.md"
+      ],
+      "modified": [],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec vitest run test/shared/realism/realism-metric-distribution.spec.ts test/shared/realism/realism-prompt-tightening.spec.ts",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 2,
+        "tests": 25,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v26.13.1 / pnpm 9.15.0",
+        "wallClock": "0.22s",
+        "note": "分布 12 例 + AF-331 减层 13 例，25/25 通过；覆盖奇偶中位数、缺失值、空数组、单样本、极值与窗口计数"
+      },
+      {
+        "command": "pnpm typecheck",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 8s",
+        "note": "tsc -p tsconfig.json --noEmit --incremental，0 error"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "缓存命中",
+        "note": "src/test/bin 与 scripts 两段 ESLint 均 0 error / 0 warning"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": 293,
+        "tests": 4502,
+        "machine": "同上",
+        "wallClock": "18.69s",
+        "note": "293 文件通过 / 1 跳过（294）；4502 例通过 / 4 跳过（4506）"
+      },
+      {
+        "command": "6 × pnpm exec tsx bin/visitor-realism-prompt-tightening.ts --arms off,full,minimal --reps 1 --turns 6 --out .../rep-N.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 150s",
+        "note": "6 次独立重复，每次 2 人设 × 3 分支 × 6 轮 = 36 次调用；合计 216 次、0 失败"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-realism-baseline-variance.ts --dir data/phase25-exit/af332-realism-baseline/reps --out .../summary.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "0.3s",
+        "note": "6 份报告汇总；anxious off 中位数 3.172327（2/6 在窗口）、full 7.445629（0/6）、minimal 3.324176（1/6）；guarded off 1.925926（5/6）、full 7.136363（0/6）、minimal 1.838466（4/6）"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "输出为空；engine-core 零改动"
+      },
+      {
+        "command": "pnpm orchestration:preflight",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "PASS task=AF-332 status=submitted files=11 covered=3"
+      },
+      {
+        "command": "node scripts/orchestration/cli.mjs events verify",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "回执摄入前事件链一致；归档后复跑"
+      }
+    ],
+    "reproNotes": "复现顺序：6 次执行 AF-331 CLI（--arms off,full,minimal --reps 1 --turns 6，分别输出 rep-1..6.json）；再执行 pnpm exec tsx bin/visitor-realism-baseline-variance.ts --dir .../reps --out .../summary.json；最后跑定向 25 例、typecheck、lint、全量 4502 例与 engine-core 零 diff。只读本地 JSON 汇总，不调模型；原始 JSON 含合成台词，留 gitignored 取证目录，不入库。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "AF-332 经 CLI register / promote / run-once / branch create；分支名与提交标题只含一个任务号"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "状态索引、事件链、快照、web 数据均由 CLI 生成；未手改状态面"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "events verify 通过；索引投影一致"
+      },
+      {
+        "item": "event-chain",
+        "result": "pass",
+        "note": "回执摄入前 events verify 通过"
+      },
+      {
+        "item": "engine-core-auth",
+        "result": "pass",
+        "note": "本单不涉及 engine-core；git diff --stat HEAD -- src/engine-core 为空"
+      },
+      {
+        "item": "distribution-purity",
+        "result": "pass",
+        "note": "statisticsOf/medianOf/countWithinWindow/countAtMost 为纯函数；缺失与非有限值忽略；单测覆盖奇偶、空、单样本与极值"
+      },
+      {
+        "item": "hypothetical-gate-label",
+        "result": "pass",
+        "note": "off 的假设性 active 判定在报告与代码中标注为校准，不冒充生产 gate"
+      },
+      {
+        "item": "privacy",
+        "result": "pass",
+        "note": "仓库报告只含数字；原始 JSON 含合成台词，留在 gitignored 取证目录"
+      },
+      {
+        "item": "clinical-boundary",
+        "result": "pass",
+        "note": "2 合成人设 × 6 重复的文本分布事实；无真实咨询语料、无真人督导；不宣称临床真人度、疗效或统计显著性"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 3d608aaf 为切出点；任务单 submitted；回执 finalStatus completed；实现提交 9558811e 与 changedFiles.commits 一致"
+    },
+    "backlogItems": [
+      {
+        "id": "AF332-B1",
+        "impact": "6 轮短会话密度方差极大：anxious off 1.351351–4.724409，guarded off 1.652893–5.194805；单批均值不能代表基线。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF332-B2",
+        "impact": "full 在 12 个样本中全部高于 2.50，最低 5.487805、最高 10.679612；生产块不得启用，且不是单次抖动。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF332-B3",
+        "impact": "minimal 不是焦虑的可靠修复：中位数 3.324176 高于 off 3.172327，仅 1/6 在窗口内；回避与 off 同档。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF332-B4",
+        "impact": "两人设基线不同：anxious off 中位数 3.172327，guarded 1.925926；阈值校准应按人设分开。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF332-B5",
+        "impact": "均值被离群样本拉偏：anxious off 均值 2.853935 vs 中位数 3.172327；guarded off 2.412356 vs 1.925926；报告必须并列中位数。",
+        "owner": "ai-engine",
+        "status": "open"
+      },
+      {
+        "id": "AF332-B6",
+        "impact": "humanization-v1 的 density_per100 ≤ 2.50 在 6 轮短会话上无法稳定区分基线与过量；需要 ≥12 轮或 6 重复中位数校准后再定阈值。",
+        "owner": "ai-engine",
+        "status": "open"
+      }
+    ],
+    "openQuestions": [
+      "评测窗口是否统一扩到 ≥12 轮，还是保持 6 轮但强制 6 重复取中位数",
+      "阈值是否按人设分开，还是统一用更宽的过量判定区间",
+      "minimal 是否只作为中间态保留，不进入生产候选",
+      "是否需要为 AF-330/331 的短会话数字补一份基线方差附注"
+    ],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "6 次独立重复 × 2 人设 × 3 分支 × 6 轮",
+        "reality": "完全执行，216 次调用、0 失败",
+        "action": "无偏差",
+        "why": "逐重复密度都入库为报告数字"
+      },
+      {
+        "taskSays": "报告同时给均值与中位数",
+        "reality": "已给出逐重复值、均值、中位数、最小、最大、窗口计数",
+        "action": "按任务单交付",
+        "why": "均值被离群样本拉偏的事实直接写进结论"
+      },
+      {
+        "taskSays": "不改生产 prompt / 阈值",
+        "reality": "只新增分布模块与分析 CLI；生产文件与 humanization-v1 均未改",
+        "action": "保持生产 off",
+        "why": "本单只测方差，不做阈值调参"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "AF-332 交付可复跑的分布模块、分析 CLI 与 12 例单测；6 次独立重复共 216 次调用 0 失败，明确 full 稳定过量（12/12 超上限）、off 基线方差极大、minimal 不是焦虑可靠修复，并同时给出均值与配对中位数。定向 25 例、全量 4502 例、lint 0/0、typecheck exit 0、engine-core 零 diff。没有改生产 prompt、没有调阈值、没有把工程数字包装成临床有效性。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
