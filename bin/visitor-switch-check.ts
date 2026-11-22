@@ -22,6 +22,14 @@ function fail(message: string, exitCode = 1): never {
   process.exit(exitCode);
 }
 
+function arg(name: string): string | null {
+  const index = process.argv.indexOf(name);
+  if (index === -1) return null;
+  const value = process.argv.at(index + 1);
+  if (value === undefined || value.startsWith('--')) fail(`${name} 缺少取值`, 2);
+  return value;
+}
+
 function loadEnvOnce(): void {
   if (!existsSync('.env')) fail('缺少 .env，无法判断真实开关');
   const result = loadEnvFile({ path: '.env' });
@@ -29,6 +37,20 @@ function loadEnvOnce(): void {
 }
 
 function main(): void {
+  const expectedPrimary = (arg('--expect-primary') ?? 'doubao').toLowerCase();
+  if (expectedPrimary !== 'doubao' && expectedPrimary !== 'minimax') {
+    fail('--expect-primary 只允许 doubao / minimax', 2);
+  }
+  // 演练专用：只在本进程注入 env，不写 .env；dotenv 默认不覆盖已有进程变量。
+  const simulated = arg('--simulate-visitor-provider');
+  if (simulated !== null) {
+    const value = simulated.toLowerCase();
+    if (value !== 'doubao' && value !== 'minimax') {
+      fail('--simulate-visitor-provider 只允许 doubao / minimax', 2);
+    }
+    process.env['VISITOR_LLM_PROVIDER'] = value;
+  }
+
   loadEnvOnce();
 
   const config = {
@@ -60,7 +82,8 @@ function main(): void {
   console.log(
     JSON.stringify(
       {
-        ok: primary === AIProviderId.DOUBAO,
+        ok: primary === expectedPrimary,
+        expectedPrimary,
         visitorRuntime,
         engineRender: {
           primary,
@@ -79,13 +102,13 @@ function main(): void {
     ),
   );
 
-  if (visitorRuntime.llmProvider !== AIProviderId.DOUBAO) {
-    fail(`访客运行时主 provider=${visitorRuntime.llmProvider}，不是 doubao`, 2);
+  if (visitorRuntime.llmProvider !== expectedPrimary) {
+    fail(`访客运行时主 provider=${visitorRuntime.llmProvider}，不是 ${expectedPrimary}`, 2);
   }
-  if (primary !== AIProviderId.DOUBAO) {
-    fail(`引擎渲染主候选=${primary ?? '(空)'}，不是 doubao`, 2);
+  if (primary !== expectedPrimary) {
+    fail(`引擎渲染主候选=${primary ?? '(空)'}，不是 ${expectedPrimary}`, 2);
   }
-  if (!candidates.some((candidate) => candidate.id === AIProviderId.MINIMAX)) {
+  if (expectedPrimary === AIProviderId.DOUBAO && !candidates.some((candidate) => candidate.id === AIProviderId.MINIMAX)) {
     fail('引擎渲染没有 minimax 备候选，切流后缺回退', 2);
   }
 }

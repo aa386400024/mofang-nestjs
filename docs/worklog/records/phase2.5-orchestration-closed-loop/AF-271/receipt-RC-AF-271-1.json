@@ -1,0 +1,193 @@
+{
+  "deliveredAt": "2026-11-22T12:10:00+08:00",
+  "payload": {
+    "receiptId": "RC-AF-271-1",
+    "taskId": "AF-271",
+    "contextId": "phase2.5-orchestration-closed-loop",
+    "type": "verification",
+    "agentRole": "executor",
+    "baselineRef": "fbee66e442d87d6400eaffa904580e16464fb385",
+    "dependsOn": ["AF-270"],
+    "policyRefs": ["conventions.md#1.3"],
+    "contractRef": "urn:agent-collaboration-framework:schema:receipt:1.0.0",
+    "artifactRefs": {
+      "taskSheet": "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-271/task-sheet.md",
+      "deliveryRecord": "docs/worklog/completed/phase2.5/af271-rollback-cutover-rehearsal-2026-11-22.md",
+      "reply": null,
+      "others": []
+    },
+    "changedFiles": {
+      "added": [
+        "docs/worklog/completed/phase2.5/af271-rollback-cutover-rehearsal-2026-11-22.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-271/task-sheet.md",
+        "docs/worklog/records/phase2.5-orchestration-closed-loop/AF-271/manifest.json"
+      ],
+      "modified": [
+        "bin/visitor-switch-check.ts",
+        "bin/visitor-render-smoke.ts",
+        "docs/team/agent-orchestration/orchestration-snapshot.json",
+        "docs/team/agent-orchestration/state/journal.jsonl",
+        "docs/team/agent-orchestration/task-state-index.json"
+      ],
+      "deleted": [],
+      "deletionChecks": []
+    },
+    "gateResults": [
+      {
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "DESKTOP-E3EVQ9P / Windows / PowerShell 7.6.4 / node v22.23.2 / pnpm 9.15.0",
+        "wallClock": "约 30 秒",
+        "note": "回滚开关类型闭合；日志 data/af271-tsc.log"
+      },
+      {
+        "command": "pnpm lint",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "约 40 秒",
+        "note": "0 error / 0 warning；日志 data/af271-lint.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-switch-check.ts --expect-primary doubao",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "ok=true，primary=doubao，candidates=doubao,minimax，fallback=minimax，visitor=doubao，enginePrimary=minimax；日志 data/af271-check-doubao.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-switch-check.ts --expect-primary minimax --simulate-visitor-provider minimax",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "ok=true，primary=minimax，candidates=minimax，无 fallback，visitor=minimax，enginePrimary=minimax；未写 .env；日志 data/af271-check-minimax.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-render-smoke.ts --provider minimax --caller router --turns 5",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "7.7 秒",
+        "note": "callerPath=router；5/5 providerHint=minimax，model=MiniMax-M3，fallbackUsed=false，degraded=false，finishReason=stop；wall=7748ms；usage 4552/209/4761；TTFT 971–1733ms；chars 32–52；日志 data/af271-minimax5.log"
+      },
+      {
+        "command": "pnpm exec tsx bin/visitor-switch-check.ts --expect-primary doubao",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "回滚 smoke 后恢复自检 ok=true，primary=doubao；证明真实 .env 未改；日志 data/af271-check-restored.log"
+      },
+      {
+        "command": "pnpm test",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "specFiles": 263,
+        "machine": "同上",
+        "wallClock": "24.0 秒",
+        "note": "263 files passed + 1 skipped；4272 tests passed + 4 skipped；日志 data/af271-test.log"
+      },
+      {
+        "command": "git diff --stat HEAD -- src/engine-core",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 0,
+        "specFiles": null,
+        "machine": "同上",
+        "wallClock": "瞬时",
+        "note": "diff 为空，engine-core 零改动"
+      }
+    ],
+    "reproNotes": "分支 task/AF-271-rollback-cutover-rehearsal 自 integrate fbee66e4 切出。仅改 bin/visitor-switch-check.ts（--expect-primary / --simulate-visitor-provider）与 bin/visitor-render-smoke.ts（允许 router+minimax、通用候选断言、MiniMax 默认 800 completion）。回滚态用进程 env 模拟，未写真实 .env；恢复后默认自检仍 doubao。未暂存 web/orchestration/data.js 与 data/ 取证日志。",
+    "scopeCheck": "in-scope",
+    "parallelArtifactsExcluded": true,
+    "noOutscopeRefactor": true,
+    "contractChecks": [
+      {
+        "item": "taskId",
+        "result": "pass",
+        "note": "分支名与提交标题只含 AF-271"
+      },
+      {
+        "item": "state-write",
+        "result": "pass",
+        "note": "register / promote / run-once / branch create 均经 CLI"
+      },
+      {
+        "item": "index-schema",
+        "result": "pass",
+        "note": "回执六组字段齐全，JSON 根对象完整闭合"
+      },
+      {
+        "item": "compat",
+        "result": "pass",
+        "note": "AF-263 switch-check 默认 doubao 保持；AF-264/269 故障注入仍只允许豆包主候选；全量 4272 例零回归"
+      },
+      {
+        "item": "engine-boundary",
+        "result": "pass",
+        "note": "未触碰 src/engine-core，也未改 RenderConfigFactory / VISITOR_LLM_PROVIDER 语义"
+      }
+    ],
+    "fieldAlignment": {
+      "result": "aligned",
+      "note": "baselineRef 与分支起点均为 fbee66e4；依赖 AF-270 已归档并合并"
+    },
+    "backlogItems": [
+      {
+        "id": "visitor-rollback-single-candidate-risk",
+        "impact": "切回 MiniMax 后候选链只有 minimax，未显式配 ENGINE_RENDER_FALLBACK_PROVIDERS=doubao 时一熔断就全场兜底句"
+      },
+      {
+        "id": "visitor-rollback-fault-smoke",
+        "impact": "反向回滚态的限流/5xx/超时故障与切备未验证；AF-264/269 只覆盖豆包主候选"
+      },
+      {
+        "id": "visitor-rollback-concurrency-long-context",
+        "impact": "回滚态的并发、40 轮长上下文、成本分账均未验证"
+      },
+      {
+        "id": "minimax-official-pricing",
+        "impact": "MiniMax M3 官方单价仍未核对，回滚态成本仍走全局回落价"
+      }
+    ],
+    "openQuestions": [],
+    "manualReviewList": [],
+    "deviationTable": [
+      {
+        "taskSays": "完成豆包→MiniMax→豆包回滚切流演练",
+        "reality": "回滚态用 --simulate-visitor-provider 在进程内注入 env，没有改真实 .env、没有重启服务",
+        "action": "用 switch-check 与真实 router smoke 证明配置派生与路由可逆；恢复后自检 doubao 证明无残留",
+        "why": "任务非目标明确不改生产配置；睡眠时段避免 .env 残留风险，部署级演练留到变更窗口"
+      },
+      {
+        "taskSays": "回滚态真实路由 5 轮全走 MiniMax",
+        "reality": "MiniMax M3 reasoning token 计入 completion，默认 300 可能截断正文",
+        "action": "--provider minimax 时 smoke 默认 max-tokens=800",
+        "why": "避免把上游长度截断误判成候选故障或假降级，生产预算仍由 ENGINE_RENDER_MAX_TOKENS 决定"
+      }
+    ],
+    "deviationAbsent": false,
+    "finalStatus": "completed",
+    "reviewVerdict": "passed",
+    "verdictRationale": "三段回滚演练全部可机读通过：当前 doubao、模拟回滚 minimax、真实 router 5/5 MiniMax-M3、恢复后 doubao；真实 .env 未改；tsc/lint/全量 4272 例全绿；engine-core 零改动。回滚后单候选风险与部署级演练缺口已显式登记 backlog。",
+    "failureReasonCode": null,
+    "cancellationReason": null
+  }
+}
