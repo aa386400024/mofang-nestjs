@@ -15,11 +15,15 @@ export type RenderStreamTimeoutPhase = 'first-delta' | 'idle';
  *
  * 为什么不用上游原始错误消息: 那个基数不可控, 且可能夹带请求 id / 内容片段;
  * 枚举值让看板能聚合, 也让错误分类口径只有一处.
+ *
+ * network 与 timeout 分开: 前者是连接没建立/被断开 (DNS、拒绝连接、socket reset),
+ * 后者是连接已建立但等不到响应; 两者处置不同, 不能一起塞进 other.
  */
 export type RenderFailureCause =
   | 'auth'
   | 'rate-limit'
   | 'server'
+  | 'network'
   | 'timeout'
   | 'first-delta'
   | 'idle'

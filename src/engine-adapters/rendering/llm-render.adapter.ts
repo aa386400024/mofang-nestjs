@@ -1839,6 +1839,13 @@ function extractErrorStatus(error: unknown): number | undefined {
  * 结构与 `isAuthFailure` 同源: 优先结构化 status, 文案兜底; 认不出就落到 other,
  * 不把原始 message 当标签 (基数不可控且可能夹带敏感片段).
  */
+const NETWORK_ERROR_PATTERNS: readonly RegExp[] = [
+  /connection error|connection refused|connection reset/,
+  /econnrefused|econnreset|enotfound|eai_again/,
+  /fetch failed|socket hang up|network error/,
+  /getaddrinfo|dns lookup/,
+];
+
 function classifyErrorCause(error: unknown): RenderFailureCause {
   const status = extractErrorStatus(error);
   if (status === 429) return 'rate-limit';
@@ -1847,6 +1854,10 @@ function classifyErrorCause(error: unknown): RenderFailureCause {
   const message = errorMessage(error).toLowerCase();
   if (/\b429\b|rate limit|too many requests/.test(message)) return 'rate-limit';
   if (/\b5\d\d\b|server error|bad gateway|service unavailable/.test(message)) return 'server';
+  // 连接层失败要在 timeout 之前判: ECONNRESET 常自带 "socket hang up", 但根本不是等响应超时.
+  if (NETWORK_ERROR_PATTERNS.some((pattern) => pattern.test(message))) {
+    return 'network';
+  }
   if (/timeout|timed out|etimedout|aborted|abort/.test(message)) return 'timeout';
   return 'other';
 }

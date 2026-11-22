@@ -62,6 +62,7 @@
 | `auth` | 401/403、key 失效、账号停用 | **最高优先级**；换 key / 恢复账号；不要靠切备掩盖 |
 | `rate-limit` | 429、QPS/TPM 超限 | 降并发或降档；确认备候选可用；持续 >10/10m 暂停放量 |
 | `server` | 5xx、网关错误 | 查上游状态页；备候选承接；持续则回滚 |
+| `network` | 连接拒绝/重置、DNS 失败、socket hang up | 查本机出网、代理、DNS 与 TLS；与上游 5xx 分开处置；不要先怀疑模型 |
 | `timeout` | 上游请求超时 | 查网络与上游延迟；区分聚合总超时 / 首包 / idle |
 | `first-delta` | 首包预算内无 raw chunk | 冷启动或上游排队；结合 P95 判断 |
 | `idle` | 首包后停摆 | 上游断流 / 连接被中间设备掐断 |
@@ -172,7 +173,7 @@ sum(increase(visitor_render_cancelled_total[10m]))
 | 双候选 5xx | `--fail-primary --fail-backup --fail-primary-mode server-error --expect-exhausted` | `rounds{exhausted}=1`、`degraded{exhausted}=1`、两候选 `attempts{retry}=1`、两候选 `failure{server}=1`、`fallback{from=doubao,to=minimax,cause=server}=1`、`cooldown_served_total=0` | 无 |
 | 双候选首包超时 | `--fail-primary --fail-backup --fail-primary-mode timeout --expect-exhausted` | `rounds{exhausted}=1`、`degraded{exhausted}=1`、两候选 `stream_timeout{phase=first-delta}=1`、两候选 `failure{first-delta}=1`、`fallback{cause=first-delta}=1`、wall ≈ 16s（8s×2 候选） | cause 记成 `first-delta` 而非 `timeout`：流式路径先触发首包预算；`failure{timeout}` 在这条路径上不会出现 |
 | 双候选 401 | `--fail-primary --fail-backup --fail-primary-mode auth --expect-exhausted` | `rounds{exhausted}=1`、`degraded{exhausted}=1`、两候选 `auth_failure_total=1`、两候选 `failure{auth}=1`、`fallback{cause=auth}=1` | 无 |
-| 双候选连接失败 | `--fail-primary --fail-backup --fail-primary-mode network --expect-exhausted` | `rounds{exhausted}=1`、`degraded{exhausted}=1`、两候选 `failure{other}=1`、`fallback{cause=other}=1`、`auth_failure`/`stream_timeout` 空 | `RenderFailureCause` 暂无 `network` 枚举，连接错误落到 `other`；判读时结合 probe 的 `Connection error`，不能把 `other` 一律当未知崩溃（backlog `visitor-render-network-cause-classify`） |
+| 双候选连接失败 | `--fail-primary --fail-backup --fail-primary-mode network --expect-exhausted` | `rounds{exhausted}=1`、`degraded{exhausted}=1`、两候选 `failure{network}=1`、`fallback{cause=network}=1`、`auth_failure`/`stream_timeout` 空 | 连接层错误独立归 `network`（AF-300）；与 `timeout` 分开：连接没建立/被断开才是 network，连接已建立但等不到响应是 timeout |
 | 单候选首包后停摆 | `--fail-primary --fail-primary-mode midstream-stall --expect-degraded` | `rounds{degrade}=1`、`degraded{idle}=1`、`stream_timeout{phase=idle}=1`、`failure{idle}=1`、`attempts{degrade}=1`、`fallback_total` 空、wall ≈ 30s（idle 预算） | 已有首包（TTFT ≈ 53ms，`first_delta_seconds_count=1`）；不走候选切换，直接收尾降级 |
 
 回放记录归档在 `data/af299-{server-error,timeout,auth,network,midstream}.log`；`eval` 只看 `ok=true` 不够，必须核对上表至少两条相互独立的指标（例如 `rounds` 结局 + `failure` cause），避免单一指标误判。

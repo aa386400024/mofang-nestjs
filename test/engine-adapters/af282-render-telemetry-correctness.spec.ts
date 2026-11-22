@@ -271,6 +271,28 @@ describe('AF-282 · 渲染遥测语义修正', () => {
     expect(recorder.degraded).toEqual(['exhausted']);
   });
 
+  it('P0-2 连接层失败: failure/fallback 归因 network, 不再落 other', async () => {
+    const recorder = new Recorder();
+    const adapter = new LlmRenderAdapter({
+      caller: new ScriptedCaller([
+        [{ kind: 'error', error: new Error('Connection error.') }],
+        [{ kind: 'error', error: new Error('socket hang up ECONNRESET') }],
+      ]),
+      config: config([{ id: 'primary' }, { id: 'backup' }]),
+      telemetry: recorder,
+    });
+
+    await adapter.streamRender(spec(), { onDelta: () => {} });
+
+    expect(recorder.failures).toEqual([
+      { candidate: 'primary', model: 'chat-model', cause: 'network' },
+      { candidate: 'backup', model: 'chat-model', cause: 'network' },
+    ]);
+    expect(recorder.fallbacks).toEqual([{ from: 'primary', to: 'backup', cause: 'network' }]);
+    expect(recorder.degraded).toEqual(['exhausted']);
+    expect(recorder.timeouts).toEqual([]);
+  });
+
   it('P1 安全拦截: block 降级统一归因 guard', async () => {
     const recorder = new Recorder();
     const adapter = new LlmRenderAdapter({
