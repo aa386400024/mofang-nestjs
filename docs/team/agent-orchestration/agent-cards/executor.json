@@ -3,7 +3,7 @@
   "role": "executor",
   "skills": ["implementation", "gate-evidence", "deviation-reporting", "self-test"],
   "tools": ["workspace-read", "workspace-write", "gate-execution"],
-  "resources": ["src/", "bin/", "test/", "admin-dashboard/", ".env.example", "docs/team/agent-orchestration/agent-cards/executor.json", "docs/worklog/pending/", "docs/worklog/completed/", "docs/worklog/records/"],
+  "resources": ["src/", "bin/", "test/", "admin-dashboard/", "docker/", "docs/runbooks/", ".env.example", "docs/team/agent-orchestration/agent-cards/executor.json", "docs/worklog/pending/", "docs/worklog/completed/", "docs/worklog/records/"],
   "limits": {
     "canDo": ["按任务契约实现切片范围内的改动", "执行内循环自测与收尾闸门并采集真实证据", "写交付记录与偏差表，按约定回执"],
     "cannotDo": [
